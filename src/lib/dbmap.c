@@ -313,8 +313,7 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 		if (common_dbg) {
 			g_debug("SDBM \"%s\": superblock has %u key%s%s, "
 				"last check done %s ago",
-				sdbm_name(sdbm), (unsigned) sblock.count,
-				1 == sblock.count ? "" : "s",
+				sdbm_name(sdbm), (unsigned) sblock.count, plural(sblock.count),
 				(sblock.flags & DBMAP_SF_KEYCHECK) ?
 					" (keycheck required)" : "",
 				compact_time(delta_time(tm_time(), sblock.last_check)));
@@ -1136,8 +1135,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 			if (invalid || unreadable) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s and "
 					"%zu unreadable",
-					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s",
-					unreadable);
+					sdbm_name(sdbm), invalid, plural(invalid), unreadable);
 			}
 		}
 		break;
@@ -1220,8 +1218,8 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 			if (invalid || errors || unreadable) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
 					"%zu key deletion error%s, %zu unreadable",
-					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s",
-					errors, 1 == errors ? "" : "s", unreadable);
+					sdbm_name(sdbm), invalid, plural(invalid),
+					errors, plural(errors), unreadable);
 			}
 		}
 		break;

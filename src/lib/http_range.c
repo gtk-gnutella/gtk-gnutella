@@ -656,8 +656,7 @@ coalesce:
 	HTTP_RANGE_DEBUG(5, "final range is %s-%s, added %s byte%s",
 		filesize_to_string(left->start),
 		filesize_to_string2(left->end),
-		filesize_to_string3(newlen - length),
-		1 == newlen - length ? "" : "s");
+		filesize_to_string3(newlen - length), plural(newlen - length));
 
 	safety_assert(http_rangeset_invariant(hrs));
 	safety_assert(http_rangeset_compute_length(hrs) == hrs->length);

@@ -67,6 +67,7 @@
 #include "getcpucount.h"
 #include "log.h"
 #include "spinlock.h"
+#include "stringify.h"
 #include "thread.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -306,7 +307,7 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 
 	if (wc != NULL) {
 		s_miniinfo("waiting queue for rwlock %p (%u item%s):",
-			rw, rw->waiters, 1 == rw->waiters ? "" : "s");
+			rw, rw->waiters, plural(rw->waiters));
 	} else {
 		s_miniwarn("waiting queue for rwlock %p is empty?", rw);
 	}
@@ -604,10 +605,10 @@ rwlock_destroy(rwlock_t *rw)
 
 		s_carp("destroying rwlock %p with %u reader%s, "
 			"%u writer%s, %u read-waiter%s and %u write-waiter%s",
-			rw, rw->readers, 1 == rw->readers ? "" : "s",
-			rw->writers, 1 == rw->writers ? "" : "s",
-			rwait, 1 == rwait ? "" : "s",
-			rw->write_waiters, 1 == rw->write_waiters ? "" : "s");
+			rw, rw->readers, plural(rw->readers),
+			rw->writers, plural(rw->writers),
+			rwait, plural(rwait),
+			rw->write_waiters, plural(rw->write_waiters));
 	}
 
 	rw->magic = RWLOCK_DESTROYED;		/* Now invalid */

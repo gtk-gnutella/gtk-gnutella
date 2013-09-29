@@ -852,8 +852,7 @@ bitzi_ticket_requested(char *data, size_t len, int code,
 
 	if (GNET_PROPERTY(bitzi_debug) > 1) {
 		g_debug("BITZI request for %s returned %zu byte%s",
-			sha1_to_string(breq->sha1),
-			len, 1 == len ? "" : "s");
+			sha1_to_string(breq->sha1), len, plural(len));
 		if (GNET_PROPERTY(bitzi_debug) > 5) {
 			g_debug("BITZI got HTTP %u:", code);
 			header_dump(stderr, header, "----");

@@ -59,13 +59,18 @@
 
 #include "common.h"
 
-#include "cq.h"
-#include "hashlist.h"
-#include "glib-missing.h"
-#include "unsigned.h"
 #include "palloc.h"
+#include "cq.h"
+#include "glib-missing.h"
+#include "hashlist.h"
+#include "log.h"
+#include "palloc.h"
+#include "stringify.h"
 #include "tm.h"
+#include "unsigned.h"
 #include "walloc.h"
+#include "xmalloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define POOL_OVERSIZED_THRESH	30		/**< Amount of seconds to wait */
@@ -121,7 +126,7 @@ pool_needs_gc(const pool_t *p, bool need)
 	if (!need) {
 		if (pool_gc != NULL && hash_list_remove(pool_gc, p) != NULL) {
 			if (palloc_debug > 1) {
-				g_debug("PGC turning off GC for pool \"%s\" "
+				s_debug("PGC turning off GC for pool \"%s\" "
 					"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
 					p->name, p->allocated, p->held,
 					pool_ema(p, slow_ema), pool_ema(p, fast_ema));
@@ -136,7 +141,7 @@ pool_needs_gc(const pool_t *p, bool need)
 		if (!hash_list_contains(pool_gc, p)) {
 			hash_list_append(pool_gc, p);
 			if (palloc_debug > 1) {
-				g_debug("PGC turning GC on for pool \"%s\" "
+				s_debug("PGC turning GC on for pool \"%s\" "
 					"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
 					p->name, p->allocated, p->held,
 					pool_ema(p, slow_ema), pool_ema(p, fast_ema));
@@ -214,7 +219,7 @@ pool_heartbeat(cqueue_t *cq, void *obj)
 	}
 
 	if (palloc_debug > 4) {
-		g_debug("PGC pool \"%s\": allocated=%u, held=%u, used=%u, above=%u, "
+		s_debug("PGC pool \"%s\": allocated=%u, held=%u, used=%u, above=%u, "
 			"slow_ema=%u, fast_ema=%u, monotonic_ema=%u, peak=%u",
 			p->name, p->allocated, p->held, p->allocated - p->held, p->above,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
@@ -250,7 +255,7 @@ pool_create(const char *name,
 
 	WALLOC0(p);
 	p->magic = POOL_MAGIC;
-	p->name = g_strdup(name);
+	p->name = xstrdup(name);
 	p->size = size;
 	p->alloc = alloc;
 	p->dealloc = dealloc;
@@ -295,7 +300,7 @@ pool_free(pool_t *p)
 	}
 
 	gm_slist_free_null(&p->buffers);
-	G_FREE_NULL(p->name);
+	XFREE_NULL(p->name);
 	cq_cancel(&p->heartbeat_ev);
 	p->magic = 0;
 	WFREE(p);
@@ -362,7 +367,7 @@ pfree(pool_t *p, void *obj)
 		g_assert(uint_is_positive(p->allocated));
 
 		if (palloc_debug > 1)
-			g_debug("PGC pool \"%s\": buffer %p is a fragment", p->name, obj);
+			s_debug("PGC pool \"%s\": buffer %p is a fragment", p->name, obj);
 
 		p->dealloc(obj, TRUE);
 		p->allocated--;
@@ -410,7 +415,7 @@ pool_reclaim_garbage(pool_t *p)
 	g_assert(p->allocated >= p->held);
 
 	if (palloc_debug > 2) {
-		g_debug("PGC garbage collecting pool \"%s\": allocated=%u, held=%u "
+		s_debug("PGC garbage collecting pool \"%s\": allocated=%u, held=%u "
 			"slow_ema=%u, fast_ema=%u, bg_ema=%u, peak=%u",
 			p->name, p->allocated, p->held,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
@@ -427,9 +432,9 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (p->fast_ema > p->slow_ema) {
 		if (palloc_debug > 1) {
-			g_debug("PGC not collecting %u block%s from \"%s\": "
+			s_debug("PGC not collecting %u block%s from \"%s\": "
 				"recent allocation burst",
-				p->held, 1 == p->held ? "" : "s", p->name);
+				p->held, plural(p->held), p->name);
 		}
 		goto reset;
 	}
@@ -445,7 +450,7 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (p->allocated - p->held > ema) {
 		if (palloc_debug > 1) {
-			g_debug("PGC doubling current EMA max for \"%s\": "
+			s_debug("PGC doubling current EMA max for \"%s\": "
 				"used block count %u currently above largest EMA %u",
 				p->name, p->allocated - p->held, ema);
 		}
@@ -466,9 +471,9 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (p->allocated <= threshold) {
 		if (palloc_debug > 1) {
-			g_debug("PGC not collecting %u block%s from \"%s\": "
+			s_debug("PGC not collecting %u block%s from \"%s\": "
 				"allocation count %u currently below or at target of %u",
-				p->held, 1 == p->held ? "" : "s", p->name, p->allocated,
+				p->held, plural(p->held), p->name, p->allocated,
 				threshold);
 		}
 		goto reset;
@@ -478,8 +483,8 @@ pool_reclaim_garbage(pool_t *p)
 	extra = MIN(extra, p->held);
 
 	if (palloc_debug) {
-		g_debug("PGC collecting %u extra block%s from \"%s\"",
-			extra, 1 == extra ? "" : "s", p->name);
+		s_debug("PGC collecting %u extra block%s from \"%s\"",
+			extra, plural(extra), p->name);
 	}
 
 	/*

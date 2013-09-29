@@ -59,6 +59,7 @@
 #include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -251,7 +252,7 @@ upnp_dscv_updated(struct upnp_mcb *mcb)
 		if (GNET_PROPERTY(upnp_debug) > 3) {
 			size_t count = g_slist_length(mcb->devices);
 			g_message("UPNP discovery completed: kept %zu device%s",
-				count, 1 == count ? "" : "s");
+				count, plural(count));
 		}
 
 		/*
@@ -423,7 +424,7 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 
 	if (GNET_PROPERTY(upnp_debug) > 5) {
 		g_debug("UPNP SCPD fetch \"%s\" returned %zu byte%s for %s",
-			upnp_service_scpd_url(usd), len, 1 == len ? "" : "s",
+			upnp_service_scpd_url(usd), len, plural(len),
 			upnp_service_to_string(usd));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
@@ -674,7 +675,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 
 	if (GNET_PROPERTY(upnp_debug) > 5) {
 		g_debug("UPNP probe of \"%s\" returned %zu byte%s",
-			ud->desc_url, len, 1 == len ? "" : "s");
+			ud->desc_url, len, plural(len));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
 			header_dump(stderr, header, "----");
@@ -1055,7 +1056,7 @@ upnp_dscv_timeout(cqueue_t *cq, void *obj)
 
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_warning("UPNP discovery timed out after %u repl%s",
-			mcb->replies, 1 == mcb->replies ? "y" : "ies");
+			mcb->replies, plural_y(mcb->replies));
 	}
 
 	(*mcb->cb)(NULL, mcb->arg);		/* Signals timeout */

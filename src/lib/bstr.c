@@ -129,8 +129,7 @@ error_eos(bstr_t *bs, size_t expected, const char *where)
 			"%s(): end of stream reached at offset %zu; "
 			"expected %s more byte%s",
 			where, ptr_diff(bs->end, bs->start),
-			expected ? size_t_to_string(expected) : "some",
-			expected == 1 ? "" : "s");
+			expected ? size_t_to_string(expected) : "some", plural(expected));
 	}
 
 	return bs->ok = FALSE;
@@ -402,7 +401,7 @@ bstr_trailing_error(bstr_t *bs)
 		if (bs->flags & BSTR_F_ERROR) {
 			alloc_error(bs);
 			str_printf(bs->error, "has %zu trailing unread byte%s",
-				n, 1 == n ? "" : "s");
+				n, plural(n));
 		} else {
 			bs->flags |= BSTR_F_TRAILING;
 		}

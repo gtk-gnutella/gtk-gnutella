@@ -47,6 +47,7 @@
 #include "semaphore.h"
 #include "slist.h"
 #include "spinlock.h"
+#include "stringify.h"
 #include "thread.h"
 #include "tm.h"
 #include "waiter.h"
@@ -634,7 +635,7 @@ cond_destroy(cond_t *c)
 	if (locked) {
 		if G_UNLIKELY(cv->waiting != 0) {
 			s_carp("%s(): condition variable still has %u waiting thread%s",
-				G_STRFUNC, cv->waiting, 1 == cv->waiting ? "" : "s");
+				G_STRFUNC, cv->waiting, plural(cv->waiting));
 		}
 		cond_free(cv, TRUE);
 	}

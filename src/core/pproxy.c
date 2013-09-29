@@ -74,6 +74,7 @@
 #include "lib/parse.h"
 #include "lib/sequence.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -435,8 +436,8 @@ get_params(struct pproxy *pp, const char *request,
 
 		if (datalen != 26 && datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
-				"wrong length for parameter \"%s\": %d byte%s", attr, datalen,
-				datalen == 1 ? "" : "s");
+				"wrong length for parameter \"%s\": %d byte%s",
+				attr, datalen, plural(datalen));
 			goto error;
 		}
 
@@ -460,8 +461,8 @@ get_params(struct pproxy *pp, const char *request,
 
 		if (datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
-				"wrong length for parameter \"%s\": %d byte%s", attr, datalen,
-				datalen == 1 ? "" : "s");
+				"wrong length for parameter \"%s\": %d byte%s",
+				attr, datalen, plural(datalen));
 			goto error;
 		}
 
@@ -884,11 +885,11 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 203, FALSE, NULL, 0,
 					"Push-proxy: message sent through Gnutella (via %d node%s)",
-					cnt, cnt == 1 ? "" : "s");
+					cnt, plural(cnt));
 
 			pp->error_sent = 203;
 			pproxy_remove(pp, "Push sent via Gnutella (%d node%s) for GUID %s",
-					cnt, cnt == 1 ? "" : "s", guid_hex_str(pp->guid));
+					cnt, plural(cnt), guid_hex_str(pp->guid));
 		}
 
 		gm_slist_free_null(&nodes);

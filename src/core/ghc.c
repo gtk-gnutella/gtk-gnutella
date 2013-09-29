@@ -46,6 +46,7 @@
 #include "lib/list.h"
 #include "lib/random.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -357,8 +358,7 @@ ghc_host_eof(struct parse_context *ctx)
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("BOOT GHC got %d host%s from %s",
-			ctx->processed, ctx->processed == 1 ? "" : "s",
-			http_async_url(ghc_ctx.ha));
+			ctx->processed, plural(ctx->processed), http_async_url(ghc_ctx.ha));
 
 	ghc_ctx.ha = NULL;
 	ghc_connecting = FALSE;

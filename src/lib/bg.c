@@ -113,7 +113,7 @@
 #include "once.h"
 #include "spinlock.h"
 #include "stacktrace.h"
-#include "stringify.h"		/* For short_time_ascii() */
+#include "stringify.h"		/* For short_time_ascii() and plural() */
 #include "tm.h"
 #include "walloc.h"
 
@@ -826,7 +826,7 @@ bg_task_create(
 
 	if (bg_debug > 1) {
 		g_debug("BGTASK created task \"%s\" (%d step%s) in %s scheduler",
-			name, stepcnt, 1 == stepcnt ? "" : "s", bt->sched->name);
+			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
 	return bt;
@@ -899,7 +899,7 @@ bg_daemon_create(
 
 	if (bg_debug > 1) {
 		g_debug("BGTASK created daemon task \"%s\" (%d step%s) in %s scheduler",
-			name, stepcnt, 1 == stepcnt ? "" : "s", bt->sched->name);
+			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
 	return bt;
@@ -972,7 +972,7 @@ bg_task_free(bgtask_t *bt)
 
 		if (count) {
 			g_warning("%s(): freed %d pending item%s for daemon \"%s\" task",
-				G_STRFUNC, count, 1 == count ? "" : "s", bt->name);
+				G_STRFUNC, count, plural(count), bt->name);
 		}
 		bt->magic = 0;
 		WFREE(bd);
@@ -1743,7 +1743,7 @@ bg_sched_timer(void *arg)
 
 		if (bg_debug > 4) {
 			g_debug("BGTASK \"%s\" running step #%d.%d with %d tick%s",
-				bt->name, bt->step, bt->seqno, ticks, ticks == 1 ? "" : "s");
+				bt->name, bt->step, bt->seqno, ticks, plural(ticks));
 		}
 
 		bg_task_deliver_signals(bt);	/* Send any queued signal */
@@ -1795,7 +1795,7 @@ bg_sched_timer(void *arg)
 			g_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]",
 				bt->name, bt->step, bt->seqno,
-				bt->ticks_used, bt->ticks_used == 1 ? "" : "s",
+				bt->ticks_used, plural(bt->ticks_used),
 				bt->elapsed, ret);
 
 		/*
@@ -1834,7 +1834,7 @@ bg_sched_timer(void *arg)
 		g_debug("BGTASK \"%s\" runable=%d, ran for %lu usecs, "
 			"scheduling %u task%s",
 			bs->name, bs->runcount, MAX_LIFE - remain,
-			schedules, 1 == schedules ? "" : "s");
+			schedules, plural(schedules));
 	}
 
 	/*
@@ -1972,12 +1972,12 @@ bg_sched_destroy(bgsched_t *bs)
 
 	count = bg_task_terminate_all(&bs->runq);
 	if (count > 0) {
-		g_warning("terminated %u running task%s", count, count == 1 ? "" : "s");
+		g_warning("terminated %u running task%s", count, plural(count));
 	}
 
 	count = bg_task_terminate_all(&bs->sleepq);
 	if (count > 0) {
-		g_warning("terminated %d daemon task%s", count, count == 1 ? "" : "s");
+		g_warning("terminated %d daemon task%s", count, plural(count));
 	}
 
 	bg_reclaim_dead(bs);				/* Free dead tasks */

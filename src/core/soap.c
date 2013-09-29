@@ -266,7 +266,7 @@ soap_process_reply(soap_rpc_t *sr)
 	if (GNET_PROPERTY(soap_debug) > 2) {
 		g_debug("SOAP \"%s\" at \"%s\": processing reply (%zu byte%s) HTTP %d",
 			sr->action, sr->url, sr->reply_len,
-			1 == sr->reply_len ? "" : "s", sr->http_code);
+			plural(sr->reply_len), sr->http_code);
 	}
 
 	/*

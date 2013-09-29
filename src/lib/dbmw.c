@@ -349,7 +349,7 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 	) {
 		dbg_ds_log(dw->dbg, dw, "%s: %s dirty value (%zu byte%s) key=%s",
 			G_STRFUNC, value->absent ? "deleting" : "flushing",
-			dval.len, 1 == dval.len ? "" : "s",
+			dval.len, plural(dval.len),
 			dbg_ds_keystr(dw->dbg, key, (size_t) -1));
 	}
 
@@ -788,8 +788,7 @@ dbmw_sync(dbmw_t *dw, int which)
 	if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING)) {
 		dbg_ds_log(dw->dbg, dw, "%s: %s (flushed %zu value%s, %zu page%s)",
 			G_STRFUNC, error ? "FAILED" : "OK",
-			values, 1 == values ? "" : "s",
-			pages, 1 == pages ? "" : "s");
+			values, plural(values), pages, plural(pages));
 	}
 
 	return error ? -1 : amount;
@@ -1306,9 +1305,9 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 			"write cache hits = %.2f%% on %s request%s)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
 			dw->r_hits * 100.0 / MAX(1, dw->r_access),
-			uint64_to_string(dw->r_access), 1 == dw->r_access ? "" : "s",
+			uint64_to_string(dw->r_access), plural(dw->r_access),
 			dw->w_hits * 100.0 / MAX(1, dw->w_access),
-			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
+			uint64_to_string2(dw->w_access), plural(dw->w_access));
 	}
 
 	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_DESTROY)) {
@@ -1317,9 +1316,9 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 			"write cache hits = %.2f%% on %s request%s)",
 			G_STRFUNC, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
 			dw->r_hits * 100.0 / MAX(1, dw->r_access),
-			uint64_to_string(dw->r_access), 1 == dw->r_access ? "" : "s",
+			uint64_to_string(dw->r_access), plural(dw->r_access),
 			dw->w_hits * 100.0 / MAX(1, dw->w_access),
-			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
+			uint64_to_string2(dw->w_access), plural(dw->w_access));
 	}
 
 	/*
@@ -1526,7 +1525,7 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p)"
 			"has %zu unflushed entr%s in cache", G_STRFUNC,
 			stacktrace_function_name(cb), arg,
-			dw->cached, 1 == dw->cached ? "y" : "ies");
+			dw->cached, plural_y(dw->cached));
 	}
 }
 
@@ -1605,7 +1604,7 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 			G_STRFUNC,
 			stacktrace_function_name(cbr), arg,
 			pruned, fctx.removed, pruned + fctx.removed,
-			dw->cached, 1 == dw->cached ? "y" : "ies");
+			dw->cached, plural_y(dw->cached));
 	}
 
 	return pruned + fctx.removed;

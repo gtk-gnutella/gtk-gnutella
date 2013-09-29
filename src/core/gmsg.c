@@ -53,6 +53,7 @@
 #include "lib/endian.h"
 #include "lib/pmsg.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
@@ -1077,7 +1078,7 @@ gmsg_infostr_split_to_buf(
 
 	return str_bprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
-		size, size == 1 ? "" : "s",
+		size, plural(size),
 		guid_hex_str(gnutella_header_get_muid(head)),
 		gnutella_header_get_ttl(head) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(head),
@@ -1101,7 +1102,7 @@ gmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 
 	return str_bprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
-		size, size == 1 ? "" : "s",
+		size, plural(size),
 		guid_hex_str(gnutella_header_get_muid(msg)),
 		gnutella_header_get_ttl(msg) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(msg),
@@ -1132,7 +1133,7 @@ gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 				"%s %s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 				gmsg_name(gnutella_header_get_function(head)),
 				vmsg_infostr(data, size),
-				size, size == 1 ? "" : "s",
+				size, plural(size),
 				guid_hex_str(gnutella_header_get_muid(head)),
 				ttl & GTA_UDP_DEFLATED ? "deflated " : 
 					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",

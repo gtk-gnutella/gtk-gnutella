@@ -499,10 +499,10 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
-			info->roots, 1 == info->roots ? "" : "s",
+			info->roots, plural(info->roots),
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pe->last_enqueued)),
-			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->all_roots, plural(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
@@ -650,9 +650,8 @@ publisher_handle(struct publisher_entry *pe)
 		if (GNET_PROPERTY(publisher_debug)) {
 			g_debug("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
 				"entr%s, skipped", sha1_to_string(pe->sha1),
-				is_partial ? "partial " : "",
-				shared_file_name_nfc(sf),
-				alt_locs, 1 == alt_locs ? "y" : "ies");
+				is_partial ? "partial " : "", shared_file_name_nfc(sf),
+				alt_locs, plural_y(alt_locs));
 		}
 		publisher_hold(pe, PUBLISH_POPULAR, "popular file");
 		return;
@@ -897,7 +896,7 @@ publisher_trim_pubdata(void)
 	if (GNET_PROPERTY(publisher_debug)) {
 		count = dbmw_count(db_pubdata);
 		g_debug("PUBLISHER scanning %u retrieved SHA1%s",
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	dbmw_foreach_remove(db_pubdata, publisher_remove_expired, NULL);
@@ -906,7 +905,7 @@ publisher_trim_pubdata(void)
 
 	if (GNET_PROPERTY(publisher_debug)) {
 		g_debug("PUBLISHER kept information about %u SHA1%s",
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	dbstore_compact(db_pubdata);

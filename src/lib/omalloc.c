@@ -649,10 +649,10 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		size_t count = OMALLOC_RW == mode ?
 			ostats.objects_rw : ostats.objects_ro;
 		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu %s object%s)",
-			pages, 1 == pages ? "" : "s",
+			pages, plural(pages),
 			OMALLOC_RW == mode ? ostats.pages_rw : ostats.pages_ro,
 			count, OMALLOC_RW == mode ? "read-write" : "read-only",
-			1 == count ? "" : "s");
+			plural(count));
 	}
 
 	/*
@@ -700,7 +700,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 			s_debug("OMALLOC adding %zu byte-long chunk (%zu %s chunk%s total)",
 				omalloc_chunk_size(ck),
 				count, OMALLOC_RW == mode ? "read-write" : "read-only",
-				1 == count ? "" : "s");
+				plural(count));
 		}
 	} else {
 		/*
@@ -916,22 +916,22 @@ omalloc_close(void)
 	if (omalloc_debug) {
 		s_debug("omalloc() allocated %zu read-write object%s "
 			"spread on %zu page%s",
-			ostats.objects_rw, 1 == ostats.objects_rw ? "" : "s",
-			ostats.pages_rw, 1 == ostats.pages_rw ? "" : "s");
+			ostats.objects_rw, plural(ostats.objects_rw),
+			ostats.pages_rw, plural(ostats.pages_rw));
 		s_debug("omalloc() allocated %s read-write, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_rw, FALSE),
-			ostats.chunks_rw, 1 == ostats.chunks_rw ? "" : "s",
-			1 == ostats.chunks_rw ? "s" : "");
+			ostats.chunks_rw, plural(ostats.chunks_rw),
+			plural(ostats.chunks_rw));
 		s_debug("omalloc() allocated %zu read-only object%s "
 			"spread on %zu page%s",
-			ostats.objects_ro, 1 == ostats.objects_ro ? "" : "s",
-			ostats.pages_ro, 1 == ostats.pages_ro ? "" : "s");
+			ostats.objects_ro, plural(ostats.objects_ro),
+			ostats.pages_ro, plural(ostats.pages_ro));
 		s_debug("omalloc() allocated %s read-only, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_ro, FALSE),
-			ostats.chunks_ro, 1 == ostats.chunks_ro ? "" : "s",
-			1 == ostats.chunks_ro ? "s" : "");
+			ostats.chunks_ro, plural(ostats.chunks_ro),
+			plural(ostats.chunks_ro));
 	}
 }
 

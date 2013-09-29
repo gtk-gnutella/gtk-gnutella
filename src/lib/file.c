@@ -43,6 +43,7 @@
 #include "misc.h"			/* For is_strsuffix() */
 #include "path.h"
 #include "str.h"
+#include "stringify.h"		/* For plural() */
 #include "timestamp.h"
 #include "tm.h"
 
@@ -269,7 +270,7 @@ open_read(
 			g_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
 			g_debug("[%s] unable to retrieve: tried %d alternate location%s",
-				what, fvcnt, fvcnt == 1 ? "" : "s");
+				what, fvcnt, plural(fvcnt));
 		} else {
 			g_debug("[%s] unable to retrieve: no alternate locations known",
 				what);

@@ -1310,7 +1310,7 @@ completion_iterate(struct bootstrap *b)
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT completing bootstrap with KUID %s (%d bit%s)",
-			kuid_to_hex_string(&b->id), b->bits, 1 == b->bits ? "" : "s");
+			kuid_to_hex_string(&b->id), b->bits, plural(b->bits));
 }
 
 /**
@@ -1335,7 +1335,7 @@ bootstrap_completion_status(
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
 		g_debug("DHT bootstrap with ID %s (%d bit%s) done: %s",
-			kuid_to_hex_string(kuid), b->bits, 1 == b->bits ? "" : "s",
+			kuid_to_hex_string(kuid), b->bits, plural(b->bits),
 			lookup_strerror(error));
 
 	/*
@@ -2167,7 +2167,7 @@ move_node(struct kbucket *kb, knode_t *kn)
 	 * hikset to store nodes by KUID: when we return from WMOVE, the structure
 	 * still references an address that is invalid and has potentially been
 	 * freed.  We would have to revert to a classic hash table if we were
-	 * to re-enable moving nodes around.
+	 * to re-enable moving nodes around in memory.
 	 *		--RAM, 2012-04-30
 	 */
 #if 0
@@ -2990,7 +2990,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT merging %s%s with its sibling (total of %u good node%s)",
 			forced ? "(forced) " : "",
-			kbucket_to_string(kb), good_nodes, 1 == good_nodes ? "" :"s");
+			kbucket_to_string(kb), good_nodes, plural(good_nodes));
 	}
 
 	/*
@@ -3212,7 +3212,7 @@ bucket_stale_check(cqueue_t *cq, void *obj)
 	if (to_remove != NULL && GNET_PROPERTY(dht_debug)) {
 		unsigned count = g_slist_length(to_remove);
 		g_debug("DHT selected %u stale node%s to remove (likely dead)",
-			count, 1 == count ? "" : "s");
+			count, plural(count));
 	}
 
 	GM_SLIST_FOREACH(to_remove, sl) {
@@ -3282,7 +3282,7 @@ bucket_alive_check(cqueue_t *cq, void *obj)
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT missing %u good node%s in %s",
-				missing, 1 == missing ? "" : "s", kbucket_to_string(kb));
+				missing, plural(missing), kbucket_to_string(kb));
 		}
 
 		do {
@@ -3298,7 +3298,7 @@ bucket_alive_check(cqueue_t *cq, void *obj)
 			uint promoted = K_BUCKET_GOOD - good_and_stale - missing;
 			if (promoted) {
 				g_debug("DHT promoted %u pending node%s in %s",
-					promoted, 1 == promoted ? "" : "s", kbucket_to_string(kb));
+					promoted, plural(promoted), kbucket_to_string(kb));
 			}
 		}
 	}
@@ -3593,7 +3593,7 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		double s = bigint_to_double(&sq);
 
 		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
-			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
+			kuid_to_hex_string(kuid), amount, plural(amount),
 			(unsigned) (i - 1));
 		g_debug("DHT dsum is %s = %F", bigint_to_hex_string(&dsum), ds);
 		g_debug("DHT squares is %s = %F (%d)",
@@ -3721,7 +3721,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT target KUID is %s (%u node%s in path, retained %u)",
-			kuid_to_hex_string(kuid), (unsigned) count, 1 == count ? "" : "s",
+			kuid_to_hex_string(kuid), (unsigned) count, plural(count),
 			(unsigned) retained);
 	}
 
@@ -3779,7 +3779,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT average common prefix is %f bits over %zu node%s",
-			bits, retained, 1 == retained ? "" : "s");
+			bits, retained, plural(retained));
 	}
 
 	return estimate;
@@ -4063,8 +4063,8 @@ update_cached_size_estimate(void)
 			"(%d point%s, skipped %d), k-ball furthest: %d bit%s",
 			uint64_to_string(stats.average.estimate),
 			uint64_to_string2(avg_stderr),
-			count, 1 == count ? "" : "s", n + 1 - count,
-			stats.kball_furthest, 1 == stats.kball_furthest ? "" : "s");
+			count, plural(count), n + 1 - count,
+			stats.kball_furthest, plural(stats.kball_furthest));
 		if (n > 1) {
 			g_debug(
 				"DHT collected average is %.0f (%d points), avg_stderr = %g",
@@ -5238,7 +5238,7 @@ dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d DHT host%s in DHTIPP pong from %s",
-			cnt, cnt == 1 ? "" : "s", node_addr(n));
+			cnt, plural(cnt), node_addr(n));
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;

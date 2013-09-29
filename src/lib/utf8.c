@@ -710,7 +710,7 @@ malformed:
 		break;
 	case UTF8_WARN_SHORT:
 		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
-			len, len == 1 ? "" : "s", expectlen);
+			len, plural(len), expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
 		str_bprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
@@ -724,7 +724,7 @@ malformed:
 		break;
 	case UTF8_WARN_LONG:
 		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
-			expectlen, expectlen == 1 ? "" : "s", uniskip(v));
+			expectlen, plural(expectlen), uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
 		str_bprintf(msg, sizeof(msg), "character 0x%04lx", (ulong) v);

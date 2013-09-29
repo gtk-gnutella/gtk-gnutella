@@ -437,7 +437,7 @@ pdht_publish_done(void *arg,
 		g_debug("PDHT ending %s%s publish for %s (%u publish%s): %s",
 			(pp->flags & PDHT_F_BACKGROUND) ? "background " : "",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
-			info->published, 1 == info->published ? "" : "es",
+			info->published, plural_es(info->published),
 			publish_strerror(code));
 	}
 
@@ -933,7 +933,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				size_t roots = lookup_result_path_length(rs);
 				g_debug("PDHT ALOC found %zu publish root%s for %s \"%s\"",
-					roots, 1 == roots ? "" : "s",
+					roots, plural(roots),
 					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_nfc(sf));
 			}
@@ -964,8 +964,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
 			g_debug("PDHT NOPE found %zu publish root%s for %s",
-				roots, 1 == roots ? "" : "s",
-				guid_hex_str(pp->u.nope.guid));
+				roots, plural(roots), guid_hex_str(pp->u.nope.guid));
 		}
 
 		value = pdht_get_nope(pp->u.nope.guid, pp->id);
@@ -973,8 +972,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	case PDHT_T_PROX:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_debug("PDHT PROX found %zu publish root%s",
-				roots, 1 == roots ? "" : "s");
+			g_debug("PDHT PROX found %zu publish root%s", roots, plural(roots));
 		}
 
 		value = pdht_get_prox(pp->id);
@@ -1340,7 +1338,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 			info->roots, 1 == info->roots ? "" : "s",
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pdht_proxy.last_enqueued)),
-			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->all_roots, plural(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
@@ -1423,9 +1421,8 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 	g_list_free(list);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_debug("PDHT PROX using %zu push-prox%s for local node (%s)",
-			i, 1 == i ? "y" : "ies",
-			GNET_PROPERTY(is_firewalled) ? "firewalled" : "not firewalled");
+		g_debug("PDHT PROX using %zu push-prox%s for local node (%sfirewalled)",
+			i, plural_y(i), GNET_PROPERTY(is_firewalled) ? "" : "not ");
 	}
 
 	return i;
@@ -1491,7 +1488,7 @@ pdht_prox_publish(bool force)
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
 			(unsigned) pdht_proxy.proxies_count,
-			1 == pdht_proxy.proxies_count ? "y" : "ies",
+			plural_y(pdht_proxy.proxies_count),
 			changed ? "" : "un",
 			publishing ?  "publishing" : "ignoring",
 			force ? "forced" : "on change only");
@@ -1708,9 +1705,9 @@ pdht_nope_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 			" %s bg, path %u) [%s]",
 			info->was_bg ? "[bg] " : "",
 			guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
-			info->roots, 1 == info->roots ? "" : "s",
+			info->roots, plural(info->roots),
 			pdht_strerror(code),
-			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->all_roots, plural(info->all_roots),
 			info->presence * 100.0,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");

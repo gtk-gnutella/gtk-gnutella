@@ -52,6 +52,7 @@
 #include "lib/hikset.h"
 #include "lib/host_addr.h"
 #include "lib/stacktrace.h"		/* For stacktrace_function_name() */
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -832,7 +833,7 @@ dht_rpc_answer(const guid_t *muid,
 			g_debug("DHT RPC %s #%s invoking %s(REPLY, %s, %zu byte%s, %p)",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				stacktrace_function_name(rcb->cb), kmsg_name(function),
-				len, 1 == len ? "" : "s", rcb->arg);
+				len, plural(len), rcb->arg);
 		}
 		(*rcb->cb)(DHT_RPC_REPLY, rn, n, function, payload, len, rcb->arg);
 	}
@@ -891,7 +892,7 @@ dht_lazy_rpc_ping(knode_t *kn)
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT not sending any alive ping to %s (%u pending RPC%s)",
 				knode_to_string(kn), kn->rpc_pending,
-				1 == kn->rpc_pending ? "" : "s");
+				plural(kn->rpc_pending));
 		}
 		gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_AVOIDED);
 		return FALSE;

@@ -52,6 +52,7 @@
 #include "lib/cq.h"
 #include "lib/getgateway.h"
 #include "lib/pmsg.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -462,10 +463,10 @@ error:
 		if (bstr_has_error(bs)) {
 			g_warning("NATPMP parsing error while processing discovery reply "
 				"(%zu byte%s): %s",
-				len, 1 == len ? "" : "s", bstr_error(bs));
+				len, plural(len), bstr_error(bs));
 		} else {
 			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
-				len, 1 == len ? "" : "s");
+				len, plural(len));
 		}
 	}
 	bstr_free(&bs);
@@ -579,10 +580,10 @@ error:
 		if (bstr_has_error(bs)) {
 			g_warning("NATPMP parsing error while processing discovery reply "
 				"(%zu byte%s): %s",
-				len, 1 == len ? "" : "s", bstr_error(bs));
+				len, plural(len), bstr_error(bs));
 		} else {
 			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
-				len, 1 == len ? "" : "s");
+				len, plural(len));
 		}
 	}
 	bstr_free(&bs);
@@ -604,7 +605,7 @@ natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, uint16 port,
 		g_debug("NATPMP %s for \"%s\" #%u (%lu byte%s) from %s",
 			URPC_TIMEOUT == type ? "timeout" : "got reply",
 			natpmp_op_to_string(rd->op), rd->count,
-			(unsigned long) len, 1 == len ? "" : "s",
+			(unsigned long) len, plural(len),
 			host_addr_port_to_string(addr, port));
 	}
 

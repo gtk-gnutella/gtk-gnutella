@@ -71,13 +71,14 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
-#include "lib/misc.h"			/* hexadecimal conversions */
 #include "lib/mempcpy.h"
+#include "lib/misc.h"			/* hexadecimal conversions */
 #include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
@@ -552,7 +553,7 @@ handle_features_supported(struct gnutella_node *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_debug("VMSG %s supports %u extra feature%s",
-			node_infostr(n), count, count == 1 ? "" : "s");
+			node_infostr(n), count, plural(count));
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, count * VMS_FEATURE_SIZE + sizeof count))
 		return;
@@ -1341,7 +1342,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 			bin_to_hex_buf(token->data, token->size, buf, sizeof buf);
 		g_debug("VMSG sent %s to %s for %u hit%s%s%s",
 			gmsg_infostr_full(v_tmp, msgsize),
-			node_infostr(n), want, want == 1 ? "" : "s",
+			node_infostr(n), want, plural(want),
 			token->data ? ", token=0x" : "", token->data ? buf : "");
 	}
 }
@@ -3211,7 +3212,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_debug("VMSG %s supports %u vendor message%s",
-			node_infostr(n), count, count == 1 ? "" : "s");
+			node_infostr(n), count, plural(count));
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, count * VMS_ITEM_SIZE + sizeof count))
 		return;

@@ -40,6 +40,7 @@
 #include "lib/sha1.h"
 #include "lib/smsort.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/xmalloc.h"
 #include "lib/xsort.h"
@@ -716,7 +717,7 @@ run_degenerative(enum degenerative how, size_t cnt, size_t isize,
 
 	str_bprintf(buf, sizeof buf,
 		"%zu %s item%s of %zu bytes",
-		cnt, degenerative_to_string(how), 1 == cnt ? "" : "s", isize);
+		cnt, degenerative_to_string(how), plural(cnt), isize);
 
 	array = generate_degenerative_array(cnt, isize, how);
 	run(array, cnt, isize, chrono, loops, buf);
@@ -731,7 +732,7 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	void *copy;
 
 	str_bprintf(buf, sizeof buf, "%zu item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	array = generate_array(cnt, isize);
 	copy = xcopy(array, cnt * isize);
@@ -739,35 +740,35 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu almost sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu reverse-sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	xsort(array, cnt, isize, get_revcmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu almost rev-sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu sorted 3/4-1/4 item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 
@@ -784,7 +785,7 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 
 	str_bprintf(buf, sizeof buf,
 		"%zu sorted n-8 item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 

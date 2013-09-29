@@ -4109,7 +4109,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 
 		BACKTRACE_DEBUG(BACK_F_OTHER,
 			"%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
-			mingw_opcode_name(op), fill, 1 == fill ? "" : "s", p);
+			mingw_opcode_name(op), fill, plural(fill), p);
 
 		first_opcode = p + fill;
 		p += (fill - 1);
@@ -4337,7 +4337,7 @@ found_offset:
 	g_assert(0 == (offset & 3));	/* Multiple of 4 */
 
 	BACKTRACE_DEBUG(BACK_F_RA, "%s: offset = %u, %zu leading push%s",
-		G_STRFUNC, offset, savings, 1 == savings ? "" : "es");
+		G_STRFUNC, offset, savings, plural_es(savings));
 
 	/*
 	 * We found that the current routine decreased the stack pointer by

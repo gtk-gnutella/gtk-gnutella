@@ -61,6 +61,7 @@
 #include "lib/gnet_host.h"
 #include "lib/hashlist.h"
 #include "lib/random.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/xmalloc.h"
 #include "lib/zlib_util.h"
@@ -310,7 +311,7 @@ log:
 		g_warning("UDP got invalid %sGnutella packet (%zu byte%s) "
 			"\"%s\" %sfrom %s: %s",
 			socket_udp_is_old(s) ? "OLD " : "",
-			len, 1 == len ? "" : "s",
+			len, plural(len),
 			len >= GTA_HEADER_SIZE ?
 				gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE)
 				: "<incomplete Gnutella header>",
@@ -1046,7 +1047,7 @@ rudp:
 		if (GNET_PROPERTY(udp_debug)) {
 			g_warning("UDP %sdatagram (%zu byte%s) received from bogus IP %s",
 				truncated ? "truncated " : "",
-				len, 1 == len ? "" : "s",
+				len, plural(len),
 				host_addr_to_string(s->addr));
 		}
 		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);

@@ -1245,7 +1245,7 @@ done:
 
 	if (stripped != 0 && symbols_verbose) {
 		s_warning("stripped %zu duplicate symbol%s",
-			stripped, 1 == stripped ? "" : "s");
+			stripped, plural(stripped));
 	}
 
 	symbols_check_consistency(st);

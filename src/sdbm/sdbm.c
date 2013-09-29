@@ -27,6 +27,7 @@
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/thread.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
@@ -450,7 +451,7 @@ success:
 
 		if ((flags & (O_RDWR | O_WRONLY) && (flags & O_TRUNC))) {
 			if (-1 == unlink(datname) && ENOENT != errno)
-				g_warning("%s(): cannot delete \"%s\": %m", G_STRFUNC, datname);
+				s_warning("%s(): cannot delete \"%s\": %m", G_STRFUNC, datname);
 		}
 	}
 #else
@@ -572,19 +573,19 @@ log_sdbmstats(DBM *db)
 {
 	sdbm_check(db);
 
-	g_info("sdbm: \"%s\" page reads = %lu, page writes = %lu (forced %lu)",
+	s_info("sdbm: \"%s\" page reads = %lu, page writes = %lu (forced %lu)",
 		sdbm_name(db), db->pagread, db->pagwrite, db->pagwforced);
-	g_info("sdbm: \"%s\" dir reads = %lu, dir writes = %lu (deferred %lu)",
+	s_info("sdbm: \"%s\" dir reads = %lu, dir writes = %lu (deferred %lu)",
 		sdbm_name(db), db->dirread, db->dirwrite, db->dirwdelayed);
-	g_info("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
+	s_info("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->pagbno_hit * 100.0 / MAX(db->pagfetch, 1),
-		db->pagfetch, 1 == db->pagfetch ? "" : "s");
-	g_info("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
+		db->pagfetch, plural(db->pagfetch));
+	s_info("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->dirbno_hit * 100.0 / MAX(db->dirfetch, 1),
-		db->dirfetch, 1 == db->dirfetch ? "" : "s");
-	g_info("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
+		db->dirfetch, plural(db->dirfetch));
+	s_info("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
 		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
-		db->repl_stores, 1 == db->repl_stores ? "" : "s");
+		db->repl_stores, plural(db->repl_stores));
 }
 
 static void
@@ -593,32 +594,32 @@ log_sdbm_warnings(DBM *db)
 	sdbm_check(db);
 
 	if (db->flags & DBM_BROKEN) {
-		g_warning("sdbm: \"%s\" descriptor was broken by failed renaming",
+		s_warning("sdbm: \"%s\" descriptor was broken by failed renaming",
 			sdbm_name(db));
 	}
 	if (db->bad_pages) {
-		g_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
-			sdbm_name(db), db->bad_pages, 1 == db->bad_pages ? "" : "s");
+		s_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
+			sdbm_name(db), db->bad_pages, plural(db->bad_pages));
 	}
 	if (db->removed_keys) {
-		g_warning("sdbm: \"%s\" removed %lu key%s not belonging to their page",
-			sdbm_name(db), db->removed_keys, 1 == db->removed_keys ? "" : "s");
+		s_warning("sdbm: \"%s\" removed %lu key%s not belonging to their page",
+			sdbm_name(db), db->removed_keys, plural(db->removed_keys));
 	}
 	if (db->read_errors || db->write_errors) {
-		g_warning("sdbm: \"%s\" "
+		s_warning("sdbm: \"%s\" "
 			"ERRORS: read = %lu, write = %lu (%lu in flushes, %lu in splits)",
 			sdbm_name(db),
 			db->read_errors, db->write_errors,
 			db->flush_errors, db->spl_errors);
 	}
 	if (db->spl_corrupt) {
-		g_warning("sdbm: \"%s\" %lu failed page split%s could not be undone",
-			sdbm_name(db), db->spl_corrupt, 1 == db->spl_corrupt ? "" : "s");
+		s_warning("sdbm: \"%s\" %lu failed page split%s could not be undone",
+			sdbm_name(db), db->spl_corrupt, plural(db->spl_corrupt));
 	}
 #ifdef BIGDATA
 	if (db->bad_bigkeys) {
-		g_warning("sdbm: \"%s\" encountered %lu bad big key%s",
-			sdbm_name(db), db->bad_bigkeys, 1 == db->bad_bigkeys ? "" : "s");
+		s_warning("sdbm: \"%s\" encountered %lu bad big key%s",
+			sdbm_name(db), db->bad_bigkeys, plural(db->bad_bigkeys));
 	}
 #endif
 }
@@ -677,7 +678,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 		db->pagread++;
 		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
 		if G_UNLIKELY(got < 0) {
-			g_critical("sdbm: \"%s\": cannot read page #%ld: %m",
+			s_critical("sdbm: \"%s\": cannot read page #%ld: %m",
 				sdbm_name(db), pagnum);
 			ioerr(db, FALSE);
 			db->pagbno = -1;
@@ -685,12 +686,12 @@ fetch_pagbuf(DBM *db, long pagnum)
 		}
 		if G_UNLIKELY(got < DBM_PBLKSIZ) {
 			if (got > 0)
-				g_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
+				s_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
 					sdbm_name(db), (unsigned) got, pagnum);
 			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
 		}
 		if G_UNLIKELY(!sdbm_internal_chkpage(db->pagbuf)) {
-			g_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
+			s_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
 				sdbm_name(db), pagnum);
 			memset(db->pagbuf, 0, DBM_PBLKSIZ);
 			db->bad_pages++;
@@ -765,7 +766,7 @@ flush_dirbuf(DBM *db)
 #endif
 
 	if G_UNLIKELY(w != DBM_DBLKSIZ) {
-		g_critical("sdbm: \"%s\": cannot flush dir block #%ld: %s",
+		s_critical("sdbm: \"%s\": cannot flush dir block #%ld: %s",
 			sdbm_name(db), db->dirbno,
 			-1 == w ? g_strerror(errno) : "partial write");
 
@@ -782,7 +783,7 @@ sdbm_unlink_file(const char *name, const char *path)
 	g_assert(path != NULL);
 
 	if (-1 == unlink(path))
-		g_critical("sdbm: \"%s\": cannot unlink \"%s\": %m", name, path);
+		s_critical("sdbm: \"%s\": cannot unlink \"%s\": %m", name, path);
 }
 
 /**
@@ -1341,7 +1342,7 @@ makroom(DBM *db, long int hash, size_t need)
 			db->pagwrite++,
 			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0)
 		) {
-			g_warning("sdbm: \"%s\": cannot flush new page #%ld: %m",
+			s_warning("sdbm: \"%s\": cannot flush new page #%ld: %m",
 				sdbm_name(db), newp);
 			ioerr(db, TRUE);
 			memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
@@ -1398,7 +1399,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 */
 
 		if G_UNLIKELY(!setdbit(db, db->curbit)) {
-			g_critical("sdbm: \"%s\": "
+			s_critical("sdbm: \"%s\": "
 				"cannot set bit in forest bitmap for 0x%lx",
 				sdbm_name(db), db->curbit);
 			db->spl_errors++;
@@ -1424,7 +1425,7 @@ makroom(DBM *db, long int hash, size_t need)
 	 * we still cannot fit the key. say goodnight.
 	 */
 
-	g_critical("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
+	s_critical("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
 		sdbm_name(db), DBM_SPLTMAX);
 
 	return FALSE;
@@ -1473,7 +1474,7 @@ restore:
 		if (failed) {
 			db->spl_errors++;
 			db->spl_corrupt++;
-			g_critical("sdbm: \"%s\": cannot undo split of page #%lu: %m",
+			s_critical("sdbm: \"%s\": cannot undo split of page #%lu: %m",
 				sdbm_name(db), curbno);
 		}
 	} else {
@@ -1490,7 +1491,7 @@ restore:
 #endif
 		memset(New, 0, DBM_PBLKSIZ);
 		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
-			g_critical("sdbm: \"%s\": cannot zero-back new split page #%ld: %m",
+			s_critical("sdbm: \"%s\": cannot zero-back new split page #%ld: %m",
 				sdbm_name(db), newp);
 			ioerr(db, TRUE);
 			db->spl_errors++;
@@ -1503,7 +1504,7 @@ restore:
 	/* FALL THROUGH */
 
 aborted:
-	g_warning("sdbm: \"%s\": aborted page split operation", sdbm_name(db));
+	s_warning("sdbm: \"%s\": aborted page split operation", sdbm_name(db));
 	return FALSE;
 }
 
@@ -1518,7 +1519,7 @@ iteration_done(DBM *db, bool completed)
 		size_t adj = big_check_end(db, completed);
 
 		if (adj != 0) {
-			g_warning("sdbm: \"%s\": database may have lost entries",
+			s_warning("sdbm: \"%s\": database may have lost entries",
 				sdbm_name(db));
 		}
 	}
@@ -1558,7 +1559,7 @@ sdbm_firstkey(DBM *db)
 	}
 
 	if G_UNLIKELY(db->flags & DBM_ITERATING) {
-		g_critical("recursive iteration on SDBM database \"%s\"",
+		s_critical("recursive iteration on SDBM database \"%s\"",
 			sdbm_name(db));
 	}
 
@@ -1643,7 +1644,7 @@ sdbm_firstkey_safe(DBM *db)
 		 */
 
 		if G_UNLIKELY(db->flags & DBM_RDONLY) {
-			g_critical("%s() called on read-only SDBM database \"%s\"",
+			s_critical("%s() called on read-only SDBM database \"%s\"",
 				G_STRFUNC, sdbm_name(db));
 		}
 		sdbm_unsynchronize(db);
@@ -1672,7 +1673,7 @@ sdbm_nextkey(DBM *db)
 	}
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
-		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
+		s_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 		errno = ENOENT;
 		value = nullitem;
@@ -1719,7 +1720,7 @@ sdbm_endkey(DBM *db)
 	 */
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
-		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
+		s_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 	}
 
@@ -1839,7 +1840,7 @@ validpage(DBM *db, long pagb)
 				removed++;
 			} else {
 				/* Can happen on I/O error with big keys */
-				g_warning("sdbm: \"%s\": cannot remove key #%d/%d "
+				s_warning("sdbm: \"%s\": cannot remove key #%d/%d "
 					"not belonging to page #%ld",
 					sdbm_name(db), k, n / 2, pagb);
 			}
@@ -1848,7 +1849,7 @@ validpage(DBM *db, long pagb)
 			if (delipair(db, pag, i, FALSE)) {
 				corrupted++;
 			} else {
-				g_warning("sdbm: \"%s\": cannot remove corrupted entry #%d/%d "
+				s_warning("sdbm: \"%s\": cannot remove corrupted entry #%d/%d "
 					"in page #%ld",
 					sdbm_name(db), k, n / 2, pagb);
 			}
@@ -1858,15 +1859,15 @@ validpage(DBM *db, long pagb)
 	if G_UNLIKELY(removed > 0 || corrupted > 0) {
 		if (removed > 0) {
 			db->removed_keys += removed;
-			g_warning("sdbm: \"%s\": removed %d/%d key%s "
+			s_warning("sdbm: \"%s\": removed %d/%d key%s "
 				"not belonging to page #%ld", sdbm_name(db),
-				removed, n / 2, 1 == removed ? "" : "s", pagb);
+				removed, n / 2, plural(removed), pagb);
 		}
 		if (corrupted > 0) {
 			db->removed_keys += corrupted;
-			g_warning("sdbm: \"%s\": removed %d/%d corrupted entr%s "
+			s_warning("sdbm: \"%s\": removed %d/%d corrupted entr%s "
 				"on page #%ld", sdbm_name(db),
-				corrupted, n / 2, 1 == corrupted ? "y" : "ies", pagb);
+				corrupted, n / 2, plural_y(corrupted), pagb);
 		}
 #ifdef LRU
 		(void) force_flush_pagbuf(db, !db->is_volatile);
@@ -1894,7 +1895,7 @@ fetch_dirbuf(DBM *db, long dirb)
 		db->dirread++;
 		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
 		if G_UNLIKELY(got < 0) {
-			g_critical("sdbm: \"%s\": could not read dir page #%ld: %m",
+			s_critical("sdbm: \"%s\": could not read dir page #%ld: %m",
 				sdbm_name(db), dirb);
 			ioerr(db, FALSE);
 			return FALSE;
@@ -2049,7 +2050,7 @@ sdbm_deletekey(DBM *db)
 	 */
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
-		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
+		s_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 		goto no_entry;
 	}
@@ -2122,7 +2123,7 @@ sdbm_value(DBM *db)
 	 */
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
-		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
+		s_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 		goto no_entry;
 	}
@@ -2241,7 +2242,7 @@ sdbm_shrink(DBM *db)
 		goto error;
 
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
-		g_critical("%s() called on read-only SDBM database \"%s\"",
+		s_critical("%s() called on read-only SDBM database \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 	}
 
@@ -2472,17 +2473,17 @@ sdbm_rename_files(DBM *db,
 
 	if (-1 == rename(db->dirname, dirname)) {
 		error = errno;
-		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+		s_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
 			sdbm_name(db), db->dirname, dirname);
 		goto emergency_restore;
 	}
 
 	if (-1 == rename(db->pagname, pagname)) {
 		error = errno;
-		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+		s_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
 			sdbm_name(db), db->pagname, pagname);
 		if (-1 == rename(dirname, db->dirname)) {
-			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+			s_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
 				sdbm_name(db), dirname, db->dirname);
 			db->flags |= DBM_BROKEN;
 		}
@@ -2494,15 +2495,15 @@ sdbm_rename_files(DBM *db,
 
 	if (-1 == rename(db->datname, datname)) {
 		error = errno;
-		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+		s_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
 			sdbm_name(db), db->datname, datname);
 		if (-1 == rename(dirname, db->dirname)) {
-			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+			s_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
 				sdbm_name(db), dirname, db->dirname);
 			db->flags |= DBM_BROKEN;
 		}
 		if (-1 == rename(pagname, db->pagname)) {
-			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+			s_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
 				sdbm_name(db), pagname, db->pagname);
 			db->flags |= DBM_BROKEN;
 		}
@@ -2557,7 +2558,7 @@ emergency_restore:
 done:
 	if (error != 0) {
 		errno = error;
-		g_carp("sdbm: \"%s\": renaming operation %s: %m",
+		s_carp("sdbm: \"%s\": renaming operation %s: %m",
 			sdbm_name(db),
 			(db->flags & DBM_BROKEN) ? "broke database" : "failed");
 		status = -1;
@@ -2647,7 +2648,7 @@ error:
 	HFREE_NULL(datname);
 
 	if (result != 0 && !warned) {
-		g_critical("sdbm: \"%s\": renaming operation failed: %m",
+		s_critical("sdbm: \"%s\": renaming operation failed: %m",
 			sdbm_name(db));
 	}
 
@@ -2807,7 +2808,7 @@ error:
 	 */
 
 	if (skipped != 0) {
-		g_critical("sdbm: \"%s\": had to skip %u/%u item%s (%u duplicate%s)"
+		s_critical("sdbm: \"%s\": had to skip %u/%u item%s (%u duplicate%s)"
 			" during rebuild",
 			sdbm_name(db), skipped, items, 1 == skipped ? "" : "s",
 			duplicate, 1 == duplicate ? "" : "s");

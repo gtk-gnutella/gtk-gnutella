@@ -2732,7 +2732,7 @@ download_can_ignore(struct download *d)
 			g_debug("download \"%s\" has incoming connection from %s "
 				"and %u waiting file%s on that server -- will sink %s bytes",
 				download_basename(d), download_host_info(d),
-				count, 1 == count ? "" : "s", uint64_to_string(remain));
+				count, plural(count), uint64_to_string(remain));
 		}
 
 		goto sink_data;
@@ -2917,7 +2917,7 @@ done:
 	if (GNET_PROPERTY(download_debug) > 1) {
 		g_debug("PUSH %s %u message%s on wakeup for GUID %s at %s",
 			broadcast ? "broadcasted" : "sent",
-			sent, 1 == sent ? "" : "s",
+			sent, plural(sent),
 			guid_hex_str(server->key->guid), server_host_info(server));
 	}
 }
@@ -6775,7 +6775,7 @@ download_got_push_proxies(const struct guid *guid,
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("PUSH found %zu new push prox%s in query hit "
 				"for GUID %s at %s",
-				added, 1 == added ? "y" : "ies",
+				added, plural_y(added),
 				guid_hex_str(guid), server_host_info(server));
 		}
 		gnet_stats_inc_general(GNR_COLLECTED_PUSH_PROXIES);
@@ -7430,8 +7430,7 @@ create_download(
             g_message("forced SHA1 %s after %s byte%s "
 				"downloaded for %s",
 				sha1_base32(d->sha1), uint64_to_string(fi->done),
-				fi->done == 1 ? "" : "s",
-				download_basename(d));
+				plural(fi->done), download_basename(d));
 			download_by_sha1_add(d);
 			if (DOWNLOAD_IS_QUEUED(d)) {	/* file_info_got_sha1() can queue */
 				return d;
@@ -8991,7 +8990,7 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 		if (GNET_PROPERTY(download_debug)) g_debug(
 			"server %s gave us %s more byte%s than requested for \"%s\"",
 			download_host_info(d), uint64_to_string(extra),
-			extra == 1 ? "" : "s", download_basename(d));
+			plural(extra), download_basename(d));
 
 		buffers_check_held(d);
 		buffers_strip_trailing(d, extra);
@@ -11447,7 +11446,7 @@ http_version_nofix:
 	else {
 		uint count = header_num_lines(header);
 		str_bprintf(short_read, sizeof short_read,
-			"[short %u line%s header] ", count, count == 1 ? "" : "s");
+			"[short %u line%s header] ", count, plural(count));
 
 		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
 	}
@@ -14317,7 +14316,7 @@ download_retrieve_magnets(FILE *f)
 
 				if (GNET_PROPERTY(download_debug)) {
 					g_debug("created %d download%s from %s",
-						created, created == 1 ? "" : "s", buffer);
+						created, plural(created), buffer);
 				}
 			} else {
 				g_warning("%s, line %u: Ignored unknown item",
@@ -15222,12 +15221,12 @@ download_tigertree_sweep(struct download *d,
 	if (bad_slices > 0) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_warning("TTH tree sweep: %zu/%zu bad slice%s",
-				bad_slices, num_leaves, 1 == bad_slices ? "" : "s");
+				bad_slices, num_leaves, plural(bad_slices));
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH tree sweep: all %zu slice%s okay",
-				num_leaves, 1 == num_leaves ? "" : "s");
+				num_leaves, plural(num_leaves));
 		}
 	}
 	HFREE_NULL(nodes);
@@ -16108,8 +16107,8 @@ download_data_received(struct download *d, ssize_t received)
 			g_warning("%s(): receiving extra data for \"%s\" from %s: "
 				"thought size was %s bytes, receiving %zu byte%s at %s -> %s",
 				G_STRFUNC, fi->pathname, download_host_info(d),
-				filesize_to_string(fi->size), received,
-				1 == received ? "" : "s", filesize_to_string2(d->pos),
+				filesize_to_string(fi->size), received, plural(received),
+				filesize_to_string2(d->pos),
 				filesize_to_string3(upper));
 		}
 		file_info_resize(fi, upper);

@@ -33,7 +33,7 @@
  * Conceptually, there are two different layers in this single file:
  *
  * - The port mapping layer (upnp_map_xxx() routines)
- * - The driver layer (UPnP and NAT-PMP)
+ * - The driver layers (UPnP and NAT-PMP)
  *
  * The port mapping layer sits on top of the other two and uses one of the
  * drivers to publish the mappings.
@@ -65,7 +65,7 @@
 #include "lib/product.h"		/* For product_get_build() */
 #include "lib/stacktrace.h"
 #include "lib/str.h"
-#include "lib/stringify.h"		/* For compact_time() */
+#include "lib/stringify.h"		/* For compact_time() and plural() */
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -172,8 +172,8 @@ upnp_delete_pending(void)
 		if (last != tm_time()) {
 			unsigned nat = natpmp_pending();
 			g_debug("SHUTDOWN %u pending IDG delete%s and %u NAT-PMP delete%s",
-				igd.delete_pending, 1 == igd.delete_pending ? "" : "s",
-				nat, 1 == nat ? "" : "s");
+				igd.delete_pending, plural(igd.delete_pending),
+				nat, plural(nat));
 			last = tm_time();
 		}
 	}

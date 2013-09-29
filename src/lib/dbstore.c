@@ -47,6 +47,8 @@
 #include "file.h"
 #include "halloc.h"
 #include "path.h"
+#include "stringify.h"
+
 #include "override.h"		/* Must be the last header included */
 
 static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
@@ -200,7 +202,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 	if (dw != NULL && dbstore_debug > 0) {
 		size_t count = dbmw_count(dw);
 		g_debug("DBSTORE opened DBMW \"%s\" (%u key%s) from %s",
-			dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+			dbmw_name(dw), (unsigned) count, plural(count), base);
 	}
 
 	/*
@@ -214,7 +216,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 
 		if (dbstore_debug > 0) {
 			g_debug("DBSTORE loading DBMW \"%s\" (%u key%s) from %s",
-				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+				dbmw_name(dw), (unsigned) count, plural(count), base);
 		}
 
 		dram = dbstore_create_internal(name, NULL, NULL, 0,
@@ -222,7 +224,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 
 		if (!dbmw_copy(dw, dram)) {
 			g_warning("DBSTORE could not load DBMW \"%s\" (%u key%s) from %s",
-				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+				dbmw_name(dw), (unsigned) count, plural(count), base);
 		}
 
 		dbmw_destroy(dw, TRUE);
@@ -246,7 +248,7 @@ dbstore_sync(dbmw_t *dw)
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u SDBM page%s in DBMW \"%s\"",
-			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
+			(unsigned) n, plural(n), dbmw_name(dw));
 	}
 }
 
@@ -264,7 +266,7 @@ dbstore_flush(dbmw_t *dw)
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u dirty value%s in DBMW \"%s\"",
-			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
+			(unsigned) n, plural(n), dbmw_name(dw));
 	}
 }
 
@@ -304,7 +306,7 @@ dbstore_close(dbmw_t *dw, const char *dir, const char *base)
 		size_t count = dbmw_count(dw);
 		g_debug("DBSTORE %ssucessfully persisted DBMW \"%s\" (%u key%s)",
 			ok ? "" : "un", dbmw_name(dw),
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	dbmw_destroy(dw, TRUE);

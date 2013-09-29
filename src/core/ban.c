@@ -63,6 +63,7 @@
 #include "lib/hevset.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
+#include "lib/stringify.h"	/* For plural() */
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
 
@@ -792,7 +793,7 @@ ban_max_recompute(void)
 
 	if (GNET_PROPERTY(ban_debug))
 		g_info("will use at most %d file descriptor%s for banning",
-			max, max == 1 ? "" : "s");
+			max, plural(max));
 
 	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);
 

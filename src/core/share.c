@@ -77,6 +77,7 @@
 #include "lib/listener.h"
 #include "lib/mime_type.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vsort.h"
@@ -1860,7 +1861,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	if (GNET_PROPERTY(share_debug) > 1) {
 		int count = st_count(ctx->search_tb);
 		g_debug("SHARE installing new search table (%d item%s)",
-			count, 1 == count ? "" : "s");
+			count, plural(count));
 	}
 
 	share_free();
@@ -2033,7 +2034,7 @@ recursive_scan_step_install_partials(struct bgtask *bt, void *data, int ticks)
 	if (GNET_PROPERTY(share_debug) > 1) {
 		int count = st_count(ctx->partial_tb);
 		g_debug("SHARE installing new partial table (%d item%s)",
-			count, 1 == count ? "" : "s");
+			count, plural(count));
 	}
 
 	st_free(&partial_table);

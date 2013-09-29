@@ -116,6 +116,7 @@ typedef struct {
 #include "log.h"			/* For s_error() */
 #include "misc.h"
 #include "mutex.h"
+#include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -943,7 +944,7 @@ inputevt_timer(struct poll_ctx *ctx)
 		if (inputevt_debug > 2) {
 			unsigned long count = g_list_length(list);
 			g_debug("%s: %lu fake event%s", G_STRFUNC,
-				count, 1 == count ? "" : "s");
+				count, plural(count));
 		}
 
 		for (iter = list; NULL != iter; iter = g_list_next(iter)) {

@@ -42,9 +42,10 @@
 
 #include "common.h"
 
-#include "leak.h"
 #include "concat.h"
+#include "leak.h"
 #include "htable.h"
+#include "log.h"
 #include "stacktrace.h"		/* For struct stackatom, stack_hash(), stack_eq() */
 #include "stringify.h"
 #include "xmalloc.h"
@@ -296,15 +297,14 @@ leak_dump(const leak_set_t *ls)
 	 * Dump the leaks by allocation place.
 	 */
 
-	g_warning("leak summary by stackframe and total decreasing size:");
-	g_warning("distinct calling stacks found: %d", count);
+	s_warning("leak summary by stackframe and total decreasing size:");
+	s_warning("distinct calling stacks found: %d", count);
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
 		size_t avg = l->lr->size / (0 == l->lr->count ? 1 : l->lr->count);
-		g_warning("%zu bytes (%zu block%s, average %zu byte%s) from:",
-			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s",
-			avg, 1 == avg ? "" : "s");
+		s_warning("%zu bytes (%zu block%s, average %zu byte%s) from:",
+			l->lr->size, l->lr->count, plural(l->lr->count), avg, plural(avg));
 		stacktrace_atom_decorate(stderr, l->u.sa,
 			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
 	}
@@ -335,15 +335,15 @@ leaks_by_place:
 	 * Dump the leaks by allocation place.
 	 */
 
-	g_warning("leak summary by origin and total decreasing size:");
-	g_warning("distinct allocation points found: %d", count);
+	s_warning("leak summary by origin and total decreasing size:");
+	s_warning("distinct allocation points found: %d", count);
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
 		size_t avg = l->lr->size / (0 == l->lr->count ? 1 : l->lr->count);
-		g_warning("%zu bytes (%zu block%s, average %zu byte%s) from \"%s\"",
-			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s",
-			avg, 1 == avg ? "" : "s", l->u.place);
+		s_warning("%zu bytes (%zu block%s, average %zu byte%s) from \"%s\"",
+			l->lr->size, l->lr->count, plural(l->lr->count),
+			avg, plural(avg), l->u.place);
 	}
 
 	xfree(filler.leaks);

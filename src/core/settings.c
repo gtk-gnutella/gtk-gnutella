@@ -96,6 +96,7 @@
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
@@ -779,7 +780,7 @@ settings_init(void)
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
 			need_get_non_stdio_fd() ? "cannot" : "can");
-		g_info("detected %ld CPU%s", cpus, 1 == cpus ? "" : "s");
+		g_info("detected %ld CPU%s", cpus, plural(cpus));
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",

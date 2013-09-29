@@ -2894,7 +2894,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
 			"in %'u usecs",
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
-			qn, 1 == qn ? "" : "s", (unsigned) tm_elapsed_us(&end, &start));
+			qn, plural(qn), (unsigned) tm_elapsed_us(&end, &start));
 	}
 
 	/*

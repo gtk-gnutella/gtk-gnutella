@@ -3018,7 +3018,7 @@ parq_upload_freeze_all(struct parq_ul_queued *puq)
 
 	if (GNET_PROPERTY(parq_debug))
 		g_debug("[PARQ UL] froze %d entr%s for IP %s (%d total)",
-			extra, extra == 1 ? "y" : "ies",
+			extra, plural_y(extra),
 			host_addr_to_string(puq->by_addr->addr), frozen);
 
 	g_assert(puq->by_addr->frozen == frozen);
@@ -3109,7 +3109,7 @@ parq_upload_unfreeze_all(struct parq_ul_queued *puq)
 
 	if (GNET_PROPERTY(parq_debug))
 		g_debug("[PARQ UL] thawed %u entr%s for IP %s (%u of which alive)",
-			thawed, thawed == 1 ? "y" : "ies",
+			thawed, plural_y(thawed),
 			host_addr_to_string(puq->by_addr->addr), inserted);
 
 	g_assert(0 == puq->by_addr->frozen);
@@ -3200,8 +3200,7 @@ parq_upload_continue(struct parq_ul_queued *puq)
 			g_debug("[PARQ UL] %s: "
 				"frozen entry, IP %s has %d entr%s uploading (max %u)",
 				G_STRFUNC, host_addr_to_string(puq->by_addr->addr),
-				puq->by_addr->uploading,
-				1 == puq->by_addr->uploading ? "y" : "ies",
+				puq->by_addr->uploading, plural_y(puq->by_addr->uploading),
 				GNET_PROPERTY(max_uploads_ip));
 
 		/*

@@ -39,6 +39,7 @@
 
 #include "lib/endian.h"
 #include "lib/mempcpy.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"
@@ -230,7 +231,7 @@ dime_log_truncated_record(const char *name, const struct dime_record *header,
 		(header->flags & DIME_F_MB) ? " [MB]" : "",
 		(header->flags & DIME_F_ME) ? " [ME]" : "",
 		(header->flags & DIME_F_CF) ? " [CF]" : "",
-		announced, dime_ceil(announced), real, 1 == real ? "" : "s");
+		announced, dime_ceil(announced), real, plural(real));
 }
 
 /**

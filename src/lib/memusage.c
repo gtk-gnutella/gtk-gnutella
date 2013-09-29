@@ -655,13 +655,12 @@ memusage_sorted_frame_dump_log(logagent_t *la, const memusage_t *mu,
 	size_t all_count;
 
 	log_info(la, "Decreasing list of %zu %s%s for %s (%zu recursion%s):",
-		count, what, 1 == count ? "" : "s", name, recurses,
-		1 == recurses ? "" : "s");
+		count, what, plural(count), name, recurses, plural(recurses));
 
 	all_count = hash_table_size(all);
 
-	log_info(la, "Totaling %zu distinct stackrame%s", all_count,
-		1 == all_count ? "" : "s");
+	log_info(la, "Totaling %zu distinct stackrame%s",
+		all_count, plural(all_count));
 
 	event = (0 == mu->width) ? "size" : "calls";
 

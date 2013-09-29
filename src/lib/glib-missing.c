@@ -46,6 +46,7 @@
 #include "log.h"			/* For s_minicarp() */
 #include "misc.h"			/* For clamp_strcpy() */
 #include "str.h"
+#include "stringify.h"
 #include "unsigned.h"
 #include "utf8.h"
 
@@ -259,7 +260,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	}
 	if G_UNLIKELY(truncated != 0) {
 		s_minicarp("truncated %d byte%s when formatting into %zu-byte buffer "
-			"with \"%s\"", truncated, 1 == truncated ? "" : "s",
+			"with \"%s\"", truncated, plural(truncated),
 			size, fmt);
 	}
 	return retval;

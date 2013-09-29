@@ -44,6 +44,7 @@
 #include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/htable.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -240,7 +241,7 @@ urpc_send(const char *what,
 				g_warning("unable to send whole %zu-byte UDP %s RPC to %s: "
 					"only sent %zu byte%s",
 					len, what, host_addr_port_to_string(addr, port),
-					r, 1 == r ? "" : "s");
+					r, plural(r));
 			}
 		}
 		socket_free_null(&s);

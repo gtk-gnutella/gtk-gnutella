@@ -504,8 +504,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	if (GNET_PROPERTY(dht_roots_debug) > 1) {
 		g_debug("DHT ROOTS cached %u/%u k-closest node%s to %s target %s "
 			"(new=%u, reused=%u, elapsed=%s)",
-			rd->count, (unsigned) patricia_count(nodes),
-			1 == rd->count ? "" : "s",
+			rd->count, (unsigned) patricia_count(nodes), plural(rd->count),
 			existed ? "existing" : "new",
 			kuid_to_hex_string(kuid), new, reused,
 			existed ?
@@ -623,7 +622,7 @@ roots_fill_closest(const kuid_t *id,
 			g_debug("DHT ROOTS exact match for %s (%s), filled %d new node%s",
 				kuid_to_hex_string(id),
 				compact_time(delta_time(tm_time(), ri->last_update)),
-				filled, 1 == filled ? "" : "s");
+				filled, plural(filled));
 		}
 
 		/*
@@ -751,7 +750,7 @@ roots_fill_closest(const kuid_t *id,
 					kuid_to_hex_string(id),
 					kuid_to_hex_string2(cri->kuid),
 					compact_time(delta_time(tm_time(), cri->last_update)),
-					added, 1 == added ? "" : "s");
+					added, plural(added));
 			}
 		} else if (NULL == ri) {
 			gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_MISSES);
@@ -995,7 +994,7 @@ recreate_ri(void *key, void *value, size_t u_len, void *data)
 
 	if (GNET_PROPERTY(dht_roots_debug) > 3)
 		g_debug("DHT ROOTS retrieved %u closest node%s from %s kept (for %s)",
-			rd->count, 1 == rd->count ? "" : "s",
+			rd->count, plural(rd->count),
 			kuid_to_hex_string(id), compact_time(ROOTKEY_LIFETIME / 1000 - d));
 
 	return FALSE;
@@ -1048,7 +1047,7 @@ roots_init_rootinfo(void)
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		count = dbmw_count(db_rootdata);
 		g_debug("DHT ROOTS scanning %u retrieved target KUID%s",
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	ctx.dbkeys = hset_create(HASH_KEY_FIXED, sizeof(uint64));
@@ -1064,10 +1063,10 @@ roots_init_rootinfo(void)
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_debug("DHT ROOTS kept %u target KUID%s: targets=%u, contacts=%u",
-			(unsigned) count, 1 == count ? "" : "s",
+			(unsigned) count, plural(count),
 			targets_managed, contacts_managed);
 		g_debug("DHT ROOTS stripped %u orphan contact DB-key%s",
-			ctx.orphans, 1 == ctx.orphans ? "" : "s");
+			ctx.orphans, plural(ctx.orphans));
 	}
 
 	/*

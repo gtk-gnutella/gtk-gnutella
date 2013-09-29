@@ -1260,7 +1260,7 @@ dump_tracking_table(const void *atom, htable_t *h, char *what)
 	size_t count = htable_count(h);
 
 	g_warning("all %zu %s spot%s for %p:",
-		count, what, count == 1 ? "" : "s", atom);
+		count, what, plural(count), atom);
 
 	htable_foreach(h, dump_tracking_entry, what);
 }

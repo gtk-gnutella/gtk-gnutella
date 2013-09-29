@@ -55,6 +55,7 @@
 #include "lib/hikset.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -260,7 +261,7 @@ results_destroy(cqueue_t *cq, void *obj)
 	if (GNET_PROPERTY(query_debug))
 		g_debug("OOB query #%s from %s expired with unclaimed %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-			r->count, r->count == 1 ? "" : "s");
+			r->count, plural(r->count));
 
 	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
 
@@ -288,7 +289,7 @@ results_timeout(cqueue_t *cq, void *obj)
 	if (GNET_PROPERTY(query_debug)) {
 		g_debug("OOB query #%s, no ACK from %s to claim %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-			r->count, r->count == 1 ? "" : "s");
+			r->count, plural(r->count));
 	}
 
 	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
@@ -304,7 +305,7 @@ results_timeout(cqueue_t *cq, void *obj)
 		if (GNET_PROPERTY(query_debug)) {
 			int delay = ban_delay(BAN_CAT_OOB_CLAIM, addr);
 			g_debug("OOB host %s will be banned for the next %d second%s",
-				host_addr_to_string(addr), delay, 1 == delay ? "" : "s");
+				host_addr_to_string(addr), delay, plural(delay));
 		}
 	}
 
@@ -504,7 +505,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 			g_warning("OOB got spurious LIME/11 from %s for #%s, "
 				"asking for %d hit%s",
 				node_addr(n), guid_hex_str(muid),
-				wanted, wanted == 1 ? "" : "s");
+				wanted, plural(wanted));
 		return;
 	}
 
@@ -587,7 +588,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
 		g_debug("OOB query #%s: host %s wants %d hit%s, delivering %d",
-			guid_hex_str(r->muid), node_addr(n), wanted, wanted == 1 ? "" : "s",
+			guid_hex_str(r->muid), node_addr(n), wanted, plural(wanted),
 			deliver_count);
 	}
 
@@ -650,7 +651,7 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
 				g_debug("OOB query #%s, notified %s about %d hit%s",
 					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-					r->count, r->count == 1 ? "" : "s");
+					r->count, plural(r->count));
 
 			/*
 			 * If we don't get any ACK back, we'll discard the results.
@@ -708,7 +709,7 @@ oob_send_reply_ind(struct oob_results *r)
 		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d",
 			guid_hex_str(r->muid), r->reliable ? "reliably " : "",
 			gnet_host_to_string(&r->dest),
-			r->count, r->count == 1 ? "" : "s", r->notify_requeued);
+			r->count, plural(r->count), r->notify_requeued);
 
 	mq_udp_putq(q, emb, &r->dest);
 }
@@ -808,9 +809,9 @@ oob_shutdown(void)
 	if (GNET_PROPERTY(search_debug)) {
 		g_info("OOB %s: still has %zu entr%s by MUID, %zu host%s recorded",
 			G_STRFUNC, hikset_count(results_by_muid),
-			1 == hikset_count(results_by_muid) ? "y" : "ies",
+			plural_y(hikset_count(results_by_muid)),
 			hikset_count(servent_by_host),
-			1 == hikset_count(servent_by_host) ? "" : "s");
+			plural(hikset_count(servent_by_host)));
 	}
 }
 

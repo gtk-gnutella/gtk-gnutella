@@ -4893,9 +4893,9 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
 			NODE_IS_UDP(n) ? "(GUESS) " : "",
 			gmsg_node_infostr(n),
 			qhvec_whats_new(qhvec) ? "\"What's New?\" " : "",
-			words, 1 == words ? "" : "s", urns, 1 == urns ? "" : "s",
+			words, plural(words), urns, plural(urns),
 			leaves, GNET_PROPERTY(node_leaf_count),
-			ultras, ultras == 1 ? "" : "s");
+			ultras, plural(ultras));
 	}
 
 	if (nodes == NULL)

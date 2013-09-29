@@ -835,7 +835,7 @@ thread_private_clear_warn(struct thread_element *te)
 
 	if G_UNLIKELY(cnt != 0) {
 		s_miniwarn("cleared %zu thread-private variable%s in %s thread #%u",
-			cnt, 1 == cnt ? "" : "s",
+			cnt, plural(cnt),
 			te->created ? "created" : te->discovered ? "discovered" : "bad",
 			te->stid);
 	}
@@ -908,7 +908,7 @@ thread_local_clear_warn(struct thread_element *te)
 
 	if G_UNLIKELY(cnt != 0) {
 		s_miniwarn("cleared %zu thread-local variable%s in %s thread #%u",
-			cnt, 1 == cnt ? "" : "s",
+			cnt, plural(cnt),
 			te->created ? "created" : te->discovered ? "discovered" : "bad",
 			te->stid);
 	}
@@ -1397,7 +1397,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	assert_mutex_is_owned(&thread_insert_mtx);
 	g_assert_log(0 == te->locks.count,
 		"discovered thread #%u already holds %zu lock%s",
-		te->stid, te->locks.count, 1 == te->locks.count ? "" : "s");
+		te->stid, te->locks.count, plural(te->locks.count));
 
 	THREAD_STATS_INC(discovered);
 	thread_cleanup(te);
@@ -2975,8 +2975,8 @@ thread_suspend_others(bool lockwait)
 	if (lockwait && busy != 0) {
 		if (0 != te->locks.count) {
 			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s",
-				G_STRFUNC, busy, 1 == busy ? "" : "s",
-				te->locks.count, 1 == te->locks.count ? "" : "s");
+				G_STRFUNC, busy, plural(busy),
+				te->locks.count, plural(te->locks.count));
 			thread_lock_dump(te);
 		}
 		thread_wait_others(te);
@@ -4859,7 +4859,7 @@ thread_assert_no_locks(const char *routine)
 	if G_UNLIKELY(0 != te->locks.count) {
 		s_warning("%s(): %s currently holds %zu lock%s",
 			routine, thread_element_name(te), te->locks.count,
-			1 == te->locks.count ? "" : "s");
+			plural(te->locks.count));
 		thread_lock_dump(te);
 		s_error("%s() expected no locks, found %zu held",
 			routine, te->locks.count);
@@ -6051,7 +6051,7 @@ thread_exit(void *value)
 	if (0 != te->locks.count) {
 		s_warning("%s() called by %s with %zu lock%s still held",
 			G_STRFUNC, thread_element_name(te), te->locks.count,
-			1 == te->locks.count ? "" : "s");
+			plural(te->locks.count));
 		thread_lock_dump(te);
 		s_error("thread exiting without clearing its locks");
 	}
@@ -6541,7 +6541,7 @@ thread_pause(void)
 	if (0 != te->locks.count) {
 		s_warning("%s(): %s currently holds %zu lock%s",
 			G_STRFUNC, thread_element_name(te), te->locks.count,
-			1 == te->locks.count ? "" : "s");
+			plural(te->locks.count));
 		thread_lock_dump(te);
 		s_error("attempt to pause thread whilst holding locks");
 	}

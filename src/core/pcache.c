@@ -72,8 +72,10 @@
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
+#include "lib/stringify.h"	/* For plural() */
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define PCACHE_MAX_FILES	10000000	/**< Arbitrarily large file count */
@@ -1524,7 +1526,7 @@ pcache_expire(void)
 
 	if (GNET_PROPERTY(pcache_debug) > 4)
 		g_debug("Pong CACHE expired (%d entr%s, %d in reserve)",
-			entries, entries == 1 ? "y" : "ies", hcache_size(HOST_ANY));
+			entries, plural_y(entries), hcache_size(HOST_ANY));
 }
 
 /**
@@ -2178,7 +2180,7 @@ pong_extract_metadata(struct gnutella_node *n)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, paylen == 1 ? "" : "s");
+					paylen, plural(paylen));
 			}
 			break;
 		}
@@ -2566,7 +2568,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 						"bad length for GGEP \"%s\" "
 						"(%d byte%s, not multiple of %d)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, paylen == 1 ? "" : "s", len);
+						paylen, plural(paylen), len);
 				}
 			} else {
 				switch (e->ext_token) {
@@ -2617,7 +2619,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 				paylen = ext_paylen(e);
 				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, paylen == 1 ? "" : "s");
+					paylen, plural(paylen));
 			}
 			break;
 		}

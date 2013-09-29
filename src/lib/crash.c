@@ -1955,7 +1955,7 @@ crash_try_reexec(void)
 		s_minimsg("launching %s", str_2c(vars->logstr));
 	} else {
 		s_minimsg("launching %s with %d argument%s", vars->argv0,
-			vars->argc, 1 == vars->argc ? "" : "s");
+			vars->argc, plural(vars->argc));
 	}
 
 	/*

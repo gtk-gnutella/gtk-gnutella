@@ -832,7 +832,7 @@ node_slow_timer(time_t now)
 
 		if (GNET_PROPERTY(fw_debug) > 2) {
 			g_debug("FW: found %u ultra node%s to send connect-back messages",
-				count, 1 == count ? "" : "s");
+				count, plural(count));
 		}
 
 		if (count > 0) {
@@ -1334,7 +1334,7 @@ node_timer(time_t now)
                         "activity timeout");
 					node_bye_if_writable(n, 405, "Activity timeout (%d sec%s)",
 						GNET_PROPERTY(node_connected_timeout),
-						1 == GNET_PROPERTY(node_connected_timeout) ? "" : "s");
+						plural(GNET_PROPERTY(node_connected_timeout)));
 					continue;
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
@@ -1348,7 +1348,7 @@ node_timer(time_t now)
                         "flow-controlled too long");
 					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
 						GNET_PROPERTY(node_tx_flowc_timeout),
-						GNET_PROPERTY(node_tx_flowc_timeout) == 1 ? "" : "s");
+						plural(GNET_PROPERTY(node_tx_flowc_timeout)));
 					continue;
 				}
 			}
@@ -3282,9 +3282,7 @@ node_crawler_headers(struct gnutella_node *n)
 
 	if (GNET_PROPERTY(node_debug)) g_debug(
 		"TCP crawler sending %d/%d ultra%s and %d/%d lea%s to %s",
-			uw, ux, uw == 1 ? "" : "s",
-			lw, lx, lw == 1 ? "f" : "ves",
-			node_addr(n));
+			uw, ux, plural(uw), lw, lx, plural_f(lw), node_addr(n));
 
 	/* FALL THROUGH */
 
@@ -4588,7 +4586,7 @@ feed_host_cache_from_headers(header_t *header,
 			if (GNET_PROPERTY(node_debug) > 0) {
 				if (r > 0)
 					g_debug("peer %s sent %u pong%s in %s header",
-						host_addr_to_string(peer), r, 1 == r ? "" : "s", name);
+						host_addr_to_string(peer), r, plural(r), name);
 				else
 					g_debug("peer %s <%s> sent unparseable %s header: \"%s\"",
 						host_addr_to_string(peer), vendor, name, val);
@@ -9040,7 +9038,7 @@ node_tx_leave_flowc(struct gnutella_node *n)
 		int spent = delta_time(tm_time(), n->tx_flowc_date);
 
 		g_debug("node %s spent %d second%s in TX FLOWC",
-			node_addr(n), spent, spent == 1 ? "" : "s");
+			node_addr(n), spent, plural(spent));
 	}
 
 	if (NODE_USES_UDP(n)) {
@@ -9520,7 +9518,7 @@ node_bye_pending(void)
 		static time_t last;
 		if (last != tm_time()) {
 			g_debug("SHUTDOWN %d pending BYE message%s",
-				pending_byes, 1 == pending_byes ? "" : "s");
+				pending_byes, plural(pending_byes));
 			last = tm_time();
 		}
 	}

@@ -841,7 +841,7 @@ upload_timer(time_t now)
 		} else if (UPLOAD_IS_SENDING(u))
 			/* Cannot use NG_ here because we can't pass a translated string */
 			upload_remove(u, "Data timeout after %s byte%s",
-				uint64_to_string(u->sent), u->sent == 1 ? "" : "s");
+				uint64_to_string(u->sent), plural(u->sent));
 		else
 			upload_remove(u, N_("Lifetime expired"));
 	}
@@ -1074,7 +1074,7 @@ handle_push_request(struct gnutella_node *n)
 					size_t paylen = ext_paylen(e);
 					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%zu byte%s)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, paylen == 1 ? "" : "s");
+						paylen, plural(paylen));
 				}
 				break;
 			}
@@ -1427,7 +1427,7 @@ upload_http_xhost_add(char *buf, size_t size,
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Host header back: only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1504,7 +1504,7 @@ upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	if (rw >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-GUID header back: only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return rw < size ? rw : 0;
@@ -1558,7 +1558,7 @@ upload_gnutella_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Gnutella-Content-URN header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1606,7 +1606,7 @@ upload_thex_uri_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Thex-URI header back: only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1764,7 +1764,7 @@ upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	/* Don't emit a truncated header */
@@ -1789,7 +1789,7 @@ upload_http_content_length_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Length header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1817,7 +1817,7 @@ upload_http_content_type_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Type header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1839,7 +1839,7 @@ upload_http_last_modified_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Last-Modified header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1870,7 +1870,7 @@ upload_http_content_range_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;

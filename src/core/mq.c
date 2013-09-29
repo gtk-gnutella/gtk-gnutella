@@ -46,6 +46,7 @@
 #include "lib/htable.h"
 #include "lib/pmsg.h"
 #include "lib/str.h"
+#include "lib/stringify.h"		/* For plural() */
 #include "lib/unsigned.h"		/* For size_saturate_add() */
 #include "lib/vsort.h"
 #include "lib/walloc.h"
@@ -208,8 +209,8 @@ mq_info(const mqueue_t *q)
 			(q->flags & MQ_DISCARD) ? " DISCARD" : "",
 			(q->flags & MQ_SWIFT) ? " SWIFT" : "",
 			(q->flags & MQ_WARNZONE) ? " WARNZONE" : "",
-			q->count, q->count == 1 ? "" : "s",
-			q->size, q->size == 1 ? "" : "s"
+			q->count, plural(q->count),
+			q->size, plural(q->size)
 		);
 	}
 

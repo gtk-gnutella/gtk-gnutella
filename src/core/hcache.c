@@ -60,8 +60,8 @@
 #include "settings.h"
 #include "ctl.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
@@ -70,6 +70,7 @@
 #include "lib/htable.h"
 #include "lib/path.h"
 #include "lib/random.h"
+#include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
@@ -1645,7 +1646,7 @@ hcache_sort_by_added_time(hcache_type_t type)
 	if (GNET_PROPERTY(hcache_debug)) {
 		unsigned count = hash_list_length(hc->hostlist);
 		g_debug("HCACHE sorted %s cache (%u item%s)",
-			hcache_type_to_string(type), count, 1 == count ? "" : "s");
+			hcache_type_to_string(type), count, plural(count));
 	}
 }
 

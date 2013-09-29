@@ -200,8 +200,7 @@ host_timer(void)
 
 	if (GNET_PROPERTY(host_debug) && missing > 0)
 		g_debug("host_timer - missing %d host%s%s",
-			missing, missing == 1 ? "" : "s",
-			empty_cache ? " [empty caches]" : "");
+			missing, plural(missing), empty_cache ? " [empty caches]" : "");
 
     if (!GNET_PROPERTY(stop_host_get)) {
         if (missing > 0) {

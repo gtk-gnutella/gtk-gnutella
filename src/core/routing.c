@@ -57,6 +57,7 @@
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -599,7 +600,7 @@ route_string(struct route_dest *dest,
 		{
 			int count = g_slist_length(dest->ur.u_nodes);
 			str_bprintf(msg, sizeof msg, "selected %u node%s",
-				count, count == 1 ? "" : "s");
+				count, plural(count));
 		}
 		break;
 	default:
@@ -2187,7 +2188,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			if (GNET_PROPERTY(log_gnutella_routing)) {
 				unsigned count = g_slist_length(m->routes);
 				routing_log_extra(route_log, "%u remaining route%s",
-					count, 1 == count ? "" : "s");
+					count, plural(count));
 			}
 
 			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
@@ -2196,7 +2197,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 					sender->size,
 					"from %s: %sother node, %u route%s (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "",
-					count, 1 == count ? "" : "s", sender->n_dups);
+					count, plural(count), sender->n_dups);
 			}
 		}
 	}
@@ -3082,7 +3083,7 @@ routing_close(void)
 	cnt = htable_count(ht_proxyfied);
 	if (cnt != 0) {
 		g_warning("push-proxification table still holds %u node%s",
-			cnt, cnt == 1 ? "" : "s");
+			cnt, plural(cnt));
 	}
 
 	htable_free_null(&ht_proxyfied);
@@ -3090,7 +3091,7 @@ routing_close(void)
 	cnt = htable_count(ht_starving_guid);
 	if (cnt != 0) {
 		g_warning("starving GUID table still holds %u entr%s",
-			cnt, cnt == 1 ? "y" : "ies");
+			cnt, plural_y(cnt));
 	}
 
 	htable_free_null(&ht_starving_guid);

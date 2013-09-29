@@ -1047,8 +1047,7 @@ done:
 		s_debug("CQ: %squeue \"%s\" %striggered %d event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
-			processed, 1 == processed ? "" : "s",
-			cq->cq_items, 1 == cq->cq_items ? "" : "s");
+			processed, plural(processed), cq->cq_items, plural(cq->cq_items));
 	}
 
 	CQ_UNLOCK(cq);

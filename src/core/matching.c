@@ -726,8 +726,7 @@ st_search(
 	if (GNET_PROPERTY(matching_debug) > 3)
 		g_debug("MATCH st_search(): scanned %d entr%s from the %d in bin, "
 			"got %d match%s",
-			scanned, 1 == scanned ? "y" : "ies",
-			best_bin_size, nres, 1 == nres ? "" : "es");
+			scanned, plural_y(scanned), best_bin_size, nres, plural_es(nres));
 
 	for (i = 0; i < wocnt; i++)
 		if (pattern[i])					/* Lazily compiled by entry_match() */

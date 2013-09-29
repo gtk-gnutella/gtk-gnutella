@@ -675,7 +675,7 @@ dht_value_to_string(const dht_value_t *v)
 
 	str_bprintf(buf, sizeof buf,
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
-		kuid, type, v->major, v->minor, v->length, 1 == v->length ? "" : "s",
+		kuid, type, v->major, v->minor, v->length, plural(v->length),
 		knode);
 
 	return buf;
@@ -1244,7 +1244,7 @@ validate_quotas(const dht_value_t *v)
 		uint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
 		g_debug("DHT STORE has %u/%zu value%s for class C network %s",
-			count, max_net, 1 == count ? "" : "s",
+			count, max_net, plural(count),
 			host_addr_to_string(host_addr_get_ipv4(net)));
 	}
 
@@ -1255,7 +1255,7 @@ validate_quotas(const dht_value_t *v)
 			g_debug("DHT STORE rejecting \"%s\": "
 				"has %u/%zu value%s for class C network %s",
 				dht_value_to_string(v),
-				count, max_net, 1 == count ? "" : "s",
+				count, max_net, plural(count),
 				host_addr_to_string(host_addr_get_ipv4(net)));
 		}
 		goto reject;
@@ -1265,15 +1265,14 @@ validate_quotas(const dht_value_t *v)
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_debug("DHT STORE has %u/%zu value%s for IP %s",
-			count, max_ip, 1 == count ? "" : "s",
+			count, max_ip, plural(count),
 			host_addr_to_string(c->addr));
 
 	if (count >= max_ip) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
 			g_debug("DHT STORE rejecting \"%s\": has %u/%zu value%s for IP %s",
 				dht_value_to_string(v),
-				count, max_ip, 1 == count ? "" : "s",
-				host_addr_to_string(c->addr));
+				count, max_ip, plural(count), host_addr_to_string(c->addr));
 		}
 		goto reject;
 	}
@@ -1747,7 +1746,7 @@ mismatch:
 			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid),
 			dht_value_type_to_string(vd->type),
 			vd->value_major, vd->value_minor,
-			vd->length, 1 == vd->length ? "" : "s",
+			vd->length, plural(vd->length),
 			vd->original ? "original" : "copy");
 	}
 
@@ -1785,7 +1784,7 @@ values_store(const knode_t *kn, const dht_value_t *v, bool token)
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
 		g_debug("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
 			kuid_to_hex_string(v->id), dht_value_type_to_string(v->type),
-			v->major, v->minor, v->length, 1 == v->length ? "" : "s",
+			v->major, v->minor, v->length, plural(v->length),
 			knode_to_string(v->creator),
 			kuid_eq(v->creator->id, kn->id) ? "original" : "copy");
 
@@ -2114,7 +2113,7 @@ values_init_data(const hset_t *dbkeys)
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES attempting to reload %zu value%s out of %zu",
-			hset_count(dbkeys), 1 == hset_count(dbkeys) ? "" : "s",
+			hset_count(dbkeys), plural(hset_count(dbkeys)),
 			dbmw_count(db_valuedata));
 	}
 
@@ -2147,7 +2146,7 @@ values_init_data(const hset_t *dbkeys)
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES reloaded %zu value%s", dbmw_count(db_valuedata),
-			1 == dbmw_count(db_valuedata) ? "" : "s");
+			plural(dbmw_count(db_valuedata)));
 	}
 
 	/*

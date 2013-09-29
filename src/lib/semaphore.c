@@ -591,7 +591,7 @@ semaphore_allocate(uint *num)
 
 	if (capacity != SEMAPHORE_BATCH_AMOUNT) {
 		s_message("%s(): was only able to allocate %u semaphore%s in array",
-			G_STRFUNC, capacity, 1 == capacity ? "" : "s");
+			G_STRFUNC, capacity, plural(capacity));
 	}
 
 	sb->capacity = capacity;
@@ -721,7 +721,7 @@ semaphore_destroy(semaphore_t **s_ptr)
 #endif
 		if (s->waiting != 0) {
 			s_carp("%s(): freeing semaphore with %u waiting thread%s",
-				G_STRFUNC, s->waiting, 1 == s->waiting ? "" : "s");
+				G_STRFUNC, s->waiting, plural(s->waiting));
 		}
 		spinlock_destroy(&s->lock);
 		s->magic = 0;
@@ -820,7 +820,7 @@ semaphore_acquire_internal(semaphore_t *s, int amount, const tm_t *timeout,
 			/* Warn about our emulation, once per semaphore object */
 			atomic_uint_inc(&s->num);
 			s_carp("%s(): emulating semop(-%d), %d token%s available in %p",
-				G_STRFUNC, amount, s->tokens, 1 == s->tokens ? "" : "s", s);
+				G_STRFUNC, amount, s->tokens, plural(s->tokens), s);
 		}
 #endif	/* !EMULATE_SEM */
 

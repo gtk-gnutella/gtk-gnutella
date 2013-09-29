@@ -49,6 +49,7 @@
 #include "lib/parse.h"
 #include "lib/slist.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/symtab.h"
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
@@ -1632,7 +1633,7 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 
 			vxml_parser_debug(vp, "removed %sinput buffer (%zu byte%s)",
 				NULL == vp->input ? "last " : "",
-				vb->u.m->length, 1 == vb->u.m->length ? "" : "s");
+				vb->u.m->length, plural(vb->u.m->length));
 			break;
 		case VXML_BUFFER_FILE:
 			vxml_parser_debug(vp, "removed %sinput file (EOF %sreached)",
@@ -2239,7 +2240,7 @@ uc_read:
 	if G_UNLIKELY(vxml_debugging(19)) {
 		vxml_parser_debug(vp, "read U+%X '%c' %u byte%s%s", vp->last_uc,
 			is_ascii_print(vp->last_uc) ? vp->last_uc & 0xff : ' ',
-			retlen, 1 == retlen ? "" : "s", m->user ? "" : " (entity)");
+			retlen, plural(retlen), m->user ? "" : " (entity)");
 	}
 
 	return m->user;
@@ -2886,7 +2887,7 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 			vxml_parser_debug(vp, "expanded %c%s; into \"%s\" (%zu byte%s)",
 				entities == vp->entities ? '&' :
 				entities == vp->pe_entities ? '%' : '?',
-				name, value, m->length, 1 == m->length ? "" : "s");
+				name, value, m->length, plural(m->length));
 		}
 	}
 
@@ -3576,7 +3577,7 @@ vxml_parser_do_notify_text(vxml_parser_t *vp,
 					vp->name,
 					text ==  vxml_output_start(&vp->out) ? "no" : "yes",
 					previous_end == current_end ? "no" : "yes",
-					len, 1 == len ? "" : "s");
+					len, plural(len));
 			}
 		}
 
@@ -4584,7 +4585,7 @@ vxml_parser_handle_entity_decl(vxml_parser_t *vp, const char *name,
 			vxml_parser_debug(vp, "defined %s entity \"%s\" as "
 				"\"%s\" (%zu byte%s)",
 				with_percent ? "parameter" : "general", name,
-				vxml_output_start(&vp->out), len, 1 == len ? "" : "s");
+				vxml_output_start(&vp->out), len, plural(len));
 		}
 
 		vxml_output_discard(&vp->out);
@@ -6559,8 +6560,7 @@ tricky_text(vxml_parser_t *vp,
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
 			"tricky_text: got \"%s\" (%zu byte%s) in <%s> at depth %u",
-			info->num, info->name, text, len,
-			1 == len ? "" : "s",
+			info->num, info->name, text, len, plural(len),
 			name, vxml_parser_depth(vp));
 	}
 
@@ -6590,7 +6590,7 @@ evaluation_text(vxml_parser_t *vp,
 		g_info("VXML test #%d \"%s\": "
 			"evaluation_text: "
 			"got \"%s\" (%zu byte%s) in <token #%u> at depth %u",
-			info->num, info->name, text, len, 1 == len ? "" : "s",
+			info->num, info->name, text, len, plural(len),
 			id, vxml_parser_depth(vp));
 	}
 
@@ -6610,7 +6610,7 @@ blank_text(vxml_parser_t *vp,
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
 			"blank_text: got \"%s\" (%zu byte%s) in <token #%u> at depth %u",
-			info->num, info->name, text, len, 1 == len ? "" : "s",
+			info->num, info->name, text, len, plural(len),
 			id, vxml_parser_depth(vp));
 	}
 

@@ -649,8 +649,8 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	}
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
-		printf("HSEP: Received %d %s from node %s (msg #%u): ", max,
-		    max == 1 ? "triple" : "triples",
+		printf("HSEP: Received %d triple%s from node %s (msg #%u): ",
+			max, plural(max),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_received + 1);
 	}
@@ -805,8 +805,8 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	opttriples = hsep_triples_to_send(cast_to_pointer(tmp), triples);
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
-		printf("HSEP: Sending %d %s to node %s (msg #%u): ", opttriples,
-		    opttriples == 1 ? "triple" : "triples",
+		printf("HSEP: Sending %d triple%s to node %s (msg #%u): ",
+			opttriples, plural(opttriples),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_sent + 1);
 	}

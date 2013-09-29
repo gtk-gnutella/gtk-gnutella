@@ -43,6 +43,7 @@
 #include "lib/random.h"
 #include "lib/stats.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/xmalloc.h"
 
@@ -612,7 +613,7 @@ main(int argc, char **argv)
 	if (countval) {
 		unsigned n = count_values(fn, period, mask, cval);
 		printf("Found %u occurence%s of %u (mask 0x%x) within period of %u\n",
-			n, 1 == n ? "" : "s", cval & mask, mask, period);
+			n, plural(n), cval & mask, mask, period);
 	}
 
 	if (countbits) {

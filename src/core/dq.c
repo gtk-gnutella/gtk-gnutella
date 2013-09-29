@@ -559,7 +559,7 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 				nid_to_string(&dq->qid),
 				node_id_self(dq->node_id) ? "local " : "",
 				(int) (tm_time() - dq->start),
-				dq->up_sent, dq->up_sent == 1 ? "" :"s",
+				dq->up_sent, plural(dq->up_sent),
 				dq->horizon, dq->results);
 		}
 	}
@@ -869,7 +869,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	if (GNET_PROPERTY(dq_debug) > 4)
 		g_debug("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
 			gmsg_infostr_full(head, pmsg_written_size(dq->mb)),
-			qhvec_count(dq->qhv), qhvec_count(dq->qhv) == 1 ? "" : "s",
+			qhvec_count(dq->qhv), plural(qhvec_count(dq->qhv)),
 			qhvec_has_urn(dq->qhv) ? " + URN" : "",
 			g_slist_length(nodes), GNET_PROPERTY(node_leaf_count));
 
@@ -1137,8 +1137,7 @@ dq_results_expired(cqueue_t *cq, void *obj)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug(
 				"DQ[%s] terminating unguided & unrouted (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent,
-				dq->up_sent == 1 ? "" : "s");
+				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
 		dq_terminate(dq);
 		return;
 	}
@@ -1491,7 +1490,7 @@ dq_send_next(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] still %d UP%s to query (results %sso far: %u)",
-			nid_to_string(&dq->qid), found, found == 1 ? "" : "s",
+			nid_to_string(&dq->qid), found, plural(found),
 			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
 
 	if (found == 0)
@@ -1630,7 +1629,7 @@ dq_send_probe(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] found %d UP%s to probe",
-			nid_to_string(&dq->qid), found, found == 1 ? "" : "s");
+			nid_to_string(&dq->qid), found, plural(found));
 
 	/*
 	 * If we don't find any suitable UP holding that content, then
@@ -2097,7 +2096,7 @@ dq_node_removed(const struct nid *node_id)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminated by node #%s removal (queried %u UP%s)",
 				nid_to_string(&dq->qid), nid_to_string2(dq->node_id),
-				dq->up_sent, dq->up_sent == 1 ? "" : "s");
+				dq->up_sent, plural(dq->up_sent));
 		
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
@@ -2356,8 +2355,7 @@ dq_got_query_status(const struct guid *muid,
 	if (kept == 0xffff) {
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminating at user's request (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent,
-				dq->up_sent == 1 ? "" : "s");
+				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
 
 		dq->flags |= DQ_F_USR_CANCELLED;
 
@@ -2524,7 +2522,7 @@ free_query_list(const void *key, void *value, void *unused_udata)
 
 	(void) unused_udata;
 	g_warning("remained %d un-freed dynamic quer%s for node #%u",
-		count, count == 1 ? "y" : "ies", GPOINTER_TO_UINT(key));
+		count, plural_y(count), GPOINTER_TO_UINT(key));
 
 	GM_SLIST_FOREACH(list, sl) {
 		dquery_t *dq = sl->data;

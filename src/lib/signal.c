@@ -45,6 +45,7 @@
 #include "once.h"
 #include "registers.h"
 #include "str.h"
+#include "stringify.h"
 #include "unsigned.h"
 
 #include "override.h"	/* Must be the last header included */
@@ -602,7 +603,7 @@ signal_uncaught(int signo)
 	if (0 != atomic_uint_get(&sig_cleanup_count)) {
 		s_miniwarn("%s(%s): running %u cleanup handler%s",
 			G_STRFUNC, signal_name(signo), sig_cleanup_count,
-			1 == sig_cleanup_count ? "" : "s");
+			plural(sig_cleanup_count));
 
 		signal_perform_cleanup();
 	}

@@ -2770,7 +2770,7 @@ clamped:
 				"(%zu arg%s processed)",
 				str->s_size, maxlen, str->s_len - origlen,
 				str->s_size - str->s_len,
-				fmt, processed, 1 == processed ? "" : "s");
+				fmt, processed, plural(processed));
 			recursion = FALSE;
 		}
 	}

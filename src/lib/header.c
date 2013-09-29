@@ -43,6 +43,7 @@
 #include "misc.h"
 #include "slist.h"
 #include "str.h"
+#include "stringify.h"
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -243,7 +244,7 @@ hfield_dump(const header_field_t *h, FILE *out)
 			int c;
 			size_t len = strlen(s);
 			str_bprintf(buf, sizeof buf, "<%u non-printable byte%s>",
-				(unsigned) len, 1 == len ? "" : "s");
+				(unsigned) len, plural(len));
 			fputs(buf, out);
 			while ((c = *p++)) {
 				if (is_ascii_print(c) || is_ascii_space(c))

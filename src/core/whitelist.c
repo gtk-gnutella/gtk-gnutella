@@ -266,7 +266,7 @@ whitelist_dns_cb(const host_addr_t *addrs, size_t n, void *udata)
 			if (GNET_PROPERTY(whitelist_debug) > 1) {
 				g_debug("WLIST DNS-resolved %s as %s (out of %zu result%s)",
 					item->host->name, host_addr_to_string(item->addr),
-					n, 1 == n ? "" : "s");
+					n, plural(n));
 			}
 			if (!ctx->revalidate) {
 				whitelist_add(item);

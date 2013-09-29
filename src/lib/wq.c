@@ -73,7 +73,9 @@
 #include "hashing.h"
 #include "hashlist.h"
 #include "htable.h"
+#include "log.h"
 #include "stacktrace.h"
+#include "stringify.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -221,7 +223,7 @@ wq_timed_out(cqueue_t *cq, void *arg)
 		we->tm->timeout_ev = cq_main_insert(we->tm->delay, wq_timed_out, we);
 		return;
 	case WQ_EXCLUSIVE:
-		g_critical("weird status WQ_EXCLUSIVE on timeout invocation of %s()",
+		s_critical("weird status WQ_EXCLUSIVE on timeout invocation of %s()",
 			stacktrace_function_name(we->cb));
 		/* FALL THROUGH */
 	case WQ_REMOVE:
@@ -284,10 +286,10 @@ wq_remove(wq_event_t *we)
 
 	hl = htable_lookup(waitqueue, we->key);
 	if (NULL == hl) {
-		g_critical("attempt to remove event %s() on unknown key %p",
+		s_critical("attempt to remove event %s() on unknown key %p",
 			stacktrace_function_name(we->cb), we->key);
 	} if (NULL == hash_list_remove(hl, we)) {
-		g_critical("attempt to remove unknown event %s() on %p",
+		s_critical("attempt to remove unknown event %s() on %p",
 			stacktrace_function_name(we->cb), we->key);
 	} else if (0 == hash_list_length(hl)) {
 		hash_list_free(&hl);
@@ -343,8 +345,8 @@ wq_notify(hash_list_t *hl, void *data)
 
 		if (i++ >= count) {
 			/* Something is odd, let them know about the calling stack */
-			g_critical("stopping after processing %zu item%s (list now has %u)",
-				count, 1 == count ? "" : "s", hash_list_length(hl));
+			s_critical("stopping after processing %zu item%s (list now has %u)",
+				count, plural(count), hash_list_length(hl));
 		}
 
 		status = (*we->cb)(we->arg, data);
@@ -357,7 +359,7 @@ wq_notify(hash_list_t *hl, void *data)
 			goto remove;
 		}
 
-		g_error("invalid status %d returned by %s()",
+		s_error("invalid status %d returned by %s()",
 			status, stacktrace_function_name(we->cb));
 
 	remove:
@@ -442,7 +444,7 @@ wq_free_waiting(void *key, void *unused_data)
 	wq_event_check(we);
 	(void) unused_data;
 
-	g_warning("leaked waiting event %s() on %p",
+	s_warning("leaked waiting event %s() on %p",
 		stacktrace_function_name(we->cb), we->key);
 
 	wq_event_free(we);

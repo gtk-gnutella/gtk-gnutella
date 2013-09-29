@@ -1004,8 +1004,7 @@ bsched_begin_timeslice(bsched_t *bs)
 		if (bs->bw_stolen != 0) {
 			if (GNET_PROPERTY(bsched_debug)) {
 				g_debug("BSCHED %s: \"%s\" ignoring stolen %d byte%s",
-					G_STRFUNC, bs->name, bs->bw_stolen,
-					1 == bs->bw_stolen ? "" : "s");
+					G_STRFUNC, bs->name, bs->bw_stolen, plural(bs->bw_stolen));
 			}
 			bs->bw_stolen = 0;
 		}
@@ -1013,7 +1012,7 @@ bsched_begin_timeslice(bsched_t *bs)
 			if (GNET_PROPERTY(bsched_debug)) {
 				g_debug("BSCHED %s: \"%s\" ignoring %d byte%s of capped b/w",
 					G_STRFUNC, bs->name, bs->bw_last_capped,
-					1 == bs->bw_last_capped ? "" : "s");
+					plural(bs->bw_last_capped));
 			}
 			bs->bw_last_capped = 0;
 		}
@@ -2145,7 +2144,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 		g_warning("FIXED SENDFILE returned offset: "
 			"was set to %s instead of %s (%zu byte%s written)",
 			uint64_to_string(*offset), uint64_to_string2(start + r),
-			r, r == 1 ? "" : "s");
+			r, plural(r));
 		*offset = start + r;
 	} else if ((ssize_t) -1 == r) {
 		*offset = start;	/* Paranoid: in case sendfile() touched it */
@@ -2849,7 +2848,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 			bs->count ? bs->bw_max / bs->count : 0,
 			bs->count ? (bs->bw_max + bs->bw_capped) / bs->count : 0,
 			bs->bw_per_second, bs->count,
-			bs->count == 1 ? "" : "s", bs->bw_actual * 1000.0 / delay);
+			plural(bs->count), bs->bw_actual * 1000.0 / delay);
 	}
 
 	/*
@@ -3011,7 +3010,7 @@ bsched_stealbeat(bsched_t *bs)
 				g_debug("BSCHED %s: \"%s\" giving %d bytes to \"%s\" "
 					"(%d favour%s)",
 					G_STRFUNC, bs->name, (int) amount, xbs->name,
-					xbs->io_favours, 1 == xbs->io_favours ? "" : "s");
+					xbs->io_favours, plural(xbs->io_favours));
 		}
 	} else if (all_used_count == 0) {
 		for (l = bs->stealers; l; l = g_slist_next(l)) {

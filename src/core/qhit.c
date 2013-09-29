@@ -54,14 +54,16 @@
 #include "if/core/main.h"			/* For main_get_build() */
 
 #include "lib/array.h"
-#include "lib/getdate.h"
 #include "lib/endian.h"
+#include "lib/getdate.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
-#include "lib/random.h"
 #include "lib/product.h"
+#include "lib/random.h"
 #include "lib/sequence.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
+
 #include "lib/override.h"			/* Must be the last header included */
 
 /*
@@ -376,8 +378,7 @@ qhit_send_node(void *data, size_t len, void *udata)
 
 	if (GNET_PROPERTY(dbg) > 3) {
 		g_debug("flushing query hit (%u entr%s, %u bytes sofar) to %s",
-			(uint) found_file_count(),
-			found_file_count() == 1 ? "y" : "ies",
+			(uint) found_file_count(), plural_y(found_file_count()),
 			(uint) found_size(),
 			node_addr(n));
 	}
