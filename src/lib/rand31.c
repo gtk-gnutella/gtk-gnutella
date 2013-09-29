@@ -53,6 +53,7 @@
 #include "common.h"
 
 #include "rand31.h"
+#include "atomic.h"
 #include "entropy.h"
 #include "hashing.h"
 #include "log.h"
@@ -65,14 +66,14 @@
 
 #include "override.h"			/* Must be the last header included */
 
-static bool rand31_seeded;			/**< Whether PRNG was seeded */
+static int rand31_seeded;			/**< Whether PRNG was seeded */
 static unsigned rand31_seed;		/**< The current seed */
 static unsigned rand31_first_seed;	/**< The initial seed */
 
 static spinlock_t rand31_lck = SPINLOCK_INIT;
 
-#define THREAD_LOCK		spinlock_hidden(&rand31_lck)
-#define THREAD_UNLOCK	spinunlock_hidden(&rand31_lck)
+#define RAND31_LOCK		spinlock_hidden(&rand31_lck)
+#define RAND31_UNLOCK	spinunlock_hidden(&rand31_lck)
 
 /**
  * @return next random number following given seed.
@@ -137,21 +138,26 @@ rand31_random_seed(void)
  * Internal version of random seed initializer.
  *
  * Using a seed of 0 computes a new random seed.
+ *
+ * This routine can safely be called without any thread lock.
  */
 static void
 rand31_do_seed(unsigned seed)
 {
 	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
-	rand31_seeded = TRUE;
+	atomic_mb();
+	atomic_int_inc(&rand31_seeded);
 }
 
 /**
  * Seed the PRNG engine if not already done.
+ *
+ * This routine can safely be called without any thread lock.
  */
 static inline void ALWAYS_INLINE
 rand31_check_seeded(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
+	if G_UNLIKELY(0 == atomic_int_get(&rand31_seeded))
 		rand31_do_seed(0);
 }
 
@@ -212,10 +218,11 @@ rand31(void)
 {
 	int rn;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	RAND31_LOCK;
 	rn = rand31_gen();
-	THREAD_UNLOCK;
+	RAND31_UNLOCK;
 
 	return rn;
 }
@@ -228,9 +235,13 @@ rand31(void)
 void
 rand31_set_seed(unsigned seed)
 {
-	THREAD_LOCK;
-	rand31_do_seed(seed);
-	THREAD_UNLOCK;
+	unsigned s;
+
+	s = 0 == seed ? rand31_random_seed() : seed;
+
+	RAND31_LOCK;
+	rand31_do_seed(s);
+	RAND31_UNLOCK;
 }
 
 /**
@@ -241,10 +252,11 @@ rand31_initial_seed(void)
 {
 	unsigned rs;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	RAND31_LOCK;
 	rs = rand31_first_seed;
-	THREAD_UNLOCK;
+	RAND31_UNLOCK;
 
 	return rs;
 }
@@ -257,10 +269,11 @@ rand31_current_seed(void)
 {
 	unsigned rs;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	RAND31_LOCK;
 	rs = rand31_seed;
-	THREAD_UNLOCK;
+	RAND31_UNLOCK;
 
 	return rs;
 }
@@ -289,11 +302,12 @@ rand31_u32(void)
 {
 	unsigned rn, rx;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	RAND31_LOCK;
 	rx = rand31_prng();
 	rn = UINT32_SWAP(rx) + rand31_gen();
-	THREAD_UNLOCK;
+	RAND31_UNLOCK;
 
 	return rn;
 }
