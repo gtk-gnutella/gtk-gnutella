@@ -43,6 +43,7 @@
 #include "tm.h"
 #include "atomic.h"
 #include "compat_sleep_ms.h"
+#include "gentime.h"
 #include "listener.h"
 #include "offtime.h"
 #include "spinlock.h"
@@ -243,6 +244,24 @@ tm_thread_main(void *unused_arg)
 	ZERO(&prev);
 
 	thread_set_name("time");
+
+	/*
+	 * Let generation time stamp initialize.
+	 *
+	 * We used to have gentime_diff() do that the first time it was called,
+	 * in order to decouple the two layers, but that does not work as
+	 * gentime_diff() can be called with memory locks already taken, and
+	 * installing the event listener is going to allocate memory, causing
+	 * deadlocks.
+	 *
+	 * Therefore, it is best to initialize the generation timestamp from here:
+	 * when this thread starts, it does not hold any locks.  And without this
+	 * thread, generation timestamps do not work anyway, so the two functions
+	 * are dependent upon each other.
+	 *		--RAM, 2013-09-29
+	 */
+
+	gentime_init();
 
 	for (;;) {
 		tm_t now;

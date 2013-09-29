@@ -61,6 +61,8 @@ typedef struct gentime {
 gentime_t gentime_now(void);
 gentime_t gentime_now_exact(void);
 time_delta_t gentime_diff(const gentime_t t1, const gentime_t t0);
+
+void gentime_init(void);
 void gentime_close(void);
 
 static inline bool ALWAYS_INLINE

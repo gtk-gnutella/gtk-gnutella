@@ -94,6 +94,22 @@ gentime_event_install(void)
 }
 
 /**
+ * Initialize the generation timestamp layer.
+ *
+ * This is done by installing the adjustment event, which will get triggered
+ * from the time thread when it detects that the system clock was suddenly
+ * adjusted.
+ */
+void
+gentime_init(void)
+{
+	static once_flag_t gentime_inited;
+
+	once_flag_run(&gentime_inited, gentime_event_install);
+
+}
+
+/**
  * Uninstall time adjustment event when shutting down.
  */
 void
@@ -180,24 +196,6 @@ gentime_diff(const gentime_t t1, const gentime_t t0)
 {
 	struct gentime_rec *g = &gentime_rec;
 	unsigned lidx, last;
-	static bool gentime_event_installed;
-	static spinlock_t gentime_event_slk = SPINLOCK_INIT;
-
-	/*
-	 * This is too low level to use ONCE_FLAG_RUN.
-	 *
-	 * We need to avoid the regular spinlock_loop() code since this routine
-	 * is called from there: hence use a raw spinlock implementation.
-	 */
-
-	if G_UNLIKELY(!gentime_event_installed) {
-		spinlock_raw(&gentime_event_slk);
-		if (!gentime_event_installed) {
-			gentime_event_installed = TRUE;
-			gentime_event_install();
-		}
-		spinunlock_raw(&gentime_event_slk);
-	}
 
 	GENTIME_LOCK;
 
