@@ -4613,7 +4613,8 @@ vmm_early_init_once(void)
 	 * Allocate the trap page early so that it is at the bottom of the
 	 * memory space, hopefully (not really true on Linux, but close enough).
 	 */
-	(void) vmm_trap_page();
+
+	vmm_base = vmm_trap_page();
 
 	/*
 	 * The VMM trap page was allocated earlier, before we have the pmap
