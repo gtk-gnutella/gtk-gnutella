@@ -262,6 +262,7 @@ spinlock_loop(volatile spinlock_t *s,
 	 */
 
 	if G_UNLIKELY(spinlock_in_crash_mode()) {
+		thread_check_suspended();
 		spinlock_direct(s);
 		return;
 	}
@@ -351,6 +352,7 @@ spinlock_loop(volatile spinlock_t *s,
 		 */
 
 		if G_UNLIKELY(spinlock_in_crash_mode()) {
+			thread_check_suspended();
 			spinlock_direct(s);
 			return;
 		}
@@ -466,8 +468,10 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_in_crash_mode())
+	if G_UNLIKELY(spinlock_in_crash_mode()) {
+		thread_check_suspended();
 		return TRUE;		/* Crashing */
+	}
 
 	return FALSE;
 }
@@ -508,8 +512,10 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_in_crash_mode())
+	if G_UNLIKELY(spinlock_in_crash_mode()) {
+		thread_check_suspended();
 		return TRUE;		/* Crashing */
+	}
 
 	return FALSE;
 }
@@ -549,6 +555,7 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 
 	while (!atomic_acquire(&s->lock)) {
 		if G_UNLIKELY(spinlock_in_crash_mode()) {
+			thread_check_suspended();
 			spinlock_direct(s);
 			break;
 		}

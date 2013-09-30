@@ -506,7 +506,21 @@ rwlock_lock_granted(void *p)
 	 * synchronized by the release of the lock.
 	 */
 
-	return wc->ok || rwlock_pass_through;
+	if (wc->ok)
+		return TRUE;
+
+	/*
+	 * In pass-through mode, we're crashing, so check whether we were suspended
+	 * to halt concurrent threads as soon as possible since running without
+	 * locks is unsafe.
+	 */
+
+	if G_UNLIKELY(rwlock_pass_through) {
+		thread_check_suspended();
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 /**
@@ -551,7 +565,15 @@ rwlock_readers_downto(void *p)
 	 * the lock.
 	 */
 
-	return arg->count == arg->rw->readers || rwlock_pass_through;
+	if (arg->count == arg->rw->readers)
+		return TRUE;
+
+	if G_UNLIKELY(rwlock_pass_through) {
+		thread_check_suspended();
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 /**
@@ -650,7 +672,15 @@ rwlock_is_used(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
-	return 0 != rw->readers || 0 != rw->writers || rwlock_pass_through;
+	if (0 != rw->readers || 0 != rw->writers)
+		return TRUE;
+
+	if G_UNLIKELY(rwlock_pass_through) {
+		thread_check_suspended();
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 /**
@@ -701,6 +731,7 @@ rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line)
 		got = TRUE;
 	} else {
 		if G_UNLIKELY(rwlock_pass_through) {
+			thread_check_suspended();
 			rw->readers++;
 			got = TRUE;
 		} else {
@@ -776,6 +807,7 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line)
 		g_assert(0 != rw->writers);		/* Check there are no overflows */
 	} else {
 		if G_UNLIKELY(rwlock_pass_through) {
+			thread_check_suspended();
 			rw->writers++;
 			got = TRUE;
 		} else {
@@ -892,6 +924,7 @@ rwlock_rgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 		got = TRUE;
 	} else {
 		if G_UNLIKELY(rwlock_pass_through) {
+			thread_check_suspended();
 			rw->readers++;
 			got = TRUE;
 		} else {
@@ -981,6 +1014,7 @@ rwlock_wgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 		g_assert(1 == rw->writers);
 	} else {
 		if G_UNLIKELY(rwlock_pass_through) {
+			thread_check_suspended();
 			rw->writers++;
 			rw->owner = stid;
 			got = TRUE;
@@ -1073,6 +1107,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 		got = TRUE;
 	} else {
 		if G_UNLIKELY(rwlock_pass_through) {
+			thread_check_suspended();
 			rw->writers++;
 			rw->readers--;				/* Upgrading last read lock */
 			rw->owner = stid;

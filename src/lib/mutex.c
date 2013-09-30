@@ -551,8 +551,10 @@ mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
 	 */
 
 	if G_UNLIKELY(!mutex_is_owned_by_fast(m, t)) {	/* Precondition */
-		if (mutex_pass_through)
+		if (mutex_pass_through) {
+			thread_check_suspended();
 			return;
+		}
 		/* OK, log the precondition failure */
 		mutex_log_error(m, file, line);
 	}
@@ -575,8 +577,10 @@ mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
 void
 mutex_not_owned(const mutex_t *m, const char *file, unsigned line)
 {
-	if G_UNLIKELY(mutex_pass_through)
+	if G_UNLIKELY(mutex_pass_through) {
+		thread_check_suspended();
 		return;		/* Ignore when we're crashing */
+	}
 
 	s_minicrit("Mutex %p not owned at %s:%u in %s",
 		m, file, line, thread_name());

@@ -2837,10 +2837,19 @@ thread_check_suspended(void)
 
 	/*
 	 * Suspension is critical, especially in crash mode, so check this first.
+	 *
+	 * We normally only suspend threads that do not hold any locks, but we
+	 * iimediately suspend a thread marked as such in crash mode, since then
+	 * locks become pass-through and we want to freeze execution as soon as
+	 * possible.
 	 */
 
-	if G_UNLIKELY(te->suspend && 0 == te->locks.count)
-		delayed |= thread_suspend_self(te);
+	if G_UNLIKELY(te->suspend) {
+		if (0 == te->locks.count)
+			delayed |= thread_suspend_self(te);
+		else if (thread_in_crash_mode())
+			delayed |= thread_suspend_loop(te);	/* Unconditional */
+	}
 
 	if G_UNLIKELY(thread_sig_pending(te))
 		delayed = thread_sig_handle(te);
@@ -4389,7 +4398,7 @@ found:
 	 * it enters the critical section, rather than when it leaves it.
 	 */
 
-	if G_UNLIKELY(te->suspend && 0 == tls->count) {
+	if G_UNLIKELY(te->suspend) {
 		/*
 		 * If we can release the lock, it was a single one, at which point
 		 * the thread holds no lock and can suspend itself.  When it can
@@ -4398,9 +4407,13 @@ found:
 		 * Suspension will be totally transparent to the user code.
 		 */
 
-		if (thread_lock_release(lock, kind)) {
-			thread_suspend_self(te);
-			thread_lock_reacquire(lock, kind, file, line);
+		if (0 == tls->count) {
+			if (thread_lock_release(lock, kind)) {
+				thread_suspend_self(te);
+				thread_lock_reacquire(lock, kind, file, line);
+			}
+		} else if (thread_in_crash_mode()) {
+			thread_suspend_loop(te);
 		}
 	}
 
