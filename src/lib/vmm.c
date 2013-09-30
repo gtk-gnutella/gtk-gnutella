@@ -232,9 +232,6 @@ struct pmap {
 	size_t count;					/**< Amount of entries in array */
 	size_t size;					/**< Total amount of slots in array */
 	size_t pages;					/**< Amount of pages for the array */
-	size_t generation;				/**< Reloading generation number */
-	unsigned loading:1;				/**< Pmap being loaded */
-	unsigned resized:1;				/**< Pmap has been resized */
 	unsigned extending:1;			/**< Pmap being extended */
 };
 
@@ -284,9 +281,8 @@ static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
 #define VMM_STATS_UNLOCK	spinunlock_hidden(&vmm_stats_slk)
 
 /**
- * The kernel version of the pmap and our own version.
+ * The local version of the process memory map.
  */
-static struct pmap kernel_pmap;
 static struct pmap local_pmap;
 
 static bool safe_to_log;			/**< True when we can log */
@@ -323,12 +319,11 @@ vmm_is_inited(void)
 static inline struct pmap *
 vmm_pmap(void)
 {
-	return kernel_pmap.count ? &kernel_pmap : &local_pmap;
+	return &local_pmap;
 }
 
 static bool page_cache_insert_pages(void *base, size_t n);
 static void pmap_remove(struct pmap *pm, const void *p, size_t size);
-static void pmap_load(struct pmap *pm);
 static void pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, vmf_type_t type);
 static void pmap_overrule(struct pmap *pm,
@@ -601,9 +596,7 @@ vmm_dump_pmap_log(logagent_t *la)
 
 	rwlock_wlock(&pm->lock);
 
-	log_debug(la, "VMM current %s pmap (%zu/%zu region%s):",
-		pm == &kernel_pmap ? "kernel" :
-		pm == &local_pmap ? "local" : "unknown",
+	log_debug(la, "VMM local pmap (%zu/%zu region%s):",
 		pm->count, pm->size, plural(pm->count));
 
 	for (i = 0; i < pm->count; i++) {
@@ -663,7 +656,7 @@ vmm_find_hole(size_t size)
 	if G_UNLIKELY(!vmm_fully_inited)
 		return NULL;
 
-	if G_UNLIKELY(0 == pm->count || pm->loading)
+	if G_UNLIKELY(0 == pm->count)
 		return NULL;
 
 	if (kernel_mapaddr_increasing) {
@@ -1041,24 +1034,16 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * Kernel did not use our hint, maybe it was wrong because something
 		 * got mapped at the place where we thought there was nothing...
 		 *
-		 * Reload the current kernel pmap if we're able to do so, otherwise
-		 * see whether we can mark something as "foreign" in the VM space so
+		 * See whether we can mark something as "foreign" in the VM space so
 		 * that we avoid further attempts at the same location for blocks
 		 * of similar sizes.
 		 */
 
 		hint_followed = 0;
 
-		if (&kernel_pmap == pm) {
-			if (vmm_debugging(0)) {
-				s_minidbg("VMM current kernel pmap before reloading attempt:");
-				vmm_dump_pmap();
-			}
-			pmap_load(&kernel_pmap);
-			vmm_reserve_stack(0);
-		} else if (!local_pmap.extending) {
+		if (!pm->extending) {
 			if (size <= kernel_pagesize) {
-				pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
+				pmap_insert_foreign(pm, hint, kernel_pagesize);
 				if (vmm_debugging(0)) {
 					s_minidbg("VMM marked hint %p as foreign", hint);
 				}
@@ -1081,15 +1066,14 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 
 				if G_LIKELY(try != MAP_FAILED) {
 					if (try != hint) {
-						pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
+						pmap_insert_foreign(pm, hint, kernel_pagesize);
 						if (vmm_debugging(0)) {
 							s_minidbg("VMM marked hint %p as foreign", hint);
 						}
 					} else if (2 == pagecount_fast(size)) {
 						void *next = ptr_add_offset(hint, kernel_pagesize);
 						if (next != p) {
-							pmap_insert_foreign(&local_pmap, next,
-								kernel_pagesize);
+							pmap_insert_foreign(pm, next, kernel_pagesize);
 							if (vmm_debugging(0)) {
 								s_minidbg("VMM marked %p (page after %p) "
 									"as foreign", next, hint);
@@ -1187,8 +1171,8 @@ static void *
 alloc_pages(size_t size, bool update_pmap)
 {
 	void *p;
-	size_t generation = kernel_pmap.generation;
 	const void *hole = NULL;
+	struct pmap *pm = vmm_pmap();
 
 	g_assert(kernel_pagesize > 0);
 
@@ -1200,7 +1184,7 @@ alloc_pages(size_t size, bool update_pmap)
 		 * will be able to perform the allocation with that selected hole.
 		 */
 
-		rwlock_wlock(&vmm_pmap()->lock);
+		rwlock_wlock(&pm->lock);
 		if (G_UNLIKELY(stop_freeing)) {
 			hole = NULL;
 		} else {
@@ -1212,7 +1196,7 @@ alloc_pages(size_t size, bool update_pmap)
 
 	if G_UNLIKELY(NULL == p) {
 		if (update_pmap)
-			rwlock_wunlock(&vmm_pmap()->lock);
+			rwlock_wunlock(&pm->lock);
 		return NULL;
 	}
 
@@ -1222,19 +1206,8 @@ alloc_pages(size_t size, bool update_pmap)
 		s_minidbg("VMM allocated %zuKiB region at %p", size / 1024, p);
 	}
 
-	/*
-	 * Since the kernel pmap can be reloaded by vmm_mmap_anonymous(), we
-	 * need to be careful and not insert something that will be listed there.
-	 *
-	 * NB: we check the kernel_pmap object only but we use vmm_pmap() for
-	 * inserting in case we do not use the kernel pmap.
-	 */
-
 	if (update_pmap) {
-		struct pmap *pm = vmm_pmap();
-
-		if (kernel_pmap.generation == generation)
-			pmap_insert(pm, p, size);
+		pmap_insert(pm, p, size);
 		rwlock_wunlock(&pm->lock);
 	}
 
@@ -1381,7 +1354,6 @@ pmap_extend(struct pmap *pm)
 	size_t nsize;
 	size_t osize;
 	void *oarray;
-	size_t old_generation;
 	bool was_extending = pm->extending;
 
 	assert_rwlock_is_owned(&pm->lock);
@@ -1390,13 +1362,10 @@ retry:
 
 	osize = kernel_pagesize * pm->pages;
 	nsize = osize + kernel_pagesize;
-	old_generation = vmm_pmap()->generation;
 
 	if (vmm_debugging(0)) {
-		s_minidbg("VMM extending %s%s%s pmap from %zu KiB to %zu KiB",
+		s_minidbg("VMM extending %spmap from %zu KiB to %zu KiB",
 			pm->extending ? "(recursively) " : "",
-			pm->loading ? "loading " : "",
-			pm == &kernel_pmap ? "kernel" : "local",
 			osize / 1024, nsize / 1024);
 	}
 
@@ -1404,8 +1373,8 @@ retry:
 
 	/*
 	 * It is possible to recursively enter here through alloc_pages() when
-	 * mmap() is used to allocate virtual memory, in case we reload the
-	 * kernel map or insert a foreign region.
+	 * mmap() is used to allocate virtual memory, in case we insert a foreign
+	 * region.
 	 *
 	 * To protect against that, we start by allocating the new pages and
 	 * remember the amount of pages in the map.  If upon return from the
@@ -1443,9 +1412,8 @@ retry:
 			goto retry;
 		} else {
 			if (vmm_debugging(0)) {
-				s_minidbg("VMM allocated new %zu KiB %s pmap at %p",
-					nsize / 1024, pm == &kernel_pmap ? "kernel" : "local",
-					narray);
+				s_minidbg("VMM allocated new %zu KiB pmap at %p",
+					nsize / 1024, narray);
 			}
 		}
 
@@ -1469,82 +1437,8 @@ retry:
 	 * array can be freed, so this must come last.
 	 */
 
+	pmap_insert(pm, narray, nsize);
 	free_pages(oarray, osize, TRUE);
-
-	/*
-	 * Watch out for extending the kernel pmap whilst we're reloading it.
-	 * This means our data structures were too small, and we'll need to
-	 * reload it again.
-	 */
-
-	{
-		struct pmap *vpm = vmm_pmap();
-
-		if (!vpm->loading) {
-			if (vpm->generation == old_generation) {
-				pmap_insert(vpm, narray, nsize);
-			} else {
-				if (vmm_debugging(0)) {
-					s_minidbg("VMM kernel pmap reloaded during extension");
-				}
-				/* New pages must be there! */
-				g_assert(NULL != pmap_lookup(vpm, narray, NULL));
-			}
-		} else {
-			vpm->resized = TRUE;
-		}
-	}
-}
-
-/**
- * Add a new fragment at the tail of pmap (must be added in order), coalescing
- * fragments of the same foreign type.
- */
-static void
-pmap_add(struct pmap *pm, const void *start, const void *end, vmf_type_t type)
-{
-	struct vm_fragment *vmf;
-
-	g_assert(pm->array != NULL);
-	g_assert(pm->count <= pm->size);
-	g_assert(ptr_cmp(start, end) < 0);
-
-	rwlock_wlock(&pm->lock);
-
-	while (pm->count == pm->size)
-		pmap_extend(pm);
-
-	g_assert(pm->count < pm->size);
-
-	/*
-	 * Ensure that entries are inserted in order.
-	 */
-
-	if (pm->count > 0) {
-		vmf = &pm->array[pm->count - 1];
-		g_assert(ptr_cmp(start, vmf->end) >= 0);
-	}
-
-	/*
-	 * Attempt coalescing.
-	 */
-
-	if (pm->count > 0) {
-		vmf = &pm->array[pm->count - 1];
-		if (vmf->type == type && vmf->end == start) {
-			vmf->end = end;
-			vmf->mtime = tm_time();
-			goto done;
-		}
-	}
-
-	vmf = &pm->array[pm->count++];
-	vmf->start = start;
-	vmf->end = end;
-	vmf->mtime = tm_time();
-
-done:
-	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -1674,350 +1568,22 @@ done:
 	 * Therefore, always ensure we have room for at least one more slot.
 	 */
 
-	if G_UNLIKELY(pm->count == pm->size) {
-		size_t generation = kernel_pmap.generation;
-
+	if G_UNLIKELY(pm->count == pm->size)
 		pmap_extend(pm);
-
-		if G_UNLIKELY(kernel_pmap.generation != generation) {
-			if (vmm_debugging(1)) {
-				s_minidbg("VMM kernel pmap reloaded after "
-					"inserting %s [%p, %p]",
-					vmf_type_str(type), start, const_ptr_add_offset(end, -1));
-			}
-		}
-	}
 
 	rwlock_wunlock(&pm->lock);
 }
 
 /**
- * Parse a line read from /proc/self/maps and add it to the map.
- * @return TRUE if we managed to parse the line correctly
- */
-static bool
-pmap_parse_and_add(struct pmap *pm, const char *line)
-{
-	int error;
-	const char *ep;
-	const char *p = line;
-	const void *start, *end;
-	bool foreign = FALSE;
-
-	if (vmm_debugging(9))
-		s_minidbg("VMM parsing \"%s\"", line);
-
-	/*
-	 * Typical format of lines on linux:
-	 *
-	 *                                 device
-	 *  start  -  end    perm offset   mj:mn
-	 *
-	 * 08048000-0804f000 r-xp 00000000 09:00 1585       /bin/cat
-	 * 08050000-08071000 rw-p 08050000 00:00 0          [heap]
-	 * b7f9a000-b7f9d000 rw-p b7f9a000 00:00 0
-	 * bfdba000-bfdcf000 rw-p bffeb000 00:00 0          [stack]
-	 */
-
-	start = parse_pointer(p, &ep, &error);
-	if (error || NULL == start) {
-		if (vmm_debugging(0))
-			s_miniwarn("VMM cannot parse start address");
-		return FALSE;
-	}
-
-	if (*ep != '-')
-		return FALSE;
-
-	p = ++ep;
-	end = parse_pointer(p, &ep, &error);
-	if (error || NULL == end) {
-		if (vmm_debugging(0))
-			s_miniwarn("VMM cannot parse end address");
-		return FALSE;
-	}
-
-	if (ptr_cmp(end, start) <= 0) {
-		if (vmm_debugging(0))
-			s_miniwarn("VMM invalid start/end address pair");
-		return FALSE;
-	}
-
-	p = skip_ascii_blanks(ep);
-
-	{
-		char perms[4];
-		int i;
-		int c;
-
-		for (i = 0; i < 4; i++) {
-			c = *p++;
-			if ('0' == c) {
-				if (vmm_debugging(0))
-					s_miniwarn("VMM short permission string");
-				return FALSE;
-			}
-			perms[i] = c;
-		}
-
-		if ('x' == perms[2] || 'w' != perms[1] || 'p' != perms[3])
-			foreign = TRUE;		/* This region was not allocated by VMM */
-	}
-
-	/*
-	 * FIXME: now that we have 3 types of memory region, we must recognize
-	 * memory mapped regions we know about when reloading a pmap, by looking
-	 * at the current map we have.	-- RAM, 2011-10-01.
-	 */
-
-	pmap_add(pm, start, end, foreign ? VMF_FOREIGN : VMF_NATIVE);
-
-	return TRUE;
-}
-
-struct iobuffer {
-	char *buf;
-	size_t size;
-	char *rptr;
-	size_t fill;
-	unsigned int eof:1;
-	unsigned int error:1;
-	unsigned int toobig:1;
-};
-
-static void
-iobuffer_init(struct iobuffer *iob, char *dst, size_t size)
-{
-	iob->buf = dst;
-	iob->size = size;
-	iob->rptr = dst;
-	iob->fill = 0;
-	iob->eof = 0;
-	iob->error = 0;
-	iob->toobig = 0;
-}
-
-/**
- * Reads a line from an open file descriptor whereas each successive call
- * clears the previous line. Lines are separated by '\n' which is replaced
- * by a NUL when returned. The maximum acceptable line length is bound to
- * the buffer size. iob->error is set on I/O errors, iob->toobig is set
- * once the buffer is full without any newline character.
- *
- * @param iob	An initialized, valid 'struct iobuffer'.
- * @param fd	An open file descriptor.
- *
- * @return NULL on failure or EOF, pointer to the current line on success.
- */
-static const char *
-iobuffer_readline(struct iobuffer *iob, int fd)
-{
-	g_assert(iob);
-	g_assert(iob->buf);
-	g_assert(iob->rptr);
-	g_assert(iob->fill <= iob->size);
-
-	/* Clear previous line and shift following chars */
-	if (iob->rptr != iob->buf) {
-		size_t n = iob->rptr - iob->buf;
-
-		g_assert(iob->fill >= n);
-		iob->fill -= n;
-		memmove(iob->buf, iob->rptr, iob->fill);
-		iob->rptr = iob->buf;
-	}
-
-	do {
-		/* Refill buffer if not EOF and not full */
-		if (!iob->eof && iob->fill < iob->size) {
-			size_t n = iob->size - iob->fill;
-			ssize_t ret;
-
-			ret = read(fd, &iob->buf[iob->fill], n);
-			if ((ssize_t) -1 == ret) {
-				iob->error = TRUE;
-				iob->eof = TRUE;
-				break;
-			} else if (0 == ret) {
-				iob->eof = TRUE;
-			} else {
-				iob->fill += ret;
-			}
-		}
-		if (iob->fill > 0) {
-			char *p = memchr(iob->buf, '\n', iob->fill);
-			if (p) {
-				*p = '\0';
-				iob->rptr = &p[1];
-				return iob->buf;
-			}
-		}
-		if (iob->fill >= iob->size) {
-			iob->toobig = TRUE;
-			break;
-		}
-	} while (!iob->eof);
-
-	return NULL;
-}
-
-/**
- * @return	A negative value on failure. If zero is returned, check pm->resize
- *			and try again.
- */
-static inline int
-pmap_load_data(struct pmap *pm)
-{
-	struct iobuffer iob;
-	char buf[4096];
-	int fd, ret = -1;
-
-	/*
-	 * This is a low-level routine, do not use stdio at all as it could
-	 * allocate memory and re-enter the VMM layer.  Likewise, do not
-	 * allocate any memory, excepted for the pmap where entries are stored.
-	 */
-
-	fd = open("/proc/self/maps", O_RDONLY);
-	if (fd < 0) {
-		if (vmm_debugging(0)) {
-			s_miniwarn("VMM cannot open /proc/self/maps: %m");
-		}
-		goto failure;
-	}
-
-	/*
-	 * Dirty the pages associated with buf to avoid that the kernel has to
-	 * extend the stack, which may modify mappings while reading from /proc.
-	 */
-
-	ZERO(&buf);
-
-	pm->count = 0;
-	iobuffer_init(&iob, buf, sizeof buf);
-
-	while (!pm->resized) {
-		const char *line;
-
-		line = iobuffer_readline(&iob, fd);
-		if (NULL == line) {
-			if (iob.error) {
-				if (vmm_debugging(0)) {
-					s_miniwarn("VMM error reading /proc/self/maps: %m");
-				}
-				goto failure;
-			}
-			if (iob.toobig) {
-				if (vmm_debugging(0)) {
-					s_miniwarn("VMM too long a line in /proc/self/maps output");
-				}
-				goto failure;
-			}
-			break;
-		}
-		if (!pmap_parse_and_add(pm, line)) {
-			if (vmm_debugging(0)) {
-				s_miniwarn("VMM error parsing \"%s\"", buf);
-			}
-			goto failure;
-		}
-	}
-	ret = 0;
-
-failure:
-	fd_close(&fd);
-	return ret;
-}
-
-/**
- * Load the process's memory map from /proc/self/maps into the supplied map.
- */
-static void
-pmap_load(struct pmap *pm)
-{
-	/*
-	 * FIXME
-	 *
-	 * Before the 0.96.7 release, I'm disabling kernel pmap loading.
-	 *
-	 * This is because upon kernel map loading, we do not know currently
-	 * how to propagate the regions we have allocated already to prevent
-	 * them from being coalesced by the loading into a "foreign" area (despite
-	 * them being truly owned by us already).
-	 *
-	 * This would then trigger undue assertion failures because suddenly
-	 * we would think we're releasing memory allocated via vmm_mmap() (as
-	 * it would be wrongly be part of a fragment tagged foreign) when in
-	 * reality we're releasing memory allocated through vmm_alloc().
-	 *
-	 * 		--RAM, 2010-03-05
-	 */
-	(void) pm;
-
-#if 0
-	static int failed;
-	unsigned attempt = 0;
-
-	if (failed)
-		return;
-
-	g_assert(&kernel_pmap == pm);
-
-	if (vmm_debugging(8)) {
-		s_minidbg("VMM loading kernel memory map (for generation #%zu)",
-			pm->generation + 1);
-	}
-
-	for (;;) {
-		int ret;
-
-		pm->loading = TRUE;
-		pm->resized = FALSE;
-
-		ret = pmap_load_data(pm);
-		if (ret < 0) {
-			failed = TRUE;
-			break;
-		}
-		if (!pm->resized)
-			break;
-
-		if (++attempt > 10) {
-			/* Unconditional warning -- something may break afterwards */
-			s_miniwarn("VMM unable to reload kernel pmap after %u attempts",
-					attempt);
-			break;
-		}
-
-		if (vmm_debugging(0)) {
-			s_miniwarn("VMM kernel pmap resized during loading attempt #%u"
-				", retrying", attempt);
-		}
-	}
-
-	pm->loading = FALSE;
-
-	if (!failed)
-		pm->generation++;
-
-	if (vmm_debugging(1)) {
-		s_minidbg("VMM kernel memory map (generation #%zu) holds %zu region%s",
-			pm->generation, pm->count, plural(pm->count));
-	}
-#endif
-}
-
-/**
  * Log missing region.
  */
-static void
+static inline void
 pmap_log_missing(const struct pmap *pm, const void *p, size_t size)
 {
+	(void) pm;
+
 	if (vmm_debugging(0)) {
-		s_miniwarn("VMM %zuKiB region at %p missing from %s pmap",
-			size / 1024, p,
-			pm == &kernel_pmap ? "kernel" :
-			pm == &local_pmap ? "local" : "unknown");
+		s_miniwarn("VMM %zuKiB region at %p missing from pmap", size / 1024, p);
 	}
 }
 
@@ -2347,7 +1913,9 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 		const void *end = const_ptr_add_offset(p, size);
 		const void *vend = vmf->end;
 
-		g_assert(vmf_size(vmf) >= size);
+		g_assert_log(vmf_size(vmf) >= size,
+			"vmf={%s} vmf_size=%zu size=%zu",
+			vmf_to_string(vmf), vmf_size(vmf), size);
 
 		if (p == vmf->start) {
 
@@ -4175,19 +3743,17 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 		size_t_to_gstring(x) : size_t_to_string(x))
 
 	{
-		size_t count, size, pages, generation;
+		size_t count, size, pages;
 
 		rwlock_rlock(&pm->lock);
 		count = pm->count;
 		size = pm->size;
 		pages = pm->pages;
-		generation = pm->generation;
 		rwlock_runlock(&pm->lock);
 
 		DUMP(count);
 		DUMP(size);
 		DUMP(pages);
-		DUMP(generation);
 	}
 
 
@@ -4249,8 +3815,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	 */
 
 	DUMP("computed_native_pages",
-		cached_pages + stats.user_pages + stats.core_pages +
-		local_pmap.pages + kernel_pmap.pages);
+		cached_pages + stats.user_pages + stats.core_pages + local_pmap.pages);
 
 #undef DUMP
 }
@@ -4316,65 +3881,7 @@ vmm_reserve_stack(size_t amount)
 {
 	const void *stack_end, *stack_low;
 	bool sp_increasing = sp_direction > 0;
-
-	/*
-	 * If we could read the kernel pmap, reserve an extra VMM_STACK_MINSIZE
-	 * after the stack, as a precaution.
-	 */
-
-	if (vmm_pmap() == &kernel_pmap) {
-		struct vm_fragment *vmf = pmap_lookup(&kernel_pmap, &stack_end, NULL);
-		bool first_time = NULL == vmm_base;
-
-		if (NULL == vmf) {
-			if (vmm_debugging(0)) {
-				s_warning("VMM no stack region found in the kernel pmap");
-			}
-			if (NULL == vmm_base)
-				vmm_base = vmm_trap_page();
-		} else {
-			const void *reserve_start;
-
-			if (vmm_debugging(1)) {
-				s_minidbg("VMM stack region found in the kernel pmap (%zu KiB)",
-					vmf_size(vmf) / 1024);
-			}
-
-			stack_end = deconstify_pointer(
-				sp_increasing ? vmf->end : vmf->start);
-			reserve_start = const_ptr_add_offset(stack_end,
-				(kernel_mapaddr_increasing ? +1 : -1) * VMM_STACK_MINSIZE);
-
-			if (
-				!pmap_is_available(&kernel_pmap,
-					reserve_start, VMM_STACK_MINSIZE)
-			) {
-				if (vmm_debugging(0)) {
-					s_warning("VMM cannot reserve extra %uKiB %s stack",
-						VMM_STACK_MINSIZE / 1024,
-						sp_increasing ? "after" : "before");
-				}
-			} else {
-				pmap_insert_foreign(&kernel_pmap,
-					reserve_start, VMM_STACK_MINSIZE);
-				if (vmm_debugging(1)) {
-					s_minidbg("VMM reserved [%p, %p] "
-						"%s stack for possible growing",
-						reserve_start,
-						const_ptr_add_offset(reserve_start,
-							VMM_STACK_MINSIZE - 1),
-						sp_increasing ? "after" : "before");
-					vmm_dump_pmap();
-				}
-			}
-
-			if (NULL == vmm_base)
-				vmm_base = reserve_start;
-		}
-		if (first_time)
-			goto vm_setup;
-		return;
-	}
+	struct pmap *pm = vmm_pmap();
 
 	g_assert(amount != 0);
 
@@ -4392,8 +3899,10 @@ vmm_reserve_stack(size_t amount)
 		(sp_increasing ? +1 : -1) * amount);
 	stack_low = sp_increasing ? stack_base : stack_end;
 
-	if (pmap_is_available(&local_pmap, stack_low, amount)) {
-		pmap_insert_foreign(&local_pmap, stack_low, amount);
+	rwlock_wlock(&pm->lock);
+
+	if (pmap_is_available(pm, stack_low, amount)) {
+		pmap_insert_foreign(pm, stack_low, amount);
 		if (vmm_debugging(1)) {
 			s_minidbg("VMM reserved %zuKiB [%p, %p] for the stack",
 				amount / 1024, stack_low,
@@ -4418,6 +3927,8 @@ vmm_reserve_stack(size_t amount)
 		}
 		vmm_base = vmm_trap_page();
 	}
+
+	rwlock_wunlock(&pm->lock);
 
 vm_setup:
 	if (vmm_debugging(0)) {
@@ -4503,7 +4014,6 @@ vmm_post_init(void)
 			sp_direction > 0 ? "in" : "de", stack_base);
 	}
 
-	pmap_load(&kernel_pmap);
 	cq_periodic_main_add(1000, page_cache_timer, NULL);
 
 	/*
@@ -4602,11 +4112,9 @@ vmm_early_init_once(void)
 	 */
 
 	pmap_allocate(&local_pmap);
-	pmap_allocate(&kernel_pmap);
 
-	g_assert_log(2 == local_pmap.pages + kernel_pmap.pages,
-		"local_pmap.pages = %zu, kernel_pmap.pages = %zu",
-		local_pmap.pages, kernel_pmap.pages);
+	g_assert_log(1 == local_pmap.pages,
+		"local_pmap.pages = %zu", local_pmap.pages);
 
 	/*
 	 * Allocate the trap page early so that it is at the bottom of the
