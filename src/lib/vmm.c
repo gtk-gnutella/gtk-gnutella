@@ -2795,7 +2795,6 @@ insert:
 		 * end when we have released the spinlock.
 		 */
 
-		evicted = pc->info[kidx].base;
 		vpc_remove_at(pc, evicted, kidx);
 
 		if (idx > kidx)
