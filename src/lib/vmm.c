@@ -4032,6 +4032,8 @@ page_cache_timer(void *unused_udata)
 		}
 	}
 
+	spinunlock(&pc->lock);
+
 	if G_UNLIKELY(expired > 0) {
 		if (vmm_debugging(1)) {
 			size_t regions = vmm_pmap()->count;
@@ -4047,8 +4049,6 @@ page_cache_timer(void *unused_udata)
 			vmm_dump_pmap();
 		}
 	}
-
-	spinunlock(&pc->lock);
 
 	line++;			/* For next time */
 	return TRUE;	/* Keep scheduling */
