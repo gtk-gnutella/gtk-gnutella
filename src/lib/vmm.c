@@ -703,6 +703,24 @@ vmm_find_hole(size_t size)
 }
 
 /**
+ * Discard region at specified index within the pmap.
+ */
+static inline void
+pmap_drop(struct pmap *pm, size_t idx)
+{
+	pm->count--;
+
+	/*
+	 * We need to shift data back by one slot unless we remove the last entry.
+	 */
+
+	if G_LIKELY(idx != pm->count) {
+		memmove(&pm->array[idx], &pm->array[idx + 1],
+			(pm->count - idx) * sizeof pm->array[0]);
+	}
+}
+
+/**
  * Discard foreign region at specified index within the pmap.
  */
 static void
@@ -729,12 +747,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 	vmm_stats.pmap_foreign_discarded_pages += pagecount_fast(vmf_size(vmf));
 	VMM_STATS_UNLOCK;
 
-	if G_LIKELY(idx != pm->count - 1) {
-		memmove(&pm->array[idx], &pm->array[idx + 1],
-			(pm->count - idx - 1) * sizeof pm->array[0]);
-	}
-
-	pm->count--;
+	pmap_drop(pm, idx);
 }
 
 /**
@@ -1178,7 +1191,6 @@ alloc_pages(size_t size, bool update_pmap)
 
 	g_assert(kernel_pagesize > 0);
 
-
 	if (update_pmap) {
 		/*
 		 * We only compute a hole when we're going to update the pmap.
@@ -1518,15 +1530,9 @@ pmap_insert_region(struct pmap *pm,
 
 					/*
 					 * Get rid of the entry at ``idx'' in the array.
-					 * We need to shift data back by one slot unless we remove
-					 * the last entry.
 					 */
 
-					pm->count--;
-					if G_LIKELY(idx < pm->count) {
-						memmove(&pm->array[idx], &pm->array[idx+1],
-							sizeof(pm->array[0]) * (pm->count - idx));
-					}
+					pmap_drop(pm, idx);
 				}
 			}
 			goto done;
@@ -1886,12 +1892,7 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 	idx = vmf - pm->array;
 	g_assert(size_is_non_negative(idx) && idx < pm->count);
 
-	pm->count--;
-
-	if (idx != pm->count) {
-		memmove(&pm->array[idx], &pm->array[idx + 1],
-			(pm->count - idx) * sizeof pm->array[0]);
-	}
+	pmap_drop(pm, idx);
 }
 
 /**
