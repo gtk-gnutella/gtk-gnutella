@@ -1013,6 +1013,10 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	} else if G_UNLIKELY(p != hint) {
 		struct pmap *pm = vmm_pmap();
 
+		/*
+		 * Allocation hint was not followed.
+		 */
+
 		if G_UNLIKELY(hint != NULL) {
 			if (vmm_debugging(0)) {
 				s_miniwarn("VMM kernel did not follow hint %p for %zuKiB "
@@ -1022,6 +1026,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			}
 			VMM_STATS_LOCK;
 			vmm_stats.hints_ignored++;
+			hint_followed = 0;		/* Always updated with stats lock taken */
 			VMM_STATS_UNLOCK;
 		}
 
@@ -1053,8 +1058,6 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * that we avoid further attempts at the same location for blocks
 		 * of similar sizes.
 		 */
-
-		hint_followed = 0;
 
 		if (!pm->extending) {
 			if (size <= kernel_pagesize) {
@@ -1125,6 +1128,10 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		}
 		rwlock_wunlock(&pm->lock);		/* End critical section */
 	} else if (hint != NULL) {
+		/*
+		 * Allocation took place at the hinted address.
+		 */
+
 		if G_UNLIKELY(0 == (hint_followed & 0xff)) {
 			if (vmm_debugging(0)) {
 				s_minidbg("VMM hint %p followed for %zuKiB (%zu consecutive)",
