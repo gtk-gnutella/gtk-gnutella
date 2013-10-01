@@ -2100,16 +2100,7 @@ free_pages_forced(void *p, size_t size, bool fragment)
 			size / 1024, p, fragment ? " (fragment)" : "");
 	}
 
-	/*
-	 * Do not let free_pages_intern() update our pmap, as we are about to
-	 * do it ourselves.
-	 *
-	 * As such, we need to lock the pmap for the same reason free_pages_intern()
-	 * does when asked to update the pmap.
-	 */
-
 	rwlock_wlock(&pm->lock);
-	free_pages_intern(p, size, FALSE);
 
 	/*
 	 * If we're freeing a fragment, we can remove it from the list of known
@@ -2117,12 +2108,19 @@ free_pages_forced(void *p, size_t size, bool fragment)
 	 */
 
 	if (fragment) {
-		pmap_remove_whole_region(vmm_pmap(), p, size);
+		pmap_remove_whole_region(pm, p, size);
 	} else {
-		pmap_remove(vmm_pmap(), p, size);
+		pmap_remove(pm, p, size);
 	}
 
 	rwlock_wunlock(&pm->lock);
+
+	/*
+	 * Because the pmap has already been updated, we can release the page
+	 * without holding any lock.
+	 */
+
+	free_pages_intern(p, size, FALSE);
 }
 
 /**
@@ -3581,9 +3579,8 @@ page_cache_timer(void *unused_udata)
 	static size_t line;
 	time_t now = tm_time();
 	struct page_cache *pc;
-	size_t i;
-	size_t expired = 0;
-	size_t old_regions = vmm_pmap()->count;
+	size_t i, expired = 0, old_regions = vmm_pmap()->count;
+	void *freed[VMM_CACHE_SIZE];
 
 	(void) unused_udata;
 
@@ -3601,6 +3598,7 @@ page_cache_timer(void *unused_udata)
 
 	for (i = 0; i < pc->current; /* empty */) {
 		time_delta_t d = delta_time(now, pc->info[i].stamp);
+		void *base = pc->info[i].base;
 
 		/*
 		 * To avoid undue fragmentation of the memory space, do not free
@@ -3615,12 +3613,15 @@ page_cache_timer(void *unused_udata)
 					pc->info[i].base, pc->chunksize)
 			)
 		) {
-			vpc_free(pc, i);
-			expired++;
-			VMM_STATS_LOCK;
-			vmm_stats.cache_expired++;
-			vmm_stats.cache_expired_pages += pagecount_fast(pc->chunksize);
-			VMM_STATS_UNLOCK;
+
+			/*
+			 * Do not call vpc_free() here, as it will issue a system call
+			 * and we are still holding the lock on the page cache line
+			 * Stack the address, delaying freeing after we released the lock.
+			 */
+
+			vpc_remove_at(pc, base, i);
+			freed[expired++] = base;
 		} else {
 			i++;
 		}
@@ -3628,7 +3629,23 @@ page_cache_timer(void *unused_udata)
 
 	spinunlock(&pc->lock);
 
+	g_assert(expired <= G_N_ELEMENTS(freed));
+
 	if G_UNLIKELY(expired > 0) {
+		/*
+		 * Free the pages we removed from the cache.
+		 */
+
+		for (i = 0; i < expired; i++) {
+			free_pages_forced(freed[i], pc->chunksize, FALSE);
+		}
+
+		VMM_STATS_LOCK;
+		vmm_stats.cache_expired += expired;
+		vmm_stats.cache_expired_pages +=
+			expired * pagecount_fast(pc->chunksize);
+		VMM_STATS_UNLOCK;
+
 		if (vmm_debugging(1)) {
 			size_t regions = vmm_pmap()->count;
 			s_minidbg("VMM expired %zu item%s (%zuKiB total) from "
