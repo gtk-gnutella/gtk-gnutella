@@ -1023,12 +1023,14 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * reason the memory was released and we could not notice it.
 		 */
 
+		rwlock_wlock(&pm->lock);		/* Begin critical section */
+
 		pmap_overrule(pm, p, size, VMF_NATIVE);
 
-		if (NULL == hint)
+		if (NULL == hint) {
+			rwlock_wunlock(&pm->lock);
 			goto done;
-
-		rwlock_wlock(&pm->lock);		/* Begin critical section */
+		}
 
 		/*
 		 * Kernel did not use our hint, maybe it was wrong because something
@@ -1341,7 +1343,9 @@ pmap_allocate(struct pmap *pm)
 	if (NULL == pm->array)
 		s_minierror("cannot initialize the VMM layer: out of memory already?");
 
+	rwlock_wlock(&vmm_pmap()->lock);
 	pmap_insert(vmm_pmap(), pm->array, kernel_pagesize);
+	rwlock_wunlock(&vmm_pmap()->lock);
 }
 
 /**
@@ -1452,12 +1456,12 @@ pmap_insert_region(struct pmap *pm,
 	struct vm_fragment *vmf;
 	size_t idx;
 
+	assert_rwlock_is_owned(&pm->lock);
+
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
 	g_assert(ptr_cmp(start, end) < 0);
 	g_assert(round_pagesize_fast(size) == size);
-
-	rwlock_wlock(&pm->lock);
 
 	g_assert(pm->count < pm->size);
 
@@ -1570,8 +1574,6 @@ done:
 
 	if G_UNLIKELY(pm->count == pm->size)
 		pmap_extend(pm);
-
-	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -1873,9 +1875,8 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 	struct vm_fragment *vmf;
 	size_t idx;
 
+	assert_rwlock_is_owned(&pm->lock);
 	g_assert(round_pagesize_fast(size) == size);
-
-	rwlock_wlock(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -1891,8 +1892,6 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 		memmove(&pm->array[idx], &pm->array[idx + 1],
 			(pm->count - idx) * sizeof pm->array[0]);
 	}
-
-	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -1903,9 +1902,9 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 {
 	struct vm_fragment *vmf;
 
-	g_assert(round_pagesize_fast(size) == size);
+	assert_rwlock_is_owned(&pm->lock);
 
-	rwlock_wlock(&pm->lock);
+	g_assert(round_pagesize_fast(size) == size);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -1954,8 +1953,6 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 				size / 1024, p);
 		}
 	}
-
-	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -1968,6 +1965,8 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 {
 	const void *end = const_ptr_add_offset(p, size);
 	const void *vend;
+
+	assert_rwlock_is_owned(&pm->lock);
 
 	g_assert(vmf != NULL);
 	g_assert(size_is_positive(size));
@@ -2014,7 +2013,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 	const void *base = p;
 	size_t remain = size;
 
-	rwlock_wlock(&pm->lock);
+	assert_rwlock_is_owned(&pm->lock);
 
 	while (size_is_positive(remain)) {
 		size_t idx;
@@ -2034,10 +2033,8 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 
 			vmf = &pm->array[idx];
 
-			if (ptr_cmp(end, vmf->start) <= 0) {
-				rwlock_wunlock(&pm->lock);
+			if (ptr_cmp(end, vmf->start) <= 0)
 				return;		/* Next region starts after our target */
-			}
 
 			/* We have an overlap with region in ``vmf'' */
 
@@ -2087,8 +2084,6 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 			break;
 		}
 	}
-
-	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -4130,7 +4125,9 @@ vmm_early_init_once(void)
 	 * Insert it now, as a native region since we have allocated it.
 	 */
 
-	pmap_insert(vmm_pmap(), vmm_trap_page(), kernel_pagesize);
+	rwlock_wlock(&local_pmap.lock);
+	pmap_insert(&local_pmap, vmm_trap_page(), kernel_pagesize);
+	rwlock_wunlock(&local_pmap.lock);
 
 	/*
 	 * Determine how the kernel is growing the virtual memory region.
@@ -4433,7 +4430,12 @@ vmm_munmap(void *addr, size_t length)
 	ret = munmap(addr, length);
 
 	if G_LIKELY(0 == ret) {
-		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
+		struct pmap *pm = vmm_pmap();
+
+		rwlock_wlock(&pm->lock);
+		pmap_remove(pm, addr, round_pagesize_fast(length));
+		rwlock_wunlock(&pm->lock);
+
 		VMM_STATS_LOCK;
 		vmm_stats.munmaps++;
 		VMM_STATS_UNLOCK;
