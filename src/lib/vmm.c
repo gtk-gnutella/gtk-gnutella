@@ -2140,6 +2140,37 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 	size_t low = 0, high = pc->current - 1;
 	size_t mid;
 
+	if G_UNLIKELY(0 == pc->current) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return -1;
+	}
+
+	/* Optimize if have more than 4 items */
+
+	if G_LIKELY(high >= 4) {
+		const char *q = pc->info[0].base;
+
+		if G_UNLIKELY(q == p)
+			return 0;
+		if (p < q) {
+			if (low_ptr != NULL)
+				*low_ptr = 0;
+			return -1;
+		}
+		low++;		/* We already checked item 0 */
+
+		q = pc->info[high].base;
+		if G_UNLIKELY(q == p)
+			return high;
+		if (p > q) {
+			if (low_ptr != NULL)
+				*low_ptr = high + 1;
+			return -1;
+		}
+		high--;		/* We already checked last item */
+	}
+
 	/* Binary search */
 
 	for (;;) {
