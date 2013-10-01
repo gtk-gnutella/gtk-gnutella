@@ -2091,28 +2091,16 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
  * update our pmap.
  */
 static void
-free_pages_forced(void *p, size_t size, bool fragment)
+free_pages_forced(void *p, size_t size)
 {
 	struct pmap *pm = vmm_pmap();
 
-	if (vmm_debugging(fragment ? 2 : 5)) {
-		s_minidbg("VMM freeing %zuKiB region at %p%s",
-			size / 1024, p, fragment ? " (fragment)" : "");
+	if (vmm_debugging(5)) {
+		s_minidbg("VMM freeing %zuKiB region at %p", size / 1024, p);
 	}
 
 	rwlock_wlock(&pm->lock);
-
-	/*
-	 * If we're freeing a fragment, we can remove it from the list of known
-	 * regions, since we already know it is a standalone region.
-	 */
-
-	if (fragment) {
-		pmap_remove_whole_region(pm, p, size);
-	} else {
-		pmap_remove(pm, p, size);
-	}
-
+	pmap_remove(pm, p, size);
 	rwlock_wunlock(&pm->lock);
 
 	/*
@@ -2251,7 +2239,7 @@ vpc_free(struct page_cache *pc, size_t idx)
 
 	p = pc->info[idx].base;
 	vpc_remove_at(pc, p, idx);
-	free_pages_forced(p, pc->chunksize, FALSE);
+	free_pages_forced(p, pc->chunksize);
 }
 
 /**
@@ -2426,7 +2414,7 @@ insert:
 	 */
 
 	if G_UNLIKELY(evicted != NULL) {
-		free_pages_forced(evicted, pc->chunksize, FALSE);
+		free_pages_forced(evicted, pc->chunksize);
 	}
 }
 
@@ -2838,10 +2826,29 @@ retry:
 			goto retry;
 		}
 
-		/* We have the write lock */
 
-		free_pages_forced(base, n << kernel_pageshift, TRUE);
+		/*
+		 * We have the write lock.
+		 *
+		 * Since we're freeing a fragment, we can remove it from the list of
+		 * known regions: a fragment is a standalone region.
+		 */
+
+		pmap_remove_whole_region(pm, base, n << kernel_pageshift);
+
+		/*
+		 * We do not need a write lock to free the pages, and it's best to
+		 * not keep it since we're about to issue a system call, most likely.
+		 */
+
 		rwlock_wunlock(&pm->lock);
+
+		if (vmm_debugging(2)) {
+			s_minidbg("VMM freeing %zuKiB fragment at %p",
+				n << (kernel_pageshift - 10), base);
+		}
+
+		free_pages_intern(base, n << kernel_pageshift, FALSE);
 
 		VMM_STATS_LOCK;
 		vmm_stats.forced_freed++;
@@ -3637,7 +3644,7 @@ page_cache_timer(void *unused_udata)
 		 */
 
 		for (i = 0; i < expired; i++) {
-			free_pages_forced(freed[i], pc->chunksize, FALSE);
+			free_pages_forced(freed[i], pc->chunksize);
 		}
 
 		VMM_STATS_LOCK;
