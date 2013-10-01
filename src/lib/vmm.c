@@ -3631,6 +3631,12 @@ const void *
 vmm_trap_page(void)
 {
 	static const void *trap_page;
+	static spinlock_t trap_slk = SPINLOCK_INIT;
+
+	if G_LIKELY(trap_page != NULL)
+		return trap_page;
+
+	spinlock(&trap_slk);
 
 	if (NULL == trap_page) {
 		void *p;
@@ -3651,6 +3657,9 @@ vmm_trap_page(void)
 		VMM_STATS_UNLOCK;
 		memusage_add(vmm_stats.user_mem, kernel_pagesize);
 	}
+
+	spinunlock(&trap_slk);
+
 	return trap_page;
 }
 
