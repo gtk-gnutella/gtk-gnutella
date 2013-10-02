@@ -2947,14 +2947,15 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						lopc->pages - 1, base,
 						ptr_add_offset(base, pages * kernel_pagesize - 1));
 				}
-				assert_vmm_is_allocated(before,
-					(pages + lopc->pages) << kernel_pageshift,
-					VMF_NATIVE, TRUE);
+				vpc_remove_at(lopc, before, loidx);
+				spinunlock(&lopc->lock);
 				base = before;
 				pages += lopc->pages;
-				vpc_remove_at(lopc, before, loidx);
+
+				assert_vmm_is_allocated(before,
+					pages << kernel_pageshift, VMF_NATIVE, FALSE);
+
 				coalesced = TRUE;
-				spinunlock(&lopc->lock);
 				if (pages >= VMM_CACHE_LINES)
 					goto done;
 			} else {
@@ -2995,12 +2996,14 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					before, ptr_add_offset(base, -1), hopc->pages - 1,
 					base, ptr_add_offset(base, pages * kernel_pagesize - 1));
 			}
-			assert_vmm_is_allocated(before,
-				(pages + hopc->pages) << kernel_pageshift, VMF_NATIVE, TRUE);
-			base = before;
-			pages += hopc->pages;
 			vpc_remove_at(hopc, before, hoidx);
 			spinunlock(&hopc->lock);
+			base = before;
+			pages += hopc->pages;
+
+			assert_vmm_is_allocated(before,
+				pages << kernel_pageshift, VMF_NATIVE, FALSE);
+
 			if (pages >= VMM_CACHE_LINES)
 				goto done;
 		} else {
@@ -3038,13 +3041,14 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						i, end, ptr_add_offset(end, lopc->chunksize - 1),
 						lopc->pages - 1, base, ptr_add_offset(end, -1));
 				}
-				assert_vmm_is_allocated(base,
-					(pages + lopc->pages) << kernel_pageshift,
-					VMF_NATIVE, TRUE);
-				pages += lopc->pages;
 				vpc_remove_at(lopc, end, loidx);
-				end = ptr_add_offset(end, lopc->chunksize);
 				spinunlock(&lopc->lock);
+				pages += lopc->pages;
+				end = ptr_add_offset(end, lopc->chunksize);
+
+				assert_vmm_is_allocated(base,
+					pages << kernel_pageshift, VMF_NATIVE, FALSE);
+
 				coalesced = TRUE;
 				if (pages >= VMM_CACHE_LINES)
 					goto done;
@@ -3084,12 +3088,14 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					end, ptr_add_offset(end, hopc->chunksize - 1),
 					hopc->pages - 1, base, ptr_add_offset(end, -1));
 			}
-			assert_vmm_is_allocated(base,
-				(pages + hopc->pages) << kernel_pageshift, VMF_NATIVE, TRUE);
-			pages += hopc->pages;
 			vpc_remove_at(hopc, end, hoidx);
-			end = ptr_add_offset(end, hopc->chunksize);
 			spinunlock(&hopc->lock);
+			pages += hopc->pages;
+			end = ptr_add_offset(end, hopc->chunksize);
+
+			assert_vmm_is_allocated(base,
+				pages << kernel_pageshift, VMF_NATIVE, FALSE);
+
 			if (pages >= VMM_CACHE_LINES)
 				goto done;
 		} else {
