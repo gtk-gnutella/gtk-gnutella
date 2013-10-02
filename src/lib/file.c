@@ -106,7 +106,7 @@ file_locate_from_path(const char *argv0)
 
 	if (filepath_basename(argv0) != argv0) {
 		if (!already_done) {
-			g_warning("can't locate \"%s\" in PATH: name contains '%c' already",
+			s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
 				argv0,
 				strchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
 		}
@@ -116,7 +116,7 @@ file_locate_from_path(const char *argv0)
 	path = getenv("PATH");
 	if (NULL == path) {
 		if (!already_done) {
-			g_warning("can't locate \"%s\" in PATH: "
+			s_warning("can't locate \"%s\" in PATH: "
 				"no such environment variable", argv0);
 		}
 		goto done;
@@ -200,7 +200,7 @@ open_read(
 			in = NULL;
 		}
 		if (renaming && -1 == rename(path, path_orig)) {
-			g_warning("[%s] could not rename \"%s\" as \"%s\": %m",
+			s_warning("[%s] could not rename \"%s\" as \"%s\": %m",
 				what, path, path_orig);
 		}
 		if (NULL == in) {
@@ -214,7 +214,7 @@ open_read(
 			}
 		} else {
 			instead = instead_str;			/* Regular file was present */
-			g_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
+			s_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
 		}
         if (fvcnt > 1 && common_dbg > 0)
             g_debug("[%s] trying to load from alternate locations...", what);
@@ -350,7 +350,7 @@ file_config_open(const char *what, const file_path_t *fv)
 	if (is_absolute_path(path)) {
 		out = file_fopen(path, "w");
 		if (out == NULL)
-			g_warning("unable to persist %s", what);
+			s_warning("unable to persist %s", what);
 	}
 	HFREE_NULL(path);
 	return out;
@@ -389,7 +389,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 	 */
 
 	if (0 != file_sync_fclose(out)) {
-		g_warning("could not flush \"%s\": %m", fv->name);
+		s_warning("could not flush \"%s\": %m", fv->name);
 		goto failed;
 	}
 
@@ -400,7 +400,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 		goto failed;
 
 	if (-1 == rename(path_new, path)) {
-		g_warning("could not rename \"%s\" as \"%s\": %m", path_new, path);
+		s_warning("could not rename \"%s\" as \"%s\": %m", path_new, path);
 		goto failed;
 	}
 
@@ -476,7 +476,7 @@ do_open(const char *path, int flags, int mode,
 	int fd;
 
 	if (absolute && !is_absolute_path(path)) {
-		g_warning("%s(): can't open absolute \"%s\": relative path",
+		s_warning("%s(): can't open absolute \"%s\": relative path",
 			G_STRFUNC, path);
 		errno = EPERM;
 		return -1;
@@ -508,7 +508,7 @@ do_open(const char *path, int flags, int mode,
 		) {
 			fd = open(path, flags, mode);
 			if (fd >= 0) {
-				g_warning("%s(): had to close a banned fd to %s file",
+				s_warning("%s(): had to close a banned fd to %s file",
 					G_STRFUNC, what);
 			}
 		}
@@ -528,13 +528,13 @@ do_open(const char *path, int flags, int mode,
 	 */
 
 	if (errno == 0) {
-		g_warning("%s(): open() returned -1 with errno = 0, assuming ENOENT",
+		s_warning("%s(): open() returned -1 with errno = 0, assuming ENOENT",
 			G_STRFUNC);
 		errno = ENOENT;
 	}
 
 	if (!missing || errno != ENOENT) {
-		g_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
+		s_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
 	}
 
 	return -1;
@@ -638,13 +638,13 @@ do_fopen(const char *path, const char *mode, bool missing)
 	) {
 		f = fopen(path, mode);
 		if (f != NULL) {
-			g_warning("had to close a banned fd to %s file", what);
+			s_warning("had to close a banned fd to %s file", what);
 			return f;
 		}
 	}
 
 	if (!missing || errno != ENOENT)
-		g_warning("can't %s file \"%s\": %m", what, path);
+		s_warning("can't %s file \"%s\": %m", what, path);
 
 	return NULL;
 }
@@ -690,7 +690,7 @@ file_sync_fclose(FILE *f)
 	fd = fileno(f);
 
 	if (-1 == fd_fdatasync(fd))
-		g_warning("cannot flush data blocks to disk for fd=%d: %m", fd);
+		s_warning("cannot flush data blocks to disk for fd=%d: %m", fd);
 
 	return fclose(f) | ret;		/* Report error if fflush() failed */
 }
