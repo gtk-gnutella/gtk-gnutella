@@ -45,6 +45,8 @@ src/lib/sort-test
 /src/gtk-gnutella.nm
 /src/revision.h
 
+src/bin/sha1sum
+
 /src/lib/bit_array.h
 /src/lib/bit_field.h
 /src/lib/htable.[ch]

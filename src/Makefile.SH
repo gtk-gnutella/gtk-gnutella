@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-136]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -45,9 +45,9 @@ BINDIR = $installbin
 CC = $cc
 CTAGS = ctags
 _EXE = $_exe
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
-JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
+JLDFLAGS = \$(LDFLAGS) $optimize $pthread $ldflags
 L = $manext
 LIBS = $libs
 MANSRC = $installmansrc
@@ -60,7 +60,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = core shell dht lib ui if sdbm upnp xml
+SUBDIRS = bin core shell dht lib ui if sdbm upnp xml
 USRINC = $usrinc
 SOURCES =   \$(SRC)
 SOCKER_CFLAGS =  $sockercflags
@@ -323,8 +323,15 @@ all:: gtk-gnutella.nm
 local_realclean::
 	$(RM) gtk-gnutella.nm
 
+bin/sha1sum: .FORCE
+	@echo "Checking "sha1sum" in "bin"..."
+	cd bin; $(MAKE) sha1sum
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella.nm:  bin/sha1sum
+
 gtk-gnutella.nm: gtk-gnutella
-	$(NM) -p gtk-gnutella$(_EXE) > $@
+	$(TOP)/scripts/nm-list gtk-gnutella$(_EXE) $(NM) > $@
 
 local_install:: gtk-gnutella.nm
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\

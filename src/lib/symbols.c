@@ -39,8 +39,10 @@
 
 #include "symbols.h"
 #include "ascii.h"
+#include "base16.h"
 #include "bfd_util.h"
 #include "constants.h"
+#include "file.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "halloc.h"
 #include "htable.h"
@@ -48,6 +50,7 @@
 #include "misc.h"
 #include "parse.h"
 #include "path.h"
+#include "sha1.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
@@ -836,6 +839,199 @@ symbols_parse_nm(symbols_t *st, char *line)
 }
 
 /**
+ * Computes the SHA1 of the specified file.
+ *
+ * @param file		the file for which we want to compute the SHA1
+ * @param digest	where the digest is written
+ *
+ * @return TRUE if we successfully compute the SHA1.
+ */
+static bool
+symbols_sha1(const char *file, struct sha1 *digest)
+{
+	int fd;
+	SHA1Context ctx;
+
+	fd = file_open(file, O_RDONLY, 0);
+	if (-1 == fd)
+		return FALSE;
+
+	SHA1Reset(&ctx);
+
+	for (;;) {
+		char buf[512];
+		int r;
+
+		r = read(fd, buf, sizeof buf);
+
+		if (-1 == r) {
+			close(fd);
+			return FALSE;
+		}
+
+		SHA1Input(&ctx, buf, r);
+
+		if (r != sizeof buf)
+			break;
+	}
+
+	close(fd);
+	SHA1Result(&ctx, digest);
+
+	return TRUE;
+}
+
+/**
+ * Read line (or up to "size - 1" characters) from the file into the buffer.
+ *
+ * The line is NUL-terminated.
+ *
+ * @param f		the file we're reading from
+ * @param buf	the buffer where we're storing the line
+ * @param size	the size of the buffer
+ *
+ * @return TRUE if we read the whole line, FALSE if we did not reach the end
+ * of the line before reaching the end of the buffer.
+ */
+static bool
+symbols_read_line(FILE *f, char *buf, size_t size)
+{
+	size_t len = 0;
+
+	while (len < size) {
+		int c = getc(f);
+		if (EOF == c)
+			return FALSE;
+		if ('\n' == c)
+			break;
+		buf[len++] = c;
+	}
+
+	if (len < size) {
+		buf[len] = '\0';
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Parse NM header from file and fill in nm[] with the two SHA1 header lines
+ * we find (one for the executable's SHA1, one for the stripped version).
+ *
+ * @param f		opened file where we expect to read the NM HTTP-like header
+ * @param nm	array where read SHA1s are stored.
+ *
+ * @return TRUE if we successfully parsed the header and found the two SHA1,
+ * FALSE otherwise.
+ * If successful, the file's read pointer is left after the header.
+ */
+static bool
+symbols_extract_sha1(FILE *f, struct sha1 nm[2])
+{
+	char line[512];
+	int i = 0;
+
+	if (!symbols_read_line(f, line, sizeof line))
+		return FALSE;
+
+	/*
+	 * Our NM header, if present, starts with "NM/1.0".
+	 */
+
+	if (0 != strcmp(line, "NM/1.0"))
+		return FALSE;				/* Not a valid NM header */
+
+	/*
+	 * Minimal parsing of the header, looking for SHA1: lines only.
+	 *
+	 * We strive to use a little resources as possible, since this code
+	 * can run during assertion failures.
+	 *
+	 * We expect exactly two SHA1 lines, each bearing an hexadecimal
+	 * representataion of a SHA1.  One of the SHA1 is for the executable,
+	 * the other is for the stripped executable, the order being unspecified.
+	 *
+	 * Embedding the NM header at the top of the pre-computed nm output allows
+	 * to safely detect whether the symbols match the executable, without
+	 * having to compare timestamps.
+	 *		--RAM, 2013-10-03
+	 */
+
+	while (symbols_read_line(f, line, sizeof line)) {
+		char *p;
+
+		if ('\0' == line[0])		/* Reached end of header */
+			return 2 == i;			/* OK if we read the two SHA1 */
+
+		if (!is_ascii_alnum(line[0]))
+			return FALSE;			/* HTTP header starts with letter/digit */
+
+		p = is_strcaseprefix(line, "SHA1");
+
+		if (NULL == p) {
+			if (NULL == strchr(line, ':'))
+				return FALSE;		/* Not an HTTP header */
+			continue;
+		}
+
+		/* Found a SHA1: header line */
+
+		p = skip_ascii_spaces(p);
+		if (*p != ':')
+			return FALSE;
+
+		p = skip_ascii_spaces(p + 1);
+
+		/* Decode the hexadecimal representation of the SHA1 */
+
+		if (i >= 2)
+			return FALSE;
+
+		if (
+			SHA1_RAW_SIZE != base16_decode(cast_to_char_ptr(&nm[i++]),
+				SHA1_RAW_SIZE, p, strlen(p))
+		)
+			return FALSE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Parse NM header of opened file to check whether it contains symbols for
+ * the specified executable.
+ *
+ * We exepect an "NM" HTTP-like header with "SHA1:" lines stating the
+ * hexadecimal SHA1 of the executable and that of its stripped version.
+ *
+ * @param f		opened symbol file
+ * @param exe	the executable path
+ *
+ * @return TRUE if the executable matches the advertised SHA1, FALSE otherwise.
+ * When we return TRUE, the file's read buffer is positionned right after the
+ * end of the header, in order to hide the header from the processing logic
+ * that will follow.
+ */
+static bool
+symbols_header_check(FILE *f, const char *exe)
+{
+	struct sha1 digest;
+	struct sha1 nm[2];
+
+	if (!symbols_sha1(exe, &digest))
+		return FALSE;
+
+	if (!symbols_extract_sha1(f, nm))
+		return FALSE;
+
+	if (0 != sha1_cmp(&digest, &nm[0]) && 0 != sha1_cmp(&digest, &nm[1]))
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Open specified file containing code symbols.
  *
  * @param exe	the executable path, to assess freshness of nm file
@@ -847,34 +1043,26 @@ symbols_parse_nm(symbols_t *st, char *line)
 static FILE *
 symbols_open(symbols_t *st, const char *exe, const char *nm)
 {
-	filestat_t ebuf, nbuf;
 	FILE *f;
 
 	st->stale = FALSE;
 
-	if (-1 == stat(nm, &nbuf)) {
-		s_warning("can't stat \"%s\": %m", nm);
-		return NULL;
-	}
-
-	if (-1 == stat(exe, &ebuf)) {
-		s_warning("can't stat \"%s\": %m", exe);
-		st->stale = TRUE;
-		goto open_file;
-	}
-
-	if (delta_time(ebuf.st_mtime, nbuf.st_mtime) > 0) {
-		s_warning("executable \"%s\" more recent than symbol file \"%s\"",
-			exe, nm);
-		st->stale = TRUE;
-		/* FALL THROUGH */
-	}
-
-open_file:
 	f = fopen(nm, "r");
 
-	if (NULL == f)
+	if (NULL == f) {
 		s_warning("can't open \"%s\": %m", nm);
+	} else {
+		if (!symbols_header_check(f, exe)) {
+			s_warning("file \"%s\" not holding symbols for \"%s\"", nm, exe);
+			fclose(f);
+			f = NULL;
+		}
+	}
+
+	/*
+	 * If the file is still opened, the first unread character is the
+	 * one after the NM header.
+	 */
 
 	return f;
 }

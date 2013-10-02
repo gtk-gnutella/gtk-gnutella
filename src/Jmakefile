@@ -29,7 +29,7 @@
 
 all::		/* So that default target is not clobber! */
 
-SetSubdirs(core shell dht lib ui if sdbm upnp xml)
+SetSubdirs(bin core shell dht lib ui if sdbm upnp xml)
 DependSubdirs()
 
 SRC = main.c
@@ -137,8 +137,9 @@ revision.h: .FORCE
  */
 
 AllTarget(gtk-gnutella.nm)
+RemoteTargetDependency(gtk-gnutella.nm, bin, sha1sum)
 
 gtk-gnutella.nm: gtk-gnutella
-	$(NM) -p gtk-gnutella$(_EXE) > $@
+	$(TOP)/scripts/nm-list gtk-gnutella$(_EXE) $(NM) > $@
 
 InstallNonExec(gtk-gnutella.nm, $(ARCHLIB))

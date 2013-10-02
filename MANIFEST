@@ -260,10 +260,14 @@ scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
 scripts/gtkg-version
 scripts/magnet-handler.sh
+scripts/nm-list
 scripts/sha1_cache.pl
 scripts/sha1_cache.sh
 src/Jmakefile
 src/Makefile.SH
+src/bin/Jmakefile
+src/bin/Makefile.SH
+src/bin/sha1sum.c
 src/casts.h
 src/common.h
 src/core/Jmakefile
