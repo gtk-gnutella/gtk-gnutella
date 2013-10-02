@@ -960,7 +960,7 @@ vmm_first_hole(const void **unused, bool discard)
 /**
  * Insert foreign region in the pmap.
  */
-static void
+static inline void
 pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
 {
 	pmap_insert_region(pm, start, size, VMF_FOREIGN);
@@ -970,7 +970,7 @@ pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
 /**
  * Insert memory-mapped region in the pmap.
  */
-static void
+static inline void
 pmap_insert_mapped(struct pmap *pm, const void *start, size_t size)
 {
 	pmap_insert_region(pm, start, size, VMF_MAPPED);
@@ -1150,7 +1150,7 @@ done:
 {
 	void *p;
 
-	(void) hint;
+	(void) hole;
 	size = round_pagesize_fast(size);
 #if defined(HAS_POSIX_MEMALIGN)
 	if (posix_memalign(&p, kernel_pagesize, size)) {
@@ -1164,7 +1164,7 @@ done:
 	g_assert_not_reached();
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN */
-	if (p) {
+	if (p != NULL) {
 		memset(p, 0, size);
 	}
 	return p;
@@ -1478,11 +1478,8 @@ pmap_insert_region(struct pmap *pm,
 	assert_rwlock_is_owned(&pm->lock);
 
 	g_assert(pm->array != NULL);
-	g_assert(pm->count <= pm->size);
-	g_assert(ptr_cmp(start, end) < 0);
-	g_assert(round_pagesize_fast(size) == size);
-
 	g_assert(pm->count < pm->size);
+	g_assert(round_pagesize_fast(size) == size);
 
 	vmf = pmap_lookup(pm, start, &idx);
 
@@ -1957,7 +1954,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 		}
 	} else {
 		if (vmm_debugging(0)) {
-			s_miniwarn("VMM %zuKiB region at %p missing from pmap",
+			s_minicarp("VMM %zuKiB region at %p missing from pmap",
 				size / 1024, p);
 		}
 	}
