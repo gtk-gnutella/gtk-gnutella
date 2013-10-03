@@ -266,6 +266,10 @@ static struct vmm_stats {
 	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
 	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
 	uint64 pmap_overruled;			/**< Regions overruled by kernel */
+	uint64 hole_reused;				/**< Amount of times we use cached hole */
+	uint64 hole_invalidated;		/**< Times we invalidate cached hole */
+	uint64 hole_updated;			/**< Times we updated the cached hole */
+	uint64 hole_unchanged;			/**< Times we left the cached hole as-is */
 	size_t user_memory;				/**< Amount of "user" memory allocated */
 	size_t user_pages;				/**< Amount of "user" memory pages used */
 	size_t user_blocks;				/**< Amount of "user" memory blocks */
@@ -284,6 +288,26 @@ static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
  * The local version of the process memory map.
  */
 static struct pmap local_pmap;
+
+/**
+ * The maintained value of the "first hole" in the VM space.
+ *
+ * This is the lowest hole in the VM space, which lies at the bottom of
+ * the memory space if the VM grows upwards or near the end when the VM grows
+ * downwards.
+ *
+ * Caching this value and maintaining it through allocations and frees lets
+ * us improve performance during concurrent allocations because vmm_first_hole()
+ * does not need to take the pmap's read-lock if the hole is valid.
+ */
+static struct {
+	const void *start;		/**< Start address */
+	const void *end;		/**< First byte beyond end of region */
+} vmm_hole;
+static spinlock_t vmm_hole_slk = SPINLOCK_INIT;
+
+#define VMM_HOLE_LOCK		spinlock_hidden(&vmm_hole_slk)
+#define VMM_HOLE_UNLOCK		spinunlock_hidden(&vmm_hole_slk)
 
 static bool safe_to_log;			/**< True when we can log */
 static bool stop_freeing;			/**< No longer release memory */
@@ -772,6 +796,36 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 	size_t i, result = 0;
 	bool wlock = FALSE;
 
+	/*
+	 * Check with the cached version of the hole first.
+	 *
+	 * Each time we can return the cached hole, we improve concurrency because
+	 * we do not need to request the pmap's read-lock at all.
+	 *
+	 * When we are allocating from the page cache, we can achieve efficient
+	 * allocations because we do not need to lock the pmap at all.
+	 */
+
+	VMM_HOLE_LOCK;
+
+	if (NULL != vmm_hole.start) {
+		result = ptr_diff(vmm_hole.end, vmm_hole.start);
+		*hole_ptr = kernel_mapaddr_increasing ? vmm_hole.start : vmm_hole.end;
+		VMM_HOLE_UNLOCK;
+
+		VMM_STATS_LOCK;
+		vmm_stats.hole_reused++;
+		VMM_STATS_UNLOCK;
+
+		return result;
+	}
+
+	VMM_HOLE_UNLOCK;
+
+	/*
+	 * Hole has been invalidated, recompute it.
+	 */
+
 	rwlock_rlock(&pm->lock);
 
 	if G_UNLIKELY(0 == pm->count) {
@@ -887,6 +941,21 @@ done:
 	else
 		rwlock_runlock(&pm->lock);
 
+	/*
+	 * This is just a hint, it's OK if, by the time we fill it in, it's been
+	 * obsoleted by concurrent allocation in the VM space.
+	 */
+
+	VMM_HOLE_LOCK;
+	if (kernel_mapaddr_increasing) {
+		vmm_hole.start = *hole_ptr;
+		vmm_hole.end = const_ptr_add_offset(vmm_hole.start, result);
+	} else {
+		vmm_hole.end = *hole_ptr;
+		vmm_hole.start = const_ptr_add_offset(vmm_hole.end, -result);
+	}
+	VMM_HOLE_UNLOCK;
+
 	return result;
 }
 
@@ -958,12 +1027,108 @@ vmm_first_hole(const void **unused, bool discard)
 #endif	/* HAS_MMAP || MINGW32 */
 
 /**
+ * Update cached hole if the region falls within or encompasses it.
+ *
+ * @param p		start of the region (allocated, marked foreign, memory-mapped)
+ * @param size	length of the region
+ * @param alloc	whether region was allocated
+ */
+static void
+vmm_hole_update(const void *p, size_t size, bool alloc)
+{
+	bool hole_invalidated = FALSE, hole_updated = FALSE;
+
+	VMM_HOLE_LOCK;
+	if (vmm_hole.start != NULL) {
+		const void *end = const_ptr_add_offset(p, size);
+
+		if (
+			alloc && kernel_mapaddr_increasing &&
+			ptr_cmp(end, vmm_hole.start) <= 0
+		) {
+			/* Allocated before hole, hole was stale */
+			vmm_hole.start = NULL;		/* Invalidate hole */
+			hole_invalidated = TRUE;
+		}
+		else if (alloc && !kernel_mapaddr_increasing &&
+			ptr_cmp(p, vmm_hole.end) >= 0
+		) {
+			/* Allocated after hole, hole was stale */
+			vmm_hole.start = NULL;		/* Invalidate hole */
+			hole_invalidated = TRUE;
+		}
+		else if (
+			ptr_cmp(p, vmm_hole.start) <= 0 &&
+			ptr_cmp(end, vmm_hole.end) >= 0
+		) {
+			/* Hole in the middle of the region */
+			vmm_hole.start = NULL;		/* Invalidate hole */
+			hole_invalidated = TRUE;
+		}
+		else if (
+			ptr_cmp(p, vmm_hole.start) >= 0 &&
+			ptr_cmp(end, vmm_hole.end) <= 0
+		) {
+			/* Region falls within hole but does not cover it all */
+			if (0 == ptr_cmp(p, vmm_hole.start)) {
+				vmm_hole.start = end;
+				hole_updated = TRUE;
+			} else if (0 == ptr_cmp(end, vmm_hole.end)) {
+				vmm_hole.end = p;
+				hole_updated = TRUE;
+			} else if (kernel_mapaddr_increasing) {
+				vmm_hole.end = p;
+				hole_updated = TRUE;
+			} else {
+				vmm_hole.start = end;
+				hole_updated = TRUE;
+			}
+		}
+		else if (
+			ptr_cmp(end, vmm_hole.start) >= 0 &&
+			ptr_cmp(end, vmm_hole.end) < 0
+		) {
+			vmm_hole.start = end;
+			hole_updated = TRUE;
+		}
+		else if (
+			ptr_cmp(p, vmm_hole.start) >= 0 &&
+			ptr_cmp(p, vmm_hole.end) < 0
+		) {
+			vmm_hole.end = p;
+			hole_updated = TRUE;
+		}
+
+		if (0 == ptr_cmp(vmm_hole.start, vmm_hole.end)) {
+			vmm_hole.start = NULL;		/* Invalidate "empty" hole */
+			hole_invalidated = TRUE;
+		}
+	}
+	VMM_HOLE_UNLOCK;
+
+	if (hole_invalidated) {
+		VMM_STATS_LOCK;
+		vmm_stats.hole_invalidated++;
+		VMM_STATS_UNLOCK;
+	} else if (hole_updated) {
+		VMM_STATS_LOCK;
+		vmm_stats.hole_updated++;
+		VMM_STATS_UNLOCK;
+	} else {
+		VMM_STATS_LOCK;
+		vmm_stats.hole_unchanged++;
+		VMM_STATS_UNLOCK;
+	}
+}
+
+/**
  * Insert foreign region in the pmap.
  */
 static inline void
 pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
 {
 	pmap_insert_region(pm, start, size, VMF_FOREIGN);
+	vmm_hole_update(start, size, FALSE);
 }
 
 #ifdef HAS_MMAP
@@ -974,6 +1139,7 @@ static inline void
 pmap_insert_mapped(struct pmap *pm, const void *start, size_t size)
 {
 	pmap_insert_region(pm, start, size, VMF_MAPPED);
+	vmm_hole_update(start, size, FALSE);
 }
 #endif	/* HAS_MMAP */
 
@@ -1227,6 +1393,8 @@ alloc_pages(size_t size, bool update_pmap)
 		s_minidbg("VMM allocated %zuKiB region at %p", size / 1024, p);
 	}
 
+	vmm_hole_update(p, size, TRUE);
+
 	if (update_pmap) {
 		pmap_insert(pm, p, size);
 		rwlock_wunlock(&pm->lock);
@@ -1242,6 +1410,8 @@ alloc_pages(size_t size, bool update_pmap)
 static void
 free_pages_intern(void *p, size_t size, bool update_pmap)
 {
+	bool hole_invalidated, hole_updated;
+
 	/*
 	 * The critical region is required when we're going to update the
 	 * pmap since another thread could concurrently allocate memory that
@@ -1277,6 +1447,86 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 	g_assert_not_reached();
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+
+	/*
+	 * Update the cached first hole if freed region touches it.
+	 */
+
+	hole_invalidated = hole_updated = FALSE;
+
+	VMM_HOLE_LOCK;
+	if (vmm_hole.start != NULL) {
+		const void *end = ptr_add_offset(p, size);
+
+		if (kernel_mapaddr_increasing && ptr_cmp(end, vmm_hole.start) <= 0) {
+			if (0 == ptr_cmp(end, vmm_hole.start)) {
+				vmm_hole.start = p;
+				hole_updated = TRUE;
+			} else {
+				vmm_hole.start = NULL;	/* Invalidate, our hole was stale */
+				hole_invalidated = TRUE;
+			}
+		}
+		else if (!kernel_mapaddr_increasing && ptr_cmp(p, vmm_hole.end) >= 0) {
+			if (0 == ptr_cmp(p, vmm_hole.end)) {
+				vmm_hole.end = end;
+				hole_updated = TRUE;
+			} else {
+				vmm_hole.start = NULL;	/* Invalidate, our hole was stale */
+				hole_invalidated = TRUE;
+			}
+		}
+		else if (
+			ptr_cmp(p, vmm_hole.start) <= 0 &&
+			ptr_cmp(end, vmm_hole.end) >= 0
+		) {
+			/* Hole in the middle of the freed region */
+			vmm_hole.start = p;
+			vmm_hole.end = end;
+			hole_updated = TRUE;
+		}
+		else if (
+			ptr_cmp(p, vmm_hole.start) >= 0 &&
+			ptr_cmp(end, vmm_hole.end) <= 0
+		) {
+			/* Freed region falls within hole but does not cover it all */
+			vmm_hole.start = NULL;		/* Invalidate, our hole was stale */
+			hole_invalidated = TRUE;
+		}
+		else if (
+			ptr_cmp(p, vmm_hole.start) <= 0 &&
+			ptr_cmp(end, vmm_hole.start) >= 0
+		) {
+			vmm_hole.start = p;
+			if (ptr_cmp(end, vmm_hole.end) > 0)
+				vmm_hole.end = end;
+			hole_updated = TRUE;
+		}
+		else if (
+			ptr_cmp(p, vmm_hole.end) <= 0 &&
+			ptr_cmp(end, vmm_hole.end) >= 0
+		) {
+			vmm_hole.end = end;
+			if (ptr_cmp(p, vmm_hole.start) < 0)
+				vmm_hole.start = p;
+			hole_updated = TRUE;
+		}
+	}
+	VMM_HOLE_UNLOCK;
+
+	if (hole_invalidated) {
+		VMM_STATS_LOCK;
+		vmm_stats.hole_invalidated++;
+		VMM_STATS_UNLOCK;
+	} else if (hole_updated) {
+		VMM_STATS_LOCK;
+		vmm_stats.hole_updated++;
+		VMM_STATS_UNLOCK;
+	} else {
+		VMM_STATS_LOCK;
+		vmm_stats.hole_unchanged++;
+		VMM_STATS_UNLOCK;
+	}
 
 pmap_update:
 	if (update_pmap) {
@@ -3806,6 +4056,10 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(pmap_foreign_discards);
 	DUMP(pmap_foreign_discarded_pages);
 	DUMP(pmap_overruled);
+	DUMP(hole_reused);
+	DUMP(hole_invalidated);
+	DUMP(hole_updated);
+	DUMP(hole_unchanged);
 
 #undef DUMP
 #define DUMP(x) log_info(la, "VMM pmap_%s = %s", #x,	\
