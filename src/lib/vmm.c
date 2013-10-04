@@ -1917,20 +1917,43 @@ static bool
 pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 {
 	struct vm_fragment *vmf;
-	bool fragment;
+	size_t idx;
 
 	g_assert(rwlock_is_used(&pm->lock));	/* needs at least the read lock */
 
-	vmf = pmap_lookup(pm, p, NULL);
+	vmf = pmap_lookup(pm, p, &idx);
 
 	if (NULL == vmf) {
 		pmap_log_missing(pm, p, npages << kernel_pageshift);
 		return FALSE;
 	}
 
-	fragment = p == vmf->start && npages == pagecount_fast(vmf_size(vmf));
+	/*
+	 * If block lies within a VM fragment, it's not a fragment.
+	 */
 
-	return fragment;
+	if (p != vmf->start || npages != pagecount_fast(vmf_size(vmf)))
+		return FALSE;
+
+	/*
+	 * If the block is next to a foreign/mapped region, then it's not a
+	 * fragment, regardless of whether the other region is in the direction
+	 * of the VM growing range or not.
+	 */
+
+	if (idx != 0) {
+		struct vm_fragment *prev = &pm->array[idx - 1];
+		if (prev->end == vmf->start)
+			return FALSE;
+	}
+
+	if (idx != pm->count - 1) {
+		struct vm_fragment *next = &pm->array[idx + 1];
+		if (next->start == vmf->end)
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 /**
