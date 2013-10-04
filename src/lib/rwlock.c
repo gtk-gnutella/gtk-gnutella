@@ -62,7 +62,7 @@
 #endif
 
 #include "rwlock.h"
-#include "compat_sleep_ms.h"
+#include "compat_usleep.h"
 #include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
@@ -73,8 +73,8 @@
 #include "override.h"			/* Must be the last header included */
 
 #define RWLOCK_LOOP		100		/* Loop iterations before sleeping */
-#define RWLOCK_DELAY	2		/* Wait 2 ms before looping again */
-#define RWLOCK_DEAD		4096	/* # of loops before flagging deadlock */
+#define RWLOCK_DELAY	200		/* Wait 200 us before looping again */
+#define RWLOCK_DEAD		32768	/* # of loops before flagging deadlock */
 #define RWLOCK_DEADMASK	(RWLOCK_DEAD - 1)
 #define RWLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
@@ -489,7 +489,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		if (i < RWLOCK_LOOP)
 			do_sched_yield();
 		else
-			compat_sleep_ms(RWLOCK_DELAY);
+			compat_usleep(RWLOCK_DELAY);
 	}
 }
 

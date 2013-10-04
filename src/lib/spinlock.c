@@ -41,7 +41,7 @@
 
 #include "spinlock.h"
 #include "atomic.h"
-#include "compat_sleep_ms.h"
+#include "compat_usleep.h"
 #include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
@@ -50,8 +50,8 @@
 #include "override.h"			/* Must be the last header included */
 
 #define SPINLOCK_LOOP		100		/* Loop iterations before sleeping */
-#define SPINLOCK_DELAY		2		/* Wait 2 ms before looping again */
-#define SPINLOCK_DEAD		4096	/* # of loops before flagging deadlock */
+#define SPINLOCK_DELAY		200		/* Wait 200 us before looping again */
+#define SPINLOCK_DEAD		8192	/* # of loops before flagging deadlock */
 #define SPINLOCK_DEADMASK	(SPINLOCK_DEAD - 1)
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
@@ -344,7 +344,7 @@ spinlock_loop(volatile spinlock_t *s,
 		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
 			(*deadlocked)(src_object, (unsigned) d, file, line);
 
-		compat_sleep_ms(SPINLOCK_DELAY);
+		compat_usleep(SPINLOCK_DELAY);
 
 		/*
 		 * If pass-through was activated whilst we were sleeping, return
