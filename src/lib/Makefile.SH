@@ -142,6 +142,7 @@ LSRC = \
 	compat_poll.c \
 	compat_sleep_ms.c \
 	compat_un.c \
+	compat_usleep.c \
 	concat.c \
 	cond.c \
 	constants.c \
@@ -310,6 +311,7 @@ LOBJ = \
 	compat_poll.o \
 	compat_sleep_ms.o \
 	compat_un.o \
+	compat_usleep.o \
 	concat.o \
 	cond.o \
 	constants.o \

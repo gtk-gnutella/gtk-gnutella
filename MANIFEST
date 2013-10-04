@@ -626,6 +626,8 @@ src/lib/compat_sleep_ms.c
 src/lib/compat_sleep_ms.h
 src/lib/compat_un.c
 src/lib/compat_un.h
+src/lib/compat_usleep.c
+src/lib/compat_usleep.h
 src/lib/concat.c
 src/lib/concat.h
 src/lib/cond.c
