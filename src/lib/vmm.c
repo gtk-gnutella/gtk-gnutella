@@ -2390,6 +2390,44 @@ free_pages_forced(void *p, size_t size)
 }
 
 /**
+ * Free array of pages, each entry being a region of the given size,
+ * updating our pmap as we go.
+ *
+ * @param vec		the vector of pages to free
+ * @param vnct		the amount of pages in the vector
+ * @param size		size of regions in the vector (same size for all entries)
+ */
+static void
+free_pages_vector(void *vec[], size_t vcnt, size_t size)
+{
+	struct pmap *pm = vmm_pmap();
+	size_t i;
+
+	if (vmm_debugging(5)) {
+		for (i = 0; i < vcnt; i++) {
+			s_minidbg("VMM freeing %zuKiB region at %p", size / 1024, vec[i]);
+		}
+	}
+
+	rwlock_wlock(&pm->lock);
+
+	for (i = 0; i < vcnt; i++) {
+		pmap_remove(pm, vec[i], size);
+	}
+
+	rwlock_wunlock(&pm->lock);
+
+	/*
+	 * Because the pmap has already been updated, we can release all the
+	 * pages without holding any lock.
+	 */
+
+	for (i = 0; i < vcnt; i++) {
+		free_pages_intern(vec[i], size, FALSE);
+	}
+}
+
+/**
  * Lookup page within a cache line.
  *
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
@@ -3927,9 +3965,7 @@ page_cache_timer(void *unused_udata)
 		 * Free the pages we removed from the cache.
 		 */
 
-		for (i = 0; i < expired; i++) {
-			free_pages_forced(freed[i], pc->chunksize);
-		}
+		free_pages_vector(freed, expired, pc->chunksize);
 
 		VMM_STATS_LOCK;
 		vmm_stats.cache_expired += expired;
