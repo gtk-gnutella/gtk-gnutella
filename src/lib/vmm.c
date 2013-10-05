@@ -201,6 +201,7 @@ struct page_cache {
  * Ad index n, we have areas made of n+1 consecutive pages.
  */
 static struct page_cache page_cache[VMM_CACHE_LINES];
+static size_t page_cache_line;	/**< Next cache line to expire */
 
 /**
  * Fragment types
@@ -262,7 +263,9 @@ static struct vmm_stats {
 	uint64 cache_line_coalescing;	/**< Amount of coalescing in cache line */
 	uint64 cache_expired;			/**< Amount of entries expired from cache */
 	uint64 cache_expired_pages;		/**< Expired pages from cache */
-	uint64 high_order_coalescing;	/**< Large regions successfully coalesced */
+	uint64 cache_ignored;			/**< Ignored cache lines during lookups */
+	uint64 cache_splits;			/**< Split cached entries in allocations */
+	uint64 cache_high_coalescing;	/**< Large regions successfully coalesced */
 	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
 	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
 	uint64 pmap_overruled;			/**< Regions overruled by kernel */
@@ -2830,9 +2833,17 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 			if (hole != NULL && vmm_ptr_cmp(p, hole) > 0) {
 				if (vmm_debugging(7)) {
 					s_minidbg("VMM page cache #%zu: "
-						"stopping lookup for %zu page%s at %p "
-						"(upper than hole %p)",
-						pc->pages - 1, n, plural(n), p, hole);
+						"%s lookup for %zu page%s at %p "
+						"(upper than hole %p, ignoring %zu cached entr%s)",
+						pc->pages - 1, i == 0 ? "ignoring" : "stopping",
+						n, plural(n), p, hole,
+						pc->current - i, plural(pc->current - i));
+				}
+				if (0 == i) {
+					/* Did not consider any of the pages in that line */
+					VMM_STATS_LOCK;
+					vmm_stats.cache_ignored++;
+					VMM_STATS_UNLOCK;
 				}
 				break;
 			}
@@ -3046,7 +3057,7 @@ page_cache_find_pages(size_t n)
 
 		if (p != NULL && n > VMM_CACHE_LINES) {
 			VMM_STATS_LOCK;
-			vmm_stats.high_order_coalescing++;
+			vmm_stats.cache_high_coalescing++;
 			VMM_STATS_UNLOCK;
 		}
 
@@ -3078,6 +3089,12 @@ page_cache_find_pages(size_t n)
 				pc = &page_cache[i];
 				p = vpc_find_pages(pc, n, hole);
 			}
+		}
+
+		if (p != NULL) {
+			VMM_STATS_LOCK;
+			vmm_stats.cache_splits++;
+			VMM_STATS_UNLOCK;
 		}
 	}
 
@@ -3905,7 +3922,6 @@ vmm_resize(void *p, size_t size, size_t new_size)
 static bool
 page_cache_timer(void *unused_udata)
 {
-	static size_t line;
 	time_t now = tm_time();
 	struct page_cache *pc;
 	size_t i, expired = 0, old_regions = vmm_pmap()->count;
@@ -3913,16 +3929,13 @@ page_cache_timer(void *unused_udata)
 
 	(void) unused_udata;
 
-	if G_UNLIKELY(VMM_CACHE_LINES == line)
-		line = 0;
-
-	pc = &page_cache[line];
+	pc = &page_cache[page_cache_line];
 
 	spinlock(&pc->lock);
 
 	if (vmm_debugging(pc->current > 0 ? 4 : 8)) {
 		s_minidbg("VMM scanning page cache #%zu (%zu item%s)",
-			line, pc->current, plural(pc->current));
+			page_cache_line, pc->current, plural(pc->current));
 	}
 
 	for (i = 0; i < pc->current; /* empty */) {
@@ -3979,7 +3992,7 @@ page_cache_timer(void *unused_udata)
 				"page cache #%zu (%zu item%s remaining), "
 				"process has %zu VM regions%s",
 				expired, plural(expired),
-				expired * pc->chunksize / 1024, line,
+				expired * pc->chunksize / 1024, page_cache_line,
 				pc->current, plural(pc->current), regions,
 				old_regions < regions ? " (fragmented further)" : "");
 		}
@@ -3988,7 +4001,15 @@ page_cache_timer(void *unused_udata)
 		}
 	}
 
-	line++;			/* For next time */
+	/*
+	 * For next time, compute cache line number to scan.
+	 */
+
+	if G_UNLIKELY(VMM_CACHE_LINES -1 == page_cache_line)
+		page_cache_line = 0;
+	else
+		page_cache_line++;
+
 	return TRUE;	/* Keep scheduling */
 }
 
@@ -4111,7 +4132,23 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(cache_line_coalescing);
 	DUMP(cache_expired);
 	DUMP(cache_expired_pages);
-	DUMP(high_order_coalescing);
+	DUMP(cache_ignored);
+	DUMP(cache_splits);
+	DUMP(cache_high_coalescing);
+
+	/*
+	 * Count cached entries -- this is a transient value, so no need to
+	 * lock each cache line anyway, we do not care about the exact figures.
+	 */
+
+	for (i = 0; i < VMM_CACHE_LINES; i++) {
+		struct page_cache *pc = &page_cache[i];
+
+		log_info(la, "VMM cache_entries_%zu = %zu", i, pc->current);
+	}
+
+	log_info(la, "VMM cache_entries_next_expire = %zu", page_cache_line);
+
 	DUMP(pmap_foreign_discards);
 	DUMP(pmap_foreign_discarded_pages);
 	DUMP(pmap_overruled);
@@ -4138,7 +4175,6 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 		DUMP(size);
 		DUMP(pages);
 	}
-
 
 #undef DUMP
 #define DUMP(x)	log_info(la, "VMM %s = %s", #x,		\
