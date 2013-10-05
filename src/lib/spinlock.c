@@ -56,6 +56,7 @@
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
 int spinlock_pass_through;
+static long spinlock_cpus;
 
 static inline void
 spinlock_account(const spinlock_t *s, const char *file, unsigned line)
@@ -239,7 +240,6 @@ spinlock_loop(volatile spinlock_t *s,
 	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked,
 	const char *file, unsigned line)
 {
-	static long cpus;
 	unsigned i;
 	gentime_t start = GENTIME_ZERO;
 	int loops = SPINLOCK_LOOP;
@@ -254,8 +254,8 @@ spinlock_loop(volatile spinlock_t *s,
 	 * afford to conduct more extended checks.
 	 */
 
-	if G_UNLIKELY(0 == cpus)
-		cpus = getcpucount();
+	if G_UNLIKELY(0 == spinlock_cpus)
+		spinlock_cpus = getcpucount();
 
 	/*
 	 * If in "pass-through" mode, we're crashing, so avoid deadlocks.
@@ -286,7 +286,7 @@ spinlock_loop(volatile spinlock_t *s,
 		(*deadlocked)(src_object, 0, file, line);
 
 #ifdef HAS_SCHED_YIELD
-	if (1 == cpus)
+	if (1 == spinlock_cpus)
 		loops /= 10;
 #endif
 
@@ -316,7 +316,7 @@ spinlock_loop(volatile spinlock_t *s,
 				return;
 			}
 #ifdef HAS_SCHED_YIELD
-			if (1 == cpus)
+			if (1 == spinlock_cpus)
 				do_sched_yield();		/* See lib/mingw32.h */
 #endif
 		}
@@ -551,6 +551,7 @@ spinlock_release(spinlock_t *s, bool hidden)
 void
 spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 {
+	int i = 0;
 	spinlock_check(s);
 
 	while (!atomic_acquire(&s->lock)) {
@@ -559,7 +560,15 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 			spinlock_direct(s);
 			break;
 		}
-		do_sched_yield();		/* See lib/mingw32.h */
+		if G_UNLIKELY(0 == spinlock_cpus)
+			spinlock_cpus = getcpucount();
+#ifdef HAS_SCHED_YIELD
+		if (1 == spinlock_cpus && i <= SPINLOCK_LOOP)
+			do_sched_yield();		/* See lib/mingw32.h */
+		else
+#endif
+		if (i++ > SPINLOCK_LOOP)
+			compat_usleep(SPINLOCK_DELAY);
 	}
 
 	spinlock_set_owner(s, file, line);
