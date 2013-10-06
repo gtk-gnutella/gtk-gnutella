@@ -74,7 +74,8 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsxABCEFIMNOPQRSX] [-c CPU] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsvxABCEFIMNOPQRSX] [-c CPU] [-n count]\n"
+		"       [-t ms] [-T secs]\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
 		"  -h : prints this help message\n"
@@ -82,6 +83,7 @@ usage(void)
 		"  -n : amount of times to repeat tests\n"
 		"  -s : let each created thread sleep for 1 second before ending\n"
 		"  -t : timeout value (ms) for condition waits\n"
+		"  -v : dump thread statistics at the end of the tests\n"
 		"  -x : free memory allocated by -X in random order\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -B : test synchronization barriers\n"
@@ -1422,8 +1424,9 @@ main(int argc, char **argv)
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
+	bool stats = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "c:ehjn:st:xABCEFIMNOPQRST:X";
+	const char options[] = "c:ehjn:st:vxABCEFIMNOPQRST:X";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -1498,6 +1501,9 @@ main(int argc, char **argv)
 		case 's':			/* threads sleep for 1 second before ending */
 			sleep_before_exit = TRUE;
 			break;
+		case 'v':			/* dump thread statistics at the end */
+			stats = TRUE;
+			break;
 		case 'x':			/* free allocated memory by -X tests randomly */
 			randomize_free = TRUE;
 			break;
@@ -1548,6 +1554,13 @@ main(int argc, char **argv)
 
 	if (memory)
 		test_memory(repeat);
+
+	/*
+	 * Print final statistics.
+	 */
+
+	if (stats)
+		thread_dump_stats_log(log_agent_stdout_get(), 0);
 
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }
