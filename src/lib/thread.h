@@ -259,6 +259,13 @@ struct logagent;
 void thread_dump_stats_log(struct logagent *la, unsigned options);
 
 #define THREAD_INVALID_ID	-1U		/**< Invalid ID */
+#define THREAD_MAIN			0		/**< ID of the main thread */
+
+static inline bool
+thread_is_main(void)
+{
+	return THREAD_MAIN == thread_small_id();
+}
 
 #if defined(THREAD_SOURCE) || defined(MUTEX_SOURCE)
 #ifdef I_PTHREAD

@@ -291,10 +291,10 @@ thread_element_check(const struct thread_element * const te)
 static struct thread_stats {
 	uint created;					/* Amount of created threads */
 	uint discovered;				/* Amount of discovered threads */
-	U64(qid_lookup);				/* Amount of QID lookups in the cache */
-	U64(qid_hit);					/* Amount of QID hits */
-	U64(qid_clash);					/* Amount of QID clashes */
-	U64(qid_miss);					/* Amount of QID lookup misses */
+	U64(qid_cache_lookup);			/* Amount of QID lookups in the cache */
+	U64(qid_cache_hit);				/* Amount of QID hits */
+	U64(qid_cache_clash);			/* Amount of QID clashes */
+	U64(qid_cache_miss);			/* Amount of QID lookup misses */
 	U64(lookup_by_qid);				/* Amount of thread lookups by QID */
 	U64(lookup_by_tid);				/* Amount of thread lookups by TID */
 	U64(locks_tracked);				/* Amount of locks tracked */
@@ -586,7 +586,7 @@ thread_qid_cache_get(unsigned idx)
 {
 	uint8 id;
 
-	THREAD_STATS_INCX(qid_lookup);
+	THREAD_STATS_INCX(qid_cache_lookup);
 
 	/*
 	 * We do not care whether this memory location is atomically read or not.
@@ -680,16 +680,16 @@ static inline ALWAYS_INLINE bool
 thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 {
 	if G_UNLIKELY(NULL == te) {
-		THREAD_STATS_INCX(qid_miss);
+		THREAD_STATS_INCX(qid_cache_miss);
 		return FALSE;
 	}
 
 	if G_LIKELY(te->last_qid == qid) {
-		THREAD_STATS_INCX(qid_hit);
+		THREAD_STATS_INCX(qid_cache_hit);
 		return TRUE;
 	}
 
-	THREAD_STATS_INCX(qid_clash);
+	THREAD_STATS_INCX(qid_cache_clash);
 	return FALSE;
 }
 
@@ -6951,10 +6951,10 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 
 	DUMP(created);
 	DUMP(discovered);
-	DUMP64(qid_lookup);
-	DUMP64(qid_hit);
-	DUMP64(qid_clash);
-	DUMP64(qid_miss);
+	DUMP64(qid_cache_lookup);
+	DUMP64(qid_cache_hit);
+	DUMP64(qid_cache_clash);
+	DUMP64(qid_cache_miss);
 	DUMP64(lookup_by_qid);
 	DUMP64(lookup_by_tid);
 	DUMP64(locks_tracked);
