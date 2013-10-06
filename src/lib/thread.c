@@ -96,6 +96,7 @@
 #include "pow2.h"
 #include "rwlock.h"
 #include "signal.h"				/* For signal_stack_allocate() */
+#include "semaphore.h"			/* For semaphore_kernel_usage() */
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -297,6 +298,31 @@ static struct thread_stats {
 	U64(lookup_by_qid);				/* Amount of thread lookups by QID */
 	U64(lookup_by_tid);				/* Amount of thread lookups by TID */
 	U64(locks_tracked);				/* Amount of locks tracked */
+	U64(locks_tracked_discovered);	/* Locks tracked on discovered threads */
+	U64(locks_released);			/* Amount of locks released after grab */
+	U64(locks_spinlock_tracked);	/* Amount of tracked spinlocks */
+	U64(locks_mutex_tracked);		/* Amount of tacked mutexes */
+	U64(locks_rlock_tracked);		/* Amount of tracked read-locks */
+	U64(locks_wlock_tracked);		/* Amount of tracked write-locks */
+	U64(locks_spinlock_sleep);		/* Amount of sleeps done on spinlocks */
+	U64(locks_mutex_sleep);			/* Amount of sleeps done on mutexes */
+	U64(locks_rlock_sleep);			/* Amount of sleeps done on read-locks */
+	U64(locks_wlock_sleep);			/* Amount of sleeps done on write-locks */
+	U64(cond_waitings);				/* Amount of condition variable waitings */
+	U64(signals_posted);			/* Amount of signals posted to threads */
+	U64(signals_handled);			/* Amount of signal handlers called */
+	U64(signals_ignored);			/* Amount of signals got with no handler */
+	U64(sig_handled_count);			/* Amount of calls to thread_sig_handle() */
+	U64(sig_handled_while_blocked);	/* Signals handled whilst thread blocked */
+	U64(sig_handled_while_paused);	/* Signals handled whilst paused */
+	U64(sig_handled_while_check);	/* Signals handled via voluntary check */
+	U64(sig_handled_while_locking);	/* Signals handled during locking */
+	U64(sig_handled_while_unlocking);	/* Signals handled during unlocking */
+	U64(thread_self_blocks);		/* Voluntary internal thread blocks */
+	U64(thread_self_pauses);		/* Calls to thread_pause() */
+	U64(thread_self_suspends);		/* Threads seeing they need to suspend */
+	U64(thread_self_block_races);	/* Detected races in thread_self_block() */
+	U64(thread_forks);				/* Amount of thread_fork() calls made */
 } thread_stats;
 
 #define THREAD_STATS_INCX(name) G_STMT_START { \
@@ -1758,6 +1784,8 @@ thread_suspend_loop(struct thread_element *te)
 	unsigned i;
 	time_t start = 0;
 
+	THREAD_STATS_INCX(thread_self_suspends);
+
 	/*
 	 * Suspension loop.
 	 */
@@ -2747,6 +2775,8 @@ thread_sig_handle(struct thread_element *te)
 	tsigset_t pending;
 	int s;
 
+	THREAD_STATS_INCX(sig_handled_count);
+
 recheck:
 
 	/*
@@ -2773,8 +2803,11 @@ recheck:
 			continue;
 
 		handler = te->sigh[s - 1];
-		if G_UNLIKELY(TSIG_IGN == handler || TSIG_DFL == handler)
+
+		if G_UNLIKELY(TSIG_IGN == handler || TSIG_DFL == handler) {
+			THREAD_STATS_INCX(signals_ignored);
 			continue;
+		}
 
 		/*
 		 * Deliver signal, masking it whilst we process it to prevent
@@ -2793,6 +2826,8 @@ recheck:
 		g_assert(te->in_signal_handler >= 0);
 
 		handled = TRUE;
+
+		THREAD_STATS_INCX(signals_handled);
 	}
 
 	if (thread_sig_present(te))
@@ -2816,8 +2851,10 @@ thread_sighandler_level(void)
 	 * Use this opportunity to check for pending signals.
 	 */
 
-	if (thread_sig_pending(te))
+	if (thread_sig_pending(te)) {
+		THREAD_STATS_INCX(sig_handled_while_check);
 		thread_sig_handle(te);
+	}
 
 	return te->in_signal_handler;
 }
@@ -2854,8 +2891,10 @@ thread_check_suspended(void)
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 	}
 
-	if G_UNLIKELY(thread_sig_pending(te))
+	if G_UNLIKELY(thread_sig_pending(te)) {
+		THREAD_STATS_INCX(sig_handled_while_check);
 		delayed = thread_sig_handle(te);
+	}
 
 	return delayed;
 }
@@ -4142,6 +4181,8 @@ thread_lock_dump_self_if_any(int fd)
 static bool
 thread_lock_release(const void *lock, enum thread_lock_kind kind)
 {
+	THREAD_STATS_INCX(locks_released);
+
 	switch (kind) {
 	case THREAD_LOCK_SPINLOCK:
 		{
@@ -4198,6 +4239,28 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		te->waiting.kind = kind;
 		te->waiting.file = file;
 		te->waiting.line = line;
+
+		/*
+		 * Record contention leading to sleeping: if the locking code calls
+		 * us, it means it has been unable to get the lock after a few busy
+		 * loops, so there is real contention that requires sleeping for a
+		 * while.
+		 */
+
+		switch (kind) {
+		case THREAD_LOCK_SPINLOCK:
+			THREAD_STATS_INCX(locks_spinlock_sleep);
+			break;
+		case THREAD_LOCK_MUTEX:
+			THREAD_STATS_INCX(locks_mutex_sleep);
+			break;
+		case THREAD_LOCK_RLOCK:
+			THREAD_STATS_INCX(locks_rlock_sleep);
+			break;
+		case THREAD_LOCK_WLOCK:
+			THREAD_STATS_INCX(locks_wlock_sleep);
+			break;
+		}
 	}
 
 	return te;
@@ -4248,6 +4311,7 @@ thread_cond_waiting_element(cond_t *c)
 		THREAD_LOCK(te);
 		te->cond = c;
 		THREAD_UNLOCK(te);
+		THREAD_STATS_INCX(cond_waitings);
 	}
 
 	return te;
@@ -4362,10 +4426,32 @@ found:
 	te->waiting.lock = NULL;		/* Signals that lock was granted */
 
 	/*
-	 * Make sure we have room to record the lock in our tracking stack.
+	 * Update statistics.
 	 */
 
 	THREAD_STATS_INCX(locks_tracked);
+
+	if G_UNLIKELY(!te->created && !te->main_thread)
+		THREAD_STATS_INCX(locks_tracked_discovered);
+
+	switch (kind) {
+	case THREAD_LOCK_SPINLOCK:
+		THREAD_STATS_INCX(locks_spinlock_tracked);
+		break;
+	case THREAD_LOCK_MUTEX:
+		THREAD_STATS_INCX(locks_mutex_tracked);
+		break;
+	case THREAD_LOCK_RLOCK:
+		THREAD_STATS_INCX(locks_rlock_tracked);
+		break;
+	case THREAD_LOCK_WLOCK:
+		THREAD_STATS_INCX(locks_wlock_tracked);
+		break;
+	}
+
+	/*
+	 * Make sure we have room to record the lock in our tracking stack.
+	 */
 
 	tls = &te->locks;
 
@@ -4388,6 +4474,7 @@ found:
 	 */
 
 	if G_UNLIKELY(thread_sig_pending(te) && thread_lock_release(lock, kind)) {
+		THREAD_STATS_INCX(sig_handled_while_locking);
 		thread_sig_handle(te);
 		thread_lock_reacquire(lock, kind, file, line);
 	}
@@ -4668,8 +4755,10 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 		 * Handle signals if any are pending and can be delivered.
 		 */
 
-		if G_UNLIKELY(thread_sig_pending(te))
+		if G_UNLIKELY(thread_sig_pending(te)) {
+			THREAD_STATS_INCX(sig_handled_while_unlocking);
 			thread_sig_handle(te);
+		}
 
 		/*
 		 * If the thread no longer holds any locks and it has to be suspended,
@@ -5204,6 +5293,7 @@ thread_fork(bool safe)
 			thread_forked();
 			return 0;
 		default:
+			THREAD_STATS_INCX(thread_forks);
 			thread_unsuspend_others();
 			return child;
 		}
@@ -5369,6 +5459,7 @@ thread_element_block_until(struct thread_element *te,
 	THREAD_LOCK(te);
 	if (te->unblock_events != events) {
 		THREAD_UNLOCK(te);
+		THREAD_STATS_INCX(thread_self_block_races);
 		return TRUE;				/* Was sent an "unblock" event already */
 	}
 
@@ -5388,6 +5479,8 @@ thread_element_block_until(struct thread_element *te,
 	 */
 
 retry:
+	THREAD_STATS_INCX(thread_self_blocks);
+
 	if (end != NULL) {
 		long remain = tm_remaining_ms(end);
 		struct pollfd fds;
@@ -5430,6 +5523,7 @@ retry:
 	if G_UNLIKELY(te->signalled != 0) {
 		te->signalled--;		/* Consumed one signaling byte */
 		THREAD_UNLOCK(te);
+		THREAD_STATS_INCX(sig_handled_while_blocked);
 		thread_sig_handle(te);
 		goto retry;
 	}
@@ -6374,8 +6468,10 @@ thread_signal(int signum, tsighandler_t handler)
 	old = te->sigh[signum - 1];
 	te->sigh[signum - 1] = handler;
 
-	if G_UNLIKELY(thread_sig_pending(te))
+	if G_UNLIKELY(thread_sig_pending(te)) {
+		THREAD_STATS_INCX(sig_handled_while_check);
 		thread_sig_handle(te);
+	}
 
 	return old;
 }
@@ -6425,8 +6521,10 @@ thread_kill(unsigned id, int signum)
 
 		if G_UNLIKELY(stid == id) {
 			THREAD_UNLOCK(te);
-			if (0 == te->locks.count && process)
+			if (0 == te->locks.count && process) {
+				THREAD_STATS_INCX(sig_handled_while_check);
 				thread_sig_handle(te);
+			}
 			return 0;
 		}
 
@@ -6458,6 +6556,8 @@ thread_kill(unsigned id, int signum)
 			cv = cond_refcnt_inc(te->cond);
 		}
 		THREAD_UNLOCK(te);
+
+		THREAD_STATS_INCX(signals_posted);
 
 		/*
 		 * The unblocking byte is sent outside the critical section, but
@@ -6532,8 +6632,10 @@ thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
 	g_assert_not_reached();
 
 done:
-	if G_UNLIKELY(thread_sig_pending(te))
+	if G_UNLIKELY(thread_sig_pending(te)) {
+		THREAD_STATS_INCX(sig_handled_while_check);
 		thread_sig_handle(te);
+	}
 }
 
 /**
@@ -6582,6 +6684,8 @@ thread_pause(void)
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
 
+	THREAD_STATS_INCX(thread_self_pauses);
+
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
 		s_error("%s(): %s could not block itself: %m",
 			G_STRFUNC, thread_element_name(te));
@@ -6605,8 +6709,10 @@ thread_pause(void)
 	}
 	THREAD_UNLOCK(te);
 
-	if (signalled)
+	if (signalled) {
+		THREAD_STATS_INCX(sig_handled_while_paused);
 		thread_sig_handle(te);
+	}
 
 	return signalled;
 }
@@ -6839,6 +6945,10 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 			uint64_to_gstring(v) : uint64_to_string(v));	\
 } G_STMT_END
 
+#define DUMPV(x)	log_info(la, "THREAD %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?							\
+		size_t_to_gstring(x) : size_t_to_string(x))
+
 	DUMP(created);
 	DUMP(discovered);
 	DUMP64(qid_lookup);
@@ -6848,9 +6958,48 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(lookup_by_qid);
 	DUMP64(lookup_by_tid);
 	DUMP64(locks_tracked);
+	DUMP64(locks_tracked_discovered);
+	DUMP64(locks_released);
+	DUMP64(locks_spinlock_tracked);
+	DUMP64(locks_mutex_tracked);
+	DUMP64(locks_rlock_tracked);
+	DUMP64(locks_wlock_tracked);
+	DUMP64(locks_spinlock_sleep);
+	DUMP64(locks_mutex_sleep);
+	DUMP64(locks_rlock_sleep);
+	DUMP64(locks_wlock_sleep);
+	DUMP64(cond_waitings);
+	DUMP64(signals_posted);
+	DUMP64(signals_handled);
+	DUMP64(signals_ignored);
+	DUMP64(sig_handled_count);
+	DUMP64(sig_handled_while_blocked);
+	DUMP64(sig_handled_while_paused);
+	DUMP64(sig_handled_while_check);
+	DUMP64(sig_handled_while_locking);
+	DUMP64(sig_handled_while_unlocking);
+	DUMP64(thread_self_blocks);
+	DUMP64(thread_self_pauses);
+	DUMP64(thread_self_suspends);
+	DUMP64(thread_self_block_races);
+	DUMP64(thread_forks);
+
+	{
+		size_t rsc_semaphore_used;
+		size_t rsc_semaphore_arrays;
+		size_t rsc_cond_variables;
+
+		rsc_semaphore_arrays = semaphore_kernel_usage(&rsc_semaphore_used);
+		rsc_cond_variables = cond_vars_count();
+
+		DUMPV(rsc_semaphore_used);
+		DUMPV(rsc_semaphore_arrays);
+		DUMPV(rsc_cond_variables);
+	}
 
 #undef DUMP
 #undef DUMP64
+#undef DUMPV
 }
 
 /* vi: set ts=4 sw=4 cindent: */
