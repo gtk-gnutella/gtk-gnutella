@@ -86,8 +86,8 @@
 
 static spinlock_t arc4_lck = SPINLOCK_INIT;
 
-#define THREAD_LOCK		spinlock_hidden(&arc4_lck)
-#define THREAD_UNLOCK	spinunlock_hidden(&arc4_lck)
+#define ARC4_LOCK		spinlock_hidden(&arc4_lck)
+#define ARC4_UNLOCK		spinunlock_hidden(&arc4_lck)
 
 struct arc4_stream {
 	uint8 i;
@@ -217,9 +217,9 @@ arc4_check_stir(void)
 void
 arc4random_stir(void)
 {
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_stir(&rs);
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 }
 
 /**
@@ -228,9 +228,9 @@ arc4random_stir(void)
 G_GNUC_COLD void
 arc4random_stir_once(void)
 {
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_check_stir();
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 }
 
 /**
@@ -250,10 +250,10 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 	g_assert(dat != NULL);
 	g_assert(datlen > 0);
 
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_check_stir();
 	arc4_addrandom(&rs, dat, datlen);
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 }
 
 /**
@@ -264,10 +264,10 @@ arc4random(void)
 {
 	uint32 rnd;
 
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_check_stir();
 	rnd = arc4_getword(&rs);
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 
 	return rnd;
 }
@@ -280,11 +280,11 @@ arc4random64(void)
 {
 	uint32 hi, lo;
 
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_check_stir();
 	hi = arc4_getword(&rs);
 	lo = arc4_getword(&rs);
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 
 	return ((uint64) hi << 32) | (uint64) lo;
 }

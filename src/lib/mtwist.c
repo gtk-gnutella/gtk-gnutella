@@ -599,8 +599,8 @@ mts_lock_rand64(register mt_state_t *mts)
 static mt_state_t mt_default;
 static spinlock_t mtwist_lck = SPINLOCK_INIT;
 
-#define THREAD_LOCK		spinlock_hidden(&mtwist_lck)
-#define THREAD_UNLOCK	spinunlock_hidden(&mtwist_lck)
+#define MTWIST_LOCK		spinlock_hidden(&mtwist_lck)
+#define MTWIST_UNLOCK	spinunlock_hidden(&mtwist_lck)
 
 /**
  * Generate a random number in the range 0 to 2^32-1, inclusive.
@@ -612,9 +612,9 @@ mt_rand(void)
 {
 	uint32 rn;
 
-	THREAD_LOCK;
+	MTWIST_LOCK;
 	rn = mts_rand_internal(&mt_default);
-	THREAD_UNLOCK;
+	MTWIST_UNLOCK;
 
 	return rn;
 }
@@ -629,9 +629,9 @@ mt_rand64(void)
 {
 	uint64 rn;
 
-	THREAD_LOCK;
+	MTWIST_LOCK;
 	rn = mts_rand64_internal(&mt_default);
-	THREAD_UNLOCK;
+	MTWIST_UNLOCK;
 
 	return rn;
 }
@@ -715,9 +715,9 @@ mt_state_free_null(mt_state_t **mts_ptr)
 static void
 mt_init_once(void)
 {
-	THREAD_LOCK;
+	MTWIST_LOCK;
 	mts_seed_with(arc4random, &mt_default);
-	THREAD_UNLOCK;
+	MTWIST_UNLOCK;
 }
 
 /**

@@ -96,7 +96,7 @@ pio_init(void)
 }
 
 static inline ALWAYS_INLINE void
-THREAD_LOCK(int fd)
+PIO_LOCK(int fd)
 {
 	if G_UNLIKELY(!pio_inited)
 		pio_init();
@@ -108,7 +108,7 @@ THREAD_LOCK(int fd)
 }
 
 static inline ALWAYS_INLINE void
-THREAD_UNLOCK(int fd)
+PIO_UNLOCK(int fd)
 {
 	spinunlock_hidden(&pio_locks[fd]);
 }
@@ -146,11 +146,11 @@ compat_pwrite(const int fd,
 {
 	ssize_t r;
 
-	THREAD_LOCK(fd);
+	PIO_LOCK(fd);
 	r = seek_to_filepos(fd, pos);
 	if (0 == r)
 		r = write(fd, data, size);
-	THREAD_UNLOCK(fd);
+	PIO_UNLOCK(fd);
 
 	return r;
 }
@@ -196,11 +196,11 @@ compat_pwritev(const int fd,
 	} else {
 		ssize_t r;
 
-		THREAD_LOCK(fd);
+		PIO_LOCK(fd);
 		r = seek_to_filepos(fd, pos);
 		if (0 == r)
 			r = writev(fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
-		THREAD_UNLOCK(fd);
+		PIO_UNLOCK(fd);
 
 		return r;
 	}
@@ -239,11 +239,11 @@ compat_pread(const int fd,
 {
 	ssize_t r;
 
-	THREAD_LOCK(fd);
+	PIO_LOCK(fd);
 	r = seek_to_filepos(fd, pos);
 	if (0 == r)
 		r = read(fd, data, size);
-	THREAD_UNLOCK(fd);
+	PIO_UNLOCK(fd);
 
 	return r;
 }
@@ -290,11 +290,11 @@ compat_preadv(const int fd,
 	} else {
 		ssize_t r;
 
-		THREAD_LOCK(fd);
+		PIO_LOCK(fd);
 		r = seek_to_filepos(fd, pos);
 		if (0 == r)
 			r = readv(fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
-		THREAD_UNLOCK(fd);
+		PIO_UNLOCK(fd);
 
 		return r;
 	}
