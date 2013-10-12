@@ -372,15 +372,7 @@ verify_next_file(struct verify *ctx)
 		ctx->offset = ctx->start;
 
 		if (verify_start(ctx)) {
-			ctx->file = file_object_open(item->pathname, O_RDONLY);
-			if (NULL == ctx->file) {
-				int fd;
-
-				fd = file_absolute_open(item->pathname, O_RDONLY, 0);
-				if (fd >= 0) {
-					ctx->file = file_object_new(fd, item->pathname, O_RDONLY);
-				}
-			}
+			ctx->file = file_object_get(item->pathname, O_RDONLY);
 			if (NULL == ctx->file) {
 				g_warning("failed to open \"%s\" for %s hashing: %m",
 					verify_hash_name(ctx), item->pathname);

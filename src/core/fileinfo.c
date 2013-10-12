@@ -877,14 +877,9 @@ file_info_store_binary(fileinfo_t *fi, bool force)
 	 * since then we'll go directly to file_info_fd_store_binary().
 	 */
 
-	fo = file_object_open(fi->pathname, O_WRONLY);
-	if (!fo) {
-		int fd = file_open_missing(fi->pathname, O_WRONLY);
-		if (fd >= 0) {
-			fo = file_object_new(fd, fi->pathname, O_WRONLY);
-		}
-	}
-	if (fo) {
+	fo = file_object_get(fi->pathname, O_WRONLY);
+
+	if (fo != NULL) {
 		file_info_fd_store_binary(fi, fo);
 		file_object_release(&fo);
 	}

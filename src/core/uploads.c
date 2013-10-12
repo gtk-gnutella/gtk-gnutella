@@ -4264,9 +4264,16 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	g_assert(NULL == u->file);		/* File opened each time */
 
-	/* Open the file for reading. */
+	/*
+	 * Open the file for reading.
+	 *
+	 * Here we do not use the file_object_get() wrapper but do things manually
+	 * since we want to special-case the underlying file opening depending on
+	 * whether the file is partial.
+	 */
+
 	u->file = file_object_open(shared_file_path(u->sf), O_RDONLY);
-	if (!u->file) {
+	if (NULL == u->file) {
 		int fd, flags;
 
 		/* If this is a partial file, we open it with O_RDWR so that
@@ -4282,7 +4289,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			u->file = file_object_new(fd, shared_file_path(u->sf), flags);
 		}
 	}
-	if (!u->file) {
+	if (NULL == u->file) {
 		upload_error_not_found(u, NULL);
 		return FALSE;
 	}

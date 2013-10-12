@@ -190,18 +190,9 @@ d_start(struct bgtask *h, void *ctx, void *item)
 
 	md->d = we->d;
 
-	md->rd = file_object_open(download_pathname(d), O_RDONLY);
+	md->rd = file_object_get(download_pathname(d), O_RDONLY);
 	if (NULL == md->rd) {
-		int fd = file_absolute_open(download_pathname(d), O_RDONLY, 0);
-		if (fd < 0) {
-			md->error = errno;
-			goto abort_read;
-		}
-		md->rd = file_object_new(fd, download_pathname(d), O_RDONLY);
-	}
-
-	if (NULL == md->rd) {
-		md->error = EINVAL;
+		md->error = errno;
 		goto abort_read;
 	}
 

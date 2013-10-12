@@ -8792,21 +8792,12 @@ download_overlap_check(struct download *d)
 	g_assert(fi->lifecount <= fi->refcount);
 	g_assert(d->buffers->held >= d->chunk.overlap);
 
-	fo = file_object_open(fi->pathname, O_RDONLY);
-	if (!fo) {
-		int fd = file_absolute_open(fi->pathname, O_RDONLY, 0);
-		if (fd >= 0) {
-			fo = file_object_new(fd, fi->pathname, O_RDONLY);
-		} else {
-			const char *error = g_strerror(errno);
-			g_warning("cannot check resuming for \"%s\": %m",
-				filepath_basename(fi->pathname));
-			download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"),
-				error);
-		}
-	}
-
-	if (!fo) {
+	fo = file_object_get(fi->pathname, O_RDONLY);
+	if (NULL == fo) {
+		const char *error = g_strerror(errno);
+		g_warning("cannot check resuming for \"%s\": %m",
+			filepath_basename(fi->pathname));
+		download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"), error);
 		goto out;
 	}
 
@@ -11101,34 +11092,18 @@ download_detect_tls_support(struct download *d, header_t *header)
  *
  * @return the created file object, NULL if file could not be opened.
  */
-struct file_object *
+static inline struct file_object *
 download_open(const char * const pathname)
 {
-	struct file_object *fo;
-
 	/*
-	 * Try to reusing existing file descriptor attached to the path.
+	 * We open the file for reading AND writing, in order to allow sharing the
+	 * file descriptor with uploading as well (PFSP support).
+	 *
+	 * A subsequent request to file_object_open() for O_WRONLY or O_RDONLY will
+	 * still return the same file object.
 	 */
 
-	fo = file_object_open(pathname, O_WRONLY);
-
-	if (!fo) {
-		int fd;
-
-		/*
-		 * Since there was no file object initially, a new one is created
-		 * for reading AND writing, in order to allow sharing the file
-		 * descriptor with uploading as well (PFSP support).  A request through
-		 * file_object_open() for O_WRONLY or O_RDONLY will still return the
-		 * same file descriptor.
-		 */
-
-		fd = file_open_missing(pathname, O_RDWR);
-		if (fd >= 0)
-			fo = file_object_new(fd, pathname, O_RDWR);
-	}
-
-	return fo;
+	return file_object_get(pathname, O_RDWR);
 }
 
 /**
