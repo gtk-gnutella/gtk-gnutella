@@ -44,6 +44,7 @@ void file_object_close(void);
 
 struct file_object *file_object_new(int fd, const char *pathname, int accmode);
 struct file_object *file_object_open(const char *pathname, int accmode);
+struct file_object *file_object_get(const char *pathname, int accmode);
 
 ssize_t file_object_pwrite(const struct file_object *fo,
 					const void *data, size_t buf, filesize_t offset);

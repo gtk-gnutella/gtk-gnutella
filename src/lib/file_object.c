@@ -76,6 +76,10 @@
  *     // Error handling
  *  }
  *
+ * In order to make the user code easier to read, use the file_object_get()
+ * convenience routine whenever possible, since it factorizes most of the
+ * common logic.
+ *
  * If a file object is created and released in the same function i.e., reuse
  * unlikely, the strictest access mode should be used (O_RDONLY or O_WRONLY).
  * Otherwise, it is best to use O_RDWR so that the same object can be reused
@@ -90,7 +94,6 @@
 
 #include "file_object.h"
 
-#include "atomic.h"
 #include "atoms.h"
 #include "compat_pio.h"
 #include "fd.h"
@@ -114,6 +117,9 @@ static mutex_t ht_file_objects_mtx = MUTEX_INIT;
 
 #define FILE_OBJECTS_LOCK	mutex_lock(&ht_file_objects_mtx)
 #define FILE_OBJECTS_UNLOCK	mutex_unlock(&ht_file_objects_mtx)
+
+#define assert_file_objects_locked() \
+	assert_mutex_is_owned(&ht_file_objects_mtx)
 
 enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };	/**< Magic number */
 
@@ -179,9 +185,9 @@ file_object_lookup(const char * const pathname, const int accmode)
 {
 	struct file_object *fo;
 
-	FILE_OBJECTS_LOCK;
+	assert_file_objects_locked();
+
 	fo = hikset_lookup(file_object_mode_get_table(accmode), pathname);
-	FILE_OBJECTS_UNLOCK;
 
 	return fo;
 }
@@ -195,9 +201,9 @@ file_object_lookup(const char * const pathname, const int accmode)
 static inline void
 file_object_insert(const struct file_object *fo, const int accmode)
 {
-	FILE_OBJECTS_LOCK;
+	assert_file_objects_locked();
+
 	hikset_insert(file_object_mode_get_table(accmode), fo);
-	FILE_OBJECTS_UNLOCK;
 }
 
 /**
@@ -209,9 +215,9 @@ file_object_insert(const struct file_object *fo, const int accmode)
 static inline void
 file_object_remove(const struct file_object *fo, const int accmode)
 {
-	FILE_OBJECTS_LOCK;
+	assert_file_objects_locked();
+
 	hikset_remove(file_object_mode_get_table(accmode), fo->pathname);
-	FILE_OBJECTS_UNLOCK;
 }
 
 /**
@@ -225,6 +231,8 @@ static struct file_object *
 file_object_find(const char * const pathname, int accmode)
 {
 	struct file_object *fo;
+
+	assert_file_objects_locked();
 
 	g_return_val_if_fail(ht_file_objects_rdonly, NULL);
 	g_return_val_if_fail(ht_file_objects_wronly, NULL);
@@ -265,6 +273,8 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 	static const struct file_object zero_fo;
 	struct file_object *fo;
 
+	assert_file_objects_locked();
+
 	g_return_val_if_fail(fd >= 0, NULL);
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
@@ -291,6 +301,8 @@ file_object_revoke(struct file_object * const fo)
 	const struct file_object *xfo;
 	
 	file_object_check_minimal(fo);
+	assert_file_objects_locked();
+
 	g_return_if_fail(!fo->revoked);
 
 	xfo = file_object_find(fo->pathname, fo->accmode);
@@ -304,16 +316,7 @@ static void
 file_object_free(struct file_object * const fo)
 {
 	file_object_check_minimal(fo);
-	g_return_if_fail(0 == atomic_int_get(&fo->ref_count));
-
-	if (fo->revoked) {
-		const struct file_object *xfo;
-
-		xfo = file_object_lookup(fo->pathname, fo->accmode);
-		g_assert(xfo != fo);
-	} else {
-		file_object_revoke(fo);
-	}
+	g_assert(fo->revoked);
 
 	fd_close(&fo->fd);
 	atom_str_free_null(&fo->pathname);
@@ -339,11 +342,16 @@ file_object_open(const char * const pathname, int accmode)
 
 	file_object_init();
 
+	FILE_OBJECTS_LOCK;
+
 	fo = file_object_find(pathname, accmode);
 	if (fo) {
-		atomic_int_inc(&fo->ref_count);
+		fo->ref_count++;
 		g_assert(is_valid_fd(fo->fd));
 	}
+
+	FILE_OBJECTS_UNLOCK;
+
 	return fo;
 }
 
@@ -391,6 +399,61 @@ file_object_new(const int fd, const char * const pathname, int accmode)
 }
 
 /**
+ * Acquires a file object for a given pathname and access mode. If
+ * no matching file object exists and the file cannot be open with the
+ * specified access mode, NULL is returned.
+ *
+ * When opening a file read-only, the file_absolute_open() routine is called
+ * to open the file, which will trigger a warning if the file is not found and
+ * fail if the pathname is not absolute.
+ *
+ * When opening a file with write access, the file_open_missing() routine is
+ * called to open the file, meaning that a missing file will not be reported
+ * as an error, but the file object will not be created either.
+ *
+ * @param pathname An absolute pathname.
+ * @return	On failure NULL is returned and errno is set.
+ *          On success a file object is returned.
+ */
+struct file_object *
+file_object_get(const char *pathname, int accmode)
+{
+	struct file_object *fo;
+
+	/*
+	 * Try to reusing existing file descriptor attached to the path for
+	 * this access mode.
+	 *
+	 * There is no need to take a lock here: if the file object does not exist,
+	 * we'll open the file and file_object_new() will grab the lock and check
+	 * for an existing file object again before creating the file object itself.
+	 */
+
+	fo = file_object_open(pathname, accmode);
+
+	if G_UNLIKELY(NULL == fo) {
+		int fd;
+
+		/*
+		 * No known file object for this access mode, open the file then and
+		 * if we can, wrap the file descriptor in a suitable file object.
+		 */
+
+		if (O_RDONLY == accmode) {
+			 fd = file_absolute_open(pathname, accmode, 0);
+		} else {
+			 fd = file_open_missing(pathname, accmode);
+		}
+
+		if G_LIKELY(fd >= 0) {
+			fo = file_object_new(fd, pathname, accmode);
+		}
+	}
+
+	return fo;
+}
+
+/**
  * Releases a file object and frees its memory. The underlying file
  * descriptor however is not closed unless no other file object references
  * it. The pointer is nullified.
@@ -405,10 +468,20 @@ file_object_release(struct file_object **fo_ptr)
 
 	if (*fo_ptr) {
 		struct file_object *fo = *fo_ptr;
+		bool revoked = FALSE;
 
 		file_object_check(fo);
 
-		if (atomic_int_dec_is_zero(&fo->ref_count))
+		FILE_OBJECTS_LOCK;
+
+		if (1 == fo->ref_count--) {
+			file_object_revoke(fo);
+			revoked = TRUE;
+		}
+
+		FILE_OBJECTS_UNLOCK;
+
+		if (revoked)
 			file_object_free(fo);
 
 		*fo_ptr = NULL;
