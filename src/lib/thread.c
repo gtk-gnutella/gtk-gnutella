@@ -84,6 +84,7 @@
 #include "cq.h"
 #include "crash.h"				/* For print_str() et al. */
 #include "dump_options.h"
+#include "eslist.h"
 #include "fd.h"					/* For fd_close() */
 #include "gentime.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
@@ -202,6 +203,20 @@ struct thread_lkey {
 static struct thread_lkey thread_lkeys[THREAD_LOCAL_MAX];
 static spinlock_t thread_local_slk = SPINLOCK_INIT;
 
+/**
+ * Thread exit callback.
+ *
+ * These callbacks are invoked from thread_exit(), either synchronously in
+ * the reverse order they were registered, or asynchronously when a thread
+ * was created with the THREAD_F_ASYNC_EXIT flag (in which case the order is
+ * undefined).
+ */
+struct thread_exit_cb {
+	thread_exit_t exit_cb;			/**< Optional exit callback */
+	void *exit_arg;					/**< Exit callback argument */
+	slink_t lnk;					/**< Forward embedded pointer */
+};
+
 enum thread_element_magic { THREAD_ELEMENT_MAGIC = 0x3240eacc };
 
 /**
@@ -233,8 +248,6 @@ struct thread_element {
 	unsigned joining_id;			/**< ID of the joining thread */
 	unsigned unblock_events;		/**< Counts unblock events received */
 	void *exit_value;				/**< Final thread exit value */
-	thread_exit_t exit_cb;			/**< Optional exit callback */
-	void *exit_arg;					/**< Exit callback argument */
 	tsigset_t sig_mask;				/**< Signal mask */
 	tsigset_t sig_pending;			/**< Signals pending delivery */
 	unsigned signalled;				/**< Unblocking signal events sent */
@@ -259,6 +272,7 @@ struct thread_element {
 	cond_t *cond;					/**< Condition on which thread waits */
 	spinlock_t lock;				/**< Protects concurrent updates */
 	spinlock_t local_slk;			/**< Protects concurrent updates */
+	eslist_t exit_list;				/**< List of exit callbacks to invoke */
 	tsighandler_t sigh[TSIG_COUNT - 1];		/**< Signal handlers */
 	void **locals[THREAD_LOCAL_L1_SIZE];	/**< Thread-local variables */
 };
@@ -1214,7 +1228,6 @@ thread_element_reset(struct thread_element *te)
 	te->detached = FALSE;
 	te->created = FALSE;
 	te->discovered = FALSE;
-	te->exit_cb = NULL;
 	te->stack_size = 0;
 	te->entry = NULL;
 	te->argument = NULL;
@@ -1223,6 +1236,7 @@ thread_element_reset(struct thread_element *te)
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
 	ZERO(&te->sigh);
+	eslist_clear(&te->exit_list);
 }
 
 /**
@@ -1495,6 +1509,7 @@ thread_new_element(unsigned stid)
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	spinlock_init(&te->lock);
 	spinlock_init(&te->local_slk);
+	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
 	thread_stack_init_shape(te, &te);
 	te->valid = TRUE;						/* Minimally ready */
 	te->discovered = TRUE;					/* Assume it was discovered */
@@ -1579,6 +1594,7 @@ thread_main_element(thread_t t)
 	te->name = "main";
 	spinlock_init(&te->lock);
 	spinlock_init(&te->local_slk);
+	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
 
 	tls = &te->locks;
 	tls->arena = locks_arena_main;
@@ -6132,8 +6148,17 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 	 * These will be used only when the thread is successfully created.
 	 */
 
-	te->exit_cb = exited;
-	te->exit_arg = earg;
+	if (exited != NULL) {
+		struct thread_exit_cb *e;
+
+		XMALLOC0(e);
+		e->exit_cb = exited;
+		e->exit_arg = earg;
+
+		g_assert(0 == eslist_count(&te->exit_list));
+
+		eslist_prepend(&te->exit_list, e);
+	}
 
 	return thread_launch(te, routine, arg, flags, stack);
 }
@@ -6156,6 +6181,39 @@ thread_exit_notify(cqueue_t *unused_cq, void *obj)
 
 	(*ctx->cb)(ctx->value, ctx->arg);
 	WFREE(ctx);
+}
+
+/**
+ * Asynchronously invoke thread exit callback.
+ */
+static bool
+thread_exit_async_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+	struct thread_exit_context *ctx;
+
+	WALLOC(ctx);
+	ctx->value = value;
+	ctx->cb = e->exit_cb;
+	ctx->arg = e->exit_arg;
+	xfree(e);
+	cq_main_insert(1, thread_exit_notify, ctx);
+
+	return TRUE;
+}
+
+/**
+ * Synchronously invoke thread exit callback.
+ */
+static bool
+thread_exit_sync_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+
+	(*e->exit_cb)(value, e->exit_arg);
+	xfree(e);
+
+	return TRUE;
 }
 
 /**
@@ -6216,19 +6274,8 @@ thread_exit(void *value)
 	 * Invoke any registered exit notification callback.
 	 */
 
-	if (te->exit_cb != NULL) {
-		if (te->async_exit) {
-			struct thread_exit_context *ctx;
-
-			WALLOC(ctx);
-			ctx->value = value;
-			ctx->cb = te->exit_cb;
-			ctx->arg = te->exit_arg;
-			cq_main_insert(1, thread_exit_notify, ctx);
-		} else {
-			(*te->exit_cb)(value, te->exit_arg);
-		}
-	}
+	eslist_foreach_remove(&te->exit_list,
+		te->async_exit ? thread_exit_async_cb : thread_exit_sync_cb, value);
 
 	/*
 	 * The alternate signal stack, if allocated, can now be freed since we
@@ -6301,6 +6348,35 @@ thread_exit(void *value)
 	atomic_uint_dec(&thread_running);
 	pthread_exit(value);
 	s_error("back from pthread_exit()");
+}
+
+/**
+ * Register a new thread exit callback for the current thread.
+ *
+ * When delivered synchronously, callbacks are invoked in reverse registration
+ * order. If the thread was created with THREAD_F_ASYNC_EXIT, the invocation
+ * order is undefined.
+ *
+ * @param exit_cb		the exit callback to invoke
+ * @param exit_arg		additional callback argument to supply
+ */
+void
+thread_atexit(thread_exit_t exit_cb, void *exit_arg)
+{
+	struct thread_element *te = thread_get_element();
+	struct thread_exit_cb *e;
+
+	/*
+	 * These objects are created and freed by the same thread, so it pays
+	 * to use xmalloc() instead of walloc() because we're going to allocate
+	 * from a thread-private pool, without locks.
+	 */
+
+	XMALLOC0(e);
+	e->exit_cb = exit_cb;
+	e->exit_arg = exit_arg;
+
+	eslist_prepend(&te->exit_list, e);
 }
 
 /**
