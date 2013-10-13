@@ -2881,6 +2881,15 @@ selected:
 		if (1 == pc->current)
 			goto not_found;		/* No other entries to coalesce with */
 
+		/*
+		 * Coalescing in the highest-order cache line does not take into
+		 * account the first VM hole: we give priority to coalescing these
+		 * large ranges, since it is more useful than attempting to allocate
+		 * from the hole: the pages are already allocated, the range is large,
+		 * we avoid letting the kernel re-install all these mappings for us if
+		 * we can satisfy the allocation via coalescing.
+		 */
+
 		if (kernel_mapaddr_increasing) {
 			for (i = 1; i < pc->current; i++) {
 				void *start = pc->info[i].base;
@@ -2891,17 +2900,6 @@ selected:
 					if (total >= n)
 						goto found;
 				} else {
-					if (hole != NULL && vmm_ptr_cmp(start, hole) > 0) {
-						if (vmm_debugging(7)) {
-							s_minidbg("VMM cache #%zu: stopping merge for "
-								"%zu page%s (had %zu already) at %p "
-								"(upper than hole %p)",
-								pc->pages - 1, n, plural(n),
-								total, start, hole);
-						}
-						break;
-					}
-
 					/*
 					 * No luck coalescing what we had so far with the next
 					 * entry.  Restart the coalescing process from this
@@ -2924,17 +2922,6 @@ selected:
 					if (total >= n)
 						goto found;
 				} else {
-					if (hole != NULL && vmm_ptr_cmp(prev_base, hole) > 0) {
-						if (vmm_debugging(7)) {
-							s_minidbg("VMM cache #%zu: stopping merge for "
-								"%zu page%s (had %zu already) at %p "
-								"(upper than hole %p)",
-								pc->pages - 1, n, plural(n),
-								total, prev_base, hole);
-						}
-						break;
-					}
-
 					/*
 					 * No luck coalescing what we had so far with the next
 					 * entry.  Restart the coalescing process from this
