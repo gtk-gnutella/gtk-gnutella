@@ -896,7 +896,7 @@ retry:
 				continue;
 
 			if G_UNLIKELY(1 == i) {
-				*hole_ptr = ulong_to_pointer(kernel_pagesize);	/* Not NULL */
+				*hole_ptr = start;
 				result = SIZE_MAX;
 				goto done;
 			} else {
