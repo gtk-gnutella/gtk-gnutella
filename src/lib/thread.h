@@ -212,6 +212,7 @@ void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
 void thread_lock_dump_self_if_any(int fd);
 void thread_assert_no_locks(const char *routine);
+void thread_lock_contention(enum thread_lock_kind kind);
 const void *thread_lock_waiting_element(const void *lock,
 	enum thread_lock_kind kind, const char *file, unsigned line);
 void thread_lock_waiting_done(const void *element);

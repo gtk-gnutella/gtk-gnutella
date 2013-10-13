@@ -396,6 +396,8 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	if G_UNLIKELY(0 == rwlock_cpus)
 		rwlock_cpus = getcpucount();
 
+	thread_lock_contention(reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK);
+
 	/*
 	 * When running mono-threaded, having to loop means we're deadlocked
 	 * already, so immediately flag it.

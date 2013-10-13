@@ -304,6 +304,10 @@ static struct thread_stats {
 	U64(locks_mutex_tracked);		/* Amount of tacked mutexes */
 	U64(locks_rlock_tracked);		/* Amount of tracked read-locks */
 	U64(locks_wlock_tracked);		/* Amount of tracked write-locks */
+	U64(locks_spinlock_contention);	/* Amount of contentions on spinlocks */
+	U64(locks_mutex_contention);	/* Amount of contentions on mutex */
+	U64(locks_rlock_contention);	/* Amount of contentions on read-locks */
+	U64(locks_wlock_contention);	/* Amount of contentions on write-locks */
 	U64(locks_spinlock_sleep);		/* Amount of sleeps done on spinlocks */
 	U64(locks_mutex_sleep);			/* Amount of sleeps done on mutexes */
 	U64(locks_rlock_sleep);			/* Amount of sleeps done on read-locks */
@@ -4267,6 +4271,29 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 }
 
 /**
+ * Record contention on a lock, which happens when we begin the busy loops
+ * but before we sleep.
+ */
+void
+thread_lock_contention(enum thread_lock_kind kind)
+{
+	switch (kind) {
+	case THREAD_LOCK_SPINLOCK:
+		THREAD_STATS_INCX(locks_spinlock_contention);
+		break;
+	case THREAD_LOCK_MUTEX:
+		THREAD_STATS_INCX(locks_mutex_contention);
+		break;
+	case THREAD_LOCK_RLOCK:
+		THREAD_STATS_INCX(locks_rlock_contention);
+		break;
+	case THREAD_LOCK_WLOCK:
+		THREAD_STATS_INCX(locks_wlock_contention);
+		break;
+	}
+}
+
+/**
  * Clear waiting condition on the thread identified by its thread element,
  * as returned previously by thread_lock_waiting_element().
  */
@@ -6964,6 +6991,10 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_mutex_tracked);
 	DUMP64(locks_rlock_tracked);
 	DUMP64(locks_wlock_tracked);
+	DUMP64(locks_spinlock_contention);
+	DUMP64(locks_mutex_contention);
+	DUMP64(locks_rlock_contention);
+	DUMP64(locks_wlock_contention);
 	DUMP64(locks_spinlock_sleep);
 	DUMP64(locks_mutex_sleep);
 	DUMP64(locks_rlock_sleep);

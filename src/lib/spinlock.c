@@ -257,6 +257,9 @@ spinlock_loop(volatile spinlock_t *s,
 	if G_UNLIKELY(0 == spinlock_cpus)
 		spinlock_cpus = getcpucount();
 
+	thread_lock_contention(SPINLOCK_SRC_MUTEX == src ?
+		THREAD_LOCK_MUTEX : THREAD_LOCK_SPINLOCK);
+
 	/*
 	 * If in "pass-through" mode, we're crashing, so avoid deadlocks.
 	 */
