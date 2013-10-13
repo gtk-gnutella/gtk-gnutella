@@ -263,6 +263,7 @@ static struct vmm_stats {
 	uint64 cache_line_coalescing;	/**< Amount of coalescing in cache line */
 	uint64 cache_expired;			/**< Amount of entries expired from cache */
 	uint64 cache_expired_pages;		/**< Expired pages from cache */
+	uint64 cache_kept;				/**< Cached entries that we do not expire */
 	uint64 cache_ignored;			/**< Ignored cache lines during lookups */
 	uint64 cache_splits;			/**< Split cached entries in allocations */
 	uint64 cache_high_coalescing;	/**< Large regions successfully coalesced */
@@ -3898,6 +3899,16 @@ vmm_resize(void *p, size_t size, size_t new_size)
 	return np;
 }
 
+/*
+ * Is ``i'' the highest (in the VM growing direction) entry of the cache line?
+ */
+static inline bool
+vpc_is_highest(const struct page_cache *pc, size_t i, bool looped)
+{
+	return kernel_mapaddr_increasing ?
+		pc->current - 1 == i : (0 == i && !looped);
+}
+
 /**
  * Scans the page cache for old pages and releases them if they have a certain
  * minimum age. We don't want to cache pages forever because they might never
@@ -3911,12 +3922,31 @@ page_cache_timer(void *unused_udata)
 {
 	time_t now = tm_time();
 	struct page_cache *pc;
-	size_t i, expired = 0, old_regions = vmm_pmap()->count;
+	size_t i, expired = 0, kept = 0, old_regions = vmm_pmap()->count;
+	const void *hole;
+	size_t len;
 	void *freed[VMM_CACHE_SIZE];
+	bool looped, populated;
 
 	(void) unused_udata;
 
 	pc = &page_cache[page_cache_line];
+
+	/*
+	 * Compute the first hole capable of holding a region of the same size as
+	 * the one used by this cache line.  This allows us to avoid freeing
+	 * pages that lie "before" that hole in the VM space, since we always
+	 * want to allocate memory in the "lowest" addresses.
+	 */
+
+	len = vmm_first_hole(&hole, FALSE);
+
+	if (len >= pc->chunksize) {
+		if (!kernel_mapaddr_increasing)
+			hole = const_ptr_add_offset(hole, -len);
+	} else {
+		hole = NULL;
+	}
 
 	spinlock(&pc->lock);
 
@@ -3925,9 +3955,45 @@ page_cache_timer(void *unused_udata)
 			page_cache_line, pc->current, plural(pc->current));
 	}
 
+	/*
+	 * Because the array storing the cache line is updated in-place, we need
+	 * to compute whether it has more than one item before starting our loops.
+	 *
+	 * Likewise, we need to remember whether we looped at all to be able to
+	 * determine that we are at the "highest position" in the array: when
+	 * the VM space is decreasing, that position is at index 0, but only
+	 * the first time we go through the loop.
+	 */
+
+	populated = pc->current > 1;
+	looped = FALSE;						/* Needed by vpc_is_highest() */
+
 	for (i = 0; i < pc->current; /* empty */) {
 		time_delta_t d = delta_time(now, pc->info[i].stamp);
 		void *base = pc->info[i].base;
+
+		/*
+		 * Cached regions falling before the identified hole are always kept.
+		 *
+		 * The rationale is that this is a good place to allocate from, so we
+		 * want to reuse the space.  And releasing that space would invalidate
+		 * the computed hole, making it likely that we would then again request
+		 * allocation at that feeed spot later on.
+		 *
+		 * The only exception is the last (or first when the VM grows down)
+		 * entry of a cache line when there is more than one item, to make
+		 * sure we never keep a region forever needlessly.
+		 */
+
+		if (
+			hole != NULL && vmm_ptr_cmp(base, hole) <= 0 &&
+			!(populated && vpc_is_highest(pc ,i, looped))
+		) {
+			if (d >= VMM_CACHE_MAXLIFE)
+				kept++;
+			i++;				/* i > 0 now, no need to set "looped" here */
+			continue;
+		}
 
 		/*
 		 * To avoid undue fragmentation of the memory space, do not free
@@ -3938,8 +4004,8 @@ page_cache_timer(void *unused_udata)
 		if (
 			d >= VMM_CACHE_MAXLIFE ||
 			(
-				d >= VMM_CACHE_LIFE && !pmap_is_within_region(vmm_pmap(),
-					pc->info[i].base, pc->chunksize)
+				d >= VMM_CACHE_LIFE &&
+				!pmap_is_within_region(vmm_pmap(), base, pc->chunksize)
 			)
 		) {
 
@@ -3951,8 +4017,9 @@ page_cache_timer(void *unused_udata)
 
 			vpc_remove_at(pc, base, i);
 			freed[expired++] = base;
+			looped = TRUE;
 		} else {
-			i++;
+			i++;				/* i > 0 now, no need to set "looped" here */
 		}
 	}
 
@@ -3986,6 +4053,12 @@ page_cache_timer(void *unused_udata)
 		if (vmm_debugging(5)) {
 			vmm_dump_pmap();
 		}
+	}
+
+	if G_UNLIKELY(kept > 0) {
+		VMM_STATS_LOCK;
+		vmm_stats.cache_kept += kept;
+		VMM_STATS_UNLOCK;
 	}
 
 	/*
@@ -4119,6 +4192,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(cache_line_coalescing);
 	DUMP(cache_expired);
 	DUMP(cache_expired_pages);
+	DUMP(cache_kept);
 	DUMP(cache_ignored);
 	DUMP(cache_splits);
 	DUMP(cache_high_coalescing);
