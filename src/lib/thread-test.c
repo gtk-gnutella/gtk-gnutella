@@ -55,6 +55,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "teq.h"
 #include "thread.h"
 #include "tm.h"
 #include "tsig.h"
@@ -74,7 +75,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvxABCEFIMNOPQRSX] [-c CPU] [-n count]\n"
+		"Usage: %s [-hejsvxABCEFIMNOPQRSVX] [-c CPU] [-n count]\n"
 		"       [-t ms] [-T secs]\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
@@ -99,6 +100,7 @@ usage(void)
 		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
 		"  -T : test condition layer via tennis session for specified secs\n"
+		"  -V : test thread event queue\n"
 		"  -X : exercise concurrent memory allocation\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		, progname);
@@ -1398,6 +1400,145 @@ test_memory(unsigned repeat)
 	fflush(stdout);
 }
 
+static int teq_recv_cnt;
+static int teq_sent_cnt;
+static int teq_callout_cnt;
+static bool teq_recv_completed;
+
+static void *
+teq_recv_rpc(void *arg)
+{
+	s_message("%s(): arg=%p", G_STRFUNC, arg);
+	return arg;
+}
+
+static void
+teq_recv_plain(void *arg)
+{
+	s_message("%s(): arg=%p", G_STRFUNC, arg);
+	teq_recv_cnt++;
+}
+
+static void
+teq_recv_done(void *arg)
+{
+	barrier_t *b = arg;
+	s_message("%s(): arg=%p", G_STRFUNC, arg);
+	barrier_wait(b);
+	s_message("%s(): done!", G_STRFUNC);
+	teq_recv_completed = TRUE;
+}
+
+static void
+teq_sent_plain(void *arg)
+{
+	s_message("%s(): arg=%p", G_STRFUNC, arg);
+	atomic_int_inc(&teq_sent_cnt);
+}
+
+static void
+teq_sent_callout(void *arg)
+{
+	waiter_t *w = arg;
+
+	s_message("%s(): arg=%p", G_STRFUNC, arg);
+	teq_callout_cnt++;
+	waiter_signal(w);
+	waiter_refcnt_dec(w);
+}
+
+static void *
+teq_receiver(void *arg)
+{
+	barrier_t *b = arg;
+
+	teq_recv_completed = FALSE;
+	teq_create();
+	s_message("%s(): thread event queue installed", G_STRFUNC);
+	barrier_wait(b);			/* Receiver installed event queue */
+	barrier_free_null(&b);
+	s_message("%s(): sender created its thread event queue", G_STRFUNC);
+
+	while (!teq_recv_completed)
+		thread_sleep_ms(10);
+
+	g_assert(4 == teq_recv_cnt);
+
+	return NULL;
+}
+
+struct teq_sender_arg {
+	int receiver;
+	barrier_t *b;
+};
+
+static void *
+teq_sender(void *arg)
+{
+	struct teq_sender_arg *sa = arg;
+	waiter_t *w;
+	void *result;
+
+	teq_create();
+	s_message("%s(): thread event queue installed", G_STRFUNC);
+	barrier_wait(sa->b);		/* Wait for receiver to install event queue */
+	s_message("%s(): receiver created its thread event queue", G_STRFUNC);
+
+	w = waiter_make(NULL);
+
+	result = teq_rpc(sa->receiver, teq_recv_rpc, w);
+	g_assert(w == result);
+
+	result = teq_rpc(sa->receiver, teq_recv_rpc, sa);
+	g_assert(sa == result);
+
+	teq_post(sa->receiver, teq_recv_plain, NULL);
+	teq_post_ack(sa->receiver, teq_recv_plain, int_to_pointer(1),
+		TEQ_AM_CALL, teq_sent_plain, int_to_pointer(2));
+	teq_post_ack(sa->receiver, teq_recv_plain, int_to_pointer(3),
+		TEQ_AM_EVENT, teq_sent_plain, int_to_pointer(4));
+	teq_post_ack(sa->receiver, teq_recv_plain, int_to_pointer(5),
+		TEQ_AM_CALLOUT, teq_sent_callout, waiter_refcnt_inc(w));
+
+	/* Final event will unlock the barrier */
+	teq_post(sa->receiver, teq_recv_done, sa->b);
+
+	barrier_wait(sa->b);		/* Waiting for teq_recv_done() */
+	s_message("%s(): receiver processed final event", G_STRFUNC);
+	barrier_free_null(&sa->b);
+
+	g_assert(2 == atomic_int_get(&teq_sent_cnt));
+
+	waiter_suspend(w);			/* Let callout queue event come */
+	waiter_refcnt_dec(w);
+	g_assert(1 == teq_callout_cnt);
+
+	return NULL;
+}
+
+static void
+test_teq(unsigned repeat)
+{
+	while (repeat--) {
+		int s, r;
+		barrier_t *b;
+		struct teq_sender_arg arg;
+
+		teq_recv_cnt = teq_callout_cnt = 0;
+		atomic_int_set(&teq_sent_cnt, 0);
+
+		b = barrier_new(2);
+		r = thread_create(teq_receiver, barrier_refcnt_inc(b),
+			0, THREAD_STACK_MIN);
+		arg.receiver = r;
+		arg.b = b;
+		s = thread_create(teq_sender, &arg, 0, THREAD_STACK_MIN);
+
+		thread_join(r, NULL);
+		thread_join(s, NULL);
+	}
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -1424,9 +1565,9 @@ main(int argc, char **argv)
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
-	bool stats = FALSE;
+	bool stats = FALSE, teq = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "c:ehjn:st:vxABCEFIMNOPQRST:X";
+	const char options[] = "c:ehjn:st:vxABCEFIMNOPQRST:VX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -1479,6 +1620,9 @@ main(int argc, char **argv)
 		case 'T':			/* test condition layer */
 			play_time = get_number(optarg, c);
 			play_tennis = TRUE;
+			break;
+		case 'V':			/* test thread event queue */
+			teq = TRUE;
 			break;
 		case 'X':			/* exercise memory allocation */
 			memory = TRUE;
@@ -1556,6 +1700,9 @@ main(int argc, char **argv)
 
 	if (memory)
 		test_memory(repeat);
+
+	if (teq)
+		test_teq(repeat);
 
 	/*
 	 * Print final statistics.

@@ -53,7 +53,13 @@
 #define TSIG_8		8
 #define TSIG_9		9
 
-#define TSIG_COUNT	10
+/**
+ * Signals with a specific meaning, reserved for the library.
+ */
+
+#define TSIG_TEQ	10			/**< Something is in the Thread Event Queue */
+
+#define TSIG_COUNT	11
 
 #define tsig_mask(sig)	(1U << ((sig) - 1))		/* 0 is not a signal */
 

@@ -65,13 +65,14 @@ typedef void (*inputevt_handler_t) (
 
 /*
  * Module initialization and cleanup functions.
- * These don't do anything and are not called (yet).
  */
+
 void inputevt_init(int use_poll);
 void inputevt_close(void);
 void inputevt_dispatch(void);
 
 void inputevt_set_debug(unsigned level);
+unsigned inputevt_thread_id(void);
 
 /**
  * This emulates the GDK input interface.

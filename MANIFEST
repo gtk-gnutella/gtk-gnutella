@@ -874,6 +874,8 @@ src/lib/symtab.c
 src/lib/symtab.h
 src/lib/tea.c
 src/lib/tea.h
+src/lib/teq.c
+src/lib/teq.h
 src/lib/thread-test.c
 src/lib/thread.c
 src/lib/thread.h

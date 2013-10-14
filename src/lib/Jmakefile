@@ -202,6 +202,7 @@ LSRC = \
 	symbols.c \
 	symtab.c \
 	tea.c \
+	teq.c \
 	thread.c \
 	tiger.c \
 	tigertree.c \

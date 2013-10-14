@@ -124,6 +124,7 @@ typedef struct {
 #include "override.h"		/* Must be the last header included */
 
 static unsigned inputevt_debug;
+static unsigned inputevt_stid = THREAD_INVALID_ID;
 
 /**
  * Set debugging level.
@@ -1423,6 +1424,15 @@ init_with_poll(struct poll_ctx *ctx)
 }
 
 /**
+ * @return the thread ID where the I/O event loop runs from.
+ */
+unsigned
+inputevt_thread_id(void)
+{
+	return inputevt_stid;
+}
+
+/**
  * Performs module initialization.
  * @param use_poll If TRUE, kqueue(), epoll(), /dev/poll etc. won't be used.
  */
@@ -1432,6 +1442,7 @@ inputevt_init(int use_poll)
 	struct poll_ctx *ctx;
 
 	ctx = get_global_poll_ctx();
+	inputevt_stid = thread_small_id();
 
 	g_assert(!ctx->initialized);
 	ctx->initialized = TRUE;
@@ -1540,6 +1551,7 @@ inputevt_close(void)
 	struct poll_ctx *ctx;
 	
 	ctx = get_global_poll_ctx();
+	inputevt_stid = THREAD_INVALID_ID;
 
 	CTX_LOCK(ctx);
 

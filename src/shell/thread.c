@@ -43,6 +43,7 @@
 #include "lib/pow2.h"			/* For popcount() */
 #include "lib/stacktrace.h"		/* For stacktrace_function_name() */
 #include "lib/str.h"
+#include "lib/teq.h"
 #include "lib/thread.h"
 #include "lib/vmm.h"			/* For compat_pagesize() */
 
@@ -66,7 +67,7 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 	}
 
 	shell_write(sh, "100~\n");
-	shell_write(sh, "#  Flags LCK Sigs STK Used  Max   Name\n");
+	shell_write(sh, "#  Flags LCK Sigs Evts STK Used  Max   Name\n");
 
 	s = str_new(80);
 	sp_direction = alloca_stack_direction();
@@ -96,6 +97,11 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 		str_catf(s, "  ");
 		str_catf(s, "%-3zd ", info.locks);
 		str_catf(s, "%-4d ", popcount(info.sig_pending));
+		if (teq_is_supported(i)) {
+			str_catf(s, "%-4zu ", teq_count(i));
+		} else {
+			str_catf(s, "%-4s ", "-");
+		}
 		str_catf(s, "%-3zu ", stack / 1024);
 		str_catf(s, "%-5zu ", used / 1024);
 		str_catf(s, "%-5zu ", top / 1024);

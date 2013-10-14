@@ -157,6 +157,10 @@ typedef const char *(*stringify_len_fn_t)(const void *data, size_t len);
 typedef uint32 (*random_fn_t)(void);
 typedef uint64 (*random64_fn_t)(void);
 
+/* Generic predicate, testing a condition on some data */
+
+typedef bool (*predicate_fn_t)(void *data);
+
 #endif /* _types_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

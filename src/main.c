@@ -94,8 +94,8 @@
 #include "core/tx.h"
 #include "core/udp.h"
 #include "core/uhc.h"
-#include "core/urpc.h"
 #include "core/upload_stats.h"
+#include "core/urpc.h"
 #include "core/verify_sha1.h"
 #include "core/verify_tth.h"
 #include "core/version.h"
@@ -143,6 +143,7 @@
 #include "lib/strtok.h"
 #include "lib/symbols.h"
 #include "lib/tea.h"
+#include "lib/teq.h"
 #include "lib/thread.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
@@ -1840,6 +1841,7 @@ main(int argc, char **argv)
 	htable_test();
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
+	teq_io_create();
 	tiger_check();
 	tt_check();
 	tea_test();

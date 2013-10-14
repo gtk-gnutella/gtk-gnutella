@@ -259,6 +259,7 @@ LSRC = \
 	symbols.c \
 	symtab.c \
 	tea.c \
+	teq.c \
 	thread.c \
 	tiger.c \
 	tigertree.c \
@@ -428,6 +429,7 @@ LOBJ = \
 	symbols.o \
 	symtab.o \
 	tea.o \
+	teq.o \
 	thread.o \
 	tiger.o \
 	tigertree.o \
