@@ -935,20 +935,29 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	}
 
 	if G_UNLIKELY(recursing) {
-		DECLARE_STR(6);
+		DECLARE_STR(9);
 		char time_buf[18];
 		const char *caller;
 		bool copy;
 
+		stid = NULL == lt ? thread_small_id() : lt->stid;
 		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
 
 		crash_time(time_buf, sizeof time_buf);
-		print_str(time_buf);	/* 0 */
-		print_str(" (CRITICAL): recursion to format string \""); /* 1 */
-		print_str(format);		/* 2 */
-		print_str("\" from ");	/* 3 */
-		print_str(caller);		/* 4 */
-		print_str("\n");		/* 5 */
+		print_str(time_buf);		/* 0 */
+		print_str(" (CRITICAL");	/* 1 */
+		if (0 != stid) {
+			char stid_buf[UINT_DEC_BUFLEN];
+			const char *snum = PRINT_NUMBER(stid_buf, stid);
+
+			print_str("-");			/* 2 */
+			print_str(snum);		/* 3 */
+		}
+		print_str("): recursion to format string \""); /* 4 */
+		print_str(format);			/* 5 */
+		print_str("\" from ");		/* 6 */
+		print_str(caller);			/* 7 */
+		print_str("\n");			/* 8 */
 		log_flush_err_atomic();
 
 		/*
