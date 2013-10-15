@@ -3249,7 +3249,7 @@ thread_current_element(const void **element)
 }
 
 /**
- * Return amount of running threads.
+ * Total amount of running threads (including discovered ones).
  */
 unsigned
 thread_count(void)
@@ -3269,6 +3269,16 @@ thread_count(void)
 	count = thread_running + thread_discovered;
 
 	return MAX(count, 1);	/* At least one thread */
+}
+
+/**
+ * Amount of known discovered threads.
+ */
+unsigned
+thread_discovered_count(void)
+{
+	atomic_mb();			/* Since thread_discovered is atomically updated */
+	return thread_discovered;
 }
 
 /**

@@ -1142,6 +1142,11 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("Atomic-Operations: ");					/* 0 */
 	print_str(atomic_ops_available() ? "yes" : "no");	/* 1 */
 	print_str("\n");									/* 2 */
+	print_str("Threads: ");								/* 3 */
+	print_str(PRINT_NUMBER(sbuf, thread_count()));		/* 4 */
+	print_str(" (");									/* 5 */
+	print_str(PRINT_NUMBER(nbuf, thread_discovered_count()));	/* 6 */
+	print_str(" discovered)\n");						/* 7 */
 	flush_str(clf);
 
 	rewind_str(0);

@@ -165,6 +165,7 @@ const char *thread_name(void);
 const char *thread_id_name(unsigned id);
 
 unsigned thread_count();
+unsigned thread_discovered_count(void);
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 void thread_crash_mode(void);
