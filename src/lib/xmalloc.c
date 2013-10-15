@@ -6051,7 +6051,7 @@ xgc_range_strategy(void *key, void *data)
 				xr->head, xr->tail, pstart, pend);
 		}
 
-		return TRUE;
+		return FALSE;				/* Keep range */
 
 	cannot_free_page:
 		XSTATS_LOCK;
