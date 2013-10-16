@@ -3114,12 +3114,12 @@ page_cache_find_pages(size_t n)
 				pc = &page_cache[i];
 				p = vpc_find_pages(pc, n, hole);
 			}
-		}
 
-		if (p != NULL) {
-			VMM_STATS_LOCK;
-			vmm_stats.cache_splits++;
-			VMM_STATS_UNLOCK;
+			if (p != NULL) {
+				VMM_STATS_LOCK;
+				vmm_stats.cache_splits++;
+				VMM_STATS_UNLOCK;
+			}
 		}
 	}
 
