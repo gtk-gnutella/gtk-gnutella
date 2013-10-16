@@ -163,6 +163,7 @@ const char *thread_to_string(const thread_t t);
 void thread_set_name(const char *name);
 const char *thread_name(void);
 const char *thread_id_name(unsigned id);
+unsigned thread_by_name(const char *name);
 
 unsigned thread_count();
 unsigned thread_discovered_count(void);

@@ -2736,6 +2736,41 @@ thread_id_name(unsigned id)
 }
 
 /**
+ * Find thread by name.
+ *
+ * There is no caching of the results, hence the caller should cache the
+ * result if it knows that the looked-up thread is a permanent thread.
+ *
+ * The name is the one set by thread_set_name(), and "main" is guaranteed to
+ * find the main thread.
+ *
+ * @param name		the thread name
+ *
+ * @return the thread ID, -1 if not found.
+ */
+unsigned
+thread_by_name(const char *name)
+{
+	unsigned i;
+
+	g_assert(name != NULL);
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		bool found;
+
+		THREAD_LOCK(te);
+		found = te->valid && te->name != NULL && 0 == strcmp(name, te->name);
+		THREAD_UNLOCK(te);
+
+		if (found)
+			return i;
+	}
+
+	return -1U;
+}
+
+/**
  * Wait until all the suspended threads are indeed suspended or no longer
  * hold any locks (meaning they will get suspended as soon as they try
  * to acquire one).

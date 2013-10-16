@@ -1520,6 +1520,8 @@ main(int argc, char **argv)
 	if (!atomic_ops_available())
 		s_warning("Atomic memory operations not supported!");
 
+	g_assert(0 == thread_by_name("main"));
+
 	if (aqueue)
 		test_aqueue(emulated);
 
