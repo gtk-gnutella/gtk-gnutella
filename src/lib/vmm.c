@@ -268,6 +268,7 @@ static struct vmm_stats {
 	uint64 cache_exact_match;		/**< Found entry in the right cache line */
 	uint64 cache_splits;			/**< Split cached entries in allocations */
 	uint64 cache_high_coalescing;	/**< Large regions successfully coalesced */
+	uint64 cache_too_large;			/**< Allocation too large for cache */
 	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
 	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
 	uint64 pmap_overruled;			/**< Regions overruled by kernel */
@@ -3092,14 +3093,18 @@ page_cache_find_pages(size_t n)
 		pc = &page_cache[VMM_CACHE_LINES - 1];
 		p = vpc_find_pages(pc, n, hole);
 
-		/*
-		 * Count when we coalesce large blocks from the higher cache line.
-		 */
-
-		if (p != NULL && n > VMM_CACHE_LINES) {
-			VMM_STATS_LOCK;
-			vmm_stats.cache_high_coalescing++;
-			VMM_STATS_UNLOCK;
+		if (n > VMM_CACHE_LINES) {
+			if (p != NULL) {
+				/* Coalesced large blocks from the higher cache line */
+				VMM_STATS_LOCK;
+				vmm_stats.cache_high_coalescing++;
+				VMM_STATS_UNLOCK;
+			} else {
+				/* Request was too large for the cache */
+				VMM_STATS_LOCK;
+				vmm_stats.cache_too_large++;
+				VMM_STATS_UNLOCK;
+			}
 		}
 
 		if (vmm_debugging(3)) {
@@ -3139,13 +3144,11 @@ page_cache_find_pages(size_t n)
 		}
 	}
 
-	if (p != NULL) {
-		if (vmm_debugging(5)) {
-			s_minidbg("VMM found %zuKiB region at %p in cache #%zu%s",
-				n * kernel_pagesize / 1024, p, pc->pages - 1,
-				pc->pages == n ? "" :
-				n > VMM_CACHE_LINES ? " (merged)" : " (split)");
-		}
+	if (vmm_debugging(5) && p != NULL) {
+		s_minidbg("VMM found %zuKiB region at %p in cache #%zu%s",
+			n * kernel_pagesize / 1024, p, pc->pages - 1,
+			pc->pages == n ? "" :
+			n > VMM_CACHE_LINES ? " (merged)" : " (split)");
 	}
 
 	return p;
@@ -4250,6 +4253,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(cache_exact_match);
 	DUMP(cache_splits);
 	DUMP(cache_high_coalescing);
+	DUMP(cache_too_large);
 
 	/*
 	 * Count cached entries -- this is a transient value, so no need to
