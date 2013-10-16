@@ -265,6 +265,7 @@ static struct vmm_stats {
 	uint64 cache_expired_pages;		/**< Expired pages from cache */
 	uint64 cache_kept;				/**< Cached entries that we do not expire */
 	uint64 cache_ignored;			/**< Ignored cache lines during lookups */
+	uint64 cache_exact_match;		/**< Found entry in the right cache line */
 	uint64 cache_splits;			/**< Split cached entries in allocations */
 	uint64 cache_high_coalescing;	/**< Large regions successfully coalesced */
 	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
@@ -2845,6 +2846,8 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 	} else {
 		size_t i;
 		size_t max_distance = 0;
+		bool exact = n == pc->pages;
+
 		base = NULL;
 
 		/*
@@ -2862,6 +2865,19 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			p = kernel_mapaddr_increasing ?
 				pc->info[i].base : pc->info[pc->current - 1 - i].base;
+
+			/*
+			 * When looking in the page cache for entries that exactly
+			 * fit our need, the first page we find is the right one.
+			 */
+
+			if (exact) {
+				VMM_STATS_LOCK;
+				vmm_stats.cache_exact_match++;
+				VMM_STATS_UNLOCK;
+				base = deconstify_pointer(p);
+				break;
+			}
 
 			/*
 			 * Stop considering pages that are further away from the
@@ -2886,7 +2902,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 				break;
 			}
 
-			d = pmap_nesting_within_region(vmm_pmap(), p, pc->chunksize);
+			d = 1 + pmap_nesting_within_region(vmm_pmap(), p, pc->chunksize);
 			if (d > max_distance) {
 				max_distance = d;
 				base = deconstify_pointer(p);
@@ -4231,6 +4247,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(cache_expired_pages);
 	DUMP(cache_kept);
 	DUMP(cache_ignored);
+	DUMP(cache_exact_match);
 	DUMP(cache_splits);
 	DUMP(cache_high_coalescing);
 
