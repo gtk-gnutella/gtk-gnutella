@@ -304,7 +304,7 @@ static struct pmap local_pmap;
  * us improve performance during concurrent allocations because vmm_first_hole()
  * does not need to take the pmap's read-lock if the hole is valid.
  */
-static struct {
+static struct vmm_hole {
 	const void *start;		/**< Start address */
 	const void *end;		/**< First byte beyond end of region */
 } vmm_hole;
@@ -1029,6 +1029,43 @@ vmm_first_hole(const void **unused, bool discard)
 	return 0;
 }
 #endif	/* HAS_MMAP || MINGW32 */
+
+/**
+ * Dump current VMM hole to specified logagent.
+ */
+G_GNUC_COLD void
+vmm_dump_hole_log(logagent_t *la)
+{
+	struct vmm_hole h;
+	const void *hole;
+	size_t len;
+
+	VMM_HOLE_LOCK;
+	h = vmm_hole;		/* struct copy */
+	VMM_HOLE_UNLOCK;
+
+	if (h.start != NULL) {
+		log_debug(la, "VMM cached first hole [%p, %p] %zuKiB",
+			h.start, h.end, ptr_diff(h.end, h.start) / 1024);
+	} else {
+		log_debug(la, "VMM cached first hole was stale");
+	}
+
+	VMM_HOLE_LOCK;
+	vmm_hole.start = NULL;		/* Invalidate cached hole */
+	VMM_HOLE_UNLOCK;
+
+	len = vmm_first_hole(&hole, FALSE);
+	if (0 == len) {
+		log_debug(la, "VMM no hole found");
+	} else {
+		if (!kernel_mapaddr_increasing)
+			hole = const_ptr_add_offset(hole, -len);
+
+		log_debug(la, "VMM newest first hole [%p, %p] %zuKiB",
+			hole, const_ptr_add_offset(hole, len), len / 1024);
+	}
+}
 
 /**
  * Update cached hole if the region falls within or encompasses it.

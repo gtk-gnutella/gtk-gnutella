@@ -301,6 +301,17 @@ shell_exec_memory_show_options(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
+shell_exec_memory_show_hole(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, vmm_dump_hole_log, "VMM ");
+}
+
+static enum shell_reply
 shell_exec_memory_show_pmap(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
@@ -349,6 +360,7 @@ shell_exec_memory_show(struct gnutella_shell *sh,
 		return shell_exec_memory_show_## name(sh, argc - 1, argv + 1); \
 } G_STMT_END
 
+	CMD(hole);
 	CMD(options);
 	CMD(pmap);
 	CMD(xmalloc);
@@ -674,6 +686,7 @@ shell_help_memory(int argc, const char *argv[])
 		}
 		else if (0 == ascii_strcasecmp(argv[1], "show")) {
 			return
+				"memory show hole      # display VMM first known hole\n"
 				"memory show options   # display memory options\n"
 				"memory show pmap      # display VMM pmap\n"
 				"memory show xmalloc   # display xmalloc() freelist info\n"
@@ -693,7 +706,7 @@ shell_help_memory(int argc, const char *argv[])
 		"memory dump ADDRESS LENGTH\n"
 #endif
 		"memory check xmalloc\n"
-		"memory show options|pmap|xmalloc|zones\n"
+		"memory show hole|options|pmap|xmalloc|zones\n"
 		"memory stats [-pu] omalloc|vmm|xmalloc|zalloc\n"
 		"memory usage zone <size> on|off|show\n"
 		;
