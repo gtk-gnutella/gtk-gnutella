@@ -315,6 +315,23 @@ static spinlock_t vmm_hole_slk = SPINLOCK_INIT;
 #define VMM_HOLE_LOCK		spinlock_hidden(&vmm_hole_slk)
 #define VMM_HOLE_UNLOCK		spinunlock_hidden(&vmm_hole_slk)
 
+/**
+ * The "upper hole" in the VM space is an estimated upper bound of the
+ * address where the next allocation could take place for regions smaller
+ * than the estimated free space.
+ *
+ * The "upper hole" is a conservative estimate of the first free region
+ * further away from the last allocation point.
+ */
+static struct vm_upper_hole {
+	const void *p;			/**< Start address of region */
+	size_t len;				/**< Length of the identified hole there */
+} vmm_upper_hole;
+static spinlock_t vmm_upper_hole_slk = SPINLOCK_INIT;
+
+#define VMM_UPPER_HOLE_LOCK		spinlock_hidden(&vmm_upper_hole_slk)
+#define VMM_UPPER_HOLE_UNLOCK	spinunlock_hidden(&vmm_upper_hole_slk)
+
 static bool safe_to_log;			/**< True when we can log */
 static bool stop_freeing;			/**< No longer release memory */
 static uint32 vmm_debug;			/**< Debug level */
@@ -354,7 +371,7 @@ vmm_pmap(void)
 
 static bool page_cache_insert_pages(void *base, size_t n);
 static void pmap_remove(struct pmap *pm, const void *p, size_t size);
-static void pmap_insert_region(struct pmap *pm,
+static size_t pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, vmf_type_t type);
 static void pmap_overrule(struct pmap *pm,
 	const void *p, size_t size, vmf_type_t type);
@@ -1039,12 +1056,22 @@ G_GNUC_COLD void
 vmm_dump_hole_log(logagent_t *la)
 {
 	struct vmm_hole h;
+	struct vm_upper_hole u;
 	const void *hole;
 	size_t len;
 
 	VMM_HOLE_LOCK;
 	h = vmm_hole;		/* struct copy */
 	VMM_HOLE_UNLOCK;
+	VMM_UPPER_HOLE_LOCK;
+	u = vmm_upper_hole;	/* struct copy */
+	VMM_UPPER_HOLE_UNLOCK;
+
+	if (!kernel_mapaddr_increasing)
+		u.p = const_ptr_add_offset(u.p, -u.len);
+
+	log_debug(la, "VMM upper hole [%p, %p] %zuKiB",
+		u.p, const_ptr_add_offset(u.p, u.len), u.len / 1024);
 
 	if (h.start != NULL) {
 		log_debug(la, "VMM cached first hole [%p, %p] %zuKiB",
@@ -1162,6 +1189,60 @@ vmm_hole_update(const void *p, size_t size, bool alloc)
 		vmm_stats.hole_unchanged++;
 		VMM_STATS_UNLOCK;
 	}
+}
+
+/**
+ * Update the "upper hole" address for VMM allocation tuning.
+ *
+ * @param pm		the pmap updated after the allocation
+ * @param idx		the region in the pmap where allocation was done.
+ */
+static void
+vmm_upper_hole_update(struct pmap *pm, size_t idx)
+{
+	struct vm_fragment *vmf;
+	struct vm_upper_hole upper;
+
+	assert_rwlock_is_owned(&pm->lock);
+	g_assert(idx < pm->count);
+
+	vmf = &pm->array[idx];
+	g_assert(vmf_is_native(vmf));	/* Was just allocated */
+
+	/*
+	 * Look at how much room we have with the next region, when moving
+	 * away from the VM base.  If the region where the allocation took
+	 * place is the last, then the upper bound is known and the available
+	 * length is unbound.
+	 *
+	 * If the next region is adjacent (e.g. we're bumping into a foreign
+	 * region) then we could move further up in the pmap to find a hole,
+	 * but we want a quick estimate, not a true hole.
+	 */
+
+	if (kernel_mapaddr_increasing) {
+		if G_UNLIKELY(pm->count - 1 == idx) {
+			upper.p = vmf->end;
+			upper.len = SIZE_MAX;
+		} else {
+			struct vm_fragment *next = &pm->array[idx + 1];
+			upper.p = next->start;
+			upper.len = ptr_diff(next->start, vmf->end);	/* Can be 0 */
+		}
+	} else {
+		if G_UNLIKELY(0 == idx) {
+			upper.p = vmf->start;
+			upper.len = SIZE_MAX;
+		} else {
+			struct vm_fragment *prev = &pm->array[idx - 1];
+			upper.p = prev->end;
+			upper.len = ptr_diff(vmf->start, prev->end);	/* Can be 0 */
+		}
+	}
+
+	VMM_UPPER_HOLE_LOCK;
+	vmm_upper_hole = upper;		/* struct copy */
+	VMM_UPPER_HOLE_UNLOCK;
 }
 
 /**
@@ -1383,10 +1464,10 @@ done:
 /**
  * Insert region in the pmap, known to be native.
  */
-static void
+static size_t
 pmap_insert(struct pmap *pm, const void *start, size_t size)
 {
-	pmap_insert_region(pm, start, size, VMF_NATIVE);
+	return pmap_insert_region(pm, start, size, VMF_NATIVE);
 }
 
 /**
@@ -1439,7 +1520,10 @@ alloc_pages(size_t size, bool update_pmap)
 	vmm_hole_update(p, size, TRUE);
 
 	if (update_pmap) {
-		pmap_insert(pm, p, size);
+		size_t idx;
+
+		idx = pmap_insert(pm, p, size);
+		vmm_upper_hole_update(pm, idx);
 		rwlock_wunlock(&pm->lock);
 	}
 
@@ -1759,8 +1843,10 @@ retry:
 
 /**
  * Insert region in the pmap.
+ *
+ * @return index where region was inserted / coalesced to.
  */
-static void
+static size_t
 pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, vmf_type_t type)
 {
@@ -1832,6 +1918,7 @@ pmap_insert_region(struct pmap *pm,
 					pmap_drop(pm, idx);
 				}
 			}
+			idx--;
 			goto done;
 		}
 	}
@@ -1877,6 +1964,8 @@ done:
 
 	if G_UNLIKELY(pm->count == pm->size)
 		pmap_extend(pm);
+
+	return idx;
 }
 
 /**
@@ -2847,7 +2936,6 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 	} else {
 		size_t i;
 		size_t max_distance = 0;
-		bool exact = n == pc->pages;
 
 		base = NULL;
 
@@ -2866,19 +2954,6 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			p = kernel_mapaddr_increasing ?
 				pc->info[i].base : pc->info[pc->current - 1 - i].base;
-
-			/*
-			 * When looking in the page cache for entries that exactly
-			 * fit our need, the first page we find is the right one.
-			 */
-
-			if (exact) {
-				VMM_STATS_LOCK;
-				vmm_stats.cache_exact_match++;
-				VMM_STATS_UNLOCK;
-				base = deconstify_pointer(p);
-				break;
-			}
 
 			/*
 			 * Stop considering pages that are further away from the
@@ -2912,6 +2987,12 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 		if (NULL == base)
 			goto not_found;		/* Cache line was empty */
+
+		if (n == pc->pages) {
+			VMM_STATS_LOCK;
+			vmm_stats.cache_exact_match++;
+			VMM_STATS_UNLOCK;
+		}
 
 		/* FALL THROUGH */
 	}
@@ -3051,6 +3132,7 @@ page_cache_find_pages(size_t n)
 	void *p;
 	size_t len;
 	const void *hole;
+	struct vm_upper_hole upper;
 	struct page_cache *pc = NULL;
 
 	g_assert(size_is_positive(n));
@@ -3065,10 +3147,25 @@ page_cache_find_pages(size_t n)
 	hole = NULL;
 	len = vmm_first_hole(&hole, TRUE);
 
+	/*
+	 * If we know an "upper hole", adjust the first hole address to be that
+	 * one, as it will be more representative of where we are more likely
+	 * to be able to allocate new core.
+	 */
+
+	VMM_UPPER_HOLE_LOCK;
+	upper = vmm_upper_hole;		/* struct copy */
+	VMM_UPPER_HOLE_UNLOCK;
+
+	if (pagecount_fast(upper.len) >= n) {
+		hole = upper.p;
+		len = upper.len;
+	}
+
 	if (pagecount_fast(len) < n) {
 		hole = NULL;
 	} else if (!kernel_mapaddr_increasing) {
-		size_t length = size_saturate_mult(n, kernel_pagesize);
+		size_t length = n << kernel_pageshift;
 
 		g_assert((size_t) -1 != length);
 		g_assert(ptr_diff(hole, NULL) > length);
@@ -3079,7 +3176,8 @@ page_cache_find_pages(size_t n)
 	if G_UNLIKELY(hole != NULL) {
 		if (vmm_debugging(8)) {
 			size_t np = pagecount_fast(len);
-			s_minidbg("VMM lowest hole of %zu page%s at %p (%zu page%s)",
+			s_minidbg("VMM %s hole of %zu page%s at %p (%zu page%s)",
+				hole == upper.p ? "upper" : "lowest",
 				n, plural(n), hole, np, plural(np));
 		}
 	}
@@ -3980,6 +4078,7 @@ page_cache_timer(void *unused_udata)
 	struct page_cache *pc;
 	size_t i, expired = 0, kept = 0, old_regions = vmm_pmap()->count;
 	const void *hole;
+	struct vm_upper_hole upper;
 	size_t len;
 	void *freed[VMM_CACHE_SIZE];
 	bool looped, populated;
@@ -3996,6 +4095,21 @@ page_cache_timer(void *unused_udata)
 	 */
 
 	len = vmm_first_hole(&hole, FALSE);
+
+	/*
+	 * If we know an "upper hole", adjust the first hole address to be that
+	 * one, as it will be more representative of where we are more likely
+	 * to be able to allocate new core.
+	 */
+
+	VMM_UPPER_HOLE_LOCK;
+	upper = vmm_upper_hole;		/* struct copy */
+	VMM_UPPER_HOLE_UNLOCK;
+
+	if (upper.len >= pc->chunksize) {
+		len = upper.len;
+		hole = upper.p;
+	}
 
 	if (len >= pc->chunksize) {
 		if (!kernel_mapaddr_increasing)
