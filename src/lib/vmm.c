@@ -192,6 +192,13 @@ struct page_cache {
 	size_t current;		/**< amount of items in info[] */
 	size_t pages;		/**< amount of consecutive pages for entries */
 	size_t chunksize;	/**< size of each entry */
+	/* Statistics */
+	uint64 targeted;	/**< allocations targeting this cache line */
+	uint64 allocated;	/**< allocations done from this cache line */
+	uint64 denied;		/**< allocations denied despite line being non-empty */
+	uint64 split;		/**< splits done from this cache line */
+	uint64 evicted;		/**< amount of pages evicted */
+	uint64 expired;		/**< amount of pages expired */
 };
 
 /**
@@ -2827,9 +2834,11 @@ insert:
 
 		if (idx > kidx)
 			idx--;
+
 		VMM_STATS_LOCK;
 		vmm_stats.cache_evictions++;
 		VMM_STATS_UNLOCK;
+		pc->evicted++;
 	}
 
 	g_assert(size_is_non_negative(pc->current) && pc->current < VMM_CACHE_SIZE);
@@ -2939,9 +2948,12 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 		base = NULL;
 
+		if (n == pc->pages)
+			pc->targeted++;
+
 		/*
-		 * We're looking for less consecutive pages than what this cache
-		 * line holds, which will require splitting of the entry.
+		 * When we're looking for less consecutive pages than what this cache
+		 * line holds, it will require splitting of the entry.
 		 *
 		 * Allocate the innermost pages within the region, so that pages at
 		 * the beginning or end of the region remain unused and can be
@@ -2974,6 +2986,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 					VMM_STATS_LOCK;
 					vmm_stats.cache_ignored++;
 					VMM_STATS_UNLOCK;
+					pc->denied++;
 				}
 				break;
 			}
@@ -3239,6 +3252,14 @@ page_cache_find_pages(size_t n)
 				vmm_stats.cache_splits++;
 				VMM_STATS_UNLOCK;
 			}
+		}
+
+		if (p != NULL) {
+			spinlock_hidden(&pc->lock);
+			pc->allocated++;
+			if (n != pc->pages)
+				pc->split++;
+			spinunlock_hidden(&pc->lock);
 		}
 	}
 
@@ -4193,6 +4214,7 @@ page_cache_timer(void *unused_udata)
 		}
 	}
 
+	pc->expired += expired;
 	spinunlock(&pc->lock);
 
 	g_assert(expired <= G_N_ELEMENTS(freed));
@@ -4318,6 +4340,40 @@ vmm_malloc_inited(void)
 #ifdef TRACK_VMM
 	vmm_track_malloc_inited();
 #endif
+}
+
+/**
+ * Dump page cache statistics to specified logging agent.
+ */
+G_GNUC_COLD void
+vmm_dump_pcache_log(logagent_t *la)
+{
+	size_t i;
+
+	for (i = 0; i < VMM_CACHE_LINES; i++) {
+		struct page_cache *pc = &page_cache[i];
+		size_t count;
+		uint64 targeted, allocated, denied, split, evicted, expired;
+
+#define COPY(x)	x = pc->x
+
+		spinlock(&pc->lock);
+		count = pc->current;
+		COPY(targeted);
+		COPY(allocated);
+		COPY(denied);
+		COPY(split);
+		COPY(evicted);
+		COPY(expired);
+		spinunlock(&pc->lock);
+
+#undef COPY
+		log_info(la, "VMM cache #%zu: cnt=%zu, req=%s, ok=%s, deny=%s, "
+			"split=%zu, evict=%zu, exp=%zu",
+			i, count, uint64_to_string(targeted), uint64_to_string2(allocated),
+			uint64_to_string3(denied), (size_t) split, (size_t) evicted,
+			(size_t) expired);
+	}
 }
 
 /**

@@ -141,6 +141,7 @@ void vmm_dump_stats(void);
 void vmm_dump_stats_log(struct logagent *la, unsigned options);
 void vmm_dump_usage_log(struct logagent *la, unsigned options);
 void vmm_dump_hole_log(struct logagent *la);
+void vmm_dump_pcache_log(struct logagent *la);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

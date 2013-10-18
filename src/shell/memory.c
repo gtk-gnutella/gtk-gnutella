@@ -312,6 +312,17 @@ shell_exec_memory_show_hole(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
+shell_exec_memory_show_pcache(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, vmm_dump_pcache_log, "VMM ");
+}
+
+static enum shell_reply
 shell_exec_memory_show_pmap(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
@@ -362,6 +373,7 @@ shell_exec_memory_show(struct gnutella_shell *sh,
 
 	CMD(hole);
 	CMD(options);
+	CMD(pcache);
 	CMD(pmap);
 	CMD(xmalloc);
 	CMD(zones);
@@ -688,6 +700,7 @@ shell_help_memory(int argc, const char *argv[])
 			return
 				"memory show hole      # display VMM first known hole\n"
 				"memory show options   # display memory options\n"
+				"memory show pcache    # display VMM page cache\n"
 				"memory show pmap      # display VMM pmap\n"
 				"memory show xmalloc   # display xmalloc() freelist info\n"
 				"memory show zones     # display zone usage\n";
