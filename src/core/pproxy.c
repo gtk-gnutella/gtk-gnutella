@@ -426,6 +426,7 @@ get_params(struct pproxy *pp, const char *request,
 	datalen = strlen(value);
 
 	if (0 == strcmp(attr, "ServerId")) {
+		struct guid buf;
 		const struct guid *guid;
 
 		/*
@@ -442,7 +443,7 @@ get_params(struct pproxy *pp, const char *request,
 		if (GNET_PROPERTY(push_proxy_debug) > 0)
 			g_debug("PUSH-PROXY: decoding %s=%s as base32", attr, value);
 
-		guid = base32_to_guid(value);
+		guid = base32_to_guid(value, &buf);
 		if (guid == NULL) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"parameter \"%s\" is not valid base32", attr);

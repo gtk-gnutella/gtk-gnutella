@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2008, Raphael Manfredi
+ * Copyright (c) 2001-2008, 2013 Raphael Manfredi
  * Copyright (c) 2003-2008, Christian Biere
  *
  *----------------------------------------------------------------------
@@ -29,7 +29,7 @@
  * Miscellaneous functions.
  *
  * @author Raphael Manfredi
- * @date 2001-2008
+ * @date 2001-2008, 2013
  * @author Christian Biere
  * @date 2003-2008
  */
@@ -37,10 +37,12 @@
 #include "common.h"
 
 #include "misc.h"
+
 #include "ascii.h"
 #include "atoms.h"
 #include "base16.h"
 #include "base32.h"
+#include "buf.h"
 #include "compat_misc.h"
 #include "concat.h"
 #include "endian.h"
@@ -58,6 +60,7 @@
 #include "sha1.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
 #include "utf8.h"
@@ -241,14 +244,16 @@ is_bufcaseprefix(const char *buf, size_t len, const char *prefix)
 const char *
 local_hostname(void)
 {
-	static char name[256 + 1];
+	buf_t *b = buf_private(G_STRFUNC, 256 + 1);
+	char *name = buf_data(b);
+	size_t size = buf_size(b);
 
-	if (-1 == gethostname(name, sizeof name)) {
+	if (-1 == gethostname(name, size)) {
 		g_warning("gethostname() failed: %m");
 		name[0] = '\0';
 	}
 
-	name[sizeof(name) - 1] = '\0';
+	name[size - 1] = '\0';
 	return name;
 }
 
@@ -549,39 +554,45 @@ short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 const char *
 short_size(uint64 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	short_size_to_string_buf(size, metric, b, sizeof b);
-	return b;
+	n = short_size_to_string_buf(size, metric, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 short_size2(uint64 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	short_size_to_string_buf(size, metric, b, sizeof b);
-	return b;
+	n = short_size_to_string_buf(size, metric, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 short_frequency(uint64 freq)
 {
-	static char b[SIZE_FIELD_MAX];
+	str_t *s = str_private(G_STRFUNC, SIZE_FIELD_MAX);
 
 	if (freq < kilo(TRUE)) {
 		uint n = freq;
-		str_bprintf(b, sizeof b, "%u Hz", n);
+		str_printf(s, "%u Hz", n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(freq, &q, &r, TRUE);
 		r = (r * 100) / kilo(TRUE);
-		str_bprintf(b, sizeof b, "%u.%02u %cHz", q, r, c);
+		str_printf(s, "%u.%02u %cHz", q, r, c);
 	}
 
-	return b;
+	return str_2c(s);
 }
 
 /**
@@ -590,22 +601,21 @@ short_frequency(uint64 freq)
 const char *
 short_html_size(uint64 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	str_t *s = str_private(G_STRFUNC, SIZE_FIELD_MAX);
 
 	if (size < kilo(metric)) {
 		uint n = size;
-		str_bprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
+		str_printf(s, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		str_bprintf(b, sizeof b, "%u.%02u&nbsp;%c%s", q, r, c,
-			byte_suffix(metric));
+		str_printf(s, "%u.%02u&nbsp;%c%s", q, r, c, byte_suffix(metric));
 	}
 
-	return b;
+	return str_2c(s);
 }
 
 size_t
@@ -636,19 +646,25 @@ short_byte_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 const char *
 short_byte_size(uint64 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	short_byte_size_to_buf(size, metric, b, sizeof b);
-	return b;
+	n = short_byte_size_to_buf(size, metric, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 short_byte_size2(uint64 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	short_byte_size_to_buf(size, metric, b, sizeof b);
-	return b;
+	n = short_byte_size_to_buf(size, metric, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 size_t
@@ -679,19 +695,25 @@ short_kb_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 const char *
 short_kb_size(uint64 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	short_kb_size_to_buf(size, metric, b, sizeof b);
-	return b;
+	n = short_kb_size_to_buf(size, metric, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 short_kb_size2(uint64 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	short_kb_size_to_buf(size, metric, b, sizeof b);
-	return b;
+	n = short_kb_size_to_buf(size, metric, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -700,32 +722,31 @@ short_kb_size2(uint64 size, bool metric)
 const char *
 compact_kb_size(uint32 size, bool metric)
 {
-	static char b[SIZE_FIELD_MAX];
+	str_t *s = str_private(G_STRFUNC, SIZE_FIELD_MAX);
 
 	if (size < kilo(metric)) {
-		str_bprintf(b, sizeof b, "%u%s", (uint) size, metric ? "kB" : "KiB");
+		str_printf(s, "%u%s", (uint) size, metric ? "kB" : "KiB");
 	} else {
 		uint q, r;
 		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 10) / kilo(metric);
-		str_bprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
+		str_printf(s, "%u.%u%c%s", q, r, c, byte_suffix(metric));
 	}
 
-	return b;
+	return str_2c(s);
 }
 
 const char *
 nice_size(uint64 size, bool metric)
 {
-	static char buf[256];
+	str_t *s = str_private(G_STRFUNC, SIZE_FIELD_MAX);
 	char bytes[UINT64_DEC_BUFLEN];
 
 	uint64_to_string_buf(size, bytes, sizeof bytes);
-	str_bprintf(buf, sizeof buf,
-		_("%s (%s bytes)"), short_size(size, metric), bytes);
-	return buf;
+	str_printf(s, _("%s (%s bytes)"), short_size(size, metric), bytes);
+	return str_2c(s);
 }
 
 char *
@@ -765,32 +786,35 @@ short_value(char *buf, size_t size, uint64 v, bool metric)
 const char *
 compact_size(uint64 size, bool metric)
 {
-	static char buf[SIZE_FIELD_MAX];
+	char buf[SIZE_FIELD_MAX];
+	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
 	compact_value(buf, sizeof buf, size, metric);
-	g_strlcat(buf, "B", sizeof buf);
-	return buf;
+	str_printf(s, "%sB", buf);
+	return str_2c(s);
 }
 
 const char *
 compact_size2(uint64 size, bool metric)
 {
-	static char buf[SIZE_FIELD_MAX];
+	char buf[SIZE_FIELD_MAX];
+	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
 	compact_value(buf, sizeof buf, size, metric);
-	g_strlcat(buf, "B", sizeof buf);
-	return buf;
+	str_printf(s, "%sB", buf);
+	return str_2c(s);
 }
 
 const char *
 compact_rate(uint64 rate, bool metric)
 {
-	static char buf[SIZE_FIELD_MAX];
+	char buf[SIZE_FIELD_MAX];
+	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
 	compact_value(buf, sizeof buf, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
-	g_strlcat(buf, _("B/s"), sizeof buf);
-	return buf;
+	str_printf(s, "%s%s", buf, _("B/s"));
+	return str_2c(s);
 }
 
 static size_t
@@ -812,9 +836,14 @@ short_rate_get_string(uint64 rate, bool metric)
 const char *
 short_rate(uint64 rate, bool metric)
 {
-	static short_string_t buf;
+	short_string_t buf;
+	buf_t *b = buf_private(G_STRFUNC, sizeof buf);
+	char *p = buf_data(b);
+	size_t sz = buf_size(b);
+
 	buf = short_rate_get_string(rate, metric);
-	return buf.str;
+	clamp_strcpy(p, sz, buf.str);
+	return p;
 }
 
 /**
@@ -856,12 +885,13 @@ guid_to_string_buf(const struct guid *guid, char *dst, size_t size)
 const char *
 guid_to_string(const struct guid *guid)
 {
-	static char buf[GUID_HEX_SIZE + 1];
-	size_t ret;
+	buf_t *b = buf_private(G_STRFUNC, GUID_HEX_SIZE + 1);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	ret = guid_to_string_buf(guid, buf, sizeof buf);
-	g_assert(GUID_HEX_SIZE == ret);
-	return buf;
+	n = guid_to_string_buf(guid, p, sz);
+	g_assert(GUID_HEX_SIZE == n);
+	return p;
 }
 
 /**
@@ -870,12 +900,13 @@ guid_to_string(const struct guid *guid)
 const char *
 guid_hex_str(const struct guid *guid)
 {
-	static char buf[GUID_HEX_SIZE + 1];
-	size_t ret;
+	buf_t *b = buf_private(G_STRFUNC, GUID_HEX_SIZE + 1);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	ret = guid_to_string_buf(guid, buf, sizeof buf);
-	g_assert(GUID_HEX_SIZE == ret);
-	return buf;
+	n = guid_to_string_buf(guid, p, sz);
+	g_assert(GUID_HEX_SIZE == n);
+	return p;
 }
 
 static int8 char2int_tabs[3][(size_t) (uchar) -1 + 1];
@@ -1079,28 +1110,30 @@ hex_to_guid(const char *hexguid, struct guid *guid)
 const char *
 guid_base32_str(const struct guid *guid)
 {
-	static char buf[GUID_BASE32_SIZE + 1];
-	size_t len;
+	buf_t *b = buf_private(G_STRFUNC, GUID_BASE32_SIZE + 1);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	len = base32_encode(buf, sizeof buf, guid, GUID_RAW_SIZE);
-	g_assert(len == G_N_ELEMENTS(buf) - 1);
-	buf[len] = '\0';
-	return buf;
+	n = base32_encode(p, sz, guid, GUID_RAW_SIZE);
+	g_assert(GUID_BASE32_SIZE == n);
+	return p;
 }
 
 /**
- * Decode the base32 representation of a GUID.
+ * Decode the base32 representation of a GUID into supplied buffer.
  *
- * @return pointer to static data, or NULL if the input was not valid base32.
+ * @return pointer to supplied buffer, NULL if the input was not valid base32.
  */
 const struct guid *
-base32_to_guid(const char *base32)
+base32_to_guid(const char *base32, struct guid *guid)
 {
-	static struct guid guid;
 	size_t ret;
 
-	ret = base32_decode(guid.v, sizeof guid.v, base32, GUID_BASE32_SIZE);
-	return (size_t)0 + GUID_RAW_SIZE == ret ? &guid : NULL;
+	g_assert(base32 != NULL);
+	g_assert(guid != NULL);
+
+	ret = base32_decode(guid->v, sizeof guid->v, base32, GUID_BASE32_SIZE);
+	return (size_t) 0 + GUID_RAW_SIZE == ret ? guid : NULL;
 }
 
 /**
@@ -1136,10 +1169,14 @@ sha1_to_base32_buf(const struct sha1 *sha1, char *dst, size_t size)
 const char *
 sha1_base32(const struct sha1 *sha1)
 {
-	static char digest_b32[SHA1_BASE32_SIZE + 1];
+	buf_t *b = buf_private(G_STRFUNC, SHA1_BASE32_SIZE + 1);
+	char *p = buf_data(b);
+	size_t sz = buf_size(b);
 
-	g_assert(sha1);
-	return sha1_to_base32_buf(sha1, digest_b32, sizeof digest_b32);
+	g_assert(sha1 != NULL);
+
+	sha1_to_base32_buf(sha1, p, sz);
+	return p;
 }
 
 /**
@@ -1175,24 +1212,35 @@ sha1_to_base16_buf(const struct sha1 *sha1, char *dst, size_t size)
 const char *
 sha1_base16(const struct sha1 *sha1)
 {
-	static char digest_b16[SHA1_BASE16_SIZE + 1];
+	buf_t *b = buf_private(G_STRFUNC, SHA1_BASE16_SIZE + 1);
+	char *p = buf_data(b);
+	size_t sz = buf_size(b);
 
-	g_assert(sha1);
-	return sha1_to_base16_buf(sha1, digest_b16, sizeof digest_b16);
+	g_assert(sha1 != NULL);
+
+	sha1_to_base16_buf(sha1, p, sz);
+	return p;
 }
 
 const char *
 sha1_to_string(const struct sha1 *sha1)
 {
-	static char digest_b32[SHA1_BASE32_SIZE + 1];
-	return sha1_to_base32_buf(sha1, digest_b32, sizeof digest_b32);
+	buf_t *b = buf_private(G_STRFUNC, SHA1_BASE32_SIZE + 1);
+	char *p = buf_data(b);
+	size_t sz = buf_size(b);
+
+	sha1_to_base32_buf(sha1, p, sz);
+	return p;
 }
 
 /**
  * Convert binary SHA1 into a urn:sha1:<base32> string.
  *
- * @param sha1 A binary SHA-1.
- * @return The SHA-1 converted to an URN string.
+ * @param sha1	a binary SHA-1.
+ * @param dst	destination buffer
+ * @param size	size of buffer
+ *
+ * @return The length of the SHA-1 converted to a URN string.
  */
 size_t
 sha1_to_urn_string_buf(const struct sha1 *sha1, char *dst, size_t size)
@@ -1209,7 +1257,7 @@ sha1_to_urn_string_buf(const struct sha1 *sha1, char *dst, size_t size)
 		n = MIN(size, (SHA1_BASE32_SIZE + 1));
 		sha1_to_base32_buf(sha1, &dst[CONST_STRLEN(prefix)], n);
 	}
-	return CONST_STRLEN(prefix) + SHA1_BASE32_SIZE + 1;
+	return CONST_STRLEN(prefix) + SHA1_BASE32_SIZE;
 }
 
 /**
@@ -1219,11 +1267,15 @@ sha1_to_urn_string_buf(const struct sha1 *sha1, char *dst, size_t size)
 const char *
 sha1_to_urn_string(const struct sha1 *sha1)
 {
-	static char buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
+	buf_t *b = buf_private(G_STRFUNC,
+		CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	g_assert(sha1);
-	sha1_to_urn_string_buf(sha1, buf, sizeof buf);
-	return buf;
+	g_assert(sha1 != NULL);
+	n = sha1_to_urn_string_buf(sha1, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -1234,11 +1286,13 @@ sha1_to_urn_string(const struct sha1 *sha1)
 const char *
 bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 {
-	g_assert(sha1);
+	buf_t *b = buf_private(G_STRFUNC, BITPRINT_BASE32_SIZE + 14);
+
+	g_assert(sha1 != NULL);
 
 	if (tth) {
 		static const char prefix[] = "urn:bitprint:";
-		static char buf[CONST_STRLEN(prefix) + BITPRINT_BASE32_SIZE + 1];
+		char buf[CONST_STRLEN(prefix) + BITPRINT_BASE32_SIZE + 1];
 		const char * const end = &buf[sizeof buf];
 		char *p = buf;
 
@@ -1247,18 +1301,21 @@ bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 		p += SHA1_BASE32_SIZE;
 
 		*p++ = '.';
-		
+
 		base32_encode(p, end - p, tth->data, sizeof tth->data);
 		p += TTH_BASE32_SIZE;
 		*p = '\0';
-		
-		return buf;
+		g_assert(ptr_diff(p, buf) <= sizeof buf);
+
+		buf_copyin(b, buf, sizeof buf);
 	} else {
-		static char buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
+		char buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
 
 		sha1_to_urn_string_buf(sha1, buf, sizeof buf);
-		return buf;
+		buf_copyin(b, buf, sizeof buf);
 	}
+
+	return buf_data(b);
 }
 
 /**
@@ -1272,12 +1329,15 @@ bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 const struct sha1 *
 base32_sha1(const char *base32)
 {
-	static struct sha1 sha1;
+	static struct sha1 sha1[THREAD_MAX];
+	uint stid = thread_small_id();
+	struct sha1 *s = &sha1[stid];
 	size_t len;
 
-	g_assert(base32);
-	len = base32_decode(sha1.data, sizeof sha1.data, base32, SHA1_BASE32_SIZE);
-	return SHA1_RAW_SIZE == len ? &sha1 : NULL;
+	g_assert(base32 != NULL);
+
+	len = base32_decode(s->data, sizeof s->data, base32, SHA1_BASE32_SIZE);
+	return SHA1_RAW_SIZE == len ? s : NULL;
 }
 
 /**
@@ -1288,12 +1348,15 @@ base32_sha1(const char *base32)
 const char *
 tth_base32(const struct tth *tth)
 {
-	static char buf[TTH_BASE32_SIZE + 1];
+	buf_t *b = buf_private(G_STRFUNC, TTH_BASE32_SIZE + 1);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	g_assert(tth);
-	base32_encode(buf, sizeof buf, tth->data, sizeof tth->data);
-	buf[sizeof buf - 1] = '\0';
-	return buf;
+	g_assert(tth != NULL);
+
+	n = 1 + base32_encode(p, sz, tth->data, sizeof tth->data);
+	p[MAX(n, sz) - 1] = '\0';
+	return p;
 }
 
 /**
@@ -1307,12 +1370,15 @@ tth_base32(const struct tth *tth)
 const struct tth *
 base32_tth(const char *base32)
 {
-	static struct tth tth;
+	static struct tth tth[THREAD_MAX];
+	uint stid = thread_small_id();
+	struct tth *t = &tth[stid];
 	size_t len;
 
-	g_assert(base32);
-	len = base32_decode(tth.data, sizeof tth.data, base32, TTH_BASE32_SIZE);
-	return TTH_RAW_SIZE == len ? &tth : NULL;
+	g_assert(base32 != NULL);
+
+	len = base32_decode(t->data, sizeof t->data, base32, TTH_BASE32_SIZE);
+	return TTH_RAW_SIZE == len ? t : NULL;
 }
 
 /**
@@ -1329,8 +1395,8 @@ tth_to_base32_buf(const struct tth *tth, char *dst, size_t size)
 {
 	g_assert(tth);
 	if (size > 0) {
-		base32_encode(dst, size, tth->data, sizeof tth->data);
-		dst[size - 1] = '\0';
+		size_t n = 1 + base32_encode(dst, size, tth->data, sizeof tth->data);
+		dst[MIN(n, size) - 1] = '\0';
 	}
 	return dst;
 }
@@ -1338,8 +1404,11 @@ tth_to_base32_buf(const struct tth *tth, char *dst, size_t size)
 /**
  * Convert binary TTH into a urn:ttroot:<base32> string.
  *
- * @param tth A binary TTH.
- * @return The TTH converted to an URN string.
+ * @param tth	a binary TTH.
+ * @param dst	the destination buffer
+ * @param size	the size of the destination buffer
+ *
+ * @return The length of the resulting URN string.
  */
 size_t
 tth_to_urn_string_buf(const struct tth *tth, char *dst, size_t size)
@@ -1356,17 +1425,22 @@ tth_to_urn_string_buf(const struct tth *tth, char *dst, size_t size)
 		n = MIN(size, (TTH_BASE32_SIZE + 1));
 		tth_to_base32_buf(tth, &dst[CONST_STRLEN(prefix)], n);
 	}
-	return CONST_STRLEN(prefix) + TTH_BASE32_SIZE + 1;
+	return CONST_STRLEN(prefix) + TTH_BASE32_SIZE;
 }
 
 const char *
 tth_to_urn_string(const struct tth *tth)
 {
-	static char buf[CONST_STRLEN("urn:ttroot:") + TTH_BASE32_SIZE + 1];
+	buf_t *b = buf_private(G_STRFUNC,
+		CONST_STRLEN("urn:ttroot:") + TTH_BASE32_SIZE + 1);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	g_assert(tth);
-	tth_to_urn_string_buf(tth, buf, sizeof buf);
-	return buf;
+	g_assert(tth != NULL);
+
+	n = tth_to_urn_string_buf(tth, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -1842,7 +1916,8 @@ ip_range_split(
 static inline const char *
 html_escape_replacement(char c, size_t *len)
 {
-	static char r;
+	static char r[THREAD_MAX];
+	uint stid;
 
 #define REPLACE(x) { *len = CONST_STRLEN(x); return (x); }
 
@@ -1860,9 +1935,10 @@ html_escape_replacement(char c, size_t *len)
 	}
 #undef REPLACE
 
-	r = c;
+	stid = thread_small_id();
+	r[stid] = c;
 	*len = 1;
-	return &r;
+	return &r[stid];
 }
 
 /**

@@ -194,7 +194,7 @@ const char *guid_to_string(const struct guid *);
  * GUID<->base32 string conversion
  */
 const char *guid_base32_str(const struct guid *);
-const struct guid *base32_to_guid(const char *);
+const struct guid *base32_to_guid(const char *, struct guid *);
 
 /*
  * Generic binary to hexadecimal conversion.

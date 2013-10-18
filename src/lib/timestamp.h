@@ -77,6 +77,7 @@ time_delta_t timestamp_gmt_offset(time_t date, struct tm **tm_ptr);
  */
 
 const char *timestamp_to_string(time_t date);
+const char *timestamp_to_string2(time_t date);
 const char *timestamp_utc_to_string(time_t date);
 const char *timestamp_utc_to_string2(time_t date);
 const char *timestamp_rfc822_to_string(time_t date);

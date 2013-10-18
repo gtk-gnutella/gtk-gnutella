@@ -105,6 +105,7 @@
 #define USHRT_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(unsigned short)
 #define UINT_DEC_GRP_BUFLEN		GROUPPED_DEC_BUFLEN(unsigned int)
 #define ULONG_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(unsigned long)
+#define FILESIZE_DEC_GRP_BUFLEN	GROUPPED_DEC_BUFLEN(filesize_t)
 
 size_t int32_to_string_buf(int32 v, char *dst, size_t size);
 size_t uint32_to_string_buf(uint32 v, char *dst, size_t size);
@@ -117,6 +118,7 @@ size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
 const char *uint32_to_string(uint32);
 const char *uint64_to_string(uint64);
 const char *uint64_to_string2(uint64);
+const char *uint64_to_string3(uint64);
 const char *ulong_to_string(ulong v);
 const char *uint_to_string(unsigned v);
 const char *fileoffset_t_to_string(fileoffset_t);
@@ -147,6 +149,7 @@ const char *uint32_to_gstring(uint32);
 const char *uint64_to_gstring(uint64);
 const char *uint_to_gstring(unsigned v);
 const char *size_t_to_gstring(size_t v);
+const char *filesize_to_gstring(filesize_t v);
 
 /*
  * Time string conversions
