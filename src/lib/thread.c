@@ -340,6 +340,7 @@ static struct thread_stats {
 	U64(thread_self_pauses);		/* Calls to thread_pause() */
 	U64(thread_self_suspends);		/* Threads seeing they need to suspend */
 	U64(thread_self_block_races);	/* Detected races in thread_self_block() */
+	U64(thread_self_pause_races);	/* Detected races in thread_sigsuspend() */
 	U64(thread_forks);				/* Amount of thread_fork() calls made */
 } thread_stats;
 
@@ -6789,28 +6790,19 @@ done:
 /**
  * Block thread until a signal is received or until we are explicitly unblocked.
  *
+ * @param mask		the signal mask to set before blocking
+ *
  * @return TRUE if we were unblocked by a signal.
  */
-bool
-thread_pause(void)
+static bool
+thread_sigblock(tsigset_t mask)
 {
 	struct thread_element *te = thread_get_element();
-	bool signalled;
+	bool signalled, has_signals;
 	char c;
 
 	g_assert(!te->blocked);
-
-	/*
-	 * If the thread has any registered lock, panic with the list of locks.
-	 */
-
-	if (0 != te->locks.count) {
-		s_warning("%s(): %s currently holds %zu lock%s",
-			G_STRFUNC, thread_element_name(te), te->locks.count,
-			plural(te->locks.count));
-		thread_lock_dump(te);
-		s_error("attempt to pause thread whilst holding locks");
-	}
+	g_assert(0 == te->locks.count);
 
 	/*
 	 * Make sure the main thread never attempts to block itself if it
@@ -6823,16 +6815,34 @@ thread_pause(void)
 	/*
 	 * This is mostly the same logic as thread_block_self() although we
 	 * do not care about the unblock event count.
+	 *
+	 * Additionnaly, we check for signals in the critical section, to avoid
+	 * blocking if there are already signals to process.
 	 */
 
 	thread_block_init(te);
+	te->sig_mask = mask;
 
 	THREAD_LOCK(te);
-	te->blocked = TRUE;
-	te->unblocked = FALSE;
+	has_signals = thread_sig_present(te);
+	if (!has_signals) {
+		te->blocked = TRUE;
+		te->unblocked = FALSE;
+	}
 	THREAD_UNLOCK(te);
 
 	THREAD_STATS_INCX(thread_self_pauses);
+
+	/*
+	 * Wait for an unblocking byte, unless we were already signalled but could
+	 * not process the pending signal due to it being masked by the thread.
+	 */
+
+	if (has_signals) {
+		signalled = TRUE;
+		THREAD_STATS_INCX(thread_self_pause_races);
+		goto process_signals;
+	}
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
 		s_error("%s(): %s could not block itself: %m",
@@ -6857,12 +6867,54 @@ thread_pause(void)
 	}
 	THREAD_UNLOCK(te);
 
+process_signals:
+
 	if (signalled) {
 		THREAD_STATS_INCX(sig_handled_while_paused);
 		thread_sig_handle(te);
 	}
 
 	return signalled;
+}
+
+/**
+ * Block thread until a signal is received or until we are explicitly unblocked.
+ *
+ * @return TRUE if we were unblocked by a signal.
+ */
+bool
+thread_pause(void)
+{
+	tsigset_t set;
+
+	thread_assert_no_locks(G_STRFUNC);
+
+	thread_sigmask(TSIG_GETMASK, NULL, &set);
+	return thread_sigblock(set);
+}
+
+/**
+ * Restore signal mask and then block thread until a signal is received or
+ * until the thread is explicitly unblocked.
+ *
+ * The signal mask is atomically restored before blocking, to prevent any
+ * race condition with the signal already being pending but blocked under
+ * the current thread signal mask.
+ *
+ * This is usually used in conjunction with thread_sigmask(TSIG_BLOCK) to
+ * close a critical section opened when a set of signals were masked.
+ *
+ * @param mask		signal mask to restore before blocking thread.
+ *
+ * @return TRUE if we were unblocked by a signal.
+ */
+bool
+thread_sigsuspend(const tsigset_t *mask)
+{
+	g_assert(mask != NULL);
+	thread_assert_no_locks(G_STRFUNC);
+
+	return thread_sigblock(*mask);
 }
 
 /**
@@ -7134,6 +7186,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(thread_self_pauses);
 	DUMP64(thread_self_suspends);
 	DUMP64(thread_self_block_races);
+	DUMP64(thread_self_pause_races);
 	DUMP64(thread_forks);
 
 	{
