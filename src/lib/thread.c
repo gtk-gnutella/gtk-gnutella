@@ -234,6 +234,8 @@ struct thread_element {
 	thread_qid_t high_sig_qid;		/**< The highest possible QID on sigstack*/
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
+	const void *last_sp;			/**< Last stack pointer seen */
+	const void *top_sp;				/**< Highest stack pointer seen */
 	const void *stack_lock;			/**< First lock seen at this SP */
 	const char *name;				/**< Thread name, explicitly set */
 	size_t stack_size;				/**< For created threads, 0 otherwise */
@@ -587,6 +589,22 @@ thread_qid_hash(thread_qid_t qid)
 }
 
 /**
+ * Update last stack pointer and highest stack pointer for current thread.
+ */
+static inline ALWAYS_INLINE void
+thread_stack_update(struct thread_element *te)
+{
+	te->last_sp = &te;
+	if (thread_sp_direction > 0) {
+		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) > 0)
+			te->top_sp = &te;
+	} else {
+		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) < 0)
+			te->top_sp = &te;
+	}
+}
+
+/**
  * Initialize the thread stack shape for the thread element.
  */
 static void
@@ -595,6 +613,8 @@ thread_stack_init_shape(struct thread_element *te, const void *sp)
 	thread_qid_t qid = thread_quasi_id_fast(sp);
 
 	te->low_qid = te->high_qid = te->top_qid = qid;
+	te->top_sp = &te;
+	thread_stack_update(te);
 }
 
 /**
@@ -652,10 +672,21 @@ thread_qid_cache_set(unsigned idx, struct thread_element *te, thread_qid_t qid)
 	if (thread_sp_direction > 0) {
 		if G_UNLIKELY(qid > te->top_qid)
 			te->top_qid = qid;
+		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) > 0)
+			te->top_sp = &te;
 	} else {
 		if G_UNLIKELY(qid < te->top_qid)
 			te->top_qid = qid;
+		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) < 0)
+			te->top_sp = &te;
 	}
+
+	/*
+	 * Record last stack pointer seen to be able to approximate the stack usage
+	 * of another thread, assuming it enters our thread runtime frequently.
+	 */
+
+	te->last_sp = &te;
 }
 
 /**
@@ -705,6 +736,7 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 
 	if G_LIKELY(te->last_qid == qid) {
 		THREAD_STATS_INCX(qid_cache_hit);
+		thread_stack_update(te);
 		return TRUE;
 	}
 
@@ -778,6 +810,8 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 	else if (qid > te->high_qid)
 		te->high_qid = qid;
 	THREAD_UNLOCK(te);
+
+	thread_stack_update(te);
 
 	/*
 	 * Purge QID cache to make sure no other thread is claiming
@@ -1215,6 +1249,8 @@ thread_element_reset(struct thread_element *te)
 	te->low_qid = te->low_sig_qid = (thread_qid_t) -1;
 	te->high_qid = te->high_sig_qid = 0;
 	te->top_qid = 0;
+	te->last_sp = NULL;
+	te->top_sp = NULL;
 	te->valid = FALSE;		/* Flags an incorrectly instantiated element */
 	te->creating = FALSE;
 	te->exiting = FALSE;
@@ -1346,6 +1382,8 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
  
 	g_assert((te->high_qid - te->low_qid + 1) * thread_pagesize
 		== te->stack_size);
+
+	te->top_sp = &te;
 
 	/*
 	 * Once the TID and the QID ranges have been set for the thread we're
@@ -1588,9 +1626,6 @@ thread_main_element(thread_t t)
 	te->discovered = TRUE;
 	te->valid = TRUE;
 	thread_set(te->tid, t);
-	te->low_qid = qid - 1;		/* Assume stack guard page before */
-	te->high_qid = qid + 1;		/* Assume stack guard page after */
-	te->top_qid = qid;
 	te->main_thread = TRUE;
 	te->name = "main";
 	spinlock_init(&te->lock);
@@ -7011,6 +7046,13 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->stid = te->stid;
 	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID;
 	info->name = te->name;
+	info->last_sp = te->last_sp;
+	info->bottom_sp = te->stack_base != NULL ? te->stack_base :
+		thread_sp_direction > 0 ?
+		ulong_to_pointer(te->low_qid << thread_pageshift) :
+		ulong_to_pointer((te->high_qid + 1) << thread_pageshift);
+	info->top_sp = te->top_sp;
+	info->stack_base = te->stack_base;
 	info->stack_size = te->stack_size;
 	info->locks = te->locks.count;
 	info->entry = te->entry;
@@ -7022,6 +7064,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->main_thread = te->main_thread;
 	info->sig_mask = te->sig_mask;
 	info->sig_pending = te->sig_pending;
+	info->stack_addr_growing = booleanize(thread_sp_direction > 0);
 }
 
 /**

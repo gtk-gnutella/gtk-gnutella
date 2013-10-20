@@ -124,12 +124,17 @@ typedef struct thread_info {
 	unsigned stid;				/**< Small thread ID */
 	unsigned join_id;			/**< ID of joining thread, or THREAD_INVALID */
 	const char *name;			/**< Thread name, NULL if none set */
+	const void *last_sp;		/**< Last known stack pointer */
+	const void *bottom_sp;		/**< Computed bottom stack pointer */
+	const void *top_sp;			/**< Topmost stack pointer seen on this stack */
+	const void *stack_base;		/**< Base of allocated stack (NULL otherwise) */
 	size_t stack_size;			/**< Size of stack, 0 for discovered threads */
 	size_t locks;				/**< Amount of locks registered */
 	func_ptr_t entry;			/**< Thread entry point, NULL if discovered */
 	void *exit_value;			/**< Exit value, if exited, NULL otherwise */
 	tsigset_t sig_mask;			/**< Signal mask */
 	tsigset_t sig_pending;		/**< Signals pending delivery */
+	uint stack_addr_growing:1;	/**< Whether stack growing upwards */
 	uint discovered:1;			/**< Was thread discovered or created? */
 	uint exited:1;				/**< Whether thread has exited */
 	uint suspended:1;			/**< Whether thread is suspended */

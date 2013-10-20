@@ -35,7 +35,6 @@
 
 #include "cmd.h"
 
-#include "lib/alloca.h"			/* For alloca_stack_direction() */
 #include "lib/ascii.h"
 #include "lib/dump_options.h"
 #include "lib/log.h"
@@ -55,7 +54,6 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 {
 	int i;
 	str_t *s;
-	int sp_direction;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -70,7 +68,6 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 	shell_write(sh, "#  Flags LCK Sigs Evts STK Used  Max   Name\n");
 
 	s = str_new(80);
-	sp_direction = alloca_stack_direction();
 
 	for (i = 0; i < THREAD_MAX; i++) {
 		thread_info_t info;
@@ -80,12 +77,12 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 			continue;
 
 		stack = (info.high_qid - info.low_qid + 1) * compat_pagesize();
-		if (sp_direction > 0) {
-			used = (info.last_qid - info.low_qid + 1) * compat_pagesize();
-			top = (info.top_qid - info.low_qid + 1) * compat_pagesize();
+		if (info.stack_addr_growing) {
+			used = ptr_diff(info.last_sp, info.bottom_sp);
+			top = ptr_diff(info.top_sp, info.bottom_sp);
 		} else {
-			used = (info.high_qid - info.last_qid + 1) * compat_pagesize();
-			top = (info.high_qid - info.top_qid + 1) * compat_pagesize();
+			used = ptr_diff(info.bottom_sp, info.last_sp);
+			top = ptr_diff(info.bottom_sp, info.top_sp);
 		}
 
 		str_reset(s);
@@ -103,8 +100,16 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 			str_catf(s, "%-4s ", "-");
 		}
 		str_catf(s, "%-3zu ", stack / 1024);
-		str_catf(s, "%-5zu ", used / 1024);
-		str_catf(s, "%-5zu ", top / 1024);
+		if (used < 100 * 1024) {
+			str_catf(s, "%-5.2f ", used / 1024.0);
+		} else {
+			str_catf(s, "%-5zu ", (used + 512) / 1024);
+		}
+		if (top < 100 * 1024) {
+			str_catf(s, "%-5.2f ", top / 1024.0);
+		} else {
+			str_catf(s, "%-5zu ", (top + 512) / 1024);
+		}
 		if (info.name != NULL)
 			str_catf(s, "\"%s\"", info.name);
 		else if (info.entry != NULL)
