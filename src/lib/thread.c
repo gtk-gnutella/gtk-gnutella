@@ -375,6 +375,7 @@ static struct thread_stats {
 	U64(thread_self_block_races);	/* Detected races in thread_self_block() */
 	U64(thread_self_pause_races);	/* Detected races in thread_sigsuspend() */
 	U64(thread_forks);				/* Amount of thread_fork() calls made */
+	U64(thread_yields);				/* Amount of thread_yield() calls made */
 } thread_stats;
 
 #define THREAD_STATS_INCX(name) G_STMT_START { \
@@ -487,6 +488,8 @@ static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
 void
 thread_yield(void)
 {
+	THREAD_STATS_INCX(thread_yields);
+
 #ifdef HAS_SCHED_YIELD
 	do_sched_yield();			/* See lib/mingw32.h */
 #else
@@ -7863,6 +7866,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(thread_self_block_races);
 	DUMP64(thread_self_pause_races);
 	DUMP64(thread_forks);
+	DUMP64(thread_yields);
 
 	{
 		size_t rsc_semaphore_used;
