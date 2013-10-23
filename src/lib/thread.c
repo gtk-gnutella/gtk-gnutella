@@ -71,6 +71,10 @@
 
 #include "common.h"
 
+#ifdef I_SCHED
+#include <sched.h>				/* For sched_yield() */
+#endif
+
 #define THREAD_SOURCE			/* We want hash_table_new_real() */
 
 #include "thread.h"
@@ -476,6 +480,19 @@ static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 static void thread_lock_dump(const struct thread_element *te);
 static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
+
+/**
+ * Yield CPU time for current thread.
+ */
+void
+thread_yield(void)
+{
+#ifdef HAS_SCHED_YIELD
+	do_sched_yield();			/* See lib/mingw32.h */
+#else
+	compat_usleep(0);
+#endif	/* HAS_SCHED_YIELD */
+}
 
 /**
  * Are there signals present for the thread?
@@ -1946,7 +1963,7 @@ thread_suspend_loop(struct thread_element *te)
 			break;
 
 		if (i < THREAD_SUSPEND_LOOP)
-			do_sched_yield();
+			thread_yield();
 		else
 			compat_sleep_ms(THREAD_SUSPEND_DELAY);
 
@@ -2916,7 +2933,7 @@ thread_wait_others(const struct thread_element *te)
 	for (i = 1; /* empty */; i++) {
 		unsigned j, busy = 0;
 
-		do_sched_yield();
+		thread_yield();
 
 		for (j = 0; j < thread_next_stid; j++) {
 			struct thread_element *xte = threads[j];

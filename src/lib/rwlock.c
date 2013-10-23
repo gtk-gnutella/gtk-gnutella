@@ -440,10 +440,8 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 					thread_lock_waiting_done(element);
 				return;
 			}
-#ifdef HAS_SCHED_YIELD
 			if (1 == rwlock_cpus)
-				do_sched_yield();		/* See lib/mingw32.h */
-#endif
+				thread_yield();
 		}
 
 		/*
@@ -489,7 +487,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		 */
 
 		if (i < RWLOCK_LOOP)
-			do_sched_yield();
+			thread_yield();
 		else
 			compat_usleep(RWLOCK_DELAY);
 	}

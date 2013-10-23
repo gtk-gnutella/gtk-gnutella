@@ -65,10 +65,6 @@
 #include <pwd.h>				/* For getpwuid() and struct passwd */
 #endif
 
-#ifdef I_SCHED
-#include <sched.h>				/* For sched_yield() */
-#endif
-
 #include "entropy.h"
 #include "bigint.h"
 #include "compat_misc.h"
@@ -168,11 +164,7 @@ sha1_feed_fstat(SHA1Context *ctx, int fd)
 void
 entropy_delay(void)
 {
-#ifdef HAS_SCHED_YIELD
-	do_sched_yield();		/* See lib/mingw32.h */
-#else
-	compat_sleep_ms(0);
-#endif	/* HAS_SCHED_YIELD */
+	thread_yield();
 }
 
 /**

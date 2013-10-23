@@ -780,7 +780,7 @@ gtk_gnutella_exit(int exit_code)
 		if ((d = delta_time(now, exit_time)) >= exit_grace)
 			break;
 
-		do_sched_yield();
+		thread_yield();
 	}
 
 	g_info("gtk-gnutella shut down cleanly.");

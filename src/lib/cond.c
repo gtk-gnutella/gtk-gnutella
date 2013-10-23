@@ -1154,7 +1154,7 @@ cannot_consume:
 	 * wait along with them.
 	 */
 
-	do_sched_yield();
+	thread_yield();
 	goto retry;
 }
 

@@ -318,10 +318,8 @@ spinlock_loop(volatile spinlock_t *s,
 					thread_lock_waiting_done(element);
 				return;
 			}
-#ifdef HAS_SCHED_YIELD
 			if (1 == spinlock_cpus)
-				do_sched_yield();		/* See lib/mingw32.h */
-#endif
+				thread_yield();
 		}
 
 		/*
@@ -565,12 +563,9 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 		}
 		if G_UNLIKELY(0 == spinlock_cpus)
 			spinlock_cpus = getcpucount();
-#ifdef HAS_SCHED_YIELD
 		if (1 == spinlock_cpus && i <= SPINLOCK_LOOP)
-			do_sched_yield();		/* See lib/mingw32.h */
-		else
-#endif
-		if (i++ > SPINLOCK_LOOP)
+			thread_yield();
+		else if (i++ > SPINLOCK_LOOP)
 			compat_usleep(SPINLOCK_DELAY);
 	}
 

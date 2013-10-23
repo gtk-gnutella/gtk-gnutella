@@ -162,6 +162,8 @@ enum thread_sighow {
 
 struct cond;
 
+void thread_yield(void);
+
 thread_t thread_current(void);
 thread_t thread_current_element(const void **element);
 thread_qid_t thread_quasi_id(void);
