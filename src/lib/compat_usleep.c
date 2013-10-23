@@ -63,6 +63,11 @@ compat_usleep(unsigned int us)
 }
 #elif defined(HAS_USLEEP)
 {
+	if G_UNLIKELY(0 == us) {
+		usleep(0);
+		return;
+	}
+
 	while (us > 0) {
 		unsigned int d;
 

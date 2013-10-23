@@ -59,6 +59,11 @@ compat_sleep_ms(unsigned int ms)
 }
 #elif defined(HAS_USLEEP)
 {
+	if G_UNLIKELY(0 == ms) {
+		usleep(0);
+		return;
+	}
+
 	while (ms > 0) {
 		unsigned int d;
 
