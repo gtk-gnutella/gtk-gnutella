@@ -92,7 +92,8 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 			info.cancelled ? 'c' : '-');
 		str_putc(s, info.main_thread ? 'M' : '-');
 		str_putc(s, info.discovered ? 'D' : 'C');
-		str_putc(s, info.exited ? 'E' : info.blocked ? 'S' : 'R');
+		str_putc(s, info.exited ? 'E' :
+			(info.blocked || info.sleeping) ? 'S' : 'R');
 		str_catf(s, "  ");
 		str_catf(s, "%-3zd ", info.locks);
 		str_catf(s, "%-4d ", popcount(info.sig_pending));

@@ -38,15 +38,21 @@
 
 #include "compat_pause.h"
 #include "compat_sleep_ms.h"
+#include "thread.h"
 
 #include "override.h"		/* Must be the last header included */
 
 /**
  * Suspend process until a signal is delivered.
+ *
+ * @note
+ * This routine is a cancellation point.
  */
 void
 compat_pause(void)
 {
+	thread_cancel_test();
+
 #if defined(HAS_SIGPROCMASK)
 	{
 		sigset_t oset;
@@ -64,6 +70,8 @@ compat_pause(void)
 		}
 	}
 #endif	/* HAS_SIGPROCMASK || HAS_PAUSE */
+
+	thread_cancel_test();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -137,8 +137,8 @@
 #define THREAD_SUSPEND_CHECK		4096
 #define THREAD_SUSPEND_CHECKMASK	(THREAD_SUSPEND_CHECK - 1)
 #define THREAD_SUSPEND_LOOP			100
-#define THREAD_SUSPEND_DELAY		2	/* ms */
-#define THREAD_SUSPEND_TIMEOUT		30	/* seconds */
+#define THREAD_SUSPEND_DELAY		2000	/* us */
+#define THREAD_SUSPEND_TIMEOUT		30		/* seconds */
 
 #ifdef HAS_SOCKETPAIR
 #define INVALID_FD		INVALID_SOCKET
@@ -297,6 +297,7 @@ struct thread_element {
 	uint main_thread:1;				/**< Whether this is the main thread */
 	uint cancelled:1;				/**< Whether thread has been cancelled */
 	uint cancelable:1;				/**< Whether thread is cancelable */
+	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
@@ -493,7 +494,7 @@ thread_yield(void)
 #ifdef HAS_SCHED_YIELD
 	do_sched_yield();			/* See lib/mingw32.h */
 #else
-	compat_usleep(0);
+	compat_usleep_nocancel(0);
 #endif	/* HAS_SCHED_YIELD */
 }
 
@@ -1968,7 +1969,7 @@ thread_suspend_loop(struct thread_element *te)
 		if (i < THREAD_SUSPEND_LOOP)
 			thread_yield();
 		else
-			compat_sleep_ms(THREAD_SUSPEND_DELAY);
+			compat_usleep_nocancel(THREAD_SUSPEND_DELAY);
 
 		suspended = TRUE;
 
@@ -2457,7 +2458,7 @@ retry:
 		mutex_unlock_fast(&thread_insert_mtx);
 
 		if (thread_pending_reuse != 0 && retries++ < 200) {
-			compat_sleep_ms(5);
+			compat_usleep_nocancel(5000);
 			goto retry;
 		}
 
@@ -7578,6 +7579,21 @@ thread_sigsuspend(const tsigset_t *mask)
 }
 
 /**
+ * Record whether current thread is sleeping, for correct status report
+ * through thread_get_info().
+ */
+void
+thread_sleeping(bool sleeping)
+{
+	struct thread_element *te = thread_get_element();
+
+	THREAD_LOCK(te);
+	/* Boolean field, must be atomically updated */
+	te->sleeping = booleanize(sleeping);
+	THREAD_UNLOCK(te);
+}
+
+/**
  * Suspend thread execution for a specified amount of milliseconds.
  *
  * This is also a thread signal handling point and therefore it should be
@@ -7694,6 +7710,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->exited = te->join_pending || te->reusable || te->exiting;
 	info->suspended = te->suspended;
 	info->blocked = te->blocked || te->cond != NULL;
+	info->sleeping = te->sleeping;
 	info->cancelled = te->cancelled;
 	info->main_thread = te->main_thread;
 	info->sig_mask = te->sig_mask;
@@ -7805,7 +7822,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 
 	atomic_mb();
 	t1 = thread_stats;			/* Struct copy */
-	compat_usleep(5);			/* Small delay to let upper 32-bit updates */
+	compat_usleep_nocancel(5);	/* Small delay to let upper 32-bit updates */
 	atomic_mb();
 	t2 = thread_stats;			/* Struct copy */
 

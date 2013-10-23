@@ -38,65 +38,109 @@
 #endif
 
 #include "compat_usleep.h"
+#include "thread.h"
 
 #include "override.h"		/* Must be the last header included */
 
 /**
  * Suspend process execution for a duration specified in microseconds.
  *
+ * @param us		amount of microseconds to sleep.
+ * @param cancel	whether routine is a thread cancellation point
+ */
+static void
+compat_usleep_internal(unsigned int us, bool cancel)
+{
+	if (cancel) {
+		thread_cancel_test();
+		thread_sleeping(TRUE);
+	}
+
+#if defined(HAS_NANOSLEEP)
+	{
+		struct timespec ts;
+
+		/*
+		 * Prefer nanosleep() over usleep() because it is guaranteed to
+		 * not interact with signals.
+		 */
+
+		ts.tv_sec = us / 1000000;
+		ts.tv_nsec = (us % 1000000) * 1000UL;
+		nanosleep(&ts, NULL);
+	}
+#elif defined(HAS_USLEEP)
+	{
+		if G_UNLIKELY(0 == us) {
+			usleep(0);
+			return;
+		}
+
+		while (us > 0) {
+			unsigned int d;
+
+			/*
+			 * usleep() may fail if the delay is not less than 1000 msecs.
+			 * Therefore, usleep() is called multiple times for longer delays.
+			 */
+
+			d = MIN(us, 990000);
+			us -= d;
+
+			/* Value must be less than 1000000! (< 1 second) */
+			usleep(d);
+		}
+	}
+#else
+	{
+		struct timeval tv;
+		fd_set rfds, wfds, efds;
+
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		FD_ZERO(&efds);
+
+		tv.tv_sec = us / 1000000;
+		tv.tv_usec = us % 1000000;
+
+		(void) select(0, &rfds, &wfds, &efds, &tv);
+	}
+#endif	/* HAS_NANOSLEEP || HAS_USLEEP */
+
+	if (cancel) {
+		thread_sleeping(FALSE);
+		thread_cancel_test();
+	}
+}
+
+/**
+ * Suspend process execution for a duration specified in microseconds.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param us	 amount of microseconds to sleep.
  */
 void
 compat_usleep(unsigned int us)
-#if defined(HAS_NANOSLEEP)
 {
-	struct timespec ts;
-
-	/**
-	 * Prefer nanosleep() over usleep() because it is guaranteed to
-	 * not interact with signals.
-	 */
-
-	ts.tv_sec = us / 1000000;
-	ts.tv_nsec = (us % 1000000) * 1000UL;
-	nanosleep(&ts, NULL);
+	compat_usleep_internal(us, TRUE);
 }
-#elif defined(HAS_USLEEP)
+
+/**
+ * Suspend process execution for a duration specified in microseconds, but
+ * without testing for thread cancellation and without recording that the
+ * thread is sleeping.
+ *
+ * This routine should be reserved to low-level routines, like spinlock code
+ * or thread_yield().
+ *
+ * @param us	 amount of microseconds to sleep.
+ */
+void
+compat_usleep_nocancel(unsigned int us)
 {
-	if G_UNLIKELY(0 == us) {
-		usleep(0);
-		return;
-	}
-
-	while (us > 0) {
-		unsigned int d;
-
-		/**
-		 * usleep() may fail if the delay is not less than 1000 milliseconds.
-		 * Therefore, usleep() is called multiple times for longer delays.
-		 */
-
-		d = MIN(us, 990000);
-		us -= d;
-
-		/* Value must be less than 1000000! (< 1 second) */
-		usleep(d);
-	}
+	compat_usleep_internal(us, FALSE);
 }
-#else
-{
-	struct timeval tv;
-	fd_set rfds, wfds, efds;
-
-	FD_ZERO(&rfds);
-	FD_ZERO(&wfds);
-	FD_ZERO(&efds);
-
-	tv.tv_sec = us / 1000000;
-	tv.tv_usec = us % 1000000;
-
-	(void) select(0, &rfds, &wfds, &efds, &tv);
-}
-#endif	/* HAS_NANOSLEEP || HAS_USLEEP */
 
 /* vi: set ts=4 sw=4 cindent: */

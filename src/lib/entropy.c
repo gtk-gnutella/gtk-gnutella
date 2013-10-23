@@ -68,7 +68,7 @@
 #include "entropy.h"
 #include "bigint.h"
 #include "compat_misc.h"
-#include "compat_sleep_ms.h"
+#include "compat_usleep.h"
 #include "endian.h"
 #include "getgateway.h"
 #include "gethomedir.h"
@@ -868,7 +868,7 @@ entropy_collect_timing(SHA1Context *ctx, bool slow)
 	v[0] = tm_cputime(&v[1], &v[2]);
 
 	if (slow) {
-		compat_sleep_ms(2);			/* 2 ms */
+		compat_usleep_nocancel(2000);	/* 2 ms */
 	} else {
 		entropy_delay();			/* create small, unpredictable delay */
 	}

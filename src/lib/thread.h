@@ -143,6 +143,7 @@ typedef struct thread_info {
 	uint suspended:1;			/**< Whether thread is suspended */
 	uint blocked:1;				/**< Whether thread is (voluntarily) blocked */
 	uint cancelled:1;			/**< Whether thread was cancelled */
+	uint sleeping:1;			/**< Whether thread is sleeping */
 	uint main_thread:1;			/**< Whether this is the main thread */
 } thread_info_t;
 
@@ -163,6 +164,7 @@ enum thread_sighow {
 struct cond;
 
 void thread_yield(void);
+void thread_sleeping(bool sleeping);
 
 thread_t thread_current(void);
 thread_t thread_current_element(const void **element);

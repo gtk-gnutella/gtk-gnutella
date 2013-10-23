@@ -345,7 +345,7 @@ spinlock_loop(volatile spinlock_t *s,
 		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
 			(*deadlocked)(src_object, (unsigned) d, file, line);
 
-		compat_usleep(SPINLOCK_DELAY);
+		compat_usleep_nocancel(SPINLOCK_DELAY);
 
 		/*
 		 * If pass-through was activated whilst we were sleeping, return
@@ -566,7 +566,7 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 		if (1 == spinlock_cpus && i <= SPINLOCK_LOOP)
 			thread_yield();
 		else if (i++ > SPINLOCK_LOOP)
-			compat_usleep(SPINLOCK_DELAY);
+			compat_usleep_nocancel(SPINLOCK_DELAY);
 	}
 
 	spinlock_set_owner(s, file, line);

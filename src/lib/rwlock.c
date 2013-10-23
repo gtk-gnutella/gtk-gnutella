@@ -489,7 +489,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		if (i < RWLOCK_LOOP)
 			thread_yield();
 		else
-			compat_usleep(RWLOCK_DELAY);
+			compat_usleep_nocancel(RWLOCK_DELAY);
 	}
 }
 

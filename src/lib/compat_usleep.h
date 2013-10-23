@@ -34,5 +34,6 @@
 #include "common.h"
 
 void compat_usleep(unsigned int);
+void compat_usleep_nocancel(unsigned int);
 
 /* vi: set ts=4 sw=4 cindent: */
