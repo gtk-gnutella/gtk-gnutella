@@ -206,8 +206,7 @@ add_persistent_cache_entry(const char *filename, filesize_t size,
 		 */
 
 		if (fstat(fileno(f), &sb)) {
-			g_warning("add_persistent_cache_entry: could not stat \"%s\"",
-				pathname);
+			g_warning("%s(): could not stat \"%s\": %m", G_STRFUNC, pathname);
 		} else {
 			if (0 == sb.st_size) {
 				fputs(sha1_persistent_cache_file_header, f);
@@ -216,8 +215,7 @@ add_persistent_cache_entry(const char *filename, filesize_t size,
 		}
 		fclose(f);
 	} else {
-		g_warning("add_persistent_cache_entry: could not open \"%s\"",
-			pathname);
+		g_warning("%s(): could not open \"%s\": %m", G_STRFUNC, pathname);
 	}
 	HFREE_NULL(pathname);
 }
@@ -475,9 +473,6 @@ huge_update_hashes(shared_file_t *sf,
 			shared_file_size(sf), shared_file_modification_time(sf),
 			sha1, tth);
 	}
-	if (NULL == tth) {
-		request_tigertree(sf, FALSE);
-	}
 	return TRUE;
 }
 
@@ -530,7 +525,7 @@ huge_need_sha1(shared_file_t *sf)
 			cached->size + (fileoffset_t) 0 == sb.st_size + (filesize_t) 0 &&
 			cached->mtime == sb.st_mtime
 		) {
-			if (GNET_PROPERTY(dbg) > 1) {
+			if (GNET_PROPERTY(share_debug) > 1) {
 				g_warning("ignoring duplicate SHA1 work for \"%s\"",
 					shared_file_path(sf));
 			}
@@ -560,12 +555,15 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
+		if (!huge_need_sha1(sf))
+			return FALSE;
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, TRUE);
-		return huge_need_sha1(sf);
+		return TRUE;
 	case VERIFY_PROGRESS:
 		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
 	case VERIFY_DONE:
 		huge_update_hashes(sf, verify_sha1_digest(ctx), NULL);
+		request_tigertree(sf, FALSE);
 		/* FALL THROUGH */
 	case VERIFY_ERROR:
 	case VERIFY_SHUTDOWN:
@@ -580,8 +578,10 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 }
 
 /**
- * Put the shared file on the stack of the things to do. Activate the timer if
- * this wasn't done already.
+ * Put the shared file on the stack of the things to do.
+ *
+ * We first begin with the computation of the SHA1, and when completed we
+ * will continue with the TTH computation.
  */
 static void
 queue_shared_file_for_sha1_computation(shared_file_t *sf)
@@ -593,9 +593,9 @@ queue_shared_file_for_sha1_computation(shared_file_t *sf)
 	inserted = verify_sha1_enqueue(FALSE, shared_file_path(sf),
 					shared_file_size(sf), huge_verify_callback,
 					shared_file_ref(sf));
-	if (!inserted) {
+
+	if (!inserted)
 		shared_file_unref(&sf);
-	}
 }
 
 /**
@@ -635,6 +635,7 @@ request_sha1(shared_file_t *sf)
 	shared_file_check(sf);
 
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
+
 	if (cached && cached_entry_up_to_date(cached, sf)) {
 		cache_dirty = TRUE;
 		cached->shared = TRUE;
@@ -643,7 +644,7 @@ request_sha1(shared_file_t *sf)
 		request_tigertree(sf, FALSE);
 	} else {
 
-		if (GNET_PROPERTY(dbg) > 4) {
+		if (GNET_PROPERTY(share_debug) > 1) {
 			if (cached)
 				g_debug("cached SHA1 entry for \"%s\" outdated: "
 					"had mtime %lu, now %lu",
@@ -717,7 +718,7 @@ huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	 */
 
 	if (huge_improbable_sha1(sha1->data, sizeof sha1->data)) {
-		if (GNET_PROPERTY(dbg)) {
+		if (GNET_PROPERTY(share_debug)) {
 			if (is_printable(buf, len)) {
 				g_warning("%s has improbable SHA1 (len=%lu): %.*s, hex: %s",
 					gmsg_node_infostr(n),
@@ -733,7 +734,7 @@ huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	return TRUE;
 
 bad:
-	if (GNET_PROPERTY(dbg)) {
+	if (GNET_PROPERTY(share_debug)) {
 		if (is_printable(buf, len)) {
 			g_warning("%s has bad SHA1 (len=%u): %.*s",
 				gmsg_node_infostr(n),
@@ -764,7 +765,7 @@ huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	return TRUE;
 
 bad:
-	if (GNET_PROPERTY(dbg)) {
+	if (GNET_PROPERTY(share_debug)) {
 		if (is_printable(buf, len)) {
 			g_warning("%s has bad TTH (len=%u): %.*s",
 				gmsg_node_infostr(n),
