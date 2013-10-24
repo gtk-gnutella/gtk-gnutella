@@ -1953,6 +1953,8 @@ main(int argc, char **argv)
 
 	/* Okay, here we go */
 
+	vmm_set_strategy(VMM_STRATEGY_LONG_TERM);
+
 	(void) tm_time_exact();
 	cq_main_insert(1000, scan_files_once, NULL);
 	bsched_enable_all();

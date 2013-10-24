@@ -263,6 +263,7 @@ static struct vmm_stats {
 	uint64 free_to_cache_pages;		/**< Amount of pages directed to cache */
 	uint64 free_to_system;			/**< Freeings returned to kernel */
 	uint64 free_to_system_pages;	/**< Amount of pages returned to kernel */
+	uint64 free_to_system_extra_pages;	/**< Cached paged coalesced in free */
 	uint64 forced_freed;			/**< Amount of forceful freeings */
 	uint64 forced_freed_pages;		/**< Amount of pages forcefully freed */
 	uint64 cache_evictions;			/**< Evictions due to cache being full */
@@ -338,6 +339,16 @@ static spinlock_t vmm_upper_hole_slk = SPINLOCK_INIT;
 
 #define VMM_UPPER_HOLE_LOCK		spinlock_hidden(&vmm_upper_hole_slk)
 #define VMM_UPPER_HOLE_UNLOCK	spinunlock_hidden(&vmm_upper_hole_slk)
+
+/**
+ * The memory allocation strategy.
+ */
+static enum vmm_strategy vmm_strategy = VMM_STRATEGY_SHORT_TERM;
+static spinlock_t vmm_strategy_slk = SPINLOCK_INIT;
+static cperiodic_t *vmm_periodic;
+
+#define VMM_STRATEGY_LOCK		spinlock_hidden(&vmm_strategy_slk)
+#define VMM_STRATEGY_UNLOCK		spinunlock_hidden(&vmm_strategy_slk)
 
 static bool safe_to_log;			/**< True when we can log */
 static bool stop_freeing;			/**< No longer release memory */
@@ -431,6 +442,15 @@ static inline ALWAYS_INLINE size_t G_GNUC_PURE
 pagecount_fast(size_t n)
 {
 	return round_pagesize_fast(n) >> kernel_pageshift;
+}
+
+/**
+ * Fast version for converting amount of pages into a size.
+ */
+static inline ALWAYS_INLINE size_t G_GNUC_PURE
+nsize_fast(size_t n)
+{
+	return n << kernel_pageshift;
 }
 
 /**
@@ -2063,7 +2083,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	vmf = pmap_lookup(pm, p, &idx);
 
 	if (NULL == vmf) {
-		pmap_log_missing(pm, p, npages << kernel_pageshift);
+		pmap_log_missing(pm, p, nsize_fast(npages));
 		return FALSE;
 	}
 
@@ -3115,10 +3135,10 @@ found:
 
 	if (total > n) {
 		if (kernel_mapaddr_increasing) {
-			void *start = ptr_add_offset(base, n << kernel_pageshift);
+			void *start = ptr_add_offset(base, nsize_fast(n));
 			page_cache_insert_pages(start, total - n);	/* Strip trailing */
 		} else {
-			void *start = ptr_add_offset(end, -n << kernel_pageshift);
+			void *start = ptr_add_offset(end, nsize_fast(-n));
 			page_cache_insert_pages(base, total - n);	/* Strip leading */
 			base = start;
 		}
@@ -3144,20 +3164,29 @@ page_cache_find_pages(size_t n)
 {
 	void *p;
 	size_t len;
-	const void *hole;
+	const void *hole = NULL;
 	struct vm_upper_hole upper;
 	struct page_cache *pc = NULL;
 
 	g_assert(size_is_positive(n));
 
 	/*
+	 * When allocating with a short-term strategy, we attempt to reuse the
+	 * cached memory as much as possible.
+	 */
+
+	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy)
+		goto short_term_strategy;
+
+	/*
+	 * Long-term strategy:
+	 *
 	 * Before using pages from the cache, look where the first hole is
 	 * at the start of the virtual memory space.  If we find one that can
 	 * suit this allocation, then do not use cached pages that would
 	 * lie after the hole.
 	 */
 
-	hole = NULL;
 	len = vmm_first_hole(&hole, TRUE);
 
 	/*
@@ -3178,7 +3207,7 @@ page_cache_find_pages(size_t n)
 	if (pagecount_fast(len) < n) {
 		hole = NULL;
 	} else if (!kernel_mapaddr_increasing) {
-		size_t length = n << kernel_pageshift;
+		size_t length = nsize_fast(n);
 
 		g_assert((size_t) -1 != length);
 		g_assert(ptr_diff(hole, NULL) > length);
@@ -3194,6 +3223,10 @@ page_cache_find_pages(size_t n)
 				n, plural(n), hole, np, plural(np));
 		}
 	}
+
+	/* FALL THROUGH */
+
+short_term_strategy:
 
 	if (n >= VMM_CACHE_LINES) {
 		/*
@@ -3289,10 +3322,18 @@ page_cache_insert_pages(void *base, size_t n)
 	struct pmap *pm = vmm_pmap();
 	bool wlock = FALSE;
 
-	assert_vmm_is_allocated(base, n << kernel_pageshift, VMF_NATIVE, FALSE);
+	assert_vmm_is_allocated(base, nsize_fast(n), VMF_NATIVE, FALSE);
 
 	if G_UNLIKELY(stop_freeing)
 		return FALSE;
+
+	/*
+	 * With a short-term allocation strategy, keep allocated memory around
+	 * by always caching the pages, as long as we have room in our cache.
+	 */
+
+	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy)
+		goto short_term_strategy;
 
 	/*
 	 * Identified memory fragments are immediately freed and not put
@@ -3322,7 +3363,6 @@ retry:
 			goto retry;
 		}
 
-
 		/*
 		 * We have the write lock.
 		 *
@@ -3330,7 +3370,7 @@ retry:
 		 * known regions: a fragment is a standalone region.
 		 */
 
-		pmap_remove_whole_region(pm, base, n << kernel_pageshift);
+		pmap_remove_whole_region(pm, base, nsize_fast(n));
 
 		/*
 		 * We do not need a write lock to free the pages, and it's best to
@@ -3344,7 +3384,7 @@ retry:
 				n << (kernel_pageshift - 10), base);
 		}
 
-		free_pages_intern(base, n << kernel_pageshift, FALSE);
+		free_pages_intern(base, nsize_fast(n), FALSE);
 
 		VMM_STATS_LOCK;
 		vmm_stats.forced_freed++;
@@ -3358,6 +3398,10 @@ retry:
 		rwlock_wunlock(&pm->lock);
 	else
 		rwlock_runlock(&pm->lock);
+
+	/* FALL THROUGH */
+
+short_term_strategy:
 
 	/*
 	 * If releasing more than what we can store in the largest cache line,
@@ -3397,15 +3441,12 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	const size_t old_pages = pages;
 	void *end;
 
-	assert_vmm_is_allocated(base, pages << kernel_pageshift, VMF_NATIVE, FALSE);
+	assert_vmm_is_allocated(base, nsize_fast(pages), VMF_NATIVE, FALSE);
 
 	if G_UNLIKELY(stop_freeing)
 		return FALSE;
 
-	if (pages >= VMM_CACHE_LINES)
-		return FALSE;
-
-	end = ptr_add_offset(base, pages << kernel_pageshift);
+	end = ptr_add_offset(base, nsize_fast(pages));
 
 	/*
 	 * Look in low-order caches whether we can find chunks before.
@@ -3444,11 +3485,9 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 				pages += lopc->pages;
 
 				assert_vmm_is_allocated(before,
-					pages << kernel_pageshift, VMF_NATIVE, FALSE);
+					nsize_fast(pages), VMF_NATIVE, FALSE);
 
 				coalesced = TRUE;
-				if (pages >= VMM_CACHE_LINES)
-					goto done;
 			} else {
 				spinunlock(&lopc->lock);
 			}
@@ -3493,10 +3532,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			pages += hopc->pages;
 
 			assert_vmm_is_allocated(before,
-				pages << kernel_pageshift, VMF_NATIVE, FALSE);
-
-			if (pages >= VMM_CACHE_LINES)
-				goto done;
+				nsize_fast(pages), VMF_NATIVE, FALSE);
 		} else {
 			spinunlock(&hopc->lock);
 		}
@@ -3506,7 +3542,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	 * Look in low-order caches whether we can find chunks after.
 	 */
 
-	g_assert(ptr_add_offset(base, pages << kernel_pageshift) == end);
+	g_assert(ptr_add_offset(base, nsize_fast(pages)) == end);
 
 	for (i = 0; /* empty */; i++) {
 		bool coalesced = FALSE;
@@ -3538,11 +3574,9 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 				end = ptr_add_offset(end, lopc->chunksize);
 
 				assert_vmm_is_allocated(base,
-					pages << kernel_pageshift, VMF_NATIVE, FALSE);
+					nsize_fast(pages), VMF_NATIVE, FALSE);
 
 				coalesced = TRUE;
-				if (pages >= VMM_CACHE_LINES)
-					goto done;
 			} else {
 				spinunlock(&lopc->lock);
 			}
@@ -3585,18 +3619,14 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			end = ptr_add_offset(end, hopc->chunksize);
 
 			assert_vmm_is_allocated(base,
-				pages << kernel_pageshift, VMF_NATIVE, FALSE);
-
-			if (pages >= VMM_CACHE_LINES)
-				goto done;
+				nsize_fast(pages), VMF_NATIVE, FALSE);
 		} else {
 			spinunlock(&hopc->lock);
 		}
 	}
 
-done:
-	assert_vmm_is_allocated(base, pages << kernel_pageshift, VMF_NATIVE, FALSE);
-	g_assert(ptr_add_offset(base, pages << kernel_pageshift) == end);
+	assert_vmm_is_allocated(base, nsize_fast(pages), VMF_NATIVE, FALSE);
+	g_assert(ptr_add_offset(base, nsize_fast(pages)) == end);
 
 	if G_UNLIKELY(pages != old_pages) {
 		if (vmm_debugging(2)) {
@@ -3817,6 +3847,55 @@ vmm_alloc0(size_t size)
 }
 
 /**
+ * Should we cache ``n'' pages starting at ``p''?
+ */
+static inline bool
+vmm_should_cache(const void *p, size_t n)
+{
+	/*
+	 * Long-term strategy:
+	 *
+	 * Memory regions that are larger than our highest-order cache are
+	 * allocated and freed as-is, and almost never broken into smaller
+	 * pages.  The purpose is to avoid excessive virtual memory space
+	 * fragmentation, leading at some point to the unability for the
+	 * kernel to find a large consecutive virtual memory region.
+	 *
+	 * Short-term strategy:
+	 *
+	 * Cache everything, breaking up larger regions.  When the largest
+	 * line is full, we'll start evicting memory of course.
+	 */
+
+	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy) {
+		return TRUE;
+	} else {
+		size_t len;
+		const void *hole;
+
+		/*
+		 * In long-term strategy, attempt to cache memory that lies before
+		 * the first hole, because this is where we want to keep memory
+		 * allocated.
+		 */
+
+		len = vmm_first_hole(&hole, FALSE);
+		if (len != 0 && vmm_ptr_cmp(p, hole) < 0)
+			return TRUE;
+
+		/*
+		 * If region is small-enough to fit our cache, check whether it is
+		 * a fragment: we want to release fragments as soon as possible.
+		 */
+
+		if (n <= VMM_CACHE_LINES && !vmm_is_fragment(p, nsize_fast(n)))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Free memory allocated via vmm_alloc() or vmm_core_alloc(), possibly
  * returning it to the cache.
  *
@@ -3834,7 +3913,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 	if G_UNLIKELY(vmm_crashing)
 		return;
 
-	if (p) {
+	if (p != NULL) {
 		size_t n;
 
 		g_assert(page_start(p) == p);
@@ -3849,15 +3928,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 
 		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
-		/*
-		 * Memory regions that are larger than our highest-order cache
-		 * are allocated and freed as-is, and never broken into smaller
-		 * pages.  The purpose is to avoid excessive virtual memory space
-		 * fragmentation, leading at some point to the unability for the
-		 * kernel to find a large consecutive virtual memory region.
-		 */
-
-		if (n <= VMM_CACHE_LINES) {
+		if (vmm_should_cache(p, n)) {
 			size_t m = n;
 			vmm_invalidate_pages(p, size);
 			page_cache_coalesce_pages(&p, &m);
@@ -3868,10 +3939,13 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 				VMM_STATS_UNLOCK;
 			}
 		} else {
-			free_pages(p, size, TRUE);
+			size_t m = n;
+			page_cache_coalesce_pages(&p, &m);
+			free_pages(p, nsize_fast(m), TRUE);
 			VMM_STATS_LOCK;
 			vmm_stats.free_to_system++;
-			vmm_stats.free_to_system_pages += n;
+			vmm_stats.free_to_system_pages += m;
+			vmm_stats.free_to_system_extra_pages += m - n;
 			VMM_STATS_UNLOCK;
 		}
 
@@ -3955,19 +4029,11 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 
 			g_assert(n >= 1);
 
-			/*
-			 * Memory regions that are larger than our highest-order cache
-			 * are allocated and freed as-is, and never broken into smaller
-			 * pages.  The purpose is to avoid excessive virtual memory space
-			 * fragmentation, leading at some point to the unability for the
-			 * kernel to find a large consecutive virtual memory region.
-			 */
-
 			VMM_STATS_LOCK;
 			vmm_stats.shrinkings++;
 			VMM_STATS_UNLOCK;
 
-			if (n <= VMM_CACHE_LINES) {
+			if (vmm_should_cache(q, n)) {
 				size_t m = n;
 				vmm_invalidate_pages(q, delta);
 				page_cache_coalesce_pages(&q, &m);
@@ -3978,10 +4044,13 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 					VMM_STATS_UNLOCK;
 				}
 			} else {
-				free_pages(q, delta, TRUE);
+				size_t m = n;
+				page_cache_coalesce_pages(&q, &m);
+				free_pages(q, nsize_fast(m), TRUE);
 				VMM_STATS_LOCK;
 				vmm_stats.free_to_system++;
 				vmm_stats.free_to_system_pages += n;
+				vmm_stats.free_to_system_extra_pages += m - n;
 				VMM_STATS_UNLOCK;
 			}
 
@@ -4330,6 +4399,40 @@ set_vmm_debug(uint32 level)
 }
 
 /**
+ * Set the VMM allocation strategy.
+ *
+ * The default strategy is VMM_STRATEGY_SHORT_TERM, which is suitable for
+ * short-lived programs: memory is allocated and is not released to the system
+ * until we can no longer cache the pages.
+ *
+ * For long-lived programs, it is best to use VMM_STRATEGY_LONG_TERM which
+ * will periodically release unused memeory and which will, over time and
+ * gradually, compact memory and limit the amount of VM regions that the
+ * kernel needs to manage.
+ *
+ * @param strategy		desired VM allocation strategy
+ */
+void
+vmm_set_strategy(enum vmm_strategy strategy)
+{
+	VMM_STRATEGY_LOCK;
+
+	switch (strategy) {
+	case VMM_STRATEGY_SHORT_TERM:
+		cq_periodic_remove(&vmm_periodic);
+		break;
+	case VMM_STRATEGY_LONG_TERM:
+		if (NULL == vmm_periodic)
+			vmm_periodic = cq_periodic_main_add(1000, page_cache_timer, NULL);
+		break;
+	}
+
+	vmm_strategy = strategy;
+
+	VMM_STRATEGY_UNLOCK;
+}
+
+/**
  * Called when memory allocator has been initialized and it is possible to
  * call routines that will allocate core memory and perform logging calls.
  */
@@ -4411,6 +4514,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(free_to_cache_pages);
 	DUMP(free_to_system);
 	DUMP(free_to_system_pages);
+	DUMP(free_to_system_extra_pages);
 	DUMP(forced_freed);
 	DUMP(forced_freed_pages);
 	DUMP(cache_evictions);
@@ -4722,8 +4826,6 @@ vmm_post_init(void)
 			sp_direction > 0 ? "in" : "de", stack_base);
 	}
 
-	cq_periodic_main_add(1000, page_cache_timer, NULL);
-
 	/*
 	 * Check whether we have enough room for the stack to grow.
 	 */
@@ -4811,7 +4913,7 @@ vmm_early_init_once(void)
 		struct page_cache *pc = &page_cache[i];
 		size_t pages = i + 1;
 		pc->pages = pages;
-		pc->chunksize = pages << kernel_pageshift;
+		pc->chunksize = nsize_fast(pages);
 		spinlock_init(&pc->lock);
 	}
 
