@@ -54,12 +54,15 @@
 #include "if/dht/routing.h"
 
 #include "lib/concat.h"
+#include "lib/cq.h"
+#include "lib/hikset.h"
 #include "lib/mempcpy.h"
 #include "lib/product.h"
 #include "lib/prop.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/utf8.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -113,7 +116,7 @@ typedef struct prop_map {
 } prop_map_t;
 
 #define NOT_IN_MAP	(-1)
-#define IGNORE_CB		NULL
+#define IGNORE_CB	NULL
 
 static const prop_set_stub_t *gui_prop_set_stub;
 static const prop_set_stub_t *gnet_prop_set_stub;
@@ -126,6 +129,9 @@ static gchar *home_dir;
 static const gchar property_file[] = "config_gui";
 
 static prop_set_t *properties;
+static hikset_t *sensitive_changes;
+
+#define SENSITIVE_DEFER		250		/**< ms: deferred sensitive widget change */
 
 static prop_map_t * settings_gui_get_map_entry(property_t prop);
 
@@ -2458,13 +2464,63 @@ search_stats_mode_changed(property_t prop)
     return FALSE;
 }
 
-static inline gboolean
+struct widget_change {
+	cevent_t *ev;			/* Event to change widget */
+	const char *name;		/* Widget name */
+	GtkWidget *widget;		/* The widget in the main window */
+	bool sensitive;			/* Whether widget will become sensitive */
+};
+
+static void
+widget_sensitive_event(cqueue_t *cq, void *data)
+{
+	struct widget_change *wc = data;
+
+    gtk_widget_set_sensitive(wc->widget, wc->sensitive);
+	wc->ev = NULL;
+}
+
+static gboolean
 widget_set_sensitive(const gchar *name, property_t prop)
 {
 	gboolean val;
+	struct widget_change *wc;
+
+	/*
+	 * A widget sensitivity can change quickly, leading to GUI flickering.
+	 * In order to limit that, we record the changes in a hash table and
+	 * install a callback to delay the actual sensitivity change.
+	 *
+	 * If another visibility change occurs before the callback fires, we may
+	 * cancel the event if it goes in the opposite direction, or do nothing
+	 * if it still goes in the same direction (i.e. making it sensitive if
+	 * it is already recorded as such).
+	 *
+	 * We give priority to "lighting" the widget, and defer the "shadowing".
+	 */
 
     gnet_prop_get_boolean_val(prop, &val);
-    gtk_widget_set_sensitive(gui_main_window_lookup(name), val);
+	wc = hikset_lookup(sensitive_changes, name);
+
+	if G_UNLIKELY(NULL == wc) {
+		WALLOC(wc);
+		wc->name = name;		/* Known to be a static string */
+		wc->widget = gui_main_window_lookup(name);
+		wc->sensitive = val;
+		wc->ev = cq_main_insert(SENSITIVE_DEFER, widget_sensitive_event, wc);
+		hikset_insert_key(sensitive_changes, &wc->name);
+	} else if (wc->sensitive != val) {
+		wc->sensitive = val;
+		if (val) {
+			cq_cancel(&wc->ev);
+			gtk_widget_set_sensitive(wc->widget, wc->sensitive);
+		} else if (NULL == wc->ev) {
+			wc->ev = cq_main_insert(SENSITIVE_DEFER,
+				widget_sensitive_event, wc);
+		} else {
+			cq_resched(wc->ev, SENSITIVE_DEFER);
+		}
+	}
 
 	return FALSE;
 }
@@ -6077,6 +6133,8 @@ settings_gui_init(void)
 
     tooltips = gtk_tooltips_new();
     properties = gui_prop_init();
+	sensitive_changes = hikset_create(
+		offsetof(struct widget_change, name), HASH_KEY_STRING, 0);
 
    	prop_load_from_file(properties, settings_gui_config_dir(), property_file);
 
@@ -6102,6 +6160,17 @@ settings_gui_init(void)
 #endif /* USE_REMOTE_CTRL */
 }
 
+static G_GNUC_COLD void
+sensitive_free_value(void *value, void *unused_data)
+{
+	struct widget_change *wc = value;
+
+	(void) unused_data;
+
+	cq_cancel(&wc->ev);
+	WFREE(wc);
+}
+
 G_GNUC_COLD void
 settings_gui_shutdown(void)
 {
@@ -6110,6 +6179,7 @@ settings_gui_shutdown(void)
     /*
      * Remove the listeners
      */
+
     for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
         if (property_map[n].cb != IGNORE_CB) {
             property_map[n].stub->prop_changed_listener.remove(
@@ -6118,20 +6188,26 @@ settings_gui_shutdown(void)
         }
     }
 
+	hikset_foreach(sensitive_changes, sensitive_free_value, NULL);
+	hikset_free_null(&sensitive_changes);
+
     /*
      * There are no Gtk signals to listen to, so we must set those
      * values on exit.
      */
 
 	settings_gui_save_panes();
+
     /*
      * Save properties to file
      */
+
     prop_save_to_file(properties, settings_gui_config_dir(), property_file);
 
     /*
      * Free allocated memory.
      */
+
     gui_prop_shutdown();
 
     G_FREE_NULL(home_dir);
