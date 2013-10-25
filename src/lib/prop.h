@@ -333,5 +333,21 @@ get_prop(prop_set_t *ps, property_t prop, const char *loc)
  */
 #define PROP(ps, p) (* get_prop((ps), (p), G_STRLOC))
 
+/*
+ * Casts, since property_t is an opaque type, for using properties as keys.
+ */
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+property_to_pointer(property_t value)
+{
+	return ulong_to_pointer(value);
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE property_t
+pointer_to_property(const void *p)
+{
+	return pointer_to_ulong(p);
+}
+
 #endif /* _prop_h_ */
 /* vi: set ts=4 sw=4 cindent: */
