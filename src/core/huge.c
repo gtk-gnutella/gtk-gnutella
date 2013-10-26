@@ -477,10 +477,13 @@ huge_update_hashes(shared_file_t *sf,
 }
 
 /**
- * Get the next file waiting for its hash to be computed from the queue
- * (actually a stack).
+ * Look whether we still need to compute the SHA1 of the given shared file
+ * by looking into our in-core cache to see whether the entry we have is
+ * up-to-date.
  *
- * @return this file.
+ * @param sf	the shared file for which we want to compute the SHA1
+ *
+ * @return TRUE if the file need SHA1 recomputation.
  */
 static bool
 huge_need_sha1(shared_file_t *sf)
@@ -493,27 +496,13 @@ huge_need_sha1(shared_file_t *sf)
 	 * After a rescan, there might be files in the queue which are
 	 * no longer shared.
 	 */
+
 	if (!(SHARE_F_INDEXED & shared_file_flags(sf)))
 		return FALSE;
 
-	/*
-	 * XXX HACK ALERT
-	 *
-	 * We need to be careful here, because each time the library is rescanned,
-	 * we add file to the list of SHA1 to recompute if we don't have them
-	 * yet.  This means that when we rescan the library during a computation,
-	 * we'll add duplicates to our working queue.
-	 *
-	 * Fortunately, we can probe our in-core cache to see if what we have
-	 * is already up-to-date.
-	 *
-	 * XXX It would be best to maintain a hash table of all the filenames
-	 * XXX in our workqueue and not enqueue the work in the first place.
-	 * XXX		--RAM, 21/05/2002
-	 */
-
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
-	if (cached) {
+
+	if (cached != NULL) {
 		filestat_t sb;
 
 		if (-1 == stat(shared_file_path(sf), &sb)) {
