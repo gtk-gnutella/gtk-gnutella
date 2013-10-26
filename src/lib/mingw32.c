@@ -4762,7 +4762,7 @@ static G_GNUC_COLD void
 mingw_exception_log(int code, const void *pc)
 {
 	DECLARE_STR(11);
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 	const char *name;
 	const char *file = NULL;
 
@@ -4822,7 +4822,7 @@ static G_GNUC_COLD void
 mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 {
 	DECLARE_STR(6);
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 	const char *prot = "unknown";
 	const void *va = NULL;
 

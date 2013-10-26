@@ -53,8 +53,8 @@
 static G_GNUC_COLD void
 assertion_message(const assertion_data * const data, int fatal)
 {
-	char line_buf[22];
-	char time_buf[18];
+	char line_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 	char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
 	unsigned stid;
 	DECLARE_STR(16);
@@ -218,7 +218,7 @@ assertion_warning_log(const assertion_data * const data,
 	va_end(args);
 
 	{
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
 		unsigned stid = thread_small_id();
 		DECLARE_STR(4);
@@ -285,7 +285,7 @@ assertion_failure_log(const assertion_data * const data,
 	 */
 
 	if (msg != NULL) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (FATAL-): ")];
 		unsigned stid = thread_small_id();
 		DECLARE_STR(4);

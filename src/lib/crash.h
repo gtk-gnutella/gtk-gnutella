@@ -209,6 +209,9 @@ enum crash_alter_mode {
 	CRASH_FLAG_CLEAR
 };
 
+#define CRASH_TIME_BUFLEN		22	/**< Buffer length for crash_time() */
+#define CRASH_TIME_ISO_BUFLEN	21	/**< Buffer length for crash_time_iso() */
+
 struct assertion_data;
 
 void crash_init(const char *argv0, const char *progname,

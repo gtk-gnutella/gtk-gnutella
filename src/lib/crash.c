@@ -114,6 +114,8 @@
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
 
+#define CRASH_RUNTIME_BUFLEN	12	/**< Buffer length for crash_run_time() */
+
 #ifdef HAS_FORK
 #define has_fork() 1
 #else
@@ -279,7 +281,8 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 
 /**
  * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS
- * and should be at least 18-byte long or the string will be truncated.
+ * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
+ * truncated.
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
@@ -321,8 +324,8 @@ crash_time(char *buf, size_t size)
 
 /**
  * Fill supplied buffer with the current time formatted using the ISO format
- * yyyy-mm-dd HH:MM:SSZ and should be at least 21-byte long or the string
- * will be truncated.
+ * yyyy-mm-dd HH:MM:SSZ and should be at least CRASH_TIME_ISO_BUFLEN byte-long
+ * or the string will be truncated.
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
@@ -458,8 +461,8 @@ crash_run_hooks(const char *logfile, int logfd)
 {
 	crash_hook_t hook;
 	const char *routine;
-	char pid_buf[22];
-	char time_buf[18];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 	DECLARE_STR(7);
 	int fd = logfd;
 
@@ -562,10 +565,10 @@ static G_GNUC_COLD void
 crash_message(const char *signame, bool trace, bool recursive)
 {
 	DECLARE_STR(11);
-	char pid_buf[22];
-	char time_buf[18];
-	char runtime_buf[22];
-	char build_buf[22];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
+	char runtime_buf[CRASH_RUNTIME_BUFLEN];
+	char build_buf[ULONG_DEC_BUFLEN];
 	unsigned iov_prolog;
 
 	crash_time(time_buf, sizeof time_buf);
@@ -618,8 +621,8 @@ static G_GNUC_COLD void
 crash_decorating_stack(void)
 {
 	DECLARE_STR(5);
-	char pid_buf[22];
-	char time_buf[18];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 
 	if (!vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
@@ -642,8 +645,8 @@ static G_GNUC_COLD void
 crash_end_of_line(bool forced)
 {
 	DECLARE_STR(7);
-	char pid_buf[22];
-	char time_buf[18];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 
 	if (!forced && !vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
@@ -937,7 +940,7 @@ static G_GNUC_COLD void
 crash_fork_timeout(int signo)
 {
 	DECLARE_STR(2);
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);
@@ -1024,11 +1027,11 @@ restore:
 static void
 crash_log_write_header(int clf, int signo, const char *filename)
 {
-	char tbuf[22];
-	char rbuf[22];
+	char tbuf[CRASH_TIME_BUFLEN];
+	char rbuf[CRASH_RUNTIME_BUFLEN];
 	char sbuf[ULONG_DEC_BUFLEN];
 	char nbuf[ULONG_DEC_BUFLEN];
-	char lbuf[22];
+	char lbuf[ULONG_DEC_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
@@ -1213,7 +1216,7 @@ crash_generate_crashlog(int signo)
 {
 	static char crashlog[MAX_PATH_LEN];
    	const char *pid_str;
-	char pid_buf[22];
+	char pid_buf[ULONG_DEC_BUFLEN];
 	char filename[80];
 	int clf;
 	const mode_t mode = S_IRUSR | S_IWUSR;
@@ -1256,7 +1259,7 @@ static G_GNUC_COLD bool
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
-	char pid_buf[22];
+	char pid_buf[ULONG_DEC_BUFLEN];
 	pid_t pid;
 	int fd[2];
 	const char *stage = NULL;
@@ -1300,7 +1303,7 @@ retry_child:
 		}
 	} else {
 		DECLARE_STR(2);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);
@@ -1321,7 +1324,7 @@ retry_child:
 		could_fork = FALSE;
 		{
 			DECLARE_STR(6);
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 
 			crash_time(time_buf, sizeof time_buf);
 			print_str(time_buf);
@@ -1346,7 +1349,7 @@ retry_child:
 			const mode_t mode = S_IRUSR | S_IWUSR;
 			char const *argv[8];
 			char filename[80];
-			char tbuf[22];
+			char tbuf[CRASH_TIME_BUFLEN];
 			char cmd[MAX_PATH_LEN];
 			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(10);
@@ -1579,7 +1582,7 @@ parent_process:
 	{
 		DECLARE_STR(10);
 		unsigned iov_prolog;
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		int status;
 		bool child_ok = FALSE;
 
@@ -1816,7 +1819,7 @@ no_fork:
 parent_failure:
 	{
 		DECLARE_STR(6);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);					/* 0 */
@@ -1882,7 +1885,7 @@ crash_mode(void)
 			log_crashing(vars->fmtstr);
 		}
 		if (ck_is_readonly(vars->fmtck)) {
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(2);
 
 			crash_time(time_buf, sizeof time_buf);
@@ -1894,7 +1897,7 @@ crash_mode(void)
 		static bool warned;
 
 		if (!warned) {
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(2);
 
 			warned = TRUE;
@@ -1979,7 +1982,7 @@ crash_try_reexec(void)
 	/* Log exec() failure */
 
 	{
-		char tbuf[22];
+		char tbuf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(6);
 
 		crash_time(tbuf, sizeof tbuf);
@@ -2028,8 +2031,8 @@ crash_auto_restart(void)
 
 	if (delta_time(time(NULL), vars->start_time) <= CRASH_MIN_ALIVE) {
 		if (vars->may_restart) {
-			char time_buf[18];
-			char runtime_buf[22];
+			char time_buf[CRASH_TIME_BUFLEN];
+			char runtime_buf[CRASH_RUNTIME_BUFLEN];
 			DECLARE_STR(5);
 
 			crash_time(time_buf, sizeof time_buf);
@@ -2047,8 +2050,8 @@ crash_auto_restart(void)
 	}
 
 	if (vars->may_restart) {
-		char time_buf[18];
-		char runtime_buf[22];
+		char time_buf[CRASH_TIME_BUFLEN];
+		char runtime_buf[CRASH_RUNTIME_BUFLEN];
 		DECLARE_STR(6);
 
 		crash_time(time_buf, sizeof time_buf);
@@ -2445,7 +2448,7 @@ crash_init(const char *argv0, const char *progname,
 	vars = &iv;
 
 	if (NULL == getcwd(dir, sizeof dir)) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(4);
 
 		crash_time(time_buf, sizeof time_buf);

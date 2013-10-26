@@ -711,7 +711,7 @@ log_abort(void)
 
 	{
 		DECLARE_STR(3);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);	/* 0 */
@@ -765,7 +765,7 @@ s_rawlogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(11);
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 	const char *prefix;
 	unsigned stid;
 
@@ -938,7 +938,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if G_UNLIKELY(recursing) {
 		DECLARE_STR(9);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		const char *caller;
 		bool copy;
 
@@ -1004,7 +1004,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if G_UNLIKELY(NULL == msg) {
 		DECLARE_STR(6);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);	/* 0 */
@@ -1035,7 +1035,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	{
 		DECLARE_STR(11);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);	/* 0 */
@@ -1437,7 +1437,7 @@ s_minierror(const char *format, ...)
 	static int recursion;
 	va_list args;
 	char data[LOG_MSG_MAXLEN];
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 	DECLARE_STR(6);
 	bool recursing;
 
@@ -1977,7 +1977,7 @@ log_reopen(enum log_file which)
 	} else {
 		if (LOG_STDERR == which) {
 			DECLARE_STR(8);
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 
 			crash_time(time_buf, sizeof time_buf);
 			print_str(time_buf);	/* 0 */

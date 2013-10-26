@@ -1723,7 +1723,7 @@ stacktrace_cautious_was_logged(void)
 static G_GNUC_COLD void
 stacktrace_got_signal(int signo)
 {
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 	int stid;
 	DECLARE_STR(4);
 
@@ -1765,7 +1765,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	stid = thread_small_id();
 
 	if (printing[stid]) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(5);
 
 		crash_time(time_buf, sizeof time_buf);
@@ -1796,7 +1796,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 #endif
 
 	if (Sigsetjmp(print_context[stid].env, TRUE)) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(2);
 
 		crash_time(time_buf, sizeof time_buf);
@@ -1807,7 +1807,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	}
 
 	if (0 == count) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(2);
 
 		crash_time(time_buf, sizeof time_buf);

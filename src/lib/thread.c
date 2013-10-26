@@ -5545,7 +5545,7 @@ thread_element_clear_locks(struct thread_element *te)
 		}
 
 		if (unlocked) {
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 			char buf[POINTER_BUFLEN + 2];
 			DECLARE_STR(10);
 
@@ -5659,7 +5659,7 @@ thread_forked(void)
 
 	te = thread_find(&te);
 	if (NULL == te) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(4);
 
 		crash_time(time_buf, sizeof time_buf);
