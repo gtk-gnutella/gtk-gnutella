@@ -582,8 +582,8 @@ log_printable(enum log_file which)
  * Emit log message.
  */
 static void
-log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
-	const char *prefix, unsigned stid, const char *msg)
+log_fprint(enum log_file which, const struct tm *ct, long usec,
+	GLogLevelFlags level, const char *prefix, unsigned stid, const char *msg)
 {
 	struct logfile *lf;
 	char buf[32];
@@ -591,7 +591,7 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 	str_t *ls;
 	ssize_t w;
 
-#define FORMAT_STR	"%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n"
+#define FORMAT_STR	"%02d-%02d-%02d %.02d:%.02d:%.02d.%03ld (%s)%s%s: %s\n"
 
 	log_file_check(which);
 
@@ -621,7 +621,7 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 	str_printf(ls, FORMAT_STR,
 		(TM_YEAR_ORIGIN + ct->tm_year) % 100,
 		ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, tprefix,
+		ct->tm_hour, ct->tm_min, ct->tm_sec, usec / 1000, tprefix,
 		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
 		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
 		msg);
@@ -1862,6 +1862,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 	int saved_errno = errno;
 	time_t now;
 	struct tm *ct;
+	tm_t tv;
 	const char *prefix;
 	char *safer;
 	unsigned stid;
@@ -1871,7 +1872,8 @@ log_handler(const char *domain, GLogLevelFlags level,
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
 
-	now = tm_time_exact();
+	tm_now_exact(&tv);
+	now = tv.tv_sec;
 	ct = localtime(&now);
 
 	prefix = log_prefix(level);
@@ -1884,14 +1886,14 @@ log_handler(const char *domain, GLogLevelFlags level,
 		safer = control_escape(message);
 	}
 
-	log_fprint(LOG_STDERR, ct, level, prefix, stid, safer);
+	log_fprint(LOG_STDERR, ct, tv.tv_usec, level, prefix, stid, safer);
 
 	if G_UNLIKELY(
 		level &
 			(G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR)
 	) {
 		if (log_stdout_is_distinct())
-			log_fprint(LOG_STDOUT, ct, level, prefix, stid, safer);
+			log_fprint(LOG_STDOUT, ct, tv.tv_usec, level, prefix, stid, safer);
 		if (level & G_LOG_FLAG_FATAL)
 			crash_set_error(safer);
 	}

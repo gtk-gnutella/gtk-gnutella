@@ -223,7 +223,7 @@ typedef struct cursor {
 } cursor_t;
 
 /**
- * Append positive value to buffer, formatted as "%02u".
+ * Append positive value to buffer, formatted as "%02lu".
  */
 static G_GNUC_COLD void
 crash_append_fmt_02u(cursor_t *cursor, long v)
@@ -247,7 +247,42 @@ crash_append_fmt_02u(cursor_t *cursor, long v)
 }
 
 /**
- * Append positive value to buffer, formatted as "%u".
+ * Append positive value to buffer, formatted as "%03lu".
+ */
+static G_GNUC_COLD void
+crash_append_fmt_03u(cursor_t *cursor, long v)
+{
+	if (cursor->size < 3 || v < 0)
+		return;
+
+	if (v >= 1000)
+		v %= 1000;
+
+	if (v < 10) {
+		*cursor->buf++ = '0';
+		*cursor->buf++ = '0';
+		*cursor->buf++ = dec_digit(v);
+	} else if (v < 100) {
+		int c = v / 10;
+		int d = v - c * 10;
+		*cursor->buf++ = '0';
+		*cursor->buf++ = dec_digit(c);
+		*cursor->buf++ = dec_digit(d);
+	} else {
+		int t, d, c;
+		t = v / 100;
+		v -= t * 100;
+		c = v / 10;
+		d = v - c * 10;
+		*cursor->buf++ = dec_digit(t);
+		*cursor->buf++ = dec_digit(c);
+		*cursor->buf++ = dec_digit(d);
+	}
+	cursor->size -= 3;
+}
+
+/**
+ * Append positive value to buffer, formatted as "%lu".
  */
 static G_GNUC_COLD void
 crash_append_fmt_u(cursor_t *cursor, unsigned long v)
@@ -280,7 +315,7 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 }
 
 /**
- * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
  * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
  * truncated.
  *
@@ -292,6 +327,7 @@ crash_time(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
 	struct tm tm;
+	tm_t tv;
 	cursor_t cursor;
 
 	/* We need at least space for a NUL */
@@ -300,8 +336,9 @@ crash_time(char *buf, size_t size)
 
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
+	tm_now_exact(&tv);
 
-	if (!off_time(tm_localtime_exact(), 0, &tm)) {
+	if (!off_time(tm_localtime(), 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -317,6 +354,8 @@ crash_time(char *buf, size_t size)
 	crash_append_fmt_02u(&cursor, tm.tm_min);
 	crash_append_fmt_c(&cursor, ':');
 	crash_append_fmt_02u(&cursor, tm.tm_sec);
+	crash_append_fmt_c(&cursor, '.');
+	crash_append_fmt_03u(&cursor, tv.tv_usec / 1000);
 
 	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
 	crash_append_fmt_c(&cursor, '\0');

@@ -177,6 +177,7 @@ tm_time(void)
 }
 
 tm_t tm_start_time(void);
+time_t tm_localtime(void);
 time_t tm_localtime_exact(void);
 time_t tm_localtime_exact(void);
 
