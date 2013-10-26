@@ -49,6 +49,7 @@ bool slist_contains(const slist_t *slist, const void *key,
 		GEqualFunc func, void **orig_key);
 bool slist_contains_identical(const slist_t *slist, const void *key);
 void slist_foreach(const slist_t *slist, GFunc func, void *user_data);
+size_t slist_foreach_remove(slist_t *slist, data_rm_fn_t func, void *udata);
 
 slist_iter_t *slist_iter_on_head(const slist_t *slist);
 slist_iter_t *slist_iter_before_head(const slist_t *slist);

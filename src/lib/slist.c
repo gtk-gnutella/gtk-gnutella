@@ -802,6 +802,37 @@ slist_foreach(const slist_t *slist, GFunc func, void *user_data)
 	slist_return_void(slist);
 }
 
+/**
+ * Apply `func' to all the items in the structure, removing the entry
+ * if `func' returns TRUE.
+ *
+ * @return the amount of entries removed from the list.
+ */
+size_t
+slist_foreach_remove(slist_t *slist, data_rm_fn_t func, void *user_data)
+{
+	size_t removed = 0;
+	GSList *item, *prev, *next;
+
+	slist_check(slist);
+	g_assert(func);
+
+	slist_synchronize(slist);
+
+	for (prev = NULL, item = slist->head; NULL != item; item = next) {
+		next = g_slist_next(item);
+		if ((*func)(item->data, user_data)) {
+			slist_remove_item(slist, prev, item);
+			removed++;
+		} else {
+			prev = item;
+		}
+	}
+
+	slist_regression(slist);
+	slist_return(slist, removed);
+}
+
 static void
 slist_freecb_wrapper(void *data, void *user_data)
 {
