@@ -748,22 +748,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(gentime_close);
 
 	/*
-	 * Memory shutdown must come last.
-	 */
-
-	gm_mem_set_safe_vtable();
-	DO(vmm_pre_close);
-	DO(atoms_close);
-	DO(wdestroy);
-	DO(zclose);
-	DO(malloc_close);
-	DO(hdestroy);
-	DO(omalloc_close);
-	DO(xmalloc_pre_close);
-	DO(vmm_close);
-	DO(signal_close);
-
-	/*
 	 * Wait for pending messages from other threads.
 	 */
 
@@ -782,6 +766,29 @@ gtk_gnutella_exit(int exit_code)
 
 		thread_yield();
 	}
+
+	/*
+	 * About to shutdown memory, suspend all the other running threads to
+	 * avoid problems if they wake up suddenly and attempt to allocate memory.
+	 */
+
+	thread_suspend_others(FALSE);
+
+	/*
+	 * Memory shutdown must come last.
+	 */
+
+	gm_mem_set_safe_vtable();
+	DO(vmm_pre_close);
+	DO(atoms_close);
+	DO(wdestroy);
+	DO(zclose);
+	DO(malloc_close);
+	DO(hdestroy);
+	DO(omalloc_close);
+	DO(xmalloc_pre_close);
+	DO(vmm_close);
+	DO(signal_close);
 
 	g_info("gtk-gnutella shut down cleanly.");
 
