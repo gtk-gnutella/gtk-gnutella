@@ -147,6 +147,24 @@ gentime_now_exact(void)
 }
 
 /**
+ * Get generation time from current system time.
+ *
+ * @param stamp		current system time
+ *
+ * @return generation time from given time, assumed to be the current one.
+ */
+gentime_t
+gentime_from(time_t stamp)
+{
+	gentime_t now;
+
+	now.stamp = stamp;
+	now.generation = atomic_uint_get(&gentime_gen);
+
+	return now;
+}
+
+/**
  * Correct the timestamp by applying all the recorded adjustments that
  * came after the timestamp was computed.
  *

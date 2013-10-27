@@ -60,6 +60,7 @@ typedef struct gentime {
 
 gentime_t gentime_now(void);
 gentime_t gentime_now_exact(void);
+gentime_t gentime_from(time_t stamp);
 time_delta_t gentime_diff(const gentime_t t1, const gentime_t t0);
 
 void gentime_init(void);
@@ -69,6 +70,15 @@ static inline bool ALWAYS_INLINE
 gentime_is_zero(const gentime_t const gt)
 {
 	return 0 == gt.stamp;
+}
+
+/**
+ * Extract the time from a generation time.
+ */
+static inline time_t ALWAYS_INLINE
+gentime_time(const gentime_t const gt)
+{
+	return gt.stamp;
 }
 
 #endif /* _gentime_h_ */
