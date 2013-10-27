@@ -4842,8 +4842,8 @@ parq_store(void *data, void *file_ptr)
 {
 	FILE *f = file_ptr;
 	struct parq_ul_queued *puq = data;
-	char last_buf[TIMESTAMP_BUF_LEN];
-	char enter_buf[TIMESTAMP_BUF_LEN];
+	char last_buf[TIMESTAMP_BUFLEN];
+	char enter_buf[TIMESTAMP_BUFLEN];
 	int expire;
 
 	/* We are not saving uploads which already finished an upload */

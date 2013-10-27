@@ -162,7 +162,7 @@ timestamp_get_string(time_t date)
 const char *
 timestamp_to_string(time_t date)
 {
-	static char buf[TIMESTAMP_BUF_LEN];
+	static char buf[TIMESTAMP_BUFLEN];
 
 	timestamp_to_string_buf(date, buf, sizeof buf);
 	return buf;
