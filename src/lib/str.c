@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2011 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2013 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -39,7 +39,7 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2011
+ * @date 1996-2000, 2007, 2010-2013
  */
 
 #include "common.h"
@@ -79,6 +79,7 @@ static unsigned format_recursion;	/* Prevents recursive verbose debugging */
  */
 #define STR_FOREIGN_PTR		(1 << 0)	/**< We don't own the pointer */
 #define STR_OBJECT			(1 << 1)	/**< Object created, not a structure */
+#define STR_THREAD			(1 << 2)	/**< String is thread-private */
 
 /**
  * @return length of string.
@@ -249,6 +250,9 @@ str_new(size_t szhint)
 /**
  * Fill in an existing string structure, of the specified hint size.
  *
+ * @param str		the string structure to fill with new data buffer
+ * @param szhint	buffer hint size
+ *
  * @return its "str" argument.
  */
 str_t *
@@ -355,6 +359,80 @@ str_new_buffer(str_t *str, char *ptr, size_t len, size_t size)
 }
 
 /**
+ * Reclaim a thread-private string when the thread is exiting.
+ */
+static void
+str_private_reclaim(void *data, void *unused)
+{
+	str_t *s = data;
+
+	(void) unused;
+
+	str_check(s);
+	g_assert_log(s->s_flags & STR_THREAD,
+		"%s(): called on a regular string object", G_STRFUNC);
+
+	s->s_flags &= ~STR_THREAD;
+	str_destroy(s);
+}
+
+/**
+ * Get a thread-private string attached to the specified key.
+ *
+ * If the string already existed in the thread for this key, it is returned,
+ * and the szhint parameter is ignored.
+ *
+ * Otherwise, a new string is created and attached to the key.
+ *
+ * A typical usage of this routine is to make a routine returning static
+ * data thread-safe:
+ *
+ *   const char *
+ *   routine(int i)
+ *   {
+ *       str_t *s = str_private(G_STRFUNC, 10);
+ *
+ *       str_printf(s, "%dB", i);
+ *       return str_2c(s);	       // the private copy for this thread
+ *   }
+ *
+ * @param key		the key to use to identify this string
+ * @param szhint	initial length of the data buffer (0 for default)
+ *
+ * @note
+ * The string will be reclaimed automatically when the thread exits and its
+ * pointer should not be given to foreign threads but used solely in the
+ * context of the thread.  This applies to the string object and its buffer.
+ *
+ * @return a string object dedicated to the calling thread.
+ */
+str_t *
+str_private(const void *key, size_t szhint)
+{
+	str_t *s;
+
+	s = thread_private_get(key);
+
+	if G_LIKELY(s != NULL) {
+		str_check(s);
+		return s;
+	}
+
+	/*
+	 * Allocate a new string and declare it as a thread-private variable
+	 * with an associated free routine.  The string cannot be destroyed but
+	 * through that specialized free routine.
+	 */
+
+	s = str_new(szhint);
+	s->s_flags |= STR_THREAD;	/* Prevents plain str_free() on that string */
+
+	thread_private_add_extended(key, s, str_private_reclaim, NULL);
+
+	return s;
+}
+
+/**
  * Make an str_t object out of a specified C string, which is duplicated.
  * If specified length is (size_t) -1, it is computed using strlen().
  */
@@ -404,6 +482,9 @@ str_free(str_t *str)
 {
 	str_check(str);
 
+	g_assert_log(!(str->s_flags & STR_THREAD),
+		"%s(): called on thread-private string object", G_STRFUNC);
+
 	/*
 	 * If data arena is a foreign structure, don't free it: we are not the
 	 * owner of the pointer to it.
@@ -427,8 +508,8 @@ str_destroy(str_t *str)
 {
 	str_check(str);
 
-	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		s_error("%s() called on \"static\" string object", G_STRFUNC);
+	g_assert_log(str->s_flags & STR_OBJECT,
+		"%s(): called on \"static\" string object", G_STRFUNC);
 
 	str_free(str);
 	str->s_magic = 0;

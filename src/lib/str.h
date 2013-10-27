@@ -85,6 +85,7 @@ str_t *str_new_from(const char *string);
 str_t *str_new_not_leaking(size_t szhint);
 str_t *str_new_in_chunk(struct ckhunk *ck, size_t size);
 str_t *str_new_in_buffer(void *buf, size_t len);
+str_t *str_private(const void *key, size_t szhint);
 str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
