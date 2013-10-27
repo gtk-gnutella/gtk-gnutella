@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2009, Raphael Manfredi
+ * Copyright (c) 2005, 2009, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -53,8 +53,7 @@
  * released because it was identified explicitly as a fragment.
  *
  * @author Raphael Manfredi
- * @date 2005
- * @date 2009
+ * @date 2005, 2009, 2013
  */
 
 #include "common.h"
@@ -64,7 +63,9 @@
 #include "glib-missing.h"
 #include "hashlist.h"
 #include "log.h"
+#include "once.h"
 #include "palloc.h"
+#include "spinlock.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -75,9 +76,16 @@
 
 #define POOL_OVERSIZED_THRESH	30		/**< Amount of seconds to wait */
 #define POOL_EMA_SHIFT			5		/**< Avoid losing decimals */
+#define POOL_HEARTBEAT_PERIOD	1000	/**< ms: Scan every second */
 
 static uint32 palloc_debug;		/**< Debug level */
 static hash_list_t *pool_gc;	/**< Pools needing garbage collection */
+static spinlock_t pool_gc_slk = SPINLOCK_INIT;
+
+static once_flag_t pool_gc_installed;
+
+#define POOL_GC_LOCK		spinlock(&pool_gc_slk)
+#define POOL_GC_UNLOCK		spinunlock(&pool_gc_slk)
 
 enum pool_magic { POOL_MAGIC = 0x79b826eeU };
 
@@ -89,7 +97,7 @@ struct pool {
 	char *name;				/**< Pool name, for debugging */
 	size_t size;			/**< Size of blocks held in the pool */
 	GSList *buffers;		/**< Allocated buffers in the pool */
-	cevent_t *heartbeat_ev;	/**< Monitoring of pool level */
+	cperiodic_t *heart_ev;	/**< Monitoring of pool level */
 	pool_alloc_t alloc;		/**< Memory allocation routine */
 	pool_free_t	dealloc;	/**< Memory release routine */
 	pool_frag_t	is_frag;	/**< Fragment checking routine (optional) */
@@ -102,9 +110,17 @@ struct pool {
 	unsigned monotonic_ema;	/**< Fast EMA of "max_alloc" */
 	unsigned above;			/**< Amount of times allocation >= used EMA */
 	unsigned peak;			/**< Peak usage, when we're above used EMA */
+	spinlock_t lock;		/**< Thread-safe lock */
 };
 
 #define pool_ema(p_, f_)	((p_)->f_ >> POOL_EMA_SHIFT)
+
+#define POOL_LOCK(p)		spinlock(&(p)->lock)
+#define POOL_LOCK_TRY(p)	spinlock_try(&(p)->lock)
+#define POOL_UNLOCK(p)		spinunlock(&(p)->lock)
+
+#define assert_pool_locked(p) \
+	g_assert(spinlock_is_held(&(p)->lock))
 
 static inline void
 pool_check(const pool_t * const p)
@@ -113,7 +129,26 @@ pool_check(const pool_t * const p)
 	g_assert(POOL_MAGIC == p->magic);
 }
 
-static void pool_install_heartbeat(pool_t *p);
+/**
+ * Called when the main callout queue is idle to attempt pool GC.
+ */
+static bool
+pool_gc_idle(void *unused_data)
+{
+	(void) unused_data;
+
+	pgc();
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Install periodic idle callback to run the pool garbage collector.
+ */
+static G_GNUC_COLD void
+pool_gc_install(void)
+{
+	cq_idle_add(cq_main(), pool_gc_idle, NULL);
+}
 
 /**
  * Register or deregister a pool for garabage collection.
@@ -121,50 +156,54 @@ static void pool_install_heartbeat(pool_t *p);
 static void
 pool_needs_gc(const pool_t *p, bool need)
 {
+	bool change = FALSE;		/* For logging, if needed */
+
 	pool_check(p);
+	assert_pool_locked(p);
+
+	POOL_GC_LOCK;
 
 	if (!need) {
 		if (pool_gc != NULL && hash_list_remove(pool_gc, p) != NULL) {
-			if (palloc_debug > 1) {
-				s_debug("PGC turning off GC for pool \"%s\" "
-					"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
-					p->name, p->allocated, p->held,
-					pool_ema(p, slow_ema), pool_ema(p, fast_ema));
-			}
-			if (0 == hash_list_length(pool_gc)) {
+			if (0 == hash_list_length(pool_gc))
 				hash_list_free(&pool_gc);
-			}
+			change = TRUE;
 		}
 	} else {
 		if (NULL == pool_gc)
 			pool_gc = hash_list_new(NULL, NULL);
 		if (!hash_list_contains(pool_gc, p)) {
 			hash_list_append(pool_gc, p);
-			if (palloc_debug > 1) {
-				s_debug("PGC turning GC on for pool \"%s\" "
-					"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
-					p->name, p->allocated, p->held,
-					pool_ema(p, slow_ema), pool_ema(p, fast_ema));
-			}
+			change = TRUE;
 		}
+	}
+
+	POOL_GC_UNLOCK;
+
+	if G_UNLIKELY(change && palloc_debug > 1) {
+		s_debug("PGC turning %s for pool \"%s\" "
+			"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
+			need ? "GC on" : "off GC",
+			p->name, p->allocated, p->held,
+			pool_ema(p, slow_ema), pool_ema(p, fast_ema));
 	}
 }
 
 /**
  * Pool heartbeat to monitor usage level.
  */
-static void
-pool_heartbeat(cqueue_t *cq, void *obj)
+static bool
+pool_heartbeat(void *obj)
 {
 	pool_t *p = obj;
 	unsigned used;
 	unsigned ema;
 
 	pool_check(p);
-	g_assert(p->allocated >= p->held);
 
-	cq_zero(cq, &p->heartbeat_ev);
-	pool_install_heartbeat(p);
+	POOL_LOCK(p);
+
+	g_assert(p->allocated >= p->held);
 
 	/*
 	 * Update the usage EMA.
@@ -218,6 +257,8 @@ pool_heartbeat(cqueue_t *cq, void *obj)
 		pool_needs_gc(p, FALSE);
 	}
 
+	POOL_UNLOCK(p);
+
 	if (palloc_debug > 4) {
 		s_debug("PGC pool \"%s\": allocated=%u, held=%u, used=%u, above=%u, "
 			"slow_ema=%u, fast_ema=%u, monotonic_ema=%u, peak=%u",
@@ -225,17 +266,8 @@ pool_heartbeat(cqueue_t *cq, void *obj)
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
 			pool_ema(p, monotonic_ema), p->peak);
 	}
-}
 
-/**
- * Install periodic pool hearbeat (once per second).
- */
-static void
-pool_install_heartbeat(pool_t *p)
-{
-
-	pool_check(p);
-	p->heartbeat_ev = cq_main_insert(1000, pool_heartbeat, p);
+	return TRUE;	/* Keep calling */
 }
 
 /**
@@ -253,6 +285,8 @@ pool_create(const char *name,
 {
 	pool_t *p;
 
+	once_flag_run(&pool_gc_installed, pool_gc_install);
+
 	WALLOC0(p);
 	p->magic = POOL_MAGIC;
 	p->name = xstrdup(name);
@@ -260,8 +294,9 @@ pool_create(const char *name,
 	p->alloc = alloc;
 	p->dealloc = dealloc;
 	p->is_frag = is_frag;
-
-	pool_install_heartbeat(p);
+	p->heart_ev =
+		cq_periodic_main_add(POOL_HEARTBEAT_PERIOD, pool_heartbeat, p);
+	spinlock_init(&p->lock);
 
 	return p;
 }
@@ -276,6 +311,9 @@ pool_free(pool_t *p)
 	GSList *sl;
 
 	pool_check(p);
+
+	POOL_LOCK(p);
+
 	g_assert(p->allocated >= p->held);
 
 	/*
@@ -301,7 +339,8 @@ pool_free(pool_t *p)
 
 	gm_slist_free_null(&p->buffers);
 	XFREE_NULL(p->name);
-	cq_cancel(&p->heartbeat_ev);
+	cq_periodic_remove(&p->heart_ev);
+	spinlock_destroy(&p->lock);
 	p->magic = 0;
 	WFREE(p);
 }
@@ -312,32 +351,39 @@ pool_free(pool_t *p)
 G_GNUC_HOT void *
 palloc(pool_t *p)
 {
+	void *obj;
+
 	pool_check(p);
+
+	POOL_LOCK(p);
 
 	p->alloc_reqs++;
 
-	/*
-	 * If we have a buffer available, we're done.
-	 */
 
-	if (p->buffers) {
-		void *obj;
-
+	if (p->buffers != NULL) {
 		g_assert(uint_is_positive(p->held));
+
+		/*
+		 * We have a buffer available, we're done.
+		 */
 
 		obj = p->buffers->data;
 		p->buffers = g_slist_delete_link(p->buffers, p->buffers);
 		p->held--;
+		POOL_UNLOCK(p);
+	} else {
+		size_t size = p->size;
 
-		return obj;
+		/*
+		 * No such luck, allocate a new buffer.
+		 */
+
+		p->allocated++;
+		POOL_UNLOCK(p);
+		obj = p->alloc(size);
 	}
 
-	/*
-	 * No such luck, allocate a new buffer.
-	 */
-
-	p->allocated++;
-	return p->alloc(p->size);
+	return obj;
 }
 
 /**
@@ -348,6 +394,8 @@ pfree(pool_t *p, void *obj)
 {
 	pool_check(p);
 	g_assert(obj != NULL);
+
+	POOL_LOCK(p);
 
 	/*
 	 * Determine the maximum amount of consecutive allocations we can have
@@ -366,14 +414,17 @@ pfree(pool_t *p, void *obj)
 	if (NULL != p->is_frag && p->is_frag(obj)) {
 		g_assert(uint_is_positive(p->allocated));
 
+		p->allocated--;
+		POOL_UNLOCK(p);
+
 		if (palloc_debug > 1)
 			s_debug("PGC pool \"%s\": buffer %p is a fragment", p->name, obj);
 
 		p->dealloc(obj, TRUE);
-		p->allocated--;
 	} else {
 		p->buffers = g_slist_prepend(p->buffers, obj);
 		p->held++;
+		POOL_UNLOCK(p);
 	}
 }
 
@@ -388,12 +439,17 @@ set_palloc_debug(uint32 level)
 
 /**
  * Reclaim buffer.
+ *
+ * The pool is locked upon entry.
  */
 static void
 pool_reclaim(pool_t *p, void *obj)
 {
+	pool_check(p);
+	assert_pool_locked(p);
 	g_assert(uint_is_positive(p->allocated));
 	g_assert(uint_is_positive(p->held));
+	g_assert(p->allocated >= p->held);
 
 	p->buffers = g_slist_remove(p->buffers, obj);
 	p->dealloc(obj, FALSE);
@@ -403,6 +459,8 @@ pool_reclaim(pool_t *p, void *obj)
 
 /**
  * Invoked by garbage collector to reclaim over-allocated blocks.
+ *
+ * The pool is locked upon entry.
  */
 static void
 pool_reclaim_garbage(pool_t *p)
@@ -412,6 +470,7 @@ pool_reclaim_garbage(pool_t *p)
 	unsigned extra;
 
 	pool_check(p);
+	assert_pool_locked(p);
 	g_assert(p->allocated >= p->held);
 
 	if (palloc_debug > 2) {
@@ -482,14 +541,14 @@ pool_reclaim_garbage(pool_t *p)
 	extra = p->allocated - threshold;
 	extra = MIN(extra, p->held);
 
+	/*
+	 * Here we go, reclaim extra buffers.
+	 */
+
 	if (palloc_debug) {
 		s_debug("PGC collecting %u extra block%s from \"%s\"",
 			extra, plural(extra), p->name);
 	}
-
-	/*
-	 * Here we go, reclaim extra buffers.
-	 */
 
 	while (extra-- > 0) {
 		GSList *sl = p->buffers;
@@ -513,11 +572,30 @@ reset:
 /**
  * Hash list iterator trampoline to reclaim garbage from pool.
  */
-static void
-pool_gc_trampoline(void *p, void *udata)
+static bool
+pool_gc_trampoline(void *obj, void *udata)
 {
+	pool_t *p = obj;
+
 	(void) udata;
+
+	pool_check(p);
+
+	/*
+	 * The normal locking order is POOL_LOCK -> POOL_GC_LOCK.
+	 *
+	 * However, here we're called with the POOL_GC_LOCK already taken, hence
+	 * we must only attempt to lock the pool, and if we can't, we'll do it
+	 * at the next run.
+	 */
+
+	if (!POOL_LOCK_TRY(p))
+		return FALSE;			/* Keep pool in the list */
+
 	pool_reclaim_garbage(p);
+	POOL_UNLOCK(p);
+
+	return TRUE;				/* Processed, can remove from list */
 }
 
 /**
@@ -529,10 +607,11 @@ pool_gc_trampoline(void *p, void *udata)
 void
 pgc(void)
 {
+	static spinlock_t pgc_slk = SPINLOCK_INIT;
 	static time_t last_run;
 	time_t now;
 
-	if (NULL == pool_gc)
+	if (!spinlock_try(&pgc_slk))
 		return;
 
 	/*
@@ -541,11 +620,25 @@ pgc(void)
 
 	now = tm_time();
 	if (last_run == now)
-		return;
+		goto done;
 	last_run = now;
 
-	hash_list_foreach(pool_gc, pool_gc_trampoline, NULL);
-	hash_list_free(&pool_gc);
+	/*
+	 * Reclaim garbage from the pools that registered.
+	 */
+
+	POOL_GC_LOCK;
+
+	if (pool_gc != NULL) {
+		hash_list_foreach_remove(pool_gc, pool_gc_trampoline, NULL);
+		if (0 == hash_list_length(pool_gc))
+			hash_list_free(&pool_gc);
+	}
+
+	POOL_GC_UNLOCK;
+
+done:
+	spinunlock(&pgc_slk);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
