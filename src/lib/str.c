@@ -3088,6 +3088,8 @@ str_test(bool verbose)
 		{ "%d",			S, MLEN,	-INTEGER,	"-345000" },
 		{ "%-8d.",		S, MLEN,	-INTEGER,	"-345000 ." },
 		{ "%.08d",		S, MLEN,	INTEGER,	"00345000" },
+		{ "%+d",		S, MLEN,	INTEGER,	"+345000" },
+		{ "%+d",		S, MLEN,	-INTEGER,	"-345000" },
 	};
 	static const struct tlong {
 		const char *fmt;
@@ -3113,6 +3115,8 @@ str_test(bool verbose)
 		{ "%ld",		S, MLEN,	-LONG,		"-345000" },
 		{ "%-8ld.",		S, MLEN,	-LONG,		"-345000 ." },
 		{ "%.08ld",		S, MLEN,	LONG,		"00345000" },
+		{ "%+ld",		S, MLEN,	LONG,		"+345000" },
+		{ "%+ld",		S, MLEN,	-LONG,		"-345000" },
 	};
 	static const struct tdouble {
 		const char *fmt;
