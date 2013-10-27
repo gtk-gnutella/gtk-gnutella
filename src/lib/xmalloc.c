@@ -507,7 +507,6 @@ static struct xstats {
 	uint64 freelist_blocks;				/**< Amount of blocks in free list */
 	uint64 freelist_memory;				/**< Memory held in freelist */
 	uint64 xgc_runs;					/**< Amount of xgc() runs */
-	uint64 xgc_throttled;				/**< Throttled calls to xgc() */
 	uint64 xgc_time_throttled;			/**< Throttled due to running time */
 	uint64 xgc_collected;				/**< Amount of xgc() calls collecting */
 	uint64 xgc_blocks_collected;		/**< Amount of blocks collected */
@@ -6215,7 +6214,7 @@ xgc_range_process(void *key, void *data)
 void
 xgc(void)
 {
-	static time_t last_run, next_run;
+	static time_t next_run;
 	static spinlock_t xgc_slk = SPINLOCK_INIT;
 	time_t now;
 	unsigned i;
@@ -6235,18 +6234,11 @@ xgc(void)
 		return;
 
 	/*
-	 * Limit calls to one per second or to 1% of the execution time, as
-	 * computed at the end (by setting the ``next_run'' variable).
+	 * Limit calls to 1% of the execution time, as computed at the end
+	 * (by setting the ``next_run'' variable).
 	 */
 
 	now = tm_time();
-	if (last_run == now) {
-		XSTATS_LOCK;
-		xstats.xgc_throttled++;
-		XSTATS_UNLOCK;
-		goto done;
-	};
-	last_run = now;
 
 	if (now < next_run) {
 		XSTATS_LOCK;
@@ -6746,7 +6738,6 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_blocks);
 	DUMP(freelist_memory);
 	DUMP(xgc_runs);
-	DUMP(xgc_throttled);
 	DUMP(xgc_time_throttled);
 	DUMP(xgc_collected);
 	DUMP(xgc_blocks_collected);

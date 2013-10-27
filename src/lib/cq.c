@@ -50,6 +50,9 @@
 
 #include "override.h"		/* Must be the last header included */
 
+#define CQ_IDLE_FORCE	30	/* Force idle callbacks once every 30 seconds */
+#define CQ_IDLE_PERIOD	1	/* Minimal period in seconds for idle callbacks */
+
 static void cq_run_idle(cqueue_t *cq);
 
 static const uint32 *cq_debug_ptr;
@@ -168,6 +171,7 @@ struct cqueue {
 	int cq_last_bucket;			/**< Last bucket slot we were at */
 	int cq_period;				/**< Regular callout period, in ms */
 	uint8 cq_call_extended;		/**< Is cq_call an extended event? */
+	time_t cq_last_idle;		/**< Last time we ran the idle callbacks */
 	mutex_t cq_lock;			/**< Thread-safety for queue changes */
 	mutex_t cq_idle_lock;		/**< Protects idle callbacks */
 };
@@ -1043,11 +1047,27 @@ done:
 	if G_UNLIKELY(old_current != NULL)
 		cq->cq_last_bucket = old_last_bucket;	/* Was in recursive call */
 
-	if (cq_debug() > 5) {
+	if G_UNLIKELY(cq_debug() > 5) {
 		s_debug("CQ: %squeue \"%s\" %striggered %d event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
 			processed, plural(processed), cq->cq_items, plural(cq->cq_items));
+	}
+
+	/*
+	 * Make sure the idle tasks are scheduled once in a while.
+	 *
+	 * We don't know how busy the callout queue is going to get, so forcing
+	 * its "idle" tasks to run may be the only option to ensure these
+	 * background but important operations get a chance to be run at all.
+	 */
+
+	if (delta_time(tm_time(), cq->cq_last_idle) >= CQ_IDLE_FORCE) {
+		if G_UNLIKELY(cq_debug() > 5) {
+			s_debug("CQ: %squeue \"%s\" forcing idle callback run",
+				cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "", cq->cq_name);
+		}
+		processed = 0;		/* Will force idle run below */
 	}
 
 	CQ_UNLOCK(cq);
@@ -1488,6 +1508,10 @@ cq_idle_free(cidle_t *ci)
  * Create a new idle event, invoked each time the associated callout queue
  * has nothing else to schedule on a given heartbeat.
  *
+ * Idle events are guaranteed to be scheduled at least once per CQ_IDLE_FORCE
+ * seconds, and no more frequently than CQ_IDLE_PERIOD seconds on a given
+ * callout queue.
+ *
  * When the callout queue is freed, registered idle events are automatically
  * reclaimed as well, so they need not be removed explicitly.
  *
@@ -1563,13 +1587,33 @@ cq_idle_trampoline(const void *key, void *data)
 static void
 cq_run_idle(cqueue_t *cq)
 {
+	time_t now = tm_time();
+
 	cqueue_check(cq);
 
+	/*
+	 * Never run idle events more than once per CQ_IDLE_PERIOD seconds.
+	 */
+
+	CQ_LOCK(cq);
+	if (delta_time(now, cq->cq_last_idle) < CQ_IDLE_PERIOD) {
+		CQ_UNLOCK(cq);
+		return;
+	}
+
 	if (cq->cq_idle != NULL) {
+		CQ_UNLOCK(cq);
+		/*
+		 * cq->cq_idle is never freed once created, until queue is freed
+		 */
 		mutex_lock(&cq->cq_idle_lock);
 		hset_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
 		mutex_unlock(&cq->cq_idle_lock);
+		CQ_LOCK(cq);
+		cq->cq_last_idle = tm_time();
 	}
+
+	CQ_UNLOCK(cq);
 }
 
 /**

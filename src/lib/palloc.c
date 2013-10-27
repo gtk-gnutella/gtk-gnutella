@@ -607,22 +607,6 @@ pool_gc_trampoline(void *obj, void *udata)
 void
 pgc(void)
 {
-	static spinlock_t pgc_slk = SPINLOCK_INIT;
-	static time_t last_run;
-	time_t now;
-
-	if (!spinlock_try(&pgc_slk))
-		return;
-
-	/*
-	 * Limit iterations to one per second.
-	 */
-
-	now = tm_time();
-	if (last_run == now)
-		goto done;
-	last_run = now;
-
 	/*
 	 * Reclaim garbage from the pools that registered.
 	 */
@@ -636,9 +620,6 @@ pgc(void)
 	}
 
 	POOL_GC_UNLOCK;
-
-done:
-	spinunlock(&pgc_slk);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
