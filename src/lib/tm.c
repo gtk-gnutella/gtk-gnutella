@@ -60,8 +60,10 @@ tm_t tm_cached_now;			/* Currently cached time */
 static spinlock_t tm_slk = SPINLOCK_INIT;
 
 static struct {
-	time_delta_t offset;
-	time_t computed;
+	time_delta_t offset;	/* Current GMT offset, as computed */
+	time_t computed;		/* Last computed time for the GMT offset */
+	gentime_t updated;		/* Last computed GMT offset */
+	int dst;				/* < 0 means unknown */
 } tm_gmt;
 
 static bool tm_thread_started;
@@ -133,18 +135,28 @@ tm_update_gmt_offset(const time_t now)
 {
 	time_delta_t gmtoff;
 	struct tm tp;
+	bool dst_check;
 	
 	/*
 	 * The ``tm_gmt'' variable is only updated from the time thread, hence
-	 * there is no need to lock it.
+	 * there is no need to lock it.  Changes are "published" via atomic_mb().
 	 */
 
 	gmtoff = timestamp_gmt_offset(now, NULL);
+	tm_gmt.updated = gentime_from(now);
 
 	if (tm_debugging(0)) {
 		s_info("TM computed GMT offset is %ld (was %ld)",
 			(long) gmtoff, (long) tm_gmt.offset);
 	}
+
+	/*
+	 * When the GMT offset changes, we no longer know whether we're in DST
+	 * mode or not, and we'll let mktime() decide.
+	 */
+
+	if G_UNLIKELY(gmtoff != tm_gmt.offset)
+		tm_gmt.dst = -1;
 
 	tm_gmt.offset = gmtoff;
 	atomic_mb();				/* Make all threads aware of the change */
@@ -156,16 +168,30 @@ tm_update_gmt_offset(const time_t now)
 	 * offset to the beginning of the hour or of the half-hour.
 	 */
 
+	dst_check = -1 == tm_gmt.dst;
+
 	off_time(now, gmtoff, &tp);
 	tp.tm_min = (tp.tm_min >= 30) ? 30 : 0;		/* Last start or half hour */
+	tp.tm_sec = 0;								/* Changes happen at minutes */
+	tp.tm_isdst = tm_gmt.dst;					/* Figure out DST */
 	tm_gmt.computed = mktime(&tp);
+
+	if G_UNLIKELY(dst_check) {
+		tm_gmt.dst = tp.tm_isdst;
+		atomic_mb();				/* Make all threads aware of the change */
+
+		if (tm_debugging(0)) {
+			s_info("TM determined that DST is %s",
+				0 == tm_gmt.dst ? "OFF" : tm_gmt.dst > 0 ? "ON" : "unknown");
+		}
+	}
 
 	if (tm_debugging(4)) {
 		s_info("TM GMT computation time set to %s (%02d:%02d:%02d) "
-			"computed=%d, now=%d, gmtoff=%ld",
+			"computed=%d, now=%d, gmtoff=%ld, dst=%d",
 			timestamp_to_string(tm_gmt.computed),
 			tp.tm_hour, tp.tm_min, tp.tm_sec,
-			(int) tm_gmt.computed, (int) now, (long) gmtoff);
+			(int) tm_gmt.computed, (int) now, (long) gmtoff, tm_gmt.dst);
 	}
 }
 
@@ -178,12 +204,30 @@ static bool
 tm_updated(const tm_t *prev, const tm_t *now)
 {
 	time_delta_t delta;
+	bool need_update;
+	gentime_t gnow;
 
 	/*
 	 * Periodically update the GMT offset.
+	 *
+	 * To fight against incorrect time being computed by mktime() on some
+	 * systems which do not have a proper DST database, we need to check
+	 * against the tm_gmt.updated field as well or we may end-up with too
+	 * frequent checks (if DST was on and went off with a GMT offset > 0)
+	 * or no check at all (if DST was off and went on with a GMT offset > 0).
 	 */
 
-	if G_UNLIKELY(delta_time(now->tv_sec, tm_gmt.computed) > TM_GMT_PERIOD)
+	gnow = gentime_from(now->tv_sec);
+
+	/* Protection against the "no check at all" case */
+	need_update = delta_time(now->tv_sec, tm_gmt.computed) > TM_GMT_PERIOD
+		|| gentime_diff(gnow, tm_gmt.updated) > TM_GMT_PERIOD;
+
+	/* Protection against the "too frequent checks" case */
+	need_update = gentime_diff(gnow, tm_gmt.updated) > TM_GMT_PERIOD / 10
+		&& need_update;
+
+	if G_UNLIKELY(need_update)
 		tm_update_gmt_offset((time_t) now->tv_sec);
 
 	/*
@@ -244,6 +288,8 @@ tm_thread_main(void *unused_arg)
 	ZERO(&prev);
 
 	thread_set_name("time");
+
+	tm_gmt.dst = -1;		/* Unknown DST (Daylight Saving Time) */
 
 	/*
 	 * Let generation time stamp initialize.
