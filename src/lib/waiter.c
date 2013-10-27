@@ -106,8 +106,8 @@ struct mwaiter {
 	struct waiter waiter;
 	/* Extra fields for the master */
 	socket_fd_t wfd[2];			/* Socket-pair used for waiting / signalling */
-	uint notified:1;			/* Notification sent on the pipe */
-	uint blocking:1;			/* One thread is blocked reading the pipe */
+	uint m_notified:1;			/* Notification sent on the pipe */
+	uint m_blocking:1;			/* One thread is blocked reading the pipe */
 	size_t children;			/* Amount of children, for assertions */
 	elist_t idle;				/* List of idle children */
 	elist_t active;				/* List of active children */
@@ -312,7 +312,7 @@ waiter_refcnt_dec(waiter_t *w)
 
 	if (1 == atomic_int_dec(&w->refcnt)) {
 		bool is_master = !waiter_is_child(w);
-		if (is_master && mw->blocking) {
+		if (is_master && mw->m_blocking) {
 			s_error("%s(): removing last reference on blocking master waiter",
 				G_STRFUNC);
 		}
@@ -332,7 +332,7 @@ waiter_refcnt_dec(waiter_t *w)
 	unblock = FALSE;
 
 	MWAITER_LOCK_QUICK(mw);
-	if (mw->blocking && 1 == mw->children && 1 == mw->waiter.refcnt)
+	if (mw->m_blocking && 1 == mw->children && 1 == mw->waiter.refcnt)
 		unblock = TRUE;
 	MWAITER_UNLOCK_QUICK(mw);
 
@@ -380,14 +380,14 @@ waiter_signal(waiter_t *w)
 		elist_remove(&mw->idle, w);
 		elist_append(&mw->active, w);
 	}
-	if (!mw->notified) {
+	if (!mw->m_notified) {
 		char c = '\0';
 		if G_UNLIKELY(INVALID_FD == mw->wfd[0]) {
-			mw->notified = TRUE;
+			mw->m_notified = TRUE;
 		} else if G_UNLIKELY(-1 == s_write(mw->wfd[1], &c, 1)) {
 			s_minicarp("%s(): cannot notify about event: %m", G_STRFUNC);
 		} else {
-			mw->notified = TRUE;
+			mw->m_notified = TRUE;
 		}
 	}
 	MWAITER_UNLOCK(mw);
@@ -401,12 +401,12 @@ waiter_master_clear(struct mwaiter *mw)
 {
 	g_assert(spinlock_is_held(&mw->lock));
 
-	if (mw->notified) {
+	if (mw->m_notified) {
 		char c;
 		if G_UNLIKELY(-1 == s_read(mw->wfd[0], &c, 1)) {
 			s_minicarp("%s(): cannot acknowledge event: %m", G_STRFUNC);
 		} else {
-			mw->notified = FALSE;
+			mw->m_notified = FALSE;
 		}
 	}
 }
@@ -512,7 +512,7 @@ waiter_fd(const waiter_t *w)
 	 * communication channel.
 	 */
 
-	need_event = mw->notified;
+	need_event = mw->m_notified;
 
 done:
 	MWAITER_UNLOCK(mw);
@@ -685,10 +685,10 @@ waiter_suspend(const waiter_t *w)
 	 */
 
 	MWAITER_LOCK_QUICK(mw);
-	if (mw->blocking || (1 == mw->waiter.refcnt && 1 == mw->children))
+	if (mw->m_blocking || (1 == mw->waiter.refcnt && 1 == mw->children))
 		allowed = FALSE;
 	else
-		mw->blocking = TRUE;
+		mw->m_blocking = TRUE;
 	MWAITER_UNLOCK_QUICK(mw);
 
 	if (!allowed)
@@ -703,12 +703,12 @@ waiter_suspend(const waiter_t *w)
 	if G_UNLIKELY(-1 == s_read(mw->wfd[0], &c, 1)) {
 		s_minicarp("%s(): could not receive event: %m", G_STRFUNC);
 		MWAITER_LOCK_QUICK(mw);
-		mw->blocking = FALSE;
+		mw->m_blocking = FALSE;
 		MWAITER_UNLOCK_QUICK(mw);
 	} else {
 		MWAITER_LOCK_QUICK(mw);
-		mw->notified = FALSE;
-		mw->blocking = FALSE;
+		mw->m_notified = FALSE;
+		mw->m_blocking = FALSE;
 		MWAITER_UNLOCK_QUICK(mw);
 	}
 
