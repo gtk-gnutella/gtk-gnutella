@@ -63,6 +63,7 @@
 #include "memusage.h"
 #include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
+#include "omalloc.h"
 #include "once.h"
 #include "pow2.h"
 #include "spinlock.h"
@@ -457,10 +458,13 @@ static struct xstats {
 	uint64 aligned_via_vmm_subpage;		/**< Idem, no freelist tried */
 	uint64 aligned_via_zone;			/**< Aligned memory from zone */
 	uint64 aligned_via_xmalloc;			/**< Aligned memory from xmalloc */
+	uint64 aligned_lookups;				/**< Lookups for aligned memory info */
 	uint64 aligned_freed;				/**< Freed aligned memory */
 	uint64 aligned_free_false_positives;	/**< Aligned pointers not aligned */
-	uint64 aligned_zones_created;		/**< Zones created for alignment */
-	uint64 aligned_zones_destroyed;		/**< Alignment zones destroyed */
+	size_t aligned_zones_capacity;		/**< Max # of possible align zones */
+	size_t aligned_zones_count;			/**< Actually created align zones */
+	uint64 aligned_arenas_created;		/**< Arenas created for alignment */
+	uint64 aligned_arenas_destroyed;		/**< Alignment arenas destroyed */
 	uint64 aligned_overhead_bytes;		/**< Structural overhead */
 	uint64 aligned_zone_blocks;			/**< Individual blocks in zone */
 	uint64 aligned_zone_memory;			/**< Total memory used by zone blocks */
@@ -4282,9 +4286,9 @@ xmalloc_thread_free(void *p)
 
 #define is_trapping_malloc()	1
 
-#define XALIGN_MINSIZE	128	/**< Minimum alignment for xzalloc() */
 #define XALIGN_SHIFT	7	/* 2**7 */
 #define XALIGN_MASK		((1 << XALIGN_SHIFT) - 1)
+#define XALIGN_MINSIZE	(1U << XALIGN_SHIFT) /**< Min alignment for xzalloc() */
 
 #define xaligned(p)		(0 == (pointer_to_ulong(p) & XALIGN_MASK))
 
@@ -6680,10 +6684,13 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(aligned_via_vmm_subpage);
 	DUMP(aligned_via_zone);
 	DUMP(aligned_via_xmalloc);
+	DUMP(aligned_lookups);
 	DUMP(aligned_freed);
 	DUMP(aligned_free_false_positives);
-	DUMP(aligned_zones_created);
-	DUMP(aligned_zones_destroyed);
+	DUMP(aligned_zones_capacity);
+	DUMP(aligned_zones_count);
+	DUMP(aligned_arenas_created);
+	DUMP(aligned_arenas_destroyed);
 	DUMP(aligned_overhead_bytes);
 	DUMP(aligned_zone_blocks);
 	DUMP(aligned_zone_memory);
@@ -6915,14 +6922,23 @@ static size_t aligned_count;
 static size_t aligned_capacity;
 
 static spinlock_t xmalloc_zone_slk = SPINLOCK_INIT;
-static spinlock_t xmalloc_xa_slk = SPINLOCK_INIT;
+static mutex_t xmalloc_xa_lk = MUTEX_INIT;
+
+#define XMALLOC_XA_LOCK				mutex_lock(&xmalloc_xa_lk)
+#define XMALLOC_XA_UNLOCK			mutex_unlock(&xmalloc_xa_lk)
+
+#define XMALLOC_XA_LOCK_HIDDEN		mutex_lock_hidden(&xmalloc_xa_lk)
+#define XMALLOC_XA_UNLOCK_HIDDEN	mutex_unlock_hidden(&xmalloc_xa_lk)
+
+#define assert_xmalloc_xa_is_locked()	\
+	assert_mutex_is_owned(&xmalloc_xa_lk)
 
 /**
  * Type of pages that we can describe.
  */
 enum xpage_type {
-	XPAGE_SET,
-	XPAGE_ZONE
+	XPAGE_SET,		/* Set of pages allocated contiguously */
+	XPAGE_ZONE		/* An arena used by the zone allocator */
 };
 
 /**
@@ -6940,23 +6956,46 @@ struct xdesc_set {
 	size_t len;				/**< Length in bytes of the page set */
 };
 
+enum xzone_magic { XZONE_MAGIC = 0x26ac7d9b };
+
 /**
- * Descriptor for an allocation zone.
+ * A zone allocator descriptor.
+ */
+struct xzone {
+	enum xzone_magic magic;		/**< Magic number */
+	elist_t arenas;				/**< List of arenas in the zone */
+	spinlock_t lock;			/**< Zone lock */
+	size_t alignment;			/**< Zone alignment (also the block size) */
+	int ashift;					/**< Alignment bit shift */
+};
+
+static inline void
+xzone_check(const struct xzone * const z)
+{
+	g_assert(z != NULL);
+	g_assert(XZONE_MAGIC == z->magic);
+}
+
+#define XZONE_LOCK(z)		spinlock(&(z)->lock)
+#define XZONE_UNLOCK(z)		spinunlock(&(z)->lock)
+#define XZONE_IS_LOCKED(z)	spinlock_is_held(&(z)->lock)
+
+/**
+ * Descriptor for an allocation arena within a zone allocator.
  *
- * Zones are linked together to make sure we can quickly find a page with
+ * Arenas are linked together to make sure we can quickly find a page with
  * free blocks.
  */
 struct xdesc_zone {
 	enum xpage_type type;		/* MUST be first for structural equivalence */
-	struct xdesc_zone *next;	/**< Next zone with same alignment */
-	struct xdesc_zone *prev;	/**< Previous zone with same alignment */
+	struct xzone *zone;			/**< Zone to which this arena belongs to */
+	link_t zone_link;			/**< Links zones with same alignment */
 	void *arena;				/**< Allocated zone arena */
 	bit_array_t *bitmap;		/**< Allocation bitmap in page */
-	size_t alignment;			/**< Zone alignment (also the block size) */
 	size_t nblocks;				/**< Amount of blocks in the zone */
 };
 
-struct xdesc_zone **xzones;		/**< Array of known zones */
+struct xzone **xzones;			/**< Array of known zones */
 size_t xzones_capacity;			/**< Amount of zones in array */
 
 /**
@@ -7007,14 +7046,17 @@ xdesc_free(void *pdesc, const void *p)
 		XSTATS_LOCK;
 		xstats.aligned_overhead_bytes -= sizeof(struct xdesc_set);
 		XSTATS_UNLOCK;
-		break;
+		goto done;
 	case XPAGE_ZONE:
 		XSTATS_LOCK;
 		xstats.aligned_overhead_bytes -= sizeof(struct xdesc_zone);
 		XSTATS_UNLOCK;
-		break;
+		goto done;
 	}
 
+	g_assert_not_reached();
+
+done:
 	xfree(pdesc);
 }
 
@@ -7046,6 +7088,10 @@ xa_lookup(const void *p, size_t *low_ptr)
 {
 	size_t low = 0, high = aligned_count - 1;
 	size_t mid = low + (high - low) / 2;
+
+	XSTATS_LOCK;
+	xstats.aligned_lookups++;
+	XSTATS_UNLOCK;
 
 	/* Binary search */
 
@@ -7085,6 +7131,7 @@ xa_delete_slot(size_t idx)
 	g_assert(size_is_positive(aligned_count));
 	g_assert(size_is_non_negative(idx) && idx < aligned_count);
 	g_assert(aligned[idx].pdesc != NULL);
+	assert_xmalloc_xa_is_locked();
 
 	xdesc_free(aligned[idx].pdesc, aligned[idx].start);
 	aligned_count--;
@@ -7103,16 +7150,20 @@ xa_align_extend(void)
 {
 	size_t new_capacity;
 
+	assert_xmalloc_xa_is_locked();
+
 	new_capacity = size_saturate_mult(aligned_capacity, 2);
 
 	if (0 == new_capacity)
 		new_capacity = 2;
 
-	aligned = xrealloc(aligned, new_capacity * sizeof aligned[0]);
+	XREALLOC_ARRAY(aligned, new_capacity);
+
 	XSTATS_LOCK;
 	xstats.aligned_overhead_bytes +=
 		(new_capacity - aligned_capacity) * sizeof aligned[0];
 	XSTATS_UNLOCK;
+
 	aligned_capacity = new_capacity;
 
 	if (xmalloc_debugging(1)) {
@@ -7134,7 +7185,7 @@ xa_insert(const void *p, void *pdesc)
 	g_assert(aligned_count <= aligned_capacity);
 	g_assert(vmm_page_start(p) == p);
 
-	spinlock(&xmalloc_xa_slk);
+	XMALLOC_XA_LOCK;
 
 	if G_UNLIKELY(aligned_count >= aligned_capacity)
 		xa_align_extend();
@@ -7169,7 +7220,7 @@ xa_insert(const void *p, void *pdesc)
 	aligned[idx].start = p;
 	aligned[idx].pdesc = pdesc;
 
-	spinunlock(&xmalloc_xa_slk);
+	XMALLOC_XA_UNLOCK;
 }
 
 /**
@@ -7209,92 +7260,126 @@ xa_insert_set(const void *p, size_t size)
 static G_GNUC_COLD void
 xzones_init(void)
 {
+	g_assert(spinlock_is_held(&xmalloc_zone_slk));
 	g_assert(NULL == xzones);
 
 	xzones_capacity = highest_bit_set(xmalloc_pagesize) - XALIGN_SHIFT;
 	g_assert(size_is_positive(xzones_capacity));
 
-	xzones = xmalloc0(xzones_capacity * sizeof xzones[0]);
+	OMALLOC0_ARRAY(xzones, xzones_capacity);	/* Never freed! */
+
 	XSTATS_LOCK;
 	xstats.aligned_overhead_bytes += xzones_capacity * sizeof xzones[0];
+	xstats.aligned_zones_capacity = xzones_capacity;
 	XSTATS_UNLOCK;
 }
 
 /**
- * Allocate a zone with blocks of ``alignment'' bytes each.
+ * Allocate a new zone capable of allocating aligned objects.
+ *
+ * @param alignment		alignment constraint, which is also the block size
+ *
+ * @return a new zone allocator, to get aligned objects of ``alignment'' bytes.
+ */
+static struct xzone *
+xzget(size_t alignment)
+{
+	struct xzone *z;
+
+	g_assert(size_is_positive(alignment));
+	g_assert(alignment < xmalloc_pagesize);
+	g_assert(is_pow2(alignment));
+
+	OMALLOC0(z);				/* Never freed! */
+	z->magic = XZONE_MAGIC;
+	z->alignment = alignment;
+	z->ashift = highest_bit_set(alignment);
+	elist_init(&z->arenas, offsetof(struct xdesc_zone, zone_link));
+	spinlock_init(&z->lock);
+
+	XSTATS_LOCK;
+	xstats.aligned_overhead_bytes += sizeof *z;
+	xstats.aligned_zones_count++;
+	XSTATS_UNLOCK;
+
+	return z;
+}
+
+/**
+ * Allocate a zone arena with blocks of ``alignment'' bytes each.
+ *
+ * @param z		the zone to which the arena belongs to
  *
  * @return new page descriptor for the zone.
  */
 static struct xdesc_zone *
-xzget(size_t alignment)
+xzarena(struct xzone *z)
 {
 	struct xdesc_zone *xz;
 	void *arena;
 	size_t nblocks;
 
-	g_assert(size_is_positive(alignment));
-	g_assert(alignment < xmalloc_pagesize);
+	xzone_check(z);
 
 	arena = vmm_core_alloc(xmalloc_pagesize);
-	nblocks = xmalloc_pagesize / alignment;
+	nblocks = xmalloc_pagesize / z->alignment;
 
 	g_assert(nblocks >= 2);		/* Because alignment < pagesize */
 
-	xz = xmalloc0(sizeof *xz);
+	XMALLOC0(xz);
 	xz->type = XPAGE_ZONE;
-	xz->alignment = alignment;
 	xz->arena = arena;
 	xz->bitmap = xmalloc0(BIT_ARRAY_BYTE_SIZE(nblocks));
 	xz->nblocks = nblocks;
+	xz->zone = z;
 
 	xa_insert(arena, xz);
 
 	XSTATS_LOCK;
 	xstats.vmm_alloc_pages++;
-	xstats.aligned_zones_created++;
+	xstats.aligned_arenas_created++;
 	xstats.aligned_overhead_bytes += sizeof *xz + BIT_ARRAY_BYTE_SIZE(nblocks);
 	XSTATS_UNLOCK;
 
 	if (xmalloc_debugging(2)) {
 		s_debug("XM recorded aligned %p (%zu bytes) as %zu-byte zone",
-			arena, xmalloc_pagesize, alignment);
+			arena, xmalloc_pagesize, z->alignment);
 	}
 
 	return xz;
 }
 
+/**
+ * Free arena belonging to zone.
+ *
+ * Upon entry, the zone must be locked and it will be unlocked.
+ *
+ * @param z		the zone allocator to which arena belong
+ * @param xz	the allocation arena to free
+ */
 static void
-xzdestroy(struct xdesc_zone *xz)
+xzdestroy(struct xzone *z, struct xdesc_zone *xz)
 {
+	g_assert(XZONE_IS_LOCKED(z));
+
+	elist_remove(&z->arenas, xz);
+	xz->zone = NULL;
+	XZONE_UNLOCK(z);
+
 	/*
-	 * Unlink structure from the zone list.
+	 * The zone arena is now detached from the zone allocator and cannot
+	 * be found when allocating.  The descriptor is not freed yet.
 	 */
 
-	if (xz->prev != NULL)
-		xz->prev->next = xz->next;
-	if (xz->next != NULL)
-		xz->next->prev = xz->prev;
-
 	if (xmalloc_debugging(2)) {
-		s_debug("XM discarding %szone for %zu-byte blocks at %p",
-			(NULL == xz->next && NULL == xz->prev) ? "last " : "",
-			xz->alignment, xz->arena);
-	}
+		size_t cnt;
 
-	if G_UNLIKELY(NULL == xz->prev) {
-		size_t zn;
+		XZONE_LOCK(z);
+		cnt = elist_count(&z->arenas);
+		XZONE_UNLOCK(z);
 
-		/*
-		 * Was head of list, need to update the zone's head.
-		 */
-
-		zn = highest_bit_set(xz->alignment >> XALIGN_SHIFT);
-
-		g_assert(xzones != NULL);
-		g_assert(zn < xzones_capacity);
-		g_assert(xzones[zn] == xz);
-
-		xzones[zn] = xz->next;
+		s_debug("XM discarding %szone arena for %zu-byte blocks at %p",
+			0 == cnt ? "last " : "", z->alignment, xz->arena);
 	}
 
 	xfree(xz->bitmap);
@@ -7302,9 +7387,14 @@ xzdestroy(struct xdesc_zone *xz)
 
 	XSTATS_LOCK;
 	xstats.vmm_freed_pages++;
-	xstats.aligned_zones_destroyed++;
+	xstats.aligned_arenas_destroyed++;
 	xstats.aligned_overhead_bytes -= BIT_ARRAY_BYTE_SIZE(xz->nblocks);
 	XSTATS_UNLOCK;
+
+	/*
+	 * The zone descriptor ``xz'' will be freed when xa_delete_slot()
+	 * is called.
+	 */
 }
 
 /**
@@ -7316,7 +7406,8 @@ static void *
 xzalloc(size_t alignment)
 {
 	size_t zn;
-	struct xdesc_zone *xz, *xzf;
+	struct xzone *z;
+	struct xdesc_zone *xz;
 	size_t bn;
 	void *p;
 
@@ -7325,19 +7416,29 @@ xzalloc(size_t alignment)
 	g_assert(is_pow2(alignment));
 	g_assert(alignment < xmalloc_pagesize);
 
-	spinlock(&xmalloc_zone_slk);
-
-	if G_UNLIKELY(NULL == xzones)
-		xzones_init();
-
 	zn = highest_bit_set(alignment >> XALIGN_SHIFT);
 
-	g_assert(zn < xzones_capacity);
+	/*
+	 * Find proper zone allocator for this alignment, and allocate a new
+	 * one if none existed already.
+	 */
 
-	xz = xzones[zn];
+	g_assert(NULL == xzones || zn < xzones_capacity);
 
-	if G_UNLIKELY(NULL == xz)
-		xz = xzones[zn] = xzget(alignment);
+	if G_UNLIKELY(NULL == xzones || NULL == (z = xzones[zn])) {
+		spinlock(&xmalloc_zone_slk);
+
+		if (NULL == xzones)
+			xzones_init();
+
+		if (NULL == (z = xzones[zn]))
+			z = xzones[zn] = xzget(alignment);
+
+		spinunlock(&xmalloc_zone_slk);
+	}
+
+	xzone_check(z);
+	XZONE_LOCK(z);
 
 	/*
 	 * Find which zone in the list has any free block available and compute
@@ -7346,62 +7447,52 @@ xzalloc(size_t alignment)
 
 	bn = (size_t) -1;
 
-	for (xzf = xz; xzf != NULL; xzf = xzf->next) {
-		bn = bit_array_first_clear(xzf->bitmap, 0, xzf->nblocks - 1);
+	ELIST_FOREACH_DATA(&z->arenas, xz) {
+		g_assert(xz->zone == z);
+		bn = bit_array_first_clear(xz->bitmap, 0, xz->nblocks - 1);
 		if G_LIKELY((size_t) -1 != bn)
 			break;
 	}
 
 	/*
-	 * If we haven't found any zone with a free block, allocate a new one.
+	 * If we haven't found any arena with a free block, allocate a new one.
 	 */
 
 	if G_UNLIKELY((size_t) -1 == bn) {
-		xzf = xzget(alignment);
-		bn = 0;						/* Grab first block */
-		g_assert(NULL == xz->prev);
-		xzones[zn] = xzf;			/* New head of list */
-		xzf->next = xz;
-		xz->prev = xzf;
-		xz = xzf;					/* Update head */
+		xz = xzarena(z);
+		elist_prepend(&z->arenas, xz);
+		bn = 0;						/* Grab first block of new arena */
 	}
 
 	/*
 	 * Mark selected block as used and compute the block's address.
 	 */
 
-	bit_array_set(xzf->bitmap, bn);
-	p = ptr_add_offset(xzf->arena, bn * xzf->alignment);
+	bit_array_set(xz->bitmap, bn);
+	p = ptr_add_offset(xz->arena, bn << z->ashift);
 
 	if (xmalloc_debugging(3)) {
 		s_debug("XM allocated %zu-byte aligned block #%zu at %p from %p",
-			xzf->alignment, bn, p, xzf->arena);
+			z->alignment, bn, p, xz->arena);
 	}
 
 	/*
 	 * Place the zone where we allocated a block from at the top of the
-	 * list unless there are no more free blocks in the zone or the block
-	 * is already at the head.
+	 * list unless there are no more free blocks in the zone.
 	 *
 	 * Because we attempt to keep zones with free blocks at the start of
 	 * the list, it is unlikely we have to move around the block in the list.
 	 */
 
-	if G_UNLIKELY(bn != xzf->nblocks - 1 && xzf != xz) {
-		if (xmalloc_debugging(2)) {
+	if (bn != xz->nblocks - 1) {
+		if (xmalloc_debugging(2) && xz != elist_head(&z->arenas)) {
 			s_debug("XM moving %zu-byte zone %p to head of zone list",
-				xzf->alignment, xzf->arena);
+				z->alignment, xz->arena);
 		}
-		g_assert(xzf->prev != NULL);		/* Not at start of list */
-		g_assert(NULL == xz->prev);			/* Old head of list */
-		xzf->prev->next = xzf->next;
-		if (xzf->next != NULL)
-			xzf->next->prev = xzf->prev;
-		xzf->next = xz;
-		xzf->prev = NULL;
-		xz->prev = xzf;
-		xzones[zn] = xzf;					/* New head of list */
+		elist_moveto_head(&z->arenas, xz);
 	}
+
+	XZONE_UNLOCK(z);
 
 	XSTATS_LOCK;
 	xstats.user_blocks++;
@@ -7410,8 +7501,6 @@ xzalloc(size_t alignment)
 	xstats.aligned_zone_memory += alignment;
 	XSTATS_UNLOCK;
 	memusage_add(xstats.user_mem, alignment);
-
-	spinunlock(&xmalloc_zone_slk);
 
 	return p;
 }
@@ -7424,35 +7513,40 @@ xzalloc(size_t alignment)
 static bool
 xzfree(struct xdesc_zone *xz, const void *p)
 {
+	struct xzone *z;
 	size_t bn;
+	bool cleared;
 
 	g_assert(vmm_page_start(p) == xz->arena);
 
-	spinlock(&xmalloc_zone_slk);
+	z = xz->zone;
+	xzone_check(z);
+	XZONE_LOCK(z);
 
-	bn = ptr_diff(p, xz->arena) / xz->alignment;
+	bn = ptr_diff(p, xz->arena) >> z->ashift;
 
 	g_assert(bn < xz->nblocks);
 	g_assert(bit_array_get(xz->bitmap, bn));
 
 	bit_array_clear(xz->bitmap, bn);
 
+	if ((size_t) -1 == bit_array_last_set(xz->bitmap, 0, xz->nblocks - 1)) {
+		xzdestroy(z, xz);
+		cleared = TRUE;		/* Releases zone's lock */
+	} else {
+		XZONE_UNLOCK(z);
+		cleared = FALSE;
+	}
+
 	XSTATS_LOCK;
 	xstats.user_blocks--;
-	xstats.user_memory -= xz->alignment;
+	xstats.user_memory -= z->alignment;
 	xstats.aligned_zone_blocks--;
-	xstats.aligned_zone_memory -= xz->alignment;
+	xstats.aligned_zone_memory -= z->alignment;
 	XSTATS_UNLOCK;
-	memusage_remove(xstats.user_mem, xz->alignment);
+	memusage_remove(xstats.user_mem, z->alignment);
 
-	if ((size_t) -1 == bit_array_last_set(xz->bitmap, 0, xz->nblocks - 1)) {
-		xzdestroy(xz);
-		spinunlock(&xmalloc_zone_slk);
-		return TRUE;
-	} else {
-		spinunlock(&xmalloc_zone_slk);
-		return FALSE;
-	}
+	return cleared;
 }
 
 /**
@@ -7467,32 +7561,20 @@ xalign_allocated(const void *p)
 	size_t idx;
 	const void *start;
 	struct xdesc_type *xt;
-	bool lookup_was_safe;
 	size_t len = 0;
 
 	start = vmm_page_start(p);
 
-	lookup_was_safe = spinlock_try(&xmalloc_xa_slk);
+	XMALLOC_XA_LOCK_HIDDEN;
 
 	idx = xa_lookup(start, NULL);
 
 	if G_LIKELY((size_t) -1 == idx) {
-		if (lookup_was_safe)
-			spinunlock(&xmalloc_xa_slk);
+		XMALLOC_XA_UNLOCK_HIDDEN;
 		return 0;
 	}
 
-	if (!lookup_was_safe) {
-		spinlock(&xmalloc_xa_slk);
-		idx = xa_lookup(start, NULL);
-		g_assert((size_t) -1 != idx);
-	}
-
 	xt = aligned[idx].pdesc;
-
-	XSTATS_LOCK;
-	xstats.aligned_freed++;
-	XSTATS_UNLOCK;
 
 	switch (xt->type) {
 	case XPAGE_SET:
@@ -7506,8 +7588,10 @@ xalign_allocated(const void *p)
 	case XPAGE_ZONE:
 		{
 			struct xdesc_zone *xz = (struct xdesc_zone *) xt;
+			struct xzone *z = xz->zone;
 
-			len = xz->alignment;
+			xzone_check(z);
+			len = z->alignment;
 			g_assert(0 != len);
 		}
 		goto done;
@@ -7516,7 +7600,7 @@ xalign_allocated(const void *p)
 	g_assert_not_reached();
 
 done:
-	spinunlock(&xmalloc_xa_slk);
+	XMALLOC_XA_UNLOCK_HIDDEN;
 	return len;
 }
 
@@ -7532,7 +7616,6 @@ xalign_free(const void *p)
 	size_t idx;
 	const void *start;
 	struct xdesc_type *xt;
-	bool lookup_was_safe;
 
 	/*
 	 * We do not only consider page-aligned pointers because we can allocate
@@ -7541,30 +7624,21 @@ xalign_free(const void *p)
 	 */
 
 	start = vmm_page_start(p);
-
-	lookup_was_safe = spinlock_try(&xmalloc_xa_slk);
+	XMALLOC_XA_LOCK;
 
 	idx = xa_lookup(start, NULL);
 
 	if G_LIKELY((size_t) -1 == idx) {
+		XMALLOC_XA_UNLOCK;
 		XSTATS_LOCK;
 		xstats.aligned_free_false_positives++;
 		XSTATS_UNLOCK;
-		if (lookup_was_safe)
-			spinunlock(&xmalloc_xa_slk);
 		return FALSE;
 	}
 
 	if G_UNLIKELY(xmalloc_no_freeing) {
-		if (lookup_was_safe)
-			spinunlock(&xmalloc_xa_slk);
+		XMALLOC_XA_UNLOCK;
 		return TRUE;
-	}
-
-	if (!lookup_was_safe) {
-		spinlock(&xmalloc_xa_slk);
-		idx = xa_lookup(start, NULL);
-		g_assert((size_t) -1 != idx);
 	}
 
 	xt = aligned[idx].pdesc;
@@ -7580,7 +7654,9 @@ xalign_free(const void *p)
 
 			g_assert(0 != len);
 			xa_delete_slot(idx);
+			XMALLOC_XA_UNLOCK;
 			vmm_core_free(deconstify_pointer(p), len);
+
 			XSTATS_LOCK;
 			xstats.vmm_freed_pages += vmm_page_count(len);
 			xstats.user_memory -= len;
@@ -7590,22 +7666,24 @@ xalign_free(const void *p)
 			XSTATS_UNLOCK;
 			memusage_remove(xstats.user_mem, len);
 		}
-		goto done;
+		return TRUE;
 	case XPAGE_ZONE:
 		{
 			struct xdesc_zone *xz = (struct xdesc_zone *) xt;
 
-			if (xzfree(xz, p))
-				xa_delete_slot(idx);	/* Last block from zone freed */
+			XMALLOC_XA_UNLOCK;
+
+			if G_UNLIKELY(xzfree(xz, p)) {
+				XMALLOC_XA_LOCK_HIDDEN;
+				xa_delete_slot(idx);	/* Last block from zone arena freed */
+				XMALLOC_XA_UNLOCK_HIDDEN;
+			}
 		}
-		goto done;
+		return TRUE;
 	}
 
 	g_assert_not_reached();
-
-done:
-	spinunlock(&xmalloc_xa_slk);
-	return TRUE;
+	return FALSE;
 }
 
 /**
