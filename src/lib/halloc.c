@@ -87,6 +87,9 @@ static struct hstats {
 	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
 	uint64 realloc_noop_same_vmm;		/**< Same VMM size */
 	uint64 realloc_relocatable;			/**< Forced relocation for VMM */
+	uint64 wasted_cumulative;			/**< Cumulated allocation waste */
+	uint64 wasted_cumulative_xpmalloc;	/**< Cumulated waste for xpmalloc */
+	uint64 wasted_cumulative_vmm;		/**< Cumulated waste for VMM allocs */
 	size_t memory;						/**< Amount of bytes allocated */
 	size_t blocks;						/**< Amount of blocks allocated */
 } hstats;
@@ -259,9 +262,12 @@ halloc(size_t size)
 	if (size < xpmalloc_threshold) {
 		p = xpmalloc(size);
 		allocated = xallocated(p);
+		g_assert(allocated >= size);
 
 		HSTATS_LOCK;
 		hstats.alloc_via_xpmalloc++;
+		hstats.wasted_cumulative += allocated - size;
+		hstats.wasted_cumulative_xpmalloc += allocated - size;
 		HSTATS_UNLOCK;
 	} else {
 		int inserted;
@@ -276,6 +282,8 @@ halloc(size_t size)
 
 		HSTATS_LOCK;
 		hstats.alloc_via_vmm++;
+		hstats.wasted_cumulative += allocated - size;
+		hstats.wasted_cumulative_vmm += allocated - size;
 		HSTATS_UNLOCK;
 	}
 
@@ -930,6 +938,7 @@ G_GNUC_COLD void
 halloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct hstats stats;
+	uint64 wasted_average, wasted_average_xpmalloc, wasted_average_vmm;
 
 #define DUMP(x) log_info(la, "HALLOC %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?						\
@@ -939,9 +948,21 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	(options & DUMP_OPT_PRETTY) ?						\
 		 size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
 
+#define DUMV(x) log_info(la, "HALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		 uint64_to_gstring(x) : uint64_to_string(x))
+
+
 	HSTATS_LOCK;
 	stats = hstats;			/* struct copy under lock protection */
 	HSTATS_UNLOCK;
+
+	wasted_average = stats.wasted_cumulative /
+		(0 == stats.allocations ? 1 : stats.allocations);
+	wasted_average_xpmalloc = stats.wasted_cumulative_xpmalloc /
+		(0 == stats.alloc_via_xpmalloc ? 1 : stats.alloc_via_xpmalloc);
+	wasted_average_vmm = stats.wasted_cumulative_vmm /
+		(0 == stats.alloc_via_vmm ? 1 : stats.alloc_via_vmm);
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
@@ -955,6 +976,12 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(realloc_via_vmm);
 	DUMP(realloc_via_vmm_shrink);
 	DUMP(realloc_relocatable);
+	DUMP(wasted_cumulative);
+	DUMP(wasted_cumulative_xpmalloc);
+	DUMP(wasted_cumulative_vmm);
+	DUMV(wasted_average);
+	DUMV(wasted_average_xpmalloc);
+	DUMV(wasted_average_vmm);
 	DUMS(memory);
 	DUMS(blocks);
 
