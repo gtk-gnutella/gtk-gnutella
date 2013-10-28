@@ -4144,11 +4144,6 @@ xmalloc_thread_allocated(const void *p)
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return FALSE;
 
-	if (!xmalloc_is_valid_pointer(p, FALSE)) {
-		s_error_from(_WHERE_, "attempt to access invalid pointer %p: %s",
-			p, xmalloc_invalid_ptrstr(p));
-	}
-
 	/*
 	 * Check whether the block lies on a thread-private chunk page.
 	 */
@@ -4796,6 +4791,9 @@ xallocated(const void *p)
 	if G_UNLIKELY(NULL == p)
 		return 0;
 
+	if (!xmalloc_is_valid_pointer(p, FALSE))
+		return 0;
+
 	xh = const_ptr_add_offset(p, -XHEADER_SIZE);
 	G_PREFETCH_R(&xh->length);
 
@@ -4808,9 +4806,6 @@ xallocated(const void *p)
 	len = xmalloc_thread_allocated(p);
 	if (len != 0)
 		return len;
-
-	if (!xmalloc_is_valid_pointer(xh, FALSE))
-		return 0;
 
 	if (xmalloc_is_walloc(xh->length)) 
 		return xmalloc_walloc_size(xh->length);
