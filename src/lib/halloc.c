@@ -186,10 +186,10 @@ page_destroy(void)
 static inline size_t
 halloc_get_size(const void *p, enum halloc_type *type)
 {
-	size_t size = 0;
+	size_t size;
 
 	size = page_lookup(p);
-	if (size) {
+	if (size != 0) {
 		g_assert(size >= xpmalloc_threshold);
 		*type = HALLOC_VMM;
 	} else {
@@ -378,11 +378,15 @@ hrealloc(void *old, size_t new_size)
 			}
 		}
 	} else if (new_size < xpmalloc_threshold) {
+		p = xprealloc(old, new_size);
+		rounded_new_size = xallocated(p);
+
 		HSTATS_LOCK;
 		hstats.realloc_via_xrealloc++;
+		hstats.memory += rounded_new_size - old_size;
 		HSTATS_UNLOCK;
 
-		return xrealloc(old, new_size);
+		return p;
 	}
 
 	if (old_size >= new_size && old_size / 2 < new_size) {
