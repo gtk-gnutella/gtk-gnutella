@@ -4177,11 +4177,6 @@ xmalloc_thread_free(void *p)
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return FALSE;
 
-	if (!xmalloc_is_valid_pointer(p, FALSE)) {
-		s_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
-			p, xmalloc_invalid_ptrstr(p));
-	}
-
 	/*
 	 * Check whether the block lies on a thread-private chunk page.
 	 */
@@ -4868,6 +4863,11 @@ xfree(void *p)
 	if (is_trapping_malloc() && xaligned(p) && xalign_free(p))
 		return;
 
+	if (!xmalloc_is_valid_pointer(p, FALSE)) {
+		s_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
+			p, xmalloc_invalid_ptrstr(p));
+	}
+
 	/*
 	 * Handle thread-specific blocks early in the process since they do not
 	 * have any malloc header.
@@ -4878,11 +4878,6 @@ xfree(void *p)
 		xstats.free_thread_pool++;
 		XSTATS_UNLOCK;
 		return;
-	}
-
-	if (!xmalloc_is_valid_pointer(xh, FALSE)) {
-		s_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
-			p, xmalloc_invalid_ptrstr(p));
 	}
 
 	/*
