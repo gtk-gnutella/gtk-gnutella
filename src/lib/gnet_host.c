@@ -366,7 +366,7 @@ gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 		gchar buf[128];
 
 		if (i > 0) {
-			str_cat(s, ", ");
+			STR_CAT(s, ", ");
 		}
 		host = gnet_host_vec_get(hvec, i);
 		host_addr_port_to_string_buf(gnet_host_get_addr(&host),

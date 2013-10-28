@@ -801,6 +801,23 @@ str_cpy(str_t *str, const char *string)
 }
 
 /**
+ * Copy string argument into the string structure, keeping trailing NUL as
+ * a hidden char (thereby making the arena a C string).
+ *
+ * Since the len is provided, the data need not have a trailing NUL.
+ * Although it may contain embedded NUL, it should not however because this
+ * will disrupt the perception of the resulting string as C string.
+ */
+void
+str_cpy_len(str_t *str, const char *string, size_t len)
+{
+	str_check(str);
+
+	str->s_len = 0;
+	str_cat_len(str, string, len);
+}
+
+/**
  * Append C string argument (i.e. has a trailing NUL) into the string structure,
  * keeping this trailing NUL as a hidden char (not accounted for in s_len).
  */

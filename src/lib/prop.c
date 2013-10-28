@@ -1394,7 +1394,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			uint32 val;
 
 			if (n != 0)
-				str_cat(s, ", ");
+				STR_CAT(s, ", ");
 
 			prop_get_guint32(ps, prop, &val, n, 1);
 			uint32_to_string_buf(val, buf, sizeof buf);
@@ -1414,7 +1414,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			uint64 val;
 
 			if (n != 0)
-				str_cat(s, ", ");
+				STR_CAT(s, ", ");
 
 			prop_get_guint64(ps, prop, &val, n, 1);
 			uint64_to_string_buf(val, buf, sizeof buf);
@@ -1434,7 +1434,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			time_t val;
 
 			if (n != 0)
-				str_cat(s, ", ");
+				STR_CAT(s, ", ");
 
 			prop_get_timestamp(ps, prop, &val, n, 1);
 			timestamp_to_string_buf(val, buf, sizeof buf);
@@ -1457,7 +1457,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			host_addr_t addr;
 
 			if (n != 0)
-				str_cat(s, ", ");
+				STR_CAT(s, ", ");
 
 			prop_get_ip(ps, prop, &addr, n, 1);
 			host_addr_to_string_buf(addr, buf, sizeof buf);
@@ -1476,10 +1476,13 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			gboolean val;
 
 			if (n != 0)
-				str_cat(s, ", ");
+				STR_CAT(s, ", ");
 
 			prop_get_boolean(ps, prop, &val, n, 1);
-			str_cat(s, val ? "TRUE" : "FALSE");
+			if (val)
+				STR_CAT(s, "TRUE");
+			else
+				STR_CAT(s, "FALSE");
 		}
 
 		if (d->vector_size != 1)
@@ -1562,7 +1565,10 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 		str_reset(s);		/* No default value for these types */
 		goto done;
 	case PROP_TYPE_BOOLEAN:
-		str_cpy(s, p->data.boolean.def[0] ? "TRUE" : "FALSE");
+		if (p->data.boolean.def[0])
+			STR_CPY(s, "TRUE");
+		else
+			STR_CPY(s, "FALSE");
 		goto done;
 	case PROP_TYPE_MULTICHOICE:
 		{

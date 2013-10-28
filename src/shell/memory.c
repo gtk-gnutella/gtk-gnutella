@@ -139,7 +139,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		read_memory(fd, addr, length, data, sizeof data, valid);
 
 		str_cpy(s, pointer_to_string(addr));
-		str_cat(s, "  ");
+		STR_CAT(s, "  ");
 
 		for (i = 0; i < G_N_ELEMENTS(data); i++) {
 			if (length > i) {
@@ -150,13 +150,13 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 					str_putc(s, hex_digit(c & 0x0f));
 					str_putc(s, ' ');
 				} else {
-					str_cat(s, "XX ");
+					STR_CAT(s, "XX ");
 				}
 			} else {
-				str_cat(s, "   ");
+				STR_CAT(s, "   ");
 			}
 		}
-		str_cat(s, " |");
+		STR_CAT(s, " |");
 
 		for (i = 0; i < G_N_ELEMENTS(data); i++) {
 			if (length > i) {
@@ -167,7 +167,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 				str_putc(s, ' ');
 			}
 		}
-		str_cat(s, "|\n");
+		STR_CAT(s, "|\n");
 		shell_write(sh, str_2c(s));
 
 		if (length < G_N_ELEMENTS(data))

@@ -490,36 +490,36 @@ search_media_mask_to_string(unsigned mask)
 	str_t *str = str_new(sizeof buf);
 
 	if (mask & SEARCH_AUDIO_TYPE)
-		str_cat(str, "audio");
+		STR_CAT(str, "audio");
 	if (mask & SEARCH_VIDEO_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "video");
+		STR_CAT(str, "video");
 	}
 	if (mask & SEARCH_DOC_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "document");
+		STR_CAT(str, "document");
 	}
 	if (mask & SEARCH_IMG_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "image");
+		STR_CAT(str, "image");
 	}
 	if (mask & SEARCH_WIN_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "archive (win)");
+		STR_CAT(str, "archive (win)");
 	}
 	if (mask & SEARCH_UNIX_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "archive (unix)");
+		STR_CAT(str, "archive (unix)");
 	}
 	if (mask & SEARCH_TORRENT_TYPE) {
 		if (str_len(str) != 0)
 			str_putc(str, '/');
-		str_cat(str, "torrent");
+		STR_CAT(str, "torrent");
 	}
 
 	g_strlcpy(buf, str_2c(str), sizeof buf);
@@ -2700,7 +2700,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 					has_unknown = TRUE;
 					if (ext_paylen(e) && ext_has_ascii_word(e)) {
 						if (str_len(info))
-							str_cat(info, "; ");
+							STR_CAT(info, "; ");
 						str_cat_len(info, ext_payload(e), ext_paylen(e));
 					}
 					break;

@@ -431,7 +431,7 @@ add_header(header_t *o, const char *field, const char *text)
 		 * the value, comma-separated.
 		 */
 
-		str_cat(v, ", ");
+		STR_CAT(v, ", ");
 		str_cat(v, text);
 
 	} else {
@@ -768,7 +768,7 @@ header_fmt_make(const char *field, const char *separator,
 	hf->seplen = strlen(hf->sep);
 	hf->stripped_seplen = stripped_strlen(hf->sep, hf->seplen);
 	str_cat(hf->header, field);
-	str_cat(hf->header, ": ");
+	STR_CAT(hf->header, ": ");
 
 	hf->current_len = str_len(hf->header);
 
@@ -909,7 +909,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 			str_cat_len(hf->header, separator, sslen);
 		}
 
-		str_cat(hf->header, "\r\n\t");			/* Includes continuation */
+		STR_CAT(hf->header, "\r\n\t");			/* Includes continuation */
 		curlen = 1;								/* One tab */
 	} else if (hf->data_emitted) {
 		str_cat(hf->header, separator);
@@ -1006,7 +1006,7 @@ header_fmt_end(header_fmt_t *hf)
 	g_assert(!hf->frozen);
 
 	if (!hf->empty)
-		str_cat(hf->header, "\r\n");
+		STR_CAT(hf->header, "\r\n");
 	hf->frozen = TRUE;
 
 	g_assert(str_len(hf->header) < hf->max_size);

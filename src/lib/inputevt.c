@@ -792,7 +792,7 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 		}
 		g_assert(num_unused <= ctx->max_poll_idx);
 
-		str_cat(str, "}");
+		str_putc(str, '}');
 		g_debug("%s (used=%u, unused=%u)",
 			str_2c(str), ctx->max_poll_idx - num_unused, num_unused);
 		str_destroy_null(&str);

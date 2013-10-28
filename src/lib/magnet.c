@@ -836,7 +836,7 @@ magnet_append_item(str_t *s, bool escape_value,
 	g_return_if_fail(value);
 
 	if (0 == str_len(s)) {
-		str_cat(s, "magnet:?");
+		STR_CAT(s, "magnet:?");
 	} else {
 		str_putc(s, '&');
 	}

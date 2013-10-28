@@ -1965,29 +1965,32 @@ search_gui_set_record_info(results_set_t *rs)
 
 	/* If banned GUID, make it prominent: at the start of the information! */
 	if (rs->status & ST_BANNED_GUID) {
-		str_cat(vinfo, "GUID");
+		STR_CAT(vinfo, "GUID");
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
 			if (str_len(vinfo) > 0)
-				str_cat(vinfo, ", ");
+				STR_CAT(vinfo, ", ");
 			str_cat(vinfo, _(open_flags[i].status));
 		}
 	}
 
 	if (!(rs->status & ST_PARSED_TRAILER)) {
 		if (str_len(vinfo) > 0)
-			str_cat(vinfo, ", ");
+			STR_CAT(vinfo, ", ");
 		str_cat(vinfo, _("<unparsed>"));
 	}
 
 	if (rs->status & ST_TLS) {
-		str_cat(vinfo, str_len(vinfo) > 0 ? ", TLS" : "TLS");
+		if (str_len(vinfo) > 0)
+			STR_CAT(vinfo, ", TLS");
+		else
+			STR_CAT(vinfo, "TLS");
 	}
 	if (rs->status & ST_BH) {
 		if (str_len(vinfo) > 0) {
-			str_cat(vinfo, ", ");
+			STR_CAT(vinfo, ", ");
 		}
 		str_cat(vinfo, _("browsable"));
 	}

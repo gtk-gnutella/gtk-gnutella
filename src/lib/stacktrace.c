@@ -1205,7 +1205,7 @@ stack_print_decorated_to(struct sxfile *xf,
 			str_catf(&s, "0x%0*lx ", PTRSIZE * 2, pointer_to_ulong(pc));
 
 			if (gdb_like)
-				str_cat(&s, "in ");
+				STR_CAT(&s, "in ");
 		}
 
 		str_cat(&s, loc.function);
@@ -1213,7 +1213,7 @@ stack_print_decorated_to(struct sxfile *xf,
 			has_parens = TRUE;			/* Avoid "()" after 0x.... names */
 
 		if ('?' != loc.function[0] && gdb_like && !has_parens)
-			str_cat(&s, "()");
+			STR_CAT(&s, "()");
 
 		if (0 != (flags & STACKTRACE_F_SOURCE) && '?' != loc.file[0]) {
 			str_cat(&s, gdb_like ? " at " : " \"");

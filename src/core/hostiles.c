@@ -226,8 +226,8 @@ hostiles_flags_to_string(const hostiles_flags_t flags)
 #define LOGAS(fl,str) G_STMT_START {	\
 	if G_UNLIKELY(flags & (fl)) {		\
 		if G_LIKELY(0 != str_len(s))	\
-			str_cat(s, ", ");			\
-		str_cat(s, str);				\
+			STR_CAT(s, ", ");			\
+		STR_CAT(s, str);				\
 	}									\
 } G_STMT_END
 
