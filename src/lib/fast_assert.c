@@ -56,7 +56,8 @@ assertion_message(const assertion_data * const data, int fatal)
 	char line_buf[ULONG_DEC_BUFLEN];
 	char time_buf[CRASH_TIME_BUFLEN];
 	char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
-	unsigned stid;
+	unsigned stid, line;
+	bool assertion;
 	DECLARE_STR(16);
 
 	crash_time(time_buf, sizeof time_buf);
@@ -79,15 +80,28 @@ assertion_message(const assertion_data * const data, int fatal)
 			fatal ? "FATAL" : "WARNING", stid);
 		print_str(prefix);
 	}
-	if (data->expr) {
+
+	/*
+	 * If the FAST_ASSERT_NOT_REACHED bit is set in the line number,
+	 * then it does not indicate an assertion failure but rather that
+	 * we reached a point in the code that should never have been reached.
+	 *		--RAM, 2013-10-28
+	 */
+
+	line = data->line & ~FAST_ASSERT_NOT_REACHED;
+	assertion = line == data->line;
+
+	if (assertion) {
 		print_str("Assertion failure at ");
 	} else {
-		print_str("Code should not have been reached at ");
+		print_str("Code should not have been reached in ");
+		print_str(data->expr);		/* Routine name */
+		print_str("() at ");
 	}
 	print_str(data->file);
 	print_str(":");
-	print_str(PRINT_NUMBER(line_buf, data->line));
-	if (data->expr) {
+	print_str(PRINT_NUMBER(line_buf, line));
+	if (assertion) {
 		print_str(": \"");
 		print_str(data->expr);
 		print_str("\"");

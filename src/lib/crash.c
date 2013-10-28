@@ -1154,24 +1154,30 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("\n");					/* 2 */
 	if (vars->failure != NULL) {
 		const assertion_data *failure = vars->failure;
-		if (failure->expr != NULL) {
+		unsigned line = failure->line & ~FAST_ASSERT_NOT_REACHED;
+		bool assertion = line == failure->line;
+		if (assertion) {
 			print_str("Assertion-At: ");	/* 3 */
 		} else {
 			print_str("Reached-Code-At: ");	/* 3 */
 		}
 		print_str(failure->file);			/* 4 */
 		print_str(":");						/* 5 */
-		print_str(PRINT_NUMBER(lbuf, failure->line));
-		print_str("\n");					/* 6 */
-		if (failure->expr != NULL) {
-			print_str("Assertion-Expr: ");	/* 7 */
-			print_str(failure->expr);		/* 8 */
-			print_str("\n");				/* 9 */
+		print_str(PRINT_NUMBER(lbuf, line));/* 6 */
+		print_str("\n");					/* 7 */
+		if (assertion) {
+			print_str("Assertion-Expr: ");	/* 8 */
+			print_str(failure->expr);		/* 9 */
+			print_str("\n");				/* 10 */
+		} else {
+			print_str("Routine-Name: ");	/* 8 */
+			print_str(failure->expr);		/* 9 */
+			print_str("()\n");				/* 10 */
 		}
 		if (vars->message != NULL) {
-			print_str("Assertion-Info: ");	/* 10 */
-			print_str(vars->message);		/* 11 */
-			print_str("\n");				/* 12 */
+			print_str("Assertion-Info: ");	/* 11 */
+			print_str(vars->message);		/* 12 */
+			print_str("\n");				/* 13 */
 		}
 	} else if (vars->message != NULL) {
 		print_str("Error-Message: ");		/* 3 */
