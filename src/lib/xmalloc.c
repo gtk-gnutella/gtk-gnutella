@@ -3751,10 +3751,7 @@ found:
 	 * Move the selected chunk to the head of the list.
 	 */
 
-	if (lk != elist_first(&ch->list)) {
-		elist_link_remove(&ch->list, lk);
-		elist_link_prepend(&ch->list, lk);
-	}
+	elist_moveto_head(&ch->list, xck);
 
 	return xck;
 }

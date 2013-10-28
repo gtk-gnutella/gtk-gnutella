@@ -293,6 +293,8 @@ void elist_insert_after(elist_t *list, void *sibling, void *data);
 void elist_link_replace(elist_t *list, link_t *old, link_t *new);
 void elist_replace(elist_t *list, void *old, void *new);
 void elist_reverse(elist_t *list);
+void elist_moveto_head(elist_t *list, void *data);
+void elist_moveto_tail(elist_t *list, void *data);
 void *elist_find(const elist_t *list, const void *key, cmp_fn_t cmp);
 void elist_sort_with_data(elist_t *list, cmp_data_fn_t cmp, void *data);
 void elist_sort(elist_t *list, cmp_fn_t cmp);

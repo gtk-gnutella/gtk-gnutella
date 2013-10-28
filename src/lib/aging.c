@@ -316,18 +316,6 @@ aging_age(const aging_table_t *ag, const void *key)
 }
 
 /**
- * Move value back to the tail of the list.
- */
-static inline void
-aging_moveto_tail(aging_table_t *ag, struct aging_value *aval)
-{
-	if (elist_last(&ag->list) != &aval->lk) {
-		elist_link_remove(&ag->list, &aval->lk);
-		elist_link_append(&ag->list, &aval->lk);
-	}
-}
-
-/**
  * Lookup value in table, and if found, revitalize entry, restoring the
  * initial lifetime the key/value pair had at insertion time.
  */
@@ -345,7 +333,7 @@ aging_lookup_revitalise(aging_table_t *ag, const void *key)
 
 	if (aval != NULL) {
 		aval->last_insert = tm_time();
-		aging_moveto_tail(ag, aval);
+		elist_moveto_tail(&ag->list, aval);
 	}
 
 	data = NULL == aval ? NULL : aval->value;
@@ -428,7 +416,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 
 		aval->value = value;
 		aval->last_insert = now;
-		aging_moveto_tail(ag, aval);
+		elist_moveto_tail(&ag->list, aval);
 	} else {
 		WALLOC(aval);
 		aval->value = value;

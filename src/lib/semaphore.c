@@ -588,10 +588,7 @@ semaphore_allocate(uint *num)
 			 * we had to move past the head to find a batch with a free item.
 			 */
 
-			if (sb != elist_head(&sem_list)) {
-				elist_remove(&sem_list, sb);
-				elist_prepend(&sem_list, sb);
-			}
+			elist_moveto_head(&sem_list, sb);
 
 			spinunlock(&sem_list_lock);
 			return sb;

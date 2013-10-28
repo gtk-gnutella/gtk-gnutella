@@ -961,6 +961,50 @@ elist_rotate_right(elist_t *list)
 }
 
 /**
+ * Move entry to the head of the list.
+ */
+void
+elist_moveto_head(elist_t *list, void *data)
+{
+	link_t *lk;
+
+	elist_check(list);
+	g_assert(data != NULL);
+	g_assert(size_is_positive(list->count));
+
+	lk = ptr_add_offset(data, list->offset);
+
+	if (list->head != lk) {
+		elist_link_remove_internal(list, lk);
+		elist_link_prepend_internal(list, lk);
+	}
+
+	safety_assert(elist_invariant(list));
+}
+
+/**
+ * Move entry to the tail of the list.
+ */
+void
+elist_moveto_tail(elist_t *list, void *data)
+{
+	link_t *lk;
+
+	elist_check(list);
+	g_assert(data != NULL);
+	g_assert(size_is_positive(list->count));
+
+	lk = ptr_add_offset(data, list->offset);
+
+	if (list->tail != lk) {
+		elist_link_remove_internal(list, lk);
+		elist_link_append_internal(list, lk);
+	}
+
+	safety_assert(elist_invariant(list));
+}
+
+/**
  * Remove head of list, return pointer to item, NULL if list was empty.
  */
 void *

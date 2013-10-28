@@ -875,15 +875,7 @@ hash_list_moveto_head(hash_list_t *hl, const void *key)
 	item = hikset_lookup(hl->ht, key);
 	g_assert(item != NULL);
 
-	/*
-	 * Remove item from list and insert it back at the head.
-	 */
-
-	if (elist_first(&hl->list) != &item->lnk) {
-		elist_link_remove(&hl->list, &item->lnk);
-		elist_link_prepend(&hl->list, &item->lnk);
-	}
-
+	elist_moveto_head(&hl->list, item);
 	hl->stamp++;
 
 	hash_list_regression(hl);
@@ -908,15 +900,7 @@ hash_list_moveto_tail(hash_list_t *hl, const void *key)
 	item = hikset_lookup(hl->ht, key);
 	g_assert(item != NULL);
 
-	/*
-	 * Remove item from list and insert it back at the tail.
-	 */
-
-	if (elist_last(&hl->list) != &item->lnk) {
-		elist_link_remove(&hl->list, &item->lnk);
-		elist_link_append(&hl->list, &item->lnk);
-	}
-
+	elist_moveto_tail(&hl->list, item);
 	hl->stamp++;
 
 	hash_list_regression(hl);
