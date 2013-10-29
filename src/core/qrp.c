@@ -2202,6 +2202,8 @@ qrp_finalize_computation(htable_t *words)
 
 	gnet_prop_set_timestamp_val(PROP_QRP_TIMESTAMP, tm_time());
 
+	g_soft_assert(NULL == qrp_comp);
+
 	qrp_comp = bg_task_create(NULL, "QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
 		ctx, qrp_comp_context_free,
@@ -2228,6 +2230,8 @@ qrp_update_routing_table(void)
 	ctx->magic = QRP_MAGIC;
 	ctx->rtp = &local_table;		/* In case we call qrp_step_install_leaf */
 	ctx->rpp = &routing_patch;
+
+	g_soft_assert(NULL == qrp_merge);
 
 	qrp_merge = bg_task_create(NULL, "QRP merging",
 		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
