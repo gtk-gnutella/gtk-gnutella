@@ -338,6 +338,7 @@ thread_cancel_disable(void)
 
 struct logagent;
 void thread_dump_stats_log(struct logagent *la, unsigned options);
+void thread_dump_stats(void);
 
 #define THREAD_INVALID_ID	-1U		/**< Invalid ID */
 #define THREAD_MAIN			0		/**< ID of the main thread */

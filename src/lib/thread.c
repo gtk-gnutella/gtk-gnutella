@@ -8300,6 +8300,16 @@ thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
 }
 
 /**
+ * Dump thread statistics to stderr.
+ */
+G_GNUC_COLD void
+thread_dump_stats(void)
+{
+	s_info("THREAD running statistics:");
+	thread_dump_stats_log(log_agent_stderr_get(), 0);
+}
+
+/**
  * Dump thread statistics to specified logging agent.
  */
 G_GNUC_COLD void

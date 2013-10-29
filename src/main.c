@@ -774,6 +774,9 @@ gtk_gnutella_exit(int exit_code)
 
 	thread_suspend_others(FALSE);
 
+	if (debugging(0))
+		DO(thread_dump_stats);
+
 	/*
 	 * Memory shutdown must come last.
 	 */
