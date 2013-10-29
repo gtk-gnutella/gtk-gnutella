@@ -158,6 +158,7 @@ void s_debug_once_per_from(long period, const char *origin,
 logagent_t *log_agent_stdout_get(void);
 logagent_t *log_agent_stderr_get(void);
 logagent_t *log_agent_string_make(size_t size, const char *prefix);
+void log_agent_reserve(logagent_t *la, size_t len);
 void log_agent_string_reset(logagent_t *la);
 const char *log_agent_string_get(const logagent_t *la);
 char *log_agent_string_get_null(logagent_t **la_ptr);

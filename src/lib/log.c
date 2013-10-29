@@ -329,6 +329,17 @@ log_driver_string_free(struct logstring *ls)
 }
 
 /**
+ * Reserve room in the logging string.
+ */
+static void
+log_driver_string_reserve(struct logstring *ls, size_t len)
+{
+	logstring_check(ls);
+
+	str_reserve(ls->buffer, len);
+}
+
+/**
  * Create a new logging agent for string logging.
  *
  * @param size		size hint for the string (0 for default)
@@ -396,6 +407,34 @@ log_agent_string_get_null(logagent_t **la_ptr)
 	log_agent_free_null(la_ptr);
 
 	return result;
+}
+
+/**
+ * Reserve room in the log agent to be able to safely append ``len'' bytes
+ * of data without memory allocation.
+ *
+ * This routine does nothing if called on a logging agent not tied to
+ * a string buffer.
+ *
+ * @param la		the log agent
+ * @param len		amount of bytes we would like to reserve (pre-extension)
+ */
+void
+log_agent_reserve(logagent_t *la, size_t len)
+{
+	logagent_check(la);
+
+	switch (la->type) {
+	case LOG_A_STDOUT:
+	case LOG_A_STDERR:
+		return;			/* Nothing we can do here */
+	case LOG_A_STRING:
+		log_driver_string_reserve(la->u.s, len);
+		return;
+	case LOG_A_MAXTYPE:
+		break;
+	}
+	g_assert_not_reached();
 }
 
 /**
