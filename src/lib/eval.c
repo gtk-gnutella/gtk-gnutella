@@ -159,7 +159,7 @@ eval_subst(const char *str)
 
 	len = g_strlcpy(buf, str, sizeof buf);
 	if (len >= sizeof buf) {
-		g_warning("%s: string too large for substitution (%zu bytes)",
+		g_warning("%s(): string too large for substitution (%zu bytes)",
 			G_STRFUNC, len);
 		return constant_str(str);
 	}

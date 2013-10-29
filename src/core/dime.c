@@ -259,9 +259,9 @@ dime_parse_record_header(const char *data, size_t size,
 	header->version = peek_u8(&data[0]) >> 3;
 
 	if (DIME_VERSION != header->version) {
-		g_warning("dime_parse_record_header(): Cannot parse dime version %u, "
+		g_warning("%s(): cannot parse dime version %u, "
 			"only version %u is supported",
-			header->version, DIME_VERSION);
+			G_STRFUNC, header->version, DIME_VERSION);
 		goto failure;
 	}
 

@@ -390,7 +390,7 @@ file_object_new(const int fd, const char * const pathname, int accmode)
 		fo = file_object_alloc(fd, pathname, accmode);
 	} else {
 		if (-1 == close(fd))
-			g_warning("%s: cannot close(%d): %m", G_STRFUNC, fd);
+			g_warning("%s(): cannot close(%d): %m", G_STRFUNC, fd);
 	}
 
 	FILE_OBJECTS_UNLOCK;
@@ -685,9 +685,9 @@ reopen:
 			fo->fd = file_absolute_open(fo->pathname, fo->accmode, 0);
 
 			if (!is_valid_fd(fo->fd)) {
-				g_warning("cannot reopen \"%s\" mode 0%o "
+				g_warning("%s(): cannot reopen \"%s\" mode 0%o "
 					"after %s %s of \"%s\": %m",
-					fo->pathname, fo->accmode,
+					G_STRFUNC, fo->pathname, fo->accmode,
 					ok ? "successful" : "failed", file_object_op_to_string(op),
 					old_name);
 			}

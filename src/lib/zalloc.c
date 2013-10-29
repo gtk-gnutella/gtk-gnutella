@@ -743,7 +743,8 @@ zblock_log(const char *p, size_t size, void *leakset)
 		if (f != INVALID_FRAME_PTR) {
 			leak_stack_add(leakset, size, f->ast);
 		} else {
-			s_warning("%s: frame pointer suggests %zu-byte block %p was freed?",
+			s_warning("%s(): frame pointer suggests "
+				"%zu-byte block %p was freed?",
 				G_STRFUNC, size, uptr);
 		}
 	}

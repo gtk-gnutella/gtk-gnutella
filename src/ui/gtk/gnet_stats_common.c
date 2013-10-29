@@ -70,7 +70,8 @@ msg_type_str(gint value)
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_TYPE_COUNT);
 
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
-		g_warning("Requested general_type_str %d is invalid", value);
+		g_carp("%s(): requested general_type_str %d is invalid",
+			G_STRFUNC, value);
 		return "";
 	}
 
@@ -386,7 +387,8 @@ general_type_str(gint value)
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
 
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
-		g_warning("Requested general_type_str %d is invalid", value);
+		g_carp("%s(): requested general_type_str %d is invalid",
+			G_STRFUNC, value);
 		return "";
 	}
 

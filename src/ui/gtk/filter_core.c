@@ -2203,10 +2203,11 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 					)
                         match = TRUE;
                     if (i == REG_ESPACE)
-                        g_warning("regexp memory overflow");
+                        g_warning("%s(): regexp memory overflow", G_STRFUNC);
                     break;
                 default:
-                    g_error("Unknown text rule type: %d", r->u.text.type);
+                    g_error("%s(): unknown text rule type: %d",
+						G_STRFUNC, r->u.text.type);
                 }
                 break;
 			}

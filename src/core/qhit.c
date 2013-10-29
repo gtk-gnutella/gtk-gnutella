@@ -395,7 +395,7 @@ qhit_send_node(void *data, size_t len, void *udata)
 	 */
 
 	if (gnutella_header_get_hops(&n->header) == 0) {
-		g_warning("qhit_send_node(): hops=0, bug in route_message()?");
+		g_warning("%s(): hops=0, bug in route_message()?", G_STRFUNC);
 		/* Can't send message with TTL=0 */
 		gnutella_header_set_hops(&n->header, 1);
 	}

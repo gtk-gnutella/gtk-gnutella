@@ -479,9 +479,9 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 	sf->name_canonic_len = strlen(sf->name_canonic);
 
 	if (0 == sf->name_nfc_len || 0 == sf->name_canonic_len) {
-		g_warning("Normalized filename is an empty string \"%s\" "
+		g_warning("%s(): normalized filename is an empty string \"%s\" "
 			"(NFC=\"%s\", canonic=\"%s\")",
-			filename, sf->name_nfc, sf->name_canonic);
+			G_STRFUNC, filename, sf->name_nfc, sf->name_canonic);
 		return TRUE;
 	}
 	return FALSE;

@@ -447,7 +447,7 @@ parse_netmasks(const char *str)
 			if (strchr(p, '.')) {
 				/* get the network address from the user */
 				if (!string_to_ip_strict(p, &local_networks[i].mask, NULL))
-					g_warning("parse_netmasks(): Invalid netmask: \"%s\"", p);
+					g_warning("%s(): invalid netmask: \"%s\"", G_STRFUNC, p);
 			}
 			else {
 				int error;
@@ -455,8 +455,8 @@ parse_netmasks(const char *str)
 				mask_div = parse_uint32(p, NULL, 10, &error);
 				mask_div = MIN(32, mask_div);
 				if (error)
-					g_warning("parse_netmasks(): "
-						"Invalid CIDR prefixlen: \"%s\"", p);
+					g_warning("%s(): invalid CIDR prefixlen: \"%s\"",
+						G_STRFUNC, p);
 				else
 					local_networks[i].mask = (uint32) -1 << (32 - mask_div);
 			}
@@ -467,7 +467,7 @@ parse_netmasks(const char *str)
 		}
 		/* get the network address from the user */
 		if (!string_to_ip_strict(masks[i], &local_networks[i].net, NULL))
-			g_warning("parse_netmasks(): Invalid netmask: \"%s\"", masks[i]);
+			g_warning("%s(): invalid netmask: \"%s\"", G_STRFUNC, masks[i]);
 	}
 
 	g_strfreev(masks);

@@ -360,8 +360,8 @@ mem_protect(void *ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ))
-		s_warning("mem_protect: mprotect(%p, %zu, PROT_READ) failed: %m",
-			p, size);
+		s_warning("%s(): mprotect(%p, %zu, PROT_READ) failed: %m",
+			G_STRFUNC, p, size);
 }
 
 /**
@@ -379,8 +379,8 @@ mem_unprotect(void *ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ | PROT_WRITE))
-		s_warning("mem_unprotect: mprotect(%p, %zu, PROT_RDWR) failed: %m",
-			p, size);
+		s_warning("%s(): mprotect(%p, %zu, PROT_RDWR) failed: %m",
+			G_STRFUNC, p, size);
 }
 
 /**

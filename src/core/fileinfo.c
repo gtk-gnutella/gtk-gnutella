@@ -2301,8 +2301,8 @@ fi_dispose(fileinfo_t *fi)
 	 */
 
 	if (fi->refcount)
-		g_warning("fi_dispose() refcount = %u for \"%s\"",
-			fi->refcount, fi->pathname);
+		g_warning("%s(): refcount = %u for \"%s\"",
+			G_STRFUNC, fi->refcount, fi->pathname);
 
 	fi->hashed = FALSE;
 	fi_free(fi);

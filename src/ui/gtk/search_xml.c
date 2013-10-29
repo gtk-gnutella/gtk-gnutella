@@ -449,8 +449,8 @@ search_retrieve_xml(void)
      */
 
     if (e != VXML_E_OK) {
-        g_warning("error parsing %s file: %s",
-			search_file_xml, vxml_strerror(e));
+        g_warning("%s(): error parsing %s file: %s",
+			G_STRFUNC, search_file_xml, vxml_strerror(e));
 		return FALSE;
     }
 

@@ -514,13 +514,13 @@ sig_get_pc_index(void)
 	sa.sa_sigaction = sig_get_pc_handler;
 
 	if (-1 == sigaction(SIGSEGV, &sa, &osa)) {
-		s_warning("%s: sigaction() setup failed: %m", G_STRFUNC);
+		s_warning("%s(): sigaction() setup failed: %m", G_STRFUNC);
 		return -1;
 	}
 
 	if (Sigsetjmp(sig_pc_env, TRUE)) {
 		if (-1 == sigaction(SIGSEGV, &osa, &sa))
-			s_critical("%s: sigaction() restore failed: %m", G_STRFUNC);
+			s_critical("%s(): sigaction() restore failed: %m", G_STRFUNC);
 		return sig_pc_regnum;
 	}
 
@@ -690,7 +690,7 @@ signal_stack_allocate(size_t *len)
 	 */
 
 	if (-1 == sigaltstack(&ss, NULL)) {
-		s_warning("unable to allocate signal stack: %m");
+		s_carp("%s(): unable to allocate signal stack: %m", G_STRFUNC);
 		p = NULL;
 	}
 
@@ -722,7 +722,7 @@ signal_stack_free(void *p)
 	ss.ss_flags = SS_DISABLE;
 
 	if (-1 == sigaltstack(&ss, NULL))
-		s_warning("unable to deallocate signal stack: %m");
+		s_carp("%s(): unable to deallocate signal stack: %m", G_STRFUNC);
 
 	vmm_free(p, SIGNAL_STACK_SIZE);
 #else
@@ -1401,10 +1401,10 @@ signal_init_once(void)
 	case SIG_PC_HIDDEN:
 		break;
 	case SIG_PC_UNKNOWN:
-		s_warning("%s: could not find PC in machine context", G_STRFUNC);
+		s_warning("%s(): could not find PC in machine context", G_STRFUNC);
 		break;
 	case SIG_PC_MULTIPLE:
-		s_warning("%s: many locations for PC in machine context", G_STRFUNC);
+		s_warning("%s(): many locations for PC in machine context", G_STRFUNC);
 		break;
 	case SIG_PC_IMPOSSIBLE:
 		g_assert_not_reached();

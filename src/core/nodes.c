@@ -1701,9 +1701,9 @@ node_count(void)
 		GNET_PROPERTY(node_leaf_count);
 
 	if (!uint_is_non_negative(count)) {
-		g_warning("BUG node_count() is negative? "
+		g_warning("BUG %s() is negative? "
 			"connections = %u, shutdown = %u, leaves = %u",
-			total_nodes_connected, shutdown_nodes,
+			G_STRFUNC, total_nodes_connected, shutdown_nodes,
 			GNET_PROPERTY(node_leaf_count));
 		return 0;
 	}
@@ -1832,7 +1832,8 @@ get_protocol_version(const char *handshake, uint *major, uint *minor)
 		return;
 
 	if (GNET_PROPERTY(node_debug))
-		g_warning("Unable to parse version number in HELLO, assuming 0.4");
+		g_warning("%s(): unable to parse version number in HELLO, assuming 0.4",
+			G_STRFUNC);
 	if (GNET_PROPERTY(node_debug) > 2) {
 		size_t len = strlen(handshake);
 		dump_hex(stderr, "First HELLO Line", handshake, MIN(len, 80));

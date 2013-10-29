@@ -5378,9 +5378,8 @@ dht_route_parse(FILE *f)
 		g_assert(UNSIGNED(tag) <= NUM_DHT_ROUTE_TAGS);
 
 		if (tag != DHT_ROUTE_TAG_UNKNOWN && !bit_array_flip(tag_used, tag)) {
-			g_warning("dht_route_parse(): "
-				"duplicate tag \"%s\" within entry at line %u",
-				tag_name, line_no);
+			g_warning("%s(): duplicate tag \"%s\" within entry at line %u",
+				G_STRFUNC, tag_name, line_no);
 			goto damaged;
 		}
 
@@ -5433,9 +5432,8 @@ dht_route_parse(FILE *f)
 
 				for (i = 0; i < G_N_ELEMENTS(dht_route_tag_map); i++) {
 					if (!bit_array_get(tag_used, dht_route_tag_map[i].tag)) {
-						g_warning("dht_route_parse(): "
-							"missing %s tag near line %u",
-							dht_route_tag_map[i].str, line_no);
+						g_warning("%s(): missing %s tag near line %u",
+							G_STRFUNC, dht_route_tag_map[i].str, line_no);
 						goto damaged;
 					}
 				}

@@ -197,7 +197,7 @@ parse_attribute(const struct array attr)
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].attr;
 		}
-		g_warning("Unknown attribute: \"%s\"", name);
+		g_warning("%s(): unknown attribute: \"%s\"", G_STRFUNC, name);
 	}
 	return HTML_ATTR_UNKNOWN;
 }
@@ -285,7 +285,7 @@ parse_tag(const struct array tag)
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].tag;
 		}
-		g_warning("Unknown tag: \"%s\"", name);
+		g_warning("%s(): unknown tag: \"%s\"", G_STRFUNC, name);
 	}
 	return HTML_TAG_UNKNOWN;
 }

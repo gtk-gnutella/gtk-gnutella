@@ -189,7 +189,7 @@ spam_add_name_and_size(const char *name,
 		char buf[1024];
 
 		regerror(error, &item->pattern, buf, sizeof buf);
-		g_warning("spam_add_name_and_size(): regcomp() failed: %s", buf);
+		g_warning("%s(): regcomp() failed: %s", G_STRFUNC, buf);
 		regfree(&item->pattern);
 		WFREE(item);
 		return TRUE;

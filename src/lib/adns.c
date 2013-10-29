@@ -704,7 +704,7 @@ adns_resolve(const char *hostname, enum net_type net,
 		return TRUE; /* asynchronous */
 
 	if (common_dbg) {
-		g_warning("%s: using synchronous resolution for \"%s\"",
+		g_warning("%s(): using synchronous resolution for \"%s\"",
 			G_STRFUNC, query->hostname);
 	}
 	adns_fallback(&req);
@@ -742,7 +742,7 @@ adns_reverse_lookup(const host_addr_t addr,
 	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
-	g_warning("%s: using synchronous resolution for \"%s\"",
+	g_warning("%s(): using synchronous resolution for \"%s\"",
 		G_STRFUNC, host_addr_to_string(query->addr));
 
 	adns_fallback(&req);
@@ -772,7 +772,7 @@ adns_close(void)
 
 	if (-1 != adns_id) {
 		if (-1 == thread_join(adns_id, NULL))
-			g_warning("%s: cannot join with ADNS thread: %m", G_STRFUNC);
+			g_warning("%s(): cannot join with ADNS thread: %m", G_STRFUNC);
 		adns_id = -1;
 	}
 }

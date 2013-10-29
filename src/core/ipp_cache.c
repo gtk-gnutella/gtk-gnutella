@@ -506,9 +506,8 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		g_assert(UNSIGNED(tag) < NUM_IPP_CACHE_TAGS);
 		if (IPP_CACHE_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning(
-				"ipp_cache_load(\"%s\"): "
-				"duplicate tag \"%s\" in entry in line %u",
-				ic->name, tag_name, line_no);
+				"%s(\"%s\"): duplicate tag \"%s\" in entry in line %u",
+				G_STRFUNC, ic->name, tag_name, line_no);
 			break;
 		}
 		
@@ -535,11 +534,11 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 			
 		case IPP_CACHE_TAG_END:
 			if (!bit_array_get(tag_used, IPP_CACHE_TAG_HOST)) {
-				g_warning("ipp_cache_load(): missing HOST tag");
+				g_warning("%s(): missing HOST tag", G_STRFUNC);
 				damaged = TRUE;
 			}
 			if (!bit_array_get(tag_used, IPP_CACHE_TAG_SEEN)) {
-				g_warning("ipp_cache_load(): missing SEEN tag");
+				g_warning("%s(): missing SEEN tag", G_STRFUNC);
 				damaged = TRUE;
 			}
 			done = TRUE;
@@ -555,9 +554,9 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		}
 
 		if (damaged) {
-			g_warning("damaged %s cache entry in line %u: "
+			g_warning("%s(): damaged %s cache entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
-				ic->item_name, line_no, tag_name, value);
+				G_STRFUNC, ic->item_name, line_no, tag_name, value);
 			break;
 		}
 
@@ -566,9 +565,10 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 				ipp_cache_lookup_intern(ic, gnet_host_get_addr(&item.host),
 					gnet_host_get_port(&item.host))
 			) {
-				g_warning(
-					"ignoring duplicate %s cache item around line %u (%s)",
-				   	ic->item_name, line_no, gnet_host_to_string(&item.host));
+				g_warning("%s(): ignoring duplicate %s cache item around "
+					"line %u (%s)",
+					G_STRFUNC, ic->item_name, line_no,
+					gnet_host_to_string(&item.host));
 			} else if (!ipp_cache_item_expired(ic, item.seen, tm_time())) {
 				ipp_cache_insert_intern(ic, &item);
 			}

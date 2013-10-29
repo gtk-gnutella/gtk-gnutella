@@ -173,8 +173,8 @@ update_entry(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+			g_warning("%s(): widget not found: [%s]",
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -198,8 +198,8 @@ update_label(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+			g_warning("%s(): widget not found: [%s]",
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -226,8 +226,8 @@ update_spinbutton(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+			g_warning("%s(): widget not found: [%s]",
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -300,8 +300,8 @@ update_multichoice(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+			g_warning("%s(): widget not found: [%s]",
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -350,8 +350,8 @@ update_entry_duration(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+			g_warning("%s(): widget not found: [%s]",
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -376,8 +376,8 @@ update_size_entry(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+			g_warning("%s(): widget not found: [%s]",
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -516,8 +516,7 @@ update_window_geometry(property_t prop)
 
     if (!w->window) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - top level window not available (NULL)",
-				 G_GNUC_PRETTY_FUNCTION);
+			g_warning("%s(): top level window not available (NULL)", G_STRFUNC);
         return FALSE;
     }
 
@@ -563,7 +562,7 @@ update_bandwidth_spinbutton(property_t prop)
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -995,7 +994,7 @@ update_byte_size_entry(property_t prop)
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -1055,7 +1054,7 @@ update_label_date(property_t prop)
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -1091,7 +1090,7 @@ update_label_duration(property_t prop)
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -1117,7 +1116,7 @@ update_label_yes_or_no(property_t prop)
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+				 G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 

@@ -2500,7 +2500,7 @@ bs_socket(enum socket_direction dir, enum socket_type type)
 		break;
 	}
 	if (BSCHED_BWS_INVALID == bws) {
-		g_warning("bs_socket: unhandled socket type %d", type);
+		g_warning("%s(): unhandled socket type %d", G_STRFUNC, type);
 		bws = SOCK_CONN_OUTGOING == dir ? BSCHED_BWS_OUT : BSCHED_BWS_IN;
 	}
 	return bsched_get(bws);

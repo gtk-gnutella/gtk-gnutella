@@ -639,14 +639,14 @@ shell_read_data(struct gnutella_shell *sh)
 		if (0 == ret) {
 			if (0 == s->pos) {
 				if (GNET_PROPERTY(shell_debug)) {
-					g_debug("%s: shell connection closed: EOF", G_STRFUNC);
+					g_debug("%s(): shell connection closed: EOF", G_STRFUNC);
 				}
 				shell_shutdown(sh);
 				goto finish;
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
-				g_warning("%s: receiving data failed: %m", G_STRFUNC);
+				g_warning("%s(): receiving data failed: %m", G_STRFUNC);
 				shell_shutdown(sh);
 				goto finish;
 			}
@@ -661,8 +661,8 @@ shell_read_data(struct gnutella_shell *sh)
 
 		switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
 		case READ_OVERFLOW:
-			g_warning("Line is too long (from shell at %s)\n",
-				host_addr_port_to_string(s->addr, s->port));
+			g_warning("%s(): line is too long (from shell at %s)\n",
+				G_STRFUNC, host_addr_port_to_string(s->addr, s->port));
 			shell_write(sh, "400 Line is too long.\n");
 			shell_shutdown(sh);
 			goto finish;

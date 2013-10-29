@@ -192,7 +192,7 @@ gtk_main_flush(void)
 
 	if (i > GTK_ITERATION_MAX && !val) {
 		if (GUI_PROPERTY(gui_debug)) {
-			g_warning("gtk_main_flush: too much work");
+			g_warning("%s(): too much work", G_STRFUNC);
 		}
 	}
 
@@ -219,7 +219,7 @@ option_menu_select_item_by_data(GtkOptionMenu *option_menu, gconstpointer data)
         }
     }
 
-	g_warning("option_menu_select_item_by_data: no item with data %p", data);
+	g_warning("%s(): no item with data %p", G_STRFUNC, data);
 }
 
 

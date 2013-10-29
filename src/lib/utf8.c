@@ -1634,7 +1634,8 @@ locale_get_charset(void)
 		if (cs == NULL) {
 			/* Default locale codeset */
 			cs = "ISO-8859-1";
-			g_warning("locale_init: using default codeset %s as fallback", cs);
+			g_warning("%s(): using default codeset %s as fallback",
+				G_STRFUNC, cs);
 		}
 
 		cs = h_strdup(cs);
@@ -3048,7 +3049,8 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 
 	if (!s) {
 		if (!utf8_is_valid_string(src)) {
-			g_warning("Could not properly convert to UTF-8: \"%s\"", src);
+			g_warning("%s(): could not properly convert to UTF-8: \"%s\"",
+				G_STRFUNC, src);
 		}
 		g_assert(NULL == dbuf);
 		dbuf = hyper_utf8_enforce(NULL, 0, src, (size_t) -1);
