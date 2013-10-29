@@ -594,7 +594,25 @@ str_makeroom(str_t *s, size_t len)
 }
 
 /**
- * Expand data space if necessary, returning the (new) data location.
+ * Pre-expand string data space to be able to hold at least `len' more bytes.
+ *
+ * @param str		the string object
+ * @param len		the extra room we want to have in the buffer
+ */
+void
+str_reserve(str_t *str, size_t len)
+{
+	str_check(str);
+	g_assert(size_is_non_negative(len));
+
+	str_makeroom(str, size_saturate_add(len, 1));
+}
+
+/**
+ * Expand data space, if necessary.
+ *
+ * @param str		the string object
+ * @param size		the new buffer data size we want
  */
 void
 str_grow(str_t *str, size_t size)

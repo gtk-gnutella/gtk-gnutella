@@ -99,6 +99,7 @@ char *str_dup(str_t *str);
 str_t *str_clone(str_t *str);
 void str_reset(str_t *str);
 void str_grow(str_t *str, size_t size);
+void str_reserve(str_t *str, size_t len);
 void str_setlen(str_t *str, size_t len);
 void str_putc(str_t *str, char c);
 void str_cpy(str_t *str, const char *string);
