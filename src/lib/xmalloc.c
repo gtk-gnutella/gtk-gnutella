@@ -8259,6 +8259,13 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 	size_t errors = 0;
 	unsigned i;
 
+	/*
+	 * Suspend the other threads to avoid concurrent memory allocation
+	 * whilst we scan the freelist.
+	 */
+
+	thread_suspend_others(FALSE);
+
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		unsigned j;
@@ -8269,6 +8276,19 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 
 		if (NULL == fl->pointers)
 			continue;
+
+		/*
+		 * Before possibly taking the bucket's lock, attempt to reserve
+		 * some amount in the logging agent, in case we're emitting to a
+		 * string: we do not want to be called to expand the internal string
+		 * and have a bucket locked.
+		 *
+		 * Note that we do reserve even if XMALLOC_FLCF_LOCK is not set to
+		 * avoid altering the bucket whilst we scan it, through string
+		 * extension.
+		 */
+
+		log_agent_reserve(la, 4096);	/* Arbitrary, large amount */
 
 		/*
 		 * Only lock buckets when it was explicitly requested.
@@ -8394,6 +8414,8 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 		if (locked)
 			mutex_unlock_hidden(&fl->lock);
 	}
+
+	thread_unsuspend_others();
 
 	return errors;
 }
