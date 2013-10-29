@@ -38,9 +38,16 @@
  * Routines here are called xmalloc(), xfree(), xrealloc() and xcalloc()
  * to make it possible to unplug the malloc replacement easily.
  *
- * Although xmalloc() is not tailored for multi-threading allocation, it has
- * been made thread-safe because the GTK library can create multiple threads
- * on some platforms, unbeknown to us!
+ * xmalloc() is thread-safe and will attempt to allocate small-enough blocks
+ * from thread-private chunks, resulting in less lock contentions in the main
+ * free list and faster operations since thread-private chunks do not need
+ * to bother with block coalescing, each chunk handling blocks of the same size.
+ *
+ * It is completely safe to have a block allocated by a thread freed by another
+ * thread, even if the block belongs to a thread-private chunk.  In that case,
+ * the freeing is deferred until the owning thread gets a chance to process it
+ * to return it to its pool -- there are really no locks on thread-private
+ * chunks.
  *
  * @author Raphael Manfredi
  * @date 2011-2013
