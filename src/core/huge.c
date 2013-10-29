@@ -552,7 +552,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
 	case VERIFY_DONE:
 		huge_update_hashes(sf, verify_sha1_digest(ctx), NULL);
-		request_tigertree(sf, FALSE);
+		request_tigertree(sf, TRUE);
 		/* FALL THROUGH */
 	case VERIFY_ERROR:
 	case VERIFY_SHUTDOWN:
@@ -630,7 +630,7 @@ request_sha1(shared_file_t *sf)
 		cached->shared = TRUE;
 		shared_file_set_sha1(sf, cached->sha1);
 		shared_file_set_tth(sf, cached->tth);
-		request_tigertree(sf, FALSE);
+		request_tigertree(sf, NULL == cached->tth);
 	} else {
 
 		if (GNET_PROPERTY(share_debug) > 1) {
