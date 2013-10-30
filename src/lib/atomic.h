@@ -142,6 +142,20 @@ atomic_acquire(atomic_lock_t *lock)
 	return atomic_test_and_set(lock);
 }
 
+static inline ALWAYS_INLINE bool
+atomic_bool_get(bool *p)
+{
+	atomic_mb();
+	return *p;
+}
+
+static inline ALWAYS_INLINE void
+atomic_bool_set(bool *p, bool v)
+{
+	*p = v;
+	atomic_mb();
+}
+
 static inline ALWAYS_INLINE int
 atomic_int_get(int *p)
 {
