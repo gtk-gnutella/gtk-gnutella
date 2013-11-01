@@ -36,14 +36,7 @@
 
 #include "common.h"
 
-#define ALPHA_SIZE	256			/**< Alphabet size */
-
-typedef struct {				/**< Compiled pattern */
-	const char *pattern;		/**< The pattern */
-	size_t len;					/**< Pattern length */
-	size_t delta[ALPHA_SIZE];	/**< Shifting deltas */
-	bool duped;					/**< Was `pattern' strdup()'ed? */
-} cpattern_t;
+typedef struct cpattern cpattern_t;
 
 typedef enum {
 	qs_any = 0,					/**< Match anywhere */
@@ -60,6 +53,7 @@ void pattern_free(cpattern_t *cpat);
 void pattern_free_null(cpattern_t **cpat_ptr);
 const char *pattern_qsearch(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
+size_t pattern_len(const cpattern_t *p);
 
 #endif /* _pattern_h_ */
 

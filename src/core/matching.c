@@ -477,7 +477,7 @@ entry_match(const char *text, size_t tlen,
 
 			pos = pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
 			if (pos)
-				offset = (pos - text) + pw[i]->len;
+				offset = (pos - text) + pattern_len(pw[i]);
 			else
 				break;
 		}
