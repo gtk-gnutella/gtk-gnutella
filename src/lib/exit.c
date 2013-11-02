@@ -32,6 +32,9 @@
  * supersedes malloc(): at startup time, we had no chance to initialize the
  * necessary constants to compute page size alignments.
  *
+ * They suspend the other threads to avoid problems and parasite logging as
+ * we reclaim important resources during signal_perform_cleanup().
+ *
  * @author Raphael Manfredi
  * @date 2011
  */
@@ -41,6 +44,7 @@
 #include "exit.h"
 #include "crash.h"
 #include "signal.h"
+#include "thread.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -54,6 +58,7 @@
 G_GNUC_COLD void
 do_exit(int status)
 {
+	thread_suspend_others(FALSE);
 	xmalloc_stop_freeing();
 	signal_perform_cleanup();
 	crash_close();
@@ -68,6 +73,7 @@ do_exit(int status)
 G_GNUC_COLD void
 do__exit(int status)
 {
+	thread_suspend_others(FALSE);
 	xmalloc_stop_freeing();
 	signal_perform_cleanup();
 	_exit(status);
