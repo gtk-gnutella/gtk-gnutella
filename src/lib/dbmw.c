@@ -279,7 +279,7 @@ dbmw_create(dbmap_t *dm, const char *name,
 		dw->max_cached = cache_size;
 
 	if (common_dbg)
-		g_debug("DBMW created \"%s\" with %s back-end "
+		s_debug("DBMW created \"%s\" with %s back-end "
 			"(max cached = %zu, key=%zu bytes, value=%zu bytes, "
 			"%zu max serialized)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
@@ -324,8 +324,8 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 			 */
 
 			if (dval.len > dw->value_data_size) {
-				/* Don't g_carp() as this is asynchronous wrt data change */
-				g_critical("DBMW \"%s\" serialization overflow in %s() "
+				/* Don't s_carp() as this is asynchronous wrt data change */
+				s_critical("DBMW \"%s\" serialization overflow in %s() "
 					"whilst flushing dirty entry",
 					dw->name, stacktrace_function_name(dw->pack));
 				return FALSE;
@@ -362,11 +362,11 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 	} else if (dbmap_has_ioerr(dw->dm)) {
 		dw->ioerr = TRUE;
 		dw->error = errno;
-		g_warning("DBMW \"%s\" I/O error whilst %s dirty entry: %s",
+		s_warning("DBMW \"%s\" I/O error whilst %s dirty entry: %s",
 			dw->name, value->absent ? "deleting" : "flushing",
 			dbmap_strerror(dw->dm));
 	} else {
-		g_warning("DBMW \"%s\" error whilst %s dirty entry: %s",
+		s_warning("DBMW \"%s\" error whilst %s dirty entry: %s",
 			dw->name, value->absent ? "deleting" : "flushing",
 			dbmap_strerror(dw->dm));
 	}
@@ -627,7 +627,7 @@ cache_finish_traversal(void *key, void *value, void *data)
 
 	if (!entry->dirty && !fctx->warned_clean_key) {
 		fctx->warned_clean_key = TRUE;
-		g_critical("%s(): DBMW \"%s\" "
+		s_critical("%s(): DBMW \"%s\" "
 			"iterating via %s over a clean key in cache",
 			G_STRFUNC, dw->name,
 			stacktrace_routine_name(fctx->foreach->u.any, FALSE));
@@ -1013,7 +1013,8 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 	if (dbmap_has_ioerr(dw->dm)) {
 		dw->ioerr = TRUE;
 		dw->error = errno;
-		g_warning("DBMW \"%s\" I/O error whilst reading entry: %s",
+		s_warning_once_per(LOG_PERIOD_SECOND,
+			"DBMW \"%s\" I/O error whilst reading entry: %s",
 			dw->name, dbmap_strerror(dw->dm));
 		return NULL;
 	} else if (NULL == dval.data)
@@ -1040,7 +1041,7 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 		bstr_reset(dw->bs, dval.data, dval.len, BSTR_F_ERROR);
 
 		if (!dbmw_deserialize(dw, dw->bs, entry->data, dw->value_size)) {
-			g_critical("DBMW \"%s\" deserialization error in %s(): %s",
+			s_critical("DBMW \"%s\" deserialization error in %s(): %s",
 				dw->name, stacktrace_function_name(dw->unpack),
 				bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
@@ -1117,7 +1118,7 @@ dbmw_exists(dbmw_t *dw, const void *key)
 	if (dbmap_has_ioerr(dw->dm)) {
 		dw->ioerr = TRUE;
 		dw->error = errno;
-		g_warning("DBMW \"%s\" I/O error whilst checking key existence: %s",
+		s_warning("DBMW \"%s\" I/O error whilst checking key existence: %s",
 			dw->name, dbmap_strerror(dw->dm));
 		return FALSE;
 	}
@@ -1209,7 +1210,7 @@ dbmw_delete(dbmw_t *dw, const void *key)
 		if (dbmap_has_ioerr(dw->dm)) {
 			dw->ioerr = TRUE;
 			dw->error = errno;
-			g_warning("DBMW \"%s\" I/O error whilst deleting key: %s",
+			s_warning("DBMW \"%s\" I/O error whilst deleting key: %s",
 				dw->name, dbmap_strerror(dw->dm));
 		}
 
@@ -1300,7 +1301,7 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 	dbmw_check(dw);
 
 	if (common_stats) {
-		g_debug("DBMW destroying \"%s\" with %s back-end "
+		s_debug("DBMW destroying \"%s\" with %s back-end "
 			"(read cache hits = %.2f%% on %s request%s, "
 			"write cache hits = %.2f%% on %s request%s)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
@@ -1385,7 +1386,7 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 		entry->traversed = TRUE;	/* Signal we iterated on cached value */
 
 		if (entry->absent) {
-			g_carp("%s(): DBMW \"%s\" iterating over a %s absent key in cache!",
+			s_carp("%s(): DBMW \"%s\" iterating over a %s absent key in cache!",
 				G_STRFUNC, dw->name, entry->dirty ? "dirty" : "clean");
 			return TRUE;		/* Key was already deleted, info cached */
 		}
@@ -1418,7 +1419,7 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 			bstr_reset(dw->bs, d->data, d->len, BSTR_F_ERROR);
 
 			if (!dbmw_deserialize(dw, dw->bs, data, len)) {
-				g_critical("DBMW \"%s\" deserialization error in %s(): %s",
+				s_critical("DBMW \"%s\" deserialization error in %s(): %s",
 					dw->name,
 					stacktrace_function_name(dw->unpack),
 					bstr_error(dw->bs));

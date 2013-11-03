@@ -115,6 +115,43 @@ void s_rawcrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 /*
+ * These routines should not be called directly, use the macros below.
+ */
+void s_critical_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_warning_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_message_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_info_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_debug_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+
+#define s_critical_once_per(p,fmt,...) \
+	s_critical_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_warning_once_per(p,fmt,...) \
+	s_warning_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_message_once_per(p,fmt,...) \
+	s_message_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_info_once_per(p,fmt,...) \
+	s_info_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_debug_once_per(p,fmt,...) \
+	s_debug_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+/*
+ * Pre-defined logging periods for the xxx_once_per() logging routines.
+ */
+
+#define LOG_PERIOD_SECOND	1
+#define LOG_PERIOD_MINUTE	60
+#define LOG_PERIOD_HOUR		3600
+
+/*
  * Polymorphic logging interface.
  */
 

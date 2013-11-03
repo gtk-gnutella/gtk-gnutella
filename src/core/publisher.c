@@ -172,7 +172,8 @@ get_pubdata(const sha1_t *sha1)
 	pd = dbmw_read(db_pubdata, sha1, NULL);
 
 	if (NULL == pd && dbmw_has_ioerr(db_pubdata)) {
-		g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+		s_warning_once_per(LOG_PERIOD_MINUTE,
+			"DBMW \"%s\" I/O error, bad things could happen...",
 			dbmw_name(db_pubdata));
 	}
 

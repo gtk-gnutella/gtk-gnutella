@@ -150,7 +150,8 @@ get_tokdata(const kuid_t *id)
 
 	if (NULL == td) {
 		if (dbmw_has_ioerr(db_tokdata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_tokdata));
 		}
 	}

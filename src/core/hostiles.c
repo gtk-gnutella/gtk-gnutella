@@ -818,7 +818,8 @@ get_spamdata(const gnet_host_t *host)
 
 	if (NULL == sd) {
 		if (dbmw_has_ioerr(db_spam)) {
-			g_warning("DBMW \"%s\" I/O error", dbmw_name(db_spam));
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error", dbmw_name(db_spam));
 		}
 	}
 

@@ -344,10 +344,12 @@ get_keydata(const kuid_t *id)
 
 	if (kd == NULL) {
 		if (dbmw_has_ioerr(db_keydata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_keydata));
 		} else {
-			g_warning("key %s exists but was not found in DBMW \"%s\"",
+			s_warning_once_per(LOG_PERIOD_SECOND,
+				"key %s exists but was not found in DBMW \"%s\"",
 				kuid_to_hex_string(id), dbmw_name(db_keydata));
 		}
 		return NULL;

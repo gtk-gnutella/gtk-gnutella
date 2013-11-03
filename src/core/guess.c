@@ -588,7 +588,8 @@ get_qkdata(const gnet_host_t *host)
 
 	if (NULL == qk) {
 		if (dbmw_has_ioerr(db_qkdata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				 dbmw_name(db_qkdata));
 		}
 	}

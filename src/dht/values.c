@@ -946,10 +946,12 @@ get_valuedata(uint64 dbkey)
 
 	if (vd == NULL) {
 		if (dbmw_has_ioerr(db_valuedata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_valuedata));
 		} else {
-			g_warning("value for DB-key %s exists but not found in DBMW \"%s\"",
+			s_warning_once_per(LOG_PERIOD_SECOND,
+				"value for DB-key %s exists but not found in DBMW \"%s\"",
 				uint64_to_string(dbkey), dbmw_name(db_valuedata));
 		}
 		return NULL;
@@ -1704,6 +1706,13 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 		data = dbmw_read(db_rawdata, &dbkey, &length);
 
+		if G_UNLIKELY(NULL == data) {
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, %s() aborted",
+				dbmw_name(db_rawdata), G_STRFUNC);
+			return STORE_SC_DB_IO;		/* I/O error or corrupted DB */
+		}
+
 		g_assert(data);
 		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
 		g_assert(v->length == vd->length);	/* Ensured by preceding code */
@@ -1905,6 +1914,13 @@ values_get(uint64 dbkey, dht_value_type_t type)
 		void *data;
 
 		data = dbmw_read(db_rawdata, &dbkey, &length);
+
+		if G_UNLIKELY(NULL == data) {
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, %s() aborted",
+				dbmw_name(db_rawdata), G_STRFUNC);
+			return NULL;		/* I/O error or corrupted DB */
+		}
 
 		g_assert(data);
 		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */

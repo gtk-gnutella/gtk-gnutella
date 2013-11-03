@@ -68,6 +68,8 @@
 #include "fd.h"				/* For is_valid_fd() */
 #include "glog.h"
 #include "halloc.h"
+#include "hashing.h"		/* For string_mix_hash() and string_eq() */
+#include "hashtable.h"
 #include "offtime.h"
 #include "once.h"
 #include "signal.h"
@@ -1150,6 +1152,62 @@ log_check_recursive(const char *format, va_list ap)
 }
 
 /**
+ * Wrapper over s_logv() to limit frequency of messages to once per period
+ * for a given source location.
+ *
+ * This routine does not use malloc() but relies on the VMM layer.
+ *
+ * @param period	how often to emit message from origin (in seconds)
+ * @param origin	orgin of the message (constant string expected)
+ * @param lt		thread-private context (NULL if not in a concurrent thread)
+ * @param level		glib-compatible log level flags
+ * @param format	formatting string
+ * @param args		variable argument list to format
+ */
+static void
+s_logv_once_per(long period, const char *origin,
+	logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
+{
+	static spinlock_t logtime_slk = SPINLOCK_INIT;
+	static hash_table_t *logtime;	/* origin -> time_t of last log */
+	time_t lastlog, now;
+
+	g_assert(origin != NULL);
+
+	/*
+	 * Don't use once_flag_run() to keep all the variables private to
+	 * this routine.
+	 */
+
+	if G_UNLIKELY(NULL == logtime) {
+		spinlock(&logtime_slk);
+		if (NULL == logtime) {
+			logtime =
+				hash_table_new_full_not_leaking(string_mix_hash, string_eq);
+			hash_table_thread_safe(logtime);
+		}
+		spinunlock(&logtime_slk);
+	}
+
+	lastlog = pointer_to_long(hash_table_lookup(logtime, origin));
+	now = tm_time();
+
+	/*
+	 * Skip log if we already logged message within the period already.
+	 */
+
+	if (delta_time(now, lastlog) < period)
+		return;
+
+	/*
+	 * OK, record current time and log message.
+	 */
+
+	hash_table_replace(logtime, origin, long_to_pointer(now));
+	s_logv(lt, level, format, args);
+}
+
+/**
  * Safe fatal warning message, resulting in an exit with specified status.
  */
 void
@@ -1173,6 +1231,25 @@ s_critical(const char *format, ...)
 
 	va_start(args, format);
 	s_logv(logthread_object(FALSE), G_LOG_LEVEL_CRITICAL, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe critical message, limited to one occurrence per origin per period.
+ *
+ * @note
+ * This routine should not be called directly, use the s_critical_once_per()
+ * macro instead.
+ */
+void
+s_critical_once_per_from(long period, const char *origin,
+	const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv_once_per(period, origin,
+		logthread_object(FALSE), G_LOG_LEVEL_CRITICAL, format, args);
 	va_end(args);
 }
 
@@ -1526,6 +1603,25 @@ s_warning(const char *format, ...)
 }
 
 /**
+ * Safe warning message, limited to one occurrence per origin per period.
+ *
+ * @note
+ * This routine should not be called directly, use the s_warning_once_per()
+ * macro instead.
+ */
+void
+s_warning_once_per_from(long period, const char *origin,
+	const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv_once_per(period, origin,
+		logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
+	va_end(args);
+}
+
+/**
  * Safe regular message.
  */
 void
@@ -1535,6 +1631,25 @@ s_message(const char *format, ...)
 
 	va_start(args, format);
 	s_logv(logthread_object(FALSE), G_LOG_LEVEL_MESSAGE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe regular message, limited to one occurrence per origin per period.
+ *
+ * @note
+ * This routine should not be called directly, use the s_message_once_per()
+ * macro instead.
+ */
+void
+s_message_once_per_from(long period, const char *origin,
+	const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv_once_per(period, origin,
+		logthread_object(FALSE), G_LOG_LEVEL_MESSAGE, format, args);
 	va_end(args);
 }
 
@@ -1552,6 +1667,25 @@ s_info(const char *format, ...)
 }
 
 /**
+ * Safe info message, limited to one occurrence per origin per period.
+ *
+ * @note
+ * This routine should not be called directly, use the s_info_once_per()
+ * macro instead.
+ */
+void
+s_info_once_per_from(long period, const char *origin,
+	const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv_once_per(period, origin,
+		logthread_object(FALSE), G_LOG_LEVEL_INFO, format, args);
+	va_end(args);
+}
+
+/**
  * Safe debug message.
  */
 void
@@ -1561,6 +1695,25 @@ s_debug(const char *format, ...)
 
 	va_start(args, format);
 	s_logv(logthread_object(FALSE), G_LOG_LEVEL_DEBUG, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe debug message, limited to one occurrence per origin per period.
+ *
+ * @note
+ * This routine should not be called directly, use the s_debug_once_per()
+ * macro instead.
+ */
+void
+s_debug_once_per_from(long period, const char *origin,
+	const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv_once_per(period, origin,
+		logthread_object(FALSE), G_LOG_LEVEL_DEBUG, format, args);
 	va_end(args);
 }
 

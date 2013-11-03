@@ -216,10 +216,12 @@ get_rootdata(const kuid_t *id)
 
 	if (NULL == rd) {
 		if (dbmw_has_ioerr(db_rootdata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_rootdata));
 		} else {
-			g_warning("key %s exists but was not found in DBMW \"%s\"",
+			s_warning_once_per(LOG_PERIOD_SECOND,
+				"key %s exists but was not found in DBMW \"%s\"",
 				kuid_to_hex_string(id), dbmw_name(db_rootdata));
 		}
 	}
@@ -239,10 +241,12 @@ get_contact(uint64 dbkey, bool shout)
 
 	if (NULL == c) {
 		if (dbmw_has_ioerr(db_contact)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_contact));
 		} else if (shout) {
-			g_warning("key %s exists but was not found in DBMW \"%s\"",
+			s_warning_once_per(LOG_PERIOD_SECOND,
+				"key %s exists but was not found in DBMW \"%s\"",
 				uint64_to_string(dbkey), dbmw_name(db_contact));
 		}
 	}
