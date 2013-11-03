@@ -212,7 +212,7 @@ dbmap_sdbm_retrieve_superblock(DBM *sdbm, struct dbmap_superblock *block)
 	}
 
 	if (version > DBMAP_SUPERKEY_VERSION) {
-		g_warning("SDBM \"%s\": superblock more recent "
+		s_warning("SDBM \"%s\": superblock more recent "
 			"(version %u, can only understand up to version %u)",
 			sdbm_name(sdbm), version, DBMAP_SUPERKEY_VERSION);
 	}
@@ -251,7 +251,7 @@ dbmap_sdbm_strip_superblock(DBM *sdbm)
 	if (0 == sdbm_delete(sdbm, key))
 		return TRUE;
 
-	g_warning("SDBM \"%s\": cannot strip superblock: %m", sdbm_name(sdbm));
+	s_warning("SDBM \"%s\": cannot strip superblock: %m", sdbm_name(sdbm));
 
 	return FALSE;
 }
@@ -311,7 +311,7 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 
 	if (dbmap_sdbm_retrieve_superblock(sdbm, &sblock)) {
 		if (common_dbg) {
-			g_debug("SDBM \"%s\": superblock has %u key%s%s, "
+			s_debug("SDBM \"%s\": superblock has %u key%s%s, "
 				"last check done %s ago",
 				sdbm_name(sdbm), (unsigned) sblock.count, plural(sblock.count),
 				(sblock.flags & DBMAP_SF_KEYCHECK) ?
@@ -324,14 +324,14 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 			time_delta_t d = delta_time(tm_time(), sblock.last_check);
 			if (d >= DBMAP_SDBM_CHECK_PERIOD) {
 				if (common_dbg) {
-					g_debug("SDBM \"%s\": %s since last check, verifying keys",
+					s_debug("SDBM \"%s\": %s since last check, verifying keys",
 						sdbm_name(sdbm), compact_time(d));
 				}
 				goto check_db;
 			}
 			if (sblock.flags & DBMAP_SF_KEYCHECK) {
 				if (common_dbg) {
-					g_debug("SDBM \"%s\": verifying keys as requested",
+					s_debug("SDBM \"%s\": verifying keys as requested",
 						sdbm_name(sdbm));
 				}
 				goto check_db;
@@ -340,13 +340,13 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 			return sblock.count;
 		} else {
 			if (common_dbg) {
-				g_debug("SDBM \"%s\": unexpected superblock, checking keys",
+				s_debug("SDBM \"%s\": unexpected superblock, checking keys",
 					sdbm_name(sdbm));
 			}
 		}
 	} else if (expect_superblock) {
 		if (common_dbg) {
-			g_debug("SDBM \"%s\": no superblock, counting and checking keys",
+			s_debug("SDBM \"%s\": no superblock, counting and checking keys",
 				sdbm_name(sdbm));
 		}
 	}
@@ -363,7 +363,7 @@ check_db:
 	dm->u.s.last_check = tm_time();
 
 	if (sdbm_error(sdbm)) {
-		g_warning("SDBM \"%s\": I/O error after key counting, clearing",
+		s_warning("SDBM \"%s\": I/O error after key counting, clearing",
 			sdbm_name(sdbm));
 		sdbm_clearerr(sdbm);
 	}
@@ -736,16 +736,16 @@ dbmap_remove(dbmap_t *dm, const void *key)
 			} else {
 				if G_UNLIKELY(0 == dm->count) {
 					if (dm->validated) {
-						g_critical("DBMAP on sdbm \"%s\": BUG: "
+						s_critical("DBMAP on sdbm \"%s\": BUG: "
 							"sdbm_delete() worked but we had no key tracked",
 							sdbm_name(dm->u.s.sdbm));
 					} else {
-						g_warning("DBMAP on sdbm \"%s\": "
+						s_warning("DBMAP on sdbm \"%s\": "
 							"key count inconsistency, validating database",
 							sdbm_name(dm->u.s.sdbm));
 					}
 					dm->count = dbmap_sdbm_count_keys(dm, FALSE);
-					g_warning("DBMAP on sdbm \"%s\": "
+					s_warning("DBMAP on sdbm \"%s\": "
 						"key count reset to %zu after counting",
 						sdbm_name(dm->u.s.sdbm), dm->count);
 				} else {
@@ -1133,7 +1133,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 			if (!dbmap_sdbm_error_check(dm))
 				dbmap_reset_count(dm, count);
 			if (invalid || unreadable) {
-				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s and "
+				s_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s and "
 					"%zu unreadable",
 					sdbm_name(sdbm), invalid, plural(invalid), unreadable);
 			}
@@ -1204,7 +1204,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 							deleted++;
 						} else {
 							errors++;
-							g_warning("DBMAP on sdbm \"%s\": "
+							s_warning("DBMAP on sdbm \"%s\": "
 								"key deletion error: %m", sdbm_name(sdbm));
 						}
 					}
@@ -1216,7 +1216,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 			dbmap_sdbm_error_check(dm);
 			dbmap_reset_count(dm, count);
 			if (invalid || errors || unreadable) {
-				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
+				s_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
 					"%zu key deletion error%s, %zu unreadable",
 					sdbm_name(sdbm), invalid, plural(invalid),
 					errors, plural(errors), unreadable);
@@ -1265,7 +1265,7 @@ dbmap_store(dbmap_t *dm, const char *base, bool inplace)
 			return ok;
 		}
 
-		g_warning("SDBM \"%s\": cannot store superblock: %m",
+		s_warning("SDBM \"%s\": cannot store superblock: %m",
 			sdbm_name(dm->u.s.sdbm));
 
 		/* FALL THROUGH */
@@ -1278,7 +1278,7 @@ dbmap_store(dbmap_t *dm, const char *base, bool inplace)
 		O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (!ndm) {
-		g_warning("SDBM \"%s\": cannot store to %s: %m",
+		s_warning("SDBM \"%s\": cannot store to %s: %m",
 			sdbm_name(dm->u.s.sdbm), base);
 		return FALSE;
 	}
@@ -1286,7 +1286,7 @@ dbmap_store(dbmap_t *dm, const char *base, bool inplace)
 	dbmap_foreach(dm, dbmap_store_entry, ndm);
 
 	if (sdbm_error(ndm->u.s.sdbm)) {
-		g_warning("SDBM \"%s\": cannot store to %s: errors during dump",
+		s_warning("SDBM \"%s\": cannot store to %s: errors during dump",
 			sdbm_name(dm->u.s.sdbm), base);
 		ok = FALSE;
 		goto done;
