@@ -229,7 +229,19 @@ filename_sanitize(const char *filename, bool no_spaces, bool no_evil)
 		q = NULL;
 	}
 
-	/* Replace shell meta characters and likely problematic characters */
+	/*
+	 * Replace shell meta characters and likely problematic characters.
+	 *
+	 * Although parentheses are not evil per se, they make it a pain to
+	 * copy-n-paste filenames without going through the shell's auto-
+	 * completion (which normally does the necessary escaping).
+	 *
+	 * To keep things "readable", we replace parentheses with brackets.
+	 * Although brackets are meaningful for the shells, they are only
+	 * interpreted in the presence of "*" or "?", two characters that we
+	 * strip already.
+	 *		--RAM, 2013-11-03
+	 */
 	{
 		size_t i;
 		uchar c;
@@ -243,10 +255,18 @@ filename_sanitize(const char *filename, bool no_spaces, bool no_evil)
 				|| (0 == i && ('.' == c || '-' == c))
 				|| (no_spaces && is_ascii_space(c))
 				|| (no_evil && filename_is_evil_char(c))
-		   ) {
+			) {
 				if (!q)
 					q = h_strdup(s);
 				q[i] = '_';	/* replace undesired char with underscore */
+			} else if ('(' == c) {
+				if (!q)
+					q = h_strdup(s);
+				q[i] = '[';
+			} else if (')' == c) {
+				if (!q)
+					q = h_strdup(s);
+				q[i] = ']';
 			}
 		}
 
