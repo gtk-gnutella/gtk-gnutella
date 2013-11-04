@@ -58,6 +58,8 @@ static void cq_run_idle(cqueue_t *cq);
 static const uint32 *cq_debug_ptr;
 static inline uint32 cq_debug(void) { return *cq_debug_ptr; }
 
+#define cq_debugging(lvl)	G_UNLIKELY(cq_debug() > (lvl))
+
 enum cevent_magic {
 	CEVENT_MAGIC = 0x40110172,
 	CEVENT_EXT_MAGIC = 0x6a8fe830
@@ -862,7 +864,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	if G_UNLIKELY(cq->cq_call_extended && NULL != cq->cq_call) {
-		if (cq_debug()) {
+		if (cq_debugging(0)) {
 			s_debug("CQ called-out %s() did not to call cq_zero() on event %p",
 				stacktrace_function_name(fn), ev);
 		}
@@ -1047,7 +1049,7 @@ done:
 	if G_UNLIKELY(old_current != NULL)
 		cq->cq_last_bucket = old_last_bucket;	/* Was in recursive call */
 
-	if G_UNLIKELY(cq_debug() > 5) {
+	if (cq_debugging(5)) {
 		s_debug("CQ: %squeue \"%s\" %striggered %d event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
@@ -1062,8 +1064,11 @@ done:
 	 * background but important operations get a chance to be run at all.
 	 */
 
-	if (delta_time(tm_time(), cq->cq_last_idle) >= CQ_IDLE_FORCE) {
-		if G_UNLIKELY(cq_debug() > 5) {
+	if G_UNLIKELY(
+		cq->cq_idle != NULL &&
+		delta_time(tm_time(), cq->cq_last_idle) >= CQ_IDLE_FORCE
+	) {
+		if (cq_debugging(0)) {
 			s_debug("CQ: %squeue \"%s\" forcing idle callback run",
 				cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "", cq->cq_name);
 		}
