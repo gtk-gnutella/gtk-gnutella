@@ -87,6 +87,7 @@
 #include "cond.h"
 #include "cq.h"
 #include "crash.h"				/* For print_str() et al. */
+#include "dam.h"
 #include "dump_options.h"
 #include "eslist.h"
 #include "fd.h"					/* For fd_close() */
@@ -282,6 +283,7 @@ struct thread_element {
 	unsigned sig_generation;		/**< Signal reception generation number */
 	int in_signal_handler;			/**< Counts signal handler nesting */
 	bool sig_handling;				/**< Are we in thread_sig_handle()? */
+	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
@@ -305,6 +307,7 @@ struct thread_element {
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
 	cond_t *cond;					/**< Condition on which thread waits */
+	dam_t *termination;				/**< Waiters on thread termination */
 	spinlock_t lock;				/**< Protects concurrent updates */
 	spinlock_t local_slk;			/**< Protects concurrent updates */
 	eslist_t exit_list;				/**< List of exit callbacks to invoke */
@@ -6665,6 +6668,32 @@ thread_exit_internal(void *value, const void *sp)
 	thread_local_clear(te);
 
 	/*
+	 * If there are waiters (via thread_wait() and friends) looking after
+	 * our termination, unblock them now.
+	 */
+
+	{
+		dam_t *d;
+
+		THREAD_LOCK(te);
+		d = te->termination;
+		te->termination = NULL;
+		THREAD_UNLOCK(te);
+
+		/*
+		 * We use dam_disable() to make sure we're releasing all the currently
+		 * waiting threads and at the same time make sure no other thread will
+		 * block on that dam, even if they got a reference on it.
+		 */
+
+		if (d != NULL) {
+			g_assert(!dam_is_disabled(d));
+			dam_disable(d, te->termination_key);
+			dam_free_null(&d);
+		}
+	}
+
+	/*
 	 * Invoke any registered exit notification callback.
 	 */
 
@@ -6758,6 +6787,243 @@ void
 thread_exit(void *value)
 {
 	thread_exit_internal(value, thread_sp());
+}
+
+/**
+ * Cleanup routine invoked when a thread stuck in dam_wait() is cancelled.
+ */
+static void
+thread_dam_wait_cleanup(void *arg)
+{
+	dam_t *d = arg;
+
+	dam_free_null(&d);
+}
+
+/**
+ * Wait until the specified thread terminates or absolute time is reached.
+ *
+ * The thread can be detached. Waiting does not allow grabbing the exit status
+ * of the thread: a join is required for that.
+ *
+ * If the specified thread has already terminated when this routine is called,
+ * no waiting occurs.
+ *
+ * @attention
+ * When dealing with detached threads, there is a possible race condition
+ * since the ID of the deceased thread could be reused by another thread.
+ * If the targeted thread is detached, one must be sure that no other detached
+ * thread can be created in the application or behaviour will be undefined.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param id		the ID of the thread we're waiting for
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ * @param error		set to 0 if OK, the ernno code of the error otherwise
+ *
+ * @return FALSE if the wait expired, TRUE if the thread has terminated or if
+ * the ID does not point to a valid thread.  The error parameter is filled
+ * with the error code if non-NULL.
+ */
+bool
+thread_wait_until(unsigned id, const tm_t *end, int *error)
+{
+	struct thread_element *te;
+	dam_t *d = NULL, *term;
+	int ecode;
+	uint key;
+	bool terminated;
+
+	/*
+	 * It does not make sense to call thread_wait() and friends on the
+	 * main thread because when the main thread dies, there will be nobody
+	 * left in the process to witness it!
+	 *
+	 * We could relax that when there is a timeout specified, but then how
+	 * long should we wait for nothing?  It is most likely a programming
+	 * error to call this routine with the ID of the main thread.
+	 */
+
+	if (thread_main_stid == id)
+		s_error("%s() called on main thread", G_STRFUNC);
+
+	/*
+	 * Waiting for ourselves to terminate is an error as we would deadlock.
+	 */
+
+	if (thread_small_id() == id) {
+		ecode = EDEADLK;
+		goto cleanup;
+	}
+
+	te = thread_get_element_by_id(id);
+
+	if (NULL == te) {
+		ecode = errno; 		/* errno set by thread_get_element_by_id() */
+		goto cleanup;
+	}
+
+	/*
+	 * We create the dam before locking the thread element because we cannot
+	 * perform any memory allocation whilst holding that (hidden) lock!
+	 * We probe the thread element without locking to see whether we need
+	 * to allocate a new dam.
+	 */
+
+	atomic_mb();
+	if (NULL == te->termination)
+		d = dam_new(&key);
+
+	/*
+	 * Check the thread element, taking locks to avoid race conditions with
+	 * the thread_exit_internal() routine.
+	 */
+
+	THREAD_LOCK(te);
+
+	if (te->reusable) {
+		THREAD_UNLOCK(te);
+		ecode = ESRCH;
+		goto cleanup;
+	}
+
+	if (te->exit_started) {
+		THREAD_UNLOCK(te);
+		ecode = 0;
+		goto cleanup;
+	}
+
+	/*
+	 * If there is no termination dam yet, install one (which we have created
+	 * above before taking the lock).  Otherwise, we'll be using the one
+	 * present in the thread element.
+	 */
+
+	if (NULL == te->termination) {
+		if (NULL == d) {
+			/*
+			 * te->termination was not NULL before, it is now: it means the
+			 * thread element has changed and has been re-assigned to a new
+			 * and different thread.
+			 */
+
+			THREAD_UNLOCK(te);
+			ecode = ESRCH;
+			goto cleanup;
+		}
+		term = te->termination = d;
+		te->termination_key = key;
+		d = NULL;
+	} else {
+		term = te->termination;
+	}
+
+	term = dam_refcnt_inc(term);
+
+	THREAD_UNLOCK(te);
+
+	dam_free_null(&d);			/* Thread had another one added meanwhile */
+
+	/*
+	 * We can now perform the waiting on the selected dam.
+	 *
+	 * No race condition can happen at this stage: we have a reference on the
+	 * dam, and it will get disabled when the thread exists, meaning we cannot
+	 * block forever should the thread already be gone when we reach this point.
+	 */
+
+	thread_cleanup_push(thread_dam_wait_cleanup, term);
+	terminated = dam_wait_until(term, end);
+	thread_cleanup_pop(TRUE);	/* Frees the dam */
+
+	if (error != NULL)
+		*error = 0;				/* Returning normally, no error */
+
+	return terminated;
+
+cleanup:
+	dam_free_null(&d);
+	if (error != NULL)
+		*error = ecode;
+
+	return TRUE;
+}
+
+/**
+ * Wait until the specified thread terminates or timeout expires.
+ *
+ * The thread can be detached. Waiting does not allow grabbing the exit status
+ * of the thread: a join is required for that.
+ *
+ * If the specified thread has already terminated when this routine is called,
+ * no waiting occurs.
+ *
+ * @attention
+ * When dealing with detached threads, there is a possible race condition
+ * since the ID of the deceased thread could be reused by another thread.
+ * If the targeted thread is detached, one must be sure that no other detached
+ * thread can be created in the application or behaviour will be undefined.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param id		the ID of the thread we're waiting for
+ * @param timeout	how long to wait for (NULL means no limit)
+ * @param error		set to 0 if OK, the ernno code of the error otherwise
+ *
+ * @return FALSE if the wait expired, TRUE if the thread has terminated or if
+ * the ID does not point to a valid thread.  The error parameter is filled
+ * with the error code if non-NULL.
+ */
+bool
+thread_timed_wait(unsigned id, const tm_t *timeout, int *error)
+{
+	tm_t end;
+
+	if (timeout != NULL) {
+		tm_now_exact(&end);
+		tm_add(&end, timeout);
+	}
+
+	return thread_wait_until(id, NULL == timeout ? NULL : &end, error);
+}
+
+/**
+ * Wait until the specified thread terminates.
+ *
+ * The thread can be detached. Waiting does not allow grabbing the exit status
+ * of the thread: a join is required for that.
+ *
+ * If the specified thread has already terminated when this routine is called,
+ * no waiting occurs.
+ *
+ * @attention
+ * When dealing with detached threads, there is a possible race condition
+ * since the ID of the deceased thread could be reused by another thread.
+ * If the targeted thread is detached, one must be sure that no other detached
+ * thread can be created in the application or behaviour will be undefined.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param id		the ID of the thread we're waiting for
+ *
+ * @return 0 if OK, -1 on error with errno set..
+ */
+int
+thread_wait(unsigned id)
+{
+	int error;
+
+	thread_wait_until(id, NULL, &error);
+
+	if (0 != error) {
+		errno = error;
+		return -1;
+	}
+
+	return 0;
 }
 
 /**
@@ -7138,7 +7404,7 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 		goto error;
 
 	if (
-		!te->created ||				/* Not a thraed we created */
+		!te->created ||				/* Not a thread we created */
 		te->join_requested ||		/* Another thread already wants joining */
 		te->detached				/* Cannot join with a detached thread */
 	) {

@@ -257,6 +257,10 @@ void thread_atexit(thread_exit_t exit_cb, void *exit_arg);
 int thread_join(unsigned id, void **result);
 int thread_join_try(unsigned id, void **result);
 
+int thread_wait(unsigned id);
+bool thread_timed_wait(unsigned id, const struct tmval *timeout, int *error);
+bool thread_wait_until(unsigned id, const struct tmval *end, int *error);
+
 pid_t thread_fork(bool safe);
 void thread_forked(void);
 

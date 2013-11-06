@@ -69,7 +69,7 @@
 const char *progname;
 
 static bool sleep_before_exit;
-static bool async_exit;
+static bool async_exit, wait_threads;
 static bool randomize_free;
 static unsigned cond_timeout;
 static long cpu_count;
@@ -80,7 +80,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvxABCDEFIKMNOPQRSVX] [-c CPU] [-n count]\n"
+		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVX] [-c CPU] [-n count]\n"
 		"       [-t ms] [-T secs]\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
@@ -90,6 +90,7 @@ usage(void)
 		"  -s : let each created thread sleep for 1 second before ending\n"
 		"  -t : timeout value (ms) for condition waits\n"
 		"  -v : dump thread statistics at the end of the tests\n"
+		"  -w : wait for created threads\n"
 		"  -x : free memory allocated by -X in random order\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -B : test synchronization barriers\n"
@@ -182,6 +183,25 @@ test_create_one(bool repeat, bool join)
 						printf("%s cannot be joined, that's OK\n",
 							thread_id_name(r));
 					}
+					if (wait_threads) {
+						bool ok;
+						tm_t tout;
+						int error;
+
+						tout.tv_sec = 2;
+						tout.tv_usec = 0;
+
+						ok = thread_timed_wait(r, &tout, &error);
+
+						if (!ok) {
+							s_warning("thread_wait() timed-out for %s",
+								thread_id_name(r));
+						} else if (error != 0) {
+							errno = error;
+							s_warning("thread_wait() failure on %s: %m",
+								thread_id_name(r));
+						}
+					}
 				}
 			}
 		}
@@ -200,7 +220,14 @@ test_create_one(bool repeat, bool join)
 					printf("skipping unlaunched thread i=%u\n", i);
 			} else {
 				void *result;
-				int j = thread_join(r, &result);		/* Block */
+				int j;
+
+				if (wait_threads && -1 == thread_wait(r)) {
+					s_warning("thread_wait() failed for %s: %m",
+						thread_id_name(r));
+				}
+
+				j = thread_join(r, &result);		/* Block */
 				if (-1 == j) {
 					s_warning("thread_join() failed for %s: %m",
 						thread_id_name(r));
@@ -1844,7 +1871,7 @@ main(int argc, char **argv)
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "c:ehjn:st:vxABCDEFIKMNOPQRST:VX";
+	const char options[] = "c:ehjn:st:vwxABCDEFIKMNOPQRST:VX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -1930,6 +1957,9 @@ main(int argc, char **argv)
 			break;
 		case 'v':			/* dump thread statistics at the end */
 			stats = TRUE;
+			break;
+		case 'w':			/* wait for created threads */
+			wait_threads = TRUE;
 			break;
 		case 'x':			/* free allocated memory by -X tests randomly */
 			randomize_free = TRUE;
