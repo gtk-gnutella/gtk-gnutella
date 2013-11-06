@@ -642,6 +642,8 @@ src/lib/crash.c
 src/lib/crash.h
 src/lib/crc.c
 src/lib/crc.h
+src/lib/dam.c
+src/lib/dam.h
 src/lib/dbmap.c
 src/lib/dbmap.h
 src/lib/dbmw.c

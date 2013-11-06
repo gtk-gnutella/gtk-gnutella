@@ -93,6 +93,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	dam.c \
 	dbmap.c \
 	dbmw.c \
 	dbstore.c \

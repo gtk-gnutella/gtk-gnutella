@@ -150,6 +150,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	dam.c \
 	dbmap.c \
 	dbmw.c \
 	dbstore.c \
@@ -320,6 +321,7 @@ LOBJ = \
 	cq.o \
 	crash.o \
 	crc.o \
+	dam.o \
 	dbmap.o \
 	dbmw.o \
 	dbstore.o \

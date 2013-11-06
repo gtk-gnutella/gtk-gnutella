@@ -39,6 +39,7 @@
 #include "compat_sleep_ms.h"
 #include "cond.h"
 #include "cq.h"
+#include "dam.h"
 #include "getcpucount.h"
 #include "halloc.h"
 #include "log.h"
@@ -79,7 +80,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvxABCEFIKMNOPQRSVX] [-c CPU] [-n count]\n"
+		"Usage: %s [-hejsvxABCDEFIKMNOPQRSVX] [-c CPU] [-n count]\n"
 		"       [-t ms] [-T secs]\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
@@ -93,6 +94,7 @@ usage(void)
 		"  -A : use asynchronous exit callbacks\n"
 		"  -B : test synchronization barriers\n"
 		"  -C : test thread creation\n"
+		"  -D : test synchronization dams\n"
 		"  -E : test thread signals\n"
 		"  -F : test thread fork\n"
 		"  -I : test inter-thread waiter signaling\n"
@@ -1428,6 +1430,102 @@ test_barrier(unsigned repeat, bool emulated)
 	}
 }
 
+static int dam_counter;
+
+struct dam_arg {
+	int n;
+	dam_t *d;
+	barrier_t *b;
+};
+
+static void *
+dam_thread(void *arg)
+{
+	struct dam_arg *da = arg;
+	int n = da->n;
+	dam_t *d = da->d;
+	barrier_t *b= da->b;
+
+	printf("%s(%d) started as %s\n", G_STRFUNC, n, thread_name());
+
+	dam_wait(d);
+
+	printf("%s(%d) incrementing counter=%d\n", G_STRFUNC, n,
+		atomic_int_get(&dam_counter));
+	fflush(stdout);
+	atomic_int_inc(&dam_counter);
+
+	dam_wait(d);
+
+	printf("%s(%d) reincrementing counter=%d\n", G_STRFUNC, n,
+		atomic_int_get(&dam_counter));
+	fflush(stdout);
+	atomic_int_inc(&dam_counter);
+
+	dam_wait(d);		/* Dam disabled, will not wait */
+	printf("%s(%d) last incrementing counter=%d\n", G_STRFUNC, n,
+		atomic_int_get(&dam_counter));
+	fflush(stdout);
+	atomic_int_inc(&dam_counter);
+	dam_free_null(&d);
+
+	printf("%s(%d) waiting, counter=%d\n", G_STRFUNC, n,
+		atomic_int_get(&dam_counter));
+	fflush(stdout);
+
+	barrier_wait(b);
+	barrier_free_null(&b);
+
+	printf("%s(%d) exiting\n", G_STRFUNC, n);
+	fflush(stdout);
+
+	return NULL;
+}
+
+static void
+test_dam_one(bool emulated)
+{
+	int t[2], i, n;
+	dam_t *d;
+	barrier_t *b;
+	uint key;
+
+	n = (int) G_N_ELEMENTS(t);
+	d = dam_new_full(&key, emulated);
+	b = barrier_new_full(n + 1, emulated);
+	atomic_int_set(&dam_counter, 0);
+
+	for (i = 0; i < n; i++) {
+		struct dam_arg *da;
+		WALLOC(da);
+		da->n = i;
+		da->d = dam_refcnt_inc(d);
+		da->b = barrier_refcnt_inc(b);
+		t[i] = thread_create(dam_thread, da, THREAD_F_DETACH, 0);
+		if (-1 == t[i])
+			s_error("cannot create dam thread %u: %m", i);
+	}
+
+	thread_sleep_ms(500);
+	dam_release(d, key);
+	thread_sleep_ms(500);
+	dam_disable(d, key);
+	barrier_wait(b);
+	g_assert(3 * n == atomic_int_get(&dam_counter));
+	barrier_free_null(&b);
+	dam_free_null(&d);
+}
+
+static void
+test_dam(unsigned repeat, bool emulated)
+{
+	unsigned i;
+
+	for (i = 0; i < repeat; i++) {
+		test_dam_one(emulated);
+	}
+}
+
 enum memory_alloc {
 	MEMORY_XMALLOC = 0,
 	MEMORY_HALLOC = 1,
@@ -1744,9 +1842,9 @@ main(int argc, char **argv)
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
-	bool stats = FALSE, teq = FALSE, cancel = FALSE;
+	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "c:ehjn:st:vxABCEFIKMNOPQRST:VX";
+	const char options[] = "c:ehjn:st:vxABCDEFIKMNOPQRST:VX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -1765,6 +1863,9 @@ main(int argc, char **argv)
 			break;
 		case 'C':			/* test thread creation */
 			create = TRUE;
+			break;
+		case 'D':			/* test synchronization dams */
+			dam = TRUE;
 			break;
 		case 'E':			/* test thread signals ("events") */
 			signals = TRUE;
@@ -1882,6 +1983,9 @@ main(int argc, char **argv)
 
 	if (barrier)
 		test_barrier(repeat, emulated);
+
+	if (dam)
+		test_dam(repeat, emulated);
 
 	if (memory)
 		test_memory(repeat);
