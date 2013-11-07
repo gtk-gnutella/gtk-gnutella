@@ -526,23 +526,29 @@ file_object_special_op(enum file_object_op op,
 	}
 
 	/*
-	 * Perform the operation.
+	 * Perform the rename() operation now since we can't update the file
+	 * names if that operation fails.
+	 *
+	 * We can defer the unlink() operation after we have updated the file
+	 * names for two reasons:
+	 *
+	 * - if we can't unlink the file, we can still revoke the file objects
+	 *   as if we did unlink it...  and if the unlink is the result of a
+	 *   successful "move" operation, we want the application to open the
+	 *   new file anyway.
+	 *
+	 * - an unlink() operation for large files can take a long time on some
+	 *   filesystems and we are still holding the lock, preventing concurrent
+	 *   file opening to take place in other threads.
 	 */
 
-	switch (op) {
-	case FO_OP_UNLINK:
-	case FO_OP_MOVED:
-		ok = unlink(old_name) != -1;
-		break;
-	case FO_OP_RENAME:
-		ok = rename(old_name, new_name) != -1;
-		break;
-	}
-
-	if (!ok) {
+	if (FO_OP_RENAME == op && -1 == rename(old_name, new_name)) {
 		saved_errno = errno;
+		ok = FALSE;
 		goto reopen;
 	}
+
+	ok = TRUE;
 
 	if (op != FO_OP_UNLINK) {
 		GSList *sl;
@@ -567,7 +573,7 @@ file_object_special_op(enum file_object_op op,
 		GSList *sl;
 
 		/*
-		 * Revoke the file objects on successful unlinking.
+		 * Revoke the file objects on unlinking.
 		 *
 		 * This will prevent further file_object_open() pointing to the (now
 		 * removed) path from returning an existing file object.
@@ -624,6 +630,28 @@ done:
 	if (!ok)
 		errno = saved_errno;
 
+	/*
+	 * Now that we released the lock we can perform the unlink() if needed.
+	 * If we can't unlink the file we report a success for a move notification
+	 * and we warn.  For a plain unlink(), we do not log anything but return
+	 * a failure status.
+	 */
+
+	switch (op) {
+	case FO_OP_UNLINK:
+		ok = unlink(old_name) != -1;
+		break;
+	case FO_OP_MOVED:
+		if (-1 == unlink(old_name)) {
+			g_warning("%s(): cannot unlink \"%s\" after a copy to \"%s\": %m",
+				G_STRFUNC, old_name, new_name);
+		}
+		ok = TRUE;
+		break;
+	case FO_OP_RENAME:
+		break;				/* Already handled above */
+	}
+
 	return ok;
 }
 
@@ -649,13 +677,11 @@ file_object_rename(const char * const old_name, const char * const new_name)
  *
  * @param old_name	An absolute pathname, the old file name.
  * @param new_name	An absolute pathname, the new file name.
- *
- * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
  */
-bool
+void
 file_object_moved(const char * const old_name, const char * const new_name)
 {
-	return file_object_special_op(FO_OP_MOVED, old_name, new_name);
+	file_object_special_op(FO_OP_MOVED, old_name, new_name);
 }
 
 /**

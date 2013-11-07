@@ -313,9 +313,7 @@ d_end(struct bgtask *h, void *ctx, void *item)
 			goto error;
 		}
 
-		if (!file_object_moved(download_pathname(md->d), md->target)) {
-			g_warning("cannot unlink \"%s\": %m", download_basename(md->d));
-		}
+		file_object_moved(download_pathname(md->d), md->target);
 	} else {
 		if (md->target != NULL && -1 == unlink(md->target))
 			g_warning("cannot unlink \"%s\": %m", md->target);
