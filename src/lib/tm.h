@@ -48,6 +48,8 @@ typedef struct tmval {
 	long tv_usec;
 } tm_t;
 
+#define TM_ZERO		{ 0L, 0L }
+
 static inline ALWAYS_INLINE tm_t *
 timeval_to_tm(const struct timeval * const tv)
 {
