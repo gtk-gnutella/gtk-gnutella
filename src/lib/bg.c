@@ -106,9 +106,11 @@
 #include "bg.h"
 #include "atoms.h"
 #include "cq.h"
+#include "elist.h"
 #include "glib-missing.h"
 #include "misc.h"
 #include "mutex.h"
+#include "once.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "stringify.h"		/* For short_time_ascii() */
@@ -157,6 +159,7 @@ struct bgsched {
 	unsigned stid;				/**< Thread running scheduler, -1 if unknown */
 	cperiodic_t *pev;			/**< Ticker periodic event */
 	mutex_t lock;				/**< Thread-safe lock */
+	link_t lnk;					/**< Links all active schedulers */
 };
 
 static inline void
@@ -272,6 +275,12 @@ enum {
 static unsigned bg_debug;
 static bool bg_closed;
 static bgsched_t *bg_sched;			/**< Main (default) scheduler */
+static elist_t bg_sched_list;		/**< List of all active schedulers */
+static once_flag_t bg_sched_list_inited;
+static spinlock_t bg_sched_list_slk = SPINLOCK_INIT;
+
+#define BG_SCHED_LIST_LOCK		spinlock(&bg_sched_list_slk)
+#define BG_SCHED_LIST_UNLOCK	spinunlock(&bg_sched_list_slk)
 
 /**
  * Set debugging level.
@@ -280,6 +289,37 @@ void
 bg_set_debug(unsigned level)
 {
 	bg_debug = level;
+}
+
+/**
+ * Initialize the scheduler list, once.
+ */
+static void
+bg_sched_list_init(void)
+{
+	elist_init(&bg_sched_list, offsetof(struct bgsched, lnk));
+}
+
+/**
+ * Add scheduler to the list.
+ */
+static void
+bg_sched_list_add(bgsched_t *bs)
+{
+	BG_SCHED_LIST_LOCK;
+	elist_append(&bg_sched_list, bs);
+	BG_SCHED_LIST_UNLOCK;
+}
+
+/**
+ * Remove scheduler from the list.
+ */
+static void
+bg_sched_list_remove(bgsched_t *bs)
+{
+	BG_SCHED_LIST_LOCK;
+	elist_remove(&bg_sched_list, bs);
+	BG_SCHED_LIST_UNLOCK;
 }
 
 /**
@@ -1873,12 +1913,16 @@ bg_sched_alloc(const char *name, ulong max_life, bool schedule)
 {
 	bgsched_t *bs;
 
+	once_flag_run(&bg_sched_list_inited, bg_sched_list_init);
+
 	WALLOC0(bs);
 	bs->magic = BGSCHED_MAGIC;
 	mutex_init(&bs->lock);
 	bs->name = atom_str_get(name);
 	bs->max_life = max_life;
 	bs->stid = -1U;
+
+	bg_sched_list_add(bs);
 
 	if (schedule) {
 		/*
@@ -1918,6 +1962,8 @@ bg_sched_destroy(bgsched_t *bs)
 {
 	uint count;
 
+	bg_sched_list_remove(bs);
+
 	BG_SCHED_LOCK(bs);
 
 	count = bg_task_terminate_all(&bs->runq);
@@ -1955,12 +2001,175 @@ bg_sched_destroy_null(bgsched_t **bs_ptr)
 	}
 }
 
+struct bg_info_list_vars {
+	GSList *sl;
+	bgsched_t *bs;
+};
+
+static void
+bg_info_get(void *data, void *udata)
+{
+	bgtask_t *bt = data;
+	struct bg_info_list_vars *v = udata;
+	bgtask_info_t *bi;
+
+	bg_task_check(bt);
+	bg_sched_check(v->bs);
+
+	WALLOC0(bi);
+	bi->magic = BGTASK_INFO_MAGIC;
+
+	BG_TASK_LOCK(bt);
+
+	bi->tname = atom_str_get(bt->name);
+	bi->sname = atom_str_get(v->bs->name);
+	bi->stid = v->bs->stid;
+	bi->wtime = bt->wtime;
+	bi->step = bt->step;
+	bi->seqno = bt->seqno;
+	bi->stepcnt = bt->stepcnt;
+	bi->signals = g_slist_length(bt->signals);	/* Expecting low amount */
+	bi->running = booleanize(bt->flags & TASK_F_RUNNING);
+	bi->daemon = booleanize(bt->flags & TASK_F_DAEMON);
+	bi->cancelled = booleanize(bt->flags & TASK_F_CANCELLED);
+	bi->cancelling = booleanize(bt->flags & TASK_F_CANCELLING);
+
+	if (bi->daemon) {
+		struct bgdaemon *bd = BG_DAEMON(bt);
+		g_assert(bd != NULL);
+		bi->wq_count = bd->wq_count;
+	}
+
+	BG_TASK_UNLOCK(bt);
+
+	v->sl = g_slist_prepend(v->sl, bi);
+}
+
+/**
+ * Retrieve background task information.
+ *
+ * @return list of bgtask_info_t that must be freed by calling the
+ * bg_info_list_free_null() routine.
+ */
+GSList *
+bg_info_list(void)
+{
+	struct bg_info_list_vars v;
+
+	v.sl = NULL;
+
+	BG_SCHED_LIST_LOCK;
+
+	ELIST_FOREACH_DATA(&bg_sched_list, v.bs) {
+		BG_SCHED_LOCK(v.bs);
+		g_slist_foreach(v.bs->runq, bg_info_get, &v);
+		g_slist_foreach(v.bs->sleepq, bg_info_get, &v);
+		if (v.bs->current_task != NULL)
+			bg_info_get(v.bs->current_task, &v);
+		BG_SCHED_UNLOCK(v.bs);
+	}
+
+	BG_SCHED_LIST_UNLOCK;
+
+	return v.sl;
+}
+
+static void
+bg_info_free(void *data, void *udata)
+{
+	bgtask_info_t *bi = data;
+
+	bgtask_info_check(bi);
+	(void) udata;
+
+	atom_str_free_null(&bi->tname);
+	atom_str_free_null(&bi->sname);
+	WFREE(bi);
+}
+
+/**
+ * Free list created by bg_info_list() and nullify pointer.
+ */
+void
+bg_info_list_free_null(GSList **sl_ptr)
+{
+	GSList *sl = *sl_ptr;
+
+	g_slist_foreach(sl, bg_info_free, NULL);
+	gm_slist_free_null(sl_ptr);
+}
+
+/**
+ * Retrieve background scheduler information.
+ *
+ * @return list of bgsched_info_t that must be freed by calling the
+ * bg_sched_info_list_free_null() routine.
+ */
+GSList *
+bg_sched_info_list(void)
+{
+	bgsched_t *bs;
+	GSList *sl = NULL;
+
+	BG_SCHED_LIST_LOCK;
+
+	ELIST_FOREACH_DATA(&bg_sched_list, bs) {
+		bgsched_info_t *bsi;
+
+		WALLOC0(bsi);
+		bsi->magic = BGSCHED_INFO_MAGIC;
+
+		BG_SCHED_LOCK(bs);
+		bsi->name = atom_str_get(bs->name);
+		bsi->stid = bs->stid;
+		bsi->wtime = bs->wtime;
+		bsi->runq_count = g_slist_length(bs->runq);
+		bsi->sleepq_count = g_slist_length(bs->sleepq);
+		bsi->runcount = bs->runcount;
+		bsi->max_life = bs->max_life;
+		bsi->period = bs->period;
+		BG_SCHED_UNLOCK(bs);
+
+		sl = g_slist_prepend(sl, bsi);
+	}
+
+	BG_SCHED_LIST_UNLOCK;
+
+	return g_slist_reverse(sl);		/* Order list as scheduler definition */
+}
+
+static void
+bg_sched_info_free(void *data, void *udata)
+{
+	bgsched_info_t *bsi = data;
+
+	bgsched_info_check(bsi);
+	(void) udata;
+
+	atom_str_free_null(&bsi->name);
+	WFREE(bsi);
+}
+
+/**
+ * Free list created by bg_sched_list() and nullify pointer.
+ */
+void
+bg_sched_info_list_free_null(GSList **sl_ptr)
+{
+	GSList *sl = *sl_ptr;
+
+	g_slist_foreach(sl, bg_sched_info_free, NULL);
+	gm_slist_free_null(sl_ptr);
+}
+
 /**
  * Initialize background task scheduling.
  */
 void
 bg_init(void)
 {
+	g_assert(NULL == bg_sched);
+
 	bg_sched = bg_sched_alloc("main", MAX_LIFE, TRUE);
 	bg_closed = FALSE;
 }

@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -106,6 +106,7 @@ SRC = \
 	shutdown.c \
 	stats.c \
 	status.c \
+	task.c \
 	thread.c \
 	uploads.c \
 	version.c \
@@ -137,6 +138,7 @@ OBJ = \
 	shutdown.o \
 	stats.o \
 	status.o \
+	task.o \
 	thread.o \
 	uploads.o \
 	version.o \

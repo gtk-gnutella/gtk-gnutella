@@ -71,6 +71,60 @@ typedef enum {
 typedef struct bgtask bgtask_t;
 typedef struct bgsched bgsched_t;
 
+enum bg_info_magic {
+	BGTASK_INFO_MAGIC  = 0x4f01b8ee,
+	BGSCHED_INFO_MAGIC = 0x566b1976
+};
+
+/**
+ * Task information that can be retrieved.
+ */
+typedef struct {
+	enum bg_info_magic magic;
+	const char *tname;		/**< Task name (atom) */
+	const char *sname;		/**< Scheduler name (atom) */
+	uint stid;				/**< Scheduler's thread ID */
+	ulong wtime;			/**< Wall-clock run time sofar, in ms */
+	int step;				/**< Current processing step */
+	int seqno;				/**< Number of calls made to same step */
+	int stepcnt;			/**< Amount of steps */
+	size_t signals;			/**< Signals pending delivery */
+	size_t wq_count;		/**< Work queue count, for daemon tasks */
+	uint running:1;			/**< Is task running? */
+	uint daemon:1;			/**< Is task a daemon? */
+	uint cancelled:1;		/**< Is task cancelled? */
+	uint cancelling:1;		/**< Is task cancel being processed? */
+} bgtask_info_t;
+
+static inline void
+bgtask_info_check(const bgtask_info_t * const bi)
+{
+	g_assert(bi != NULL);
+	g_assert(BGTASK_INFO_MAGIC == bi->magic);
+}
+
+/**
+ * Scheduler information that can be retrieved.
+ */
+typedef struct {
+	enum bg_info_magic magic;
+	const char *name;		/**< Scheduler name (atom) */
+	uint stid;				/**< Scheduler's thread ID */
+	ulong wtime;			/**< Wall-clock run time, in ms */
+	uint runq_count;		/**< Run queue task count */
+	uint sleepq_count;		/**< Sleeping queue task count */
+	int runcount;			/**< Amount of runnable tasks */
+	uint max_life;			/**< Maximum schedule life, in usecs */
+	int period;				/**< Scheduling period for callout, in ms */
+} bgsched_info_t;
+
+static inline void
+bgsched_info_check(const bgsched_info_t * const bsi)
+{
+	g_assert(bsi != NULL);
+	g_assert(BGSCHED_INFO_MAGIC == bsi->magic);
+}
+
 /*
  * Signatures.
  *
@@ -144,6 +198,11 @@ const char *bg_task_step_name(bgtask_t *bt);
 int bg_task_exitcode(bgtask_t *bt);
 
 void *bg_task_set_context(bgtask_t *bt, void *ucontext);
+
+GSList *bg_info_list(void);
+void bg_info_list_free_null(GSList **sl_ptr);
+GSList *bg_sched_info_list(void);
+void bg_sched_info_list_free_null(GSList **sl_ptr);
 
 #endif	/* _bg_h_ */
 

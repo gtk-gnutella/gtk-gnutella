@@ -982,6 +982,7 @@ src/shell/shell.h
 src/shell/shutdown.c
 src/shell/stats.c
 src/shell/status.c
+src/shell/task.c
 src/shell/thread.c
 src/shell/uploads.c
 src/shell/version.c
