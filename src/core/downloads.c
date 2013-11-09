@@ -8781,7 +8781,7 @@ download_backout(struct download *d)
 static bool
 download_overlap_check(struct download *d)
 {
-	struct file_object *fo;
+	file_object_t *fo;
 	fileinfo_t *fi;
 	bool success = FALSE;
 	char *data = NULL;
@@ -8792,7 +8792,7 @@ download_overlap_check(struct download *d)
 	g_assert(fi->lifecount <= fi->refcount);
 	g_assert(d->buffers->held >= d->chunk.overlap);
 
-	fo = file_object_get(fi->pathname, O_RDONLY);
+	fo = file_object_open(fi->pathname, O_RDONLY);
 	if (NULL == fo) {
 		const char *error = g_strerror(errno);
 		g_warning("cannot check resuming for \"%s\": %m",
@@ -8804,7 +8804,7 @@ download_overlap_check(struct download *d)
 	{
 		filestat_t sb;
 
-		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
+		if (-1 == file_object_fstat(fo, &sb)) {
 			/* Should never happen */
 			const char *error = g_strerror(errno);
 			g_warning("cannot stat opened \"%s\": %m", fi->pathname);
@@ -11092,19 +11092,8 @@ download_detect_tls_support(struct download *d, header_t *header)
  *
  * @return the created file object, NULL if file could not be opened.
  */
-static inline struct file_object *
-download_open(const char * const pathname)
-{
-	/*
-	 * We open the file for reading AND writing, in order to allow sharing the
-	 * file descriptor with uploading as well (PFSP support).
-	 *
-	 * A subsequent request to file_object_open() for O_WRONLY or O_RDONLY will
-	 * still return the same file object.
-	 */
-
-	return file_object_get(pathname, O_RDWR);
-}
+#define download_open(p) \
+	file_object_open((p), O_WRONLY)
 
 /**
  * We discovered the total size of the resource.
@@ -12433,7 +12422,7 @@ rx_stack_setup:
 	}
 
 	d->out_file = download_open(fi->pathname);
-	if (d->out_file) {
+	if (d->out_file != NULL) {
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->chunk.start)) {
 			g_message("file '%s' changed size (now %s, but was %s)",
@@ -12447,11 +12436,9 @@ rx_stack_setup:
 		download_stop(d, GTA_DL_ERROR, _("Cannot resume: file gone"));
 		return;
 	} else {
-		int fd = file_create(fi->pathname, O_RDWR, DOWNLOAD_FILE_MODE);
-		if (fd >= 0) {
-			d->out_file = file_object_new(fd, fi->pathname, O_RDWR);
-		}
-		if (!d->out_file) {
+		d->out_file =
+			file_object_create(fi->pathname, O_WRONLY, DOWNLOAD_FILE_MODE);
+		if (NULL == d->out_file) {
 			const char *error = g_strerror(errno);
 			download_stop(d, GTA_DL_ERROR, _("Cannot write into file: %s"),
 				error);

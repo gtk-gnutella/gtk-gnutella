@@ -39,30 +39,41 @@
 
 #include "common.h"
 
+typedef struct file_object file_object_t;
+
 void file_object_init(void);
 void file_object_close(void);
 
-struct file_object *file_object_new(int fd, const char *pathname, int accmode);
-struct file_object *file_object_open(const char *pathname, int accmode);
-struct file_object *file_object_get(const char *pathname, int accmode);
+#define file_object_create(p,a,m) \
+	file_object_create_from((p), (a), (m), _WHERE_, __LINE__)
 
-ssize_t file_object_pwrite(const struct file_object *fo,
+#define file_object_open(p,a) \
+	file_object_open_from((p), (a), _WHERE_, __LINE__)
+
+file_object_t *file_object_create_from(const char *path, int accmode,
+	mode_t mode, const char *file, int line);
+file_object_t *file_object_open_from(const char *path, int accmode,
+	const char *file, int line);
+
+ssize_t file_object_pwrite(const file_object_t *fo,
 					const void *data, size_t buf, filesize_t offset);
-ssize_t file_object_pwritev(const struct file_object *fo,
+ssize_t file_object_pwritev(const file_object_t *fo,
 					const iovec_t *iov, int iov_cnt, filesize_t offset);
-ssize_t file_object_pread(const struct file_object *fo,
+ssize_t file_object_pread(const file_object_t *fo,
 					void *data, size_t size, filesize_t pos);
-ssize_t file_object_preadv(const struct file_object *fo,
+ssize_t file_object_preadv(const file_object_t *fo,
 					iovec_t *iov, int iov_cnt, filesize_t offset);
 
-int file_object_get_fd(const struct file_object *fo);
-const char *file_object_get_pathname(const struct file_object *fo);
+int file_object_fd(const file_object_t *fo);
+const char *file_object_pathname(const file_object_t *fo);
 
-void file_object_release(struct file_object **fo_ptr);
+void file_object_release(file_object_t **fo_ptr);
 bool file_object_rename(const char * const o, const char * const n);
 bool file_object_unlink(const char * const path);
 void file_object_moved(const char * const o, const char * const n);
-int file_object_fstat(const struct file_object * const fo, filestat_t *b);
+int file_object_fstat(const file_object_t * const fo, filestat_t *b);
+int file_object_ftruncate(const file_object_t * const fo, filesize_t off);
+void file_object_fadvise_sequential(const file_object_t * const fo);
 
 #endif /* _file_object_h_ */
 

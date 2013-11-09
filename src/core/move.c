@@ -72,7 +72,7 @@ struct moved {
 	time_t start;			/**< Start time, to determine copying rate */
 	filesize_t size;		/**< Size of file */
 	filesize_t copied;		/**< Amount of data copied so far */
-	struct file_object *rd;	/**< The file object to read the file. */
+	file_object_t *rd;		/**< The file object to read the file. */
 	int wd;					/**< File descriptor for write, -1 if none */
 	int error;				/**< Error code */
 };
@@ -190,7 +190,7 @@ d_start(struct bgtask *h, void *ctx, void *item)
 
 	md->d = we->d;
 
-	md->rd = file_object_get(download_pathname(d), O_RDONLY);
+	md->rd = file_object_open(download_pathname(d), O_RDONLY);
 	if (NULL == md->rd) {
 		md->error = errno;
 		goto abort_read;
@@ -227,11 +227,11 @@ d_start(struct bgtask *h, void *ctx, void *item)
 	md->copied = 0;
 	md->error = 0;
 
-	compat_fadvise_sequential(file_object_get_fd(md->rd), 0, 0);
+	file_object_fadvise_sequential(md->rd);
 
 	if (GNET_PROPERTY(move_debug) > 1)
 		g_debug("MOVE starting moving \"%s\" to \"%s\"",
-				file_object_get_pathname(md->rd), md->target);
+				file_object_pathname(md->rd), md->target);
 
 	return;
 
@@ -377,11 +377,11 @@ again:		/* Avoids indenting all this code */
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while reading \"%s\" for moving: %m",
-			file_object_get_pathname(md->rd));
+			file_object_pathname(md->rd));
 		return BGR_DONE;
 	} else if (r == 0) {
 		g_warning("EOF while reading \"%s\" for moving!",
-			file_object_get_pathname(md->rd));
+			file_object_pathname(md->rd));
 		md->error = -1;
 		return BGR_DONE;
 	}

@@ -101,7 +101,7 @@ struct verify {
 	bgsched_t *sched;			/**< Task scheduler for this thread */
 	unsigned verify_stid;		/**< Verification thread ID */
 
-	struct file_object *file;	/**< The file object to access the file. */
+	file_object_t *file;		/**< The file object to access the file. */
 	filesize_t offset;			/**< Current offset into the file. */
 	filesize_t start;			/**< Start offset of range to verify. */
 	filesize_t end;				/**< End offset of range to verify . */
@@ -732,7 +732,7 @@ verify_next_file(struct verify *ctx)
 		ctx->offset = ctx->start;
 
 		if (verify_start(ctx)) {
-			ctx->file = file_object_get(item->pathname, O_RDONLY);
+			ctx->file = file_object_open(item->pathname, O_RDONLY);
 			if (NULL == ctx->file) {
 				g_warning("failed to open \"%s\" for %s hashing: %m",
 					verify_hash_name(ctx), item->pathname);
@@ -753,10 +753,10 @@ verify_next_file(struct verify *ctx)
 	if (ctx->file) {
 		if (GNET_PROPERTY(verify_debug)) {
 			g_debug("verifying %s digest for %s",
-				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
+				verify_hash_name(ctx), file_object_pathname(ctx->file));
 		}
 		verify_hash_init(ctx);
-		compat_fadvise_sequential(file_object_get_fd(ctx->file), 0, 0);
+		file_object_fadvise_sequential(ctx->file);
 		ctx->last_progress = ctx->started = tm_time_exact();
 	}
 	return;
@@ -772,11 +772,11 @@ verify_final(struct verify *ctx)
 	verify_check(ctx);
 
 	if (ctx->offset != ctx->end) {
-		g_warning("file shrunk? \"%s\"", file_object_get_pathname(ctx->file));
+		g_warning("file shrunk? \"%s\"", file_object_pathname(ctx->file));
 		verify_failure(ctx);
 	} else if (verify_hash_final(ctx)) {
 		g_warning("verify_hash_final() failed for \"%s\"",
-			file_object_get_pathname(ctx->file));
+			file_object_pathname(ctx->file));
 		verify_failure(ctx);
 	} else {
 		verify_done(ctx);
@@ -805,7 +805,7 @@ verify_update(struct verify *ctx)
 	if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno)) {
 			g_warning("error while reading \"%s\": %m",
-				file_object_get_pathname(ctx->file));
+				file_object_pathname(ctx->file));
 			goto error;
 		}
 	} else if (0 == r) {
@@ -817,7 +817,7 @@ verify_update(struct verify *ctx)
 
 		if (verify_hash_update(ctx, ctx->buffer, r)) {
 			g_warning("%s computation error for \"%s\"",
-				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
+				verify_hash_name(ctx), file_object_pathname(ctx->file));
 			goto error;
 		}
 

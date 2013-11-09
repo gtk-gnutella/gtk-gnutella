@@ -54,52 +54,39 @@
  * functions -- compat_pread() and compat_pwrite() -- do not restore the
  * original file offset.
  *
- * The file objects created with O_RDWR are returned for all
- * file_object_open() requests. That means the caller must take care to not
- * accidently write to a file object acquired with O_RDONLY.
- *
  * Normally, file objects should be acquired as follows:
  *
- *  // Try to reuse an existing file object
- *  file = file_object_open(pathname, mode);
- *  if (!file) {
- *      int fd;
- * 
- *      // If none exists, create a new file object
- *      fd = open_the_file(pathname, mode);
- *      if (fd >= 0) {
- *      	file = file_object_new(fd, pathname, mode);
- *      }
- *      // Do not use fd directly, could have been closed/reused already
- *  }
- *  if (!file) {
+ *	// Open file, do not create it if missing
+ *	file = file_object_open(pathname, mode);
+ *  if (NULL == file) {
  *     // Error handling
  *  }
  *
- * In order to make the user code easier to read, use the file_object_get()
- * convenience routine whenever possible, since it factorizes most of the
- * common logic.
+ *  // Open file, creating it if missing
+ *  file = file_object_create(pathname, mode, permissions);
+ *  if (NULL == file) {
+ *     // Error handling
+ *  }
  *
- * If a file object is created and released in the same function i.e., reuse
- * unlikely, the strictest access mode should be used (O_RDONLY or O_WRONLY).
- * Otherwise, it is best to use O_RDWR so that the same object can be reused
- * by further calls to file_object_open() whilst the object exists.
- *
- * This API does not allow opening the same file twice for compatible access
- * modes. You can create one file object for O_RDONLY and another with
- * O_WRONLY for the same path though, if none with O_RDWR exists.
+ * Internally, all files are opened O_RDWR to be able to share the file
+ * descriptors, but the API checks the access mode and will loudly complain
+ * if the user is trying to read from a write-only file for instance, since
+ * that indicates a programming error.
  */
 
 #include "common.h"
 
 #include "file_object.h"
 
+#include "atomic.h"
 #include "atoms.h"
 #include "compat_pio.h"
+#include "compat_misc.h"
 #include "fd.h"
 #include "file.h"
 #include "glib-missing.h"
 #include "hikset.h"
+#include "hset.h"
 #include "iovec.h"
 #include "mutex.h"
 #include "once.h"
@@ -109,348 +96,438 @@
 
 #include "override.h"       /* Must be the last header included */
 
-static hikset_t *ht_file_objects_rdonly;	/* read-only file objects */
-static hikset_t *ht_file_objects_wronly;	/* write-only file objects */
-static hikset_t *ht_file_objects_rdwr;		/* read+write-able file objects */
+/**
+ * Table contains all the file descriptors, indexed by absolute pathname
+ *
+ */
+static hikset_t *file_descriptors;
+static mutex_t file_descriptors_mtx = MUTEX_INIT;
 
-static mutex_t ht_file_objects_mtx = MUTEX_INIT;
-
-#define FILE_OBJECTS_LOCK	mutex_lock(&ht_file_objects_mtx)
-#define FILE_OBJECTS_UNLOCK	mutex_unlock(&ht_file_objects_mtx)
+#define FILE_OBJECTS_LOCK	mutex_lock(&file_descriptors_mtx)
+#define FILE_OBJECTS_UNLOCK	mutex_unlock(&file_descriptors_mtx)
 
 #define assert_file_objects_locked() \
-	assert_mutex_is_owned(&ht_file_objects_mtx)
+	assert_mutex_is_owned(&file_descriptors_mtx)
 
-enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };	/**< Magic number */
+/*
+ * Set containing all the opened files, to be able to warn at close time if
+ * the application forgot to close some (file descriptor leak).
+ */
+static hset_t *file_objects;
 
+enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };
+
+/**
+ * Structure returned to users which describe the file being opened, the
+ * mode of access, and which references the internal file descriptor.
+ */
 struct file_object {
 	enum file_object_magic magic;
-	const char *pathname;	/* atom */
-	int ref_count;
-	int fd;
-	int accmode;	/* O_RDONLY, O_WRONLY, O_RDWR */
-	int revoked;
+	struct file_descriptor *fd;	/* Internal file descriptor */
+	const char *file;			/* Place where file was opened */
+	int accmode;				/* O_RDONLY, O_WRONLY, O_RDWR */
+	int line;					/* Line number where file was opened */
 };
 
-/**
- * Applies some basic and fast consistency checks to a file object and
- * causes an assertion failure if a check fails.
- */
 static inline void
-file_object_check_minimal(const struct file_object * const fo)
+file_object_check_minimal(const file_object_t * const fo)
 {
-	g_assert(fo);
+	g_assert(fo != NULL);
 	g_assert(FILE_OBJECT_MAGIC == fo->magic);
-	g_assert(fo->pathname != NULL);
 }
 
+enum file_descriptor_magic { FILE_DESCRIPTOR_MAGIC   = 0x69ba3bc8 };
+
 /**
- * Applies some basic and fast consistency checks to a file object and
- * causes an assertion failure if a check fails.
+ * Internal attributes for a file descriptor.
  */
+struct file_descriptor {
+	enum file_descriptor_magic magic;
+	const char *pathname;		/* Atom, internal indexing key */
+	int refcnt;					/* Reference count */
+	int fd;						/* The file descriptor, opened O_RDWR */
+	bool revoked;				/* Whether descriptor was revoked */
+};
+
 static inline void
-file_object_check(const struct file_object * const fo)
+file_descriptor_check_minimal(const struct file_descriptor * const fd)
+{
+	g_assert(fd != NULL);
+	g_assert(FILE_DESCRIPTOR_MAGIC == fd->magic);
+}
+
+static inline void
+file_descriptor_check(const struct file_descriptor * const fd)
+{
+	file_descriptor_check_minimal(fd);
+	g_assert(fd->pathname != NULL);
+	g_assert(fd->refcnt > 0);
+	g_assert(fd->refcnt < INT_MAX);
+}
+
+static inline void
+file_object_check(const file_object_t * const fo)
 {
 	file_object_check_minimal(fo);
-	g_assert(fo->ref_count > 0);
-	g_assert(fo->ref_count < INT_MAX);
+	file_descriptor_check_minimal(fo->fd);
 }
 
 /**
- * Get the hash table for a given access mode.
- *
- * @return The hash table holding file object for the access mode.
+ * @return English description of file opening mode.
  */
-static inline hikset_t *
-file_object_mode_get_table(const int accmode)
+static const char *
+file_object_mode_to_string(const file_object_t * const fo)
 {
-	switch (accmode) {
-	case O_RDONLY:	return ht_file_objects_rdonly;
-	case O_WRONLY:	return ht_file_objects_wronly;
-	case O_RDWR:	return ht_file_objects_rdwr;
+	switch (fo->accmode) {
+	case O_RDONLY:	return "read-only";
+	case O_WRONLY:	return "write-only";
+	case O_RDWR:	return "read-write";
 	}
-	return NULL;
+
+	return str_smsg("mode 0%o", fo->accmode);
 }
 
 /**
- * Lookup file object in the table handling specified access mode.
+ * Lookup file decriptor in the table.
  *
- * @param pathname		path to file for which we want a file object
- * @param accmode		access mode to the file
+ * @param pathname		path to file for which we want a file descriptor
  *
- * @return found file object, NULL if not found
+ * @return found file descriptor, NULL if not found
  */
-static inline struct file_object *
-file_object_lookup(const char * const pathname, const int accmode)
+static inline struct file_descriptor *
+file_object_lookup(const char * const pathname)
 {
-	struct file_object *fo;
-
 	assert_file_objects_locked();
-
-	fo = hikset_lookup(file_object_mode_get_table(accmode), pathname);
-
-	return fo;
+	return hikset_lookup(file_descriptors, pathname);
 }
 
 /**
- * Insert file object in the table handling specified access mode.
+ * Insert file descriptor in the table.
  *
- * @param fo		the file object to insert
- * @param accmode		access mode to the file
+ * @param fd		the file descriptor to insert
  */
 static inline void
-file_object_insert(const struct file_object *fo, const int accmode)
+file_object_insert(const struct file_descriptor *fd)
 {
 	assert_file_objects_locked();
-
-	hikset_insert(file_object_mode_get_table(accmode), fo);
+	hikset_insert(file_descriptors, fd);
 }
 
 /**
- * Remove file object from the table handling specified access mode.
+ * Remove file object from the table.
  *
- * @param fo		the file object to insert
- * @param accmode		access mode to the file
+ * @param fd		the file descriptor to insert
  */
 static inline void
-file_object_remove(const struct file_object *fo, const int accmode)
+file_object_remove(const struct file_descriptor *fd)
 {
 	assert_file_objects_locked();
-
-	hikset_remove(file_object_mode_get_table(accmode), fo->pathname);
+	hikset_remove(file_descriptors, fd->pathname);
 }
 
 /**
- * Find an existing file object associated with the given pathname
- * for the given access mode.
+ * Find an existing file descriptor associated with the given pathname.
  *
- * @return If no file object with the given pathname is found NULL
- *		   is returned.
+ * @return the file descriptor if found, NULL otherwise.
  */
-static struct file_object *
-file_object_find(const char * const pathname, int accmode)
+static struct file_descriptor *
+file_object_find(const char * const pathname)
 {
-	struct file_object *fo;
+	struct file_descriptor *fd;
 
 	assert_file_objects_locked();
 
-	g_return_val_if_fail(ht_file_objects_rdonly, NULL);
-	g_return_val_if_fail(ht_file_objects_wronly, NULL);
-	g_return_val_if_fail(ht_file_objects_rdwr, NULL);
-	g_return_val_if_fail(pathname, NULL);
+	g_return_val_if_fail(pathname != NULL, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
-	fo = file_object_lookup(pathname, O_RDWR);
+	fd = file_object_lookup(pathname);
+
+	if (fd != NULL) {
+		file_descriptor_check_minimal(fd);
+		g_assert(is_valid_fd(fd->fd));
+		g_assert(fd_accmode_is_valid(fd->fd, O_RDWR));
+		g_assert(!fd->revoked);
+	}
+
+	return fd;
+}
+
+/**
+ * Free file descriptor.
+ */
+static void
+file_object_free_descriptor(struct file_descriptor * const fd)
+{
+	file_descriptor_check_minimal(fd);
+	g_assert(0 == fd->refcnt);
+
+	fd_close(&fd->fd);
+	atom_str_free_null(&fd->pathname);
+	fd->magic = 0;
+	WFREE(fd);
+}
+
+/**
+ * Allocate a new file descriptor and register it in the table.
+ *
+ * When there is already an entry for the path in the table (race condition)
+ * the old entry is returned and the kernel descriptor is closed.
+ *
+ * @param d				kernel descriptor for opened file
+ * @param pathname		absolute pathname
+ */
+static struct file_descriptor *
+file_object_new_descriptor(const int d, const char * const pathname)
+{
+	struct file_descriptor *fd, *fdn;
+
+	g_return_val_if_fail(d >= 0, NULL);
+	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
 	/*
-	 * We need to find a more specific file object if looking for O_WRONLY
-	 * or O_RDONLY ones.
+	 * Assume there will be no race condition and create the new descriptor
+	 * prior to taking the global lock.
 	 */
 
-	if (O_RDWR != accmode) {
-		struct file_object *xfo;
-		xfo = file_object_lookup(pathname, accmode);
-		if (xfo != NULL) {
-			g_assert(xfo->accmode == accmode);
-			fo = xfo;
-		}
+	WALLOC0(fdn);
+	fdn->magic = FILE_DESCRIPTOR_MAGIC;
+	fdn->pathname = atom_str_get(pathname);
+	fdn->fd = d;
+
+	FILE_OBJECTS_LOCK;
+	fd = file_object_find(pathname);
+
+	if G_UNLIKELY(fd != NULL) {
+		/*
+		 * Race condition detected, we're returning the existing fd.
+		 */
+
+		atomic_int_inc(&fd->refcnt);
+		FILE_OBJECTS_UNLOCK;
+
+		/*
+		 * Free the object we had created, which will close ``d''.
+		 */
+
+		g_assert(fd->fd != d);
+
+		file_object_free_descriptor(fdn);
+		return fd;
 	}
 
-	if (fo) {
-		file_object_check_minimal(fo);
-		g_assert(is_valid_fd(fo->fd));
-		g_assert(0 == strcmp(pathname, fo->pathname));
-		g_assert(fd_accmode_is_valid(fo->fd, accmode));
-		g_assert(!fo->revoked);
-	}
+	/*
+	 * Nominal case, we're using the new object
+	 */
 
-	return fo;
+	fdn->refcnt = 1;
+	file_object_insert(fdn);
+	FILE_OBJECTS_UNLOCK;
+
+	return fdn;
 }
 
-static struct file_object *
-file_object_alloc(const int fd, const char * const pathname, int accmode)
+/**
+ * Allocate a new file object referencing a file descriptor (which has
+ * already been ref-counted).
+ *
+ * @param fd		the file descriptor
+ * @param accmode	user access mode on the file
+ * @param file		location where file was opened
+ * @param line		line number where file was opened
+ */
+static file_object_t *
+file_object_alloc(struct file_descriptor *fd, int accmode,
+	const char *file, int line)
 {
-	static const struct file_object zero_fo;
-	struct file_object *fo;
+	file_object_t *fo;
 
-	assert_file_objects_locked();
-
-	g_return_val_if_fail(fd >= 0, NULL);
-	g_return_val_if_fail(pathname, NULL);
-	g_return_val_if_fail(is_absolute_path(pathname), NULL);
-	g_return_val_if_fail(!file_object_find(pathname, accmode), NULL);
-
-	WALLOC(fo);
-	*fo = zero_fo;
+	WALLOC0(fo);
 	fo->magic = FILE_OBJECT_MAGIC;
-	fo->ref_count = 1;
 	fo->fd = fd;
 	fo->accmode = accmode;
-	fo->pathname = atom_str_get(pathname);
+	fo->file = file;
+	fo->line = line;
+
+	/*
+	 * Track all the files being opened so that we can warn them at exit
+	 * time if there are some files which were opened and never closed,
+	 * a source for file descriptor leaking!
+	 */
+
+	hset_insert(file_objects, fo);
 
 	file_object_check(fo);
-	g_assert(is_valid_fd(fo->fd));
-	file_object_insert(fo, accmode);
 
 	return fo;
 }
 
+/**
+ * Revoke a file descriptor.
+ */
 static void
-file_object_revoke(struct file_object * const fo)
+file_object_revoke(struct file_descriptor * const fd)
 {
-	const struct file_object *xfo;
-	
-	file_object_check_minimal(fo);
+	file_descriptor_check_minimal(fd);
+
 	assert_file_objects_locked();
+	g_return_if_fail(!fd->revoked);
 
-	g_return_if_fail(!fo->revoked);
-
-	xfo = file_object_find(fo->pathname, fo->accmode);
-	g_assert(xfo == fo);
-
-	file_object_remove(fo, fo->accmode);
-	fo->revoked = TRUE;
+	file_object_remove(fd);
+	fd->revoked = TRUE;
+	atomic_mb();			/* Since update was made without locking */
 }
 
+/**
+ * Free file object.
+ */
 static void
-file_object_free(struct file_object * const fo)
+file_object_free(file_object_t *fo)
 {
-	file_object_check_minimal(fo);
-	g_assert(fo->revoked);
+	struct file_descriptor *fd;
 
-	fd_close(&fo->fd);
-	atom_str_free_null(&fo->pathname);
+	file_object_check(fo);
+
+	fd = fo->fd;
+
+	/*
+	 * If d->refcnt is not zero, we don't need to take the global lock.
+	 * Otherwise, we need to take the lock and recheck, since file descriptor
+	 * could have been concurrently re-used.
+	 */
+
+	if (atomic_int_dec_is_zero(&fd->refcnt)) {
+		bool need_free = FALSE;
+		FILE_OBJECTS_LOCK;
+		if (0 == atomic_int_get(&fd->refcnt)) {
+			file_object_remove(fd);
+			need_free = TRUE;
+		}
+		FILE_OBJECTS_UNLOCK;
+		if (need_free)
+			file_object_free_descriptor(fd);
+	}
+
+	hset_remove(file_objects, fo);
+
 	fo->magic = 0;
 	WFREE(fo);
 }
 
 /**
- * Acquires a file object for a given pathname and access mode. If
- * no matching file object exists, NULL is returned.
+ * Acquires a file object for a given pathname and access mode.
+ * When no matching file object exists and the file cannot be opened, NULL
+ * is returned.
  *
- * @param pathname An absolute pathname.
- * @return	On failure NULL is returned. On success a file object is
- *			returned.
+ * @param pathname	absolute pathname
+ * @param accmode	the access mode they want for this file
+ * @param file		file location where file is opened
+ * @param line		line number whenre file is opened
+ *
+ * @return file object if opened, NULL on error.
  */
-struct file_object *
-file_object_open(const char * const pathname, int accmode)
+file_object_t *
+file_object_open_from(const char * const pathname, int accmode,
+	const char *file, int line)
 {
-	struct file_object *fo;
+	struct file_descriptor *fd;
 
-	g_return_val_if_fail(pathname, NULL);
+	g_assert(pathname != NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
 	file_object_init();
 
 	FILE_OBJECTS_LOCK;
-
-	fo = file_object_find(pathname, accmode);
-	if (fo) {
-		fo->ref_count++;
-		g_assert(is_valid_fd(fo->fd));
-	}
-
+	fd = file_object_find(pathname);
 	FILE_OBJECTS_UNLOCK;
 
-	return fo;
-}
-
-/**
- * Acquires a new file object for a given pathname.
- *
- * If there is a file object registered for this pathname already, the supplied
- * file descriptor is closed.
- *
- * @param fd		an existing descriptor to pathname, with right access mode
- * @param pathname	absolute pathname to file
- * @param accmode	access mode wanted for the file
- * 
- * @return a file object enabling I/O operations on success, NULL on error.
- */
-struct file_object *
-file_object_new(const int fd, const char * const pathname, int accmode)
-{
-	struct file_object *fo;
-
-	file_object_init();
-
-	g_return_val_if_fail(fd >= 0, NULL);
-	g_return_val_if_fail(fd_accmode_is_valid(fd, accmode), NULL);
-	g_return_val_if_fail(pathname, NULL);
-	g_return_val_if_fail(is_absolute_path(pathname), NULL);
-
-	/*
-	 * Handle concurrent calls to file_object_new().
-	 */
-
-	FILE_OBJECTS_LOCK;
-
-	fo = file_object_find(pathname, accmode);
-	if G_LIKELY(NULL == fo) {
-		fo = file_object_alloc(fd, pathname, accmode);
+	if (fd != NULL) {
+		atomic_int_inc(&fd->refcnt);
 	} else {
-		if (-1 == close(fd))
-			g_warning("%s(): cannot close(%d): %m", G_STRFUNC, fd);
-	}
-
-	FILE_OBJECTS_UNLOCK;
-
-	return fo;
-}
-
-/**
- * Acquires a file object for a given pathname and access mode. If
- * no matching file object exists and the file cannot be open with the
- * specified access mode, NULL is returned.
- *
- * When opening a file read-only, the file_absolute_open() routine is called
- * to open the file, which will trigger a warning if the file is not found and
- * fail if the pathname is not absolute.
- *
- * When opening a file with write access, the file_open_missing() routine is
- * called to open the file, meaning that a missing file will not be reported
- * as an error, but the file object will not be created either.
- *
- * @param pathname An absolute pathname.
- * @return	On failure NULL is returned and errno is set.
- *          On success a file object is returned.
- */
-struct file_object *
-file_object_get(const char *pathname, int accmode)
-{
-	struct file_object *fo;
-
-	/*
-	 * Try to reusing existing file descriptor attached to the path for
-	 * this access mode.
-	 *
-	 * There is no need to take a lock here: if the file object does not exist,
-	 * we'll open the file and file_object_new() will grab the lock and check
-	 * for an existing file object again before creating the file object itself.
-	 */
-
-	fo = file_object_open(pathname, accmode);
-
-	if G_UNLIKELY(NULL == fo) {
-		int fd;
+		int d;
 
 		/*
-		 * No known file object for this access mode, open the file then and
-		 * if we can, wrap the file descriptor in a suitable file object.
+		 * No known file descriptor for this path. Open the file then and
+		 * if we can, wrap the file descriptor and record it.
+		 *
+		 * NOTE: we do not have the lock during file opening.
+		 * We have to recheck for the file descriptor presence in
+		 * file_object_new_descriptor().
 		 */
 
 		if (O_RDONLY == accmode) {
-			 fd = file_absolute_open(pathname, accmode, 0);
+			 d = file_absolute_open(pathname, O_RDWR, 0);
 		} else {
-			 fd = file_open_missing(pathname, accmode);
+			 d = file_open_missing(pathname, O_RDWR);
 		}
 
-		if G_LIKELY(fd >= 0) {
-			fo = file_object_new(fd, pathname, accmode);
+		if G_LIKELY(d >= 0) {
+			fd = file_object_new_descriptor(d, pathname);
 		}
 	}
 
-	return fo;
+	g_assert(NULL == fd || is_valid_fd(fd->fd));
+
+	if G_UNLIKELY(NULL == fd)
+		return NULL;
+
+	return file_object_alloc(fd, accmode, file, line);
+}
+
+/**
+ * Acquires a file object for a given pathname (created if missing) and
+ * access mode.  When no matching file object exists and the file cannot
+ * be created, NULL is returned.
+ *
+ * @param pathname	absolute pathname to file
+ * @param accmode	access mode for the file (O_RDONLY, O_WRONLY, O_RDWR)
+ * @param mode		permission mode, if creating
+ * @param file		file location where file is opened
+ * @param line		line number whenre file is opened
+ * 
+ * @return a file object enabling I/O operations on success, NULL on error.
+ */
+file_object_t *
+file_object_create_from(const char * const pathname, int accmode, mode_t mode,
+	const char *file, int line)
+{
+	struct file_descriptor *fd;
+
+	file_object_init();
+
+	g_assert(pathname != NULL);
+	g_return_val_if_fail(is_absolute_path(pathname), NULL);
+
+	FILE_OBJECTS_LOCK;
+	fd = file_object_find(pathname);
+	FILE_OBJECTS_UNLOCK;
+
+	if (fd != NULL) {
+		atomic_int_inc(&fd->refcnt);
+	} else {
+		int d;
+
+		/*
+		 * No known file descriptor for this path. Open the file then and
+		 * if we can, wrap the file descriptor and record it.
+		 *
+		 * NOTE: we do not have the lock during file opening.
+		 * We have to recheck for the file descriptor presence in
+		 * file_object_new_descriptor().
+		 */
+
+		 d = file_create(pathname, O_RDWR, mode);
+
+		if G_LIKELY(d >= 0) {
+			fd = file_object_new_descriptor(d, pathname);
+		}
+	}
+
+	g_assert(NULL == fd || is_valid_fd(fd->fd));
+
+	if G_UNLIKELY(NULL == fd)
+		return NULL;
+
+	return file_object_alloc(fd, accmode, file, line);
 }
 
 /**
@@ -462,28 +539,14 @@ file_object_get(const char *pathname, int accmode)
  *               point to an initialized file_object.
  */
 void
-file_object_release(struct file_object **fo_ptr)
+file_object_release(file_object_t **fo_ptr)
 {
-	g_assert(fo_ptr);
+	g_assert(fo_ptr != NULL);
 
 	if (*fo_ptr) {
-		struct file_object *fo = *fo_ptr;
-		bool revoked = FALSE;
+		file_object_t *fo = *fo_ptr;
 
-		file_object_check(fo);
-
-		FILE_OBJECTS_LOCK;
-
-		if (1 == fo->ref_count--) {
-			file_object_revoke(fo);
-			revoked = TRUE;
-		}
-
-		FILE_OBJECTS_UNLOCK;
-
-		if (revoked)
-			file_object_free(fo);
-
+		file_object_free(fo);
 		*fo_ptr = NULL;
 	}
 }
@@ -542,9 +605,7 @@ static bool
 file_object_special_op(enum file_object_op op,
 	const char * const old_name, const char * const new_name)
 {
-	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
-	unsigned i;
-	GSList *objects = NULL;
+	struct file_descriptor *fd;
 	bool ok = TRUE;
 	int saved_errno = 0;
 
@@ -566,21 +627,7 @@ file_object_special_op(enum file_object_op op,
 	 */
 
 	FILE_OBJECTS_LOCK;
-
-	/*
-	 * Identify all the file objects currently active for the old name.
-	 */
-
-	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
-		struct file_object *fo;
-
-		fo = file_object_find(old_name, accmodes[i]);
-		if (fo != NULL) {
-			if (NULL == g_slist_find(objects, fo)) {
-				objects = g_slist_prepend(objects, fo);
-			}
-		}
-	}
+	fd = file_object_find(old_name);
 
 	/*
 	 * On Windows, close all the files prior renaming / unlinking.
@@ -589,14 +636,8 @@ file_object_special_op(enum file_object_op op,
 	 * no need to do anything for a rename() operation.
 	 */
 
-	if (op != FO_OP_RENAME || is_running_on_mingw()) {
-		GSList *sl;
-
-		GM_SLIST_FOREACH(objects, sl) {
-			struct file_object *fo = sl->data;
-
-			fd_forget_and_close(&fo->fd);
-		}
+	if (fd != NULL && (op != FO_OP_RENAME || is_running_on_mingw())) {
+		fd_forget_and_close(&fd->fd);
 	}
 
 	/*
@@ -619,35 +660,31 @@ file_object_special_op(enum file_object_op op,
 	if (FO_OP_RENAME == op && -1 == rename(old_name, new_name)) {
 		saved_errno = errno;
 		ok = FALSE;
+		if (NULL == fd)
+			goto done;
 		goto reopen;
 	}
 
 	ok = TRUE;
 
-	if (op != FO_OP_UNLINK) {
-		GSList *sl;
+	if (NULL == fd)
+		goto done;
 
+	if (op != FO_OP_UNLINK) {
 		/*
-		 * Re-index the file objects with their new name.
+		 * Re-index the file descriptor with its new name.
 		 *
 		 * Because we hold the global lock, we can safely update the pathname
-		 * of the file object: nobody can access that value from the outside
+		 * of the file descriptor: nobody can access that value from the outside
 		 * without first taking the lock.
 		 */
 
-		GM_SLIST_FOREACH(objects, sl) {
-			struct file_object *fo = sl->data;
-
-			hikset_remove(file_object_mode_get_table(fo->accmode),
-				fo->pathname);
-			atom_str_change(&fo->pathname, new_name);
-			hikset_insert(file_object_mode_get_table(fo->accmode), fo);
-		}
+		hikset_remove(file_descriptors, fd->pathname);
+		atom_str_change(&fd->pathname, new_name);
+		hikset_insert(file_descriptors, fd);
 	} else {
-		GSList *sl;
-
 		/*
-		 * Revoke the file objects on unlinking.
+		 * Revoke the file descriptor on unlinking.
 		 *
 		 * This will prevent further file_object_open() pointing to the (now
 		 * removed) path from returning an existing file object.
@@ -655,12 +692,7 @@ file_object_special_op(enum file_object_op op,
 		 * attempts on these will return EBADF.
 		 */
 
-		GM_SLIST_FOREACH(objects, sl) {
-			struct file_object *fo = sl->data;
-
-			file_object_revoke(fo);
-		}
-
+		file_object_revoke(fd);
 		goto done;		/* No re-opening required with unlink */
 	}
 
@@ -669,28 +701,22 @@ file_object_special_op(enum file_object_op op,
 reopen:
 
 	/*
-	 * On Windows, reopen all the files.
+	 * On Windows, reopen the file.
 	 *
-	 * On UNIX, reopen the files after a move operation.  There is nothing
+	 * On UNIX, reopen the file after a move operation.  There is nothing
 	 * to be done on a rename() since we did not close the files before the
 	 * operation and the kernel will do the right thing.
 	 */
 
 	if (FO_OP_MOVED == op || is_running_on_mingw()) {
-		GSList *sl;
+		fd->fd = file_absolute_open(fd->pathname, O_RDWR, 0);
 
-		GM_SLIST_FOREACH(objects, sl) {
-			struct file_object *fo = sl->data;
-
-			fo->fd = file_absolute_open(fo->pathname, fo->accmode, 0);
-
-			if (!is_valid_fd(fo->fd)) {
-				g_warning("%s(): cannot reopen \"%s\" mode 0%o "
-					"after %s %s of \"%s\": %m",
-					G_STRFUNC, fo->pathname, fo->accmode,
-					ok ? "successful" : "failed", file_object_op_to_string(op),
-					old_name);
-			}
+		if (!is_valid_fd(fd->fd)) {
+			s_warning("%s(): cannot reopen \"%s\" "
+				"after %s %s of \"%s\": %m",
+				G_STRFUNC, fd->pathname,
+				ok ? "successful" : "failed", file_object_op_to_string(op),
+				old_name);
 		}
 	}
 
@@ -698,8 +724,6 @@ reopen:
 
 done:
 	FILE_OBJECTS_UNLOCK;
-
-	gm_slist_free_null(&objects);
 
 	if (!ok)
 		errno = saved_errno;
@@ -717,7 +741,7 @@ done:
 		break;
 	case FO_OP_MOVED:
 		if (-1 == unlink(old_name)) {
-			g_warning("%s(): cannot unlink \"%s\" after a copy to \"%s\": %m",
+			s_warning("%s(): cannot unlink \"%s\" after a copy to \"%s\": %m",
 				G_STRFUNC, old_name, new_name);
 		}
 		ok = TRUE;
@@ -730,8 +754,8 @@ done:
 }
 
 /**
- * Renames a file and transparently re-opens all the file objets pointing to
- * the old name, re-inserting the file objects with the new names, assuming
+ * Renames a file and transparently re-opens the file descriptor pointing to
+ * the old name, re-inserting the file descriptor with the new names, assuming
  * renaming was successful.
  *
  * @param old_name	An absolute pathname, the old file name.
@@ -778,6 +802,35 @@ file_object_ebadf(void)
 	return (ssize_t) -1;
 }
 
+static ssize_t
+file_object_eperm(const file_object_t * const fo, const char *what,
+	const char *where)
+{
+	s_carp("%s(): cannot %s to file opened %s at %s:%d",
+		where, what, file_object_mode_to_string(fo), fo->file, fo->line);
+
+	errno = EPERM;
+	return (ssize_t) -1;
+}
+
+/**
+ * Is file object readable?
+ */
+static inline bool
+file_object_readable(const file_object_t * const fo)
+{
+	return O_RDONLY == fo->accmode || O_RDWR == fo->accmode;
+}
+
+/**
+ * Is file object writable?
+ */
+static inline bool
+file_object_writable(const file_object_t * const fo)
+{
+	return O_WRONLY == fo->accmode || O_RDWR == fo->accmode;
+}
+
 /**
  * Write the given data to a file object at the given offset.
  *
@@ -790,15 +843,22 @@ file_object_ebadf(void)
  *		   amount of bytes written is returned.
  */
 ssize_t
-file_object_pwrite(const struct file_object * const fo,
+file_object_pwrite(const file_object_t * const fo,
 	const void * const data, const size_t size, const filesize_t offset)
 {
+	const struct file_descriptor *fd;
+
 	file_object_check(fo);
 
-	if (!is_valid_fd(fo->fd))
+	fd = fo->fd;
+
+	if G_UNLIKELY(!is_valid_fd(fd->fd))
 		return file_object_ebadf();
 
-	return compat_pwrite(fo->fd, data, size, offset);
+	if G_UNLIKELY(!file_object_writable(fo))
+		return file_object_eperm(fo, "write", G_STRFUNC);
+
+	return compat_pwrite(fd->fd, data, size, offset);
 }
 
 /**
@@ -813,17 +873,24 @@ file_object_pwrite(const struct file_object * const fo,
  *         of data bytes written is returned.
  */
 ssize_t
-file_object_pwritev(const struct file_object * const fo,
+file_object_pwritev(const file_object_t * const fo,
 	const iovec_t * iov, const int iov_cnt, const filesize_t offset)
 {
+	const struct file_descriptor *fd;
+
 	file_object_check(fo);
-	g_assert(iov);
+	g_assert(iov != NULL);
 	g_assert(iov_cnt > 0);
-	
-	if (!is_valid_fd(fo->fd))
+
+	fd = fo->fd;
+
+	if G_UNLIKELY(!is_valid_fd(fd->fd))
 		return file_object_ebadf();
 
-	return compat_pwritev(fo->fd, iov, iov_cnt, offset);
+	if G_UNLIKELY(!file_object_writable(fo))
+		return file_object_eperm(fo, "write", G_STRFUNC);
+
+	return compat_pwritev(fd->fd, iov, iov_cnt, offset);
 }
 
 /**
@@ -838,15 +905,22 @@ file_object_pwritev(const struct file_object * const fo,
  *		   amount of bytes read is returned.
  */
 ssize_t
-file_object_pread(const struct file_object * const fo,
+file_object_pread(const file_object_t * const fo,
 	void * const data, const size_t size, const filesize_t offset)
 {
+	const struct file_descriptor *fd;
+
 	file_object_check(fo);
 
-	if (!is_valid_fd(fo->fd))
+	fd = fo->fd;
+
+	if G_UNLIKELY(!is_valid_fd(fd->fd))
 		return file_object_ebadf();
 
-	return compat_pread(fo->fd, data, size, offset);
+	if G_UNLIKELY(!file_object_readable(fo))
+		return file_object_eperm(fo, "read", G_STRFUNC);
+
+	return compat_pread(fd->fd, data, size, offset);
 }
 
 /**
@@ -861,17 +935,39 @@ file_object_pread(const struct file_object * const fo,
  *         of data bytes read is returned.
  */
 ssize_t
-file_object_preadv(const struct file_object * const fo,
+file_object_preadv(const file_object_t * const fo,
 	iovec_t * const iov, const int iov_cnt, const filesize_t offset)
 {
+	const struct file_descriptor *fd;
+
 	file_object_check(fo);
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
 
-	if (!is_valid_fd(fo->fd))
+	fd = fo->fd;
+
+	if G_UNLIKELY(!is_valid_fd(fd->fd))
 		return file_object_ebadf();
 
-	return compat_preadv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
+	if G_UNLIKELY(!file_object_readable(fo))
+		return file_object_eperm(fo, "read", G_STRFUNC);
+
+	return compat_preadv(fd->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
+}
+
+/**
+ * @return internal open file descriptor.
+ */
+static int
+file_object_open_fd(const file_object_t * const fo)
+{
+	const struct file_descriptor *fd;
+
+	file_object_check(fo);
+	fd = fo->fd;
+	g_assert(is_valid_fd(fd->fd));
+
+	return fd->fd;
 }
 
 /**
@@ -880,12 +976,35 @@ file_object_preadv(const struct file_object * const fo,
  * @return 0 if OK, -1 on failure with errno set.
  */
 int
-file_object_fstat(const struct file_object * const fo, filestat_t *buf)
+file_object_fstat(const file_object_t * const fo, filestat_t *buf)
 {
-	file_object_check(fo);
-	g_assert(is_valid_fd(fo->fd));
+	int fd = file_object_open_fd(fo);
 
-	return fstat(fo->fd, buf);
+	return fstat(fd, buf);
+}
+
+/**
+ * Truncate file.
+ *
+ * @return 0 if OK, -1 on failure with errno set.
+ */
+int
+file_object_ftruncate(const file_object_t * const fo, filesize_t off)
+{
+	int fd = file_object_open_fd(fo);
+
+	return ftruncate(fd, off);
+}
+
+/**
+ * Predeclare a sequential access pattern for file data.
+ */
+void
+file_object_fadvise_sequential(const file_object_t * const fo)
+{
+	int fd = file_object_open_fd(fo);
+
+	compat_fadvise_sequential(fd, 0, 0);
 }
 
 /**
@@ -898,10 +1017,9 @@ file_object_fstat(const struct file_object * const fo, filestat_t *buf)
  * @return The file descriptor of the file object.
  */
 int
-file_object_get_fd(const struct file_object * const fo)
+file_object_fd(const file_object_t * const fo)
 {
-	file_object_check(fo);
-	return fo->fd;
+	return file_object_open_fd(fo);
 }
 
 /**
@@ -912,10 +1030,11 @@ file_object_get_fd(const struct file_object * const fo)
  * @return The pathname of the file object, held in a thread-private buffer.
  */
 const char *
-file_object_get_pathname(const struct file_object * const fo)
+file_object_pathname(const file_object_t * const fo)
 {
 	str_t *s = str_private(G_STRFUNC, 256);
 	const char *pathname;
+	const struct file_descriptor *fd;
 
 	file_object_check(fo);
 
@@ -938,8 +1057,10 @@ file_object_get_pathname(const struct file_object * const fo)
 	 *		--RAM, 2013-11-09
 	 */
 
+	fd = fo->fd;
+
 	FILE_OBJECTS_LOCK;
-	pathname = fo->pathname;
+	pathname = fd->pathname;
 	str_cpy(s, pathname);
 	FILE_OBJECTS_UNLOCK;
 
@@ -952,20 +1073,20 @@ file_object_get_pathname(const struct file_object * const fo)
 static void
 file_object_init_once(void)
 {
-	size_t offset = offsetof(struct file_object, pathname);
+	size_t offset = offsetof(struct file_descriptor, pathname);
 
-	g_return_if_fail(!ht_file_objects_rdonly);
-	g_return_if_fail(!ht_file_objects_wronly);
-	g_return_if_fail(!ht_file_objects_rdwr);
+	g_return_if_fail(NULL == file_descriptors);
+	g_return_if_fail(NULL == file_objects);
 
 	/*
-	 * Each of these sets is indexed by the "pathname" field of the file object,
+	 * This set is indexed by the "pathname" field of the file object,
 	 * as indicated by the "offset" variable (Hashed Internal Key SET).
 	 */
 
-	ht_file_objects_rdonly = hikset_create(offset, HASH_KEY_STRING, 0);
-	ht_file_objects_wronly = hikset_create(offset, HASH_KEY_STRING, 0);
-	ht_file_objects_rdwr   = hikset_create(offset, HASH_KEY_STRING, 0);
+	file_descriptors = hikset_create(offset, HASH_KEY_STRING, 0);
+
+	file_objects = hset_create(HASH_KEY_SELF, 0);
+	hset_thread_safe(file_objects);
 }
 
 /**
@@ -981,16 +1102,17 @@ file_object_init(void)
 }
 
 static void
-file_object_show_item(void *value, void *unused_udata)
+file_object_show_item(const void *value, void *unused_udata)
 {
-	const struct file_object * const fo = value;
+	const file_object_t * const fo = value;
 
 	(void) unused_udata;
 
 	file_object_check(fo);
 
-	g_warning("leaked file object: ref.count=%d fd=%d pathname=\"%s\"",
-		fo->ref_count, fo->fd, fo->pathname);
+	s_warning("leaked file object: pathname=\"%s\", opened %s at %s:%d",
+		file_object_pathname(fo), file_object_mode_to_string(fo),
+		fo->file, fo->line);
 }
 
 static inline void
@@ -1005,12 +1127,11 @@ file_object_destroy_table(hikset_t **ht_ptr, const char * const name)
 
 	n = hikset_count(ht);
 	if (n > 0) {
-		g_warning("%s(): %s still contains %u items", G_STRFUNC, name, n);
-		hikset_foreach(ht, file_object_show_item, NULL);
+		s_warning("%s(): %s still contains %u items", G_STRFUNC, name, n);
+	} else {
+		hikset_free_null(ht_ptr);
+		*ht_ptr = NULL;
 	}
-	g_return_if_fail(0 == n);
-	hikset_free_null(ht_ptr);
-	*ht_ptr = NULL;
 }
 
 /**
@@ -1022,11 +1143,13 @@ file_object_close(void)
 {
 #define D(x) &x, #x
 
-	file_object_destroy_table(D(ht_file_objects_rdonly));
-	file_object_destroy_table(D(ht_file_objects_wronly));
-	file_object_destroy_table(D(ht_file_objects_rdwr));
+	file_object_destroy_table(D(file_descriptors));
 
 #undef D
+
+	hset_foreach(file_objects, file_object_show_item, NULL);
+	if (0 == hset_count(file_objects))
+		hset_free_null(&file_objects);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

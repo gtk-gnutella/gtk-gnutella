@@ -4266,29 +4266,10 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	/*
 	 * Open the file for reading.
-	 *
-	 * Here we do not use the file_object_get() wrapper but do things manually
-	 * since we want to special-case the underlying file opening depending on
-	 * whether the file is partial.
 	 */
 
 	u->file = file_object_open(shared_file_path(u->sf), O_RDONLY);
-	if (NULL == u->file) {
-		int fd, flags;
 
-		/* If this is a partial file, we open it with O_RDWR so that
-		 * the file descriptor can be shared with download operations
-		 * for the same file. */
-		if (NULL == u->file_info || (u->file_info->flags & FI_F_SEEDING)) {
-			flags = O_RDONLY;
-		} else {
-			flags = O_RDWR;
-		}
-		fd = file_absolute_open(shared_file_path(u->sf), flags, 0);
-		if (fd >= 0) {
-			u->file = file_object_new(fd, shared_file_path(u->sf), flags);
-		}
-	}
 	if (NULL == u->file) {
 		upload_error_not_found(u, NULL);
 		return FALSE;
@@ -5277,7 +5258,7 @@ upload_writable(void *obj, int unused_source, inputevt_cond_t cond)
 		available = MIN(amount, READ_BUF_SIZE);
 		before = pos = u->pos;
 		written = bio_sendfile(&u->sendfile_ctx, u->bio,
-					file_object_get_fd(u->file), &pos, available);
+					file_object_fd(u->file), &pos, available);
 
 		g_assert((ssize_t) -1 == written ||
 			(fileoffset_t) written == pos - before);

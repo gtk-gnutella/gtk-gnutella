@@ -577,7 +577,7 @@ trailer_is_64bit(const struct trailer *tb)
  * Write trailer buffer at current position on `fd', whose name is `name'.
  */
 static void
-tbuf_write(const struct file_object *fo, filesize_t offset)
+tbuf_write(const file_object_t *fo, filesize_t offset)
 {
 	size_t size = TBUF_WRITTEN_LEN();
 	ssize_t ret;
@@ -592,7 +592,7 @@ tbuf_write(const struct file_object *fo, filesize_t offset)
 
 		error = (ssize_t) -1 == ret ? g_strerror(errno) : "Unknown error";
 		g_warning("error while flushing trailer info for \"%s\": %s",
-			file_object_get_pathname(fo), error);
+			file_object_pathname(fo), error);
 	}
 }
 
@@ -741,7 +741,7 @@ file_info_check_chunklist(const fileinfo_t *fi, bool assertion)
  * have elapsed since last flush to disk.
  */
 static void
-file_info_fd_store_binary(fileinfo_t *fi, const struct file_object *fo)
+file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 {
 	const GSList *sl;
 	const slink_t *cl;
@@ -830,7 +830,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const struct file_object *fo)
 	/* Flush buffer at current position */
 	tbuf_write(fo, fi->size);
 
-	if (0 != ftruncate(file_object_get_fd(fo), fi->size + length)) {
+	if (0 != file_object_ftruncate(fo, fi->size + length)) {
 		g_warning("%s(): truncate() failed for \"%s\": %m",
 			G_STRFUNC, file_info_readable_filename(fi));
 	}
@@ -846,7 +846,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const struct file_object *fo)
 void
 file_info_store_binary(fileinfo_t *fi, bool force)
 {
-	struct file_object *fo;
+	file_object_t *fo;
 
 	g_assert(!(fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING)));
 
@@ -877,7 +877,7 @@ file_info_store_binary(fileinfo_t *fi, bool force)
 	 * since then we'll go directly to file_info_fd_store_binary().
 	 */
 
-	fo = file_object_get(fi->pathname, O_WRONLY);
+	fo = file_object_open(fi->pathname, O_WRONLY);
 
 	if (fo != NULL) {
 		file_info_fd_store_binary(fi, fo);
