@@ -169,7 +169,6 @@ LSRC = \
 	exit.c \
 	fast_assert.c \
 	fd.c \
-	fifo.c \
 	file.c \
 	file_object.c \
 	filehead.c \
@@ -341,7 +340,6 @@ LOBJ = \
 	exit.o \
 	fast_assert.o \
 	fd.o \
-	fifo.o \
 	file.o \
 	file_object.o \
 	filehead.o \

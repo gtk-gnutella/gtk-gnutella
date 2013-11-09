@@ -112,7 +112,6 @@ LSRC = \
 	exit.c \
 	fast_assert.c \
 	fd.c \
-	fifo.c \
 	file.c \
 	file_object.c \
 	filehead.c \

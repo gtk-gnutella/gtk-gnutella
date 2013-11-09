@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,26 +27,79 @@
  *
  * A FIFO.
  *
+ * As of 2013-11-09, a FIFO is simply a facade of slist_t.
+ *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2013
  */
 
 #ifndef _fifo_h_
 #define _fifo_h_
 
-#include "common.h" 
+#include "slist.h"
 
-struct fifo;
-typedef struct fifo fifo_t;
+typedef slist_t fifo_t;
 
-typedef void (*fifo_free_t)(void *item, void *udata);
+/**
+ * Create new FIFO.
+ */
+static inline fifo_t *
+fifo_make(void)
+{
+	return slist_new();
+}
 
-fifo_t *fifo_make(void);
-void fifo_free(fifo_t *f);
-void fifo_free_all(fifo_t *f, fifo_free_t cb, void *udata);
-int fifo_count(fifo_t *f);
-void fifo_put(fifo_t *f, const void *data);
-void *fifo_remove(fifo_t *f);
+/**
+ * Destroy FIFO.
+ */
+static inline void
+fifo_free(fifo_t *f)
+{
+	slist_free(&f);
+}
+
+/**
+ * Destroy FIFO, invoking freeing callback on all items still held.
+ *
+ * @param f		the FIFO to free
+ * @param cb	the freeing callback to invoke on all items
+ * @param udata	the extra user data passed as-is to the freeing callback
+ */
+static inline void
+fifo_free_all(fifo_t *f, free_data_fn_t cb, void *udata)
+{
+	slist_foreach(f, cb, udata);
+	slist_free(&f);
+}
+
+/**
+ * @return the amount of items queued in FIFO.
+ */
+static inline uint
+fifo_count(const fifo_t *f)
+{
+	return slist_length(f);
+}
+
+/**
+ * Add entry to FIFO.
+ */
+static inline void
+fifo_put(fifo_t *f, const void *data)
+{
+	slist_append(f, deconstify_pointer(data));
+}
+
+/**
+ * Remove entry from FIFO.
+ *
+ * @return the oldest item still held in FIFO, NULL if no item remains.
+ */
+static inline void *
+fifo_remove(fifo_t *f)
+{
+	return slist_shift(f);
+}
 
 #endif /* _fifo_h_ */
 

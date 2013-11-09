@@ -684,7 +684,6 @@ src/lib/fast_assert.c
 src/lib/fast_assert.h
 src/lib/fd.c
 src/lib/fd.h
-src/lib/fifo.c
 src/lib/fifo.h
 src/lib/file.c
 src/lib/file.h
