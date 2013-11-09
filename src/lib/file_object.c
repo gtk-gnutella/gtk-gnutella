@@ -101,6 +101,7 @@
 #include "mutex.h"
 #include "once.h"
 #include "path.h"
+#include "str.h"			/* For str_private() */
 #include "walloc.h"
 
 #include "override.h"       /* Must be the last header included */
@@ -834,11 +835,13 @@ file_object_get_fd(const struct file_object * const fo)
  * Get the pathname associated with a file object.
  *
  * @param An initialized file object.
- * @return The pathname of the file object.  
+ *
+ * @return The pathname of the file object, held in a thread-private buffer.
  */
 const char *
 file_object_get_pathname(const struct file_object * const fo)
 {
+	str_t *s = str_private(G_STRFUNC, 256);
 	const char *pathname;
 
 	file_object_check(fo);
@@ -847,7 +850,6 @@ file_object_get_pathname(const struct file_object * const fo)
 	 * Is is necessary to take the lock to access the value because it can
 	 * be changed from file_object_special_op().
 	 *
-	 * FIXME
 	 * There is a possible race because the pathname atom could be freed from
 	 * within file_object_special_op() if the file is concurrently renamed
 	 * or moved whilst this routine is called.  The lock only guarantees that
@@ -855,19 +857,20 @@ file_object_get_pathname(const struct file_object * const fo)
 	 * freeing that could happen once the lock was released.
 	 *
 	 * Unfortunately, fixing this transparently for the caller is non-trivial.
-	 * Fortunately, the current usage pattern in the application makes it
-	 * impossible to exercise the race condition (look at who calls that
-	 * routine: moving the file means nobody can write into the file
-	 * concurrently and that the file was already verified).
-	 *
 	 *		--RAM, 2013-03-16
+	 *
+	 * To fix the race, we make a copy of the read pathname into a private
+	 * buffer.  The caller must make sure to duplicate the returned value
+	 * if it wants to peruse it.
+	 *		--RAM, 2013-11-09
 	 */
 
 	FILE_OBJECTS_LOCK;
 	pathname = fo->pathname;
+	str_cpy(s, pathname);
 	FILE_OBJECTS_UNLOCK;
 
-	return pathname;
+	return str_2c(s);
 }
 
 /**
