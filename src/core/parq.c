@@ -2164,6 +2164,7 @@ parq_still_sharing(struct parq_ul_queued *puq)
 					sha1_base32(puq->sha1), puq->name);
 			return FALSE;
 		}
+		shared_file_unref(&sf);
 		/* Either we have the file or we are rebuilding */
 	} else {
 		/*
@@ -2180,11 +2181,13 @@ parq_still_sharing(struct parq_ul_queued *puq)
 				puq->sha1 = atom_sha1_get(shared_file_sha1(sf));
 				g_message("[PARQ UL] found SHA1=%s for \"%s\"",
 					sha1_base32(puq->sha1), puq->name);
+				shared_file_unref(&sf);
 				return TRUE;
 			} else {
 				if (GNET_PROPERTY(parq_debug))
 					g_debug("[PARQ UL] We no longer share this file \"%s\"",
 						puq->name);
+				shared_file_unref(&sf);
 				return FALSE;
 			}
 		}

@@ -145,10 +145,18 @@ verify_tth_init(void)
 /**
  * Stops the background task for tigertree verification.
  */
-void
-verify_tth_close(void)
+G_GNUC_COLD void
+verify_tth_shutdown(void)
 {
 	verify_free(&verify_tth.verify);
+}
+
+/**
+ * Release memory resources used by tigertree verification.
+ */
+G_GNUC_COLD void
+verify_tth_close(void)
+{
 	HFREE_NULL(verify_tth.context);
 }
 
@@ -161,7 +169,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
-		if (!(SHARE_F_INDEXED & shared_file_flags(sf))) {
+		if (!shared_file_indexed(sf)) {
 			/*
 			 * After a rescan, there might be files in the queue which are
 			 * no longer shared.
@@ -236,9 +244,11 @@ request_tigertree(shared_file_t *sf, bool high_priority)
 
 	verify_tth_init();
 
-	g_return_if_fail(sf);
 	shared_file_check(sf);
 	g_return_if_fail(!shared_file_is_partial(sf));
+
+	if (!shared_file_indexed(sf))
+		return;		/* "stale" shared file, has been superseded or removed */
 
 	/*
 	 * This routine can be called when the VERIFY_DONE event is received by

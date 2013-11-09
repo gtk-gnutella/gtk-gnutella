@@ -344,13 +344,16 @@ ignore_is_requested(const char *filename, filesize_t size,
 	g_assert(filename != NULL);
 
 	if (sha1) {
-		const shared_file_t *sf;
+		shared_file_t *sf;
+		bool ignore;
 		if (htable_contains(by_sha1, sha1))
 			return IGNORE_SHA1;
 		if (spam_sha1_check(sha1))
 			return IGNORE_SPAM;
 		sf = shared_file_by_sha1(sha1);
-		if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf))
+		ignore = sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf);
+		shared_file_unref(&sf);
+		if (ignore)
 			return IGNORE_LIBRARY;
 	} else {
 		namesize_t ns;

@@ -4466,7 +4466,7 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 	}
 
 	for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
-		const shared_file_t *sf;
+		shared_file_t *sf;
 		gnet_record_t *rc = sl->data;
 
 		if (need_push) {
@@ -4517,6 +4517,7 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 				}
 			}
 		}
+		shared_file_unref(&sf);
 	}
 }
 
@@ -6129,6 +6130,7 @@ search_locally(gnet_search_t sh, const char *query)
 		}
 		sf = shared_file_by_sha1(&sha1);
 		error = !sf || SHARE_REBUILDING == sf;
+		shared_file_unref(&sf);
 		if (error) {
 			goto done;
 		}
@@ -6196,6 +6198,7 @@ search_locally(gnet_search_t sh, const char *query)
 				ret = regexec(re, name, 0, NULL, 0);
 				WFREE_NULL(buf, buf_size);
 				if (ret) {
+					shared_file_unref(&sf);
 					continue;
 				}
 			}
@@ -6204,10 +6207,12 @@ search_locally(gnet_search_t sh, const char *query)
 				0 != sch->media_type &&
 				!shared_file_has_media_type(sf, sch->media_type)
 			) {
+				shared_file_unref(&sf);
 				continue;
 			}
 
 			search_add_local_file(rs, sf);
+			shared_file_unref(&sf);
 		}
 	}
 
@@ -7898,7 +7903,7 @@ search_request(struct gnutella_node *n,
 			int i;
 
 			for (i = 0; i < sri->exv_sha1cnt && max_replies > 0; i++) {
-				struct shared_file *sf;
+				shared_file_t *sf;
 
 				sf = shared_file_by_sha1(&sri->exv_sha1[i].sha1);
 				if (
@@ -7910,6 +7915,7 @@ search_request(struct gnutella_node *n,
 					got_match(qctx, sf);
 					max_replies--;
 				}
+				shared_file_unref(&sf);
 			}
 		}
 
@@ -7922,6 +7928,7 @@ search_request(struct gnutella_node *n,
 				: 0;
 			for (i = 0; i < cnt; i++) {
 				got_match(qctx, sfv[i]);
+				shared_file_unref(&sfv[i]);
 			}
 			gnet_stats_count_general(GNR_LOCAL_WHATS_NEW_HITS, cnt);
 

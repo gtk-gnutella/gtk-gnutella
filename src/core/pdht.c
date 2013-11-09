@@ -928,7 +928,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	case PDHT_T_ALOC:
 		{
 			struct pdht_aloc *paloc = &pp->u.aloc;
-			shared_file_t *sf = paloc->sf;
+			shared_file_t *sf = paloc->sf, *sf1;
 
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				size_t roots = lookup_result_path_length(rs);
@@ -945,7 +945,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 			 * not be requeued for publishing at the next period.
 			 */
 
-			if (NULL == shared_file_by_sha1(paloc->sha1)) {
+			if (NULL == (sf1 = shared_file_by_sha1(paloc->sha1))) {
 				if (GNET_PROPERTY(publisher_debug)) {
 					g_warning("PDHT ALOC cannot publish %s \"%s\": "
 						"no longer shared",
@@ -956,6 +956,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 				pdht_publish_error(pp, PDHT_E_NOT_SHARED);
 				return;
 			}
+			shared_file_unref(&sf1);
 
 			value = pdht_get_aloc(sf, pp->id);
 		}

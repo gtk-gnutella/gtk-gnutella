@@ -106,7 +106,6 @@
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
-#include "lib/compat_sleep_ms.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
@@ -528,7 +527,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(upload_stats_close);
 	DO(parq_close_pre);
 	DO(verify_sha1_close);
-	DO(verify_tth_close);
+	DO(verify_tth_shutdown);
 	DO(download_close);
 	DO(file_info_store_if_dirty);	/* In case downloads had buffered data */
 	DO(parq_close);
@@ -670,7 +669,7 @@ gtk_gnutella_exit(int exit_code)
 		if (!running_topless) {
 			main_gui_shutdown_tick(exit_grace - d);
 		}
-		compat_sleep_ms(50);
+		thread_sleep_ms(50);
 		main_dispatch();
 	}
 
@@ -736,13 +735,11 @@ gtk_gnutella_exit(int exit_code)
 	DO(ipp_cache_close);
 	DO(dump_close);
 	DO(tls_global_close);
-	DO(file_object_close);
-	DO(settings_close);	/* Must come after hcache_close() */
 	DO(misc_close);
 	DO(mingw_close);
+	DO(verify_tth_close);
 	DO(inputevt_close);
 	DO(locale_close);
-	DO(cq_close);
 	DO(wq_close);
 	DO(log_close);		/* Does not disable logging */
 	DO(gentime_close);
@@ -750,6 +747,9 @@ gtk_gnutella_exit(int exit_code)
 	/*
 	 * Wait for pending messages from other threads.
 	 */
+
+	if (debugging(0))
+		g_info("waiting for pending messages from other threads");
 
 	exit_time = time(NULL);
 	exit_grace = 10;
@@ -768,14 +768,54 @@ gtk_gnutella_exit(int exit_code)
 	}
 
 	/*
+	 * While there are events to be processed in the TEQ, handle them
+	 * and wait a little to see if more events are coming.
+	 */
+
+	if (debugging(0))
+		g_info("waiting for TEQ events from closing threads");
+
+	teq_set_throttle(0, 0);		/* No throttling */
+
+	while (0 != teq_dispatch()) {
+		int i;
+
+		for (i = 0; i < 100; i++) {
+			int n = teq_count(THREAD_MAIN);
+			if (n != 0)
+				break;
+			thread_sleep_ms(1);
+		}
+	}
+
+	/*
 	 * About to shutdown memory, suspend all the other running threads to
 	 * avoid problems if they wake up suddenly and attempt to allocate memory.
 	 */
+
+	if (debugging(0)) {
+		unsigned n = thread_count() - 1;
+		if (n != 0)
+			g_info("suspending other %u thread%s", n, plural(n));
+	}
 
 	thread_suspend_others(FALSE);
 
 	if (debugging(0))
 		DO(thread_dump_stats);
+
+	/*
+	 * Now we won't be dispatching any more TEQ events, which happen mostly
+	 * when the TTH and SHA-1 threads are ended with a non-empty work queue.
+	 *
+	 * We can therefore close the property system completely, and the
+	 * callout queue (required when exiting from detached threads to hold
+	 * off the thread element for a while).
+	 */
+
+	DO(file_object_close);
+	DO(settings_close);	/* Must come after hcache_close() */
+	DO(cq_close);
 
 	/*
 	 * Memory shutdown must come last.
@@ -1835,6 +1875,7 @@ main(int argc, char **argv)
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
 	teq_io_create();
+	teq_set_throttle(70, 50);	/* 70 ms max for TEQ events, every 50 ms */
 	tiger_check();
 	tt_check();
 	tea_test();

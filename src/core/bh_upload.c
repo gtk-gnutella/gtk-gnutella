@@ -256,7 +256,7 @@ browse_host_read_html(struct special_upload *ctx,
 			}
 
 			if (!bh->b_data) {
-				const shared_file_t *sf;
+				shared_file_t *sf;
 
 				bh->file_index++;
 				sf = shared_file_sorted(bh->file_index);
@@ -325,6 +325,7 @@ browse_host_read_html(struct special_upload *ctx,
 					bh->b_size = bh->w_buf_size - 1; /* minus trailing NUL */
 					bh->b_offset = 0;
 				}
+				shared_file_unref(&sf);
 			}
 
 			if (bh->b_data)
@@ -401,11 +402,11 @@ browse_host_read_qhits(struct special_upload *ctx,
 	 */
 
 	if (NULL == bh->hits) {
-		GSList *files = NULL;
+		GSList *files = NULL, *sl;
 		int i;
 
 		for (i = 0; i < BH_SCAN_AHEAD; i++) {
-			const shared_file_t *sf;
+			shared_file_t *sf;
 
 			do {
 				/* Skip holes in indices */
@@ -416,7 +417,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 			if (SHARE_REBUILDING == sf || NULL == sf)
 				break;
 			
-			files = g_slist_prepend(files, deconstify_pointer(sf));
+			files = g_slist_prepend(files, sf);
 		}
 
 		if (NULL == files)		/* Did not find any more file to include */
@@ -434,6 +435,10 @@ browse_host_read_qhits(struct special_upload *ctx,
 		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
 
 		bh->hits = g_slist_reverse(bh->hits);	/* Preserve order */
+		GM_SLIST_FOREACH(files, sl) {
+			shared_file_t *sf = sl->data;
+			shared_file_unref(&sf);
+		}
  		gm_slist_free_null(&files);
 	}
 

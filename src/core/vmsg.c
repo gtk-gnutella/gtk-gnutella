@@ -2682,7 +2682,7 @@ handle_head_ping(struct gnutella_node *n,
 			}
 		}
 	} else {
-		const shared_file_t *sf;
+		shared_file_t *sf;
 		uint8 code;
 
 		if (node_udp_is_old(n)) {
@@ -2725,6 +2725,7 @@ handle_head_ping(struct gnutella_node *n,
 					}
 					code = VMSG_HEAD_CODE_COMPLETE;
 				}
+				shared_file_unref(&sf);
 			} else {
 				if (GNET_PROPERTY(vmsg_debug) > 2) {
 					g_debug("VMSG HEAD Ping: unknown file");

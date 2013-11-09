@@ -497,8 +497,11 @@ huge_need_sha1(shared_file_t *sf)
 	 * no longer shared.
 	 */
 
-	if (!(SHARE_F_INDEXED & shared_file_flags(sf)))
+	if (!shared_file_indexed(sf))
 		return FALSE;
+
+	if G_UNLIKELY(NULL == sha1_cache)
+		return FALSE;		/* Shutdown occurred (processing TEQ event?) */
 
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 
@@ -622,6 +625,9 @@ request_sha1(shared_file_t *sf)
 	struct sha1_cache_entry *cached;
 
 	shared_file_check(sf);
+
+	if (!shared_file_indexed(sf))
+		return;		/* "stale" shared file, has been superseded or removed */
 
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 

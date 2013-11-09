@@ -1100,7 +1100,7 @@ handle_push_request(struct gnutella_node *n)
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header));
 	} else {
-		const shared_file_t *req_file;
+		shared_file_t *req_file;
 
 		req_file = shared_file(file_index);
 		if (req_file == SHARE_REBUILDING) {
@@ -1121,6 +1121,7 @@ handle_push_request(struct gnutella_node *n)
 		} else {
 			file_name = shared_file_name_nfc(req_file);
 		}
+		shared_file_unref(&req_file);
 	}
 
 	/*
@@ -2946,9 +2947,14 @@ static void
 upload_collect_locations(struct upload *u,
 	const struct sha1 *sha1, const header_t *header)
 {
+	shared_file_t *sf;
+
 	g_return_if_fail(sha1);
 
-	if (shared_file_by_sha1(sha1) || file_info_by_sha1(sha1)) {
+	sf = shared_file_by_sha1(sha1);
+	sf = SHARE_REBUILDING == sf ? NULL : sf;
+
+	if (NULL != sf || file_info_by_sha1(sha1)) {
 		char *buf;
 		gnet_host_t host;
 		gnet_host_t *origin = NULL;
@@ -2973,6 +2979,8 @@ upload_collect_locations(struct upload *u,
 		if (buf)
 			dmesh_collect_negative_locations(sha1, buf, u->addr);
 	}
+
+	shared_file_unref(&sf);
 }
 
 /**
@@ -3004,7 +3012,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	 *		--RAM, 16/01/2002
 	 */
 
-	sf = shared_file(idx);
+	sf = shared_file(idx);		/* Reference-counted */
 
 	if (SHARE_REBUILDING == sf)
 		goto library_rebuilt;
@@ -3057,8 +3065,10 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		 */
 
 		if (sf && sha1_hash_available(sf)) {
-			if (!sha1_hash_is_uptodate(sf))
+			if (!sha1_hash_is_uptodate(sf)) {
+				shared_file_unref(&sf);
 				goto sha1_recomputed;
+			}
 			if (sha1_eq(&sha1, shared_file_sha1(sf)))
 				goto found;
 		}
@@ -3070,7 +3080,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		 * know the hash.
 		 */
 
-		sfn = shared_file_by_sha1(&sha1);
+		sfn = shared_file_by_sha1(&sha1);		/* Reference-counted */
 
 		/*
 		 * Since shared_file(idx) and shared_file_by_sha1(sha1) use different
@@ -3087,8 +3097,10 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 			char location[1024];
 			char *escaped;
 
-			if (!sha1_hash_is_uptodate(sfn))
+			if (!sha1_hash_is_uptodate(sfn)) {
+				shared_file_unref(&sfn);
 				goto sha1_recomputed;
+			}
 
 			/*
 			 * Be nice to pushed downloads: returning a 301 currently means
@@ -3108,6 +3120,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 						sha1_base32(&sha1), idx,
 						(uint) shared_file_index(sfn),
 						shared_file_path(sfn));
+				shared_file_unref(&sf);
 				sf = sfn;
 				goto found;
 			}
@@ -3125,6 +3138,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 						"requested \"%s\", serving \"%s\"",
 						sha1_base32(&sha1), u->name,
 						shared_file_path(sfn));
+				shared_file_unref(&sf);
 				sf = sfn;
 				goto found;
 			}
@@ -3139,11 +3153,15 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 				HFREE_NULL(escaped);
 			}
 
-			u->sf = shared_file_ref(sfn);			
+			shared_file_unref(&sf);
+			u->sf = sfn;
 			upload_error_remove_ext(u, location, 301, N_("Moved Permanently"));
 			return -1;
 		}
-		else if (sf == NULL)
+
+		shared_file_unref(&sfn);
+
+		if (NULL == sf)
 			goto urn_not_found;
 
 		/* FALL THROUGH */
@@ -3163,7 +3181,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	 */
 
 	if (sf == NULL) {
-		sf = shared_file_by_name(u->name);
+		sf = shared_file_by_name(u->name);	/* Reference counts ``sf'' */
 
 		g_assert(sf != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
@@ -3191,20 +3209,26 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 					idx, u->name, shared_file_name_nfc(sf));
 		}
 
+		shared_file_unref(&sf);
 		if (NULL == sfn) {
 			upload_send_error(u, 404, N_("File index/name mismatch"));
 			return -1;
 		} else
-			sf = sfn;
+			sf = sfn;			/* Ref-counted by shared_file_by_name() */
 	}
 
+	/*
+	 * At this point, either ``sf'' is NULL or it has been ref-counted.
+	 */
+
 	if (NULL == sf || !upload_file_present(u, sf)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 found:
 	g_assert(sf != NULL);
-	u->sf = shared_file_ref(sf);
+	u->sf = sf;				/* Already ref-counted */
 	return 0;
 
 urn_not_found:
@@ -3288,7 +3312,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	 *		--RAM, 2005-08-01, 2007-08-25
 	 */
 
-	sf = shared_file_by_sha1(&sha1);
+	sf = shared_file_by_sha1(&sha1);		/* Reference-counted */
 
 	if (sf == NULL || sf == SHARE_REBUILDING) {
 		const char *filename;
@@ -3310,17 +3334,20 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 		return -1;
 	} else if (!sha1_hash_is_uptodate(sf)) {
 		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
+		shared_file_unref(&sf);
 		return -1;
 	} else if (!upload_file_present(u, sf)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 	if (!upload_request_tth_matches(sf, tth)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 	upload_request_tth(sf);
-	u->sf = shared_file_ref(sf);
+	u->sf = sf;
 	return 0;
 
 malformed:
@@ -3385,30 +3412,35 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 		 * As long as we cannot verify the full TTH we should probably
 		 * not pass it on even if we already fetched THEX data.
 		 */
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 	
 	if (!sha1_hash_is_uptodate(sf)) {
 		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
+		shared_file_unref(&sf);
 		return -1;
 	}
 
 	if (!upload_request_tth_matches(sf, tth)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 	if (NULL == shared_file_tth(sf)) {
 		upload_request_tth(sf);
+		shared_file_unref(&sf);
 		goto tth_recomputed;
 	}
 
 	if (0 == tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf))) {
 		shared_file_set_tth(sf, NULL);
 		upload_request_tth(sf);
+		shared_file_unref(&sf);
 		goto tth_recomputed;
 	}
 
-	u->thex = shared_file_ref(sf);
+	u->thex = sf;
 	return 0;
 
 not_found:

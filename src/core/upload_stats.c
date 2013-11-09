@@ -343,7 +343,7 @@ done:
 static void
 upload_stats_dump_item(void *p, void *user_data)
 {
-	const shared_file_t *sf;
+	shared_file_t *sf;
 	FILE *out = user_data;
 	struct ul_stats *s = p;
 	char rtime_buf[TIME_T_DEC_BUFLEN];
@@ -379,6 +379,7 @@ upload_stats_dump_item(void *p, void *user_data)
 	if (escaped != pathname) {		/* File had escaped chars */
 		HFREE_NULL(escaped);
 	}
+	shared_file_unref(&sf);
 }
 
 /**

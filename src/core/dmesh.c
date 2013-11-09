@@ -722,9 +722,13 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 static bool
 sha1_of_finished_file(const struct sha1 *sha1)
 {
-	const shared_file_t *sf = shared_file_by_sha1(sha1);
+	shared_file_t *sf = shared_file_by_sha1(sha1);
+	bool finished;
 
-	return sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
+	finished = sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
+	shared_file_unref(&sf);
+
+	return finished;
 }
 
 /**
@@ -3061,10 +3065,11 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		has = hikset_contains(mesh, rc->sha1);
 
 		if (!has) {
-			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
+			shared_file_t *sf = shared_file_by_sha1(rc->sha1);
 			has =	sf != NULL &&
 					sf != SHARE_REBUILDING &&
 					!shared_file_is_partial(sf);
+			shared_file_unref(&sf);
 		}
 
 		if (has) {

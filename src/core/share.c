@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2005, Raphael Manfredi
+ * Copyright (c) 2001-2005, 2013 Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  *----------------------------------------------------------------------
@@ -31,7 +31,7 @@
  * @author Daniel Walker (dwalker@cats.ucsc.edu)
  * @date 2000
  * @author Raphael Manfredi
- * @date 2001-2005
+ * @date 2001-2005, 2013
  */
 
 #include "common.h"
@@ -63,11 +63,14 @@
 #include "if/bridge/c2ui.h"
 
 #include "lib/ascii.h"
+#include "lib/atomic.h"
 #include "lib/atoms.h"
+#include "lib/barrier.h"
 #include "lib/bg.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/file.h"
+#include "lib/getcpucount.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
@@ -78,10 +81,14 @@
 #include "lib/mime_type.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
+#include "lib/tsig.h"
 #include "lib/utf8.h"
 #include "lib/vsort.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -91,6 +98,24 @@ enum shared_file_magic {
 	SHARED_FILE_MAGIC = 0x3702b437U
 };
 
+/**
+ * A shared file description.
+ *
+ * These objects are ref-counted.
+ *
+ * Although they can be accessed from multiple threads, most accesses are
+ * read-only and the application normally changes fields only from the main
+ * thread.
+ *
+ * Therefore, it is not necessary to lock the objects before accessing them,
+ * although the reference count field needs to be accessed through atomic
+ * operations because it can be concurrently updated.
+ *
+ * During library rebuilding operations, which are done in a separate thread,
+ * a new set of objects is created by the rebuild thread before being made
+ * visible to the main thread, hence the rebuild thread doe not require locking
+ * of the objects either.
+ */
 struct shared_file {
 	enum shared_file_magic magic;
 
@@ -143,8 +168,9 @@ static htable_t *special_names;
 
 static hset_t *extensions;	/* Shared filename extensions */
 static GSList *shared_dirs;
-static hset_t *partial_files;
 static cevent_t *share_qrp_rebuild_ev;
+
+static hset_t *partial_files;	/* Contains partial files, thread-safe */
 
 /*
  * These variables are recreated by each library scanning.
@@ -153,24 +179,107 @@ static cevent_t *share_qrp_rebuild_ev;
  * we can continue to serve files without interruption.  Only at the end of
  * the rebuilding process do we atomically update all of them with the new
  * values, freeing old content.
+ *
+ * To make sure we never access them without locking, they are groupped in
+ * a structure and accessors are defined.
  */
-static uint64 files_scanned;	/* Amount of files shared in the library */
-static uint64 bytes_scanned;
-static GSList *shared_files;
-static search_table_t *search_table;
-static htable_t *file_basenames;
-static search_table_t *partial_table;
-static shared_file_t **file_table;			/* Sorted by mtime */
-static shared_file_t **sorted_file_table;	/* Sorted by name */
+static struct shared_library {
+	uint64 files_scanned;	/* Amount of files shared in the library */
+	uint64 bytes_scanned;
+	GSList *shared_files;
+	search_table_t *search_table;
+	htable_t *file_basenames;
+	search_table_t *partial_table;
+	shared_file_t **file_table;			/* Sorted by mtime */
+	shared_file_t **sorted_file_table;	/* Sorted by name */
+} shared_libfile;
+static spinlock_t shared_libfile_slk = SPINLOCK_INIT;
 
-static struct recursive_scan *recursive_scan_context;
-static bool share_rebuilding;
+#define SHARED_LIBFILE_LOCK		spinlock(&shared_libfile_slk)
+#define SHARED_LIBFILE_UNLOCK	spinunlock(&shared_libfile_slk)
+
+#define assert_shared_libfile_locked()	\
+	g_assert(spinlock_is_held(&shared_libfile_slk))
+
+#define GENERATE_ACCESSOR(type, field)	\
+static inline type field() {			\
+	type result;						\
+	SHARED_LIBFILE_LOCK;				\
+	result = shared_libfile.field;		\
+	SHARED_LIBFILE_UNLOCK;				\
+	return result;						\
+}
+
+GENERATE_ACCESSOR(uint64, files_scanned)
+GENERATE_ACCESSOR(uint64, bytes_scanned)
+
+#undef GENERATE_ACCESSOR
+
+/**
+ * The recursive_scan_context is the context used by two distinct background
+ * tasks, which cannot run at the same time:
+ *
+ * - the library rescan
+ * - the rebuilding of the QRP tables
+ *
+ * The library rescan looks through all the shared directories to identify the
+ * files that match the configured extensions and should therefore be included
+ * in the shared list.  It terminates with the rebuilding of the QRP tables,
+ * in the same task context.
+ *
+ * When running on a system with more than 1 CPU, the background task actually
+ * runs in a dedicated thread, but the task does not need to know that.
+ *
+ * From a user standpoint, we want to be able to ask for library rescans or
+ * rebuilding of the QRP tables, be able to cancel the task and restart a new
+ * one, or wait for the previous task to complete and launch a new one.
+ *
+ * To properly cleanup memory when the task is cancelled, the background task
+ * reclaims its allocated context in its "free context" callback at the end
+ * of its processing (be it a regular end or the result of a cancellation).
+ * Note that we're talking about the task cancellation here, not that of the
+ * thread that runs it!
+ *
+ * Once the background task starts to be scheduled by the thread (which may not
+ * be the main thread on multi-core systems), the context needs to be only
+ * accessed by that thread, to avoid having to lock the context each time.
+ *
+ * The implementation works as follows: we create a "library" thread on systems
+ * with more than 1 CPU and equip it with a thread event queue (TEQ), recording
+ * the thread ID of that library thread.  If there is only 1 CPU, the thread ID
+ * will be that of the main thread.
+ *
+ * We then "talk" to the library thread via inter-thread RPCs, using the TEQ.
+ * These RPCs translate into direct function calls when the target thread ID is
+ * that of the caller, so the caller does not know whether it talks to itself
+ * or to another thread.
+ *
+ * Our convention is that from the "main" thread our interface to the "library"
+ * thread are routines starting with the "share_lib_" prefix.  The corresponding
+ * RPC targets, executed in the context of the "library" thread start with
+ * "share_thread_lib_".
+ */
+static struct share_thread_vars {
+	spinlock_t lock;					/* Lock to allow concurrent access */
+	bgsched_t *sched;					/* Background task scheduler */
+	struct bgtask *task;				/* Current task, NULL if none */
+	bool qrp_rebuild;					/* Whether QRP rebuild is pending */
+	bool exiting;						/* Whether thread should exit */
+} share_thread_vars = {
+	SPINLOCK_INIT,			/* lock */
+	NULL,					/* sched */
+	NULL,					/* task */
+	FALSE,					/* qrp_rebuild */
+	FALSE,					/* exiting */
+};
+static unsigned share_thread_id = THREAD_INVALID_ID;
+static bool share_rebuilding;			/* Whether library is being rebuilt */
 
 /**
  * This hash table maps a SHA1 hash (base-32 encoded) onto the corresponding
  * shared_file if we have one.
  */
-static hikset_t *sha1_to_share;
+static hikset_t *sha1_to_share;		/* Marked thread-safe */
 
 #define A	SEARCH_AUDIO_TYPE
 #define V	SEARCH_VIDEO_TYPE
@@ -317,18 +426,24 @@ reinit_sha1_table(void)
 	if G_UNLIKELY(NULL == sha1_to_share) {
 		sha1_to_share = hikset_create(
 			offsetof(shared_file_t, sha1), HASH_KEY_FIXED, SHA1_RAW_SIZE);
+		hikset_thread_safe(sha1_to_share);
 	} else {
 		hikset_clear(sha1_to_share);
 	}
 }
 
 void
-shared_file_check(const shared_file_t *sf)
+shared_file_check(const shared_file_t * const sf)
 {
 	g_assert(sf);
 	g_assert(SHARE_REBUILDING != sf);
 	g_assert(SHARED_FILE_MAGIC == sf->magic);
 	g_assert(sf->refcnt >= 0);
+}
+
+void
+shared_file_name_check(const shared_file_t * const sf)
+{
 	g_assert((NULL != sf->name_nfc) ^ (0 == sf->name_nfc_len));
 	g_assert((NULL != sf->name_canonic) ^ (0 == sf->name_canonic_len));
 }
@@ -339,11 +454,9 @@ shared_file_check(const shared_file_t *sf)
 static shared_file_t *
 shared_file_alloc(void)
 {
-	static const shared_file_t zero_sf;
 	shared_file_t *sf;
 
-	WALLOC(sf);
-	*sf = zero_sf;
+	WALLOC0(sf);
 	sf->magic = SHARED_FILE_MAGIC;
 	return sf;
 }
@@ -352,10 +465,11 @@ static void
 shared_file_deindex(shared_file_t *sf)
 {
 	shared_file_check(sf);
+	shared_file_name_check(sf);
 
 	if (SHARE_F_BASENAME & sf->flags) {
-		if (file_basenames != NULL) {
-			htable_remove(file_basenames, sf->name_nfc);
+		if (shared_libfile.file_basenames != NULL) {
+			htable_remove(shared_libfile.file_basenames, sf->name_nfc);
 		}
 	}
 	sf->flags &= ~SHARE_F_BASENAME;
@@ -365,24 +479,29 @@ shared_file_deindex(shared_file_t *sf)
 	 * either because it hasn't been build yet or because of a rescan.
 	 */
 
+	SHARED_LIBFILE_LOCK;
+
 	if (
-		file_table &&
+		shared_libfile.file_table != NULL &&
 		sf->file_index > 0 &&
-		sf->file_index <= files_scanned &&
-		sf == file_table[sf->file_index - 1]
-   ) {
+		sf->file_index <= shared_libfile.files_scanned &&
+		sf == shared_libfile.file_table[sf->file_index - 1]
+	) {
 		g_assert(SHARE_F_INDEXED & sf->flags);
-		file_table[sf->file_index - 1] = NULL;
+		shared_libfile.file_table[sf->file_index - 1] = NULL;
 	}
 	if (
-		sorted_file_table &&
+		shared_libfile.sorted_file_table &&
 		sf->sort_index > 0 &&
-		sf->sort_index <= files_scanned &&
-		sf == sorted_file_table[sf->sort_index - 1]
-   ) {
+		sf->sort_index <= shared_libfile.files_scanned &&
+		sf == shared_libfile.sorted_file_table[sf->sort_index - 1]
+	) {
 		g_assert(SHARE_F_INDEXED & sf->flags);
-		sorted_file_table[sf->sort_index - 1] = NULL;
+		shared_libfile.sorted_file_table[sf->sort_index - 1] = NULL;
 	}
+
+	SHARED_LIBFILE_UNLOCK;
+
 	sf->file_index = 0;
 	sf->sort_index = 0;
 	sf->flags &= ~SHARE_F_INDEXED;
@@ -392,7 +511,7 @@ shared_file_deindex(shared_file_t *sf)
 	 * shared set and needs to be removed if it was referenced there.
 	 */
 
-	if (sf->sha1 != NULL) {
+	if (sf->sha1 != NULL && sha1_to_share != NULL) {
 		shared_file_t *current;
 
 		current = hikset_lookup(sha1_to_share, sf->sha1);
@@ -439,8 +558,8 @@ static bool
 shared_file_set_names(shared_file_t *sf, const char *filename)
 {
   	shared_file_check(sf);	
-   	g_assert(!sf->name_nfc);
-   	g_assert(!sf->name_canonic);
+	g_assert(NULL == sf->name_nfc);
+	g_assert(NULL == sf->name_canonic);
 
 	/* Set the NFC normalized name. */
 	{	
@@ -460,8 +579,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 			GNET_PROPERTY(search_results_expose_relative_paths) &&
 			sf->relative_path
 		) {
-			name = g_strconcat(sf->relative_path, " ", sf->name_nfc,
-						(void *) 0);
+			name = g_strconcat(sf->relative_path, " ", sf->name_nfc, NULL);
 		} else {
 			name = deconstify_char(sf->name_nfc);
 		}
@@ -478,13 +596,15 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 	sf->name_nfc_len = strlen(sf->name_nfc);
 	sf->name_canonic_len = strlen(sf->name_canonic);
 
+	shared_file_name_check(sf);
+
 	if (0 == sf->name_nfc_len || 0 == sf->name_canonic_len) {
 		g_warning("%s(): normalized filename is an empty string \"%s\" "
 			"(NFC=\"%s\", canonic=\"%s\")",
 			G_STRFUNC, filename, sf->name_nfc, sf->name_canonic);
 		return TRUE;
 	}
-	return FALSE;
+	return FALSE;		/* OK, no error */
 }
 
 static const uint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
@@ -557,14 +677,25 @@ shared_files_match(const char *query,
 {
 	int n;
 	int remain;
+	search_table_t *gt, *pt;
+
+	/*
+	 * Take snapshots of the global search and partial tables, in case
+	 * they are reset by a background rescan.
+	 */
+
+	SHARED_LIBFILE_LOCK;
+	gt = st_refcnt_inc(shared_libfile.search_table);
+	pt = partials ? st_refcnt_inc(shared_libfile.partial_table) : NULL;
+	SHARED_LIBFILE_UNLOCK;
 
 	/*
 	 * First search from the library.
 	 */
 
-	n = st_search(search_table, query, callback, user_data, max_res, qhv);
-	gnet_stats_count_general(GNR_LOCAL_HITS, n);
+	n = st_search(gt, query, callback, user_data, max_res, qhv);
 
+	gnet_stats_count_general(GNR_LOCAL_HITS, n);
 	remain = max_res - n;
 
 	/*
@@ -576,11 +707,13 @@ shared_files_match(const char *query,
 	 * files (PFSP server) and they configured answering to partial requests.
 	 */
 
-	if (partials && remain > 0 && share_can_answer_partials()
-	) {
-		n = st_search(partial_table, query, callback, user_data, remain, NULL);
+	if (partials && remain > 0 && share_can_answer_partials()) {
+		n = st_search(pt, query, callback, user_data, remain, NULL);
 		gnet_stats_count_general(GNR_LOCAL_PARTIAL_HITS, n);
 	}
+
+	st_free(&gt);
+	st_free(&pt);
 }
 
 /**
@@ -646,42 +779,69 @@ shared_special(const char *path)
  * Given a valid index, returns the `struct shared_file' entry describing
  * the shared file bearing that index if found, NULL if not found (invalid
  * index) and SHARE_REBUILDING when we're rebuilding the library.
+ *
+ * The returned file is reference-counted and the caller needs to call
+ * shared_file_unref() when it is done with the file.
+ *
+ * @return shared file info for index `idx', or NULL if none.
  */
 shared_file_t *
 shared_file(uint idx)
 {
-	/* @return shared file info for index `idx', or NULL if none */
+	shared_file_t * sf;
 
-	if (file_table == NULL)			/* Rebuilding the library! */
-		return SHARE_REBUILDING;
+	SHARED_LIBFILE_LOCK;
 
-	if (idx < 1 || idx > files_scanned)
-		return NULL;
+	if (NULL == shared_libfile.file_table)		/* Rebuilding the library! */
+		sf = SHARE_REBUILDING;
+	else if (idx < 1 || idx > shared_libfile.files_scanned)
+		sf = NULL;
+	else {
+		sf = shared_libfile.file_table[idx - 1];
+		if (sf != NULL)
+			shared_file_ref(sf);
+	}
 
-	return file_table[idx - 1];
+	SHARED_LIBFILE_UNLOCK;
+
+	return sf;
 }
 
 /**
  * Given a valid index, returns the `struct shared_file' entry describing
  * the shared file bearing that index if found, NULL if not found (invalid
  * index) and SHARE_REBUILDING when we're rebuilding the library.
+ *
+ * The returned file is reference-counted and the caller needs to call
+ * shared_file_unref() when it is done with the file.
+ *
+ * @return shared file info for index `idx', or NULL if none.
  */
 shared_file_t *
 shared_file_sorted(uint idx)
 {
-	/* @return shared file info for index `idx', or NULL if none */
+	shared_file_t *sf;
 
-	if (sorted_file_table == NULL)			/* Rebuilding the library! */
-		return SHARE_REBUILDING;
+	SHARED_LIBFILE_LOCK;
 
-	if (idx < 1 || idx > files_scanned)
-		return NULL;
+	if (NULL == shared_libfile.sorted_file_table)	/* Rebuilding library! */
+		sf = SHARE_REBUILDING;
+	else if (idx < 1 || idx > shared_libfile.files_scanned)
+		sf = NULL;
+	else {
+		sf = shared_libfile.sorted_file_table[idx - 1];
+		if (sf != NULL)
+			shared_file_ref(sf);
+	}
 
-	return sorted_file_table[idx - 1];
+	SHARED_LIBFILE_UNLOCK;
+
+	return sf;
 }
 
 /**
  * Get index of shared file identified by its name.
+ *
  * @return index > 0 if found, 0 if file is not known.
  */
 static uint
@@ -689,12 +849,18 @@ shared_file_get_index(const char *filename)
 {
 	uint idx;
 
-	idx = pointer_to_uint(htable_lookup(file_basenames, filename));
-	if (idx == 0 || idx == FILENAME_CLASH)
-		return 0;
+	assert_shared_libfile_locked();
 
-	g_assert(idx >= 1 && idx <= files_scanned);
-	return idx;	
+	idx = pointer_to_uint(
+		htable_lookup(shared_libfile.file_basenames, filename));
+
+	if G_UNLIKELY(FILENAME_CLASH == idx) {
+		idx = 0;
+	} else {
+		g_assert(idx >= 1 && idx <= shared_libfile.files_scanned);
+	}
+
+	return idx;
 }
 
 /**
@@ -702,6 +868,8 @@ shared_file_get_index(const char *filename)
  * the shared file bearing that basename, provided it is unique, NULL if
  * we either don't have a unique filename or SHARE_REBUILDING if the library
  * is being rebuilt.
+ *
+ * @return ref-counted file if not NULL or not SHARE_REBUILDING.
  */
 shared_file_t *
 shared_file_by_name(const char *filename)
@@ -709,18 +877,25 @@ shared_file_by_name(const char *filename)
 	shared_file_t *sf;
 	uint idx;
 
-	if (file_table == NULL)
-		return SHARE_REBUILDING;
+	SHARED_LIBFILE_LOCK;
 
-	g_assert(file_basenames);
-	idx = shared_file_get_index(filename);
-	if (idx > 0) {
-		sf = file_table[idx - 1];
-		shared_file_check(sf);
-		return sf;
+	if G_UNLIKELY(NULL == shared_libfile.file_table) {
+		sf = SHARE_REBUILDING;
 	} else {
-		return NULL;
+		g_assert(shared_libfile.file_basenames != NULL);
+		idx = shared_file_get_index(filename);
+		if (idx > 0) {
+			sf = shared_libfile.file_table[idx - 1];
+			shared_file_check(sf);
+			shared_file_ref(sf);
+		} else {
+			sf = NULL;
+		}
 	}
+
+	SHARED_LIBFILE_UNLOCK;
+
+	return sf;
 }
 
 static void
@@ -729,6 +904,7 @@ free_extensions_helper(const void *key, void *unused_data)
 	(void) unused_data;
 	atom_str_free(key);
 }
+
 /**
  * Free existing extensions
  */
@@ -803,20 +979,20 @@ shared_dirs_free(void)
 void
 shared_dirs_update_prop(void)
 {
-    GSList *sl;
-    str_t *s;
+	GSList *sl;
+	str_t *s;
 
-    s = str_new(0);
+	s = str_new(0);
 
-    for (sl = shared_dirs; sl != NULL; sl = g_slist_next(sl)) {
-        str_cat(s, sl->data);
-        if (g_slist_next(sl) != NULL)
-            str_putc(s, G_SEARCHPATH_SEPARATOR);
-    }
+	for (sl = shared_dirs; sl != NULL; sl = g_slist_next(sl)) {
+	    str_cat(s, sl->data);
+		if (g_slist_next(sl) != NULL)
+			str_putc(s, G_SEARCHPATH_SEPARATOR);
+	}
 
-    gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, str_2c(s));
+	gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, str_2c(s));
 
-    str_destroy(s);
+	str_destroy(s);
 }
 
 /**
@@ -828,7 +1004,7 @@ bool
 shared_dirs_parse(const char *str)
 {
 	char **dirs = g_strsplit(str, G_SEARCHPATH_SEPARATOR_S, 0);
-    bool ret = TRUE;
+	bool ret = TRUE;
 	uint i;
 
 	/* FIXME: ESCAPING! */
@@ -839,14 +1015,14 @@ shared_dirs_parse(const char *str)
 		if (is_directory(dirs[i]))
 			shared_dirs = g_slist_prepend(shared_dirs,
 								deconstify_char(atom_str_get(dirs[i])));
-        else
-            ret = FALSE;
+		else
+			ret = FALSE;
 	}
 
 	shared_dirs = g_slist_reverse(shared_dirs);
 	g_strfreev(dirs);
 
-    return ret;
+	return ret;
 }
 
 /**
@@ -859,14 +1035,14 @@ shared_dir_add(const char *pathname)
 		if (GNET_PROPERTY(share_debug) > 0) {
 			g_debug("%s: adding pathname=\"%s\"", G_STRFUNC, pathname);
 		}
-        shared_dirs = g_slist_append(shared_dirs,
+		shared_dirs = g_slist_append(shared_dirs,
 						deconstify_char(atom_str_get(pathname)));
 	} else {
 		if (GNET_PROPERTY(share_debug) > 0) {
 			g_debug("%s: NOT adding pathname=\"%s\"", G_STRFUNC, pathname);
 		}
 	}
-    shared_dirs_update_prop();
+	shared_dirs_update_prop();
 }
 
 /**
@@ -878,29 +1054,33 @@ shared_file_ref(const shared_file_t *sf)
 {
 	shared_file_t *wsf = deconstify_pointer(sf);
 
-	wsf->refcnt++;
+	shared_file_check(sf);
+
+	atomic_int_inc(&wsf->refcnt);
 	return wsf;
 }
 
 /**
  * Remove one reference to a shared_file_t, freeing entry if there are
  * no reference left. The pointer itself is nullified.
+ *
+ * To simplify user code, we gracefully ignore the SHARE_REBUILDING argument.
  */
 void
 shared_file_unref(shared_file_t **sf_ptr)
 {
-	g_assert(sf_ptr);
+	g_assert(sf_ptr != NULL);
+	shared_file_t *sf = *sf_ptr;
 
-	if (*sf_ptr) {
-		shared_file_t *sf = *sf_ptr;
-
+	if G_UNLIKELY(SHARE_REBUILDING == sf) {
+		*sf_ptr = NULL;
+	} else if (sf != NULL) {
 		shared_file_check(sf);
 		g_assert(sf->refcnt > 0);
 
-		sf->refcnt--;
-		if (0 == sf->refcnt) {
+		if (atomic_int_dec_is_zero(&sf->refcnt))
 			shared_file_free(&sf);
-		}
+
 		*sf_ptr = NULL;
 	}
 }
@@ -916,7 +1096,7 @@ static inline bool
 too_big_for_gnutella(fileoffset_t size)
 {
 	g_return_val_if_fail(size >= 0, TRUE);
-	return size + (filesize_t)0 > (filesize_t)-1 + (fileoffset_t)0;
+	return size + (filesize_t) 0 > (filesize_t) -1 + (fileoffset_t) 0;
 }
 
 /**
@@ -980,13 +1160,13 @@ shared_file_valid_extension(const char *filename)
 {
 	const char *filename_ext;
 
-	if (!extensions)
+	if G_UNLIKELY(NULL == extensions)
 		return FALSE;
 
 	if (
 		1 == hset_count(extensions) &&
 		hset_contains(extensions, "--all--")
-    ) {
+	) {
 		/*
 		 * An extension "--all--" matches all files, even those that don't
 		 * have any extension. [Original patch by Zygo Blaxell].
@@ -1168,6 +1348,7 @@ struct recursive_scan {
 	const char *base_dir;		/* string atom */
 	const char *current_dir;	/* string atom */
 	const char *relative_path;	/* string atom */
+	time_t start_time;			/* when scanning started */
 	slist_t *base_dirs;			/* list of string atoms */
 	slist_t *sub_dirs;			/* list of g_malloc()ed strings */
 	slist_t *shared_files;		/* list of struct shared_file */
@@ -1178,12 +1359,14 @@ struct recursive_scan {
 	GSList *shared;				/* the new shared_files variable */
 	shared_file_t **files;		/* the new file_table, sorted by mtime */
 	shared_file_t **sorted;		/* the new sorted_file_table, sorted by name */
+	shared_file_t **ftable;		/* cloned file_table, contains ref-counted sf */
 	search_table_t *search_tb;	/* the new search table */
 	search_table_t *partial_tb;	/* the new partial table */
 	uint64 files_scanned;		/* amount of files shared in the library */
 	uint64 bytes_scanned;		/* size of the library */
 	int idx;					/* iterating index */
 	int ticks;					/* ticks used */
+	size_t ftable_capacity;		/* Amount of entries in ftable[] */
 };
 
 static inline void
@@ -1198,13 +1381,14 @@ recursive_scan_check(const struct recursive_scan * const ctx)
 }
 
 static struct recursive_scan *
-recursive_scan_new(const GSList *base_dirs)
+recursive_scan_new(const GSList *base_dirs, time_t now)
 {
 	struct recursive_scan *ctx;
 	const GSList *iter;
 
 	WALLOC0(ctx);
 	ctx->magic = RECURSIVE_SCAN_MAGIC;
+	ctx->start_time = now;
 	ctx->base_dirs = slist_new();
 	ctx->sub_dirs = slist_new();
 	ctx->shared_files = slist_new();
@@ -1262,69 +1446,76 @@ scan_base_dir_free(void *data)
 	atom_str_free(data);
 }
 
-static void
-recursive_scan_free(struct recursive_scan **ctx_ptr)
-{
-	g_assert(ctx_ptr);
 
-	if (*ctx_ptr) {
-		struct recursive_scan *ctx = *ctx_ptr;
-		GSList *sl;
-
-		recursive_scan_check(ctx);
-
-		if (ctx->task) {
-			bg_task_cancel(ctx->task);
-			g_assert(NULL == ctx->task);
-		}
-
-		recursive_scan_closedir(ctx);
-
-		slist_free_all(&ctx->base_dirs, scan_base_dir_free);
-		slist_free_all(&ctx->sub_dirs, do_hfree);
-		slist_free_all(&ctx->shared_files, recursive_sf_unref);
-		slist_free_all(&ctx->partial_files, recursive_sf_unref);
-		slist_iter_free(&ctx->iter);
-
-		htable_free_null(&ctx->basenames);
-		st_free(&ctx->search_tb);
-		st_free(&ctx->partial_tb);
-		atom_str_free_null(&ctx->base_dir);
-		qrp_dispose_words(&ctx->words);
-
-		HFREE_NULL(ctx->files);
-		HFREE_NULL(ctx->sorted);
-
-		for (sl = ctx->shared; sl; sl = g_slist_next(sl)) {
-			shared_file_t *sf = sl->data;
-
-			shared_file_check(sf);
-			shared_file_unref(&sf);
-		}
-		gm_slist_free_null(&ctx->shared);
-
-		ctx->magic = 0;
-		WFREE(ctx);
-		*ctx_ptr = NULL;
-	}
-}
-
+/**
+ * Free the background task context for library / QRP rebuilds.
+ *
+ * This routine is invoked by the background task layer when the task is
+ * being terminated.
+ */
 static void
 recursive_scan_context_free(void *data)
 {
+	GSList *sl;
 	struct recursive_scan *ctx = data;
-	
-	recursive_scan_check(ctx);
-	/* If we're called, the task is being terminated */
 
-	/*
-	 * There's nothing to free here.  We're managing the overall context
-	 * ourselves and this overall context is given as the task's context.
-	 * We just need to record the fact that the task has been terminated
-	 * here so recursive_scan_free() does not try to cancel it.
-	 */
+	recursive_scan_check(ctx);
+
+	recursive_scan_closedir(ctx);
+
+	slist_iter_free(&ctx->iter);
+	slist_free_all(&ctx->base_dirs, scan_base_dir_free);
+	slist_free_all(&ctx->sub_dirs, do_hfree);
+	slist_free_all(&ctx->shared_files, recursive_sf_unref);
+	slist_free_all(&ctx->partial_files, recursive_sf_unref);
+
+	htable_free_null(&ctx->basenames);
+	st_free(&ctx->search_tb);
+	st_free(&ctx->partial_tb);
+	atom_str_free_null(&ctx->base_dir);
+	qrp_dispose_words(&ctx->words);
+
+	HFREE_NULL(ctx->files);
+	HFREE_NULL(ctx->sorted);
+
+	if (ctx->ftable != NULL) {
+		size_t i;
+
+		for (i = 0; i < ctx->ftable_capacity; i++) {
+			shared_file_unref(&ctx->ftable[i]);
+		}
+
+		XFREE_NULL(ctx->ftable);
+	}
+
+	for (sl = ctx->shared; sl; sl = g_slist_next(sl)) {
+		shared_file_t *sf = sl->data;
+
+		shared_file_check(sf);
+		shared_file_unref(&sf);
+	}
+	gm_slist_free_null(&ctx->shared);
 
 	ctx->task = NULL;
+	ctx->magic = 0;
+	WFREE(ctx);
+}
+
+/**
+ * Free list of shared files and nullify its pointer.
+ */
+static void
+share_list_free_null(GSList **slist)
+{
+	GSList *sl;
+
+	for (sl = *slist; sl; sl = g_slist_next(sl)) {
+		shared_file_t *sf = sl->data;
+
+		shared_file_check(sf);
+		shared_file_unref(&sf);
+	}
+	gm_slist_free_null(slist);
 }
 
 /**
@@ -1333,21 +1524,11 @@ recursive_scan_context_free(void *data)
 static void
 share_free(void)
 {
-	GSList *sl;
-
-	st_free(&search_table);
-	htable_free_null(&file_basenames);
-
-	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
-		shared_file_t *sf = sl->data;
-
-		shared_file_check(sf);
-		shared_file_unref(&sf);
-	}
-	gm_slist_free_null(&shared_files);
-
-	HFREE_NULL(file_table);
-	HFREE_NULL(sorted_file_table);
+	st_free(&shared_libfile.search_table);
+	htable_free_null(&shared_libfile.file_basenames);
+	share_list_free_null(&shared_libfile.shared_files);
+	HFREE_NULL(shared_libfile.file_table);
+	HFREE_NULL(shared_libfile.sorted_file_table);
 }
 
 /**
@@ -1586,6 +1767,112 @@ finish:
 }
 
 /**
+ * Callback invoked by the background task layer when a task is terminated.
+ */
+static void
+recursive_scan_done(struct bgtask *bt, void *data, bgstatus_t status, void *arg)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	(void) arg;
+
+	/*
+	 * Tracing for debugging purposes.
+	 */
+
+	if (GNET_PROPERTY(share_debug)) {
+		g_debug("terminating background task \"%s\" in %s, status=%s, "
+			"ran %'lu ms (%s)",
+			bg_task_name(bt), thread_name(), bgstatus_to_string(status),
+			bg_task_wtime(bt), short_time_ascii(bg_task_wtime(bt) / 1000));
+	}
+
+	/*
+	 * If background tasks are run in the main thread, then we need to
+	 * explicitly reset the current task.  Otherwise, this is done in
+	 * the library thread, which explicitly invokes the scheduler.
+	 */
+
+	if (THREAD_MAIN == share_thread_id) {
+		struct share_thread_vars *v = &share_thread_vars;
+
+		if (bt == v->task)
+			v->task = NULL;
+	}
+}
+
+/**
+ * Signal handler for task termination.
+ *
+ * This handler is invoked from the background task scheduler and is therefore
+ * run in the thread that is handling the background task...  Not necessarily
+ * the main thread.
+ */
+static void
+recursive_scan_sighandler(struct bgtask *bt, void *data, bgsig_t sig)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	g_assert(BG_SIG_TERM == sig);
+
+	/*
+	 * Tracing for debugging purposes.
+	 */
+
+	if (GNET_PROPERTY(share_debug)) {
+		g_debug("cancelling background task \"%s\" in %s, currently in %s()",
+			bg_task_name(bt), thread_name(), bg_task_step_name(bt));
+	}
+}
+
+static void *
+recursive_rescan_starting(void *unused)
+{
+	(void) unused;
+
+	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, tm_time());
+
+	return NULL;
+}
+
+/**
+ * First step, intalling signal handler to trap task cancel.
+ */
+static bgret_t
+recursive_scan_step_setup(struct bgtask *bt, void *data, int uticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	(void) uticks;
+
+	/*
+	 * The BG_SIG_TERM signal will be sent by the background task scheduler
+	 * when the task is cancelled.
+	 */
+
+	bg_task_signal(bt, BG_SIG_TERM, recursive_scan_sighandler);
+
+	atomic_bool_set(&share_rebuilding, TRUE);
+
+	/*
+	 * If we're not running in the main thread, we need to funnel this
+	 * back as property changes can trigger GUI updates which we can't
+	 * process from another thread until the GUI code is 100% thread-safe.
+	 *		--RAM, 2013-10-29
+	 */
+
+	teq_safe_rpc(THREAD_MAIN, recursive_rescan_starting, NULL);
+
+	bg_task_ticks_used(bt, 0);
+	return BGR_NEXT;
+}
+
+/**
  * @return TRUE if finished.
  */
 static bool 
@@ -1593,12 +1880,14 @@ recursive_scan_next_dir(struct recursive_scan *ctx)
 {
 	recursive_scan_check(ctx);
 
+	bg_task_cancel_test(ctx->task);
+
 	if (ctx->directory) {
 		recursive_scan_readdir(ctx);
 		return FALSE;
 	} else if (slist_length(ctx->sub_dirs) > 0) {
 		char *dir;
-	   
+
 		dir = slist_shift(ctx->sub_dirs);
 		recursive_scan_opendir(ctx, dir);
 		HFREE_NULL(dir);
@@ -1667,9 +1956,13 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
 
+		if (0 == (ctx->ticks & 0xf))
+			bg_task_cancel_test(ctx->task);
+
 		sf = slist_shift(ctx->shared_files);
 		shared_file_check(sf);
 		g_assert(!shared_file_is_partial(sf));
+		g_assert(1 == sf->refcnt);
 		ctx->bytes_scanned += sf->file_size;
 		st_insert_item(ctx->search_tb, sf->name_canonic, sf);
 		ctx->shared = gm_slist_prepend_const(ctx->shared, sf);
@@ -1714,6 +2007,7 @@ recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 		shared_file_check(sf);
 		g_assert(!(SHARE_F_INDEXED & sf->flags));
 		g_assert(UNSIGNED(i) < ctx->files_scanned);
+		g_assert(2 == sf->refcnt);	/* Added to search table */
 		ctx->files[i++] = sf;
 	}
 
@@ -1742,7 +2036,7 @@ recursive_scan_step_build_basenames(struct bgtask *bt, void *data, int ticks)
 		uint val;
 		int i = ctx->idx++;
 
-	   	sf = ctx->files[i];
+		sf = ctx->files[i];
 		shared_file_check(sf);
 
 		/*
@@ -1775,26 +2069,48 @@ recursive_scan_step_build_basenames(struct bgtask *bt, void *data, int ticks)
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
+
+		if (0 == (ctx->ticks & 0xf))
+			bg_task_cancel_test(ctx->task);
 	}
 
 	bg_task_ticks_used(bt, ctx->ticks);
 	return BGR_NEXT;
 }
 
-static bgret_t
-recursive_scan_step_update_scan_timing(struct bgtask *bt, void *data, int ticks)
+static void *
+recursive_update_scan_timing(void *data)
 {
 	struct recursive_scan *ctx = data;
 	time_delta_t elapsed;
 
 	recursive_scan_check(ctx);
-	(void) ticks;
 
-	elapsed = delta_time(tm_time_exact(),
-				GNET_PROPERTY(library_rescan_started));
+	elapsed = delta_time(tm_time_exact(), ctx->start_time);
 	elapsed = MAX(0, elapsed);
+
 	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, tm_time());
 	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
+
+	return NULL;
+}
+
+static bgret_t
+recursive_scan_step_update_scan_timing(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	/*
+	 * If we're not running in the main thread, we need to funnel this
+	 * back as property changes can trigger GUI updates which we can't
+	 * process from another thread until the GUI code is 100% thread-safe.
+	 *		--RAM, 2013-10-29
+	 */
+
+	teq_safe_rpc(THREAD_MAIN, recursive_update_scan_timing, ctx);
 
 	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
@@ -1829,7 +2145,7 @@ recursive_scan_step_build_sorted_table(struct bgtask *bt, void *data, int ticks)
 	for (i = 0; UNSIGNED(i) < ctx->files_scanned; i++) {
 		shared_file_t *sf;
 
-	   	sf = ctx->sorted[i];
+		sf = ctx->sorted[i];
 		shared_file_check(sf);
 		sf->sort_index = i + 1;
 	}
@@ -1839,11 +2155,40 @@ next:
 	return BGR_NEXT;
 }
 
+static void *
+recursive_install_shared(void *unused)
+{
+	(void) unused;
+
+	gcu_gui_update_files_scanned();		/* Final view */
+	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
+
+	return NULL;
+}
+
+/**
+ * GSList iterator to mark shared file as no longer indexed.
+ */
+static void
+recursive_shared_file_detach(void *data, void *unused)
+{
+	shared_file_t *sf = data;
+
+	(void) unused;
+
+	shared_file_check(sf);
+
+	sf->flags &= ~SHARE_F_INDEXED;
+	sf->file_index = 0;
+	sf->sort_index = 0;
+}
+
 static bgret_t
 recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
 	size_t i;
+	GSList *files;
 
 	recursive_scan_check(ctx);
 	g_assert(ctx->search_tb != NULL);
@@ -1864,27 +2209,52 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 			count, plural(count));
 	}
 
-	share_free();
-
-	search_table = ctx->search_tb;
-	file_basenames = ctx->basenames;
-	shared_files = ctx->shared;
-	file_table = ctx->files;
-	sorted_file_table = ctx->sorted;
-	files_scanned = ctx->files_scanned;
-	bytes_scanned = ctx->bytes_scanned;
-
 	/*
-	 * Now that we installed the shared files, we can mark the entries as
-	 * being indexed and basenamed.
+	 * Now that we are about to install the shared files, we can mark the
+	 * entries as being indexed and basenamed.
+	 *
+	 * Note that no one else can reference the entries at this stage, only
+	 * the file table and the search table (hence a refcount of 2).
 	 */
 
-	for (i = 0; i < files_scanned; i++) {
-		shared_file_t *sf = file_table[i];
+	for (i = 0; i < ctx->files_scanned; i++) {
+		shared_file_t *sf = ctx->files[i];
 
 		shared_file_check(sf);
+		g_assert(2 == sf->refcnt);
+
 		sf->flags |= SHARE_F_INDEXED | SHARE_F_BASENAME;
 	}
+
+	SHARED_LIBFILE_LOCK;
+
+	/*
+	 * Don't let share_free() free the list of files whilst we hold the lock.
+	 */
+
+	files = shared_libfile.shared_files;
+	shared_libfile.shared_files = NULL;
+	share_free();
+
+	/*
+	 * All the files in the list are no longer indexed, as we create new
+	 * shared file objects during our scan.  Other parts of the code may
+	 * still have references on them, but they can realize that these
+	 * references are stale by calling shared_file_indexed().
+	 *
+	 * Note that we do not need to call shared_file_deindex() here as we're
+	 * about to replace all the data structures with fresh ones.
+	 */
+
+	g_slist_foreach(files, recursive_shared_file_detach, NULL);
+
+	shared_libfile.search_table			= ctx->search_tb;
+	shared_libfile.file_basenames		= ctx->basenames;
+	shared_libfile.shared_files			= ctx->shared;
+	shared_libfile.file_table			= ctx->files;
+	shared_libfile.sorted_file_table	= ctx->sorted;
+	shared_libfile.files_scanned		= ctx->files_scanned;
+	shared_libfile.bytes_scanned		= ctx->bytes_scanned;
 
 	/*
 	 * Reset these contextual variables, they are now held by the global ones.
@@ -1896,8 +2266,18 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	ctx->files = NULL;
 	ctx->sorted = NULL;
 
-	gcu_gui_update_files_scanned();		/* Final view */
-	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
+	SHARED_LIBFILE_UNLOCK;
+
+	share_list_free_null(&files);
+
+	/*
+	 * If we're not running in the main thread, we need to funnel this
+	 * back as property changes can trigger GUI updates which we can't
+	 * process from another thread until the GUI code is 100% thread-safe.
+	 *		--RAM, 2013-10-29
+	 */
+
+	teq_safe_rpc(THREAD_MAIN, recursive_install_shared, NULL);
 
 	/*
 	 * The next step is going to request the SHA1 of all the library files,
@@ -1909,6 +2289,40 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	bg_task_ticks_used(bt, ctx->files_scanned / 10);
 	ctx->idx = 0;		/* Prepare next step */
 	return BGR_NEXT;
+}
+
+/**
+ * Get a snapshot copy (atomically) of all the shared files currently
+ * visible from the application.
+ *
+ * The ctx->ftable[] array is dynamically allocated to hold a reference-counted
+ * shared file, or NULL if the file was de-indexed for some reason since it
+ * was initially scanned.
+ *
+ * The ctx->ftable_capacity variable is set to hold the ftable[] capacity.
+ */
+static void
+recursive_scan_load_ftable(struct recursive_scan *ctx)
+{
+	size_t i;
+
+	g_assert(NULL == ctx->ftable);
+
+	SHARED_LIBFILE_LOCK;
+
+	ctx->ftable_capacity = shared_libfile.files_scanned;
+	XMALLOC0_ARRAY(ctx->ftable, ctx->ftable_capacity);
+
+	for (i = 0; i < ctx->ftable_capacity; i++) {
+		shared_file_t *sf = shared_libfile.file_table[i];
+
+		if (sf != NULL)
+			ctx->ftable[i] = shared_file_ref(sf);
+	}
+
+	SHARED_LIBFILE_UNLOCK;
+
+	ctx->ticks += ctx->ftable_capacity;
 }
 
 static bgret_t
@@ -1927,11 +2341,30 @@ recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
 
 	ctx->ticks = 0;
 
-	while (UNSIGNED(ctx->idx) < files_scanned) {
+	/*
+	 * All the files are now shared and visible in the global data structures,
+	 * yet we need to iterate to request SHA1 computation.
+	 *
+	 * To avoid taking the global lock for too long, we duplicate the
+	 * file_table[] array, increment the reference on all the items, and
+	 * then release the global lock.
+	 *
+	 * Iterating on the copy is OK because request_sha1() will do nothing if
+	 * the file is no longer indexed.
+	 */
+
+	if (0 == ctx->idx)
+		recursive_scan_load_ftable(ctx);
+
+	while (UNSIGNED(ctx->idx) < ctx->ftable_capacity) {
 		shared_file_t *sf;
 		int i = ctx->idx++;
 
-	   	sf = file_table[i];
+		sf = ctx->ftable[i];
+
+		if (NULL == sf)
+			continue;
+
 		shared_file_check(sf);
 
 		/*
@@ -1944,10 +2377,38 @@ recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
+
+		if (0 == (ctx->ticks & 0xf))
+			bg_task_cancel_test(ctx->task);
 	}
 
-	share_rebuilding = FALSE;	/* Done rebuilding the SHA1 table */
+	/* Done rebuilding the SHA1 table */
+	atomic_bool_set(&share_rebuilding, FALSE);
+
 	bg_task_ticks_used(bt, ctx->ticks);
+	return BGR_NEXT;
+}
+
+/**
+ * First step, intalling signal handler to trap task cancel.
+ */
+static bgret_t
+recursive_scan_step_qrp_setup(struct bgtask *bt, void *data, int uticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	(void) uticks;
+
+	/*
+	 * The BG_SIG_TERM signal will be sent by the background task scheduler
+	 * when the task is cancelled.
+	 */
+
+	bg_task_signal(bt, BG_SIG_TERM, recursive_scan_sighandler);
+
+	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
 }
 
@@ -1959,9 +2420,14 @@ recursive_scan_step_load_partials(struct bgtask *bt, void *data, int ticks)
 	recursive_scan_check(ctx);
 	(void) ticks;
 
+	bg_task_cancel_test(ctx->task);
+
 	if (share_can_answer_partials()) {
-		hset_iter_t *iter = hset_iter_new(partial_files);
+		hset_iter_t *iter;
 		const void *item;
+
+		hset_lock(partial_files);
+		iter = hset_iter_new(partial_files);
 
 		while (hset_iter_next(iter, &item)) {
 			const shared_file_t *sf = item;
@@ -1969,6 +2435,7 @@ recursive_scan_step_load_partials(struct bgtask *bt, void *data, int ticks)
 		}
 
 		hset_iter_release(&iter);
+		hset_unlock(partial_files);
 	}
 
 	bg_task_ticks_used(bt, 0);
@@ -1999,10 +2466,14 @@ recursive_scan_step_build_partial_table(struct bgtask *bt,
 
 		shared_file_check(sf);
 		g_assert(shared_file_is_partial(sf));
+
 		st_insert_item(ctx->partial_tb, sf->name_canonic, sf);
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
+
+		if (0 == (ctx->ticks & 0xf))
+			bg_task_cancel_test(ctx->task);
 	}
 
 	/* Compact the search table */
@@ -2037,12 +2508,29 @@ recursive_scan_step_install_partials(struct bgtask *bt, void *data, int ticks)
 			count, plural(count));
 	}
 
-	st_free(&partial_table);
-	partial_table = ctx->partial_tb;
+	SHARED_LIBFILE_LOCK;
+
+	st_free(&shared_libfile.partial_table);
+	shared_libfile.partial_table = ctx->partial_tb;
 	ctx->partial_tb = NULL;
+
+	SHARED_LIBFILE_UNLOCK;
 
 	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
+}
+
+static void *
+recursive_prepare_qrp(void *data)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	ctx->start_time = tm_time_exact();
+	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, ctx->start_time);
+
+	return NULL;
 }
 
 static bgret_t
@@ -2053,7 +2541,12 @@ recursive_scan_step_prepare_qrp(struct bgtask *bt, void *data, int ticks)
 	recursive_scan_check(ctx);
 	(void) ticks;
 
-	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, tm_time_exact());
+	/*
+	 * Funnel back all property changes to the main thread.
+	 */
+
+	teq_safe_rpc(THREAD_MAIN, recursive_prepare_qrp, ctx);
+
 	qrp_prepare_computation();
 	ctx->idx = 0;
 
@@ -2062,7 +2555,7 @@ recursive_scan_step_prepare_qrp(struct bgtask *bt, void *data, int ticks)
 }
 
 static bgret_t
-recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
+recursive_scan_step_update_qrp_lib(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
 	shared_file_t *sf;
@@ -2071,18 +2564,57 @@ recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 
 	ctx->ticks = 0;
 
-	for (/* empty */; UNSIGNED(ctx->idx) < files_scanned; ctx->idx++) {
-		sf = sorted_file_table[ctx->idx];
+	/*
+	 * If we're coming from a rescan, then we have already loaded the ftable[]
+	 * copy in the context.
+	 *
+	 * Otherwise, the ctx->ftable array will be null and we need to load
+	 * a copy of the shared files, atomically.
+	 */
 
-		if (!sf)
+	if (0 == ctx->idx && NULL == ctx->ftable)
+		recursive_scan_load_ftable(ctx);
+
+	for (;;) {
+		SHARED_LIBFILE_LOCK;
+
+		if (UNSIGNED(ctx->idx) >= shared_libfile.files_scanned) {
+			SHARED_LIBFILE_UNLOCK;
+			break;
+		}
+		sf = shared_libfile.sorted_file_table[ctx->idx];
+		if (sf != NULL)
+			sf = shared_file_ref(sf);
+
+		SHARED_LIBFILE_UNLOCK;
+
+		if (NULL == sf)
 			continue;
+
+		qrp_add_file(sf, ctx->words);
+		shared_file_unref(&sf);
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
 
-		shared_file_check(sf);
-		qrp_add_file(sf, ctx->words);
+		if (0 == (ctx->ticks & 0xf))
+			bg_task_cancel_test(ctx->task);
+
+		ctx->idx++;
 	}
+
+	bg_task_ticks_used(bt, ctx->ticks);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_update_qrp_partial(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+	shared_file_t *sf;
+	uint64 scanned = files_scanned();
+
+	ctx->ticks = 0;
 
 	while (NULL != (sf = slist_shift(ctx->partial_files))) {
 		shared_file_check(sf);
@@ -2096,7 +2628,7 @@ recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 		 * when inserting partial files.
 		 */
 
-		sf->file_index = files_scanned + (hset_count(partial_files) -
+		sf->file_index = scanned + (hset_count(partial_files) -
 			slist_length(ctx->partial_files));
 
 		qrp_add_file(sf, ctx->words);
@@ -2104,83 +2636,361 @@ recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
+
+		if (0 == (ctx->ticks & 0xf))
+			bg_task_cancel_test(ctx->task);
 	}
 
 	bg_task_ticks_used(bt, ctx->ticks);
 	return BGR_NEXT;
 }
 
+static void *
+recursive_scan_finalize(void *arg)
+{
+	struct recursive_scan *ctx = arg;
+	time_delta_t elapsed;
+
+	recursive_scan_check(ctx);
+
+	elapsed = delta_time(tm_time(), ctx->start_time);
+	elapsed = MAX(0, elapsed);
+
+	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
+
+	qrp_finalize_computation(ctx->words);
+	ctx->words = NULL;		/* Gave pointer, QRP computation will free it */
+
+	return NULL;
+}
+
 static bgret_t
 recursive_scan_step_finalize(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
-	time_delta_t elapsed;
 
 	recursive_scan_check(ctx);
 	(void) bt;
 	(void) ticks;
 
-	qrp_finalize_computation(ctx->words);
-	ctx->words = NULL;		/* Gave pointer, QRP computation will free it */
+	/*
+	 * Cannot change a property that can trigger a GTK update from another
+	 * thread, we need to funnel this back to the main thread.
+	 *
+	 * Also, we want to run the QRP computation background task from the
+	 * main thread, not from the library thread.
+	 */
 
-	elapsed = delta_time(tm_time(), GNET_PROPERTY(qrp_indexing_started));
-	elapsed = MAX(0, elapsed);
-	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
+	teq_safe_rpc(THREAD_MAIN, recursive_scan_finalize, ctx);
 
 	return BGR_DONE;
 }
 
-static void
-recursive_scan_create_task(struct recursive_scan *ctx)
+/**
+ * Create a new background task for library rescan (+ QRP rebuilding).
+ *
+ * @param bs		the scheduler to which task should be inserted into
+ *
+ * @return a new background task.
+ */
+static struct bgtask *
+share_rescan_create_task(bgsched_t *bs)
 {
-	recursive_scan_check(ctx);
+	static const bgstep_cb_t steps[] = {
+		recursive_scan_step_setup,
+		recursive_scan_step_compute,
+		recursive_scan_step_compute_done,
+		recursive_scan_step_build_search_table,
+		recursive_scan_step_build_file_table,
+		recursive_scan_step_build_basenames,
+		recursive_scan_step_update_scan_timing,
+		recursive_scan_step_build_sorted_table,
+		recursive_scan_step_install_shared,
+		recursive_scan_step_request_sha1,
 
-	if (NULL == ctx->task) {
-		static const bgstep_cb_t steps[] = {
-			recursive_scan_step_compute,
-			recursive_scan_step_compute_done,
-			recursive_scan_step_build_search_table,
-			recursive_scan_step_build_file_table,
-			recursive_scan_step_build_basenames,
-			recursive_scan_step_update_scan_timing,
-			recursive_scan_step_build_sorted_table,
-			recursive_scan_step_install_shared,
-			recursive_scan_step_request_sha1,
-			recursive_scan_step_load_partials,
-			recursive_scan_step_build_partial_table,
-			recursive_scan_step_install_partials,
-			recursive_scan_step_prepare_qrp,
-			recursive_scan_step_update_qrp,
-			recursive_scan_step_finalize,
-		};
+		/*
+		 * Remains steps identical to the ones listed in
+		 * share_update_qrp_create_task().
+		 */
 
-		ctx->task = bg_task_create(NULL, "recursive scan",
-							steps, G_N_ELEMENTS(steps),
-			  				ctx, recursive_scan_context_free,
-							NULL, NULL);
+		recursive_scan_step_load_partials,
+		recursive_scan_step_build_partial_table,
+		recursive_scan_step_install_partials,
+		recursive_scan_step_prepare_qrp,
+		recursive_scan_step_update_qrp_lib,
+		recursive_scan_step_update_qrp_partial,
+		recursive_scan_step_finalize,
+	};
+	struct recursive_scan *ctx;
+
+	ctx = recursive_scan_new(shared_dirs, tm_time());
+
+	return ctx->task = bg_task_create(bs, "recursive scan",
+				steps, G_N_ELEMENTS(steps),
+				ctx, recursive_scan_context_free,
+				recursive_scan_done, NULL);
+}
+
+/**
+ * Create a new background task for QRP rebuilding.
+ *
+ * @param bs		the scheduler to which task should be inserted into
+ *
+ * @return a new background task.
+ */
+static struct bgtask *
+share_update_qrp_create_task(bgsched_t *bs)
+{
+	static const bgstep_cb_t steps[] = {
+		recursive_scan_step_qrp_setup,
+		recursive_scan_step_load_partials,
+		recursive_scan_step_build_partial_table,
+		recursive_scan_step_install_partials,
+		recursive_scan_step_prepare_qrp,
+		recursive_scan_step_update_qrp_lib,
+		recursive_scan_step_update_qrp_partial,
+		recursive_scan_step_finalize,
+	};
+	struct recursive_scan *ctx;
+
+	ctx = recursive_scan_new(NULL, tm_time());
+
+	return ctx->task = bg_task_create(bs, "QRP update",
+				steps, G_N_ELEMENTS(steps),
+				ctx, recursive_scan_context_free,
+				recursive_scan_done, NULL);
+}
+
+/*
+ * The "share_thread_lib_xxx" routine is the implementation, within the
+ * "library" thread, of the corresponding API invoked from the "main" thread.
+ *
+ * These are handled as TEQ events, and are therefore delivered to the
+ * thread in the same order as they were issued.
+ */
+
+/**
+ * Start a library scan.
+ */
+static void
+share_thread_lib_rescan(void *unused_arg)
+{
+	struct share_thread_vars *v = &share_thread_vars;
+
+	(void) unused_arg;
+
+	spinlock(&v->lock);
+
+	if (v->task != NULL) {
+		bg_task_cancel(v->task);
+		v->task = NULL;
+	}
+
+	v->qrp_rebuild = FALSE;		/* since rescan takes care of it */
+	v->task = share_rescan_create_task(v->sched);
+
+	spinunlock(&v->lock);
+}
+
+/**
+ * Request a QRP rebuild.
+ */
+static void
+share_thread_lib_qrp_rebuild(void *unused_arg)
+{
+	struct share_thread_vars *v = &share_thread_vars;
+	bool pending;
+
+	(void) unused_arg;
+
+	spinlock(&v->lock);
+
+	if (v->task != NULL) {
+		v->qrp_rebuild = TRUE;		/* record for later */
+	} else {
+		v->task = share_update_qrp_create_task(v->sched);
+		v->qrp_rebuild = FALSE;
+	}
+
+	pending = v->qrp_rebuild;
+	spinunlock(&v->lock);
+
+	if (GNET_PROPERTY(share_debug) > 1) {
+		g_debug("SHARE background QRP recomputation %s",
+			pending ? "recorded" : "started");
 	}
 }
 
+/*
+ * The "share_lib_xxx" routine constitute the API from the "main" thread to the
+ * "library" thread.
+ */
+
+/**
+ * Start a library scan.
+ */
 static void
-share_update_qrp_create_task(struct recursive_scan *ctx)
+share_lib_rescan(void)
 {
-	recursive_scan_check(ctx);
+	teq_post(share_thread_id, share_thread_lib_rescan, NULL);
+}
 
-	if (NULL == ctx->task) {
-		static const bgstep_cb_t steps[] = {
-			recursive_scan_step_load_partials,
-			recursive_scan_step_build_partial_table,
-			recursive_scan_step_install_partials,
-			recursive_scan_step_prepare_qrp,
-			recursive_scan_step_update_qrp,
-			recursive_scan_step_finalize,
-		};
+/**
+ * Request a QRP rebuild.
+ *
+ * This will update the QRP table, including both our shared library and our
+ * partials.
+ */
+static void
+share_lib_qrp_rebuild(void)
+{
+	teq_post(share_thread_id, share_thread_lib_qrp_rebuild, NULL);
 
-		ctx->task = bg_task_create(NULL, "QRP update",
-							steps, G_N_ELEMENTS(steps),
-			  				ctx, recursive_scan_context_free,
-							NULL, NULL);
+	if (GNET_PROPERTY(share_debug) > 1) {
+		g_debug("SHARE requested background QRP recomputation (%s)",
+			share_can_answer_partials() ?
+				"with partial files" : "library only");
 	}
+}
+
+/**
+ * Is there work pending for the library thread, or is thread terminated?
+ */
+static bool
+share_thread_has_work(void *unused_arg)
+{
+	struct share_thread_vars *v = &share_thread_vars;
+	(void) unused_arg;
+
+	return atomic_bool_get(&v->exiting) || v->task != NULL || v->qrp_rebuild;
+}
+
+/**
+ * Signal handler to terminate the library thread.
+ */
+static void
+share_thread_terminate(int sig)
+{
+	struct share_thread_vars *v = &share_thread_vars;
+
+	g_assert(TSIG_TERM == sig);
+
+	if (GNET_PROPERTY(share_debug))
+		g_debug("terminating library thread");
+
+	atomic_bool_set(&v->exiting, TRUE);
+	spinlock(&v->lock);
+	if (v->task != NULL) {
+		bg_task_cancel(v->task);
+		v->task = NULL;
+	}
+	spinunlock(&v->lock);
+}
+
+/**
+ * Library thread main loop.
+ */
+static void *
+share_thread_main(void *arg)
+{
+	struct share_thread_vars *v = &share_thread_vars;
+	barrier_t *b = arg;
+
+	thread_set_name("library");
+	teq_create();				/* Queue to receive TEQ events */
+	thread_signal(TSIG_TERM, share_thread_terminate);
+	v->sched = bg_sched_create("library", 1000000 /* 1 s */);
+
+	barrier_wait(b);			/* Thread has initialized */
+	barrier_free_null(&b);
+
+	if (GNET_PROPERTY(share_debug))
+		g_debug("library thread started");
+
+	/*
+	 * Process work until we're told to exit.
+	 */
+
+	while (!atomic_bool_get(&v->exiting)) {
+		struct bgtask *bt;
+		bool qrp_rebuild;
+
+		if (GNET_PROPERTY(share_debug))
+			g_debug("library thread sleeping");
+
+		teq_wait(share_thread_has_work, NULL);
+
+		if (atomic_bool_get(&v->exiting))
+			break;						/* Terminated by signal */
+
+		if (GNET_PROPERTY(share_debug))
+			g_debug("library thread awoken");
+
+		spinlock(&v->lock);
+		bt = v->task;					/* The task run */
+		spinunlock(&v->lock);
+
+		g_assert(bt != NULL);
+
+		while (0 != bg_sched_run(v->sched))
+			thread_check_suspended();
+
+		/*
+		 * QRP table rebuilds can have been recorded whilst we were processing
+		 * the previous task.  If one is present, create the task, which will
+		 * make share_thread_has_work() to return TRUE.
+		 */
+
+		spinlock(&v->lock);
+		if (v->task == bt)
+			v->task = NULL;				/* Finished running previous task */
+		qrp_rebuild = v->qrp_rebuild;
+		spinunlock(&v->lock);
+
+		if (qrp_rebuild)
+			share_thread_lib_qrp_rebuild(NULL);
+	}
+
+	bg_sched_destroy_null(&v->sched);
+
+	g_debug("library thread exiting");
+	return NULL;
+}
+
+/**
+ * Create a new library thread.
+ *
+ * This routine does not return until the library thread has been
+ * correctly initialized, so that the caller can immediately start to
+ * send TEQ events to the thread.
+ *
+ * @return thread ID, -1 on error.
+ */
+static int
+share_thread_create(void)
+{
+	barrier_t *b;
+	int r;
+
+	b = barrier_new(2);
+
+	/*
+	 * The library thread is created as a detached thread because we
+	 * do not expect any result from it.
+	 *
+	 * It is created as non-cancelable: to end it, we send it a TSIG_TERM.
+	 */
+
+	r = thread_create(share_thread_main, barrier_refcnt_inc(b),
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL, THREAD_STACK_MIN);
+
+	if (-1 == r)
+		s_error("%s(): cannot create library thread: %m", G_STRFUNC);
+
+	barrier_wait(b);		/* Wait for thread to initialize */
+	barrier_free_null(&b);
+
+	return r;
 }
 
 /**
@@ -2190,35 +3000,7 @@ share_update_qrp_create_task(struct recursive_scan *ctx)
 void
 share_scan(void)
 {
-	recursive_scan_free(&recursive_scan_context);
-	recursive_scan_context = recursive_scan_new(shared_dirs);
-	share_rebuilding = TRUE;
-	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
-	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, tm_time_exact());
-	recursive_scan_create_task(recursive_scan_context);
-}
-
-/**
- * Update the QRP table, including both our shared library and our partials.
- *
- * @return whether QRP update task was launched.
- */
-static bool
-share_update_qrp(void)
-{
-	/*
-	 * If we're already rebuilding something, do nothing for now
-	 * We'll be called regularily until we can proceed.
-	 */
-
-	if (recursive_scan_context != NULL && recursive_scan_context->task != NULL)
-		return FALSE;
-
-	recursive_scan_free(&recursive_scan_context);
-	recursive_scan_context = recursive_scan_new(NULL);
-	share_update_qrp_create_task(recursive_scan_context);
-
-	return TRUE;
+	share_lib_rescan();
 }
 
 /**
@@ -2252,13 +3034,15 @@ share_special_close(void)
 G_GNUC_COLD void
 share_close(void)
 {
+	if (THREAD_MAIN != share_thread_id)
+		thread_kill(share_thread_id, TSIG_TERM);
+
 	/*
 	 * This call must happen after node_close() to ensure the UDP TX scheduler
 	 * has been released and that no messages there could invoked callbacks
 	 * referring to OOB data that oob_close() is going to free up.
 	 */
 
-	recursive_scan_free(&recursive_scan_context);
 	share_special_close();
 	free_extensions();
 	share_free();
@@ -2268,10 +3052,9 @@ share_close(void)
 	oob_proxy_close();
 	oob_close();			/* References hits, so needs ``sha1_to_share'' */
 	qhit_close();
-	st_free(&partial_table);
+	st_free(&shared_libfile.partial_table);
 	htable_free_null(&share_media_types);
 	hset_free_null(&partial_files);
-	st_free(&partial_table);
 	hikset_free_null(&sha1_to_share);
 	cq_cancel(&share_qrp_rebuild_ev);
 }
@@ -2294,7 +3077,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 	sf->flags &= ~(SHARE_F_RECOMPUTING | SHARE_F_HAS_DIGEST);
 	sf->flags |= sha1 ? SHARE_F_HAS_DIGEST : 0;
 
-	if (sf->sha1) {
+	if (sf->sha1 != NULL) {
 		shared_file_t *current;
 
 		current = hikset_lookup(sha1_to_share, sf->sha1);
@@ -2316,7 +3099,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 	 * from a previous rescan finishes after newly initiated rescan.
 	 */
 
-	if ((SHARE_F_INDEXED & sf->flags) && sf->sha1) {
+	if ((SHARE_F_INDEXED & sf->flags) && sf->sha1 != NULL) {
 		shared_file_t *current;
 
 		current = hikset_lookup(sha1_to_share, sf->sha1);
@@ -2340,7 +3123,17 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 */
 		
 			hikset_insert_key(sha1_to_share, &sf->sha1);
-			publisher_add(sf->sha1);
+
+			/*
+			 * Could be called from the "library" thread during scanning of
+			 * the shared file.  Since publisher_add() will access an SDBM
+			 * database via the DBMW layer, and that is not thread-safe yet,
+			 * funnel back the call to the main thread.
+			 *		--RAM, 2013-11-05
+			 */
+
+			teq_post(THREAD_MAIN, publisher_add_event,
+				deconstify_pointer(sf->sha1));
 		}
 	}
 }
@@ -2618,6 +3411,13 @@ shared_file_available(const shared_file_t *sf)
 		: (sf->fi->buffered + sf->fi->done);
 }
 
+bool
+shared_file_indexed(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+	return 0 != (SHARE_F_INDEXED & sf->flags);
+}
+
 uint32
 shared_file_flags(const shared_file_t *sf)
 {
@@ -2697,39 +3497,49 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 }
 
 /**
- * @returns the shared_file if we share a complete file bearing the given SHA1.
- * @returns NULL if we don't share a complete file, or SHARE_REBUILDING if the
+ * Get shared file identified by its SHA1.
+ *
+ * The returned file is reference-counted if not a special value.
+ *
+ * @return the shared_file if we share a complete file bearing the given SHA1,
+ * or NULL if we don't share a complete file, or SHARE_REBUILDING if the
  * set of shared file is being rebuilt.
  */
 static shared_file_t *
 shared_file_complete_by_sha1(const struct sha1 *sha1)
 {
-	shared_file_t *f;
+	shared_file_t *sf;
 
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
-	f = hikset_lookup(sha1_to_share, sha1);
-	if (f) {
-		shared_file_check(f);
-	}
+	SHARED_LIBFILE_LOCK;
 
-	if (!f || !sha1_hash_available(f)) {
+	sf = hikset_lookup(sha1_to_share, sha1);
+	if (sf != NULL)
+		shared_file_ref(sf);
+
+	SHARED_LIBFILE_UNLOCK;
+
+	if (!sf || !sha1_hash_available(sf)) {
 		/*
 		 * If we're rebuilding the library, we might not have parsed the
 		 * file yet, so it's possible we have this URN but we don't know
 		 * it yet.	--RAM, 12/10/2002.
 		 */
 
-		return share_rebuilding ? SHARE_REBUILDING : NULL;
+		return atomic_bool_get(&share_rebuilding) ? SHARE_REBUILDING : NULL;
 	}
 
-	return f;
+	return sf;
 }
 
 /**
  * Take a given binary SHA1 digest, and return the corresponding
  * shared_file if we have it.
+ *
+ * The returned file is reference-counted hence caller needs to call
+ * shared_file_unref().
  *
  * @attention
  * NB: if the returned "shared_file" structure holds a non-NULL `fi',
@@ -2743,7 +3553,7 @@ shared_file_by_sha1(const struct sha1 *sha1)
 {
 	shared_file_t *f;
 
-	f = shared_file_complete_by_sha1(sha1);
+	f = shared_file_complete_by_sha1(sha1);		/* Ref-counted now */
 
 	/*
 	 * If we don't share this file, or if we're rebuilding, and provided
@@ -2757,10 +3567,10 @@ shared_file_by_sha1(const struct sha1 *sha1)
 			if (sf != NULL) {
 				if (GNET_PROPERTY(pfsp_rare_server)) {
 					if (download_sha1_is_rare(sha1)) {
-						f = sf;
+						f = shared_file_ref(sf);
 					}
 				} else {
-					f = sf;
+					f = shared_file_ref(sf);
 				}
 			}
 		}
@@ -2778,8 +3588,8 @@ shared_file_by_sha1(const struct sha1 *sha1)
  * seconds old.
  *
  * @attention
- * No reference counting is done on the returned pointers, which must therefore
- * be used right away.
+ * Entries filled in the sfvec[] array are ref-counted and the caller is
+ * responsible for calling shared_file_unref() on each entry after using it.
  *
  * @return the amount of entries filled in the vector.
  */
@@ -2792,13 +3602,21 @@ share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned media_mask)
 	g_assert(sfvec != NULL);
 	g_assert(size_is_positive(sfcount));
 
-	if (NULL == file_table)
+	SHARED_LIBFILE_LOCK;
+
+	if (NULL == shared_libfile.file_table) {
+		SHARED_LIBFILE_UNLOCK;
 		return 0;
+	}
 
-	g_assert(files_scanned != 0);
+	g_assert(shared_libfile.files_scanned != 0);
 
-	for (i = files_scanned - 1, j = 0; i >= 0 && j < sfcount; i--) {
-		shared_file_t *sf = file_table[i];
+	for (
+		i = shared_libfile.files_scanned - 1, j = 0;
+		i >= 0 && j < sfcount;
+		i--
+	) {
+		shared_file_t *sf = shared_libfile.file_table[i];
 
 		if (sf != NULL) {
 			shared_file_check(sf);
@@ -2811,9 +3629,11 @@ share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned media_mask)
 			if (media_mask != 0 && !shared_file_has_media_type(sf, media_mask))
 				continue;
 
-			sfvec[j++] = sf;
+			sfvec[j++] = shared_file_ref(sf);
 		}
 	}
+
+	SHARED_LIBFILE_UNLOCK;
 
 	return j;
 }
@@ -2860,7 +3680,7 @@ share_filename_media_mask(const char *filename)
 uint64
 shared_kbytes_scanned(void)
 {
-	return bytes_scanned / 1024;
+	return bytes_scanned() / 1024;
 }
 
 /**
@@ -2869,34 +3689,7 @@ shared_kbytes_scanned(void)
 uint64
 shared_files_scanned(void)
 {
-	return files_scanned;
-}
-
-/**
- * Callout queue callback to initiate a QRP rebuild after a partial file
- * insertion or removal.
- */
-static void
-share_qrp_rebuild(cqueue_t *cq, void *unused_data)
-{
-	(void) unused_data;
-
-	cq_zero(cq, &share_qrp_rebuild_ev);
-
-	if (share_update_qrp()) {
-		if (GNET_PROPERTY(share_debug) > 1) {
-			g_debug("SHARE launched background QRP recomputation (%s)",
-				share_can_answer_partials() ?
-					"with partial files" : "library only");
-		}
-	} else {
-		if (GNET_PROPERTY(share_debug) > 1) {
-			g_debug("SHARE deferring background QRP recomputation (%s)",
-				share_can_answer_partials() ?
-					"with partial files" : "library only");
-		}
-		share_qrp_rebuild_ev = cq_main_insert(1000, share_qrp_rebuild, NULL);
-	}
+	return files_scanned();
 }
 
 /**
@@ -2906,8 +3699,8 @@ share_qrp_rebuild(cqueue_t *cq, void *unused_data)
 static void
 share_qrp_rebuild_if_needed(void)
 {
-	if (NULL == share_qrp_rebuild_ev && share_can_answer_partials())
-		share_qrp_rebuild_ev = cq_main_insert(1000, share_qrp_rebuild, NULL);
+	if (share_can_answer_partials())
+		share_lib_qrp_rebuild();
 }
 
 /**
@@ -2963,8 +3756,7 @@ share_remove_partial(const shared_file_t *sf)
 void
 share_update_matching_information(void)
 {
-	if (NULL == share_qrp_rebuild_ev)
-		share_qrp_rebuild_ev = cq_main_insert(1, share_qrp_rebuild, NULL);
+	share_lib_qrp_rebuild();
 }
 
 /**
@@ -2995,7 +3787,7 @@ share_init(void)
 	 *		--RAM, 15/08/2002.
 	 */
 
-	search_table = st_create();
+	shared_libfile.search_table = st_create();
 
 	/*
 	 * Intialize partial file querying structures (so that queries can
@@ -3003,7 +3795,9 @@ share_init(void)
 	 */
 
 	partial_files = hset_create(HASH_KEY_SELF, 0);
-	partial_table = st_create();
+	hset_thread_safe(partial_files);
+
+	shared_libfile.partial_table = st_create();
 
 	/*
 	 * Create the hash table yielding the media type flags from a MIME type.
@@ -3015,6 +3809,18 @@ share_init(void)
 		htable_insert(share_media_types,
 			int_to_pointer(media_type_map[i].type),
 			int_to_pointer(media_type_map[i].flags));
+	}
+
+	/*
+	 * If we have at least 2 CPUs available, create a library thread.
+	 * Otherwise, library scanning will be handled by the main thread.
+	 */
+
+	if (getcpucount() >= 2) {
+		share_thread_id = share_thread_create();
+	} else {
+		share_thread_id = THREAD_MAIN;
+		g_assert(THREAD_MAIN == thread_by_name("main"));
 	}
 }
 
