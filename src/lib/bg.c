@@ -149,7 +149,7 @@ struct bgsched {
 	GSList *runq;				/**< List of runnable tasks */
 	GSList *sleepq;				/**< List of sleeping tasks */
 	GSList *dead_tasks;			/**< Dead tasks to reclaim */
-	struct bgtask *current_task;/*<< Current task scheduled */
+	bgtask_t *current_task;		/*<< Current task scheduled */
 	ulong max_life;				/**< Maximum life when scheduled, in usecs */
 	ulong wtime;				/**< Wall-clock run time, in ms */
 	int runcount;				/**< Amount of runnable tasks */
@@ -169,9 +169,14 @@ bg_sched_check(const struct bgsched * const bs)
 #define BG_SCHED_LOCK(s)	mutex_lock_const(&(s)->lock)
 #define BG_SCHED_UNLOCK(s)	mutex_unlock_const(&(s)->lock)
 
+#define BGTASK_MAGIC_MASK	0xffffff00	/* Leading 24 bits set */
+#define BGTASK_MAGIC_BASE	0x3acc9300	/* Leading 24 bits significant */
+
+
 enum bgtask_magic {
-	BGTASK_MAGIC	  = 0x3acc931dU,
-	BGTASK_DEAD_MAGIC = 0x6f5c8a03U
+	BGTASK_TASK_MAGIC   = BGTASK_MAGIC_BASE + 0x1d,
+	BGTASK_DAEMON_MAGIC = BGTASK_MAGIC_BASE + 0x85,
+	BGTASK_DEAD_MAGIC   = 0x6f5c8a03
 };
 
 /**
@@ -213,28 +218,39 @@ struct bgtask {
 	int elapsed;			/**< Elapsed during last run, in usec */
 	double tick_cost;		/**< Time in ms. spent by each tick */
 	bgsig_cb_t sigh[BG_SIG_COUNT];	/**< Signal handlers */
+	spinlock_t lock;		/**< Thread-safe lock */
+};
 
-	/*
-	 * Daemon tasks.
-	 */
-
+/*
+ * Daemon tasks.
+ */
+struct bgdaemon {
+	struct bgtask task;		/**< Common task attributes */
 	GSList *wq;				/**< Work queue (daemon task only) */
+	size_t wq_count;		/**< Size of work queue */
 	bgstart_cb_t start_cb;	/**< Called when starting working on an item */
 	bgend_cb_t end_cb;		/**< Called when finished working on an item */
 	bgclean_cb_t item_free;	/**< Free routine for work queue items */
 	bgnotify_cb_t notify;	/**< Start/Stop notification (optional) */
-	spinlock_t lock;		/**< Thread-safe lock for handling work queue */
 };
 
 static inline void
 bg_task_check(const struct bgtask * const bt)
 {
 	g_assert(bt != NULL);
-	g_assert(BGTASK_MAGIC == bt->magic);
+	g_assert(BGTASK_MAGIC_BASE == (bt->magic & BGTASK_MAGIC_MASK));
 }
 
 #define BG_TASK_LOCK(t)		spinlock(&(t)->lock)
 #define BG_TASK_UNLOCK(t)	spinunlock(&(t)->lock)
+
+static inline bool
+bg_task_is_daemon(const struct bgtask * const bt)
+{
+	return bt != NULL && BGTASK_DAEMON_MAGIC == bt->magic;
+}
+
+#define BG_DAEMON(t)	(bg_task_is_daemon(t) ? (struct bgdaemon *) (t) : NULL)
 
 /*
  * Operating flags.
@@ -270,7 +286,7 @@ bg_set_debug(unsigned level)
  * @return the current step index for the task.
  */
 int
-bg_task_step(const struct bgtask *bt)
+bg_task_step(const bgtask_t *bt)
 {
 	bg_task_check(bt);
 	return bt->step;
@@ -280,7 +296,7 @@ bg_task_step(const struct bgtask *bt)
  * @return the amount of times current step was called for the task.
  */
 int
-bg_task_seqno(const struct bgtask *bt)
+bg_task_seqno(const bgtask_t *bt)
 {
 	bg_task_check(bt);
 	return bt->seqno;
@@ -290,7 +306,7 @@ bg_task_seqno(const struct bgtask *bt)
  * @return the context registered for the task.
  */
 void *
-bg_task_context(const struct bgtask *bt)
+bg_task_context(const bgtask_t *bt)
 {
 	bg_task_check(bt);
 	return bt->ucontext;
@@ -300,7 +316,7 @@ bg_task_context(const struct bgtask *bt)
  * @return the task name.
  */
 const char *
-bg_task_name(const struct bgtask *bt)
+bg_task_name(const bgtask_t *bt)
 {
 	bg_task_check(bt);
 	return bt->name;
@@ -310,7 +326,7 @@ bg_task_name(const struct bgtask *bt)
  * @return the amount of milliseconds spent working on this task (wall-clock).
  */
 unsigned long
-bg_task_wtime(const struct bgtask *bt)
+bg_task_wtime(const bgtask_t *bt)
 {
 	bg_task_check(bt);
 	return bt->wtime;
@@ -320,7 +336,7 @@ bg_task_wtime(const struct bgtask *bt)
  * @return the task's current step name, for logging purposes.
  */
 const char *
-bg_task_step_name(struct bgtask *bt)
+bg_task_step_name(bgtask_t *bt)
 {
 	bgstep_cb_t step;
 
@@ -337,7 +353,7 @@ bg_task_step_name(struct bgtask *bt)
  * @return the task's exit code.
  */
 int
-bg_task_exitcode(struct bgtask *bt)
+bg_task_exitcode(bgtask_t *bt)
 {
 	uint32 flags;
 	int exitcode;
@@ -368,7 +384,7 @@ bg_task_exitcode(struct bgtask *bt)
  * @return the old context.
  */
 void *
-bg_task_set_context(struct bgtask *bt, void *ucontext)
+bg_task_set_context(bgtask_t *bt, void *ucontext)
 {
 	void *old;
 
@@ -402,7 +418,7 @@ bgstatus_to_string(bgstatus_t status)
  * Add new task to its scheduler (run queue).
  */
 static void
-bg_sched_add(struct bgtask *bt)
+bg_sched_add(bgtask_t *bt)
 {
 	bgsched_t *bs;
 
@@ -430,7 +446,7 @@ bg_sched_add(struct bgtask *bt)
  * Remove task from the scheduler (run queue).
  */
 static void
-bg_sched_remove(struct bgtask *bt)
+bg_sched_remove(bgtask_t *bt)
 {
 	bgsched_t *bs;
 
@@ -456,10 +472,10 @@ bg_sched_remove(struct bgtask *bt)
  *
  * @return new task to schedule, or NULL if there are no more tasks.
  */
-static struct bgtask *
+static bgtask_t *
 bg_sched_pick(bgsched_t *bs)
 {
-	struct bgtask *bt;
+	bgtask_t *bt;
 
 	bg_sched_check(bs);
 
@@ -519,7 +535,7 @@ bg_task_elapsed(const bgtask_t *bt)
  * @param target	the runtime target of the task (0 if unknown)
  */
 static void
-bg_task_suspend(struct bgtask *bt, int target)
+bg_task_suspend(bgtask_t *bt, int target)
 {
 	time_delta_t elapsed;
 
@@ -581,7 +597,7 @@ bg_task_suspend(struct bgtask *bt, int target)
  * Resume task execution.
  */
 static void
-bg_task_resume(struct bgtask *bt)
+bg_task_resume(bgtask_t *bt)
 {
 	bg_task_check(bt);
 	g_assert(!(bt->flags & TASK_F_RUNNING));
@@ -596,7 +612,7 @@ bg_task_resume(struct bgtask *bt)
  * Add task to the sleep queue.
  */
 static void
-bg_sched_sleep(struct bgtask *bt)
+bg_sched_sleep(bgtask_t *bt)
 {
 	bgsched_t *bs;
 
@@ -622,7 +638,7 @@ bg_sched_sleep(struct bgtask *bt)
  * Remove task from the sleep queue and insert it to the runqueue.
  */
 static void
-bg_sched_wakeup(struct bgtask *bt)
+bg_sched_wakeup(bgtask_t *bt)
 {
 	bgsched_t *bs;
 
@@ -653,10 +669,10 @@ bg_sched_wakeup(struct bgtask *bt)
  *
  * @returns previously scheduled task, if any.
  */
-static struct bgtask *
-bg_task_switch(bgsched_t *bs, struct bgtask *bt, int target)
+static bgtask_t *
+bg_task_switch(bgsched_t *bs, bgtask_t *bt, int target)
 {
-	struct bgtask *old;
+	bgtask_t *old;
 
 	bg_sched_check(bs);
 
@@ -683,15 +699,34 @@ bg_task_switch(bgsched_t *bs, struct bgtask *bt, int target)
 	return old;
 }
 
-static struct bgtask *
+static void
+bg_common_init(bgtask_t *bt)
+{
+	spinlock_init(&bt->lock);
+}
+
+static bgtask_t *
 bg_task_alloc(void)
 {
-	struct bgtask *bt;
+	bgtask_t *bt;
 
 	WALLOC0(bt);
-	bt->magic = BGTASK_MAGIC;
-	spinlock_init(&bt->lock);
+	bt->magic = BGTASK_TASK_MAGIC;
+	bg_common_init(bt);
 	return bt;
+}
+
+static struct bgdaemon *
+bg_daemon_alloc(void)
+{
+	struct bgdaemon *bd;
+	bgtask_t *bt;
+
+	WALLOC0(bd);
+	bt = &bd->task;
+	bt->magic = BGTASK_DAEMON_MAGIC;
+	bg_common_init(bt);
+	return bd;
 }
 
 /**
@@ -718,14 +753,14 @@ bg_task_alloc(void)
  *
  * @returns an opaque handle.
  */
-struct bgtask *
+bgtask_t *
 bg_task_create(
 	bgsched_t *bs, const char *name,
 	const bgstep_cb_t *steps, int stepcnt,
 	void *ucontext, bgclean_cb_t ucontext_free,
 	bgdone_cb_t done_cb, void *done_arg)
 {
-	struct bgtask *bt;
+	bgtask_t *bt;
 
 	g_assert(stepcnt > 0);
 	g_assert(steps);
@@ -785,7 +820,7 @@ bg_task_create(
  *
  * Use bg_daemon_enqueue() to enqueue more work to the daemon.
  */
-struct bgtask *
+bgtask_t *
 bg_daemon_create(
 	bgsched_t *bs, const char *name,
 	const bgstep_cb_t *steps, int stepcnt,
@@ -793,24 +828,27 @@ bg_daemon_create(
 	bgstart_cb_t start_cb, bgend_cb_t end_cb,
 	bgclean_cb_t item_free, bgnotify_cb_t notify)
 {
-	struct bgtask *bt;
+	struct bgdaemon *bd;
+	bgtask_t *bt;
 
 	g_assert(stepcnt > 0);
 	g_assert(steps);
 
-	bt = bg_task_alloc();
+	bd = bg_daemon_alloc();
+	bt = &bd->task;
 	bt->sched = NULL == bs ? bg_sched : bs;
 	bt->flags |= TASK_F_DAEMON;
 	bt->name = atom_str_get(name);
 	bt->ucontext = ucontext;
 	bt->uctx_free = ucontext_free;
-	bt->start_cb = start_cb;
-	bt->end_cb = end_cb;
-	bt->item_free = item_free;
-	bt->notify = notify;
 
 	bt->stepcnt = stepcnt;
 	bt->stepvec = WCOPY_ARRAY(steps, stepcnt);
+
+	bd->start_cb = start_cb;
+	bd->end_cb = end_cb;
+	bd->item_free = item_free;
+	bd->notify = notify;
 
 	BG_SCHED_LOCK(bt->sched);
 	bt->sched->runcount++;				/* One more task to schedule */
@@ -830,16 +868,21 @@ bg_daemon_create(
  * If task was sleeping, wake it up.
  */
 void
-bg_daemon_enqueue(struct bgtask *bt, void *item)
+bg_daemon_enqueue(bgtask_t *bt, void *item)
 {
+	struct bgdaemon *bd;
 	bool awoken = FALSE;
 
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_DAEMON);
 
+	bd = BG_DAEMON(bt);
+	g_assert(bd != NULL);		/* Because it's a daemon task */
+
 	BG_TASK_LOCK(bt);
 
-	bt->wq = g_slist_append(bt->wq, item);
+	bd->wq = g_slist_append(bd->wq, item);
+	bd->wq_count++;
 
 	if (bt->flags & TASK_F_SLEEPING) {
 		awoken = TRUE;
@@ -851,20 +894,16 @@ bg_daemon_enqueue(struct bgtask *bt, void *item)
 	if (awoken && bg_debug > 1)
 		g_debug("BGTASK waking up daemon \"%s\" task", bt->name);
 
-	if (awoken && bt->notify != NULL)
-		(*bt->notify)(bt, TRUE);	/* Waking up */
+	if (awoken && bd->notify != NULL)
+		(*bd->notify)(bt, TRUE);	/* Waking up */
 }
 
 /**
  * Free task structure.
  */
 static void
-bg_task_free(struct bgtask *bt)
+bg_task_free(bgtask_t *bt)
 {
-	GSList *l;
-	int stepsize;
-	int count;
-
 	g_assert(bt);
 	g_assert(BGTASK_DEAD_MAGIC == bt->magic);
 
@@ -873,31 +912,39 @@ bg_task_free(struct bgtask *bt)
 	g_assert(!(bt->flags & TASK_F_RUNNING));
 	g_assert(bt->flags & TASK_F_EXITED);
 
-	stepsize = bt->stepcnt * sizeof(bgstep_cb_t *);
-	wfree(bt->stepvec, stepsize);
+	WFREE_ARRAY_NULL(bt->stepvec, bt->stepcnt);
 	atom_str_free_null(&bt->name);
 	spinlock_destroy(&bt->lock);
 
-	for (count = 0, l = bt->wq; l; l = l->next) {
-		count++;
-		if (bt->item_free)
-			(*bt->item_free)(l->data);
+	if (bt->flags & TASK_F_DAEMON) {
+		struct bgdaemon *bd = (struct bgdaemon *) bt;
+		int count;
+		GSList *l;
+
+		for (count = 0, l = bd->wq; l; l = l->next) {
+			count++;
+			if (bd->item_free)
+				(*bd->item_free)(l->data);
+		}
+		gm_slist_free_null(&bd->wq);
+
+		if (count) {
+			g_warning("%s(): freed %d pending item%s for daemon \"%s\" task",
+				G_STRFUNC, count, 1 == count ? "" : "s", bt->name);
+		}
+		bt->magic = 0;
+		WFREE(bd);
+	} else {
+		bt->magic = 0;
+		WFREE(bt);
 	}
-	gm_slist_free_null(&bt->wq);
-
-	if (count)
-		g_carp("freed %d pending item%s for daemon \"%s\" task",
-			count, count == 1 ? "" : "s", bt->name);
-
-	bt->magic = 0;
-	WFREE(bt);
 }
 
 /**
  * Terminate the task, invoking the completion callback if defined.
  */
 static void
-bg_task_terminate(struct bgtask *bt)
+bg_task_terminate(bgtask_t *bt)
 {
 	bgsched_t *bs;
 	bgstatus_t status;
@@ -1040,7 +1087,7 @@ bg_task_terminate(struct bgtask *bt)
  * We exit immediately, not returning to the user code.
  */
 void
-bg_task_exit(struct bgtask *bt, int code)
+bg_task_exit(bgtask_t *bt, int code)
 {
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_RUNNING);
@@ -1060,7 +1107,7 @@ bg_task_exit(struct bgtask *bt, int code)
  * Deliver signal via the user's signal handler.
  */
 static void
-bg_task_sendsig(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
+bg_task_sendsig(bgtask_t *bt, bgsig_t sig, bgsig_cb_t handler)
 {
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_RUNNING);
@@ -1084,7 +1131,7 @@ bg_task_sendsig(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
  * @returns -1 if the task could not be signalled.
  */
 static int
-bg_task_kill(struct bgtask *bt, bgsig_t sig)
+bg_task_kill(bgtask_t *bt, bgsig_t sig)
 {
 	bgsig_cb_t sighandler;
 	bgsched_t *bs;
@@ -1170,7 +1217,7 @@ bg_task_kill(struct bgtask *bt, bgsig_t sig)
  * @returns previously installed signal handler.
  */
 bgsig_cb_t
-bg_task_signal(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
+bg_task_signal(bgtask_t *bt, bgsig_t sig, bgsig_cb_t handler)
 {
 	bgsig_cb_t oldhandler;
 
@@ -1185,7 +1232,7 @@ bg_task_signal(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
  * Deliver all the signals queued so far for the task.
  */
 static void
-bg_task_deliver_signals(struct bgtask *bt)
+bg_task_deliver_signals(bgtask_t *bt)
 {
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_RUNNING);
@@ -1217,10 +1264,10 @@ bg_task_deliver_signals(struct bgtask *bt)
  * Cancel a given task.
  */
 void
-bg_task_cancel(struct bgtask *bt)
+bg_task_cancel(bgtask_t *bt)
 {
 	bgsched_t *bs;
-	struct bgtask *old = NULL;
+	bgtask_t *old = NULL;
 
 	bg_task_check(bt);
 
@@ -1323,7 +1370,7 @@ bg_task_cancel(struct bgtask *bt)
  * all its ticks and it matters for the computation of the cost per tick.
  */
 void
-bg_task_ticks_used(struct bgtask *bt, int used)
+bg_task_ticks_used(bgtask_t *bt, int used)
 {
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_RUNNING);
@@ -1359,8 +1406,9 @@ bg_reclaim_dead(bgsched_t *bs)
  * Called when a task has ended its processing.
  */
 static void
-bg_task_ended(struct bgtask *bt)
+bg_task_ended(bgtask_t *bt)
 {
+	struct bgdaemon *bd;
 	void *item;
 	time_delta_t elapsed;
 	bool stopped = FALSE;
@@ -1376,24 +1424,34 @@ bg_task_ended(struct bgtask *bt)
 		return;
 	}
 
+	bd = BG_DAEMON(bt);
+	g_assert(bd != NULL);		/* Since it's a daemon task */
+	bg_sched_check(bt->sched);
+
+	g_assert_log(thread_small_id() == bt->sched->stid,
+		"%s(): running in %s, scheduler \"%s\" configured to run in %s",
+		G_STRFUNC, thread_name(), bt->sched->name,
+		thread_id_name(bt->sched->stid));
+
 	/*
 	 * Daemon task: signal we finished with the item, unqueue and free it.
 	 */
 
-	g_assert(bt->wq != NULL);
+	g_assert(bd->wq != NULL);
 
-	item = bt->wq->data;
+	item = bd->wq->data;
 
 	if (bg_debug > 2) {
 		g_debug("BGTASK daemon \"%s\" done with item %p", bt->name, item);
 	}
 
-	(*bt->end_cb)(bt, bt->ucontext, item);
+	(*bd->end_cb)(bt, bt->ucontext, item);
 	BG_TASK_LOCK(bt);
-	bt->wq = g_slist_remove(bt->wq, item);
+	bd->wq = g_slist_remove(bd->wq, item);
+	bd->wq_count--;
 	BG_TASK_UNLOCK(bt);
-	if (bt->item_free)
-		(*bt->item_free)(item);
+	if (bd->item_free)
+		(*bd->item_free)(item);
 
 	/*
 	 * Update daemon task running time (which encompasses the end_cb +
@@ -1417,7 +1475,7 @@ bg_task_ended(struct bgtask *bt)
 
 	BG_TASK_LOCK(bt);
 
-	if (bt->wq == NULL) {
+	if (NULL == bd->wq) {
 		bg_sched_sleep(bt);
 		stopped = TRUE;
 	}
@@ -1427,8 +1485,8 @@ bg_task_ended(struct bgtask *bt)
 	if (bg_debug > 1 && stopped)
 		g_debug("BGTASK daemon \"%s\" going back to sleep", bt->name);
 
-	if (stopped && bt->notify != NULL)
-		(*bt->notify)(bt, FALSE);	/* Stopped */
+	if (stopped && bd->notify != NULL)
+		(*bd->notify)(bt, FALSE);	/* Stopped */
 }
 
 /**
@@ -1472,7 +1530,7 @@ bg_ticker_adjust_period(bgsched_t *bs)
  * scheduler if it has.
  */
 void
-bg_task_cancel_test(struct bgtask *bt)
+bg_task_cancel_test(bgtask_t *bt)
 {
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_RUNNING);
@@ -1495,7 +1553,7 @@ static bool
 bg_sched_timer(void *arg)
 {
 	bgsched_t *bs = arg;
-	struct bgtask * volatile bt;
+	bgtask_t * volatile bt;
 	volatile int remain = MAX_LIFE;
 	volatile int target;
 	volatile unsigned schedules = 0;
@@ -1652,18 +1710,20 @@ bg_sched_timer(void *arg)
 		 */
 
 		if ((bt->flags & TASK_F_DAEMON) && bt->step == 0 && bt->seqno == 0) {
+			struct bgdaemon *bd = BG_DAEMON(bt);
 			void *item;
 
-			g_assert(bt->wq != NULL);	/* Runnable daemon, must have work */
+			g_assert(bd != NULL);		/* Since task is a daemon */
+			g_assert(bd->wq != NULL);	/* Runnable daemon, must have work */
 
-			item = bt->wq->data;
+			item = bd->wq->data;
 
 			if (bg_debug > 2) {
 				g_debug("BGTASK daemon \"%s\" starting with item %p",
 					bt->name, item);
 			}
 
-			(*bt->start_cb)(bt, bt->ucontext, item);
+			(*bd->start_cb)(bt, bt->ucontext, item);
 		}
 
 		g_assert(bt->step < bt->stepcnt);
@@ -1706,8 +1766,10 @@ bg_sched_timer(void *arg)
 			if (bt->step == (bt->stepcnt - 1))
 				bg_task_ended(bt);
 			else {
+				BG_TASK_LOCK(bt);
 				bt->seqno = 0;
 				bt->step++;
+				BG_TASK_UNLOCK(bt);
 				bt->tick_cost = 0.0;	/* Don't know cost of this new step */
 			}
 			break;
