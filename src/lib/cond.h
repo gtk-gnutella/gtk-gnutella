@@ -126,9 +126,14 @@ void cond_init(cond_t *c, const struct mutex *m);
 void cond_init_full(cond_t *c, const struct mutex *m, bool emulated);
 void cond_destroy(cond_t *c);
 bool cond_reset(cond_t *c);
-bool cond_timed_wait(cond_t *c, struct mutex *m, const struct tmval *timeout);
-bool cond_wait_until(cond_t *c, struct mutex *m, const struct tmval *abstime);
-void cond_wait(cond_t *c, struct mutex *m);
+bool cond_timed_wait_from(cond_t *c, struct mutex *m,
+	const struct tmval *timeout,
+	const char *routine, const char *file, unsigned line);
+bool cond_wait_until_from(cond_t *c, struct mutex *m,
+	const struct tmval *abstime,
+	const char *routine, const char *file, unsigned line);
+void cond_wait_from(cond_t *c, struct mutex *m,
+	const char *routine, const char *file, unsigned line);
 void cond_signal(cond_t *c, const struct mutex *m);
 void cond_broadcast(cond_t *c, const struct mutex *m);
 
@@ -140,6 +145,29 @@ size_t cond_pending_count(const cond_t const *c);
 
 void cond_waiter_add(cond_t *c, struct waiter *w);
 bool cond_waiter_remove(cond_t *c, struct waiter *w);
+
+/*
+ * Macros trapping access to condition waiting calls to make sure there is
+ * a cleanup handler installed when used from a cancelable thread.
+ */
+
+#define cond_wait(c,m)	\
+	cond_wait_from((c), (m), G_STRFUNC, _WHERE_, __LINE__)
+
+#define cond_wait_until(c,m,t)	\
+	cond_wait_until_from((c), (m), (t), G_STRFUNC, _WHERE_, __LINE__)
+
+#define cond_timed_wait(c,m,t)	\
+	cond_timed_wait_from((c), (m), (t), G_STRFUNC, _WHERE_, __LINE__)
+
+/*
+ * Condition waiting calls which install a default cleanup routine to unlock
+ * the mutex should the thread be cancelled.
+ */
+
+void cond_wait_clean(cond_t *, struct mutex *);
+bool cond_timed_wait_clean(cond_t *, struct mutex *, const struct tmval *);
+bool cond_wait_until_clean(cond_t *, struct mutex *, const struct tmval *);
 
 #endif /* _cond_h_ */
 

@@ -61,6 +61,7 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
  */
 #define THREAD_F_DETACH		(1U << 0)	/**< Create a detached thread */
 #define THREAD_F_ASYNC_EXIT	(1U << 1)	/**< Exit callback delivered by main */
+#define THREAD_F_NO_CANCEL	(1U << 2)	/**< Thread cannot be cancelled */
 
 /**
  * Special free routine for thread-local value which indicates that the
@@ -141,6 +142,7 @@ typedef struct thread_info {
 	uint exited:1;				/**< Whether thread has exited */
 	uint suspended:1;			/**< Whether thread is suspended */
 	uint blocked:1;				/**< Whether thread is (voluntarily) blocked */
+	uint cancelled:1;			/**< Whether thread was cancelled */
 	uint main_thread:1;			/**< Whether this is the main thread */
 } thread_info_t;
 
@@ -266,6 +268,63 @@ int thread_sighandler_level(void);
 bool thread_pause(void);
 bool thread_sigsuspend(const tsigset_t *mask);
 void thread_sleep_ms(unsigned int ms);
+
+void *thread_sp(void);
+
+void thread_cleanup_push_from(notify_fn_t cleanup, void *arg,
+	const char *routine, const char *file, unsigned line, const void *sp);
+void thread_cleanup_pop_from(bool run,
+	const char *routine, const char *file, unsigned line);
+bool thread_cleanup_has_from(const char *routine);
+
+/**
+ * Possible thread cancellation states.
+ */
+enum thread_cancel_state {
+	THREAD_CANCEL_ENABLE,
+	THREAD_CANCEL_DISABLE
+};
+
+bool thread_is_cancelable(void);
+bool thread_cancel_test(void);
+int thread_cancel(unsigned id);
+int thread_cancel_set_state(enum thread_cancel_state state,
+	enum thread_cancel_state *oldstate);
+
+static inline int
+thread_cancel_enable(void)
+{
+	return thread_cancel_set_state(THREAD_CANCEL_ENABLE, NULL);
+}
+
+static inline int
+thread_cancel_disable(void)
+{
+	return thread_cancel_set_state(THREAD_CANCEL_DISABLE, NULL);
+}
+
+/**
+ * Exit value for a cancelled thread.
+ */
+#define THREAD_CANCELLED	((void *) -1)
+
+/**
+ * Push thread cleanup handler.
+ *
+ * @param c		the routine to invoke
+ * @param a		the argument to pass to that routine
+ */
+#define thread_cleanup_push(c,a) \
+	thread_cleanup_push_from((c), (a), \
+		G_STRFUNC, _WHERE_, __LINE__, thread_sp())
+
+/**
+ * Pop thread cleanup handler, which must have been pushed in the same routine.
+ *
+ * @param r		whether to run the handler being poped
+ */
+#define thread_cleanup_pop(r) \
+	thread_cleanup_pop_from((r), G_STRFUNC, _WHERE_, __LINE__)
 
 struct logagent;
 void thread_dump_stats_log(struct logagent *la, unsigned options);

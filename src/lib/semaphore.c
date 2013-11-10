@@ -250,6 +250,33 @@ semaphore_grab(semaphore_t *s, int amount)
 	return FALSE;
 }
 
+struct semaphore_emulate_vars {
+	struct waiting_thread *wt;
+	elist_t *l;
+	semaphore_t *s;
+	ushort *reserved;
+	int amount;
+};
+
+/**
+ * Cleanup handler for semaphore_emulate().
+ */
+static void
+semaphore_emulate_cleanup(void *arg)
+{
+	struct semaphore_emulate_vars *v = arg;
+
+	atomic_uint_dec(0 == v->amount ? &v->s->zerowait : &v->s->waiting);
+
+	if (v->wt != NULL) {
+		SEM_LOCK(v->s);
+		elist_remove(v->l, v->wt);
+		if (v->wt->awoken)
+			(*v->reserved)--;
+		SEM_UNLOCK(v->s);
+	}
+}
+
 /**
  * Emulate a simplified semtimedop() operation.
  *
@@ -265,19 +292,30 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 {
 	bool success = FALSE;
 	struct waiting_thread waiting;
-	struct waiting_thread *wt = NULL;
+	struct semaphore_emulate_vars v;
 	tm_t end;
-	ushort *reserved = 0 == amount ?  &s->reserved_zero : &s->reserved_waiting;
-	elist_t *l = 0 == amount ? &s->zero : &s->threads;
 
 	semaphore_check(s);
 	g_assert(amount >= 0);
 
-	ZERO(&end);
+	/*
+	 * Since the thread can block, we need to install a cleanup handler
+	 * in case the thread is cancelled during the time it waits.
+	 */
+
+	v.wt = NULL;
+	v.l = 0 == amount ? &s->zero : &s->threads;
+	v.reserved = 0 == amount ?  &s->reserved_zero : &s->reserved_waiting;
+	v.s = s;
+	v.amount = amount;
+
+	thread_cleanup_push(semaphore_emulate_cleanup, &v);
 
 	if (timeout != NULL) {
 		tm_now_exact(&end);
 		tm_add(&end, timeout);
+	} else {
+		ZERO(&end);
 	}
 
 	/*
@@ -305,8 +343,8 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 		 * chance to actually be rescheduled and process the condition.
 		 */
 
-		if G_UNLIKELY(NULL == wt) {
-			if (0 != elist_count(l))
+		if G_UNLIKELY(NULL == v.wt) {
+			if (0 != elist_count(v.l))
 				goto skipped;
 		}
 
@@ -333,13 +371,13 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 		 * because the cleanup code depends on the object being in the list.
 		 */
 
-		if G_UNLIKELY(NULL == wt) {
+		if G_UNLIKELY(NULL == v.wt) {
 			ZERO(&waiting);
-			wt = &waiting;
-			wt->stid = thread_small_id();
-			wt->amount = amount;
+			v.wt = &waiting;
+			v.wt->stid = thread_small_id();
+			v.wt->amount = amount;
 			SEM_LOCK(s);
-			elist_append(l, wt);
+			elist_append(v.l, v.wt);
 
 			/*
 			 * The "surplus" indicates how many tokens were released in excess
@@ -354,7 +392,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 				s->surplus -= amount;
 				s->tokens -= amount;
 				success = TRUE;
-			} else if (0 == *reserved) {
+			} else if (0 == *v.reserved) {
 				/* Don't steal semaphore if it was reserved to queued threads */
 				success = semaphore_grab(s, amount);
 			}
@@ -387,15 +425,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 	 * Final cleanup.
 	 */
 
-	atomic_uint_dec(0 == amount ? &s->zerowait : &s->waiting);
-
-	if (wt != NULL) {
-		SEM_LOCK(s);
-		elist_remove(l, wt);
-		if (wt->awoken)
-			(*reserved)--;
-		SEM_UNLOCK(s);
-	}
+	thread_cleanup_pop(TRUE);		/* Always execute the cleanup handler */
 
 	if (success) {
 		if (amount != 0 && 0 == s->tokens)

@@ -63,6 +63,8 @@
 #include "walloc.h"
 #include "xmalloc.h"
 
+#define STACK_SIZE		16384
+
 const char *progname;
 
 static bool sleep_before_exit;
@@ -71,11 +73,13 @@ static bool randomize_free;
 static unsigned cond_timeout;
 static long cpu_count;
 
+static void *sleeping_thread(void *unused_arg);
+
 static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvxABCEFIMNOPQRSVX] [-c CPU] [-n count]\n"
+		"Usage: %s [-hejsvxABCEFIKMNOPQRSVX] [-c CPU] [-n count]\n"
 		"       [-t ms] [-T secs]\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
@@ -92,6 +96,7 @@ usage(void)
 		"  -E : test thread signals\n"
 		"  -F : test thread fork\n"
 		"  -I : test inter-thread waiter signaling\n"
+		"  -K : test thread cancellation\n"
 		"  -M : monitors tennis match via waiters\n"
 		"  -N : add broadcast noise during tennis session\n"
 		"  -O : test thread stack overflow\n"
@@ -113,8 +118,9 @@ static void
 exit_callback(void *result, void *arg)
 {
 	char *name = arg;
-	ulong length = pointer_to_ulong(result);
-	printf("thread \"%s\" finished, result length is %lu\n", name, length);
+	long length = pointer_to_long(result);
+	printf("thread \"%s\" finished, result length is %ld\n", name, length);
+	fflush(stdout);
 }
 
 static void *
@@ -125,9 +131,11 @@ compute_length(void *arg)
 	char *scratch = xstrdup(name);
 
 	printf("%s given \"%s\"\n", thread_id_name(stid), scratch);
+	fflush(stdout);
 	xfree(scratch);
+	thread_cancel_test();
 	if (sleep_before_exit)
-		sleep(1);
+		thread_sleep_ms(1000);
 	return ulong_to_pointer(strlen(name));
 }
 
@@ -148,7 +156,7 @@ test_create_one(bool repeat, bool join)
 			flags |= THREAD_F_ASYNC_EXIT;
 
 		r = thread_create_full(compute_length, names[i], flags,
-				16384, exit_callback, names[i]);
+				STACK_SIZE, exit_callback, names[i]);
 
 		launched[i] = r;
 
@@ -298,6 +306,109 @@ test_create(unsigned repeat, bool join, bool posix)
 
 	for (i = 0; i < repeat; i++) {
 		test_create_one(repeat > 1, join);
+	}
+}
+
+static void
+test_cancel_one(bool repeat, bool join)
+{
+	unsigned i;
+	int launched[G_N_ELEMENTS(names)];
+
+	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+		int r;
+		int flags = 0;
+
+		if (!join)
+			flags |= THREAD_F_DETACH;
+
+		if (async_exit)
+			flags |= THREAD_F_ASYNC_EXIT;
+
+		r = thread_create_full(compute_length, names[i], flags,
+				STACK_SIZE, exit_callback, names[i]);
+
+		launched[i] = r;
+
+		if (-1 == r) {
+			if (errno != EAGAIN || !repeat)
+				s_warning("cannot create thread #%u: %m", i);
+		} else {
+			int j;
+			if (!repeat)
+				printf("thread i=%u created as %s\n", i, thread_id_name(r));
+			if (-1 == thread_cancel(r))
+				s_warning("thread_cancel(%u) failed: %m", r);
+			if (!join) {
+				j = thread_join(r, NULL);
+				if (-1 != j) {
+					s_warning("thread_join() worked for %s?\n",
+						thread_id_name(r));
+				} else if (errno != EINVAL) {
+					s_warning("thread_join() failure on %s: %m",
+						thread_id_name(r));
+				} else {
+					if (!repeat) {
+						printf("%s cannot be joined, that's OK\n",
+							thread_id_name(r));
+					}
+				}
+			}
+		}
+	}
+
+	if (!repeat && !join)
+		compat_sleep_ms(200);		/* Let all the threads run */
+
+	if (join) {
+		printf("now joining the %u threads\n", (uint) G_N_ELEMENTS(launched));
+		for (i = 0; i < G_N_ELEMENTS(launched); i++) {
+			int r = launched[i];
+
+			if (-1 == r) {
+				if (!repeat)
+					printf("skipping unlaunched thread i=%u\n", i);
+			} else {
+				void *result;
+				int j = thread_join(r, &result);		/* Block */
+				if (-1 == j) {
+					s_warning("thread_join() failed for %s: %m",
+						thread_id_name(r));
+				} else {
+					long length = pointer_to_long(result);
+					if (!repeat) {
+						printf("%s finished, result length is %ld\n",
+							thread_id_name(r), length);
+					}
+				}
+			}
+		}
+	}
+
+	if (async_exit)
+		cq_dispatch();
+
+	i = thread_create(sleeping_thread, NULL, 0, STACK_SIZE);
+	if (-1U == i)
+		s_error("cannot create sleeping thread: %m");
+	if (-1 == thread_cancel(i)) {
+		s_error("cannot cancel sleeping thread: %m");
+	} else {
+		void *result;
+
+		if (-1 == thread_join(i, &result))
+			s_error("cannot join with sleeping thread: %m");
+		g_assert(THREAD_CANCELLED == result);
+	}
+}
+
+static void
+test_cancel(unsigned repeat, bool join)
+{
+	unsigned i;
+
+	for (i = 0; i < repeat; i++) {
+		test_cancel_one(repeat > 1, join);
 	}
 }
 
@@ -526,7 +637,7 @@ player(void *num)
 
 		do {
 			if (cond_timeout != 0) {
-				bool success = cond_timed_wait(
+				bool success = cond_timed_wait_clean(
 					&game_state_change, &game_state_lock, &timeout);
 
 				if (!success) {
@@ -536,7 +647,7 @@ player(void *num)
 					continue;
 				}
 			} else {
-				cond_wait(&game_state_change, &game_state_lock);
+				cond_wait_clean(&game_state_change, &game_state_lock);
 			}
 
 			if (other_player == game_state) {
@@ -661,7 +772,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	cond_broadcast(&game_state_change, &game_state_lock);
 
 	do {
-		cond_wait(&game_state_change, &game_state_lock);
+		cond_wait_clean(&game_state_change, &game_state_lock);
 	} while (game_state < BOTH_PLAYER_GONE);
 
 	g_assert(0 == cond_waiting_count(&game_state_change));
@@ -1425,6 +1536,7 @@ teq_recv_done(void *arg)
 	barrier_t *b = arg;
 	s_message("%s(): arg=%p", G_STRFUNC, arg);
 	barrier_wait(b);
+	barrier_free_null(&b);
 	s_message("%s(): done!", G_STRFUNC);
 	teq_recv_completed = TRUE;
 }
@@ -1501,7 +1613,7 @@ teq_sender(void *arg)
 		TEQ_AM_CALLOUT, teq_sent_callout, waiter_refcnt_inc(w));
 
 	/* Final event will unlock the barrier */
-	teq_post(sa->receiver, teq_recv_done, sa->b);
+	teq_post(sa->receiver, teq_recv_done, barrier_refcnt_inc(sa->b));
 
 	barrier_wait(sa->b);		/* Waiting for teq_recv_done() */
 	s_message("%s(): receiver processed final event", G_STRFUNC);
@@ -1565,9 +1677,9 @@ main(int argc, char **argv)
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
-	bool stats = FALSE, teq = FALSE;
+	bool stats = FALSE, teq = FALSE, cancel = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "c:ehjn:st:vxABCEFIMNOPQRST:VX";
+	const char options[] = "c:ehjn:st:vxABCEFIKMNOPQRST:VX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -1595,6 +1707,9 @@ main(int argc, char **argv)
 			break;
 		case 'I':			/* test inter-thread signaling */
 			inter = TRUE;
+			break;
+		case 'K':			/* test thread cancellation */
+			cancel = TRUE;
 			break;
 		case 'M':			/* monitor tennis match */
 			monitor = TRUE;
@@ -1680,6 +1795,9 @@ main(int argc, char **argv)
 
 	if (create)
 		test_create(repeat, join, posix);
+
+	if (cancel)
+		test_cancel(repeat, join);
 
 	if (inter)
 		test_inter();

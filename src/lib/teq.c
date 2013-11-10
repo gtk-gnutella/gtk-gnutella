@@ -862,6 +862,9 @@ teq_post_ack(unsigned id, notify_fn_t routine, void *data,
  * @attention
  * There is a potential for deadlock if any thread can issue RPCs to any other.
  *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param id		the targeted thread to which RPC is issued
  * @param teq		the targeted thread event queue, NULL if unknown
  * @param routine	the routine to invoke in the context of the thread
@@ -932,6 +935,9 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
  * @attention
  * There is a potential for deadlock if any thread can issue RPCs to any other.
  *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param id		the targeted thread to which RPC is issued
  * @param routine	the routine to invoke in the context of the thread
  * @param data		the argument to the routine
@@ -961,6 +967,9 @@ teq_rpc(unsigned id, teq_rpc_fn_t routine, void *data)
  * could result in a deadlock.  By having processing done from the callout
  * queue, we know we are not within any GTK call and therefore it is safe to
  * have the routine attempt to issue GTK calls.
+ *
+ * @note
+ * This routine is a cancellation point.
  *
  * @param id		the targeted thread to which RPC is issued
  * @param routine	the routine to invoke in the context of the thread
@@ -1358,6 +1367,9 @@ teq_monitor_install(void)
  * the thread can be accessed without lock protection if the only other source
  * of concurrency is the processing of events from the thread event queue.
  *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param predicate		test for new work
  * @param arg			argument to supply to the predicate
  */
@@ -1390,6 +1402,9 @@ teq_wait(predicate_fn_t predicate, void *arg)
 		 * Atomically restore the previous signal mask and wait for signals.
 		 * Since we can receive other signals than TSIG_TEQ, we need to
 		 * re-evaluate the predicate once we return.
+		 *
+		 * There is nothing to cleanup here: should the thread be cancelled,
+		 * its signal mask will be irrelevant.
 		 */
 
 		thread_sigsuspend(&oset);

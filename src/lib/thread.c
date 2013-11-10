@@ -217,6 +217,28 @@ struct thread_exit_cb {
 	slink_t lnk;					/**< Forward embedded pointer */
 };
 
+/**
+ * Thread cleanup callbacks.
+ *
+ * They are invoked when thread exits explicitly or is cancelled, in the
+ * reverse order they were registered, in the context of the thread that
+ * registered them.
+ *
+ * Contrary to thread exit callbacks, these cleanup callbacks are meant to
+ * be pushed and poped in the same lexical context, because the argument may
+ * refer to a structure that lies on the stack.
+ */
+struct thread_cleanup_cb {
+	notify_fn_t cleanup_cb;			/**< The cleanup callback */
+	void *data;						/**< Argument passed to the callback */
+	slink_t lnk;					/**< Forward embedded pointer */
+	/* Information helping ensure correct usage */
+	const void *sp;					/**< Stack pointer at registration time */
+	const char *routine;			/**< Routine registering the callback */
+	const char *file;				/**< File where registration occurred */
+	unsigned line;					/**< Line number within file */
+};
+
 enum thread_element_magic { THREAD_ELEMENT_MAGIC = 0x3240eacc };
 
 /**
@@ -269,12 +291,17 @@ struct thread_element {
 	uint reusable:1;				/**< Whether element is reusable */
 	uint async_exit:1;				/**< Whether exit callback done in main */
 	uint main_thread:1;				/**< Whether this is the main thread */
+	uint cancelled:1;				/**< Whether thread has been cancelled */
+	uint cancelable:1;				/**< Whether thread is cancelable */
+	uint exit_started:1;			/**< Started to process exiting */
+	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
 	cond_t *cond;					/**< Condition on which thread waits */
 	spinlock_t lock;				/**< Protects concurrent updates */
 	spinlock_t local_slk;			/**< Protects concurrent updates */
 	eslist_t exit_list;				/**< List of exit callbacks to invoke */
+	eslist_t cleanup_list;			/**< List of cleanup callbacks to invoke */
 	tsighandler_t sigh[TSIG_COUNT - 1];		/**< Signal handlers */
 	void **locals[THREAD_LOCAL_L1_SIZE];	/**< Thread-local variables */
 };
@@ -448,6 +475,7 @@ static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 static void thread_lock_dump(const struct thread_element *te);
+static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
 
 /**
  * Are there signals present for the thread?
@@ -753,21 +781,33 @@ static const char *
 thread_element_name_to_buf(const struct thread_element *te,
 	char *buf, size_t len)
 {
+	const char *qualify = "";
+
+	if G_UNLIKELY(te->exit_started) {
+		if (te->cancelled)
+			qualify = "cancelled ";
+		else if (te->join_pending)
+			qualify = "exited ";
+		else
+			qualify = "exiting ";
+	}
+
 	if G_UNLIKELY(te->name != NULL) {
-		str_bprintf(buf, len, "thread \"%s\"", te->name);
+		str_bprintf(buf, len, "%sthread \"%s\"", qualify, te->name);
 	} else if (te->created) {
 		if (pointer_to_uint(te->argument) < 1000) {
-			str_bprintf(buf, len, "thread #%u:%s(%u)",
-				te->stid, stacktrace_function_name(te->entry),
+			str_bprintf(buf, len, "%sthread #%u:%s(%u)",
+				qualify, te->stid, stacktrace_function_name(te->entry),
 				pointer_to_uint(te->argument));
 		} else {
-			str_bprintf(buf, len, "thread #%u:%s(%p)",
-				te->stid, stacktrace_function_name(te->entry), te->argument);
+			str_bprintf(buf, len, "%sthread #%u:%s(%p)",
+				qualify, te->stid,
+				stacktrace_function_name(te->entry), te->argument);
 		}
 	} else if (te->main_thread) {
 		str_bprintf(buf, len, "thread #%u:main()", te->stid);
 	} else {
-		str_bprintf(buf, len, "thread #%u", te->stid);
+		str_bprintf(buf, len, "%sthread #%u", qualify, te->stid);
 	}
 
 	return buf;
@@ -1313,10 +1353,15 @@ thread_element_reset(struct thread_element *te)
 	te->argument = NULL;
 	te->cond = NULL;
 	te->main_thread = FALSE;
+	te->cancelled = FALSE;
+	te->cancelable = TRUE;
+	te->exit_started = FALSE;
+	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
 	ZERO(&te->sigh);
 	eslist_clear(&te->exit_list);
+	eslist_clear(&te->cleanup_list);
 }
 
 /**
@@ -1532,6 +1577,8 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->cancelable = FALSE;
+	te->cancl = THREAD_CANCEL_DISABLE;
 	thread_set(te->tid, t);
 	thread_stack_init_shape(te, &te);
 	thread_element_common_init(te, t);
@@ -1592,6 +1639,7 @@ thread_new_element(unsigned stid)
 	spinlock_init(&te->lock);
 	spinlock_init(&te->local_slk);
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
+	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
 	thread_stack_init_shape(te, &te);
 	te->valid = TRUE;						/* Minimally ready */
 	te->discovered = TRUE;					/* Assume it was discovered */
@@ -1671,9 +1719,13 @@ thread_main_element(thread_t t)
 	thread_set(te->tid, t);
 	te->main_thread = TRUE;
 	te->name = "main";
+	te->cancelable = FALSE;
+	te->cancelled = FALSE;
+	te->cancl = THREAD_CANCEL_DISABLE;
 	spinlock_init(&te->lock);
 	spinlock_init(&te->local_slk);
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
+	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
 
 	tls = &te->locks;
 	tls->arena = locks_arena_main;
@@ -2804,7 +2856,8 @@ thread_id_name(unsigned id)
 		str_bprintf(b, sizeof buf[0], "<unknown thread ID %u>", id);
 		return b;
 	} else if G_UNLIKELY(te->reusable) {
-		str_bprintf(b, sizeof buf[0], "<terminated thread ID %u>", id);
+		str_bprintf(b, sizeof buf[0], "<%s thread ID %u>",
+			te->cancelled ? "cancelled" : "terminated", id);
 		return b;
 	} else if G_UNLIKELY(!te->valid && !te->creating) {
 		str_bprintf(b, sizeof buf[0], "<invalid thread ID %u>", id);
@@ -2912,6 +2965,20 @@ thread_sig_handle(struct thread_element *te)
 	THREAD_STATS_INCX(sig_handled_count);
 
 recheck:
+
+	/*
+	 * If the thread was cancelled, and cancelling is enabled, do not
+	 * process signals.
+	 */
+
+	if G_UNLIKELY(te->cancelled && THREAD_CANCEL_ENABLE == te->cancl) {
+		tsigset_t set;
+
+		tsig_fillset(&set);
+		te->sig_mask = set;		/* Block all signals from now on */
+
+		return handled;
+	}
 
 	/*
 	 * Load unblocked signals we have to process and clear the pending set.
@@ -5586,6 +5653,9 @@ thread_block_prepare(void)
  * When this routine returns, the thread has been either successfully unblocked
  * and is resuming its execution normally or the timeout expired.
  *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param te		the thread element for the current thread
  * @param events	the amount of events returned by thread_block_prepare()
  * @param end		absolute time when we must stop waiting (NULL = no limit)
@@ -5648,6 +5718,8 @@ thread_element_block_until(struct thread_element *te,
 retry:
 	THREAD_STATS_INCX(thread_self_blocks);
 
+	thread_cancel_test();
+
 	if (end != NULL) {
 		long remain = tm_remaining_ms(end);
 		struct pollfd fds;
@@ -5677,6 +5749,8 @@ retry:
 			G_STRFUNC, thread_element_name(te));
 	}
 
+	thread_cancel_test();
+
 	/*
 	 * Check whether we've been signalled.
 	 *
@@ -5697,6 +5771,12 @@ retry:
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
+
+	/*
+	 * Before returning to user code, check for suspension request.
+	 */
+
+	thread_check_suspended();
 
 	return TRUE;
 
@@ -5738,6 +5818,9 @@ timed_out:
  * is called in-between, the event count will be incremented and there will
  * be no blocking done.
  *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param events	the amount of events returned by thread_block_prepare()
  */
 void
@@ -5759,6 +5842,9 @@ thread_block_self(unsigned events)
  *
  * When this routine returns, the thread has either been successfully unblocked
  * and is resuming its execution normally or the timeout expired.
+ *
+ * @note
+ * This routine is a cancellation point.
  *
  * @param events	the amount of events returned by thread_block_prepare()
  * @param tmout		timeout (NULL = infinite)
@@ -5790,7 +5876,6 @@ static int
 thread_element_unblock(struct thread_element *te)
 {
 	bool need_unblock = TRUE;
-	char c = '\0';
 
 	/*
 	 * If the targeted thread is not blocked yet, count the event nonetheless.
@@ -5811,14 +5896,16 @@ thread_element_unblock(struct thread_element *te)
 		te->unblocked = TRUE;
 	THREAD_UNLOCK(te);
 
-	if (!need_unblock)
-		return 0;				/* Already unblocked */
+	if (need_unblock) {
+		char c = '\0';
 
-	if (-1 == s_write(te->wfd[1], &c, 1)) {
-		s_minicarp("%s(): cannot unblock %s: %m",
-			G_STRFUNC, thread_element_name(te));
-		return -1;
+		if (-1 == s_write(te->wfd[1], &c, 1)) {
+			s_minicarp("%s(): cannot unblock %s: %m",
+				G_STRFUNC, thread_element_name(te));
+			return -1;
+		}
 	}
+
 	return 0;
 }
 
@@ -5986,7 +6073,7 @@ thread_launch_register(struct thread_element *te)
 /**
  * @return current thread stack pointer.
  */
-static void * NO_INLINE
+void * NO_INLINE
 thread_sp(void)
 {
 	int sp;
@@ -6056,7 +6143,7 @@ thread_launch_trampoline(void *arg)
 	 */
 
 	u.result = (*routine)(u.argument);
-	thread_exit(u.result);
+	thread_exit_internal(u.result, NULL);
 }
 
 /**
@@ -6102,6 +6189,7 @@ thread_launch(struct thread_element *te,
 
 	te->detached = booleanize(flags & THREAD_F_DETACH);
 	te->async_exit = booleanize(flags & THREAD_F_ASYNC_EXIT);
+	te->cancelable = !booleanize(flags & THREAD_F_NO_CANCEL);
 
 	te->created = TRUE;				/* This is a thread we created */
 	te->creating = TRUE;			/* Still in the process of being created */
@@ -6341,23 +6429,92 @@ thread_exit_sync_cb(void *data, void *value)
 }
 
 /**
+ * Warn about remaining cleanup callback.
+ */
+static bool
+thread_cleanup_warn(void *data, void *value)
+{
+	struct thread_cleanup_cb *c = data;
+	struct thread_element *te = value;
+
+	thread_element_check(te);
+
+	s_warning("%s exiting with pending cleanup callback %s(%p) "
+		"registered by %s() at %s:%u",
+		thread_element_name(te), stacktrace_function_name(c->cleanup_cb),
+		c->data, c->routine, c->file, c->line);
+
+	xfree(c);
+	return TRUE;		/* Remove it from list */
+}
+
+/**
+ * Execute cleanup callback.
+ */
+static bool
+thread_cleanup_handle(void *data, void *value)
+{
+	struct thread_cleanup_cb *c = data;
+	const void *sp = value;
+
+	if (thread_stack_ptr_cmp(sp, c->sp) < 0) {
+		s_critical("ignoring obsolete cleanup callback %s(%p) for %s, "
+			"registered by %s() at %s:%u: "
+			"registration SP=%p, exit SP=%p, current SP=%p",
+			stacktrace_function_name(c->cleanup_cb), c->data, thread_name(),
+			c->routine, c->file, c->line, c->sp, sp, &sp);
+	} else {
+		(*c->cleanup_cb)(c->data);
+	}
+
+	xfree(c);
+	return TRUE;		/* Remove it from list */
+}
+
+/**
  * Exit from current thread.
  *
  * The exit value is recorded in the thread structure where it will be made
  * available through thread_join() and through the optional exit callback.
  *
+ * When the exit is explicit, all the remaining cleanup handlers that have
+ * been registered for the thread are run.
+ *
  * Control does not come back to the calling thread.
  *
  * @param value		the exit value
+ * @param sp		stack pointer when existing (NULL if implicit)
  */
-void
-thread_exit(void *value)
+static void
+thread_exit_internal(void *value, const void *sp)
 {
 	struct thread_element *te = thread_get_element();
 	tsigset_t set;
+	size_t lock_count;
 
 	g_assert(pthread_equal(te->ptid, pthread_self()));
 	g_assert(thread_eq(te->tid, thread_self()));
+	g_assert_log(!te->exit_started,
+		"%s() called recursively in %s", G_STRFUNC, thread_element_name(te));
+
+	/*
+	 * Mark that we are exiting to prevent recursive calls, and disable
+	 * futher cancel requests.
+	 */
+
+	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
+	te->cancl = THREAD_CANCEL_DISABLE;
+
+	/*
+	 * Thread is exiting, block all signals now.
+	 */
+
+	tsig_fillset(&set);
+	te->sig_mask = set;
+
+	/*
+	 * Sanity checks.
+	 */
 
 	if (thread_main_stid == te->stid)
 		s_error("%s() called by the main thread", G_STRFUNC);
@@ -6367,10 +6524,37 @@ thread_exit(void *value)
 			G_STRFUNC, thread_element_name(te));
 	}
 
+	/*
+	 * When exiting explicitly, via thread_exit() or through a cancellation
+	 * request, we run the registered cleanup callbacks, otherwise they
+	 * are discarded with a warning (it is an error to return from the main
+	 * entry point with pending cleanup callbacks).
+	 *
+	 * Running of the cleanup routine must be done before clearing all
+	 * the thread-private and thread-local variables registered by the thread
+	 * since the callbacks may use such values.
+	 */
+
+	lock_count = te->locks.count;	/* Can be non-zero at this point */
+
+	if (NULL == sp) {
+		/* Implicit exit, returning from main entry point */
+		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_warn, te);
+	} else {
+		/* Explicit exit or cancellation */
+		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_handle,
+			deconstify_pointer(sp));
+	}
+
+	/*
+	 * Now that all the cleanup handlers have been run, there must not
+	 * be any lock remaining.
+	 */
+
 	if (0 != te->locks.count) {
-		s_warning("%s() called by %s with %zu lock%s still held",
+		s_warning("%s() called by %s with %zu lock%s still held (%zu on entry)",
 			G_STRFUNC, thread_element_name(te), te->locks.count,
-			plural(te->locks.count));
+			plural(te->locks.count), lock_count);
 		thread_lock_dump(te);
 		s_error("thread exiting without clearing its locks");
 	}
@@ -6386,13 +6570,6 @@ thread_exit(void *value)
 
 	thread_private_clear(te);
 	thread_local_clear(te);
-
-	/*
-	 * Thread is exiting, block all signals now.
-	 */
-
-	tsig_fillset(&set);
-	te->sig_mask = set;
 
 	/*
 	 * Invoke any registered exit notification callback.
@@ -6475,6 +6652,22 @@ thread_exit(void *value)
 }
 
 /**
+ * Exit from current thread.
+ *
+ * The exit value is recorded in the thread structure where it will be made
+ * available through thread_join() and through the optional exit callback.
+ *
+ * Control does not come back to the calling thread.
+ *
+ * @param value		the exit value
+ */
+void
+thread_exit(void *value)
+{
+	thread_exit_internal(value, thread_sp());
+}
+
+/**
  * Register a new thread exit callback for the current thread.
  *
  * When delivered synchronously, callbacks are invoked in reverse registration
@@ -6504,6 +6697,315 @@ thread_atexit(thread_exit_t exit_cb, void *exit_arg)
 }
 
 /**
+ * Register a new thread cleanup callback for the current thread.
+ *
+ * @param cleanup	the cleanup callback to invoke
+ * @param arg		the additional callback argument to supply
+ * @param routine	routine where registration is made
+ * @param file		file where registration is made
+ * @param line		line where registration is made
+ * @param sp		stack pointer of routine pushing the cleanup callback
+ */
+void
+thread_cleanup_push_from(notify_fn_t cleanup, void *arg,
+	const char *routine, const char *file, unsigned line, const void *sp)
+{
+	struct thread_element *te = thread_get_element();
+	struct thread_cleanup_cb *c, *ch;
+
+	g_assert(cleanup != NULL);
+	g_assert(routine != NULL);
+	g_assert(file != NULL);
+
+	/*
+	 * These objects are created and freed by the same thread, so it pays
+	 * to use xmalloc() instead of walloc() because we're going to allocate
+	 * from a thread-private pool, without locks.
+	 */
+
+	XMALLOC0(c);
+	c->cleanup_cb = cleanup;
+	c->data = arg;
+	c->routine = routine;
+	c->file = file;
+	c->line = line;
+	c->sp = sp;
+
+	/*
+	 * Make sure that we're stacking cleanup handlers without forgetting to
+	 * remove obsolete entries.
+	 */
+
+	ch = eslist_head(&te->cleanup_list);
+
+	g_assert_log(NULL == ch || thread_stack_ptr_cmp(c->sp, ch->sp) > 0,
+		"%s(): previous entry from %s() at %s:%u is obsolete, "
+		"old SP=%p, current SP=%p",
+		G_STRFUNC, ch->routine, ch->file, ch->line, ch->sp, c->sp);
+
+	eslist_prepend(&te->cleanup_list, c);
+}
+
+/**
+ * Pop thread cleanup callback for the current thread and optionally run it.
+ *
+ * @param run		whether to run the callback
+ * @param routine	routine where pop is made
+ * @param file		file where pop is made
+ * @param line		line where pop is made
+ */
+void
+thread_cleanup_pop_from(bool run,
+	const char *routine, const char *file, unsigned line)
+{
+	struct thread_element *te = thread_get_element();
+	struct thread_cleanup_cb *c;
+
+	g_assert(routine != NULL);
+	g_assert(file != NULL);
+
+	c = eslist_shift(&te->cleanup_list);
+
+	g_assert_log(c != NULL,
+		"%s attempting to remove non-existent cleanup in %s() at %s:%u",
+		thread_element_name(te), routine, file, line);
+
+	g_assert_log(thread_stack_ptr_cmp(thread_sp(), c->sp) >= 0,
+		"%s attempting to remove obsolete cleanup in %s() at %s:%u, "
+			"cleanup %s(%p) registered in %s() at %s:%u",
+		thread_element_name(te), routine, file, line,
+		stacktrace_function_name(c->cleanup_cb), c->data,
+		c->routine, c->file, c->line);
+
+	g_assert_log(0 == strcmp(routine, c->routine),
+		"%s attempting to remove out-of-scope cleanup in %s() at %s:%u, "
+			"cleanup %s(%p) registered in %s() at %s:%u",
+		thread_element_name(te), routine, file, line,
+		stacktrace_function_name(c->cleanup_cb), c->data,
+		c->routine, c->file, c->line);
+
+	/*
+	 * If the cleanup handler needs to run, make sure the thread cannot
+	 * be cancelled so that the cleanup is performed atomically with respect
+	 * to cancellation, even if it hits a cancellation point.
+	 */
+
+	if (run) {
+		enum thread_cancel_state oldstate;
+
+		oldstate = te->cancl;
+		te->cancl = THREAD_CANCEL_DISABLE;
+
+		(*c->cleanup_cb)(c->data);
+
+		te->cancl = oldstate;
+	}
+
+	xfree(c);
+}
+
+/**
+ * Check whether current thread has a cleanup handler installed in the
+ * named routine, at the top of the stack.
+ *
+ * @param routine		name of routine that could have pushed a handler
+ *
+ * @return TRUE if there is a cleanup handler installed at the top of the
+ * LIFO stack for the given routine name.
+ */
+bool
+thread_cleanup_has_from(const char *routine)
+{
+	struct thread_element *te = thread_get_element();
+	struct thread_cleanup_cb *c;
+
+	g_assert(routine != NULL);
+
+	c = eslist_head(&te->cleanup_list);
+
+	if (NULL == c)
+		return FALSE;
+
+	if (thread_stack_ptr_cmp(thread_sp(), c->sp) < 0)
+		return FALSE;		/* Obsolete handler */
+
+	return 0 == strcmp(routine, c->routine);
+}
+
+/**
+ * Set thread cancellation state.
+ *
+ * @param state		new desired cancellation state
+ * @param oldstate	where old state is returned if not NULL
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+thread_cancel_set_state(enum thread_cancel_state state,
+	enum thread_cancel_state *oldstate)
+{
+	struct thread_element *te = thread_get_element();
+
+	if (oldstate != NULL)
+		*oldstate = te->cancl;
+
+	switch (state) {
+	case THREAD_CANCEL_ENABLE:
+		if (!te->cancelable) {
+			s_carp("%s(): cannot enable cancel on non-cancelable %s",
+				G_STRFUNC, thread_element_name(te));
+			errno = EPERM;		/* Main thread, or other discovered thread */
+			return -1;
+		}
+		/* FALL THROUGH */
+	case THREAD_CANCEL_DISABLE:
+		te->cancl = state;
+		return 0;
+	}
+
+	errno = EINVAL;				/* Invalid state */
+	return -1;
+}
+
+/**
+ * @return whether current thread can be cancelled.
+ */
+bool
+thread_is_cancelable(void)
+{
+	struct thread_element *te = thread_get_element();
+
+	return THREAD_CANCEL_ENABLE == te->cancl && te->cancelable;
+}
+
+/**
+ * Cancel specified thread ID.
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+thread_cancel(unsigned id)
+{
+	struct thread_element *te;
+
+	te = thread_get_element_by_id(id);
+	if (NULL == te)
+		return -1;			/* errno set by thread_get_element_by_id() */
+
+	/*
+	 * If called on a non-cancelable thread, we are facing a non-critical
+	 * program error (the thread ID is probably incorrect).
+	 */
+
+	if (!te->cancelable) {
+		s_carp("%s(): called on non-cancelable %s",
+			G_STRFUNC, thread_element_name(te));
+		errno = EPERM;		/* Main thread, or other discovered thread */
+		return -1;
+	}
+
+	THREAD_LOCK(te);
+	te->cancelled = TRUE;
+	THREAD_UNLOCK(te);
+
+	/*
+	 * If the targeted thread is in a state where it can be cancelled, check
+	 * for common cases: we're cancelling ourselves or the targeted thread is
+	 * waiting on a condition variable.
+	 */
+
+	if (THREAD_CANCEL_ENABLE == te->cancl) {
+		bool unblock = FALSE;
+		cond_t cv = NULL;
+
+		/*
+		 * If the targeted thread is ourselves then exit immediately.
+		 */
+
+		if (thread_small_id() == id)
+			thread_exit(THREAD_CANCELLED);
+
+		/*
+		 * If the thread was blocked, unblock it.
+		 * If the thread is waiting on a condition variable, wake it up.
+		 *
+		 * It is then up to the user-waiting code to possibly check for
+		 * cancellation explicitly.
+		 */
+
+		THREAD_LOCK(te);
+		if G_UNLIKELY(te->blocked) {
+			unblock = TRUE;
+		} else if G_UNLIKELY(te->cond != NULL) {
+			cv = cond_refcnt_inc(te->cond);
+		}
+		THREAD_UNLOCK(te);
+
+		if G_UNLIKELY(unblock) {
+			thread_element_unblock(te);
+		} else if G_UNLIKELY(cv != NULL) {
+			cond_wakeup_all(cv);
+			cond_refcnt_dec(cv);
+		}
+	}
+
+	return 0;		/* OK */
+}
+
+/**
+ * Check whether current thread has been cancelled.
+ *
+ * This routine does not return if the thread is cancelable and has a pending
+ * cancel recorded.
+ *
+ * @note
+ * This routine is (obviously!) a cancellation point.
+ *
+ * @return TRUE if we were suspended or handled signals.
+ */
+bool
+thread_cancel_test(void)
+{
+	struct thread_element *te = thread_get_element();
+	bool delayed;
+
+	delayed = thread_check_suspended();
+
+	/*
+	 * To cancel the thread, it must be cancelable, in a state where cancelling
+	 * is enabled, be cancelled (i.e. having received a cancel request), not
+	 * already exiting and not holding any registered lock.
+	 *
+	 * This last property is interesting because it creates an implicit cancel
+	 * protection within critical sections, avoiding the need to change the
+	 * cancel state and writing complex cleanup routines when dealing with
+	 * critical sections that contain cancellation points.
+	 */
+
+	if (
+		te->cancelable &&
+		THREAD_CANCEL_ENABLE == te->cancl &&
+		0 == te->locks.count &&
+		te->cancelled && !te->exit_started
+	)
+		thread_exit(THREAD_CANCELLED);
+
+	return delayed;
+}
+
+/**
+ * Invoked when a thread issuing a thread_join() operation is cancelled.
+ */
+static void
+thread_join_cancelled(void *arg)
+{
+	unsigned id = pointer_to_uint(arg);
+
+	s_carp("thread %s cancelled whilst joining with %s",
+		thread_name(), thread_id_name(id));
+}
+
+/**
  * Join with specified thread ID.
  *
  * If the thread has not terminated yet, this will block the calling thread
@@ -6525,9 +7027,22 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	g_assert(thread_main_stid != id);	/* Can't join with main thread */
 	g_assert(id != thread_small_id());	/* Can't join with oneself */
 
+	/*
+	 * Thread-joining is a thread cancellation point, and we honour that but
+	 * with a caveat: if we cannot join with a non-detached thread, we will
+	 * never reclaim its thread ID and the dead-thread stack, which is a
+	 * problem.
+	 *
+	 * Therefore, we install a cleanup handler to be able to log when we are
+	 * cancelled in the middle of a thread_join().
+	 */
+
+	thread_cleanup_push(thread_join_cancelled, uint_to_pointer(id));
+	thread_cancel_test();
+
 	te = thread_get_element_by_id(id);
 	if (NULL == te)
-		return -1;
+		goto error;
 
 	if (
 		!te->created ||				/* Not a thraed we created */
@@ -6535,12 +7050,12 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 		te->detached				/* Cannot join with a detached thread */
 	) {
 		errno = EINVAL;
-		return -1;
+		goto error;
 	}
 
 	if (te->reusable) {
 		errno = ESRCH;				/* Was already joined, is a zombie */
-		return -1;
+		goto error;
 	}
 
 	tself = thread_get_element();
@@ -6549,7 +7064,7 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	if (tself->join_requested && tself->joining_id == id) {
 		THREAD_UNLOCK(tself);
 		errno = EDEADLK;			/* Trying to join with each other! */
-		return -1;
+		goto error;
 	}
 	THREAD_UNLOCK(tself);
 
@@ -6563,6 +7078,7 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	 */
 
 	THREAD_LOCK(te);
+retry:
 	events = tself->unblock_events;	/* a.k.a. thread_block_prepare() */
 	if (te->join_pending)
 		goto joinable;
@@ -6574,7 +7090,7 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	if (nowait) {
 		THREAD_UNLOCK(te);
 		errno = EAGAIN;				/* Thread still running, call later */
-		return -1;
+		goto error;
 	}
 
 	/*
@@ -6599,13 +7115,13 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	thread_block_self(events);		/* Wait for thread termination */
 
 	/*
-	 * This cannot be a spurious wakeup, hence panic if it is.
+	 * This could be a spurious wakeup if the waiting thread is cancelled
+	 * for instance, or receives a signal.
 	 */
 
 	THREAD_LOCK(te);
 	if (!te->join_pending) {
-		s_error("%s(): %s has not terminated yet, spurious wakeup?",
-			G_STRFUNC, thread_element_name(te));
+		goto retry;
 	}
 
 	g_assert(tself->stid == te->joining_id);
@@ -6618,6 +7134,8 @@ joinable:
 	if (result != NULL)
 		*result = te->exit_value;
 
+	thread_cleanup_pop(FALSE);
+
 	/*
 	 * We can now join with the thread at the POSIX layer: we know it has
 	 * terminated hence we cannot block.
@@ -6626,10 +7144,17 @@ joinable:
 	thread_pjoin(te);
 	thread_exiting(te);
 	return 0;					/* OK, successfuly joined */
+
+error:
+	thread_cleanup_pop(FALSE);
+	return -1;
 }
 
 /**
  * A blocking join with the specified thread ID.
+ *
+ * @note
+ * This routine is a cancellation point.
  *
  * @param id		the STID of the thread we want to join with
  * @param result	where thread's result is stored, if non NULL
@@ -6647,6 +7172,9 @@ thread_join(unsigned id, void **result)
  *
  * When the thread cannot be joined yet (it is still running), errno is
  * set to EAGAIN.
+ *
+ * @note
+ * This routine is a cancellation point.
  *
  * @param id		the STID of the thread we want to join with
  * @param result	where thread's result is stored, if non NULL
@@ -6868,6 +7396,9 @@ done:
 /**
  * Block thread until a signal is received or until we are explicitly unblocked.
  *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param mask		the signal mask to set before blocking
  *
  * @return TRUE if we were unblocked by a signal.
@@ -6922,10 +7453,14 @@ thread_sigblock(tsigset_t mask)
 		goto process_signals;
 	}
 
+	thread_cancel_test();
+
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
 		s_error("%s(): %s could not block itself: %m",
 			G_STRFUNC, thread_element_name(te));
 	}
+
+	thread_cancel_test();
 
 	/*
 	 * Check whether we've been signalled.
@@ -6948,15 +7483,24 @@ thread_sigblock(tsigset_t mask)
 process_signals:
 
 	if (signalled) {
+		thread_cancel_test();
 		THREAD_STATS_INCX(sig_handled_while_paused);
 		thread_sig_handle(te);
 	}
 
+	/*
+	 * Before returning to user code, check for cancelling & suspension request.
+	 */
+
+	thread_cancel_test();
 	return signalled;
 }
 
 /**
  * Block thread until a signal is received or until we are explicitly unblocked.
+ *
+ * @note
+ * This routine is a cancellation point.
  *
  * @return TRUE if we were unblocked by a signal.
  */
@@ -6981,6 +7525,9 @@ thread_pause(void)
  *
  * This is usually used in conjunction with thread_sigmask(TSIG_BLOCK) to
  * close a critical section opened when a set of signals were masked.
+ *
+ * @note
+ * This routine is a cancellation point.
  *
  * @param mask		signal mask to restore before blocking thread.
  *
@@ -7009,6 +7556,9 @@ thread_sigsuspend(const tsigset_t *mask)
  *
  * During the suspension, the thread is able to process signals that would
  * be directed to it and for which a handler has been configured.
+ *
+ * @note
+ * This routine is a cancellation point.
  *
  * @param ms		amount of milliseconds to sleep
  */
@@ -7063,13 +7613,16 @@ retry:
 		 * Since nobody is waking us up but signal processing and system
 		 * clock adjustments (as detected and signalled by the "time" thread)
 		 * we know that a wake up is abnormal and we need to retry.
+		 *
+		 * Note that the condition variable provides a cancellation point.
 		 */
 
-		if (cond_timed_wait(&sleep_cond, &sleep_mtx, &timeout))
+		if (cond_timed_wait_clean(&sleep_cond, &sleep_mtx, &timeout))
 			goto retry;
 	}
 
 	mutex_unlock(&sleep_mtx);
+	thread_cancel_test();		/* If we did not enter cond_timed_wait()... */
 }
 
 /**
@@ -7106,6 +7659,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->exited = te->join_pending || te->reusable || te->exiting;
 	info->suspended = te->suspended;
 	info->blocked = te->blocked || te->cond != NULL;
+	info->cancelled = te->cancelled;
 	info->main_thread = te->main_thread;
 	info->sig_mask = te->sig_mask;
 	info->sig_pending = te->sig_pending;
@@ -7184,9 +7738,10 @@ thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
 		} else {
 			entry[0] = '\0';
 		}
-		str_bprintf(buf, len, "<%s%s%s%s thread #%u \"%s\"%s "
+		str_bprintf(buf, len, "<%s%s%s%s%s thread #%u \"%s\"%s "
 			"QID=%zu [%zu, %zu], TID=%lu, lock=%zu>",
 			info->exited ? "exited " : "",
+			info->cancelled ? "cancelled " : "",
 			info->suspended ? "suspended " : "",
 			info->blocked ? "blocked " : "",
 			info->discovered ? "discovered" : "created",

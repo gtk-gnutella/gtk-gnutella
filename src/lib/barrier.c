@@ -27,6 +27,14 @@
  *
  * Synchronization barrier.
  *
+ * Routines that may suspend the execution of the thread such as barrier_wait()
+ * are thread cancellation points.  When cancellation occurs, the barrier
+ * reference count is automatically decreased and the maximum amount of waiting
+ * threads is adjusted accordingly.
+ *
+ * As such, the barrier object should be properly reference-counted when given
+ * to cancelable threads.
+ *
  * @author Raphael Manfredi
  * @date 2013
  */
@@ -54,7 +62,7 @@ struct barrier {
 	unsigned id;					/* Thread master ID, -1 if none */
 	unsigned generation;			/* Barrier wait generation (usage) count */
 	unsigned release;				/* Barrier release generation count */
-	int amount;						/* Amount of thread to synchronize */
+	int amount;						/* Amount of threads to synchronize */
 	int waiting;					/* Amount of threads waiting on barrier */
 	int refcnt;						/* Reference count */
 	bool has_master;				/* Whether master thread is present */
@@ -172,6 +180,10 @@ barrier_free_null(barrier_t **b_ptr)
 /**
  * Increase the reference count on the barrier.
  *
+ * This must be used by any cancelable thread that is going to use the barrier,
+ * since the cleanup done should a cancel occur during waiting will remove
+ * one reference to the barrier.
+ *
  * @return the reference to the barrier for convenience.
  */
 barrier_t *
@@ -182,6 +194,82 @@ barrier_refcnt_inc(barrier_t *b)
 
 	atomic_int_inc(&b->refcnt);
 	return b;
+}
+
+/**
+ * Signal that barrier waiting is done.
+ */
+static void
+barrier_done(barrier_t *b)
+{
+	barrier_check(b);
+	assert_mutex_is_owned(&b->lock);
+
+	b->generation++;		/* Let waiting threads exit their waiting loop */
+
+	if G_LIKELY(-1U == b->id) {
+		b->waiting = 0;
+		b->has_master = FALSE;
+	} else {
+		b->has_master = TRUE;
+	}
+
+	cond_broadcast(&b->event, &b->lock);
+}
+
+/**
+ * Cleanup routine invoked when a thread stuck in barrier_wait() is cancelled.
+ */
+static void
+barrier_wait_cleanup(void *arg)
+{
+	barrier_t *b = arg;
+
+	barrier_check(b);
+	assert_mutex_is_owned(&b->lock);
+
+	/*
+	 * Check whether the master thread is being removed and warn them as
+	 * this is probably an error.
+	 */
+
+	if G_UNLIKELY(thread_small_id() == b->id) {
+		b->id = -1U;
+		s_carp("master %s being cancelled for barrier %p", thread_name(), b);
+	}
+
+	/*
+	 * A thread that was expected to synchronize on the barrier is going away,
+	 * hence we need to adjust the expected amount of waiting threads, and
+	 * release the other waiting threads if they already reached the barrier.
+	 */
+
+	g_assert(b->amount >= 1);
+	g_assert(b->waiting >= 1);
+
+	b->amount--;
+	b->waiting--;
+
+	if (b->waiting == b->amount)
+		barrier_done(b);
+
+	mutex_unlock(&b->lock);
+	barrier_free(b);
+}
+
+/**
+ * Cleanup routine invoked when a thread stuck in barrier_wait() is cancelled,
+ * whilst in the final release stage where it is waiting for the master thread.
+ */
+static void
+barrier_wait_release_cleanup(void *arg)
+{
+	barrier_t *b = arg;
+
+	barrier_check(b);
+
+	mutex_unlock(&b->lock);
+	barrier_free(b);
 }
 
 /**
@@ -197,6 +285,9 @@ barrier_refcnt_inc(barrier_t *b)
  * When this function returns, it was necessarily called by a non-master
  * thread (or there is no master thread for this barrier) and the barrier is
  * immediately reusable as a synchronization point.
+ *
+ * @note
+ * This routine is a cancellation point.
  */
 void
 barrier_wait(barrier_t *b)
@@ -242,23 +333,19 @@ barrier_wait(barrier_t *b)
 		 * is no master thread.
 		 */
 
-		b->generation++;		/* Let waiting threads exit the loop below */
-		if G_LIKELY(-1U == b->id) {
-			b->waiting = 0;
-			b->has_master = FALSE;
-		} else {
-			b->has_master = TRUE;
-		}
-
-		cond_broadcast(&b->event, &b->lock);
+		barrier_done(b);
 	} else {
 		/*
 		 * Wait until all the threads are there, the last incoming thread
 		 * increasing the generation number.
 		 */
 
+		thread_cleanup_push(barrier_wait_cleanup, b);
+
 		while (b->generation == generation)
 			cond_wait(&b->event, &b->lock);
+
+		thread_cleanup_pop(FALSE);
 	}
 
 	/*
@@ -273,8 +360,17 @@ barrier_wait(barrier_t *b)
 	if G_UNLIKELY(thread_small_id() == b->id)
 		goto released;			/* Master thread can continue */
 
+	/*
+	 * During the final waiting stage, the thread can be cancelled as well.
+	 * At which point we only need to release the mutex and free the barrier.
+	 */
+
+	thread_cleanup_push(barrier_wait_release_cleanup, b);
+
 	while (b->release == release)
 		cond_wait(&b->event, &b->lock);
+
+	thread_cleanup_pop(FALSE);
 
 released:
 	mutex_unlock(&b->lock);
@@ -291,6 +387,9 @@ released:
  * the barrier, at which point the master thread is released.  It can perform
  * any cleanup or setup for the next phase before calling barrier_release()
  * to let other waiting threads resume execution.
+ *
+ * @note
+ * This routine is a cancellation point.
  */
 void
 barrier_master_wait(barrier_t *b)
@@ -305,8 +404,8 @@ barrier_master_wait(barrier_t *b)
 	mutex_lock(&b->lock);
 
 	g_assert_log(-1U == b->id,
-		"%s() called whilst thread #%u already registered as master",
-		G_STRFUNC, b->id);
+		"%s() called whilst %s already registered as master",
+		G_STRFUNC, thread_id_name(b->id));
 
 	b->id = thread_small_id();
 	mutex_unlock(&b->lock);
@@ -334,8 +433,8 @@ barrier_release(barrier_t *b)
 	mutex_lock(&b->lock);
 
 	g_assert_log(thread_small_id() == b->id,
-		"%s() not called by master thread #%u but by %s instead",
-		G_STRFUNC, b->id, thread_name());
+		"%s() not called by master %s but by %s instead",
+		G_STRFUNC, thread_id_name(b->id), thread_name());
 
 	/*
 	 * All the waiting threads are waiting for the release count to change.

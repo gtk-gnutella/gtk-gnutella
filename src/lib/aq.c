@@ -382,7 +382,7 @@ aq_timed_remove(aqueue_t *aq, const tm_t *timeout)
 
 	mutex_lock(&aq->lock);
 	while (has_data && 0 == eslist_count(&aq->queue))
-		has_data = cond_wait_until(&aq->event, &aq->lock, &end);
+		has_data = cond_wait_until_clean(&aq->event, &aq->lock, &end);
 
 	if (has_data)
 		aqi = eslist_shift(&aq->queue);
@@ -423,7 +423,7 @@ aq_remove(aqueue_t *aq)
 
 	mutex_lock(&aq->lock);
 	while (0 == eslist_count(&aq->queue))
-		cond_wait(&aq->event, &aq->lock);
+		cond_wait_clean(&aq->event, &aq->lock);
 
 	aqi = eslist_shift(&aq->queue);
 	mutex_unlock(&aq->lock);

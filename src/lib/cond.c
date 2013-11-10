@@ -32,6 +32,17 @@
  * to limit the amount of conditions used and free them up when they are no
  * longer useful.
  *
+ * Routines that may suspend the execution of the thread such as cond_wait()
+ * are thread cancellation points.  When cancellation occurs, the application
+ * mutex is re-acquired before invoking the cleanup callbacks.
+ *
+ * Therefore, all application code calling cond_wait() and friends MUST install
+ * a cleanup handler, to at least unlock the application mutex.  If the only
+ * cleanup operation required is the unlocking of the mutex, then the _clean
+ * version of the waiting routine should be used.  For instance, instead of
+ * calling cond_wait_until(), use cond_wait_until_clean() to make sure that
+ * the mutex will be unlocked should a cancellation occur.
+ *
  * @author Raphael Manfredi
  * @date 2012-2013
  */
@@ -164,6 +175,17 @@ static spinlock_t cond_access[] = {
 #define COND_HASH_MASK	(G_N_ELEMENTS(cond_access) - 1)
 
 static void cond_time_adjust(int delta);
+
+/*
+ * We want the real implementations here, not the macros.
+ *
+ * These macros are used to make sure that there is a cleanup handler installed
+ * in cancellable threads, since a cancel would leave the thread with the
+ * mutex locked.
+ */
+#undef cond_wait
+#undef cond_wait_until
+#undef cond_timed_wait
 
 /*
  * Get spinlock to use based on condition address.
@@ -787,6 +809,65 @@ cond_pending_count(const cond_t const *c)
 }
 
 /**
+ * Check that a cancellable thread has installed a cleanup handler when
+ * using the regular condition waiting routines, or is calling the _clean
+ * versions which provide the necessary handlers.
+ *
+ * @param waiting	the condition waiting routine
+ * @param routine	the calling routine name that should have a handler
+ * @param file		the file where the condition waiting routine is called
+ * @param line		the line where the condition waiting routine is called
+ */
+static void
+cond_cancel_safe_check(const char *waiting,
+	const char *routine, const char *file, unsigned line)
+{
+	if (!thread_is_cancelable())
+		return;		/* No protection required */
+
+	if (thread_cleanup_has_from(routine))
+		return;		/* OK, caller installed a cleanup handler */
+
+	/*
+	 * Emit loud critical warning, once per calling stackframe.
+	 */
+
+	s_carp_once(
+		"issuing %s() from cancelable %s without cleanup in %s() at %s:%u",
+		waiting, thread_name(), routine, file, line);
+}
+
+struct cond_wait_until_vars {
+	mutex_t *m;
+	const char *file;
+	unsigned line;
+	const void *element;
+	struct cond *cv;
+};
+
+/**
+ * Cleanup handler for cond_wait_until().
+ */
+static void
+cond_wait_until_cleanup(void *arg)
+{
+	struct cond_wait_until_vars *v = arg;
+
+	thread_cond_waiting_done(v->element);
+	cond_free(v->cv, FALSE);
+
+	/*
+	 * Reacquire the mutex before returning to the application.
+	 *
+	 * When compiled with SPINLOCK_DEBUG, we propagate the original locking
+	 * point back into the mutex in case there is a deadlock later.
+	 */
+
+	mutex_lock(v->m);
+	mutex_set_lock_source(v->m, v->file, v->line);
+}
+
+/**
  * Wait on condition, whose predicate is protected by given mutex.
  *
  * Upon entry, the mutex must be locked (normally, no hidden or fast locks
@@ -804,25 +885,25 @@ cond_pending_count(const cond_t const *c)
  *
  * @return FALSE if the wait expired, TRUE if we were awaken.
  */
-bool
+static bool
 cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 {
 	spinlock_t *lock = cond_get_lock(c);
 	struct cond *cv;
+	struct cond_wait_until_vars v;
 	bool awaked;
 	uint generation;
 	tm_t waiting;
 	bool resend;
-	const char *file;
-	unsigned line;
 	semaphore_t *sem;
-	const void *element;
 
 	g_assert(c != NULL);
 	assert_mutex_is_owned(m);
 	g_assert(1 == mutex_held_depth(m));
 
-	cv = cond_get_init(c, m, TRUE);
+	v.cv = cv = cond_get_init(c, m, TRUE);
+	v.m = m;
+
 	spinlock(&cv->lock);
 
 	if G_UNLIKELY(NULL == cv->mutex)
@@ -865,7 +946,7 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	 * sure there are none still held (the semaphore code checks that for us).
 	 */
 
-	file = mutex_get_lock_source(m, &line);
+	v.file = mutex_get_lock_source(m, &v.line);
 	mutex_unlock(m);
 
 	/*
@@ -874,9 +955,29 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	 * semaphores, at the cost of spurious wakeups for all waiting threads.
 	 */
 
-	element = thread_cond_waiting_element(c);
+	v.element = thread_cond_waiting_element(c);
+
+	/*
+	 * Install a cleanup handler in case we are cancelled whilst waiting.
+	 *
+	 * An important requirement is that the mutex be re-acquired so that
+	 * the enclosing cleanup handler be executed under the protection of
+	 * the application mutex.
+	 */
+
+	thread_cleanup_push(cond_wait_until_cleanup, &v);
 
 retry:
+	/*
+	 * If we are suspended or get a thread signal, always pop out of the
+	 * waiting loop.
+	 */
+
+	if (thread_cancel_test()) {
+		awaked = FALSE;			/* Did not consume any condition signal */
+		goto signaled;
+	}
+
 	/*
 	 * If we expired our waiting time, we'll try to acquire the semaphore
 	 * nonetheless but without blocking.
@@ -948,6 +1049,7 @@ signaled:
 	if G_UNLIKELY(COND_DESTROYED == cv)
 		s_error("%s(): condition destroyed whilst we were waiting", G_STRFUNC);
 
+	g_assert(cv == v.cv);	/* No change, still the same variable */
 	cond_check(cv);
 
 	g_assert(cv->sem == sem);
@@ -1003,18 +1105,8 @@ signaled:
 
 	spinunlock(&cv->lock);
 
-	cond_free(cv, FALSE);
-	thread_cond_waiting_done(element);
-
-	/*
-	 * Reacquire the mutex before returning to the application.
-	 *
-	 * When compiled with SPINLOCK_DEBUG, we propagate the original locking
-	 * point back into the mutex in case there is a deadlock later.
-	 */
-
-	mutex_lock(m);
-	mutex_set_lock_source(m, file, line);
+	thread_cancel_test();
+	thread_cleanup_pop(TRUE);	/* Will reacquire the mutex */
 
 	return awaked;
 
@@ -1054,16 +1146,57 @@ cannot_consume:
  * All application errors are fatal (bugs) so the code does not need to
  * bother with error conditions.
  *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param c			the condition variable
  * @param m			the mutex protecting the predicate (locked normally)
- * @param timeout	how long to wait for (NULL means no limit)
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ * @param routine	routine where cond_wait_until() is issued, for assertions
+ * @param file		the file where the condition waiting routine is called
+ * @param line		the line where the condition waiting routine is called
  *
  * @return FALSE if the wait expired, TRUE if we were awaken.
  */
 bool
-cond_timed_wait(cond_t *c, mutex_t *m, const tm_t *timeout)
+cond_wait_until_from(cond_t *c, mutex_t *m, const tm_t *end,
+	const char *routine, const char *file, unsigned line)
+{
+	cond_cancel_safe_check("cond_wait_until", routine, file, line);
+	return cond_wait_until(c, m, end);
+}
+
+/**
+ * Wait on condition, whose predicate is protected by given mutex.
+ *
+ * Upon entry, the mutex must be locked (normally, no hidden or fast locks
+ * are permitted).
+ *
+ * Upon return, the mutex is still locked but the application can re-check
+ * the predicate if we were awaken, or cleanup if a timeout occurred.
+ *
+ * All application errors are fatal (bugs) so the code does not need to
+ * bother with error conditions.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param c			the condition variable
+ * @param m			the mutex protecting the predicate (locked normally)
+ * @param timeout	how long to wait for (NULL means no limit)
+ * @param routine	routine where cond_timed_wait() is issued, for assertions
+ * @param file		the file where the condition waiting routine is called
+ * @param line		the line where the condition waiting routine is called
+ *
+ * @return FALSE if the wait expired, TRUE if we were awaken.
+ */
+bool
+cond_timed_wait_from(cond_t *c, mutex_t *m, const tm_t *timeout,
+	const char *routine, const char *file, unsigned line)
 {
 	tm_t end;
+
+	cond_cancel_safe_check("cond_timed_wait", routine, file, line);
 
 	if (timeout != NULL) {
 		tm_now_exact(&end);
@@ -1213,12 +1346,20 @@ cond_wakeup(cond_t *c, const mutex_t *m, bool all)
  * All application errors are fatal (bugs) so the code does not need to
  * bother with error conditions.
  *
- * @param c		the condition variable
- * @param m		the mutex protecting the predicate (locked normally)
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param c			the condition variable
+ * @param m			the mutex protecting the predicate (locked normally)
+ * @param routine	routine where cond_wait() is issued, for assertions
+ * @param file		the file where the condition waiting routine is called
+ * @param line		the line where the condition waiting routine is called
  */
 void
-cond_wait(cond_t *c, mutex_t *m)
+cond_wait_from(cond_t *c, mutex_t *m,
+	const char *routine, const char *file, unsigned line)
 {
+	cond_cancel_safe_check("cond_wait", routine, file, line);
 	cond_wait_until(c, m, NULL);
 }
 
@@ -1333,5 +1474,93 @@ cond_time_adjust(int unused_delta)
 	COND_VARS_UNLOCK;
 }
 
+/**
+ * Default cleanup handler.
+ */
+static void
+cond_cleanup_mutex(void *arg)
+{
+	mutex_t *m = arg;
+
+	mutex_unlock(m);
+}
+
+/**
+ * Wait on condition, whose predicate is protected by given mutex.
+ *
+ * This is a normal cond_wait_until() which installs a simple cleanup handler
+ * to unlock the mutex should the thread be cancelled.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param c			the condition variable
+ * @param m			the mutex protecting the predicate (locked normally)
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ *
+ * @return FALSE if the wait expired, TRUE if we were awaken.
+ */
+bool
+cond_wait_until_clean(cond_t *c, mutex_t *m, const tm_t *end)
+{
+	bool cancelable = thread_is_cancelable();
+	bool result;
+
+	if (cancelable)
+		thread_cleanup_push(cond_cleanup_mutex, m);
+
+	result = cond_wait_until(c, m, end);
+
+	if (cancelable)
+		thread_cleanup_pop(FALSE);
+
+	return result;
+}
+
+/**
+ * Wait on condition, whose predicate is protected by given mutex.
+ *
+ * This is a normal cond_timed_wait() which installs a simple cleanup handler
+ * to unlock the mutex should the thread be cancelled.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param c			the condition variable
+ * @param m			the mutex protecting the predicate (locked normally)
+ * @param timeout	how long to wait for (NULL means no limit)
+ *
+ * @return FALSE if the wait expired, TRUE if we were awaken.
+ */
+bool
+cond_timed_wait_clean(cond_t *c, mutex_t *m, const tm_t *timeout)
+{
+	tm_t end;
+
+	if (timeout != NULL) {
+		tm_now_exact(&end);
+		tm_add(&end, timeout);
+	}
+
+	return cond_wait_until_clean(c, m, NULL == timeout ? NULL : &end);
+}
+
+/**
+ * Wait on condition, whose predicate is protected by given mutex.
+ *
+ * This is a normal cond_wait() which installs a simple cleanup handler
+ * to unlock the mutex should the thread be cancelled.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param c			the condition variable
+ * @param m			the mutex protecting the predicate (locked normally)
+ */
+void
+cond_wait_clean(cond_t *c, mutex_t *m)
+{
+	cond_wait_until_clean(c, m, NULL);
+}
 
 /* vi: set ts=4 sw=4 cindent: */

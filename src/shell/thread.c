@@ -88,7 +88,8 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 
 		str_reset(s);
 		str_catf(s, "%-2d ", i);
-		str_putc(s, info.suspended ? 'H' : '-');		/* Halted */
+		str_putc(s, info.suspended ? 'H' :		/* Halted */
+			info.cancelled ? 'c' : '-');
 		str_putc(s, info.main_thread ? 'M' : '-');
 		str_putc(s, info.discovered ? 'D' : 'C');
 		str_putc(s, info.exited ? 'E' : info.blocked ? 'S' : 'R');
