@@ -53,12 +53,18 @@ typedef void (*once_fn_t)(void);
  */
 
 bool once_flag_run(once_flag_t *flag, once_fn_t routine);
+bool once_flag_runwait(once_flag_t *flag, once_fn_t routine);
 
 #define ONCE_DONE(f)	(ONCE_F_DONE == (f))
 
 #define ONCE_FLAG_RUN(f, r) G_STMT_START {	\
 	if G_UNLIKELY(!ONCE_DONE((f)))			\
 		once_flag_run(&(f), (r));			\
+} G_STMT_END
+
+#define ONCE_FLAG_RUNWAIT(f, r) G_STMT_START {	\
+	if G_UNLIKELY(!ONCE_DONE((f)))				\
+		once_flag_runwait(&(f), (r));			\
 } G_STMT_END
 
 #endif /* _once_h_ */
