@@ -1156,6 +1156,13 @@ test_sigcount(int sig)
 	fflush(stdout);
 }
 
+static void
+test_printsig(int sig)
+{
+	printf("%s got signal #%d\n", thread_name(), sig);
+	fflush(stdout);
+}
+
 static void *
 signalled_thread(void *unused_arg)
 {
@@ -1190,11 +1197,10 @@ signalled_thread(void *unused_arg)
 }
 
 static void *
-sleeping_thread(void *unused_arg)
+sleeping_thread(void *arg)
 {
+	barrier_t *b = arg;
 	tm_t start, end;
-
-	(void) unused_arg;
 
 	thread_signal(TSIG_1, test_sigcount);
 	tm_now_exact(&start);
@@ -1207,12 +1213,62 @@ sleeping_thread(void *unused_arg)
 
 	g_assert(TEST_SIGNALS_COUNT == test_signals_count);
 
+	if (b != NULL) {
+		tsigset_t nset, oset;
+		tm_t timeout;
+
+		tsig_emptyset(&nset);
+		tsig_addset(&nset, TSIG_2);
+		thread_sigmask(TSIG_BLOCK, &nset, &oset);
+		thread_signal(TSIG_2, test_printsig);
+
+		tm_fill_ms(&timeout, 2000);
+		barrier_wait(b);
+
+		tm_now_exact(&start);
+		if (thread_timed_sigsuspend(&oset, &timeout)) {
+			tm_now_exact(&end);
+			printf("%s() suspended %u ms before getting signal\n", G_STRFUNC,
+				(uint) tm_elapsed_ms(&end, &start));
+			fflush(stdout);
+		} else {
+			g_assert_not_reached();
+		}
+
+		tm_fill_ms(&timeout, 1000);
+		tm_now_exact(&start);
+		if (thread_timed_sigsuspend(&oset, &timeout)) {
+			g_assert_not_reached();
+		} else {
+			tm_now_exact(&end);
+			printf("%s() suspended %u ms without getting signals\n", G_STRFUNC,
+				(uint) tm_elapsed_ms(&end, &start));
+			fflush(stdout);
+		}
+
+		tm_fill_ms(&timeout, 2000);
+
+		barrier_wait(b);
+		tm_now_exact(&start);
+		if (thread_timed_sigsuspend(&oset, &timeout)) {
+			tm_now_exact(&end);
+			printf("%s() suspended %u ms (about 1 sec) before getting signal\n",
+				G_STRFUNC, (uint) tm_elapsed_ms(&end, &start));
+			fflush(stdout);
+		} else {
+			g_assert_not_reached();
+		}
+
+		barrier_free_null(&b);
+	}
+
 	return NULL;
 }
 
 static void
 test_signals(void)
 {
+	barrier_t *b;
 	int r, i;
 
 	if (-1 != thread_kill(12, TSIG_0))		/* 12 is random constant */
@@ -1244,13 +1300,24 @@ test_signals(void)
 	printf("%s() now checking thread_sleep_ms()\n", G_STRFUNC);
 	fflush(stdout);
 
-	r = thread_create(sleeping_thread, NULL, 0, 0);
+	b = barrier_new(2);
+	r = thread_create(sleeping_thread, barrier_refcnt_inc(b), 0, 0);
 	thread_sleep_ms(500);		/* Give it time to setup */
 	for (i = 0; i < TEST_SIGNALS_COUNT; i++) {
 		if (-1 == thread_kill(r, TSIG_1))
 			s_error("thread #%d cannot be signalled: %m", r);
 		thread_sleep_ms(500);	/* Give it time to process signal */
 	}
+
+	printf("%s() now checking thread_timed_sigsuspend()\n", G_STRFUNC);
+	fflush(stdout);
+
+	barrier_wait(b);
+	thread_kill(r, TSIG_2);
+	barrier_wait(b);
+	thread_sleep_ms(1000);
+	thread_kill(r, TSIG_2);
+	barrier_free_null(&b);
 	thread_join(r, NULL);
 }
 

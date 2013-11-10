@@ -279,6 +279,7 @@ struct thread_element {
 	tsigset_t sig_mask;				/**< Signal mask */
 	tsigset_t sig_pending;			/**< Signals pending delivery */
 	unsigned signalled;				/**< Unblocking signal events sent */
+	unsigned sig_generation;		/**< Signal reception generation number */
 	int in_signal_handler;			/**< Counts signal handler nesting */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
@@ -3003,6 +3004,9 @@ recheck:
 
 	/*
 	 * Load unblocked signals we have to process and clear the pending set.
+	 *
+	 * We need the lock here because the te->sig_pending field can be
+	 * concurrently updated by other threads when posting signals.
 	 */
 
 	THREAD_LOCK(te);
@@ -3012,6 +3016,14 @@ recheck:
 
 	if G_UNLIKELY(0 == pending)
 		return handled;
+
+	/*
+	 * We count reception of signals to let thread_sleep_interruptible()
+	 * determine whether the thread sleeping got signals when it wakes up
+	 * from the condition variable waiting.
+	 */
+
+	te->sig_generation++;
 
 	/*
 	 * Signal 0 is not a signal and is used to verify whether a thread ID
@@ -3079,6 +3091,36 @@ thread_sighandler_level(void)
 	}
 
 	return te->in_signal_handler;
+}
+
+/**
+ * Get the signal generation number for the current thread.
+ *
+ * Each time a thread processes signals, this count is incremented and it
+ * can be checked by routines wishing to monitor whether a signal occurred
+ * to interrupt processing.
+ *
+ * Of course, this number can wrap-up, but one only wants to see if the
+ * number changed, and it is highly unlikely that it will wrap-up between
+ * two consecutive checks in a routine.
+ *
+ * @return the thread signal generation number.
+ */
+unsigned
+thread_sig_generation(void)
+{
+	struct thread_element *te = thread_get_element();
+
+	/*
+	 * Use this opportunity to check for pending signals.
+	 */
+
+	if (thread_sig_pending(te)) {
+		THREAD_STATS_INCX(sig_handled_while_check);
+		thread_sig_handle(te);
+	}
+
+	return te->sig_generation;
 }
 
 /**
@@ -7596,6 +7638,143 @@ thread_sleeping(bool sleeping)
 /**
  * Suspend thread execution for a specified amount of milliseconds.
  *
+ * During the suspension, the thread is able to process signals that would
+ * be directed to it and for which a handler has been configured.  Any signal
+ * received will interrupt the sleep unless ``interrupt'' is FALSE.
+ *
+ * If a non-NULL signal mask is supplied, it is atomically restored after
+ * checking for pending (blocked) signals.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param ms		amount of milliseconds to sleep
+ * @param mask		if non-NULL, signal mask to restore
+ * @param interrupt	whether a signal will interrupt sleep
+ *
+ * @return TRUE if a signal interrupted the sleep.
+ */
+static bool
+thread_sleep_interruptible(unsigned int ms,
+	const tsigset_t *mask, bool interrupt)
+{
+	static mutex_t sleep_mtx = MUTEX_INIT;
+	struct thread_element *te = thread_get_element();
+	tm_t start, now;
+	gentime_t gstart, gnow;
+	unsigned int elapsed, gs;
+	time_delta_t gelapsed;
+	bool got_signal = FALSE;
+	unsigned generation = te->sig_generation;
+
+	/*
+	 * The initial tm_now_exact() call is done before grabbing the mutex
+	 * to allow for pending signal handling from within tm_now_exact(), given
+	 * that we do not hold any lock presently.
+	 */
+
+	tm_now_exact(&start);			/* Will also check for suspension */
+	gstart = gentime_now();			/* In case of sudden clock adjustment */
+	gs = (ms + 999) / 1000;			/* Waiting time in seconds, rounded up */
+
+	/*
+	 * If we have to restore the signal mask, grab a lock and then
+	 * check whether we have pending signals to process.  If we do, unlock
+	 * the mutex which will dispatch the signals, and then return if we
+	 * are interruptible.
+	 */
+
+	if (mask != NULL) {
+		bool has_signals;
+
+		mutex_lock(&sleep_mtx);
+
+		g_assert(1 == te->locks.count);		/* The mutex we got above */
+
+		te->sig_mask = *mask;
+		THREAD_LOCK(te);
+		has_signals = thread_sig_present(te);
+		THREAD_UNLOCK(te);
+
+		mutex_unlock(&sleep_mtx);			/* Will dispatch signals */
+
+		if (has_signals && interrupt)
+			return TRUE;
+	}
+
+	/*
+	 * We keep the mutex during our loop because it is required for the
+	 * condition variable but also because it prevents any thread signal
+	 * delivery: signal checking will be done during the condition variable
+	 * waiting, once the mutex has been released.
+	 */
+
+	mutex_lock(&sleep_mtx);		/* Necessary for condition variable */
+
+retry:
+	/*
+	 * To protect against the system clock being updated whilst we are waiting,
+	 * we account for the overall time spent "sleeping" ourselves.  The
+	 * gentime computation is a safeguard against clock adjustments, but has
+	 * only a second accurary.  However, it is not important because its
+	 * purpose is to avoid us being stuck here for much longer than 1 second.
+	 */
+
+	tm_now_exact(&now);
+missing:
+	gnow = gentime_now();			/* Accurate because of tm_now_exact() */
+	elapsed = tm_elapsed_ms(&now, &start);
+	gelapsed = gentime_diff(gnow, gstart);
+
+	if (elapsed < ms && UNSIGNED(gelapsed) <= gs) {
+		static cond_t sleep_cond = COND_INIT;
+		unsigned int remain = ms - elapsed;
+		tm_t timeout;
+
+		tm_fill_ms(&timeout, remain);
+
+		/*
+		 * To give the sleeping thread the ability to quickly process incoming
+		 * signals, we use a condition variable with a timeout.
+		 * See thread_kill() to see how waking-up is handled.
+		 *
+		 * Since nobody is waking us up but signal processing and system
+		 * clock adjustments (as detected and signalled by the "time" thread)
+		 * we know that a wake up is abnormal and we may need to retry.
+		 *
+		 * Note that the condition variable provides a cancellation point.
+		 */
+
+		if (cond_timed_wait_clean(&sleep_cond, &sleep_mtx, &timeout)) {
+			if (generation == te->sig_generation || !interrupt)
+				goto retry;
+			got_signal = TRUE;
+		}
+
+		/*
+		 * If we're not interrupted in our sleep, make sure we're not returning
+		 * too early to the user code.  This can happen with semtimedop() which
+		 * returns a little bit sooner than expected.
+		 */
+
+		if (!interrupt || !got_signal) {
+			tm_now_exact(&now);
+			if (tm_elapsed_ms(&now, &start) < ms)
+				goto missing;
+		}
+
+		/* FALL THROUGH -- sleep finished or interrupted */
+	}
+
+	mutex_unlock(&sleep_mtx);
+	thread_cancel_test();		/* If we did not enter cond_timed_wait()... */
+
+	return got_signal;
+}
+
+/**
+ * Suspend thread execution for a specified amount of milliseconds.
+ *
  * This is also a thread signal handling point and therefore it should be
  * used instead of compat_sleep_ms() when a thread wishes to suspend its
  * execution for some time and yet be able to receive signals as well.
@@ -7616,64 +7795,44 @@ thread_sleeping(bool sleeping)
 void
 thread_sleep_ms(unsigned int ms)
 {
-	static mutex_t sleep_mtx = MUTEX_INIT;
-	tm_t start, now;
-	gentime_t gstart, gnow;
-	unsigned int elapsed, gs;
-	time_delta_t gelapsed;
+	thread_assert_no_locks(G_STRFUNC);
 
+	thread_sleep_interruptible(ms, NULL, FALSE);
+}
+
+/**
+ * Restore signal mask and then block thread until a signal is received or
+ * until the specified timeout expires.
+ *
+ * The signal mask is atomically restored before blocking, to prevent any
+ * race condition with the signal already being pending but blocked under
+ * the current thread signal mask.
+ *
+ * This is usually used in conjunction with thread_sigmask(TSIG_BLOCK) to
+ * close a critical section opened when a set of signals were masked.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param mask		signal mask to restore before blocking thread.
+ * @param timeout	how long to wait for (NULL means no limit)
+ *
+ * @return TRUE if we were unblocked by a signal.
+ */
+bool
+thread_timed_sigsuspend(const tsigset_t *mask, const tm_t *timeout)
+{
+	g_assert(mask != NULL);
 	thread_assert_no_locks(G_STRFUNC);
 
 	/*
-	 * The initial tm_now_exact() call is done before grabbing the mutex
-	 * to allow for pending signal handling from within tm_now_exact(), given
-	 * that we do not hold any lock presently.
+	 * If the timeout is NULL, act as if thread_sigsuspend() had been called.
 	 */
 
-	tm_now_exact(&start);			/* Will also check for suspension */
-	gstart = gentime_now();			/* In case of sudden clock adjustment */
-	gs = (ms + 999) / 1000;			/* Waiting time in seconds, rounded up */
-	mutex_lock(&sleep_mtx);			/* Necessary for condition variable */
+	if G_UNLIKELY(NULL == timeout)
+		return thread_sigblock(*mask);
 
-retry:
-	/*
-	 * To protect against the system clock being updated whilst we are waiting,
-	 * we account for the overall time spent "sleeping" ourselves.  The
-	 * gentime computation is a safeguard against clock adjustments, but has
-	 * only a second accurary.  However, it is not important because its
-	 * purpose is to avoid us being stuck here for much longer than 1 second.
-	 */
-
-	tm_now_exact(&now);
-	gnow = gentime_now();			/* Accurate because of tm_now_exact() */
-	elapsed = tm_elapsed_ms(&now, &start);
-	gelapsed = gentime_diff(gnow, gstart);
-
-	if (elapsed < ms && UNSIGNED(gelapsed) <= gs) {
-		static cond_t sleep_cond = COND_INIT;
-		unsigned int remain = ms - elapsed;
-		tm_t timeout;
-
-		tm_fill_ms(&timeout, remain);
-
-		/*
-		 * To give the sleeping thread the ability to quickly process incoming
-		 * signals, we use a condition variable with a timeout.
-		 * See thread_kill() to see how waking-up is handled.
-		 *
-		 * Since nobody is waking us up but signal processing and system
-		 * clock adjustments (as detected and signalled by the "time" thread)
-		 * we know that a wake up is abnormal and we need to retry.
-		 *
-		 * Note that the condition variable provides a cancellation point.
-		 */
-
-		if (cond_timed_wait_clean(&sleep_cond, &sleep_mtx, &timeout))
-			goto retry;
-	}
-
-	mutex_unlock(&sleep_mtx);
-	thread_cancel_test();		/* If we did not enter cond_timed_wait()... */
+	return thread_sleep_interruptible(tm2ms(timeout), mask, TRUE);
 }
 
 /**

@@ -269,9 +269,11 @@ void thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os);
 int thread_kill(unsigned id, int signum);
 tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
+unsigned thread_sig_generation(void);
 bool thread_pause(void);
 bool thread_sigsuspend(const tsigset_t *mask);
 void thread_sleep_ms(unsigned int ms);
+bool thread_timed_sigsuspend(const tsigset_t *mask, const struct tmval *tout);
 
 void *thread_sp(void);
 
