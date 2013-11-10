@@ -35,12 +35,14 @@
 #include "common.h"
 
 #include "cq.h"
+
 #include "atoms.h"
 #include "compat_sleep_ms.h"
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
+#include "pow2.h"
 #include "stacktrace.h"
 #include "stringify.h"
 #include "thread.h"
@@ -290,6 +292,7 @@ cq_make(const char *name, cq_time_t now, int period)
 int
 cq_count(const cqueue_t *cq)
 {
+	cqueue_check(cq);
 	return cq->cq_items;
 }
 
@@ -299,6 +302,7 @@ cq_count(const cqueue_t *cq)
 int
 cq_ticks(const cqueue_t *cq)
 {
+	cqueue_check(cq);
 	return cq->cq_ticks;
 }
 
@@ -308,6 +312,7 @@ cq_ticks(const cqueue_t *cq)
 const char *
 cq_name(const cqueue_t *cq)
 {
+	cqueue_check(cq);
 	return cq->cq_name;
 }
 
@@ -1089,6 +1094,99 @@ done:
 }
 
 /**
+ * Compute delay until the next registered event, expressed in units of the
+ * callout queue "virtual time".
+ *
+ * @note
+ * This is indicative only since external users do not have a way to lock
+ * the callout queue (and therefore new events could be added right after
+ * this call returns).  However, for applications creating a facade on top
+ * of the callout queue, this can be meaningful because then the facade can
+ * handle proper locking through its own interface.
+ *
+ * @param cq		the callout queue
+ *
+ * @return the "virtual time" delay until the next registered event.
+ */
+int
+cq_delay(const cqueue_t *cq)
+{
+	int delay = MAX_INT_VAL(int);
+	int last_bucket;
+	int i;
+	cq_time_t now;
+	bool adjusted = FALSE;
+
+	cqueue_check(cq);
+
+	mutex_lock_const(&cq->cq_lock);
+
+	last_bucket = cq->cq_last_bucket;	/* Last bucket scanned */
+	now = cq->cq_time;
+
+	for (i = 0; i < HASH_SIZE; i++) {
+		int b = (last_bucket + i) & HASH_MASK;
+		struct chash *ch = &cq->cq_hash[b];
+		cevent_t *ev = ch->ch_head;
+		int edelay;
+
+		/*
+		 * If the delay we have so far is not too large (does not overflow
+		 * the size of the hashing array) and we have moved away from the
+		 * last scanned bucket by an amount that is large-enough, we know
+		 * we cannot find a smaller delay ahead in the buckets.
+		 */
+
+		if (!EV_OVER(delay) && i > EV_HASH(delay))
+			break;
+
+		if (NULL == ev)
+			continue;
+
+		edelay = ev->ce_time - now;
+
+		if G_UNLIKELY(edelay <= 0) {
+			delay = 0;
+			break;
+		}
+
+		delay = MIN(delay, edelay);
+	}
+
+	/*
+	 * If there are idle events registered in the queue, then we need to make
+	 * sure they are scheduled at least once every CQ_IDLE_FORCE seconds.
+	 */
+
+	if (cq->cq_idle != NULL) {
+		time_delta_t elapsed = delta_time(tm_time(), cq->cq_last_idle);
+		int idelay = CQ_IDLE_FORCE - elapsed;
+
+		if (idelay <= 0) {
+			delay = 0;						/* Idle events are due! */
+			adjusted = TRUE;
+		} else {
+			int sdelay = delay / 1000;		/* Convert into seconds */
+
+			if (idelay < sdelay) {
+				delay = idelay * 1000;		/* Delay in ms */
+				adjusted = TRUE;
+			}
+		}
+	}
+
+	mutex_unlock_const(&cq->cq_lock);
+
+	if (cq_debugging(4)) {
+		s_debug("%s(%s): %smin delay is %d, scanned %d bucket%s",
+			G_STRFUNC, cq->cq_name, adjusted ? "adjusted " : "",
+			delay, i, plural(i));
+	}
+
+	return delay;
+}
+
+/**
  * Force callout queue idle tasks to be run.
  */
 void
@@ -1746,6 +1844,8 @@ cq_global_init(void)
 void
 cq_init(cq_invoke_t idle, const uint32 *debug)
 {
+	STATIC_ASSERT(IS_POWER_OF_2(HASH_SIZE));
+
 	cq_main_init();
 	cq_debug_ptr = debug;
 

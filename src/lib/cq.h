@@ -86,6 +86,7 @@ bool cq_replace(cevent_t *ev, cq_service_t fn, void *arg);
 bool cq_resched(cevent_t *handle, int delay);
 int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
+int cq_delay(const cqueue_t *cq);
 const char *cq_name(const cqueue_t *cq);
 void cq_idle(cqueue_t *cq);
 void cq_main_idle(void);
