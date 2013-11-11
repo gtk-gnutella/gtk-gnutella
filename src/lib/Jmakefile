@@ -108,6 +108,7 @@ LSRC = \
 	etree.c \
 	eval.c \
 	event.c \
+	evq.c \
 	exit.c \
 	fast_assert.c \
 	fd.c \

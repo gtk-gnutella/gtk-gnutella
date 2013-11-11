@@ -59,8 +59,9 @@
 
 #define TSIG_TEQ	10			/**< Something is in the Thread Event Queue */
 #define TSIG_TERM	11			/**< Requesting thread termination */
+#define TSIG_EVQ	12			/**< Dispatching a thread event */
 
-#define TSIG_COUNT	12
+#define TSIG_COUNT	13
 
 #define tsig_mask(sig)	(1U << ((sig) - 1))		/* 0 is not a signal */
 

@@ -263,6 +263,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 	cq->cq_stid = thread_small_id();	/* Assume it runs in current thread */
 	mutex_init(&cq->cq_lock);
 	mutex_init(&cq->cq_idle_lock);
+	tm_now_exact(&cq->cq_last_heartbeat);
 
 	cqueue_check(cq);
 	return cq;
@@ -694,11 +695,15 @@ cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
  * They give us a pointer to the opaque handle we returned via cq_insert().
  * If the de-referenced value is NULL, it is assumed the event has already
  * fired and therefore there is nothing to cancel.
+ *
+ * @return TRUE if the event has already triggered (possible if the thread
+ * recording the event is not the same as the one running the callout queue).
  */
-void
+bool
 cq_cancel(cevent_t **handle_ptr)
 {
 	cevent_t *ev = *handle_ptr;
+	bool triggered = FALSE;
 
 	if (ev != NULL) {
 		cqueue_t *cq;
@@ -713,11 +718,16 @@ cq_cancel(cevent_t **handle_ptr)
 		if G_LIKELY(!ev_triggered(ev)) {
 			g_assert(cq->cq_items > 0);
 			ev_unlink(ev);
+		} else {
+			triggered = TRUE;
 		}
+
 		CQ_UNLOCK(cq);
 		ev_free(ev);
 		*handle_ptr = NULL;
 	}
+
+	return triggered;
 }
 
 /**
@@ -1208,7 +1218,7 @@ cq_main_idle(void)
 /**
  * Called every period to heartbeat the callout queue.
  */
-static void
+void
 cq_heartbeat(cqueue_t *cq)
 {
 	tm_t tv;
@@ -1231,8 +1241,11 @@ cq_heartbeat(cqueue_t *cq)
 	 * Assume a single period then.
 	 */
 
-	if (delay < 0 || delay > 10 * cq->cq_period)
+	if (delay < 0 || delay > 10 * cq->cq_period) {
+		s_warning("%s(%s): adjusting delay of %'ld ms down to period (%d ms)",
+			G_STRFUNC, cq->cq_name, (long) delay, cq->cq_period);
 		delay = cq->cq_period;
+	}
 
 	/*
 	 * We hold the mutex when calling cq_clock(), and it will be released there.

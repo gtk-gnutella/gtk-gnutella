@@ -40,6 +40,7 @@
 #include "cond.h"
 #include "cq.h"
 #include "dam.h"
+#include "evq.h"
 #include "getcpucount.h"
 #include "halloc.h"
 #include "log.h"
@@ -80,7 +81,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVX] [-c CPU] [-n count]\n"
+		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-c CPU] [-n count]\n"
 		"       [-t ms] [-T secs]\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
@@ -108,7 +109,8 @@ usage(void)
 		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
 		"  -T : test condition layer via tennis session for specified secs\n"
-		"  -V : test thread event queue\n"
+		"  -V : test thread event queue (TEQ)\n"
+		"  -W : test local event queue (EVQ)\n"
 		"  -X : exercise concurrent memory allocation\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		, progname);
@@ -1843,6 +1845,77 @@ test_teq(unsigned repeat)
 	}
 }
 
+static void
+evq_event(void *arg)
+{
+	tm_t now;
+	int id = pointer_to_int(arg);
+
+	tm_now_exact(&now);		/* Force accurate timestamp in logging message */
+	s_message("%s(%d) called in %s", G_STRFUNC, id, thread_name());
+}
+
+static void *
+evq_one(void *unused_arg)
+{
+	evq_event_t *eve;
+
+	(void) unused_arg;
+
+	s_message("%s() starting", G_STRFUNC);
+
+	eve = evq_insert(1000, evq_event, NULL);
+	g_assert(eve != NULL);
+	evq_cancel(&eve);
+	g_assert(NULL == eve);
+
+	eve = evq_insert(100, evq_event, int_to_pointer(2));
+	g_assert(eve != NULL);
+	evq_schedule(50, evq_event, int_to_pointer(1));
+	thread_sleep_ms(100);
+	evq_schedule(200, evq_event, int_to_pointer(3));
+	evq_schedule(500, evq_event, int_to_pointer(4));
+
+	thread_sleep_ms(1000);
+
+	evq_cancel(&eve);
+
+	evq_schedule(100, evq_event, NULL);
+	s_message("%s() exiting -- expect discarding", G_STRFUNC);
+	return NULL;
+}
+
+static void *
+evq_two(void *unused_arg)
+{
+	(void) unused_arg;
+
+	s_message("%s() starting", G_STRFUNC);
+
+	evq_schedule(200, evq_event, int_to_pointer(2));
+	evq_schedule(100, evq_event, int_to_pointer(1));
+	evq_schedule(300, evq_event, int_to_pointer(3));
+
+	thread_sleep_ms(1000);
+
+	s_message("%s() exiting", G_STRFUNC);
+	return NULL;
+}
+
+static void
+test_evq(unsigned repeat)
+{
+	while (repeat--) {
+		int s, r;
+
+		r = thread_create(evq_one, NULL, 0, THREAD_STACK_MIN);
+		s = thread_create(evq_two, NULL, 0, THREAD_STACK_MIN);
+
+		thread_join(r, NULL);
+		thread_join(s, NULL);
+	}
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -1869,9 +1942,9 @@ main(int argc, char **argv)
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
-	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE;
+	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "c:ehjn:st:vwxABCDEFIKMNOPQRST:VX";
+	const char options[] = "c:ehjn:st:vwxABCDEFIKMNOPQRST:VWX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -1933,6 +2006,9 @@ main(int argc, char **argv)
 			break;
 		case 'V':			/* test thread event queue */
 			teq = TRUE;
+			break;
+		case 'W':			/* test event queue */
+			evq = TRUE;
 			break;
 		case 'X':			/* exercise memory allocation */
 			memory = TRUE;
@@ -2022,6 +2098,9 @@ main(int argc, char **argv)
 
 	if (teq)
 		test_teq(repeat);
+
+	if (evq)
+		test_evq(repeat);
 
 	/*
 	 * Print final statistics.

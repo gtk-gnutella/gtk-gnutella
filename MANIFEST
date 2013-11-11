@@ -675,6 +675,8 @@ src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c
 src/lib/event.h
+src/lib/evq.c
+src/lib/evq.h
 src/lib/exit.c
 src/lib/exit.h
 src/lib/fast_assert.c

@@ -165,6 +165,7 @@ LSRC = \
 	etree.c \
 	eval.c \
 	event.c \
+	evq.c \
 	exit.c \
 	fast_assert.c \
 	fd.c \
@@ -336,6 +337,7 @@ LOBJ = \
 	etree.o \
 	eval.o \
 	event.o \
+	evq.o \
 	exit.o \
 	fast_assert.o \
 	fd.o \
