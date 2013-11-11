@@ -281,6 +281,7 @@ struct thread_element {
 	unsigned signalled;				/**< Unblocking signal events sent */
 	unsigned sig_generation;		/**< Signal reception generation number */
 	int in_signal_handler;			/**< Counts signal handler nesting */
+	bool sig_handling;				/**< Are we in thread_sig_handle()? */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
@@ -2984,7 +2985,17 @@ thread_sig_handle(struct thread_element *te)
 	tsigset_t pending;
 	int s;
 
+	/*
+	 * Prevent recusion: since thread_check_suspended() will call
+	 * thread_sig_handle(), we must avoid endless checks when a signal
+	 * is present.
+	 */
+
+	if G_UNLIKELY(te->sig_handling)
+		return FALSE;
+
 	THREAD_STATS_INCX(sig_handled_count);
+	te->sig_handling = TRUE;
 
 recheck:
 
@@ -2999,7 +3010,7 @@ recheck:
 		tsig_fillset(&set);
 		te->sig_mask = set;		/* Block all signals from now on */
 
-		return handled;
+		goto done;
 	}
 
 	/*
@@ -3015,7 +3026,7 @@ recheck:
 	THREAD_UNLOCK(te);
 
 	if G_UNLIKELY(0 == pending)
-		return handled;
+		goto done;
 
 	/*
 	 * We count reception of signals to let thread_sleep_interruptible()
@@ -3067,6 +3078,10 @@ recheck:
 	if (thread_sig_present(te))
 		goto recheck;		/* More signals have arrived */
 
+	/* FALL THROUGH */
+
+done:
+	te->sig_handling = FALSE;
 	return handled;
 }
 
