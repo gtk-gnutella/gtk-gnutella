@@ -2112,7 +2112,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 	src_left = (size_t) -1 == src_len ? strlen(src) : src_len;
 
-	while (src_left > 0) {
+	while (size_is_positive(src_left)) {
 		char buf[4096];
 		size_t ret, n_read, n_written;
 
@@ -2128,6 +2128,17 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 			n_read = left0 - left;
 			n_written = buf_ptr - buf;
+
+			g_assert_log(size_is_non_negative(n_read),
+				"n_read=%s", size_t_to_string(n_read));
+
+			if (!size_is_non_negative(n_written)) {
+				n_written = 0;
+				g_assert((size_t) -1 == ret);	/* Only possible on errors */
+			}
+
+			g_assert(src_left >= n_read);
+
 			src_left -= n_read;
 		}
 
@@ -2165,6 +2176,10 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 					goto error;
 
 				n_written = buf_ptr - buf;
+
+				g_assert_log(size_is_non_negative(n_written),
+					"n_written=%s", size_t_to_string(n_written));
+
 				size += n_written;
 				if (dst_size > size) {
 					dst = mempcpy(dst, buf, n_written);
