@@ -90,6 +90,7 @@
 #include "dam.h"
 #include "dump_options.h"
 #include "eslist.h"
+#include "evq.h"
 #include "fd.h"					/* For fd_close() */
 #include "gentime.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
@@ -146,6 +147,12 @@
 #else
 #define INVALID_FD		-1
 #endif
+
+/**
+ * This is the maximum amount of time we allow the main thread to block, even
+ * if it is configured as non-blocking.
+ */
+#define THREAD_MAIN_DELAY_MS		3000	/* ms */
 
 /**
  * A recorded lock.
@@ -5740,6 +5747,19 @@ thread_block_prepare(void)
 }
 
 /**
+ * Panic routine invoked when the "non-blockable" main thread is blocking
+ * for too long.
+ */
+static void
+thread_block_timeout(void *arg)
+{
+	const char *routine = arg;
+
+	s_error("%s() called from non-blockable main thread, and blocking!",
+		routine);
+}
+
+/**
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
@@ -5762,6 +5782,7 @@ static bool
 thread_element_block_until(struct thread_element *te,
 	unsigned events, const tm_t *end)
 {
+	evq_event_t *eve = NULL;
 	char c;
 
 	g_assert(!te->blocked);
@@ -5769,10 +5790,20 @@ thread_element_block_until(struct thread_element *te,
 	/*
 	 * Make sure the main thread never attempts to block itself if it
 	 * has not explicitly told us it can block.
+	 *
+	 * Actually we need to make an exception to this rule, to allow barriers
+	 * to be used when creating new threads from the main thread, but the
+	 * expectation is that the main thread will not block for "too long",
+	 * which is defined by the THREAD_MAIN_DELAY_MS constant.
+	 *
+	 * To detect long blockings, we use the "event queue", not the main
+	 * callout queue since it will run in the main thread when it is configured
+	 * to never block -- precisely the condition under which we need a callout
+	 * event in the near future.
 	 */
 
 	if (thread_main_stid == te->stid && !thread_main_can_block)
-		s_error("%s() called from non-blockable main thread", G_STRFUNC);
+		eve = evq_insert(THREAD_MAIN_DELAY_MS, thread_block_timeout, G_STRFUNC);
 
 	/*
 	 * Blocking works thusly: the thread attempts to read one byte out of its
@@ -5869,6 +5900,14 @@ retry:
 	THREAD_UNLOCK(te);
 
 	/*
+	 * If we were blocking the "non-blockable" main thread, remove the
+	 * timeout condition.
+	 */
+
+	if G_UNLIKELY(eve != NULL)
+		evq_cancel(&eve);
+
+	/*
 	 * Before returning to user code, check for suspension request.
 	 */
 
@@ -5881,6 +5920,9 @@ timed_out:
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
+
+	if G_UNLIKELY(eve != NULL)
+		evq_cancel(&eve);
 
 	return FALSE;
 }
@@ -7766,6 +7808,7 @@ static bool
 thread_sigblock(tsigset_t mask)
 {
 	struct thread_element *te = thread_get_element();
+	evq_event_t *eve = NULL;
 	bool signalled, has_signals;
 	char c;
 
@@ -7775,10 +7818,13 @@ thread_sigblock(tsigset_t mask)
 	/*
 	 * Make sure the main thread never attempts to block itself if it
 	 * has not explicitly told us it can block.
+	 *
+	 * Actually, we use the same logic as in thread_block_self() and allow
+	 * it to block for a limited amount of time.
 	 */
 
 	if (thread_main_stid == te->stid && !thread_main_can_block)
-		s_error("%s() called from non-blockable main thread", G_STRFUNC);
+		eve = evq_insert(THREAD_MAIN_DELAY_MS, thread_block_timeout, G_STRFUNC);
 
 	/*
 	 * This is mostly the same logic as thread_block_self() although we
@@ -7840,6 +7886,13 @@ thread_sigblock(tsigset_t mask)
 	THREAD_UNLOCK(te);
 
 process_signals:
+
+	/*
+	 * If the main thread was blocking, it is resuming processing now.
+	 */
+
+	if G_UNLIKELY(eve != NULL)
+		evq_cancel(&eve);
 
 	if (signalled) {
 		thread_cancel_test();
