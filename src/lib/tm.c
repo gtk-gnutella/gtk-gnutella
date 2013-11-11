@@ -126,6 +126,44 @@ tm_cmp(const tm_t *a, const tm_t *b)
 }
 
 /**
+ * Computes the remaining time to absolute end time and return duration
+ * in milliseconds.
+ *
+ * This routine is more accurate than tm_elapsed_ms() because it goes down
+ * to the microsecond in case there are no visible difference at the
+ * millisecond level.
+ *
+ * @param end		absolute ending time
+ *
+ * @return amount of milliseconds remaining to reach time.
+ */
+long
+tm_remaining_ms(const tm_t *end)
+{
+	tm_t now, elapsed;
+	long remain;
+
+	tm_now_exact(&now);
+	tm_elapsed(&elapsed, end, &now);
+	remain = tm2ms(&elapsed);
+
+	/*
+	 * We want the full precision, so if remain is 0, go down to the
+	 * micro-second level to check whether waiting really expired.
+	 */
+
+	if G_UNLIKELY(0 == remain) {
+		long us = tm2us(&elapsed);
+		if (us < 0)
+			remain = -1;		/* Signal that we're past the time */
+		else if (us > 0)
+			remain = 1;			/* Signal that we're before the time */
+	}
+
+	return remain;
+}
+
+/**
  * Fill supplied structure with current time (cached).
  */
 void

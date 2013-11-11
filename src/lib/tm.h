@@ -36,6 +36,39 @@
 
 #include "common.h"
 
+/*
+ * We use the direct difference of time_t values instead of difftime()
+ * for performance. Just in case there is any system which requires difftime()
+ * e.g. if time_t is BCD-encoded, define USE_DIFFTIME.
+ */
+#if defined(USE_DIFFTIME)
+typedef int64 time_delta_t;
+
+static inline time_delta_t
+delta_time(time_t t1, time_t t0)
+{
+	return difftime(t1, t0);
+}
+#else	/* !USE_DIFFTIME */
+typedef time_t time_delta_t;
+
+static inline ALWAYS_INLINE time_delta_t
+delta_time(time_t t1, time_t t0)
+{
+	return t1 - t0;
+}
+
+static inline void
+time_t_check(void)
+{
+	/* If time_t is not a signed integer type, we cannot calculate properly
+	 * with the raw values. Define USE_DIFFTIME, if this check fails.*/
+	STATIC_ASSERT((time_t) -1 < 0);
+}
+#endif /* USE_DIFFTIME*/
+
+#define TIME_DELTA_T_MAX	MAX_INT_VAL(time_delta_t)
+
 /**
  * tm_zero
  *
@@ -80,6 +113,7 @@ void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);
 void tm_add(tm_t *tm, const tm_t *inc);
 int tm_cmp(const tm_t *a, const tm_t *b) G_GNUC_PURE;
+long tm_remaining_ms(const tm_t *end);
 
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
@@ -88,39 +122,6 @@ double tm_cputime(double *user, double *sys);
 
 uint tm_hash(const void *key) G_GNUC_PURE;
 int tm_equal(const void *a, const void *b) G_GNUC_PURE;
-
-/*
- * We use the direct difference of time_t values instead of difftime()
- * for performance. Just in case there is any system which requires difftime()
- * e.g. if time_t is BCD-encoded, define USE_DIFFTIME.
- */
-#if defined(USE_DIFFTIME)
-typedef int64 time_delta_t;
-
-static inline time_delta_t
-delta_time(time_t t1, time_t t0)
-{
-	return difftime(t1, t0);
-}
-#else	/* !USE_DIFFTIME */
-typedef time_t time_delta_t;
-
-static inline ALWAYS_INLINE time_delta_t
-delta_time(time_t t1, time_t t0)
-{
-	return t1 - t0;
-}
-
-static inline void
-time_t_check(void)
-{
-	/* If time_t is not a signed integer type, we cannot calculate properly
-	 * with the raw values. Define USE_DIFFTIME, if this check fails.*/
-	STATIC_ASSERT((time_t) -1 < 0);
-}
-#endif /* USE_DIFFTIME*/
-
-#define TIME_DELTA_T_MAX	MAX_INT_VAL(time_delta_t)
 
 /**
  * Advances the given timestamp by delta using saturation arithmetic.
