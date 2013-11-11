@@ -36,6 +36,7 @@
 #include "verify.h"
 
 #include "lib/misc.h"
+#include "lib/once.h"
 #include "lib/sha1.h"
 
 #include "core/verify_sha1.h"
@@ -105,19 +106,31 @@ verify_sha1_digest(const struct verify *ctx)
 	return &verify_sha1.digest;
 }
 
-void
-verify_sha1_init(void)
+static G_GNUC_COLD void
+verify_sha1_init_once(void)
 {
-	static int initialized;
-
-	if (!initialized) {
-		initialized = TRUE;
-
-		verify_sha1.verify = verify_new(&verify_hash_sha1);
-	}
+	verify_sha1.verify = verify_new(&verify_hash_sha1);
 }
 
-void
+G_GNUC_COLD void
+verify_sha1_init(void)
+{
+	static once_flag_t initialized;
+
+	/*
+	 * We cannot use once_flag_run() because verify_new() can create a thread
+	 * and cause the current thread to sleep with a lock (the mutex that
+	 * the once layer will acquire).
+	 *
+	 * Therefore we need to use once_flag_runwait(), which can block the
+	 * calling thread on a condition but does not hold any lock when invoking
+	 * the init routine.
+	 */
+
+	once_flag_runwait(&initialized, verify_sha1_init_once);
+}
+
+G_GNUC_COLD void
 verify_sha1_close(void)
 {
 	verify_free(&verify_sha1.verify);

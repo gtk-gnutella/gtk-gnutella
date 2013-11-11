@@ -195,6 +195,18 @@ pointer_to_int(const void *p)
 	return pointer_to_uint(p);
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+bool_to_pointer(bool value)
+{
+	return ulong_to_pointer(value);
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE bool
+pointer_to_bool(const void *p)
+{
+	return p != NULL;
+}
+
 typedef void (*func_ptr_t)();
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE func_ptr_t

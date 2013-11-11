@@ -33,23 +33,17 @@
 
 #include "common.h"
 
-#include "downloads.h"
-#include "guid.h"
 #include "huge.h"
-#include "sockets.h"
+#include "share.h"
 #include "tth_cache.h"
 #include "verify_tth.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/atoms.h"
 #include "lib/base32.h"
-#include "lib/bg.h"
-#include "lib/file.h"
-#include "lib/file_object.h"
 #include "lib/halloc.h"
-#include "lib/hashlist.h"
+#include "lib/once.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
@@ -71,12 +65,16 @@ verify_tth_name(void)
 static void
 verify_tth_reset(filesize_t size)
 {
-	tt_init(verify_tth.context, size);
+	if G_LIKELY(verify_tth.context != NULL)
+		tt_init(verify_tth.context, size);
 }
 
 static int
 verify_tth_update(const void *data, size_t size)
 {
+	if G_UNLIKELY(NULL == verify_tth.context)
+		return -1;
+
 	tt_update(verify_tth.context, data, size);
 	return 0;
 }
@@ -84,6 +82,9 @@ verify_tth_update(const void *data, size_t size)
 static int
 verify_tth_final(void)
 {
+	if G_UNLIKELY(NULL == verify_tth.context)
+		return -1;
+
 	tt_digest(verify_tth.context, &verify_tth.digest);
 	return 0;
 }
@@ -116,17 +117,29 @@ verify_tth_leave_count(const struct verify *ctx)
 	return tt_leave_count(verify_tth.context);
 }
 
-void
+static G_GNUC_COLD void
+verify_tth_init_once(void)
+{
+	verify_tth.context = halloc(tt_size());
+	verify_tth.verify = verify_new(&verify_hash_tth);
+}
+
+G_GNUC_COLD void
 verify_tth_init(void)
 {
-	static int initialized;
+	static once_flag_t initialized;
 
-	if (!initialized) {
-		initialized = TRUE;
+	/*
+	 * We cannot use once_flag_run() because verify_new() can create a thread
+	 * and cause the current thread to sleep with a lock (the mutex that
+	 * the once layer will acquire).
+	 *
+	 * Therefore we need to use once_flag_runwait(), which can block the
+	 * calling thread on a condition but does not hold any lock when invoking
+	 * the init routine.
+	 */
 
-		verify_tth.context = halloc(tt_size());
-		verify_tth.verify = verify_new(&verify_hash_tth);
-	}
+	once_flag_runwait(&initialized, verify_tth_init_once);
 }
 
 /**
@@ -226,6 +239,15 @@ request_tigertree(shared_file_t *sf, bool high_priority)
 	g_return_if_fail(sf);
 	shared_file_check(sf);
 	g_return_if_fail(!shared_file_is_partial(sf));
+
+	/*
+	 * This routine can be called when the VERIFY_DONE event is received by
+	 * huge_verify_callback().  We may have already shutdown the TTH
+	 * verification thread.
+	 */
+
+	if G_UNLIKELY(NULL == verify_tth.verify)
+		return;
 
 	sf = shared_file_ref(sf);
 
