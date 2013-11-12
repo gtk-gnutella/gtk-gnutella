@@ -3064,15 +3064,15 @@ thread_sighandler_level(void)
  * Check whether thread is suspended and can be suspended right now, or
  * whether there are pending signals to deliver.
  *
+ * @param te	the computed thread element for the current thread
+ *
  * @return TRUE if we suspended or handled signals.
  */
-bool
-thread_check_suspended(void)
+static bool
+thread_check_suspended_element(struct thread_element *te)
 {
 	bool delayed = FALSE;
-	struct thread_element *te;
 
-	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return FALSE;
 
@@ -3098,6 +3098,21 @@ thread_check_suspended(void)
 	}
 
 	return delayed;
+}
+
+/**
+ * Check whether thread is suspended and can be suspended right now, or
+ * whether there are pending signals to deliver.
+ *
+ * @return TRUE if we suspended or handled signals.
+ */
+bool
+thread_check_suspended(void)
+{
+	struct thread_element *te;
+
+	te = thread_find(&te);
+	return thread_check_suspended_element(te);
 }
 
 /**
@@ -6969,7 +6984,7 @@ thread_cancel_test(void)
 	struct thread_element *te = thread_get_element();
 	bool delayed;
 
-	delayed = thread_check_suspended();
+	delayed = thread_check_suspended_element(te);
 
 	/*
 	 * To cancel the thread, it must be cancelable, in a state where cancelling
