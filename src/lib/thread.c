@@ -76,11 +76,14 @@
 #include "thread.h"
 
 #include "alloca.h"				/* For alloca_stack_direction() */
+#include "atomic.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
+#include "compat_usleep.h"
 #include "cond.h"
 #include "cq.h"
 #include "crash.h"				/* For print_str() et al. */
+#include "dump_options.h"
 #include "fd.h"					/* For fd_close() */
 #include "gentime.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
@@ -6800,6 +6803,54 @@ thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
 	}
 
 	return buf;
+}
+
+/**
+ * Dump thread statistics to specified logging agent.
+ */
+G_GNUC_COLD void
+thread_dump_stats_log(logagent_t *la, unsigned options)
+{
+	struct thread_stats t1, t2;
+
+	/*
+	 * Because thread statistics are updated atomically, without taking locks,
+	 * we need to be extra careful to avoid showing improper numbers for these
+	 * statistics that are split into two 32-bit counters.
+	 */
+
+	atomic_mb();
+	t1 = thread_stats;			/* Struct copy */
+	compat_usleep(5);			/* Small delay to let upper 32-bit updates */
+	atomic_mb();
+	t2 = thread_stats;			/* Struct copy */
+
+#define DUMP(x)		log_info(la, "THREAD %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?							\
+		uint_to_gstring(t2.x) : uint_to_string(t2.x))
+
+#define DUMP64(x) G_STMT_START {							\
+	uint64 v, v1, v2;										\
+	v1 = (((uint64) t1.x ## _hi) << 32) + t1.x ## _lo;		\
+	v2 = (((uint64) t2.x ## _hi) << 32) + t2.x ## _lo;		\
+	v = MAX(v1, v2);										\
+	log_info(la, "THREAD %s = %s", #x,						\
+		(options & DUMP_OPT_PRETTY) ?						\
+			uint64_to_gstring(v) : uint64_to_string(v));	\
+} G_STMT_END
+
+	DUMP(created);
+	DUMP(discovered);
+	DUMP64(qid_lookup);
+	DUMP64(qid_hit);
+	DUMP64(qid_clash);
+	DUMP64(qid_miss);
+	DUMP64(lookup_by_qid);
+	DUMP64(lookup_by_tid);
+	DUMP64(locks_tracked);
+
+#undef DUMP
+#undef DUMP64
 }
 
 /* vi: set ts=4 sw=4 cindent: */

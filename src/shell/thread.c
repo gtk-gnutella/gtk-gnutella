@@ -37,6 +37,9 @@
 
 #include "lib/alloca.h"			/* For alloca_stack_direction() */
 #include "lib/ascii.h"
+#include "lib/dump_options.h"
+#include "lib/log.h"
+#include "lib/options.h"
 #include "lib/pow2.h"			/* For popcount() */
 #include "lib/stacktrace.h"		/* For stacktrace_function_name() */
 #include "lib/str.h"
@@ -118,6 +121,44 @@ failure:
 	return REPLY_ERROR;
 }
 
+static enum shell_reply
+shell_exec_thread_stats(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	const char *pretty;
+	const option_t options[] = {
+		{ "p", &pretty },			/* pretty-print */
+	};
+	int parsed;
+	unsigned opt = 0;
+	logagent_t *la = log_agent_string_make(0, "THREAD ");
+
+	shell_check(sh);
+
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
+
+	argv += parsed;		/* args[0] is first command argument */
+	argc -= parsed;		/* counts only command arguments now */
+
+	if (0 != argc)
+		return REPLY_ERROR;
+
+	if (pretty != NULL)
+		opt |= DUMP_OPT_PRETTY;
+
+	thread_dump_stats_log(la, opt);
+
+	shell_write(sh, "100~\n");
+	shell_write(sh, log_agent_string_get(la));
+	shell_write(sh, ".\n");
+
+	log_agent_free_null(&la);
+
+	return REPLY_READY;
+}
+
 /**
  * Handles the thread command.
  */
@@ -137,6 +178,7 @@ shell_exec_thread(struct gnutella_shell *sh, int argc, const char *argv[])
 } G_STMT_END
 
 	CMD(list);
+	CMD(stats);
 
 #undef CMD
 	
@@ -161,9 +203,15 @@ shell_help_thread(int argc, const char *argv[])
 			return "thread list\n"
 				"list all running threads\n";
 		}
+		else if (0 == ascii_strcasecmp(argv[1], "stats")) {
+			return "thread stats [-p]\n"
+				"show thread global statistics\n"
+				"-p : pretty-print numbers with thousands separators\n";
+		}
 	} else {
 		return
 			"thread list\n"
+			"thread stats [-p]\n"
 			;
 	}
 	return NULL;

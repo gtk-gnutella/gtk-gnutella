@@ -255,6 +255,9 @@ int thread_sighandler_level(void);
 bool thread_pause(void);
 void thread_sleep_ms(unsigned int ms);
 
+struct logagent;
+void thread_dump_stats_log(struct logagent *la, unsigned options);
+
 #define THREAD_INVALID_ID	-1U		/**< Invalid ID */
 
 #if defined(THREAD_SOURCE) || defined(MUTEX_SOURCE)
