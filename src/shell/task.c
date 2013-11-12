@@ -66,7 +66,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 	shell_write(sh, "100~\n");
 	if (opt_s) {
 		shell_write(sh,
-			"T  Run-time Tasks Run-Q Sleep-Q Slice Period Name\n");
+			"T  Run-time Tasks Run-Q Sleep-Q Ended Slice Period Name\n");
 	} else {
 		shell_write(sh,
 			"T  Flg S Work-Q Handled St Progress Run-time Name/Sched\n");
@@ -89,6 +89,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			str_catf(s, "%-5d ", bsi->runcount);
 			str_catf(s, "%-5d ", bsi->runq_count);
 			str_catf(s, "%-7d ", bsi->sleepq_count);
+			str_catf(s, "%-5zu ", bsi->completed);
 			str_catf(s, "%'-5d ", bsi->max_life / 1000);
 			if (bsi->period != 0)
 				str_catf(s, "%'-6d ", bsi->period);

@@ -151,7 +151,8 @@ struct bgsched {
 	GSList *runq;				/**< List of runnable tasks */
 	GSList *sleepq;				/**< List of sleeping tasks */
 	GSList *dead_tasks;			/**< Dead tasks to reclaim */
-	bgtask_t *current_task;		/*<< Current task scheduled */
+	bgtask_t *current_task;		/**< Current task scheduled */
+	size_t completed;			/**< Completed tasks */
 	ulong max_life;				/**< Maximum life when scheduled, in usecs */
 	ulong wtime;				/**< Wall-clock run time, in ms */
 	int runcount;				/**< Amount of runnable tasks */
@@ -1064,6 +1065,7 @@ bg_task_terminate(bgtask_t *bt)
 		bt->name, bs->name, bg_task_step_name(bt));
 
 	bs->runcount--;				/* One task less to run */
+	bs->completed++;			/* One more task completed */
 
 	BG_SCHED_UNLOCK(bs);
 
@@ -2124,6 +2126,7 @@ bg_sched_info_list(void)
 
 		BG_SCHED_LOCK(bs);
 		bsi->name = atom_str_get(bs->name);
+		bsi->completed = bs->completed;
 		bsi->stid = bs->stid;
 		bsi->wtime = bs->wtime;
 		bsi->runq_count = g_slist_length(bs->runq);

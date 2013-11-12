@@ -110,6 +110,7 @@ bgtask_info_check(const bgtask_info_t * const bi)
 typedef struct {
 	enum bg_info_magic magic;
 	const char *name;		/**< Scheduler name (atom) */
+	size_t completed;		/**< Amount of completed tasks */
 	uint stid;				/**< Scheduler's thread ID */
 	ulong wtime;			/**< Wall-clock run time, in ms */
 	uint runq_count;		/**< Run queue task count */
