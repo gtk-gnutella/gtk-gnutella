@@ -432,7 +432,7 @@ event_get_with_epoll(const struct poll_ctx *ctx, unsigned idx)
 
 	g_assert(CTX_IS_LOCKED(ctx));
 
-	event.fd = GPOINTER_TO_INT(ev->data.ptr);
+	event.fd = pointer_to_int(ev->data.ptr);
 	event.condition =
 		((EPOLLIN | EPOLLPRI | EPOLLHUP) & ev->events ? INPUT_EVENT_R : 0)
 		| (EPOLLOUT & ev->events ? INPUT_EVENT_W : 0)
@@ -853,7 +853,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 		inputevt_relay_t *relay;
 		unsigned id;
 
-		id = GPOINTER_TO_UINT(sl->data);
+		id = pointer_to_uint(sl->data);
 		g_assert(id > 0);
 		g_assert(id < ctx->num_ev);
 
@@ -877,12 +877,19 @@ inputevt_timer(struct poll_ctx *ctx)
 {
 	int num_events;
 
-	g_assert(ctx);
+	g_assert(ctx != NULL);
+
+	CTX_LOCK(ctx);
+
 	g_assert(ctx->initialized);
-	g_assert(ctx->ht);
+	g_assert(ctx->ht != NULL);
 
 	/* Maybe this must safely fail for general use, thus no assertion */
-	g_return_if_fail(!ctx->dispatching);
+	if (ctx->dispatching) {
+		CTX_UNLOCK(ctx);
+		s_critical("%s(): called recursively / concurrently", G_STRFUNC);
+		return;
+	}
 
 	num_events = (*ctx->event_check_all)(ctx);
 	if (-1 == num_events && !is_temporary_error(errno)) {
@@ -893,12 +900,11 @@ inputevt_timer(struct poll_ctx *ctx)
 
 	if (num_events > 0) {
 		unsigned idx;
+		GSList *evlist = NULL, *es;
 
 		g_assert(UNSIGNED(num_events) <= ctx->num_ev);
 	
 		for (idx = 0; num_events > 0 && idx < ctx->num_ev; idx++) {
-			relay_list_t *rl;
-			GSList *sl;
 			struct event event;
 
 			event = (*ctx->event_get)(ctx, idx);
@@ -908,7 +914,24 @@ inputevt_timer(struct poll_ctx *ctx)
 				continue;
 
 			num_events--;
-			rl = htable_lookup(ctx->ht, int_to_pointer(event.fd));
+			evlist = g_slist_prepend(evlist, WCOPY(&event));
+		}
+
+		/*
+		 * Invoke I/O callbacks without any locks.
+		 *
+		 * Becauuse ctx->dispatching is TRUE, no changes to the relay list
+		 * can happen concurrently (hopefully -- RAM).
+		 */
+
+		CTX_UNLOCK(ctx);
+
+		GM_SLIST_FOREACH(evlist, es) {
+			relay_list_t *rl;
+			GSList *sl;
+			struct event *event = es->data;
+
+			rl = htable_lookup(ctx->ht, int_to_pointer(event->fd));
 			g_assert(NULL != rl);
 			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
@@ -916,7 +939,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				inputevt_relay_t *relay;
 				unsigned id;
 
-				id = GPOINTER_TO_UINT(sl->data);
+				id = pointer_to_uint(sl->data);
 				g_assert(id > 0);
 				g_assert(id < ctx->num_ev);
 
@@ -924,17 +947,22 @@ inputevt_timer(struct poll_ctx *ctx)
 
 				relay = ctx->relay[id];
 				g_assert(relay);
-				g_assert(relay->fd == event.fd);
+				g_assert(relay->fd == event->fd);
 
-				if (zero_handler == relay->handler)
+				if G_UNLIKELY(zero_handler == relay->handler)
 					continue;
 
-				if (relay->condition & event.condition) {
-					data_available = event.data_available;
-					relay->handler(relay->data, relay->fd, event.condition);
+				if (relay->condition & event->condition) {
+					data_available = event->data_available;
+					relay->handler(relay->data, relay->fd, event->condition);
 				}
 			}
+
+			WFREE(event);
 		}
+
+		gm_slist_free_null(&evlist);
+		CTX_LOCK(ctx);
 	}
 
 	if (hash_list_length(ctx->readable) > 0) {
@@ -942,14 +970,25 @@ inputevt_timer(struct poll_ctx *ctx)
 
 		hash_list_clear(ctx->readable);
 
+		/*
+		 * Now that we snapshot the list of readable file descriptors, we
+		 * can release the context lock to make sure callbacks are invoked
+		 * with not locks held.
+		 *
+		 * Same as above for regular fd events, we hope that the relay list
+		 * will not be concurrently updated in a way that would corrupt our
+		 * processing whilst we no longer hold the lock.	--RAM
+		 */
+
+		CTX_UNLOCK(ctx);
+
 		if (inputevt_debug > 2) {
 			unsigned long count = g_list_length(list);
-			g_debug("%s: %lu fake event%s", G_STRFUNC,
-				count, plural(count));
+			g_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
 		}
 
-		for (iter = list; NULL != iter; iter = g_list_next(iter)) {
-			int fd = GPOINTER_TO_INT(iter->data);
+		GM_LIST_FOREACH(list, iter) {
+			int fd = pointer_to_int(iter->data);
 			relay_list_t *rl;
 			GSList *sl;
 
@@ -963,7 +1002,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				inputevt_relay_t *relay;
 				unsigned id;
 
-				id = GPOINTER_TO_UINT(sl->data);
+				id = pointer_to_uint(sl->data);
 				sl = g_slist_next(sl);
 
 				g_assert(id > 0);
@@ -973,7 +1012,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				g_assert(relay);
 				g_assert(relay->fd == fd);
 
-				if (zero_handler == relay->handler)
+				if G_UNLIKELY(zero_handler == relay->handler)
 					continue;
 
 				if (INPUT_EVENT_R & relay->condition) {
@@ -983,6 +1022,7 @@ inputevt_timer(struct poll_ctx *ctx)
 			}
 		}
 		gm_list_free_null(&list);
+		CTX_LOCK(ctx);
 	}
 	
 	ctx->dispatching = FALSE;
@@ -990,6 +1030,8 @@ inputevt_timer(struct poll_ctx *ctx)
 	if (ctx->removed) {
 		inputevt_purge_removed(ctx);
 	}
+
+	CTX_UNLOCK(ctx);
 }
 
 /**
@@ -1004,10 +1046,7 @@ dispatch_poll(GIOChannel *unused_source,
 	(void) unused_cond;
 	(void) unused_source;
 
-	CTX_LOCK(ctx);
 	inputevt_timer(ctx);
-	CTX_UNLOCK(ctx);
-
 	return TRUE;
 }
 
@@ -1125,7 +1164,7 @@ inputevt_remove(unsigned *id_ptr)
 		 * Don't clear the "used_event_id" bit yet because this slot must
 		 * not be recycled whilst dispatching events.
 		 */
-		ctx->removed = g_slist_prepend(ctx->removed, GUINT_TO_POINTER(id));
+		ctx->removed = g_slist_prepend(ctx->removed, uint_to_pointer(id));
 	} else {
 		relay_list_remove(ctx, id);		
 		WFREE(relay);
@@ -1242,7 +1281,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 				g_assert(NULL != rl->sl);
 
-				x = GPOINTER_TO_UINT(rl->sl->data);
+				x = pointer_to_uint(rl->sl->data);
 				g_assert(x != id);
 				g_assert(x > 0);
 				g_assert(x < ctx->num_ev);
@@ -1268,7 +1307,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		if (INPUT_EVENT_W & relay->condition)
 			rl->writers++;
 
-		rl->sl = g_slist_prepend(rl->sl, GUINT_TO_POINTER(id));
+		rl->sl = g_slist_prepend(rl->sl, uint_to_pointer(id));
 	}
 
 	if 
@@ -1450,6 +1489,13 @@ inputevt_init(int use_poll)
 	ctx->readable = hash_list_new(NULL, NULL);
 	mutex_init(&ctx->lock);
 
+	/*
+	 * This hash table can be accessed from inputevt_timer() without the
+	 * context lock, hence it needs to be marked thread-safe.
+	 */
+
+	htable_thread_safe(ctx->ht);
+
 	CTX_LOCK(ctx);
 
 	init_with_poll(ctx); /* Must be called first and provides the default */
@@ -1537,9 +1583,7 @@ inputevt_dispatch(void)
 {
 	struct poll_ctx *ctx = get_global_poll_ctx();
 
-	CTX_LOCK(ctx);
 	inputevt_timer(ctx);
-	CTX_UNLOCK(ctx);
 }
 
 /**
