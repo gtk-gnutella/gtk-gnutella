@@ -90,6 +90,7 @@ typedef struct {
 	int stepcnt;			/**< Amount of steps */
 	size_t signals;			/**< Signals pending delivery */
 	size_t wq_count;		/**< Work queue count, for daemon tasks */
+	size_t wq_done;			/**< Processed items, for daemon tasks */
 	uint running:1;			/**< Is task running? */
 	uint daemon:1;			/**< Is task a daemon? */
 	uint cancelled:1;		/**< Is task cancelled? */

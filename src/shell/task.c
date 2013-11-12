@@ -69,7 +69,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			"T  Run-time Tasks Run-Q Sleep-Q Slice Period Name\n");
 	} else {
 		shell_write(sh,
-			"T  Flgs Sigs Work-Q St Progress Run-time Name/Sched\n");
+			"T  Flg S Work-Q Handled St Progress Run-time Name/Sched\n");
 	}
 
 	info = opt_s != NULL ? bg_sched_info_list() : bg_info_list();
@@ -112,12 +112,15 @@ shell_exec_task_list(struct gnutella_shell *sh,
 				str_putc(s, '-');
 			str_putc(s, bi->daemon ? 'd' : '-');
 			str_putc(s, bi->running ? 'R' : 'S');
-			STR_CAT(s, "  ");
-			str_catf(s, "%-4zu ", bi->signals);
-			if (bi->daemon)
+			str_putc(s, ' ');
+			str_catf(s, "%-1zu ", bi->signals);
+			if (bi->daemon) {
 				str_catf(s, "%-6zu ", bi->wq_count);
-			else
+				str_catf(s, "%-7zu ", bi->wq_done);
+			} else {
 				str_catf(s, "%-6s ", "-");
+				str_catf(s, "%-7s ", "-");
+			}
 			str_catf(s, "%-2d ", bi->stepcnt);
 			str_catf(s, "%2d:%-5d ", bi->step, bi->seqno);
 			str_catf(s, "%-8s ", compact_time_ms(bi->wtime));

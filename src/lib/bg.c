@@ -231,6 +231,7 @@ struct bgdaemon {
 	struct bgtask task;		/**< Common task attributes */
 	GSList *wq;				/**< Work queue (daemon task only) */
 	size_t wq_count;		/**< Size of work queue */
+	size_t wq_done;			/**< Amount of items processed */
 	bgstart_cb_t start_cb;	/**< Called when starting working on an item */
 	bgend_cb_t end_cb;		/**< Called when finished working on an item */
 	bgclean_cb_t item_free;	/**< Free routine for work queue items */
@@ -1489,6 +1490,7 @@ bg_task_ended(bgtask_t *bt)
 	BG_TASK_LOCK(bt);
 	bd->wq = g_slist_remove(bd->wq, item);
 	bd->wq_count--;
+	bd->wq_done++;
 	BG_TASK_UNLOCK(bt);
 	if (bd->item_free)
 		(*bd->item_free)(item);
@@ -2038,6 +2040,7 @@ bg_info_get(void *data, void *udata)
 		struct bgdaemon *bd = BG_DAEMON(bt);
 		g_assert(bd != NULL);
 		bi->wq_count = bd->wq_count;
+		bi->wq_done = bd->wq_done;
 	}
 
 	BG_TASK_UNLOCK(bt);
