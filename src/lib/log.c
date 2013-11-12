@@ -71,6 +71,7 @@
 #include "offtime.h"
 #include "once.h"
 #include "signal.h"
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
@@ -217,9 +218,13 @@ static ckhunk_t *
 log_chunk(void)
 {
 	static ckhunk_t *ck;
+	static spinlock_t chunk_slk = SPINLOCK_INIT;
 
 	if G_UNLIKELY(NULL == ck) {
-		ck = ck_init(LOG_MSG_MAXLEN * 4, LOG_MSG_MAXLEN);
+		spinlock_raw(&chunk_slk);
+		if (NULL == ck)
+			ck = ck_init(LOG_MSG_MAXLEN * 4, LOG_MSG_MAXLEN);
+		spinunlock_raw(&chunk_slk);
 	}
 
 	return ck;
@@ -242,13 +247,18 @@ logagent_t *
 log_agent_stdout_get(void)
 {
 	static logagent_t la;
+	static spinlock_t agent_lck = SPINLOCK_INIT;
 
 	if G_UNLIKELY(la.magic != LOGAGENT_MAGIC) {
-		struct logfile *lf = &logfile[LOG_STDOUT];
+		spinlock(&agent_lck);
+		if (la.magic != LOGAGENT_MAGIC) {
+			struct logfile *lf = &logfile[LOG_STDOUT];
 
-		la.magic = LOGAGENT_MAGIC;
-		la.type = LOG_A_STDOUT;
-		la.u.f = lf;
+			la.magic = LOGAGENT_MAGIC;
+			la.type = LOG_A_STDOUT;
+			la.u.f = lf;
+		}
+		spinunlock(&agent_lck);
 	}
 
 	return &la;
@@ -265,13 +275,18 @@ logagent_t *
 log_agent_stderr_get(void)
 {
 	static logagent_t la;
+	static spinlock_t agent_lck = SPINLOCK_INIT;
 
 	if G_UNLIKELY(la.magic != LOGAGENT_MAGIC) {
-		struct logfile *lf = &logfile[LOG_STDERR];
+		spinlock(&agent_lck);
+		if (la.magic != LOGAGENT_MAGIC) {
+			struct logfile *lf = &logfile[LOG_STDERR];
 
-		la.magic = LOGAGENT_MAGIC;
-		la.type = LOG_A_STDERR;
-		la.u.f = lf;
+			la.magic = LOGAGENT_MAGIC;
+			la.type = LOG_A_STDERR;
+			la.u.f = lf;
+		}
+		spinunlock(&agent_lck);
 	}
 
 	return &la;
@@ -1338,8 +1353,9 @@ s_minierror(const char *format, ...)
 	char data[LOG_MSG_MAXLEN];
 	char time_buf[18];
 	DECLARE_STR(6);
+	bool recursing;
 
-	recursion++;
+	recursing = 0 != atomic_int_inc(&recursion);
 
 	va_start(args, format);
 	str_vbprintf(data, sizeof data, format, args);
@@ -1348,7 +1364,7 @@ s_minierror(const char *format, ...)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" (ERROR)");					/* 1 */
-	if (recursion > 1)
+	if (recursing)
 		print_str(" [RECURSIVE]");			/* 2 */
 	print_str(": ");						/* 3 */
 	print_str(data);						/* 4 */
@@ -1357,7 +1373,7 @@ s_minierror(const char *format, ...)
 	if (log_stdout_is_distinct())
 		log_flush_out_atomic();
 
-	if (1 == recursion)
+	if (!recursing)
 		s_stacktrace(TRUE, 1);
 
 	abort();
