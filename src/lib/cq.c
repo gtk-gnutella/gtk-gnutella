@@ -37,7 +37,6 @@
 #include "cq.h"
 
 #include "atoms.h"
-#include "compat_sleep_ms.h"
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
@@ -47,6 +46,7 @@
 #include "stringify.h"
 #include "thread.h"
 #include "tm.h"
+#include "tsig.h"
 #include "walloc.h"
 #include "xmalloc.h"
 
@@ -57,7 +57,8 @@
 
 static size_t cq_run_idle(cqueue_t *cq);
 
-static const uint32 *cq_debug_ptr;
+static uint32 cq_debug_ptr_default;
+static const uint32 *cq_debug_ptr = &cq_debug_ptr_default;
 static inline uint32 cq_debug(void) { return *cq_debug_ptr; }
 
 #define cq_debugging(lvl)	G_UNLIKELY(cq_debug() > (lvl))
@@ -260,7 +261,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 	cq->cq_time = now;
 	cq->cq_last_bucket = EV_HASH(now);
 	cq->cq_period = period;
-	cq->cq_stid = thread_small_id();	/* Assume it runs in current thread */
+	cq->cq_stid = THREAD_INVALID_ID;
 	mutex_init(&cq->cq_lock);
 	mutex_init(&cq->cq_idle_lock);
 	tm_now_exact(&cq->cq_last_heartbeat);
@@ -1234,14 +1235,28 @@ cq_heartbeat(cqueue_t *cq)
 {
 	tm_t tv;
 	time_delta_t delay;
+	uint stid = thread_small_id();
 
 	cqueue_check(cq);
+
+	CQ_LOCK(cq);
+
+	/*
+	 * Make sure the callout queue always receives its heartbeats from
+	 * the same thread.  This is important to be able to determine whether
+	 * an event needs to be inserted as "extended" or not.
+	 */
+
+	if G_UNLIKELY(THREAD_INVALID_ID == cq->cq_stid)
+		cq->cq_stid = stid;
+
+	g_assert_log(stid == cq->cq_stid,
+		"%s(): callout queue \"%s\" used to heartbeat from %s, called from %s",
+		G_STRFUNC, cq->cq_name, thread_id_name(cq->cq_stid), thread_name());
 
 	/*
 	 * How much milliseconds elapsed since last heart beat?
 	 */
-
-	CQ_LOCK(cq);
 
 	tm_now_exact(&tv);
 	delay = tm_elapsed_ms(&tv, &cq->cq_last_heartbeat);
@@ -1800,13 +1815,25 @@ static bool callout_thread;
 static void *
 cq_thread_main(void *unused_arg)
 {
+	tsigset_t set;
+	tm_t period;
+
 	(void) unused_arg;
 
 	thread_set_name("callout queue");
 
+	/*
+	 * To let cq_dispatch() work properly in case the callout queue does not
+	 * run in the same thread as the one calling cq_dispatch(), we use an
+	 * interruptible sleep in the callout queue thread.
+	 */
+
+	tsig_emptyset(&set);
+	tm_fill_ms(&period, CALLOUT_PERIOD);
+
 	while (callout_thread) {
 		cq_heartbeat(callout_queue);
-		compat_sleep_ms(CALLOUT_PERIOD);
+		thread_timed_sigsuspend(&set, &period);		/* Interruptible sleep */
 	}
 
 	return NULL;
@@ -1859,6 +1886,7 @@ cq_global_init(void)
 	} else {
 		callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
 			cq_heartbeat_trampoline, callout_queue);
+		callout_queue->cq_stid = thread_small_id();
 	}
 }
 
@@ -1898,7 +1926,17 @@ void
 cq_dispatch(void)
 {
 	cq_main_init();
-	cq_heartbeat_trampoline(callout_queue);
+
+	/*
+	 * The callout queue must always be heartbeating from the same thread.
+	 * If it is not running in the current thread, send that thread a signal
+	 * to let it wake-up and call the heartbeat routine.
+	 */
+
+	if (thread_small_id() == callout_queue->cq_stid)
+		cq_heartbeat_trampoline(callout_queue);
+	else
+		thread_kill(callout_queue->cq_stid, TSIG_1);
 }
 
 /**

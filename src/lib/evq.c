@@ -126,7 +126,6 @@ static cqueue_t *event_queue;			/**< Our private callout queue */
 static once_flag_t evq_inited;			/**< Records global initialization */
 static spinlock_t evq_global_slk = SPINLOCK_INIT;
 static uint evq_thread_id = THREAD_INVALID_ID;
-static bool evq_thread_started;
 static tm_t evq_sleep_end;				/**< Expected wake-up time */
 
 #define EVQ_GLOBAL_LOCK		spinlock(&evq_global_slk)
@@ -157,23 +156,6 @@ evq_thread_main(void *unused_arg)
 	(void) unused_arg;
 
 	thread_set_name("event queue");
-
-	/*
-	 * We create the event queue from the thread that runs it because this
-	 * is the assumption made currently by cq_make().  That way, all the
-	 * events inserted into that callout queue will be "extended"
-	 */
-
-	event_queue = cq_make("evq", 0, EVQ_PERIOD);
-
-	/*
-	 * The thread creating us is epecting this notification to know when
-	 * the event queue has been properly initialized.  We're not using
-	 * barriers here for fear of recursion: the thread layer uses the EVQ
-	 * to allow the non-blockable main thread to stil block for some time.
-	 */
-
-	atomic_bool_set(&evq_thread_started, TRUE);
 
 	/*
 	 * "nset" contains only a signal signal: TSIG_EVQ.
@@ -271,24 +253,18 @@ evq_thread_main(void *unused_arg)
 static void
 evq_init_once(void)
 {
+	/*
+	 * The callout queue will determine its heartbeating thread when we
+	 * first call cq_heartbeat() on it.
+	 */
+
+	event_queue = cq_make("evq", 0, EVQ_PERIOD);
+
 	evq_thread_id = thread_create(evq_thread_main, NULL,
 			THREAD_F_DETACH | THREAD_F_NO_CANCEL, EVQ_STACK_SIZE);
 
 	if (-1U == evq_thread_id)
 		s_error("%s(): cannot create the event queue thread: %m", G_STRFUNC);
-
-	/*
-	 * We need to wait for the event queue thread to be initialized, but
-	 * unfortunately we cannot use a barrier here as we could block and if
-	 * we are in the main thread, configured to be non-blocking, that would
-	 * trigger an event and we would recurse.
-	 *
-	 * Hence perform a busy wait...
-	 */
-
-	while (!atomic_bool_get(&evq_thread_started)) {
-		thread_yield();
-	}
 }
 
 static inline ALWAYS_INLINE void
