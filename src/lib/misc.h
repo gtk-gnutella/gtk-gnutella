@@ -356,7 +356,7 @@ clamp_strlen(const char *src, size_t src_size)
  * @return The number of copied bytes.
  */
 static inline size_t
-clamp_memcpy(char *dst, size_t dst_size, const char *src, size_t src_len)
+clamp_memcpy(void *dst, size_t dst_size, const void *src, size_t src_len)
 {
 	size_t n;
 
@@ -376,7 +376,7 @@ clamp_memcpy(char *dst, size_t dst_size, const char *src, size_t src_len)
  * @return The number of set bytes.
  */
 static inline size_t
-clamp_memset(char *dst, size_t dst_size, char c, size_t n)
+clamp_memset(void *dst, size_t dst_size, char c, size_t n)
 {
 	n = MIN(dst_size, n);
 	memset(dst, c, n);
