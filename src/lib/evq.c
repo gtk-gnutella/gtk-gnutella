@@ -39,6 +39,13 @@
  * the thread exits), but also the events that have triggered already and
  * need to be dispatched to the thread.
  *
+ * Direct access to the callout queue is also given because it is guaranteed
+ * that the event queue will run in a dedicated thread.  As such, the library
+ * code should use the event queue for its own processing and leave the main
+ * callout queue to the application.  Events registered directly to the
+ * event queue are run from the event queue thread, not dispatched to the
+ * registering thread.
+ *
  * @author Raphael Manfredi
  * @date 2013
  */
@@ -62,7 +69,7 @@
 
 #include "override.h"		/* Must be the last header included */
 
-#define EVQ_PERIOD		(3600 * 1000)	/**< 1 hour, in ms */
+#define EVQ_PERIOD		2000	/**< 2 s, in ms */
 
 #define EVQ_STACK_SIZE	MAX(THREAD_STACK_MIN, 32768)
 
@@ -189,7 +196,18 @@ evq_thread_main(void *unused_arg)
 		if (evq_debugging(0))
 			s_debug("%s(): heart-beating", G_STRFUNC);
 
-		cq_heartbeat(event_queue);
+		/*
+		 * Because we dynamically compute the delay until the next event,
+		 * we normally dispatch a callback every heartbeat we schedule.
+		 *
+		 * As such, idle tasks are not going to be scheduled regularily
+		 * so we force a dispatch each time we have processed events during
+		 * the heartbeat -- it will be throttled anyway if the idle tasks
+		 * were recently run.
+		 */
+
+		if (0 != cq_heartbeat(event_queue))
+			cq_idle(event_queue);
 
 		/*
 		 * Compute the delay when the next event would fire in our queue, and
@@ -875,6 +893,73 @@ evq_cancel(evq_event_t * volatile *eve_ptr)
 		evq_release(q);
 		*eve_ptr = NULL;
 	}
+}
+
+/***
+ *** The following routines are interfacing with the event queue directly.
+ ***
+ *** Registered events will be delivered from the event queue thread, hence
+ *** the "evq_raw_" prefix for the involved routines: the routines are just
+ *** wrapping the calls to the callout queue to be able to notify the thread
+ *** in case it needs to wake up earlier than expected to deliver the event.
+ ***/
+
+/**
+ * Insert event in our main event queue.
+ *
+ * Use cq_cancel() directly to cancel this event.
+ *
+ * @attention
+ * We do not make the event_queue variable visible from the outside because
+ * we need to call evq_notify() each time we add an event since the event
+ * queue heartbeats are not regularily spaced.
+ */
+cevent_t *
+evq_raw_insert(int delay, cq_service_t fn, void *arg)
+{
+	cevent_t *ev;
+
+	evq_init();
+	ev = cq_insert(event_queue, delay, fn, arg);
+	evq_notify(delay);
+
+	return ev;
+}
+
+/**
+ * Create a new idle event.
+ *
+ * Use cq_idle_remove() directly to cancel it or have the event return FALSE
+ * to stop periodic invocations..
+ */
+cidle_t *
+evq_raw_idle_add(cq_invoke_t event, void *arg)
+{
+	cidle_t *ci;
+
+	evq_init();
+	ci = cq_idle_add(event_queue, event, arg);
+	evq_notify(0);		/* Always wake-up thread when new idle event added */
+
+	return ci;
+}
+
+/**
+ * Create a new periodic event.
+ *
+ * Use cq_periodic_remove() directly to cancel it or have the event return
+ * FALSE to stop periodic invocations..
+ */
+cperiodic_t *
+evq_raw_periodic_add(int period, cq_invoke_t event, void *arg)
+{
+	cperiodic_t *cp;
+
+	evq_init();
+	cp = cq_periodic_add(event_queue, period, event, arg);
+	evq_notify(period);
+
+	return cp;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

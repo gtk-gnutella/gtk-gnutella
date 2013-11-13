@@ -37,6 +37,8 @@
 #ifndef _evq_h_
 #define _evq_h_
 
+#include "cq.h"
+
 typedef struct evq_event evq_event_t;
 
 /*
@@ -47,6 +49,10 @@ evq_event_t *evq_insert(int delay, notify_fn_t fn, const void *arg)
 	WARN_UNUSED_RESULT;
 void evq_schedule(int delay, notify_fn_t fn, const void *arg);
 void evq_cancel(evq_event_t * volatile *eve_ptr);
+
+cevent_t *evq_raw_insert(int delay, cq_service_t fn, void *arg);
+cidle_t *evq_raw_idle_add(cq_invoke_t event, void *arg);
+cperiodic_t *evq_raw_periodic_add(int period, cq_invoke_t event, void *arg);
 
 #endif /* _evq_h_ */
 
