@@ -59,7 +59,9 @@
 #include "common.h"
 
 #include "palloc.h"
+
 #include "cq.h"
+#include "evq.h"
 #include "glib-missing.h"
 #include "hashlist.h"
 #include "log.h"
@@ -147,7 +149,7 @@ pool_gc_idle(void *unused_data)
 static G_GNUC_COLD void
 pool_gc_install(void)
 {
-	cq_idle_add(cq_main(), pool_gc_idle, NULL);
+	evq_raw_idle_add(pool_gc_idle, NULL);
 }
 
 /**
@@ -295,7 +297,7 @@ pool_create(const char *name,
 	p->dealloc = dealloc;
 	p->is_frag = is_frag;
 	p->heart_ev =
-		cq_periodic_main_add(POOL_HEARTBEAT_PERIOD, pool_heartbeat, p);
+		evq_raw_periodic_add(POOL_HEARTBEAT_PERIOD, pool_heartbeat, p);
 	spinlock_init(&p->lock);
 
 	return p;

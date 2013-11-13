@@ -1314,7 +1314,7 @@ thread_exiting(struct thread_element *te)
 	 */
 
 	if (te->detached) {
-		cq_main_insert(THREAD_HOLD_TIME, thread_element_reclaim, te);
+		evq_raw_insert(THREAD_HOLD_TIME, thread_element_reclaim, te);
 		if (NULL == te->stack) {
 			if (is_running_on_mingw()) {
 				/*

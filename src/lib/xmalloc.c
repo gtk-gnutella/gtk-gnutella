@@ -58,12 +58,13 @@
 #define XMALLOC_SOURCE
 
 #include "xmalloc.h"
+
 #include "bit_array.h"
-#include "cq.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
 #include "elist.h"
 #include "erbtree.h"
+#include "evq.h"
 #include "log.h"
 #include "mem.h"			/* For mem_is_valid_ptr() */
 #include "mempcpy.h"
@@ -652,7 +653,7 @@ xmalloc_idle_collect(void *unused_data)
 static G_GNUC_COLD void
 xmalloc_xgc_install(void)
 {
-	cq_idle_add(cq_main(), xmalloc_idle_collect, NULL);
+	evq_raw_idle_add(xmalloc_idle_collect, NULL);
 }
 
 /**

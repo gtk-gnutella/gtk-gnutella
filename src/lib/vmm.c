@@ -112,6 +112,7 @@
 #include "cq.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
+#include "evq.h"
 #include "fd.h"
 #include "log.h"
 #include "memusage.h"
@@ -4423,7 +4424,7 @@ vmm_set_strategy(enum vmm_strategy strategy)
 		break;
 	case VMM_STRATEGY_LONG_TERM:
 		if (NULL == vmm_periodic)
-			vmm_periodic = cq_periodic_main_add(1000, page_cache_timer, NULL);
+			vmm_periodic = evq_raw_periodic_add(1000, page_cache_timer, NULL);
 		break;
 	}
 

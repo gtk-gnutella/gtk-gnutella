@@ -254,6 +254,14 @@ static void
 evq_init_once(void)
 {
 	/*
+	 * Make sure the time thread starts before, to avoid a deadlock during
+	 * the auto-initialization of our runtime now that xmalloc_xgc_install()
+	 * uses the EVQ to invoke xgc() periodically.
+	 */
+
+	(void) tm_time_exact();
+
+	/*
 	 * The callout queue will determine its heartbeating thread when we
 	 * first call cq_heartbeat() on it.
 	 */
