@@ -424,7 +424,7 @@ main_dispatch(void)
 	 */
 
 	inputevt_dispatch();
-	cq_dispatch();
+	cq_main_dispatch();
 
 	/*
 	 * If gtk_gnutella_exit() was called from main_timer(), the callout

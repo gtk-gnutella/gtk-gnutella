@@ -1917,13 +1917,13 @@ cq_init(cq_invoke_t idle, const uint32 *debug)
 }
 
 /**
- * Manual callout queue ticking.
+ * Manual main callout queue ticking.
  *
  * This is meant to be used during final shutdown when the main glib loop
  * (responsible to dispatch the heart beats) may not be invoked.
  */
 void
-cq_dispatch(void)
+cq_main_dispatch(void)
 {
 	cq_main_init();
 

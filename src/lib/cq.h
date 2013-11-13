@@ -67,7 +67,7 @@ typedef uint64 cq_time_t;		/**< Virtual time for callout queue */
 double cq_main_coverage(int old_ticks);
 
 void cq_init(cq_invoke_t idle, const uint32 *debug);
-void cq_dispatch(void);
+void cq_main_dispatch(void);
 void cq_halt(void);
 void cq_close(void);
 

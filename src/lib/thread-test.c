@@ -245,7 +245,7 @@ test_create_one(bool repeat, bool join)
 	}
 
 	if (async_exit)
-		cq_dispatch();
+		cq_main_dispatch();
 }
 
 static void
@@ -417,7 +417,7 @@ test_cancel_one(bool repeat, bool join)
 	}
 
 	if (async_exit)
-		cq_dispatch();
+		cq_main_dispatch();
 
 	i = thread_create(sleeping_thread, NULL, 0, STACK_SIZE);
 	if (-1U == i)
