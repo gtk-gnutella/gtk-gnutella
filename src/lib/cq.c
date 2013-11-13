@@ -55,7 +55,7 @@
 #define CQ_IDLE_FORCE	30	/* Force idle callbacks once every 30 seconds */
 #define CQ_IDLE_PERIOD	1	/* Minimal period in seconds for idle callbacks */
 
-static void cq_run_idle(cqueue_t *cq);
+static size_t cq_run_idle(cqueue_t *cq);
 
 static const uint32 *cq_debug_ptr;
 static inline uint32 cq_debug(void) { return *cq_debug_ptr; }
@@ -958,11 +958,14 @@ cq_replace(cevent_t *ev, cq_service_t fn, void *arg)
  * Called to notify us about the elapsed "time" so that we can expire timeouts
  * and maintain our notion of "current time".
  *
- * NB: The time maintained by the callout queue is "virtual".  It's the
- * elapased delay given by regular calls to cq_clock() that define its unit.
- * For gtk-gnutella, the time unit is the millisecond.
+ * NB: The time maintained by the callout queue is "virtual".
+ *
+ * @param cq		the callout queue
+ * @param elapsed	the elapsed time, in milliseconds
+ *
+ * @return the amount of events triggered (excluding "idle" events).
  */
-static void
+static size_t
 cq_clock(cqueue_t *cq, int elapsed)
 {
 	int bucket;
@@ -970,9 +973,9 @@ cq_clock(cqueue_t *cq, int elapsed)
 	struct chash *ch, *old_current;
 	cevent_t *ev;
 	const cevent_t *old_call;
-	bool old_call_extended;
+	bool old_call_extended, force_idle = FALSE;
 	cq_time_t now;
-	int processed = 0;
+	size_t processed = 0;
 
 	cqueue_check(cq);
 	g_assert(elapsed >= 0);
@@ -1065,7 +1068,7 @@ done:
 		cq->cq_last_bucket = old_last_bucket;	/* Was in recursive call */
 
 	if (cq_debugging(5)) {
-		s_debug("CQ: %squeue \"%s\" %striggered %d event%s (%d item%s)",
+		s_debug("CQ: %squeue \"%s\" %striggered %zu event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
 			processed, plural(processed), cq->cq_items, plural(cq->cq_items));
@@ -1087,7 +1090,7 @@ done:
 			s_debug("CQ: %squeue \"%s\" forcing idle callback run",
 				cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "", cq->cq_name);
 		}
-		processed = 0;		/* Will force idle run below */
+		force_idle = TRUE;		/* Will force idle run below */
 	}
 
 	CQ_UNLOCK(cq);
@@ -1099,8 +1102,10 @@ done:
 	 * concurrent threads register callout events.
 	 */
 
-	if (0 == processed)
+	if G_UNLIKELY(0 == processed || force_idle)
 		cq_run_idle(cq);
+
+	return processed;		/* Do not count idle events */
 }
 
 /**
@@ -1198,27 +1203,33 @@ cq_delay(const cqueue_t *cq)
 
 /**
  * Force callout queue idle tasks to be run.
+ *
+ * @return amount of processed events.
  */
-void
+size_t
 cq_idle(cqueue_t *cq)
 {
-	cq_run_idle(cq);
+	return cq_run_idle(cq);
 }
 
 /**
  * Convenience routine to run the idle tasks on the main callout queue.
+ *
+ * @return amount of processed events.
  */
-void
+size_t
 cq_main_idle(void)
 {
 	cq_main_init();
-	cq_run_idle(callout_queue);
+	return cq_run_idle(callout_queue);
 }
 
 /**
  * Called every period to heartbeat the callout queue.
+ *
+ * @return the amount of triggered events.
  */
-void
+size_t
 cq_heartbeat(cqueue_t *cq)
 {
 	tm_t tv;
@@ -1251,7 +1262,7 @@ cq_heartbeat(cqueue_t *cq)
 	 * We hold the mutex when calling cq_clock(), and it will be released there.
 	 */
 
-	cq_clock(cq, delay);
+	return cq_clock(cq, delay);
 }
 
 /**
@@ -1699,11 +1710,14 @@ cq_idle_trampoline(const void *key, void *data)
 
 /**
  * Launch idle events for the queue.
+ *
+ * @return amount of triggered events
  */
-static void
+static size_t
 cq_run_idle(cqueue_t *cq)
 {
 	time_t now = tm_time();
+	size_t triggered = 0;
 
 	cqueue_check(cq);
 
@@ -1714,7 +1728,7 @@ cq_run_idle(cqueue_t *cq)
 	CQ_LOCK(cq);
 	if (delta_time(now, cq->cq_last_idle) < CQ_IDLE_PERIOD) {
 		CQ_UNLOCK(cq);
-		return;
+		return 0;
 	}
 
 	if (cq->cq_idle != NULL) {
@@ -1723,6 +1737,7 @@ cq_run_idle(cqueue_t *cq)
 		 * cq->cq_idle is never freed once created, until queue is freed
 		 */
 		mutex_lock(&cq->cq_idle_lock);
+		triggered = hset_count(cq->cq_idle);
 		hset_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
 		mutex_unlock(&cq->cq_idle_lock);
 		CQ_LOCK(cq);
@@ -1730,6 +1745,8 @@ cq_run_idle(cqueue_t *cq)
 	}
 
 	CQ_UNLOCK(cq);
+
+	return triggered;
 }
 
 /**

@@ -79,7 +79,7 @@ void cq_free_null(cqueue_t **cq_ptr);
 cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg);
 cevent_t *cq_main_insert(int delay, cq_service_t fn, void *arg);
 cq_time_t cq_remaining(const cevent_t *ev);
-void cq_heartbeat(cqueue_t *cq);
+size_t cq_heartbeat(cqueue_t *cq);
 bool cq_expire(cevent_t *ev);
 void cq_zero(cqueue_t *cq, cevent_t **ev_ptr);
 bool cq_cancel(cevent_t **handle_ptr);
@@ -89,8 +89,8 @@ int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
 int cq_delay(const cqueue_t *cq);
 const char *cq_name(const cqueue_t *cq);
-void cq_idle(cqueue_t *cq);
-void cq_main_idle(void);
+size_t cq_idle(cqueue_t *cq);
+size_t cq_main_idle(void);
 unsigned cq_main_thread_id(void);
 
 cperiodic_t *cq_periodic_add(cqueue_t *cq,
