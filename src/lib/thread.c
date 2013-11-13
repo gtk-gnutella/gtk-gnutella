@@ -978,6 +978,49 @@ thread_local_clear(struct thread_element *te)
 }
 
 /**
+ * Count the thread-local variables in the specified thread.
+ *
+ * @return the amount of thread-local variables used by the thread.
+ */
+static size_t
+thread_local_count(struct thread_element *te)
+{
+	unsigned l1;
+	size_t count = 0;
+
+	spinlock_hidden(&te->local_slk);
+
+	for (l1 = 0; l1 < G_N_ELEMENTS(te->locals); l1++) {
+		void **l2page = te->locals[l1];
+
+		if G_UNLIKELY(l2page != NULL) {
+			int l2;
+			thread_key_t kbase = l1 * THREAD_LOCAL_L1_SIZE;
+
+			for (l2 = 0; l2 < THREAD_LOCAL_L2_SIZE; l2++) {
+				void *val = l2page[l2];
+
+				if G_UNLIKELY(val != NULL) {
+					/*
+					 * No need to get the ``THREAD_local_slk'' lock here
+					 * to read the global thread_lkeys[]  since we're
+					 * only accessing a single field and it's not critical
+					 * if we're reading a stale value.
+					 */
+
+					if G_LIKELY(thread_lkeys[kbase + l2].used)
+						count++;
+				}
+			}
+		}
+	}
+
+	spinunlock_hidden(&te->local_slk);
+
+	return count;
+}
+
+/**
  * Clear all the thread-local variables in the specified thread,
  * warning if we have any.
  */
@@ -7055,6 +7098,8 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->stack_base = te->stack_base;
 	info->stack_size = te->stack_size;
 	info->locks = te->locks.count;
+	info->private_vars = NULL == te->pht ? 0 : hash_table_size(te->pht);
+	info->local_vars = thread_local_count(te);
 	info->entry = te->entry;
 	info->exit_value = te->join_pending ? te->exit_value : NULL;
 	info->discovered = te->discovered;

@@ -65,7 +65,8 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 	}
 
 	shell_write(sh, "100~\n");
-	shell_write(sh, "#  Flags LCK Sigs Evts STK Used  Max   Name\n");
+	shell_write(sh,
+		"#  Flags LCK Sigs Evts STK Used  Max   Local Priv  Name\n");
 
 	s = str_new(80);
 
@@ -110,6 +111,8 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 		} else {
 			str_catf(s, "%-5zu ", (top + 512) / 1024);
 		}
+		str_catf(s, "%-5zu ", info.local_vars);
+		str_catf(s, "%-5zu ", info.private_vars);
 		if (info.name != NULL)
 			str_catf(s, "\"%s\"", info.name);
 		else if (info.entry != NULL)

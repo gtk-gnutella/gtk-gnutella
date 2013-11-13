@@ -130,6 +130,8 @@ typedef struct thread_info {
 	const void *stack_base;		/**< Base of allocated stack (NULL otherwise) */
 	size_t stack_size;			/**< Size of stack, 0 for discovered threads */
 	size_t locks;				/**< Amount of locks registered */
+	size_t private_vars;		/**< Amount of thread-private variables */
+	size_t local_vars;			/**< Amount of thread-local variables */
 	func_ptr_t entry;			/**< Thread entry point, NULL if discovered */
 	void *exit_value;			/**< Exit value, if exited, NULL otherwise */
 	tsigset_t sig_mask;			/**< Signal mask */
