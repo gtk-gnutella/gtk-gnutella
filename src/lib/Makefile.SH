@@ -132,6 +132,7 @@ LSRC = \
 	bg.c \
 	bigint.c \
 	bstr.c \
+	buf.c \
 	chi2.c \
 	ckalloc.c \
 	cobs.c \
@@ -298,6 +299,7 @@ LOBJ = \
 	bg.o \
 	bigint.o \
 	bstr.o \
+	buf.o \
 	chi2.o \
 	ckalloc.o \
 	cobs.o \
