@@ -86,12 +86,21 @@ timeval_to_tm(const struct timeval * const tv)
 }
 
 /**
- * @return TRUE if time is zero.
+ * @return whether time is zero.
  */
 static inline bool
 tm_is_zero(const tm_t * const t)
 {
 	return 0 == t->tv_sec && 0 == t->tv_usec;
+}
+
+/**
+ * @return whether time is zero or less.
+ */
+static inline bool
+tm_is_negative(const tm_t * const t)
+{
+	return t->tv_sec < 0 || (0 == t->tv_sec && t->tv_usec <= 0);
 }
 
 /**
