@@ -1149,6 +1149,62 @@ compact_time2(time_delta_t t)
 }
 
 /**
+ * A variant of compact_time(), formatting being done in the supplied buffer.
+ *
+ * The last figure is displayed in decimal (e.g "4d14.53h".
+ *
+ * @param t			the elapsed time to format, in ms
+ * @param dst		the destination buffer; may be NULL iff ``size'' is zero
+ * @param size		the size of ``dst'', in bytes
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
+size_t
+compact_time_ms_to_buf(long t, char *dst, size_t size)
+{
+	long ms = t < 0 ? -t : t;
+	long s = ms / 1000;
+	char *m = t < 0 ? "-" : "";
+	size_t r;
+
+	if (s > 86400)
+		r = str_bprintf(dst, size, "%s%lud%.2fh",
+				m, s / 86400, (s % 86400) / 3600.0);
+	else if (s > 3600)
+		r = str_bprintf(dst, size, "%s%luh%.2fm",
+				m, s / 3600, (s % 3600) / 60.0);
+	else if (s > 60)
+		r = str_bprintf(dst, size, "%s%lum%.2fs",
+			m, s / 60, (ms - 60000 * (s / 60)) / 1000.0);
+	else
+		r = str_bprintf(dst, size, "%s%.3fs", m, ms / 1000.0);
+
+	return r;
+}
+
+/**
+ * A variant of compact_time() with last figure being decimal, and up to
+ * the millisecond.
+ *
+ * @param t		time, in ms
+ *
+ * @return time spent in seconds in a concise short readable form.
+ * @note The returned string is in English and ASCII encoded, and held in
+ * a static buffer.
+ */
+const char *
+compact_time_ms(long t)
+{
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = compact_time_ms_to_buf(t, p, sz);
+	g_assert(n < sz);
+	return p;
+}
+
+/**
  * Alternate time formatter for uptime.
  */
 const char *
