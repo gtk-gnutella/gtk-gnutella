@@ -54,6 +54,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 	int parsed;
 	str_t *s;
 	GSList *info, *sl;
+	size_t maxlen = 0;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -64,16 +65,29 @@ shell_exec_task_list(struct gnutella_shell *sh,
 		return REPLY_ERROR;
 
 	shell_write(sh, "100~\n");
-	if (opt_s) {
+	if (opt_s != NULL) {
 		shell_write(sh,
-			"T  Run-time Tasks Run-Q Sleep-Q Ended Slice Period Name\n");
+			"T  Tasks Run-Q Sleep-Q Ended Slice Period  Run-time Name\n");
 	} else {
 		shell_write(sh,
-			"T  Flg S Work-Q Handled St Progress Run-time Name/Sched\n");
+			"T  Flg S Work-Q Handled St Progress  Run-time Name (Sched)\n");
 	}
 
 	info = opt_s != NULL ? bg_sched_info_list() : bg_info_list();
 	s = str_new(80);
+
+	if (NULL == opt_s) {
+		GM_SLIST_FOREACH(info, sl) {
+			bgtask_info_t *bi = sl->data;
+			size_t len;
+
+			bgtask_info_check(bi);
+			len = strlen(bi->tname);
+			maxlen = MAX(len, maxlen);
+		}
+
+		maxlen++;
+	}
 
 	GM_SLIST_FOREACH(info, sl) {
 		if (opt_s != NULL) {
@@ -85,16 +99,16 @@ shell_exec_task_list(struct gnutella_shell *sh,
 				str_printf(s, "%-2s ", "-");
 			else
 				str_printf(s, "%-2d ", bsi->stid);
-			str_catf(s, "%-8s ", compact_time_ms(bsi->wtime));
 			str_catf(s, "%-5d ", bsi->runcount);
 			str_catf(s, "%-5d ", bsi->runq_count);
 			str_catf(s, "%-7d ", bsi->sleepq_count);
 			str_catf(s, "%-5zu ", bsi->completed);
-			str_catf(s, "%'-5d ", bsi->max_life / 1000);
+			str_catf(s, "%'5d ", bsi->max_life / 1000);
 			if (bsi->period != 0)
-				str_catf(s, "%'-6d ", bsi->period);
+				str_catf(s, "%'6d ", bsi->period);
 			else
-				str_catf(s, "%-6s ", "-");
+				str_catf(s, "%6s ", "-");
+			str_catf(s, "%9s ", compact_time_ms(bsi->wtime));
 			str_catf(s, "\"%s\"", bsi->name);
 		} else {
 			bgtask_info_t *bi = sl->data;
@@ -124,8 +138,9 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			}
 			str_catf(s, "%-2d ", bi->stepcnt);
 			str_catf(s, "%2d:%-5d ", bi->step, bi->seqno);
-			str_catf(s, "%-8s ", compact_time_ms(bi->wtime));
-			str_catf(s, "\"%s\" / \"%s\"", bi->tname, bi->sname);
+			str_catf(s, "%9s ", compact_time_ms(bi->wtime));
+			str_catf(s, "\"%s\"%*s(%s)", bi->tname,
+				(int) (maxlen - strlen(bi->tname)), "", bi->sname);
 		}
 		str_putc(s, '\n');
 		shell_write(sh, str_2c(s));
