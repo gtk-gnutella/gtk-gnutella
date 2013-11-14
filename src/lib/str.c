@@ -1301,7 +1301,7 @@ str_escape(str_t *str, char c, char e)
  * For instance, given "314159" with a rounding position of 2, the routine
  * returns "0314".  However, given "9995", it would return "1000".
  *
- * This routine is used internally by str_nvcatf() to format floats.
+ * This routine is used internally by str_fcat_safe() to format floats.
  *
  * @param mbuf		the mantissa
  * @param mlen		the length of the mantissa
@@ -1384,6 +1384,8 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
 
 /**
  * Append formatted floating point value.
+ *
+ * This routine does not come from Perl but was written by Raphael Manfredi.
  *
  * @param str			string to which fomatting occurs
  * @param maxlen		maximum amount of bytes to print
@@ -2089,8 +2091,8 @@ clamped:
  * h        interpret integer as C type "short" or "unsigned short"
  * z        interpret integer as C type "size_t" or "ssize_t"
  *
- * Where a number would appear in the flags, an asterisk ("*") may be
- * instead, in which case the routine uses the next item in the parameter
+ * Where a number would appear in the flags, an asterisk ("*") may be given
+ * instead, in which case the routine uses the next item (int) in the parameter
  * list as the given number (that is, as the field width or precision).
  * If a field width obtained through "*" is negative, it has the same effect
  * as the '-' flag: left-justification.
