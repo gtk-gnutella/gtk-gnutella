@@ -36,6 +36,7 @@ SRC = \
 	help.c \
 	horizon.c \
 	intr.c \
+	lib.c \
 	log.c \
 	memory.c \
 	node.c \

@@ -37,7 +37,9 @@
 #include "cq.h"
 
 #include "atoms.h"
+#include "elist.h"
 #include "hset.h"
+#include "glib-missing.h"	/* For gm_slist_free_null() */
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
@@ -170,6 +172,7 @@ struct cqueue {
 	hset_t *cq_periodic;		/**< Periodic events registered */
 	hset_t *cq_idle;			/**< Idle events registered */
 	const cevent_t *cq_call;	/**< Event being called out, for cq_zero() */
+	size_t cq_triggered;		/**< Events triggered */
 	unsigned cq_stid;			/**< Thread where callout queue runs */
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
@@ -179,6 +182,7 @@ struct cqueue {
 	time_t cq_last_idle;		/**< Last time we ran the idle callbacks */
 	mutex_t cq_lock;			/**< Thread-safety for queue changes */
 	mutex_t cq_idle_lock;		/**< Protects idle callbacks */
+	link_t lk;					/**< Embedded link to list all queues */
 };
 
 static inline void
@@ -209,9 +213,57 @@ cqueue_check(const struct cqueue * const cq)
 #define CQ_LOCK(q)		mutex_lock_hidden(&(q)->cq_lock)
 #define CQ_UNLOCK(q)	mutex_unlock_hidden(&(q)->cq_lock)
 
+/**
+ * All the callout queues are linked together so that we can collect statistics
+ * about them.
+ */
+static elist_t cq_vars;
+static spinlock_t cq_vars_slk = SPINLOCK_INIT;
+static once_flag_t cq_vars_inited;
+
+#define CQ_VARS_LOCK		spinlock(&cq_vars_slk)
+#define CQ_VARS_UNLOCK		spinunlock(&cq_vars_slk)
+
 static cqueue_t *callout_queue;			/**< The main callout queue */
 static once_flag_t cq_global_inited;	/**< Records global initialization */
 static void cq_global_init(void);
+
+/**
+ * Initialize the global callout queue list, once.
+ */
+static void
+cq_vars_init(void)
+{
+	elist_init(&cq_vars, offsetof(cqueue_t, lk));
+}
+
+/**
+ * Add a new callout queue to the global list.
+ */
+static void
+cq_vars_add(cqueue_t *cq)
+{
+	cqueue_check(cq);
+
+	once_flag_run(&cq_vars_inited, cq_vars_init);
+
+	CQ_VARS_LOCK;
+	elist_append(&cq_vars, cq);
+	CQ_VARS_UNLOCK;
+}
+
+/**
+ * Remove callout queue from the list.
+ */
+static void
+cq_vars_remove(cqueue_t *cq)
+{
+	cqueue_check(cq);
+
+	CQ_VARS_LOCK;
+	elist_remove(&cq_vars, cq);
+	CQ_VARS_UNLOCK;
+}
 
 static inline ALWAYS_INLINE void
 cq_main_init(void)
@@ -285,7 +337,10 @@ cq_make(const char *name, cq_time_t now, int period)
 	cqueue_t *cq;
 
 	WALLOC0(cq);
-	return cq_initialize(cq, name, now, period);
+	cq_initialize(cq, name, now, period);
+	cq_vars_add(cq);
+
+	return cq;
 }
 
 /**
@@ -856,6 +911,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	cq->cq_call = ev;
+	cq->cq_triggered++;
 
 	/*
 	 * All the callout queue data structures were updated.
@@ -1566,6 +1622,8 @@ cq_submake(const char *name, cqueue_t *parent, int period)
 	csq->heartbeat = cq_periodic_add(parent, period,
 		cq_heartbeat_trampoline, &csq->sub_cq);
 
+	cq_vars_add(&csq->sub_cq);
+
 	csubqueue_check(csq);
 	cqueue_check(&csq->sub_cq);
 
@@ -1757,6 +1815,7 @@ cq_run_idle(cqueue_t *cq)
 		mutex_unlock(&cq->cq_idle_lock);
 		CQ_LOCK(cq);
 		cq->cq_last_idle = tm_time();
+		cq->cq_triggered += triggered;
 	}
 
 	CQ_UNLOCK(cq);
@@ -1991,6 +2050,8 @@ cq_free(cqueue_t *cq)
 
 	cqueue_check(cq);
 
+	cq_vars_remove(cq);
+
 	if (cq->cq_current != NULL) {
 		s_carp("%s(): %squeue \"%s\" still within cq_clock()", G_STRFUNC,
 			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "", cq->cq_name);
@@ -2079,6 +2140,83 @@ cq_close(void)
 		callout_queue->cq_current = NULL;
 		cq_free_null(&callout_queue);
 	}
+}
+
+/**
+ * Retrieve callout queue information.
+ *
+ * @return list of cq_info_t that must be freed by calling the
+ * cq_info_list_free_null() routine.
+ */
+GSList *
+cq_info_list(void)
+{
+	GSList *sl = NULL;
+	cqueue_t *cq;
+
+	CQ_VARS_LOCK;
+
+	ELIST_FOREACH_DATA(&cq_vars, cq) {
+		cq_info_t *cqi;
+
+		cqueue_check(cq);
+
+		WALLOC0(cqi);
+		cqi->magic = CQ_INFO_MAGIC;
+
+		CQ_LOCK(cq);
+		cqi->name = atom_str_get(cq->cq_name);
+		if (CSUBQUEUE_MAGIC == cq->cq_magic) {
+			struct csubqueue *csq = (struct csubqueue *) cq;
+			cqueue_t *pcq;
+
+			pcq = csq->heartbeat->cq;
+			cqueue_check(pcq);
+			cqi->parent = atom_str_get(pcq->cq_name);
+		}
+		cqi->stid = cq->cq_stid;
+		cqi->periodic_count =
+			NULL == cq->cq_periodic ? 0 : hset_count(cq->cq_periodic);
+		cqi->idle_count = NULL == cq->cq_idle ? 0 : hset_count(cq->cq_idle);
+		/* Each periodic event counts as an item, do not count them twice */
+		cqi->event_count = cq->cq_items - cqi->periodic_count;
+		cqi->period = cq->cq_period;
+		cqi->heartbeat_count = cq->cq_ticks;
+		cqi->triggered_count = cq->cq_triggered;
+		cqi->last_idle = cq->cq_last_idle;
+		CQ_UNLOCK(cq);
+
+		sl = g_slist_prepend(sl, cqi);
+	}
+
+	CQ_VARS_UNLOCK;
+
+	return g_slist_reverse(sl);			/* Order list as queue definition */
+}
+
+static void
+cq_info_free(void *data, void *udata)
+{
+	cq_info_t *cqi = data;
+
+	cq_info_check(cqi);
+	(void) udata;
+
+	atom_str_free_null(&cqi->name);
+	atom_str_free_null(&cqi->parent);
+	WFREE(cqi);
+}
+
+/**
+ * Free list created by cq_info_list() and nullify pointer.
+ */
+void
+cq_info_list_free_null(GSList **sl_ptr)
+{
+	GSList *sl = *sl_ptr;
+
+	g_slist_foreach(sl, cq_info_free, NULL);
+	gm_slist_free_null(sl_ptr);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -60,6 +60,32 @@ typedef bool (*cq_invoke_t)(void *udata);
 
 typedef uint64 cq_time_t;		/**< Virtual time for callout queue */
 
+enum cq_info_magic { CQ_INFO_MAGIC = 0x12c867d4 };
+
+/**
+ * Callout queue information that can be retrieved.
+ */
+typedef struct {
+	enum cq_info_magic magic;
+	const char *name;			/**< Queue name (atom) */
+	const char *parent;			/**< Parent queue name (atom), NULL if none */
+	uint stid;					/**< Scheduling thread ID */
+	size_t periodic_count;		/**< Amount of periodic events */
+	size_t idle_count;			/**< Amount of idle events */
+	size_t event_count;			/**< Amount of registered events */
+	size_t heartbeat_count;		/**< Amount of heartbeats */
+	size_t triggered_count;		/**< Amount of triggered events */
+	int period;					/**< Period, in ms */
+	time_t last_idle;			/**< Last idle scheduling */
+} cq_info_t;
+
+static inline void
+cq_info_check(const cq_info_t * const cqi)
+{
+	g_assert(cqi != NULL);
+	g_assert(CQ_INFO_MAGIC == cqi->magic);
+}
+
 /*
  * Interface routines.
  */
@@ -102,6 +128,9 @@ cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, void *arg);
 void cq_idle_remove(cidle_t **ci_ptr);
 
 const char *cq_time_to_string(cq_time_t t);
+
+GSList *cq_info_list(void);
+void cq_info_list_free_null(GSList **sl_ptr);
 
 #endif	/* _cq_h_ */
 
