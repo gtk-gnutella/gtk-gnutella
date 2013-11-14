@@ -53,15 +53,24 @@
 #undef _exit
 
 /**
- * Exit with given status for the parent process.
+ * Exit common cleanup.
  */
 G_GNUC_COLD void
-do_exit(int status)
+exit_cleanup(void)
 {
 	thread_suspend_others(FALSE);
 	xmalloc_stop_freeing();
 	signal_perform_cleanup();
 	crash_close();
+}
+
+/**
+ * Exit with given status for the parent process.
+ */
+G_GNUC_COLD void
+do_exit(int status)
+{
+	exit_cleanup();
 	exit(status);
 }
 
@@ -73,9 +82,7 @@ do_exit(int status)
 G_GNUC_COLD void
 do__exit(int status)
 {
-	thread_suspend_others(FALSE);
-	xmalloc_stop_freeing();
-	signal_perform_cleanup();
+	exit_cleanup();
 	_exit(status);
 }
 
