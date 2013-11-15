@@ -66,7 +66,7 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 
 	shell_write(sh, "100~\n");
 	shell_write(sh,
-		"#  Flags LCK Sigs Evts STK Used  Max   Local Priv  Name\n");
+		"#  Flags LCK Sigs Evts STK Usage  High Local Priv  Name\n");
 
 	s = str_new(80);
 
@@ -102,14 +102,14 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 		}
 		str_catf(s, "%-3zu ", stack / 1024);
 		if (used < 100 * 1024) {
-			str_catf(s, "%-5.2f ", used / 1024.0);
+			str_catf(s, "%5.2f ", used / 1024.0);
 		} else {
-			str_catf(s, "%-5zu ", (used + 512) / 1024);
+			str_catf(s, "%5zu ", (used + 512) / 1024);
 		}
 		if (top < 100 * 1024) {
-			str_catf(s, "%-5.2f ", top / 1024.0);
+			str_catf(s, "%5.2f ", top / 1024.0);
 		} else {
-			str_catf(s, "%-5zu ", (top + 512) / 1024);
+			str_catf(s, "%5zu ", (top + 512) / 1024);
 		}
 		str_catf(s, "%-5zu ", info.local_vars);
 		str_catf(s, "%-5zu ", info.private_vars);
