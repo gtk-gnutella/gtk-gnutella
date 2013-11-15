@@ -431,7 +431,7 @@ cond_get_init(cond_t * const c, const mutex_t *m, bool destroyed)
 	cv = *c;
 	if G_UNLIKELY(COND_INIT == cv || NULL == cv || COND_DESTROYED == cv) {
 		if G_UNLIKELY(!destroyed && COND_DESTROYED == cv) {
-			s_error("%s(): condition already destroyed", G_STRFUNC);
+			s_error("%s(): condition %p already destroyed", G_STRFUNC, c);
 		}
 		/* Auto-init uses real semaphores and creates normal conditions */
 		*c = cv = cond_create(m, FALSE, FALSE);
@@ -473,7 +473,7 @@ cond_get_extended(cond_t *c)
 	cv = *c;
 	if G_UNLIKELY(COND_DESTROYED == cv) {
 		spinunlock(lock);
-		s_error("%s(): condition already destroyed", G_STRFUNC);
+		s_error("%s(): condition %p already destroyed", G_STRFUNC, c);
 	} else if G_UNLIKELY(COND_INIT == cv || NULL == cv) {
 		/* Auto-init uses real semaphores */
 		*c = cv = cond_create(NULL, FALSE, TRUE);
@@ -1046,10 +1046,15 @@ signaled:
 
 	cv = *c;
 
-	if G_UNLIKELY(COND_DESTROYED == cv)
-		s_error("%s(): condition destroyed whilst we were waiting", G_STRFUNC);
+	if G_UNLIKELY(COND_DESTROYED == cv) {
+		s_error("%s(): condition at %p destroyed whilst we were waiting",
+			G_STRFUNC, c);
+	}
 
-	g_assert(cv == v.cv);	/* No change, still the same variable */
+	g_assert_log(cv == v.cv,	/* No change, still the same variable */
+		"%s(): condition at %p changed whilst we were waiting: was %p, now %p",
+		G_STRFUNC, c, v.cv, cv);
+
 	cond_check(cv);
 
 	g_assert(cv->sem == sem);
