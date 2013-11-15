@@ -683,7 +683,7 @@ cond_reset(cond_t *c)
 	spinlock(lock);
 	cv = *c;
 	if (cv != NULL && cv != COND_INIT && cv != COND_DESTROYED) {
-		spinlock(&cv->lock);
+		spinlock_swap(&cv->lock, lock);
 		locked = TRUE;
 	}
 
@@ -713,11 +713,30 @@ cond_reset(cond_t *c)
 	/* FALL THROUGH */
 
 done:
-	spinunlock(&cv->lock);
-	spinunlock(lock);
+	spinunlock(lock);			/* Lock ordering was swapped above */
 
-	if (reset)
-		cond_free(cv, FALSE);
+	if (reset) {
+		/*
+		 * Note that the cv->lock is still held at this point.
+		 *
+		 * We warn if there is more than one reference to the condition
+		 * variable because we're about to free it.  Since there are no
+		 * waiters on the variable and the cond_t was already reset to
+		 * COND_INIT above, we should be safe: cond_free() will not destroy
+		 * the variable physically, and only when the last reference will be
+		 * gone will it be destroyed.  Therefore, we do not panic when this
+		 * happens, just warn loudly with a stack trace to help identify
+		 * the root of the problem.
+		 */
+
+		if G_UNLIKELY(cv->refcnt != 1) {
+			s_carp("%s(): reset condition at %p had refcnt=%d (expected 1)",
+				G_STRFUNC, c, cv->refcnt);
+		}
+		cond_free(cv, TRUE);	/* Will destroy cv->lock */
+	} else {
+		spinunlock(&cv->lock);
+	}
 
 	return reset;
 }
