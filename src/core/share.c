@@ -531,10 +531,13 @@ shared_file_free(shared_file_t **sf_ptr)
 	if (*sf_ptr) {
 		shared_file_t *sf = *sf_ptr;
 
-		g_assert(sf->refcnt == 0);
+		g_assert(0 == sf->refcnt);
 
-		if (sf->flags & SHARE_F_INDEXED)
-			shared_file_deindex(sf);
+		g_assert_log(0 == (sf->flags & SHARE_F_FILEINFO),
+			"%s(): invoked on file used by a fileinfo", G_STRFUNC);
+
+		g_assert_log(0 == (sf->flags & SHARE_F_INDEXED),
+			"%s(): invoked on file still indexed", G_STRFUNC);
 
 		atom_sha1_free_null(&sf->sha1);
 		atom_tth_free_null(&sf->tth);
@@ -1082,6 +1085,24 @@ shared_file_unref(shared_file_t **sf_ptr)
 			shared_file_free(&sf);
 
 		*sf_ptr = NULL;
+	}
+}
+
+/**
+ * Remove one reference to a shared_file_t, used in a fileinfo.
+ * The pointer is nullified.
+ */
+void
+shared_file_fileinfo_unref(shared_file_t **sf_ptr)
+{
+	shared_file_t *sf;
+
+	g_assert(sf_ptr != NULL);
+
+	if (NULL != (sf = *sf_ptr)) {
+		g_assert(sf->flags & SHARE_F_FILEINFO);
+		sf->flags &= ~SHARE_F_FILEINFO;		/* Clear bit before freeing */
+		shared_file_unref(sf_ptr);
 	}
 }
 
@@ -2170,7 +2191,7 @@ recursive_install_shared(void *unused)
  * GSList iterator to mark shared file as no longer indexed.
  */
 static void
-recursive_shared_file_detach(void *data, void *unused)
+shared_file_detach(void *data, void *unused)
 {
 	shared_file_t *sf = data;
 
@@ -2246,7 +2267,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	 * about to replace all the data structures with fresh ones.
 	 */
 
-	g_slist_foreach(files, recursive_shared_file_detach, NULL);
+	g_slist_foreach(files, shared_file_detach, NULL);
 
 	shared_libfile.search_table			= ctx->search_tb;
 	shared_libfile.file_basenames		= ctx->basenames;
@@ -3045,6 +3066,7 @@ share_close(void)
 
 	share_special_close();
 	free_extensions();
+	g_slist_foreach(shared_libfile.shared_files, shared_file_detach, NULL);
 	share_free();
 	shared_dirs_free();
 	huge_close();
@@ -3445,7 +3467,10 @@ shared_file_remove(shared_file_t *sf)
 	shared_file_check(sf);
 
 	shared_file_deindex(sf);
-	if (0 == sf->refcnt) {
+
+	if G_UNLIKELY(0 == sf->refcnt) {
+		g_carp("%s(): called on unreferenced file \"%s\"",
+			G_STRFUNC, sf->file_path);
 		shared_file_free(&sf);
 	}
 }
@@ -3491,6 +3516,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 
 	sf->mime_type = mime_type_from_filename(sf->name_nfc);
 	sf->file_path = atom_str_get(fi->pathname);
+	sf->flags |= SHARE_F_FILEINFO;
 
 	sf->fi = fi;		/* Signals it's a partially downloaded file */
 	fi->sf = shared_file_ref(sf);

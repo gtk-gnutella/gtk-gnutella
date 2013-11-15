@@ -2644,7 +2644,7 @@ file_info_upload_stop(fileinfo_t *fi, const char *reason)
 	if (fi->sf) {
 		upload_stop_all(fi, reason);
 		share_remove_partial(fi->sf);
-		shared_file_unref(&fi->sf);
+		shared_file_fileinfo_unref(&fi->sf);
 		fi->flags &= ~FI_F_SEEDING;
 		file_info_changed(fi);
 		fileinfo_dirty = TRUE;

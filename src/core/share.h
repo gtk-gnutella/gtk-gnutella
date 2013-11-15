@@ -54,6 +54,7 @@ typedef struct shared_file shared_file_t;
  */
 
 enum {
+	SHARE_F_FILEINFO	=	(1 << 5),		/**< File referenced by fileinfo */
 	SHARE_F_INDEXED		=	(1 << 4),		/**< File is in file_table index */
 	SHARE_F_BASENAME	=	(1 << 3),		/**< File is in basename index */
 	SHARE_F_SPECIAL		=	(1 << 2),		/**< Special (robots.txt, favicon)*/
@@ -95,6 +96,7 @@ shared_file_t *shared_file_ref(const shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
 shared_file_t *shared_special(const char *path);
 void shared_file_unref(shared_file_t **sf_ptr);
+void shared_file_fileinfo_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
 
 void parse_extensions(const char *);

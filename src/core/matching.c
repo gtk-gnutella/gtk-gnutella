@@ -435,6 +435,8 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 	struct st_entry *entry;
 	hset_t *seen_keys;
 
+	search_table_check(table);
+
 	len = utf8_strlen(s);
 	if (len < 2)
 		return FALSE;
@@ -476,6 +478,8 @@ void
 st_compact(search_table_t *table)
 {
 	int i;
+
+	search_table_check(table);
 
 	if (!table->all_entries.nvals)
 		return;			/* Nothing in table */
@@ -588,6 +592,8 @@ st_search(
 	size_t minlen;
 	uint random_offset; 	 /* Randomizer for search returns */
 
+	search_table_check(table);
+
 	search = UNICODE_CANONIZE(search_term);
 
 	if (GNET_PROPERTY(query_debug) > 4 && 0 != strcmp(search, search_term)) {
@@ -670,7 +676,6 @@ st_search(
 	}
 
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
-
 
 	WALLOC0_ARRAY(pattern, wocnt);
 
