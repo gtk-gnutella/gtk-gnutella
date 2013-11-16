@@ -42,6 +42,7 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/tqsort.h"
 #include "lib/xmalloc.h"
 #include "lib/xsort.h"
 
@@ -379,6 +380,12 @@ qsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 }
 
 static void
+tqsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
+{
+	xtest(tqsort, array, copy, cnt, isize, loops);
+}
+
+static void
 smsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
 	xtest(smsort, array, copy, cnt, isize, loops);
@@ -700,6 +707,7 @@ run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
 		timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
 	timeit(xqsort_test, loops, array, cnt, isize, chrono, what, "xqsort");
 	timeit(qsort_test, loops, array, cnt, isize, chrono, what, "qsort");
+	timeit(tqsort_test, loops, array, cnt, isize, chrono, what, "tqsort");
 	if (!qsort_only) {
 		timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
 		timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");

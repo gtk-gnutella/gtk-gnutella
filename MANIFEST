@@ -892,6 +892,8 @@ src/lib/timestamp.c
 src/lib/timestamp.h
 src/lib/tm.c
 src/lib/tm.h
+src/lib/tqsort.c
+src/lib/tqsort.h
 src/lib/tsig.c
 src/lib/tsig.h
 src/lib/unsigned.h
