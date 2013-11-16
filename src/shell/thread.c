@@ -45,6 +45,7 @@
 #include "lib/teq.h"
 #include "lib/thread.h"
 #include "lib/vmm.h"			/* For compat_pagesize() */
+#include "lib/xmalloc.h"		/* For xmalloc_thread_uses_local_pool() */
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -90,11 +91,12 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 		str_catf(s, "%-2d ", i);
 		str_putc(s, info.suspended ? 'H' :		/* Halted */
 			info.cancelled ? 'c' : '-');
+		str_putc(s, xmalloc_thread_uses_local_pool(i) ? 'p' : '-');
 		str_putc(s, info.main_thread ? 'M' : '-');
 		str_putc(s, info.discovered ? 'D' : 'C');
 		str_putc(s, info.exited ? 'E' :
 			(info.blocked || info.sleeping) ? 'S' : 'R');
-		str_catf(s, "  ");
+		str_putc(s, ' ');
 		str_catf(s, "%-3zd ", info.locks);
 		str_catf(s, "%-4d ", popcount(info.sig_pending));
 		if (teq_is_supported(i)) {
