@@ -77,8 +77,10 @@
 #endif
 
 #include "zalloc.h"
+
 #include "atomic.h"
 #include "dump_options.h"
+#include "evq.h"
 #include "hashing.h"		/* For integer_hash() and friends */
 #include "hashtable.h"
 #include "leak.h"
@@ -318,7 +320,6 @@ static struct zstats {
 	uint64 zgc_fragments_freed;		/**< Total fragment zones freed */
 	uint64 zgc_free_quota_reached;	/**< Subzone freeing quota reached */
 	uint64 zgc_last_zone_kept;		/**< First zone kept to avoid depletion */
-	uint64 zgc_throttled;			/**< Throttled zgc() runs */
 	uint64 zgc_runs;				/**< Allowed zgc() runs */
 	uint64 zgc_zone_scans;			/**< Calls to zgc_scan() */
 	uint64 zgc_scan_freed;			/**< Zones freed during zgc_scan() */
@@ -2199,7 +2200,7 @@ zgc_allocate(zone_t *zone)
 		}
 	}
 
-	zgc_zone_cnt++;
+	atomic_uint_inc(&zgc_zone_cnt);
 
 	g_assert(dispatched == zone->zn_blocks - zone->zn_cnt);
 	g_assert(NULL == zone->zn_free);
@@ -2402,9 +2403,9 @@ zgc_dispose(zone_t *zone)
 	xfree(zg->zg_subzinfo);
 	xfree(zg);
 	zone->zn_gc = NULL;			/* Back to regular zalloc() */
-	zgc_zone_cnt--;
+	atomic_uint_dec(&zgc_zone_cnt);
 
-	g_assert(uint_is_non_negative(zgc_zone_cnt));
+	g_assert(uint_is_non_negative(atomic_uint_get(&zgc_zone_cnt)));
 }
 
 /**
@@ -2692,11 +2693,11 @@ zn_memusage_init(zone_t *zone)
 static void
 spot_oversized_zone(zone_t *zone)
 {
-	g_assert(uint_is_positive(zone->zn_refcnt));
-	g_assert(zone->zn_cnt <= zone->zn_blocks);
-
 	if (!zlock_try(zone))
 		return;
+
+	g_assert(uint_is_positive(zone->zn_refcnt));
+	g_assert(zone->zn_cnt <= zone->zn_blocks);
 
 	/*
 	 * It's not possible to create this object at zn_create() time because
@@ -2798,8 +2799,6 @@ spot_oversized_zone(zone_t *zone)
 void
 zgc(bool overloaded)
 {
-	static time_t last_run;
-	time_t now;
 	tm_t start;
 	size_t i, count;
 	zone_t **zones;
@@ -2807,29 +2806,16 @@ zgc(bool overloaded)
 	if (NULL == zt)
 		return;
 
-	/*
-	 * Limit iterations to one per second.
-	 */
-
-	now = tm_time();
-	if (last_run == now) {
-		ZSTATS_LOCK;
-		zstats.zgc_throttled++;
-		ZSTATS_UNLOCK;
-		return;
-	}
-	last_run = now;
-
 	ZSTATS_LOCK;
 	zstats.zgc_runs++;
 	ZSTATS_UNLOCK;
 
-	if (zalloc_debugging(2))
+	if (zalloc_debugging(0))
 		tm_now_exact(&start);
 
 	if (zalloc_debugging(3)) {
 		s_debug("ZGC iterating over %u zones (%u in GC mode)",
-			(unsigned) hash_table_size(zt), zgc_zone_cnt);
+			(unsigned) hash_table_size(zt), atomic_uint_get(&zgc_zone_cnt));
 	}
 
 	zgc_context.subzone_freed = overloaded ? ZGC_SUBZONE_OVERBASE : 0;
@@ -2851,15 +2837,52 @@ zgc(bool overloaded)
 
 	zgc_context.running = FALSE;
 
-	if (zalloc_debugging(2)) {
+	if (zalloc_debugging(0)) {
 		tm_t end;
 		tm_now_exact(&end);
 		s_debug("ZGC iterated over %u zones (%u in GC mode) in %u usecs",
-			(unsigned) hash_table_size(zt), zgc_zone_cnt,
+			(unsigned) hash_table_size(zt), atomic_uint_get(&zgc_zone_cnt),
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
 #endif	/* !REMAP_ZALLOC */
+
+/**
+ * Called when the main callout queue is idle to run zgc().
+ */
+static bool
+zalloc_idle_collect(void *unused_data)
+{
+	(void) unused_data;
+
+	zgc(FALSE);
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Install the periodic idle zgc() call.
+ */
+static G_GNUC_COLD void
+zalloc_zgc_install(void)
+{
+	evq_raw_idle_add(zalloc_idle_collect, NULL);
+}
+
+/**
+ * Called when the VMM layer has been initialized.
+ */
+G_GNUC_COLD void
+zalloc_vmm_inited(void)
+{
+	static once_flag_t zalloc_zgc_installed;
+
+	/*
+	 * We wait for the VMM layer to be up before we install the zgc() idle
+	 * callback in an attempt to tweak the self-bootstrapping path.
+	 */
+
+	once_flag_run(&zalloc_zgc_installed, zalloc_zgc_install);
+}
 
 /**
  * Initialize the zone allocator, once.
@@ -3248,7 +3271,6 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(zgc_fragments_freed);
 	DUMP(zgc_free_quota_reached);
 	DUMP(zgc_last_zone_kept);
-	DUMP(zgc_throttled);
 	DUMP(zgc_runs);
 	DUMP(zgc_zone_scans);
 	DUMP(zgc_scan_freed);
@@ -3256,7 +3278,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(zgc_shrinked);
 
 	/* Will be always less than a thousand, ignore pretty-priting */
-	log_info(la, "ZALLOC zgc_zone_count = %u", zgc_zone_cnt);
+	log_info(la, "ZALLOC zgc_zone_count = %u", atomic_uint_get(&zgc_zone_cnt));
 
 #undef DUMP
 #define DUMP(x)	log_info(la, "ZALLOC %s = %s", #x,		\

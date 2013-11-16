@@ -128,6 +128,7 @@
 #include "tm.h"
 #include "unsigned.h"
 #include "xmalloc.h"
+#include "zalloc.h"
 
 #ifdef TRACK_VMM
 #include "hashtable.h"
@@ -4979,6 +4980,7 @@ vmm_init_once(void)
 	 */
 
 	xmalloc_vmm_inited();
+	zalloc_vmm_inited();
 }
 
 /**

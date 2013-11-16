@@ -86,6 +86,7 @@ void zgc(bool overloaded);
 
 void zinit(void);
 void zclose(void);
+void zalloc_vmm_inited(void);
 void set_zalloc_debug(uint32 level);
 void set_zalloc_always_gc(bool val);
 void zalloc_memusage_init(void);

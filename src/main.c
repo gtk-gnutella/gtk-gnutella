@@ -1472,7 +1472,6 @@ callout_queue_idle(void *unused_data)
 			overloaded ? "OVERLOADED" : "available");
 
 	/* Idle tasks always scheduled */
-	zgc(overloaded);
 	more_randomness();
 
 	return TRUE;		/* Keep scheduling this */
