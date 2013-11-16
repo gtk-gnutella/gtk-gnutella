@@ -655,7 +655,8 @@ move_init(void)
 	args.bs = bg_sched_create("moving", 1000000 /* 1 s */);
 
 	r = thread_create(move_thread_main, &args,
-			THREAD_F_DETACH | THREAD_F_NO_CANCEL, THREAD_STACK_MIN);
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			THREAD_STACK_MIN);
 
 	if (-1 == r)
 		s_error("%s(): cannot create file moving thread: %m", G_STRFUNC);

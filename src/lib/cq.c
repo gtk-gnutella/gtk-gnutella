@@ -1937,7 +1937,7 @@ cq_global_init(void)
 	if (thread_main_is_blockable()) {
 		callout_thread = TRUE;
 		callout_queue->cq_stid = thread_create(cq_thread_main, NULL,
-			THREAD_F_DETACH, CALLOUT_THREAD_STACK);
+			THREAD_F_DETACH | THREAD_F_NO_POOL, CALLOUT_THREAD_STACK);
 		if (-1U == callout_queue->cq_stid) {
 			s_minierror("%s(): cannot launch callout queue thread: %m",
 				G_STRFUNC);

@@ -355,7 +355,9 @@ tm_thread_start(void)
 {
 	int r;
 
-	r = thread_create(tm_thread_main, NULL, THREAD_F_DETACH, TM_THREAD_STACK);
+	r = thread_create(tm_thread_main, NULL,
+			THREAD_F_DETACH | THREAD_F_NO_POOL, TM_THREAD_STACK);
+
 	if G_UNLIKELY(-1 == r)
 		s_minierror("%s(): cannot launch time thread: %m", G_STRFUNC);
 }

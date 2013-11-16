@@ -583,7 +583,7 @@ adns_helper_init(void)
 	args->requests = adns_req;
 	args->answers = adns_ans;
 
-	r = thread_create(adns_helper, args, 0, ADNS_HELPER_STACK);
+	r = thread_create(adns_helper, args, THREAD_F_NO_POOL, ADNS_HELPER_STACK);
 	if (-1 == r)
 		g_error("cannot launch ADNS thread: %m");
 

@@ -269,7 +269,8 @@ evq_init_once(void)
 	event_queue = cq_make("evq", 0, EVQ_PERIOD);
 
 	evq_thread_id = thread_create(evq_thread_main, NULL,
-			THREAD_F_DETACH | THREAD_F_NO_CANCEL, EVQ_STACK_SIZE);
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			EVQ_STACK_SIZE);
 
 	if (-1U == evq_thread_id)
 		s_error("%s(): cannot create the event queue thread: %m", G_STRFUNC);

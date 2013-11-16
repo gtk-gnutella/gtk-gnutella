@@ -3003,7 +3003,8 @@ share_thread_create(void)
 	 */
 
 	r = thread_create(share_thread_main, barrier_refcnt_inc(b),
-			THREAD_F_DETACH | THREAD_F_NO_CANCEL, THREAD_STACK_MIN);
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			THREAD_STACK_MIN);
 
 	if (-1 == r)
 		s_error("%s(): cannot create library thread: %m", G_STRFUNC);
