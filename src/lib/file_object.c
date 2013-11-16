@@ -1152,4 +1152,73 @@ file_object_close(void)
 		hset_free_null(&file_objects);
 }
 
+/**
+ * Set iterator to get information about specific file object and add
+ * it to the returned list of structures.
+ */
+static void
+file_object_info_get(const void *data, void *udata)
+{
+	const file_object_t *fo = data;
+	const struct file_descriptor *fd;
+	GSList **list = udata;				/* List being built for user */
+	GSList *sl = *list;					/* Current list head pointer */
+	file_object_info_t *foi;
+
+	file_object_check(fo);
+
+	WALLOC0(foi);
+	foi->magic = FILE_OBJECT_INFO_MAGIC;
+
+	fd = fo->fd;
+	foi->path = atom_str_get(fd->pathname);
+	foi->refcnt = fd->refcnt;
+	foi->mode = fo->accmode;
+	foi->file = fo->file;
+	foi->line = fo->line;
+
+	sl = g_slist_prepend(sl, foi);
+	*list = sl;							/* Update list head pointer */
+}
+
+/**
+ * Retrieve file_object information.
+ *
+ * @return list of file_object_info_t that must be freed by calling the
+ * file_object_info_list_free_null() routine.
+ */
+GSList *
+file_object_info_list(void)
+{
+	GSList *sl = NULL;
+
+	hset_foreach(file_objects, file_object_info_get, &sl);
+	return sl;
+}
+
+static void
+file_object_info_free(void *data, void *udata)
+{
+	file_object_info_t *foi = data;
+
+	file_object_info_check(foi);
+	(void) udata;
+
+	atom_str_free_null(&foi->path);
+	foi->magic = 0;
+	WFREE(foi);
+}
+
+/**
+ * Free list returned by file_object_info_list() and nullify pointer.
+ */
+void
+file_object_info_list_free_nulll(GSList **sl_ptr)
+{
+	GSList *sl = *sl_ptr;
+
+	g_slist_foreach(sl, file_object_info_free, NULL);
+	gm_slist_free_null(sl_ptr);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

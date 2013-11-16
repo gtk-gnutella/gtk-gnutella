@@ -41,6 +41,27 @@
 
 typedef struct file_object file_object_t;
 
+enum file_object_info_magic { FILE_OBJECT_INFO_MAGIC = 0x56f2fd57 };
+
+/*
+ * File object information that can be retrieved.
+ */
+typedef struct {
+	enum file_object_info_magic magic;
+	const char *path;					/**< Pathname opened (atom) */
+	int mode;							/**< Access mode */
+	int refcnt;							/**< Shared openings on file */
+	const char *file;					/**< Where file was opened */
+	int line;							/**< Line where file was opened */
+} file_object_info_t;
+
+static inline void
+file_object_info_check(const file_object_info_t * const foi)
+{
+	g_assert(foi != NULL);
+	g_assert(FILE_OBJECT_INFO_MAGIC == foi->magic);
+}
+
 void file_object_init(void);
 void file_object_close(void);
 
@@ -74,6 +95,9 @@ void file_object_moved(const char * const o, const char * const n);
 int file_object_fstat(const file_object_t * const fo, filestat_t *b);
 int file_object_ftruncate(const file_object_t * const fo, filesize_t off);
 void file_object_fadvise_sequential(const file_object_t * const fo);
+
+GSList *file_object_info_list(void) WARN_UNUSED_RESULT;
+void file_object_info_list_free_nulll(GSList **sl_ptr);
 
 #endif /* _file_object_h_ */
 
