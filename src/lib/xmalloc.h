@@ -51,6 +51,7 @@
 #ifdef THREAD_SOURCE
 void xmalloc_thread_starting(unsigned stid);
 void xmalloc_thread_ended(unsigned stid);
+void xmalloc_thread_disable_local_pool(unsigned stid, bool disable);
 #endif
 
 /*
@@ -60,6 +61,8 @@ void xmalloc_thread_ended(unsigned stid);
 struct logagent;
 
 void set_xmalloc_debug(uint32 level);
+bool xmalloc_thread_set_local_pool(bool on);
+bool xmalloc_thread_uses_local_pool(unsigned stid);
 void xmalloc_crash_mode(void);
 void xmalloc_vmm_inited(void);
 void xmalloc_pre_close(void);

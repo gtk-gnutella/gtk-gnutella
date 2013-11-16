@@ -6413,6 +6413,9 @@ thread_launch(struct thread_element *te,
 	ctx->sig_mask = tself->sig_mask;		/* Inherit signal mask */
 
 	xmalloc_thread_starting(te->stid);
+	xmalloc_thread_disable_local_pool(te->stid,
+		booleanize(flags & THREAD_F_NO_POOL));
+
 	error = pthread_create(&t, &attr, thread_launch_trampoline, ctx);
 	pthread_attr_destroy(&attr);
 

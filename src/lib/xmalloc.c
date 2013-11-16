@@ -302,6 +302,16 @@ static struct xchunkhead {
 	elist_t list;			/**< List of chunks (struct xchunk) */
 } xchunkhead[XMALLOC_CHUNKHEAD_COUNT][XM_THREAD_COUNT];
 
+/**
+ * Per-thread indication of whether thread pool allocation is disabled.
+ *
+ * A thread known to allocate only a limited amount of memory during its
+ * operation can give a hint to the malloc layer that no new chunk should
+ * be added to the thread pool and that allocation should therefore be done
+ * from the main free list.
+ */
+static uint8 xpool_disabled[XM_THREAD_COUNT];
+
 enum xchunk_magic { XCHUNK_MAGIC = 0x45488613 };
 
 /**
@@ -3679,6 +3689,9 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 /**
  * Find chunk from which we can allocate a block.
  *
+ * @param ch		the chunk head (determining the block size implicitly)
+ * @param stid		thread ID for which we are allocating
+ *
  * @return the address of a chunk with at least one free block, NULL if we
  * want to prevent allocation from the thread-specific pool.
  */
@@ -3688,6 +3701,18 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 	link_t *lk;
 	struct xchunk *xck;
 
+	/*
+	 * When they disable the use of the thread pool, we no longer grow the
+	 * existing thread pool, but we use it whilst there is room (a thread may
+	 * start with a non-empty pool when the previous thread using this stid
+	 * had allocated blocks that have been passed to other threads and not
+	 * freed, or which leaked).
+	 *
+	 * Hence look whether there is already a chunk that could be used to
+	 * allocate memory regardless of the setting, and only if we cannot find
+	 * any free chunk will we bail out when thread pools have been disabled.
+	 */
+
 	for (lk = elist_first(&ch->list); lk != NULL; lk = elist_next(lk)) {
 		xck = elist_data(&ch->list, lk);
 
@@ -3696,6 +3721,9 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 		if (0 != xck->xc_count)
 			goto found;
 	}
+
+	if G_UNLIKELY(xpool_disabled[stid])
+		return NULL;		/* Pool usage disabled, refuse to grow pool */
 
 	/*
 	 * No free chunk, allocate a new one and move it to the head of the list.
@@ -3747,6 +3775,11 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 				capacity);
 		}
 	}
+
+	/*
+	 * Allocate a new chunk in the thread pool, inserted in the list of chunks
+	 * to be used for the block size defined by the chunk head.
+	 */
 
 	xck = xmalloc_chunk_allocate(ch, stid);
 	elist_prepend(&ch->list, xck);
@@ -3960,6 +3993,55 @@ xmalloc_thread_chunk_count(unsigned stid)
 	}
 
 	return count;
+}
+
+/**
+ * Set or disable usage of the thread-specific pool for the current thread.
+ *
+ * By default, each thread starts with the thread-specific pool enabled.
+ * At thread creation time, one may specify THREAD_F_NO_POOL to turn the pool
+ * off before the thread starts running.
+ *
+ * @param on		if TRUE, enable using / growing a local thread pool.
+ *
+ * @return previous setting for the thread regarding pool usage.
+ */
+bool
+xmalloc_thread_set_local_pool(bool on)
+{
+	unsigned stid = thread_small_id();
+	bool old;
+
+	old = !xpool_disabled[stid];	/* TRUE means pool was allowed */
+	xpool_disabled[stid] = booleanize(!on);
+
+	return old;
+}
+
+/**
+ * @return whether given thread uses a local thread pool.
+ */
+bool
+xmalloc_thread_uses_local_pool(unsigned stid)
+{
+	g_assert(stid < XM_THREAD_COUNT);
+
+	return !xpool_disabled[stid];
+}
+
+/**
+ * Called by the thread management layer when a thread is about to start
+ * to configure usage of the thread pool.
+ *
+ * @param stid		thread ID of starting thread
+ * @param disable	whether to disable the thread pool
+ */
+void
+xmalloc_thread_disable_local_pool(unsigned stid, bool disable)
+{
+	g_assert(stid < XM_THREAD_COUNT);
+
+	xpool_disabled[stid] = booleanize(disable);
 }
 
 /**
