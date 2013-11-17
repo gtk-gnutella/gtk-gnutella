@@ -113,6 +113,7 @@
 #include "lib/dbus_util.h"
 #include "lib/debug.h"
 #include "lib/eval.h"
+#include "lib/evq.h"
 #include "lib/exit.h"
 #include "lib/fd.h"
 #include "lib/file_object.h"
@@ -776,6 +777,7 @@ gtk_gnutella_exit(int exit_code)
 		g_info("waiting for TEQ events from closing threads");
 
 	teq_set_throttle(0, 0);		/* No throttling */
+	DO(evq_close);				/* Can now dispose of the event queue */
 
 	while (0 != teq_dispatch()) {
 		int i;

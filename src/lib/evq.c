@@ -127,6 +127,7 @@ static once_flag_t evq_inited;			/**< Records global initialization */
 static spinlock_t evq_global_slk = SPINLOCK_INIT;
 static uint evq_thread_id = THREAD_INVALID_ID;
 static tm_t evq_sleep_end;				/**< Expected wake-up time */
+static bool evq_run;					/**< Whether evq thread should run */
 
 #define EVQ_GLOBAL_LOCK		spinlock(&evq_global_slk)
 #define EVQ_GLOBAL_UNLOCK	spinunlock(&evq_global_slk)
@@ -170,7 +171,7 @@ evq_thread_main(void *unused_arg)
 	 * when necessary.
 	 */
 
-	for (;;) {
+	while (atomic_bool_get(&evq_run)) {
 		int delay;
 		tm_t ms;
 		tsigset_t oset;
@@ -243,7 +244,10 @@ evq_thread_main(void *unused_arg)
 		}
 	}
 
-	g_assert_not_reached();
+	if (evq_debugging(0))
+		s_debug("%s(): exiting", G_STRFUNC);
+
+	cq_free_null(&event_queue);
 	return NULL;
 }
 
@@ -267,6 +271,7 @@ evq_init_once(void)
 	 */
 
 	event_queue = cq_make("evq", 0, EVQ_PERIOD);
+	atomic_bool_set(&evq_run, TRUE);
 
 	evq_thread_id = thread_create(evq_thread_main, NULL,
 			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
@@ -280,6 +285,33 @@ static inline ALWAYS_INLINE void
 evq_init(void)
 {
 	ONCE_FLAG_RUN(evq_inited, evq_init_once);
+}
+
+/**
+ * Shutdown the event queue.
+ */
+void
+evq_close(void)
+{
+	atomic_bool_set(&evq_run, FALSE);
+	if (-1 != thread_kill(evq_thread_id, TSIG_TERM)) {
+		tm_t tmout;
+
+		/*
+		 * The event queue runs in a detached thread, with which we cannot
+		 * join, but we can wait for it since we know we're at shutdown time
+		 * and no other threads will be created.
+		 *
+		 * To avoid blocking in case of problems, wait for at most 2 seconds.
+		 */
+
+		tmout.tv_sec = 2;
+		tmout.tv_usec = 0;
+		thread_timed_wait(evq_thread_id, &tmout, NULL);
+	} else {
+		s_warning("%s(): could not signal evq thread: %m", G_STRFUNC);
+	}
+	evq_thread_id = THREAD_INVALID_ID;
 }
 
 /**
@@ -711,6 +743,10 @@ evq_add(int delay, notify_fn_t fn, const void *arg, bool cancelable)
 	g_assert(fn != NULL);
 
 	evq_init();
+
+	if G_UNLIKELY(NULL == event_queue)
+		return NULL;		/* Shutdowning */
+
 	q = evq_get(id);
 
 	if G_UNLIKELY(NULL == q)
@@ -803,9 +839,12 @@ evq_insert(int delay, notify_fn_t fn, const void *arg)
  * This must be called from the same thread that registered the event.
  */
 void
-evq_cancel(evq_event_t * volatile *eve_ptr)
+evq_cancel(evq_event_t **eve_ptr)
 {
 	evq_event_t *eve = *eve_ptr;
+
+	if G_UNLIKELY(NULL == event_queue)
+		return;		/* Shutdowning */
 
 	if (eve != NULL) {
 		uint stid = thread_small_id();
@@ -905,6 +944,10 @@ evq_raw_insert(int delay, cq_service_t fn, void *arg)
 	cevent_t *ev;
 
 	evq_init();
+
+	if G_UNLIKELY(NULL == event_queue)
+		return NULL;	/* Shutdowning */
+
 	ev = cq_insert(event_queue, delay, fn, arg);
 	evq_notify(delay);
 
@@ -923,6 +966,10 @@ evq_raw_idle_add(cq_invoke_t event, void *arg)
 	cidle_t *ci;
 
 	evq_init();
+
+	if G_UNLIKELY(NULL == event_queue)
+		return NULL;	/* Shutdowning */
+
 	ci = cq_idle_add(event_queue, event, arg);
 	evq_notify(0);		/* Always wake-up thread when new idle event added */
 
@@ -941,6 +988,10 @@ evq_raw_periodic_add(int period, cq_invoke_t event, void *arg)
 	cperiodic_t *cp;
 
 	evq_init();
+
+	if G_UNLIKELY(NULL == event_queue)
+		return NULL;	/* Shutdowning */
+
 	cp = cq_periodic_add(event_queue, period, event, arg);
 	evq_notify(period);
 
