@@ -35,6 +35,7 @@
 
 enum shell_reply {
 	REPLY_NONE		= 0,
+	REPLY_ASYNC		= 1,
 	REPLY_READY		= 100,
 	REPLY_ERROR		= 400,
 	REPLY_BYE		= 900
@@ -76,7 +77,7 @@ const char *shell_property_to_string(property_t prop);
 #define SHELL_SUMMARY_PROTO(name) \
 	const char *shell_summary_ ## name (void)
 
-#define SHELL_CMD(name) \
+#define SHELL_CMD(name,t) \
 	SHELL_EXEC_PROTO(name); \
 	SHELL_HELP_PROTO(name); \
 	SHELL_SUMMARY_PROTO(name);
