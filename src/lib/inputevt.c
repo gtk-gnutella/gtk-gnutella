@@ -1219,23 +1219,14 @@ inputevt_add_source(inputevt_relay_t *relay)
 		ctx->num_ev = 0 != n ? n << 1 : 32;
 
 #ifdef HAS_KQUEUE
-		{
-			size_t size = ctx->num_ev * sizeof ctx->kev_arr[0];
-			ctx->kev_arr = xrealloc(ctx->kev_arr, size);
-		}
-#endif	/* HAS_KQUEUE */
+		XREALLOC_ARRAY(ctx->kev_arr, ctx->num_ev);
+#endif
 
 #ifdef HAS_EPOLL
-		{
-			size_t size = ctx->num_ev * sizeof ctx->ep_arr[0];
-			ctx->ep_arr = xrealloc(ctx->ep_arr, size);
-		}
-#endif	/* HAS_EPOLL */
+		XREALLOC_ARRAY(ctx->ep_arr, ctx->num_ev);
+#endif
 
-		{
-			size_t size = ctx->num_ev * sizeof ctx->pfd_arr[0];
-			ctx->pfd_arr = xrealloc(ctx->pfd_arr, size);
-		}
+		XREALLOC_ARRAY(ctx->pfd_arr, ctx->num_ev);
 
 		for (i = n; i < ctx->num_ev; i++) {
 			struct pollfd *pfd = &ctx->pfd_arr[i];
@@ -1254,12 +1245,9 @@ inputevt_add_source(inputevt_relay_t *relay)
 			id = n;
 		}
 
-		{
-			size_t size = ctx->num_ev * sizeof ctx->relay[0];
-			ctx->relay = xrealloc(ctx->relay, size);
-			for (i = n; i < ctx->num_ev; i++)
-				ctx->relay[i] = NULL;
-		}
+		XREALLOC_ARRAY(ctx->relay, ctx->num_ev);
+		for (i = n; i < ctx->num_ev; i++)
+			ctx->relay[i] = NULL;
 	}
 
 	g_assert(id < ctx->num_ev);
