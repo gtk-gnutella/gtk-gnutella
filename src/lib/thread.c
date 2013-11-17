@@ -259,9 +259,9 @@ thread_element_check(const struct thread_element * const te)
 	g_assert(THREAD_ELEMENT_MAGIC == te->magic);
 }
 
-#define THREAD_LOCK(te)		spinlock_hidden(&(te)->lock)
+#define THREAD_LOCK(te)		spinlock_raw(&(te)->lock)
 #define THREAD_TRY_LOCK(te)	spinlock_hidden_try(&(te)->lock)
-#define THREAD_UNLOCK(te)	spinunlock_hidden(&(te)->lock)
+#define THREAD_UNLOCK(te)	spinunlock_raw(&(te)->lock)
 
 /*
  * A 64-bit counter is split between a "lo" and a "hi" 32-bit counter,
@@ -1420,7 +1420,7 @@ thread_update_next_stid(void)
 {
 	unsigned i;
 
-	spinlock_hidden(&thread_next_stid_slk);
+	spinlock_raw(&thread_next_stid_slk);
 
 	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
 		if G_UNLIKELY(NULL == threads[i])
@@ -1429,7 +1429,7 @@ thread_update_next_stid(void)
 
 	thread_next_stid = i;
 
-	spinunlock_hidden(&thread_next_stid_slk);
+	spinunlock_raw(&thread_next_stid_slk);
 }
 
 /**
@@ -1649,7 +1649,7 @@ thread_timeout(const struct thread_element *te)
 	bool multiple = FALSE;
 	struct thread_element *wte;
 
-	spinlock(&thread_timeout_slk);
+	spinlock_raw(&thread_timeout_slk);
 
 	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
 		const struct thread_element *xte = threads[i];
@@ -1667,7 +1667,7 @@ thread_timeout(const struct thread_element *te)
 	wte = (struct thread_element *) te;
 	wte->suspend = 0;					/* Make us running again */
 
-	spinunlock(&thread_timeout_slk);
+	spinunlock_raw(&thread_timeout_slk);
 
 	s_miniwarn("%s suspended for too long", thread_element_name(te));
 
