@@ -112,6 +112,8 @@ xpcopy(const void *p, size_t size)
 	return cp;
 }
 
+#define XCOPY(p)	xcopy(p, sizeof *p)
+
 #define XMALLOC(p)			\
 G_STMT_START {				\
 	p = xmalloc(sizeof *p);	\
