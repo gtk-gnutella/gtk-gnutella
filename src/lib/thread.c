@@ -265,6 +265,27 @@ static struct thread_element *threads[THREAD_MAX];
 static thread_t tstid[THREAD_MAX];		/* Maps STID -> thread_t */
 
 /**
+ * This variable allows us to manage the initial allocation of thread small IDs
+ * until we have allocated all the thread elements in the threads[] array.
+ *
+ * It records the next allocated ID, and is atomotically incremented each time
+ * we need a new thread small ID.
+ */
+static unsigned thread_allocated_stid;
+
+/**
+ * Small thread ID.
+ *
+ * We count threads as they are seen, starting with 0.
+ *
+ * This variable holds the index in threads[] of the next entry that we
+ * should use if we cannot reuse an earlier entry.  It is the number of
+ * valid thread_element structures we have present.
+ */
+static unsigned thread_next_stid;
+static spinlock_t thread_next_stid_slk = SPINLOCK_INIT;
+
+/**
  * QID cache.
  *
  * This is an array indexed by a hashed QID and it enables fast access to a
@@ -356,17 +377,6 @@ thread_pvalue_free(struct thread_pvalue *pv)
 		(*pv->p_free)(pv->value, pv->p_arg);
 	zfree(pvzone, pv);
 }
-
-/**
- * Small thread ID.
- *
- * We count threads as they are seen, starting with 0.
- *
- * This variable holds the index in threads[] of the next entry that we
- * should use if we cannot reuse an earlier entry.  It is the number of
- * valid thread_element structures we have present.
- */
-static unsigned thread_next_stid;
 
 /**
  * Initialize global configuration.
@@ -1130,7 +1140,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 		 * won't find what we're looking for there.
 		 */
 
-		if G_UNLIKELY(THREAD_INVALID == tstid[xte->stid])
+		if G_UNLIKELY(thread_eq(THREAD_INVALID, tstid[xte->stid]))
 			continue;
 
 		if G_UNLIKELY(
@@ -1241,6 +1251,27 @@ allocated:
 }
 
 /**
+ * Update the next STID that will be used, which is also the amount of valid
+ * entries in threads[].
+ */
+static void
+thread_update_next_stid(void)
+{
+	unsigned i;
+
+	spinlock_hidden(&thread_next_stid_slk);
+
+	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
+		if G_UNLIKELY(NULL == threads[i])
+			break;
+	}
+
+	thread_next_stid = i;
+
+	spinunlock_hidden(&thread_next_stid_slk);
+}
+
+/**
  * Instantiate the main thread element using static memory.
  *
  * This is used to reserve STID=0 to the main thread, when possible.
@@ -1256,9 +1287,13 @@ thread_main_element(thread_t t)
 	struct thread_element *te;
 	struct thread_lock_stack *tls;
 	thread_qid_t qid;
+	unsigned stid;
 
 	assert_mutex_is_owned(&thread_insert_mtx);
 	g_assert(NULL == threads[0]);
+
+	stid = atomic_uint_inc(&thread_allocated_stid);
+	g_assert(0 == stid);
 
 	THREAD_STATS_INC(discovered);
 	atomic_uint_inc(&thread_discovered);
@@ -1295,7 +1330,7 @@ thread_main_element(thread_t t)
 
 	threads[0] = te;
 	thread_set(tstid[0], te->tid);
-	thread_next_stid++;
+	thread_update_next_stid();
 
 	/*
 	 * Now we can allocate memory because we have created enough context
@@ -1405,14 +1440,17 @@ thread_find_element(void)
 	 */
 
 	if (NULL == te) {
-		unsigned stid = thread_next_stid;
-
 		if G_LIKELY(
-			stid < THREAD_MAX &&
-			(thread_running + thread_pending_reuse) < THREAD_CREATABLE
+			(thread_running + thread_pending_reuse) < THREAD_CREATABLE &&
+			atomic_uint_get(&thread_allocated_stid) < THREAD_MAX
 		) {
+			unsigned stid = atomic_uint_inc(&thread_allocated_stid);
+
+			if (stid >= THREAD_MAX)
+				return NULL;			/* No more slots available */
+
 			te = thread_new_element(stid);
-			thread_next_stid++;
+			thread_update_next_stid();
 		}
 	}
 
@@ -1936,9 +1974,9 @@ thread_get_element(void)
 	 * OK, we have an additional thread.
 	 */
 
-	stid = thread_next_stid;
+	stid = atomic_uint_inc(&thread_allocated_stid);
 
-	if G_UNLIKELY(thread_next_stid >= THREAD_MAX) {
+	if G_UNLIKELY(stid >= THREAD_MAX) {
 		thread_panic_mode = TRUE;
 		s_minierror("discovered thread #%u but can only track %d threads",
 			stid, THREAD_MAX);
@@ -1953,7 +1991,7 @@ thread_get_element(void)
 	 * when inspecting mutexes, mostly during crashing dumps.
 	 */
 
-	tstid[stid] = t;
+	thread_set(tstid[stid], t);
 
 	/*
 	 * We decouple the creation of thread elements and their instantiation
@@ -1965,7 +2003,7 @@ thread_get_element(void)
 	atomic_uint_inc(&thread_discovered);
 	te = thread_new_element(stid);
 	thread_instantiate(te, t);
-	thread_next_stid++;		/* Created and initialized, make it visible */
+	thread_update_next_stid();
 
 	/* FALL THROUGH */
 
