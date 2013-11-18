@@ -3698,7 +3698,6 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 static struct xchunk *
 xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 {
-	link_t *lk;
 	struct xchunk *xck;
 
 	/*
@@ -3713,9 +3712,7 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 	 * any free chunk will we bail out when thread pools have been disabled.
 	 */
 
-	for (lk = elist_first(&ch->list); lk != NULL; lk = elist_next(lk)) {
-		xck = elist_data(&ch->list, lk);
-
+	ELIST_FOREACH_DATA(&ch->list, xck) {
 		xchunk_check(xck);
 
 		if (0 != xck->xc_count)
@@ -6886,8 +6883,8 @@ xmalloc_dump_freelist_log(logagent_t *la)
 	for (j = 0; j < XM_THREAD_COUNT; j++) {
 		for (i = 0; i < XMALLOC_CHUNKHEAD_COUNT; i++) {
 			struct xchunkhead *ch = &xchunkhead[i][j];
-			link_t *lk;
 			size_t tchunks = 0, tcap = 0, tcnt = 0;
+			struct xchunk *xck;
 
 			if (ch->shared)
 				tstats[j].shared++;
@@ -6895,9 +6892,8 @@ xmalloc_dump_freelist_log(logagent_t *la)
 			if (0 == elist_count(&ch->list))
 				continue;
 
-			for (lk = elist_first(&ch->list); lk != NULL; lk = elist_next(lk)) {
-				struct xchunk *xck = elist_data(&ch->list, lk);
-
+			ELIST_FOREACH_DATA(&ch->list, xck) {
+				xchunk_check(xck);
 				tstats[j].chunks++;
 				tstats[j].freebytes += xck->xc_count * xck->xc_size;
 				tstats[j].freeblocks += xck->xc_count;
