@@ -2897,12 +2897,18 @@ zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
 	unsigned hint = 0;
 	bool ok = TRUE;
 	va_list args;
+	zone_t key;
 
 	if (NULL == zt)
 		return FALSE;
 
 	size = adjust_size(size, &hint, FALSE);
-	zone = hash_table_lookup(zt, ulong_to_pointer(size));
+
+	key.zn_size = size;
+	key.private = FALSE;
+	key.zn_stid = 0;
+
+	zone = hash_table_lookup(zt, &key);
 
 	if (NULL == zone)
 		return FALSE;
