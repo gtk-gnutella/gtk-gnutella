@@ -217,7 +217,18 @@ signal_is_fatal(int signo)
 	case SIGSYS:	return TRUE;
 #endif
 #ifdef SIGPROF
-	case SIGPROF:	return TRUE;
+	/*
+	 * SIGPROF needs special care: it is a harmful signal, if received and
+	 * untrapped, but its trapping is done by the C startup when profiling
+	 * is enabled and if we mark it harmful, we will immediately abort in
+	 * signal_uncaught() when getting the first SIGPROF signal...
+	 *
+	 * Let's not mark it harmful, but the consequences are that if the user
+	 * explicitly sends a SIGPROF to the process, emergency signal cleanup
+	 * will not be performed.  Since a user could always send a SIGKILL
+	 * anyway, this is not deemed as a problem.
+	 */
+	case SIGPROF:	return FALSE;
 #endif
 #ifdef SIGVTALRM
 	case SIGVTALRM:	return TRUE;
