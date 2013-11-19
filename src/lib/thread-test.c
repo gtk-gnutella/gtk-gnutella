@@ -69,6 +69,7 @@
 
 const char *progname;
 
+static char allocator = 'r';		/* For -X tests, random mix by default */
 static bool sleep_before_exit;
 static bool async_exit, wait_threads;
 static bool randomize_free;
@@ -81,8 +82,9 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-c CPU] [-n count]\n"
+		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-c CPU] [-n count]\n"
 		"       [-t ms] [-T secs]\n"
+		"  -a : allocator to exlusively test via -X (see below for type)\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
 		"  -h : prints this help message\n"
@@ -113,6 +115,7 @@ usage(void)
 		"  -W : test local event queue (EVQ)\n"
 		"  -X : exercise concurrent memory allocation\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
+		"Allocators: r=random mix, h=halloc, v=vmm_alloc, w=walloc, x=xmalloc\n"
 		, progname);
 	exit(EXIT_FAILURE);
 }
@@ -1590,14 +1593,36 @@ exercise_memory(void *arg)
 	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
 		struct memory *m = &mem[i];
 
-		if (random_value(99) < MEMORY_VMM_PROPORTION) {
+		switch (allocator) {
+		case 'r':
+			if (random_value(99) < MEMORY_VMM_PROPORTION) {
+				m->type = MEMORY_VMM;
+				m->size = MEMORY_VMM_MIN +
+					random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN);
+			} else {
+				m->type = random_value(2);
+				m->size = MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
+			}
+			break;
+		case 'h':
+			m->type = MEMORY_HALLOC;
+			break;
+		case 'v':
 			m->type = MEMORY_VMM;
-			m->size = MEMORY_VMM_MIN +
-				random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN);
-		} else {
-			m->type = random_value(2);
-			m->size = MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
+			break;
+		case 'w':
+			m->type = MEMORY_WALLOC;
+			break;
+		case 'x':
+			m->type = MEMORY_XMALLOC;
+			break;
+		default:
+			g_assert_not_reached();
 		}
+
+		m->size = MEMORY_VMM == m->type ?
+			MEMORY_VMM_MIN + random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN) :
+			MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
 	}
 
 	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
@@ -1944,7 +1969,7 @@ main(int argc, char **argv)
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "c:ehjn:st:vwxABCDEFIKMNOPQRST:VWX";
+	const char options[] = "a:c:ehjn:st:vwxABCDEFIKMNOPQRST:VWX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -2012,6 +2037,9 @@ main(int argc, char **argv)
 			break;
 		case 'X':			/* exercise memory allocation */
 			memory = TRUE;
+			break;
+		case 'a':			/* choose allocator for -X tests */
+			allocator = *optarg;
 			break;
 		case 'c':			/* override CPU count */
 			cpu_count = get_number(optarg, c);
@@ -2093,8 +2121,30 @@ main(int argc, char **argv)
 	if (dam)
 		test_dam(repeat, emulated);
 
-	if (memory)
+	if (memory) {
+		switch (allocator) {
+		case 'r':
+			break;
+		case 'h':
+			printf("Using halloc() for memory tests\n");
+			break;
+		case 'v':
+			printf("Using vmm_alloc() for memory tests\n");
+			break;
+		case 'w':
+			printf("Using walloc() for memory tests\n");
+			break;
+		case 'x':
+			printf("Using xmalloc() for memory tests\n");
+			break;
+		default:
+			s_warning("unknown allocator '%c', using random mix", allocator);
+			allocator = 'r';
+			break;
+		}
+		fflush(stdout);
 		test_memory(repeat);
+	}
 
 	if (teq)
 		test_teq(repeat);
