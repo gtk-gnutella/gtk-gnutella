@@ -619,8 +619,6 @@ zalloc(zone_t *zone)
 
 	/* NB: this routine must be as fast as possible. No assertions */
 
-	zlock(zone);
-
 	ZSTATS_LOCK;
 	zstats.allocations++;
 	zstats.user_blocks++;
@@ -632,6 +630,8 @@ zalloc(zone_t *zone)
 	 * Grab first available free block and update free list pointer. If we
 	 * succeed in getting a block, we are done so return immediately.
 	 */
+
+	zlock(zone);
 
 	blk = zone->zn_free;
 	if G_LIKELY(blk != NULL) {
@@ -905,11 +905,6 @@ zfree(zone_t *zone, void *ptr)
 	G_PREFETCH_W(&zone->zn_free);
 	G_PREFETCH_W(&zone->zn_cnt);
 
-	ZSTATS_LOCK;
-	zstats.freeings++;
-	ZSTATS_UNLOCK;
-	memusage_remove_one(zone->zn_mem);
-
 	g_assert(uint_is_positive(zone->zn_cnt)); 	/* Has something to free! */
 
 	head = zone->zn_free;
@@ -925,12 +920,14 @@ zfree(zone_t *zone, void *ptr)
 		zone->zn_cnt--;							/* To make zone gc easier */
 	}
 
+	zunlock(zone);
+
 	ZSTATS_LOCK;
+	zstats.freeings++;
 	zstats.user_blocks--;
 	zstats.user_memory -= zone->zn_size;
 	ZSTATS_UNLOCK;
-
-	zunlock(zone);
+	memusage_remove_one(zone->zn_mem);
 }
 #endif	/* !REMAP_ZALLOC */
 
