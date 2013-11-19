@@ -70,6 +70,7 @@
 const char *progname;
 
 static char allocator = 'r';		/* For -X tests, random mix by default */
+static size_t allocator_bsize;		/* Block size to use (0 = random) */
 static bool sleep_before_exit;
 static bool async_exit, wait_threads;
 static bool randomize_free;
@@ -82,9 +83,10 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-c CPU] [-n count]\n"
-		"       [-t ms] [-T secs]\n"
+		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
+		"       [-n count] [-t ms] [-T secs]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
+		"  -b : fixed block size to use for memory tests via -X\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
 		"  -h : prints this help message\n"
@@ -1620,9 +1622,10 @@ exercise_memory(void *arg)
 			g_assert_not_reached();
 		}
 
-		m->size = MEMORY_VMM == m->type ?
-			MEMORY_VMM_MIN + random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN) :
-			MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
+		m->size = 0 != allocator_bsize ? allocator_bsize :
+			MEMORY_VMM == m->type ?
+				MEMORY_VMM_MIN + random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN) :
+				MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
 	}
 
 	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
@@ -1969,7 +1972,7 @@ main(int argc, char **argv)
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:c:ehjn:st:vwxABCDEFIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ehjn:st:vwxABCDEFIKMNOPQRST:VWX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -2040,6 +2043,9 @@ main(int argc, char **argv)
 			break;
 		case 'a':			/* choose allocator for -X tests */
 			allocator = *optarg;
+			break;
+		case 'b':			/* set block size to use for -X tests */
+			allocator_bsize = get_number(optarg, c);
 			break;
 		case 'c':			/* override CPU count */
 			cpu_count = get_number(optarg, c);
@@ -2141,6 +2147,10 @@ main(int argc, char **argv)
 			s_warning("unknown allocator '%c', using random mix", allocator);
 			allocator = 'r';
 			break;
+		}
+		if (allocator_bsize != 0) {
+			printf("Using blocks of %lu byte%s\n", (ulong) allocator_bsize,
+				plural(allocator_bsize));
 		}
 		fflush(stdout);
 		test_memory(repeat);
