@@ -353,8 +353,8 @@ pool_free(pool_t *p)
 	outstanding = p->allocated - p->held;
 
 	if (outstanding != 0) {
-		g_carp("freeing pool \"%s\" of %u-byte objects with %u still used",
-			p->name, (uint) p->size, outstanding);
+		g_carp("freeing pool \"%s\" of %zu-byte objects with %u still used",
+			p->name, p->size, outstanding);
 	}
 
 	pool_needs_gc(p, FALSE);
@@ -364,7 +364,7 @@ pool_free(pool_t *p)
 	 */
 
 	GM_SLIST_FOREACH(p->buffers, sl) {
-		p->dealloc(sl->data, FALSE);
+		p->dealloc(sl->data, p->size, FALSE);
 	}
 	gm_slist_free_null(&p->buffers);
 
@@ -401,15 +401,13 @@ palloc(pool_t *p)
 		p->held--;
 		POOL_UNLOCK(p);
 	} else {
-		size_t size = p->size;
-
 		/*
 		 * No such luck, allocate a new buffer.
 		 */
 
 		p->allocated++;
 		POOL_UNLOCK(p);
-		obj = p->alloc(size);
+		obj = p->alloc(p->size);
 	}
 
 	return obj;
@@ -430,7 +428,7 @@ pfree(pool_t *p, void *obj)
 	 * See whether buffer is a fragment before entering the critical section.
 	 */
 
-	is_fragment = NULL != p->is_frag && p->is_frag(obj);
+	is_fragment = NULL != p->is_frag && p->is_frag(obj, p->size);
 
 	POOL_LOCK(p);
 
@@ -457,7 +455,7 @@ pfree(pool_t *p, void *obj)
 		if (palloc_debug > 1)
 			s_debug("PGC pool \"%s\": buffer %p is a fragment", p->name, obj);
 
-		p->dealloc(obj, TRUE);
+		p->dealloc(obj, p->size, TRUE);
 	} else {
 		p->buffers = g_slist_prepend(p->buffers, obj);
 		p->held++;
@@ -489,7 +487,7 @@ pool_reclaim(pool_t *p, void *obj)
 	g_assert(p->allocated >= p->held);
 
 	p->buffers = g_slist_remove(p->buffers, obj);
-	p->dealloc(obj, FALSE);
+	p->dealloc(obj, p->size, FALSE);
 	p->allocated--;
 	p->held--;
 }

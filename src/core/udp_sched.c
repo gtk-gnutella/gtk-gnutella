@@ -185,7 +185,7 @@ udp_tx_desc_alloc(size_t size)
 {
 	struct udp_tx_desc *txd;
 
-	g_assert(sizeof(struct udp_tx_desc) == size);
+	g_assert(sizeof *txd == size);
 
 	WALLOC0(txd);
 	txd->magic = UDP_TX_FREE_MAGIC;
@@ -197,13 +197,14 @@ udp_tx_desc_alloc(size_t size)
  * Wrapper used by pfree() to release a UDP TX descriptor.
  */
 static void
-udp_tx_desc_free(void *p, bool fragment)
+udp_tx_desc_free(void *p, size_t size, bool fragment)
 {
 	struct udp_tx_desc *txd = p;
 
+	g_assert(sizeof *txd == size);
 	udp_tx_desc_check(txd, FALSE);
-
 	(void) fragment;
+
 	txd->magic = 0;
 	WFREE(txd);
 }

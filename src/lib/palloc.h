@@ -40,8 +40,8 @@
 #include "common.h"
 
 typedef void *(*pool_alloc_t)(size_t len);
-typedef void (*pool_free_t)(void *addr, bool fragment);
-typedef bool (*pool_frag_t)(void *addr);
+typedef void (*pool_free_t)(void *addr, size_t len, bool fragment);
+typedef bool (*pool_frag_t)(void *addr, size_t len);
 
 typedef struct pool pool_t;
 
