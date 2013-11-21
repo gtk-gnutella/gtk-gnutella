@@ -160,7 +160,7 @@ atomic_acquire(atomic_lock_t *lock)
 }
 
 static inline ALWAYS_INLINE bool
-atomic_bool_get(bool *p)
+atomic_bool_get(const bool *p)
 {
 	atomic_mb();
 	return *p;
@@ -174,7 +174,7 @@ atomic_bool_set(bool *p, bool v)
 }
 
 static inline ALWAYS_INLINE int
-atomic_int_get(int *p)
+atomic_int_get(const int *p)
 {
 	atomic_mb();
 	return *p;
@@ -188,7 +188,7 @@ atomic_int_set(int *p, int v)
 }
 
 static inline ALWAYS_INLINE uint
-atomic_uint_get(uint *p)
+atomic_uint_get(const uint *p)
 {
 	atomic_mb();
 	return *p;
