@@ -334,13 +334,6 @@ thread_element_check(const struct thread_element * const te)
 #define THREAD_TRY_LOCK(te)	spinlock_hidden_try(&(te)->lock)
 #define THREAD_UNLOCK(te)	spinunlock_raw(&(te)->lock)
 
-/*
- * A 64-bit counter is split between a "lo" and a "hi" 32-bit counter,
- * being updated atomically using 32-bit operations on each counter.
- */
-#define U64(name) \
-	uint name ## _lo; uint name ## _hi
-
 /**
  * Thread statistics.
  *
@@ -351,51 +344,47 @@ thread_element_check(const struct thread_element * const te)
 static struct thread_stats {
 	uint created;					/* Amount of created threads */
 	uint discovered;				/* Amount of discovered threads */
-	U64(qid_cache_lookup);			/* Amount of QID lookups in the cache */
-	U64(qid_cache_hit);				/* Amount of QID hits */
-	U64(qid_cache_clash);			/* Amount of QID clashes */
-	U64(qid_cache_miss);			/* Amount of QID lookup misses */
-	U64(lookup_by_qid);				/* Amount of thread lookups by QID */
-	U64(lookup_by_tid);				/* Amount of thread lookups by TID */
-	U64(locks_tracked);				/* Amount of locks tracked */
-	U64(locks_tracked_discovered);	/* Locks tracked on discovered threads */
-	U64(locks_released);			/* Amount of locks released after grab */
-	U64(locks_spinlock_tracked);	/* Amount of tracked spinlocks */
-	U64(locks_mutex_tracked);		/* Amount of tacked mutexes */
-	U64(locks_rlock_tracked);		/* Amount of tracked read-locks */
-	U64(locks_wlock_tracked);		/* Amount of tracked write-locks */
-	U64(locks_spinlock_contention);	/* Amount of contentions on spinlocks */
-	U64(locks_mutex_contention);	/* Amount of contentions on mutex */
-	U64(locks_rlock_contention);	/* Amount of contentions on read-locks */
-	U64(locks_wlock_contention);	/* Amount of contentions on write-locks */
-	U64(locks_spinlock_sleep);		/* Amount of sleeps done on spinlocks */
-	U64(locks_mutex_sleep);			/* Amount of sleeps done on mutexes */
-	U64(locks_rlock_sleep);			/* Amount of sleeps done on read-locks */
-	U64(locks_wlock_sleep);			/* Amount of sleeps done on write-locks */
-	U64(cond_waitings);				/* Amount of condition variable waitings */
-	U64(signals_posted);			/* Amount of signals posted to threads */
-	U64(signals_handled);			/* Amount of signal handlers called */
-	U64(signals_ignored);			/* Amount of signals got with no handler */
-	U64(sig_handled_count);			/* Amount of calls to thread_sig_handle() */
-	U64(sig_handled_while_blocked);	/* Signals handled whilst thread blocked */
-	U64(sig_handled_while_paused);	/* Signals handled whilst paused */
-	U64(sig_handled_while_check);	/* Signals handled via voluntary check */
-	U64(sig_handled_while_locking);	/* Signals handled during locking */
-	U64(sig_handled_while_unlocking);	/* Signals handled during unlocking */
-	U64(thread_self_blocks);		/* Voluntary internal thread blocks */
-	U64(thread_self_pauses);		/* Calls to thread_pause() */
-	U64(thread_self_suspends);		/* Threads seeing they need to suspend */
-	U64(thread_self_block_races);	/* Detected races in thread_self_block() */
-	U64(thread_self_pause_races);	/* Detected races in thread_sigsuspend() */
-	U64(thread_forks);				/* Amount of thread_fork() calls made */
-	U64(thread_yields);				/* Amount of thread_yield() calls made */
+	AU64(qid_cache_lookup);			/* Amount of QID lookups in the cache */
+	AU64(qid_cache_hit);			/* Amount of QID hits */
+	AU64(qid_cache_clash);			/* Amount of QID clashes */
+	AU64(qid_cache_miss);			/* Amount of QID lookup misses */
+	AU64(lookup_by_qid);			/* Amount of thread lookups by QID */
+	AU64(lookup_by_tid);			/* Amount of thread lookups by TID */
+	AU64(locks_tracked);			/* Amount of locks tracked */
+	AU64(locks_tracked_discovered);	/* Locks tracked on discovered threads */
+	AU64(locks_released);			/* Amount of locks released after grab */
+	AU64(locks_spinlock_tracked);	/* Amount of tracked spinlocks */
+	AU64(locks_mutex_tracked);		/* Amount of tacked mutexes */
+	AU64(locks_rlock_tracked);		/* Amount of tracked read-locks */
+	AU64(locks_wlock_tracked);		/* Amount of tracked write-locks */
+	AU64(locks_spinlock_contention);/* Amount of contentions on spinlocks */
+	AU64(locks_mutex_contention);	/* Amount of contentions on mutex */
+	AU64(locks_rlock_contention);	/* Amount of contentions on read-locks */
+	AU64(locks_wlock_contention);	/* Amount of contentions on write-locks */
+	AU64(locks_spinlock_sleep);		/* Amount of sleeps done on spinlocks */
+	AU64(locks_mutex_sleep);		/* Amount of sleeps done on mutexes */
+	AU64(locks_rlock_sleep);		/* Amount of sleeps done on read-locks */
+	AU64(locks_wlock_sleep);		/* Amount of sleeps done on write-locks */
+	AU64(cond_waitings);			/* Amount of condition variable waitings */
+	AU64(signals_posted);			/* Amount of signals posted to threads */
+	AU64(signals_handled);			/* Amount of signal handlers called */
+	AU64(signals_ignored);			/* Amount of signals got with no handler */
+	AU64(sig_handled_count);		/* Amount of calls to thread_sig_handle() */
+	AU64(sig_handled_while_blocked);/* Signals handled whilst thread blocked */
+	AU64(sig_handled_while_paused);	/* Signals handled whilst paused */
+	AU64(sig_handled_while_check);	/* Signals handled via voluntary check */
+	AU64(sig_handled_while_locking);/* Signals handled during locking */
+	AU64(sig_handled_while_unlocking);	/* Signals handled during unlocking */
+	AU64(thread_self_blocks);		/* Voluntary internal thread blocks */
+	AU64(thread_self_pauses);		/* Calls to thread_pause() */
+	AU64(thread_self_suspends);		/* Threads seeing they need to suspend */
+	AU64(thread_self_block_races);	/* Detected races in thread_self_block() */
+	AU64(thread_self_pause_races);	/* Detected races in thread_sigsuspend() */
+	AU64(thread_forks);				/* Amount of thread_fork() calls made */
+	AU64(thread_yields);			/* Amount of thread_yield() calls made */
 } thread_stats;
 
-#define THREAD_STATS_INCX(name) G_STMT_START { \
-	if G_UNLIKELY((uint) -1 == atomic_uint_inc(&thread_stats.name ## _lo)) \
-		atomic_uint_inc(&thread_stats.name ## _hi);	\
-} G_STMT_END
-
+#define THREAD_STATS_INCX(name) AU64_INC(&thread_stats.name)
 #define THREAD_STATS_INC(name)	atomic_uint_inc(&thread_stats.name)
 
 /**
@@ -8318,29 +8307,17 @@ thread_dump_stats(void)
 G_GNUC_COLD void
 thread_dump_stats_log(logagent_t *la, unsigned options)
 {
-	struct thread_stats t1, t2;
-
-	/*
-	 * Because thread statistics are updated atomically, without taking locks,
-	 * we need to be extra careful to avoid showing improper numbers for these
-	 * statistics that are split into two 32-bit counters.
-	 */
+	struct thread_stats t;
 
 	atomic_mb();
-	t1 = thread_stats;			/* Struct copy */
-	compat_usleep_nocancel(5);	/* Small delay to let upper 32-bit updates */
-	atomic_mb();
-	t2 = thread_stats;			/* Struct copy */
+	t = thread_stats;			/* Struct copy */
 
 #define DUMP(x)		log_info(la, "THREAD %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?							\
-		uint_to_gstring(t2.x) : uint_to_string(t2.x))
+		uint_to_gstring(t.x) : uint_to_string(t.x))
 
 #define DUMP64(x) G_STMT_START {							\
-	uint64 v, v1, v2;										\
-	v1 = (((uint64) t1.x ## _hi) << 32) + t1.x ## _lo;		\
-	v2 = (((uint64) t2.x ## _hi) << 32) + t2.x ## _lo;		\
-	v = MAX(v1, v2);										\
+	uint64 v = AU64_VALUE(&thread_stats.x);					\
 	log_info(la, "THREAD %s = %s", #x,						\
 		(options & DUMP_OPT_PRETTY) ?						\
 			uint64_to_gstring(v) : uint64_to_string(v));	\
