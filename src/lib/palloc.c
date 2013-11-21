@@ -114,6 +114,8 @@ struct pool {
 	unsigned alloc_reqs;	/**< Amount of palloc() requests until a pfree() */
 	unsigned max_alloc;		/**< Max amount of alloc_reqs */
 	unsigned monotonic_ema;	/**< Fast EMA of "max_alloc" */
+	unsigned held_slow_ema;	/**< Slow EMA of pool held items (n = 31) */
+	unsigned held_fast_ema;	/**< Fast EMA of pool held items (n = 3) */
 	unsigned above;			/**< Amount of times allocation >= used EMA */
 	unsigned peak;			/**< Peak usage, when we're above used EMA */
 	mutex_t lock;			/**< Thread-safe lock */
@@ -195,10 +197,11 @@ pool_needs_gc(const pool_t *p, bool need)
 
 	if G_UNLIKELY(change && palloc_debug > 1) {
 		s_debug("PGC turning %s for pool \"%s\" "
-			"(allocated=%d, held=%d, slow_ema=%u, fast_ema=%u)",
+			"(allocated=%d, held=%d, slow_ema=%u, fast_ema=%u, held_ema=%u)",
 			need ? "GC on" : "off GC",
 			p->name, p->allocated, p->held,
-			pool_ema(p, slow_ema), pool_ema(p, fast_ema));
+			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
+			pool_ema(p, held_slow_ema));
 	}
 }
 
@@ -209,7 +212,7 @@ static bool
 pool_heartbeat(void *obj)
 {
 	pool_t *p = obj;
-	unsigned used, ema;
+	unsigned used, ema, held;
 	bool needs_gc, update = FALSE;
 
 	pool_check(p);
@@ -241,6 +244,14 @@ pool_heartbeat(void *obj)
 	ema = MAX(pool_ema(p, slow_ema), pool_ema(p, fast_ema));
 
 	/*
+	 * Keep track of the amount of held blocks via a slow EMA.
+	 */
+
+	held = p->held << POOL_EMA_SHIFT;
+	p->held_slow_ema += (held >> 4) - (p->held_slow_ema >> 4);
+	p->held_fast_ema += (held >> 1) - (p->held_fast_ema >> 1);
+
+	/*
 	 * Update average monotonic allocation count, if anything occurred
 	 * since the last heartbeat.
 	 */
@@ -264,6 +275,11 @@ pool_heartbeat(void *obj)
 			p->peak = peak;
 		if (++p->above >= POOL_OVERSIZED_THRESH)
 			update = needs_gc = TRUE;
+	} else if (
+		p->held_fast_ema >= p->held_slow_ema ||
+		UNSIGNED(p->held) >= (UNSIGNED(p->allocated) >> 4)
+	) {
+		update = needs_gc = TRUE;
 	} else if (p->peak != 0) {
 		p->above = 0;
 		p->peak = 0;
@@ -278,10 +294,12 @@ pool_heartbeat(void *obj)
 
 	if (palloc_debug > 4) {
 		s_debug("PGC pool \"%s\": allocated=%d, held=%d, used=%d, above=%u, "
-			"slow_ema=%u, fast_ema=%u, monotonic_ema=%u, peak=%u",
+			"slow_ema=%u, fast_ema=%u, monotonic_ema=%u, peak=%u, "
+			"held_slow_ema=%u, held_fast_ema=%u",
 			p->name, p->allocated, p->held, p->allocated - p->held, p->above,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
-			pool_ema(p, monotonic_ema), p->peak);
+			pool_ema(p, monotonic_ema), p->peak,
+			pool_ema(p, held_slow_ema), pool_ema(p, held_fast_ema));
 	}
 
 	return TRUE;	/* Keep calling */
@@ -507,7 +525,7 @@ set_palloc_debug(uint32 level)
 static void
 pool_reclaim_garbage(pool_t *p)
 {
-	unsigned ema, threshold, extra;
+	unsigned ema, threshold, extra, spurious = 0, collecting = 0;
 	GSList *to_remove = NULL, *sl;
 
 	pool_check(p);
@@ -518,10 +536,12 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (palloc_debug > 2) {
 		s_debug("PGC garbage collecting pool \"%s\": allocated=%u, held=%u "
-			"slow_ema=%u, fast_ema=%u, bg_ema=%u, peak=%u",
+			"slow_ema=%u, fast_ema=%u, bg_ema=%u, peak=%u, "
+			"held_slow_ema=%u, held_fast_ema=%u",
 			p->name, p->allocated, p->held,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
-			pool_ema(p, monotonic_ema), p->peak);
+			pool_ema(p, monotonic_ema), p->peak,
+			pool_ema(p, held_slow_ema), pool_ema(p, held_fast_ema));
 	}
 
 	if (0 == p->held)
@@ -560,6 +580,18 @@ pool_reclaim_garbage(pool_t *p)
 	}
 
 	/*
+	 * If we hold more blocks than the slow EMA, it's time to reclaim
+	 * some of these spurious blocks.
+	 */
+
+	if (
+		p->held_fast_ema >= p->held_slow_ema ||
+		UNSIGNED(p->held) == pool_ema(p, held_slow_ema)
+	) {
+		spurious = pool_ema(p, held_slow_ema) >> 1;
+	}
+
+	/*
 	 * The threshold is normally the EMA of "grabbed" blocks plus the
 	 * requirements for monotonic allocations.  However, we are also
 	 * monitoring the peak "grabbing" and use that as minimum boundary
@@ -571,7 +603,7 @@ pool_reclaim_garbage(pool_t *p)
 	threshold = MAX(threshold, p->peak);
 	threshold += ema;
 
-	if (UNSIGNED(p->allocated) <= threshold) {
+	if (UNSIGNED(p->allocated) <= threshold && 0 == spurious) {
 		if (palloc_debug > 1) {
 			s_debug("PGC not collecting %u block%s from \"%s\": "
 				"allocation count %u currently below or at target of %u",
@@ -582,16 +614,12 @@ pool_reclaim_garbage(pool_t *p)
 	}
 
 	extra = p->allocated - threshold;
-	extra = MIN(extra, UNSIGNED(p->held));
+	extra = MAX(extra, spurious);
+	collecting = extra = MIN(extra, UNSIGNED(p->held));
 
 	/*
 	 * Here we go, reclaim extra buffers.
 	 */
-
-	if (palloc_debug) {
-		s_debug("PGC collecting %u extra block%s from \"%s\"",
-			extra, plural(extra), p->name);
-	}
 
 	while (extra-- > 0) {
 		sl = p->buffers;
@@ -622,6 +650,12 @@ reset:
 	 */
 
 	POOL_UNLOCK(p);
+
+	if G_UNLIKELY(palloc_debug && to_remove != NULL) {
+		/* Reading p->allocated without the pool's lock, but we don't care */
+		s_debug("PGC \"%s\": collecting %u block%s (%u spurious, %u allocated)",
+			p->name, collecting, plural(collecting), spurious, p->allocated);
+	}
 
 	GM_SLIST_FOREACH(to_remove, sl) {
 		void *obj = sl->data;
