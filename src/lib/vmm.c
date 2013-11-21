@@ -109,6 +109,7 @@
 
 #include "alloca.h"			/* For alloca_stack_direction() */
 #include "ascii.h"
+#include "atomic.h"
 #include "cq.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
@@ -247,14 +248,16 @@ struct pmap {
 
 /**
  * Internal statistics collected.
+ *
+ * The AU64() fields are atomically updated (without taking the VMM stats lock).
  */
 static struct vmm_stats {
 	uint64 allocations;				/**< Total number of allocations */
 	uint64 allocations_zeroed;		/**< Total number of zeroing in allocs */
 	uint64 freeings;				/**< Total number of freeings */
 	uint64 shrinkings;				/**< Total number of shrinks */
-	uint64 mmaps;					/**< Total number of mmap() calls */
-	uint64 munmaps;					/**< Total number of munmap() calls */
+	AU64(mmaps);					/**< Total number of mmap() calls */
+	AU64(munmaps);					/**< Total number of munmap() calls */
 	uint64 hints_followed;			/**< Allocations following hints */
 	uint64 hints_ignored;			/**< Allocations ignoring non-NULL hints */
 	uint64 alloc_from_cache;		/**< Allocation from cache */
@@ -268,20 +271,20 @@ static struct vmm_stats {
 	uint64 free_to_system_extra_pages;	/**< Cached paged coalesced in free */
 	uint64 forced_freed;			/**< Amount of forceful freeings */
 	uint64 forced_freed_pages;		/**< Amount of pages forcefully freed */
-	uint64 cache_evictions;			/**< Evictions due to cache being full */
-	uint64 cache_coalescing;		/**< Amount of coalescing from cache */
-	uint64 cache_line_coalescing;	/**< Amount of coalescing in cache line */
+	AU64(cache_evictions);			/**< Evictions due to cache being full */
+	AU64(cache_coalescing);			/**< Amount of coalescing from cache */
+	AU64(cache_line_coalescing);	/**< Amount of coalescing in cache line */
 	uint64 cache_expired;			/**< Amount of entries expired from cache */
 	uint64 cache_expired_pages;		/**< Expired pages from cache */
 	uint64 cache_kept;				/**< Cached entries that we do not expire */
-	uint64 cache_ignored;			/**< Ignored cache lines during lookups */
-	uint64 cache_exact_match;		/**< Found entry in the right cache line */
-	uint64 cache_splits;			/**< Split cached entries in allocations */
-	uint64 cache_high_coalescing;	/**< Large regions successfully coalesced */
-	uint64 cache_too_large;			/**< Allocation too large for cache */
+	AU64(cache_ignored);			/**< Ignored cache lines during lookups */
+	AU64(cache_exact_match);		/**< Found entry in the right cache line */
+	AU64(cache_splits);				/**< Split cached entries in allocations */
+	AU64(cache_high_coalescing);	/**< Large regions successfully coalesced */
+	AU64(cache_too_large);			/**< Allocation too large for cache */
 	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
 	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
-	uint64 pmap_overruled;			/**< Regions overruled by kernel */
+	AU64(pmap_overruled);			/**< Regions overruled by kernel */
 	uint64 hole_reused;				/**< Amount of times we use cached hole */
 	uint64 hole_invalidated;		/**< Times we invalidate cached hole */
 	uint64 hole_updated;			/**< Times we updated the cached hole */
@@ -299,6 +302,8 @@ static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
 
 #define VMM_STATS_LOCK		spinlock_hidden(&vmm_stats_slk)
 #define VMM_STATS_UNLOCK	spinunlock_hidden(&vmm_stats_slk)
+
+#define VMM_STATS_INCX(x)	AU64_INC(&vmm_stats.x)
 
 /**
  * The local version of the process memory map.
@@ -863,11 +868,15 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 	if (NULL != vmm_hole.start) {
 		result = ptr_diff(vmm_hole.end, vmm_hole.start);
 		*hole_ptr = kernel_mapaddr_increasing ? vmm_hole.start : vmm_hole.end;
-		VMM_HOLE_UNLOCK;
 
-		VMM_STATS_LOCK;
+		/*
+		 * Normally we should have the VMM stats lock to update the stats,
+		 * but here we always update this counter when we have the hole lock,
+		 * and this is sufficient to prevent concurrent updates.
+		 */
+
 		vmm_stats.hole_reused++;
-		VMM_STATS_UNLOCK;
+		VMM_HOLE_UNLOCK;
 
 		return result;
 	}
@@ -1135,7 +1144,12 @@ vmm_dump_hole_log(logagent_t *la)
 static void
 vmm_hole_update(const void *p, size_t size, bool alloc)
 {
-	bool hole_invalidated = FALSE, hole_updated = FALSE;
+	/*
+	 * NOTE: we update the hole statistics with the hole lock held: we do
+	 * not grab the VMM stats lock instead, since this is sufficient to
+	 * guarantee atomic updates: thes counters are only updated whilst
+	 * holding that hole lock.
+	 */
 
 	VMM_HOLE_LOCK;
 	if (vmm_hole.start != NULL) {
@@ -1147,14 +1161,14 @@ vmm_hole_update(const void *p, size_t size, bool alloc)
 		) {
 			/* Allocated before hole, hole was stale */
 			vmm_hole.start = NULL;		/* Invalidate hole */
-			hole_invalidated = TRUE;
+			vmm_stats.hole_invalidated++;
 		}
 		else if (alloc && !kernel_mapaddr_increasing &&
 			ptr_cmp(p, vmm_hole.end) >= 0
 		) {
 			/* Allocated after hole, hole was stale */
 			vmm_hole.start = NULL;		/* Invalidate hole */
-			hole_invalidated = TRUE;
+			vmm_stats.hole_invalidated++;
 		}
 		else if (
 			ptr_cmp(p, vmm_hole.start) <= 0 &&
@@ -1162,7 +1176,7 @@ vmm_hole_update(const void *p, size_t size, bool alloc)
 		) {
 			/* Hole in the middle of the region */
 			vmm_hole.start = NULL;		/* Invalidate hole */
-			hole_invalidated = TRUE;
+			vmm_stats.hole_invalidated++;
 		}
 		else if (
 			ptr_cmp(p, vmm_hole.start) >= 0 &&
@@ -1171,16 +1185,16 @@ vmm_hole_update(const void *p, size_t size, bool alloc)
 			/* Region falls within hole but does not cover it all */
 			if (0 == ptr_cmp(p, vmm_hole.start)) {
 				vmm_hole.start = end;
-				hole_updated = TRUE;
+				vmm_stats.hole_updated++;
 			} else if (0 == ptr_cmp(end, vmm_hole.end)) {
 				vmm_hole.end = p;
-				hole_updated = TRUE;
+				vmm_stats.hole_updated++;
 			} else if (kernel_mapaddr_increasing) {
 				vmm_hole.end = p;
-				hole_updated = TRUE;
+				vmm_stats.hole_updated++;
 			} else {
 				vmm_hole.start = end;
-				hole_updated = TRUE;
+				vmm_stats.hole_updated++;
 			}
 		}
 		else if (
@@ -1188,36 +1202,24 @@ vmm_hole_update(const void *p, size_t size, bool alloc)
 			ptr_cmp(end, vmm_hole.end) < 0
 		) {
 			vmm_hole.start = end;
-			hole_updated = TRUE;
+			vmm_stats.hole_updated++;
 		}
 		else if (
 			ptr_cmp(p, vmm_hole.start) >= 0 &&
 			ptr_cmp(p, vmm_hole.end) < 0
 		) {
 			vmm_hole.end = p;
-			hole_updated = TRUE;
+			vmm_stats.hole_updated++;
+		} else {
+			vmm_stats.hole_unchanged++;
 		}
 
 		if (0 == ptr_cmp(vmm_hole.start, vmm_hole.end)) {
 			vmm_hole.start = NULL;		/* Invalidate "empty" hole */
-			hole_invalidated = TRUE;
+			vmm_stats.hole_invalidated++;
 		}
 	}
 	VMM_HOLE_UNLOCK;
-
-	if (hole_invalidated) {
-		VMM_STATS_LOCK;
-		vmm_stats.hole_invalidated++;
-		VMM_STATS_UNLOCK;
-	} else if (hole_updated) {
-		VMM_STATS_LOCK;
-		vmm_stats.hole_updated++;
-		VMM_STATS_UNLOCK;
-	} else {
-		VMM_STATS_LOCK;
-		vmm_stats.hole_unchanged++;
-		VMM_STATS_UNLOCK;
-	}
 }
 
 /**
@@ -1566,8 +1568,6 @@ alloc_pages(size_t size, bool update_pmap)
 static void
 free_pages_intern(void *p, size_t size, bool update_pmap)
 {
-	bool hole_invalidated, hole_updated;
-
 	/*
 	 * The critical region is required when we're going to update the
 	 * pmap since another thread could concurrently allocate memory that
@@ -1610,9 +1610,12 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 
 	/*
 	 * Update the cached first hole if freed region touches it.
+	 *
+	 * NOTE: we update the hole statistics with the hole lock held: we do
+	 * not grab the VMM stats lock instead, since this is sufficient to
+	 * guarantee atomic updates: thes counters are only updated whilst
+	 * holding that hole lock.
 	 */
-
-	hole_invalidated = hole_updated = FALSE;
 
 	VMM_HOLE_LOCK;
 	if (vmm_hole.start != NULL) {
@@ -1621,19 +1624,19 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		if (kernel_mapaddr_increasing && ptr_cmp(end, vmm_hole.start) <= 0) {
 			if (0 == ptr_cmp(end, vmm_hole.start)) {
 				vmm_hole.start = p;
-				hole_updated = TRUE;
+				vmm_stats.hole_updated++;
 			} else {
 				vmm_hole.start = NULL;	/* Invalidate, our hole was stale */
-				hole_invalidated = TRUE;
+				vmm_stats.hole_invalidated++;
 			}
 		}
 		else if (!kernel_mapaddr_increasing && ptr_cmp(p, vmm_hole.end) >= 0) {
 			if (0 == ptr_cmp(p, vmm_hole.end)) {
 				vmm_hole.end = end;
-				hole_updated = TRUE;
+				vmm_stats.hole_updated++;
 			} else {
 				vmm_hole.start = NULL;	/* Invalidate, our hole was stale */
-				hole_invalidated = TRUE;
+				vmm_stats.hole_invalidated++;
 			}
 		}
 		else if (
@@ -1643,7 +1646,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 			/* Hole in the middle of the freed region */
 			vmm_hole.start = p;
 			vmm_hole.end = end;
-			hole_updated = TRUE;
+			vmm_stats.hole_updated++;
 		}
 		else if (
 			ptr_cmp(p, vmm_hole.start) >= 0 &&
@@ -1651,7 +1654,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		) {
 			/* Freed region falls within hole but does not cover it all */
 			vmm_hole.start = NULL;		/* Invalidate, our hole was stale */
-			hole_invalidated = TRUE;
+			vmm_stats.hole_invalidated++;
 		}
 		else if (
 			ptr_cmp(p, vmm_hole.start) <= 0 &&
@@ -1660,7 +1663,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 			vmm_hole.start = p;
 			if (ptr_cmp(end, vmm_hole.end) > 0)
 				vmm_hole.end = end;
-			hole_updated = TRUE;
+			vmm_stats.hole_updated++;
 		}
 		else if (
 			ptr_cmp(p, vmm_hole.end) <= 0 &&
@@ -1669,24 +1672,12 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 			vmm_hole.end = end;
 			if (ptr_cmp(p, vmm_hole.start) < 0)
 				vmm_hole.start = p;
-			hole_updated = TRUE;
+			vmm_stats.hole_updated++;
+		} else {
+			vmm_stats.hole_unchanged++;
 		}
 	}
 	VMM_HOLE_UNLOCK;
-
-	if (hole_invalidated) {
-		VMM_STATS_LOCK;
-		vmm_stats.hole_invalidated++;
-		VMM_STATS_UNLOCK;
-	} else if (hole_updated) {
-		VMM_STATS_LOCK;
-		vmm_stats.hole_updated++;
-		VMM_STATS_UNLOCK;
-	} else {
-		VMM_STATS_LOCK;
-		vmm_stats.hole_unchanged++;
-		VMM_STATS_UNLOCK;
-	}
 
 pmap_update:
 	if (update_pmap) {
@@ -2499,9 +2490,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 		 * We have to remove ``remain'' bytes starting at ``base''.
 		 */
 
-		VMM_STATS_LOCK;
-		vmm_stats.pmap_overruled++;
-		VMM_STATS_UNLOCK;
+		VMM_STATS_INCX(pmap_overruled);
 		len = ptr_diff(vmf->end, base);		/* From base to end of region */
 
 		g_assert_log(size_is_positive(len), "len = %zu", len);
@@ -2823,9 +2812,7 @@ vpc_insert(struct page_cache *pc, void *p)
 		}
 		spinunlock(&pc->lock);
 		page_cache_insert_pages(base, pages);
-		VMM_STATS_LOCK;
-		vmm_stats.cache_line_coalescing++;
-		VMM_STATS_UNLOCK;
+		VMM_STATS_INCX(cache_line_coalescing);
 		return;
 	}
 
@@ -2861,9 +2848,7 @@ insert:
 		if (idx > kidx)
 			idx--;
 
-		VMM_STATS_LOCK;
-		vmm_stats.cache_evictions++;
-		VMM_STATS_UNLOCK;
+		VMM_STATS_INCX(cache_evictions);
 		pc->evicted++;
 	}
 
@@ -3009,9 +2994,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 				}
 				if (0 == i) {
 					/* Did not consider any of the pages in that line */
-					VMM_STATS_LOCK;
-					vmm_stats.cache_ignored++;
-					VMM_STATS_UNLOCK;
+					VMM_STATS_INCX(cache_ignored);
 					pc->denied++;
 				}
 				break;
@@ -3027,11 +3010,8 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 		if (NULL == base)
 			goto not_found;		/* Cache line was empty */
 
-		if (n == pc->pages) {
-			VMM_STATS_LOCK;
-			vmm_stats.cache_exact_match++;
-			VMM_STATS_UNLOCK;
-		}
+		if (n == pc->pages)
+			VMM_STATS_INCX(cache_exact_match);
 
 		/* FALL THROUGH */
 	}
@@ -3246,14 +3226,10 @@ short_term_strategy:
 		if (n > VMM_CACHE_LINES) {
 			if (p != NULL) {
 				/* Coalesced large blocks from the higher cache line */
-				VMM_STATS_LOCK;
-				vmm_stats.cache_high_coalescing++;
-				VMM_STATS_UNLOCK;
+				VMM_STATS_INCX(cache_high_coalescing);
 			} else {
 				/* Request was too large for the cache */
-				VMM_STATS_LOCK;
-				vmm_stats.cache_too_large++;
-				VMM_STATS_UNLOCK;
+				VMM_STATS_INCX(cache_too_large);
 			}
 		}
 
@@ -3308,11 +3284,8 @@ short_term_strategy:
 				p = vpc_find_pages(pc, n, hole);
 			}
 
-			if (p != NULL) {
-				VMM_STATS_LOCK;
-				vmm_stats.cache_splits++;
-				VMM_STATS_UNLOCK;
-			}
+			if (p != NULL)
+				VMM_STATS_INCX(cache_splits);
 		}
 
 		if (p != NULL) {
@@ -3680,9 +3653,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 		*base_ptr = base;
 		*pages_ptr = pages;
-		VMM_STATS_LOCK;
-		vmm_stats.cache_coalescing++;
-		VMM_STATS_UNLOCK;
+		VMM_STATS_INCX(cache_coalescing);
 
 		return TRUE;
 	}
@@ -3795,11 +3766,6 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 		return vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
 
 	n = pagecount_fast(size);
-	VMM_STATS_LOCK;
-	vmm_stats.allocations++;
-	if G_UNLIKELY(zero_mem)
-		vmm_stats.allocations_zeroed++;
-	VMM_STATS_UNLOCK;
 
 	/*
 	 * First look in the page cache to avoid requesting a new memory
@@ -3834,6 +3800,9 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	/* FALL THROUGH */
 
 update_stats:
+	vmm_stats.allocations++;
+	if G_UNLIKELY(zero_mem)
+		vmm_stats.allocations_zeroed++;
 
 	if (user_mem) {
 		vmm_stats.user_memory += size;
@@ -3960,9 +3929,6 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 
 		size = round_pagesize_fast(size);
 		n = pagecount_fast(size);
-		VMM_STATS_LOCK;
-		vmm_stats.freeings++;
-		VMM_STATS_UNLOCK;
 
 		g_assert(n >= 1);			/* Asserts that size != 0 */
 
@@ -3976,7 +3942,8 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 				VMM_STATS_LOCK;
 				vmm_stats.free_to_cache++;
 				vmm_stats.free_to_cache_pages += n;
-				VMM_STATS_UNLOCK;
+			} else {
+				VMM_STATS_LOCK;		/* For later below */
 			}
 		} else {
 			size_t m = n;
@@ -3986,11 +3953,13 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			vmm_stats.free_to_system++;
 			vmm_stats.free_to_system_pages += m;
 			vmm_stats.free_to_system_extra_pages += m - n;
-			VMM_STATS_UNLOCK;
 		}
 
+		/* Stats are already locked */
+
+		vmm_stats.freeings++;
+
 		if (user_mem) {
-			VMM_STATS_LOCK;
 			vmm_stats.user_memory -= size;
 			vmm_stats.user_pages -= n;
 			g_assert(size_is_non_negative(vmm_stats.user_pages));
@@ -3999,7 +3968,6 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			VMM_STATS_UNLOCK;
 			memusage_remove(vmm_stats.user_mem, size);
 		} else {
-			VMM_STATS_LOCK;
 			vmm_stats.core_memory -= size;
 			vmm_stats.core_pages -= n;
 			g_assert(size_is_non_negative(vmm_stats.core_pages));
@@ -4069,10 +4037,6 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 
 			g_assert(n >= 1);
 
-			VMM_STATS_LOCK;
-			vmm_stats.shrinkings++;
-			VMM_STATS_UNLOCK;
-
 			if (vmm_should_cache(q, n)) {
 				size_t m = n;
 				vmm_invalidate_pages(q, delta);
@@ -4081,7 +4045,6 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 					VMM_STATS_LOCK;
 					vmm_stats.free_to_cache++;
 					vmm_stats.free_to_cache_pages += n;
-					VMM_STATS_UNLOCK;
 				}
 			} else {
 				size_t m = n;
@@ -4091,11 +4054,13 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 				vmm_stats.free_to_system++;
 				vmm_stats.free_to_system_pages += n;
 				vmm_stats.free_to_system_extra_pages += m - n;
-				VMM_STATS_UNLOCK;
 			}
 
+			/* Stats are already locked */
+
+			vmm_stats.shrinkings++;
+
 			if (user_mem) {
-				VMM_STATS_LOCK;
 				vmm_stats.user_memory -= delta;
 				vmm_stats.user_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.user_pages));
@@ -4103,7 +4068,6 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 				VMM_STATS_UNLOCK;
 				memusage_remove(vmm_stats.user_mem, delta);
 			} else {
-				VMM_STATS_LOCK;
 				vmm_stats.core_memory -= delta;
 				vmm_stats.core_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.core_pages));
@@ -4538,12 +4502,19 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	(options & DUMP_OPT_PRETTY) ?					\
 		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
 
+#define DUMP64(x) G_STMT_START {							\
+	uint64 v = AU64_VALUE(&vmm_stats.x);					\
+	log_info(la, "VMM %s = %s", #x,							\
+		(options & DUMP_OPT_PRETTY) ?						\
+			uint64_to_gstring(v) : uint64_to_string(v));	\
+} G_STMT_END
+
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
 	DUMP(freeings);
 	DUMP(shrinkings);
-	DUMP(mmaps);
-	DUMP(munmaps);
+	DUMP64(mmaps);
+	DUMP64(munmaps);
 	DUMP(hints_followed);
 	DUMP(hints_ignored);
 	DUMP(alloc_from_cache);
@@ -4557,17 +4528,17 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(free_to_system_extra_pages);
 	DUMP(forced_freed);
 	DUMP(forced_freed_pages);
-	DUMP(cache_evictions);
-	DUMP(cache_coalescing);
-	DUMP(cache_line_coalescing);
+	DUMP64(cache_evictions);
+	DUMP64(cache_coalescing);
+	DUMP64(cache_line_coalescing);
 	DUMP(cache_expired);
 	DUMP(cache_expired_pages);
 	DUMP(cache_kept);
-	DUMP(cache_ignored);
-	DUMP(cache_exact_match);
-	DUMP(cache_splits);
-	DUMP(cache_high_coalescing);
-	DUMP(cache_too_large);
+	DUMP64(cache_ignored);
+	DUMP64(cache_exact_match);
+	DUMP64(cache_splits);
+	DUMP64(cache_high_coalescing);
+	DUMP64(cache_too_large);
 
 	/*
 	 * Count cached entries -- this is a transient value, so no need to
@@ -4584,7 +4555,25 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 
 	DUMP(pmap_foreign_discards);
 	DUMP(pmap_foreign_discarded_pages);
-	DUMP(pmap_overruled);
+	DUMP64(pmap_overruled);
+
+	/*
+	 * These variables are not updated with the VMM stats lock but whith
+	 * the VMM hole lock.  This means we did not take a full consistent
+	 * view since we copied the statistics with the stats lock held only.
+	 */
+
+#define HOLE_COPY(x)	stats.x = vmm_stats.x
+
+	VMM_HOLE_LOCK;
+	HOLE_COPY(hole_reused);
+	HOLE_COPY(hole_invalidated);
+	HOLE_COPY(hole_updated);
+	HOLE_COPY(hole_unchanged);
+	VMM_HOLE_UNLOCK;
+
+#undef HOLE_COPY
+
 	DUMP(hole_reused);
 	DUMP(hole_invalidated);
 	DUMP(hole_updated);
@@ -4621,6 +4610,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(core_pages);
 
 #undef DUMP
+#undef DUMP64
 
 	/*
 	 * Compute amount of cached pages.
@@ -5227,9 +5217,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		size_t size = round_pagesize_fast(length);
 		struct pmap *pm = vmm_pmap();
 
-		VMM_STATS_LOCK;
-		vmm_stats.mmaps++;
-		VMM_STATS_UNLOCK;
+		VMM_STATS_INCX(mmaps);
 
 		/*
 		 * The mapped memory region is "foreign" memory as far as we are
@@ -5292,9 +5280,7 @@ vmm_munmap(void *addr, size_t length)
 		pmap_remove(pm, addr, round_pagesize_fast(length));
 		rwlock_wunlock(&pm->lock);
 
-		VMM_STATS_LOCK;
-		vmm_stats.munmaps++;
-		VMM_STATS_UNLOCK;
+		VMM_STATS_INCX(munmaps);
 
 		if (vmm_debugging(5)) {
 			s_minidbg("VMM unmapped %zuKiB region at %p", length / 1024, addr);

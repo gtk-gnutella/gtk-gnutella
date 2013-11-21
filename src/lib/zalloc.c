@@ -302,27 +302,29 @@ static leak_set_t *z_leakset;
 
 /**
  * Internal statistics collected.
+ *
+ * The AU64() fields are atomically updated (without taking the stats lock).
  */
 static struct zstats {
 	uint64 allocations;				/**< Total amount of allocations */
 	uint64 freeings;				/**< Total amount of freeings */
-	uint64 allocations_gc;			/**< Subset of allocations in GC mode */
-	uint64 freeings_gc;				/**< Subset of freeings in GC mode */
+	AU64(allocations_gc);			/**< Subset of allocations in GC mode */
+	AU64(freeings_gc);				/**< Subset of freeings in GC mode */
 	uint64 subzones_allocated;		/**< Total amount of subzone creations */
 	uint64 subzones_allocated_pages;	/**< Total pages used by subzones */
 	uint64 subzones_freed;			/**< Total amount of subzone freeings */
 	uint64 subzones_freed_pages;	/**< Total pages freed in subzones */
-	uint64 zmove_attempts;			/**< Total attempts to move blocks */
-	uint64 zmove_attempts_gc;		/**< Subset of moves attempted in GC mode */
-	uint64 zmove_successful_gc;		/**< Subset of successful moves */
-	uint64 zgc_zones_freed;			/**< Total amount of zones freed by GC */
-	uint64 zgc_zones_defragmented;	/**< Total amount of zones defragmented */
-	uint64 zgc_fragments_freed;		/**< Total fragment zones freed */
-	uint64 zgc_free_quota_reached;	/**< Subzone freeing quota reached */
-	uint64 zgc_last_zone_kept;		/**< First zone kept to avoid depletion */
-	uint64 zgc_runs;				/**< Allowed zgc() runs */
-	uint64 zgc_zone_scans;			/**< Calls to zgc_scan() */
-	uint64 zgc_scan_freed;			/**< Zones freed during zgc_scan() */
+	AU64(zmove_attempts);			/**< Total attempts to move blocks */
+	AU64(zmove_attempts_gc);		/**< Subset of moves attempted in GC mode */
+	AU64(zmove_successful_gc);		/**< Subset of successful moves */
+	AU64(zgc_zones_freed);			/**< Total amount of zones freed by GC */
+	AU64(zgc_zones_defragmented);	/**< Total amount of zones defragmented */
+	AU64(zgc_fragments_freed);		/**< Total fragment zones freed */
+	AU64(zgc_free_quota_reached);	/**< Subzone freeing quota reached */
+	AU64(zgc_last_zone_kept);		/**< First zone kept to avoid depletion */
+	AU64(zgc_runs);					/**< Allowed zgc() runs */
+	AU64(zgc_zone_scans);			/**< Calls to zgc_scan() */
+	AU64(zgc_scan_freed);			/**< Zones freed during zgc_scan() */
 	uint64 zgc_excess_zones_freed;	/**< Zones freed during zn_shrink() */
 	uint64 zgc_shrinked;			/**< Amount of zn_shrink() calls */
 	size_t user_memory;				/**< Current user memory allocated */
@@ -332,6 +334,8 @@ static spinlock_t zstats_slk = SPINLOCK_INIT;
 
 #define ZSTATS_LOCK			spinlock_hidden(&zstats_slk)
 #define ZSTATS_UNLOCK		spinunlock_hidden(&zstats_slk)
+
+#define ZSTATS_INCX(x)		AU64_INC(&zstats.x)
 
 /**
  * @return block size for a given zone.
@@ -1253,6 +1257,7 @@ zn_shrink(zone_t *zone)
 
 	ZSTATS_LOCK;
 	zstats.zgc_excess_zones_freed += old_subzones - zone->zn_subzones;
+	zstats.zgc_shrinked++;
 	ZSTATS_UNLOCK;
 
 	zone->zn_subzones = 1;				/* One subzone remains */
@@ -1263,10 +1268,6 @@ zn_shrink(zone_t *zone)
 	/* Recreate free list */
 	zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
 	safety_assert(zbelongs(zone, zone->zn_free));
-
-	ZSTATS_LOCK;
-	zstats.zgc_shrinked++;
-	ZSTATS_UNLOCK;
 }
 #endif	/* !REMAP_ZALLOC */
 
@@ -1460,9 +1461,7 @@ zmove(zone_t *zone, void *p)
 	 * If there is no garbage collection turned on for the zone, keep it as-is.
 	 */
 
-	ZSTATS_LOCK;
-	zstats.zmove_attempts++;
-	ZSTATS_UNLOCK;
+	ZSTATS_INCX(zmove_attempts);
 
 	if G_LIKELY(NULL == zone->zn_gc)
 		return p;
@@ -1832,9 +1831,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 	zrange_clear(zone);
 	zg->zg_zone_defragmented++;
 
-	ZSTATS_LOCK;
-	zstats.zgc_zones_defragmented++;
-	ZSTATS_UNLOCK;
+	ZSTATS_INCX(zgc_zones_defragmented);
 
 	zgc_remove_subzone(zone, szi);
 	blk = zgc_subzone_new_arena(zone, sz);
@@ -1875,10 +1872,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 		g_assert(zone->zn_blocks == zone->zn_hint);
 		zgc_subzone_defragment(zone, szi);
 
-		ZSTATS_LOCK;
-		zstats.zgc_last_zone_kept++;
-		ZSTATS_UNLOCK;
-
+		ZSTATS_INCX(zgc_last_zone_kept);
 		return FALSE;
 	}
 
@@ -1899,10 +1893,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 				zone->zn_hint, compact_time(life));
 		}
 
-		ZSTATS_LOCK;
-		zstats.zgc_fragments_freed++;
-		ZSTATS_UNLOCK;
-
+		ZSTATS_INCX(zgc_fragments_freed);
 		goto release_zone;
 	}
 
@@ -1948,10 +1939,7 @@ release_zone:
 		}
 		zg->zg_flags |= ZGC_SCAN_ALL;
 
-		ZSTATS_LOCK;
-		zstats.zgc_free_quota_reached++;
-		ZSTATS_UNLOCK;
-
+		ZSTATS_INCX(zgc_free_quota_reached);
 		return FALSE;
 	}
 
@@ -2033,9 +2021,7 @@ found:
 	zone->zn_subzones--;
 	zgc_context.subzone_freed++;
 
-	ZSTATS_LOCK;
-	zstats.zgc_zones_freed++;
-	ZSTATS_UNLOCK;
+	ZSTATS_INCX(zgc_zones_freed);
 
 	/*
 	 * Remove subzone info from sorted array.
@@ -2272,10 +2258,7 @@ zgc_scan(zone_t *zone)
 	}
 
 	i = zg->zg_free;
-
-	ZSTATS_LOCK;
-	zstats.zgc_zone_scans++;
-	ZSTATS_UNLOCK;
+	ZSTATS_INCX(zgc_zone_scans);
 
 	while (i < zg->zg_zones) {
 		struct subzinfo *szi = &zg->zg_subzinfo[i];
@@ -2306,9 +2289,7 @@ zgc_scan(zone_t *zone)
 			goto next;
 
 		if (zgc_subzone_free(zone, szi)) {
-			ZSTATS_LOCK;
-			zstats.zgc_scan_freed++;
-			ZSTATS_UNLOCK;
+			ZSTATS_INCX(zgc_scan_freed);
 			continue;
 		}
 
@@ -2418,9 +2399,7 @@ zgc_zalloc(zone_t *zone)
 
 	g_assert(spinlock_is_held(&zone->lock));
 
-	ZSTATS_LOCK;
-	zstats.allocations_gc++;
-	ZSTATS_UNLOCK;
+	ZSTATS_INCX(allocations_gc);
 
 	/*
 	 * Lookup for free blocks in each subzone, scanning them from the first
@@ -2498,10 +2477,7 @@ zgc_zfree(zone_t *zone, void *ptr)
 {
 	g_assert(spinlock_is_held(&zone->lock));
 
-	ZSTATS_LOCK;
-	zstats.freeings_gc++;
-	ZSTATS_UNLOCK;
-
+	ZSTATS_INCX(freeings_gc);
 	zone->zn_cnt--;
 	zgc_insert_freelist(zone, ptr);
 }
@@ -2520,10 +2496,7 @@ zgc_zmove(zone_t *zone, void *p)
 	void *np;
 	void *start;
 
-	ZSTATS_LOCK;
-	zstats.zmove_attempts_gc++;
-	ZSTATS_UNLOCK;
-
+	ZSTATS_INCX(zmove_attempts_gc);
 	zlock(zone);
 
 	zg = zone->zn_gc;
@@ -2573,9 +2546,7 @@ zgc_zmove(zone_t *zone, void *p)
 
 found:
 
-	ZSTATS_LOCK;
-	zstats.zmove_successful_gc++;
-	ZSTATS_UNLOCK;
+	ZSTATS_INCX(zmove_successful_gc);
 
 	/*
 	 * Remove block from the subzone's free list.
@@ -2803,9 +2774,7 @@ zgc(bool overloaded)
 	if (NULL == zt)
 		return;
 
-	ZSTATS_LOCK;
-	zstats.zgc_runs++;
-	ZSTATS_UNLOCK;
+	ZSTATS_INCX(zgc_runs);
 
 	if (zalloc_debugging(0))
 		tm_now_exact(&start);
@@ -3244,33 +3213,40 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	log_info(la, "ZALLOC zone_count = %s",
 		size_t_to_string(NULL == zt ? 0 : hash_table_size(zt)));
 
-#define DUMP(x)	log_info(la, "ZALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?						\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
-
 	ZSTATS_LOCK;
 	stats = zstats;			/* struct copy under lock protection */
 	ZSTATS_UNLOCK;
 
+#define DUMP(x)	log_info(la, "ZALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+
+#define DUMP64(x) G_STMT_START {							\
+	uint64 v = AU64_VALUE(&zstats.x);						\
+	log_info(la, "ZALLOC %s = %s", #x,						\
+		(options & DUMP_OPT_PRETTY) ?						\
+			uint64_to_gstring(v) : uint64_to_string(v));	\
+} G_STMT_END
+
 	DUMP(allocations);
 	DUMP(freeings);
-	DUMP(allocations_gc);
-	DUMP(freeings_gc);
+	DUMP64(allocations_gc);
+	DUMP64(freeings_gc);
 	DUMP(subzones_allocated);
 	DUMP(subzones_allocated_pages);
 	DUMP(subzones_freed);
 	DUMP(subzones_freed_pages);
-	DUMP(zmove_attempts);
-	DUMP(zmove_attempts_gc);
-	DUMP(zmove_successful_gc);
-	DUMP(zgc_zones_freed);
-	DUMP(zgc_zones_defragmented);
-	DUMP(zgc_fragments_freed);
-	DUMP(zgc_free_quota_reached);
-	DUMP(zgc_last_zone_kept);
-	DUMP(zgc_runs);
-	DUMP(zgc_zone_scans);
-	DUMP(zgc_scan_freed);
+	DUMP64(zmove_attempts);
+	DUMP64(zmove_attempts_gc);
+	DUMP64(zmove_successful_gc);
+	DUMP64(zgc_zones_freed);
+	DUMP64(zgc_zones_defragmented);
+	DUMP64(zgc_fragments_freed);
+	DUMP64(zgc_free_quota_reached);
+	DUMP64(zgc_last_zone_kept);
+	DUMP64(zgc_runs);
+	DUMP64(zgc_zone_scans);
+	DUMP64(zgc_scan_freed);
 	DUMP(zgc_excess_zones_freed);
 	DUMP(zgc_shrinked);
 
@@ -3286,6 +3262,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(user_blocks);
 
 #undef DUMP
+#undef DUMP64
 }
 
 /**

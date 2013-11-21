@@ -43,6 +43,8 @@
 #include "common.h"
 
 #include "halloc.h"
+
+#include "atomic.h"
 #include "concat.h"
 #include "dump_options.h"
 #include "glib-missing.h"
@@ -76,17 +78,17 @@
  */
 static struct hstats {
 	uint64 allocations;					/**< Total # of allocations */
-	uint64 allocations_zeroed;			/**< Total # of zeroed allocations */
+	AU64(allocations_zeroed);			/**< Total # of zeroed allocations */
 	uint64 alloc_via_xpmalloc;			/**< Allocations from xpmalloc */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 freeings;					/**< Total # of freeings */
-	uint64 reallocs;					/**< Total # of reallocs */
-	uint64 realloc_noop;				/**< Nothing to do */
+	AU64(reallocs);						/**< Total # of reallocs */
+	AU64(realloc_noop);					/**< Nothing to do */
 	uint64 realloc_via_xrealloc;		/**< Reallocs handled by xrealloc() */
-	uint64 realloc_via_vmm;				/**< Reallocs handled by VMM */
+	AU64(realloc_via_vmm);				/**< Reallocs handled by VMM */
 	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
-	uint64 realloc_noop_same_vmm;		/**< Same VMM size */
-	uint64 realloc_relocatable;			/**< Forced relocation for VMM */
+	AU64(realloc_noop_same_vmm);		/**< Same VMM size */
+	AU64(realloc_relocatable);			/**< Forced relocation for VMM */
 	uint64 wasted_cumulative;			/**< Cumulated allocation waste */
 	uint64 wasted_cumulative_xpmalloc;	/**< Cumulated waste for xpmalloc */
 	uint64 wasted_cumulative_vmm;		/**< Cumulated waste for VMM allocs */
@@ -97,6 +99,8 @@ static spinlock_t hstats_slk = SPINLOCK_INIT;
 
 #define HSTATS_LOCK			spinlock_hidden(&hstats_slk)
 #define HSTATS_UNLOCK		spinunlock_hidden(&hstats_slk)
+
+#define HSTATS_INCX(x)		AU64_INC(&hstats.x)
 
 enum halloc_type {
 	HALLOC_XMALLOC,
@@ -255,10 +259,6 @@ halloc(size_t size)
 	if G_UNLIKELY(0 == xpmalloc_threshold)
 		halloc_init(TRUE);
 
-	HSTATS_LOCK;
-	hstats.allocations++;
-	HSTATS_UNLOCK;
-
 	if (size < xpmalloc_threshold) {
 		p = xpmalloc(size);
 		allocated = xallocated(p);
@@ -266,9 +266,7 @@ halloc(size_t size)
 
 		HSTATS_LOCK;
 		hstats.alloc_via_xpmalloc++;
-		hstats.wasted_cumulative += allocated - size;
 		hstats.wasted_cumulative_xpmalloc += allocated - size;
-		HSTATS_UNLOCK;
 	} else {
 		int inserted;
 
@@ -282,12 +280,13 @@ halloc(size_t size)
 
 		HSTATS_LOCK;
 		hstats.alloc_via_vmm++;
-		hstats.wasted_cumulative += allocated - size;
 		hstats.wasted_cumulative_vmm += allocated - size;
-		HSTATS_UNLOCK;
 	}
 
-	HSTATS_LOCK;
+	/* Stats are still locked at this point */
+
+	hstats.allocations++;;
+	hstats.wasted_cumulative += allocated - size;
 	hstats.memory += allocated;
 	hstats.blocks++;
 	HSTATS_UNLOCK;
@@ -315,10 +314,7 @@ halloc0(size_t size)
 		memset(p, 0, size);
 	}
 
-	HSTATS_LOCK;
-	hstats.allocations_zeroed++;
-	HSTATS_UNLOCK;
-
+	HSTATS_INCX(allocations_zeroed);
 	return p;
 }
 
@@ -334,10 +330,6 @@ hfree(void *p)
 	if (NULL == p)
 		return;
 
-	HSTATS_LOCK;
-	hstats.freeings++;
-	HSTATS_UNLOCK;
-
 	allocated = halloc_get_size(p, &type);
 	g_assert(size_is_positive(allocated));
 
@@ -349,6 +341,7 @@ hfree(void *p)
 	}
 
 	HSTATS_LOCK;
+	hstats.freeings++;
 	hstats.memory -= allocated;
 	hstats.blocks--;
 	HSTATS_UNLOCK;
@@ -382,27 +375,19 @@ hrealloc(void *old, size_t new_size)
 	 * This is our chance to move a virtual memory fragment out of the way.
 	 */
 
-	HSTATS_LOCK;
-	hstats.reallocs++;
-	HSTATS_UNLOCK;
+	HSTATS_INCX(reallocs);
 
 	rounded_new_size = round_pagesize(new_size);
 
 	if (HALLOC_VMM == type) {
 		if (vmm_is_relocatable(old, rounded_new_size)) {
-			HSTATS_LOCK;
-			hstats.realloc_relocatable++;
-			HSTATS_UNLOCK;
-
+			HSTATS_INCX(realloc_relocatable);
 			goto relocate;
 		}
 		if (new_size >= xpmalloc_threshold) {
 			if (rounded_new_size == old_size) {
-				HSTATS_LOCK;
-				hstats.realloc_noop++;
-				hstats.realloc_noop_same_vmm++;
-				HSTATS_UNLOCK;
-
+				HSTATS_INCX(realloc_noop);
+				HSTATS_INCX(realloc_noop_same_vmm);
 				return old;
 			}
 			if (old_size > rounded_new_size) {
@@ -429,10 +414,7 @@ hrealloc(void *old, size_t new_size)
 	}
 
 	if (old_size >= new_size && old_size / 2 < new_size) {
-		HSTATS_LOCK;
-		hstats.realloc_noop++;
-		HSTATS_UNLOCK;
-
+		HSTATS_INCX(realloc_noop);
 		return old;
 	}
 
@@ -442,11 +424,7 @@ relocate:
 
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
-
-	HSTATS_LOCK;
-	hstats.realloc_via_vmm++;
-	HSTATS_UNLOCK;
-
+	HSTATS_INCX(realloc_via_vmm);
 	return p;
 }
 
@@ -940,9 +918,20 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	struct hstats stats;
 	uint64 wasted_average, wasted_average_xpmalloc, wasted_average_vmm;
 
+	HSTATS_LOCK;
+	stats = hstats;			/* struct copy under lock protection */
+	HSTATS_UNLOCK;
+
 #define DUMP(x) log_info(la, "HALLOC %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?						\
 		 uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+
+#define DUMP64(x) G_STMT_START {							\
+	uint64 v = AU64_VALUE(&hstats.x);						\
+	log_info(la, "HALLOC %s = %s", #x,							\
+		(options & DUMP_OPT_PRETTY) ?						\
+			uint64_to_gstring(v) : uint64_to_string(v));	\
+} G_STMT_END
 
 #define DUMS(x) log_info(la, "HALLOC %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?						\
@@ -952,30 +941,25 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	(options & DUMP_OPT_PRETTY) ?						\
 		 uint64_to_gstring(x) : uint64_to_string(x))
 
-
-	HSTATS_LOCK;
-	stats = hstats;			/* struct copy under lock protection */
-	HSTATS_UNLOCK;
-
 	wasted_average = stats.wasted_cumulative /
 		(0 == stats.allocations ? 1 : stats.allocations);
 	wasted_average_xpmalloc = stats.wasted_cumulative_xpmalloc /
-		(0 == stats.alloc_via_xpmalloc ? 1 : stats.alloc_via_xpmalloc);
+		(0 == stats.alloc_via_xpmalloc ?  1 : stats.alloc_via_xpmalloc);
 	wasted_average_vmm = stats.wasted_cumulative_vmm /
-		(0 == stats.alloc_via_vmm ? 1 : stats.alloc_via_vmm);
+		(0 == stats.alloc_via_vmm ?  1 : stats.alloc_via_vmm);
 
 	DUMP(allocations);
-	DUMP(allocations_zeroed);
+	DUMP64(allocations_zeroed);
 	DUMP(alloc_via_xpmalloc);
 	DUMP(alloc_via_vmm);
 	DUMP(freeings);
-	DUMP(reallocs);
-	DUMP(realloc_noop);
-	DUMP(realloc_noop_same_vmm);
+	DUMP64(reallocs);
+	DUMP64(realloc_noop);
+	DUMP64(realloc_noop_same_vmm);
 	DUMP(realloc_via_xrealloc);
-	DUMP(realloc_via_vmm);
+	DUMP64(realloc_via_vmm);
 	DUMP(realloc_via_vmm_shrink);
-	DUMP(realloc_relocatable);
+	DUMP64(realloc_relocatable);
 	DUMP(wasted_cumulative);
 	DUMP(wasted_cumulative_xpmalloc);
 	DUMP(wasted_cumulative_vmm);
@@ -986,7 +970,9 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMS(blocks);
 
 #undef DUMP
+#undef DUMP64
 #undef DUMS
+#undef DUMV
 }
 
 /* vi: set ts=4 sw=4 cindent: */
