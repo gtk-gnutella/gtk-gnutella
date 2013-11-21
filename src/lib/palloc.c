@@ -69,6 +69,7 @@
 #include "glib-missing.h"
 #include "hashlist.h"
 #include "log.h"
+#include "mutex.h"
 #include "once.h"
 #include "palloc.h"
 #include "spinlock.h"
@@ -115,17 +116,25 @@ struct pool {
 	unsigned monotonic_ema;	/**< Fast EMA of "max_alloc" */
 	unsigned above;			/**< Amount of times allocation >= used EMA */
 	unsigned peak;			/**< Peak usage, when we're above used EMA */
-	spinlock_t lock;		/**< Thread-safe lock */
+	mutex_t lock;			/**< Thread-safe lock */
 };
 
 #define pool_ema(p_, f_)	((p_)->f_ >> POOL_EMA_SHIFT)
 
-#define POOL_LOCK(p)		spinlock(&(p)->lock)
-#define POOL_LOCK_TRY(p)	spinlock_try(&(p)->lock)
-#define POOL_UNLOCK(p)		spinunlock(&(p)->lock)
+/*
+ * Pool locking needs to be re-entrant, because a pfree() can cause the
+ * current thread to recurse back to palloc(): xmalloc() uses a pool to
+ * store thread local chunks, and a pfree() can allocate memory to get the
+ * link for the list, which is a small object and can therefore require
+ * the creation of another chunk....
+ */
+
+#define POOL_LOCK(p)		mutex_lock(&(p)->lock)
+#define POOL_LOCK_TRY(p)	mutex_trylock(&(p)->lock)
+#define POOL_UNLOCK(p)		mutex_unlock(&(p)->lock)
 
 #define assert_pool_locked(p) \
-	g_assert(spinlock_is_held(&(p)->lock))
+	assert_mutex_is_owned(&(p)->lock)
 
 static inline void
 pool_check(const pool_t * const p)
@@ -324,9 +333,9 @@ pool_create(const char *name,
 	p->alloc = alloc;
 	p->dealloc = dealloc;
 	p->is_frag = is_frag;
+	mutex_init(&p->lock);
 	p->heart_ev =
 		evq_raw_periodic_add(POOL_HEARTBEAT_PERIOD, pool_heartbeat, p);
-	spinlock_init(&p->lock);
 
 	return p;
 }
@@ -370,7 +379,7 @@ pool_free(pool_t *p)
 
 	XFREE_NULL(p->name);
 	cq_periodic_remove(&p->heart_ev);
-	spinlock_destroy(&p->lock);
+	mutex_destroy(&p->lock);
 	p->magic = 0;
 	xfree(p);
 }
@@ -457,7 +466,25 @@ pfree(pool_t *p, void *obj)
 
 		p->dealloc(obj, p->size, TRUE);
 	} else {
-		p->buffers = g_slist_prepend(p->buffers, obj);
+		GSList *lk;
+
+		/*
+		 * Because xmalloc() now uses pools for thread chunks, we need to
+		 * be careful because g_slist_prepend() can recurse to palloc() on
+		 * the same pool if we're handling the xmalloc pool...
+		 *
+		 * Therefore, do it manually: allocate the link, then put it at the
+		 * head of the list.  This should be roughly what g_slist_prepend()
+		 * would do, excepted that we re-read p->buffers AFTER the allocation
+		 * of the link, thereby being safe against a recursion in palloc()
+		 * in order to handle the g_slist_alloc() call.
+		 *		--RAM, 2013-11-13
+		 */
+
+		lk = g_slist_alloc();		/* There, now memory is allocated */
+		lk->data = obj;
+		lk->next = p->buffers;
+		p->buffers = lk;
 		p->held++;
 		POOL_UNLOCK(p);
 	}

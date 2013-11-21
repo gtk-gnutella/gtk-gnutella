@@ -74,6 +74,7 @@
 #include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
+#include "palloc.h"
 #include "pow2.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
@@ -482,6 +483,14 @@ static struct xsplit {
 } xsplit[XMALLOC_MAXSIZE / XMALLOC_ALIGNBYTES];
 
 /**
+ * Thread-local pools used for allocations are single pages allocated by
+ * the VMM layer.  In order to keep a reasonable amount of pages pre-allocated,
+ * and avoid costly freeing operations (especially when coalescing is done),
+ * we use a pool allocator to keep some pages around.
+ */
+static pool_t *xpages_pool;
+
+/**
  * Internal statistics collected.
  *
  * The AU64() fields are atomically updated (without taking the stats lock).
@@ -705,6 +714,36 @@ xmalloc_idle_collect(void *unused_data)
 }
 
 /**
+ * Pool allocation routine.
+ */
+static void *
+xpages_pool_alloc(size_t len)
+{
+	return vmm_core_alloc(len);
+}
+
+/**
+ * Pool freeing routine.
+ */
+static void
+xpages_pool_free(void *p, size_t len, bool fragment)
+{
+	(void) fragment;
+
+	vmm_core_free(p, len);
+}
+
+/**
+ * Initialize the memory pool, used to allocate thread memory chunks.
+ */
+static void
+xpages_pool_init(void)
+{
+	xpages_pool = pool_create("xmalloc thread chunks",
+		xmalloc_pagesize, xpages_pool_alloc, xpages_pool_free, NULL);
+}
+
+/**
  * Install periodic idle callback to run the freelist compactor.
  */
 static G_GNUC_COLD void
@@ -756,6 +795,8 @@ xmalloc_vmm_inited(void)
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
 #endif
+
+	xpages_pool_init();
 
 	/*
 	 * We wait for the VMM layer to be up before we install the xgc() idle
@@ -3690,7 +3731,15 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	capacity = (xmalloc_pagesize - sizeof *xck) / ch->blocksize;
 	offset = xmalloc_pagesize - capacity * ch->blocksize;
 
-	xck = vmm_core_alloc(xmalloc_pagesize);
+	/*
+	 * Try to allocate from the page pool if available.
+	 */
+
+	if G_LIKELY(xpages_pool != NULL)
+		xck = palloc(xpages_pool);
+	else
+		xck = vmm_core_alloc(xmalloc_pagesize);
+
 	xck->magic = XCHUNK_MAGIC;
 	xck->xc_head = deconstify_pointer(ch);
 	xck->xc_size = ch->blocksize;
@@ -3871,6 +3920,16 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 	if G_UNLIKELY(xck->xc_capacity == xck->xc_count + 1) {
 		struct xchunkhead *ch = xck->xc_head;
 
+		elist_remove(&ch->list, xck);
+
+		XSTATS_LOCK;
+		xstats.freeings++;			/* Not counted in xfree() */
+		xstats.free_thread_pool++;
+		xstats.user_memory -= xck->xc_size;
+		xstats.user_blocks--;
+		XSTATS_UNLOCK;
+		XSTATS_DECX(vmm_thread_pages);
+
 		/*
 		 * Before freeing the chunk, zero the header part so as to make
 		 * sure we will not mistake this for a valid header again.  Simply
@@ -3879,16 +3938,18 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 		 * but which is not a thread-private chunk would corrupt memory.
 		 */
 
-		elist_remove(&ch->list, xck);
-		XSTATS_LOCK;
-		xstats.freeings++;			/* Not counted in xfree() */
-		xstats.free_thread_pool++;
-		xstats.user_memory -= xck->xc_size;
-		xstats.user_blocks--;
-		XSTATS_UNLOCK;
-		XSTATS_DECX(vmm_thread_pages);
 		ZERO(xck);
-		vmm_core_free(xck, xmalloc_pagesize);
+
+		/*
+		 * If the memory pool allocator is configured, return the page
+		 * to that pool so as to maybe reuse it soon for another thread or
+		 * for another chunk in the current thread..
+		 */
+
+		if G_LIKELY(xpages_pool != NULL)
+			pfree(xpages_pool, xck);
+		else
+			vmm_core_free(xck, xmalloc_pagesize);
 
 		if (xmalloc_debugging(1)) {
 			s_debug("XM freed chunk %p of %zu-byte blocks for thread #%u",
@@ -6719,6 +6780,10 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 			uint64_to_gstring(v) : uint64_to_string(v));	\
 } G_STMT_END
 
+#define DUMPV(x)	log_info(la, "XM %s = %s", #x,			\
+	(options & DUMP_OPT_PRETTY) ?							\
+		size_t_to_gstring(x) : size_t_to_string(x))
+
 	DUMP(allocations);
 	DUMP64(allocations_zeroed);
 	DUMP(allocations_aligned);
@@ -6801,6 +6866,21 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(freelist_nosplit);
 	DUMP(freelist_blocks);
 	DUMP(freelist_memory);
+
+	{
+		size_t chunk_pool_count, chunk_pool_capacity;
+
+		if G_LIKELY(xpages_pool != NULL) {
+			chunk_pool_count = pool_count(xpages_pool);
+			chunk_pool_capacity = pool_capacity(xpages_pool);
+		} else {
+			chunk_pool_count = chunk_pool_capacity = 0;
+		}
+
+		DUMPV(chunk_pool_count);
+		DUMPV(chunk_pool_capacity);
+	}
+
 	DUMP64(xgc_runs);
 	DUMP64(xgc_time_throttled);
 	DUMP(xgc_collected);
@@ -6818,6 +6898,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 #undef DUMP
 #undef DUMP64
+#undef DUMPV
 }
 
 /**
