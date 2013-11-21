@@ -64,6 +64,7 @@
 #include "waiter.h"
 #include "walloc.h"
 #include "xmalloc.h"
+#include "zalloc.h"
 
 #define STACK_SIZE		16384
 
@@ -71,6 +72,7 @@ const char *progname;
 
 static char allocator = 'r';		/* For -X tests, random mix by default */
 static size_t allocator_bsize;		/* Block size to use (0 = random) */
+static size_t allocator_fill;
 static bool sleep_before_exit;
 static bool async_exit, wait_threads;
 static bool randomize_free;
@@ -84,11 +86,12 @@ usage(void)
 {
 	fprintf(stderr,
 		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
-		"       [-n count] [-t ms] [-T secs]\n"
+		"       [-f count] [-n count] [-t ms] [-T secs]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
 		"  -b : fixed block size to use for memory tests via -X\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
+		"  -f : fill amount, for -X to know how many blocks to allocate\n"
 		"  -h : prints this help message\n"
 		"  -j : join created threads\n"
 		"  -n : amount of times to repeat tests\n"
@@ -1582,17 +1585,30 @@ struct memory {
 
 #define MEMORY_ALLOCATIONS	4096
 
+struct exercise_results {
+	size_t amount;			/* Amount of allocations / frees */
+	time_delta_t alloc_us;	/* Allocation time, in microseconds */
+	time_delta_t free_us;	/* Freeing time, in microseconds */
+};
+
 static void *
 exercise_memory(void *arg)
 {
 	struct memory *mem;
-	int i;
+	size_t i, fill;
+	struct exercise_results *er;
+	tm_t start, end;
 
 	(void) arg;
 
-	XMALLOC_ARRAY(mem, MEMORY_ALLOCATIONS);
+	WALLOC(er);
 
-	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
+	fill = allocator_fill != 0 ? allocator_fill : MEMORY_ALLOCATIONS;
+	er->amount = fill;
+
+	XMALLOC_ARRAY(mem, fill);
+
+	for (i = 0; i < fill; i++) {
 		struct memory *m = &mem[i];
 
 		switch (allocator) {
@@ -1628,7 +1644,8 @@ exercise_memory(void *arg)
 				MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
 	}
 
-	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
+	tm_now_exact(&start);
+	for (i = 0; i < fill; i++) {
 		struct memory *m = &mem[i];
 
 		switch (m->type) {
@@ -1648,11 +1665,15 @@ exercise_memory(void *arg)
 			g_assert_not_reached();
 		}
 	}
+	tm_now_exact(&end);
+
+	er->alloc_us = tm_elapsed_us(&end, &start);
 
 	if (randomize_free)
-		shuffle(mem, MEMORY_ALLOCATIONS, sizeof mem[0]);
+		shuffle(mem, fill, sizeof mem[0]);
 
-	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
+	tm_now_exact(&start);
+	for (i = 0; i < fill; i++) {
 		struct memory *m = &mem[i];
 
 		switch (m->type) {
@@ -1672,19 +1693,22 @@ exercise_memory(void *arg)
 			g_assert_not_reached();
 		}
 	}
+	tm_now_exact(&end);
+
+	er->free_us = tm_elapsed_us(&end, &start);
 
 	XFREE_NULL(mem);
 
-	return NULL;
+	return er;
 }
 
 static void
-test_memory_one(void)
+test_memory_one(struct exercise_results *total)
 {
 	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	int *t, i, n;
 
-	n = cpus + 1;
+	n = cpus;
 
 	WALLOC_ARRAY(t, n);
 
@@ -1696,7 +1720,19 @@ test_memory_one(void)
 	}
 
 	for (i = 0; i < n; i++) {
-		thread_join(t[i], NULL);
+		void *e;
+		struct exercise_results *er;
+
+		if (-1 == thread_join(t[i], &e)) {
+			s_error("%s(): could not join with %s: %m",
+				G_STRFUNC, thread_id_name(t[i]));
+		}
+
+		er = e;
+		total->amount += er->amount;
+		total->alloc_us += er->alloc_us;
+		total->free_us += er->free_us;
+		WFREE(er);
 	}
 
 	WFREE_ARRAY(t, n);
@@ -1718,19 +1754,26 @@ test_memory(unsigned repeat)
 
 	for (i = 0; i < repeat; i++) {
 		tm_t start, end, elapsed;
+		struct exercise_results total;
+
+		ZERO(&total);
 
 		tm_now_exact(&start);
-		test_memory_one();
+		test_memory_one(&total);
 		tm_now_exact(&end);
 
 		tm_elapsed(&elapsed, &end, &start);
 
-		printf("%s() #%d finished! (%f secs)\n", G_STRFUNC, i, tm2f(&elapsed));
+		printf("%s() #%d finished! (%f secs, %.3f us/alloc, %.3f us/free)\n",
+			G_STRFUNC, i, tm2f(&elapsed),
+			total.alloc_us / (double) total.amount,
+			total.free_us / (double) total.amount);
 		fflush(stdout);
 	}
 
 	printf("%s() done!\n", G_STRFUNC);
 	fflush(stdout);
+
 }
 
 static int teq_recv_cnt;
@@ -1972,7 +2015,7 @@ main(int argc, char **argv)
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:b:c:ehjn:st:vwxABCDEFIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ef:hjn:st:vwxABCDEFIKMNOPQRST:VWX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -2052,6 +2095,9 @@ main(int argc, char **argv)
 			break;
 		case 'e':			/* use emulated semaphores */
 			emulated = TRUE;
+			break;
+		case 'f':			/* allocator fill count */
+			allocator_fill = get_number(optarg, c);
 			break;
 		case 'j':			/* join threads */
 			join = TRUE;
@@ -2166,8 +2212,31 @@ main(int argc, char **argv)
 	 * Print final statistics.
 	 */
 
-	if (stats)
+	if (stats) {
 		thread_dump_stats_log(log_agent_stdout_get(), 0);
+		if (memory) {
+			switch (allocator) {
+			case 'r':
+				halloc_dump_stats_log(log_agent_stdout_get(), 0);
+				xmalloc_dump_stats_log(log_agent_stdout_get(), 0);
+				vmm_dump_stats_log(log_agent_stdout_get(), 0);
+				zalloc_dump_stats_log(log_agent_stdout_get(), 0);
+				break;
+			case 'h':
+				halloc_dump_stats_log(log_agent_stdout_get(), 0);
+				break;
+			case 'v':
+				vmm_dump_stats_log(log_agent_stdout_get(), 0);
+				break;
+			case 'w':
+				zalloc_dump_stats_log(log_agent_stdout_get(), 0);
+				break;
+			case 'x':
+				xmalloc_dump_stats_log(log_agent_stdout_get(), 0);
+				break;
+			}
+		}
+	}
 
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }
