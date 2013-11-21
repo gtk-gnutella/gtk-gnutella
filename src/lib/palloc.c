@@ -473,26 +473,6 @@ set_palloc_debug(uint32 level)
 }
 
 /**
- * Reclaim buffer.
- *
- * The pool is locked upon entry.
- */
-static void
-pool_reclaim(pool_t *p, void *obj)
-{
-	pool_check(p);
-	assert_pool_locked(p);
-	g_assert(p->allocated > 0);
-	g_assert(p->held > 0);
-	g_assert(p->allocated >= p->held);
-
-	p->buffers = g_slist_remove(p->buffers, obj);
-	p->dealloc(obj, p->size, FALSE);
-	p->allocated--;
-	p->held--;
-}
-
-/**
  * Invoked by garbage collector to reclaim over-allocated blocks.
  *
  * The pool is locked upon entry.
@@ -500,12 +480,13 @@ pool_reclaim(pool_t *p, void *obj)
 static void
 pool_reclaim_garbage(pool_t *p)
 {
-	unsigned ema;
-	unsigned threshold;
-	unsigned extra;
+	unsigned ema, threshold, extra;
+	GSList *to_remove = NULL, *sl;
 
 	pool_check(p);
-	assert_pool_locked(p);
+
+	POOL_LOCK(p);
+
 	g_assert(p->allocated >= p->held);
 
 	if (palloc_debug > 2) {
@@ -586,13 +567,19 @@ pool_reclaim_garbage(pool_t *p)
 	}
 
 	while (extra-- > 0) {
-		GSList *sl = p->buffers;
-		void *obj;
-
+		sl = p->buffers;
 		g_assert(sl != NULL);
 
-		obj = sl->data;
-		pool_reclaim(p, obj);
+		/*
+		 * To avoid freeing, then re-allocating a GSList cell, we transfer
+		 * the link from the p->buffers list to the to_remove list manually.
+		 */
+
+		p->buffers = g_slist_remove_link(p->buffers, sl);
+		sl->next = to_remove;	/* Prepend link */
+		to_remove = sl;			/* New head */
+		p->allocated--;
+		p->held--;
 	}
 
 	/*
@@ -602,6 +589,18 @@ pool_reclaim_garbage(pool_t *p)
 reset:
 	p->above = 0;
 	p->peak = 0;
+
+	/*
+	 * Unlock pool and then physically reclaim memory.
+	 */
+
+	POOL_UNLOCK(p);
+
+	GM_SLIST_FOREACH(to_remove, sl) {
+		void *obj = sl->data;
+		p->dealloc(obj, p->size, FALSE);
+	}
+	gm_slist_free_null(&to_remove);
 }
 
 /**
@@ -616,19 +615,7 @@ pool_gc_trampoline(void *obj, void *udata)
 
 	pool_check(p);
 
-	/*
-	 * The normal locking order is POOL_LOCK -> POOL_GC_LOCK.
-	 *
-	 * However, here we're called with the POOL_GC_LOCK already taken, hence
-	 * we must only attempt to lock the pool, and if we can't, we'll do it
-	 * at the next run.
-	 */
-
-	if (!POOL_LOCK_TRY(p))
-		return FALSE;			/* Keep pool in the list */
-
 	pool_reclaim_garbage(p);
-	POOL_UNLOCK(p);
 
 	return TRUE;				/* Processed, can remove from list */
 }
