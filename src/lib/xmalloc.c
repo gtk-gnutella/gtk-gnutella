@@ -337,7 +337,8 @@ static struct xchunkhead {
 	size_t blocksize;		/**< Block size handled by this list */
 	size_t allocations;		/**< Number of allocations done */
 	uint shared:1;			/**< A chunk was used during cross-thread frees */
-	elist_t list;			/**< List of chunks (struct xchunk) */
+	elist_t list;			/**< Chunks with free blocks (struct xchunk) */
+	elist_t full;			/**< Chunks without free blocks (struct xchunk) */
 } xchunkhead[XMALLOC_CHUNKHEAD_COUNT][XM_THREAD_COUNT];
 
 /**
@@ -2622,6 +2623,7 @@ xmalloc_freelist_init_once(void)
 
 			ch->blocksize = xch_block_size_idx(i);
 			elist_init(&ch->list, offsetof(struct xchunk, xc_lnk));
+			elist_init(&ch->full, offsetof(struct xchunk, xc_lnk));
 		}
 	}
 
@@ -3540,7 +3542,7 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 
 	p = xmalloc_freelist_lookup(len, NULL, &fl);
 
-	if (p != NULL)
+	if G_UNLIKELY(p != NULL)
 		p = xmalloc_freelist_grab(fl, p, len, TRUE, allocated);
 
 	return p;
@@ -3786,18 +3788,15 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 	 * any free chunk will we bail out when thread pools have been disabled.
 	 */
 
-	ELIST_FOREACH_DATA(&ch->list, xck) {
-		xchunk_check(xck);
-
-		if (0 != xck->xc_count)
-			goto found;
-	}
+	xck = elist_head(&ch->list);	/* Only contains chunks with free space */
+	if G_LIKELY(xck != NULL)
+		return xck;
 
 	if G_UNLIKELY(xpool_disabled[stid])
 		return NULL;		/* Pool usage disabled, refuse to grow pool */
 
 	/*
-	 * No free chunk, allocate a new one and move it to the head of the list.
+	 * No free chunk, allocate a new one.
 	 *
 	 * If the thread-pool is shared, it is not worth continuing to expand
 	 * the thread-specific pool for sizes where we lose more from the memory
@@ -3815,7 +3814,7 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 		 * the space with some sub-optimal allocation patterns.  Avoid it.
 		 */
 
-		if (0 == elist_count(&ch->list))
+		if (0 == elist_count(&ch->list) + elist_count(&ch->full))
 			return NULL;
 
 		/*
@@ -3861,15 +3860,6 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 	}
 
 	return xck;
-
-found:
-	/*
-	 * Move the selected chunk to the head of the list.
-	 */
-
-	elist_moveto_head(&ch->list, xck);
-
-	return xck;
 }
 
 /**
@@ -3913,6 +3903,14 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 		g_assert(0 == xck->xc_count);
 
 		xck->xc_free_offset = 0;
+
+		/*
+		 * Chunk is full, remove it from the list of chunks and put it
+		 * in the full list.
+		 */
+
+		elist_remove(&ch->list, xck);
+		elist_append(&ch->full, xck);
 	}
 
 	return p;
@@ -3931,7 +3929,6 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 
 	/*
 	 * If returning the block makes the whole chunk free, free that chunk.
-	 * Otherwise put block back at the head of the chunk's free list.
 	 */
 
 	if G_UNLIKELY(xck->xc_capacity == xck->xc_count + 1) {
@@ -3963,7 +3960,7 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 		 * grow its pool again in the absence of cross-thread freeing.
 		 */
 
-		if (0 == elist_count(&ch->list))
+		if (0 == elist_count(&ch->list) + elist_count(&ch->full))
 			ch->shared = FALSE;
 
 	} else {
@@ -3974,7 +3971,18 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 
 		*(void **) p = head;
 		xck->xc_free_offset = ptr_diff(p, xck);
-		xck->xc_count++;
+
+		/*
+		 * If the chunk was empty and now has one free block, remove
+		 * it from the full list and put it back in the list of chunks
+		 * with free space.
+		 */
+
+		if G_UNLIKELY(0 == xck->xc_count++) {
+			struct xchunkhead *ch = xck->xc_head;
+			elist_remove(&ch->full, xck);
+			elist_append(&ch->list, xck);
+		}
 	}
 }
 
@@ -4181,7 +4189,7 @@ xmalloc_thread_ended(unsigned stid)
 	for (i = 0; i < XMALLOC_CHUNKHEAD_COUNT; i++) {
 		struct xchunkhead *ch = &xchunkhead[i][stid];
 
-		if (0 == elist_count(&ch->list))
+		if (0 == elist_count(&ch->list) + elist_count(&ch->full))
 			ch->allocations = 0;
 	}
 
@@ -4284,7 +4292,7 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid, bool freeing)
 	 */
 
 	offset = ptr_diff(ptr_add_offset(xck, xmalloc_pagesize), p);
-	if (0 != offset % xck->xc_size) {
+	if G_UNLIKELY(0 != offset % xck->xc_size) {
 		s_error("thread #%u %s mis-aligned %u-byte %sblock %p",
 			stid, freeing ? "freeing" : "accessing",
 			xck->xc_size, xck->xc_stid == stid ? "" : "foreign ", p);
@@ -4940,7 +4948,7 @@ xstrfreev(char **str)
 }
 
 /**
- * Computes user size of allocated block, 0 if not allocated via xmalloc().
+ * Computes user size of allocated block.
  */
 size_t
 xallocated(const void *p)
@@ -6961,10 +6969,20 @@ xmalloc_dump_freelist_log(logagent_t *la)
 			if (ch->shared)
 				tstats[j].shared++;
 
-			if (0 == elist_count(&ch->list))
+			if (0 == elist_count(&ch->list) + elist_count(&ch->full))
 				continue;
 
 			ELIST_FOREACH_DATA(&ch->list, xck) {
+				xchunk_check(xck);
+				tstats[j].chunks++;
+				tstats[j].freebytes += xck->xc_count * xck->xc_size;
+				tstats[j].freeblocks += xck->xc_count;
+				tchunks++;
+				tcap += xck->xc_capacity;
+				tcnt += xck->xc_count;
+			}
+
+			ELIST_FOREACH_DATA(&ch->full, xck) {
 				xchunk_check(xck);
 				tstats[j].chunks++;
 				tstats[j].freebytes += xck->xc_count * xck->xc_size;
