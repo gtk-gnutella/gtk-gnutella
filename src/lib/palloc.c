@@ -52,6 +52,9 @@
  * rate of the pool.  The deallocation routine is told whether something is
  * released because it was identified explicitly as a fragment.
  *
+ * The pool allocator depends on xmalloc() and on whatever allocator the user
+ * supplies for the pool.
+ *
  * @author Raphael Manfredi
  * @date 2005, 2009, 2013
  */
@@ -71,7 +74,6 @@
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
-#include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -289,7 +291,7 @@ pool_create(const char *name,
 
 	once_flag_run(&pool_gc_installed, pool_gc_install);
 
-	WALLOC0(p);
+	XMALLOC0(p);
 	p->magic = POOL_MAGIC;
 	p->name = xstrdup(name);
 	p->size = size;
@@ -344,7 +346,7 @@ pool_free(pool_t *p)
 	cq_periodic_remove(&p->heart_ev);
 	spinlock_destroy(&p->lock);
 	p->magic = 0;
-	WFREE(p);
+	xfree(p);
 }
 
 /**
