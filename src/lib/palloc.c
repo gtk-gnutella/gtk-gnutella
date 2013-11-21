@@ -105,8 +105,8 @@ struct pool {
 	pool_alloc_t alloc;		/**< Memory allocation routine */
 	pool_free_t	dealloc;	/**< Memory release routine */
 	pool_frag_t	is_frag;	/**< Fragment checking routine (optional) */
-	unsigned allocated;		/**< Amount of allocated buffers */
-	unsigned held;			/**< Amount of available buffers */
+	int allocated;			/**< Amount of allocated buffers */
+	int held;				/**< Amount of available buffers */
 	unsigned slow_ema;		/**< Slow EMA of pool usage (n = 31) */
 	unsigned fast_ema;		/**< Fast EMA of pool usage (n = 3) */
 	unsigned alloc_reqs;	/**< Amount of palloc() requests until a pfree() */
@@ -163,7 +163,6 @@ pool_needs_gc(const pool_t *p, bool need)
 	bool change = FALSE;		/* For logging, if needed */
 
 	pool_check(p);
-	assert_pool_locked(p);
 
 	POOL_GC_LOCK;
 
@@ -186,7 +185,7 @@ pool_needs_gc(const pool_t *p, bool need)
 
 	if G_UNLIKELY(change && palloc_debug > 1) {
 		s_debug("PGC turning %s for pool \"%s\" "
-			"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
+			"(allocated=%d, held=%d, slow_ema=%u, fast_ema=%u)",
 			need ? "GC on" : "off GC",
 			p->name, p->allocated, p->held,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema));
@@ -200,8 +199,8 @@ static bool
 pool_heartbeat(void *obj)
 {
 	pool_t *p = obj;
-	unsigned used;
-	unsigned ema;
+	unsigned used, ema;
+	bool needs_gc, update = FALSE;
 
 	pool_check(p);
 
@@ -249,22 +248,26 @@ pool_heartbeat(void *obj)
 	 * buffers plus the required amount for monotonic allocations.
 	 */
 
-	if (p->allocated > ema + pool_ema(p, monotonic_ema)) {
+	if (UNSIGNED(p->allocated) > ema + pool_ema(p, monotonic_ema)) {
 		unsigned peak = p->allocated - p->held;
 		if (peak > p->peak)
 			p->peak = peak;
 		if (++p->above >= POOL_OVERSIZED_THRESH)
-			pool_needs_gc(p, TRUE);
-	} else {
+			update = needs_gc = TRUE;
+	} else if (p->peak != 0) {
 		p->above = 0;
 		p->peak = 0;
-		pool_needs_gc(p, FALSE);
+		update = TRUE;
+		needs_gc = FALSE;
 	}
 
 	POOL_UNLOCK(p);
 
+	if (update)
+		pool_needs_gc(p, needs_gc);
+
 	if (palloc_debug > 4) {
-		s_debug("PGC pool \"%s\": allocated=%u, held=%u, used=%u, above=%u, "
+		s_debug("PGC pool \"%s\": allocated=%d, held=%d, used=%d, above=%u, "
 			"slow_ema=%u, fast_ema=%u, monotonic_ema=%u, peak=%u",
 			p->name, p->allocated, p->held, p->allocated - p->held, p->above,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
@@ -337,11 +340,11 @@ pool_free(pool_t *p)
 	 * Free buffers still held in the pool.
 	 */
 
-	for (sl = p->buffers; sl; sl = g_slist_next(sl)) {
+	GM_SLIST_FOREACH(p->buffers, sl) {
 		p->dealloc(sl->data, FALSE);
 	}
-
 	gm_slist_free_null(&p->buffers);
+
 	XFREE_NULL(p->name);
 	cq_periodic_remove(&p->heart_ev);
 	spinlock_destroy(&p->lock);
@@ -363,9 +366,8 @@ palloc(pool_t *p)
 
 	p->alloc_reqs++;
 
-
 	if (p->buffers != NULL) {
-		g_assert(uint_is_positive(p->held));
+		g_assert(p->held > 0);
 
 		/*
 		 * We have a buffer available, we're done.
@@ -396,8 +398,16 @@ palloc(pool_t *p)
 void
 pfree(pool_t *p, void *obj)
 {
+	bool is_fragment;
+
 	pool_check(p);
 	g_assert(obj != NULL);
+
+	/*
+	 * See whether buffer is a fragment before entering the critical section.
+	 */
+
+	is_fragment = NULL != p->is_frag && p->is_frag(obj);
 
 	POOL_LOCK(p);
 
@@ -415,8 +425,8 @@ pfree(pool_t *p, void *obj)
 	 * Keep the buffer in the pool, unless it is a fragment.
 	 */
 
-	if (NULL != p->is_frag && p->is_frag(obj)) {
-		g_assert(uint_is_positive(p->allocated));
+	if (is_fragment) {
+		g_assert(p->allocated > 0);
 
 		p->allocated--;
 		POOL_UNLOCK(p);
@@ -451,8 +461,8 @@ pool_reclaim(pool_t *p, void *obj)
 {
 	pool_check(p);
 	assert_pool_locked(p);
-	g_assert(uint_is_positive(p->allocated));
-	g_assert(uint_is_positive(p->held));
+	g_assert(p->allocated > 0);
+	g_assert(p->held > 0);
 	g_assert(p->allocated >= p->held);
 
 	p->buffers = g_slist_remove(p->buffers, obj);
@@ -511,7 +521,7 @@ pool_reclaim_garbage(pool_t *p)
 	 * twice the current EMA value.
 	 */
 
-	if (p->allocated - p->held > ema) {
+	if (UNSIGNED(p->allocated - p->held) > ema) {
 		if (palloc_debug > 1) {
 			s_debug("PGC doubling current EMA max for \"%s\": "
 				"used block count %u currently above largest EMA %u",
@@ -532,7 +542,7 @@ pool_reclaim_garbage(pool_t *p)
 	threshold = MAX(threshold, p->peak);
 	threshold += ema;
 
-	if (p->allocated <= threshold) {
+	if (UNSIGNED(p->allocated) <= threshold) {
 		if (palloc_debug > 1) {
 			s_debug("PGC not collecting %u block%s from \"%s\": "
 				"allocation count %u currently below or at target of %u",
@@ -543,7 +553,7 @@ pool_reclaim_garbage(pool_t *p)
 	}
 
 	extra = p->allocated - threshold;
-	extra = MIN(extra, p->held);
+	extra = MIN(extra, UNSIGNED(p->held));
 
 	/*
 	 * Here we go, reclaim extra buffers.
