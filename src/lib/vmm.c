@@ -1592,7 +1592,11 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		int ret = 0;
 
 		ret = vmm_vfree_fragment(p, size);
-		g_assert(0 == ret);
+
+		if G_UNLIKELY(ret != 0) {
+			s_minierror("%s(): release of %zu bytes at %p failed: %s",
+				G_STRFUNC, size, p, symbolic_errno(errno));
+		}
 	}
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
 	(void) size;
