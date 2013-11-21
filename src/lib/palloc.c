@@ -63,6 +63,7 @@
 
 #include "palloc.h"
 
+#include "atomic.h"
 #include "cq.h"
 #include "evq.h"
 #include "glib-missing.h"
@@ -275,6 +276,28 @@ pool_heartbeat(void *obj)
 	}
 
 	return TRUE;	/* Keep calling */
+}
+
+/**
+ * @return the amount of buffers held in the pool.
+ */
+size_t
+pool_count(const pool_t *p)
+{
+	pool_check(p);
+
+	return atomic_int_get(&p->held);		/* No need to lock */
+}
+
+/**
+ * @return the amount of buffers allocated by the pool.
+ */
+size_t
+pool_capacity(const pool_t *p)
+{
+	pool_check(p);
+
+	return atomic_int_get(&p->allocated);	/* No need to lock */
 }
 
 /**

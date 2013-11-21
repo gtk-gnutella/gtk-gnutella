@@ -52,6 +52,8 @@ typedef struct pool pool_t;
 pool_t *pool_create(const char *name,
 	size_t size, pool_alloc_t alloc, pool_free_t dealloc, pool_frag_t is_frag);
 void pool_free(pool_t *pool);
+size_t pool_count(const pool_t *p);
+size_t pool_capacity(const pool_t *p);
 
 void *palloc(pool_t *pool);
 void pfree(pool_t *pool, void *obj);
