@@ -4709,7 +4709,7 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
  * Account for spinlock / mutex acquisition by current thread, whose
  * thread element is already known (as an opaque pointer).
  */
-void
+G_GNUC_HOT void
 thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line, const void *element)
 {
@@ -5016,7 +5016,7 @@ found:
  * Account for spinlock / mutex release by current thread whose thread
  * element is known (as an opaque pointer).
  */
-void
+G_GNUC_HOT void
 thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const void *element)
 {
