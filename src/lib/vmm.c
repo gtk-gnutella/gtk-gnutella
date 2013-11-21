@@ -2931,7 +2931,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 	spinlock(&pc->lock);
 
-	if (0 == pc->current)
+	if G_UNLIKELY(0 == pc->current)	/* Tested by caller (without the lock) */
 		goto not_found;
 
 	if (n > pc->pages) {
@@ -3241,7 +3241,7 @@ short_term_strategy:
 		 */
 
 		pc = &page_cache[VMM_CACHE_LINES - 1];
-		p = vpc_find_pages(pc, n, hole);
+		p = pc->current != 0 ? vpc_find_pages(pc, n, hole) : NULL;
 
 		if (n > VMM_CACHE_LINES) {
 			if (p != NULL) {
@@ -3267,22 +3267,44 @@ short_term_strategy:
 		 */
 
 		pc = &page_cache[n - 1];
-		p = vpc_find_pages(pc, n, hole);
+		p = pc->current != 0 ? vpc_find_pages(pc, n, hole) : NULL;
 
 		/*
 		 * Visit higher-order cache lines if we found nothing in the cache.
 		 *
+		 * Short-term strategy:
+		 * If we have data in our cache, reuse it, even for a single page.
+		 *
+		 * Long-term strategy:
 		 * To avoid VM space fragmentation, we never split a larger region
 		 * to allocate just one page.  This policy allows us to fill the holes
-		 * that can be created and avoid undoing the coalescing we may have
+		 * that can be created and avoids undoing the coalescing we may have
 		 * achieved so far in higher-order caches.
 		 */
 
-		if (NULL == p && n > 1) {
+		if (NULL == p && (VMM_STRATEGY_SHORT_TERM == vmm_strategy || n > 1)) {
 			size_t i;
 
 			for (i = n; i < VMM_CACHE_LINES && NULL == p; i++) {
 				pc = &page_cache[i];
+
+				if (0 == pc->current)
+					continue;
+
+				/*
+				 * If splitting the page woul put the remaining pages into
+				 * a full cache line, then avoid allocation from the current
+				 * cache line.
+				 */
+
+				{
+					size_t r = i - n + 1;		/* pc->pages == i + 1 */
+					struct page_cache *rpc = &page_cache[r - 1];
+
+					if G_UNLIKELY(VMM_CACHE_SIZE == rpc->current)
+						continue;	/* Remaining pages going to full cache */
+				}
+
 				p = vpc_find_pages(pc, n, hole);
 			}
 
@@ -3438,7 +3460,7 @@ short_term_strategy:
  *
  * @return TRUE if coalescing occurred, with updated base and amount of pages.
  */
-static bool
+static G_GNUC_HOT bool
 page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 {
 	size_t i, j;
@@ -3467,9 +3489,12 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			void *before;
 			size_t loidx;
 
+			if (0 == lopc->current)
+				continue;
+
 			spinlock(&lopc->lock);
 
-			if (0 == lopc->current) {
+			if G_UNLIKELY(0 == lopc->current) {
 				spinunlock(&lopc->lock);
 				continue;
 			}
@@ -3515,9 +3540,12 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		void *before;
 		size_t hoidx;
 
+		if (0 == hopc->current)
+			continue;
+
 		spinlock(&hopc->lock);
 
-		if (0 == hopc->current) {
+		if G_UNLIKELY(0 == hopc->current) {
 			spinunlock(&hopc->lock);
 			continue;
 		}
@@ -3558,9 +3586,12 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			struct page_cache *lopc = &page_cache[j];
 			size_t loidx;
 
+			if (0 == lopc->current)
+				continue;
+
 			spinlock(&lopc->lock);
 
-			if (0 == lopc->current) {
+			if G_UNLIKELY(0 == lopc->current) {
 				spinunlock(&lopc->lock);
 				continue;
 			}
@@ -3603,9 +3634,12 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		struct page_cache *hopc = &page_cache[j];
 		size_t hoidx;
 
+		if (0 == hopc->current)
+			continue;
+
 		spinlock(&hopc->lock);
 
-		if (0 == hopc->current) {
+		if G_UNLIKELY(0 == hopc->current) {
 			spinunlock(&hopc->lock);
 			continue;
 		}
