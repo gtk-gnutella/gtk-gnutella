@@ -201,6 +201,96 @@ atomic_uint_set(uint *p, uint v)
 	atomic_mb();
 }
 
+/***
+ *** Atomic 64-bit counters.
+ ***
+ *** These are convenience macros allowing us to safely handle 64-bit atomic
+ *** operations on 32-bit machines.
+ ***
+ *** AU64() is a macro to define atomic 64-bit fields.
+ *** AU64_INC() and AU64_DEC() can atomically increment or decrement counters.
+ *** AU64_VALUE() atomically reads the 64-bit counter.
+ ***/
+
+#if 4 == LONGSIZE
+/*
+ * On a 32-bit machine, the 64-bit count is split between a "lo" and a "hi"
+ * 32-bit counter, being updated atomically using 32-bit operations on each
+ * counter.
+ */
+
+#define AU64(x) 	uint x ## _lo; uint x ## _hi
+
+#define AU64_INC(x) G_STMT_START { \
+	if G_UNLIKELY(-1U == atomic_uint_inc(x ## _lo)) \
+		atomic_uint_inc(x ## _hi); \
+} G_STMT_END
+
+#define AU64_DEC(x) G_STMT_START { \
+	if G_UNLIKELY(0 == atomic_uint_dec(x ## _lo)) \
+		atomic_uint_dec(x ## _hi); \
+} G_STMT_END
+
+/**
+ * Assemble 64-bit value from the high and low 32-bit parts of the counter.
+ *
+ * @param hi		pointer to the high 32-bit part
+ * @param lo		pointer to the low 32-bit part
+ *
+ * @return 64-bit value reconstructed from two 32-bit counters which are
+ * atomically updated.
+ */
+static inline uint64
+au64_value(const uint volatile *hi, const uint volatile *lo)
+{
+	uint64 v;
+	register uint low, low2, high, high2;
+
+	atomic_mb();
+	low = *lo; high = *hi;
+
+retry:
+	v = (((uint64) high) << 32) + low;
+
+	/*
+	 * If `low' is within a zone at risk, where fast increments or decrements
+	 * could modify the high counter, then re-read and update value.
+	 */
+
+	if G_LIKELY(low > 0x1000 && low < 0xfffff000)
+		return v;
+
+	atomic_mb();
+	low2 = *lo; high2 = *hi;
+
+	if G_LIKELY(low2 == low && high2 == high)
+		return v;
+
+	low = low2; high = high2;
+	goto retry;
+}
+
+#define AU64_VALUE(x) au64_value(x ## _hi, x ## _lo)
+
+#elif 8 == LONGSIZE
+/*
+ * On 64-bit machines, we can expect atomic operations on 64-bit quantities.
+ *
+ * We append the _64 token to make sure these fields are only handled through
+ * the following macros and not as plain uint64 variables because that would
+ * not work on 32-bit platforms and we want to catch the potential error even
+ * when compiling on 64-bit machines.
+ */
+
+#define AU64(x) 		uint64 x ## _64
+#define AU64_INC(x) 	ATOMIC_INC(x ## _64)
+#define AU64_DEC(x) 	ATOMIC_DEC(x ## _64)
+#define AU64_VALUE(x) 	(atomic_mb(), *(x ## _64))
+
+#else
+#error "unexpected value for LONGSIZE"
+#endif
+
 #endif /* _atomic_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
