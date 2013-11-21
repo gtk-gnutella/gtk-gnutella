@@ -93,6 +93,9 @@
 #if 0
 #define XMALLOC_SORT_SAFETY		/* Adds expensive sort checking assertions */
 #endif
+#if 0
+#define XMALLOC_PTR_SAFETY		/* Adds costly pointer validation */
+#endif
 
 /*
  * When XMALLOC_ALLOW_WALLOC is defined, small blocks are allocated via walloc()
@@ -144,6 +147,18 @@
 #define xmalloc_round(s) \
 	((size_t) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
 
+#if 8 == XMALLOC_ALIGNBYTES
+#define XMALLOC_ALIGNSHIFT		3
+#elif 16 == XMALLOC_ALIGNBYTES
+#define XMALLOC_ALIGNSHIFT		4
+#elif 32 == XMALLOC_ALIGNBYTES
+#define XMALLOC_ALIGNSHIFT		5
+#elif 64 == XMALLOC_ALIGNBYTES
+#define XMALLOC_ALIGNSHIFT		6
+#else
+#error "unexpected XMALLOC_ALIGNBYTES value"
+#endif
+
 /**
  * Header prepended to all allocated objects.
  */
@@ -151,7 +166,28 @@ struct xheader {
 	size_t length;			/**< Length of the allocated block */
 };
 
-#define XHEADER_SIZE	xmalloc_round(sizeof(struct xheader))
+/*
+ * In order to be able to let the C pre-processor compute the XHEADER_SIZE
+ * value, we need to assume that the size of the xheader structure is going
+ * to be that of its only field, and that the length of size_t is that of
+ * a pointer.  These assumptions are reasonable and are verified by some of
+ * the STATIC_ASSERT() lines in xmalloc_vmm_inited().
+ */
+
+#define XMALLOC_RND(x)	(((x) + XMALLOC_MASK) & ~XMALLOC_MASK)
+#define XHEADER_SIZE	XMALLOC_RND(PTRSIZE)	/* PTRSIZE == sizeof(size_t) */
+
+#if 8 == XHEADER_SIZE
+#define XHEADER_SHIFT	3
+#elif 16 == XHEADER_SIZE
+#define XHEADER_SHIFT	4
+#elif 32 == XHEADER_SIZE
+#define XHEADER_SHIFT	5
+#elif 64 == XHEADER_SIZE
+#define XHEADER_SHIFT	6
+#else
+#error "unexpected XHEADER_SIZE value"
+#endif
 
 /**
  * Allocated block size controls.
@@ -182,7 +218,9 @@ struct xheader {
  */
 #define XMALLOC_FACTOR_MAXSIZE	1024
 #define XMALLOC_BUCKET_FACTOR	MAX(XMALLOC_ALIGNBYTES, XHEADER_SIZE)
+#define XMALLOC_BUCKET_SHIFT	MAX(XMALLOC_ALIGNSHIFT, XHEADER_SHIFT)
 #define XMALLOC_BLOCK_SIZE		256
+#define XMALLOC_BLOCK_SHIFT		8
 #define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
 /**
@@ -563,6 +601,8 @@ static void *current_break;			/**< Current known heap break */
 static size_t xmalloc_pagesize;		/**< Cached page size */
 static once_flag_t xmalloc_freelist_inited;
 static once_flag_t xmalloc_xgc_installed;
+static once_flag_t xmalloc_vmm_setup_done;
+static once_flag_t xmalloc_early_inited;
 
 static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 
@@ -667,22 +707,44 @@ xmalloc_xgc_install(void)
 }
 
 /**
+ * Minimal setup once the VMM layer is started.
+ */
+static G_GNUC_COLD void
+xmalloc_vmm_setup_once(void)
+{
+	xmalloc_grows_up = vmm_grows_upwards();
+	xmalloc_pagesize = compat_pagesize();
+	xmalloc_freelist_setup();
+}
+
+static G_GNUC_COLD void
+xmalloc_vmm_setup(void)
+{
+	once_flag_run(&xmalloc_vmm_setup_done, xmalloc_vmm_setup_once);
+}
+
+/**
  * Called when the VMM layer has been initialized.
  */
 G_GNUC_COLD void
 xmalloc_vmm_inited(void)
 {
+	STATIC_ASSERT(sizeof(struct xheader) == sizeof(size_t));
+	STATIC_ASSERT(XHEADER_SIZE == xmalloc_round(sizeof(struct xheader)));
+	STATIC_ASSERT(PTRSIZE == sizeof(size_t));
+	STATIC_ASSERT(IS_POWER_OF_2(XMALLOC_ALIGNBYTES));
 	STATIC_ASSERT(IS_POWER_OF_2(XMALLOC_BUCKET_FACTOR));
 	STATIC_ASSERT(IS_POWER_OF_2(XMALLOC_BLOCK_SIZE));
 	STATIC_ASSERT(0 == (XMALLOC_FACTOR_MASK & XMALLOC_SPLIT_MIN));
 	STATIC_ASSERT(XMALLOC_SPLIT_MIN / 2 == XMALLOC_BUCKET_FACTOR);
+	STATIC_ASSERT(XMALLOC_ALIGNBYTES == (1 << XMALLOC_ALIGNSHIFT));
+	STATIC_ASSERT(XHEADER_SIZE == (1 << XHEADER_SHIFT));
+	STATIC_ASSERT(XMALLOC_BLOCK_SIZE == (1 << XMALLOC_BLOCK_SHIFT));
 	STATIC_ASSERT(1 == (((1 << WALLOC_MAX_SHIFT) - 1) & XMALLOC_WALLOC_MAGIC));
 
 	xmalloc_vmm_is_up = TRUE;
 	safe_to_log = TRUE;
-	xmalloc_pagesize = compat_pagesize();
-	xmalloc_grows_up = vmm_grows_upwards();
-	xmalloc_freelist_setup();
+	xmalloc_vmm_setup();
 
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
@@ -696,6 +758,17 @@ xmalloc_vmm_inited(void)
 	 */
 
 	once_flag_run(&xmalloc_xgc_installed, xmalloc_xgc_install);
+}
+
+/**
+ * Initialize the VMM layer minimally if not already done, and setup the
+ * thread allocation pools.
+ */
+static G_GNUC_COLD void
+xmalloc_early_init(void)
+{
+	vmm_early_init();
+	xmalloc_vmm_setup();
 }
 
 /**
@@ -1179,7 +1252,7 @@ xmalloc_is_valid_length(const void *p, size_t len)
 static inline G_GNUC_PURE size_t
 xch_block_size_idx(size_t idx)
 {
-	return XMALLOC_ALIGNBYTES * (idx + 1);
+	return (idx + 1) << XMALLOC_ALIGNSHIFT;
 }
 
 /**
@@ -1193,7 +1266,7 @@ xch_find_chunkhead_index(size_t len)
 	g_assert(len <= XM_THREAD_MAXSIZE);
 	g_assert(len >= XMALLOC_ALIGNBYTES);
 
-	return len / XMALLOC_ALIGNBYTES - 1;
+	return (len >> XMALLOC_ALIGNSHIFT) - 1;
 }
 
 /**
@@ -1223,15 +1296,6 @@ xfl_block_size_idx(size_t idx)
 }
 
 /**
- * Computes physical size of blocks in a free list.
- */
-static inline size_t
-xfl_block_size(const struct xfreelist *fl)
-{
-	return xfl_block_size_idx(xfl_index(fl));
-}
-
-/**
  * Find freelist index for a given block size.
  */
 static inline G_GNUC_PURE size_t
@@ -1243,9 +1307,9 @@ xfl_find_freelist_index(size_t len)
 	g_assert(len >= XMALLOC_SPLIT_MIN);
 
 	return (len <= XMALLOC_FACTOR_MAXSIZE) ? 
-		len / XMALLOC_BUCKET_FACTOR - 1 - XMALLOC_BUCKET_OFFSET :
+		(len >> XMALLOC_BUCKET_SHIFT) - 1 - XMALLOC_BUCKET_OFFSET :
 		XMALLOC_BUCKET_CUTOVER +
-			(len - XMALLOC_FACTOR_MAXSIZE) / XMALLOC_BLOCK_SIZE;
+			((len - XMALLOC_FACTOR_MAXSIZE) >> XMALLOC_BLOCK_SHIFT);
 }
 
 /**
@@ -1545,6 +1609,7 @@ xfl_block_falls_in(const struct xfreelist *flb, size_t len)
 	return xfl_find_freelist(len) == flb;
 }
 
+#ifdef XMALLOC_PTR_SAFETY
 /**
  * Make sure pointer within freelist is valid.
  */
@@ -1570,6 +1635,15 @@ assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 		}
 	}
 }
+#else
+static void
+assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
+{
+	(void) fl;
+	(void) p;
+	/* Disabled */
+}
+#endif	/* XMALLOC_PTR_SAFETY */
 
 /**
  * Remove from the free list the block selected by xmalloc_freelist_lookup().
@@ -2673,7 +2747,7 @@ xmalloc_split_info(const size_t len)
 	g_assert(size_is_positive(len));
 	g_assert(len >= XMALLOC_SPLIT_MIN);
 
-	return &xsplit[(len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES];
+	return &xsplit[(len - XMALLOC_ALIGNBYTES) >> XMALLOC_ALIGNSHIFT];
 }
 
 /**
@@ -4372,7 +4446,7 @@ xmalloc_thread_free(void *p)
 #define XALIGN_MASK		((1 << XALIGN_SHIFT) - 1)
 #define XALIGN_MINSIZE	(1U << XALIGN_SHIFT) /**< Min alignment for xzalloc() */
 
-#define xaligned(p)		(0 == (pointer_to_ulong(p) & XALIGN_MASK))
+#define is_xaligned(p)	(0 == (pointer_to_ulong(p) & XALIGN_MASK))
 
 static bool xalign_free(const void *p);
 static size_t xalign_allocated(const void *p);
@@ -4381,7 +4455,7 @@ static size_t xalign_allocated(const void *p);
 #define is_trapping_malloc()	0
 #define xalign_allocated(p)		0
 #define xalign_free(p)			FALSE
-#define xaligned(p)				FALSE
+#define is_xaligned(p)			FALSE
 #endif	/* XMALLOC_IS_MALLOC */
 
 /**
@@ -4877,13 +4951,17 @@ xallocated(const void *p)
 	if G_UNLIKELY(NULL == p)
 		return 0;
 
-	if (!xmalloc_is_valid_pointer(p, FALSE))
-		return 0;
+#ifdef XMALLOC_PTR_SAFETY
+	if (!xmalloc_is_valid_pointer(p, FALSE)) {
+		s_error_from(_WHERE_, "%s() given an invalid pointer %p: %s",
+			G_STRFUNC, p, xmalloc_invalid_ptrstr(p));
+	}
+#endif
 
 	xh = const_ptr_add_offset(p, -XHEADER_SIZE);
 	G_PREFETCH_R(&xh->length);
 
-	if (is_trapping_malloc() && xaligned(p)) {
+	if (is_trapping_malloc() && is_xaligned(p)) {
 		len = xalign_allocated(p);
 		if G_LIKELY(len != 0)
 			return len;
@@ -4926,46 +5004,38 @@ xfree(void *p)
 	 * so don't bother freeing anything.
 	 */
 
-	if G_UNLIKELY(xmalloc_no_wfree)
+	if G_UNLIKELY(allow_walloc() && xmalloc_no_wfree)
 		return;
 
-	xstats.freeings++;
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
-	G_PREFETCH_R(&xh->length);
-
-	XSTATS_LOCK;
-	xstats.freeings++;
-	XSTATS_UNLOCK;
-
-	/*
-	 * Handle pointers returned by posix_memalign() and friends that
-	 * would be aligned and therefore directly allocated by VMM or through
-	 * zones.
-	 *
-	 * The xaligned() test checks whether the pointer is at least aligned
-	 * to the minimum size we're aligning through special allocations, so
-	 * that we don't invoke the costly xalign_free() if we can avoid it.
-	 */
-
-	if (is_trapping_malloc() && xaligned(p) && xalign_free(p))
-		return;
-
-	if (!xmalloc_is_valid_pointer(p, FALSE)) {
-		s_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
-			p, xmalloc_invalid_ptrstr(p));
-	}
 
 	/*
 	 * Handle thread-specific blocks early in the process since they do not
 	 * have any malloc header.
 	 */
 
-	if (xmalloc_thread_free(p)) {
-		XSTATS_LOCK;
-		xstats.free_thread_pool++;
-		XSTATS_UNLOCK;
+	if (xmalloc_thread_free(p))
 		return;
+
+	/*
+	 * Handle pointers returned by posix_memalign() and friends that
+	 * would be aligned and therefore directly allocated by VMM or through
+	 * zones.
+	 *
+	 * The is_xaligned() test checks whether the pointer is at least aligned
+	 * to the minimum size we're aligning through special allocations, so
+	 * that we don't invoke the costly xalign_free() if we can avoid it.
+	 */
+
+	if (is_trapping_malloc() && is_xaligned(p) && xalign_free(p))
+		return;
+
+#ifdef XMALLOC_PTR_SAFETY
+	if (!xmalloc_is_valid_pointer(p, FALSE)) {
+		s_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
+			p, xmalloc_invalid_ptrstr(p));
 	}
+#endif
 
 	/*
 	 * Handle walloc()ed blocks specially.
@@ -5071,10 +5141,12 @@ xreallocate(void *p, size_t size, bool can_walloc)
 		goto realloc_from_thread;	/* Move block around */
 	}
 		
+#ifdef XMALLOC_PTR_SAFETY
 	if G_UNLIKELY(!xmalloc_is_valid_pointer(xh, FALSE)) {
 		s_error_from(_WHERE_, "attempt to realloc invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
+#endif
 
 	if (xmalloc_is_walloc(xh->length))
 		goto realloc_from_walloc;
@@ -5610,7 +5682,7 @@ realloc_from_walloc:
 		 * Simply honour the reallocation request.
 		 */
 
-		if G_UNLIKELY(xmalloc_no_wfree) {
+		if G_UNLIKELY(allow_walloc() && xmalloc_no_wfree) {
 			np = xallocate(size, FALSE, TRUE);
 			old_size = old_len - XHEADER_SIZE;
 			g_assert(size_is_non_negative(old_size));
@@ -7830,14 +7902,9 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	 * use vmm_early_init() to launch the VM layer without notifying xmalloc()
 	 * that the VMM is up, so that we do not start to register the garbage
 	 * collector yet.
-	 *
-	 * Until vmm_init() is called, every call to posix_memalign() will cause
-	 * this branch to be taken, but this is only a transient state, until
-	 * it is safe to call vmm_init() to mark everything as fully initialized.
 	 */
 
-	if G_UNLIKELY(!xmalloc_vmm_is_up)
-		vmm_early_init();
+	ONCE_FLAG_RUN(xmalloc_early_inited, xmalloc_early_init);
 
 	/*
 	 * If they want to align on some boundary, they better be allocating
@@ -8452,8 +8519,8 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 			if (!xmalloc_is_valid_pointer(p, locked)) {
 				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
-						"XM item #%u p=%p in freelist #%u is invalid",
-						j, p, i);
+						"XM item #%u p=%p in freelist #%u is invalid: %s",
+						j, p, i, xmalloc_invalid_ptrstr(p));
 				}
 				bad = TRUE;
 				continue;	/* Prudent */
