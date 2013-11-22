@@ -3142,11 +3142,12 @@ thread_sig_generation(void)
  * whether there are pending signals to deliver.
  *
  * @param te	the computed thread element for the current thread
+ * @param sigs	whether to check for signals
  *
  * @return TRUE if we suspended or handled signals.
  */
 static bool
-thread_check_suspended_element(struct thread_element *te)
+thread_check_suspended_element(struct thread_element *te, bool sigs)
 {
 	bool delayed = FALSE;
 
@@ -3169,7 +3170,7 @@ thread_check_suspended_element(struct thread_element *te)
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 	}
 
-	if G_UNLIKELY(thread_sig_pending(te)) {
+	if G_UNLIKELY(thread_sig_pending(te) && sigs) {
 		THREAD_STATS_INCX(sig_handled_while_check);
 		delayed = thread_sig_handle(te);
 	}
@@ -3189,7 +3190,7 @@ thread_check_suspended(void)
 	struct thread_element *te;
 
 	te = thread_find(&te);
-	return thread_check_suspended_element(te);
+	return thread_check_suspended_element(te, TRUE);
 }
 
 /**
@@ -4603,6 +4604,20 @@ thread_lock_waiting_done(const void *element)
 
 	thread_element_check(te);
 	te->waiting.lock = NULL;		/* Clear waiting condition */
+
+	/*
+	 * We just got a lock of some kind, and we have the thread element so
+	 * we can quickly check for suspension. However, we do not want to check
+	 * for signals here since the lock we just got is not yet recorded.
+	 *
+	 * Suspending will be OK in case of a crash since then the locks become
+	 * pass-through, which is why it is important to check for suspension
+	 * as soon as we got a lock in case we're not in the crashing thread:
+	 * we need to stop concurrent processing as soon as possible to allow
+	 * easier post-mortem analysis.
+	 */
+
+	thread_check_suspended_element(te, FALSE);
 }
 
 /**
@@ -7362,7 +7377,7 @@ thread_cancel_test(void)
 	struct thread_element *te = thread_get_element();
 	bool delayed;
 
-	delayed = thread_check_suspended_element(te);
+	delayed = thread_check_suspended_element(te, TRUE);
 
 	/*
 	 * To cancel the thread, it must be cancelable, in a state where cancelling
