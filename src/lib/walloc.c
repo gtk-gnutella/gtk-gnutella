@@ -66,6 +66,29 @@ static struct zone *wzone[WZONE_SIZE];
 static once_flag_t walloc_inited;
 static bool walloc_stopped;
 
+/**
+ * Initialize the width-based allocator, once.
+ */
+static G_GNUC_COLD void
+walloc_init_once(void)
+{
+	/*
+	 * The zalloc() layer is not auto-initializing but the VMM layer is
+	 * so there's no need to call vmm_init().
+	 */
+
+	zinit();
+}
+
+/**
+ * Initialize the width-based allocator.
+ */
+static inline void ALWAYS_INLINE
+walloc_init_if_needed(void)
+{
+	ONCE_FLAG_RUN(walloc_inited, walloc_init_once);
+}
+
 /*
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
  */
@@ -101,8 +124,7 @@ wzone_get(size_t rounded)
 
 	g_assert(rounded == zalloc_round(rounded));
 
-	if G_UNLIKELY(!ONCE_DONE(walloc_inited))
-		walloc_init();
+	walloc_init_if_needed();
 
 	/*
 	 * We're paying this computation/allocation cost once per size!
@@ -118,7 +140,7 @@ wzone_get(size_t rounded)
 	 */
 
 	if (!(zone = zget(rounded, WALLOC_MINCOUNT, FALSE)))
-		s_error("zget() failed?");
+		s_error("zget(%zu) failed?", rounded);
 
 	return zone;
 }
@@ -192,7 +214,7 @@ walloc(size_t size)
 	if G_UNLIKELY(walloc_stopped)
 		return xpmalloc(size);
 
-	if (rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
 		return xpmalloc(size);
 	}
@@ -234,7 +256,7 @@ wfree(void *ptr, size_t size)
 	if G_UNLIKELY(walloc_stopped)
 		return;
 
-	if (rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		xfree(ptr);
 		return;
 	}
@@ -297,7 +319,7 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 	if (old_rounded == new_rounded)
 		return old;
 
-	if (new_rounded > WALLOC_MAX || old_rounded > WALLOC_MAX)
+	if G_UNLIKELY(new_rounded > WALLOC_MAX || old_rounded > WALLOC_MAX)
 		goto resize_block;
 
 	if G_UNLIKELY(walloc_stopped)
@@ -349,7 +371,7 @@ walloc_track(size_t size, const char *file, int line)
 
 	g_assert(size_is_positive(size));
 
-	if (rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
 		void *p = 
 #ifdef TRACK_MALLOC
@@ -440,26 +462,12 @@ wdestroy(void)
 }
 
 /**
- * Initialize the width-based allocator, once.
- */
-static G_GNUC_COLD void
-walloc_init_once(void)
-{
-	/*
-	 * The zalloc() layer is not auto-initializing but the VMM layer is
-	 * so there's no need to call vmm_init().
-	 */
-
-	zinit();
-}
-
-/**
  * Initialize the width-based allocator.
  */
 G_GNUC_COLD void
 walloc_init(void)
 {
-	ONCE_FLAG_RUN(walloc_inited, walloc_init_once);
+	walloc_init_if_needed();
 }
 
 /* vi: set ts=4 sw=4 cindent: */
