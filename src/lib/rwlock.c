@@ -78,6 +78,8 @@
 #define RWLOCK_DEADMASK	(RWLOCK_DEAD - 1)
 #define RWLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
+enum rwlock_waiting_magic { RWLOCK_WAITING_MAGIC = 0x1d77c7ce };
+
 /**
  * A waiting record.
  *
@@ -89,6 +91,7 @@
  */
 struct rwlock_waiting {
 	struct rwlock_waiting *next;	/* Next in the queue */
+	enum rwlock_waiting_magic magic;/* Magic number */
 	uint8 reading;					/* Set if waiting for reading */
 	volatile uint8 ok;				/* Set to TRUE when the lock is granted */
 	uint8 stid;						/* For write locks, thread's small ID */
@@ -152,11 +155,13 @@ rwlock_check(const struct rwlock * const rw)
 }
 
 static inline void
-rwlock_waiting_init(struct rwlock_waiting *wc, uint8 reading)
+rwlock_waiting_init(struct rwlock_waiting *wc, uint8 reading, uint stid)
 {
+	wc->magic = RWLOCK_WAITING_MAGIC;
 	wc->next = NULL;
 	wc->reading = reading;
 	wc->ok = FALSE;
+	wc->stid = stid;
 }
 
 /**
@@ -170,8 +175,8 @@ rwlock_append_waiter(struct rwlock *rw, struct rwlock_waiting *wc)
 	if G_UNLIKELY(NULL == tail) {
 		rw->wait_head = rw->wait_tail = wc;
 	} else {
-		rw->wait_tail = wc;
-		tail->next = wc;
+		g_assert(RWLOCK_WAITING_MAGIC == tail->magic);
+		tail->next = rw->wait_tail = wc;
 	}
 }
 
@@ -184,8 +189,7 @@ static inline void
 rwlock_add_read_waiter(struct rwlock *rw, struct rwlock_waiting *wc, uint stid)
 {
 	G_PREFETCH_W(&rw->wait_tail);
-	rwlock_waiting_init(wc, TRUE);
-	wc->stid = stid;
+	rwlock_waiting_init(wc, TRUE, stid);
 	rwlock_append_waiter(rw, wc);
 	rw->waiters++;
 }
@@ -199,8 +203,7 @@ static inline void
 rwlock_add_write_waiter(struct rwlock *rw, struct rwlock_waiting *wc, uint stid)
 {
 	G_PREFETCH_W(&rw->wait_tail);
-	rwlock_waiting_init(wc, FALSE);
-	wc->stid = stid;
+	rwlock_waiting_init(wc, FALSE, stid);
 	rwlock_append_waiter(rw, wc);
 	rw->waiters++;
 	rw->write_waiters++;
@@ -221,6 +224,7 @@ rwlock_grant_waiter(struct rwlock *rw)
 	uint8 volatile *ok;
 
 	g_assert(wc != NULL);
+	g_assert(RWLOCK_WAITING_MAGIC == wc->magic);
 
 	/*
 	 * The wc->ok field is read without the lock by the waiting threads, so
@@ -241,10 +245,12 @@ rwlock_grant_waiter(struct rwlock *rw)
 	if G_LIKELY(wc->reading) {
 		rw->readers++;
 		wc = wc->next;
+		g_assert(NULL == wc || RWLOCK_WAITING_MAGIC == wc->magic);
 		*ok = TRUE;				/* Wakes up thread */
 		while (wc != NULL && wc->reading) {
 			ok = &wc->ok;
 			wc = wc->next;
+			g_assert(NULL == wc || RWLOCK_WAITING_MAGIC == wc->magic);
 			G_PREFETCH_R(&wc->next);
 			rw->readers++;
 			rw->waiters--;
@@ -256,6 +262,7 @@ rwlock_grant_waiter(struct rwlock *rw)
 		g_assert(RWLOCK_WFREE == rw->owner);
 		rw->owner = wc->stid;
 		wc = wc->next;
+		g_assert(NULL == wc || RWLOCK_WAITING_MAGIC == wc->magic);
 		*ok = TRUE;				/* Wakes up thread */
 	}
 
@@ -318,6 +325,10 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 	}
 
 	while (wc != NULL) {
+		if (RWLOCK_WAITING_MAGIC != wc->magic) {
+			s_miniwarn("corrupted waiting queue for rwlock %p", rw);
+			return;
+		}
 		s_miniinfo("%s %s %s-lock %p",
 			thread_id_name(wc->stid),
 			wc->ok ? "was granted" : "waiting for",
@@ -496,7 +507,9 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 static bool
 rwlock_lock_granted(void *p)
 {
-	const struct rwlock_waiting *wc = p;
+	struct rwlock_waiting *wc = p;
+
+	g_assert(RWLOCK_WAITING_MAGIC == wc->magic);
 
 	/*
 	 * Have we reached our turn in the wait queue?
@@ -506,8 +519,10 @@ rwlock_lock_granted(void *p)
 	 * synchronized by the release of the lock.
 	 */
 
-	if (wc->ok)
+	if (wc->ok) {
+		wc->magic = 0;	/* Structure is on the stack, will become invalid */
 		return TRUE;
+	}
 
 	/*
 	 * In pass-through mode, we're crashing, so check whether we were suspended
@@ -517,6 +532,7 @@ rwlock_lock_granted(void *p)
 
 	if G_UNLIKELY(rwlock_pass_through) {
 		thread_check_suspended();
+		wc->magic = 0;
 		return TRUE;
 	}
 
