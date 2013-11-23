@@ -259,7 +259,7 @@ halloc(size_t size)
 	if G_UNLIKELY(0 == xpmalloc_threshold)
 		halloc_init(TRUE);
 
-	if (size < xpmalloc_threshold) {
+	if G_LIKELY(size < xpmalloc_threshold) {
 		p = xpmalloc(size);
 		allocated = xallocated(p);
 		g_assert(allocated >= size);

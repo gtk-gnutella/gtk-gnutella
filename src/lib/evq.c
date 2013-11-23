@@ -128,6 +128,7 @@ static spinlock_t evq_global_slk = SPINLOCK_INIT;
 static uint evq_thread_id = THREAD_INVALID_ID;
 static tm_t evq_sleep_end;				/**< Expected wake-up time */
 static bool evq_run;					/**< Whether evq thread should run */
+static bool evq_fully_inited;			/**< Set when init fully done */
 
 #define EVQ_GLOBAL_LOCK		spinlock(&evq_global_slk)
 #define EVQ_GLOBAL_UNLOCK	spinunlock(&evq_global_slk)
@@ -279,6 +280,17 @@ evq_init_once(void)
 
 	if (-1U == evq_thread_id)
 		s_error("%s(): cannot create the event queue thread: %m", G_STRFUNC);
+
+	evq_fully_inited = TRUE;
+}
+
+/**
+ * @return whether the event queue is fully inited.
+ */
+bool
+evq_is_inited(void)
+{
+	return evq_fully_inited;
 }
 
 static inline ALWAYS_INLINE void

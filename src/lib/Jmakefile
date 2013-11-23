@@ -209,6 +209,7 @@ LSRC = \
 	tigertree.c \
 	timestamp.c \
 	tm.c \
+	tmalloc.c \
 	tqsort.c \
 	tsig.c \
 	url.c \

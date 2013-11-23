@@ -1583,6 +1583,25 @@ s_rawwarn(const char *format, ...)
 }
 
 /**
+ * Safe logging of debugging message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ *
+ * @attention
+ * This routine can clobber "errno" if an error occurs.
+ */
+void
+s_rawdebug(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_rawlogv(G_LOG_LEVEL_DEBUG, TRUE, FALSE, format, args);
+	va_end(args);
+}
+
+/**
  * Safe logging of critical message with minimal resource consumption.
  *
  * This is intended to be used in emergency situations when higher-level

@@ -266,6 +266,7 @@ LSRC = \
 	tigertree.c \
 	timestamp.c \
 	tm.c \
+	tmalloc.c \
 	tqsort.c \
 	tsig.c \
 	url.c \
@@ -438,6 +439,7 @@ LOBJ = \
 	tigertree.o \
 	timestamp.o \
 	tm.o \
+	tmalloc.o \
 	tqsort.o \
 	tsig.o \
 	url.o \

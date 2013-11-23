@@ -1375,8 +1375,18 @@ cq_register_object(hset_t **hptr, void *o)
 
 	g_assert(o != NULL);
 
+	/*
+	 * We must make sure we avoid walloc() for this set, since walloc()
+	 * now uses a thread-magazine allocator, which itself relies on the
+	 * callout queue layer to register events at creation time...  We would
+	 * cause changes to the set to occur each time the arena is resized and
+	 * we need to allocate a new thread-magazine allocator for the new size
+	 * we are trying to allocate, leading to a catch 22.
+	 *		--RAM, 2013-11-23
+	 */
+
 	if (NULL == h)
-		*hptr = h = hset_create(HASH_KEY_SELF, 0);
+		*hptr = h = hset_create_real(HASH_KEY_SELF, 0);
 
 	g_assert(!hset_contains(h, o));
 

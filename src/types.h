@@ -136,6 +136,7 @@ typedef void *(*alloc_data_fn_t)(void *data, size_t n);
 /* Data freeing callbacks signatures, with or without allocating context */
 
 typedef void (*free_fn_t)(void *data);
+typedef void (*free_size_fn_t)(void *data, size_t len);
 typedef void (*free_data_fn_t)(void *data, void *user_data);
 
 /* Generic event notification, with or without context */

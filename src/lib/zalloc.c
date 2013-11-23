@@ -1090,10 +1090,14 @@ zn_free_additional_subzones(zone_t *zone)
  * memory per subzone chunk and get blocks large enough to store possible
  * extra information when debugging.
  *
+ * @param requested		the initially requested size
+ * @param hint_ptr		points to suggested amount of blocks per zone
+ * @param verbose		if TRUE, possibly log debugging information
+ *
  * @return adjusted block size and updated hint value
  */
 static size_t
-adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
+zalloc_adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
 {
 	size_t rounded;
 	size_t wasted;
@@ -1310,9 +1314,14 @@ zn_shrink(zone_t *zone)
  * that are to be created per zone chunks. That is not the total amount of
  * expected objects of a given type. Leaving it a 0 selects the default hint
  * value.
+ *
+ * @param size			the (already adjusted) block size
+ * @param hint			the expected amount of blocks per chunk.
+ *
+ * @return a new zone.
  */
-zone_t *
-zcreate(size_t size, unsigned hint, bool embedded)
+static zone_t *
+zcreate_internal(size_t size, unsigned hint, bool embedded)
 {
 	zone_t *zone;			/* Zone descriptor */
 
@@ -1329,6 +1338,23 @@ zcreate(size_t size, unsigned hint, bool embedded)
 #endif
 
 	return zone;
+}
+
+/**
+ * Create a new zone able to hold items of 'size' bytes. Returns
+ * NULL if no new zone can be created.
+ *
+ * The hint argument is to be construed as the average amount of objects
+ * that are to be created per zone chunks. That is not the total amount of
+ * expected objects of a given type. Leaving it a 0 selects the default hint
+ * value.
+ */
+zone_t *
+zcreate(size_t size, unsigned hint, bool embedded)
+{
+	size = zalloc_adjust_size(size, &hint, TRUE);
+
+	return zcreate_internal(size, hint, embedded);
 }
 
 /**
@@ -1433,7 +1459,7 @@ zget(size_t size, unsigned hint, bool private)
 	 * memory blocks and minimize the amount of wasted space in subzones.
 	 */
 
-	size = adjust_size(size, &hint, TRUE);
+	size = zalloc_adjust_size(size, &hint, TRUE);
 
 	key.zn_size = size;
 	key.private = booleanize(private);
@@ -1454,7 +1480,7 @@ zget(size_t size, unsigned hint, bool private)
 	 * No zone of the corresponding size already, create a new one!
 	 */
 
-	zone = zcreate(size, hint, FALSE);
+	zone = zcreate_internal(size, hint, FALSE);
 
 	if (private) {
 		zone->private = TRUE;
@@ -3004,7 +3030,7 @@ zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
 	if (NULL == zt)
 		return FALSE;
 
-	size = adjust_size(size, &hint, FALSE);
+	size = zalloc_adjust_size(size, &hint, FALSE);
 
 	key.zn_size = size;
 	key.private = FALSE;

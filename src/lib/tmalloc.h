@@ -25,38 +25,28 @@
  * @ingroup lib
  * @file
  *
- * Event Queue.
- *
- * This is a specialized callout queue dedicated to events that need to
- * be dispached in the thread registering the event.
+ * Thread Magazine allocator.
  *
  * @author Raphael Manfredi
  * @date 2013
  */
 
-#ifndef _evq_h_
-#define _evq_h_
+#ifndef _tmalloc_h_
+#define _tmalloc_h_
 
-#include "cq.h"
+typedef struct tmalloc_depot tmalloc_t;
 
-typedef struct evq_event evq_event_t;
+void set_tmalloc_debug(uint32 level);
 
-/*
- * Public interface.
- */
+tmalloc_t *tmalloc_create(const char *name, size_t size,
+	alloc_fn_t allocate, free_size_fn_t deallocate);
+void tmalloc_reset(tmalloc_t *tma);
+size_t tmalloc_size(const tmalloc_t *tma);
 
-void evq_close(void);
-bool evq_is_inited(void);
+void *tmalloc(tmalloc_t *tma) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *tmalloc0(tmalloc_t *tma) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void tmfree(tmalloc_t *tma, void *p);
 
-evq_event_t *evq_insert(int delay, notify_fn_t fn, const void *arg)
-	WARN_UNUSED_RESULT;
-void evq_schedule(int delay, notify_fn_t fn, const void *arg);
-void evq_cancel(evq_event_t **eve_ptr);
-
-cevent_t *evq_raw_insert(int delay, cq_service_t fn, void *arg);
-cidle_t *evq_raw_idle_add(cq_invoke_t event, void *arg);
-cperiodic_t *evq_raw_periodic_add(int period, cq_invoke_t event, void *arg);
-
-#endif /* _evq_h_ */
+#endif /* _tmalloc_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
