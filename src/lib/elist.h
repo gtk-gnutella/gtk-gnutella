@@ -308,6 +308,9 @@ void elist_rotate_left(elist_t *list);
 void elist_rotate_right(elist_t *list);
 void *elist_shift(elist_t *list);
 
+void elist_append_list(elist_t *list, elist_t *other);
+void elist_prepend_list(elist_t *list, elist_t *other);
+
 #define ELIST_FOREACH(list, l) \
 	for ((l) = elist_first(list); NULL != (l); (l) = elist_next(l))
 

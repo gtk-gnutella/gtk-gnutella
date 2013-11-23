@@ -237,6 +237,92 @@ elist_prepend(elist_t *list, void *data)
 	elist_link_prepend_internal(list, lk);
 }
 
+/**
+ * Prepend other list to the list.
+ *
+ * The other list descriptor is cleared, since its items are transferred
+ * to the first list.
+ *
+ * The two lists must be compatible, that is the offset to the link pointer
+ * must be identical.
+ *
+ * @param list		the destination list
+ * @param other		the other list to prepend (descriptor will be cleared)
+ */
+void
+elist_prepend_list(elist_t *list, elist_t *other)
+{
+	elist_check(list);
+	elist_check(other);
+	g_assert(list->offset == other->offset);
+
+	if G_UNLIKELY(0 == other->count)
+		return;
+
+	if G_UNLIKELY(NULL == list->head) {
+		g_assert(NULL == list->tail);
+		g_assert(0 == list->count);
+		list->tail = other->tail;
+		list->count = other->count;
+	} else {
+		g_assert(NULL != other->tail);	/* Since list not empty */
+		g_assert(NULL == other->tail->next);
+		g_assert(NULL == list->head->prev);
+		g_assert(size_is_positive(list->count));
+		other->tail->next = list->head;
+		list->head->prev = other->tail;
+		list->count += other->count;
+	}
+
+	list->head = other->head;
+	elist_clear(other);
+
+	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Append other list to the list.
+ *
+ * The other list descriptor is cleared, since its items are transferred
+ * to the first list.
+ *
+ * The two lists must be compatible, that is the offset to the link pointer
+ * must be identical.
+ *
+ * @param list		the destination list
+ * @param other		the other list to append (descriptor will be cleared)
+ */
+void
+elist_append_list(elist_t *list, elist_t *other)
+{
+	elist_check(list);
+	elist_check(other);
+	g_assert(list->offset == other->offset);
+
+	if G_UNLIKELY(0 == other->count)
+		return;
+
+	if G_UNLIKELY(NULL == list->tail) {
+		g_assert(NULL == list->head);
+		g_assert(0 == list->count);
+		list->head = other->head;
+		list->count = other->count;
+	} else {
+		g_assert(NULL == list->tail->next);
+		g_assert(NULL != other->head);	/* Since list not empty */
+		g_assert(NULL == other->head->prev);
+		g_assert(size_is_positive(list->count));
+		list->tail->next = other->head;
+		other->head->prev = list->tail;
+		list->count += other->count;
+	}
+
+	list->tail = other->tail;
+	elist_clear(other);
+
+	safety_assert(elist_length(list->head) == list->count);
+}
+
 static inline void
 elist_link_remove_internal(elist_t *list, link_t *lk)
 {

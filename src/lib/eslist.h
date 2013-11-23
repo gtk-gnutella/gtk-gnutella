@@ -245,6 +245,9 @@ void eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp);
 void *eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n);
 void eslist_shuffle(eslist_t *list);
 
+void eslist_append_list(eslist_t *list, eslist_t *other);
+void eslist_prepend_list(eslist_t *list, eslist_t *other);
+
 #define ESLIST_FOREACH(slist, l) \
 	for ((l) = eslist_first(slist); NULL != (l); (l) = eslist_next(l))
 
