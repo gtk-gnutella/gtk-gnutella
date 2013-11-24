@@ -571,7 +571,6 @@ sig_get_pc(const void *u)
 }
 #endif	/* USE_UC_MCONTEXT && SA_SIGINFO */
 
-static volatile sig_atomic_t in_signal_handler;
 static volatile sig_atomic_t in_signal_abort;
 
 /**
@@ -580,10 +579,10 @@ static volatile sig_atomic_t in_signal_abort;
 bool
 signal_in_handler(void)
 {
-	if (in_signal_abort && 1 == in_signal_handler)
+	if (ATOMIC_GET(&in_signal_abort) && 1 == ATOMIC_GET(&in_signal_handler))
 		return FALSE;		/* Handle signal_abort() specially */
 
-	return in_signal_handler != 0 && !mingw_in_exception();
+	return 0 != ATOMIC_GET(&in_signal_handler) && !mingw_in_exception();
 }
 
 /**
@@ -761,9 +760,9 @@ signal_trampoline(int signo)
 	 * a signal handler through signal_in_handler().
 	 */
 
-	in_signal_handler++;
+	ATOMIC_INC(&in_signal_handler);
 	(*handler)(signo);
-	in_signal_handler--;
+	ATOMIC_DEC(&in_signal_handler);
 
 	/*
 	 * When leaving the last signal handler, cleanup the emergency chunk.
@@ -776,7 +775,7 @@ signal_trampoline(int signo)
 		sigset_t set;
 
 		if (signal_enter_critical(&set)) {
-			if (0 == in_signal_handler)
+			if (0 == ATOMIC_GET(&in_signal_handler))
 				ck_free_all(sig_chunk);
 			signal_leave_critical(&set);
 		}
@@ -1000,8 +999,9 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 	if (SIGSEGV == signo)
 		thread_stack_check_overflow(si->si_addr);
 
-	in_signal_handler++;
-	extended++;
+	ATOMIC_INC(&in_signal_handler);
+	ATOMIC_INC(&extended);
+	atomic_mb();
 
 	/*
 	 * Check whether signal is still pending.
@@ -1060,7 +1060,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		}
 	}
 
-	in_signal_handler--;
+	ATOMIC_DEC(&in_signal_handler);
 	signal_trampoline(signo);
 }
 #endif	/* HAS_SIGACTION && SA_SIGINFO */
@@ -1335,7 +1335,7 @@ ok:
 void
 signal_leave_critical(const sigset_t *oset)
 {
-	g_assert(in_critical_section > 0);
+	g_assert(ATOMIC_GET(&in_critical_section) > 0);
 
 	ATOMIC_DEC(&in_critical_section);
 
@@ -1343,7 +1343,7 @@ signal_leave_critical(const sigset_t *oset)
 		return;
 
 #ifdef HAS_SIGPROCMASK
-	if (!in_critical_section) {
+	if (0 == ATOMIC_GET(&in_critical_section)) {
 		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
 			s_error("cannot leave critical section: %m");
 	}
@@ -1371,10 +1371,10 @@ signal_abort(void)
 	 * ``in_signal_abort'' flag.
 	 */
 
-	if (in_critical_section)
+	if (0 != ATOMIC_GET(&in_critical_section))
 		signal_unblock(SIGABRT);
 	else
-		in_signal_abort = TRUE;
+		ATOMIC_SET(&in_signal_abort, TRUE);
 
 	raise(SIGABRT);
 	s_error("raise() failed: %m");

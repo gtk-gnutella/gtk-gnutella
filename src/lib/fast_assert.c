@@ -131,9 +131,8 @@ assertion_abort(void)
 	 * the failure.
 	 */
 
-	if (!seen_fatal) {
-		seen_fatal = TRUE;
-		atomic_mb();
+	if (!ATOMIC_GET(&seen_fatal)) {
+		ATOMIC_SET(&seen_fatal, TRUE);
 
 		/*
 		 * If the thread holds any locks, dump them.

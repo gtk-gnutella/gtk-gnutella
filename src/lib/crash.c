@@ -2234,7 +2234,7 @@ crash_handler(int signo)
 	const char *cwd = "";
 	unsigned i;
 	bool trace;
-	bool recursive = crashed > 0;
+	bool recursive = ATOMIC_GET(&crashed) > 0;
 	bool in_child = FALSE;
 
 	/*
@@ -2247,15 +2247,15 @@ crash_handler(int signo)
 	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
-	if (crashed++ > 1) {
-		if (2 == crashed) {
+	if (ATOMIC_INC(&crashed) > 1) {
+		if (2 == ATOMIC_GET(&crashed)) {
 			DECLARE_STR(1);
 
 			print_str("\nERROR: too many recursive crashes\n");
 			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
-		} else if (3 == crashed) {
+		} else if (3 == ATOMIC_GET(&crashed)) {
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
@@ -2268,7 +2268,7 @@ crash_handler(int signo)
 	 * which would not otherwise be cleaned up by the kernel upon process exit.
 	 */
 
-	if (1 == crashed)
+	if (1 == ATOMIC_GET(&crashed))
 		signal_perform_cleanup();
 
 	/*
@@ -2396,7 +2396,7 @@ crash_handler(int signo)
 		if (signal_in_handler() && !vars->invoke_inspector)
 			crash_emit_decorated_stack(1, in_child);
 	}
-	if ((recursive && 1 == crashed) || in_child) {
+	if ((recursive && 1 == ATOMIC_GET(&crashed)) || in_child) {
 		crash_emit_decorated_stack(1, in_child);
 		crash_end_of_line(TRUE);
 		goto the_end;

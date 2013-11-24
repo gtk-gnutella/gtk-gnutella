@@ -4866,7 +4866,7 @@ static void *mingw_stack[STACKTRACE_DEPTH_MAX];
 bool
 mingw_in_exception(void)
 {
-	return in_exception_handler;
+	return ATOMIC_GET(&in_exception_handler);
 }
 
 /**
@@ -4878,7 +4878,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	EXCEPTION_RECORD *er;
 	int signo = 0;
 
-	in_exception_handler++;		/* Will never be reset, we're crashing */
+	ATOMIC_INC(&in_exception_handler);	/* Never reset, we're crashing */
 	er = ei->ExceptionRecord;
 
 	/*
@@ -5038,7 +5038,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 * exception: recursive calls are not interesting.
 	 */
 
-	if (1 == in_exception_handler) {
+	if (1 == ATOMIC_GET(&in_exception_handler)) {
 		int count;
 		
 		count = mingw_stack_unwind(
@@ -5049,7 +5049,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
 
 		crash_save_stackframe(mingw_stack, count);
-	} else if (in_exception_handler > 5) {
+	} else if (ATOMIC_GET(&in_exception_handler) > 5) {
 		DECLARE_STR(1);
 
 		print_str("Too many exceptions in a row -- raising SIGBART.\n");
