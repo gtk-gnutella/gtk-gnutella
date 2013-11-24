@@ -104,6 +104,24 @@ atomic_uint_dec_is_zero(unsigned *p)
 	return 1 == __sync_fetch_and_sub(p, 1);
 }
 
+static inline ALWAYS_INLINE bool
+atomic_int_xchg_if_eq(int *p, int ov, int nv)
+{
+	return __sync_bool_compare_and_swap(p, ov, nv);
+}
+
+static inline ALWAYS_INLINE bool
+atomic_uint_xchg_if_eq(uint *p, uint ov, uint nv)
+{
+	return __sync_bool_compare_and_swap(p, ov, nv);
+}
+
+static inline ALWAYS_INLINE bool
+atomic_ptr_xchg_if_eq(void **p, void *ov, void *nv)
+{
+	return __sync_bool_compare_and_swap(p, ov, nv);
+}
+
 /*
  * These can be used on "opaque" types like sig_atomic_t
  * Otherwise, use the type-safe inline routines whenever possible.
@@ -122,15 +140,6 @@ atomic_uint_dec_is_zero(unsigned *p)
 
 #define atomic_mb()					(void) 0
 
-static inline bool
-atomic_test_and_set(atomic_lock_t *p)
-{
-	int ok;
-	if ((ok = (0 == *(p))))	
-		*(p) = 1;
-	return ok;
-}
-
 #define ATOMIC_INC(p)				((*(p))++)
 #define ATOMIC_DEC(p)				((*(p))--)
 #define ATOMIC_GET(p)				(*(p))
@@ -146,6 +155,38 @@ atomic_test_and_set(atomic_lock_t *p)
 #define atomic_uint_dec_is_zero(p)	(0 == --(*(p)))
 #define atomic_release(p)			(*(p) = 0)
 #define atomic_ops_available()		0
+
+#define ATOMIC_XCHG_IF_EQ(ptr, oldval, newval)	\
+	bool ok;									\
+	if ((ok = ((oldval) == *(ptr))))			\
+		*(ptr) = (newval);						\
+	return ok;									\
+
+
+static inline bool
+atomic_test_and_set(atomic_lock_t *p)
+{
+	ATOMIC_XCHG_IF_EQ(p, 0, 1);
+}
+
+static inline bool
+atomic_int_xchg_if_eq(int *p, int ov, int nv)
+{
+	ATOMIC_XCHG_IF_EQ(p, ov, nv);
+}
+
+static inline bool
+atomic_uint_xchg_if_eq(uint *p, uint ov, uint nv)
+{
+	ATOMIC_XCHG_IF_EQ(p, ov, nv);
+}
+
+static inline bool
+atomic_ptr_xchg_if_eq(void **p, void *ov, void *nv)
+{
+	ATOMIC_XCHG_IF_EQ(p, ov, nv);
+}
+
 #endif	/* HAS_SYNC_ATOMIC */
 
 /**
