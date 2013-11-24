@@ -914,7 +914,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				continue;
 
 			num_events--;
-			evlist = g_slist_prepend(evlist, XCOPY(&event));
+			evlist = g_slist_prepend(evlist, WCOPY(&event));
 		}
 
 		/*
@@ -958,7 +958,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				}
 			}
 
-			xfree(event);
+			WFREE(event);
 		}
 
 		gm_slist_free_null(&evlist);
