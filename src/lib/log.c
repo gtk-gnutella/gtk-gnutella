@@ -198,6 +198,14 @@ logagent_check(const struct logagent * const la)
  */
 static struct logfile logfile[LOG_MAX_FILES];
 
+#define log_flush_out()	\
+	flush_str(			\
+		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
+
+#define log_flush_err()	\
+	flush_str(			\
+		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
+
 #define log_flush_out_atomic()	\
 	flush_str_atomic(			\
 		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
@@ -788,10 +796,14 @@ log_abort(void)
  * errno (since accessing errno in multi-threaded programs needs to access
  * some pthread-data that may not be accessible if we corrupted memory).
  *
+ * When the ``raw'' argument is set, it also carefully avoids taking locks,
+ * using a non-atomic log flushing, etc..
+ *
  * It is suitable to be called (directly or through its wrappers) when we are
  * about to terminate the process anyway, so preserving errno is not critical.
  *
  * @param level		glib-compatible log level flags
+ * @param raw		if TRUE, carefully avoid taking locks, use safe routines
  * @param copy		whether to copy message to stdout as well
  * @param fmt		formatting string
  * @param args		variable argument list to format
@@ -800,7 +812,8 @@ log_abort(void)
  * This routine will clobber "errno" if an error occurs.
  */
 void
-s_rawlogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
+s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
+	const char *fmt, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(11);
@@ -826,7 +839,21 @@ s_rawlogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 		return;
 
 	prefix = log_prefix(level);
-	stid = thread_small_id();
+
+	/*
+	 * In "raw" mode, use minimalistic routines, which of course may not
+	 * yield correct information all the time.
+	 */
+
+	if G_UNLIKELY(raw) {
+		stid = thread_safe_small_id();
+		if (-2U == stid)
+			stid = 0;
+		crash_time_cached(time_buf, sizeof time_buf);	/* Raw, no locks! */
+	} else {
+		stid = thread_small_id();
+		crash_time(time_buf, sizeof time_buf);
+	}
 
 	/*
 	 * Because str_vncatf() is recursion-safe, we know we can't return
@@ -835,7 +862,6 @@ s_rawlogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 
 	str_vbprintf(data, sizeof data, fmt, args);		/* Uses str_vncatf() */
 
-	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);		/* 0 */
 	print_str(" (");			/* 1 */
 	print_str(prefix);			/* 2 */
@@ -853,9 +879,20 @@ s_rawlogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	print_str(": ");			/* 8 */
 	print_str(data);			/* 9 */
 	print_str("\n");			/* 10 */
-	log_flush_err_atomic();
-	if (copy && log_stdout_is_distinct())
-		log_flush_out_atomic();
+
+	/*
+	 * In "raw" mode, use non-atomic flushes to avoid locks.
+	 */
+
+	if G_UNLIKELY(raw) {
+		log_flush_err();
+		if (copy && log_stdout_is_distinct())
+			log_flush_out();
+	} else {
+		log_flush_err_atomic();
+		if (copy && log_stdout_is_distinct())
+			log_flush_out_atomic();
+	}
 }
 
 /**
@@ -874,7 +911,7 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	int saved_errno;
 
 	saved_errno = errno;
-	s_rawlogv(level, copy, fmt, args);
+	s_rawlogv(level, FALSE, copy, fmt, args);
 	errno = saved_errno;
 }
 
@@ -1520,7 +1557,7 @@ s_rawcrit(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_rawlogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
+	s_rawlogv(G_LOG_LEVEL_CRITICAL, TRUE, TRUE, format, args);
 	va_end(args);
 
 	s_stacktrace(in_signal_handler, 1);
@@ -1541,7 +1578,7 @@ s_rawwarn(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_rawlogv(G_LOG_LEVEL_WARNING, FALSE, format, args);
+	s_rawlogv(G_LOG_LEVEL_WARNING, TRUE, FALSE, format, args);
 	va_end(args);
 }
 

@@ -110,7 +110,7 @@ void s_miniwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minimsg(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_miniinfo(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minidbg(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_rawlogv(GLogLevelFlags, bool copy, const char *fmt, va_list args);
+void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a);
 void s_rawcrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
 

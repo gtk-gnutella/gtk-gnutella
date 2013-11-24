@@ -111,6 +111,7 @@ long tm_remaining_ms(const tm_t *end);
 
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
+void tm_now_raw(tm_t *tm);
 time_t tm_time_exact(void);
 double tm_cputime(double *user, double *sys);
 
@@ -179,7 +180,7 @@ tm_time(void)
 tm_t tm_start_time(void);
 time_t tm_localtime(void);
 time_t tm_localtime_exact(void);
-time_t tm_localtime_exact(void);
+time_t tm_localtime_raw(void);
 
 /**
  * Returns the current time relative to the startup time (cached).

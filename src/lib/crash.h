@@ -221,6 +221,7 @@ void crash_close(void);
 bool crash_is_closed(void);
 void crash_ctl(enum crash_alter_mode mode, int flags);
 void crash_time(char *buf, size_t buflen);
+void crash_time_cached(char *buf, size_t size);
 void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
 void crash_handler(int signo);

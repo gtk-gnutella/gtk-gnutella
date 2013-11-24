@@ -321,13 +321,18 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ * @param cached	whether to use cached time
  */
-G_GNUC_COLD void
-crash_time(char *buf, size_t size)
+static void
+crash_time_internal(char *buf, size_t size, bool cached)
 {
 	const size_t num_reserved = 1;
 	struct tm tm;
 	tm_t tv;
+	time_t loc;
 	cursor_t cursor;
 
 	/* We need at least space for a NUL */
@@ -336,9 +341,16 @@ crash_time(char *buf, size_t size)
 
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
-	tm_now_exact(&tv);
 
-	if (!off_time(tm_localtime(), 0, &tm)) {
+	if G_UNLIKELY(cached) {
+		tm_now_raw(&tv);
+		loc = tm_localtime_raw();
+	} else {
+		tm_now_exact(&tv);
+		loc = tm_localtime();
+	}
+
+	if (!off_time(loc, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -359,6 +371,43 @@ crash_time(char *buf, size_t size)
 
 	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
 	crash_append_fmt_c(&cursor, '\0');
+}
+
+/**
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
+ * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
+ * truncated.
+ *
+ * This routine can safely be used in a signal handler as it does not rely
+ * on unsafe calls.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ */
+void
+crash_time(char *buf, size_t size)
+{
+	crash_time_internal(buf, size, FALSE);
+}
+
+/**
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
+ * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
+ * truncated.
+ *
+ * The difference with crash_time() is that the routine uses the cached time
+ * and therefore does not take any locks.
+ *
+ * This routine can safely be used in a signal handler as it does not rely
+ * on unsafe calls.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ */
+void
+crash_time_cached(char *buf, size_t size)
+{
+	crash_time_internal(buf, size, TRUE);
 }
 
 /**

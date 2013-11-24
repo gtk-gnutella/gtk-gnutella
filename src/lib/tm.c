@@ -514,6 +514,21 @@ tm_now_exact(tm_t *tm)
 }
 
 /**
+ * Fill supplied structure with current time (cached).
+ *
+ * @attention
+ * This raw version does not check for thread suspension.  It is meant
+ * to be used in dire circumstances to limit resource consumption and
+ * may return incorrect information.
+ */
+void
+tm_now_raw(tm_t *tm)
+{
+	atomic_mb();
+	*tm = tm_cached_now;	/* Struct copy, without locks */
+}
+
+/**
  * Get current time, at the second granularity (recomputed).
  */
 time_t
@@ -546,6 +561,19 @@ time_t
 tm_localtime_exact(void)
 {
 	tm_now_exact(NULL);
+	return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
+}
+
+/*
+ * Get current local time, at the second granularity (cached).
+ *
+ * @attention
+ * This raw version does not check for thread suspension.  It is meant
+ * to be used in dire circumstances to limit resource consumption.
+ */
+time_t
+tm_localtime_raw(void)
+{
 	return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
 }
 
