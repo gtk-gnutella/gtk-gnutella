@@ -3146,7 +3146,7 @@ thread_sig_generation(void)
  *
  * @return TRUE if we suspended or handled signals.
  */
-static bool
+static inline bool
 thread_check_suspended_element(struct thread_element *te, bool sigs)
 {
 	bool delayed = FALSE;
@@ -4017,10 +4017,9 @@ thread_local_set(thread_key_t key, const void *value)
  *
  * @return the key value or NULL if the key does not exist.
  */
-void *
-thread_local_get(thread_key_t key)
+static inline void * ALWAYS_INLINE
+thread_element_local_get(struct thread_element *te, thread_key_t key)
 {
-	struct thread_element *te = thread_get_element();
 	int l1, l2;
 	void **l2page;
 
@@ -4038,6 +4037,102 @@ thread_local_get(thread_key_t key)
 		return NULL;
 
 	return l2page[l2];
+}
+
+/**
+ * Get thread-local value for key.
+ *
+ * @return the key value or NULL if the key does not exist.
+ */
+void *
+thread_local_get(thread_key_t key)
+{
+	struct thread_element *te = thread_get_element();
+
+	/*
+	 * To make thread_foreach_local() with THREAD_LOCAL_SUSPENDED
+	 * a little bit safer, we check for thread suspension during each
+	 * local variable access.  This is cheap since we already got
+	 * the thread element.
+	 *
+	 * As a bonus, we can also handle pending signals.
+	 */
+
+	thread_check_suspended_element(te, TRUE);
+
+	return thread_element_local_get(te, key);
+}
+
+/**
+ * Iterate over all the threads and invoke the supplied callback on
+ * each non-NULL instance of the key within the thread.
+ *
+ * When the THREAD_LOCAL_SKIP_SELF flag is specified, the iterator does not
+ * invoke the callback for the local variable held in the current thread.
+ *
+ * When the THREAD_LOCAL_SUSPENDED flag is specified, the callback is only
+ * invoked on local variables if the thread is suspended.  This makes the
+ * call a little bit safer, because we know the thread owning the variable
+ * will not be changing it at the same time we read it.
+ *
+ * @attention
+ * This is violating thread privacy by exposing to another thread the
+ * content of a thread-local variable.
+ *
+ * @note
+ * This routine is only supplied to applications to let them do thorough
+ * memory cleanup during application exit time.  It is giving enough rope
+ * to do bad things, but at least the value is passed "read-only" so any
+ * change cannot be accidental.
+ *
+ * @param key		the thread-local variable key
+ * @param flags		operating flags
+ * @param fn		routine to invoked on non-NULL values
+ * @param data		opaque additional argument, passed to callback routine
+ */
+void
+thread_foreach_local(thread_key_t key, uint flags, cdata_fn_t fn, void *data)
+{
+	uint id = THREAD_MAIN;
+	uint i;
+
+	if (flags & THREAD_LOCAL_SKIP_SELF)
+		id = thread_small_id();
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		void *v;
+
+		if (!te->valid)
+			continue;
+
+		if G_UNLIKELY((flags & THREAD_LOCAL_SKIP_SELF) && i == id)
+			continue;
+
+		/*
+		 * For suspended threads, te->suspend signals that the thread has
+		 * been told to suspend itself, but it may not be suspended yet.
+		 * However, if it is sleeping or blocked, it will suspend itself
+		 * as soon as the sleep is over or it is unblocked, so we can act as
+		 * if it was suspended for our purpose here.
+		 */
+
+		if (flags & THREAD_LOCAL_SUSPENDED) {
+			bool suspended;
+
+			THREAD_LOCK(te);
+			suspended = te->suspend &&
+				(te->suspended || te->sleeping || te->blocked);
+			THREAD_UNLOCK(te);
+
+			if (!suspended)
+				continue;
+		}
+
+		v = thread_element_local_get(te, key);
+		if (v != NULL)
+			(*fn)(v, data);
+	}
 }
 
 /**

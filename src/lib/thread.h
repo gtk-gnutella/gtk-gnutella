@@ -350,6 +350,15 @@ thread_is_main(void)
 	return THREAD_MAIN == thread_small_id();
 }
 
+/**
+ * Flags for thread_foreach_local().
+ */
+
+#define THREAD_LOCAL_SUSPENDED		(1U << 0)
+#define THREAD_LOCAL_SKIP_SELF		(1U << 1)
+
+void thread_foreach_local(thread_key_t key, uint flags, cdata_fn_t, void *);
+
 #if defined(THREAD_SOURCE) || defined(MUTEX_SOURCE)
 #ifdef I_PTHREAD
 /**
