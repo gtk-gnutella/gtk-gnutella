@@ -113,6 +113,8 @@ atomic_uint_dec_is_zero(unsigned *p)
 
 #define ATOMIC_INC(p)		__sync_fetch_and_add(p, 1)
 #define ATOMIC_DEC(p)		__sync_fetch_and_sub(p, 1)
+#define ATOMIC_GET(p)		(atomic_mb(), *(p))
+#define ATOMIC_SET(p,v)		(*(p) = (v), atomic_mb())
 
 #else	/* !HAS_SYNC_ATOMIC */
 
@@ -129,6 +131,8 @@ atomic_test_and_set(atomic_lock_t *p)
 
 #define ATOMIC_INC(p)				((*(p))++)
 #define ATOMIC_DEC(p)				((*(p))--)
+#define ATOMIC_GET(p)				(*(p))
+#define ATOMIC_SET(p,v)				(*(p) = (v))
 
 #define atomic_int_inc(p)			((*(p))++)		/* Previous value */
 #define atomic_int_dec(p)			((*(p))--)		/* Previous value */
