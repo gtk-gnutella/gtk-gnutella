@@ -1915,7 +1915,7 @@ thread_timeout(const struct thread_element *te)
 
 	spinlock_raw(&thread_timeout_slk);
 
-	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
+	for (i = 0; i < thread_next_stid; i++) {
 		const struct thread_element *xte = threads[i];
 
 		if (0 == xte->suspend) {
