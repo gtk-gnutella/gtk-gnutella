@@ -98,6 +98,7 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/tmalloc.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
 #include "lib/zalloc.h"
@@ -2600,6 +2601,17 @@ xmalloc_debug_changed(property_t prop)
 }
 
 static bool
+tmalloc_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_tmalloc_debug(val);
+
+    return FALSE;
+}
+
+static bool
 lib_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -3056,6 +3068,11 @@ static prop_map_t property_map[] = {
     {
         PROP_TM_DEBUG,
         tm_debug_changed,
+        TRUE
+    },
+    {
+        PROP_TMALLOC_DEBUG,
+        tmalloc_debug_changed,
         TRUE
     },
     {

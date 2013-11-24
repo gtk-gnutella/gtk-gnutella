@@ -503,6 +503,7 @@ typedef enum {
     PROP_UPNP_MAPPING_LEASE_TIME,
     PROP_USER_AUTO_RESTART,
     PROP_TM_DEBUG,
+    PROP_TMALLOC_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
