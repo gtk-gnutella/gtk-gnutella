@@ -117,6 +117,7 @@
 #include "fd.h"
 #include "log.h"
 #include "memusage.h"
+#include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
 #include "parse.h"
@@ -127,6 +128,7 @@
 #include "stringify.h"
 #include "thread.h"			/* For thread_small_id() */
 #include "tm.h"
+#include "tmalloc.h"
 #include "unsigned.h"
 #include "xmalloc.h"
 #include "zalloc.h"
@@ -265,6 +267,8 @@ static struct vmm_stats {
 	AU64(resizings);				/**< Total amount of vmm_resize() calls */
 	AU64(mmaps);					/**< Total number of mmap() calls */
 	AU64(munmaps);					/**< Total number of munmap() calls */
+	uint64 magazine_allocations;	/**< Allocations through thread magazine */
+	uint64 magazine_freeings;		/**< Freeings through thread magazine */
 	uint64 hints_followed;			/**< Allocations following hints */
 	uint64 hints_ignored;			/**< Allocations ignoring non-NULL hints */
 	uint64 alloc_from_cache;		/**< Allocation from cache */
@@ -363,6 +367,31 @@ static cperiodic_t *vmm_periodic;
 
 #define VMM_STRATEGY_LOCK		spinlock_hidden(&vmm_strategy_slk)
 #define VMM_STRATEGY_UNLOCK		spinunlock_hidden(&vmm_strategy_slk)
+
+/*
+ * The VMM allocation layer is used by other memory allocators to get more
+ * core, but can also be used by the application to allocate known-to-be-large
+ * areas or memory (e.g. hash table arenas, or RX buffers).
+ *
+ * Unfortunately, as a user-level memory allocator, the VMM layer is very
+ * slow, and more so on freeing because it attempts to coalesce pages.
+ *
+ * It is fair to say it is about 10 times slower than walloc() for 4K blocks,
+ * when single-threaded.  If we add concurrency, the VMM layer does not scale
+ * well, and throughput with 8 threads allocating 4K blocks concurrently is
+ * about 100 times worse than the throughput obtained with 1 thread, which is
+ * not already spectacular...
+ *
+ * To increase throughput of VMM as a user-level allocator, we add support
+ * for distribution through thread magazines, for blocks up to 5 system pages.
+ * These are small enough to not waste too much memory in the unused magazines.
+ * This is ONLY for user memory, not core allocations.
+ *
+ * Thread magazines will not be created until the event queue is up.
+ */
+
+#define VMM_MAGAZINE_PAGEMAX	5	/**< Up to 5 pages */
+static tmalloc_t *vmm_magazine[VMM_MAGAZINE_PAGEMAX];
 
 static bool safe_to_log;			/**< True when we can log */
 static bool stop_freeing;			/**< No longer release memory */
@@ -3829,42 +3858,6 @@ update_stats:
 }
 
 /**
- * Allocates a page-aligned memory chunk, possibly returning a cached region
- * and only allocating a new region when necessary.
- *
- * @param size The size in bytes to allocate; will be rounded to the pagesize.
- */
-void *
-vmm_alloc(size_t size)
-{
-	return vmm_alloc_internal(size, TRUE, FALSE);
-}
-
-/**
- * Allocates a page-aligned memory chunk, meant to be use as core for other
- * memory allocator built on top of this layer.
- *
- * This means memory allocated here will NOT be accounted for as "user memory"
- * and it MUST be freed with vmm_core_free() for sound accounting.
- *
- * @param size The size in bytes to allocate; will be rounded to the pagesize.
- */
-void *
-vmm_core_alloc(size_t size)
-{
-	return vmm_alloc_internal(size, FALSE, FALSE);
-}
-
-/**
- * Same a vmm_alloc() but zeroes the allocated region.
- */
-void *
-vmm_alloc0(size_t size)
-{
-	return vmm_alloc_internal(size, TRUE, TRUE);
-}
-
-/**
  * Should we cache ``n'' pages starting at ``p''?
  */
 static inline bool
@@ -3990,11 +3983,198 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 }
 
 /**
- * Free memory allocated via vmm_alloc(), possibly returning it to the cache.
+ * Internal general-purpose memory allocator given to the thread magazine
+ * depot in order to either allocate objects or the magazines themselves.
+ *
+ * If the amount requested is not exactly an even amount of pages, then
+ * the memory allocation is actually performed by xmalloc(), because we
+ * know the allocation cannot be for a magazine round.
+ *
+ * Note that if the memory allocated is a magazine round, it will be freed
+ * via vmm_free() first, which will put it back to the appropriate magazine,
+ * and only when the magazine depot needs to release the allocated rounds
+ * will it invoke vmm_free_raw().
+ *
+ * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ *
+ * @return a memory region that can be freed via vmm_free_raw().
+ */
+static void *
+vmm_alloc_raw(size_t size)
+{
+	if G_LIKELY(round_pagesize_fast(size) == size)
+		return vmm_alloc_internal(size, TRUE, FALSE);
+
+	return xpmalloc(size);
+}
+
+/**
+ * Free memory allocated via vmm_alloc_raw().
+ */
+static void
+vmm_free_raw(void *p, size_t size)
+{
+	if G_LIKELY(round_pagesize_fast(size) == size)
+		vmm_free_internal(p, size, TRUE);
+	else
+		xfree(p);
+}
+
+/**
+ * Get a magazine depot for the given amount of pages.
+ *
+ * @param npages	amount of pages we want to allocate
+ *
+ * @return the magazine depot corresponding to the requested size, NULL if
+ * we cannot get any suitable depot at this time.
+ */
+static tmalloc_t *
+vmm_get_magazine(size_t npages)
+{
+	tmalloc_t *depot;
+
+	g_assert(npages <= G_N_ELEMENTS(vmm_magazine));
+	g_assert(npages != 0);
+
+	if G_UNLIKELY(NULL == (depot = vmm_magazine[npages - 1])) {
+		static mutex_t vmm_magazine_mtx = MUTEX_INIT;
+		static uint8 maginit[VMM_MAGAZINE_PAGEMAX];
+		size_t idx = npages - 1;
+
+		/*
+		 * If the virtual memory layer is not fully initalized, don't use
+		 * magazines to prevent deadlocks during auto-initialization.
+		 */
+
+		if G_UNLIKELY(!atomic_bool_get(&vmm_fully_inited))
+			return NULL;
+
+		/*
+		 * The thread-magazine allocator needs the event queue, so if we're
+		 * called too soon in the initialization process, we cannot enable
+		 * VMM page distribution through magazines.
+		 */
+
+		if (!evq_is_inited())
+			return NULL;			/* Too soon */
+
+		/*
+		 * The mutex and the maginit[] protection help us prevent any possible
+		 * recursion during auto-initialization.
+		 */
+
+		mutex_lock(&vmm_magazine_mtx);
+
+		if (NULL == (depot = vmm_magazine[idx]) && !maginit[idx]) {
+			char name[STR_CONST_LEN("vmm-") + SIZE_T_DEC_BUFLEN + 1];
+
+			maginit[idx] = TRUE;
+			str_bprintf(name, sizeof name, "vmm-%zu", nsize_fast(npages));
+			depot = vmm_magazine[idx] =
+				tmalloc_create(name, nsize_fast(npages),
+					vmm_alloc_raw, vmm_free_raw);
+		}
+
+		mutex_unlock(&vmm_magazine_mtx);
+	}
+
+	return depot;
+}
+
+/**
+ * Allocates a page-aligned memory chunk, possibly returning a cached region
+ * and only allocating a new region when necessary.
+ *
+ * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ */
+void *
+vmm_alloc(size_t size)
+{
+	size_t npages = pagecount_fast(size);
+
+	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
+		tmalloc_t *depot = vmm_get_magazine(npages);
+
+		if G_LIKELY(depot != NULL) {
+			VMM_STATS_LOCK;
+			vmm_stats.allocations++;
+			vmm_stats.allocations_user++;
+			vmm_stats.magazine_allocations++;
+			VMM_STATS_UNLOCK;
+
+			return tmalloc(depot);
+		}
+	}
+
+	return vmm_alloc_internal(size, TRUE, FALSE);
+}
+
+/**
+ * Same a vmm_alloc() but zeroes the allocated region.
+ */
+void *
+vmm_alloc0(size_t size)
+{
+	size_t npages = pagecount_fast(size);
+
+	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
+		tmalloc_t *depot = vmm_get_magazine(npages);
+
+		if G_LIKELY(depot != NULL) {
+			VMM_STATS_LOCK;
+			vmm_stats.allocations++;
+			vmm_stats.allocations_zeroed++;
+			vmm_stats.allocations_user++;
+			vmm_stats.magazine_allocations++;
+			VMM_STATS_UNLOCK;
+
+			return tmalloc0(depot);
+		}
+	}
+
+	return vmm_alloc_internal(size, TRUE, TRUE);
+}
+
+/**
+ * Allocates a page-aligned memory chunk, meant to be use as core for other
+ * memory allocator built on top of this layer.
+ *
+ * This means memory allocated here will NOT be accounted for as "user memory"
+ * and it MUST be freed with vmm_core_free() for sound accounting.
+ *
+ * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ */
+void *
+vmm_core_alloc(size_t size)
+{
+	return vmm_alloc_internal(size, FALSE, FALSE);
+}
+
+/**
+ * Free memory allocated via vmm_alloc(), possibly returning it to the cache
+ * or to the thread magazine if the amount of pages is less than largest amount
+ * we serve through magazines.
  */
 void
 vmm_free(void *p, size_t size)
 {
+	size_t npages = pagecount_fast(size);
+
+	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
+		tmalloc_t *depot = vmm_get_magazine(npages);
+
+		if G_LIKELY(depot != NULL) {
+			VMM_STATS_LOCK;
+			vmm_stats.freeings++;
+			vmm_stats.freeings_user++;
+			vmm_stats.magazine_freeings++;
+			VMM_STATS_UNLOCK;
+
+			tmfree(depot, p);
+			return;
+		}
+	}
+
 	vmm_free_internal(p, size, TRUE);
 }
 
@@ -4537,6 +4717,8 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(shrinkings_user);
 	DUMP64(mmaps);
 	DUMP64(munmaps);
+	DUMP(magazine_allocations);
+	DUMP(magazine_freeings);
 	DUMP(hints_followed);
 	DUMP(hints_ignored);
 	DUMP(alloc_from_cache);
@@ -5023,14 +5205,14 @@ vmm_early_init_once(void)
 static G_GNUC_COLD void
 vmm_init_once(void)
 {
-	vmm_fully_inited = TRUE;
-
 	/*
 	 * We can now use the VMM layer to allocate memory via xmalloc().
 	 */
 
 	xmalloc_vmm_inited();
 	zalloc_vmm_inited();
+
+	atomic_bool_set(&vmm_fully_inited, TRUE);
 }
 
 /**
@@ -5061,6 +5243,22 @@ vmm_init(void)
 }
 
 /**
+ * Reset all VMM magazines.
+ */
+static void
+vmm_magazine_reset(void)
+{
+	int i;
+
+	for (i = 0; i < VMM_MAGAZINE_PAGEMAX; i++) {
+		tmalloc_t *d = vmm_magazine[i];
+		if (d != NULL) {
+			tmalloc_reset(d);
+		}
+	}
+}
+
+/**
  * Signal that we're about to close down all activity.
  */
 void
@@ -5071,6 +5269,7 @@ vmm_pre_close(void)
 	 * the memory freeing activity.  Better avoid such clutter.
 	 */
 
+	vmm_magazine_reset();
 	safe_to_log = FALSE;		/* Turn logging off */
 }
 
@@ -5107,6 +5306,8 @@ vmm_close(void)
 	size_t native_pages = 0;
 	size_t memory = 0;
 	size_t i;
+
+	vmm_magazine_reset();
 
 	/*
 	 * Clear all cached pages.
