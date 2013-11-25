@@ -254,8 +254,15 @@ struct pmap {
 static struct vmm_stats {
 	uint64 allocations;				/**< Total number of allocations */
 	uint64 allocations_zeroed;		/**< Total number of zeroing in allocs */
+	uint64 allocations_core;		/**< Core memory allocations */
+	uint64 allocations_user;		/**< User memory allocations */
 	uint64 freeings;				/**< Total number of freeings */
+	uint64 freeings_core;			/**< Core memory freeings */
+	uint64 freeings_user;			/**< User memory freeings */
 	uint64 shrinkings;				/**< Total number of shrinks */
+	uint64 shrinkings_core;			/**< Core memory shrinkings */
+	uint64 shrinkings_user;			/**< User memory shrinkings */
+	AU64(resizings);				/**< Total amount of vmm_resize() calls */
 	AU64(mmaps);					/**< Total number of mmap() calls */
 	AU64(munmaps);					/**< Total number of munmap() calls */
 	uint64 hints_followed;			/**< Allocations following hints */
@@ -3805,11 +3812,13 @@ update_stats:
 		vmm_stats.allocations_zeroed++;
 
 	if (user_mem) {
+		vmm_stats.allocations_user++;
 		vmm_stats.user_memory += size;
 		vmm_stats.user_pages += n;
 		vmm_stats.user_blocks++;
 		memusage_add(vmm_stats.user_mem, size);
 	} else {
+		vmm_stats.allocations_core++;
 		vmm_stats.core_memory += size;
 		vmm_stats.core_pages += n;
 		memusage_add(vmm_stats.core_mem, size);
@@ -3960,6 +3969,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 		vmm_stats.freeings++;
 
 		if (user_mem) {
+			vmm_stats.freeings_user++;
 			vmm_stats.user_memory -= size;
 			vmm_stats.user_pages -= n;
 			g_assert(size_is_non_negative(vmm_stats.user_pages));
@@ -3968,6 +3978,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			VMM_STATS_UNLOCK;
 			memusage_remove(vmm_stats.user_mem, size);
 		} else {
+			vmm_stats.freeings_core++;
 			vmm_stats.core_memory -= size;
 			vmm_stats.core_pages -= n;
 			g_assert(size_is_non_negative(vmm_stats.core_pages));
@@ -4061,6 +4072,7 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 			vmm_stats.shrinkings++;
 
 			if (user_mem) {
+				vmm_stats.shrinkings_user++;
 				vmm_stats.user_memory -= delta;
 				vmm_stats.user_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.user_pages));
@@ -4068,6 +4080,7 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 				VMM_STATS_UNLOCK;
 				memusage_remove(vmm_stats.user_mem, delta);
 			} else {
+				vmm_stats.shrinkings_core++;
 				vmm_stats.core_memory -= delta;
 				vmm_stats.core_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.core_pages));
@@ -4116,6 +4129,8 @@ vmm_resize(void *p, size_t size, size_t new_size)
 {
 	size_t asize, anew;
 	void *np;
+
+	VMM_STATS_INCX(resizings);
 
 	asize = round_pagesize(size);		/* Allocated size */
 	anew = round_pagesize(new_size);
@@ -4513,6 +4528,13 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(allocations_zeroed);
 	DUMP(freeings);
 	DUMP(shrinkings);
+	DUMP64(resizings);
+	DUMP(allocations_core);
+	DUMP(freeings_core);
+	DUMP(shrinkings_core);
+	DUMP(allocations_user);
+	DUMP(freeings_user);
+	DUMP(shrinkings_user);
 	DUMP64(mmaps);
 	DUMP64(munmaps);
 	DUMP(hints_followed);
