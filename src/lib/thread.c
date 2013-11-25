@@ -213,6 +213,7 @@ struct thread_lkey {
 #define THREAD_LOCAL_INVALID	((free_fn_t) 2)
 
 static struct thread_lkey thread_lkeys[THREAD_LOCAL_MAX];
+static size_t thread_lkeys_used;
 static spinlock_t thread_local_slk = SPINLOCK_INIT;
 
 /**
@@ -3875,6 +3876,7 @@ thread_local_key_create(thread_key_t *key, free_fn_t freecb)
 		if (!thread_lkeys[i].used) {
 			thread_lkeys[i].used = TRUE;
 			thread_lkeys[i].freecb = freecb;
+			thread_lkeys_used++;
 			spinunlock(&thread_local_slk);
 			*key = i;
 			return 0;
@@ -3968,6 +3970,7 @@ thread_local_key_delete(thread_key_t key)
 
 	thread_lkeys[key].used = FALSE;
 	thread_lkeys[key].freecb = NULL;
+	thread_lkeys_used--;
 
 	spinunlock(&thread_local_slk);
 }
@@ -4056,6 +4059,21 @@ thread_local_set(thread_key_t key, const void *value)
 		s_carp("%s(): adding value freed by %s() in %s",
 			G_STRFUNC, stacktrace_function_name(freecb), thread_name());
 	}
+}
+
+/**
+ * @return amount of thread-local keys used.
+ */
+size_t
+thread_local_key_count(void)
+{
+	size_t n;
+
+	spinlock(&thread_local_slk);
+	n = thread_lkeys_used;
+	spinunlock(&thread_local_slk);
+
+	return n;
 }
 
 /**
@@ -8550,13 +8568,16 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 		size_t rsc_semaphore_used;
 		size_t rsc_semaphore_arrays;
 		size_t rsc_cond_variables;
+		size_t rsc_local_keys;
 
 		rsc_semaphore_arrays = semaphore_kernel_usage(&rsc_semaphore_used);
 		rsc_cond_variables = cond_vars_count();
+		rsc_local_keys = thread_local_key_count();
 
 		DUMPV(rsc_semaphore_used);
 		DUMPV(rsc_semaphore_arrays);
 		DUMPV(rsc_cond_variables);
+		DUMPV(rsc_local_keys);
 	}
 
 #undef DUMP
