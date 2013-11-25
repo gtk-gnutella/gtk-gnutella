@@ -255,6 +255,7 @@ int thread_create_full(thread_main_t routine, void *arg, uint flags,
 	size_t stack, thread_exit_t exited, void *earg);
 void thread_exit(void *value) G_GNUC_NORETURN;
 void thread_atexit(thread_exit_t exit_cb, void *exit_arg);
+bool thread_is_exiting(void);
 int thread_join(unsigned id, void **result);
 int thread_join_try(unsigned id, void **result);
 

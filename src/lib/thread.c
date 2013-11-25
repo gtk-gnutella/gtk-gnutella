@@ -2526,10 +2526,8 @@ found:
  * Get the thread-private hash table storing the per-thread keys.
  */
 static hash_table_t *
-thread_get_private_hash(void)
+thread_get_private_hash(struct thread_element *te)
 {
-	struct thread_element *te = thread_get_element();
-
 	/*
 	 * The private hash table is lazily created because not all the threads
 	 * are going to require usage of thread-private data.  Since this data
@@ -3642,10 +3640,11 @@ thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
 void *
 thread_private_get(const void *key)
 {
+	struct thread_element *te = thread_get_element();
 	hash_table_t *pht;
 	struct thread_pvalue *pv;
 
-	pht = thread_get_private_hash();
+	pht = thread_get_private_hash(te);
 	pv = hash_table_lookup(pht, key);
 
 	return NULL == pv ? NULL : pv->value;
@@ -3674,10 +3673,11 @@ thread_private_remove_value(hash_table_t *pht,
 bool
 thread_private_remove(const void *key)
 {
+	struct thread_element *te = thread_get_element();
 	hash_table_t *pht;
 	void *v;
 
-	pht = thread_get_private_hash();
+	pht = thread_get_private_hash(te);
 	if (hash_table_lookup_extended(pht, key, NULL, &v)) {
 		thread_private_remove_value(pht, key, v);
 		return TRUE;
@@ -3706,6 +3706,7 @@ void
 thread_private_update_extended(const void *key, const void *value,
 	free_data_fn_t p_free, void *p_arg, bool existing)
 {
+	struct thread_element *te = thread_get_element();
 	hash_table_t *pht;
 	struct thread_pvalue *pv;
 	void *v;
@@ -3713,7 +3714,7 @@ thread_private_update_extended(const void *key, const void *value,
 
 	thread_pvzone_init();
 
-	pht = thread_get_private_hash();
+	pht = thread_get_private_hash(te);
 	if (hash_table_lookup_extended(pht, key, NULL, &v)) {
 		struct thread_pvalue *opv = v;
 
@@ -3730,6 +3731,23 @@ thread_private_update_extended(const void *key, const void *value,
 			}
 			return;				/* Key was already present with same value */
 		}
+	}
+
+	/*
+	 * Loudly warn when attempting to add a private value for an exiting
+	 * thread, and it is not of the THREAD_PRIVATE_KEEP kind: the memory
+	 * associated with that value will not be cleared until the thread
+	 * element is reused, which may never happen.
+	 *		--RAM, 2013-11-15
+	 */
+
+	if G_UNLIKELY(
+		te->exit_started &&
+		p_free != NULL &&
+		p_free != THREAD_PRIVATE_KEEP
+	) {
+		s_carp("%s(): adding value freed by %s() in %s",
+			G_STRFUNC, stacktrace_function_name(p_free), thread_name());
 	}
 
 	pv = zalloc(pvzone);
@@ -4010,6 +4028,24 @@ thread_local_set(thread_key_t key, const void *value)
 		freecb != NULL && freecb != THREAD_LOCAL_KEEP
 	)
 		(*freecb)(val);
+
+	/*
+	 * Loudly warn when attempting to add a local value for an exiting
+	 * thread, and it is not of the THREAD_LOCAL_KEEP kind: the memory
+	 * associated with that value will not be cleared until the thread
+	 * element is reused, which may never happen.
+	 *		--RAM, 2013-11-15
+	 */
+
+	if G_UNLIKELY(
+		te->exit_started &&
+		value != NULL &&
+		freecb != NULL &&
+		freecb != THREAD_LOCAL_KEEP
+	) {
+		s_carp("%s(): adding value freed by %s() in %s",
+			G_STRFUNC, stacktrace_function_name(freecb), thread_name());
+	}
 }
 
 /**
@@ -6931,6 +6967,27 @@ void
 thread_exit(void *value)
 {
 	thread_exit_internal(value, thread_sp());
+}
+
+/**
+ * Check whether thread has begun to exit.
+ *
+ * This may be useful to check for in low-level routines, to avoid creating
+ * new thread-private or thread-local values that may not end-up being
+ * cleared if we are past the clearing point in thread_exit_internal().
+ *
+ * Of course, the thread-local or thread-private variables would be reclaimed
+ * automatically when the thread element is reused, but we do not know when
+ * this will occur and a large amount of (unused) memory may be kept around.
+ *
+ * @return whether current thread is on its exit path.
+ */
+bool
+thread_is_exiting(void)
+{
+	struct thread_element *te = thread_get_element();
+
+	return te->exit_started;
 }
 
 /**
