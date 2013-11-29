@@ -3734,6 +3734,16 @@ thread_private_update_extended(const void *key, const void *value,
 	}
 
 	/*
+	 * When setting the private value to NULL, simply delete the entry.
+	 *
+	 * If any (necessarily non-NULL) value was present, it was already removed
+	 * above since opv->value cannot be NULL.
+	 */
+
+	if G_UNLIKELY(NULL == value)
+		return;
+
+	/*
 	 * Loudly warn when attempting to add a private value for an exiting
 	 * thread, and it is not of the THREAD_PRIVATE_KEEP kind: the memory
 	 * associated with that value will not be cleared until the thread
