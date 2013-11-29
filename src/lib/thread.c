@@ -6846,6 +6846,14 @@ thread_exit_internal(void *value, const void *sp)
 	}
 
 	/*
+	 * Invoke any registered exit notification callback, before thread
+	 * variables are cleared (since callbacks may use still want to use them).
+	 */
+
+	eslist_foreach_remove(&te->exit_list,
+		te->async_exit ? thread_exit_async_cb : thread_exit_sync_cb, value);
+
+	/*
 	 * When a thread exits, all its thread-private and thread-local variables
 	 * are reclaimed.
 	 *
@@ -6882,13 +6890,6 @@ thread_exit_internal(void *value, const void *sp)
 			dam_free_null(&d);
 		}
 	}
-
-	/*
-	 * Invoke any registered exit notification callback.
-	 */
-
-	eslist_foreach_remove(&te->exit_list,
-		te->async_exit ? thread_exit_async_cb : thread_exit_sync_cb, value);
 
 	/*
 	 * The alternate signal stack, if allocated, can now be freed since we
