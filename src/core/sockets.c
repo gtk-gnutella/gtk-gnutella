@@ -293,7 +293,7 @@ socket_evt_set(struct gnutella_socket *s,
 	socket_check(s);
 	g_assert(handler);
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
-	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
+	g_assert(0 != (INPUT_EVENT_RW & cond));
 	g_assert(0 == s->gdk_tag);
 
 	fd = socket_evt_fd(s);
