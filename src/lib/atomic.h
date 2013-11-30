@@ -115,6 +115,8 @@ atomic_uint_dec_is_zero(unsigned *p)
 #define ATOMIC_DEC(p)		__sync_fetch_and_sub(p, 1)
 #define ATOMIC_GET(p)		(atomic_mb(), *(p))
 #define ATOMIC_SET(p,v)		(*(p) = (v), atomic_mb())
+#define ATOMIC_ADD(p,v)		__sync_fetch_and_add(p, v)
+#define ATOMIC_SUB(p,v)		__sync_fetch_and_sub(p, v)
 
 #else	/* !HAS_SYNC_ATOMIC */
 
@@ -133,6 +135,8 @@ atomic_test_and_set(atomic_lock_t *p)
 #define ATOMIC_DEC(p)				((*(p))--)
 #define ATOMIC_GET(p)				(*(p))
 #define ATOMIC_SET(p,v)				(*(p) = (v))
+#define ATOMIC_ADD(p,v)				(*(p) += (v))
+#define ATOMIC_SUB(p,v)				(*(p) -= (v))
 
 #define atomic_int_inc(p)			((*(p))++)		/* Previous value */
 #define atomic_int_dec(p)			((*(p))--)		/* Previous value */
@@ -274,6 +278,48 @@ retry:
 	goto retry;
 }
 
+/**
+ * Add value to a 64-bit counter split between high and low 32-bit parts.
+ *
+ * @param hi		pointer to the high 32-bit part
+ * @param lo		pointer to the low 32-bit part
+ * @param value		value to add to the counter.
+ */
+static inline void
+au64_add(uint *hi, uint *lo, long value)
+{
+	register uint low;
+
+	g_assert(value >= 0);
+	g_assert(UNSIGNED(value) < MAX_INT_VAL(uint));
+
+	low = ATOMIC_ADD(lo, value);
+	if G_UNLIKELY(*lo < low)
+		atomic_uint_inc(hi);		/* Carry */
+}
+
+/**
+ * Substract value to a 64-bit counter split between high and low 32-bit parts.
+ *
+ * @param hi		pointer to the high 32-bit part
+ * @param lo		pointer to the low 32-bit part
+ * @param value		value to substract to the counter.
+ */
+static inline void
+au64_sub(uint *hi, uint *lo, long value)
+{
+	register uint low;
+
+	g_assert(value >= 0);
+	g_assert(UNSIGNED(value) < MAX_INT_VAL(uint));
+
+	low = ATOMIC_SUB(lo, value);
+	if G_UNLIKELY(*lo > low)
+		atomic_uint_dec(hi);		/* Carry */
+}
+
+#define AU64_ADD(x,v) au64_add(x ## _hi, x ## _lo, v)
+#define AU64_SUB(x,v) au64_sub(x ## _hi, x ## _lo, v)
 #define AU64_VALUE(x) au64_value(x ## _hi, x ## _lo)
 
 #elif 8 == LONGSIZE
@@ -289,6 +335,8 @@ retry:
 #define AU64(x) 		uint64 x ## _64
 #define AU64_INC(x) 	ATOMIC_INC(x ## _64)
 #define AU64_DEC(x) 	ATOMIC_DEC(x ## _64)
+#define AU64_ADD(x,v) 	ATOMIC_ADD(x ## _64, v)
+#define AU64_SUB(x,v) 	ATOMIC_SUB(x ## _64, v)
 #define AU64_VALUE(x) 	(atomic_mb(), *(x ## _64))
 
 #else
