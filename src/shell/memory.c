@@ -50,6 +50,7 @@
 #include "lib/parse.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/tmalloc.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
 #include "lib/zalloc.h"
@@ -312,6 +313,17 @@ shell_exec_memory_show_hole(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
+shell_exec_memory_show_magazines(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, tmalloc_dump_magazines_log, "TMALLOC ");
+}
+
+static enum shell_reply
 shell_exec_memory_show_pcache(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
@@ -372,6 +384,7 @@ shell_exec_memory_show(struct gnutella_shell *sh,
 } G_STMT_END
 
 	CMD(hole);
+	CMD(magazines);
 	CMD(options);
 	CMD(pcache);
 	CMD(pmap);
@@ -415,6 +428,16 @@ shell_exec_memory_stats_vmm(struct gnutella_shell *sh,
 		return memory_run_opt_shower(sh, vmm_dump_usage_log, "VMM ", opt);
 
 	return memory_run_opt_shower(sh, vmm_dump_stats_log, "VMM ", opt);
+}
+
+static enum shell_reply
+shell_exec_memory_stats_tmalloc(struct gnutella_shell *sh,
+	unsigned opt, unsigned which)
+{
+	if (which & STATS_USAGE)
+		return memory_stats_unsupported(sh, "tmalloc", STATS_USAGE_STR);
+
+	return memory_run_opt_shower(sh, tmalloc_dump_stats_log, "TMALLOC ", opt);
 }
 
 static enum shell_reply
@@ -483,6 +506,7 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 } G_STMT_END
 
 	CMD(halloc);
+	CMD(tmalloc);
 	CMD(vmm);
 	CMD(xmalloc);
 	CMD(zalloc);
@@ -699,13 +723,15 @@ shell_help_memory(int argc, const char *argv[])
 		else if (0 == ascii_strcasecmp(argv[1], "show")) {
 			return
 				"memory show hole      # display VMM first known hole\n"
+				"memory show magazines # display thread magazine information\n"
 				"memory show options   # display memory options\n"
 				"memory show pcache    # display VMM page cache\n"
 				"memory show pmap      # display VMM pmap\n"
 				"memory show xmalloc   # display xmalloc() freelist info\n"
 				"memory show zones     # display zone usage\n";
 		} else if (0 == ascii_strcasecmp(argv[1], "stats")) {
-			return "memory stats [-pu] halloc|omalloc|vmm|xmalloc|zalloc\n"
+			return "memory stats [-pu] "
+				"halloc|omalloc|tmalloc|vmm|xmalloc|zalloc\n"
 				"show statistics about specified memory sub-system\n"
 				"-p : pretty-print numbers with thousands separators\n"
 				"-u : show allocation usage statistics, if available\n";
@@ -719,8 +745,8 @@ shell_help_memory(int argc, const char *argv[])
 		"memory dump ADDRESS LENGTH\n"
 #endif
 		"memory check xmalloc\n"
-		"memory show hole|options|pmap|xmalloc|zones\n"
-		"memory stats [-pu] omalloc|vmm|xmalloc|zalloc\n"
+		"memory show hole|magazines|options|pmap|xmalloc|zones\n"
+		"memory stats [-pu] omalloc|tmalloc|vmm|xmalloc|zalloc\n"
 		"memory usage zone <size> on|off|show\n"
 		;
 	}

@@ -145,8 +145,10 @@
 #include "tmalloc.h"
 
 #include "atomic.h"
+#include "dump_options.h"
 #include "eslist.h"
 #include "evq.h"
+#include "glib-missing.h"	/* For gm_slist_free_null() */
 #include "log.h"
 #include "omalloc.h"
 #include "once.h"
@@ -155,6 +157,7 @@
 #include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -197,7 +200,9 @@ struct tmalloc_stats {
 	AU64(tmas_depot_trashings);		/* Objects trashed to depot by tmfree() */
 	AU64(tmas_freeings);			/* Total amount of object freeings */
 	AU64(tmas_threads);				/* Total amount of threads attached */
-	AU64(tmas_obj_trash_reused);	/* Amount of trahsed object reused */
+	AU64(tmas_contentions);			/* Total amount of lock contentions */
+	AU64(tmas_object_trash_reused);	/* Amount of trahsed object reused */
+	AU64(tmas_empty_trash_reused);	/* Empty trahsed magazines reused */
 	AU64(tmas_mag_allocated);		/* Total amount of magazines allocated */
 	AU64(tmas_mag_freed);			/* Total amount of magazines freed */
 	AU64(tmas_mag_trashed);			/* Total amount of magazines trashed */
@@ -206,7 +211,6 @@ struct tmalloc_stats {
 	AU64(tmas_mag_empty_freed);		/* Empty magazines freed */
 	AU64(tmas_mag_empty_loaded);	/* Total amount of empty magazines loaded */
 	AU64(tmas_mag_full_rebuilt);	/* Full magazines rebuilt from trash */
-	AU64(tmas_empty_trash_reused);	/* Empty trahsed magazines reused */
 	AU64(tmas_mag_full_trashed);	/* Full magazines trashed */
 	AU64(tmas_mag_full_freed);		/* Full magazines freed */
 	AU64(tmas_mag_full_loaded);		/* Total amount of full magazines loaded */
@@ -241,6 +245,7 @@ struct tmalloc_depot {
 	/* depot layer */
 	int tma_mag_capacity;		/* The ideal magazine capacity "M" */
 	int tma_threads;			/* Amount of threads using this allocator */
+	int tma_magazines;			/* Magazines currently used by threads */
 	size_t tma_contentions;		/* Contentions registered */
 	size_t tmp_minmax_count;	/* Periods used to monitor min/max values */
 	struct tma_list tma_full;	/* List of full magazines */
@@ -578,6 +583,7 @@ tmalloc_magazine_alloc(tmalloc_t *d)
  */
 #define tmalloc_depot_lock_hidden(d) G_STMT_START {			\
 	if G_UNLIKELY(!spinlock_hidden_try(&(d)->tma_lock)) {	\
+		TMALLOC_STATS_INCX(d, contentions);					\
 		spinlock_hidden(&(d)->tma_lock);					\
 		(d)->tma_contentions++;								\
 	}														\
@@ -624,6 +630,8 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 			free_magazine = TRUE;
 		else
 			eslist_prepend(&d->tma_empty.tml_list, m);
+	} else {
+		d->tma_magazines++;		/* Going to return empty magazine to thread */
 	}
 
 	/*
@@ -641,7 +649,7 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 		if G_LIKELY(fm != NULL) {
 			int n = fm->tmag_capacity;
 
-			TMALLOC_STATS_ADDX(d, obj_trash_reused, n);
+			TMALLOC_STATS_ADDX(d, object_trash_reused, n);
 
 			while (n-- > 0) {
 				void **p = d->tma_obj_trash;
@@ -661,6 +669,8 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 
 	if G_LIKELY(fm != NULL)
 		TMALLOC_STATS_INCX(d, mag_full_loaded);
+	else
+		d->tma_magazines--;		/* No magazine returned */
 
 	if G_UNLIKELY(free_magazine) {
 		TMALLOC_STATS_INCX(d, mag_bad_capacity);
@@ -705,6 +715,8 @@ tmalloc_depot_return_full(tmalloc_t *d, tmalloc_magazine_t *m)
 			free_magazine = TRUE;
 		else
 			eslist_prepend(&d->tma_full.tml_list, m);
+	} else {
+		d->tma_magazines++;		/* Going to return full magazine to thread */
 	}
 
 	tmalloc_depot_unlock_hidden(d);
@@ -752,21 +764,24 @@ tmalloc_depot_return(tmalloc_t *d, tmalloc_magazine_t *m)
 	 * since this is an exceptional event (the thread is exiting).
 	 */
 
+	TMALLOC_LOCK(d);
+
+	g_assert(d->tma_magazines > 0);
+	d->tma_magazines--;
+
 	if (0 == m->tmag_count) {
-		TMALLOC_LOCK(d);
 		if G_LIKELY(m->tmag_capacity == d->tma_mag_capacity) {
 			eslist_prepend(&d->tma_empty.tml_list, m);
 			free_magazine = FALSE;
 		}
-		TMALLOC_UNLOCK(d);
 	} else if (m->tmag_count == m->tmag_capacity) {
-		TMALLOC_LOCK(d);
 		if G_LIKELY(m->tmag_capacity == d->tma_mag_capacity) {
 			eslist_prepend(&d->tma_full.tml_list, m);
 			free_magazine = FALSE;
 		}
-		TMALLOC_UNLOCK(d);
 	}
+
+	TMALLOC_UNLOCK(d);
 
 	if (free_magazine) {
 		if G_UNLIKELY(m->tmag_capacity != d->tma_mag_capacity)
@@ -787,6 +802,10 @@ tmalloc_depot_unload(tmalloc_t *d, tmalloc_magazine_t *m)
 	tmalloc_magazine_check(m);
 
 	TMALLOC_LOCK_HIDDEN(d);
+
+	g_assert(d->tma_magazines > 0);
+
+	d->tma_magazines--;
 
 	/*
 	 * The magazine may not be empty or full, and any objects held are put
@@ -848,7 +867,7 @@ tmalloc_depot_alloc(tmalloc_t *d)
 		TMALLOC_UNLOCK_HIDDEN(d);
 
 		if G_LIKELY(p != NULL) {
-			TMALLOC_STATS_INCX(d, obj_trash_reused);
+			TMALLOC_STATS_INCX(d, object_trash_reused);
 			return p;
 		}
 	}
@@ -1643,6 +1662,7 @@ tmalloc_reset_thread(const void *data, void *udata)
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 
 		tmt->tmt_mag[i] = NULL;		/* Thread is suspended */
+		atomic_int_dec(&tma->tma_magazines);
 
 		if (m != NULL) {
 			if (tmalloc_debugging(1)) {
@@ -1995,6 +2015,288 @@ tmfree(tmalloc_t *tma, void *p)
 		return tmalloc_depot_trash(tma, p);
 
 	tmalloc_thread_free(tmt, p);
+}
+
+/**
+ * Retrieve thread magazine depot information.
+ *
+ * @return list of tmalloc_info_t that must be freed by calling the
+ * tmalloc_info_list_free_null() routine.
+ */
+GSList *
+tmalloc_info_list(void)
+{
+	GSList *sl = NULL;
+	tmalloc_t *d;
+
+	TMALLOC_VARS_LOCK;
+
+	ESLIST_FOREACH_DATA(&tmalloc_vars, d) {
+		tmalloc_info_t *tmi;
+
+		tmalloc_check(d);
+
+		WALLOC0(tmi);
+		tmi->magic = TMALLOC_INFO_MAGIC;
+
+		TMALLOC_LOCK(d);
+
+		tmi->name = d->tma_name;
+		tmi->size = d->tma_size;
+		tmi->attached = d->tma_threads;
+		tmi->magazines = d->tma_magazines;
+		tmi->mag_capacity = d->tma_mag_capacity;
+		tmi->mag_full = eslist_count(&d->tma_full.tml_list);
+		tmi->mag_empty = eslist_count(&d->tma_empty.tml_list);
+		tmi->mag_full_trash = eslist_count(&d->tma_full.tml_trash);
+		tmi->mag_empty_trash = eslist_count(&d->tma_empty.tml_trash);
+		tmi->mag_object_trash = d->tma_obj_trash_count;
+
+#define STATS_COPY(name)	tmi->name = AU64_VALUE(&d->tma_stats.tmas_ ## name)
+
+		STATS_COPY(allocations);
+		STATS_COPY(allocations_zeroed);
+		STATS_COPY(depot_allocations);
+		STATS_COPY(depot_trashings);
+		STATS_COPY(freeings);
+		STATS_COPY(threads);
+		STATS_COPY(contentions);
+		STATS_COPY(object_trash_reused);
+		STATS_COPY(empty_trash_reused);
+		STATS_COPY(mag_allocated);
+		STATS_COPY(mag_freed);
+		STATS_COPY(mag_trashed);
+		STATS_COPY(mag_unloaded);
+		STATS_COPY(mag_empty_trashed);
+		STATS_COPY(mag_empty_freed);
+		STATS_COPY(mag_empty_loaded);
+		STATS_COPY(mag_full_rebuilt);
+		STATS_COPY(mag_full_trashed);
+		STATS_COPY(mag_full_freed);
+		STATS_COPY(mag_full_loaded);
+		STATS_COPY(mag_used_freed);
+		STATS_COPY(mag_bad_capacity);
+
+#undef STATS_COPY
+
+		TMALLOC_UNLOCK(d);
+
+		sl = g_slist_prepend(sl, tmi);
+	}
+
+	TMALLOC_VARS_UNLOCK;
+
+	return g_slist_reverse(sl);
+}
+
+static void
+tmalloc_info_free(void *data, void *udata)
+{
+	tmalloc_info_t *tmi = data;
+
+	(void) udata;
+
+	tmalloc_info_check(tmi);
+	WFREE(tmi);
+}
+
+/**
+ * Free list created by tmalloc_info_list() and nullify pointer.
+ */
+void
+tmalloc_info_list_free_null(GSList **sl_ptr)
+{
+	GSList *sl = *sl_ptr;
+
+	g_slist_foreach(sl, tmalloc_info_free, NULL);
+	gm_slist_free_null(sl_ptr);
+}
+
+/**
+ * Dump tmalloc statistics to specified log agent.
+ */
+G_GNUC_COLD void
+tmalloc_dump_stats_log(logagent_t *la, unsigned options)
+{
+	tmalloc_info_t stats;
+	tmalloc_t *d;
+	size_t depot_count;
+
+	ZERO(&stats);
+
+	TMALLOC_VARS_LOCK;
+
+	depot_count = eslist_count(&tmalloc_vars);
+
+	ESLIST_FOREACH_DATA(&tmalloc_vars, d) {
+		tmalloc_check(d);
+
+		TMALLOC_LOCK(d);
+
+		stats.magazines += d->tma_magazines;
+		stats.mag_full += eslist_count(&d->tma_full.tml_list);
+		stats.mag_empty += eslist_count(&d->tma_empty.tml_list);
+		stats.mag_full_trash += eslist_count(&d->tma_full.tml_trash);
+		stats.mag_empty_trash += eslist_count(&d->tma_empty.tml_trash);
+		stats.mag_object_trash += d->tma_obj_trash_count;
+
+#define STATS_COPY(name) stats.name += AU64_VALUE(&d->tma_stats.tmas_ ## name)
+
+		STATS_COPY(allocations);
+		STATS_COPY(allocations_zeroed);
+		STATS_COPY(depot_allocations);
+		STATS_COPY(depot_trashings);
+		STATS_COPY(freeings);
+		STATS_COPY(contentions);
+		STATS_COPY(object_trash_reused);
+		STATS_COPY(empty_trash_reused);
+		STATS_COPY(mag_allocated);
+		STATS_COPY(mag_freed);
+		STATS_COPY(mag_trashed);
+		STATS_COPY(mag_unloaded);
+		STATS_COPY(mag_empty_trashed);
+		STATS_COPY(mag_empty_freed);
+		STATS_COPY(mag_empty_loaded);
+		STATS_COPY(mag_full_rebuilt);
+		STATS_COPY(mag_full_trashed);
+		STATS_COPY(mag_full_freed);
+		STATS_COPY(mag_full_loaded);
+		STATS_COPY(mag_used_freed);
+		STATS_COPY(mag_bad_capacity);
+
+#undef STATS_COPY
+
+		TMALLOC_UNLOCK(d);
+	}
+
+	TMALLOC_VARS_UNLOCK;
+
+#define DUMPV(x)	log_info(la, "TMALLOC %s = %s", #x,			\
+	(options & DUMP_OPT_PRETTY) ?								\
+		size_t_to_gstring(x) : size_t_to_string(x))				\
+
+#define DUMP(x)		log_info(la, "TMALLOC %s = %s", #x,			\
+	(options & DUMP_OPT_PRETTY) ?								\
+		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+
+	DUMP(allocations);
+	DUMP(allocations_zeroed);
+	DUMP(depot_allocations);
+	DUMP(depot_trashings);
+	DUMP(freeings);
+	DUMP(contentions);
+	DUMPV(depot_count);
+	DUMP(magazines);
+	DUMP(object_trash_reused);
+	DUMP(empty_trash_reused);
+	DUMP(mag_full);
+	DUMP(mag_empty);
+	DUMP(mag_full_trash);
+	DUMP(mag_empty_trash);
+	DUMP(mag_object_trash);
+	DUMP(mag_allocated);
+	DUMP(mag_freed);
+	DUMP(mag_trashed);
+	DUMP(mag_unloaded);
+	DUMP(mag_empty_trashed);
+	DUMP(mag_empty_freed);
+	DUMP(mag_empty_loaded);
+	DUMP(mag_full_rebuilt);
+	DUMP(mag_full_trashed);
+	DUMP(mag_full_freed);
+	DUMP(mag_full_loaded);
+	DUMP(mag_used_freed);
+	DUMP(mag_bad_capacity);
+
+#undef DUMP
+#undef DUMPV
+}
+
+/*
+ * Dump thread magazine allocator information to specified log-agent.
+ */
+static void
+tmalloc_info_dump(void *data, void *udata)
+{
+	tmalloc_info_t *tmi = data;
+	logagent_t *la = udata;
+
+	tmalloc_info_check(tmi);
+
+#define DUMPS(x) \
+	log_info(la, "TMALLOC %19s = %'zu", #x, tmi->x)
+
+#define DUMPL(x) \
+	log_info(la, "TMALLOC %19s = %s", #x, uint64_to_gstring(tmi->x))
+
+	log_info(la, "TMALLOC --- \"%s\" %zu-byte blocks M=%zu ---",
+		tmi->name, tmi->size, tmi->mag_capacity);
+
+	DUMPS(attached);
+	DUMPS(magazines);
+	DUMPL(contentions);
+	DUMPL(allocations);
+	DUMPL(allocations_zeroed);
+	DUMPL(depot_allocations);
+	DUMPL(depot_trashings);
+	DUMPL(freeings);
+	DUMPL(threads);
+	DUMPL(object_trash_reused);
+	DUMPL(empty_trash_reused);
+	DUMPL(mag_full);
+	DUMPL(mag_empty);
+	DUMPL(mag_full_trash);
+	DUMPL(mag_empty_trash);
+	DUMPL(mag_object_trash);
+	DUMPL(mag_allocated);
+	DUMPL(mag_freed);
+	DUMPL(mag_trashed);
+	DUMPL(mag_unloaded);
+	DUMPL(mag_empty_trashed);
+	DUMPL(mag_empty_freed);
+	DUMPL(mag_empty_loaded);
+	DUMPL(mag_full_rebuilt);
+	DUMPL(mag_full_trashed);
+	DUMPL(mag_full_freed);
+	DUMPL(mag_full_loaded);
+	DUMPL(mag_used_freed);
+	DUMPL(mag_bad_capacity);
+
+#undef DUMPS
+#undef DUMPL
+}
+
+static int
+tmalloc_info_size_cmp(const void *a, const void *b)
+{
+	const tmalloc_info_t *ai = a, *bi = b;
+
+	return CMP(ai->size, bi->size);
+}
+
+/**
+ * Dump per-depot magazine statistics to specified logagent.
+ */
+G_GNUC_COLD void
+tmalloc_dump_magazines_log(logagent_t *la)
+{
+	GSList *sl = tmalloc_info_list();
+
+	sl = g_slist_sort(sl, tmalloc_info_size_cmp);
+	g_slist_foreach(sl, tmalloc_info_dump, la);
+	tmalloc_info_list_free_null(&sl);
+}
+
+/**
+ * Dump tmalloc statistics.
+ */
+G_GNUC_COLD void
+tmalloc_dump_stats(void)
+{
+	s_info("TMALLOC running statistics:");
+	tmalloc_dump_stats_log(log_agent_stderr_get(), 0);
+	s_info("TMALLOC per-allocator statistics:");
+	tmalloc_dump_magazines_log(log_agent_stderr_get());
 }
 
 /* vi: set ts=4 sw=4 cindent: */
