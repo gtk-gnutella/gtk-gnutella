@@ -151,6 +151,7 @@ inputevt_cond_to_string(inputevt_cond_t cond)
 {
 	switch (cond) {
 #define CASE(x) case x: return #x
+	CASE(INPUT_EVENT_NONE);
 	CASE(INPUT_EVENT_EXCEPTION);
 	CASE(INPUT_EVENT_R);
 	CASE(INPUT_EVENT_W);
@@ -1547,6 +1548,8 @@ inputevt_add(int fd, inputevt_cond_t cond,
 		goto cond_is_okay;
 	case INPUT_EVENT_EXCEPTION:
 		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
+	case INPUT_EVENT_NONE:
+		g_error("cannot specify INPUT_EVENT_NONE only!");
 	}
 	g_assert_not_reached();
 
