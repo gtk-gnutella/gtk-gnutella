@@ -1984,6 +1984,8 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 
 static struct {
 	void *reserved;			/* Reserved memory */
+	void *base;				/* Next available base for reserved memory */
+	size_t consumed;		/* Consumed space in reserved memory */
 	size_t size;			/* Size for hinted allocation */
 	size_t later;			/* Size of "later" memory we did not reserve */
 	size_t available;		/* Virtual memory initially available */
@@ -1997,7 +1999,6 @@ mingw_valloc(void *hint, size_t size)
 
 	if (NULL == hint && mingw_vmm.hinted >= 0) {
 		static spinlock_t valloc_slk = SPINLOCK_INIT;
-		size_t n;
 
 		spinlock(&valloc_slk);
 
@@ -2100,6 +2101,7 @@ mingw_valloc(void *hint, size_t size)
 					compact_size2(mem_latersize, FALSE));
 			}
 
+			mingw_vmm.base = mingw_vmm.reserved;
 			mingw_vmm_inited = TRUE;
 		}
 
@@ -2108,15 +2110,16 @@ mingw_valloc(void *hint, size_t size)
 				compact_size(size, FALSE), mingw_vmm.hinted);
 		}
 
-		n = mingw_getpagesize();
-		n = size_saturate_mult(n, mingw_vmm.hinted++);
-		if (n + size >= mingw_vmm.size) {
+		mingw_vmm.hinted++;
+		if G_UNLIKELY(mingw_vmm.consumed + size > mingw_vmm.size) {
 			spinunlock(&valloc_slk);
 			s_minicrit("%s(): out of reserved memory for %zu bytes",
 				G_STRFUNC, size);
 			goto failed;
 		}
-		p = ptr_add_offset(mingw_vmm.reserved, n);
+		p = mingw_vmm.base;
+		mingw_vmm.base = ptr_add_offset(mingw_vmm.base, size);
+		mingw_vmm.consumed += size;
 		spinunlock(&valloc_slk);
 	} else if (NULL == hint && mingw_vmm.hinted < 0) {
 		/*
