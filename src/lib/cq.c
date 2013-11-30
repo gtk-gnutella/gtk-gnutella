@@ -38,12 +38,13 @@
 
 #include "atoms.h"
 #include "elist.h"
-#include "hset.h"
 #include "glib-missing.h"	/* For gm_slist_free_null() */
+#include "hset.h"
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
 #include "pow2.h"
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "stringify.h"
 #include "thread.h"
@@ -169,7 +170,7 @@ struct cqueue {
 	const char *cq_name;		/**< Queue name, for logging */
 	struct chash *cq_hash;		/**< Array of buckets for hash list */
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
-	hset_t *cq_periodic;		/**< Periodic events registered */
+	elist_t cq_periodic;		/**< Periodic events registered */
 	hset_t *cq_idle;			/**< Idle events registered */
 	const cevent_t *cq_call;	/**< Event being called out, for cq_zero() */
 	size_t cq_triggered;		/**< Events triggered */
@@ -182,6 +183,7 @@ struct cqueue {
 	time_t cq_last_idle;		/**< Last time we ran the idle callbacks */
 	mutex_t cq_lock;			/**< Thread-safety for queue changes */
 	mutex_t cq_idle_lock;		/**< Protects idle callbacks */
+	spinlock_t cq_periodic_lock;/**< Protects cq_periodic */
 	link_t lk;					/**< Embedded link to list all queues */
 };
 
@@ -316,6 +318,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 	cq->cq_stid = THREAD_INVALID_ID;
 	mutex_init(&cq->cq_lock);
 	mutex_init(&cq->cq_idle_lock);
+	spinlock_init(&cq->cq_periodic_lock);
 	tm_now_exact(&cq->cq_last_heartbeat);
 
 	cqueue_check(cq);
@@ -1427,6 +1430,7 @@ struct cperiodic {
 	int period;						/**< Period between invocations, in ms */
 	cqueue_t *cq;					/**< Callout queue scheduling this */
 	cevent_t *ev;					/**< Scheduled event */
+	link_t lk;						/**< Links all periodic events in queue */
 	unsigned to_free:1;				/**< Marked for freeing */
 };
 
@@ -1461,7 +1465,11 @@ cq_periodic_free(cperiodic_t *cp, bool force)
 		cqueue_check(cq);
 
 		cq_cancel(&cp->ev);
-		cq_unregister_object(cq->cq_periodic, cp);
+
+		spinlock(&cq->cq_periodic_lock);
+		elist_remove(&cq->cq_periodic, cp);
+		spinunlock(&cq->cq_periodic_lock);
+
 		cp->magic = 0;
 		WFREE(cp);
 	}
@@ -1527,7 +1535,13 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, void *arg)
 	cp->cq = cq;
 	cp->ev = cq_insert(cq, period, cq_periodic_trampoline, cp);
 
-	cq_register_object(&cq->cq_periodic, cp);
+	spinlock(&cq->cq_periodic_lock);
+
+	if G_UNLIKELY(!elist_is_initialized(&cq->cq_periodic))
+		elist_init(&cq->cq_periodic, offsetof(cperiodic_t, lk));
+	elist_append(&cq->cq_periodic, cp);
+
+	spinunlock(&cq->cq_periodic_lock);
 
 	return cp;
 }
@@ -2022,9 +2036,9 @@ cq_halt(void)
 }
 
 static bool
-cq_free_periodic(const void *key, void *data)
+cq_free_periodic(void *key, void *data)
 {
-	cperiodic_t *cp = deconstify_pointer(key);
+	cperiodic_t *cp = key;
 
 	(void) data;
 
@@ -2076,9 +2090,9 @@ cq_free(cqueue_t *cq)
 		}
 	}
 
-	if (cq->cq_periodic) {
-		hset_foreach_remove(cq->cq_periodic, cq_free_periodic, NULL);
-		hset_free_null(&cq->cq_periodic);
+	if (elist_is_initialized(&cq->cq_periodic)) {
+		elist_foreach_remove(&cq->cq_periodic, cq_free_periodic, NULL);
+		elist_discard(&cq->cq_periodic);
 	}
 
 	if (cq->cq_idle) {
@@ -2110,6 +2124,7 @@ cq_free(cqueue_t *cq)
 	mutex_unlock(&cq->cq_lock);
 	mutex_destroy(&cq->cq_lock);
 	mutex_destroy(&cq->cq_idle_lock);
+	spinlock_destroy(&cq->cq_periodic_lock);
 
 	/*
 	 * If freeing a sub-queue, the object is a bit larger than a queue,
@@ -2185,8 +2200,8 @@ cq_info_list(void)
 			cqi->parent = atom_str_get(pcq->cq_name);
 		}
 		cqi->stid = cq->cq_stid;
-		cqi->periodic_count =
-			NULL == cq->cq_periodic ? 0 : hset_count(cq->cq_periodic);
+		cqi->periodic_count = elist_is_initialized(&cq->cq_periodic) ?
+				elist_count(&cq->cq_periodic) : 0;
 		cqi->idle_count = NULL == cq->cq_idle ? 0 : hset_count(cq->cq_idle);
 		/* Each periodic event counts as an item, do not count them twice */
 		cqi->event_count = cq->cq_items - cqi->periodic_count;
