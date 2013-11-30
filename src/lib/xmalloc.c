@@ -6547,7 +6547,13 @@ xgc(void)
 
 	xstats.xgc_collected++;
 
-	tmp = vmm_alloc(xgctx.largest * sizeof(void *));
+	/*
+	 * Even though this is technically a "user" block, we perform a "core"
+	 * allocation because we must not enter the thread-magazine allocators
+	 * from the xmalloc garbage collector!
+	 */
+
+	tmp = vmm_core_alloc(xgctx.largest * sizeof(void *));
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
@@ -6617,7 +6623,7 @@ xgc(void)
 		}
 	}
 
-	vmm_free(tmp, xgctx.largest * sizeof(void *));
+	vmm_core_free(tmp, xgctx.largest * sizeof(void *));
 
 	/*
 	 * Pass 5: execute the strategy.

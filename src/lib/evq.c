@@ -290,7 +290,7 @@ evq_init_once(void)
 bool
 evq_is_inited(void)
 {
-	return evq_fully_inited;
+	return evq_fully_inited && evq_run;
 }
 
 static inline ALWAYS_INLINE void
@@ -385,7 +385,16 @@ evq_event_free(struct evq_event *eve)
 			eve->arg, eve->refcnt);
 	}
 
-	cq_cancel(&eve->ev);
+	/*
+	 * Watch out for shutdown, when the event queue thread is freeing its
+	 * own queued events: if the event_queue variable has been nullified,
+	 * the callout queue is gone, hence we must not attempt to cancel the
+	 * events.
+	 */
+
+	if G_LIKELY(event_queue != NULL)
+		cq_cancel(&eve->ev);
+
 	eve->magic = 0;
 	WFREE(eve);
 }
@@ -865,8 +874,25 @@ evq_cancel(evq_event_t **eve_ptr)
 
 		q = evq_get(stid);
 
-		g_assert_log(q != NULL,
-			"%s(): local queue missing for %s", G_STRFUNC, thread_name());
+		/*
+		 * We cannot blindly assert that q != NULL.
+		 *
+		 * During thread cleanup, there is one valid reason that could lead
+		 * to evq_cancel() being called with the queue already removed: the
+		 * thread-magazine allocator installs events, and the event queue
+		 * thread itself uses the thread-magazine allocator...
+		 *
+		 * When q == NULL, the calling thread must be exiting, and in that
+		 * case, we must not access the event since it has already been freed.
+		 */
+
+		if G_UNLIKELY(NULL == q) {
+			if (thread_is_exiting())
+				return;			/* Given a freed event since queue is gone */
+
+			s_error("%s(): local queue missing for %s",
+				G_STRFUNC, thread_name());
+		}
 
 		if (evq_debugging(2)) {
 			s_debug("%s() on %s(%p) refcnt=%d",

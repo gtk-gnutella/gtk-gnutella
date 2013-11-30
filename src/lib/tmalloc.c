@@ -155,11 +155,14 @@
 #include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
 #define TMALLOC_PERIODIC		5003	/* ms: hearbeat period (prime) */
 #define TMALLOC_GC_PERIOD		997		/* ms: gc period (prime) */
+#define TMALLOC_TGC_PERIOD		10007	/* ms: thread gc period (prime) */
+#define TMALLOC_TGC_IDLE		30		/* s: idle time before clearing */
 #define TMALLOC_BEAT_THRESHOLD	20		/* s: reaction period */
 #define TMALLOC_CONTENTIONS		1.0		/* target is 1/sec max */
 #define TMALLOC_MINMAX_PERIODS	6		/* consecutive min/max periods needed */
@@ -175,6 +178,10 @@
 #define TMALLOC_MAG_MEMORY_MAX	65536	/* Max memory "used" by magazine */
 
 #define TMALLOC_MAG_TRASH_MAX	4		/* Max trash */
+
+static thread_key_t tmalloc_magazines_key;
+static thread_key_t tmalloc_periodic_key;
+static once_flag_t tmalloc_keys_inited;
 
 static uint32 tmalloc_debug = 0;		/* Debugging level */
 
@@ -194,6 +201,7 @@ struct tmalloc_stats {
 	AU64(tmas_mag_allocated);		/* Total amount of magazines allocated */
 	AU64(tmas_mag_freed);			/* Total amount of magazines freed */
 	AU64(tmas_mag_trashed);			/* Total amount of magazines trashed */
+	AU64(tmas_mag_unloaded);		/* Total amount of magazines unloaded */
 	AU64(tmas_mag_empty_trashed);	/* Empty magazines trashed */
 	AU64(tmas_mag_empty_freed);		/* Empty magazines freed */
 	AU64(tmas_mag_empty_loaded);	/* Total amount of empty magazines loaded */
@@ -311,8 +319,10 @@ enum tmalloc_thread_magic { TMALLOC_THREAD_MAGIC = 0x2fe3612d };
 struct tmalloc_thread {
 	enum tmalloc_thread_magic tmt_magic;
 	uint tmt_stid;						/* STID of thread, for cleanup only */
+	time_t tmt_last_op;					/* Last allocation / deallocation */
 	tmalloc_t *tmt_depot;				/* Our TM allocator */
 	tmalloc_magazine_t *tmt_mag[2];		/* "loaded" and "previous" magazines */
+	slink_t tmt_link;					/* Links all thread layers in thread */
 };
 
 static inline void
@@ -766,6 +776,51 @@ tmalloc_depot_return(tmalloc_t *d, tmalloc_magazine_t *m)
 }
 
 /**
+ * Unload magazine to the depot.
+ */
+static void
+tmalloc_depot_unload(tmalloc_t *d, tmalloc_magazine_t *m)
+{
+	bool free_magazine = FALSE;
+
+	tmalloc_check(d);
+	tmalloc_magazine_check(m);
+
+	TMALLOC_LOCK_HIDDEN(d);
+
+	/*
+	 * The magazine may not be empty or full, and any objects held are put
+	 * to the trash, hence we get one more empty magazine in the depot at
+	 * the end.
+	 */
+
+	while (m->tmag_count != 0) {
+		void **p = m->tmag_objects[--m->tmag_count];
+		*p = d->tma_obj_trash;
+		d->tma_obj_trash = p;
+		d->tma_obj_trash_count++;
+	}
+
+	/*
+	 * If the magazine no longer has the ideal capacity, free it.
+	 */
+
+	if G_UNLIKELY(m->tmag_capacity != d->tma_mag_capacity)
+		free_magazine = TRUE;
+	else
+		eslist_prepend(&d->tma_empty.tml_list, m);
+
+	TMALLOC_UNLOCK_HIDDEN(d);
+
+	TMALLOC_STATS_INCX(d, mag_unloaded);
+
+	if (free_magazine) {
+		TMALLOC_STATS_INCX(d, mag_bad_capacity);
+		tmalloc_magazine_free(d, m);
+	}
+}
+
+/**
  * Allocate object directly from the depot's memory allocator.
  *
  * @param d		the depot from which we're allocating memory.
@@ -828,7 +883,7 @@ tmalloc_depot_trash(tmalloc_t *d, void *p)
  * @param data		the thread-local value being cleared
  */
 static void
-tmalloc_thread_exiting(void *data)
+tmalloc_thread_layer_free(void *data)
 {
 	struct tmalloc_thread *tmt = data;
 	tmalloc_t *d;
@@ -854,6 +909,45 @@ tmalloc_thread_exiting(void *data)
 
 	tmt->tmt_magic = 0;
 	d->tma_free(tmt, sizeof *tmt);
+}
+
+static void
+tmalloc_thread_free_periodic(void *data)
+{
+	evq_event_t *ev = data;
+
+	evq_cancel(&ev);
+}
+
+static void
+tmalloc_thread_free_magazines(void *data)
+{
+	eslist_t *es = data;
+
+	eslist_check(es);
+	XFREE_NULL(es);
+}
+
+/**
+ * When a thread is exiting, make sure we cancel the periodic event before
+ * the thread runtime attempts to call the free routines on the local variables.
+ *
+ * This also prevents warnings about "future" events being reclaimed when a
+ * thread exits since threads have many thread magazine allocators, each
+ * registering an event in the event queue.
+ */
+static void
+tmalloc_thread_exiting(void *unused_value, void *unused_ctx)
+{
+	(void) unused_value;
+	(void) unused_ctx;
+
+	/*
+	 * Setting the local variable to NULL will invoke the free routine
+	 * registered on the key, which is tmalloc_thread_free_periodic().
+	 */
+
+	thread_local_set(tmalloc_periodic_key, NULL);
 }
 
 /**
@@ -887,6 +981,7 @@ tmalloc_thread_alloc(struct tmalloc_thread *t)
 	 * to take any locks here.
 	 */
 
+	t->tmt_last_op = tm_time();
 	m = t->tmt_mag[TMALLOC_MAG_LOADED];
 
 	if G_UNLIKELY(tmalloc_magazine_is_empty(m)) {
@@ -946,6 +1041,7 @@ tmalloc_thread_free(struct tmalloc_thread *t, void *p)
 	 * to take any locks here.
 	 */
 
+	t->tmt_last_op = tm_time();
 	m = t->tmt_mag[TMALLOC_MAG_LOADED];
 
 	if G_UNLIKELY(tmalloc_magazine_is_full(m)) {
@@ -976,6 +1072,46 @@ tmalloc_thread_free(struct tmalloc_thread *t, void *p)
 	g_assert(m->tmag_count < m->tmag_capacity);
 
 	m->tmag_objects[m->tmag_count++] = p;
+}
+
+/**
+ * Clear thread magazines when no operations happened for some time.
+ *
+ * @note
+ * This is invoked within the context of the thread, so this is perfectly
+ * safe and no race condition can happen with operations on the same thread.
+ */
+static void
+tmalloc_thread_clear(struct tmalloc_thread *tmt)
+{
+	tmalloc_t *d;
+	size_t i;
+
+	tmalloc_thread_check(tmt);
+
+	d = tmt->tmt_depot;
+	tmalloc_check(d);
+
+	if (tmalloc_debugging(3)) {
+		s_debug("%s(\"%s\"): last operation was %u secs ago in %s",
+			G_STRFUNC, d->tma_name,
+			(uint) delta_time(tm_time(), tmt->tmt_last_op), thread_name());
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+		tmalloc_magazine_t *m = tmt->tmt_mag[i];
+		if (m != NULL) {
+			if (tmalloc_debugging(1)) {
+				s_debug("%s(\"%s\"): unloading local thread magazine #%zu "
+					"in %s: %d/%d rounds",
+					G_STRFUNC, d->tma_name, i + 1,
+					thread_id_name(tmt->tmt_stid),
+					m->tmag_count, m->tmag_capacity);
+			}
+			tmalloc_depot_unload(d, m);
+			tmt->tmt_mag[i] = NULL;
+		}
+	}
 }
 
 /**
@@ -1169,6 +1305,74 @@ tmalloc_gc(void *data)
 	return again;
 }
 
+static void tmalloc_thread_gc(void *);
+
+static void
+tmalloc_thread_gc_install(void)
+{
+	evq_event_t *ev;
+
+	ev = evq_insert(TMALLOC_TGC_PERIOD, tmalloc_thread_gc, NULL);
+	thread_local_set(tmalloc_periodic_key, ev);
+}
+
+/**
+ * Regular per-thread event invoked by the event queue.
+ */
+static void
+tmalloc_thread_gc(void *unused_data)
+{
+	tm_t start, end;
+	eslist_t *tmagazines;
+	struct tmalloc_thread *tmt;
+	time_t now;
+
+	(void) unused_data;
+
+	if (tmalloc_debugging(4)) {
+		tm_now_exact(&start);
+		s_debug("%s() in %s starting", G_STRFUNC, thread_name());
+	}
+
+	tmagazines = thread_local_get(tmalloc_magazines_key);
+	thread_local_set(tmalloc_periodic_key, NULL);	/* Will cancel event */
+	now = tm_time();
+
+	if G_UNLIKELY(NULL == tmagazines) {
+		s_warning_once_per(LOG_PERIOD_HOUR,
+			"%s(): missing thread magazine list in %s",
+			G_STRFUNC, thread_name());
+		goto done;
+	}
+
+	/*
+	 * If any thread layer has not been performing any operation for the
+	 * last TMALLOC_TGC_IDLE seconds, then clear its magazines to avoid
+	 * keeping objects allocated in the magazines that never get used.  This
+	 * s especially important for the larger objects, or for large magazines.
+	 */
+
+	ESLIST_FOREACH_DATA(tmagazines, tmt) {
+		tmalloc_thread_check(tmt);
+
+		if G_UNLIKELY(delta_time(now, tmt->tmt_last_op) > TMALLOC_TGC_IDLE)
+			tmalloc_thread_clear(tmt);
+	}
+
+	/*
+	 * Schedule next event.
+	 */
+
+done:
+	tmalloc_thread_gc_install();
+
+	if (tmalloc_debugging(4)) {
+		tm_now_exact(&end);
+		s_debug("%s() in %s ending, took %u usecs",
+			G_STRFUNC, thread_name(), (unsigned) tm_elapsed_us(&end, &start));
+	}
+}
+
 /**
  * Periodic beat invoked on the thread magazine layer.
  */
@@ -1357,7 +1561,9 @@ tmalloc_create(const char *name, size_t size,
 	 * There is only a fixed, limited, supply of thread-local keys available.
 	 */
 
-	if (-1 == thread_local_key_create(&tma->tma_key, tmalloc_thread_exiting)) {
+	if (-1 == thread_local_key_create(
+				&tma->tma_key, tmalloc_thread_layer_free)
+	) {
 		s_error("%s(): cannot create thread local key for \"%s\": %m",
 			G_STRFUNC, name);
 	}
@@ -1576,6 +1782,26 @@ tmalloc_reset(tmalloc_t *tma)
 		G_STRFUNC, tma->tma_name, n);
 }
 
+/**
+ * Initializethe thread-local keys used to store the magazine list and the
+ * registered thread gc event.
+ */
+static void
+tmalloc_keys_init_once(void)
+{
+	if (-1 == thread_local_key_create(
+				&tmalloc_magazines_key, tmalloc_thread_free_magazines)
+	) {
+		s_error("%s(): cannot create thread local key: %m", G_STRFUNC);
+	}
+
+	if (-1 == thread_local_key_create(
+				&tmalloc_periodic_key, tmalloc_thread_free_periodic)
+	) {
+		s_error("%s(): cannot create thread local key: %m", G_STRFUNC);
+	}
+}
+
 /*
  * Allocate a new thread-magazine allocator for the thread.
  *
@@ -1587,6 +1813,7 @@ static struct tmalloc_thread *
 tmalloc_thread_create(tmalloc_t *tma)
 {
 	struct tmalloc_thread *tmt;
+	eslist_t *tmagazines;
 
 	/*
 	 * Refuse to create a new thread-local layer if we're in an exiting thread.
@@ -1604,13 +1831,21 @@ tmalloc_thread_create(tmalloc_t *tma)
 		return NULL;
 
 	/*
+	 * If the event queue is not ready, no need to create a new thread-local
+	 * layer, we won't be able to schedule garbage collecting.
+	 */
+
+	if G_UNLIKELY(!evq_is_inited())
+		return NULL;
+
+	/*
 	 * This thread-local value is set once for each thread, for a given
 	 * thread magazine layer.
 	 *
 	 * @note
 	 * The tmt_stid field is not required for normal operations but is just
-	 * used during tmalloc_reset() to log the thread name if we cannot
-	 * successfully reset its private magazines.
+	 * used during tmalloc_reset() to log the thread name when resetting
+	 * its private magazines.
 	 */
 
 	tmt = tma->tma_alloc(sizeof *tmt);
@@ -1624,15 +1859,51 @@ tmalloc_thread_create(tmalloc_t *tma)
 
 	thread_local_set(tma->tma_key, tmt);
 
-	/*
-	 * Since the local thread variable has been positionned, we can log with
-	 * a regular s_debug() routine, no need to use s_rawdebug().
-	 */
-
 	if (tmalloc_debugging(2)) {
 		s_debug("%s(\"%s\"): new local layer for %s",
 			G_STRFUNC, tma->tma_name, thread_name());
 	}
+
+	/*
+	 * Each thread using the thread magazine allocators is also equipped with
+	 * two local variables:
+	 *
+	 * tmalloc_magazines_key points to the eslist_t allocated for the
+	 * thread to list all the known thread magazines.
+	 *
+	 * tmalloc_periodic_key is the cperiodic_t event which monitors all
+	 * the thread magazines of the thread to release magazines when the
+	 * thread is not allocating nor freeing any objects for a while.
+	 */
+
+	ONCE_FLAG_RUN(tmalloc_keys_inited, tmalloc_keys_init_once);
+
+	tmagazines = thread_local_get(tmalloc_magazines_key);
+
+	if G_UNLIKELY(NULL == tmagazines) {
+		XMALLOC(tmagazines);
+		eslist_init(tmagazines, offsetof(struct tmalloc_thread, tmt_link));
+		thread_local_set(tmalloc_magazines_key, tmagazines);
+		tmalloc_thread_gc_install();
+
+		/*
+		 * We need to cleanup our internal events at exit time, before the
+		 * thread runtime decides to free the local variables.
+		 *
+		 * Note that this is done only once per thread, regardless of how many
+		 * thread magazine allocators are used by the thread since only the
+		 * first attempt at using any thread magazine alllocator will create
+		 * the magazine list, entering this "if" statement.
+		 *
+		 * Becasue we register that callback after tmalloc_thread_gc_install(),
+		 * we know that it will be run before any exiting callback used by
+		 * the event queue (execution order is LIFO).
+		 */
+
+		thread_atexit(tmalloc_thread_exiting, NULL);
+	}
+
+	eslist_append(tmagazines, tmt);
 
 	return tmt;
 }
