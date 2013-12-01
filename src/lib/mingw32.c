@@ -457,6 +457,7 @@ mingw_win2posix(int error)
 	case ERROR_DISK_FULL:
 		return ENOSPC;
 	case ERROR_BROKEN_PIPE:
+	case ERROR_NO_DATA:
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
 	case ERROR_INVALID_PARAMETER:	/* Invalid function parameter */
