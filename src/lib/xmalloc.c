@@ -988,7 +988,6 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 		if ((void *) -1 == current_break) {
 			s_error("cannot get initial heap break address: %m");
 		}
-		xmalloc_freelist_setup();
 	}
 
 	/*
@@ -1012,7 +1011,7 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	}
 
 	locked = TRUE;
-	spinlock(&xmalloc_sbrk_slk);
+	spinlock_hidden(&xmalloc_sbrk_slk);		/* Hidden for FreeBSD */
 bypass:
 	p = sbrk(len);
 
@@ -1039,7 +1038,7 @@ bypass:
 
 	if ((void *) -1 == p) {
 		if (locked)
-			spinunlock(&xmalloc_sbrk_slk);
+			spinunlock_hidden(&xmalloc_sbrk_slk);
 		s_error("cannot allocate more core (%zu bytes): %m", len);
 	}
 
@@ -1067,7 +1066,7 @@ bypass:
 	xstats.sbrk_alloc_bytes += len;
 	XSTATS_UNLOCK;
 	if (locked)
-		spinunlock(&xmalloc_sbrk_slk);
+		spinunlock_hidden(&xmalloc_sbrk_slk);
 
 	if (xmalloc_debugging(1) && can_log) {
 		s_debug("XM added %zu bytes of heap core at %p", len, p);
@@ -1119,12 +1118,19 @@ xmalloc_freecore(void *ptr, size_t len)
 	g_assert(xmalloc_round(len) == len);
 
 	/*
+	 * In order to solve the bootstrapping problem on FreeBSD, where the
+	 * thread layer calls malloc(), we need to grab this lock hidden so
+	 * that we do not attempt to enter the thread layer and call thread_self().
+	 *		--RAM, 2013-12-01
+	 */
+
+	spinlock_hidden(&xmalloc_sbrk_slk);
+
+	/*
 	 * If the address lies within the break, there's nothing to do, unless
 	 * the freed segment is at the end of the break.  The memory is not lost
 	 * forever: it should be put back into the free list by the caller.
 	 */
-
-	spinlock(&xmalloc_sbrk_slk);
 
 	if G_UNLIKELY(ptr_cmp(ptr, current_break) < 0) {
 		const void *end = const_ptr_add_offset(ptr, len);
@@ -1161,14 +1167,14 @@ xmalloc_freecore(void *ptr, size_t len)
 				xstats.sbrk_freed_bytes += len;
 				XSTATS_UNLOCK;
 			}
-			spinunlock(&xmalloc_sbrk_slk);
+			spinunlock_hidden(&xmalloc_sbrk_slk);
 			return success;
 		} else {
 			if (xmalloc_debugging(0)) {
 				s_debug("XM releasing %zu bytes in middle of heap at %p",
 					len, ptr);
 			}
-			spinunlock(&xmalloc_sbrk_slk);
+			spinunlock_hidden(&xmalloc_sbrk_slk);
 			return FALSE;		/* Memory not freed */
 		}
 	}
@@ -1176,7 +1182,7 @@ xmalloc_freecore(void *ptr, size_t len)
 	if (xmalloc_debugging(1))
 		s_debug("XM releasing %zu bytes of core", len);
 
-	spinunlock(&xmalloc_sbrk_slk);
+	spinunlock_hidden(&xmalloc_sbrk_slk);
 
 	vmm_core_free(ptr, len);
 	XSTATS_LOCK;
@@ -4531,7 +4537,25 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 	if (size <= XM_THREAD_MAXSIZE) {
 		size_t allocated;
 
-		ONCE_FLAG_RUN(xmalloc_early_inited, xmalloc_early_init);
+		/*
+		 * This contorsion is necessary for FreeBSD, because its threading
+		 * layer calls malloc() and we do not want to enter once_flag_run()
+		 * before we're sufficiently advanced in the C runtime initialization:
+		 * we must avoid mutexes, which would call thread_self() and risk
+		 * recursing to our malloc().
+		 *
+		 * When the VMM is up, it will mean the C runtime initialization is
+		 * fully done and therefore we should be able to call thread_self()
+		 * without causing another allocation.
+		 *		--RAM, 2013-12-01
+		 */
+
+		if G_UNLIKELY(!ONCE_DONE(xmalloc_early_inited)) {
+			if (!xmalloc_vmm_is_up)
+				goto skip_pool;
+
+			once_flag_run(&xmalloc_early_inited, xmalloc_early_init);
+		}
 
 		allocated = xmalloc_round(size);	/* No malloc header */
 		p = xmalloc_thread_alloc(allocated);
@@ -4547,6 +4571,8 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 			return p;
 		}
 	}
+
+skip_pool:
 
 	/*
 	 * First try to allocate from the freelist when the length is less than
@@ -5084,6 +5110,16 @@ xfree(void *p)
 	xstats.user_blocks--;
 	XSTATS_UNLOCK;
 	memusage_remove(xstats.user_mem, xh->length);
+
+	/*
+	 * Because of FreeBSD, we do not run xmalloc_early_init() on the early
+	 * allocation path, when we handle sbrk() allocations.  However, when
+	 * the first free() starts to come around, it's safe to perform the early
+	 * freelist setup.  We need it anyway to return the block there!
+	 *		--RAM. 2013-12-01
+	 */
+
+	ONCE_FLAG_RUN(xmalloc_early_inited, xmalloc_early_init);
 
 	xmalloc_freelist_add(xh, xh->length, XM_COALESCE_ALL | XM_COALESCE_SMART);
 }
