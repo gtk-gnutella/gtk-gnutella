@@ -3141,6 +3141,39 @@ thread_sig_generation(void)
 }
 
 /**
+ * Check whether current thread, whose thread element is known, has been
+ * cancelled.
+ *
+ * This routine does not return if the thread is cancelable and has a pending
+ * cancel recorded.
+ *
+ * @note
+ * This routine is (obviously!) a cancellation point.
+ */
+static inline void
+thread_cancel_test_element(struct thread_element *te)
+{
+	/*
+	 * To cancel the thread, it must be cancelable, in a state where cancelling
+	 * is enabled, be cancelled (i.e. having received a cancel request), not
+	 * already exiting and not holding any registered lock.
+	 *
+	 * This last property is interesting because it creates an implicit cancel
+	 * protection within critical sections, avoiding the need to change the
+	 * cancel state and writing complex cleanup routines when dealing with
+	 * critical sections that contain cancellation points.
+	 */
+
+	if (
+		te->cancelable &&
+		THREAD_CANCEL_ENABLE == te->cancl &&
+		0 == te->locks.count &&
+		te->cancelled && !te->exit_started
+	)
+		thread_exit(THREAD_CANCELLED);
+}
+
+/**
  * Check whether thread is suspended and can be suspended right now, or
  * whether there are pending signals to deliver.
  *
@@ -5999,6 +6032,8 @@ thread_element_block_until(struct thread_element *te,
 	 * anything as we were not flagged as "blocked" yet.
 	 */
 
+	thread_check_suspended_element(te, TRUE);
+
 	THREAD_LOCK(te);
 	if (te->unblock_events != events) {
 		THREAD_UNLOCK(te);
@@ -6024,7 +6059,7 @@ thread_element_block_until(struct thread_element *te,
 retry:
 	THREAD_STATS_INCX(thread_self_blocks);
 
-	thread_cancel_test();
+	thread_cancel_test_element(te);
 
 	if (end != NULL) {
 		long remain = tm_remaining_ms(end);
@@ -6055,7 +6090,7 @@ retry:
 			G_STRFUNC, thread_element_name(te));
 	}
 
-	thread_cancel_test();
+	thread_cancel_test_element(te);
 
 	/*
 	 * Check whether we've been signalled.
@@ -6090,7 +6125,7 @@ retry:
 	 * Before returning to user code, check for suspension request.
 	 */
 
-	thread_check_suspended();
+	thread_check_suspended_element(te, TRUE);
 
 	return TRUE;
 
@@ -7575,25 +7610,7 @@ thread_cancel_test(void)
 	bool delayed;
 
 	delayed = thread_check_suspended_element(te, TRUE);
-
-	/*
-	 * To cancel the thread, it must be cancelable, in a state where cancelling
-	 * is enabled, be cancelled (i.e. having received a cancel request), not
-	 * already exiting and not holding any registered lock.
-	 *
-	 * This last property is interesting because it creates an implicit cancel
-	 * protection within critical sections, avoiding the need to change the
-	 * cancel state and writing complex cleanup routines when dealing with
-	 * critical sections that contain cancellation points.
-	 */
-
-	if (
-		te->cancelable &&
-		THREAD_CANCEL_ENABLE == te->cancl &&
-		0 == te->locks.count &&
-		te->cancelled && !te->exit_started
-	)
-		thread_exit(THREAD_CANCELLED);
+	thread_cancel_test_element(te);
 
 	return delayed;
 }
@@ -7643,11 +7660,12 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	 */
 
 	thread_cleanup_push(thread_join_cancelled, uint_to_pointer(id));
-	thread_cancel_test();
 
 	te = thread_get_element_by_id(id);
 	if (NULL == te)
 		goto error;
+
+	thread_cancel_test_element(te);
 
 	if (
 		!te->created ||				/* Not a thread we created */
@@ -8062,14 +8080,14 @@ thread_sigblock(tsigset_t mask)
 		goto process_signals;
 	}
 
-	thread_cancel_test();
+	thread_cancel_test_element(te);
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
 		s_error("%s(): %s could not block itself: %m",
 			G_STRFUNC, thread_element_name(te));
 	}
 
-	thread_cancel_test();
+	thread_cancel_test_element(te);
 
 	/*
 	 * Check whether we've been signalled.
@@ -8099,7 +8117,7 @@ process_signals:
 		evq_cancel(&eve);
 
 	if (signalled) {
-		thread_cancel_test();
+		thread_cancel_test_element(te);
 		THREAD_STATS_INCX(sig_handled_while_paused);
 		thread_sig_handle(te);
 	}
@@ -8108,7 +8126,9 @@ process_signals:
 	 * Before returning to user code, check for cancelling & suspension request.
 	 */
 
-	thread_cancel_test();
+	thread_check_suspended_element(te, TRUE);
+	thread_cancel_test_element(te);
+
 	return signalled;
 }
 
@@ -8305,7 +8325,13 @@ missing:
 	}
 
 	mutex_unlock(&sleep_mtx);
-	thread_cancel_test();		/* If we did not enter cond_timed_wait()... */
+
+	/*
+	 * In case we did not enter cond_timed_wait()...
+	 */
+
+	thread_check_suspended_element(te, TRUE);
+	thread_cancel_test_element(te);
 
 	return got_signal;
 }
