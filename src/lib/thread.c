@@ -6103,10 +6103,19 @@ retry:
 
 	THREAD_LOCK(te);
 	if G_UNLIKELY(te->signalled != 0) {
+		bool unblocked = te->unblocked;
 		te->signalled--;		/* Consumed one signaling byte */
+		te->blocked = FALSE;
+		te->unblocked = FALSE;
 		THREAD_UNLOCK(te);
+
 		THREAD_STATS_INCX(sig_handled_while_blocked);
 		thread_sig_handle(te);
+
+		THREAD_LOCK(te);
+		te->blocked = TRUE;
+		te->unblocked = unblocked;
+		THREAD_UNLOCK(te);
 		goto retry;
 	}
 	te->blocked = FALSE;
