@@ -102,8 +102,9 @@
 #include "once.h"
 #include "pow2.h"
 #include "rwlock.h"
-#include "signal.h"				/* For signal_stack_allocate() */
 #include "semaphore.h"			/* For semaphore_kernel_usage() */
+#include "signal.h"				/* For signal_stack_allocate() */
+#include "slist.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -315,6 +316,7 @@ struct thread_element {
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
 	cond_t *cond;					/**< Condition on which thread waits */
+	slist_t *cond_stack;			/**< Stack of condition-waiting variables */
 	dam_t *termination;				/**< Waiters on thread termination */
 	spinlock_t lock;				/**< Protects concurrent updates */
 	spinlock_t local_slk;			/**< Protects concurrent updates */
@@ -367,6 +369,7 @@ static struct thread_stats {
 	AU64(locks_rlock_sleep);		/* Amount of sleeps done on read-locks */
 	AU64(locks_wlock_sleep);		/* Amount of sleeps done on write-locks */
 	AU64(cond_waitings);			/* Amount of condition variable waitings */
+	AU64(cond_nested_waitings);		/* Nested condition variable waitings */
 	AU64(signals_posted);			/* Amount of signals posted to threads */
 	AU64(signals_handled);			/* Amount of signal handlers called */
 	AU64(signals_ignored);			/* Amount of signals got with no handler */
@@ -1385,6 +1388,7 @@ thread_element_reset(struct thread_element *te)
 	ZERO(&te->sigh);
 	eslist_clear(&te->exit_list);
 	eslist_clear(&te->cleanup_list);
+	slist_free(&te->cond_stack);
 }
 
 /**
@@ -4805,12 +4809,23 @@ thread_cond_waiting_element(cond_t *c)
 	 */
 
 	if G_LIKELY(te != NULL) {
-		g_assert_log(NULL == te->cond,
-			"%s(): detected recursive condition waiting", G_STRFUNC);
+		/*
+		 * Allow nested condition waitings, which may happen during signal
+		 * handling on machines with emulated semaphores (at the exit of
+		 * thread_element_block_until(), where we may process signals).
+		 */
+
+		if G_UNLIKELY(NULL == te->cond_stack)
+			te->cond_stack = slist_new();
 
 		THREAD_LOCK(te);
+		if G_UNLIKELY(te->cond != NULL) {
+			slist_prepend(te->cond_stack, te->cond);
+			THREAD_STATS_INCX(cond_nested_waitings);
+		}
 		te->cond = c;
 		THREAD_UNLOCK(te);
+
 		THREAD_STATS_INCX(cond_waitings);
 	}
 
@@ -4829,13 +4844,14 @@ thread_cond_waiting_done(const void *element)
 	thread_element_check(te);
 	g_assert_log(te->cond != NULL,
 		"%s(): had no prior knowledge of any condition waiting", G_STRFUNC);
+	g_assert(te->cond_stack != NULL);
 
 	/*
 	 * Need locking, see thread_cond_waiting_element() and thread_kill().
 	 */
 
 	THREAD_LOCK(te);
-	te->cond = NULL;			/* Clear waiting condition */
+	te->cond = slist_shift(te->cond_stack);	/* Previous condition, or NULL */
 	THREAD_UNLOCK(te);
 }
 
@@ -8547,6 +8563,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_rlock_sleep);
 	DUMP64(locks_wlock_sleep);
 	DUMP64(cond_waitings);
+	DUMP64(cond_nested_waitings);
 	DUMP64(signals_posted);
 	DUMP64(signals_handled);
 	DUMP64(signals_ignored);
