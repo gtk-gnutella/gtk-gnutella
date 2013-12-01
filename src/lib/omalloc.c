@@ -433,15 +433,16 @@ omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode)
 		omalloc_chunk_unprotect(ck->prev, mode);
 		ck->prev->next = ck->next;
 		omalloc_chunk_protect(ck->prev, mode);
-		ck->prev = NULL;
 	}
 
 	if (ck->next != NULL) {
 		omalloc_chunk_unprotect(ck->next, mode);
 		ck->next->prev = ck->prev;
 		omalloc_chunk_protect(ck->next, mode);
-		ck->next = NULL;
 	}
+
+	ck->prev = NULL;
+	ck->next = NULL;
 }
 
 /**
