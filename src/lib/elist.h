@@ -87,6 +87,15 @@ elist_invariant(const elist_t * const list)
  */
 
 /**
+ * @return whether the embedded list descriptor is non-zero.
+ */
+static inline bool
+elist_is_initialized(const elist_t * const el)
+{
+	return 0 != el->magic;		/* Initialized, not necessarily valid! */
+}
+
+/**
  * @return length of embedded list.
  */
 static inline size_t

@@ -86,6 +86,15 @@ eslist_invariant(const eslist_t * const list)
  */
 
 /**
+ * @return whether the embedded list descriptor is non-zero.
+ */
+static inline bool
+eslist_is_initialized(const eslist_t * const es)
+{
+	return 0 != es->magic;		/* Initialized, not necessarily valid! */
+}
+
+/**
  * @return length of embedded list.
  */
 static inline size_t
