@@ -1060,6 +1060,7 @@ retry:
 			s_error("%s(): unable to get the semaphore: %m", G_STRFUNC);
 
 		awaked = FALSE;		/* EAGAIN indicates that we timed out */
+		interrupted = sig_generation != thread_sig_generation();
 	} else {
 		awaked = TRUE;
 	}

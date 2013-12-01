@@ -292,6 +292,7 @@ struct thread_element {
 	unsigned sig_generation;		/**< Signal reception generation number */
 	int in_signal_handler;			/**< Counts signal handler nesting */
 	bool sig_handling;				/**< Are we in thread_sig_handle()? */
+	int sleep_interruptible;		/**< Shall a signal interrupt blocking? */
 	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
@@ -6112,6 +6113,14 @@ retry:
 		THREAD_STATS_INCX(sig_handled_while_blocked);
 		thread_sig_handle(te);
 
+		/*
+		 * If a signal is supposed to interrupt blocking, then act as if
+		 * we had timed-out already.
+		 */
+
+		if (te->sleep_interruptible > 0)
+			goto timed_out;
+
 		THREAD_LOCK(te);
 		te->blocked = TRUE;
 		te->unblocked = unblocked;
@@ -8278,6 +8287,19 @@ thread_sleep_interruptible(unsigned int ms,
 
 	mutex_lock(&sleep_mtx);		/* Necessary for condition variable */
 
+	/*
+	 * If semaphores are emulated on this platform, the condition variable
+	 * we're using will not be the topmost waiting entity: the thread will
+	 * enter semaphore_emulate() and thread_timed_block_self().  Hence any
+	 * signal received would first unblock the latter, but we must indicate
+	 * that we want any signal to interrupt blocking.
+	 *
+	 * This is the purpose of te->sleep_interruptible.
+	 */
+
+	if (interrupt)
+		te->sleep_interruptible++;		/* We hold the mutex already */
+
 retry:
 	/*
 	 * To protect against the system clock being updated whilst we are waiting,
@@ -8331,6 +8353,11 @@ missing:
 		}
 
 		/* FALL THROUGH -- sleep finished or interrupted */
+	}
+
+	if (interrupt) {
+		g_assert(te->sleep_interruptible > 0);
+		te->sleep_interruptible--;		/* We hold the mutex, still */
 	}
 
 	mutex_unlock(&sleep_mtx);
