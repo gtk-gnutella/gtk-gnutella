@@ -129,6 +129,7 @@ static uint evq_thread_id = THREAD_INVALID_ID;
 static tm_t evq_sleep_end;				/**< Expected wake-up time */
 static bool evq_run;					/**< Whether evq thread should run */
 static bool evq_fully_inited;			/**< Set when init fully done */
+static bool evq_running;				/**< Set when evq thread running */
 
 #define EVQ_GLOBAL_LOCK		spinlock(&evq_global_slk)
 #define EVQ_GLOBAL_UNLOCK	spinunlock(&evq_global_slk)
@@ -157,6 +158,7 @@ evq_thread_main(void *unused_arg)
 
 	(void) unused_arg;
 
+	atomic_bool_set(&evq_running, TRUE);
 	thread_set_name("event queue");
 
 	/*
@@ -248,6 +250,7 @@ evq_thread_main(void *unused_arg)
 	if (evq_debugging(0))
 		s_debug("%s(): exiting", G_STRFUNC);
 
+	atomic_bool_set(&evq_running, FALSE);
 	cq_free_null(&event_queue);
 	return NULL;
 }
@@ -731,13 +734,13 @@ evq_notify(int delay)
 	 * Sending the signal will let the thread process the callout queue.
 	 */
 
-	if G_UNLIKELY(before < 0) {
+	if G_UNLIKELY(before < 0 && atomic_bool_get(&evq_running)) {
 		if (evq_debugging(0)) {
 			s_debug("%s(): notifying (need to trigger %'ld ms earlier)",
 				G_STRFUNC, -(long) before);
 		}
 		if (-1 == thread_kill(evq_thread_id, TSIG_EVQ)) {
-			s_warning("%s(): cannot signal %s: %m",
+			s_carp("%s(): cannot signal %s: %m",
 				G_STRFUNC, thread_id_name(evq_thread_id));
 		}
 	}
