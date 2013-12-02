@@ -455,6 +455,8 @@ G_GNUC_COLD void
 vmm_crash_mode(void)
 {
 	vmm_crashing = TRUE;
+	ZERO(&vmm_magazine);
+	atomic_mb();
 }
 
 /**
@@ -4057,6 +4059,9 @@ vmm_get_magazine(size_t npages)
 
 		if (!evq_is_inited())
 			return NULL;			/* Too soon */
+
+		if G_UNLIKELY(vmm_crashing)
+			return NULL;			/* In crash mode, don't use magazines */
 
 		/*
 		 * The mutex and the maginit[] protection help us prevent any possible
