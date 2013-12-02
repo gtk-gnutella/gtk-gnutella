@@ -43,6 +43,7 @@
 
 #include "walloc.h"
 
+#include "atomic.h"
 #include "evq.h"			/* For evq_is_inited() */
 #include "log.h"
 #include "mutex.h"
@@ -92,6 +93,22 @@ walloc_init_once(void)
 	 */
 
 	zinit();
+}
+
+/**
+ * Enter crash mode: redirect all allocations to xpmalloc() and avoid freeings.
+ */
+G_GNUC_COLD void
+walloc_crash_mode(void)
+{
+	/*
+	 * This will stop all thread-magazine allocation, which is important
+	 * since we no longer have locks during crashes.
+	 */
+
+	walloc_stopped = TRUE;
+	ZERO(&wmagazine);
+	atomic_mb();
 }
 
 /**
@@ -292,6 +309,9 @@ walloc_get_magazine(size_t rounded)
 
 		if (!evq_is_inited())
 			return NULL;			/* Too soon */
+
+		if G_UNLIKELY(walloc_stopped)
+			return NULL;			/* In crash mode, or exiting */
 
 		/*
 		 * We need a mutex and the maginit[] protection to cut down

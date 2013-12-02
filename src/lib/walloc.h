@@ -164,6 +164,7 @@ void *wrealloc_track(void *old, size_t old_size, size_t new_size,
 #endif	/* TRACK_ZALLOC */
 
 void walloc_init(void);
+void walloc_crash_mode(void);
 void wdestroy(void);
 
 #define WALLOC(p)			\

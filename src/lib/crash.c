@@ -76,6 +76,7 @@
 #include "common.h"
 
 #include "crash.h"
+
 #include "atomic.h"
 #include "ckalloc.h"
 #include "compat_pause.h"
@@ -104,6 +105,7 @@
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
 #include "vmm.h"				/* For vmm_crash_mode() */
+#include "walloc.h"				/* For walloc_crash_mode() */
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -1943,6 +1945,7 @@ crash_mode(void)
 
 	vmm_crash_mode();
 	xmalloc_crash_mode();
+	walloc_crash_mode();
 
 	/*
 	 * Suspend the other threads if possible, to avoid a cascade of errors
