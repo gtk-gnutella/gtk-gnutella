@@ -90,6 +90,7 @@
 #define _spinlock_h_
 
 #include "atomic.h"		/* For atomic_lock_t */
+#include "thread.h"		/* For thread_check_suspended() */
 
 #if 1
 #define SPINLOCK_DEBUG			/* Tracks where we take the lock */
@@ -249,9 +250,11 @@ extern int spinlock_pass_through;
 static inline bool
 spinlock_in_crash_mode(void)
 {
-	return 0 != atomic_int_get(&spinlock_pass_through);
+	if G_LIKELY(0 == atomic_int_get(&spinlock_pass_through))
+		return FALSE;
+	thread_check_suspended();
+	return TRUE;
 }
-
 
 /**
  * Check that spinlock is held, for assertions.
