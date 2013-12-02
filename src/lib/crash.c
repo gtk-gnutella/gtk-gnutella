@@ -2480,6 +2480,7 @@ G_GNUC_COLD void
 crash_exited(uint32 pid)
 {
 	str_t *cfile;
+	int i;
 
 	/*
 	 * If there is a core file in the crash directory and the process is
@@ -2500,21 +2501,55 @@ crash_exited(uint32 pid)
 	 */
 
 	cfile = str_new(MAX_PATH_LEN);
-	str_printf(cfile, "%s%ccore", vars->crashdir, G_DIR_SEPARATOR);
 
-	if (file_exists(str_2c(cfile))) {
-		str_t *pfile = str_clone(cfile);
+	for (i = 0; i < 4; i++) {
+		const char *progname = filepath_basename(vars->argv0);
 
-		str_catf(pfile, ".%u", pid);
+		/*
+		 * We look for the core file in various forms and at various places:
+		 *
+		 * 0: a file named "core" in the crash directory
+		 * 1: a file named "progname.core" in the crash directory
+		 * 2: a file named "core" in the local directory
+		 * 3: a file named "progname.core" in the local directory
+		 *
+		 * The "core" file is for Linux, the "progname.core" is for FreeBSD.
+		 * We stop our renaming logic after the first match.
+		 */
 
-		if (-1 == rename(str_2c(cfile), str_2c(pfile))) {
-			s_miniwarn("cannot rename old core file %s: %m",
-				str_2c(cfile));
-		} else {
-			s_miniinfo("previous core file renamed as %s", str_2c(pfile));
+		switch (i) {
+		case 0:
+			str_printf(cfile, "%s%ccore", vars->crashdir, G_DIR_SEPARATOR);
+			break;
+		case 1:
+			str_printf(cfile, "%s%c%s.core",
+				vars->crashdir, G_DIR_SEPARATOR, progname);
+			break;
+		case 2:
+			STR_CPY(cfile, "core");
+			break;
+		case 3:
+			str_printf(cfile, "%s.core", progname);
+			break;
+		default:
+			g_assert_not_reached();
 		}
 
-		str_destroy_null(&pfile);
+		if (file_exists(str_2c(cfile))) {
+			str_t *pfile = str_clone(cfile);
+
+			str_catf(pfile, ".%u", pid);
+
+			if (-1 == rename(str_2c(cfile), str_2c(pfile))) {
+				s_miniwarn("cannot rename old core file %s: %m",
+					str_2c(cfile));
+			} else {
+				s_miniinfo("previous core file renamed as %s", str_2c(pfile));
+			}
+
+			str_destroy_null(&pfile);
+			break;
+		}
 	}
 
 	str_destroy_null(&cfile);
