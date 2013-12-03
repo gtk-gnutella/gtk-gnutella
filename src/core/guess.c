@@ -1258,7 +1258,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 
 	addr = gnet_host_get_addr(h);
 
-	if (hostiles_check(addr) || !host_address_is_usable(addr))
+	if (hostiles_is_known(addr) || !host_address_is_usable(addr))
 		return;
 
 	if (is_my_address_and_port(addr, gnet_host_get_port(h)))
@@ -1294,7 +1294,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 static void
 guess_discovered_host(host_addr_t addr, uint16 port)
 {
-	if (hostiles_check(addr) || !host_address_is_usable(addr))
+	if (hostiles_is_known(addr) || !host_address_is_usable(addr))
 		return;
 
 	if (is_my_address_and_port(addr, port))
@@ -1322,7 +1322,7 @@ guess_add_pool(guess_t *gq, host_addr_t addr, uint16 port)
 
 	guess_check(gq);
 
-	if (hostiles_check(addr) || !host_address_is_usable(addr))
+	if (hostiles_is_known(addr) || !host_address_is_usable(addr))
 		return;
 
 	if (is_my_address_and_port(addr, port))
@@ -2024,7 +2024,7 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	d = delta_time(tm_time(), qk->last_seen);
 	expired = hostile = FALSE;
 
-	if (hostiles_check(gnet_host_get_addr(h))) {
+	if (hostiles_is_known(gnet_host_get_addr(h))) {
 		hostile = TRUE;
 		p = 0.0;
 	} else if (d <= GUESS_QK_LIFE) {
@@ -2476,7 +2476,7 @@ guess_pick_next(guess_t *gq)
 			goto drop;
 		}
 
-		if (hostiles_check(gnet_host_get_addr(host))) {
+		if (hostiles_is_known(gnet_host_get_addr(host))) {
 			reason = "hostile host";
 			goto drop;
 		}

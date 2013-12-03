@@ -2825,7 +2825,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 * If pong points to an hostile IP address, discard it.
 	 */
 
-	if (hostiles_check(addr)) {
+	if (hostiles_is_known(addr)) {
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		goto done;
 	}

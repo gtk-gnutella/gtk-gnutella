@@ -296,6 +296,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	char host[MAX_HOSTLEN];
 	const char *hostname = NULL;
 	bool has_valid_guid = FALSE;
+	hostiles_flags_t hflags;
 
 	g_assert(DHT_VT_ALOC == rc->type);
 
@@ -421,11 +422,12 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	 * Discard hostile sources.
 	 */
 
-	if (hostiles_check(rc->addr)) {
+	if (HSTL_CLEAN != (hflags = hostiles_check(rc->addr))) {
 		if (GNET_PROPERTY(download_debug))
-			g_warning("discarding %s from %s for %s%s: hostile IP",
+			g_warning("discarding %s from %s for %s%s: hostile IP (%s)",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				available != 0 ? "partial " : "", fi->pathname);
+				available != 0 ? "partial " : "", fi->pathname,
+				hostiles_flags_to_string(hflags));
 		goto cleanup;
 	}
 
@@ -711,6 +713,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 					host_addr_t a;
 					uint16 p;
 					uint8 len;
+					hostiles_flags_t flags;
 
 					if (!bstr_read_u8(bs, &len))
 						break;
@@ -731,14 +734,15 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 					 * Discard hostile sources.
 					 */
 
-					if (hostiles_check(a)) {
+					if (HSTL_CLEAN != (flags = hostiles_check(a))) {
 						if (GNET_PROPERTY(download_debug))
 							g_warning("discarding proxy %s in %s from %s "
-								"for GUID %s: hostile IP",
+								"for GUID %s: hostile IP (%s)",
 								host_addr_port_to_string(a, p),
 								value_infostr(rc),
 								host_addr_port_to_string2(rc->addr, rc->port),
-								guid_to_string(glk->guid));
+								guid_to_string(glk->guid),
+								hostiles_flags_to_string(flags));
 						continue;
 					} else {
 						if (GNET_PROPERTY(download_debug))

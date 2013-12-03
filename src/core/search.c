@@ -1019,7 +1019,8 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 }
 
 static void
-search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
+search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
+	hostiles_flags_t *hostile)
 {
 	htable_t *ht = htable_create(HASH_KEY_SELF, 0);
 	GSList *sl;
@@ -1034,6 +1035,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 		key = ulong_to_pointer(rc->file_index);
 		if (htable_contains(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
+			*hostile |= HSTL_DUP_INDEX;
 			rc->flags |= SR_SPAM;
 			dups++;
 			search_log_spam(n, rs, "duplicate file index %u", rc->file_index);
@@ -1054,6 +1056,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 
 		if (htable_contains(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
+			*hostile |= HSTL_DUP_SHA1;
 			rc->flags |= SR_SPAM;
 			dups++;
 			search_log_spam(n, rs, "duplicate SHA1 %s", sha1_base32(rc->sha1));
@@ -1121,12 +1124,13 @@ is_lime_return_path(const extvec_t *e)
  * Mark fake spam.
  */
 static void
-search_results_mark_fake_spam(gnet_results_set_t *rs)
+search_results_mark_fake_spam(gnet_results_set_t *rs, hostiles_flags_t *hostile)
 {
 	if (!(rs->status & ST_FAKE_SPAM)) {
 		/* Count only once per result set */
 		gnet_stats_inc_general(GNR_SPAM_FAKE_HITS);
 		rs->status |= ST_FAKE_SPAM;
+		*hostile |= HSTL_FAKE_SPAM;
 	}
 }
 
@@ -1186,7 +1190,8 @@ search_filename_similar(const char *filename, const char *query)
 }
 
 static void
-search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
+search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
+	hostiles_flags_t *hostile)
 {
 	const GSList *sl;
 	uint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
@@ -1208,11 +1213,13 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			 * start counting at zero despite this being a special wildcard
 			 */
 			rc->flags |= SR_SPAM;
+			*hostile |= HSTL_BAD_FILE_INDEX;
 		} else if (!rc->file_index && T_GTKG == rs->vcode.u32) {
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "hit with invalid file index");
 			logged = TRUE;
 			rc->flags |= SR_SPAM;
+			*hostile |= HSTL_BAD_FILE_INDEX | HSTL_GTKG;
 		} else if (
 			T_GTKG == rs->vcode.u32 &&
 			(
@@ -1220,35 +1227,42 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 				!guid_is_gtkg(rs->guid, NULL, NULL, NULL)
 			)
 		) {
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "hit with %s",
 				NULL == rs->version ? "no version indication" : "bad GUID");
 			logged = TRUE;
 			rc->flags |= SR_SPAM;
+			*hostile |= HSTL_GTKG |
+				(NULL == rs->version ?
+					HSTL_NO_GTKG_VERSION : HSTL_BAD_GTKG_GUID);
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "hit with %u alt-locs", n_alt);
 			logged = TRUE;
 			rc->flags |= SR_SPAM;
+			*hostile |= HSTL_MANY_ALT_LOCS;
 		} else if (rc->sha1 && spam_sha1_check(rc->sha1)) {
 			search_log_spam(n, rs, "URN %s", sha1_base32(rc->sha1));
 			logged = TRUE;
 			rs->status |= ST_URN_SPAM;
+			*hostile |= HSTL_URN_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_inc_general(GNR_SPAM_SHA1_HITS);
 		} else if (
 			T_LIME == rs->vcode.u32 &&
 			is_evil_timestamp(rc->create_time)
 		) {
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "evil timestamp 0x%lx",
 				(unsigned long) rc->create_time);
 			logged = TRUE;
 			rc->flags |= SR_SPAM;
+			*hostile |= HSTL_EVIL_TIMESTAMP;
 		} else if (spam_check_filename_size(rc->filename, rc->size)) {
 			search_log_spam(n, rs, "SPAM filename/size hit");
 			logged = TRUE;
 			rs->status |= ST_NAME_SPAM;
+			*hostile |= HSTL_NAME_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_inc_general(GNR_SPAM_NAME_HITS);
 		} else if (
@@ -1258,32 +1272,36 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			search_log_spam(n, rs, "LIME XML SPAM");
 			logged = TRUE;
 			rs->status |= ST_URL_SPAM;
+			*hostile |= HSTL_URL_SPAM;
 			rc->flags |= SR_SPAM;
 		} else if (is_evil_filename(rc->filename)) {
 			search_log_spam(n, rs, "evil filename");
 			logged = TRUE;
 			rs->status |= ST_EVIL;
+			*hostile |= HSTL_EVIL_FILENAME;
 			rc->flags |= SR_IGNORED;
 		} else if (
 			T_LIME == rs->vcode.u32 &&
 			!utf8_is_valid_string(rc->filename)
 		) {
 			/* LimeWire is a program known to generate valid UTF-8 strings */
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "invalid UTF-8 filename");
 			logged = TRUE;
 			rc->flags |= SR_SPAM;
+			*hostile |= HSTL_BAD_UTF8;
 		} else if (
 			T_LIME == rs->vcode.u32 && rs->query != NULL &&
 			0 == strcmp(rs->query, WHATS_NEW_QUERY) &&
 			is_strcaseprefix(rc->filename, WHATS_NEW_QUERY)
 		) {
 			/* All genuine LimeWire nodes understand "What's New?" queries */
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "filename mimics query \"%s\"",
 				WHATS_NEW_QUERY);
 			logged = TRUE;
 			rc->flags |= SR_SPAM;
+			*hostile |= HSTL_NO_WHATS_NEW;
 		}
 
 		has_tth |= NULL != rc->tth;
@@ -1351,11 +1369,12 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 					search_filename_similar(rc->filename, rs->query)
 				)
 			) {
-				search_results_mark_fake_spam(rs);
+				search_results_mark_fake_spam(rs, hostile);
 				search_log_spam(n, rs, "filename similar to query \"%s\"",
 					rs->query);
 				logged = TRUE;
 				rc->flags |= SR_SPAM;
+				*hostile |= HSTL_CLOSE_FILENAME;
 			}
 		}
 
@@ -1372,8 +1391,9 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 
 	if (!is_vendor_acceptable(rs->vcode)) {
 		/* A proper vendor code is mandatory */
-		search_results_mark_fake_spam(rs);
+		search_results_mark_fake_spam(rs, hostile);
 		search_log_spam(n, rs, "improper vendor code");
+		*hostile |= HSTL_BAD_VENDOR_CODE;
 	} else if (expected_xml && !has_xml) {
 		/**
 		 * LimeWire adds XML metadata for AVI and MPG files
@@ -1381,8 +1401,9 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 		 * Make an exception for Cabos popular in Japan.
 		 */
 		if (!search_results_from_country(rs, "jp")) {
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "was expecting XML");
+			*hostile |= HSTL_MISSING_XML;
 		}
 	} else if (
 		T_LIME == rs->vcode.u32 &&
@@ -1394,19 +1415,22 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 		 * Cabos frequently fails to add timestamps for unknown reasons.
 		 * Make an exception for Cabos popular in Japan.
 		 */
-		search_results_mark_fake_spam(rs);
+		search_results_mark_fake_spam(rs, hostile);
 		search_log_spam(n, rs, "no CT");
+		*hostile |= HSTL_NO_CREATE_TIME;
 	} else if (is_odd_guid(rs->guid)) {
-		search_results_mark_fake_spam(rs);
+		search_results_mark_fake_spam(rs, hostile);
 		search_log_spam(n, rs, "odd GUID %s", guid_hex_str(rs->guid));
+		*hostile |= HSTL_ODD_GUID;
 	} else if (guid_is_banned(rs->guid)) {
 		rs->status |= ST_BANNED_GUID;
+		*hostile |= HSTL_BANNED_GUID;
 		search_log_spam(n, rs, "banned GUID %s", guid_hex_str(rs->guid));
 	} else if (!(ST_SPAM & rs->status)) {
 		/*
 		 * Avoid costly checks if already marked as spam.
 		 */
-		search_results_identify_dupes(n, rs);
+		search_results_identify_dupes(n, rs, hostile);
 	}
 
 	if (search_results_from_spammer(rs)) {
@@ -1571,7 +1595,8 @@ search_add_push_proxy(gnet_results_set_t *rs, host_addr_t addr, uint16 port)
  */
 static bool
 search_results_handle_trailer(const gnutella_node_t *n,
-	gnet_results_set_t *rs, const char *trailer, size_t trailer_size)
+	gnet_results_set_t *rs, const char *trailer, size_t trailer_size,
+	hostiles_flags_t *hostile)
 {
 	uint8 open_size, open_parsing_size, enabler_mask, flags_mask;
 	const char *vendor;
@@ -1837,7 +1862,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					T_LIME != rs->vcode.u32 && 0 == rs->hops &&
 					is_lime_return_path(e)
 				) {
-					search_results_mark_fake_spam(rs);
+					search_results_mark_fake_spam(rs, hostile);
 				}
 				break;
 			default:
@@ -1869,6 +1894,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	} else {
 		if (is_lime_xml_spam(trailer, trailer_size)) {
 			rs->status |= ST_URL_SPAM;
+			*hostile |= HSTL_URL_SPAM;
 		}
 	}
 
@@ -1881,6 +1907,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 	if (0 == rs->hops && (ST_UDP & rs->status)) {
 		const guid_t *muid = gnutella_header_get_muid(&n->header);
+		hostiles_flags_t flags;
 
 		if (!has_token)
 			token = 0;
@@ -1895,6 +1922,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
 			/* Count only as unrequested, not as fake spam */
 			gnet_stats_inc_general(GNR_UNREQUESTED_OOB_HITS);
+			*hostile |= HSTL_OOB;
 
 			if (
 				GNET_PROPERTY(search_debug) > 1 ||
@@ -1916,11 +1944,13 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 		if (
 			((ST_GOOD_TOKEN | ST_HOSTILE) & rs->status) == ST_GOOD_TOKEN &&
-			hostiles_check(n->addr)
+			HSTL_CLEAN != (flags = hostiles_check(n->addr))
 		) {
 			if (GNET_PROPERTY(search_debug) > 1) {
-				g_debug("dropping UDP query hit from secure OOB: hostile IP %s",
-					host_addr_to_string(n->addr));
+				g_debug("dropping UDP query hit from secure OOB: "
+					"hostile IP %s (%s)",
+					host_addr_to_string(n->addr),
+					hostiles_flags_to_string(flags));
 			}
 			rs->status |= ST_HOSTILE;
 		}
@@ -1935,7 +1965,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		rs->port > 0 &&
 		is_host_addr(ipv6_addr) &&
 		settings_running_ipv6() &&
-		!hostiles_check(ipv6_addr)
+		!hostiles_is_known(ipv6_addr)
 	) {
 		search_add_push_proxy(rs, ipv6_addr, rs->port);
 	}
@@ -1948,7 +1978,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
  * successfully.
  */
 static void
-search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
+search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs,
+	hostiles_flags_t *hostile)
 {
 	/*
 	 * Hits relayed through UDP are necessarily a response to a GUESS query.
@@ -1963,7 +1994,8 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
 			 */
 			search_add_push_proxy(rs, n->addr, n->port);
 		} else {
-			search_results_mark_fake_spam(rs);
+			search_results_mark_fake_spam(rs, hostile);
+			*hostile |= HSTL_UDP_GUESS;
 
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_debug("received non-GUESS UDP query hit with hops=1 from %s",
@@ -2135,11 +2167,15 @@ lime_range_decode(const gnutella_node_t *n, const extvec_t *e, filesize_t size)
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
  *
- * @returns a structure describing the whole result set, or NULL if we
+ * @param n			the node from which we got the QHD
+ * @param browse	whether this QHD comes from a browse-host request
+ * @param hostile	where hostile indications are consolidated
+ *
+ * @return a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
 static G_GNUC_HOT gnet_results_set_t *
-get_results_set(gnutella_node_t *n, bool browse)
+get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 {
 	gnet_results_set_t *rs;
 	char *endptr, *s, *tag;
@@ -2161,6 +2197,9 @@ get_results_set(gnutella_node_t *n, bool browse)
 	const char *badmsg = NULL;
 	unsigned media_mask = 0;
 	const guid_t *muid = gnutella_header_get_muid(&n->header);
+	hostiles_flags_t flags;
+
+	*hostile = HSTL_CLEAN;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -2228,13 +2267,14 @@ get_results_set(gnutella_node_t *n, bool browse)
 
 	/* Check for hostile IP addresses */
 
-	if (hostiles_check(rs->addr)) {
+	if (HSTL_CLEAN != (flags = hostiles_check(rs->addr))) {
 		if (GNET_PROPERTY(search_debug) > 1) {
-			g_debug("dropping %s query hit %s by %s: hostile source at %s",
+			g_debug("dropping %s query hit %s by %s: hostile source at %s (%s)",
 				NODE_IS_UDP(n) ? "UDP" : "TCP",
 				NODE_IS_UDP(n) ?
 					(0 == rs->hops ? "issued" : "relayed") : "relayed",
-				host_addr_to_string(n->addr), host_addr_to_string2(rs->addr));
+				host_addr_to_string(n->addr), host_addr_to_string2(rs->addr),
+				hostiles_flags_to_string(flags));
 		}
 		rs->status |= ST_HOSTILE;
 	}
@@ -2836,7 +2876,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 
 	if (
 		trailer &&
-		search_results_handle_trailer(n, rs, trailer, endptr - trailer)
+		search_results_handle_trailer(n, rs, trailer, endptr - trailer, hostile)
 	) {
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		badmsg = "bad trailer";
@@ -2853,7 +2893,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 	 * At this point we finished processing of the query hit, successfully.
 	 */
 
-	search_results_postprocess(n, rs);
+	search_results_postprocess(n, rs, hostile);
 
 	/*
 	 * Refresh push-proxies if we're downloading anything from this server.
@@ -3030,7 +3070,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 		}
 	}
 
-	search_results_identify_spam(n, rs);
+	search_results_identify_spam(n, rs, hostile);
 	str_destroy_null(&info);
 
 	return rs;
@@ -4554,8 +4594,9 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	gnet_results_set_t *rs;
 	GSList *search = NULL;
 	GSList *sl;
+	hostiles_flags_t flags;
 
-	rs = get_results_set(n, TRUE);
+	rs = get_results_set(n, TRUE, &flags);
 	if (rs == NULL)
 		return;
 
@@ -4619,6 +4660,7 @@ search_results(gnutella_node_t *n, int *results)
 	bool dispatch_it = TRUE;
 	GSList *selected_searches = NULL;
 	uint32 max_items;
+	hostiles_flags_t flags;
 
 	g_assert(results != NULL);
 
@@ -4658,7 +4700,7 @@ search_results(gnutella_node_t *n, int *results)
 	 * based on the SHA1, the packet is only parsed for validation.
 	 */
 
-	rs = get_results_set(n, FALSE);
+	rs = get_results_set(n, FALSE, &flags);
 	if (rs == NULL) {
         /*
          * get_results_set takes care of telling the stats that
@@ -4699,7 +4741,7 @@ search_results(gnutella_node_t *n, int *results)
 			(0 == rs->hops && !NODE_IS_UDP(n))
 		)
 	) {
-		hostiles_dynamic_add(rs->last_hop, "spam/evil query hits");
+		hostiles_dynamic_add(rs->last_hop, "spam/evil query hits", flags);
 		rs->status |= ST_HOSTILE;
 
 		/*
@@ -7488,7 +7530,7 @@ skip_throttling:
 		 * Verify against the hostile IP addresses...
 		 */
 
-		if (hostiles_check(sri->addr)) {
+		if (hostiles_is_known(sri->addr)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 			goto drop;		/* Drop the message! */
 		}
@@ -7573,7 +7615,7 @@ skip_throttling:
 		 * hostiles file but were already connected to that node, for instance.
 		 */
 
-		if (hostiles_check(n->addr)) {
+		if (hostiles_is_known(n->addr)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 			goto drop;		/* Drop the message! */
 		}

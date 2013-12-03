@@ -970,7 +970,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		goto rejected;
 	}
 
-	if (hostiles_check(addr)) {
+	if (hostiles_is_known(addr)) {
 		reason = "hostile address";
 		goto rejected;
 	}

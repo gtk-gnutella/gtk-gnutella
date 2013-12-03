@@ -66,7 +66,7 @@ enum {
 	 ST_UNREQUESTED			= (1 << 18), /**< Unrequested (OOB) result */
 	 ST_EVIL				= (1 << 17), /**< Carries evil filename */
 	 ST_ALT_SPAM			= (1 << 16), /**< Carries alt-loc spam [UNUSED] */
-	 ST_DUP_SPAM			= (1 << 15), /**< Carries spam known by URN */
+	 ST_DUP_SPAM			= (1 << 15), /**< Duplicate entries in results */
 	 ST_FAKE_SPAM			= (1 << 14), /**< Fake file */
 	 ST_NAME_SPAM			= (1 << 13), /**< Carries alt-loc spam */
 	 ST_URL_SPAM			= (1 << 12), /**< Carries action URL spam */

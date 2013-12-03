@@ -911,6 +911,7 @@ handle_proxy_ack(struct gnutella_node *n,
 {
 	host_addr_t ha;
 	uint16 port;
+	hostiles_flags_t flags;
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, vmsg->version < 2 ? 2 : 6))
 		return;
@@ -935,9 +936,10 @@ handle_proxy_ack(struct gnutella_node *n,
 			host_addr_port_to_string(ha, port), vmsg->name, node_infostr(n));
 		return;
 	}
-	if (hostiles_check(ha)) {
-		g_message("VMSG got proxy ACK from hostile %s: proxy at %s",
-			node_infostr(n), host_addr_port_to_string(ha, port));
+	if (HSTL_CLEAN != (flags = hostiles_check(ha))) {
+		g_message("VMSG got proxy ACK from hostile %s (%s): proxy at %s",
+			node_infostr(n), hostiles_flags_to_string(flags),
+			host_addr_port_to_string(ha, port));
 		return;
 	}
 
