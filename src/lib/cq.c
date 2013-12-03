@@ -219,9 +219,8 @@ cqueue_check(const struct cqueue * const cq)
  * All the callout queues are linked together so that we can collect statistics
  * about them.
  */
-static elist_t cq_vars;
+static elist_t cq_vars = ELIST_INIT(offsetof(cqueue_t, lk));
 static spinlock_t cq_vars_slk = SPINLOCK_INIT;
-static once_flag_t cq_vars_inited;
 
 #define CQ_VARS_LOCK		spinlock(&cq_vars_slk)
 #define CQ_VARS_UNLOCK		spinunlock(&cq_vars_slk)
@@ -231,23 +230,12 @@ static once_flag_t cq_global_inited;	/**< Records global initialization */
 static void cq_global_init(void);
 
 /**
- * Initialize the global callout queue list, once.
- */
-static void
-cq_vars_init(void)
-{
-	elist_init(&cq_vars, offsetof(cqueue_t, lk));
-}
-
-/**
  * Add a new callout queue to the global list.
  */
 static void
 cq_vars_add(cqueue_t *cq)
 {
 	cqueue_check(cq);
-
-	once_flag_run(&cq_vars_inited, cq_vars_init);
 
 	CQ_VARS_LOCK;
 	elist_append(&cq_vars, cq);

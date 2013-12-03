@@ -73,9 +73,6 @@
 #define SHELL_MAX_ARGS		1024	/**< Max number of arguments in command */
 #define SHELL_STACK_SIZE	THREAD_STACK_MIN
 
-static elist_t shells;
-static htable_t *shell_cmds;
-
 enum shell_magic {
 	SHELL_MAGIC = 0x33f3e711U
 };
@@ -106,6 +103,9 @@ shell_check(const struct gnutella_shell * const sh)
 	g_assert(SHELL_MAGIC == sh->magic);
 	socket_check(sh->socket);
 }
+
+static elist_t shells = ELIST_INIT(offsetof(struct gnutella_shell, lnk));
+static htable_t *shell_cmds;
 
 static bool shell_interpret_line(struct gnutella_shell *sh, const char *line);
 static void shell_interpret_data(struct gnutella_shell *sh);
@@ -1397,7 +1397,6 @@ void
 shell_init(void)
 {
 	(void) shell_auth_cookie();
-	elist_init(&shells, offsetof(struct gnutella_shell, lnk));
 }
 
 void

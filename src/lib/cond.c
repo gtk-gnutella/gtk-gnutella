@@ -138,9 +138,8 @@ cast_to_cond_ext(const struct cond * const cd)
  * the system clock is adjusted.  This will cause spurious wakeups, but all
  * application code using condition variables must prepare for these anyway.
  */
-static elist_t cond_vars;
+static elist_t cond_vars = ELIST_INIT(offsetof(struct cond, lnk));
 static spinlock_t cond_vars_slk = SPINLOCK_INIT;
-static once_flag_t cond_vars_inited;
 
 #define COND_VARS_LOCK		spinlock(&cond_vars_slk)
 #define COND_VARS_UNLOCK	spinunlock(&cond_vars_slk)
@@ -207,15 +206,6 @@ cond_get_lock(const cond_t * const c)
 }
 
 /**
- * Initialize the condition variable list, once.
- */
-static void
-cond_vars_init(void)
-{
-	elist_init(&cond_vars, offsetof(struct cond, lnk));
-}
-
-/**
  * Install time event listener to react in case the system clock is adjusted.
  */
 static void
@@ -231,8 +221,6 @@ static void
 cond_vars_add(struct cond *cv)
 {
 	static once_flag_t done;
-
-	once_flag_run(&cond_vars_inited, cond_vars_init);
 
 	/*
 	 * We install the listener the first time we add a condition variable.
@@ -265,8 +253,6 @@ size_t
 cond_vars_count(void)
 {
 	size_t n;
-
-	once_flag_run(&cond_vars_inited, cond_vars_init);
 
 	COND_VARS_LOCK;
 	n = elist_count(&cond_vars);

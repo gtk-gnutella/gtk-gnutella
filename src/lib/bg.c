@@ -277,8 +277,7 @@ enum {
 static unsigned bg_debug;
 static bool bg_closed;
 static bgsched_t *bg_sched;			/**< Main (default) scheduler */
-static elist_t bg_sched_list;		/**< List of all active schedulers */
-static once_flag_t bg_sched_list_inited;
+static elist_t bg_sched_list = ELIST_INIT(offsetof(struct bgsched, lnk));
 static spinlock_t bg_sched_list_slk = SPINLOCK_INIT;
 
 #define BG_SCHED_LIST_LOCK		spinlock(&bg_sched_list_slk)
@@ -291,15 +290,6 @@ void
 bg_set_debug(unsigned level)
 {
 	bg_debug = level;
-}
-
-/**
- * Initialize the scheduler list, once.
- */
-static void
-bg_sched_list_init(void)
-{
-	elist_init(&bg_sched_list, offsetof(struct bgsched, lnk));
 }
 
 /**
@@ -1916,8 +1906,6 @@ static bgsched_t *
 bg_sched_alloc(const char *name, ulong max_life, bool schedule)
 {
 	bgsched_t *bs;
-
-	once_flag_run(&bg_sched_list_inited, bg_sched_list_init);
 
 	WALLOC0(bs);
 	bs->magic = BGSCHED_MAGIC;

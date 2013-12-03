@@ -341,9 +341,8 @@ tmalloc_thread_check(const struct tmalloc_thread * const tmt)
  * All the magazine depot are linked together so that we can collect statistics
  * about them.
  */
-static eslist_t tmalloc_vars;
+static eslist_t tmalloc_vars = ESLIST_INIT(offsetof(tmalloc_t, tma_slk));
 static spinlock_t tmalloc_vars_slk = SPINLOCK_INIT;
-static once_flag_t tmalloc_vars_inited;
 
 #define TMALLOC_VARS_LOCK		spinlock(&tmalloc_vars_slk)
 #define TMALLOC_VARS_UNLOCK		spinunlock(&tmalloc_vars_slk)
@@ -358,23 +357,12 @@ set_tmalloc_debug(uint32 level)
 }
 
 /**
- * Initialize the magazine depot list, once.
- */
-static void
-tmalloc_vars_init(void)
-{
-	eslist_init(&tmalloc_vars, offsetof(tmalloc_t, tma_slk));
-}
-
-/**
  * Add a new TM allocator to the global list.
  */
 static void
 tmalloc_vars_add(tmalloc_t *tm)
 {
 	tmalloc_check(tm);
-
-	ONCE_FLAG_RUN(tmalloc_vars_inited, tmalloc_vars_init);
 
 	TMALLOC_VARS_LOCK;
 	eslist_append(&tmalloc_vars, tm);

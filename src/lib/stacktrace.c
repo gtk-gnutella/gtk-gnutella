@@ -34,7 +34,9 @@
 #include "common.h"		/* For RCSID */
 
 #include "stacktrace.h"
+
 #include "atio.h"
+#include "atomic.h"
 #include "bfd_util.h"
 #include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
@@ -105,8 +107,12 @@ struct stackbuf {
 static struct {
 	spinlock_t lock;		/**< Thread-safe lock */
 	eslist_t buffers;		/**< List of allocated string buffers */
-	bool inited;			/**< Whether it was inited */
-} stacktrace_buffer;
+	int init_count;			/**< Whether it was inited */
+} stacktrace_buffer = {
+	SPINLOCK_INIT,									/* lock */
+	ESLIST_INIT(offsetof(struct stackbuf, lnk)),	/* buffers */
+	0,												/* init_count */
+};
 
 #define STACKTRACE_BUFFER_LOCK		spinlock_hidden(&stacktrace_buffer.lock)
 #define STACKTRACE_BUFFER_UNLOCK	spinunlock_hidden(&stacktrace_buffer.lock)
@@ -562,24 +568,16 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 static G_GNUC_COLD void
 stacktrace_buffer_init(void)
 {
-	static spinlock_t buffer_lck = SPINLOCK_INIT;
 	int i;
 
-	if G_UNLIKELY(stacktrace_buffer.inited)
-		return;		/* Avoid recursions */
+	if G_LIKELY(0 != stacktrace_buffer.init_count)
+		return;		/* Already initialized */
 
-	spinlock(&buffer_lck);
+	if G_UNLIKELY(0 != atomic_int_inc(&stacktrace_buffer.init_count))
+		return;		/* Race condition, someone else is initializing */
 
-	if (stacktrace_buffer.inited) {
-		spinunlock(&buffer_lck);
-		return;
-	}
-
-	spinlock_init(&stacktrace_buffer.lock);
-	eslist_init(&stacktrace_buffer.buffers, offsetof(struct stackbuf, lnk));
-	stacktrace_buffer.inited = TRUE;
-
-	spinunlock(&buffer_lck);
+	if (spinlock_in_crash_mode())
+		return;		/* Too late, risking fatal race during eslist setup */
 
 	/*
 	 * Populate some stacktrace buffer strings.

@@ -147,8 +147,6 @@ semaphore_check(const struct semaphore * const s)
 #define SEM_LOCK(s)		spinlock_hidden(&(s)->lock)
 #define SEM_UNLOCK(s)	spinunlock_hidden(&(s)->lock)
 
-static once_flag_t semaphore_inited;
-
 /***
  *** Emulated semaphores.
  ***/
@@ -444,7 +442,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 static bool sem_cleaned_up;
 
 #ifndef EMULATE_SEM
-static elist_t sem_list;		/* List of sem_batch */
+static elist_t sem_list = ELIST_INIT(offsetof(struct sem_batch, lk));
 static spinlock_t sem_list_lock = SPINLOCK_INIT;
 
 /**
@@ -636,28 +634,6 @@ done:
 #endif	/* !EMULATE_SEM */
 
 /**
- * Run once to initialize the semaphore layer.
- */
-static void
-semaphore_init_once(void)
-{
-#ifdef EMULATE_SEM
-	s_warning("using emulated semaphores");
-#else
-	elist_init(&sem_list, offsetof(struct sem_batch, lk));
-#endif
-}
-
-/**
- * Initialize the semaphore batch list.
- */
-static void
-semaphore_init(void)
-{
-	once_flag_run(&semaphore_inited, semaphore_init_once);
-}
-
-/**
  * Allocate a new user-level semaphore to be used in this process only.
  *
  * The ability to force emulation is only useful for testing.
@@ -678,9 +654,6 @@ semaphore_create_full(int tokens, bool emulated)
 #endif
 
 	g_assert(tokens >= 0);
-
-	if G_UNLIKELY(!ONCE_DONE(semaphore_inited))
-		semaphore_init();
 
 	if G_UNLIKELY(atomic_bool_get(&sem_cleaned_up))
 		emulated = TRUE;	/* Force emulated semaphore if we cleaned up! */
@@ -983,8 +956,6 @@ semaphore_kernel_usage(size_t *inuse)
 {
 #ifndef EMULATE_SEM
 	size_t arrays;
-
-	semaphore_init();
 
 	spinlock(&sem_list_lock);
 
