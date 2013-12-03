@@ -607,6 +607,7 @@ static uint32 xmalloc_debug;		/**< Debug level */
 static bool safe_to_log;			/**< True when we can log */
 static bool xmalloc_vmm_is_up;		/**< True when the VMM layer is up */
 static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
+static size_t sbrk_alignment;		/**< Adjustments for sbrk() alignment */
 static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
 static bool xmalloc_no_wfree;		/**< No longer release memory via wfree() */
@@ -1029,6 +1030,7 @@ bypass:
 		XSTATS_LOCK;
 		xstats.sbrk_wasted_bytes += missing;
 		XSTATS_UNLOCK;
+		sbrk_alignment += missing;
 	}
 #else
 	(void) locked;
@@ -6755,7 +6757,12 @@ xmalloc_post_init(void)
 
 	if (sbrk_allocated != 0) {
 		s_info("malloc() allocated %zu bytes of heap (%zu remain)",
-			sbrk_allocated, ptr_diff(current_break, lowest_break));
+			sbrk_allocated,
+			ptr_diff(current_break, lowest_break) - sbrk_alignment);
+
+		if (sbrk_alignment != 0)
+			s_info("addded %zu byte%s to heap base for %zu-byte alignment",
+				sbrk_alignment, plural(sbrk_alignment), xmalloc_round(1));
 	}
 
 	if (xmalloc_debugging(0)) {
