@@ -5338,8 +5338,18 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 				thread_element_name(te), thread_lock_kind_to_string(kind),
 				lock, i + 1, tls->count);
 			thread_lock_dump(te);
-			s_error("out-of-order %s release",
-				thread_lock_kind_to_string(kind));
+
+			/*
+			 * If crashing, it's interesting to learn about possible
+			 * out-of-order unlocking, because it may point to a true
+			 * bug in the crash handling, but let processing continue
+			 * to be able to dump useful information anyway.
+			 */
+
+			if (!thread_is_crashing()) {
+				s_error("out-of-order %s release",
+					thread_lock_kind_to_string(kind));
+			}
 		}
 	}
 }
