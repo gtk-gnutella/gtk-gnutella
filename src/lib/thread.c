@@ -3269,6 +3269,8 @@ thread_suspend_others(bool lockwait)
 	}
 
 	g_assert_log(te != NULL, "%s() called from unknown thread", G_STRFUNC);
+	g_assert_log(THREAD_ELEMENT_MAGIC == te->magic,
+		"%s() called with corrupted thread element", G_STRFUNC);
 
 	/*
 	 * Avoid recursion from the same thread, which means something is going
@@ -3290,6 +3292,16 @@ thread_suspend_others(bool lockwait)
 
 			if G_UNLIKELY(xte == te)
 				continue;
+
+			if G_UNLIKELY(NULL == xte) {
+				s_rawwarn("%s(): NULL thread element #%zu", G_STRFUNC, i);
+				continue;
+			}
+
+			if G_UNLIKELY(THREAD_ELEMENT_MAGIC != xte->magic) {
+				s_rawwarn("%s(): corrupted thread element #%zu", G_STRFUNC, i);
+				continue;
+			}
 
 			atomic_int_inc(&xte->suspend);
 			n++;
@@ -3325,6 +3337,16 @@ thread_suspend_others(bool lockwait)
 
 		if G_UNLIKELY(xte == te)
 			continue;
+
+		if G_UNLIKELY(NULL == xte) {
+			s_rawwarn("%s(): NULL thread element #%zu", G_STRFUNC, i);
+			continue;
+		}
+
+		if G_UNLIKELY(THREAD_ELEMENT_MAGIC != xte->magic) {
+			s_rawwarn("%s(): corrupted thread element #%zu", G_STRFUNC, i);
+			continue;
+		}
 
 		THREAD_LOCK(xte);
 		xte->suspend++;
