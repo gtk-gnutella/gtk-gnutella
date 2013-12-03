@@ -345,7 +345,8 @@ guid_extract_gtkg_info(const struct guid *guid, size_t start,
 	product_major = product_get_major();
 
 	if (major != product_major) {
-		if (major + 1 != product_major || major - 1 != product_major)
+		int8 delta = product_major - major;
+		if (delta < -1 || delta > 1)
 			return FALSE;
 	}
 
