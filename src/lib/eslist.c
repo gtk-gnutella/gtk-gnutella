@@ -251,7 +251,7 @@ eslist_link_remove_after_internal(eslist_t *list, slink_t *prevlk, slink_t *lk)
 	}
 
 	lk->next = NULL;
-	list->count--
+	list->count--;
 
 	safety_assert(eslist_invariant(list));
 	safety_assert(eslist_length(list->head) == list->count);
