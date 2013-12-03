@@ -8348,7 +8348,7 @@ missing:
 
 		if (!interrupt || !got_signal) {
 			tm_now_exact(&now);
-			if (tm_elapsed_ms(&now, &start) < ms)
+			if (UNSIGNED(tm_elapsed_ms(&now, &start)) < ms)
 				goto missing;
 		}
 
