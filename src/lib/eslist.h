@@ -72,6 +72,8 @@ eslist_check(const eslist_t * const es)
 	g_assert(ESLIST_MAGIC == es->magic);
 }
 
+#define ESLIST_INIT(offset)		{ ESLIST_MAGIC, NULL, NULL, offset, 0 }
+
 static inline bool
 eslist_invariant(const eslist_t * const list)
 {

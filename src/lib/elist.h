@@ -72,6 +72,8 @@ elist_check(const elist_t * const el)
 	g_assert(ELIST_MAGIC == el->magic);
 }
 
+#define ELIST_INIT(offset)		{ ELIST_MAGIC, NULL, NULL, offset, 0 }
+
 static inline bool
 elist_invariant(const elist_t * const list)
 {
