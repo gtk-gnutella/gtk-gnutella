@@ -3341,6 +3341,15 @@ socket_reconnect(struct gnutella_socket *s)
 		tls_free(s);
 	}
 
+	/*
+	 * Remove host from the TLS cache because if it is present there, then
+	 * socket_connect_prepare() will re-enable SOCK_F_TLS automatically and
+	 * we want to avoid TLS on a reconnection.
+	 *		--RAM, 2013-12-04
+	 */
+
+	tls_cache_remove(s->addr, s->port);
+
 	if (0 != socket_connect_prepare(s, s->addr, s->port, s->type, SOCK_F_FORCE))
 		return FALSE;
 
