@@ -56,12 +56,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_eunice VMS_SYSTEM		/**/
 #$d_linux LINUX_SYSTEM		/**/
 
-/* MEM_ALIGNBYTES:
- *	This symbol contains the number of bytes required to align a
- *	double. Usual values are 2, 4 and 8.
- */
-#define MEM_ALIGNBYTES $alignbytes	/**/
-
 /* ARCHLIB_EXP:
  *	This symbol contains the ~name expanded version of ARCHLIB, to be used
  *	in programs that are not prepared to deal with ~ expansion at run-time.
@@ -1268,6 +1262,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define void int		/* is void to be avoided? */
 #define M_VOID			/* Xenix strikes again */
 #endif
+
+/* MEM_ALIGNBYTES:
+ *	This symbol contains the number of bytes required to align a
+ *	double. Usual values are 2, 4 and 8.
+ */
+#define MEM_ALIGNBYTES $alignbytes	/**/
 
 /* USE_MY_MALLOC:
  *	This symbol, if defined, indicates that we're using our own malloc.

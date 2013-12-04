@@ -1,0 +1,138 @@
+?X:
+?X: Removed the "long long" and "long double" from alignment constraints
+?X: since gtk-gnutella does not use these types and it is highly unlikely
+?X: that the C library routines we are calling would need to allocate
+?X: structures with these types.
+?X:		--RAM, 2013-12-04
+?X:
+?RCS: $Id: alignbytes.U 167 2013-05-08 17:58:00Z rmanfredi $
+?RCS:
+?RCS: Copyright (c) 1991-1997, 2004-2006, Raphael Manfredi
+?RCS: 
+?RCS: You may redistribute only under the terms of the Artistic License,
+?RCS: as specified in the README file that comes with the distribution.
+?RCS: You may reuse parts of this distribution only within the terms of
+?RCS: that same Artistic License; a copy of which may be found at the root
+?RCS: of the source tree for dist 4.0.
+?RCS:
+?RCS: $Log: alignbytes.U,v $
+?RCS: Revision 3.0.1.2  1994/10/29  16:02:28  ram
+?RCS: patch36: added ?F: line for metalint file checking
+?RCS:
+?RCS: Revision 3.0.1.1  1994/05/06  14:25:20  ram
+?RCS: patch23: avoid ALIGNBYTES, since it conflicts on NetBSD
+?RCS:
+?RCS: Revision 3.0  1993/08/18  12:05:23  ram
+?RCS: Baseline for dist 3.0 netwide release.
+?RCS:
+?MAKE:alignbytes: Assert Myread Trylink cat i_inttypes i_limits i_math
+?MAKE:	-pick add $@ %<
+?S:alignbytes:
+?S:	This variable holds the number of bytes required to align an
+?S:	arbitrary standard type. Usual values are 2, 4 and 8.
+?S:.
+?X: This used to be called ALIGNBYTES, but that conflicts with
+?X: <machines/param.h> in NetBSD.
+?C:MEM_ALIGNBYTES (ALIGNBYTES):
+?C:	This symbol contains the number of bytes required to align a
+?C:	double. Usual values are 2, 4 and 8.
+?C:.
+?H:#define MEM_ALIGNBYTES $alignbytes	/**/
+?H:.
+?T:alignment result
+: check for alignment requirements
+echo " "
+case "$alignbytes" in
+'')
+	echo "Checking alignment constraints..." >&4
+
+	for alignment in 8 4 2 1 16 32 error
+	do
+		$cat >try.c <<EOCP
+#$i_inttypes I_INTTYPES
+#ifdef I_INTTYPES
+#include <inttypes.h>
+#endif
+#$i_limits I_LIMITS
+#ifdef I_LIMITS
+#include <limits.h>
+#endif
+#$i_math I_MATH
+#ifdef I_MATH
+#include <math.h>
+#endif
+
+union u {
+	void *void_ptr;
+	void (*func_ptr)(void);
+	char c;
+	short s;
+	int i;
+	long l;
+	float f;
+	double d;
+#ifdef UINT32_MAX
+	uint32_t u32;
+#else
+#warning "UINT32_MAX undefined"
+#endif
+#ifdef UINT16_MAX
+	uint16_t u16;
+#else
+#warning "UINT32_MAX undefined"
+#endif
+#ifdef UINT64_MAX
+	uint64_t u64;
+#else
+#warning "UINT64_MAX undefined"
+#endif
+#ifdef UINTMAX_MAX
+	uintmax_t m;
+#else
+#warning "UINTMAX_MAX undefined"
+#endif
+#ifdef UINTPTR_MAX
+	uintptr_t up;
+#else
+#warning "UINTPTR_MAX undefined"
+#endif
+};
+
+struct s {
+	char a;
+	union u b;
+};
+
+#include "static_assert.h"
+
+int
+main(void)
+{
+	STATIC_ASSERT($alignment == ((sizeof (struct s) - (sizeof (union u)))));
+	return 0;
+}
+EOCP
+
+		result=''
+		set result
+		eval $trylink
+		case "$result" in
+		"$define") break;;
+		esac
+	done
+
+	case "$alignment" in
+	error)	dflt='8'
+		echo "(I can't seem to compile the test program...)" >&4
+		;;
+	*)	dflt=$alignment
+		;;
+	esac
+;;
+*) dflt="$alignbytes"
+	;;
+esac
+rp="What is the maximum alignment in bytes required for a standard type?"
+. ./myread
+alignbytes="$ans"
+

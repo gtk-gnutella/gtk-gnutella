@@ -13,8 +13,9 @@ README.xmingw
 TODO
 U/modified/End.U
 U/modified/Myinit.U
-U/modified/prototype.U
+U/modified/alignbytes.U
 U/modified/mallocsrc.U
+U/modified/prototype.U
 U/packages/dbusconfig.U
 U/packages/glade.U
 U/packages/glibconfig.U

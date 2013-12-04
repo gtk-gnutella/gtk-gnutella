@@ -18,7 +18,7 @@
 
 # $Id: Head.U 167 2013-05-08 17:58:00Z rmanfredi $
 #
-# Generated on Sat Nov  2 10:52:09 CET 2013 [metaconfig 3.5-172]
+# Generated on Wed Dec  4 07:46:17 CET 2013 [metaconfig 3.5-172]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4219,7 +4219,7 @@ case "$usemymalloc" in
 esac
 $cat <<EOM
 $spackage comes with its own malloc() implementation that will supersede
-the version included in your C library.  Since proper memory allocation is 
+the version included in your C library.  Since proper memory allocation is
 critical, you may choose to opt out from this specific implementation and
 rely on the (hopefully) more thoroughly tested version in the C library.
 
@@ -8597,16 +8597,6 @@ union u {
 	long l;
 	float f;
 	double d;
-#ifdef LLONG_MAX
-	long long ll;
-#else
-#warning "LLONG_MAX undefined"
-#endif
-#if defined(HUGE_VALL)
-	long double ld;
-#else
-#warning "HUGE_VALL undefined"
-#endif
 #ifdef UINT32_MAX
 	uint32_t u32;
 #else
