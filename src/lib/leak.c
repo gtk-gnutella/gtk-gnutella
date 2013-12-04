@@ -81,7 +81,7 @@ leak_init(void)
 {
 	struct leak_set *ls;
 
-	XPMALLOC0(ls);
+	XMALLOC0(ls);
 	ls->magic = LEAK_SET_MAGIC;
 	ls->places = htable_create_real(HASH_KEY_STRING, 0);	/* No walloc() */
 	ls->stacks = htable_create_any_real(stack_hash, NULL, stack_eq);
@@ -165,7 +165,7 @@ leak_add(leak_set_t *ls, size_t size, const char *file, int line)
 		lr->size += size;
 		lr->count++;
 	} else {
-		XPMALLOC(lr);
+		XMALLOC(lr);
 		lr->size = size;
 		lr->count = 1;
 		htable_insert(ls->places, xstrdup(key), lr);
@@ -191,7 +191,7 @@ leak_stack_add(leak_set_t *ls, size_t size, const struct stackatom *sa)
 		lr->size += size;
 		lr->count++;
 	} else {
-		XPMALLOC(lr);
+		XMALLOC(lr);
 		lr->size = size;
 		lr->count = 1;
 		htable_insert(ls->stacks, sa, lr);
@@ -285,7 +285,7 @@ leak_dump(const leak_set_t *ls)
 	 * decreasing leak size.
 	 */
 
-	filler.leaks = xpmalloc(sizeof(struct leak) * count);
+	XMALLOC_ARRAY(filler.leaks, count);
 	filler.count = count;
 	filler.idx = 0;
 	filler.kt = LEAK_KEY_STACK;
@@ -323,7 +323,7 @@ leaks_by_place:
 	 * decreasing leak size.
 	 */
 
-	filler.leaks = xpmalloc(sizeof(struct leak) * count);
+	XMALLOC_ARRAY(filler.leaks, count);
 	filler.count = count;
 	filler.idx = 0;
 	filler.kt = LEAK_KEY_PLACE;

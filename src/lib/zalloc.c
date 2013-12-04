@@ -49,9 +49,6 @@
  * Moreover, periodic calls to the zone gc are needed to collect unused chunks
  * when peak allocations are infrequent or occur at random.
  *
- * Because xmalloc() uses zalloc() indirectly through walloc(), we must make
- * the code thread-safe.
- *
  * @author Raphael Manfredi
  * @date 2002-2003
  * @date 2009-2011
@@ -435,7 +432,7 @@ zrange_init(zone_t *zn)
 
 	g_assert(NULL == zn->zn_rang);
 
-	zn->zn_rang = xpmalloc(zn->zn_subzones * sizeof zn->zn_rang[0]);
+	XMALLOC_ARRAY(zn->zn_rang, zn->zn_subzones);
 
 	for (sz = &zn->zn_arena; sz; sz = sz->sz_next) {
 		g_assert(i < zn->zn_subzones);
@@ -1247,7 +1244,7 @@ zn_extend(zone_t *zone)
 
 	g_assert(spinlock_is_held(&zone->lock));
 
-	sz = xpmalloc(sizeof *sz);			/* Plain malloc */
+	XMALLOC(sz);
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
 	zrange_clear(zone);
 
@@ -1325,7 +1322,7 @@ zcreate_internal(size_t size, unsigned hint, bool embedded)
 {
 	zone_t *zone;			/* Zone descriptor */
 
-	zone = embedded ? NULL : xpmalloc0(sizeof *zone);
+	zone = embedded ? NULL : xmalloc0(sizeof *zone);
 	zone = zn_create(zone, size, 0 == hint ? DEFAULT_HINT : hint);
 
 #ifndef REMAP_ZALLOC
@@ -1758,10 +1755,8 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	 */
 
 	zg->zg_zones++;
-	array = xprealloc(zg->zg_subzinfo,
-		zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
-
-	zg->zg_subzinfo = array;
+	XREALLOC_ARRAY(zg->zg_subzinfo, zg->zg_zones);
+	array = zg->zg_subzinfo;
 
 	g_assert(uint_is_non_negative(low) && low < zg->zg_zones);
 
@@ -2180,10 +2175,9 @@ zgc_allocate(zone_t *zone)
 			free_blocks, plural(free_blocks));
 	}
 
-	zg = xpmalloc(sizeof *zg);
-
+	XMALLOC(zg);
 	zg->zg_zones = zone->zn_subzones;
-	zg->zg_subzinfo = xpmalloc(zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
+	XMALLOC_ARRAY(zg->zg_subzinfo, zg->zg_zones);
 	zg->zg_zone_freed = 0;
 	zg->zg_zone_defragmented = 0;
 	zg->zg_start = tm_time();

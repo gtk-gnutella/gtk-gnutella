@@ -83,7 +83,6 @@
 #include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
-#include "walloc.h"
 #include "xsort.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -97,23 +96,6 @@
 #endif
 #if 0
 #define XMALLOC_PTR_SAFETY		/* Adds costly pointer validation */
-#endif
-
-/*
- * When XMALLOC_ALLOW_WALLOC is defined, small blocks are allocated via walloc()
- * when there are no available blocks in the freelist for that size. This was
- * the default until xgc() was introduced, in an attempt to fight fragmentation.
- *
- * However, with the freelist global coalescing now performed by xgc() in the
- * background, this no longer seems a good approach as it limits the potential
- * of coalescing: walloc()-ed blocks are unreacheable, and long-lived blocks
- * allocated by walloc() prevent garbage collecting of zones.
- *
- * Therefore, as of 2012-04-01, we disable walloc() remapping, but keep the
- * necessary code in place just in case we have to reinstate it.
- */
-#if 0
-#define XMALLOC_ALLOW_WALLOC	/* Small blocks can use walloc() */
 #endif
 
 /*
@@ -283,17 +265,6 @@ struct xheader {
  * there is no offset correction.
  */
 #define XMALLOC_CHUNKHEAD_COUNT	(XM_THREAD_MAXSIZE / XMALLOC_ALIGNBYTES)
-
-/**
- * Magic size indication.
- *
- * Blocks allocated via walloc() have a size of WALLOC_MAX bytes at most.
- * The leading 16 bits of the 32-bit size quantity are used to flag walloc()
- * allocation to make sure the odd size is not a mistake.
- */
-#define XMALLOC_MAGIC_FLAG		0x1U
-#define XMALLOC_WALLOC_MAGIC	(0xa10c0000U | XMALLOC_MAGIC_FLAG)
-#define XMALLOC_WALLOC_SIZE		(0x0000ffffU & ~XMALLOC_MAGIC_FLAG)
 
 /**
  * Block coalescing options.
@@ -499,10 +470,8 @@ static struct xstats {
 	uint64 allocations;					/**< Total # of allocations */
 	AU64(allocations_zeroed);			/**< Total # of zeroing allocations */
 	uint64 allocations_aligned;			/**< Total # of aligned allocations */
-	AU64(allocations_plain);			/**< Total # of xpmalloc() calls */
 	AU64(allocations_heap);				/**< Total # of xhmalloc() calls */
 	uint64 alloc_via_freelist;			/**< Allocations from freelist */
-	uint64 alloc_via_walloc;			/**< Allocations from walloc() */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
 	uint64 alloc_via_thread_pool;		/**< Allocations from thread chunks */
@@ -511,7 +480,6 @@ static struct xstats {
 	uint64 free_sbrk_core_released;		/**< Released sbrk()-allocated core */
 	uint64 free_vmm_core;				/**< Freeing VMM-allocated core */
 	AU64(free_coalesced_vmm);			/**< VMM-freeing of coalesced block */
-	uint64 free_walloc;					/**< Freeing a walloc()'ed block */
 	uint64 free_thread_pool;			/**< Freeing a thread-specific block */
 	AU64(free_foreign_thread_pool);		/**< Freeing accross threads */
 	uint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
@@ -551,9 +519,6 @@ static struct xstats {
 	AU64(realloc_relocate_smart_success);	/**< Smart placement was OK */
 	AU64(realloc_regular_strategy);			/**< Regular resizing strategy */
 	AU64(realloc_from_thread_pool);			/**< Original was in thread pool */
-	uint64 realloc_wrealloc;				/**< Used wrealloc() */
-	uint64 realloc_converted_from_walloc;	/**< Converted from walloc() */
-	uint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
 	AU64(freelist_insertions);				/**< Insertions in freelist */
 	AU64(freelist_insertions_no_coalescing);/**< Coalescing forbidden */
 	AU64(freelist_insertions_deferred);		/**< Deferred insertions */
@@ -610,7 +575,6 @@ static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
 static size_t sbrk_alignment;		/**< Adjustments for sbrk() alignment */
 static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
-static bool xmalloc_no_wfree;		/**< No longer release memory via wfree() */
 static bool xmalloc_crashing;		/**< Crashing mode, minimal servicing */
 
 static void *lowest_break;			/**< Lowest heap address we know */
@@ -649,15 +613,6 @@ xfl_has_deferred(const struct xfreelist * const fl)
 
 #define XM_INVALID_PTR		((void *) 0xdeadbeef)
 
-/*
- * Simplify dead-code removal by gcc, preventing #ifdef hell.
- */
-#ifdef XMALLOC_ALLOW_WALLOC
-#define allow_walloc()			1
-#else
-#define allow_walloc()			0
-#endif
-
 /**
  * Set debug level.
  */
@@ -683,7 +638,6 @@ xmalloc_crash_mode(void)
 {
 	xmalloc_crashing = TRUE;
 	xmalloc_no_freeing = TRUE;
-	xmalloc_no_wfree = TRUE;
 }
 
 /**
@@ -787,7 +741,6 @@ xmalloc_vmm_inited(void)
 	STATIC_ASSERT(XMALLOC_ALIGNBYTES == (1 << XMALLOC_ALIGNSHIFT));
 	STATIC_ASSERT(XHEADER_SIZE == (1 << XHEADER_SHIFT));
 	STATIC_ASSERT(XMALLOC_BLOCK_SIZE == (1 << XMALLOC_BLOCK_SHIFT));
-	STATIC_ASSERT(1 == (((1 << WALLOC_MAX_SHIFT) - 1) & XMALLOC_WALLOC_MAGIC));
 
 	xmalloc_vmm_is_up = TRUE;
 	safe_to_log = TRUE;
@@ -906,45 +859,6 @@ xmalloc_should_split(size_t current, size_t wanted)
 	return waste >= XMALLOC_SPLIT_MIN &&
 		(current >> XMALLOC_WASTE_SHIFT) <= waste;
 }
-
-#ifdef XMALLOC_ALLOW_WALLOC
-/**
- * Is block length tagged as being that of a walloc()ed block?
- */
-static inline ALWAYS_INLINE bool
-xmalloc_is_walloc(size_t len)
-{
-	return XMALLOC_WALLOC_MAGIC == (len & ~XMALLOC_WALLOC_SIZE);
-}
-
-/**
- * Return size of walloc()ed block given a tagged length.
- */
-static inline ALWAYS_INLINE size_t
-xmalloc_walloc_size(size_t len)
-{
-	return len & XMALLOC_WALLOC_SIZE;
-}
-#else	/* !XMALLOC_ALLOW_WALLOC */
-/*
- * Cannot have a walloc()-ed block, so make sure we have proper hardwired
- * definitions for these inlined routines.
- */
-
-static inline ALWAYS_INLINE bool
-xmalloc_is_walloc(size_t len)
-{
-	(void) len;
-	return FALSE;
-}
-
-static inline ALWAYS_INLINE size_t
-xmalloc_walloc_size(size_t len)
-{
-	(void) len;
-	g_assert_not_reached();
-}
-#endif	/* XMALLOC_ALLOW_WALLOC */
 
 /**
  * Allocate more core, when the VMM layer is still uninitialized.
@@ -3452,14 +3366,13 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
  * @param fl		the freelist with free blocks of at least ``len'' bytes
  * @param block		the selected block from the freelist
  * @param length	the desired block length
- * @param split		whether we can split the block
  * @param allocated where we return the allocated block size (after split).
  *
  * @return adjusted pointer
  */
 static void *
 xmalloc_freelist_grab(struct xfreelist *fl,
-	void *block, size_t length, bool split, size_t *allocated)
+	void *block, size_t length, size_t *allocated)
 {
 	size_t blksize = fl->blocksize;
 	size_t len = length;
@@ -3480,7 +3393,7 @@ xmalloc_freelist_grab(struct xfreelist *fl,
 
 		split_len = blksize - len;
 
-		if (split && xmalloc_should_split(blksize, len)) {
+		if (xmalloc_should_split(blksize, len)) {
 			XSTATS_INCX(freelist_split);
 			if (xmalloc_grows_up) {
 				/* Split the end of the block */
@@ -3502,9 +3415,8 @@ xmalloc_freelist_grab(struct xfreelist *fl,
 			xmalloc_freelist_insert(sp, split_len, FALSE, XM_COALESCE_NONE);
 		} else {
 			if (xmalloc_debugging(3)) {
-				s_debug("XM NOT splitting %s %zu-byte block at %p"
+				s_debug("XM NOT splitting (as requested) %zu-byte block at %p"
 					" (need only %zu bytes, split of %zu bytes too small)",
-					split ? "large" : "(as requested)",
 					blksize, p, len, split_len);
 			}
 			XSTATS_INCX(freelist_nosplit);
@@ -3536,52 +3448,9 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 	p = xmalloc_freelist_lookup(len, NULL, &fl);
 
 	if G_UNLIKELY(p != NULL)
-		p = xmalloc_freelist_grab(fl, p, len, TRUE, allocated);
+		p = xmalloc_freelist_grab(fl, p, len, allocated);
 
 	return p;
-}
-
-/**
- * Allocate a block from specified freelist, of given physical length.
- *
- * @param len		the desired block length (including our overhead)
- * @param allocated	the length of the allocated block is returned there
- *
- * @return the block address we found, NULL if nothing was found.
- * The returned block is removed from the freelist.  When allocated, the
- * size of the block is returned via ``allocated''.
- */
-static void *
-xmalloc_one_freelist_alloc(struct xfreelist *fl, size_t len, size_t *allocated)
-{
-	void *p;
-
-	if (0 == fl->count)
-		return NULL;
-
-	mutex_lock(&fl->lock);
-
-	if G_UNLIKELY(xfl_has_deferred(fl))
-		xfl_process_deferred(fl);
-
-	if (0 == fl->count) {
-		mutex_unlock(&fl->lock);
-		return NULL;
-	}
-
-	p = xfl_select(fl);
-
-	if (xmalloc_debugging(8)) {
-		s_debug("XM selected block %p in requested bucket %p "
-			"(#%zu, %zu bytes) for %zu bytes",
-			p, (void *) fl, xfl_index(fl), fl->blocksize, len);
-	}
-
-	assert_valid_freelist_pointer(fl, p);
-
-	/* Mutex released via xmalloc_freelist_grab() */
-
-	return xmalloc_freelist_grab(fl, p, len, FALSE, allocated);
 }
 
 /**
@@ -3600,33 +3469,6 @@ xmalloc_block_setup(void *p, size_t len)
 	}
 
 	xh->length = len;
-	return ptr_add_offset(p, XHEADER_SIZE);
-}
-
-/**
- * Setup walloc()ed block.
- *
- * @return the user pointer within the physical block.
- */
-static void *
-xmalloc_wsetup(void *p, size_t len)
-{
-	struct xheader *xh = p;
-
-	if (xmalloc_debugging(9)) {
-		s_debug("XM setup walloc()ed %zu-byte block at %p (user %p)",
-			len, p, ptr_add_offset(p, XHEADER_SIZE));
-	}
-
-	/*
-	 * Flag length specially so that we know this is a block allocated
-	 * via walloc(), to be able to handle freeing and reallocations.
-	 */
-
-	g_assert(len <= WALLOC_MAX);
-	g_assert(0 == (len & XMALLOC_MAGIC_FLAG));
-
-	xh->length = (unsigned) len | XMALLOC_WALLOC_MAGIC;
 	return ptr_add_offset(p, XHEADER_SIZE);
 }
 
@@ -4487,13 +4329,12 @@ static size_t xalign_allocated(const void *p);
  * If no memory is available, crash with a fatal error message.
  *
  * @param size			minimal size of block to allocate (user space)
- * @param can_walloc	whether small blocks can be allocated via walloc()
  * @param can_vmm		whether we can allocate core via the VMM layer
  *
  * @return allocated pointer (never NULL).
  */
 static void *
-xallocate(size_t size, bool can_walloc, bool can_vmm)
+xallocate(size_t size, bool can_vmm)
 {
 	size_t len;
 	void *p;
@@ -4511,9 +4352,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 	 * the block.
 	 */
 
-	if G_UNLIKELY(xmalloc_no_freeing || (allow_walloc() && xmalloc_no_wfree)) {
-		can_walloc = FALSE;
-
+	if G_UNLIKELY(xmalloc_no_freeing ) {
 		/*
 		 * In crashing mode activate a simple direct path: anything smaller
 		 * than a page size is allocated via sbrk(), the rest is allocated
@@ -4586,67 +4425,9 @@ skip_pool:
 	if (len <= XMALLOC_MAXSIZE) {
 		size_t allocated;
 
-		/*
-		 * Check for walloc() remapping.
-		 */
-
-		if (
-			allow_walloc() &&
-			len <= WALLOC_MAX - XHEADER_SIZE && can_walloc && xmalloc_vmm_is_up
-		) {
-			size_t i = xfl_find_freelist_index(len);
-			struct xfreelist *fl = &xfreelist[i];
-
-			/*
-			 * Avoid freelist fragmentation when we can.
-			 *
-			 * As walloc() is possible, prefer this method unless we have a
-			 * block available in the freelist that can be allocated without
-			 * being split.
-			 *
-			 * Because walloc() is designed to prevent fragmentation, this
-			 * is the best strategy as it leaves larger blocks in the free
-			 * list and increases the chance of doing coalescing.
-			 *
-			 * The downside is that we can leave a large amount of memory
-			 * unused in the freelist, but this is memory that we cannot
-			 * release as it is fragmented, and it is better than a situation
-			 * where we would have way too many small blocks in the freelist
-			 * that we could not allocate anyway!
-			 */
-
-			p = xmalloc_one_freelist_alloc(fl, len, &allocated);
-
-			/*
-			 * Since zalloc() can round up the block size, we need to inspect
-			 * the next free lists until we can match the block that zalloc()
-			 * would allocate for the requested size.
-			 */
-
-			if (NULL == p) {
-				size_t bsz = walloc_blocksize(size + XHEADER_SIZE);
-
-				while (fl->blocksize < bsz && i < XMALLOC_FREELIST_COUNT - 1) {
-					fl = &xfreelist[++i];
-					p = xmalloc_one_freelist_alloc(fl, len, &allocated);
-					if (p != NULL)
-						goto allocated;
-				}
-			} else {
-				goto allocated;
-			}
-		}
-
-		/*
-		 * Cannot do walloc(), or did not find any non-splitable blocks.
-		 *
-		 * Allocate from the free list then, splitting larger blocks as needed.
-		 */
-
 		p = xmalloc_freelist_alloc(len, &allocated);
 
 		if (p != NULL) {
-		allocated:
 			G_PREFETCH_HI_W(p);			/* User is going to write in block */
 			XSTATS_LOCK;
 			xstats.allocations++;
@@ -4665,41 +4446,6 @@ skip_pool:
 
 	if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
 		size_t vlen;				/* Length of virual memory allocated */
-
-		/*
-		 * If we're allowed to use walloc() and the size is small-enough,
-		 * prefer this method of allocation to minimize freelist fragmentation.
-		 */
-
-		if (allow_walloc() && can_walloc) {
-			size_t wlen = xmalloc_round(size + XHEADER_SIZE);
-
-			/*
-			 * As soon as ``xmalloc_no_wfree'' is set, it means we're deep in
-			 * shutdown time with wdestroy() being called.  Therefore, we can
-			 * no longer allow any walloc().
-			 *
-			 * Note that walloc()ed blocks are not accounted for in user
-			 * block / memory statistics: instead, they are accounted for
-			 * by the zalloc() layer.
-			 */
-
-			if (wlen <= WALLOC_MAX) {
-				p = walloc(wlen);
-				if G_LIKELY(p != NULL) {
-					XSTATS_LOCK;
-					xstats.allocations++;
-					xstats.alloc_via_walloc++;
-					XSTATS_UNLOCK;
-					return xmalloc_wsetup(p, wlen);
-				}
-
-				/*
-				 * walloc() can only fail when we recursed and it has not
-				 * been able to allocate its internal zone array.
-				 */
-			}
-		}
 
 		/*
 		 * The VMM layer is up, use it for all core allocations.
@@ -4774,25 +4520,7 @@ skip_pool:
 void *
 xmalloc(size_t size)
 {
-	return xallocate(size, allow_walloc(), TRUE);
-}
-
-/**
- * Allocate a plain memory chunk capable of holding ``size'' bytes.
- *
- * If no memory is available, crash with a fatal error message.
- *
- * This is a "plain" malloc, not redirecting to walloc() for small-sized
- * objects, and therefore it can be used by low-level allocators for their
- * own data structures without fear of recursion.
- *
- * @return allocated pointer (never NULL).
- */
-void *
-xpmalloc(size_t size)
-{
-	XSTATS_INCX(allocations_plain);
-	return xallocate(size, FALSE, TRUE);
+	return xallocate(size, TRUE);
 }
 
 /**
@@ -4815,7 +4543,7 @@ xhmalloc(size_t size)
 	 */
 
 	XSTATS_INCX(allocations_heap);
-	return xallocate(size, FALSE, FALSE);
+	return xallocate(size, FALSE);
 }
 
 /**
@@ -4829,27 +4557,6 @@ xmalloc0(size_t size)
 	void *p;
 
 	p = xmalloc(size);
-	memset(p, 0, size);
-	XSTATS_INCX(allocations_zeroed);
-
-	return p;
-}
-
-/**
- * Allocate a memory chunk capable of holding ``size'' bytes and zero it.
- *
- * This is a "plain" malloc, not redirecting to walloc() for small-sized
- * objects, and therefore it can be used by low-level allocators for their
- * own data structures without fear of recursion.
- *
- * @return pointer to allocated zeroed memory.
- */
-void *
-xpmalloc0(size_t size)
-{
-	void *p;
-
-	p = xpmalloc(size);
 	memset(p, 0, size);
 	XSTATS_INCX(allocations_zeroed);
 
@@ -4890,51 +4597,6 @@ xstrdup(const char *str)
 }
 
 /**
- * A clone of strdup() using xpmalloc().
- * The resulting string must be freed via xfree().
- *
- * This is using a "plain" malloc, not redirecting to walloc() for small-sized
- * objects, and therefore it can be used by low-level allocators for their
- * own data structures without fear of recursion.
- *
- * @param str		the string to duplicate (can be NULL)
- *
- * @return a pointer to the new string.
- */
-char *
-xpstrdup(const char *str)
-{
-	return str ? xpcopy(str, 1 + strlen(str)) : NULL;
-}
-
-/**
- * Implementation of our strndup() clone.
- * The resulting string must be freed via xfree().
- *
- * @param str		the string to duplicate (can be NULL)
- * @param n			the maximum amount of characters to duplicate
- * @param plain		whether to use xpmalloc()
- *
- * @return a pointer to the new string.
- */
-static char *
-xstrndup_internal(const char *str, size_t n, bool plain)
-{
-	size_t len;
-	char *res, *p;
-
-	if G_UNLIKELY(NULL == str)
-		return NULL;
-
-	len = clamp_strlen(str, n);
-	res = plain ? xpmalloc(len + 1) : xmalloc(len + 1);
-	p = mempcpy(res, str, len);
-	*p = '\0';
-
-	return res;
-}
-
-/**
  * A clone of strndup() using xmalloc().
  * The resulting string must be freed via xfree().
  *
@@ -4946,22 +4608,18 @@ xstrndup_internal(const char *str, size_t n, bool plain)
 char *
 xstrndup(const char *str, size_t n)
 {
-	return xstrndup_internal(str, n, FALSE);
-}
+	size_t len;
+	char *res, *p;
 
-/**
- * A clone of strndup() using xpmalloc().
- * The resulting string must be freed via xfree().
- *
- * @param str		the string to duplicate (can be NULL)
- * @param n			the maximum amount of characters to duplicate
- *
- * @return a pointer to the new string.
- */
-char *
-xpstrndup(const char *str, size_t n)
-{
-	return xstrndup_internal(str, n, TRUE);
+	if G_UNLIKELY(NULL == str)
+		return NULL;
+
+	len = clamp_strlen(str, n);
+	res = xmalloc(len + 1);
+	p = mempcpy(res, str, len);
+	*p = '\0';
+
+	return res;
 }
 
 /**
@@ -5011,9 +4669,6 @@ xallocated(const void *p)
 	if (len != 0)
 		return len;
 
-	if (xmalloc_is_walloc(xh->length)) 
-		return xmalloc_walloc_size(xh->length);
-
 	if (!xmalloc_is_valid_length(xh, xh->length)) {
 		s_error_from(_WHERE_,
 			"corrupted malloc header for pointer %p: bad lengh %zu",
@@ -5037,14 +4692,6 @@ xfree(void *p)
 	 */
 
 	if G_UNLIKELY(NULL == p)
-		return;
-
-	/*
-	 * As soon as wdestroy() has been called, we're deep into shutdowning
-	 * so don't bother freeing anything.
-	 */
-
-	if G_UNLIKELY(allow_walloc() && xmalloc_no_wfree)
 		return;
 
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
@@ -5076,22 +4723,6 @@ xfree(void *p)
 			p, xmalloc_invalid_ptrstr(p));
 	}
 #endif
-
-	/*
-	 * Handle walloc()ed blocks specially.
-	 *
-	 * These are not accounted in xmalloc() blocks / memory stats since they
-	 * are already accounted for by zalloc() stats.
-	 */
-
-	if (xmalloc_is_walloc(xh->length)) {
-		XSTATS_LOCK;
-		xstats.freeings++;
-		xstats.free_walloc++;
-		XSTATS_UNLOCK;
-		wfree(xh, xmalloc_walloc_size(xh->length));
-		return;
-	}
 
 	/*
 	 * Freeings to freelist are disabled at shutdown time.
@@ -5131,7 +4762,6 @@ xfree(void *p)
  *
  * @param p				original user pointer
  * @param size			new user-size
- * @param can_walloc	whether plain block can be reallocated with walloc()
  *
  * @return
  * If a NULL pointer is given, act as if xmalloc() had been called and
@@ -5141,7 +4771,7 @@ xfree(void *p)
  * than the original pointer.
  */
 static void *
-xreallocate(void *p, size_t size, bool can_walloc)
+xreallocate(void *p, size_t size)
 {
 	struct xheader *xh = ptr_add_offset(p, -XHEADER_SIZE);
 	size_t newlen;
@@ -5150,7 +4780,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	struct xchunk *xck;
 
 	if (NULL == p)
-		return xallocate(size, can_walloc, TRUE);
+		return xallocate(size, TRUE);
 
 	if (0 == size) {
 		xfree(p);
@@ -5167,10 +4797,8 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	xck = xmalloc_thread_get_chunk(p, stid, TRUE);
 
 	if (xck != NULL) {
-		if G_UNLIKELY(xmalloc_no_freeing) {
-			can_walloc = FALSE;		/* Shutdowning, don't care */
+		if G_UNLIKELY(xmalloc_no_freeing)
 			goto realloc_from_thread;
-		}
 
 		XSTATS_INCX(reallocs);
 
@@ -5196,19 +4824,14 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	}
 #endif
 
-	if (xmalloc_is_walloc(xh->length))
-		goto realloc_from_walloc;
-
 	if G_UNLIKELY(!xmalloc_is_valid_length(xh, xh->length)) {
 		s_error_from(_WHERE_,
 			"corrupted malloc header for pointer %p: bad length %ld",
 			p, (long) xh->length);
 	}
 
-	if G_UNLIKELY(xmalloc_no_freeing) {
-		can_walloc = FALSE;		/* Shutdowning, don't care */
+	if G_UNLIKELY(xmalloc_no_freeing)
 		goto skip_coalescing;
-	}
 
 	/*
 	 * Compute the size of the physical block we need, including overhead.
@@ -5623,36 +5246,15 @@ skip_coalescing:
 	 * Regular case: allocate a new block, move data around, free old block.
 	 */
 
-	{
-		struct xheader *nxh;
-		bool converted;
+	np = xallocate(size, TRUE);
 
-		np = xallocate(size, allow_walloc() && can_walloc, TRUE);
+	XSTATS_INCX(realloc_regular_strategy);
 
-		XSTATS_INCX(realloc_regular_strategy);
-
-		/*
-		 * See whether plain block was converted to a walloc()ed one.
-		 */
-
-		nxh = ptr_add_offset(np, -XHEADER_SIZE);
-		converted = xmalloc_is_walloc(nxh->length);
-
-		if (converted) {
-			g_assert(can_walloc);
-
-			XSTATS_LOCK;
-			xstats.realloc_promoted_to_walloc++;
-			XSTATS_UNLOCK;
-		}
-
-		if (xmalloc_debugging(1)) {
-			s_debug("XM realloc used regular strategy: "
-				"%zu-byte block at %p %s %zu-byte block at %p",
-				xh->length, (void *) xh,
-				converted ? "converted to walloc()ed" : "moved to",
-				size + XHEADER_SIZE, ptr_add_offset(np, -XHEADER_SIZE));
-		}
+	if (xmalloc_debugging(1)) {
+		s_debug("XM realloc used regular strategy: "
+			"%zu-byte block at %p moved to %zu-byte block at %p",
+			xh->length, (void *) xh,
+			size + XHEADER_SIZE, ptr_add_offset(np, -XHEADER_SIZE));
 	}
 
 	/* FALL THROUGH */
@@ -5697,80 +5299,11 @@ inplace:
 	xh->length = newlen;
 	return p;
 
-realloc_from_walloc:
-	{
-		size_t old_len = xmalloc_walloc_size(xh->length);
-		size_t new_len = xmalloc_round(size + XHEADER_SIZE);
-		size_t old_size;
-
-		/*
-		 * If we disabled all freeings, we're deep into shutdown or in
-		 * crashing mode, and we don't want to free anything or call wfree().
-		 * Simply honour the reallocation request.
-		 */
-
-		if G_UNLIKELY(allow_walloc() && xmalloc_no_wfree) {
-			np = xallocate(size, FALSE, TRUE);
-			old_size = old_len - XHEADER_SIZE;
-			g_assert(size_is_non_negative(old_size));
-			memcpy(np, p, MIN(size, old_size));
-			return np;
-		}
-
-		if (new_len <= WALLOC_MAX) {
-			void *wp = wrealloc(xh, old_len, new_len);
-
-			XSTATS_LOCK;
-			xstats.realloc_wrealloc++;
-			XSTATS_UNLOCK;
-
-			if (xmalloc_debugging(1)) {
-				s_debug("XM realloc used wrealloc(): "
-					"%zu-byte block at %p %s %zu-byte block at %p",
-					old_len, (void *) xh,
-					old_len == new_len && 0 == ptr_cmp(xh, wp) ?
-						"stays" : "moved to",
-					new_len, wp);
-			}
-
-			return xmalloc_wsetup(wp, new_len);
-		}
-
-		/*
-		 * Have to convert walloc() block to real malloc.
-		 *
-		 * Since walloc()ed blocks are not accounted in xmalloc() statistics,
-		 * there's nothing to update during the conversion.
-		 */
-
-		np = xallocate(size, FALSE, TRUE);
-
-		XSTATS_LOCK;
-		xstats.realloc_converted_from_walloc++;
-		XSTATS_UNLOCK;
-
-		if (xmalloc_debugging(1)) {
-			s_debug("XM realloc converted from walloc(): "
-				"%zu-byte block at %p moved to %zu-byte block at %p",
-				old_len, (void *) xh,
-				size + XHEADER_SIZE, ptr_add_offset(np, -XHEADER_SIZE));
-		}
-
-		old_size = old_len - XHEADER_SIZE;
-
-		g_assert(size_is_non_negative(old_size));
-
-		memcpy(np, p, MIN(size, old_size));
-		wfree(xh, old_len);
-
-		return np;
-	}
-
 realloc_from_thread:
 	{
 		size_t old_size = xck->xc_size;
 
-		np = xallocate(size, allow_walloc() && can_walloc, TRUE);
+		np = xallocate(size, TRUE);
 
 		XSTATS_INCX(realloc_from_thread_pool);
 		XSTATS_INCX(realloc_regular_strategy);
@@ -5798,12 +5331,11 @@ realloc_from_thread:
 void *
 xrealloc(void *p, size_t size)
 {
-	return xreallocate(p, size, allow_walloc());
+	return xreallocate(p, size);
 }
 
 /**
- * Reallocate a block allocated via xmalloc(), forcing xpmalloc() if needed
- * to ensure walloc() is not used.
+ * Reallocate a block allocated via xmalloc(), forcing xpmalloc() if needed.
  *
  * @param p				original user pointer
  * @param size			new user-size
@@ -5818,7 +5350,7 @@ xrealloc(void *p, size_t size)
 void *
 xprealloc(void *p, size_t size)
 {
-	return xreallocate(p, size, FALSE);
+	return xreallocate(p, size);
 }
 
 /**
@@ -6783,17 +6315,6 @@ xmalloc_stop_freeing(void)
 }
 
 /**
- * Signal that we should stop freeing memory via wfree().
- *
- * This is mostly useful during final cleanup once wdestroy() has been called.
- */
-G_GNUC_COLD void
-xmalloc_stop_wfree(void)
-{
-	xmalloc_no_wfree = TRUE;
-}
-
-/**
  * Dump xmalloc usage statistics to specified logging agent.
  */
 G_GNUC_COLD void
@@ -6836,9 +6357,8 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(allocations);
 	DUMP64(allocations_zeroed);
 	DUMP(allocations_aligned);
-	DUMP64(allocations_plain);
+	DUMP64(allocations_heap);
 	DUMP(alloc_via_freelist);
-	DUMP(alloc_via_walloc);
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
 	DUMP(alloc_via_thread_pool);
@@ -6847,7 +6367,6 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(free_sbrk_core_released);
 	DUMP(free_vmm_core);
 	DUMP64(free_coalesced_vmm);
-	DUMP(free_walloc);
 	DUMP(free_thread_pool);
 	DUMP64(free_foreign_thread_pool);
 	DUMP(sbrk_alloc_bytes);
@@ -6887,9 +6406,6 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(realloc_relocate_smart_success);
 	DUMP64(realloc_regular_strategy);
 	DUMP64(realloc_from_thread_pool);
-	DUMP(realloc_wrealloc);
-	DUMP(realloc_converted_from_walloc);
-	DUMP(realloc_promoted_to_walloc);
 	DUMP64(freelist_insertions);
 	DUMP64(freelist_insertions_no_coalescing);
 	DUMP64(freelist_insertions_deferred);

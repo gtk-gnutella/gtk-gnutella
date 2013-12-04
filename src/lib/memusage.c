@@ -159,7 +159,7 @@ memusage_counter_alloc(void)
 {
 	struct memusage_counter *mc;
 
-	mc = xpmalloc0(sizeof *mc);
+	XMALLOC0(mc);
 	mc->magic = MEMUSAGE_COUNTER_MAGIC;
 
 	return mc;
@@ -308,9 +308,9 @@ memusage_alloc(const char *name, size_t width)
 	g_assert(name != NULL);
 	g_assert(size_is_non_negative(width));
 
-	mu = xpmalloc0(sizeof *mu);
+	XMALLOC0(mu);
 	mu->magic = MEMUSAGE_MAGIC;
-	mu->name = xpstrdup(name);
+	mu->name = xstrdup(name);
 	mu->width = width;
 	mu->timer_ev = cq_periodic_main_add(MEMUSAGE_PERIOD_MS, memusage_timer, mu);
 	spinlock_init(&mu->lock);

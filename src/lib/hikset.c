@@ -204,7 +204,7 @@ hikset_allocate(size_t bits, bool raw, size_t offset)
 	hikset_t *hx;
 
 	if (raw)
-		XPMALLOC0(hx);
+		XMALLOC0(hx);
 	else
 		WALLOC0(hx);
 

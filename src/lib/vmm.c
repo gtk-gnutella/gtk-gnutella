@@ -4007,7 +4007,7 @@ vmm_alloc_raw(size_t size)
 	if G_LIKELY(round_pagesize_fast(size) == size)
 		return vmm_alloc_internal(size, TRUE, FALSE);
 
-	return xpmalloc(size);
+	return xmalloc(size);
 }
 
 /**

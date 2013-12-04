@@ -96,7 +96,7 @@ walloc_init_once(void)
 }
 
 /**
- * Enter crash mode: redirect all allocations to xpmalloc() and avoid freeings.
+ * Enter crash mode: redirect all allocations to xmalloc() and avoid freeings.
  */
 G_GNUC_COLD void
 walloc_crash_mode(void)
@@ -177,21 +177,6 @@ wzone_get(size_t rounded)
 }
 
 /**
- * @return blocksize used by the underlying zalloc() for a given request.
- */
-size_t
-walloc_blocksize(size_t size)
-{
-	zone_t *zone;
-	size_t rounded = zalloc_round(size);
-	size_t idx = wzone_index(rounded);
-
-	zone = wzone[idx];
-
-	return NULL == zone ? rounded : zone_blocksize(zone);
-}
-
-/**
  * Get zone for given rounded allocation size.
  *
  * @param rounded		rounded allocation size
@@ -228,7 +213,7 @@ walloc_get_zone(size_t rounded, bool allocate)
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
  * are multiples of ZALLOC_ALIGNBYTES until WALLOC_MAX (e.g. 8, 16, 24, 40, ...)
- * and to xpmalloc() if size is greater than WALLOC_MAX.
+ * and to xmalloc() if size is greater than WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
  * @return a pointer to the start of the allocated block.
@@ -242,11 +227,11 @@ walloc_raw(size_t size)
 	g_assert(size_is_positive(size));
 
 	if G_UNLIKELY(walloc_stopped)
-		return xpmalloc(size);
+		return xmalloc(size);
 
 	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
-		return xpmalloc(size);
+		return xmalloc(size);
 	}
 
 	zone = walloc_get_zone(rounded, TRUE);
@@ -258,7 +243,7 @@ walloc_raw(size_t size)
  * Free a block allocated via walloc_raw().
  *
  * The size is used to find the zone from which the block was allocated, or
- * to determine that we actually xpmalloc()'ed it so it gets xfree()'ed.
+ * to determine that we actually xmalloc()'ed it so it gets xfree()'ed.
  */
 static void
 wfree_raw(void *ptr, size_t size)
@@ -381,7 +366,7 @@ walloc(size_t size)
 
 	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
-		return xpmalloc(size);
+		return xmalloc(size);
 	}
 
 	depot = walloc_get_magazine(rounded);
@@ -410,7 +395,7 @@ walloc0(size_t size)
  * Free a block allocated via walloc().
  *
  * The size is used to find the zone from which the block was allocated, or
- * to determine that we actually xpmalloc()'ed it so it gets xfree()'ed.
+ * to determine that we actually xmalloc()'ed it so it gets xfree()'ed.
  */
 void
 wfree(void *ptr, size_t size)
@@ -546,7 +531,7 @@ walloc_track(size_t size, const char *file, int line)
 #ifdef TRACK_MALLOC
 			malloc_track(size, file, line);
 #else
-			xpmalloc(size);
+			xmalloc(size);
 #endif
 			return p;
 	}
@@ -629,7 +614,6 @@ wdestroy(void)
 		}
 	}
 
-	xmalloc_stop_wfree();
 	walloc_stopped = TRUE;
 
 	for (i = 0; i < WZONE_SIZE; i++) {

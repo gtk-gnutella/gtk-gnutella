@@ -378,10 +378,9 @@ hash_table_new_intern(hash_table_t *ht,
 hash_table_t *
 hash_table_new_full(hash_fn_t hash, eq_fn_t eq)
 {
-	hash_table_t *ht = xpmalloc0(sizeof *ht);
+	hash_table_t *ht;
 
-	g_assert(ht);
-
+	XMALLOC0(ht);
 	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
@@ -1175,21 +1174,10 @@ hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
 	htl.keys = keys;
 
 	/*
-	 * We want to avoid calling xpmalloc() here, but since xmalloc() can
-	 * call walloc() which can create a new zone, we have to be careful.
-	 * Indeed, zalloc() uses a hash table to store its zones by size, and
-	 * we could be linearizing this specific hash table!
-	 *
-	 * For most hash tables our logic will have no impact and does not add
-	 * significant overhead (just another hash_table_size() call).  However,
-	 * it can prevent having to allocate more core since small-enough objects
-	 * will be allocated using walloc().
-	 *
-	 * Cannot hold the lock when going to xmalloc() in case this is the hash
-	 * table used by the thread layer to record threads -- since xmalloc()
-	 * will need to call thread_small_id(), if we keep the lock here we'll
-	 * block all the other threads attempting to allocate memory and then
-	 * we could cause a deadlock.
+	 * Since this hashtable layer can be used by low-level allocators to track
+	 * blocks, for instance, allocating memory could cause the hash table to
+	 * be resized, hence the loop below to delay linearization until we have
+	 * the proper size.
 	 */
 
 again:
@@ -1316,8 +1304,9 @@ hash_table_new_special(const hash_table_alloc_t alloc, void *obj)
 hash_table_t *
 hash_table_new_full_not_leaking(hash_fn_t hash, eq_fn_t eq)
 {
-	hash_table_t *ht = omalloc0(sizeof *ht);
+	hash_table_t *ht;
 
+	OMALLOC0(ht);
 	ht->not_leaking = booleanize(TRUE);
 	ht->once = booleanize(TRUE);
 	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
@@ -1359,8 +1348,9 @@ hash_table_new_full_real_using(hash_table_t *ht, bool once,
 hash_table_t *
 hash_table_once_new_full_real(hash_fn_t hash, eq_fn_t eq)
 {
-	hash_table_t *ht = omalloc(sizeof *ht);
+	hash_table_t *ht;
 
+	OMALLOC(ht);
 	return hash_table_new_full_real_using(ht, TRUE, hash, eq);
 }
 
@@ -1375,8 +1365,9 @@ hash_table_new_full_real(hash_fn_t hash, eq_fn_t eq)
 hash_table_t *
 hash_table_once_new_real(void)
 {
-	hash_table_t *ht = omalloc(sizeof *ht);
+	hash_table_t *ht;
 
+	OMALLOC(ht);
 	return hash_table_new_full_real_using(ht, TRUE, NULL, NULL);
 }
 

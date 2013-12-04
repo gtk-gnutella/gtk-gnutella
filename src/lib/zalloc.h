@@ -36,13 +36,7 @@
 
 #include "common.h" 
 
-/*
- * Glib-2.30.2 assumes that all allocated blocks will be aligned on 8 bytes,
- * regardless of the memory alignment constraints.  Because xmalloc() can
- * use walloc() to allocate small blocks, we have to force 8-byte alignment
- * for zalloc() as well now.
- */
-#define ZALLOC_ALIGNBYTES	MAX(8, MEM_ALIGNBYTES)	/* 8 at least for glib */
+#define ZALLOC_ALIGNBYTES	MEM_ALIGNBYTES
 
 /*
  * Object size rounding.
