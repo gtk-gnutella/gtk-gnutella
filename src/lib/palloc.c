@@ -65,8 +65,8 @@
 
 #include "atomic.h"
 #include "cq.h"
+#include "eslist.h"
 #include "evq.h"
-#include "glib-missing.h"
 #include "hashlist.h"
 #include "log.h"
 #include "mutex.h"
@@ -102,22 +102,21 @@ struct pool {
 	enum pool_magic magic;	/**< Magic number */
 	char *name;				/**< Pool name, for debugging */
 	size_t size;			/**< Size of blocks held in the pool */
-	GSList *buffers;		/**< Allocated buffers in the pool */
+	eslist_t buffers;		/**< Allocated buffers in the pool */
 	cperiodic_t *heart_ev;	/**< Monitoring of pool level */
 	pool_alloc_t alloc;		/**< Memory allocation routine */
 	pool_free_t	dealloc;	/**< Memory release routine */
 	pool_frag_t	is_frag;	/**< Fragment checking routine (optional) */
-	int allocated;			/**< Amount of allocated buffers */
-	int held;				/**< Amount of available buffers */
-	unsigned slow_ema;		/**< Slow EMA of pool usage (n = 31) */
-	unsigned fast_ema;		/**< Fast EMA of pool usage (n = 3) */
-	unsigned alloc_reqs;	/**< Amount of palloc() requests until a pfree() */
-	unsigned max_alloc;		/**< Max amount of alloc_reqs */
-	unsigned monotonic_ema;	/**< Fast EMA of "max_alloc" */
-	unsigned held_slow_ema;	/**< Slow EMA of pool held items (n = 31) */
-	unsigned held_fast_ema;	/**< Fast EMA of pool held items (n = 3) */
-	unsigned above;			/**< Amount of times allocation >= used EMA */
-	unsigned peak;			/**< Peak usage, when we're above used EMA */
+	size_t allocated;		/**< Amount of allocated buffers */
+	size_t slow_ema;		/**< Slow EMA of pool usage (n = 31) */
+	size_t fast_ema;		/**< Fast EMA of pool usage (n = 3) */
+	size_t alloc_reqs;		/**< Amount of palloc() requests until a pfree() */
+	size_t max_alloc;		/**< Max amount of alloc_reqs */
+	size_t monotonic_ema;	/**< Fast EMA of "max_alloc" */
+	size_t held_slow_ema;	/**< Slow EMA of pool held items (n = 31) */
+	size_t held_fast_ema;	/**< Fast EMA of pool held items (n = 3) */
+	size_t above;			/**< Amount of times allocation >= used EMA */
+	size_t peak;			/**< Peak usage, when we're above used EMA */
 	mutex_t lock;			/**< Thread-safe lock */
 };
 
@@ -126,9 +125,7 @@ struct pool {
 /*
  * Pool locking needs to be re-entrant, because a pfree() can cause the
  * current thread to recurse back to palloc(): xmalloc() uses a pool to
- * store thread local chunks, and a pfree() can allocate memory to get the
- * link for the list, which is a small object and can therefore require
- * the creation of another chunk....
+ * store thread local chunks, and a pfree() could therefore allocate memory.
  */
 
 #define POOL_LOCK(p)		mutex_lock(&(p)->lock)
@@ -197,9 +194,10 @@ pool_needs_gc(const pool_t *p, bool need)
 
 	if G_UNLIKELY(change && palloc_debug > 1) {
 		s_debug("PGC turning %s for pool \"%s\" "
-			"(allocated=%d, held=%d, slow_ema=%u, fast_ema=%u, held_ema=%u)",
+			"(allocated=%zu, held=%zu, slow_ema=%zu, "
+			"fast_ema=%zu, held_ema=%zu)",
 			need ? "GC on" : "off GC",
-			p->name, p->allocated, p->held,
+			p->name, p->allocated, eslist_count(&p->buffers),
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
 			pool_ema(p, held_slow_ema));
 	}
@@ -212,14 +210,14 @@ static bool
 pool_heartbeat(void *obj)
 {
 	pool_t *p = obj;
-	unsigned used, ema, held;
+	size_t used, ema, held;
 	bool needs_gc, update = FALSE;
 
 	pool_check(p);
 
 	POOL_LOCK(p);
 
-	g_assert(p->allocated >= p->held);
+	g_assert(p->allocated >= eslist_count(&p->buffers));
 
 	/*
 	 * Update the usage EMA.
@@ -235,7 +233,7 @@ pool_heartbeat(void *obj)
 	 * pool_ema() to perform the necessary correction.
 	 */
 
-	used = p->allocated - p->held;
+	used = p->allocated - eslist_count(&p->buffers);
 	used <<= POOL_EMA_SHIFT;
 
 	p->slow_ema += (used >> 4) - (p->slow_ema >> 4);
@@ -247,7 +245,7 @@ pool_heartbeat(void *obj)
 	 * Keep track of the amount of held blocks via a slow EMA.
 	 */
 
-	held = p->held << POOL_EMA_SHIFT;
+	held = eslist_count(&p->buffers) << POOL_EMA_SHIFT;
 	p->held_slow_ema += (held >> 4) - (p->held_slow_ema >> 4);
 	p->held_fast_ema += (held >> 1) - (p->held_fast_ema >> 1);
 
@@ -269,17 +267,17 @@ pool_heartbeat(void *obj)
 	 * buffers plus the required amount for monotonic allocations.
 	 */
 
-	if (UNSIGNED(p->allocated) > ema + pool_ema(p, monotonic_ema)) {
-		unsigned peak = p->allocated - p->held;
+	if (p->allocated > ema + pool_ema(p, monotonic_ema)) {
+		size_t peak = p->allocated - eslist_count(&p->buffers);
 		if (peak > p->peak)
 			p->peak = peak;
 		if (++p->above >= POOL_OVERSIZED_THRESH)
 			update = needs_gc = TRUE;
 	} else if (
 		p->held_fast_ema >= p->held_slow_ema ||
-		UNSIGNED(p->held) >= (UNSIGNED(p->allocated) >> 4)
+		eslist_count(&p->buffers) >= (p->allocated >> 4)
 	) {
-		update = needs_gc = TRUE;
+		update = needs_gc = 0 != p->allocated;
 	} else if (p->peak != 0) {
 		p->above = 0;
 		p->peak = 0;
@@ -293,10 +291,12 @@ pool_heartbeat(void *obj)
 		pool_needs_gc(p, needs_gc);
 
 	if (palloc_debug > 4) {
-		s_debug("PGC pool \"%s\": allocated=%d, held=%d, used=%d, above=%u, "
-			"slow_ema=%u, fast_ema=%u, monotonic_ema=%u, peak=%u, "
-			"held_slow_ema=%u, held_fast_ema=%u",
-			p->name, p->allocated, p->held, p->allocated - p->held, p->above,
+		size_t n = eslist_count(&p->buffers);
+		s_debug("PGC pool \"%s\": allocated=%zu, held=%zu, used=%zu, "
+			"above=%zu, slow_ema=%zu, fast_ema=%zu, "
+			"monotonic_ema=%zu, peak=%zu, "
+			"held_slow_ema=%zu, held_fast_ema=%zu",
+			p->name, p->allocated, n, p->allocated - n, p->above,
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
 			pool_ema(p, monotonic_ema), p->peak,
 			pool_ema(p, held_slow_ema), pool_ema(p, held_fast_ema));
@@ -313,7 +313,8 @@ pool_count(const pool_t *p)
 {
 	pool_check(p);
 
-	return atomic_int_get(&p->held);		/* No need to lock */
+	atomic_mb();
+	return eslist_count(&p->buffers);	/* No need to lock */
 }
 
 /**
@@ -324,7 +325,8 @@ pool_capacity(const pool_t *p)
 {
 	pool_check(p);
 
-	return atomic_int_get(&p->allocated);	/* No need to lock */
+	atomic_mb();
+	return p->allocated;				/* No need to lock */
 }
 
 /**
@@ -347,10 +349,11 @@ pool_create(const char *name,
 	XMALLOC0(p);
 	p->magic = POOL_MAGIC;
 	p->name = xstrdup(name);
-	p->size = size;
+	p->size = MAX(size, sizeof(slink_t));	/* Needs leading slink_t */
 	p->alloc = alloc;
 	p->dealloc = dealloc;
 	p->is_frag = is_frag;
+	eslist_init(&p->buffers, 0);	/* Use first pointer as slink_t */
 	mutex_init(&p->lock);
 	p->heart_ev =
 		evq_raw_periodic_add(POOL_HEARTBEAT_PERIOD, pool_heartbeat, p);
@@ -365,19 +368,19 @@ void
 pool_free(pool_t *p)
 {
 	unsigned outstanding;
-	GSList *sl;
+	void *b;
 
 	pool_check(p);
 
 	POOL_LOCK(p);
 
-	g_assert(p->allocated >= p->held);
+	g_assert(p->allocated >= eslist_count(&p->buffers));
 
 	/*
 	 * Make sure there's no outstanding object allocated from the pool.
 	 */
 
-	outstanding = p->allocated - p->held;
+	outstanding = p->allocated - eslist_count(&p->buffers);
 
 	if (outstanding != 0) {
 		g_carp("freeing pool \"%s\" of %zu-byte objects with %u still used",
@@ -390,10 +393,9 @@ pool_free(pool_t *p)
 	 * Free buffers still held in the pool.
 	 */
 
-	GM_SLIST_FOREACH(p->buffers, sl) {
-		p->dealloc(sl->data, p->size, FALSE);
+	while (NULL != (b = eslist_shift(&p->buffers))) {
+		p->dealloc(b, p->size, FALSE);
 	}
-	gm_slist_free_null(&p->buffers);
 
 	XFREE_NULL(p->name);
 	cq_periodic_remove(&p->heart_ev);
@@ -416,16 +418,12 @@ palloc(pool_t *p)
 
 	p->alloc_reqs++;
 
-	if (p->buffers != NULL) {
-		g_assert(p->held > 0);
-
+	if (0 != eslist_count(&p->buffers)) {
 		/*
 		 * We have a buffer available, we're done.
 		 */
 
-		obj = p->buffers->data;
-		p->buffers = g_slist_delete_link(p->buffers, p->buffers);
-		p->held--;
+		obj = eslist_shift(&p->buffers);
 		POOL_UNLOCK(p);
 	} else {
 		/*
@@ -484,26 +482,7 @@ pfree(pool_t *p, void *obj)
 
 		p->dealloc(obj, p->size, TRUE);
 	} else {
-		GSList *lk;
-
-		/*
-		 * Because xmalloc() now uses pools for thread chunks, we need to
-		 * be careful because g_slist_prepend() can recurse to palloc() on
-		 * the same pool if we're handling the xmalloc pool...
-		 *
-		 * Therefore, do it manually: allocate the link, then put it at the
-		 * head of the list.  This should be roughly what g_slist_prepend()
-		 * would do, excepted that we re-read p->buffers AFTER the allocation
-		 * of the link, thereby being safe against a recursion in palloc()
-		 * in order to handle the g_slist_alloc() call.
-		 *		--RAM, 2013-11-13
-		 */
-
-		lk = g_slist_alloc();		/* There, now memory is allocated */
-		lk->data = obj;
-		lk->next = p->buffers;
-		p->buffers = lk;
-		p->held++;
+		eslist_prepend(&p->buffers, obj);
 		POOL_UNLOCK(p);
 	}
 }
@@ -525,26 +504,28 @@ set_palloc_debug(uint32 level)
 static void
 pool_reclaim_garbage(pool_t *p)
 {
-	unsigned ema, threshold, extra, spurious = 0, collecting = 0;
-	GSList *to_remove = NULL, *sl;
+	size_t ema, threshold, extra, spurious = 0, collecting = 0;
+	eslist_t to_remove;
+	void *b;
 
 	pool_check(p);
 
+	eslist_init(&to_remove, 0);
 	POOL_LOCK(p);
 
-	g_assert(p->allocated >= p->held);
+	g_assert(p->allocated >= eslist_count(&p->buffers));
 
 	if (palloc_debug > 2) {
-		s_debug("PGC garbage collecting pool \"%s\": allocated=%u, held=%u "
-			"slow_ema=%u, fast_ema=%u, bg_ema=%u, peak=%u, "
-			"held_slow_ema=%u, held_fast_ema=%u",
-			p->name, p->allocated, p->held,
+		s_debug("PGC garbage collecting pool \"%s\": allocated=%zu, held=%zu "
+			"slow_ema=%zu, fast_ema=%zu, bg_ema=%zu, peak=%zu, "
+			"held_slow_ema=%zu, held_fast_ema=%zu",
+			p->name, p->allocated, eslist_count(&p->buffers),
 			pool_ema(p, slow_ema), pool_ema(p, fast_ema),
 			pool_ema(p, monotonic_ema), p->peak,
 			pool_ema(p, held_slow_ema), pool_ema(p, held_fast_ema));
 	}
 
-	if (0 == p->held)
+	if (0 == eslist_count(&p->buffers))
 		goto reset;					/* No blocks */
 
 	/*
@@ -554,9 +535,9 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (p->fast_ema > p->slow_ema) {
 		if (palloc_debug > 1) {
-			s_debug("PGC not collecting %u block%s from \"%s\": "
-				"recent allocation burst",
-				p->held, plural(p->held), p->name);
+			size_t n = eslist_count(&p->buffers);
+			s_debug("PGC not collecting %zu block%s from \"%s\": "
+				"recent allocation burst", n, plural(n), p->name);
 		}
 		goto reset;
 	}
@@ -570,11 +551,12 @@ pool_reclaim_garbage(pool_t *p)
 	 * twice the current EMA value.
 	 */
 
-	if (UNSIGNED(p->allocated - p->held) > ema) {
+	if ((size_t) p->allocated - eslist_count(&p->buffers) > ema) {
 		if (palloc_debug > 1) {
 			s_debug("PGC doubling current EMA max for \"%s\": "
-				"used block count %u currently above largest EMA %u",
-				p->name, p->allocated - p->held, ema);
+				"used block count %zu currently above largest EMA %zu",
+				p->name,
+				p->allocated - eslist_count(&p->buffers), ema);
 		}
 		ema *= 2;
 	}
@@ -586,7 +568,7 @@ pool_reclaim_garbage(pool_t *p)
 
 	if (
 		p->held_fast_ema >= p->held_slow_ema ||
-		UNSIGNED(p->held) == pool_ema(p, held_slow_ema)
+		eslist_count(&p->buffers) == pool_ema(p, held_slow_ema)
 	) {
 		spurious = pool_ema(p, held_slow_ema) >> 1;
 	}
@@ -603,38 +585,30 @@ pool_reclaim_garbage(pool_t *p)
 	threshold = MAX(threshold, p->peak);
 	threshold += ema;
 
-	if (UNSIGNED(p->allocated) <= threshold && 0 == spurious) {
+	if (p->allocated <= threshold && 0 == spurious) {
 		if (palloc_debug > 1) {
-			s_debug("PGC not collecting %u block%s from \"%s\": "
-				"allocation count %u currently below or at target of %u",
-				p->held, plural(p->held), p->name, p->allocated,
-				threshold);
+			size_t n = eslist_count(&p->buffers);
+			s_debug("PGC not collecting %zu block%s from \"%s\": "
+				"allocation count %zu currently below or at target of %zu",
+				n, plural(n), p->name, p->allocated, threshold);
 		}
 		goto reset;
 	}
 
 	extra = p->allocated - threshold;
 	extra = MAX(extra, spurious);
-	collecting = extra = MIN(extra, UNSIGNED(p->held));
+	collecting = extra = MIN(extra, eslist_count(&p->buffers));
 
 	/*
 	 * Here we go, reclaim extra buffers.
 	 */
 
 	while (extra-- > 0) {
-		sl = p->buffers;
-		g_assert(sl != NULL);
+		b = eslist_shift(&p->buffers);
 
-		/*
-		 * To avoid freeing, then re-allocating a GSList cell, we transfer
-		 * the link from the p->buffers list to the to_remove list manually.
-		 */
-
-		p->buffers = g_slist_remove_link(p->buffers, sl);
-		sl->next = to_remove;	/* Prepend link */
-		to_remove = sl;			/* New head */
+		g_assert(b != NULL);
 		p->allocated--;
-		p->held--;
+		eslist_append(&to_remove, b);
 	}
 
 	/*
@@ -651,17 +625,16 @@ reset:
 
 	POOL_UNLOCK(p);
 
-	if G_UNLIKELY(palloc_debug && to_remove != NULL) {
+	if G_UNLIKELY(palloc_debug && 0 != eslist_count(&to_remove)) {
 		/* Reading p->allocated without the pool's lock, but we don't care */
-		s_debug("PGC \"%s\": collecting %u block%s (%u spurious, %u allocated)",
+		s_debug("PGC \"%s\": collecting %zu block%s "
+			"(%zu spurious, %zu allocated)",
 			p->name, collecting, plural(collecting), spurious, p->allocated);
 	}
 
-	GM_SLIST_FOREACH(to_remove, sl) {
-		void *obj = sl->data;
-		p->dealloc(obj, p->size, FALSE);
+	while (NULL != (b = eslist_shift(&to_remove))) {
+		p->dealloc(b, p->size, FALSE);
 	}
-	gm_slist_free_null(&to_remove);
 }
 
 /**
@@ -673,7 +646,6 @@ pool_gc_trampoline(void *obj, void *udata)
 	pool_t *p = obj;
 
 	(void) udata;
-
 	pool_check(p);
 
 	pool_reclaim_garbage(p);
