@@ -73,7 +73,7 @@
 #define VSORT_ITEMS			8192	/* A rather large amount of items */
 #define VSORT_SMALL_ITEMS	128		/* Upper limit for small arrays */
 #define VSORT_HUGE_ITEMS	TQSORT_ITEMS	/* Huge item amount */
-#define VSORT_MIN_SECS		0.05	/* Lowest CPU time we want to spend */
+#define VSORT_MIN_SECS		0.01	/* Lowest CPU time we want to spend */
 
 struct vsort_timing {
 	void *data;				/* The data to sort */
