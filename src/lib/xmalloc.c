@@ -3866,6 +3866,11 @@ xmalloc_thread_free_deferred(unsigned stid)
 	xcr = &xcross[stid];
 	spinlock(&xcr->lock);
 
+	if G_LIKELY(0 == xcr->count) {
+		spinunlock(&xcr->lock);
+		return;
+	}
+
 	if (xmalloc_debugging(0)) {
 		s_minidbg("XM starting handling deferred %zu block%s for %s",
 			xcr->count, plural(xcr->count), thread_id_name(stid));
