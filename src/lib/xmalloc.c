@@ -5922,6 +5922,7 @@ xgc(void)
 	struct xgc_processed processed;
 	void const **tmp;
 	erbtree_t rbt;
+	size_t deferred_buckets = 0, deferred_blocks = 0;
 
 	if (!xmalloc_vmm_is_up)
 		return;
@@ -5965,7 +5966,7 @@ xgc(void)
 
 	/*
 	 * Pass 1a: expand buckets that were flagged too small for coalescing,
-	 * shrink buckets that are too large.
+	 * shrink buckets that are too large, return deferred blocks if any.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -5982,6 +5983,16 @@ xgc(void)
 		 * of the buckets we locked earlier in the sequence, that could lead
 		 * to a deadlock.
 		 */
+
+		if G_UNLIKELY(0 != fl->deferred.count) {
+			mutex_lock(&fl->lock);
+			if (xfl_has_deferred(fl)) {
+				deferred_buckets++;
+				deferred_blocks += fl->deferred.count;
+				xfl_process_deferred(fl);
+			}
+			mutex_unlock(&fl->lock);
+		}
 
 		if G_UNLIKELY(fl->expand) {
 			mutex_lock(&fl->lock);
@@ -6030,6 +6041,12 @@ xgc(void)
 
 			mutex_unlock(&fl->lock);
 		}
+	}
+
+	if (xmalloc_debugging(0) && 0 != deferred_buckets) {
+		s_debug("XM GC processed %zu bucket%s with %zu deferred block%s",
+			deferred_buckets, plural(deferred_buckets),
+			deferred_blocks, plural(deferred_blocks));
 	}
 
 	/*
