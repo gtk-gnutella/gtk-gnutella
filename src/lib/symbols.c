@@ -249,7 +249,7 @@ symbols_normalize(const char *name, bool atom)
  * @param name		the name of the symbol
  */
 void
-symbols_append(symbols_t *st, const void *addr, const void *name)
+symbols_append(symbols_t *st, const void *addr, const char *name)
 {
 	struct symbol *s;
 
