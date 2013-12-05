@@ -174,6 +174,7 @@
 
 #define TMALLOC_MAG_LOADED		0		/* Index of the "loaded" magazine */
 #define TMALLOC_MAG_PREVIOUS	1		/* Index of the "previous" magazine */
+#define TMALLOC_MAG_EXTRA		2		/* Extra magazine we have around */
 
 #define TMALLOC_MAG_MIN			4		/* Minimum magazine capacity */
 #define TMALLOC_MAG_MAX			256		/* Maximum magazine capacity */
@@ -201,6 +202,7 @@ struct tmalloc_stats {
 	AU64(tmas_freeings);			/* Total amount of object freeings */
 	AU64(tmas_threads);				/* Total amount of threads attached */
 	AU64(tmas_contentions);			/* Total amount of lock contentions */
+	AU64(tmas_preemptions);			/* Counts "concurrent" signal processing */
 	AU64(tmas_object_trash_reused);	/* Amount of trahsed object reused */
 	AU64(tmas_empty_trash_reused);	/* Empty trahsed magazines reused */
 	AU64(tmas_mag_allocated);		/* Total amount of magazines allocated */
@@ -525,6 +527,7 @@ static tmalloc_magazine_t *
 tmalloc_magazine_alloc(tmalloc_t *d)
 {
 	tmalloc_magazine_t *m;
+	int cap;
 
 	tmalloc_check(d);
 
@@ -554,10 +557,11 @@ tmalloc_magazine_alloc(tmalloc_t *d)
 	 * we only need to allocate one block for the magazine.
 	 */
 
-	m = d->tma_alloc(TMALLOC_OBJECT_OFFSET +
-				d->tma_mag_capacity * sizeof m->tmag_objects[0]);
+	cap = d->tma_mag_capacity;			/* Current optimal capacity */
+
+	m = d->tma_alloc(TMALLOC_OBJECT_OFFSET + cap * sizeof m->tmag_objects[0]);
 	m->tmag_magic = TMALLOC_MAGAZINE_MAGIC;
-	m->tmag_capacity = d->tma_mag_capacity;		/* Current optimal capacity */
+	m->tmag_capacity = cap;
 	m->tmag_count = 0;							/* Allocates empty magazines */
 
 	return m;
@@ -782,12 +786,19 @@ tmalloc_depot_return(tmalloc_t *d, tmalloc_magazine_t *m)
  * Unload magazine to the depot.
  */
 static void
-tmalloc_depot_unload(tmalloc_t *d, tmalloc_magazine_t *m)
+tmalloc_depot_unload(tmalloc_t *d, tmalloc_magazine_t *m, size_t i)
 {
 	bool free_magazine = FALSE;
 
 	tmalloc_check(d);
 	tmalloc_magazine_check(m);
+
+	if (tmalloc_debugging(1)) {
+		s_debug("%s(\"%s\"): unloading local thread magazine #%zu "
+			"in %s: %d/%d rounds",
+			G_STRFUNC, d->tma_name, i + 1,
+			thread_name(), m->tmag_count, m->tmag_capacity);
+	}
 
 	TMALLOC_LOCK_HIDDEN(d);
 
@@ -910,8 +921,10 @@ tmalloc_thread_layer_free(void *data)
 
 	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
-		if (m != NULL)
+		if (m != NULL) {
+			tmt->tmt_mag[i] = NULL;
 			tmalloc_depot_return(d, m);
+		}
 	}
 
 	tmt->tmt_magic = 0;
@@ -985,7 +998,8 @@ tmalloc_thread_alloc(struct tmalloc_thread *t)
 
 	/*
 	 * We are in the thread owning these data structures, we do not need
-	 * to take any locks here.
+	 * to take any locks here.  However we must make sure we're safe in
+	 * case we're receiving a signal.
 	 */
 
 	t->tmt_last_op = tm_time();
@@ -999,13 +1013,32 @@ tmalloc_thread_alloc(struct tmalloc_thread *t)
 		m = tmalloc_thread_magazine_exchange(t);		/* "previous" */
 
 		if G_UNLIKELY(tmalloc_magazine_is_empty(m)) {
+			tmalloc_magazine_t *om;
+
 			/*
 			 * Both magazines are empty, return empty magazine to the
 			 * depot and get a new full magazine.
 			 */
 
+			t->tmt_mag[TMALLOC_MAG_LOADED] = NULL;
 			m = tmalloc_depot_return_empty(t->tmt_depot, m);
+			om = t->tmt_mag[TMALLOC_MAG_LOADED];
 			t->tmt_mag[TMALLOC_MAG_LOADED] = m;
+
+			/*
+			 * Check for "concurrent" allocation done in a signal handler
+			 * whilst in tmalloc_depot_return_empty().
+			 */
+
+			if G_UNLIKELY(om != NULL) {
+				tmalloc_magazine_check_magic(om);
+				TMALLOC_STATS_INCX(t->tmt_depot, preemptions);
+
+				if (NULL == m && !tmalloc_magazine_is_empty(om))
+					m = t->tmt_mag[TMALLOC_MAG_LOADED] = om;
+				else
+					tmalloc_depot_unload(t->tmt_depot, om, TMALLOC_MAG_EXTRA);
+			}
 
 			/*
 			 * If no magazine was available in the depot, then allocate
@@ -1045,7 +1078,8 @@ tmalloc_thread_free(struct tmalloc_thread *t, void *p)
 
 	/*
 	 * We are in the thread owning these data structures, we do not need
-	 * to take any locks here.
+	 * to take any locks here.  However we must make sure we're safe in
+	 * case we're receiving a signal.
 	 */
 
 	t->tmt_last_op = tm_time();
@@ -1059,13 +1093,28 @@ tmalloc_thread_free(struct tmalloc_thread *t, void *p)
 		m = tmalloc_thread_magazine_exchange(t);		/* "previous" */
 
 		if G_UNLIKELY(tmalloc_magazine_is_full(m)) {
+			tmalloc_magazine_t *om;
+
 			/*
 			 * Both magazines are full, return full magazine to the
 			 * depot and get a new empty magazine.
 			 */
 
+			t->tmt_mag[TMALLOC_MAG_LOADED] = NULL;
 			m = tmalloc_depot_return_full(t->tmt_depot, m);
+			om = t->tmt_mag[TMALLOC_MAG_LOADED];
 			t->tmt_mag[TMALLOC_MAG_LOADED] = m;
+
+			/*
+			 * Check for "concurrent" allocation done in a signal handler
+			 * whilst in tmalloc_depot_return_empty().
+			 */
+
+			if G_UNLIKELY(om != NULL) {
+				tmalloc_magazine_check_magic(om);
+				TMALLOC_STATS_INCX(t->tmt_depot, preemptions);
+				tmalloc_depot_unload(t->tmt_depot, om, TMALLOC_MAG_EXTRA);
+			}
 
 			/*
 			 * Will free object to the loaded magazine (empty).
@@ -1108,15 +1157,8 @@ tmalloc_thread_clear(struct tmalloc_thread *tmt)
 	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 		if (m != NULL) {
-			if (tmalloc_debugging(1)) {
-				s_debug("%s(\"%s\"): unloading local thread magazine #%zu "
-					"in %s: %d/%d rounds",
-					G_STRFUNC, d->tma_name, i + 1,
-					thread_id_name(tmt->tmt_stid),
-					m->tmag_count, m->tmag_capacity);
-			}
-			tmalloc_depot_unload(d, m);
 			tmt->tmt_mag[i] = NULL;
+			tmalloc_depot_unload(d, m, i);
 		}
 	}
 }
@@ -1737,8 +1779,8 @@ tmalloc_reset(tmalloc_t *tma)
 						thread_id_name(tmt->tmt_stid),
 						m->tmag_count, m->tmag_capacity);
 				}
-				tmalloc_magazine_free(tma, m);
 				tmt->tmt_mag[i] = NULL;
+				tmalloc_magazine_free(tma, m);
 			}
 		}
 	}
@@ -2136,6 +2178,7 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 		STATS_COPY(depot_trashings);
 		STATS_COPY(freeings);
 		STATS_COPY(contentions);
+		STATS_COPY(preemptions);
 		STATS_COPY(object_trash_reused);
 		STATS_COPY(empty_trash_reused);
 		STATS_COPY(mag_allocated);
@@ -2173,6 +2216,7 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(depot_trashings);
 	DUMP(freeings);
 	DUMP(contentions);
+	DUMP(preemptions);
 	DUMPV(depot_count);
 	DUMP(magazines);
 	DUMP(object_trash_reused);
@@ -2223,6 +2267,7 @@ tmalloc_info_dump(void *data, void *udata)
 	DUMPS(attached);
 	DUMPS(magazines);
 	DUMPL(contentions);
+	DUMPL(preemptions);
 	DUMPL(allocations);
 	DUMPL(allocations_zeroed);
 	DUMPL(depot_allocations);

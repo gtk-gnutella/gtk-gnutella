@@ -60,6 +60,7 @@ typedef struct {
 	uint64 freeings;				/**< Amount of object freeings */
 	uint64 threads;					/**< Total amount of threads attached */
 	uint64 contentions;				/**< Total amount of lock contentions */
+	uint64 preemptions;				/**< Signal handler preemptions seen */
 	uint64 object_trash_reused;		/**< Amount of trashed objects reused */
 	uint64 empty_trash_reused;		/**< Empty trashed magazines reused */
 	uint64 mag_allocated;			/**< Total amount of magazines allocated */
