@@ -76,6 +76,17 @@
 #define ZALLOC_SAFETY_ASSERT	/**< Enables costly assertions */
 #endif
 
+/**
+ * Turning ZONE_SAFE allows to tag each allocated block to detect duplicate
+ * freeing of blocks and verify that we always return blocks to proper zones.
+ *
+ * There is very little performance impact, however this requires two extra
+ * pointers per allocated block.
+ */
+#if 0
+#define ZONE_SAFE
+#endif
+
 #include "zalloc.h"
 
 #include "atomic.h"
@@ -338,7 +349,7 @@ static spinlock_t zstats_slk = SPINLOCK_INIT;
 #define ZSTATS_INCX(x)		AU64_INC(&zstats.x)
 
 /**
- * @return block size for a given zone.
+ * @return (physical) block size for a given zone.
  */
 size_t
 zone_blocksize(const zone_t *zone)
@@ -346,6 +357,17 @@ zone_blocksize(const zone_t *zone)
 	zone_check(zone);
 
 	return zone->zn_size;
+}
+
+/**
+ * @return (logical, user-level) block size for a given zone.
+ */
+size_t
+zone_size(const zone_t *zone)
+{
+	zone_check(zone);
+
+	return zone->zn_size - OVH_LENGTH;
 }
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
@@ -467,7 +489,16 @@ zbelongs(const zone_t *zone, const void *blk)
 	BINARY_SEARCH(const zrange_t *, blk, zone->zn_subzones,
 		zrange_falls_in, GET_ITEM, FOUND);
 
+	s_rawwarn("%s(): block %p (%zu user bytes) not belonging to %zu-byte zone",
+		G_STRFUNC, blk, zone->zn_size - OVH_LENGTH, zone->zn_size);
+
 	return FALSE;
+}
+
+static inline bool
+zbelongs_uptr(const zone_t *zone, const void *p)
+{
+	return zbelongs(zone, const_ptr_add_offset(p, -OVH_LENGTH));
 }
 
 /**
@@ -869,8 +900,6 @@ zfree(zone_t *zone, void *ptr)
 
 	zlock(zone);
 
-	safety_assert(zbelongs(zone, ptr));
-
 #ifdef ZONE_SAFE
 	{
 		char **tmp;
@@ -903,6 +932,8 @@ zfree(zone_t *zone, void *ptr)
 		}
 	}
 #endif
+
+	safety_assert(zbelongs_uptr(zone, ptr));
 
 	ptr = ptr_add_offset(ptr, -OVH_LENGTH);
 	G_PREFETCH_W(ptr);
