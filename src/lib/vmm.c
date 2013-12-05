@@ -3853,14 +3853,19 @@ vmm_resize(void *p, size_t size, size_t new_size)
 	size_t asize, anew;
 	void *np;
 
-	if G_UNLIKELY(vmm_crashing)
-		return p;
-
 	asize = round_pagesize(size);		/* Allocated size */
 	anew = round_pagesize(new_size);
 
 	if (asize == anew)
 		return p;
+
+	if G_UNLIKELY(vmm_crashing) {
+		if (anew < asize)
+			return p;
+		np = vmm_valloc(NULL, anew);
+		memcpy(np, p, size);
+		return np;
+	}
 
 	if (anew < asize) {
 		vmm_shrink_internal(p, size, new_size, TRUE);
