@@ -1096,6 +1096,14 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 	const char *method = "nothing";
 
 	/*
+	 * We're going to need some of the parsing routines like alnum2int(),
+	 * hence make sure they are initialized since these do not auto-init
+	 * for performance reasons.
+	 */
+
+	misc_init();
+
+	/*
 	 * If we are compiled with the BFD library, try to load symbols directly
 	 * from the executable.
 	 */
