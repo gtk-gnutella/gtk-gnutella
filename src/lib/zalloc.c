@@ -2178,6 +2178,10 @@ zgc_extend(zone_t *zone)
 	szi->szi_free = (char **) *blk;		/* Use first block */
 	szi->szi_free_cnt--;
 
+	/* Added more than 1 block */
+	g_assert(zgc_within_subzone(szi, blk));
+	g_assert(szi->szi_free_cnt != 0 && zgc_within_subzone(szi, szi->szi_free));
+
 	if (zalloc_debugging(4)) {
 		s_debug("ZGC %zu-byte zone %p extended by %u blocks in [%p, %p]",
 			zone->zn_size, (void *) zone,
