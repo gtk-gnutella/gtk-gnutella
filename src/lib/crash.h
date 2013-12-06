@@ -219,6 +219,7 @@ void crash_init(const char *argv0, const char *progname,
 void crash_exited(uint32 pid);
 void crash_close(void);
 bool crash_is_closed(void);
+bool crash_is_pausing(void);
 void crash_ctl(enum crash_alter_mode mode, int flags);
 void crash_time(char *buf, size_t buflen);
 void crash_time_cached(char *buf, size_t size);

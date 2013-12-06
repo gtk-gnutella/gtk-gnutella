@@ -176,6 +176,7 @@ G_STMT_START { \
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 static bool crash_closed;
+static bool crash_pausing;
 
 static const char CRASHFILE_ENV[] = "Crashfile=";
 
@@ -2227,6 +2228,17 @@ crash_auto_restart(void)
 }
 
 /**
+ * Pause the process and make sure crash_is_pausing() sees us as pausing.
+ */
+static void
+crash_pause(void)
+{
+	atomic_bool_set(&crash_pausing, TRUE);
+	compat_pause();
+	atomic_bool_set(&crash_pausing, FALSE);
+}
+
+/**
  * The signal handler used to trap harmful signals.
  */
 G_GNUC_COLD void
@@ -2433,7 +2445,7 @@ crash_handler(int signo)
 		crash_end_of_line(FALSE);
 	}
 	if (vars->pause_process) {
-		compat_pause();
+		crash_pause();
 	}
 
 the_end:
@@ -2951,6 +2963,17 @@ crash_is_closed(void)
 		return vars->closed;
 
 	return crash_closed;
+}
+
+/**
+ * Are we pausing?
+ *
+ * @return TRUE if the process is voluntarily pausing.
+ */
+bool
+crash_is_pausing(void)
+{
+	return atomic_bool_get(&crash_pausing);
 }
 
 /**

@@ -141,6 +141,7 @@
 #define THREAD_SUSPEND_CHECKMASK	(THREAD_SUSPEND_CHECK - 1)
 #define THREAD_SUSPEND_LOOP			100
 #define THREAD_SUSPEND_DELAY		2000	/* us */
+#define THREAD_SUSPEND_PAUSING		1000000	/* us, 1 sec */
 #define THREAD_SUSPEND_TIMEOUT		30		/* seconds */
 
 #ifdef HAS_SOCKETPAIR
@@ -1918,6 +1919,22 @@ thread_timeout(const struct thread_element *te)
 	unsigned ostid = (unsigned) -1;
 	bool multiple = FALSE;
 	struct thread_element *wte;
+
+	/*
+	 * If the process is pausing due to a crash. then of course we're going
+	 * to timeout waiting...  therefore explicitly test for that condition.
+	 */
+
+	while (crash_is_pausing()) {
+		compat_usleep_nocancel(THREAD_SUSPEND_PAUSING);
+	}
+
+	if (!te->suspend)
+		return;
+
+	/*
+	 * OK, no longer pausing and still suspended, this is a timeout.
+	 */
 
 	spinlock_raw(&thread_timeout_slk);
 
