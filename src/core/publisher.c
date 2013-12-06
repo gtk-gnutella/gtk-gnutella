@@ -693,8 +693,6 @@ publisher_handle(struct publisher_entry *pe)
 		}
 	}
 
-	shared_file_unref(&sf);
-
 	/*
 	 * Check whether it is time to process the entry, in case we're
 	 * restarting quickly after a shutdown.
@@ -718,6 +716,7 @@ publisher_handle(struct publisher_entry *pe)
 						sha1_to_string(pe->sha1), compact_time(enqueue));
 				}
 
+				shared_file_unref(&sf);
 				publisher_retry(pe, delay, "first-time delay");
 				return;
 			}
@@ -747,6 +746,7 @@ publisher_handle(struct publisher_entry *pe)
 
 	pe->last_enqueued = tm_time();
 	pdht_publish_file(sf, publisher_done, pe);
+	shared_file_unref(&sf);
 }
 
 /**
