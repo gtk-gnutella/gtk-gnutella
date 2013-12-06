@@ -940,10 +940,21 @@ zfree(zone_t *zone, void *ptr)
 		/* Go back at leading magic, also the start of the block */
 		tmp = ptr_add_offset(ptr, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
 
-		if G_UNLIKELY(tmp[0] != BLOCK_USED)
-			s_error("trying to free block %p twice", ptr);
-		if G_UNLIKELY(tmp[1] != (char *) zone)
-			s_error("trying to free block %p to wrong zone", ptr);
+		if G_UNLIKELY(tmp[0] != BLOCK_USED) {
+			const zone_t *ozone = (zone_t *) tmp[1];
+			s_error("trying to free block %p twice (to %s %zu-byte zone)",
+				ptr,
+				ozone == zone ? "proper" :
+					ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
+				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
+		}
+		if G_UNLIKELY(tmp[1] != (char *) zone) {
+			const zone_t *ozone = (zone_t *) tmp[1];
+			s_error("trying to free block %p to wrong %zu-byte zone %p, "
+				"allocated in %zu-byte zone %p",
+				ptr, zone_size(zone), zone,
+				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
+		}
 	}
 #endif
 #ifdef MALLOC_FRAMES
