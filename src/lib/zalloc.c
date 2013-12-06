@@ -472,6 +472,33 @@ zvalid(const zone_t *zone, const zrange_t *range, const void *blk)
 }
 
 /**
+ * Validates that a GC subzinfo has proper szi_free and szi_free_cnt.
+ */
+static bool
+zgc_subzinfo_valid(const zone_t *zone, const struct subzinfo *szi)
+{
+	size_t n;
+	char **p;
+
+	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
+
+	n = szi->szi_free_cnt;
+	p = szi->szi_free;
+
+	g_assert(n <= zone->zn_hint);
+
+	while (n-- != 0) {
+		g_assert(ptr_cmp(p, szi->szi_base) >= 0 &&
+			ptr_cmp(p, szi->szi_end) < 0);
+		p = (char **) *p;
+	}
+
+	g_assert(NULL == p);
+
+	return TRUE;
+}
+
+/**
  * Check that block address falls within the set of addresses belonging to
  * the zone.
  *
@@ -1782,6 +1809,7 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	szi->szi_sz = sz;
 
 	g_assert(zgc_within_subzone(szi, blk));
+	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	if (addr_grows_upwards) {
 		if (zg->zg_free > low)
@@ -2116,6 +2144,7 @@ zgc_insert_freelist(zone_t *zone, char **blk)
 
 	g_assert(szi != NULL);
 	g_assert(zgc_within_subzone(szi, blk));
+	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	/*
 	 * Whether we are going to free up the subzone or not, we put the block
@@ -2282,6 +2311,7 @@ zgc_extend(zone_t *zone)
 	/* Added more than 1 block */
 	g_assert(zgc_within_subzone(szi, blk));
 	g_assert(szi->szi_free_cnt != 0 && zgc_within_subzone(szi, szi->szi_free));
+	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	if (zalloc_debugging(4)) {
 		s_debug("ZGC %zu-byte zone %p extended by %u blocks in [%p, %p]",
@@ -2521,6 +2551,8 @@ found:
 	szi->szi_free_cnt--;
 
 	g_assert(0 == szi->szi_free_cnt || zgc_within_subzone(szi, szi->szi_free));
+	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
+	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	/* FALL THROUGH */
 extended:
@@ -2568,7 +2600,9 @@ zgc_zmove(zone_t *zone, void *p)
 
 	szi = zgc_find_subzone(zg, p, NULL);
 	g_assert(szi != NULL);
-	g_assert(ptr_cmp(p, szi->szi_base) >= 0 && ptr_cmp(p, szi->szi_end) < 0);
+	g_assert(zgc_within_subzone(szi, p));
+	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
+	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	if (zone->zn_blocks - zone->zn_cnt == szi->szi_free_cnt)
 		goto no_change;		/* No free blocks in any other subzone */
@@ -2619,6 +2653,8 @@ found:
 	nszi->szi_free_cnt--;
 
 	g_assert(!nszi->szi_free_cnt || zgc_within_subzone(nszi, nszi->szi_free));
+	g_assert((0 == nszi->szi_free_cnt) == (NULL == nszi->szi_free));
+	safety_assert(zgc_subzinfo_valid(zone, nszi));
 
 	/*
 	 * Also copy possible overhead (which is already included in the zone's
