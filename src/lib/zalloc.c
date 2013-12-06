@@ -367,6 +367,15 @@ zone_size(const zone_t *zone)
 	return zone->zn_size - OVH_LENGTH;
 }
 
+/**
+ * @return the block overhead size, in bytes (normally 0, unless debugging).
+ */
+size_t
+zalloc_overhead(void)
+{
+	return OVH_LENGTH;
+}
+
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
 #ifdef REMAP_ZALLOC

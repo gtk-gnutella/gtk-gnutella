@@ -165,6 +165,8 @@ void walloc_init(void);
 void walloc_crash_mode(void);
 void wdestroy(void);
 
+size_t walloc_maxsize(void) G_GNUC_CONST;
+
 #define WALLOC(p)			\
 G_STMT_START {				\
 	p = walloc(sizeof *p);	\

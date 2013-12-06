@@ -82,6 +82,15 @@ static once_flag_t walloc_inited;
 static bool walloc_stopped;
 
 /**
+ * @return maximum user block size for walloc().
+ */
+size_t
+walloc_maxsize(void)
+{
+	return WALLOC_MAX - zalloc_overhead();
+}
+
+/**
  * Initialize the width-based allocator, once.
  */
 static G_GNUC_COLD void

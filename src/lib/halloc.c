@@ -595,7 +595,7 @@ halloc_init_once(void)
 
 	halloc_pagesize = compat_pagesize();
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == halloc_pagesize;
-	walloc_threshold = WALLOC_MAX - sizeof(union align) + 1;
+	walloc_threshold = walloc_maxsize() - sizeof(union align) + 1;
 
 	HPAGE_LOCK;
 	if (use_page_table) {
