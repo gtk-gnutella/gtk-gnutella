@@ -92,8 +92,14 @@ static bool symbols_loaded;
 static symbols_t *symbols;
 static bool stacktrace_inited;
 
-static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
+static mutex_t stacktrace_atom_mtx = MUTEX_INIT;
 static once_flag_t stacktrace_atom_inited;
+
+#define STACKTRACE_ATOM_LOCK	mutex_lock(&stacktrace_atom_mtx)
+#define STACKTRACE_ATOM_UNLOCK	mutex_unlock(&stacktrace_atom_mtx)
+
+#define assert_stacktrace_atom_locked() \
+	assert_mutex_is_owned(&stacktrace_atom_mtx)
 
 /**
  * The buffers are allocated to construct the stack trace atomically to make
@@ -1944,7 +1950,7 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 	const struct stackatom *result;
 	struct stackatom local;
 
-	g_assert(spinlock_is_held(&stacktrace_atom_slk));
+	assert_stacktrace_atom_locked();
 
 	/* These objects will be never freed */
 	if (len != 0) {
@@ -1976,11 +1982,11 @@ stacktrace_get_atom(const struct stacktrace *st)
 	result = stacktrace_atom_lookup(st, len);
 
 	if G_UNLIKELY(NULL == result) {
-		spinlock(&stacktrace_atom_slk);
+		STACKTRACE_ATOM_LOCK;
 		result = stacktrace_atom_lookup(st, len);
 		if (NULL == result)
 			result = stacktrace_atom_record(st, len);
-		spinunlock(&stacktrace_atom_slk);
+		STACKTRACE_ATOM_UNLOCK;
 	}
 
 	return result;
@@ -2013,11 +2019,11 @@ stacktrace_caller_known(size_t offset)
 	result = stacktrace_atom_lookup(&t, len);
 
 	if G_UNLIKELY(NULL == result) {
-		spinlock(&stacktrace_atom_slk);
+		STACKTRACE_ATOM_LOCK;
 		result = stacktrace_atom_lookup(&t, len);
 		if (NULL == result)
 			(void) stacktrace_atom_record(&t, len);
-		spinunlock(&stacktrace_atom_slk);
+		STACKTRACE_ATOM_UNLOCK;
 		return FALSE;
 	} else {
 		return TRUE;
