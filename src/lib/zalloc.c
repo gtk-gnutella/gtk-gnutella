@@ -84,6 +84,14 @@
 #define ZONE_SAFE
 #endif
 
+/**
+ * Turning ZONE_FRAMES allows to tag each allocated and freed block with
+ * the corresponding allocation and freeing stack frame.
+ */
+#if 0
+#define ZONE_FRAMES
+#endif
+
 #include "zalloc.h"
 
 #include "atomic.h"
@@ -241,7 +249,9 @@ static leak_set_t *z_leakset;
  *  +---------------------+ <---- OVH_TIME_OFFSET        ^
  *  | time_t atime        | MALLOC_TIME                  v OVH_TIME_LEN
  *  +---------------------+ <---- OVH_FRAME_OFFSET       ^
- *  | struct frame *alloc | MALLOC_FRAMES                v OVH_FRAME_LEN
+ *  | struct frame *alloc | MALLOC_FRAMES                |
+ *  |        or           |        or                    | OVH_FRAME_LEN
+ *  | struct stackatom *a | ZONE_FRAMES                  v
  *  +---------------------+ <---- returned alocation pointer
  *  |      ........       | User data
  *  :      ........       :
@@ -289,10 +299,17 @@ static leak_set_t *z_leakset;
 #define OVH_TIME_LEN		0
 #endif
 
+#if defined(MALLOC_FRAMES) && defined(ZONE_FRAMES)
+#error "MALLOC_FRAMES and ZONE_FRAMES are mutually exclusive"
+#endif
+
 #define OVH_FRAME_OFFSET	(OVH_TIME_OFFSET + OVH_TIME_LEN)
-#ifdef MALLOC_FRAMES
+#if defined(MALLOC_FRAMES)
 #define OVH_FRAME_LEN		sizeof(struct frame *)
 #define INVALID_FRAME_PTR	((struct frame *) 0xdeadbeef)
+#elif defined(ZONE_FRAMES)
+#define OVH_FRAME_LEN		sizeof(struct stackatom *)
+#define INVALID_FRAME_PTR	((struct stackatom *) 0xdeadbeef)
 #else
 #define OVH_FRAME_LEN		0
 #endif
@@ -555,6 +572,55 @@ zrange_clear(const zone_t *zone)
 
 #endif	/* ZALLOC_SAFETY_ASSERT */
 
+#if defined(ZONE_SAFE) && defined(ZONE_FRAMES)
+
+#define ZFREE_FRAME		0x1			/* Trailing stackatom pointer marking */
+
+static inline struct stackatom *
+zframe_get_pointer(const struct stackatom *a)
+{
+	return ulong_to_pointer(pointer_to_ulong(a) & ~ZFREE_FRAME);
+}
+
+static inline bool
+zframe_is_free_frame(const struct stackatom *a)
+{
+	return ZFREE_FRAME == (pointer_to_ulong(a) & ZFREE_FRAME);
+}
+
+static inline struct stackatom *
+zframe_mark_pointer(const struct stackatom *a)
+{
+	return ulong_to_pointer(pointer_to_ulong(a) | ZFREE_FRAME);
+}
+
+/**
+ * Dump stackframe held in the block.
+ */
+static void
+zframe_dump(const void *ptr, const char *msg)
+{
+	struct stackatom const * const *p =
+		const_ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
+
+	s_warning("ZALLOC %p %s; %s frame is:", ptr, msg,
+		zframe_is_free_frame(*p) ? "free" : "alloc");
+
+	if (INVALID_FRAME_PTR == *p) {
+		s_warning("%s(): invalid frame pointer, cannot dump stack frame",
+			G_STRFUNC);
+	} else {
+		const struct stackatom *a = zframe_get_pointer(*p);
+		stacktrace_atom_decorate(stderr, a,
+			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
+	}
+}
+#else	/* !ZONE_SAFE || !ZONE_FRAMES */
+
+#define zframe_dump(p, msg)
+
+#endif	/* ZONE_SAFE && ZONE_FRAMES */
+
 /**
  * Hash a zone structure on size and small thread ID.
  */
@@ -618,6 +684,17 @@ zprepare(zone_t *zone, char **blk)
 
 		stacktrace_get_offset(&t, 1);	/* Remove ourselves from trace */
 		*p = get_frame_atom(&zalloc_frames, &t);
+	}
+	blk = ptr_add_offset(blk, OVH_FRAME_LEN);
+#endif
+#ifdef ZONE_FRAMES
+	{
+		struct stackatom const **p = (struct stackatom const **) blk;
+		struct stacktrace t;
+
+		stacktrace_get_offset(&t, 1);	/* Remove ourselves from trace */
+		*p = stacktrace_get_atom(&t);
+		g_assert(!zframe_is_free_frame(*p));
 	}
 	blk = ptr_add_offset(blk, OVH_FRAME_LEN);
 #endif
@@ -942,27 +1019,44 @@ zfree(zone_t *zone, void *ptr)
 
 		if G_UNLIKELY(tmp[0] != BLOCK_USED) {
 			const zone_t *ozone = (zone_t *) tmp[1];
-			s_error("trying to free block %p twice (to %s %zu-byte zone)",
-				ptr,
-				ozone == zone ? "proper" :
+			zframe_dump(ptr, "block already freed");
+			s_error("trying to free block %p twice (in %s %zu-byte zone)",
+				ptr, ozone == zone ? "proper" :
 					ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
 				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
 		}
 		if G_UNLIKELY(tmp[1] != (char *) zone) {
 			const zone_t *ozone = (zone_t *) tmp[1];
+			zframe_dump(ptr, "block allocated");
 			s_error("trying to free block %p to wrong %zu-byte zone %p, "
 				"allocated in %zu-byte zone %p",
 				ptr, zone_size(zone), zone,
 				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
 		}
 	}
-#endif
+#endif	/* ZONE_SAFE */
 #ifdef MALLOC_FRAMES
 	{
 		struct frame **p = ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
 		*p = INVALID_FRAME_PTR;
 	}
 #endif
+#ifdef ZONE_FRAMES
+	{
+		struct stackatom const **p =
+			ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
+#ifdef ZONE_SAFE
+		struct stacktrace t;
+		const struct stackatom *a;
+
+		stacktrace_get_offset(&t, 1);	/* Remove ourselves from trace */
+		a = zframe_mark_pointer(stacktrace_get_atom(&t));
+		*p = a;							/* This is the freeing stack frame */
+#else
+		*p = INVALID_FRAME_PTR;
+#endif	/* ZONE_SAFE */
+	}
+#endif	/* ZONE_FRAMES */
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 	if (not_leaking != NULL) {
 		void *a = NULL;
@@ -1563,6 +1657,32 @@ zmove(zone_t *zone, void *p)
 	 */
 
 	ZSTATS_INCX(zmove_attempts);
+
+#ifdef ZONE_SAFE
+	{
+		char **tmp;
+
+		/* Go back at leading magic, also the start of the block */
+		tmp = ptr_add_offset(p, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
+
+		if G_UNLIKELY(tmp[0] != BLOCK_USED) {
+			const zone_t *ozone = (zone_t *) tmp[1];
+			zframe_dump(p, "block already freed");
+			s_error("trying to move freed block %p twice (to %s %zu-byte zone)",
+				p, ozone == zone ? "proper" :
+					ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
+				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
+		}
+		if G_UNLIKELY(tmp[1] != (char *) zone) {
+			const zone_t *ozone = (zone_t *) tmp[1];
+			zframe_dump(p, "block allocated");
+			s_error("trying to move block %p to wrong %zu-byte zone %p, "
+				"allocated in %zu-byte zone %p",
+				p, zone_size(zone), zone,
+				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
+		}
+	}
+#endif	/* ZONE_SAFE */
 
 	if G_LIKELY(NULL == zone->zn_gc)
 		return p;
