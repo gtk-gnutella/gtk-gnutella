@@ -151,6 +151,7 @@ struct tevent_rpc {
 	void *data;					/**< Associated data */
 	void *result;				/**< Where result of routine should be stored */
 	unsigned id;				/**< Calling thread, to unblock it when done */
+	bool done;					/**< When set to TRUE, RPC is completed */
 };
 
 static inline void
@@ -474,6 +475,7 @@ teq_async_rpc(cqueue_t *unused_cq, void *udata)
 	g_assert(THREAD_EVENT_ARPC_MAGIC == evr->magic);
 
 	evr->result = (*evr->routine)(evr->data);
+	atomic_bool_set(&evr->done, TRUE);
 	thread_unblock(evr->id);
 }
 
@@ -665,6 +667,7 @@ teq_process(struct teq *teq)
 				struct tevent_rpc *evr = ev;
 
 				evr->result = (*evr->routine)(evr->data);
+				atomic_bool_set(&evr->done, TRUE);
 				thread_unblock(evr->id);
 
 				/* Do not free, event structure lies on the caller's stack */
@@ -904,6 +907,7 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 	rpc.routine = routine;
 	rpc.data = data;
 	rpc.id = thread_small_id();
+	rpc.done = FALSE;
 
 	/*
 	 * The calling thread is going to block until the RPC is issued by the
@@ -919,7 +923,16 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 	teq_put(teq, &rpc);
 	teq_release(teq);
 
-	thread_block_self(events);
+	/*
+	 * The `rpc.done' field is our (synchronized) signal that the RPC has been
+	 * completed by the targeted thread.  This allows spurious wakeups from
+	 * thread_block_self().
+	 */
+
+	while (!atomic_bool_get(&rpc.done)) {
+		thread_block_self(events);
+		events = thread_block_prepare();
+	}
 
 	return rpc.result;
 }
@@ -1049,6 +1062,7 @@ teq_io_process(struct teq *teq)
 				struct tevent_rpc *evr = ev;
 
 				evr->result = (*evr->routine)(evr->data);
+				atomic_bool_set(&evr->done, TRUE);
 				thread_unblock(evr->id);
 			}
 			goto next;
