@@ -63,6 +63,7 @@ typedef struct {
 	uint64 preemptions;				/**< Signal handler preemptions seen */
 	uint64 object_trash_reused;		/**< Amount of trashed objects reused */
 	uint64 empty_trash_reused;		/**< Empty trashed magazines reused */
+	uint64 capacity_increased;		/**< Magazine capacity increases */
 	uint64 mag_allocated;			/**< Total amount of magazines allocated */
 	uint64 mag_freed;				/**< Total amount of magazines freed */
 	uint64 mag_trashed;				/**< Total amount of magazines trashed */

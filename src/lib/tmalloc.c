@@ -203,6 +203,7 @@ struct tmalloc_stats {
 	AU64(tmas_threads);				/* Total amount of threads attached */
 	AU64(tmas_contentions);			/* Total amount of lock contentions */
 	AU64(tmas_preemptions);			/* Counts "concurrent" signal processing */
+	AU64(tmas_capacity_increased);	/* Increased magazine capacity */
 	AU64(tmas_object_trash_reused);	/* Amount of trahsed object reused */
 	AU64(tmas_empty_trash_reused);	/* Empty trahsed magazines reused */
 	AU64(tmas_mag_allocated);		/* Total amount of magazines allocated */
@@ -1490,6 +1491,8 @@ tmalloc_beat(void *data)
 			tmalloc_trash_list(&d->tma_empty);
 			TMALLOC_UNLOCK_HIDDEN(d);
 
+			TMALLOC_STATS_INCX(d, capacity_increased);
+
 			if (tmalloc_debugging(1)) {
 				s_debug("%s(\"%s\"): M increased to %d",
 					G_STRFUNC, d->tma_name, d->tma_mag_capacity);
@@ -2181,6 +2184,7 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 		STATS_COPY(preemptions);
 		STATS_COPY(object_trash_reused);
 		STATS_COPY(empty_trash_reused);
+		STATS_COPY(capacity_increased);
 		STATS_COPY(mag_allocated);
 		STATS_COPY(mag_freed);
 		STATS_COPY(mag_trashed);
@@ -2221,6 +2225,7 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(magazines);
 	DUMP(object_trash_reused);
 	DUMP(empty_trash_reused);
+	DUMP(capacity_increased);
 	DUMP(mag_full);
 	DUMP(mag_empty);
 	DUMP(mag_full_trash);
@@ -2276,6 +2281,7 @@ tmalloc_info_dump(void *data, void *udata)
 	DUMPL(threads);
 	DUMPL(object_trash_reused);
 	DUMPL(empty_trash_reused);
+	DUMPL(capacity_increased);
 	DUMPL(mag_full);
 	DUMPL(mag_empty);
 	DUMPL(mag_full_trash);
