@@ -2527,9 +2527,8 @@ found:
 	 */
 
 	start = ptr_add_offset(p, -OVH_LENGTH);
-	memcpy(blk, start, zone->zn_size);
-
-	np = zprepare(zone, blk);		/* Allow for block overhead */
+	np = zprepare(zone, blk);				/* Allow for block overhead */
+	memcpy(blk, start, zone->zn_size);		/* Keep original meta info */
 
 	if (zalloc_debugging(1)) {
 		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
