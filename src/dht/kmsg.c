@@ -2058,7 +2058,6 @@ void kmsg_received(
 	uint16 extended_length;
 	bool weird_header = FALSE;
 	bool rpc_reply = FALSE;
-	hostiles_flags_t hflags;
 
 	g_assert(len >= GTA_HEADER_SIZE);	/* Valid Gnutella packet at least */
 	g_assert(NODE_IS_DHT(n));
@@ -2216,8 +2215,9 @@ hostile_checked:
 	 * pick this address to appear in the contact.
 	 */
 
-	if (HSTL_CLEAN != (hflags = hostiles_check(kaddr))) {
+	if (hostiles_is_bad(kaddr)) {
 		if (GNET_PROPERTY(dht_debug)) {
+			hostiles_flags_t hflags = hostiles_check(kaddr);
 			g_warning("DHT hostile contact address %s (%s v%u.%u): %s",
 				host_addr_to_string(kaddr),
 				vendor_code_to_string(vcode.u32), kmajor, kminor,

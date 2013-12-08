@@ -275,7 +275,7 @@ host_timer(void)
 
 			while (hcache_size(htype) && missing-- > 0) {
 				if (hcache_get_caught(htype, &addr, &port)) {
-					if (!(hostiles_is_known(addr) || hcache_node_is_bad(addr))) {
+					if (!(hostiles_is_bad(addr) || hcache_node_is_bad(addr))) {
 						if (!host_gnutella_connect(addr, port)) {
 							missing++;	/* Did not use entry */
 						}

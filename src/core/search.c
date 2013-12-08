@@ -1907,7 +1907,6 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 	if (0 == rs->hops && (ST_UDP & rs->status)) {
 		const guid_t *muid = gnutella_header_get_muid(&n->header);
-		hostiles_flags_t flags;
 
 		if (!has_token)
 			token = 0;
@@ -1944,9 +1943,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 		if (
 			((ST_GOOD_TOKEN | ST_HOSTILE) & rs->status) == ST_GOOD_TOKEN &&
-			HSTL_CLEAN != (flags = hostiles_check(n->addr))
+			hostiles_is_bad(n->addr)
 		) {
 			if (GNET_PROPERTY(search_debug) > 1) {
+				hostiles_flags_t flags = hostiles_check(n->addr);
 				g_debug("dropping UDP query hit from secure OOB: "
 					"hostile IP %s (%s)",
 					host_addr_to_string(n->addr),
@@ -1965,7 +1965,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		rs->port > 0 &&
 		is_host_addr(ipv6_addr) &&
 		settings_running_ipv6() &&
-		!hostiles_is_known(ipv6_addr)
+		!hostiles_is_bad(ipv6_addr)
 	) {
 		search_add_push_proxy(rs, ipv6_addr, rs->port);
 	}
@@ -2197,7 +2197,6 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 	const char *badmsg = NULL;
 	unsigned media_mask = 0;
 	const guid_t *muid = gnutella_header_get_muid(&n->header);
-	hostiles_flags_t flags;
 
 	*hostile = HSTL_CLEAN;
 
@@ -2267,8 +2266,9 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 
 	/* Check for hostile IP addresses */
 
-	if (HSTL_CLEAN != (flags = hostiles_check(rs->addr))) {
+	if (hostiles_is_bad(rs->addr)) {
 		if (GNET_PROPERTY(search_debug) > 1) {
+			hostiles_flags_t flags = hostiles_check(rs->addr);
 			g_debug("dropping %s query hit %s by %s: hostile source at %s (%s)",
 				NODE_IS_UDP(n) ? "UDP" : "TCP",
 				NODE_IS_UDP(n) ?
@@ -7530,7 +7530,7 @@ skip_throttling:
 		 * Verify against the hostile IP addresses...
 		 */
 
-		if (hostiles_is_known(sri->addr)) {
+		if (hostiles_is_bad(sri->addr)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 			goto drop;		/* Drop the message! */
 		}
@@ -7615,7 +7615,7 @@ skip_throttling:
 		 * hostiles file but were already connected to that node, for instance.
 		 */
 
-		if (hostiles_is_known(n->addr)) {
+		if (hostiles_is_bad(n->addr)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 			goto drop;		/* Drop the message! */
 		}

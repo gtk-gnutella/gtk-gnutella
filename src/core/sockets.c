@@ -1567,7 +1567,6 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	ssize_t r;
 	size_t parsed;
 	const char *first, *endptr;
-	hostiles_flags_t flags;
 
 	(void) source;
 
@@ -1816,13 +1815,15 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * get banned silently.
 	 */
 
-	if (HSTL_CLEAN != (flags = hostiles_check(s->addr))) {
+	if (hostiles_is_bad(s->addr)) {
 		static const char msg[] = "Hostile IP address banned";
 
 		socket_disable_token(s);
 
 		if (GNET_PROPERTY(socket_debug)) {
 			const char *string = first;
+			hostiles_flags_t flags = hostiles_check(s->addr);
+
 			if (!is_printable_iso8859_string(first))
 				string = "<non-printable request>";
 			g_warning("denying connection from hostile %s (%s): \"%s\"",
@@ -3025,10 +3026,10 @@ static int
 socket_connection_allowed(const host_addr_t addr, enum socket_type type)
 {
 	unsigned flag = 0;
-	hostiles_flags_t flags;
 
-	if (HSTL_CLEAN != (flags = hostiles_check(addr))) {
+	if (hostiles_is_bad(addr)) {
 		if (GNET_PROPERTY(socket_debug)) {
+			hostiles_flags_t flags = hostiles_check(addr);
 			g_warning("not connecting [%s] to hostile host %s (%s)",
 				socket_type_to_string(type), host_addr_to_string(addr),
 				hostiles_flags_to_string(flags));

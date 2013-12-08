@@ -83,10 +83,46 @@ void hostiles_dynamic_add(const host_addr_t addr, const char *reason,
 	hostiles_flags_t flags);
 void hostiles_spam_add(const host_addr_t addr, uint16 port);
 
+/**
+ * Is address that of a host with some hostile flags set?
+ */
 static inline bool
 hostiles_is_known(const host_addr_t addr)
 {
 	return HSTL_CLEAN != hostiles_check(addr);
+}
+
+/**
+ * Are hostiles flags considered bad?
+ */
+static inline bool
+hostiles_flags_are_bad(const hostiles_flags_t flags)
+{
+	return 0 != (flags & (
+			HSTL_STATIC |
+			HSTL_DUMB |
+			HSTL_DUP_SHA1 |
+			HSTL_EVIL_FILENAME |
+			HSTL_EVIL_TIMESTAMP |
+			HSTL_BAD_UTF8 |
+			HSTL_URL_SPAM |
+			HSTL_URN_SPAM |
+			HSTL_NAME_SPAM |
+			HSTL_OOB |
+			HSTL_CLOSE_FILENAME |
+			HSTL_ODD_GUID |
+			HSTL_BANNED_GUID
+		)
+	);
+}
+
+/**
+ * Is address that of a host with hostiles flags that suggest a bad node?
+ */
+static inline bool
+hostiles_is_bad(const host_addr_t addr)
+{
+	return hostiles_flags_are_bad(hostiles_check(addr));
 }
 
 #endif /* _core_hostiles_h_ */

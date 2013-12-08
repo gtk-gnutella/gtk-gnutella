@@ -791,16 +791,16 @@ hostiles_check(const host_addr_t ha)
 		uint32 ip = host_addr_ipv4(to);
 
 		flags = hostiles_dynamic_check_ipv4(ip);
-		if (HSTL_CLEAN == flags)
-			flags = hostiles_static_check_ipv4(ip);
+		if (!hostiles_flags_are_bad(flags))
+			flags |= hostiles_static_check_ipv4(ip);
 	} else if (host_addr_is_ipv6(ha)) {
 		const uint8 *ip;
 
 		ip = host_addr_ipv6(&ha);
 
 		flags = hostiles_dynamic_check_ipv6(ip);
-		if (HSTL_CLEAN == flags)
-			flags = hostiles_static_check_ipv6(ip);
+		if (!hostiles_flags_are_bad(flags))
+			flags |= hostiles_static_check_ipv6(ip);
 	}
 
 	return flags;

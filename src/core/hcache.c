@@ -798,7 +798,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		return FALSE;			/* Is host valid? */
     }
 
-    if (bogons_check(addr) || hostiles_is_known(addr)) {
+    if (bogons_check(addr) || hostiles_is_bad(addr)) {
         stats[HCACHE_INVALID_HOST]++;
 		return FALSE;			/* Is host valid? */
     }

@@ -5539,7 +5539,7 @@ download_ignore_requested(struct download *d)
 	if (!(SOCK_F_FORCE & d->cflags)) {
 		if (is_my_address_and_port(download_addr(d), download_port(d))) {
 			reason = IGNORE_OURSELVES;
-		} else if (hostiles_is_known(download_addr(d))) {
+		} else if (hostiles_is_bad(download_addr(d))) {
 			reason = IGNORE_HOSTILE;
 		} else if (ctl_limit(download_addr(d), CTL_D_OUTGOING)) {
 			reason = IGNORE_LIMIT;
@@ -13882,7 +13882,6 @@ download_push_ack(struct gnutella_socket *s)
 	struct guid guid;			/* The decoded (binary) GUID */
 	GSList *servers;			/* Potential targets for the download */
 	int count;					/* Amount of potential targets found */
-	hostiles_flags_t flags;
 
 	socket_check(s);
 	g_assert(s->getline);
@@ -13900,8 +13899,9 @@ download_push_ack(struct gnutella_socket *s)
 	 * HTTP request, eventually.
 	 */
 
-	if (HSTL_CLEAN != (flags = hostiles_check(s->addr))) {
+	if (hostiles_is_bad(s->addr)) {
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(socket_debug)) {
+			hostiles_flags_t flags = hostiles_check(s->addr);
 			g_warning("discarding GIV string \"%s\" from hostile %s (%s)",
 				giv, host_addr_to_string(s->addr),
 				hostiles_flags_to_string(flags));

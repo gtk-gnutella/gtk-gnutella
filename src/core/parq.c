@@ -1185,7 +1185,6 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	host_addr_t addr;
 	uint16 port = 0;
 	bool has_ip_port = TRUE;
-	hostiles_flags_t flags;
 
 	socket_tos_default(s);	/* Set proper Type of Service */
 
@@ -1206,8 +1205,9 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 * HTTP request, eventually.
 	 */
 
-	if (HSTL_CLEAN != (flags = hostiles_check(s->addr))) {
+	if (hostiles_is_bad(s->addr)) {
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(socket_debug)) {
+			hostiles_flags_t flags = hostiles_check(s->addr);
 			g_warning("discarding GIV string \"%s\" from hostile %s (%s)",
 				queue, host_addr_to_string(s->addr),
 				hostiles_flags_to_string(flags));

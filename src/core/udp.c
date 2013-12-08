@@ -149,10 +149,10 @@ static rxdrv_t *
 udp_get_rx_semi_reliable(enum udp_traffic utp, host_addr_t from, size_t len)
 {
 	unsigned i = 0;
-	hostiles_flags_t flags;
 
-	if (HSTL_CLEAN != (flags = hostiles_check(from))) {
+	if (hostiles_is_bad(from)) {
 		if (GNET_PROPERTY(udp_debug)) {
+			hostiles_flags_t flags = hostiles_check(from);
 			g_warning("UDP got %s (%zu bytes) from hostile %s (%s) -- dropped",
 				udp_traffic_to_string(utp), len, host_addr_to_string(from),
 				hostiles_flags_to_string(flags));
