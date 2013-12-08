@@ -43,14 +43,6 @@
  * calling cond_wait_until(), use cond_wait_until_clean() to make sure that
  * the mutex will be unlocked should a cancellation occur.
  *
- * NOTE (as of 2013-11-11):
- *
- * The cond_wait() routine and its variants always return TRUE whenever the
- * thread receives a (thread) signal, regardless of whether the condition
- * got a (condition) signal.  This spurious wakeup is made necessary to be
- * able to properly implement thread_timed_sigsuspend() but is not a true
- * condition waiting requirement.
- *
  * @author Raphael Manfredi
  * @date 2012-2013
  */
@@ -904,8 +896,8 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	spinlock_t *lock = cond_get_lock(c);
 	struct cond *cv;
 	struct cond_wait_until_vars v;
-	bool awaked, interrupted, resend;
-	uint generation, sig_generation;
+	bool awaked, resend;
+	uint generation;
 	tm_t waiting;
 	semaphore_t *sem;
 
@@ -915,7 +907,6 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 
 	v.cv = cv = cond_get_init(c, m, TRUE);
 	v.m = m;
-	interrupted = FALSE;
 
 	spinlock(&cv->lock);
 
@@ -942,17 +933,6 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	generation = cv->generation;
 	sem = cv->sem;
 	spinunlock(&cv->lock);
-
-	/*
-	 * Grab the signal generation before unlocking the mutex and then check
-	 * it again to see if releasing the lock caused signals to be delivered
-	 * to the thread.
-	 *
-	 * This is used to return early from the call when a signal occurs, which
-	 * is required for the proper implemenation of thread_sleep_interruptible().
-	 */
-
-	sig_generation = thread_sig_generation();
 
 	/*
 	 * Now release the application mutex and wait to be awaken by a
@@ -992,17 +972,7 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	thread_cleanup_push(cond_wait_until_cleanup, &v);
 
 retry:
-	/*
-	 * If we are suspended or get a thread signal, always pop out of the
-	 * waiting loop, and return TRUE to the application (we were awoken
-	 * by a signal, which may have changed some context).
-	 */
-
-	if (thread_cancel_test() || sig_generation != thread_sig_generation()) {
-		awaked = FALSE;			/* Did not consume any condition signal */
-		interrupted = TRUE;		/* Got a thread signal */
-		goto signaled;
-	}
+	thread_cancel_test();
 
 	/*
 	 * If we expired our waiting time, we'll try to acquire the semaphore
@@ -1046,7 +1016,6 @@ retry:
 			s_error("%s(): unable to get the semaphore: %m", G_STRFUNC);
 
 		awaked = FALSE;		/* EAGAIN indicates that we timed out */
-		interrupted = sig_generation != thread_sig_generation();
 	} else {
 		awaked = TRUE;
 	}
@@ -1140,7 +1109,7 @@ signaled:
 	thread_cancel_test();
 	thread_cleanup_pop(TRUE);	/* Will reacquire the mutex */
 
-	return awaked || interrupted;
+	return awaked;
 
 cannot_consume:
 

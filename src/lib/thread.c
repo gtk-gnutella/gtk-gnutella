@@ -303,6 +303,7 @@ struct thread_element {
 	uint exiting:1;					/**< Whether thread is exiting */
 	uint suspended:1;				/**< Whether thread is suspended */
 	uint blocked:1;					/**< Whether thread is blocked */
+	uint timed_blocked:1;			/**< Whether thread blocking with timeout */
 	uint unblocked:1;				/**< Whether unblocking was requested */
 	uint detached:1;				/**< Whether thread is detached */
 	uint join_requested:1;			/**< Whether thread_join() was requested */
@@ -1703,6 +1704,41 @@ thread_update_next_stid(void)
 }
 
 /**
+ * Callback invoked when a time adjustment has been detected.
+ *
+ * @param unused_delta		delta, in ms
+ */
+static void
+thread_time_adjust(int unused_delta)
+{
+	uint i;
+
+	(void) unused_delta;
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		bool unblock = FALSE;
+
+		if (te->timed_blocked) {
+			THREAD_LOCK(te);
+			if (0 == te->signalled) {
+				te->signalled++;		/* Will send an unblocking byte */
+				unblock = TRUE;
+			}
+			THREAD_UNLOCK(te);
+		}
+
+		if G_UNLIKELY(unblock) {
+			char c = '\0';
+			if (-1 == s_write(te->wfd[1], &c, 1)) {
+				s_miniwarn("%s(): cannot unblock %s: %m",
+					G_STRFUNC, thread_element_name(te));
+			}
+		}
+	}
+}
+
+/**
  * Instantiate the main thread element using static memory.
  *
  * This is used to reserve STID=0 to the main thread, when possible.
@@ -1780,6 +1816,16 @@ thread_main_element(thread_t t)
 
 	return te;
 }
+
+/**
+ * Install time event listener to react in case the system clock is adjusted.
+ */
+static void
+thread_install_tm_listener(void)
+{
+	tm_event_listener_add(thread_time_adjust);
+}
+
 
 /**
  * Get the main thread element when we are likely to be the first thread.
@@ -3050,8 +3096,7 @@ recheck:
 
 	/*
 	 * We count reception of signals to let thread_sleep_interruptible()
-	 * determine whether the thread sleeping got signals when it wakes up
-	 * from the condition variable waiting.
+	 * determine whether the thread sleeping got signals when it wakes up.
 	 */
 
 	te->sig_generation++;
@@ -6045,9 +6090,30 @@ thread_element_block_until(struct thread_element *te,
 	unsigned events, const tm_t *end)
 {
 	evq_event_t *eve = NULL;
+	gentime_t gstart = GENTIME_ZERO;
+	unsigned int requested = 0;
 	char c;
+	static once_flag_t done;
 
 	g_assert(!te->blocked);
+
+	ONCE_FLAG_RUN(done, thread_install_tm_listener);
+
+	/*
+	 * If there is a timeout, compute the amount of time that we have to
+	 * spend blocked, in seconds, in order to protect against sudden clock
+	 * adjustments.
+	 */
+
+	if (end != NULL) {
+		long remaining = tm_remaining_ms(end);
+
+		if (remaining <= 0)
+			return FALSE;		/* Timed out already */
+
+		requested = (remaining + 999) / 1000;	/* In seconds, rounded up */
+		gstart = gentime_now();
+	}
 
 	/*
 	 * Make sure the main thread never attempts to block itself if it
@@ -6098,6 +6164,7 @@ thread_element_block_until(struct thread_element *te,
 	 * bitfield in memory, and therefore it cannot be written atomically.
 	 */
 
+	te->timed_blocked = booleanize(end != NULL);
 	te->blocked = TRUE;
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
@@ -6113,10 +6180,17 @@ retry:
 
 	if (end != NULL) {
 		long remain = tm_remaining_ms(end);
+		gentime_t gnow;
+		time_delta_t gelapsed;
 		struct pollfd fds;
 		int r;
 
 		if G_UNLIKELY(remain <= 0)
+			goto timed_out;			/* Waiting time expired */
+
+		gnow = gentime_now();
+		gelapsed = gentime_diff(gnow, gstart);
+		if (UNSIGNED(gelapsed) > requested)
 			goto timed_out;			/* Waiting time expired */
 
 		remain = MIN(remain, MAX_INT_VAL(int));		/* poll() takes an int */
@@ -6153,8 +6227,10 @@ retry:
 
 	THREAD_LOCK(te);
 	if G_UNLIKELY(te->signalled != 0) {
-		bool unblocked = te->unblocked;
+		bool unblocked = te->unblocked, tblocked = te->timed_blocked;
+
 		te->signalled--;		/* Consumed one signaling byte */
+		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
 		te->unblocked = FALSE;
 		THREAD_UNLOCK(te);
@@ -6171,11 +6247,13 @@ retry:
 			goto timed_out;
 
 		THREAD_LOCK(te);
+		te->timed_blocked = tblocked;
 		te->blocked = TRUE;
 		te->unblocked = unblocked;
 		THREAD_UNLOCK(te);
 		goto retry;
 	}
+	te->timed_blocked = FALSE;
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
@@ -6198,12 +6276,16 @@ retry:
 
 timed_out:
 	THREAD_LOCK(te);
+	te->timed_blocked = FALSE;
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
 
 	if G_UNLIKELY(eve != NULL)
 		evq_cancel(&eve);
+
+	thread_check_suspended_element(te, TRUE);
+	thread_cancel_test_element(te);
 
 	return FALSE;
 }
@@ -8283,24 +8365,17 @@ static bool
 thread_sleep_interruptible(unsigned int ms,
 	const tsigset_t *mask, bool interrupt)
 {
-	static mutex_t sleep_mtx = MUTEX_INIT;
 	struct thread_element *te = thread_get_element();
-	tm_t start, now;
-	gentime_t gstart, gnow;
-	unsigned int elapsed, gs;
-	time_delta_t gelapsed;
-	bool got_signal = FALSE;
+	tm_t start, end, tmout;
 	unsigned generation = te->sig_generation;
 
 	/*
-	 * The initial tm_now_exact() call is done before grabbing the mutex
-	 * to allow for pending signal handling from within tm_now_exact(), given
-	 * that we do not hold any lock presently.
+	 * The initial tm_now_exact() call is done to allow for pending signal
+	 * handling from within tm_now_exact(), given that we do not hold any
+	 * lock presently.
 	 */
 
 	tm_now_exact(&start);			/* Will also check for suspension */
-	gstart = gentime_now();			/* In case of sudden clock adjustment */
-	gs = (ms + 999) / 1000;			/* Waiting time in seconds, rounded up */
 
 	/*
 	 * If we have to restore the signal mask, grab a lock and then
@@ -8310,115 +8385,39 @@ thread_sleep_interruptible(unsigned int ms,
 	 */
 
 	if (mask != NULL) {
+		static spinlock_t sleep_slk = SPINLOCK_INIT;
 		bool has_signals;
 
-		mutex_lock(&sleep_mtx);
+		spinlock(&sleep_slk);
 
-		g_assert(1 == te->locks.count);		/* The mutex we got above */
+		g_assert(1 == te->locks.count);		/* The lock we got above */
 
 		te->sig_mask = *mask;
 		THREAD_LOCK(te);
 		has_signals = thread_sig_present(te);
 		THREAD_UNLOCK(te);
 
-		mutex_unlock(&sleep_mtx);			/* Will dispatch signals */
+		spinunlock(&sleep_slk);				/* Will dispatch signals */
 
 		if (has_signals && interrupt)
 			return TRUE;
 	}
 
-	/*
-	 * We keep the mutex during our loop because it is required for the
-	 * condition variable but also because it prevents any thread signal
-	 * delivery: signal checking will be done during the condition variable
-	 * waiting, once the mutex has been released.
-	 */
-
-	mutex_lock(&sleep_mtx);		/* Necessary for condition variable */
-
-	/*
-	 * If semaphores are emulated on this platform, the condition variable
-	 * we're using will not be the topmost waiting entity: the thread will
-	 * enter semaphore_emulate() and thread_timed_block_self().  Hence any
-	 * signal received would first unblock the latter, but we must indicate
-	 * that we want any signal to interrupt blocking.
-	 *
-	 * This is the purpose of te->sleep_interruptible.
-	 */
-
 	if (interrupt)
-		te->sleep_interruptible++;		/* We hold the mutex already */
+		te->sleep_interruptible++;
 
-retry:
-	/*
-	 * To protect against the system clock being updated whilst we are waiting,
-	 * we account for the overall time spent "sleeping" ourselves.  The
-	 * gentime computation is a safeguard against clock adjustments, but has
-	 * only a second accurary.  However, it is not important because its
-	 * purpose is to avoid us being stuck here for much longer than 1 second.
-	 */
+	tm_fill_ms(&tmout, ms);
+	end = start;
+	tm_add(&end, &tmout);
 
-	tm_now_exact(&now);
-missing:
-	gnow = gentime_now();			/* Accurate because of tm_now_exact() */
-	elapsed = tm_elapsed_ms(&now, &start);
-	gelapsed = gentime_diff(gnow, gstart);
-
-	if (elapsed < ms && UNSIGNED(gelapsed) <= gs) {
-		static cond_t sleep_cond = COND_INIT;
-		unsigned int remain = ms - elapsed;
-		tm_t timeout;
-
-		tm_fill_ms(&timeout, remain);
-
-		/*
-		 * To give the sleeping thread the ability to quickly process incoming
-		 * signals, we use a condition variable with a timeout.
-		 * See thread_kill() to see how waking-up is handled.
-		 *
-		 * Since nobody is waking us up but signal processing and system
-		 * clock adjustments (as detected and signalled by the "time" thread)
-		 * we know that a wake up is abnormal and we may need to retry.
-		 *
-		 * Note that the condition variable provides a cancellation point.
-		 */
-
-		if (cond_timed_wait_clean(&sleep_cond, &sleep_mtx, &timeout)) {
-			if (generation == te->sig_generation || !interrupt)
-				goto retry;
-			got_signal = TRUE;
-		}
-
-		/*
-		 * If we're not interrupted in our sleep, make sure we're not returning
-		 * too early to the user code.  This can happen with semtimedop() which
-		 * returns a little bit sooner than expected.
-		 */
-
-		if (!interrupt || !got_signal) {
-			tm_now_exact(&now);
-			if (UNSIGNED(tm_elapsed_ms(&now, &start)) < ms)
-				goto missing;
-		}
-
-		/* FALL THROUGH -- sleep finished or interrupted */
-	}
+	thread_element_block_until(te, te->unblock_events, &end);
 
 	if (interrupt) {
 		g_assert(te->sleep_interruptible > 0);
-		te->sleep_interruptible--;		/* We hold the mutex, still */
+		te->sleep_interruptible--;
 	}
 
-	mutex_unlock(&sleep_mtx);
-
-	/*
-	 * In case we did not enter cond_timed_wait()...
-	 */
-
-	thread_check_suspended_element(te, TRUE);
-	thread_cancel_test_element(te);
-
-	return got_signal;
+	return generation != te->sig_generation;	/* Did we get a signal? */
 }
 
 /**
