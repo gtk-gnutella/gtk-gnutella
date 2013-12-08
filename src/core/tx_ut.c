@@ -183,6 +183,7 @@
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/elist.h"
@@ -203,6 +204,7 @@
 #define TX_UT_MSG_MAXSIZE	(TX_UT_MTU * TX_UT_FRAG_MAX)
 #define TX_UT_SEND_MAX		4		/* Max amount of fragment transmissions */
 #define TX_UT_EAR_SEND_MAX	3		/* Max amount of EAR transmissions */
+#define TX_UT_BAN_FREQ		300		/* 5-minute ban if cannot reach host */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
@@ -231,6 +233,7 @@ struct attr {
 	size_t buffered;		/* Total size of enqueued messages */
 	zlib_deflater_t *zd;	/* Deflating object */
 	struct tx_ut_cb *cb;	/* Callbacks */
+	aging_table_t *ban;		/* Short ban of hosts to whom we cannot transmit */
 	udp_tag_t tag;			/* Protocol tag (e.g. "GTA" or "GND") */
 	unsigned seqno_freed;	/* Sequence IDs freed, for hysteresis */
 	unsigned improved_acks:1;	/* Advertise improved ACKs in TX fragments */
@@ -639,6 +642,43 @@ ut_frag_delay(const struct ut_frag *uf)
 }
 
 /**
+ * Check whether destination address is temporarily banned due to the remote
+ * host being un-responsive.
+ *
+ * @return TRUE if the message should be dropped (logging done if needed).
+ */
+static bool
+ut_to_banned(const struct attr *attr, const gnet_host_t *to)
+{
+	if (aging_lookup(attr->ban, to)) {
+		if (tx_ut_debugging(TX_UT_DBG_MSG, NULL)) {
+			time_delta_t age = aging_age(attr->ban, to);
+			g_debug("TX UT: %s: dropping message to %s, banned since %ld sec%s",
+				G_STRFUNC, gnet_host_to_string(to), (long) age,
+				1 == age ? "" : "s");
+		}
+		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_BANNED);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Request that message to specified host be dropped for a while.
+ */
+static void
+ut_to_ban(const struct attr *attr, const gnet_host_t *to)
+{
+	aging_insert(attr->ban, atom_host_get(to), int_to_pointer(1));
+
+	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, NULL)) {
+		g_debug("TX UT: %s: will be dropping messages to %s for %d secs",
+			G_STRFUNC, gnet_host_to_string(to), TX_UT_BAN_FREQ);
+	}
+}
+
+/**
  * Send an EAR (Extra ACK Request) to the remote end.
  */
 static void
@@ -760,6 +800,15 @@ ut_ear_resend(cqueue_t *unused_cq, void *obj)
 	um->ear_ev = NULL;		/* Callback triggered */
 
 	/*
+	 * If the host was "banned" temporarily due to being unresponsive, abort.
+	 */
+
+	if (ut_to_banned(um->attr, um->to)) {
+		ut_msg_free(um, TRUE);
+		return;
+	}
+
+	/*
 	 * If we already sent too many EARs, give up on the whole message.
 	 */
 
@@ -772,8 +821,8 @@ ut_ear_resend(cqueue_t *unused_cq, void *obj)
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
 				um->fragcnt, 1 == um->fragcnt ? "" : "s");
 		}
-
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_OVERSENT);
+		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
 		ut_msg_free(um, TRUE);
 		return;
 	}
@@ -825,6 +874,15 @@ ut_frag_resend(cqueue_t *unused_cq, void *obj)
 	if (uf->pending) {				/* Was pending ACK */
 		um->pending--;
 		um->alpha /= 2;				/* Decrease sending parallelism */
+	}
+
+	/*
+	 * If the host was "banned" temporarily due to being unresponsive, abort.
+	 */
+
+	if (ut_to_banned(um->attr, um->to)) {
+		ut_msg_free(um, TRUE);
+		return;
 	}
 
 	/*
@@ -1529,10 +1587,15 @@ ut_um_expired(cqueue_t *unused_cq, void *obj)
 	/*
 	 * If we were unable to transmit all the fragments of the message at
 	 * least once, count it as a clogged UDP output queue.
+	 *
+	 * Otherwise, further messages to that host will be dropped for a while,
+	 * the remote party being probably unresponsive, dead, or clogged.
 	 */
 
 	if (um->fragtx - um->fragtx2 < um->fragcnt)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_CLOGGING);
+	else
+		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
 
 	/*
 	 * Because all the fragments we enqueue have a pre-TX hook, we can simply
@@ -2056,6 +2119,8 @@ tx_ut_init(txdrv_t *tx, void *args)
 	attr->seq = idtable_new(16);		/* Sequence numbers are 16-bit wide */
 	attr->tx = tx;
 	attr->zd = zlib_deflater_make(NULL, 0, Z_BEST_COMPRESSION);
+	attr->ban = aging_make(TX_UT_BAN_FREQ,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
 	attr->cb = targs->cb;
 	attr->tag = targs->tag;				/* struct copy */
 	attr->improved_acks = booleanize(targs->advertise_improved_acks);
@@ -2118,6 +2183,7 @@ tx_ut_destroy(txdrv_t *tx)
 	zlib_deflater_free(attr->zd, TRUE);
 	idtable_foreach(attr->seq, ut_destroy_msg, NULL);
 	idtable_destroy(attr->seq);
+	aging_destroy(&attr->ban);
 	ut_pending_discard(attr);
 
 	attr->magic = 0;
@@ -2140,6 +2206,17 @@ tx_ut_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 	unsigned i;
 
 	ut_attr_check(attr);
+
+	gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_GIVEN);
+
+	/*
+	 * If the host is still listed in the temporary ban, because we could not
+	 * successfully send messages to that host recently, then drop the message
+	 * immediately: chances are we won't be able to send this message either.
+	 */
+
+	if (ut_to_banned(attr, to))
+		goto done;
 
 	/*
 	 * If lower layer flow-controlled us, refuse to enqueue another message
@@ -2175,7 +2252,6 @@ tx_ut_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 	 * Update statistics.
 	 */
 
-	gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_GIVEN);
 	if (um->reliable)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_GIVEN);
 	if (um->deflated)
@@ -2191,6 +2267,7 @@ tx_ut_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 		ut_frag_send(uf);
 	}
 
+done:
 	return pmsg_size(mb);		/* "wrote" the whole message */
 
 flow_control:

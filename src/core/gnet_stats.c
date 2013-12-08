@@ -221,6 +221,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"udp_sr_tx_messages_given",
 		"udp_sr_tx_messages_deflated",
 		"udp_sr_tx_messages_unsent",
+		"udp_sr_tx_messages_banned",
 		"udp_sr_tx_messages_clogging",
 		"udp_sr_tx_reliable_messages_given",
 		"udp_sr_tx_reliable_messages_sent",
