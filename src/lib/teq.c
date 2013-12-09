@@ -71,9 +71,11 @@
 #include "common.h"
 
 #include "teq.h"
+
 #include "atomic.h"
 #include "cq.h"
 #include "eslist.h"
+#include "evq.h"
 #include "inputevt.h"
 #include "log.h"
 #include "once.h"
@@ -712,7 +714,7 @@ teq_process(struct teq *teq)
 			tm_now_exact(&now);
 
 			if (tm_elapsed_ms(&now, &start) >= teq->throttle_ms) {
-				teq->throttle_ev = cq_main_insert(teq->throttle_delay,
+				teq->throttle_ev = evq_raw_insert(teq->throttle_delay,
 					teq_unthrottle, teq);
 				break;
 			}
@@ -1082,7 +1084,7 @@ teq_io_process(struct teq *teq)
 			tm_now_exact(&now);
 
 			if (tm_elapsed_ms(&now, &start) >= teq->throttle_ms) {
-				teq_io->throttle_ev = cq_main_insert(teq->throttle_delay,
+				teq_io->throttle_ev = evq_raw_insert(teq->throttle_delay,
 					teq_io_unthrottle, teq);
 				break;
 			}
@@ -1367,7 +1369,7 @@ teq_monitor(void *unused_obj)
 static void
 teq_monitor_install(void)
 {
-	cq_periodic_main_add(TEQ_MONITOR_PERIOD, teq_monitor, NULL);
+	evq_raw_periodic_add(TEQ_MONITOR_PERIOD, teq_monitor, NULL);
 }
 
 /**
