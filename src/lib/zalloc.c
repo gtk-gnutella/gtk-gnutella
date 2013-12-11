@@ -1574,9 +1574,7 @@ subzinfo_cmp(const void *a, const void *b)
 	const struct subzinfo *sa = a;
 	const struct subzinfo *sb = b;
 
-	g_assert(sa->szi_base != sb->szi_base);
-
-	return sa->szi_base < sb->szi_base ? -1 : +1;
+	return ptr_cmp(sa->szi_base, sb->szi_base);
 }
 
 /**
