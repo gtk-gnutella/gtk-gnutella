@@ -30,8 +30,6 @@
 typedef struct slist_iter slist_iter_t;
 typedef struct slist slist_t;
 
-typedef void (*slist_destroy_cb)(void *data);
-
 slist_t *slist_new(void);
 void slist_free(slist_t **slist_ptr);
 bool slist_remove(slist_t *slist, void *key);
@@ -59,12 +57,6 @@ bool slist_iter_has_next(const slist_iter_t *iter);
 void *slist_iter_next(slist_iter_t *iter);
 void *slist_iter_current(const slist_iter_t *iter);
 void slist_iter_remove(slist_iter_t *iter);
-void slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb);
-
-static inline slist_destroy_cb
-cast_to_slist_destroy(const func_ptr_t fn)
-{
-	return (slist_destroy_cb) fn;
-}
+void slist_free_all(slist_t **slist_ptr, free_fn_t freecb);
 
 #endif	/* _slist_h_ */

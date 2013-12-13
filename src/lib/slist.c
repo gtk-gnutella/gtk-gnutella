@@ -623,7 +623,7 @@ slist_foreach(const slist_t *slist, GFunc func, void *user_data)
 static void
 slist_freecb_wrapper(void *data, void *user_data)
 {
-	slist_destroy_cb freecb = cast_pointer_to_func(user_data);
+	free_fn_t freecb = cast_pointer_to_func(user_data);
 	(*freecb)(data);
 }
 
@@ -632,7 +632,7 @@ slist_freecb_wrapper(void *data, void *user_data)
  * callback on all the items, then freeing the slist_t container.
  */
 void
-slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb)
+slist_free_all(slist_t **slist_ptr, free_fn_t freecb)
 {
 	g_assert(slist_ptr);
 	g_assert(freecb);

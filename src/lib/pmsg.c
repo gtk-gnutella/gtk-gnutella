@@ -1020,7 +1020,7 @@ pmsg_slist_discard_all(slist_t *slist)
 void
 pmsg_slist_free_all(slist_t **slist_ptr)
 {
-	slist_free_all(slist_ptr, cast_to_slist_destroy(pmsg_free));
+	slist_free_all(slist_ptr, cast_to_free_fn(pmsg_free));
 }
 
 /**

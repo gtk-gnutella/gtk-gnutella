@@ -207,6 +207,12 @@ cast_func_to_pointer(func_ptr_t func)
 	return tmp.ptr;
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE free_fn_t
+cast_to_free_fn(const func_ptr_t fn)
+{
+	return (free_fn_t) fn;
+}
+
 /**
  * Casting of a random function pointer to "void *" is cumbersome if
  * you want to spell it out in a pedantic-safe way.  That's where the
