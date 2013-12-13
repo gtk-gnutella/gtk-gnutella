@@ -600,13 +600,12 @@ eslist_merge_sort(eslist_t *list, slink_t *sublist, size_t count,
 		int c = (*cmp)(d1, d2, data);
 
 		if (c <= 0) {
-			l->next = l1;
+			l = l->next = l1;
 			l1 = l1->next;
 		} else {
-			l->next = l2;
+			l = l->next = l2;
 			l2 = l2->next;
 		}
-		l = l->next;
 	}
 
 	l->next = (NULL == l1) ? l2 : l1;
