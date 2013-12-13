@@ -64,7 +64,10 @@
 #include "palloc.h"
 
 #include "atomic.h"
+#include "atoms.h"
 #include "cq.h"
+#include "dump_options.h"
+#include "elist.h"
 #include "eslist.h"
 #include "evq.h"
 #include "hashlist.h"
@@ -76,6 +79,7 @@
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -118,9 +122,22 @@ struct pool {
 	size_t above;			/**< Amount of times allocation >= used EMA */
 	size_t peak;			/**< Peak usage, when we're above used EMA */
 	mutex_t lock;			/**< Thread-safe lock */
+	link_t pool_link;		/**< Links all the created pools, for stats */
+
+	/* Statistics */
+
+	AU64(allocations);
+	AU64(freeings);
+	AU64(alloc_pool);
+	AU64(alloc_core);
+	AU64(free_fragments);
+	AU64(free_collected);
 };
 
 #define pool_ema(p_, f_)	((p_)->f_ >> POOL_EMA_SHIFT)
+
+#define POOL_STATS_INCX(p,v)	AU64_INC(&(p)->v)
+#define POOL_STATS_ADDX(p,v,n)	AU64_ADD(&(p)->v, n)
 
 /*
  * Pool locking needs to be re-entrant, because a pfree() can cause the
@@ -140,6 +157,42 @@ pool_check(const pool_t * const p)
 {
 	g_assert(p != NULL);
 	g_assert(POOL_MAGIC == p->magic);
+}
+
+/*
+ * All the pools are linked together so that we can collect statistics
+ * about them.
+ */
+static elist_t pool_vars = ELIST_INIT(offsetof(struct pool, pool_link));
+static spinlock_t pool_vars_slk = SPINLOCK_INIT;
+
+#define POOL_VARS_LOCK		spinlock(&pool_vars_slk)
+#define POOL_VARS_UNLOCK	spinunlock(&pool_vars_slk)
+
+/**
+ * Add a new pool to the global list of pools.
+ */
+static void
+pool_vars_add(pool_t *p)
+{
+	pool_check(p);
+
+	POOL_VARS_LOCK;
+	elist_append(&pool_vars, p);
+	POOL_VARS_UNLOCK;
+}
+
+/**
+ * Remove pool from the list of pools.
+ */
+static void
+pool_vars_remove(pool_t *p)
+{
+	pool_check(p);
+
+	POOL_VARS_LOCK;
+	elist_remove(&pool_vars, p);
+	POOL_VARS_UNLOCK;
 }
 
 /**
@@ -357,6 +410,7 @@ pool_create(const char *name,
 	mutex_init(&p->lock);
 	p->heart_ev =
 		evq_raw_periodic_add(POOL_HEARTBEAT_PERIOD, pool_heartbeat, p);
+	pool_vars_add(p);
 
 	return p;
 }
@@ -399,6 +453,7 @@ pool_free(pool_t *p)
 
 	XFREE_NULL(p->name);
 	cq_periodic_remove(&p->heart_ev);
+	pool_vars_remove(p);
 	mutex_destroy(&p->lock);
 	p->magic = 0;
 	xfree(p);
@@ -414,6 +469,7 @@ palloc(pool_t *p)
 
 	pool_check(p);
 
+	POOL_STATS_INCX(p, allocations);
 	POOL_LOCK(p);
 
 	p->alloc_reqs++;
@@ -425,6 +481,7 @@ palloc(pool_t *p)
 
 		obj = eslist_shift(&p->buffers);
 		POOL_UNLOCK(p);
+		POOL_STATS_INCX(p, alloc_pool);
 	} else {
 		/*
 		 * No such luck, allocate a new buffer.
@@ -432,6 +489,7 @@ palloc(pool_t *p)
 
 		p->allocated++;
 		POOL_UNLOCK(p);
+		POOL_STATS_INCX(p, alloc_core);
 		obj = p->alloc(p->size);
 	}
 
@@ -455,6 +513,7 @@ pfree(pool_t *p, void *obj)
 
 	is_fragment = NULL != p->is_frag && p->is_frag(obj, p->size);
 
+	POOL_STATS_INCX(p, freeings);
 	POOL_LOCK(p);
 
 	/*
@@ -481,6 +540,7 @@ pfree(pool_t *p, void *obj)
 			s_debug("PGC pool \"%s\": buffer %p is a fragment", p->name, obj);
 
 		p->dealloc(obj, p->size, TRUE);
+		POOL_STATS_INCX(p, free_fragments);
 	} else {
 		eslist_prepend(&p->buffers, obj);
 		POOL_UNLOCK(p);
@@ -624,6 +684,7 @@ reset:
 	 */
 
 	POOL_UNLOCK(p);
+	POOL_STATS_ADDX(p, free_collected, eslist_count(&to_remove));
 
 	if G_UNLIKELY(palloc_debug && 0 != eslist_count(&to_remove)) {
 		/* Reading p->allocated without the pool's lock, but we don't care */
@@ -677,5 +738,197 @@ pgc(void)
 	POOL_GC_UNLOCK;
 }
 
-/* vi: set ts=4 sw=4 cindent: */
+/**
+ * Add pool statistics into supplied pool_info_t.
+ */
+static void
+pool_info_add(const pool_t *p, pool_info_t *pi)
+{
+#define STATS_ADD(name) pi->name += AU64_VALUE(&p->name)
 
+		pi->allocated += p->allocated;
+		pi->available += eslist_count(&p->buffers);
+		STATS_ADD(allocations);
+		STATS_ADD(freeings);
+		STATS_ADD(alloc_pool);
+		STATS_ADD(alloc_core);
+		STATS_ADD(free_fragments);
+		STATS_ADD(free_collected);
+
+#undef STATS_ADD
+}
+
+/**
+ * Retrieve pool list information.
+ *
+ * @return list of pool_info_t that must be freed by calling the
+ * pool_info_list_free_null() routine.
+ */
+GSList *
+pool_info_list(void)
+{
+	GSList *sl = NULL;
+	pool_t *p;
+
+	POOL_VARS_LOCK;
+
+	ELIST_FOREACH_DATA(&pool_vars, p) {
+		pool_info_t *pi;
+
+		pool_check(p);
+
+		WALLOC0(pi);
+		pi->magic = POOL_INFO_MAGIC;
+
+		POOL_LOCK(p);
+
+		pi->name = atom_str_get(p->name);
+		pi->size = p->size;
+		pool_info_add(p, pi);
+
+		POOL_UNLOCK(p);
+
+		sl = g_slist_prepend(sl, pi);
+	}
+
+	POOL_VARS_UNLOCK;
+
+	return g_slist_reverse(sl);
+}
+
+static void
+pool_info_free(void *data, void *udata)
+{
+	pool_info_t *pi = data;
+
+	(void) udata;
+
+	pool_info_check(pi);
+
+	atom_str_free_null(&pi->name);
+	WFREE(pi);
+}
+
+/**
+ * Free list created by pool_info_list() and nullify pointer.
+ */
+void
+pool_info_list_free_null(GSList **sl_ptr)
+{
+	GSList *sl = *sl_ptr;
+
+	g_slist_foreach(sl, pool_info_free, NULL);
+	gm_slist_free_null(sl_ptr);
+}
+
+/**
+ * Dump consolidated palloc statistics to specified log agent.
+ */
+G_GNUC_COLD void
+palloc_dump_stats_log(logagent_t *la, unsigned options)
+{
+	pool_info_t stats;
+	pool_t *p;
+
+	ZERO(&stats);
+
+	POOL_VARS_LOCK;
+
+	ELIST_FOREACH_DATA(&pool_vars, p) {
+		pool_check(p);
+
+		POOL_LOCK(p);
+		pool_info_add(p, &stats);
+		POOL_UNLOCK(p);
+	}
+
+	POOL_VARS_UNLOCK;
+
+#define DUMPS(x)	log_info(la, "PALLOC %s = %s", #x,			\
+	(options & DUMP_OPT_PRETTY) ?								\
+		size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
+
+#define DUMPV(x)		log_info(la, "PALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?								\
+		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+
+	DUMPS(allocated);
+	DUMPS(available);
+	DUMPV(allocations);
+	DUMPV(freeings);
+	DUMPV(alloc_pool);
+	DUMPV(alloc_core);
+	DUMPV(free_fragments);
+	DUMPV(free_collected);
+
+#undef DUMPS
+#undef DUMPV
+}
+
+/*
+ * Dump palloc stats information to specified log-agent.
+ */
+static void
+palloc_info_dump(void *data, void *udata)
+{
+	pool_info_t *pi = data;
+	logagent_t *la = udata;
+
+	pool_info_check(pi);
+
+#define DUMPS(x) \
+	log_info(la, "PALLOC %14s = %'zu", #x, pi->x)
+
+#define DUMPL(x) \
+	log_info(la, "PALLOC %14s = %s", #x, uint64_to_gstring(pi->x))
+
+	log_info(la, "PALLOC --- \"%s\" %zu-byte blocks ---",
+		pi->name, pi->size);
+
+	DUMPS(allocated);
+	DUMPS(available);
+	DUMPL(allocations);
+	DUMPL(freeings);
+	DUMPL(alloc_pool);
+	DUMPL(alloc_core);
+	DUMPL(free_fragments);
+	DUMPL(free_collected);
+
+#undef DUMPS
+#undef DUMPL
+}
+
+static int
+pool_info_size_cmp(const void *a, const void *b)
+{
+	const pool_info_t *ai = a, *bi = b;
+
+	return CMP(ai->size, bi->size);
+}
+
+/**
+ * Dump per-pool statistics to specified logagent.
+ */
+G_GNUC_COLD void
+palloc_dump_pool_log(logagent_t *la)
+{
+	GSList *sl = pool_info_list();
+
+	sl = g_slist_sort(sl, pool_info_size_cmp);
+	g_slist_foreach(sl, palloc_info_dump, la);
+	pool_info_list_free_null(&sl);
+}
+
+/**
+ * Dump palloc statistics.
+ */
+G_GNUC_COLD void
+palloc_dump_stats(void)
+{
+	s_info("PALLOC running statistics:");
+	palloc_dump_stats_log(log_agent_stderr_get(), 0);
+	s_info("PALLOC per-allocator statistics:");
+	palloc_dump_pool_log(log_agent_stderr_get());
+}
+
+/* vi: set ts=4 sw=4 cindent: */

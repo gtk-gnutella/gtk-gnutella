@@ -568,6 +568,7 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	if (debugging(0)) {
+		DO(palloc_dump_stats);
 		DO(tmalloc_dump_stats);
 		DO(vmm_dump_stats);
 		DO(xmalloc_dump_stats);
