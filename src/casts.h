@@ -240,7 +240,7 @@ const_ptr_add_offset(const void *p, size_t offset)
 static inline int G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
 ptr_cmp(const void *a, const void *b)
 {
-	return a == b ? 0 :
+	return G_UNLIKELY(a == b) ? 0 :
 		(const char *) a < (const char *) b ? -1 : +1;
 }
 
