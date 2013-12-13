@@ -2405,7 +2405,16 @@ thread_find(const void *sp)
 		return te;
 	}
 
-	return NULL;		/* Thread completely unknown */
+	/*
+	 * Thread completely unknown, unless we're the main thread and we do
+	 * not know it yet: assume we are the main thread if the main thread
+	 * is unknown yet.
+	 */
+
+	if G_UNLIKELY(NULL == threads[0])
+		return thread_get_main_if_first();
+
+	return NULL;
 }
 
 /**
@@ -6848,6 +6857,17 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 
 	g_assert(routine != NULL);
 	g_assert(size_is_non_negative(stack));
+
+	/*
+	 * Ensure the main thread gets the small ID of 0: create the main element
+	 * if we did not get a chance yet, so that the new thread we're about to
+	 * create is not stealing that ID.
+	 *
+	 * This assumes that the caller is the main thread.
+	 */
+
+	if G_UNLIKELY(NULL == threads[0])
+		(void) thread_get_main_if_first();
 
 	/*
 	 * Reuse or allocate a new thread element.
