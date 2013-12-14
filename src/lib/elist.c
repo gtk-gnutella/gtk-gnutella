@@ -324,7 +324,7 @@ elist_append_list(elist_t *list, elist_t *other)
 }
 
 static inline void
-elist_link_remove_internal(elist_t *list, link_t *lk)
+elist_link_remove_internal(elist_t *list, link_t *lk, bool safe)
 {
 	g_assert(size_is_positive(list->count));
 	elist_invariant(list);
@@ -335,10 +335,14 @@ elist_link_remove_internal(elist_t *list, link_t *lk)
 	if G_UNLIKELY(list->tail == lk)
 		list->tail = lk->prev;
 
-	if (lk->prev != NULL)
+	if (lk->prev != NULL) {
+		g_assert(!safe || lk->prev->next == lk);
 		lk->prev->next = lk->next;
-	if (lk->next != NULL)
+	}
+	if (lk->next != NULL) {
+		g_assert(!safe || lk->next->prev == lk);
 		lk->next->prev = lk->prev;
+	}
 
 	lk->next = lk->prev = NULL;
 	list->count--;
@@ -358,7 +362,7 @@ elist_link_remove(elist_t *list, link_t *lk)
 	elist_check(list);
 	g_assert(lk != NULL);
 
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 }
 
 /**
@@ -375,7 +379,7 @@ elist_remove(elist_t *list, void *data)
 	g_assert(data != NULL);
 
 	lk = ptr_add_offset(data, list->offset);
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 }
 
 static void
@@ -692,7 +696,7 @@ elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data)
 		if ((*cbr)(item, data)) {
 			/* Tweak the list to replace possibly gone ``lk'' */
 			elist_link_replace_internal(list, lk, &itemlk, FALSE);
-			elist_link_remove_internal(list, &itemlk);
+			elist_link_remove_internal(list, &itemlk, FALSE);
 			removed++;
 		}
 	}
@@ -1016,7 +1020,7 @@ elist_rotate_left(elist_t *list)
 		return;
 
 	lk = list->head;
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 	elist_link_append_internal(list, lk);
 
 	safety_assert(elist_invariant(list));
@@ -1039,7 +1043,7 @@ elist_rotate_right(elist_t *list)
 		return;
 
 	lk = list->tail;
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 	elist_link_prepend_internal(list, lk);
 
 	safety_assert(elist_invariant(list));
@@ -1061,7 +1065,7 @@ elist_moveto_head(elist_t *list, void *data)
 	lk = ptr_add_offset(data, list->offset);
 
 	if (list->head != lk) {
-		elist_link_remove_internal(list, lk);
+		elist_link_remove_internal(list, lk, TRUE);
 		elist_link_prepend_internal(list, lk);
 	}
 
@@ -1083,7 +1087,7 @@ elist_moveto_tail(elist_t *list, void *data)
 	lk = ptr_add_offset(data, list->offset);
 
 	if (list->tail != lk) {
-		elist_link_remove_internal(list, lk);
+		elist_link_remove_internal(list, lk, TRUE);
 		elist_link_append_internal(list, lk);
 	}
 
@@ -1104,7 +1108,7 @@ elist_shift(elist_t *list)
 		item = NULL;
 	} else {
 		item = ptr_add_offset(list->head, -list->offset);
-		elist_link_remove_internal(list, list->head);
+		elist_link_remove_internal(list, list->head, TRUE);
 	}
 
 	return item;
