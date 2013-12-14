@@ -796,7 +796,7 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 		g_assert(num_unused <= ctx->max_poll_idx);
 
 		str_putc(str, '}');
-		g_debug("%s (used=%u, unused=%u)",
+		s_debug("%s (used=%u, unused=%u)",
 			str_2c(str), ctx->max_poll_idx - num_unused, num_unused);
 		str_destroy_null(&str);
 
@@ -1320,7 +1320,7 @@ inputevt_set_readable(int fd)
 	void *key = int_to_pointer(fd);
 
 	if (inputevt_debug > 3) {
-		g_debug("%s: fd=%d", G_STRFUNC, fd);
+		s_debug("%s: fd=%d", G_STRFUNC, fd);
 	}
 	g_assert(is_valid_fd(fd));
 
@@ -1514,7 +1514,7 @@ inputevt_init(int use_poll)
 	}
 
 #ifdef INPUTEVT_DEBUGGING
-	g_info("INPUTEVT using customized I/O dispatching with %s",
+	s_info("INPUTEVT using customized I/O dispatching with %s",
 		ctx->polling_method);
 #endif
 }
