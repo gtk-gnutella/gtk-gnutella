@@ -814,6 +814,32 @@ memusage_remove_one(memusage_t *mu)
 }
 
 /**
+ * Record freeing of multiple constant-width objects.
+ */
+void
+memusage_remove_multiple(memusage_t *mu, size_t n)
+{
+	if G_UNLIKELY(NULL == mu)
+		return;
+
+	memusage_check(mu);
+	g_assert(0 != mu->width);
+
+	MEMUSAGE_LOCK(mu);
+	mu->freeings += n;
+	MEMUSAGE_UNLOCK(mu);
+
+	if G_UNLIKELY(mu->frees != NULL) {
+		MEMUSAGE_THREAD_LOCK(mu);
+		while (n-- != 0) {
+			memusage_stacktrace(mu, 0,
+				mu->frees, mu->recent_frees, mu->other_frees);
+		}
+		MEMUSAGE_THREAD_UNLOCK(mu);
+	}
+}
+
+/**
  * Record freeing of object of specified size.
  */
 void

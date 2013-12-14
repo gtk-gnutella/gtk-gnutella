@@ -49,6 +49,7 @@
 #include "mutex.h"
 #include "once.h"
 #include "pow2.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "str.h"
 #include "stringify.h"		/* For SIZE_T_DEC_BUFLEN */
@@ -440,6 +441,59 @@ wfree0(void *ptr, size_t size)
 
 	memset(ptr, 0, size);
 	wfree(ptr, size);
+}
+
+/**
+ * Free a list of memory blocks that can be viewed as a plain one-way list,
+ * items being linked by their first pointer.
+ */
+void
+wfree_pslist(pslist_t *pl, size_t size)
+{
+	tmalloc_t *depot;
+	size_t rounded = zalloc_round(size);
+
+	g_assert(pl != NULL);
+	g_assert(size_is_positive(size));
+
+	/*
+	 * This is a highly specialized routine, used by pslist_t and plist_t.
+	 * It quickly releases the list cells when the corresponding list is
+	 * freed: to avoid calling wfree() on each cell, we group processing
+	 * in order to leverage on the routine setup: we fetch the proper
+	 * magazines or zones once, and we apply the same setting to the whole
+	 * list of object.
+	 *
+	 * Because pslist_t and plist_t both share the same memory layout for
+	 * the ``next'' field (it is the first pointer in the memory block),
+	 * we can handle plist_t as if they were pslist_t without problem: the
+	 * only difference is the passed object size, which will redirect the
+	 * free objects to possibly different zones or magazines.
+	 */
+
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
+		pslist_t *next, *l;
+
+		for (l = pl; l != NULL; l = next) {
+			next = l->next;
+			xfree(l);
+		}
+		return;
+	}
+
+	depot = walloc_get_magazine(rounded);
+
+	if G_UNLIKELY(NULL == depot) {
+		zone_t *zone;
+
+		if G_UNLIKELY(walloc_stopped)
+			return;
+
+		zone = walloc_get_zone(rounded, FALSE);
+		zfree_pslist(zone, pl);
+	} else {
+		tmfree_pslist(depot, pl);
+	}
 }
 
 /**

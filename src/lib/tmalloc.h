@@ -58,6 +58,8 @@ typedef struct {
 	uint64 depot_allocations;		/**< Allocations made via the depot layer */
 	uint64 depot_trashings;			/**< Objects trashed to depot by tmfree() */
 	uint64 freeings;				/**< Amount of object freeings */
+	uint64 freeings_list;			/**< Amount of object freeings via list */
+	uint64 freeings_list_count;		/**< Total objects freed via list */
 	uint64 threads;					/**< Total amount of threads attached */
 	uint64 contentions;				/**< Total amount of lock contentions */
 	uint64 preemptions;				/**< Signal handler preemptions seen */
@@ -97,9 +99,12 @@ tmalloc_t *tmalloc_create(const char *name, size_t size,
 void tmalloc_reset(tmalloc_t *tma);
 size_t tmalloc_size(const tmalloc_t *tma);
 
+struct pslist;
+
 void *tmalloc(tmalloc_t *tma) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *tmalloc0(tmalloc_t *tma) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void tmfree(tmalloc_t *tma, void *p);
+void tmfree_pslist(tmalloc_t *tma, struct pslist *pl);
 
 struct logagent;
 

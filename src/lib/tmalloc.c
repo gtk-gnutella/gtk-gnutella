@@ -152,6 +152,7 @@
 #include "log.h"
 #include "omalloc.h"
 #include "once.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "thread.h"
@@ -200,6 +201,8 @@ struct tmalloc_stats {
 	AU64(tmas_depot_allocations);	/* Allocations via the depot layer */
 	AU64(tmas_depot_trashings);		/* Objects trashed to depot by tmfree() */
 	AU64(tmas_freeings);			/* Total amount of object freeings */
+	AU64(tmas_freeings_list);		/* Total amount of list freeings */
+	AU64(tmas_freeings_list_count);	/* Amount of blocks freed via list */
 	AU64(tmas_threads);				/* Total amount of threads attached */
 	AU64(tmas_contentions);			/* Total amount of lock contentions */
 	AU64(tmas_preemptions);			/* Counts "concurrent" signal processing */
@@ -890,6 +893,41 @@ tmalloc_depot_trash(tmalloc_t *d, void *p)
 	*(void **) p = d->tma_obj_trash;
 	d->tma_obj_trash = p;
 	d->tma_obj_trash_count++;
+	TMALLOC_UNLOCK_HIDDEN(d);
+}
+
+/**
+ * Put the object lisst into the trash bin.
+ *
+ * @param d		the thread magazine depot
+ * @param pl	the head of the list
+ */
+static void
+tmalloc_depot_trash_pslist(tmalloc_t *d, pslist_t *pl)
+{
+	pslist_t *last;
+	size_t n;
+
+	TMALLOC_STATS_INCX(d, depot_trashings);
+
+	/*
+	 * Because the plain one-way list places its ``next'' pointer at the
+	 * head of the object, the list is naturally linked and there is little
+	 * work to do: we just need to count the objects being inserted and
+	 * update the last link pointer.
+	 *
+	 * Note that the pslist_t can be a plist_t, but thanks to structural
+	 * equivalence, this does not matter at all, provided the objects are
+	 * returned to the proper depot.
+	 */
+
+	last = pslist_last(pl);
+	n = pslist_length(pl);
+
+	TMALLOC_LOCK_HIDDEN(d);
+	last->next = (pslist_t *) d->tma_obj_trash;
+	d->tma_obj_trash = (void **) pl;
+	d->tma_obj_trash_count += n;
 	TMALLOC_UNLOCK_HIDDEN(d);
 }
 
@@ -2044,10 +2082,55 @@ tmfree(tmalloc_t *tma, void *p)
 	 * because the thread is exiting, then put the object in the depot's trash.
 	 */
 
-	if G_UNLIKELY(NULL == tmt)
-		return tmalloc_depot_trash(tma, p);
+	if G_UNLIKELY(NULL == tmt) {
+		tmalloc_depot_trash(tma, p);
+		return;
+	}
 
 	tmalloc_thread_free(tmt, p);
+}
+
+/**
+ * Free a plain list of objects.
+ *
+ * @param tma		the thread magazine allocator
+ * @param pl		the head of the list
+ */
+void
+tmfree_pslist(tmalloc_t *tma, pslist_t *pl)
+{
+	struct tmalloc_thread *tmt;
+	pslist_t *l, *next;
+	size_t n;
+
+	tmalloc_check(tma);
+
+	tmt = tmalloc_thread_get(tma);
+	TMALLOC_STATS_INCX(tma, freeings);
+	TMALLOC_STATS_INCX(tma, freeings_list);
+
+	/*
+	 * If for some reason we cannot create the local thread layer, probably
+	 * because the thread is exiting, then put the objects in the depot's trash.
+	 */
+
+	if G_UNLIKELY(NULL == tmt) {
+		tmalloc_depot_trash_pslist(tma, pl);
+		return;
+	}
+
+	/*
+	 * Note that the pslist_t could actually be a plist_t, but this does
+	 * not matter because the l->next field is at the same memory location
+	 * in both structures, thanks to structural equivalence.
+	 */
+
+	for (l = pl, n = 0; l != NULL; l = next, n++) {
+		next = l->next;
+		tmalloc_thread_free(tmt, l);
+	}
+
+	TMALLOC_STATS_ADDX(tma, freeings_list_count, n);
 }
 
 /**
@@ -2092,6 +2175,8 @@ tmalloc_info_list(void)
 		STATS_COPY(depot_allocations);
 		STATS_COPY(depot_trashings);
 		STATS_COPY(freeings);
+		STATS_COPY(freeings_list);
+		STATS_COPY(freeings_list_count);
 		STATS_COPY(threads);
 		STATS_COPY(contentions);
 		STATS_COPY(object_trash_reused);
@@ -2180,6 +2265,8 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 		STATS_COPY(depot_allocations);
 		STATS_COPY(depot_trashings);
 		STATS_COPY(freeings);
+		STATS_COPY(freeings_list);
+		STATS_COPY(freeings_list_count);
 		STATS_COPY(contentions);
 		STATS_COPY(preemptions);
 		STATS_COPY(object_trash_reused);
@@ -2219,6 +2306,8 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(depot_allocations);
 	DUMP(depot_trashings);
 	DUMP(freeings);
+	DUMP(freeings_list);
+	DUMP(freeings_list_count);
 	DUMP(contentions);
 	DUMP(preemptions);
 	DUMPV(depot_count);
@@ -2278,6 +2367,8 @@ tmalloc_info_dump(void *data, void *udata)
 	DUMPL(depot_allocations);
 	DUMPL(depot_trashings);
 	DUMPL(freeings);
+	DUMPL(freeings_list);
+	DUMPL(freeings_list_count);
 	DUMPL(threads);
 	DUMPL(object_trash_reused);
 	DUMPL(empty_trash_reused);

@@ -105,6 +105,7 @@
 #include "memusage.h"
 #include "misc.h"			/* For short_filename() */
 #include "once.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -333,6 +334,8 @@ static leak_set_t *z_leakset;
 static struct zstats {
 	uint64 allocations;				/**< Total amount of allocations */
 	uint64 freeings;				/**< Total amount of freeings */
+	uint64 freeings_list;			/**< Total amount of freeings via list */
+	uint64 freeings_list_blocks;	/**< Amount of blocks freed via list */
 	AU64(allocations_gc);			/**< Subset of allocations in GC mode */
 	AU64(freeings_gc);				/**< Subset of freeings in GC mode */
 	uint64 subzones_allocated;		/**< Total amount of subzone creations */
@@ -991,24 +994,12 @@ zalloc_shift_pointer(const void *allocated, const void *used)
 #endif	/* TRACK_ZALLOC || MALLOC_FRAMES */
 
 /**
- * Return block to its zone, hence freeing it. Previous content of the
- * block is lost.
- *
- * Since a zone consists of blocks with a fixed size, memory fragmentation
- * is not an issue. Therefore, the block is returned to the zone by being
- * inserted at the head of the free list.
- *
- * Warning: returning a block to the wrong zone may lead to disasters.
+ * Return user pointer to (already locked) zone.
  */
-void
-zfree(zone_t *zone, void *ptr)
+static inline void
+zreturn(zone_t *zone, void *ptr)
 {
 	char **head;
-
-	g_assert(ptr);
-	zone_check(zone);
-
-	zlock(zone);
 
 #ifdef ZONE_SAFE
 	{
@@ -1092,7 +1083,26 @@ zfree(zone_t *zone, void *ptr)
 		zone->zn_free = ptr;					/* New free list head */
 		zone->zn_cnt--;							/* To make zone gc easier */
 	}
+}
 
+/**
+ * Return block to its zone, hence freeing it. Previous content of the
+ * block is lost.
+ *
+ * Since a zone consists of blocks with a fixed size, memory fragmentation
+ * is not an issue. Therefore, the block is returned to the zone by being
+ * inserted at the head of the free list.
+ *
+ * Warning: returning a block to the wrong zone may lead to disasters.
+ */
+void
+zfree(zone_t *zone, void *ptr)
+{
+	g_assert(ptr);
+	zone_check(zone);
+
+	zlock(zone);
+	zreturn(zone, ptr);
 	zunlock(zone);
 
 	ZSTATS_LOCK;
@@ -1101,6 +1111,38 @@ zfree(zone_t *zone, void *ptr)
 	zstats.user_memory -= zone->zn_size;
 	ZSTATS_UNLOCK;
 	memusage_remove_one(zone->zn_mem);
+}
+
+/**
+ * Return list of blocks to its zone, hence freeing it. Previous content of the
+ * block is lost.
+ */
+void
+zfree_pslist(zone_t *zone, pslist_t *pl)
+{
+	size_t n = 0;
+	pslist_t *l, *next;
+
+	zone_check(zone);
+
+	zlock(zone);
+
+	for (l = pl; l != NULL; l = next, n++) {
+		next = l->next;
+		zreturn(zone, l);
+	}
+
+	zunlock(zone);
+
+	ZSTATS_LOCK;
+	zstats.freeings +=n;
+	zstats.freeings_list++;
+	zstats.freeings_list_blocks +=n;
+	zstats.user_blocks -= n;
+	zstats.user_memory -= zone->zn_size * n;
+	ZSTATS_UNLOCK;
+
+	memusage_remove_multiple(zone->zn_mem, n);
 }
 #endif	/* !REMAP_ZALLOC */
 
@@ -3457,6 +3499,8 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 	DUMP(allocations);
 	DUMP(freeings);
+	DUMP(freeings_list);
+	DUMP(freeings_list_blocks);
 	DUMP64(allocations_gc);
 	DUMP64(freeings_gc);
 	DUMP(subzones_allocated);

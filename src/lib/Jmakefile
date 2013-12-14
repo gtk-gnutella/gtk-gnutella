@@ -176,10 +176,12 @@ LSRC = \
 	path.c \
 	patricia.c \
 	pattern.c \
+	plist.c \
 	pmsg.c \
 	pow2.c \
 	product.c \
 	prop.c \
+	pslist.c \
 	rand31.c \
 	random.c \
 	rbtree.c \

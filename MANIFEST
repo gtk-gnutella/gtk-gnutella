@@ -821,6 +821,8 @@ src/lib/patricia.c
 src/lib/patricia.h
 src/lib/pattern.c
 src/lib/pattern.h
+src/lib/plist.c
+src/lib/plist.h
 src/lib/pmsg.c
 src/lib/pmsg.h
 src/lib/pow2.c
@@ -829,6 +831,8 @@ src/lib/product.c
 src/lib/product.h
 src/lib/prop.c
 src/lib/prop.h
+src/lib/pslist.c
+src/lib/pslist.h
 src/lib/rand31.c
 src/lib/rand31.h
 src/lib/random-test.c

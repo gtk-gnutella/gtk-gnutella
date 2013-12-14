@@ -233,10 +233,12 @@ LSRC = \
 	path.c \
 	patricia.c \
 	pattern.c \
+	plist.c \
 	pmsg.c \
 	pow2.c \
 	product.c \
 	prop.c \
+	pslist.c \
 	rand31.c \
 	random.c \
 	rbtree.c \
@@ -406,10 +408,12 @@ LOBJ = \
 	path.o \
 	patricia.o \
 	pattern.o \
+	plist.o \
 	pmsg.o \
 	pow2.o \
 	product.o \
 	prop.o \
+	pslist.o \
 	rand31.o \
 	random.o \
 	rbtree.o \

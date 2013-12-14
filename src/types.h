@@ -139,6 +139,11 @@ typedef void (*free_fn_t)(void *data);
 typedef void (*free_size_fn_t)(void *data, size_t len);
 typedef void (*free_data_fn_t)(void *data, void *user_data);
 
+/* Object copying */
+
+typedef void *(*copy_fn_t)(const void *src);
+typedef void *(*copy_data_fn_t)(const void *src, void *data);
+
 /* Generic event notification, with or without context */
 
 typedef void (*notify_fn_t)(void *data);

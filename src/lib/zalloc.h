@@ -74,10 +74,12 @@ size_t zalloc_overhead(void) G_GNUC_CONST;
 #endif	/* REMAP_ZALLOC && TRACK_ZALLOC */
 
 struct logagent;
+struct pslist;
 
 void *zalloc(zone_t *) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void zfree(zone_t *, void *);
 void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
+void zfree_pslist(zone_t *, struct pslist *);
 void zgc(bool overloaded);
 
 void zinit(void);
