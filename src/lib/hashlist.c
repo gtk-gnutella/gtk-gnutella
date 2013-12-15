@@ -283,7 +283,6 @@ hash_list_free(hash_list_t **hl_ptr)
 
 	if (*hl_ptr) {
 		hash_list_t *hl = *hl_ptr;
-		link_t *lk, *next;
 
 		hash_list_check(hl);
 
@@ -305,13 +304,7 @@ hash_list_free(hash_list_t **hl_ptr)
 		}
 
 		hikset_free_null(&hl->ht);
-
-		for (lk = elist_first(&hl->list); lk != NULL; lk = next) {
-			struct hash_list_item *item = ITEM(lk);
-			next = elist_next(lk);	/* Embedded, get next before freeing */
-			WFREE(item);
-		}
-
+		elist_wfree(&hl->list, sizeof(struct hash_list_item));
 		elist_discard(&hl->list);
 
 		if (hl->lock != NULL) {
