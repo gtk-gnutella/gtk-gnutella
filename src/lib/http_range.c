@@ -216,10 +216,8 @@ http_range_item_alloc(filesize_t start, filesize_t end)
  * Free HTTP range item (as generic callback for tree).
  */
 static void
-http_range_item_free(void *p)
+http_range_item_free(struct http_range_item *hri)
 {
-	struct http_range_item *hri = p;
-
 	http_range_item_check(hri);
 
 	hri->magic = 0;
@@ -328,8 +326,8 @@ http_rangeset_clear(http_rangeset_t *hrs)
 	http_rangeset_check(hrs);
 	http_rangeset_invariant(hrs);
 
-	erbtree_discard(&hrs->tree, http_range_item_free);
-	eslist_clear(&hrs->list);
+	eslist_wfree(&hrs->list, sizeof(struct http_range_item));
+	erbtree_clear(&hrs->tree);
 }
 
 /**
@@ -340,7 +338,7 @@ http_rangeset_free(http_rangeset_t *hrs)
 {
 	http_rangeset_check(hrs);
 
-	erbtree_discard(&hrs->tree, http_range_item_free);
+	http_rangeset_clear(hrs);
 	hrs->magic = 0;
 	WFREE(hrs);
 }

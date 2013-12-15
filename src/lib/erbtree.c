@@ -1072,6 +1072,17 @@ erbtree_reset(erbtree_t *tree)
 }
 
 /**
+ * Clear the tree, without discarding the allocated items.
+ */
+void
+erbtree_clear(erbtree_t *tree)
+{
+	erbtree_check(tree);
+
+	erbtree_reset(tree);
+}
+
+/**
  * Free all items in the tree with supplied callback routine.
  *
  * This is more efficient than running erbtree_foreach_remove() on the
