@@ -44,6 +44,7 @@
 #include "walloc.h"
 
 #include "atomic.h"
+#include "eslist.h"
 #include "evq.h"			/* For evq_is_inited() */
 #include "log.h"
 #include "mutex.h"
@@ -493,6 +494,49 @@ wfree_pslist(pslist_t *pl, size_t size)
 		zfree_pslist(zone, pl);
 	} else {
 		tmfree_pslist(depot, pl);
+	}
+}
+
+/**
+ * Free a list of memory blocks being linked through an embedded pointer.
+ */
+void
+wfree_eslist(eslist_t *el, size_t size)
+{
+	tmalloc_t *depot;
+	size_t rounded = zalloc_round(size);
+
+	g_assert(el != NULL);
+	g_assert(size_is_positive(size));
+
+	/*
+	 * This is a highly specialized routine, used by eslist_t and elist_t.
+	 * Same principle as wfree_pslist(): we want to dispose of objects
+	 * quickly.
+	 */
+
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
+		void *next, *p;
+
+		for (p = eslist_head(el); p != NULL; p = next) {
+			next = eslist_next_data(el, p);
+			xfree(p);
+		}
+		return;
+	}
+
+	depot = walloc_get_magazine(rounded);
+
+	if G_UNLIKELY(NULL == depot) {
+		zone_t *zone;
+
+		if G_UNLIKELY(walloc_stopped)
+			return;
+
+		zone = walloc_get_zone(rounded, FALSE);
+		zfree_eslist(zone, el);
+	} else {
+		tmfree_eslist(depot, el);
 	}
 }
 

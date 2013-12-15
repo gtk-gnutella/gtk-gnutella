@@ -96,6 +96,7 @@
 
 #include "atomic.h"
 #include "dump_options.h"
+#include "eslist.h"
 #include "evq.h"
 #include "hashing.h"		/* For integer_hash() and friends */
 #include "hashtable.h"
@@ -1133,6 +1134,40 @@ zfree_pslist(zone_t *zone, pslist_t *pl)
 	}
 
 	zunlock(zone);
+
+	ZSTATS_LOCK;
+	zstats.freeings +=n;
+	zstats.freeings_list++;
+	zstats.freeings_list_blocks +=n;
+	zstats.user_blocks -= n;
+	zstats.user_memory -= zone->zn_size * n;
+	ZSTATS_UNLOCK;
+
+	memusage_remove_multiple(zone->zn_mem, n);
+}
+
+/**
+ * Return list of blocks to its zone, hence freeing it. Previous content of the
+ * block is lost.
+ */
+void
+zfree_eslist(zone_t *zone, eslist_t *el)
+{
+	size_t n;
+	void *p, *next;
+
+	zone_check(zone);
+
+	zlock(zone);
+
+	for (n = 0, p = eslist_head(el); p != NULL; p = next, n++) {
+		next = eslist_next_data(el, p);
+		zreturn(zone, p);
+	}
+
+	zunlock(zone);
+
+	g_assert(n == eslist_count(el));
 
 	ZSTATS_LOCK;
 	zstats.freeings +=n;

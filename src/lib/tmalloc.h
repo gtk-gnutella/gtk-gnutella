@@ -100,11 +100,13 @@ void tmalloc_reset(tmalloc_t *tma);
 size_t tmalloc_size(const tmalloc_t *tma);
 
 struct pslist;
+struct eslist;
 
 void *tmalloc(tmalloc_t *tma) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *tmalloc0(tmalloc_t *tma) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void tmfree(tmalloc_t *tma, void *p);
 void tmfree_pslist(tmalloc_t *tma, struct pslist *pl);
+void tmfree_eslist(tmalloc_t *tma, struct eslist *el);
 
 struct logagent;
 

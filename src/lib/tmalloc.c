@@ -2134,6 +2134,48 @@ tmfree_pslist(tmalloc_t *tma, pslist_t *pl)
 }
 
 /**
+ * Free an embedded list of objects.
+ *
+ * @param tma		the thread magazine allocator
+ * @param el		the list descriptor
+ */
+void
+tmfree_eslist(tmalloc_t *tma, eslist_t *el)
+{
+	struct tmalloc_thread *tmt;
+	void *p, *next;
+	size_t n;
+
+	tmalloc_check(tma);
+
+	tmt = tmalloc_thread_get(tma);
+	TMALLOC_STATS_INCX(tma, freeings);
+	TMALLOC_STATS_INCX(tma, freeings_list);
+
+	/*
+	 * If for some reason we cannot create the local thread layer, probably
+	 * because the thread is exiting, then put the objects in the depot's trash.
+	 */
+
+	if G_UNLIKELY(NULL == tmt) {
+		for (p = eslist_head(el); p != NULL; p = next) {
+			next = eslist_next_data(el, p);
+			tmalloc_depot_trash(tma, p);
+		}
+		return;
+	}
+
+	for (p = eslist_head(el), n = 0; p != NULL; p = next, n++) {
+		next = eslist_next_data(el, p);
+		tmalloc_thread_free(tmt, p);
+	}
+
+	g_assert(n == eslist_count(el));
+
+	TMALLOC_STATS_ADDX(tma, freeings_list_count, n);
+}
+
+/**
  * Retrieve thread magazine depot information.
  *
  * @return list of tmalloc_info_t that must be freed by calling the

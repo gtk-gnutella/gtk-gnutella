@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Embedded two-way list (within another data structure).
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #ifndef _elist_h_
@@ -287,6 +287,7 @@ elist_prev_data(const elist_t *list, const void *p)
 void elist_init(elist_t *list, size_t offset);
 void elist_discard(elist_t *list);
 void elist_clear(elist_t *list);
+void elist_wfree(elist_t *list, size_t size);
 
 void elist_foreach(const elist_t *list, data_fn_t cb, void *data);
 size_t elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data);

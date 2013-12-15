@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -48,15 +48,17 @@
  * the glib list API is quite good so mirroring it is not a problem.
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #include "common.h"
 
 #include "eslist.h"
+
 #include "random.h"
 #include "shuffle.h"
 #include "unsigned.h"
+#include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -131,6 +133,33 @@ eslist_clear(eslist_t *list)
 
 	list->head = list->tail = NULL;
 	list->count = 0;
+}
+
+/**
+ * Free all items in the list, using wfree() on each of them, clearing the list.
+ *
+ * Each item must be of the same size and have been allocated via walloc().
+ * Each item must have been cleared first, so that any internal memory allocated
+ * and referenced by the item has been properly released.
+ *
+ * This is more efficient that looping over all the items, clearing them and
+ * then calling wfree() on them because we amortize the wfree() cost over a
+ * large amount of objects and need to lock/unlock once only, if any lock is
+ * to be taken.
+ *
+ * @param list		the list to free
+ * @param size		the size of each item, passed to wfree()
+ */
+void
+eslist_wfree(eslist_t *list, size_t size)
+{
+	eslist_check(list);
+
+	if G_UNLIKELY(0 == list->count)
+		return;
+
+	wfree_eslist(list, size);
+	eslist_clear(list);
 }
 
 static inline void

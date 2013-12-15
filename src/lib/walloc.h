@@ -35,6 +35,8 @@
 #define _walloc_h_
 
 #include "common.h"
+
+#include "eslist.h"
 #include "malloc.h"
 #include "pslist.h"
 
@@ -90,6 +92,19 @@ wfree_pslist(pslist_t *pl, size_t size)
 }
 
 static inline void
+wfree_eslist(eslist_t *el, size_t size)
+{
+	void *next, *p;
+
+	(void) size;
+
+	for (p = eslist_head(el); p != NULL; p = next) {
+		next = eslist_next_data(el, p);
+		g_free(p);
+	}
+}
+
+static inline void
 wfree0(void *p, size_t size)
 {
 	memset(p, 0, size);
@@ -120,6 +135,7 @@ void *wrealloc(void *old, size_t old_size, size_t new_size)
 			WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *wmove(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void wfree_pslist(pslist_t *pl, size_t size);
+void wfree_eslist(eslist_t *el, size_t size);
 
 /* Don't define both an inline routine and a macro... */
 #ifndef TRACK_ZALLOC
