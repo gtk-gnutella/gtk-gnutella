@@ -34,17 +34,21 @@
 #include "common.h"
 
 #include "alive.h"
-#include "nodes.h"
-#include "guid.h"
+
 #include "gmsg.h"
+#include "guid.h"
 #include "mq.h"
+#include "nodes.h"
 #include "pcache.h"
+
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
+#include "lib/eslist.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "if/gnet_property_priv.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define INFINITY	0xffffffff
@@ -54,9 +58,8 @@
  */
 struct alive {
 	struct gnutella_node *node;
-	GSList *pings;				/**< Pings we sent (struct alive_ping) */
-	int count;					/**< Amount of pings in list */
-	int maxcount;				/**< Maximum amount of pings we remember */
+	eslist_t pings;				/**< Pings we sent (struct alive_ping) */
+	uint maxcount;				/**< Maximum amount of pings we remember */
 	uint32 min_rt;				/**< Minimum roundtrip time (ms) */
 	uint32 max_rt;				/**< Maximim roundtrip time (ms) */
 	uint32 avg_rt;				/**< Average (EMA) roundtrip time (ms) */
@@ -66,9 +69,8 @@ struct alive {
 struct alive_ping {
 	const struct guid *muid;	/**< The GUID of the message */
 	tm_t sent;					/**< Time at which we sent the message */
+	slink_t ap_link;			/**< Links sent alive pings */
 };
-
-static void alive_trim_upto(struct alive *a, GSList *item);
 
 /**
  * Create an alive_ping, with proper message ID.
@@ -87,12 +89,21 @@ ap_make(struct guid *muid)
 }
 
 /**
+ * Clear an alive ping.
+ */
+static void
+ap_clear(struct alive_ping *ap)
+{
+	atom_guid_free(ap->muid);
+}
+
+/**
  * Free an alive_ping.
  */
 static void
 ap_free(struct alive_ping *ap)
 {
-	atom_guid_free(ap->muid);
+	ap_clear(ap);
 	WFREE(ap);
 }
 
@@ -109,6 +120,7 @@ alive_make(struct gnutella_node *n, int max)
 	a->node = n;
 	a->maxcount = max;
 	a->min_rt = INFINITY;
+	eslist_init(&a->pings, offsetof(struct alive_ping, ap_link));
 
 	return a;
 }
@@ -120,28 +132,11 @@ void
 alive_free(void *obj)
 {
 	struct alive *a = obj;
-	GSList *sl;
 
-	for (sl = a->pings; sl; sl = g_slist_next(sl))
-		ap_free(sl->data);
-
-	gm_slist_free_null(&a->pings);
+	eslist_foreach(&a->pings, (data_fn_t) ap_clear, NULL);
+	eslist_wfree(&a->pings, sizeof(struct alive_ping));
+	eslist_discard(&a->pings);
 	WFREE(a);
-}
-
-/**
- * Remove and free specified "alive ping" list entry.
- */
-static void
-alive_remove_link(struct alive *a, GSList *item)
-{
-	g_assert(a->count > 0);
-	g_assert(a->pings != NULL);
-
-	a->pings = g_slist_remove_link(a->pings, item);
-	a->count--;
-	ap_free(item->data);
-	g_slist_free_1(item);
 }
 
 /**
@@ -150,13 +145,12 @@ alive_remove_link(struct alive *a, GSList *item)
 static void
 alive_ping_drop(struct alive *a, const struct guid *muid)
 {
-	GSList *sl;
+	struct alive_ping *ap;
 
-	for (sl = a->pings; sl; sl = g_slist_next(sl)) {
-		struct alive_ping *ap = sl->data;
-
+	ESLIST_FOREACH_DATA(&a->pings, ap) {
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
-			alive_remove_link(a, sl);
+			eslist_remove(&a->pings, ap);
+			ap_free(ap);
 			return;
 		}
 	}
@@ -174,16 +168,14 @@ alive_ping_can_send(const pmsg_t *mb, const void *q)
 	const struct guid *muid = cast_to_guid_ptr_const(pmsg_start(mb));
 
 	g_assert(gnutella_header_get_function(muid) == GTA_MSG_INIT);
-	g_assert(a->count == 0 || a->pings != NULL);
 
 	/*
 	 * We can send the message only if it's the latest in the list,
 	 * i.e. the latest one we enqueued.
 	 */
 
-	if (a->count) {
-		const GSList *l = g_slist_last(a->pings);
-		const struct alive_ping *ap = l->data;
+	if (0 != eslist_count(&a->pings)) {
+		const struct alive_ping *ap = eslist_tail(&a->pings);
 
 		if (guid_eq(ap->muid, muid))		/* It's the latest one */
 			return TRUE;					/* We can send it */
@@ -196,8 +188,8 @@ alive_ping_can_send(const pmsg_t *mb, const void *q)
 	alive_ping_drop(a, muid);
 
 	if (GNET_PROPERTY(alive_debug))
-		g_debug("ALIVE %s dropped old alive ping #%s, %d remain",
-			node_infostr(a->node), guid_hex_str(muid), a->count);
+		g_debug("ALIVE %s dropped old alive ping #%s, %zd remain",
+			node_infostr(a->node), guid_hex_str(muid), eslist_count(&a->pings));
 
 	return FALSE;		/* Don't send message */
 }
@@ -243,16 +235,13 @@ alive_send_ping(void *obj)
 	uint32 size;
 	pmsg_t *mb;
 
-	g_assert(a->count == 0 || a->pings != NULL);
-
-	if (a->count >= a->maxcount)
+	if (eslist_count(&a->pings) >= a->maxcount)
 		return FALSE;
 
 	guid_ping_muid(&muid);
 
 	ap = ap_make(&muid);
-	a->count++;
-	a->pings = g_slist_append(a->pings, ap);
+	eslist_append(&a->pings, ap);
 	a->node->last_alive_ping = tm_time();
 
 	/*
@@ -307,30 +296,30 @@ ap_ack(const struct alive_ping *ap, struct alive *a)
 
 	a->avg_rt += (delay >> 2) - (a->avg_rt >> 2);
 
-	if (GNET_PROPERTY(alive_debug) > 1)
+	if (GNET_PROPERTY(alive_debug) > 1) {
 		g_debug("ALIVE %s "
-		"delay=%dms min=%dms, max=%dms, agv=%dms [%d queued]",
+			"delay=%dms min=%dms, max=%dms, agv=%dms [%zd queued]",
 			node_infostr(a->node),
-			a->last_rt, a->min_rt, a->max_rt, a->avg_rt, a->count);
+			a->last_rt, a->min_rt, a->max_rt, a->avg_rt,
+			eslist_count(&a->pings));
+	}
 }
 
 /**
- * Trim list of pings upto the specified linkable `item', included.
+ * Trim list of pings upto the specified `item', included.
  */
 static void
-alive_trim_upto(struct alive *a, GSList *item)
+alive_trim_upto(struct alive *a, struct alive_ping *item)
 {
-	GSList *sl;
-	bool found = FALSE;
+	struct alive_ping *ap;
 
-	g_assert(a->count && a->pings != NULL);
-
-	for (sl = a->pings; sl && !found; sl = a->pings) {
-		found = sl == item;
-		alive_remove_link(a, sl);
+	while (NULL != (ap = eslist_shift(&a->pings))) {
+		ap_free(ap);
+		if (ap == item)
+			return;
 	}
-	g_assert(found); /* Must have found the item */
-	g_assert(a->count >= 0);
+
+	g_assert_not_reached();		/* Must have found the item */
 }
 
 /**
@@ -342,19 +331,15 @@ bool
 alive_ack_ping(void *obj, const struct guid *muid)
 {
 	struct alive *a = obj;
-	GSList *sl;
+	struct alive_ping *ap;
 
-	g_assert(a->count == 0 || a->pings != NULL);
-
-	for (sl = a->pings; sl; sl = g_slist_next(sl)) {
-		const struct alive_ping *ap = sl->data;
-
+	ESLIST_FOREACH_DATA(&a->pings, ap) {
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
 			if (GNET_PROPERTY(alive_debug))
 				g_debug("ALIVE got alive pong #%s from %s",
 					guid_hex_str(muid), node_infostr(a->node));
 			ap_ack(ap, a);
-			alive_trim_upto(a, sl);
+			alive_trim_upto(a, ap);
 			return TRUE;
 		}
 	}
@@ -371,9 +356,6 @@ alive_ack_first(void *obj, const struct guid *muid)
 {
 	struct alive *a = obj;
 	struct alive_ping *ap;
-	GSList *sl;
-
-	g_assert(a->count == 0 || a->pings != NULL);
 
 	/*
 	 * Maybe they're reusing the same MUID we used for our "alive ping"?
@@ -386,19 +368,17 @@ alive_ack_first(void *obj, const struct guid *muid)
 	 * Assume they're replying to the first ping we sent, ignore otherwise.
 	 */
 
-	sl = a->pings;		/* First ping we sent, chronologically */
+	ap = eslist_shift(&a->pings);	/* First ping we sent, chronologically */
 
-	if (NULL == sl)
+	if (NULL == ap)
 		return;
-
-	ap = sl->data;
 
 	if (GNET_PROPERTY(alive_debug))
 		g_debug("ALIVE TTL=0 ping from %s, assuming it acks #%s",
 			node_infostr(a->node), guid_hex_str(ap->muid));
 
 	ap_ack(ap, a);
-	alive_remove_link(a, sl);
+	ap_free(ap);
 }
 
 /**
