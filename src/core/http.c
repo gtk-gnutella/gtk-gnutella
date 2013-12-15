@@ -53,7 +53,6 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
@@ -62,6 +61,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -82,7 +82,7 @@
 
 http_url_error_t http_url_errno;	/**< Error from http_url_parse() */
 
-static GSList *sl_outgoing = NULL;	/**< To spot reply timeouts */
+static pslist_t *sl_outgoing = NULL;	/**< To spot reply timeouts */
 
 /**
  * Send HTTP status on socket, with code and reason.
@@ -1187,8 +1187,8 @@ struct http_async {
 	void *user_opaque;				/**< User opaque data */
 	http_user_free_t user_free;		/**< Free routine for opaque data */
 	struct http_async *parent;		/**< Parent request, for redirections */
-	GSList *delayed;				/**< Delayed data (list of http_buffer_t) */
-	GSList *children;				/**< Child requests */
+	pslist_t *delayed;				/**< Delayed data (list of http_buffer_t) */
+	pslist_t *children;				/**< Child requests */
 	unsigned header_sent:1;			/**< Whether HTTP request header was sent */
 
 	/*
@@ -1230,7 +1230,7 @@ struct http_async {
  * All freed structures are enqueued in the sl_ha_freed list.
  */
 
-static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
+static pslist_t *sl_ha_freed = NULL;		/* Pending physical removal */
 
 static void http_async_connected(http_async_t *handle);
 
@@ -1434,7 +1434,7 @@ http_async_option_ctl(http_async_t *ha, uint32 mask, http_ctl_op_t what)
 static void
 http_async_free_recursive(http_async_t *ha)
 {
-	GSList *l;
+	pslist_t *l;
 
 	http_async_check(ha);
 	g_assert(sl_outgoing);
@@ -1461,14 +1461,14 @@ http_async_free_recursive(http_async_t *ha)
 		ha->data = NULL;
 	}
 	if (ha->delayed != NULL) {
-		GSList *sl;
+		pslist_t *sl;
 
-		GM_SLIST_FOREACH(ha->delayed, sl) {
+		PSLIST_FOREACH(ha->delayed, sl) {
 			http_buffer_free(sl->data);
 		}
-		gm_slist_free_null(&ha->delayed);
+		pslist_free_null(&ha->delayed);
 	}
-	sl_outgoing = g_slist_remove(sl_outgoing, ha);
+	sl_outgoing = pslist_remove(sl_outgoing, ha);
 
 	/*
 	 * Recursively free the children requests.
@@ -1483,7 +1483,7 @@ http_async_free_recursive(http_async_t *ha)
 	ha->flags |= HA_F_FREED;		/* Will be freed later */
 	ha->state = HTTP_AS_REMOVED;	/* Don't notify about state change! */
 
-	sl_ha_freed = g_slist_prepend(sl_ha_freed, ha);
+	sl_ha_freed = pslist_prepend(sl_ha_freed, ha);
 }
 
 /**
@@ -1522,7 +1522,7 @@ http_async_free(http_async_t *ha)
 static void
 http_async_free_pending(void)
 {
-	GSList *l;
+	pslist_t *l;
 
 	for (l = sl_ha_freed; l; l = l->next) {
 		http_async_t *ha = l->data;
@@ -1535,7 +1535,7 @@ http_async_free_pending(void)
 		WFREE(ha);
 	}
 
-	gm_slist_free_null(&sl_ha_freed);
+	pslist_free_null(&sl_ha_freed);
 }
 
 /**
@@ -1963,14 +1963,14 @@ http_async_create(
 	ha->op_headsent = http_async_sent_head;
 	ha->op_gotreply = http_async_got_reply;
 
-	sl_outgoing = g_slist_prepend(sl_outgoing, ha);
+	sl_outgoing = pslist_prepend(sl_outgoing, ha);
 
 	/*
 	 * If request has a parent, insert in parent's children list.
 	 */
 
 	if (parent)
-		parent->children = g_slist_prepend(parent->children, ha);
+		parent->children = pslist_prepend(parent->children, ha);
 
 	return ha;
 }
@@ -2657,11 +2657,11 @@ http_async_state(http_async_t *ha)
 	 */
 
 	if (ha->state == HTTP_AS_REDIRECTED) {
-		GSList *l;
+		pslist_t *l;
 
 		g_assert(ha->children);
 
-		for (l = ha->children; l; l = g_slist_next(l)) {
+		for (l = ha->children; l; l = pslist_next(l)) {
 			http_async_t *cha = l->data;
 
 			switch (cha->state) {
@@ -2798,7 +2798,7 @@ next_buffer:
 		 * holds the data.
 		 */
 
-		ha->delayed = g_slist_next(ha->delayed);
+		ha->delayed = pslist_next(ha->delayed);
 		if (ha->delayed != NULL) {
 			http_buffer_free(r);
 			goto next_buffer;
@@ -2879,7 +2879,7 @@ http_async_connected(http_async_t *ha)
 		g_assert(ha->delayed == NULL);
 
 		r = http_buffer_alloc(req, rw, sent);
-		ha->delayed = g_slist_append(ha->delayed, r);
+		ha->delayed = pslist_append(ha->delayed, r);
 
 		/*
 		 * For a POST we also have to send the data following the header.
@@ -2887,7 +2887,7 @@ http_async_connected(http_async_t *ha)
 
 		if (HTTP_POST == ha->type && ha->datalen != 0) {
 			r = http_buffer_alloc(ha->data, ha->datalen, 0);
-			ha->delayed = g_slist_append(ha->delayed, r);
+			ha->delayed = pslist_append(ha->delayed, r);
 		}
 
 		/*
@@ -2926,7 +2926,7 @@ http_async_connected(http_async_t *ha)
 			g_assert(ha->delayed == NULL);
 
 			r = http_buffer_alloc(ha->data, ha->datalen, sent);
-			ha->delayed = g_slist_append(ha->delayed, r);
+			ha->delayed = pslist_append(ha->delayed, r);
 
 			/*
 			 * Install the writing callback.
@@ -3457,7 +3457,7 @@ static struct io_error http_io_error = {
 void
 http_timer(time_t now)
 {
-	GSList *l;
+	pslist_t *l;
 
 retry:
 	for (l = sl_outgoing; l; l = l->next) {

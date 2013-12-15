@@ -47,10 +47,12 @@
 #include "common.h"
 
 #include "symtab.h"
-#include "glib-missing.h"
+
 #include "nv.h"
+#include "pslist.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 enum symtab_magic { SYMTAB_MAGIC = 0x3e264d27U };
@@ -80,7 +82,7 @@ enum symtab_value_magic { SYMTAB_VALUE_MAGIC = 0x46864892U };
  */
 struct symtab_value {
 	enum symtab_value_magic magic;
-	GSList *symbols;				/**< List of symbol_entry */
+	pslist_t *symbols;				/**< List of symbol_entry */
 };
 
 static inline void
@@ -159,14 +161,14 @@ symtab_value_alloc(void)
 static void
 symtab_value_free(struct symtab_value *sv)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	symtab_value_check(sv);
 
-	GM_SLIST_FOREACH(sv->symbols, sl) {
+	PSLIST_FOREACH(sv->symbols, sl) {
 		symbol_entry_free(sl->data);
 	}
-	gm_slist_free_null(&sv->symbols);
+	pslist_free_null(&sv->symbols);
 	sv->magic = 0;
 	WFREE(sv);
 }
@@ -292,7 +294,7 @@ symtab_leave_nv(nv_pair_t *nv, void *data)
 		if (se->depth < ctx->depth)
 			break;
 
-		sv->symbols = g_slist_remove(sv->symbols, se);
+		sv->symbols = pslist_remove(sv->symbols, se);
 		symbol_entry_free(se);
 	}
 
@@ -388,7 +390,7 @@ symtab_insert_pair(symtab_t *syt, nv_pair_t *symbol, unsigned depth)
 	 * Inner-depth symbol inserted at the head of the list.
 	 */
 
-	sv->symbols = g_slist_prepend(sv->symbols, se);
+	sv->symbols = pslist_prepend(sv->symbols, se);
 
 	if (!existed)
 		nv_table_insert_pair(syt->table, nv);

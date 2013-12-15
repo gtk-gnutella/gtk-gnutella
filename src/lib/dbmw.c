@@ -35,12 +35,14 @@
 #include "common.h"
 
 #include "dbmw.h"
+
 #include "bstr.h"
 #include "dbmap.h"
 #include "debug.h"
 #include "hashlist.h"
 #include "map.h"
 #include "pmsg.h"
+#include "pslist.h"
 #include "stacktrace.h"
 #include "stringify.h"
 #include "walloc.h"
@@ -1615,7 +1617,7 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
  * Snapshot all the keys, returning them into a singly linked list.
  * To free the returned keys, use the dbmw_free_all_keys() helper.
  */
-GSList *
+pslist_t *
 dbmw_all_keys(dbmw_t *dw)
 {
 	dbmw_check(dw);
@@ -1628,7 +1630,7 @@ dbmw_all_keys(dbmw_t *dw)
  * Helper routine to free list and keys returned by dbmw_all_keys().
  */
 void
-dbmw_free_all_keys(const dbmw_t *dw, GSList *keys)
+dbmw_free_all_keys(const dbmw_t *dw, pslist_t *keys)
 {
 	dbmw_check(dw);
 

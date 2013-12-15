@@ -48,6 +48,7 @@
 #include "host_addr.h"
 #include "inputevt.h"
 #include "once.h"
+#include "pslist.h"
 #include "signal.h"
 #include "thread.h"
 #include "tm.h"
@@ -368,7 +369,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 	} else {
 		const struct adns_query *query = &req->query.by_addr;
 		struct adns_reply *reply = &ans->reply.by_addr;
-		GSList *sl_addr, *sl;
+		pslist_t *sl_addr, *sl;
 		size_t i = 0;
 
 		if (common_dbg > 1) {
@@ -377,7 +378,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
 
 		sl_addr = name_to_host_addr(query->hostname, query->net);
-		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(sl_addr, sl) {
 			host_addr_t *addr = sl->data;
 			g_assert(addr);
 			if (i >= G_N_ELEMENTS(reply->addrs)) {

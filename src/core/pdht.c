@@ -62,6 +62,7 @@
 #include "lib/hikset.h"
 #include "lib/misc.h"
 #include "lib/nid.h"
+#include "lib/plist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
@@ -1367,7 +1368,7 @@ static size_t
 pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 {
 	sequence_t *seq = NULL;
-	GList *list = NULL;
+	plist_t *list = NULL;
 	gnet_host_t localhost;
 	size_t i = 0;
 
@@ -1390,8 +1391,8 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 
 		if (is_host_addr(addr) && port != 0) {
 			gnet_host_set(&localhost, addr, socket_listen_port());
-			list = g_list_prepend(list, &localhost);
-			seq = sequence_create_from_glist(list);
+			list = plist_prepend(list, &localhost);
+			seq = sequence_create_from_plist(list);
 		} else {
 			return 0;		/* Nothing to fill */
 		}
@@ -1419,7 +1420,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 	}
 
 	sequence_release(&seq);
-	g_list_free(list);
+	plist_free(list);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX using %zu push-prox%s for local node (%sfirewalled)",

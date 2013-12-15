@@ -142,7 +142,7 @@ void fi_src_info_changed(struct download *);
 void fi_src_ranges_changed(struct download *);
 void fi_src_status_changed(struct download *);
 
-GSList *file_info_get_sources(const fileinfo_t *);
+struct pslist *file_info_get_sources(const fileinfo_t *);
 
 /***
  *** Inlined routines.

@@ -50,11 +50,13 @@
 #include "common.h"
 
 #include "hashlist.h"
+
 #include "elist.h"
 #include "hashing.h"
 #include "hikset.h"
 #include "misc.h"
 #include "mutex.h"
+#include "plist.h"
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -917,15 +919,15 @@ hash_list_length(const hash_list_t *hl)
 
 /**
  * Extract the list of items so that the caller can iterate at will over
- * it as sort it.  The caller must dispose of that list via g_list_free().
+ * it as sort it.  The caller must dispose of that list via plist_free().
  * The underlying data is not copied so it must NOT be freed.
  *
  * @returns a shallow copy of the underlying list.
  */
-GList *
+plist_t *
 hash_list_list(hash_list_t *hl)
 {
-	GList *l = NULL;
+	plist_t *l = NULL;
 	link_t *lk;
 
 	hash_list_check(hl);
@@ -935,7 +937,7 @@ hash_list_list(hash_list_t *hl)
 	for (lk = elist_last(&hl->list); lk != NULL; lk = elist_prev(lk)) {
 		struct hash_list_item *item = ITEM(lk);
 
-		l = g_list_prepend(l, deconstify_pointer(item->key));
+		l = plist_prepend(l, deconstify_pointer(item->key));
 	}
 
 	hash_list_return(hl, l);

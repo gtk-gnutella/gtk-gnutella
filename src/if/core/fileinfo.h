@@ -29,6 +29,7 @@
 #include "lib/eslist.h"
 #include "lib/http_range.h"
 #include "lib/path.h"
+#include "lib/pslist.h"
 
 #include "if/core/downloads.h"	/* For gnet_srt_t */
 
@@ -145,7 +146,7 @@ typedef struct dl_file_info {
 	const struct guid *guid;/**< Unique fileinfo ID */
 	uint32 flags;			/**< Operating flags */
 	const char *pathname;	/**< Output pathname (atom) */
-	GSList *alias;			/**< List of file name aliases (atoms) */
+	pslist_t *alias;		/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
 	const struct sha1 *sha1;/**< server SHA1 (atom) if known, NULL if not. */
 	const struct tth  *tth; /**< server TTH (atom) if known, NULL if not. */
@@ -156,7 +157,7 @@ typedef struct dl_file_info {
 		filesize_t slice_size;	/* Slice size (bytes covered by a leaf) */
 	} tigertree;
 	int32 refcount;			/**< Reference count of file (number of sources)*/
-	GSList *sources;        /**< list of sources (struct download *) */
+	pslist_t *sources;		/**< list of sources (struct download *) */
 	int32 lifecount;		/**< Amount of "alive" downloads referencing us */
 	time_t stamp;			/**< Time stamp */
 	time_t created;			/**< Creation time stamp */

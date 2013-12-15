@@ -148,7 +148,7 @@
 #include "dump_options.h"
 #include "eslist.h"
 #include "evq.h"
-#include "glib-missing.h"	/* For gm_slist_free_null() */
+#include "glib-missing.h"	/* For pslist_free_null() */
 #include "log.h"
 #include "omalloc.h"
 #include "once.h"
@@ -2181,10 +2181,10 @@ tmfree_eslist(tmalloc_t *tma, eslist_t *el)
  * @return list of tmalloc_info_t that must be freed by calling the
  * tmalloc_info_list_free_null() routine.
  */
-GSList *
+pslist_t *
 tmalloc_info_list(void)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 	tmalloc_t *d;
 
 	TMALLOC_VARS_LOCK;
@@ -2241,12 +2241,12 @@ tmalloc_info_list(void)
 
 		TMALLOC_UNLOCK(d);
 
-		sl = g_slist_prepend(sl, tmi);
+		sl = pslist_prepend(sl, tmi);
 	}
 
 	TMALLOC_VARS_UNLOCK;
 
-	return g_slist_reverse(sl);
+	return pslist_reverse(sl);
 }
 
 static void
@@ -2264,12 +2264,12 @@ tmalloc_info_free(void *data, void *udata)
  * Free list created by tmalloc_info_list() and nullify pointer.
  */
 void
-tmalloc_info_list_free_null(GSList **sl_ptr)
+tmalloc_info_list_free_null(pslist_t **sl_ptr)
 {
-	GSList *sl = *sl_ptr;
+	pslist_t *sl = *sl_ptr;
 
-	g_slist_foreach(sl, tmalloc_info_free, NULL);
-	gm_slist_free_null(sl_ptr);
+	pslist_foreach(sl, tmalloc_info_free, NULL);
+	pslist_free_null(sl_ptr);
 }
 
 /**
@@ -2452,10 +2452,10 @@ tmalloc_info_size_cmp(const void *a, const void *b)
 G_GNUC_COLD void
 tmalloc_dump_magazines_log(logagent_t *la)
 {
-	GSList *sl = tmalloc_info_list();
+	pslist_t *sl = tmalloc_info_list();
 
-	sl = g_slist_sort(sl, tmalloc_info_size_cmp);
-	g_slist_foreach(sl, tmalloc_info_dump, la);
+	sl = pslist_sort(sl, tmalloc_info_size_cmp);
+	pslist_foreach(sl, tmalloc_info_dump, la);
 	tmalloc_info_list_free_null(&sl);
 }
 

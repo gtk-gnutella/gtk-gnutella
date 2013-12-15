@@ -25,6 +25,7 @@
 #include "common.h"
 
 #include "prop.h"
+
 #include "ascii.h"
 #include "concat.h"
 #include "debug.h"
@@ -35,6 +36,7 @@
 #include "parse.h"
 #include "path.h"
 #include "product.h"
+#include "pslist.h"
 #include "sha1.h"
 #include "str.h"
 #include "stringify.h"
@@ -2261,10 +2263,10 @@ prop_get_by_name(prop_set_t *ps, const char *name)
 	return pointer_to_uint(htable_lookup(ps->by_name, name));
 }
 
-GSList *
+pslist_t *
 prop_get_by_regex(prop_set_t *ps, const char *pattern, int *error)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 	size_t i;
 	regex_t re;
 	int ret;
@@ -2284,14 +2286,13 @@ prop_get_by_regex(prop_set_t *ps, const char *pattern, int *error)
 	for (i = 0; i < ps->size; i++) {
 		if (0 == regexec(&re, ps->props[i].name, 0, NULL, 0)) {
 			guint n = ps->offset + i;
-			sl = g_slist_prepend(sl, GUINT_TO_POINTER(n));
+			sl = pslist_prepend(sl, uint_to_pointer(n));
 		}
 	}
 
 done:
 	regfree(&re);
-	return g_slist_reverse(sl);
+	return pslist_reverse(sl);
 }
-
 
 /* vi: set ts=4 sw=4 cindent: */

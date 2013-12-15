@@ -87,8 +87,8 @@ void pgc(void);
 
 void set_palloc_debug(uint32 level);
 
-GSList *pool_info_list(void);
-void pool_info_list_free_null(GSList **sl_ptr);
+struct pslist *pool_info_list(void);
+void pool_info_list_free_null(struct pslist **sl_ptr);
 void palloc_dump_stats_log(logagent_t *la, unsigned options);
 void palloc_dump_pool_log(logagent_t *la);
 void palloc_dump_stats(void);

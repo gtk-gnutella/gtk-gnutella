@@ -39,6 +39,7 @@
 
 #include "common.h"
 
+#include "pslist.h"
 #include "spinlock.h"
 #include "tm.h"
 
@@ -56,8 +57,8 @@ struct subscriber {
 
 typedef struct event {
     const char *name;
-    uint32      triggered_count;
-    GSList     *subscribers;
+    uint32     triggered_count;
+    pslist_t   *subscribers;
 	spinlock_t lock;
 	bool       destroyed;
 } event_t;
@@ -84,7 +85,7 @@ bool event_subscriber_active(struct event *evt);
 
 #define event_trigger(ev, callback) G_STMT_START {				  		 	\
 	struct {																\
-		GSList *sl;											 			 	\
+		pslist_t *sl;										 			 	\
 		event_t *evt;										   				\
 		struct subscriber *s;												\
 		time_t now;									   					 	\
@@ -95,7 +96,7 @@ bool event_subscriber_active(struct event *evt);
 	vars_.evt = (ev);														\
 	vars_.now = (time_t) -1;												\
 	vars_.sl = vars_.evt->subscribers;										\
-	for (/* NOTHING */; vars_.sl; vars_.sl = g_slist_next(vars_.sl)) {		\
+	for (/* NOTHING */; vars_.sl; vars_.sl = pslist_next(vars_.sl)) {		\
 		vars_.s = vars_.sl->data;											\
 		vars_.t = 0 == vars_.s->f_interval;									\
 		if (!vars_.t) {														\

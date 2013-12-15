@@ -41,12 +41,13 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/nv.h"
 #include "lib/ostream.h"
 #include "lib/parse.h"
+#include "lib/plist.h"
+#include "lib/pslist.h"
 #include "lib/slist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -252,8 +253,8 @@ struct vxml_parser {
 	enum vxml_parser_magic magic;
 	const char *name;				/**< Parser name (static string) */
 	const char *charset;			/**< Document's charset (atom) */
-	GSList *input;					/**< List of input buffers to parse */
-	GList *path;					/**< Path (list of vxml_path_entry) */
+	pslist_t *input;				/**< List of input buffers to parse */
+	plist_t *path;					/**< Path (list of vxml_path_entry) */
 	nv_table_t *tokens;				/**< For element tokenization */
 	nv_table_t *entities;			/**< Entities defined in document */
 	nv_table_t *pe_entities;		/**< Entities defined in <!DOCTYPE...> */
@@ -459,9 +460,9 @@ vxml_parser_where(const vxml_parser_t *vp)
 {
 	static char buf[2048];
 	size_t rw = 0;
-	GList *rpath, *rp;
+	plist_t *rpath, *rp;
 
-	rpath = rp = g_list_reverse(g_list_copy(vp->path));
+	rpath = rp = plist_reverse(plist_copy(vp->path));
 
 	/*
 	 * If sub-parsing an XML fragment, strip the leading part of the
@@ -470,7 +471,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 
 	if (vp->glob.depth != vp->loc.depth) {
 		g_assert(vp->glob.depth >= vp->loc.depth);
-		rp = g_list_nth(rp, vp->glob.depth - vp->loc.depth);
+		rp = plist_nth(rp, vp->glob.depth - vp->loc.depth);
 	}
 
 	if (NULL == rp) {
@@ -485,7 +486,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 			element = pe->element;
 			children = pe->children;
 
-			rp = g_list_next(rp);
+			rp = plist_next(rp);
 
 			rw += str_bprintf(&buf[rw], sizeof buf - rw, "/%s", element);
 			if (children > ((NULL == rp) ? 0 : 1))
@@ -493,7 +494,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 		}
 	}
 
-	g_list_free(rpath);
+	plist_free(rpath);
 
 	return buf;
 }
@@ -610,7 +611,7 @@ vxml_parser_parent_element(const vxml_parser_t *vp)
 	g_assert(vp->path != NULL);
 
 	if (vxml_parser_depth(vp) > 1) {
-		struct vxml_path_entry *pe = g_list_next(vp->path)->data;
+		struct vxml_path_entry *pe = plist_next(vp->path)->data;
 		vxml_path_entry_check(pe);
 		return pe->element;
 
@@ -638,10 +639,10 @@ vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n)
 	if (n >= vxml_parser_depth(vp)) {
 		return NULL;
 	} else {
-		GList *l;
+		plist_t *l;
 		struct vxml_path_entry *pe;
 
-		l = g_list_nth(vp->path, n);
+		l = plist_nth(vp->path, n);
 		pe = NULL == l ? NULL : l->data;
 
 		if (pe != NULL) {
@@ -1163,20 +1164,20 @@ vxml_parser_make(const char *name, uint32 options)
 void
 vxml_parser_free(vxml_parser_t *vp)
 {
-	GSList *sl;
-	GList *l;
+	pslist_t *sl;
+	plist_t *l;
 
 	vxml_parser_check(vp);
 
-	GM_SLIST_FOREACH(vp->input, sl) {
+	PSLIST_FOREACH(vp->input, sl) {
 		vxml_buffer_free(sl->data);
 	}
-	gm_slist_free_null(&vp->input);
+	pslist_free_null(&vp->input);
 
-	GM_LIST_FOREACH(vp->path, l) {
+	PLIST_FOREACH(vp->path, l) {
 		vxml_path_entry_free(l->data);
 	}
-	gm_list_free_null(&vp->path);
+	plist_free_null(&vp->path);
 	nv_table_free_null(&vp->tokens);
 	nv_table_free_null(&vp->entities);
 	nv_table_free_null(&vp->pe_entities);
@@ -1230,7 +1231,7 @@ vxml_parser_add_data(vxml_parser_t *vp, const char *data, size_t length)
 	 */
 
 	vb = vxml_buffer_alloc(vp->generation++, data, length, FALSE, TRUE, NULL);
-	vp->input = g_slist_append(vp->input, vb);
+	vp->input = pslist_append(vp->input, vb);
 }
 
 /**
@@ -1248,7 +1249,7 @@ vxml_parser_add_file(vxml_parser_t *vp, FILE *fd)
 	g_assert(fd != NULL);
 
 	vb = vxml_buffer_file(fd);
-	vp->input = g_slist_append(vp->input, vb);
+	vp->input = pslist_append(vp->input, vb);
 }
 
 /**
@@ -1620,7 +1621,7 @@ vxml_fatal_error_out(vxml_parser_t *vp, vxml_error_t error)
 static void
 vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 {
-	vp->input = g_slist_remove(vp->input, vb);
+	vp->input = pslist_remove(vp->input, vb);
 
 	if (vxml_debugging(19)) {
 		switch (vb->type) {
@@ -1734,7 +1735,7 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 				}
 				g_assert(VXML_BUFFER_MEMORY == vnext->type);
 				vnext->u.m->generation = vp->generation;
-				vp->input = g_slist_prepend(vp->input, vnext);
+				vp->input = pslist_prepend(vp->input, vnext);
 				continue;
 			}
 		}
@@ -2169,7 +2170,7 @@ has_buffer:
 
 	if G_UNLIKELY(0 == retlen) {
 		struct vxml_buffer *vnext;
-		GSList *next;
+		pslist_t *next;
 
 		/*
 		 * We were unable to grab the character, maybe because the input
@@ -2189,7 +2190,7 @@ has_buffer:
 		 * and retry.
 		 */
 
-		next = g_slist_next(vp->input);
+		next = pslist_next(vp->input);
 		if (NULL == next || NULL == next->data)
 			goto illegal_byte_sequence;
 
@@ -2870,7 +2871,7 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 
 		vb = vxml_buffer_alloc(vp->generation++,
 				value, length - 1, FALSE, FALSE, utf8_decode_char_buffer);
-		vp->input = g_slist_prepend(vp->input, vb);
+		vp->input = pslist_prepend(vp->input, vb);
 
 		/*
 		 * We're prepended a non user-supplied input buffer to the list,
@@ -2955,7 +2956,7 @@ vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, bool inquote)
 		vb = vxml_buffer_alloc(vp->generation++,
 				vxc_sp_buf, CONST_STRLEN(vxc_sp_buf),
 				FALSE, FALSE, utf8_decode_char_buffer);
-		vp->input = g_slist_prepend(vp->input, vb);
+		vp->input = pslist_prepend(vp->input, vb);
 	}
 
 	ret = vxml_expand(vp, name, vp->pe_entities);
@@ -5349,7 +5350,7 @@ vxml_parser_path_enter(vxml_parser_t *vp,
 		parent->children++;
 	}
 
-	vp->path = g_list_prepend(vp->path, pe);
+	vp->path = plist_prepend(vp->path, pe);
 }
 
 /**
@@ -5458,7 +5459,7 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	 * information for the next item in the path (i.e. the parent element).
 	 */
 
-	vp->path = g_list_remove(vp->path, pe);
+	vp->path = plist_remove(vp->path, pe);
 	vp->loc.depth--;
 	vp->glob.depth--;
 	vxml_path_entry_free(pe);

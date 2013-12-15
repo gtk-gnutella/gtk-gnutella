@@ -50,14 +50,14 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/array.h"
-#include "lib/header.h"
-#include "lib/glib-missing.h"
-#include "lib/gnet_host.h"
 #include "lib/concat.h"
+#include "lib/gnet_host.h"
 #include "lib/halloc.h"
+#include "lib/header.h"
 #include "lib/product.h"
-#include "lib/unsigned.h"
+#include "lib/pslist.h"
 #include "lib/stringify.h"
+#include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
 
@@ -104,7 +104,7 @@ struct browse_host_upload {
 	size_t b_size;			/**< Size of the data block */
 	uint file_index;		/**< Current file index (iterator) */
 	enum bh_state state;	/**< Current state of the state machine */
-	GSList *hits;			/**< Pending query hits to send back */
+	pslist_t *hits;			/**< Pending query hits to send back */
 	special_upload_closed_t cb;	/**< Callback to invoke when TX fully flushed */
 	void *cb_arg;			/**< Callback argument */
 };
@@ -371,7 +371,7 @@ browse_host_record_hit(void *data, size_t len, void *udata)
 {
 	struct browse_host_upload *bh = udata;
 
-	bh->hits = g_slist_prepend(bh->hits, gmsg_to_pmsg(data, len));
+	bh->hits = pslist_prepend(bh->hits, gmsg_to_pmsg(data, len));
 }
 
 /**
@@ -402,7 +402,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 	 */
 
 	if (NULL == bh->hits) {
-		GSList *files = NULL, *sl;
+		pslist_t *files = NULL, *sl;
 		int i;
 
 		for (i = 0; i < BH_SCAN_AHEAD; i++) {
@@ -417,7 +417,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 			if (SHARE_REBUILDING == sf || NULL == sf)
 				break;
 			
-			files = g_slist_prepend(files, sf);
+			files = pslist_prepend(files, sf);
 		}
 
 		if (NULL == files)		/* Did not find any more file to include */
@@ -427,19 +427,19 @@ browse_host_read_qhits(struct special_upload *ctx,
 		 * Now build the query hits containing the files we selected.
 		 */
 
-		files = g_slist_reverse(files);			/* Preserve order */
+		files = pslist_reverse(files);			/* Preserve order */
 
 		qhit_build_results(files, i, BH_MAX_QHIT_SIZE,
 			browse_host_record_hit, bh, &blank_guid, FALSE, &zero_array);
 
 		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
 
-		bh->hits = g_slist_reverse(bh->hits);	/* Preserve order */
-		GM_SLIST_FOREACH(files, sl) {
+		bh->hits = pslist_reverse(bh->hits);	/* Preserve order */
+		PSLIST_FOREACH(files, sl) {
 			shared_file_t *sf = sl->data;
 			shared_file_unref(&sf);
 		}
- 		gm_slist_free_null(&files);
+		pslist_free_null(&files);
 	}
 
 	/*
@@ -455,7 +455,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 		remain -= r;
 
 		if (r == 0 || 0 == pmsg_size(mb)) {
-			bh->hits = g_slist_remove(bh->hits, mb);
+			bh->hits = pslist_remove(bh->hits, mb);
 			pmsg_free(mb);
 		}
 	}
@@ -524,15 +524,15 @@ static void
 browse_host_close(struct special_upload *ctx, bool fully_served)
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(bh);
 
-	for (sl = bh->hits; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(bh->hits, sl) {
 		pmsg_t *mb = sl->data;
 		pmsg_free(mb);
 	}
-	gm_slist_free_null(&bh->hits);
+	pslist_free_null(&bh->hits);
 
 	if (bh->w_buf) {
 		wfree(bh->w_buf, bh->w_buf_size);

@@ -75,6 +75,7 @@
 #include "mutex.h"
 #include "once.h"
 #include "palloc.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "tm.h"
@@ -764,10 +765,10 @@ pool_info_add(const pool_t *p, pool_info_t *pi)
  * @return list of pool_info_t that must be freed by calling the
  * pool_info_list_free_null() routine.
  */
-GSList *
+pslist_t *
 pool_info_list(void)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 	pool_t *p;
 
 	POOL_VARS_LOCK;
@@ -788,12 +789,12 @@ pool_info_list(void)
 
 		POOL_UNLOCK(p);
 
-		sl = g_slist_prepend(sl, pi);
+		sl = pslist_prepend(sl, pi);
 	}
 
 	POOL_VARS_UNLOCK;
 
-	return g_slist_reverse(sl);
+	return pslist_reverse(sl);
 }
 
 static void
@@ -813,12 +814,12 @@ pool_info_free(void *data, void *udata)
  * Free list created by pool_info_list() and nullify pointer.
  */
 void
-pool_info_list_free_null(GSList **sl_ptr)
+pool_info_list_free_null(pslist_t **sl_ptr)
 {
-	GSList *sl = *sl_ptr;
+	pslist_t *sl = *sl_ptr;
 
-	g_slist_foreach(sl, pool_info_free, NULL);
-	gm_slist_free_null(sl_ptr);
+	pslist_foreach(sl, pool_info_free, NULL);
+	pslist_free_null(sl_ptr);
 }
 
 /**
@@ -912,10 +913,10 @@ pool_info_size_cmp(const void *a, const void *b)
 G_GNUC_COLD void
 palloc_dump_pool_log(logagent_t *la)
 {
-	GSList *sl = pool_info_list();
+	pslist_t *sl = pool_info_list();
 
-	sl = g_slist_sort(sl, pool_info_size_cmp);
-	g_slist_foreach(sl, palloc_info_dump, la);
+	sl = pslist_sort(sl, pool_info_size_cmp);
+	pslist_foreach(sl, palloc_info_dump, la);
 	pool_info_list_free_null(&sl);
 }
 

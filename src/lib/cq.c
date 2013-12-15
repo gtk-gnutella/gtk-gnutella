@@ -38,12 +38,12 @@
 
 #include "atoms.h"
 #include "elist.h"
-#include "glib-missing.h"	/* For gm_slist_free_null() */
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
 #include "pow2.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "stringify.h"
@@ -2161,10 +2161,10 @@ cq_close(void)
  * @return list of cq_info_t that must be freed by calling the
  * cq_info_list_free_null() routine.
  */
-GSList *
+pslist_t *
 cq_info_list(void)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 	cqueue_t *cq;
 
 	CQ_VARS_LOCK;
@@ -2199,12 +2199,12 @@ cq_info_list(void)
 		cqi->last_idle = cq->cq_last_idle;
 		CQ_UNLOCK(cq);
 
-		sl = g_slist_prepend(sl, cqi);
+		sl = pslist_prepend(sl, cqi);
 	}
 
 	CQ_VARS_UNLOCK;
 
-	return g_slist_reverse(sl);			/* Order list as queue definition */
+	return pslist_reverse(sl);			/* Order list as queue definition */
 }
 
 static void
@@ -2224,12 +2224,12 @@ cq_info_free(void *data, void *udata)
  * Free list created by cq_info_list() and nullify pointer.
  */
 void
-cq_info_list_free_null(GSList **sl_ptr)
+cq_info_list_free_null(pslist_t **sl_ptr)
 {
-	GSList *sl = *sl_ptr;
+	pslist_t *sl = *sl_ptr;
 
-	g_slist_foreach(sl, cq_info_free, NULL);
-	gm_slist_free_null(sl_ptr);
+	pslist_foreach(sl, cq_info_free, NULL);
+	pslist_free_null(sl_ptr);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

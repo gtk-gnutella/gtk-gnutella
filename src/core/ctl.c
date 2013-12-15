@@ -38,11 +38,11 @@
 #include "whitelist.h"
 
 #include "lib/ascii.h"
-#include "lib/iso3166.h"
-#include "lib/glib-missing.h"
-#include "lib/htable.h"
-#include "lib/misc.h"
 #include "lib/halloc.h"
+#include "lib/htable.h"
+#include "lib/iso3166.h"
+#include "lib/misc.h"
+#include "lib/pslist.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -343,7 +343,7 @@ static unsigned ctl_all_flags;			/**< Set of flags used */
  * Parse a single country held in the token.
  * @return list containing the parsed country code, an empty list if invalid.
  */
-static GSList *
+static pslist_t *
 ctl_parse_country(struct ctl_string *s, const struct ctl_tok *tok)
 {
 	uint16 code;
@@ -357,17 +357,17 @@ ctl_parse_country(struct ctl_string *s, const struct ctl_tok *tok)
 		return NULL;
 	}
 
-	return g_slist_append(NULL, uint_to_pointer(code));
+	return pslist_append(NULL, uint_to_pointer(code));
 }
 
 /**
  * Parse a list of countries until closing brace.
  * @return list containing the parsed country code, an empty list if invalid.
  */
-static GSList *
+static pslist_t *
 ctl_parse_countries(struct ctl_string *s)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 
 	for (;;) {
 		struct ctl_tok *tok = ctl_next_token(s);
@@ -380,7 +380,7 @@ ctl_parse_countries(struct ctl_string *s)
 			ctl_token_free_null(&tok);
 			goto out;
 		case CTL_TOK_ID:
-			sl = g_slist_concat(sl, ctl_parse_country(s, tok));
+			sl = pslist_concat(sl, ctl_parse_country(s, tok));
 			ctl_token_free_null(&tok);
 			break;
 		case CTL_TOK_EOF:
@@ -423,8 +423,8 @@ static bool
 ctl_parse_list_entry(struct ctl_string *s)
 {
 	struct ctl_tok *tok = ctl_next_token(s);
-	GSList *countries = NULL;
-	GSList *sl;
+	pslist_t *countries = NULL;
+	pslist_t *sl;
 	char *opt = NULL;
 	unsigned flags;
 	bool done = FALSE;
@@ -484,7 +484,7 @@ ctl_parse_list_entry(struct ctl_string *s)
 	 * Nevermind superseding, the latest parsed is the winner.
 	 */
 
-	GM_SLIST_FOREACH(countries, sl) {
+	PSLIST_FOREACH(countries, sl) {
 		unsigned code = pointer_to_uint(sl->data);
 
 		htable_insert(ctl_by_country,
@@ -499,7 +499,7 @@ ctl_parse_list_entry(struct ctl_string *s)
 	}
 
 out:
-	g_slist_free(countries);
+	pslist_free(countries);
 	HFREE_NULL(opt);
 	ctl_token_free_null(&tok);
 

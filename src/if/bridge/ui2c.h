@@ -41,6 +41,7 @@
  */
 
 #include "lib/adns.h"
+#include "lib/pslist.h"
 
 #include "if/core/bitzi.h"
 #include "if/core/downloads.h"
@@ -217,7 +218,7 @@ bool guc_search_is_passive(gnet_search_t);
 bool guc_search_is_whats_new(gnet_search_t sh);
 
 void guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
-GSList *guc_search_associated_sha1(gnet_search_t sh);
+pslist_t *guc_search_associated_sha1(gnet_search_t sh);
 unsigned guc_search_associated_sha1_count(gnet_search_t sh);
 const char *guc_search_media_mask_to_string(unsigned mask);
 

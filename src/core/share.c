@@ -71,7 +71,6 @@
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/getcpucount.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hikset.h"
@@ -79,6 +78,7 @@
 #include "lib/htable.h"
 #include "lib/listener.h"
 #include "lib/mime_type.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/teq.h"
@@ -167,7 +167,7 @@ static const struct special_file specials[] = {
 static htable_t *special_names;
 
 static hset_t *extensions;	/* Shared filename extensions */
-static GSList *shared_dirs;
+static pslist_t *shared_dirs;
 static cevent_t *share_qrp_rebuild_ev;
 
 static hset_t *partial_files;	/* Contains partial files, thread-safe */
@@ -186,7 +186,7 @@ static hset_t *partial_files;	/* Contains partial files, thread-safe */
 static struct shared_library {
 	uint64 files_scanned;	/* Amount of files shared in the library */
 	uint64 bytes_scanned;
-	GSList *shared_files;
+	pslist_t *shared_files;
 	search_table_t *search_table;
 	htable_t *file_basenames;
 	search_table_t *partial_table;
@@ -965,15 +965,15 @@ parse_extensions(const char *str)
 static void
 shared_dirs_free(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	if (!shared_dirs)
 		return;
 
-	for (sl = shared_dirs; sl; sl = g_slist_next(sl)) {
+	for (sl = shared_dirs; sl; sl = pslist_next(sl)) {
 		atom_str_free(sl->data);
 	}
-	gm_slist_free_null(&shared_dirs);
+	pslist_free_null(&shared_dirs);
 }
 
 /**
@@ -982,14 +982,14 @@ shared_dirs_free(void)
 void
 shared_dirs_update_prop(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 	str_t *s;
 
 	s = str_new(0);
 
-	for (sl = shared_dirs; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = shared_dirs; sl != NULL; sl = pslist_next(sl)) {
 	    str_cat(s, sl->data);
-		if (g_slist_next(sl) != NULL)
+		if (pslist_next(sl) != NULL)
 			str_putc(s, G_SEARCHPATH_SEPARATOR);
 	}
 
@@ -1016,13 +1016,13 @@ shared_dirs_parse(const char *str)
 
 	for (i = 0; dirs[i]; i++) {
 		if (is_directory(dirs[i]))
-			shared_dirs = g_slist_prepend(shared_dirs,
+			shared_dirs = pslist_prepend(shared_dirs,
 								deconstify_char(atom_str_get(dirs[i])));
 		else
 			ret = FALSE;
 	}
 
-	shared_dirs = g_slist_reverse(shared_dirs);
+	shared_dirs = pslist_reverse(shared_dirs);
 	g_strfreev(dirs);
 
 	return ret;
@@ -1038,7 +1038,7 @@ shared_dir_add(const char *pathname)
 		if (GNET_PROPERTY(share_debug) > 0) {
 			g_debug("%s: adding pathname=\"%s\"", G_STRFUNC, pathname);
 		}
-		shared_dirs = g_slist_append(shared_dirs,
+		shared_dirs = pslist_append(shared_dirs,
 						deconstify_char(atom_str_get(pathname)));
 	} else {
 		if (GNET_PROPERTY(share_debug) > 0) {
@@ -1377,7 +1377,7 @@ struct recursive_scan {
 	slist_iter_t *iter;			/* list iterator */
 	htable_t *words;			/* records words making up filenames, for QRP */
 	htable_t *basenames;		/* known file basenames */
-	GSList *shared;				/* the new shared_files variable */
+	pslist_t *shared;				/* the new shared_files variable */
 	shared_file_t **files;		/* the new file_table, sorted by mtime */
 	shared_file_t **sorted;		/* the new sorted_file_table, sorted by name */
 	shared_file_t **ftable;		/* cloned file_table, contains ref-counted sf */
@@ -1402,10 +1402,10 @@ recursive_scan_check(const struct recursive_scan * const ctx)
 }
 
 static struct recursive_scan *
-recursive_scan_new(const GSList *base_dirs, time_t now)
+recursive_scan_new(const pslist_t *base_dirs, time_t now)
 {
 	struct recursive_scan *ctx;
-	const GSList *iter;
+	const pslist_t *iter;
 
 	WALLOC0(ctx);
 	ctx->magic = RECURSIVE_SCAN_MAGIC;
@@ -1416,7 +1416,7 @@ recursive_scan_new(const GSList *base_dirs, time_t now)
 	ctx->partial_files = slist_new();
 	ctx->words = htable_create(HASH_KEY_STRING, 0);
 	ctx->basenames = htable_create(HASH_KEY_STRING, 0);
-	for (iter = base_dirs; NULL != iter; iter = g_slist_next(iter)) {
+	for (iter = base_dirs; NULL != iter; iter = pslist_next(iter)) {
 		const char *dir = atom_str_get(iter->data);
 		slist_append(ctx->base_dirs, deconstify_char(dir));
 	}
@@ -1477,7 +1477,7 @@ scan_base_dir_free(void *data)
 static void
 recursive_scan_context_free(void *data)
 {
-	GSList *sl;
+	pslist_t *sl;
 	struct recursive_scan *ctx = data;
 
 	recursive_scan_check(ctx);
@@ -1509,13 +1509,13 @@ recursive_scan_context_free(void *data)
 		XFREE_NULL(ctx->ftable);
 	}
 
-	for (sl = ctx->shared; sl; sl = g_slist_next(sl)) {
+	for (sl = ctx->shared; sl; sl = pslist_next(sl)) {
 		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);
 		shared_file_unref(&sf);
 	}
-	gm_slist_free_null(&ctx->shared);
+	pslist_free_null(&ctx->shared);
 
 	ctx->task = NULL;
 	ctx->magic = 0;
@@ -1526,17 +1526,17 @@ recursive_scan_context_free(void *data)
  * Free list of shared files and nullify its pointer.
  */
 static void
-share_list_free_null(GSList **slist)
+share_list_free_null(pslist_t **slist)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = *slist; sl; sl = g_slist_next(sl)) {
+	for (sl = *slist; sl; sl = pslist_next(sl)) {
 		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);
 		shared_file_unref(&sf);
 	}
-	gm_slist_free_null(slist);
+	pslist_free_null(slist);
 }
 
 /**
@@ -1986,7 +1986,7 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 		g_assert(1 == sf->refcnt);
 		ctx->bytes_scanned += sf->file_size;
 		st_insert_item(ctx->search_tb, sf->name_canonic, sf);
-		ctx->shared = gm_slist_prepend_const(ctx->shared, sf);
+		ctx->shared = pslist_prepend_const(ctx->shared, sf);
 		upload_stats_enforce_local_filename(sf);
 	}
 
@@ -2002,7 +2002,7 @@ static bgret_t
 recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
-	GSList *sl;
+	pslist_t *sl;
 	int i = 0;
 
 	recursive_scan_check(ctx);
@@ -2022,7 +2022,7 @@ recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 
 	HALLOC0_ARRAY(ctx->files, ctx->files_scanned);
 
-	for (i = 0, sl = ctx->shared; sl; sl = g_slist_next(sl)) {
+	for (i = 0, sl = ctx->shared; sl; sl = pslist_next(sl)) {
 		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);
@@ -2188,7 +2188,7 @@ recursive_install_shared(void *unused)
 }
 
 /**
- * GSList iterator to mark shared file as no longer indexed.
+ * pslist_t iterator to mark shared file as no longer indexed.
  */
 static void
 shared_file_detach(void *data, void *unused)
@@ -2209,7 +2209,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
 	size_t i;
-	GSList *files;
+	pslist_t *files;
 
 	recursive_scan_check(ctx);
 	g_assert(ctx->search_tb != NULL);
@@ -2267,7 +2267,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	 * about to replace all the data structures with fresh ones.
 	 */
 
-	g_slist_foreach(files, shared_file_detach, NULL);
+	pslist_foreach(files, shared_file_detach, NULL);
 
 	shared_libfile.search_table			= ctx->search_tb;
 	shared_libfile.file_basenames		= ctx->basenames;
@@ -3067,7 +3067,7 @@ share_close(void)
 
 	share_special_close();
 	free_extensions();
-	g_slist_foreach(shared_libfile.shared_files, shared_file_detach, NULL);
+	pslist_foreach(shared_libfile.shared_files, shared_file_detach, NULL);
 	share_free();
 	shared_dirs_free();
 	huge_close();

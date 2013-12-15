@@ -179,7 +179,7 @@ mq_udp_service(void *data)
 {
 	mqueue_t *q = data;
 	int r;
-	GList *l;
+	plist_t *l;
 	unsigned dropped = 0;
 
 	mq_check(q, 0);

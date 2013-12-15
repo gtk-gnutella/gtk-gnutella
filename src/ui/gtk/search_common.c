@@ -72,6 +72,7 @@
 #include "lib/mime_type.h"
 #include "lib/misc.h"			/* For xml_indent() */
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/slist.h"
 #include "lib/str.h"
@@ -1346,15 +1347,15 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
  * Create a new GUI result set from a Gnutella one.
  */
 static results_set_t *
-search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
+search_gui_create_results_set(pslist_t *schl, const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
 	guint ignored;
-    GSList *sl;
+    pslist_t *sl;
 
     WALLOC(rs);
 	rs->magic = RESULTS_SET_MAGIC;
-    rs->schl = g_slist_copy(schl);
+    rs->schl = gm_pslist_to_slist(schl);
 
     rs->guid = atom_guid_get(r_set->guid);
     rs->addr = r_set->addr;
@@ -1377,7 +1378,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->proxies = search_gui_proxies_clone(r_set->proxies);
 
 	ignored = 0;
-    for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(r_set->records, sl) {
 		gnet_record_t *grc = sl->data;
 
 		if (grc->flags & SR_DONT_SHOW) {
@@ -2397,7 +2398,7 @@ search_gui_current_search_refresh(void)
  * @param r_set		the core's result set, which will be duplicated
  */
 static void
-search_gui_got_results(GSList *schl, const struct guid *muid,
+search_gui_got_results(pslist_t *schl, const struct guid *muid,
 	const gnet_results_set_t *r_set)
 {
     results_set_t *rs;

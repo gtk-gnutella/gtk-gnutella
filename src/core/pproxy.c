@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "pproxy.h"
+
 #include "http.h"
 #include "hosts.h"
 #include "version.h"
@@ -66,12 +67,12 @@
 #include "lib/concat.h"
 #include "lib/endian.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/log.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/sequence.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -87,7 +88,7 @@
  *** Server-side of push-proxy
  ***/
 
-static GSList *pproxies = NULL;	/**< Currently active push-proxy requests */
+static pslist_t *pproxies = NULL;	/**< Currently active push-proxy requests */
 
 static void send_pproxy_error(struct pproxy *pp, int code,
 	const char *msg, ...) G_GNUC_PRINTF(3, 4);
@@ -221,7 +222,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	pp->magic = 0;
 	WFREE(pp);
 
-	pproxies = g_slist_remove(pproxies, pp);
+	pproxies = pslist_remove(pproxies, pp);
 }
 
 /**
@@ -268,10 +269,10 @@ pproxy_error_remove(struct pproxy *pp, int code, const char *msg, ...)
 void
 pproxy_timer(time_t now)
 {
-	GSList *sl;
-	GSList *to_remove = NULL;
+	pslist_t *sl;
+	pslist_t *to_remove = NULL;
 
-	for (sl = pproxies; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(pproxies, sl) {
 		struct pproxy *pp = sl->data;
 
 		pproxy_check(pp);
@@ -285,16 +286,16 @@ pproxy_timer(time_t now)
 			delta_time(now, pp->last_update) >
 				(time_delta_t) GNET_PROPERTY(upload_connecting_timeout)
 		) {
-			to_remove = g_slist_prepend(to_remove, pp);
+			to_remove = pslist_prepend(to_remove, pp);
 		}
 	}
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(to_remove, sl) {
 		struct pproxy *pp = sl->data;
 		pproxy_error_remove(pp, 408, "Request timeout");
 	}
 
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 /**
@@ -722,7 +723,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	const char *buf;
 	char *token;
 	char *user_agent;
-	GSList *nodes;
+	pslist_t *nodes;
 	bool supports_tls = FALSE;
 
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
@@ -876,23 +877,23 @@ pproxy_request(struct pproxy *pp, header_t *header)
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
 				(ulong) pp->file_idx);
 		} else {
-			int cnt;
+			size_t cnt;
 
 			gmsg_sendto_all(nodes, packet.data, packet.size);
 			gnet_stats_inc_general(GNR_PUSH_PROXY_BROADCASTED);
 
-			cnt = g_slist_length(nodes);
+			cnt = pslist_length(nodes);
 
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 203, FALSE, NULL, 0,
-					"Push-proxy: message sent through Gnutella (via %d node%s)",
-					cnt, plural(cnt));
+					"Push-proxy: message sent through Gnutella "
+					"(via %zd node%s)", cnt, plural(cnt));
 
 			pp->error_sent = 203;
-			pproxy_remove(pp, "Push sent via Gnutella (%d node%s) for GUID %s",
+			pproxy_remove(pp, "Push sent via Gnutella (%zd node%s) for GUID %s",
 					cnt, plural(cnt), guid_hex_str(pp->guid));
 		}
 
-		gm_slist_free_null(&nodes);
+		pslist_free_null(&nodes);
 		return;
 	}
 
@@ -1055,9 +1056,9 @@ pproxy_add(struct gnutella_socket *s)
 void
 pproxy_close(void)
 {
-	GSList *l;
+	pslist_t *l;
 
-	for (l = pproxies; l; l = g_slist_next(l)) {
+	PSLIST_FOREACH(pproxies, l) {
 		struct pproxy *pp = l->data;
 
 		pproxy_free_resources(pp);
@@ -1065,7 +1066,7 @@ pproxy_close(void)
 		WFREE(pp);
 	}
 
-	gm_slist_free_null(&pproxies);
+	pslist_free_null(&pproxies);
 }
 
 /***

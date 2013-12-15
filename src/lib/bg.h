@@ -201,10 +201,10 @@ int bg_task_exitcode(bgtask_t *bt);
 
 void *bg_task_set_context(bgtask_t *bt, void *ucontext);
 
-GSList *bg_info_list(void);
-void bg_info_list_free_null(GSList **sl_ptr);
-GSList *bg_sched_info_list(void);
-void bg_sched_info_list_free_null(GSList **sl_ptr);
+struct pslist *bg_info_list(void);
+void bg_info_list_free_null(struct pslist **sl_ptr);
+struct pslist *bg_sched_info_list(void);
+void bg_sched_info_list_free_null(struct pslist **sl_ptr);
 
 #endif	/* _bg_h_ */
 

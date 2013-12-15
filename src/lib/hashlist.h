@@ -51,7 +51,7 @@ void *hash_list_next(hash_list_t *, const void *key);
 void *hash_list_previous(hash_list_t *, const void *key);
 void hash_list_clear(hash_list_t *hl);
 unsigned hash_list_length(const hash_list_t *);
-GList *hash_list_list(hash_list_t *);
+struct plist *hash_list_list(hash_list_t *) WARN_UNUSED_RESULT;
 void hash_list_sort(hash_list_t *, cmp_fn_t);
 void hash_list_sort_with_data(hash_list_t *, cmp_data_fn_t, void *);
 void hash_list_shuffle(hash_list_t *hl);

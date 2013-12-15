@@ -56,6 +56,7 @@
 #include <math.h>
 
 #include "routing.h"
+
 #include "acct.h"
 #include "kuid.h"
 #include "knode.h"
@@ -95,7 +96,9 @@
 #include "lib/map.h"
 #include "lib/parse.h"
 #include "lib/patricia.h"
+#include "lib/plist.h"
 #include "lib/pow2.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/stats.h"
 #include "lib/str.h"
@@ -275,7 +278,7 @@ static struct kbucket *dht_find_bucket(const kuid_t *id);
  * Define DHT_ROUTING_DEBUG to enable more costly run-time assertions which
  * make all hash list insertions O(n), basically.
  */
-#undef DHT_ROUTING_DEBUG
+#define DHT_ROUTING_DEBUG
 
 static const char * const boot_status_str[] = {
 	"not bootstrapped yet",			/**< DHT_BOOT_NONE */
@@ -709,8 +712,7 @@ static void
 check_leaf_list_consistency(
 	const struct kbucket *kb, hash_list_t *hl, knode_status_t status)
 {
-	GList *nodes;
-	GList *l;
+	plist_t *nodes, *l;
 	uint count = 0;
 
 	g_assert(kb->nodes);
@@ -718,8 +720,8 @@ check_leaf_list_consistency(
 
 	nodes = hash_list_list(hl);
 
-	for (l = nodes; l; l = g_list_next(l)) {
-		knode_t *kn = l->data;
+	PLIST_FOREACH(nodes, l) {
+		knode_t *kn = plist_data(l);
 
 		knode_check(kn);
 		g_assert_log(kn->status == status,
@@ -731,7 +733,7 @@ check_leaf_list_consistency(
 
 	g_assert(count == hash_list_length(hl));
 
-	g_list_free(nodes);
+	plist_free(nodes);
 }
 #else
 #define check_leaf_list_consistency(a, b, c)
@@ -2851,12 +2853,12 @@ dht_max_depth(void)
 /**
  * Build a list of all nodes from the two buckets belonging to specified list.
  */
-static GSList *
+static pslist_t *
 merged_node_list(knode_status_t status,
 	const struct kbucket *kb1, const struct kbucket *kb2)
 {
 	hash_list_iter_t *iter;
-	GSList *result = NULL;
+	pslist_t *result = NULL;
 
 	check_leaf_list_consistency(kb1, list_for(kb1, status), status);
 	check_leaf_list_consistency(kb2, list_for(kb2, status), status);
@@ -2868,7 +2870,7 @@ merged_node_list(knode_status_t status,
 		knode_check(kn);
 		g_assert(status == kn->status);
 
-		result = g_slist_prepend(result, kn);
+		result = pslist_prepend(result, kn);
 	}
 	hash_list_iter_release(&iter);
 
@@ -2879,7 +2881,7 @@ merged_node_list(knode_status_t status,
 		knode_check(kn);
 		g_assert(status == kn->status);
 
-		result = g_slist_prepend(result, kn);
+		result = pslist_prepend(result, kn);
 	}
 	hash_list_iter_release(&iter);
 
@@ -2897,11 +2899,11 @@ merged_node_list(knode_status_t status,
  * @param nodes		a single linked-list of nodes to insert
  */
 static void
-insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
+insert_nodes(struct kbucket *kb, knode_status_t status, pslist_t *nodes)
 {
 	hash_list_t *hl;
 	size_t maxsize;
-	GSList *sl;
+	pslist_t *sl;
 	bool forget = FALSE;
 
 	hl = list_for(kb, status);
@@ -2909,7 +2911,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 
 	g_assert(0 == hash_list_length(hl));
 
-	GM_SLIST_FOREACH(nodes, sl) {
+	PSLIST_FOREACH(nodes, sl) {
 		knode_t *kn = sl->data;
 
 		knode_check(kn);
@@ -2963,7 +2965,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	struct kbucket *sibling;
 	unsigned good_nodes;
 	struct kbucket *parent;
-	GSList *nodes;
+	pslist_t *nodes;
 
 	g_assert(is_leaf(kb));
 
@@ -3021,9 +3023,9 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 
 	nodes = merged_node_list(KNODE_GOOD, kb, sibling);
 	if (forced)
-		nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+		nodes = pslist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_GOOD, nodes);
-	g_slist_free(nodes);
+	pslist_free(nodes);
 
 	/*
 	 * Stale and pending nodes are sorted by increasing "dead probability",
@@ -3032,14 +3034,14 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	 */
 
 	nodes = merged_node_list(KNODE_STALE, kb, sibling);
-	nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+	nodes = pslist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_STALE, nodes);
-	g_slist_free(nodes);
+	pslist_free(nodes);
 
 	nodes = merged_node_list(KNODE_PENDING, kb, sibling);
-	nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+	nodes = pslist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_PENDING, nodes);
-	g_slist_free(nodes);
+	pslist_free(nodes);
 
 	/*
 	 * Now that the nodes have been propagated, install periodic checks.
@@ -3161,8 +3163,8 @@ bucket_stale_check(cqueue_t *cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
-	GSList *to_remove = NULL;
-	GSList *sl;
+	pslist_t *to_remove = NULL;
+	pslist_t *sl;
 
 	g_assert(is_leaf(kb));
 
@@ -3200,7 +3202,7 @@ bucket_stale_check(cqueue_t *cq, void *obj)
 		g_assert(KNODE_STALE == kn->status);
 
 		if (knode_still_alive_probability(kn) < ALIVE_PROBA_LOW_THRESH) {
-			to_remove = g_slist_prepend(to_remove, kn);
+			to_remove = pslist_prepend(to_remove, kn);
 		} else if (knode_can_recontact(kn)) {
 			if (dht_lazy_rpc_ping(kn)) {
 				gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES);
@@ -3210,17 +3212,17 @@ bucket_stale_check(cqueue_t *cq, void *obj)
 	hash_list_iter_release(&iter);
 
 	if (to_remove != NULL && GNET_PROPERTY(dht_debug)) {
-		unsigned count = g_slist_length(to_remove);
+		unsigned count = pslist_length(to_remove);
 		g_debug("DHT selected %u stale node%s to remove (likely dead)",
 			count, plural(count));
 	}
 
-	GM_SLIST_FOREACH(to_remove, sl) {
+	PSLIST_FOREACH(to_remove, sl) {
 		knode_t *kn = sl->data;
 		dht_remove_node_from_bucket(kn, kb);
 	}
 
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 /**
@@ -4397,9 +4399,7 @@ fill_closest_in_bucket(
 	const kuid_t *id, struct kbucket *kb,
 	knode_t **kvec, int kcnt, const kuid_t *exclude, bool alive)
 {
-	GList *nodes = NULL;
-	GList *good;
-	GList *l;
+	plist_t *nodes = NULL, *good, *l;
 	int added;
 	int available = 0;
 
@@ -4416,7 +4416,7 @@ fill_closest_in_bucket(
 
 	good = hash_list_list(kb->nodes->good);
 
-	while (good) {
+	while (good != NULL) {
 		knode_t *kn = good->data;
 
 		knode_check(kn);
@@ -4426,11 +4426,11 @@ fill_closest_in_bucket(
 			(!exclude || !kuid_eq(kn->id, exclude)) &&
 			(!alive || (kn->flags & KNODE_F_ALIVE))
 		) {
-			nodes = g_list_prepend(nodes, kn);
+			nodes = plist_prepend(nodes, kn);
 			available++;
 		}
 
-		good = g_list_remove(good, kn);
+		good = plist_remove(good, kn);
 	}
 
 	/*
@@ -4445,9 +4445,9 @@ fill_closest_in_bucket(
 	 */
 
 	if (!alive) {
-		GList *stale = hash_list_list(kb->nodes->stale);
+		plist_t *stale = hash_list_list(kb->nodes->stale);
 
-		while (stale) {
+		while (stale != NULL) {
 			knode_t *kn = stale->data;
 
 			knode_check(kn);
@@ -4457,11 +4457,11 @@ fill_closest_in_bucket(
 				(!exclude || !kuid_eq(kn->id, exclude)) &&
 				knode_still_alive_probability(kn) >= ALIVE_PROBA_LOW_THRESH
 			) {
-				nodes = g_list_prepend(nodes, kn);
+				nodes = plist_prepend(nodes, kn);
 				available++;
 			}
 
-			stale = g_list_remove(stale, kn);
+			stale = plist_remove(stale, kn);
 		}
 	}
 
@@ -4470,10 +4470,10 @@ fill_closest_in_bucket(
 	 */
 
 	if (available < kcnt) {
-		GList *pending = hash_list_list(kb->nodes->pending);
+		plist_t *pending = hash_list_list(kb->nodes->pending);
 		time_t now = tm_time();
 
-		while (pending) {
+		while (pending != NULL) {
 			knode_t *kn = pending->data;
 
 			knode_check(kn);
@@ -4489,11 +4489,11 @@ fill_closest_in_bucket(
 					)
 				)
 			) {
-				nodes = g_list_prepend(nodes, kn);
+				nodes = plist_prepend(nodes, kn);
 				available++;
 			}
 
-			pending = g_list_remove(pending, kn);
+			pending = plist_remove(pending, kn);
 		}
 	}
 
@@ -4502,15 +4502,15 @@ fill_closest_in_bucket(
 	 * insert them in the vector.
 	 */
 
-	nodes = g_list_sort_with_data(nodes, distance_to, deconstify_pointer(id));
+	nodes = plist_sort_with_data(nodes, distance_to, deconstify_pointer(id));
 
-	for (added = 0, l = nodes; l && kcnt; l = g_list_next(l)) {
+	for (added = 0, l = nodes; l && kcnt; l = plist_next(l)) {
 		*kvec++ = l->data;
 		kcnt--;
 		added++;
 	}
 
-	g_list_free(nodes);
+	plist_free(nodes);
 
 	return added;
 }

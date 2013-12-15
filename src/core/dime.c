@@ -101,18 +101,18 @@ dime_record_free(struct dime_record **record_ptr)
 }
 
 void
-dime_list_free(GSList **list_ptr)
+dime_list_free(pslist_t **list_ptr)
 {
-	GSList *list = *list_ptr;
+	pslist_t *list = *list_ptr;
 
 	if (list) {
-		GSList *iter;
+		pslist_t *iter;
 
-		for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
+		PSLIST_FOREACH(list, iter) {
 			struct dime_record *record = iter->data;
 			dime_record_free(&record);
 		}
-		g_slist_free(list);
+		pslist_free(list);
 		*list_ptr = NULL;
 	}
 }
@@ -320,18 +320,18 @@ failure:
 	return 0;
 }
 
-GSList *
+pslist_t *
 dime_parse_records(const char *data, size_t size)
 {
 	const char * const data0 = data;
-	GSList *list = NULL;
+	pslist_t *list = NULL;
 
 	for (;;) {
 		struct dime_record *record;
 		size_t ret;
 		
 		record = dime_record_alloc();
-		list = g_slist_prepend(list, record);
+		list = pslist_prepend(list, record);
 		
 		ret = dime_parse_record_header(data, size, record);
 		if (0 == ret) {
@@ -351,7 +351,7 @@ dime_parse_records(const char *data, size_t size)
 		}
 	}
 
-	return g_slist_reverse(list);
+	return pslist_reverse(list);
 
 error:
 

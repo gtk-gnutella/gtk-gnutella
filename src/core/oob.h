@@ -45,12 +45,13 @@
 struct array;
 struct gnutella_node;
 struct guid;
+struct pslist;
 
 void oob_init(void);
 void oob_shutdown(void);
 void oob_close(void);
 
-void oob_got_results(struct gnutella_node *n, GSList *files,
+void oob_got_results(struct gnutella_node *n, struct pslist *files,
 		int count, host_addr_t addr, uint16 port,
 		bool secure_oob, bool reliable_udp, unsigned flags);
 void oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,

@@ -36,13 +36,15 @@
 
 #include "common.h"
 
+struct pslist;
+
 /**
  * UPnP discovery callback.
  *
  * @param devlist	A list of upnp_device_t (owned by callback)
  * @param arg		User-supplied argument
  */
-typedef void (*upnp_discover_cb_t)(GSList *devlist, void *arg);
+typedef void (*upnp_discover_cb_t)(struct pslist *devlist, void *arg);
 
 /*
  * Public interface.

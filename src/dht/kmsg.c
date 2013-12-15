@@ -63,6 +63,7 @@
 #include "lib/bstr.h"
 #include "lib/host_addr.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
 #include "lib/str.h"
@@ -1889,15 +1890,15 @@ store_finalize_pmsg(pmsg_t *mb, int values_held, pmsg_offset_t value_count)
  * @param vvec		vector of values to store
  * @param vcnt		amount of values in ``vvec''
  *
- * @return a GSList of message blocks (pmsg_t *), with blank MUIDs, meant
+ * @return a pslist_t of message blocks (pmsg_t *), with blank MUIDs, meant
  * to be overwritten by the RPC layer.
  * It is up to the caller to free up the list and the blocks.
  */
-GSList *
+pslist_t *
 kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 {
 	int i;
-	GSList *result = NULL;
+	pslist_t *result = NULL;
 	pmsg_t *mb = NULL;
 	int vheld = 0;
 	pmsg_offset_t value_count = 0;
@@ -1927,7 +1928,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 			store_finalize_pmsg(mb, vheld, value_count);
 
-			result = g_slist_prepend(result, mb);
+			result = pslist_prepend(result, mb);
 			mb = NULL;
 			vheld = 0;
 		}
@@ -1986,7 +1987,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 	store_finalize_pmsg(mb, vheld, value_count);
 
-	return g_slist_prepend(result, mb);
+	return pslist_prepend(result, mb);
 }
 
 /**

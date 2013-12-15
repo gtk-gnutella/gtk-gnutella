@@ -580,6 +580,17 @@ gnet_host_vec_from_vector(vector_t *vec)
 }
 
 /**
+ * Create a new Gnutella host vector out of a pslist_t of gnet_host_t items.
+ */
+gnet_host_vec_t *
+gnet_host_vec_from_pslist(pslist_t *pl)
+{
+	sequence_t seq;
+
+	return gnet_host_vec_from_sequence(sequence_fill_from_pslist(&seq, pl));
+}
+
+/**
  * Create a new Gnutella host vector out of a GSList of gnet_host_t items.
  */
 gnet_host_vec_t *

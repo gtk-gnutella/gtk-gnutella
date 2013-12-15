@@ -171,7 +171,7 @@ const prop_set_stub_t *gui_prop_get_stub(void);
  */
 prop_def_t *gui_prop_get_def(property_t);
 property_t gui_prop_get_by_name(const char *);
-GSList *gui_prop_get_by_regex(const char *, int *);
+pslist_t *gui_prop_get_by_regex(const char *, int *);
 const char *gui_prop_name(property_t);
 const char *gui_prop_type_to_string(property_t);
 const char *gui_prop_to_string(property_t prop);

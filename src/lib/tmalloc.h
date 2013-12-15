@@ -110,8 +110,8 @@ void tmfree_eslist(tmalloc_t *tma, struct eslist *el);
 
 struct logagent;
 
-GSList *tmalloc_info_list(void);
-void tmalloc_info_list_free_null(GSList **sl_ptr);
+struct pslist *tmalloc_info_list(void);
+void tmalloc_info_list_free_null(struct pslist **sl_ptr);
 void tmalloc_dump_stats_log(struct logagent *la, unsigned options);
 void tmalloc_dump_magazines_log(struct logagent *la);
 void tmalloc_dump_stats(void);

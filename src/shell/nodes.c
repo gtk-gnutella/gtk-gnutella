@@ -41,6 +41,7 @@
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
 #include "lib/options.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -102,7 +103,7 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 enum shell_reply
 shell_exec_nodes(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -114,7 +115,7 @@ shell_exec_nodes(struct gnutella_shell *sh, int argc, const char *argv[])
 	  "100~ \n"
 	  "Node                  Flags       CC Since  Uptime User-Agent\n");
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		const struct gnutella_node *n = sl->data;
 		print_node_info(sh, n);
 	}

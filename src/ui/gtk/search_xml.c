@@ -54,6 +54,7 @@
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/product.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -611,17 +612,17 @@ builtin_to_xml(xnode_t *parent)
 }
 
 static void
-sha1s_to_xml(xnode_t *parent, GSList *sha1s)
+sha1s_to_xml(xnode_t *parent, pslist_t *sha1s)
 {
     xnode_t *xn;
-	GSList *sl;
+	pslist_t *sl;
 
 	if (NULL == sha1s)
 		return;
 
     xn = xml_new_empty_child(parent, NODE_SHA1S);
 
-	GM_SLIST_FOREACH(sha1s, sl) {
+	PSLIST_FOREACH(sha1s, sl) {
 		const struct sha1 *sha1 = sl->data;
 		xml_new_child(xn, NODE_SHA1, sha1_to_string(sha1));
 	}
@@ -633,7 +634,7 @@ search_to_xml(xnode_t *parent, const struct search *search)
 	gnet_search_t search_handle;
     xnode_t *newxml;
     GList *iter;
-	GSList *sha1s;
+	pslist_t *sha1s;
 
     g_assert(search != NULL);
 	search_handle = search_gui_get_handle(search);
@@ -681,9 +682,9 @@ search_to_xml(xnode_t *parent, const struct search *search)
 		search_gui_get_sort_order(search));
 
 	sha1s = guc_search_associated_sha1(search_handle);
-	sha1s = g_slist_sort(sha1s, sha1_sort_cmp);
+	sha1s = pslist_sort(sha1s, sha1_sort_cmp);
 	sha1s_to_xml(newxml, sha1s);
-	g_slist_free(sha1s);
+	pslist_free_null(&sha1s);
 
     iter = search_gui_get_filter(search)->ruleset;
     for (/* NOTHING */; iter != NULL; iter = g_list_next(iter)) {

@@ -50,15 +50,16 @@
 #include "lib/ascii.h"
 #include "lib/cq.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
-#include "lib/tm.h"
 #include "lib/stringify.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -92,7 +93,7 @@ struct whitelist {
 	uint8 use_tls;						/**< Whether to use TLS */
 };
 
-static GSList *sl_whitelist;
+static pslist_t *sl_whitelist;
 
 static const char whitelist_file[] = "whitelist";
 
@@ -229,7 +230,7 @@ whitelist_add(struct whitelist *item)
 	if (GNET_PROPERTY(whitelist_debug))
 		log_whitelist_item(item, "adding");
 
-	sl_whitelist = g_slist_prepend(sl_whitelist, item);
+	sl_whitelist = pslist_prepend(sl_whitelist, item);
 }
 
 /**
@@ -338,7 +339,7 @@ whitelist_retrieve(void)
 	}
 
     while (fgets(line, sizeof line, f)) {
-		GSList *sl_addr, *sl;
+		pslist_t *sl_addr, *sl;
 		const char *endptr, *start;
 		host_addr_t addr;
     	uint16 port;
@@ -502,7 +503,7 @@ whitelist_retrieve(void)
 				item = whitelist_hostname_create(use_tls, hname, port);
 				whitelist_dns_resolve(item, FALSE);
 			} else {
-				for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+				PSLIST_FOREACH(sl_addr, sl) {
 					host_addr_t *aptr = sl->data;
 					g_assert(aptr != NULL);
 					item = whitelist_addr_create(use_tls, *aptr, port, bits);
@@ -516,7 +517,7 @@ whitelist_retrieve(void)
 		host_addr_free_list(&sl_addr);
     }
 
-    sl_whitelist = g_slist_reverse(sl_whitelist);
+    sl_whitelist = pslist_reverse(sl_whitelist);
 	fclose(f);
 }
 
@@ -530,10 +531,10 @@ uint
 whitelist_connect(void)
 {
 	time_t now = tm_time();
-	const GSList *sl;
+	const pslist_t *sl;
 	uint num = 0;
 
-	for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
 		struct whitelist *item;
 
 		item = sl->data;
@@ -565,9 +566,9 @@ whitelist_connect(void)
 bool
 whitelist_check(const host_addr_t ha)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
-	GM_SLIST_FOREACH(sl_whitelist, sl) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
 		const struct whitelist *item = sl->data;
 
 		if (!is_host_addr(item->addr))
@@ -603,11 +604,11 @@ static bool
 whitelist_periodic_dns(void *unused_obj)
 {
 	time_t now = tm_time();
-	GSList *sl;
+	pslist_t *sl;
 
 	(void) unused_obj;
 
-	GM_SLIST_FOREACH(sl_whitelist, sl) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
     	struct whitelist *item = sl->data;
 
 		/*
@@ -666,13 +667,13 @@ whitelist_init(void)
 G_GNUC_COLD void
 whitelist_close(void)
 {
-    GSList *sl;
+    pslist_t *sl;
 
-	GM_SLIST_FOREACH(sl_whitelist, sl) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
 		whitelist_free(sl->data);
 	}
 
-    gm_slist_free_null(&sl_whitelist);
+    pslist_free_null(&sl_whitelist);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

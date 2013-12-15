@@ -95,6 +95,7 @@
 #include "lib/hset.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
@@ -1646,7 +1647,7 @@ struct offload_context {
 	const kuid_t *our_kuid;			/**< Our KUID */
 	const kuid_t *remote_kuid;		/**< Remote node's KUID */
 	patricia_t *kclosest;			/**< Our k-closest alive nodes */
-	GSList *found;					/**< Target keys found */
+	pslist_t *found;				/**< Target keys found */
 	unsigned count;					/**< How many keys we found */
 };
 
@@ -1675,7 +1676,7 @@ keys_offload_prepare(void *val, void *data)
 	 */
 
 	if (patricia_closest(ctx->kclosest, id) == ctx->our_kuid) {
-		ctx->found = gm_slist_prepend_const(ctx->found, id);
+		ctx->found = pslist_prepend_const(ctx->found, id);
 		ctx->count++;
 	}
 }
@@ -1771,7 +1772,7 @@ keys_offload(const knode_t *kn)
 	if (ctx.count)
 		publish_offload(kn, ctx.found);
 
-	gm_slist_free_null(&ctx.found);
+	pslist_free_null(&ctx.found);
 }
 
 /**

@@ -31,6 +31,7 @@
 #include "lib/eval.h"
 #include "lib/mutex.h"
 #include "lib/omalloc.h"
+#include "lib/pslist.h"
 
 #include "gnet_property.h"
 
@@ -10713,7 +10714,7 @@ gnet_prop_get_by_name(const char *name)
     return pointer_to_uint(htable_lookup(gnet_property->by_name, name));
 }
 
-GSList *
+pslist_t *
 gnet_prop_get_by_regex(const char *pattern, int *error)
 {
     return prop_get_by_regex(gnet_property, pattern, error);

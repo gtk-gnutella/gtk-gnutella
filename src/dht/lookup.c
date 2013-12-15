@@ -36,17 +36,18 @@
 #include <math.h>		/* For log() */
 
 #include "lookup.h"
+
 #include "acct.h"
-#include "kuid.h"
+#include "keys.h"
 #include "kmsg.h"
+#include "kuid.h"
+#include "publish.h"
+#include "revent.h"
 #include "roots.h"
 #include "routing.h"
 #include "rpc.h"
-#include "keys.h"
-#include "token.h"
-#include "revent.h"
-#include "publish.h"
 #include "tcache.h"
+#include "token.h"
 
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
@@ -55,14 +56,15 @@
 
 #include "lib/bstr.h"
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/htable.h"
 #include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
+#include "lib/plist.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
 #include "lib/str.h"
@@ -166,7 +168,7 @@ struct seckeys {
 struct fvalue {
 	dht_value_t **vvec;			/**< Read expanded DHT values */
 	cevent_t *delay_ev;			/**< Delay event for retries */
-	GSList *seckeys;			/**< List of "struct seckeys *" */
+	pslist_t *seckeys;			/**< List of "struct seckeys *" */
 	map_t *seen;				/**< Publisher KUID => closest KUID holding */
 	map_t *values;				/**< All DHT values, to avoid duplicates */
 	float load;					/**< Reported request load on key (summed) */
@@ -1084,7 +1086,7 @@ lookup_value_create(nlookup_t *nl, float load,
 
 	if (skeys) {
 		struct seckeys *sk = seckeys_create(skeys, scnt, kn);
-		fv->seckeys = g_slist_append(NULL, sk);
+		fv->seckeys = pslist_append(NULL, sk);
 	}
 
 	fv->vvec = vvec;
@@ -1148,10 +1150,10 @@ lookup_value_create(nlookup_t *nl, float load,
 static int
 lookup_value_remaining_seckeys(const struct fvalue *fv)
 {
-	GSList *sl;
+	pslist_t *sl;
 	int remain = 0;
 
-	GM_SLIST_FOREACH(fv->seckeys, sl) {
+	PSLIST_FOREACH(fv->seckeys, sl) {
 		struct seckeys *sk = sl->data;
 		remain += sk->scnt - sk->next_skey;
 	}
@@ -1291,7 +1293,7 @@ lookup_value_append(nlookup_t *nl, float load,
 
 	if (skeys) {
 		struct seckeys *sk = seckeys_create(skeys, scnt, kn);
-		fv->seckeys = g_slist_append(fv->seckeys, sk);
+		fv->seckeys = pslist_append(fv->seckeys, sk);
 	}
 
 	fv->load += load;
@@ -1320,7 +1322,7 @@ lookup_value_seen_free_kv(void *unused_key, void *value, void *unused_data)
 static void
 lookup_value_free(nlookup_t *nl, bool free_vvec)
 {
-	GSList *sl;
+	pslist_t *sl;
 	struct fvalue *fv;
 	int i;
 
@@ -1335,7 +1337,7 @@ lookup_value_free(nlookup_t *nl, bool free_vvec)
 		WFREE_ARRAY(fv->vvec, fv->vsize);
 	}
 
-	GM_SLIST_FOREACH(fv->seckeys, sl) {
+	PSLIST_FOREACH(fv->seckeys, sl) {
 		struct seckeys *sk = sl->data;
 
 		g_assert(sk->skeys);
@@ -1344,7 +1346,7 @@ lookup_value_free(nlookup_t *nl, bool free_vvec)
 		seckeys_free(sk);
 	}
 
-	gm_slist_free_null(&fv->seckeys);
+	pslist_free_null(&fv->seckeys);
 	map_foreach(fv->seen, lookup_value_seen_free_kv, NULL);
 	map_destroy(fv->seen);
 	map_destroy(fv->values);
@@ -1390,7 +1392,7 @@ lookup_value_done(nlookup_t *nl)
 	 */
 
 	if (sk) {
-		fv->seckeys = g_slist_remove(fv->seckeys, sk);
+		fv->seckeys = pslist_remove(fv->seckeys, sk);
 		seckeys_free(sk);
 
 		if (fv->seckeys) {
@@ -2195,7 +2197,7 @@ lookup_path_is_safe(nlookup_t *nl)
 	patricia_iter_t *iter;
 	size_t prefix[KDA_C + 1];
 	struct kl_item items[KDA_C + 1];
-	GList *nodelist[KDA_C + 1];
+	plist_t *nodelist[KDA_C + 1];
 	size_t nodes;
 	double dkl, previous_dkl;
 	knode_t *removed_kn;
@@ -2406,7 +2408,7 @@ compute:
 		) {
 			size_t j = common - min_common_bits;
 			g_assert(j < G_N_ELEMENTS(nodelist));
-			nodelist[j] = g_list_prepend(nodelist[j], kn);
+			nodelist[j] = plist_prepend(nodelist[j], kn);
 		}
 	}
 
@@ -2451,19 +2453,19 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 		size_t j = n - min_common_bits;	/* Index in prefix[] */
 		size_t count;
 		size_t nth;
-		GList *lnk;
+		plist_t *lnk;
 
 		g_assert(size_is_non_negative(j) && j < G_N_ELEMENTS(prefix));
 		count = prefix[j];
 
 		g_assert(size_is_positive(count));
 		nth = random_value(count - 1);
-		lnk = g_list_nth(nodelist[j], nth);
+		lnk = plist_nth(nodelist[j], nth);
 
 		g_assert(lnk != NULL);			/* There is an nth item in the list */
 		lookup_path_remove(nl, lnk->data);
 		removed_kn = lnk->data;			/* Still referenced, no refcnt incr. */
-		nodelist[j] = g_list_delete_link(nodelist[j], lnk);
+		nodelist[j] = plist_delete_link(nodelist[j], lnk);
 
 		prefix[j]--;
 		nodes--;
@@ -2524,7 +2526,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 done:
 
 	for (i = 0; i < G_N_ELEMENTS(nodelist); i++) {
-		gm_list_free_null(&nodelist[i]);
+		plist_free_null(&nodelist[i]);
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
@@ -3992,9 +3994,9 @@ static void
 lookup_iterate(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
-	GSList *to_remove = NULL;
-	GSList *ignored = NULL;
-	GSList *sl;
+	pslist_t *to_remove = NULL;
+	pslist_t *ignored = NULL;
+	pslist_t *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
 	char reason[80];
@@ -4082,7 +4084,7 @@ lookup_iterate(nlookup_t *nl)
 				g_debug("DHT LOOKUP[%s] ignoring %s: %s",
 					nid_to_string(&nl->lid), knode_to_string(kn), reason);
 			}
-			ignored = g_slist_prepend(ignored, knode_refcnt_inc(kn));
+			ignored = pslist_prepend(ignored, knode_refcnt_inc(kn));
 		} else if (!map_contains(nl->queried, kn->id)) {
 			lookup_send(nl, kn);
 			if (nl->flags & NL_F_UDP_DROP)
@@ -4090,7 +4092,7 @@ lookup_iterate(nlookup_t *nl)
 			i++;
 		}
 
-		to_remove = g_slist_prepend(to_remove, kn);
+		to_remove = pslist_prepend(to_remove, kn);
 	}
 
 	nl->flags &= ~NL_F_SENDING;
@@ -4102,11 +4104,11 @@ lookup_iterate(nlookup_t *nl)
 
 	g_assert(0 == i || to_remove != NULL);
 
-	GM_SLIST_FOREACH(to_remove, sl) {
+	PSLIST_FOREACH(to_remove, sl) {
 		knode_t *kn = sl->data;
 		lookup_shortlist_remove(nl, kn);
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 
 	/*
 	 * Now explicitly free ignored hosts: because removal from the shortlist
@@ -4116,12 +4118,12 @@ lookup_iterate(nlookup_t *nl)
 	 * increased.
 	 */
 
-	GM_SLIST_FOREACH(ignored, sl) {
+	PSLIST_FOREACH(ignored, sl) {
 		knode_t *kn = sl->data;
 		lookup_reset_closest(nl, kn);	/* In case kn was the closest node */
 		knode_free(kn);
 	}
-	g_slist_free(ignored);
+	pslist_free(ignored);
 
 	/*
 	 * If we detected an UDP message dropping and did not send any

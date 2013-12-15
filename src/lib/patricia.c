@@ -144,10 +144,11 @@
 #include "common.h"
 
 #include "patricia.h"
+
 #include "endian.h"
-#include "glib-missing.h"
 #include "misc.h"
 #include "pow2.h"
+#include "pslist.h"
 #include "random.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -2136,7 +2137,7 @@ patricia_foreach(const patricia_t *pt, patricia_cb_t cb, void *u)
  * Context for patricia_foreach_remove().
  */
 struct remove_ctx {
-	GSList *sl;						/* List of nodes to remove */
+	pslist_t *sl;					/* List of nodes to remove */
 	bool last_was_removed;			/* Last key/value traversed is removed */
 	patricia_cbr_t cb;				/* User callback to invoke */
 	void *u;						/* User data for callback */
@@ -2165,7 +2166,7 @@ patricia_traverse_foreach_node(struct patricia_node *pn, void *u)
 		 * Prepend node to remove, so that we start removing nodes that are
 		 * the deepest in the tree.
 		 */
-		ctx->sl = g_slist_prepend(ctx->sl, pn);
+		ctx->sl = pslist_prepend(ctx->sl, pn);
 		ctx->last_was_removed = FALSE;
 	}
 }
@@ -2204,7 +2205,7 @@ size_t
 patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, void *u)
 {
 	struct remove_ctx ctx;
-	GSList *sl;
+	pslist_t *sl;
 
 	patricia_check(pt);
 	g_assert(cb);
@@ -2223,10 +2224,10 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, void *u)
 	while (sl) {
 		struct patricia_node *pn = sl->data;
 		remove_node(pt, pn);
-		sl = g_slist_next(sl);
+		sl = pslist_next(sl);
 	}
 
-	gm_slist_free_null(&ctx.sl);
+	pslist_free_null(&ctx.sl);
 
 	return ctx.removed;
 }

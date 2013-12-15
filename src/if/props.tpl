@@ -104,7 +104,7 @@ const prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
  */
 prop_def_t *[=(. func-prefix)=]_get_def(property_t);
 property_t [=(. func-prefix)=]_get_by_name(const char *);
-GSList *[=(. func-prefix)=]_get_by_regex(const char *, int *);
+pslist_t *[=(. func-prefix)=]_get_by_regex(const char *, int *);
 const char *[=(. func-prefix)=]_name(property_t);
 const char *[=(. func-prefix)=]_type_to_string(property_t);
 const char *[=(. func-prefix)=]_to_string(property_t prop);
@@ -312,6 +312,7 @@ void [=(. func-prefix)=]_shutdown(void);
 #include "lib/eval.h"
 #include "lib/mutex.h"
 #include "lib/omalloc.h"
+#include "lib/pslist.h"
 
 #include "[=(sprintf "%s.h" (. set-name-down))=]"
 
@@ -775,7 +776,7 @@ property_t
     return pointer_to_uint(htable_lookup([=(. prop-set)=]->by_name, name));
 }
 
-GSList *
+pslist_t *
 [=(. func-prefix)=]_get_by_regex(const char *pattern, int *error)
 {
     return prop_get_by_regex([=(. prop-set)=], pattern, error);

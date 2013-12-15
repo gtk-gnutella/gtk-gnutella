@@ -36,6 +36,7 @@
 #include <zlib.h>	/* Z_DEFAULT_COMPRESSION */
 
 #include "gmsg.h"
+
 #include "gnet_stats.h"
 #include "mq_tcp.h"
 #include "mq_udp.h"
@@ -52,6 +53,7 @@
 
 #include "lib/endian.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
@@ -468,14 +470,14 @@ gmsg_split_to_pmsg_extend(const void *head, const void *data,
  * to the caller to free that mb, if needed, upon return.
  */
 void
-gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb)
+gmsg_mb_sendto_all(const pslist_t *sl, pmsg_t *mb)
 {
 	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
 
 	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
 
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
+	for (/* empty */; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *dn = sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
@@ -656,7 +658,7 @@ gmsg_split_routeto_one(struct gnutella_node *from, struct gnutella_node *to,
  * Broadcast message to all nodes in the list.
  */
 void
-gmsg_sendto_all(const GSList *sl, const void *msg, uint32 size)
+gmsg_sendto_all(const pslist_t *sl, const void *msg, uint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
@@ -665,7 +667,7 @@ gmsg_sendto_all(const GSList *sl, const void *msg, uint32 size)
 	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
+	for (/* empty */; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *dn = sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
@@ -680,7 +682,7 @@ gmsg_sendto_all(const GSList *sl, const void *msg, uint32 size)
  */
 void
 gmsg_search_sendto_all(
-	const GSList *sl, gnet_search_t sh, const void *msg, uint32 size)
+	const pslist_t *sl, gnet_search_t sh, const void *msg, uint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
@@ -690,7 +692,7 @@ gmsg_search_sendto_all(
 	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
+	for (/* empty */; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *dn = sl->data;
 
 		/*
@@ -715,7 +717,7 @@ gmsg_search_sendto_all(
  */
 static void
 gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
-	const GSList *sl, const struct gnutella_node *n,
+	const pslist_t *sl, const struct gnutella_node *n,
 	const void *head, const void *data, uint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
@@ -736,7 +738,7 @@ gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
+	for (/* empty */; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *dn = sl->data;
 		if (dn == n)
 			continue;
@@ -757,7 +759,7 @@ gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
  */
 void
 gmsg_split_routeto_all(
-	const GSList *sl,
+	const pslist_t *sl,
 	const struct gnutella_node *from,
 	const void *head, const void *data, uint32 size)
 {
@@ -767,7 +769,7 @@ gmsg_split_routeto_all(
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
+	for (/* empty */; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *dn = sl->data;
 
 		if (!NODE_IS_ESTABLISHED(dn))
@@ -790,7 +792,7 @@ void
 gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 {
 	struct gnutella_node *rt_node = rt->ur.u_node;
-	const GSList *sl;
+	const pslist_t *sl;
 
 	/*
 	 * If during processing (e.g. in search_request_preprocess()) after
@@ -830,7 +832,7 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 			&n->header, n->data, n->size + GTA_HEADER_SIZE);
 		return;
 	case ROUTE_MULTI:
-		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
+		for (sl = rt->ur.u_nodes; sl; sl = pslist_next(sl)) {
 			rt_node = sl->data;
 			if (n->header_flags && !NODE_CAN_SFLAG(rt_node))
 				continue;

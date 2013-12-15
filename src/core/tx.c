@@ -41,9 +41,9 @@
 #include "tx.h"
 #include "nodes.h"
 
-#include "lib/glib-missing.h"
 #include "lib/host_addr.h"
 #include "lib/ipset.h"
+#include "lib/pslist.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -70,7 +70,7 @@
  * with respect to the caller (i.e. it is not happening in the same
  * calling stack), freed stacks are remembered and periodically collected.
  */
-static GSList *tx_freed = NULL;
+static pslist_t *tx_freed = NULL;
 
 /**
  * Create a new network driver, equipped with the `ops' operations and
@@ -208,7 +208,7 @@ tx_free(txdrv_t *tx)
 	if (!(tx->flags & TX_DOWN))
 		tx_shutdown(tx);
 
-	tx_freed = g_slist_prepend(tx_freed, tx);
+	tx_freed = pslist_prepend(tx_freed, tx);
 }
 
 /**
@@ -217,14 +217,14 @@ tx_free(txdrv_t *tx)
 void
 tx_collect(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = tx_freed; sl; sl = g_slist_next(sl)) {
+	for (sl = tx_freed; sl; sl = pslist_next(sl)) {
 		txdrv_t *tx = sl->data;
 		tx_deep_free(tx);
 	}
 
-	gm_slist_free_null(&tx_freed);
+	pslist_free_null(&tx_freed);
 }
 
 /**

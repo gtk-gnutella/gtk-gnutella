@@ -154,6 +154,7 @@
 #include "lib/htable.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
+#include "lib/pslist.h"
 #include "lib/slist.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -1917,7 +1918,7 @@ static void
 publish_value_iterate(publish_t *pb)
 {
 	pmsg_t *mb;
-	GSList *sl;
+	pslist_t *sl;
 	lookup_rc_t *rc;
 
 	publish_check(pb);
@@ -1963,10 +1964,10 @@ publish_value_iterate(publish_t *pb)
 	sl = kmsg_build_store(rc->token, rc->token_len, &pb->target.v.value, 1);
 
 	g_assert(sl != NULL);
-	g_assert(g_slist_length(sl) == 1);
+	g_assert(pslist_length(sl) == 1);
 
 	mb = sl->data;
-	g_slist_free(sl);
+	pslist_free(sl);
 
 	/*
 	 * Send message to node.
@@ -2094,8 +2095,8 @@ publish_cache_internal(const kuid_t *key,
 	lookup_rc_t *target, dht_value_t **vvec, int vcnt)
 {
 	publish_t *pb;
-	GSList *msg;
-	GSList *sl;
+	pslist_t *msg;
+	pslist_t *sl;
 	int vheld = 0;
 
 	/* Make sure all values bear the same primary key */
@@ -2120,13 +2121,13 @@ publish_cache_internal(const kuid_t *key,
 
 	msg = kmsg_build_store(target->token, target->token_len, vvec, vcnt);
 
-	GM_SLIST_FOREACH(msg, sl) {
+	PSLIST_FOREACH(msg, sl) {
 		pmsg_t *mb = sl->data;
 
 		slist_append(pb->target.c.messages, mb);
 		vheld += values_held(mb);
 	}
-	g_slist_free(msg);
+	pslist_free(msg);
 
 	g_assert(vheld == vcnt);	/* We have all our values in the messages */
 
@@ -2297,11 +2298,11 @@ pb_token_lookup_stats(const kuid_t *kuid,
  * @return created publishing object.
  */
 publish_t *
-publish_offload(const knode_t *kn, GSList *keys)
+publish_offload(const knode_t *kn, pslist_t *keys)
 {
 	publish_t *pb;
 	slist_t *skeys;
-	GSList *sl;
+	pslist_t *sl;
 	uint8 toklen;
 	const void *token;
 
@@ -2310,7 +2311,7 @@ publish_offload(const knode_t *kn, GSList *keys)
 
 	skeys = slist_new();
 
-	GM_SLIST_FOREACH(keys, sl) {
+	PSLIST_FOREACH(keys, sl) {
 		kuid_t *id = sl->data;
 		slist_append(skeys, kuid_get_atom(id));
 	}

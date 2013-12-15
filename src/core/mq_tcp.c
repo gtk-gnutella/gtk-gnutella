@@ -43,6 +43,7 @@
 #include "gnet_stats.h"
 #include "dump.h"
 
+#include "lib/plist.h"
 #include "lib/pmsg.h"
 #include "lib/walloc.h"
 
@@ -96,7 +97,7 @@ mq_tcp_service(void *data)
 	int iovcnt;
 	int sent;
 	ssize_t r;
-	GList *l;
+	plist_t *l;
 	int dropped;
 	int maxsize;
 	bool saturated;
@@ -140,7 +141,7 @@ again:
 
 		if (pmsg_check(mb, q)) {
 			/* send the message */
-			l = g_list_previous(l);
+			l = plist_prev(l);
 			iovsize--;
 			ie = &iov[iovcnt++];
 			iovec_set(ie, deconstify_pointer(mb->m_rptr), pmsg_size(mb));

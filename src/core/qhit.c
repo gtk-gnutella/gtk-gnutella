@@ -59,6 +59,7 @@
 #include "lib/hashing.h"
 #include "lib/hset.h"
 #include "lib/product.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
 #include "lib/stringify.h"
@@ -990,10 +991,10 @@ found_reset(size_t max_size, const struct guid *muid, unsigned flags,
  * @param flags			a combination of QHIT_F_* flags
  */
 void
-qhit_send_results(struct gnutella_node *n, GSList *files, int count,
+qhit_send_results(struct gnutella_node *n, pslist_t *files, int count,
 	const struct guid *muid, unsigned flags)
 {
-	GSList *sl;
+	pslist_t *sl;
 	int sent = 0;
 
 	/*
@@ -1007,7 +1008,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 	found_reset(QHIT_SIZE_THRESHOLD, muid, flags, qhit_send_node, n,
 		&zero_array);
 
-	for (sl = files; sl; sl = g_slist_next(sl)) {
+	for (sl = files; sl; sl = pslist_next(sl)) {
 		shared_file_t *sf = sl->data;
 		if (add_file(sf))
 			sent++;
@@ -1017,7 +1018,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 	if (0 != found_file_count())	/* Still some unflushed results */
 		flush_match();				/* Send last packet */
 
-	g_slist_free(files);
+	pslist_free(files);
 
 	if (GNET_PROPERTY(dbg) > 3)
 		g_debug("sent %d/%d hits to %s", sent, count, node_addr(n));
@@ -1050,11 +1051,11 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
  * @param token			secure OOBv3 token to include in reply
  */
 void
-qhit_build_results(const GSList *files, int count, size_t max_msgsize,
+qhit_build_results(const pslist_t *files, int count, size_t max_msgsize,
 	qhit_process_t cb, void *udata, const struct guid *muid, unsigned flags,
 	const struct array *token)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	int sent;
 
 	g_assert(cb != NULL);
@@ -1062,7 +1063,7 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 
 	found_reset(max_msgsize, muid, flags, cb, udata, token);
 
-	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
+	for (sl = files, sent = 0; sl && sent < count; sl = pslist_next(sl)) {
 		const shared_file_t *sf = sl->data;
 
 		if (add_file(sf))

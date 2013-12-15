@@ -97,6 +97,7 @@
 #include "lib/listener.h"
 #include "lib/parse.h"
 #include "lib/product.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
@@ -124,7 +125,7 @@
 #define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
 
-static GSList *list_uploads;
+static pslist_t *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
 static watchdog_t *stall_wd;		/**< Monitor stalling events */
 
@@ -701,10 +702,10 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 void
 upload_timer(time_t now)
 {
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 	time_delta_t timeout;
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 		bool is_connecting;
 
@@ -806,7 +807,7 @@ upload_timer(time_t now)
 		 */
 
 		if (delta_time(now, u->last_update) > timeout) {
-			to_remove = g_slist_prepend(to_remove, u);
+			to_remove = pslist_prepend(to_remove, u);
 		} else if (UPLOAD_IS_SENDING(u)) {
 			if (delta_time(now, u->last_update) > IO_PRE_STALL) {
 				if (socket_is_corked(u->socket)) {
@@ -828,7 +829,7 @@ upload_timer(time_t now)
 		}
 	}
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (UPLOAD_IS_CONNECTING(u)) {
@@ -845,7 +846,7 @@ upload_timer(time_t now)
 		else
 			upload_remove(u, N_("Lifetime expired"));
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 struct upload *
@@ -936,7 +937,7 @@ upload_create(struct gnutella_socket *s, bool push)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	list_uploads = g_slist_prepend(list_uploads, u);
+	list_uploads = pslist_prepend(list_uploads, u);
 
 	/*
 	 * Add upload to the GUI
@@ -1239,7 +1240,7 @@ upload_free_resources(struct upload *u)
 	HFREE_NULL(u->request);
 
     upload_free_handle(u->upload_handle);
-	list_uploads = g_slist_remove(list_uploads, u);
+	list_uploads = pslist_remove(list_uploads, u);
 
 	upload_free(&u);
 }
@@ -1325,7 +1326,7 @@ upload_clone(struct upload *u)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	list_uploads = g_slist_prepend(list_uploads, cu);
+	list_uploads = pslist_prepend(list_uploads, cu);
 
 	/*
 	 * Add upload to the GUI
@@ -2486,17 +2487,17 @@ upload_send_error(struct upload *u, int code, const char *msg)
 void
 upload_stop_all(struct dl_file_info *fi, const char *reason)
 {
-	GSList *sl, *to_stop = NULL;
+	pslist_t *sl, *to_stop = NULL;
 	int count = 0;
 
 	g_return_if_fail(fi);
 	file_info_check(fi);
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (u->file_info == fi) {
-			to_stop = g_slist_prepend(to_stop, u);
+			to_stop = pslist_prepend(to_stop, u);
 			count++;
 		}
 	}
@@ -2509,12 +2510,12 @@ upload_stop_all(struct dl_file_info *fi, const char *reason)
 			count, fi->pathname, reason);
 	}
 
-	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
+	for (sl = to_stop; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 		upload_remove_nowarn(u, reason);
 	}
 
-	g_slist_free(to_stop);
+	pslist_free(to_stop);
 }
 
 /**
@@ -3876,7 +3877,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 static bool
 upload_is_already_downloading(struct upload *upload)
 {
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 	bool result = FALSE;
 
 	g_assert(upload);
@@ -3893,7 +3894,7 @@ upload_is_already_downloading(struct upload *upload)
 	 * 		-- JA 12/7/'03
 	 */
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *up = cast_to_upload(sl->data);
 
 		if (up == upload)
@@ -3918,7 +3919,7 @@ upload_is_already_downloading(struct upload *upload)
 				result = TRUE;
 				break;
 			}
-			to_remove = g_slist_prepend(to_remove, up);
+			to_remove = pslist_prepend(to_remove, up);
 		}
 	}
 
@@ -3929,7 +3930,7 @@ upload_is_already_downloading(struct upload *upload)
 		 * at most.
 		 */
 
-		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		for (sl = to_remove; sl; sl = pslist_next(sl)) {
 			struct upload *up = cast_to_upload(sl->data);
 
 			if (GNET_PROPERTY(upload_debug)) g_warning(
@@ -3941,7 +3942,7 @@ upload_is_already_downloading(struct upload *upload)
 		}
 	}
 
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 	return result;
 }
 
@@ -5536,22 +5537,22 @@ upload_kill(gnet_upload_t upload)
 void
 upload_kill_addr(const host_addr_t addr)
 {
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (host_addr_equal(u->addr, addr) && !UPLOAD_IS_COMPLETE(u))
-			to_remove = g_slist_prepend(to_remove, u);
+			to_remove = pslist_prepend(to_remove, u);
 	}
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		parq_upload_force_remove(u);
 		upload_remove(u, N_("IP denying uploads"));
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 /**
@@ -5717,29 +5718,29 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
         si->avg_bps++;
 }
 
-GSList *
+pslist_t *
 upload_get_info_list(void)
 {
-	GSList *sl, *sl_info = NULL;
+	pslist_t *sl, *sl_info = NULL;
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
-		sl_info = g_slist_prepend(sl_info, upload_get_info(u->upload_handle));
+		sl_info = pslist_prepend(sl_info, upload_get_info(u->upload_handle));
 	}
-	return g_slist_reverse(sl_info);
+	return pslist_reverse(sl_info);
 }
 
 void
-upload_free_info_list(GSList **sl_ptr)
+upload_free_info_list(pslist_t **sl_ptr)
 {
 	g_assert(sl_ptr);
 	if (*sl_ptr) {
-		GSList *sl;
+		pslist_t *sl;
 
-		for (sl = *sl_ptr; sl; sl = g_slist_next(sl)) {
+		for (sl = *sl_ptr; sl; sl = pslist_next(sl)) {
 			upload_free_info(sl->data);
 		}
-		g_slist_free(*sl_ptr);
+		pslist_free(*sl_ptr);
 		*sl_ptr = NULL;
 	}
 }

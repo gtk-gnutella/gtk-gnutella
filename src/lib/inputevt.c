@@ -109,13 +109,14 @@ typedef struct {
 #include "bit_array.h"
 #include "compat_poll.h"
 #include "fd.h"
-#include "glib-missing.h"
 #include "hashlist.h"
 #include "htable.h"
 #include "inputevt.h"
 #include "log.h"			/* For s_error() */
 #include "misc.h"
 #include "mutex.h"
+#include "plist.h"
+#include "pslist.h"
 #include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
@@ -176,7 +177,7 @@ typedef struct {
 } inputevt_relay_t;
 
 typedef struct relay_list {
-	GSList *sl;
+	pslist_t *sl;
 	size_t readers;
 	size_t writers;
 	unsigned poll_idx;
@@ -196,7 +197,7 @@ struct poll_ctx {
 	inputevt_relay_t **relay;	/**< The relay contexts */
 	bit_array_t *used_event_id;	/**< A bit array, which ID slots are used */
 	bit_array_t *used_poll_idx;	/**< -"-, which Poll IDX slots are used */
-	GSList *removed;			/**< List of removed IDs */
+	pslist_t *removed;			/**< List of removed IDs */
 	htable_t *ht;				/**< Records file descriptors */
 	hash_list_t *readable;		/**< Records readable file descriptors */
 	int master_fd;				/**< The ``master'' fd for epoll or kqueue */
@@ -830,7 +831,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 	
-	rl->sl = g_slist_remove(rl->sl, uint_to_pointer(id));
+	rl->sl = pslist_remove(rl->sl, uint_to_pointer(id));
 	if (NULL == rl->sl) {
 		g_assert(0 == rl->readers && 0 == rl->writers);
 		inputevt_poll_idx_free(ctx, &rl->poll_idx);
@@ -846,11 +847,11 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 static void
 inputevt_purge_removed(struct poll_ctx *ctx)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(CTX_IS_LOCKED(ctx));
 
-	for (sl = ctx->removed; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(ctx->removed, sl) {
 		inputevt_relay_t *relay;
 		unsigned id;
 
@@ -867,7 +868,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 		ctx->relay[id] = NULL;
 	}
 
-	gm_slist_free_null(&ctx->removed);
+	pslist_free_null(&ctx->removed);
 }
 
 /**
@@ -901,7 +902,7 @@ inputevt_timer(struct poll_ctx *ctx)
 
 	if (num_events > 0) {
 		unsigned idx;
-		GSList *evlist = NULL, *es;
+		pslist_t *evlist = NULL, *es;
 
 		g_assert(UNSIGNED(num_events) <= ctx->num_ev);
 	
@@ -915,7 +916,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				continue;
 
 			num_events--;
-			evlist = g_slist_prepend(evlist, WCOPY(&event));
+			evlist = pslist_prepend(evlist, WCOPY(&event));
 		}
 
 		/*
@@ -927,9 +928,9 @@ inputevt_timer(struct poll_ctx *ctx)
 
 		CTX_UNLOCK(ctx);
 
-		GM_SLIST_FOREACH(evlist, es) {
+		PSLIST_FOREACH(evlist, es) {
 			relay_list_t *rl;
-			GSList *sl;
+			pslist_t *sl;
 			struct event *event = es->data;
 
 			rl = htable_lookup(ctx->ht, int_to_pointer(event->fd));
@@ -944,7 +945,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				g_assert(id > 0);
 				g_assert(id < ctx->num_ev);
 
-				sl = g_slist_next(sl);
+				sl = pslist_next(sl);
 
 				relay = ctx->relay[id];
 				g_assert(relay);
@@ -962,12 +963,12 @@ inputevt_timer(struct poll_ctx *ctx)
 			WFREE(event);
 		}
 
-		gm_slist_free_null(&evlist);
+		pslist_free_null(&evlist);
 		CTX_LOCK(ctx);
 	}
 
 	if (hash_list_length(ctx->readable) > 0) {
-		GList *iter, *list = hash_list_list(ctx->readable);
+		plist_t *iter, *list = hash_list_list(ctx->readable);
 
 		hash_list_clear(ctx->readable);
 
@@ -984,14 +985,14 @@ inputevt_timer(struct poll_ctx *ctx)
 		CTX_UNLOCK(ctx);
 
 		if (inputevt_debug > 2) {
-			unsigned long count = g_list_length(list);
-			g_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
+			unsigned long count = plist_length(list);
+			s_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
 		}
 
-		GM_LIST_FOREACH(list, iter) {
+		PLIST_FOREACH(list, iter) {
 			int fd = pointer_to_int(iter->data);
 			relay_list_t *rl;
-			GSList *sl;
+			pslist_t *sl;
 
 			g_assert(is_valid_fd(fd));
 
@@ -1004,7 +1005,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				unsigned id;
 
 				id = pointer_to_uint(sl->data);
-				sl = g_slist_next(sl);
+				sl = pslist_next(sl);
 
 				g_assert(id > 0);
 				g_assert(id < ctx->num_ev);
@@ -1022,7 +1023,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				}
 			}
 		}
-		gm_list_free_null(&list);
+		plist_free_null(&list);
 		CTX_LOCK(ctx);
 	}
 	
@@ -1165,7 +1166,7 @@ inputevt_remove(unsigned *id_ptr)
 		 * Don't clear the "used_event_id" bit yet because this slot must
 		 * not be recycled whilst dispatching events.
 		 */
-		ctx->removed = g_slist_prepend(ctx->removed, uint_to_pointer(id));
+		ctx->removed = pslist_prepend(ctx->removed, uint_to_pointer(id));
 	} else {
 		relay_list_remove(ctx, id);		
 		WFREE(relay);
@@ -1296,7 +1297,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		if (INPUT_EVENT_W & relay->condition)
 			rl->writers++;
 
-		rl->sl = g_slist_prepend(rl->sl, uint_to_pointer(id));
+		rl->sl = pslist_prepend(rl->sl, uint_to_pointer(id));
 	}
 
 	if 

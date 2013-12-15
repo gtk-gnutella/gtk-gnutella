@@ -94,6 +94,7 @@
 #include "common.h"
 
 #include "hsep.h"
+
 #include "features.h"
 #include "gmsg.h"
 #include "nodes.h"
@@ -107,11 +108,12 @@
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/override.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
-#include "lib/override.h"
 
 /** global HSEP table */
 static hsep_triple hsep_global_table[HSEP_N_MAX + 1];
@@ -200,7 +202,7 @@ hsep_check_monotony(hsep_triple *table, unsigned int triples)
 static void
 hsep_sanity_check(void)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	hsep_triple sum[G_N_ELEMENTS(hsep_global_table)];
 	unsigned int i, j;
 
@@ -213,7 +215,7 @@ hsep_sanity_check(void)
 	 * sum up all the connections' triple values.
 	 */
 
-	for (sl = node_all_nodes() ; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 
 		/* also consider unestablished connections here */
@@ -381,12 +383,12 @@ hsep_remove_global_table_listener(callback_fn_t cb)
 void
 hsep_reset(void)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	uint i;
 
 	ZERO(&hsep_global_table);
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 
 		/* also consider unestablished connections here */
@@ -460,7 +462,7 @@ hsep_connection_init(struct gnutella_node *n, uint8 major, uint8 minor)
 void
 hsep_timer(time_t now)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	bool scanning_shared;
 	static time_t last_sent = 0;
 
@@ -475,7 +477,7 @@ hsep_timer(time_t now)
 			hsep_notify_shared(0UL, 0UL);
 	}
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 		int diff;
 
@@ -969,7 +971,7 @@ hsep_has_global_table_changed(time_t since)
 void
 hsep_get_non_hsep_triple(hsep_triple *tripledest)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	uint64 other_nodes = 0;      /* # of non-HSEP nodes */
 	uint64 other_files = 0;      /* what non-HSEP nodes share (files) */
 	uint64 other_kib = 0;        /* what non-HSEP nodes share (KiB) */
@@ -981,7 +983,7 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 	 * sum up what they share (PONG-based library size).
 	 */
 
-	for (sl = node_all_nodes() ; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 		gnet_node_status_t status;
 

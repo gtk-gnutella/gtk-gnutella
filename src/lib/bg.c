@@ -104,13 +104,15 @@
 #include "common.h"
 
 #include "bg.h"
+
 #include "atoms.h"
 #include "cq.h"
 #include "elist.h"
-#include "glib-missing.h"
+#include "eslist.h"
 #include "misc.h"
 #include "mutex.h"
 #include "once.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "stringify.h"		/* For short_time_ascii() and plural() */
@@ -148,9 +150,9 @@ enum bgsched_magic {
 struct bgsched {
 	enum bgsched_magic magic;	/**< Magic number */
 	const char *name;			/**< Scheduler name (atom, for logging) */
-	GSList *runq;				/**< List of runnable tasks */
-	GSList *sleepq;				/**< List of sleeping tasks */
-	GSList *dead_tasks;			/**< Dead tasks to reclaim */
+	eslist_t runq;				/**< List of runnable tasks */
+	eslist_t sleepq;			/**< List of sleeping tasks */
+	eslist_t dead_tasks;		/**< Dead tasks to reclaim */
 	bgtask_t *current_task;		/**< Current task scheduled */
 	size_t completed;			/**< Completed tasks */
 	ulong max_life;				/**< Maximum life when scheduled, in usecs */
@@ -213,7 +215,7 @@ struct bgtask {
 	void *done_arg;			/**< "done" callback argument */
 	int exitcode;			/**< Final "exit" code */
 	bgsig_t signal;			/**< Last signal delivered */
-	GSList *signals;		/**< List of signals pending delivery */
+	pslist_t *signals;		/**< List of signals pending delivery */
 	jmp_buf env;			/**< Only valid when TASK_F_RUNNING */
 	tm_t start;				/**< Start time of scheduling "tick" */
 	int ticks;				/**< Scheduling ticks for time slice */
@@ -223,6 +225,7 @@ struct bgtask {
 	double tick_cost;		/**< Time in ms. spent by each tick */
 	bgsig_cb_t sigh[BG_SIG_COUNT];	/**< Signal handlers */
 	spinlock_t lock;		/**< Thread-safe lock */
+	slink_t bgt_link;		/**< Links task in appropriate list */
 };
 
 /*
@@ -230,7 +233,7 @@ struct bgtask {
  */
 struct bgdaemon {
 	struct bgtask task;		/**< Common task attributes */
-	GSList *wq;				/**< Work queue (daemon task only) */
+	pslist_t *wq;			/**< Work queue (daemon task only) */
 	size_t wq_count;		/**< Size of work queue */
 	size_t wq_done;			/**< Amount of items processed */
 	bgstart_cb_t start_cb;	/**< Called when starting working on an item */
@@ -462,6 +465,7 @@ bg_sched_add(bgtask_t *bt)
 	BG_SCHED_LOCK(bs);
 
 	g_assert(!(bt->flags & TASK_F_RUNNABLE));	/* Not already in list */
+	g_assert(!(bt->flags & TASK_F_SLEEPING));
 
 	/*
 	 * Enqueue task at the tail of the runqueue.
@@ -469,7 +473,7 @@ bg_sched_add(bgtask_t *bt)
 	 */
 
 	bt->flags |= TASK_F_RUNNABLE;
-	bs->runq = g_slist_append(bs->runq, bt);
+	eslist_append(&bs->runq, bt);
 
 	BG_SCHED_UNLOCK(bs);
 }
@@ -489,11 +493,13 @@ bg_sched_remove(bgtask_t *bt)
 
 	BG_SCHED_LOCK(bs);
 
+	g_assert(bt->flags & TASK_F_RUNNABLE);	/* In runq */
+
 	/*
 	 * We currently have only one run queue: we don't handle priorities.
 	 */
 
-	bs->runq = g_slist_remove(bs->runq, bt);
+	eslist_remove(&bs->runq, bt);
 	bt->flags &= ~TASK_F_RUNNABLE;
 
 	BG_SCHED_UNLOCK(bs);
@@ -517,8 +523,8 @@ bg_sched_pick(bgsched_t *bs)
 	 * All task in run queue have equal priority, pick the first.
 	 */
 
-	if (bs->runq != NULL) {
-		bt = bs->runq->data;
+	if (0 != eslist_count(&bs->runq)) {
+		bt = eslist_head(&bs->runq);
 		bg_task_check(bt);
 	} else {
 		bt = NULL;
@@ -658,10 +664,11 @@ bg_sched_sleep(bgtask_t *bt)
 
 	BG_SCHED_LOCK(bs);
 
-	bg_sched_remove(bt);			/* Can no longer be scheduled */
+	if (bt->flags & TASK_F_RUNNABLE)
+		bg_sched_remove(bt);			/* Can no longer be scheduled */
 	bs->runcount--;
 	bt->flags |= TASK_F_SLEEPING;
-	bs->sleepq = g_slist_prepend(bs->sleepq, bt);
+	eslist_prepend(&bs->sleepq, bt);
 
 	BG_SCHED_UNLOCK(bs);
 }
@@ -683,7 +690,7 @@ bg_sched_wakeup(bgtask_t *bt)
 
 	BG_SCHED_LOCK(bs);
 
-	bs->sleepq = g_slist_remove(bs->sleepq, bt);
+	eslist_remove(&bs->sleepq, bt);
 	bt->flags &= ~TASK_F_SLEEPING;
 	bs->runcount++;
 	bg_sched_add(bt);
@@ -913,7 +920,7 @@ bg_daemon_enqueue(bgtask_t *bt, void *item)
 
 	BG_TASK_LOCK(bt);
 
-	bd->wq = g_slist_append(bd->wq, item);
+	bd->wq = pslist_append(bd->wq, item);
 	bd->wq_count++;
 
 	if (bt->flags & TASK_F_SLEEPING) {
@@ -951,14 +958,14 @@ bg_task_free(bgtask_t *bt)
 	if (bt->flags & TASK_F_DAEMON) {
 		struct bgdaemon *bd = (struct bgdaemon *) bt;
 		int count;
-		GSList *l;
+		pslist_t *l;
 
 		for (count = 0, l = bd->wq; l; l = l->next) {
 			count++;
 			if (bd->item_free)
 				(*bd->item_free)(l->data);
 		}
-		gm_slist_free_null(&bd->wq);
+		pslist_free_null(&bd->wq);
 
 		if (count) {
 			g_warning("%s(): freed %d pending item%s for daemon \"%s\" task",
@@ -1111,7 +1118,7 @@ bg_task_terminate(bgtask_t *bt)
 	 */
 
 	BG_SCHED_LOCK(bs);
-	bs->dead_tasks = g_slist_prepend(bs->dead_tasks, bt);
+	eslist_prepend(&bs->dead_tasks, bt);
 	BG_SCHED_UNLOCK(bs);
 }
 
@@ -1188,9 +1195,9 @@ bg_task_kill(bgtask_t *bt, bgsig_t sig)
 
 	if (bs->stid != thread_small_id()) {
 		if (sig == BG_SIG_KILL) {
-			bt->signals = g_slist_prepend(bt->signals, uint_to_pointer(sig));
+			bt->signals = pslist_prepend(bt->signals, uint_to_pointer(sig));
 		} else if (NULL != bt->sigh[sig]) {
-			bt->signals = g_slist_append(bt->signals, uint_to_pointer(sig));
+			bt->signals = pslist_append(bt->signals, uint_to_pointer(sig));
 		}
 		BG_TASK_UNLOCK(bt);
 		return 1;
@@ -1227,7 +1234,7 @@ bg_task_kill(bgtask_t *bt, bgsig_t sig)
 	 */
 
 	if (!(bt->flags & TASK_F_RUNNING) || (bt->flags & TASK_F_SIGNAL)) {
-		bt->signals = g_slist_append(bt->signals, uint_to_pointer(sig));
+		bt->signals = pslist_append(bt->signals, uint_to_pointer(sig));
 		BG_TASK_UNLOCK(bt);
 		return 1;
 	}
@@ -1278,7 +1285,7 @@ bg_task_deliver_signals(bgtask_t *bt)
 	 */
 
 	while (bt->signals != NULL) {
-		GSList *lnk = bt->signals;
+		pslist_t *lnk = bt->signals;
 		bgsig_t sig = (bgsig_t) pointer_to_uint(lnk->data);
 
 		/*
@@ -1288,8 +1295,8 @@ bg_task_deliver_signals(bgtask_t *bt)
 
 		bg_task_kill(bt, sig);
 
-		bt->signals = g_slist_remove_link(bt->signals, lnk);
-		g_slist_free_1(lnk);
+		bt->signals = pslist_remove_link(bt->signals, lnk);
+		pslist_free_1(lnk);
 	}
 }
 
@@ -1421,16 +1428,12 @@ bg_task_ticks_used(bgtask_t *bt, int used)
 static void
 bg_reclaim_dead(bgsched_t *bs)
 {
-	GSList *sl;
-
 	bg_sched_check(bs);
 
 	BG_SCHED_LOCK(bs);
 
-	for (sl = bs->dead_tasks; sl; sl = g_slist_next(sl)) {
-		bg_task_free(sl->data);
-	}
-	gm_slist_free_null(&bs->dead_tasks);
+	eslist_foreach(&bs->dead_tasks, (data_fn_t) bg_task_free, NULL);
+	eslist_clear(&bs->dead_tasks);
 
 	BG_SCHED_UNLOCK(bs);
 }
@@ -1480,7 +1483,7 @@ bg_task_ended(bgtask_t *bt)
 
 	(*bd->end_cb)(bt, bt->ucontext, item);
 	BG_TASK_LOCK(bt);
-	bd->wq = g_slist_remove(bd->wq, item);
+	bd->wq = pslist_remove(bd->wq, item);
 	bd->wq_count--;
 	bd->wq_done++;
 	BG_TASK_UNLOCK(bt);
@@ -1817,7 +1820,7 @@ bg_sched_timer(void *arg)
 		}
 	}
 
-	if (bs->dead_tasks != NULL)
+	if (0 != eslist_count(&bs->dead_tasks))
 		bg_reclaim_dead(bs);		/* Free dead tasks */
 
 	if (bg_debug > 3 && MAX_LIFE != remain) {
@@ -1876,23 +1879,15 @@ bg_sched_run(bgsched_t *bs)
 }
 
 static uint
-bg_task_terminate_all(GSList **ptr)
+bg_task_terminate_all(eslist_t *l)
 {
-	uint count;
+	uint n;
 
-	count = 0;
-	if (*ptr) {
-		GSList *iter, *copy;
+	n = eslist_count(l);
+	eslist_foreach(l, (data_fn_t) bg_task_terminate, NULL);
+	eslist_clear(l);
 
-		copy = g_slist_copy(*ptr);
-		for (iter = copy; NULL != iter; iter = g_slist_next(iter)) {
-			count++;
-			bg_task_terminate(iter->data);
-		}
-		gm_slist_free_null(&copy);
-		gm_slist_free_null(ptr);
-	}
-	return count;
+	return n;
 }
 
 /**
@@ -1913,6 +1908,9 @@ bg_sched_alloc(const char *name, ulong max_life, bool schedule)
 	bs->name = atom_str_get(name);
 	bs->max_life = max_life;
 	bs->stid = -1U;
+	eslist_init(&bs->runq, offsetof(struct bgtask, bgt_link));
+	eslist_init(&bs->sleepq, offsetof(struct bgtask, bgt_link));
+	eslist_init(&bs->dead_tasks, offsetof(struct bgtask, bgt_link));
 
 	bg_sched_list_add(bs);
 
@@ -1994,7 +1992,7 @@ bg_sched_destroy_null(bgsched_t **bs_ptr)
 }
 
 struct bg_info_list_vars {
-	GSList *sl;
+	pslist_t *sl;
 	bgsched_t *bs;
 };
 
@@ -2020,7 +2018,7 @@ bg_info_get(void *data, void *udata)
 	bi->step = bt->step;
 	bi->seqno = bt->seqno;
 	bi->stepcnt = bt->stepcnt;
-	bi->signals = g_slist_length(bt->signals);	/* Expecting low amount */
+	bi->signals = pslist_length(bt->signals);	/* Expecting low amount */
 	bi->running = booleanize(bt->flags & TASK_F_RUNNING);
 	bi->daemon = booleanize(bt->flags & TASK_F_DAEMON);
 	bi->cancelled = booleanize(bt->flags & TASK_F_CANCELLED);
@@ -2035,7 +2033,7 @@ bg_info_get(void *data, void *udata)
 
 	BG_TASK_UNLOCK(bt);
 
-	v->sl = g_slist_prepend(v->sl, bi);
+	v->sl = pslist_prepend(v->sl, bi);
 }
 
 /**
@@ -2044,7 +2042,7 @@ bg_info_get(void *data, void *udata)
  * @return list of bgtask_info_t that must be freed by calling the
  * bg_info_list_free_null() routine.
  */
-GSList *
+pslist_t *
 bg_info_list(void)
 {
 	struct bg_info_list_vars v;
@@ -2055,8 +2053,8 @@ bg_info_list(void)
 
 	ELIST_FOREACH_DATA(&bg_sched_list, v.bs) {
 		BG_SCHED_LOCK(v.bs);
-		g_slist_foreach(v.bs->runq, bg_info_get, &v);
-		g_slist_foreach(v.bs->sleepq, bg_info_get, &v);
+		eslist_foreach(&v.bs->runq, bg_info_get, &v);
+		eslist_foreach(&v.bs->sleepq, bg_info_get, &v);
 		if (v.bs->current_task != NULL)
 			bg_info_get(v.bs->current_task, &v);
 		BG_SCHED_UNLOCK(v.bs);
@@ -2084,12 +2082,12 @@ bg_info_free(void *data, void *udata)
  * Free list created by bg_info_list() and nullify pointer.
  */
 void
-bg_info_list_free_null(GSList **sl_ptr)
+bg_info_list_free_null(pslist_t **sl_ptr)
 {
-	GSList *sl = *sl_ptr;
+	pslist_t *sl = *sl_ptr;
 
-	g_slist_foreach(sl, bg_info_free, NULL);
-	gm_slist_free_null(sl_ptr);
+	pslist_foreach(sl, bg_info_free, NULL);
+	pslist_free_null(sl_ptr);
 }
 
 /**
@@ -2098,11 +2096,11 @@ bg_info_list_free_null(GSList **sl_ptr)
  * @return list of bgsched_info_t that must be freed by calling the
  * bg_sched_info_list_free_null() routine.
  */
-GSList *
+pslist_t *
 bg_sched_info_list(void)
 {
 	bgsched_t *bs;
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 
 	BG_SCHED_LIST_LOCK;
 
@@ -2117,19 +2115,19 @@ bg_sched_info_list(void)
 		bsi->completed = bs->completed;
 		bsi->stid = bs->stid;
 		bsi->wtime = bs->wtime;
-		bsi->runq_count = g_slist_length(bs->runq);
-		bsi->sleepq_count = g_slist_length(bs->sleepq);
+		bsi->runq_count = eslist_count(&bs->runq);
+		bsi->sleepq_count = eslist_count(&bs->sleepq);
 		bsi->runcount = bs->runcount;
 		bsi->max_life = bs->max_life;
 		bsi->period = bs->period;
 		BG_SCHED_UNLOCK(bs);
 
-		sl = g_slist_prepend(sl, bsi);
+		sl = pslist_prepend(sl, bsi);
 	}
 
 	BG_SCHED_LIST_UNLOCK;
 
-	return g_slist_reverse(sl);		/* Order list as scheduler definition */
+	return pslist_reverse(sl);		/* Order list as scheduler definition */
 }
 
 static void
@@ -2148,12 +2146,12 @@ bg_sched_info_free(void *data, void *udata)
  * Free list created by bg_sched_list() and nullify pointer.
  */
 void
-bg_sched_info_list_free_null(GSList **sl_ptr)
+bg_sched_info_list_free_null(pslist_t **sl_ptr)
 {
-	GSList *sl = *sl_ptr;
+	pslist_t *sl = *sl_ptr;
 
-	g_slist_foreach(sl, bg_sched_info_free, NULL);
-	gm_slist_free_null(sl_ptr);
+	pslist_foreach(sl, bg_sched_info_free, NULL);
+	pslist_free_null(sl_ptr);
 }
 
 /**

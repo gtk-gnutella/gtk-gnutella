@@ -37,7 +37,7 @@
 
 #include "if/gnet_property.h"
 
-#include "lib/glib-missing.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -86,7 +86,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 		{ "v", &values },
 	};
 	int parsed;
-	GSList *props, *sl;
+	pslist_t *props, *sl;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -107,10 +107,10 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	shell_write(sh, "100~\n");
 
-	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(props, sl) {
 		property_t prop;
 	   
-		prop = GPOINTER_TO_UINT(sl->data);
+		prop = pointer_to_uint(sl->data);
 		shell_write(sh, gnet_prop_name(prop));
 		if (values) {
 			shell_write(sh, " = ");
@@ -118,7 +118,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 		shell_write(sh, "\n");
 	}
-	gm_slist_free_null(&props);
+	pslist_free_null(&props);
 
 	shell_write(sh, ".\n");
 	return REPLY_READY;

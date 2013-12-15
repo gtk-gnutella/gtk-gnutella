@@ -110,8 +110,8 @@ size_t dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg);
  * Key snapshot utilities.
  */
 
-GSList * dbmap_all_keys(const dbmap_t *dm);
-void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
+struct pslist *dbmap_all_keys(const dbmap_t *dm);
+void dbmap_free_all_keys(const dbmap_t *dm, struct pslist *keys);
 
 struct dbg_config;
 

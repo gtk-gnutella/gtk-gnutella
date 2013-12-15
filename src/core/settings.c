@@ -93,6 +93,7 @@
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/str.h"
@@ -2674,15 +2675,13 @@ local_addr_changed(property_t prop)
 		host_addr_is_ipv4_mapped(addr) ||
 		NET_TYPE_IPV6 == net
 	) {
-		GSList *sl_addrs, *sl;
+		pslist_t *sl_addrs, *sl;
 		host_addr_t old_addr = addr;
 
 		addr = zero_host_addr;
 		sl_addrs = host_addr_get_interface_addrs(net);
-		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
-			host_addr_t *addr_ptr;
-
-			addr_ptr = sl->data;
+		PSLIST_FOREACH(sl_addrs, sl) {
+			host_addr_t *addr_ptr = sl->data;
 			if (host_addr_is_routable(*addr_ptr)) {
 				addr = *addr_ptr;
 				break;

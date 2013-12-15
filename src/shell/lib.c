@@ -41,6 +41,7 @@
 #include "lib/hset.h"
 #include "lib/misc.h"
 #include "lib/pow2.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -51,7 +52,7 @@ static enum shell_reply
 shell_exec_lib_show_callout(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
-	GSList *info, *sl;
+	pslist_t *info, *sl;
 	str_t *s;
 	size_t maxlen = 0;
 
@@ -67,7 +68,7 @@ shell_exec_lib_show_callout(struct gnutella_shell *sh,
 	info = cq_info_list();
 	s = str_new(80);
 
-	GM_SLIST_FOREACH(info, sl) {
+	PSLIST_FOREACH(info, sl) {
 		cq_info_t *cqi = sl->data;
 		size_t len;
 
@@ -77,7 +78,7 @@ shell_exec_lib_show_callout(struct gnutella_shell *sh,
 		maxlen = MAX(len, maxlen);
 	}
 
-	GM_SLIST_FOREACH(info, sl) {
+	PSLIST_FOREACH(info, sl) {
 		cq_info_t *cqi = sl->data;
 
 		cq_info_check(cqi);
@@ -120,7 +121,7 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 		{ "w", &opt_w },
 	};
 	int parsed;
-	GSList *info, *sl;
+	pslist_t *info, *sl;
 	str_t *s, *f;
 	size_t maxlen = 0;
 	hset_t *seen = NULL;
@@ -152,7 +153,7 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 	 */
 
 	if (opt_w != NULL) {
-		GM_SLIST_FOREACH(info, sl) {
+		PSLIST_FOREACH(info, sl) {
 			file_object_info_t *foi = sl->data;
 			size_t len;
 			const char *p;
@@ -192,7 +193,7 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 
 	f = str_new(80);
 
-	GM_SLIST_FOREACH(info, sl) {
+	PSLIST_FOREACH(info, sl) {
 		file_object_info_t *foi = sl->data;
 
 		file_object_info_check(foi);

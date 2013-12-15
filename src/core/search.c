@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "search.h"
+
 #include "ban.h"
 #include "bogons.h"
 #include "ctl.h"
@@ -100,6 +101,8 @@
 #include "lib/mempcpy.h"
 #include "lib/nid.h"
 #include "lib/pow2.h"			/* For IS_POWER_OF_2() */
+#include "lib/pslist.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sbool.h"
 #include "lib/sectoken.h"
@@ -191,7 +194,7 @@ typedef struct search_ctrl {
 	const char *query;		/**< The normalized search query (atom) */
 	const char *name;		/**< The original search term (atom) */
 	time_t  time;			/**< Time when this search was started */
-	GSList *muids;			/**< Message UIDs of this search */
+	pslist_t *muids;		/**< Message UIDs of this search */
 	guess_t *guess;			/**< GUESS query running, NULL if none */
 	unsigned media_type;	/**< Media type filtering (0 means none) */
 
@@ -239,8 +242,8 @@ search_ctrl_check(const search_ctrl_t * const sch)
 /*
  * List of all searches, and of passive searches only.
  */
-static GSList *sl_search_ctrl;		/**< All searches */
-static GSList *sl_passive_ctrl;		/**< Only passive searches */
+static pslist_t *sl_search_ctrl;		/**< All searches */
+static pslist_t *sl_passive_ctrl;		/**< Only passive searches */
 
 /*
  * Table holding all the active MUIDs for all the searches, pointing back
@@ -612,7 +615,7 @@ search_got_results_listener_remove(search_got_results_listener_t l)
 }
 
 static void
-search_fire_got_results(GSList *sch_matched,
+search_fire_got_results(pslist_t *sch_matched,
 	const guid_t *muid, const gnet_results_set_t *rs)
 {
     g_assert(rs != NULL);
@@ -699,11 +702,11 @@ search_mark_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 static void
 search_mark_sent_to_connected_nodes(search_ctrl_t *sch)
 {
-	const GSList *sl;
-	struct gnutella_node *n;
+	const pslist_t *sl;
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		n = sl->data;
+	PSLIST_FOREACH(node_all_nodes(), sl) {
+		struct gnutella_node *n = sl->data;
+
 		if (NODE_IS_WRITABLE(n))
 			search_mark_sent_to_node(sch, n);
 	}
@@ -820,9 +823,9 @@ search_new_r_set(void)
 static void
 search_free_r_set(gnet_results_set_t *rs)
 {
-	GSList *m;
+	pslist_t *m;
 
-	for (m = rs->records; m; m = g_slist_next(m)) {
+	for (m = rs->records; m; m = pslist_next(m)) {
 		search_free_record(m->data);
 	}
 	atom_guid_free_null(&rs->guid);
@@ -831,7 +834,7 @@ search_free_r_set(gnet_results_set_t *rs)
 	atom_str_free_null(&rs->query);
 	search_free_proxies(rs);
 
-	gm_slist_free_null(&rs->records);
+	pslist_free_null(&rs->records);
 	WFREE(rs);
 }
 
@@ -1023,11 +1026,11 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 	hostiles_flags_t *hostile)
 {
 	htable_t *ht = htable_create(HASH_KEY_SELF, 0);
-	GSList *sl;
+	pslist_t *sl;
 	unsigned dups = 0;
 
 	/* Look for identical file index */
-	GM_SLIST_FOREACH(rs->records, sl) {
+	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc;
 		const void *key;
 
@@ -1045,7 +1048,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 	}
 
 	/* Look for identical SHA-1 */
-	GM_SLIST_FOREACH(rs->records, sl) {
+	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc;
 		const void *key;
 
@@ -1192,11 +1195,11 @@ static void
 search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 	hostiles_flags_t *hostile)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	uint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
 	bool logged = FALSE;
 
-	GM_SLIST_FOREACH(rs->records, sl) {
+	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
 		unsigned n_alt;
 
@@ -1444,7 +1447,7 @@ flag_all:
 	 * Mark all records of the set as spam.
 	 */
 
-	GM_SLIST_FOREACH(rs->records, sl) {
+	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
 		rc->flags |= SR_SPAM;
 	}
@@ -2377,7 +2380,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 		rc->size = size;
 		rc->filename = filename;
 
-		rs->records = g_slist_prepend(rs->records, rc);
+		rs->records = pslist_prepend(rs->records, rc);
 
 		/*
 		 * If we have a tag, parse it for extensions.
@@ -3018,10 +3021,10 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 			T_MRPH == rs->vcode.u32 &&
 			rs->query != NULL && !is_ascii_string(rs->query)
 		) {
-			GSList *sl;
+			pslist_t *sl;
 
 			rs->status |= ST_MORPHEUS_BOGUS;
-			GM_SLIST_FOREACH(rs->records, sl) {
+			PSLIST_FOREACH(rs->records, sl) {
 				gnet_record_t *record = sl->data;
 				record->flags |= SR_DONT_SHOW | SR_IGNORED;
 			}
@@ -3034,11 +3037,11 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 		 */
 
 		if (query != NULL && media_mask != 0) {
-			GSList *sl;
+			pslist_t *sl;
 			size_t matching = 0;
 			bool own_query = htable_contains(search_by_muid, muid);
 
-			GM_SLIST_FOREACH(rs->records, sl) {
+			PSLIST_FOREACH(rs->records, sl) {
 				gnet_record_t *rc = sl->data;
 				unsigned mask = share_filename_media_mask(rc->filename);
 
@@ -3881,7 +3884,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	search_qhv_fill(sch, query_hashvec);
 
 	if (sbool_get(sch->whats_new)) {
-		GSList *nodes;
+		pslist_t *nodes;
 
 		if (!search_whats_new_can_reissue())
 			goto cleanup;
@@ -3895,7 +3898,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 			pmsg_free(mb);
 			search_last_whats_new = tm_time();
 		}
-		g_slist_free(nodes);
+		pslist_free(nodes);
 	} else {
 		/*
 		 * Enqueue search in global SQ for later dynamic querying dispatching.
@@ -3964,17 +3967,17 @@ search_add_new_muid(search_ctrl_t *sch, guid_t *muid)
 		search_reset_sent_node_ids(sch);
 	}
 
-	sch->muids = g_slist_prepend(sch->muids, muid);
+	sch->muids = pslist_prepend(sch->muids, muid);
 	htable_insert(search_by_muid, muid, sch);
 
 	/*
 	 * If we got more than MUID_MAX entries in the list, chop last items.
 	 */
 
-	count = g_slist_length(sch->muids);
+	count = pslist_length(sch->muids);
 
 	while (count-- > MUID_MAX) {
-		GSList *last = g_slist_last(sch->muids);
+		pslist_t *last = pslist_last(sch->muids);
 		if (sch->guess != NULL && guess_is_search_muid(last->data)) {
 			/*
 			 * Do not remove an active GUESS MUID or we would not be
@@ -3986,13 +3989,13 @@ search_add_new_muid(search_ctrl_t *sch, guid_t *muid)
 			 * instead.
 			 */
 			g_assert(count >= 1);
-			last = g_slist_nth(sch->muids, count - 1);
+			last = pslist_nth(sch->muids, count - 1);
 			g_assert(!guess_is_search_muid(last->data));
 		}
 		htable_remove(search_by_muid, last->data);
 		wfree(last->data, GUID_RAW_SIZE);
-		sch->muids = g_slist_remove_link(sch->muids, last);
-		g_slist_free_1(last);
+		sch->muids = pslist_remove_link(sch->muids, last);
+		pslist_free_1(last);
 	}
 }
 
@@ -4318,10 +4321,10 @@ search_notify_closed(gnet_search_t sh)
 static void
 search_dequeue_all_nodes(gnet_search_t sh)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+	PSLIST_FOREACH(node_all_nodes(), sl) {
+		gnutella_node_t *n = sl->data;
 		squeue_t *sq = NODE_SQUEUE(n);
 
 		if (sq)
@@ -4456,7 +4459,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 static void
 search_results_set_flag_records(gnet_results_set_t *rs)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	bool need_push = FALSE;
 
 	if (rs->guid != NULL && !guid_is_blank(rs->guid)) {
@@ -4465,7 +4468,7 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 		}
 	}
 
-	for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
+	for (sl = rs->records; NULL != sl; sl = pslist_next(sl)) {
 		shared_file_t *sf;
 		gnet_record_t *rc = sl->data;
 
@@ -4528,12 +4531,12 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 static void
 search_results_set_auto_download(gnet_results_set_t *rs)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	if (!GNET_PROPERTY(auto_download_identical))
 		return;
 
-	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
+	for (sl = rs->records; sl; sl = pslist_next(sl)) {
 		gnet_record_t *rc = sl->data;
 		fileinfo_t *fi;
 
@@ -4589,8 +4592,8 @@ void
 search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 {
 	gnet_results_set_t *rs;
-	GSList *search = NULL;
-	GSList *sl;
+	pslist_t *search = NULL;
+	pslist_t *sl;
 	hostiles_flags_t flags;
 
 	rs = get_results_set(n, TRUE, &flags);
@@ -4607,7 +4610,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 		search_ctrl_check(sch);
 		
 		if (!sbool_get(sch->frozen))
-			search = g_slist_prepend(search,
+			search = pslist_prepend(search,
 						uint_to_pointer(sch->search_handle));
 	}
 
@@ -4619,13 +4622,13 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	if (GNET_PROPERTY(browse_copied_to_passive)) {
 		uint32 max_items = GNET_PROPERTY(passive_search_max_results);
 
-		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
+		for (sl = sl_passive_ctrl; sl != NULL; sl = pslist_next(sl)) {
 			search_ctrl_t *sch = sl->data;
 
 			search_ctrl_check(sch);
 
 			if (!sbool_get(sch->frozen) && sch->items < max_items)
-				search = g_slist_prepend(search,
+				search = pslist_prepend(search,
 					uint_to_pointer(sch->search_handle));
 		}
 	}
@@ -4634,7 +4637,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 		search_results_set_flag_records(rs);
 		search_results_set_auto_download(rs);
 		search_fire_got_results(search, NULL, rs);
-		gm_slist_free_null(&search);
+		pslist_free_null(&search);
 	}
 
 	search_free_r_set(rs);
@@ -4651,11 +4654,11 @@ bool
 search_results(gnutella_node_t *n, int *results)
 {
 	gnet_results_set_t *rs;
-	GSList *sl;
+	pslist_t *sl;
 	bool drop_it = FALSE;
 	bool forward_it = TRUE;
 	bool dispatch_it = TRUE;
-	GSList *selected_searches = NULL;
+	pslist_t *selected_searches = NULL;
 	uint32 max_items;
 	hostiles_flags_t flags;
 
@@ -4668,13 +4671,13 @@ search_results(gnutella_node_t *n, int *results)
 
 	max_items = GNET_PROPERTY(passive_search_max_results);
 
-	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = sl_passive_ctrl; sl != NULL; sl = pslist_next(sl)) {
 		search_ctrl_t *sch = sl->data;
 
 		search_ctrl_check(sch);
 
 		if (!sbool_get(sch->frozen) && sch->items < max_items)
-			selected_searches = g_slist_prepend(selected_searches,
+			selected_searches = pslist_prepend(selected_searches,
 						uint_to_pointer(sch->search_handle));
 	}
 
@@ -4686,7 +4689,7 @@ search_results(gnutella_node_t *n, int *results)
 		max_items = sch ? search_max_results_for_ui(sch) : 0;
 
 		if (sch && !sbool_get(sch->frozen) && sch->items < max_items)
-			selected_searches = g_slist_prepend(selected_searches,
+			selected_searches = pslist_prepend(selected_searches,
 				uint_to_pointer(sch->search_handle));
 	}
 
@@ -4867,7 +4870,7 @@ search_results(gnutella_node_t *n, int *results)
 					g_carp("%s(): GUESS search %s not found by MUID",
 						G_STRFUNC, guid_to_string(muid));
 				} else {
-					void *data = g_slist_find(selected_searches,
+					void *data = pslist_find(selected_searches,
 						uint_to_pointer(sch->search_handle));
 					if (NULL == data) {
 						g_carp("%s(): GUESS search %s not selected!",
@@ -4889,7 +4892,7 @@ search_results(gnutella_node_t *n, int *results)
 		 * Record activity on each search to which we're dispatching results.
 		 */
 
-		GM_SLIST_FOREACH(selected_searches, sl) {
+		PSLIST_FOREACH(selected_searches, sl) {
 			gnet_search_t sh = pointer_to_uint(sl->data);
 			search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -4900,7 +4903,7 @@ search_results(gnutella_node_t *n, int *results)
     search_free_r_set(rs);
 
 final_cleanup:
-	g_slist_free(selected_searches);
+	pslist_free(selected_searches);
 
 	return drop_it || !forward_it;
 }
@@ -4982,7 +4985,7 @@ search_dissociate_all_sha1(search_ctrl_t *sch)
 
 struct search_sha1_context {
 	gnet_search_t sh;
-	GSList *sl;
+	pslist_t *sl;
 };
 
 /**
@@ -4997,7 +5000,7 @@ search_add_associated_sha1(const void *key, void *value, void *data)
 	struct search_sha1_context *ctx = data;
 
 	if (sh == ctx->sh) {
-		ctx->sl = gm_slist_prepend_const(ctx->sl, sha1);
+		ctx->sl = pslist_prepend_const(ctx->sl, sha1);
 	}
 }
 
@@ -5084,7 +5087,7 @@ search_dissociate_sha1(const struct sha1 *sha1)
 /**
  * @return list of SHA1 associated with a given search, NULL if none.
  */
-GSList *
+pslist_t *
 search_associated_sha1(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_probe_by_handle(sh);
@@ -5146,10 +5149,10 @@ search_close(gnet_search_t sh)
      *      --BLUE 26/05/2002
      */
 
-	sl_search_ctrl = g_slist_remove(sl_search_ctrl, sch);
+	sl_search_ctrl = pslist_remove(sl_search_ctrl, sch);
 
 	if (sbool_get(sch->passive))
-		sl_passive_ctrl = g_slist_remove(sl_passive_ctrl, sch);
+		sl_passive_ctrl = pslist_remove(sl_passive_ctrl, sch);
 
 	if (sbool_get(sch->browse) && sch->download != NULL)
 		download_abort_browse_host(sch->download, sh);
@@ -5161,13 +5164,13 @@ search_close(gnet_search_t sh)
 		cq_periodic_remove(&sch->reissue_ev);
 
 		if (sch->muids) {
-			GSList *sl;
+			pslist_t *sl;
 
-			for (sl = sch->muids; sl; sl = g_slist_next(sl)) {
+			for (sl = sch->muids; sl; sl = pslist_next(sl)) {
 				htable_remove(search_by_muid, sl->data);
 				wfree(sl->data, GUID_RAW_SIZE);
 			}
-			gm_slist_free_null(&sch->muids);
+			pslist_free_null(&sch->muids);
 		}
 
 		search_free_sent_nodes(sch);
@@ -5494,10 +5497,10 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 		sch->sent_node_ids = hset_create_any(nid_hash, nid_hash2, nid_equal);
 	}
 
-	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
+	sl_search_ctrl = pslist_prepend(sl_search_ctrl, sch);
 
 	if (sbool_get(sch->passive))
-		sl_passive_ctrl = g_slist_prepend(sl_passive_ctrl, sch);
+		sl_passive_ctrl = pslist_prepend(sl_passive_ctrl, sch);
 
 	*ptr = sch->search_handle;
 	return SEARCH_NEW_SUCCESS;
@@ -6094,7 +6097,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	rc->tag = atom_str_get(shared_file_path(sf));
 
 	rc->create_time = shared_file_creation_time(sf);
-	rs->records = g_slist_prepend(rs->records, rc);
+	rs->records = pslist_prepend(rs->records, rc);
 	rs->num_recs++;
 }
 
@@ -6217,13 +6220,13 @@ search_locally(gnet_search_t sh, const char *query)
 	}
 
 	if (rs->records) {	
-		GSList *search;
+		pslist_t *search;
 		
 		rs->status |= ST_PARSED_TRAILER;	/* Avoid <unparsed> in the GUI */
-		search = g_slist_prepend(NULL, uint_to_pointer(sch->search_handle));
+		search = pslist_prepend(NULL, uint_to_pointer(sch->search_handle));
 		/* Dispatch browse results using a NULL MUID since it's not GUESS */
 		search_fire_got_results(search, NULL, rs);
-		gm_slist_free_null(&search);
+		pslist_free_null(&search);
 	}
     search_free_r_set(rs);
 
@@ -6246,9 +6249,9 @@ search_handle_magnet(const char *url)
 
 	res = magnet_parse(url, NULL);
 	if (res) {
-		GSList *sl;
+		pslist_t *sl;
 
-		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
+		for (sl = res->searches; sl != NULL; sl = pslist_next(sl)) {
 			const char *query;
 
 			/* Note that SEARCH_F_LITERAL is used to prevent that these
@@ -6313,7 +6316,7 @@ search_request_listener_emit(
  */
 struct query_context {
 	hset_t *shared_files;
-	GSList *files;				/**< List of shared_file_t that match */
+	pslist_t *files;			/**< List of shared_file_t that match */
 	int found;
 	unsigned media_mask;		/**< If non-zero, which media types they want */
 	unsigned partials:1;		/**< Do they want partial results? */
@@ -6409,7 +6412,7 @@ got_match(void *context, void *data)
 		}
 
 		shared_file_mark_found(qctx, sf);
-		qctx->files = g_slist_prepend(qctx->files, shared_file_ref(sf));
+		qctx->files = pslist_prepend(qctx->files, shared_file_ref(sf));
 		qctx->found++;
 		return TRUE;
 	} else {

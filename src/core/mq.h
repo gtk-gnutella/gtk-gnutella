@@ -42,6 +42,7 @@
 #include "if/core/mq.h"
 
 #include "lib/cq.h"
+#include "lib/plist.h"
 #include "lib/pmsg.h"
 #include "lib/slist.h"
 
@@ -58,8 +59,8 @@ struct mq_ops {
 
 struct mq_cops {
 	void (*puthere)(mqueue_t *q, pmsg_t *mb, int msize);
-	void (*qlink_remove)(mqueue_t *q, GList *l);
-	GList *(*rmlink_prev)(mqueue_t *q, GList *l, int size);
+	void (*qlink_remove)(mqueue_t *q, plist_t *l);
+	plist_t *(*rmlink_prev)(mqueue_t *q, plist_t *l, int size);
 	void (*update_flowc)(mqueue_t *q);
 };
 
@@ -78,7 +79,7 @@ enum mq_magic {
  * A message queue.
  *
  * The queue itself is a two-way list, whose head is kept in `qhead' and the
- * tail in `qtail', since a GList does not keep that information and we
+ * tail in `qtail', since a plist_t does not keep that information and we
  * don't want to traverse the list each time.  Manual bookkeeping required.
  *
  * Flow control is triggered when the size reaches the high watermark,
@@ -99,7 +100,7 @@ struct mqueue {
 	const struct mq_ops *ops;		/**< Polymorphic operations */
 	const struct mq_cops *cops;		/**< Common operations */
 	txdrv_t *tx_drv;				/**< Network TX stack driver */
-	GList *qhead, *qtail, **qlink;
+	plist_t *qhead, *qtail, **qlink;
 	slist_t *qwait;			/**< Waiting queue during putq recursions */
 	cevent_t *swift_ev;		/**< Callout queue event in "swift" mode */
 	const uint32 *debug;	/**< Debug config variable for this queue */

@@ -93,14 +93,15 @@ event_new(const char *name)
 void
 event_destroy(struct event *evt)
 {
-    GSList *sl;
+    pslist_t *sl;
 
 	spinlock(&evt->lock);
 
-    for (sl = evt->subscribers; sl; sl = g_slist_next(sl))
+	PSLIST_FOREACH(evt->subscribers, sl) {
         subscriber_destroy(sl->data);
+	}
 
-	g_slist_free(evt->subscribers);
+	pslist_free(evt->subscribers);
 	evt->subscribers = NULL;
 	evt->destroyed = TRUE;
 
@@ -114,7 +115,7 @@ event_add_subscriber(struct event *evt, callback_fn_t cb,
 	enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
-	GSList *sl;
+	pslist_t *sl;
 
     g_assert(evt != NULL);
     g_assert(cb != NULL);
@@ -123,7 +124,7 @@ event_add_subscriber(struct event *evt, callback_fn_t cb,
     s = subscriber_new(cb, t, interval);
 
 	spinlock(&evt->lock);
-	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(evt->subscribers, sl) {
 		struct subscriber *sb = sl->data;
 		g_assert(sb != NULL);
 
@@ -132,14 +133,14 @@ event_add_subscriber(struct event *evt, callback_fn_t cb,
 			G_STRFUNC, stacktrace_function_name(cb));
 	}
 
-    evt->subscribers = g_slist_prepend(evt->subscribers, s);
+    evt->subscribers = pslist_prepend(evt->subscribers, s);
 	spinunlock(&evt->lock);
 }
 
 void
 event_remove_subscriber(struct event *evt, callback_fn_t cb)
 {
-    GSList *sl;
+	pslist_t *sl;
 	struct subscriber *s = NULL;
 
     g_assert(evt != NULL);
@@ -156,11 +157,11 @@ event_remove_subscriber(struct event *evt, callback_fn_t cb)
 		return;	
 	}
 
-	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
-			s = sl->data;
-			g_assert(s != NULL);
-			if G_UNLIKELY(s->cb == cb)
-				goto found;
+	PSLIST_FOREACH(evt->subscribers, sl) {
+		s = sl->data;
+		g_assert(s != NULL);
+		if G_UNLIKELY(s->cb == cb)
+			goto found;
 	}
 
 	g_error("%s(): attempt to remove unknown callback %s()",
@@ -169,7 +170,7 @@ event_remove_subscriber(struct event *evt, callback_fn_t cb)
 found:
 	g_assert(s->cb == cb);
 
-    evt->subscribers = g_slist_remove(evt->subscribers, s);
+    evt->subscribers = pslist_remove(evt->subscribers, s);
 	spinunlock(&evt->lock);
 
 	subscriber_destroy(s);
@@ -181,7 +182,7 @@ event_subscriber_count(struct event *evt)
 	uint len;
 
 	spinlock(&evt->lock);
-	len = g_slist_length(evt->subscribers);
+	len = pslist_length(evt->subscribers);
 	spinunlock(&evt->lock);
 
 	return len;

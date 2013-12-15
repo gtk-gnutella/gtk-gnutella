@@ -56,6 +56,7 @@
 #include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
@@ -1374,7 +1375,7 @@ shell_timer(time_t now)
 	struct gnutella_shell *sh;
 
 	if (timeout > 0) {
-		GSList *to_remove = NULL, *sl;
+		pslist_t *to_remove = NULL, *sl;
 
 		ELIST_FOREACH_DATA(&shells, sh) {
 			shell_check(sh);
@@ -1382,14 +1383,14 @@ shell_timer(time_t now)
 				0 == (SOCK_F_LOCAL & sh->socket->flags) &&
 				delta_time(now, sh->last_update) > timeout
 			) {
-				to_remove = g_slist_prepend(to_remove, sh);
+				to_remove = pslist_prepend(to_remove, sh);
 			}
 		}
-		GM_SLIST_FOREACH(to_remove, sl) {
+		PSLIST_FOREACH(to_remove, sl) {
 			sh = sl->data;
 			shell_destroy(sh);
 		}
-		gm_slist_free_null(&to_remove);
+		pslist_free_null(&to_remove);
 	}
 }
 

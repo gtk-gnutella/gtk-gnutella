@@ -66,17 +66,18 @@
 #endif
 
 #include "entropy.h"
+
 #include "bigint.h"
 #include "compat_misc.h"
 #include "compat_usleep.h"
 #include "endian.h"
 #include "getgateway.h"
 #include "gethomedir.h"
-#include "glib-missing.h"		/* For GM_SLIST_FOREACH() */
 #include "host_addr.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "pslist.h"
 #include "rand31.h"
 #include "sha1.h"
 #include "shuffle.h"
@@ -828,14 +829,14 @@ static void
 entropy_collect_host(SHA1Context *ctx)
 {
 	const char *name;
-	GSList *hosts, *sl;
+	pslist_t *hosts, *sl;
 
 	name = local_hostname();
 	sha1_feed_string(ctx, name);
 
 	hosts = name_to_host_addr(name, NET_TYPE_NONE);
 
-	GM_SLIST_FOREACH(hosts, sl) {
+	PSLIST_FOREACH(hosts, sl) {
 		host_addr_t *addr = sl->data;
 		struct packed_host_addr packed = host_addr_pack(*addr);
 

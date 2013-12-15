@@ -129,8 +129,8 @@ void cq_idle_remove(cidle_t **ci_ptr);
 
 const char *cq_time_to_string(cq_time_t t);
 
-GSList *cq_info_list(void);
-void cq_info_list_free_null(GSList **sl_ptr);
+struct pslist *cq_info_list(void);
+void cq_info_list_free_null(struct pslist **sl_ptr);
 
 #endif	/* _cq_h_ */
 

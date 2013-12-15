@@ -26,7 +26,7 @@
  * @ingroup lib
  * @file
  *
- * Handling of lists on a slightly higher level than GList.
+ * Handling of lists on a slightly higher level than plist_t.
  *
  * The purpose of this list functions is providing efficient appending,
  * prepending of items to a list structure, fast lookup of the list
@@ -45,10 +45,13 @@
 #include "common.h"
 
 #include "list.h"
+
+#include "log.h"
 #include "misc.h"
-#include "glib-missing.h"
 #include "mutex.h"
+#include "plist.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the tail header included */
 
 #if 0
@@ -66,8 +69,8 @@ typedef enum {
 struct list {
 	list_magic_t magic;
 	int refcount;
-	GList *head;
-	GList *tail;
+	plist_t *head;
+	plist_t *tail;
 	mutex_t *lock;
 	int length;
 	uint stamp;
@@ -76,7 +79,7 @@ struct list {
 struct list_iter {
 	list_iter_magic_t magic;
 	list_t *list;
-	GList *prev, *next;
+	plist_t *prev, *next;
 	void *data;
 	uint stamp;
 };
@@ -123,10 +126,10 @@ static inline void
 list_regression(const list_t *list)
 {
 	list_synchronize(list);
-	g_assert(g_list_first(list->head) == list->head);
-	g_assert(g_list_first(list->tail) == list->head);
-	g_assert(g_list_last(list->head) == list->tail);
-	g_assert(g_list_length(list->head) == (uint) list->length);
+	g_assert(plist_first(list->head) == list->head);
+	g_assert(plist_first(list->tail) == list->head);
+	g_assert(plist_last(list->head) == list->tail);
+	g_assert(plist_length(list->head) == (uint) list->length);
 	list_unsynchronize(list);
 }
 #else
@@ -219,12 +222,12 @@ list_free(list_t **list_ptr)
 		list_regression(list);
 
 		if (--list->refcount != 0) {
-			g_critical("%s(): list is still referenced! "
+			s_critical("%s(): list is still referenced! "
 				"(list=%p, list->refcount=%d)",
 				G_STRFUNC, cast_to_constpointer(list), list->refcount);
 		}
 
-		gm_list_free_null(&list->head);
+		plist_free_null(&list->head);
 		list->tail = NULL;
 
 		list->magic = 0;
@@ -294,8 +297,8 @@ list_append(list_t *list, const void *key)
 
 	list_synchronize(list);
 
-	list->tail = g_list_append(list->tail, deconstify_pointer(key));
-	list->tail = g_list_last(list->tail);
+	list->tail = plist_append(list->tail, deconstify_pointer(key));
+	list->tail = plist_last(list->tail);
 	if (!list->head) {
 		list->head = list->tail;
 	}
@@ -318,7 +321,7 @@ list_prepend(list_t *list, const void *key)
 
 	list_synchronize(list);
 
-	list->head = g_list_prepend(list->head, deconstify_pointer(key));
+	list->head = plist_prepend(list->head, deconstify_pointer(key));
 	if (!list->tail) {
 		list->tail = list->head;
 	}
@@ -334,7 +337,7 @@ list_prepend(list_t *list, const void *key)
  * Insert `key' into the list.
  */
 void
-list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
+list_insert_sorted(list_t *list, const void *key, cmp_fn_t func)
 {
 	list_check(list);
 	g_assert(func);
@@ -343,10 +346,9 @@ list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
 
 	g_assert(1 == list->refcount);
 
-	list->head = g_list_insert_sorted(list->head,
-		deconstify_pointer(key), func);
+	list->head = plist_insert_sorted(list->head, deconstify_pointer(key), func);
 	if (list->tail) {
-		list->tail = g_list_last(list->tail);
+		list->tail = plist_last(list->tail);
 	} else {
 		list->tail = list->head;
 	}
@@ -365,27 +367,23 @@ list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
 bool
 list_remove(list_t *list, const void *key)
 {
-	GList *item;
+	plist_t *item;
 	bool found;
 
 	list_check(list);
 
 	list_synchronize(list);
 
-	item = g_list_find(list->head, deconstify_pointer(key));
+	item = plist_find(list->head, deconstify_pointer(key));
 	if (item) {
 
 		if (item == list->head) {
-			list->head = g_list_next(list->head);
+			list->head = plist_next(list->head);
 		}
 		if (item == list->tail) {
-			list->tail = g_list_previous(list->tail);
+			list->tail = plist_prev(list->tail);
 		}
-		/* @note: Must use IGNORE_RESULT because
-	 	 *        g_list_delete_link() is incorrectly tagged to
-	 	 *        cause a GCC compiler warning otherwise.
-	 	 */
-		IGNORE_RESULT(g_list_delete_link(item, item));
+		plist_delete_link(item, item);
 
 		list->length--;
 		list->stamp++;
@@ -406,7 +404,7 @@ list_remove(list_t *list, const void *key)
 void *
 list_shift(list_t *list)
 {
-	GList *item;
+	plist_t *item;
 	void *key;
 
 	list_check(list);
@@ -590,7 +588,7 @@ void *
 list_iter_next(list_iter_t *iter)
 {
 	void *data;
-	GList *next;
+	plist_t *next;
 
 	list_iter_check(iter);
 
@@ -600,8 +598,8 @@ list_iter_next(list_iter_t *iter)
 
 		data = iter->data = next->data;
 		list_synchronize(list);
-		iter->prev = g_list_previous(next);
-		iter->next = g_list_next(next);
+		iter->prev = plist_prev(next);
+		iter->next = plist_next(next);
 		list_unsynchronize(list);
 	} else {
 		data = NULL;
@@ -632,7 +630,7 @@ void *
 list_iter_previous(list_iter_t *iter)
 {
 	void *data;
-	GList *prev;
+	plist_t *prev;
 
 	list_iter_check(iter);
 
@@ -642,8 +640,8 @@ list_iter_previous(list_iter_t *iter)
 
 		data = iter->data = prev->data;
 		list_synchronize(list);
-		iter->next = g_list_next(prev);
-		iter->prev = g_list_previous(prev);
+		iter->next = plist_next(prev);
+		iter->prev = plist_prev(prev);
 		list_unsynchronize(list);
 	} else {
 		data = NULL;
@@ -707,24 +705,27 @@ list_iter_free(list_iter_t **iter_ptr)
  */
 bool
 list_contains(const list_t *list, const void *key,
-	GEqualFunc func, void **orig_key)
+	eq_fn_t func, void **orig_key)
 {
-	GList *item;
+	plist_t *item;
+	bool found = FALSE;
 
 	list_check(list);
 	g_assert(func);
 
 	list_synchronize(list);
 
-	for (item = list->head; NULL != item; item = g_list_next(item)) {
+	PLIST_FOREACH(list->head, item) {
 		if (func(key, item->data)) {
 			if (orig_key != NULL) {
 				*orig_key = item->data;
 			}
-			list_return(list, TRUE);
+			found = TRUE;
+			break;
 		}
 	}
-	list_return(list, FALSE);
+
+	list_return(list, found);
 }
 
 /**
@@ -738,7 +739,7 @@ list_contains_identical(const list_t *list, const void *key)
 	list_check(list);
 
 	list_synchronize(list);
-	contains = NULL != g_list_find(list->head, deconstify_pointer(key));
+	contains = NULL != plist_find(list->head, deconstify_pointer(key));
 	list_return(list, contains);
 }
 
@@ -753,7 +754,7 @@ list_foreach(const list_t *list, GFunc func, void *user_data)
 
 	list_synchronize(list);
 
-	g_list_foreach(list->head, func, user_data);
+	plist_foreach(list->head, func, user_data);
 
 	list_regression(list);
 	list_return_void(list);
@@ -783,7 +784,7 @@ list_free_all(list_t **list_ptr, list_destroy_cb freecb)
 		list_check(list);
 		list_synchronize(list);
 
-		G_LIST_FOREACH_WITH_DATA(list->head, list_freecb_wrapper,
+		PLIST_FOREACH_CALL_DATA(list->head, list_freecb_wrapper,
 			cast_func_to_pointer(freecb));
 
 		list_unsynchronize(list);

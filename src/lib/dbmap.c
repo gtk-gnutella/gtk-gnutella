@@ -45,16 +45,18 @@
 
 #include "common.h"
 
-#include "sdbm/sdbm.h"
-
 #include "dbmap.h"
+
 #include "bstr.h"
+#include "pslist.h"
 #include "debug.h"
 #include "map.h"
 #include "pmsg.h"
 #include "stringify.h"			/* For compact_time() */
 #include "unsigned.h"			/* For size_is_non_negative() */
 #include "walloc.h"
+
+#include "sdbm/sdbm.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -927,7 +929,7 @@ dbmap_destroy(dbmap_t *dm)
 }
 
 struct insert_ctx {
-	GSList *sl;
+	pslist_t *sl;
 	const dbmap_t *dm;
 };
 
@@ -943,17 +945,17 @@ insert_key(void *key, void *unused_value, void *u)
 	(void) unused_value;
 
 	kdup = wcopy(key, dbmap_keylen(ctx->dm, key));
-	ctx->sl = g_slist_prepend(ctx->sl, kdup);
+	ctx->sl = pslist_prepend(ctx->sl, kdup);
 }
 
 /**
  * Snapshot all the constant-width keys, returning them in a singly linked list.
  * To free the returned keys, use the dbmap_free_all_keys() helper.
  */
-GSList *
+pslist_t *
 dbmap_all_keys(const dbmap_t *dm)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 
 	dbmap_check(dm);
 
@@ -985,7 +987,7 @@ dbmap_all_keys(const dbmap_t *dm)
 					continue;		/* Invalid key, corrupted file? */
 
 				kdup = wcopy(key.dptr, key.dsize);
-				sl = g_slist_prepend(sl, kdup);
+				sl = pslist_prepend(sl, kdup);
 			}
 			dbmap_sdbm_error_check(dm);
 		}
@@ -1001,14 +1003,14 @@ dbmap_all_keys(const dbmap_t *dm)
  * Helper routine to free list and keys returned by dbmap_all_keys().
  */
 void
-dbmap_free_all_keys(const dbmap_t *dm, GSList *keys)
+dbmap_free_all_keys(const dbmap_t *dm, pslist_t *keys)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	GM_SLIST_FOREACH(keys, sl) {
+	PSLIST_FOREACH(keys, sl) {
 		wfree(sl->data, dbmap_keylen(dm, sl->data));
 	}
-	g_slist_free(keys);
+	pslist_free(keys);
 }
 
 /**

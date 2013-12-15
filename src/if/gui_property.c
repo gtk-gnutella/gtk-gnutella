@@ -33,6 +33,7 @@
 #include "lib/eval.h"
 #include "lib/mutex.h"
 #include "lib/omalloc.h"
+#include "lib/pslist.h"
 
 #include "gui_property.h"
 
@@ -2923,7 +2924,7 @@ gui_prop_get_by_name(const char *name)
     return pointer_to_uint(htable_lookup(gui_property->by_name, name));
 }
 
-GSList *
+pslist_t *
 gui_prop_get_by_regex(const char *pattern, int *error)
 {
     return prop_get_by_regex(gui_property, pattern, error);

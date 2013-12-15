@@ -51,9 +51,9 @@
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fifo.h"
-#include "lib/glib-missing.h"
 #include "lib/hikset.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
@@ -85,7 +85,7 @@ struct oob_results {
 	cevent_t *ev_expire;	/**< Global expiration event */
 	cevent_t *ev_timeout;	/**< Reply waiting timeout */
 	const struct guid *muid;/**< (atom) MUID of the query that generated hits */
-	GSList *files;			/**< List of shared_file_t */
+	pslist_t *files;		/**< List of shared_file_t */
 	gnet_host_t dest;		/**< The host to which we must deliver */
 	int count;				/**< Amount of hits to deliver */
 	int notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
@@ -158,7 +158,7 @@ oob_results_check(const struct oob_results *r)
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
  */
 static struct oob_results *
-results_make(const struct guid *muid, GSList *files, int count,
+results_make(const struct guid *muid, pslist_t *files, int count,
 	gnet_host_t *to, bool secure, bool reliable, unsigned flags)
 {
 	static const struct oob_results zero_results;
@@ -208,7 +208,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 static void
 results_free_remove(struct oob_results *r)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	oob_results_check(r);
 	
@@ -231,11 +231,11 @@ results_free_remove(struct oob_results *r)
 		}
 		atom_guid_free_null(&r->muid);
 
-		for (sl = r->files; sl; sl = g_slist_next(sl)) {
+		for (sl = r->files; sl; sl = pslist_next(sl)) {
 			shared_file_t *sf = sl->data;
 			shared_file_unref(&sf);
 		}
-		gm_slist_free_null(&r->files);
+		pslist_free_null(&r->files);
 
 		g_assert(num_oob_records > 0);
 		num_oob_records--;
@@ -728,7 +728,7 @@ oob_send_reply_ind(struct oob_results *r)
  * @param flags			a combination of QHIT_F_* flags
  */
 void
-oob_got_results(struct gnutella_node *n, GSList *files,
+oob_got_results(struct gnutella_node *n, pslist_t *files,
 	int count, host_addr_t addr, uint16 port,
 	bool secure, bool reliable, unsigned flags)
 {

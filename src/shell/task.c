@@ -37,6 +37,7 @@
 
 #include "lib/ascii.h"
 #include "lib/bg.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"			/* For compact_time_ms() */
 #include "lib/thread.h"
@@ -53,7 +54,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 	};
 	int parsed;
 	str_t *s;
-	GSList *info, *sl;
+	pslist_t *info, *sl;
 	size_t maxlen = 0;
 
 	shell_check(sh);
@@ -77,7 +78,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 	s = str_new(80);
 
 	if (NULL == opt_s) {
-		GM_SLIST_FOREACH(info, sl) {
+		PSLIST_FOREACH(info, sl) {
 			bgtask_info_t *bi = sl->data;
 			size_t len;
 
@@ -89,7 +90,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 		maxlen++;
 	}
 
-	GM_SLIST_FOREACH(info, sl) {
+	PSLIST_FOREACH(info, sl) {
 		if (opt_s != NULL) {
 			bgsched_info_t *bsi = sl->data;
 

@@ -26,9 +26,11 @@
 
 #include "common.h"
 
-#include "lib/misc.h"
 #include "lib/hashlist.h"
+#include "lib/misc.h"
+#include "lib/pslist.h"
 #include "lib/vendors.h"
+
 #include "if/core/nodes.h"
 
 /***
@@ -117,7 +119,7 @@ typedef struct gnet_results_set {
 	const char *version;		/**< Version information (atom) */
 	const char *query;			/**< Optional: Original query string (atom) */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
-	GSList *records;
+	pslist_t *records;
 
 	time_t  stamp;				/**< Reception time of the hit */
 	vendor_code_t vcode;		/**< Vendor code */
@@ -186,7 +188,7 @@ typedef void (*search_request_listener_t) (
     query_type_t, const char *query, const host_addr_t addr, uint16);
 
 typedef void (*search_got_results_listener_t)
-    (GSList *, const struct guid *, const gnet_results_set_t *);
+    (pslist_t *, const struct guid *, const gnet_results_set_t *);
 
 typedef void (*search_status_change_listener_t)(gnet_search_t);
 
@@ -262,7 +264,7 @@ void search_request_listener_remove(search_request_listener_t);
 
 void search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
 void search_dissociate_sha1(const struct sha1 *sha1);
-GSList *search_associated_sha1(gnet_search_t sh);
+pslist_t *search_associated_sha1(gnet_search_t sh);
 unsigned search_associated_sha1_count(gnet_search_t sh);
 
 const char *search_media_mask_to_string(unsigned mask);

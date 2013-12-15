@@ -38,6 +38,7 @@
 #include "gtk-gnutella.h"
 
 #include "nodes.h"
+
 #include "alive.h"
 #include "ban.h"
 #include "bh_upload.h"
@@ -106,7 +107,6 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hash.h"
 #include "lib/hashlist.h"
@@ -121,6 +121,7 @@
 #include "lib/parse.h"
 #include "lib/pattern.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
 #include "lib/shuffle.h"
@@ -194,8 +195,8 @@
 
 const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
-static GSList *sl_nodes;
-static GSList *sl_up_nodes;
+static pslist_t *sl_nodes;
+static pslist_t *sl_up_nodes;
 static hikset_t *nodes_by_id;
 static hikset_t *nodes_by_guid;
 static gnutella_node_t *udp_node;
@@ -224,7 +225,7 @@ static void *no_metadata;
 #define NO_METADATA		(no_metadata)	/**< No metadata for host */
 
 static htable_t *unstable_servent = NULL;
-static GSList *unstable_servents = NULL;
+static pslist_t *unstable_servents = NULL;
 
 static aging_table_t *tcp_crawls;
 static aging_table_t *udp_crawls;
@@ -817,15 +818,15 @@ node_slow_timer(time_t now)
 	}
 
 	if (need_fw_check) {
-		GSList *sl;
-		GSList *candidates = NULL;
+		pslist_t *sl;
+		pslist_t *candidates = NULL;
 		unsigned count = 0;
 
-		GM_SLIST_FOREACH(sl_nodes, sl) {
+		PSLIST_FOREACH(sl_nodes, sl) {
 			gnutella_node_t *n = sl->data;
 
 			if (NODE_IS_ULTRA(n) && (n->attrs & NODE_A_CAN_VENDOR)) {
-				candidates = g_slist_prepend(candidates, n);
+				candidates = pslist_prepend(candidates, n);
 				count++;
 			}
 		}
@@ -838,8 +839,8 @@ node_slow_timer(time_t now)
 		if (count > 0) {
 			gnutella_node_t *picked[2];
 
-			picked[0] = g_slist_nth_data(candidates, random_value(count - 1));
-			picked[1] = g_slist_nth_data(candidates, random_value(count - 1));
+			picked[0] = pslist_nth_data(candidates, random_value(count - 1));
+			picked[1] = pslist_nth_data(candidates, random_value(count - 1));
 
 			node_check_local_firewalled_status(picked[0]);
 			if (picked[0] != picked[1])
@@ -1008,21 +1009,21 @@ node_slow_timer(time_t now)
 static bool
 node_error_cleanup(void *unused_x)
 {
-	GSList *sl;
-	GSList *to_remove = NULL;
+	pslist_t *sl;
+	pslist_t *to_remove = NULL;
 
 	(void) unused_x;
 
-	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = unstable_servents; sl != NULL; sl = pslist_next(sl)) {
 		node_bad_client_t *bad_node = sl->data;
 
 		g_assert(bad_node != NULL);
 
 		if (--bad_node->errors == 0)
-			to_remove = g_slist_prepend(to_remove, bad_node);
+			to_remove = pslist_prepend(to_remove, bad_node);
 	}
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl != NULL; sl = pslist_next(sl)) {
 		node_bad_client_t *bad_node = sl->data;
 
 		g_assert(bad_node != NULL);
@@ -1032,13 +1033,13 @@ node_error_cleanup(void *unused_x)
 			g_warning("[nodes up] Unbanning client: %s", bad_node->vendor);
 
 		htable_remove(unstable_servent, bad_node->vendor);
-		unstable_servents = g_slist_remove(unstable_servents, bad_node);
+		unstable_servents = pslist_remove(unstable_servents, bad_node);
 
 		atom_str_free_null(&bad_node->vendor);
 		WFREE(bad_node);
 	}
 
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 
 	return TRUE;		/* Keep calling */
 }
@@ -1229,7 +1230,7 @@ node_missing_vmsg(gnutella_node_t *n)
 void
 node_timer(time_t now)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	/*
 	 * Asynchronously react to current peermode change.
@@ -1248,8 +1249,8 @@ node_timer(time_t now)
 		 * NB:	As the list `sl_nodes' might be modified, the next
 		 * 		link has to be before any changes might apply!
 		 */
- 		sl = g_slist_next(sl);
 
+		sl = pslist_next(sl);
 		node_tls_refresh(n);
 
 		/*
@@ -1663,11 +1664,11 @@ node_init(void)
 void
 node_set_socket_rx_size(int rx_size)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(rx_size > 0);
 
-	for (sl = sl_nodes; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl != NULL; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (n->socket) {
@@ -1898,7 +1899,7 @@ node_real_remove(gnutella_node_t *n)
      */
     node_fire_node_removed(n);
 
-	sl_nodes = g_slist_remove(sl_nodes, n);
+	sl_nodes = pslist_remove(sl_nodes, n);
 	hikset_remove(nodes_by_id, NODE_ID(n));
 
 	/*
@@ -2017,7 +2018,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	}
 
 	if (NODE_IS_ULTRA(n)) {
-		sl_up_nodes = g_slist_remove(sl_up_nodes, n);
+		sl_up_nodes = pslist_remove(sl_up_nodes, n);
 	}
 	if (n->routing_data) {
 		routing_node_remove(n);
@@ -2315,7 +2316,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 		bad_client->errors = 0;
 		bad_client->vendor = atom_str_get(n->vendor);
 		htable_insert(unstable_servent, bad_client->vendor, bad_client);
-		unstable_servents = g_slist_prepend(unstable_servents, bad_client);
+		unstable_servents = pslist_prepend(unstable_servents, bad_client);
 	}
 
 	g_assert(bad_client != NULL);
@@ -2345,7 +2346,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 	uint up_cnt = 0;
 	uint leaf_cnt = 0;
 	uint normal_cnt = 0;
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(UNSIGNED(GNET_PROPERTY(unique_nodes) <= 100));
 
@@ -2359,7 +2360,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 	)
 		return FALSE;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *node = sl->data;
 
 		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
@@ -2459,7 +2460,7 @@ node_reserve_slot(struct gnutella_node *n)
 	uint up_cnt = 0;		/* GTKG UPs */
 	uint leaf_cnt = 0;		/* GTKG leafs */
 	uint normal_cnt = 0;	/* GTKG normal nodes */
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(UNSIGNED(GNET_PROPERTY(reserve_gtkg_nodes)) <= 100);
 
@@ -2644,13 +2645,13 @@ node_remove(struct gnutella_node *n, const char *reason, ...)
 uint
 node_remove_by_addr(const host_addr_t addr, uint16 port)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	uint n_removed = 0;
 
 	for (sl = sl_nodes; sl; /* empty */) {
 		const struct gnutella_node *n = sl->data;
 
-		sl = g_slist_next(sl);	/* node_remove_by_id() will alter sl_nodes */
+		sl = pslist_next(sl);	/* node_remove_by_id() will alter sl_nodes */
 
 		if ((!port || n->port == port) && host_addr_equal(n->addr, addr)) {
 			node_remove_by_id(NODE_ID(n));
@@ -2999,9 +3000,9 @@ node_is_connected(const host_addr_t addr, uint16 port, bool incoming)
      *     -- Richard, 29/04/2004
      */
     if (incoming) {
-		const GSList *sl;
+		const pslist_t *sl;
 
-        for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+        for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
             const struct gnutella_node *n = sl->data;
 
             if (
@@ -3178,7 +3179,7 @@ node_crawler_headers(struct gnutella_node *n)
 	int lx = 0;						/* Index in `leaves' */
 	int uw = 0;						/* Amount of ultras written */
 	int lw = 0;						/* Amount of leaves written */
-	GSList *sl;
+	pslist_t *sl;
 	int maxsize;
 	int rw;
 	int count;
@@ -3193,7 +3194,7 @@ node_crawler_headers(struct gnutella_node *n)
 		leaves = walloc(leaves_len);
 	}
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		gnutella_node_t *cn = sl->data;
 
 		if (!NODE_IS_ESTABLISHED(cn))
@@ -3475,12 +3476,12 @@ node_send_error(struct gnutella_node *n, int code, const char *msg, ...)
 void
 node_became_firewalled(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 	uint sent = 0;
 
 	g_assert(GNET_PROPERTY(is_firewalled));
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (socket_listen_port() && sent < 10 && n->attrs & NODE_A_CAN_VENDOR) {
@@ -3507,7 +3508,7 @@ node_became_firewalled(void)
 void
 node_became_udp_firewalled(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 	uint sent = 0;
 
 	g_assert(GNET_PROPERTY(is_udp_firewalled));
@@ -3515,7 +3516,7 @@ node_became_udp_firewalled(void)
 	if (0 == socket_listen_port())
 		return;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (0 == (n->attrs & NODE_A_CAN_VENDOR))
@@ -3897,7 +3898,7 @@ node_is_now_connected(struct gnutella_node *n)
 	n->flags |= NODE_F_VALID;
 	n->last_update = n->connect_date = tm_time();
 	if (NODE_IS_ULTRA(n)) {
-		sl_up_nodes = g_slist_prepend(sl_up_nodes, n);
+		sl_up_nodes = pslist_prepend(sl_up_nodes, n);
 	}
 
 	connected_node_cnt++;
@@ -4263,7 +4264,7 @@ node_got_bye(struct gnutella_node *n)
 void
 node_set_online_mode(bool on)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	if (allow_gnet_connections == on)		/* No change? */
 		return;
@@ -4277,7 +4278,7 @@ node_set_online_mode(bool on)
 	 * They're disallowing Gnutella connections.
 	 */
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (n->status == GTA_NODE_REMOVING)
@@ -7618,7 +7619,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 * leave a trail in the GUI.
 	 */
 
-	sl_nodes = g_slist_prepend(sl_nodes, n);
+	sl_nodes = pslist_prepend(sl_nodes, n);
 
 	if (n->status != GTA_NODE_REMOVING) {
 		node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
@@ -8377,7 +8378,7 @@ reset_header:
 clean_dest:
 	search_request_info_free_null(&sri);
 	if (dest.type == ROUTE_MULTI)
-		g_slist_free(dest.ur.u_nodes);
+		pslist_free(dest.ur.u_nodes);
 }
 
 static void
@@ -9415,9 +9416,9 @@ node_sent_ttl0(struct gnutella_node *n)
 static void
 node_bye_flags(uint32 mask, int code, const char *message)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
@@ -9435,9 +9436,9 @@ static void
 node_bye_all_but_one(struct gnutella_node *nskip,
 	int code, const char *message)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
@@ -9456,7 +9457,7 @@ node_bye_all_but_one(struct gnutella_node *nskip,
 void
 node_bye_all(bool all)
 {
-	GSList *sl;
+	pslist_t *sl;
 	gnutella_node_t *udp_nodes[] = {
 		udp_node, udp6_node, udp_sr_node, udp6_sr_node, dht_node, dht6_node };
 	unsigned i;
@@ -9481,7 +9482,7 @@ node_bye_all(bool all)
 
 	host_shutdown();
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		/*
@@ -9542,7 +9543,7 @@ node_bye_pending(void)
 static bool
 node_remove_useless_leaf(bool *is_gtkg)
 {
-    GSList *sl;
+    pslist_t *sl;
 	struct gnutella_node *worst = NULL;
 	int greatest = 0;
 	time_t now = tm_time();
@@ -9551,7 +9552,7 @@ node_remove_useless_leaf(bool *is_gtkg)
 
 #define t(x)	(last_reason = #x " (" G_STRLOC ")", (x))
 
-    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		time_t target = (time_t) -1;
 		time_delta_t diff;
@@ -9643,7 +9644,7 @@ node_remove_useless_leaf(bool *is_gtkg)
 static bool
 node_remove_useless_ultra(bool *is_gtkg)
 {
-    GSList *sl;
+    pslist_t *sl;
 	struct gnutella_node *worst = NULL;
 	int greatest = 0;
 	time_t now = tm_time();
@@ -9659,7 +9660,7 @@ node_remove_useless_ultra(bool *is_gtkg)
 
 #define t(x)	(last_reason = #x " (" G_STRLOC ")", (x))
 
-    for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_up_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		time_t target = (time_t) -1;
 		qrt_info_t *qi;
@@ -9757,7 +9758,7 @@ node_remove_useless_ultra(bool *is_gtkg)
 static bool
 node_remove_uncompressed_ultra(bool *is_gtkg)
 {
-	GSList *sl;
+	pslist_t *sl;
 	struct gnutella_node *drop = NULL;
 
 	/*
@@ -9767,7 +9768,7 @@ node_remove_uncompressed_ultra(bool *is_gtkg)
 	if (!settings_is_ultra())
 		return FALSE;
 
-    for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_up_nodes; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		
         if (n->status != GTA_NODE_CONNECTED)
@@ -9811,13 +9812,13 @@ node_remove_uncompressed_ultra(bool *is_gtkg)
 bool
 node_remove_worst(bool non_local)
 {
-    GSList *sl;
-    GSList *m = NULL;
+    pslist_t *sl;
+    pslist_t *m = NULL;
     struct gnutella_node *n;
     int worst = 0, score, num = 0;
 
     /* Make list of "worst" based on number of "weird" packets. */
-    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
         n = sl->data;
         if (n->status != GTA_NODE_CONNECTED)
             continue;
@@ -9835,17 +9836,17 @@ node_remove_worst(bool non_local)
         if (score > worst) {
             worst = score;
             num = 0;
-			gm_slist_free_null(&m);
+			pslist_free_null(&m);
         }
         if (score == worst) {
-            m = g_slist_prepend(m, n);
+            m = pslist_prepend(m, n);
             num++;
         }
     }
     if (m) {
-		m = g_slist_reverse(m);
-        n = g_slist_nth_data(m, random_value(num - 1));
-        g_slist_free(m);
+		m = pslist_reverse(m);
+        n = pslist_nth_data(m, random_value(num - 1));
+        pslist_free(m);
 		if (non_local)
 			node_bye_if_writable(n, 202, "Local Node Preferred");
 		else {
@@ -10024,7 +10025,7 @@ void
 node_qrt_changed(struct routing_table *query_table)
 {
 	struct gnutella_node *n;
-	GSList *sl;
+	pslist_t *sl;
 
 	/*
 	 * If we're in normal mode, do nothing.
@@ -10047,7 +10048,7 @@ node_qrt_changed(struct routing_table *query_table)
 	 */
 
 	if (settings_is_leaf()) {
-		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 			n = sl->data;
 			if (n->qrt_update != NULL) {
 				qrt_update_free(n->qrt_update);
@@ -10063,7 +10064,7 @@ node_qrt_changed(struct routing_table *query_table)
 	 * (n->sent_query_table holds the last query table we successfully sent)
 	 */
 
-    for (sl = sl_up_nodes; sl; sl = g_slist_next(sl)) {
+    for (sl = sl_up_nodes; sl; sl = pslist_next(sl)) {
         n = sl->data;
 
 		if (!NODE_IS_WRITABLE(n) || !NODE_IS_ULTRA(n))
@@ -10093,21 +10094,21 @@ node_qrt_changed(struct routing_table *query_table)
 G_GNUC_COLD void
 node_close(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(in_shutdown);
 
 	/*
 	 * Clean up memory used for determining unstable ips / servents
 	 */
-	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = unstable_servents; sl != NULL; sl = pslist_next(sl)) {
 		node_bad_client_t *bad_node = sl->data;
 
 		htable_remove(unstable_servent, bad_node->vendor);
 		atom_str_free_null(&bad_node->vendor);
 		WFREE(bad_node);
 	}
-	gm_slist_free_null(&unstable_servents);
+	pslist_free_null(&unstable_servents);
 	htable_free_null(&unstable_servent);
 
 	/* Clean up node info */
@@ -10785,11 +10786,11 @@ node_get_status(const struct nid *node_id, gnet_node_status_t *status)
  * NULL elements or duplicate elements.
  */
 void
-node_remove_nodes_by_id(const GSList *node_list)
+node_remove_nodes_by_id(const pslist_t *node_list)
 {
-    const GSList *sl;
+    const pslist_t *sl;
 
-    for (sl = node_list; sl != NULL; sl = g_slist_next(sl)) {
+    for (sl = node_list; sl != NULL; sl = pslist_next(sl)) {
 		const struct nid *node_id = sl->data;
         node_remove_by_id(node_id);
 	}
@@ -11184,9 +11185,9 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, uint16 port)
 void
 node_proxy_cancel_all(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		gnutella_node_t *n = sl->data;
 
 		if (is_host_addr(n->proxy_addr)) {
@@ -11403,7 +11404,7 @@ node_oldest_push_proxy(void)
 /**
  * @return list of all nodes.
  */
-const GSList *
+const pslist_t *
 node_all_nodes(void)
 {
 	return sl_nodes;
@@ -11412,7 +11413,7 @@ node_all_nodes(void)
 /**
  * @return list of all ultra nodes.
  */
-const GSList *
+const pslist_t *
 node_all_ultranodes(void)
 {
 	return sl_up_nodes;
@@ -11439,7 +11440,7 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 {
 	const gnutella_node_t **ultras;
 	unsigned reserve, ucnt, i, j, k;
-	const GSList *sl;
+	const pslist_t *sl;
 	hset_t *seen_host;
 
 	ucnt = GNET_PROPERTY(node_ultra_count);
@@ -11447,7 +11448,7 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 	i = 0;
 	seen_host = hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 
-	GM_SLIST_FOREACH(node_all_ultranodes(), sl) {
+	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		const gnutella_node_t *n;
 
 		if (i >= ucnt)
@@ -11757,7 +11758,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 	int li;								/* Iterating index in `leaves'	*/
 	int un;								/* Amount of `ultras' to send	*/
 	int ln;								/* Amount of `leaves' to send	*/
-	GSList *sl;
+	pslist_t *sl;
 	bool crawlable_only = (features & NODE_CR_CRAWLABLE) ? TRUE : FALSE;
 	bool wants_ua = (features & NODE_CR_USER_AGENT) ? TRUE : FALSE;
 	pmsg_t *mb = NULL;
@@ -11798,7 +11799,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 		leaves = walloc(leaves_len);
 	}
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
 		gnutella_node_t *cn = sl->data;
 		host_addr_t ha;
 
@@ -12119,22 +12120,22 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 void
 node_kill_hostiles(void)
 {
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 
-	for (sl = sl_nodes; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl != NULL; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (0 == (NODE_F_FORCE & n->flags) && hostiles_is_bad(n->addr)) {
-			to_remove = g_slist_prepend(to_remove, n);
+			to_remove = pslist_prepend(to_remove, n);
 		}
 	}
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl != NULL; sl = pslist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
         node_remove(n, no_reason);
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 const char *

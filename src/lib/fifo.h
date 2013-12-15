@@ -73,6 +73,20 @@ fifo_free_all(fifo_t *f, free_data_fn_t cb, void *udata)
 }
 
 /**
+ * Destroy FIFO, invoking freeing callback on all items, then nullify pointer.
+ */
+static inline void
+fifo_free_all_null(fifo_t **f_ptr, free_data_fn_t cb, void *udata)
+{
+	fifo_t *f = *f_ptr;
+
+	if (f != NULL) {
+		slist_foreach(f, cb, udata);
+		slist_free(f_ptr);
+	}
+}
+
+/**
  * @return the amount of items queued in FIFO.
  */
 static inline uint

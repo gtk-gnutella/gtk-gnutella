@@ -41,10 +41,11 @@
 #include "if/core/wrap.h"		/* For wrapped_io_t */
 #include "if/gnet_property_priv.h"
 
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
 #include "lib/parse.h"
+#include "lib/plist.h"
+#include "lib/pslist.h"
 #include "lib/stringify.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
@@ -114,8 +115,8 @@ enum bsched_magic {
 struct bsched {
 	enum bsched_magic magic;
 	tm_t last_period;			/**< Last time we ran our period */
-	GList *sources;				/**< List of bio_source_t */
-	GSList *stealers;			/**< List of bsched_t stealing bw */
+	plist_t *sources;			/**< List of bio_source_t */
+	pslist_t *stealers;			/**< List of bsched_t stealing bw */
 	char *name;					/**< Name, for tracing purposes */
 	int count;					/**< Amount of sources */
 	int type;					/**< Scheduling type */
@@ -149,9 +150,9 @@ struct bsched {
 
 static bsched_t *bws_set[NUM_BSCHED_BWS];
 
-static GSList *bws_list = NULL;
-static GSList *bws_out_list = NULL;
-static GSList *bws_in_list = NULL;
+static pslist_t *bws_list = NULL;
+static pslist_t *bws_out_list = NULL;
+static pslist_t *bws_in_list = NULL;
 static int bws_out_ema = 0;
 static int bws_in_ema = 0;
 
@@ -242,11 +243,11 @@ bsched_get(bsched_bws_t bws)
 static void
 bsched_free(bsched_t *bs)
 {
-	GList *iter;
+	plist_t *iter;
 
 	bsched_check(bs);
 	
-	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+	PLIST_FOREACH(bs->sources, iter) {
 		bio_source_t *bio = iter->data;
 
 		bio_check(bio);
@@ -254,8 +255,8 @@ bsched_free(bsched_t *bs)
 		bio->bws = BSCHED_BWS_INVALID;	/* Mark orphan source */
 	}
 
-	gm_list_free_null(&bs->sources);
-	gm_slist_free_null(&bs->stealers);
+	plist_free_null(&bs->sources);
+	pslist_free_null(&bs->stealers);
 	HFREE_NULL(bs->name);
 	bs->magic = 0;
 	WFREE(bs);
@@ -358,7 +359,7 @@ bsched_add_stealer(bsched_bws_t bws, bsched_bws_t bws_stealer)
 	stealer = bsched_get(bws_stealer);
 	g_assert((bs->flags & BS_F_RW) == (stealer->flags & BS_F_RW));
 
-	bs->stealers = g_slist_prepend(bs->stealers, stealer);
+	bs->stealers = pslist_prepend(bs->stealers, stealer);
 }
 
 /**
@@ -369,7 +370,7 @@ bsched_reset_stealers(bsched_t *bs)
 {
 	bsched_check(bs);
 
-	gm_slist_free_null(&bs->stealers);
+	pslist_free_null(&bs->stealers);
 }
 
 /**
@@ -388,10 +389,10 @@ bsched_dht_cross_stealing(void)
 G_GNUC_COLD void
 bsched_config_steal_http_gnet(void)
 {
-	GSList *iter;
+	pslist_t *iter;
 
-	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
+	PSLIST_FOREACH(bws_list, iter) {
+		bsched_bws_t bws = pointer_to_uint(iter->data);
 		bsched_reset_stealers(bsched_get(bws));
 	}
 
@@ -438,9 +439,9 @@ bsched_config_steal_http_gnet(void)
 G_GNUC_COLD void
 bsched_config_steal_gnet(void)
 {
-	GSList *iter;
+	pslist_t *iter;
 
-	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
+	PSLIST_FOREACH(bws_list, iter) {
 		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
 		bsched_reset_stealers(bsched_get(bws));
 	}
@@ -501,64 +502,64 @@ bsched_early_init(void)
 	bws_set[BSCHED_BWS_DHT_IN] = bsched_make("DHT in",
 		BS_T_STREAM, BS_F_READ, 0, 1000);
 
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_IN));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GIN));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GIN_UDP));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_IN));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_DHT_IN));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_OUT));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GOUT));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GOUT_UDP));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_OUT));
-	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_DHT_OUT));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_LOOPBACK_IN));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_PRIVATE_IN));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_GLIN));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_GIN));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_GIN_UDP));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_IN));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_DHT_IN));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_LOOPBACK_OUT));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_PRIVATE_OUT));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_GLOUT));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_GOUT));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_GOUT_UDP));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_OUT));
+	bws_list = pslist_prepend(bws_list,
+						uint_to_pointer(BSCHED_BWS_DHT_OUT));
 
-	bws_in_list = g_slist_prepend(bws_in_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
-	bws_in_list = g_slist_prepend(bws_in_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_IN));
-	bws_in_list = g_slist_prepend(bws_in_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
-	bws_in_list = g_slist_prepend(bws_in_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GIN));
-	bws_in_list = g_slist_prepend(bws_in_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GIN_UDP));
-	bws_in_list = g_slist_prepend(bws_in_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_IN));
-	bws_in_list = g_slist_prepend(bws_in_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_DHT_IN));
+	bws_in_list = pslist_prepend(bws_in_list,
+						uint_to_pointer(BSCHED_BWS_LOOPBACK_IN));
+	bws_in_list = pslist_prepend(bws_in_list,
+						uint_to_pointer(BSCHED_BWS_PRIVATE_IN));
+	bws_in_list = pslist_prepend(bws_in_list,
+						uint_to_pointer(BSCHED_BWS_GLIN));
+	bws_in_list = pslist_prepend(bws_in_list,
+						uint_to_pointer(BSCHED_BWS_GIN));
+	bws_in_list = pslist_prepend(bws_in_list,
+						uint_to_pointer(BSCHED_BWS_GIN_UDP));
+	bws_in_list = pslist_prepend(bws_in_list,
+						uint_to_pointer(BSCHED_BWS_IN));
+	bws_in_list = pslist_prepend(bws_in_list,
+						uint_to_pointer(BSCHED_BWS_DHT_IN));
 
-	bws_out_list = g_slist_prepend(bws_out_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
-	bws_out_list = g_slist_prepend(bws_out_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_PRIVATE_OUT));
-	bws_out_list = g_slist_prepend(bws_out_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
-	bws_out_list = g_slist_prepend(bws_out_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GOUT));
-	bws_out_list = g_slist_prepend(bws_out_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_GOUT_UDP));
-	bws_out_list = g_slist_prepend(bws_out_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_OUT));
-	bws_out_list = g_slist_prepend(bws_out_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_DHT_OUT));
+	bws_out_list = pslist_prepend(bws_out_list,
+						uint_to_pointer(BSCHED_BWS_LOOPBACK_OUT));
+	bws_out_list = pslist_prepend(bws_out_list,
+						uint_to_pointer(BSCHED_BWS_PRIVATE_OUT));
+	bws_out_list = pslist_prepend(bws_out_list,
+						uint_to_pointer(BSCHED_BWS_GLOUT));
+	bws_out_list = pslist_prepend(bws_out_list,
+						uint_to_pointer(BSCHED_BWS_GOUT));
+	bws_out_list = pslist_prepend(bws_out_list,
+						uint_to_pointer(BSCHED_BWS_GOUT_UDP));
+	bws_out_list = pslist_prepend(bws_out_list,
+						uint_to_pointer(BSCHED_BWS_OUT));
+	bws_out_list = pslist_prepend(bws_out_list,
+						uint_to_pointer(BSCHED_BWS_DHT_OUT));
 }
 
 /**
@@ -607,17 +608,17 @@ bsched_init(void)
 G_GNUC_COLD void
 bsched_close(void)
 {
-	GSList *iter;
+	pslist_t *iter;
 	uint i;
 
-	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
+	PSLIST_FOREACH(bws_list, iter) {
+		bsched_bws_t bws = pointer_to_uint(iter->data);
 		bsched_free(bsched_get(bws));
 	}
 
-	gm_slist_free_null(&bws_list);
-	gm_slist_free_null(&bws_out_list);
-	gm_slist_free_null(&bws_in_list);
+	pslist_free_null(&bws_list);
+	pslist_free_null(&bws_out_list);
+	pslist_free_null(&bws_in_list);
 
 	for (i = 0; i < NUM_BSCHED_BWS; i++) {
 		bws_set[i] = NULL;
@@ -771,10 +772,10 @@ bsched_enable_all(void)
 G_GNUC_COLD void
 bsched_shutdown(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = bws_list; sl; sl = g_slist_next(sl)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(sl->data);
+	PSLIST_FOREACH(bws_list, sl) {
+		bsched_bws_t bws = pointer_to_uint(sl->data);
 		bsched_disable(bws);
 	}
 }
@@ -931,10 +932,10 @@ bio_remove_callback(bio_source_t *bio)
 static void
 bsched_no_more_bandwidth(bsched_t *bs)
 {
-	GList *iter;
+	plist_t *iter;
 
 	bsched_check(bs);
-	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+	PLIST_FOREACH(bs->sources, iter) {
 		bio_source_t *bio = iter->data;
 
 		bio_check(bio);
@@ -952,10 +953,10 @@ bsched_no_more_bandwidth(bsched_t *bs)
 static void
 bsched_clear_active(bsched_t *bs)
 {
-	GList *iter;
+	plist_t *iter;
 
 	bsched_check(bs);
-	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+	PLIST_FOREACH(bs->sources, iter) {
 		bio_source_t *bio = iter->data;
 
 		bio_check(bio);
@@ -973,9 +974,8 @@ bsched_clear_active(bsched_t *bs)
 static void
 bsched_begin_timeslice(bsched_t *bs)
 {
-	GList *iter;
-	GList *last = NULL;
-	GSList *trigger = NULL;
+	plist_t *iter, *last = NULL;
+	pslist_t *trigger = NULL;
 	double norm_factor;
 	int count;
 	unsigned bw_max;
@@ -1021,8 +1021,9 @@ bsched_begin_timeslice(bsched_t *bs)
 	norm_factor = 1000.0 / bs->period;
 	bs->io_favours = 0;
 	bw_max = bs->bw_max;
+	count = 0;
 
-	for (count = 0, iter = bs->sources; iter; iter = g_list_next(iter)) {
+	PLIST_FOREACH(bs->sources, iter) {
 		bio_source_t *bio = iter->data;
 		uint32 actual;
 
@@ -1035,7 +1036,7 @@ bsched_begin_timeslice(bsched_t *bs)
 
 		if (bio->io_tag == 0 && bio->io_callback) {
 			if (bio->flags & BIO_F_PASSIVE)
-				trigger = g_slist_prepend(trigger, bio);
+				trigger = pslist_prepend(trigger, bio);
 			else
 				bio_enable(bio);
 		}
@@ -1090,8 +1091,8 @@ bsched_begin_timeslice(bsched_t *bs)
 		g_assert(bs->sources != NULL);
 		bio = bs->sources->data;
 		bio_check(bio);
-		bs->sources = g_list_remove(bs->sources, bio);
-		bs->sources = gm_list_insert_after(bs->sources, last, bio);
+		bs->sources = plist_remove(bs->sources, bio);
+		bs->sources = plist_insert_after(bs->sources, last, bio);
 	}
 
 	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW|BS_F_CLEARED);
@@ -1164,7 +1165,7 @@ bsched_begin_timeslice(bsched_t *bs)
 	while (trigger != NULL) {
 		bio_source_t *bio = trigger->data;
 
-		trigger = g_slist_remove(trigger, bio);
+		trigger = pslist_remove(trigger, bio);
 		bio_trigger(bio);
 	}
 }
@@ -1178,7 +1179,7 @@ bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 	bsched_check(bs);
 	bio_check(bio);
 
-	bs->sources = g_list_append(bs->sources, bio);
+	bs->sources = plist_append(bs->sources, bio);
 	bs->count++;
 
 	bs->bw_slot = (bs->bw_max + bs->bw_stolen) / bs->count;
@@ -1203,7 +1204,7 @@ bsched_bio_remove(bsched_bws_t bws, bio_source_t *bio)
 	bs = bsched_get(bws);
 	bio_check(bio);
 
-	bs->sources = g_list_remove(bs->sources, bio);
+	bs->sources = plist_remove(bs->sources, bio);
 	bs->count--;
 
 	if (bs->count)
@@ -2677,7 +2678,7 @@ bws_can_connect(enum socket_type type)
 static void
 bsched_heartbeat(bsched_t *bs, tm_t *tv)
 {
-	GList *iter;
+	plist_t *iter;
 	int delay;
 	int overused;
 	int theoric;
@@ -2821,7 +2822,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 
 	last_used = 0;
 
-	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+	PLIST_FOREACH(bs->sources, iter) {
 		bio_source_t *bio = iter->data;
 
 		bio_check(bio);
@@ -2868,8 +2869,8 @@ new_timeslice:
 static void
 bsched_stealbeat(bsched_t *bs)
 {
-	GSList *l;
-	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
+	pslist_t *l;
+	pslist_t *all_used = NULL;		/* List of bsched_t that used all b/w */
 	int all_used_count = 0;			/* Amount of bsched_t that used all b/w */
 	int all_favour_count = 0;		/* I/O sources wanting favours */
 	uint all_bw_count = 0;			/* Sum of configured bandwidth */
@@ -2925,9 +2926,9 @@ bsched_stealbeat(bsched_t *bs)
 
 	if (bs->flags & BS_F_WRITE) {
 		int half_contribution = bs->count ? bs->bw_max / (2 * bs->count) : 0;
-		GList *bl;
+		plist_t *bl;
 
-		for (bl = bs->sources; bl && underused > 0; bl = g_list_next(bl)) {
+		for (bl = bs->sources; bl && underused > 0; bl = plist_next(bl)) {
 			bio_source_t *bio = (bio_source_t *) bl->data;
 
 			if (bio->io_callback != NULL && !(bio->flags & BIO_F_USED))
@@ -2943,14 +2944,14 @@ bsched_stealbeat(bsched_t *bs)
 	 * Determine who used up all its bandwidth among our stealers.
 	 */
 
-	for (l = bs->stealers; l; l = g_slist_next(l)) {
+	PSLIST_FOREACH(bs->stealers, l) {
 		bsched_t *xbs = l->data;
 
 		steal_count++;
 		all_favour_count += xbs->io_favours;
 
 		if (xbs->bw_last_period >= xbs->bw_max) {
-			all_used = g_slist_prepend(all_used, xbs);
+			all_used = pslist_prepend(all_used, xbs);
 			all_used_count++;
 			all_bw_count += xbs->bw_max;
 		}
@@ -2991,7 +2992,7 @@ bsched_stealbeat(bsched_t *bs)
 	 */
 
 	if (all_favour_count != 0) {
-		for (l = bs->stealers; l; l = g_slist_next(l)) {
+		PSLIST_FOREACH(bs->stealers, l) {
 			bsched_t *xbs = l->data;
 			double amount;
 
@@ -3013,7 +3014,7 @@ bsched_stealbeat(bsched_t *bs)
 					xbs->io_favours, plural(xbs->io_favours));
 		}
 	} else if (all_used_count == 0) {
-		for (l = bs->stealers; l; l = g_slist_next(l)) {
+		PSLIST_FOREACH(bs->stealers, l) {
 			bsched_t *xbs = l->data;
 			xbs->bw_stolen += underused / steal_count;
 
@@ -3022,7 +3023,7 @@ bsched_stealbeat(bsched_t *bs)
 					G_STRFUNC, bs->name, underused / steal_count, xbs->name);
 		}
 	} else {
-		for (l = all_used; l; l = g_slist_next(l)) {
+		PSLIST_FOREACH(all_used, l) {
 			bsched_t *xbs = l->data;
 			double amount;
 
@@ -3043,7 +3044,7 @@ bsched_stealbeat(bsched_t *bs)
 	}
 
 done:
-	g_slist_free(all_used);
+	pslist_free(all_used);
 }
 
 /**
@@ -3053,7 +3054,7 @@ void
 bsched_timer(void)
 {
 	tm_t tv;
-	GSList *l;
+	pslist_t *l;
 	int out_used = 0;
 	int in_used = 0;
 	bool read_data = FALSE;
@@ -3064,8 +3065,8 @@ bsched_timer(void)
 	 * First pass: compute bandwidth used.
 	 */
 
-	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+	PSLIST_FOREACH(bws_list, l) {
+		bsched_bws_t bws = pointer_to_uint(l->data);
 		bsched_heartbeat(bsched_get(bws), &tv);
 	}
 
@@ -3074,8 +3075,8 @@ bsched_timer(void)
 	 * have not used up all their quota.
 	 */
 
-	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+	PSLIST_FOREACH(bws_list, l) {
+		bsched_bws_t bws = pointer_to_uint(l->data);
 		bsched_stealbeat(bsched_get(bws));
 	}
 
@@ -3083,8 +3084,8 @@ bsched_timer(void)
 	 * Third pass: begin new timeslice.
 	 */
 
-	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+	PSLIST_FOREACH(bws_list, l) {
+		bsched_bws_t bws = pointer_to_uint(l->data);
 		bsched_begin_timeslice(bsched_get(bws));
 	}
 
@@ -3092,8 +3093,8 @@ bsched_timer(void)
 	 * Fourth pass: update the average bandwidth used.
 	 */
 
-	for (l = bws_out_list; l; l = g_slist_next(l)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+	PSLIST_FOREACH(bws_out_list, l) {
+		bsched_bws_t bws = pointer_to_uint(l->data);
 		bsched_t *bs = bsched_get(bws);
 		out_used += (int) (bs->bw_last_period * 1000.0 / bs->period_ema);
 	}
@@ -3103,8 +3104,8 @@ bsched_timer(void)
 	if (GNET_PROPERTY(bsched_debug) > 3)
 		g_debug("BSCHED outgoing b/w EMA = %d bytes/s", bws_out_ema);
 
-	for (l = bws_in_list; l; l = g_slist_next(l)) {
-		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+	PSLIST_FOREACH(bws_in_list, l) {
+		bsched_bws_t bws = pointer_to_uint(l->data);
 		bsched_t *bs = bsched_get(bws);
 
 		in_used += (int) (bs->bw_last_period * 1000.0 / bs->period_ema);

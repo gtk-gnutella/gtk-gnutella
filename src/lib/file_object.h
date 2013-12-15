@@ -96,8 +96,8 @@ int file_object_fstat(const file_object_t * const fo, filestat_t *b);
 int file_object_ftruncate(const file_object_t * const fo, filesize_t off);
 void file_object_fadvise_sequential(const file_object_t * const fo);
 
-GSList *file_object_info_list(void) WARN_UNUSED_RESULT;
-void file_object_info_list_free_nulll(GSList **sl_ptr);
+struct pslist *file_object_info_list(void) WARN_UNUSED_RESULT;
+void file_object_info_list_free_nulll(struct pslist **sl_ptr);
 
 #endif /* _file_object_h_ */
 

@@ -80,17 +80,17 @@
 
 #include "atomic.h"
 #include "atoms.h"
-#include "compat_pio.h"
 #include "compat_misc.h"
+#include "compat_pio.h"
 #include "fd.h"
 #include "file.h"
-#include "glib-missing.h"
 #include "hikset.h"
 #include "hset.h"
 #include "iovec.h"
 #include "mutex.h"
 #include "once.h"
 #include "path.h"
+#include "pslist.h"
 #include "str.h"			/* For str_private() */
 #include "walloc.h"
 
@@ -1161,8 +1161,8 @@ file_object_info_get(const void *data, void *udata)
 {
 	const file_object_t *fo = data;
 	const struct file_descriptor *fd;
-	GSList **list = udata;				/* List being built for user */
-	GSList *sl = *list;					/* Current list head pointer */
+	pslist_t **list = udata;				/* List being built for user */
+	pslist_t *sl = *list;					/* Current list head pointer */
 	file_object_info_t *foi;
 
 	file_object_check(fo);
@@ -1177,7 +1177,7 @@ file_object_info_get(const void *data, void *udata)
 	foi->file = fo->file;
 	foi->line = fo->line;
 
-	sl = g_slist_prepend(sl, foi);
+	sl = pslist_prepend(sl, foi);
 	*list = sl;							/* Update list head pointer */
 }
 
@@ -1187,10 +1187,10 @@ file_object_info_get(const void *data, void *udata)
  * @return list of file_object_info_t that must be freed by calling the
  * file_object_info_list_free_null() routine.
  */
-GSList *
+pslist_t *
 file_object_info_list(void)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 
 	hset_foreach(file_objects, file_object_info_get, &sl);
 	return sl;
@@ -1213,12 +1213,12 @@ file_object_info_free(void *data, void *udata)
  * Free list returned by file_object_info_list() and nullify pointer.
  */
 void
-file_object_info_list_free_nulll(GSList **sl_ptr)
+file_object_info_list_free_nulll(pslist_t **sl_ptr)
 {
-	GSList *sl = *sl_ptr;
+	pslist_t *sl = *sl_ptr;
 
-	g_slist_foreach(sl, file_object_info_free, NULL);
-	gm_slist_free_null(sl_ptr);
+	pslist_foreach(sl, file_object_info_free, NULL);
+	pslist_free_null(sl_ptr);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -26,7 +26,7 @@
  * @ingroup lib
  * @file
  *
- * Handling of slists on a slightly higher level than GSList.
+ * Handling of slists on a slightly higher level than pslist_t.
  *
  * The purpose of this slist functions is providing efficient appending,
  * prepending of items to a slist structure, fast lookup of the slist
@@ -45,10 +45,13 @@
 #include "common.h"
 
 #include "slist.h"
+
+#include "log.h"
 #include "misc.h"
-#include "glib-missing.h"
 #include "mutex.h"
+#include "pslist.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the tail header included */
 
 #if 0
@@ -66,8 +69,8 @@ typedef enum {
 struct slist {
 	slist_magic_t magic;
 	int refcount;
-	GSList *head;
-	GSList *tail;
+	pslist_t *head;
+	pslist_t *tail;
 	mutex_t *lock;
 	int length;
 	uint stamp;
@@ -76,7 +79,7 @@ struct slist {
 struct slist_iter {
 	slist_iter_magic_t magic;
 	const slist_t *slist;
-	GSList *prev, *cur, *next;
+	pslist_t *prev, *cur, *next;
 	uint stamp;
 	unsigned removable:1;
 };
@@ -123,10 +126,10 @@ static inline void
 slist_regression(const slist_t *slist)
 {
 	slist_synchronize(slist);
-	g_assert(g_slist_first(slist->head) == slist->head);
-	g_assert(g_slist_first(slist->tail) == slist->head);
-	g_assert(g_slist_last(slist->head) == slist->tail);
-	g_assert(g_slist_length(slist->head) == (uint) slist->length);
+	g_assert(pslist_first(slist->head) == slist->head);
+	g_assert(pslist_first(slist->tail) == slist->head);
+	g_assert(pslist_last(slist->head) == slist->tail);
+	g_assert(pslist_length(slist->head) == (uint) slist->length);
 	slist_unsynchronize(slist);
 }
 #else
@@ -216,12 +219,12 @@ slist_free(slist_t **slist_ptr)
 		slist_synchronize(slist);
 
 		if (--slist->refcount != 0) {
-			g_critical("%s(): slist is still referenced! "
+			s_critical("%s(): slist is still referenced! "
 				"(slist=%p, slist->refcount=%d)",
 				G_STRFUNC, cast_to_constpointer(slist), slist->refcount);
 		}
 
-		gm_slist_free_null(&slist->head);
+		pslist_free_null(&slist->head);
 		slist->tail = NULL;
 
 		if (slist->lock != NULL) {
@@ -297,8 +300,8 @@ slist_append(slist_t *slist, void *key)
 
 	g_assert(1 == slist->refcount);
 
-	slist->tail = g_slist_append(slist->tail, key);
-	slist->tail = g_slist_last(slist->tail);
+	slist->tail = pslist_append(slist->tail, key);
+	slist->tail = pslist_last(slist->tail);
 	if (!slist->head) {
 		slist->head = slist->tail;
 	}
@@ -322,7 +325,7 @@ slist_prepend(slist_t *slist, void *key)
 
 	g_assert(1 == slist->refcount);
 
-	slist->head = g_slist_prepend(slist->head, key);
+	slist->head = pslist_prepend(slist->head, key);
 	if (!slist->tail) {
 		slist->tail = slist->head;
 	}
@@ -338,7 +341,7 @@ slist_prepend(slist_t *slist, void *key)
  * Insert `key' into the slist.
  */
 void
-slist_insert_sorted(slist_t *slist, void *key, GCompareFunc func)
+slist_insert_sorted(slist_t *slist, void *key, cmp_fn_t func)
 {
 	slist_check(slist);
 	g_assert(func != NULL);
@@ -347,9 +350,9 @@ slist_insert_sorted(slist_t *slist, void *key, GCompareFunc func)
 
 	g_assert(1 == slist->refcount);
 
-	slist->head = g_slist_insert_sorted(slist->head, key, func);
+	slist->head = pslist_insert_sorted(slist->head, key, func);
 	if (slist->tail) {
-		slist->tail = g_slist_last(slist->tail);
+		slist->tail = pslist_last(slist->tail);
 	} else {
 		slist->tail = slist->head;
 	}
@@ -362,24 +365,20 @@ slist_insert_sorted(slist_t *slist, void *key, GCompareFunc func)
 }
 
 static inline void
-slist_remove_item(slist_t *slist, GSList *prev, GSList *item)
+slist_remove_item(slist_t *slist, pslist_t *prev, pslist_t *item)
 {
 	assert_slist_locked(slist);
 	g_assert(item != NULL);
-	g_assert(prev == NULL || g_slist_next(prev) == item);
+	g_assert(prev == NULL || pslist_next(prev) == item);
 
 	if (item == slist->head) {
 		g_assert(NULL == prev);
-		slist->head = g_slist_next(slist->head);
+		slist->head = pslist_next(slist->head);
 	}
 	if (item == slist->tail) {
 		slist->tail = prev;
 	}
-	/* @note: Must use IGNORE_RESULT because
-	 *        g_slist_delete_link() is incorrectly tagged to
-	 *        cause a GCC compiler warning otherwise.
-	 */
-	IGNORE_RESULT(g_slist_delete_link(prev ? prev : item, item));
+	pslist_delete_link(prev ? prev : item, item);
 
 	slist->length--;
 	slist->stamp++;
@@ -394,7 +393,7 @@ slist_remove_item(slist_t *slist, GSList *prev, GSList *item)
 bool
 slist_remove(slist_t *slist, void *key)
 {
-	GSList *item, *prev;
+	pslist_t *item, *prev;
 
 	slist_check(slist);
 
@@ -404,7 +403,7 @@ slist_remove(slist_t *slist, void *key)
 	g_assert(slist->length > 0);
 
 	prev = NULL;
-	for (item = slist->head; NULL != item; item = g_slist_next(item)) {
+	PSLIST_FOREACH(slist->head, item) {
 		if (key == item->data) {
 			slist_remove_item(slist, prev, item);
 			slist_return(slist, TRUE);
@@ -555,7 +554,7 @@ slist_iter_new(const slist_t *slist, bool before, bool removable)
 		iter->next = slist->head;
 		if (!before) {
 			iter->cur = iter->next;
-			iter->next = g_slist_next(iter->cur);
+			iter->next = pslist_next(iter->cur);
 		}
 
 		iter->stamp = slist->stamp;
@@ -631,7 +630,7 @@ slist_iter_next(slist_iter_t *iter)
 
 	slist_synchronize(iter->slist);
 
-	iter->next = g_slist_next(iter->cur);
+	iter->next = pslist_next(iter->cur);
 	data = iter->cur ? iter->cur->data : NULL;
 
 	slist_unsynchronize(iter->slist);
@@ -680,7 +679,7 @@ slist_iter_current(const slist_iter_t *iter)
 void
 slist_iter_remove(slist_iter_t *iter)
 {
-	GSList *item, *prev;
+	pslist_t *item, *prev;
 
 	slist_iter_check(iter);
 	g_assert(2 == iter->slist->refcount);
@@ -749,25 +748,28 @@ slist_iter_free(slist_iter_t **iter_ptr)
  * using `func'.
  */
 bool
-slist_contains(const slist_t *slist, const void *key, GEqualFunc func,
+slist_contains(const slist_t *slist, const void *key, eq_fn_t func,
 	void **orig_key)
 {
-	GSList *item;
+	pslist_t *item;
+	bool found = FALSE;
 
 	slist_check(slist);
 	g_assert(func);
 
 	slist_synchronize(slist);
 
-	for (item = slist->head; NULL != item; item = g_slist_next(item)) {
+	PSLIST_FOREACH(slist->head, item) {
 		if (func(key, item->data)) {
 			if (orig_key) {
 				*orig_key = item->data;
 			}
-			slist_return(slist, TRUE);
+			found = TRUE;
+			break;
 		}
 	}
-	slist_return(slist, FALSE);
+
+	slist_return(slist, found);
 }
 
 /**
@@ -781,7 +783,7 @@ slist_contains_identical(const slist_t *slist, const void *key)
 	slist_check(slist);
 
 	slist_synchronize(slist);
-	contains = NULL != g_slist_find(slist->head, deconstify_pointer(key));
+	contains = NULL != pslist_find(slist->head, deconstify_pointer(key));
 	slist_return(slist, contains);
 }
 
@@ -796,7 +798,7 @@ slist_foreach(const slist_t *slist, GFunc func, void *user_data)
 
 	slist_synchronize(slist);
 
-	g_slist_foreach(slist->head, func, user_data);
+	pslist_foreach(slist->head, func, user_data);
 
 	slist_regression(slist);
 	slist_return_void(slist);
@@ -812,7 +814,7 @@ size_t
 slist_foreach_remove(slist_t *slist, data_rm_fn_t func, void *user_data)
 {
 	size_t removed = 0;
-	GSList *item, *prev, *next;
+	pslist_t *item, *prev, *next;
 
 	slist_check(slist);
 	g_assert(func);
@@ -820,7 +822,7 @@ slist_foreach_remove(slist_t *slist, data_rm_fn_t func, void *user_data)
 	slist_synchronize(slist);
 
 	for (prev = NULL, item = slist->head; NULL != item; item = next) {
-		next = g_slist_next(item);
+		next = pslist_next(item);
 		if ((*func)(item->data, user_data)) {
 			slist_remove_item(slist, prev, item);
 			removed++;
@@ -856,7 +858,7 @@ slist_free_all(slist_t **slist_ptr, free_fn_t freecb)
 		slist_check(slist);
 		slist_synchronize(slist);
 
-		G_SLIST_FOREACH_WITH_DATA(slist->head, slist_freecb_wrapper,
+		PSLIST_FOREACH_CALL_DATA(slist->head, slist_freecb_wrapper,
 			cast_func_to_pointer(freecb));
 
 		slist_unsynchronize(slist);

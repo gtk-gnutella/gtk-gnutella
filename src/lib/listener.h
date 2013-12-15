@@ -37,6 +37,7 @@
 #include "common.h"
 
 #include "spinlock.h"
+#include "pslist.h"
 
 /**
  * OVERVIEW
@@ -141,7 +142,7 @@
  * events triggered must be clearly known.
  */
 
-typedef GSList *listeners_t;
+typedef pslist_t *listeners_t;
 
 spinlock_t *listener_get_lock(const char *name);
 
@@ -151,7 +152,7 @@ G_STMT_START {																\
 	spinlock_t *lock = listener_get_lock(STRINGIFY(signal));				\
 	g_assert(NULL != p);				 									\
 	spinlock(lock);															\
-	CAT2(signal,_listeners) = g_slist_append(CAT2(signal,_listeners), p);	\
+	CAT2(signal,_listeners) = pslist_append(CAT2(signal,_listeners), p);	\
 	spinunlock(lock);														\
 } G_STMT_END
 
@@ -161,16 +162,16 @@ G_STMT_START {																\
 	spinlock_t *lock = listener_get_lock(STRINGIFY(signal));				\
 	g_assert(NULL != p);													\
 	spinlock(lock);															\
-	CAT2(signal,_listeners) = g_slist_remove(CAT2(signal,_listeners), p);	\
+	CAT2(signal,_listeners) = pslist_remove(CAT2(signal,_listeners), p);	\
 	spinunlock(lock);														\
 } G_STMT_END
 
 #define LISTENER_EMIT(signal, params)										\
 G_STMT_START {																\
-	GSList *sl;													 			\
+	pslist_t *sl;												 			\
 	spinlock_t *lock = listener_get_lock(STRINGIFY(signal));				\
 	spinlock(lock);															\
-	for (sl = CAT2(signal,_listeners); sl != NULL; sl = g_slist_next(sl)) { \
+	for (sl = CAT2(signal,_listeners); sl != NULL; sl = pslist_next(sl)) {	\
 		CAT2(signal,_listener_t) fn;										\
 		g_assert(NULL != sl->data);	  										\
 		fn = (CAT2(signal,_listener_t)) cast_pointer_to_func(sl->data);		\

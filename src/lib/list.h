@@ -37,7 +37,7 @@ void list_free(list_t **list_ptr);
 bool list_remove(list_t *list, const void *key);
 void list_append(list_t *list, const void *key);
 void list_prepend(list_t *list, const void *key);
-void list_insert_sorted(list_t *list, const void *key, GCompareFunc func);
+void list_insert_sorted(list_t *list, const void *key, cmp_fn_t func);
 bool list_moveto_head(list_t *list, const void *key);
 bool list_moveto_tail(list_t *list, const void *key);
 void *list_shift(list_t *list);
@@ -45,7 +45,7 @@ void *list_head(const list_t *list);
 void *list_tail(const list_t *list);
 uint list_length(const list_t *list);
 bool list_contains(const list_t *list, const void *key,
-		GEqualFunc func, void **orig_key);
+		eq_fn_t func, void **orig_key);
 bool list_contains_identical(const list_t *list, const void *key);
 void list_foreach(const list_t *list, GFunc func, void *user_data);
 void list_free_all(list_t **list_ptr, list_destroy_cb freecb);
