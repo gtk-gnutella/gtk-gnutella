@@ -132,13 +132,23 @@ static UConverter *conv_icu_utf8 = NULL;
  */
 static hikset_t *charset2conv_to_utf8;
 
+enum conv_to_utf8_magic { CONV_TO_UTF8_MAGIC = 0x0a829276 };
+
 struct conv_to_utf8 {
+	enum conv_to_utf8_magic magic;
 	const char *name;		/**< Name of the source charset (atom) */
 	iconv_t cd;		/**< iconv() conversion descriptor; -1 or iconv_open()ed */
 	bool is_ascii;		/**< Set to TRUE if name is "ASCII" */
 	bool is_utf8;		/**< Set to TRUE if name is "UTF-8" */
 	bool is_iso8859;	/**< Set to TRUE if name matches "ISO-8859-*" */
 };
+
+static inline void
+conv_to_utf8_check(const struct conv_to_utf8 * const cu)
+{
+	g_assert(cu != NULL);
+	g_assert(CONV_TO_UTF8_MAGIC == cu->magic);
+}
 
 static char *charset = NULL;	/** Name of the locale charset */
 static htable_t *utf32_compose_roots;
@@ -261,7 +271,7 @@ primary_filename_charset(void)
 	g_assert(sl_filename_charsets);
 
 	t = sl_filename_charsets->data;
-	g_assert(t);
+	conv_to_utf8_check(t);
 	g_assert(t->name);
 
 	return t->name;
@@ -274,7 +284,7 @@ primary_filename_charset_is_utf8(void)
 
 	g_assert(sl_filename_charsets);
 	t = sl_filename_charsets->data;
-	g_assert(t);
+	conv_to_utf8_check(t);
 
 	return t->is_utf8;
 }
@@ -1655,6 +1665,7 @@ conv_to_utf8_new(const char *cs)
 	struct conv_to_utf8 *t;
 
 	WALLOC(t);
+	t->magic = CONV_TO_UTF8_MAGIC;
 	t->cd = (iconv_t) -1;
 	t->name = atom_str_get(cs);
 	t->is_utf8 = 0 == strcmp(cs, "UTF-8");
@@ -1669,11 +1680,14 @@ conv_to_utf8_new(const char *cs)
 static void
 conv_to_utf8_free(struct conv_to_utf8 *cu)
 {
+	conv_to_utf8_check(cu);
+
 	atom_str_free_null(&cu->name);
 	if (cu->cd != (iconv_t) -1) {
 		iconv_close(cu->cd);
 		cu->cd = (iconv_t) -1;
 	}
+	cu->magic = 0;
 	WFREE(cu);
 }
 
@@ -1683,7 +1697,7 @@ conv_to_utf8_free(struct conv_to_utf8 *cu)
 static void
 conv_to_utf8_init(struct conv_to_utf8 *cu)
 {
-	g_assert(cu != NULL);
+	conv_to_utf8_check(cu);
 
 	if (0 == strcmp("@locale", cu->name) || 0 == strcmp(charset, cu->name))
 		cu->cd = cd_locale_to_utf8;
@@ -1708,6 +1722,8 @@ conv_to_utf8_cd_get(const char *cs)
 	cu = hikset_lookup(charset2conv_to_utf8, cs);
 	if (NULL == cu)
 		cu = conv_to_utf8_new(cs);
+
+	conv_to_utf8_check(cu);
 
 	if ((iconv_t) -1 == cu->cd)
 		conv_to_utf8_init(cu);
@@ -1835,6 +1851,7 @@ locale_init_show_results(void)
 	while (NULL != (sl = g_slist_next(sl))) {
 		const struct conv_to_utf8 *t = sl->data;
 
+		conv_to_utf8_check(t);
 		g_info("additional filename character set \"%s\"", t->name);
 	}
 }
@@ -2991,6 +3008,8 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 
 	for (sl = sl_filename_charsets; sl != NULL; sl = g_slist_next(sl)) {
 		const struct conv_to_utf8 *t = sl->data;
+
+		conv_to_utf8_check(t);
 
 		if (t->is_utf8)	{
 			if (utf8_is_valid_string(src)) {
