@@ -1045,6 +1045,20 @@ elist_nth_prev_data(const elist_t *list, const link_t *lk, size_t n)
 }
 
 /**
+ * Pick random item in list.
+ *
+ * @return pointer to the selected item, NULL if list is empty.
+ */
+void *
+elist_random(const elist_t *list)
+{
+	elist_check(list);
+	g_assert(list->count <= MAX_INT_VAL(long));
+
+	return elist_nth(list, random_ulong_value(list->count));
+}
+
+/**
  * Randomly shuffle the items in the list.
  */
 void

@@ -913,6 +913,20 @@ eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n)
 }
 
 /**
+ * Pick random item in list.
+ *
+ * @return pointer to the selected item, NULL if list is empty.
+ */
+void *
+eslist_random(const eslist_t *list)
+{
+	eslist_check(list);
+	g_assert(list->count <= MAX_INT_VAL(long));
+
+	return eslist_nth(list, random_ulong_value(list->count));
+}
+
+/**
  * Randomly shuffle the items in the list.
  */
 void
