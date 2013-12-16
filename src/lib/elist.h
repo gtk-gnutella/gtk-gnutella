@@ -313,6 +313,7 @@ void elist_sort(elist_t *list, cmp_fn_t cmp);
 void elist_insert_sorted_with_data(elist_t *list, void *item,
 	cmp_data_fn_t cmp, void *data);
 void elist_insert_sorted(elist_t *list, void *item, cmp_fn_t cmp);
+void *elist_nth(const elist_t *list, long n);
 void *elist_nth_next_data(const elist_t *list, const link_t *lk, size_t n);
 void *elist_nth_prev_data(const elist_t *list, const link_t *lk, size_t n);
 void elist_shuffle(elist_t *list);

@@ -254,6 +254,7 @@ void eslist_sort(eslist_t *list, cmp_fn_t cmp);
 void eslist_insert_sorted_with_data(eslist_t *list, void *item,
 	cmp_data_fn_t cmp, void *data);
 void eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp);
+void *eslist_nth(const eslist_t *list, long n);
 void *eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n);
 void eslist_shuffle(eslist_t *list);
 

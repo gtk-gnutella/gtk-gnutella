@@ -856,6 +856,39 @@ eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp)
 }
 
 /**
+ * Get the n-th item in the list (0-based index).
+ *
+ * A negative index gets items from the tail of the list, i.e. -1 gets the
+ * last item, -2 the penultimate one, -3 the antepenultimate one, etc...
+ *
+ * @param list	the list
+ * @param n		the n-th item index to retrieve (0 = first item)
+ *
+ * @return the n-th item, NULL if the position is off the end of the list.
+ */
+void *
+eslist_nth(const eslist_t *list, long n)
+{
+	size_t i = n;
+	slink_t *lk;
+
+	eslist_check(list);
+
+	if (n < 0)
+		i = list->count + n;
+
+	if (i >= list->count)
+		return NULL;
+
+	for (lk = list->head; lk != NULL; lk = lk->next) {
+		if (0 == i--)
+			return ptr_add_offset(lk, -list->offset);
+	}
+
+	g_assert_not_reached();		/* Item must have been selected above */
+}
+
+/**
  * Given a link, return the item associated with the nth link that follows it,
  * or NULL if there is nothing.  The 0th item is the data associated with
  * the given link.
