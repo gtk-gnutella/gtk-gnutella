@@ -1044,6 +1044,34 @@ plist_shuffle(plist_t *pl)
 }
 
 /**
+ * Pick a random cell from the list.
+ *
+ * @param pl	the head of the list
+ *
+ * @return the randomly picked cell, NULL if the list is empty.
+ */
+plist_t *
+plist_random(const plist_t *pl)
+{
+	const plist_t *l, *picked = NULL;
+	ulong n;
+
+	/*
+	 * Correctness of this algorithm is documented in pslist_random().
+	 *
+	 * Note than in our code below, the first item is n = 0, hence item n
+	 * has 1/(n+1) chances of being selected at each step, not 1/n.
+	 */
+
+	for (l = pl, n = 0; l != NULL; l = l->next, n++) {
+		if (random_ulong_value(n))
+			picked = l;		/* Item n has 1/(n+1) chances of being selected */
+	}
+
+	return deconstify_pointer(picked);
+}
+
+/**
  * Remove head of list.
  *
  * @param pl_ptr		pointer to the head of the list

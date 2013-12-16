@@ -130,6 +130,7 @@ plist_t *plist_sort(plist_t *pl, cmp_fn_t cmp) WARN_UNUSED_RESULT;
 plist_t *plist_sort_with_data(plist_t *pl,
 	cmp_data_fn_t cmp, void *data) WARN_UNUSED_RESULT;
 plist_t *plist_shuffle(plist_t *pl) WARN_UNUSED_RESULT;
+plist_t *plist_random(const plist_t *pl);
 void *plist_shift(plist_t **pl) NON_NULL_PARAM((1));
 
 static inline plist_t * WARN_UNUSED_RESULT
@@ -142,6 +143,13 @@ static inline plist_t * WARN_UNUSED_RESULT
 plist_append_const(plist_t *pl, const void *data)
 {
 	return plist_append(pl, deconstify_pointer(data));
+}
+
+static inline void *
+plist_random_data(const plist_t *pl)
+{
+	plist_t *r = plist_random(pl);
+	return NULL == r ? NULL : r->data;
 }
 
 #define PLIST_FOREACH(list, l) \

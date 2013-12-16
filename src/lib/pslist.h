@@ -115,6 +115,7 @@ pslist_t *pslist_sort(pslist_t *pl, cmp_fn_t cmp) WARN_UNUSED_RESULT;
 pslist_t *pslist_sort_with_data(pslist_t *pl,
 	cmp_data_fn_t cmp, void *data) WARN_UNUSED_RESULT;
 pslist_t *pslist_shuffle(pslist_t *pl) WARN_UNUSED_RESULT;
+pslist_t *pslist_random(const pslist_t *pl);
 void *pslist_shift(pslist_t **pl_ptr) NON_NULL_PARAM((1));
 
 static inline pslist_t * WARN_UNUSED_RESULT
@@ -127,6 +128,13 @@ static inline pslist_t * WARN_UNUSED_RESULT
 pslist_append_const(pslist_t *pl, const void *data)
 {
 	return pslist_append(pl, deconstify_pointer(data));
+}
+
+static inline void *
+pslist_random_data(const pslist_t *pl)
+{
+	pslist_t *r = pslist_random(pl);
+	return NULL == r ? NULL : r->data;
 }
 
 #define PSLIST_FOREACH(slist, l) \

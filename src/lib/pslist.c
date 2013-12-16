@@ -976,6 +976,63 @@ pslist_shuffle(pslist_t *pl)
 }
 
 /**
+ * Pick a random cell from the list.
+ *
+ * @param pl	the head of the list
+ *
+ * @return the randomly picked cell, NULL if the list is empty.
+ */
+pslist_t *
+pslist_random(const pslist_t *pl)
+{
+	const pslist_t *l, *picked = NULL;
+	ulong n;
+
+	/*
+	 * This algorithm uniformly selects elements among the list (whose count
+	 * is not known initially) by letting item #i be selected and supersede
+	 * any previously chosen item with probability 1/i.  If there are N items
+	 * in the list, then each has a probabily 1/N of ending up being picked.
+	 *
+	 * Proof:
+	 *
+	 * Let our hypothesis Hn be: all n items have a uniform 1/n probability
+	 * of being selected.
+	 *
+	 * H1 is trivially true (n = 1).
+	 *
+	 * Now suppose Hn is true and let's prove that Hn+1 is also true:
+	 *
+	 * The item #n+1 has clearly a probability of 1/(n+1) of being selected,
+	 * since this is the way the algorithm picks new items as it progresses
+	 * among the list.
+	 *
+	 * For the other n items, they all had a 1/n probability of being picked so
+	 * far (our hypothesis).  So let's pick one item E in this set of n items,
+	 * and let's denote p(E) the probability that this item be picked in our
+	 * set of n+1 items.
+	 *
+	 * The probability that the n+1 item be not picked is 1 - 1/(n+1).  So the
+	 * probability that E remains picked is p(E) = 1/n * (1 - 1/(n+1)).
+	 *
+	 * p(E) = 1/n * (n+1 - 1)/(n+1) = 1/n * (n / (n+1) = 1/(n+1)
+	 *
+	 * Therefore, among the  set of n+1 items, each item has a probability of
+	 * being picked of 1/(n+1).  QED.
+	 *
+	 * Note than in our code below, the first item is n = 0, hence item n
+	 * has 1/(n+1) chances of being selected at each step, not 1/n.
+	 */
+
+	for (l = pl, n = 0; l != NULL; l = l->next, n++) {
+		if (0 == random_ulong_value(n))
+			picked = l;		/* Item n has 1/(n+1) chances of being selected */
+	}
+
+	return deconstify_pointer(picked);
+}
+
+/**
  * Remove head of list.
  *
  * @param pl_ptr	pointer to the head of the list
