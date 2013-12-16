@@ -326,6 +326,7 @@ void
 http_rangeset_clear(http_rangeset_t *hrs)
 {
 	http_rangeset_check(hrs);
+	http_rangeset_invariant(hrs);
 
 	erbtree_discard(&hrs->tree, http_range_item_free);
 	eslist_clear(&hrs->list);
@@ -376,7 +377,7 @@ size_t
 http_rangeset_count(const http_rangeset_t *hrs)
 {
 	http_rangeset_check(hrs);
-	http_rangeset_invariant(hrs);
+	safety_assert(http_rangeset_invariant(hrs));
 
 	return eslist_count(&hrs->list);
 }
@@ -940,7 +941,7 @@ http_rangeset_insert(http_rangeset_t *hrs, filesize_t start, filesize_t end)
 	/* FALL THROUGH */
 
 done:
-	safety_assert(http_rangeset_invariant(hrs));
+	http_rangeset_invariant(hrs);
 	safety_assert(http_rangeset_compute_length(hrs) == hrs->length);
 }
 
@@ -1529,7 +1530,7 @@ http_rangeset_merge(http_rangeset_t *hdest, const http_rangeset_t *hsrc)
 
 	HTTP_RANGE_DEBUG(5, "result is %s", http_rangeset_to_string(hdest));
 
-	safety_assert(http_rangeset_invariant(hdest));
+	http_rangeset_invariant(hdest);
 	safety_assert(http_rangeset_compute_length(hdest) == hdest->length);
 
 	return hdest->length;
