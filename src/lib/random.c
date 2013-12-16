@@ -248,6 +248,21 @@ random_u64(void)
 }
 
 /**
+ * @return random long value, all bits being random.
+ */
+ulong
+random_ulong(void)
+{
+#if LONGSIZE == 8
+	return mtp_rand64();
+#elif LONGSIZE == 4
+	return mtp_rand();
+#else
+#error "unhandled long size"
+#endif
+}
+
+/**
  * @return 32-bit random value between [0, max], inclusive.
  */
 uint32
@@ -278,6 +293,21 @@ uint64
 random64_value(uint64 max)
 {
 	return random64_upto(mtp_rand64, max);
+}
+
+/**
+ * @return random unsigned long value between [0, max], inclusive.
+ */
+ulong
+random_ulong_value(ulong max)
+{
+#if LONGSIZE == 8
+	return random64_upto(mtp_rand64, max);
+#elif LONGSIZE == 4
+	return random_upto(mtp_rand, max);
+#else
+#error "unhandled long size"
+#endif
 }
 
 /**
