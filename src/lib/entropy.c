@@ -81,6 +81,7 @@
 #include "rand31.h"
 #include "sha1.h"
 #include "shuffle.h"
+#include "spinlock.h"
 #include "stringify.h"
 #include "thread.h"
 #include "tm.h"
@@ -106,6 +107,10 @@ typedef void (*entropy_cb_t)(SHA1Context *ctx);
  * Buffer where we keep track of previously generated randomness.
  */
 static sha1_t entropy_previous;
+static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
+
+#define ENTROPY_PREV_LOCK		spinlock_hidden(&entropy_previous_slk)
+#define ENTROPY_PREV_UNLOCK		spinunlock_hidden(&entropy_previous_slk)
 
 static void
 sha1_feed_ulong(SHA1Context *ctx, unsigned long value)
@@ -181,10 +186,14 @@ entropy_merge(sha1_t *digest)
 	 * ``entropy_previous'' directly.
 	 */
 
+	ENTROPY_PREV_LOCK;
+
 	bigint_use(&older, &entropy_previous, SHA1_RAW_SIZE);
 	bigint_use(&newer, digest, SHA1_RAW_SIZE);
 	bigint_add(&newer, &older);
 	bigint_copy(&older, &newer);
+
+	ENTROPY_PREV_UNLOCK;
 }
 
 /**
@@ -208,8 +217,12 @@ entropy_rand31(void)
 	 * five 32-bit words, interpreted in a big-endian way.
 	 */
 
+	ENTROPY_PREV_LOCK;
+
 	result += peek_be32(ptr_add_offset(&entropy_previous, offset));
 	offset = (offset + 4) % sizeof entropy_previous;
+
+	ENTROPY_PREV_UNLOCK;
 
 	return result & RAND31_MASK;
 }
@@ -1062,13 +1075,25 @@ entropy_random(void)
 {
 	static sha1_t digest;
 	static void *p = &digest;
+	static spinlock_t entropy_random_slk = SPINLOCK_INIT;
+	uint32 rnd;
 
 	/*
 	 * Collect entropy again once we have exhausted reading from the pool.
 	 */
 
+	spinlock_hidden(&entropy_random_slk);
+
 	if G_UNLIKELY(&digest == p) {
-		entropy_minimal_collect(&digest);
+		sha1_t tmp;
+
+		spinunlock_hidden(&entropy_random_slk);
+
+		entropy_minimal_collect(&tmp);
+
+		spinlock_hidden(&entropy_random_slk);
+
+		digest = tmp;			/* struct copy */
 		p = ptr_add_offset(&digest, sizeof digest);
 	}
 
@@ -1077,8 +1102,11 @@ entropy_random(void)
 	 */
 
 	p = ptr_add_offset(p, -4);
+	rnd = peek_be32(p);
 
-	return peek_be32(p);
+	spinunlock_hidden(&entropy_random_slk);
+
+	return rnd;
 }
 
 /**
