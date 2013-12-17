@@ -185,11 +185,17 @@ struct thread_pvalue {
 	void *p_arg;					/**< Optional argument to free routine */
 };
 
+enum thread_lkey_state {
+	THREAD_LKEY_UNUSED = 0,			/**< Key is unused */
+	THREAD_LKEY_USED = 1,			/**< Key is used normally */
+	THREAD_LKEY_DESTROYING = 2,		/**< Key is being destroyed */
+};
+
 /**
  * A thread-local key slot.
  */
 struct thread_lkey {
-	bool used;						/**< Is key slot used? */
+	enum thread_lkey_state used;	/**< Is key slot used? */
 	free_fn_t freecb;				/**< Optional free routine */
 };
 
@@ -1027,7 +1033,7 @@ thread_local_clear(struct thread_element *te)
 
 					spinlock_hidden(&thread_local_slk);
 
-					if G_LIKELY(thread_lkeys[k].used)
+					if G_LIKELY(THREAD_LKEY_USED == thread_lkeys[k].used)
 						freecb = thread_lkeys[k].freecb;
 
 					if G_LIKELY(freecb != THREAD_LOCAL_KEEP) {
@@ -1077,7 +1083,7 @@ thread_local_count(struct thread_element *te)
 					 * if we're reading a stale value.
 					 */
 
-					if G_LIKELY(thread_lkeys[kbase + l2].used)
+					if G_LIKELY(thread_lkeys[kbase+l2].used == THREAD_LKEY_USED)
 						count++;
 				}
 			}
@@ -4000,8 +4006,8 @@ thread_local_key_create(thread_key_t *key, free_fn_t freecb)
 	spinlock(&thread_local_slk);
 
 	for (i = 0; i < THREAD_LOCAL_MAX; i++) {
-		if (!thread_lkeys[i].used) {
-			thread_lkeys[i].used = TRUE;
+		if (THREAD_LKEY_UNUSED == thread_lkeys[i].used) {
+			thread_lkeys[i].used = THREAD_LKEY_USED;
 			thread_lkeys[i].freecb = freecb;
 			thread_lkeys_used++;
 			spinunlock(&thread_local_slk);
@@ -4029,14 +4035,25 @@ thread_local_key_delete(thread_key_t key)
 
 	g_assert(key < THREAD_LOCAL_MAX);
 
-	spinlock(&thread_local_slk);
+	spinlock_hidden(&thread_local_slk);
 
-	if G_UNLIKELY(!thread_lkeys[key].used) {
-		spinunlock(&thread_local_slk);
+	if G_UNLIKELY(THREAD_LKEY_USED != thread_lkeys[key].used) {
+		spinunlock_hidden(&thread_local_slk);
 		return;
 	}
 
 	freecb = thread_lkeys[key].freecb;
+
+	/*
+	 * Mark the key as being in the process of being deleted, then release
+	 * the thread_local_slk lock: no other thread will be able to request
+	 * deletion of that key and the key usage flag not being THREAD_LKEY_UNUSED
+	 * yet, that slot will not be usable until the variables have been fully
+	 * cleared in all the threads using the local key.
+	 */
+
+	thread_lkeys[key].used = THREAD_LKEY_DESTROYING;
+	spinunlock_hidden(&thread_local_slk);
 
 	/*
 	 * Compute the index of the key on the L1 and L2 pages.
@@ -4051,10 +4068,6 @@ thread_local_key_delete(thread_key_t key)
 	 *
 	 * This procedure is necessary because should the key be reassigned, all
 	 * the running threads will now have a default NULL value.
-	 *
-	 * We're grabbing a second lock to ensure nobody registers a new thread,
-	 * but no deadlock can occur because the thread registering code is never
-	 * going to grab the ``thread_local_slk'' lock.
 	 */
 
 	mutex_lock(&thread_insert_mtx);
@@ -4076,12 +4089,13 @@ thread_local_key_delete(thread_key_t key)
 		if G_LIKELY(l2page != NULL) {
 			void *val;
 
-			/*
-			 * Because we own the thread_local_slk lock, no concurrent update
-			 * by the thread can happen: see thread_local_set().
-			 */
-
 			val = l2page[l2];
+
+			/*
+			 * Because we set the key to THREAD_LKEY_DESTROYING, it is not
+			 * possible to have threads use thread_local_set() for that key,
+			 * hence there is no need to lock anything.
+			 */
 
 			if G_LIKELY(val != NULL) {
 				l2page[l2] = NULL;
@@ -4097,11 +4111,13 @@ thread_local_key_delete(thread_key_t key)
 	 * Reset the key.
 	 */
 
-	thread_lkeys[key].used = FALSE;
+	spinlock_hidden(&thread_local_slk);
+
+	thread_lkeys[key].used = THREAD_LKEY_UNUSED;
 	thread_lkeys[key].freecb = NULL;
 	thread_lkeys_used--;
 
-	spinunlock(&thread_local_slk);
+	spinunlock_hidden(&thread_local_slk);
 }
 
 /**
@@ -4121,7 +4137,7 @@ thread_local_set(thread_key_t key, const void *value)
 	free_fn_t freecb;
 
 	g_assert(key < THREAD_LOCAL_MAX);
-	g_assert_log(thread_lkeys[key].used,
+	g_assert_log(thread_lkeys[key].used != THREAD_LKEY_UNUSED,
 		"%s() called with unused key %u", G_STRFUNC, key);
 
 	/*
@@ -4155,7 +4171,7 @@ thread_local_set(thread_key_t key, const void *value)
 
 	spinlock_hidden(&thread_local_slk);
 
-	if G_LIKELY(thread_lkeys[key].used) {
+	if G_LIKELY(THREAD_LKEY_USED == thread_lkeys[key].used) {
 		val = l2page[l2];
 		l2page[l2] = deconstify_pointer(value);
 		freecb = thread_lkeys[key].freecb;
@@ -4229,7 +4245,9 @@ thread_element_local_get(struct thread_element *te, thread_key_t key)
 	l2 = key % THREAD_LOCAL_L2_SIZE;
 	l2page = te->locals[l1];
 
-	if G_UNLIKELY(NULL == l2page || !thread_lkeys[key].used)
+	if G_UNLIKELY(
+		NULL == l2page || THREAD_LKEY_USED != thread_lkeys[key].used
+	)
 		return NULL;
 
 	return l2page[l2];
