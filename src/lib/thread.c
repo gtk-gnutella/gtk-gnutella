@@ -2153,8 +2153,8 @@ thread_find_tid(thread_t t)
 	THREAD_STATS_INCX(lookup_by_tid);
 
 	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
-		/* Allow look-ahead of to-be-created slot, hence the ">" */
-		if G_UNLIKELY(i > thread_next_stid)
+		/* Allow look-ahead of to-be-created slot, hence the ">=" */
+		if G_UNLIKELY(i >= atomic_uint_get(&thread_allocated_stid))
 			break;
 
 		/*
