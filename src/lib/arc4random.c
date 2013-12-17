@@ -2,7 +2,7 @@
  * Copyright (c) 1996, David Mazieres <dm@lcs.mit.edu>.
  *
  * Adaptated for inclusion in gtk-gnutella by Raphael Manfredi.
- * Copyright (c) 2010, 2012 Raphael Manfredi
+ * Copyright (c) 2010, 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -41,10 +41,14 @@
  * The arc4random_upto64() routine has been added to David Mazieres's code
  * to provide uniformly distributed random numbers over a certain range.
  *
+ * The code has also been extended to provide thread-local ARC4 streams, which
+ * can generate random numbers without taking locks, resulting in a substantial
+ * increased throughput.
+ *
  * @author David Mazieres
  * @date 1996
  * @author Raphael Manfredi
- * @date 2010, 2012
+ * @date 2010, 2012-2013
  */
 
 #include "common.h"
@@ -77,11 +81,9 @@
 #include "arc4random.h"
 
 #include "entropy.h"
-#include "log.h"
-#include "misc.h"		/* For sha1_t */
 #include "omalloc.h"
 #include "once.h"
-#include "pow2.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "thread.h"
 
@@ -381,6 +383,18 @@ arc4_thread_addrandom(const unsigned char *dat, int datlen)
 	g_assert(datlen > 0);
 
 	arc4_addrandom(arc4_stream(), dat, datlen);
+}
+
+/**
+ * @return a list of thread IDs using a thread-local ARC4 pool, which must
+ * be freed with pslist_free().
+ */
+pslist_t *
+arc4_users(void)
+{
+	ONCE_FLAG_RUN(arc4_key_inited, arc4_key_init);
+
+	return thread_local_users(arc4_key);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

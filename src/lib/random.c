@@ -59,7 +59,9 @@
 #include "common.h"
 
 #include "random.h"
+
 #include "arc4random.h"
+#include "atomic.h"
 #include "endian.h"
 #include "float.h"
 #include "log.h"
@@ -67,10 +69,14 @@
 #include "misc.h"
 #include "mtwist.h"
 #include "pow2.h"
+#include "pslist.h"
 #include "sha1.h"
 #include "spinlock.h"
+#include "teq.h"
+#include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -348,9 +354,12 @@ random_bytes(void *dst, size_t size)
 	 * and should yield better results than a pure PRNG delivering its sequence,
 	 * even one as good as the one coming out of the Mersenne Twister.
 	 *		--RAM, 2012-12-15
+	 *
+	 * Switching to arc4_rand() to use the thread-local ARC4 stream, which
+	 * avoids taking locks and is therefore faster than arc4random().
 	 */
 
-	random_bytes_with(arc4random, dst, size);
+	random_bytes_with(arc4_rand, dst, size);
 }
 
 /**
@@ -375,6 +384,65 @@ random_cpu_noise(void)
 	SHA1Result(&ctx, &digest);
 
 	return peek_le32(digest.data);
+}
+
+enum random_byte_data_magic { RANDOM_BYTE_DATA_MAGIC = 0x1feded57 };
+
+/**
+ * Random bytes propagated to a thread.
+ */
+struct random_byte_data {
+	enum random_byte_data_magic magic;
+	void *data;		/* Data buffer */
+	size_t len;		/* Amount of bytes in buffer */
+	int refcnt;		/* Reference count */
+};
+
+static struct random_byte_data *
+random_byte_data_alloc(const void *data, size_t len)
+{
+	struct random_byte_data *rbd;
+
+	WALLOC(rbd);
+	rbd->magic = RANDOM_BYTE_DATA_MAGIC;
+	rbd->data = wcopy(data, len);
+	rbd->len = len;
+	rbd->refcnt = 1;
+
+	return rbd;
+}
+
+static inline void
+random_byte_data_check(const struct random_byte_data * const rbd)
+{
+	g_assert(rbd != NULL);
+	g_assert(RANDOM_BYTE_DATA_MAGIC == rbd->magic);
+}
+
+static void
+random_byte_data_free(struct random_byte_data *rbd)
+{
+	random_byte_data_check(rbd);
+
+	if (atomic_int_dec_is_zero(&rbd->refcnt)) {
+		WFREE_NULL(rbd->data, rbd->len);
+		rbd->magic = 0;
+		WFREE(rbd);
+	}
+}
+
+/**
+ * TEQ event delivered to a thread to add random bytes to the local ARC4 stream.
+ */
+static void
+random_byte_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	arc4_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
 }
 
 /**
@@ -409,7 +477,7 @@ random_add_pool(void *buf, size_t len)
 		 */
 
 		if G_UNLIKELY(idx >= G_N_ELEMENTS(data)) {
-			arc4random_addrandom(data, sizeof data);
+			random_add(data, sizeof data);
 			idx = 0;
 			flushed = TRUE;
 		}
@@ -524,10 +592,34 @@ random_pool_append(void *buf, size_t len, void (*cb)(void))
 void
 random_add(const void *data, size_t datalen)
 {
+	pslist_t *users, *sl;
+	struct random_byte_data *rbd = NULL;
+
 	g_assert(data != NULL);
 	g_assert(datalen < MAX_INT_VAL(int));
 
 	arc4random_addrandom(deconstify_pointer(data), (int) datalen);
+
+	/*
+	 * Propagate the random bytes to all the threads using
+	 * a local ARC4 stream, provided the target thread has
+	 * created a Thread Event Queue (TEQ).
+	 */
+
+	users = arc4_users();
+	PSLIST_FOREACH(users, sl) {
+		uint id = pointer_to_uint(sl->data);
+		if (teq_is_supported(id)) {
+			if (NULL == rbd)
+				rbd = random_byte_data_alloc(data, datalen);
+			atomic_int_inc(&rbd->refcnt);
+			teq_post(id, random_byte_add, rbd);
+		}
+	}
+	pslist_free(users);
+
+	if (rbd != NULL)
+		random_byte_data_free(rbd);
 }
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * ARC4 random number generator.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010, 2013
  */
 
 #ifndef _arc4random_h_
@@ -52,6 +52,7 @@ uint64 arc4random64(void);
 uint32 arc4_rand(void);
 uint64 arc4_rand64(void);
 void arc4_thread_addrandom(const unsigned char *dat, int datlen);
+struct pslist *arc4_users(void);
 
 #endif /* _arc4random_h_ */
 
