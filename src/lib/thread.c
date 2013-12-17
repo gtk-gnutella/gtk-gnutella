@@ -322,7 +322,6 @@ struct thread_element {
 	slist_t *cond_stack;			/**< Stack of condition-waiting variables */
 	dam_t *termination;				/**< Waiters on thread termination */
 	spinlock_t lock;				/**< Protects concurrent updates */
-	spinlock_t local_slk;			/**< Protects concurrent updates */
 	eslist_t exit_list;				/**< List of exit callbacks to invoke */
 	eslist_t cleanup_list;			/**< List of cleanup callbacks to invoke */
 	tsighandler_t sigh[TSIG_COUNT - 1];		/**< Signal handlers */
@@ -1003,8 +1002,6 @@ thread_local_clear(struct thread_element *te)
 	unsigned l1;
 	size_t cleared = 0;
 
-	spinlock_hidden(&te->local_slk);
-
 	for (l1 = 0; l1 < G_N_ELEMENTS(te->locals); l1++) {
 		void **l2page = te->locals[l1];
 
@@ -1022,26 +1019,31 @@ thread_local_clear(struct thread_element *te)
 					 * Always get the ``thread_local_slk'' lock before
 					 * reading the thread_lkeys[] array to prevent any
 					 * race since two values must be atomically fetched.
+					 *
+					 * We reset the variable under the protection of the
+					 * thread_local_slk lock to make sure thread_local_set()
+					 * can also safely read the L2 page when it has that lock.
 					 */
 
 					spinlock_hidden(&thread_local_slk);
+
 					if G_LIKELY(thread_lkeys[k].used)
 						freecb = thread_lkeys[k].freecb;
-					spinunlock_hidden(&thread_local_slk);
 
 					if G_LIKELY(freecb != THREAD_LOCAL_KEEP) {
 						l2page[l2] = NULL;
 						cleared++;
+					}
 
-						if G_LIKELY(freecb != NULL)
-							(*freecb)(val);
+					spinunlock_hidden(&thread_local_slk);
+
+					if G_LIKELY(freecb != THREAD_LOCAL_KEEP && freecb != NULL) {
+						(*freecb)(val);
 					}
 				}
 			}
 		}
 	}
-
-	spinunlock_hidden(&te->local_slk);
 
 	return cleared;
 }
@@ -1056,8 +1058,6 @@ thread_local_count(struct thread_element *te)
 {
 	unsigned l1;
 	size_t count = 0;
-
-	spinlock_hidden(&te->local_slk);
 
 	for (l1 = 0; l1 < G_N_ELEMENTS(te->locals); l1++) {
 		void **l2page = te->locals[l1];
@@ -1083,8 +1083,6 @@ thread_local_count(struct thread_element *te)
 			}
 		}
 	}
-
-	spinunlock_hidden(&te->local_slk);
 
 	return count;
 }
@@ -1667,7 +1665,6 @@ thread_new_element(unsigned stid)
 	te->stid = stid;
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	spinlock_init(&te->lock);
-	spinlock_init(&te->local_slk);
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
 	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
 	thread_stack_init_shape(te, &te);
@@ -1788,7 +1785,6 @@ thread_main_element(thread_t t)
 	te->cancelled = FALSE;
 	te->cancl = THREAD_CANCEL_DISABLE;
 	spinlock_init(&te->lock);
-	spinlock_init(&te->local_slk);
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
 	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
 
@@ -4080,16 +4076,18 @@ thread_local_key_delete(thread_key_t key)
 		if G_LIKELY(l2page != NULL) {
 			void *val;
 
-			spinlock_hidden(&te->local_slk);
-			val = l2page[l2];
-			l2page[l2] = NULL;
-			spinunlock_hidden(&te->local_slk);
+			/*
+			 * Because we own the thread_local_slk lock, no concurrent update
+			 * by the thread can happen: see thread_local_set().
+			 */
 
-			if G_LIKELY(
-				val != NULL &&
-				freecb != NULL && freecb != THREAD_LOCAL_KEEP
-			)
-				(*freecb)(val);
+			val = l2page[l2];
+
+			if G_LIKELY(val != NULL) {
+				l2page[l2] = NULL;
+				if (freecb != NULL && freecb != THREAD_LOCAL_KEEP)
+					(*freecb)(val);
+			}
 		}
 	}
 
@@ -4147,16 +4145,19 @@ thread_local_set(thread_key_t key, const void *value)
 	/*
 	 * Make sure nobody is concurrently deleting the key, now that we checked
 	 * it existed when we entered.
+	 *
+	 * There is no need to protect the access to the L2 pages because these
+	 * are allocated once per thread element and never freed.  Only the current
+	 * thread can access these pages, unless the key is deleted, but we hold
+	 * the thread_local_slk lock when we do the access and therefore no
+	 * concurrent access is possible.
 	 */
 
 	spinlock_hidden(&thread_local_slk);
 
 	if G_LIKELY(thread_lkeys[key].used) {
-		spinlock_hidden(&te->local_slk);
 		val = l2page[l2];
 		l2page[l2] = deconstify_pointer(value);
-		spinunlock_hidden(&te->local_slk);
-
 		freecb = thread_lkeys[key].freecb;
 	} else {
 		freecb = THREAD_LOCAL_INVALID;
