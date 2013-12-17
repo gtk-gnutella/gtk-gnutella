@@ -517,6 +517,9 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 
 	bfd_ctx_check(bc);
 
+	if (bc->offseted || NULL == bc->handle)
+		return;
+
 	mutex_lock_fast(&bc->lock);
 
 	if (bc->offseted) {
