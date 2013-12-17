@@ -6124,6 +6124,8 @@ thread_element_block_until(struct thread_element *te,
 		gstart = gentime_now();
 	}
 
+	thread_check_suspended_element(te, TRUE);
+
 	/*
 	 * Make sure the main thread never attempts to block itself if it
 	 * has not explicitly told us it can block.
@@ -6157,13 +6159,11 @@ thread_element_block_until(struct thread_element *te,
 	 * anything as we were not flagged as "blocked" yet.
 	 */
 
-	thread_check_suspended_element(te, TRUE);
-
 	THREAD_LOCK(te);
 	if (te->unblock_events != events) {
 		THREAD_UNLOCK(te);
 		THREAD_STATS_INCX(thread_self_block_races);
-		return TRUE;				/* Was sent an "unblock" event already */
+		goto done;				/* Was sent an "unblock" event already */
 	}
 
 	/*
@@ -6266,6 +6266,8 @@ retry:
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
+
+done:
 
 	/*
 	 * If we were blocking the "non-blockable" main thread, remove the
