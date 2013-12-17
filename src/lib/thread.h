@@ -210,6 +210,7 @@ void thread_local_key_delete(thread_key_t key);
 void thread_local_set(thread_key_t key, const void *value);
 void *thread_local_get(thread_key_t key);
 size_t thread_local_key_count(void);
+struct pslist *thread_local_users(thread_key_t key);
 
 void thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line, const void *element);

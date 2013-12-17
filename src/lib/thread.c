@@ -101,6 +101,7 @@
 #include "omalloc.h"
 #include "once.h"
 #include "pow2.h"
+#include "pslist.h"
 #include "rwlock.h"
 #include "semaphore.h"			/* For semaphore_kernel_usage() */
 #include "signal.h"				/* For signal_stack_allocate() */
@@ -4275,6 +4276,32 @@ thread_local_get(thread_key_t key)
 	thread_check_suspended_element(te, TRUE);
 
 	return thread_element_local_get(te, key);
+}
+
+/**
+ * Find out which threads are using a given thread-local variable.
+ *
+ * @return a list of thread STID, which must be freed with pslist_free().
+ */
+pslist_t *
+thread_local_users(thread_key_t key)
+{
+	uint i;
+	pslist_t *sl = NULL;
+	
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		void *v;
+
+		if (!te->valid)
+			continue;
+
+		v = thread_element_local_get(te, key);
+		if (v != NULL)
+			sl = pslist_prepend(sl, uint_to_pointer(i));
+	}
+
+	return sl;
 }
 
 /**
