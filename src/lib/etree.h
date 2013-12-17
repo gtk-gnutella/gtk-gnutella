@@ -210,12 +210,15 @@ etree_count(const etree_t *et)
 
 	etree_check(et);
 
-	if (NULL == et->root)
+	if G_UNLIKELY(NULL == et->root)
 		return 0;
 
 	/*
 	 * Cache count in the object.
 	 */
+
+	if G_LIKELY(0 != et->count)
+		return et->count;
 
 	wet = deconstify_pointer(et);
 
