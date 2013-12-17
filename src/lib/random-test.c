@@ -69,7 +69,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-4ehuwyBP] [-b mask] [-c items] [-m min] [-p period]\n"
+		"Usage: %s [-4ehluwyBP] [-b mask] [-c items] [-m min] [-p period]\n"
 		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
 		"       [-R seed] [-U upper] [-X upper]\n"
 		"  -4 : test arc4random() instead of rand31()\n"
@@ -77,6 +77,7 @@ usage(void)
 		"  -c : sets item count to remember, for period computation\n"
 		"  -e : test entropy_random() instead of rand31()\n"
 		"  -h : prints this help message\n"
+		"  -l : test arc4_rand() instead of rand31(), a thread-local ARC4\n"
 		"  -m : sets minimum period to consider\n"
 		"  -p : sets period for value and bit counting\n"
 		"  -s : skip that amount of initial random values\n"
@@ -501,7 +502,7 @@ main(int argc, char **argv)
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	const char *fnname = "rand31";
-	const char options[] = "4b:c:ehm:p:s:t:uwyBC:D:F:PR:U:X:";
+	const char options[] = "4b:c:ehlm:p:s:t:uwyBC:D:F:PR:U:X:";
 
 #define SET_RANDOM(x)	\
 	fn = x;				\
@@ -524,6 +525,9 @@ main(int argc, char **argv)
 			break;
 		case 'e':
 			SET_RANDOM(entropy_random);
+			break;
+		case 'l':			/* test arc4_rand() */
+			SET_RANDOM(arc4_rand);
 			break;
 		case 'm':			/* supersede defaul mininum period */
 			min_period = get_number(optarg, c);

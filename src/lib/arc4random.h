@@ -45,6 +45,14 @@ void arc4random_addrandom(const unsigned char *dat, int datlen);
 void arc4random_stir_once(void);
 uint64 arc4random64(void);
 
+/*
+ * ARC4 random numbers using thread-local stream.
+ */
+
+uint32 arc4_rand(void);
+uint64 arc4_rand64(void);
+void arc4_thread_addrandom(const unsigned char *dat, int datlen);
+
 #endif /* _arc4random_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
