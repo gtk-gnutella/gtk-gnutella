@@ -982,7 +982,7 @@ http_range_first(const http_rangeset_t *hrs)
  * Continue iteration over the list of HTTP ranges.
  *
  * @param hrs		the HTTP range set
- * @param item		the previous HTTP range iterated over
+ * @param r			the previous HTTP range iterated over
  *
  * @return NULL if the item was the last one, or the next HTTP range.
  */
