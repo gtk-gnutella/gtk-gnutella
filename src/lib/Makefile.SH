@@ -283,6 +283,7 @@ LSRC = \
 	walloc.c \
 	watcher.c \
 	wd.c \
+	well.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
@@ -458,6 +459,7 @@ LOBJ = \
 	walloc.o \
 	watcher.o \
 	wd.o \
+	well.o \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \

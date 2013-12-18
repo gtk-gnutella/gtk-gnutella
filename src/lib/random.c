@@ -77,6 +77,7 @@
 #include "tm.h"
 #include "unsigned.h"
 #include "walloc.h"
+#include "well.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -287,9 +288,14 @@ random_value(uint32 max)
 	 *
 	 * We also switched to mt_rand() because it is faster than arc4random().
 	 * And mtp_rand() is a lock-free path, even faster than mt_rand().
+	 *
+	 * Switching to well_thread_rand() since we now add entropy regularily
+	 * to the WELL pools.  ARC4 remains used for random_bytes() and MT is
+	 * used for shuffling since that is the quickest routine still.
+	 *		--RAM, 2013-12-18
 	 */
 
-	return random_upto(mtp_rand, max);
+	return random_upto(well_thread_rand, max);
 }
 
 /**
@@ -298,7 +304,7 @@ random_value(uint32 max)
 uint64
 random64_value(uint64 max)
 {
-	return random64_upto(mtp_rand64, max);
+	return random64_upto(well_thread_rand64, max);
 }
 
 /**
@@ -308,9 +314,9 @@ ulong
 random_ulong_value(ulong max)
 {
 #if LONGSIZE == 8
-	return random64_upto(mtp_rand64, max);
+	return random64_upto(well_thread_rand64, max);
 #elif LONGSIZE == 4
-	return random_upto(mtp_rand, max);
+	return random_upto(well_thread_rand, max);
 #else
 #error "unhandled long size"
 #endif
@@ -435,13 +441,27 @@ random_byte_data_free(struct random_byte_data *rbd)
  * TEQ event delivered to a thread to add random bytes to the local ARC4 stream.
  */
 static void
-random_byte_add(void *p)
+random_byte_arc4_add(void *p)
 {
 	struct random_byte_data *rbd = p;
 
 	random_byte_data_check(rbd);
 
 	arc4_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
+}
+
+/**
+ * TEQ event delivered to a thread to add random bytes to the local WELL stream.
+ */
+static void
+random_byte_well_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	well_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
 }
 
@@ -586,37 +606,49 @@ random_pool_append(void *buf, size_t len, void (*cb)(void))
 	}
 }
 
+static void
+random_dispatch(pslist_t *users, notify_fn_t cb,
+	const void *data, size_t len, struct random_byte_data **rbd_ptr)
+{
+	struct random_byte_data *rbd = *rbd_ptr;
+	pslist_t *sl;
+
+	PSLIST_FOREACH(users, sl) {
+		uint id = pointer_to_uint(sl->data);	/* Thread ID */
+		if (teq_is_supported(id)) {
+			if (NULL == rbd) {
+				rbd = random_byte_data_alloc(data, len);
+				*rbd_ptr = rbd;
+			}
+			atomic_int_inc(&rbd->refcnt);
+			teq_post(id, cb, rbd);
+		}
+	}
+	pslist_free(users);
+}
+
 /**
  * Add new randomness to the random number generator used by random_bytes().
  */
 void
 random_add(const void *data, size_t datalen)
 {
-	pslist_t *users, *sl;
 	struct random_byte_data *rbd = NULL;
 
 	g_assert(data != NULL);
 	g_assert(datalen < MAX_INT_VAL(int));
 
 	arc4random_addrandom(deconstify_pointer(data), (int) datalen);
+	well_addrandom(data, datalen);
 
 	/*
-	 * Propagate the random bytes to all the threads using
-	 * a local ARC4 stream, provided the target thread has
-	 * created a Thread Event Queue (TEQ).
+	 * Propagate the random bytes to all the threads using a
+	 * local ARC4 or WELL stream, provided the target threads
+	 * have created a Thread Event Queue (TEQ).
 	 */
 
-	users = arc4_users();
-	PSLIST_FOREACH(users, sl) {
-		uint id = pointer_to_uint(sl->data);
-		if (teq_is_supported(id)) {
-			if (NULL == rbd)
-				rbd = random_byte_data_alloc(data, datalen);
-			atomic_int_inc(&rbd->refcnt);
-			teq_post(id, random_byte_add, rbd);
-		}
-	}
-	pslist_free(users);
+	random_dispatch(arc4_users(), random_byte_arc4_add, data, datalen, &rbd);
+	random_dispatch(well_users(), random_byte_well_add, data, datalen, &rbd);
 
 	if (rbd != NULL)
 		random_byte_data_free(rbd);

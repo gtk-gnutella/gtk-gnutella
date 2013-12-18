@@ -929,6 +929,8 @@ src/lib/watcher.c
 src/lib/watcher.h
 src/lib/wd.c
 src/lib/wd.h
+src/lib/well.c
+src/lib/well.h
 src/lib/wordvec.c
 src/lib/wordvec.h
 src/lib/wq.c

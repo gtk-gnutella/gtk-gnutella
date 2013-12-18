@@ -226,6 +226,7 @@ LSRC = \
 	walloc.c \
 	watcher.c \
 	wd.c \
+	well.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \

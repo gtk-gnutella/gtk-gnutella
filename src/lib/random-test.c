@@ -45,6 +45,7 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/well.h"
 #include "lib/xmalloc.h"
 
 #define VALUES_REMEMBERED	128
@@ -69,7 +70,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-4ehluwyBP] [-b mask] [-c items] [-m min] [-p period]\n"
+		"Usage: %s [-4ehluyBMPW] [-b mask] [-c items] [-m min] [-p period]\n"
 		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
 		"       [-R seed] [-U upper] [-X upper]\n"
 		"  -4 : test arc4random() instead of rand31()\n"
@@ -77,21 +78,21 @@ usage(void)
 		"  -c : sets item count to remember, for period computation\n"
 		"  -e : test entropy_random() instead of rand31()\n"
 		"  -h : prints this help message\n"
-		"  -l : test arc4_rand() instead of rand31(), a thread-local ARC4\n"
+		"  -l : use thread-local PRNG state context, if supported by routine\n"
 		"  -m : sets minimum period to consider\n"
 		"  -p : sets period for value and bit counting\n"
 		"  -s : skip that amount of initial random values\n"
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
-		"  -w : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
-		"  -y : test mtp_rand(), the thread-local Mersenne Twister\n"
 		"  -B : count '1' occurrences of each bit\n"
 		"  -C : count how many times the random value occurs (after -b)\n"
 		"  -D : dump specified amount of random numbers (after -b)\n"
 		"  -F : uses random floats multiplied by supplied constant\n"
+		"  -M : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
 		"  -P : compute period through brute-force search\n"
 		"  -R : seed for repeatable random key sequence\n"
 		"  -U : use uniform random numbers to specified upper bound\n"
+		"  -W : test well_rand(), the WELL 1024 PRNG, instead of rand31()\n"
 		"  -X : perform chi-squared test of uniform random numbers\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		, progname);
@@ -501,8 +502,9 @@ main(int argc, char **argv)
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
+	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "4b:c:ehlm:p:s:t:uwyBC:D:F:PR:U:X:";
+	const char options[] = "4b:c:ehlm:p:s:t:uBC:D:F:MPR:U:WX:";
 
 #define SET_RANDOM(x)	\
 	fn = x;				\
@@ -513,9 +515,22 @@ main(int argc, char **argv)
 	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
+		if (c == 'l') {
+			test_local = TRUE;
+			break;
+		}
+	}
+
+	optind = 1;
+
+	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case '4':			/* test arc4random() */
-			SET_RANDOM(arc4random);
+			if (test_local) {
+				SET_RANDOM(arc4_rand);
+			} else {
+				SET_RANDOM(arc4random);
+			}
 			break;
 		case 'b':			/* bitmask to apply to random values */
 			mask = get_number(optarg, c);
@@ -526,8 +541,7 @@ main(int argc, char **argv)
 		case 'e':
 			SET_RANDOM(entropy_random);
 			break;
-		case 'l':			/* test arc4_rand() */
-			SET_RANDOM(arc4_rand);
+		case 'l':			/* test thread-local (already handled before) */
 			break;
 		case 'm':			/* supersede defaul mininum period */
 			min_period = get_number(optarg, c);
@@ -544,12 +558,6 @@ main(int argc, char **argv)
 		case 'u':			/* check rand31_u32() instead */
 			SET_RANDOM(rand31_u32);
 			break;
-		case 'w':			/* check mt_rand() instead */
-			SET_RANDOM(mt_rand);
-			break;
-		case 'y':			/* check mtp_rand() instead */
-			SET_RANDOM(mtp_rand);
-			break;
 		case 'B':			/* count occurrences of each bit */
 			countbits = TRUE;
 			break;
@@ -563,6 +571,13 @@ main(int argc, char **argv)
 		case 'F':			/* floating-point-based random numbers */
 			fp.max = get_number(optarg, c);
 			break;
+		case 'M':			/* check mt_rand() instead */
+			if (test_local) {
+				SET_RANDOM(mtp_rand);
+			} else {
+				SET_RANDOM(mt_rand);
+			}
+			break;
 		case 'P':			/* compute period */
 			cperiod = TRUE;
 			break;
@@ -571,6 +586,13 @@ main(int argc, char **argv)
 			break;
 		case 'U':			/* uniform random numbers */
 			uniform.max = get_number(optarg, c);
+			break;
+		case 'W':			/* check well_rand() instead */
+			if (test_local) {
+				SET_RANDOM(well_thread_rand);
+			} else {
+				SET_RANDOM(well_rand);
+			}
 			break;
 		case 'X':			/* perform chi-squared test */
 			chi = get_number(optarg, c);
