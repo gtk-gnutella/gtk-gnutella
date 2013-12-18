@@ -807,6 +807,18 @@ entropy_collect_rand31(SHA1Context *ctx)
 }
 
 /**
+ * Collect entropy from current time.
+ */
+static void
+entropy_collect_time(SHA1Context *ctx)
+{
+	tm_t now;
+
+	tm_now_exact(&now);
+	SHA1Input(ctx, &now, sizeof now);
+}
+
+/**
  * Collect entropy from current thread.
  */
 static void
@@ -955,6 +967,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_pointers;
 	fn[i++] = entropy_collect_file_amount;
 	fn[i++] = entropy_collect_rand31;
+	fn[i++] = entropy_collect_time;
 
 	g_assert(i <= G_N_ELEMENTS(fn));
 
