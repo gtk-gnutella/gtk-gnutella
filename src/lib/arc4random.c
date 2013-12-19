@@ -119,9 +119,9 @@ arc4_addrandom(struct arc4_stream *as, const unsigned char *dat, int datlen)
 		as->i--;
 		for (n = 0; n < ARC4_BOXES; n++) {
 			uint8 si;
-			as->i = (as->i + 1);
+			as->i++;
 			si = as->s[as->i];
-			as->j = (as->j + si + dat[n % datlen]);
+			as->j += si + dat[n % datlen];
 			as->s[as->i] = as->s[as->j];
 			as->s[as->j] = si;
 		}
@@ -171,14 +171,14 @@ arc4_getbyte(struct arc4_stream *as)
 {
 	uint8 si, sj;
 
-	as->i = (as->i + 1);
+	as->i++;
 	si = as->s[as->i];
-	as->j = (as->j + si);
+	as->j += si;
 	sj = as->s[as->j];
 	as->s[as->i] = sj;
 	as->s[as->j] = si;
 
-	return (as->s[(si + sj) & 0xff]);
+	return as->s[(si + sj) & 0xff];
 }
 
 static inline G_GNUC_HOT uint32
