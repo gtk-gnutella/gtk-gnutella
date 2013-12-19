@@ -1731,7 +1731,7 @@ locale_strlower(char *dst, const char *src)
 void
 guid_random_fill(struct guid *guid)
 {
-	random_bytes(guid, GUID_RAW_SIZE);
+	random_strong_bytes(guid, GUID_RAW_SIZE);
 }
 
 /**

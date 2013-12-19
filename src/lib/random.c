@@ -369,6 +369,48 @@ random_bytes(void *dst, size_t size)
 }
 
 /**
+ * Strong random routine that must be used to generate random data streams
+ * made visible to the outside.
+ */
+static uint32
+random_strong(void)
+{
+	/*
+	 * Regardless of the statistical properties of WELL or the Mersenee Twister,
+	 * it is always possible to determine the next numbers to come when one
+	 * has seen enough consecutive output (basically an amount of random bits
+	 * equal to the internal state of these generators).  This is what makes
+	 * them unsuitable for cryptography, for instance.
+	 *
+	 * In contrast, ARC4 is a cryptographically strong generator and even though
+	 * it can be broken one day, the resources required are much larger.
+	 *
+	 * Therefore, when we need to generate random bytes that are seen outside
+	 * of this program, it is important to make them as random and unpredictable
+	 * as possible.  For instance, GUID in messages.
+	 *
+	 * We achieve this strong randomness by combining ARC4 and WELL randomness.
+	 * Both of these streams can also be constantly receiving new entropy via
+	 * regular calls to random_add().
+	 */
+
+	return arc4_rand() ^ well_thread_rand();
+}
+
+/**
+ * Fills buffer 'dst' with 'size' bytes of STRONG random data.
+ *
+ * This should be the preferred method when generating random data visible
+ * to the outside, and which must be unique and unpredictable even when enough
+ * random data has been seen.
+ */
+void
+random_strong_bytes(void *dst, size_t size)
+{
+	random_bytes_with(random_strong, dst, size);
+}
+
+/**
  * Return random noise, CPU intensive on purpose (to add random response delay).
  */
 uint32
@@ -628,7 +670,8 @@ random_dispatch(pslist_t *users, notify_fn_t cb,
 }
 
 /**
- * Add new randomness to the random number generator used by random_bytes().
+ * Add new randomness to the random number generators used by random_bytes()
+ * and random_strong_bytes().
  */
 void
 random_add(const void *data, size_t datalen)

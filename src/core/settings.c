@@ -855,7 +855,7 @@ settings_add_randomness(void)
 {
 	sha1_t buf;		/* 160 bits */
 
-	random_bytes(&buf, SHA1_RAW_SIZE);
+	random_strong_bytes(&buf, SHA1_RAW_SIZE);
 	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
 }
 

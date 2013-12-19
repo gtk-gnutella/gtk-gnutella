@@ -283,7 +283,7 @@ sectoken_rotate(cqueue_t *cq, void *obj)
 		stg->keys[i + 1] = stg->keys[i];
 
 	/* 0 is most recent key */
-	random_bytes(&stg->keys[0], sizeof(stg->keys[0]));
+	random_strong_bytes(&stg->keys[0], sizeof(stg->keys[0]));
 }
 
 /**
@@ -331,7 +331,7 @@ sectoken_gen_new(size_t keys, time_delta_t refresh)
 	stg->refresh = refresh;
 
 	for (i = 0; i < stg->keycnt; i++)
-		random_bytes(&stg->keys[i], sizeof(stg->keys[0]));
+		random_strong_bytes(&stg->keys[i], sizeof(stg->keys[0]));
 
 	stg->rotate_ev = cq_main_insert(refresh * 1000, sectoken_rotate, stg);
 

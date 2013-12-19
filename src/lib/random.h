@@ -48,6 +48,7 @@ uint32 random_u32(void) WARN_UNUSED_RESULT;
 uint64 random_u64(void) WARN_UNUSED_RESULT;
 ulong random_ulong(void) WARN_UNUSED_RESULT;
 void random_bytes(void *dst, size_t size);
+void random_strong_bytes(void *dst, size_t size);
 void random_bytes_with(random_fn_t rf, void *dst, size_t size);
 uint32 random_cpu_noise(void);
 void random_collect(void (*cb)(void));

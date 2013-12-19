@@ -1222,7 +1222,7 @@ shell_auth_cookie(void)
 		SHA1Context ctx;
 		uint32 noise[64];
 
-		random_bytes(noise, sizeof noise);
+		random_strong_bytes(noise, sizeof noise);
 		SHA1Reset(&ctx);
 		SHA1Input(&ctx, &noise, sizeof noise);
 		SHA1Result(&ctx, &cookie);

@@ -66,7 +66,7 @@ kuid_random_fill(kuid_t *kuid)
 	 */
 
 	entropy_collect(&entropy);				/* slow */
-	random_bytes(kuid->v, KUID_RAW_SIZE);
+	random_strong_bytes(kuid->v, KUID_RAW_SIZE);
 
 	/*
 	 * Combine the two random numbers by adding them.
