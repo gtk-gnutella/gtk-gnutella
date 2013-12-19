@@ -4679,15 +4679,15 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 
 		random_bytes(id.v, sizeof id.v);
 		kb = dht_find_bucket(&id);
-		kn = hash_list_tail(list_for(kb, KNODE_GOOD));	/* Recently seen */
+		kn = hash_list_random(list_for(kb, KNODE_GOOD));
 
-		if (NULL == kn || map_contains(seen, &kb->prefix)) {
-			i--;
+		if (NULL == kn || map_contains(seen, kn->id)) {
+			i--;		/* Stay at same position in next loop */
 			continue;	/* Bad luck: empty list or already seen */
 		}
 
 		gnet_host_set(&hvec[i], kn->addr, kn->port);
-		map_insert(seen, &kb->prefix, NULL);
+		map_insert(seen, kn->id, NULL);
 	}
 
 	map_destroy(seen);
