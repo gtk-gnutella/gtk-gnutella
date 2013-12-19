@@ -582,11 +582,8 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 	orig_key = hash_list_remove(hc->hostlist, host);
 	g_assert(orig_key);
 
-    if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
-    }
+    if (hc->mass_update == 0)
+		gnet_prop_decr_guint32(hc->hosts_in_catcher);
 
 	hc->dirty = TRUE;
 	hcache_ht_remove(hc->class, host);
@@ -977,11 +974,8 @@ hcache_add_internal(hcache_type_t type, time_t added,
     hc->misses++;
 	hc->dirty = TRUE;
 
-    if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur + 1);
-    }
+    if (hc->mass_update == 0)
+		gnet_prop_incr_guint32(hc->hosts_in_catcher);
 
     hcache_prune(hc->type);
     hcache_update_low_on_pongs();
