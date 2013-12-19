@@ -795,6 +795,27 @@ hash_list_shift(hash_list_t *hl)
 }
 
 /**
+ * Select a random elemen in the list.
+ *
+ * @return the randomly selected item, NULL if there is none.
+ */
+void *
+hash_list_random(const hash_list_t *hl)
+{
+	struct hash_list_item *item;
+	void *data;
+
+	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+
+	item = elist_random(&hl->list);
+	data = NULL == item ? NULL : deconstify_pointer(item->key);
+
+	hash_list_return(hl, data);
+}
+
+/**
  * Clear the list, removing all items.
  */
 void

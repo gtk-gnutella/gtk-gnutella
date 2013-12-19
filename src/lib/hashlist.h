@@ -40,6 +40,7 @@ void *hash_list_remove(hash_list_t *, const void *key);
 void *hash_list_remove_head(hash_list_t *);
 void *hash_list_remove_tail(hash_list_t *);
 void *hash_list_shift(hash_list_t *);
+void *hash_list_random(const hash_list_t *);
 void hash_list_append(hash_list_t *, const void *key);
 void hash_list_prepend(hash_list_t *, const void *key);
 void hash_list_insert_sorted(hash_list_t *, const void *key, cmp_fn_t);
