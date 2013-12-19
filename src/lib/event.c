@@ -37,9 +37,10 @@
 #include "common.h"
 
 #include "event.h"
+
 #include "misc.h"
+#include "mutex.h"
 #include "omalloc.h"
-#include "spinlock.h"
 #include "stacktrace.h"
 #include "walloc.h"
 
@@ -78,9 +79,9 @@ event_new(const char *name)
 
     g_assert(name != NULL);
 
-    evt = omalloc0(sizeof *evt);
+	OMALLOC0(evt);
     evt->name = name;
-	spinlock_init(&evt->lock);
+	mutex_init(&evt->lock);
 
     return evt;		/* Allocated once, never freed */
 }
@@ -92,19 +93,13 @@ event_new(const char *name)
 void
 event_destroy(struct event *evt)
 {
-    pslist_t *sl;
+	mutex_lock(&evt->lock);
 
-	spinlock(&evt->lock);
-
-	PSLIST_FOREACH(evt->subscribers, sl) {
-        subscriber_destroy(sl->data);
-	}
-
-	pslist_free(evt->subscribers);
+	pslist_free_full(evt->subscribers, (free_fn_t) subscriber_destroy);
 	evt->subscribers = NULL;
 	evt->destroyed = TRUE;
 
-	spinunlock(&evt->lock);
+	mutex_unlock(&evt->lock);
 
 	/* Event not freed, allocated via omalloc() */
 }
@@ -122,7 +117,7 @@ event_add_subscriber(struct event *evt, callback_fn_t cb,
 
     s = subscriber_new(cb, t, interval);
 
-	spinlock(&evt->lock);
+	mutex_lock(&evt->lock);
 	PSLIST_FOREACH(evt->subscribers, sl) {
 		struct subscriber *sb = sl->data;
 		g_assert(sb != NULL);
@@ -133,7 +128,7 @@ event_add_subscriber(struct event *evt, callback_fn_t cb,
 	}
 
     evt->subscribers = pslist_prepend(evt->subscribers, s);
-	spinunlock(&evt->lock);
+	mutex_unlock(&evt->lock);
 }
 
 void
@@ -145,14 +140,14 @@ event_remove_subscriber(struct event *evt, callback_fn_t cb)
     g_assert(evt != NULL);
     g_assert(cb != NULL);
 
-	spinlock(&evt->lock);
+	mutex_lock(&evt->lock);
 
 	if G_UNLIKELY(evt->destroyed) {
 		/*
 		 * Event was destroyed, all subcribers were already removed.
 		 */
 
-		spinunlock(&evt->lock);
+		mutex_unlock(&evt->lock);
 		return;	
 	}
 
@@ -170,7 +165,7 @@ found:
 	g_assert(s->cb == cb);
 
     evt->subscribers = pslist_remove(evt->subscribers, s);
-	spinunlock(&evt->lock);
+	mutex_unlock(&evt->lock);
 
 	subscriber_destroy(s);
 }
@@ -180,9 +175,9 @@ event_subscriber_count(struct event *evt)
 {
 	uint len;
 
-	spinlock(&evt->lock);
+	mutex_lock(&evt->lock);
 	len = pslist_length(evt->subscribers);
-	spinunlock(&evt->lock);
+	mutex_unlock(&evt->lock);
 
 	return len;
 }

@@ -40,7 +40,7 @@
 #include "common.h"
 
 #include "pslist.h"
-#include "spinlock.h"
+#include "mutex.h"
 #include "tm.h"
 
 typedef enum frequency_type {
@@ -59,7 +59,7 @@ typedef struct event {
     const char *name;
     uint32     triggered_count;
     pslist_t   *subscribers;
-	spinlock_t lock;
+	mutex_t    lock;
 	bool       destroyed;
 } event_t;
 
@@ -92,7 +92,7 @@ bool event_subscriber_active(struct event *evt);
 		bool t;																\
 	} vars_;																\
 																			\
-	spinlock(&(ev)->lock);													\
+	mutex_lock(&(ev)->lock);												\
 	vars_.evt = (ev);														\
 	vars_.now = (time_t) -1;												\
 	vars_.sl = vars_.evt->subscribers;										\
@@ -125,7 +125,7 @@ bool event_subscriber_active(struct event *evt);
 		}																	\
 	}																		\
 	vars_.evt->triggered_count++;											\
-	spinunlock(&(ev)->lock);												\
+	mutex_unlock(&(ev)->lock);												\
 } G_STMT_END
 
 #endif	/* _event_h_ */
