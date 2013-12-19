@@ -381,7 +381,7 @@ random_cpu_noise(void)
 
 	/* No need to make this routine thread-safe as we want noise anyway */
 
-	r = random_u32();
+	r = well_thread_rand() ^ mtp_rand() ^ arc4_rand();
 	i = r % G_N_ELEMENTS(data);
 	data[i] = r;
 
