@@ -37,7 +37,6 @@
 #include "common.h"
 
 #include "event.h"
-#include "hikset.h"
 #include "misc.h"
 #include "omalloc.h"
 #include "spinlock.h"
@@ -192,78 +191,6 @@ bool
 event_subscriber_active(struct event *evt)
 {
 	return NULL != evt->subscribers;
-}
-
-struct event_table *
-event_table_new(void)
-{
-    struct event_table *t;
-
-	WALLOC0(t);
-	t->events = hikset_create(offsetof(struct event, name), HASH_KEY_STRING, 0);
-	spinlock_init(&t->lock);
-
-	return t;
-}
-
-void
-event_table_destroy(struct event_table *t, bool cleanup)
-{
-	spinlock(&t->lock);
-
-    if (cleanup)
-        event_table_remove_all(t);
-
-    hikset_free_null(&t->events);
-	spinlock_destroy(&t->lock);
-	WFREE(t);
-}
-
-void
-event_table_add_event(struct event_table *t, struct event *evt)
-{
-    g_assert(t != NULL);
-    g_assert(evt != NULL);
-
-    g_assert(t->events != NULL);
-    g_assert(!hikset_contains(t->events, evt->name));
-
-	spinlock(&t->lock);
-    hikset_insert_key(t->events, &evt->name);
-	spinunlock(&t->lock);
-}
-
-void
-event_table_remove_event(struct event_table *t, struct event *evt)
-{
-    g_assert(t != NULL);
-    g_assert(evt != NULL);
-
-    g_assert(t->events != NULL);
-    g_assert(hikset_contains(t->events, evt->name));
-
-	spinlock(&t->lock);
-    hikset_remove(t->events, evt->name);
-	spinunlock(&t->lock);
-}
-
-static void
-clear_helper(void *value, void *unused_data)
-{
-	(void) unused_data;
-    event_destroy(value);
-}
-
-void
-event_table_remove_all(struct event_table *t)
-{
-    g_assert(t != NULL);
-    g_assert(t->events != NULL);
-
-	spinlock(&t->lock);
-    hikset_foreach(t->events, clear_helper, NULL);
-	hikset_clear(t->events);
-	spinunlock(&t->lock);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

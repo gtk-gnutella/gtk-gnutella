@@ -128,22 +128,6 @@ bool event_subscriber_active(struct event *evt);
 	spinunlock(&(ev)->lock);												\
 } G_STMT_END
 
-struct hikset;
-
-struct event_table {
-    struct hikset *events;
-	spinlock_t lock;
-};
-
-struct event_table *event_table_new(void);
-
-void event_table_destroy(struct event_table *t, bool cleanup);
-
-
-void event_table_add_event(struct event_table *t, struct event *evt);
-void event_table_remove_event(struct event_table *t, struct event *evt);
-void event_table_remove_all(struct event_table *t);
-
 #endif	/* _event_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
