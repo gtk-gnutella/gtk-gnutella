@@ -59,6 +59,8 @@ double random_double(void) WARN_UNUSED_RESULT;
 uint32 random_upto(random_fn_t rf, uint32 max) WARN_UNUSED_RESULT;
 uint64 random64_upto(random64_fn_t rf, uint64 max) WARN_UNUSED_RESULT;
 
+uint32 random_strong(void);		/* Exported for tests, mostly */
+
 #endif /* _random_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

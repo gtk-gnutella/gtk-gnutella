@@ -70,9 +70,10 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-4ehluyBMPTW] [-b mask] [-c items] [-m min] [-p period]\n"
+		"Usage: %s [-14ehluyBMPSTW] [-b mask] [-c items] [-m min] [-p period]\n"
 		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
 		"       [-R seed] [-U upper] [-X upper]\n"
+		"  -1 : test entropy_rand31() instead of rand31()\n"
 		"  -4 : test arc4random() instead of rand31()\n"
 		"  -b : bit mask to apply on random values (focus on some bits)\n"
 		"  -c : sets item count to remember, for period computation\n"
@@ -91,6 +92,7 @@ usage(void)
 		"  -M : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
 		"  -P : compute period through brute-force search\n"
 		"  -R : seed for repeatable random key sequence\n"
+		"  -S : test random_strong(), a XOR of WELL1024b and ARC4\n"
 		"  -T : dieharder test mode, dumping raw random bytes to stdout\n"
 		"  -U : use uniform random numbers to specified upper bound\n"
 		"  -W : test well_rand(), the WELL 1024 PRNG, instead of rand31()\n"
@@ -521,7 +523,7 @@ main(int argc, char **argv)
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "4b:c:ehlm:p:s:t:uBC:D:F:MPR:TU:WX:";
+	const char options[] = "14b:c:ehlm:p:s:t:uBC:D:F:MPR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 	fn = x;				\
@@ -542,6 +544,9 @@ main(int argc, char **argv)
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
+		case '1':			/* test entropy_rand31() */
+			SET_RANDOM(entropy_rand31);
+			break;
 		case '4':			/* test arc4random() */
 			if (test_local) {
 				SET_RANDOM(arc4_rand);
@@ -600,6 +605,9 @@ main(int argc, char **argv)
 			break;
 		case 'R':			/* randomize in a repeatable way */
 			rseed = get_number(optarg, c);
+			break;
+		case 'S':			/* test random_strong() */
+			SET_RANDOM(random_strong);
 			break;
 		case 'T':			/* dump raw numbers to stdout */
 			dumpraw = TRUE;

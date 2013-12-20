@@ -202,9 +202,16 @@ entropy_merge(sha1_t *digest)
  * Minimal pseudo-random number generation, combining a simple PRNG with
  * past-collected entropy.
  *
+ * @note
+ * This routine MUST NOT be used directly by applications, as it is only
+ * meant to be used in entropy_array_shuffle() for internal shuffling purposes
+ * and in other parts of the entropy collection process where we need a random
+ * number but have not finished collecting entropy yet.
+ * It is only exported to be exercised in the random-test program.
+ *
  * @return a 31-bit random number.
  */
-static int
+uint32
 entropy_rand31(void)
 {
 	static size_t offset;
@@ -265,7 +272,7 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 	if (len > RANDOM_SHUFFLE_MAX)
 		s_carp("%s: cannot shuffle %zu items without bias", G_STRFUNC, len);
 
-	shuffle_with((random_fn_t) entropy_rand31, ary, len, elem_size);
+	shuffle_with(entropy_rand31, ary, len, elem_size);
 }
 
 /**

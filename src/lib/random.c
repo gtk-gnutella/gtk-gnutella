@@ -371,8 +371,15 @@ random_bytes(void *dst, size_t size)
 /**
  * Strong random routine that must be used to generate random data streams
  * made visible to the outside.
+ *
+ * @note
+ * This routine should not be used directly by applications, as it is only
+ * meant to be used via random_strong_bytes().  Prefer random_u32() if you
+ * need a 32-bit random value, for speed reasons mostly.  However, using this
+ * routine will cause no harm.  It is only exported to be exercised in the
+ * random-test program.
  */
-static uint32
+uint32
 random_strong(void)
 {
 	/*
