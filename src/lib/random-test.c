@@ -70,7 +70,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-4ehluyBMPW] [-b mask] [-c items] [-m min] [-p period]\n"
+		"Usage: %s [-4ehluyBMPTW] [-b mask] [-c items] [-m min] [-p period]\n"
 		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
 		"       [-R seed] [-U upper] [-X upper]\n"
 		"  -4 : test arc4random() instead of rand31()\n"
@@ -91,11 +91,13 @@ usage(void)
 		"  -M : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
 		"  -P : compute period through brute-force search\n"
 		"  -R : seed for repeatable random key sequence\n"
+		"  -T : dieharder test mode, dumping raw random bytes to stdout\n"
 		"  -U : use uniform random numbers to specified upper bound\n"
 		"  -W : test well_rand(), the WELL 1024 PRNG, instead of rand31()\n"
 		"  -X : perform chi-squared test of uniform random numbers\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
-		, progname);
+		"Use -T as in: %s -4l -T | dieharder -g 200 -a\n"
+		, progname, progname);
 	exit(EXIT_FAILURE);
 }
 
@@ -285,6 +287,21 @@ dump_random(random_fn_t fn, unsigned mask, unsigned dumpcnt)
 
 	for (n = dumpcnt; n != 0; n--) {
 		printf("%u\n", (*fn)() & mask);
+	}
+}
+
+static void
+dump_raw(random_fn_t fn, unsigned mask)
+{
+	for (;;) {
+		uint32 v[1024];
+		size_t i;
+
+		for (i = 0; i < G_N_ELEMENTS(v); i++) {
+			v[i] = (*fn)() & mask;
+		}
+		if (-1 == write(STDOUT_FILENO, &v, sizeof v))
+			break;
 	}
 }
 
@@ -500,11 +517,11 @@ main(int argc, char **argv)
 	unsigned period = (unsigned) -1;
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
-	bool cperiod = FALSE, countval = FALSE, countbits = FALSE;
+	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "4b:c:ehlm:p:s:t:uBC:D:F:MPR:U:WX:";
+	const char options[] = "4b:c:ehlm:p:s:t:uBC:D:F:MPR:TU:WX:";
 
 #define SET_RANDOM(x)	\
 	fn = x;				\
@@ -584,6 +601,9 @@ main(int argc, char **argv)
 		case 'R':			/* randomize in a repeatable way */
 			rseed = get_number(optarg, c);
 			break;
+		case 'T':			/* dump raw numbers to stdout */
+			dumpraw = TRUE;
+			break;
 		case 'U':			/* uniform random numbers */
 			uniform.max = get_number(optarg, c);
 			break;
@@ -606,6 +626,11 @@ main(int argc, char **argv)
 
 	if ((argc -= optind) != 0)
 		usage();
+
+	if (dumpraw) {
+		dump_raw(fn, mask);
+		return 0;
+	}
 
 	printf("Testing %s()\n", fnname);
 
