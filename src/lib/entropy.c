@@ -112,6 +112,8 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
 #define ENTROPY_PREV_LOCK		spinlock_hidden(&entropy_previous_slk)
 #define ENTROPY_PREV_UNLOCK		spinunlock_hidden(&entropy_previous_slk)
 
+static void entropy_seed(void);
+
 static void
 sha1_feed_ulong(SHA1Context *ctx, unsigned long value)
 {
@@ -205,22 +207,45 @@ entropy_merge(sha1_t *digest)
 static int
 entropy_rand31(void)
 {
-	int result;
 	static size_t offset;
+	static bool seeded;
+	int result;
+	uint32 v, n;
+	void *p;
 
 	result = rand31();
 
 	/*
 	 * Combine with previously generated entropy to create even better
 	 * randomness.  That previous entropy is refreshed each time a new
-	 * entropy collection cycle is initiated.  We simply loop over the
-	 * five 32-bit words, interpreted in a big-endian way.
+	 * entropy collection cycle is completed, by calling entropy_merge().
 	 */
 
 	ENTROPY_PREV_LOCK;
 
-	result += peek_be32(ptr_add_offset(&entropy_previous, offset));
+	if G_UNLIKELY(!seeded) {
+		seeded = TRUE;
+		entropy_seed();
+	}
+
+	/*
+	 * Loop over the five 32-bit words, interpreted in a big-endian way
+	 * and merge bits via XOR.
+	 */
+
+	v = peek_be32(ptr_add_offset(&entropy_previous, offset));
+	result += v;
 	offset = (offset + 4) % sizeof entropy_previous;
+
+	/*
+	 * Update the next entry as well, to have an ever-changing pool of
+	 * randomness to alter the weak rand31().  Note that we avoid including
+	 * the output of rand31() here, we just use existing entropy bits.
+	 */
+
+	p = ptr_add_offset(&entropy_previous, offset);	/* Next entry */
+	n = peek_be32(p);
+	poke_be32(p, (n * 101) ^ UINT32_SWAP(v));		/* 101 is prime */
 
 	ENTROPY_PREV_UNLOCK;
 
@@ -1005,6 +1030,65 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	 */
 
 	entropy_merge(digest);
+}
+
+/**
+ * Seed the ``entropy_previous'' variable, once.
+ *
+ * We're collecting changing and contextual data, always in the same order,
+ * to be able to compute an initial 160-bit value, which is better than the
+ * default zero value.
+ */
+static G_GNUC_COLD void
+entropy_seed(void)
+{
+	extern char **environ;
+	char garbage[64];		/* Left uninitialized on purpose */
+	SHA1Context ctx;
+	double cpu, usr, sys;
+	size_t i;
+
+	/*
+	 * This routine must not allocate any memory because it will be called
+	 * very early during initialization.
+	 */
+
+	SHA1Reset(&ctx);
+	SHA1Input(&ctx, &ctx, sizeof ctx);
+
+	sha1_feed_ulong(&ctx, time(NULL));
+	sha1_feed_ulong(&ctx, getpid());
+	SHA1Input(&ctx, &ctx, sizeof ctx);
+
+	entropy_collect_cpu(&ctx);
+	SHA1Input(&ctx, &ctx, sizeof ctx);
+
+	sha1_feed_fstat(&ctx, STDIN_FILENO);
+	sha1_feed_fstat(&ctx, STDOUT_FILENO);
+	sha1_feed_fstat(&ctx, STDERR_FILENO);
+	SHA1Input(&ctx, &ctx, sizeof ctx);
+
+	for (i = 0; NULL != environ[i]; i++) {
+		sha1_feed_string(&ctx, environ[i]);
+	}
+	sha1_feed_ulong(&ctx, getpid());
+	SHA1Input(&ctx, &ctx, sizeof ctx);
+
+	sha1_feed_pointer(&ctx, environ);
+	sha1_feed_pointer(&ctx, &cpu);
+
+	sha1_feed_stat(&ctx, ".");
+	sha1_feed_stat(&ctx, "..");
+	sha1_feed_stat(&ctx, "/");
+
+	SHA1Input(&ctx, garbage, sizeof garbage);
+
+	cpu = tm_cputime(&usr, &sys);
+	sha1_feed_double(&ctx, cpu);
+	sha1_feed_double(&ctx, usr);
+	sha1_feed_double(&ctx, sys);
+
+	SHA1Result(&ctx, &entropy_previous);
 }
 
 /**
