@@ -112,6 +112,15 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
 #define ENTROPY_PREV_LOCK		spinlock_hidden(&entropy_previous_slk)
 #define ENTROPY_PREV_UNLOCK		spinunlock_hidden(&entropy_previous_slk)
 
+/**
+ * Buffer used to perturb rand31()'s output for entropy_rand31().
+ */
+static sha1_t entropy_buffer31;
+static spinlock_t entropy_buffer31_slk = SPINLOCK_INIT;
+
+#define ENTROPY_BUF31_LOCK		spinlock_hidden(&entropy_buffer31_slk)
+#define ENTROPY_BUF31_UNLOCK	spinunlock_hidden(&entropy_buffer31_slk)
+
 static void entropy_seed(void);
 
 static void
@@ -183,6 +192,9 @@ entropy_merge(sha1_t *digest)
 {
 	bigint_t older, newer;
 
+	STATIC_ASSERT(sizeof entropy_buffer31 == sizeof entropy_previous);
+	STATIC_ASSERT(sizeof entropy_previous == SHA1_RAW_SIZE);
+
 	/*
 	 * These big integers operate on the buffer space from ``digest'' and
 	 * ``entropy_previous'' directly.
@@ -194,6 +206,17 @@ entropy_merge(sha1_t *digest)
 	bigint_use(&newer, digest, SHA1_RAW_SIZE);
 	bigint_add(&newer, &older);
 	bigint_copy(&older, &newer);
+
+	/*
+	 * Each time the entropy is refreshed, we give out a copy for perturbing
+	 * rand31()'s output: since this copy is modified in the process, we
+	 * want entropy_rand31() to work without changing the collected entropy
+	 * to avoid tainting our generation process.
+	 */
+
+	ENTROPY_BUF31_LOCK;
+	memcpy(&entropy_buffer31, &entropy_previous, sizeof entropy_buffer31);
+	ENTROPY_BUF31_UNLOCK;
 
 	ENTROPY_PREV_UNLOCK;
 }
@@ -228,7 +251,7 @@ entropy_rand31(void)
 	 * entropy collection cycle is completed, by calling entropy_merge().
 	 */
 
-	ENTROPY_PREV_LOCK;
+	ENTROPY_BUF31_LOCK;
 
 	if G_UNLIKELY(!seeded) {
 		seeded = TRUE;
@@ -240,9 +263,9 @@ entropy_rand31(void)
 	 * and merge bits via XOR.
 	 */
 
-	v = peek_be32(ptr_add_offset(&entropy_previous, offset));
+	v = peek_be32(ptr_add_offset(&entropy_buffer31, offset));
 	result += v;
-	offset = (offset + 4) % sizeof entropy_previous;
+	offset = (offset + 4) % sizeof entropy_buffer31;
 
 	/*
 	 * Update the next entry as well, to have an ever-changing pool of
@@ -250,11 +273,11 @@ entropy_rand31(void)
 	 * the output of rand31() here, we just use existing entropy bits.
 	 */
 
-	p = ptr_add_offset(&entropy_previous, offset);	/* Next entry */
+	p = ptr_add_offset(&entropy_buffer31, offset);	/* Next entry */
 	n = peek_be32(p);
 	poke_be32(p, (n * 101) ^ UINT32_SWAP(v));		/* 101 is prime */
 
-	ENTROPY_PREV_UNLOCK;
+	ENTROPY_BUF31_UNLOCK;
 
 	return result & RAND31_MASK;
 }
@@ -1040,7 +1063,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 }
 
 /**
- * Seed the ``entropy_previous'' variable, once.
+ * Seed the ``entropy_buffer31'' variable, once.
  *
  * We're collecting changing and contextual data, always in the same order,
  * to be able to compute an initial 160-bit value, which is better than the
@@ -1095,7 +1118,7 @@ entropy_seed(void)
 	sha1_feed_double(&ctx, usr);
 	sha1_feed_double(&ctx, sys);
 
-	SHA1Result(&ctx, &entropy_previous);
+	SHA1Result(&ctx, &entropy_buffer31);
 }
 
 /**
