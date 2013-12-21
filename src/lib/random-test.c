@@ -44,6 +44,8 @@
 #include "lib/stats.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/well.h"
 #include "lib/xmalloc.h"
@@ -70,14 +72,15 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-14ehluyBMPSTW] [-b mask] [-c items] [-m min] [-p period]\n"
-		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
-		"       [-R seed] [-U upper] [-X upper]\n"
+		"Usage: %s [-14eghluyBMPSTW] [-b mask] [-c items] [-m min]\n"
+		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
+		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -1 : test entropy_rand31() instead of rand31()\n"
 		"  -4 : test arc4random() instead of rand31()\n"
 		"  -b : bit mask to apply on random values (focus on some bits)\n"
 		"  -c : sets item count to remember, for period computation\n"
 		"  -e : test entropy_random() instead of rand31()\n"
+		"  -g : add entropy every second to ARC4 and WELL generators\n"
 		"  -h : prints this help message\n"
 		"  -l : use thread-local PRNG state context, if supported by routine\n"
 		"  -m : sets minimum period to consider\n"
@@ -508,6 +511,43 @@ rand_fp(void)
 	return random_double_generate(fp.rf) * fp.max;
 }
 
+static void *
+add_entropy(void *p)
+{
+	(void) p;
+
+	for (;;) {
+		uint32 v[16];
+		size_t i;
+
+		thread_sleep_ms(500);
+
+		for (i = 0; i < G_N_ELEMENTS(v); i++) {
+			v[i] = rand31_u32();
+		}
+
+		random_add(v, sizeof v);
+	}
+
+	return NULL;
+}
+
+static void
+start_generate_thread(bool verbose)
+{
+	int id;
+
+	teq_create_if_none();
+
+	id = thread_create(add_entropy, NULL, THREAD_F_DETACH, THREAD_STACK_MIN);
+
+	if (-1 == id)
+		s_error("%s(): cannot create new thread: %m", G_STRFUNC);
+
+	if (verbose)
+		printf("Started entropy generation thread for ARC4 and WELL\n");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -520,10 +560,11 @@ main(int argc, char **argv)
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
+	bool generate = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "14b:c:ehlm:p:s:t:uBC:D:F:MPR:STU:WX:";
+	const char options[] = "14b:c:eghlm:p:s:t:uBC:D:F:MPR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 	fn = x;				\
@@ -562,6 +603,9 @@ main(int argc, char **argv)
 			break;
 		case 'e':
 			SET_RANDOM(entropy_random);
+			break;
+		case 'g':			/* generate "entropy" in background thread */
+			generate = TRUE;
 			break;
 		case 'l':			/* test thread-local (already handled before) */
 			break;
@@ -634,6 +678,9 @@ main(int argc, char **argv)
 
 	if ((argc -= optind) != 0)
 		usage();
+
+	if (generate)
+		start_generate_thread(!dumpraw);
 
 	if (dumpraw) {
 		dump_raw(fn, mask);
