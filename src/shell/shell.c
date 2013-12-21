@@ -60,6 +60,7 @@
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
+#include "lib/spinlock.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/teq.h"
@@ -92,6 +93,7 @@ struct gnutella_shell {
 	time_t last_update; 	/**< Last update (needed for timeout) */
 	uint64 line_count;		/**< Number of input lines after HELO */
 	link_t lnk;				/**< Embedded list pointer */
+	spinlock_t lock;		/**< Thread-safe lock */
 	uint shutdown:1;  		/**< In shutdown mode? */
 	uint interactive:1;		/**< Interactive mode? */
 	uint async:1;			/**< In the middle of asynchronous processing */
@@ -104,6 +106,9 @@ shell_check(const struct gnutella_shell * const sh)
 	g_assert(SHELL_MAGIC == sh->magic);
 	socket_check(sh->socket);
 }
+
+#define SHELL_LOCK(sh)		spinlock(&sh->lock)
+#define SHELL_UNLOCK(sh)	spinunlock(&sh->lock)
 
 static elist_t shells = ELIST_INIT(offsetof(struct gnutella_shell, lnk));
 static htable_t *shell_cmds;
@@ -134,6 +139,7 @@ shell_new(struct gnutella_socket *s)
 	sh->socket = s;
 	sh->output = slist_new();
 	slist_thread_safe(sh->output);
+	spinlock_init(&sh->lock);
 
 	elist_append(&shells, sh);
 
@@ -146,10 +152,11 @@ shell_new(struct gnutella_socket *s)
 static void
 shell_free(struct gnutella_shell *sh)
 {
-	g_assert(sh);
-	g_assert(SHELL_MAGIC == sh->magic);
+	g_assert(sh != NULL);
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->output); /* must have called shell_destroy before */
+
+	spinlock_destroy(&sh->lock);
 	HFREE_NULL(sh->msg);
 	HFREE_NULL(sh->pending.msg);
 
@@ -967,6 +974,11 @@ done:
 			G_STRFUNC, sh);
 	}
 
+	/*
+	 * The lock is not necessary here, as we are supposed to be running the
+	 * shell in a single thread at this point, with no concurrent shell thread.
+	 */
+
 	socket_evt_clear(sh->socket);
 	socket_evt_set(sh->socket, INPUT_EVENT_RW, shell_handle_data, sh);
 }
@@ -1036,8 +1048,11 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 	}
 
 	if ((cond & INPUT_EVENT_R) && !sh->shutdown) {
+		g_assert(!sh->async);
 		shell_read_data(sh);
 	}
+
+	SHELL_LOCK(sh);
 
 	if (!shell_has_pending_output(sh)) {
 		if (sh->shutdown)
@@ -1056,6 +1071,8 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 			socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
 		}
 	}
+
+	SHELL_UNLOCK(sh);
 	return;
 
 destroy:
@@ -1063,11 +1080,11 @@ destroy:
 }
 
 static void
-shell_evt_writable(void *p)
+shell_evt_writable(struct gnutella_shell *sh)
 {
-	struct gnutella_shell *sh = p;
-
 	shell_check(sh);
+
+	SHELL_LOCK(sh);
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
 		s_debug("%s(%p): setting INPUT_EVENT_WX", G_STRFUNC, sh);
@@ -1075,6 +1092,8 @@ shell_evt_writable(void *p)
 
 	socket_evt_clear(sh->socket);
 	socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
+
+	SHELL_UNLOCK(sh);
 }
 
 void
@@ -1097,17 +1116,8 @@ shell_write(struct gnutella_shell *sh, const char *text)
 		pmsg_slist_append(sh->output, text, len);
 		slist_unlock(sh->output);
 
-		/*
-		 * Funnel back to main for thread-safety since sockets have no locks.
-		 *
-		 * (this routine can be called in another thread when processing
-		 * shell commands asynchronously, but all socket event updates must
-		 * be done in the main thread for now).
-		 *		--RAM, 2013-11-30
-		 */
-
 		if (install_write_event)
-			teq_post(THREAD_MAIN, shell_evt_writable, sh);
+			shell_evt_writable(sh);
 	}
 }
 
