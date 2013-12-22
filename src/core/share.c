@@ -500,11 +500,11 @@ shared_file_deindex(shared_file_t *sf)
 		shared_libfile.sorted_file_table[sf->sort_index - 1] = NULL;
 	}
 
-	SHARED_LIBFILE_UNLOCK;
-
 	sf->file_index = 0;
 	sf->sort_index = 0;
 	sf->flags &= ~SHARE_F_INDEXED;
+
+	SHARED_LIBFILE_UNLOCK;
 
 	/*
 	 * Shared file is no longer indexed so it no longer belongs to the
@@ -2287,6 +2287,8 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	ctx->files = NULL;
 	ctx->sorted = NULL;
 
+	reinit_sha1_table();		/* Must happen whilst we hold the lock */
+
 	SHARED_LIBFILE_UNLOCK;
 
 	share_list_free_null(&files);
@@ -2304,8 +2306,6 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	 * The next step is going to request the SHA1 of all the library files,
 	 * which will fill again the known SHA1 cache.
 	 */
-
-	reinit_sha1_table();
 
 	bg_task_ticks_used(bt, ctx->files_scanned / 10);
 	ctx->idx = 0;		/* Prepare next step */
@@ -3306,15 +3306,49 @@ shared_file_size(const shared_file_t *sf)
 	return sf->file_size;
 }
 
+/**
+ * Get the file index in the library for the given shared file.
+ *
+ * @return the file index, or 0 if the shared file is no longer part of the
+ * library (a concurrent library rescan invalidated that file for now).
+ */
 uint32
 shared_file_index(const shared_file_t *sf)
 {
+	uint32 idx;
+
 	shared_file_check(sf);
 
-	g_assert(sf->file_index != 0);		/* Either PARTIAL_FILE or > 0 */
-	g_assert(PARTIAL_FILE != sf->file_index || NULL != sf->fi);
+	idx = sf->file_index;
 
-	return sf->file_index;
+	/*
+	 * Watch out for concurrent library rescan de-indexing a file that would
+	 * be, for instance, part of a query hit that we're constructing.
+	 */
+
+	if G_UNLIKELY(0 == idx) {
+		/*
+		 * File was de-indexed, meaning the reference we have on it is no
+		 * longer attached to the library.  If the file has a SHA1, we may
+		 * still be able to locate a suitable file index for that SHA1.
+		 */
+
+		if (sf->sha1 != NULL) {
+			shared_file_t *sfx;
+
+			SHARED_LIBFILE_LOCK;
+			sfx = hikset_lookup(sha1_to_share, sf->sha1);
+			if (sfx != NULL) {
+				idx = sfx->file_index;
+				g_assert(sfx->file_index != 0);
+			}
+			SHARED_LIBFILE_UNLOCK;
+		}
+	}
+
+	g_assert(PARTIAL_FILE != idx || NULL != sf->fi);
+
+	return idx;
 }
 
 const struct sha1 *

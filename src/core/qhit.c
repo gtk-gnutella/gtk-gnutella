@@ -349,7 +349,7 @@ found_contains(const void *key)
 	return hset_contains(f->hs, key);
 }
 
-static size_t
+static inline size_t
 found_contains_count(void)
 {
 	struct found_struct *f = found_get();
@@ -623,10 +623,39 @@ failure:
 }
 
 /**
+ * Generate a random index that is not conflicting with any of the entries
+ * already present in the query hit being constructed.
+ */
+static uint32
+qhit_random_index(void)
+{
+	unsigned i;
+
+	/*
+	 * Generate a random file index, unique to this query hit.
+	 *
+	 * This is for the sake of our own spam detector which will
+	 * frown upon duplicate file indices.
+	 */
+
+	for (i = 0; i < 100; i++) {
+		uint32 file_index = 1 + random_value(INT_MAX - 1);
+
+		if (QUERY_FW2FW_FILE_INDEX == file_index)
+			continue;
+
+		if (!found_contains(uint_to_pointer(file_index)))
+			return file_index;
+	}
+
+	g_error("%s(): no luck with random number generator", G_STRFUNC);
+}
+
+/**
  * Add file to current query hit.
  *
  * @returns TRUE if we inserted the record, FALSE if we refused it due to
- * lack of space.
+ * lack of space, or because the file is no longer shared.
  */
 static bool
 add_file(const shared_file_t *sf)
@@ -659,35 +688,45 @@ add_file(const shared_file_t *sf)
 
 	file_index = shared_file_index(sf);
 
-	if (!is_partial) {
-		g_assert_log(
-			!found_contains(uint_to_pointer(file_index)),
-			"file_index=%u (%s SHA1), qhit_contains=%zu, qhit_files=%zu",
-			(unsigned) file_index, sha1_available ? "has" : "no",
-			found_contains_count(), found_file_count());
-	} else {
-		unsigned i;
+	/*
+	 * A zero file index means the file is no longer known in the library.
+	 *
+	 * This can happen when there was a concurrent rescan happening after
+	 * the query hit list was done but before the query hit is actually
+	 * generated, especially if this is an OOB-delivered hit, computed a
+	 * while back.
+	 */
 
-		/*
-		 * Generate a random file index, unique to this query hit.
-		 *
-		 * This is for the sake of our own spam detector which will
-		 * frown upon duplicate file indices.
-		 */
-
-		for (i = 0; i < 100; i++) {
-			file_index = 1 + random_value(INT_MAX - 1);
-
-			if (QUERY_FW2FW_FILE_INDEX == file_index)
-				continue;
-
-			if (!found_contains(uint_to_pointer(file_index)))
-				goto unique_file_index;
+	if G_UNLIKELY(0 == file_index) {
+		if (GNET_PROPERTY(qhit_debug)) {
+			g_warning("QHIT skipping file %s (de-indexed by library rescan)",
+				shared_file_path(sf));
 		}
-		g_error("no luck with random number generator");
+		return FALSE;		/* Cannot add file */
 	}
 
-unique_file_index:
+	if (!is_partial) {
+		/*
+		 * Due to concurrent rescan, the new file index could be conflicting
+		 * with the file index of other entries already present in the query
+		 * hit.  This must not happend, as duplicate file indices are wrong
+		 * and typically indicate spam.
+		 *
+		 * It is also possible that the legitimate valid file index is in
+		 * conflict with a previously generated random file index for a
+		 * partial file.
+		 *
+		 * FIXME:
+		 * We could reserve a region in the uint32 space for these fake partial
+		 * indices to avoid that problem.
+		 */
+
+		if (found_contains(uint_to_pointer(file_index)))
+			file_index = qhit_random_index();
+	} else {
+		file_index = qhit_random_index();
+	}
+
 	found_insert(uint_to_pointer(file_index));
 
 	/*
