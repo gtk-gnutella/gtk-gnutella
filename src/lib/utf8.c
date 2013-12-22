@@ -3021,7 +3021,7 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 				s = src;
 				break;
 			}
-		} else if (t->is_iso8859 && !iso8859_is_valid_string(src)) {
+		} else if (t->is_iso8859) {
 			/*
 			 * iconv() may not care about characters in the range
 			 * 0x00..0x1F,0x7E and 0x80..BF which causes UTF-8 strings being
@@ -3031,13 +3031,18 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 			 * G_FILENAME_ENCODING=ISO-8859-* when some filenames are UTF-8
 			 * encoded.
 			 */
-			continue;
-		} else {
-			dbuf = hyper_iconv(t->cd, NULL, 0, src, (size_t) -1, TRUE);
-			if (dbuf) {
-				s = dbuf;
+			if (!iso8859_is_valid_string(src))
+				continue;
+			if (is_ascii_string(src)) {
+				s = src;
 				break;
 			}
+		}
+
+		dbuf = hyper_iconv(t->cd, NULL, 0, src, (size_t) -1, TRUE);
+		if (dbuf) {
+			s = dbuf;
+			break;
 		}
 	}
 
