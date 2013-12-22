@@ -723,15 +723,19 @@ hash_table_reset(hash_table_t *ht)
  */
 static bool
 hash_table_insert_no_resize(hash_table_t *ht,
-	const void *key, const void *value)
+	const void *key, const void *value, size_t *known_bin)
 {
 	hash_item_t *item;
 	size_t bin;
 
 	hash_table_check(ht);
 
-	if (hash_table_find(ht, key, &bin))
-		return FALSE;
+	if G_LIKELY(NULL == known_bin) {
+		if (hash_table_find(ht, key, &bin))
+			return FALSE;
+	} else {
+		bin = *known_bin;
+	}
 
 	safety_assert(NULL == hash_table_lookup(ht, key));
 
@@ -754,7 +758,7 @@ static void
 hash_table_resize_helper(const void *key, void *value, void *data)
 {
 	bool ok;
-	ok = hash_table_insert_no_resize(data, key, value);
+	ok = hash_table_insert_no_resize(data, key, value, NULL);
 	g_assert(ok);
 }
 
@@ -850,7 +854,7 @@ hash_table_insert(hash_table_t *ht, const void *key, const void *value)
 		hash_table_resize_on_insert(ht);
 	}
 
-	ret = hash_table_insert_no_resize(ht, key, value);
+	ret = hash_table_insert_no_resize(ht, key, value, NULL);
 	ht_return(ht, ret);
 }
 
@@ -959,14 +963,16 @@ void
 hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 {
 	hash_item_t *item;
+	size_t bin;
 
 	hash_table_check(ht);
 	ht_synchronize(ht);
 	g_assert(!ht->readonly);
 
-	item = hash_table_find(ht, key, NULL);
+	item = hash_table_find(ht, key, &bin);
 	if (item == NULL) {
-		hash_table_insert(ht, key, value);
+		hash_table_resize_on_insert(ht);
+		hash_table_insert_no_resize(ht, key, value, &bin);
 	} else {
 		item->key = key;
 		item->value = value;
