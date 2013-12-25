@@ -175,6 +175,7 @@ general_type_str(gint value)
 		N_("GIV discarded due to no suitable download"),
 		N_("QUEUE callbacks received"),
 		N_("QUEUE discarded due to no suitable download"),
+		N_("File descriptors banned running count"),
 		N_("UDP read-ahead datagram running count"),
 		N_("UDP read-ahead datagram running bytes"),
 		N_("UDP read-ahead datagram \"old\" processed"),

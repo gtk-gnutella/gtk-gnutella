@@ -223,6 +223,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"giv_discarded",
 		"queue_callbacks",
 		"queue_discarded",
+		"banned_fds_total",
 		"udp_read_ahead_count_sum",
 		"udp_read_ahead_bytes_sum",
 		"udp_read_ahead_old_sum",

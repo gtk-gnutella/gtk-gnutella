@@ -53,6 +53,7 @@
 
 #include "ban.h"
 
+#include "gnet_stats.h"
 #include "sockets.h"		/* For socket_register_fd_reclaimer() */
 #include "token.h"
 #include "whitelist.h"
@@ -728,6 +729,7 @@ ban_force(struct gnutella_socket *s)
 	fifo_put(banned_fds, int_to_pointer(fd));
 
 	gnet_prop_incr_guint32(PROP_BANNED_COUNT);
+	gnet_stats_inc_general(GNR_BANNED_FDS_TOTAL);
 
 	/*
 	 * Don't assert that:
