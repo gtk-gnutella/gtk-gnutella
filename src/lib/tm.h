@@ -113,6 +113,7 @@ void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
 void tm_now_raw(tm_t *tm);
 time_t tm_time_exact(void);
+void tm_current_time(tm_t *tm);
 double tm_cputime(double *user, double *sys);
 
 uint tm_hash(const void *key) G_GNUC_PURE;

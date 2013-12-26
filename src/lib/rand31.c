@@ -109,12 +109,12 @@ rand31_random_seed(void)
 	 */
 
 	cpu = tm_cputime(NULL, NULL);
-	tm_now_exact(&now);
+	tm_current_time(&now);			/* NOT tm_now_exact(): it is too early */
 	seed = (GOLDEN_RATIO_31 * getpid()) >> 1;
 	seed += binary_hash(&now, sizeof now);
 	seed += binary_hash(&cpu, sizeof cpu);
 	entropy_delay();
-	tm_now_exact(&now);
+	tm_current_time(&now);			/* Idem, avoid tm_now_exact() here */
 	seed += binary_hash(&now, sizeof now);
 	ZERO(&env);			/* Avoid uninitialized memory reads */
 	if (setjmp(env)) {

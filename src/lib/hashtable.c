@@ -163,7 +163,7 @@ static G_GNUC_COLD void
 hash_offset_init_once(void)
 {
 	/* Don't allocate any memory, hence can't call arc4random() */
-	hash_offset[0] = entropy_random();
+	hash_offset[0] = entropy_minirand();
 
 	/*
 	 * Note that we leave hash_offset[1] set to 0: hash offsetting is not

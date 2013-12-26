@@ -283,6 +283,22 @@ entropy_rand31(void)
 }
 
 /**
+ * Minimal random number generation, to be used very early in the process
+ * initialization when we cannot use entropy_minimal_collect() yet.
+ *
+ * @return a 32-bit random number.
+ */
+uint32
+entropy_minirand(void)
+{
+	uint32 rn;
+
+	rn = entropy_rand31();
+
+	return UINT32_SWAP(rn) + entropy_rand31();
+}
+
+/**
  * Shuffle array in-place.
  */
 static void

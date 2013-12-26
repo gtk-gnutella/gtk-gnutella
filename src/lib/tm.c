@@ -116,8 +116,12 @@ tm_event_fire(int delta)
 
 /**
  * Get current time for the system, filling the supplied tm_t structure.
+ *
+ * @note
+ * This is a simple wrapper over gettimeofday() which, contrary to
+ * tm_now_exact(), does not cache the result.
  */
-static void
+void
 tm_current_time(tm_t *tm)
 {
 	struct timeval tv;
