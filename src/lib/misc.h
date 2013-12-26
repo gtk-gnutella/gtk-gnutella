@@ -50,6 +50,7 @@
 #include "common.h"
 
 #include "fs_free_space.h"
+#include "sha1.h"
 #include "vmm.h"
 
 #define SIZE_FIELD_MAX		64	/**< Max size of sprintf-ed size quantity */
@@ -141,9 +142,6 @@ short_string_t short_rate_get_string(uint64 rate, bool metric);
 /*
  * SHA1<->base32 string conversion
  */
-typedef struct sha1 {
-	char data[SHA1_RAW_SIZE];
-} sha1_t;
 
 #define SHA1_URN_LENGTH	(CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE)
 

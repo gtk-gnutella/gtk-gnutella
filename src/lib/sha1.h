@@ -50,7 +50,9 @@ enum SHA_code
 };
 #endif
 
-struct sha1;
+typedef struct sha1 {
+	char data[SHA1_RAW_SIZE];
+} sha1_t;
 
 /**
  *  This structure will hold context information for the SHA-1
