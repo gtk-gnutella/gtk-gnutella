@@ -562,11 +562,11 @@ calibrate(void *array, size_t cnt, size_t isize)
 static void
 compute_sha1(sha1_t *digest, const void *p, size_t len)
 {
-	SHA1Context ctx;
+	SHA1_context ctx;
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, p, len);
-	SHA1Result(&ctx, digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, p, len);
+	SHA1_result(&ctx, digest);
 }
 
 static void

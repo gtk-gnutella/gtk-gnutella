@@ -41,12 +41,12 @@
 
 #ifndef _SHA_enum_
 #define _SHA_enum_
-enum
+enum SHA_code
 {
-    shaSuccess = 0,
-    shaNull,            /**< Null pointer parameter */
-    shaInputTooLong,    /**< input data too long */
-    shaStateError       /**< called Input after Result */
+    SHA_SUCCESS = 0,       /**< OK */
+    SHA_NULL,              /**< Null pointer parameter */
+    SHA_INPUT_TOO_LONG,    /**< input data too long */
+    SHA_STATE_ERROR        /**< called Input after Result */
 };
 #endif
 
@@ -56,22 +56,22 @@ struct sha1;
  *  This structure will hold context information for the SHA-1
  *  hashing operation
  */
-typedef struct SHA1Context {
-    uint32 Intermediate_Hash[SHA1_RAW_SIZE / 4]; /* Message Digest  */
-    uint64 Length;            /* Message length in bits */
-    int Message_Block_Index;  /* Index into message block array */
-    uint8 Message_Block[64];  /* 512-bit message blocks */
-    int Computed;             /* Is the digest computed? */
-    int Corrupted;            /* Is the message digest corrupted? */
-} SHA1Context;
+typedef struct SHA1_context {
+	uint32 ihash[SHA1_RAW_SIZE / 4]; /* Intermediate Message Digest  */
+	uint64 length;            /* Message length in bits */
+	int midx;                 /* Index into message block array */
+	uint8 mblock[64];         /* 512-bit message blocks */
+	bool computed;            /* Is the digest computed? */
+	enum SHA_code corrupted;  /* Is the message digest corrupted? */
+} SHA1_context;
 
 /*
  *  Function Prototypes
  */
 
-int SHA1Reset(SHA1Context *);
-int SHA1Input(SHA1Context *, const void *, size_t);
-int SHA1Result(SHA1Context *, struct sha1 *digest);
+int SHA1_reset(SHA1_context *);
+int SHA1_input(SHA1_context *, const void *, size_t);
+int SHA1_result(SHA1_context *, struct sha1 *digest);
 
 #endif /* _sha1_h_ */
 

@@ -510,7 +510,7 @@ static struct sha1 *
 qrt_sha1(struct routing_table *rt)
 {
 	static struct sha1 sha1;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	int i;
 	int bytes;
 	uint8 vector[8];
@@ -519,7 +519,7 @@ qrt_sha1(struct routing_table *rt)
 	g_assert(rt->compacted);
 
 	bytes = rt->slots / 8;
-	SHA1Reset(&ctx);
+	SHA1_reset(&ctx);
 
 	for (i = 0, p = rt->arena; i < bytes; i++) {
 		int j;
@@ -529,10 +529,10 @@ qrt_sha1(struct routing_table *rt)
 		for (j = 0, mask = 0x80; j < 8; j++, mask >>= 1)
 			vector[j] = (value & mask) ? 1 : 0;		/* 1 for presence */
 
-		SHA1Input(&ctx, vector, sizeof vector);
+		SHA1_input(&ctx, vector, sizeof vector);
 	}
 
-	SHA1Result(&ctx, &sha1);
+	SHA1_result(&ctx, &sha1);
 	return &sha1;
 }
 
@@ -4376,7 +4376,7 @@ static uint32
 qrt_dump(struct routing_table *rt, bool full)
 {
 	struct sha1 digest;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	bool last_status = FALSE;
 	int last_slot = 0;
 	uint32 result;
@@ -4386,7 +4386,7 @@ qrt_dump(struct routing_table *rt, bool full)
 		"(gen=%d, slots=%d, %scompacted)",
 		rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
 
-	SHA1Reset(&ctx);
+	SHA1_reset(&ctx);
 
 	for (i = 0; i <= rt->slots; i++) {
 		bool status = FALSE;
@@ -4398,7 +4398,7 @@ qrt_dump(struct routing_table *rt, bool full)
 		status = qrt_dump_is_slot_present(rt, i);
 		value = status ? 1 : 0;			/* 1 for presence */
 
-		SHA1Input(&ctx, &value, sizeof value);
+		SHA1_input(&ctx, &value, sizeof value);
 
 		if (i == 0) {
 			last_slot = i;
@@ -4423,7 +4423,7 @@ qrt_dump(struct routing_table *rt, bool full)
 		}
 	}
 
-	SHA1Result(&ctx, cast_to_pointer(&digest));
+	SHA1_result(&ctx, &digest);
 
 	/*
 	 * Reduce SHA1 to a single uint32.

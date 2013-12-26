@@ -450,7 +450,7 @@ random_cpu_noise(void)
 {
 	static uchar data[512];
 	struct sha1 digest;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	uint32 r, i;
 
 	/* No need to make this routine thread-safe as we want noise anyway */
@@ -459,9 +459,9 @@ random_cpu_noise(void)
 	i = r % G_N_ELEMENTS(data);
 	data[i] = r;
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, data, i);
-	SHA1Result(&ctx, &digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, data, i);
+	SHA1_result(&ctx, &digest);
 
 	return peek_le32(digest.data);
 }

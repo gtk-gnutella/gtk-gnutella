@@ -136,12 +136,12 @@ gdht_kuid_from_sha1(const sha1_t *sha1)
 const kuid_t *
 gdht_kuid_from_guid(const guid_t *guid)
 {
-	SHA1Context ctx;
+	SHA1_context ctx;
 	struct sha1 digest;
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, guid->v, GUID_RAW_SIZE);
-	SHA1Result(&ctx, &digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, guid->v, GUID_RAW_SIZE);
+	SHA1_result(&ctx, &digest);
 
 	return kuid_get_atom((const kuid_t *) &digest);
 }

@@ -45,7 +45,7 @@
 
 static struct {
 	struct verify	*verify;
-	SHA1Context		context;
+	SHA1_context	context;
 	struct sha1		digest;
 } verify_sha1;
 
@@ -61,8 +61,8 @@ verify_sha1_reset(filesize_t amount)
 	int ret;
 
 	(void) amount;
-	ret = SHA1Reset(&verify_sha1.context);
-	g_assert(shaSuccess == ret);
+	ret = SHA1_reset(&verify_sha1.context);
+	g_assert(SHA_SUCCESS == ret);
 }
 
 static int
@@ -70,8 +70,8 @@ verify_sha1_update(const void *data, size_t size)
 {
 	int ret;
 
-	ret = SHA1Input(&verify_sha1.context, data, size);
-	return shaSuccess == ret ? 0 : -1;
+	ret = SHA1_input(&verify_sha1.context, data, size);
+	return SHA_SUCCESS == ret ? 0 : -1;
 }
 
 static int
@@ -79,8 +79,8 @@ verify_sha1_final(void)
 {
 	int ret;
 
-	ret = SHA1Result(&verify_sha1.context, &verify_sha1.digest);
-	return shaSuccess == ret ? 0 : -1;
+	ret = SHA1_result(&verify_sha1.context, &verify_sha1.digest);
+	return SHA_SUCCESS == ret ? 0 : -1;
 }
 
 static const struct verify_hash verify_hash_sha1 = {

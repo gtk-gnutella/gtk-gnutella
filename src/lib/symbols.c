@@ -860,13 +860,13 @@ static bool
 symbols_sha1(const char *file, struct sha1 *digest)
 {
 	int fd;
-	SHA1Context ctx;
+	SHA1_context ctx;
 
 	fd = file_open(file, O_RDONLY, 0);
 	if (-1 == fd)
 		return FALSE;
 
-	SHA1Reset(&ctx);
+	SHA1_reset(&ctx);
 
 	for (;;) {
 		char buf[512];
@@ -879,14 +879,14 @@ symbols_sha1(const char *file, struct sha1 *digest)
 			return FALSE;
 		}
 
-		SHA1Input(&ctx, buf, r);
+		SHA1_input(&ctx, buf, r);
 
 		if (r != sizeof buf)
 			break;
 	}
 
 	close(fd);
-	SHA1Result(&ctx, digest);
+	SHA1_result(&ctx, digest);
 
 	return TRUE;
 }

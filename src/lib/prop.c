@@ -1667,13 +1667,13 @@ unique_file_token(const filestat_t *st)
 {
 	char buf[SHA1_BASE16_SIZE + 1];		/* Hexadecimal format */
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
-	SHA1Context ctx;
+	SHA1_context ctx;
 	struct sha1 digest;
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, &st->st_dev, sizeof st->st_dev);
-	SHA1Input(&ctx, &st->st_ino, sizeof st->st_ino);
-	SHA1Result(&ctx, &digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, &st->st_dev, sizeof st->st_dev);
+	SHA1_input(&ctx, &st->st_ino, sizeof st->st_ino);
+	SHA1_result(&ctx, &digest);
 
 	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);
 	buf[SHA1_BASE16_SIZE] = '\0';

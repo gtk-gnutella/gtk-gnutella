@@ -799,7 +799,7 @@ tok_generate(time_t now, const char *version)
 	uint32 crc32;
 	uint idx;
 	const char *key;
-	SHA1Context ctx;
+	SHA1_context ctx;
     struct sha1 sha1;
 	int lvlsize;
 	int i;
@@ -816,11 +816,11 @@ tok_generate(time_t now, const char *version)
 	digest[6] &= 0xe0U;			/* Upper 3 bits only */
 	digest[6] |= idx & 0xffU;	/* Has 5 bits for the index */
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, key, strlen(key));
-	SHA1Input(&ctx, digest, 7);
-	SHA1Input(&ctx, version, strlen(version));
-	SHA1Result(&ctx, &sha1);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, digest, 7);
+	SHA1_input(&ctx, version, strlen(version));
+	SHA1_result(&ctx, &sha1);
 	memcpy(&digest[7], sha1.data, SHA1_RAW_SIZE);
 
 	/*
@@ -934,7 +934,7 @@ tok_version_valid(
 	const struct tokkey *latest;
 	uint idx;
 	const char *key;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	char lvldigest[1024];
 	char token[TOKEN_VERSION_SIZE];
 	struct sha1 digest;
@@ -983,11 +983,11 @@ tok_version_valid(
 
 	key = tk->keys[idx];
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, key, strlen(key));
-	SHA1Input(&ctx, token, 7);
-	SHA1Input(&ctx, version, strlen(version));
-	SHA1Result(&ctx, &digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, token, 7);
+	SHA1_input(&ctx, version, strlen(version));
+	SHA1_result(&ctx, &digest);
 
 	if (0 != memcmp(&token[7], digest.data, SHA1_RAW_SIZE))
 		return TOK_INVALID;
