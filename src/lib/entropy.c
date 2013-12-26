@@ -1093,6 +1093,7 @@ entropy_seed(void)
 	SHA1Context ctx;
 	double cpu, usr, sys;
 	size_t i;
+	tm_t now;
 
 	/*
 	 * This routine must not allocate any memory because it will be called
@@ -1128,6 +1129,9 @@ entropy_seed(void)
 	sha1_feed_stat(&ctx, "/");
 
 	SHA1Input(&ctx, garbage, sizeof garbage);
+
+	tm_current_time(&now);		/* Do not use tm_now_exact(), it's too soon */
+	SHA1Input(&ctx, &now, sizeof now);
 
 	cpu = tm_cputime(&usr, &sys);
 	sha1_feed_double(&ctx, cpu);

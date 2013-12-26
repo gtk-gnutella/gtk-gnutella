@@ -92,6 +92,7 @@ rand31_prng_next(unsigned seed)
 static unsigned
 rand31_random_seed(void)
 {
+	char garbage[64];		/* Left uninitialized on purpose */
 	tm_t now;
 	double cpu;
 	jmp_buf env;
@@ -124,9 +125,11 @@ rand31_random_seed(void)
 	discard = binary_hash2(env, sizeof env);
 	discard ^= binary_hash2(&now, sizeof now);
 	discard += getpid();
+	discard += time(NULL);
+	discard += binary_hash2(garbage, sizeof garbage);
 	cpu = tm_cputime(NULL, NULL);
 	discard += binary_hash2(&cpu, sizeof cpu);
-	discard = hashing_fold(discard, 8);
+	discard = hashing_fold(discard, 12);
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
 	}
