@@ -6102,10 +6102,22 @@ unsigned
 thread_block_prepare(void)
 {
 	struct thread_element *te = thread_get_element();
+	unsigned events;
 
 	g_assert(!te->blocked);
 
-	return te->unblock_events;
+	/*
+	 * Since te->unblock_events can be updated by another thread, on another
+	 * CPU, taking a lock to read the field is necessary to ensure we're
+	 * reading the current value (locks provide the necessary memory barriers
+	 * and cache synchronization).
+	 */
+
+	THREAD_LOCK(te);
+	events = te->unblock_events;
+	THREAD_UNLOCK(te);
+
+	return events;
 }
 
 /**
