@@ -1211,8 +1211,8 @@ static void
 more_randomness(void)
 {
 	guint32 crc = gnet_stats_crc_reset();
-	random_pool_append(&crc, sizeof crc, settings_add_randomness);
-	random_collect(settings_add_randomness);
+	random_pool_append(&crc, sizeof crc);
+	random_collect();
 }
 
 static void
@@ -1988,6 +1988,7 @@ main(int argc, char **argv)
 	file_info_init_post();
 	download_restore_state();
 	ntp_init();
+	random_added_listener_add(settings_add_randomness);
 
 	/* Some signal handlers */
 

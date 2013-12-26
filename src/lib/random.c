@@ -61,6 +61,7 @@
 #include "random.h"
 
 #include "arc4random.h"
+#include "listener.h"
 #include "atomic.h"
 #include "endian.h"
 #include "float.h"
@@ -80,6 +81,30 @@
 #include "well.h"
 
 #include "override.h"			/* Must be the last header included */
+
+/**
+ * Randomness update listeners.
+ *
+ * These are invoked right after new randomness was added to the random
+ * number generators.
+ */
+static listeners_t random_added_listeners;
+
+void random_added_listener_add(random_added_listener_t l)
+{
+	LISTENER_ADD(random_added, l);
+}
+
+void random_added_listener_remove(random_added_listener_t l)
+{
+	LISTENER_REMOVE(random_added, l);
+}
+
+static void
+random_added_fire(void)
+{
+	LISTENER_EMIT(random_added, ());
+}
 
 /**
  * Generate uniformly distributed random numbers using supplied random
@@ -563,11 +588,9 @@ random_add_pool(void *buf, size_t len)
  * been collected, it feeds it to the random number generator.
  *
  * This helps generating unique sequences via random_bytes().
- *
- * @param cb		routine to invoke if non-NULL when randomness is fed
  */
 void
-random_collect(void (*cb)(void))
+random_collect(void)
 {
 	static tm_t last;
 	static time_delta_t prev;
@@ -629,7 +652,7 @@ random_collect(void (*cb)(void))
 
 	spinunlock(&collect_slk);
 
-	random_pool_append(&rbyte, sizeof rbyte, cb);
+	random_pool_append(&rbyte, sizeof rbyte);
 }
 
 /**
@@ -641,17 +664,15 @@ random_collect(void (*cb)(void))
  *
  * @param buf		buffer holding random data
  * @param len		length of random data
- * @param cb		routine to invoke if non-NULL when randomness is fed
  */
 void
-random_pool_append(void *buf, size_t len, void (*cb)(void))
+random_pool_append(void *buf, size_t len)
 {
 	g_assert(buf != NULL);
 	g_assert(size_is_positive(len));
 
 	if (random_add_pool(buf, len)) {
-		if (cb != NULL)
-			(*cb)();		/* Let them know new randomness is available */
+		random_added_fire();	/* Let them know new randomness is available */
 	}
 }
 
