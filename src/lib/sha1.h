@@ -56,17 +56,12 @@ struct sha1;
  *  This structure will hold context information for the SHA-1
  *  hashing operation
  */
-typedef struct SHA1Context
-{
+typedef struct SHA1Context {
     uint32 Intermediate_Hash[SHA1_RAW_SIZE / 4]; /* Message Digest  */
-
-    uint64 Length;            /* Message length in bits      */
-
-                              /* Index into message block array   */
-    int Message_Block_Index;
-    uint8 Message_Block[64];  /* 512-bit message blocks      */
-
-    int Computed;             /* Is the digest computed?         */
+    uint64 Length;            /* Message length in bits */
+    int Message_Block_Index;  /* Index into message block array */
+    uint8 Message_Block[64];  /* 512-bit message blocks */
+    int Computed;             /* Is the digest computed? */
     int Corrupted;            /* Is the message digest corrupted? */
 } SHA1Context;
 
@@ -74,10 +69,9 @@ typedef struct SHA1Context
  *  Function Prototypes
  */
 
-
-int SHA1Reset(  SHA1Context *);
-int SHA1Input(  SHA1Context *, const void *, size_t);
-int SHA1Result( SHA1Context *, struct sha1 *Message_Digest);
+int SHA1Reset(SHA1Context *);
+int SHA1Input(SHA1Context *, const void *, size_t);
+int SHA1Result(SHA1Context *, struct sha1 *digest);
 
 #endif /* _sha1_h_ */
 
