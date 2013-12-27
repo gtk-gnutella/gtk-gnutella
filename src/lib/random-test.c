@@ -581,7 +581,14 @@ main(int argc, char **argv)
 		}
 	}
 
-	optind = 1;
+	/*
+	 * Despite what the manual says, the getopt() from the Linux libc6 2.17
+	 * does not work properly when resetting optind to 1 (it skips the first
+	 * argument in the second parsing).
+	 *		--RAM, 2013-12-27
+	 */
+
+	optind = 0;
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
