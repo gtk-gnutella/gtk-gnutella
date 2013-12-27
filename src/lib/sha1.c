@@ -99,6 +99,7 @@ SHA1_reset(SHA1_context *context)
 	if (!context)
 		return SHA_NULL;
 
+	context->magic     = SHA1_CONTEXT_MAGIC;
 	context->length    = 0;
 	context->midx      = 0;
 
@@ -136,6 +137,8 @@ int
 SHA1_result(SHA1_context *context, struct sha1 *digest)
 {
 	unsigned i;
+
+	SHA1_check(context);
 
 	if (!context || !digest)
 		return SHA_NULL;
@@ -181,6 +184,8 @@ int
 SHA1_input(SHA1_context *context, const void *data, size_t length)
 {
 	const unsigned char *message_array = data;
+
+	SHA1_check(context);
 
 	if (!length)
 		return SHA_SUCCESS;

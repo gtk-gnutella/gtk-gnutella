@@ -54,18 +54,27 @@ typedef struct sha1 {
 	char data[SHA1_RAW_SIZE];
 } sha1_t;
 
+enum SHA1_context_magic { SHA1_CONTEXT_MAGIC = 0x73accbce };
+
 /**
  *  This structure will hold context information for the SHA-1
  *  hashing operation
  */
 typedef struct SHA1_context {
-	uint32 ihash[SHA1_RAW_SIZE / 4]; /* Intermediate Message Digest  */
+	enum SHA1_context_magic magic;		/* Magic number */
+	uint32 ihash[SHA1_RAW_SIZE / 4];	/* Intermediate Message Digest  */
 	uint64 length;            /* Message length in bits */
 	int midx;                 /* Index into message block array */
 	uint8 mblock[64];         /* 512-bit message blocks */
 	bool computed;            /* Is the digest computed? */
 	enum SHA_code corrupted;  /* Is the message digest corrupted? */
 } SHA1_context;
+
+static inline void
+SHA1_check(const SHA1_context * const ctx)
+{
+	g_assert(NULL == ctx || SHA1_CONTEXT_MAGIC == ctx->magic);
+}
 
 /*
  *  Function Prototypes
