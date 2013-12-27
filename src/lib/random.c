@@ -601,6 +601,7 @@ random_add_pool(void *buf, size_t len)
 
 		if G_UNLIKELY(idx >= G_N_ELEMENTS(data)) {
 			random_add(data, sizeof data);
+			ZERO(&data);		/* Hide them now */
 			idx = 0;
 			flushed = TRUE;
 		}
