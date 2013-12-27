@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,27 +25,30 @@
  * @ingroup lib
  * @file
  *
- * Entropy collection, during bootstrapping.
+ * Alea Jacta Est (AJE) -- a pseudo RNG inspired by Fortuna and Yarrow.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2013
  */
 
-#ifndef _entropy_h_
-#define _entropy_h_
+#ifndef _aje_h_
+#define _aje_h_
 
-struct sha1;
+/*
+ * Public interface.
+ */
 
-void entropy_collect(struct sha1 *digest);
-void entropy_minimal_collect(struct sha1 *digest);
-uint32 entropy_random(void);
-uint32 entropy_minirand(void);
-void entropy_fill(void *buffer, size_t len);
-void entropy_delay(void);
-void entropy_aje_inited();
+uint32 aje_rand(void);
+uint64 aje_rand64(void);
+void aje_random_bytes(void *dest, size_t len);
+void aje_addrandom(const void *src, size_t len);
 
-uint32 entropy_rand31(void);	/* Exported for tests only, DO NOT USE! */
+uint32 aje_thread_rand(void);
+uint64 aje_thread_rand64(void);
+void aje_thread_addrandom(const void *data, size_t len);
 
-#endif /* _entropy_h_ */
+struct pslist *aje_users(void);
+
+#endif /* _aje_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

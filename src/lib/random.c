@@ -35,7 +35,8 @@
  * It also hides to client code the choice of the underlying PRNG routines.
  *
  * Most of the random number generating functions here are based on the
- * Mersenne Twister, which is faster than ARC4.
+ * Mersenne Twister, which is faster than ARC4.  When generating uniform
+ * random values, we use the WELL1024b algorithm.
  *
  * The only exception is the random_bytes() routine, which still relies on
  * arc4random().  The reason is that we use random_pool_append() and
@@ -43,12 +44,24 @@
  * This lets us perturb the output of the PRNG algorithm, which is not an
  * operation supported by the Mersenne Twister.
  *
- * Because random_bytes() is used to generate unique IDs, it is also better
- * to rely on ARC4 due to the fact that its output cannot be guessed given
- * a long sequence of output numbers, contrary to the Mersenne Twister.
- * Our random perturbation to the ARC4 engine further help to ensure strong
- * sequences of IDs that cannot be predicted and hopefully global unicity of
- * the generated random IDs.
+ * When we generate unique IDs that are shown to the world, we rely on
+ * random_strong() and random_strong_bytes() to generate unpredictable and
+ * optimally distributed random numbers.  The random_strong() routine combines
+ * the output of WELL and ARC4, to be absolutely certain that the IDs are
+ * unpredictable even if enough consecutive IDs have been seen.
+ *
+ * The application has three ways to add more entropy to the random number
+ * generators:
+ *
+ * - it can call random_collect() on a regular basis, which will pool 1 byte.
+ * - it can call random_pool_append() to add "random" data to the pool.
+ * - it can call random_add() to immediately feed the entropy.
+ *
+ * When the pool is full, it is flushed by calling random_add().
+ *
+ * The application can register listeners via random_added_listener_add().
+ * They are invoked each time the collected pool has been flushed to
+ * random_add().
  *
  * @author Raphael Manfredi
  * @date 2001-2010, 2012-2013
@@ -60,11 +73,12 @@
 
 #include "random.h"
 
+#include "aje.h"
 #include "arc4random.h"
-#include "listener.h"
 #include "atomic.h"
 #include "endian.h"
 #include "float.h"
+#include "listener.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
@@ -540,6 +554,21 @@ random_byte_well_add(void *p)
 }
 
 /**
+ * TEQ event delivered to a thread to add random bytes to the local AJE stream.
+ */
+static void
+random_byte_aje_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	aje_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
+}
+
+
+/**
  * Add collected random byte(s) to the random pool used by random_bytes(),
  * flushing to the random number generator when enough has been collected.
  *
@@ -676,6 +705,20 @@ random_pool_append(void *buf, size_t len)
 	}
 }
 
+/**
+ * Dispatch randomly collected bytes to all the threads listed in ``users''
+ * by sending them a TEQ message to invoke ``cb''.
+ *
+ * The callback argument is generated the first time we need it, and it is
+ * stored in ``rbd_ptr''.  Each routine will get a reference-counted structure
+ * and will need to call random_byte_data_free() to cleanup that structure.
+ *
+ * @param users		the list of thread ID
+ * @param cb		the callback to invoke in the thread
+ * @param data		the random data we can give
+ * @param len		the amount of bytes we can give
+ * @param rbd_ptr	where the allocated callback argument is stored.
+ */
 static void
 random_dispatch(pslist_t *users, notify_fn_t cb,
 	const void *data, size_t len, struct random_byte_data **rbd_ptr)
@@ -705,24 +748,43 @@ void
 random_add(const void *data, size_t datalen)
 {
 	struct random_byte_data *rbd = NULL;
+	uint8 entropy[64];
 
 	g_assert(data != NULL);
-	g_assert(datalen < MAX_INT_VAL(int));
+	g_assert(size_is_positive(datalen));
 
-	arc4random_addrandom(deconstify_pointer(data), (int) datalen);
-	well_addrandom(data, datalen);
+#define ELEN	(sizeof entropy)
+
+	/*
+	 * The collected data is given to AJE (the global instance), and we then
+	 * extract random data out of AJE to feed to the other generators.  This
+	 * ensures we're feeding random data to each generator.
+	 */
+
+	aje_addrandom(data, datalen);
+	aje_random_bytes(entropy, ELEN);
+
+	/*
+	 * Now feeed the random entropy to the generators.
+	 */
+
+	arc4random_addrandom(entropy, (int) ELEN);
+	well_addrandom(entropy, ELEN);
 
 	/*
 	 * Propagate the random bytes to all the threads using a
-	 * local ARC4 or WELL stream, provided the target threads
+	 * local ARC4, AJE or WELL stream, provided the target threads
 	 * have created a Thread Event Queue (TEQ).
 	 */
 
-	random_dispatch(arc4_users(), random_byte_arc4_add, data, datalen, &rbd);
-	random_dispatch(well_users(), random_byte_well_add, data, datalen, &rbd);
+	random_dispatch(arc4_users(), random_byte_arc4_add, entropy, ELEN, &rbd);
+	random_dispatch(well_users(), random_byte_well_add, entropy, ELEN, &rbd);
+	random_dispatch(aje_users(),  random_byte_aje_add,  entropy, ELEN, &rbd);
 
 	if (rbd != NULL)
 		random_byte_data_free(rbd);
+
+#undef ELEN
 }
 
 /**

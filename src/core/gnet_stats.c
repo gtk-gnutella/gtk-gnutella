@@ -55,13 +55,8 @@ static gnet_stats_t gnet_stats;
 static gnet_stats_t gnet_tcp_stats;
 static gnet_stats_t gnet_udp_stats;
 
-static uint32 gnet_stats_crc32;
-
 /*
  * Thread-safe locks.
- *
- * The CRC32 update code is protected because there is no guarantee the
- * gnet_stats_crc_reset() will always be called from the main thread.
  *
  * The general stats accounting code is protected because there is no guarantee
  * the routines updating these stats will always be called from the main thread.
@@ -70,15 +65,10 @@ static uint32 gnet_stats_crc32;
  * because they are always called from the main thread, the one where the
  * I/O event loop is installed.  An assertion verifies this assumption.
  */
-
 static spinlock_t gnet_stats_slk = SPINLOCK_INIT;
-static spinlock_t gnet_crc32_slk = SPINLOCK_INIT;
 
 #define GNET_STATS_LOCK		spinlock_hidden(&gnet_stats_slk)
 #define GNET_STATS_UNLOCK	spinunlock_hidden(&gnet_stats_slk)
-
-#define GNET_CRC32_LOCK		spinlock_hidden(&gnet_crc32_slk)
-#define GNET_CRC32_UNLOCK	spinunlock_hidden(&gnet_crc32_slk)
 
 /***
  *** Public functions
@@ -500,26 +490,6 @@ gnet_stats_init(void)
 		
     ZERO(&gnet_stats);
     ZERO(&gnet_udp_stats);
-
-	gnet_stats_crc32 = random_u32();
-}
-
-/**
- * @return current CRC32 and re-initialize a new random one.
- */
-uint32
-gnet_stats_crc_reset(void)
-{
-	uint32 crc;
-
-	GNET_CRC32_LOCK;
-
-	crc = gnet_stats_crc32;
-	gnet_stats_crc32 = random_u32();
-
-	GNET_CRC32_UNLOCK;
-
-	return crc;
 }
 
 /**
@@ -530,19 +500,17 @@ gnet_stats_randomness(const gnutella_node_t *n, uint8 type, uint32 val)
 {
 	tm_t now;
 	gnet_host_t host;
+	uint32 crc32;
 
 	tm_now(&now);
 	gnet_host_set(&host, n->addr, n->port);
 
-	GNET_CRC32_LOCK;
+	crc32 = crc32_update(0, &now, sizeof now);
+	crc32 = crc32_update(crc32, &host, gnet_host_length(&host));
+	crc32 = crc32_update(crc32, &type, sizeof type);
+	crc32 = crc32_update(crc32, &val, sizeof val);
 
-	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &now, sizeof now);
-	gnet_stats_crc32 = crc32_update(
-		gnet_stats_crc32, &host, gnet_host_length(&host));
-	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &type, sizeof type);
-	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &val, sizeof val);
-
-	GNET_CRC32_UNLOCK;
+	random_pool_append(&crc32, sizeof crc32);
 }
 
 /**

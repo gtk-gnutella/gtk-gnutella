@@ -1204,17 +1204,6 @@ validate_arguments(void)
 #endif	/* !HAS_FORK */
 }
 
-/**
- * Collect more randomness, periodically.
- */
-static void
-more_randomness(void)
-{
-	guint32 crc = gnet_stats_crc_reset();
-	random_pool_append(&crc, sizeof crc);
-	random_collect();
-}
-
 static void
 slow_main_timer(time_t now)
 {
@@ -1477,7 +1466,7 @@ callout_queue_idle(void *unused_data)
 			overloaded ? "OVERLOADED" : "available");
 
 	/* Idle tasks always scheduled */
-	more_randomness();
+	random_collect();
 
 	return TRUE;		/* Keep scheduling this */
 }

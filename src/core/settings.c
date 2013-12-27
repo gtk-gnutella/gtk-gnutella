@@ -39,6 +39,7 @@
 #endif
 
 #include "settings.h"
+
 #include "ban.h"
 #include "bsched.h"
 #include "ctl.h"
@@ -71,6 +72,7 @@
 
 #include "xml/vxml.h"
 
+#include "lib/aje.h"
 #include "lib/bg.h"
 #include "lib/bit_array.h"
 #include "lib/compat_misc.h"
@@ -855,7 +857,7 @@ settings_add_randomness(void)
 {
 	sha1_t buf;		/* 160 bits */
 
-	random_strong_bytes(&buf, SHA1_RAW_SIZE);
+	aje_random_bytes(&buf, SHA1_RAW_SIZE);
 	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
 }
 

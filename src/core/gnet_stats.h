@@ -31,7 +31,6 @@
 #include "if/dht/kademlia.h"
 
 void gnet_stats_init(void);
-uint32 gnet_stats_crc_reset(void);
 
 void gnet_stats_count_received_header(gnutella_node_t *n);
 void gnet_stats_count_received_payload(const gnutella_node_t *n, const void *);

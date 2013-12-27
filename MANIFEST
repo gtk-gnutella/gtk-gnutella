@@ -575,6 +575,8 @@ src/lib/adns.c
 src/lib/adns.h
 src/lib/aging.c
 src/lib/aging.h
+src/lib/aje.c
+src/lib/aje.h
 src/lib/alloca.c
 src/lib/alloca.h
 src/lib/aq.c

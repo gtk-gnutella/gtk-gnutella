@@ -61,6 +61,7 @@ depend:: $(GENERIC)
 LSRC = \
 	adns.c \
 	aging.c \
+	aje.c \
 	alloca.c \
 	aq.c \
 	arc4random.c \

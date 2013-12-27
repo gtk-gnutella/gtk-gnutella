@@ -49,9 +49,11 @@
  * is that our internal array shuffling be as uniformly random as possible.
  *
  * Entropy is mostly collected at the beginning to initialize some random
- * values and set the initial state of a much stronger PRNG engine: ARC4.
- * The application code should therefore rely on arc4random() and companion
- * routines from the ARC4 API to get its random numbers.
+ * values and set the initial state of much stronger PRNG engines: ARC4,
+ * WELL, or MT.
+ *
+ * When AJE (Alea Jacta Est) has been initialized, all entropy retrieval is
+ * transparently remapped to the global AJE state.
  *
  * @author Christian Biere
  * @date 2008
@@ -67,6 +69,8 @@
 
 #include "entropy.h"
 
+#include "aje.h"
+#include "atomic.h"
 #include "bigint.h"
 #include "compat_misc.h"
 #include "compat_usleep.h"
@@ -1173,6 +1177,41 @@ entropy_fold(sha1_t *digest, size_t n)
 }
 
 /**
+ * Functions to call when entropy information is needed.
+ */
+struct entropy_ops {
+	void (*ent_collect)(sha1_t *digest);
+	void (*ent_mini_collect)(sha1_t *digest);
+	uint32 (*ent_random)(void);
+	void (*ent_fill)(void *buffer, size_t len);
+};
+
+static struct entropy_ops entropy_ops;
+
+/**
+ * Internal wrapper to collect 160 bits of entropy via AJE.
+ */
+static void
+entropy_aje_collect(sha1_t *digest)
+{
+	aje_random_bytes(digest, sizeof digest);
+}
+
+/**
+ * When AJE (Alea Jacta Est) has been initialized, we can use it as our main
+ * entropy source.  Hence redirect all entropy requests to that layer.
+ */
+G_GNUC_COLD void
+entropy_aje_inited(void)
+{
+	entropy_ops.ent_collect      = entropy_aje_collect;
+	entropy_ops.ent_mini_collect = entropy_aje_collect;
+	entropy_ops.ent_random       = aje_rand;
+	entropy_ops.ent_fill         = aje_random_bytes;
+	atomic_mb();
+}
+
+/**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
  * It should be called only when a truly random seed is required, ideally only
@@ -1182,8 +1221,8 @@ entropy_fold(sha1_t *digest, size_t n)
  * This is a slow operation, and the routine will even sleep for 2 ms the
  * first time it is invoked.
  */
-G_GNUC_COLD void
-entropy_collect(sha1_t *digest)
+static G_GNUC_COLD void
+entropy_do_collect(sha1_t *digest)
 {
 	static bool done;
 
@@ -1201,8 +1240,8 @@ entropy_collect(sha1_t *digest)
  * This is a slow operation, so it must be called only when a truly random
  * seed is required.
  */
-G_GNUC_COLD void
-entropy_minimal_collect(sha1_t *digest)
+static G_GNUC_COLD void
+entropy_do_minimal_collect(sha1_t *digest)
 {
 	entropy_collect_internal(digest, FALSE, FALSE);
 }
@@ -1217,8 +1256,8 @@ entropy_minimal_collect(sha1_t *digest)
  *
  * @return 32-bit random number.
  */
-uint32
-entropy_random(void)
+static uint32
+entropy_do_random(void)
 {
 	static sha1_t digest;
 	static void *p = &digest;
@@ -1264,8 +1303,8 @@ entropy_random(void)
  * @param buffer	buffer to fill
  * @param len		buffer length, in bytes
  */
-void
-entropy_fill(void *buffer, size_t len)
+static void
+entropy_do_fill(void *buffer, size_t len)
 {
 	size_t complete, partial, i;
 	void *p = buffer;
@@ -1294,5 +1333,72 @@ entropy_fill(void *buffer, size_t len)
 
 	g_assert(ptr_diff(p, buffer) == len);
 }
+
+/**
+ * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
+ *
+ * It should be called only when a truly random seed is required, ideally only
+ * during initialization.
+ *
+ * @attention
+ * This is a slow operation, and the routine will even sleep for 2 ms the
+ * first time it is invoked.
+ */
+G_GNUC_COLD void
+entropy_collect(sha1_t *digest)
+{
+	return entropy_ops.ent_collect(digest);
+}
+
+/**
+ * Collect minimal entropy, making sure no memory is allocated, and fill
+ * supplied SHA1 buffer with 160 random bits.
+ *
+ * @attention
+ * This is a slow operation, so it must be called only when a truly random
+ * seed is required.
+ */
+G_GNUC_COLD void
+entropy_minimal_collect(sha1_t *digest)
+{
+	return entropy_ops.ent_mini_collect(digest);
+}
+
+/**
+ * Random number generation based on entropy collection (without any memory
+ * allocation).
+ *
+ * This is a strong random number generator, but it is very slow and should
+ * be reserved to low-level initializations, before the ARC4 random number
+ * has been properly seeded.
+ *
+ * @return 32-bit random number.
+ */
+uint32
+entropy_random(void)
+{
+	return entropy_ops.ent_random();
+}
+
+/**
+ * Fill supplied buffer with random entropy bytes.
+ *
+ * Memory allocation may happen during this call.
+ *
+ * @param buffer	buffer to fill
+ * @param len		buffer length, in bytes
+ */
+void
+entropy_fill(void *buffer, size_t len)
+{
+	return entropy_ops.ent_fill(buffer, len);
+}
+
+static struct entropy_ops entropy_ops = {
+	entropy_do_collect,			/* ent_collect */
+	entropy_do_minimal_collect,	/* ent_mini_collect */
+	entropy_do_random,			/* ent_random */
+	entropy_do_fill,			/* ent_fill */
+};
 
 /* vi: set ts=4 sw=4 cindent: */

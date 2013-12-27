@@ -32,6 +32,7 @@
 
 #include "common.h"
 
+#include "lib/aje.h"
 #include "lib/arc4random.h"
 #include "lib/chi2.h"
 #include "lib/entropy.h"
@@ -72,7 +73,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-14eghluyBMPSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-14eghluyABMPSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -1 : test entropy_rand31() instead of rand31()\n"
@@ -80,7 +81,7 @@ usage(void)
 		"  -b : bit mask to apply on random values (focus on some bits)\n"
 		"  -c : sets item count to remember, for period computation\n"
 		"  -e : test entropy_random() instead of rand31()\n"
-		"  -g : add entropy every second to ARC4 and WELL generators\n"
+		"  -g : add entropy every second to AJE, ARC4 and WELL generators\n"
 		"  -h : prints this help message\n"
 		"  -l : use thread-local PRNG state context, if supported by routine\n"
 		"  -m : sets minimum period to consider\n"
@@ -88,6 +89,7 @@ usage(void)
 		"  -s : skip that amount of initial random values\n"
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
+		"  -A : test aje_rand(), the Fortuna-like PRNG, instead of rand31()\n"
 		"  -B : count '1' occurrences of each bit\n"
 		"  -C : count how many times the random value occurs (after -b)\n"
 		"  -D : dump specified amount of random numbers (after -b)\n"
@@ -564,7 +566,7 @@ main(int argc, char **argv)
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "14b:c:eghlm:p:s:t:uBC:D:F:MPR:STU:WX:";
+	const char options[] = "14b:c:eghlm:p:s:t:uABC:D:F:MPR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 	fn = x;				\
@@ -630,6 +632,13 @@ main(int argc, char **argv)
 			break;
 		case 'u':			/* check rand31_u32() instead */
 			SET_RANDOM(rand31_u32);
+			break;
+		case 'A':			/* check aje_random() instead */
+			if (test_local) {
+				SET_RANDOM(aje_thread_rand);
+			} else {
+				SET_RANDOM(aje_rand);
+			}
 			break;
 		case 'B':			/* count occurrences of each bit */
 			countbits = TRUE;
