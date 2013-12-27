@@ -62,6 +62,7 @@
 #endif
 
 #include "rwlock.h"
+
 #include "compat_usleep.h"
 #include "gentime.h"
 #include "getcpucount.h"
@@ -69,6 +70,7 @@
 #include "spinlock.h"
 #include "stringify.h"
 #include "thread.h"
+#include "tsig.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -92,6 +94,7 @@ enum rwlock_waiting_magic { RWLOCK_WAITING_MAGIC = 0x1d77c7ce };
 struct rwlock_waiting {
 	struct rwlock_waiting *next;	/* Next in the queue */
 	enum rwlock_waiting_magic magic;/* Magic number */
+	tsigset_t oset;					/* Old signal mask, before queuing */
 	uint8 reading;					/* Set if waiting for reading */
 	volatile uint8 ok;				/* Set to TRUE when the lock is granted */
 	uint8 stid;						/* For write locks, thread's small ID */
@@ -171,6 +174,22 @@ static inline void
 rwlock_append_waiter(struct rwlock *rw, struct rwlock_waiting *wc)
 {
 	struct rwlock_waiting *tail = rw->wait_tail;
+	tsigset_t all;
+
+	/*
+	 * When we wait for a rwlock, it is necessary to block all signals: if
+	 * we are enqueued for a write lock, say, and we were interrupted and the
+	 * handler would need to grab the read lock, we would re-enqueue ourselves
+	 * and deadlock.
+	 *
+	 * We are currently holding the lock on the rw, so we are immune against
+	 * signals.  We will not be able to restore the old signal mask until
+	 * we got and accounted the lock (to prevent signal delivery, delaying
+	 * it until after we release the rwlock).
+	 */
+
+	tsig_fillset(&all);
+	thread_sigmask(TSIG_SETMASK, &all, &wc->oset);
 
 	if G_UNLIKELY(NULL == tail) {
 		rw->wait_head = rw->wait_tail = wc;
@@ -716,9 +735,10 @@ rwlock_is_free(const rwlock_t *rw)
  * @param rw		the read-write lock
  * @param file		file where the lock is being grabbed from
  * @param line		line where the lock is being grabbed from
+ * @param account	whether to account lock in thread
  */
 void
-rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line)
+rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 {
 	struct rwlock_waiting wc;
 	bool got;
@@ -757,8 +777,14 @@ rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line)
 	}
 	RWLOCK_UNLOCK(rw);
 
-	if G_UNLIKELY(!got)
+	if G_UNLIKELY(!got) {
 		rwlock_wait_grant(rw, &wc, file, line);
+		if (account)
+			rwlock_read_account(rw, file, line);
+		thread_sigmask(TSIG_SETMASK, &wc.oset, NULL);
+	} else if (account) {
+		rwlock_read_account(rw, file, line);
+	}
 
 	/* Ensure there are no overflows */
 
@@ -792,9 +818,10 @@ rwlock_rungrab(rwlock_t *rw)
  * @param rw		the read-write lock
  * @param file		file where the lock is being grabbed from
  * @param line		line where the lock is being grabbed from
+ * @param account	whether to account lock in thread
  */
 void
-rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line)
+rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 {
 	struct rwlock_waiting wc;
 	bool got;
@@ -856,7 +883,14 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line)
 
 		rwlock_wait_grant(rw, &wc, file, line);
 
+		if (account)
+			rwlock_write_account(rw, file, line);
+		thread_sigmask(TSIG_SETMASK, &wc.oset, NULL);
+
 		g_assert(1 == rw->writers || rwlock_pass_through);
+	}
+	else if (account) {
+		rwlock_write_account(rw, file, line);
 	}
 }
 
@@ -900,8 +934,7 @@ rwlock_wungrab(rwlock_t *rw)
 void
 rwlock_rgrab_from(rwlock_t *rw, const char *file, unsigned line)
 {
-	rwlock_rgrab(rw, file, line);
-	rwlock_read_account(rw, file, line);
+	rwlock_rgrab(rw, file, line, TRUE);
 }
 
 /**
@@ -990,8 +1023,7 @@ rwlock_rungrab_from(rwlock_t *rw, const char *file, unsigned line)
 void
 rwlock_wgrab_from(rwlock_t *rw, const char *file, unsigned line)
 {
-	rwlock_wgrab(rw, file, line);
-	rwlock_write_account(rw, file, line);
+	rwlock_wgrab(rw, file, line, TRUE);
 }
 
 /**

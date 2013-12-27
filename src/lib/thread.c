@@ -5032,9 +5032,22 @@ thread_cond_waiting_done(const void *element)
  * Re-acquire a lock after suspension.
  */
 static void
-thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
+thread_lock_reacquire(
+	struct thread_lock_stack *tls,
+	const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
+	/*
+	 * During re-acquisition of rwlocks, locks will be taken and we do not
+	 * want any pending signal delivery whilst we grab a lock that we were
+	 * supposed to already have.
+	 *
+	 * Therefore, we artifically increase the lock count and restore it
+	 * before returning, to cheaply disable all signal delivery.
+	 */
+
+	tls->count++;		/* Prevents any signal delivery */
+
 	switch (kind) {
 	case THREAD_LOCK_SPINLOCK:
 		{
@@ -5042,19 +5055,19 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 
 			spinlock_grab_from(s, TRUE, file, line);
 		}
-		return;
+		goto done;
 	case THREAD_LOCK_RLOCK:
 		{
 			rwlock_t *r = deconstify_pointer(lock);
-			rwlock_rgrab(r, file, line);
+			rwlock_rgrab(r, file, line, FALSE);
 		}
-		return;
+		goto done;
 	case THREAD_LOCK_WLOCK:
 		{
 			rwlock_t *w = deconstify_pointer(lock);
-			rwlock_wgrab(w, file, line);
+			rwlock_wgrab(w, file, line, FALSE);
 		}
-		return;
+		goto done;
 	case THREAD_LOCK_MUTEX:
 		{
 			mutex_t *m = deconstify_pointer(lock);
@@ -5062,10 +5075,13 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 			mutex_grab_from(m, MUTEX_MODE_HIDDEN, file, line);
 			g_assert(1 == m->depth);
 		}
-		return;
+		goto done;
 	}
 
 	g_assert_not_reached();
+
+done:
+	tls->count--;		/* Undo increment from the beginning */
 }
 
 /**
@@ -5165,7 +5181,7 @@ found:
 	if G_UNLIKELY(thread_sig_pending(te) && thread_lock_release(lock, kind)) {
 		THREAD_STATS_INCX(sig_handled_while_locking);
 		thread_sig_handle(te);
-		thread_lock_reacquire(lock, kind, file, line);
+		thread_lock_reacquire(tls, lock, kind, file, line);
 	}
 
 	/*
@@ -5189,7 +5205,7 @@ found:
 		if (0 == tls->count) {
 			if (thread_lock_release(lock, kind)) {
 				thread_suspend_self(te);
-				thread_lock_reacquire(lock, kind, file, line);
+				thread_lock_reacquire(tls, lock, kind, file, line);
 			}
 		} else if (thread_in_crash_mode()) {
 			thread_suspend_loop(te);
