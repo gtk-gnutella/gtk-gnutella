@@ -183,38 +183,36 @@ SHA1_result(SHA1_context *context, struct sha1 *digest)
 int
 SHA1_input(SHA1_context *context, const void *data, size_t length)
 {
-	const unsigned char *message_array = data;
+	const uint8 *mp = data;		/* Pointer into message, viewed as byte array */
 
 	SHA1_check(context);
 
-	if (!length)
+	if G_UNLIKELY(!length)
 		return SHA_SUCCESS;
 
-	if (!context || !message_array)
+	if G_UNLIKELY(!context || !data)
 		return SHA_NULL;
 
-	if (context->computed) {
+	if G_UNLIKELY(context->computed) {
 		context->corrupted = SHA_STATE_ERROR;
 		return SHA_STATE_ERROR;
 	}
 
-	if (context->corrupted)
+	if G_UNLIKELY(context->corrupted)
 		 return SHA_STATE_ERROR;
 
-	while (length-- && !context->corrupted) {
-		context->mblock[context->midx++] = (*message_array & 0xFF);
+	while (length--) {
+		context->mblock[context->midx++] = *mp++;
+		context->length += 8;		/* This counts bits, not bytes */
 
-		context->length += 8;
-		if (context->length < 8) {
+		if G_UNLIKELY(context->length < 8) {
 			/* Message is too long */
 			context->corrupted = SHA_INPUT_TOO_LONG;
 			return SHA_INPUT_TOO_LONG;
 		}
 
-		if (context->midx == 64)
+		if G_UNLIKELY(context->midx == 64)
 			SHA1_process_message_block(context);
-
-		message_array++;
 	}
 
 	return SHA_SUCCESS;
@@ -258,10 +256,10 @@ SHA1_process_message_block(SHA1_context *context)
 	 */
 
 #define INIT(x) \
-	W[x] = (context->mblock[(x) * 4] << 24)  | \
+	W[x] = (context->mblock[(x) * 4]  << 24) | \
 		(context->mblock[(x) * 4 + 1] << 16) | \
-		(context->mblock[(x) * 4 +2] << 8)   | \
-		(context->mblock[(x) * 4 +3])
+		(context->mblock[(x) * 4 + 2] << 8)  | \
+		(context->mblock[(x) * 4 + 3])
 
 	/* Unrolling this loop saves time */
 	INIT(0);  INIT(1);  INIT(2);  INIT(3);
@@ -270,7 +268,7 @@ SHA1_process_message_block(SHA1_context *context)
 	INIT(12); INIT(13); INIT(14); INIT(15);
 
 #define CRUNCH \
-	*wp = SHA1CircularShift(1,wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16])
+	*wp = SHA1CircularShift(1, wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16])
 
 	wp = &W[16];
 	CRUNCH; wp++;		/* 16 */
