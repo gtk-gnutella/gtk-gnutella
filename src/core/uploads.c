@@ -82,6 +82,7 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/crc.h"
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/file_object.h"
@@ -98,6 +99,7 @@
 #include "lib/parse.h"
 #include "lib/product.h"
 #include "lib/pslist.h"
+#include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
@@ -4786,6 +4788,7 @@ upload_request(struct upload *u, header_t *header)
 	time_t now = tm_time();
 	char host[1 + MAX_HOSTLEN];
 	bool first_request;
+	uint32 entropy = 0;
 
 	upload_check(u);
 
@@ -4827,9 +4830,24 @@ upload_request(struct upload *u, header_t *header)
 
 	if (u->is_followup) {
 		time_delta_t d = delta_time(now, u->last_update);
+		entropy = d;
 		if (d > IO_RTT_STALL) {
 			upload_large_followup_rtt(u, d);
 		}
+	}
+
+	/*
+	 * Entropy harvesting...
+	 */
+
+	{
+		host_addr_t addr = u->socket->addr;
+		uint16 port = u->socket->port;
+
+		entropy = crc32_update(entropy, &addr, sizeof addr);
+		entropy = crc32_update(entropy, &port, sizeof port);
+		entropy = crc32_update(entropy, &now, sizeof now);
+		random_pool_append(&entropy, sizeof entropy);
 	}
 
 	/*

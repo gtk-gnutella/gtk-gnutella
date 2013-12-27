@@ -89,6 +89,7 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/concat.h"
+#include "lib/crc.h"
 #include "lib/dbus_util.h"
 #include "lib/dualhash.h"
 #include "lib/endian.h"
@@ -13374,14 +13375,34 @@ void
 download_connected(struct download *d)
 {
 	struct gnutella_socket *s;
+	time_t now = tm_time();
+	struct dl_server *server;
 
 	download_check(d);
 	dl_server_valid(d->server);
 	socket_check(d->socket);
 	g_assert(!download_pipelining(d));		/* Just got connected */
 
-	d->server->last_connect = tm_time();
+	/*
+	 * Entropy harvesting...
+	 */
+
+	server = d->server;
 	s = d->socket;
+
+	{
+		time_delta_t elapsed;
+		uint32 entropy;
+		host_addr_t addr = server->key->addr;
+
+		elapsed = delta_time(now, server->last_connect);
+		entropy = crc32_update(s->port, &addr, sizeof addr);
+		entropy = crc32_update(entropy, &elapsed, sizeof elapsed);
+		entropy = crc32_update(entropy, &now, sizeof now);
+		random_pool_append(&entropy, sizeof entropy);
+	}
+
+	server->last_connect = now;
 	socket_nodelay(s, TRUE);
 
 	/*
@@ -13392,9 +13413,9 @@ download_connected(struct download *d)
 		if (!host_addr_equal(download_addr(d), s->addr)) {
 			if (GNET_PROPERTY(download_debug)) {
 				g_debug("DNS lookup revealed server %s moved to %s",
-					server_host_info(d->server), host_addr_to_string(s->addr));
+					server_host_info(server), host_addr_to_string(s->addr));
 			}
-			change_server_addr(d->server, s->addr, download_port(d));
+			change_server_addr(server, s->addr, download_port(d));
 		}
 	}
 
