@@ -16500,10 +16500,14 @@ download_timer(time_t now)
 				g_assert(fi->recvcount > 0);
 
 				if (delta > IO_AVG_RATE) {
+					double rate = fi->recv_amount / (double) delta;
+
 					fi->recv_last_rate = fi->recv_amount / delta;
 					fi->recv_amount = 0;
 					fi->recv_last_time = now;
 					file_info_changed(fi);
+
+					random_pool_append(&rate, sizeof rate);
 				}
 			}
 

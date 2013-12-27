@@ -46,6 +46,7 @@
 #include "lib/parse.h"
 #include "lib/plist.h"
 #include "lib/pslist.h"
+#include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
@@ -2768,6 +2769,8 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 
 	overused -= bs->bw_stolen;		/* Correct for computations below */
 
+	random_pool_append(&overused, sizeof overused);
+
 	bs->bw_max = (int) (bs->bw_per_second / 1000.0 * bs->period_ema);
 
 	/*
@@ -2936,6 +2939,8 @@ bsched_stealbeat(bsched_t *bs)
 		}
 	}
 #endif
+
+	random_pool_append(&underused, sizeof underused);
 
 	if (underused <= 0)				/* Nothing to redistribute */
 		return;

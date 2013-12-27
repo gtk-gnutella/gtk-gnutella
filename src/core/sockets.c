@@ -1510,6 +1510,15 @@ socket_free(struct gnutella_socket *s)
 	if (is_valid_fd(s->file_desc)) {
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
+
+		/*
+		 * Socket closing is a source of randomness since the actual file
+		 * descriptor being closed and the closing order between different
+		 * sockets is hard to predict.
+		 */
+
+		random_pool_append(&s->file_desc, sizeof s->file_desc);
+
 		if (compat_socket_close(s->file_desc)) {
 			g_warning("%s: close(%d) failed: %m", G_STRFUNC, s->file_desc);
 		}
