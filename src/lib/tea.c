@@ -45,7 +45,6 @@
 
 #define TEA_ROUNDS		32
 #define TEA_CONSTANT	0x9e3779b9		/* A key schedule constant */
-#define TEA_BLOCK_SIZE	8
 
 /**
  * A TEA cipher block is 64-bit wide.
