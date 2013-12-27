@@ -96,6 +96,7 @@
 
 #define TEQ_THROTTLE_DELAY_DFLT	951		/**< 951 ms */
 #define TEQ_THROTTLE_MASK		0x1f
+#define TEQ_RPC_TIMEOUT			5000	/* ms: 5 seconds */
 
 /**
  * Magic numbers for thread event objects share the leading 24 bits.
@@ -928,11 +929,31 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 	/*
 	 * The `rpc.done' field is our (synchronized) signal that the RPC has been
 	 * completed by the targeted thread.  This allows spurious wakeups from
-	 * thread_block_self().
+	 * thread_timed_block_self().
 	 */
 
 	while (!atomic_bool_get(&rpc.done)) {
-		thread_block_self(events);
+		tm_t tmout;
+
+		/*
+		 * To spot bugs in the RPC layer, or genuine problems with RPCs that
+		 * do not complete in a timely manner, set a reasonable waiting time
+		 * for the reply to come back, before warning.
+		 *
+		 * If the warning is issued and the RPC is completed, then it means
+		 * there is a race condition somewhere in the waiting code that
+		 * prevents proper signalling to the blocked thread.
+		 */
+
+		tm_fill_ms(&tmout, TEQ_RPC_TIMEOUT);
+
+		if (!thread_timed_block_self(events, &tmout)) {
+			s_carp("%s(): timed-out waiting (RPC %s(%p) to %s %s)",
+				G_STRFUNC, stacktrace_function_name(routine), data,
+				thread_id_name(id),
+				atomic_bool_get(&rpc.done) ? "completed" : "still pending");
+		}
+
 		events = thread_block_prepare();
 	}
 
