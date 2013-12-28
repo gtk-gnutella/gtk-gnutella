@@ -5780,6 +5780,30 @@ thread_crash_mode(void)
 }
 
 /**
+ * Exiting mode -- one thread is doing exit and possibly running final cleanup.
+ */
+void G_GNUC_COLD
+thread_exit_mode(void)
+{
+	/*
+	 * We're going to suspend all the other threads, which is necessary since
+	 * final cleanup is going to run with minimal resources and we do not
+	 * want other threads to suddenly fail because of an assertion failure.
+	 *
+	 * Because we're suspending threads, we need to also disable locking:
+	 * a thread waiting in the rwlock queue does not hold any lock yet and
+	 * therefore can get suspended, but will cause a deadlock if the exiting
+	 * thread needs that same rwlock.
+	 */
+
+	thread_suspend_others(FALSE);	/* Advisory, do not wait for others */
+
+	spinlock_exit_mode();			/* Silent crash mode for spinlocks */
+	mutex_crash_mode();
+	rwlock_crash_mode();
+}
+
+/**
  * Report a deadlock condition whilst attempting to get a lock.
  *
  * This is only executed once per thread, since a deadlock is an issue that

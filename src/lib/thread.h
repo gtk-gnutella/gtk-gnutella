@@ -183,6 +183,7 @@ unsigned thread_count();
 unsigned thread_discovered_count(void);
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
+void thread_exit_mode(void);
 void thread_crash_mode(void);
 bool thread_is_crashing(void);
 bool thread_in_crash_mode(void);

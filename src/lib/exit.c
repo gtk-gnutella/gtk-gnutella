@@ -58,7 +58,7 @@
 G_GNUC_COLD void
 exit_cleanup(void)
 {
-	thread_suspend_others(FALSE);
+	thread_exit_mode();
 	xmalloc_stop_freeing();
 	signal_perform_cleanup();
 	crash_close();

@@ -212,6 +212,7 @@ void spinlock_raw_from(spinlock_t *s, const char *file, unsigned line);
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);
 void spinlock_crash_mode(void);
+void spinlock_exit_mode(void);
 
 #if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)
 

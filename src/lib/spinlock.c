@@ -124,7 +124,7 @@ spinlock_source_string(enum spinlock_source src)
 /**
  * Enter crash mode: let all spinlocks be grabbed immediately.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 spinlock_crash_mode(void)
 {
 	if (!atomic_int_get(&spinlock_pass_through)) {
@@ -143,6 +143,17 @@ spinlock_crash_mode(void)
 				"now in thread-unsafe mode (%u threads)", count);
 		}
 	}
+}
+
+/**
+ * Enter exit mode: let all spinlocks be grabbed immediately.
+ *
+ * This is the same a crash_mode, only there is no warning emitted.
+ */
+void G_GNUC_COLD
+spinlock_exit_mode(void)
+{
+	atomic_int_inc(&spinlock_pass_through);
 }
 
 /**
