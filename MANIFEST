@@ -941,6 +941,8 @@ src/lib/xmalloc.c
 src/lib/xmalloc.h
 src/lib/xsort.c
 src/lib/xsort.h
+src/lib/xxtea.c
+src/lib/xxtea.h
 src/lib/zalloc.c
 src/lib/zalloc.h
 src/lib/zlib_util.c

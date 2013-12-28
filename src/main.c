@@ -159,6 +159,7 @@
 #include "lib/wordvec.h"
 #include "lib/wq.h"
 #include "lib/xmalloc.h"
+#include "lib/xxtea.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
 #include "upnp/upnp.h"
@@ -1910,6 +1911,7 @@ main(int argc, char **argv)
 	tiger_check();
 	tt_check();
 	tea_test();
+	xxtea_test();
 	patricia_test();
 	strtok_test();
 	locale_init();

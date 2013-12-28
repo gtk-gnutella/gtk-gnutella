@@ -232,6 +232,7 @@ LSRC = \
 	wq.c \
 	xmalloc.c \
 	xsort.c \
+	xxtea.c \
 	zalloc.c \
 	zlib_util.c
 

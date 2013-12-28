@@ -45,8 +45,8 @@
  *   its state.  This was a feature of Yarrow (ability to query the final
  *   hash without resetting the computation context).
  *
- * - It uses TEA (the Tiny Encryption Algorithm) instead of AES to perform
- *   the encryption.
+ * - It uses XXTEA (the Corrected Block Tiny Encryption Algorithm) instead
+ *   of AES to perform the encryption.
  *
  * The high-level description of Fortuna can be read here:
  *		http://en.wikipedia.org/wiki/Fortuna_(PRNG)
@@ -59,7 +59,11 @@
  * Including the SHA2 hashing routines and AES was deemed unnecessary for now
  * to have a "real" Fortuna implementation (2013-12-27).
  *
- * This current AJE implementation with SHA1 and TEA passes 99.91% of the
+ * Using SHA1 means that we limit the entropy collected to 160 bits.  But
+ * the encryption keys are only 128-bit long, therefore our AJE algorithm
+ * has only a 128-bit security strength.
+ *
+ * This current AJE implementation with SHA1 and XXTEA passes 99.91% of the
  * FIPS 140-2 tests on the average and does not fail any of the dieharder
  * tets, hence it is a good source of randomness (as good as /dev/urandom).
  *
@@ -83,16 +87,23 @@
 #include "random.h"
 #include "sha1.h"
 #include "spinlock.h"
-#include "tea.h"
 #include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "xxtea.h"
 
 #include "override.h"			/* Must be the last header included */
 
 #define AJE_POOLS			23			/* amount of pools used */
 #define AJE_RESEED_INTERVAL	100000		/* us: 0.1 seconds */
-#define AJE_RESEED_BYTES	(128*1024)	/* reseed after that many bytes given */
+
+/*
+ * This is the maximum amount of bytes we can serve in a large request before
+ * forcefully changing the key, to avoid giving out too many bytes with the
+ * same key: if our internal counter is known, that would give a golden
+ * plain-text attack opportunity.
+ */
+#define AJE_REKEY_BYTES	(64*1024)	/* new key after that many bytes given */
 
 /*
  * This is the minimum amount of bytes that must have been added to
@@ -120,12 +131,12 @@
 /*
  * The length of the cipher key size, which must be at most AJE_DIGEST_LEN.
  */
-#define AJE_CIPHER_KEYLEN	TEA_KEY_SIZE
+#define AJE_CIPHER_KEYLEN	XXTEA_KEY_SIZE
 
 /*
  * The length of the ciher blocks.
  */
-#define AJE_CIPHER_BLOCKLEN	TEA_BLOCK_SIZE
+#define AJE_CIPHER_BLOCKLEN	XXTEA_BLOCK_SIZE
 
 /*
  * For speed, we generate a pool of random numbers and then serve them.
@@ -216,7 +227,7 @@ aje_counter_inc(aje_state_t *as)
 static  void
 aje_encrypt(const aje_state_t *as, void *in, void *out, size_t len)
 {
-	tea_encrypt((tea_key_t *) as->key, out, in, len);
+	xxtea_encrypt((xxtea_key_t *) as->key, out, in, len);
 }
 
 /**
@@ -618,7 +629,7 @@ aje_extract(aje_state_t *as, void *dest, size_t len)
 		 * sure there are no duplicate blocks generated.
 		 */
 
-		if G_UNLIKELY(++block_nr > AJE_RESEED_BYTES / AJE_CIPHER_BLOCKLEN) {
+		if G_UNLIKELY(++block_nr > AJE_REKEY_BYTES / AJE_CIPHER_BLOCKLEN) {
 			aje_rekey(as);
 			block_nr = 0;
 		}
@@ -645,7 +656,7 @@ aje_init(aje_state_t *as)
 	uint8 buf[AJE_POOL0_FILL];
 
 	STATIC_ASSERT(AJE_CIPHER_KEYLEN <= AJE_DIGEST_LEN);
-	STATIC_ASSERT(AJE_CIPHER_KEYLEN == sizeof(tea_key_t));
+	STATIC_ASSERT(AJE_CIPHER_KEYLEN == sizeof(xxtea_key_t));
 
 	ZERO(as);
 	as->magic = AJE_MAGIC;
