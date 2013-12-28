@@ -1229,13 +1229,10 @@ shell_auth_cookie(void)
 	static bool initialized;
 
 	if (!initialized) {
-		SHA1_context ctx;
 		uint32 noise[64];
 
 		random_strong_bytes(noise, sizeof noise);
-		SHA1_reset(&ctx);
-		SHA1_input(&ctx, &noise, sizeof noise);
-		SHA1_result(&ctx, &cookie);
+		SHA1_COMPUTE(noise, &cookie);
 		shell_dump_cookie(&cookie);
 		initialized = TRUE;
 	}

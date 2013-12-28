@@ -76,6 +76,7 @@
 #include "once.h"
 #include "palloc.h"
 #include "pslist.h"
+#include "sha1.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "tm.h"
@@ -823,15 +824,14 @@ pool_info_list_free_null(pslist_t **sl_ptr)
 }
 
 /**
- * Dump consolidated palloc statistics to specified log agent.
+ * Build consolidated statistics across all the pools.
  */
-G_GNUC_COLD void
-palloc_dump_stats_log(logagent_t *la, unsigned options)
+static void
+palloc_all_stats(pool_info_t *stats)
 {
-	pool_info_t stats;
 	pool_t *p;
 
-	ZERO(&stats);
+	ZERO(stats);
 
 	POOL_VARS_LOCK;
 
@@ -839,11 +839,36 @@ palloc_dump_stats_log(logagent_t *la, unsigned options)
 		pool_check(p);
 
 		POOL_LOCK(p);
-		pool_info_add(p, &stats);
+		pool_info_add(p, stats);
 		POOL_UNLOCK(p);
 	}
 
 	POOL_VARS_UNLOCK;
+}
+
+/**
+ * Generate a SHA1 digest of the current tmalloc statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+palloc_stats_digest(sha1_t *digest)
+{
+	pool_info_t stats;
+
+	palloc_all_stats(&stats);
+	SHA1_COMPUTE(stats, digest);
+}
+
+/**
+ * Dump consolidated palloc statistics to specified log agent.
+ */
+G_GNUC_COLD void
+palloc_dump_stats_log(logagent_t *la, unsigned options)
+{
+	pool_info_t stats;
+
+	palloc_all_stats(&stats);
 
 #define DUMPS(x)	log_info(la, "PALLOC %s = %s", #x,			\
 	(options & DUMP_OPT_PRETTY) ?								\

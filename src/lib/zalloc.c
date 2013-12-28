@@ -107,6 +107,7 @@
 #include "misc.h"			/* For short_filename() */
 #include "once.h"
 #include "pslist.h"
+#include "sha1.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -3402,6 +3403,23 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 	g_assert(fill->count == fill->capacity);
 
 	xqsort(fill->array, fill->count, sizeof fill->array[0], zonesize_cmp);
+}
+
+/**
+ * Generate a SHA1 digest of the current zalloc statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+zalloc_stats_digest(sha1_t *digest)
+{
+	struct zstats stats;
+
+	ZSTATS_LOCK;
+	stats = zstats;		/* struct copy under lock protection */
+	ZSTATS_UNLOCK;
+
+	SHA1_COMPUTE(stats, digest);
 }
 
 /**

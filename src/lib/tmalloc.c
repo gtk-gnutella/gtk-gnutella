@@ -153,6 +153,7 @@
 #include "omalloc.h"
 #include "once.h"
 #include "pslist.h"
+#include "sha1.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "thread.h"
@@ -2273,16 +2274,19 @@ tmalloc_info_list_free_null(pslist_t **sl_ptr)
 }
 
 /**
- * Dump tmalloc statistics to specified log agent.
+ * Build consolidated statistics across all the depots.
+ *
+ * @param stats		the stats structure to fill
+ *
+ * @return the amount of depots.
  */
-G_GNUC_COLD void
-tmalloc_dump_stats_log(logagent_t *la, unsigned options)
+static size_t
+tmalloc_all_stats(tmalloc_info_t *stats)
 {
-	tmalloc_info_t stats;
 	tmalloc_t *d;
 	size_t depot_count;
 
-	ZERO(&stats);
+	ZERO(stats);
 
 	TMALLOC_VARS_LOCK;
 
@@ -2293,14 +2297,14 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 		TMALLOC_LOCK(d);
 
-		stats.magazines += d->tma_magazines;
-		stats.mag_full += eslist_count(&d->tma_full.tml_list);
-		stats.mag_empty += eslist_count(&d->tma_empty.tml_list);
-		stats.mag_full_trash += eslist_count(&d->tma_full.tml_trash);
-		stats.mag_empty_trash += eslist_count(&d->tma_empty.tml_trash);
-		stats.mag_object_trash += d->tma_obj_trash_count;
+		stats->magazines += d->tma_magazines;
+		stats->mag_full += eslist_count(&d->tma_full.tml_list);
+		stats->mag_empty += eslist_count(&d->tma_empty.tml_list);
+		stats->mag_full_trash += eslist_count(&d->tma_full.tml_trash);
+		stats->mag_empty_trash += eslist_count(&d->tma_empty.tml_trash);
+		stats->mag_object_trash += d->tma_obj_trash_count;
 
-#define STATS_COPY(name) stats.name += AU64_VALUE(&d->tma_stats.tmas_ ## name)
+#define STATS_COPY(name) stats->name += AU64_VALUE(&d->tma_stats.tmas_ ## name)
 
 		STATS_COPY(allocations);
 		STATS_COPY(allocations_zeroed);
@@ -2335,6 +2339,32 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 	TMALLOC_VARS_UNLOCK;
 
+	return depot_count;
+}
+
+/**
+ * Generate a SHA1 digest of the current tmalloc statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+tmalloc_stats_digest(sha1_t *digest)
+{
+	tmalloc_info_t stats;
+
+	tmalloc_all_stats(&stats);
+	SHA1_COMPUTE(stats, digest);
+}
+
+/**
+ * Dump tmalloc statistics to specified log agent.
+ */
+G_GNUC_COLD void
+tmalloc_dump_stats_log(logagent_t *la, unsigned options)
+{
+	tmalloc_info_t stats;
+	size_t depot_count;
+
 #define DUMPV(x)	log_info(la, "TMALLOC %s = %s", #x,			\
 	(options & DUMP_OPT_PRETTY) ?								\
 		size_t_to_gstring(x) : size_t_to_string(x))				\
@@ -2342,6 +2372,8 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 #define DUMP(x)		log_info(la, "TMALLOC %s = %s", #x,			\
 	(options & DUMP_OPT_PRETTY) ?								\
 		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+
+	depot_count = tmalloc_all_stats(&stats);
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);

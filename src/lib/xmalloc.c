@@ -76,6 +76,7 @@
 #include "once.h"
 #include "palloc.h"
 #include "pow2.h"
+#include "sha1.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -6334,6 +6335,23 @@ xmalloc_stop_freeing(void)
 {
 	memusage_free_null(&xstats.user_mem);
 	xmalloc_no_freeing = TRUE;
+}
+
+/**
+ * Generate a SHA1 digest of the current xmalloc statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+xmalloc_stats_digest(sha1_t *digest)
+{
+	struct xstats stats;
+
+	XSTATS_LOCK;
+	stats = xstats;		/* struct copy under lock protection */
+	XSTATS_UNLOCK;
+
+	SHA1_COMPUTE(stats, digest);
 }
 
 /**

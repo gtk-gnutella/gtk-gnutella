@@ -84,5 +84,18 @@ int SHA1_reset(SHA1_context *);
 int SHA1_input(SHA1_context *, const void *, size_t);
 int SHA1_result(SHA1_context *, struct sha1 *digest);
 
+/**
+ * Compute the SHA1 digest of (structure) ``x'' into ``d''.
+ *
+ * ``x'' is the data structure, and ``sizeof(x)'' gives the size to hash.
+ * ``d'' is the address of the output digest (sha1_t *).
+ */
+#define SHA1_COMPUTE(x,d) G_STMT_START {	\
+	SHA1_context c_;						\
+	SHA1_reset(&c_);						\
+	SHA1_input(&c_, &(x), sizeof(x));		\
+	SHA1_result(&c_, (d));					\
+} G_STMT_END
+
 #endif /* _sha1_h_ */
 

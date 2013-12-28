@@ -76,6 +76,7 @@ size_t zalloc_overhead(void) G_GNUC_CONST;
 struct logagent;
 struct pslist;
 struct eslist;
+struct sha1;
 
 void *zalloc(zone_t *) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void zfree(zone_t *, void *);
@@ -83,6 +84,8 @@ void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
 void zfree_pslist(zone_t *, struct pslist *);
 void zfree_eslist(zone_t *zone, struct eslist *el);
 void zgc(bool overloaded);
+
+void zalloc_stats_digest(struct sha1 *digest);
 
 void zinit(void);
 void zclose(void);

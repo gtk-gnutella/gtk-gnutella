@@ -109,6 +109,9 @@ void tmfree_pslist(tmalloc_t *tma, struct pslist *pl);
 void tmfree_eslist(tmalloc_t *tma, struct eslist *el);
 
 struct logagent;
+struct sha1;
+
+void tmalloc_stats_digest(struct sha1 *digest);
 
 struct pslist *tmalloc_info_list(void);
 void tmalloc_info_list_free_null(struct pslist **sl_ptr);

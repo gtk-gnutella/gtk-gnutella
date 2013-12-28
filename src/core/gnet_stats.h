@@ -53,4 +53,10 @@ void gnet_stats_set_general(gnr_stats_t type, uint64 value);
 uint64 gnet_stats_get_general(gnr_stats_t type);
 void gnet_stats_count_flowc(const void *, bool head_only);
 
+struct sha1;
+
+void gnet_stats_tcp_digest(struct sha1 *digest);
+void gnet_stats_udp_digest(struct sha1 *digest);
+void gnet_stats_general_digest(struct sha1 *digest);
+
 #endif /* _core_gnet_stats_h_ */

@@ -104,6 +104,7 @@
 #include "pslist.h"
 #include "rwlock.h"
 #include "semaphore.h"			/* For semaphore_kernel_usage() */
+#include "sha1.h"
 #include "signal.h"				/* For signal_stack_allocate() */
 #include "slist.h"
 #include "spinlock.h"
@@ -8707,6 +8708,22 @@ thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
 	}
 
 	return buf;
+}
+
+/**
+ * Generate a SHA1 digest of the current thread statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+thread_stats_digest(sha1_t *digest)
+{
+	struct thread_stats t;
+
+	atomic_mb();
+	t = thread_stats;			/* Struct copy */
+
+	SHA1_COMPUTE(t, digest);
 }
 
 /**

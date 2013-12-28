@@ -85,6 +85,9 @@ void *palloc(pool_t *pool);
 void pfree(pool_t *pool, void *obj);
 void pgc(void);
 
+struct sha1;
+void palloc_stats_digest(struct sha1 *digest);
+
 void set_palloc_debug(uint32 level);
 
 struct pslist *pool_info_list(void);

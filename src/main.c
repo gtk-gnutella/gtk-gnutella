@@ -136,6 +136,7 @@
 #include "lib/pow2.h"
 #include "lib/product.h"
 #include "lib/random.h"
+#include "lib/sha1.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
 #include "lib/str.h"
@@ -1451,6 +1452,20 @@ main_timer(void *unused_data)
 	return TRUE;
 }
 
+typedef void (*digest_collector_cb_t)(sha1_t *digest);
+
+static digest_collector_cb_t random_source[] = {
+	palloc_stats_digest,
+	gnet_stats_tcp_digest,
+	thread_stats_digest,
+	gnet_stats_udp_digest,
+	vmm_stats_digest,
+	gnet_stats_general_digest,
+	tmalloc_stats_digest,
+	xmalloc_stats_digest,
+	zalloc_stats_digest,
+};
+
 /**
  * Called when the main callout queue is idle.
  */
@@ -1458,6 +1473,9 @@ static bool
 callout_queue_idle(void *unused_data)
 {
 	bool overloaded = GNET_PROPERTY(overloaded_cpu);
+	sha1_t digest;
+	static uint ridx = 0;
+	static size_t counter = 0;
 
 	(void) unused_data;
 
@@ -1467,6 +1485,26 @@ callout_queue_idle(void *unused_data)
 
 	/* Idle tasks always scheduled */
 	random_collect();
+
+	/* Idle tasks only scheduled once every over run */
+	if (0 == (counter++ & 1)) {
+		size_t n;
+
+		/*
+		 * Be un-predictable: use round-robin 50% of the time, or a random
+		 * routine to call among the ones we have at our disposal.
+		 */
+
+		if (0 == random_value(1)) {
+			n = ridx;
+			ridx = (ridx + 1) % G_N_ELEMENTS(random_source);
+		} else {
+			n = random_value(G_N_ELEMENTS(random_source) - 1);
+		}
+
+		(*random_source[n])(&digest);
+		random_pool_append(&digest, sizeof digest);
+	}
 
 	return TRUE;		/* Keep scheduling this */
 }

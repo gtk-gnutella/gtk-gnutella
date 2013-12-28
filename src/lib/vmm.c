@@ -123,6 +123,7 @@
 #include "parse.h"
 #include "pow2.h"
 #include "rwlock.h"
+#include "sha1.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_bprintf() */
 #include "stringify.h"
@@ -4647,6 +4648,23 @@ vmm_malloc_inited(void)
 #ifdef TRACK_VMM
 	vmm_track_malloc_inited();
 #endif
+}
+
+/**
+ * Generate a SHA1 digest of the current VMM statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+vmm_stats_digest(sha1_t *digest)
+{
+	struct vmm_stats stats;
+
+	VMM_STATS_LOCK;
+	stats = vmm_stats;	/* struct copy under lock protection */
+	VMM_STATS_UNLOCK;
+
+	SHA1_COMPUTE(stats, digest);
 }
 
 /**

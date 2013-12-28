@@ -59,6 +59,7 @@ void xmalloc_thread_disable_local_pool(unsigned stid, bool disable);
  */
 
 struct logagent;
+struct sha1;
 
 void set_xmalloc_debug(uint32 level);
 bool xmalloc_thread_set_local_pool(bool on);
@@ -76,6 +77,8 @@ void xmalloc_dump_stats_log(struct logagent *la, unsigned options);
 void xmalloc_dump_usage_log(struct logagent *la, unsigned options);
 void xmalloc_dump_freelist_log(struct logagent *la);
 size_t xmalloc_freelist_check(struct logagent *la, unsigned flags);
+
+void xmalloc_stats_digest(struct sha1 *digest);
 
 void xgc(void);
 

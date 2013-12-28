@@ -43,6 +43,7 @@
 #include "lib/event.h"
 #include "lib/gnet_host.h"
 #include "lib/random.h"
+#include "lib/sha1.h"
 #include "lib/spinlock.h"
 #include "lib/thread.h"
 #include "lib/tm.h"
@@ -490,6 +491,48 @@ gnet_stats_init(void)
 		
     ZERO(&gnet_stats);
     ZERO(&gnet_udp_stats);
+}
+
+/**
+ * Generate a SHA1 digest of the supplied statistics.
+ */
+static void
+gnet_stats_digest(sha1_t *digest, const gnet_stats_t *stats)
+{
+	SHA1_COMPUTE(*stats, digest);
+}
+
+/**
+ * Generate a SHA1 digest of the current TCP statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+gnet_stats_tcp_digest(sha1_t *digest)
+{
+	gnet_stats_digest(digest, &gnet_udp_stats);
+}
+
+/**
+ * Generate a SHA1 digest of the current UDP statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+gnet_stats_udp_digest(sha1_t *digest)
+{
+	gnet_stats_digest(digest, &gnet_udp_stats);
+}
+
+/**
+ * Generate a SHA1 digest of the current general statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+gnet_stats_general_digest(sha1_t *digest)
+{
+	SHA1_COMPUTE(gnet_stats.general, digest);
 }
 
 /**
