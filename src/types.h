@@ -162,10 +162,15 @@ typedef const char *(*stringify_len_fn_t)(const void *data, size_t len);
 
 typedef uint32 (*random_fn_t)(void);
 typedef uint64 (*random64_fn_t)(void);
+typedef void (*randfill_fn_t)(void *data, size_t len);
 
 /* Generic predicate, testing a condition on some data */
 
 typedef bool (*predicate_fn_t)(void *data);
+
+/* Generic data feed */
+
+typedef void (*feed_fn_t)(const void *data, size_t len);
 
 #endif /* _types_h_ */
 

@@ -119,6 +119,7 @@ LSRC = \
 	filename.c \
 	float.c \
 	fragcheck.c \
+	frand.c \
 	fs_free_space.c \
 	gentime.c \
 	getcpucount.c \

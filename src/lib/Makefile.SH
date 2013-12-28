@@ -176,6 +176,7 @@ LSRC = \
 	filename.c \
 	float.c \
 	fragcheck.c \
+	frand.c \
 	fs_free_space.c \
 	gentime.c \
 	getcpucount.c \
@@ -354,6 +355,7 @@ LOBJ = \
 	filename.o \
 	float.o \
 	fragcheck.o \
+	frand.o \
 	fs_free_space.o \
 	gentime.o \
 	getcpucount.o \

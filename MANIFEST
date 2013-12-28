@@ -703,6 +703,8 @@ src/lib/float.h
 src/lib/floats.bz2
 src/lib/fragcheck.c
 src/lib/fragcheck.h
+src/lib/frand.c
+src/lib/frand.h
 src/lib/fs_free_space.c
 src/lib/fs_free_space.h
 src/lib/gentime.c

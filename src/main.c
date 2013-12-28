@@ -1243,6 +1243,7 @@ slow_main_timer(time_t now)
 	case 5:
 		dht_route_store_if_dirty();
 		gnet_prop_set_timestamp_val(PROP_SHUTDOWN_TIME, tm_time());
+		settings_random_save(FALSE);
 		break;
 	default:
 		g_assert_not_reached();

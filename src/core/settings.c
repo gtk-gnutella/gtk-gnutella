@@ -84,6 +84,7 @@
 #include "lib/eval.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/frand.h"
 #include "lib/getcpucount.h"
 #include "lib/getgateway.h"
 #include "lib/gethomedir.h"
@@ -108,11 +109,13 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define SETTINGS_RANDOM_SEED	4096	/* Amount of random bytes saved */
+
 static const char config_file[] = "config_gnet";
 
-static const mode_t IPC_DIR_MODE = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
-static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
-static const mode_t CONFIG_DIR_MODE =
+static const mode_t IPC_DIR_MODE     = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
+static const mode_t PID_FILE_MODE    = S_IRUSR | S_IWUSR; /* 0600 */
+static const mode_t CONFIG_DIR_MODE  =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
 static const char *home_dir;
@@ -139,6 +142,7 @@ static prop_set_t *properties = NULL;
 
 static const char pidfile[] = "gtk-gnutella.pid";
 static const char dirlockfile[] = ".gtk-gnutella.lock";
+static const char randseed[] = "randseed";
 
 static bool settings_init_running;
 
@@ -687,6 +691,65 @@ settings_update_downtime(void)
 	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_DOWNTIME, average);
 }
 
+/**
+ * Reload random bytes saved in ~/.gtk-gnutella/randseed
+ */
+static void
+settings_random_reload(void)
+{
+	char *file;
+	ssize_t got;
+
+	file = make_pathname(config_dir, randseed);
+	got = frand_restore(file, aje_addrandom, SETTINGS_RANDOM_SEED);
+
+	if (-1 == got) {
+		if (errno != ENOENT)
+			g_warning("cannot reload random data from %s: %m", file);
+	} else {
+		ssize_t cleared;
+
+		if (debugging(0))
+			g_info("loaded %zd random byte%s from %s", got, plural(got), file);
+
+		/*
+		 * We clear the random bytes we load since they entered the entropy
+		 * pool now and should not be used as such again.  We don't unlink
+		 * the file to make sure we have the disk space needed at shutdown
+		 * time to persist our entropy.
+		 */
+
+		cleared = frand_clear(file, got);
+		if (cleared != got) {
+			g_warning("could not clear leading %zd byte%s from %s: %m",
+				got, plural(got), file);
+		}
+	}
+
+	HFREE_NULL(file);
+}
+
+/**
+ * Save random bytes into ~/.gtk-gnutella/randseed.
+ */
+void
+settings_random_save(bool verbose)
+{
+	char *file;
+	ssize_t saved;
+
+	file = make_pathname(config_dir, randseed);
+	saved = frand_save(file, aje_random_bytes, SETTINGS_RANDOM_SEED);
+
+	if (-1 == saved) {
+		g_warning("could not save random data into %s: %m", file);
+	} else if (verbose) {
+		g_info("saved %zd random byte%s into %s", saved, plural(saved), file);
+	}
+
+	HFREE_NULL(file);
+}
+
 G_GNUC_COLD void
 settings_init(void)
 {
@@ -826,6 +889,8 @@ settings_init(void)
 	}
 
 	/* propagate randomness from previous run */
+
+	settings_random_reload();		/* Before calling random_add() */
 
 	{
 		sha1_t buf;		/* 160 bits */
@@ -1322,6 +1387,7 @@ settings_shutdown(void)
 
 	update_uptimes();
 	remember_local_addr_port();
+	settings_random_save(debugging(0));
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
