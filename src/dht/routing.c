@@ -722,7 +722,9 @@ check_leaf_list_consistency(
 		knode_t *kn = l->data;
 
 		knode_check(kn);
-		g_assert(kn->status == status);
+		g_assert_log(kn->status == status,
+			"kn->status=%s, status=%s",
+			knode_status_to_string(kn->status), knode_status_to_string(status));
 		count++;
 	}
 
