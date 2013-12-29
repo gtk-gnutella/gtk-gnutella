@@ -154,6 +154,7 @@ extra_files/gtk-gnutella.16.png
 extra_files/gtk-gnutella.256.png
 extra_files/gtk-gnutella.32.png
 extra_files/gtk-gnutella.512.png
+extra_files/gtk-gnutella.appdata.xml
 extra_files/gtk-gnutella.desktop
 extra_files/gtk-gnutella.png
 extra_files/gtk-gnutella.svg
