@@ -122,7 +122,7 @@ str_new_not_leaking(size_t szhint)
 	 * Because the memory will never be freed, it's best to use omalloc().
 	 */
 
-	str = omalloc(sizeof *str);
+	OMALLOC(str);
 	str_create(str, szhint);
 	(void) NOT_LEAKING(str->s_data);
 

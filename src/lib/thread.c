@@ -610,7 +610,7 @@ thread_lock_stack_init(struct thread_element *te)
 {
 	struct thread_lock_stack *tls = &te->locks;
 
-	tls->arena = omalloc(THREAD_LOCK_MAX * sizeof tls->arena[0]);
+	OMALLOC_ARRAY(tls->arena, THREAD_LOCK_MAX);
 	tls->capacity = THREAD_LOCK_MAX;
 	tls->count = 0;
 }
@@ -1666,7 +1666,7 @@ thread_new_element(unsigned stid)
 		g_assert_not_reached();
 	}
 
-	te = omalloc0(sizeof *te);				/* Never freed! */
+	OMALLOC0(te);					/* Never freed! */
 	te->magic = THREAD_ELEMENT_MAGIC;
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
@@ -1676,8 +1676,8 @@ thread_new_element(unsigned stid)
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
 	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
 	thread_stack_init_shape(te, &te);
-	te->valid = TRUE;						/* Minimally ready */
-	te->discovered = TRUE;					/* Assume it was discovered */
+	te->valid = TRUE;				/* Minimally ready */
+	te->discovered = TRUE;			/* Assume it was discovered */
 
 	threads[stid] = te;				/* Record, but do not make visible yet */
 
