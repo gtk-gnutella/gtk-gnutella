@@ -1482,6 +1482,14 @@ teq_create_internal(bool io)
 
 	g_assert(id < THREAD_MAX);
 
+	/*
+	 * Make sure the time thread has started before we call evq_init()
+	 * indirectly through here, as it would cause recursive initialization
+	 * problems in that routine.
+	 */
+
+	(void) tm_time_exact();
+
 	once_flag_run(&done, teq_monitor_install);
 
 	teq = io ? teq_io_allocate(id) : teq_allocate(id);
