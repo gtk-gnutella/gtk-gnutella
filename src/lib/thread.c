@@ -1736,8 +1736,8 @@ thread_time_adjust(int unused_delta)
 		if G_UNLIKELY(unblock) {
 			char c = '\0';
 			if (-1 == s_write(te->wfd[1], &c, 1)) {
-				s_miniwarn("%s(): cannot unblock %s: %m",
-					G_STRFUNC, thread_element_name(te));
+				s_miniwarn("%s(): cannot unblock %s via write(%u): %m",
+					G_STRFUNC, thread_element_name(te), te->wfd[1]);
 			}
 		}
 	}
@@ -6308,8 +6308,8 @@ retry:
 		r = compat_poll(&fds, 1, remain);
 
 		if (-1 == r)
-			s_error("%s(): %s could not block itself on poll(): %m",
-				G_STRFUNC, thread_element_name(te));
+			s_error("%s(): %s could not block itself on poll() for fd #%u: %m",
+				G_STRFUNC, thread_element_name(te), te->wfd[0]);
 
 		if (0 == r)
 			goto timed_out;			/* The poll() timed out */
@@ -6318,8 +6318,9 @@ retry:
 	}
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
-		s_error("%s(): %s could not block itself on read(): %m",
-			G_STRFUNC, thread_element_name(te));
+		s_error("%s(): %s could not block itself on read(%u)%s: %m",
+			G_STRFUNC, thread_element_name(te), te->wfd[0],
+			end != NULL ? " after successful poll() on it" : "");
 	}
 
 	thread_cancel_test_element(te);
@@ -6511,8 +6512,8 @@ thread_element_unblock(struct thread_element *te)
 		char c = '\0';
 
 		if (-1 == s_write(te->wfd[1], &c, 1)) {
-			s_minicarp("%s(): cannot unblock %s: %m",
-				G_STRFUNC, thread_element_name(te));
+			s_minicarp("%s(): cannot unblock %s via write(%u): %m",
+				G_STRFUNC, thread_element_name(te), te->wfd[1]);
 			return -1;
 		}
 	}
@@ -8226,8 +8227,9 @@ thread_kill(unsigned id, int signum)
 		if G_UNLIKELY(unblock) {
 			char c = '\0';
 			if (-1 == s_write(te->wfd[1], &c, 1)) {
-				s_minicarp("%s(): cannot unblock %s to send signal: %m",
-					G_STRFUNC, thread_element_name(te));
+				s_minicarp("%s(): "
+					"cannot unblock %s via write(%u) to send signal #%d: %m",
+					G_STRFUNC, thread_element_name(te), te->wfd[1], signum);
 			}
 		} else if G_UNLIKELY(cv != NULL) {
 			cond_wakeup_all(cv);
@@ -8353,8 +8355,8 @@ thread_sigblock(tsigset_t mask)
 	thread_cancel_test_element(te);
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
-		s_error("%s(): %s could not block itself: %m",
-			G_STRFUNC, thread_element_name(te));
+		s_error("%s(): %s could not block itself on read(%u): %m",
+			G_STRFUNC, thread_element_name(te), te->wfd[0]);
 	}
 
 	thread_cancel_test_element(te);
