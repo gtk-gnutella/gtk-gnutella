@@ -3587,22 +3587,8 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 
 	if G_LIKELY(xpages_pool != NULL)
 		xck = palloc(xpages_pool);
-	else if (evq_is_inited()) {
-		/*
-		 * There is potential room for recursive calls to xpages_pool_init()
-		 * here, since the creation of a pool invokes some xmalloc routine.
-		 * Hence we use the safe variant, with a correct fallback in case
-		 * we detect recursion.
-		 */
-
-		if (once_flag_run_safe(&xpages_pool_inited, xpages_pool_init)) {
-			xck = palloc(xpages_pool);
-		} else {
-			xck = vmm_core_alloc(xmalloc_pagesize);
-		}
-	} else {
+	else
 		xck = vmm_core_alloc(xmalloc_pagesize);
-	}
 
 	xck->magic = XCHUNK_MAGIC;
 	xck->xc_head = deconstify_pointer(ch);
@@ -3808,9 +3794,15 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 		 * If the memory pool allocator is configured, return the page
 		 * to that pool so as to maybe reuse it soon for another thread or
 		 * for another chunk in the current thread..
+		 *
+		 * We need to allocate the pool on the free path. not on the allocation
+		 * path to avoid auto-initialization problems leading to a deadlock.
+		 * The pool is useless until we need to free a thread chunk anyway.
 		 */
 
 		if G_LIKELY(xpages_pool != NULL)
+			pfree(xpages_pool, xck);
+		else if (once_flag_run_safe(&xpages_pool_inited, xpages_pool_init))
 			pfree(xpages_pool, xck);
 		else
 			vmm_core_free(xck, xmalloc_pagesize);

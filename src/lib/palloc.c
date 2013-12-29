@@ -530,12 +530,17 @@ pfree(pool_t *p, void *obj)
 
 	/*
 	 * Keep the buffer in the pool, unless it is a fragment.
+	 *
+	 * For xmalloc(), we allow a pool to be created AFTER objects have been
+	 * allocated, therefore we must make sure p->allocated is not decreased
+	 * below the amount of buffers held in the list.
 	 */
 
 	if (is_fragment) {
-		g_assert(p->allocated > 0);
+		g_assert(p->allocated >= eslist_count(&p->buffers));
 
-		p->allocated--;
+		if (p->allocated > eslist_count(&p->buffers))
+			p->allocated--;
 		POOL_UNLOCK(p);
 
 		if (palloc_debug > 1)
@@ -545,6 +550,8 @@ pfree(pool_t *p, void *obj)
 		POOL_STATS_INCX(p, free_fragments);
 	} else {
 		eslist_prepend(&p->buffers, obj);
+		if G_UNLIKELY(p->allocated < eslist_count(&p->buffers))
+			p->allocated = eslist_count(&p->buffers);
 		POOL_UNLOCK(p);
 	}
 }
