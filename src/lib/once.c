@@ -71,32 +71,25 @@ static mutex_t once_flag_mtx = MUTEX_INIT;
 /**
  * Execute supplied routine once, as tracked by the supplied flag.
  *
- * The flag should be a pointer to static data (no need to initialize in
- * that case) or to a global variable (set to FALSE) and is used to record,
- * in a thread-safe way, whether the routine has been run.
- *
- * @attention
- * If the calling thread can block, and memory can be allocated, use the
- * once_flag_runwait() routine instead, as it will avoid "busy" waits.
- *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ * @param recursive	if TRUE, return FALSE when recursive attempt is detected
  *
- * @return TRUE if initialization routine was run.
+ * @return TRUE if initialization routine has been run upon return.
  */
-bool
-once_flag_run(once_flag_t *flag, once_fn_t routine)
+static bool
+once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 {
 	int id;
 
 	if G_LIKELY(ONCE_F_DONE == *flag)
-		return FALSE;
+		return TRUE;
 
 	mutex_lock(&once_flag_mtx);
 
 	if G_UNLIKELY(ONCE_F_DONE == *flag) {
 		mutex_unlock(&once_flag_mtx);
-		return FALSE;
+		return TRUE;
 	}
 
 	if G_UNLIKELY(NULL == once_running)
@@ -109,11 +102,18 @@ once_flag_run(once_flag_t *flag, once_fn_t routine)
 		size_t n;
 
 		/*
-		 * If we detect a recursive initialization, terminate the process.
-		 * Otherwise, we have to wait until the flag becomes ONCE_F_DONE.
+		 * If we detect a recursive initialization, terminate the process
+		 * unless they said they want to special-case recursive attempts.
+		 *
+		 * Otherwise, if we are not in a recursive initialization pattern,
+		 * we have to wait until the flag becomes ONCE_F_DONE.
 		 */
 
 		if (stid == id) {
+			if (recursive) {
+				mutex_unlock(&once_flag_mtx);
+				return FALSE;
+			}
 			s_minierror("%s(): recursive attempt to initialize routine %s()",
 				G_STRFUNC, stacktrace_function_name(routine));
 		}
@@ -134,7 +134,7 @@ once_flag_run(once_flag_t *flag, once_fn_t routine)
 
 		g_assert(ONCE_F_DONE == *flag);
 		mutex_unlock(&once_flag_mtx);
-		return FALSE;
+		return TRUE;
 	}
 
 	*flag = ONCE_F_PROGRESS;
@@ -150,7 +150,6 @@ once_flag_run(once_flag_t *flag, once_fn_t routine)
 
 	return TRUE;
 }
-
 /**
  * Execute supplied routine once, as tracked by the supplied flag.
  *
@@ -159,31 +158,59 @@ once_flag_run(once_flag_t *flag, once_fn_t routine)
  * in a thread-safe way, whether the routine has been run.
  *
  * @attention
- * The calling thread can block but it must not hold any lock prior to
- * calling this routine.  If this cannot be ensured, then use once_flag_run()
- * which will perform a "busy" wait but does not prevent the calling thread
- * from already holding a lock.
+ * If the calling thread can block, and memory can be allocated, use the
+ * once_flag_runwait() routine instead, as it will avoid "busy" waits.
+ *
+ * @param flag		control flag, initially set to FALSE
+ * @param routine	the routine to run if it has not been done already
+ */
+void
+once_flag_run(once_flag_t *flag, once_fn_t routine)
+{
+	once_flag_run_internal(flag, routine, FALSE);
+}
+
+/**
+ * Same as once_flag_run() but returns FALSE when we detect a recursive
+ * initialization attempt.
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
  *
- * @return TRUE if initialization routine was run.
+ * @return TRUE if the initialization has been completed (possibly previously),
+ * FALSE if a recursive initialization attempt was detected, and therefore
+ * the routine has not completed its execution yet.
  */
 bool
-once_flag_runwait(once_flag_t *flag, once_fn_t routine)
+once_flag_run_safe(once_flag_t *flag, once_fn_t routine)
+{
+	return once_flag_run_internal(flag, routine, TRUE);
+}
+
+/**
+ * Execute supplied routine once, as tracked by the supplied flag.
+ *
+ * @param flag		control flag, initially set to FALSE
+ * @param routine	the routine to run if it has not been done already
+ * @param recursive	if TRUE, return FALSE when recursive attempt is detected
+ *
+ * @return TRUE if initialization routine has been run upon return.
+ */
+static bool
+once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 {
 	static cond_t once_cond = COND_INIT;
 	int id;
 	bool is_inserted;
 
 	if G_LIKELY(ONCE_F_DONE == *flag)
-		return FALSE;
+		return TRUE;
 
 	mutex_lock(&once_flag_mtx);
 
 	if G_UNLIKELY(ONCE_F_DONE == *flag) {
 		mutex_unlock(&once_flag_mtx);
-		return FALSE;
+		return TRUE;
 	}
 
 	if G_UNLIKELY(NULL == once_running)
@@ -205,6 +232,10 @@ once_flag_runwait(once_flag_t *flag, once_fn_t routine)
 		 */
 
 		if (stid == id) {
+			if (recursive) {
+				mutex_unlock(&once_flag_mtx);
+				return FALSE;
+			}
 			s_minierror("%s(): recursive attempt to initialize routine %s()",
 				G_STRFUNC, stacktrace_function_name(routine));
 		}
@@ -215,7 +246,7 @@ once_flag_runwait(once_flag_t *flag, once_fn_t routine)
 		g_assert(ONCE_F_DONE == *flag);
 		cond_reset(&once_cond);
 		mutex_unlock(&once_flag_mtx);
-		return FALSE;
+		return TRUE;
 	}
 
 	/*
@@ -250,6 +281,45 @@ once_flag_runwait(once_flag_t *flag, once_fn_t routine)
 	mutex_unlock(&once_flag_mtx);
 
 	return TRUE;
+}
+
+/**
+ * Execute supplied routine once, as tracked by the supplied flag.
+ *
+ * The flag should be a pointer to static data (no need to initialize in
+ * that case) or to a global variable (set to FALSE) and is used to record,
+ * in a thread-safe way, whether the routine has been run.
+ *
+ * @attention
+ * The calling thread can block but it must not hold any lock prior to
+ * calling this routine.  If this cannot be ensured, then use once_flag_run()
+ * which will perform a "busy" wait but does not prevent the calling thread
+ * from already holding a lock.
+ *
+ * @param flag		control flag, initially set to FALSE
+ * @param routine	the routine to run if it has not been done already
+ */
+void
+once_flag_runwait(once_flag_t *flag, once_fn_t routine)
+{
+	once_flag_runwait_internal(flag, routine, FALSE);
+}
+
+/**
+ * Same as once_flag_runwait() but returns FALSE when we detect a recursive
+ * initialization attempt.
+ *
+ * @param flag		control flag, initially set to FALSE
+ * @param routine	the routine to run if it has not been done already
+ *
+ * @return TRUE if the initialization has been completed (possibly previously),
+ * FALSE if a recursive initialization attempt was detected, and therefore
+ * the routine has not completed its execution yet.
+ */
+bool
+once_flag_runwait_safe(once_flag_t *flag, once_fn_t routine)
+{
+	return once_flag_runwait_internal(flag, routine, TRUE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

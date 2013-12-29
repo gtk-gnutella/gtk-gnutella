@@ -461,6 +461,7 @@ static struct xsplit {
  * we use a pool allocator to keep some pages around.
  */
 static pool_t *xpages_pool;
+static once_flag_t xpages_pool_inited;
 
 /**
  * Internal statistics collected.
@@ -750,8 +751,6 @@ xmalloc_vmm_inited(void)
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
 #endif
-
-	xpages_pool_init();
 
 	/*
 	 * We wait for the VMM layer to be up before we install the xgc() idle
@@ -3588,8 +3587,22 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 
 	if G_LIKELY(xpages_pool != NULL)
 		xck = palloc(xpages_pool);
-	else
+	else if (evq_is_inited()) {
+		/*
+		 * There is potential room for recursive calls to xpages_pool_init()
+		 * here, since the creation of a pool invokes some xmalloc routine.
+		 * Hence we use the safe variant, with a correct fallback in case
+		 * we detect recursion.
+		 */
+
+		if (once_flag_run_safe(&xpages_pool_inited, xpages_pool_init)) {
+			xck = palloc(xpages_pool);
+		} else {
+			xck = vmm_core_alloc(xmalloc_pagesize);
+		}
+	} else {
 		xck = vmm_core_alloc(xmalloc_pagesize);
+	}
 
 	xck->magic = XCHUNK_MAGIC;
 	xck->xc_head = deconstify_pointer(ch);

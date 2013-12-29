@@ -52,8 +52,11 @@ typedef void (*once_fn_t)(void);
  * Public interface.
  */
 
-bool once_flag_run(once_flag_t *flag, once_fn_t routine);
-bool once_flag_runwait(once_flag_t *flag, once_fn_t routine);
+void once_flag_run(once_flag_t *flag, once_fn_t routine);
+bool once_flag_run_safe(once_flag_t *flag, once_fn_t routine);
+
+void once_flag_runwait(once_flag_t *flag, once_fn_t routine);
+bool once_flag_runwait_safe(once_flag_t *flag, once_fn_t routine);
 
 #define ONCE_DONE(f)	(ONCE_F_DONE == (f))
 

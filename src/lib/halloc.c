@@ -610,13 +610,13 @@ void
 halloc_init(bool replace_malloc)
 {
 	static once_flag_t initialized;
+	static once_flag_t vtable_inited;
 
-	if (once_flag_run(&initialized, halloc_init_once)) {
-		replacing_malloc = replace_malloc;
+	once_flag_run(&initialized, halloc_init_once);
+	replacing_malloc = replace_malloc;
 
-		if (replace_malloc)
-			halloc_init_vtable();
-	}
+	if (replace_malloc)
+		once_flag_run(&vtable_inited, halloc_init_vtable);
 }
 
 /**
