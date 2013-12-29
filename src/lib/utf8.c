@@ -86,8 +86,8 @@
  * If ui_uses_utf8_encoding() returns TRUE, it is assumed that the
  * user-interface passes only valid UTF-8 strings. It affects only those
  * functions that are explicitely defined to handle UI strings as input or
- * output. This allows to reduce the number of conversions. For example, if a
- * function specification permits that the original string may be returned, we
+ * output. This allows us to reduce the number of conversions. For example, if
+ * a function specification permits that the original string may be returned, we
  * will do that instead of creating a copy. If ui_uses_utf8_encoding() returns
  * FALSE, it is assumed that the user-interface uses the locale's encoding for
  * its strings.

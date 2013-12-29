@@ -45,7 +45,7 @@
  *
  * The first 3 classes can be handled natively by this implementation, i.e.
  * the set of hashing routines / equality routines are supplied for the user.
- * But this can be overriden, pretending that the key is of the 4th type.
+ * But this can be overridden, pretending that the key is of the 4th type.
  *
  * The 4th class requires that two hashing functions and an equality function
  * be supplied, although the hash table can do with one hashing function only,

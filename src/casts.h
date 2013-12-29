@@ -271,9 +271,9 @@ filesize_to_fileoffset_t(filesize_t pos)
 }
 
 /**
- * Implicit promotion to an unsigned integer. It allows to avoid comparision of
- * signed values with unsigned values without resorting to harmful explicit
- * casts.
+ * Implicit promotion to an unsigned integer. It allows one to avoid
+ * comparision of signed values with unsigned values without resorting
+ * to harmful explicit casts.
  */
 #if defined(UINTMAX_C)
 #define UNSIGNED(value) ((value) + (UINTMAX_C(0)))

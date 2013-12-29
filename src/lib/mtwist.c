@@ -59,7 +59,7 @@
  *
  * A new mt_state_t, possibly initialized through a supplied 32-bit random
  * function, can be created by mt_state_new() and cloned by mt_state_clone().
- * These states are disposed of by mt_state_free_null().  Cloning allows to
+ * These states are disposed of by mt_state_free_null().  Cloning allows one to
  * snapshot the state to replay the random sequence later.  It requires
  * an initialized state.
  *

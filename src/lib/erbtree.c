@@ -60,14 +60,14 @@
  *   (such as object descriptors or object alignment) is required.
  *
  * - On most architectures (at least the ones I'm using), pointers have some
- *   unused bits which can be used to store node's meta-data. This allows to
+ *   unused bits which can be used to store node's meta-data. This allows us to
  *   reduce the size of the node structure, and make them as small as possible.
  *
  * - Traversals in both direction are efficient.
  * 
  * - The trees don't store duplicate keys. It's fairly easy to implement
  *   duplicate from the user point of view (by having a list at the node for
- *   instance) and this allows to have a simple but efficient API (see below).
+ *   instance) and this enables a simple but efficient API (see below).
  *
  * 2. API
  *

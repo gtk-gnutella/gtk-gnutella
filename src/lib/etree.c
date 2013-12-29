@@ -656,8 +656,8 @@ etree_foreach_children(const etree_t *tree, void *parent,
  * It is always allowed to free-up the node.
  *
  * The function returns the number of visited nodes, regardless of whether the
- * action was run on them.  This allows to know how many nodes were selected by
- * the "enter" callback and see the effect of depth-pruning.
+ * action was run on them.  This allows them to know how many nodes were
+ * selected by the "enter" callback and see the effect of depth-pruning.
  *
  * @param tree		the tree descriptor
  * @param flags		nodes to visit + when to invoke action callback

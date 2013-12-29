@@ -4872,7 +4872,7 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
-					"Compressed connection prefered");
+					"Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -4927,7 +4927,7 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
-					"Compressed connection prefered");
+					"Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -5120,7 +5120,7 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
-					"Compressed connection prefered");
+					"Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}

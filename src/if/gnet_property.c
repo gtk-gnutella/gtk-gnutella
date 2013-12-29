@@ -6256,7 +6256,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[271].name = "use_global_hostiles_txt";
-    gnet_property->props[271].desc = _("If set to TRUE, the global hostiles.txt is used as well as the private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban list from the global one distributed with gtk-gnutella.");
+    gnet_property->props[271].desc = _("If set to TRUE, the global hostiles.txt is used as well as the private $GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban list from the global one distributed with gtk-gnutella.");
     gnet_property->props[271].ev_changed = event_new("use_global_hostiles_txt_changed");
     gnet_property->props[271].save = TRUE;
     gnet_property->props[271].vector_size = 1;
