@@ -558,7 +558,7 @@ G_GNUC_COLD void
 icon_init(void)
 {
     GtkPixmap *pixmap;
-    pixmap = (GtkPixmap *) create_pixmap(gui_main_window(), "icon.xpm");
+    pixmap = (GtkPixmap *) create_pixmap(gui_main_window(), "icon.48x48.xpm");
     gtk_pixmap_get(pixmap, &icon_map, &icon_mask);
     gdk_window_set_icon(gui_main_window()->window, NULL, icon_map, icon_mask);
 }

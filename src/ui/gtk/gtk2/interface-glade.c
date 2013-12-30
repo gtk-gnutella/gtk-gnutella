@@ -551,7 +551,7 @@ create_dlg_filters (void)
   gtk_window_set_title (GTK_WINDOW (dlg_filters), _("Ruleset editor"));
   gtk_window_set_position (GTK_WINDOW (dlg_filters), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_filters), 450, 300);
-  dlg_filters_icon_pixbuf = create_pixbuf ("icon.xpm");
+  dlg_filters_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
   if (dlg_filters_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_filters), dlg_filters_icon_pixbuf);
@@ -898,7 +898,7 @@ create_shutdown_window (void)
   gtk_widget_set_name (shutdown_window, "shutdown_window");
   gtk_window_set_title (GTK_WINDOW (shutdown_window), _("gtk-gnutella shutdown"));
   gtk_window_set_position (GTK_WINDOW (shutdown_window), GTK_WIN_POS_MOUSE);
-  shutdown_window_icon_pixbuf = create_pixbuf ("icon.xpm");
+  shutdown_window_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
   if (shutdown_window_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (shutdown_window), shutdown_window_icon_pixbuf);
@@ -1036,7 +1036,7 @@ create_dlg_about (void)
   gtk_widget_set_name (dlg_about, "dlg_about");
   gtk_window_set_title (GTK_WINDOW (dlg_about), _("About gtk-gnutella"));
   gtk_window_set_position (GTK_WINDOW (dlg_about), GTK_WIN_POS_MOUSE);
-  dlg_about_icon_pixbuf = create_pixbuf ("icon.xpm");
+  dlg_about_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
   if (dlg_about_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_about), dlg_about_icon_pixbuf);
@@ -1059,7 +1059,7 @@ create_dlg_about (void)
   gtk_widget_show (hbox231);
   gtk_container_add (GTK_CONTAINER (frame44), hbox231);
 
-  image222 = create_pixmap (dlg_about, "icon.xpm");
+  image222 = create_pixmap (dlg_about, "icon.48x48.xpm");
   gtk_widget_set_name (image222, "image222");
   gtk_widget_show (image222);
   gtk_box_pack_start (GTK_BOX (hbox231), image222, FALSE, TRUE, 0);
@@ -1575,7 +1575,7 @@ create_main_window (void)
 
   main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window, "main_window");
-  main_window_icon_pixbuf = create_pixbuf ("icon.xpm");
+  main_window_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
   if (main_window_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (main_window), main_window_icon_pixbuf);
@@ -3116,7 +3116,7 @@ create_dlg_quit (void)
   gtk_window_set_title (GTK_WINDOW (dlg_quit), _("gtk-gnutella: Quit?"));
   gtk_window_set_position (GTK_WINDOW (dlg_quit), GTK_WIN_POS_MOUSE);
   gtk_window_set_resizable (GTK_WINDOW (dlg_quit), FALSE);
-  dlg_quit_icon_pixbuf = create_pixbuf ("icon.xpm");
+  dlg_quit_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
   if (dlg_quit_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_quit), dlg_quit_icon_pixbuf);
@@ -16920,7 +16920,7 @@ create_dlg_faq (void)
   gtk_widget_set_name (dlg_faq, "dlg_faq");
   gtk_window_set_position (GTK_WINDOW (dlg_faq), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_faq), 600, 400);
-  dlg_faq_icon_pixbuf = create_pixbuf ("icon.xpm");
+  dlg_faq_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
   if (dlg_faq_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_faq), dlg_faq_icon_pixbuf);
@@ -16967,7 +16967,7 @@ create_dlg_ancient (void)
   gtk_widget_set_name (dlg_ancient, "dlg_ancient");
   gtk_window_set_position (GTK_WINDOW (dlg_ancient), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_ancient), 320, 240);
-  dlg_ancient_icon_pixbuf = create_pixbuf ("icon.xpm");
+  dlg_ancient_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
   if (dlg_ancient_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_ancient), dlg_ancient_icon_pixbuf);

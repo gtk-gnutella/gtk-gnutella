@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-155]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -78,7 +78,7 @@ PIXMAPS = \
 	firewall_udp_punchable.xpm \
 	freeze.xpm \
 	icon.16x16.xpm \
-	icon.32x32.xpm \
+	icon.48x48.xpm \
 	icon.xpm \
 	leaf.xpm \
 	legacy.xpm \

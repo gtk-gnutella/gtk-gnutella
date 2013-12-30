@@ -9839,7 +9839,7 @@ create_dlg_about (void)
   gtk_widget_show (hbox170);
   gtk_box_pack_start (GTK_BOX (vbox98), hbox170, TRUE, TRUE, 0);
 
-  pixmap4 = create_pixmap (dlg_about, "icon.xpm");
+  pixmap4 = create_pixmap (dlg_about, "icon.48x48.xpm");
   gtk_widget_set_name (pixmap4, "pixmap4");
   gtk_widget_ref (pixmap4);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "pixmap4", pixmap4,

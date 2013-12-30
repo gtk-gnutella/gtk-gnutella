@@ -540,7 +540,7 @@
   <property name="default_height">300</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">icon.xpm</property>
+  <property name="icon">icon.48x48.xpm</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -1246,7 +1246,7 @@ for all filters</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">icon.xpm</property>
+  <property name="icon">icon.48x48.xpm</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -1383,7 +1383,7 @@ Grace time remaining:</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">icon.xpm</property>
+  <property name="icon">icon.48x48.xpm</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -1416,7 +1416,7 @@ Grace time remaining:</property>
 	      <child>
 		<widget class="GtkImage" id="image222">
 		  <property name="visible">True</property>
-		  <property name="pixbuf">icon.xpm</property>
+		  <property name="pixbuf">icon.48x48.xpm</property>
 		  <property name="xalign">0.5</property>
 		  <property name="yalign">0.5</property>
 		  <property name="xpad">4</property>
@@ -2144,7 +2144,7 @@ http://maxmind.com/</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">icon.xpm</property>
+  <property name="icon">icon.48x48.xpm</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -4927,7 +4927,7 @@ http://maxmind.com/</property>
   <property name="modal">False</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">icon.xpm</property>
+  <property name="icon">icon.48x48.xpm</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -33399,7 +33399,7 @@ message</property>
   <property name="default_height">400</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">icon.xpm</property>
+  <property name="icon">icon.48x48.xpm</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -33452,7 +33452,7 @@ message</property>
   <property name="default_height">240</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">icon.xpm</property>
+  <property name="icon">icon.48x48.xpm</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>

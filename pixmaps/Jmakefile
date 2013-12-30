@@ -48,7 +48,7 @@ PIXMAPS = \
 	firewall_udp_punchable.xpm \
 	freeze.xpm \
 	icon.16x16.xpm \
-	icon.32x32.xpm \
+	icon.48x48.xpm \
 	icon.xpm \
 	leaf.xpm \
 	legacy.xpm \
