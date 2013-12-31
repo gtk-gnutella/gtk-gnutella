@@ -323,6 +323,7 @@ struct thread_element {
 	uint cancelable:1;				/**< Whether thread is cancelable */
 	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
+	bool block_workaround;			/**< Are we in thread_block_workaround()? */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
@@ -389,6 +390,10 @@ static struct thread_stats {
 	AU64(sig_handled_while_check);	/* Signals handled via voluntary check */
 	AU64(sig_handled_while_locking);/* Signals handled during locking */
 	AU64(sig_handled_while_unlocking);	/* Signals handled during unlocking */
+	AU64(ebadf_workarounds);		/* Counts uses of EBADF workaround */
+	AU64(ebadf_swallowings);		/* Counts bytes swallowed due to EBADF */
+	AU64(ebadf_now_working);		/* When we swallowed after workaround */
+	AU64(ebadf_during_unblock);		/* Amount of EBADF when unblocking */
 	AU64(thread_self_blocks);		/* Voluntary internal thread blocks */
 	AU64(thread_self_pauses);		/* Calls to thread_pause() */
 	AU64(thread_self_suspends);		/* Threads seeing they need to suspend */
@@ -1392,6 +1397,7 @@ thread_element_reset(struct thread_element *te)
 	te->cancelable = TRUE;
 	te->exit_started = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
+	te->block_workaround = FALSE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
 	ZERO(&te->sigh);
@@ -1736,6 +1742,8 @@ thread_time_adjust(int unused_delta)
 		if G_UNLIKELY(unblock) {
 			char c = '\0';
 			if (-1 == s_write(te->wfd[1], &c, 1)) {
+				if (EBADF == errno)
+					THREAD_STATS_INCX(ebadf_during_unblock);
 				s_miniwarn("%s(): cannot unblock %s via write(%u): %m",
 					G_STRFUNC, thread_element_name(te), te->wfd[1]);
 			}
@@ -6175,6 +6183,103 @@ thread_block_timeout(void *arg)
 }
 
 /**
+ * Workaround for un-explained EBADF errors when attempting to read on the
+ * blocking file descriptor that was already configured.
+ *
+ * These invalid EBADF errors could be either a kernel bug or a libc bug,
+ * it's hard to tell.  When the problem manifests itself, is_a_fifo() returns
+ * TRUE on Linux, meaning the file descriptor is really valid and still opened
+ * when we get there.  And sometimes, we were even able to poll() on it, before
+ * getting this EBADF error from the read() system call.  --RAM, 2013-12-31
+ *
+ * @param from		which routine is activating this workaround
+ * @param te		thread element which is supposed to be blocking
+ * @param end		if non-NULL, absolute time when we need to stop waiting
+ *
+ * @return TRUE if we were unblocked, FALSE on timeout.
+ */
+static bool
+thread_block_workaround(const char *from,
+	struct thread_element *te, const tm_t *end)
+{
+	atomic_bool_set(&te->block_workaround, TRUE);
+	THREAD_STATS_INCX(ebadf_workarounds);
+
+	s_minicarp("%s(): %s got EBADF on read(%u)%s%s, switching to busy wait",
+		from, thread_element_name(te), te->wfd[0],
+		is_a_socket(te->wfd[0]) ? " (valid socket)" : "",
+		is_a_fifo(te->wfd[0]) ? " (valid pipe)" : "");
+
+	g_assert_log(is_valid_fd(te->wfd[0]),
+		"%s(): fd=%d, EBADF was legitimate", G_STRFUNC, te->wfd[0]);
+
+	for (;;) {
+		bool unblocked;
+
+		THREAD_LOCK(te);
+		unblocked = te->unblocked || te->signalled;
+		THREAD_UNLOCK(te);
+
+		if (unblocked)
+			break;
+
+		if (end != NULL) {
+			long remaining = tm_remaining_ms(end);
+
+			if (remaining <= 0) {
+				atomic_bool_set(&te->block_workaround, FALSE);
+				return FALSE;		/* Timed out already */
+			}
+		}
+
+		compat_usleep_nocancel(200);	/* Wait 200 us, busy waiting... */
+	}
+
+	/*
+	 * Now that we've been unblocked, check whether the file descriptor is
+	 * readable and if so, attempt to consume the unblocking byte.
+	 *
+	 * We know that this workaround is only temporary and that after a while
+	 * the file descriptor will become usable.  Therefore, removing the byte
+	 * now (if any was sent, the write on the other end could have failed as
+	 * well) will prevent a spurious wakeup the next time we block.
+	 */
+
+	{
+		struct pollfd fds;
+		int r;
+
+		fds.fd = te->wfd[0];
+		fds.events = POLLIN;
+
+	retry:
+		r = compat_poll(&fds, 1, 0);
+
+		if (-1 == r) {
+			if (errno == EINTR)
+				goto retry;
+			if (errno != EBADF) {
+				s_error("%s(): %s could not poll() fd #%u: %m",
+					G_STRFUNC, thread_element_name(te), te->wfd[0]);
+			}
+		} else if (r != 0) {
+			char c;
+
+			/* We're only intereseted in successful read here, not errors */
+
+			if (1 == s_read(te->wfd[0], &c, 1)) {
+				THREAD_STATS_INCX(ebadf_now_working);
+				s_minimsg("%s(): blocking on fd #%u seems to work now for %s",
+					G_STRFUNC, te->wfd[0], thread_element_name(te));
+			}
+		}
+	}
+
+	atomic_bool_set(&te->block_workaround, FALSE);
+	return TRUE;
+}
+
+/**
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
@@ -6321,9 +6426,21 @@ retry:
 	}
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
-		s_error("%s(): %s could not block itself on read(%u)%s: %m",
-			G_STRFUNC, thread_element_name(te), te->wfd[0],
-			end != NULL ? " after successful poll() on it" : "");
+		/*
+		 * FIXME:
+		 * Starting to get unexplained EBADF errors on a perfectly valid
+		 * file descriptor.  Until we understand what is happening, install
+		 * workarounds so that the process can continue.
+		 *		--RAM, 2013-12-31
+		 */
+
+		if (EBADF == errno) {
+			if (!thread_block_workaround(G_STRFUNC, te, end))
+				goto timed_out;
+		} else {
+			s_error("%s(): %s could not block itself on read(%u): %m",
+				G_STRFUNC, thread_element_name(te), te->wfd[0]);
+		}
 	}
 
 	thread_cancel_test_element(te);
@@ -6365,6 +6482,23 @@ retry:
 		THREAD_UNLOCK(te);
 		goto retry;
 	}
+
+	/*
+	 * FIXME (when EBADF workaround is removed):
+	 * Make sure we've not been reading bytes that were stuffed in the
+	 * pipe / socketpair which is being used for blocking and which could
+	 * not be read earlier due to the spurious EBADF errors and the workaround
+	 * we're putting in place: the unblocking party must have set te->unblocked
+	 * for us to be truly unblocked, regardless of whether we actually read
+	 * a byte from the pipe.
+	 */
+
+	if G_UNLIKELY(!te->unblocked) {
+		THREAD_UNLOCK(te);
+		THREAD_STATS_INCX(ebadf_swallowings);
+		goto retry;
+	}
+
 	te->timed_blocked = FALSE;
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
@@ -6515,6 +6649,11 @@ thread_element_unblock(struct thread_element *te)
 		char c = '\0';
 
 		if (-1 == s_write(te->wfd[1], &c, 1)) {
+			if (EBADF == errno) {
+				THREAD_STATS_INCX(ebadf_during_unblock);
+				if (atomic_bool_get(&te->block_workaround))
+					return 0;	/* Blocked thread in workaround, OK for now */
+			}
 			s_minicarp("%s(): cannot unblock %s via write(%u): %m",
 				G_STRFUNC, thread_element_name(te), te->wfd[1]);
 			return -1;
@@ -8230,6 +8369,11 @@ thread_kill(unsigned id, int signum)
 		if G_UNLIKELY(unblock) {
 			char c = '\0';
 			if (-1 == s_write(te->wfd[1], &c, 1)) {
+				if (EBADF == errno) {
+					THREAD_STATS_INCX(ebadf_during_unblock);
+					if (atomic_bool_get(&te->block_workaround))
+						return 0;	/* Blocked thread in workaround, OK then */
+				}
 				s_minicarp("%s(): "
 					"cannot unblock %s via write(%u) to send signal #%d: %m",
 					G_STRFUNC, thread_element_name(te), te->wfd[1], signum);
@@ -8355,11 +8499,25 @@ thread_sigblock(tsigset_t mask)
 		goto process_signals;
 	}
 
+retry:
+
 	thread_cancel_test_element(te);
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
-		s_error("%s(): %s could not block itself on read(%u): %m",
-			G_STRFUNC, thread_element_name(te), te->wfd[0]);
+		/*
+		 * FIXME:
+		 * Starting to get unexplained EBADF errors on a perfectly valid
+		 * file descriptor.  Until we understand what is happening, install
+		 * workarounds so that the process can continue.
+		 *		--RAM, 2013-12-31
+		 */
+
+		if (EBADF == errno) {
+			thread_block_workaround(G_STRFUNC, te, NULL);
+		} else {
+			s_error("%s(): %s could not block itself on read(%u): %m",
+				G_STRFUNC, thread_element_name(te), te->wfd[0]);
+		}
 	}
 
 	thread_cancel_test_element(te);
@@ -8372,14 +8530,31 @@ thread_sigblock(tsigset_t mask)
 	 */
 
 	THREAD_LOCK(te);
-	te->blocked = FALSE;
-	te->unblocked = FALSE;
 	if G_UNLIKELY(te->signalled != 0) {
 		te->signalled--;		/* Consumed one signaling byte */
 		signalled = TRUE;
 	} else {
 		signalled = FALSE;
 	}
+
+	/*
+	 * FIXME (when EBADF workaround is removed):
+	 * Make sure we've not been reading bytes that were stuffed in the
+	 * pipe / socketpair which is being used for blocking and which could
+	 * not be read earlier due to the spurious EBADF errors and the workaround
+	 * we're putting in place: the unblocking party must have set te->unblocked
+	 * for us to be truly unblocked, regardless of whether we actually read
+	 * a byte from the pipe.
+	 */
+
+	if G_UNLIKELY(!signalled && !te->unblocked) {
+		THREAD_UNLOCK(te);
+		THREAD_STATS_INCX(ebadf_swallowings);
+		goto retry;
+	}
+
+	te->blocked = FALSE;
+	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
 
 process_signals:
@@ -8825,6 +9000,10 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(sig_handled_while_check);
 	DUMP64(sig_handled_while_locking);
 	DUMP64(sig_handled_while_unlocking);
+	DUMP64(ebadf_workarounds);
+	DUMP64(ebadf_swallowings);
+	DUMP64(ebadf_now_working);
+	DUMP64(ebadf_during_unblock);
 	DUMP64(thread_self_blocks);
 	DUMP64(thread_self_pauses);
 	DUMP64(thread_self_suspends);
