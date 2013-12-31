@@ -164,12 +164,14 @@ retry:
 			goto retry;
 		}
 		MEM_UNFUNNEL;
-		s_miniwarn("%s: write(%p, 1) to pipe failed: %m", G_STRFUNC, p);
+		s_miniwarn("%s: write(%u, %p, 1) to pipe failed: %m",
+			G_STRFUNC, fd[1], p);
 		return TRUE;	/* Assume memory pointer is valid */
 	}
 
 	if (-1 == read(fd[0], &c, 1)) {
-		s_miniwarn("%s: read(1) from pipe failed: %m", G_STRFUNC);
+		s_miniwarn("%s: read(%u, %p, 1) from pipe failed: %m",
+			G_STRFUNC, fd[0], &c);
 		mem_close_pipe();
 	}
 
@@ -236,7 +238,8 @@ retry:
 			goto retry;
 		}
 		MEM_UNFUNNEL;
-		s_miniwarn("%s: write(%p, 1) to pipe failed: %m", G_STRFUNC, p);
+		s_miniwarn("%s: write(%u, %p, 1) to pipe failed: %m",
+			G_STRFUNC, fd[1], p);
 		return MEM_PROT_READ;	/* Assume memory pointer is not writable */
 	}
 
@@ -250,11 +253,13 @@ retry:
 	if (-1 == read(fd[0], deconstify_pointer(p), 1)) {
 		if (EFAULT == errno) {
 			if (-1 == read(fd[0], &c, 1)) {
-				s_miniwarn("%s: sink read(1) from pipe failed: %m", G_STRFUNC);
+				s_miniwarn("%s: sink read(%u, %p, 1) from pipe failed: %m",
+					G_STRFUNC, fd[0], &c);
 				mem_close_pipe();
 			}
 		} else {
-			s_miniwarn("%s: initial read(1) from pipe failed: %m", G_STRFUNC);
+			s_miniwarn("%s: initial read(%u, %p, 1) from pipe failed: %m",
+				G_STRFUNC, fd[0], p);
 			mem_close_pipe();
 		}
 		g_assert(o == *(char *) p);
