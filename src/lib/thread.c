@@ -6307,9 +6307,12 @@ retry:
 
 		r = compat_poll(&fds, 1, remain);
 
-		if (-1 == r)
+		if (-1 == r) {
+			if (errno == EINTR)
+				goto retry;
 			s_error("%s(): %s could not block itself on poll() for fd #%u: %m",
 				G_STRFUNC, thread_element_name(te), te->wfd[0]);
+		}
 
 		if (0 == r)
 			goto timed_out;			/* The poll() timed out */
