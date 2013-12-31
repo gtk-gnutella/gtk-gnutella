@@ -60,7 +60,7 @@ size_t symbols_count(const symbols_t *st);
 void symbols_mark_stale(symbols_t *st);
 size_t symbols_memory_size(const symbols_t *st);
 size_t symbols_sort(symbols_t *st);
-void symbols_append(symbols_t *st, const void *addr, const void *name);
+void symbols_append(symbols_t *st, const void *addr, const char *name);
 
 #endif /* _symbols_h_ */
 

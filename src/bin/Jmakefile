@@ -1,5 +1,9 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * $Id$
+ *
+ * Copyright (c) 2013, Raphael Manfredi
+ *
+ * Jmakefile for bin sources.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,40 +25,21 @@
  *----------------------------------------------------------------------
  */
 
-/**
- * @ingroup lib
- * @file
- *
- * Sunday pattern search data structures.
- *
- * @author Raphael Manfredi
- * @date 2001-2003
- */
+/* Additional flags for glib compilation, added in the substituted section */
+++GLIB_CFLAGS $glibcflags
 
-#ifndef _pattern_h_
-#define _pattern_h_
+;# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
+DPFLAGS = $(CFLAGS)
 
-#include "common.h"
+DependTarget()
 
-typedef struct cpattern cpattern_t;
+++GLIB_LDFLAGS $glibldflags
+++COMMON_LIBS $libs
 
-typedef enum {
-	qs_any = 0,					/**< Match anywhere */
-	qs_begin,					/**< Match beginning of words */
-	qs_whole					/**< Match whole words only */
-} qsearch_mode_t;
+LDFLAGS =
+LIBS = -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
-void pattern_init(void);
-void pattern_close(void);
+RemoteTargetDependency(sha1sum, ../lib, libshared.a)
 
-cpattern_t *pattern_compile(const char *pattern);
-cpattern_t *pattern_compile_fast(const char *pattern, size_t plen);
-void pattern_free(cpattern_t *cpat);
-void pattern_free_null(cpattern_t **cpat_ptr);
-const char *pattern_qsearch(const cpattern_t *cpat,
-	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
-size_t pattern_len(const cpattern_t *p);
-
-#endif /* _pattern_h_ */
-
-/* vi: set ts=4 sw=4 cindent: */
+NormalProgramLibTarget(sha1sum, sha1sum.c, sha1sum.o, /**/)

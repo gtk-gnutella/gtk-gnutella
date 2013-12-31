@@ -154,6 +154,7 @@ extra_files/gtk-gnutella.16.png
 extra_files/gtk-gnutella.256.png
 extra_files/gtk-gnutella.32.png
 extra_files/gtk-gnutella.512.png
+extra_files/gtk-gnutella.appdata.xml
 extra_files/gtk-gnutella.desktop
 extra_files/gtk-gnutella.png
 extra_files/gtk-gnutella.svg
@@ -199,7 +200,7 @@ pixmaps/firewall_udp.xpm
 pixmaps/firewall_udp_punchable.xpm
 pixmaps/freeze.xpm
 pixmaps/icon.16x16.xpm
-pixmaps/icon.32x32.xpm
+pixmaps/icon.48x48.xpm
 pixmaps/icon.ico
 pixmaps/icon.xpm
 pixmaps/leaf.xpm
@@ -260,10 +261,14 @@ scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
 scripts/gtkg-version
 scripts/magnet-handler.sh
+scripts/nm-list
 scripts/sha1_cache.pl
 scripts/sha1_cache.sh
 src/Jmakefile
 src/Makefile.SH
+src/bin/Jmakefile
+src/bin/Makefile.SH
+src/bin/sha1sum.c
 src/casts.h
 src/common.h
 src/core/Jmakefile

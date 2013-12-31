@@ -33,11 +33,32 @@
 
 #include "common.h"
 
-#include "misc.h"
 #include "pattern.h"
-#include "halloc.h"
+#include "ascii.h"
+#include "misc.h"
 #include "walloc.h"
+#include "xmalloc.h"
+
 #include "override.h"		/* Must be the last header included */
+
+#define ALPHA_SIZE	256			/**< Alphabet size */
+
+enum cpattern_magic { CPATTERN_MAGIC = 0x3e074c43 };
+
+struct cpattern {				/**< Compiled pattern */
+	enum cpattern_magic magic;	/**< Magic number */
+	bool duped;					/**< Was `pattern' strdup()'ed? */
+	const char *pattern;		/**< The pattern */
+	size_t len;					/**< Pattern length */
+	size_t delta[ALPHA_SIZE];	/**< Shifting deltas */
+};
+
+static inline void
+pattern_check(const cpattern_t * const p)
+{
+	g_assert(p != NULL);
+	g_assert(CPATTERN_MAGIC == p->magic);
+}
 
 /**
  * Initialize pattern data structures.
@@ -57,6 +78,17 @@ pattern_close(void)
 	/* Nothing to do */
 }
 
+/**
+ * @return length of pattern text.
+ */
+size_t
+pattern_len(const cpattern_t *p)
+{
+	pattern_check(p);
+
+	return p->len;
+}
+
 /*
  * Pattern matching (substrings, not regular expressions)
  *
@@ -65,6 +97,37 @@ pattern_close(void)
  * It's a variant of the classical Boyer-Moore search, but with a small
  * enhancement that can make a difference.
  */
+
+/**
+ * Build the shifting deltas table for the pattern.
+ *
+ * @param p		the pattern to fill
+ *
+ * @return its argument
+ */
+static cpattern_t *
+pattern_build_delta(cpattern_t *p)
+{
+	size_t plen, i, *pd;
+	const uchar *c;
+
+	pattern_check(p);
+
+	plen = p->len + 1;		/* Avoid increasing within the loop */
+	pd = p->delta;
+
+	for (i = 0; i < ALPHA_SIZE; i++)
+		*pd++ = plen;
+
+	plen--;			/* Restore original pattern length */
+
+	c = cast_to_constpointer(p->pattern);
+
+	for (pd = p->delta, i = 0; i < plen; c++, i++)
+		pd[*c] = plen - i;
+
+	return p;
+}
 
 /**
  * Compile given string pattern by computing the delta shift table.
@@ -76,27 +139,14 @@ cpattern_t *
 pattern_compile(const char *pattern)
 {
 	cpattern_t *p;
-	size_t plen, i, *pd;
-	const uchar *c;
 
 	WALLOC(p);
-	p->pattern = h_strdup(pattern);
-	p->len = plen = strlen(p->pattern);
+	p->magic = CPATTERN_MAGIC;
+	p->pattern = xstrdup(pattern);
+	p->len = strlen(p->pattern);
 	p->duped = TRUE;
 
-	plen++;			/* Avoid increasing within the loop */
-	pd = p->delta;
-
-	for (i = 0; i < ALPHA_SIZE; i++)
-		*pd++ = plen;
-
-	plen--;			/* Restore original pattern length */
-
- 	c = cast_to_constpointer(pattern);
-	for (pd = p->delta, i = 0; i < plen; c++, i++)
-		pd[*c] = plen - i;
-
-	return p;
+	return pattern_build_delta(p);
 }
 
 /**
@@ -110,40 +160,30 @@ G_GNUC_HOT cpattern_t *
 pattern_compile_fast(const char *pattern, size_t plen)
 {
 	cpattern_t *p;
-	size_t i, *pd;
-	const uchar *c;
 
 	WALLOC(p);
+	p->magic = CPATTERN_MAGIC;
 	p->pattern = pattern;
 	p->len = plen;
 	p->duped = FALSE;
 
-	plen++;			/* Avoid increasing within the memset() inlined macro */
-	pd = p->delta;
-
-	for (i = 0; i < ALPHA_SIZE; i++)
-		*pd++ = plen;
-
-	plen--;			/* Restore original pattern length */
-
- 	c = cast_to_constpointer(pattern);
-	for (pd = p->delta, i = 0; i < plen; c++, i++)
-		pd[*c] = plen - i;
-
-	return p;
+	return pattern_build_delta(p);
 }
 
 /**
  * Dispose of compiled pattern.
  */
 void
-pattern_free(cpattern_t *cpat)
+pattern_free(cpattern_t *p)
 {
-	if (cpat->duped) {
-		hfree(deconstify_gchar(cpat->pattern));
-		cpat->pattern = NULL; /* Don't use HFREE_NULL b/c of lvalue cast */
+	pattern_check(p);
+
+	if (p->duped) {
+		xfree(deconstify_gchar(p->pattern));
+		p->pattern = NULL; /* Don't use XFREE_NULL b/c of lvalue cast */
 	}
-	WFREE(cpat);
+	p->magic = 0;
+	WFREE(p);
 }
 
 /**
@@ -152,10 +192,10 @@ pattern_free(cpattern_t *cpat)
 void
 pattern_free_null(cpattern_t **cpat_ptr)
 {
-	cpattern_t *cpat = *cpat_ptr;
+	cpattern_t *p = *cpat_ptr;
 
-	if (cpat != NULL) {
-		pattern_free(cpat);
+	if (p != NULL) {
+		pattern_free(p);
 		*cpat_ptr = NULL;
 	}
 }
@@ -182,6 +222,8 @@ pattern_qsearch(
 	const char *end;		/* End of text (first byte after physical end) */
 	size_t i;				/* Position within pattern string */
 	size_t plen;
+
+	pattern_check(cpat);
 
 	if (!tlen)
 		tlen = strlen(text);
@@ -213,7 +255,7 @@ pattern_qsearch(
 			if (tp == text) {					/* At beginning of text */
 				if (word == qs_begin) return tp;
 				else at_begin = TRUE;
-			} else if (0x20 == *(tp-1)) {	/* At word boundary */
+			} else if (is_ascii_space(*(tp-1))) {	/* At word boundary */
 				if (word == qs_begin) return tp;
 				else at_begin = TRUE;
 			}
@@ -221,7 +263,7 @@ pattern_qsearch(
 			if (at_begin && word == qs_whole) {
 				if (&tp[plen] == end)			/* At end of string */
 					return tp;
-				else if (0x20 == tp[plen])
+				else if (is_ascii_space(tp[plen]))
 					return tp; /* At word boundary after */
 			}
 

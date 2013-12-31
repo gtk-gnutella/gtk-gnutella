@@ -241,6 +241,38 @@ elist_data(const elist_t *list, const link_t * const lk)
 		deconstify_pointer(const_ptr_add_offset(lk, -list->offset));
 }
 
+/**
+ * @return the data associated with the next item, NULL if none.
+ */
+static inline void *
+elist_next_data(const elist_t *list, const void *p)
+{
+	const link_t *lk;
+
+	elist_check(list);
+	g_assert(p != NULL);
+
+	lk = const_ptr_add_offset(p, list->offset);
+	return NULL == lk->next ? NULL :
+		deconstify_pointer(const_ptr_add_offset(lk->next, -list->offset));
+}
+
+/**
+ * @return the data associated with the previous item, NULL if none.
+ */
+static inline void *
+elist_prev_data(const elist_t *list, const void *p)
+{
+	const link_t *lk;
+
+	elist_check(list);
+	g_assert(p != NULL);
+
+	lk = const_ptr_add_offset(p, list->offset);
+	return NULL == lk->prev ? NULL :
+		deconstify_pointer(const_ptr_add_offset(lk->prev, -list->offset));
+}
+
 void elist_init(elist_t *list, size_t offset);
 void elist_discard(elist_t *list);
 void elist_clear(elist_t *list);
@@ -276,6 +308,9 @@ void *elist_shift(elist_t *list);
 
 #define ELIST_FOREACH(list, l) \
 	for ((l) = elist_first(list); NULL != (l); (l) = elist_next(l))
+
+#define ELIST_FOREACH_DATA(ls, d) \
+	for ((d) = elist_head(ls); NULL != (d); (d) = elist_next_data((ls), (d)))
 
 #endif /* _elist_h_ */
 

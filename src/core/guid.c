@@ -139,7 +139,7 @@ deserialize_guiddata(bstr_t *bs, void *valptr, size_t len)
 }
 
 /**
- * Generate a table of CRC-8 syndromes for all possible input bytes.
+ * Generate a table of HEC syndromes for all possible input bytes.
  */
 static void
 guid_gen_syndrome_table(void)
@@ -147,9 +147,51 @@ guid_gen_syndrome_table(void)
 	unsigned i;
 	unsigned j;
 
+	/*
+	 * The code below is wrong but cannot be fixed lightly without making all
+	 * deployed GTKGs obsolete (it would break their ability to recognize
+	 * a valid GTKG GUID as such).
+	 *
+	 * In the loop below, the code fragment:
+	 *
+	 *      syn <<= 1;
+	 *      if (syn & 0x80)
+	 *          syn ^= HEC_GENERATOR;
+	 *
+	 * is WRONG.  It should have been:
+	 *
+	 *      if (syn & 0x80)
+	 *          syn = (syn << 1) ^ HEC_GENERATOR;
+	 *      else
+	 *          syn = (syn << 1);
+	 *
+	 * or rather:
+	 *
+	 *      syn <<= 1;
+	 *      if (syn & 0x100)
+	 *          syn ^= HEC_GENERATOR;
+	 *
+	 * which is what I originally intended to write by taking out the left
+	 * shift and trying to factorize it, but my stupid mistake went uncaught
+	 * until I re-read that code now, 10 years later, accidentally.
+	 *
+	 * So we're not really computing the CRC-8 with the intended polynomial.
+	 * I'm not sure what we're actually computing, the polynomial division
+	 * being incorrect since the remainders (aka syndromes) are incorrect.
+	 *
+	 * It does not matter much, because we're not following a standard here.
+	 * We just need to keep compatible with the computation done by other
+	 * GTKGs out there, which can be viewed as some kind of special hashcode.
+	 *
+	 * Anyway, we're calling that a HEC (Header Error Control), not a CRC...
+	 *
+	 *		--RAM, 2013-12-30
+	 */
+
 	for (i = 0; i < 256; i++) {
 		unsigned syn = i;
 		for (j = 0; j < 8; j++) {
+			/* This is wrong (see long comment above) but DO NOT FIX yet! */
 			syn <<= 1;
 			if (syn & 0x80)
 				syn ^= HEC_GENERATOR;

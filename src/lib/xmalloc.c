@@ -5573,17 +5573,21 @@ no_page_freeable:
 	return FALSE;				/* Keep range */
 }
 
+struct xgc_processed {
+	size_t coalesced;		/* Amount of blocks coalesced */
+	size_t pages;			/* Amount of pages freed */
+};
+
 /**
  * Execute the strategy we came up with for the range.
  */
 static void
-xgc_range_process(void *key, void *unused_data)
+xgc_range_process(void *key, void *data)
 {
 	struct xgc_range *xr = key;
+	struct xgc_processed *xp = data;
 	size_t len;
 	void *p;
-
-	(void) unused_data;
 
 	p = deconstify_pointer(xr->start);
 	len = ptr_diff(xr->end, xr->start);
@@ -5594,11 +5598,13 @@ xgc_range_process(void *key, void *unused_data)
 		xstats.xgc_coalesced_blocks += xr->blocks;
 		xstats.xgc_coalesced_memory += len;
 		xstats.xgc_blocks_collected--;	/* One block is put back */
+		xp->coalesced += xr->blocks;
 		break;
 	case XGC_ST_FREE_PAGES:
 		{
 			void *end = ptr_add_offset(p, len);
 			void *q;
+			size_t pages;
 
 			if (xr->head != 0) {
 				xmalloc_freelist_insert(p, xr->head, TRUE, XM_COALESCE_NONE);
@@ -5622,7 +5628,9 @@ xgc_range_process(void *key, void *unused_data)
 					xstats.xgc_blocks_collected--;	/* One block is put back */
 			}
 
-			xstats.xgc_pages_collected += vmm_page_count(ptr_diff(q, p));
+			pages = vmm_page_count(ptr_diff(q, p));
+			xstats.xgc_pages_collected += pages;
+			xp->pages += pages;
 		}
 		break;
 	default:
@@ -5655,6 +5663,7 @@ xgc(void)
 	double start_cpu = 0.0;
 	struct xgc_allocator xga;
 	struct xgc_context xgctx;
+	struct xgc_processed processed;
 	void const **tmp;
 	erbtree_t rbt;
 
@@ -5701,6 +5710,7 @@ xgc(void)
 	blocks = 0;
 	ZERO(&xgctx);
 	ZERO(&xga);
+	ZERO(&processed);
 
 	/*
 	 * Pass 1a: lock buckets with items, expand buckets that were flagged too
@@ -5890,7 +5900,7 @@ xgc(void)
 	 * Pass 5: execute the strategy.
 	 */
 
-	erbtree_foreach(&rbt, xgc_range_process, NULL);
+	erbtree_foreach(&rbt, xgc_range_process, &processed);
 
 	/*
 	 * Pass 6: unlock buckets (in reverse order, for assertions).
@@ -5932,8 +5942,10 @@ unlock:
 		next_run = now + increment;
 
 		if (xmalloc_debugging(0)) {
-			t_debug("XM GC took %'u usecs (CPU=%'u usecs), next in %d sec%s",
+			t_debug("XM GC took %'u usecs (CPU=%'u usecs) "
+				"coalesced-blocks=%zu, freed-pages=%zu, next in %d sec%s",
 				(uint) real_elapsed, (uint) cpu_elapsed,
+				processed.coalesced, processed.pages,
 				increment, 1 == increment ? "" : "s");
 		}
 	}

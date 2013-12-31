@@ -722,7 +722,9 @@ check_leaf_list_consistency(
 		knode_t *kn = l->data;
 
 		knode_check(kn);
-		g_assert(kn->status == status);
+		g_assert_log(kn->status == status,
+			"kn->status=%s, status=%s",
+			knode_status_to_string(kn->status), knode_status_to_string(status));
 		count++;
 	}
 
@@ -1688,7 +1690,7 @@ dht_bucket_manages(struct kbucket *kb, const kuid_t *id)
 
 /**
  * Given a depth within 0 and K_BUCKET_MAX_DEPTH, locate the byte in the
- * KUID and the mask that allows to test that bit.
+ * KUID and the mask that allows one to test that bit.
  */
 static inline void
 kuid_position(uchar depth, int *byt, uchar *mask)

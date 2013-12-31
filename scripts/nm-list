@@ -1,0 +1,88 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2013, Raphael Manfredi
+#
+# Generates a decorated "nm" list of specified file, with a HTTP-like header.
+#
+# The header includes both the SHA1 of the executable as built, and the SHA1
+# of the stripped executable.
+#
+#----------------------------------------------------------------------
+# This file is part of gtk-gnutella.
+#
+#  gtk-gnutella is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  gtk-gnutella is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with gtk-gnutella; if not, write to the Free Software
+#  Foundation, Inc.:
+#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#----------------------------------------------------------------------
+#
+
+LC_ALL=C
+export LC_ALL
+
+file=$1
+nm=$2
+
+TMP="stripped-$file"
+trap "rm -f $TMP; exit 1" 1 2 3 15
+
+# Locate top of the source tree
+if test -f Configure; then TOP=.;
+elif test -f ../Configure; then TOP=..;
+elif test -f ../../Configure; then TOP=../..;
+elif test -f ../../../Configure; then TOP=../../..;
+else
+	echo "Can't find Configure."; exit 1
+fi
+
+# See whether their native sha1sum executable will work, if present at all
+SHA1SUM=sha1sum
+empty=`$SHA1SUM /dev/null 2>/dev/null | cut -f1 -d' '`
+case "$empty" in
+da39a3ee5e6b4b0d3255bfef95601890afd80709) ;;
+*) SHA1SUM=$TOP/src/bin/sha1sum ;;
+esac
+
+date=`date`
+sha1=`$SHA1SUM $file 2>/dev/null | cut -f1 -d' '`
+case "$sha1" in
+'')	echo "Failed to compute SHA1 of $file" >&2; exit 1;;
+esac
+
+cp $file $TMP
+if strip $TMP 2>/dev/null; then
+	stripped_sha1=`$SHA1SUM $TMP 2>/dev/null | cut -f1 -d' '`
+fi
+rm -f $TMP
+
+NM=${nm-nm}
+
+cat <<EOH
+NM/1.0
+Date: $date
+File: $file
+EOH
+
+case "$stripped_sha1" in
+'') ;;
+*) echo "SHA1: $stripped_sha1";;
+esac
+
+cat <<EOH
+SHA1: $sha1
+
+EOH
+
+exec $NM -p $file
+

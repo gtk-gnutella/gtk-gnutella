@@ -1,3 +1,43 @@
+# v 1.0.1   2013-12-31  [stable]
+
+This is a minor release correcting a grave bug causing gtk-gnutella to think
+all other gtk-gnutella out there are hostile.
+
+Other minor improvements are present, as well as low-level bug fixes.  The
+most visible change is that filenames with parentheses are now mangled to
+have the parentheses turned into brackets, instead of being left as-is.  This
+allows filename cut-n-paste into shell commands, without having to use the
+shell auto-completion to escape the parentheses.
+
+Improvements:
+- Generate a NM/1.0 HTTP-like header at the top of the pre-computed nm list.
+- [GTK] Avoid GUI flickering when widget sensitivity is changing quickly.
+- Replace "()" with "[]" in filenames for easier cut-n-paste in shell commands.
+- Windows: improved stack unwinding.
+
+Bug Fixes:
+- Fixed grave bug, making all GTKGs appear hostile.
+- qrp_close(): must disable periodic monitoring during shutdown.
+- filename_to_utf8_normalized(): fixed broken if/else logic in loop.
+
+Under the Hood:
+- Updated the GeoIP databases.
+- Added a Keywords entry for lintian in the gtk-gnutella.desktop file.
+- Fixed license link to point to GPL-2 on Debian systems.
+- Added gtk-gnutella.appdata.xml for distributions that need such a file.
+- Renamed icon.xpm as icon.48x48.xpm and icon.32x32.xpm as icon.xpm.
+- TLS: disabled SVN signature verification code, since we no longer use SVN.
+- Define our own G_STRFUNC, do not use the version from GLib.
+- vmm_resize(): fixed wrong implementation when vmm_crashing is true.
+- Semi-reliable UDP: drop traffic to host temporarily if we can't send messages.
+- Use a 5-minute TLS ban to avoid reconnecting to host with TLS when it failed.
+- download_mark_active(): do not reset fi->recv_last_rate on HTTP follow-ups
+- bsched_heartbeat(): fixed wrong delay computatation, use tm_elapsed_ms().
+- gtk_gnutella_exit(): always emit final "cleanly exited" info.
+- zalloc_stack_accounting_ctrl(): used wrong lookup key, leading to crashes.
+- mingw_valloc(): handle initial non-hinted allocations larger than page.
+- signal_trap_with(): fixed improper return value computation for sigaction().
+
 # v 1.0.0   2013-09-01  [stable]
 
 This is a major release correcting a few bugs and adding small but interesting

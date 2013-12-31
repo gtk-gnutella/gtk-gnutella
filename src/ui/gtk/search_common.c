@@ -94,7 +94,7 @@
  * the core about the amount of "kept" results, we tie each result to the MUID
  * of the query that generated it.
  *
- * This allows to give accurate feedback to the number of results "kept" for
+ * This allows us to give accurate feedback to the number of results "kept" for
  * a GUESS query.
  */
 struct accum_rs {

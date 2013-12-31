@@ -86,8 +86,8 @@
  * If ui_uses_utf8_encoding() returns TRUE, it is assumed that the
  * user-interface passes only valid UTF-8 strings. It affects only those
  * functions that are explicitely defined to handle UI strings as input or
- * output. This allows to reduce the number of conversions. For example, if a
- * function specification permits that the original string may be returned, we
+ * output. This allows us to reduce the number of conversions. For example, if
+ * a function specification permits that the original string may be returned, we
  * will do that instead of creating a copy. If ui_uses_utf8_encoding() returns
  * FALSE, it is assumed that the user-interface uses the locale's encoding for
  * its strings.
@@ -132,13 +132,23 @@ static UConverter *conv_icu_utf8 = NULL;
  */
 static hikset_t *charset2conv_to_utf8;
 
+enum conv_to_utf8_magic { CONV_TO_UTF8_MAGIC = 0x0a829276 };
+
 struct conv_to_utf8 {
+	enum conv_to_utf8_magic magic;
 	const char *name;		/**< Name of the source charset (atom) */
 	iconv_t cd;		/**< iconv() conversion descriptor; -1 or iconv_open()ed */
 	bool is_ascii;		/**< Set to TRUE if name is "ASCII" */
 	bool is_utf8;		/**< Set to TRUE if name is "UTF-8" */
 	bool is_iso8859;	/**< Set to TRUE if name matches "ISO-8859-*" */
 };
+
+static inline void
+conv_to_utf8_check(const struct conv_to_utf8 * const cu)
+{
+	g_assert(cu != NULL);
+	g_assert(CONV_TO_UTF8_MAGIC == cu->magic);
+}
 
 static char *charset = NULL;	/** Name of the locale charset */
 static htable_t *utf32_compose_roots;
@@ -261,7 +271,7 @@ primary_filename_charset(void)
 	g_assert(sl_filename_charsets);
 
 	t = sl_filename_charsets->data;
-	g_assert(t);
+	conv_to_utf8_check(t);
 	g_assert(t->name);
 
 	return t->name;
@@ -274,7 +284,7 @@ primary_filename_charset_is_utf8(void)
 
 	g_assert(sl_filename_charsets);
 	t = sl_filename_charsets->data;
-	g_assert(t);
+	conv_to_utf8_check(t);
 
 	return t->is_utf8;
 }
@@ -1655,6 +1665,7 @@ conv_to_utf8_new(const char *cs)
 	struct conv_to_utf8 *t;
 
 	WALLOC(t);
+	t->magic = CONV_TO_UTF8_MAGIC;
 	t->cd = (iconv_t) -1;
 	t->name = atom_str_get(cs);
 	t->is_utf8 = 0 == strcmp(cs, "UTF-8");
@@ -1669,11 +1680,14 @@ conv_to_utf8_new(const char *cs)
 static void
 conv_to_utf8_free(struct conv_to_utf8 *cu)
 {
+	conv_to_utf8_check(cu);
+
 	atom_str_free_null(&cu->name);
 	if (cu->cd != (iconv_t) -1) {
 		iconv_close(cu->cd);
 		cu->cd = (iconv_t) -1;
 	}
+	cu->magic = 0;
 	WFREE(cu);
 }
 
@@ -1683,7 +1697,7 @@ conv_to_utf8_free(struct conv_to_utf8 *cu)
 static void
 conv_to_utf8_init(struct conv_to_utf8 *cu)
 {
-	g_assert(cu != NULL);
+	conv_to_utf8_check(cu);
 
 	if (0 == strcmp("@locale", cu->name) || 0 == strcmp(charset, cu->name))
 		cu->cd = cd_locale_to_utf8;
@@ -1708,6 +1722,8 @@ conv_to_utf8_cd_get(const char *cs)
 	cu = hikset_lookup(charset2conv_to_utf8, cs);
 	if (NULL == cu)
 		cu = conv_to_utf8_new(cs);
+
+	conv_to_utf8_check(cu);
 
 	if ((iconv_t) -1 == cu->cd)
 		conv_to_utf8_init(cu);
@@ -1835,6 +1851,7 @@ locale_init_show_results(void)
 	while (NULL != (sl = g_slist_next(sl))) {
 		const struct conv_to_utf8 *t = sl->data;
 
+		conv_to_utf8_check(t);
 		g_info("additional filename character set \"%s\"", t->name);
 	}
 }
@@ -2112,7 +2129,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 	src_left = (size_t) -1 == src_len ? strlen(src) : src_len;
 
-	while (src_left > 0) {
+	while (size_is_positive(src_left)) {
 		char buf[4096];
 		size_t ret, n_read, n_written;
 
@@ -2128,6 +2145,17 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 			n_read = left0 - left;
 			n_written = buf_ptr - buf;
+
+			g_assert_log(size_is_non_negative(n_read),
+				"n_read=%s", size_t_to_string(n_read));
+
+			if (!size_is_non_negative(n_written)) {
+				n_written = 0;
+				g_assert((size_t) -1 == ret);	/* Only possible on errors */
+			}
+
+			g_assert(src_left >= n_read);
+
 			src_left -= n_read;
 		}
 
@@ -2165,6 +2193,10 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 					goto error;
 
 				n_written = buf_ptr - buf;
+
+				g_assert_log(size_is_non_negative(n_written),
+					"n_written=%s", size_t_to_string(n_written));
+
 				size += n_written;
 				if (dst_size > size) {
 					dst = mempcpy(dst, buf, n_written);
@@ -2977,6 +3009,8 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 	for (sl = sl_filename_charsets; sl != NULL; sl = g_slist_next(sl)) {
 		const struct conv_to_utf8 *t = sl->data;
 
+		conv_to_utf8_check(t);
+
 		if (t->is_utf8)	{
 			if (utf8_is_valid_string(src)) {
 				s = src;
@@ -2987,7 +3021,7 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 				s = src;
 				break;
 			}
-		} else if (t->is_iso8859 && !iso8859_is_valid_string(src)) {
+		} else if (t->is_iso8859) {
 			/*
 			 * iconv() may not care about characters in the range
 			 * 0x00..0x1F,0x7E and 0x80..BF which causes UTF-8 strings being
@@ -2997,13 +3031,18 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 			 * G_FILENAME_ENCODING=ISO-8859-* when some filenames are UTF-8
 			 * encoded.
 			 */
-			continue;
-		} else {
-			dbuf = hyper_iconv(t->cd, NULL, 0, src, (size_t) -1, TRUE);
-			if (dbuf) {
-				s = dbuf;
+			if (!iso8859_is_valid_string(src))
+				continue;
+			if (is_ascii_string(src)) {
+				s = src;
 				break;
 			}
+		}
+
+		dbuf = hyper_iconv(t->cd, NULL, 0, src, (size_t) -1, TRUE);
+		if (dbuf) {
+			s = dbuf;
+			break;
 		}
 	}
 

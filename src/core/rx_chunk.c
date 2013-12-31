@@ -418,6 +418,7 @@ rx_chunk_destroy(rxdrv_t *rx)
 	struct attr *attr = rx->opaque;
 
 	WFREE(attr);
+	rx->opaque = NULL;
 }
 
 /**

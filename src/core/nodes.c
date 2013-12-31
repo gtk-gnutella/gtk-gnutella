@@ -1371,14 +1371,16 @@ node_timer(time_t now)
 					node_infostr(n));
 				ban_record(n->addr,
 					"IP with Gnutella security violations");
-				hostiles_dynamic_add(n->addr, "Gnutella security violations");
+				hostiles_dynamic_add(n->addr, "Gnutella security violations",
+					HSTL_WEIRD_MSG);
 				node_bye_if_writable(n, 412, "Security violation");
 				continue;
 			}
 
-			if (hostiles_check(n->addr)) {
-				g_message("removing %s as dynamically detected hostile peer",
-					node_infostr(n));
+			if (hostiles_is_bad(n->addr)) {
+				hostiles_flags_t flags = hostiles_check(n->addr);
+				g_message("removing %s, as dynamically found hostile peer (%s)",
+					node_infostr(n), hostiles_flags_to_string(flags));
 				node_bye_if_writable(n, 415, "Hostile Peer");
 				continue;
 			}
@@ -4870,7 +4872,7 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
-					"Compressed connection prefered");
+					"Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -4925,7 +4927,7 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
-					"Compressed connection prefered");
+					"Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -5118,7 +5120,7 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
-					"Compressed connection prefered");
+					"Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -7373,7 +7375,7 @@ node_add(const host_addr_t addr, uint16 port, uint32 flags)
 
 	if (
 		!(SOCK_F_FORCE & flags) &&
-		(hostiles_check(addr) || hcache_node_is_bad(addr))
+		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
 	)
 		return;
 
@@ -8439,12 +8441,13 @@ node_udp_is_old(const gnutella_node_t *n)
 bool
 node_hostile_udp(gnutella_node_t *n)
 {
-	if (hostiles_check(n->addr)) {
+	if G_UNLIKELY(hostiles_is_bad(n->addr)) {
 		if (GNET_PROPERTY(udp_debug)) {
-			g_warning("UDP got %s%s from hostile %s -- dropped",
+			hostiles_flags_t flags = hostiles_check(n->addr);
+			g_warning("UDP got %s%s from bad hostile %s (%s) -- dropped",
 				node_udp_is_old(n) ? "OLD " : "",
 				gmsg_infostr_full_split(&n->header, n->data, n->size),
-				node_infostr(n));
+				node_infostr(n), hostiles_flags_to_string(flags));
 		}
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		return TRUE;
@@ -12114,7 +12117,7 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 }
 
 /**
- * Disconnects all connected nodes which are considered hostile. This
+ * Disconnects all connected nodes which are considered badly hostile. This
  * is mainly for disconnecting nodes after hostiles.txt has been reloaded.
  */
 void
@@ -12125,7 +12128,7 @@ node_kill_hostiles(void)
 	for (sl = sl_nodes; sl != NULL; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
-		if (0 == (NODE_F_FORCE & n->flags) && hostiles_check(n->addr)) {
+		if (0 == (NODE_F_FORCE & n->flags) && hostiles_is_bad(n->addr)) {
 			to_remove = g_slist_prepend(to_remove, n);
 		}
 	}

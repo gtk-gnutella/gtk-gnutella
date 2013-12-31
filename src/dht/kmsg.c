@@ -2215,11 +2215,13 @@ hostile_checked:
 	 * pick this address to appear in the contact.
 	 */
 
-	if (hostiles_check(kaddr)) {
+	if (hostiles_is_bad(kaddr)) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_warning("DHT hostile contact address %s (%s v%u.%u)",
+			hostiles_flags_t hflags = hostiles_check(kaddr);
+			g_warning("DHT hostile contact address %s (%s v%u.%u): %s",
 				host_addr_to_string(kaddr),
-				vendor_code_to_string(vcode.u32), kmajor, kminor);
+				vendor_code_to_string(vcode.u32), kmajor, kminor,
+				hostiles_flags_to_string(hflags));
 		}
 		gnet_stats_inc_general(GNR_DHT_MSG_FROM_HOSTILE_CONTACT_ADDRESS);
 		reason = "hostile contact address";

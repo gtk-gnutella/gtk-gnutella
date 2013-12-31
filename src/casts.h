@@ -207,6 +207,12 @@ cast_func_to_pointer(func_ptr_t func)
 	return tmp.ptr;
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE free_fn_t
+cast_to_free_fn(const func_ptr_t fn)
+{
+	return (free_fn_t) fn;
+}
+
 /**
  * Casting of a random function pointer to "void *" is cumbersome if
  * you want to spell it out in a pedantic-safe way.  That's where the
@@ -240,7 +246,7 @@ const_ptr_add_offset(const void *p, size_t offset)
 static inline int G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
 ptr_cmp(const void *a, const void *b)
 {
-	return a == b ? 0 :
+	return G_UNLIKELY(a == b) ? 0 :
 		(const char *) a < (const char *) b ? -1 : +1;
 }
 
@@ -265,9 +271,9 @@ filesize_to_fileoffset_t(filesize_t pos)
 }
 
 /**
- * Implicit promotion to an unsigned integer. It allows to avoid comparision of
- * signed values with unsigned values without resorting to harmful explicit
- * casts.
+ * Implicit promotion to an unsigned integer. It allows one to avoid
+ * comparision of signed values with unsigned values without resorting
+ * to harmful explicit casts.
  */
 #if defined(UINTMAX_C)
 #define UNSIGNED(value) ((value) + (UINTMAX_C(0)))

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2004-2011, Raphael Manfredi
- * Copyright (c) 2003, Markus Goetz
+ * Copyright (c) 2004-2011, 2013 Raphael Manfredi
+ * Copyright (c) 2003 Markus Goetz
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -33,7 +33,7 @@
  * @author Markus Goetz
  * @date 2003
  * @author Raphael Manfredi
- * @date 2004-2011
+ * @date 2004-2011, 2013
  */
 
 #include "common.h"
@@ -98,7 +98,8 @@ static hash_list_t *hl_dynamic_ipv6;
 
 struct hostiles_dynamic_entry4 {
 	uint32 ipv4;	/* MUST be at offset 0 due to uint32_hash/eq */
-	unsigned long relative_time;
+	uint32 relative_time;
+	hostiles_flags_t he4_flags;
 };
 
 #define HOSTILES_IPV6_ZEROED	8	/**< Trailing 8 bytes are zeroed */
@@ -106,7 +107,8 @@ struct hostiles_dynamic_entry4 {
 
 struct hostiles_dynamic_entry6 {
 	uint8 ip[HOSTILES_IPV6_LEN];	/* MUST be at offset 0 for hash/eq */
-	unsigned long relative_time;
+	uint32 relative_time;
+	hostiles_flags_t he6_flags;
 };
 
 /**
@@ -206,6 +208,59 @@ deserialize_spamdata(bstr_t *bs, void *valptr, size_t len)
 		bstr_read_time(bs, &sd->hosts[i].first_seen);
 		bstr_read_time(bs, &sd->hosts[i].last_seen);
 	}
+}
+
+/**
+ * @return string listing all the hostile flags set.
+ */
+const char *
+hostiles_flags_to_string(const hostiles_flags_t flags)
+{
+	static str_t *s;
+
+	if G_UNLIKELY(NULL == s)
+		s = str_new_not_leaking(60);
+
+	str_reset(s);
+
+#define LOGAS(fl,str) G_STMT_START {	\
+	if G_UNLIKELY(flags & (fl)) {		\
+		if G_LIKELY(0 != str_len(s))	\
+			str_cat(s, ", ");			\
+		str_cat(s, str);				\
+	}									\
+} G_STMT_END
+
+	LOGAS(HSTL_STATIC,			"static");
+	LOGAS(HSTL_DUMB,			"dumb");
+	LOGAS(HSTL_WEIRD_MSG,		"weird");
+	LOGAS(HSTL_DUP_INDEX,		"dup-index");
+	LOGAS(HSTL_DUP_SHA1,		"dup-SHA1");
+	LOGAS(HSTL_FAKE_SPAM,		"fake");
+	LOGAS(HSTL_NAME_SPAM,		"name");
+	LOGAS(HSTL_URL_SPAM,		"URL");
+	LOGAS(HSTL_URN_SPAM,		"URN");
+	LOGAS(HSTL_EVIL_FILENAME,	"evil-filename");
+	LOGAS(HSTL_BAD_UTF8,		"utf8");
+	LOGAS(HSTL_OOB,				"OOB");
+	LOGAS(HSTL_UDP_GUESS,		"UDP-GUESS");
+	LOGAS(HSTL_BAD_FILE_INDEX,	"bad-index");
+	LOGAS(HSTL_GTKG,			"GTKG");
+	LOGAS(HSTL_NO_GTKG_VERSION,	"!GTKG-version");
+	LOGAS(HSTL_BAD_GTKG_GUID,	"GTKG-GUID");
+	LOGAS(HSTL_MANY_ALT_LOCS,	"alt-locs");
+	LOGAS(HSTL_EVIL_TIMESTAMP,	"evil-timestamp");
+	LOGAS(HSTL_NO_WHATS_NEW,	"!what's-new");
+	LOGAS(HSTL_CLOSE_FILENAME,	"close-names");
+	LOGAS(HSTL_MISSING_XML,		"!XML");
+	LOGAS(HSTL_NO_CREATE_TIME,	"CT");
+	LOGAS(HSTL_ODD_GUID,		"odd-GUID");
+	LOGAS(HSTL_BANNED_GUID,		"banned-GUID");
+	LOGAS(HSTL_BAD_VENDOR_CODE,	"vendor-code");
+
+#undef LOGAS
+
+	return str_2c(s);
 }
 
 /**
@@ -429,13 +484,14 @@ use_global_hostiles_txt_changed(property_t unused_prop)
 }
 
 static struct hostiles_dynamic_entry4 *
-hostiles_dynamic_new4(uint32 ipv4)
+hostiles_dynamic_new4(uint32 ipv4, hostiles_flags_t flags)
 {
 	struct hostiles_dynamic_entry4 entry;
 
 	entry.ipv4 = ipv4;
 	entry.relative_time = tm_relative_time();
-	return wcopy(&entry, sizeof entry);
+	entry.he4_flags = flags;
+	return WCOPY(&entry);
 }
 
 static void
@@ -450,13 +506,14 @@ hostiles_dynamic_free4(struct hostiles_dynamic_entry4 **entry_ptr)
 }
 
 static struct hostiles_dynamic_entry6 *
-hostiles_dynamic_new6(const uint8 *ipv6)
+hostiles_dynamic_new6(const uint8 *ipv6, hostiles_flags_t flags)
 {
 	struct hostiles_dynamic_entry6 entry;
 
 	memcpy(&entry.ip[0], ipv6, sizeof entry.ip);
 	entry.relative_time = tm_relative_time();
-	return wcopy(&entry, sizeof entry);
+	entry.he6_flags = flags;
+	return WCOPY(&entry);
 }
 
 static void
@@ -473,7 +530,7 @@ hostiles_dynamic_free6(struct hostiles_dynamic_entry6 **entry_ptr)
 static void
 hostiles_dynamic_expire4(bool forced)
 {
-	unsigned long now = tm_relative_time();
+	uint32 now = tm_relative_time();
 
 	for (;;) {
 		struct hostiles_dynamic_entry4 *entry;
@@ -488,12 +545,13 @@ hostiles_dynamic_expire4(bool forced)
 		)
 			break;
 
-		if (!forced && GNET_PROPERTY(ban_debug > 0)) {
+		if (!forced && GNET_PROPERTY(ban_debug) > 0) {
 			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(host_addr_get_ipv4(entry->ipv4),
 				buf, sizeof buf);
-			g_info("removing dynamically caught hostile: %s", buf);
+			g_info("removing dynamically caught hostile: %s (%s)",
+				buf, hostiles_flags_to_string(entry->he4_flags));
 		}
 		hash_list_remove_head(hl_dynamic_ipv4);
 		hostiles_dynamic_free4(&entry);
@@ -519,9 +577,10 @@ hostiles_dynamic_expire6(bool forced)
 		)
 			break;
 
-		if (!forced && GNET_PROPERTY(ban_debug > 0)) {
-			g_info("removing dynamically caught hostile: %s",
-				ipv6_to_string(entry->ip));
+		if (!forced && GNET_PROPERTY(ban_debug) > 0) {
+			g_info("removing dynamically caught hostile: %s (%s)",
+				ipv6_to_string(entry->ip),
+				hostiles_flags_to_string(entry->he6_flags));
 		}
 		hash_list_remove_head(hl_dynamic_ipv6);
 		hostiles_dynamic_free6(&entry);
@@ -544,52 +603,60 @@ hostiles_dynamic_timer(void *unused_udata)
 	return TRUE;		/* Keep calling */
 }
 
-static void
-hostiles_dynamic_add_ipv4(uint32 ipv4)
+static hostiles_flags_t
+hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 {
 	struct hostiles_dynamic_entry4 *entry;
 
 	if (hash_list_find(hl_dynamic_ipv4, &ipv4, cast_to_void_ptr(&entry))) {
 		entry->relative_time = tm_relative_time();
+		entry->he4_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv4, entry);
 	} else {
-		entry = hostiles_dynamic_new4(ipv4);
+		entry = hostiles_dynamic_new4(ipv4, flags);
 		hash_list_append(hl_dynamic_ipv4, entry);
 
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
-		if (GNET_PROPERTY(ban_debug > 0)) {
+		if (GNET_PROPERTY(ban_debug) > 0) {
 			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
-			g_info("dynamically caught hostile: %s", buf);
+			g_info("dynamically caught hostile: %s (%s)", buf,
+				hostiles_flags_to_string(flags));
 		}
 	}
+
+	return entry->he4_flags;
 }
 
-static void
-hostiles_dynamic_add_ipv6(const uint8 *ipv6)
+static hostiles_flags_t
+hostiles_dynamic_add_ipv6(const uint8 *ipv6, hostiles_flags_t flags)
 {
 	struct hostiles_dynamic_entry6 *entry;
 
 	if (hash_list_find(hl_dynamic_ipv6, ipv6, cast_to_void_ptr(&entry))) {
 		entry->relative_time = tm_relative_time();
+		entry->he6_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv6, entry);
 	} else {
-		entry = hostiles_dynamic_new6(ipv6);
+		entry = hostiles_dynamic_new6(ipv6, flags);
 		hash_list_append(hl_dynamic_ipv6, entry);
 
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
-		if (GNET_PROPERTY(ban_debug > 0)) {
-			g_info("dynamically caught hostile: %s", ipv6_to_string(ipv6));
+		if (GNET_PROPERTY(ban_debug) > 0) {
+			g_info("dynamically caught hostile: %s (%s)",
+				ipv6_to_string(ipv6), hostiles_flags_to_string(flags));
 		}
 	}
+
+	return entry->he6_flags;
 }
 
-static bool
+static hostiles_flags_t
 hostiles_static_check_ipv4(uint32 ipv4)
 {
 	int i;
@@ -599,17 +666,33 @@ hostiles_static_check_ipv4(uint32 ipv4)
 			continue;
 
 		if (NULL != hostile_db[i] && 0 != iprange_get(hostile_db[i], ipv4))
-			return TRUE;
+			return HSTL_STATIC;
 	}
-	return FALSE;
+	return HSTL_CLEAN;
 }
 
-static bool
+static hostiles_flags_t
 hostiles_static_check_ipv6(const uint8 *ipv6)
 {
 	(void) ipv6;
 
-	return FALSE;	/* static IPv6 hostiles not supported yet */
+	return HSTL_CLEAN;	/* static IPv6 hostiles not supported yet */
+}
+
+static void
+hostiles_log_caught(const host_addr_t addr, const char *reason,
+	hostiles_flags_t flags, hostiles_flags_t merged_flags)
+{
+	if (flags == merged_flags) {
+		g_debug("SPAM dynamically caught hostile %s: %s (%s)",
+			host_addr_to_string(addr), reason,
+			hostiles_flags_to_string(flags));
+	} else {
+		g_debug("SPAM dynamically updated hostile %s: %s (%s) -> (%s)",
+			host_addr_to_string(addr), reason,
+			hostiles_flags_to_string(flags),
+			hostiles_flags_to_string(merged_flags));
+	}
 }
 
 /**
@@ -618,9 +701,11 @@ hostiles_static_check_ipv6(const uint8 *ipv6)
  *
  * @param addr 		the address to blacklist.
  * @param reason	how we detected that the address was hostile
+ * @param flags		consolidated flags indicating that host is hostile
  */
 void
-hostiles_dynamic_add(const host_addr_t addr, const char *reason)
+hostiles_dynamic_add(const host_addr_t addr, const char *reason,
+	hostiles_flags_t flags)
 {
 	host_addr_t ipv4_addr;
 
@@ -631,11 +716,10 @@ hostiles_dynamic_add(const host_addr_t addr, const char *reason)
 		uint32 ip = host_addr_ipv4(ipv4_addr);
 
 		if (!hostiles_static_check_ipv4(ip)) {
-			hostiles_dynamic_add_ipv4(ip);
+			hostiles_flags_t nflags = hostiles_dynamic_add_ipv4(ip, flags);
 
 			if (GNET_PROPERTY(spam_debug) > 1) {
-				g_debug("SPAM dynamically caught hostile %s: %s",
-					host_addr_to_string(ipv4_addr), reason);
+				hostiles_log_caught(ipv4_addr, reason, flags, nflags);
 			}
 		}
 	} else if (host_addr_is_ipv6(addr)) {
@@ -644,46 +728,61 @@ hostiles_dynamic_add(const host_addr_t addr, const char *reason)
 		ip = host_addr_ipv6(&addr);
 
 		if (!hostiles_static_check_ipv6(ip)) {
-			hostiles_dynamic_add_ipv6(ip);
+			hostiles_flags_t nflags = hostiles_dynamic_add_ipv6(ip, flags);
 
 			if (GNET_PROPERTY(spam_debug) > 1) {
-				g_debug("SPAM dynamically caught hostile %s: %s",
-					ipv6_to_string(ip), reason);
+				hostiles_log_caught(addr, reason, flags, nflags);
 			}
 		}
 	}
 }
 
-static inline bool
+static inline hostiles_flags_t
 hostiles_dynamic_check_ipv4(uint32 ipv4)
 {
+	const struct hostiles_dynamic_entry4 *entry;
+
 	/**
 	 * We could check relative_time here but entries are sufficiently
 	 * frequently expired and the timeout is arbitrary anyway.
 	 */
-	return hash_list_contains(hl_dynamic_ipv4, &ipv4);
+
+	entry = hash_list_lookup(hl_dynamic_ipv4, &ipv4);
+	if G_LIKELY(NULL == entry)
+		return HSTL_CLEAN;
+
+	return entry->he4_flags;
 }
 
-static inline bool
+static inline hostiles_flags_t
 hostiles_dynamic_check_ipv6(const uint8 *ipv6)
 {
+	const struct hostiles_dynamic_entry6 *entry;
+
 	/**
 	 * We could check relative_time here but entries are sufficiently
 	 * frequently expired and the timeout is arbitrary anyway.
 	 */
-	return hash_list_contains(hl_dynamic_ipv6, ipv6);
+
+	entry = hash_list_lookup(hl_dynamic_ipv6, ipv6);
+	if G_LIKELY(NULL == entry)
+		return HSTL_CLEAN;
+
+	return entry->he6_flags;
 }
 
 /**
  * Check the given address against the entries in the hostiles.
  *
- * @param ha the host address to check.
- * @returns TRUE if found, and FALSE if not.
+ * @param ha	the host address to check.
+ *
+ * @return HSTL_CLEAN if host is not hostile, the known hostile flags otherwise.
  */
-bool
+hostiles_flags_t
 hostiles_check(const host_addr_t ha)
 {
 	host_addr_t to;
+	hostiles_flags_t flags = HSTL_CLEAN;
 
 	if (
 		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
@@ -691,18 +790,20 @@ hostiles_check(const host_addr_t ha)
 	) {
 		uint32 ip = host_addr_ipv4(to);
 
-		return hostiles_dynamic_check_ipv4(ip) ||
-			hostiles_static_check_ipv4(ip);
+		flags = hostiles_dynamic_check_ipv4(ip);
+		if (!hostiles_flags_are_bad(flags))
+			flags |= hostiles_static_check_ipv4(ip);
 	} else if (host_addr_is_ipv6(ha)) {
 		const uint8 *ip;
 
 		ip = host_addr_ipv6(&ha);
 
-		return hostiles_dynamic_check_ipv6(ip) ||
-			hostiles_static_check_ipv6(ip);
+		flags = hostiles_dynamic_check_ipv6(ip);
+		if (!hostiles_flags_are_bad(flags))
+			flags |= hostiles_static_check_ipv6(ip);
 	}
 
-	return FALSE;
+	return flags;
 }
 
 /**

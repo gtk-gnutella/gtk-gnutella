@@ -1442,6 +1442,7 @@ rx_ut_destroy(rxdrv_t *rx)
 
 	attr->magic = 0;
 	WFREE(attr);
+	rx->opaque = NULL;
 }
 
 /**

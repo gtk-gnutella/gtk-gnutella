@@ -1400,9 +1400,11 @@ bitzi_close(void)
 
 	dbstore_close(db_bzdata, settings_gnet_db_dir(), db_bzdata_base);
 	db_bzdata = NULL;
-	slist_free_all(&bitzi_rq, cast_to_slist_destroy(bitzi_request_free));
+	slist_free_all(&bitzi_rq, cast_to_free_fn(bitzi_request_free));
 	bitzi_request_free_null(&current_bitzi_request);
 	cq_periodic_remove(&bitzi_heartbeat_ev);
+	cq_periodic_remove(&bitzi_sync_ev);
+	cq_periodic_remove(&bitzi_prune_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

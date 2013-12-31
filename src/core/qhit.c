@@ -238,7 +238,7 @@ found_set_header(void)
 
 		gnutella_header_set_muid(header, f->muid);
 		gnutella_header_set_function(header, GTA_MSG_SEARCH_RESULTS);
-		/* The TTL is overriden later if sending inbound */
+		/* The TTL is overridden later if sending inbound */
 		gnutella_header_set_ttl(header, 1);
 		gnutella_header_set_hops(header, 0);
 		gnutella_header_set_size(header, len);

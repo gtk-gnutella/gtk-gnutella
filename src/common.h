@@ -342,17 +342,27 @@ typedef int socket_fd_t;
 
 #ifdef USE_GLIB1
 typedef void (*GCallback) (void);
+#endif	/* USE_GLIB1 */
+
+#ifdef USE_GLIB2
+#undef G_STRLOC			/* Want our version */
+#undef G_STRFUNC		/* Version from glib uses __PRETTY_FUNCTION__ */
+#endif	/* USE_GLIB2 */
+
+/*
+ * G_STRLOC is the current source location (file:line).
+ * G_STRFUNC is the name of the current function, or location if unavailable.
+ */
+
 #define G_STRLOC __FILE__ ":" STRINGIFY(__LINE__)
 
 #if defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 19901L)
 #define G_STRFUNC (__func__)
 #elif defined(__GNUC__)
-#define G_STRFUNC (__PRETTY_FUNCTION__)
+#define G_STRFUNC (__FUNCTION__)
 #else
 #define G_STRFUNC (G_STRLOC)
 #endif
-
-#endif	/* USE_GLIB1 */
 
 #ifdef USE_GLIB2
 #include <glib-object.h>

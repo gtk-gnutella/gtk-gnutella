@@ -12926,7 +12926,7 @@ Grace time remaining:</label>
 	  <widget>
 	    <class>GtkPixmap</class>
 	    <name>pixmap4</name>
-	    <filename>icon.xpm</filename>
+	    <filename>icon.48x48.xpm</filename>
 	    <xalign>0.5</xalign>
 	    <yalign>0.5</yalign>
 	    <xpad>0</xpad>

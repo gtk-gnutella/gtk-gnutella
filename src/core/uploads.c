@@ -4223,7 +4223,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 				parq_allows = TRUE;
 				if (GNET_PROPERTY(upload_debug))
 					g_debug(
-						"overriden slot limit because u/l b/w used at "
+						"overridden slot limit because u/l b/w used at "
 						"%lu%% (minimum set to %d%%)",
 						bsched_avg_pct(BSCHED_BWS_OUT),
 						GNET_PROPERTY(ul_usage_min_percentage));

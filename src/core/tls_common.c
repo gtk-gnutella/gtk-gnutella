@@ -855,6 +855,8 @@ tls_enabled(void)
 	return TRUE;
 }
 
+#if 0		/* DISABLED -- no longer using SVN -- RAM, 2013-12-30 */
+
 static gnutls_x509_crt
 svn_release_notify_certificate(void)
 {
@@ -945,6 +947,7 @@ svn_release_notification_verify(uint32 revision, time_t date,
 	return verify_signature(svn_release_notify_certificate(),
 				&input, signature);
 }
+#endif	/* Disabled SVN signature verification */
 
 #else	/* !HAS_GNUTLS*/
 
@@ -1008,6 +1011,8 @@ tls_enabled(void)
 	return FALSE;
 }
 
+#endif	/* HAS_GNUTLS */
+
 bool
 svn_release_notification_can_verify(void)
 {
@@ -1023,7 +1028,5 @@ svn_release_notification_verify(uint32 revision, time_t date,
 	(void) date;
 	return FALSE;
 }
-
-#endif	/* HAS_GNUTLS */
 
 /* vi: set ts=4 sw=4 cindent: */

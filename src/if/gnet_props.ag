@@ -3152,9 +3152,9 @@ prop = {
 prop = {
 	name = "use_global_hostiles_txt";
 	desc = "If set to TRUE, the global hostiles.txt is used as well as the "
-			"private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate "
-			"your private ban list from the global one distributed with "
-			"gtk-gnutella.";
+			"private $GTK_GNUTELLA_DIR/hostiles.txt. This allows you to "
+			"separate your private ban list from the global one distributed "
+			"with gtk-gnutella.";
 	type = boolean;
 	data = {
 		default = TRUE;

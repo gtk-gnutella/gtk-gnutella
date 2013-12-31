@@ -371,7 +371,7 @@ void pmsg_slist_free_all(slist_t **slist_ptr);
 static inline void
 pmsg_slist_free(slist_t **slist_ptr)
 {
-	slist_free_all(slist_ptr, (slist_destroy_cb) pmsg_free);
+	slist_free_all(slist_ptr, (free_fn_t) pmsg_free);
 }
 
 /**

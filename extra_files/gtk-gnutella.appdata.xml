@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2013 Raphael Manfredi <Raphael_Manfredi@pobox.com> -->
+<application>
+ <id type="desktop">gtk-gnutella.desktop</id>
+ <licence>CC0</licence>
+ <name>GTK+ Gnutella Servent</name>
+ <summary>Access the Gnutella network via this servent</summary>
+ <description>
+  <p>
+   Gtk-gnutella allows you to join the Gnutella network, search, share
+   and download files.
+  </p>
+  <p>
+  After joining the network, type-in words in the search area and it will create
+  a search for files shared on the network matching that name.  You can then click
+  on an entry and attempt to download it.
+  </p>
+  <p>
+  There are many settings that can be configured for this application.  Type 'Ctrl-P'
+  to open the Preferences dialog.
+  </p>
+ </description>
+ <screenshots>
+ </screenshots>
+ <url type="homepage">http://gtk-gnutella.sf.net/</url>
+ <updatecontact>gtk-gnutella-devel@lists.sourceforge.net</updatecontact>
+</application>

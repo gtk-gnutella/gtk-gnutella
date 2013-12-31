@@ -99,6 +99,8 @@ struct query_hashvec {
 	uint8 whats_new;		/**< Query is "What's New?", must be forwarded */
 };
 
+static cperiodic_t *qrp_monitor_ev;
+
 bool
 qhvec_has_urn(const struct query_hashvec *qhv)
 {
@@ -4310,7 +4312,8 @@ qrp_init(void)
 	 * Install the periodic monitoring callback.
 	 */
 
-	cq_periodic_main_add(LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
+	qrp_monitor_ev = cq_periodic_main_add(
+		LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
 
 	/*
 	 * Install an empty local table untill we compute our shared library.
@@ -4326,6 +4329,7 @@ G_GNUC_COLD void
 qrp_close(void)
 {
 	qrp_cancel_computation();
+	cq_periodic_remove(&qrp_monitor_ev);
 
 	if (routing_table)
 		qrt_unref(routing_table);

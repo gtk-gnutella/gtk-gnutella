@@ -2686,6 +2686,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	int last_bw_max;
 	int last_capped;
 	int last_used;
+	time_delta_t elapsed;
 
 	bsched_check(bs);
 
@@ -2693,14 +2694,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	 * How much time elapsed since last call?
 	 */
 
-	delay = (int) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
-		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
-
-	if (GNET_PROPERTY(bsched_debug) > 9)
-		g_debug("BSCHED [%s] tv = %d,%d  bs = %d,%d, delay = %d",
-			bs->name, (int) tv->tv_sec, (int) tv->tv_usec,
-			(int) bs->last_period.tv_sec, (int) bs->last_period.tv_usec,
-			delay);
+	delay = elapsed = tm_elapsed_ms(tv, &bs->last_period);
 
 	/*
 	 * It is possible to get a negative delay (i.e. have the current time
@@ -2718,14 +2712,16 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	 */
 
 	if (delay < bs->min_period) {
-		if (GNET_PROPERTY(bsched_debug) && bs->last_period.tv_sec)
-			g_warning("heartbeat (%s) noticed time jumped backwards (~%d ms)",
-				bs->name, bs->period - delay);
+		if (GNET_PROPERTY(bsched_debug) && bs->last_period.tv_sec) {
+			g_warning("%s(): \"%s\" noticed time jumped backwards (~%d ms)",
+				G_STRFUNC, bs->name, bs->period - delay);
+		}
 		delay = bs->period;
 	} else if (delay > bs->max_period) {
-		if (GNET_PROPERTY(bsched_debug) && bs->last_period.tv_sec)
-			g_warning("heartbeat (%s) noticed time jumped forwards (~%d ms)",
-				bs->name, delay - bs->period);
+		if (GNET_PROPERTY(bsched_debug) && bs->last_period.tv_sec) {
+			g_warning("%s(): \"%s\" noticed time jumped forwards (~%d ms)",
+				G_STRFUNC, bs->name, delay - bs->period);
+		}
 		delay = bs->period;
 	}
 

@@ -294,7 +294,7 @@ knode_is_usable(const knode_t *kn)
 	if (!host_is_valid(kn->addr, kn->port))
 		return FALSE;
 
-	if (hostiles_check(kn->addr))
+	if (hostiles_is_bad(kn->addr))
 		return FALSE;
 
 	return TRUE;
@@ -311,7 +311,7 @@ knode_addr_is_usable(const knode_t *kn)
 	if (!host_address_is_usable(kn->addr))
 		return FALSE;
 
-	if (hostiles_check(kn->addr))
+	if (hostiles_is_bad(kn->addr))
 		return FALSE;
 
 	return TRUE;

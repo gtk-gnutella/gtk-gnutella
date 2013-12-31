@@ -228,12 +228,13 @@ request_tigertree(shared_file_t *sf, bool high_priority)
 	g_return_if_fail(!shared_file_is_partial(sf));
 
 	sf = shared_file_ref(sf);
+
 	inserted = verify_enqueue(verify_tth.verify, high_priority,
 					shared_file_path(sf), 0, shared_file_size(sf),
 					request_tigertree_callback, sf);
-	if (!inserted) {
+
+	if (!inserted)
 		shared_file_unref(&sf);
-	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

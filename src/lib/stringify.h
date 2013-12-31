@@ -46,7 +46,7 @@
 #define IPV4_ADDR_BUFLEN	(sizeof "255.255.255.255")
 #define IPV6_ADDR_BUFLEN \
 	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
-#define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
+#define TIMESTAMP_BUFLEN	(sizeof "9999-12-31 23:59:61")
 
 /*
  * How many bytes do we need to stringify an unsigned quantity in decimal

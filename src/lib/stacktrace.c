@@ -1793,10 +1793,9 @@ stacktrace_chop_length(const struct stacktrace *st)
 	if (!stacktrace_inited)
 		return st->len;
 
-	for (i = 0; i < st->len; i++) {
-		if (!stack_is_our_text(st->stack[i])) {
-			i++;		/* Keep first address beyond our text */
-			break;
+	for (i = st->len; i != 0; i--) {
+		if (stack_is_our_text(st->stack[i - 1])) {
+			break;		/* Last addres is our text, keep it */
 		}
 	}
 

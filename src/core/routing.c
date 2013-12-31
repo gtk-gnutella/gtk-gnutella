@@ -2272,6 +2272,7 @@ route_push(struct route_log *route_log,
 	struct message *m;
 	const struct guid *guid;
 	struct gnutella_node *neighbour;
+	host_addr_t ip;
 
 	/*
 	 * A Push request is not broadcasted as other requests, it is routed
@@ -2321,9 +2322,12 @@ route_push(struct route_log *route_log,
 	 * an IPv4 target.
 	 */
 
-	if (hostiles_check(host_addr_peek_ipv4(&sender->data[20]))) {
-		routing_log_extra(route_log, "callback IP %s is hostile",
-			host_addr_to_string(host_addr_peek_ipv4(&sender->data[20])));
+	ip = host_addr_peek_ipv4(&sender->data[20]);
+
+	if (hostiles_is_bad(ip)) {
+		hostiles_flags_t flags = hostiles_check(ip);
+		routing_log_extra(route_log, "callback IP %s is hostile (%s)",
+			host_addr_to_string(ip), hostiles_flags_to_string(flags));
 		gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
 		return FALSE;
 	}

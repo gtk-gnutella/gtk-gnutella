@@ -421,11 +421,14 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	 * Discard hostile sources.
 	 */
 
-	if (hostiles_check(rc->addr)) {
-		if (GNET_PROPERTY(download_debug))
-			g_warning("discarding %s from %s for %s%s: hostile IP",
+	if (hostiles_is_bad(rc->addr)) {
+		if (GNET_PROPERTY(download_debug)) {
+			hostiles_flags_t hflags = hostiles_check(rc->addr);
+			g_warning("discarding %s from %s for %s%s: hostile IP (%s)",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				available != 0 ? "partial " : "", fi->pathname);
+				available != 0 ? "partial " : "", fi->pathname,
+				hostiles_flags_to_string(hflags));
+		}
 		goto cleanup;
 	}
 
@@ -731,14 +734,17 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 					 * Discard hostile sources.
 					 */
 
-					if (hostiles_check(a)) {
-						if (GNET_PROPERTY(download_debug))
+					if (hostiles_is_bad(a)) {
+						if (GNET_PROPERTY(download_debug)) {
+							hostiles_flags_t flags = hostiles_check(a);
 							g_warning("discarding proxy %s in %s from %s "
-								"for GUID %s: hostile IP",
+								"for GUID %s: hostile IP (%s)",
 								host_addr_port_to_string(a, p),
 								value_infostr(rc),
 								host_addr_port_to_string2(rc->addr, rc->port),
-								guid_to_string(glk->guid));
+								guid_to_string(glk->guid),
+								hostiles_flags_to_string(flags));
+						}
 						continue;
 					} else {
 						if (GNET_PROPERTY(download_debug))

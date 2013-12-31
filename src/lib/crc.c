@@ -27,6 +27,12 @@
  *
  * CRC computations.
  *
+ * CRC-32 generation code is courtesy of Charles Michael Heard.
+ *
+ * Also reproduced in the article "Fast Incremental CRC Updates for IP
+ * over ATM Networks" by Florian Braun and Marcel Waldvogel, published
+ * on April 25th, 2001.
+ *
  * @author Raphael Manfredi
  * @date 2003
  */
@@ -37,6 +43,11 @@
 #include "override.h"		/* Must be the last header included */
 
 /**
+ *  CRC-32 computation code by Charles Michael Heard.
+ *
+ *  Compute 32-bit CRC one byte at a time using the high-bit first
+ *  (Big-Endian) bit ordering convention.
+ *
  *  The generator polynomial used for this version of the package is
  *  X^32+X^26+X^23+X^22+X^16+X^12+X^11+X^10+X^8+X^7+X^5+X^4+X^2+X^1+X^0
  *  as specified in the Autodin/Ethernet/ADCCP protocol standards.

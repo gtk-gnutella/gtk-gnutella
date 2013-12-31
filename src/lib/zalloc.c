@@ -1574,9 +1574,7 @@ subzinfo_cmp(const void *a, const void *b)
 	const struct subzinfo *sa = a;
 	const struct subzinfo *sb = b;
 
-	g_assert(sa->szi_base != sb->szi_base);
-
-	return sa->szi_base < sb->szi_base ? -1 : +1;
+	return ptr_cmp(sa->szi_base, sb->szi_base);
 }
 
 /**
@@ -2178,6 +2176,10 @@ zgc_extend(zone_t *zone)
 	szi->szi_free = (char **) *blk;		/* Use first block */
 	szi->szi_free_cnt--;
 
+	/* Added more than 1 block */
+	g_assert(zgc_within_subzone(szi, blk));
+	g_assert(szi->szi_free_cnt != 0 && zgc_within_subzone(szi, szi->szi_free));
+
 	if (zalloc_debugging(4)) {
 		s_debug("ZGC %zu-byte zone %p extended by %u blocks in [%p, %p]",
 			zone->zn_size, (void *) zone,
@@ -2523,9 +2525,8 @@ found:
 	 */
 
 	start = ptr_add_offset(p, -OVH_LENGTH);
-	memcpy(blk, start, zone->zn_size);
-
-	np = zprepare(zone, blk);		/* Allow for block overhead */
+	np = zprepare(zone, blk);				/* Allow for block overhead */
+	memcpy(blk, start, zone->zn_size);		/* Keep original meta info */
 
 	if (zalloc_debugging(1)) {
 		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
@@ -2896,12 +2897,18 @@ zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
 	unsigned hint = 0;
 	bool ok = TRUE;
 	va_list args;
+	zone_t key;
 
 	if (NULL == zt)
 		return FALSE;
 
 	size = adjust_size(size, &hint, FALSE);
-	zone = hash_table_lookup(zt, ulong_to_pointer(size));
+
+	key.zn_size = size;
+	key.private = FALSE;
+	key.zn_stid = 0;
+
+	zone = hash_table_lookup(zt, &key);
 
 	if (NULL == zone)
 		return FALSE;

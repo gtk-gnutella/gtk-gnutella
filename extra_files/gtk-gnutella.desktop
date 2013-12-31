@@ -27,6 +27,7 @@ GenericName[nb]=Fildelingsprogram
 GenericName[nl]=P2P programma
 GenericName[nn]=Fildelingsprogram
 GenericName[tr]=P2P dosya paylaşım programı
+Keywords=file-sharing
 TryExec=gtk-gnutella
 Exec=gtk-gnutella
 StartupNotify=false

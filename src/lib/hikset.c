@@ -41,8 +41,8 @@
  * we keep the offset of the key within the item, so we can always derive a
  * proper hashing of the item.
  *
- * This allows to create a hash table, i.e store (key, value) tuples without
- * requiring an extra pointer for the value.
+ * This allows us to create a hash table, i.e store (key, value) tuples,
+ * without requiring an extra pointer for the value.
  *
  * The API is closer to hash sets than to hash tables.
  *

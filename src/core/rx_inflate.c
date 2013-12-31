@@ -185,8 +185,9 @@ rx_inflate_destroy(rxdrv_t *rx)
 		g_warning("while freeing decompressor for peer %s: %s",
 			gnet_host_to_string(&rx->host), zlib_strerror(ret));
 
-	WFREE(attr->inz);
+	WFREE_TYPE_NULL(attr->inz);
 	WFREE(attr);
+	rx->opaque = NULL;
 }
 
 /**

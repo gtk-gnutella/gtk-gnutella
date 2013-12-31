@@ -44,8 +44,8 @@
  * the key within the item, so we can always derive the address of the item
  * from that of the key.
  *
- * This allows to create a hash table, i.e store (key, value) tuples without
- * requiring an extra pointer for the value.
+ * This allows us to create a hash table, i.e store (key, value) tuples,
+ * without requiring an extra pointer for the value.
  *
  * The API is closer to hash sets than to hash tables.
  *

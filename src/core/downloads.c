@@ -5539,7 +5539,7 @@ download_ignore_requested(struct download *d)
 	if (!(SOCK_F_FORCE & d->cflags)) {
 		if (is_my_address_and_port(download_addr(d), download_port(d))) {
 			reason = IGNORE_OURSELVES;
-		} else if (hostiles_check(download_addr(d))) {
+		} else if (hostiles_is_bad(download_addr(d))) {
 			reason = IGNORE_HOSTILE;
 		} else if (ctl_limit(download_addr(d), CTL_D_OUTGOING)) {
 			reason = IGNORE_LIMIT;
@@ -10893,7 +10893,7 @@ lazy_ack_message_to_ui_string(const char *src)
  * Mark download as receiving data: download is becoming active.
  */
 static void
-download_mark_active(struct download *d, bool must_ignore)
+download_mark_active(struct download *d, bool must_ignore, bool is_followup)
 {
 	fileinfo_t *fi;
 
@@ -10903,10 +10903,40 @@ download_mark_active(struct download *d, bool must_ignore)
 	d->start_date = tm_time();
 	download_set_status(d, must_ignore ? GTA_DL_IGNORING : GTA_DL_RECEIVING);
 
-	if (fi->recvcount == 0) {		/* First source to begin receiving */
-		fi->recv_last_time = d->start_date;
-		fi->recv_last_rate = 0;
+	/*
+	 * If we're a browse/THEX download, we're not really receiving data
+	 * for the file so we don't need to increase fi->recvcount nor set the
+	 * fileinfo as dirty.
+	 */
+
+	if (!download_is_special(d)) {
+		/*
+		 * If first source to begin receiving, reset receive rate.
+		 *
+		 * The fi->recvcount is not enough to determine whether we're the first
+		 * source, since we download_clone() between each request and then stop
+		 * the parent.  Therefore, we need to to look at whether is_followup
+		 * is TRUE, meaning we're following-up on a request and fi->recvcount
+		 * being 0 means we're the only source for the file...
+		 *		--RAM, 2013-11-03
+		 */
+
+		if (
+			!is_followup &&
+			0 == fi->recvcount
+		) {
+			fi->recv_last_time = d->start_date;
+			fi->recv_last_rate = 0;
+		}
+
+		/*
+		 * Prepare reading buffers for regular download.
+		 */
+
+		buffers_alloc(d);
+		buffers_reset_reading(d);
 	}
+
 	fi->recvcount++;
 	fi->dirty_status = TRUE;
 
@@ -10933,15 +10963,6 @@ download_mark_active(struct download *d, bool must_ignore)
 
 		socket_tos_lowdelay(s);
 		socket_recv_buf(s, GNET_PROPERTY(download_rx_size) * 1024, TRUE);
-	}
-
-	/*
-	 * If not a browse-host request, prepare reading buffers.
-	 */
-
-	if (!(d->flags & (DL_F_BROWSE | DL_F_THEX))) {
-		buffers_alloc(d);
-		buffers_reset_reading(d);
 	}
 }
 
@@ -11432,7 +11453,7 @@ http_version_nofix:
 	}
 
 	if (is_dumb_spammer(download_vendor_str(d))) {	
-		hostiles_dynamic_add(download_addr(d), "dumb spammer");
+		hostiles_dynamic_add(download_addr(d), "dumb spammer", HSTL_DUMB);
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "%s", _("Spammer detected"));
 		return;
@@ -12306,11 +12327,11 @@ http_version_nofix:
 	}
 
 	/*
-	 * Done for a browse-host request.
+	 * Done for a special request (e.g. THEX or browse downloads).
 	 */
 
-	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
-		download_mark_active(d, FALSE);
+	if (download_is_special(d)) {
+		download_mark_active(d, FALSE, is_followup);
 
 		/*
 		 * If we have something in the socket buffer, feed it to the RX stack.
@@ -12471,7 +12492,7 @@ file_opened:
 	 * We're ready to receive.
 	 */
 
-	download_mark_active(d, must_ignore);
+	download_mark_active(d, must_ignore, is_followup);
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL || pipelined_response);
@@ -13878,10 +13899,12 @@ download_push_ack(struct gnutella_socket *s)
 	 * HTTP request, eventually.
 	 */
 
-	if (hostiles_check(s->addr)) {
+	if (hostiles_is_bad(s->addr)) {
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(socket_debug)) {
-			g_warning("discarding GIV string \"%s\" from hostile %s",
-				giv, host_addr_to_string(s->addr));
+			hostiles_flags_t flags = hostiles_check(s->addr);
+			g_warning("discarding GIV string \"%s\" from hostile %s (%s)",
+				giv, host_addr_to_string(s->addr),
+				hostiles_flags_to_string(flags));
 		}
 		goto discard;
 	}
@@ -16487,7 +16510,7 @@ download_timer(time_t now)
 			 * Update the global average reception rate periodically.
 			 */
 
-			{
+			if (!download_is_special(d)) {
 				fileinfo_t *fi = d->file_info;
 				time_delta_t delta = delta_time(now, fi->recv_last_time);
 

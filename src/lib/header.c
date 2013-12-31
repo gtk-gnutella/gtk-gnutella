@@ -361,7 +361,7 @@ header_reset(header_t *o)
 		htable_foreach_remove(o->headers, free_header_data, NULL);
 		htable_free_null(&o->headers);
 	}
-	slist_free_all(&o->fields, cast_to_slist_destroy(hfield_free));
+	slist_free_all(&o->fields, cast_to_free_fn(hfield_free));
 	o->flags = o->size = o->num_lines = 0;
 }
 

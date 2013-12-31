@@ -778,13 +778,12 @@ gtk_gnutella_exit(int exit_code)
 		do_sched_yield();
 	}
 
-	if (debugging(0) || signal_received || shutdown_requested)
-		g_info("gtk-gnutella shut down cleanly.");
+	g_info("gtk-gnutella shut down cleanly.");
 
 	if (shutdown_requested) {
 		handle_user_shutdown_request(shutdown_user_mode);
 		if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
-			g_info("gtk-gnutella will now restart itself.");
+			g_info("gtk-gnutella will now restart itself...");
 			crash_reexec();
 		}
 	}

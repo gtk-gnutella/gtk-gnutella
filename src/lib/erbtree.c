@@ -60,14 +60,14 @@
  *   (such as object descriptors or object alignment) is required.
  *
  * - On most architectures (at least the ones I'm using), pointers have some
- *   unused bits which can be used to store node's meta-data. This allows to
+ *   unused bits which can be used to store node's meta-data. This allows us to
  *   reduce the size of the node structure, and make them as small as possible.
  *
  * - Traversals in both direction are efficient.
  * 
  * - The trees don't store duplicate keys. It's fairly easy to implement
  *   duplicate from the user point of view (by having a list at the node for
- *   instance) and this allows to have a simple but efficient API (see below).
+ *   instance) and this enables a simple but efficient API (see below).
  *
  * 2. API
  *
@@ -926,19 +926,46 @@ erbtree_replace(erbtree_t *tree, rbnode_t *old, rbnode_t *new)
 	invalidate(old);
 }
 
+struct erbtree_foreach_args {
+	size_t offset;
+	data_fn_t cb;
+	void *data;
+};
+
+static void
+erbtree_foreach_recursive(rbnode_t *rn, const struct erbtree_foreach_args *args)
+{
+	if (rn->left != NULL)
+		erbtree_foreach_recursive(rn->left, args);
+
+	(*args->cb)(ptr_add_offset(rn, args->offset), args->data);
+
+	if (rn->right != NULL)
+		erbtree_foreach_recursive(rn->right, args);
+}
+
 /**
  * Traverse all the items in the tree, invoking the callback on each item.
  */
 void
 erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data)
 {
-	rbnode_t *rn;
-
 	erbtree_check(tree);
 
-	for (rn = erbtree_first(tree); rn != NULL; rn = erbtree_next(rn)) {
-		void *key = ptr_add_offset(rn, -tree->offset);
-		(*cb)(key, data);
+	/*
+	 * Since there is no tree modification during traversal, we can hardwire
+	 * the descent to be more efficient than the non-recursive traversal we
+	 * do in erbtree_foreach_remove().
+	 */
+
+	if (tree->root != NULL) {
+		struct erbtree_foreach_args args;
+
+		args.offset = -tree->offset;
+		args.cb = cb;
+		args.data = data;
+
+		erbtree_foreach_recursive(tree->root, &args);
 	}
 }
 

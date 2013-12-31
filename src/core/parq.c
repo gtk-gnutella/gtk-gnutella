@@ -1205,10 +1205,12 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 * HTTP request, eventually.
 	 */
 
-	if (hostiles_check(s->addr)) {
+	if (hostiles_is_bad(s->addr)) {
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(socket_debug)) {
-			g_warning("discarding GIV string \"%s\" from hostile %s",
-				queue, host_addr_to_string(s->addr));
+			hostiles_flags_t flags = hostiles_check(s->addr);
+			g_warning("discarding GIV string \"%s\" from hostile %s (%s)",
+				queue, host_addr_to_string(s->addr),
+				hostiles_flags_to_string(flags));
 		}
 		goto ignore;
 	}
@@ -4842,8 +4844,8 @@ parq_store(void *data, void *file_ptr)
 {
 	FILE *f = file_ptr;
 	struct parq_ul_queued *puq = data;
-	char last_buf[TIMESTAMP_BUF_LEN];
-	char enter_buf[TIMESTAMP_BUF_LEN];
+	char last_buf[TIMESTAMP_BUFLEN];
+	char enter_buf[TIMESTAMP_BUFLEN];
 	int expire;
 
 	/* We are not saving uploads which already finished an upload */

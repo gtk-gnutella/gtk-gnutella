@@ -1019,6 +1019,23 @@ hash_list_find(hash_list_t *hl, const void *key,
 }
 
 /**
+ * Find key in hashlist, returning pointer to the stored key.
+ *
+ * @return the item associated with the key if found, NULL otherwise.
+ */
+const void *
+hash_list_lookup(hash_list_t *hl, const void *key)
+{
+	struct hash_list_item *item;
+
+	hash_list_check(hl);
+
+	item = hikset_lookup(hl->ht, key);
+
+	return NULL == item ? NULL : item->key;
+}
+
+/**
  * Check whether hashlist contains the key.
  * @return TRUE if the key is present.
  */

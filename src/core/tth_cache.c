@@ -221,8 +221,8 @@ tth_cache_lookup(const struct tth *tth, filesize_t filesize)
 		if (stat(pathname, &sb)) {
 			leave_count = 0;
 			if (ENOENT != errno) {
-				g_warning("%s(%s): stat() failed: %m",
-					G_STRFUNC, tth_base32(tth));
+				g_warning("%s(%s): stat(\"%s\") failed: %m",
+					G_STRFUNC, tth_base32(tth), pathname);
 			}
 		} else {
 			leave_count = tth_cache_leave_count(tth, &sb);

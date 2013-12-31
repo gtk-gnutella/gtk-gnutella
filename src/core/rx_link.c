@@ -208,6 +208,7 @@ rx_link_destroy(rxdrv_t *rx)
 	}
 
 	WFREE(attr);
+	rx->opaque = NULL;
 }
 
 /**

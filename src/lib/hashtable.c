@@ -381,7 +381,7 @@ hash_table_new(void)
 }
 
 /**
- * Checks how many items are currently in stored in the hash_table.
+ * Checks how many items are currently stored in the hash_table.
  *
  * @param ht the hash_table to check.
  * @return the number of items in the hash_table.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, 2012 Raphael Manfredi
+ * Copyright (c) 2001-2003, 2012-2013 Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  *----------------------------------------------------------------------
@@ -31,7 +31,7 @@
  * @author Daniel Walker (dwalker@cats.ucsc.edu)
  * @date 2000
  * @author Raphael Manfredi
- * @date 2001-2003, 2012
+ * @date 2001-2003, 2012-2013
  */
 
 #include "common.h"
@@ -44,6 +44,7 @@
 #endif
 
 #include "sockets.h"
+
 #include "ban.h"
 #include "bsched.h"
 #include "ctl.h"
@@ -70,14 +71,18 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/adns.h"
+#include "lib/aging.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/compat_un.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/fd.h"
 #include "lib/getline.h"
+#include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/once.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -105,6 +110,7 @@
 #define MAX_UDP_LOOP_MS		37		/**< Amount of CPU time we can spend */
 #define UDP_QUEUED_GUESS	65536	/**< Guess amount of pending RX input */
 #define UDP_QUEUE_DELAY_MS	250		/**< RX queue processing delay */
+#define TLS_BAN_FREQ		300		/**< Avoid TLS for 5 minutes */
 
 enum {
 	SOCK_ADNS_PENDING	= 1 << 0,	/**< Don't free() the socket too early */
@@ -119,10 +125,32 @@ struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
+static aging_table_t *tls_ban;
+static bool tls_ban_inited;
+
 static bool socket_shutdowned;		/**< Set when layer has been shutdowned */
 
 static void socket_accept(void *data, int, inputevt_cond_t cond);
 static bool socket_reconnect(struct gnutella_socket *s);
+
+static void
+tls_ban_init(void)
+{
+	tls_ban = aging_make(TLS_BAN_FREQ,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+}
+
+static bool
+socket_tls_banned(const host_addr_t addr, const uint16 port)
+{
+	gnet_host_t to;
+
+	if (NULL == tls_ban)
+		return FALSE;
+
+	gnet_host_set(&to, addr, port);
+	return NULL != aging_lookup(tls_ban, &to);
+}
 
 static struct gnutella_socket *
 socket_alloc(void)
@@ -1307,6 +1335,8 @@ socket_closedown(void)
 	socket_free_null(&s_tcp_listen6);
 	socket_free_null(&s_udp_listen);
 	socket_free_null(&s_udp_listen6);
+
+	aging_destroy(&tls_ban);
 }
 
 /* ----------------------------------------- */
@@ -1815,17 +1845,20 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * get banned silently.
 	 */
 
-	if (hostiles_check(s->addr)) {
+	if (hostiles_is_bad(s->addr)) {
 		static const char msg[] = "Hostile IP address banned";
 
 		socket_disable_token(s);
 
 		if (GNET_PROPERTY(socket_debug)) {
 			const char *string = first;
+			hostiles_flags_t flags = hostiles_check(s->addr);
+
 			if (!is_printable_iso8859_string(first))
 				string = "<non-printable request>";
-			g_warning("denying connection from hostile %s: \"%s\"",
-				host_addr_to_string(s->addr), string);
+			g_warning("denying connection from hostile %s (%s): \"%s\"",
+				host_addr_to_string(s->addr),
+				hostiles_flags_to_string(flags), string);
 		}
 
 		if (is_strprefix(first, GNUTELLA_HELLO))
@@ -3024,10 +3057,12 @@ socket_connection_allowed(const host_addr_t addr, enum socket_type type)
 {
 	unsigned flag = 0;
 
-	if (hostiles_check(addr)) {
+	if (hostiles_is_bad(addr)) {
 		if (GNET_PROPERTY(socket_debug)) {
-			g_warning("not connecting [%s] to hostile host %s",
-				socket_type_to_string(type), host_addr_to_string(addr));
+			hostiles_flags_t flags = hostiles_check(addr);
+			g_warning("not connecting [%s] to hostile host %s (%s)",
+				socket_type_to_string(type), host_addr_to_string(addr),
+				hostiles_flags_to_string(flags));
 		}
 		errno = EPERM;
 		return -1;
@@ -3084,9 +3119,16 @@ socket_connect_prepare(struct gnutella_socket *s,
 		flags |= SOCK_F_PREPARED;
 	}
 
-	if (0 == (SOCK_F_TLS & flags) && tls_cache_lookup(addr, port)) {
+	if (
+		0 == (SOCK_F_TLS & flags) &&
+		tls_cache_lookup(addr, port) &&
+		!socket_tls_banned(addr, port)
+	) {
 		flags |= SOCK_F_TLS;
 	}
+
+	if ((flags & SOCK_F_TLS) && socket_tls_banned(addr, port))
+		flags &= ~SOCK_F_TLS;
 
 	addr = socket_ipv6_trt_map(addr);
 	if (NET_TYPE_NONE == host_addr_net(addr)) {
@@ -3326,6 +3368,8 @@ socket_connect(const host_addr_t ha, uint16 port,
 static bool
 socket_reconnect(struct gnutella_socket *s)
 {
+	gnet_host_t to;
+
 	socket_check(s);
 	g_assert(s->flags & SOCK_F_TCP);
 
@@ -3337,10 +3381,31 @@ socket_reconnect(struct gnutella_socket *s)
 		tls_free(s);
 	}
 
+	/*
+	 * Remove host from the TLS cache because if it is present there, then
+	 * socket_connect_prepare() will re-enable SOCK_F_TLS automatically and
+	 * we want to avoid TLS on a reconnection.
+	 *		--RAM, 2013-12-04
+	 */
+
+	tls_cache_remove(s->addr, s->port);
+
+	/*
+	 * Also ban TLS connections within the next TLS_BAN_FREQ seconds to avoid
+	 * the same host re-advertising TLS support, with the connection failing
+	 * over and over.
+	 *		--RAM, 2013-12-08
+	 */
+
+	once_run(&tls_ban_inited, tls_ban_init);
+
+	gnet_host_set(&to, s->addr, s->port);
+	aging_insert(tls_ban, atom_host_get(&to), int_to_pointer(1));
+
 	if (0 != socket_connect_prepare(s, s->addr, s->port, s->type, SOCK_F_FORCE))
 		return FALSE;
 
-	g_soft_assert(!socket_with_tls(s));
+	g_soft_assert(!s->tls.enabled);
 
 	return 0 == socket_connect_finalize(s, s->addr, FALSE);
 }
@@ -3380,6 +3445,9 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 
 	addr = addrs[random_value(n - 1)];
 	can_tls = 0 != (SOCK_F_TLS & s->flags) || tls_cache_lookup(addr, s->port);
+
+	if (can_tls && socket_tls_banned(addr, s->port))
+		can_tls = FALSE;
 
 	if (
 		s->net != host_addr_net(addr) ||
