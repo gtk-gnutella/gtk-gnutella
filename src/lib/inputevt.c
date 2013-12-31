@@ -109,6 +109,7 @@ typedef struct {
 #include "bit_array.h"
 #include "compat_poll.h"
 #include "fd.h"
+#include "glib-missing.h"	/* For g_main_context_get_poll_func() with GTK1 */
 #include "hashlist.h"
 #include "htable.h"
 #include "inputevt.h"
