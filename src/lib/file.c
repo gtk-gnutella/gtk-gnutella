@@ -466,12 +466,14 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
 
 /**
  * Open file, returning file descriptor or -1 on error with errno set.
- * Errors are logged as a warning, unless `missing' is true, in which
+ * Errors are logged as a warning, unless `missing' is TRUE, in which
  * case no error is logged for ENOENT.
+ * No errors from open() due to invalid permission are logged when `silent'
+ * is TRUE.
  */
 static int
 do_open(const char *path, int flags, int mode,
-	bool missing, bool absolute)
+	bool missing, bool absolute, bool silent)
 {
 	const char *what;
 	int fd;
@@ -491,9 +493,9 @@ do_open(const char *path, int flags, int mode,
 	if (fd < 0) {
 		if (flags & O_CREAT)
 			what = "create";
-		else if (flags & O_RDONLY)
+		else if (O_RDONLY == (flags & O_ACCMODE))
 			what = "read";
-		else if (flags & O_WRONLY)
+		else if (O_WRONLY == (flags & O_ACCMODE))
 			what = "write into";
 		else
 			what = "open";
@@ -509,7 +511,7 @@ do_open(const char *path, int flags, int mode,
 		) {
 			fd = open(path, flags, mode);
 			if (fd >= 0) {
-				s_warning("%s(): had to close a banned fd to %s file",
+				s_message("%s(): had to reclaim an unused to %s file",
 					G_STRFUNC, what);
 			}
 		}
@@ -535,7 +537,9 @@ do_open(const char *path, int flags, int mode,
 	}
 
 	if (!missing || errno != ENOENT) {
-		s_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
+		if (!silent || errno != EACCES) {
+			s_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
+		}
 	}
 
 	return -1;
@@ -551,7 +555,16 @@ do_open(const char *path, int flags, int mode,
 int
 file_open(const char *path, int flags, int mode)
 {
-	return do_open(path, flags, mode, FALSE, FALSE);
+	return do_open(path, flags, mode, FALSE, FALSE, FALSE);
+}
+
+/**
+ * Same as file_open(), no open() errors logged, but can reclaim fd on shortage.
+ */
+int
+file_open_silent(const char *path, int flags, int mode)
+{
+	return do_open(path, flags, mode, FALSE, FALSE, TRUE);
 }
 
 /**
@@ -562,7 +575,16 @@ file_open(const char *path, int flags, int mode)
 int
 file_absolute_open(const char *path, int flags, int mode)
 {
-	return do_open(path, flags, mode, FALSE, TRUE);
+	return do_open(path, flags, mode, FALSE, TRUE, FALSE);
+}
+
+/*
+ * Same as file_absolute_open(), no open() error logged.
+ */
+int
+file_absolute_open_silent(const char *path, int flags, int mode)
+{
+	return do_open(path, flags, mode, FALSE, TRUE, TRUE);
 }
 
 /**
@@ -573,7 +595,16 @@ file_absolute_open(const char *path, int flags, int mode)
 int
 file_open_missing(const char *path, int flags)
 {
-	return do_open(path, flags, 0, TRUE, TRUE);
+	return do_open(path, flags, 0, TRUE, TRUE, FALSE);
+}
+
+/**
+ * Same as file_open_missing(), no error logging.
+ */
+int
+file_open_missing_silent(const char *path, int flags)
+{
+	return do_open(path, flags, 0, TRUE, TRUE, TRUE);
 }
 
 /**
@@ -583,7 +614,7 @@ file_open_missing(const char *path, int flags)
 int
 file_create(const char *path, int flags, int mode)
 {
-	return do_open(path, flags | O_CREAT, mode, FALSE, TRUE);
+	return do_open(path, flags | O_CREAT, mode, FALSE, TRUE, FALSE);
 }
 
 /**
@@ -594,7 +625,7 @@ file_create(const char *path, int flags, int mode)
 int
 file_create_missing(const char *path, int flags, int mode)
 {
-	return do_open(path, flags | O_CREAT, mode, TRUE, TRUE);
+	return do_open(path, flags | O_CREAT, mode, TRUE, TRUE, FALSE);
 }
 
 /**

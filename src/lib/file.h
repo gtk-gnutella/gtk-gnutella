@@ -69,8 +69,11 @@ const char *file_oflags_to_string(int flags);
 const char *file_accmode_to_string(const int accmode) G_GNUC_CONST;
 
 int file_open(const char *path, int flags, int mode);
+int file_open_silent(const char *path, int flags, int mode);
 int file_absolute_open(const char *path, int flags, int mode);
+int file_absolute_open_silent(const char *path, int flags, int mode);
 int file_open_missing(const char *path, int flags);
+int file_open_missing_silent(const char *path, int flags);
 int file_create(const char *path, int flags, int mode);
 int file_create_missing(const char *path, int flags, int mode);
 FILE *file_fopen(const char *path, const char *mode);
