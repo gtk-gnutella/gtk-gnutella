@@ -748,12 +748,20 @@ stacktrace_load_symbols(void)
 
 	/*
 	 * If we are being called before stacktrace_init(), then derive a proper
-	 * path using the dynamic linker.
+	 * path using the dynamic linker.  In case we only get a relative path
+	 * that cannot be found from our current location, attempt to locate the
+	 * program in the user's PATH environment variable.
 	 */
 
 	if G_UNLIKELY(NULL == program_path) {
 		const char *path = dl_util_get_path(func_to_pointer(stacktrace_init));
-		program_path = ostrdup_readonly(path);
+		if (!file_exists(path)) {
+			char *fpath = file_locate_from_path(filepath_basename(path));
+			program_path = ostrdup_readonly(fpath != NULL ? fpath : path);
+			HFREE_NULL(fpath);
+		} else {
+			program_path = ostrdup_readonly(path);
+		}
 	}
 
 	/*
@@ -765,7 +773,7 @@ stacktrace_load_symbols(void)
 		filestat_t buf;
 
 		if (-1 == stat(program_path, &buf)) {
-			s_warning("cannot stat \"%s\": %m", program_path);
+			s_warning("%s(): cannot stat \"%s\": %m", G_STRFUNC, program_path);
 			goto error;
 		}
 
@@ -775,8 +783,8 @@ stacktrace_load_symbols(void)
 		 */
 
 		if (program_mtime != 0 && buf.st_mtime != program_mtime) {
-			s_warning("executable file \"%s\" has been tampered with",
-				program_path);
+			s_warning("%s(): executable file \"%s\" has been tampered with",
+				G_STRFUNC, program_path);
 
 			stale = TRUE;
 
@@ -790,7 +798,7 @@ stacktrace_load_symbols(void)
 
 error:
 	if (program_path != NULL) {
-		s_warning("cannot load symbols for %s", program_path);
+		s_warning("%s(): cannot load symbols for %s", G_STRFUNC, program_path);
 	}
 }
 
