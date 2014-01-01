@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006 Christian Biere
- * Copyright (c) 2013 Raphael Manfredi
+ * Copyright (c) 2013-2014 Raphael Manfredi
  *
  *
  *----------------------------------------------------------------------
@@ -32,7 +32,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2013
+ * @date 2013-2014
  */
 
 /**
@@ -68,10 +68,16 @@
  *     // Error handling
  *  }
  *
- * Internally, all files are opened O_RDWR to be able to share the file
- * descriptors, but the API checks the access mode and will loudly complain
- * if the user is trying to read from a write-only file for instance, since
- * that indicates a programming error.
+ * Internally, all files are opened O_RDWR if possible to be able to share
+ * the file descriptors, but the API checks the access mode and will loudly
+ * complain if the user is trying to read from a write-only file for instance,
+ * since that indicates a programming error.
+ *
+ * If the underlying file cannot be opened O_RDWR, we open it for the type of
+ * access the user wants (e.g. O_RDONLY), but then any attempt to open the
+ * file with O_WRONLY will be trapped by this layer to return EACCES, unless
+ * by then permissions on the filesystem have changed and we can re-open the
+ * file transparently in O_RDWR mode.
  */
 
 #include "common.h"
@@ -91,6 +97,7 @@
 #include "once.h"
 #include "path.h"
 #include "pslist.h"
+#include "spinlock.h"
 #include "str.h"			/* For str_private() */
 #include "walloc.h"
 
@@ -145,8 +152,10 @@ struct file_descriptor {
 	enum file_descriptor_magic magic;
 	const char *pathname;		/* Atom, internal indexing key */
 	int refcnt;					/* Reference count */
-	int fd;						/* The file descriptor, opened O_RDWR */
+	int fd;						/* The file descriptor, opened O_RDWR usually */
+	int omode;					/* Opening mode of file descriptor */
 	bool revoked;				/* Whether descriptor was revoked */
+	spinlock_t lock;			/* Concurrent access protection */
 };
 
 static inline void
@@ -165,6 +174,18 @@ file_descriptor_check(const struct file_descriptor * const fd)
 	g_assert(fd->refcnt < INT_MAX);
 }
 
+/*
+ * It is necessary to lock descriptors for each operation accessing the
+ * kernel file descriptor held within because of possible concurrent renaming
+ * or file moving operation that could happen.  This means all pread() and
+ * pwrite() I/Os done from here are serialized for a given file descriptor.
+ */
+
+#define FILE_DESCRIPTOR_LOCK(fd)	spinlock_const(&(fd)->lock)
+#define FILE_DESCRIPTOR_UNLOCK(fd)	spinunlock_const(&(fd)->lock)
+
+#define FILE_DESCRIPTOR_LOCKED(fd)	spinlock_is_held(&(fd)->lock)
+
 static inline void
 file_object_check(const file_object_t * const fo)
 {
@@ -176,15 +197,15 @@ file_object_check(const file_object_t * const fo)
  * @return English description of file opening mode.
  */
 static const char *
-file_object_mode_to_string(const file_object_t * const fo)
+file_object_mode_to_string(const int mode)
 {
-	switch (fo->accmode) {
+	switch (mode) {
 	case O_RDONLY:	return "read-only";
 	case O_WRONLY:	return "write-only";
 	case O_RDWR:	return "read-write";
 	}
 
-	return str_smsg("mode 0%o", fo->accmode);
+	return str_smsg("mode 0%o", mode);
 }
 
 /**
@@ -263,6 +284,7 @@ file_object_free_descriptor(struct file_descriptor * const fd)
 
 	fd_close(&fd->fd);
 	atom_str_free_null(&fd->pathname);
+	spinlock_destroy(&fd->lock);
 	fd->magic = 0;
 	WFREE(fd);
 }
@@ -275,9 +297,10 @@ file_object_free_descriptor(struct file_descriptor * const fd)
  *
  * @param d				kernel descriptor for opened file
  * @param pathname		absolute pathname
+ * @param omode			opening mode (O_RDONLY, O_WRONLY, O_RDWR)
  */
 static struct file_descriptor *
-file_object_new_descriptor(const int d, const char * const pathname)
+file_object_new_descriptor(const int d, const char * const pathname, int omode)
 {
 	struct file_descriptor *fd, *fdn;
 
@@ -291,8 +314,8 @@ file_object_new_descriptor(const int d, const char * const pathname)
 
 	WALLOC0(fdn);
 	fdn->magic = FILE_DESCRIPTOR_MAGIC;
-	fdn->pathname = atom_str_get(pathname);
 	fdn->fd = d;
+	spinlock_init(&fdn->lock);
 
 	FILE_OBJECTS_LOCK;
 	fd = file_object_find(pathname);
@@ -307,9 +330,21 @@ file_object_new_descriptor(const int d, const char * const pathname)
 
 		/*
 		 * Free the object we had created, which will close ``d''.
+		 *
+		 * However, if we managed to open ``d'' with O_RDWR and the
+		 * descriptor is currently not opened with O_RDWR, swap in the
+		 * kernel file descriptors.
 		 */
 
 		g_assert(fd->fd != d);
+
+		if (fd->omode != O_RDWR && O_RDWR == omode) {
+			FILE_DESCRIPTOR_LOCK(fd);
+			fdn->fd = fd->fd;			/* The previously opened file */
+			fd->fd = d;					/* The newly opened file, O_RDWR now */
+			fd->omode = omode;
+			FILE_DESCRIPTOR_UNLOCK(fd);
+		}
 
 		file_object_free_descriptor(fdn);
 		return fd;
@@ -320,6 +355,8 @@ file_object_new_descriptor(const int d, const char * const pathname)
 	 */
 
 	fdn->refcnt = 1;
+	fdn->pathname = atom_str_get(pathname);
+	fdn->omode = omode;
 	file_object_insert(fdn);
 	FILE_OBJECTS_UNLOCK;
 
@@ -378,17 +415,11 @@ file_object_revoke(struct file_descriptor * const fd)
 }
 
 /**
- * Free file object.
+ * Remove a reference on a file descriptor, freeing it if it reaches zero.
  */
 static void
-file_object_free(file_object_t *fo)
+file_object_unref_descriptor(struct file_descriptor *fd)
 {
-	struct file_descriptor *fd;
-
-	file_object_check(fo);
-
-	fd = fo->fd;
-
 	/*
 	 * If d->refcnt is not zero, we don't need to take the global lock.
 	 * Otherwise, we need to take the lock and recheck, since file descriptor
@@ -406,11 +437,97 @@ file_object_free(file_object_t *fo)
 		if (need_free)
 			file_object_free_descriptor(fd);
 	}
+}
 
+/**
+ * Free file object.
+ */
+static void
+file_object_free(file_object_t *fo)
+{
+	file_object_check(fo);
+
+	file_object_unref_descriptor(fo->fd);
 	hset_remove(file_objects, fo);
-
 	fo->magic = 0;
 	WFREE(fo);
+}
+
+/**
+ * Check whether the kernel file descriptor is opened with the proper access
+ * mode for the I/O operations that the user wants.
+ *
+ * @param fd		the internal file descriptor we have already
+ * @param pathname	the file they wish to access
+ * @param accmode	the access mode the user wants to perform on the file
+ *
+ * @return TRUE if OK, FALSE if the permissions are not adequate.
+ */
+static bool
+file_object_descriptor_is_compatible(struct file_descriptor *fd,
+	const char *pathname, int accmode)
+{
+	int d;
+
+	/*
+	 * We are not always able to open the file in O_RDWR mode internally.
+	 * For instance, a file could be marked as read-only on the file system
+	 * and therefore can only be opened for reading.
+	 *
+	 * If the kernel file opening mode does not match what they want, try
+	 * to re-open the file (permissions may have changed on the file system.
+	 */
+
+	if G_LIKELY(O_RDWR == fd->omode)
+		return TRUE;
+
+	if (fd->omode == accmode)
+		return TRUE;
+
+	/*
+	 * Try to upgrade the kernel file descriptor.
+	 */
+
+	if (O_RDONLY == accmode) {
+		d = file_absolute_open_silent(pathname, O_RDWR, 0);
+	} else {
+		d = file_open_missing_silent(pathname, O_RDWR);
+	}
+
+	if (-1 == d)
+		return FALSE;
+
+	/*
+	 * We managed to opend the file in read-write mode, update the
+	 * file descriptor.
+	 */
+
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	if (fd->omode != O_RDWR) {
+		/*
+		 * Replace kernel descriptor with new one and upgrade to O_RDWR mode.
+		 *
+		 * @attention
+		 * This is not the traditional UNIX semantics: releasing the old kernel
+		 * fd and attaching the new one is not safe: the file could have changed
+		 * on the disk and we're now replacing I/Os to the old file with I/Os
+		 * to a new file.  But with cached file_object I/Os, one needs to
+		 * perform a file_object_unlink() operation to unlink a file.  If the
+		 * file is changed on the filesystem directly via an unlink(), all bets
+		 * are off.
+		 */
+		close(fd->fd);
+		fd->fd = d;
+		fd->omode = O_RDWR;
+	} else {
+		/* Race condition, close new file */
+		close(d);
+	}
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
+	return TRUE;		/* OK, since we managed to get a read-write fd */
 }
 
 /**
@@ -442,6 +559,11 @@ file_object_open_from(const char * const pathname, int accmode,
 
 	if (fd != NULL) {
 		atomic_int_inc(&fd->refcnt);
+		if (!file_object_descriptor_is_compatible(fd, pathname, accmode)) {
+			file_object_unref_descriptor(fd);
+			errno = EACCES;
+			return NULL;			/* Permission denied */
+		}
 	} else {
 		int d;
 
@@ -455,13 +577,29 @@ file_object_open_from(const char * const pathname, int accmode,
 		 */
 
 		if (O_RDONLY == accmode) {
-			 d = file_absolute_open(pathname, O_RDWR, 0);
+			d = file_absolute_open_silent(pathname, O_RDWR, 0);
 		} else {
-			 d = file_open_missing(pathname, O_RDWR);
+			d = file_open_missing_silent(pathname, O_RDWR);
 		}
 
 		if G_LIKELY(d >= 0) {
-			fd = file_object_new_descriptor(d, pathname);
+			fd = file_object_new_descriptor(d, pathname, O_RDWR);
+		} else if (EACCES == errno) {
+			/*
+			 * Could not open the file with read-write access.  Maybe the
+			 * file exists already and therefore cannot be opened as both
+			 * read-and-write...  Try the access mode they want, do not force
+			 * read-write.
+			 */
+
+			if (O_RDONLY == accmode) {
+				d = file_absolute_open(pathname, O_RDONLY, 0);
+			} else {
+				d = file_open_missing(pathname, accmode);
+			}
+
+			if (d >= 0)
+				fd = file_object_new_descriptor(d, pathname, accmode);
 		}
 	}
 
@@ -503,6 +641,11 @@ file_object_create_from(const char * const pathname, int accmode, mode_t mode,
 
 	if (fd != NULL) {
 		atomic_int_inc(&fd->refcnt);
+		if (!file_object_descriptor_is_compatible(fd, pathname, accmode)) {
+			file_object_unref_descriptor(fd);
+			errno = EACCES;
+			return NULL;			/* Permission denied */
+		}
 	} else {
 		int d;
 
@@ -515,10 +658,21 @@ file_object_create_from(const char * const pathname, int accmode, mode_t mode,
 		 * file_object_new_descriptor().
 		 */
 
-		 d = file_create(pathname, O_RDWR, mode);
+		d = file_create(pathname, O_RDWR, mode);
 
 		if G_LIKELY(d >= 0) {
-			fd = file_object_new_descriptor(d, pathname);
+			fd = file_object_new_descriptor(d, pathname, O_RDWR);
+		} else if (EACCES == errno) {
+			/*
+			 * Could not open the file with read-write access.  Maybe the
+			 * file exists already and therefore cannot be opened as both
+			 * read-and-write...  Try the access mode they want, do not force
+			 * read-write.
+			 */
+
+			d = file_create(pathname, accmode, mode);
+			if (d >= 0)
+				fd = file_object_new_descriptor(d, pathname, accmode);
 		}
 	}
 
@@ -629,6 +783,9 @@ file_object_special_op(enum file_object_op op,
 	FILE_OBJECTS_LOCK;
 	fd = file_object_find(old_name);
 
+	if (fd != NULL)
+		FILE_DESCRIPTOR_LOCK(fd);
+
 	/*
 	 * On Windows, close all the files prior renaming / unlinking.
 	 *
@@ -709,12 +866,12 @@ reopen:
 	 */
 
 	if (FO_OP_MOVED == op || is_running_on_mingw()) {
-		fd->fd = file_absolute_open(fd->pathname, O_RDWR, 0);
+		fd->fd = file_absolute_open(fd->pathname, fd->omode, 0);
 
 		if (!is_valid_fd(fd->fd)) {
-			s_warning("%s(): cannot reopen \"%s\" "
+			s_warning("%s(): cannot reopen \"%s\" %s "
 				"after %s %s of \"%s\": %m",
-				G_STRFUNC, fd->pathname,
+				G_STRFUNC, fd->pathname, file_object_mode_to_string(fd->omode),
 				ok ? "successful" : "failed", file_object_op_to_string(op),
 				old_name);
 		}
@@ -723,6 +880,8 @@ reopen:
 	/* FALL THROUGH */
 
 done:
+	if (fd != NULL)
+		FILE_DESCRIPTOR_UNLOCK(fd);
 	FILE_OBJECTS_UNLOCK;
 
 	if (!ok)
@@ -807,7 +966,8 @@ file_object_eperm(const file_object_t * const fo, const char *what,
 	const char *where)
 {
 	s_carp("%s(): cannot %s to file opened %s at %s:%d",
-		where, what, file_object_mode_to_string(fo), fo->file, fo->line);
+		where, what,
+		file_object_mode_to_string(fo->accmode), fo->file, fo->line);
 
 	errno = EPERM;
 	return (ssize_t) -1;
@@ -847,18 +1007,23 @@ file_object_pwrite(const file_object_t * const fo,
 	const void * const data, const size_t size, const filesize_t offset)
 {
 	const struct file_descriptor *fd;
+	ssize_t w;
 
 	file_object_check(fo);
 
 	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
 
 	if G_UNLIKELY(!is_valid_fd(fd->fd))
-		return file_object_ebadf();
+		w = file_object_ebadf();
+	else if G_UNLIKELY(!file_object_writable(fo))
+		w = file_object_eperm(fo, "write", G_STRFUNC);
+	else
+		w = compat_pwrite(fd->fd, data, size, offset);
 
-	if G_UNLIKELY(!file_object_writable(fo))
-		return file_object_eperm(fo, "write", G_STRFUNC);
+	FILE_DESCRIPTOR_UNLOCK(fd);
 
-	return compat_pwrite(fd->fd, data, size, offset);
+	return w;
 }
 
 /**
@@ -877,20 +1042,25 @@ file_object_pwritev(const file_object_t * const fo,
 	const iovec_t * iov, const int iov_cnt, const filesize_t offset)
 {
 	const struct file_descriptor *fd;
+	ssize_t w;
 
 	file_object_check(fo);
 	g_assert(iov != NULL);
 	g_assert(iov_cnt > 0);
 
 	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
 
 	if G_UNLIKELY(!is_valid_fd(fd->fd))
-		return file_object_ebadf();
+		w = file_object_ebadf();
+	else if G_UNLIKELY(!file_object_writable(fo))
+		w = file_object_eperm(fo, "write", G_STRFUNC);
+	else
+		w = compat_pwritev(fd->fd, iov, iov_cnt, offset);
 
-	if G_UNLIKELY(!file_object_writable(fo))
-		return file_object_eperm(fo, "write", G_STRFUNC);
+	FILE_DESCRIPTOR_UNLOCK(fd);
 
-	return compat_pwritev(fd->fd, iov, iov_cnt, offset);
+	return w;
 }
 
 /**
@@ -909,18 +1079,23 @@ file_object_pread(const file_object_t * const fo,
 	void * const data, const size_t size, const filesize_t offset)
 {
 	const struct file_descriptor *fd;
+	ssize_t r;
 
 	file_object_check(fo);
 
 	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
 
 	if G_UNLIKELY(!is_valid_fd(fd->fd))
-		return file_object_ebadf();
+		r = file_object_ebadf();
+	else if G_UNLIKELY(!file_object_readable(fo))
+		r = file_object_eperm(fo, "read", G_STRFUNC);
+	else
+		r = compat_pread(fd->fd, data, size, offset);
 
-	if G_UNLIKELY(!file_object_readable(fo))
-		return file_object_eperm(fo, "read", G_STRFUNC);
+	FILE_DESCRIPTOR_UNLOCK(fd);
 
-	return compat_pread(fd->fd, data, size, offset);
+	return r;
 }
 
 /**
@@ -939,35 +1114,25 @@ file_object_preadv(const file_object_t * const fo,
 	iovec_t * const iov, const int iov_cnt, const filesize_t offset)
 {
 	const struct file_descriptor *fd;
+	ssize_t r;
 
 	file_object_check(fo);
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
 
 	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
 
 	if G_UNLIKELY(!is_valid_fd(fd->fd))
-		return file_object_ebadf();
+		r = file_object_ebadf();
+	else if G_UNLIKELY(!file_object_readable(fo))
+		r = file_object_eperm(fo, "read", G_STRFUNC);
+	else
+		r = compat_preadv(fd->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
 
-	if G_UNLIKELY(!file_object_readable(fo))
-		return file_object_eperm(fo, "read", G_STRFUNC);
+	FILE_DESCRIPTOR_UNLOCK(fd);
 
-	return compat_preadv(fd->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
-}
-
-/**
- * @return internal open file descriptor.
- */
-static int
-file_object_open_fd(const file_object_t * const fo)
-{
-	const struct file_descriptor *fd;
-
-	file_object_check(fo);
-	fd = fo->fd;
-	g_assert(is_valid_fd(fd->fd));
-
-	return fd->fd;
+	return r;
 }
 
 /**
@@ -978,9 +1143,20 @@ file_object_open_fd(const file_object_t * const fo)
 int
 file_object_fstat(const file_object_t * const fo, filestat_t *buf)
 {
-	int fd = file_object_open_fd(fo);
+	const struct file_descriptor *fd;
+	int s;
 
-	return fstat(fd, buf);
+	file_object_check(fo);
+
+	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	g_assert(is_valid_fd(fd->fd));
+	s = fstat(fd->fd, buf);
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
+	return s;
 }
 
 /**
@@ -991,9 +1167,20 @@ file_object_fstat(const file_object_t * const fo, filestat_t *buf)
 int
 file_object_ftruncate(const file_object_t * const fo, filesize_t off)
 {
-	int fd = file_object_open_fd(fo);
+	const struct file_descriptor *fd;
+	int s;
 
-	return ftruncate(fd, off);
+	file_object_check(fo);
+
+	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	g_assert(is_valid_fd(fd->fd));
+	s = ftruncate(fd->fd, off);
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
+	return s;
 }
 
 /**
@@ -1002,9 +1189,17 @@ file_object_ftruncate(const file_object_t * const fo, filesize_t off)
 void
 file_object_fadvise_sequential(const file_object_t * const fo)
 {
-	int fd = file_object_open_fd(fo);
+	const struct file_descriptor *fd;
 
-	compat_fadvise_sequential(fd, 0, 0);
+	file_object_check(fo);
+
+	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	g_assert(is_valid_fd(fd->fd));
+	compat_fadvise_sequential(fd->fd, 0, 0);
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
 }
 
 /**
@@ -1013,13 +1208,32 @@ file_object_fadvise_sequential(const file_object_t * const fo)
  * cached. Future versions might open/close the file descriptor on
  * demand or dynamically.
  *
- * @param An initialized file object.
+ * @warning
+ * If a concurrent renaming operation happens on Windows, or a concurrent
+ * file moving operation occurred, the file descriptor we're returning might
+ * already be obsolete.
+ *
+ * @param fo		An initialized file object.
+ *
  * @return The file descriptor of the file object.
  */
 int
 file_object_fd(const file_object_t * const fo)
 {
-	return file_object_open_fd(fo);
+	const struct file_descriptor *fd;
+	int d;
+
+	file_object_check(fo);
+
+	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	g_assert(is_valid_fd(fd->fd));
+	d = fd->fd;
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
+	return d;	/* Might already be obsolete if concurrent rename / moving */
 }
 
 /**
@@ -1059,10 +1273,10 @@ file_object_pathname(const file_object_t * const fo)
 
 	fd = fo->fd;
 
-	FILE_OBJECTS_LOCK;
+	FILE_DESCRIPTOR_LOCK(fd);
 	pathname = fd->pathname;
 	str_cpy(s, pathname);
-	FILE_OBJECTS_UNLOCK;
+	FILE_DESCRIPTOR_UNLOCK(fd);
 
 	return str_2c(s);
 }
@@ -1111,7 +1325,7 @@ file_object_show_item(const void *value, void *unused_udata)
 	file_object_check(fo);
 
 	s_warning("leaked file object: pathname=\"%s\", opened %s at %s:%d",
-		file_object_pathname(fo), file_object_mode_to_string(fo),
+		file_object_pathname(fo), file_object_mode_to_string(fo->accmode),
 		fo->file, fo->line);
 }
 
@@ -1171,8 +1385,13 @@ file_object_info_get(const void *data, void *udata)
 	foi->magic = FILE_OBJECT_INFO_MAGIC;
 
 	fd = fo->fd;
+	FILE_DESCRIPTOR_LOCK(fd);
+
 	foi->path = atom_str_get(fd->pathname);
 	foi->refcnt = fd->refcnt;
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
 	foi->mode = fo->accmode;
 	foi->file = fo->file;
 	foi->line = fo->line;
