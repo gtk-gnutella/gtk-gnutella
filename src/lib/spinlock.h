@@ -159,6 +159,12 @@ void spinlock_raw_from(spinlock_t *s, const char *file, unsigned line);
 #define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
 #define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
 
+#define spinlock_const(x) \
+	spinlock_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
+
+#define spinlock_try_const(x) \
+	spinlock_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
+
 #define spinlock_hidden(x) \
 	spinlock_grab_from((x), TRUE, _WHERE_, __LINE__)
 
@@ -176,6 +182,8 @@ void spinlock_raw_from(spinlock_t *s, const char *file, unsigned line);
 #define spinunlock(x)			spinlock_release((x), FALSE)
 #define spinunlock_hidden(x)	spinlock_release((x), TRUE)
 #define spinunlock_raw(x)		spinlock_release((x), TRUE)
+
+#define spinunlock_const(x)		spinlock_release(deconstify_pointer(x), FALSE)
 
 #ifdef SPINLOCK_DEBUG
 /*
