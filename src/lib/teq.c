@@ -106,6 +106,7 @@
 
 enum tevent_magic {
 	THREAD_EVENT_MAGIC		= THREAD_EVENT_MAGIC_VAL + 0x0b,
+	THREAD_EVENT_IO_MAGIC	= THREAD_EVENT_MAGIC_VAL + 0x48,
 	THREAD_EVENT_ACK_MAGIC	= THREAD_EVENT_MAGIC_VAL + 0x63,
 	THREAD_EVENT_RPC_MAGIC	= THREAD_EVENT_MAGIC_VAL + 0x17,
 	THREAD_EVENT_ARPC_MAGIC	= THREAD_EVENT_MAGIC_VAL + 0xc9,
@@ -271,6 +272,7 @@ teq_destroy_event(const struct teq *teq, void *ev)
 
 	switch(((struct tevent *) ev)->magic) {
 	case THREAD_EVENT_MAGIC:
+	case THREAD_EVENT_IO_MAGIC:
 		{
 			struct tevent_plain *evp = ev;
 
@@ -688,6 +690,7 @@ teq_process(struct teq *teq)
 			}
 			goto next;
 		case THREAD_EVENT_IRPC_MAGIC:		/* Asynchronous "safe" RPC */
+		case THREAD_EVENT_IO_MAGIC:			/* Asynchronous "safe" routine */
 			{
 				/*
 				 * Simply move the event to the I/O queue, which will be
@@ -695,8 +698,6 @@ teq_process(struct teq *teq)
 				 */
 
 				teq_io_enqueue(teq, ev);
-
-				/* Do not free, event structure lies on the caller's stack */
 			}
 			goto next;
 		}
@@ -766,6 +767,33 @@ teq_handle(int signo)
 /**
  * Insert item in the thread event queue of the targeted thread.
  *
+ * The targeted thread must have a valid event queue.
+ *
+ * @param teq		the targeted thread event queue
+ * @param routine	the routine to invoke
+ * @param data		the context to pass to the routine
+ * @param magic		magic number to use for the event, for possible async call
+ */
+static void
+teq_post_event(struct teq *teq, notify_fn_t routine, void *data,
+	enum tevent_magic magic)
+{
+	struct tevent_plain *evp;
+
+	g_assert(routine != NULL);
+
+	WALLOC0(evp);
+	evp->magic = magic;
+	evp->event = routine;
+	evp->data = data;
+
+	teq_put(teq, evp);
+	teq_release(teq);
+}
+
+/**
+ * Insert item in the thread event queue of the targeted thread.
+ *
  * A protocol between the poster of the event and the targeted routine
  * (which will run in the context of the targeted thread) must be defined
  * in order to know how to process the data argument, whether to free it
@@ -780,20 +808,33 @@ teq_handle(int signo)
 void
 teq_post(unsigned id, notify_fn_t routine, void *data)
 {
-	struct teq *teq;
-	struct tevent_plain *evp;
+	struct teq *teq = teq_get_mandatory(id, G_STRFUNC);
 
-	g_assert(routine != NULL);
+	teq_post_event(teq, routine, data, THREAD_EVENT_MAGIC);
+}
 
-	teq = teq_get_mandatory(id, G_STRFUNC);
+/**
+ * Insert item in the thread event queue of the targeted thread, but request
+ * that the callback only happen asynchronously, dispatched from the I/O
+ * event loop to prevent any possible interruption that would be re-entrant,
+ * with code not prepared for that.
+ *
+ * The targeted thread must have a valid I/O event queue.
+ *
+ * @param id		ID of the thread to which we want to post the event
+ * @param routine	the routine to invoke
+ * @param data		the context to pass to the routine
+ */
+void
+teq_safe_post(unsigned id, notify_fn_t routine, void *data)
+{
+	struct teq *teq = teq_get_mandatory(id, G_STRFUNC);
 
-	WALLOC0(evp);
-	evp->magic = THREAD_EVENT_MAGIC;
-	evp->event = routine;
-	evp->data = data;
+	g_assert_log(teq_is_io(teq),
+		"%s(): attempt to post safe event to %s requires an I/O TEQ there",
+		G_STRFUNC, thread_id_name(id));
 
-	teq_put(teq, evp);
-	teq_release(teq);
+	teq_post_event(teq, routine, data, THREAD_EVENT_IO_MAGIC);
 }
 
 /**
@@ -995,8 +1036,6 @@ teq_rpc(unsigned id, teq_rpc_fn_t routine, void *data)
  * regardless of the state we are in when we are interrupting with our TSIG_TEQ
  * signal.
  *
- * HACK ALERT:
- *
  * Why is it needed? Because in gtk-gnutella, the GTK layer is NOT using our
  * locks, and therefore we could be interrupting processing when GTK tries to
  * allocate memory.  If the callback routine attempts to re-enter GTK, that
@@ -1080,6 +1119,14 @@ teq_io_process(struct teq *teq)
 		case THREAD_EVENT_RPC_MAGIC:
 		case THREAD_EVENT_ARPC_MAGIC:
 			s_error("%s(): unexpected event type in the I/O queue", G_STRFUNC);
+		case THREAD_EVENT_IO_MAGIC:
+			{
+				struct tevent_plain *evp = ev;
+				(*evp->event)(evp->data);
+				evp->magic = 0;
+				WFREE(evp);
+			}
+			goto next;
 		case THREAD_EVENT_IRPC_MAGIC:
 			{
 				struct tevent_rpc *evr = ev;

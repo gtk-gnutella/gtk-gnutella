@@ -58,6 +58,7 @@ void teq_create(void);
 void teq_io_create(void);
 void teq_create_if_none(void);
 void teq_post(unsigned id, notify_fn_t routine, void *data);
+void teq_safe_post(unsigned id, notify_fn_t routine, void *data);
 void teq_post_ack(unsigned id, notify_fn_t routine, void *data,
 	teq_ackmode_t mode, notify_fn_t ack, void *ack_data);
 void *teq_rpc(unsigned id, teq_rpc_fn_t routine, void *data);
