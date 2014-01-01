@@ -744,11 +744,11 @@ file_line_chomp_tail(char *line, size_t size, size_t *lenptr)
 const char *
 file_oflags_to_string(int flags)
 {
-	static char buf[64];
+	str_t *s = str_private(G_STRFUNC, 32);
 
 	/* We assume there will be at least one of O_RDWR, O_RDONLY or O_WRONLY */
 
-	str_bprintf(buf, sizeof buf, "%s%s%s%s%s",
+	str_printf(s, "%s%s%s%s%s",
 		(flags & O_RDWR) ? "O_RDWR"
 			: (flags & O_WRONLY) ? "O_WRONLY"
 			: (flags & O_RDONLY) ? "O_RDONLY"
@@ -758,7 +758,7 @@ file_oflags_to_string(int flags)
 		(flags & O_TRUNC)	? " | O_TRUNC" : "",
 		(flags & O_EXCL)	? " | O_EXCL" : "");
 
-	return buf;
+	return str_2c(s);
 }
 
 /* vi: set ts=4: */
