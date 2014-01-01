@@ -66,6 +66,7 @@ int file_sync_fclose(FILE *f);
 void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
 const char *file_oflags_to_string(int flags);
+const char *file_accmode_to_string(const int accmode) G_GNUC_CONST;
 
 int file_open(const char *path, int flags, int mode);
 int file_absolute_open(const char *path, int flags, int mode);

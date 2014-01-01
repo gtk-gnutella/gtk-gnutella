@@ -749,16 +749,31 @@ file_oflags_to_string(int flags)
 	/* We assume there will be at least one of O_RDWR, O_RDONLY or O_WRONLY */
 
 	str_printf(s, "%s%s%s%s%s",
-		(flags & O_RDWR) ? "O_RDWR"
-			: (flags & O_WRONLY) ? "O_WRONLY"
-			: (flags & O_RDONLY) ? "O_RDONLY"
-			: (0 == O_RDONLY) ? "O_RDONLY" : "",
+		file_accmode_to_string(flags),
 		(flags & O_APPEND)	? " | O_APPEND" : "",
 		(flags & O_CREAT)	? " | O_CREAT" : "",
 		(flags & O_TRUNC)	? " | O_TRUNC" : "",
 		(flags & O_EXCL)	? " | O_EXCL" : "");
 
 	return str_2c(s);
+}
+
+/**
+ * Convert open() access mode to string, for debugging and logging purposes.
+ *
+ * @param accmode	open() access mode value (O_RDWR, O_RDONLY, O_WRONLY)
+ *
+ * @return pointer to static string.
+ */
+const char *
+file_accmode_to_string(const int accmode)
+{
+	switch (accmode & O_ACCMODE) {
+	case O_RDWR:	return "O_RDWR";
+	case O_WRONLY:	return "O_WRONLY";
+	case O_RDONLY:	return "O_RDONLY";
+	default:		return "UNKNOWN_ACCMODE";
+	}
 }
 
 /* vi: set ts=4: */
