@@ -500,7 +500,7 @@ hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 	size_t first_tomb, mask, hops;
 	bool found;
 
-	idx = hashing_fold(hv, hk->bits);
+	idx = hashing_keep(hv, hk->bits);
 	ih = hk->hashes[idx];
 
 	/*

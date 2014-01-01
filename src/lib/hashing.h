@@ -131,6 +131,15 @@ pointer_hash_fast(const void *p)
 #endif
 }
 
+/**
+ * Keep only the trailing ``bits'' from hash value, zeroing the others.
+ */
+static inline ALWAYS_INLINE unsigned G_GNUC_CONST
+hashing_keep(unsigned hash, size_t bits)
+{
+	return hash & (~0U >> (sizeof(unsigned) * 8 - bits));
+}
+
 #endif /* _hashing_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

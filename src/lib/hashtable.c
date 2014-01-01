@@ -482,7 +482,7 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 	 * Lookup key in the hash table.
 	 */
 
-	idx = hashing_fold(hash_key(ht, key), ht->bin_bits);
+	idx = hashing_keep(hash_key(ht, key), ht->bin_bits);
 	item = ht->bins[idx];
 	if (bin) {
 		*bin = idx;
