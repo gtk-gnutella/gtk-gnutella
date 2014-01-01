@@ -3153,9 +3153,16 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * database via the DBMW layer, and that is not thread-safe yet,
 			 * funnel back the call to the main thread.
 			 *		--RAM, 2013-11-05
+			 *
+			 * We need a "safe" post because the publishing event can do
+			 * heavy work and we could re-enter SDBM or the DBMW layer
+			 * accidentally during the interruption, creating nasty effects
+			 * if we, for instance, access a hash table being resized by an
+			 * earlier call on the stack.
+			 *		--RAM, 2014-01-02
 			 */
 
-			teq_post(THREAD_MAIN, publisher_add_event,
+			teq_safe_post(THREAD_MAIN, publisher_add_event,
 				deconstify_pointer(sf->sha1));
 		}
 	}
