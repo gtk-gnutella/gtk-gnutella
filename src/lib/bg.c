@@ -805,6 +805,9 @@ bg_task_create(
 	g_assert(steps);
 	g_assert(NULL == bs || BGSCHED_MAGIC == bs->magic);
 
+	if G_UNLIKELY(bg_closed)
+		return NULL;		/* Refuse to create task, we're shutdowning */
+
 	bt = bg_task_alloc();
 	bt->sched = NULL == bs ? bg_sched : bs;
 	bt->name = atom_str_get(name);
