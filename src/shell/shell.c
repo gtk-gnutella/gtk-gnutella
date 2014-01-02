@@ -1046,6 +1046,9 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 {
 	shell_check(sh);
 
+	if G_UNLIKELY(sh->shutdown)
+		return;
+
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		s_warning ("%s(%p): got input exception", G_STRFUNC, sh);
 		goto destroy;
@@ -1094,6 +1097,9 @@ static void
 shell_evt_writable(struct gnutella_shell *sh)
 {
 	shell_check(sh);
+
+	if G_UNLIKELY(sh->shutdown)
+		return;
 
 	SHELL_LOCK(sh);
 
@@ -1217,9 +1223,9 @@ void
 shell_shutdown(struct gnutella_shell *sh)
 {
 	shell_check(sh);
-	g_assert(!sh->shutdown);
 
 	sh->shutdown = TRUE;
+	atomic_mb();
 	socket_evt_clear(sh->socket);
 }
 
