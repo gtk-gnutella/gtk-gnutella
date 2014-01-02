@@ -689,9 +689,12 @@ shell_async_handler(void *p)
 	/*
 	 * Transfer control back to the main thread to resume processing of
 	 * the shell command line.
+	 *
+	 * Use a "safe" event to avoid interrupting processing in the main
+	 * thread that could be re-entered by the processing we're about to resume.
 	 */
 
-	teq_post(THREAD_MAIN, shell_resume_processing, args);
+	teq_safe_post(THREAD_MAIN, shell_resume_processing, args);
 
 	return NULL;
 }
