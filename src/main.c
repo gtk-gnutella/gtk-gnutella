@@ -1704,7 +1704,6 @@ int
 main(int argc, char **argv)
 {
 	size_t str_discrepancies;
-	int first_fd;
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -1725,6 +1724,21 @@ main(int argc, char **argv)
 	}
 
 	/*
+	 * We can no longer do this: as soon as threads are created, they can
+	 * use pipe() or socketpair() to create blocking resources and we cannot
+	 * close the descriptors blindly because we have no way to know from here
+	 * whether a descriptor was already created in the parent process and
+	 * inherited or whether it was opened by the thread layer.
+	 *
+	 * Note that even moving this code up in main() is not good as our malloc()
+	 * routine can be called during the C startup, and that will immediately
+	 * create threads.
+	 *
+	 *		--RAM, 2014-01-02
+	 */
+
+#if 0
+	/*
 	 * This must be run before we allocate memory because we might
 	 * use mmap() with /dev/zero and then accidently close this
 	 * file descriptor.
@@ -1736,9 +1750,14 @@ main(int argc, char **argv)
 	 *		--RAM, 2012-06-03
 	 */
 
-	first_fd = fd_first_available();
-	first_fd = MAX(first_fd, 3);		/* Paranoid: always keep 0,1,2 */
-	close_file_descriptors(first_fd);	/* Just in case */
+	{
+		int first_fd;
+
+		first_fd = fd_first_available();
+		first_fd = MAX(first_fd, 3);		/* Paranoid: always keep 0,1,2 */
+		close_file_descriptors(first_fd);	/* Just in case */
+	}
+#endif
 
 	if (reserve_standard_file_descriptors()) {
 		fprintf(stderr, "unable to reserve standard file descriptors\n");
