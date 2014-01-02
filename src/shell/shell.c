@@ -695,7 +695,11 @@ shell_async_handler(void *p)
 	 * thread that could be re-entered by the processing we're about to resume.
 	 */
 
-	teq_safe_post(THREAD_MAIN, shell_resume_processing, args);
+	if (!sh->shutdown) {
+		teq_safe_post(THREAD_MAIN, shell_resume_processing, args);
+	} else {
+		sh->async = FALSE;		/* Signal that async processing is done */
+	}
 
 	return NULL;
 }
@@ -1080,7 +1084,10 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 	return;
 
 destroy:
-	shell_destroy(sh);
+	if (sh->async)
+		shell_shutdown(sh);
+	else
+		shell_destroy(sh);
 }
 
 static void
@@ -1108,6 +1115,15 @@ shell_write(struct gnutella_shell *sh, const char *text)
 	shell_check(sh);
 	g_return_if_fail(sh->output);
 	g_return_if_fail(text);
+
+	/*
+	 * If running asynchronously, the main thread could have decided to
+	 * shutdown the shell.   In which case we must no longer issue any
+	 * output.
+	 */
+
+	if (sh->shutdown)
+		return;
 
 	len = strlen(text);
 	g_return_if_fail(len < (size_t) -1);
@@ -1204,6 +1220,7 @@ shell_shutdown(struct gnutella_shell *sh)
 	g_assert(!sh->shutdown);
 
 	sh->shutdown = TRUE;
+	socket_evt_clear(sh->socket);
 }
 
 #ifdef USE_REMOTE_CTRL
@@ -1395,6 +1412,8 @@ shell_timer(time_t now)
 				delta_time(now, sh->last_update) > timeout &&
 				!sh->async	/* No timeout if command done by other thread */
 			) {
+				to_remove = pslist_prepend(to_remove, sh);
+			} else if (sh->shutdown && !sh->async) {
 				to_remove = pslist_prepend(to_remove, sh);
 			}
 		}
