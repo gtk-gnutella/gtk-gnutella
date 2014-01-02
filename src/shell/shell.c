@@ -637,6 +637,7 @@ shell_resume_processing(void *p)
 	}
 
 	WFREE(args);
+	sh->last_update = tm_time();
 	sh->async = FALSE;
 	shell_handle_event(sh, INPUT_EVENT_NONE);	/* Ensure we can read/write */
 
@@ -1391,7 +1392,8 @@ shell_timer(time_t now)
 			shell_check(sh);
 			if (
 				0 == (SOCK_F_LOCAL & sh->socket->flags) &&
-				delta_time(now, sh->last_update) > timeout
+				delta_time(now, sh->last_update) > timeout &&
+				!sh->async	/* No timeout if command done by other thread */
 			) {
 				to_remove = pslist_prepend(to_remove, sh);
 			}
