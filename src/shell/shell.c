@@ -832,6 +832,8 @@ shell_write_data(struct gnutella_shell *sh)
 	iov = pmsg_slist_to_iovec(sh->output, &iov_cnt, NULL);
 	slist_unlock(sh->output);
 
+	g_assert(iov != NULL);
+
 	written = s->wio.writev(&s->wio, iov, iov_cnt);
 
 	if (GNET_PROPERTY(shell_debug) > 2) {
@@ -844,12 +846,13 @@ shell_write_data(struct gnutella_shell *sh)
 		if (is_temporary_error(errno))
 			goto done;
 
-		/* FALL THRU */
+		s_warning("%s(%p): writev() failed: %m", G_STRFUNC, sh);
+		shell_shutdown(sh);
+		break;
+
 	case 0:
 		shell_discard_output(sh);
-		if (!sh->shutdown) {
-			shell_shutdown(sh);
-		}
+		shell_shutdown(sh);
 		break;
 
 	default:
