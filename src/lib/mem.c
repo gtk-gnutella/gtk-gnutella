@@ -48,7 +48,7 @@
 
 #include "override.h"			/* Must be the last header included */
 
-static int fd[2];				/* For the pipe() */
+static int fd[2] = {-1, -1};	/* For the pipe() */
 
 /**
  * This lock funnels all the memory checking operation which rely on the
@@ -67,9 +67,18 @@ mem_close_pipe(void)
 {
 	g_assert(spinlock_is_held(&mem_slk));
 
-	close(fd[0]);
-	close(fd[1]);
-	ZERO(&fd);
+	fd_close(&fd[0]);
+	fd_close(&fd[1]);
+}
+
+/**
+ * Assert that pipe holds invalid fds.
+ */
+static inline void
+assert_mem_pipe_is_invalid(void)
+{
+	g_assert(!is_valid_fd(fd[0]));
+	g_assert(!is_valid_fd(fd[1]));
 }
 
 /**
@@ -83,9 +92,11 @@ mem_open_pipe(void)
 	static bool warned;
 
 	g_assert(spinlock_is_held(&mem_slk));
-
+	assert_mem_pipe_is_invalid();
+ 
 	if (-1 == pipe(fd) && !warned) {
 		s_miniwarn("%s: pipe() failed: %m", G_STRFUNC);
+		assert_mem_pipe_is_invalid();
 		warned = TRUE;
 		return FALSE;
 	}
@@ -135,7 +146,7 @@ mem_is_valid_ptr(const void *p)
 	 * file descriptor.
 	 */
 
-	if G_UNLIKELY(0 == fd[0] || !mem_valid_pipe()) {
+	if G_UNLIKELY(!is_valid_fd(fd[0]) || !mem_valid_pipe()) {
 		if (!mem_open_pipe()) {
 			MEM_UNFUNNEL;
 			return TRUE;		/* Assume memory pointer is valid */
@@ -209,7 +220,7 @@ mem_protection(const void *p)
 	 * file descriptor.
 	 */
 
-	if G_UNLIKELY(0 == fd[0] || !mem_valid_pipe()) {
+	if G_UNLIKELY(!is_valid_fd(fd[0]) || !mem_valid_pipe()) {
 		if (!mem_open_pipe()) {
 			MEM_UNFUNNEL;
 			return MEM_PROT_NONE;	/* Assume memory pointer is not writable */
