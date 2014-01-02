@@ -48,6 +48,8 @@ typedef struct evq_event evq_event_t;
 void evq_close(void);
 bool evq_is_inited(void);
 
+void evq_set_debug(uint32 lvl);
+
 evq_event_t *evq_insert(int delay, notify_fn_t fn, const void *arg)
 	WARN_UNUSED_RESULT;
 void evq_schedule(int delay, notify_fn_t fn, const void *arg);

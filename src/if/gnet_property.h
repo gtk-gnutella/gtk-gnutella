@@ -504,6 +504,7 @@ typedef enum {
     PROP_USER_AUTO_RESTART,
     PROP_TM_DEBUG,
     PROP_TMALLOC_DEBUG,
+    PROP_EVQ_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

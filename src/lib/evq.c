@@ -149,6 +149,15 @@ static spinlock_t evqs_slk = SPINLOCK_INIT;
 #define evq_debugging(lvl)	G_UNLIKELY(evq_debug > (lvl))
 
 /**
+ * Set debugging level.
+ */
+void
+evq_set_debug(uint32 lvl)
+{
+	evq_debug = lvl;
+}
+
+/**
  * Event queue thread.
  */
 static void *
@@ -179,7 +188,7 @@ evq_thread_main(void *unused_arg)
 		tm_t ms;
 		tsigset_t oset;
 
-		if (evq_debugging(0))
+		if (evq_debugging(3))
 			s_debug("%s(): heart-beating", G_STRFUNC);
 
 		/*

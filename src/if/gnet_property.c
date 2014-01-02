@@ -1082,6 +1082,8 @@ guint32  gnet_property_variable_tm_debug     = 0;
 static const guint32  gnet_property_variable_tm_debug_default = 0;
 guint32  gnet_property_variable_tmalloc_debug     = 0;
 static const guint32  gnet_property_variable_tmalloc_debug_default = 0;
+guint32  gnet_property_variable_evq_debug     = 0;
+static const guint32  gnet_property_variable_evq_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -10477,6 +10479,27 @@ gnet_prop_init(void) {
     gnet_property->props[467].data.guint32.choices = NULL;
     gnet_property->props[467].data.guint32.max   = 20;
     gnet_property->props[467].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_EVQ_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[468].name = "evq_debug";
+    gnet_property->props[468].desc = _("Debug level for the event queue thread.");
+    gnet_property->props[468].ev_changed = event_new("evq_debug_changed");
+    gnet_property->props[468].save = TRUE;
+    gnet_property->props[468].vector_size = 1;
+	mutex_init(&gnet_property->props[468].lock);
+
+    /* Type specific data: */
+    gnet_property->props[468].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[468].data.guint32.def   = (void *) &gnet_property_variable_evq_debug_default;
+    gnet_property->props[468].data.guint32.value = (void *) &gnet_property_variable_evq_debug;
+    gnet_property->props[468].data.guint32.choices = NULL;
+    gnet_property->props[468].data.guint32.max   = 20;
+    gnet_property->props[468].data.guint32.min   = 0;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

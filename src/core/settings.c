@@ -82,6 +82,7 @@
 #include "lib/dbstore.h"
 #include "lib/debug.h"
 #include "lib/eval.h"
+#include "lib/evq.h"
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/frand.h"
@@ -2582,6 +2583,17 @@ dbstore_debug_changed(property_t prop)
 }
 
 static bool
+evq_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	evq_set_debug(val);
+
+    return FALSE;
+}
+
+static bool
 inputevt_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -3132,6 +3144,11 @@ static prop_map_t property_map[] = {
 		node_online_mode_changed,
 		TRUE						/* Need to call callback at init time */
 	},
+    {
+        PROP_EVQ_DEBUG,
+        evq_debug_changed,
+        TRUE
+    },
     {
         PROP_TM_DEBUG,
         tm_debug_changed,
