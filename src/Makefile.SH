@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -130,6 +130,7 @@ LDFLAGS = \
 	-Lshell -lshell \
 	-Lupnp -lupnp \
 	-Ldht -ldht \
+	-Lcore/g2 -lg2 \
 	-Lcore -lcore \
 !NO!SUBS!
 case "$d_headless" in
@@ -160,6 +161,13 @@ core/libcore.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  core/libcore.a
+
+core/g2/libg2.a: .FORCE
+	@echo "Checking "libg2.a" in "core/g2"..."
+	cd core/g2; $(MAKE) libg2.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  core/g2/libg2.a
 
 shell/libshell.a: .FORCE
 	@echo "Checking "libshell.a" in "shell"..."

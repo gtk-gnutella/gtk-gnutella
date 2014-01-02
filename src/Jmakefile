@@ -75,6 +75,7 @@ LDFLAGS = \
 	-Lshell -lshell \
 	-Lupnp -lupnp \
 	-Ldht -ldht \
+	-Lcore/g2 -lg2 \
 	-Lcore -lcore \
 |case d_headless in undef
 	-Lui/gtk -lgtk-common -lgtkx -lgtk-common \
@@ -86,6 +87,7 @@ LDFLAGS = \
 
 RemoteTargetDependency(gtk-gnutella, lib, libshared.a)
 RemoteTargetDependency(gtk-gnutella, core, libcore.a)
+RemoteTargetDependency(gtk-gnutella, core/g2, libg2.a)
 RemoteTargetDependency(gtk-gnutella, shell, libshell.a)
 RemoteTargetDependency(gtk-gnutella, dht, libdht.a)
 RemoteTargetDependency(gtk-gnutella, sdbm, libsdbm.a)
