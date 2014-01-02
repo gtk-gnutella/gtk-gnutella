@@ -313,6 +313,12 @@ src/core/fileinfo.c
 src/core/fileinfo.h
 src/core/gdht.c
 src/core/gdht.h
+src/core/g2/Jmakefile
+src/core/g2/Makefile.SH
+src/core/g2/frame.c
+src/core/g2/frame.h
+src/core/g2/tree.c
+src/core/g2/tree.h
 src/core/geo_ip.c
 src/core/geo_ip.h
 src/core/ggep.c
