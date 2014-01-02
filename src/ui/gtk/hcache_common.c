@@ -41,6 +41,8 @@ get_hcache_name(hcache_type_t type)
 	case HCACHE_VALID_ULTRA:  return _("Valid IPv4 ultra");
 	case HCACHE_FRESH_ULTRA6: return _("Fresh IPv6 ultra");
 	case HCACHE_VALID_ULTRA6: return _("Valid IPv6 ultra");
+	case HCACHE_FRESH_G2HUB:  return _("Fresh G2 hub");
+	case HCACHE_VALID_G2HUB:  return _("Valid G2 hub");
 	case HCACHE_TIMEOUT:      return _("Timeout");
 	case HCACHE_BUSY:         return _("Busy");
 	case HCACHE_UNSTABLE:     return _("Unstable");

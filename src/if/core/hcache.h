@@ -52,6 +52,8 @@ typedef enum {
     HCACHE_GUESS_INTRO,   /**< GUESS IPv4 introduction cache (LRU-managed) */
     HCACHE_GUESS6,        /**< Running GUESS IPv6 cache (MRU-managed) */
     HCACHE_GUESS6_INTRO,  /**< GUESS IPv6 introduction cache (LRU-managed) */
+	HCACHE_FRESH_G2HUB,   /**< Fresh IPv4 G2 hubs to which we did not connect */
+	HCACHE_VALID_G2HUB,   /**< Valid IPv4 G2 hubs */
 	HCACHE_NONE,
     HCACHE_MAX
 } hcache_type_t;
@@ -62,6 +64,7 @@ typedef enum {
     HOST_ULTRA6,
     HOST_GUESS,
     HOST_GUESS6,
+    HOST_G2HUB,
     HOST_MAX
 } host_type_t;
 
@@ -74,6 +77,7 @@ typedef enum {
 
 typedef enum {
 	HCACHE_CLASS_HOST,		/**< Classic Gnutella host cache */
+	HCACHE_CLASS_G2,		/**< Classic G2 host cache */
 	HCACHE_CLASS_GUESS		/**< GUESS-specific host cache */
 } hcache_class_t;
 

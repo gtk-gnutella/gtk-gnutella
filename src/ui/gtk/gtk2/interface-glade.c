@@ -8873,6 +8873,13 @@ create_main_window_hostcache_tab (void)
   GtkObject *spinbutton_max_bad_hosts_cached_adj;
   GtkWidget *spinbutton_max_bad_hosts_cached;
   GtkWidget *button_hostcache_clear_bad;
+  GtkWidget *vbox161;
+  GtkWidget *progressbar_hosts_in_g2hub_catcher;
+  GtkWidget *hbox9353;
+  GtkWidget *label1078;
+  GtkObject *spinbutton_max_g2hub_hosts_cached_adj;
+  GtkWidget *spinbutton_max_g2hub_hosts_cached;
+  GtkWidget *button_g2hub_catcher_clear;
   GtkWidget *label843;
 
   main_window_hostcache_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -9007,6 +9014,40 @@ create_main_window_hostcache_tab (void)
   gtk_widget_show (button_hostcache_clear_bad);
   gtk_box_pack_start (GTK_BOX (hbox269), button_hostcache_clear_bad, FALSE, FALSE, 0);
 
+  vbox161 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox161, "vbox161");
+  gtk_widget_show (vbox161);
+  gtk_box_pack_start (GTK_BOX (hbox266), vbox161, TRUE, TRUE, 0);
+
+  progressbar_hosts_in_g2hub_catcher = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_hosts_in_g2hub_catcher, "progressbar_hosts_in_g2hub_catcher");
+  gtk_widget_show (progressbar_hosts_in_g2hub_catcher);
+  gtk_box_pack_start (GTK_BOX (vbox161), progressbar_hosts_in_g2hub_catcher, FALSE, FALSE, 0);
+
+  hbox9353 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox9353, "hbox9353");
+  gtk_widget_show (hbox9353);
+  gtk_box_pack_start (GTK_BOX (vbox161), hbox9353, TRUE, TRUE, 0);
+
+  label1078 = gtk_label_new (_("G2 hubs"));
+  gtk_widget_set_name (label1078, "label1078");
+  gtk_widget_show (label1078);
+  gtk_box_pack_start (GTK_BOX (hbox9353), label1078, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label1078), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_padding (GTK_MISC (label1078), 5, 0);
+
+  spinbutton_max_g2hub_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
+  spinbutton_max_g2hub_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_g2hub_hosts_cached_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_g2hub_hosts_cached, "spinbutton_max_g2hub_hosts_cached");
+  gtk_widget_show (spinbutton_max_g2hub_hosts_cached);
+  gtk_box_pack_start (GTK_BOX (hbox9353), spinbutton_max_g2hub_hosts_cached, TRUE, TRUE, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_g2hub_hosts_cached), TRUE);
+
+  button_g2hub_catcher_clear = gtk_button_new_with_mnemonic (_("Clear"));
+  gtk_widget_set_name (button_g2hub_catcher_clear, "button_g2hub_catcher_clear");
+  gtk_widget_show (button_g2hub_catcher_clear);
+  gtk_box_pack_start (GTK_BOX (hbox9353), button_g2hub_catcher_clear, FALSE, FALSE, 0);
+
   label843 = gtk_label_new (_("Hostcache capacity"));
   gtk_widget_set_name (label843, "label843");
   gtk_widget_show (label843);
@@ -9020,6 +9061,9 @@ create_main_window_hostcache_tab (void)
                     G_CALLBACK (on_button_ultra_catcher_clear_clicked),
                     NULL);
   g_signal_connect ((gpointer) button_hostcache_clear_bad, "clicked",
+                    G_CALLBACK (on_button_hostcache_clear_bad_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_g2hub_catcher_clear, "clicked",
                     G_CALLBACK (on_button_hostcache_clear_bad_clicked),
                     NULL);
 
@@ -9048,6 +9092,12 @@ create_main_window_hostcache_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, label845, "label845");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, spinbutton_max_bad_hosts_cached, "spinbutton_max_bad_hosts_cached");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, button_hostcache_clear_bad, "button_hostcache_clear_bad");
+  GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, vbox161, "vbox161");
+  GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, progressbar_hosts_in_g2hub_catcher, "progressbar_hosts_in_g2hub_catcher");
+  GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, hbox9353, "hbox9353");
+  GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, label1078, "label1078");
+  GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, spinbutton_max_g2hub_hosts_cached, "spinbutton_max_g2hub_hosts_cached");
+  GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, button_g2hub_catcher_clear, "button_g2hub_catcher_clear");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, label843, "label843");
 
   return main_window_hostcache_tab;

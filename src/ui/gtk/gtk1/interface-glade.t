@@ -662,3 +662,4 @@ N_("Relayed queries remembered");
 N_("Allow unused Gnutella outgoing bandwidth to supersede hint");
 N_("Display GUESS statistics");
 N_("Mapping lease time");
+N_("G2 hubs");

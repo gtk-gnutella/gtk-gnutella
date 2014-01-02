@@ -1084,6 +1084,10 @@ guint32  gnet_property_variable_tmalloc_debug     = 0;
 static const guint32  gnet_property_variable_tmalloc_debug_default = 0;
 guint32  gnet_property_variable_evq_debug     = 0;
 static const guint32  gnet_property_variable_evq_debug_default = 0;
+guint32  gnet_property_variable_max_g2hub_hosts_cached     = 10000;
+static const guint32  gnet_property_variable_max_g2hub_hosts_cached_default = 10000;
+guint32  gnet_property_variable_hosts_in_g2hub_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_g2hub_catcher_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -10500,6 +10504,48 @@ gnet_prop_init(void) {
     gnet_property->props[468].data.guint32.choices = NULL;
     gnet_property->props[468].data.guint32.max   = 20;
     gnet_property->props[468].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_MAX_G2HUB_HOSTS_CACHED:
+     *
+     * General data:
+     */
+    gnet_property->props[469].name = "max_g2hub_hosts_cached";
+    gnet_property->props[469].desc = _("Maximum number of G2 hubs in the hub cache.");
+    gnet_property->props[469].ev_changed = event_new("max_g2hub_hosts_cached_changed");
+    gnet_property->props[469].save = TRUE;
+    gnet_property->props[469].vector_size = 1;
+	mutex_init(&gnet_property->props[469].lock);
+
+    /* Type specific data: */
+    gnet_property->props[469].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[469].data.guint32.def   = (void *) &gnet_property_variable_max_g2hub_hosts_cached_default;
+    gnet_property->props[469].data.guint32.value = (void *) &gnet_property_variable_max_g2hub_hosts_cached;
+    gnet_property->props[469].data.guint32.choices = NULL;
+    gnet_property->props[469].data.guint32.max   = 50000;
+    gnet_property->props[469].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_HOSTS_IN_G2HUB_CATCHER:
+     *
+     * General data:
+     */
+    gnet_property->props[470].name = "hosts_in_g2hub_catcher";
+    gnet_property->props[470].desc = _("Current number of IPv4 hosts in the G2 hub caches.");
+    gnet_property->props[470].ev_changed = event_new("hosts_in_g2hub_catcher_changed");
+    gnet_property->props[470].save = FALSE;
+    gnet_property->props[470].vector_size = 1;
+	mutex_init(&gnet_property->props[470].lock);
+
+    /* Type specific data: */
+    gnet_property->props[470].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[470].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_g2hub_catcher_default;
+    gnet_property->props[470].data.guint32.value = (void *) &gnet_property_variable_hosts_in_g2hub_catcher;
+    gnet_property->props[470].data.guint32.choices = NULL;
+    gnet_property->props[470].data.guint32.max   = INT_MAX;
+    gnet_property->props[470].data.guint32.min   = 0;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

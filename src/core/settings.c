@@ -1712,6 +1712,15 @@ max_ultra_hosts_cached_changed(property_t prop)
 }
 
 static bool
+max_g2hub_hosts_cached_changed(property_t prop)
+{
+	g_assert(PROP_MAX_G2HUB_HOSTS_CACHED == prop);
+    hcache_prune(HCACHE_FRESH_G2HUB);
+
+    return FALSE;
+}
+
+static bool
 max_bad_hosts_cached_changed(property_t prop)
 {
 	g_assert(PROP_MAX_BAD_HOSTS_CACHED == prop);
@@ -3026,6 +3035,11 @@ static prop_map_t property_map[] = {
     {
         PROP_MAX_ULTRA_HOSTS_CACHED,
         max_ultra_hosts_cached_changed,
+        TRUE
+	},
+    {
+        PROP_MAX_G2HUB_HOSTS_CACHED,
+        max_g2hub_hosts_cached_changed,
         TRUE
 	},
     {

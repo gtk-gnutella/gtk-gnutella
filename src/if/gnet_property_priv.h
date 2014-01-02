@@ -519,6 +519,8 @@ extern const gboolean gnet_property_variable_user_auto_restart;
 extern const guint32  gnet_property_variable_tm_debug;
 extern const guint32  gnet_property_variable_tmalloc_debug;
 extern const guint32  gnet_property_variable_evq_debug;
+extern const guint32  gnet_property_variable_max_g2hub_hosts_cached;
+extern const guint32  gnet_property_variable_hosts_in_g2hub_catcher;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -5414,4 +5414,27 @@ prop = {
     };
 };
 
+prop = {
+    name = "max_g2hub_hosts_cached";
+    desc = "Maximum number of G2 hubs in the hub cache.";
+    type = guint32;
+    data = {
+        default = 10000;
+        min     = 100;
+        max     = 50000;
+    };
+};
+
+prop = {
+    name = "hosts_in_g2hub_catcher";
+    desc = "Current number of IPv4 hosts in the G2 hub caches.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = INT_MAX;
+    };
+};
+
 /* vi: set ts=4: */

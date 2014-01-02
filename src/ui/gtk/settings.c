@@ -1294,6 +1294,28 @@ hosts_in_ultra_catcher_changed(property_t unused_prop)
 }
 
 static gboolean
+hosts_in_g2hub_catcher_changed(property_t unused_prop)
+{
+    guint32 hosts;
+    guint32 max_hosts;
+
+	(void) unused_prop;
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_G2HUB_CATCHER, &hosts);
+    gnet_prop_get_guint32_val(PROP_MAX_G2HUB_HOSTS_CACHED, &max_hosts);
+
+    gtk_widget_set_sensitive(
+        gui_main_window_lookup("button_g2hub_catcher_clear"),
+        hosts != 0);
+
+    set_host_progress(
+        "progressbar_hosts_in_g2hub_catcher",
+        hosts,
+        max_hosts);
+
+    return FALSE;
+}
+
+static gboolean
 hosts_in_bad_catcher_changed(property_t unused_prop)
 {
     guint32 hosts;
@@ -1374,7 +1396,10 @@ hostcache_size_changed(property_t prop)
     case PROP_MAX_BAD_HOSTS_CACHED:
         hosts_in_bad_catcher_changed(PROP_HOSTS_IN_BAD_CATCHER);
         break;
-    default:
+	case PROP_MAX_G2HUB_HOSTS_CACHED:
+		hosts_in_g2hub_catcher_changed(PROP_HOSTS_IN_G2HUB_CATCHER);
+		break;
+	default:
         g_error("hostcache_size_changed: unknown hostcache property %d", prop);
     }
 
@@ -5096,6 +5121,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_HOSTS_IN_G2HUB_CATCHER,
+        hosts_in_g2hub_catcher_changed,
+        TRUE,
+        "progressbar_hosts_in_g2hub_catcher",
+        FREQ_SECS, 5
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_READING_HOSTFILE,
         reading_hostfile_changed,
         TRUE,
@@ -5124,6 +5157,14 @@ static prop_map_t property_map[] = {
         hostcache_size_changed,
         TRUE,
         "spinbutton_max_ultra_hosts_cached",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_MAX_G2HUB_HOSTS_CACHED,
+        hostcache_size_changed,
+        TRUE,
+        "spinbutton_max_g2hub_hosts_cached",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

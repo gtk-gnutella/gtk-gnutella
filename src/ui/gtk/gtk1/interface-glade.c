@@ -558,6 +558,13 @@ create_main_window (void)
   GtkObject *spinbutton_max_bad_hosts_cached_adj;
   GtkWidget *spinbutton_max_bad_hosts_cached;
   GtkWidget *button_hostcache_clear_bad;
+  GtkWidget *vbox148;
+  GtkWidget *progressbar_hosts_in_g2hub_catcher;
+  GtkWidget *hbox2115;
+  GtkWidget *label_g2_hosts;
+  GtkObject *spinbutton_max_g2hub_hosts_cached_adj;
+  GtkWidget *spinbutton_max_g2hub_hosts_cached;
+  GtkWidget *button_g2hub_catcher_clear;
   GtkWidget *label7987;
   GtkWidget *vbox12a;
   GtkWidget *hbox67;
@@ -5366,6 +5373,59 @@ create_main_window (void)
   gtk_widget_show (button_hostcache_clear_bad);
   gtk_box_pack_start (GTK_BOX (hbox204), button_hostcache_clear_bad, FALSE, FALSE, 0);
 
+  vbox148 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox148, "vbox148");
+  gtk_widget_ref (vbox148);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox148", vbox148,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox148);
+  gtk_box_pack_start (GTK_BOX (hbox201), vbox148, TRUE, TRUE, 0);
+
+  progressbar_hosts_in_g2hub_catcher = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_hosts_in_g2hub_catcher, "progressbar_hosts_in_g2hub_catcher");
+  gtk_widget_ref (progressbar_hosts_in_g2hub_catcher);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_hosts_in_g2hub_catcher", progressbar_hosts_in_g2hub_catcher,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (progressbar_hosts_in_g2hub_catcher);
+  gtk_box_pack_start (GTK_BOX (vbox148), progressbar_hosts_in_g2hub_catcher, FALSE, FALSE, 0);
+  gtk_progress_set_show_text (GTK_PROGRESS (progressbar_hosts_in_g2hub_catcher), TRUE);
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_hosts_in_g2hub_catcher), _("%v/%u (%P%%)"));
+
+  hbox2115 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox2115, "hbox2115");
+  gtk_widget_ref (hbox2115);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2115", hbox2115,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2115);
+  gtk_box_pack_start (GTK_BOX (vbox148), hbox2115, TRUE, TRUE, 0);
+
+  label_g2_hosts = gtk_label_new (_("G2 hubs"));
+  gtk_widget_set_name (label_g2_hosts, "label_g2_hosts");
+  gtk_widget_ref (label_g2_hosts);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_g2_hosts", label_g2_hosts,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_g2_hosts);
+  gtk_box_pack_start (GTK_BOX (hbox2115), label_g2_hosts, FALSE, FALSE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_g2_hosts), 0, 0.5);
+
+  spinbutton_max_g2hub_hosts_cached_adj = gtk_adjustment_new (100, 100, 500000, 1, 100, 100);
+  spinbutton_max_g2hub_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_g2hub_hosts_cached_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_g2hub_hosts_cached, "spinbutton_max_g2hub_hosts_cached");
+  gtk_widget_ref (spinbutton_max_g2hub_hosts_cached);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_g2hub_hosts_cached", spinbutton_max_g2hub_hosts_cached,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_max_g2hub_hosts_cached);
+  gtk_box_pack_start (GTK_BOX (hbox2115), spinbutton_max_g2hub_hosts_cached, TRUE, TRUE, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_g2hub_hosts_cached), TRUE);
+
+  button_g2hub_catcher_clear = gtk_button_new_with_label (_("Clear"));
+  gtk_widget_set_name (button_g2hub_catcher_clear, "button_g2hub_catcher_clear");
+  gtk_widget_ref (button_g2hub_catcher_clear);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_g2hub_catcher_clear", button_g2hub_catcher_clear,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_g2hub_catcher_clear);
+  gtk_box_pack_start (GTK_BOX (hbox2115), button_g2hub_catcher_clear, FALSE, FALSE, 0);
+
   label7987 = gtk_label_new (_("Hostcache"));
   gtk_widget_set_name (label7987, "label7987");
   gtk_widget_ref (label7987);
@@ -6429,6 +6489,9 @@ create_main_window (void)
                       GTK_SIGNAL_FUNC (on_button_ultra_catcher_clear_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_hostcache_clear_bad), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_hostcache_clear_bad_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_g2hub_catcher_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_hostcache_clear_bad_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_stats_reset), "clicked",
