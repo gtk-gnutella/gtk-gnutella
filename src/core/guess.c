@@ -2459,10 +2459,13 @@ guess_pick_next(guess_t *gq)
 
 	while (hash_list_iter_has_next(iter)) {
 		const char *reason = NULL;
+		host_addr_t addr;
 
 		host = hash_list_iter_next(iter);
 
 		g_assert(host != NULL);
+
+		addr = gnet_host_get_addr(host);
 
 		/*
 		 * Known recently discovered alien hosts are invisibly removed.
@@ -2476,13 +2479,18 @@ guess_pick_next(guess_t *gq)
 			goto drop;
 		}
 
-		if (hostiles_is_bad(gnet_host_get_addr(host))) {
+		if (hostiles_is_bad(addr)) {
 			reason = "bad hostile host";
 			goto drop;
 		}
 
 		if (guess_should_skip(host)) {
 			reason = "timeouting host";
+			goto drop;
+		}
+
+		if (node_host_is_connected(addr, gnet_host_get_port(host))) {
+			reason = "connected host";
 			goto drop;
 		}
 
