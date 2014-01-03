@@ -43,6 +43,7 @@ int highest_bit_set64(uint64 n) G_GNUC_PURE;
 int bits_set(uint8 b) G_GNUC_PURE;
 int bits_set32(uint32 v) G_GNUC_CONST;
 int ctz64(uint64 n) G_GNUC_CONST;
+uint8 reverse_byte(uint8 b) G_GNUC_CONST;
 
 /**
  * Checks whether the given value is a power of 2.

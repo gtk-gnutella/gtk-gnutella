@@ -185,4 +185,75 @@ ctz64(uint64 n)
 	}
 }
 
+/**
+ * Reverse the bits in a byte, i.e. 0b00100001 becomes 0b100000100.
+ */
+uint8
+reverse_byte(uint8 b)
+{
+	/*
+	 * This code was derived from:
+	 * http://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious
+	 */
+
+#if LONGSIZE == 8
+
+/*
+ Here is the explaination of what the algorithm does on 64-bit machines:
+ We need 80 columns to document this properly, hence the unusual formatting.
+ -----------------------------------------------------------------------------
+                                                                     abcd efgh
+ * (0x80200802)                     1000 0000  0010 0000  0000 1000  0000 0010
+ -----------------------------------------------------------------------------
+                         0abc defg  h00a bcde  fgh0 0abc  defg h00a  bcde fgh0
+ & (0x0884422110)        0000 1000  1000 0100  0100 0010  0010 0001  0001 0000
+ -----------------------------------------------------------------------------
+                         0000 d000  h000 0c00  0g00 00b0  00f0 000a  000e 0000
+ * (0x0101010101)        0000 0001  0000 0001  0000 0001  0000 0001  0000 0001
+ -----------------------------------------------------------------------------
+                         0000 d000  h000 0c00  0g00 00b0  00f0 000a  000e 0000
+              0000 d000  h000 0c00  0g00 00b0  00f0 000a  000e 0000
+   0000 d000  h000 0c00  0g00 00b0  00f0 000a  000e 0000
+.. h000 0c00  0g00 00b0  00f0 000a  000e 0000
+.. 0g00 00b0  00f0 000a  000e 0000
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+.. hg00 dcb0  hgf0 dcba  hgfe dcba  hgfe 0cba  0gfe 00ba  00fe 000a  000e 0000
+ -----------------------------------------------------------------------------
+ >> 32                   0000 d000  h000 dc00  hg00 dcb0  hgf0 dcba  hgfe dcba
+ &                                                                   1111 1111
+ -----------------------------------------------------------------------------
+                                                                     hgfe dcba
+ -----------------------------------------------------------------------------
+ */
+	{
+		uint8 v;
+
+		/*
+		 * The first multiply fans out the bit pattern to multiple copies,
+		 * while the last multiply combines them in the fifth byte from the
+		 * right.
+		 *
+		 * Devised by Sean Anderson, July 13th, 2001.
+		 */
+
+		v = ((b * 0x80200802UL) & 0x0884422110UL) * 0x0101010101UL >> 32;
+
+		return v;
+	}
+#else
+	{
+		uint8 v;
+
+		/*
+		 * Devised by Sean Anderson, July 13th, 2001.
+		 */
+
+		v = ((b * 0x0802UL & 0x22110UL) | (b * 0x8020UL & 0x88440UL)) *
+				0x10101UL >> 16;
+
+		return v;
+	}
+#endif
+}
+
 /* vi: set ts=4 sw=4 cindent: */
