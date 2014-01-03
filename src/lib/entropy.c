@@ -492,9 +492,6 @@ entropy_collect_randomness(SHA1_context *ctx)
 				uint8 data[1024];
 				size_t r, len = sizeof(data);
 
-				if (is_pipe)
-					len = MIN(128, len);	/* 128 is probably magic */
-
 				r = fread(data, 1, len, f);
 				if (r > 0)
 					SHA1_input(ctx, data, r);
