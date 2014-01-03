@@ -1672,6 +1672,9 @@ qrp_context_free(void *p)
 static void
 qrp_comp_context_free(void *p)
 {
+	if (qrp_comp != NULL)
+		(void) bg_task_exitcode(qrp_comp);	/* Avoid "lost exit code" warning */
+
 	qrp_comp = NULL;		/* If we're called, the task is being terminated */
 	qrp_context_free(p);
 }
@@ -1682,6 +1685,9 @@ qrp_comp_context_free(void *p)
 static void
 qrp_merge_context_free(void *p)
 {
+	if (qrp_merge != NULL)
+		(void) bg_task_exitcode(qrp_merge);	/* Avoid "lost exit code" warning */
+
 	qrp_merge = NULL;		/* If we're called, the task is being terminated */
 	qrp_context_free(p);
 }
