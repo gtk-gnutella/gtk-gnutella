@@ -451,7 +451,7 @@ entropy_collect_randomness(SHA1_context *ctx)
 	{
 		uint8 data[128];
 		if (0 == mingw_random_bytes(data, sizeof data)) {
-			g_warning("unable to generate random bytes: %m");
+			s_warning("%s(): unable to generate random bytes: %m", G_STRFUNC);
 		} else {
 			SHA1_input(ctx, data, sizeof data);
 		}
@@ -479,10 +479,11 @@ entropy_collect_randomness(SHA1_context *ctx)
 			f = popen("/usr/ucb/ps aux", "r");
 		}
 
-		if (f == NULL)
-			g_warning("was unable to %s on your system",
+		if (f == NULL) {
+			s_warning("%s(): was unable to %s on your system",
+				G_STRFUNC,
 				is_pipe ? "find the ps command" : "open /dev/urandom");
-		else {
+		} else {
 			/*
 			 * Compute the SHA1 of the output (either ps or /dev/urandom).
 			 */
