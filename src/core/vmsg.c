@@ -589,6 +589,10 @@ handle_features_supported(struct gnutella_node *n,
 			node_supports_whats_new(n);
 		}
 
+		if (0 != version && 0 == strcmp(feature, "QRP1")) {
+			node_supports_qrp_1bit_patches(n);
+		}
+
 		/* Any of ADHT, PDHT or LDHT means DHT is supported */
 		if (feature[0] && 0 == strcmp(&feature[1], "DHT")) {
 			dht_mode_t mode;
@@ -3449,6 +3453,7 @@ vmsg_send_features_supported(struct gnutella_node *n)
 
 	vmsg_features_add(&vmf, "HSEP", 1);
 	vmsg_features_add(&vmf, "WHAT", 1);
+	vmsg_features_add(&vmf, "QRP1", 1);		/* 1-bit QRP patches */
 	/* No support for NAT-to-NAT -- signal version as -1, not 0 */
 	vmsg_features_add(&vmf, "F2FT", (uint16) -1);
 	/* TCP-incoming connections: are possible if not firewalled */

@@ -1067,7 +1067,7 @@ void
 node_supports_tls(struct gnutella_node *n)
 {
 	node_check(n);
-	
+
 	n->attrs2 |= NODE_A2_CAN_TLS;
 	node_tls_refresh(n);
 }
@@ -1076,8 +1076,16 @@ void
 node_supports_whats_new(struct gnutella_node *n)
 {
 	node_check(n);
-	
+
 	n->attrs |= NODE_A_CAN_WHAT;
+}
+
+void
+node_supports_qrp_1bit_patches(struct gnutella_node *n)
+{
+	node_check(n);
+
+	n->attrs2 |= NODE_A2_CAN_QRP1;
 }
 
 void
