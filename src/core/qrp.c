@@ -422,8 +422,8 @@ qrt_patch_slot(struct routing_table *rt, uint i, uint8 v)
 {
 	uint b = 0x80U >> (i & 0x7);
 
-	if (v) {
-		if (v & 0x80) {				/* Negative value -> set bit */
+	if G_UNLIKELY(v) {
+		if G_LIKELY(v & 0x80) {		/* Negative value -> set bit */
 			rt->arena[i >> 3] |= b;
 			rt->set_count++;
 		} else { 					/* Positive value -> clear bit */
@@ -431,6 +431,33 @@ qrt_patch_slot(struct routing_table *rt, uint i, uint8 v)
 		}
 	} else {
 		/* else... unchanged. */
+		if (rt->arena[i >> 3] & b) {
+			rt->set_count++;		/* Bit was already set, kept that way */
+		}
+	}
+}
+
+/**
+ * In a compressed routing table, patch entry ``i'' with ``v'', the value
+ * we got from the routing patch: if the value is TRUE, the bit is flipped.
+ *
+ * As a side effect, increment rt->set_count if the position ``i'' ends-up
+ * being set after patching.
+ */
+static inline G_GNUC_HOT ALWAYS_INLINE void
+qrt_invert_slot(struct routing_table *rt, uint i, bool invert)
+{
+	uint b = 0x80U >> (i & 0x7);
+
+	if G_UNLIKELY(invert) {
+		if G_UNLIKELY(rt->arena[i >> 3] & b) {
+			rt->arena[i >> 3] &= ~b;	/* Clear bit */
+		} else {
+			rt->arena[i >> 3] |= b;		/* Set bit */
+			rt->set_count++;			/* Bit has been set */
+		}
+	} else {
+		/* unchanged. */
 		if (rt->arena[i >> 3] & b) {
 			rt->set_count++;		/* Bit was already set, kept that way */
 		}
@@ -3694,7 +3721,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const uchar *data, int len,
  *
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
-static G_GNUC_HOT bool
+static bool
 qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 	const struct qrp_patch *patch)
 {
@@ -3703,7 +3730,7 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 
 	g_assert(qrcv->table != NULL);
 
-	/* True for this variant of patch function. 8-bit, no expansion. */
+	/* True for this variant of patch function. 4-bit, no expansion. */
 	g_assert((int)rt->client_slots == rt->slots);
 	g_assert(qrcv->entry_bits == 4);
 	g_assert(qrcv->shrink_factor == 1);
@@ -3727,6 +3754,119 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 		qrt_patch_slot(rt, qrcv->current_index++, v & 0xf0);
 		qrt_patch_slot(rt, qrcv->current_index++, (v << 4) & 0xf0);
 
+	}
+	qrcv->current_slot = qrcv->current_index - 1;
+
+	return TRUE;
+}
+
+/**
+ * Apply raw 1-bit patch data (uncompressed) to the current routing table.
+ *
+ * @param qrcv			query routing table being received
+ * @param data			patch data to apply
+ * @param len			length of patch data (amount of data bytes)
+ * @param patch			the PATCH message, for logging purposes
+ *
+ * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
+ */
+static bool
+qrt_apply_patch1(struct qrt_receive *qrcv, const uchar *data, int len,
+	const struct qrp_patch *patch)
+{
+	struct routing_table *rt = qrcv->table;
+	int i;
+
+	g_assert(qrcv->table != NULL);
+
+	/* True for this variant of patch function. 1-bit, no expansion. */
+	g_assert((int)rt->client_slots == rt->slots);
+	g_assert(qrcv->entry_bits == 1);
+	g_assert(qrcv->shrink_factor == 1);
+
+	if G_UNLIKELY(len == 0)				/* No data, only zlib trailer */
+		return TRUE;
+
+	if (!qrt_patch_is_valid(qrcv, len, 8, patch))
+		return FALSE;
+
+	g_assert(qrcv->current_index + len * 8 <= rt->slots);
+
+	for (i = 0; i < len; i++) {
+		uint8 v = data[i];	/* Patch byte contains 8 slots */
+
+		/*
+		 * Bits are processed in big-endian way.
+		 *
+		 * A non-zero bit means the current entry in the QRT needs to be
+		 * flipped, a zero bit means we need to keep it as-is.
+		 */
+
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 7));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 6));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 5));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 4));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 3));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 2));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 1));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 0));
+	}
+	qrcv->current_slot = qrcv->current_index - 1;
+
+	return TRUE;
+}
+
+/**
+ * Apply raw 1-bit patch data (uncompressed) to the current routing table,
+ * reversing each byte as we go.
+ *
+ * @param qrcv			query routing table being received
+ * @param data			patch data to apply
+ * @param len			length of patch data (amount of data bytes)
+ * @param patch			the PATCH message, for logging purposes
+ *
+ * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
+ */
+static bool
+qrt_apply_reversed_patch1(struct qrt_receive *qrcv, const uchar *data, int len,
+	const struct qrp_patch *patch)
+{
+	struct routing_table *rt = qrcv->table;
+	int i;
+
+	g_assert(qrcv->table != NULL);
+
+	/* True for this variant of patch function. 1-bit, no expansion. */
+	g_assert((int)rt->client_slots == rt->slots);
+	g_assert(qrcv->entry_bits == 1);
+	g_assert(qrcv->shrink_factor == 1);
+
+	if G_UNLIKELY(len == 0)				/* No data, only zlib trailer */
+		return TRUE;
+
+	if (!qrt_patch_is_valid(qrcv, len, 8, patch))
+		return FALSE;
+
+	g_assert(qrcv->current_index + len * 8 <= rt->slots);
+
+	for (i = 0; i < len; i++) {
+		uint8 v = data[i];	/* Patch byte contains 8 slots */
+
+		/*
+		 * Bits are processed in little-endian way (since patch is "reversed").
+		 *
+		 * A non-zero bit means the current entry in the QRT needs to be
+		 * flipped, a zero bit means we need to keep it as-is.
+		 */
+
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 0));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 1));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 2));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 3));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 4));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 5));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 6));
+		qrt_invert_slot(rt, qrcv->current_index++, v & (1U << 7));
 	}
 	qrcv->current_slot = qrcv->current_index - 1;
 
@@ -4110,18 +4250,46 @@ qrt_handle_patch(
 
 		switch (qrcv->entry_bits) {
 		case 8:
-			if (qrcv->shrink_factor == 1)
+			if (1 == qrcv->shrink_factor)
 				qrcv->patch = qrt_apply_patch8;
 			break;
 		case 4:
-			if (qrcv->shrink_factor == 1)
+			if (1 == qrcv->shrink_factor)
 				qrcv->patch = qrt_apply_patch4;
 			break;
 		case 2:
 			/* Use default handler. */
 			break;
 		case 1:	
-			/* Use default handler. */
+			/*
+			 * G2 defined the ordering of bits in the 1-bit QRP as being
+			 * "little-endian" (i.e. the bit #0 in the logical QRP is actually
+			 * the low-order bit of the first byte), whereas in Gnutella, the
+			 * QRP is ordered in a "big-endian" way (i.e. the bit #0 in the
+			 * logical QRP is actually the high-order bit of the first byte).
+			 * This is consistent with the 4-bit patch, where the first nybble
+			 * is given in the high nybble of the first byte, i.e. in bits 7-4.
+			 *
+			 * This means we need to reverse each byte of the patch when
+			 * receiving a 1-bit patch from a G2 node.  Note that this only
+			 * happens when GTKG runs as a Hub, which is not going to be
+			 * implemented at first.
+			 *		--RAM, 2014-01-03
+			 */
+			if (NODE_TALKS_G2(n)) {
+				if (1 == qrcv->shrink_factor) {
+					qrcv->patch = qrt_apply_reversed_patch1;
+				} else {
+					g_warning("%s sent QRP 1-bit PATCH with shrink factor %u",
+						node_infostr(n), qrcv->shrink_factor);
+					node_bye_if_writable(n, 413,
+						"Invalid shrink factor %u for PATCH (QRT too large)",
+						qrcv->shrink_factor);
+					return FALSE;
+				}
+			} else if (1 == qrcv->shrink_factor) {
+				qrcv->patch = qrt_apply_patch1;
+			}
 			break;
 		default:
 			g_warning("%s sent invalid QRP entry bits %u for PATCH",
