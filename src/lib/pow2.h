@@ -97,7 +97,44 @@ ctz(uint32 x)
 }
 #else	/* !HAS_BUILTIN_CTZ */
 {
-	return G_UNLIKELY(0 == x) ? 0 : popcount((x & -x) - 1);
+	uint32 c;
+
+	if G_UNLIKELY(0 == x)
+		return -1;
+
+	/*
+	 * This code comes from
+	 * http://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious.
+	 *
+	 * It was designed by Matt Whitlock on January 25, 2006, and then
+	 * further optimized by Andrew Shapira on September 5, 2007 (by setting
+	 * c = 1 initially and then unconditionally subtracting at the end).
+	 */
+
+	if (x & 1) {
+		c = 0;
+	} else {
+		c = 1;
+		if (0 == (x & 0xffff)) {
+			x >>= 16;
+			c += 16;
+		}
+		if (0 == (x & 0xff)) {
+			x >>= 8;
+			c += 8;
+		}
+		if (0 == (x & 0xf)) {
+			x >>= 4;
+			c += 4;
+		}
+		if (0 == (x & 0x3)) {
+			x >>= 2;
+			c += 2;
+		}
+		c -= x & 1;
+	}
+
+	return c;
 }
 #endif	/* HAS_BUILTIN_CTZ */
 
