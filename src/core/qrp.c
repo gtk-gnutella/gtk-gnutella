@@ -3675,24 +3675,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const uchar *data, int len,
 
 	g_assert(qrcv->current_index + len <= rt->slots);
 	
-	/*
-	 * Compute the amount of entries per byte, and the initial reading mask.
-	 */
-
 	for (i = 0; i < len; i++) {
-		/*
-		 * The only possibilities for the patch are:
-		 *
-		 * . A negative value, to bring the slot value from infinity to 1.
-		 * . A null value for no change.
-		 * . A positive value to bring the slot back to infinity.
-		 *
-		 * In reality, for leaf<->ultrapeer QRT, what matters is presence.
-		 * We consider everything that is less to infinity as being
-		 * present, and therefore forget about the "hops-away" semantics
-		 * of the QRT slot value.
-		 */
-		
 		qrt_patch_slot(rt, qrcv->current_index++, data[i]);
 	}
 	qrcv->current_slot = qrcv->current_index - 1;
@@ -3733,26 +3716,14 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 
 	g_assert(qrcv->current_index + len * 2 <= rt->slots);
 	
-	/*
-	 * Compute the amount of entries per byte, and the initial reading mask.
-	 */
-
 	for (i = 0; i < len; i++) {
-		uint8 v = data[i];	/* Patch byte contains `epb' slots */
+		uint8 v = data[i];	/* Patch byte contains 2 slots */
 
 		/*
-		 * The only possibilities for the patch are:
-		 *
-		 * . A negative value, to bring the slot value from infinity to 1.
-		 * . A null value for no change.
-		 * . A positive value to bring the slot back to infinity.
-		 *
-		 * In reality, for leaf<->ultrapeer QRT, what matters is presence.
-		 * We consider everything that is less to infinity as being
-		 * present, and therefore forget about the "hops-away" semantics
-		 * of the QRT slot value.
+		 * Quartets are processed in big-endian way (highest nybble is
+		 * for the lowest table index).
 		 */
-	
+
 		qrt_patch_slot(rt, qrcv->current_index++, v & 0xf0);
 		qrt_patch_slot(rt, qrcv->current_index++, (v << 4) & 0xf0);
 
