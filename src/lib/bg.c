@@ -1102,14 +1102,22 @@ bg_task_terminate(bgtask_t *bt)
 		bt->flags &= ~TASK_F_ZOMBIE;		/* Is now totally DEAD */
 	}
 
-	if (bt->flags & TASK_F_ZOMBIE)
-		g_carp("user code lost exit status of task \"%s\"", bt->name);
-
 	/*
 	 * Free user's context.
+	 *
+	 * User code can call bg_task_exitcode() from the context freeing callback
+	 * if it has a reference on the task (otherwise it should have installed
+	 * a "done" callback to know how the task exits).
+	 *
+	 * Therefore we can only warn about the exit status being lost after the
+	 * context has been completely destroyed.
 	 */
 
 	(*bt->uctx_free)(bt->ucontext);
+
+	if (bt->flags & TASK_F_ZOMBIE)
+		g_carp("user code lost exit status of task \"%s\"", bt->name);
+
 	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
 
 	/*
