@@ -627,6 +627,19 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 		uint8 v;
 
 		/*
+		 * Optimize computation: if bytes are equal, we can immediately
+		 * generate 8 quartets of 0, i.e. 4 bytes.
+		 */
+
+		if G_LIKELY(obyte == nbyte) {
+			*pp++ = 0;
+			*pp++ = 0;
+			*pp++ = 0;
+			*pp++ = 0;
+			continue;
+		}
+
+		/*
 		 * In our compacted table, set bits indicate presence.
 		 * Thus, we need to build the patch quartets as:
 		 *
