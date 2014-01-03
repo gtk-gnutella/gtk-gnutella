@@ -357,6 +357,7 @@ enum {
  * Second attributes.
  */
 enum {
+	NODE_A2_TALKS_G2	= 1 << 7,	/**< Node talking with the G2 protocol */
 	NODE_A2_CAN_QRP1	= 1 << 6,	/**< Node supports QRP 1-bit patches  */
 	NODE_A2_NOT_GENUINE	= 1 << 5,	/**< Vendor cannot be genuine */
 	NODE_A2_CAN_TLS		= 1 << 4,	/**< Indicated support for TLS */
@@ -484,6 +485,7 @@ enum {
 #define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
 #define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
 #define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
+#define NODE_TALKS_G2(n)		((n)->attrs2 & NODE_A2_TALKS_G2)
 
 /*
  * NODE_CAN_SR_UDP() checks whether the UDP node has its message queue set up
@@ -516,10 +518,18 @@ enum {
  */
 
 #define node_vendor(n)		((n)->vendor != NULL ? (n)->vendor : "????")
-#define node_type(n)			\
-	(NODE_IS_UDP(n) ? "UDP" :	\
-	 NODE_IS_LEAF(n) ? "leaf" :	\
-	 NODE_IS_ULTRA(n) ? "ultra" : "legacy")
+
+static inline const char *
+node_type(const gnutella_node_t *n)
+{
+	if (NODE_IS_UDP(n)) {
+		return NODE_TALKS_G2(n) ? "UDP (G2)" : "UDP";
+	} else if (!NODE_TALKS_G2(n)) {
+		return NODE_IS_LEAF(n) ? "leaf" : NODE_IS_ULTRA(n) ? "ultra" : "legacy";
+	} else {
+		return "G2";			/* FIXME when we have G2 node types */
+	}
+}
 
 #define node_inc_sent(n)            node_add_sent(n, 1)
 #define node_inc_txdrop(n)          node_add_txdrop(n, 1)
