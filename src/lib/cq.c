@@ -38,12 +38,14 @@
 
 #include "atoms.h"
 #include "elist.h"
+#include "hashing.h"		/* For integer_hash_fast() */
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
 #include "pow2.h"
 #include "pslist.h"
+#include "random.h"			/* For random_pool_append() */
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "stringify.h"
@@ -1283,6 +1285,8 @@ cq_heartbeat(cqueue_t *cq)
 	tm_t tv;
 	time_delta_t delay;
 	uint stid = thread_small_id();
+	bool extra = FALSE;
+	size_t triggered;
 
 	cqueue_check(cq);
 
@@ -1318,13 +1322,30 @@ cq_heartbeat(cqueue_t *cq)
 		s_warning("%s(%s): adjusting delay of %'ld ms down to period (%d ms)",
 			G_STRFUNC, cq->cq_name, (long) delay, cq->cq_period);
 		delay = cq->cq_period;
+		extra = TRUE;
 	}
 
 	/*
 	 * We hold the mutex when calling cq_clock(), and it will be released there.
 	 */
 
-	return cq_clock(cq, delay);
+	triggered = cq_clock(cq, delay);
+
+	/*
+	 * If there was extra delay in scheduling the heartbeat, collect this
+	 * amount as entropy, as well as the time spent in scheduling events.
+	 * We do this after the callout queue lock was released.
+	 */
+
+	if G_UNLIKELY(extra) {
+		unsigned entropy = integer_hash_fast(delay);
+		tm_now_exact(&tv);
+		delay = tm_elapsed_us(&tv, &cq->cq_last_heartbeat);
+		entropy += integer_hash_fast(delay);
+		random_pool_append(&entropy, sizeof entropy);
+	}
+
+	return triggered;
 }
 
 /**
