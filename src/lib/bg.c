@@ -613,17 +613,17 @@ bg_task_suspend(bgtask_t *bt, int target)
 
 		if (target != 0 && elapsed > target) {
 			if (bg_debug > 4)
-				g_message("BGTASK \"%s\" resetting tick_cost", bt->name);
+				g_message("BGTASK \"%s\" %p resetting tick_cost", bt->name, bt);
 			new_cost = elapsed / bt->ticks_used;
 		} else {
 			new_cost = (4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 		}
 
 		if (bg_debug > 4) {
-			g_debug("BGTASK \"%s\" total=%'lu msecs (%s), "
+			g_debug("BGTASK \"%s\" %p total=%'lu msecs (%s), "
 				"elapsed=%'lu usecs (targeted %d), "
 				"ticks=%d, used=%d, tick_cost=%g usecs (was %g)",
-				bt->name, bt->wtime, short_time_ascii(bt->wtime / 1000),
+				bt->name, bt, bt->wtime, short_time_ascii(bt->wtime / 1000),
 				(ulong) elapsed, target, bt->ticks, bt->ticks_used,
 				new_cost, bt->tick_cost);
 		}
@@ -935,7 +935,7 @@ bg_daemon_enqueue(bgtask_t *bt, void *item)
 	BG_TASK_UNLOCK(bt);
 
 	if (awoken && bg_debug > 1)
-		g_debug("BGTASK waking up daemon \"%s\" task", bt->name);
+		g_debug("BGTASK waking up daemon \"%s\" task %p", bt->name, bt);
 
 	if (awoken && bd->notify != NULL)
 		(*bd->notify)(bt, TRUE);	/* Waking up */
@@ -972,8 +972,8 @@ bg_task_free(bgtask_t *bt)
 		pslist_free_null(&bd->wq);
 
 		if (count) {
-			g_warning("%s(): freed %d pending item%s for daemon \"%s\" task",
-				G_STRFUNC, count, plural(count), bt->name);
+			g_warning("%s(): freed %d pending item%s for daemon \"%s\" task %p",
+				G_STRFUNC, count, plural(count), bt->name, bt);
 		}
 		bt->magic = 0;
 		WFREE(bd);
@@ -1006,9 +1006,9 @@ bg_task_terminate(bgtask_t *bt)
 	if G_UNLIKELY(bg_closed) {
 		if (0 == (bt->flags & TASK_F_CANCELLED)) {
 			/* Only warn if task was not cancelled as part of the shutdown */
-			g_carp("%s(): ignoring left-over %stask \"%s\", flags=0x%x",
+			g_carp("%s(): ignoring left-over %stask %p \"%s\", flags=0x%x",
 				G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "",
-				bt->name, bt->flags);
+				bt, bt->name, bt->flags);
 		}
 
 		/*
@@ -1046,8 +1046,8 @@ bg_task_terminate(bgtask_t *bt)
 	 */
 
 	if (bg_debug > 1) {
-		g_debug("BGTASK terminating \"%s\"%s, ran %'lu msecs (%s)",
-			bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "",
+		g_debug("BGTASK terminating %p \"%s\"%s, ran %'lu msecs (%s)",
+			bt, bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "",
 			bt->wtime, short_time_ascii(bt->wtime / 1000));
 	}
 
@@ -1060,10 +1060,10 @@ bg_task_terminate(bgtask_t *bt)
 	bg_sched_remove(bt);			/* Ensure it's no longer scheduled */
 
 	g_assert_log(bs->runcount != 0,
-		"%s(): terminating unaccounted %stask \"%s\" in %s scheduler, "
+		"%s(): terminating unaccounted %stask %p \"%s\" in %s scheduler, "
 		"currently in %s()",
 		G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "",
-		bt->name, bs->name, bg_task_step_name(bt));
+		bt, bt->name, bs->name, bg_task_step_name(bt));
 
 	bs->runcount--;				/* One task less to run */
 	bs->completed++;			/* One more task completed */
