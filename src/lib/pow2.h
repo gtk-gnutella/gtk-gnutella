@@ -76,13 +76,14 @@ popcount(uint32 x)
 }
 #else	/* !HAS_BUILTIN_POPCOUNT */
 {
-	x -= (x >> 1) & 0x55555555;
-	x = ((x >> 2) & 0x33333333) + (x & 0x33333333);
-	x = ((x >> 4) + x) & 0x0f0f0f0f;
-	x += x >> 8;
-	x += x >> 16;
-	return x & 0x1f;	/* At most 32 bits */
+	/*
+	 * Best popcount implementation, in only 12 operations.
+	 * Source: http://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious
+	 */
 
+	x -= (x >> 1) & 0x55555555;
+	x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+	return ((x + (x >> 4) & 0xf0f0f0f) * 0x1010101) >> 24;
 }
 #endif	/* HAS_BUILTIN_POPCOUNT */
 
