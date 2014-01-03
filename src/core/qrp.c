@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,8 +27,15 @@
  *
  * Query Routing Protocol (LimeWire's scheme).
  *
+ * As of 2014-01-03, GTKG's handling of the Bloom filter changed.  We used
+ * to require that ALL words in a query match an entry in the QRP to let the
+ * query be forwarded to a leaf node or another ultrapeer (for inter-UP QRP).
+ * But LimeWire has always used a different logic: if there are more than 2
+ * words, then only 2/3rd of the words are required to match to let the query
+ * pass.  Hence we changed our behaviour to match that of legacy LimeWires.
+ *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -3746,24 +3753,32 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
  * A macro that creates functions with fixed slot sizes to determine
  * if the table contains all key words.  With a parameter of 21, the
  * name will be qrp_can_route_21.
+ *
+ * This routine is called when there are no URNs in the query, only words.
  */
-#define CAN_ROUTE(bits) \
-static G_GNUC_HOT bool \
-qrp_can_route_##bits(const query_hashvec_t *qhv, \
-					 const struct routing_table *rt) \
- \
-{ \
-	const struct query_hash * const vec = qhv->vec; \
-	const uint8 * const arena = rt->arena; \
-	uint8 i = qhv->count; \
- \
-	while (i-- > 0) { \
-		uint32 idx = vec[i].hashcode >> (32 - bits); \
-		/* ALL the keywords must be present -- hardwire RT_SLOT_READ. */ \
-		if (0 == (0x80U & (arena[idx >> 3] << (idx & 0x7)))) \
-			return FALSE; \
-	} \
-	return TRUE; \
+#define CAN_ROUTE(bits)													\
+static G_GNUC_HOT bool													\
+qrp_can_route_##bits(const query_hashvec_t *qhv,						\
+					 const struct routing_table *rt)					\
+{																		\
+	const struct query_hash * const vec = qhv->vec;						\
+	const uint8 * const arena = rt->arena;								\
+	uint8 i = qhv->count;												\
+	uint8 hit = 0, word = qhv->count;									\
+																		\
+	while (i-- > 0) {													\
+		uint32 idx = vec[i].hashcode >> (32 - bits);					\
+		/*																\
+		 * We hardwire RT_SLOT_READ here.								\
+		 * To follow LimeWire's behaviour, require only 2/3 of matching	\
+		 * when there are at least 3 words.								\
+		 *		--RAM, 2014-01-03										\
+		 */																\
+		if (0 != (0x80U & (arena[idx >> 3] << (idx & 0x7)))) {			\
+			hit++;														\
+		}																\
+	}																	\
+	return word < 3 ? hit == word : 3 * hit / word >= 2;				\
 }
 
 /* Create eight QRT lookup routines with fixed shift factors. */
@@ -3784,6 +3799,16 @@ CAN_ROUTE(21)
  * will be qrp_can_route_urn_14.
  *
  * @todo: Is URN searched deprecated, with DHT queries?
+ **
+ * Answer as of 2014-01-03: Yes, they are, but legacy servents like Shareaza
+ * continue to include URNs in their QRP as they do not support the DHT.
+ * And there are still old LimeWire present out there that did include URNs
+ * in their QRP.
+ * Nonetheless, we amend the logic to still forward the query, even if the URNs
+ * did not match, as long as 2/3 of the words matched (like for a regular query
+ * with no URN) because we cannot know for sure whether URNs are present in
+ * the QRP table.
+ *		--RAM, 2014-01-03
  */
 #define CAN_ROUTE_URN(bits)                                           \
 static bool                                                           \
@@ -3793,6 +3818,7 @@ qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
 	const struct query_hash *qh = qhv->vec;                           \
 	const uint8 *arena          = rt->arena;                          \
 	uint i;                                                           \
+	uint8 hit = 0, word = 0;                                          \
 					                                                  \
 	for (i = 0; i < qhv->count; i++) {                                \
 		uint32 idx = qh[i].hashcode >> (32 - bits);                   \
@@ -3800,31 +3826,37 @@ qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
 		/*                                                            \
 		 * If there is an entry in the table and the source is an URN,\
 		 * we have to forward the query, as those are OR-ed.          \
-		 * Otherwise, ALL the keywords must be present.               \
+		 *                                                            \
+		 * To follow LimeWire's behaviour, require only 2/3 of words  \
+		 * matching, when there are at least 3 words.                 \
+		 * 		--RAM, 2014-01-03.                                    \
 		 *                                                            \
 		 * When facing a SHA1 query, we require that at least one of  \
-		 * the URN matches or we don't forward the query.             \
+		 * the URN matches or that 2/3 of the words match.            \
 		 */                                                           \
 		if (RT_SLOT_READ(arena, idx)) {                               \
 			if (qh[i].source == QUERY_H_URN)	/* URN present */     \
 				return TRUE;					/* Will forward */    \
-			return FALSE;					/* And none matched */    \
+			word++;                                                   \
+			hit++;                                                    \
 		} else {                                                      \
 			if (qh[i].source == QUERY_H_WORD) {                       \
 				/* We know no URN matched already                     \
 				   because qhv is sorted */                           \
-				return FALSE;	/* All words did not match */         \
+				word++;                                               \
 			}                                                         \
 		}                                                             \
 	}                                                                 \
 	/*                                                                \
-	 * We had some URNs and none matched so don't forward.            \
+	 * We had some URNs and none matched but forward if more than     \
+	 * 2/3 of the words did, and we had at least 3 words, otherwise   \
+	 * all the words must have matched.                               \
 	 */                                                               \
-	return FALSE;                                                     \
+	return 0 == word ? FALSE :                                        \
+		word < 3 ? hit == word : 3 * hit / word >= 2;				  \
 }
 
-/* Create eight QRT lookup routines (with a URN) with fixed shift
- * factors. */
+/* Create eight QRT lookup routines (with a URN) with fixed shift factors. */
 CAN_ROUTE_URN(14)
 CAN_ROUTE_URN(15)
 CAN_ROUTE_URN(16)
@@ -4670,7 +4702,7 @@ qhvec_add(query_hashvec_t *qhvec, const char *word, enum query_hsrc src)
  * @param qhv			the query hit vector containing QRP hashes and types
  * @param rt			the routing table of the target node
  *
- * @note thie routine expects the query hash vector to be sorted with
+ * @note this routine expects the query hash vector to be sorted with
  * URNs coming first and words later.  This is a default
  * implementation.  The macros CAN_ROUTE and CAN_ROUTE_URN expand into
  * routines that perform the same tests with pre-computed shifts.
@@ -4681,7 +4713,7 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 	const struct query_hash *qh;
 	const uint8 *arena;
 	uint i, shift;
-	bool has_urn;
+	uint hit = 0, word = 0;
 
 	/*
 	 * This routine is a hot spot when running as an ultra node.
@@ -4689,7 +4721,6 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 	 */
 
 	arena = rt->arena;
-	has_urn = qhv->has_urn;
 	shift = 32 - rt->bits;
 	qh = qhv->vec;
 
@@ -4701,7 +4732,8 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 		/*
 		 * If there is an entry in the table and the source is an URN,
 		 * we have to forward the query, as those are OR-ed.
-		 * Otherwise, ALL the keywords must be present.
+		 * Otherwise, 2/3rd of the keywords must be present, if there
+		 * are at least 3 words.
 		 *
 		 * When facing a SHA1 query, we require that at least one of the
 		 * URN matches or we don't forward the query.
@@ -4710,22 +4742,26 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 		if (RT_SLOT_READ(arena, idx)) {
 			if (qh[i].source == QUERY_H_URN)	/* URN present */
 				return TRUE;					/* Will forward */
-			if (has_urn)						/* We passed all the URNs */
-				return FALSE;					/* And none matched */
+			word++;
+			hit++;
 		} else {
 			if (qh[i].source == QUERY_H_WORD) {	/* Word NOT present */
 				/* We know no URN matched already because qhv is sorted */
-				return FALSE;					/* All words did not match */
+				word++;
 			}
 		}
 	}
 
 	/*
-	 * If we had no URN, all the words matched, so route query!
-	 * If we had some URNs, none matched so don't forward.
+	 * If we had no URN, verify that 2/3rd of the words matched, or that
+	 * all matched if less than 3.
+	 * If we had some URNs, none matched so don't forward if there was no word.
 	 */
 
-	return !has_urn;
+	if (qhv->has_urn && 0 == word)
+		return FALSE;
+
+	return word < 3 ? hit == word : 3 * hit / word >= 2;
 }
 
 /**
