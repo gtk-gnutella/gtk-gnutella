@@ -102,6 +102,8 @@
 #include "lib/sha1.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/tmalloc.h"
 #include "lib/vmm.h"
@@ -918,13 +920,35 @@ no_config_dir:
 /**
  * Generate new randomness.
  */
-void
-settings_add_randomness(void)
+static void
+settings_gen_randomness(void *unused)
 {
 	sha1_t buf;		/* 160 bits */
 
+	(void) unused;
+	g_assert(thread_is_main());
+
 	aje_random_bytes(&buf, SHA1_RAW_SIZE);
 	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
+}
+
+/**
+ * Generate new randomness.
+ *
+ * This is an event callback invoked when new randomness has been flushed
+ * to random number generators.
+ */
+void
+settings_add_randomness(void)
+{
+	/*
+	 * Since this can be called from any thread collecting and feeding entropy
+	 * to the global random pool, we need to funnel back the generation to
+	 * the main thread, using a "safe" event in case some callbacks are attached
+	 * to the change of the "randomness" property.
+	 */
+
+	teq_safe_post(THREAD_MAIN, settings_gen_randomness, NULL);
 }
 
 /**
