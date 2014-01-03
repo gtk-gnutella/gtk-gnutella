@@ -723,8 +723,9 @@ check_leaf_list_consistency(
 
 		knode_check(kn);
 		g_assert_log(kn->status == status,
-			"kn->status=%s, status=%s",
-			knode_status_to_string(kn->status), knode_status_to_string(status));
+			"kn->status=%s, status=%s, kn={%s}",
+			knode_status_to_string(kn->status), knode_status_to_string(status),
+			knode_to_string(kn));
 		count++;
 	}
 
