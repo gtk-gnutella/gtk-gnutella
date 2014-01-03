@@ -402,8 +402,9 @@ bg_task_exitcode(bgtask_t *bt)
 	BG_TASK_UNLOCK(bt);
 
 	if G_UNLIKELY(0 == (TASK_F_EXITED & flags)) {
-		g_carp("%s(): calling on non-terminated task \"%s\", currently in %s()",
-			G_STRFUNC, bt->name, bg_task_step_name(bt));
+		g_carp("%s(): calling on non-terminated task %p \"%s\", "
+			"currently in %s()",
+			G_STRFUNC, bt, bt->name, bg_task_step_name(bt));
 		return 0;
 	}
 
@@ -1115,8 +1116,10 @@ bg_task_terminate(bgtask_t *bt)
 
 	(*bt->uctx_free)(bt->ucontext);
 
-	if (bt->flags & TASK_F_ZOMBIE)
-		g_carp("user code lost exit status of task \"%s\"", bt->name);
+	if (bt->flags & TASK_F_ZOMBIE) {
+		g_carp("user code lost exit status of task %p \"%s\": %s",
+			bt, bt->name, bgstatus_to_string(status));
+	}
 
 	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
 
