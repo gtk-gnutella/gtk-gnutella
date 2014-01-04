@@ -79,6 +79,7 @@ void hash_table_destroy_real(hash_table_t *ht);
 
 size_t hash_table_size(const hash_table_t *ht);
 size_t hash_table_capacity(const hash_table_t *ht);
+size_t hash_table_buckets(const hash_table_t *ht);
 size_t hash_table_memory(const hash_table_t *ht);
 size_t hash_table_arena_memory(const hash_table_t *ht);
 bool hash_table_insert(hash_table_t *ht,

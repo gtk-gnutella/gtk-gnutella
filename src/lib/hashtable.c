@@ -505,6 +505,24 @@ hash_table_capacity(const hash_table_t *ht)
 }
 
 /**
+ * Get the amount of buckets in the hash_table.
+ *
+ * @param ht	the hash table
+ *
+ * @return the current amount of buckets used to distribute items.
+ */
+size_t
+hash_table_buckets(const hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if G_UNLIKELY(ht->thread_safe)
+		atomic_mb();
+
+	return ht->num_bins;
+}
+
+/**
  * Synchronize access to hash table if thread-safe.
  */
 
