@@ -2241,8 +2241,6 @@ hcache_close(void)
         HCACHE_VALID_ULTRA,
         HCACHE_FRESH_ULTRA6,
         HCACHE_VALID_ULTRA6,
-		HCACHE_FRESH_G2HUB,
-		HCACHE_VALID_G2HUB,
         HCACHE_TIMEOUT,
         HCACHE_BUSY,
         HCACHE_UNSTABLE,
@@ -2251,6 +2249,8 @@ hcache_close(void)
         HCACHE_GUESS_INTRO,
         HCACHE_GUESS6,
         HCACHE_GUESS6_INTRO,
+		HCACHE_FRESH_G2HUB,
+		HCACHE_VALID_G2HUB,
     };
 	uint i;
 
