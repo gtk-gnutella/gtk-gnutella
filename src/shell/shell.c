@@ -95,6 +95,7 @@ struct gnutella_shell {
 	link_t lnk;				/**< Embedded list pointer */
 	spinlock_t lock;		/**< Thread-safe lock */
 	uint shutdown:1;  		/**< In shutdown mode? */
+	uint exiting:1;  		/**< Should shell exit? */
 	uint interactive:1;		/**< Interactive mode? */
 	uint async:1;			/**< In the middle of asynchronous processing */
 };
@@ -251,6 +252,28 @@ shell_toggle_interactive(struct gnutella_shell *sh)
 		shell_write_welcome(sh);
 	}
 	return sh->interactive;
+}
+
+static void
+shell_shutdown(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	sh->shutdown = TRUE;
+	atomic_mb();
+	socket_evt_clear(sh->socket);
+}
+
+/**
+ * Request that shell exits once all pending output has been flushed.
+ */
+void
+shell_exit(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	sh->exiting = TRUE;
+	atomic_mb();
 }
 
 /**
@@ -900,6 +923,9 @@ shell_interpret_line(struct gnutella_shell *sh, const char *line)
 
 		line = endptr;
 		shell_set_msg(sh, NULL);
+
+		if (sh->exiting)
+			break;
 	}
 
 	getline_reset(sh->socket->getline);
@@ -975,7 +1001,7 @@ shell_interpret_data(struct gnutella_shell *sh)
 		if (shell_interpret_line(sh, line))
 			return;
 
-		if (sh->shutdown)
+		if (sh->shutdown || sh->exiting)
 			return;
 	}
 
@@ -1049,15 +1075,15 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 {
 	shell_check(sh);
 
-	if G_UNLIKELY(sh->shutdown)
-		return;
-
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		s_warning ("%s(%p): got input exception", G_STRFUNC, sh);
 		goto destroy;
 	}
 
-	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh)) {
+	if (
+		(cond & INPUT_EVENT_W) &&
+		!sh->shutdown && shell_has_pending_output(sh)
+	) {
 		shell_write_data(sh);
 	}
 
@@ -1069,8 +1095,10 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 	SHELL_LOCK(sh);
 
 	if (!shell_has_pending_output(sh)) {
-		if (sh->shutdown)
+		if (sh->shutdown || sh->exiting) {
+			SHELL_UNLOCK(sh);
 			goto destroy;
+		}
 
 		if (GNET_PROPERTY(shell_debug) > 1) {
 			s_debug("%s(%p): clearing INPUT_EVENT_WX", G_STRFUNC, sh);
@@ -1220,16 +1248,6 @@ shell_write_linef(struct gnutella_shell *sh, int code, const char *fmt, ...)
 	shell_pending_flush(sh, FALSE);
 	sh->pending.msg = s;
 	sh->pending.code = code;
-}
-
-void
-shell_shutdown(struct gnutella_shell *sh)
-{
-	shell_check(sh);
-
-	sh->shutdown = TRUE;
-	atomic_mb();
-	socket_evt_clear(sh->socket);
 }
 
 #ifdef USE_REMOTE_CTRL

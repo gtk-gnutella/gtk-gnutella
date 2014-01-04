@@ -118,7 +118,7 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 		(flags & GTKG_SHUTDOWN_OFAST) ? "fast " : "",
 		shutdown_mode_string(mode));
 
-	shell_shutdown(sh);
+	shell_exit(sh);
 	return REPLY_NONE;
 }
 
