@@ -544,7 +544,8 @@ static struct routing_patch *
 qrt_patch_ref(struct routing_patch *rp)
 {
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
-	rp->refcnt++;
+
+	atomic_int_inc(&rp->refcnt);
 	return rp;
 }
 
@@ -569,7 +570,7 @@ qrt_patch_unref(struct routing_patch *rp)
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
 	g_assert(rp->refcnt > 0);
 
-	if (--rp->refcnt == 0)
+	if (atomic_int_dec_is_zero(&rp->refcnt))
 		qrt_patch_free(rp);
 }
 
