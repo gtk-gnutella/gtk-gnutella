@@ -66,6 +66,7 @@ static const int log2_byte[256] = {
 	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
 };
 
+#ifndef HAS_BUILTIN_POPCOUNT
 static const int bits_set_byte[256] = {
 	0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 
 	1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
@@ -93,15 +94,7 @@ bits_set(uint8 b)
 {
 	return bits_set_byte[b & 0xff];
 }
-
-/**
- * @returns amount of bits set in a 32-bit value.
- */
-int
-bits_set32(uint32 v)
-{
-	return popcount(v);
-}
+#endif	/* !HAS_BUILTIN_POPCOUNT */
 
 /**
  * @returns the closest power of two greater or equal to `n'.

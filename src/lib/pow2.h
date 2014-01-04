@@ -40,8 +40,6 @@ uint32 next_pow2(uint32 n) G_GNUC_CONST;
 uint64 next_pow2_64(uint64 n) G_GNUC_CONST;
 int highest_bit_set(uint32 n) G_GNUC_PURE;
 int highest_bit_set64(uint64 n) G_GNUC_PURE;
-int bits_set(uint8 b) G_GNUC_PURE;
-int bits_set32(uint32 v) G_GNUC_CONST;
 int ctz64(uint64 n) G_GNUC_CONST;
 uint8 reverse_byte(uint8 b) G_GNUC_CONST;
 
@@ -158,6 +156,28 @@ clz(uint32 x)
 	return 32 - popcount(x);
 }
 #endif	/* HAS_BUILTIN_CLZ */
+
+#ifdef HAS_BUILTIN_POPCOUNT
+/**
+ * @returns amount of bits set in a byte.
+ */
+static inline ALWAYS_INLINE G_GNUC_CONST int
+bits_set(uint8 b)
+{
+	return __builtin_popcount(b);
+}
+#else
+int bits_set(uint8 b) G_GNUC_PURE;
+#endif	/* HAS_BUILTIN_POPCOUNT */
+
+/**
+ * @returns amount of bits set in a 32-bit value.
+ */
+static inline ALWAYS_INLINE G_GNUC_CONST int
+bits_set32(uint32 v)
+{
+	return popcount(v);
+}
 
 #endif /* _pow2_h_ */
 
