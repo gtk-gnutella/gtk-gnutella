@@ -202,7 +202,8 @@ enum bgtask_magic {
  */
 struct bgtask {
 	enum bgtask_magic magic;/**< Magic number */
-	uint32 flags;			/**< Operating flags */
+	uint32 flags;			/**< Operating flags (internally modified) */
+	uint32 uflags;			/**< User flags (can be externally modified) */
 	const char *name;		/**< Task name */
 	struct bgsched *sched;	/**< Scheduler to which task is attached */
 	int step;				/**< Current processing step */
@@ -262,21 +263,27 @@ bg_task_is_daemon(const struct bgtask * const bt)
 
 #define BG_DAEMON(t)	(bg_task_is_daemon(t) ? (struct bgdaemon *) (t) : NULL)
 
-/*
+/**
  * Operating flags.
  */
-
 enum {
-	TASK_F_CANCELLING	=	1 << 9,	/**< Task handling cancel request */
-	TASK_F_CANCELLED	=	1 << 8,	/**< Task has been cancelled */
-	TASK_F_DAEMON		=	1 << 7,	/**< Task is a daemon */
-	TASK_F_RUNNABLE		=	1 << 6,	/**< Task is runnable */
-	TASK_F_SLEEPING		=	1 << 5,	/**< Task is sleeping */
-	TASK_F_NOTICK		=	1 << 4,	/**< Do no recompute tick info */
-	TASK_F_ZOMBIE		=	1 << 3,	/**< Task waiting status collect */
-	TASK_F_RUNNING		=	1 << 2,	/**< Task is running */
-	TASK_F_SIGNAL		=	1 << 1,	/**< Signal received */
-	TASK_F_EXITED		=	1 << 0	/**< Exited */
+	TASK_F_CANCELLING	= 1 << 7,	/**< Task handling cancel request */
+	TASK_F_DAEMON		= 1 << 6,	/**< Task is a daemon */
+	TASK_F_RUNNABLE		= 1 << 5,	/**< Task is runnable */
+	TASK_F_SLEEPING		= 1 << 4,	/**< Task is sleeping */
+	TASK_F_ZOMBIE		= 1 << 3,	/**< Task waiting status collect */
+	TASK_F_RUNNING		= 1 << 2,	/**< Task is running */
+	TASK_F_SIGNAL		= 1 << 1,	/**< Signal received */
+	TASK_F_EXITED		= 1 << 0	/**< Exited */
+};
+
+/**
+ * User flags, can only be modified with the task locked.
+ */
+enum {
+	TASK_UF_SLEEP_REQ	= 1 << 2,	/**< Task requesting to be put to sleep */
+	TASK_UF_NOTICK		= 1 << 1,	/**< Do no recompute tick info */
+	TASK_UF_CANCELLED	= 1 << 0,	/**< Task has been cancelled */
 };
 
 static unsigned bg_debug;
@@ -453,6 +460,32 @@ bgstatus_to_string(bgstatus_t status)
 }
 
 /**
+ * Assert that a background task is currently running.
+ */
+static void
+bg_task_is_running(bgtask_t *bt, const char *routine)
+{
+	bg_task_check(bt);
+
+	g_assert_log(bt->flags & TASK_F_RUNNING,
+		"%s(): task %p \"%s\" must be running to call %s()",
+		G_STRFUNC, bt, bt->name, routine);
+}
+
+/**
+ * Assert that a background task is currently sleeping.
+ */
+static void
+bg_task_is_sleeping(bgtask_t *bt, const char *routine)
+{
+	bg_task_check(bt);
+
+	g_assert_log(bt->flags & TASK_F_SLEEPING,
+		"%s(): task %p \"%s\" must be sleeping to call %s()",
+		G_STRFUNC, bt, bt->name, routine);
+}
+
+/**
  * Add new task to its scheduler (run queue).
  */
 static void
@@ -599,11 +632,11 @@ bg_task_suspend(bgtask_t *bt, int target)
 	/*
 	 * Now update the tick cost, if elapsed is not null.
 	 *
-	 * If task is flagged TASK_F_NOTICK, it was scheduled only to deliver
+	 * If task is flagged TASK_UF_NOTICK, it was scheduled only to deliver
 	 * a signal and we cannot really update the tick cost.
 	 */
 
-	if (!(bt->flags & TASK_F_NOTICK)) {
+	if (!(bt->uflags & TASK_UF_NOTICK)) {
 		double new_cost;
 
 		/*
@@ -1097,7 +1130,7 @@ bg_task_terminate(bgtask_t *bt)
 	 */
 
 	if G_UNLIKELY(bg_closed) {
-		if (0 == (bt->flags & TASK_F_CANCELLED)) {
+		if (0 == (bt->uflags & TASK_UF_CANCELLED)) {
 			/* Only warn if task was not cancelled as part of the shutdown */
 			g_carp("%s(): ignoring left-over %stask %p \"%s\", flags=0x%x",
 				G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "",
@@ -1236,8 +1269,7 @@ bg_task_terminate(bgtask_t *bt)
 void
 bg_task_exit(bgtask_t *bt, int code)
 {
-	bg_task_check(bt);
-	g_assert(bt->flags & TASK_F_RUNNING);
+	bg_task_is_running(bt, G_STRFUNC);
 
 	bt->exitcode = code;
 
@@ -1428,7 +1460,15 @@ bg_task_cancel(bgtask_t *bt)
 		return;
 	}
 
-	bt->flags |= TASK_F_CANCELLED;		/* Mark it cancelled */
+	bt->uflags |= TASK_UF_CANCELLED;	/* Mark it cancelled */
+
+	/*
+	 * If the task is sleeping, wake it up so that it can be cancelled
+	 * as soon as it is scheduled.
+	 */
+
+	if (bt->flags & TASK_F_SLEEPING)
+		bg_task_wakeup(bt);
 
 	bs = bt->sched;
 	bg_sched_check(bs);
@@ -1502,7 +1542,10 @@ bg_task_cancel(bgtask_t *bt)
 		 */
 
 		if (switched) {
-			bt->flags |= TASK_F_NOTICK;			/* Disable tick recomputation */
+			BG_TASK_LOCK(bt);
+			bt->uflags |= TASK_UF_NOTICK;		/* Disable tick recomputation */
+			BG_TASK_UNLOCK(bt);
+
 			(void) bg_task_switch(bs, old, 0);	/* Restore old task */
 		}
 	}
@@ -1519,14 +1562,45 @@ bg_task_cancel(bgtask_t *bt)
 void
 bg_task_ticks_used(bgtask_t *bt, int used)
 {
-	bg_task_check(bt);
-	g_assert(bt->flags & TASK_F_RUNNING);
+	bg_task_is_running(bt, G_STRFUNC);
 	g_assert(used >= 0);
 
 	bt->ticks_used = MIN(used, bt->ticks);
 
-	if (used == 0)
-		bt->flags |= TASK_F_NOTICK;			/* Won't update tick info */
+	if (used == 0) {
+		BG_TASK_LOCK(bt);
+		bt->uflags |= TASK_UF_NOTICK;		/* Won't update tick info */
+		BG_TASK_UNLOCK(bt);
+	}
+}
+
+/**
+ * This routine can be called by a running task to request that it be put
+ * to sleep as soon as its current step is finished.
+ *
+ * It can then be woken up via bg_task_wakeup() to resume execution at the
+ * proper step (next or current depending on the returned value to the
+ * scheduler).
+ */
+void
+bg_task_sleep(bgtask_t *bt)
+{
+	bg_task_is_running(bt, G_STRFUNC);
+
+	BG_TASK_LOCK(bt);
+	bt->uflags |= TASK_UF_SLEEP_REQ;
+	BG_TASK_UNLOCK(bt);
+}
+
+/**
+ * Wake up a task put to sleep via bg_task_sleep().
+ */
+void
+bg_task_wakeup(bgtask_t *bt)
+{
+	bg_task_is_sleeping(bt, G_STRFUNC);
+
+	bg_sched_wakeup(bt);
 }
 
 /**
@@ -1679,7 +1753,7 @@ bg_task_cancel_test(bgtask_t *bt)
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_RUNNING);
 
-	if G_UNLIKELY(bt->flags & TASK_F_CANCELLED) {
+	if G_UNLIKELY(bt->uflags & TASK_UF_CANCELLED) {
 		/*
 		 * Immediately go back to the scheduling code.
 		 * We know the setjmp buffer is valid, since we're running!
@@ -1740,13 +1814,15 @@ bg_sched_timer(void *arg)
 		g_assert(bt != NULL);		/* runcount > 0 => there is a task */
 		g_assert(bt->flags & TASK_F_RUNNABLE);
 
-		bt->flags &= ~TASK_F_NOTICK;	/* We'll want tick cost update */
+		BG_TASK_LOCK(bt);
+		bt->uflags &= ~TASK_UF_NOTICK;	/* We'll want tick cost update */
+		BG_TASK_UNLOCK(bt);
 
 		/*
 		 * If task was cancelled, terminate it.
 		 */
 
-		if (bt->flags & TASK_F_CANCELLED) {
+		if (bt->uflags & TASK_UF_CANCELLED) {
 			bg_task_cancel(bt);
 			continue;
 		}
@@ -1816,13 +1892,17 @@ bg_sched_timer(void *arg)
 				thread_id_name(bt->sched->stid));
 
 			if (BG_JUMP_CANCEL == status) {
-				g_assert(bt->flags & TASK_F_CANCELLED);
+				g_assert(bt->uflags & TASK_UF_CANCELLED);
 				bg_task_cancel(bt);
 				continue;
 			}
 
-			bt->flags |= TASK_F_NOTICK;
+			BG_TASK_LOCK(bt);
+			bt->uflags |= TASK_UF_NOTICK;
+			BG_TASK_UNLOCK(bt);
+
 			bg_task_switch(bs, NULL, target);
+
 			if (bg_debug > 0 && remain < bt->elapsed) {
 				g_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
 					G_STRFUNC, bs->name, remain, bt->elapsed);
@@ -1876,27 +1956,30 @@ bg_sched_timer(void *arg)
 
 		/* Stop current task, update stats */
 		bg_task_switch(bs, NULL, target);
+
 		if (bg_debug > 0 && remain < bt->elapsed) {
 			g_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
 				G_STRFUNC, bs->name, remain, bt->elapsed);
 		}
+
 		remain -= MIN(remain, bt->elapsed);
 
 		/*
 		 * If task was cancelled, terminate it.
 		 */
 
-		if (bt->flags & TASK_F_CANCELLED) {
+		if (bt->uflags & TASK_UF_CANCELLED) {
 			bg_task_cancel(bt);
 			continue;
 		}
 
-		if (bg_debug > 4)
+		if (bg_debug > 4) {
 			g_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]",
 				bt->name, bt->step, bt->seqno,
 				bt->ticks_used, plural(bt->ticks_used),
 				bt->elapsed, ret);
+		}
 
 		/*
 		 * Analyse return code from processing callback.
@@ -1905,7 +1988,7 @@ bg_sched_timer(void *arg)
 		switch (ret) {
 		case BGR_DONE:				/* OK, end processing */
 			bg_task_ended(bt);
-			break;
+			goto ended;
 		case BGR_NEXT:				/* OK, move to next step */
 			if (bt->step == (bt->stepcnt - 1))
 				bg_task_ended(bt);
@@ -1923,8 +2006,23 @@ bg_sched_timer(void *arg)
 		case BGR_ERROR:
 			bt->exitcode = -1;		/* Fake an exit(-1) */
 			bg_task_terminate(bt);
-			break;
+			goto ended;
 		}
+
+		/*
+		 * Put the task to sleep if requested.
+		 */
+
+		if G_UNLIKELY(bt->uflags & TASK_UF_SLEEP_REQ) {
+			BG_TASK_LOCK(bt);
+			bt->uflags &= ~TASK_UF_SLEEP_REQ;
+			BG_TASK_UNLOCK(bt);
+
+			bg_sched_sleep(bt);
+		}
+
+	ended:
+		continue;		/* Cannot put an empty label */
 	}
 
 	if (0 != eslist_count(&bs->dead_tasks))
@@ -2136,7 +2234,7 @@ bg_info_get(void *data, void *udata)
 	bi->signals = pslist_length(bt->signals);	/* Expecting low amount */
 	bi->running = booleanize(bt->flags & TASK_F_RUNNING);
 	bi->daemon = booleanize(bt->flags & TASK_F_DAEMON);
-	bi->cancelled = booleanize(bt->flags & TASK_F_CANCELLED);
+	bi->cancelled = booleanize(bt->uflags & TASK_UF_CANCELLED);
 	bi->cancelling = booleanize(bt->flags & TASK_F_CANCELLING);
 
 	if (bi->daemon) {
