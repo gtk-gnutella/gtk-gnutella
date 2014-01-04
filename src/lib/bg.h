@@ -172,6 +172,15 @@ bgtask_t *bg_task_create(
 	bgdone_cb_t done_cb,
 	void *done_arg);
 
+bgtask_t *bg_task_create_stopped(
+	bgsched_t *bs,
+	const char *name,
+	const bgstep_cb_t *steps, int stepcnt,
+	void *ucontext,
+	bgclean_cb_t ucontext_free,
+	bgdone_cb_t done_cb,
+	void *done_arg);
+
 bgtask_t *bg_daemon_create(
 	bgsched_t *bs,
 	const char *name,
@@ -184,6 +193,7 @@ bgtask_t *bg_daemon_create(
 	bgnotify_cb_t notify);
 
 void bg_daemon_enqueue(bgtask_t *h, void *item);
+void bg_task_run(bgtask_t *bt);
 
 void bg_task_cancel(bgtask_t *h);
 void bg_task_cancel_test(bgtask_t *bt);

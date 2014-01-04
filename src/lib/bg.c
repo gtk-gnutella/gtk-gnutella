@@ -770,6 +770,64 @@ bg_daemon_alloc(void)
 }
 
 /**
+ * Internal creation of a background task.
+ *
+ * @param bs			The scheduler to put task in (NULL = default)
+ * @param name			Task name (for tracing)
+ * @param steps			Work to perform (copied)
+ * @param stepcnt		Number of steps
+ * @param ucontext		User context
+ * @param ucontext_free	Free routine for context
+ * @param done_cb		Notification callback when done
+ * @param done_arg		Callback argument
+ * @param running		Should task be running immediately or held waiting?
+ *
+ * @returns an opaque handle.
+ */
+static bgtask_t *
+bg_task_create_internal(
+	bgsched_t *bs, const char *name,
+	const bgstep_cb_t *steps, int stepcnt,
+	void *ucontext, bgclean_cb_t ucontext_free,
+	bgdone_cb_t done_cb, void *done_arg, bool running)
+{
+	bgtask_t *bt;
+
+	g_assert(stepcnt > 0);
+	g_assert(steps);
+	g_assert(NULL == bs || BGSCHED_MAGIC == bs->magic);
+
+	if G_UNLIKELY(bg_closed)
+		return NULL;		/* Refuse to create task, we're shutdowning */
+
+	bt = bg_task_alloc();
+	bt->sched = NULL == bs ? bg_sched : bs;
+	bt->name = atom_str_get(name);
+	bt->ucontext = ucontext;
+	bt->uctx_free = ucontext_free;
+	bt->done_cb = done_cb;
+	bt->done_arg = done_arg;
+
+	bt->stepcnt = stepcnt;
+	bt->stepvec = WCOPY_ARRAY(steps, stepcnt);
+
+	BG_SCHED_LOCK(bt->sched);
+	bt->sched->runcount++;				/* One more task to schedule */
+	if (running)
+		bg_sched_add(bt);				/* Let scheduler know about it */
+	else
+		bg_sched_sleep(bt);				/* Record sleeping task */
+	BG_SCHED_UNLOCK(bt->sched);
+
+	if (bg_debug > 1) {
+		g_debug("BGTASK created task \"%s\" (%d step%s) in %s scheduler",
+			name, stepcnt, plural(stepcnt), bt->sched->name);
+	}
+
+	return bt;
+}
+
+/**
  * Create a new background task.
  * The `steps' array is cloned, so it can be built on the caller's stack.
  *
@@ -800,37 +858,70 @@ bg_task_create(
 	void *ucontext, bgclean_cb_t ucontext_free,
 	bgdone_cb_t done_cb, void *done_arg)
 {
-	bgtask_t *bt;
+	return bg_task_create_internal(bs, name, steps, stepcnt,
+		ucontext, ucontext_free, done_cb, done_arg, TRUE);
+}
 
-	g_assert(stepcnt > 0);
-	g_assert(steps);
-	g_assert(NULL == bs || BGSCHED_MAGIC == bs->magic);
+/**
+ * Create a new background task, stopped.
+ *
+ * This is the same as bg_task_create() but the task is initially put in the
+ * sleeping state.  It will not start until bg_task_run() is called.
+ *
+ * When the task scheduler is not running in the same thread as the one
+ * creating the task, this makes sure we'll capture the returned value (the
+ * task handle) before the task can actually use it via a callback.
+ *
+ * @param bs			The scheduler to put task in (NULL = default)
+ * @param name			Task name (for tracing)
+ * @param steps			Work to perform (copied)
+ * @param stepcnt		Number of steps
+ * @param ucontext		User context
+ * @param ucontext_free	Free routine for context
+ * @param done_cb		Notification callback when done
+ * @param done_arg		Callback argument
+ *
+ * @returns an opaque handle.
+ */
+bgtask_t *
+bg_task_create_stopped(
+	bgsched_t *bs, const char *name,
+	const bgstep_cb_t *steps, int stepcnt,
+	void *ucontext, bgclean_cb_t ucontext_free,
+	bgdone_cb_t done_cb, void *done_arg)
+{
+	return bg_task_create_internal(bs, name, steps, stepcnt,
+		ucontext, ucontext_free, done_cb, done_arg, FALSE);
+}
 
-	if G_UNLIKELY(bg_closed)
-		return NULL;		/* Refuse to create task, we're shutdowning */
+/**
+ * Run a task after bg_task_create_stopped() returned.
+ *
+ * The task is awoken and can be scheduled, but will not start its execution
+ * immediately.
+ *
+ * @param bt		the task to run
+ */
+void
+bg_task_run(bgtask_t *bt)
+{
+	bool awoken = FALSE;
 
-	bt = bg_task_alloc();
-	bt->sched = NULL == bs ? bg_sched : bs;
-	bt->name = atom_str_get(name);
-	bt->ucontext = ucontext;
-	bt->uctx_free = ucontext_free;
-	bt->done_cb = done_cb;
-	bt->done_arg = done_arg;
+	bg_task_check(bt);
 
-	bt->stepcnt = stepcnt;
-	bt->stepvec = WCOPY_ARRAY(steps, stepcnt);
+	BG_TASK_LOCK(bt);
 
-	BG_SCHED_LOCK(bt->sched);
-	bg_sched_add(bt);					/* Let scheduler know about it */
-	bt->sched->runcount++;				/* One more task to schedule */
-	BG_SCHED_UNLOCK(bt->sched);
-
-	if (bg_debug > 1) {
-		g_debug("BGTASK created task \"%s\" (%d step%s) in %s scheduler",
-			name, stepcnt, plural(stepcnt), bt->sched->name);
+	if (bt->flags & TASK_F_SLEEPING) {
+		awoken = TRUE;
+		bg_sched_wakeup(bt);
 	}
 
-	return bt;
+	BG_TASK_UNLOCK(bt);
+
+	if G_UNLIKELY(!awoken) {
+		g_carp("%s(): task %p \"%s\" was already running",
+			G_STRFUNC, bt, bt->name);
+	}
 }
 
 /**
