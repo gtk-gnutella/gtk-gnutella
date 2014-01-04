@@ -1716,8 +1716,13 @@ found:
 	spinunlock(&zget_slk);
 
 	if (zalloc_debugging(1)) {
-		s_info("clustering in zalloc()'s zone table is %F for %zu items",
-			hash_table_clustering(zt), hash_table_size(zt));
+		size_t count = hash_table_size(zt);
+		size_t buckets = hash_table_buckets(zt);
+		double clustering = hash_table_clustering(zt);
+		s_info("clustering in zalloc()'s zone table is %F for %zu/%zu items "
+			"(%zu buckets, optimal spread = %F items/bucket)",
+			clustering, count, hash_table_capacity(zt), buckets,
+			(double) count / buckets);
 	}
 
 	return zone;
