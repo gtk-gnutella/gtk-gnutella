@@ -1356,7 +1356,7 @@ hash_table_values(const hash_table_t *ht, size_t *count)
 /**
  * Compute the clustering factor of the hash table.
  *
- * If there are ``n'' items spread overe ``m'' bins, each bin should have
+ * If there are ``n'' items spread over ``m'' bins, each bin should have
  * n/m items.
  *
  * We can measure the clustering factor ``c'' by computing for each bin i the
