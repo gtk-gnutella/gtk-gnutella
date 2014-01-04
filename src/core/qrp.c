@@ -993,7 +993,7 @@ qrt_ref(struct routing_table *rt)
 {
 	qrt_check(rt);
 
-	rt->refcnt++;
+	atomic_int_inc(&rt->refcnt);
 	return rt;
 }
 
@@ -1007,7 +1007,7 @@ qrt_unref(struct routing_table *rt)
 	qrt_check(rt);
 	g_assert(rt->refcnt > 0);
 
-	if (--rt->refcnt == 0)
+	if (atomic_int_dec_is_zero(&rt->refcnt))
 		qrt_free(rt);
 }
 
