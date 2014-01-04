@@ -60,6 +60,7 @@
 #include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
+#include "lib/spinlock.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -674,7 +675,15 @@ struct qrt_compress_context {
 	void *usr_arg;					/**< Arg for user-defined callback */
 };
 
-static pslist_t *sl_compress_tasks;
+static pslist_t *qrp_compress_tasks;
+static spinlock_t qrp_task_lock = SPINLOCK_INIT;
+static spinlock_t qrp_compress_lock = SPINLOCK_INIT;
+
+#define QRP_TASK_LOCK			spinlock(&qrp_task_lock)
+#define QRP_TASK_UNLOCK			spinunlock(&qrp_task_lock)
+
+#define QRP_COMPRESS_LOCK		spinlock(&qrp_compress_lock)
+#define QRP_COMPRESS_UNLOCK		spinunlock(&qrp_compress_lock)
 
 /**
  * Free compression context.
@@ -777,14 +786,16 @@ qrt_patch_compress_done(struct bgtask *h, void *u, bgstatus_t status,
 
 	/*
 	 * When status is BGS_KILLED, the task is being cancelled.
-	 * This means we're iterating on the `sl_compress_tasks' list
+	 * This means we're iterating on the `qrp_compress_tasks' list
 	 * so don't alter it.
 	 *		--RAM, 29/01/2003
 	 */
 
 	if (status != BGS_KILLED) {
-		g_assert(pslist_find(sl_compress_tasks, h));
-		sl_compress_tasks = pslist_remove(sl_compress_tasks, h);
+		QRP_COMPRESS_LOCK;
+		g_assert(pslist_find(qrp_compress_tasks, h));
+		qrp_compress_tasks = pslist_remove(qrp_compress_tasks, h);
+		QRP_COMPRESS_UNLOCK;
 	}
 
 	(*ctx->usr_done)(h, u, status, ctx->usr_arg);
@@ -829,11 +840,15 @@ qrt_patch_compress(
 
 	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (uint32) rp->len);
 
-	task = bg_task_create(NULL, "QRP patch compression",
+	task = bg_task_create_stopped(NULL, "QRP patch compression",
 		&step, 1, ctx, qrt_compress_free, qrt_patch_compress_done, NULL);
 
-	if (task != NULL)
-		sl_compress_tasks = pslist_prepend(sl_compress_tasks, task);
+	if (task != NULL) {
+		QRP_COMPRESS_LOCK;
+		qrp_compress_tasks = pslist_prepend(qrp_compress_tasks, task);
+		QRP_COMPRESS_UNLOCK;
+		bg_task_run(task);
+	}
 
 	return task;
 }
@@ -1061,8 +1076,12 @@ merge_context_free(void *p)
 
 	g_assert(ctx->magic == MERGE_MAGIC);
 
+	QRP_TASK_LOCK;
+
 	merge_comp = NULL;		/* Task is being terminated */
 	merge_ctx = NULL;
+
+	QRP_TASK_UNLOCK;
 
 	for (sl = ctx->tables; sl; sl = pslist_next(sl)) {
 		struct routing_table *rt = sl->data;
@@ -1341,26 +1360,45 @@ static bgstep_cb_t merge_steps[] = {
 };
 
 /**
- * Launch asynchronous merging of the leaf node QRT tables.
+ * Launch asynchronous merging of the leaf node QRT tables, if none
+ * is alredy running.
  *
  * @param done_cb is the routine to invoke when merging is done.  If NULL, then
  * no routine is called.
+ *
+ * @return whether task was launched
  */
-static void
+static bool
 mrg_compute(bgdone_cb_t done_cb)
 {
-	struct merge_context *ctx;
+	bool launched;
 
-	g_assert(merge_ctx == NULL);	/* No computation active */
+	QRP_TASK_LOCK;
 
-	WALLOC0(ctx);
-	ctx->magic = MERGE_MAGIC;
-	merge_ctx = ctx;
+	g_soft_assert(merge_ctx == NULL);	/* No computation active */
 
-	merge_comp = bg_task_create(NULL, "Leaf QRT merging",
-		merge_steps, G_N_ELEMENTS(merge_steps),
-		ctx, merge_context_free,
-		done_cb, NULL);
+	if (NULL == merge_ctx) {
+		WALLOC0(merge_ctx);
+		merge_ctx->magic = MERGE_MAGIC;
+
+		merge_comp = bg_task_create_stopped(NULL, "Leaf QRT merging",
+			merge_steps, G_N_ELEMENTS(merge_steps),
+			merge_ctx, merge_context_free,
+			done_cb, NULL);
+
+		if (merge_comp != NULL) {
+			bg_task_run(merge_comp);
+			launched = TRUE;
+		} else {
+			launched = FALSE;
+		}
+	} else {
+		launched = FALSE;
+	}
+
+	QRP_TASK_UNLOCK;
+
+	return launched;
 }
 
 /***
@@ -1604,6 +1642,7 @@ struct qrp_context {
 	struct routing_patch **rpp;	/**< Points to routing patch variable to fill */
 	pslist_t *sl_substrings;	/**< List of all substrings */
 	htable_t *words;			/**< Words making up the files */
+	bgtask_t *bt;				/**< Background task using this context */
 	int substrings;				/**< Amount of substrings */
 	char *table;				/**< Computed routing table */
 	int slots;					/**< Amount of slots in table */
@@ -1672,10 +1711,6 @@ qrp_context_free(void *p)
 static void
 qrp_comp_context_free(void *p)
 {
-	if (qrp_comp != NULL)
-		(void) bg_task_exitcode(qrp_comp);	/* Avoid "lost exit code" warning */
-
-	qrp_comp = NULL;		/* If we're called, the task is being terminated */
 	qrp_context_free(p);
 }
 
@@ -1685,10 +1720,6 @@ qrp_comp_context_free(void *p)
 static void
 qrp_merge_context_free(void *p)
 {
-	if (qrp_merge != NULL)
-		(void) bg_task_exitcode(qrp_merge);	/* Avoid "lost exit code" warning */
-
-	qrp_merge = NULL;		/* If we're called, the task is being terminated */
 	qrp_context_free(p);
 }
 
@@ -1698,17 +1729,23 @@ qrp_merge_context_free(void *p)
 static void
 qrp_cancel_computation(void)
 {
+	bgtask_t *bt;
+
 	qrt_compress_cancel_all();
 
-	if (qrp_comp) {
-		bg_task_cancel(qrp_comp);
+	QRP_TASK_LOCK;
+
+	if (NULL != (bt = qrp_comp)) {
 		qrp_comp = NULL;
+		bg_task_cancel(bt);
 	}
 
-	if (qrp_merge) {
-		bg_task_cancel(qrp_merge);
+	if (NULL != (bt = qrp_merge)) {
 		qrp_merge = NULL;
+		bg_task_cancel(bt);
 	}
+
+	QRP_TASK_UNLOCK;
 }
 
 /**
@@ -2178,6 +2215,19 @@ static bgstep_cb_t qrp_merge_steps[] = {
 	qrp_step_install_ultra,
 };
 
+static void
+qrp_comp_done(bgtask_t *bt, void *u_ctx, bgstatus_t u_status, void *u_arg)
+{
+	(void) u_ctx;
+	(void) u_status;
+	(void) u_arg;
+
+	QRP_TASK_LOCK;
+	if (qrp_comp == bt)
+		qrp_comp = NULL;
+	QRP_TASK_UNLOCK;
+}
+
 /**
  * This routine must be called once all the files have been added to finalize
  * the computation of the new QRP.
@@ -2208,12 +2258,32 @@ qrp_finalize_computation(htable_t *words)
 
 	gnet_prop_set_timestamp_val(PROP_QRP_TIMESTAMP, tm_time());
 
+	QRP_TASK_LOCK;
+
 	g_soft_assert(NULL == qrp_comp);
 
-	qrp_comp = bg_task_create(NULL, "QRP computation",
+	qrp_comp = ctx->bt = bg_task_create_stopped(NULL, "QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
 		ctx, qrp_comp_context_free,
-		NULL, NULL);
+		qrp_comp_done, NULL);
+
+	if (qrp_comp != NULL)
+		bg_task_run(qrp_comp);
+
+	QRP_TASK_UNLOCK;
+}
+
+static void
+qrp_merge_done(bgtask_t *bt, void *u_ctx, bgstatus_t u_status, void *u_arg)
+{
+	(void) u_ctx;
+	(void) u_status;
+	(void) u_arg;
+
+	QRP_TASK_LOCK;
+	if (qrp_merge == bt)
+		qrp_merge = NULL;
+	QRP_TASK_UNLOCK;
 }
 
 /**
@@ -2237,12 +2307,19 @@ qrp_update_routing_table(void)
 	ctx->rtp = &local_table;		/* In case we call qrp_step_install_leaf */
 	ctx->rpp = &routing_patch;
 
+	QRP_TASK_LOCK;
+
 	g_soft_assert(NULL == qrp_merge);
 
-	qrp_merge = bg_task_create(NULL, "QRP merging",
+	qrp_merge = ctx->bt = bg_task_create_stopped(NULL, "QRP merging",
 		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
 		ctx, qrp_merge_context_free,
-		NULL, NULL);
+		qrp_merge_done, NULL);
+
+	if (qrp_merge != NULL)
+		bg_task_run(qrp_merge);
+
+	QRP_TASK_UNLOCK;
 }
 
 /**
@@ -2309,7 +2386,6 @@ struct patch_listener_info {
 static struct qrt_patch_context *qrt_patch_ctx;
 static pslist_t *qrt_patch_computed_listeners;
 
-
 /**
  * Callback invoked when the routing patch is computed.
  */
@@ -2323,13 +2399,11 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	(void) unused_h;
 	(void) unused_u;
 	g_assert(ctx->magic == QRT_PATCH_MAGIC);
-	g_assert(ctx == qrt_patch_ctx);
+	g_assert(qrt_patch_ctx == NULL || ctx == qrt_patch_ctx);
 	g_assert(ctx->rpp != NULL);
 
 	if (qrp_debugging(1))
 		g_debug("QRP global default patch computed (status = %d)", status);
-
-	qrt_patch_ctx = NULL;			/* Indicates that we're done */
 
 	if (status == BGS_OK) {
 		time_t now = tm_time();
@@ -2359,16 +2433,23 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	 * that an error occurred.
 	 */
 
+	QRP_TASK_LOCK;
+
+	if (ctx == qrt_patch_ctx)
+		qrt_patch_ctx = NULL;		/* Indicates that we're done */
+
 	for (sl = qrt_patch_computed_listeners; sl; sl = pslist_next(sl)) {
 		struct patch_listener_info *pi = sl->data;
 		(*pi->callback)(pi->arg, *ctx->rpp);	/* NULL indicates failure */
 		WFREE(pi);
 	}
 
+	pslist_free_null(&qrt_patch_computed_listeners);
+
+	QRP_TASK_UNLOCK;
+
 	ctx->magic = 0;
 	WFREE(ctx);
-
-	pslist_free_null(&qrt_patch_computed_listeners);
 }
 
 /**
@@ -2392,8 +2473,12 @@ qrt_patch_computed_add_listener(qrt_patch_computed_cb_t cb, void *arg)
 	pi->callback = cb;
 	pi->arg = arg;
 
+	QRP_TASK_LOCK;
+
 	qrt_patch_computed_listeners =
 		pslist_prepend(qrt_patch_computed_listeners, pi);
+
+	QRP_TASK_UNLOCK;
 
 	return pi;
 }
@@ -2406,10 +2491,13 @@ qrt_patch_computed_remove_listener(void *handle)
 {
 	struct patch_listener_info *pi = handle;
 
+	QRP_TASK_LOCK;
 	g_assert(qrt_patch_computed_listeners != NULL);
 
 	qrt_patch_computed_listeners =
 		pslist_remove(qrt_patch_computed_listeners, handle);
+	QRP_TASK_UNLOCK;
+
 	WFREE(pi);
 }
 
@@ -2419,15 +2507,27 @@ qrt_patch_computed_remove_listener(void *handle)
 static void
 qrt_patch_cancel_compute(void)
 {
-	struct bgtask *comptask;
+	struct bgtask *comptask = NULL;
 
-	g_assert(qrt_patch_ctx != NULL);
+	QRP_TASK_LOCK;
 
-	comptask = qrt_patch_ctx->compress;
+	if (qrt_patch_ctx != NULL) {
+		comptask = qrt_patch_ctx->compress;
+		qrt_patch_ctx = NULL;
+	}
+
+	QRP_TASK_UNLOCK;
+
+	if (NULL == comptask)
+		return;
+
 	bg_task_cancel(comptask);
-	sl_compress_tasks = pslist_remove(sl_compress_tasks, comptask);
 
-	g_assert(qrt_patch_ctx == NULL);	/* qrt_patch_computed() called! */
+	QRP_COMPRESS_LOCK;
+	qrp_compress_tasks = pslist_remove(qrp_compress_tasks, comptask);
+	QRP_COMPRESS_UNLOCK;
+
+	/* qrt_patch_computed() called! */
 	g_assert(qrt_patch_computed_listeners == NULL);
 }
 
@@ -2455,11 +2555,15 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 	gnet_prop_set_timestamp_val(PROP_QRP_PATCH_TIMESTAMP, tm_time());
 
 	WALLOC(ctx);
-	qrt_patch_ctx = ctx;
 	ctx->magic = QRT_PATCH_MAGIC;
 	ctx->rpp = rpp;
 	ctx->rt = rt;
 	ctx->rp = qrt_diff_4(NULL, rt);
+
+	QRP_TASK_LOCK;
+	qrt_patch_ctx = ctx;
+	QRP_TASK_UNLOCK;
+
 	ctx->compress = qrt_patch_compress(ctx->rp, qrt_patch_computed, ctx);
 }
 
@@ -2474,10 +2578,14 @@ qrt_compress_cancel_all(void)
 	if (qrt_patch_ctx != NULL)
 		qrt_patch_cancel_compute();
 
-	for (sl = sl_compress_tasks; sl; sl = pslist_next(sl))
+	QRP_COMPRESS_LOCK;
+
+	for (sl = qrp_compress_tasks; sl; sl = pslist_next(sl))
 		bg_task_cancel(sl->data);
 
-	pslist_free_null(&sl_compress_tasks);
+	pslist_free_null(&qrp_compress_tasks);
+
+	QRP_COMPRESS_UNLOCK;
 }
 
 /***
@@ -2938,7 +3046,9 @@ qrt_update_free(struct qrt_update *qup)
 	if (qup->compress != NULL) {
 		struct bgtask *task = qup->compress;
 		bg_task_cancel(task);
-		sl_compress_tasks = pslist_remove(sl_compress_tasks, task);
+		QRP_COMPRESS_LOCK;
+		qrp_compress_tasks = pslist_remove(qrp_compress_tasks, task);
+		QRP_COMPRESS_UNLOCK;
 	}
 
 	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
@@ -4294,8 +4404,8 @@ qrp_monitor(void *unused_obj)
 	 */
 
 	if (qrt_leaf_change_notified) {
-		qrt_leaf_change_notified = FALSE;
-		mrg_compute(qrp_merge_routing_table);
+		if (mrg_compute(qrp_merge_routing_table))
+			qrt_leaf_change_notified = FALSE;
 	}
 
 	return TRUE;		/* Keep calling */
