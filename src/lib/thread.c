@@ -6338,8 +6338,6 @@ retry:
 
 	THREAD_LOCK(te);
 	if G_UNLIKELY(te->signalled != 0) {
-		bool unblocked = te->unblocked, tblocked = te->timed_blocked;
-
 		te->signalled--;		/* Consumed one signaling byte */
 		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
@@ -6358,9 +6356,24 @@ retry:
 			goto timed_out;
 
 		THREAD_LOCK(te);
-		te->timed_blocked = tblocked;
+		/*
+		 * Since we reset te->blocked to FALSE earlier before dispatching
+		 * the signals, we need to recheck for the event count now to see
+		 * whether we've been unblocked already, since a concurrent unblock
+		 * would not have sent any byte on the pipe / socketpair.
+		 *
+		 * This time we do not count blocking race, as there was none: we
+		 * were blocked earlier and got awoken by a signal.
+		 */
+
+		if (te->unblock_events != events) {
+			THREAD_UNLOCK(te);
+			goto done;				/* Was sent an "unblock" event already */
+		}
+
+		te->timed_blocked = booleanize(end != NULL);
 		te->blocked = TRUE;
-		te->unblocked = unblocked;
+		te->unblocked = FALSE;
 		THREAD_UNLOCK(te);
 		goto retry;
 	}
