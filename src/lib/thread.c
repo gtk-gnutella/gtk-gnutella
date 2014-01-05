@@ -6281,9 +6281,9 @@ thread_element_block_until(struct thread_element *te,
 	 * If we have a time limit, poll the file descriptor first before reading.
 	 */
 
-retry:
 	THREAD_STATS_INCX(thread_self_blocks);
 
+retry:
 	thread_cancel_test_element(te);
 
 	if (end != NULL) {
