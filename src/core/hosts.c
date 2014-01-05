@@ -47,6 +47,8 @@
 #include "uhc.h"
 #include "whitelist.h"
 
+#include "g2/gwc.h"
+
 #include "if/gnet_property_priv.h"
 #include "if/dht/dht.h"		/* For dht_fill_random() */
 

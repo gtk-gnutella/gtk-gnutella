@@ -160,6 +160,7 @@ extra_files/gtk-gnutella.appdata.xml
 extra_files/gtk-gnutella.desktop
 extra_files/gtk-gnutella.png
 extra_files/gtk-gnutella.svg
+extra_files/gwcache.boot
 extra_files/hostiles.txt
 extra_files/ja/FAQ
 extra_files/ja/Jmakefile
@@ -311,14 +312,16 @@ src/core/features.c
 src/core/features.h
 src/core/fileinfo.c
 src/core/fileinfo.h
-src/core/gdht.c
-src/core/gdht.h
 src/core/g2/Jmakefile
 src/core/g2/Makefile.SH
 src/core/g2/frame.c
 src/core/g2/frame.h
+src/core/g2/gwc.c
+src/core/g2/gwc.h
 src/core/g2/tree.c
 src/core/g2/tree.h
+src/core/gdht.c
+src/core/gdht.h
 src/core/geo_ip.c
 src/core/geo_ip.h
 src/core/ggep.c

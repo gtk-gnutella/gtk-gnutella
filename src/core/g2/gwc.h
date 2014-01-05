@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2012, Raphael Manfredi
- *
- * Jmakefile for the core/g2 part.
+ * Copyright (c) 2001-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,24 +21,31 @@
  *----------------------------------------------------------------------
  */
 
-SRC = \
-	frame.c \
-	gwc.c \
-	tree.c
+/**
+ * @ingroup core
+ * @file
+ *
+ * Gnutella Web Cache.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003, 2014
+ */
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#ifndef _core_g2_gwc_h_
+#define _core_g2_gwc_h_
 
+#include "common.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/*
+ * Public interface.
+ */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+void gwc_init(void);
+void gwc_close(void);
 
-NormalLibraryTarget(g2, $(SRC), $(OBJ))
-DependTarget()
+void gwc_store_if_dirty(void);
+void gwc_get_hosts(void);
+gboolean gwc_is_waiting(void);
+
+#endif /* _core_g2_gwc_h_ */
 

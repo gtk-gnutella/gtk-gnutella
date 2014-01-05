@@ -44,8 +44,8 @@
 #include "core/bitzi.h"
 #include "core/bogons.h"
 #include "core/bsched.h"
-#include "core/ctl.h"
 #include "core/clock.h"
+#include "core/ctl.h"
 #include "core/dh.h"
 #include "core/dmesh.h"
 #include "core/downloads.h"
@@ -54,8 +54,8 @@
 #include "core/extensions.h"
 #include "core/features.h"
 #include "core/fileinfo.h"
+#include "core/g2/gwc.h"
 #include "core/gdht.h"
-#include "core/pdht.h"
 #include "core/geo_ip.h"
 #include "core/ghc.h"
 #include "core/gmsg.h"
@@ -78,6 +78,7 @@
 #include "core/oob.h"
 #include "core/parq.h"
 #include "core/pcache.h"
+#include "core/pdht.h"
 #include "core/pproxy.h"
 #include "core/publisher.h"
 #include "core/routing.h"
@@ -539,6 +540,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(http_close);
 	DO(uhc_close);
 	DO(ghc_close);
+	DO(gwc_close);
 	DO(move_close);
 	DO(publisher_close);
 	DO(pdht_close);
@@ -1238,6 +1240,7 @@ slow_main_timer(time_t now)
 		break;
 	case 1:
 		dmesh_ban_store();
+		gwc_store_if_dirty();
 		break;
 	case 2:
 		upload_stats_flush_if_dirty();
@@ -1998,6 +2001,7 @@ main(int argc, char **argv)
 	guid_init();
 	uhc_init();
 	ghc_init();
+	gwc_init();
 	verify_sha1_init();
 	verify_tth_init();
 	move_init();

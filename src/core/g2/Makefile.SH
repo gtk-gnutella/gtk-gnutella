@@ -80,10 +80,12 @@ all:: .FORCE_DEPEND
 
 SRC = \
 	frame.c \
+	gwc.c \
 	tree.c
 
 OBJ = \
 	frame.o \
+	gwc.o \
 	tree.o 
 
 # Those extra flags are expected to be user-defined

@@ -45,6 +45,7 @@
 #define GTA_REVCHAR			"u"			/**< (u)nstable, (b)eta, "" -> stable */
 #define GTA_RELEASE			"2014-01-11"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE			"http://gtk-gnutella.sourceforge.net/"
+#define GTA_VENDOR_CODE		"GTKG"
 
 #if defined(USE_GTK1)
 #define GTA_INTERFACE		"GTK1"
