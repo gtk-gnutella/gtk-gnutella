@@ -1289,11 +1289,9 @@ static struct socket_ops http_async_socket_ops = {
  */
 const char *
 http_async_info(
-	http_async_t *handle, const char **req, const char **path,
+	const http_async_t *ha, const char **req, const char **path,
 	host_addr_t *addr, uint16 *port)
 {
-	http_async_t *ha = handle;
-
 	http_async_check(ha);
 
 	if (req)  *req  = http_verb[ha->type];
@@ -1302,6 +1300,65 @@ http_async_info(
 	if (port) *port = ha->socket->port;
 
 	return ha->url;
+}
+
+/**
+ * @return the URL of the HTTP asynchronous request.
+ */
+const char *
+http_async_url(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->url;
+}
+
+/**
+ * @return the verb used for the HTTP asynchronous request.
+ */
+const char *
+http_async_verb(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return http_verb[ha->type];
+}
+
+/**
+ * @return path (along with the query part) of the HTTP asynchronous request.
+ */
+const char *
+http_async_path(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->path;
+}
+
+/**
+ * @return the address of the host for the HTTP asynchronous request.
+ *
+ * @attention
+ * May not be known until the connection is established if the name
+ * resolution is not completed.
+ */
+host_addr_t
+http_async_addr(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->socket->addr;
+}
+
+/**
+ * @return the port of the HTTP asynchronous request.
+ */
+uint16
+http_async_port(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->socket->port;
 }
 
 /**

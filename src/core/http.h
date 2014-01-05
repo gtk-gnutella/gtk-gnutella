@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, 2010, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2010, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * HTTP routines.
  *
  * @author Raphael Manfredi
- * @date 2002-2003, 2010
+ * @date 2002-2003, 2010, 2014
  */
 
 #ifndef _core_http_h_
@@ -387,9 +387,16 @@ http_async_t *http_async_post_addr(
 	http_error_cb_t error_ind);
 
 const char *http_async_strerror(uint errnum);
+
 const char *http_async_info(
-	http_async_t *handle, const char **req, const char **path,
+	const http_async_t *ha, const char **req, const char **path,
 	host_addr_t *addr, uint16 *port);
+const char *http_async_url(const http_async_t *ha);
+const char *http_async_req(const http_async_t *ha);
+const char *http_async_path(const http_async_t *ha);
+host_addr_t http_async_addr(const http_async_t *ha);
+uint16 http_async_port(const http_async_t *ha);
+
 void http_async_close(http_async_t *handle);
 void http_async_cancel(http_async_t *handle);
 void http_async_cancel_null(http_async_t **handle_ptr);
