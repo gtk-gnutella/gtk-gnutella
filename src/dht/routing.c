@@ -878,7 +878,6 @@ forget_merged_node(knode_t *kn)
 
 	list_update_stats(kn->status, -1);		/* Node leaving routing table */
 	kn->flags &= ~KNODE_F_ALIVE;
-	kn->status = KNODE_UNKNOWN;
 
 	/*
 	 * Freeing will happen in forget_hashlist_node() when the buckets
@@ -2858,6 +2857,9 @@ merged_node_list(knode_status_t status,
 {
 	hash_list_iter_t *iter;
 	GSList *result = NULL;
+
+	check_leaf_list_consistency(kb1, list_for(kb1, status), status);
+	check_leaf_list_consistency(kb2, list_for(kb2, status), status);
 
 	iter = hash_list_iterator(list_for(kb1, status));
 	while (hash_list_iter_has_next(iter)) {
