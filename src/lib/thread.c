@@ -6507,8 +6507,7 @@ thread_element_unblock(struct thread_element *te)
 	te->unblock_events++;
 	if (te->unblocked || !te->blocked)
 		need_unblock = FALSE;
-	else
-		te->unblocked = TRUE;
+	te->unblocked = TRUE;
 	THREAD_UNLOCK(te);
 
 	if (need_unblock) {
