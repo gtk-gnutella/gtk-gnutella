@@ -979,42 +979,16 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 	hcache_ht_add(type, host_atom);
 
-    switch (type) {
-    case HCACHE_FRESH_ANY:
-    case HCACHE_FRESH_ULTRA:
-    case HCACHE_FRESH_ULTRA6:
-		/*
-		 * Prepend, so that we use the freshest entries.
-		 */
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
+	/*
+	 * We prepend to the list instead of appending because the day
+	 * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
+	 * in effect using the most recent hosts we know about.
+	 *
+	 * Furthermore, hcache_expire() depends on the fact that new entries are
+	 * added to the beginning of the list
+	 */
 
-    case HCACHE_VALID_ANY:
-    case HCACHE_VALID_ULTRA:
-    case HCACHE_VALID_ULTRA6:
-        /*
-         * We prepend to the list instead of appending because the day
-         * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
-         * in effect using the most recent hosts we know about.
-         */
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
-
-	case HCACHE_GUESS:
-	case HCACHE_GUESS_INTRO:
-	case HCACHE_GUESS6:
-	case HCACHE_GUESS6_INTRO:
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
-
-    default:
-        /*
-         * hcache_expire() depends on the fact that new entries are
-         * added to the beginning of the list
-         */
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
-    }
+	hash_list_prepend(hc->hostlist, host_atom);
 
     hc->misses++;
 	hc->dirty = TRUE;
