@@ -1271,7 +1271,7 @@ xfmt_tree_dump_extended(const xnode_t *root, FILE *f,
 
 	os = ostream_open_file(f);
 	xfmt_tree_extended(root, os, options, pvec, pvcnt, default_ns);
-	return 0 == ostream_close(os);
+	return ostream_close(os);
 }
 
 /**
