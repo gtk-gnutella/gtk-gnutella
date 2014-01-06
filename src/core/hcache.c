@@ -882,8 +882,10 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		case HCACHE_FRESH_ULTRA:
 		case HCACHE_VALID_ULTRA6:
 		case HCACHE_FRESH_ULTRA6:
+		case HCACHE_VALID_G2HUB:
+		case HCACHE_FRESH_G2HUB:
 			/*
-			 * Move the host to the "ultra" cache if it's in the "any" ones.
+			 * Move the host to the targeted cache if it's in the "any" ones.
 			 */
 
 			switch (hce->type) {
@@ -918,8 +920,6 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 		case HCACHE_FRESH_ANY:
 		case HCACHE_VALID_ANY:
-		case HCACHE_VALID_G2HUB:
-		case HCACHE_FRESH_G2HUB:
 			return TRUE;
 
 		case HCACHE_NONE:
