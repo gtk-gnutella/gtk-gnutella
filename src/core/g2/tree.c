@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Raphael Manfredi
+ * Copyright (c) 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -89,10 +89,14 @@
  * for example "RAZAclr2".
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012, 2014
  */
 
 #include "common.h"
+
+#if 0
+#define TREE_TESTING
+#endif
 
 #include "tree.h"
 
@@ -101,6 +105,10 @@
 #include "lib/halloc.h"
 #include "lib/strtok.h"
 #include "lib/walloc.h"
+
+#ifdef TREE_TESTING
+#include "tfmt.h"
+#endif
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -299,6 +307,28 @@ g2_tree_root(const g2_tree_t *node)
 }
 
 /**
+ * Fetch the payload of this node.
+ *
+ * @param node		the G2 node we're querying
+ * @param paylen	if non-NULL, where the size of the payload is returned
+ *
+ * @return the start of the payload held in the node, NULL if none.
+ */
+const void *
+g2_tree_node_payload(const g2_tree_t *node, size_t *paylen)
+{
+	g2_tree_check(node);
+
+	if (NULL == node->payload)
+		return NULL;
+
+	if (paylen != NULL)
+		*paylen = node->paylen;
+
+	return node->payload;
+}
+
+/**
  * Fetch the payload of a tree item identified by its sub-path.
  *
  * See g2_tree_lookup() for the semantics of the supplied path.
@@ -322,15 +352,7 @@ g2_tree_payload(const g2_tree_t *root, const char *path, size_t *paylen)
 	if (NULL == n)
 		return NULL;
 
-	g2_tree_check(n);
-
-	if (NULL == n->payload)
-		return NULL;
-
-	if (paylen != NULL)
-		*paylen = n->paylen;
-
-	return n->payload;
+	return g2_tree_node_payload(n, paylen);
 }
 
 /**
@@ -516,5 +538,92 @@ g2_tree_free_null(g2_tree_t **root_ptr)
 		*root_ptr = NULL;
 	}
 }
+
+/**
+ * Recursively apply two functions on each node, in depth-first mode.
+ *
+ * The first function "enter" is called when we enter a node and the
+ * second "leave" is called when all the children have been processed,
+ * before returning.
+ *
+ * Traversal is done in such a way that the "leave" function can safely
+ * free up the local node.
+ *
+ * Traversal of a branch is aborted when "enter" returns FALSE, i.e. the
+ * children of the node are not traversed and the "leave" callback is not
+ * called since we did not enter...
+ */
+void
+g2_tree_enter_leave(g2_tree_t *root,
+	match_fn_t enter, data_fn_t leave, void *data)
+{
+	etree_t t;
+
+	g2_tree_check(root);
+
+	etree_init_root(&t, root, FALSE, offsetof(g2_tree_t, node));
+	etree_traverse(&t, ETREE_TRAVERSE_ALL | ETREE_CALL_AFTER,
+		0, ETREE_MAX_DEPTH, enter, leave, data);
+}
+
+#ifdef TREE_TESTING
+
+void G_GNUC_COLD
+g2_tree_test(void)
+{
+	g2_tree_t *root, *first, *node, *c2;
+	const char root_payload[] = "root payload";
+	const char second[] = "second payload";
+	bool ok;
+
+	g_debug("%s() starting...", G_STRFUNC);
+
+	root = g2_tree_alloc("root", root_payload, strlen(root_payload), TRUE);
+	g2_tree_add_child(root,
+		g2_tree_alloc("second child", second, strlen(second), TRUE));
+	first = g2_tree_alloc_empty("first child");
+	g2_tree_add_child(root, first);
+	g2_tree_add_child(first, g2_tree_alloc_empty("c3"));
+	g2_tree_add_child(first, (c2 = g2_tree_alloc_empty("c2")));
+	g2_tree_add_child(first, g2_tree_alloc_empty("c1"));
+
+	ok = g2_tfmt_tree_dump(root, stderr, G2FMT_O_PAYLOAD);
+	g_assert(ok);
+
+	node = g2_tree_lookup(first, "/root/first child/c2");
+	g_assert(node == c2);
+	node = g2_tree_lookup(first, "/root/bar/c2");
+	g_assert(node == NULL);
+	node = g2_tree_lookup(first, "/root/first child/c4");
+	g_assert(node == NULL);
+	node = g2_tree_lookup(root, "/root/first child/c2");
+	g_assert(node == c2);
+	node = g2_tree_lookup(root, "/root/first child/c1/../c2");
+	g_assert(node == c2);
+	node = g2_tree_lookup(root, "/root/first child/c1/../c2/../c2");
+	g_assert(node == c2);
+	node = g2_tree_lookup(root, "/root/first child/c4/../c2");
+	g_assert(node == NULL);	/* Since there is no "c4" */
+	node = g2_tree_lookup(root, "/root/first child/././c2");
+	g_assert(node == c2);
+	node = g2_tree_lookup(first, "c4");
+	g_assert(node == NULL);
+	node = g2_tree_lookup(first, "c2");
+	g_assert(node == c2);
+	node = g2_tree_lookup(first, "./c2");
+	g_assert(node == c2);
+
+	g2_tree_free_null(&root);
+
+	g_debug("%s() done.", G_STRFUNC);
+}
+
+#else	/* !TREE_TESTING */
+void G_GNUC_COLD
+g2_tree_test(void)
+{
+	/* Nothing */
+}
+#endif	/* TREE_TESTING */
 
 /* vi: set ts=4 sw=4 cindent: */

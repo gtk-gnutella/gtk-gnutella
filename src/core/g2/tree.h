@@ -46,6 +46,7 @@ g2_tree_t *g2_tree_lookup(const g2_tree_t *root, const char *path);
 const char *g2_tree_name(const g2_tree_t *node);
 g2_tree_t *g2_tree_root(const g2_tree_t *node);
 const void *g2_tree_payload(const g2_tree_t *root, const char *path, size_t *l);
+const void *g2_tree_node_payload(const g2_tree_t *node, size_t *paylen);
 void g2_tree_child_foreach(const g2_tree_t *root, data_fn_t cb, void *data);
 g2_tree_t *g2_tree_first_child(const g2_tree_t *root);
 g2_tree_t *g2_tree_next_sibling(const g2_tree_t *child);
@@ -57,6 +58,11 @@ void g2_tree_set_payload(g2_tree_t *root, const void *payload,
 	size_t paylen, bool copy);
 void g2_tree_add_child(g2_tree_t *parent, g2_tree_t *child);
 void g2_tree_free_null(g2_tree_t **root_ptr);
+
+void g2_tree_enter_leave(g2_tree_t *root,
+	match_fn_t enter, data_fn_t leave, void *data);
+
+void g2_tree_test(void);
 
 #endif /* _core_g2_tree_h_ */
 

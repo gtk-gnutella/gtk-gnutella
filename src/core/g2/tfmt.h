@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2012, Raphael Manfredi
- *
- * Jmakefile for the core/g2 part.
+ * Copyright (c) 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,25 +21,34 @@
  *----------------------------------------------------------------------
  */
 
-SRC = \
-	frame.c \
-	gwc.c \
-	tfmt.c \
-	tree.c
+/**
+ * @ingroup core
+ * @file
+ *
+ * G2 tree formatting.
+ *
+ * @author Raphael Manfredi
+ * @date 2012
+ */
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#ifndef _core_g2_tfmt_h_
+#define _core_g2_tfmt_h_
 
+/**
+ * Formatter options.
+ */
+#define G2FMT_O_PAYLOAD		(1 << 0)	/**< Dump payloads as well */
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/*
+ * Public interface.
+ */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+struct ostream;
+struct g2_tree;
 
-NormalLibraryTarget(g2, $(SRC), $(OBJ))
-DependTarget()
+bool g2_tfmt_tree(const struct g2_tree *root, struct ostream *os, uint32 opt);
+bool g2_tfmt_tree_dump(const struct g2_tree *root, FILE *f, uint32 opt);
 
+#endif /* _core_g2_tfmt_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

@@ -55,6 +55,7 @@
 #include "core/features.h"
 #include "core/fileinfo.h"
 #include "core/g2/gwc.h"
+#include "core/g2/tree.h"
 #include "core/gdht.h"
 #include "core/geo_ip.h"
 #include "core/ghc.h"
@@ -2080,6 +2081,7 @@ main(int argc, char **argv)
 	dht_attempt_bootstrap();
 	http_test();
 	vxml_test();
+	g2_tree_test();
 
 	if (running_topless) {
 		topless_main_run();
