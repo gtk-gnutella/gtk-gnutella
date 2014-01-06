@@ -916,8 +916,15 @@ hcache_add_internal(hcache_type_t type, time_t added,
 			hcache_unlink_host(caches[hce->type], host);
 			return TRUE;
 
-		default:
+		case HCACHE_FRESH_ANY:
+		case HCACHE_VALID_ANY:
+		case HCACHE_VALID_G2HUB:
+		case HCACHE_FRESH_G2HUB:
 			return TRUE;
+
+		case HCACHE_NONE:
+		case HCACHE_MAX:
+			g_assert_not_reached();
 		}
 
 		/*
