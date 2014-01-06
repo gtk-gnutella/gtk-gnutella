@@ -379,7 +379,7 @@ g2_frame_recursive_deserialize(struct frame_dctx *dctx)
 	return node;
 
 failure:
-	g2_tree_free(node);
+	g2_tree_free_null(&node);
 	return NULL;
 }
 
@@ -600,7 +600,7 @@ g2_frame_recursive_serialize(struct frame_sctx *sctx, const g2_tree_t *root)
 
 	while (child != NULL) {
 		g2_frame_recursive_serialize(sctx, child);
-		child = g2_tree_next_child(child);
+		child = g2_tree_next_sibling(child);
 	}
 
 	if (has_children && paylen != 0)

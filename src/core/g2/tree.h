@@ -42,21 +42,21 @@ typedef struct g2_tree g2_tree_t;
  */
 
 bool g2_tree_is_valid(const struct g2_tree * const t);
-const g2_tree_t *g2_tree_lookup(const g2_tree_t *root, const char *path);
-const void *g2_tree_name(const g2_tree_t *root);
-const g2_tree_t *g2_tree_root(const g2_tree_t *root);
+g2_tree_t *g2_tree_lookup(const g2_tree_t *root, const char *path);
+const char *g2_tree_name(const g2_tree_t *node);
+g2_tree_t *g2_tree_root(const g2_tree_t *node);
 const void *g2_tree_payload(const g2_tree_t *root, const char *path, size_t *l);
 void g2_tree_child_foreach(const g2_tree_t *root, data_fn_t cb, void *data);
-const g2_tree_t *g2_tree_first_child(const g2_tree_t *root);
-const g2_tree_t *g2_tree_next_child(const g2_tree_t *child);
-const g2_tree_t *g2_tree_next_twin(const g2_tree_t *child);
+g2_tree_t *g2_tree_first_child(const g2_tree_t *root);
+g2_tree_t *g2_tree_next_sibling(const g2_tree_t *child);
+g2_tree_t *g2_tree_next_twin(const g2_tree_t *child);
 g2_tree_t *g2_tree_alloc_empty(const char *name);
 g2_tree_t *g2_tree_alloc(const char *name, const void *payload,
 	size_t paylen, bool copy);
 void g2_tree_set_payload(g2_tree_t *root, const void *payload,
 	size_t paylen, bool copy);
 void g2_tree_add_child(g2_tree_t *parent, g2_tree_t *child);
-void g2_tree_free(g2_tree_t *root);
+void g2_tree_free_null(g2_tree_t **root_ptr);
 
 #endif /* _core_g2_tree_h_ */
 

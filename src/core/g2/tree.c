@@ -139,7 +139,7 @@ g2_tree_is_valid(const struct g2_tree * const t)
  *
  * @return the root of the tree.
  */
-static const g2_tree_t *
+static g2_tree_t *
 g2_tree_find_root(const g2_tree_t *root)
 {
 	etree_t t;
@@ -168,7 +168,7 @@ g2_tree_has_name(const void *item, void *data)
  *
  * @return the first sibling bearing the specified name, NULL if none.
  */
-static const g2_tree_t *
+static g2_tree_t *
 g2_tree_find_sibling(const g2_tree_t *root, const char *name)
 {
 	etree_t t;
@@ -205,7 +205,7 @@ g2_tree_find_sibling(const g2_tree_t *root, const char *name)
  *
  * @return the root of the tree if path was found, NULL otherwise.
  */
-const g2_tree_t *
+g2_tree_t *
 g2_tree_lookup(const g2_tree_t *root, const char *path)
 {
 	const g2_tree_t *r;
@@ -272,29 +272,29 @@ g2_tree_lookup(const g2_tree_t *root, const char *path)
 
 done:
 	strtok_free(st);
-	return r;
+	return deconstify_pointer(r);
 }
 
 /**
  * @return the name of the node.
  */
-const void *
-g2_tree_name(const g2_tree_t *root)
+const char *
+g2_tree_name(const g2_tree_t *node)
 {
-	g2_tree_check(root);
+	g2_tree_check(node);
 
-	return root->name;
+	return node->name;
 }
 
 /**
  * @return the root of the tree.
  */
-const g2_tree_t *
-g2_tree_root(const g2_tree_t *root)
+g2_tree_t *
+g2_tree_root(const g2_tree_t *node)
 {
-	g2_tree_check(root);
+	g2_tree_check(node);
 
-	return g2_tree_find_root(root);
+	return g2_tree_find_root(node);
 }
 
 /**
@@ -354,7 +354,7 @@ g2_tree_child_foreach(const g2_tree_t *root, data_fn_t cb, void *data)
 /**
  * @return the first child of the node, NULL if no child.
  */
-const g2_tree_t *
+g2_tree_t *
 g2_tree_first_child(const g2_tree_t *root)
 {
 	etree_t t;
@@ -368,8 +368,8 @@ g2_tree_first_child(const g2_tree_t *root)
 /**
  * @return the next sibling of a supplied node, NULL if no more siblings.
  */
-const g2_tree_t *
-g2_tree_next_child(const g2_tree_t *child)
+g2_tree_t *
+g2_tree_next_sibling(const g2_tree_t *child)
 {
 	etree_t t;
 
@@ -382,7 +382,7 @@ g2_tree_next_child(const g2_tree_t *child)
 /**
  * @return next sibling bearing the same name, NULL if none.
  */
-const g2_tree_t *
+g2_tree_t *
 g2_tree_next_twin(const g2_tree_t *child)
 {
 	g2_tree_check(child);
@@ -491,7 +491,7 @@ g2_tree_add_child(g2_tree_t *parent, g2_tree_t *child)
  * Free sub-tree, destroying all its items and removing the reference in
  * the parent node, if any.
  */
-void
+static void
 g2_tree_free(g2_tree_t *root)
 {
 	etree_t t;
@@ -500,6 +500,20 @@ g2_tree_free(g2_tree_t *root)
 
 	etree_init_root(&t, root, FALSE, offsetof(g2_tree_t, node));
 	etree_sub_free(&t, root, g2_tree_free_node);
+}
+
+/**
+ * Free tree, nullify its pointer.
+ */
+void
+g2_tree_free_null(g2_tree_t **root_ptr)
+{
+	g2_tree_t *root = *root_ptr;
+
+	if (root != NULL) {
+		g2_tree_free(root);
+		*root_ptr = NULL;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
