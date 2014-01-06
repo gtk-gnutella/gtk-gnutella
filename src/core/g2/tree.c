@@ -225,6 +225,7 @@ g2_tree_lookup(const g2_tree_t *root, const char *path)
 
 	if ('/' == path[0]) {
 		r = g2_tree_find_root(root);
+		tok = strtok_next(st, "/");				/* Swallow leading '/' */
 		for (;;) {
 			tok = strtok_next(st, "/");
 			if (NULL == tok)			/* Looking for "/", root of the tree */
@@ -256,7 +257,7 @@ g2_tree_lookup(const g2_tree_t *root, const char *path)
 			if (0 == strcmp(tok, ".."))	{	/* ".." is the parent node */
 				const g2_tree_t *parent = etree_parent(&t, r);
 				if (parent != NULL)
-					r = parent;
+					r = parent;			/* Not at the tree root */
 				continue;
 			}
 		}
