@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Network RX -- decompressing stage.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -40,9 +40,13 @@
 #include "rx_inflate.h"
 #include "rxbuf.h"
 
-#include "lib/walloc.h"
+#include "lib/base16.h"			/* For error messages */
 #include "lib/pmsg.h"
+#include "lib/str.h"			/* For error messages */
+#include "lib/stringify.h"		/* For plural() */
+#include "lib/walloc.h"
 #include "lib/zlib_util.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -51,6 +55,7 @@
 struct attr {
 	const struct rx_inflate_cb *cb;	/**< Layer-specific callbacks */
 	z_streamp inz;					/**< Decompressing stream */
+	size_t processed;				/**< Input bytes decompressed so far */
 	int flags;
 };
 
@@ -64,12 +69,9 @@ static pmsg_t *
 inflate_data(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
-	int ret;
 	pdata_t *db;					/* Inflated buffer */
 	z_streamp inz = attr->inz;
-	int old_size;
-	int old_avail;
-	int inflated;
+	int ret, old_size, old_avail, inflated, consumed;
 
 	/*
 	 * Prepare call to inflate().
@@ -96,13 +98,48 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	ret = inflate(inz, Z_SYNC_FLUSH);
 
 	if (ret != Z_OK && ret != Z_STREAM_END) {
+		str_t *s;
+
+		s = str_new(128);
+		str_printf(s, "decompression failed between offsets %zu and %zu: %s",
+			attr->processed, attr->processed + old_size, zlib_strerror(ret));
+
+		/*
+		 * If error happens at the beginning of the stream, include the
+		 * first few bytes in hexadecimal so that we can detect whether
+		 * we missed a gzip encapsulation, or to make sure data are really
+		 * deflated, not plain.
+		 *		--RAM, 2014-01-06
+		 */
+
+		if (0 == attr->processed) {
+			char data[33];
+			size_t n = MIN(UNSIGNED(old_size), (sizeof data - 1) / 2);
+			size_t m;
+
+			m = base16_encode(data, sizeof data - 1, pmsg_read_base(mb), n);
+			g_assert(m < sizeof data);
+			data[m] = '\0';
+
+			str_catf(s, " [first %zu hex byte%s: %s]", m/2, plural(m/2), data);
+		}
+
 		errno = EIO;
-		attr->cb->inflate_error(rx->owner, "Decompression failed: %s",
-			zlib_strerror(ret));
+		attr->cb->inflate_error(rx->owner, "%s", str_2c(s));
+		str_destroy_null(&s);
 		goto cleanup;
 	}
 
-	mb->m_rptr += old_size - inz->avail_in;		/* Read that far */
+	/*
+	 * Keep track of amount of data processed in case we get a
+	 * decompression failure: we'll thus be able to report at
+	 * which position it occurred in the input stream.
+	 *		--RAM, 2014-01-06
+	 */
+
+	consumed = old_size - inz->avail_in;
+	mb->m_rptr += consumed;					/* Read that far */
+	attr->processed += consumed;
 
 	/*
 	 * Check whether some data was produced.
@@ -159,10 +196,9 @@ rx_inflate_init(rxdrv_t *rx, const void *args)
 		return NULL;
 	}
 
-	WALLOC(attr);
+	WALLOC0(attr);
 	attr->cb = rargs->cb;
 	attr->inz = inz;
-	attr->flags = 0;
 
 	rx->opaque = attr;
 
