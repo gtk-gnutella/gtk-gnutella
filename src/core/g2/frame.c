@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Raphael Manfredi
+ * Copyright (c) 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -159,7 +159,7 @@
  * as being invalid.
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012, 2014
  */
 
 #include "common.h"
@@ -435,6 +435,62 @@ g2_frame_whole_length(const void *buf, size_t len)
 	}
 
 	return 1 + bytelen + namelen + length;	/* Total expected size */
+}
+
+/**
+ * Get the name of the root packet.
+ *
+ * @param buf			start of buffer where packet lies
+ * @param len			amount of data held in the buffer
+ * @param nlen			if non-NULL, where length of name is returned
+ *
+ * @return the start of the name in the packet (non-NUL terminated string,
+ * so use namelen), or NULL if the packet is too short to hold the whole
+ * name.
+ */
+const char *
+g2_frame_name(const void *buf, size_t len, size_t *nlen)
+{
+	struct frame_dctx dctx;
+	uint8 control;
+	size_t bytelen, namelen;
+	const char *name;
+	const void *end;
+
+	g_assert(buf != NULL);
+	g_assert(size_is_positive(len));
+
+	dctx.p = buf;
+	dctx.end = const_ptr_add_offset(buf, len);
+	dctx.copy = FALSE;
+
+	/*
+	 * Decode the header: control byte, length, name.
+	 */
+
+	if (!g2_frame_read_byte(&dctx, &control))
+		return NULL;
+
+	if (0 == control)
+		return NULL;				/* End of stream */
+
+	bytelen = control & 0xc0;
+	namelen = (control & 0x38) + 1;
+
+	/*
+	 * Name is right after the control byte plus the length.
+	 */
+
+	name = const_ptr_add_offset(buf, bytelen + 1);
+	end = const_ptr_add_offset(name, namelen);
+
+	if (ptr_diff(end, buf) < len)
+		return NULL;				/* Packet is too short to hold name */
+
+	if (nlen != NULL)
+		*nlen = namelen;
+
+	return name;
 }
 
 /**

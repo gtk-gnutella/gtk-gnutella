@@ -48,6 +48,7 @@ size_t g2_frame_serialize(const struct g2_tree *root, void *dest, size_t len);
 const struct g2_tree *g2_frame_deserialize(const void *buf,
 	size_t len, size_t *packet_len, bool copy);
 size_t g2_frame_whole_length(const void *buf, size_t len);
+const char *g2_frame_name(const void *buf, size_t len, size_t *namelen);
 
 #endif /* _core_g2_frame_h_ */
 
