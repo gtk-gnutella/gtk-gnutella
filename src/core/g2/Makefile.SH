@@ -81,12 +81,14 @@ all:: .FORCE_DEPEND
 SRC = \
 	frame.c \
 	gwc.c \
+	msg.c \
 	tfmt.c \
 	tree.c
 
 OBJ = \
 	frame.o \
 	gwc.o \
+	msg.o \
 	tfmt.o \
 	tree.o 
 

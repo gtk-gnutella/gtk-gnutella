@@ -26,6 +26,7 @@
 SRC = \
 	frame.c \
 	gwc.c \
+	msg.c \
 	tfmt.c \
 	tree.c
 

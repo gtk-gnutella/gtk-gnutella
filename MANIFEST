@@ -318,6 +318,8 @@ src/core/g2/frame.c
 src/core/g2/frame.h
 src/core/g2/gwc.c
 src/core/g2/gwc.h
+src/core/g2/msg.c
+src/core/g2/msg.h
 src/core/g2/tfmt.c
 src/core/g2/tfmt.h
 src/core/g2/tree.c
