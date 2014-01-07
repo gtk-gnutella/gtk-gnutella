@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+#include "gtk-gnutella.h"		/* For GTA_VENDOR_CODE */
+
 #include "clock.h"
 #include "dmesh.h"
 #include "dq.h"
@@ -2175,7 +2177,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), &queue, sizeof queue, 0))
 			goto failure;
 
-		if (!ggep_stream_pack(&gs, GGEP_NAME(V), "GTKG", 4, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(V), GTA_VENDOR_CODE, 4, 0))
 			goto failure;
 
 		caps = tls_enabled() ? VMSG_HEAD_F_TLS : 0;

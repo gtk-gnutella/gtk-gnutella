@@ -35,6 +35,8 @@
 
 #include "pcache.h"
 
+#include "gtk-gnutella.h"		/* For GTA_VENDOR_CODE */
+
 #include "alive.h"
 #include "extensions.h"
 #include "ggep.h"
@@ -1200,7 +1202,7 @@ pcache_init(void)
 	 */
 
 	local_meta.flags = PONG_META_HAS_VC | PONG_META_HAS_DU;
-	memcpy(local_meta.vendor, "GTKG", 4);
+	memcpy(local_meta.vendor, GTA_VENDOR_CODE, 4);
 	local_meta.version_ua = version_get_code();
 	local_meta.version_up = 0x2;	/* X-Query-Routing: 0.2 */
 

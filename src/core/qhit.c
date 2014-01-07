@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+#include "gtk-gnutella.h"	/* For GTA_VENDOR_CODE */
+
 #include "qhit.h"
 #include "bsched.h"
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
@@ -433,8 +435,8 @@ flush_match(void)
 	 * It is compatible with BearShare's one in the "open data" section.
 	 */
 
-	memcpy(trailer, "GTKG", 4);	/* Vendor code */
-	trailer[4] = 2;					/* Open data size */
+	memcpy(trailer, GTA_VENDOR_CODE, 4);/* Vendor code */
+	trailer[4] = 2;						/* Open data size */
 	trailer[5] = 0x04 | 0x08 | 0x20;	/* Valid flags we set */
 	trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
 
