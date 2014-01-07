@@ -10301,6 +10301,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label365;
   GtkWidget *checkbutton_enable_guess;
   GtkWidget *checkbutton_enable_guess_client;
+  GtkWidget *checkbutton_enable_g2;
   GtkWidget *label293;
   GtkWidget *frame_expert_oob_queries;
   GtkWidget *table101;
@@ -10907,7 +10908,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_container_add (GTK_CONTAINER (frame_searches), hbox254);
   gtk_container_set_border_width (GTK_CONTAINER (hbox254), 2);
 
-  table17 = gtk_table_new (4, 3, FALSE);
+  table17 = gtk_table_new (5, 3, FALSE);
   gtk_widget_set_name (table17, "table17");
   gtk_widget_show (table17);
   gtk_box_pack_start (GTK_BOX (hbox254), table17, FALSE, TRUE, 0);
@@ -10980,6 +10981,13 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (checkbutton_enable_guess_client, "checkbutton_enable_guess_client");
   gtk_widget_show (checkbutton_enable_guess_client);
   gtk_table_attach (GTK_TABLE (table17), checkbutton_enable_guess_client, 0, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_enable_g2 = gtk_check_button_new_with_mnemonic (_("Enable the G2 network"));
+  gtk_widget_set_name (checkbutton_enable_g2, "checkbutton_enable_g2");
+  gtk_widget_show (checkbutton_enable_g2);
+  gtk_table_attach (GTK_TABLE (table17), checkbutton_enable_g2, 0, 2, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11870,6 +11878,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label365, "label365");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_enable_guess, "checkbutton_enable_guess");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_enable_guess_client, "checkbutton_enable_guess_client");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_enable_g2, "checkbutton_enable_g2");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label293, "label293");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_oob_queries, "frame_expert_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table101, "table101");

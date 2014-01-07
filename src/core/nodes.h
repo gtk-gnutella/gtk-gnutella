@@ -705,6 +705,7 @@ void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features);
 
 void node_update_udp_socket(void);
+void node_update_g2(bool enabled);
 void node_check_remote_ip_header(const host_addr_t peer, header_t *head);
 
 uint feed_host_cache_from_headers(header_t *headers,

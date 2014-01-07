@@ -5744,6 +5744,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_ENABLE_G2,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_g2",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_ENABLE_GUESS,
         update_togglebutton,
         TRUE,

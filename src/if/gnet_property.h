@@ -507,6 +507,7 @@ typedef enum {
     PROP_EVQ_DEBUG,
     PROP_MAX_G2HUB_HOSTS_CACHED,
     PROP_HOSTS_IN_G2HUB_CATCHER,
+    PROP_ENABLE_G2,
     GNET_PROPERTY_END
 } gnet_property_t;
 

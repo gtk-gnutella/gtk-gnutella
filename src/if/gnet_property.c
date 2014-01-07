@@ -1088,6 +1088,8 @@ guint32  gnet_property_variable_max_g2hub_hosts_cached     = 10000;
 static const guint32  gnet_property_variable_max_g2hub_hosts_cached_default = 10000;
 guint32  gnet_property_variable_hosts_in_g2hub_catcher     = 0;
 static const guint32  gnet_property_variable_hosts_in_g2hub_catcher_default = 0;
+gboolean gnet_property_variable_enable_g2     = TRUE;
+static const gboolean gnet_property_variable_enable_g2_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -10546,6 +10548,24 @@ gnet_prop_init(void) {
     gnet_property->props[470].data.guint32.choices = NULL;
     gnet_property->props[470].data.guint32.max   = INT_MAX;
     gnet_property->props[470].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_ENABLE_G2:
+     *
+     * General data:
+     */
+    gnet_property->props[471].name = "enable_g2";
+    gnet_property->props[471].desc = _("Whether the G2 protocol should be enabled.");
+    gnet_property->props[471].ev_changed = event_new("enable_g2_changed");
+    gnet_property->props[471].save = TRUE;
+    gnet_property->props[471].vector_size = 1;
+	mutex_init(&gnet_property->props[471].lock);
+
+    /* Type specific data: */
+    gnet_property->props[471].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[471].data.boolean.def   = (void *) &gnet_property_variable_enable_g2_default;
+    gnet_property->props[471].data.boolean.value = (void *) &gnet_property_variable_enable_g2;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

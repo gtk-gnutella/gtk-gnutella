@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2010, Raphael Manfredi
+ * Copyright (c) 2001-2010, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Gnutella node management.
  *
  * @author Raphael Manfredi
- * @date 2001-2010
+ * @date 2001-2010, 2014
  */
 
 #include "common.h"
@@ -429,6 +429,15 @@ static void
 node_send_udp_ping(struct gnutella_node *n)
 {
 	udp_send_ping(NULL, n->addr, n->port, TRUE);	
+}
+
+/**
+ * Is G2 support active?
+ */
+bool
+node_g2_active(void)
+{
+	return udp_active() && GNET_PROPERTY(enable_g2);
 }
 
 /***
@@ -12033,6 +12042,18 @@ node_update_udp_socket(void)
 
 	if ((dht_node || dht6_node) && udp_active())
 		node_dht_enable();
+}
+
+/**
+ * This needs to be called when the G2 protocol is enabled or disabled.
+ */
+void
+node_update_g2(bool enabled)
+{
+	if (GNET_PROPERTY(node_debug)) {
+		g_debug("%s(): %sabling G2 connections",
+			G_STRFUNC, enabled ? "en" : "dis");
+	}
 }
 
 /**

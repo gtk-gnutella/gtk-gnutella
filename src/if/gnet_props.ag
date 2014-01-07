@@ -5437,4 +5437,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "enable_g2";
+	desc = "Whether the G2 protocol should be enabled.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
 /* vi: set ts=4: */

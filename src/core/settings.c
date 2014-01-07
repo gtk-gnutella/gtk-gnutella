@@ -1736,7 +1736,7 @@ static host_addr_t
 get_bind_addr(enum net_type net)
 {
 	host_addr_t addr = zero_host_addr;
-	
+
 	switch (net) {
 	case NET_TYPE_IPV4:
 		addr = GNET_PROPERTY(force_local_ip)
@@ -1774,7 +1774,7 @@ static bool
 enable_udp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (s_tcp_listen) {
@@ -1810,7 +1810,7 @@ static bool
 enable_dht_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		/* Will start the DHT if UDP enabled otherwise */
@@ -1823,10 +1823,21 @@ enable_dht_changed(property_t prop)
 }
 
 static bool
+enable_g2_changed(property_t prop)
+{
+	bool enabled;
+
+    gnet_prop_get_boolean_val(prop, &enabled);
+	node_update_g2(enabled);
+
+	return FALSE;
+}
+
+static bool
 enable_guess_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		guess_init();
@@ -1841,7 +1852,7 @@ static bool
 enable_upnp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		upnp_post_init();
@@ -1856,7 +1867,7 @@ static bool
 enable_natpmp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		upnp_post_init();
@@ -3345,6 +3356,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_ENABLE_DHT,
 		enable_dht_changed,
+		FALSE,
+	},
+	{
+		PROP_ENABLE_G2,
+		enable_g2_changed,
 		FALSE,
 	},
 	{
