@@ -98,6 +98,7 @@ struct gnutella_shell {
 	uint exiting:1;  		/**< Should shell exit? */
 	uint interactive:1;		/**< Interactive mode? */
 	uint async:1;			/**< In the middle of asynchronous processing */
+	uint eof:1;				/**< Got EOF on the input side */
 };
 
 void
@@ -163,6 +164,16 @@ shell_free(struct gnutella_shell *sh)
 
 	sh->magic = 0;
 	WFREE(sh);
+}
+
+/**
+ * Called whenever some event occurs on a shell socket.
+ */
+static void
+shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
+{
+	(void) unused_source;
+	shell_handle_event(data, cond);
 }
 
 static void
@@ -262,6 +273,33 @@ shell_shutdown(struct gnutella_shell *sh)
 	sh->shutdown = TRUE;
 	atomic_mb();
 	socket_evt_clear(sh->socket);
+}
+
+static void
+shell_eof(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	sh->eof = TRUE;
+	atomic_mb();
+
+	SHELL_LOCK(sh);
+
+	socket_evt_clear(sh->socket);
+
+	if (shell_has_pending_output(sh)) {
+		if (GNET_PROPERTY(shell_debug) > 1) {
+			s_debug("%s(%p): keeping INPUT_EVENT_WX", G_STRFUNC, sh);
+		}
+
+		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
+	} else {
+		if (GNET_PROPERTY(shell_debug) > 1) {
+			s_debug("%s(%p): cleared all events", G_STRFUNC, sh);
+		}
+	}
+
+	SHELL_UNLOCK(sh);
 }
 
 /**
@@ -934,16 +972,6 @@ shell_interpret_line(struct gnutella_shell *sh, const char *line)
 }
 
 /**
- * Called whenever some event occurs on a shell socket.
- */
-static void
-shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
-{
-	(void) unused_source;
-	shell_handle_event(data, cond);
-}
-
-/**
  * Interpret all the data held in the shell's socket read buffer, which
  * may contain several lines of text.
  */
@@ -1001,7 +1029,7 @@ shell_interpret_data(struct gnutella_shell *sh)
 		if (shell_interpret_line(sh, line))
 			return;
 
-		if (sh->shutdown || sh->exiting)
+		if (sh->shutdown || sh->exiting || sh->eof)
 			return;
 	}
 
@@ -1053,7 +1081,7 @@ shell_read_data(struct gnutella_shell *sh)
 					s_debug("%s(%p): shell connection closed: EOF",
 						G_STRFUNC, sh);
 				}
-				shell_shutdown(sh);
+				shell_eof(sh);
 				return;
 			}
 		} else if ((ssize_t) -1 == ret) {
@@ -1087,7 +1115,7 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 		shell_write_data(sh);
 	}
 
-	if ((cond & INPUT_EVENT_R) && !sh->shutdown) {
+	if ((cond & INPUT_EVENT_R) && !(sh->shutdown || sh->eof)) {
 		g_assert(!sh->async);
 		shell_read_data(sh);
 	}
@@ -1107,6 +1135,10 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 		socket_evt_clear(sh->socket);
 
 		if (!sh->async) {
+			if (sh->eof) {
+				SHELL_UNLOCK(sh);
+				goto destroy;
+			}
 			if (GNET_PROPERTY(shell_debug) > 1) {
 				s_debug("%s(%p): setting INPUT_EVENT_RX", G_STRFUNC, sh);
 			}
