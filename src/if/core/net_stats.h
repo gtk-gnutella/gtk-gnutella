@@ -52,12 +52,32 @@ enum {
 	MSG_DHT_FOUND_NODE,
 	MSG_DHT_FIND_VALUE,
 	MSG_DHT_VALUE,
+	/* Not including CRAWLA -- not expected as we don't send requests */
+	MSG_G2_CRAWLR,
+	MSG_G2_HAW,
+	MSG_G2_KHL,
+	MSG_G2_KHLR,
+	MSG_G2_KHLA,
+	MSG_G2_LNI,
+	MSG_G2_PI,
+	MSG_G2_PO,
+	MSG_G2_PUSH,
+	MSG_G2_QKA,
+	MSG_G2_QKR,
+	MSG_G2_Q2,
+	MSG_G2_QA,
+	MSG_G2_QH2,
+	MSG_G2_QHT,
+	MSG_G2_UPROC,
+	MSG_G2_UPROD,
+
 	MSG_TOTAL,     /**< always counted (for all the above types) */
 	
 	MSG_TYPE_COUNT /**< number of known message types */
 };
 
 #define MSG_DHT_BASE	0xd0		/* Base in lookup table for DHT messages */
+#define MSG_G2_BASE		0x05		/* Base in lookup table for G2 messages */
 
 typedef enum msg_drop_reason {
 	MSG_DROP_BAD_SIZE = 0,

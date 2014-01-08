@@ -36,6 +36,8 @@
 #include "gnet_stats.h"
 #include "gmsg.h"
 
+#include "g2/msg.h"
+
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
 
@@ -439,6 +441,8 @@ gnet_stats_init(void)
 	/* Guarantees that our little hack below can succeed */
 	STATIC_ASSERT(
 		UNSIGNED(KDA_MSG_MAX_ID + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut));
+	STATIC_ASSERT(
+		UNSIGNED(MSG_G2_BASE + G2_MSG_MAX) < GTA_MSG_QRP);
 
 	for (i = 0; i < G_N_ELEMENTS(stats_lut); i++) {
 		uchar m = MSG_UNKNOWN;
@@ -451,6 +455,10 @@ gnet_stats_init(void)
 		 * by Gnutella to stuff the DHT messages there.  And 0xd0 starts
 		 * with a 'D', so it's not a total hack.
 		 *		--RAM, 2010-11-01.
+		 *
+		 * We play the same trick for G2 messages, only we insert them
+		 * in the 0x05 .. 0x2f space, which is unused by Gnutella.
+		 *		--RAM, 2014-01-07.
 		 */
 
 		if (i > MSG_DHT_BASE) {
@@ -467,6 +475,31 @@ gnet_stats_init(void)
 			case KDA_MSG_STATS_RESPONSE:
 				/* deprecated, not supported */
 				break;
+			}
+		} else if (i > MSG_G2_BASE && i < GTA_MSG_QRP) {
+			switch ((enum g2_msg) (i - MSG_G2_BASE)) {
+			case G2_MSG_CRAWLR:			m = MSG_G2_CRAWLR; break;
+			case G2_MSG_HAW:			m = MSG_G2_HAW; break;
+			case G2_MSG_KHL:			m = MSG_G2_KHL; break;
+			case G2_MSG_KHLR:			m = MSG_G2_KHLR; break;
+			case G2_MSG_KHLA:			m = MSG_G2_KHLA; break;
+			case G2_MSG_LNI:			m = MSG_G2_LNI; break;
+			case G2_MSG_PI:				m = MSG_G2_PI; break;
+			case G2_MSG_PO:				m = MSG_G2_PO; break;
+			case G2_MSG_PUSH:			m = MSG_G2_PUSH; break;
+			case G2_MSG_QKA:			m = MSG_G2_QKA; break;
+			case G2_MSG_QKR:			m = MSG_G2_QKR; break;
+			case G2_MSG_Q2:				m = MSG_G2_Q2; break;
+			case G2_MSG_QA:				m = MSG_G2_QA; break;
+			case G2_MSG_QH2:			m = MSG_G2_QH2; break;
+			case G2_MSG_QHT:			m = MSG_G2_QHT; break;
+			case G2_MSG_UPROC:			m = MSG_G2_UPROC; break;
+			case G2_MSG_UPROD:			m = MSG_G2_UPROD; break;
+			case G2_MSG_MAX:
+				break;
+			case G2_MSG_CRAWLA:
+				/* This message is skipped, since we don't expect it */
+				g_assert_not_reached();
 			}
 		} else {
 			switch ((enum gta_msg) i) {
@@ -487,6 +520,9 @@ gnet_stats_init(void)
 		}
 		stats_lut[i] = m;
 	}
+
+	/* gnet_stats_count_received_payload() relies on this for G2 messages */
+	g_assert(MSG_UNKNOWN == stats_lut[G_N_ELEMENTS(stats_lut) - 1]);
 
 #undef CASE
 		
@@ -568,6 +604,7 @@ gnet_stats_count_received_header(gnutella_node_t *n)
 	gnet_stats_t *stats;
 
 	g_assert(thread_is_main());
+	g_assert(!NODE_TALKS_G2(n));
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -606,6 +643,7 @@ gnet_stats_count_kademlia_header(const gnutella_node_t *n, uint kt)
 	gnet_stats_t *stats;
 
 	g_assert(thread_is_main());
+	g_assert(!NODE_TALKS_G2(n));
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -636,16 +674,19 @@ gnet_stats_count_kademlia_header(const gnutella_node_t *n, uint kt)
 }
 
 /**
- * Called when Gnutella payload has been read.
+ * Called when Gnutella payload has been read, or when a G2 messsage is read.
  *
  * The actual payload size (effectively read) is expected to be found
- * in n->size.
+ * in n->size for Gnutella messages and G2 messages.
+ *
+ * @param n			the node from which message was received
+ * @param payload	start of Gnutella payload, or head of G2 frame
  */
 void
 gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 {
-	uint8 f = gnutella_header_get_function(&n->header);
-	uint t = stats_lut[f];
+	uint8 f;
+	uint t;
 	uint i;
 	gnet_stats_t *stats;
     uint32 size;
@@ -654,6 +695,7 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 	g_assert(thread_is_main());
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	size = n->size;
 
 	/*
 	 * Size is NOT read in the Gnutella header but in n->size, which
@@ -666,9 +708,22 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 	 *		--RAM, 2010-10-30
 	 */
 
-	size = n->size;
-	hops = gnutella_header_get_hops(&n->header);
-	ttl = gnutella_header_get_ttl(&n->header);
+	if (NODE_TALKS_G2(n)) {
+		f = g2_msg_type(payload, size);
+		if (f != G2_MSG_MAX) {
+			f += MSG_G2_BASE;
+		} else {
+			f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+		}
+		ttl = 1;
+		hops = NODE_USES_UDP(n) ? 0 : 1;
+	} else {
+		f = gnutella_header_get_function(&n->header);
+		hops = gnutella_header_get_hops(&n->header);
+		ttl = gnutella_header_get_ttl(&n->header);
+	}
+
+	t = stats_lut[f];
 
 	gnet_stats_randomness(n, f, size);
 
@@ -769,6 +824,7 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 
 	g_assert(t != MSG_UNKNOWN);
 	g_assert(thread_is_main());
+	g_assert(!NODE_TALKS_G2(n));
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -799,6 +855,44 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 
 	stats_pkg = hops ? stats->pkg.relayed : stats->pkg.generated;
 	stats_byte = hops ? stats->byte.relayed : stats->byte.generated;
+
+    stats_pkg[MSG_TOTAL]++;
+    stats_pkg[t]++;
+    stats_byte[MSG_TOTAL] += size;
+    stats_byte[t] += size;
+}
+
+void
+gnet_stats_g2_count_sent(const gnutella_node_t *n,
+	enum g2_msg type, uint32 size)
+{
+	uint64 *stats_pkg;
+	uint64 *stats_byte;
+	uint t;
+	gnet_stats_t *stats;
+
+	g_assert(thread_is_main());
+	g_assert((uint) type < UNSIGNED(G2_MSG_MAX));
+	g_assert(NODE_TALKS_G2(n));
+
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	t = stats_lut[MSG_G2_BASE + type];
+
+	g_assert(t != MSG_UNKNOWN);
+
+	gnet_stats_randomness(n, t & 0xff, size);
+
+	stats_pkg = gnet_stats.pkg.generated;
+	stats_byte = gnet_stats.byte.generated;
+
+    stats_pkg[MSG_TOTAL]++;
+    stats_pkg[t]++;
+    stats_byte[MSG_TOTAL] += size;
+    stats_byte[t] += size;
+
+	stats_pkg = stats->pkg.generated;
+	stats_byte = stats->byte.generated;
 
     stats_pkg[MSG_TOTAL]++;
     stats_pkg[t]++;

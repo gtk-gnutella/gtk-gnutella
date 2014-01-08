@@ -53,6 +53,11 @@ void gnet_stats_set_general(gnr_stats_t type, uint64 value);
 uint64 gnet_stats_get_general(gnr_stats_t type);
 void gnet_stats_count_flowc(const void *, bool head_only);
 
+enum g2_msg;
+
+void gnet_stats_g2_count_sent(const gnutella_node_t *n,
+	enum g2_msg type, uint32 size);
+
 struct sha1;
 
 void gnet_stats_tcp_digest(struct sha1 *digest);
