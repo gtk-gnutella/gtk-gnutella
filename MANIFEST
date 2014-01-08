@@ -956,8 +956,11 @@ src/lib/wq.c
 src/lib/wq.h
 src/lib/xmalloc.c
 src/lib/xmalloc.h
+src/lib/xsort-gen.c
 src/lib/xsort.c
 src/lib/xsort.h
+src/lib/xsort_data.c
+src/lib/xsort_data.h
 src/lib/xxtea.c
 src/lib/xxtea.h
 src/lib/zalloc.c

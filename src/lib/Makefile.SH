@@ -291,6 +291,7 @@ LSRC = \
 	wq.c \
 	xmalloc.c \
 	xsort.c \
+	xsort_data.c \
 	xxtea.c \
 	zalloc.c \
 	zlib_util.c
@@ -471,6 +472,7 @@ LOBJ = \
 	wq.o \
 	xmalloc.o \
 	xsort.o \
+	xsort_data.o \
 	xxtea.o \
 	zalloc.o \
 	zlib_util.o 

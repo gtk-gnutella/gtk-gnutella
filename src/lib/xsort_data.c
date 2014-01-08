@@ -25,7 +25,8 @@
  * @ingroup lib
  * @file
  *
- * Sorting routines that do not call zalloc() or xmalloc().
+ * Sorting routines that do not call zalloc() or xmalloc() but whose sorting
+ * callback takes an additional parameter.
  *
  * @author Raphael Manfredi
  * @date 2014
@@ -33,7 +34,7 @@
 
 #include "common.h"
 
-#include "xsort.h"
+#include "xsort_data.h"
 #include "getphysmemsize.h"
 #include "mempcpy.h"
 #include "op.h"
@@ -43,15 +44,15 @@
 #include "override.h"			/* Must be the last header included */
 
 /*
- * Configure xsort-gen.c for traditional sorting (cmp_fn_t sorting callback).
+ * Configure xsort-gen.c for extended sorting (cmp_data_fn_t sorting callback).
  */
 
-#define UDATA
-#define UDATA_DECL
-#define CMP_FN_T		cmp_fn_t
-#define XSORT			xsort
-#define XQSORT			xqsort
-#define TAG				_plain
+#define UDATA			, udata
+#define UDATA_DECL		, void *udata
+#define CMP_FN_T		cmp_data_fn_t
+#define XSORT			xsort_with_data
+#define XQSORT			xqsort_with_data
+#define TAG				_with_data
 
 #include "xsort-gen.c"
 

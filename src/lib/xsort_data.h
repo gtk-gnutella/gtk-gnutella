@@ -25,34 +25,22 @@
  * @ingroup lib
  * @file
  *
- * Sorting routines that do not call zalloc() or xmalloc().
+ * Sort routine that does not rely on xmalloc() nor zalloc(), only on VMM.
  *
  * @author Raphael Manfredi
  * @date 2014
  */
 
-#include "common.h"
-
-#include "xsort.h"
-#include "getphysmemsize.h"
-#include "mempcpy.h"
-#include "op.h"
-#include "unsigned.h"
-#include "vmm.h"
-
-#include "override.h"			/* Must be the last header included */
+#ifndef _xsort_data_h_
+#define _xsort_data_h_
 
 /*
- * Configure xsort-gen.c for traditional sorting (cmp_fn_t sorting callback).
+ * Public interface.
  */
 
-#define UDATA
-#define UDATA_DECL
-#define CMP_FN_T		cmp_fn_t
-#define XSORT			xsort
-#define XQSORT			xqsort
-#define TAG				_plain
+void xsort_with_data(void *b, size_t n, size_t s, cmp_data_fn_t cmp, void *d);
+void xqsort_with_data(void *b, size_t n, size_t s, cmp_data_fn_t cmp, void *d);
 
-#include "xsort-gen.c"
+#endif /* _xsort_data_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
