@@ -96,6 +96,8 @@
 #include "vmsg.h"
 #include "whitelist.h"
 
+#include "g2/msg.h"
+
 #include "lib/adns.h"
 #include "lib/aging.h"
 #include "lib/ascii.h"
@@ -203,6 +205,7 @@ static gnutella_node_t *udp_node;
 static gnutella_node_t *udp6_node;
 static gnutella_node_t *udp_sr_node;
 static gnutella_node_t *udp6_sr_node;
+static gnutella_node_t *udp_g2_node;
 static gnutella_node_t *dht_node;
 static gnutella_node_t *dht6_node;
 static gnutella_node_t *udp_route;
@@ -279,6 +282,8 @@ static void node_disable_read(struct gnutella_node *n);
 static bool node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static bool node_udp_sr_data_ind(rxdrv_t *rx, pmsg_t *mb,
 	const gnet_host_t *from);
+static bool node_udp_g2_data_ind(rxdrv_t *rx, pmsg_t *mb,
+	const gnet_host_t *from);
 static void node_bye_sent(struct gnutella_node *n);
 static void call_node_process_handshake_ack(void *obj, header_t *header);
 static void node_send_qrt(struct gnutella_node *n,
@@ -291,6 +296,7 @@ static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(enum net_type net);
 static gnutella_node_t *node_udp_sr_create(enum net_type net);
+static gnutella_node_t *node_udp_g2_create(enum net_type net);
 static gnutella_node_t *node_dht_create(enum net_type net);
 static gnutella_node_t *node_browse_create(void);
 static bool node_remove_useless_leaf(bool *is_gtkg);
@@ -1617,6 +1623,7 @@ node_init(void)
 	udp6_node = node_udp_create(NET_TYPE_IPV6);
 	udp_sr_node = node_udp_sr_create(NET_TYPE_IPV4);
 	udp6_sr_node = node_udp_sr_create(NET_TYPE_IPV6);
+	udp_g2_node = node_udp_g2_create(NET_TYPE_IPV4);
 	dht_node = node_dht_create(NET_TYPE_IPV4);
 	dht6_node = node_dht_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
@@ -1754,6 +1761,7 @@ node_keep_missing(void)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -1787,6 +1795,7 @@ node_missing(void)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -1828,6 +1837,7 @@ node_outdegree(void)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -1884,6 +1894,7 @@ node_type_count_dec(const struct gnutella_node *n)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		return;
 	}
@@ -2456,6 +2467,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
 		break;
@@ -2617,6 +2629,7 @@ node_reserve_slot(struct gnutella_node *n)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
 		break;
@@ -3681,6 +3694,7 @@ node_msg_accounting(void *o, const pmsg_t *mb)
 	int mb_size = pmsg_size(mb);
 
 	node_check(n);
+	g_assert(!NODE_TALKS_G2(n));
 
 	node_add_tx_written(n, mb_size);
 	node_sent_accounting(n, function, mb_start, mb_size);
@@ -3708,12 +3722,40 @@ node_msg_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 	int mb_size = pmsg_size(mb);
 
 	node_check(n);
+	g_assert(!NODE_TALKS_G2(n));
+
 	node_sent_accounting(n, function, mb_start, mb_size);
 
 	if (GNET_PROPERTY(log_sr_udp_tx)) {
 		g_info("UDP-SR sent %s to %s",
 			gmsg_infostr_full(mb_start, mb_size),
 			gnet_host_to_string(to));
+	}
+}
+
+/**
+ * Invoked on each successfully sent datagram to update message accounting
+ * for the semi-reliable UDP TX layer (UDP transceiver) for G2.
+ *
+ * G2 messages are only visible when we enter the semi-reliable UDP layer,
+ * hence message accounting must be done there, whilst byte accounting
+ * is done at the lower layer (physical transmission).
+ */
+static void
+node_g2_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
+{
+	gnutella_node_t *n = o;
+	int mb_size = pmsg_size(mb);
+	enum g2_msg type = g2_msg_type(pmsg_start(mb), mb_size);
+
+	node_check(n);
+	g_assert(NODE_TALKS_G2(n));
+
+	node_g2_sent_accounting(n, type, mb_size);
+
+	if (GNET_PROPERTY(log_sr_udp_tx)) {
+		g_info("UDP-G2 sent %s (%d bytes) to %s",
+			g2_msg_type_name(type), mb_size, gnet_host_to_string(to));
 	}
 }
 
@@ -3754,6 +3796,11 @@ static struct tx_dgram_cb node_tx_sr_dgram_cb = {
 
 static struct tx_ut_cb node_tx_ut_cb = {
 	node_msg_ut_accounting,		/* msg_account */
+	node_add_txdrop,			/* add_tx_dropped */
+};
+
+static struct tx_ut_cb node_tx_g2_cb = {
+	node_g2_ut_accounting,		/* msg_account */
 	node_add_txdrop,			/* add_tx_dropped */
 };
 
@@ -3951,6 +3998,7 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -3980,6 +4028,7 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		g_error("Invalid peer mode %d", GNET_PROPERTY(current_peermode));
 		break;
@@ -4376,6 +4425,7 @@ node_set_current_peermode(node_peer_t mode)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		g_error("unhandled mode %d", mode);
 		break;
@@ -4383,7 +4433,7 @@ node_set_current_peermode(node_peer_t mode)
 
 	g_assert(msg != NULL);
 	if (GNET_PROPERTY(node_debug) > 2)
-		g_debug("Switching to \"%s\" peer mode", msg);
+		g_debug("%s(): switching to \"%s\" peer mode", G_STRFUNC, msg);
 
 	if (old_mode != NODE_P_UNKNOWN) {	/* Not at init time */
 		bsched_set_peermode(mode);		/* Adapt Gnet bandwidth */
@@ -5167,6 +5217,7 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
+	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
 		break;
@@ -6727,6 +6778,27 @@ node_udp_sr_create(enum net_type net)
 
 /**
  * Create a "fake" node that is used as a placeholder when processing
+ * G2 messages  from UDP.
+ */
+static gnutella_node_t *
+node_udp_g2_create(enum net_type net)
+{
+	gnutella_node_t *n;
+
+	/*
+	 * A G2 node alayws uses a semi-reliable UDP layer, although not all
+	 * messages are necessarily requesting a transport acknowledgment.
+	 */
+
+	n = node_pseudo_create(net, NODE_P_UDP, _("Pseudo G2 UDP node"));
+	n->attrs2 |= NODE_A2_UDP_TRANCVR | NODE_A2_HAS_SR_UDP | NODE_A2_TALKS_G2;
+	n->attrs |= NODE_A_TX_DEFLATE | NODE_A_RX_INFLATE;	/* Layer can compress */
+
+	return n;
+}
+
+/**
+ * Create a "fake" node that is used as a placeholder when processing
  * DHT messages received from UDP.
  */
 static gnutella_node_t *
@@ -6800,6 +6872,7 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 
 	node_check(n);
 	socket_check(s);
+	g_assert(!NODE_TALKS_G2(n) || NODE_CAN_SR_UDP(n));
 
 	n->socket = s;
 
@@ -6825,20 +6898,40 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 		struct rx_ut_args rargs;
 		udp_tag_t tag;
 
-		udp_tag_set(&tag, "GTA");
-		targs.cb = &node_tx_ut_cb;
+		/*
+		 * All the UDP traffic for G2 goes through the semi-reliable UDP layer.
+		 */
+
+		if (NODE_TALKS_G2(n)) {
+			udp_tag_set(&tag, "GND");				/* G2 tag */
+			targs.cb = &node_tx_g2_cb;
+			targs.advertise_improved_acks = TRUE;	/* Negotiated in G2 */
+			targs.ear_support = FALSE;				/* No EAR in G2 */
+			rargs.advertised_improved_acks = TRUE;	/* Negotiated in G2 */
+		} else {
+			udp_tag_set(&tag, "GTA");				/* Gnutella tag */
+			targs.cb = &node_tx_ut_cb;
+			targs.advertise_improved_acks = FALSE;	/* Native in Gnutella */
+			targs.ear_support = TRUE;
+			rargs.advertised_improved_acks = FALSE;	/* Native in Gnutella */
+		}
+
 		targs.tag = tag;
-		targs.advertise_improved_acks = FALSE;
-		targs.ear_support = TRUE;
 		tx = tx_make_above(tx, tx_ut_get_ops(), &targs);
 
 		rargs.tag = tag;
 		rargs.tx = tx;
 		rargs.cb = &node_rx_ut_cb;
-		rargs.advertised_improved_acks = FALSE;
 		n->rx = rx_make(n, NULL, rx_ut_get_ops(), &rargs);
-		rx_set_datafrom_ind(n->rx, node_udp_sr_data_ind);
-		udp_set_rx_semi_reliable(UDP_SR_GTA, n->rx, s->net);
+
+		if (NODE_TALKS_G2(n)) {
+			rx_set_datafrom_ind(n->rx, node_udp_g2_data_ind);
+			udp_set_rx_semi_reliable(UDP_SR_GND, n->rx, s->net);
+		} else {
+			rx_set_datafrom_ind(n->rx, node_udp_sr_data_ind);
+			udp_set_rx_semi_reliable(UDP_SR_GTA, n->rx, s->net);
+		}
+
 		rx_enable(n->rx);
 		n->flags |= NODE_F_READABLE;
 	}
@@ -6874,7 +6967,11 @@ node_pseudo_disable(gnutella_node_t *n)
 
 		rx_free(n->rx);
 		n->rx = NULL;
-		udp_set_rx_semi_reliable(UDP_SR_GTA, NULL, n->socket->net);
+		if (NODE_TALKS_G2(n)) {
+			udp_set_rx_semi_reliable(UDP_SR_GND, NULL, n->socket->net);
+		} else {
+			udp_set_rx_semi_reliable(UDP_SR_GTA, NULL, n->socket->net);
+		}
 		n->flags &= ~NODE_F_READABLE;
 	}
 	n->socket = NULL;
@@ -6915,6 +7012,30 @@ node_udp_enable_by_net(enum net_type net)
 		n = udp6_sr_node;
 		s = s_udp_listen6;
 		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	node_pseudo_enable(n, s, BSCHED_BWS_GOUT_UDP,
+		GNET_PROPERTY(node_udp_sendqueue_size));
+}
+
+/**
+ * Enable G2 UDP transmissions via pseudo node.
+ */
+static void
+node_g2_enable_by_net(enum net_type net)
+{
+	struct gnutella_socket *s = NULL;
+	gnutella_node_t *n = NULL;
+
+	switch (net) {
+	case NET_TYPE_IPV4:
+		n = udp_g2_node;
+		s = s_udp_listen;
+		break;
+	case NET_TYPE_IPV6:
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
@@ -7011,6 +7132,27 @@ node_dht_disable_by_net(enum net_type net)
 	node_pseudo_disable(n);
 }
 
+/**
+ * Disable G2 UDP transmission via pseudo nodes.
+ */
+static void
+node_g2_disable_by_net(enum net_type net)
+{
+	gnutella_node_t *n = NULL;
+
+	switch (net) {
+	case NET_TYPE_IPV4:
+		n = udp_g2_node;
+		break;
+	case NET_TYPE_IPV6:
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	node_pseudo_disable(n);
+}
+
 static void
 node_udp_enable(void)
 {
@@ -7031,6 +7173,13 @@ node_dht_enable(void)
 		node_dht_enable_by_net(NET_TYPE_IPV6);
 }
 
+static void
+node_g2_enable(void)
+{
+	if (s_udp_listen)
+		node_g2_enable_by_net(NET_TYPE_IPV4);
+}
+
 void
 node_udp_disable(void)
 {
@@ -7047,6 +7196,7 @@ node_udp_disable(void)
 
 	if (udp_node && udp_node->socket) {
 		node_udp_disable_by_net(NET_TYPE_IPV4);
+		node_g2_disable_by_net(NET_TYPE_IPV4);
 		socket_free_null(&s_udp_listen);
 	}
 	if (udp6_node && udp6_node->socket) {
@@ -7309,6 +7459,30 @@ node_udp_sr_get_addr_port(const host_addr_t addr, uint16 port)
 	return NULL;
 }
 
+/**
+ * Get "fake" node for semi-reliable G2 UDP transmission.
+ */
+gnutella_node_t *
+node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port)
+{
+	gnutella_node_t *n;
+
+	if (port != 0 && node_g2_active()) {
+		n = NULL;
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			n = udp_g2_node;
+			break;
+		case NET_TYPE_IPV6:
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			g_assert_not_reached();
+			break;
+		}
+		return node_pseudo_set_addr_port(n, addr, port);
+	}
+	return NULL;
+}
 /**
  * Get "fake" node for DHT transmission.
  */
@@ -8691,6 +8865,34 @@ done:
 }
 
 /**
+ * Data indication callback for the semi-reliable UDP layer for G2.
+ *
+ * @return TRUE, since it is always OK.
+ */
+static bool
+node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
+{
+	gnutella_node_t *n;
+	size_t length;
+
+	(void) unused_rx;
+
+	length = pmsg_size(mb);
+	n = node_udp_g2_get_addr_port(
+			gnet_host_get_addr(from), gnet_host_get_port(from));
+
+	node_check(n);
+	g_assert(NODE_TALKS_G2(n));
+
+	/* FIXME -- XXX */
+	g_debug("NODE dropping G2 UDP traffic from %s: %s (%zu bytes)",
+		gnet_host_to_string(from), g2_msg_name(pmsg_start(mb), length), length);
+
+	pmsg_free(mb);
+	return TRUE;
+}
+
+/**
  * Called when asynchronous connection to an outgoing node is established.
  */
 static void
@@ -9494,7 +9696,9 @@ node_bye_all(bool all)
 {
 	pslist_t *sl;
 	gnutella_node_t *udp_nodes[] = {
-		udp_node, udp6_node, udp_sr_node, udp6_sr_node, dht_node, dht6_node };
+		udp_node, udp6_node, udp_sr_node, udp6_sr_node, udp_g2_node,
+		dht_node, dht6_node
+	};
 	unsigned i;
 
 	g_assert(!in_shutdown);		/* Meant to be called once */
@@ -10159,7 +10363,7 @@ node_close(void)
 	{
 		gnutella_node_t *special_nodes[] = {
 			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route,
-			udp_sr_node, udp6_sr_node
+			udp_sr_node, udp6_sr_node, udp_g2_node
 		};
 		uint i;
 
@@ -10189,6 +10393,7 @@ node_close(void)
 		udp6_node = NULL;
 		udp_sr_node = NULL;
 		udp6_sr_node = NULL;
+		udp_g2_node = NULL;
 		dht_node = NULL;
 		dht6_node = NULL;
 		browse_node = NULL;
@@ -10236,6 +10441,31 @@ node_sent_accounting(gnutella_node_t *n, uint8 function,
 		node_inc_tx_query(n);
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
+		node_inc_tx_qhit(n);
+		break;
+	default:
+		break;
+	}
+}
+
+/**
+ * Account for G2 message sending to node.
+ *
+ * @param n			the node to which message was sent
+ * @param type		the type of G2 message
+ * @param mb_start	start of message (G2 frame head)
+ * @param mb_size	total length of message sent
+ */
+void
+node_g2_sent_accounting(gnutella_node_t *n, enum g2_msg type, int mb_size)
+{
+	node_inc_sent(n);
+	gnet_stats_g2_count_sent(n, type, mb_size);
+	switch (type) {
+	case G2_MSG_Q2:
+		node_inc_tx_query(n);
+		break;
+	case G2_MSG_QH2:
 		node_inc_tx_qhit(n);
 		break;
 	default:
@@ -10603,8 +10833,8 @@ node_fill_info(const struct nid *node_id, gnet_node_info_t *info)
 	if (info->is_pseudo) {
 		if (NODE_IS_UDP(node)) {
 			if (NODE_CAN_SR_UDP(node)) {
-				info->addr =
-					node == udp_sr_node ? listen_addr() : listen_addr6();
+				info->addr = (node == udp_sr_node || node == udp_g2_node) ?
+					listen_addr() : listen_addr6();
 			} else {
 				info->addr = node == udp_node ? listen_addr() : listen_addr6();
 			}
@@ -10647,6 +10877,8 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 			flags->peermode = NODE_P_LEAF;
 		else if (node->attrs & NODE_A_NO_ULTRA)
 			flags->peermode = NODE_P_NORMAL;
+		else if (NODE_TALKS_G2(node))
+			flags->peermode = NODE_P_G2HUB;
 	}
 
 	flags->incoming = booleanize(node->flags & NODE_F_INCOMING);
@@ -10693,6 +10925,13 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 			else if (node->sent_query_table != NULL)
 				flags->qrt_state = QRT_S_SENT;
 		}
+	} else if (node->peermode == NODE_P_G2HUB) {
+		/* We're a leaf node on G2 */
+		if (node->qrt_update != NULL)
+			flags->qrt_state = (node->flags & NODE_F_QRP_SENT) ?
+				QRT_S_PATCHING : QRT_S_SENDING;
+		else if (node->sent_query_table != NULL)
+			flags->qrt_state = QRT_S_SENT;
 	}
 	return TRUE;
 }
@@ -12055,8 +12294,10 @@ node_update_udp_socket(void)
 {
 	node_udp_disable();
 
-	if ((udp_node || udp6_node) && udp_active())
+	if ((udp_node || udp6_node) && udp_active()) {
 		node_udp_enable();
+		node_g2_enable();
+	}
 
 	if ((dht_node || dht6_node) && udp_active())
 		node_dht_enable();
@@ -12107,7 +12348,8 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 	case NODE_P_CRAWLER:	status[0] = 'C'; break;
 	case NODE_P_UDP:		status[0] = 'P'; break;
 	case NODE_P_DHT:		status[0] = 'P'; break;
-	default:				g_assert_not_reached(); break;
+	case NODE_P_G2HUB:		status[0] = 'H'; break;
+	case NODE_P_AUTO:		status[0] = '?'; break;
 	}
 
 	status[1] = flags->incoming ? 'I' : 'O';
@@ -12195,6 +12437,7 @@ node_peermode_to_string(node_peer_t m)
 	case NODE_P_CRAWLER:	return _("Crawler");
 	case NODE_P_UDP:		return _("UDP");
 	case NODE_P_DHT:		return _("DHT");
+	case NODE_P_G2HUB:		return _("G2 hub");
 	case NODE_P_AUTO:
 	case NODE_P_UNKNOWN:
 		break;
@@ -12211,6 +12454,7 @@ node_post_init(void)
 {
 	if (udp_active()) {
 		node_udp_enable();
+		node_g2_enable();
 		node_dht_enable();
 	}
 }

@@ -753,6 +753,12 @@ node_get_id(const struct gnutella_node * const n)
 bool node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet);
 struct gnutella_node *node_by_guid(const struct guid *guid);
 
+enum g2_msg;
+
+bool node_g2_active(void);
+gnutella_node_t *node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port);
+void node_g2_sent_accounting(gnutella_node_t *n, enum g2_msg type, int mb_size);
+
 #endif /* _core_nodes_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -301,6 +301,7 @@ typedef enum {
 	NODE_P_CRAWLER,				/**< Crawler node */
 	NODE_P_UDP,					/**< UDP "fake" node */
 	NODE_P_DHT,					/**< DHT "fake" node (UDP-only traffic) */
+	NODE_P_G2HUB,				/**< G2 Hub */
 	NODE_P_UNKNOWN				/**< Unknown mode yet */
 } node_peer_t;
 
