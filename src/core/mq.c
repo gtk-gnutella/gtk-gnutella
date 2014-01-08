@@ -1125,7 +1125,6 @@ make_room_internal(mqueue_t *q,
 {
 	int n;
 	int dropped = 0;				/* Amount of messages dropped */
-	bool qlink_corrupted = FALSE;	/* BUG catcher */
 
 	g_assert(needed > 0);
 	mq_check(q, 0);
@@ -1163,7 +1162,6 @@ make_room_internal(mqueue_t *q,
 	 * network, so we can NULLify the corresponding slot in the qlink array.
 	 */
 
-restart:
 	for (n = 0; needed >= 0 && n < q->qlink_count; n++) {
 		plist_t *item = q->qlink[n];
 		pmsg_t *cmb;
@@ -1176,32 +1174,6 @@ restart:
 
 		if (item == NULL)
 			continue;
-
-		/*
-		 * BUG catcher -- I've seen situations where item->data is NULL
-		 * at this point, which means something is deeply corrupted...
-		 *		--RAM, 2006-07-14
-		 */
-
-		if (item->data == NULL) {
-			g_error("BUG: NULL data for qlink item #%d/%d in %s at %s:%d",
-				n, q->qlink_count, mq_info(q), _WHERE_, __LINE__);
-
-			if (qlink_corrupted) {
-				g_error(
-					"BUG: trying to ignore still invalid qlink entry at %s:%d",
-						_WHERE_, __LINE__);
-				continue;
-			}
-
-			qlink_corrupted = TRUE;		/* Try to mend it */
-			qlink_free(q);
-			qlink_create(q);
-
-			g_error("BUG: recreated qlink and restarting at %s:%d",
-				_WHERE_, __LINE__);
-			goto restart;
-		}
 
 		cmb = item->data;
 		cmb_start = pmsg_start(cmb);
