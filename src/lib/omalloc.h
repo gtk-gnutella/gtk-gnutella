@@ -52,6 +52,8 @@ ocopy(const void *p, size_t size)
 	return cp;
 }
 
+#define OCOPY(p)	ocopy(p, sizeof *p)
+
 struct logagent;
 
 size_t omalloc_page_count(void);
