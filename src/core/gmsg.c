@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Gnutella Messages.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -52,6 +52,8 @@
 #include "if/dht/kademlia.h"
 
 #include "lib/endian.h"
+#include "lib/omalloc.h"
+#include "lib/once.h"
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
@@ -931,13 +933,11 @@ gmsg_can_drop(const void *pdu, int size)
  * Perform a priority comparison between two messages, given as whole PDUs.
  *
  * If h2_pdu is FALSE, then h2 is only a Gnutella header, not a whole PDU.
- * Caller must ensure that h1 points to the whole PDU, i.e. that the data
- * immediately follows the Gnutella header.
  *
  * @return algebraic -1/0/+1 depending on relative order.
  */
-int
-gmsg_cmp(const void *h1, const void *h2, bool h2_pdu)
+static int
+gmsg_cmp_internal(const void *h1, const void *h2, bool h2_pdu)
 {
 	int w1, w2;
 	uint8 f1, f2;
@@ -1031,6 +1031,171 @@ gmsg_cmp(const void *h1, const void *h2, bool h2_pdu)
 			return hop1 < hop2 ? -1 : +1;
 		}
 	}
+}
+
+/**
+ * Perform a priority comparison between two messages, given as whole PDUs.
+ *
+ * @return algebraic -1/0/+1 depending on relative order.
+ */
+int
+gmsg_cmp(const void *h1, const void *h2)
+{
+	return gmsg_cmp_internal(h1, h2, TRUE);
+}
+
+/**
+ * Perform a priority comparison between two messages, h1 being a whole PDU
+ * and h2 being only a Gnutella header, not a whole PDU.
+ *
+ * Caller must ensure that h1 points to the whole PDU, i.e. that the Gnutella
+ * message data immediately follows the Gnutella header in memory.
+ *
+ * @return algebraic -1/0/+1 depending on relative order.
+ */
+int
+gmsg_headcmp(const void *h1, const void *h2)
+{
+	return gmsg_cmp_internal(h1, h2, FALSE);
+}
+
+/**
+ * Vector templates for message queue pruning.
+ *
+ * These only contain Gnutella headers with minimum fields set to ensure
+ * we can use gmsg_headcmp() on them.
+ */
+static struct gmsg_template {
+	iovec_t *vec;
+	size_t cnt;
+	once_flag_t done;
+} gmsg_templates[2];
+
+#define GMSG_TEMPLATE_QUERY		0
+#define GMSG_TEMPLATE_QHIT		1
+
+static void
+gmsg_mq_queries(void)
+{
+	struct gmsg_template *t = &gmsg_templates[GMSG_TEMPLATE_QUERY];
+	gnutella_header_t *header;
+
+	/*
+	 * First time the queue is in "swift" mode.
+	 *
+	 * Purge pending queries, since they are getting quite old.
+	 * Leave our queries in for now (they have hops=0).
+	 */
+
+	OMALLOC(t->vec);
+	t->cnt = 1;
+
+	OMALLOC0(header);
+	gnutella_header_set_function(header, GTA_MSG_SEARCH);
+	gnutella_header_set_hops(header, 1);
+	gnutella_header_set_ttl(header, GNET_PROPERTY(max_ttl));
+
+	iovec_set(t->vec, header, sizeof *header);
+
+	/*
+	 * Whether or not this header template will let the queue make enough
+	 * room is not important, for the initial checkpoint.  Indeed, since
+	 * the queue is now in "swift" mode , more query messages will be dropped
+	 * at the next iteration, since we'll start dropping query hits by then,
+	 * and hits are more prioritary than queries.
+	 */
+
+	if (GNET_PROPERTY(gmsg_debug)) {
+		g_debug("%s(): generated %zu entr%s",
+			G_STRFUNC, t->cnt, plural_y(t->cnt));
+	}
+}
+
+static void
+gmsg_mq_qhits(void)
+{
+	struct gmsg_template *t = &gmsg_templates[GMSG_TEMPLATE_QHIT];
+	uint8 max_ttl = GNET_PROPERTY(hard_ttl_limit);
+	int ttl;
+
+	/*
+	 * We're going to drop query hits...
+	 *
+	 * We start with the lowest prioritary query hit: low hops count
+	 * and high TTL, and we progressively increase until we can drop
+	 * the amount we need to drop.
+	 *
+	 * Note that we will never be able to drop the partially written
+	 * message at the tail of the queue, even if it is less prioritary
+	 * than our comparison point.
+	 */
+
+	OMALLOC_ARRAY(t->vec, max_ttl + 1);
+	t->cnt = max_ttl + 1;
+
+	for (ttl = max_ttl; ttl >= 0; ttl--) {
+		gnutella_header_t header;
+
+		ZERO(&header);
+		gnutella_header_set_function(&header, GTA_MSG_SEARCH_RESULTS);
+		gnutella_header_set_hops(&header, max_ttl - ttl);
+		gnutella_header_set_ttl(&header, ttl);
+
+		iovec_set(&t->vec[max_ttl - ttl], OCOPY(&header), sizeof header);
+	}
+
+	/*
+	 * Make sure gmsg_headcmp() agrees with our assumption here that the
+	 * deeper we go into the array, the more prioritary the message.
+	 */
+
+	for (ttl = 0; ttl < max_ttl; ttl++) {
+		const void *prev = iovec_base(&t->vec[ttl]);
+		const void *next = iovec_base(&t->vec[ttl + 1]);
+		g_assert_log(gmsg_headcmp(prev, next) < 0,
+			"%s(): ttl=%d, prev is %s",
+			G_STRFUNC, ttl, gmsg_infostr(prev));
+	}
+
+	if (GNET_PROPERTY(gmsg_debug)) {
+		g_debug("%s(): generated %zu entr%s",
+			G_STRFUNC, t->cnt, plural_y(t->cnt));
+	}
+}
+
+
+/**
+ * Generates vector of message templates that will be used by the message
+ * queue to prioritize traffic.
+ *
+ * The vector contains a sorted list of Gnutella headers.  The deeper we go
+ * in the vector, the more important the message is deemed to be, according
+ * to gmsg_headcmp().
+ *
+ * These vectors are only allocated once, and then they are never freed.
+ *
+ * @param initial		whether queue is just entering swift mode
+ * @param vcnt			where the amount of entries in the vector is written
+ *
+ * @return the base of the vector of messages
+ */
+iovec_t *
+gmsg_mq_templates(bool initial, size_t *vcnt)
+{
+	struct gmsg_template *t;
+
+	if (initial) {
+		t = &gmsg_templates[GMSG_TEMPLATE_QUERY];
+		ONCE_FLAG_RUN(t->done, gmsg_mq_queries);
+	} else {
+		t = &gmsg_templates[GMSG_TEMPLATE_QHIT];
+		ONCE_FLAG_RUN(t->done, gmsg_mq_qhits);
+	}
+
+	if (vcnt != NULL)
+		*vcnt = t->cnt;
+
+	return t->vec;
 }
 
 /**

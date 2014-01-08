@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Message queues, common code between TCP and UDP sending stacks.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -48,8 +48,8 @@
 #include "lib/str.h"
 #include "lib/stringify.h"		/* For plural() */
 #include "lib/unsigned.h"		/* For size_saturate_add() */
-#include "lib/vsort.h"
 #include "lib/walloc.h"
+#include "lib/xsort_data.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -60,7 +60,7 @@
 static void qlink_free(mqueue_t *q);
 static void mq_update_flowc(mqueue_t *q);
 static bool make_room_header(
-	mqueue_t *q, char *header, uint prio, int needed, int *offset);
+	mqueue_t *q, const char *header, uint prio, int needed, int *offset);
 static void mq_swift_timer(cqueue_t *cq, void *obj);
 
 /**
@@ -425,6 +425,8 @@ mq_swift_checkpoint(mqueue_t *q, bool initial)
 	int added;
 	int needed;
 	int extra;
+	iovec_t *templates;
+	size_t i, tcnt = 0;
 
 	g_assert(q->flags & MQ_FLOWC);
 
@@ -490,70 +492,30 @@ mq_swift_checkpoint(mqueue_t *q, bool initial)
 		needed = extra + flushed_till_next_timer / 4;
 	}
 
-	if (initial) {
-		/*
-		 * First time we're in "swift" mode.
-		 *
-		 * Purge pending queries, since they are getting quite old.
-		 * Leave our queries in for now (they have hops=0).
-		 */
+	/*
+	 * To cut the dependency between MQ and the messages being held within,
+	 * things are decoupled thusly:
+	 *
+	 * The MQ requests, via a user-supplied callback, a vector of message
+	 * templates.  For instance for Gnutella messages. these are just Gnutella
+	 * headers.
+	 *
+	 * These headers are used in turn to request message pruning from the
+	 * queue by comparing messages held in the queue with these headers,
+	 * using the user-supplied ``msg_headcmp'' comparison callback.
+	 */
 
-		gnutella_header_set_function(&q->header, GTA_MSG_SEARCH);
-		gnutella_header_set_hops(&q->header, 1);
-		gnutella_header_set_ttl(&q->header, GNET_PROPERTY(max_ttl));
+	if (q->uops->msg_templates != NULL)
+		templates = q->uops->msg_templates(initial, &tcnt);
 
-		if (needed > 0)
-			make_room_header(q, (char*) &q->header, PMSG_P_DATA, needed, NULL);
+	for (i = 0; i < tcnt && needed > 0; i++) {
+		int old_size = q->size;
+		const void *base = iovec_base(&templates[i]);
 
-		/*
-		 * Whether or not we were able to make enough room at this point
-		 * is not important, for the initial checkpoint.  Indeed, since
-		 * we are now in "swift" mode, more query messages will be dropped
-		 * at the next iteration, since we'll start dropping query hits,
-		 * and hits are more prioritary than queries.
-		 */
+		if (make_room_header(q, base, PMSG_P_DATA, needed, NULL))
+			break;
 
-	} else {
-		int ttl;
-
-		/*
-		 * We're going to drop query hits...
-		 *
-		 * We start with the lowest prioritary query hit: low hops count
-		 * and high TTL, and we progressively increase until we can drop
-		 * the amount we need to drop.
-		 *
-		 * Note that we will never be able to drop the partially written
-		 * message at the tail of the queue, even if it is less prioritary
-		 * than our comparison point.
-		 */
-
-		gnutella_header_set_function(&q->header, GTA_MSG_SEARCH_RESULTS);
-
-		/*
-		 * Loop until we reach hops=hard_ttl_limit or we have finished
-		 * removing enough data from the queue.
-		 */
-
-		for (ttl = GNET_PROPERTY(hard_ttl_limit); ttl >= 0; ttl--) {
-			int old_size;
-
-			if (needed <= 0)
-				break;
-
-			old_size = q->size;
-			gnutella_header_set_hops(&q->header,
-				GNET_PROPERTY(hard_ttl_limit) - ttl);
-			gnutella_header_set_ttl(&q->header, ttl);
-
-			if (
-				make_room_header(q, (char*) &q->header, PMSG_P_DATA,
-					needed, NULL)
-			)
-				break;
-
-			needed -= (old_size - q->size);		/* Amount we removed */
-		}
+		needed -= old_size - q->size;		/* Amount we removed */
 	}
 
 done:
@@ -776,17 +738,18 @@ mq_flush(mqueue_t *q)
 /**
  * Compare two pointers to links based on their relative priorities, then
  * based on their held Gnutella messages.
- * -- qsort() callback
+ * -- qsort() callback but with an extra data parameter
  */
 static int
-qlink_cmp(const void *a, const void *b)
+qlink_cmp(const void *a, const void *b, void *data)
 {
 	const plist_t * const *l1 = a, * const *l2 = b;
 	const pmsg_t *m1 = (*l1)->data, *m2 = (*l2)->data;
 
-	if (pmsg_prio(m1) == pmsg_prio(m2))
-		return gmsg_cmp(pmsg_start(m1), pmsg_start(m2), TRUE);
-	else
+	if (pmsg_prio(m1) == pmsg_prio(m2)) {
+		const mqueue_t *q = data;
+		return q->uops->msg_cmp(pmsg_start(m1), pmsg_start(m2));
+	} else
 		return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
 }
 
@@ -806,8 +769,9 @@ qlink_create(mqueue_t *q)
 	/*
 	 * Prepare sorting of queued messages.
 	 *
-	 * What's sorted is queue links, but the comparison factor is the
-	 * gmsg_cmp() routine to compare the Gnutella messages.
+	 * What's sorted is queue links, but the sorting criteria is the
+	 * user-supplied msg_cmp routine to compare the messages, when they
+	 * have the same priority.
 	 */
 
 	for (l = q->qhead, n = 0; l && n < q->count; l = plist_next(l), n++) {
@@ -825,7 +789,7 @@ qlink_create(mqueue_t *q)
 	 */
 
 	q->qlink_count = n;
-	vsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
+	xsort_with_data(q->qlink, n, sizeof q->qlink[0], qlink_cmp, q);
 
 	mq_check(q, 0);
 }
@@ -850,7 +814,7 @@ static void
 qlink_insert_before(mqueue_t *q, int hint, plist_t *l)
 {
 	g_assert(hint >= 0 && hint < q->qlink_count);
-	g_assert(qlink_cmp(&q->qlink[hint], &l) >= 0);	/* `hint' >= `l' */
+	g_assert(qlink_cmp(&q->qlink[hint], &l, q) >= 0);	/* `hint' >= `l' */
 	g_assert(l->data != NULL);
 
 	mq_check(q, -1);
@@ -909,7 +873,7 @@ qlink_insert(mqueue_t *q, plist_t *l)
 	 * If lower than the beginning, insert at the head.
 	 */
 
-	if (qlink[low] != NULL && qlink_cmp(&l, &qlink[low]) <= 0) {
+	if (qlink[low] != NULL && qlink_cmp(&l, &qlink[low], q) <= 0) {
 		qlink_insert_before(q, low, l);
 		return;
 	}
@@ -918,7 +882,7 @@ qlink_insert(mqueue_t *q, plist_t *l)
 	 * If higher than the tail, insert at the tail.
 	 */
 
-	if (qlink[high] != NULL && qlink_cmp(&l, &qlink[high]) >= 0) {
+	if (qlink[high] != NULL && qlink_cmp(&l, &qlink[high], q) >= 0) {
 		q->qlink_count++;
 		HREALLOC_ARRAY(q->qlink, q->qlink_count);
 		q->qlink[q->qlink_count - 1] = l;
@@ -994,12 +958,12 @@ qlink_insert(mqueue_t *q, plist_t *l)
 				return;
 			}
 
-			if (qlink_cmp(&l, &qlink[lowest_non_null]) < 0) {
+			if (qlink_cmp(&l, &qlink[lowest_non_null], q) < 0) {
 				high = lowest_non_null - 1;
 				continue;
 			}
 
-			if (qlink_cmp(&l, &qlink[highest_non_null]) > 0) {
+			if (qlink_cmp(&l, &qlink[highest_non_null], q) > 0) {
 				low = highest_non_null + 1;
 				continue;
 			}
@@ -1018,7 +982,7 @@ qlink_insert(mqueue_t *q, plist_t *l)
 		 * Regular dichotomic case.
 		 */
 
-		c = qlink_cmp(&qlink[mid], &l);
+		c = qlink_cmp(&qlink[mid], &l, q);
 
 		if (c == 0) {
 			qlink_insert_before(q, mid, l);
@@ -1121,7 +1085,7 @@ qlink_remove(mqueue_t *q, plist_t *l)
  */
 static bool
 make_room_internal(mqueue_t *q,
-	char *header, size_t msglen, uint prio, int needed, int *offset)
+	const char *header, size_t msglen, uint prio, int needed, int *offset)
 {
 	int n;
 	int dropped = 0;				/* Amount of messages dropped */
@@ -1195,10 +1159,18 @@ make_room_internal(mqueue_t *q,
 		 * (it's necessarily >= 0 if we're in the loop)
 		 */
 
-		if (gmsg_cmp(cmb_start, header, msglen != 0) >= 0) {
-			if (offset != NULL)
-				*offset = n;
-			break;
+		if (0 == msglen) {
+			if (q->uops->msg_headcmp(cmb_start, header) >= 0) {
+				if (offset != NULL)
+					*offset = n;
+				break;
+			}
+		} else {
+			if (q->uops->msg_cmp(cmb_start, header) >= 0) {
+				if (offset != NULL)
+					*offset = n;
+				break;
+			}
 		}
 
 		/*
@@ -1286,9 +1258,9 @@ make_room_internal(mqueue_t *q,
  * @returns TRUE if we were able to make enough room.
  */
 static bool
-make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
+make_room(mqueue_t *q, const pmsg_t *mb, int needed, int *offset)
 {
-	char *header = pmsg_start(mb);
+	const char *header = pmsg_start(mb);
 	uint prio = pmsg_prio(mb);
 	size_t msglen = pmsg_written_size(mb);
 
@@ -1301,7 +1273,7 @@ make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
  */
 static bool
 make_room_header(
-	mqueue_t *q, char *header, uint prio, int needed, int *offset)
+	mqueue_t *q, const char *header, uint prio, int needed, int *offset)
 {
 	return make_room_internal(q, header, 0, prio, needed, offset);
 }

@@ -41,9 +41,9 @@
 
 struct txdriver;
 
-void mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from);
+void mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const gnutella_node_t *from);
 mqueue_t *mq_tcp_make(int maxsize,
-	struct gnutella_node *n, struct txdriver *nd);
+	gnutella_node_t *n, struct txdriver *nd, const struct mq_uops *uops);
 
 #endif	/* _core_mq_tcp_h_ */
 

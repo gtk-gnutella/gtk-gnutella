@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Message queues, writing to a UDP stack.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -147,11 +147,22 @@ mq_udp_attach_metadata(pmsg_t *mb, const gnet_host_t *to)
 /**
  * Create new message queue capable of holding `maxsize' bytes, and
  * owned by the supplied node.
+ *
+ * @param maxsize		the overall sum of message size that can be held
+ * @param n				the network node to which the message queue is attached
+ * @oaram nd			the top of the TX stack to use to send out messages
+ * @param uops			user-defined operations
  */
 mqueue_t *
-mq_udp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
+mq_udp_make(int maxsize,
+	gnutella_node_t *n, struct txdriver *nd, const struct mq_uops *uops)
 {
 	mqueue_t *q;
+
+	node_check(n);
+	tx_check(nd);
+	g_assert(uops != NULL);
+	g_assert(maxsize > 0);
 
 	WALLOC0(q);
 
@@ -164,6 +175,7 @@ mq_udp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 	q->qwait = slist_new();
 	q->ops = &mq_udp_ops;
 	q->cops = mq_get_cops();
+	q->uops = uops;
 	q->debug = GNET_PROPERTY_PTR(mq_udp_debug);
 
 	tx_srv_register(nd, mq_udp_service, q);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Message queues.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #ifndef _core_mq_h_
@@ -48,6 +48,44 @@
 
 typedef struct mqueue mqueue_t;
 
+struct mq_ops;
+
+/**
+ * When invoked from the message queue, this callback must return a vector
+ * of "message headers" that are going to be compared against when the queue
+ * is in "swift mode" to determine which messages to prune.
+ *
+ * The messages need not be full message, but must be long enough to allow
+ * the ``msg_headcmp'' callback to compare two messages against each other.
+ *
+ * These messages being templates, they are expected to be generated once only
+ * and then the same vector can be returned.  This is why there is no provision
+ * for a free routine.
+ *
+ * @param initial		whether queue is just entering swift mode
+ * @param vcnt			where the amount of entries in the vector is written
+ *
+ * @return the base of the vector of messages, NULL if none.
+ */
+typedef iovec_t *(*mq_msgtmp_t)(bool initial, size_t *vcnt);
+
+/**
+ * User-supplied parameters, which are callbacks necessary for the message
+ * queue operations but which are dependent on the messages being enqueued.
+ */
+struct mq_uops {
+	cmp_fn_t msg_cmp;			/**< Message (priority) comparison routine */
+	cmp_fn_t msg_headcmp;		/**< Only compare message "headers" */
+	mq_msgtmp_t msg_templates;	/**< Get message templates for "swift" mode */
+};
+
+#ifdef MQ_INTERNAL
+
+/*
+ * The declarations in this section are only visible to the various files
+ * implementing the message queue.
+ */
+
 /**
  * Operations defined on all mq types.
  */
@@ -63,13 +101,6 @@ struct mq_cops {
 	plist_t *(*rmlink_prev)(mqueue_t *q, plist_t *l, int size);
 	void (*update_flowc)(mqueue_t *q);
 };
-
-#ifdef MQ_INTERNAL
-
-/*
- * The declarations in this section are only visible to the various files
- * implementing the message queue.
- */
 
 enum mq_magic {
 	MQ_MAGIC = 0x33990ee
@@ -95,10 +126,10 @@ enum mq_magic {
  */
 struct mqueue {
 	enum mq_magic magic;	/**< Magic number */
-	gnutella_header_t header;	/**< Comparison point during flow control */
 	struct gnutella_node *node;		/**< Node to which this queue belongs */
 	const struct mq_ops *ops;		/**< Polymorphic operations */
 	const struct mq_cops *cops;		/**< Common operations */
+	const struct mq_uops *uops;		/**< User-defined operations */
 	txdrv_t *tx_drv;				/**< Network TX stack driver */
 	plist_t *qhead, *qtail, **qlink;
 	slist_t *qwait;			/**< Waiting queue during putq recursions */

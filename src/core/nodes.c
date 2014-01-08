@@ -3841,6 +3841,18 @@ static struct rx_ut_cb node_rx_ut_cb = {
 	node_add_rx_given,			/* add_rx_given */
 };
 
+static struct mq_uops node_mq_cb = {
+	gmsg_cmp,					/* msg_cmp */
+	gmsg_headcmp,				/* msg_headcmp */
+	gmsg_mq_templates,			/* msg_templates */
+};
+
+static struct mq_uops node_g2_mq_cb = {
+	NULL,				/* msg_cmp */
+	NULL,				/* msg_headcmp */
+	NULL,				/* msg_templates */
+};
+
 /**
  * Called when we know that we're connected to the node, at the end of
  * the handshaking (both for incoming and outgoing connections).
@@ -3851,6 +3863,7 @@ node_is_now_connected(struct gnutella_node *n)
 	bool peermode_changed = FALSE;
 	gnet_host_t host;
 	txdrv_t *tx;
+	const struct mq_uops *uops;
 
 	node_check(n);
 	socket_check(n->socket);
@@ -4054,7 +4067,9 @@ node_is_now_connected(struct gnutella_node *n)
 
 	g_assert(tx);
 
-	n->outq = mq_tcp_make(GNET_PROPERTY(node_sendqueue_size), n, tx);
+	uops = NODE_TALKS_G2(n) ? &node_g2_mq_cb : &node_mq_cb;
+
+	n->outq = mq_tcp_make(GNET_PROPERTY(node_sendqueue_size), n, tx, uops);
 	n->flags |= NODE_F_WRITABLE;
 	n->alive_pings = alive_make(n, n->alive_period == ALIVE_PERIOD ?
 		ALIVE_MAX_PENDING : ALIVE_MAX_PENDING_LEAF);
@@ -6781,6 +6796,7 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 	txdrv_t *tx;
 	struct tx_dgram_args args;
 	gnet_host_t host;
+	const struct mq_uops *uops;
 
 	node_check(n);
 	socket_check(s);
@@ -6827,7 +6843,9 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 		n->flags |= NODE_F_READABLE;
 	}
 
-	n->outq = mq_udp_make(qsize, n, tx);
+	uops = NODE_TALKS_G2(n) ? &node_g2_mq_cb : &node_mq_cb;
+
+	n->outq = mq_udp_make(qsize, n, tx, uops);
 	n->flags |= NODE_F_WRITABLE;
 	
     node_fire_node_added(n);
