@@ -67,6 +67,7 @@ enum g2_msg {
 enum g2_msg g2_msg_type(const void *start, size_t len);
 const char *g2_msg_name(const void *start, size_t len);
 const char *g2_msg_full_name(const void *start, size_t len);
+const char *g2_msg_type_name(const enum g2_msg type);
 
 #endif /* _core_g2_msg_h_ */
 

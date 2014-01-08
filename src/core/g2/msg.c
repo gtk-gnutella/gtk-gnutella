@@ -213,4 +213,20 @@ g2_msg_full_name(const void *start, size_t len)
 	return g2_msg_english_names[m];
 }
 
+/**
+ * Convert a message type to a symbolic name.
+ *
+ * @param type		the G2 message type
+ *
+ * @return the message symbolic name if we can intuit it, "UNKNOWN" otherwise.
+ */
+const char *
+g2_msg_type_name(const enum g2_msg type)
+{
+	if G_UNLIKELY((uint) type >= UNSIGNED(G2_MSG_MAX))
+		return "UNKNOWN";
+
+	return g2_msg_symbolic_names[type];
+}
+
 /* vi: set ts=4 sw=4 cindent: */
