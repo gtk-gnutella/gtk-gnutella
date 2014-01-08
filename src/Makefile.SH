@@ -130,8 +130,8 @@ LDFLAGS = \
 	-Lshell -lshell \
 	-Lupnp -lupnp \
 	-Ldht -ldht \
-	-Lcore/g2 -lg2 \
 	-Lcore -lcore \
+	-Lcore/g2 -lg2 \
 !NO!SUBS!
 case "$d_headless" in
 undef)
