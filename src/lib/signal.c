@@ -676,20 +676,28 @@ signal_thread_init(void)
  * The allocated stack must be freed with signal_stack_free() when the thread
  * is terminated.
  *
- * @param len		if non-NULL, written with length of allocated stack
+ * If the value in *base_ptr is not NULL, it is taken as the base of an
+ * already allocated memory region, suitable to be used as the stack base.
+ * This allows reuse of previously allocated stacks when signal_stack_free()
+ * cannot remove the signal stack for the thread.
  *
- * @return the address of the signal stack if OK, NULL otherwise.
- * The length of the allocated stack is written to ``len'' when successful.
+ * @param base_ptr		written with base of allocated stack
+ *
+ * @return the length of the signal stack if OK, 0 otherwise.
+ * The base of the allocated stack is written to ``base'' when successful.
  */
-void *
-signal_stack_allocate(size_t *len)
+size_t
+signal_stack_allocate(void **base_ptr)
 {
 #ifdef HAS_SIGALTSTACK
 	stack_t ss;
-	void *p;
+	void *p = *base_ptr;
 	size_t size;
 
-	ss.ss_sp = p = vmm_alloc(SIGNAL_STACK_SIZE);
+	if (NULL == p)
+		p = vmm_alloc(SIGNAL_STACK_SIZE);
+
+	ss.ss_sp = p;
 	ss.ss_size = size = round_pagesize(SIGNAL_STACK_SIZE);
 	ss.ss_flags = 0;
 
@@ -700,43 +708,65 @@ signal_stack_allocate(size_t *len)
 	 */
 
 	if (-1 == sigaltstack(&ss, NULL)) {
-		s_carp("%s(): unable to allocate signal stack: %m", G_STRFUNC);
-		p = NULL;
+		s_warning("%s(): unable to install signal stack of %zu bytes at %p: %m",
+			G_STRFUNC, size, p);
 	}
 
 	signal_thread_init();
 
-	if (len != NULL)
-		*len = size;
+	*base_ptr = p;
 
-	return p;
+	return size;
 #else
-	(void) len;
-	return NULL;
+	*base_ptr = NULL;
+	return 0;
 #endif
 }
 
 /**
- * Free the allocated signal stack.
+ * Free the allocated signal stack, nullifying the pointer if we can disable
+ * the signal stack.
  *
- * @param p		the base address of the stack
+ * @param base_ptr		pointer to the base address of the stack
+ *
+ * @return TRUE if we successfully disabled the stack and freed the stack.
  */
-void
-signal_stack_free(void *p)
+bool
+signal_stack_free(void **base_ptr)
 {
 #ifdef HAS_SIGALTSTACK
+	void *p = *base_ptr;
 	stack_t ss;
+	bool success = TRUE;
 
 	ss.ss_sp = NULL;
 	ss.ss_size = 0;
 	ss.ss_flags = SS_DISABLE;
 
-	if (-1 == sigaltstack(&ss, NULL))
-		s_carp("%s(): unable to deallocate signal stack: %m", G_STRFUNC);
+	/*
+	 * If we can't disable the signal stack, then leave it allocated: it will
+	 * be kept in the thread element and reused the next time another thread
+	 * is launched with the same thread ID (and by then hopefully the signal
+	 * stack will have been released by the POSIX thread layer).
+	 *
+	 * This happens on OS/X where we can properly allocate the signal stack
+	 * and install it, but then it cannot be disabled when the thread exits
+	 * normally.
+	 *		--RAM, 2014-01-09
+	 */
 
-	vmm_free(p, SIGNAL_STACK_SIZE);
+	if (-1 == sigaltstack(&ss, NULL)) {
+		s_warning("%s(): unable to disable signal stack of %zu bytes at %p: %m",
+			G_STRFUNC, round_pagesize(SIGNAL_STACK_SIZE), p);
+		success = FALSE;
+	} else {
+		vmm_free(p, SIGNAL_STACK_SIZE);
+		*base_ptr = NULL;
+	}
+
+	return success;
 #else
-	(void) p;
+	(void) base_ptr;
 	g_assert_not_reached();		/* Can't be called! */
 #endif
 }

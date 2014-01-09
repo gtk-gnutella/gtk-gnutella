@@ -1631,7 +1631,7 @@ thread_sigstack_allocate(struct thread_element *te)
 
 	g_assert(te->created);
 
-	te->sig_stack = signal_stack_allocate(&len);
+	len = signal_stack_allocate(&te->sig_stack);
 
 	if (NULL == te->sig_stack)
 		return;
@@ -7262,7 +7262,7 @@ thread_exit_internal(void *value, const void *sp)
 		te->low_sig_qid = (thread_qid_t) -1;
 		te->high_sig_qid = 0;
 
-		signal_stack_free(te->sig_stack);
+		signal_stack_free(&te->sig_stack);
 	}
 
 	/*

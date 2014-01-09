@@ -66,8 +66,8 @@ bool signal_in_handler(void);
 struct ckhunk *signal_chunk(void);
 void signal_unblock(int signo);
 void signal_abort(void) G_GNUC_NORETURN;
-void *signal_stack_allocate(size_t *len);
-void signal_stack_free(void *p);
+size_t signal_stack_allocate(void **base_ptr);
+bool signal_stack_free(void **base_ptr);
 
 bool signal_enter_critical(sigset_t *oset);
 void signal_leave_critical(const sigset_t *oset);
