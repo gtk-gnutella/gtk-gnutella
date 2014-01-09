@@ -716,8 +716,18 @@ teq_process(struct teq *teq)
 			tm_now_exact(&now);
 
 			if (tm_elapsed_ms(&now, &start) >= teq->throttle_ms) {
+				/*
+				 * Upon return from evq_raw_insert(), the callback can have
+				 * already triggered since dispatching can happen in another
+				 * thread.  Because we use a non-NULL event reference as a
+				 * flag indicating the queue is throttled, we need to check
+				 * via cq_zero_if_triggered() whether the event has already
+				 * triggered.
+				 */
+
 				teq->throttle_ev = evq_raw_insert(teq->throttle_delay,
 					teq_unthrottle, teq);
+				cq_zero_if_triggered(&teq->throttle_ev);
 				break;
 			}
 		}
@@ -1152,8 +1162,18 @@ teq_io_process(struct teq *teq)
 			tm_now_exact(&now);
 
 			if (tm_elapsed_ms(&now, &start) >= teq->throttle_ms) {
+				/*
+				 * Upon return from evq_raw_insert(), the callback can have
+				 * already triggered since dispatching can happen in another
+				 * thread.  Because we use a non-NULL event reference as a
+				 * flag indicating the queue is throttled, we need to check
+				 * via cq_zero_if_triggered() whether the event has already
+				 * triggered.
+				 */
+
 				teq_io->throttle_ev = evq_raw_insert(teq->throttle_delay,
 					teq_io_unthrottle, teq);
+				cq_zero_if_triggered(&teq_io->throttle_ev);
 				break;
 			}
 		}

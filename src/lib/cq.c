@@ -780,6 +780,47 @@ cq_cancel(cevent_t **handle_ptr)
 }
 
 /**
+ * Clear event if it already triggered.
+ *
+ * A thread registering an event that is dispatched in another thread can
+ * always have a doubt whether the event has triggered upon return.
+ *
+ * This routine will atomically verify whether the event has been triggered
+ * and will reclaim it if it has, zeroing the pointer.  Otherwise, nothing
+ * happens, i.e. the event is NOT cancelled.
+ *
+ * @return TRUE if the event has triggered already.
+ */
+bool
+cq_zero_if_triggered(cevent_t **ev_ptr)
+{
+	cevent_t *ev = *ev_ptr;
+	bool triggered = FALSE;
+
+	if (ev != NULL) {
+		cqueue_t *cq;
+
+		/*
+		 * For performance reasons, we use hidden mutexes.
+		 */
+
+		cq = EV_CQ_LOCK(ev);
+
+		if G_UNLIKELY(ev_triggered(ev))
+			triggered = TRUE;
+
+		CQ_UNLOCK(cq);
+
+		if G_UNLIKELY(triggered) {
+			ev_free(ev);
+			*ev_ptr = NULL;
+		}
+	}
+
+	return triggered;
+}
+
+/**
  * Reschedule event at some other point in time. It is the responsibility
  * of the user code to determine that the handle for the event has not yet
  * expired, i.e. that the event has not triggered yet.
