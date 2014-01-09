@@ -558,8 +558,11 @@ node_ht_connected_nodes_find(const host_addr_t addr, uint16 port)
  * Add host to the hash table host cache.
  */
 static void
-node_ht_connected_nodes_add(const host_addr_t addr, uint16 port)
+node_ht_connected_nodes_add(const gnutella_node_t *n)
 {
+	const host_addr_t addr = n->gnet_addr;
+	const uint16 port = n->gnet_port;
+
 	/* This is done unconditionally, whether we add host to table or not */
 	total_nodes_connected++;
 
@@ -573,11 +576,11 @@ node_ht_connected_nodes_add(const host_addr_t addr, uint16 port)
  * Remove host from the hash table host cache.
  */
 static void
-node_ht_connected_nodes_remove(const host_addr_t addr, uint16 port)
+node_ht_connected_nodes_remove(const gnutella_node_t *n)
 {
     gnet_host_t *orig_host;
 
-    orig_host = node_ht_connected_nodes_find(addr, port);
+    orig_host = node_ht_connected_nodes_find(n->gnet_addr, n->gnet_port);
 
     if (orig_host) {
 		htable_remove(ht_connected_nodes, orig_host);
@@ -2132,7 +2135,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 
 	/* Routine pre-condition asserted that n->status != GTA_NODE_REMOVING */
 
-	node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
+	node_ht_connected_nodes_remove(n);
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
@@ -5676,12 +5679,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 */
 
 			if (host_addr_equal(n->gnet_addr, n->addr)) {
-                node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
+                node_ht_connected_nodes_remove(n);
 
 				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
 
-                node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
+                node_ht_connected_nodes_add(n);
 			}
 			/* FIXME: What about LAN connections? Should we blindly accept
 			 * 		  the reported external address?
@@ -7831,7 +7834,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	sl_nodes = pslist_prepend(sl_nodes, n);
 
 	if (n->status != GTA_NODE_REMOVING) {
-		node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
+		node_ht_connected_nodes_add(n);
 	}
 
 	if (already_connected) {
