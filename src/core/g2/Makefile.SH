@@ -82,6 +82,7 @@ SRC = \
 	frame.c \
 	gwc.c \
 	msg.c \
+	node.c \
 	tfmt.c \
 	tree.c
 
@@ -89,6 +90,7 @@ OBJ = \
 	frame.o \
 	gwc.o \
 	msg.o \
+	node.o \
 	tfmt.o \
 	tree.o 
 

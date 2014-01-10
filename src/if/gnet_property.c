@@ -1090,6 +1090,10 @@ guint32  gnet_property_variable_hosts_in_g2hub_catcher     = 0;
 static const guint32  gnet_property_variable_hosts_in_g2hub_catcher_default = 0;
 gboolean gnet_property_variable_enable_g2     = TRUE;
 static const gboolean gnet_property_variable_enable_g2_default = TRUE;
+guint32  gnet_property_variable_node_g2_count     = 0;
+static const guint32  gnet_property_variable_node_g2_count_default = 0;
+guint32  gnet_property_variable_max_g2_hubs     = 2;
+static const guint32  gnet_property_variable_max_g2_hubs_default = 2;
 
 static prop_set_t *gnet_property;
 
@@ -10566,6 +10570,48 @@ gnet_prop_init(void) {
     gnet_property->props[471].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[471].data.boolean.def   = (void *) &gnet_property_variable_enable_g2_default;
     gnet_property->props[471].data.boolean.value = (void *) &gnet_property_variable_enable_g2;
+
+
+    /*
+     * PROP_NODE_G2_COUNT:
+     *
+     * General data:
+     */
+    gnet_property->props[472].name = "node_g2_count";
+    gnet_property->props[472].desc = _("Number of G2 nodes currently connected.");
+    gnet_property->props[472].ev_changed = event_new("node_g2_count_changed");
+    gnet_property->props[472].save = FALSE;
+    gnet_property->props[472].vector_size = 1;
+	mutex_init(&gnet_property->props[472].lock);
+
+    /* Type specific data: */
+    gnet_property->props[472].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[472].data.guint32.def   = (void *) &gnet_property_variable_node_g2_count_default;
+    gnet_property->props[472].data.guint32.value = (void *) &gnet_property_variable_node_g2_count;
+    gnet_property->props[472].data.guint32.choices = NULL;
+    gnet_property->props[472].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[472].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_MAX_G2_HUBS:
+     *
+     * General data:
+     */
+    gnet_property->props[473].name = "max_g2_hubs";
+    gnet_property->props[473].desc = _("Maximum amount of G2 hubs we should connect to as a leaf.");
+    gnet_property->props[473].ev_changed = event_new("max_g2_hubs_changed");
+    gnet_property->props[473].save = TRUE;
+    gnet_property->props[473].vector_size = 1;
+	mutex_init(&gnet_property->props[473].lock);
+
+    /* Type specific data: */
+    gnet_property->props[473].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[473].data.guint32.def   = (void *) &gnet_property_variable_max_g2_hubs_default;
+    gnet_property->props[473].data.guint32.value = (void *) &gnet_property_variable_max_g2_hubs;
+    gnet_property->props[473].data.guint32.choices = NULL;
+    gnet_property->props[473].data.guint32.max   = 3;
+    gnet_property->props[473].data.guint32.min   = 0;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

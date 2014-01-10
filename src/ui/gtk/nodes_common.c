@@ -348,6 +348,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 struct add_node_context {
 	guint32 flags;
 	guint16 port;
+	bool g2;
 };
 
 static void
@@ -360,7 +361,12 @@ add_node_helper(const host_addr_t *addrs, size_t n, gpointer data)
 	g_assert(0 != ctx->port);
 
 	if (n > 0) {
-		guc_node_add(addrs[random_value(n - 1)], ctx->port, ctx->flags);
+		const host_addr_t addr = addrs[random_value(n - 1)];
+		if (ctx->g2) {
+			guc_node_g2_add(addr, ctx->port, ctx->flags);
+		} else {
+			guc_node_add(addr, ctx->port, ctx->flags);
+		}
 	}
 
 	WFREE(ctx);
@@ -376,7 +382,7 @@ add_node_helper(const host_addr_t *addrs, size_t n, gpointer data)
  *       | <IPv4 address>[":" <port>]
  *		 | <IPv6 address>
  *		 | "[" <IPv6 address> "]:" <port>
- * peer = ["tls:"]<node>
+ * peer = ["tls:"]["g2:"]<node>
  *
  * If the port is omitted, the default port (GTA_PORT: 6346) is used.
  * The case-insensitive prefix "tls:" requests a TLS (encrypted) connection.
@@ -395,6 +401,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		host_addr_t addr;
 		guint32 flags;
     	guint16 port;
+		bool g2;
 
 		q = skip_ascii_spaces(q);
 		if (',' == *q) {
@@ -413,6 +420,14 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		if (endptr) {
 			flags |= SOCK_F_TLS;
 			q = endptr;
+		}
+
+		endptr = is_strcaseprefix(q, "g2:");
+		if (endptr) {
+			g2 = TRUE;
+			q = endptr;
+		} else {
+			g2 = FALSE;
 		}
 
 		if (!string_to_host_or_addr(q, &endptr, &addr)) {
@@ -446,7 +461,11 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		}
 
 		if (!hostname) {
-			guc_node_add(addr, port, flags);
+			if (g2) {
+				guc_node_g2_add(addr, port, flags);
+			} else {
+				guc_node_add(addr, port, flags);
+			}
 		} else {
 			struct add_node_context *ctx;
 			gchar *p;
@@ -465,6 +484,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 			WALLOC(ctx);
 			ctx->port = port;
 			ctx->flags = flags;
+			ctx->g2 = g2;
 			guc_adns_resolve(hostname, add_node_helper, ctx);
 
 			HFREE_NULL(p);

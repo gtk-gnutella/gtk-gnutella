@@ -96,7 +96,9 @@
 #include "vmsg.h"
 #include "whitelist.h"
 
+#include "g2/frame.h"
 #include "g2/msg.h"
+#include "g2/node.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"
@@ -195,10 +197,14 @@
 #define NODE_FW_CHECK			1200	/**< 20 minutes */
 #define NODE_IPP_NEIGHBOURS		8U		/**< # of neighbouring UPs to select */
 
+#define NODE_G2_MIN_DATASIZE	1000	/**< Minimum n->data size for G2 */
+
 const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
 static pslist_t *sl_nodes;
 static pslist_t *sl_up_nodes;
+static pslist_t *sl_gnet_nodes;
+static pslist_t *sl_g2_nodes;
 static hikset_t *nodes_by_id;
 static hikset_t *nodes_by_guid;
 static gnutella_node_t *udp_node;
@@ -218,11 +224,14 @@ static cpattern_t *pat_impp;
 static cpattern_t *pat_lmup;
 static cpattern_t *pat_f2ft_1;
 
-static const char gtkg_vendor[] = "gtk-gnutella/";
+static const char gtkg_vendor[]  = "gtk-gnutella/";
+static const char APP_G2[]       = "application/x-gnutella2";
+static const char APP_GNUTELLA[] = "application/x-gnutella-packets";
 
 /* These two contain connected and connectING(!) nodes. */
 static htable_t *ht_connected_nodes   = NULL;
 static uint32 total_nodes_connected;
+static uint32 total_g2_nodes_connected;
 
 static void *no_metadata;
 #define NO_METADATA		(no_metadata)	/**< No metadata for host */
@@ -244,6 +253,7 @@ static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 
 static pproxy_set_t *proxies;	/* Our push proxies */
 static uint32 shutdown_nodes;
+static uint32 shutdown_g2_nodes;
 static bool allow_gnet_connections = FALSE;
 static htable_t *node_udp_sched_ht;		/* UDP schedulers by bsched_bws_t */
 
@@ -280,6 +290,7 @@ static struct socket_ops node_socket_ops;
 
 static void node_disable_read(struct gnutella_node *n);
 static bool node_data_ind(rxdrv_t *rx, pmsg_t *mb);
+static bool node_g2_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static bool node_udp_sr_data_ind(rxdrv_t *rx, pmsg_t *mb,
 	const gnet_host_t *from);
 static bool node_udp_g2_data_ind(rxdrv_t *rx, pmsg_t *mb,
@@ -564,7 +575,11 @@ node_ht_connected_nodes_add(const gnutella_node_t *n)
 	const uint16 port = n->gnet_port;
 
 	/* This is done unconditionally, whether we add host to table or not */
-	total_nodes_connected++;
+	if (NODE_TALKS_G2(n)) {
+		total_g2_nodes_connected++;
+	} else {
+		total_nodes_connected++;
+	}
 
     if (node_ht_connected_nodes_has(addr, port))
         return;
@@ -588,8 +603,13 @@ node_ht_connected_nodes_remove(const gnutella_node_t *n)
 	}
 
 	/* This is done unconditionally, whether host was in table or not */
-	g_assert(uint32_is_positive(total_nodes_connected));
-	total_nodes_connected--;
+	if (NODE_TALKS_G2(n)) {
+		g_assert(uint32_is_positive(total_g2_nodes_connected));
+		total_g2_nodes_connected--;
+	} else {
+		g_assert(uint32_is_positive(total_nodes_connected));
+		total_nodes_connected--;
+	}
 }
 
 /**
@@ -1606,6 +1626,10 @@ node_init(void)
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
 		GNET_PROPERTY_PTR(browse_host_enabled));
 
+	header_features_add_guarded(FEATURES_G2_CONNECTIONS, "browse",
+		BH_VERSION_MAJOR, BH_VERSION_MINOR,
+		GNET_PROPERTY_PTR(browse_host_enabled));
+
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 
@@ -1681,6 +1705,11 @@ node_init(void)
 	header_features_add_guarded_function(FEATURES_CONNECTIONS, "IP",
 		INET_IP_V6READY, INET_IP_V4V6, settings_running_ipv4_and_ipv6);
 
+	header_features_add_guarded_function(FEATURES_G2_CONNECTIONS, "IP",
+		INET_IP_V6READY, INET_IP_NOV4, settings_running_ipv6_only);
+	header_features_add_guarded_function(FEATURES_G2_CONNECTIONS, "IP",
+		INET_IP_V6READY, INET_IP_V4V6, settings_running_ipv4_and_ipv6);
+
 	cq_periodic_main_add(
 		node_error_cleanup_timer * 1000, node_error_cleanup, NULL);
 }
@@ -1733,6 +1762,27 @@ node_count(void)
 			"connections = %u, shutdown = %u, leaves = %u",
 			G_STRFUNC, total_nodes_connected, shutdown_nodes,
 			GNET_PROPERTY(node_leaf_count));
+		return 0;
+	}
+
+	return count;
+}
+
+/*
+ * @return amount of established + initiated G2 hub connections,
+ * not counting the established connections that are being shutdown.
+ */
+uint
+node_g2_count(void)
+{
+	unsigned count = total_g2_nodes_connected - shutdown_g2_nodes -
+		GNET_PROPERTY(node_g2_count);
+
+	if (!uint_is_non_negative(count)) {
+		g_warning("BUG %s() is negative? "
+			"connections = %u, shutdown = %u, hubs = %u",
+			G_STRFUNC, total_g2_nodes_connected, shutdown_g2_nodes,
+			GNET_PROPERTY(node_g2_count));
 		return 0;
 	}
 
@@ -1824,6 +1874,22 @@ node_leaves_missing(void)
 }
 
 /**
+ * Amount of G2 hub connections we're missing.
+ */
+uint
+node_g2_hubs_missing(void)
+{
+	int missing;
+
+	if (!node_g2_active())
+		return 0;
+
+	missing = GNET_PROPERTY(max_g2_hubs) - GNET_PROPERTY(node_g2_count);
+
+	return MAX(0, missing);
+}
+
+/**
  * @return this node's outdegree, i.e. the maximum amount of peer connections
  * that we can support.
  */
@@ -1893,11 +1959,14 @@ node_type_count_dec(const struct gnutella_node *n)
 		g_assert(uint32_is_positive(GNET_PROPERTY(node_ultra_count)));
 		gnet_prop_decr_guint32(PROP_NODE_ULTRA_COUNT);
 		return;
+	case NODE_P_G2HUB:
+		g_assert(uint32_is_positive(GNET_PROPERTY(node_g2_count)));
+		gnet_prop_decr_guint32(PROP_NODE_G2_COUNT);
+		return;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
-	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		return;
 	}
@@ -2048,8 +2117,13 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
 	}
 
-	if (NODE_IS_ULTRA(n)) {
-		sl_up_nodes = pslist_remove(sl_up_nodes, n);
+	if (NODE_TALKS_G2(n)) {
+		sl_g2_nodes = pslist_remove(sl_g2_nodes, n);
+	} else {
+		if (NODE_IS_ULTRA(n)) {
+			sl_up_nodes = pslist_remove(sl_up_nodes, n);
+		}
+		sl_gnet_nodes = pslist_remove(sl_gnet_nodes, n);
 	}
 	if (n->routing_data) {
 		routing_node_remove(n);
@@ -2097,8 +2171,13 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	}
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
-		g_assert(uint_is_positive(shutdown_nodes));
-		shutdown_nodes--;
+		if (NODE_TALKS_G2(n)) {
+			g_assert(uint_is_positive(shutdown_g2_nodes));
+			shutdown_g2_nodes--;
+		} else {
+			g_assert(uint_is_positive(shutdown_nodes));
+			shutdown_nodes--;
+		}
 	} else {
 		node_decrement_counters(n);
 	}
@@ -2238,10 +2317,8 @@ node_is_bad(struct gnutella_node *n)
 
 	if (n->vendor == NULL) {
 		if (GNET_PROPERTY(node_debug))
-			g_warning("no vendor name in %s node headers from %s",
-				NODE_IS_LEAF(n) ? "leaf" :
-				NODE_IS_ULTRA(n) ? "ultra" : "legacy",
-				node_addr(n));
+			g_warning("%s(): no vendor name in %s node headers from %s",
+				G_STRFUNC, node_type(n), node_addr(n));
 		return NODE_BAD_NO_VENDOR;
 	}
 
@@ -2250,9 +2327,8 @@ node_is_bad(struct gnutella_node *n)
 
     if (hcache_node_is_bad(n->addr)) {
 		if (GNET_PROPERTY(node_debug))
-			g_warning("[nodes up] Unstable peer %s (%s)",
-				host_addr_to_string(n->addr),
-				n->vendor);
+			g_warning("%s(): unstable peer %s (%s)",
+				G_STRFUNC, host_addr_to_string(n->addr), n->vendor);
 		return NODE_BAD_IP;
     }
 
@@ -2266,7 +2342,7 @@ node_is_bad(struct gnutella_node *n)
 
 	if (bad_client->errors > node_error_threshold) {
 		if (GNET_PROPERTY(node_debug))
-			g_warning("[nodes up] Banned client: %s", n->vendor);
+			g_warning("%s(): banned client: %s", G_STRFUNC, n->vendor);
 		return NODE_BAD_VENDOR;
 	}
 
@@ -2882,6 +2958,18 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 		sq_clear(n->searchq);
 
 	mq_clear(n->outq);
+
+	/*
+	 * FIXME
+	 * Until we specify the BYE message for G2, simply remove a G2 node
+	 * without sending anything.
+	 *		--RAM, 2014-01-10
+	 */
+
+	if (NODE_TALKS_G2(n)) {
+		node_remove_v(n, reason, ap);
+		return;
+	}
 
 	/*
 	 * Build the bye message.
@@ -3975,7 +4063,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * our query routing table.
 	 */
 
-	n->peermode = NODE_P_NORMAL;
+	n->peermode = NODE_TALKS_G2(n) ? NODE_P_G2HUB : NODE_P_NORMAL;
 
 	if (n->flags & NODE_F_ULTRA) {
 		n->peermode = NODE_P_ULTRA;
@@ -3985,8 +4073,13 @@ node_is_now_connected(struct gnutella_node *n)
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->peermode = NODE_P_ULTRA;
 
-	/* If peermode did not change, current_peermode = leaf => node is Ultra */
-	g_assert(peermode_changed || !settings_is_leaf() || NODE_IS_ULTRA(n));
+	/*
+	 * If peermode did not change, current_peermode = leaf => node is Ultra
+	 * or node is a G2 Hub
+	 */
+
+	g_assert(peermode_changed || !settings_is_leaf()
+		|| NODE_IS_ULTRA(n) || NODE_TALKS_G2(n));
 
 	/*
 	 * Update state, and mark node as valid.
@@ -3997,6 +4090,7 @@ node_is_now_connected(struct gnutella_node *n)
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID;
 	n->last_update = n->connect_date = tm_time();
+
 	if (NODE_IS_ULTRA(n)) {
 		sl_up_nodes = pslist_prepend(sl_up_nodes, n);
 	}
@@ -4017,11 +4111,13 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_ULTRA:
 		gnet_prop_incr_guint32(PROP_NODE_ULTRA_COUNT);
 		break;
+	case NODE_P_G2HUB:
+		gnet_prop_incr_guint32(PROP_NODE_G2_COUNT);
+		break;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_DHT:
-	case NODE_P_G2HUB:
 	case NODE_P_UNKNOWN:
 		break;
 	}
@@ -4078,7 +4174,7 @@ node_is_now_connected(struct gnutella_node *n)
 		struct rx_inflate_args args;
 
 		if (GNET_PROPERTY(node_debug) > 4)
-			g_debug("receiving compressed data from node %s", node_addr(n));
+			g_debug("receiving compressed data from %s", node_infostr(n));
 
 		args.cb = &node_rx_inflate_cb;
 
@@ -4089,12 +4185,12 @@ node_is_now_connected(struct gnutella_node *n)
         compressed_node_cnt++;
 	}
 
-	rx_set_data_ind(n->rx, node_data_ind);
+	rx_set_data_ind(n->rx, NODE_TALKS_G2(n) ? node_g2_data_ind : node_data_ind);
 	rx_enable(n->rx);
 	n->flags |= NODE_F_READABLE;
 
 	/*
-	 * Create the TX stack, as we're going to transmit Gnet messages.
+	 * Create the TX stack, as we're going to transmit messages.
 	 */
 
 	{
@@ -4117,7 +4213,7 @@ node_is_now_connected(struct gnutella_node *n)
 		txdrv_t *ctx;
 
 		if (GNET_PROPERTY(node_debug) > 4)
-			g_debug("sending compressed data to node %s", node_addr(n));
+			g_debug("sending compressed data to %s", node_infostr(n));
 
 		args.cq = cq_main();
 		args.cb = &node_tx_deflate_cb;
@@ -4151,7 +4247,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * dynamic querying, so there is no need for a per-node search queue.
 	 */
 
-	if (!settings_is_ultra())
+	if (!settings_is_ultra() && !NODE_TALKS_G2(n))
 		n->searchq = sq_make(n);
 
 	/*
@@ -4171,7 +4267,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Terminate connection if the peermode changed during handshaking.
 	 */
 
-	if (peermode_changed) {
+	if (peermode_changed && !NODE_TALKS_G2(n)) {
 		node_bye(n, 504, "Switched between Leaf/Ultra during handshake");
 		return;
 	}
@@ -4180,6 +4276,8 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Initiate QRP sending if we're a leaf node or if we're an ultra node
 	 * and the remote note is an UP supporting last-hop QRP.
 	 */
+
+// XXX need QRP sending to G2 hubs as well
 
 	if (
 		NODE_IS_ULTRA(n) &&
@@ -4218,10 +4316,12 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Otherwise, send a "handshaking" ping.
 	 */
 
-	if (n->flags & NODE_F_INCOMING)
-		alive_send_ping(n->alive_pings);
-	else
-		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
+	if (!NODE_TALKS_G2(n)) {
+		if (n->flags & NODE_F_INCOMING)
+			alive_send_ping(n->alive_pings);
+		else
+			pcache_outgoing_connection(n);	/* Send proper handshaking ping */
+	}
 
 	/*
 	 * If node supports vendor-specific messages, advertise the set we support.
@@ -4241,7 +4341,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * our leaves and by our neighbours.
 	 */
 
-	if (settings_is_ultra()) {
+	if (settings_is_ultra() && !NODE_TALKS_G2(n)) {
 		if (NODE_IS_LEAF(n))
 			n->qseen = htable_create(HASH_KEY_STRING, 0);
 		else {
@@ -4287,7 +4387,7 @@ node_got_bye(struct gnutella_node *n)
 	/*
 	 * Codes are supposed to be 2xx, 4xx or 5xx.
 	 *
-	 * But older GnucDNA wer bugged enough to forget about the code and
+	 * But older GnucDNA were bugged enough to forget about the code and
 	 * started to emit the message right away.  Fortunately, we can
 	 * detect this because the two ASCII bytes will make the code
 	 * appear out of range...  We force code 901 when we detect and
@@ -4650,6 +4750,7 @@ feed_host_cache_from_headers(header_t *header,
 		bool gnet;			/* Definitely a Gnutella network header */
 		host_type_t type;	/* Default type, sender will override */
 	} headers[] = {
+		/* name,                sender, gnet,  type */
 		{ "X-Alt",				FALSE,	FALSE, HOST_ANY },
 		{ "X-Listen-Ip",		TRUE,	TRUE,  HOST_ANY },
 		{ "X-My-Address",		TRUE,	TRUE,  HOST_ANY },
@@ -4657,6 +4758,7 @@ feed_host_cache_from_headers(header_t *header,
 		{ "X-Node-IPv6",		TRUE,	TRUE,  HOST_ANY },
 		{ "X-Try",				FALSE,	TRUE,  HOST_ANY },
 		{ "X-Try-Ultrapeers",	FALSE,	TRUE,  HOST_ULTRA },
+		{ "X-Try-Hubs",			FALSE,	TRUE,  HOST_G2HUB },
 	};
 	uint i, n = 0;
 
@@ -4692,8 +4794,9 @@ feed_host_cache_from_headers(header_t *header,
 
 			if (GNET_PROPERTY(node_debug) > 0) {
 				if (r > 0)
-					g_debug("peer %s sent %u pong%s in %s header",
-						host_addr_to_string(peer), r, plural(r), name);
+					g_debug("peer %s sent %u pong%s in %s header (%s)",
+						host_addr_to_string(peer), r, plural(r), name,
+						host_type_to_string(type));
 				else
 					g_debug("peer %s <%s> sent unparseable %s header: \"%s\"",
 						host_addr_to_string(peer), vendor, name, val);
@@ -4715,6 +4818,7 @@ static void
 extract_header_pongs(header_t *header, struct gnutella_node *n)
 {
 	feed_host_cache_from_headers(header,
+		NODE_P_G2HUB == n->peermode ? HOST_G2HUB :
 		NODE_P_ULTRA == n->peermode ? HOST_ULTRA : HOST_ANY,
 		TRUE, n->addr, node_vendor(n));
 }
@@ -4924,7 +5028,8 @@ static bool
 node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 {
 	g_assert(handshaking || n->status == GTA_NODE_CONNECTED);
-	g_assert(n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA));
+	g_assert((n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA))
+		|| NODE_TALKS_G2(n));
 
 	/*
 	 * Deny cleanly if they deactivated "online mode".
@@ -4947,6 +5052,52 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 	/*
 	 * If we are handshaking, we have not incremented the node counts yet.
 	 * Hence we can do >= tests against the limits.
+	 */
+
+	/*
+	 * Check for G2 hosts, where we always act as a leaf node.
+	 */
+
+	if (NODE_TALKS_G2(n)) {
+		if (n->flags & NODE_F_FORCE)
+			return TRUE;
+
+		if (
+			GNET_PROPERTY(prefer_compressed_gnet) &&
+			GNET_PROPERTY(node_g2_count) != 0 &&
+			!(n->attrs & NODE_A_CAN_INFLATE)
+		) {
+			node_send_error(n, 403,
+				"Compressed connection preferred");
+			node_remove(n, _("Connection not compressed"));
+			return FALSE;
+		}
+
+		if (
+			handshaking &&
+			GNET_PROPERTY(node_g2_count) >= GNET_PROPERTY(max_g2_hubs)
+		) {
+			node_send_error(n, 503, "Too many G2 hub connections (%u max)",
+				GNET_PROPERTY(max_g2_hubs));
+			node_remove(n, _("Too many G2 hubs (%u max)"),
+				GNET_PROPERTY(max_g2_hubs));
+			return FALSE;
+		}
+
+		if (
+			!handshaking &&
+			GNET_PROPERTY(node_g2_count) > GNET_PROPERTY(max_g2_hubs)
+		) {
+			node_bye(n, 503, "Too many G2 hub connections (%u max)",
+				GNET_PROPERTY(max_g2_hubs));
+			return FALSE;
+		}
+
+		goto check_for_bad_nodes;
+	}
+
+	/*
+	 * Check for Gnutella hosts.
 	 */
 
 	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
@@ -5246,13 +5397,15 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 		break;
 	}
 
+check_for_bad_nodes:
+
 	/*
 	 * If a specific client version has proven to be very unstable during this
 	 * version, don't connect to it.
 	 *		-- JA 17/7/200
 	 */
 
-	if (n->attrs & NODE_A_ULTRA) {
+	if ((n->attrs & NODE_A_ULTRA) || NODE_TALKS_G2(n)) {
 		const char *msg = N_("Unknown error");
 		enum node_bad bad = node_is_bad(n);
 
@@ -5283,39 +5436,43 @@ node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 }
 
 /**
+ * Send a "Protocol not acceptable" error to node, denying handshaking.
+ */
+static void
+node_send_protocol_not_acceptable(gnutella_node_t *n, const char *protocol)
+{
+	static const char msg[] = N_("Protocol not acceptable");
+
+	if (GNET_PROPERTY(node_debug)) {
+		g_warning("rejecting non-acceptable protocol \"%s\" from %s",
+			NULL == protocol ? "" : protocol, node_infostr(n));
+	}
+
+	node_send_error(n, 406, msg);
+	node_remove(n, _(msg));
+}
+
+/**
  * Check whether we can accept a servent supporting a foreign protocol.
  * Must be called during handshaking.
  *
  * @return TRUE if OK, FALSE if connection was denied.
  */
 static bool
-node_can_accept_protocol(struct gnutella_node *n, header_t *head)
+node_can_accept_protocol(gnutella_node_t *n, header_t *head)
 {
 	const char *field;
 
 	/*
 	 * Content-Type -- protocol used
-	 *
-	 * We ban ultrapeers claiming support for "application/x-gnutella2" if
-	 * we are an ultranode ourselves.
-	 *
-	 * Study has shown that this closed protocol is not inter-operating
-	 * well with Gnutella: it is more comparable to massive leaching.
-	 * See the various GDF articles written on the subject that prove this.
-	 *		--RAM, 25/01/2003
 	 */
 
 	field = header_get(head, "Content-Type");
 	if (
-		field &&
-		settings_is_ultra() &&
-		!(n->flags & NODE_F_LEAF) &&
-		strtok_case_has(field, ",", "application/x-gnutella2")
+		field && !node_g2_active() && !NODE_TALKS_G2(n) &&
+		strtok_case_has(field, ",", APP_G2)
 	) {
-		static const char msg[] = N_("Protocol not acceptable");
-
-		node_send_error(n, 406, msg);
-		node_remove(n, _(msg));
+		node_send_protocol_not_acceptable(n, field);
 		return FALSE;
 	}
 
@@ -5332,7 +5489,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	struct gnutella_socket *s = n->socket;
 	bool ack_ok;
 	const char *field;
-	bool qrp_final_set = FALSE;
+	bool qrp_final_set = FALSE, g2_hub = TRUE;
 
 	socket_check(s);
 
@@ -5380,49 +5537,57 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	) {
 		g_warning("Content-Encoding \"deflate\" although disabled - from %s",
 			node_infostr(n));
-        node_bye(n, 400, "Compression was not accepted");
+        node_bye(n, 400, "Refusing remote node compression");
 		return;
 	}
 
+	if (NODE_TALKS_G2(n)) {
+		/* X-Hub -- support for G2 hub mode */
 
-	/* X-Ultrapeer -- support for ultra peer mode */
+		field = header_get(head, "X-Hub");
+		if (field && 0 == ascii_strcasecmp(field, "false"))
+			g2_hub = FALSE;
+	} else {
+		/* X-Ultrapeer -- support for ultra peer mode */
 
-	field = header_get(head, "X-Ultrapeer");
-	if (field && 0 == ascii_strcasecmp(field, "false")) {
-		n->attrs &= ~NODE_A_ULTRA;
-		if (settings_is_ultra()) {
-			n->flags |= NODE_F_LEAF;		/* Remote accepted to become leaf */
-			if (GNET_PROPERTY(node_debug))
-				g_debug("%s accepted to become our leaf", node_infostr(n));
+		field = header_get(head, "X-Ultrapeer");
+		if (field && 0 == ascii_strcasecmp(field, "false")) {
+			n->attrs &= ~NODE_A_ULTRA;
+			if (settings_is_ultra()) {
+				n->flags |= NODE_F_LEAF;	/* Remote accepted to become leaf */
+				if (GNET_PROPERTY(node_debug))
+					g_debug("%s accepted to become our leaf", node_infostr(n));
+			}
 		}
-	}
 
-	/*
-	 * X-Query-Routing -- QRP protocol in use by remote servent (negotiated)
-	 *
-	 * This header is present in the 3rd handshake only when the two servents
-	 * advertised different support.  This last indication is the highest
-	 * version supported by the remote end, that is less or equals to ours.
-	 * (If not present, it means the remote end implicitly expects us to
-	 * comply with his older version.)
-	 *
-	 * If we don't support that version, we'll BYE the servent later.
-	 */
+		/*
+		 * X-Query-Routing -- QRP protocol in use by remote servent (negotiated)
+		 *
+		 * This header is present in the 3rd handshake only when the two
+		 * servents advertised different support.  This last indication is the
+		 * highest version supported by the remote end, that is less or equal
+		 * to ours.
+		 * (If not present, it means the remote end implicitly expects us to
+		 * comply with his older version.)
+		 *
+		 * If we don't support that version, we'll BYE the servent later.
+		 */
 
-	field = header_get(head, "X-Query-Routing");
-	if (field) {
-		uint major, minor;
+		field = header_get(head, "X-Query-Routing");
+		if (field) {
+			uint major, minor;
 
-		parse_major_minor(field, NULL, &major, &minor);
-		if (major >= n->qrp_major || minor >= n->qrp_minor)
-			if (GNET_PROPERTY(node_debug)) g_warning(
-				"%s now claims QRP version %u.%u, "
-				"but advertised %u.%u earlier",
-				node_infostr(n), major, minor,
-				(uint) n->qrp_major, (uint) n->qrp_minor);
-		n->qrp_major = (uint8) major;
-		n->qrp_minor = (uint8) minor;
-		qrp_final_set = TRUE;
+			parse_major_minor(field, NULL, &major, &minor);
+			if (major >= n->qrp_major || minor >= n->qrp_minor)
+				if (GNET_PROPERTY(node_debug)) g_warning(
+					"%s now claims QRP version %u.%u, "
+					"but advertised %u.%u earlier",
+					node_infostr(n), major, minor,
+					(uint) n->qrp_major, (uint) n->qrp_minor);
+			n->qrp_major = (uint8) major;
+			n->qrp_minor = (uint8) minor;
+			qrp_final_set = TRUE;
+		}
 	}
 
 	/*
@@ -5441,17 +5606,24 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	 * support the right version for the necessary protocols.
 	 */
 
-	if (GNET_PROPERTY(current_peermode) != NODE_P_NORMAL) {
-		/*
-		 * Only BYE them if they finally declared to use a protocol we
-		 * don't support yet, despite their knowing that we only support
-		 * the 0.2 version.
-		 */
-
-		if (qrp_final_set && (n->qrp_major > 0 || n->qrp_minor > 2)) {
-			node_bye(n, 505, "Query Routing protocol %u.%u not supported",
-				(uint) n->qrp_major, (uint) n->qrp_minor);
+	if (NODE_TALKS_G2(n)) {
+		if (!g2_hub) {
+			node_bye(n, 505, "Wanted a G2 hub");
 			return;
+		}
+	} else {
+		if (GNET_PROPERTY(current_peermode) != NODE_P_NORMAL) {
+			/*
+			 * Only BYE them if they finally declared to use a protocol we
+			 * don't support yet, despite their knowing that we only support
+			 * the 0.2 version.
+			 */
+
+			if (qrp_final_set && (n->qrp_major > 0 || n->qrp_minor > 2)) {
+				node_bye(n, 505, "Query Routing protocol %u.%u not supported",
+					(uint) n->qrp_major, (uint) n->qrp_minor);
+				return;
+			}
 		}
 	}
 
@@ -5466,9 +5638,9 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	/*
 	 * Since this is the third and final acknowledgement, the remote node
-	 * is ready to send Gnutella data (and so are we, now that we got
-	 * the final ack).  Mark the Gnutella connection as fully established,
-	 * which means we'll be able to relay traffic to this node.
+	 * is ready to send Gnutella or G2 data (and so are we, now that we got
+	 * the final ack).  Mark the connection as fully established, which means
+	 * we'll be able to relay traffic to this node.
 	 */
 
 	n->flags |= NODE_F_ESTABLISHED;
@@ -5485,9 +5657,10 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		pdata_t *db;
 		pmsg_t *mb;
 
-		if (GNET_PROPERTY(node_debug) > 4)
-			g_debug("read %d Gnet bytes from node %s after handshake",
-				(int) s->pos, node_addr(n));
+		if (GNET_PROPERTY(node_debug) > 4) {
+			g_debug("%s(): read %d bytes from %s after handshake",
+				G_STRFUNC, (int) s->pos, node_infostr(n));
+		}
 
 		/*
 		 * Prepare data buffer out of the socket's buffer.
@@ -5674,7 +5847,82 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	node_extract_user_agent(n, head); 	/* Servent vendor identification */
-	
+
+	/*
+	 * Accept -- if advertising an alien network, make sure we're supporting it.
+	 *
+	 * Shareaza advertises an Accept with APP_GNUTELLA when it connects
+	 * to Gnutella, and even though there may be several protocols listed,
+	 * we always favour Gnutella when present.
+	 */
+
+	field = header_get(head, "Accept");
+	if (incoming) {
+		if (field && !strtok_case_has(field, ",", APP_GNUTELLA)) {
+			if (strtok_case_has(field, ",", APP_G2) && node_g2_active()) {
+				n->attrs2 |= NODE_A2_TALKS_G2;
+			} else {
+				node_send_protocol_not_acceptable(n, field);
+				return;
+			}
+		}
+	} else if (NODE_TALKS_G2(n)) {
+		/* Issuing an outgoing connection as G2, we need an Accept with G2 */
+		if (NULL == field || !strtok_case_has(field, ",", APP_G2)) {
+			node_send_protocol_not_acceptable(n, field);
+			return;
+		}
+	} else {
+		/*
+		 * Issuing an outgoing connection to a Gnutella node which does not
+		 * use the Accept header normally.  If it does however, it must list
+		 * the Gnutella protocol.
+		 */
+		if (field) {
+			if (!strtok_case_has(field, ",", APP_GNUTELLA)) {
+				node_send_protocol_not_acceptable(n, field);
+				return;
+			}
+		}
+	}
+
+	/* X-Ultrapeer -- support for ultra peer mode */
+
+	/*
+	 * Shareaza 2.7.1.0 is broken (and maybe earlier versions as well)
+	 * in that they send X-Ultrapeer instead of X-Hub when connecting
+	 * as G2.  Apparently, they cannot even live by the rules they have
+	 * defined for G2.  It's so sad, and the reason why we need to
+	 * exclude G2 hosts from this block.
+	 *		--RAM, 2014-01-10
+	 */
+
+	if (!NODE_TALKS_G2(n)) {
+		field = header_get(head, "X-Ultrapeer");
+		if (field) {
+			n->attrs |= NODE_A_CAN_ULTRA;
+			if (0 == ascii_strcasecmp(field, "true"))
+				n->attrs |= NODE_A_ULTRA;
+			else if (0 == ascii_strcasecmp(field, "false")) {
+				if (settings_is_ultra())
+					n->flags |= NODE_F_LEAF;
+			}
+		} else {
+			/*
+			 * BearShare 4.3.x decided to no longer send X-Ultrapeer on
+			 * connection, but rather include the X-Ultrapeer-Needed header.
+			 * Hopefully, only their UPs will send back such a header.
+			 *		--RAM, 01/11/2003
+			 */
+
+			field = header_get(head, "X-Ultrapeer-Needed");
+			if (field)
+				n->attrs |= NODE_A_CAN_ULTRA | NODE_A_ULTRA;
+			else
+				n->attrs |= NODE_A_NO_ULTRA;
+		}
+	}
+
 	/* Node -- remote node Gnet IP/port information */
 
 	if (incoming) {
@@ -5734,45 +5982,63 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		return;
 	}
 
-	/* Pong-Caching -- ping/pong reduction scheme */
+	/*
+	 * Check that everything is OK so far for an outgoing connection: if
+	 * they did not reply with 200, then there's no need for us to reply back.
+	 */
 
-	field = header_get(head, "Pong-Caching");
+	if (!incoming) {
+		if (!analyse_status(n, NULL)) {
+			/*
+			 * Make sure that we do not put private network 'hub' nodes in the
+			 * Gnutella host cache.  If the node replied with X-Try-Hubs, which
+			 * is a G2 network, make sure we record the node's IP:port
+			 * in the G2 cache as well, to prevent further connection attempts
+			 * to that host.
+			 */
+
+			field = header_get(head, "X-Try-Hubs");
+			if (field) {
+				/* Remove node and suggestions from Gnutella caches */
+				hcache_purge(HCACHE_CLASS_HOST, n->gnet_addr, n->gnet_port);
+				purge_host_cache_from_hub_list(field);
+				n->peermode = NODE_P_G2HUB;
+				extract_header_pongs(head, n);
+			} else {
+				n->peermode = (n->attrs & NODE_A_ULTRA) ?
+					NODE_P_ULTRA : NODE_P_LEAF;
+				extract_header_pongs(head, n);
+			}
+			return;                /* node_remove() has freed s->getline */
+        }
+    }
+
+	/* X-Hub -- support for G2 hub mode */
+
+	field = header_get(head, "X-Hub");
+	if (NODE_TALKS_G2(n) && NULL == field)
+		field = header_get(head, "X-Ultrapeer");	/* For broken Shareaza */
 	if (field) {
-		uint major, minor;
-
-		parse_major_minor(field, NULL, &major, &minor);
-		if (major != 0 && minor != 1)
-			if (GNET_PROPERTY(node_debug)) g_warning(
-				"node %s claims Pong-Caching version %u.%u",
-				node_addr(n), major, minor);
-		n->attrs |= NODE_A_PONG_CACHING;
-	}
-
-	/* X-Ultrapeer -- support for ultra peer mode */
-
-	field = header_get(head, "X-Ultrapeer");
-	if (field) {
-		n->attrs |= NODE_A_CAN_ULTRA;
 		if (0 == ascii_strcasecmp(field, "true"))
-			n->attrs |= NODE_A_ULTRA;
-		else if (0 == ascii_strcasecmp(field, "false")) {
-			if (settings_is_ultra())
-				n->flags |= NODE_F_LEAF;
-		}
-	} else {
-		/*
-		 * BearShare 4.3.x decided to no longer send X-Ultrapeer on connection,
-		 * but rather include the X-Ultrapeer-Needed header.  Hopefully, only
-		 * their UPs will send back such a header.
-		 *		--RAM, 01/11/2003
-		 */
-
-		field = header_get(head, "X-Ultrapeer-Needed");
-		if (field)
-			n->attrs |= NODE_A_CAN_ULTRA | NODE_A_ULTRA;
-		else
-			n->attrs |= NODE_A_NO_ULTRA;
+			n->peermode = NODE_P_G2HUB;
+		else if (0 == ascii_strcasecmp(field, "false"))
+			field = NULL;
 	}
+
+	/*
+	 * If we're a connecting to a G2 node, it has to be a hub since we're
+	 * only working as a G2 leaf.
+	 */
+
+	if (NODE_TALKS_G2(n) && NULL == field) {
+		static const char msg[] = N_("Need a G2 Hub");
+
+		node_send_error(n, 403, "%s", msg);
+		node_remove(n, "%s", _(msg));
+		return;
+	}
+
+	/* TLS feature support */
 
 	if (header_get_feature("tls", head, NULL, NULL)) {
 		node_supports_tls(n);
@@ -5792,22 +6058,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			}
 		}
 		n->attrs |= NODE_A_BYE_PACKET;
-	}
-
-	/* Vendor-Message -- support for vendor-specific messages */
-
-	field = header_get(head, "Vendor-Message");
-	if (field) {
-		uint major, minor;
-
-		parse_major_minor(field, NULL, &major, &minor);
-		if (major > 0 || (major == 0 && minor > 2))
-			if (GNET_PROPERTY(node_debug))
-				g_warning("%s claims Vendor-Message version %u.%u",
-				node_infostr(n), major, minor);
-
-		n->attrs |= NODE_A_CAN_VENDOR;
-		n->flags |= NODE_F_EXPECT_VMSG;
 	}
 
 	/* Check for (X-)Remote-IP header and handle it */
@@ -5911,42 +6161,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 
 		aging_insert(tcp_crawls,
-			wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
+			wcopy(&n->addr, sizeof n->addr), uint_to_pointer(1));
 	}
-
-
-	/*
-	 * Check that everything is OK so far for an outgoing connection: if
-	 * they did not reply with 200, then there's no need for us to reply back.
-	 */
-	
-	if (!incoming) {
-		if (!analyse_status(n, NULL)) {
-	 		/*
-			 * Make sure that we do not put private network 'hub' nodes in the
-			 * host cache.  If the node replied with X-Try-Hubs, which is a
-			 * non-Gnutella network, make sure we record the node's IP:port
-			 * in the alien cache as well, to prevent further connection
-			 * attempts to that host.
-			 */
-
-			field = header_get(head, "X-Try-Hubs");
-			if (field) {
-				if (GNET_PROPERTY(node_debug)) {
-					g_warning("rejecting private network host suggestions "
-						"from %s", node_infostr(n));
-				}
-            
-				/* Remove node and suggestions from fresh/valid caches */
-				hcache_purge(HCACHE_CLASS_HOST, n->gnet_addr, n->gnet_port);
-				purge_host_cache_from_hub_list(field);
-				hcache_add(HCACHE_ALIEN,
-					n->gnet_addr, n->gnet_port, "alien hub");
-			}
-        	return;                /* node_remove() has freed s->getline */
-        }
-    }
-
 
 	/*
 	 * Vendor-specific banning.
@@ -5987,6 +6203,17 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (!node_can_accept_connection(n, TRUE))
 		return;
 
+	if (NODE_TALKS_G2(n)) {
+		sl_g2_nodes = pslist_prepend(sl_g2_nodes, n);
+		goto check_protocol;
+	}
+
+	/*
+	 * Following are Gnutella-only header processing.
+	 */
+
+	sl_gnet_nodes = pslist_prepend(sl_gnet_nodes, n);
+
 	/*
 	 * If we're a leaf node, we're talking to an Ultra node.
 	 * (otherwise, node_can_accept_connection() would have triggered)
@@ -5996,6 +6223,36 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		g_assert((n->flags & NODE_F_CRAWLER) || (n->attrs & NODE_A_ULTRA));
 		if (!(n->flags & NODE_F_CRAWLER))
 			n->flags |= NODE_F_ULTRA;			/* This is our ultranode */
+	}
+
+	/* Pong-Caching -- ping/pong reduction scheme */
+
+	field = header_get(head, "Pong-Caching");
+	if (field) {
+		uint major, minor;
+
+		parse_major_minor(field, NULL, &major, &minor);
+		if (major != 0 && minor != 1)
+			if (GNET_PROPERTY(node_debug)) g_warning(
+				"node %s claims Pong-Caching version %u.%u",
+				node_addr(n), major, minor);
+		n->attrs |= NODE_A_PONG_CACHING;
+	}
+
+	/* Vendor-Message -- support for vendor-specific messages */
+
+	field = header_get(head, "Vendor-Message");
+	if (field) {
+		uint major, minor;
+
+		parse_major_minor(field, NULL, &major, &minor);
+		if (major > 0 || (major == 0 && minor > 2))
+			if (GNET_PROPERTY(node_debug))
+				g_warning("%s claims Vendor-Message version %u.%u",
+				node_infostr(n), major, minor);
+
+		n->attrs |= NODE_A_CAN_VENDOR;
+		n->flags |= NODE_F_EXPECT_VMSG;
 	}
 
 	/*
@@ -6153,6 +6410,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		n->attrs |= NODE_A_GUESS;	/* Server-side support for GUESS */
 	}
 
+check_protocol:
+
 	/*
 	 * Check that remote host speaks a protocol we can accept.
 	 */
@@ -6185,27 +6444,29 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 	}
 
-	/*
-	 * Avoid one vendor occupying all our slots
-	 *		-- JA, 21/11/2003
-	 */
+	if (!NODE_TALKS_G2(n)) {
+		/*
+		 * Avoid one vendor occupying all our slots
+		 *		-- JA, 21/11/2003
+		 */
 
-	if (node_avoid_monopoly(n)) {
-		node_send_error(n, 409, "Vendor would exceed %d%% of our slots",
-			GNET_PROPERTY(unique_nodes));
-		node_remove(n, _("Vendor would exceed %d%% of our slots"),
-			GNET_PROPERTY(unique_nodes));
-		return;
-	}
+		if (node_avoid_monopoly(n)) {
+			node_send_error(n, 409, "Vendor would exceed %d%% of our slots",
+				GNET_PROPERTY(unique_nodes));
+			node_remove(n, _("Vendor would exceed %d%% of our slots"),
+				GNET_PROPERTY(unique_nodes));
+			return;
+		}
 
-	/*
-	 * Whether we should reserve a slot for gtk-gnutella
-	 */
+		/*
+		 * Whether we should reserve a slot for gtk-gnutella
+		 */
 
-	if (node_reserve_slot(n)) {
-		node_send_error(n, 409, "Reserved slot");
-		node_remove(n, _("Reserved slot"));
-		return;
+		if (node_reserve_slot(n)) {
+			node_send_error(n, 409, "Reserved slot");
+			node_remove(n, _("Reserved slot"));
+			return;
+		}
 	}
 
 	/*
@@ -6244,6 +6505,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (
+		!NODE_TALKS_G2(n) &&
 		settings_is_leaf() &&
 		!(n->flags & NODE_F_CRAWLER) &&
 		(n->degree < 2 * NODE_LEGACY_DEGREE || !(n->attrs & NODE_A_DYN_QUERY))
@@ -6337,22 +6599,59 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		g_assert(!mode_changed || settings_is_leaf());
 
+		if (NODE_TALKS_G2(n)) {
+			rw = str_bprintf(gnet_response, gnet_response_max,
+				"GNUTELLA/0.6 200 OK\r\n"
+				"X-Hub: False\r\n"
+				"%s"						/* Content-Encoding */
+				"Content-Type: %s\r\n",		/* Content-Type */
+				GNET_PROPERTY(gnet_deflate_enabled) &&
+					(n->attrs & NODE_A_TX_DEFLATE) ? compressing : "",
+				APP_G2);
+		} else {
+			rw = str_bprintf(gnet_response, gnet_response_max,
+				"GNUTELLA/0.6 200 OK\r\n"
+				"%s"			/* Content-Encoding */
+				"%s"			/* X-Ultrapeer */
+				"%s",			/* X-Query-Routing (tells version we'll use) */
+				GNET_PROPERTY(gnet_deflate_enabled) &&
+					(n->attrs & NODE_A_TX_DEFLATE) ? compressing : "",
+				mode_changed ? "X-Ultrapeer: False\r\n" : "",
+				(n->qrp_major > 0 || n->qrp_minor > 2) ?
+					"X-Query-Routing: 0.2\r\n" : "");
+		}
+	} else if NODE_TALKS_G2(n) {
+		/*
+		 * Welcome the incoming G2 node.
+		 */
+
 		rw = str_bprintf(gnet_response, gnet_response_max,
 			"GNUTELLA/0.6 200 OK\r\n"
-			"%s"			/* Content-Encoding */
-			"%s"			/* X-Ultrapeer */
-			"%s"			/* X-Query-Routing (tells version we'll use) */
-			"\r\n",
-			GNET_PROPERTY(gnet_deflate_enabled) &&
-				(n->attrs & NODE_A_TX_DEFLATE) ? compressing : "",
-			mode_changed ? "X-Ultrapeer: False\r\n" : "",
-			(n->qrp_major > 0 || n->qrp_minor > 2) ?
-				"X-Query-Routing: 0.2\r\n" : "");
+			"User-Agent: %s\r\n"
+			"X-Live-Since: %s\r\n"
+			"Bye-Packet: 0.1\r\n"
+			"Remote-IP: %s\r\n"
+			"X-Hub: False\r\n"
+			"%s"				/* Accept-Encoding */
+			"%s"				/* Content-Encoding */
+			"Accept: %s\r\n"
+			"Content-Type: %s\r\n",
+			version_string,
+			start_rfc822_date,
+			host_addr_to_string(n->socket->addr),
+			GNET_PROPERTY(gnet_deflate_enabled)
+				? "Accept-Encoding: deflate\r\n" : "",
+			(GNET_PROPERTY(gnet_deflate_enabled)
+				&& (n->attrs & NODE_A_TX_DEFLATE)) ? compressing : "",
+			APP_G2, APP_G2);
+
+			header_features_generate(FEATURES_G2_CONNECTIONS,
+				gnet_response, gnet_response_max, &rw);
 	} else {
 		uint ultra_max;
 
 		/*
-		 * Welcome the incoming node.
+		 * Welcome the incoming Gnutella node.
 		 */
 
 		ultra_max = GNET_PROPERTY(max_connections)
@@ -6360,15 +6659,14 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			? GNET_PROPERTY(max_connections) - GNET_PROPERTY(normal_connections)
 			: 0;
 
-		if (n->flags & NODE_F_CRAWLER)
+		if (n->flags & NODE_F_CRAWLER) {
 			rw = str_bprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"%s"		/* Peers & Leaves */
-				"X-Live-Since: %s\r\n"
-				"\r\n",
+				"X-Live-Since: %s\r\n",
 				version_string, node_crawler_headers(n), start_rfc822_date);
-		else {
+		} else {
 			const char *token;
 			char degree[100];
 			char guess[60];
@@ -6474,11 +6772,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 			header_features_generate(FEATURES_CONNECTIONS,
 				gnet_response, gnet_response_max, &rw);
-
-			rw += str_bprintf(&gnet_response[rw],
-					gnet_response_max - rw, "\r\n");
 		}
 	}
+
+	rw += str_bprintf(&gnet_response[rw], gnet_response_max - rw, "\r\n");
 
 	/*
 	 * We might not be able to transmit the reply atomically.
@@ -7596,85 +7893,12 @@ node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
 }
 
 /**
- * Add new node.
- */
-void
-node_add(const host_addr_t addr, uint16 port, uint32 flags)
-{
-	if (!is_host_addr(addr) || !port)
-		return;
-
-	if (
-		!(SOCK_F_FORCE & flags) &&
-		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
-	)
-		return;
-
-	node_add_socket(NULL, addr, port, flags);
-}
-
-struct node_add_by_name_data {
-	uint32 flags;
-	uint16 port;	
-};
-
-/**
- * Called when we got a reply from the ADNS process.
- *
- * @todo TODO: All resolved addresses should be attempted.
- */
-static void
-node_add_by_name_helper(const host_addr_t *addrs, size_t n, void *user_data)
-{
-	struct node_add_by_name_data *data = user_data;
-
-	g_assert(addrs);
-	g_assert(data);
-	g_assert(data->port);
-
-	if (n > 0) {
-		size_t i = random_value(n - 1);
-		node_add(addrs[i], data->port, data->flags);
-	}
-	WFREE(data);
-}
-
-/**
- * Add new node by hostname.
- */
-void
-node_add_by_name(const char *host, uint16 port, uint32 flags)
-{
-	struct node_add_by_name_data *data;
-	
-	g_assert(host);
-
-	if (!port)
-		return;
-
-	WALLOC(data);
-	data->port = port;
-	data->flags = flags;
-
-	if (
-		!adns_resolve(host, settings_dns_net(), &node_add_by_name_helper, data)
-	) {
-		/*	node_add_by_name_helper() was already invoked! */
-		if (GNET_PROPERTY(node_debug) > 0)
-			g_warning("node_add_by_name: "
-				"adns_resolve() failed in synchronous mode");
-		return;
-	}
-}
-
-
-/**
  * Add new node, to which we possibly have an existing connection if
  * the socket is not NULL (incoming connection).
  */
-void
-node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
-	uint16 port, uint32 flags)
+static void
+node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
+	uint16 port, uint32 flags, bool g2)
 {
 	struct gnutella_node *n;
 	bool incoming = FALSE, already_connected = FALSE;
@@ -7828,6 +8052,14 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 			n->gnet_port = port;
 			n->proto_major = 0;
 			n->proto_minor = 6;				/* Handshake at 0.6 intially */
+
+			/*
+			 * We want to establish a G2 handshaking, we do not know yet
+			 * whether the remote node will support G2.
+			 */
+
+			if (g2)
+				n->attrs2 |= NODE_A2_TALKS_G2;
 		} else {
 			n->status = GTA_NODE_REMOVING;
 			n->remove_msg = "Connection failed";
@@ -7891,6 +8123,113 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	}
 
     node_fire_node_info_changed(n);
+}
+
+/**
+ * Add new incoming node.
+ */
+void
+node_add_socket(struct gnutella_socket *s)
+{
+	socket_check(s);
+
+	/*
+	 * For incoming connections, we don't know yet whether the node will
+	 * end-up connecting as a Gnutella node or as G2: this will be negotiated
+	 * during handshaking.
+	 */
+
+	node_add_internal(s, s->addr, s->port, 0, FALSE);
+}
+
+/**
+ * Add new Gnutella node.
+ */
+void
+node_add(const host_addr_t addr, uint16 port, uint32 flags)
+{
+	if (!is_host_addr(addr) || !port)
+		return;
+
+	if (
+		!(SOCK_F_FORCE & flags) &&
+		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
+	)
+		return;
+
+	node_add_internal(NULL, addr, port, flags, FALSE);
+}
+
+/**
+ * Add new G2 node.
+ */
+void
+node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
+{
+	if (!is_host_addr(addr) || !port)
+		return;
+
+	if (
+		!(SOCK_F_FORCE & flags) &&
+		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
+	)
+		return;
+
+	node_add_internal(NULL, addr, port, flags, TRUE);
+}
+
+struct node_add_by_name_data {
+	uint32 flags;
+	uint16 port;
+};
+
+/**
+ * Called when we got a reply from the ADNS process.
+ *
+ * @todo TODO: All resolved addresses should be attempted.
+ */
+static void
+node_add_by_name_helper(const host_addr_t *addrs, size_t n, void *user_data)
+{
+	struct node_add_by_name_data *data = user_data;
+
+	g_assert(addrs);
+	g_assert(data);
+	g_assert(data->port);
+
+	if (n > 0) {
+		size_t i = random_value(n - 1);
+		node_add(addrs[i], data->port, data->flags);
+	}
+	WFREE(data);
+}
+
+/**
+ * Add new node by hostname.
+ */
+void
+node_add_by_name(const char *host, uint16 port, uint32 flags)
+{
+	struct node_add_by_name_data *data;
+
+	g_assert(host);
+
+	if (!port)
+		return;
+
+	WALLOC(data);
+	data->port = port;
+	data->flags = flags;
+
+	if (
+		!adns_resolve(host, settings_dns_net(), &node_add_by_name_helper, data)
+	) {
+		/*	node_add_by_name_helper() was already invoked! */
+		if (GNET_PROPERTY(node_debug) > 0)
+			g_warning("node_add_by_name: "
+				"adns_resolve() failed in synchronous mode");
+		return;
+	}
 }
 
 /**
@@ -8907,9 +9246,45 @@ node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 	node_check(n);
 	g_assert(NODE_TALKS_G2(n));
 
+	/*
+	 * When receiving through the semi-reliable UDP layer, which can natively
+	 * deflate payloads, we want to monitor the overall performance of the
+	 * layer, including acknowledgment overhead.
+	 *
+	 * Therefore, all the data that is physically seen by the application layer
+	 * is "inflated" data (regardless of whether the message was transmitted
+	 * in deflated form).
+	 */
+
+	if (NODE_RX_COMPRESSED(n))
+		node_add_rx_inflated(n, n->size);
+	else
+		node_add_rx_given(n, n->size);
+
+	/*
+	 * We can't know for sure what the Gnutella node address is, so we use
+	 * that of the incoming packet.  Hopefully, the port used to send the
+	 * message will not be a transient one (unbound socket, or NAT-ed).
+	 */
+
+	n->gnet_addr = n->addr;
+	n->gnet_port = n->port;
+
+	/*
+	 * Populate the pseudo-node with the G2 traffic, as if we had successfully
+	 * issued a node_g2_read().
+	 */
+
+	n->size = pmsg_size(mb);
+	n->data = deconstify_pointer(pmsg_read_base(mb));
+	n->attrs = NODE_A_UDP;			/* Clears NODE_A_CAN_INFLATE */
+
 	/* FIXME -- XXX */
 	g_debug("NODE dropping G2 UDP traffic from %s: %s (%zu bytes)",
-		gnet_host_to_string(from), g2_msg_name(pmsg_start(mb), length), length);
+		gnet_host_to_string(from),
+		g2_msg_raw_name(pmsg_start(mb), length), length);
+
+	g2_node_handle(n);
 
 	pmsg_free(mb);
 	return TRUE;
@@ -8940,32 +9315,6 @@ node_init_outgoing(struct gnutella_node *n)
 		n->hello.size = MAX_LINE_SIZE;
 		n->hello.ptr = walloc(n->hello.size);
 
-		/*
-		 * Special hack for LimeWire, which insists on the presence of dynamic
-		 * querying headers and high outdegree to consider a leaf "good".
-		 * They should fix their clueless code instead of forcing everyone to
-		 * emit garbage.
-		 *
-		 * Oh well, contend them with totally bogus (fixed) headers.
-		 *
-		 *		--RAM, 2004-08-05
-		 */
-
-		if (settings_is_ultra()) {
-			str_bprintf(degree, sizeof(degree),
-				"X-Degree: %d\r\n"
-				"X-Max-TTL: %d\r\n",
-				(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)
-				 	- GNET_PROPERTY(normal_connections)) / 2,
-				GNET_PROPERTY(max_ttl));
-		} else {
-			str_bprintf(degree, sizeof(degree),
-				"X-Dynamic-Querying: 0.1\r\n"
-				"X-Ultrapeer-Query-Routing: 0.1\r\n"
-				"X-Degree: 32\r\n"
-				"X-Max-TTL: 4\r\n");
-		}
-
 		{
 			host_addr_t addr;
 			uint16 port;
@@ -8987,70 +9336,119 @@ node_init_outgoing(struct gnutella_node *n)
 			}
 		}
 
-		if (
-			GNET_PROPERTY(enable_guess) &&
-			(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
-		) {
-			str_bprintf(guess, sizeof(guess),
-				"X-Guess: %d.%d\r\n",
-				SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
+		if (NODE_TALKS_G2(n)) {
+			n->hello.len = str_bprintf(n->hello.ptr, n->hello.size,
+				"%s%d.%d\r\n"
+				"Listen-IP: %s%s%s\r\n"
+				"Remote-IP: %s\r\n"
+				"User-Agent: %s\r\n"
+				"Bye-Packet: 0.1\r\n"
+				"Accept: %s\r\n"
+				"%s"		/* "Accept-Encoding: deflate */
+				"X-Live-Since: %s\r\n"
+				"X-Hub: False\r\n"
+				"X-Hub-Needed: True\r\n"
+				"\r\n",
+				GNUTELLA_HELLO, n->proto_major, n->proto_minor,
+				my_addr, my_addr[0] && my_addr_v6[0] ? ", " : "", my_addr_v6,
+				host_addr_to_string(n->addr),
+				version_string,
+				APP_G2,
+				GNET_PROPERTY(gnet_deflate_enabled)
+					? "Accept-Encoding: deflate\r\n" : "",
+				start_rfc822_date);
 		} else {
-			guess[0] = '\0';
+			/*
+			 * Special hack for LimeWire, which insists on the presence of
+			 * dynamic querying headers and high outdegree to consider a
+			 * leaf "good".  They should fix their clueless code instead of
+			 * forcing everyone to emit garbage.
+			 *
+			 * Oh well, contend them with totally bogus (fixed) headers.
+			 *		--RAM, 2004-08-05
+			 */
+
+			if (settings_is_ultra()) {
+				str_bprintf(degree, sizeof(degree),
+					"X-Degree: %d\r\n"
+					"X-Max-TTL: %d\r\n",
+					(GNET_PROPERTY(up_connections) +
+						GNET_PROPERTY(max_connections) -
+						GNET_PROPERTY(normal_connections)) / 2,
+					GNET_PROPERTY(max_ttl));
+			} else {
+				str_bprintf(degree, sizeof(degree),
+					"X-Dynamic-Querying: 0.1\r\n"
+					"X-Ultrapeer-Query-Routing: 0.1\r\n"
+					"X-Degree: 32\r\n"
+					"X-Max-TTL: 4\r\n");
+			}
+
+
+			if (
+				GNET_PROPERTY(enable_guess) &&
+				(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
+			) {
+				str_bprintf(guess, sizeof(guess),
+					"X-Guess: %d.%d\r\n",
+					SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
+			} else {
+				guess[0] = '\0';
+			}
+
+			/*
+			 * IPv6-Ready: emit our GUID during handshake so that we can
+			 * detect connections to the same host via different IP protocols.
+			 */
+
+			gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+
+			n->hello.len = str_bprintf(n->hello.ptr, n->hello.size,
+				"%s%d.%d\r\n"
+				"Node: %s%s%s\r\n"
+				"Remote-IP: %s\r\n"
+				"User-Agent: %s\r\n"
+				"Pong-Caching: 0.1\r\n"
+				"Bye-Packet: 0.1\r\n"
+				"GGEP: 0.5\r\n"
+				"GUID: %s\r\n"
+				"Vendor-Message: 0.2\r\n"
+				"X-Query-Routing: 0.2\r\n"
+				"X-Requeries: False\r\n"
+				"%s"		/* "Accept-Encoding: deflate */
+				"X-Token: %s\r\n"
+				"X-Live-Since: %s\r\n"
+				"X-Ultrapeer: %s\r\n"
+				"%s"		/* X-Ultrapeer-Query-Routing */
+				"%s"		/* X-Degree + X-Max-TTL */
+				"%s"		/* X-Dynamic-Querying */
+				"%s"		/* X-Ext-Probes */
+				"%s",		/* X-Guess */
+				GNUTELLA_HELLO, n->proto_major, n->proto_minor,
+				my_addr, my_addr[0] && my_addr_v6[0] ? ", " : "", my_addr_v6,
+				host_addr_to_string(n->addr),
+				version_string,
+				guid_hex_str(&guid),
+				GNET_PROPERTY(gnet_deflate_enabled)
+					? "Accept-Encoding: deflate\r\n" : "",
+				tok_version(),
+				start_rfc822_date,
+				settings_is_leaf() ? "False" : "True",
+				settings_is_ultra() ? "X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
+				degree,
+				settings_is_ultra() ? "X-Dynamic-Querying: 0.1\r\n" : "",
+				settings_is_ultra() ? "X-Ext-Probes: 0.1\r\n" : "",
+				guess
+			);
+
+			header_features_generate(FEATURES_CONNECTIONS,
+				n->hello.ptr, n->hello.size, &n->hello.len);
+
+			n->hello.len += str_bprintf(&n->hello.ptr[n->hello.len],
+								n->hello.size - n->hello.len, "\r\n");
+
+			g_assert(n->hello.len < n->hello.size);
 		}
-
-		/*
-		 * IPv6-Ready: emit our GUID during handshake so that we can
-		 * detect connections to the same host via different IP protocols.
-		 */
-
-		gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
-
-		n->hello.len = str_bprintf(n->hello.ptr, n->hello.size,
-			"%s%d.%d\r\n"
-			"Node: %s%s%s\r\n"
-			"Remote-IP: %s\r\n"
-			"User-Agent: %s\r\n"
-			"Pong-Caching: 0.1\r\n"
-			"Bye-Packet: 0.1\r\n"
-			"GGEP: 0.5\r\n"
-			"GUID: %s\r\n"
-			"Vendor-Message: 0.2\r\n"
-			"X-Query-Routing: 0.2\r\n"
-			"X-Requeries: False\r\n"
-			"%s"		/* "Accept-Encoding: deflate */
-			"X-Token: %s\r\n"
-			"X-Live-Since: %s\r\n"
-			"X-Ultrapeer: %s\r\n"
-			"%s"		/* X-Ultrapeer-Query-Routing */
-			"%s"		/* X-Degree + X-Max-TTL */
-			"%s"		/* X-Dynamic-Querying */
-			"%s"		/* X-Ext-Probes */
-			"%s",		/* X-Guess */
-			GNUTELLA_HELLO,
-			n->proto_major, n->proto_minor,
-			my_addr, my_addr[0] && my_addr_v6[0] ? ", " : "", my_addr_v6,
-			host_addr_to_string(n->addr),
-			version_string,
-			guid_hex_str(&guid),
-			GNET_PROPERTY(gnet_deflate_enabled)
-				? "Accept-Encoding: deflate\r\n" : "",
-			tok_version(),
-			start_rfc822_date,
-			settings_is_leaf() ? "False" : "True",
-			settings_is_ultra() ? "X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
-			degree,
-			settings_is_ultra() ? "X-Dynamic-Querying: 0.1\r\n" : "",
-			settings_is_ultra() ? "X-Ext-Probes: 0.1\r\n" : "",
-			guess
-		);
-
-		header_features_generate(FEATURES_CONNECTIONS,
-			n->hello.ptr, n->hello.size, &n->hello.len);
-
-		n->hello.len += str_bprintf(&n->hello.ptr[n->hello.len],
-							n->hello.size - n->hello.len, "\r\n");
-
-		g_assert(n->hello.len < n->hello.size);
 
 		/*
 		 * We don't retry a connection from 0.6 to 0.4 if we fail to write the
@@ -9609,6 +10007,131 @@ bad_size:
 }
 
 /**
+ * Read G2 data from the message buffer we just received.
+ *
+ * @return TRUE whilst we think there is more data to read in the buffer.
+ */
+static bool
+node_g2_read(struct gnutella_node *n, pmsg_t *mb)
+{
+	int r;
+
+	/*
+	 * Grabbing of the G2 frame works thusly:
+	 *
+	 * As long as n->have_header is FALSE, we read bytes until we have enough
+	 * to figure out the length of the whole frame, checking after each byte.
+	 * At that point n->have_header is set to TRUE and n->size is set with
+	 * the frame length.
+	 */
+
+	if (!n->have_header) {
+		char *w;
+		size_t len;
+
+		if G_UNLIKELY(NULL == n->data) {
+			g_assert(0 == n->allocated);
+			n->allocated = NODE_G2_MIN_DATASIZE;
+			n->data = halloc(n->allocated);
+		}
+
+		w = n->data;
+
+		/*
+		 * We need 4 bytes at most to completely determine the size of the
+		 * whole G2 frame.
+		 */
+
+		if (0 == n->pos) {
+			r = pmsg_read(mb, w, 4);
+			if G_UNLIKELY(0 == r)
+				return FALSE;		/* Reached end of buffer */
+			n->pos += r;
+			node_add_rx_read(n, r);
+			len = g2_frame_whole_length(w, n->pos);
+		} else {
+			for (;;) {
+				g_assert(n->pos < sizeof n->header);
+
+				r = pmsg_read(mb, &w[n->pos], 1);
+				n->pos += r;
+				node_add_rx_read(n, r);
+				len = g2_frame_whole_length(w, n->pos);
+				if (len != 0)
+					break;
+				if (0 == r)
+					return FALSE;	/* Reached end of buffer */
+			}
+		}
+
+		// XXXX
+		g_debug("%s(): frame len is %zu", G_STRFUNC, len);
+
+		/*
+		 * If the length is 1, we reached an "end of stream" byte.
+		 */
+
+		if G_UNLIKELY(1 == len) {
+			node_bye(n, 202, "Got End-of-Stream byte");
+			return FALSE;
+		}
+
+		/*
+		 * If the length above our limit, abort: the stream is likely
+		 * to be corrupted.
+		 */
+
+		if G_UNLIKELY(len > GNET_PROPERTY(other_messages_kick_size)) {
+			gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
+			node_disable_read(n);
+			node_bye(n, 400, "Too large a frame (%zu bytes)", len);
+			return FALSE;
+		}
+
+		/*
+		 * OK, we are going to read the whole frame, allocate data space.
+		 */
+
+		if (n->allocated < len) {
+			n->data = hrealloc(n->data, len);
+			n->allocated = len;
+		}
+
+		n->have_header = TRUE;
+		n->size = len;
+
+		g_assert((size_t) n->size == len);	/* n->size large enough to hold */
+	}
+
+	/* Reading of the whole frame data */
+
+	r = pmsg_read(mb, n->data + n->pos, n->size - n->pos);
+
+	n->pos += r;
+	node_add_rx_read(n, r);
+
+	g_assert(n->pos <= n->size);
+
+	if (n->pos < n->size)
+		return FALSE;
+
+	/* Handle the G2 message */
+
+	n->received++;
+	gnet_stats_count_received_payload(n, n->data);
+	g2_node_handle(n);
+
+	/*
+	 * Reset parsing state for next frame.
+	 */
+
+	n->have_header = FALSE;
+	n->pos = 0;
+
+	return TRUE;		/* There may be more data */
+}
+
+/**
  * RX data indication callback used to give us some new Gnet traffic in a
  * low-level message structure (which can contain several Gnet messages).
  *
@@ -9619,8 +10142,9 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct gnutella_node *n = rx_owner(rx);
 
-	g_assert(mb);
+	g_assert(mb != NULL);
 	g_assert(NODE_IS_CONNECTED(n));
+	g_assert(!NODE_TALKS_G2(n));
 
 	/*
 	 * Since node_read() can shutdown the node, we must explicitly check
@@ -9637,6 +10161,43 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 
 	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
 		if (!node_read(n, mb))
+			break;
+	}
+
+	pmsg_free(mb);
+	return n->status == GTA_NODE_CONNECTED;
+}
+
+/**
+ * RX data indication callback used to give us some new G2 traffic in a
+ * low-level message structure (which can contain several G2 messages).
+ *
+ * @return FALSE if an error occurred.
+ */
+static bool
+node_g2_data_ind(rxdrv_t *rx, pmsg_t *mb)
+{
+	struct gnutella_node *n = rx_owner(rx);
+
+	g_assert(mb != NULL);
+	g_assert(NODE_IS_CONNECTED(n));
+	g_assert(NODE_TALKS_G2(n));
+
+	/*
+	 * Since node_read() can shutdown the node, we must explicitly check
+	 * the the GTA_NODE_CONNECTED status and can't use NODE_IS_CONNECTED().
+	 * Likewise, processing of messages can cause the node to become
+	 * unreadable, so we need to check that as well.
+	 *
+	 * The node_g2_read() routine will return FALSE when it detects that the
+	 * message buffer is empty.
+	 */
+
+	n->last_update = n->last_rx = tm_time();
+	n->flags |= NODE_F_ESTABLISHED;		/* Since we've got Gnutella data */
+
+	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
+		if (!node_g2_read(n, mb))
 			break;
 	}
 
@@ -11158,7 +11719,9 @@ node_infostr(const gnutella_node_t *n)
 
 	if (NODE_USES_UDP(n)) {
 		str_bprintf(buf, sizeof buf, "UDP %snode %s",
-			NODE_CAN_SR_UDP(n) ? "(semi-reliable) " : "", node_addr(n));
+			NODE_CAN_SR_UDP(n) ?
+				(NODE_TALKS_G2(n) ? "(G2) " : "(semi-reliable) ") : "",
+			node_addr(n));
 	} else {
 		str_bprintf(buf, sizeof buf, "%s node %s <%s>",
 			node_type(n), node_gnet_addr(n), node_vendor(n));
@@ -11708,12 +12271,30 @@ node_all_nodes(void)
 }
 
 /**
+ * @return list of all Gnutella nodes.
+ */
+const pslist_t *
+node_all_gnet_nodes(void)
+{
+	return sl_gnet_nodes;
+}
+
+/**
  * @return list of all ultra nodes.
  */
 const pslist_t *
 node_all_ultranodes(void)
 {
 	return sl_up_nodes;
+}
+
+/**
+ * @return list of all G2 nodes.
+ */
+const pslist_t *
+node_all_g2_nodes(void)
+{
+	return sl_g2_nodes;
 }
 
 /**

@@ -215,7 +215,7 @@ hsep_sanity_check(void)
 	 * sum up all the connections' triple values.
 	 */
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 
 		/* also consider unestablished connections here */
@@ -388,7 +388,7 @@ hsep_reset(void)
 
 	ZERO(&hsep_global_table);
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 
 		/* also consider unestablished connections here */
@@ -477,7 +477,7 @@ hsep_timer(time_t now)
 			hsep_notify_shared(0UL, 0UL);
 	}
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 		int diff;
 
@@ -983,7 +983,7 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 	 * sum up what they share (PONG-based library size).
 	 */
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 		gnet_node_status_t status;
 

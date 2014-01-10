@@ -363,7 +363,7 @@ nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 	concat_strings(data->flags, sizeof data->flags,
 		"<tt>", guc_node_flags_to_string(flags), "</tt>", (void *) 0);
 
-	ultra = NODE_P_ULTRA == flags->peermode;
+	ultra = NODE_P_ULTRA == flags->peermode || NODE_P_G2HUB == flags->peermode;
     data->fg = &(gtk_widget_get_style(GTK_WIDGET(treeview_nodes))
 					->fg[ultra ? GTK_STATE_NORMAL : GTK_STATE_INSENSITIVE]);
 }

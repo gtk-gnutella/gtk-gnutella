@@ -387,6 +387,7 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 struct pslist;
 
 void node_add(const host_addr_t addr, uint16, uint32 flags);
+void node_g2_add(const host_addr_t addr, uint16, uint32 flags);
 void node_add_by_name(const char *host, uint16, uint32 flags);
 void node_remove_by_id(const struct nid *node_id);
 void node_remove_nodes_by_id(const struct pslist *node_list);

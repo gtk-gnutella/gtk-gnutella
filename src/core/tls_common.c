@@ -530,6 +530,7 @@ tls_global_init(void)
 	HFREE_NULL(cert_file);
 
 	header_features_add(FEATURES_CONNECTIONS, f.name, f.major, f.minor);
+	header_features_add(FEATURES_G2_CONNECTIONS, f.name, f.major, f.minor);
 	header_features_add(FEATURES_DOWNLOADS, f.name, f.major, f.minor);
 	header_features_add(FEATURES_UPLOADS, f.name, f.major, f.minor);
 }

@@ -704,7 +704,7 @@ search_mark_sent_to_connected_nodes(search_ctrl_t *sch)
 {
 	const pslist_t *sl;
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *n = sl->data;
 
 		if (NODE_IS_WRITABLE(n))
@@ -3881,7 +3881,8 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 			search_starting(sch->search_handle);
 		}
 		search_mark_sent_to_connected_nodes(sch);
-		gmsg_search_sendto_all(node_all_nodes(), sch->search_handle, msg, size);
+		gmsg_search_sendto_all(node_all_gnet_nodes(),
+			sch->search_handle, msg, size);
 		goto cleanup;
 	}
 
@@ -4327,7 +4328,7 @@ search_dequeue_all_nodes(gnet_search_t sh)
 {
 	const pslist_t *sl;
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 		squeue_t *sq = NODE_SQUEUE(n);
 

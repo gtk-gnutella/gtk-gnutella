@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -19,6 +19,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Gnutella node management.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003, 2014
  */
 
 #ifndef _core_nodes_h_
@@ -527,7 +537,7 @@ node_type(const gnutella_node_t *n)
 	} else if (!NODE_TALKS_G2(n)) {
 		return NODE_IS_LEAF(n) ? "leaf" : NODE_IS_ULTRA(n) ? "ultra" : "legacy";
 	} else {
-		return "G2";			/* FIXME when we have G2 node types */
+		return "G2";	/* FIXME if we have various G2 node types (leaf/hub) */
 	}
 }
 
@@ -600,14 +610,15 @@ void node_slow_timer(time_t now);
 void node_timer(time_t now);
 uint connected_nodes(void);
 uint node_count(void);
+uint node_g2_count(void);
 int node_keep_missing(void);
 uint node_missing(void);
 uint node_leaves_missing(void);
+uint node_g2_hubs_missing(void);
 uint node_outdegree(void);
 bool node_is_connected(const host_addr_t addr, uint16 port, bool incoming);
 bool node_host_is_connected(const host_addr_t addr, uint16 port);
-void node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
-		uint16 port, uint32 flags);
+void node_add_socket(struct gnutella_socket *s);
 void node_remove(struct gnutella_node *,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 uint node_remove_by_addr(const host_addr_t addr, uint16 port);
@@ -674,6 +685,8 @@ sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const struct pslist *node_all_nodes(void);
 const struct pslist *node_all_ultranodes(void);
+const struct pslist *node_all_gnet_nodes(void);
+const struct pslist *node_all_g2_nodes(void);
 unsigned node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);

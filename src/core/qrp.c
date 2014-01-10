@@ -1257,7 +1257,7 @@ mrg_step_get_list(struct bgtask *unused_h, void *u, int unused_ticks)
 	(void) unused_ticks;
 	g_assert(MERGE_MAGIC == ctx->magic);
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 
@@ -5278,7 +5278,7 @@ qrt_build_query_target(
 	 * always get the query.
 	 */
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 		bool is_leaf;

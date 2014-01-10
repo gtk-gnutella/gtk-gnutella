@@ -5446,4 +5446,25 @@ prop = {
 	};
 };
 
+prop = {
+    name = "node_g2_count";
+    desc = "Number of G2 nodes currently connected.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "max_g2_hubs";
+    desc = "Maximum amount of G2 hubs we should connect to as a leaf.";
+    type = guint32;
+    data = {
+        default = 2;
+        min = 0;
+        max = 3;
+    };
+};
+
 /* vi: set ts=4: */

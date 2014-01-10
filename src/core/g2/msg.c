@@ -37,6 +37,8 @@
 
 #include "frame.h"
 
+#include "lib/constants.h"
+#include "lib/misc.h"			/* For clamp_strncpy() */
 #include "lib/patricia.h"
 #include "lib/once.h"
 
@@ -169,6 +171,29 @@ g2_msg_type(const void *start, size_t len)
 	g_assert((uint) type < UNSIGNED(G2_MSG_MAX));
 
 	return type;
+}
+
+/**
+ * Get the raw message name present at the start of a G2 packet.
+ *
+ * @param start		start of message
+ * @param len		amount of consecutive bytes we have so far
+ *
+ * @return the message name if we can intuit it, an empty string otherwise.
+ */
+const char *
+g2_msg_raw_name(const void *start, size_t len)
+{
+	const char *name;
+	size_t namelen;
+	char buf[G2_FRAME_NAME_LEN_MAX + 1];
+
+	name = g2_frame_name(start, len, &namelen);
+	if (NULL == name)
+		return "";
+
+	clamp_strncpy(buf, sizeof buf, name, namelen);
+	return constant_str(buf);
 }
 
 /**
