@@ -173,6 +173,9 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define G2_BYTELEN(ctrl)		(((ctrl) & 0xc0) >> 6)
+#define G2_NAMELEN(ctrl)		((((ctrl) & 0x38) >> 3) + 1)
+
 /**
  * Deserialization context.
  */
@@ -296,8 +299,8 @@ g2_frame_recursive_deserialize(struct frame_dctx *dctx)
 	if (0 == control)
 		return NULL;				/* End of stream */
 
-	bytelen = control & 0xc0;
-	namelen = (control & 0x38) + 1;
+	bytelen = G2_BYTELEN(control);
+	namelen = G2_NAMELEN(control);
 
 	if (0 != bytelen) {
 		if (!g2_frame_read_length(dctx, bytelen, &length))
@@ -424,8 +427,8 @@ g2_frame_whole_length(const void *buf, size_t len)
 	if (0 == control)
 		return 1;					/* End of stream */
 
-	bytelen = control & 0xc0;
-	namelen = (control & 0x38) + 1;
+	bytelen = G2_BYTELEN(control);
+	namelen = G2_NAMELEN(control);
 
 	if (0 != bytelen) {
 		if (!g2_frame_read_length(&dctx, bytelen, &length))
@@ -474,8 +477,8 @@ g2_frame_name(const void *buf, size_t len, size_t *nlen)
 	if (0 == control)
 		return NULL;				/* End of stream */
 
-	bytelen = control & 0xc0;
-	namelen = (control & 0x38) + 1;
+	bytelen = G2_BYTELEN(control);
+	namelen = G2_NAMELEN(control);
 
 	/*
 	 * Name is right after the control byte plus the length.
