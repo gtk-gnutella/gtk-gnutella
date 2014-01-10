@@ -59,7 +59,7 @@ typedef enum {
 } hcache_type_t;
 
 typedef enum {
-    HOST_ANY,
+    HOST_ANY = 0,
     HOST_ULTRA,
     HOST_ULTRA6,
     HOST_GUESS,

@@ -141,28 +141,33 @@ static const char G2HUBS_FILE[]		= "g2hubs";
  * Has to be in the same order as in the hcache_type_t definition
  * in gnet_nodes.h.
  */
-static const char * const names[HCACHE_MAX] = {
-    "fresh regular",
-    "valid regular",
-    "fresh IPv4 ultra",
-    "valid IPv4 ultra",
-    "fresh IPv6 ultra",
-    "valid IPv6 ultra",
-    "timeout",
-    "busy",
-    "unstable",
-    "alien",
-	"GUESS (running)",
-	"GUESS (introductions)",
-	"fresh G2 hubs",
-	"valid G2 hubs",
-    "none",
+static const char * const names[] = {
+    "fresh regular",			/* HCACHE_FRESH_ANY */
+    "valid regular",			/* HCACHE_VALID_ANY */
+    "fresh IPv4 ultra",			/* HCACHE_FRESH_ULTRA */
+    "valid IPv4 ultra",			/* HCACHE_VALID_ULTRA */
+    "fresh IPv6 ultra",			/* HCACHE_FRESH_ULTRA6 */
+    "valid IPv6 ultra",			/* HCACHE_VALID_ULTRA6 */
+    "timeout",					/* HCACHE_TIMEOUT */
+    "busy",						/* HCACHE_BUSY */
+    "unstable",					/* HCACHE_UNSTABLE */
+    "alien",					/* HCACHE_ALIEN */
+	"GUESS (IPv4 running)",			/* HCACHE_GUESS */
+	"GUESS (IPv4 introductions)",	/* HCACHE_GUESS_INTRO */
+	"GUESS (IPv6 running)",			/* HCACHE_GUESS6 */
+	"GUESS (IPv6 introductions)",	/* HCACHE_GUESS6_INTRO */
+	"fresh G2 hubs",			/* HCACHE_FRESH_G2HUB */
+	"valid G2 hubs",			/* HCACHE_FRESH_G2HUB */
+    "none",						/* HCACHE_NONE */
 };
 
-static const char * const host_type_names[HOST_MAX] = {
-    "any",
-    "ultra",
-	"guess"
+static const char * const host_type_names[] = {
+    "any",						/* HOST_ANY */
+    "ultra IPv4",				/* HOST_ULTRA */
+    "ultra IPv6",				/* HOST_ULTRA6 */
+	"GUESS IPv4",				/* HOST_GUESS */
+	"GUESS IPv6",				/* HOST_GUESS6 */
+	"G2 hub",					/* HOST_G2HUB */
 };
 
 enum {
@@ -626,6 +631,7 @@ const char *
 hcache_type_to_string(hcache_type_t type)
 {
 	g_assert((uint) type < HCACHE_MAX);
+	STATIC_ASSERT(HCACHE_MAX == G_N_ELEMENTS(names));
 
 	return names[type];
 }
@@ -637,6 +643,7 @@ const char *
 host_type_to_string(host_type_t type)
 {
 	g_assert((uint) type < HOST_MAX);
+	STATIC_ASSERT(HOST_MAX == G_N_ELEMENTS(host_type_names));
 
 	return host_type_names[type];
 }
