@@ -3685,7 +3685,7 @@ static struct tx_link_cb node_tx_link_cb = {
  ***/
 
 /**
- * Invoked on each successfully sent datagram to update message accounting
+ * Invoked on each successfully sent messages to update message accounting
  * and node information.
  */
 static void
@@ -3760,6 +3760,24 @@ node_g2_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 		g_info("UDP-G2 sent %s (%d bytes) to %s",
 			g2_msg_type_name(type), mb_size, gnet_host_to_string(to));
 	}
+}
+
+/**
+ * Invoked on each successfully sent messages to update message accounting
+ * and node information.
+ */
+static void
+node_g2_msg_accounting(void *o, const pmsg_t *mb)
+{
+	gnutella_node_t *n = o;
+	int mb_size = pmsg_size(mb);
+	enum g2_msg type = g2_msg_type(pmsg_start(mb), mb_size);
+
+	node_check(n);
+	g_assert(NODE_TALKS_G2(n));
+
+	node_add_tx_written(n, mb_size);
+	node_g2_sent_accounting(n, type, mb_size);
 }
 
 /**
@@ -3895,12 +3913,14 @@ static struct mq_uops node_mq_cb = {
 	gmsg_cmp,					/* msg_cmp */
 	gmsg_headcmp,				/* msg_headcmp */
 	gmsg_mq_templates,			/* msg_templates */
+	node_msg_accounting,		/* msg_sent */
 };
 
 static struct mq_uops node_g2_mq_cb = {
-	NULL,				/* msg_cmp */
-	NULL,				/* msg_headcmp */
-	NULL,				/* msg_templates */
+	NULL,						/* msg_cmp */
+	NULL,						/* msg_headcmp */
+	NULL,						/* msg_templates */
+	node_g2_msg_accounting,		/* msg_sent */
 };
 
 /**

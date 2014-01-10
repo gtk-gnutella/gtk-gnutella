@@ -229,7 +229,8 @@ again:
 			uint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
-			node_sent_accounting(q->node, function, mb_start, pmsg_size(mb));
+			if (q->uops->msg_sent != NULL)
+				q->uops->msg_sent(q->node, mb);
 			r -= iovec_len(ie);
 			if (q->qlink)
 				q->cops->qlink_remove(q, l);
@@ -407,7 +408,8 @@ again:
 
 		if (written == size) {
 			pmsg_mark_sent(mb);
-			node_sent_accounting(q->node, function, mbs, size);
+			if (q->uops->msg_sent != NULL)
+				q->uops->msg_sent(q->node, mb);
 			goto cleanup;
 		}
 

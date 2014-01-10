@@ -70,6 +70,12 @@ struct mq_ops;
 typedef iovec_t *(*mq_msgtmp_t)(bool initial, size_t *vcnt);
 
 /**
+ * Traffic accounting callback, invoked each time a message has been sent
+ * by the message queue.
+ */
+typedef void (*mq_msgsent_t)(void *node, const pmsg_t *mb);
+
+/**
  * User-supplied parameters, which are callbacks necessary for the message
  * queue operations but which are dependent on the messages being enqueued.
  */
@@ -77,6 +83,7 @@ struct mq_uops {
 	cmp_fn_t msg_cmp;			/**< Message (priority) comparison routine */
 	cmp_fn_t msg_headcmp;		/**< Only compare message "headers" */
 	mq_msgtmp_t msg_templates;	/**< Get message templates for "swift" mode */
+	mq_msgsent_t msg_sent;		/**< Message sent */
 };
 
 #ifdef MQ_INTERNAL
