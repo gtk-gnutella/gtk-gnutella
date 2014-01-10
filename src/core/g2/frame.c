@@ -509,11 +509,11 @@ g2_frame_name(const void *buf, size_t len, size_t *nlen)
  * @return a newly created G2 tree if data was valid, NULL if packet
  * was malformed or incompletely held in the buffer.
  */
-const g2_tree_t *
+g2_tree_t *
 g2_frame_deserialize(const void *buf, size_t len, size_t *packet_len, bool copy)
 {
 	struct frame_dctx dctx;
-	const g2_tree_t *t;
+	g2_tree_t *t;
 
 	g_assert(buf != NULL);
 	g_assert(size_is_positive(len));
