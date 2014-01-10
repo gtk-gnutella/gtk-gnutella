@@ -345,8 +345,10 @@ g2_frame_recursive_deserialize(struct frame_dctx *dctx)
 			const uint8 *cptr = childctx.p;		/* Control byte location */
 			g2_tree_t *child;
 
-			if (0 == *cptr)			/* End of child straem */
+			if (0 == *cptr) {		/* End of child straem */
+				childctx.p++;
 				break;
+			}
 
 			children++;
 
@@ -367,10 +369,12 @@ g2_frame_recursive_deserialize(struct frame_dctx *dctx)
 	 * Read the payload, if any.
 	 */
 
-	paylen = ptr_diff(dctx->p, start) - length;
+	paylen = length - ptr_diff(dctx->p, start);
 
 	if (!size_is_non_negative(paylen))
 		goto failure;				/* Length was bad, we got garbage */
+
+	g_assert(ptr_cmp(const_ptr_add_offset(dctx->p, paylen), dctx->end) <= 0);
 
 	if (0 != paylen) {
 		g2_tree_set_payload(node, dctx->p, paylen, dctx->copy);
