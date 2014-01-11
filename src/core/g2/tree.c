@@ -108,6 +108,7 @@
 
 #ifdef TREE_TESTING
 #include "tfmt.h"
+#include "frame.h"
 #endif
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -574,40 +575,48 @@ g2_tree_enter_leave(g2_tree_t *root,
 void G_GNUC_COLD
 g2_tree_test(void)
 {
-	g2_tree_t *root, *first, *node, *c2;
+	g2_tree_t *root, *first, *node, *c2, *retrieved;
 	const char root_payload[] = "root payload";
 	const char second[] = "second payload";
+	size_t needed, length, rlen;
+	void *buffer;
 	bool ok;
 
 	g_debug("%s() starting...", G_STRFUNC);
 
+	/*
+	 * Tree primitives testing.
+	 */
+
 	root = g2_tree_alloc("root", root_payload, strlen(root_payload), TRUE);
 	g2_tree_add_child(root,
-		g2_tree_alloc("second child", second, strlen(second), TRUE));
-	first = g2_tree_alloc_empty("first child");
+		g2_tree_alloc("schild", second, strlen(second), TRUE));
+	first = g2_tree_alloc_empty("rchild");
 	g2_tree_add_child(root, first);
-	g2_tree_add_child(first, g2_tree_alloc_empty("c3"));
 	g2_tree_add_child(first, (c2 = g2_tree_alloc_empty("c2")));
+	g2_tree_add_child(c2, g2_tree_alloc_empty("d2"));
+	g2_tree_add_child(c2, g2_tree_alloc_empty("d1"));
+	g2_tree_add_child(first, g2_tree_alloc_empty("c3"));
 	g2_tree_add_child(first, g2_tree_alloc_empty("c1"));
 
-	ok = g2_tfmt_tree_dump(root, stderr, G2FMT_O_PAYLOAD);
+	ok = g2_tfmt_tree_dump(root, stderr, G2FMT_O_PAYLOAD | G2FMT_O_PAYLEN);
 	g_assert(ok);
 
-	node = g2_tree_lookup(first, "/root/first child/c2");
+	node = g2_tree_lookup(first, "/root/rchild/c2");
 	g_assert(node == c2);
 	node = g2_tree_lookup(first, "/root/bar/c2");
 	g_assert(node == NULL);
-	node = g2_tree_lookup(first, "/root/first child/c4");
+	node = g2_tree_lookup(first, "/root/rchild/c4");
 	g_assert(node == NULL);
-	node = g2_tree_lookup(root, "/root/first child/c2");
+	node = g2_tree_lookup(root, "/root/rchild/c2");
 	g_assert(node == c2);
-	node = g2_tree_lookup(root, "/root/first child/c1/../c2");
+	node = g2_tree_lookup(root, "/root/rchild/c1/../c2");
 	g_assert(node == c2);
-	node = g2_tree_lookup(root, "/root/first child/c1/../c2/../c2");
+	node = g2_tree_lookup(root, "/root/rchild/c1/../c2/../c2");
 	g_assert(node == c2);
-	node = g2_tree_lookup(root, "/root/first child/c4/../c2");
+	node = g2_tree_lookup(root, "/root/rchild/c4/../c2");
 	g_assert(node == NULL);	/* Since there is no "c4" */
-	node = g2_tree_lookup(root, "/root/first child/././c2");
+	node = g2_tree_lookup(root, "/root/rchild/././c2");
 	g_assert(node == c2);
 	node = g2_tree_lookup(first, "c4");
 	g_assert(node == NULL);
@@ -616,7 +625,33 @@ g2_tree_test(void)
 	node = g2_tree_lookup(first, "./c2");
 	g_assert(node == c2);
 
+	/*
+	 * Serialization testing.
+	 */
+
+	needed = g2_frame_serialize(root, NULL, 0);
+	g_debug("%s(): need %zu bytes to serialize tree", G_STRFUNC, needed);
+
+	buffer = halloc(needed);
+	length = g2_frame_serialize(root, buffer, needed);
+	g_assert(length == needed);
+
+	retrieved = g2_frame_deserialize(buffer, length, &rlen, TRUE);
+	g_assert(retrieved != NULL);
+	g_assert(length == rlen);
+
+	g_debug("%s(): deserialized tree:", G_STRFUNC);
+	ok = g2_tfmt_tree_dump(retrieved, stderr, G2FMT_O_PAYLOAD | G2FMT_O_PAYLEN);
+	g_assert(ok);
+
+	node = g2_tree_lookup(retrieved, "/root/rchild/c2");
+	g_assert(node != NULL);
+	g_assert(node != c2);
+	g_assert(0 == strcmp("c2", g2_tree_name(node)));
+
+	HFREE_NULL(buffer);
 	g2_tree_free_null(&root);
+	g2_tree_free_null(&retrieved);
 
 	g_debug("%s() done.", G_STRFUNC);
 }
