@@ -36,6 +36,7 @@
 #include "verify.h"
 
 #include "lib/misc.h"
+#include "lib/once.h"
 #include "lib/sha1.h"
 
 #include "core/verify_sha1.h"
@@ -44,7 +45,7 @@
 
 static struct {
 	struct verify	*verify;
-	SHA1Context		context;
+	SHA1_context	context;
 	struct sha1		digest;
 } verify_sha1;
 
@@ -60,8 +61,8 @@ verify_sha1_reset(filesize_t amount)
 	int ret;
 
 	(void) amount;
-	ret = SHA1Reset(&verify_sha1.context);
-	g_assert(shaSuccess == ret);
+	ret = SHA1_reset(&verify_sha1.context);
+	g_assert(SHA_SUCCESS == ret);
 }
 
 static int
@@ -69,8 +70,8 @@ verify_sha1_update(const void *data, size_t size)
 {
 	int ret;
 
-	ret = SHA1Input(&verify_sha1.context, data, size);
-	return shaSuccess == ret ? 0 : -1;
+	ret = SHA1_input(&verify_sha1.context, data, size);
+	return SHA_SUCCESS == ret ? 0 : -1;
 }
 
 static int
@@ -78,8 +79,8 @@ verify_sha1_final(void)
 {
 	int ret;
 
-	ret = SHA1Result(&verify_sha1.context, &verify_sha1.digest);
-	return shaSuccess == ret ? 0 : -1;
+	ret = SHA1_result(&verify_sha1.context, &verify_sha1.digest);
+	return SHA_SUCCESS == ret ? 0 : -1;
 }
 
 static const struct verify_hash verify_hash_sha1 = {
@@ -105,19 +106,31 @@ verify_sha1_digest(const struct verify *ctx)
 	return &verify_sha1.digest;
 }
 
-void
-verify_sha1_init(void)
+static G_GNUC_COLD void
+verify_sha1_init_once(void)
 {
-	static int initialized;
-
-	if (!initialized) {
-		initialized = TRUE;
-
-		verify_sha1.verify = verify_new(&verify_hash_sha1);
-	}
+	verify_sha1.verify = verify_new(&verify_hash_sha1);
 }
 
-void
+G_GNUC_COLD void
+verify_sha1_init(void)
+{
+	static once_flag_t initialized;
+
+	/*
+	 * We cannot use once_flag_run() because verify_new() can create a thread
+	 * and cause the current thread to sleep with a lock (the mutex that
+	 * the once layer will acquire).
+	 *
+	 * Therefore we need to use once_flag_runwait(), which can block the
+	 * calling thread on a condition but does not hold any lock when invoking
+	 * the init routine.
+	 */
+
+	once_flag_runwait(&initialized, verify_sha1_init_once);
+}
+
+G_GNUC_COLD void
 verify_sha1_close(void)
 {
 	verify_free(&verify_sha1.verify);

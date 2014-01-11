@@ -150,8 +150,7 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
         row++;
     }
 
-    g_warning("%s: upload not found [handle=%u]",
-        G_GNUC_PRETTY_FUNCTION, u);
+    g_warning("%s(): upload not found [handle=%u]", G_STRFUNC, u);
 
     return -1;
 }
@@ -181,8 +180,8 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
     clist_uploads = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
     row =  find_row(u->upload_handle, &rd);
 	if (row == -1) {
-        g_warning("%s: no matching row found [handle=%u]",
-            G_GNUC_PRETTY_FUNCTION, u->upload_handle);
+        g_warning("%s(): no matching row found [handle=%u]",
+            G_STRFUNC, u->upload_handle);
 		return;
 	}
 

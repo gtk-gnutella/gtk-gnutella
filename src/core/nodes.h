@@ -660,8 +660,8 @@ size_t node_http_fw_node_info_add(char *buf, size_t size, bool, host_net_t);
 size_t node_http_proxies_add(char *buf, size_t size, void *arg, uint32 flags);
 sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
-const GSList *node_all_nodes(void);
-const GSList *node_all_ultranodes(void);
+const struct pslist *node_all_nodes(void);
+const struct pslist *node_all_ultranodes(void);
 unsigned node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);

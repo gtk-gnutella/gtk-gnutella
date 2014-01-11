@@ -35,6 +35,7 @@
 #define _sectoken_h_
 
 #include "host_addr.h"
+#include "timestamp.h"
 
 struct sectoken_gen;
 typedef struct sectoken_gen sectoken_gen_t;

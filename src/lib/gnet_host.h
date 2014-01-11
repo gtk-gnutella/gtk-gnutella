@@ -42,6 +42,7 @@
 
 #include "hashlist.h"
 #include "host_addr.h"
+#include "pslist.h"
 #include "vector.h"
 
 /**
@@ -195,6 +196,7 @@ gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
 bool gnet_host_vec_contains(gnet_host_vec_t *, host_addr_t, uint16);
 void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, uint16 port);
 gnet_host_vec_t *gnet_host_vec_from_gslist(GSList *);
+gnet_host_vec_t *gnet_host_vec_from_pslist(pslist_t *);
 gnet_host_vec_t *gnet_host_vec_from_hash_list(hash_list_t *);
 gnet_host_vec_t *gnet_host_vec_from_vector(vector_t *);
 

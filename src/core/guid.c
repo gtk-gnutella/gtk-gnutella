@@ -649,7 +649,8 @@ get_guiddata(const struct guid *guid)
 
 	if (NULL == gd) {
 		if (dbmw_has_ioerr(db_guid)) {
-			g_warning("DBMW \"%s\" I/O error", dbmw_name(db_guid));
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error", dbmw_name(db_guid));
 		}
 	}
 

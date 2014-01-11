@@ -41,6 +41,7 @@
  */
 
 #include "lib/adns.h"
+#include "lib/pslist.h"
 
 #include "if/core/bitzi.h"
 #include "if/core/downloads.h"
@@ -165,8 +166,8 @@ void guc_hcache_get_stats(hcache_stats_t *);
 int guc_hsep_get_table_size(void);
 void guc_hsep_get_non_hsep_triple(hsep_triple *);
 const char *guc_hsep_get_static_str(int row, int column);
-void guc_hsep_add_global_table_listener(GCallback, frequency_t, uint32);
-void guc_hsep_remove_global_table_listener(GCallback);
+void guc_hsep_add_global_table_listener(callback_fn_t, frequency_t, uint32);
+void guc_hsep_remove_global_table_listener(callback_fn_t);
 
 /* node interface functions */
 void guc_node_add_node_added_listener(node_added_listener_t);
@@ -217,7 +218,7 @@ bool guc_search_is_passive(gnet_search_t);
 bool guc_search_is_whats_new(gnet_search_t sh);
 
 void guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
-GSList *guc_search_associated_sha1(gnet_search_t sh);
+pslist_t *guc_search_associated_sha1(gnet_search_t sh);
 unsigned guc_search_associated_sha1_count(gnet_search_t sh);
 const char *guc_search_media_mask_to_string(unsigned mask);
 

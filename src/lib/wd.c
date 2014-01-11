@@ -89,7 +89,7 @@ wd_expired(cqueue_t *cq, void *arg)
 
 	watchdog_check(wd);
 
-	wd->ev = NULL;
+	cq_zero(cq, &wd->ev);
 
 	/*
 	 * If no kicks have happened, fire the registered callback.  Otherwise,

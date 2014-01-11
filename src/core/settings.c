@@ -39,6 +39,7 @@
 #endif
 
 #include "settings.h"
+
 #include "ban.h"
 #include "bsched.h"
 #include "ctl.h"
@@ -71,6 +72,7 @@
 
 #include "xml/vxml.h"
 
+#include "lib/aje.h"
 #include "lib/bg.h"
 #include "lib/bit_array.h"
 #include "lib/compat_misc.h"
@@ -80,8 +82,10 @@
 #include "lib/dbstore.h"
 #include "lib/debug.h"
 #include "lib/eval.h"
+#include "lib/evq.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/frand.h"
 #include "lib/getcpucount.h"
 #include "lib/getgateway.h"
 #include "lib/gethomedir.h"
@@ -93,21 +97,28 @@
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
+#include "lib/tmalloc.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
 #include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define SETTINGS_RANDOM_SEED	4096	/* Amount of random bytes saved */
+
 static const char config_file[] = "config_gnet";
 
-static const mode_t IPC_DIR_MODE = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
-static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
-static const mode_t CONFIG_DIR_MODE =
+static const mode_t IPC_DIR_MODE     = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
+static const mode_t PID_FILE_MODE    = S_IRUSR | S_IWUSR; /* 0600 */
+static const mode_t CONFIG_DIR_MODE  =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
 static const char *home_dir;
@@ -134,6 +145,7 @@ static prop_set_t *properties = NULL;
 
 static const char pidfile[] = "gtk-gnutella.pid";
 static const char dirlockfile[] = ".gtk-gnutella.lock";
+static const char randseed[] = "randseed";
 
 static bool settings_init_running;
 
@@ -682,6 +694,65 @@ settings_update_downtime(void)
 	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_DOWNTIME, average);
 }
 
+/**
+ * Reload random bytes saved in ~/.gtk-gnutella/randseed
+ */
+static void
+settings_random_reload(void)
+{
+	char *file;
+	ssize_t got;
+
+	file = make_pathname(config_dir, randseed);
+	got = frand_restore(file, aje_addrandom, SETTINGS_RANDOM_SEED);
+
+	if (-1 == got) {
+		if (errno != ENOENT)
+			g_warning("cannot reload random data from %s: %m", file);
+	} else {
+		ssize_t cleared;
+
+		if (debugging(0))
+			g_info("loaded %zd random byte%s from %s", got, plural(got), file);
+
+		/*
+		 * We clear the random bytes we load since they entered the entropy
+		 * pool now and should not be used as such again.  We don't unlink
+		 * the file to make sure we have the disk space needed at shutdown
+		 * time to persist our entropy.
+		 */
+
+		cleared = frand_clear(file, got);
+		if (cleared != got) {
+			g_warning("could not clear leading %zd byte%s from %s: %m",
+				got, plural(got), file);
+		}
+	}
+
+	HFREE_NULL(file);
+}
+
+/**
+ * Save random bytes into ~/.gtk-gnutella/randseed.
+ */
+void
+settings_random_save(bool verbose)
+{
+	char *file;
+	ssize_t saved;
+
+	file = make_pathname(config_dir, randseed);
+	saved = frand_save(file, aje_random_bytes, SETTINGS_RANDOM_SEED);
+
+	if (-1 == saved) {
+		g_warning("could not save random data into %s: %m", file);
+	} else if (verbose) {
+		g_info("saved %zd random byte%s into %s", saved, plural(saved), file);
+	}
+
+	HFREE_NULL(file);
+}
+
 G_GNUC_COLD void
 settings_init(void)
 {
@@ -779,7 +850,7 @@ settings_init(void)
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
 			need_get_non_stdio_fd() ? "cannot" : "can");
-		g_info("detected %ld CPU%s", cpus, 1 == cpus ? "" : "s");
+		g_info("detected %ld CPU%s", cpus, plural(cpus));
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",
@@ -822,6 +893,8 @@ settings_init(void)
 
 	/* propagate randomness from previous run */
 
+	settings_random_reload();		/* Before calling random_add() */
+
 	{
 		sha1_t buf;		/* 160 bits */
 
@@ -847,13 +920,35 @@ no_config_dir:
 /**
  * Generate new randomness.
  */
-void
-settings_add_randomness(void)
+static void
+settings_gen_randomness(void *unused)
 {
 	sha1_t buf;		/* 160 bits */
 
-	random_bytes(&buf, SHA1_RAW_SIZE);
+	(void) unused;
+	g_assert(thread_is_main());
+
+	aje_random_bytes(&buf, SHA1_RAW_SIZE);
 	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
+}
+
+/**
+ * Generate new randomness.
+ *
+ * This is an event callback invoked when new randomness has been flushed
+ * to random number generators.
+ */
+void
+settings_add_randomness(void)
+{
+	/*
+	 * Since this can be called from any thread collecting and feeding entropy
+	 * to the global random pool, we need to funnel back the generation to
+	 * the main thread, using a "safe" event in case some callbacks are attached
+	 * to the change of the "randomness" property.
+	 */
+
+	teq_safe_post(THREAD_MAIN, settings_gen_randomness, NULL);
 }
 
 /**
@@ -1317,6 +1412,7 @@ settings_shutdown(void)
 
 	update_uptimes();
 	remember_local_addr_port();
+	settings_random_save(debugging(0));
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
@@ -2511,6 +2607,17 @@ dbstore_debug_changed(property_t prop)
 }
 
 static bool
+evq_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	evq_set_debug(val);
+
+    return FALSE;
+}
+
+static bool
 inputevt_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -2555,6 +2662,17 @@ palloc_debug_changed(property_t prop)
 }
 
 static bool
+tm_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_tm_debug(val);
+
+    return FALSE;
+}
+
+static bool
 vmm_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -2583,6 +2701,17 @@ xmalloc_debug_changed(property_t prop)
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_xmalloc_debug(val);
+
+    return FALSE;
+}
+
+static bool
+tmalloc_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_tmalloc_debug(val);
 
     return FALSE;
 }
@@ -2650,15 +2779,13 @@ local_addr_changed(property_t prop)
 		host_addr_is_ipv4_mapped(addr) ||
 		NET_TYPE_IPV6 == net
 	) {
-		GSList *sl_addrs, *sl;
+		pslist_t *sl_addrs, *sl;
 		host_addr_t old_addr = addr;
 
 		addr = zero_host_addr;
 		sl_addrs = host_addr_get_interface_addrs(net);
-		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
-			host_addr_t *addr_ptr;
-
-			addr_ptr = sl->data;
+		PSLIST_FOREACH(sl_addrs, sl) {
+			host_addr_t *addr_ptr = sl->data;
 			if (host_addr_is_routable(*addr_ptr)) {
 				addr = *addr_ptr;
 				break;
@@ -2788,17 +2915,16 @@ static cevent_t *ev_file_descriptor_runout;
  * Reset the property.
  */
 static void
-reset_property_cb(cqueue_t *unused_cq, void *obj)
+reset_property_cb(cqueue_t *cq, void *obj)
 {
 	property_t prop = (property_t) GPOINTER_TO_UINT(obj);
 
-	(void) unused_cq;
 	switch (prop) {
 	case PROP_FILE_DESCRIPTOR_SHORTAGE:
-		ev_file_descriptor_shortage = NULL;
+		cq_zero(cq, &ev_file_descriptor_shortage);
 		break;
 	case PROP_FILE_DESCRIPTOR_RUNOUT:
-		ev_file_descriptor_runout = NULL;
+		cq_zero(cq, &ev_file_descriptor_runout);
 		break;
 	default:
 		g_error("unhandled property #%d", prop);
@@ -3042,6 +3168,21 @@ static prop_map_t property_map[] = {
 		node_online_mode_changed,
 		TRUE						/* Need to call callback at init time */
 	},
+    {
+        PROP_EVQ_DEBUG,
+        evq_debug_changed,
+        TRUE
+    },
+    {
+        PROP_TM_DEBUG,
+        tm_debug_changed,
+        TRUE
+    },
+    {
+        PROP_TMALLOC_DEBUG,
+        tmalloc_debug_changed,
+        TRUE
+    },
     {
         PROP_VXML_DEBUG,
         vxml_debug_changed,

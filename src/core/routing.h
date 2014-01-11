@@ -50,7 +50,7 @@ struct route_dest {
 	route_type_t type;
 	union {
 		struct gnutella_node *u_node;
-		GSList *u_nodes;	/**< For ROUTE_MULTI */
+		struct pslist *u_nodes;	/**< For ROUTE_MULTI */
 	} ur;
 	unsigned duplicate:1;	/**< Set if message was a duplicate */
 };
@@ -74,7 +74,7 @@ bool route_message(struct gnutella_node **, struct route_dest *);
 void routing_node_remove(void *node);
 void message_add(const struct guid *muid, uint8, struct gnutella_node *);
 void message_forget(const struct guid *muid, uint8, struct gnutella_node *);
-GSList *route_towards_guid(const struct guid *guid);
+struct pslist *route_towards_guid(const struct guid *guid);
 bool route_exists_for_reply(const struct guid *muid, uint8 function);
 bool route_guid_pushable(const struct guid *guid);
 
@@ -86,4 +86,5 @@ void route_starving_add(const struct guid *guid, route_starving_cb_t cb);
 void route_starving_remove(const struct guid *guid);
 
 #endif /* _core_routing_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

@@ -5381,4 +5381,37 @@ prop = {
     };
 };
 
+prop = {
+	name = "tm_debug";
+	desc = "Debug level for time management.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "tmalloc_debug";
+	desc = "Debug level for the tmalloc() thread-magazine object distributor.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "evq_debug";
+	desc = "Debug level for the event queue thread.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

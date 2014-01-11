@@ -37,7 +37,9 @@
 #include "common.h"
 
 #include "stringify.h"
+
 #include "ascii.h"
+#include "buf.h"
 #include "endian.h"
 #include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
 #include "halloc.h"
@@ -241,41 +243,46 @@ ipv6_to_string_buf(const uint8_t *ipv6, char *dst, size_t size)
 const char *
 ipv6_to_string(const uint8 *ipv6)
 {
-	static char buf[IPV6_ADDR_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, IPV6_ADDR_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = ipv6_to_string_buf(ipv6, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
+	n = ipv6_to_string_buf(ipv6, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 ipv6_to_string2(const uint8 *ipv6)
 {
-	static char buf[IPV6_ADDR_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, IPV6_ADDR_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = ipv6_to_string_buf(ipv6, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
+	n = ipv6_to_string_buf(ipv6, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 ip_to_string(uint32 ip)
 {
-	static char buf[IPV4_ADDR_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, IPV4_ADDR_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	ipv4_to_string_buf(ip, buf, sizeof buf);
-	return buf;
+	n = ipv4_to_string_buf(ip, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 hostname_port_to_string(const char *hostname, uint16 port)
 {
-	static char a[300];
+	str_t *s = str_private(G_STRFUNC, 255 + UINT16_DEC_BUFLEN + 2);
 
-	str_bprintf(a, sizeof(a), "%.255s:%u", hostname, port);
-	return a;
+	str_printf(s, "%.255s:%u", hostname, port);
+	return str_2c(s);
 }
 
 size_t
@@ -446,124 +453,163 @@ fileoffset_t_to_string_buf(fileoffset_t v, char *dst, size_t size)
 const char *
 uint32_to_string(uint32 v)
 {
-	static char buf[UINT32_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, UINT32_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = uint32_to_string_buf(v, buf, sizeof buf);
+	n = uint32_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 uint64_to_string(uint64 v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = uint64_to_string_buf(v, buf, sizeof buf);
+	n = uint64_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 uint64_to_string2(uint64 v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = uint64_to_string_buf(v, buf, sizeof buf);
+	n = uint64_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+uint64_to_string3(uint64 v)
+{
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = uint64_to_string_buf(v, p, sz);
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+ulong_to_string(ulong v)
+{
+	buf_t *b = buf_private(G_STRFUNC, ULONG_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = ulong_to_string_buf(v, p, sz);
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 uint_to_string(unsigned v)
 {
-	static char buf[UINT_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, UINT_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = uint_to_string_buf(v, buf, sizeof buf);
+	n = uint_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 size_t_to_string(size_t v)
 {
-	static char buf[SIZE_T_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, SIZE_T_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = size_t_to_string_buf(v, buf, sizeof buf);
+	n = size_t_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
-pointer_to_string(const void *p)
+pointer_to_string(const void *q)
 {
-	static char buf[POINTER_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, POINTER_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = pointer_to_string_buf(p, buf, sizeof buf);
+	n = pointer_to_string_buf(q, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 filesize_to_string(filesize_t v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, FILESIZE_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
 	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
-	n = uint64_to_string_buf(v, buf, sizeof buf);
+
+	n = uint64_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 filesize_to_string2(filesize_t v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, FILESIZE_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
 	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
-	n = uint64_to_string_buf(v, buf, sizeof buf);
+
+	n = uint64_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 filesize_to_string3(filesize_t v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, FILESIZE_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
 	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
-	n = uint64_to_string_buf(v, buf, sizeof buf);
+
+	n = uint64_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 fileoffset_t_to_string(fileoffset_t v)
 {
-	static char buf[OFF_T_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, OFF_T_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = fileoffset_t_to_string_buf(v, buf, sizeof buf);
+	n = fileoffset_t_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 size_t
@@ -709,49 +755,68 @@ size_t_to_gstring_buf(size_t v, char *dst, size_t size)
 const char *
 uint32_to_gstring(uint32 v)
 {
-	static char buf[UINT32_DEC_GRP_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, UINT32_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = uint32_to_gstring_buf(v, buf, sizeof buf);
+	n = uint32_to_gstring_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 uint64_to_gstring(uint64 v)
 {
-	static char buf[UINT64_DEC_GRP_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = uint64_to_gstring_buf(v, buf, sizeof buf);
+	n = uint64_to_gstring_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 uint_to_gstring(unsigned v)
 {
-	static char buf[UINT_DEC_GRP_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, UINT_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = uint_to_gstring_buf(v, buf, sizeof buf);
+	n = uint_to_gstring_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 const char *
 size_t_to_gstring(size_t v)
 {
-	static char buf[SIZE_T_DEC_GRP_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, SIZE_T_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = size_t_to_gstring_buf(v, buf, sizeof buf);
+	n = size_t_to_gstring_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+filesize_to_gstring(filesize_t v)
+{
+	buf_t *b = buf_private(G_STRFUNC, FILESIZE_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
+
+	n = uint64_to_gstring_buf(v, p, sz);
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -764,8 +829,9 @@ size_t_to_gstring(size_t v)
 char *
 data_hex_str(const char *data, size_t len)
 {
-	static char buf[84];
-	static const size_t maxlen = sizeof(buf) - 4; /* 3 chars for "more" + NUL */
+	static const size_t maxlen = 84 - 4; /* 3 chars for "more" + NUL */
+	buf_t *b = buf_private(G_STRFUNC, maxlen);
+	char *buf = buf_data(b);
 	const uint8 *p = cast_to_constpointer(data);
 	size_t hmax;
 	size_t i;
@@ -784,7 +850,7 @@ data_hex_str(const char *data, size_t len)
 		buf[i++] = '.';
 	}
 
-	g_assert(i < sizeof(buf));
+	g_assert(i < buf_size(b));
 
 	buf[i] = '\0';
 	return buf;
@@ -978,20 +1044,19 @@ lazy_string_to_printf_escape(const char *src)
 const char *
 short_time(time_delta_t t)
 {
-	static char buf[4 * SIZE_FIELD_MAX];
+	str_t *p = str_private(G_STRFUNC, 4 * SIZE_FIELD_MAX);
 	uint s = MAX(t, 0);
 
 	if (s > 86400)
-		str_bprintf(buf, sizeof buf, _("%ud %uh"),
-			s / 86400, (s % 86400) / 3600);
+		str_printf(p, _("%ud %uh"), s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		str_bprintf(buf, sizeof buf, _("%uh %um"), s / 3600, (s % 3600) / 60);
+		str_printf(p, _("%uh %um"), s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		str_bprintf(buf, sizeof buf, _("%um %us"), s / 60, s % 60);
+		str_printf(p, _("%um %us"), s / 60, s % 60);
 	else
-		str_bprintf(buf, sizeof buf, _("%us"), s);
+		str_printf(p, _("%us"), s);
 
-	return buf;
+	return str_2c(p);
 }
 
 /**
@@ -1001,20 +1066,19 @@ short_time(time_delta_t t)
 const char *
 short_time_ascii(time_delta_t t)
 {
-	static char buf[4 * SIZE_FIELD_MAX];
+	str_t *p = str_private(G_STRFUNC, 4 * SIZE_FIELD_MAX);
 	uint s = MAX(t, 0);
 
 	if (s > 86400)
-		str_bprintf(buf, sizeof buf, "%ud %uh",
-			s / 86400, (s % 86400) / 3600);
+		str_printf(p, "%ud %uh", s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		str_bprintf(buf, sizeof buf, "%uh %um", s / 3600, (s % 3600) / 60);
+		str_printf(p, "%uh %um", s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		str_bprintf(buf, sizeof buf, "%um %us", s / 60, s % 60);
+		str_printf(p, "%um %us", s / 60, s % 60);
 	else
-		str_bprintf(buf, sizeof buf, "%us", s);
+		str_printf(p, "%us", s);
 
-	return buf;
+	return str_2c(p);
 }
 
 /**
@@ -1056,10 +1120,13 @@ compact_time_to_buf(time_delta_t t, char *dst, size_t size)
 const char *
 compact_time(time_delta_t t)
 {
-	static char buf[4 * SIZE_FIELD_MAX + 1];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	compact_time_to_buf(t, buf, sizeof buf);
-	return buf;
+	n = compact_time_to_buf(t, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -1072,10 +1139,69 @@ compact_time(time_delta_t t)
 const char *
 compact_time2(time_delta_t t)
 {
-	static char buf[4 * SIZE_FIELD_MAX + 1];
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	compact_time_to_buf(t, buf, sizeof buf);
-	return buf;
+	n = compact_time_to_buf(t, p, sz);
+	g_assert(n < sz);
+	return p;
+}
+
+/**
+ * A variant of compact_time(), formatting being done in the supplied buffer.
+ *
+ * The last figure is displayed in decimal (e.g "4d14.53h".
+ *
+ * @param t			the elapsed time to format, in ms
+ * @param dst		the destination buffer; may be NULL iff ``size'' is zero
+ * @param size		the size of ``dst'', in bytes
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
+size_t
+compact_time_ms_to_buf(long t, char *dst, size_t size)
+{
+	long ms = t < 0 ? -t : t;
+	long s = ms / 1000;
+	char *m = t < 0 ? "-" : "";
+	size_t r;
+
+	if (s > 86400)
+		r = str_bprintf(dst, size, "%s%lud%.2fh",
+				m, s / 86400, (s % 86400) / 3600.0);
+	else if (s > 3600)
+		r = str_bprintf(dst, size, "%s%luh%.2fm",
+				m, s / 3600, (s % 3600) / 60.0);
+	else if (s > 60)
+		r = str_bprintf(dst, size, "%s%lum%.2fs",
+			m, s / 60, (ms - 60000 * (s / 60)) / 1000.0);
+	else
+		r = str_bprintf(dst, size, "%s%.3fs", m, ms / 1000.0);
+
+	return r;
+}
+
+/**
+ * A variant of compact_time() with last figure being decimal, and up to
+ * the millisecond.
+ *
+ * @param t		time, in ms
+ *
+ * @return time spent in seconds in a concise short readable form.
+ * @note The returned string is in English and ASCII encoded, and held in
+ * a static buffer.
+ */
+const char *
+compact_time_ms(long t)
+{
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = compact_time_ms_to_buf(t, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -1084,19 +1210,19 @@ compact_time2(time_delta_t t)
 const char *
 short_uptime(time_delta_t uptime)
 {
-	static char b[SIZE_FIELD_MAX];
+	str_t *p = str_private(G_STRFUNC, SIZE_FIELD_MAX);
 	uint s = MAX(uptime, 0);
 
 	if (s > 86400) {
 		uint32 d = s % 86400;
-		str_bprintf(b, sizeof(b), "%ud %02d%c%02d",
+		str_printf(p, "%ud %02d%c%02d",
 			s / 86400, d / 3600, (s & 0x1) ? '.' : ':', (d % 3600) / 60);
 	} else {
 		uint32 h = s % 3600;
-		str_bprintf(b, sizeof(b), "%02d:%02d:%02d", s / 3600, h / 60, h % 60);
+		str_printf(p, "%02d:%02d:%02d", s / 3600, h / 60, h % 60);
 	}
 
-	return b;
+	return str_2c(p);
 }
 
 size_t
@@ -1127,13 +1253,14 @@ time_t_to_string_buf(time_t v, char *dst, size_t size)
 const char *
 time_t_to_string(time_t v)
 {
-	static char buf[TIME_T_DEC_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, TIME_T_DEC_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	n = time_t_to_string_buf(v, buf, sizeof buf);
+	n = time_t_to_string_buf(v, p, sz);
 	g_assert(n > 0);
-	g_assert(n < sizeof buf);
-	return buf;
+	g_assert(n < sz);
+	return p;
 }
 
 /**

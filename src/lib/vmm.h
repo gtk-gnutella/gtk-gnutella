@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2009-2010 Raphael Manfredi
+ * Copyright (c) 2006 Christian Biere
+ * Copyright (c) 2006, 2009-2010, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009-2010
+ * @date 2006, 2009-2010, 2013
  */
 
 #ifndef _vmm_h_
@@ -110,6 +110,16 @@ void *vmm_resize(void *p, size_t size, size_t new_size) WARN_UNUSED_RESULT;
 void vmm_early_init(void);
 #endif /* XMALLOC_SOURCE */
 
+/**
+ * VMM allocation strategies.
+ */
+enum vmm_strategy {
+	VMM_STRATEGY_SHORT_TERM,		/**< For short-lived processes */
+	VMM_STRATEGY_LONG_TERM			/**< For long-lived processes */
+};
+
+void vmm_set_strategy(enum vmm_strategy strategy);
+
 struct logagent;
 
 size_t round_pagesize(size_t n) G_GNUC_PURE;
@@ -140,6 +150,12 @@ void vmm_dump_pmap_log(struct logagent *la);
 void vmm_dump_stats(void);
 void vmm_dump_stats_log(struct logagent *la, unsigned options);
 void vmm_dump_usage_log(struct logagent *la, unsigned options);
+void vmm_dump_hole_log(struct logagent *la);
+void vmm_dump_pcache_log(struct logagent *la);
+
+struct sha1;
+
+void vmm_stats_digest(struct sha1 *digest);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

@@ -45,6 +45,7 @@ void publisher_init(void);
 void publisher_close(void);
 
 void publisher_add(const sha1_t *sha1);
+void publisher_add_event(void *sha1);
 
 int publisher_delay(const pdht_info_t *info, time_delta_t expiration);
 bool publisher_is_acceptable(const pdht_info_t *info);

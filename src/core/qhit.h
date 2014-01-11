@@ -52,13 +52,15 @@ typedef void (*qhit_process_t)(void *data, size_t len, void *udata);
 struct gnutella_node;
 struct array; 
 struct guid;
+struct pslist;
 
 void qhit_init(void);
 void qhit_close(void);
 
-void qhit_send_results(struct gnutella_node *n, GSList *files, int count,
+void qhit_send_results(struct gnutella_node *n, struct pslist *files, int count,
 	const struct guid *muid, unsigned flags);
-void qhit_build_results(const GSList *files, int count, size_t max_msgsize,
+void qhit_build_results(const struct pslist *files,
+	int count, size_t max_msgsize,
 	qhit_process_t cb, void *udata, const struct guid *muid, unsigned flags,
 	const struct array *token);
 

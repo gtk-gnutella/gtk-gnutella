@@ -53,7 +53,7 @@ get_hcache_name(hcache_type_t type)
 	case HCACHE_MAX:
 		break;
 	}
-	g_warning("get_hcache_name: unknown hcache %d", type);
+	g_carp("%s(): unknown hcache %d", G_STRFUNC, type);
 	return "";
 }
 

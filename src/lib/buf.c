@@ -1,0 +1,300 @@
+/*
+ * Copyright (c) 2013 Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Fix-sized buffers, for using as thread-private "static" containers.
+ *
+ * These buffers are expected to be relatively short, hence they are allocated
+ * via xmalloc() to benefit from the thread-private allocation pools.
+ *
+ * @author Raphael Manfredi
+ * @date 2013
+ */
+
+#include "common.h"
+
+#include "buf.h"
+
+#include "misc.h"			/* For clamp_memcpy() */
+#include "str.h"
+#include "thread.h"
+#include "walloc.h"
+#include "xmalloc.h"
+
+#include "override.h"		/* Must be the last header included */
+
+#define BUF_DATA_OFFSET		offsetof(struct buf, b_u.bu_data)
+
+/**
+ * Allocate a new buffer of the specified size.
+ */
+buf_t *
+buf_new(size_t size)
+{
+	buf_t *b;
+
+	WALLOC0(b);
+	b->b_magic = BUF_MAGIC;
+	b->b_size = size;
+	b->b_u.bu_data = xmalloc(size);
+
+	return b;
+}
+
+/**
+ * Allocate a new embedded buffer of the specified size.
+ */
+buf_t *
+buf_new_embedded(size_t size)
+{
+	buf_t *b;
+
+	b = xmalloc(BUF_DATA_OFFSET + size);
+	b->b_magic = BUF_MAGIC_EMBEDDED;
+	b->b_size = size;
+
+	return b;
+}
+
+/**
+ * Free buffer.
+ */
+static void
+buf_free(buf_t *b)
+{
+	buf_check(b);
+	g_assert_log(b->b_magic != BUF_MAGIC_PRIVATE,
+		"%s(): attempting to free thread-private buffer %p",
+		G_STRFUNC, b);
+
+	if (buf_is_embedded(b)) {
+		b->b_magic = 0;
+		xfree(b);
+	} else {
+		XFREE_NULL(b->b_u.bu_data);
+		b->b_magic = 0;
+		WFREE(b);
+	}
+}
+
+/**
+ * Free buffer and nullify its pointer.
+ */
+void
+buf_free_null(buf_t **b_ptr)
+{
+	buf_t *b = *b_ptr;
+
+	if (b != NULL) {
+		buf_free(b);
+		*b_ptr = NULL;
+	}
+}
+
+/**
+ * Reclaim a thread-private buffer when the thread is exiting.
+ */
+static void
+buf_private_reclaim(void *data, void *unused)
+{
+	buf_t *b = data;
+
+	(void) unused;
+
+	buf_check(b);
+	g_assert(BUF_MAGIC_PRIVATE == b->b_magic);
+
+	b->b_magic = BUF_MAGIC_EMBEDDED;
+	buf_free(b);
+}
+
+
+/**
+ * Get a thread-private buffer attached to the specified key.
+ *
+ * If the buffer already existed in the thread for this key, it is returned,
+ * and the size parameter is ignored.
+ *
+ * Otherwise, a new buffer is created and attached to the key.
+ *
+ * A typical usage of this routine is to make a routine returning static
+ * data thread-safe:
+ *
+ *   const char *
+ *   routine(int arg)
+ *   {
+ *       buf_t *b = buf_private(G_STRFUNC, 10);
+ *       char *p = buf_data(b);     // the "static" buffer, on the heap
+ *       size_t n;
+ *
+ *       n = transfer_to_buffer(arg, p); // returns amount of chars
+ *       g_assert(n < buf_size(b)); // allow trailing NUL
+ *       return p;	                // the private copy for this thread
+ *   }
+ *
+ * @param key		the key to use to identify this string
+ * @param size		length of the data buffer
+ *
+ * @note
+ * The buffer will be reclaimed automatically when the thread exits and its
+ * pointer should not be given to foreign threads but used solely in the
+ * context of the thread.  This applies to the buffer object and its data.
+ *
+ * @return a buffer object dedicated to the calling thread.
+ */
+buf_t *
+buf_private(const void *key, size_t size)
+{
+	buf_t *b;
+
+	b = thread_private_get(key);
+
+	if G_LIKELY(b != NULL) {
+		g_assert(BUF_MAGIC_PRIVATE == b->b_magic);
+		return b;
+	}
+
+	/*
+	 * Allocate a new buffer and declare it as a thread-private variable
+	 * with an associated free routine.
+	 */
+
+	b = buf_new_embedded(size);
+	b->b_magic = BUF_MAGIC_PRIVATE;		/* Prevents accidental free */
+
+	thread_private_add_extended(key, b, buf_private_reclaim, NULL);
+
+	return b;
+}
+
+/**
+ * Set character in buffer ``b'' at offset ``i'' to ``c''
+ */
+void
+buf_setc(buf_t *b, size_t i, char c)
+{
+	char *data;
+
+	buf_check(b);
+	g_assert_log(i < buf_size(b),
+		"%s(): i=%zu, buf_size(b)=%zu", G_STRFUNC, i, buf_size(b));
+
+	data = buf_data(b);
+	data[i] = c;
+}
+
+/**
+ * Get character in buffer ``b'' at offset ``i''.
+ */
+char
+buf_getc(const buf_t *b, size_t i)
+{
+	char *data;
+
+	buf_check(b);
+	g_assert_log(i < buf_size(b),
+		"%s(): i=%zu, buf_size(b)=%zu", G_STRFUNC, i, buf_size(b));
+
+	data = buf_data(b);
+	return data[i];
+}
+
+/**
+ * Copy data into buffer.
+ *
+ * @param b		the buffer to which data is copied
+ * @param src	data source
+ * @param len	length of data source, in bytes
+ *
+ * @return the amount of bytes copied.
+ */
+size_t
+buf_copyin(buf_t *b, const void *src, size_t len)
+{
+	buf_check(b);
+
+	return clamp_memcpy(buf_data(b), b->b_size, src, len);
+}
+
+/**
+ * A regular sprintf() into the buffer, without fear of overflow.
+ *
+ * @return the amount of formatted chars.
+ */
+size_t
+buf_printf(buf_t *b, const char *fmt, ...)
+{
+	va_list args;
+	size_t n;
+
+	va_start(args, fmt);
+	n = str_vbprintf(buf_data(b), buf_size(b), fmt, args);
+	va_end(args);
+
+	return n;
+}
+
+/**
+ * A regular sprintf() into the buffer, without fear of overflow.
+ *
+ * @return the amount of formatted chars.
+ */
+size_t
+buf_vprintf(buf_t *b, const char *fmt, va_list args)
+{
+	return str_vbprintf(buf_data(b), buf_size(b), fmt, args);
+}
+
+/**
+ * Append formatted string to previous string in fix-sized buffer.
+ *
+ * @return the amount of formatted chars.
+ */
+size_t
+buf_catf(buf_t *b, const char *fmt, ...)
+{
+	va_list args;
+	size_t n;
+
+	va_start(args, fmt);
+	n = str_vbcatf(buf_data(b), buf_size(b), fmt, args);
+	va_end(args);
+
+	return n;
+}
+
+/**
+ * Append formatted string to previous string in fix-sized buffer.
+ *
+ * @return the amount of formatted chars.
+ */
+size_t
+buf_vcatf(buf_t *b, const char *fmt, va_list args)
+{
+	return str_vbcatf(buf_data(b), buf_size(b), fmt, args);
+}
+
+/* vi: set ts=4 sw=4 cindent: */

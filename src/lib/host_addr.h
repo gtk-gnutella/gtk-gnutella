@@ -575,8 +575,8 @@ const char *port_host_addr_to_string(uint16 port, const host_addr_t ha);
 size_t host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 	char *dst, size_t size);
 
-GSList *name_to_host_addr(const char *host, enum net_type net);
-void host_addr_free_list(GSList **sl_ptr);
+struct pslist *name_to_host_addr(const char *host, enum net_type net);
+void host_addr_free_list(struct pslist **sl_ptr);
 
 host_addr_t name_to_single_host_addr(const char *host, enum net_type net);
 #ifdef HAS_GETADDRINFO
@@ -588,8 +588,8 @@ const char *host_addr_to_name(const host_addr_t addr);
 bool string_to_host_or_addr(const char *s, const char **endptr,
 		host_addr_t *ha);
 
-GSList *host_addr_get_interface_addrs(enum net_type net);
-void host_addr_free_interface_addrs(GSList **sl_ptr);
+struct pslist *host_addr_get_interface_addrs(enum net_type net);
+void host_addr_free_interface_addrs(struct pslist **sl_ptr);
 
 uint packed_host_addr_size(const struct packed_host_addr paddr);
 struct packed_host_addr host_addr_pack(const host_addr_t addr);

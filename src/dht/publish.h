@@ -46,9 +46,11 @@
 void publish_init(void);
 void publish_close(bool exiting);
 
+struct pslist;
+
 publish_t *publish_cache(const kuid_t *key,
 	lookup_rc_t *target, dht_value_t **vvec, int vcnt);
-publish_t *publish_offload(const knode_t *kn, GSList *keys);
+publish_t *publish_offload(const knode_t *kn, struct pslist *keys);
 
 #endif	/* _dht_publish_h_ */
 

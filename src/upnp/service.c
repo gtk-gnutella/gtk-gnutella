@@ -44,6 +44,7 @@
 #include "lib/halloc.h"
 #include "lib/nv.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/unsigned.h"
 #include "lib/url.h"
@@ -204,17 +205,17 @@ upnp_service_to_string(const upnp_service_t *usd)
  * Free list of upnp_service_t and nullify its pointer.
  */
 void
-upnp_service_gslist_free_null(GSList **list_ptr)
+upnp_service_pslist_free_null(pslist_t **list_ptr)
 {
-	GSList *list = *list_ptr;
+	pslist_t *list = *list_ptr;
 
 	if (list != NULL) {
-		GSList *sl;
+		pslist_t *sl;
 
-		GM_SLIST_FOREACH(list, sl) {
+		PSLIST_FOREACH(list, sl) {
 			upnp_service_free(sl->data);
 		}
-		g_slist_free(list);
+		pslist_free(list);
 		*list_ptr = NULL;
 	}
 }
@@ -226,11 +227,11 @@ upnp_service_gslist_free_null(GSList **list_ptr)
  * are no such service offered.
  */
 upnp_service_t *
-upnp_service_gslist_find(GSList *services, enum upnp_service_type type)
+upnp_service_pslist_find(pslist_t *services, enum upnp_service_type type)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	GM_SLIST_FOREACH(services, sl) {
+	PSLIST_FOREACH(services, sl) {
 		upnp_service_t *usd = sl->data;
 
 		upnp_service_check(usd);
@@ -248,13 +249,13 @@ upnp_service_gslist_find(GSList *services, enum upnp_service_type type)
  * @return a WAN service if found, NULL if no such service is available.
  */
 upnp_service_t *
-upnp_service_get_wan_connection(GSList *services)
+upnp_service_get_wan_connection(pslist_t *services)
 {
 	upnp_service_t *usd;
 
-	usd = upnp_service_gslist_find(services, UPNP_SVC_WAN_IP);
+	usd = upnp_service_pslist_find(services, UPNP_SVC_WAN_IP);
 	if (NULL == usd)
-		usd = upnp_service_gslist_find(services, UPNP_SVC_WAN_PPP);
+		usd = upnp_service_pslist_find(services, UPNP_SVC_WAN_PPP);
 
 	return usd;
 }
@@ -265,9 +266,9 @@ upnp_service_get_wan_connection(GSList *services)
  * @return a WAN_CIF service if found, NULL if no such service is available.
  */
 upnp_service_t *
-upnp_service_get_common_if(GSList *services)
+upnp_service_get_common_if(pslist_t *services)
 {
-	return upnp_service_gslist_find(services, UPNP_SVC_WAN_CIF);
+	return upnp_service_pslist_find(services, UPNP_SVC_WAN_CIF);
 }
 
 /**
@@ -361,14 +362,14 @@ done:
  * @param base_url		if non-NULL, base URL to use for relative URLs
  */
 static void
-upnp_service_adjust_urls(GSList *services,
+upnp_service_adjust_urls(pslist_t *services,
 	const char *desc_url, const char *base_url)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(desc_url != NULL);
 
-	GM_SLIST_FOREACH(services, sl) {
+	PSLIST_FOREACH(services, sl) {
 		upnp_service_t *usd = sl->data;
 		const char *base = base_url != NULL ? base_url : desc_url;
 		char *absolute;
@@ -399,7 +400,7 @@ upnp_service_adjust_urls(GSList *services,
  */
 struct upnp_service_ctx {
 	const char *desc_url;			/**< URL we got service info from */
-	GSList *services;				/**< Services already parsed */
+	pslist_t *services;				/**< Services already parsed */
 	const char *base_url;			/**< Base URL, if specified (atom) */
 	/* Current service being analyzed */
 	enum upnp_service_type type;	/**< Service type */
@@ -517,7 +518,7 @@ upnp_service_xml_end(vxml_parser_t *vp, unsigned id, void *data)
 
 			usd = upnp_service_alloc(ctx->type, ctx->version,
 				ctx->control_url, ctx->scpd_url);
-			ctx->services = g_slist_prepend(ctx->services, usd);
+			ctx->services = pslist_prepend(ctx->services, usd);
 
 			if (GNET_PROPERTY(upnp_debug) > 1)
 				g_debug("UPNP found service %s", upnp_service_to_string(usd));
@@ -551,7 +552,7 @@ struct vxml_ops upnp_service_ops = {
  *
  * @return a list of upnp_service_t, NULL if no services were found.
  */
-GSList *
+pslist_t *
 upnp_service_extract(const char *data, size_t len, const char *desc_url)
 {
 	vxml_parser_t *vp;

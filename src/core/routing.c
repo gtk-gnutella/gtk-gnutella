@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "routing.h"
+
 #include "gmsg.h"
 #include "gnet_stats.h"
 #include "guid.h"
@@ -50,13 +51,14 @@
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -109,8 +111,8 @@ routing_udp_node_check(const struct routing_udp_node * const un)
 struct message {
 	struct guid muid;			/**< Message UID */
 	struct message **slot;		/**< Place where we're referenced from */
-	GSList *routes;	            /**< route_data from where the message came */
-	GSList *ttls;				/**< For broadcasted messages: TTL by route */
+	pslist_t *routes;            /**< route_data from where the message came */
+	pslist_t *ttls;			/**< For broadcasted messages: TTL by route */
 	uint8 function;				/**< Type of the message */
 	uint8 ttl;					/**< Max TTL we saw for this message */
 	uint8 chunk_idx;			/**< Index of chunk holding the slot */
@@ -597,9 +599,9 @@ route_string(struct route_dest *dest,
 		break;
 	case ROUTE_MULTI:
 		{
-			int count = g_slist_length(dest->ur.u_nodes);
+			int count = pslist_length(dest->ur.u_nodes);
 			str_bprintf(msg, sizeof msg, "selected %u node%s",
-				count, count == 1 ? "" : "s");
+				count, plural(count));
 		}
 		break;
 	default:
@@ -1232,7 +1234,7 @@ static bool
 route_node_sent_message(struct gnutella_node *n, struct message *m)
 {
 	struct route_data *route;
-	GSList *sl;
+	pslist_t *sl;
 
 	if (n == fake_node)
 		route = &fake_route;
@@ -1247,7 +1249,7 @@ route_node_sent_message(struct gnutella_node *n, struct message *m)
 	if (route == NULL)
 		return FALSE;
 
-	for (sl = m->routes; sl; sl = g_slist_next(sl)) {
+	for (sl = m->routes; sl; sl = pslist_next(sl)) {
 		if (route == sl->data)
 			return TRUE;
 	}
@@ -1266,7 +1268,7 @@ route_node_sent_message(struct gnutella_node *n, struct message *m)
 static bool
 route_node_ttl_higher(struct gnutella_node *n, struct message *m, uint8 ttl)
 {
-	GSList *l;
+	pslist_t *l;
 	int i;
 	struct route_data *route;
 
@@ -1279,9 +1281,9 @@ route_node_ttl_higher(struct gnutella_node *n, struct message *m, uint8 ttl)
 
 	g_assert(route != NULL);
 
-	for (l = m->routes, i = 0; l; l = g_slist_next(l), i++) {
+	for (l = m->routes, i = 0; l; l = pslist_next(l), i++) {
 		if (route == l->data) {
-			GSList *t = g_slist_nth(m->ttls, i);
+			pslist_t *t = pslist_nth(m->ttls, i);
 			uint8 old_ttl;
 
 			g_assert(t != NULL);
@@ -1507,21 +1509,21 @@ remove_one_message_reference(struct route_data *rd)
 static void
 free_route_list(struct message *m)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(m);
 
-	for (sl = m->routes; sl; sl = g_slist_next(sl))
+	for (sl = m->routes; sl; sl = pslist_next(sl))
 		remove_one_message_reference(sl->data);
 
-	gm_slist_free_null(&m->routes);
+	pslist_free_null(&m->routes);
 
 	/*
 	 * If the message was a broadcasted one, we kept track of the TTL of
 	 * each message along the route.  This needs to be freed as well.
 	 */
 
-	gm_slist_free_null(&m->ttls);	/* Data are ints, nothing to free */
+	pslist_free_null(&m->ttls);	/* Data are ints, nothing to free */
 }
 
 /**
@@ -1638,7 +1640,7 @@ message_add(const struct guid *muid, uint8 function,
 		uint ttl;
 
 		route->saved_messages++;
-		entry->routes = g_slist_append(entry->routes, route);
+		entry->routes = pslist_append(entry->routes, route);
 
 		/*
 		 * If message is typically broadcasted, also record the TTL of
@@ -1654,7 +1656,7 @@ message_add(const struct guid *muid, uint8 function,
 		switch (function) {
 		case GTA_MSG_PUSH_REQUEST:
 		case GTA_MSG_SEARCH:
-			entry->ttls = g_slist_append(entry->ttls, GUINT_TO_POINTER(ttl));
+			entry->ttls = pslist_append(entry->ttls, GUINT_TO_POINTER(ttl));
 			break;
 		}
 	}
@@ -1682,29 +1684,29 @@ message_add(const struct guid *muid, uint8 function,
 static void
 purge_dangling_references(struct message *m)
 {
-	GSList *sl;
-	GSList *t;
+	pslist_t *sl;
+	pslist_t *t;
 
 	for (sl = m->routes, t = m->ttls; sl; /* empty */) {
 		struct route_data *rd = sl->data;
 
 		if (rd->node == NULL) {
-			GSList *next = g_slist_next(sl);
-			m->routes = g_slist_remove_link(m->routes, sl);
+			pslist_t *next = pslist_next(sl);
+			m->routes = pslist_remove_link(m->routes, sl);
 			remove_one_message_reference(rd);
-			g_slist_free_1(sl);
+			pslist_free_1(sl);
 			sl = next;
 
 			if (t) {
-				next = g_slist_next(t);
-				m->ttls = g_slist_remove_link(m->ttls, t);
-				g_slist_free_1(t);
+				next = pslist_next(t);
+				m->ttls = pslist_remove_link(m->ttls, t);
+				pslist_free_1(t);
 				t = next;
 			}
 		} else {
-			sl = g_slist_next(sl);
+			sl = pslist_next(sl);
 			if (t)
-				t = g_slist_next(t);
+				t = pslist_next(t);
 		}
 	}
 }
@@ -1721,8 +1723,8 @@ message_forget(const struct guid *muid, uint8 function, gnutella_node_t *node)
 {
 	bool found;
 	struct message *m;
-	GSList *sl;
-	GSList *t;
+	pslist_t *sl;
+	pslist_t *t;
 	struct route_data *route;
 
 	g_assert(muid != NULL);
@@ -1738,14 +1740,14 @@ message_forget(const struct guid *muid, uint8 function, gnutella_node_t *node)
 	for (
 		sl = m->routes, t = m->ttls;
 		sl != NULL;
-		sl = g_slist_next(sl), t = g_slist_next(t)
+		sl = pslist_next(sl), t = pslist_next(t)
 	) {
 		struct route_data *rd = sl->data;
 
 		if (route == rd) {
-			m->routes = g_slist_remove_link(m->routes, sl);
+			m->routes = pslist_remove_link(m->routes, sl);
 			if (t != NULL)
-				m->ttls = g_slist_remove_link(m->ttls, t);
+				m->ttls = pslist_remove_link(m->ttls, t);
 			remove_one_message_reference(rd);
 			break;
 		}
@@ -1893,7 +1895,7 @@ static bool
 forward_message(
 	struct route_log *route_log,
 	struct gnutella_node **node,
-	struct gnutella_node *target, struct route_dest *dest, GSList *routes)
+	struct gnutella_node *target, struct route_dest *dest, pslist_t *routes)
 {
 	struct gnutella_node *sender = *node;
 
@@ -1953,19 +1955,19 @@ forward_message(
 		 */
 
 		if (routes != NULL) {
-			GSList *l;
-			GSList *nodes = NULL;
+			pslist_t *l;
+			pslist_t *nodes = NULL;
 			int count = 0;
 
 			g_assert(gnutella_header_get_function(&sender->header)
 					== GTA_MSG_PUSH_REQUEST);
 
-			for (l = routes; l; l = g_slist_next(l)) {
+			for (l = routes; l; l = pslist_next(l)) {
 				struct route_data *rd = l->data;
 				if (rd->node == sender)
 					continue;
 
-				nodes = g_slist_prepend(nodes, rd->node);
+				nodes = pslist_prepend(nodes, rd->node);
 				count++;
 			}
 
@@ -2185,18 +2187,18 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			}
 		} else {
 			if (GNET_PROPERTY(log_gnutella_routing)) {
-				unsigned count = g_slist_length(m->routes);
+				unsigned count = pslist_length(m->routes);
 				routing_log_extra(route_log, "%u remaining route%s",
-					count, 1 == count ? "" : "s");
+					count, plural(count));
 			}
 
 			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
-				unsigned count = g_slist_length(m->routes);
+				unsigned count = pslist_length(m->routes);
 				gmsg_log_split_duplicate(&sender->header, sender->data,
 					sender->size,
 					"from %s: %sother node, %u route%s (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "",
-					count, 1 == count ? "" : "s", sender->n_dups);
+					count, plural(count), sender->n_dups);
 			}
 		}
 	}
@@ -2565,7 +2567,7 @@ route_query_hit(struct route_log *route_log,
 
 			g_assert(m->ttls == NULL);
 
-			m->routes = g_slist_append(m->routes, route);
+			m->routes = pslist_append(m->routes, route);
 			route->saved_messages++;
 
 			/*
@@ -2656,11 +2658,11 @@ route_query_hit(struct route_log *route_log,
 	 * XXX route for relaying. --RAM, 2004-08-29
 	 */
 	{
-		GSList *sl;
+		pslist_t *sl;
 		bool skipped_transient = FALSE;
 
 		found = NULL;
-		for (sl = m->routes; sl; sl = g_slist_next(sl)) {
+		for (sl = m->routes; sl; sl = pslist_next(sl)) {
 			struct route_data *route = sl->data;
 
 			g_assert(route);
@@ -2684,7 +2686,7 @@ route_query_hit(struct route_log *route_log,
 				 * will be logged as a message targeted to a transient node.
 				 */
 
-				if (NULL != g_slist_next(sl)) {
+				if (NULL != pslist_next(sl)) {
 					gnutella_node_t *rn;
 
 					rn = route_node_get_gnutella(route->node);
@@ -2966,7 +2968,7 @@ route_guid_pushable(const struct guid *guid)
  * @returns NULL if we have no such route, or a list of  node to which we should
  * send the packet otherwise.  It is up to the caller to free that list.
  */
-GSList *
+pslist_t *
 route_towards_guid(const struct guid *guid)
 {
 	struct gnutella_node *node;
@@ -2977,15 +2979,15 @@ route_towards_guid(const struct guid *guid)
 	
 	node = node_by_guid(guid);
 	if (node)
-		return g_slist_prepend(NULL, node);
+		return pslist_prepend(NULL, node);
 	
 	if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
-		GSList *iter, *nodes = NULL;
+		pslist_t *iter, *nodes = NULL;
 		
 		revitalize_entry(m, TRUE);
-		for (iter = m->routes; NULL != iter; iter = g_slist_next(iter)) {
+		for (iter = m->routes; NULL != iter; iter = pslist_next(iter)) {
 			struct route_data *rd = iter->data;
-			nodes = g_slist_prepend(nodes, rd->node);
+			nodes = pslist_prepend(nodes, rd->node);
 		}
 		return nodes;
 	}
@@ -3082,7 +3084,7 @@ routing_close(void)
 	cnt = htable_count(ht_proxyfied);
 	if (cnt != 0) {
 		g_warning("push-proxification table still holds %u node%s",
-			cnt, cnt == 1 ? "" : "s");
+			cnt, plural(cnt));
 	}
 
 	htable_free_null(&ht_proxyfied);
@@ -3090,7 +3092,7 @@ routing_close(void)
 	cnt = htable_count(ht_starving_guid);
 	if (cnt != 0) {
 		g_warning("starving GUID table still holds %u entr%s",
-			cnt, cnt == 1 ? "y" : "ies");
+			cnt, plural_y(cnt));
 	}
 
 	htable_free_null(&ht_starving_guid);

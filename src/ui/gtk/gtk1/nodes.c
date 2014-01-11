@@ -191,7 +191,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 					nodes_gui_common_status_str(&status));
 		}
     } else {
-        g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
+        g_warning("%s(): no matching row found", G_STRFUNC);
     }
 }
 
@@ -217,7 +217,7 @@ nodes_gui_update_node_flags(const struct nid *node_id, gnet_node_flags_t *flags,
 	}
 
     } else {
-        g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
+        g_warning("%s(): no matching row found", G_STRFUNC);
     }
 }
 
@@ -374,7 +374,7 @@ nodes_gui_remove_node(const struct nid *node_id)
         gtk_clist_remove(GTK_CLIST(clist_nodes), row);
 		nid_unref(node_id);
 	} else {
-        g_warning("nodes_gui_remove_node: no matching row found");
+        g_warning("%s(): no matching row found", G_STRFUNC);
 	}
 }
 

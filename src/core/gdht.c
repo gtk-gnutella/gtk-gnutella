@@ -136,12 +136,9 @@ gdht_kuid_from_sha1(const sha1_t *sha1)
 const kuid_t *
 gdht_kuid_from_guid(const guid_t *guid)
 {
-	SHA1Context ctx;
 	struct sha1 digest;
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, guid->v, GUID_RAW_SIZE);
-	SHA1Result(&ctx, &digest);
+	SHA1_COMPUTE(guid->v, &digest);
 
 	return kuid_get_atom((const kuid_t *) &digest);
 }
@@ -210,8 +207,7 @@ value_infostr(const lookup_val_rc_t *rc)
 
 	str_bprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s) [%s]",
 		dht_value_type_to_string(rc->type), rc->major, rc->minor,
-		(ulong) rc->length, 1 == rc->length ? "" : "s",
-		vendor_to_string(rc->vcode));
+		(ulong) rc->length, plural(rc->length), vendor_to_string(rc->vcode));
 
 	return info;
 }
@@ -370,7 +366,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					value_infostr(rc),
-					ext_ggep_id_str(e), paylen, paylen == 1 ? "" : "s");
+					ext_ggep_id_str(e), paylen, plural(paylen));
 			}
 			break;
 		}
@@ -549,7 +545,7 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT ALOC lookup for %s returned %zu value%s",
-			kuid_to_string(kuid), rs->count, 1 == rs->count ? "" : "s");
+			kuid_to_string(kuid), rs->count, plural(rs->count));
 
 	fi = file_info_by_guid(slk->fi_guid);
 
@@ -764,7 +760,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					value_infostr(rc),
-					ext_ggep_id_str(e), paylen, paylen == 1 ? "" : "s");
+					ext_ggep_id_str(e), paylen, plural(paylen));
 			}
 			break;
 		}
@@ -825,7 +821,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 
 	if (GNET_PROPERTY(download_debug) > 0)
 		g_debug("adding %d push-prox%s (GUID %s) from DHT PROX for %s (%s)",
-			proxy_count, 1 == proxy_count ? "y" : "ies",
+			proxy_count, plural_y(proxy_count),
 			guid_to_string(glk->guid),
 			host_addr_port_to_string(rc->addr, port),
 			host_addr_port_to_string(glk->addr, glk->port));
@@ -881,7 +877,7 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					value_infostr(rc),
-					ext_ggep_id_str(e), paylen, paylen == 1 ? "" : "s");
+					ext_ggep_id_str(e), paylen, plural(paylen));
 			}
 			break;
 		}
@@ -952,7 +948,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_debug("DHT PROX lookup for GUID %s returned %zu value%s",
-			guid_to_string(glk->guid), rs->count, 1 == rs->count ? "" : "s");
+			guid_to_string(glk->guid), rs->count, plural(rs->count));
 	}
 
 	/*
@@ -985,7 +981,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 	if (GNET_PROPERTY(dht_lookup_debug)) {
 		g_debug("DHT PROX %s lookup for GUID %s returned %zu other value%s",
 			(prox || nope) ? "successful" : "failed",
-			guid_to_string(glk->guid), other, 1 == other ? "" : "s");
+			guid_to_string(glk->guid), other, plural(other));
 	}
 
 	if (other > 0) {

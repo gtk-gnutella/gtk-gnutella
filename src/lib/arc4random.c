@@ -2,7 +2,7 @@
  * Copyright (c) 1996, David Mazieres <dm@lcs.mit.edu>.
  *
  * Adaptated for inclusion in gtk-gnutella by Raphael Manfredi.
- * Copyright (c) 2010, 2012 Raphael Manfredi
+ * Copyright (c) 2010, 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -41,18 +41,17 @@
  * The arc4random_upto64() routine has been added to David Mazieres's code
  * to provide uniformly distributed random numbers over a certain range.
  *
+ * The code has also been extended to provide thread-local ARC4 streams, which
+ * can generate random numbers without taking locks, resulting in a substantial
+ * increased throughput.
+ *
  * @author David Mazieres
  * @date 1996
  * @author Raphael Manfredi
- * @date 2010, 2012
+ * @date 2010, 2012-2013
  */
 
 #include "common.h"
-
-#include "log.h"
-#include "pow2.h"
-
-#ifndef HAS_ARC4RANDOM
 
 /*
  * Arc4 random number generator for OpenBSD.
@@ -80,24 +79,22 @@
  */
 
 #include "arc4random.h"
+
 #include "entropy.h"
-#include "misc.h"		/* For sha1_t */
+#include "omalloc.h"
+#include "once.h"
+#include "pslist.h"
 #include "spinlock.h"
+#include "thread.h"
 
-static spinlock_t arc4_lck = SPINLOCK_INIT;
-
-#define THREAD_LOCK		spinlock_hidden(&arc4_lck)
-#define THREAD_UNLOCK	spinunlock_hidden(&arc4_lck)
+#define ARC4_BOXES		256
 
 struct arc4_stream {
 	uint8 i;
 	uint8 j;
-	uint8 s[256];
+	uint8 initialized;
+	uint8 s[ARC4_BOXES];
 };
-
-static struct arc4_stream rs;
-static bool rs_initialized;
-static bool rs_stired;
 
 static inline uint8 arc4_getbyte(struct arc4_stream *);
 static void arc4_stir(struct arc4_stream *);
@@ -107,7 +104,7 @@ arc4_init(struct arc4_stream *as)
 {
 	int n;
 
-	for (n = 0; n < 256; n++)
+	for (n = 0; n < ARC4_BOXES; n++)
 		as->s[n] = n;
 	as->i = 0;
 	as->j = 0;
@@ -116,25 +113,21 @@ arc4_init(struct arc4_stream *as)
 static inline void
 arc4_addrandom(struct arc4_stream *as, const unsigned char *dat, int datlen)
 {
-	int n;
-	uint8 si;
+	while (datlen > 0) {
+		int n;
 
-	as->i--;
-	for (n = 0; n < 256; n++) {
-		as->i = (as->i + 1);
-		si = as->s[as->i];
-		as->j = (as->j + si + dat[n % datlen]);
-		as->s[as->i] = as->s[as->j];
-		as->s[as->j] = si;
-	}
-}
+		as->i--;
+		for (n = 0; n < ARC4_BOXES; n++) {
+			uint8 si;
+			as->i++;
+			si = as->s[as->i];
+			as->j += si + dat[n % datlen];
+			as->s[as->i] = as->s[as->j];
+			as->s[as->j] = si;
+		}
 
-static inline void
-arc4_check_init(void)
-{
-	if G_UNLIKELY(!rs_initialized) {
-		arc4_init(&rs);
-		rs_initialized = TRUE;
+		dat += ARC4_BOXES;
+		datlen -= ARC4_BOXES;
 	}
 }
 
@@ -143,7 +136,10 @@ arc4_stir(struct arc4_stream *as)
 {
 	int n;
 
-	arc4_check_init();
+	if G_UNLIKELY(!as->initialized) {
+		arc4_init(as);
+		as->initialized = TRUE;
+	}
 
 	/*
 	 * Collect 1024 bytes of initial entropy: the more randomness there
@@ -152,7 +148,7 @@ arc4_stir(struct arc4_stream *as)
 	 */
 
 	for (n = 0; n < 4; n++) {
-		unsigned char buf[256];		/* Optimal size for arc4_addrandom() */
+		unsigned char buf[ARC4_BOXES];
 
 		entropy_fill(buf, sizeof buf);
 		arc4_addrandom(as, buf, sizeof buf);
@@ -175,14 +171,14 @@ arc4_getbyte(struct arc4_stream *as)
 {
 	uint8 si, sj;
 
-	as->i = (as->i + 1);
+	as->i++;
 	si = as->s[as->i];
-	as->j = (as->j + si);
+	as->j += si;
 	sj = as->s[as->j];
 	as->s[as->i] = sj;
 	as->s[as->j] = si;
 
-	return (as->s[(si + sj) & 0xff]);
+	return as->s[(si + sj) & 0xff];
 }
 
 static inline G_GNUC_HOT uint32
@@ -197,6 +193,16 @@ arc4_getword(struct arc4_stream *as)
 
 	return (val);
 }
+
+#ifndef HAS_ARC4RANDOM
+
+static spinlock_t arc4_lck = SPINLOCK_INIT;
+
+#define ARC4_LOCK		spinlock_hidden(&arc4_lck)
+#define ARC4_UNLOCK		spinunlock_hidden(&arc4_lck)
+
+static struct arc4_stream rs;
+static bool rs_stired;
 
 static inline ALWAYS_INLINE void
 arc4_check_stir(void)
@@ -217,29 +223,13 @@ arc4_check_stir(void)
 void
 arc4random_stir(void)
 {
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_stir(&rs);
-	THREAD_UNLOCK;
-}
-
-/**
- * Perform random initialization if not already done.
- */
-G_GNUC_COLD void
-arc4random_stir_once(void)
-{
-	THREAD_LOCK;
-	arc4_check_stir();
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 }
 
 /**
  * Supply additional randomness to the pool.
- *
- * The optimal buffer length is 256 bytes.  Any larger size will cause
- * some bytes to be ignored (which is sub-optimal), whilst any smaller
- * size will cause bytes to be reused during the internal state shuffle
- * (which is OK).
  *
  * @param dat		pointer to a buffer containing random data
  * @param datlen	length of the buffer
@@ -250,10 +240,10 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 	g_assert(dat != NULL);
 	g_assert(datlen > 0);
 
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_check_stir();
 	arc4_addrandom(&rs, dat, datlen);
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 }
 
 /**
@@ -264,10 +254,10 @@ arc4random(void)
 {
 	uint32 rnd;
 
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_check_stir();
 	rnd = arc4_getword(&rs);
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 
 	return rnd;
 }
@@ -280,17 +270,24 @@ arc4random64(void)
 {
 	uint32 hi, lo;
 
-	THREAD_LOCK;
+	ARC4_LOCK;
 	arc4_check_stir();
 	hi = arc4_getword(&rs);
 	lo = arc4_getword(&rs);
-	THREAD_UNLOCK;
+	ARC4_UNLOCK;
 
 	return ((uint64) hi << 32) | (uint64) lo;
 }
-#else	/* HAS_ARC4RANDOM */
-
-#include "once.h"
+#else
+/**
+ * @return 64-bit random number.
+ */
+uint64
+arc4random64(void)
+{
+	return ((uint64) arc4random() << 32) | (uint64) arc4random();
+}
+#endif	/* !HAS_ARC4RANDOM */
 
 /**
  * Perform random initialization if not already done.
@@ -301,19 +298,103 @@ arc4random64(void)
 G_GNUC_COLD void
 arc4random_stir_once(void)
 {
-	static int done;
+	static once_flag_t done;
 
-	once_run(&done, arc4random_stir);
+	once_flag_run(&done, arc4random_stir);
+}
+
+/***
+ *** Thread-private ARC4 streams, to avoid locking.
+ ***/
+
+static once_flag_t arc4_key_inited;
+static thread_key_t arc4_key = THREAD_KEY_INIT;
+
+/**
+ * Create the thread-local random stream key, once.
+ */
+static void
+arc4_key_init(void)
+{
+	if (-1 == thread_local_key_create(&arc4_key, THREAD_LOCAL_KEEP))
+		s_error("cannot initialize ARC4 random stream key: %m");
 }
 
 /**
- * @return 64-bit random number.
+ * Get suitable thread-local random stream.
+ */
+static struct arc4_stream *
+arc4_stream(void)
+{
+	struct arc4_stream *as;
+
+	ONCE_FLAG_RUN(arc4_key_inited, arc4_key_init);
+
+	as = thread_local_get(arc4_key);
+
+	if G_UNLIKELY(NULL == as) {
+		/*
+		 * The random stream is kept for each created thread and is never freed.
+		 */
+
+		OMALLOC0(as);
+		arc4_init(as);
+		arc4_stir(as);
+		thread_local_set(arc4_key, as);
+	}
+
+	return as;
+}
+
+/**
+ * @return a new 32-bit random number (from thread-local stream).
+ */
+G_GNUC_HOT uint32
+arc4_rand(void)
+{
+	return arc4_getword(arc4_stream());
+}
+
+/**
+ * @return 64-bit random number (from thread-local stream).
  */
 uint64
-arc4random64(void)
+arc4_rand64(void)
 {
-	return ((uint64) arc4random() << 32) | (uint64) arc4random();
+	struct arc4_stream *as = arc4_stream();
+	uint32 hi, lo;
+
+	hi = arc4_getword(as);
+	lo = arc4_getword(as);
+
+	return ((uint64) hi << 32) | (uint64) lo;
 }
-#endif	/* !HAS_ARC4RANDOM */
+
+/**
+ * Supply additional randomness to the thread-local pool.
+ *
+ * @param dat		pointer to a buffer containing random data
+ * @param datlen	length of the buffer
+ */
+void
+arc4_thread_addrandom(const unsigned char *dat, int datlen)
+{
+	g_assert(dat != NULL);
+	g_assert(datlen > 0);
+
+	arc4_addrandom(arc4_stream(), dat, datlen);
+}
+
+/**
+ * @return a list of thread IDs using a thread-local ARC4 pool, which must
+ * be freed with pslist_free().
+ */
+pslist_t *
+arc4_users(void)
+{
+	ONCE_FLAG_RUN(arc4_key_inited, arc4_key_init);
+
+	return thread_local_users(arc4_key);
+}
 
 /* vi: set ts=4 sw=4 cindent: */

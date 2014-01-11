@@ -33,7 +33,7 @@
  * Conceptually, there are two different layers in this single file:
  *
  * - The port mapping layer (upnp_map_xxx() routines)
- * - The driver layer (UPnP and NAT-PMP)
+ * - The driver layers (UPnP and NAT-PMP)
  *
  * The port mapping layer sits on top of the other two and uses one of the
  * drivers to publish the mappings.
@@ -65,7 +65,7 @@
 #include "lib/product.h"		/* For product_get_build() */
 #include "lib/stacktrace.h"
 #include "lib/str.h"
-#include "lib/stringify.h"		/* For compact_time() */
+#include "lib/stringify.h"		/* For compact_time() and plural() */
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -172,8 +172,8 @@ upnp_delete_pending(void)
 		if (last != tm_time()) {
 			unsigned nat = natpmp_pending();
 			g_debug("SHUTDOWN %u pending IDG delete%s and %u NAT-PMP delete%s",
-				igd.delete_pending, 1 == igd.delete_pending ? "" : "s",
-				nat, 1 == nat ? "" : "s");
+				igd.delete_pending, plural(igd.delete_pending),
+				nat, plural(nat));
 			last = tm_time();
 		}
 	}
@@ -305,7 +305,7 @@ upnp_method_to_string(const enum upnp_method method)
  */
 static upnp_device_t *
 upnp_dev_alloc(enum upnp_device_type type, const char *desc_url,
-	GSList *services, unsigned major, unsigned minor)
+	pslist_t *services, unsigned major, unsigned minor)
 {
 	upnp_device_t *ud;
 
@@ -313,7 +313,7 @@ upnp_dev_alloc(enum upnp_device_type type, const char *desc_url,
 	ud->magic = UPNP_DEVICE_MAGIC;
 	ud->type = type;
 	ud->desc_url = atom_str_get(desc_url);
-	ud->services = g_slist_copy(services);
+	ud->services = pslist_copy(services);
 	ud->major = major;
 	ud->minor = minor;
 
@@ -329,7 +329,7 @@ upnp_dev_free(upnp_device_t *ud)
 	upnp_device_check(ud);
 
 	atom_str_free_null(&ud->desc_url);
-	upnp_service_gslist_free_null(&ud->services);
+	upnp_service_pslist_free_null(&ud->services);
 	WFREE0(ud);
 }
 
@@ -388,7 +388,7 @@ upnp_record_igd(upnp_device_t *ud)
  * @return the newly created UPnP device structure.
  */
 upnp_device_t *
-upnp_dev_igd_make(const char *desc_url, GSList *services, host_addr_t wan_ip,
+upnp_dev_igd_make(const char *desc_url, pslist_t *services, host_addr_t wan_ip,
 	unsigned major, unsigned minor)
 {
 	upnp_device_t *ud;
@@ -436,16 +436,16 @@ upnp_check_new_wan_addr(host_addr_t addr)
  * @param arg			user-supplied argument
  */
 static void
-upnp_discovered(GSList *devlist, void *unused_arg)
+upnp_discovered(pslist_t *devlist, void *unused_arg)
 {
 	upnp_device_t *selected = NULL;
 	size_t count;
-	GSList *sl;
+	pslist_t *sl;
 
 	(void) unused_arg;
 
 	igd.discovery_done = TRUE;
-	count = g_slist_length(devlist);
+	count = pslist_length(devlist);
 
 	if (0 == count)
 		return;
@@ -456,7 +456,7 @@ upnp_discovered(GSList *devlist, void *unused_arg)
 		 * external IP, if known.
 		 */
 
-		GM_SLIST_FOREACH(devlist, sl) {
+		PSLIST_FOREACH(devlist, sl) {
 			upnp_device_t *ud = sl->data;
 
 			if (ud->type != UPNP_DEV_IGD)
@@ -525,13 +525,13 @@ done:
 	 */
 
 	if (selected != NULL)
-		devlist = g_slist_remove(devlist, selected);
+		devlist = pslist_remove(devlist, selected);
 
-	GM_SLIST_FOREACH(devlist, sl) {
+	PSLIST_FOREACH(devlist, sl) {
 		upnp_dev_free(sl->data);
 	}
 
-	gm_slist_free_null(&devlist);
+	pslist_free_null(&devlist);
 }
 
 /**
@@ -1203,13 +1203,14 @@ upnp_map_natpmp_publish_reply(int code,
  * Callout queue callback to publish a UPnP mapping to the IGD.
  */
 static void
-upnp_map_publish(cqueue_t *unused_cq, void *obj)
+upnp_map_publish(cqueue_t *cq, void *obj)
 {
 	struct upnp_mapping *um = obj;
 	int delay;
 
-	(void) unused_cq;
 	upnp_mapping_check(um);
+
+	cq_zero(cq, &um->install_ev);
 
 	/*
 	 * Re-install callback for next time.

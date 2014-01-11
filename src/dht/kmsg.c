@@ -63,6 +63,7 @@
 #include "lib/bstr.h"
 #include "lib/host_addr.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
 #include "lib/str.h"
@@ -261,7 +262,7 @@ warn_no_header_extension(const knode_t *kn,
 	if (extlen && GNET_PROPERTY(dht_debug)) {
 		uint8 function = kademlia_header_get_function(header);
 		g_warning("DHT unhandled extended header (%u byte%s) in %s from %s",
-			extlen, extlen == 1 ? "" : "s", kmsg_name(function),
+			extlen, plural(extlen), kmsg_name(function),
 			knode_to_string(kn));
 		if (GNET_PROPERTY(dht_debug) > 15)
 			dump_hex(stderr, "Kademlia extra header",
@@ -283,7 +284,7 @@ warn_unparsed_trailer(const knode_t *kn, const kademlia_header_t *header,
 		g_warning("DHT message %s from %s "
 			"has %zu byte%s of unparsed trailing data (ignored)",
 			kmsg_name(function), knode_to_string(kn),
-			unparsed, 1 == unparsed ? "" : "s");
+			unparsed, plural(unparsed));
 		if (GNET_PROPERTY(dht_debug) > 15)
 			dump_hex(stderr, "Unparsed trailing data",
 				bstr_read_base(bs), unparsed);
@@ -544,8 +545,7 @@ k_send_find_node_response(
 	if (GNET_PROPERTY(dht_debug > 3))
 		g_debug("DHT sending back %s (%zu bytes) with %zu contact%s to %s",
 			kmsg_infostr(header), (size_t) pmsg_size(mb),
-			klen, klen == 1 ? "" : "s",
-			host_addr_port_to_string(n->addr, n->port));
+			klen, plural(klen), host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
 }
@@ -642,7 +642,7 @@ k_send_find_value_response(
 			if (GNET_PROPERTY(dht_debug) > 3)
 				g_warning(
 					"DHT after sending %zu DHT values, will send %zu key%s",
-					i, vlen - i, (1 == vlen - i) ? "" : "s");
+					i, vlen - i, plural(vlen - i));
 			break;
 		}
 
@@ -722,8 +722,7 @@ k_send_find_value_response(
 		g_debug("DHT sending back %s (%zu bytes) with "
 			"%d value%s and %d secondary key%s to %s",
 			kmsg_infostr(header), (size_t) pmsg_size(mb),
-			values, values == 1 ? "" : "s",
-			secondaries, secondaries == 1 ? "" : "s",
+			values, plural(values), secondaries, plural(secondaries),
 			host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
@@ -823,8 +822,7 @@ k_send_store_response(
 	if (GNET_PROPERTY(dht_debug > 3))
 		g_debug("DHT sending back %s (%zu bytes) with %d status%s to %s",
 			kmsg_infostr(header), (size_t) pmsg_size(mb),
-			i, i == 1 ? "" : "es",
-			host_addr_port_to_string(n->addr, n->port));
+			i, plural_es(i), host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
 
@@ -849,7 +847,7 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 
 	if (len && GNET_PROPERTY(dht_debug)) {
 		g_warning("DHT unhandled PING payload (%zu byte%s) from %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn));
+			len, plural(len), knode_to_string(kn));
 		dump_hex(stderr, "Kademlia Ping payload", payload, len);
 	}
 
@@ -1029,7 +1027,7 @@ error:
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT unhandled PONG payload (%zu byte%s) from %s: %s: %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn),
+			len, plural(len), knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	bstr_free(&bs);
@@ -1188,7 +1186,7 @@ answer:
 			within_kball ? "[in k-ball] " :
 				keys_is_foreign(id) ? "[foreign] " : "",
 			(kn->flags & KNODE_F_FIREWALLED) ? "[passive]" : "[active]",
-			requested, 1 == requested ? "" : "s");
+			requested, plural(requested));
 	}
 
 	cnt = dht_fill_closest(id, kvec, requested, kn->id, TRUE);
@@ -1270,7 +1268,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	if (len != KUID_RAW_SIZE) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT bad FIND_NODE payload (%zu byte%s) from %s",
-				len, len == 1 ? "" : "s", knode_to_string(kn));
+				len, plural(len), knode_to_string(kn));
 			dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
 		}
 		gnet_dht_stats_count_dropped(n,
@@ -1394,9 +1392,8 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 
 		if (ignored && GNET_PROPERTY(dht_debug))
 			g_warning("DHT STORE ignoring the %u %svalue%s supplied by %s %s",
-				ignored, in_kball ? "additional" : "", 1 == ignored ? "" : "s",
-				in_kball ? "k-closest" : "foreigner",
-				knode_to_string(kn));
+				ignored, in_kball ? "additional" : "", plural(ignored),
+				in_kball ? "k-closest" : "foreigner", knode_to_string(kn));
 
 		if (in_kball) {
 			values = 1;
@@ -1483,7 +1480,7 @@ error:
 invalid_token:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT unhandled STORE payload (%zu byte%s) from %s: %s: %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn),
+			len, plural(len), knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1531,7 +1528,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	if (len < KUID_RAW_SIZE + 4) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT bad FIND_VALUE payload (%zu byte%s) from %s",
-				len, len == 1 ? "" : "s", knode_to_string(kn));
+				len, plural(len), knode_to_string(kn));
 			dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
 		}
 		gnet_dht_stats_count_dropped(n,
@@ -1662,7 +1659,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 		g_debug("DHT FETCH \"%s\" %s (%s) FOUND %d %svalue%s",
 			dht_value_type_to_string(type),
 			kuid_to_hex_string(id), kuid_to_string(id),
-			vcnt, cached ? "cached " : "", 1 == vcnt ? "" : "s");
+			vcnt, cached ? "cached " : "", plural(vcnt));
 
 	k_send_find_value_response(n,
 		kn, vvec, vcnt, load, cached, kademlia_header_get_muid(header));
@@ -1676,7 +1673,7 @@ error:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning(
 			"DHT unhandled FIND_VALUE payload (%zu byte%s) from %s: %s: %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn),
+			len, plural(len), knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1893,15 +1890,15 @@ store_finalize_pmsg(pmsg_t *mb, int values_held, pmsg_offset_t value_count)
  * @param vvec		vector of values to store
  * @param vcnt		amount of values in ``vvec''
  *
- * @return a GSList of message blocks (pmsg_t *), with blank MUIDs, meant
+ * @return a pslist_t of message blocks (pmsg_t *), with blank MUIDs, meant
  * to be overwritten by the RPC layer.
  * It is up to the caller to free up the list and the blocks.
  */
-GSList *
+pslist_t *
 kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 {
 	int i;
-	GSList *result = NULL;
+	pslist_t *result = NULL;
 	pmsg_t *mb = NULL;
 	int vheld = 0;
 	pmsg_offset_t value_count = 0;
@@ -1931,7 +1928,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 			store_finalize_pmsg(mb, vheld, value_count);
 
-			result = g_slist_prepend(result, mb);
+			result = pslist_prepend(result, mb);
 			mb = NULL;
 			vheld = 0;
 		}
@@ -1990,7 +1987,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 	store_finalize_pmsg(mb, vheld, value_count);
 
-	return g_slist_prepend(result, mb);
+	return pslist_prepend(result, mb);
 }
 
 /**
@@ -2640,7 +2637,7 @@ kmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 
 	return str_bprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
 		kmsg_name(kademlia_header_get_function(msg)),
-		ext, size, size == 1 ? "" : "s",
+		ext, size, plural(size),
 		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),
 		kademlia_header_get_major_version(msg),
 		kademlia_header_get_minor_version(msg),

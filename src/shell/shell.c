@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2002-2003 Richard Eckart
+ * Copyright (c) 2009,2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +31,7 @@
  * @author Richard Eckart
  * @date 2002-2003
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009, 2013
  */
 
 #include "common.h"
@@ -45,25 +46,34 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/ascii.h"
+#include "lib/atomic.h"
+#include "lib/constants.h"
+#include "lib/elist.h"
 #include "lib/file.h"
 #include "lib/getline.h"
+#include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
+#include "lib/spinlock.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define SHELL_MAX_ARGS	1024	/**< Maximum number of arguments in command */
-
-static GSList *sl_shells;
+#define SHELL_MAX_ARGS		1024	/**< Max number of arguments in command */
+#define SHELL_STACK_SIZE	THREAD_STACK_MIN
 
 enum shell_magic {
 	SHELL_MAGIC = 0x33f3e711U
@@ -82,8 +92,13 @@ struct gnutella_shell {
 	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
 	uint64 line_count;		/**< Number of input lines after HELO */
+	link_t lnk;				/**< Embedded list pointer */
+	spinlock_t lock;		/**< Thread-safe lock */
 	uint shutdown:1;  		/**< In shutdown mode? */
+	uint exiting:1;  		/**< Should shell exit? */
 	uint interactive:1;		/**< Interactive mode? */
+	uint async:1;			/**< In the middle of asynchronous processing */
+	uint eof:1;				/**< Got EOF on the input side */
 };
 
 void
@@ -93,6 +108,16 @@ shell_check(const struct gnutella_shell * const sh)
 	g_assert(SHELL_MAGIC == sh->magic);
 	socket_check(sh->socket);
 }
+
+#define SHELL_LOCK(sh)		spinlock(&sh->lock)
+#define SHELL_UNLOCK(sh)	spinunlock(&sh->lock)
+
+static elist_t shells = ELIST_INIT(offsetof(struct gnutella_shell, lnk));
+static htable_t *shell_cmds;
+
+static bool shell_interpret_line(struct gnutella_shell *sh, const char *line);
+static void shell_interpret_data(struct gnutella_shell *sh);
+static void shell_handle_event(struct gnutella_shell *, inputevt_cond_t);
 
 static inline bool
 shell_has_pending_output(struct gnutella_shell *sh)
@@ -115,8 +140,10 @@ shell_new(struct gnutella_socket *s)
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
 	sh->output = slist_new();
+	slist_thread_safe(sh->output);
+	spinlock_init(&sh->lock);
 
-	sl_shells = g_slist_prepend(sl_shells, sh);
+	elist_append(&shells, sh);
 
 	return sh;
 }
@@ -127,15 +154,26 @@ shell_new(struct gnutella_socket *s)
 static void
 shell_free(struct gnutella_shell *sh)
 {
-	g_assert(sh);
-	g_assert(SHELL_MAGIC == sh->magic);
+	g_assert(sh != NULL);
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->output); /* must have called shell_destroy before */
+
+	spinlock_destroy(&sh->lock);
 	HFREE_NULL(sh->msg);
 	HFREE_NULL(sh->pending.msg);
 
 	sh->magic = 0;
 	WFREE(sh);
+}
+
+/**
+ * Called whenever some event occurs on a shell socket.
+ */
+static void
+shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
+{
+	(void) unused_source;
+	shell_handle_event(data, cond);
 }
 
 static void
@@ -155,10 +193,10 @@ shell_destroy(struct gnutella_shell *sh)
 	shell_check(sh);
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("%s", G_STRFUNC);
+		s_debug("%s(%p)", G_STRFUNC, sh);
 	}
 
-	sl_shells = g_slist_remove(sl_shells, sh);
+	elist_remove(&shells, sh);
 	socket_evt_clear(sh->socket);
 	shell_discard_output(sh);
 	socket_free_null(&sh->socket);
@@ -225,6 +263,55 @@ shell_toggle_interactive(struct gnutella_shell *sh)
 		shell_write_welcome(sh);
 	}
 	return sh->interactive;
+}
+
+static void
+shell_shutdown(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	sh->shutdown = TRUE;
+	atomic_mb();
+	socket_evt_clear(sh->socket);
+}
+
+static void
+shell_eof(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	sh->eof = TRUE;
+	atomic_mb();
+
+	SHELL_LOCK(sh);
+
+	socket_evt_clear(sh->socket);
+
+	if (shell_has_pending_output(sh)) {
+		if (GNET_PROPERTY(shell_debug) > 1) {
+			s_debug("%s(%p): keeping INPUT_EVENT_WX", G_STRFUNC, sh);
+		}
+
+		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
+	} else {
+		if (GNET_PROPERTY(shell_debug) > 1) {
+			s_debug("%s(%p): cleared all events", G_STRFUNC, sh);
+		}
+	}
+
+	SHELL_UNLOCK(sh);
+}
+
+/**
+ * Request that shell exits once all pending output has been flushed.
+ */
+void
+shell_exit(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	sh->exiting = TRUE;
+	atomic_mb();
 }
 
 /**
@@ -463,27 +550,54 @@ error:
 }
 
 /**
+ * Fetch handler for the command.
+ *
+ * @param cmd		command name (lower-cased)
+ * @param threaded	if non-NULL, set with whether processing can be threaded
+ *
  * @return command handler based on command name (case-insensitive).
  */
 static shell_cmd_handler_t
-shell_cmd_get_handler(const char *cmd)
+shell_cmd_get_handler(const char *cmd, bool *threaded)
 {
-	static const struct {
+	static const struct shellcmd {
 		const char * const cmd;
 		shell_cmd_handler_t handler;
+		bool threadable;
 	} commands[] = {
-#define SHELL_CMD(x)	{ #x, shell_exec_ ## x },
+#define SHELL_CMD(x,t)	{ #x, shell_exec_ ## x, booleanize(t) },
 #include "cmd.inc"
 #undef	SHELL_CMD 
 	};
+	struct shellcmd *scd;
 	size_t i;
 
 	g_return_val_if_fail(cmd, NULL);
 
-	for (i = 0; i < G_N_ELEMENTS(commands); i++) {
-		if (ascii_strcasecmp(commands[i].cmd, cmd) == 0)
-			return commands[i].handler;
+	/*
+	 * Build table for quick lookups.
+	 */
+
+	if G_UNLIKELY(NULL == shell_cmds) {
+		shell_cmds = htable_create(HASH_KEY_STRING, 0);
+
+		for (i = 0; i < G_N_ELEMENTS(commands); i++) {
+			char *name = xstrdup(commands[i].cmd);
+
+			ascii_strlower(name, name);		/* In-place conversion */
+			htable_insert(shell_cmds, constant_str(name),
+				deconstify_pointer(&commands[i]));
+			xfree(name);
+		}
 	}
+
+	scd = htable_lookup(shell_cmds, cmd);
+	if (scd != NULL) {
+		if (threaded != NULL)
+			*threaded = scd->threadable;
+		return scd->handler;
+	}
+
 	return NULL;
 }
 
@@ -508,6 +622,149 @@ shell_pending_flush(struct gnutella_shell *sh, bool last)
 	}
 }
 
+static void
+shell_post_handle(struct gnutella_shell *sh, enum shell_reply reply_code)
+{
+	shell_check(sh);
+
+	shell_pending_flush(sh, !sh->interactive);
+	if (NULL == sh->msg) {
+		switch (reply_code) {
+		case REPLY_ERROR:
+			shell_set_msg(sh, _("Malformed command"));
+			break;
+		case REPLY_READY:
+			shell_set_msg(sh, _("OK"));
+			break;
+		case REPLY_NONE:
+		case REPLY_BYE:
+			break;
+		case REPLY_ASYNC:
+			g_assert_not_reached();
+		}
+	}
+}
+
+static void
+shell_handler_done(struct gnutella_shell *sh, enum shell_reply reply_code)
+{
+	if (
+		REPLY_NONE != reply_code &&
+		!(!sh->interactive && REPLY_READY == reply_code)
+	) {
+		/*
+		 * On error, when running non-interactively, remind them
+		 * about the command that failed first.
+		 */
+
+		if (REPLY_ERROR == reply_code && !sh->interactive) {
+			shell_write(sh, uint32_to_string(reply_code));
+			shell_write(sh, "-Error for: \"");
+			shell_write(sh, getline_str(sh->socket->getline));
+			shell_write(sh, "\"\n");
+		}
+
+		shell_write(sh, uint32_to_string(reply_code));
+		shell_write_msg(sh);
+		shell_write(sh, "\n");
+	}
+}
+
+/**
+ * Context for asynchronous shell command execution.
+ */
+struct shell_async_args {
+	struct gnutella_shell *sh;
+	shell_cmd_handler_t handler;
+	const char *next;				/* First character unparsed in line */
+	const char **argv;
+	int argc;
+	enum shell_reply reply_code;
+};
+
+/**
+ * Resume execution of the shell command line after asynchronous processing.
+ */
+static void
+shell_resume_processing(void *p)
+{
+	struct shell_async_args *args = p;
+	struct gnutella_shell *sh = args->sh;
+	const char *line = args->next;
+
+	if (GNET_PROPERTY(shell_debug) > 1) {
+		s_debug("%s(%p): resuming in main after %s()",
+			G_STRFUNC, sh, stacktrace_function_name(args->handler));
+	}
+
+	WFREE(args);
+	sh->last_update = tm_time();
+	sh->async = FALSE;
+	shell_handle_event(sh, INPUT_EVENT_NONE);	/* Ensure we can read/write */
+
+	/*
+	 * Once the line is fully interpreted and we're no longer running any
+	 * asynchronous command, return to shell_interpret_data() to parse any
+	 * remaining (already read) data in the socket buffer.
+	 */
+
+	if (!shell_interpret_line(sh, line))
+		shell_interpret_data(sh);
+}
+
+/**
+ * Asynchronous shell command handler.
+ *
+ * @note
+ * This is the thread entry point for asynchronous shell command processing.
+ */
+static void *
+shell_async_handler(void *p)
+{
+	struct shell_async_args *args = p;
+	struct gnutella_shell *sh = args->sh;
+
+	shell_check(sh);
+
+	thread_set_name("async shell handler");
+
+	if (GNET_PROPERTY(shell_debug) > 1) {
+		s_debug("%s(%p): invoking %s() asynchronously for \"%s\"",
+			G_STRFUNC, sh, stacktrace_function_name(args->handler),
+			args->argv[0]);
+	}
+
+	args->reply_code = args->handler(sh, args->argc, args->argv);
+
+	shell_post_handle(sh, args->reply_code);
+	shell_handler_done(sh, args->reply_code);
+
+	if (GNET_PROPERTY(shell_debug) > 1) {
+		s_debug("%s(%p): done with %s() for \"%s\"",
+			G_STRFUNC, sh, stacktrace_function_name(args->handler),
+			args->argv[0]);
+	}
+
+	shell_free_argv(&args->argv);
+	shell_post_handle(sh, args->reply_code);
+
+	/*
+	 * Transfer control back to the main thread to resume processing of
+	 * the shell command line.
+	 *
+	 * Use a "safe" event to avoid interrupting processing in the main
+	 * thread that could be re-entered by the processing we're about to resume.
+	 */
+
+	if (!sh->shutdown) {
+		teq_safe_post(THREAD_MAIN, shell_resume_processing, args);
+	} else {
+		sh->async = FALSE;		/* Signal that async processing is done */
+	}
+
+	return NULL;
+}
+
 /**
  * Takes a command string and tries to parse and execute it.
  */
@@ -520,6 +777,9 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 	const char *start = line;
 
 	shell_check(sh);
+	g_assert(thread_is_main());
+	g_assert(!sh->async);		/* One async request at a time */
+	g_assert(endptr != NULL);
 
 	if (!shell_parse_command(sh, start, endptr, &argc, &argv)) {
 		shell_write(sh, "400-Syntax error:");
@@ -535,25 +795,66 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 		reply_code = REPLY_NONE;
 	} else {
 		shell_cmd_handler_t handler;
+		char *cmd = deconstify_char(argv[0]);
+		bool threadable;
 
-		handler = shell_cmd_get_handler(argv[0]);
-		if (handler) {
+		ascii_strlower(cmd, cmd);	/* In-place conversion */
+		handler = shell_cmd_get_handler(cmd, &threadable);
+
+		if (handler != NULL) {
 			HFREE_NULL(sh->pending.msg);
-			reply_code = (*handler)(sh, argc, argv);
-			shell_pending_flush(sh, !sh->interactive);
-			if (NULL == sh->msg) {
-				switch (reply_code) {
-				case REPLY_ERROR:
-					shell_set_msg(sh, _("Malformed command"));
-					break;
-				case REPLY_READY:
-					shell_set_msg(sh, _("OK"));
-					break;
-				case REPLY_NONE:
-				case REPLY_BYE:
-					break;
+
+			if (threadable) {
+				struct shell_async_args *args;
+
+				/*
+				 * When the shell command is threadable, it will be run
+				 * asynchronously.  We simply return REPLY_ASYNC to the
+				 * caller to let it know that continuation following this
+				 * shell command will happen in the shell_resume_processing()
+				 * routine.
+				 */
+
+				WALLOC(args);
+				args->sh = sh;
+				args->next = *endptr;
+				args->argc = argc;
+				args->argv = argv;
+				args->handler = handler;
+
+				if (GNET_PROPERTY(shell_debug) > 1) {
+					s_debug("%s(%p): can call %s() asynchronously for \"%s\"",
+						G_STRFUNC, sh, stacktrace_function_name(handler),
+						argv[0]);
 				}
+
+				/*
+				 * Forbid any more reading on the socket until we're done
+				 * processing the previous command asynchronously.
+				 */
+
+				sh->async = TRUE;
+				socket_evt_clear(sh->socket);
+
+				if (
+					-1 == thread_create(shell_async_handler, args,
+						THREAD_F_NO_POOL | THREAD_F_DETACH | THREAD_F_NO_CANCEL,
+						SHELL_STACK_SIZE)
+				) {
+					s_warning("%s(): cannot create new thread: %m", G_STRFUNC);
+					WFREE(args);
+					sh->async = FALSE;
+					shell_handle_event(sh, INPUT_EVENT_NONE);
+					goto synchronous;
+				}
+
+				return REPLY_ASYNC;
 			}
+
+		synchronous:
+
+			reply_code = (*handler)(sh, argc, argv);
+			shell_post_handle(sh, reply_code);
 		} else {
 			char buf[80];
 			str_bprintf(buf, sizeof buf, _("Unknown command: \"%s\""), argv[0]);
@@ -588,29 +889,163 @@ shell_write_data(struct gnutella_shell *sh)
 
 	sh->last_update = tm_time();
 
+	slist_lock(sh->output);
 	iov = pmsg_slist_to_iovec(sh->output, &iov_cnt, NULL);
+	slist_unlock(sh->output);
+
+	g_assert(iov != NULL);
+
 	written = s->wio.writev(&s->wio, iov, iov_cnt);
+
+	if (GNET_PROPERTY(shell_debug) > 2) {
+		s_debug("%s(%p): wrote %zd byte%s",
+			G_STRFUNC, sh, written, plural(written));
+	}
 
 	switch (written) {
 	case (ssize_t) -1:
 		if (is_temporary_error(errno))
 			goto done;
 
-		/* FALL THRU */
+		s_warning("%s(%p): writev() failed: %m", G_STRFUNC, sh);
+		shell_shutdown(sh);
+		break;
+
 	case 0:
 		shell_discard_output(sh);
-		if (!sh->shutdown) {
-			shell_shutdown(sh);
-		}
+		shell_shutdown(sh);
 		break;
 
 	default:
+		slist_lock(sh->output);
 		pmsg_slist_discard(sh->output, written);
+		slist_unlock(sh->output);
 	}
 
 done:
 	HFREE_NULL(iov);
 	return;
+}
+
+/**
+ * Interpret commands on the line (separated by ';').
+ *
+ * @return TRUE if we are executing an asynchronous command and need to pause
+ * processing until the command is finished.
+ */
+static bool
+shell_interpret_line(struct gnutella_shell *sh, const char *line)
+{
+	shell_check(sh);
+	g_assert(line != NULL);
+	g_assert(!sh->async);		/* Done with possible previous async command */
+
+	shell_set_msg(sh, NULL);
+
+	while (line != NULL && *line != '\0') {
+		enum shell_reply reply_code;
+		const char *endptr = NULL;
+
+		reply_code = shell_exec(sh, line, &endptr);
+
+		/*
+		 * If the shell command runs asynchronously, then we need to wait for
+		 * the remainder of the command.  The shell_resume_processing() routine
+		 * will be called when it is completed.
+		 */
+
+		if (REPLY_ASYNC == reply_code)
+			return TRUE;
+
+		shell_handler_done(sh, reply_code);
+
+		line = endptr;
+		shell_set_msg(sh, NULL);
+
+		if (sh->exiting)
+			break;
+	}
+
+	getline_reset(sh->socket->getline);
+
+	return FALSE;
+}
+
+/**
+ * Interpret all the data held in the shell's socket read buffer, which
+ * may contain several lines of text.
+ */
+static void
+shell_interpret_data(struct gnutella_shell *sh)
+{
+	struct gnutella_socket *s;
+
+	shell_check(sh);
+	g_assert(sh->socket->getline);
+	g_assert(!sh->shutdown);
+	g_assert(!sh->async);
+
+	sh->last_update = tm_time();		/* Continuing to process */
+	s = sh->socket;
+
+	if (GNET_PROPERTY(shell_debug) > 1) {
+		s_debug("%s(%p): %zu byte%s in socket buffer",
+			G_STRFUNC, sh, s->pos, plural(s->pos));
+	}
+
+	while (s->pos > 0) {
+		size_t parsed;
+		const char *line;
+
+		switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
+		case READ_OVERFLOW:
+			s_warning("%s(%p): line is too long (from shell at %s)\n",
+				G_STRFUNC, sh, host_addr_port_to_string(s->addr, s->port));
+			shell_write(sh, "400 Line is too long.\n");
+			shell_shutdown(sh);
+			return;
+		case READ_DONE:
+			if (s->pos != parsed)
+				memmove(s->buf, &s->buf[parsed], s->pos - parsed);
+			s->pos -= parsed;
+			break;
+		case READ_MORE:
+			g_assert(parsed == s->pos);
+			s->pos = 0;
+			goto done;
+		}
+
+		/*
+		 * We come here everytime we get a full line.
+		 *
+		 * When command returns REPLY_READY, meaning it was executed
+		 * properly, do not show them any feedback if not running
+		 * interactively.
+		 */
+
+		sh->line_count++;
+		line = getline_str(s->getline);
+
+		if (shell_interpret_line(sh, line))
+			return;
+
+		if (sh->shutdown || sh->exiting || sh->eof)
+			return;
+	}
+
+done:
+	if (GNET_PROPERTY(shell_debug) > 1) {
+		s_debug("%s(%p): finished normally (setting INPUT_EVENT_RW)",
+			G_STRFUNC, sh);
+	}
+
+	/*
+	 * The lock is not necessary here, as we are supposed to be running the
+	 * shell in a single thread at this point, with no concurrent shell thread.
+	 */
+
+	socket_evt_clear(sh->socket);
+	socket_evt_set(sh->socket, INPUT_EVENT_RW, shell_handle_data, sh);
 }
 
 /**
@@ -626,11 +1061,15 @@ shell_read_data(struct gnutella_shell *sh)
 	g_assert(sh->socket->getline);
 	g_assert(!sh->shutdown);
 
+	if G_UNLIKELY(sh->async)
+		return;					/* In the middle of an async command */
+
 	sh->last_update = tm_time();
 	s = sh->socket;
 
 	if (s->buf_size - s->pos < 1) {
-		g_warning("SHELL read more than buffer size (%zu bytes)", s->buf_size);
+		s_critical("%s(%p) read more than buffer size (%zu bytes)",
+			G_STRFUNC, sh, s->buf_size);
 	} else {
 		size_t size = s->buf_size - s->pos - 1;
 		ssize_t ret;
@@ -639,104 +1078,24 @@ shell_read_data(struct gnutella_shell *sh)
 		if (0 == ret) {
 			if (0 == s->pos) {
 				if (GNET_PROPERTY(shell_debug)) {
-					g_debug("%s: shell connection closed: EOF", G_STRFUNC);
+					s_debug("%s(%p): shell connection closed: EOF",
+						G_STRFUNC, sh);
 				}
-				shell_shutdown(sh);
-				goto finish;
+				shell_eof(sh);
+				return;
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
-				g_warning("%s: receiving data failed: %m", G_STRFUNC);
+				s_warning("%s(%p): receiving data failed: %m", G_STRFUNC, sh);
 				shell_shutdown(sh);
-				goto finish;
+				return;
 			}
 		} else {
 			s->pos += ret;
 		}
 	}
 
-	while (s->pos > 0) {
-		size_t parsed;
-		const char *line;
-
-		switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
-		case READ_OVERFLOW:
-			g_warning("Line is too long (from shell at %s)\n",
-				host_addr_port_to_string(s->addr, s->port));
-			shell_write(sh, "400 Line is too long.\n");
-			shell_shutdown(sh);
-			goto finish;
-		case READ_DONE:
-			if (s->pos != parsed)
-				memmove(s->buf, &s->buf[parsed], s->pos - parsed);
-			s->pos -= parsed;
-			break;
-		case READ_MORE:
-			g_assert(parsed == s->pos);
-			s->pos = 0;
-			goto finish;
-		}
-
-		/*
-		 * We come here everytime we get a full line.
-		 *
-		 * When command returns REPLY_READY, meaning it was executed
-		 * properly, do not show them any feedback if not running
-		 * interactively.
-		 */
-
-		sh->line_count++;
-		line = getline_str(s->getline);
-
-		while (line != NULL && *line != '\0') {
-			enum shell_reply reply_code;
-			const char *endptr = NULL;
-
-			reply_code = shell_exec(sh, line, &endptr);
-			if (
-				REPLY_NONE != reply_code &&
-				!(!sh->interactive && REPLY_READY == reply_code)
-			) {
-				/*
-				 * On error, when running non-interactively, remind them
-				 * about the command that failed first.
-				 */
-
-				if (REPLY_ERROR == reply_code && !sh->interactive) {
-					shell_write(sh, uint32_to_string(reply_code));
-					shell_write(sh, "-Error for: \"");
-					shell_write(sh, getline_str(s->getline));
-					shell_write(sh, "\"\n");
-				}
-
-				shell_write(sh, uint32_to_string(reply_code));
-				shell_write_msg(sh);
-				shell_write(sh, "\n");
-			}
-
-			line = endptr;
-			shell_set_msg(sh, NULL);
-		}
-
-		getline_reset(s->getline);
-		if (sh->shutdown)
-			goto finish;
-	}
-
-finish:
-	return;
-}
-
-static void shell_handle_event(struct gnutella_shell *, inputevt_cond_t);
-
-/**
- * Called whenever some event occurs on a shell socket.
- */
-static void
-shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
-{
-	(void) unused_source;
-	shell_handle_event(data, cond);
+	shell_interpret_data(sh);
 }
 
 static void
@@ -745,29 +1104,76 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 	shell_check(sh);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		g_warning ("shell connection closed: exception");
+		s_warning ("%s(%p): got input exception", G_STRFUNC, sh);
 		goto destroy;
 	}
 
-	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh)) {
+	if (
+		(cond & INPUT_EVENT_W) &&
+		!sh->shutdown && shell_has_pending_output(sh)
+	) {
 		shell_write_data(sh);
 	}
 
-	if ((cond & INPUT_EVENT_R) && !sh->shutdown) {
+	if ((cond & INPUT_EVENT_R) && !(sh->shutdown || sh->eof)) {
+		g_assert(!sh->async);
 		shell_read_data(sh);
 	}
 
+	SHELL_LOCK(sh);
+
 	if (!shell_has_pending_output(sh)) {
-		if (sh->shutdown)
+		if (sh->shutdown || sh->exiting) {
+			SHELL_UNLOCK(sh);
 			goto destroy;
+		}
+
+		if (GNET_PROPERTY(shell_debug) > 1) {
+			s_debug("%s(%p): clearing INPUT_EVENT_WX", G_STRFUNC, sh);
+		}
 
 		socket_evt_clear(sh->socket);
-		socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
+
+		if (!sh->async) {
+			if (sh->eof) {
+				SHELL_UNLOCK(sh);
+				goto destroy;
+			}
+			if (GNET_PROPERTY(shell_debug) > 1) {
+				s_debug("%s(%p): setting INPUT_EVENT_RX", G_STRFUNC, sh);
+			}
+			socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
+		}
 	}
+
+	SHELL_UNLOCK(sh);
 	return;
 
 destroy:
-	shell_destroy(sh);
+	if (sh->async)
+		shell_shutdown(sh);
+	else
+		shell_destroy(sh);
+}
+
+static void
+shell_evt_writable(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	if G_UNLIKELY(sh->shutdown)
+		return;
+
+	SHELL_LOCK(sh);
+
+	if (GNET_PROPERTY(shell_debug) > 1) {
+		s_debug("%s(%p): setting INPUT_EVENT_WX", G_STRFUNC, sh);
+	}
+
+	socket_evt_clear(sh->socket);
+	socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
+
+	SHELL_UNLOCK(sh);
 }
 
 void
@@ -779,15 +1185,28 @@ shell_write(struct gnutella_shell *sh, const char *text)
 	g_return_if_fail(sh->output);
 	g_return_if_fail(text);
 
+	/*
+	 * If running asynchronously, the main thread could have decided to
+	 * shutdown the shell.   In which case we must no longer issue any
+	 * output.
+	 */
+
+	if (sh->shutdown)
+		return;
+
 	len = strlen(text);
 	g_return_if_fail(len < (size_t) -1);
 
 	if (len > 0) {
-		if (!shell_has_pending_output(sh)) {
-			socket_evt_clear(sh->socket);
-			socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
-		}
+		bool install_write_event;
+
+		slist_lock(sh->output);
+		install_write_event = !shell_has_pending_output(sh);
 		pmsg_slist_append(sh->output, text, len);
+		slist_unlock(sh->output);
+
+		if (install_write_event)
+			shell_evt_writable(sh);
 	}
 }
 
@@ -863,15 +1282,6 @@ shell_write_linef(struct gnutella_shell *sh, int code, const char *fmt, ...)
 	sh->pending.code = code;
 }
 
-void
-shell_shutdown(struct gnutella_shell *sh)
-{
-	shell_check(sh);
-	g_assert(!sh->shutdown);
-
-	sh->shutdown = TRUE;
-}
-
 #ifdef USE_REMOTE_CTRL
 
 static void
@@ -899,13 +1309,10 @@ shell_auth_cookie(void)
 	static bool initialized;
 
 	if (!initialized) {
-		SHA1Context ctx;
 		uint32 noise[64];
 
-		random_bytes(noise, sizeof noise);
-		SHA1Reset(&ctx);
-		SHA1Input(&ctx, &noise, sizeof noise);
-		SHA1Result(&ctx, &cookie);
+		random_strong_bytes(noise, sizeof noise);
+		SHA1_COMPUTE(noise, &cookie);
 		shell_dump_cookie(&cookie);
 		initialized = TRUE;
 	}
@@ -932,7 +1339,7 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 		goto done;
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("%s: [%s] [<cookie not displayed>]", G_STRFUNC, tok_helo);
+		s_debug("%s: [%s] [<cookie not displayed>]", G_STRFUNC, tok_helo);
 	}
 
 	cookie = shell_auth_cookie();
@@ -968,12 +1375,12 @@ shell_grant_remote_shell(struct gnutella_shell *sh)
 			sh->interactive = TRUE;
 			shell_write_welcome(sh);
 		} else {
-			g_warning("invalid credentials");
+			s_warning("invalid credentials");
 			shell_write(sh, "400 Invalid credentials\n");
 		}
 		getline_reset(sh->socket->getline); /* clear AUTH command from buffer */
 	} else {
-		g_warning("remote shell control interface disabled");
+		s_warning("remote shell control interface disabled");
 		shell_write(sh, "401 Disabled\n");
 	}
 	return granted;
@@ -991,7 +1398,7 @@ static bool
 shell_grant_remote_shell(const struct gnutella_shell *sh)
 {
 	shell_check(sh);
-	g_warning("remote shell control interface disabled");
+	s_warning("remote shell control interface disabled");
 	return FALSE;
 }
 #endif /* USE_REMOTE_CTRL */
@@ -1005,7 +1412,7 @@ shell_grant_local_shell(struct gnutella_shell *sh)
 		getline_reset(sh->socket->getline); /* remove HELO command */
 		return TRUE;
 	} else {
-		g_warning("local shell control interface disabled");
+		s_warning("local shell control interface disabled");
 		shell_write(sh, "401 Disabled\n");
 		return FALSE;
 	}
@@ -1025,7 +1432,7 @@ shell_add(struct gnutella_socket *s)
 	g_assert(s->getline);
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("%s: incoming shell connection from %s",
+		s_debug("%s: incoming shell connection from %s",
 			G_STRFUNC, host_addr_port_to_string(s->addr, s->port));
 	}
 
@@ -1052,26 +1459,28 @@ void
 shell_timer(time_t now)
 {
 	time_delta_t timeout = GNET_PROPERTY(remote_shell_timeout);
+	struct gnutella_shell *sh;
 
 	if (timeout > 0) {
-		GSList *sl, *to_remove = NULL;
+		pslist_t *to_remove = NULL, *sl;
 
-		for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
-			struct gnutella_shell *sh = sl->data;
-
+		ELIST_FOREACH_DATA(&shells, sh) {
 			shell_check(sh);
 			if (
 				0 == (SOCK_F_LOCAL & sh->socket->flags) &&
-				delta_time(now, sh->last_update) > timeout
+				delta_time(now, sh->last_update) > timeout &&
+				!sh->async	/* No timeout if command done by other thread */
 			) {
-				to_remove = g_slist_prepend(to_remove, sh);
+				to_remove = pslist_prepend(to_remove, sh);
+			} else if (sh->shutdown && !sh->async) {
+				to_remove = pslist_prepend(to_remove, sh);
 			}
 		}
-		for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-			struct gnutella_shell *sh = sl->data;
+		PSLIST_FOREACH(to_remove, sl) {
+			sh = sl->data;
 			shell_destroy(sh);
 		}
-		g_slist_free(to_remove);
+		pslist_free_null(&to_remove);
 	}
 }
 
@@ -1084,10 +1493,12 @@ shell_init(void)
 void
 shell_close(void)
 {
-	while (sl_shells) {
-		struct gnutella_shell *sh = sl_shells->data;
+	struct gnutella_shell *sh;
+
+	while (NULL != (sh = elist_head(&shells))) {
 		shell_destroy(sh);
 	}
+	htable_free_null(&shell_cmds);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

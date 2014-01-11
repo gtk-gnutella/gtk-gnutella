@@ -55,6 +55,7 @@
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -344,16 +345,15 @@ uhc_try_random(void)
  * get a reply within the specified timeout.
  */
 static void
-uhc_ping_timeout(cqueue_t *unused_cq, void *unused_obj)
+uhc_ping_timeout(cqueue_t *cq, void *unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_warning("no reply from UDP host cache %s:%u",
 			uhc_ctx.host, uhc_ctx.port);
 
-	uhc_ctx.timeout_ev = NULL;
+	cq_zero(cq, &uhc_ctx.timeout_ev);
 	uhc_try_random();
 }
 
@@ -530,7 +530,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d host%s in UDP IPP pong #%s from %s",
-			cnt, cnt == 1 ? "" : "s",
+			cnt, plural(cnt),
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n));
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
@@ -561,7 +561,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(bootstrap_debug)) {
 		g_debug("BOOT UDP cache \"%s\" replied: got %d host%s from %s",
-			uhc_ctx.host, cnt, cnt == 1 ? "" : "s", node_addr(n));
+			uhc_ctx.host, cnt, plural(cnt), node_addr(n));
 	}
 
 	/*

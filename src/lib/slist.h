@@ -32,20 +32,24 @@ typedef struct slist slist_t;
 
 slist_t *slist_new(void);
 void slist_free(slist_t **slist_ptr);
+void slist_thread_safe(slist_t *sl);
+void slist_lock(slist_t *sl);
+void slist_unlock(slist_t *sl);
 bool slist_remove(slist_t *slist, void *key);
 void *slist_shift(slist_t *slist);
 void slist_append(slist_t *slist, void *key);
 void slist_prepend(slist_t *slist, void *key);
-void slist_insert_sorted(slist_t *slist, void *key, GCompareFunc func);
+void slist_insert_sorted(slist_t *slist, void *key, cmp_fn_t func);
 bool slist_moveto_head(slist_t *slist, void *key);
 bool slist_moveto_tail(slist_t *slist, void *key);
 void *slist_head(const slist_t *slist);
 void *slist_tail(const slist_t *slist);
 uint slist_length(const slist_t *slist);
 bool slist_contains(const slist_t *slist, const void *key,
-		GEqualFunc func, void **orig_key);
+		eq_fn_t func, void **orig_key);
 bool slist_contains_identical(const slist_t *slist, const void *key);
 void slist_foreach(const slist_t *slist, GFunc func, void *user_data);
+size_t slist_foreach_remove(slist_t *slist, data_rm_fn_t func, void *udata);
 
 slist_iter_t *slist_iter_on_head(const slist_t *slist);
 slist_iter_t *slist_iter_before_head(const slist_t *slist);

@@ -284,7 +284,7 @@ gnet_stats_gui_init(void)
     }
 
     guc_hsep_add_global_table_listener(
-		(GCallback) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
+		(callback_fn_t) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
 
 	notebook_gnet_stats =
 		GTK_NOTEBOOK(gui_main_window_lookup("gnet_stats_notebook"));
@@ -296,7 +296,7 @@ void
 gnet_stats_gui_shutdown(void)
 {
 	guc_hsep_remove_global_table_listener(
-		(GCallback) gnet_stats_gui_horizon_update);
+		(callback_fn_t) gnet_stats_gui_horizon_update);
 	
 	clist_save_widths(
 		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_msg")),

@@ -35,7 +35,10 @@
 #define _walloc_h_
 
 #include "common.h"
+
+#include "eslist.h"
 #include "malloc.h"
+#include "pslist.h"
 
 /**
  * Maximum size for a walloc().  Anything larger is allocated by using
@@ -53,37 +56,12 @@
 #define REMAP_ZALLOC
 #endif
 
-size_t walloc_blocksize(size_t size) G_GNUC_PURE;
-
 #ifdef REMAP_ZALLOC
 
 #ifdef TRACK_ZALLOC
 #error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
 #endif
 
-#if 0 && GLIB_CHECK_VERSION(2, 10, 0)
-static inline void *walloc(size_t size) { return g_slice_alloc(size); }
-static inline void *walloc0(size_t size) { return g_slice_alloc0(size); }
-static inline void wfree(void *p, size_t size) { g_slice_free1(size, p); }
-
-static inline void *
-wcopy(const void *p, size_t size)
-{
-	void *x = g_slice_alloc(size);
-	memcpy(x, p, size);
-	return x;
-}
-
-static inline void *
-wrealloc(void *p, size_t old_size, size_t new_size)
-{
-	void *x = g_slice_alloc(new_size);
-	memcpy(x, p, MIN(new_size, old_size));
-	g_slice_free1(old_size, p);
-	return x;
-}
-
-#else	/* GLib < 2.10 */
 #define walloc(s)			g_malloc(s)
 #define walloc0(s)			g_malloc0(s)
 
@@ -98,6 +76,32 @@ wfree(void *p, size_t size)
 {
 	(void) size;
 	g_free(p);
+}
+
+static inline void
+wfree_pslist(pslist_t *pl, size_t size)
+{
+	pslist_t *next, *l;
+
+	(void) size;
+
+	for (l = pl; l != NULL; l = next) {
+		next = l->next;
+		g_free(l);
+	}
+}
+
+static inline void
+wfree_eslist(eslist_t *el, size_t size)
+{
+	void *next, *p;
+
+	(void) size;
+
+	for (p = eslist_head(el); p != NULL; p = next) {
+		next = eslist_next_data(el, p);
+		g_free(p);
+	}
 }
 
 static inline void
@@ -120,7 +124,6 @@ wmove(void *p, size_t n)
 	(void) n;
 	return p;
 }
-#endif	/* GLib >= 2.10 */
 
 #else	/* !REMAP_ZALLOC */
 
@@ -131,6 +134,8 @@ void wfree0(void *ptr, size_t size);
 void *wrealloc(void *old, size_t old_size, size_t new_size)
 			WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *wmove(void *ptr, size_t size) WARN_UNUSED_RESULT;
+void wfree_pslist(pslist_t *pl, size_t size);
+void wfree_eslist(eslist_t *el, size_t size);
 
 /* Don't define both an inline routine and a macro... */
 #ifndef TRACK_ZALLOC
@@ -164,7 +169,10 @@ void *wrealloc_track(void *old, size_t old_size, size_t new_size,
 #endif	/* TRACK_ZALLOC */
 
 void walloc_init(void);
+void walloc_crash_mode(void);
 void wdestroy(void);
+
+size_t walloc_maxsize(void) G_GNUC_CONST;
 
 #define WALLOC(p)			\
 G_STMT_START {				\

@@ -83,6 +83,7 @@
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/once.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -126,7 +127,7 @@ struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
 static aging_table_t *tls_ban;
-static bool tls_ban_inited;
+static once_flag_t tls_ban_inited;
 
 static bool socket_shutdowned;		/**< Set when layer has been shutdowned */
 
@@ -293,7 +294,7 @@ socket_evt_set(struct gnutella_socket *s,
 	socket_check(s);
 	g_assert(handler);
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
-	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
+	g_assert(0 != (INPUT_EVENT_RW & cond));
 	g_assert(0 == s->gdk_tag);
 
 	fd = socket_evt_fd(s);
@@ -357,7 +358,7 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 	reclaim_fd = callback;
 }
 
-static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
+static pslist_t *sl_incoming = NULL;	/**< To spot inactive sockets */
 
 static void guess_local_addr(const struct gnutella_socket *s);
 static void socket_destroy(struct gnutella_socket *s, const char *reason);
@@ -1188,7 +1189,7 @@ socket_check_ipv6_address(void)
 		break;
 	}
 	if (!GNET_PROPERTY(force_local_ip6)) {
-		GSList *sl_addrs, *sl;
+		pslist_t *sl_addrs, *sl;
 		host_addr_t addr, old_addr, first_addr;
 
 		addr = zero_host_addr;
@@ -1196,7 +1197,7 @@ socket_check_ipv6_address(void)
 		old_addr = listen_addr6();
 
 		sl_addrs = host_addr_get_interface_addrs(NET_TYPE_IPV6);
-		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
+		for (sl = sl_addrs; NULL != sl; sl = pslist_next(sl)) {
 			host_addr_t *addr_ptr;
 
 			addr_ptr = sl->data;
@@ -1240,10 +1241,10 @@ socket_enable_accept(struct gnutella_socket *s)
 void
 socket_timer(time_t now)
 {
-	GSList *l;
-	GSList *to_remove = NULL;
+	pslist_t *l;
+	pslist_t *to_remove = NULL;
 
-	for (l = sl_incoming; l; l = g_slist_next(l)) {
+	for (l = sl_incoming; l; l = pslist_next(l)) {
 		struct gnutella_socket *s = l->data;
 		time_delta_t delta;
 
@@ -1265,15 +1266,15 @@ socket_timer(time_t now)
 						s->buf, MIN(s->pos, 80));
 			}
 
-			to_remove = g_slist_prepend(to_remove, s);
+			to_remove = pslist_prepend(to_remove, s);
 		}
 	}
 
-	for (l = to_remove; l; l = g_slist_next(l)) {
+	for (l = to_remove; l; l = pslist_next(l)) {
 		struct gnutella_socket *s = l->data;
 		socket_destroy(s, "Connection timeout");
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 
 	{
 		static time_t last_check;
@@ -1481,7 +1482,7 @@ socket_free(struct gnutella_socket *s)
 
 	if (s->last_update) {
 		g_assert(sl_incoming);
-		sl_incoming = g_slist_remove(sl_incoming, s);
+		sl_incoming = pslist_remove(sl_incoming, s);
 		s->last_update = 0;
 	}
 	if (s->adns & SOCK_ADNS_PENDING) {
@@ -1509,6 +1510,15 @@ socket_free(struct gnutella_socket *s)
 	if (is_valid_fd(s->file_desc)) {
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
+
+		/*
+		 * Socket closing is a source of randomness since the actual file
+		 * descriptor being closed and the closing order between different
+		 * sockets is hard to predict.
+		 */
+
+		random_pool_append(&s->file_desc, sizeof s->file_desc);
+
 		if (compat_socket_close(s->file_desc)) {
 			g_warning("%s: close(%d) failed: %m", G_STRFUNC, s->file_desc);
 		}
@@ -1749,7 +1759,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 */
 
 	socket_evt_clear(s);
-	sl_incoming = g_slist_remove(sl_incoming, s);
+	sl_incoming = pslist_remove(sl_incoming, s);
 	s->last_update = 0;
 
 	first = getline_str(s->getline);
@@ -2354,7 +2364,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 		 *				--RAM, 07/09/2001
 		 */
 
-		sl_incoming = g_slist_prepend(sl_incoming, t);
+		sl_incoming = pslist_prepend(sl_incoming, t);
 		t->last_update = tm_time();
 		break;
 
@@ -2693,17 +2703,16 @@ static void socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime);
  * Timer installed to flush the enqueued read-ahead UDP datagrams.
  */
 static void
-socket_udp_flush_timer(cqueue_t *unused_cq, void *obj)
+socket_udp_flush_timer(cqueue_t *cq, void *obj)
 {
 	gnutella_socket_t *s = obj;
 	struct udpctx *uctx;
 
-	(void) unused_cq;
 	socket_check(s);
 	g_assert(s->flags & SOCK_F_UDP);
 
 	uctx = s->resource.udp;
-	uctx->queue_ev = NULL;			/* Timer expired */
+	cq_zero(cq, &uctx->queue_ev);		/* Timer expired */
 
 	/*
 	 * If the socket layer has already began shutdown, do not process
@@ -2895,7 +2904,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
 			"in %'u usecs",
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
-			qn, 1 == qn ? "" : "s", (unsigned) tm_elapsed_us(&end, &start));
+			qn, plural(qn), (unsigned) tm_elapsed_us(&end, &start));
 	}
 
 	/*
@@ -3397,7 +3406,7 @@ socket_reconnect(struct gnutella_socket *s)
 	 *		--RAM, 2013-12-08
 	 */
 
-	once_run(&tls_ban_inited, tls_ban_init);
+	once_flag_run(&tls_ban_inited, tls_ban_init);
 
 	gnet_host_set(&to, s->addr, s->port);
 	aging_insert(tls_ban, atom_host_get(&to), int_to_pointer(1));

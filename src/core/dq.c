@@ -38,19 +38,20 @@
 #endif	/* I_MATH */
 
 #include "dq.h"
-#include "gmsg.h"
-#include "gmsg.h"
-#include "nodes.h"
-#include "gnet_stats.h"
-#include "qrp.h"
-#include "vmsg.h"
-#include "search.h"
+
 #include "alive.h"
-#include "oob_proxy.h"
-#include "sockets.h"		/* For udp_active() */
-#include "settings.h"		/* For listen_addr() */
+#include "gmsg.h"
+#include "gmsg.h"
+#include "gnet_stats.h"
 #include "hosts.h"			/* For host_is_valid() */
+#include "nodes.h"
+#include "oob_proxy.h"
+#include "qrp.h"
+#include "search.h"
+#include "settings.h"		/* For listen_addr() */
 #include "share.h"			/* For query_strip_oob_flag() */
+#include "sockets.h"		/* For udp_active() */
+#include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -64,6 +65,7 @@
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/nid.h"
+#include "lib/pslist.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/vsort.h"
@@ -194,7 +196,7 @@ static hevset_t *dqueries;
 /**
  * This table keeps track of all the dynamic query objects created
  * for a given node ID.  The key is the node ID (converted to a pointer) and
- * the value is a GSList containing all the queries for that node.
+ * the value is a pslist_t containing all the queries for that node.
  */
 static htable_t *by_node_id;
 
@@ -559,7 +561,7 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 				nid_to_string(&dq->qid),
 				node_id_self(dq->node_id) ? "local " : "",
 				(int) (tm_time() - dq->start),
-				dq->up_sent, dq->up_sent == 1 ? "" :"s",
+				dq->up_sent, plural(dq->up_sent),
 				dq->horizon, dq->results);
 		}
 	}
@@ -631,12 +633,12 @@ dq_pmsg_by_ttl(dquery_t *dq, int ttl)
 static int
 dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, int ncount)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	int i = 0;
 
 	dquery_check(dq);
 
-	GM_SLIST_FOREACH(node_all_ultranodes(), sl) {
+	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct gnutella_node *n;
 
 		if (i >= ncount)
@@ -726,7 +728,7 @@ dq_free_next_up(dquery_t *dq)
 static int
 dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	int i = 0;
 	htable_t *old = NULL;
 
@@ -753,7 +755,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 	 * Select candidate ultra peers for sending query.
 	 */
 
-	GM_SLIST_FOREACH(node_all_ultranodes(), sl) {
+	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct next_up *nup, *old_nup;
 		struct gnutella_node *n;
 		const void *knid;
@@ -852,7 +854,7 @@ static void
 dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 {
 	const void *head;
-	GSList *nodes;
+	pslist_t *nodes;
 
 	dquery_check(dq);
 	head = cast_to_constpointer(pmsg_start(dq->mb));
@@ -867,14 +869,14 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 				gnutella_header_get_hops(head), 0, TRUE, source);
 
 	if (GNET_PROPERTY(dq_debug) > 4)
-		g_debug("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
+		g_debug("DQ QRP %s (%d word%s%s) forwarded to %zd/%d leaves",
 			gmsg_infostr_full(head, pmsg_written_size(dq->mb)),
-			qhvec_count(dq->qhv), qhvec_count(dq->qhv) == 1 ? "" : "s",
+			qhvec_count(dq->qhv), plural(qhvec_count(dq->qhv)),
 			qhvec_has_urn(dq->qhv) ? " + URN" : "",
-			g_slist_length(nodes), GNET_PROPERTY(node_leaf_count));
+			pslist_length(nodes), GNET_PROPERTY(node_leaf_count));
 
 	gmsg_mb_sendto_all(nodes, dq->mb);
-	g_slist_free(nodes);
+	pslist_free(nodes);
 }
 
 static void
@@ -970,16 +972,16 @@ dq_free(dquery_t *dq)
 	if (!node_id_self(dq->node_id) && !(dq->flags & DQ_F_ID_CLEANING)) {
 		void *value;
 		bool found;
-		GSList *list;
+		pslist_t *list;
 
 		found = htable_lookup_extended(by_node_id, dq->node_id, NULL, &value);
 
 		if (!found) {
-			g_error("%s: missing %s", G_STRLOC, nid_to_string(dq->node_id));
+			g_error("%s: missing %s", G_STRFUNC, nid_to_string(dq->node_id));
 		}
 
 		list = value;
-		list = g_slist_remove(list, dq);
+		list = pslist_remove(list, dq);
 
 		if (list == NULL) {
 			/* Last item removed, get rid of the entry */
@@ -1039,19 +1041,17 @@ dq_free(dquery_t *dq)
  * Callout queue callback invoked when the dynamic query has expired.
  */
 static void
-dq_expired(cqueue_t *unused_cq, void *obj)
+dq_expired(cqueue_t *cq, void *obj)
 {
 	dquery_t *dq = obj;
 
 	dquery_check(dq);
 	g_assert(dq->expire_ev != NULL);
 
-	(void) unused_cq;
-
 	if (GNET_PROPERTY(dq_debug) > 3)
 		g_debug("DQ[%s] expired", nid_to_string(&dq->qid));
 
-	dq->expire_ev = NULL;	/* Indicates callback fired */
+	cq_zero(cq, &dq->expire_ev);	/* Indicates callback fired */
 
 	/*
 	 * If query was lingering, free it.
@@ -1075,7 +1075,7 @@ dq_expired(cqueue_t *unused_cq, void *obj)
  * Callout queue callback invoked when the result timer has expired.
  */
 static void
-dq_results_expired(cqueue_t *unused_cq, void *obj)
+dq_results_expired(cqueue_t *cq, void *obj)
 {
 	dquery_t *dq = obj;
 	gnutella_node_t *n;
@@ -1084,12 +1084,11 @@ dq_results_expired(cqueue_t *unused_cq, void *obj)
 	uint32 last;
 	bool was_waiting = FALSE;
 
-	(void) unused_cq;
 	dquery_check(dq);
 	g_assert(!(dq->flags & DQ_F_LINGER));
 	g_assert(dq->results_ev != NULL);
 
-	dq->results_ev = NULL;	/* Indicates callback fired */
+	cq_zero(cq, &dq->results_ev);	/* Indicates callback fired */
 
 	/*
 	 * If we were waiting for a status reply from the queryier, well, we
@@ -1140,8 +1139,7 @@ dq_results_expired(cqueue_t *unused_cq, void *obj)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug(
 				"DQ[%s] terminating unguided & unrouted (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent,
-				dq->up_sent == 1 ? "" : "s");
+				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
 		dq_terminate(dq);
 		return;
 	}
@@ -1494,7 +1492,7 @@ dq_send_next(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] still %d UP%s to query (results %sso far: %u)",
-			nid_to_string(&dq->qid), found, found == 1 ? "" : "s",
+			nid_to_string(&dq->qid), found, plural(found),
 			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
 
 	if (found == 0)
@@ -1633,7 +1631,7 @@ dq_send_probe(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] found %d UP%s to probe",
-			nid_to_string(&dq->qid), found, found == 1 ? "" : "s");
+			nid_to_string(&dq->qid), found, plural(found));
 
 	/*
 	 * If we don't find any suitable UP holding that content, then
@@ -1733,16 +1731,16 @@ dq_common_init(dquery_t *dq)
 
 	if (!(dq->flags & DQ_F_LOCAL)) {
 		bool found;
-		GSList *list;
+		pslist_t *list;
 
 		found = htable_lookup_extended(by_node_id, dq->node_id, NULL, &value);
 
 		if (found) {
 			list = value;
-			list = gm_slist_insert_after(list, list, dq);
+			list = pslist_insert_after(list, list, dq);
 			g_assert(list == value);		/* Head not changed */
 		} else {
-			list = g_slist_prepend(NULL, dq);
+			list = pslist_prepend(NULL, dq);
 			htable_insert(by_node_id, dq->node_id, list);
 			g_assert(htable_lookup(by_node_id, dq->node_id) == list);
 		}
@@ -2084,7 +2082,7 @@ void
 dq_node_removed(const struct nid *node_id)
 {
 	void *value;
-	GSList *sl;
+	pslist_t *sl;
 
 	if (!htable_lookup_extended(by_node_id, node_id, NULL, &value))
 		return;		/* No dynamic query for this node */
@@ -2092,7 +2090,7 @@ dq_node_removed(const struct nid *node_id)
 	htable_remove(by_node_id, node_id);
 	g_assert(!htable_contains(by_node_id, node_id));
 
-	GM_SLIST_FOREACH(value, sl) {
+	PSLIST_FOREACH(value, sl) {
 		dquery_t *dq = sl->data;
 
 		dquery_check(dq);
@@ -2100,7 +2098,7 @@ dq_node_removed(const struct nid *node_id)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminated by node #%s removal (queried %u UP%s)",
 				nid_to_string(&dq->qid), nid_to_string2(dq->node_id),
-				dq->up_sent, dq->up_sent == 1 ? "" : "s");
+				dq->up_sent, plural(dq->up_sent));
 		
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
@@ -2108,7 +2106,7 @@ dq_node_removed(const struct nid *node_id)
 	}
 
 	g_assert(!htable_contains(by_node_id, node_id));
-	g_slist_free(value);
+	pslist_free(value);
 }
 
 /**
@@ -2359,8 +2357,7 @@ dq_got_query_status(const struct guid *muid,
 	if (kept == 0xffff) {
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminating at user's request (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent,
-				dq->up_sent == 1 ? "" : "s");
+				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
 
 		dq->flags |= DQ_F_USR_CANCELLED;
 
@@ -2388,7 +2385,7 @@ dq_got_query_status(const struct guid *muid,
 
 struct cancel_context {
 	gnet_search_t handle;
-	GSList *cancelled;
+	pslist_t *cancelled;
 };
 
 /**
@@ -2404,7 +2401,7 @@ dq_cancel_local(void *value, void *udata)
 	dquery_check(dq);
 
 	if ((dq->flags & DQ_F_LOCAL) && dq->sh == ctx->handle) {
-		ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
+		ctx->cancelled = pslist_prepend(ctx->cancelled, dq);
 	}
 }
 
@@ -2415,17 +2412,17 @@ void
 dq_search_closed(gnet_search_t handle)
 {
 	struct cancel_context ctx;
-	GSList *sl;
+	pslist_t *sl;
 
 	ctx.handle = handle;
 	ctx.cancelled = NULL;
 
 	hevset_foreach(dqueries, dq_cancel_local, &ctx);
 
-	GM_SLIST_FOREACH(ctx.cancelled, sl) {
+	PSLIST_FOREACH(ctx.cancelled, sl) {
 		dq_free(sl->data);
 	}
-	gm_slist_free_null(&ctx.cancelled);
+	pslist_free_null(&ctx.cancelled);
 }
 
 /**
@@ -2522,14 +2519,14 @@ free_query(void *value, void *unused_udata)
 static void
 free_query_list(const void *key, void *value, void *unused_udata)
 {
-	GSList *sl, *list = value;
-	int count = g_slist_length(list);
+	pslist_t *sl, *list = value;
+	int count = pslist_length(list);
 
 	(void) unused_udata;
 	g_warning("remained %d un-freed dynamic quer%s for node #%u",
-		count, count == 1 ? "y" : "ies", GPOINTER_TO_UINT(key));
+		count, plural_y(count), GPOINTER_TO_UINT(key));
 
-	GM_SLIST_FOREACH(list, sl) {
+	PSLIST_FOREACH(list, sl) {
 		dquery_t *dq = sl->data;
 
 		dquery_check(dq);
@@ -2538,7 +2535,7 @@ free_query_list(const void *key, void *value, void *unused_udata)
 		dq_free(dq);
 	}
 
-	g_slist_free(list);
+	pslist_free(list);
 }
 
 /**

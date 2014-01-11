@@ -45,6 +45,7 @@
 #include "lib/misc.h"		/* For CONST_STRLEN() */
 #include "lib/nv.h"
 #include "lib/ostream.h"
+#include "lib/pslist.h"
 #include "lib/stacktrace.h"
 #include "lib/symtab.h"
 #include "lib/unsigned.h"
@@ -621,27 +622,27 @@ xfmt_new_prefix(struct xfmt_pass2 *xp2, const char *uri)
 /**
  * Construct a list of prefixes to declare at this node.
  */
-static GSList *
+static pslist_t *
 xfmt_ns_declarations(struct xfmt_pass2 *xp2, const xnode_t *xn)
 {
-	GSList *ns = NULL;
-	GSList *sl, *uris;
+	pslist_t *ns = NULL;
+	pslist_t *sl, *uris;
 
 	uris = htable_lookup(xp2->node2uri, xn);
 
-	GM_SLIST_FOREACH(uris, sl) {
+	PSLIST_FOREACH(uris, sl) {
 		const char *uri = sl->data;
 		const char *prefix = xfmt_new_prefix(xp2, uri);
 
-		ns = gm_slist_prepend_const(ns, prefix);
+		ns = pslist_prepend_const(ns, prefix);
 	}
 
 	if (uris != NULL) {
 		htable_remove(xp2->node2uri, xn);
-		g_slist_free(uris);
+		pslist_free(uris);
 	}
 
-	return g_slist_reverse(ns);
+	return pslist_reverse(ns);
 }
 
 /**
@@ -664,11 +665,11 @@ xfmt_uri_to_prefix(const struct xfmt_pass2 *xp2, const char *uri)
  * Emit namespace declarations.
  */
 static void
-xfmt_pass2_declare_ns(struct xfmt_pass2 *xp2, GSList *ns)
+xfmt_pass2_declare_ns(struct xfmt_pass2 *xp2, pslist_t *ns)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	GM_SLIST_FOREACH(ns, sl) {
+	PSLIST_FOREACH(ns, sl) {
 		const char *prefix = sl->data;
 		const char *uri;
 		int c;
@@ -798,7 +799,7 @@ xfmt_handle_pass2_enter(const void *node, void *data)
 	xp2->depth++;
 
 	if (xnode_is_element(xn)) {
-		GSList *ns = xfmt_ns_declarations(xp2, xn);
+		pslist_t *ns = xfmt_ns_declarations(xp2, xn);
 		const char *nsuri = xnode_element_ns(xn);
 
 		if (!xp2->had_text && !xp2->last_was_nl) {
@@ -843,7 +844,7 @@ xfmt_handle_pass2_enter(const void *node, void *data)
 		 */
 
 		xfmt_pass2_declare_ns(xp2, ns);
-		g_slist_free(ns);
+		pslist_free(ns);
 
 		/*
 		 * Emit attributes.
@@ -990,12 +991,12 @@ xfmt_invert_uri_kv(const void *key, void *value, void *data)
 	struct xfmt_invert_ctx *ictx = data;
 	const char *uri = key;
 	const xnode_t *xn = value;
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(xn != NULL);
 
 	sl = htable_lookup(ictx->node2uri, xn);
-	sl = gm_slist_prepend_const(sl, uri);
+	sl = pslist_prepend_const(sl, uri);
 	htable_insert(ictx->node2uri, xn, sl);
 }
 

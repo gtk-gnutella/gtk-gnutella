@@ -40,6 +40,7 @@
 #include "ohash_table.h"
 #include "patricia.h"
 #include "random.h"
+#include "stringify.h"			/* For plural() */
 #include "tm.h"					/* For tests */
 #include "walloc.h"
 #include "xmalloc.h"
@@ -659,7 +660,7 @@ timeit(
 
 	if (verbose)
 		g_debug("%s (%zu items, %zu loop%s): %F s (average: %F s)", what,
-			count, iter, iter == 1 ? "" : "s", elapsed, elapsed / iter);
+			count, iter, plural(iter), elapsed, elapsed / iter);
 
 	return elapsed;
 }

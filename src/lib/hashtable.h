@@ -64,6 +64,10 @@ hash_table_t *hash_table_new_special_full(
 hash_table_t *hash_table_new_not_leaking(void);
 hash_table_t *hash_table_new_full_not_leaking(hash_fn_t hash, eq_fn_t eq);
 
+hash_table_t *hash_table_new_fixed(void *arena, size_t len);
+hash_table_t *hash_table_new_full_fixed(hash_fn_t hash, eq_fn_t eq,
+	void *arena, size_t len);
+
 #if defined(MALLOC_SOURCE) || defined(VMM_SOURCE) || defined(THREAD_SOURCE)
 /* These routines are reserved for the tracking malloc code and for threads */
 hash_table_t *hash_table_new_real(void);
@@ -74,6 +78,8 @@ void hash_table_destroy_real(hash_table_t *ht);
 #endif /* MALLOC_SOURCE || VMM_SOURCE || THREAD_SOURCE */
 
 size_t hash_table_size(const hash_table_t *ht);
+size_t hash_table_capacity(const hash_table_t *ht);
+size_t hash_table_buckets(const hash_table_t *ht);
 size_t hash_table_memory(const hash_table_t *ht);
 size_t hash_table_arena_memory(const hash_table_t *ht);
 bool hash_table_insert(hash_table_t *ht,
@@ -84,6 +90,7 @@ bool hash_table_lookup_extended(const hash_table_t *ht,
 	const void *key, const void **kp, void **vp);
 bool hash_table_contains(const hash_table_t *ht, const void *key);
 bool hash_table_remove(hash_table_t *ht, const void *key);
+bool hash_table_remove_no_resize(hash_table_t *ht, const void *key);
 void hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data);
 size_t hash_table_foreach_remove(hash_table_t *ht,
 	ckeyval_rm_fn_t func, void *data);

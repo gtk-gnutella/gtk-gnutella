@@ -340,10 +340,6 @@ typedef int socket_fd_t;
 #include "lib/regex.h"
 #endif	/* HAS_REGCOMP */
 
-#ifdef USE_GLIB1
-typedef void (*GCallback) (void);
-#endif	/* USE_GLIB1 */
-
 #ifdef USE_GLIB2
 #undef G_STRLOC			/* Want our version */
 #undef G_STRFUNC		/* Version from glib uses __PRETTY_FUNCTION__ */
@@ -762,14 +758,21 @@ typedef void (*GCallback) (void);
 #define SIGN(x) (G_UNLIKELY((x) == 0) ? 0 : (x) > 0 ? 1 : (-1))
 
 /**
+ * UINT32_ROTR() rotates a 32-bit value to the right by `n' bits.
+ * UINT32_ROTL() rotates a 32-bit value to the left by `n' bits.
+ */
+#define UINT32_ROTR(x_,n_) \
+	(((uint32) (x_) >> (n_)) | ((uint32) (x_) << (32 - (n_))))
+
+#define UINT32_ROTL(x_,n_) \
+	(((uint32) (x_) << (n_)) | ((uint32) (x_) >> (32 - (n_))))
+
+/**
  * UINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
  * If the value is a variable, use UINT32_SWAP().
  */
-#define UINT32_SWAP_CONSTANT(x_) ((uint32) (		 \
-    (((uint32) (x_) & (uint32) 0x000000ffU) << 24) | \
-    (((uint32) (x_) & (uint32) 0x0000ff00U) <<  8) | \
-    (((uint32) (x_) & (uint32) 0x00ff0000U) >>  8) | \
-    (((uint32) (x_) & (uint32) 0xff000000U) >> 24)))
+#define UINT32_SWAP_CONSTANT(x_) \
+	((UINT32_ROTR((x_), 8) & 0xff00ff00) | (UINT32_ROTL((x_), 8) & 0x00ff00ff))
 
 /**
  * UINT32_SWAP() byte-swaps a 32-bit word.
@@ -931,6 +934,17 @@ ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
 #include "lib/alloca.h"
 #endif	/* alloca */
 #endif	/* HAS_GCC(3, 0) */
+
+/**
+ * Let the program use sigprocmask() but remap it to pthread_sigmask()
+ * to ensure that we manipulate the thread's signal mask only.
+ *
+ * On linux, sigprocmask() always manipulates the thread's signal mask, but
+ * this is not guaranteed by POSIX.
+ */
+#if defined(HAS_SIGPROCMASK) && defined(I_PTHREAD)
+#define sigprocmask(h,s,o)	pthread_sigmask((h), (s), (o))
+#endif
 
 /*
  * Common inclusions, likely to be needed by most files.

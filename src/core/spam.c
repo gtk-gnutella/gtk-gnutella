@@ -47,11 +47,11 @@
 #include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -113,7 +113,7 @@ static const char spam_what[] = "Spam database";
 /****** END IDEAS ONLY ******/
 
 struct spam_lut {
-	GSList *sl_names;	/* List of g_malloc()ed regex_t items */
+	pslist_t *sl_names;	/* List of struct namesize_item */
 };
 
 static struct spam_lut spam_lut;
@@ -189,14 +189,14 @@ spam_add_name_and_size(const char *name,
 		char buf[1024];
 
 		regerror(error, &item->pattern, buf, sizeof buf);
-		g_warning("spam_add_name_and_size(): regcomp() failed: %s", buf);
+		g_warning("%s(): regcomp() failed: %s", G_STRFUNC, buf);
 		regfree(&item->pattern);
 		WFREE(item);
 		return TRUE;
 	} else {
 		item->min_size = min_size;
 		item->max_size = max_size;
-		spam_lut.sl_names = g_slist_prepend(spam_lut.sl_names, item);
+		spam_lut.sl_names = pslist_prepend(spam_lut.sl_names, item);
 		return FALSE;
 	}
 }
@@ -513,16 +513,16 @@ spam_init(void)
 void
 spam_close(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(spam_lut.sl_names, sl) {
 		struct namesize_item *item = sl->data;
 
 		g_assert(item);
 		regfree(&item->pattern);
 		WFREE(item);
 	}
-	gm_slist_free_null(&spam_lut.sl_names);
+	pslist_free_null(&spam_lut.sl_names);
 	spam_sha1_close();
 }
 
@@ -535,11 +535,11 @@ spam_close(void)
 bool
 spam_check_filename_size(const char *filename, filesize_t size)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	g_return_val_if_fail(filename, FALSE);
 
-	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(spam_lut.sl_names, sl) {
 		const struct namesize_item *item = sl->data;
 
 		g_assert(item);

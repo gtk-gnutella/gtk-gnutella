@@ -41,11 +41,12 @@
 #include "gnet_stats.h"
 
 #include "lib/cq.h"
-#include "lib/glib-missing.h"	/* For gm_list_free_null() */
 #include "lib/halloc.h"
 #include "lib/htable.h"
+#include "lib/plist.h"
 #include "lib/pmsg.h"
 #include "lib/str.h"
+#include "lib/stringify.h"		/* For plural() */
 #include "lib/unsigned.h"		/* For size_saturate_add() */
 #include "lib/vsort.h"
 #include "lib/walloc.h"
@@ -208,8 +209,8 @@ mq_info(const mqueue_t *q)
 			(q->flags & MQ_DISCARD) ? " DISCARD" : "",
 			(q->flags & MQ_SWIFT) ? " SWIFT" : "",
 			(q->flags & MQ_WARNZONE) ? " WARNZONE" : "",
-			q->count, q->count == 1 ? "" : "s",
-			q->size, q->size == 1 ? "" : "s"
+			q->count, plural(q->count),
+			q->size, plural(q->size)
 		);
 	}
 
@@ -226,7 +227,7 @@ static htable_t *qown = NULL;
  * Add linkable into queue
  */
 static void
-mq_add_linkable(mqueue_t *q, GList *l)
+mq_add_linkable(mqueue_t *q, plist_t *l)
 {
 	mqueue_t *owner;
 
@@ -254,7 +255,7 @@ mq_add_linkable(mqueue_t *q, GList *l)
  * Remove linkable from queue
  */
 static void
-mq_remove_linkable(mqueue_t *q, GList *l)
+mq_remove_linkable(mqueue_t *q, plist_t *l)
 {
 	mqueue_t *owner;
 
@@ -292,7 +293,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 	if (q->magic != MQ_MAGIC)
 		g_error("BUG: %s at %s:%d", mq_info(q), where, line);
 
-	qcount = g_list_length(q->qhead);
+	qcount = plist_length(q->qhead);
 	if (qcount != q->count)
 		g_error("BUG: "
 			"%s has wrong q->count of %d (counted %d in list) at %s:%d",
@@ -302,7 +303,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 		return;
 
 	for (n = 0; n < q->qlink_count; n++) {
-		GList *item = q->qlink[n];
+		plist_t *item = q->qlink[n];
 		mqueue_t *owner;
 
 		if (item == NULL)
@@ -354,14 +355,14 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 void
 mq_free(mqueue_t *q)
 {
-	GList *l;
+	plist_t *l;
 	int n;
 
 	mq_check_consistency(q);
 
 	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
-	for (n = 0, l = q->qhead; l; l = g_list_next(l)) {
+	for (n = 0, l = q->qhead; l; l = plist_next(l)) {
 		n++;
 		pmsg_free(l->data);
 		l->data = NULL;
@@ -374,7 +375,7 @@ mq_free(mqueue_t *q)
 		qlink_free(q);
 
 	cq_cancel(&q->swift_ev);
-	gm_list_free_null(&q->qhead);
+	plist_free_null(&q->qhead);
 	pmsg_slist_free(&q->qwait);
 
 	q->magic = 0;
@@ -388,13 +389,13 @@ mq_free(mqueue_t *q)
  * The underlying message is freed and the size information on the
  * queue is updated, but not the flow-control information.
  */
-static GList *
-mq_rmlink_prev(mqueue_t *q, GList *l, int size)
+static plist_t *
+mq_rmlink_prev(mqueue_t *q, plist_t *l, int size)
 {
-	GList *prev = g_list_previous(l);
+	plist_t *prev = plist_prev(l);
 
 	mq_remove_linkable(q, l);
-	q->qhead = g_list_remove_link(q->qhead, l);
+	q->qhead = plist_remove_link(q->qhead, l);
 	if (q->qtail == l)
 		q->qtail = prev;
 
@@ -405,7 +406,7 @@ mq_rmlink_prev(mqueue_t *q, GList *l, int size)
 
 	pmsg_free(l->data);
 	l->data = NULL;
-	g_list_free_1(l);
+	plist_free_1(l);
 
 	return prev;
 }
@@ -576,13 +577,13 @@ done:
  * Callout queue callback: periodic "swift" mode timer.
  */
 static void
-mq_swift_timer(cqueue_t *unused_cq, void *obj)
+mq_swift_timer(cqueue_t *cq, void *obj)
 {
 	mqueue_t *q = obj;
 
-	(void) unused_cq;
 	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == (MQ_FLOWC|MQ_SWIFT));
 
+	cq_zero(cq, &q->swift_ev);
 	mq_swift_checkpoint(q, FALSE);
 }
 
@@ -590,15 +591,15 @@ mq_swift_timer(cqueue_t *unused_cq, void *obj)
  * Callout queue callback invoked when the queue must enter "swift" mode.
  */
 static void
-mq_enter_swift(cqueue_t *unused_cq, void *obj)
+mq_enter_swift(cqueue_t *cq, void *obj)
 {
 	mqueue_t *q = obj;
 
-	(void) unused_cq;
 	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == MQ_FLOWC);
 
 	q->flags |= MQ_SWIFT;
 
+	cq_zero(cq, &q->swift_ev);
 	node_tx_swift_changed(q->node);
 	mq_swift_checkpoint(q, TRUE);
 }
@@ -705,7 +706,7 @@ mq_clear(mqueue_t *q)
 	q->flags |= MQ_CLEAR;
 
 	while (q->qhead) {
-		GList *l = q->qhead;
+		plist_t *l = q->qhead;
 		pmsg_t *mb = l->data;
 
 		/*
@@ -780,7 +781,7 @@ mq_flush(mqueue_t *q)
 static int
 qlink_cmp(const void *a, const void *b)
 {
-	const GList * const *l1 = a, * const *l2 = b;
+	const plist_t * const *l1 = a, * const *l2 = b;
 	const pmsg_t *m1 = (*l1)->data, *m2 = (*l2)->data;
 
 	if (pmsg_prio(m1) == pmsg_prio(m2))
@@ -795,7 +796,7 @@ qlink_cmp(const void *a, const void *b)
 static void
 qlink_create(mqueue_t *q)
 {
-	GList *l;
+	plist_t *l;
 	int n;
 
 	g_assert(q->qlink == NULL);
@@ -809,14 +810,14 @@ qlink_create(mqueue_t *q)
 	 * gmsg_cmp() routine to compare the Gnutella messages.
 	 */
 
-	for (l = q->qhead, n = 0; l && n < q->count; l = g_list_next(l), n++) {
+	for (l = q->qhead, n = 0; l && n < q->count; l = plist_next(l), n++) {
 		g_assert(l->data != NULL);
 		q->qlink[n] = l;
 	}
 
 	if (l || n != q->count)
-		g_error("BUG: queue count of %d for %p is wrong (has %d)",
-			q->count, (void *) q, g_list_length(q->qhead));
+		g_error("BUG: queue count of %d for %p is wrong (has %zd)",
+			q->count, (void *) q, plist_length(q->qhead));
 
 	/*
 	 * We use `n' and not `q->count' in case the warning above is emitted,
@@ -846,7 +847,7 @@ qlink_free(mqueue_t *q)
  * before the position indicated by `hint'.
  */
 static void
-qlink_insert_before(mqueue_t *q, int hint, GList *l)
+qlink_insert_before(mqueue_t *q, int hint, plist_t *l)
 {
 	g_assert(hint >= 0 && hint < q->qlink_count);
 	g_assert(qlink_cmp(&q->qlink[hint], &l) >= 0);	/* `hint' >= `l' */
@@ -882,11 +883,11 @@ qlink_insert_before(mqueue_t *q, int hint, GList *l)
  * Insert linkable `l' within the sorted qlink array of linkables.
  */
 static void
-qlink_insert(mqueue_t *q, GList *l)
+qlink_insert(mqueue_t *q, plist_t *l)
 {
 	int low = 0;
 	int high = q->qlink_count - 1;
-	GList **qlink = q->qlink;
+	plist_t **qlink = q->qlink;
 
 	g_assert(l->data != NULL);
 
@@ -1044,9 +1045,9 @@ qlink_insert(mqueue_t *q, GList *l)
  * @param l			the linkable to remove from the qlink indexer
  */
 static void
-qlink_remove(mqueue_t *q, GList *l)
+qlink_remove(mqueue_t *q, plist_t *l)
 {
-	GList **qlink = q->qlink;
+	plist_t **qlink = q->qlink;
 	int n = q->qlink_count;
 
 	g_assert(qlink);
@@ -1061,12 +1062,12 @@ qlink_remove(mqueue_t *q, GList *l)
 	 */
 
 	if (n > q->count * 3) {
-		GList **dest = qlink;
+		plist_t **dest = qlink;
 		int copied = 0;
 		bool found = FALSE;
 
 		while (n-- > 0) {
-			GList *entry = *qlink++;
+			plist_t *entry = *qlink++;
 			if (entry == NULL)
 				continue;
 			else if (l == entry) {
@@ -1094,9 +1095,9 @@ qlink_remove(mqueue_t *q, GList *l)
 	}
 
 	g_error("BUG: linkable %p for %s not found "
-		"(qlink has %d slots, queue has %d counted items, really %d) at %s:%d",
+		"(qlink has %d slots, queue has %d counted items, really %zd) at %s:%d",
 		(void *) l, mq_info(q),
-		q->qlink_count, q->count, g_list_length(q->qhead),
+		q->qlink_count, q->count, plist_length(q->qhead),
 		_WHERE_, __LINE__);
 }
 
@@ -1152,7 +1153,7 @@ make_room_internal(mqueue_t *q,
 	 * in the loop below).  When we break out because we found a more
 	 * prioritary message, we remember the index in the array and return it
 	 * to the caller.  If the message is finally inserted in the queue,
-	 * we can insert its GList link right before that index.
+	 * we can insert its plist_t link right before that index.
 	 *
 	 * This adds some complexity but it will avoid millions of calls to
 	 * qlink_cmp(), which is costly.
@@ -1164,7 +1165,7 @@ make_room_internal(mqueue_t *q,
 
 restart:
 	for (n = 0; needed >= 0 && n < q->qlink_count; n++) {
-		GList *item = q->qlink[n];
+		plist_t *item = q->qlink[n];
 		pmsg_t *cmb;
 		char *cmb_start;
 		int cmb_size;
@@ -1341,7 +1342,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 {
 	int needed;
 	int qlink_offset = -1;
-	GList *new = NULL;
+	plist_t *new = NULL;
 	bool make_room_called = FALSE;
 	bool has_normal_prio = (pmsg_prio(mb) == PMSG_P_DATA);
 
@@ -1455,15 +1456,15 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 	 */
 
 	if (has_normal_prio) {
-		new = q->qhead = g_list_prepend(q->qhead, mb);
+		new = q->qhead = plist_prepend(q->qhead, mb);
 		if (q->qtail == NULL)
 			q->qtail = q->qhead;
 	} else {
-		GList *l;
+		plist_t *l;
 		uint prio = pmsg_prio(mb);
 		bool inserted = FALSE;
 
-		for (l = q->qtail; l; l = g_list_previous(l)) {
+		for (l = q->qtail; l; l = plist_prev(l)) {
 			pmsg_t *m = l->data;
 
 			if (
@@ -1475,8 +1476,8 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				 * we are, then leave the loop.
 				 */
 
-				q->qhead = gm_list_insert_after(q->qhead, l, mb);
-				new = g_list_next(l);
+				q->qhead = plist_insert_after(q->qhead, l, mb);
+				new = plist_next(l);
 
 				if (l == q->qtail)				/* Inserted at tail */
 					q->qtail = new;				/* New tail */
@@ -1494,7 +1495,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 		if (!inserted) {
 			g_assert(l == NULL);
 
-			new = q->qhead = g_list_prepend(q->qhead, mb);
+			new = q->qhead = plist_prepend(q->qhead, mb);
 			if (q->qtail == NULL)
 				q->qtail = q->qhead;
 		}

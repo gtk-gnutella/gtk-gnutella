@@ -37,6 +37,7 @@
 #include "common.h"
 
 #include "lib/host_addr.h"
+#include "lib/pslist.h"
 
 /**
  * Supported UPnP architecture.
@@ -85,7 +86,7 @@ typedef struct upnp_device {
 	enum upnp_device_magic magic;	/**< Magic number */
 	enum upnp_device_type type;		/**< Device type */
 	const char *desc_url;			/**< Description URL (atom) */
-	GSList *services;				/**< List of upnp_service_t offered */
+	pslist_t *services;				/**< List of upnp_service_t offered */
 	union {
 		struct {					/**< Internet Gateway Device */
 			host_addr_t wan_ip;		/**< WAN IP address (external) */
@@ -106,7 +107,7 @@ upnp_device_check(const struct upnp_device * const ud)
  * These routines are only visible within the upnp/ source directory.
  */
 
-upnp_device_t *upnp_dev_igd_make(const char *desc_url, GSList *services,
+upnp_device_t *upnp_dev_igd_make(const char *desc_url, pslist_t *services,
 	host_addr_t wan_ip, unsigned major, unsigned minor);
 void upnp_dev_free(upnp_device_t *ud);
 void upnp_dev_free_null(upnp_device_t **ud_ptr);

@@ -33,25 +33,26 @@
 
 #include "common.h"		/* For RCSID */
 
-#ifdef I_UCONTEXT
-#include <ucontext.h>
-#endif
-#ifdef I_SYS_UCONTEXT
-#include <sys/ucontext.h>
-#endif
-
 #include "signal.h"
+#include "atomic.h"
 #include "ckalloc.h"
 #include "crash.h"
 #include "dl_util.h"
 #include "glib-missing.h"       /* For g_strlcpy() */
 #include "log.h"
 #include "misc.h"
+#include "mutex.h"
 #include "once.h"
+#include "registers.h"
 #include "str.h"
+#include "stringify.h"
 #include "unsigned.h"
 
 #include "override.h"	/* Must be the last header included */
+
+#if 0
+#define SIGNAL_HANDLER_TRACE		/* Trace install of signal handlers */
+#endif
 
 #ifndef SIG_ERR
 #define SIG_ERR ((signal_handler_t) -1)
@@ -60,9 +61,26 @@
 #define SIGNAL_CHUNK_SIZE		4000	/**< Safety allocation pool */
 #define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
 
-#if defined(HAS_UCONTEXT_MCONTEXT_GREGS) || defined(HAS_UCONTEXT_MCONTEXT)
-#define USE_UC_MCONTEXT
-#endif
+/**
+ * A signal stack is configured for each thread to be able to process SIGSEGV
+ * in order to detect stack overflows.
+ *
+ * This only works if the kernel supports sigaction() with the SA_ONSTACK flag.
+ *
+ * We need to leave enough room to be able to process, on that stack, the
+ * execution of the crash handler, possibly with a stack backtrace (which needs
+ * to allocate the backtracing buffer on the stack itself).
+ *
+ * Therefore, we need more stack requirements than the typical stack size
+ * which is defined to SIGSTKSZ.  Experiments on a 64-bit linux kernel shows
+ * that SIGSTKSZ is too small (i.e. the signal stack overflows during the
+ * stack dump process, which corrupts memory since we don't trap signal stack
+ * overflows).
+ *
+ * Adding two additional pages (8K) is enough to cover the current needs.
+ *		--RAM, 2013-09-10
+ */
+#define SIGNAL_STACK_SIZE		(SIGSTKSZ + 8192)
 
 /**
  * Table mapping a signal number with a symbolic name.
@@ -108,6 +126,17 @@ static signal_handler_t signal_handler[SIGNAL_COUNT];
  */
 static ckhunk_t *sig_chunk;
 
+/*
+ * Cleanup routines to invoke when we receive uncaught fatal signals.
+ */
+
+#define SIGNAL_CLEANUP		32
+static signal_cleanup_t sig_cleanup[SIGNAL_CLEANUP];
+static unsigned sig_cleanup_count;
+static spinlock_t sig_cleanup_slk = SPINLOCK_INIT;
+
+static mutex_t signal_lock = MUTEX_INIT;
+
 /**
  * Various "undefined" values for the PC register number.
  *
@@ -133,7 +162,99 @@ static const char SIGNAL_NUM[] = "signal #";
 static const char SIG_PREFIX[] = "SIG";
 
 static volatile sig_atomic_t in_signal_handler;
-static bool signal_inited;
+static once_flag_t signal_inited;
+static bool signal_catch_segv;
+
+static void signal_uncaught(int signo);
+
+/**
+ * Is signal fatal if not trapped, according to traditional UNIX semantics?
+ *
+ * Fatal means that the process will not survive, whether it is simply
+ * terminated (SIGINT for instance) or terminated with a core dump (SIGQUIT).
+ */
+static bool
+signal_is_fatal(int signo)
+{
+	switch (signo) {
+#ifdef SIGHUP
+	case SIGHUP:	return TRUE;
+#endif
+	case SIGINT:	return TRUE;
+#ifdef SIGQUIT
+	case SIGQUIT:	return TRUE;
+#endif
+	case SIGILL:	return TRUE;
+	case SIGABRT:	return TRUE;
+	case SIGFPE:	return TRUE;
+#ifdef SIGKILL
+	case SIGKILL:	return TRUE;	/* But non-trappable */
+#endif
+#ifdef SIGBUS
+	case SIGBUS:	return TRUE;
+#endif
+	case SIGSEGV:	return TRUE;
+#ifdef SIGPIPE
+	case SIGPIPE:	return TRUE;
+#endif
+#ifdef SIGALRM
+	case SIGALRM:	return TRUE;
+#endif
+	case SIGTERM:	return TRUE;
+#ifdef SIGUSR1
+	case SIGUSR1:	return TRUE;
+#endif
+#ifdef SIGUSR2
+	case SIGUSR2:	return TRUE;
+#endif
+#ifdef SIGIO
+	case SIGIO:		return TRUE;
+#endif
+#ifdef SIGTRAP
+	case SIGTRAP:	return TRUE;
+#endif
+#ifdef SIGSYS
+	case SIGSYS:	return TRUE;
+#endif
+#ifdef SIGPROF
+	/*
+	 * SIGPROF needs special care: it is a harmful signal, if received and
+	 * untrapped, but its trapping is done by the C startup when profiling
+	 * is enabled and if we mark it harmful, we will immediately abort in
+	 * signal_uncaught() when getting the first SIGPROF signal...
+	 *
+	 * Let's not mark it harmful, but the consequences are that if the user
+	 * explicitly sends a SIGPROF to the process, emergency signal cleanup
+	 * will not be performed.  Since a user could always send a SIGKILL
+	 * anyway, this is not deemed as a problem.
+	 */
+	case SIGPROF:	return FALSE;
+#endif
+#ifdef SIGVTALRM
+	case SIGVTALRM:	return TRUE;
+#endif
+#ifdef SIGXCPU
+	case SIGXCPU:	return TRUE;
+#endif
+#ifdef SIGXFSZ
+	case SIGXFSZ:	return TRUE;
+#endif
+#ifdef SIGLOST
+	case SIGLOST:	return TRUE;
+#endif
+	}
+
+	/*
+	 * Real-time signals always terminate a process if unhandled.
+	 */
+
+#ifdef SIGRTMIN
+	if (signo + SIGRTMIN <= SIGRTMAX)
+		return TRUE;
+#endif
+
+	return FALSE;	/* Unknown signal, or known to not be harmful if ignored */
+}
 
 /**
  * Converts signal number to a name.
@@ -180,7 +301,7 @@ signal_name(int signo)
 	 * need to construct the final string accordingly.
 	 */
 
-	start = deconstify_char(print_number(sig_buf, sizeof sig_buf, signo));
+	start = deconstify_char(PRINT_NUMBER(sig_buf, signo));
 	offset = start - sig_buf;
 
 	g_assert(size_is_positive(offset));
@@ -195,6 +316,120 @@ signal_name(int signo)
 		SIGNAL_NUM, CONST_STRLEN(SIGNAL_NUM));
 
 	return start - CONST_STRLEN(SIGNAL_NUM);
+}
+
+/**
+ * Add a cleanup handler in case we receive a harmful uncaught signal.
+ *
+ * This is meant to release precious system resources that the kernel
+ * would not normally return when the process exits (e.g. all System V
+ * IPC resources, even when grabbed with IPC_PRIVATE).
+ */
+void
+signal_cleanup_add(signal_cleanup_t cleanup)
+{
+	unsigned i, idx;
+
+	spinlock(&sig_cleanup_slk);
+
+	/*
+	 * Ignore duplicates, loudly.
+	 */
+
+	for (i = 0; i < sig_cleanup_count; i++) {
+		if (cleanup == sig_cleanup[i]) {
+			spinunlock(&sig_cleanup_slk);
+			s_minicarp("%s(): ignoring attempt to add already registered %s()",
+				G_STRFUNC, stacktrace_function_name(cleanup));
+			return;
+		}
+	}
+
+	if G_UNLIKELY(sig_cleanup_count >= SIGNAL_CLEANUP)
+		s_minierror("%s(): too many cleanup routines defined", G_STRFUNC);
+
+	idx = sig_cleanup_count++;
+	sig_cleanup[idx] = cleanup;
+	spinunlock(&sig_cleanup_slk);
+
+	/*
+	 * The first time we install a cleanup, we need to look at all the
+	 * known signals and setup our signal_uncaught() handler if nothing
+	 * was setup yet.
+	 */
+
+	if G_UNLIKELY(0 == idx) {
+		signal_init();
+
+		/* Skip SIGZERO, this is not a real signal */
+
+		mutex_lock(&signal_lock);
+
+		for (i = 1; i < SIGNAL_COUNT; i++) {
+			if (SIG_DFL == signal_handler[i] && signal_is_fatal(i))
+				signal_set(i, signal_uncaught);
+		}
+
+		mutex_unlock(&signal_lock);
+	}
+}
+
+static Sigjmp_buf sig_cleanup_env;
+
+static void
+signal_cleanup_got_signal(int signo)
+{
+	Siglongjmp(sig_cleanup_env, signo);
+}
+
+/**
+ * Run installed cleanup handlers, in the reverse order they were installed.
+ */
+void
+signal_perform_cleanup(void)
+{
+	static spinlock_t cleanup_slk = SPINLOCK_INIT;
+	bool locked;
+	signal_handler_t old_sigsegv;
+#ifdef SIGBUS
+	signal_handler_t old_sigbus;
+#endif
+
+	/*
+	 * Only one thread may run this safely.  Warn if concurrent threads
+	 * attempt to run this.
+	 */
+
+	if (!spinlock_hidden_try(&cleanup_slk)) {
+		s_miniwarn("%s(): concurrent attempt ignored", G_STRFUNC);
+		return;
+	}
+
+	old_sigsegv = signal_catch(SIGSEGV, signal_cleanup_got_signal);
+#ifdef SIGBUS
+	old_sigbus = signal_catch(SIGBUS, signal_cleanup_got_signal);
+#endif
+
+	locked = spinlock_hidden_try(&sig_cleanup_slk);
+
+	if (!locked)
+		s_miniwarn("%s(): running without lock protection", G_STRFUNC);
+
+	while (sig_cleanup_count != 0) {
+		if (Sigsetjmp(sig_cleanup_env, TRUE))
+			continue;
+		(*sig_cleanup[--sig_cleanup_count])();
+	}
+
+	if (locked)
+		spinunlock_hidden(&sig_cleanup_slk);
+
+	signal_set(SIGSEGV, old_sigsegv);
+#ifdef SIGBUS
+	signal_set(SIGBUS, old_sigbus);
+#endif
+
+	spinunlock_hidden(&cleanup_slk);
 }
 
 #if defined(USE_UC_MCONTEXT) && defined(SA_SIGINFO)
@@ -228,33 +463,6 @@ sig_compute_pc_index(void)
 	g_assert_not_reached();
 }
 
-/*
- * Accessing the machine registers is inherently non-portable.
- *
- * The REGISTER_COUNT macro defines the amount of registers we see.
- * The REGISTER_VALUE macro lets us access a register by index.
- *
- * When the gregs[] array is present in the uc_mcontext field, the access
- * is straightforward.
- *
- * When there is no gregs[] array, assume the uc_mcontext field is a structure
- * containing registers whose size will be that of the "unsigned long" type.
- * This is a reasonable assumption which should prove correct on many systems.
- *
- * The uc_mcontext field could also be a pointer as on OSX, which we'll detect
- * when REGISTER_COUNT ends up being 1, in which case we're hosed.
- */
-
-#if defined(HAS_UCONTEXT_MCONTEXT_GREGS)
-#define REGISTER_COUNT		G_N_ELEMENTS(uc->uc_mcontext.gregs)
-#define REGISTER_VALUE(x)	((ulong) uc->uc_mcontext.gregs[x])
-#elif defined(HAS_UCONTEXT_MCONTEXT)
-#define REGISTER_COUNT		(sizeof(uc->uc_mcontext) / sizeof(ulong))
-#define REGISTER_VALUE(x)	((ulong *) &uc->uc_mcontext)[x]
-#else
-#error "impossible situation here"
-#endif
-
 #define SIG_PC_OFFSET_MAX	100		/* Bytes after start of routine */
 
 /**
@@ -271,7 +479,7 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 	g_assert(SIGSEGV == signo);
 	g_assert(si != NULL);
 
-	if (1 == REGISTER_COUNT) {
+	if (1 == REGISTER_COUNT(uc)) {
 		/*
 		 * The uc_mcontext field is a pointer, sorry.
 		 *
@@ -286,8 +494,8 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 	sig_pc_regnum = SIG_PC_UNKNOWN;
 	caller = pointer_to_ulong(cast_func_to_pointer(sig_compute_pc_index));
 
-	for (i = 0; i < REGISTER_COUNT; i++) {
-		size_t off = REGISTER_VALUE(i) - caller;
+	for (i = 0; i < REGISTER_COUNT(uc); i++) {
+		size_t off = REGISTER_VALUE(uc, i) - caller;
 		if (off < SIG_PC_OFFSET_MAX) {
 			if (found) {
 				sig_pc_regnum = SIG_PC_MULTIPLE;
@@ -317,13 +525,13 @@ sig_get_pc_index(void)
 	sa.sa_sigaction = sig_get_pc_handler;
 
 	if (-1 == sigaction(SIGSEGV, &sa, &osa)) {
-		s_warning("%s: sigaction() setup failed: %m", G_STRFUNC);
+		s_warning("%s(): sigaction() setup failed: %m", G_STRFUNC);
 		return -1;
 	}
 
 	if (Sigsetjmp(sig_pc_env, TRUE)) {
 		if (-1 == sigaction(SIGSEGV, &osa, &sa))
-			s_critical("%s: sigaction() restore failed: %m", G_STRFUNC);
+			s_critical("%s(): sigaction() restore failed: %m", G_STRFUNC);
 		return sig_pc_regnum;
 	}
 
@@ -346,7 +554,7 @@ sig_get_pc(const void *u)
 	if (sig_pc_regnum < 0)
 		return NULL;
 
-	return ulong_to_pointer(REGISTER_VALUE(sig_pc_regnum));
+	return ulong_to_pointer(REGISTER_VALUE(uc, sig_pc_regnum));
 }
 #else	/* !USE_UC_MCONTEXT || !SA_SIGINFO */
 static int
@@ -363,7 +571,6 @@ sig_get_pc(const void *u)
 }
 #endif	/* USE_UC_MCONTEXT && SA_SIGINFO */
 
-static volatile sig_atomic_t in_signal_handler;
 static volatile sig_atomic_t in_signal_abort;
 
 /**
@@ -372,10 +579,10 @@ static volatile sig_atomic_t in_signal_abort;
 bool
 signal_in_handler(void)
 {
-	if (in_signal_abort && 1 == in_signal_handler)
+	if (ATOMIC_GET(&in_signal_abort) && 1 == ATOMIC_GET(&in_signal_handler))
 		return FALSE;		/* Handle signal_abort() specially */
 
-	return in_signal_handler != 0 && !mingw_in_exception();
+	return 0 != ATOMIC_GET(&in_signal_handler) && !mingw_in_exception();
 }
 
 /**
@@ -386,6 +593,182 @@ ckhunk_t *
 signal_chunk(void)
 {
 	return sig_chunk;
+}
+
+/**
+ * Wrapper for delivery of an untrapped harmful signal.
+ *
+ * These are caught to be able to perform application-specific cleanup
+ * before the application is terminated.
+ */
+static void
+signal_uncaught(int signo)
+{
+	g_assert(signo > 0 && signo < SIGNAL_COUNT);
+
+	/*
+	 * Be silent if there is nothing to do.
+	 */
+
+	if (0 != atomic_uint_get(&sig_cleanup_count)) {
+		s_miniwarn("%s(%s): running %u cleanup handler%s",
+			G_STRFUNC, signal_name(signo), sig_cleanup_count,
+			plural(sig_cleanup_count));
+
+		signal_perform_cleanup();
+	}
+
+	/*
+	 * Restore default signal handler, since it was originally uncaught,
+	 * unblock it and raise it again to get the default behaviour.
+	 *
+	 * We must reset signal_catch_segv to FALSE otherwise signal_trap_with()
+	 * will force signal_uncaught() as the handler for SIGSEGV.  To avoid
+	 * race conditions with a concurrent thread creation that would reset
+	 * the signal_catch_segv variable to TRUE, we take the mutex.
+	 */
+
+	if (SIGSEGV == signo) {
+		mutex_lock(&signal_lock);
+		signal_catch_segv = FALSE;
+	}
+
+	signal_catch(signo, SIG_DFL);
+	signal_unblock(signo);
+
+	if (SIGSEGV == signo)
+		mutex_unlock(&signal_lock);
+
+	raise(signo);
+}
+
+#ifdef HAS_SIGALTSTACK
+/*
+ * Ensure the SIGSEGV signal is minimally trapped to catch up thread stack
+ * overflows and properly log them when they occur.
+ *
+ * Called the first time a new thread is created.
+ */
+static void
+signal_thread_init(void)
+{
+	mutex_lock(&signal_lock);
+
+	/*
+	 * Going through signal_set() ensures we'll properly use sigaction()
+	 * to setup the signal handler, and further make sure we are configuring
+	 * an alternate stack to process SIGSEGV when they occur, provided the
+	 * kernel supports these features.
+	 */
+
+	if (SIG_DFL == signal_handler[SIGSEGV])
+		signal_set(SIGSEGV, signal_uncaught);
+
+	signal_catch_segv = TRUE;
+	mutex_unlock(&signal_lock);
+}
+#endif	/* HAS_SIGALTSTACK */
+
+/**
+ * Create the signal stack used for SIGSEGV handlers called by the thread,
+ * if supported.
+ *
+ * The allocated stack must be freed with signal_stack_free() when the thread
+ * is terminated.
+ *
+ * If the value in *base_ptr is not NULL, it is taken as the base of an
+ * already allocated memory region, suitable to be used as the stack base.
+ * This allows reuse of previously allocated stacks when signal_stack_free()
+ * cannot remove the signal stack for the thread.
+ *
+ * @param base_ptr		written with base of allocated stack
+ *
+ * @return the length of the signal stack if OK, 0 otherwise.
+ * The base of the allocated stack is written to ``base'' when successful.
+ */
+size_t
+signal_stack_allocate(void **base_ptr)
+{
+#ifdef HAS_SIGALTSTACK
+	stack_t ss;
+	void *p = *base_ptr;
+	size_t size;
+
+	if (NULL == p)
+		p = vmm_alloc(SIGNAL_STACK_SIZE);
+
+	ss.ss_sp = p;
+	ss.ss_size = size = round_pagesize(SIGNAL_STACK_SIZE);
+	ss.ss_flags = 0;
+
+	/*
+	 * It is the job of sigaltstack() to configure the stack properly
+	 * depending on the growth direction of stacks on the system, using
+	 * the supplied buffer.
+	 */
+
+	if (-1 == sigaltstack(&ss, NULL)) {
+		s_warning("%s(): unable to install signal stack of %zu bytes at %p: %m",
+			G_STRFUNC, size, p);
+	}
+
+	signal_thread_init();
+
+	*base_ptr = p;
+
+	return size;
+#else
+	*base_ptr = NULL;
+	return 0;
+#endif
+}
+
+/**
+ * Free the allocated signal stack, nullifying the pointer if we can disable
+ * the signal stack.
+ *
+ * @param base_ptr		pointer to the base address of the stack
+ *
+ * @return TRUE if we successfully disabled the stack and freed the stack.
+ */
+bool
+signal_stack_free(void **base_ptr)
+{
+#ifdef HAS_SIGALTSTACK
+	void *p = *base_ptr;
+	stack_t ss;
+	bool success = TRUE;
+
+	ss.ss_sp = NULL;
+	ss.ss_size = 0;
+	ss.ss_flags = SS_DISABLE;
+
+	/*
+	 * If we can't disable the signal stack, then leave it allocated: it will
+	 * be kept in the thread element and reused the next time another thread
+	 * is launched with the same thread ID (and by then hopefully the signal
+	 * stack will have been released by the POSIX thread layer).
+	 *
+	 * This happens on OS/X where we can properly allocate the signal stack
+	 * and install it, but then it cannot be disabled when the thread exits
+	 * normally.
+	 *		--RAM, 2014-01-09
+	 */
+
+	if (-1 == sigaltstack(&ss, NULL)) {
+		s_warning("%s(): unable to disable signal stack of %zu bytes at %p: %m",
+			G_STRFUNC, round_pagesize(SIGNAL_STACK_SIZE), p);
+		success = FALSE;
+	} else {
+		vmm_free(p, SIGNAL_STACK_SIZE);
+		*base_ptr = NULL;
+	}
+
+	return success;
+#else
+	(void) base_ptr;
+	g_assert_not_reached();		/* Can't be called! */
+#endif
 }
 
 /**
@@ -407,9 +790,9 @@ signal_trampoline(int signo)
 	 * a signal handler through signal_in_handler().
 	 */
 
-	in_signal_handler++;
+	ATOMIC_INC(&in_signal_handler);
 	(*handler)(signo);
-	in_signal_handler--;
+	ATOMIC_DEC(&in_signal_handler);
 
 	/*
 	 * When leaving the last signal handler, cleanup the emergency chunk.
@@ -422,7 +805,7 @@ signal_trampoline(int signo)
 		sigset_t set;
 
 		if (signal_enter_critical(&set)) {
-			if (0 == in_signal_handler)
+			if (0 == ATOMIC_GET(&in_signal_handler))
 				ck_free_all(sig_chunk);
 			signal_leave_critical(&set);
 		}
@@ -637,8 +1020,18 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 	static volatile sig_atomic_t extended;
 	sigset_t set;
 
-	in_signal_handler++;
-	extended++;
+	/*
+	 * First check whether we're getting a segmentation violation due to a
+	 * stack overflow.  If we do, we won't be able to go very far anyway hence
+	 * it's best to abort as early as possible.
+	 */
+
+	if (SIGSEGV == signo)
+		thread_stack_check_overflow(si->si_addr);
+
+	ATOMIC_INC(&in_signal_handler);
+	ATOMIC_INC(&extended);
+	atomic_mb();
 
 	/*
 	 * Check whether signal is still pending.
@@ -653,13 +1046,13 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 	 */
 
 	if (-1 == sigpending(&set)) {
-		s_warning("%s: sigpending() failed: %m", G_STRFUNC);
+		s_miniwarn("%s: sigpending() failed: %m", G_STRFUNC);
 	} else if (extended <= 2) {
 		int i;
 
 		for (i = 1; i < SIG_COUNT; i++) {
 			if (sigismember(&set, i)) {
-				s_warning("%s: signal %s still pending",
+				s_miniwarn("%s: signal %s still pending",
 					G_STRFUNC, signal_name(i));
 			}
 		}
@@ -682,7 +1075,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		if (extended > 1) {
 			if (2 == extended) {
 				sig_exception_format(data, sizeof data, signo, si, u, TRUE);
-				s_minicrit("%s", data);
+				s_rawwarn("%s", data);
 				crash_set_error(data);
 				crash_abort();
 			} else if (3 == extended) {
@@ -692,12 +1085,12 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 			}
 		} else {
 			sig_exception_format(data, sizeof data, signo, si, u, FALSE);
-			s_critical("%s", data);
+			s_rawwarn("%s", data);
 			crash_set_error(data);
 		}
 	}
 
-	in_signal_handler--;
+	ATOMIC_DEC(&in_signal_handler);
 	signal_trampoline(signo);
 }
 #endif	/* HAS_SIGACTION && SA_SIGINFO */
@@ -730,12 +1123,37 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 
 	STATIC_ASSERT(SIGNAL_COUNT == G_N_ELEMENTS(signal_handler));
 
-	if G_UNLIKELY(!signal_inited)
+	if G_UNLIKELY(!ONCE_DONE(signal_inited))
 		signal_init();
 
+	mutex_lock(&signal_lock);
 	old_handler = signal_handler[signo];
 
 	g_assert(old_handler != SIG_ERR);
+
+	/*
+	 * If they restore the default handler for a signal and we have cleanup
+	 * to perform, redirect them to signal_uncaught().
+	 */
+
+	atomic_mb();		/* Make sure we have an accurate sig_cleanup_count */
+
+	if (sig_cleanup_count != 0 && SIG_DFL == handler && signal_is_fatal(signo))
+		handler = signal_uncaught;
+
+	/*
+	 * Likewise, if we created a thread, we need to catch SIGSEGV to never let
+	 * the default handler run, so that we can trap stack overflows.
+	 */
+
+	if (SIGSEGV == signo && SIG_DFL == handler && signal_catch_segv)
+		handler = signal_uncaught;
+
+	/*
+	 * When not using SIG_DFL or SIG_IGN, make sure we go through the
+	 * signal trampoline to perform some checks before invoking the
+	 * user handler.
+	 */
 
 	trampoline = (SIG_DFL == handler || SIG_IGN == handler) ?
 		handler : signal_trampoline;
@@ -769,6 +1187,11 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #else
 			sa.sa_handler = trampoline;
 #endif
+#ifdef SA_ONSTACK
+			if (SIGSEGV == signo) {
+				sa.sa_flags |= SA_ONSTACK;
+			}
+#endif
 #ifdef SA_NODEFER
 			sa.sa_flags |= SA_NODEFER;
 #endif
@@ -781,6 +1204,23 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 			break;
 		}
 
+#ifdef SIGNAL_HANDLER_TRACE
+		{
+			str_t *s = str_new(120);
+
+			str_printf(s, "%s(): installing %s() trampoline ",
+				G_STRFUNC, stacktrace_function_name(
+				(sa.sa_flags & SA_SIGINFO) ?
+					(signal_handler_t) sa.sa_sigaction : sa.sa_handler));
+			str_catf(s, "going to %s() handler for %s",
+				stacktrace_function_name(handler), signal_name(signo));
+			str_catf(s, ": old handler was %s()",
+				stacktrace_function_name(old_handler));
+			s_debug("%s", str_2c(s));
+			str_destroy_null(&s);
+		}
+#endif	/* SIGNAL_HANDLER_TRACE */
+
 		ret = sigaction(signo, &sa, &osa) ? SIG_ERR :
 #ifdef SA_SIGINFO
 			(osa.sa_flags & SA_SIGINFO) ?
@@ -790,15 +1230,27 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #endif
 		;
 	}
-#else
+#else	/* !HAS_SIGACTION */
 	(void) extra;
 	ret = signal(signo, trampoline);
 #endif	/* HAS_SIGACTION */
 
-	if (SIG_ERR == ret)
+	if (SIG_ERR == ret) {
+		mutex_unlock(&signal_lock);
 		return ret;
+	}
 
 	signal_handler[signo] = handler;
+	mutex_unlock(&signal_lock);
+
+	/*
+	 * Hide our internal signal_uncaught() handler which is only installed
+	 * to be able to trap otherwise harmful signals when we have cleanup
+	 * to perform.
+	 */
+
+	if (signal_uncaught == old_handler)
+		old_handler = SIG_DFL;
 
 	return (SIG_DFL == ret || SIG_IGN == ret) ? ret : old_handler;
 }
@@ -874,8 +1326,10 @@ signal_enter_critical(sigset_t *oset)
 	 * interrupted by a signal on that platform.
 	 */
 
-	if (is_running_on_mingw())
+	if (is_running_on_mingw()) {
+		ATOMIC_INC(&in_critical_section);
 		goto ok;
+	}
 
 #ifdef HAS_SIGPROCMASK
 	{
@@ -888,7 +1342,7 @@ signal_enter_critical(sigset_t *oset)
 		 * leave the outermost one.
 		 */
 
-		if (in_critical_section)
+		if (ATOMIC_INC(&in_critical_section))
 			goto ok;
 
 		sigfillset(&set);		/* Block everything */
@@ -902,8 +1356,6 @@ signal_enter_critical(sigset_t *oset)
 #endif
 
 ok:
-	in_critical_section++;
-
 	return TRUE;
 }
 
@@ -913,15 +1365,15 @@ ok:
 void
 signal_leave_critical(const sigset_t *oset)
 {
-	g_assert(in_critical_section > 0);
+	g_assert(ATOMIC_GET(&in_critical_section) > 0);
 
-	in_critical_section--;
+	ATOMIC_DEC(&in_critical_section);
 
 	if (is_running_on_mingw())
 		return;
 
 #ifdef HAS_SIGPROCMASK
-	if (!in_critical_section) {
+	if (0 == ATOMIC_GET(&in_critical_section)) {
 		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
 			s_error("cannot leave critical section: %m");
 	}
@@ -949,12 +1401,13 @@ signal_abort(void)
 	 * ``in_signal_abort'' flag.
 	 */
 
-	if (in_critical_section)
+	if (0 != ATOMIC_GET(&in_critical_section))
 		signal_unblock(SIGABRT);
 	else
-		in_signal_abort = TRUE;
+		ATOMIC_SET(&in_signal_abort, TRUE);
 
 	raise(SIGABRT);
+	s_error("raise() failed: %m");
 }
 
 /**
@@ -989,10 +1442,10 @@ signal_init_once(void)
 	case SIG_PC_HIDDEN:
 		break;
 	case SIG_PC_UNKNOWN:
-		s_warning("%s: could not find PC in machine context", G_STRFUNC);
+		s_warning("%s(): could not find PC in machine context", G_STRFUNC);
 		break;
 	case SIG_PC_MULTIPLE:
-		s_warning("%s: many locations for PC in machine context", G_STRFUNC);
+		s_warning("%s(): many locations for PC in machine context", G_STRFUNC);
 		break;
 	case SIG_PC_IMPOSSIBLE:
 		g_assert_not_reached();
@@ -1007,7 +1460,7 @@ signal_init_once(void)
 void
 signal_init(void)
 {
-	once_run(&signal_inited, signal_init_once);
+	once_flag_run(&signal_inited, signal_init_once);
 }
 
 /**

@@ -502,6 +502,9 @@ typedef enum {
     PROP_HTTP_RANGE_DEBUG,
     PROP_UPNP_MAPPING_LEASE_TIME,
     PROP_USER_AUTO_RESTART,
+    PROP_TM_DEBUG,
+    PROP_TMALLOC_DEBUG,
+    PROP_EVQ_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
@@ -515,7 +518,7 @@ const prop_set_stub_t *gnet_prop_get_stub(void);
  */
 prop_def_t *gnet_prop_get_def(property_t);
 property_t gnet_prop_get_by_name(const char *);
-GSList *gnet_prop_get_by_regex(const char *, int *);
+pslist_t *gnet_prop_get_by_regex(const char *, int *);
 const char *gnet_prop_name(property_t);
 const char *gnet_prop_type_to_string(property_t);
 const char *gnet_prop_to_string(property_t prop);
@@ -524,6 +527,9 @@ const char *gnet_prop_description(property_t);
 gboolean gnet_prop_is_saved(property_t);
 prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
+
+void gnet_prop_lock(property_t);
+void gnet_prop_unlock(property_t);
 
 /*
  * Property-change listeners
@@ -580,18 +586,22 @@ static inline void
 gnet_prop_incr_guint32(property_t p)
 {
 	guint32 value;
+	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
 	value++;
 	gnet_prop_set_guint32_val(p, value);
+	gnet_prop_unlock(p);
 }
 
 static inline void
 gnet_prop_decr_guint32(property_t p)
 {
 	guint32 value;
+	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
 	value--;
 	gnet_prop_set_guint32_val(p, value);
+	gnet_prop_unlock(p);
 }
 
 void gnet_prop_set_guint64(

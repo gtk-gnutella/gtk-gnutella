@@ -50,15 +50,16 @@
 #include "lib/ascii.h"
 #include "lib/cq.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
-#include "lib/tm.h"
 #include "lib/stringify.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -92,7 +93,7 @@ struct whitelist {
 	uint8 use_tls;						/**< Whether to use TLS */
 };
 
-static GSList *sl_whitelist;
+static pslist_t *sl_whitelist;
 
 static const char whitelist_file[] = "whitelist";
 
@@ -229,7 +230,7 @@ whitelist_add(struct whitelist *item)
 	if (GNET_PROPERTY(whitelist_debug))
 		log_whitelist_item(item, "adding");
 
-	sl_whitelist = g_slist_prepend(sl_whitelist, item);
+	sl_whitelist = pslist_prepend(sl_whitelist, item);
 }
 
 /**
@@ -266,7 +267,7 @@ whitelist_dns_cb(const host_addr_t *addrs, size_t n, void *udata)
 			if (GNET_PROPERTY(whitelist_debug) > 1) {
 				g_debug("WLIST DNS-resolved %s as %s (out of %zu result%s)",
 					item->host->name, host_addr_to_string(item->addr),
-					n, 1 == n ? "" : "s");
+					n, plural(n));
 			}
 			if (!ctx->revalidate) {
 				whitelist_add(item);
@@ -332,13 +333,13 @@ whitelist_retrieve(void)
 		return;
 
 	if (fstat(fileno(f), &st)) {
-		g_warning("whitelist_retrieve: fstat() failed: %m");
+		g_warning("%s(): fstat() failed: %m", G_STRFUNC);
 		fclose(f);
 		return;
 	}
 
     while (fgets(line, sizeof line, f)) {
-		GSList *sl_addr, *sl;
+		pslist_t *sl_addr, *sl;
 		const char *endptr, *start;
 		host_addr_t addr;
     	uint16 port;
@@ -350,7 +351,7 @@ whitelist_retrieve(void)
         linenum++;
 
 		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
-			g_warning("%s: line %u too long, aborting", G_STRFUNC, linenum);
+			g_warning("%s(): line %u too long, aborting", G_STRFUNC, linenum);
 			break;
 		}
 
@@ -389,18 +390,17 @@ whitelist_retrieve(void)
 			}
 
 			if (!endptr) {
-           		g_warning("whitelist_retrieve(): "
-					"Line %d: Expected a hostname or IP address \"%s\"",
-						linenum, line);
+				g_warning("%s(): line %d: "
+					"expected a hostname or IP address \"%s\"",
+					G_STRFUNC, linenum, line);
 				continue;
 			}
 
 			/* Terminate the string for name_to_host_addr() */
 			hname = h_strndup(start, endptr - start); 
 		} else {
-            g_warning("whitelist_retrieve(): "
-				"Line %d: Expected hostname or IP address \"%s\"",
-				linenum, line);
+            g_warning("%s(): line %d: expected hostname or IP address \"%s\"",
+				G_STRFUNC, linenum, line);
 			continue;
 		}
 
@@ -425,8 +425,8 @@ whitelist_retrieve(void)
 					uint32 v;
 
 					if (0 != port) {
-						g_warning("whitelist_retrieve(): Line %d:"
-								"Multiple colons after host", linenum);
+						g_warning("%s(): line %d: multiple colons after host",
+							G_STRFUNC, linenum);
 						item_ok = FALSE;
 						break;
 					}
@@ -434,8 +434,9 @@ whitelist_retrieve(void)
 					v = parse_uint32(endptr, &endptr, 10, &error);
 					port = (error || v > 0xffff) ? 0 : v;
 					if (0 == port) {
-						g_warning("whitelist_retrieve(): Line %d: "
-								"Invalid port value after host", linenum);
+						g_warning("%s(): line %d: "
+							"invalid port value after host",
+							G_STRFUNC, linenum);
 						item_ok = FALSE;
 						break;
 					}
@@ -444,24 +445,26 @@ whitelist_retrieve(void)
 					uint32 mask;
 
 					if (0 != bits) {
-						g_warning("whitelist_retrieve(): Line %d:"
-								"Multiple slashes after host", linenum);
+						g_warning("%s(): line %d: "
+							"multiple slashes after host", G_STRFUNC, linenum);
 						item_ok = FALSE;
 						break;
 					}
 
 					if (string_to_ip_strict(endptr, &mask, &ep)) {
 						if (!host_addr_is_ipv4(addr)) {
-							g_warning("whitelist_retrieve(): Line %d: "
-								"IPv4 netmask after non-IPv4 address", linenum);
+							g_warning("%s(): line %d: "
+								"IPv4 netmask after non-IPv4 address",
+								G_STRFUNC, linenum);
 							item_ok = FALSE;
 							break;
 						}
 						endptr = ep;
 
 						if (0 == (bits = netmask_to_cidr(mask))) {
-							g_warning("whitelist_retrieve(): Line %d: "
-								"IPv4 netmask after non-IPv4 address", linenum);
+							g_warning("%s(): line %d: "
+								"IPv4 netmask after non-IPv4 address",
+								G_STRFUNC, linenum);
 							item_ok = FALSE;
 							break;
 						}
@@ -477,16 +480,17 @@ whitelist_retrieve(void)
 							(v > 32 && host_addr_is_ipv4(addr)) ||
 							(v > 128 && host_addr_is_ipv6(addr))
 						) {
-							g_warning("whitelist_retrieve(): Line %d: "
-								"Invalid numeric netmask after host", linenum);
+							g_warning("%s(): line %d: "
+								"invalid numeric netmask after host",
+								G_STRFUNC, linenum);
 							item_ok = FALSE;
 							break;
 						}
 						bits = v;
 					}
 				} else {
-					g_warning("whitelist_retrieve(): Line %d: "
-							"Unexpected character after host", linenum);
+					g_warning("%s(): line %d: "
+						"unexpected character after host", G_STRFUNC, linenum);
 					item_ok = FALSE;
 					break;
 				}
@@ -499,7 +503,7 @@ whitelist_retrieve(void)
 				item = whitelist_hostname_create(use_tls, hname, port);
 				whitelist_dns_resolve(item, FALSE);
 			} else {
-				for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+				PSLIST_FOREACH(sl_addr, sl) {
 					host_addr_t *aptr = sl->data;
 					g_assert(aptr != NULL);
 					item = whitelist_addr_create(use_tls, *aptr, port, bits);
@@ -513,7 +517,7 @@ whitelist_retrieve(void)
 		host_addr_free_list(&sl_addr);
     }
 
-    sl_whitelist = g_slist_reverse(sl_whitelist);
+    sl_whitelist = pslist_reverse(sl_whitelist);
 	fclose(f);
 }
 
@@ -527,10 +531,10 @@ uint
 whitelist_connect(void)
 {
 	time_t now = tm_time();
-	const GSList *sl;
+	const pslist_t *sl;
 	uint num = 0;
 
-	for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
 		struct whitelist *item;
 
 		item = sl->data;
@@ -562,9 +566,9 @@ whitelist_connect(void)
 bool
 whitelist_check(const host_addr_t ha)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
-	GM_SLIST_FOREACH(sl_whitelist, sl) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
 		const struct whitelist *item = sl->data;
 
 		if (!is_host_addr(item->addr))
@@ -600,11 +604,11 @@ static bool
 whitelist_periodic_dns(void *unused_obj)
 {
 	time_t now = tm_time();
-	GSList *sl;
+	pslist_t *sl;
 
 	(void) unused_obj;
 
-	GM_SLIST_FOREACH(sl_whitelist, sl) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
     	struct whitelist *item = sl->data;
 
 		/*
@@ -663,13 +667,13 @@ whitelist_init(void)
 G_GNUC_COLD void
 whitelist_close(void)
 {
-    GSList *sl;
+    pslist_t *sl;
 
-	GM_SLIST_FOREACH(sl_whitelist, sl) {
+	PSLIST_FOREACH(sl_whitelist, sl) {
 		whitelist_free(sl->data);
 	}
 
-    gm_slist_free_null(&sl_whitelist);
+    pslist_free_null(&sl_whitelist);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

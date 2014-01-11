@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2010, 2012 Raphael Manfredi
+ * Copyright (c) 2001-2010, 2012-2013 Raphael Manfredi
  * Copyright (c) 2003-2008, Christian Biere
  *
  *----------------------------------------------------------------------
@@ -35,7 +35,8 @@
  * It also hides to client code the choice of the underlying PRNG routines.
  *
  * Most of the random number generating functions here are based on the
- * Mersenne Twister, which is faster than ARC4.
+ * Mersenne Twister, which is faster than ARC4.  When generating uniform
+ * random values, we use the WELL1024b algorithm.
  *
  * The only exception is the random_bytes() routine, which still relies on
  * arc4random().  The reason is that we use random_pool_append() and
@@ -43,15 +44,27 @@
  * This lets us perturb the output of the PRNG algorithm, which is not an
  * operation supported by the Mersenne Twister.
  *
- * Because random_bytes() is used to generate unique IDs, it is also better
- * to rely on ARC4 due to the fact that its output cannot be guessed given
- * a long sequence of output numbers, contrary to the Mersenne Twister.
- * Our random perturbation to the ARC4 engine further help to ensure strong
- * sequences of IDs that cannot be predicted and hopefully global unicity of
- * the generated random IDs.
+ * When we generate unique IDs that are shown to the world, we rely on
+ * random_strong() and random_strong_bytes() to generate unpredictable and
+ * optimally distributed random numbers.  The random_strong() routine combines
+ * the output of WELL and ARC4, to be absolutely certain that the IDs are
+ * unpredictable even if enough consecutive IDs have been seen.
+ *
+ * The application has three ways to add more entropy to the random number
+ * generators:
+ *
+ * - it can call random_collect() on a regular basis, which will pool 1 byte.
+ * - it can call random_pool_append() to add "random" data to the pool.
+ * - it can call random_add() to immediately feed the entropy.
+ *
+ * When the pool is full, it is flushed by calling random_add().
+ *
+ * The application can register listeners via random_added_listener_add().
+ * They are invoked each time the collected pool has been flushed to
+ * random_add().
  *
  * @author Raphael Manfredi
- * @date 2001-2010, 2012
+ * @date 2001-2010, 2012-2013
  * @author Christian Biere
  * @date 2003-2008
  */
@@ -59,19 +72,53 @@
 #include "common.h"
 
 #include "random.h"
+
+#include "aje.h"
 #include "arc4random.h"
+#include "atomic.h"
 #include "endian.h"
 #include "float.h"
+#include "listener.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "mtwist.h"
 #include "pow2.h"
+#include "pslist.h"
 #include "sha1.h"
+#include "spinlock.h"
+#include "teq.h"
+#include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "walloc.h"
+#include "well.h"
 
 #include "override.h"			/* Must be the last header included */
+
+/**
+ * Randomness update listeners.
+ *
+ * These are invoked right after new randomness was added to the random
+ * number generators.
+ */
+static listeners_t random_added_listeners;
+
+void random_added_listener_add(random_added_listener_t l)
+{
+	LISTENER_ADD(random_added, l);
+}
+
+void random_added_listener_remove(random_added_listener_t l)
+{
+	LISTENER_REMOVE(random_added, l);
+}
+
+static void
+random_added_fire(void)
+{
+	LISTENER_EMIT(random_added, ());
+}
 
 /**
  * Generate uniformly distributed random numbers using supplied random
@@ -234,7 +281,7 @@ done:
 uint32
 random_u32(void)
 {
-	return mt_rand();
+	return mtp_rand();
 }
 
 /**
@@ -243,7 +290,22 @@ random_u32(void)
 uint64
 random_u64(void)
 {
-	return mt_rand64();
+	return mtp_rand64();
+}
+
+/**
+ * @return random long value, all bits being random.
+ */
+ulong
+random_ulong(void)
+{
+#if LONGSIZE == 8
+	return mtp_rand64();
+#elif LONGSIZE == 4
+	return mtp_rand();
+#else
+#error "unhandled long size"
+#endif
 }
 
 /**
@@ -264,9 +326,15 @@ random_value(uint32 max)
 	 * distribution of the random numbers, using integer-only arithmetic.
 	 *
 	 * We also switched to mt_rand() because it is faster than arc4random().
+	 * And mtp_rand() is a lock-free path, even faster than mt_rand().
+	 *
+	 * Switching to well_thread_rand() since we now add entropy regularily
+	 * to the WELL pools.  ARC4 remains used for random_bytes() and MT is
+	 * used for shuffling since that is the quickest routine still.
+	 *		--RAM, 2013-12-18
 	 */
 
-	return random_upto(mt_rand, max);
+	return random_upto(well_thread_rand, max);
 }
 
 /**
@@ -275,7 +343,22 @@ random_value(uint32 max)
 uint64
 random64_value(uint64 max)
 {
-	return random64_upto(mt_rand64, max);
+	return random64_upto(well_thread_rand64, max);
+}
+
+/**
+ * @return random unsigned long value between [0, max], inclusive.
+ */
+ulong
+random_ulong_value(ulong max)
+{
+#if LONGSIZE == 8
+	return random64_upto(well_thread_rand64, max);
+#elif LONGSIZE == 4
+	return random_upto(well_thread_rand, max);
+#else
+#error "unhandled long size"
+#endif
 }
 
 /**
@@ -316,9 +399,61 @@ random_bytes(void *dst, size_t size)
 	 * and should yield better results than a pure PRNG delivering its sequence,
 	 * even one as good as the one coming out of the Mersenne Twister.
 	 *		--RAM, 2012-12-15
+	 *
+	 * Switching to arc4_rand() to use the thread-local ARC4 stream, which
+	 * avoids taking locks and is therefore faster than arc4random().
 	 */
 
-	random_bytes_with(arc4random, dst, size);
+	random_bytes_with(arc4_rand, dst, size);
+}
+
+/**
+ * Strong random routine that must be used to generate random data streams
+ * made visible to the outside.
+ *
+ * @note
+ * This routine should not be used directly by applications, as it is only
+ * meant to be used via random_strong_bytes().  Prefer random_u32() if you
+ * need a 32-bit random value, for speed reasons mostly.  However, using this
+ * routine will cause no harm.  It is only exported to be exercised in the
+ * random-test program.
+ */
+uint32
+random_strong(void)
+{
+	/*
+	 * Regardless of the statistical properties of WELL or the Mersenee Twister,
+	 * it is always possible to determine the next numbers to come when one
+	 * has seen enough consecutive output (basically an amount of random bits
+	 * equal to the internal state of these generators).  This is what makes
+	 * them unsuitable for cryptography, for instance.
+	 *
+	 * In contrast, ARC4 is a cryptographically strong generator and even though
+	 * it can be broken one day, the resources required are much larger.
+	 *
+	 * Therefore, when we need to generate random bytes that are seen outside
+	 * of this program, it is important to make them as random and unpredictable
+	 * as possible.  For instance, GUID in messages.
+	 *
+	 * We achieve this strong randomness by combining ARC4 and WELL randomness.
+	 * Both of these streams can also be constantly receiving new entropy via
+	 * regular calls to random_add().
+	 */
+
+	return arc4_rand() ^ well_thread_rand();
+}
+
+/**
+ * Fills buffer 'dst' with 'size' bytes of STRONG random data.
+ *
+ * This should be the preferred method when generating random data visible
+ * to the outside, and which must be unique and unpredictable even when enough
+ * random data has been seen.
+ */
+void
+random_strong_bytes(void *dst, size_t size)
+{
+	random_bytes_with(random_strong, dst, size);
 }
 
 /**
@@ -329,19 +464,109 @@ random_cpu_noise(void)
 {
 	static uchar data[512];
 	struct sha1 digest;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	uint32 r, i;
-	
-	r = random_u32();
+
+	/* No need to make this routine thread-safe as we want noise anyway */
+
+	r = well_thread_rand() ^ mtp_rand() ^ arc4_rand();
 	i = r % G_N_ELEMENTS(data);
 	data[i] = r;
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, data, i);
-	SHA1Result(&ctx, &digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, data, i);
+	SHA1_result(&ctx, &digest);
 
 	return peek_le32(digest.data);
 }
+
+enum random_byte_data_magic { RANDOM_BYTE_DATA_MAGIC = 0x1feded57 };
+
+/**
+ * Random bytes propagated to a thread.
+ */
+struct random_byte_data {
+	enum random_byte_data_magic magic;
+	void *data;		/* Data buffer */
+	size_t len;		/* Amount of bytes in buffer */
+	int refcnt;		/* Reference count */
+};
+
+static struct random_byte_data *
+random_byte_data_alloc(const void *data, size_t len)
+{
+	struct random_byte_data *rbd;
+
+	WALLOC(rbd);
+	rbd->magic = RANDOM_BYTE_DATA_MAGIC;
+	rbd->data = wcopy(data, len);
+	rbd->len = len;
+	rbd->refcnt = 1;
+
+	return rbd;
+}
+
+static inline void
+random_byte_data_check(const struct random_byte_data * const rbd)
+{
+	g_assert(rbd != NULL);
+	g_assert(RANDOM_BYTE_DATA_MAGIC == rbd->magic);
+}
+
+static void
+random_byte_data_free(struct random_byte_data *rbd)
+{
+	random_byte_data_check(rbd);
+
+	if (atomic_int_dec_is_zero(&rbd->refcnt)) {
+		WFREE_NULL(rbd->data, rbd->len);
+		rbd->magic = 0;
+		WFREE(rbd);
+	}
+}
+
+/**
+ * TEQ event delivered to a thread to add random bytes to the local ARC4 stream.
+ */
+static void
+random_byte_arc4_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	arc4_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
+}
+
+/**
+ * TEQ event delivered to a thread to add random bytes to the local WELL stream.
+ */
+static void
+random_byte_well_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	well_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
+}
+
+/**
+ * TEQ event delivered to a thread to add random bytes to the local AJE stream.
+ */
+static void
+random_byte_aje_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	aje_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
+}
+
 
 /**
  * Add collected random byte(s) to the random pool used by random_bytes(),
@@ -357,9 +582,12 @@ random_add_pool(void *buf, size_t len)
 {
 	static uchar data[256];
 	static size_t idx;
+	static spinlock_t pool_slk = SPINLOCK_INIT;
 	uchar *p;
 	size_t n;
 	bool flushed = FALSE;
+
+	spinlock(&pool_slk);
 
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < G_N_ELEMENTS(data));
@@ -372,11 +600,14 @@ random_add_pool(void *buf, size_t len)
 		 */
 
 		if G_UNLIKELY(idx >= G_N_ELEMENTS(data)) {
-			arc4random_addrandom(data, sizeof data);
+			random_add(data, sizeof data);
+			ZERO(&data);		/* Hide them now */
 			idx = 0;
 			flushed = TRUE;
 		}
 	}
+
+	spinunlock(&pool_slk);
 
 	return flushed;
 }
@@ -387,22 +618,24 @@ random_add_pool(void *buf, size_t len)
  * been collected, it feeds it to the random number generator.
  *
  * This helps generating unique sequences via random_bytes().
- *
- * @param cb		routine to invoke if non-NULL when randomness is fed
  */
 void
-random_collect(void (*cb)(void))
+random_collect(void)
 {
 	static tm_t last;
 	static time_delta_t prev;
 	static time_delta_t running;
 	static unsigned sum;
+	static spinlock_t collect_slk = SPINLOCK_INIT;
 	tm_t now;
 	time_delta_t d;
 	unsigned r, m, a;
 	uchar rbyte;
 
 	tm_now_exact(&now);
+
+	spinlock(&collect_slk);
+
 	d = tm_elapsed_ms(&now, &last);
 	m = tm2us(&now);
 
@@ -447,7 +680,9 @@ random_collect(void (*cb)(void))
 	sum += r;
 	rbyte = sum & 0xff;
 
-	random_pool_append(&rbyte, sizeof rbyte, cb);
+	spinunlock(&collect_slk);
+
+	random_pool_append(&rbyte, sizeof rbyte);
 }
 
 /**
@@ -459,30 +694,98 @@ random_collect(void (*cb)(void))
  *
  * @param buf		buffer holding random data
  * @param len		length of random data
- * @param cb		routine to invoke if non-NULL when randomness is fed
  */
 void
-random_pool_append(void *buf, size_t len, void (*cb)(void))
+random_pool_append(void *buf, size_t len)
 {
 	g_assert(buf != NULL);
 	g_assert(size_is_positive(len));
 
 	if (random_add_pool(buf, len)) {
-		if (cb != NULL)
-			(*cb)();		/* Let them know new randomness is available */
+		random_added_fire();	/* Let them know new randomness is available */
 	}
 }
 
 /**
- * Add new randomness to the random number generator used by random_bytes().
+ * Dispatch randomly collected bytes to all the threads listed in ``users''
+ * by sending them a TEQ message to invoke ``cb''.
+ *
+ * The callback argument is generated the first time we need it, and it is
+ * stored in ``rbd_ptr''.  Each routine will get a reference-counted structure
+ * and will need to call random_byte_data_free() to cleanup that structure.
+ *
+ * @param users		the list of thread ID
+ * @param cb		the callback to invoke in the thread
+ * @param data		the random data we can give
+ * @param len		the amount of bytes we can give
+ * @param rbd_ptr	where the allocated callback argument is stored.
+ */
+static void
+random_dispatch(pslist_t *users, notify_fn_t cb,
+	const void *data, size_t len, struct random_byte_data **rbd_ptr)
+{
+	struct random_byte_data *rbd = *rbd_ptr;
+	pslist_t *sl;
+
+	PSLIST_FOREACH(users, sl) {
+		uint id = pointer_to_uint(sl->data);	/* Thread ID */
+		if (teq_is_supported(id)) {
+			if (NULL == rbd) {
+				rbd = random_byte_data_alloc(data, len);
+				*rbd_ptr = rbd;
+			}
+			atomic_int_inc(&rbd->refcnt);
+			teq_post(id, cb, rbd);
+		}
+	}
+	pslist_free(users);
+}
+
+/**
+ * Add new randomness to the random number generators used by random_bytes()
+ * and random_strong_bytes().
  */
 void
 random_add(const void *data, size_t datalen)
 {
-	g_assert(data != NULL);
-	g_assert(datalen < MAX_INT_VAL(int));
+	struct random_byte_data *rbd = NULL;
+	uint8 entropy[64];
 
-	arc4random_addrandom(deconstify_pointer(data), (int) datalen);
+	g_assert(data != NULL);
+	g_assert(size_is_positive(datalen));
+
+#define ELEN	(sizeof entropy)
+
+	/*
+	 * The collected data is given to AJE (the global instance), and we then
+	 * extract random data out of AJE to feed to the other generators.  This
+	 * ensures we're feeding random data to each generator.
+	 */
+
+	aje_addrandom(data, datalen);
+	aje_random_bytes(entropy, ELEN);
+
+	/*
+	 * Now feeed the random entropy to the generators.
+	 */
+
+	arc4random_addrandom(entropy, (int) ELEN);
+	well_addrandom(entropy, ELEN);
+
+	/*
+	 * Propagate the random bytes to all the threads using a
+	 * local ARC4, AJE or WELL stream, provided the target threads
+	 * have created a Thread Event Queue (TEQ).
+	 */
+
+	random_dispatch(arc4_users(), random_byte_arc4_add, entropy, ELEN, &rbd);
+	random_dispatch(well_users(), random_byte_well_add, entropy, ELEN, &rbd);
+	random_dispatch(aje_users(),  random_byte_aje_add,  entropy, ELEN, &rbd);
+
+	if (rbd != NULL)
+		random_byte_data_free(rbd);
+
+#undef ELEN
 }
 
 /**
@@ -566,7 +869,7 @@ random_double_generate(random_fn_t rf)
 double
 random_double(void)
 {
-	return random_double_generate(mt_rand);
+	return random_double_generate(mtp_rand);
 }
 
 /**

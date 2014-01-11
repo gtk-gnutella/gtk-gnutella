@@ -53,14 +53,24 @@
 static G_GNUC_COLD void
 assertion_message(const assertion_data * const data, int fatal)
 {
-	char line_buf[22];
-	char time_buf[18];
+	char line_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 	char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
-	unsigned stid;
+	unsigned stid, line;
+	bool assertion;
 	DECLARE_STR(16);
 
 	crash_time(time_buf, sizeof time_buf);
 	stid = thread_small_id();
+
+	/*
+	 * When an assertion failed in some thread, things are likely to break in
+	 * all the other threads and we want to avoid a cascade of failures being
+	 * reported.  We suspend after computing the crash time, in case we were
+	 * not suspended due to a fatal error.
+	 */
+
+	thread_check_suspended();
 
 	print_str(time_buf);
 	if (0 == stid) {
@@ -70,23 +80,36 @@ assertion_message(const assertion_data * const data, int fatal)
 			fatal ? "FATAL" : "WARNING", stid);
 		print_str(prefix);
 	}
-	if (data->expr) {
+
+	/*
+	 * If the FAST_ASSERT_NOT_REACHED bit is set in the line number,
+	 * then it does not indicate an assertion failure but rather that
+	 * we reached a point in the code that should never have been reached.
+	 *		--RAM, 2013-10-28
+	 */
+
+	line = data->line & ~FAST_ASSERT_NOT_REACHED;
+	assertion = line == data->line;
+
+	if (assertion) {
 		print_str("Assertion failure at ");
 	} else {
-		print_str("Code should not have been reached at ");
+		print_str("Code should not have been reached in ");
+		print_str(data->expr);		/* Routine name */
+		print_str("() at ");
 	}
 	print_str(data->file);
 	print_str(":");
-	print_str(print_number(line_buf, sizeof line_buf, data->line));
-	if (data->expr) {
+	print_str(PRINT_NUMBER(line_buf, line));
+	if (assertion) {
 		print_str(": \"");
 		print_str(data->expr);
 		print_str("\"");
 	}
 	print_str("\n");
-	flush_err_str();
+	flush_err_str_atomic();
 	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+		flush_str_atomic(STDOUT_FILENO);
 }
 
 /**
@@ -97,7 +120,6 @@ assertion_abort(void)
 {
 	static volatile sig_atomic_t seen_fatal;
 
-	
 #define STACK_OFF	2		/* 2 extra calls: assertion_failure(), then here */
 
 	/*
@@ -109,9 +131,21 @@ assertion_abort(void)
 	 * the failure.
 	 */
 
-	if (!seen_fatal) {
-		seen_fatal = TRUE;
-		atomic_mb();
+	if (!ATOMIC_GET(&seen_fatal)) {
+		ATOMIC_SET(&seen_fatal, TRUE);
+
+		/*
+		 * If the thread holds any locks, dump them.
+		 */
+
+		thread_lock_dump_self_if_any(STDERR_FILENO);
+		if (log_stdout_is_distinct())
+			thread_lock_dump_self_if_any(STDOUT_FILENO);
+
+		/*
+		 * Dump stacktrace.
+		 */
+
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, STACK_OFF);
 		if (log_stdout_is_distinct())
 			stacktrace_where_cautious_print_offset(STDOUT_FILENO, STACK_OFF);
@@ -197,7 +231,7 @@ assertion_warning_log(const assertion_data * const data,
 	va_end(args);
 
 	{
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
 		unsigned stid = thread_small_id();
 		DECLARE_STR(4);
@@ -213,9 +247,9 @@ assertion_warning_log(const assertion_data * const data,
 		}
 		print_str(str_2c(str));
 		print_str("\n");
-		flush_err_str();
+		flush_err_str_atomic();
 		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+			flush_str_atomic(STDOUT_FILENO);
 	}
 
 	assertion_stacktrace();
@@ -264,7 +298,7 @@ assertion_failure_log(const assertion_data * const data,
 	 */
 
 	if (msg != NULL) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (FATAL-): ")];
 		unsigned stid = thread_small_id();
 		DECLARE_STR(4);
@@ -280,9 +314,9 @@ assertion_failure_log(const assertion_data * const data,
 		}
 		print_str(msg);
 		print_str("\n");
-		flush_err_str();
+		flush_err_str_atomic();
 		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+			flush_str_atomic(STDOUT_FILENO);
 	}
 
 	assertion_abort();

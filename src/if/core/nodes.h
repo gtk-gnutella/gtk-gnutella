@@ -382,10 +382,13 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 /*
  * Nodes public interface
  */
+
+struct pslist;
+
 void node_add(const host_addr_t addr, uint16, uint32 flags);
 void node_add_by_name(const char *host, uint16, uint32 flags);
 void node_remove_by_id(const struct nid *node_id);
-void node_remove_nodes_by_id(const GSList *node_list);
+void node_remove_nodes_by_id(const struct pslist *node_list);
 bool node_get_status(const struct nid *node_id, gnet_node_status_t *s);
 gnet_node_info_t *node_get_info(const struct nid *node_id);
 void node_clear_info(gnet_node_info_t *info);

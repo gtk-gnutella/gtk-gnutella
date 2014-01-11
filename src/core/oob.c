@@ -51,10 +51,11 @@
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fifo.h"
-#include "lib/glib-missing.h"
 #include "lib/hikset.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -84,7 +85,7 @@ struct oob_results {
 	cevent_t *ev_expire;	/**< Global expiration event */
 	cevent_t *ev_timeout;	/**< Reply waiting timeout */
 	const struct guid *muid;/**< (atom) MUID of the query that generated hits */
-	GSList *files;			/**< List of shared_file_t */
+	pslist_t *files;		/**< List of shared_file_t */
 	gnet_host_t dest;		/**< The host to which we must deliver */
 	int count;				/**< Amount of hits to deliver */
 	int notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
@@ -137,6 +138,7 @@ struct gservent {
 static void results_destroy(cqueue_t *cq, void *obj);
 static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
+static void servent_service(struct gservent *s, cqueue_t *cq);
 
 static int num_oob_records;	/**< Leak and duplicate free detector */
 static bool oob_shutdowning;
@@ -156,7 +158,7 @@ oob_results_check(const struct oob_results *r)
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
  */
 static struct oob_results *
-results_make(const struct guid *muid, GSList *files, int count,
+results_make(const struct guid *muid, pslist_t *files, int count,
 	gnet_host_t *to, bool secure, bool reliable, unsigned flags)
 {
 	static const struct oob_results zero_results;
@@ -206,7 +208,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 static void
 results_free_remove(struct oob_results *r)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	oob_results_check(r);
 	
@@ -229,11 +231,11 @@ results_free_remove(struct oob_results *r)
 		}
 		atom_guid_free_null(&r->muid);
 
-		for (sl = r->files; sl; sl = g_slist_next(sl)) {
+		for (sl = r->files; sl; sl = pslist_next(sl)) {
 			shared_file_t *sf = sl->data;
 			shared_file_unref(&sf);
 		}
-		gm_slist_free_null(&r->files);
+		pslist_free_null(&r->files);
 
 		g_assert(num_oob_records > 0);
 		num_oob_records--;
@@ -250,21 +252,20 @@ results_free_remove(struct oob_results *r)
  * querying party to claim all the results has expired.
  */
 static void
-results_destroy(cqueue_t *unused_cq, void *obj)
+results_destroy(cqueue_t *cq, void *obj)
 {
 	struct oob_results *r = obj;
 
-	(void) unused_cq;
 	oob_results_check(r);
 
 	if (GNET_PROPERTY(query_debug))
 		g_debug("OOB query #%s from %s expired with unclaimed %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-			r->count, r->count == 1 ? "" : "s");
+			r->count, plural(r->count));
 
 	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
 
-	r->ev_expire = NULL;		/* The timer which just triggered */
+	cq_zero(cq, &r->ev_expire);		/* The timer which just triggered */
 	r->refcount--;
 
 	results_free_remove(r);
@@ -275,20 +276,20 @@ results_destroy(cqueue_t *unused_cq, void *obj)
  * was not acknowledged with claims.
  */
 static void
-results_timeout(cqueue_t *unused_cq, void *obj)
+results_timeout(cqueue_t *cq, void *obj)
 {
 	struct oob_results *r = obj;
 	host_addr_t addr;
 
-	(void) unused_cq;
 	oob_results_check(r);
 
+	cq_zero(cq, &r->ev_timeout);
 	addr = gnet_host_get_addr(&r->dest);
 
 	if (GNET_PROPERTY(query_debug)) {
 		g_debug("OOB query #%s, no ACK from %s to claim %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-			r->count, r->count == 1 ? "" : "s");
+			r->count, plural(r->count));
 	}
 
 	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
@@ -304,7 +305,7 @@ results_timeout(cqueue_t *unused_cq, void *obj)
 		if (GNET_PROPERTY(query_debug)) {
 			int delay = ban_delay(BAN_CAT_OOB_CLAIM, addr);
 			g_debug("OOB host %s will be banned for the next %d second%s",
-				host_addr_to_string(addr), delay, 1 == delay ? "" : "s");
+				host_addr_to_string(addr), delay, plural(delay));
 		}
 	}
 
@@ -337,18 +338,27 @@ deliver_delay(void)
 }
 
 /**
+ * Callout queue event to service the servent's FIFO.
+ */
+static void
+servent_call_service(cqueue_t *cq, void *obj)
+{
+	struct gservent *s = obj;
+
+	cq_zero(cq, &s->ev_service);	/* The callback that just triggered */
+	servent_service(s, cq);
+}
+
+/**
  * Service servent's FIFO: send next packet, and re-arm servicing callback
  * if there are more data to send.
  */
 static void
-servent_service(cqueue_t *cq, void *obj)
+servent_service(struct gservent *s, cqueue_t *cq)
 {
-	struct gservent *s = obj;
 	pmsg_t *mb;
 	mqueue_t *q;
 	enum net_type nt;
-
-	s->ev_service = NULL;		/* The callback that just triggered */
 
 	mb = fifo_remove(s->fifo);
 	if (mb == NULL)
@@ -380,7 +390,7 @@ servent_service(cqueue_t *cq, void *obj)
 	if (0 == fifo_count(s->fifo))
 		goto remove;
 
-	s->ev_service = cq_insert(cq, deliver_delay(), servent_service, s);
+	s->ev_service = cq_insert(cq, deliver_delay(), servent_call_service, s);
 
 	return;
 
@@ -495,7 +505,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 			g_warning("OOB got spurious LIME/11 from %s for #%s, "
 				"asking for %d hit%s",
 				node_addr(n), guid_hex_str(muid),
-				wanted, wanted == 1 ? "" : "s");
+				wanted, plural(wanted));
 		return;
 	}
 
@@ -578,7 +588,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
 		g_debug("OOB query #%s: host %s wants %d hit%s, delivering %d",
-			guid_hex_str(r->muid), node_addr(n), wanted, wanted == 1 ? "" : "s",
+			guid_hex_str(r->muid), node_addr(n), wanted, plural(wanted),
 			deliver_count);
 	}
 
@@ -608,7 +618,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 */
 
 	if (servent_created)
-		servent_service(cq_main(), s);
+		servent_service(s, cq_main());
 }
 
 /**
@@ -641,7 +651,7 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
 				g_debug("OOB query #%s, notified %s about %d hit%s",
 					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-					r->count, r->count == 1 ? "" : "s");
+					r->count, plural(r->count));
 
 			/*
 			 * If we don't get any ACK back, we'll discard the results.
@@ -699,7 +709,7 @@ oob_send_reply_ind(struct oob_results *r)
 		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d",
 			guid_hex_str(r->muid), r->reliable ? "reliably " : "",
 			gnet_host_to_string(&r->dest),
-			r->count, r->count == 1 ? "" : "s", r->notify_requeued);
+			r->count, plural(r->count), r->notify_requeued);
 
 	mq_udp_putq(q, emb, &r->dest);
 }
@@ -718,7 +728,7 @@ oob_send_reply_ind(struct oob_results *r)
  * @param flags			a combination of QHIT_F_* flags
  */
 void
-oob_got_results(struct gnutella_node *n, GSList *files,
+oob_got_results(struct gnutella_node *n, pslist_t *files,
 	int count, host_addr_t addr, uint16 port,
 	bool secure, bool reliable, unsigned flags)
 {
@@ -799,9 +809,9 @@ oob_shutdown(void)
 	if (GNET_PROPERTY(search_debug)) {
 		g_info("OOB %s: still has %zu entr%s by MUID, %zu host%s recorded",
 			G_STRFUNC, hikset_count(results_by_muid),
-			1 == hikset_count(results_by_muid) ? "y" : "ies",
+			plural_y(hikset_count(results_by_muid)),
 			hikset_count(servent_by_host),
-			1 == hikset_count(servent_by_host) ? "" : "s");
+			plural(hikset_count(servent_by_host)));
 	}
 }
 

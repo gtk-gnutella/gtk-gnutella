@@ -48,7 +48,7 @@ struct shell_cmd_help {
 };
 
 static const struct shell_cmd_help commands[] = {
-#define SHELL_CMD(x)	{ #x, &shell_summary_ ## x, &shell_help_ ## x },
+#define SHELL_CMD(x,t)	{ #x, &shell_summary_ ## x, &shell_help_ ## x },
 #include "cmd.inc"
 #undef	SHELL_CMD
 };

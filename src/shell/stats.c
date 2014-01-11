@@ -38,6 +38,7 @@
 
 #include "lib/options.h"
 #include "lib/stringify.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -50,7 +51,7 @@ shell_exec_stats(struct gnutella_shell *sh, int argc, const char *argv[])
 	};
 	int parsed;
 	int i;
-	gnet_stats_t stats;
+	gnet_stats_t *stats;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -60,17 +61,26 @@ shell_exec_stats(struct gnutella_shell *sh, int argc, const char *argv[])
 	if (parsed < 0)
 		return REPLY_ERROR;
 
-	gnet_stats_get(&stats);
+	/*
+	 * Since this command now runs in a separated thread with a rather small
+	 * stack, we allocate the gnet_stats_t variable on the heap because it
+	 * is large enough to cause an overflow.
+	 *		--RAM, 2013-11-30
+	 */
+
+	XMALLOC(stats);
+	gnet_stats_get(stats);
 
 	for (i = 0; i < GNR_TYPE_COUNT; i++) {
 		shell_write(sh, gnet_stats_general_to_string(i));
 		shell_write(sh, " ");
 		shell_write(sh, pretty ?
-			uint64_to_gstring(stats.general[i]) :
-			uint64_to_string(stats.general[i]));
+			uint64_to_gstring(stats->general[i]) :
+			uint64_to_string(stats->general[i]));
 		shell_write(sh, "\n");
 	}
 
+	XFREE_NULL(stats);
 	return REPLY_READY;
 }
 

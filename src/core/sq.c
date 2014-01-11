@@ -262,8 +262,6 @@ sq_make(struct gnutella_node *node)
 void
 sq_clear(squeue_t *sq)
 {
-	GList *l;
-
 	g_assert(sq);
 
 	if (GNET_PROPERTY(sq_debug) > 3)
@@ -271,13 +269,9 @@ sq_clear(squeue_t *sq)
 			sq->node ? node_addr(sq->node) : "GLOBAL",
 			sq->n_sent, sq->n_dropped);
 
-	for (l = sq->searches; l; l = g_list_next(l)) {
-		smsg_t *sb = l->data;
+	PLIST_FOREACH_CALL(sq->searches, smsg_discard);
 
-		smsg_discard(sb);
-	}
-
-	gm_list_free_null(&sq->searches);
+	plist_free_null(&sq->searches);
 	sq->count = 0;
 }
 
@@ -315,7 +309,7 @@ sq_puthere(squeue_t *sq, gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 	sb = smsg_alloc(sh, mb, qhv);
 
 	sqh_put(sq, sh);
-	sq->searches = g_list_prepend(sq->searches, sb);
+	sq->searches = plist_prepend(sq->searches, sb);
 	sq->count++;
 
 	if (sq->count > GNET_PROPERTY(search_queue_size))
@@ -362,7 +356,7 @@ void
 sq_process(squeue_t *sq, time_t now)
 {
     time_delta_t spacing = GNET_PROPERTY(search_queue_spacing);
-	GList *item;
+	plist_t *item;
 	smsg_t *sb;
 	struct gnutella_node *n;
 	bool sent;
@@ -421,7 +415,7 @@ retry:
 
 	g_assert(sq->searches);
 
-	item = g_list_first(sq->searches);
+	item = plist_first(sq->searches);
 	sb = item->data;
 
 	g_assert(sq->count > 0);
@@ -481,8 +475,8 @@ retry:
 
 	sqh_remove(sq, sb->shandle);
 	smsg_free(sb);
-	sq->searches = g_list_remove_link(sq->searches, item);
-	g_list_free_1(item);
+	sq->searches = plist_remove_link(sq->searches, item);
+	plist_free_1(item);
 
 	/*
 	 * If we ignored the query, retry with the next in the queue.
@@ -500,11 +494,11 @@ retry:
 static void
 cap_queue(squeue_t *sq)
 {
-    while (sq->count > GNET_PROPERTY(search_queue_size)) {
-    	GList *item = g_list_last(sq->searches);
+	while (sq->count > GNET_PROPERTY(search_queue_size)) {
+		plist_t *item = plist_last(sq->searches);
 		smsg_t *sb = item->data;
 
-		sq->searches = g_list_remove_link(sq->searches, item);
+		sq->searches = plist_remove_link(sq->searches, item);
 
 		g_assert(sq->count > 0);
 		sq->count--;
@@ -518,8 +512,8 @@ cap_queue(squeue_t *sq)
 
 		sqh_remove(sq, sb->shandle);
 		smsg_discard(sb);
-		g_list_free_1(item);
-    }
+		plist_free_1(item);
+	}
 }
 
 /**
@@ -529,20 +523,19 @@ cap_queue(squeue_t *sq)
 void
 sq_search_closed(squeue_t *sq, gnet_search_t sh)
 {
-	GList *l;
-	GList *next;
+	plist_t *l, *next;
 
 	for (l = sq->searches; l; l = next) {
 		smsg_t *sb = l->data;
 
-		next = g_list_next(l);
+		next = plist_next(l);
 
 		if (sb->shandle != sh)
 			continue;
 
 		g_assert(sq->count > 0);
 		sq->count--;
-		sq->searches = g_list_remove_link(sq->searches, l);
+		sq->searches = plist_remove_link(sq->searches, l);
 
 		if (GNET_PROPERTY(sq_debug) > 4)
 			g_debug("sq for node %s, dropped \"%s\" on search close (%u left)",
@@ -551,7 +544,7 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 
 		sqh_remove(sq, sb->shandle);
 		smsg_discard(sb);
-		g_list_free_1(l);
+		plist_free_1(l);
 	}
 
 	g_assert(sq->searches || sq->count == 0);

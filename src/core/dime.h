@@ -39,6 +39,7 @@
 #include "common.h"
 
 struct dime_record;
+struct pslist;
 
 struct dime_record *dime_record_alloc(void);
 void dime_record_free(struct dime_record **record_ptr);
@@ -52,8 +53,8 @@ bool dime_record_set_id(struct dime_record *record, const char *id);
 bool dime_record_set_type_uri(struct dime_record *, const char *type);
 bool dime_record_set_type_mime(struct dime_record *, const char *type);
 
-void dime_list_free(GSList **list_ptr);
-GSList *dime_parse_records(const char *data, size_t size);
+void dime_list_free(struct pslist **list_ptr);
+struct pslist *dime_parse_records(const char *data, size_t size);
 
 const char *dime_record_type(const struct dime_record *record);
 size_t dime_record_type_length(const struct dime_record *record);

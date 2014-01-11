@@ -191,8 +191,8 @@ struct upload *upload_create(struct gnutella_socket *, bool push);
 void upload_fire_upload_info_changed(struct upload *);
 void expect_http_header(struct upload *, upload_stage_t new_status);
 
-GSList *upload_get_info_list(void);
-void upload_free_info_list(GSList **sl_ptr);
+struct pslist *upload_get_info_list(void);
+void upload_free_info_list(struct pslist **sl_ptr);
 
 struct upload *upload_alloc(void);
 void upload_free(struct upload **ptr);

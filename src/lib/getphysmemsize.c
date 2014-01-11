@@ -56,7 +56,7 @@ getphysmemsize_internal(void)
 	uint64 mem;
 
 	if ((uint64) -1 == (mem = mingw_getphysmemsize())) {
-		g_warning("%s: GlobalMemoryStatusEx() failed: %m", G_STRFUNC);
+		g_warning("%s(): GlobalMemoryStatusEx() failed: %m", G_STRFUNC);
 		return 0;
 	}
 

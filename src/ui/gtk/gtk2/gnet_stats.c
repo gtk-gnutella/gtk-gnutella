@@ -648,7 +648,7 @@ gnet_stats_gui_init(void)
 	gnet_stats_gui_recv_init();
 
 	guc_hsep_add_global_table_listener(
-		(GCallback) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
+		(callback_fn_t) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
 
 	main_gui_add_timer(gnet_stats_gui_timer);
 }
@@ -676,7 +676,7 @@ gnet_stats_gui_shutdown(void)
 	size_t i;
 
 	guc_hsep_remove_global_table_listener(
-	    (GCallback) gnet_stats_gui_horizon_update);
+	    (callback_fn_t) gnet_stats_gui_horizon_update);
 
 	for (i = 0; i < G_N_ELEMENTS(widths); i++) {
 		tree_view_save_widths(*widths[i].tv, widths[i].prop);

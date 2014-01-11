@@ -143,7 +143,7 @@ enum omalloc_mode {
 /**
  * Internal statistics.
  */
-static struct {
+static struct ostats {
 	size_t pages_rw;		/**< Total amount of rw pages allocated */
 	size_t objects_rw;		/**< Total amount of rw objects allocated */
 	size_t memory_rw;		/**< Total amount of rw memory allocated */
@@ -158,6 +158,10 @@ static struct {
 	size_t wasted_ro;		/**< Space wasted at tail of ro chunks */
 	size_t zeroed;			/**< Zeroed objects at allocation time */
 } ostats;
+static spinlock_t ostats_slk = SPINLOCK_INIT;
+
+#define OSTATS_LOCK			spinlock_hidden(&ostats_slk)
+#define OSTATS_UNLOCK		spinunlock_hidden(&ostats_slk)
 
 /**
  * Remaining free space in the chunk (including header).
@@ -312,10 +316,12 @@ omalloc_chunk_align(struct ochunk *ck, size_t align, enum omalloc_mode mode)
 	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
 
 	if (first != ck->first) {
+		OSTATS_LOCK;
 		if (OMALLOC_RW == mode)
 			ostats.align_rw += ptr_diff(first, ck->first);
 		else
 			ostats.align_ro += ptr_diff(first, ck->first);
+		OSTATS_UNLOCK;
 		ck->first = first;
 	}
 }
@@ -427,15 +433,16 @@ omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode)
 		omalloc_chunk_unprotect(ck->prev, mode);
 		ck->prev->next = ck->next;
 		omalloc_chunk_protect(ck->prev, mode);
-		ck->prev = NULL;
 	}
 
 	if (ck->next != NULL) {
 		omalloc_chunk_unprotect(ck->next, mode);
 		ck->next->prev = ck->prev;
 		omalloc_chunk_protect(ck->next, mode);
-		ck->next = NULL;
 	}
+
+	ck->prev = NULL;
+	ck->next = NULL;
 }
 
 /**
@@ -533,31 +540,37 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 		omalloc_chunk_unlink(ck, mode);
 		used = ptr_diff(ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
 
+		OSTATS_LOCK;
 		if (OMALLOC_RW == mode) {
 			ostats.chunks_rw--;
 		} else {
 			ostats.chunks_ro--;
 		}
+		OSTATS_UNLOCK;
 
 		if (omalloc_debug > 2) {
 			s_debug("OMALLOC dissolving chunk header on %zu-byte allocation",
 				size);
 			if (csize != size) {
 				s_debug("OMALLOC %zu trailing bytes lost", csize - size);
+				OSTATS_LOCK;
 				if (OMALLOC_RW == mode) {
 					ostats.wasted_rw += csize - size;
 				} else {
 					ostats.wasted_ro += csize - size;
 				}
+				OSTATS_UNLOCK;
 			}
 		}
 	}
 
+	OSTATS_LOCK;
 	if (OMALLOC_RW == mode) {
 		ostats.memory_rw += used;
 	} else {
 		ostats.memory_ro += used;
 	}
+	OSTATS_UNLOCK;
 
 	return p;
 }
@@ -595,18 +608,18 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * to funnel all the core allocation decisions to avoid extra allocations.
 	 *
 	 * This is the sole entry point for all omalloc()-based operations since
-	 * there is no reallocation nor freeing.  We use hidden spinlocks because
-	 * we do not hold the lock outside of this file so there is little to
-	 * gain into tracking them.
+	 * there is no reallocation nor freeing.
 	 */
 
-	spinlock_hidden(&omalloc_slk);
+	spinlock(&omalloc_slk);
 
+	OSTATS_LOCK;
 	if (OMALLOC_RW == mode) {
 		ostats.objects_rw++;
 	} else {
 		ostats.objects_ro++;
 	}
+	OSTATS_UNLOCK;
 
 	/*
 	 * First try to allocate memory from fragments held in chunks[].
@@ -627,7 +640,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * need to hold the lock.
 	 */
 
-	spinunlock_hidden(&omalloc_slk);
+	spinunlock(&omalloc_slk);
 
 	p = vmm_core_alloc(size);
 	allocated = round_pagesize(size);
@@ -637,10 +650,10 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		size_t count = OMALLOC_RW == mode ?
 			ostats.objects_rw : ostats.objects_ro;
 		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu %s object%s)",
-			pages, 1 == pages ? "" : "s",
+			pages, plural(pages),
 			OMALLOC_RW == mode ? ostats.pages_rw : ostats.pages_ro,
 			count, OMALLOC_RW == mode ? "read-write" : "read-only",
-			1 == count ? "" : "s");
+			plural(count));
 	}
 
 	/*
@@ -648,13 +661,15 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * re-grab the lock.
 	 */
 
-	spinlock_hidden(&omalloc_slk);
+	spinlock(&omalloc_slk);
 
+	OSTATS_LOCK;
 	if (OMALLOC_RW == mode) {
 		ostats.pages_rw += allocated / omalloc_pagesize;
 	} else {
 		ostats.pages_ro += allocated / omalloc_pagesize;
 	}
+	OSTATS_UNLOCK;
 
 	/*
 	 * If we have enough memory at the tail to create a new chunk, do so.
@@ -670,6 +685,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		ck->first = ptr_add_offset(p, size);
 		omalloc_chunk_link(ck, mode);
 
+		OSTATS_LOCK;
 		if (OMALLOC_RW == mode) {
 			ostats.chunks_rw++;
 			ostats.memory_rw += size;
@@ -677,6 +693,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 			ostats.chunks_ro++;
 			ostats.memory_ro += size;
 		}
+		OSTATS_UNLOCK;
 
 		if (omalloc_debug > 2) {
 			size_t count = OMALLOC_RW == mode ?
@@ -684,7 +701,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 			s_debug("OMALLOC adding %zu byte-long chunk (%zu %s chunk%s total)",
 				omalloc_chunk_size(ck),
 				count, OMALLOC_RW == mode ? "read-write" : "read-only",
-				1 == count ? "" : "s");
+				plural(count));
 		}
 	} else {
 		/*
@@ -692,27 +709,31 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		 * to create a chunk.
 		 */
 
+		OSTATS_LOCK;
 		if (OMALLOC_RW == mode) {
 			ostats.memory_rw += allocated;
 		} else {
 			ostats.memory_ro += allocated;
 		}
+		OSTATS_UNLOCK;
 
 		if (allocated != size) {
 			if (omalloc_debug > 2) {
 				s_debug("OMALLOC %zu trailing bytes lost on "
 					"%zu-byte allocation", allocated - size, size);
 			}
+			OSTATS_LOCK;
 			if (OMALLOC_RW == mode) {
 				ostats.wasted_rw += allocated - size;
 			} else {
 				ostats.wasted_ro += allocated - size;
 			}
+			OSTATS_UNLOCK;
 		}
 	}
 
 done:
-	spinunlock_hidden(&omalloc_slk);
+	spinunlock(&omalloc_slk);
 
 	if (init != NULL)
 		memcpy(p, init, size);
@@ -754,7 +775,10 @@ omalloc0(size_t size)
 
 	p = omalloc_allocate(size, MEM_ALIGNBYTES, OMALLOC_RW, NULL);
 	memset(p, 0, size);
+
+	OSTATS_LOCK;
 	ostats.zeroed++;
+	OSTATS_UNLOCK;
 
 	return p;
 }
@@ -861,7 +885,13 @@ ostrndup_readonly(const char *str, size_t n)
 size_t
 omalloc_page_count(void)
 {
-	return ostats.pages_rw + ostats.pages_ro;
+	size_t n;
+
+	OSTATS_LOCK;
+	n = ostats.pages_rw + ostats.pages_ro;
+	OSTATS_UNLOCK;
+
+	return n;
 }
 
 /**
@@ -887,22 +917,22 @@ omalloc_close(void)
 	if (omalloc_debug) {
 		s_debug("omalloc() allocated %zu read-write object%s "
 			"spread on %zu page%s",
-			ostats.objects_rw, 1 == ostats.objects_rw ? "" : "s",
-			ostats.pages_rw, 1 == ostats.pages_rw ? "" : "s");
+			ostats.objects_rw, plural(ostats.objects_rw),
+			ostats.pages_rw, plural(ostats.pages_rw));
 		s_debug("omalloc() allocated %s read-write, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_rw, FALSE),
-			ostats.chunks_rw, 1 == ostats.chunks_rw ? "" : "s",
-			1 == ostats.chunks_rw ? "s" : "");
+			ostats.chunks_rw, plural(ostats.chunks_rw),
+			plural(ostats.chunks_rw));
 		s_debug("omalloc() allocated %zu read-only object%s "
 			"spread on %zu page%s",
-			ostats.objects_ro, 1 == ostats.objects_ro ? "" : "s",
-			ostats.pages_ro, 1 == ostats.pages_ro ? "" : "s");
+			ostats.objects_ro, plural(ostats.objects_ro),
+			ostats.pages_ro, plural(ostats.pages_ro));
 		s_debug("omalloc() allocated %s read-only, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_ro, FALSE),
-			ostats.chunks_ro, 1 == ostats.chunks_ro ? "" : "s",
-			1 == ostats.chunks_ro ? "s" : "");
+			ostats.chunks_ro, plural(ostats.chunks_ro),
+			plural(ostats.chunks_ro));
 	}
 }
 
@@ -912,17 +942,22 @@ omalloc_close(void)
 G_GNUC_COLD void
 omalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
+	struct ostats stats;
 	size_t pages, objects, memory, chunks, align, wasted;
 
 #define DUMP(x) log_info(la, "OMALLOC %s = %s", #x,	\
 	(options & DUMP_OPT_PRETTY) ?					\
-		size_t_to_gstring(ostats.x) : size_t_to_string(ostats.x))
+		size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
 
 #define DUMP_VAR(x) log_info(la, "OMALLOC %s = %s", #x,	\
 	(options & DUMP_OPT_PRETTY) ?					\
 		size_t_to_gstring(x) : size_t_to_string(x))
 
-#define CONSOLIDATE(x)		x = ostats.x##_rw + ostats.x##_ro
+#define CONSOLIDATE(x)		x = stats.x##_rw + stats.x##_ro
+
+	OSTATS_LOCK;
+	stats = ostats;			/* struct copy under lock protection */
+	OSTATS_UNLOCK;
 
 	CONSOLIDATE(pages);
 	CONSOLIDATE(objects);

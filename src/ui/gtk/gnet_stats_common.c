@@ -70,7 +70,8 @@ msg_type_str(gint value)
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_TYPE_COUNT);
 
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
-		g_warning("Requested general_type_str %d is invalid", value);
+		g_carp("%s(): requested general_type_str %d is invalid",
+			G_STRFUNC, value);
 		return "";
 	}
 
@@ -174,6 +175,7 @@ general_type_str(gint value)
 		N_("GIV discarded due to no suitable download"),
 		N_("QUEUE callbacks received"),
 		N_("QUEUE discarded due to no suitable download"),
+		N_("File descriptors banned running count"),
 		N_("UDP read-ahead datagram running count"),
 		N_("UDP read-ahead datagram running bytes"),
 		N_("UDP read-ahead datagram \"old\" processed"),
@@ -386,7 +388,8 @@ general_type_str(gint value)
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
 
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
-		g_warning("Requested general_type_str %d is invalid", value);
+		g_carp("%s(): requested general_type_str %d is invalid",
+			G_STRFUNC, value);
 		return "";
 	}
 

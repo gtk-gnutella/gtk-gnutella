@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Hashtable-tracked allocator. Small chunks are allocated via xpmalloc(),
+ * Hashtable-tracked allocator. Small chunks are allocated via walloc(),
  * whereas large chunks are served via vmm_alloc(). The interface
  * is the same as that of malloc()/free(). The hashtable keeps track of
  * the sizes which should gain a more compact memory layout and is
@@ -43,29 +43,32 @@
 #include "common.h"
 
 #include "halloc.h"
+
+#include "atomic.h"
 #include "concat.h"
 #include "dump_options.h"
+#include "glib-missing.h"
 #include "hashtable.h"
 #include "malloc.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "once.h"
 #include "pagetable.h"
+#include "spinlock.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
-#include "xmalloc.h"
+#include "zalloc.h"			/* For zalloc_shift_pointer() */
 
-#include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
- * Under TRACK_MALLOC, do not define halloc(), hfree(), etc...
+ * Under REMAP_ZALLOC or TRACK_MALLOC, do not define halloc(), hfree(), etc...
  */
 
 #if defined(USE_HALLOC)
-#if defined(TRACK_MALLOC) || defined(MALLOC_STATS)
+#if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC) || defined(MALLOC_STATS)
 #undef USE_HALLOC
 #endif	/* REMAP_ZALLOC || TRACK_MALLOC */
 #endif	/* USE_HALLOC */
@@ -73,25 +76,34 @@
 /**
  * Internal statistics collected.
  */
-static struct {
+static struct hstats {
 	uint64 allocations;					/**< Total # of allocations */
-	uint64 allocations_zeroed;			/**< Total # of zeroed allocations */
-	uint64 alloc_via_xpmalloc;			/**< Allocations from xpmalloc */
+	AU64(allocations_zeroed);			/**< Total # of zeroed allocations */
+	uint64 alloc_via_walloc;			/**< Allocations from walloc() */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 freeings;					/**< Total # of freeings */
-	uint64 reallocs;					/**< Total # of reallocs */
-	uint64 realloc_noop;				/**< Nothing to do */
-	uint64 realloc_via_xrealloc;		/**< Reallocs handled by xrealloc() */
-	uint64 realloc_via_vmm;				/**< Reallocs handled by VMM */
+	AU64(reallocs);						/**< Total # of reallocs */
+	AU64(realloc_noop);					/**< Nothing to do */
+	uint64 realloc_via_wrealloc;		/**< Reallocs handled by wrealloc() */
+	AU64(realloc_via_vmm);				/**< Reallocs handled by VMM */
 	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
-	uint64 realloc_noop_same_vmm;		/**< Same VMM size */
-	uint64 realloc_relocatable;			/**< Forced relocation for VMM */
+	AU64(realloc_noop_same_vmm);		/**< Same VMM size */
+	AU64(realloc_relocatable);			/**< Forced relocation for VMM */
+	uint64 wasted_cumulative;			/**< Cumulated allocation waste */
+	uint64 wasted_cumulative_walloc;	/**< Cumulated waste for walloc */
+	uint64 wasted_cumulative_vmm;		/**< Cumulated waste for VMM allocs */
 	size_t memory;						/**< Amount of bytes allocated */
 	size_t blocks;						/**< Amount of blocks allocated */
 } hstats;
+static spinlock_t hstats_slk = SPINLOCK_INIT;
+
+#define HSTATS_LOCK			spinlock_hidden(&hstats_slk)
+#define HSTATS_UNLOCK		spinunlock_hidden(&hstats_slk)
+
+#define HSTATS_INCX(x)		AU64_INC(&hstats.x)
 
 enum halloc_type {
-	HALLOC_XMALLOC,
+	HALLOC_WALLOC,
 	HALLOC_VMM
 };
 
@@ -100,7 +112,7 @@ enum halloc_type {
 static int use_page_table;
 static page_table_t *pt_pages;
 static hash_table_t *ht_pages;
-static size_t xpmalloc_threshold;		/* xpmalloc() size upper limit */
+static size_t walloc_threshold;		/* walloc() size upper limit */
 static size_t halloc_pagesize;
 
 union align {
@@ -108,44 +120,73 @@ union align {
   char		bytes[MEM_ALIGNBYTES];
 };
 
+static spinlock_t hpage_slk = SPINLOCK_INIT;
+
+#define HPAGE_LOCK			spinlock(&hpage_slk)
+#define HPAGE_UNLOCK		spinunlock(&hpage_slk)
+
 static inline size_t
 page_lookup(const void *p)
 {
+	size_t result;
+
+	HPAGE_LOCK;
 	if (use_page_table) {
-		return page_table_lookup(pt_pages, p);
+		result = page_table_lookup(pt_pages, p);
 	} else {
-		return (size_t) hash_table_lookup(ht_pages, p);
+		result = (size_t) hash_table_lookup(ht_pages, p);
 	}
+	HPAGE_UNLOCK;
+
+	return result;
 }
 
 static inline int
 page_insert(const void *p, size_t size)
 {
+	int result;
+
+	g_assert(size != 0);
+
+	HPAGE_LOCK;
 	if (use_page_table) {
-		return page_table_insert(pt_pages, p, size);
+		result = page_table_insert(pt_pages, p, size);
 	} else {
-		return hash_table_insert(ht_pages, p, size_to_pointer(size));
+		result = hash_table_insert(ht_pages, p, size_to_pointer(size));
 	}
+	HPAGE_UNLOCK;
+
+	return result;
 }
 
 static inline void
 page_replace(const void *p, size_t size)
 {
+	g_assert(size != 0);
+
+	HPAGE_LOCK;
 	if (use_page_table) {
 		page_table_replace(pt_pages, p, size);
 	} else {
 		hash_table_replace(ht_pages, p, size_to_pointer(size));
 	}
+	HPAGE_UNLOCK;
 }
 
 static inline int
 page_remove(const void *p)
 {
+	int result;
+
+	HPAGE_LOCK;
 	if (use_page_table) {
-		return page_table_remove(pt_pages, p);
+		result = page_table_remove(pt_pages, p);
 	} else {
-		return hash_table_remove(ht_pages, p);
+		result = hash_table_remove(ht_pages, p);
 	}
+	HPAGE_UNLOCK;
+
+	return result;
 }
 
 static void
@@ -153,7 +194,7 @@ hdestroy_page_table_item(void *key, size_t size, void *unused_udata)
 {
 	(void) unused_udata;
 	g_assert(size > 0);
-	hfree(key);
+	vmm_free(key, size);
 }
 
 static void
@@ -161,12 +202,13 @@ hdestroy_hash_table_item(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 	g_assert((size_t) value > 0);
-	hfree(deconstify_pointer(key));
+	vmm_free(deconstify_pointer(key), pointer_to_size(value));
 }
 
 static inline void
 page_destroy(void)
 {
+	HPAGE_LOCK;
 	if (use_page_table) {
 		page_table_foreach(pt_pages, hdestroy_page_table_item, NULL);
 		page_table_destroy(pt_pages);
@@ -176,20 +218,26 @@ page_destroy(void)
 		hash_table_destroy(ht_pages);
 		ht_pages = NULL;
 	}
+	HPAGE_UNLOCK;
 }
 
 static inline size_t
 halloc_get_size(const void *p, enum halloc_type *type)
 {
-	size_t size = 0;
+	size_t size;
 
 	size = page_lookup(p);
-	if (size) {
-		g_assert(size >= xpmalloc_threshold);
+	if (size != 0) {
+		g_assert(size >= walloc_threshold);
 		*type = HALLOC_VMM;
 	} else {
-		size = xallocated(p);
-		*type = HALLOC_XMALLOC;
+		const union align *head = p;
+
+		head--;
+		g_assert(size_is_positive(head->size));
+		g_assert(head->size < walloc_threshold);
+		size = head->size + sizeof *head;
+		*type = HALLOC_WALLOC;
 	}
 	return size;
 }
@@ -213,15 +261,26 @@ halloc(size_t size)
 	if (0 == size)
 		return NULL;
 
-	if G_UNLIKELY(0 == xpmalloc_threshold)
+	if G_UNLIKELY(0 == walloc_threshold)
 		halloc_init(TRUE);
 
-	hstats.allocations++;
+	if G_LIKELY(size < walloc_threshold) {
+		union align *head;
 
-	if (size < xpmalloc_threshold) {
-		p = xpmalloc(size);
-		allocated = xallocated(p);
-		hstats.alloc_via_xpmalloc++;
+		allocated = size + sizeof head[0];
+#ifdef TRACK_ZALLOC
+		head = walloc_track(allocated, file, line);
+#else
+		head = walloc(allocated);
+#endif
+		head->size = size;
+		p = &head[1];
+#if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
+		zalloc_shift_pointer(head, p);
+#endif
+		HSTATS_LOCK;
+		hstats.alloc_via_walloc++;
+		hstats.wasted_cumulative_walloc += sizeof head[0];
 	} else {
 		int inserted;
 
@@ -232,10 +291,20 @@ halloc(size_t size)
 		p = vmm_alloc(allocated);
 		inserted = page_insert(p, allocated);
 		g_assert(inserted);
+
+		HSTATS_LOCK;
 		hstats.alloc_via_vmm++;
+		hstats.wasted_cumulative_vmm += allocated - size;
 	}
+
+	/* Stats are still locked at this point */
+
+	hstats.allocations++;;
+	hstats.wasted_cumulative += allocated - size;
 	hstats.memory += allocated;
 	hstats.blocks++;
+	HSTATS_UNLOCK;
+
 	return p;
 }
 
@@ -255,10 +324,11 @@ halloc0(size_t size)
 #else
 	void *p = halloc(size);
 #endif
-	if (p) {
+	if G_LIKELY(p != NULL) {
 		memset(p, 0, size);
 	}
-	hstats.allocations_zeroed++;
+
+	HSTATS_INCX(allocations_zeroed);
 	return p;
 }
 
@@ -271,22 +341,27 @@ hfree(void *p)
 	size_t allocated;
 	enum halloc_type type;
 
-	if (NULL == p)
+	if G_UNLIKELY(NULL == p)
 		return;
-
-	hstats.freeings++;
 
 	allocated = halloc_get_size(p, &type);
 	g_assert(size_is_positive(allocated));
 
-	if (HALLOC_XMALLOC == type) {
-		xfree(p);
+	if (HALLOC_WALLOC == type) {
+		union align *head = p;
+
+		head--;
+		wfree(head, allocated);
 	} else {
 		page_remove(p);
 		vmm_free(p, allocated);
 	}
+
+	HSTATS_LOCK;
+	hstats.freeings++;
 	hstats.memory -= allocated;
 	hstats.blocks--;
+	HSTATS_UNLOCK;
 }
 
 /**
@@ -297,55 +372,79 @@ hfree(void *p)
 void *
 hrealloc(void *old, size_t new_size)
 {
-	size_t old_size;
-	size_t rounded_new_size;
+	size_t old_size, allocated;
 	void *p;
 	enum halloc_type type;
 
-	if (NULL == old)
+	if G_UNLIKELY(NULL == old)
 		return halloc(new_size);
 
-	if (0 == new_size) {
+	if G_UNLIKELY(0 == new_size) {
 		hfree(old);
 		return NULL;
 	}
 
-	old_size = halloc_get_size(old, &type);
-	g_assert(size_is_positive(old_size));
+	allocated = halloc_get_size(old, &type);
+	g_assert(size_is_positive(allocated));
 
 	/*
 	 * This is our chance to move a virtual memory fragment out of the way.
 	 */
 
-	hstats.reallocs++;
-	rounded_new_size = round_pagesize(new_size);
+	HSTATS_INCX(reallocs);
 
 	if (HALLOC_VMM == type) {
+		size_t rounded_new_size = round_pagesize(new_size);
+
+		old_size = allocated;
+
 		if (vmm_is_relocatable(old, rounded_new_size)) {
-			hstats.realloc_relocatable++;
+			HSTATS_INCX(realloc_relocatable);
 			goto relocate;
 		}
-		if (new_size >= xpmalloc_threshold) {
+
+		if (new_size >= walloc_threshold) {
 			if (rounded_new_size == old_size) {
-				hstats.realloc_noop++;
-				hstats.realloc_noop_same_vmm++;
+				HSTATS_INCX(realloc_noop);
+				HSTATS_INCX(realloc_noop_same_vmm);
 				return old;
 			}
 			if (old_size > rounded_new_size) {
 				vmm_shrink(old, old_size, rounded_new_size);
 				page_replace(old, rounded_new_size);
+				HSTATS_LOCK;
 				hstats.memory += rounded_new_size - old_size;
 				hstats.realloc_via_vmm_shrink++;
+				HSTATS_UNLOCK;
+
 				return old;
 			}
 		}
-	} else if (new_size < xpmalloc_threshold) {
-		hstats.realloc_via_xrealloc++;
-		return xrealloc(old, new_size);
+	} else {
+		union align *old_head;
+
+		old_size = allocated - sizeof *old_head;		/* User size */
+
+		if (new_size < walloc_threshold) {
+			union align *new_head;
+			size_t new_allocated = new_size + sizeof *new_head;
+
+			old_head = old;
+			old_head--;
+			new_head = wrealloc(old_head, allocated, new_allocated);
+			new_head->size = new_size;
+
+			HSTATS_LOCK;
+			hstats.realloc_via_wrealloc++;
+			hstats.memory += new_allocated - allocated;
+			HSTATS_UNLOCK;
+
+			return &new_head[1];
+		}
 	}
 
 	if (old_size >= new_size && old_size / 2 < new_size) {
-		hstats.realloc_noop++;
+		HSTATS_INCX(realloc_noop);
 		return old;
 	}
 
@@ -355,8 +454,7 @@ relocate:
 
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
-	hstats.realloc_via_vmm++;
-
+	HSTATS_INCX(realloc_via_vmm);
 	return p;
 }
 
@@ -497,26 +595,28 @@ halloc_init_once(void)
 
 	halloc_pagesize = compat_pagesize();
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == halloc_pagesize;
-	xpmalloc_threshold = halloc_pagesize - MAX(8, MEM_ALIGNBYTES);	/* XXX */
+	walloc_threshold = walloc_maxsize() - sizeof(union align) + 1;
 
+	HPAGE_LOCK;
 	if (use_page_table) {
 		pt_pages = page_table_new();
 	} else {
 		ht_pages = hash_table_new();
 	}
+	HPAGE_UNLOCK;
 }
 
 void
 halloc_init(bool replace_malloc)
 {
-	static bool initialized;
+	static once_flag_t initialized;
+	static once_flag_t vtable_inited;
 
-	if (once_run(&initialized, halloc_init_once)) {
-		replacing_malloc = replace_malloc;
+	once_flag_run(&initialized, halloc_init_once);
+	replacing_malloc = replace_malloc;
 
-		if (replace_malloc)
-			halloc_init_vtable();
-	}
+	if (replace_malloc)
+		once_flag_run(&vtable_inited, halloc_init_vtable);
 }
 
 /**
@@ -845,32 +945,64 @@ h_strdup_printf(const char *format, ...)
 G_GNUC_COLD void
 halloc_dump_stats_log(logagent_t *la, unsigned options)
 {
+	struct hstats stats;
+	uint64 wasted_average, wasted_average_walloc, wasted_average_vmm;
+
+	HSTATS_LOCK;
+	stats = hstats;			/* struct copy under lock protection */
+	HSTATS_UNLOCK;
+
 #define DUMP(x) log_info(la, "HALLOC %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?						\
-		 uint64_to_gstring(hstats.x) : uint64_to_string(hstats.x))
+		 uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+
+#define DUMP64(x) G_STMT_START {							\
+	uint64 v = AU64_VALUE(&hstats.x);						\
+	log_info(la, "HALLOC %s = %s", #x,							\
+		(options & DUMP_OPT_PRETTY) ?						\
+			uint64_to_gstring(v) : uint64_to_string(v));	\
+} G_STMT_END
 
 #define DUMS(x) log_info(la, "HALLOC %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?						\
-		 size_t_to_gstring(hstats.x) : size_t_to_string(hstats.x))
+		 size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
 
+#define DUMV(x) log_info(la, "HALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		 uint64_to_gstring(x) : uint64_to_string(x))
+
+	wasted_average = stats.wasted_cumulative /
+		(0 == stats.allocations ? 1 : stats.allocations);
+	wasted_average_walloc = stats.wasted_cumulative_walloc /
+		(0 == stats.alloc_via_walloc ?  1 : stats.alloc_via_walloc);
+	wasted_average_vmm = stats.wasted_cumulative_vmm /
+		(0 == stats.alloc_via_vmm ?  1 : stats.alloc_via_vmm);
 
 	DUMP(allocations);
-	DUMP(allocations_zeroed);
-	DUMP(alloc_via_xpmalloc);
+	DUMP64(allocations_zeroed);
+	DUMP(alloc_via_walloc);
 	DUMP(alloc_via_vmm);
 	DUMP(freeings);
-	DUMP(reallocs);
-	DUMP(realloc_noop);
-	DUMP(realloc_noop_same_vmm);
-	DUMP(realloc_via_xrealloc);
-	DUMP(realloc_via_vmm);
+	DUMP64(reallocs);
+	DUMP64(realloc_noop);
+	DUMP64(realloc_noop_same_vmm);
+	DUMP(realloc_via_wrealloc);
+	DUMP64(realloc_via_vmm);
 	DUMP(realloc_via_vmm_shrink);
-	DUMP(realloc_relocatable);
+	DUMP64(realloc_relocatable);
+	DUMP(wasted_cumulative);
+	DUMP(wasted_cumulative_walloc);
+	DUMP(wasted_cumulative_vmm);
+	DUMV(wasted_average);
+	DUMV(wasted_average_walloc);
+	DUMV(wasted_average_vmm);
 	DUMS(memory);
 	DUMS(blocks);
 
 #undef DUMP
+#undef DUMP64
 #undef DUMS
+#undef DUMV
 }
 
 /* vi: set ts=4 sw=4 cindent: */

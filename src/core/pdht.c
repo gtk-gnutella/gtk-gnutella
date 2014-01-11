@@ -62,6 +62,7 @@
 #include "lib/hikset.h"
 #include "lib/misc.h"
 #include "lib/nid.h"
+#include "lib/plist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
@@ -180,7 +181,7 @@ static struct {
 	bool backgrounded;			/**< Whether background republish runs */
 } pdht_proxy;
 
-static void pdht_bg_publish(cqueue_t *unused_cq, void *obj);
+static void pdht_bg_publish(cqueue_t *cq, void *obj);
 
 /**
  * English version of the publish type.
@@ -437,7 +438,7 @@ pdht_publish_done(void *arg,
 		g_debug("PDHT ending %s%s publish for %s (%u publish%s): %s",
 			(pp->flags & PDHT_F_BACKGROUND) ? "background " : "",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
-			info->published, 1 == info->published ? "" : "es",
+			info->published, plural_es(info->published),
 			publish_strerror(code));
 	}
 
@@ -528,17 +529,15 @@ terminate:
  * Callout queue callback to launch a background publish.
  */
 static void
-pdht_bg_publish(cqueue_t *unused_cq, void *obj)
+pdht_bg_publish(cqueue_t *cq, void *obj)
 {
 	pdht_publish_t *pp = obj;
-
-	(void) unused_cq;
 
 	pdht_publish_check(pp);
 	g_assert(pp->bg != NULL);
 	g_assert(NULL == pp->pb);
 
-	pp->bg->ev = NULL;
+	cq_zero(cq, &pp->bg->ev);
 	pp->bg->runs++;
 
 	/*
@@ -930,12 +929,12 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	case PDHT_T_ALOC:
 		{
 			struct pdht_aloc *paloc = &pp->u.aloc;
-			shared_file_t *sf = paloc->sf;
+			shared_file_t *sf = paloc->sf, *sf1;
 
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				size_t roots = lookup_result_path_length(rs);
 				g_debug("PDHT ALOC found %zu publish root%s for %s \"%s\"",
-					roots, 1 == roots ? "" : "s",
+					roots, plural(roots),
 					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_nfc(sf));
 			}
@@ -947,7 +946,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 			 * not be requeued for publishing at the next period.
 			 */
 
-			if (NULL == shared_file_by_sha1(paloc->sha1)) {
+			if (NULL == (sf1 = shared_file_by_sha1(paloc->sha1))) {
 				if (GNET_PROPERTY(publisher_debug)) {
 					g_warning("PDHT ALOC cannot publish %s \"%s\": "
 						"no longer shared",
@@ -958,6 +957,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 				pdht_publish_error(pp, PDHT_E_NOT_SHARED);
 				return;
 			}
+			shared_file_unref(&sf1);
 
 			value = pdht_get_aloc(sf, pp->id);
 		}
@@ -966,8 +966,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
 			g_debug("PDHT NOPE found %zu publish root%s for %s",
-				roots, 1 == roots ? "" : "s",
-				guid_hex_str(pp->u.nope.guid));
+				roots, plural(roots), guid_hex_str(pp->u.nope.guid));
 		}
 
 		value = pdht_get_nope(pp->u.nope.guid, pp->id);
@@ -975,8 +974,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	case PDHT_T_PROX:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_debug("PDHT PROX found %zu publish root%s",
-				roots, 1 == roots ? "" : "s");
+			g_debug("PDHT PROX found %zu publish root%s", roots, plural(roots));
 		}
 
 		value = pdht_get_prox(pp->id);
@@ -1342,7 +1340,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 			info->roots, 1 == info->roots ? "" : "s",
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pdht_proxy.last_enqueued)),
-			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->all_roots, plural(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
@@ -1370,7 +1368,7 @@ static size_t
 pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 {
 	sequence_t *seq = NULL;
-	GList *list = NULL;
+	plist_t *list = NULL;
 	gnet_host_t localhost;
 	size_t i = 0;
 
@@ -1393,8 +1391,8 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 
 		if (is_host_addr(addr) && port != 0) {
 			gnet_host_set(&localhost, addr, socket_listen_port());
-			list = g_list_prepend(list, &localhost);
-			seq = sequence_create_from_glist(list);
+			list = plist_prepend(list, &localhost);
+			seq = sequence_create_from_plist(list);
 		} else {
 			return 0;		/* Nothing to fill */
 		}
@@ -1422,12 +1420,11 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 	}
 
 	sequence_release(&seq);
-	g_list_free(list);
+	plist_free(list);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_debug("PDHT PROX using %zu push-prox%s for local node (%s)",
-			i, 1 == i ? "y" : "ies",
-			GNET_PROPERTY(is_firewalled) ? "firewalled" : "not firewalled");
+		g_debug("PDHT PROX using %zu push-prox%s for local node (%sfirewalled)",
+			i, plural_y(i), GNET_PROPERTY(is_firewalled) ? "" : "not ");
 	}
 
 	return i;
@@ -1493,7 +1490,7 @@ pdht_prox_publish(bool force)
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
 			(unsigned) pdht_proxy.proxies_count,
-			1 == pdht_proxy.proxies_count ? "y" : "ies",
+			plural_y(pdht_proxy.proxies_count),
 			changed ? "" : "un",
 			publishing ?  "publishing" : "ignoring",
 			force ? "forced" : "on change only");
@@ -1620,12 +1617,11 @@ pdht_prox_publish_if_changed(void)
  * Callout queue callback to initiate a new PROX publish.
  */
 static void
-pdht_prox_timer(cqueue_t *unused_cq, void *unused_obj)
+pdht_prox_timer(cqueue_t *cq, void *unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
 
-	pdht_proxy.publish_ev = NULL;
+	cq_zero(cq, &pdht_proxy.publish_ev);
 	pdht_prox_publish(TRUE);
 }
 
@@ -1711,9 +1707,9 @@ pdht_nope_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 			" %s bg, path %u) [%s]",
 			info->was_bg ? "[bg] " : "",
 			guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
-			info->roots, 1 == info->roots ? "" : "s",
+			info->roots, plural(info->roots),
 			pdht_strerror(code),
-			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->all_roots, plural(info->all_roots),
 			info->presence * 100.0,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");

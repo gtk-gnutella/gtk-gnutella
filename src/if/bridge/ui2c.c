@@ -43,7 +43,10 @@
 
 /* includes ui needs to access core */
 #include "lib/adns.h"
+#include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/pslist.h"
+
 #include "if/core/bitzi.h"
 #include "if/core/downloads.h"
 #include "if/core/fileinfo.h"
@@ -498,14 +501,14 @@ guc_hsep_get_non_hsep_triple(hsep_triple *tripledest)
 
 
 void
-guc_hsep_add_global_table_listener(GCallback cb,
+guc_hsep_add_global_table_listener(callback_fn_t cb,
 	frequency_t t, uint32 interval)
 {
 	hsep_add_global_table_listener(cb, t, interval);
 }
 
 void
-guc_hsep_remove_global_table_listener(GCallback cb)
+guc_hsep_remove_global_table_listener(callback_fn_t cb)
 {
 	hsep_remove_global_table_listener(cb);
 }
@@ -575,7 +578,10 @@ guc_node_remove_by_id(const struct nid *node_id)
 void
 guc_node_remove_nodes_by_id(const GSList *node_list)
 {
-	node_remove_nodes_by_id(node_list);
+	pslist_t *sl = gm_slist_to_pslist(node_list);
+
+	node_remove_nodes_by_id(sl);
+	pslist_free(sl);
 }
 
 bool
@@ -760,7 +766,7 @@ guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 	search_associate_sha1(sh, sha1);
 }
 
-GSList *
+pslist_t *
 guc_search_associated_sha1(gnet_search_t sh)
 {
 	return search_associated_sha1(sh);

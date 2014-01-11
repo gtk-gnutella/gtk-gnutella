@@ -40,6 +40,7 @@
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -186,10 +187,10 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 	print_hsep_table(sh, globaltable, HSEP_N_MAX, non_hsep);
 
 	if (all) {
-		const GSList *sl;
+		const pslist_t *sl;
 		hsep_triple table[HSEP_N_MAX + 1];
 
-		for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(node_all_nodes(), sl) {
 			const struct gnutella_node *n = sl->data;
 
 			if ((!NODE_IS_ESTABLISHED(n)) || !(n->attrs & NODE_A_CAN_HSEP))

@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-155]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -40,9 +40,9 @@ AR = ar rc
 CC = $cc
 CTAGS = ctags
 _EXE = $_exe
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
-JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
+JLDFLAGS = \$(LDFLAGS) $optimize $pthread $ldflags
 JYFLAGS = \$(YFLAGS) $yaccflags
 LIBS = $libs
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
@@ -57,8 +57,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  sort-test.c  random-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o  random-test.o
+SOURCES =  \$(LSRC)  float-test.c  sort-test.c  random-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o  random-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -118,10 +118,14 @@ depend:: $(GENERIC)
 LSRC = \
 	adns.c \
 	aging.c \
+	aje.c \
 	alloca.c \
+	aq.c \
 	arc4random.c \
 	ascii.c \
+	atio.c \
 	atoms.c \
+	barrier.c \
 	base16.c \
 	base32.c \
 	base64.c \
@@ -129,6 +133,7 @@ LSRC = \
 	bg.c \
 	bigint.c \
 	bstr.c \
+	buf.c \
 	chi2.c \
 	ckalloc.c \
 	cobs.c \
@@ -138,12 +143,15 @@ LSRC = \
 	compat_poll.c \
 	compat_sleep_ms.c \
 	compat_un.c \
+	compat_usleep.c \
 	concat.c \
+	cond.c \
 	constants.c \
 	cpufreq.c \
 	cq.c \
 	crash.c \
 	crc.c \
+	dam.c \
 	dbmap.c \
 	dbmw.c \
 	dbstore.c \
@@ -158,16 +166,19 @@ LSRC = \
 	etree.c \
 	eval.c \
 	event.c \
+	evq.c \
 	exit.c \
 	fast_assert.c \
 	fd.c \
-	fifo.c \
 	file.c \
+	file_object.c \
 	filehead.c \
 	filename.c \
 	float.c \
 	fragcheck.c \
+	frand.c \
 	fs_free_space.c \
+	gentime.c \
 	getcpucount.c \
 	getdate.c \
 	getgateway.c \
@@ -197,6 +208,7 @@ LSRC = \
 	iso3166.c \
 	leak.c \
 	list.c \
+	listener.c \
 	log.c \
 	magnet.c \
 	malloc.c \
@@ -223,15 +235,19 @@ LSRC = \
 	path.c \
 	patricia.c \
 	pattern.c \
+	plist.c \
 	pmsg.c \
 	pow2.c \
 	product.c \
 	prop.c \
+	pslist.c \
 	rand31.c \
 	random.c \
 	rbtree.c \
 	regex.c \
+	rwlock.c \
 	sectoken.c \
+	semaphore.c \
 	sequence.c \
 	sha1.c \
 	shuffle.c \
@@ -248,11 +264,15 @@ LSRC = \
 	symbols.c \
 	symtab.c \
 	tea.c \
+	teq.c \
 	thread.c \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \
 	tm.c \
+	tmalloc.c \
+	tqsort.c \
+	tsig.c \
 	url.c \
 	url_factory.c \
 	urn.c \
@@ -261,23 +281,30 @@ LSRC = \
 	vendors.c \
 	vmm.c \
 	vsort.c \
+	waiter.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
+	well.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
 	xsort.c \
+	xxtea.c \
 	zalloc.c \
 	zlib_util.c
 
 LOBJ = \
 	adns.o \
 	aging.o \
+	aje.o \
 	alloca.o \
+	aq.o \
 	arc4random.o \
 	ascii.o \
+	atio.o \
 	atoms.o \
+	barrier.o \
 	base16.o \
 	base32.o \
 	base64.o \
@@ -285,6 +312,7 @@ LOBJ = \
 	bg.o \
 	bigint.o \
 	bstr.o \
+	buf.o \
 	chi2.o \
 	ckalloc.o \
 	cobs.o \
@@ -294,12 +322,15 @@ LOBJ = \
 	compat_poll.o \
 	compat_sleep_ms.o \
 	compat_un.o \
+	compat_usleep.o \
 	concat.o \
+	cond.o \
 	constants.o \
 	cpufreq.o \
 	cq.o \
 	crash.o \
 	crc.o \
+	dam.o \
 	dbmap.o \
 	dbmw.o \
 	dbstore.o \
@@ -314,16 +345,19 @@ LOBJ = \
 	etree.o \
 	eval.o \
 	event.o \
+	evq.o \
 	exit.o \
 	fast_assert.o \
 	fd.o \
-	fifo.o \
 	file.o \
+	file_object.o \
 	filehead.o \
 	filename.o \
 	float.o \
 	fragcheck.o \
+	frand.o \
 	fs_free_space.o \
+	gentime.o \
 	getcpucount.o \
 	getdate.o \
 	getgateway.o \
@@ -353,6 +387,7 @@ LOBJ = \
 	iso3166.o \
 	leak.o \
 	list.o \
+	listener.o \
 	log.o \
 	magnet.o \
 	malloc.o \
@@ -379,15 +414,19 @@ LOBJ = \
 	path.o \
 	patricia.o \
 	pattern.o \
+	plist.o \
 	pmsg.o \
 	pow2.o \
 	product.o \
 	prop.o \
+	pslist.o \
 	rand31.o \
 	random.o \
 	rbtree.o \
 	regex.o \
+	rwlock.o \
 	sectoken.o \
+	semaphore.o \
 	sequence.o \
 	sha1.o \
 	shuffle.o \
@@ -404,11 +443,15 @@ LOBJ = \
 	symbols.o \
 	symtab.o \
 	tea.o \
+	teq.o \
 	thread.o \
 	tiger.o \
 	tigertree.o \
 	timestamp.o \
 	tm.o \
+	tmalloc.o \
+	tqsort.o \
+	tsig.o \
 	url.o \
 	url_factory.o \
 	urn.o \
@@ -417,13 +460,16 @@ LOBJ = \
 	vendors.o \
 	vmm.o \
 	vsort.o \
+	waiter.o \
 	walloc.o \
 	watcher.o \
 	wd.o \
+	well.o \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \
 	xsort.o \
+	xxtea.o \
 	zalloc.o \
 	zlib_util.o 
 
@@ -538,6 +584,17 @@ random-test:  random-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  random-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: thread-test
+
+local_realclean::
+	$(RM) thread-test$(_EXE)
+
+thread-test:  thread-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  thread-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

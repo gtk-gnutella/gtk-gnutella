@@ -588,7 +588,8 @@ get_qkdata(const gnet_host_t *host)
 
 	if (NULL == qk) {
 		if (dbmw_has_ioerr(db_qkdata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				 dbmw_name(db_qkdata));
 		}
 	}
@@ -890,15 +891,14 @@ guess_rpc_cancel(guess_t *gq, const gnet_host_t *host)
  * RPC timeout function.
  */
 static void
-guess_rpc_timeout(cqueue_t *unused_cq, void *obj)
+guess_rpc_timeout(cqueue_t *cq, void *obj)
 {
 	struct guess_rpc *grp = obj;
 	guess_t *gq;
 
 	guess_rpc_check(grp);
-	(void) unused_cq;
 
-	grp->timeout = NULL;
+	cq_zero(cq, &grp->timeout);
 	gq = guess_is_alive(grp->gid);
 	if (gq != NULL)
 		(*grp->cb)(GUESS_RPC_TIMEOUT, grp, NULL, gq);
@@ -2544,15 +2544,13 @@ guess_pick_next(guess_t *gq)
  * Delay expiration -- callout queue callabck.
  */
 static void
-guess_delay_expired(cqueue_t *unused_cq, void *obj)
+guess_delay_expired(cqueue_t *cq, void *obj)
 {
 	guess_t *gq = obj;
 
-	(void) unused_cq;
-
 	guess_check(gq);
 
-	gq->delay_ev = NULL;
+	cq_zero(cq, &gq->delay_ev);
 	gq->flags &= ~GQ_F_DELAYED;
 	guess_iterate(gq);
 }
@@ -2606,16 +2604,14 @@ guess_async_iterate(guess_t *gq)
  * Cancel delay expiration -- callout queue callabck.
  */
 static void
-guess_cancel_expired(cqueue_t *unused_cq, void *obj)
+guess_cancel_expired(cqueue_t *cq, void *obj)
 {
 	guess_t *gq = obj;
-
-	(void) unused_cq;
 
 	guess_check(gq);
 	g_assert(gq->flags & GQ_F_TERMINATED);
 
-	gq->delay_ev = NULL;
+	cq_zero(cq, &gq->delay_ev);
 	gq->flags &= ~GQ_F_DELAYED;
 	guess_cancel(&gq, TRUE);
 }
@@ -2781,7 +2777,7 @@ guess_load_more_hosts(guess_t *gq)
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
 		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool%s",
-			nid_to_string(&gq->gid), added, 1 == added ? "" : "s",
+			nid_to_string(&gq->gid), added, plural(added),
 			(gq->flags & GQ_F_POOL_LOAD) ? " (pool load pending)" : "");
 	}
 }
@@ -2825,7 +2821,7 @@ next:
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] loaded %zu more host%s from disk pool",
-			nid_to_string(&gq->gid), ctx.loaded, 1 == ctx.loaded ? "" : "s");
+			nid_to_string(&gq->gid), ctx.loaded, plural(ctx.loaded));
 	}
 
 	guess_stats_fire(gq);
@@ -2844,7 +2840,7 @@ done:
 	if (GNET_PROPERTY(guess_client_debug) && count != 0) {
 		g_debug("GUESS %s() took %u ms for %u load%s",
 			G_STRFUNC, (unsigned) tm_elapsed_ms(&end, &start),
-			count, 1 == count ? "" : "s");
+			count, plural(count));
 	}
 
 	return TRUE;				/* Keep calling */
@@ -3653,7 +3649,7 @@ guess_iterate(guess_t *gq)
 			if (GNET_PROPERTY(guess_client_debug) > 2) {
 				g_debug("GUESS QUERY[%s] not iterating yet (%d RPC%s pending)",
 					nid_to_string(&gq->gid), gq->rpc_pending,
-					1 == gq->rpc_pending ? "" : "s");
+					plural(gq->rpc_pending));
 			}
 			return;
 		}
@@ -3670,7 +3666,7 @@ guess_iterate(guess_t *gq)
 			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
 			gq->hops, gq->query_acks, hash_list_length(gq->pool),
 			guess_mode_to_string(gq->mode),
-			alpha, 1 == alpha ? "" : "s", gq->rpc_pending);
+			alpha, plural(alpha), gq->rpc_pending);
 	}
 
 	gq->flags |= GQ_F_SENDING;		/* Proctect against syncrhonous UDP drops */

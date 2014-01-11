@@ -359,7 +359,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			"Shares ",
 			uint64_to_string(shared_files_scanned()),
 			" file",
-			shared_files_scanned() == 1 ? "" : "s",
+			plural(shared_files_scanned()),
 			" ",
 			short_kb_size(shared_kbytes_scanned(), metric),
 			" total",

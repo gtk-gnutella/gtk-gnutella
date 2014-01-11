@@ -53,8 +53,10 @@
 #include "lib/endian.h"
 #include "lib/hikset.h"
 #include "lib/nid.h"
+#include "lib/stringify.h"	/* For plural() */
 #include "lib/walloc.h"
-#include "lib/override.h"		/* Must be the last header included */
+
+#include "lib/override.h"	/* Must be the last header included */
 
 /*
  * The following should be larger than the dynamic query maximum lifetime
@@ -160,11 +162,10 @@ oob_proxy_rec_free_remove(struct oob_proxy_rec *opr)
  * Callout queue callback to free OOB proxy record.
  */
 static void
-oob_proxy_rec_destroy(cqueue_t *unused_cq, void *obj)
+oob_proxy_rec_destroy(cqueue_t *cq, void *obj)
 {
 	struct oob_proxy_rec *opr = obj;
 
-	(void) unused_cq;
 	oob_proxy_rec_check(opr);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
@@ -172,7 +173,7 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, void *obj)
 			guid_hex_str(opr->leaf_muid),
 			data_hex_str(opr->proxied_muid->v, GUID_RAW_SIZE));
 
-	opr->expire_ev = NULL;		/* The timer which just triggered */
+	cq_zero(cq, &opr->expire_ev);		/* The timer which just triggered */
 	oob_proxy_rec_free_remove(opr);
 }
 
@@ -462,7 +463,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 			g_debug(
 				"QUERY OOB-proxied #%s dropping %d hit%s from %s: no leaf #%s",
 				guid_hex_str(opr->proxied_muid),
-				results, results == 1 ? "" : "s",
+				results, plural(results),
 				node_addr(n), nid_to_string(opr->node_id));
 
 		return TRUE;		/* Leaf gone, drop the message */
@@ -508,7 +509,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
 		g_debug("QUERY OOB-proxied #%s routed %d hit%s to %s from %s %s",
-			guid_hex_str(opr->proxied_muid), results, results == 1 ? "" : "s",
+			guid_hex_str(opr->proxied_muid), results, plural(results),
 			node_infostr(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));
 
 	return TRUE;			/* We routed the message */

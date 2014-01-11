@@ -126,10 +126,7 @@ udp_sched_check(const struct udp_sched * const us)
 	g_assert(UDP_SCHED_MAGIC == us->magic);
 }
 
-enum udp_tx_desc_magic {
-	UDP_TX_DESC_MAGIC = 0x66f40d1b,	/**< TX descriptor allocated & used */
-	UDP_TX_FREE_MAGIC = 0x3a642116	/**< TX descriptor in pool, unused */
-};
+enum udp_tx_desc_magic { UDP_TX_DESC_MAGIC = 0x66f40d1b };
 
 /**
  * A TX descriptor.
@@ -145,11 +142,10 @@ struct udp_tx_desc {
 };
 
 static inline void
-udp_tx_desc_check(const struct udp_tx_desc * const txd, bool used)
+udp_tx_desc_check(const struct udp_tx_desc * const txd)
 {
 	g_assert(txd != NULL);
-	g_assert(!used || UDP_TX_DESC_MAGIC == txd->magic);
-	g_assert(used || UDP_TX_FREE_MAGIC == txd->magic);
+	g_assert(UDP_TX_DESC_MAGIC == txd->magic);
 }
 
 /**
@@ -185,11 +181,9 @@ udp_tx_desc_alloc(size_t size)
 {
 	struct udp_tx_desc *txd;
 
-	g_assert(sizeof(struct udp_tx_desc) == size);
+	g_assert(sizeof *txd == size);
 
 	WALLOC0(txd);
-	txd->magic = UDP_TX_FREE_MAGIC;
-
 	return txd;
 }
 
@@ -197,14 +191,13 @@ udp_tx_desc_alloc(size_t size)
  * Wrapper used by pfree() to release a UDP TX descriptor.
  */
 static void
-udp_tx_desc_free(void *p, bool fragment)
+udp_tx_desc_free(void *p, size_t size, bool fragment)
 {
 	struct udp_tx_desc *txd = p;
 
-	udp_tx_desc_check(txd, FALSE);
-
+	g_assert(sizeof *txd == size);
 	(void) fragment;
-	txd->magic = 0;
+
 	WFREE(txd);
 }
 
@@ -214,12 +207,11 @@ udp_tx_desc_free(void *p, bool fragment)
 static void
 udp_tx_desc_release(struct udp_tx_desc *txd, udp_sched_t *us)
 {
-	udp_tx_desc_check(txd, TRUE);
+	udp_tx_desc_check(txd);
 	udp_sched_check(us);
 
 	pmsg_free_null(&txd->mb);
 	atom_host_free_null(&txd->to);
-	txd->magic = UDP_TX_FREE_MAGIC;
 	pfree(us->txpool, txd);
 }
 
@@ -238,7 +230,7 @@ udp_tx_desc_release(struct udp_tx_desc *txd, udp_sched_t *us)
 static void
 udp_tx_desc_flag_release(struct udp_tx_desc *txd, udp_sched_t *us)
 {
-	udp_tx_desc_check(txd, TRUE);
+	udp_tx_desc_check(txd);
 	udp_sched_check(us);
 
 	eslist_append(&us->tx_released, txd);
@@ -256,7 +248,7 @@ udp_tx_desc_reclaim(void *data, void *udata)
 	udp_sched_t *us = udata;
 
 	udp_sched_check(us);
-	udp_tx_desc_check(txd, TRUE);
+	udp_tx_desc_check(txd);
 	g_assert(1 == pmsg_refcnt(txd->mb));
 
 	udp_tx_desc_release(txd, us);
@@ -275,7 +267,7 @@ udp_tx_desc_drop(void *data, void *udata)
 	udp_sched_t *us = udata;
 
 	udp_sched_check(us);
-	udp_tx_desc_check(txd, TRUE);
+	udp_tx_desc_check(txd);
 	g_assert(1 == pmsg_refcnt(txd->mb));
 
 	us->buffered = size_saturate_sub(us->buffered, pmsg_size(txd->mb));
@@ -295,7 +287,7 @@ udp_tx_desc_expired(void *data, void *udata)
 	udp_sched_t *us = udata;
 
 	udp_sched_check(us);
-	udp_tx_desc_check(txd, TRUE);
+	udp_tx_desc_check(txd);
 
 	if (delta_time(tm_time(), txd->expire) > 0) {
 		udp_sched_log(1, "%p: expiring mb=%p (%d bytes) prio=%u",
@@ -461,7 +453,7 @@ udp_tx_desc_send(void *data, void *udata)
 	unsigned prio;
 
 	udp_sched_check(us);
-	udp_tx_desc_check(txd, TRUE);
+	udp_tx_desc_check(txd);
 
 	if (us->used_all)
 		return FALSE;
@@ -566,7 +558,6 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 */
 
 	txd = palloc(us->txpool);
-	udp_tx_desc_check(txd, FALSE);
 	txd->magic = UDP_TX_DESC_MAGIC;
 	txd->mb = pmsg_ref(mb);		/* Take ownership of message */
 	txd->to = atom_host_get(to);

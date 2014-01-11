@@ -48,6 +48,7 @@ void memusage_add_one(memusage_t *mu);
 void memusage_add_batch(memusage_t *mu, size_t count);
 void memusage_remove(memusage_t *mu, size_t size);
 void memusage_remove_one(memusage_t *mu);
+void memusage_remove_multiple(memusage_t *mu, size_t n);
 void memusage_set_stack_accounting(memusage_t *mu, bool on);
 
 bool memusage_is_valid(const memusage_t * const mu) G_GNUC_PURE;

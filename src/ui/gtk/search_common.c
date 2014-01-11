@@ -72,6 +72,7 @@
 #include "lib/mime_type.h"
 #include "lib/misc.h"			/* For xml_indent() */
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/slist.h"
 #include "lib/str.h"
@@ -1346,15 +1347,15 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
  * Create a new GUI result set from a Gnutella one.
  */
 static results_set_t *
-search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
+search_gui_create_results_set(pslist_t *schl, const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
 	guint ignored;
-    GSList *sl;
+    pslist_t *sl;
 
     WALLOC(rs);
 	rs->magic = RESULTS_SET_MAGIC;
-    rs->schl = g_slist_copy(schl);
+    rs->schl = gm_pslist_to_slist(schl);
 
     rs->guid = atom_guid_get(r_set->guid);
     rs->addr = r_set->addr;
@@ -1377,7 +1378,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->proxies = search_gui_proxies_clone(r_set->proxies);
 
 	ignored = 0;
-    for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(r_set->records, sl) {
 		gnet_record_t *grc = sl->data;
 
 		if (grc->flags & SR_DONT_SHOW) {
@@ -1965,29 +1966,32 @@ search_gui_set_record_info(results_set_t *rs)
 
 	/* If banned GUID, make it prominent: at the start of the information! */
 	if (rs->status & ST_BANNED_GUID) {
-		str_cat(vinfo, "GUID");
+		STR_CAT(vinfo, "GUID");
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
 			if (str_len(vinfo) > 0)
-				str_cat(vinfo, ", ");
+				STR_CAT(vinfo, ", ");
 			str_cat(vinfo, _(open_flags[i].status));
 		}
 	}
 
 	if (!(rs->status & ST_PARSED_TRAILER)) {
 		if (str_len(vinfo) > 0)
-			str_cat(vinfo, ", ");
+			STR_CAT(vinfo, ", ");
 		str_cat(vinfo, _("<unparsed>"));
 	}
 
 	if (rs->status & ST_TLS) {
-		str_cat(vinfo, str_len(vinfo) > 0 ? ", TLS" : "TLS");
+		if (str_len(vinfo) > 0)
+			STR_CAT(vinfo, ", TLS");
+		else
+			STR_CAT(vinfo, "TLS");
 	}
 	if (rs->status & ST_BH) {
 		if (str_len(vinfo) > 0) {
-			str_cat(vinfo, ", ");
+			STR_CAT(vinfo, ", ");
 		}
 		str_cat(vinfo, _("browsable"));
 	}
@@ -2059,7 +2063,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 	if (GUI_PROPERTY(gui_debug) > 6) {
 		g_debug("%s(): [%s] got hit with %d record%s (from %s via %s%s%s%s) "
 			"need_push=%d, skipping=%d", G_STRFUNC,
-			search_gui_query(sch), rs->num_recs, rs->num_recs == 1 ? "" : "s",
+			search_gui_query(sch), rs->num_recs, plural(rs->num_recs),
 			host_addr_port_to_string(rs->addr, rs->port),
 			(rs->status & ST_UDP) ? "UDP" : "TCP",
 			(rs->status & ST_GUESS) ? " + GUESS" : "",
@@ -2394,7 +2398,7 @@ search_gui_current_search_refresh(void)
  * @param r_set		the core's result set, which will be duplicated
  */
 static void
-search_gui_got_results(GSList *schl, const struct guid *muid,
+search_gui_got_results(pslist_t *schl, const struct guid *muid,
 	const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
@@ -2417,7 +2421,7 @@ search_gui_got_results(GSList *schl, const struct guid *muid,
 	} else {
 		if (GUI_PROPERTY(gui_debug) >= 6) {
 			g_debug("%s(): ignoring %u result%s%s%s",
-				G_STRFUNC, r_set->num_recs, 1 == r_set->num_recs ? "" : "s",
+				G_STRFUNC, r_set->num_recs, plural(r_set->num_recs),
 				NULL == muid ? "" : " for GUESS ",
 				NULL == muid ? "" : guid_to_string(muid));
 		}
@@ -2495,7 +2499,7 @@ search_gui_flush(time_t now, gboolean force)
 
 		if (GUI_PROPERTY(gui_debug) > 6 && muid != NULL) {
 			g_debug("%s(): processing accumulated %u record%s for %s",
-				G_STRFUNC, rs->num_recs, 1 == rs->num_recs ? "" : "s",
+				G_STRFUNC, rs->num_recs, plural(rs->num_recs),
 				guid_to_string(muid));
 		}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2013 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  * All rights reserved.
  *
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
@@ -37,7 +37,7 @@
  *
  * A simple hashtable implementation.
  *
- * There are three interesting properties in this hash table:
+ * There are fiven interesting properties in this hash table:
  *
  * - The items and the internal data structures are allocated out of a
  *   same contiguous memory region (aka the "arena").
@@ -46,11 +46,19 @@
  *
  * - The access interface can be dynamically configured to be thread-safe.
  *
+ * - The table can be put in read-only mode, preventing any data corruption
+ *   for the items it holds.  When inserting data, it can be reverted to
+ *   writable mode and then back to read-only, but this needs to be explicit
+ *   to prevent accidental (unexpected) insertions.
+ *
+ * - The table can configured to use a statically-allocated space and run
+ *   without allocating any memory (but then it can possibly become full).
+ *
  * As such, this hash table is suitable for being used by low-level memory
- * allocators.
+ * allocators and by the thread management code.
  *
  * @author Raphael Manfredi
- * @date 2009-2012
+ * @date 2009-2013
  * @author Christian Biere
  * @date 2006
  */
@@ -58,11 +66,13 @@
 #include "common.h"
 
 #include "hashtable.h"
+
 #include "atomic.h"
 #include "entropy.h"
 #include "hashing.h"
 #include "mutex.h"
 #include "omalloc.h"
+#include "once.h"
 #include "pow2.h"
 #include "spinlock.h"
 #include "vmm.h"
@@ -99,7 +109,6 @@ enum hashtable_magic { HASHTABLE_MAGIC = 0x54452ad4 };
 struct hash_table {
 	enum hashtable_magic magic; /* Magic number */
 	mutex_t lock;				/* Lock for thread-safe operations */
-	mutex_t external_lock;		/* Lock for external atomic operations */
 	size_t num_items;			/* Array length of "items" */
 	size_t num_bins;			/* Number of bins */
 	size_t bin_bits;			/* Number of bits to fold hashed value to */
@@ -129,6 +138,7 @@ struct hash_table {
 	unsigned thread_safe:1;		/* Set if table must be thread-safe */
 	unsigned once:1;			/* Object allocated using "once" memory */
 	unsigned self_keys:1;		/* Keys are self-representing */
+	unsigned fixed_size:1;		/* Table allocated statically */
 };
 
 /**
@@ -139,36 +149,83 @@ struct hash_table {
  * as presenting a set of keys that will pathologically make insertions
  * O(n) instead of O(1) on average.
  */
-static unsigned hash_offset;
+static unsigned hash_offset[2];		/* indexed by boolean: ht->fixed_size */
 
 /**
  * Minimal amount of bins we we want (power of two) that can fill up one page.
  */
 static size_t hash_min_bins;
 
+static bool hash_offset_inited;
+static once_flag_t hash_min_bins_computed;
+
+static G_GNUC_COLD void
+hash_offset_init_once(void)
+{
+	/* Don't allocate any memory, hence can't call arc4random() */
+	hash_offset[0] = entropy_minirand();
+
+	/*
+	 * Note that we leave hash_offset[1] set to 0: hash offsetting is not
+	 * used for fixed-size hash tables because they are used by low-level
+	 * code and we may not be able to allocate the random hash offset at
+	 * the time the fixed-size hash table is used.
+	 */
+}
+
 /**
  * Initialize hash offset if not already done.
  */
-static G_GNUC_COLD void
+static void
 hash_offset_init(void)
 {
-	static spinlock_t offset_slk = SPINLOCK_INIT;
-	static bool done;
+	static spinlock_t hash_offset_init_slk = SPINLOCK_INIT;
 
-	if G_UNLIKELY(!done) {
-		spinlock(&offset_slk);
-		if (!done) {
-			/* Don't allocate any memory, hence can't call arc4random() */
-			hash_offset = entropy_random();
-			done = TRUE;
-			/* Memory barrier will be done by spinunlock() */
-		}
-		spinunlock(&offset_slk);
+	/*
+	 * Cannot use once_flag_run() here since it uses a hash table to keep
+	 * track of the running routines and we could recurse.
+	 */
+
+	if G_LIKELY(hash_offset_inited)
+		return;
+
+	spinlock_raw(&hash_offset_init_slk);
+
+	if (!hash_offset_inited) {
+		hash_offset_init_once();
+		hash_offset_inited = TRUE;
 	}
+
+	spinunlock_raw(&hash_offset_init_slk);
+}
+
+/**
+ * Computes the minimum amount of bins we can have to fill one VMM page.
+ */
+static G_GNUC_COLD void
+hash_compute_min_bins_once(void)
+{
+	size_t n;
+	hash_table_t ht;
+
+	n = compat_pagesize() / (sizeof ht.bins[0] +
+		HASH_ITEMS_PER_BIN * sizeof ht.items[0]);
+
+	hash_min_bins = 1 << highest_bit_set(n);
+
+	g_assert(hash_min_bins > 1);
+	g_assert(IS_POWER_OF_2(hash_min_bins));
+}
+
+static inline size_t
+hash_min_bin_count(void)
+{
+	ONCE_FLAG_RUN(hash_min_bins_computed, hash_compute_min_bins_once);
+	return hash_min_bins;
 }
 
 static inline void *
-hash_vmm_alloc(const struct hash_table *ht, size_t size)
+hash_vmm_alloc(const hash_table_t *ht, size_t size)
 {
 #ifdef TRACK_VMM
 	if (ht->real || ht->not_leaking)
@@ -183,7 +240,7 @@ hash_vmm_alloc(const struct hash_table *ht, size_t size)
 }
 
 static inline void
-hash_vmm_free(const struct hash_table *ht, void *p, size_t size)
+hash_vmm_free(const hash_table_t *ht, void *p, size_t size)
 {
 #ifdef TRACK_VMM
 	if (ht->real || ht->not_leaking)
@@ -217,7 +274,7 @@ hash_copy_flags(hash_table_t *dest, const hash_table_t *src)
 }
 
 static inline void
-hash_table_check(const struct hash_table *ht)
+hash_table_check(const hash_table_t *ht)
 {
 	g_assert(ht != NULL);
 	g_assert(HASHTABLE_MAGIC == ht->magic);
@@ -294,16 +351,14 @@ hash_bins_items_arena_size(const hash_table_t *ht, size_t *items_offset)
 
 static void
 hash_table_new_intern(hash_table_t *ht,
-	size_t num_bins, hash_fn_t hash, eq_fn_t eq)
+	size_t num_bins, hash_fn_t hash, eq_fn_t eq, void *space, size_t len)
 {
-	size_t i;
+	size_t i, min_bins;
 	size_t arena;
 	size_t items_off;
 
 	g_assert(ht);
 	g_assert(num_bins > 1);
-
-	hash_offset_init();
 
 	ht->magic = HASHTABLE_MAGIC;
 	ht->num_held = 0;
@@ -313,25 +368,54 @@ hash_table_new_intern(hash_table_t *ht,
 	ht->self_keys = booleanize(hash_id_eq == ht->eq);
 
 	/*
-	 * Since the arena is going to be held in a VMM page with nothing
-	 * else, make sure we're filling the page as much as we can.
+	 * If data space is not-NULL, then the table is going to be of fixed_size.
+	 * The table will not be resizable and insertions will fail when it becomes
+	 * full.  Also, performances will degrade as the table fills-up.
 	 */
 
-	if G_UNLIKELY(0 == hash_min_bins) {
+	if G_UNLIKELY(space != NULL) {
 		size_t n;
 
-		/* No spinlock, at worst we'll do this computation more than once */
+		g_assert(len != 0);
 
-		n = compat_pagesize() / (sizeof ht->bins[0] +
-			HASH_ITEMS_PER_BIN * sizeof ht->items[0]);
-		hash_min_bins = 1 << highest_bit_set(n);
+		ht->fixed_size = TRUE;
 
-		g_assert(hash_min_bins > 1);
-		g_assert(IS_POWER_OF_2(hash_min_bins));
+		/*
+		 * Iteratively compute the largest amount of bins and items we can
+		 * fit in the table,
+		 */
+
+		for (n = HASH_ITEMS_BINS; n != 0; n <<= 1) {
+			ht->num_bins = n;
+			ht->num_items = n * HASH_ITEMS_PER_BIN;
+			arena = hash_bins_items_arena_size(ht, NULL);
+
+			if (arena > len) {
+				n >>= 1;
+				break;
+			}
+		}
+
+		g_assert_log(n >= HASH_ITEMS_BINS,
+			"%s(): remaining space (%zu bytes) in fixed arena too small",
+			G_STRFUNC, len);
+
+		ht->num_bins = n;
+		ht->num_items = n * HASH_ITEMS_PER_BIN;
+	} else {
+		/*
+		 * Since the arena is going to be held in a VMM page with nothing
+		 * else, make sure we're filling the page as much as we can.
+		 */
+
+		hash_offset_init();
+
+		min_bins = hash_min_bin_count();
+
+		ht->num_bins = MAX(num_bins, min_bins);
+		ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
 	}
 
-	ht->num_bins = MAX(num_bins, hash_min_bins);
-	ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
 	ht->bin_bits = highest_bit_set64(ht->num_bins);
 
 	g_assert(IS_POWER_OF_2(ht->num_bins));
@@ -339,8 +423,13 @@ hash_table_new_intern(hash_table_t *ht,
 
 	arena = hash_bins_items_arena_size(ht, &items_off);
 
-	ht->bins = hash_vmm_alloc(ht, arena);
-	g_assert(ht->bins);
+	if G_UNLIKELY(ht->fixed_size) {
+		ht->bins = space;
+	} else {
+		ht->bins = hash_vmm_alloc(ht, arena);
+	}
+
+	g_assert(ht->bins != NULL);
 	g_assert(items_off != 0);
 
 	ht->items = ptr_add_offset(ht->bins, items_off);
@@ -366,11 +455,10 @@ hash_table_new_intern(hash_table_t *ht,
 hash_table_t *
 hash_table_new_full(hash_fn_t hash, eq_fn_t eq)
 {
-	hash_table_t *ht = xpmalloc0(sizeof *ht);
+	hash_table_t *ht;
 
-	g_assert(ht);
-
-	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
+	XMALLOC0(ht);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq, NULL, 0);
 	return ht;
 }
 
@@ -384,6 +472,7 @@ hash_table_new(void)
  * Checks how many items are currently stored in the hash_table.
  *
  * @param ht the hash_table to check.
+ *
  * @return the number of items in the hash_table.
  */
 size_t
@@ -398,17 +487,60 @@ hash_table_size(const hash_table_t *ht)
 }
 
 /**
+ * Get the current capacity of the hash_table.
+ *
+ * @param ht	the hash table
+ *
+ * @return the maximum number of items that can currently be stored.
+ */
+size_t
+hash_table_capacity(const hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if G_UNLIKELY(ht->thread_safe)
+		atomic_mb();
+
+	return ht->num_items;
+}
+
+/**
+ * Get the amount of buckets in the hash_table.
+ *
+ * @param ht	the hash table
+ *
+ * @return the current amount of buckets used to distribute items.
+ */
+size_t
+hash_table_buckets(const hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if G_UNLIKELY(ht->thread_safe)
+		atomic_mb();
+
+	return ht->num_bins;
+}
+
+/**
  * Synchronize access to hash table if thread-safe.
  */
-static inline ALWAYS_INLINE void
-ht_synchronize(const hash_table_t *ht)
-{
-	if (ht->thread_safe) {
-		hash_table_t *wht = deconstify_pointer(ht);
-		mutex_lock(&wht->lock);
-		g_assert(HASHTABLE_MAGIC == ht->magic);
-	}
-}
+
+/* Not an inlined routine to get proper lines in mutex_lock() when debugging */
+#define ht_synchronize(ht) G_STMT_START {				\
+	if (ht->thread_safe) {								\
+		hash_table_t *wht = deconstify_pointer(ht);		\
+		mutex_lock(&wht->lock);							\
+		g_assert(HASHTABLE_MAGIC == ht->magic);			\
+	}													\
+} G_STMT_END
+
+#define ht_unsynchronize(ht) G_STMT_START {				\
+	if (ht->thread_safe) {								\
+		hash_table_t *wht = deconstify_pointer(ht);		\
+		mutex_unlock(&wht->lock);						\
+	}													\
+} G_STMT_END
 
 #define ht_return(ht,v) G_STMT_START {					\
 	if (ht->thread_safe) {								\
@@ -442,7 +574,13 @@ hash_table_arena_memory(const hash_table_t *ht)
 static inline unsigned
 hash_key(const hash_table_t *ht, const void *key)
 {
-	return (*ht->hash)(key) + hash_offset;
+	/*
+	 * There is no offseting of the hashed value for fixed-size table.
+	 * Rather than issuing a test and a branch, we use an array indexed
+	 * by 0 or 1.
+	 */
+
+	return (*ht->hash)(key) + hash_offset[ht->fixed_size];
 }
 
 static inline bool
@@ -603,19 +741,20 @@ hash_table_reset(hash_table_t *ht)
  */
 static bool
 hash_table_insert_no_resize(hash_table_t *ht,
-	const void *key, const void *value)
+	const void *key, const void *value, size_t *known_bin)
 {
 	hash_item_t *item;
 	size_t bin;
 
 	hash_table_check(ht);
 
-	g_assert(key);
-	g_assert(value);
-
-	if (hash_table_find(ht, key, &bin)) {
-		return FALSE;
+	if G_LIKELY(NULL == known_bin) {
+		if (hash_table_find(ht, key, &bin))
+			return FALSE;
+	} else {
+		bin = *known_bin;
 	}
+
 	safety_assert(NULL == hash_table_lookup(ht, key));
 
 	item = hash_item_alloc(ht, key, value);
@@ -637,7 +776,7 @@ static void
 hash_table_resize_helper(const void *key, void *value, void *data)
 {
 	bool ok;
-	ok = hash_table_insert_no_resize(data, key, value);
+	ok = hash_table_insert_no_resize(data, key, value, NULL);
 	g_assert(ok);
 }
 
@@ -646,9 +785,11 @@ hash_table_resize(hash_table_t *ht, size_t n)
 {
 	hash_table_t tmp;
 
+	g_assert(!ht->fixed_size);
+
 	ZERO(&tmp);
 	hash_copy_flags(&tmp, ht);
-	hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
+	hash_table_new_intern(&tmp, n, ht->hash, ht->eq, NULL, 0);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
 
 	g_assert(ht->num_held == tmp.num_held);
@@ -670,14 +811,28 @@ hash_table_resize_on_remove(hash_table_t *ht)
 {
 	size_t n;
 	size_t needed_bins = ht->num_held / HASH_ITEMS_PER_BIN;
+	size_t min_bins = hash_min_bin_count();
+
+#define EXTRA 	(HASH_ITEMS_GROW / HASH_ITEMS_PER_BIN)
 
 	n = ht->num_bins / 2;
 
-	if (needed_bins + (HASH_ITEMS_GROW / HASH_ITEMS_PER_BIN) >= n)
+	if (n < min_bins || needed_bins + EXTRA >= n)
 		return;
 
+	for (;;) {
+		size_t v = n / 2;
+
+		if (v < min_bins || needed_bins + EXTRA >= v)
+			break;
+
+		n = v;
+	}
+
+#undef EXTRA
+
 	n = MAX(2, n);
-	if (n < needed_bins)
+	if (n < MAX(needed_bins, min_bins))
 		return;
 
 	hash_table_resize(ht, n);
@@ -707,8 +862,17 @@ hash_table_insert(hash_table_t *ht, const void *key, const void *value)
 	ht_synchronize(ht);
 	g_assert(!ht->readonly);
 
-	hash_table_resize_on_insert(ht);
-	ret = hash_table_insert_no_resize(ht, key, value);
+	if G_UNLIKELY(ht->fixed_size) {
+		if (ht->num_held == ht->num_bins) {
+			if (hash_table_find(ht, key, NULL))
+				return FALSE;
+			s_error("%s(): hash table is full", G_STRFUNC);
+		}
+	} else {
+		hash_table_resize_on_insert(ht);
+	}
+
+	ret = hash_table_insert_no_resize(ht, key, value, NULL);
 	ht_return(ht, ret);
 }
 
@@ -729,12 +893,16 @@ hash_table_status(const hash_table_t *ht)
 #endif	/* UNUSED */
 
 /**
- * Remove item from the hash table.
+ * Remove item from the hash table, optionally allowing resizing at the end.
+ *
+ * @param ht			the hash table
+ * @param key			the key to remove
+ * @param can_resize	whether to resize table after item removal
  *
  * @return TRUE if item was present in the hash table.
  */
-bool
-hash_table_remove(hash_table_t *ht, const void *key)
+static bool
+hash_table_remove_key(hash_table_t *ht, const void *key, bool can_resize)
 {
 	hash_item_t *item;
 	size_t bin;
@@ -775,12 +943,35 @@ hash_table_remove(hash_table_t *ht, const void *key)
 
 		safety_assert(!hash_table_lookup(ht, key));
 
-		hash_table_resize_on_remove(ht);
+		if (can_resize && !ht->fixed_size)
+			hash_table_resize_on_remove(ht);
 
 		ht_return(ht, TRUE);
 	}
 	safety_assert(!hash_table_lookup(ht, key));
 	ht_return(ht, FALSE);
+}
+
+/**
+ * Remove item from the hash table, without resizing it.
+ *
+ * @return TRUE if item was present in the hash table.
+ */
+bool
+hash_table_remove_no_resize(hash_table_t *ht, const void *key)
+{
+	return hash_table_remove_key(ht, key, FALSE);
+}
+
+/**
+ * Remove item from the hash table.
+ *
+ * @return TRUE if item was present in the hash table.
+ */
+bool
+hash_table_remove(hash_table_t *ht, const void *key)
+{
+	return hash_table_remove_key(ht, key, TRUE);
 }
 
 /**
@@ -790,14 +981,16 @@ void
 hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 {
 	hash_item_t *item;
+	size_t bin;
 
 	hash_table_check(ht);
 	ht_synchronize(ht);
 	g_assert(!ht->readonly);
 
-	item = hash_table_find(ht, key, NULL);
+	item = hash_table_find(ht, key, &bin);
 	if (item == NULL) {
-		hash_table_insert(ht, key, value);
+		hash_table_resize_on_insert(ht);
+		hash_table_insert_no_resize(ht, key, value, &bin);
 	} else {
 		item->key = key;
 		item->value = value;
@@ -929,7 +1122,7 @@ hash_table_foreach_remove(hash_table_t *ht, ckeyval_rm_fn_t func, void *data)
 	g_assert(0 == n);
 	g_assert(old_n == removed + ht->num_held);
 
-	if (removed != 0)
+	if (removed != 0 && !ht->fixed_size)
 		hash_table_resize_on_remove(ht);
 
 	ht_return(ht, removed);
@@ -948,7 +1141,6 @@ hash_table_destroy(hash_table_t *ht)
 
 	hash_table_reset(ht);
 	if (ht->thread_safe) {
-		mutex_destroy(&ht->external_lock);
 		mutex_destroy(&ht->lock);
 	}
 	ht->magic = 0;
@@ -1022,7 +1214,6 @@ hash_table_thread_safe(hash_table_t *ht)
 
 	if (!ht->thread_safe) {
 		mutex_init(&ht->lock);
-		mutex_init(&ht->external_lock);
 		ht->thread_safe = TRUE;
 		atomic_mb();
 	}
@@ -1043,7 +1234,7 @@ hash_table_lock(hash_table_t *ht)
 	hash_table_check(ht);
 	g_assert(ht->thread_safe);
 
-	mutex_lock(&ht->external_lock);
+	mutex_lock(&ht->lock);
 }
 
 /**
@@ -1058,7 +1249,7 @@ hash_table_unlock(hash_table_t *ht)
 	hash_table_check(ht);
 	g_assert(ht->thread_safe);
 
-	mutex_unlock(&ht->external_lock);
+	mutex_unlock(&ht->lock);
 }
 
 /**
@@ -1120,30 +1311,33 @@ hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
 	htl.keys = keys;
 
 	/*
-	 * We want to avoid calling xpmalloc() here, but since xmalloc() can
-	 * call walloc() which can create a new zone, we have to be careful.
-	 * Indeed, zalloc() uses a hash table to store its zones by size, and
-	 * we could be linearizing this specific hash table!
-	 *
-	 * For most hash tables our logic will have no impact and does not add
-	 * significant overhead (just another hash_table_size() call).  However,
-	 * it can prevent having to allocate more core since small-enough objects
-	 * will be allocated using walloc().
+	 * Since this hashtable layer can be used by low-level allocators to track
+	 * blocks, for instance, allocating memory could cause the hash table to
+	 * be resized, hence the loop below to delay linearization until we have
+	 * the proper size.
 	 */
+
+again:
+	ht_unsynchronize(ht);
 
 	XMALLOC_ARRAY(htl.array, htl.count);
 
-	while (hash_table_size(ht) != htl.count) {
+	while (hash_table_size(ht) > htl.count) {
 		htl.count = hash_table_size(ht);
 		XREALLOC_ARRAY(htl.array, htl.count);
 	}
 
+	ht_synchronize(ht);
+
+	if (hash_table_size(ht) > htl.count)
+		goto again;
+
 	hash_table_foreach(ht, hash_table_linearize_item, &htl);
 
-	g_assert(htl.count == htl.i);
+	g_assert(htl.count >= htl.i);
 
 	if (count != NULL)
-		*count = htl.count;
+		*count = htl.i;		/* This is the real amount of items we inserted */
 
 	ht_return(ht, htl.array);
 }
@@ -1180,7 +1374,7 @@ hash_table_values(const hash_table_t *ht, size_t *count)
 /**
  * Compute the clustering factor of the hash table.
  *
- * If there are ``n'' items spread overe ``m'' bins, each bin should have
+ * If there are ``n'' items spread over ``m'' bins, each bin should have
  * n/m items.
  *
  * We can measure the clustering factor ``c'' by computing for each bin i the
@@ -1234,7 +1428,7 @@ hash_table_new_special_full(const hash_table_alloc_t alloc, void *obj,
 
 	ZERO(ht);
 	ht->special = booleanize(TRUE);
-	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq, NULL, 0);
 	return ht;
 }
 
@@ -1247,11 +1441,12 @@ hash_table_new_special(const hash_table_alloc_t alloc, void *obj)
 hash_table_t *
 hash_table_new_full_not_leaking(hash_fn_t hash, eq_fn_t eq)
 {
-	hash_table_t *ht = omalloc0(sizeof *ht);
+	hash_table_t *ht;
 
+	OMALLOC0(ht);
 	ht->not_leaking = booleanize(TRUE);
 	ht->once = booleanize(TRUE);
-	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq, NULL, 0);
 	return ht;
 }
 
@@ -1283,15 +1478,16 @@ hash_table_new_full_real_using(hash_table_t *ht, bool once,
 	ZERO(ht);
 	hash_mark_real(ht, TRUE);
 	hash_mark_once(ht, once);
-	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq, NULL, 0);
 	return ht;
 }
 
 hash_table_t *
 hash_table_once_new_full_real(hash_fn_t hash, eq_fn_t eq)
 {
-	hash_table_t *ht = omalloc(sizeof *ht);
+	hash_table_t *ht;
 
+	OMALLOC(ht);
 	return hash_table_new_full_real_using(ht, TRUE, hash, eq);
 }
 
@@ -1306,8 +1502,9 @@ hash_table_new_full_real(hash_fn_t hash, eq_fn_t eq)
 hash_table_t *
 hash_table_once_new_real(void)
 {
-	hash_table_t *ht = omalloc(sizeof *ht);
+	hash_table_t *ht;
 
+	OMALLOC(ht);
 	return hash_table_new_full_real_using(ht, TRUE, NULL, NULL);
 }
 
@@ -1315,6 +1512,50 @@ hash_table_t *
 hash_table_new_real(void)
 {
 	return hash_table_new_full_real(NULL, NULL);
+}
+
+/**
+ * Allocate hash table (the object and the data space) within the arena.
+ *
+ * @attention
+ * The hash table will have a fixed size, meaning it can become full.
+ *
+ * @param hash		the key hashing function (NULL means identity)
+ * @param eq		the key equality function (NULL means ==)
+ * @param arena		start of the supplied buffer
+ * @param len		length of the buffer where hash table will be stored
+ *
+ * @return pointer to the created hash table.
+ */
+hash_table_t *
+hash_table_new_full_fixed(hash_fn_t hash, eq_fn_t eq, void *arena, size_t len)
+{
+	hash_table_t *ht = arena;
+
+	g_assert(len >= sizeof *ht);
+
+	ZERO(ht);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq,
+		ptr_add_offset(arena, sizeof *ht), len - sizeof *ht);
+
+	return ht;
+}
+
+/**
+ * Allocate hash table (the object and the data space) within the arena.
+ *
+ * @attention
+ * The hash table will have a fixed size, meaning it can become full.
+ *
+ * @param arena		start of the supplied buffer
+ * @param len		length of the buffer where hash table will be stored
+ *
+ * @return pointer to the created hash table.
+ */
+hash_table_t *
+hash_table_new_fixed(void *arena, size_t len)
+{
+	return hash_table_new_full_fixed(NULL, NULL, arena, len);
 }
 
 void
@@ -1326,7 +1567,6 @@ hash_table_destroy_real(hash_table_t *ht)
 
 	hash_table_reset(ht);
 	if (ht->thread_safe) {
-		mutex_destroy(&ht->external_lock);
 		mutex_destroy(&ht->lock);
 	}
 	ht->magic = 0;

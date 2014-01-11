@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -48,15 +48,18 @@
  * the glib list API is quite good so mirroring it is not a problem.
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #include "common.h"
 
 #include "elist.h"
+
+#include "eslist.h"
 #include "random.h"
 #include "shuffle.h"
 #include "unsigned.h"
+#include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -131,6 +134,51 @@ elist_clear(elist_t *list)
 
 	list->head = list->tail = NULL;
 	list->count = 0;
+}
+
+/**
+ * Free all items in the list, using wfree() on each of them, clearing the list.
+ *
+ * Each item must be of the same size and have been allocated via walloc().
+ * Each item must have been cleared first, so that any internal memory allocated
+ * and referenced by the item has been properly released.
+ *
+ * This is more efficient that looping over all the items, clearing them and
+ * then calling wfree() on them because we amortize the wfree() cost over a
+ * large amount of objects and need to lock/unlock once only, if any lock is
+ * to be taken.
+ *
+ * @param list		the list to free
+ * @param size		the size of each item, passed to wfree()
+ */
+void
+elist_wfree(elist_t *list, size_t size)
+{
+	eslist_t slist;
+
+	elist_check(list);
+
+	if G_UNLIKELY(0 == list->count)
+		return;
+
+	/*
+	 * We're creating an eslist_t out of the elist_t.
+	 *
+	 * This works because we know wfree_eslist() will only follow the next
+	 * pointer and the offset of the next pointer is identical in the
+	 * link_t and slink_t structures, and the embedded list knows the offset
+	 * where the link is stored within each item.
+	 */
+
+	STATIC_ASSERT(offsetof(slink_t, next) == offsetof(link_t, next));
+
+	eslist_init(&slist, list->offset);
+	slist.head = (slink_t *) list->head;
+	slist.tail = (slink_t *) list->tail;	/* Not needed, but be correct */
+	slist.count = list->count;				/* Needed for assertions */
+
+	wfree_eslist(&slist, size);
+	elist_clear(list);
 }
 
 static inline void
@@ -237,8 +285,94 @@ elist_prepend(elist_t *list, void *data)
 	elist_link_prepend_internal(list, lk);
 }
 
+/**
+ * Prepend other list to the list.
+ *
+ * The other list descriptor is cleared, since its items are transferred
+ * to the first list.
+ *
+ * The two lists must be compatible, that is the offset to the link pointer
+ * must be identical.
+ *
+ * @param list		the destination list
+ * @param other		the other list to prepend (descriptor will be cleared)
+ */
+void
+elist_prepend_list(elist_t *list, elist_t *other)
+{
+	elist_check(list);
+	elist_check(other);
+	g_assert(list->offset == other->offset);
+
+	if G_UNLIKELY(0 == other->count)
+		return;
+
+	if G_UNLIKELY(NULL == list->head) {
+		g_assert(NULL == list->tail);
+		g_assert(0 == list->count);
+		list->tail = other->tail;
+		list->count = other->count;
+	} else {
+		g_assert(NULL != other->tail);	/* Since list not empty */
+		g_assert(NULL == other->tail->next);
+		g_assert(NULL == list->head->prev);
+		g_assert(size_is_positive(list->count));
+		other->tail->next = list->head;
+		list->head->prev = other->tail;
+		list->count += other->count;
+	}
+
+	list->head = other->head;
+	elist_clear(other);
+
+	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Append other list to the list.
+ *
+ * The other list descriptor is cleared, since its items are transferred
+ * to the first list.
+ *
+ * The two lists must be compatible, that is the offset to the link pointer
+ * must be identical.
+ *
+ * @param list		the destination list
+ * @param other		the other list to append (descriptor will be cleared)
+ */
+void
+elist_append_list(elist_t *list, elist_t *other)
+{
+	elist_check(list);
+	elist_check(other);
+	g_assert(list->offset == other->offset);
+
+	if G_UNLIKELY(0 == other->count)
+		return;
+
+	if G_UNLIKELY(NULL == list->tail) {
+		g_assert(NULL == list->head);
+		g_assert(0 == list->count);
+		list->head = other->head;
+		list->count = other->count;
+	} else {
+		g_assert(NULL == list->tail->next);
+		g_assert(NULL != other->head);	/* Since list not empty */
+		g_assert(NULL == other->head->prev);
+		g_assert(size_is_positive(list->count));
+		list->tail->next = other->head;
+		other->head->prev = list->tail;
+		list->count += other->count;
+	}
+
+	list->tail = other->tail;
+	elist_clear(other);
+
+	safety_assert(elist_length(list->head) == list->count);
+}
+
 static inline void
-elist_link_remove_internal(elist_t *list, link_t *lk)
+elist_link_remove_internal(elist_t *list, link_t *lk, bool safe)
 {
 	g_assert(size_is_positive(list->count));
 	elist_invariant(list);
@@ -249,10 +383,14 @@ elist_link_remove_internal(elist_t *list, link_t *lk)
 	if G_UNLIKELY(list->tail == lk)
 		list->tail = lk->prev;
 
-	if (lk->prev != NULL)
+	if (lk->prev != NULL) {
+		g_assert(!safe || lk->prev->next == lk);
 		lk->prev->next = lk->next;
-	if (lk->next != NULL)
+	}
+	if (lk->next != NULL) {
+		g_assert(!safe || lk->next->prev == lk);
 		lk->next->prev = lk->prev;
+	}
 
 	lk->next = lk->prev = NULL;
 	list->count--;
@@ -272,7 +410,7 @@ elist_link_remove(elist_t *list, link_t *lk)
 	elist_check(list);
 	g_assert(lk != NULL);
 
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 }
 
 /**
@@ -289,7 +427,7 @@ elist_remove(elist_t *list, void *data)
 	g_assert(data != NULL);
 
 	lk = ptr_add_offset(data, list->offset);
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 }
 
 static void
@@ -606,7 +744,7 @@ elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data)
 		if ((*cbr)(item, data)) {
 			/* Tweak the list to replace possibly gone ``lk'' */
 			elist_link_replace_internal(list, lk, &itemlk, FALSE);
-			elist_link_remove_internal(list, &itemlk);
+			elist_link_remove_internal(list, &itemlk, FALSE);
 			removed++;
 		}
 	}
@@ -812,6 +950,53 @@ elist_insert_sorted(elist_t *list, void *item, cmp_fn_t cmp)
 }
 
 /**
+ * Get the n-th item in the list (0-based index).
+ *
+ * A negative index gets items from the tail of the list, i.e. -1 gets the
+ * last item, -2 the penultimate one, -3 the antepenultimate one, etc...
+ *
+ * @param list	the list
+ * @param n		the n-th item index to retrieve (0 = first item)
+ *
+ * @return the n-th item, NULL if the position is off the end of the list.
+ */
+void *
+elist_nth(const elist_t *list, long n)
+{
+	size_t i = n;
+	link_t *lk;
+
+	elist_check(list);
+
+	if (n < 0)
+		i = list->count + n;
+
+	if (i >= list->count)
+		return NULL;
+
+	/*
+	 * Select from the head if index is before the middle of the list,
+	 * otherwise start from the tail.
+	 */
+
+	if (i <= list->count / 2) {
+		for (lk = list->head; lk != NULL; lk = lk->next) {
+			if (0 == i--)
+				return ptr_add_offset(lk, -list->offset);
+		}
+	} else {
+		i = list->count - i - 1;	/* 0-based index from tail */
+
+		for (lk = list->tail; lk != NULL; lk = lk->prev) {
+			if (0 == i--)
+				return ptr_add_offset(lk, -list->offset);
+		}
+	}
+
+	g_assert_not_reached();		/* Item must have been selected above */
+}
+
+/**
  * Given a link, return the item associated with the nth link that follows it,
  * or NULL if there is nothing.  The 0th item is the data associated with
  * the given link.
@@ -857,6 +1042,20 @@ elist_nth_prev_data(const elist_t *list, const link_t *lk, size_t n)
 
 	l = elist_nth_prev(lk, n);
 	return NULL == l ? NULL : ptr_add_offset(l, -list->offset);
+}
+
+/**
+ * Pick random item in list.
+ *
+ * @return pointer to the selected item, NULL if list is empty.
+ */
+void *
+elist_random(const elist_t *list)
+{
+	elist_check(list);
+	g_assert(list->count <= MAX_INT_VAL(long));
+
+	return elist_nth(list, random_ulong_value(list->count));
 }
 
 /**
@@ -930,7 +1129,7 @@ elist_rotate_left(elist_t *list)
 		return;
 
 	lk = list->head;
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 	elist_link_append_internal(list, lk);
 
 	safety_assert(elist_invariant(list));
@@ -953,11 +1152,55 @@ elist_rotate_right(elist_t *list)
 		return;
 
 	lk = list->tail;
-	elist_link_remove_internal(list, lk);
+	elist_link_remove_internal(list, lk, TRUE);
 	elist_link_prepend_internal(list, lk);
 
 	safety_assert(elist_invariant(list));
 	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Move entry to the head of the list.
+ */
+void
+elist_moveto_head(elist_t *list, void *data)
+{
+	link_t *lk;
+
+	elist_check(list);
+	g_assert(data != NULL);
+	g_assert(size_is_positive(list->count));
+
+	lk = ptr_add_offset(data, list->offset);
+
+	if (list->head != lk) {
+		elist_link_remove_internal(list, lk, TRUE);
+		elist_link_prepend_internal(list, lk);
+	}
+
+	safety_assert(elist_invariant(list));
+}
+
+/**
+ * Move entry to the tail of the list.
+ */
+void
+elist_moveto_tail(elist_t *list, void *data)
+{
+	link_t *lk;
+
+	elist_check(list);
+	g_assert(data != NULL);
+	g_assert(size_is_positive(list->count));
+
+	lk = ptr_add_offset(data, list->offset);
+
+	if (list->tail != lk) {
+		elist_link_remove_internal(list, lk, TRUE);
+		elist_link_append_internal(list, lk);
+	}
+
+	safety_assert(elist_invariant(list));
 }
 
 /**
@@ -974,7 +1217,7 @@ elist_shift(elist_t *list)
 		item = NULL;
 	} else {
 		item = ptr_add_offset(list->head, -list->offset);
-		elist_link_remove_internal(list, list->head);
+		elist_link_remove_internal(list, list->head, TRUE);
 	}
 
 	return item;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,8 +27,11 @@
  *
  * Asychronous file moving operations.
  *
+ * As of 2013-11-10, this background task runs in a dedicated thread since
+ * it is purely I/O driven.
+ *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2013
  */
 
 #include "common.h"
@@ -36,15 +39,19 @@
 #include "move.h"
 #include "downloads.h"
 #include "fileinfo.h"
-#include "file_object.h"
 
 #include "lib/atoms.h"
+#include "lib/barrier.h"
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/file_object.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -58,6 +65,8 @@
 #define COPY_BUF_SIZE		65536		/**< Size of the reading buffer */
 
 static struct bgtask *move_daemon;
+static uint move_thread_id = THREAD_INVALID_ID;
+static bool move_work_available;
 
 enum moved_magic_t { MOVED_MAGIC = 0x0ac0b103 };
 
@@ -66,13 +75,15 @@ enum moved_magic_t { MOVED_MAGIC = 0x0ac0b103 };
  */
 struct moved {
 	enum moved_magic_t magic;	/**< Magic number */
-	struct download *d;		/**< Download for which we're moving file */
+	download_t *d;			/**< Download for which we're moving file */
 	char *buffer;			/**< Large buffer, where data is read */
 	char *target;			/**< Target file name, in case an error occurs */
 	time_t start;			/**< Start time, to determine copying rate */
+	time_t last_notify;		/**< Last notification time to main thread */
 	filesize_t size;		/**< Size of file */
 	filesize_t copied;		/**< Amount of data copied so far */
-	struct file_object *rd;	/**< The file object to read the file. */
+	file_object_t *rd;		/**< The file object to read the file. */
+	time_delta_t elapsed;	/**< Elapsed time, set when move is completed */
 	int wd;					/**< File descriptor for write, -1 if none */
 	int error;				/**< Error code */
 };
@@ -81,7 +92,7 @@ struct moved {
  * Work queue entry.
  */
 struct work {
-	struct download *d;		/**< Download to move */
+	download_t *d;			/**< Download to move */
 	const char *dest;		/**< Target directory (atom) */
 	const char *ext;		/**< Trailing extension (atom) */
 };
@@ -90,7 +101,7 @@ struct work {
  * Allocate work queue entry.
  */
 static struct work *
-we_alloc(struct download *d, const char *dest, const char *ext)
+move_we_alloc(download_t *d, const char *dest, const char *ext)
 {
 	struct work *we;
 
@@ -106,7 +117,7 @@ we_alloc(struct download *d, const char *dest, const char *ext)
  * Freeing of work queue entry.
  */
 static void
-we_free(void *data)
+move_we_free(void *data)
 {
 	struct work *we = data;
 
@@ -119,7 +130,7 @@ we_free(void *data)
  * Signal handler for termination.
  */
 static void
-d_sighandler(struct bgtask *unused_h, void *u, bgsig_t sig)
+move_d_sighandler(struct bgtask *unused_h, void *u, bgsig_t sig)
 {
 	struct moved *md = u;
 
@@ -145,7 +156,7 @@ d_sighandler(struct bgtask *unused_h, void *u, bgsig_t sig)
  * Freeing of computation context.
  */
 static void
-d_free(void *ctx)
+move_d_free(void *ctx)
 {
 	struct moved *md = ctx;
 
@@ -158,25 +169,66 @@ d_free(void *ctx)
 	WFREE(md);
 }
 
+static void *
+move_notify(void *v)
+{
+	bool on = pointer_to_bool(v);
+
+	g_assert(thread_is_main());
+
+	gnet_prop_set_boolean_val(PROP_FILE_MOVING, on);
+	return NULL;
+}
+
+/**
+ * Called in the context of the moving thread when the daemon task status
+ * changes.
+ */
+static void
+move_notification_change(void *v)
+{
+	atomic_bool_set(&move_work_available, pointer_to_bool(v));
+}
+
 /**
  * Daemon's notification of start/stop.
  */
 static void
-d_notify(struct bgtask *unused_h, bool on)
+move_d_notify(struct bgtask *unused_h, bool on)
 {
 	(void) unused_h;
-	gnet_prop_set_boolean_val(PROP_FILE_MOVING, on);
+
+	teq_safe_rpc(THREAD_MAIN, move_notify, bool_to_pointer(on));
+	teq_post(move_thread_id, move_notification_change, bool_to_pointer(on));
+}
+
+/**
+ * Invoked in the main thread when the move is starting.
+ */
+static void *
+move_starting(void *ctx)
+{
+	struct moved *md = ctx;
+	download_t *d;
+
+	g_assert(md->magic == MOVED_MAGIC);
+	g_assert(thread_is_main());
+
+	d = md->d;
+	download_move_start(d);
+
+	return NULL;
 }
 
 /**
  * Daemon's notification: starting to work on item.
  */
 static void
-d_start(struct bgtask *h, void *ctx, void *item)
+move_d_start(struct bgtask *h, void *ctx, void *item)
 {
 	struct moved *md = ctx;
 	struct work *we = item;
-	struct download *d = we->d;
+	download_t *d = we->d;
 	filestat_t buf;
 	const char *name;
 
@@ -185,23 +237,14 @@ d_start(struct bgtask *h, void *ctx, void *item)
 	g_assert(md->wd == -1);
 	g_assert(md->target == NULL);
 
-	download_move_start(d);
-	bg_task_signal(h, BG_SIG_TERM, d_sighandler);
+	bg_task_signal(h, BG_SIG_TERM, move_d_sighandler);
 
 	md->d = we->d;
+	teq_safe_rpc(THREAD_MAIN, move_starting, md);
 
 	md->rd = file_object_open(download_pathname(d), O_RDONLY);
 	if (NULL == md->rd) {
-		int fd = file_absolute_open(download_pathname(d), O_RDONLY, 0);
-		if (fd < 0) {
-			md->error = errno;
-			goto abort_read;
-		}
-		md->rd = file_object_new(fd, download_pathname(d), O_RDONLY);
-	}
-
-	if (NULL == md->rd) {
-		md->error = EINVAL;
+		md->error = errno;
 		goto abort_read;
 	}
 
@@ -234,13 +277,14 @@ d_start(struct bgtask *h, void *ctx, void *item)
 	md->start = tm_time();
 	md->size = download_filesize(d);
 	md->copied = 0;
+	md->last_notify = md->start;
 	md->error = 0;
 
-	compat_fadvise_sequential(file_object_get_fd(md->rd), 0, 0);
+	file_object_fadvise_sequential(md->rd);
 
 	if (GNET_PROPERTY(move_debug) > 1)
 		g_debug("MOVE starting moving \"%s\" to \"%s\"",
-				file_object_get_pathname(md->rd), md->target);
+				file_object_pathname(md->rd), md->target);
 
 	return;
 
@@ -252,19 +296,42 @@ abort_read:
 }
 
 /**
+ * Invoked in the main thread when the move is completed.
+ */
+static void *
+move_done(void *ctx)
+{
+	struct moved *md = ctx;
+	download_t *d;
+
+	g_assert(md->magic == MOVED_MAGIC);
+	g_assert(thread_is_main());
+
+	d = md->d;
+
+	if (md->error == 0) {
+		file_info_mark_stripped(d->file_info);
+		download_move_done(d, md->target, md->elapsed);
+	} else {
+		download_move_error(d);
+	}
+
+	return NULL;
+}
+
+/**
  * Daemon's notification: finished working on item.
  */
 static void
-d_end(struct bgtask *h, void *ctx, void *item)
+move_d_end(struct bgtask *h, void *ctx, void *item)
 {
 	struct moved *md = ctx;
-	struct download *d = md->d;
-	int elapsed = 0;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->d == ((struct work *) item)->d);
 
 	bg_task_signal(h, BG_SIG_TERM, NULL);
+	md->elapsed = 0;
 
 	if (NULL == md->rd) {			/* Did not start properly */
 		g_assert(md->error);
@@ -313,9 +380,12 @@ d_end(struct bgtask *h, void *ctx, void *item)
 			goto error;
 		}
 
-		if (!file_object_moved(download_pathname(md->d), md->target)) {
-			g_warning("cannot unlink \"%s\": %m", download_basename(md->d));
+		if (GNET_PROPERTY(move_debug) > 1) {
+			g_debug("MOVE unlinking \"%s\", moved to \"%s\"",
+				download_pathname(md->d), md->target);
 		}
+
+		file_object_moved(download_pathname(md->d), md->target);
 	} else {
 		if (md->target != NULL && -1 == unlink(md->target))
 			g_warning("cannot unlink \"%s\": %m", md->target);
@@ -324,31 +394,49 @@ d_end(struct bgtask *h, void *ctx, void *item)
 	/* FALL THROUGH */
 
 error:
-	elapsed = delta_time(tm_time(), md->start);
-	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
+	md->elapsed = delta_time(tm_time(), md->start);
+	md->elapsed = MAX(1, md->elapsed);	/* time warp? clock not monotonic? */
 
-	if (GNET_PROPERTY(move_debug) > 1)
-		g_debug("MOVE moved file \"%s\" at %s bytes/sec [error=%d]\n",
+	if (GNET_PROPERTY(move_debug) > 0) {
+		g_debug("MOVE moved file \"%s\" at %s bytes/sec [error=%d]",
 			download_basename(md->d),
-			filesize_to_string(md->size / elapsed), md->error);
+			filesize_to_gstring(md->size / md->elapsed), md->error);
+	}
  
 	/* FALL THROUGH */
 
 finish:
-	if (md->error == 0) {
-		file_info_mark_stripped(d->file_info);
-		download_move_done(d, md->target, elapsed);
-	} else
-		download_move_error(d);
+	/*
+	 * The core is not fully thread-safe, therefore funnel back the final
+	 * updates on the core structures when the move is completed.
+	 */
 
+	teq_safe_rpc(THREAD_MAIN, move_done, md);
 	HFREE_NULL(md->target);
+}
+
+/**
+ * Invoked in the main thread to report file moving progress.
+ */
+static void *
+move_progress(void *ctx)
+{
+	struct moved *md = ctx;
+
+	g_assert(md->magic == MOVED_MAGIC);
+	g_assert(thread_is_main());
+
+	download_move_progress(md->d, md->copied);
+	md->last_notify = tm_time();
+
+	return NULL;
 }
 
 /**
  * Copy file around, incrementally.
  */
 static bgret_t
-d_step_copy(struct bgtask *h, void *u, int ticks)
+move_d_step_copy(struct bgtask *h, void *u, int ticks)
 {
 	struct moved *md = u;
 	ssize_t r;
@@ -388,11 +476,11 @@ again:		/* Avoids indenting all this code */
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while reading \"%s\" for moving: %m",
-			file_object_get_pathname(md->rd));
+			file_object_pathname(md->rd));
 		return BGR_DONE;
 	} else if (r == 0) {
 		g_warning("EOF while reading \"%s\" for moving!",
-			file_object_get_pathname(md->rd));
+			file_object_pathname(md->rd));
 		md->error = -1;
 		return BGR_DONE;
 	}
@@ -423,7 +511,14 @@ again:		/* Avoids indenting all this code */
 	g_assert((size_t) r == amount);
 
 	md->copied += r;
-	download_move_progress(md->d, md->copied);
+
+	/*
+	 * Notify main thread only once per second at most, this is only for
+	 * the benefit of the GUI.
+	 */
+
+	if (delta_time(tm_time(), md->last_notify) >= 1)
+		teq_safe_rpc(THREAD_MAIN, move_progress, md);
 
 	if (md->copied == md->size)
 		return BGR_DONE;
@@ -443,12 +538,91 @@ again:		/* Avoids indenting all this code */
  * Enqueue completed download file for verification.
  */
 void
-move_queue(struct download *d, const char *dest, const char *ext)
+move_queue(download_t *d, const char *dest, const char *ext)
 {
 	struct work *we;
 
-	we = we_alloc(d, dest, ext);
+	we = move_we_alloc(d, dest, ext);
 	bg_daemon_enqueue(move_daemon, we);
+}
+
+/**
+ * Signal handler to terminate the moving thread.
+ */
+static void
+move_thread_terminate(int sig)
+{
+	g_assert(TSIG_TERM == sig);
+
+	if (GNET_PROPERTY(move_debug))
+		g_debug("terminating moving thread");
+
+	move_thread_id = THREAD_INVALID_ID;
+}
+
+/**
+ * Is there pending work for the library thread, or is thread terminated?
+ */
+static bool
+move_thread_has_work(void *unused_arg)
+{
+	(void) unused_arg;
+
+	return atomic_bool_get(&move_work_available) ||
+		THREAD_INVALID_ID == move_thread_id;
+}
+
+struct move_thread_args {
+	barrier_t *b;
+	bgsched_t *bs;
+};
+
+/**
+ * Moving thread main loop.
+ */
+static void *
+move_thread_main(void *arg)
+{
+	struct move_thread_args *v = arg;
+	bgsched_t *bs;
+	barrier_t *b;
+
+	thread_set_name("moving");
+	teq_create();				/* Queue to receive TEQ events */
+	thread_signal(TSIG_TERM, move_thread_terminate);
+	bs = v->bs;					/* Copy since ``arg'' is on creator's stack */
+	b = v->b;
+
+	barrier_wait(b);			/* Thread has initialized */
+	barrier_free_null(&b);
+
+	if (GNET_PROPERTY(move_debug))
+		g_debug("moving thread started");
+
+	/*
+	 * Process work until we're told to exit.
+	 */
+
+	while (move_thread_id != THREAD_INVALID_ID) {
+		if (GNET_PROPERTY(move_debug))
+			g_debug("moving thread sleeping");
+
+		teq_wait(move_thread_has_work, NULL);
+
+		if (THREAD_INVALID_ID == move_thread_id)
+			break;			/* Terminated by signal */
+
+		if (GNET_PROPERTY(move_debug))
+			g_debug("moving thread awoken");
+
+		while (0 != bg_sched_run(bs))
+			thread_check_suspended();
+	}
+
+	bg_sched_destroy_null(&bs);
+
+	g_debug("moving thread exiting");
+	return NULL;
 }
 
 /**
@@ -458,7 +632,10 @@ G_GNUC_COLD void
 move_init(void)
 {
 	struct moved *md;
-	bgstep_cb_t step = d_step_copy;
+	bgstep_cb_t step = move_d_step_copy;
+	struct move_thread_args args;
+	barrier_t *b;
+	int r;
 
 	WALLOC(md);
 	md->magic = MOVED_MAGIC;
@@ -467,11 +644,33 @@ move_init(void)
 	md->buffer = halloc(COPY_BUF_SIZE);
 	md->target = NULL;
 
-	move_daemon = bg_daemon_create("file moving",
+	/*
+	 * Because the file moving operation is I/O intensive and not CPU
+	 * intensive, we always create a dedicated thread to perform the
+	 * move, regardless of the amount of available CPUs.
+	 */
+
+	b = barrier_new(2);
+	args.b = barrier_refcnt_inc(b);
+	args.bs = bg_sched_create("moving", 1000000 /* 1 s */);
+
+	r = thread_create(move_thread_main, &args,
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			THREAD_STACK_MIN);
+
+	if (-1 == r)
+		s_error("%s(): cannot create file moving thread: %m", G_STRFUNC);
+
+	move_thread_id = r;
+
+	move_daemon = bg_daemon_create(args.bs, "file moving",
 		&step, 1,
-		md, d_free,
-		d_start, d_end, we_free,
-		d_notify);
+		md, move_d_free,
+		move_d_start, move_d_end, move_we_free,
+		move_d_notify);
+
+	barrier_wait(b);			/* Wait for thread to initialize */
+	barrier_free_null(&b);
 }
 
 /**
@@ -481,6 +680,7 @@ void
 move_close(void)
 {
 	bg_task_cancel(move_daemon);
+	thread_kill(move_thread_id, TSIG_TERM);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

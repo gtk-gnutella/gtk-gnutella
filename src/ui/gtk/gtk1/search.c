@@ -129,7 +129,7 @@ remove_parent_with_sha1(search_t *search, const struct sha1 *sha1)
 		/* Then remove the key */
 		htable_remove(search->parents, key);
 	} else
-		g_warning("remove_parent_with_sha1: can't find sha1 in hash table!");
+		g_warning("%s(): can't find sha1 in hash table!", G_STRFUNC);
 
 	atom_sha1_free(key);
 }

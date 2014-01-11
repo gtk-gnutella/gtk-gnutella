@@ -316,11 +316,11 @@ upload_stats_load_history(void)
 		}
 
 		if (upload_stats_find(NULL, item.pathname, item.size)) {
-			g_warning("upload_stats_load_history():"
-				" Ignoring line %u due to duplicate file.", lineno);
+			g_warning("%s(): ignoring line %u due to duplicate file.",
+				G_STRFUNC, lineno);
 		} else if (upload_stats_find(item.sha1, item.pathname, item.size)) {
-			g_warning("upload_stats_load_history():"
-				" Ignoring line %u due to duplicate file.", lineno);
+			g_warning("%s(): ignoring line %u due to duplicate file.",
+				G_STRFUNC, lineno);
 		} else {
 			upload_stats_add(item.pathname, item.size, item.filename,
 				item.attempts, item.complete, item.bytes_sent,
@@ -343,7 +343,7 @@ done:
 static void
 upload_stats_dump_item(void *p, void *user_data)
 {
-	const shared_file_t *sf;
+	shared_file_t *sf;
 	FILE *out = user_data;
 	struct ul_stats *s = p;
 	char rtime_buf[TIME_T_DEC_BUFLEN];
@@ -379,6 +379,7 @@ upload_stats_dump_item(void *p, void *user_data)
 	if (escaped != pathname) {		/* File had escaped chars */
 		HFREE_NULL(escaped);
 	}
+	shared_file_unref(&sf);
 }
 
 /**
@@ -595,7 +596,7 @@ upload_stats_prune_nonexistent(void)
 {
 	/* XXX */
 	/* for each row, get the filename, check if filename is ? */
-	g_warning("upload_stats_prune_nonexistent: not implemented!");
+	g_carp("%s(): not implemented!", G_STRFUNC);
 }
 
 /**

@@ -112,6 +112,7 @@ erbtree_check(const erbtree_t * const t)
 void erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset);
 void erbtree_init_data(erbtree_ext_t *tree,
 	cmp_data_fn_t cmp, void *data, size_t offset);
+void erbtree_clear(erbtree_t *tree);
 
 size_t erbtree_count(const erbtree_t *tree);
 rbnode_t *erbtree_first(const erbtree_t *tree);

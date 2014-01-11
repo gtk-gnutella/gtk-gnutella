@@ -51,6 +51,10 @@ bool need_get_non_stdio_fd();
 bool is_a_socket(int fd);
 bool is_a_fifo(int fd);
 bool is_open_fd(int fd);
+bool fd_accmode_is_valid(const int fd, const int accmode);
+bool fd_is_readable_and_writable(const int fd);
+bool fd_is_readable(const int fd);
+bool fd_is_writable(const int fd);
 
 static inline int
 is_valid_fd(int fd)

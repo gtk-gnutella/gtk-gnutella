@@ -38,7 +38,7 @@
  * In the advent a deadlock occurs, all the tracked locks owned by the thread
  * are dumped.  This means "hidden" locks never appear (hence the name).
  *
- * The locking API is made of three calls:
+ * The locking API is made of three basic calls:
  *
  *		spinlock()		-- takes the lock, blocking if busy
  *		spinlock_try()	-- try to take the lock, returns whether lock was taken
@@ -46,11 +46,34 @@
  *
  * Each of these calls can be suffixed with _hidden to use "hidden" locks.
  * A lock is not inherently "hidden": this adjective refers to the way the
- * lock taken.
+ * lock is taken.
  *
  * As a rule of thumb, "hidden" locks should be reserved to trivial low-level
  * locking that does not require any nested locking and which has but one lock
- * and one unlock statement, without much code in-between.
+ * and one unlock statement, without much code in-between.  The rationale is
+ * that we want outer critical section boundaries to be valid suspension points.
+ *
+ * For situations where critical sections must overlap (e.g. grab lock A,
+ * then lock B, release A and then release B), one must use one of the
+ * following routines:
+ *
+ *		spinlock_swap()		-- takes lock, then swap order of locks
+ *		spinlock_try_swap()	-- try to take lock, swapping order
+ *
+ * To achieve the critical section overlap, one would do this:
+ *
+ *		spinlock(A);
+ *		...
+ *		spinlock_swap(B, A);	// the critical section overlap
+ *		spinunlock(A);
+ *		...
+ *		spinunlock(B);
+ *
+ * The swapping allows to release locks in the reverse order, something that
+ * the runtime normally forbids.
+ *
+ * When critical sections overlap, it is necessary to ensure that the locking
+ * order will always be the same.  Otherwise, a deadlock could happen.
  *
  * The API also provided the following extra routine:
  *
@@ -67,9 +90,14 @@
 #define _spinlock_h_
 
 #include "atomic.h"		/* For atomic_lock_t */
+#include "thread.h"		/* For thread_check_suspended() */
 
 #if 1
 #define SPINLOCK_DEBUG			/* Tracks where we take the lock */
+#endif
+#if 0
+#define SPINLOCK_OWNER_DEBUG	/* Tracks who takes the lock */
+#include "thread.h"				/* For thread_small_id() */
 #endif
 
 enum spinlock_magic {
@@ -86,6 +114,9 @@ enum spinlock_magic {
 typedef struct spinlock {
 	enum spinlock_magic magic;
 	atomic_lock_t lock;
+#ifdef SPINLOCK_OWNER_DEBUG
+	uint8 stid;					/* Locking thread, for assertions & debug */
+#endif
 #ifdef SPINLOCK_DEBUG
 	const char *file;
 	unsigned line;
@@ -96,7 +127,11 @@ typedef struct spinlock {
  * Static initialization value for a spinlock structure.
  */
 #ifdef SPINLOCK_DEBUG
+#ifdef SPINLOCK_OWNER_DEBUG
+#define SPINLOCK_INIT	{ SPINLOCK_MAGIC, 0, -1, NULL, 0 }
+#else
 #define SPINLOCK_INIT	{ SPINLOCK_MAGIC, 0, NULL, 0 }
+#endif
 #else
 #define SPINLOCK_INIT	{ SPINLOCK_MAGIC, 0 }
 #endif
@@ -105,22 +140,54 @@ typedef struct spinlock {
  * These should not be called directly by user code to allow debugging.
  */
 
-void spinlock_grab(spinlock_t *s, bool hidden);
-bool spinlock_grab_try(spinlock_t *s, bool hidden);
 void spinlock_release(spinlock_t *s, bool hidden);
 
 /*
  * Public interface.
  */
 
-#ifdef SPINLOCK_DEBUG
 void spinlock_grab_from(spinlock_t *s,
 	bool hidden, const char *file, unsigned line);
 bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
 	const char *file, unsigned line);
+void spinlock_grab_swap_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line);
+bool spinlock_grab_swap_try(spinlock_t *s, const void *plock,
+	const char *file, unsigned line);
+void spinlock_raw_from(spinlock_t *s, const char *file, unsigned line);
 
+#define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
+#define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
+
+#define spinlock_const(x) \
+	spinlock_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
+
+#define spinlock_try_const(x) \
+	spinlock_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
+
+#define spinlock_hidden(x) \
+	spinlock_grab_from((x), TRUE, _WHERE_, __LINE__)
+
+#define spinlock_hidden_try(x) \
+	spinlock_grab_try_from((x), TRUE, _WHERE_, __LINE__)
+
+#define spinlock_swap(x,y) \
+	spinlock_grab_swap_from((x), (y), _WHERE_, __LINE__)
+
+#define spinlock_swap_try(x,y) \
+	spinlock_grab_swap_try_from((x), (y), _WHERE_, __LINE__)
+
+#define spinlock_raw(x)			spinlock_raw_from((x), _WHERE_, __LINE__)
+
+#define spinunlock(x)			spinlock_release((x), FALSE)
+#define spinunlock_hidden(x)	spinlock_release((x), TRUE)
+#define spinunlock_raw(x)		spinlock_release((x), TRUE)
+
+#define spinunlock_const(x)		spinlock_release(deconstify_pointer(x), FALSE)
+
+#ifdef SPINLOCK_DEBUG
 /*
- * Direction operations should only be used when locking and unlocking is
+ * Direct operations should only be used when locking and unlocking is
  * always done from a single thread, thereby not requiring that atomic
  * operations be used.
  *
@@ -138,15 +205,6 @@ bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
 	(x)->lock = 0;							\
 } G_STMT_END
 
-#define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
-#define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
-
-#define spinlock_hidden(x) \
-	spinlock_grab_from((x), TRUE, _WHERE_, __LINE__)
-
-#define spinlock_hidden_try(x) \
-	spinlock_grab_try_from((x), TRUE, _WHERE_, __LINE__)
-
 #else	/* !SPINLOCK_DEBUG */
 
 #define spinlock_direct(x) G_STMT_START {	\
@@ -157,19 +215,12 @@ bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
 	(x)->lock = 0;							\
 } G_STMT_END
 
-#define spinlock(x)				spinlock_grab((x), FALSE)
-#define spinlock_hidden(x)		spinlock_grab((x), TRUE)
-#define spinlock_try(x)			spinlock_grab_try((x), FALSE)
-#define spinlock_hidden_try(x)	spinlock_grab_try((x), TRUE)
-
 #endif	/* SPINLOCK_DEBUG */
-
-#define spinunlock(x)			spinlock_release((x), FALSE)
-#define spinunlock_hidden(x)	spinlock_release((x), TRUE)
 
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);
 void spinlock_crash_mode(void);
+void spinlock_exit_mode(void);
 
 #if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)
 
@@ -183,18 +234,36 @@ const char *spinlock_source_string(enum spinlock_source src);
 /**
  * Callback to signal possible deadlocking condition.
  */
-typedef void (spinlock_deadlock_cb_t)(const volatile void *, unsigned);
+typedef void (spinlock_deadlock_cb_t)(const volatile void *, unsigned,
+	const char *file, unsigned line);
 
 /**
  * Callback to abort on definitive deadlocking condition.
  */
-typedef void (spinlock_deadlocked_cb_t)(const volatile void *, unsigned);
+typedef void (spinlock_deadlocked_cb_t)(const volatile void *, unsigned,
+	const char *file, unsigned line);
 
 void spinlock_loop(volatile spinlock_t *s,
-	enum spinlock_source src, const volatile void *src_object,
-	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked);
+	enum spinlock_source src, const void *src_object,
+	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked,
+	const char *file, unsigned line);
 
 #endif /* SPINLOCK_SOURCE || MUTEX_SOURCE */
+
+#ifdef THREAD_SOURCE
+void spinlock_reset(spinlock_t *s);
+#endif	/* THREAD_SOURCE */
+
+extern int spinlock_pass_through;
+
+static inline bool
+spinlock_in_crash_mode(void)
+{
+	if G_LIKELY(0 == atomic_int_get(&spinlock_pass_through))
+		return FALSE;
+	thread_check_suspended();
+	return TRUE;
+}
 
 /**
  * Check that spinlock is held, for assertions.
@@ -202,8 +271,24 @@ void spinlock_loop(volatile spinlock_t *s,
 static inline bool NON_NULL_PARAM((1))
 spinlock_is_held(const spinlock_t *s)
 {
+#ifdef SPINLOCK_OWNER_DEBUG
+	if (thread_small_id() != s->stid)
+		return FALSE;
+#endif
+
 	/* Make this fast, no assertion on the spinlock validity */
-	return s->lock != 0;
+	return s->lock != 0 || spinlock_in_crash_mode();
+}
+
+/**
+ * Fast version of spinlock_is_held() to be used when we do not want to
+ * check the spinlock ownership, even with compiled with SPINLOCK_OWNER_DEBUG.
+ */
+static inline bool NON_NULL_PARAM((1))
+spinlock_is_held_fast(const spinlock_t *s)
+{
+	/* Make this fast, no assertion on the spinlock validity */
+	return s->lock != 0 || spinlock_in_crash_mode();
 }
 
 #endif /* _spinlock_h_ */

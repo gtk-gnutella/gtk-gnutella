@@ -45,7 +45,7 @@ shell_exec_quit(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argc > 0);
 	
 	shell_set_msg(sh, _("Good bye"));
-	shell_shutdown(sh);
+	shell_exit(sh);
 	return REPLY_BYE;
 }
 

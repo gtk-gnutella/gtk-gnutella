@@ -192,6 +192,7 @@
 #include "lib/hevset.h"
 #include "lib/idtable.h"
 #include "lib/nid.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -475,8 +476,8 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			"(%d bytes, seq=0x%04x, %u/%u fragment%s %s) to %s",
 			nid_to_string(&um->mid), G_STRFUNC,
 			um->fragsent == um->fragcnt ? "sent" : "dropped",
-			pmsg_size(um->mb), um->seqno, um->fragsent, um->fragcnt,
-			1 == um->fragcnt ? "" : "s",
+			pmsg_size(um->mb), um->seqno, um->fragsent,
+			um->fragcnt, plural(um->fragcnt),
 			um->reliable ? "ack'ed" : "sent", gnet_host_to_string(um->to));
 	}
 
@@ -654,8 +655,7 @@ ut_to_banned(const struct attr *attr, const gnet_host_t *to)
 		if (tx_ut_debugging(TX_UT_DBG_MSG, NULL)) {
 			time_delta_t age = aging_age(attr->ban, to);
 			g_debug("TX UT: %s: dropping message to %s, banned since %ld sec%s",
-				G_STRFUNC, gnet_host_to_string(to), (long) age,
-				1 == age ? "" : "s");
+				G_STRFUNC, gnet_host_to_string(to), (long) age, plural(age));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_BANNED);
 		return TRUE;
@@ -708,17 +708,15 @@ ut_ear_send(struct ut_msg *um)
  * Callout queue callback invoked to trigger fragment resending.
  */
 static void
-ut_resend_iterate(cqueue_t *unused_cq, void *obj)
+ut_resend_iterate(cqueue_t *cq, void *obj)
 {
 	struct ut_msg *um = obj;
-
-	(void) unused_cq;
 
 	ut_msg_check(um);
 	ut_attr_check(um->attr);
 	g_assert(um->iterate_ev != NULL);
 
-	um->iterate_ev = NULL;	/* Callback triggered */
+	cq_zero(cq, &um->iterate_ev);	/* Callback triggered */
 
 	if (tx_ut_debugging(TX_UT_DBG_TIMEOUT, um->to)) {
 		g_debug("TX UT[%s]: %s: alpha=%u, pending=%u, enqueued=%zu, alive=%c",
@@ -788,16 +786,14 @@ ut_resend_async(struct ut_msg *um)
  * Callout queue callback invoked when no acknowledgment was received.
  */
 static void
-ut_ear_resend(cqueue_t *unused_cq, void *obj)
+ut_ear_resend(cqueue_t *cq, void *obj)
 {
 	struct ut_msg *um = obj;
-
-	(void) unused_cq;
 
 	ut_msg_check(um);
 	g_assert(um->ear_ev != NULL);
 
-	um->ear_ev = NULL;		/* Callback triggered */
+	cq_zero(cq, &um->ear_ev);		/* Callback triggered */
 
 	/*
 	 * If the host was "banned" temporarily due to being unresponsive, abort.
@@ -819,7 +815,7 @@ ut_ear_resend(cqueue_t *unused_cq, void *obj)
 				nid_to_string(&um->mid), G_STRFUNC,
 				gnet_host_to_string(um->to), um->ears,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, 1 == um->fragcnt ? "" : "s");
+				um->fragcnt, plural(um->fragcnt));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_OVERSENT);
 		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
@@ -841,18 +837,16 @@ ut_ear_resend(cqueue_t *unused_cq, void *obj)
  * Callout queue callback invoked when no acknowledgment was received.
  */
 static void
-ut_frag_resend(cqueue_t *unused_cq, void *obj)
+ut_frag_resend(cqueue_t *cq, void *obj)
 {
 	struct ut_frag *uf = obj;
 	struct ut_msg *um;
-
-	(void) unused_cq;
 
 	ut_frag_check(uf);
 	ut_msg_check(uf->msg);
 	g_assert(uf->resend_ev != NULL);
 
-	uf->resend_ev = NULL;	/* Callback triggered */
+	cq_zero(cq, &uf->resend_ev);	/* Callback triggered */
 	um = uf->msg;
 
 	if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, uf->msg->to)) {
@@ -897,7 +891,7 @@ ut_frag_resend(cqueue_t *unused_cq, void *obj)
 				nid_to_string(&um->mid), G_STRFUNC, uf->fragno + 1,
 				gnet_host_to_string(um->to), uf->txcnt,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, 1 == um->fragcnt ? "" : "s");
+				um->fragcnt, plural(um->fragcnt));
 		}
 
 		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_OVERSENT);
@@ -1217,7 +1211,7 @@ ut_frag_send(const struct ut_frag *uf)
 			0 == uf->txcnt ? "" : "re",
 			uf->fragno + 1, pmsg_size(mb), prio,
 			gnet_host_to_string(um->to),
-			um->fragcnt, 1 == um->fragcnt ? "" : "s",
+			um->fragcnt, plural(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag));
 	}
 	
@@ -1558,16 +1552,14 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
  * Callout queue callback invoked when the whole packet has expired.
  */
 static void
-ut_um_expired(cqueue_t *unused_cq, void *obj)
+ut_um_expired(cqueue_t *cq, void *obj)
 {
 	struct ut_msg *um = obj;
 
 	ut_msg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	(void) unused_cq;
-
-	um->expire_ev = NULL;		/* Indicates that callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Indicates that callback has fired */
 
 	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, um->to)) {
 		g_debug("TX UT[%s]: %s: message for %s expired "
@@ -1577,11 +1569,11 @@ ut_um_expired(cqueue_t *unused_cq, void *obj)
 			nid_to_string(&um->mid), G_STRFUNC,
 			gnet_host_to_string(um->to),
 			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-			um->fragcnt, 1 == um->fragcnt ? "" : "s",
+			um->fragcnt, plural(um->fragcnt),
 			um->reliable ? "ack-ed" : "sent",
 			um->fragtx, um->fragtx2,
-			um->pending, 1 == um->pending ? "" : "s",
-			elist_count(&um->resend), 1 == elist_count(&um->resend) ? "" : "s");
+			um->pending, plural(um->pending),
+			elist_count(&um->resend), plural(elist_count(&um->resend)));
 	}
 
 	/*
@@ -1738,7 +1730,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 			nid_to_string(&um->mid), G_STRFUNC, pdulen,
 			um->reliable ? "reliable" : "unreliable",
 			deflated ? "deflated" : "plain", pmsg_size(mb),
-			gnet_host_to_string(to), um->fragcnt, 1 == um->fragcnt ? "" : "s",
+			gnet_host_to_string(to), um->fragcnt, plural(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag), pmsg_prio(mb));
 	}
 

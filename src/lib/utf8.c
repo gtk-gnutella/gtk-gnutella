@@ -62,18 +62,19 @@
 #include "utf8_tables.h"
 
 #include "utf8.h"
+
 #include "ascii.h"
 #include "atoms.h"
 #include "concat.h"
 #include "debug.h"
 #include "endian.h"
-#include "glib-missing.h"
 #include "halloc.h"
 #include "hikset.h"
 #include "htable.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "path.h"
+#include "pslist.h"
 #include "random.h"
 #include "str.h"
 #include "stringify.h"
@@ -156,7 +157,7 @@ static htable_t *utf32_compose_roots;
 /** A single-linked list of conv_to_utf8 structs. The first one is used
  ** for converting from the primary charset. Additional charsets are optional.
  **/
-static GSList *sl_filename_charsets = NULL;
+static pslist_t *sl_filename_charsets = NULL;
 
 static iconv_t cd_locale_to_utf8 = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
 static iconv_t cd_utf8_to_locale = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
@@ -710,7 +711,7 @@ malformed:
 		break;
 	case UTF8_WARN_SHORT:
 		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
-			len, len == 1 ? "" : "s", expectlen);
+			len, plural(len), expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
 		str_bprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
@@ -724,7 +725,7 @@ malformed:
 		break;
 	case UTF8_WARN_LONG:
 		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
-			expectlen, expectlen == 1 ? "" : "s", uniskip(v));
+			expectlen, plural(expectlen), uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
 		str_bprintf(msg, sizeof(msg), "character 0x%04lx", (ulong) v);
@@ -1634,7 +1635,8 @@ locale_get_charset(void)
 		if (cs == NULL) {
 			/* Default locale codeset */
 			cs = "ISO-8859-1";
-			g_warning("locale_init: using default codeset %s as fallback", cs);
+			g_warning("%s(): using default codeset %s as fallback",
+				G_STRFUNC, cs);
 		}
 
 		cs = h_strdup(cs);
@@ -1740,12 +1742,12 @@ conv_to_utf8_cd_get(const char *cs)
  * 			used character sets. The first is the one that should be
  *			used when creating files.
  */
-static G_GNUC_COLD GSList *
+static G_GNUC_COLD pslist_t *
 get_filename_charsets(const char *locale)
 {
 	const char *s, *next;
 	bool has_locale = FALSE, has_utf8 = FALSE;
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 
 	g_assert(locale);
 
@@ -1792,7 +1794,7 @@ get_filename_charsets(const char *locale)
 			}
 
 			if (cs)
-				sl = g_slist_prepend(sl, conv_to_utf8_new(cs));
+				sl = pslist_prepend(sl, conv_to_utf8_new(cs));
 		}
 	}
 
@@ -1800,13 +1802,13 @@ get_filename_charsets(const char *locale)
 	/* If UTF-8 wasn't in the list, add it as penultimate (or actually first)
 	 * option. */
 	if (!has_utf8)
-		sl = g_slist_prepend(sl, conv_to_utf8_new("UTF-8"));
+		sl = pslist_prepend(sl, conv_to_utf8_new("UTF-8"));
 	
 	/* Always add the locale charset as last resort if not already listed. */
 	if (!has_locale && 0 != strcmp("UTF-8", locale))
-		sl = g_slist_prepend(sl, conv_to_utf8_new(locale));
+		sl = pslist_prepend(sl, conv_to_utf8_new(locale));
 	
-	return g_slist_reverse(sl);
+	return pslist_reverse(sl);
 }
 
 static void
@@ -1841,15 +1843,15 @@ textdomain_init(const char *codeset)
 static void
 locale_init_show_results(void)
 {
-	const GSList *sl = sl_filename_charsets;
+	const pslist_t *sl = sl_filename_charsets;
 
 	g_info("language code: \"%s\"", locale_get_language());
 	g_info("using locale character set \"%s\"", charset);
 	g_info("primary filename character set \"%s\"",
 		primary_filename_charset());
 
-	while (NULL != (sl = g_slist_next(sl))) {
-		const struct conv_to_utf8 *t = sl->data;
+	while (NULL != (sl = pslist_next(sl))) {
+		const struct conv_to_utf8 *t = pslist_data(sl);
 
 		conv_to_utf8_check(t);
 		g_info("additional filename character set \"%s\"", t->name);
@@ -1861,7 +1863,6 @@ conversion_init(void)
 {
 	const char *pfcs = primary_filename_charset();
 	iconv_t cd_from_utf8;
-	GSList *sl;
 
 	g_assert(charset);
 	g_assert(pfcs);
@@ -1916,9 +1917,7 @@ conversion_init(void)
 
 	/* Initialize filename charsets -> UTF-8 conversion */
 	
-	for (sl = sl_filename_charsets; sl != NULL; sl = g_slist_next(sl)) {
-		conv_to_utf8_init(sl->data);
-	}
+	PSLIST_FOREACH_CALL(sl_filename_charsets, conv_to_utf8_init);
 }
 
 static void
@@ -2039,12 +2038,12 @@ locale_init(void)
 static void
 compose_free_slist(const void *unused_key, void *value, void *unused_udata)
 {
-	GSList *sl = value;
+	pslist_t *sl = value;
 
 	(void) unused_key;
 	(void) unused_udata;
 
-	g_slist_free(sl);
+	pslist_free(sl);
 }
 
 /**
@@ -2074,7 +2073,7 @@ locale_close(void)
 	 * Hence we only need to free the list itself now.
 	 */
 
-	gm_slist_free_null(&sl_filename_charsets);
+	pslist_free_null(&sl_filename_charsets);
 	HFREE_NULL(charset);
 
 	htable_foreach(utf32_compose_roots, compose_free_slist, NULL);
@@ -3000,14 +2999,14 @@ locale_to_utf8_normalized(const char *src, uni_norm_t norm)
 char *
 filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	const char *s = NULL;
 	char *dbuf = NULL, *dst;
 
 	g_assert(src);
 
-	for (sl = sl_filename_charsets; sl != NULL; sl = g_slist_next(sl)) {
-		const struct conv_to_utf8 *t = sl->data;
+	PSLIST_FOREACH(sl_filename_charsets, sl) {
+		const struct conv_to_utf8 *t = pslist_data(sl);
 
 		conv_to_utf8_check(t);
 
@@ -3048,7 +3047,8 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 
 	if (!s) {
 		if (!utf8_is_valid_string(src)) {
-			g_warning("Could not properly convert to UTF-8: \"%s\"", src);
+			g_warning("%s(): could not properly convert to UTF-8: \"%s\"",
+				G_STRFUNC, src);
 		}
 		g_assert(NULL == dbuf);
 		dbuf = hyper_utf8_enforce(NULL, 0, src, (size_t) -1);
@@ -3783,12 +3783,12 @@ utf32_special_folding(uint32 uc)
 static uint32
 utf32_compose_char(uint32 a, uint32 b)
 {
-	GSList *sl;
+	pslist_t *sl;
 	void *key;
 
 	key = GUINT_TO_POINTER(a);
 	sl = htable_lookup(utf32_compose_roots, key);
-	for (/* NOTHING */; sl; sl = g_slist_next(sl)) {
+	for (/* NOTHING */; sl; sl = pslist_next(sl)) {
 		uint i;
 		uint32 c;
 
@@ -5747,12 +5747,12 @@ compose_root_cmp(const void *a, const void *b)
 static void
 unicode_compose_add(uint idx)
 {
-	GSList *sl, *new_sl;
+	pslist_t *sl, *new_sl;
 	void *key;
 
 	key = GUINT_TO_POINTER(utf32_nfkd_lut[idx].d[0]);
 	sl = htable_lookup(utf32_compose_roots, key);
-	new_sl = g_slist_insert_sorted(sl, GUINT_TO_POINTER(idx), compose_root_cmp);
+	new_sl = pslist_insert_sorted(sl, uint_to_pointer(idx), compose_root_cmp);
 	if (sl != new_sl)
 		htable_insert(utf32_compose_roots, key, new_sl);
 }

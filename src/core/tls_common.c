@@ -228,11 +228,11 @@ get_dh_params(void)
 
 	if (!initialized) {
  		if (gnutls_dh_params_init(&dh_params)) {
-			g_warning("get_dh_params(): gnutls_dh_params_init() failed");
+			g_warning("%s(): gnutls_dh_params_init() failed", G_STRFUNC);
 			return NULL;
 		}
     	if (gnutls_dh_params_generate2(dh_params, TLS_DH_BITS)) {
-			g_warning("get_dh_params(): gnutls_dh_params_generate2() failed");
+			g_warning("%s(): gnutls_dh_params_generate2() failed", G_STRFUNC);
 			return NULL;
 		}
 		initialized = TRUE;
@@ -662,7 +662,8 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 
 	if (tls_flush(wio) && !is_temporary_error(errno)) {
 		if (GNET_PROPERTY(tls_debug)) {
-			g_warning("tls_read: tls_flush(fd=%d) error: %m", s->file_desc);
+			g_warning("%s(): tls_flush(fd=%d) error: %m",
+				G_STRFUNC, s->file_desc);
 		}
 		return -1;
 	}
@@ -806,7 +807,7 @@ tls_bye(struct gnutella_socket *s)
 		return;
 
 	if (tls_flush(&s->wio) && GNET_PROPERTY(tls_debug)) {
-		g_warning("tls_bye: tls_flush(fd=%d) failed", s->file_desc);
+		g_warning("%s(): tls_flush(fd=%d) failed", G_STRFUNC, s->file_desc);
 	}
 
 	ret = gnutls_bye(s->tls.ctx->session,

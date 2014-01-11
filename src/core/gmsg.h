@@ -112,7 +112,9 @@ pmsg_t *gmsg_split_to_pmsg(const void *head, const void *data,
 pmsg_t * gmsg_split_to_pmsg_extend(const void *head, const void *data,
 			uint32 size, pmsg_free_t free_cb, void *arg);
 
-void gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb);
+struct pslist;
+
+void gmsg_mb_sendto_all(const struct pslist *sl, pmsg_t *mb);
 void gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb);
 void gmsg_mb_routeto_one(const struct gnutella_node *from,
 	const struct gnutella_node *to, pmsg_t *mb);
@@ -122,8 +124,8 @@ void gmsg_ctrl_sendto_one(struct gnutella_node *n,
 		const void *msg, uint32 size);
 void gmsg_split_sendto_one(struct gnutella_node *n,
 		const void *head, const void *data, uint32 size);
-void gmsg_sendto_all(const GSList *l, const void *msg, uint32 size);
-void gmsg_split_routeto_all(const GSList *l,
+void gmsg_sendto_all(const struct pslist *l, const void *msg, uint32 size);
+void gmsg_split_routeto_all(const struct pslist *l,
 		const struct gnutella_node *from,
 		const void *head, const void *data, uint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
@@ -155,7 +157,7 @@ void gmsg_log_split_duplicate(
 
 void gmsg_search_sendto_one(struct gnutella_node *n, gnet_search_t sh,
 	const void *msg, uint32 size);
-void gmsg_search_sendto_all(const GSList *l, gnet_search_t sh,
+void gmsg_search_sendto_all(const struct pslist *l, gnet_search_t sh,
 	const void *msg, uint32 size);
 
 #endif	/* _core_gmsg_h_ */

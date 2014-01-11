@@ -54,6 +54,7 @@
 #include "lib/hevset.h"
 #include "lib/iovec.h"
 #include "lib/pmsg.h"
+#include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
@@ -236,24 +237,21 @@ ut_rmsg_free(struct ut_rmsg *um, bool free_sequence)
  * Callout queue callback invoked when the whole packet has expired.
  */
 static void
-ut_rmsg_expired(cqueue_t *unused_cq, void *obj)
+ut_rmsg_expired(cqueue_t *cq, void *obj)
 {
 	struct ut_rmsg *um = obj;
 
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	(void) unused_cq;
-
-	um->expire_ev = NULL;		/* Callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
 
 	if (rx_ut_debugging(RX_UT_DBG_TIMEOUT, um->id.from)) {
 		g_debug("RX UT[%s]: %s: message from %s timed out "
 			"(seq=0x%04x, got %u/%u fragment%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragrecv, um->fragcnt,
-			1 == um->fragcnt ? "" : "s");
+			um->id.seqno, um->fragrecv, um->fragcnt, plural(um->fragcnt));
 	}
 
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_EXPIRED);
@@ -273,7 +271,7 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	um->expire_ev = NULL;	/* Callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
 
 	/*
 	 * This is an advance notice that the message could expire.  Probably our
@@ -298,8 +296,7 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
 			"(seq=0x%04x, got %u/%u fragment%s so far)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragrecv, um->fragcnt,
-			1 == um->fragcnt ? "" : "s");
+			um->id.seqno, um->fragrecv, um->fragcnt, plural(um->fragcnt));
 	}
 
 	ut_rmsg_reack(um);
@@ -309,16 +306,14 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
  * Callout queue callback invoked when the packet has finished lingering.
  */
 static void
-ut_rmsg_lingered(cqueue_t *unused_cq, void *obj)
+ut_rmsg_lingered(cqueue_t *cq, void *obj)
 {
 	struct ut_rmsg *um = obj;
 
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	(void) unused_cq;
-
-	um->expire_ev = NULL;		/* Callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
 
 	/*
 	 * We delayed freeing to be able to re-ACK messages and avoid duplicate
@@ -473,9 +468,9 @@ ut_rmsg_clear_acks(struct ut_rmsg *um)
 		g_debug("RX UT[%s]: %s: clearing %u delayed ACK%s to %s "
 			"(seq=0x%04x, received %u/%u fragment%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
-			um->acks_pending, 1 == um->acks_pending ? "" : "s",
+			um->acks_pending, plural(um->acks_pending),
 			gnet_host_to_string(um->id.from), um->id.seqno,
-			um->fragrecv, um->fragcnt, 1 == um->fragcnt ? "" : "s");
+			um->fragrecv, um->fragcnt, plural(um->fragcnt));
 	}
 
 	gnet_stats_count_general(GNR_UDP_SR_RX_AVOIDED_ACKS, um->acks_pending);
@@ -540,7 +535,7 @@ ut_assemble_message(struct ut_rmsg *um)
 			um->reliable ? "reliable " : "",
 			um->deflated ? "deflated " : "",
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s", len);
+			um->id.seqno, um->fragcnt, plural(um->fragcnt), len);
 	}
 
 	ut_update_rx_messages_stats(um->reliable);
@@ -599,8 +594,8 @@ drop:
 			"(seq=0x%04x, %u fragment%s, %zu byte%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s",
-			len, 1 == len ? "" : "s");
+			um->id.seqno, um->fragcnt, plural(um->fragcnt),
+			len, plural(len));
 	}
 
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_INFLATION_ERROR);
@@ -612,7 +607,7 @@ empty:
 			"(seq=0x%04x, %u fragment%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s");
+			um->id.seqno, um->fragcnt, plural(um->fragcnt));
 	}
 
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_EMPTY);
@@ -641,7 +636,7 @@ ut_handle_fragment(struct ut_rmsg *um, const struct ut_header *head, pmsg_t *mb)
 			um->deflated ? "deflated " : "",
 			head->part + 1, um->fragcnt,
 			gnet_host_to_string(um->id.from), head->seqno,
-			um->acks_pending, 1 == um->acks_pending ? "" : "s");
+			um->acks_pending, plural(um->acks_pending));
 	}
 
 	if (um->lingering) {
@@ -907,7 +902,7 @@ ut_ack_sendback(const struct ut_rmsg *um, const struct ut_ack *ack)
  * Callout queue callback invoked when pending ACKs must be sent back.
  */
 static void
-ut_delayed_ack(cqueue_t *unused_cq, void *obj)
+ut_delayed_ack(cqueue_t *cq, void *obj)
 {
 	struct ut_rmsg *um = obj;
 	struct ut_ack ack;
@@ -915,9 +910,7 @@ ut_delayed_ack(cqueue_t *unused_cq, void *obj)
 	ut_rmsg_check(um);
 	g_assert(um->acks_ev != NULL);
 
-	(void) unused_cq;
-
-	um->acks_ev = NULL;		/* Callback has fired */
+	cq_zero(cq, &um->acks_ev);		/* Callback has fired */
 
 	while (um->acks_pending) {
 		bool exhausted = ut_build_delayed_ack(um, &ack);
@@ -1079,7 +1072,7 @@ ut_rmsg_reack(struct ut_rmsg *um)
 			rack.missing != 0 ? "extended " : "",
 			gnet_host_to_string(um->id.from), rack.seqno,
 			rack.fragno + 1, um->fragrecv, um->fragcnt,
-			1 == um->fragcnt ? "" : "s", rack.missing);
+			plural(um->fragcnt), rack.missing);
 	}
 
 	ut_send_ack(um->attr->tx, um->id.from, &rack);	/* Sent by the TX layer */
@@ -1311,7 +1304,7 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 				(head.flags & UDP_RF_ACKME) ? "reliable " : "",
 				(head.flags & UDP_RF_DEFLATED) ? "deflated " : "",
 				gnet_host_to_string(from),
-				head.seqno, head.count, 1 == head.count ? "" : "s",
+				head.seqno, head.count, plural(head.count),
 				hevset_count(attr->mseq));
 		}
 
@@ -1351,7 +1344,7 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 				head.seqno, head.part + 1, head.count,
 				um->reliable ? "" : "un",
 				um->deflated ? "and deflated " : "",
-				um->fragcnt, 1 == um->fragcnt ? "" : "s");
+				um->fragcnt, plural(um->fragcnt));
 		}
 
 		gnet_stats_inc_general(GNR_UDP_SR_RX_FRAGMENTS_DROPPED);

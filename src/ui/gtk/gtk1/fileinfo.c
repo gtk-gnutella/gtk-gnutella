@@ -109,12 +109,11 @@ fi_gui_get_file_at_cursor(void)
 }
 
 static void
-cursor_expire(cqueue_t *unused_cq, gpointer unused_udata)
+cursor_expire(cqueue_t *cq, gpointer unused_udata)
 {
-	(void) unused_cq;
 	(void) unused_udata;
 
-	cursor_ev = NULL;
+	cq_zero(cq, &cursor_ev);
 	fi_gui_files_cursor_update();
 }
 

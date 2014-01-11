@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+#include "pcache.h"
+
 #include "alive.h"
 #include "extensions.h"
 #include "ggep.h"
@@ -44,18 +46,17 @@
 #include "hostiles.h"
 #include "hosts.h"
 #include "inet.h"
+#include "ipp_cache.h"
 #include "ipv6-ready.h"
 #include "nodes.h"
-#include "pcache.h"
 #include "routing.h"
+#include "search.h"	/* For search_query_key_generate() */
 #include "settings.h"
 #include "share.h" /* For shared_files_scanned() and shared_kbytes_scanned(). */
 #include "sockets.h"
-#include "ipp_cache.h"
 #include "udp.h"
 #include "uhc.h"
 #include "version.h"
-#include "search.h"	/* For search_query_key_generate() */
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
@@ -69,11 +70,15 @@
 #include "lib/hashing.h"
 #include "lib/hset.h"
 #include "lib/nid.h"
+#include "lib/plist.h"
 #include "lib/pow2.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
+#include "lib/stringify.h"	/* For plural() */
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define PCACHE_MAX_FILES	10000000	/**< Arbitrarily large file count */
@@ -936,7 +941,7 @@ send_personal_info(struct gnutella_node *n, bool control, enum ping_flag flags)
 static void
 send_neighbouring_info(struct gnutella_node *n)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	/* Replying to a ping */
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_INIT);
@@ -944,7 +949,7 @@ send_neighbouring_info(struct gnutella_node *n)
 	g_assert(gnutella_header_get_hops(&n->header) == 0);
 	g_assert(gnutella_header_get_ttl(&n->header) == 2);	/* "Crawler" ping */
 
-	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct gnutella_node *cn = sl->data;
 		struct pong_info info;
 
@@ -1116,14 +1121,14 @@ struct cached_pong {		/**< A cached pong */
 
 struct cache_line {			/**< A cache line for a given hop value */
 	int hops;				/**< Hop count of this cache line */
-	GSList *pongs;			/**< List of cached_pong */
-	GSList *cursor;			/**< Cursor within list: last item traversed */
+	pslist_t *pongs;		/**< List of cached_pong */
+	pslist_t *cursor;		/**< Cursor within list: last item traversed */
 };
 
 struct recent {
 	hset_t *hs_recent_pongs;	/**< Recent pongs we know about */
-	GList *recent_pongs;		/**< Recent pongs we got */
-	GList *last_returned_pong;	/**< Last returned from list */
+	plist_t *recent_pongs;		/**< Recent pongs we got */
+	plist_t *last_returned_pong;/**< Last returned from list */
 	int recent_pong_count;		/**< # of pongs in recent list */
 };
 
@@ -1308,7 +1313,7 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 {
 	static host_addr_t last_addr;
 	static uint16 last_port = 0;
-	GList *l;
+	plist_t *l;
 	struct cached_pong *cp;
 	struct recent *rec;
 
@@ -1329,7 +1334,7 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 	 */
 
 	if (rec->last_returned_pong == NULL) {
-		l = g_list_first(rec->recent_pongs);
+		l = plist_first(rec->recent_pongs);
 		cp = l->data;
 
 		if (
@@ -1338,12 +1343,12 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 		)
 			goto found;
 
-		if (g_list_next(l) == NULL)		/* Head is the only item in list */
+		if (plist_next(l) == NULL)		/* Head is the only item in list */
 			return FALSE;
 	} else {
 		/* Regular case */
-		l = g_list_previous(rec->last_returned_pong);
-		for (/* empty */ ; l; l = g_list_previous(l)) {
+		l = plist_prev(rec->last_returned_pong);
+		for (/* empty */ ; l; l = plist_prev(l)) {
 			cp = l->data;
 			if (
 				!host_addr_equal(cp->info.addr, last_addr) ||
@@ -1357,7 +1362,7 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 	 * Still none found, go back to the end of the list.
 	 */
 
-	for (l = g_list_last(rec->recent_pongs); l; l = g_list_previous(l)) {
+	for (l = plist_last(rec->recent_pongs); l; l = plist_prev(l)) {
 		cp = l->data;
 		if (
 			!host_addr_equal(cp->info.addr, last_addr) ||
@@ -1403,21 +1408,21 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
     }
 
 	if (rec->recent_pong_count == RECENT_PING_SIZE) {		/* Full */
-		GList *lnk = g_list_last(rec->recent_pongs);
+		plist_t *lnk = plist_last(rec->recent_pongs);
 		struct cached_pong *p = lnk->data;
 
-		rec->recent_pongs = g_list_remove_link(rec->recent_pongs, lnk);
+		rec->recent_pongs = plist_remove_link(rec->recent_pongs, lnk);
 		hset_remove(rec->hs_recent_pongs, p);
 
 		if (lnk == rec->last_returned_pong)
-			rec->last_returned_pong = g_list_previous(rec->last_returned_pong);
+			rec->last_returned_pong = plist_prev(rec->last_returned_pong);
 
 		free_cached_pong(p);
-		g_list_free_1(lnk);
+		plist_free_1(lnk);
 	} else
 		rec->recent_pong_count++;
 
-	rec->recent_pongs = g_list_prepend(rec->recent_pongs, cp);
+	rec->recent_pongs = plist_prepend(rec->recent_pongs, cp);
 	hset_insert(rec->hs_recent_pongs, cp);
 	cp->refcount++;		/* We don't refcount insertion in the hash table */
 }
@@ -1446,21 +1451,21 @@ pong_type(gnutella_init_response_t *pong)
 void
 pcache_clear_recent(host_type_t type)
 {
-	GList *l;
+	plist_t *l;
 	struct recent *rec;
 
 	g_assert(UNSIGNED(type) < HOST_MAX);
 
 	rec = &recent_pongs[type];
 
-	for (l = rec->recent_pongs; l; l = g_list_next(l)) {
+	PLIST_FOREACH(rec->recent_pongs, l) {
 		struct cached_pong *cp = l->data;
 
 		hset_remove(rec->hs_recent_pongs, cp);
 		free_cached_pong(cp);
 	}
 
-	gm_list_free_null(&rec->recent_pongs);
+	plist_free_null(&rec->recent_pongs);
 	rec->last_returned_pong = NULL;
 	rec->recent_pong_count = 0;
 }
@@ -1512,19 +1517,19 @@ pcache_expire(void)
 
 	for (i = 0; i < PONG_CACHE_SIZE; i++) {
 		struct cache_line *cl = &pong_cache[i];
-		GSList *sl;
+		pslist_t *sl;
 
-		for (sl = cl->pongs; sl; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(cl->pongs, sl) {
 			entries++;
 			free_cached_pong(sl->data);
 		}
-		gm_slist_free_null(&cl->pongs);
+		pslist_free_null(&cl->pongs);
 		cl->cursor = NULL;
 	}
 
 	if (GNET_PROPERTY(pcache_debug) > 4)
 		g_debug("Pong CACHE expired (%d entr%s, %d in reserve)",
-			entries, entries == 1 ? "y" : "ies", hcache_size(HOST_ANY));
+			entries, plural_y(entries), hcache_size(HOST_ANY));
 }
 
 /**
@@ -1556,9 +1561,9 @@ pcache_close(void)
 void
 ping_all_neighbours(void)
 {
-	const GSList *sl;
-	GSList *may_ping = NULL;
-	GSList *to_ping = NULL;
+	const pslist_t *sl;
+	pslist_t *may_ping = NULL;
+	pslist_t *to_ping = NULL;
 	int ping_cnt = 0;
 	int selected = 0;
 	int left;
@@ -1578,7 +1583,7 @@ ping_all_neighbours(void)
 	 *		--RAM, 12/01/2004
 	 */
 
-	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct gnutella_node *n = sl->data;
 
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
@@ -1594,12 +1599,12 @@ ping_all_neighbours(void)
 			continue;
 
 		if ((n->attrs & NODE_A_PONG_CACHING) || now > n->next_ping) {
-			may_ping = g_slist_prepend(may_ping, n);
+			may_ping = pslist_prepend(may_ping, n);
 			ping_cnt++;
 		}
 	}
 
-	for (sl = may_ping, left = ping_cnt; sl; sl = g_slist_next(sl), left--) {
+	for (sl = may_ping, left = ping_cnt; sl; sl = pslist_next(sl), left--) {
 		struct gnutella_node *n = sl->data;
 
 		if (
@@ -1607,12 +1612,12 @@ ping_all_neighbours(void)
 			(selected < MIN_UP_PING && left <= (MIN_UP_PING - selected)) ||
 			random_value(99) < UP_PING_RATIO
 		) {
-			to_ping = g_slist_prepend(to_ping, n);
+			to_ping = pslist_prepend(to_ping, n);
 			selected++;
 		}
 	}
 
-	for (sl = to_ping; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(to_ping, sl) {
 		struct gnutella_node *n = sl->data;
 
 		if (!(n->attrs & NODE_A_PONG_CACHING))
@@ -1626,8 +1631,8 @@ ping_all_neighbours(void)
 		send_ping(n, GNET_PROPERTY(my_ttl));
 	}
 
-	g_slist_free(may_ping);
-	g_slist_free(to_ping);
+	pslist_free(may_ping);
+	pslist_free(to_ping);
 }
 
 /**
@@ -1725,13 +1730,13 @@ setup_pong_demultiplexing(struct gnutella_node *n, uint8 ttl)
 static bool
 iterate_on_cached_line(
 	struct gnutella_node *n, struct cache_line *cl, uint8 ttl,
-	GSList *start, GSList *end, bool strict)
+	pslist_t *start, pslist_t *end, bool strict)
 {
 	int hops = cl->hops;
-	GSList *sl;
+	pslist_t *sl;
 
 	sl = start;
-	for (; sl && sl != end && n->pong_missing; sl = g_slist_next(sl)) {
+	for (; sl && sl != end && n->pong_missing; sl = pslist_next(sl)) {
 		struct cached_pong *cp = sl->data;
 
 		cl->cursor = sl;
@@ -1810,7 +1815,7 @@ send_cached_pongs(
 	struct cache_line *cl, uint8 ttl, bool strict)
 {
 	int hops = cl->hops;
-	GSList *old = cl->cursor;
+	pslist_t *old = cl->cursor;
 
 	if (strict && !n->pong_needed[hops])
 		return;
@@ -1914,9 +1919,9 @@ pong_all_neighbours_but_one(
 	struct gnutella_node *n, struct cached_pong *cp, host_type_t ptype,
 	uint8 hops, uint8 ttl)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *cn = sl->data;
 
 		if (cn == n)
@@ -1974,13 +1979,13 @@ pong_all_neighbours_but_one(
 static void
 pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	unsigned leaves;
 	struct gnutella_node *leaf = NULL;
 
 	g_assert(settings_is_ultra());
 
-	for (sl = node_all_nodes(), leaves = 0; sl; sl = g_slist_next(sl)) {
+	for (sl = node_all_nodes(), leaves = 0; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
@@ -2178,7 +2183,7 @@ pong_extract_metadata(struct gnutella_node *n)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, paylen == 1 ? "" : "s");
+					paylen, plural(paylen));
 			}
 			break;
 		}
@@ -2219,7 +2224,7 @@ record_fresh_pong(
 
 	hop = CACHE_HOP_IDX(hops);		/* Trim high values to MAX_CACHE_HOPS */
 	cl = &pong_cache[hop];
-	cl->pongs = g_slist_append(cl->pongs, cp);
+	cl->pongs = pslist_append(cl->pongs, cp);
 	add_recent_pong(type, cp);
 
 	return cp;
@@ -2566,7 +2571,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 						"bad length for GGEP \"%s\" "
 						"(%d byte%s, not multiple of %d)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, paylen == 1 ? "" : "s", len);
+						paylen, plural(paylen), len);
 				}
 			} else {
 				switch (e->ext_token) {
@@ -2617,7 +2622,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 				paylen = ext_paylen(e);
 				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, paylen == 1 ? "" : "s");
+					paylen, plural(paylen));
 			}
 			break;
 		}

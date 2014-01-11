@@ -81,6 +81,9 @@ h<generic>_t *h<generic>_create_any_real(hash_fn_t primary,
 	hash_fn_t secondary, eq_fn_t eq);
 void h<generic>_free_null(h<generic>_t **);
 void h<generic>_clear(h<generic>_t *);
+void h<generic>_thread_safe(h<generic>_t *);
+void h<generic>_lock(h<generic>_t *);
+void h<generic>_unlock(h<generic>_t *);
 
 bool h<generic>_contains(const h<generic>_t *, const void *key);
 @if TABLE

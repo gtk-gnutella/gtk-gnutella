@@ -52,6 +52,7 @@ const struct tth *verify_tth_leaves(const struct verify *);
 size_t verify_tth_leave_count(const struct verify *);
 
 void verify_tth_init(void);
+void verify_tth_shutdown(void);
 void verify_tth_close(void);
 
 void request_tigertree(struct shared_file *sf, bool high_priority);

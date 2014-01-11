@@ -119,7 +119,7 @@ static const char SOAP_ENCODING[] =
 static const char SOAP_TEXT_REPLY[]			= "text/xml";
 static const char SOAP_APPLICATION_REPLY[]	= "application/soap+xml";
 
-static void soap_rpc_launch(cqueue_t *unused_cq, void *obj);
+static void soap_rpc_launch(cqueue_t *cq, void *obj);
 
 /**
  * Provides human-readable error string out of an error code.
@@ -266,7 +266,7 @@ soap_process_reply(soap_rpc_t *sr)
 	if (GNET_PROPERTY(soap_debug) > 2) {
 		g_debug("SOAP \"%s\" at \"%s\": processing reply (%zu byte%s) HTTP %d",
 			sr->action, sr->url, sr->reply_len,
-			1 == sr->reply_len ? "" : "s", sr->http_code);
+			plural(sr->reply_len), sr->http_code);
 	}
 
 	/*
@@ -807,15 +807,14 @@ soap_got_reply(const http_async_t *ha,
  * Delayed RPC start.
  */
 static void
-soap_rpc_launch(cqueue_t *unused_cq, void *obj)
+soap_rpc_launch(cqueue_t *cq, void *obj)
 {
 	soap_rpc_t *sr = obj;
 	http_post_data_t post;
 
-	(void) unused_cq;
 	soap_rpc_check(sr);
 
-	sr->delay_ev = NULL;
+	cq_zero(cq, &sr->delay_ev);
 
 	if (GNET_PROPERTY(soap_debug) > 4) {
 		g_debug("SOAP \"%s\" at \"%s\": launching (%s)",

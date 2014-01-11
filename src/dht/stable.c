@@ -192,7 +192,8 @@ get_lifedata(const kuid_t *id)
 	ld = dbmw_read(db_lifedata, id, NULL);
 
 	if (NULL == ld && dbmw_has_ioerr(db_lifedata)) {
-		g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+		s_warning_once_per(LOG_PERIOD_MINUTE,
+			"DBMW \"%s\" I/O error, bad things could happen...",
 			dbmw_name(db_lifedata));
 	}
 

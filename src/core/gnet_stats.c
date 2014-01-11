@@ -25,7 +25,7 @@
  * @ingroup core
  * @file
  *
- * Needs brief description here.
+ * Collection of Gnutella / DHT statistics.
  *
  * @author Richard Eckart
  * @date 2001-2003
@@ -43,7 +43,11 @@
 #include "lib/event.h"
 #include "lib/gnet_host.h"
 #include "lib/random.h"
+#include "lib/sha1.h"
+#include "lib/spinlock.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static uint8 stats_lut[256];
@@ -52,7 +56,20 @@ static gnet_stats_t gnet_stats;
 static gnet_stats_t gnet_tcp_stats;
 static gnet_stats_t gnet_udp_stats;
 
-static uint32 gnet_stats_crc32;
+/*
+ * Thread-safe locks.
+ *
+ * The general stats accounting code is protected because there is no guarantee
+ * the routines updating these stats will always be called from the main thread.
+ *
+ * However, the routines updating the traffic statistics are NOT protected
+ * because they are always called from the main thread, the one where the
+ * I/O event loop is installed.  An assertion verifies this assumption.
+ */
+static spinlock_t gnet_stats_slk = SPINLOCK_INIT;
+
+#define GNET_STATS_LOCK		spinlock_hidden(&gnet_stats_slk)
+#define GNET_STATS_UNLOCK	spinunlock_hidden(&gnet_stats_slk)
 
 /***
  *** Public functions
@@ -197,6 +214,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"giv_discarded",
 		"queue_callbacks",
 		"queue_discarded",
+		"banned_fds_total",
 		"udp_read_ahead_count_sum",
 		"udp_read_ahead_bytes_sum",
 		"udp_read_ahead_old_sum",
@@ -473,20 +491,48 @@ gnet_stats_init(void)
 		
     ZERO(&gnet_stats);
     ZERO(&gnet_udp_stats);
-
-	gnet_stats_crc32 = random_u32();
 }
 
 /**
- * @return current CRC32 and re-initialize a new random one.
+ * Generate a SHA1 digest of the supplied statistics.
  */
-uint32
-gnet_stats_crc_reset(void)
+static void
+gnet_stats_digest(sha1_t *digest, const gnet_stats_t *stats)
 {
-	uint32 crc = gnet_stats_crc32;
+	SHA1_COMPUTE(*stats, digest);
+}
 
-	gnet_stats_crc32 = random_u32();
-	return crc;
+/**
+ * Generate a SHA1 digest of the current TCP statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+gnet_stats_tcp_digest(sha1_t *digest)
+{
+	gnet_stats_digest(digest, &gnet_udp_stats);
+}
+
+/**
+ * Generate a SHA1 digest of the current UDP statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+gnet_stats_udp_digest(sha1_t *digest)
+{
+	gnet_stats_digest(digest, &gnet_udp_stats);
+}
+
+/**
+ * Generate a SHA1 digest of the current general statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+gnet_stats_general_digest(sha1_t *digest)
+{
+	SHA1_COMPUTE(gnet_stats.general, digest);
 }
 
 /**
@@ -497,14 +543,17 @@ gnet_stats_randomness(const gnutella_node_t *n, uint8 type, uint32 val)
 {
 	tm_t now;
 	gnet_host_t host;
+	uint32 crc32;
 
 	tm_now(&now);
-	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &now, sizeof now);
 	gnet_host_set(&host, n->addr, n->port);
-	gnet_stats_crc32 = crc32_update(
-		gnet_stats_crc32, &host, gnet_host_length(&host));
-	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &type, sizeof type);
-	gnet_stats_crc32 = crc32_update(gnet_stats_crc32, &val, sizeof val);
+
+	crc32 = crc32_update(0, &now, sizeof now);
+	crc32 = crc32_update(crc32, &host, gnet_host_length(&host));
+	crc32 = crc32_update(crc32, &type, sizeof type);
+	crc32 = crc32_update(crc32, &val, sizeof val);
+
+	random_pool_append(&crc32, sizeof crc32);
 }
 
 /**
@@ -516,6 +565,8 @@ gnet_stats_count_received_header(gnutella_node_t *n)
 	uint t = stats_lut[gnutella_header_get_function(&n->header)];
 	uint i;
 	gnet_stats_t *stats;
+
+	g_assert(thread_is_main());
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -552,6 +603,8 @@ gnet_stats_count_kademlia_header(const gnutella_node_t *n, uint kt)
 	uint t = stats_lut[gnutella_header_get_function(&n->header)];
 	uint i;
 	gnet_stats_t *stats;
+
+	g_assert(thread_is_main());
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -595,6 +648,9 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 	uint i;
 	gnet_stats_t *stats;
     uint32 size;
+	uint8 hops, ttl;
+
+	g_assert(thread_is_main());
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -610,6 +666,9 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 	 */
 
 	size = n->size;
+	hops = gnutella_header_get_hops(&n->header);
+	ttl = gnutella_header_get_ttl(&n->header);
+
 	gnet_stats_randomness(n, f, size);
 
 	/*
@@ -639,11 +698,11 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
     stats->byte.received[MSG_TOTAL] += size;
     stats->byte.received[t] += size;
 
-	i = MIN(gnutella_header_get_ttl(&n->header), STATS_RECV_COLUMNS - 1);
+	i = MIN(ttl, STATS_RECV_COLUMNS - 1);
     stats->byte.received_ttl[i][MSG_TOTAL] += size;
     stats->byte.received_ttl[i][t] += size;
 
-	i = MIN(gnutella_header_get_hops(&n->header), STATS_RECV_COLUMNS - 1);
+	i = MIN(hops, STATS_RECV_COLUMNS - 1);
     stats->byte.received_hops[i][MSG_TOTAL] += size;
     stats->byte.received_hops[i][t] += size;
 }
@@ -659,6 +718,7 @@ gnet_stats_count_queued(const gnutella_node_t *n,
 	uint8 hops;
 
 	g_assert(t != MSG_UNKNOWN);
+	g_assert(thread_is_main());
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -707,6 +767,7 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 	uint8 hops;
 
 	g_assert(t != MSG_UNKNOWN);
+	g_assert(thread_is_main());
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -751,6 +812,8 @@ gnet_stats_count_expired(const gnutella_node_t *n)
 	uint t = stats_lut[gnutella_header_get_function(&n->header)];
 	gnet_stats_t *stats;
 
+	g_assert(thread_is_main());
+
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
     gnet_stats.pkg.expired[MSG_TOTAL]++;
@@ -791,6 +854,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	gnet_stats_t *stats;
 
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
+	g_assert(thread_is_main());
 
     size = n->size + sizeof(n->header);
 	type = stats_lut[gnutella_header_get_function(&n->header)];
@@ -828,6 +892,7 @@ gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
 	g_assert(opcode <= KDA_MSG_MAX_ID);
 	g_assert(UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut));
+	g_assert(thread_is_main());
 
     size = n->size + sizeof(n->header);
 	type = stats_lut[opcode + MSG_DHT_BASE];
@@ -848,7 +913,10 @@ gnet_stats_count_general(gnr_stats_t type, int delta)
 	size_t i = type;
 
 	g_assert(i < GNR_TYPE_COUNT);
+
+	GNET_STATS_LOCK;
     gnet_stats.general[i] += delta;
+	GNET_STATS_UNLOCK;
 }
 
 /**
@@ -860,7 +928,10 @@ gnet_stats_inc_general(gnr_stats_t type)
 	size_t i = type;
 
 	g_assert(i < GNR_TYPE_COUNT);
+
+	GNET_STATS_LOCK;
     gnet_stats.general[i]++;
+	GNET_STATS_UNLOCK;
 }
 
 /**
@@ -872,7 +943,10 @@ gnet_stats_dec_general(gnr_stats_t type)
 	size_t i = type;
 
 	g_assert(i < GNR_TYPE_COUNT);
+
+	GNET_STATS_LOCK;
     gnet_stats.general[i]--;
+	GNET_STATS_UNLOCK;
 }
 
 /**
@@ -884,8 +958,11 @@ gnet_stats_max_general(gnr_stats_t type, uint64 value)
 	size_t i = type;
 
 	g_assert(i < GNR_TYPE_COUNT);
+
+	GNET_STATS_LOCK;
 	if (value > gnet_stats.general[i])
 		gnet_stats.general[i] = value;
+	GNET_STATS_UNLOCK;
 }
 
 /**
@@ -897,7 +974,10 @@ gnet_stats_set_general(gnr_stats_t type, uint64 value)
 	size_t i = type;
 
 	g_assert(i < GNR_TYPE_COUNT);
+
+	GNET_STATS_LOCK;
     gnet_stats.general[i] = value;
+	GNET_STATS_UNLOCK;
 }
 
 /**
@@ -907,9 +987,15 @@ uint64
 gnet_stats_get_general(gnr_stats_t type)
 {
 	size_t i = type;
+	uint64 value;
 
 	g_assert(i < GNR_TYPE_COUNT);
-	return gnet_stats.general[i];
+
+	GNET_STATS_LOCK;
+	value = gnet_stats.general[i];
+	GNET_STATS_UNLOCK;
+
+	return value;
 }
 
 void
@@ -920,6 +1006,7 @@ gnet_stats_count_dropped_nosize(
 	gnet_stats_t *stats;
 
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
+	g_assert(thread_is_main());
 
 	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
@@ -942,6 +1029,8 @@ gnet_stats_count_flowc(const void *head, bool head_only)
 	uint8 function = gnutella_header_get_function(head);
 	uint8 ttl = gnutella_header_get_ttl(head);
 	uint8 hops = gnutella_header_get_hops(head);
+
+	g_assert(thread_is_main());
 
 	if (GNET_PROPERTY(node_debug) > 3)
 		g_debug("FLOWC function=%d ttl=%d hops=%d", function, ttl, hops);
@@ -989,13 +1078,18 @@ void
 gnet_stats_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
+
+	GNET_STATS_LOCK;
     *s = gnet_stats;
+	GNET_STATS_UNLOCK;
 }
 
 void
 gnet_stats_tcp_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
+	g_assert(thread_is_main());
+
     *s = gnet_tcp_stats;
 }
 
@@ -1003,6 +1097,8 @@ void
 gnet_stats_udp_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
+	g_assert(thread_is_main());
+
     *s = gnet_udp_stats;
 }
 

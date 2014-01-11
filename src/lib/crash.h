@@ -42,6 +42,7 @@
 #define _crash_h_
 
 #include "common.h"
+#include "atio.h"
 
 /**
  * The following macros are intended for use in signal handlers, or wherever it
@@ -96,10 +97,25 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
+/*
+ * Do not use atio_writev() here, on purpose.
+ *
+ * These routines are called during exceptional circumstances and we need
+ * to limit the amout of resources required.
+ */
 #define flush_str(fd) \
 	IGNORE_RESULT(writev((fd), print_str_iov_, print_str_iov_cnt_))
 
 #define flush_err_str() flush_str(STDERR_FILENO)
+
+/*
+ * This one uses atio_writev() and should be used for "regular" message, where
+ * it's OK to use extra resources because we're likely not on an error path.
+ */
+#define flush_str_atomic(fd) \
+	IGNORE_RESULT(atio_writev((fd), print_str_iov_, print_str_iov_cnt_))
+
+#define flush_err_str_atomic()	flush_str_atomic(STDERR_FILENO)
 
 #define rewind_str(i) \
 G_STMT_START { \
@@ -137,6 +153,13 @@ print_number(char *dst, size_t size, unsigned long value)
 	}
 	return p;
 }
+
+/**
+ * Convenience macro to make sure we're passing the 2nd parameter correctly
+ * and do not mistakenly use another buffer length, inconsistent with the
+ * actual buffer.
+ */
+#define PRINT_NUMBER(buf_, val_)	print_number(buf_, sizeof buf_, val_)
 
 /**
  * Print an "unsigned long" as hexadecimal NUL-terminated string into supplied
@@ -186,6 +209,9 @@ enum crash_alter_mode {
 	CRASH_FLAG_CLEAR
 };
 
+#define CRASH_TIME_BUFLEN		22	/**< Buffer length for crash_time() */
+#define CRASH_TIME_ISO_BUFLEN	21	/**< Buffer length for crash_time_iso() */
+
 struct assertion_data;
 
 void crash_init(const char *argv0, const char *progname,
@@ -193,8 +219,10 @@ void crash_init(const char *argv0, const char *progname,
 void crash_exited(uint32 pid);
 void crash_close(void);
 bool crash_is_closed(void);
+bool crash_is_pausing(void);
 void crash_ctl(enum crash_alter_mode mode, int flags);
 void crash_time(char *buf, size_t buflen);
+void crash_time_cached(char *buf, size_t size);
 void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
 void crash_handler(int signo);
@@ -215,6 +243,7 @@ void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const crash_hook_t hook);
 void crash_reexec(void) G_GNUC_NORETURN;
+void crash_print_decorated_stack(int fd);
 
 #endif	/* _crash_h_ */
 

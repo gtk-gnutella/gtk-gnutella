@@ -54,6 +54,7 @@ typedef struct shared_file shared_file_t;
  */
 
 enum {
+	SHARE_F_FILEINFO	=	(1 << 5),		/**< File referenced by fileinfo */
 	SHARE_F_INDEXED		=	(1 << 4),		/**< File is in file_table index */
 	SHARE_F_BASENAME	=	(1 << 3),		/**< File is in basename index */
 	SHARE_F_SPECIAL		=	(1 << 2),		/**< Special (robots.txt, favicon)*/
@@ -95,6 +96,7 @@ shared_file_t *shared_file_ref(const shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
 shared_file_t *shared_special(const char *path);
 void shared_file_unref(shared_file_t **sf_ptr);
+void shared_file_fileinfo_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
 
 void parse_extensions(const char *);
@@ -107,7 +109,8 @@ void shared_file_set_tth(shared_file_t *, const struct tth *tth);
 void shared_file_set_modification_time(shared_file_t *sf, time_t mtime);
 void shared_file_set_path(shared_file_t *sf, const char *pathname);
 
-void shared_file_check(const shared_file_t *sf);
+void shared_file_check(const shared_file_t * const sf);
+void shared_file_name_check(const shared_file_t * const sf);
 bool sha1_hash_available(const shared_file_t *sf) G_GNUC_PURE;
 bool sha1_hash_is_uptodate(shared_file_t *sf);
 bool shared_file_is_partial(const shared_file_t *sf) G_GNUC_PURE;
@@ -129,6 +132,7 @@ size_t shared_file_name_canonic_len(const shared_file_t *sf) G_GNUC_PURE;
 uint32 shared_file_flags(const shared_file_t *sf) G_GNUC_PURE;
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf) G_GNUC_PURE;
 const char *shared_file_mime_type(const shared_file_t *sf) G_GNUC_PURE;
+bool shared_file_indexed(const shared_file_t *sf) G_GNUC_PURE;
 void shared_file_from_fileinfo(fileinfo_t *fi);
 bool shared_file_has_media_type(const shared_file_t *sf, unsigned m)
 	G_GNUC_PURE;

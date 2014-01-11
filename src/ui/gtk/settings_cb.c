@@ -44,6 +44,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"	/* For g_strlcpy() */
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -621,10 +622,10 @@ dbg_tree_init(void)
 	gui_signal_connect(tv, "cursor-changed", on_cursor_changed, tv);
 }
 
-void
-dbg_property_show_list(const GSList *props)
+static void
+dbg_property_show_list(const pslist_t *props)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	GtkTreeView *tv;
 	GtkListStore *store;
 	
@@ -656,7 +657,7 @@ dbg_property_show_list(const GSList *props)
 #endif /* USE_GTK2 */
 	}
 
-	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(props, sl) {
 		GtkTreeIter iter;
 		property_t prop;
 
@@ -748,17 +749,17 @@ dbg_property_set_row(GtkCList *clist, gint row, property_t prop)
 }
 
 static void
-dbg_property_show_list(const GSList *props)
+dbg_property_show_list(const pslist_t *props)
 {
 	GtkCList *clist;
-	const GSList *sl;
+	const pslist_t *sl;
 
    	clist = GTK_CLIST(gui_dlg_prefs_lookup("clist_dbg_property"));
 	gtk_clist_freeze(clist);
 	gtk_clist_clear(clist);
 
-	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
-		static const gchar * const titles[num_dbg_cols] = { "", "", "", "", };
+	PSLIST_FOREACH(props, sl) {
+		static const char * const titles[num_dbg_cols] = { "", "", "", "", };
 		property_t prop = GPOINTER_TO_UINT(sl->data);
 		gint row;
 		
@@ -905,7 +906,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 	g_strstrip(text);
 
 	if (0 != strcmp(text, old_pattern)) {
-		GSList *props;
+		pslist_t *props;
 
 		g_strlcpy(old_pattern, text, sizeof old_pattern);
 		props = gnet_prop_get_by_regex(text, NULL);
@@ -915,7 +916,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 		
 		dbg_property_show_list(props);
 		dbg_property_update_selection();
-		gm_slist_free_null(&props);
+		pslist_free_null(&props);
 	}
 	G_FREE_NULL(text);
 }

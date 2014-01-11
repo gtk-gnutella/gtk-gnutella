@@ -366,7 +366,7 @@ gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 		gchar buf[128];
 
 		if (i > 0) {
-			str_cat(s, ", ");
+			STR_CAT(s, ", ");
 		}
 		host = gnet_host_vec_get(hvec, i);
 		host_addr_port_to_string_buf(gnet_host_get_addr(&host),
@@ -577,6 +577,17 @@ gnet_host_vec_from_vector(vector_t *vec)
 	sequence_t seq;
 
 	return gnet_host_vec_from_sequence(sequence_fill_from_vector(&seq, vec));
+}
+
+/**
+ * Create a new Gnutella host vector out of a pslist_t of gnet_host_t items.
+ */
+gnet_host_vec_t *
+gnet_host_vec_from_pslist(pslist_t *pl)
+{
+	sequence_t seq;
+
+	return gnet_host_vec_from_sequence(sequence_fill_from_pslist(&seq, pl));
 }
 
 /**

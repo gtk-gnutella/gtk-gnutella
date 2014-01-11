@@ -36,9 +36,11 @@
 
 #include "common.h"
 
-#include "list.h"
-#include "slist.h"
 #include "hashlist.h"
+#include "list.h"
+#include "plist.h"
+#include "pslist.h"
+#include "slist.h"
 #include "vector.h"
 
 /**
@@ -51,6 +53,8 @@ enum sequence_type {
 	SEQUENCE_SLIST,				/**< slist_t */
 	SEQUENCE_HLIST,				/**< hash_list_t */
 	SEQUENCE_VECTOR,			/**< vector_t */
+	SEQUENCE_PLIST,				/**< plist_t */
+	SEQUENCE_PSLIST,			/**< pslist_t */
 
 	SEQUENCE_MAXTYPE
 };
@@ -71,6 +75,8 @@ struct sequence {
 		slist_t *sl;
 		hash_list_t *hl;
 		vector_t *vec;
+		plist_t *pl;
+		pslist_t *psl;
 	} u;
 };
 
@@ -81,18 +87,22 @@ typedef struct sequence_iterator sequence_iter_t;
  * Creation interface.
  */
 
-sequence_t *sequence_create_from_gslist(GSList *);
 sequence_t *sequence_create_from_glist(GList *);
-sequence_t *sequence_create_from_list(list_t *);
-sequence_t *sequence_create_from_slist(slist_t *);
+sequence_t *sequence_create_from_gslist(GSList *);
 sequence_t *sequence_create_from_hash_list(hash_list_t *);
+sequence_t *sequence_create_from_list(list_t *);
+sequence_t *sequence_create_from_plist(plist_t *);
+sequence_t *sequence_create_from_pslist(pslist_t *);
+sequence_t *sequence_create_from_slist(slist_t *);
 sequence_t *sequence_create_from_vector(vector_t *);
 
-sequence_t *sequence_fill_from_gslist(sequence_t *, GSList *);
 sequence_t *sequence_fill_from_glist(sequence_t *, GList *);
-sequence_t *sequence_fill_from_list(sequence_t *, list_t *);
-sequence_t *sequence_fill_from_slist(sequence_t *, slist_t *);
+sequence_t *sequence_fill_from_gslist(sequence_t *, GSList *);
 sequence_t *sequence_fill_from_hash_list(sequence_t *, hash_list_t *);
+sequence_t *sequence_fill_from_list(sequence_t *, list_t *);
+sequence_t *sequence_fill_from_plist(sequence_t *, plist_t *);
+sequence_t *sequence_fill_from_pslist(sequence_t *, pslist_t *);
+sequence_t *sequence_fill_from_slist(sequence_t *, slist_t *);
 sequence_t *sequence_fill_from_vector(sequence_t *, vector_t *);
 
 /**

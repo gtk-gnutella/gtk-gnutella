@@ -51,22 +51,23 @@
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/pow2.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
+#include "lib/spinlock.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
-#include "lib/wordvec.h"
 #include "lib/walloc.h"
+#include "lib/wordvec.h"
 #include "lib/zlib_util.h"
 
 #include "if/gnet_property.h"
@@ -510,7 +511,7 @@ static struct sha1 *
 qrt_sha1(struct routing_table *rt)
 {
 	static struct sha1 sha1;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	int i;
 	int bytes;
 	uint8 vector[8];
@@ -519,7 +520,7 @@ qrt_sha1(struct routing_table *rt)
 	g_assert(rt->compacted);
 
 	bytes = rt->slots / 8;
-	SHA1Reset(&ctx);
+	SHA1_reset(&ctx);
 
 	for (i = 0, p = rt->arena; i < bytes; i++) {
 		int j;
@@ -529,10 +530,10 @@ qrt_sha1(struct routing_table *rt)
 		for (j = 0, mask = 0x80; j < 8; j++, mask >>= 1)
 			vector[j] = (value & mask) ? 1 : 0;		/* 1 for presence */
 
-		SHA1Input(&ctx, vector, sizeof vector);
+		SHA1_input(&ctx, vector, sizeof vector);
 	}
 
-	SHA1Result(&ctx, &sha1);
+	SHA1_result(&ctx, &sha1);
 	return &sha1;
 }
 
@@ -543,7 +544,8 @@ static struct routing_patch *
 qrt_patch_ref(struct routing_patch *rp)
 {
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
-	rp->refcnt++;
+
+	atomic_int_inc(&rp->refcnt);
 	return rp;
 }
 
@@ -568,7 +570,7 @@ qrt_patch_unref(struct routing_patch *rp)
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
 	g_assert(rp->refcnt > 0);
 
-	if (--rp->refcnt == 0)
+	if (atomic_int_dec_is_zero(&rp->refcnt))
 		qrt_patch_free(rp);
 }
 
@@ -674,7 +676,15 @@ struct qrt_compress_context {
 	void *usr_arg;					/**< Arg for user-defined callback */
 };
 
-static GSList *sl_compress_tasks;
+static pslist_t *qrp_compress_tasks;
+static spinlock_t qrp_task_lock = SPINLOCK_INIT;
+static spinlock_t qrp_compress_lock = SPINLOCK_INIT;
+
+#define QRP_TASK_LOCK			spinlock(&qrp_task_lock)
+#define QRP_TASK_UNLOCK			spinunlock(&qrp_task_lock)
+
+#define QRP_COMPRESS_LOCK		spinlock(&qrp_compress_lock)
+#define QRP_COMPRESS_UNLOCK		spinunlock(&qrp_compress_lock)
 
 /**
  * Free compression context.
@@ -777,14 +787,16 @@ qrt_patch_compress_done(struct bgtask *h, void *u, bgstatus_t status,
 
 	/*
 	 * When status is BGS_KILLED, the task is being cancelled.
-	 * This means we're iterating on the `sl_compress_tasks' list
+	 * This means we're iterating on the `qrp_compress_tasks' list
 	 * so don't alter it.
 	 *		--RAM, 29/01/2003
 	 */
 
 	if (status != BGS_KILLED) {
-		g_assert(g_slist_find(sl_compress_tasks, h));
-		sl_compress_tasks = g_slist_remove(sl_compress_tasks, h);
+		QRP_COMPRESS_LOCK;
+		g_assert(pslist_find(qrp_compress_tasks, h));
+		qrp_compress_tasks = pslist_remove(qrp_compress_tasks, h);
+		QRP_COMPRESS_UNLOCK;
 	}
 
 	(*ctx->usr_done)(h, u, status, ctx->usr_arg);
@@ -829,11 +841,15 @@ qrt_patch_compress(
 
 	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (uint32) rp->len);
 
-	task = bg_task_create("QRP patch compression",
+	task = bg_task_create_stopped(NULL, "QRP patch compression",
 		&step, 1, ctx, qrt_compress_free, qrt_patch_compress_done, NULL);
 
-	if (task != NULL)
-		sl_compress_tasks = g_slist_prepend(sl_compress_tasks, task);
+	if (task != NULL) {
+		QRP_COMPRESS_LOCK;
+		qrp_compress_tasks = pslist_prepend(qrp_compress_tasks, task);
+		QRP_COMPRESS_UNLOCK;
+		bg_task_run(task);
+	}
 
 	return task;
 }
@@ -977,7 +993,7 @@ qrt_ref(struct routing_table *rt)
 {
 	qrt_check(rt);
 
-	rt->refcnt++;
+	atomic_int_inc(&rt->refcnt);
 	return rt;
 }
 
@@ -991,7 +1007,7 @@ qrt_unref(struct routing_table *rt)
 	qrt_check(rt);
 	g_assert(rt->refcnt > 0);
 
-	if (--rt->refcnt == 0)
+	if (atomic_int_dec_is_zero(&rt->refcnt))
 		qrt_free(rt);
 }
 
@@ -1043,7 +1059,7 @@ enum merge_magic {
 
 struct merge_context {
 	enum merge_magic magic;
-	GSList *tables;				/* Leaf routing tables */
+	pslist_t *tables;			/* Leaf routing tables */
 	uchar *arena;				/* Working arena (not compacted) */
 	int slots;					/* Amount of slots used for merged table */
 };
@@ -1057,19 +1073,23 @@ static void
 merge_context_free(void *p)
 {
 	struct merge_context *ctx = p;
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(ctx->magic == MERGE_MAGIC);
+
+	QRP_TASK_LOCK;
 
 	merge_comp = NULL;		/* Task is being terminated */
 	merge_ctx = NULL;
 
-	for (sl = ctx->tables; sl; sl = g_slist_next(sl)) {
+	QRP_TASK_UNLOCK;
+
+	for (sl = ctx->tables; sl; sl = pslist_next(sl)) {
 		struct routing_table *rt = sl->data;
 
 		qrt_unref(rt);
 	}
-	gm_slist_free_null(&ctx->tables);
+	pslist_free_null(&ctx->tables);
 
 	HFREE_NULL(ctx->arena);
 	ctx->magic = 0;
@@ -1083,14 +1103,14 @@ static bgret_t
 mrg_step_get_list(struct bgtask *unused_h, void *u, int unused_ticks)
 {
 	struct merge_context *ctx = u;
-	const GSList *sl;
+	const pslist_t *sl;
 	int max_size = 0;			/* Max # of slots seen in all QRT */
 
 	(void) unused_h;
 	(void) unused_ticks;
 	g_assert(MERGE_MAGIC == ctx->magic);
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 
@@ -1121,7 +1141,7 @@ mrg_step_get_list(struct bgtask *unused_h, void *u, int unused_ticks)
 		 * referencing the table!
 		 */
 
-		ctx->tables = g_slist_prepend(ctx->tables, qrt_ref(rt));
+		ctx->tables = pslist_prepend(ctx->tables, qrt_ref(rt));
 
 		if (max_size < rt->slots)
 			max_size = rt->slots;
@@ -1283,7 +1303,7 @@ mrg_step_merge_one(struct bgtask *unused_h, void *u, int ticks)
 	while (ctx->tables != NULL && ticks_used < ticks) {
 		struct routing_table *rt = ctx->tables->data;
 
-		ctx->tables = g_slist_remove(ctx->tables, rt);
+		ctx->tables = pslist_remove(ctx->tables, rt);
 
 		/*
 		 * If we're the only referer to this table, it means the node is
@@ -1341,26 +1361,45 @@ static bgstep_cb_t merge_steps[] = {
 };
 
 /**
- * Launch asynchronous merging of the leaf node QRT tables.
+ * Launch asynchronous merging of the leaf node QRT tables, if none
+ * is alredy running.
  *
  * @param done_cb is the routine to invoke when merging is done.  If NULL, then
  * no routine is called.
+ *
+ * @return whether task was launched
  */
-static void
+static bool
 mrg_compute(bgdone_cb_t done_cb)
 {
-	struct merge_context *ctx;
+	bool launched;
 
-	g_assert(merge_ctx == NULL);	/* No computation active */
+	QRP_TASK_LOCK;
 
-	WALLOC0(ctx);
-	ctx->magic = MERGE_MAGIC;
-	merge_ctx = ctx;
+	g_soft_assert(merge_ctx == NULL);	/* No computation active */
 
-	merge_comp = bg_task_create("Leaf QRT merging",
-		merge_steps, G_N_ELEMENTS(merge_steps),
-		ctx, merge_context_free,
-		done_cb, NULL);
+	if (NULL == merge_ctx) {
+		WALLOC0(merge_ctx);
+		merge_ctx->magic = MERGE_MAGIC;
+
+		merge_comp = bg_task_create_stopped(NULL, "Leaf QRT merging",
+			merge_steps, G_N_ELEMENTS(merge_steps),
+			merge_ctx, merge_context_free,
+			done_cb, NULL);
+
+		if (merge_comp != NULL) {
+			bg_task_run(merge_comp);
+			launched = TRUE;
+		} else {
+			launched = FALSE;
+		}
+	} else {
+		launched = FALSE;
+	}
+
+	QRP_TASK_UNLOCK;
+
+	return launched;
 }
 
 /***
@@ -1509,7 +1548,7 @@ free_word(const void *key, void *value, void *unused_udata)
 
 struct unique_substrings {		/* User data for unique_subtr() callback */
 	hset_t *unique;
-	GSList *head;
+	pslist_t *head;
 };
 
 static inline void
@@ -1520,7 +1559,7 @@ insert_substr(struct unique_substrings *u, const char *word, size_t size)
 
 		s = wcopy(word, size);
 		hset_insert(u->unique, s);
-		u->head = g_slist_prepend(u->head, s);
+		u->head = pslist_prepend(u->head, s);
 	}
 }
 
@@ -1572,7 +1611,7 @@ unique_substr(const void *key, void *value, void *udata)
  *
  * @returns created list, and count in `retcount'.
  */
-static GSList *
+static pslist_t *
 unique_substrings(htable_t *ht, int *retcount)
 {
 	struct unique_substrings u = { NULL, NULL };		/* Callback args */
@@ -1602,8 +1641,9 @@ struct qrp_context {
 	enum qrp_magic magic;
 	struct routing_table **rtp;	/**< Points to routing table variable to fill */
 	struct routing_patch **rpp;	/**< Points to routing patch variable to fill */
-	GSList *sl_substrings;		/**< List of all substrings */
+	pslist_t *sl_substrings;	/**< List of all substrings */
 	htable_t *words;			/**< Words making up the files */
+	bgtask_t *bt;				/**< Background task using this context */
 	int substrings;				/**< Amount of substrings */
 	char *table;				/**< Computed routing table */
 	int slots;					/**< Amount of slots in table */
@@ -1639,13 +1679,13 @@ static void
 qrp_context_free(void *p)
 {
 	struct qrp_context *ctx = p;
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(ctx->magic == QRP_MAGIC);
 
 	qrp_dispose_words(&ctx->words);
 
-	for (sl = ctx->sl_substrings; sl; sl = g_slist_next(sl)) {
+	for (sl = ctx->sl_substrings; sl; sl = pslist_next(sl)) {
 		char *word = sl->data;
 		size_t size;
 
@@ -1653,7 +1693,7 @@ qrp_context_free(void *p)
 		g_assert(size_is_positive(size));
 		wfree(word, size);
 	}
-	gm_slist_free_null(&ctx->sl_substrings);
+	pslist_free_null(&ctx->sl_substrings);
 
 	HFREE_NULL(ctx->table);
 
@@ -1672,7 +1712,6 @@ qrp_context_free(void *p)
 static void
 qrp_comp_context_free(void *p)
 {
-	qrp_comp = NULL;		/* If we're called, the task is being terminated */
 	qrp_context_free(p);
 }
 
@@ -1682,7 +1721,6 @@ qrp_comp_context_free(void *p)
 static void
 qrp_merge_context_free(void *p)
 {
-	qrp_merge = NULL;		/* If we're called, the task is being terminated */
 	qrp_context_free(p);
 }
 
@@ -1692,17 +1730,23 @@ qrp_merge_context_free(void *p)
 static void
 qrp_cancel_computation(void)
 {
+	bgtask_t *bt;
+
 	qrt_compress_cancel_all();
 
-	if (qrp_comp) {
-		bg_task_cancel(qrp_comp);
+	QRP_TASK_LOCK;
+
+	if (NULL != (bt = qrp_comp)) {
 		qrp_comp = NULL;
+		bg_task_cancel(bt);
 	}
 
-	if (qrp_merge) {
-		bg_task_cancel(qrp_merge);
+	if (NULL != (bt = qrp_merge)) {
 		qrp_merge = NULL;
+		bg_task_cancel(bt);
 	}
+
+	QRP_TASK_UNLOCK;
 }
 
 /**
@@ -1768,7 +1812,7 @@ qrp_step_compute(struct bgtask *h, void *u, int unused_ticks)
 	char *table = NULL;
 	int slots;
 	int bits;
-	const GSList *sl;
+	const pslist_t *sl;
 	int upper_thresh;
 	int hashed = 0;
 	int filled = 0;
@@ -1792,7 +1836,7 @@ qrp_step_compute(struct bgtask *h, void *u, int unused_ticks)
 	table = halloc(slots);
 	memset(table, LOCAL_INFINITY, slots);
 
-	for (sl = ctx->sl_substrings; sl; sl = g_slist_next(sl)) {
+	for (sl = ctx->sl_substrings; sl; sl = pslist_next(sl)) {
 		const char *word = sl->data;
 		uint idx = qrp_hash(word, bits);
 
@@ -2172,6 +2216,19 @@ static bgstep_cb_t qrp_merge_steps[] = {
 	qrp_step_install_ultra,
 };
 
+static void
+qrp_comp_done(bgtask_t *bt, void *u_ctx, bgstatus_t u_status, void *u_arg)
+{
+	(void) u_ctx;
+	(void) u_status;
+	(void) u_arg;
+
+	QRP_TASK_LOCK;
+	if (qrp_comp == bt)
+		qrp_comp = NULL;
+	QRP_TASK_UNLOCK;
+}
+
 /**
  * This routine must be called once all the files have been added to finalize
  * the computation of the new QRP.
@@ -2202,10 +2259,32 @@ qrp_finalize_computation(htable_t *words)
 
 	gnet_prop_set_timestamp_val(PROP_QRP_TIMESTAMP, tm_time());
 
-	qrp_comp = bg_task_create("QRP computation",
+	QRP_TASK_LOCK;
+
+	g_soft_assert(NULL == qrp_comp);
+
+	qrp_comp = ctx->bt = bg_task_create_stopped(NULL, "QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
 		ctx, qrp_comp_context_free,
-		NULL, NULL);
+		qrp_comp_done, NULL);
+
+	if (qrp_comp != NULL)
+		bg_task_run(qrp_comp);
+
+	QRP_TASK_UNLOCK;
+}
+
+static void
+qrp_merge_done(bgtask_t *bt, void *u_ctx, bgstatus_t u_status, void *u_arg)
+{
+	(void) u_ctx;
+	(void) u_status;
+	(void) u_arg;
+
+	QRP_TASK_LOCK;
+	if (qrp_merge == bt)
+		qrp_merge = NULL;
+	QRP_TASK_UNLOCK;
 }
 
 /**
@@ -2229,10 +2308,19 @@ qrp_update_routing_table(void)
 	ctx->rtp = &local_table;		/* In case we call qrp_step_install_leaf */
 	ctx->rpp = &routing_patch;
 
-	qrp_merge = bg_task_create("QRP merging",
+	QRP_TASK_LOCK;
+
+	g_soft_assert(NULL == qrp_merge);
+
+	qrp_merge = ctx->bt = bg_task_create_stopped(NULL, "QRP merging",
 		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
 		ctx, qrp_merge_context_free,
-		NULL, NULL);
+		qrp_merge_done, NULL);
+
+	if (qrp_merge != NULL)
+		bg_task_run(qrp_merge);
+
+	QRP_TASK_UNLOCK;
 }
 
 /**
@@ -2297,8 +2385,7 @@ struct patch_listener_info {
 };
 
 static struct qrt_patch_context *qrt_patch_ctx;
-static GSList *qrt_patch_computed_listeners;
-
+static pslist_t *qrt_patch_computed_listeners;
 
 /**
  * Callback invoked when the routing patch is computed.
@@ -2308,18 +2395,16 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	bgstatus_t status, void *arg)
 {
 	struct qrt_patch_context *ctx = arg;
-	GSList *sl;
+	pslist_t *sl;
 
 	(void) unused_h;
 	(void) unused_u;
 	g_assert(ctx->magic == QRT_PATCH_MAGIC);
-	g_assert(ctx == qrt_patch_ctx);
+	g_assert(qrt_patch_ctx == NULL || ctx == qrt_patch_ctx);
 	g_assert(ctx->rpp != NULL);
 
 	if (qrp_debugging(1))
 		g_debug("QRP global default patch computed (status = %d)", status);
-
-	qrt_patch_ctx = NULL;			/* Indicates that we're done */
 
 	if (status == BGS_OK) {
 		time_t now = tm_time();
@@ -2349,16 +2434,23 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	 * that an error occurred.
 	 */
 
-	for (sl = qrt_patch_computed_listeners; sl; sl = g_slist_next(sl)) {
+	QRP_TASK_LOCK;
+
+	if (ctx == qrt_patch_ctx)
+		qrt_patch_ctx = NULL;		/* Indicates that we're done */
+
+	for (sl = qrt_patch_computed_listeners; sl; sl = pslist_next(sl)) {
 		struct patch_listener_info *pi = sl->data;
 		(*pi->callback)(pi->arg, *ctx->rpp);	/* NULL indicates failure */
 		WFREE(pi);
 	}
 
+	pslist_free_null(&qrt_patch_computed_listeners);
+
+	QRP_TASK_UNLOCK;
+
 	ctx->magic = 0;
 	WFREE(ctx);
-
-	gm_slist_free_null(&qrt_patch_computed_listeners);
 }
 
 /**
@@ -2382,8 +2474,12 @@ qrt_patch_computed_add_listener(qrt_patch_computed_cb_t cb, void *arg)
 	pi->callback = cb;
 	pi->arg = arg;
 
+	QRP_TASK_LOCK;
+
 	qrt_patch_computed_listeners =
-		g_slist_prepend(qrt_patch_computed_listeners, pi);
+		pslist_prepend(qrt_patch_computed_listeners, pi);
+
+	QRP_TASK_UNLOCK;
 
 	return pi;
 }
@@ -2396,10 +2492,13 @@ qrt_patch_computed_remove_listener(void *handle)
 {
 	struct patch_listener_info *pi = handle;
 
+	QRP_TASK_LOCK;
 	g_assert(qrt_patch_computed_listeners != NULL);
 
 	qrt_patch_computed_listeners =
-		g_slist_remove(qrt_patch_computed_listeners, handle);
+		pslist_remove(qrt_patch_computed_listeners, handle);
+	QRP_TASK_UNLOCK;
+
 	WFREE(pi);
 }
 
@@ -2409,15 +2508,27 @@ qrt_patch_computed_remove_listener(void *handle)
 static void
 qrt_patch_cancel_compute(void)
 {
-	struct bgtask *comptask;
+	struct bgtask *comptask = NULL;
 
-	g_assert(qrt_patch_ctx != NULL);
+	QRP_TASK_LOCK;
 
-	comptask = qrt_patch_ctx->compress;
+	if (qrt_patch_ctx != NULL) {
+		comptask = qrt_patch_ctx->compress;
+		qrt_patch_ctx = NULL;
+	}
+
+	QRP_TASK_UNLOCK;
+
+	if (NULL == comptask)
+		return;
+
 	bg_task_cancel(comptask);
-	sl_compress_tasks = g_slist_remove(sl_compress_tasks, comptask);
 
-	g_assert(qrt_patch_ctx == NULL);	/* qrt_patch_computed() called! */
+	QRP_COMPRESS_LOCK;
+	qrp_compress_tasks = pslist_remove(qrp_compress_tasks, comptask);
+	QRP_COMPRESS_UNLOCK;
+
+	/* qrt_patch_computed() called! */
 	g_assert(qrt_patch_computed_listeners == NULL);
 }
 
@@ -2445,11 +2556,15 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 	gnet_prop_set_timestamp_val(PROP_QRP_PATCH_TIMESTAMP, tm_time());
 
 	WALLOC(ctx);
-	qrt_patch_ctx = ctx;
 	ctx->magic = QRT_PATCH_MAGIC;
 	ctx->rpp = rpp;
 	ctx->rt = rt;
 	ctx->rp = qrt_diff_4(NULL, rt);
+
+	QRP_TASK_LOCK;
+	qrt_patch_ctx = ctx;
+	QRP_TASK_UNLOCK;
+
 	ctx->compress = qrt_patch_compress(ctx->rp, qrt_patch_computed, ctx);
 }
 
@@ -2459,15 +2574,19 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 static void
 qrt_compress_cancel_all(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	if (qrt_patch_ctx != NULL)
 		qrt_patch_cancel_compute();
 
-	for (sl = sl_compress_tasks; sl; sl = g_slist_next(sl))
+	QRP_COMPRESS_LOCK;
+
+	for (sl = qrp_compress_tasks; sl; sl = pslist_next(sl))
 		bg_task_cancel(sl->data);
 
-	gm_slist_free_null(&sl_compress_tasks);
+	pslist_free_null(&qrp_compress_tasks);
+
+	QRP_COMPRESS_UNLOCK;
 }
 
 /***
@@ -2928,7 +3047,9 @@ qrt_update_free(struct qrt_update *qup)
 	if (qup->compress != NULL) {
 		struct bgtask *task = qup->compress;
 		bg_task_cancel(task);
-		sl_compress_tasks = g_slist_remove(sl_compress_tasks, task);
+		QRP_COMPRESS_LOCK;
+		qrp_compress_tasks = pslist_remove(qrp_compress_tasks, task);
+		QRP_COMPRESS_UNLOCK;
 	}
 
 	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
@@ -4284,8 +4405,8 @@ qrp_monitor(void *unused_obj)
 	 */
 
 	if (qrt_leaf_change_notified) {
-		qrt_leaf_change_notified = FALSE;
-		mrg_compute(qrp_merge_routing_table);
+		if (mrg_compute(qrp_merge_routing_table))
+			qrt_leaf_change_notified = FALSE;
 	}
 
 	return TRUE;		/* Keep calling */
@@ -4372,7 +4493,7 @@ static uint32
 qrt_dump(struct routing_table *rt, bool full)
 {
 	struct sha1 digest;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	bool last_status = FALSE;
 	int last_slot = 0;
 	uint32 result;
@@ -4382,7 +4503,7 @@ qrt_dump(struct routing_table *rt, bool full)
 		"(gen=%d, slots=%d, %scompacted)",
 		rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
 
-	SHA1Reset(&ctx);
+	SHA1_reset(&ctx);
 
 	for (i = 0; i <= rt->slots; i++) {
 		bool status = FALSE;
@@ -4394,7 +4515,7 @@ qrt_dump(struct routing_table *rt, bool full)
 		status = qrt_dump_is_slot_present(rt, i);
 		value = status ? 1 : 0;			/* 1 for presence */
 
-		SHA1Input(&ctx, &value, sizeof value);
+		SHA1_input(&ctx, &value, sizeof value);
 
 		if (i == 0) {
 			last_slot = i;
@@ -4419,7 +4540,7 @@ qrt_dump(struct routing_table *rt, bool full)
 		}
 	}
 
-	SHA1Result(&ctx, cast_to_pointer(&digest));
+	SHA1_result(&ctx, &digest);
 
 	/*
 	 * Reduce SHA1 to a single uint32.
@@ -4650,15 +4771,15 @@ qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
  * they could bring a match.
  *
  * @returns list of nodes, a subset of the currently connected nodes.
- * Once used, the list of nodes can be freed with g_slist_free().
+ * Once used, the list of nodes can be freed with pslist_free().
  */
-G_GNUC_HOT GSList *
+G_GNUC_HOT pslist_t *
 qrt_build_query_target(
 	query_hashvec_t *qhvec, int hops, int ttl, bool leaves,
 	struct gnutella_node *source)
 {
-	GSList *nodes = NULL;		/* Targets for the query */
-	const GSList *sl;
+	pslist_t *nodes = NULL;		/* Targets for the query */
+	const pslist_t *sl;
 	bool sha1_query;
 	bool whats_new;
 
@@ -4692,7 +4813,7 @@ qrt_build_query_target(
 	 * always get the query.
 	 */
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 		bool is_leaf;
@@ -4829,7 +4950,7 @@ qrt_build_query_target(
 				continue;
 		}
 
-		nodes = g_slist_prepend(nodes, dn);
+		nodes = pslist_prepend(nodes, dn);
 		if (rt != NULL && !whats_new)
 			node_inc_qrp_match(dn);
 	}
@@ -4848,7 +4969,7 @@ void
 qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
 	bool with_leaves)
 {
-	GSList *nodes;				/* Targets for the query */
+	pslist_t *nodes;				/* Targets for the query */
 
 	g_assert(qhvec != NULL);
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH);
@@ -4864,14 +4985,14 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
 		GNET_PROPERTY(log_gnutella_routing) ||
 		(GNET_PROPERTY(guess_server_debug) > 4 && NODE_IS_UDP(n))
 	) {
-		GSList *sl;
+		pslist_t *sl;
 		int leaves = 0;
 		int ultras = 0;
 		int words = 0;
 		int urns = 0;
 		size_t i;
 
-		for (sl = nodes; sl; sl = g_slist_next(sl)) {
+		for (sl = nodes; sl; sl = pslist_next(sl)) {
 			struct gnutella_node *dn = sl->data;
 
 			if (NODE_IS_LEAF(dn))
@@ -4893,9 +5014,9 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
 			NODE_IS_UDP(n) ? "(GUESS) " : "",
 			gmsg_node_infostr(n),
 			qhvec_whats_new(qhvec) ? "\"What's New?\" " : "",
-			words, 1 == words ? "" : "s", urns, 1 == urns ? "" : "s",
+			words, plural(words), urns, plural(urns),
 			leaves, GNET_PROPERTY(node_leaf_count),
-			ultras, ultras == 1 ? "" : "s");
+			ultras, plural(ultras));
 	}
 
 	if (nodes == NULL)
@@ -4924,7 +5045,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
 	gmsg_split_routeto_all(nodes, n, &n->header, n->data,
 		n->size + GTA_HEADER_SIZE);
 
-	g_slist_free(nodes);
+	pslist_free(nodes);
 }
 
 /***

@@ -296,12 +296,11 @@ inet_udp_firewalled(bool new_env)
  * Enter the UNSOLICITED_CHECK state.
  */
 static void
-move_to_unsolicited_check(cqueue_t *unused_cq, void *unused_data)
+move_to_unsolicited_check(cqueue_t *cq, void *unused_data)
 {
-	(void) unused_cq;
 	(void) unused_data;
 
-	unsolicited_udp_ev = NULL;		/* Event fired */
+	cq_zero(cq, &unsolicited_udp_ev);		/* Event fired */
 
 	if (GNET_PROPERTY(fw_debug))
 		g_debug("FW: will be now monitoring UDP for unsolicited messages");

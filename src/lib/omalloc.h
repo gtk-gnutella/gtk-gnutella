@@ -59,6 +59,26 @@ void set_omalloc_debug(uint32 level);
 void omalloc_close(void);
 void omalloc_dump_stats_log(struct logagent *la, unsigned options);
 
+#define OMALLOC(p)			\
+G_STMT_START {				\
+	p = omalloc(sizeof *p);	\
+} G_STMT_END
+
+#define OMALLOC0(p)				\
+G_STMT_START {					\
+	p = omalloc0(sizeof *p);	\
+} G_STMT_END
+
+#define OMALLOC_ARRAY(p,n)			\
+G_STMT_START {						\
+	p = omalloc((n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define OMALLOC0_ARRAY(p,n)				\
+G_STMT_START {							\
+	p = omalloc0((n) * sizeof p[0]);	\
+} G_STMT_END
+
 #endif /* _omalloc_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */

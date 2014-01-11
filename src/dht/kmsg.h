@@ -59,7 +59,7 @@ void kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
 void kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
 	const guid_t *muid, pmsg_free_t mfree, void *marg);
-GSList *kmsg_build_store(
+struct pslist *kmsg_build_store(
 	const void *token, size_t toklen, dht_value_t **vvec, int vcnt);
 	
 void kmsg_send_mb(knode_t *kn, pmsg_t *mb);

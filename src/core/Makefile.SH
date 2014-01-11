@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-147]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -39,7 +39,7 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
@@ -98,7 +98,6 @@ SRC = \
 	dump.c \
 	extensions.c \
 	features.c \
-	file_object.c \
 	fileinfo.c \
 	gdht.c \
 	geo_ip.c \
@@ -197,7 +196,6 @@ OBJ = \
 	dump.o \
 	extensions.o \
 	features.o \
-	file_object.o \
 	fileinfo.o \
 	gdht.o \
 	geo_ip.o \

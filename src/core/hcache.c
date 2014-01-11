@@ -60,8 +60,8 @@
 #include "settings.h"
 #include "ctl.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
@@ -70,6 +70,7 @@
 #include "lib/htable.h"
 #include "lib/path.h"
 #include "lib/random.h"
+#include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
@@ -581,11 +582,8 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 	orig_key = hash_list_remove(hc->hostlist, host);
 	g_assert(orig_key);
 
-    if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
-    }
+    if (hc->mass_update == 0)
+		gnet_prop_decr_guint32(hc->hosts_in_catcher);
 
 	hc->dirty = TRUE;
 	hcache_ht_remove(hc->class, host);
@@ -976,11 +974,8 @@ hcache_add_internal(hcache_type_t type, time_t added,
     hc->misses++;
 	hc->dirty = TRUE;
 
-    if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur + 1);
-    }
+    if (hc->mass_update == 0)
+		gnet_prop_incr_guint32(hc->hosts_in_catcher);
 
     hcache_prune(hc->type);
     hcache_update_low_on_pongs();
@@ -1645,7 +1640,7 @@ hcache_sort_by_added_time(hcache_type_t type)
 	if (GNET_PROPERTY(hcache_debug)) {
 		unsigned count = hash_list_length(hc->hostlist);
 		g_debug("HCACHE sorted %s cache (%u item%s)",
-			hcache_type_to_string(type), count, 1 == count ? "" : "s");
+			hcache_type_to_string(type), count, plural(count));
 	}
 }
 

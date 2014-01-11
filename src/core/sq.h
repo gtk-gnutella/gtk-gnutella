@@ -39,7 +39,9 @@
 #include "common.h"
 #include "qrp.h"
 
+#include "lib/plist.h"
 #include "lib/pmsg.h"
+
 #include "if/core/search.h"
 
 struct hset;
@@ -52,13 +54,13 @@ struct hset;
  * delay queries to avoid flooding a single connection.
  */
 typedef struct search_queue {
-	GList *searches;			/**< A pointer to the GList */
+	plist_t *searches;			/**< List of smsg_t objects */
 	struct hset *handles;		/**< Keeps track of search handles in queue */
 	struct gnutella_node *node;	/**< Node owning this search queue, or NULL */
 	time_t last_sent;    		/**< Time last msg was sent */
 	uint count;					/**< Count of number in queue */
 	/* stats */
-	int n_sent;				/**< Number of searches sent */
+	int n_sent;					/**< Number of searches sent */
 	int n_dropped;				/**< Number dropped due to flow control */
 } squeue_t;
 

@@ -63,7 +63,6 @@
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
@@ -71,6 +70,7 @@
 #include "lib/hikset.h"
 #include "lib/htable.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/strtok.h"
@@ -285,8 +285,8 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 	 *		-- JA 24/10/2003
 	 */
 	if (dmb->sha1 != NULL) {
-		GSList *by_addr;
-		GSList *head;
+		pslist_t *by_addr;
+		pslist_t *head;
 		const void *key;		/* The SHA1 atom used for key in table */
 		void *x;
 		bool found;
@@ -294,7 +294,7 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 		found = htable_lookup_extended(ban_mesh_by_sha1, dmb->sha1, &key, &x);
 		g_assert(found);
 		head = by_addr = x;
-		by_addr = g_slist_remove(by_addr, dmb);
+		by_addr = pslist_remove(by_addr, dmb);
 
 		if (by_addr == NULL) {
 			htable_remove(ban_mesh_by_sha1, key);
@@ -377,7 +377,7 @@ dmesh_ban_add(const struct sha1 *sha1,
 		 */
 
 		if (sha1 != NULL) {
-			GSList *by_addr;
+			pslist_t *by_addr;
 			bool existed;
 
 			dmb->sha1 = atom_sha1_get(sha1);
@@ -390,7 +390,7 @@ dmesh_ban_add(const struct sha1 *sha1,
              */
 			by_addr = htable_lookup(ban_mesh_by_sha1, sha1);
 			existed = by_addr != NULL;
-			by_addr = g_slist_append(by_addr, dmb);
+			by_addr = pslist_append(by_addr, dmb);
 
 			if (!existed) {
 				htable_insert_const(ban_mesh_by_sha1,
@@ -722,9 +722,13 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 static bool
 sha1_of_finished_file(const struct sha1 *sha1)
 {
-	const shared_file_t *sf = shared_file_by_sha1(sha1);
+	shared_file_t *sf = shared_file_by_sha1(sha1);
+	bool finished;
 
-	return sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
+	finished = sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
+	shared_file_unref(&sf);
+
+	return finished;
 }
 
 /**
@@ -749,8 +753,8 @@ dm_lifetime(const struct dmesh *dm)
 static void
 dm_expire(struct dmesh *dm)
 {
-	GSList *expired = NULL;
-	GSList *sl;
+	pslist_t *expired = NULL;
+	pslist_t *sl;
 	time_t now = tm_time();
 	long agemax;
 	list_iter_t *iter;
@@ -780,18 +784,18 @@ dm_expire(struct dmesh *dm)
 					dmesh_urlinfo_to_string(&dme->e.url),
 				(unsigned) delta_time(now, dme->stamp));
 
-		expired = g_slist_prepend(expired, dme);
+		expired = pslist_prepend(expired, dme);
 	}
 
 	list_iter_free(&iter);
 
-	for (sl = expired; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(expired, sl) {
 		struct dmesh_entry *dme = sl->data;
 
 		dm_remove_entry(dm, dme);
 	}
 
-	g_slist_free(expired);
+	pslist_free(expired);
 
 	dm->last_update = tm_time();
 }
@@ -1982,11 +1986,11 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	char url[1024];
 	struct dmesh *dm;
 	size_t len = 0;
-	GSList *l;
+	pslist_t *l;
 	int nselected = 0;
 	struct dmesh_entry *selected[MAX_ENTRIES];
 	int i;
-	GSList *by_addr;
+	pslist_t *by_addr;
 	size_t maxlinelen = 0;
 	header_fmt_t *fmt;
 	bool added;
@@ -2049,7 +2053,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		added = FALSE;
 
 		/* Loop through the X-Nalts */
-		for (l = by_addr; l != NULL; l = g_slist_next(l)) {
+		PSLIST_FOREACH(by_addr, l) {
 			struct dmesh_banned *banned = l->data;
 			dmesh_urlinfo_t *info = banned->info;
 
@@ -3039,10 +3043,10 @@ dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
 void
 dmesh_check_results_set(gnet_results_set_t *rs)
 {
-	GSList *sl;
+	pslist_t *sl;
 	time_t now = tm_time();
 
-	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
 		dmesh_urlinfo_t info;
 		bool has = FALSE;
@@ -3061,10 +3065,11 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		has = hikset_contains(mesh, rc->sha1);
 
 		if (!has) {
-			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
+			shared_file_t *sf = shared_file_by_sha1(rc->sha1);
 			has =	sf != NULL &&
 					sf != SHARE_REBUILDING &&
 					!shared_file_is_partial(sf);
+			shared_file_unref(&sf);
 		}
 
 		if (has) {
@@ -3426,9 +3431,9 @@ static void
 dmesh_ban_prepend_list(void *value, void *user)
 {
 	struct dmesh_banned *dmb = value;
-	GSList **listref = user;
+	pslist_t **listref = user;
 
-	*listref = g_slist_prepend(*listref, dmb);
+	*listref = pslist_prepend(*listref, dmb);
 }
 
 /**
@@ -3437,8 +3442,8 @@ dmesh_ban_prepend_list(void *value, void *user)
 G_GNUC_COLD void
 dmesh_close(void)
 {
-	GSList *banned = NULL;
-	GSList *sl;
+	pslist_t *banned = NULL;
+	pslist_t *sl;
 
 	dmesh_store();
 	dmesh_ban_store();
@@ -3454,13 +3459,13 @@ dmesh_close(void)
 
 	hikset_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
 
-	for (sl = banned; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(banned, sl) {
 		struct dmesh_banned *dmb = sl->data;
 		cq_cancel(&dmb->cq_ev);
 		dmesh_ban_expire(dmesh_cq, dmb);
 	}
 
-	gm_slist_free_null(&banned);
+	pslist_free_null(&banned);
 	hikset_free_null(&ban_mesh);
 	htable_free_null(&ban_mesh_by_sha1);
 

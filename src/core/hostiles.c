@@ -226,8 +226,8 @@ hostiles_flags_to_string(const hostiles_flags_t flags)
 #define LOGAS(fl,str) G_STMT_START {	\
 	if G_UNLIKELY(flags & (fl)) {		\
 		if G_LIKELY(0 != str_len(s))	\
-			str_cat(s, ", ");			\
-		str_cat(s, str);				\
+			STR_CAT(s, ", ");			\
+		STR_CAT(s, str);				\
 	}									\
 } G_STMT_END
 
@@ -818,7 +818,8 @@ get_spamdata(const gnet_host_t *host)
 
 	if (NULL == sd) {
 		if (dbmw_has_ioerr(db_spam)) {
-			g_warning("DBMW \"%s\" I/O error", dbmw_name(db_spam));
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error", dbmw_name(db_spam));
 		}
 	}
 
@@ -935,7 +936,7 @@ spam_remove_port(struct spamdata *sd, const host_addr_t addr, uint16 port)
 			if (GNET_PROPERTY(spam_debug) > 5) {
 				g_debug("SPAM removing port %u for host %s (%u port%s remain)",
 					port, host_addr_to_string(addr), sd->ports,
-					1 == sd->ports ? "" : "s");
+					plural(sd->ports));
 			}
 			gnet_host_set(&host, addr, 0);
 			dbmw_write(db_spam, &host, sd, sizeof *sd);
