@@ -40,10 +40,14 @@
 #include "lib/etree.h"
 #include "lib/log.h"
 #include "lib/ostream.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define TFMT_LAST		'L'		/**< Flags the last child at given depth */
+#define TFMT_MIDDLE		'M'		/**< Flags a middle child at given depth */
 
 /**
  * Tree traversal context.
@@ -52,6 +56,7 @@ struct g2_tfmt {
 	ostream_t *os;				/**< Output stream */
 	unsigned depth;				/**< Current tree depth */
 	uint32 options;				/**< Formatting options */
+	str_t *nstate;				/**< Node state, 1 byte per level */
 };
 
 /**
@@ -63,23 +68,35 @@ g2_tfmt_leaving(struct g2_tfmt *ctx)
 	g_assert(uint_is_positive(ctx->depth));
 
 	ctx->depth--;
+	str_chop(ctx->nstate);
 }
 
 /**
  * Indent formatting.
  */
 static void
-g2_tfmt_indent(struct g2_tfmt *ctx, bool last)
+g2_tfmt_indent(struct g2_tfmt *ctx)
 {
 	uint i;
 
-	for (i = ctx->depth - 1; i != 0; i--) {
-		bool is_last_ident = 1 == i;
-		if (last && is_last_ident)
-			ostream_putc(ctx->os, '\\');
+	/*
+	 * The ctx->nstate string is used to remember whether the child of
+	 * the given level (as indexed by the character position within the
+	 * string) is the last one or not, so that we know how to output the
+	 * indent for that particular depth: either a '\' to signal the last
+	 * child at the right-most position, or a '.' if we are underneath
+	 * the last child of a given depth.
+	 */
+
+
+	for (i = 1; i < ctx->depth; i++) {
+		bool is_last_indent = i + 1 == ctx->depth;
+		bool last = TFMT_LAST == str_at(ctx->nstate,  i);
+		if (last)
+			ostream_putc(ctx->os, is_last_indent ? '\\' : '.');
 		else
 			ostream_putc(ctx->os, '|');
-		if (!is_last_ident)
+		if (!is_last_indent)
 			ostream_putc(ctx->os, ' ');
 		else
 			ostream_putc(ctx->os, '-');
@@ -153,10 +170,11 @@ g2_tfmt_handle_enter(const void *node, void *data)
 	const char *name;
 	bool last;
 
-	ctx->depth++;
-
 	last = NULL == g2_tree_next_sibling(node);
-	g2_tfmt_indent(ctx, last);
+	str_putc(ctx->nstate, last ? TFMT_LAST : TFMT_MIDDLE);
+
+	ctx->depth++;
+	g2_tfmt_indent(ctx);
 
 	name = g2_tree_name(n);
 	if (NULL == name) {
@@ -210,11 +228,14 @@ g2_tfmt_tree(const g2_tree_t *root, ostream_t *os, uint32 options)
 	ZERO(&ctx);
 	ctx.os = os;
 	ctx.options = options;
+	ctx.nstate = str_new(8);
 
 	g2_tree_enter_leave(deconstify_pointer(root),
 		g2_tfmt_handle_enter, g2_tfmt_handle_leave, &ctx);
 
 	g_assert(0 == ctx.depth);		/* Sound traversal */
+
+	str_destroy_null(&ctx.nstate);
 
 	return !ostream_has_ioerr(os);
 }
