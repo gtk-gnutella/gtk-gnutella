@@ -616,7 +616,7 @@ g2_frame_recursive_serialize(struct frame_sctx *sctx, const g2_tree_t *root)
 	uint8 control;
 	bool is_empty, has_children;
 
-	payload = g2_tree_payload(root, ".", &paylen);
+	payload = g2_tree_node_payload(root, &paylen);
 	child = g2_tree_first_child(root);
 	name = g2_tree_name(root);
 	namelen = strlen(name);
