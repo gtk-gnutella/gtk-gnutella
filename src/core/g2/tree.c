@@ -319,8 +319,11 @@ g2_tree_node_payload(const g2_tree_t *node, size_t *paylen)
 {
 	g2_tree_check(node);
 
-	if (NULL == node->payload)
+	if (NULL == node->payload) {
+		if (paylen != NULL)
+			*paylen = 0;
 		return NULL;
+	}
 
 	if (paylen != NULL)
 		*paylen = node->paylen;
