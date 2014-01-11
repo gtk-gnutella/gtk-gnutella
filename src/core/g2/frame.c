@@ -622,8 +622,11 @@ g2_frame_recursive_serialize(struct frame_sctx *sctx, const g2_tree_t *root)
 	namelen = strlen(name);
 
 	g_assert(size_is_non_negative(namelen));
-	g_assert(namelen <= G2_FRAME_NAME_LEN_MAX);
 	g_assert(namelen != 0);
+	g_assert_log(namelen <= G2_FRAME_NAME_LEN_MAX,
+		"%s(): node name too long (%zu bytes): \"%.*s\"%s",
+		G_STRFUNC, namelen, (int) MIN(namelen, 20), name,
+		namelen > 20 ? " (truncated)" : "");
 
 	control = (namelen - 1) << 3;
 	control |= (child != NULL) ? G2_FRAME_CF : 0;
