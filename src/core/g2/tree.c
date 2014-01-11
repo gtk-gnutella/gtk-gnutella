@@ -515,6 +515,20 @@ g2_tree_add_child(g2_tree_t *parent, g2_tree_t *child)
 }
 
 /**
+ * Reverse the order of children in node.
+ */
+void
+g2_tree_reverse_children(g2_tree_t *root)
+{
+	etree_t t;
+
+	g2_tree_check(root);
+
+	etree_init_root(&t, root, FALSE, offsetof(g2_tree_t, node));
+	etree_reverse_children(&t, root);
+}
+
+/**
  * Free sub-tree, destroying all its items and removing the reference in
  * the parent node, if any.
  */
