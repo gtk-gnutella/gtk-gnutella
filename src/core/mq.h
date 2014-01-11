@@ -71,9 +71,21 @@ typedef iovec_t *(*mq_msgtmp_t)(bool initial, size_t *vcnt);
 
 /**
  * Traffic accounting callback, invoked each time a message has been sent
- * by the message queue.
+ * by the message queue or flow-controlled.
+ *
+ * @param node			the node to which message is sent
+ * @param mb			the full message being accounted for
  */
-typedef void (*mq_msgsent_t)(void *node, const pmsg_t *mb);
+typedef void (*mq_msgcount_t)(void *node, const pmsg_t *mb);
+
+/**
+ * Logging regarding a particular message.
+ *
+ * @param mb			the message being logged
+ * @param fmt			formatting string, followed by arguments to format
+ */
+typedef void (*mq_msglog_t)(const pmsg_t *mb, const char *fmt, ...)
+	G_GNUC_PRINTF(2, 3);
 
 /**
  * User-supplied parameters, which are callbacks necessary for the message
@@ -83,7 +95,9 @@ struct mq_uops {
 	cmp_fn_t msg_cmp;			/**< Message (priority) comparison routine */
 	cmp_fn_t msg_headcmp;		/**< Only compare message "headers" */
 	mq_msgtmp_t msg_templates;	/**< Get message templates for "swift" mode */
-	mq_msgsent_t msg_sent;		/**< Message sent */
+	mq_msgcount_t msg_sent;		/**< Message sent */
+	mq_msgcount_t msg_flowc;	/**< Message dropped by flow-control */
+	mq_msglog_t msg_log;		/**< Message logging for dropped messages */
 };
 
 #ifdef MQ_INTERNAL

@@ -52,6 +52,8 @@ void gnet_stats_max_general(gnr_stats_t type, uint64 value);
 void gnet_stats_set_general(gnr_stats_t type, uint64 value);
 uint64 gnet_stats_get_general(gnr_stats_t type);
 void gnet_stats_count_flowc(const void *, bool head_only);
+void gnet_stats_g2_count_flowc(const gnutella_node_t *n,
+	const void *base, size_t len);
 
 enum g2_msg;
 

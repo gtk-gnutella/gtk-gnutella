@@ -356,7 +356,8 @@ again:
 		if (pmsg_check(mb, q)) {
 			written = tx_sendto(q->tx_drv, mb, to);
 		} else {
-			gnet_stats_count_flowc(mbs, FALSE);
+			if (q->uops->msg_flowc != NULL)
+				q->uops->msg_flowc(q->node, mb);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 			written = (ssize_t) -1;
 		}

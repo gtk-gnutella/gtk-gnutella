@@ -3997,11 +3997,35 @@ static struct rx_ut_cb node_rx_ut_cb = {
 	node_add_rx_given,			/* add_rx_given */
 };
 
+/***
+ *** Message queue polymorphic operations.
+ ***/
+
+static void
+node_msg_flowc(void *unused_node, const pmsg_t *mb)
+{
+	(void) unused_node;
+
+	gnet_stats_count_flowc(pmsg_start(mb), FALSE);
+}
+
+static void
+node_g2_msg_flowc(void *node, const pmsg_t *mb)
+{
+	const gnutella_node_t *n = node;
+
+	node_check(n);
+
+	gnet_stats_g2_count_flowc(n, pmsg_start(mb), pmsg_size(mb));
+}
+
 static struct mq_uops node_mq_cb = {
 	gmsg_cmp,					/* msg_cmp */
 	gmsg_headcmp,				/* msg_headcmp */
 	gmsg_mq_templates,			/* msg_templates */
 	node_msg_accounting,		/* msg_sent */
+	node_msg_flowc,				/* msg_flowc */
+	gmsg_log_dropped_pmsg,		/* msg_log */
 };
 
 static struct mq_uops node_g2_mq_cb = {
@@ -4009,6 +4033,8 @@ static struct mq_uops node_g2_mq_cb = {
 	NULL,						/* msg_headcmp */
 	NULL,						/* msg_templates */
 	node_g2_msg_accounting,		/* msg_sent */
+	node_g2_msg_flowc,			/* msg_flowc */
+	NULL,						/* msg_log */
 };
 
 /**

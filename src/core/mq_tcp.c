@@ -138,7 +138,6 @@ again:
 	for (l = q->qtail; l && iovsize > 0; /* empty */) {
 		iovec_t *ie;
 		pmsg_t *mb = (pmsg_t *) l->data;
-		char *mbs = pmsg_start(mb);
 
 		/*
 		 * Don't build too much.
@@ -161,7 +160,8 @@ again:
 			if (pmsg_prio(mb))
 				has_prioritary = TRUE;
 		} else {
-			gnet_stats_count_flowc(mbs, FALSE);	/* Done before message freed */
+			if (q->uops->msg_flowc != NULL)
+				q->uops->msg_flowc(q->node, mb);	/* Done before msg freed */
 			if (q->qlink)
 				q->cops->qlink_remove(q, l);
 
@@ -225,8 +225,6 @@ again:
 		pmsg_t *mb = (pmsg_t *) l->data;
 
 		if ((uint) r >= iovec_len(ie)) {		/* Completely written */
-			char *mb_start = pmsg_start(mb);
-			uint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
 			if (q->uops->msg_sent != NULL)
@@ -396,7 +394,8 @@ again:
 				}
 			}
 		} else {
-			gnet_stats_count_flowc(mbs, FALSE);
+			if (q->uops->msg_flowc != NULL)
+				q->uops->msg_flowc(q->node, mb);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 			written = -1;
 		}

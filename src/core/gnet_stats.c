@@ -1115,11 +1115,33 @@ gnet_stats_count_dropped_nosize(
 			gnet_stats_drop_reason_to_string(reason));
 }
 
+static void
+gnet_stats_flowc_internal(uint t,
+	uint8 function, uint8 ttl, uint8 hops, size_t size)
+{
+	uint i;
+
+	i = MIN(hops, STATS_FLOWC_COLUMNS - 1);
+	gnet_stats.pkg.flowc_hops[i][t]++;
+	gnet_stats.pkg.flowc_hops[i][MSG_TOTAL]++;
+	gnet_stats.byte.flowc_hops[i][t] += size;
+	gnet_stats.byte.flowc_hops[i][MSG_TOTAL] += size;
+
+	i = MIN(ttl, STATS_FLOWC_COLUMNS - 1);
+
+	/* Cannot send a message with TTL=0 (DHT messages are not Gnutella) */
+	g_assert(function == GTA_MSG_DHT || i != 0);
+
+	gnet_stats.pkg.flowc_ttl[i][t]++;
+	gnet_stats.pkg.flowc_ttl[i][MSG_TOTAL]++;
+	gnet_stats.byte.flowc_ttl[i][t] += size;
+	gnet_stats.byte.flowc_ttl[i][MSG_TOTAL] += size;
+}
+
 void
 gnet_stats_count_flowc(const void *head, bool head_only)
 {
 	uint t;
-	uint i;
 	uint16 size = gmsg_size(head) + GTA_HEADER_SIZE;
 	uint8 function = gnutella_header_get_function(head);
 	uint8 ttl = gnutella_header_get_ttl(head);
@@ -1148,21 +1170,35 @@ gnet_stats_count_flowc(const void *head, bool head_only)
 		t = stats_lut[function];
 	}
 
-	i = MIN(hops, STATS_FLOWC_COLUMNS - 1);
-	gnet_stats.pkg.flowc_hops[i][t]++;
-	gnet_stats.pkg.flowc_hops[i][MSG_TOTAL]++;
-	gnet_stats.byte.flowc_hops[i][t] += size;
-	gnet_stats.byte.flowc_hops[i][MSG_TOTAL] += size;
+	gnet_stats_flowc_internal(t, function, ttl, hops, size);
+}
 
-	i = MIN(ttl, STATS_FLOWC_COLUMNS - 1);
+void
+gnet_stats_g2_count_flowc(const gnutella_node_t *n,
+	const void *base, size_t len)
+{
+	uint t;
+	uint8 f, ttl, hops;
 
-	/* Cannot send a message with TTL=0 (DHT messages are not Gnutella) */
-	g_assert(function == GTA_MSG_DHT || i != 0);
+	g_assert(thread_is_main());
 
-	gnet_stats.pkg.flowc_ttl[i][t]++;
-	gnet_stats.pkg.flowc_ttl[i][MSG_TOTAL]++;
-	gnet_stats.byte.flowc_ttl[i][t] += size;
-	gnet_stats.byte.flowc_ttl[i][MSG_TOTAL] += size;
+	f = g2_msg_type(base, len);
+
+	if (GNET_PROPERTY(node_debug) > 3)
+		g_debug("FLOWC G2 %s", g2_msg_type_name(f));
+
+	if (f != G2_MSG_MAX) {
+		f += MSG_G2_BASE;
+	} else {
+		f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+	}
+
+	ttl = NODE_USES_UDP(n) ? 0 : 1;
+	hops = 0;		/* Locally generated, this is TX flowc */
+
+	t = stats_lut[f];
+
+	gnet_stats_flowc_internal(t, f, ttl, hops, len);
 }
 
 /***

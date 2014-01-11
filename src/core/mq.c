@@ -1189,15 +1189,17 @@ make_room_internal(mqueue_t *q,
 		 * Drop message.
 		 */
 
-		if (MQ_DEBUG_LVL(q) > 4) {
-			gmsg_log_dropped_pmsg(cmb, "to %s %s node %s, in favor of %s",
+		if (MQ_DEBUG_LVL(q) > 4 && q->uops->msg_log != NULL) {
+			q->uops->msg_log(cmb, "to %s %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 				NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), msglen ?
 					gmsg_infostr_full(header, msglen) : gmsg_infostr(header));
 		}
 
-		gnet_stats_count_flowc(pmsg_start(cmb), FALSE);
+		if (q->uops->msg_flowc != NULL)
+			q->uops->msg_flowc(q->node, cmb);
+
 		cmb_size = pmsg_size(cmb);
 
 		g_assert(q->qlink[n] == item);
@@ -1306,13 +1308,15 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 		!make_room(q, mb, msize, &qlink_offset)
 	) {
 		g_assert(pmsg_is_unread(mb));			/* Not partially written */
-		if (MQ_DEBUG_LVL(q) > 4)
-			gmsg_log_dropped_pmsg(mb, "to %s %s node %s, %d bytes queued",
+		if (MQ_DEBUG_LVL(q) > 4 && q->uops->msg_log != NULL)
+			q->uops->msg_log(mb, "to %s %s node %s, %d bytes queued",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 				NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), q->size);
 
-		gnet_stats_count_flowc(pmsg_start(mb), FALSE);
+		if (q->uops->msg_flowc != NULL)
+			q->uops->msg_flowc(q->node, mb);
+
 		pmsg_free(mb);
 		node_inc_txdrop(q->node);		/* Dropped during TX */
 		return;
@@ -1342,24 +1346,26 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 
 		g_assert(pmsg_is_unread(mb));			/* Not partially written */
 
-		gnet_stats_count_flowc(pmsg_start(mb), FALSE);
+		if (q->uops->msg_flowc != NULL)
+			q->uops->msg_flowc(q->node, mb);
 
 		if (has_normal_prio) {
-			if (MQ_DEBUG_LVL(q) > 4)
-				gmsg_log_dropped_pmsg(mb,
+			if (MQ_DEBUG_LVL(q) > 4 && q->uops->msg_log != NULL) {
+				q->uops->msg_log(mb,
 					"to %s %s node %s, %d bytes queued [FULL]",
 					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 					NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
-
+			}
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 		} else {
-			if (MQ_DEBUG_LVL(q) > 0)
-				gmsg_log_dropped_pmsg(mb,
+			if (MQ_DEBUG_LVL(q) > 0 && q->uops->msg_log != NULL) {
+				q->uops->msg_log(mb,
 					"to %s %s node %s, %d bytes queued [KILLING]",
 					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 					NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
+			}
 
 			/*
 			 * Is the check for UDP the correct fix or just a
