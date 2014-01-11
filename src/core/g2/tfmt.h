@@ -38,6 +38,7 @@
  * Formatter options.
  */
 #define G2FMT_O_PAYLOAD		(1 << 0)	/**< Dump payloads as well */
+#define G2FMT_O_PAYLEN		(1 << 1)	/**< Show payload lengths */
 
 /*
  * Public interface.

@@ -186,7 +186,8 @@ g2_tfmt_handle_enter(const void *node, void *data)
 	payload = g2_tree_node_payload(n, &paylen);
 
 	if (payload != NULL) {
-		ostream_printf(ctx->os, " (%zu byte%s)", paylen, plural(paylen));
+		if (ctx->options & G2FMT_O_PAYLEN)
+			ostream_printf(ctx->os, " (%zu byte%s)", paylen, plural(paylen));
 
 		if (ctx->options & G2FMT_O_PAYLOAD)
 			g2_tfmt_payload(ctx, payload, paylen);
