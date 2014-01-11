@@ -641,12 +641,12 @@ g2_frame_recursive_serialize(struct frame_sctx *sctx, const g2_tree_t *root)
 	 * following data around so we can store the actual length.
 	 */
 
+	is_empty = NULL == child && 0 == paylen;
+
 	if (0 == paylen && 0 == control) {
 		control |= G2_FRAME_CF;
-		is_empty = TRUE;
-	} else {
-		control |= (1 << 6);
-		is_empty = FALSE;
+	} else if (!is_empty) {
+		control |= (1 << 6);		/* Reserve 1 byte for length */
 	}
 
 	/*
