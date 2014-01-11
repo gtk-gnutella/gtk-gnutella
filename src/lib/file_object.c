@@ -266,7 +266,7 @@ file_object_find(const char * const pathname)
 	if (fd != NULL) {
 		file_descriptor_check_minimal(fd);
 		g_assert(is_valid_fd(fd->fd));
-		g_assert(fd_accmode_is_valid(fd->fd, O_RDWR));
+		g_assert(fd_accmode_is_valid(fd->fd, fd->omode));
 		g_assert(!fd->revoked);
 	}
 
