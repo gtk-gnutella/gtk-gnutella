@@ -363,6 +363,13 @@ g2_frame_recursive_deserialize(struct frame_dctx *dctx)
 			goto failure;
 
 		dctx->p = childctx.p;
+
+		/*
+		 * To restore the order of children in the tree, reverse the
+		 * children list since g2_tree_add_child() prepends to the list.
+		 */
+
+		g2_tree_reverse_children(node);
 	}
 
 	/*
