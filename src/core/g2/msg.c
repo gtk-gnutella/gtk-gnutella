@@ -41,6 +41,7 @@
 #include "lib/misc.h"			/* For clamp_strncpy() */
 #include "lib/patricia.h"
 #include "lib/once.h"
+#include "lib/str.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -252,6 +253,57 @@ g2_msg_type_name(const enum g2_msg type)
 		return "UNKNOWN";
 
 	return g2_msg_symbolic_names[type];
+}
+
+/**
+ * Convert a message name to a type.
+ *
+ * @param name		the G2 message name (root packet name)
+ */
+enum g2_msg
+g2_msg_name_type(const char *name)
+{
+	size_t namelen;
+	bool known;
+	void *val;
+	int type;
+
+	g2_msg_init();
+
+	namelen = strlen(name);
+	known = patricia_lookup_extended_k(g2_msg_pt, name, namelen*8, NULL, &val);
+
+	if (!known)
+		return G2_MSG_MAX;
+
+	type = pointer_to_int(val);
+
+	g_assert((uint) type < UNSIGNED(G2_MSG_MAX));
+
+	return type;
+}
+
+/**
+ * Log a dropped message.
+ */
+void
+g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
+{
+	char rbuf[256];
+
+	if (reason != NULL) {
+		va_list args;
+		va_start(args, reason);
+		rbuf[0] = ':';
+		rbuf[1] = ' ';
+		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		va_end(args);
+	} else {
+		rbuf[0] = '\0';
+	}
+
+	g_debug("DROP G2 %s%s",
+		g2_frame_name(pmsg_start(mb), pmsg_size(mb), NULL), rbuf);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

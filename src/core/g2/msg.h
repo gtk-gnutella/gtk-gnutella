@@ -34,6 +34,8 @@
 #ifndef _core_g2_msg_h_
 #define _core_g2_msg_h_
 
+#include "lib/pmsg.h"
+
 /**
  * Known G2 messages -- the IDs are just for internal use (i.e. arbitrary).
  */
@@ -69,6 +71,9 @@ const char *g2_msg_name(const void *start, size_t len);
 const char *g2_msg_full_name(const void *start, size_t len);
 const char *g2_msg_type_name(const enum g2_msg type);
 const char *g2_msg_raw_name(const void *start, size_t len);
+enum g2_msg g2_msg_name_type(const char *name);
+void g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
+	G_GNUC_PRINTF(2, 3);
 
 #endif /* _core_g2_msg_h_ */
 

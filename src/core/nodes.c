@@ -4058,7 +4058,7 @@ static struct mq_uops node_g2_mq_cb = {
 	node_g2_msg_accounting,		/* msg_sent */
 	node_g2_msg_flowc,			/* msg_flowc */
 	node_g2_msg_queued,			/* msg_queued */
-	NULL,						/* msg_log */
+	g2_msg_log_dropped_pmsg,	/* msg_log */
 };
 
 /**
@@ -10114,9 +10114,6 @@ node_g2_read(struct gnutella_node *n, pmsg_t *mb)
 			}
 		}
 
-		// XXXX
-		g_debug("%s(): frame len is %zu", G_STRFUNC, len);
-
 		/*
 		 * If the length is 1, we reached an "end of stream" byte.
 		 */
@@ -10132,7 +10129,6 @@ node_g2_read(struct gnutella_node *n, pmsg_t *mb)
 		 */
 
 		if G_UNLIKELY(len > GNET_PROPERTY(other_messages_kick_size)) {
-			gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 			node_disable_read(n);
 			node_bye(n, 400, "Too large a frame (%zu bytes)", len);
 			return FALSE;
