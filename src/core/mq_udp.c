@@ -278,8 +278,6 @@ void
 mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 {
 	size_t size;
-	char *mbs;
-	uint8 function;
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */
 	bool error = FALSE;
 
@@ -341,10 +339,8 @@ again:
 	}
 	q->putq_entered++;
 
-	mbs = pmsg_start(mb);
-	function = gmsg_function(mbs);
-
-	gnet_stats_count_queued(q->node, function, mbs, size);
+	if (q->uops->msg_queued != NULL)
+		q->uops->msg_queued(q->node, mb);
 
 	/*
 	 * If queue is empty, attempt a write immediatly.

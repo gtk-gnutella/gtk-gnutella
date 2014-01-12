@@ -763,35 +763,12 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
     stats->byte.received_hops[i][t] += size;
 }
 
-void
-gnet_stats_count_queued(const gnutella_node_t *n,
-	uint8 type, const void *base, uint32 size)
+static void
+gnet_stats_count_queued_internal(const gnutella_node_t *n,
+	uint t, uint8 hops, uint32 size, gnet_stats_t *stats)
 {
 	uint64 *stats_pkg;
 	uint64 *stats_byte;
-	uint t = stats_lut[type];
-	gnet_stats_t *stats;
-	uint8 hops;
-
-	g_assert(t != MSG_UNKNOWN);
-	g_assert(thread_is_main());
-
-	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
-
-	/*
-	 * Adjust for Kademlia messages.
-	 */
-
-	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
-		uint8 opcode = kademlia_header_get_function(base);
-
-		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
-			t = stats_lut[opcode + MSG_DHT_BASE];
-		}
-		hops = 0;
-	} else {
-		hops = gnutella_header_get_hops(base);
-	}
 
 	gnet_stats_randomness(n, t & 0xff, size);
 
@@ -810,6 +787,65 @@ gnet_stats_count_queued(const gnutella_node_t *n,
     stats_pkg[t]++;
     stats_byte[MSG_TOTAL] += size;
     stats_byte[t] += size;
+}
+
+void
+gnet_stats_count_queued(const gnutella_node_t *n,
+	uint8 type, const void *base, uint32 size)
+{
+	uint t = stats_lut[type];
+	gnet_stats_t *stats;
+	uint8 hops;
+
+	g_assert(t != MSG_UNKNOWN);
+	g_assert(thread_is_main());
+	g_assert(!NODE_TALKS_G2(n));
+
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	/*
+	 * Adjust for Kademlia messages.
+	 */
+
+	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
+		uint8 opcode = kademlia_header_get_function(base);
+
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+			t = stats_lut[opcode + MSG_DHT_BASE];
+		}
+		hops = 0;
+	} else {
+		hops = gnutella_header_get_hops(base);
+	}
+
+	gnet_stats_count_queued_internal(n, t, hops, size, stats);
+}
+
+void
+gnet_stats_g2_count_queued(const gnutella_node_t *n,
+	const void *base, size_t len)
+{
+	gnet_stats_t *stats;
+	uint t;
+	uint8 f;
+
+	g_assert(thread_is_main());
+	g_assert(NODE_TALKS_G2(n));
+
+	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	f = g2_msg_type(base, len);
+
+	if (f != G2_MSG_MAX) {
+		f += MSG_G2_BASE;
+	} else {
+		f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+	}
+
+	t = stats_lut[f];
+
+	/* Leaf mode => hops = 0 */
+	gnet_stats_count_queued_internal(n, t, 0, len, stats);
 }
 
 static void

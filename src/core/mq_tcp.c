@@ -301,7 +301,6 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
 {
 	int size;				/* Message size */
 	char *mbs;				/* Start of message */
-	uint8 function;			/* Gnutella message function */
 	bool prioritary;		/* Is message prioritary? */
 	bool error = FALSE;
 
@@ -355,10 +354,10 @@ again:
 	q->putq_entered++;
 	
 	mbs = pmsg_start(mb);
-	function = gmsg_function(mbs);
 	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
-	gnet_stats_count_queued(q->node, function, mbs, size);
+	if (q->uops->msg_queued != NULL)
+		q->uops->msg_queued(q->node, mb);
 
 	/*
 	 * If queue is empty, attempt a write immediatly.

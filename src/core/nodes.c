@@ -4010,6 +4010,18 @@ node_msg_flowc(void *unused_node, const pmsg_t *mb)
 }
 
 static void
+node_msg_queued(void *node, const pmsg_t *mb)
+{
+	const gnutella_node_t *n = node;
+	const char *mbs = pmsg_start(mb);
+	uint8 function = gmsg_function(mbs);
+
+	node_check(n);
+
+	gnet_stats_count_queued(n, function, mbs, pmsg_size(mb));
+}
+
+static void
 node_g2_msg_flowc(void *node, const pmsg_t *mb)
 {
 	const gnutella_node_t *n = node;
@@ -4019,12 +4031,23 @@ node_g2_msg_flowc(void *node, const pmsg_t *mb)
 	gnet_stats_g2_count_flowc(n, pmsg_start(mb), pmsg_size(mb));
 }
 
+static void
+node_g2_msg_queued(void *node, const pmsg_t *mb)
+{
+	const gnutella_node_t *n = node;
+
+	node_check(n);
+
+	gnet_stats_g2_count_queued(n, pmsg_start(mb), pmsg_size(mb));
+}
+
 static struct mq_uops node_mq_cb = {
 	gmsg_cmp,					/* msg_cmp */
 	gmsg_headcmp,				/* msg_headcmp */
 	gmsg_mq_templates,			/* msg_templates */
 	node_msg_accounting,		/* msg_sent */
 	node_msg_flowc,				/* msg_flowc */
+	node_msg_queued,			/* msg_queued */
 	gmsg_log_dropped_pmsg,		/* msg_log */
 };
 
@@ -4034,6 +4057,7 @@ static struct mq_uops node_g2_mq_cb = {
 	NULL,						/* msg_templates */
 	node_g2_msg_accounting,		/* msg_sent */
 	node_g2_msg_flowc,			/* msg_flowc */
+	node_g2_msg_queued,			/* msg_queued */
 	NULL,						/* msg_log */
 };
 

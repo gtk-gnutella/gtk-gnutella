@@ -97,6 +97,7 @@ struct mq_uops {
 	mq_msgtmp_t msg_templates;	/**< Get message templates for "swift" mode */
 	mq_msgcount_t msg_sent;		/**< Message sent */
 	mq_msgcount_t msg_flowc;	/**< Message dropped by flow-control */
+	mq_msgcount_t msg_queued;	/**< Message queued */
 	mq_msglog_t msg_log;		/**< Message logging for dropped messages */
 };
 
