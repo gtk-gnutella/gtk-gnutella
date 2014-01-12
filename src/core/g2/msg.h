@@ -75,6 +75,15 @@ enum g2_msg g2_msg_name_type(const char *name);
 void g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
 	G_GNUC_PRINTF(2, 3);
 
+/**
+ * @return the string name to use as packet name for x.
+ *
+ * This makes sure we don't introduce a typo, as could be the case if we
+ * simply hardwired the string for x: here G2_NAME(x) stands for "x" only
+ * when x is a valid name (otherwise it's a compilation error).
+ */
+#define G2_NAME(x)		g2_msg_type_name(G2_MSG_ ## x)
+
 #endif /* _core_g2_msg_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

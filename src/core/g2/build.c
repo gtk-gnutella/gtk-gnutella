@@ -86,7 +86,7 @@ g2_build_pong_once(void)
 {
 	g2_tree_t *t;
 
-	t = g2_tree_alloc_empty("PO");
+	t = g2_tree_alloc_empty(G2_NAME(PO));
 	build_po = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 }
@@ -127,7 +127,7 @@ g2_build_qht_reset(int slots, int inf_val)
 	p = poke_le32(p, slots);
 	p = poke_u8(p, inf_val);
 
-	t = g2_tree_alloc("QHT", body, sizeof body, FALSE);
+	t = g2_tree_alloc(G2_NAME(QHT), body, sizeof body, FALSE);
 	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 
@@ -167,7 +167,7 @@ g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 
 	memcpy(p, buf, len);
 
-	t = g2_tree_alloc("QHT", payload, len + sizeof body, FALSE);
+	t = g2_tree_alloc(G2_NAME(QHT), payload, len + sizeof body, FALSE);
 	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 	hfree(payload);
