@@ -498,7 +498,7 @@ g2_frame_name(const void *buf, size_t len, size_t *nlen)
 	name = const_ptr_add_offset(buf, bytelen + 1);
 	end = const_ptr_add_offset(name, namelen);
 
-	if (ptr_diff(end, buf) < len)
+	if (ptr_diff(end, buf) > len)
 		return NULL;				/* Packet is too short to hold name */
 
 	if (nlen != NULL)
