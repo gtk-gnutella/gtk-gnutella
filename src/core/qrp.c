@@ -754,7 +754,7 @@ qrt_diff_1(struct routing_table *old, struct routing_table *new, bool reverse)
 	rp->magic = ROUTING_PATCH_MAGIC;
 	rp->refcnt = 1;
 	rp->size = new->slots;
-	rp->infinity = new->infinity;
+	rp->infinity = 1;				/* 1-bit patch, 1 is infinity */
 	rp->len = rp->size / 8;			/* Each entry stored in 1 bit */
 	rp->entry_bits = 1;
 	rp->compressed = FALSE;
