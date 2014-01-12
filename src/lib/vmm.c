@@ -4242,6 +4242,8 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 					VMM_STATS_LOCK;
 					vmm_stats.free_to_cache++;
 					vmm_stats.free_to_cache_pages += n;
+				} else {
+					VMM_STATS_LOCK;		/* For later below */
 				}
 			} else {
 				size_t m = n;
