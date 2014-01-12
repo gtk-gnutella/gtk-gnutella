@@ -240,9 +240,9 @@ static void qrt_patch_compute(
 static uint32 qrt_dump(struct routing_table *rt, bool full);
 void test_hash(void);
 
-static bool
-qrp_can_route_default(const query_hashvec_t *qhv,
-					  const struct routing_table *rt);
+static bool qrp_can_route_default(
+	const query_hashvec_t *qhv, const struct routing_table *rt);
+static void qrt_patch_fire_ready(struct routing_patch *rp);
 
 /**
  * Install supplied routing_table as the global `routing_table'.
@@ -885,8 +885,9 @@ qrt_step_compress(struct bgtask *h, void *u, int ticks)
 		 */
 
 		if (qrp_debugging(1)) {
-			g_debug("QRP patch: len=%d, compressed=%d (ratio %.2f%%)",
-				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
+			g_debug("QRP %d-bit patch %p: len=%d, compressed=%d (ratio %.2f%%)",
+				ctx->rp->entry_bits, ctx->rp, ctx->rp->len,
+				zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
 					ctx->rp->len);
 		}
@@ -2193,11 +2194,13 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 		g_assert(ROUTING_PATCH_MAGIC == crp->magic);
 
 		if (qrp_debugging(1)) {
-			g_debug("%s(): npatch=%d, got %d-bit %scompressed patch "
+			g_debug("%s(): npatch=%d, got %d-bit %scompressed patch %p "
 				"(size=%d, len=%d)",
 				G_STRFUNC, ctx->npatch, crp->entry_bits,
-				crp->compressed ? "" : "un-", crp->size, crp->len);
+				crp->compressed ? "" : "un-", crp, crp->size, crp->len);
 		}
+
+		qrt_patch_ref(crp);		/* Keep it referenced for callback below */
 
 		QRP_TASK_LOCK;
 
@@ -2207,6 +2210,9 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 		}
 
 		QRP_TASK_UNLOCK;
+
+		qrt_patch_fire_ready(crp);
+		qrt_patch_unref(crp);	/* Remove extra reference taken above */
 	}
 
 	/*
@@ -2679,7 +2685,7 @@ struct qrt_patch_context {
 	struct bgtask *compress;	/**< The compression task */
 };
 
-typedef void (*qrt_patch_computed_cb_t)(void *arg, struct routing_patch *rp);
+typedef bool (*qrt_patch_computed_cb_t)(void *arg, struct routing_patch *rp);
 
 struct patch_listener_info {
 	qrt_patch_computed_cb_t callback;
@@ -2688,6 +2694,46 @@ struct patch_listener_info {
 
 static struct qrt_patch_context *qrt_patch_ctx;
 static pslist_t *qrt_patch_computed_listeners;
+static spinlock_t qrt_patch_listeners_lock = SPINLOCK_INIT;
+
+#define QRP_PATCH_LISTEN_LOCK	spinlock(&qrt_patch_listeners_lock)
+#define QRP_PATCH_LISTEN_UNLOCK	spinunlock(&qrt_patch_listeners_lock)
+
+static bool
+qrt_patch_fire_helper(void *data, void *udata)
+{
+	struct patch_listener_info *pi = data;
+	struct routing_patch *rp = udata;
+
+	/*
+	 * If the callback returns TRUE, it means it got the patch it wanted
+	 * and therefore it can be removed from the listeners.
+	 * If the routing patch is NULL, we assume it returned TRUE anyway.
+	 */
+
+	if ((*pi->callback)(pi->arg, rp) || NULL == rp) {
+		WFREE(pi);
+		return TRUE;	/* Done, remove from listening list */
+	}
+
+	return FALSE;		/* Keep in the listening list */
+}
+
+/**
+ * Fire listenters to tell them a routine patch is ready.
+ *
+ * @param rp		the routine patch that is ready (NULL indicates failure)
+ */
+static void
+qrt_patch_fire_ready(struct routing_patch *rp)
+{
+	QRP_PATCH_LISTEN_LOCK;
+
+	qrt_patch_computed_listeners = pslist_foreach_remove(
+		qrt_patch_computed_listeners, qrt_patch_fire_helper, rp);
+
+	QRP_PATCH_LISTEN_UNLOCK;
+}
 
 /**
  * Callback invoked when the routing patch is computed.
@@ -2697,7 +2743,6 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	bgstatus_t status, void *arg)
 {
 	struct qrt_patch_context *ctx = arg;
-	pslist_t *sl;
 
 	(void) unused_h;
 	(void) unused_u;
@@ -2705,8 +2750,10 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	g_assert(qrt_patch_ctx == NULL || ctx == qrt_patch_ctx);
 	g_assert(ctx->rpp != NULL);
 
-	if (qrp_debugging(1))
-		g_debug("QRP global default patch computed (status = %d)", status);
+	if (qrp_debugging(1)) {
+		g_debug("QRP global default %d-bit patch %p computed (status = %d)",
+			ctx->rp->entry_bits, ctx->rp, status);
+	}
 
 	if (status == BGS_OK) {
 		time_t now = tm_time();
@@ -2741,13 +2788,7 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	if (ctx == qrt_patch_ctx)
 		qrt_patch_ctx = NULL;		/* Indicates that we're done */
 
-	for (sl = qrt_patch_computed_listeners; sl; sl = pslist_next(sl)) {
-		struct patch_listener_info *pi = sl->data;
-		(*pi->callback)(pi->arg, *ctx->rpp);	/* NULL indicates failure */
-		WFREE(pi);
-	}
-
-	pslist_free_null(&qrt_patch_computed_listeners);
+	qrt_patch_fire_ready(*ctx->rpp);	/* NULL indicates failure */
 
 	QRP_TASK_UNLOCK;
 
@@ -2776,12 +2817,12 @@ qrt_patch_computed_add_listener(qrt_patch_computed_cb_t cb, void *arg)
 	pi->callback = cb;
 	pi->arg = arg;
 
-	QRP_TASK_LOCK;
+	QRP_PATCH_LISTEN_LOCK;
 
 	qrt_patch_computed_listeners =
 		pslist_prepend(qrt_patch_computed_listeners, pi);
 
-	QRP_TASK_UNLOCK;
+	QRP_PATCH_LISTEN_UNLOCK;
 
 	return pi;
 }
@@ -2794,12 +2835,12 @@ qrt_patch_computed_remove_listener(void *handle)
 {
 	struct patch_listener_info *pi = handle;
 
-	QRP_TASK_LOCK;
+	QRP_PATCH_LISTEN_LOCK;
 	g_assert(qrt_patch_computed_listeners != NULL);
 
 	qrt_patch_computed_listeners =
 		pslist_remove(qrt_patch_computed_listeners, handle);
-	QRP_TASK_UNLOCK;
+	QRP_PATCH_LISTEN_UNLOCK;
 
 	WFREE(pi);
 }
@@ -2860,6 +2901,11 @@ qrt_patch_compute(struct routing_patch *rp, struct routing_patch **rpp)
 	ctx->rpp = rpp;
 
 	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (uint32) rp->len);
+
+	if (qrp_debugging(1)) {
+		g_debug("QRP launching compression of %d-bit patch %p",
+			rp->entry_bits, rp);
+	}
 
 	ctx->compress =
 		qrt_patch_compress(rp, NULL, qrt_patch_computed, ctx, NULL);
@@ -3230,8 +3276,10 @@ error:
  *
  * If we get a NULL pointer, it means the computation was interrupted or
  * that an error occurred.
+ *
+ * @return TRUE if we got the default routing patch suitable for the node.
  */
-static void
+static bool
 qrt_patch_available(void *arg, struct routing_patch *rp)
 {
 	struct qrt_update *qup = arg;
@@ -3253,12 +3301,30 @@ qrt_patch_available(void *arg, struct routing_patch *rp)
 	if (NULL == rp) {
 		g_assert(routing_table != NULL);
 		routing_table->cancelled = TRUE;
+	} else {
+		/*
+		 * Did we get the patch we need for that connection?
+		 */
+
+		if (rp != qrt_default_patch(qup->node)) {
+			if (qrp_debugging(1)) {
+				g_debug("QRP got %d-bit routing patch %p for %s, wait again",
+					rp->entry_bits, rp, node_infostr(qup->node));
+			}
+			return FALSE;
+		}
+
+		if (qrp_debugging(1)) {
+			g_debug("QRP got suitable %d-bit routing patch %p for %s",
+				rp->entry_bits, rp, node_infostr(qup->node));
+		}
 	}
 
 	qup->listener = NULL;
 	qup->patch = (rp == NULL) ? NULL : qrt_patch_ref(rp);
 
 	qrt_compressed(NULL, NULL, rp == NULL ? BGS_ERROR : BGS_OK, qup);
+	return TRUE;
 }
 
 /**
