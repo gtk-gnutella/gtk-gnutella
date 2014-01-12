@@ -5467,4 +5467,22 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_bad_g2";
+	desc = "Whether to log bad G2 messages, corrupted or unexpected.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_dropped_g2";
+	desc = "Whether to log dropped G2 messages";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

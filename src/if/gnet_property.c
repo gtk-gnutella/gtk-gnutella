@@ -1094,6 +1094,10 @@ guint32  gnet_property_variable_node_g2_count     = 0;
 static const guint32  gnet_property_variable_node_g2_count_default = 0;
 guint32  gnet_property_variable_max_g2_hubs     = 2;
 static const guint32  gnet_property_variable_max_g2_hubs_default = 2;
+gboolean gnet_property_variable_log_bad_g2     = FALSE;
+static const gboolean gnet_property_variable_log_bad_g2_default = FALSE;
+gboolean gnet_property_variable_log_dropped_g2     = FALSE;
+static const gboolean gnet_property_variable_log_dropped_g2_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -10612,6 +10616,42 @@ gnet_prop_init(void) {
     gnet_property->props[473].data.guint32.choices = NULL;
     gnet_property->props[473].data.guint32.max   = 3;
     gnet_property->props[473].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_LOG_BAD_G2:
+     *
+     * General data:
+     */
+    gnet_property->props[474].name = "log_bad_g2";
+    gnet_property->props[474].desc = _("Whether to log bad G2 messages, corrupted or unexpected.");
+    gnet_property->props[474].ev_changed = event_new("log_bad_g2_changed");
+    gnet_property->props[474].save = TRUE;
+    gnet_property->props[474].vector_size = 1;
+	mutex_init(&gnet_property->props[474].lock);
+
+    /* Type specific data: */
+    gnet_property->props[474].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[474].data.boolean.def   = (void *) &gnet_property_variable_log_bad_g2_default;
+    gnet_property->props[474].data.boolean.value = (void *) &gnet_property_variable_log_bad_g2;
+
+
+    /*
+     * PROP_LOG_DROPPED_G2:
+     *
+     * General data:
+     */
+    gnet_property->props[475].name = "log_dropped_g2";
+    gnet_property->props[475].desc = _("Whether to log dropped G2 messages");
+    gnet_property->props[475].ev_changed = event_new("log_dropped_g2_changed");
+    gnet_property->props[475].save = TRUE;
+    gnet_property->props[475].vector_size = 1;
+	mutex_init(&gnet_property->props[475].lock);
+
+    /* Type specific data: */
+    gnet_property->props[475].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[475].data.boolean.def   = (void *) &gnet_property_variable_log_dropped_g2_default;
+    gnet_property->props[475].data.boolean.value = (void *) &gnet_property_variable_log_dropped_g2;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -524,6 +524,8 @@ extern const guint32  gnet_property_variable_hosts_in_g2hub_catcher;
 extern const gboolean gnet_property_variable_enable_g2;
 extern const guint32  gnet_property_variable_node_g2_count;
 extern const guint32  gnet_property_variable_max_g2_hubs;
+extern const gboolean gnet_property_variable_log_bad_g2;
+extern const gboolean gnet_property_variable_log_dropped_g2;
 
 
 prop_set_t *gnet_prop_init(void);
