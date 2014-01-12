@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2012, Raphael Manfredi
- *
- * Jmakefile for the core/g2 part.
+ * Copyright (c) 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,28 +21,27 @@
  *----------------------------------------------------------------------
  */
 
-SRC = \
-	build.c \
-	frame.c \
-	gwc.c \
-	msg.c \
-	node.c \
-	tfmt.c \
-	tree.c
+/**
+ * @ingroup core
+ * @file
+ *
+ * G2 message factory.
+ *
+ * @author Raphael Manfredi
+ * @date 2014
+ */
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#ifndef _core_g2_build_h_
+#define _core_g2_build_h_
 
+#include "lib/pmsg.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/*
+ * Public interface.
+ */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+pmsg_t *g2_build_pong(void);
 
-NormalLibraryTarget(g2, $(SRC), $(OBJ))
-DependTarget()
+#endif /* _core_g2_build_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

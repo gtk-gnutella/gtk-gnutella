@@ -79,6 +79,7 @@ all:: .FORCE_DEPEND
 # Start of Jmakefile
 
 SRC = \
+	build.c \
 	frame.c \
 	gwc.c \
 	msg.c \
@@ -87,6 +88,7 @@ SRC = \
 	tree.c
 
 OBJ = \
+	build.o \
 	frame.o \
 	gwc.o \
 	msg.o \

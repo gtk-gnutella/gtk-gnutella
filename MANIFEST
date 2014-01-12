@@ -314,6 +314,8 @@ src/core/fileinfo.c
 src/core/fileinfo.h
 src/core/g2/Jmakefile
 src/core/g2/Makefile.SH
+src/core/g2/build.c
+src/core/g2/build.h
 src/core/g2/frame.c
 src/core/g2/frame.h
 src/core/g2/gwc.c
