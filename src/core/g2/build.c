@@ -62,6 +62,7 @@ g2_build_pong_once(void)
 	build_po = pmsg_new(PMSG_P_DATA, NULL, len);
 	g2_frame_serialize(t, pmsg_start(build_po), len);
 	pmsg_seek(build_po, len);
+	g2_tree_free_null(&t);
 
 	g_assert(UNSIGNED(pmsg_size(build_po)) == len);
 }
