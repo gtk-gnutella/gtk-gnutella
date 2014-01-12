@@ -2204,10 +2204,9 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 
 		QRP_TASK_LOCK;
 
-		if (*rpp != NULL) {
+		if (*rpp != NULL)
 			qrt_patch_unref(*rpp);
-			*rpp = crp;
-		}
+		*rpp = crp;
 
 		QRP_TASK_UNLOCK;
 
