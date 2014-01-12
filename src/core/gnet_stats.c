@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2003, Richard Eckart
+ * Copyright (c) 2008-2014, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,6 +30,8 @@
  *
  * @author Richard Eckart
  * @date 2001-2003
+ * @author Raphael Manfredi
+ * @date 2008-2014
  */
 
 #include "common.h"
@@ -593,6 +596,34 @@ gnet_stats_randomness(const gnutella_node_t *n, uint8 type, uint32 val)
 	random_pool_append(&crc32, sizeof crc32);
 }
 
+static void
+gnet_stats_count_received_header_internal(gnutella_node_t *n,
+	size_t header_size, uint t, uint8 ttl, uint8 hops)
+{
+	gnet_stats_t *stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	uint i;
+
+    n->received++;
+
+    gnet_stats.pkg.received[MSG_TOTAL]++;
+    gnet_stats.pkg.received[t]++;
+    gnet_stats.byte.received[MSG_TOTAL] += header_size;
+    gnet_stats.byte.received[t] += header_size;
+
+    stats->pkg.received[MSG_TOTAL]++;
+    stats->pkg.received[t]++;
+    stats->byte.received[MSG_TOTAL] += header_size;
+    stats->byte.received[t] += header_size;
+
+	i = MIN(ttl, STATS_RECV_COLUMNS - 1);
+    stats->pkg.received_ttl[i][MSG_TOTAL]++;
+    stats->pkg.received_ttl[i][t]++;
+
+	i = MIN(hops, STATS_RECV_COLUMNS - 1);
+    stats->pkg.received_hops[i][MSG_TOTAL]++;
+    stats->pkg.received_hops[i][t]++;
+}
+
 /**
  * Called when Gnutella header has been read.
  */
@@ -600,33 +631,15 @@ void
 gnet_stats_count_received_header(gnutella_node_t *n)
 {
 	uint t = stats_lut[gnutella_header_get_function(&n->header)];
-	uint i;
-	gnet_stats_t *stats;
+	uint8 ttl, hops;
 
 	g_assert(thread_is_main());
 	g_assert(!NODE_TALKS_G2(n));
 
-	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+	ttl = gnutella_header_get_ttl(&n->header);
+	hops = gnutella_header_get_hops(&n->header);
 
-    n->received++;
-
-    gnet_stats.pkg.received[MSG_TOTAL]++;
-    gnet_stats.pkg.received[t]++;
-    gnet_stats.byte.received[MSG_TOTAL] += GTA_HEADER_SIZE;
-    gnet_stats.byte.received[t] += GTA_HEADER_SIZE;
-
-    stats->pkg.received[MSG_TOTAL]++;
-    stats->pkg.received[t]++;
-    stats->byte.received[MSG_TOTAL] += GTA_HEADER_SIZE;
-    stats->byte.received[t] += GTA_HEADER_SIZE;
-
-	i = MIN(gnutella_header_get_ttl(&n->header), STATS_RECV_COLUMNS - 1);
-    stats->pkg.received_ttl[i][MSG_TOTAL]++;
-    stats->pkg.received_ttl[i][t]++;
-
-	i = MIN(gnutella_header_get_hops(&n->header), STATS_RECV_COLUMNS - 1);
-    stats->pkg.received_hops[i][MSG_TOTAL]++;
-    stats->pkg.received_hops[i][t]++;
+	gnet_stats_count_received_header_internal(n, GTA_HEADER_SIZE, t, ttl, hops);
 }
 
 /**
@@ -717,13 +730,20 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 		}
 		ttl = 1;
 		hops = NODE_USES_UDP(n) ? 0 : 1;
+		t = stats_lut[f];
+		/*
+		 * No header for G2, so count header reception now with a size of zero.
+		 * This is required to update the other packet reception statistics.
+		 */
+		gnet_stats_count_received_header_internal(
+			deconstify_pointer(n),
+			0, t, ttl, hops);
 	} else {
 		f = gnutella_header_get_function(&n->header);
 		hops = gnutella_header_get_hops(&n->header);
 		ttl = gnutella_header_get_ttl(&n->header);
+		t = stats_lut[f];
 	}
-
-	t = stats_lut[f];
 
 	gnet_stats_randomness(n, f, size);
 
@@ -748,6 +768,8 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 		}
 	}
 
+	g_assert(t < MSG_TOTAL);
+
     gnet_stats.byte.received[MSG_TOTAL] += size;
     gnet_stats.byte.received[t] += size;
 
@@ -769,6 +791,8 @@ gnet_stats_count_queued_internal(const gnutella_node_t *n,
 {
 	uint64 *stats_pkg;
 	uint64 *stats_byte;
+
+	g_assert(t < MSG_TOTAL);
 
 	gnet_stats_randomness(n, t & 0xff, size);
 
@@ -854,6 +878,8 @@ gnet_stats_count_sent_internal(const gnutella_node_t *n,
 {
 	uint64 *stats_pkg;
 	uint64 *stats_byte;
+
+	g_assert(t < MSG_TOTAL);
 
 	gnet_stats_randomness(n, t & 0xff, size);
 
@@ -1130,6 +1156,7 @@ gnet_stats_count_dropped_nosize(
 
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
 	g_assert(thread_is_main());
+	g_assert(!NODE_TALKS_G2(n));
 
 	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
@@ -1148,6 +1175,8 @@ gnet_stats_flowc_internal(uint t,
 	uint8 function, uint8 ttl, uint8 hops, size_t size)
 {
 	uint i;
+
+	g_assert(t < MSG_TOTAL);
 
 	i = MIN(hops, STATS_FLOWC_COLUMNS - 1);
 	gnet_stats.pkg.flowc_hops[i][t]++;
