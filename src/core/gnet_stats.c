@@ -908,6 +908,7 @@ gnet_stats_count_expired(const gnutella_node_t *n)
 	gnet_stats_t *stats;
 
 	g_assert(thread_is_main());
+	g_assert(!NODE_TALKS_G2(n));
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
