@@ -812,12 +812,36 @@ gnet_stats_count_queued(const gnutella_node_t *n,
     stats_byte[t] += size;
 }
 
+static void
+gnet_stats_count_sent_internal(const gnutella_node_t *n,
+	uint t, uint8 hops, uint32 size, gnet_stats_t *stats)
+{
+	uint64 *stats_pkg;
+	uint64 *stats_byte;
+
+	gnet_stats_randomness(n, t & 0xff, size);
+
+	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;
+	stats_byte = hops ? gnet_stats.byte.relayed : gnet_stats.byte.generated;
+
+    stats_pkg[MSG_TOTAL]++;
+    stats_pkg[t]++;
+    stats_byte[MSG_TOTAL] += size;
+    stats_byte[t] += size;
+
+	stats_pkg = hops ? stats->pkg.relayed : stats->pkg.generated;
+	stats_byte = hops ? stats->byte.relayed : stats->byte.generated;
+
+    stats_pkg[MSG_TOTAL]++;
+    stats_pkg[t]++;
+    stats_byte[MSG_TOTAL] += size;
+    stats_byte[t] += size;
+}
+
 void
 gnet_stats_count_sent(const gnutella_node_t *n,
 	uint8 type, const void *base, uint32 size)
 {
-	uint64 *stats_pkg;
-	uint64 *stats_byte;
 	uint t = stats_lut[type];
 	gnet_stats_t *stats;
 	uint8 hops;
@@ -843,31 +867,13 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 		hops = gnutella_header_get_hops(base);
 	}
 
-	gnet_stats_randomness(n, t & 0xff, size);
-
-	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;
-	stats_byte = hops ? gnet_stats.byte.relayed : gnet_stats.byte.generated;
-
-    stats_pkg[MSG_TOTAL]++;
-    stats_pkg[t]++;
-    stats_byte[MSG_TOTAL] += size;
-    stats_byte[t] += size;
-
-	stats_pkg = hops ? stats->pkg.relayed : stats->pkg.generated;
-	stats_byte = hops ? stats->byte.relayed : stats->byte.generated;
-
-    stats_pkg[MSG_TOTAL]++;
-    stats_pkg[t]++;
-    stats_byte[MSG_TOTAL] += size;
-    stats_byte[t] += size;
+	gnet_stats_count_sent_internal(n, t, hops, size, stats);
 }
 
 void
 gnet_stats_g2_count_sent(const gnutella_node_t *n,
 	enum g2_msg type, uint32 size)
 {
-	uint64 *stats_pkg;
-	uint64 *stats_byte;
 	uint t;
 	gnet_stats_t *stats;
 
@@ -881,23 +887,8 @@ gnet_stats_g2_count_sent(const gnutella_node_t *n,
 
 	g_assert(t != MSG_UNKNOWN);
 
-	gnet_stats_randomness(n, t & 0xff, size);
-
-	stats_pkg = gnet_stats.pkg.generated;
-	stats_byte = gnet_stats.byte.generated;
-
-    stats_pkg[MSG_TOTAL]++;
-    stats_pkg[t]++;
-    stats_byte[MSG_TOTAL] += size;
-    stats_byte[t] += size;
-
-	stats_pkg = stats->pkg.generated;
-	stats_byte = stats->byte.generated;
-
-    stats_pkg[MSG_TOTAL]++;
-    stats_pkg[t]++;
-    stats_byte[MSG_TOTAL] += size;
-    stats_byte[t] += size;
+	/* Leaf mode => hops = 0 */
+	gnet_stats_count_sent_internal(n, t, 0, size, stats);
 }
 
 void
