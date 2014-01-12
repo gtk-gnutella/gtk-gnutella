@@ -4325,16 +4325,19 @@ node_is_now_connected(struct gnutella_node *n)
 	/*
 	 * Initiate QRP sending if we're a leaf node or if we're an ultra node
 	 * and the remote note is an UP supporting last-hop QRP.
+	 *
+	 * If the remote node is a G2 hub, we're acting as a leaf node so we
+	 * also need to send our QRP.
 	 */
 
-// XXX need QRP sending to G2 hubs as well
-
 	if (
-		NODE_IS_ULTRA(n) &&
 		(
-			settings_is_leaf() ||
-			(settings_is_ultra() && (n->attrs & NODE_A_UP_QRP))
-		)
+			NODE_IS_ULTRA(n) &&
+			(
+				settings_is_leaf() ||
+				(settings_is_ultra() && (n->attrs & NODE_A_UP_QRP))
+			)
+		) || NODE_TALKS_G2(n)
 	) {
 		struct routing_table *qrt = qrt_get_table();
 
@@ -10731,13 +10734,13 @@ node_remove_worst(bool non_local)
  * Initiate sending of the query routing table.
  *
  * NOTE: Callers should check NODE_IS_CONNECTED(n) again after this
- *       function because the node might be disconnected on return.
+ *       function because the node might be disconnected upon return.
  */
 static void
 node_send_qrt(struct gnutella_node *n, struct routing_table *query_table)
 {
 	g_assert(GNET_PROPERTY(current_peermode) != NODE_P_NORMAL);
-	g_assert(NODE_IS_ULTRA(n));
+	g_assert(NODE_IS_ULTRA(n) || NODE_TALKS_G2(n));
 	g_assert(NODE_IS_CONNECTED(n));
 	g_assert(query_table != NULL);
 	g_assert(n->qrt_update == NULL);
@@ -10766,7 +10769,7 @@ node_send_patch_step(struct gnutella_node *n)
 {
 	bool ok;
 
-	g_assert(NODE_IS_ULTRA(n));
+	g_assert(NODE_IS_ULTRA(n) || NODE_TALKS_G2(n));
 	g_assert(NODE_IS_CONNECTED(n));
 	g_assert(n->qrt_update);
 
@@ -10887,6 +10890,41 @@ node_qrt_patched(struct gnutella_node *n, struct routing_table *query_table)
 		node_fire_node_flags_changed(n);
 }
 
+
+/**
+ * Attempt to send Query Routing Table to node.
+ *
+ * This is called for all ultra nodes and G2 nodes (for which we are a leaf).
+ */
+static void
+node_qrt_send(gnutella_node_t *n, struct routing_table *query_table)
+{
+	g_assert(NODE_IS_ULTRA(n) || NODE_TALKS_G2(n));
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	if (
+		settings_is_ultra() &&
+		!NODE_TALKS_G2(n) &&
+		!(n->attrs & NODE_A_UP_QRP)
+	)
+		return;		/* Node is an ultrapeer not support inter-UP QRP */
+
+	/*
+	 * If we see a node that is still busy sending the old patch, mark
+	 * is as holding an obsolete QRP.  It will get the latest patch as
+	 * soon as this one completes.
+	 */
+
+	if (n->qrt_update != NULL) {
+		n->flags |= NODE_F_STALE_QRP;
+		return;
+	}
+
+	node_send_qrt(n, query_table);
+}
+
 /**
  * Invoked for nodes when our Query Routing Table changed.
  */
@@ -10934,26 +10972,11 @@ node_qrt_changed(struct routing_table *query_table)
 	 */
 
     for (sl = sl_up_nodes; sl; sl = pslist_next(sl)) {
-        n = sl->data;
+		node_qrt_send(sl->data, query_table);
+	}
 
-		if (!NODE_IS_WRITABLE(n) || !NODE_IS_ULTRA(n))
-			continue;
-
-		if (settings_is_ultra() && !(n->attrs & NODE_A_UP_QRP))
-			continue;
-
-		/*
-		 * If we see a node that is still busy sending the old patch, mark
-		 * is as holding an obsolete QRP.  It will get the latest patch as
-		 * soon as this one completes.
-		 */
-
-		if (n->qrt_update != NULL) {
-			n->flags |= NODE_F_STALE_QRP;
-			continue;
-		}
-
-		node_send_qrt(n, query_table);
+    for (sl = sl_g2_nodes; sl; sl = pslist_next(sl)) {
+		node_qrt_send(sl->data, query_table);
 	}
 }
 

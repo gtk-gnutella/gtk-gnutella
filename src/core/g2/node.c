@@ -76,6 +76,50 @@ g2_node_send_pong(gnutella_node_t *n)
 }
 
 /**
+ * Send a /QHT RESET to node.
+ *
+ * @param n			the TCP node to which we need to send the /QHT
+ * @param slots		amount of slots in the table (power of 2)
+ * @param inf_val	infinity value (1)
+ */
+void
+g2_node_send_qht_reset(gnutella_node_t *n, int slots, int inf_val)
+{
+	pmsg_t *mb = g2_build_qht_reset(slots, inf_val);
+
+	node_check(n);
+	g_assert(!NODE_IS_UDP(n));
+	g_assert(NODE_TALKS_G2(n));
+
+	g2_node_send(n, mb);
+}
+
+/**
+ * Send a /QHT RESET to node.
+ *
+ * @param n			the TCP node to which we need to send the /QHT
+ * @param seqno			the patch sequence number
+ * @param seqsize		the total length of the sequence
+ * @param compressed	whether patch is compressed
+ * @param bits			amount of bits for each entry (1)
+ * @param buf			start of patch data
+ * @param len			length in byte of patch data
+ */
+void
+g2_node_send_qht_patch(gnutella_node_t *n,
+	int seqno, int seqsize, bool compressed, int bits,
+	char *buf, int len)
+{
+	pmsg_t *mb = g2_build_qht_patch(seqno, seqsize, compressed, bits, buf, len);
+
+	node_check(n);
+	g_assert(!NODE_IS_UDP(n));
+	g_assert(NODE_TALKS_G2(n));
+
+	g2_node_send(n, mb);
+}
+
+/**
  * Drop message received from given node.
  *
  * @param routine		routine where we're coming from (the one dropping)
