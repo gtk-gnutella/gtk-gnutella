@@ -1597,8 +1597,8 @@ inputevt_close(void)
 	hash_list_free(&ctx->readable);
 	G_FREE_NULL(ctx->used_poll_idx);
 	G_FREE_NULL(ctx->used_event_id);
-	G_FREE_NULL(ctx->relay);
-	G_FREE_NULL(ctx->pfd_arr);
+	XFREE_NULL(ctx->relay);
+	XFREE_NULL(ctx->pfd_arr);
 	fd_close(&ctx->master_fd);
 	ctx->initialized = FALSE;
 
