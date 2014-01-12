@@ -41,6 +41,8 @@
 #include "tfmt.h"
 #include "tree.h"
 
+#include "core/mq_tcp.h"
+#include "core/mq_udp.h"
 #include "core/nodes.h"
 
 #include "if/gnet_property_priv.h"
