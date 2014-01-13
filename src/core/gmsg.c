@@ -47,6 +47,8 @@
 #include "sq.h"
 #include "vmsg.h"
 
+#include "g2/msg.h"
+
 #include "if/gnet_property_priv.h"
 #include "if/dht/kmsg.h"
 #include "if/dht/kademlia.h"
@@ -1371,7 +1373,7 @@ gmsg_infostr(const void *msg)
  *
  * The advantage over calling gmsg_infostr(&n->header) is that the node
  * information is also printed if by chance the hop count of the message is 1
- * or 0 (for UDP messages).
+ * or 0 (for UDP messages).  Also this routine works for G2 nodes.
  *
  * @returns formatted static string:
  *
@@ -1389,10 +1391,17 @@ gmsg_node_infostr(const gnutella_node_t *n)
 	static char buf[180];
 	size_t w;
 
-	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
+	if (NODE_TALKS_G2(n)) {
+		const char *name = g2_msg_name(n->data, n->size);
 
-	if (gnutella_header_get_hops(n->header) <= 1) {
-		str_bprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
+		str_bprintf(buf, sizeof buf, "/%s (%u byte%s) //%s//",
+				name, n->size, plural(n->size), node_infostr(n));
+	} else {
+		w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
+
+		if (gnutella_header_get_hops(n->header) <= 1) {
+			str_bprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
+		}
 	}
 
 	return buf;
