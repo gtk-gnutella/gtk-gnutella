@@ -59,6 +59,9 @@
 void
 g2_node_send(gnutella_node_t *n, pmsg_t *mb)
 {
+	node_check(n);
+	g_assert(NODE_TALKS_G2(n));
+
 	if (NODE_IS_UDP(n))
 		mq_udp_node_putq(n->outq, mb, n);
 	else
@@ -90,7 +93,6 @@ g2_node_send_qht_reset(gnutella_node_t *n, int slots, int inf_val)
 
 	node_check(n);
 	g_assert(!NODE_IS_UDP(n));
-	g_assert(NODE_TALKS_G2(n));
 
 	g2_node_send(n, mb);
 }
@@ -115,7 +117,20 @@ g2_node_send_qht_patch(gnutella_node_t *n,
 
 	node_check(n);
 	g_assert(!NODE_IS_UDP(n));
-	g_assert(NODE_TALKS_G2(n));
+
+	g2_node_send(n, mb);
+}
+
+/**
+ * Send a /LNI to node.
+ */
+void
+g2_node_send_lni(gnutella_node_t *n)
+{
+	pmsg_t *mb = g2_build_lni();
+
+	node_check(n);
+	g_assert(!NODE_IS_UDP(n));
 
 	g2_node_send(n, mb);
 }

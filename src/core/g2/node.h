@@ -48,6 +48,7 @@ void g2_node_send_qht_reset(struct gnutella_node *n, int slots, int inf_val);
 void g2_node_send_qht_patch(struct gnutella_node *n,
 	int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len);
+void g2_node_send_lni(struct gnutella_node *n);
 
 #endif /* _core_g2_node_h_ */
 

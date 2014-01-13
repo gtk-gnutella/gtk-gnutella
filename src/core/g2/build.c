@@ -32,6 +32,7 @@
  */
 
 #include "common.h"
+#include "gtk-gnutella.h"		/* For GTA_VENDOR_CODE */
 
 #include "build.h"
 
@@ -39,8 +40,15 @@
 #include "msg.h"
 #include "tree.h"
 
+
+#include "core/share.h"			/* For shared_files_scanned() */
+#include "core/settings.h"		/* For listen_addr_primary() */
+#include "core/sockets.h"		/* For socket_listen_port() */
+
 #include "lib/endian.h"
 #include "lib/halloc.h"
+#include "lib/mempcpy.h"
+#include "lib/misc.h"			/* For CONST_STRLEN() */
 #include "lib/once.h"
 #include "lib/pmsg.h"
 #include "lib/pow2.h"
@@ -183,7 +191,7 @@ g2_build_qht_reset(int slots, int inf_val)
 	p = poke_le32(p, slots);
 	p = poke_u8(p, inf_val);
 
-	t = g2_tree_alloc(G2_NAME(QHT), body, sizeof body, FALSE);
+	t = g2_tree_alloc(G2_NAME(QHT), body, sizeof body);
 	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 
@@ -223,10 +231,95 @@ g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 
 	memcpy(p, buf, len);
 
-	t = g2_tree_alloc(G2_NAME(QHT), payload, len + sizeof body, FALSE);
+	t = g2_tree_alloc(G2_NAME(QHT), payload, len + sizeof body);
 	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 	hfree(payload);
+
+	return mb;
+}
+
+/**
+ * Build a Local Node Info message.
+ *
+ * @return a /LNI message.
+ */
+pmsg_t *
+g2_build_lni(void)
+{
+	g2_tree_t *t, *c;
+	pmsg_t *mb;
+
+	t = g2_tree_alloc_empty(G2_NAME(LNI));
+
+	/* V -- vendor code */
+
+	c = g2_tree_alloc("V", GTA_VENDOR_CODE, CONST_STRLEN(GTA_VENDOR_CODE));
+	g2_tree_add_child(t, c);
+
+	/* LS -- library statistics */
+
+	{
+		uint32 files, kbytes;
+		char payload[8];
+		void *p = payload;
+
+		files  = MIN(shared_files_scanned(), ~((uint32) 0U));
+		kbytes = MIN(shared_kbytes_scanned(), ~((uint32) 0U));
+
+		p = poke_le32(p, files);
+		p = poke_le32(p, kbytes);
+
+		c = g2_tree_alloc_copy("LS", payload, sizeof payload);
+		g2_tree_add_child(t, c);
+	}
+
+	/* UP -- servent uptime, little-endian, amount of seconds since startup */
+
+	{
+		time_delta_t uptime;
+		char payload[8];
+		int n;
+
+		uptime = delta_time(tm_time(), GNET_PROPERTY(start_stamp));
+		n = vlint_encode(uptime, payload);
+
+		c = g2_tree_alloc_copy("UP", payload, n);	/* No trailing 0s */
+		g2_tree_add_child(t, c);
+	}
+
+	/* FW -- whether servent is firewalled */
+
+	if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
+		c = g2_tree_alloc_empty("FW");
+		g2_tree_add_child(t, c);
+	}
+
+	/* GU -- the GUID of this node */
+
+	c = g2_tree_alloc_copy("GU", GNET_PROPERTY(servent_guid), GUID_RAW_SIZE);
+	g2_tree_add_child(t, c);
+
+	/* NA -- the IP:port of this node */
+
+	{
+		struct packed_host_addr packed;
+		uint alen;
+		char payload[18];
+		void *p;
+
+		packed = host_addr_pack(listen_addr_primary());
+		alen = packed_host_addr_size(packed) - 1;	/* skip network byte */
+
+		p = mempcpy(payload, &packed.addr, alen);
+		p = poke_le16(p, socket_listen_port());
+
+		c = g2_tree_alloc_copy("NA", payload, ptr_diff(p, payload));
+		g2_tree_add_child(t, c);
+	}
+
+	mb = g2_build_pmsg(t);
+	g2_tree_free_null(&t);
 
 	return mb;
 }

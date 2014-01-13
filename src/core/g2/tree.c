@@ -458,6 +458,32 @@ g2_tree_free_node(void *data)
 /**
  * Create a node with associated payload.
  *
+ * The payload data are NOT copied.
+ *
+ * @param name		name of the node
+ * @param payload	the start of the payload
+ * @param paylen	the length of the payload, in bytes
+ *
+ * @return a new node.
+ */
+g2_tree_t *
+g2_tree_alloc(const char *name, const void *payload, size_t paylen)
+{
+	g2_tree_t *n;
+
+	n = g2_tree_alloc_empty(name);
+	n->payload = deconstify_pointer(payload);
+	n->paylen = paylen;
+	n->copied = FALSE;
+
+	return n;
+}
+
+/**
+ * Create a node with associated payload.
+ *
+ * The payload data are copied.
+ *
  * @param name		name of the node
  * @param payload	the start of the payload
  * @param paylen	the length of the payload, in bytes
@@ -466,14 +492,14 @@ g2_tree_free_node(void *data)
  * @return a new node.
  */
 g2_tree_t *
-g2_tree_alloc(const char *name, const void *payload, size_t paylen, bool copy)
+g2_tree_alloc_copy(const char *name, const void *payload, size_t paylen)
 {
 	g2_tree_t *n;
 
 	n = g2_tree_alloc_empty(name);
-	n->payload = copy ? hcopy(payload, paylen) : deconstify_pointer(payload);
+	n->payload = hcopy(payload, paylen);
 	n->paylen = paylen;
-	n->copied = booleanize(copy);
+	n->copied = TRUE;
 
 	return n;
 }
@@ -602,9 +628,9 @@ g2_tree_test(void)
 	 * Tree primitives testing.
 	 */
 
-	root = g2_tree_alloc("root", root_payload, strlen(root_payload), TRUE);
+	root = g2_tree_alloc_copy("root", root_payload, strlen(root_payload));
 	g2_tree_add_child(root,
-		g2_tree_alloc("schild", second, strlen(second), TRUE));
+		g2_tree_alloc_copy("schild", second, strlen(second)));
 	first = g2_tree_alloc_empty("rchild");
 	g2_tree_add_child(root, first);
 	g2_tree_add_child(first, (c2 = g2_tree_alloc_empty("c2")));

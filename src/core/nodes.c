@@ -4375,9 +4375,13 @@ node_is_now_connected(struct gnutella_node *n)
 	/*
 	 * If we have an incoming connection, send an "alive" ping.
 	 * Otherwise, send a "handshaking" ping.
+	 *
+	 * On a G2 connection, send our local node info.
 	 */
 
-	if (!NODE_TALKS_G2(n)) {
+	if (NODE_TALKS_G2(n)) {
+		g2_node_send_lni(n);
+	} else {
 		if (n->flags & NODE_F_INCOMING)
 			alive_send_ping(n->alive_pings);
 		else
