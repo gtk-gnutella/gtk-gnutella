@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Alive status checking ping/pongs.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -53,18 +53,29 @@
 
 #define INFINITY	0xffffffff
 
+enum alive_magic { ALIVE_MAGIC = 0x778b64bb };
+
 /**
  * Structure used to keep track of the alive pings we sent, and stats.
  */
 struct alive {
-	struct gnutella_node *node;
+	enum alive_magic magic;		/**< Magic number */
+	gnutella_node_t *node;		/**< The node to which we are attached */
 	eslist_t pings;				/**< Pings we sent (struct alive_ping) */
+	time_t last_sent;			/**< When we last sent a ping */
 	uint maxcount;				/**< Maximum amount of pings we remember */
 	uint32 min_rt;				/**< Minimum roundtrip time (ms) */
 	uint32 max_rt;				/**< Maximim roundtrip time (ms) */
 	uint32 avg_rt;				/**< Average (EMA) roundtrip time (ms) */
 	uint32 last_rt;				/**< Last roundtrip time (ms) */
 };
+
+static inline void
+alive_check(const struct alive * const a)
+{
+	g_assert(a != NULL);
+	g_assert(ALIVE_MAGIC == a->magic);
+}
 
 struct alive_ping {
 	const struct guid *muid;	/**< The GUID of the message */
@@ -111,12 +122,13 @@ ap_free(struct alive_ping *ap)
  * Create the alive structure.
  * Returned as an opaque pointer.
  */
-void *
-alive_make(struct gnutella_node *n, int max)
+alive_t *
+alive_make(gnutella_node_t *n, int max)
 {
-	struct alive *a;
+	alive_t *a;
 
 	WALLOC0(a);
+	a->magic = ALIVE_MAGIC;
 	a->node = n;
 	a->maxcount = max;
 	a->min_rt = INFINITY;
@@ -129,13 +141,14 @@ alive_make(struct gnutella_node *n, int max)
  * Dispose the alive structure.
  */
 void
-alive_free(void *obj)
+alive_free(alive_t *a)
 {
-	struct alive *a = obj;
+	alive_check(a);
 
 	eslist_foreach(&a->pings, (data_fn_t) ap_clear, NULL);
 	eslist_wfree(&a->pings, sizeof(struct alive_ping));
 	eslist_discard(&a->pings);
+	a->magic = 0;
 	WFREE(a);
 }
 
@@ -143,7 +156,7 @@ alive_free(void *obj)
  * Drop alive ping record when message is dropped.
  */
 static void
-alive_ping_drop(struct alive *a, const struct guid *muid)
+alive_ping_drop(alive_t *a, const struct guid *muid)
 {
 	struct alive_ping *ap;
 
@@ -164,7 +177,7 @@ static bool
 alive_ping_can_send(const pmsg_t *mb, const void *q)
 {
 	const gnutella_node_t *n = mq_node(q);
-	struct alive *a = n->alive_pings;
+	alive_t *a = n->alive_pings;
 	const struct guid *muid = cast_to_guid_ptr_const(pmsg_start(mb));
 
 	g_assert(gnutella_header_get_function(muid) == GTA_MSG_INIT);
@@ -212,7 +225,7 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 				node_infostr(n));
 	} else {
 		struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
-		struct alive *a = n->alive_pings;
+		alive_t *a = n->alive_pings;
 
 		g_assert(a->node == n);
 
@@ -226,14 +239,15 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
  * @return TRUE if we sent it, FALSE if there are too many ACK-pending pings.
  */
 bool
-alive_send_ping(void *obj)
+alive_send_ping(alive_t *a)
 {
-	struct alive *a = obj;
 	struct guid muid;
 	struct alive_ping *ap;
 	gnutella_msg_init_t *m;
 	uint32 size;
 	pmsg_t *mb;
+
+	alive_check(a);
 
 	if (eslist_count(&a->pings) >= a->maxcount)
 		return FALSE;
@@ -242,7 +256,7 @@ alive_send_ping(void *obj)
 
 	ap = ap_make(&muid);
 	eslist_append(&a->pings, ap);
-	a->node->last_alive_ping = tm_time();
+	a->last_sent = tm_time();
 
 	/*
 	 * Build ping message and attach a pre-sender callback, as well as
@@ -328,10 +342,11 @@ alive_trim_upto(struct alive *a, struct alive_ping *item)
  * @return TRUE if it was indeed an ACK for a ping we sent.
  */
 bool
-alive_ack_ping(void *obj, const struct guid *muid)
+alive_ack_ping(alive_t *a, const guid_t *muid)
 {
-	struct alive *a = obj;
 	struct alive_ping *ap;
+
+	alive_check(a);
 
 	ESLIST_FOREACH_DATA(&a->pings, ap) {
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
@@ -352,16 +367,17 @@ alive_ack_ping(void *obj, const struct guid *muid)
  * replying to an alive ping.
  */
 void
-alive_ack_first(void *obj, const struct guid *muid)
+alive_ack_first(alive_t *a, const struct guid *muid)
 {
-	struct alive *a = obj;
 	struct alive_ping *ap;
+
+	alive_check(a);
 
 	/*
 	 * Maybe they're reusing the same MUID we used for our "alive ping"?
 	 */
 
-	if (alive_ack_ping(obj, muid))
+	if (alive_ack_ping(a, muid))
 		return;
 
 	/*
@@ -386,14 +402,23 @@ alive_ack_first(void *obj, const struct guid *muid)
  * Values are expressed in milliseconds.
  */
 void
-alive_get_roundtrip_ms(const void *obj, uint32 *avg, uint32 *last)
+alive_get_roundtrip_ms(const alive_t *a, uint32 *avg, uint32 *last)
 {
-	const struct alive *a = obj;
-
-	g_assert(NULL != obj);
+	alive_check(a);
 
 	if (avg)	*avg = a->avg_rt;
 	if (last)	*last = a->last_rt;
+}
+
+/**
+ * @return how much time elapsed since the last alive ping.
+ */
+time_delta_t
+alive_elapsed(const alive_t *a)
+{
+	alive_check(a);
+
+	return delta_time(tm_time(), a->last_sent);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

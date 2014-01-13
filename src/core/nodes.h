@@ -206,8 +206,7 @@ typedef struct gnutella_node {
 	struct qrt_receive *qrt_receive;		/**< query routing reception */
 	qrt_info_t *qrt_info;		/**< Info about received query table */
 
-	void *alive_pings;			/**< Opaque info, for alive ping checks */
-	time_t last_alive_ping;		/**< Last time we sent an alive ping */
+	struct alive *alive_pings;	/**< For alive ping checks */
 	time_delta_t alive_period;	/**< Period for sending alive pings (secs) */
 
 	wrap_buf_t hello;			/**< Spill buffer for GNUTELLA HELLO */

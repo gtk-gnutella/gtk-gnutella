@@ -1481,7 +1481,7 @@ node_timer(time_t now)
 					period *= ALIVE_TRANSIENT;
 
 				if (
-					delta_time(now, n->last_alive_ping) > period &&
+					alive_elapsed(n->alive_pings) > period &&
 					!alive_send_ping(n->alive_pings)
 				) {
 					node_bye(n, 406, "No reply to alive pings");
