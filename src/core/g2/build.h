@@ -41,6 +41,7 @@
  */
 
 pmsg_t *g2_build_pong(void);
+pmsg_t *g2_build_alive_ping(void);
 pmsg_t *g2_build_qht_reset(int slots, int inf_val);
 pmsg_t *g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len);

@@ -52,8 +52,48 @@ enum g2_qht_type {
 	G2_QHT_PATCH = 1,
 };
 
+static pmsg_t *build_alive_pi;		/* Single alive ping */
+static once_flag_t build_alive_pi_done;
+
 static pmsg_t *build_po;			/* Single pong */
 static once_flag_t build_po_done;
+
+/**
+ * Create new message holding serialized tree.
+ *
+ * @param t		the tree to serialize
+ * @param prio	priority of the message
+ *
+ * @return a message containing the serialized tree.
+ */
+static pmsg_t *
+g2_build_pmsg_prio(const g2_tree_t *t, int prio)
+{
+	size_t len;
+	pmsg_t *mb;
+
+	len = g2_frame_serialize(t, NULL, 0);
+	mb = pmsg_new(prio, NULL, len);
+	g2_frame_serialize(t, pmsg_start(mb), len);
+	pmsg_seek(mb, len);
+
+	g_assert(UNSIGNED(pmsg_size(mb)) == len);
+
+	return mb;
+}
+
+/**
+ * Create new control message holding serialized tree.
+ *
+ * @param t		the tree to serialize
+ *
+ * @return a message containing the serialized tree.
+ */
+static inline pmsg_t *
+g2_build_ctrl_pmsg(const g2_tree_t *t)
+{
+	return g2_build_pmsg_prio(t, PMSG_P_CONTROL);
+}
 
 /**
  * Create new message holding serialized tree.
@@ -62,20 +102,10 @@ static once_flag_t build_po_done;
  *
  * @return a message containing the serialized tree.
  */
-static pmsg_t *
+static inline pmsg_t *
 g2_build_pmsg(const g2_tree_t *t)
 {
-	size_t len;
-	pmsg_t *mb;
-
-	len = g2_frame_serialize(t, NULL, 0);
-	mb = pmsg_new(PMSG_P_DATA, NULL, len);
-	g2_frame_serialize(t, pmsg_start(mb), len);
-	pmsg_seek(mb, len);
-
-	g_assert(UNSIGNED(pmsg_size(mb)) == len);
-
-	return mb;
+	return g2_build_pmsg_prio(t, PMSG_P_DATA);
 }
 
 /**
@@ -102,6 +132,32 @@ g2_build_pong(void)
 	ONCE_FLAG_RUN(build_po_done, g2_build_pong_once);
 
 	return pmsg_clone(build_po);
+}
+
+/**
+ * Create an alive ping message, once.
+ */
+static void
+g2_build_alive_ping_once(void)
+{
+	g2_tree_t *t;
+
+	t = g2_tree_alloc_empty(G2_NAME(PI));
+	build_alive_pi = g2_build_ctrl_pmsg(t);		/* Prioritary */
+	g2_tree_free_null(&t);
+}
+
+/**
+ * Build an alive ping message.
+ *
+ * @return a /PI message.
+ */
+pmsg_t *
+g2_build_alive_ping(void)
+{
+	ONCE_FLAG_RUN(build_alive_pi_done, g2_build_alive_ping_once);
+
+	return pmsg_clone(build_alive_pi);
 }
 
 /**

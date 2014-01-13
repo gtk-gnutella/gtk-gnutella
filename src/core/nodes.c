@@ -4175,32 +4175,40 @@ node_is_now_connected(struct gnutella_node *n)
 	/*
 	 * Determine the frequency at which we will send "alive pings", and at
 	 * which we shall accept regular pings on that connection.
+	 *
+	 * For G2 connections, we are a leaf node therefore we can only receive
+	 * alive pings from the G2 hubs, hence there is no throttling to do.
 	 */
 
-	n->ping_throttle = PING_REG_THROTTLE;
-
-	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
-	case NODE_P_NORMAL:
-		n->alive_period = ALIVE_PERIOD;
-		break;
-	case NODE_P_ULTRA:
-		if (n->peermode == NODE_P_LEAF) {
-			n->alive_period = ALIVE_PERIOD_LEAF;
-			n->ping_throttle = PING_LEAF_THROTTLE;
-		} else
-			n->alive_period = ALIVE_PERIOD;
-		break;
-	case NODE_P_LEAF:
+	if (NODE_TALKS_G2(n)) {
+		n->ping_throttle = 0;		/* Unused for G2 anyway */
 		n->alive_period = ALIVE_PERIOD_LEAF;
-		break;
-	case NODE_P_AUTO:
-	case NODE_P_CRAWLER:
-	case NODE_P_UDP:
-	case NODE_P_DHT:
-	case NODE_P_G2HUB:
-	case NODE_P_UNKNOWN:
-		g_error("Invalid peer mode %d", GNET_PROPERTY(current_peermode));
-		break;
+	} else {
+		n->ping_throttle = PING_REG_THROTTLE;
+
+		switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
+		case NODE_P_NORMAL:
+			n->alive_period = ALIVE_PERIOD;
+			break;
+		case NODE_P_ULTRA:
+			if (n->peermode == NODE_P_LEAF) {
+				n->alive_period = ALIVE_PERIOD_LEAF;
+				n->ping_throttle = PING_LEAF_THROTTLE;
+			} else
+				n->alive_period = ALIVE_PERIOD;
+			break;
+		case NODE_P_LEAF:
+			n->alive_period = ALIVE_PERIOD_LEAF;
+			break;
+		case NODE_P_AUTO:
+		case NODE_P_CRAWLER:
+		case NODE_P_UDP:
+		case NODE_P_DHT:
+		case NODE_P_G2HUB:
+		case NODE_P_UNKNOWN:
+			g_error("Invalid peer mode %d", GNET_PROPERTY(current_peermode));
+			break;
+		}
 	}
 
 	/*

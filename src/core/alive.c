@@ -41,6 +41,9 @@
 #include "nodes.h"
 #include "pcache.h"
 
+#include "core/g2/build.h"
+#include "core/g2/node.h"
+
 #include "lib/atoms.h"
 #include "lib/eslist.h"
 #include "lib/pmsg.h"
@@ -93,7 +96,7 @@ ap_make(struct guid *muid)
 
 	WALLOC(ap);
 
-	ap->muid = atom_guid_get(muid);
+	ap->muid = NULL == muid ? NULL : atom_guid_get(muid);
 	tm_now_exact(&ap->sent);
 
 	return ap;
@@ -105,7 +108,7 @@ ap_make(struct guid *muid)
 static void
 ap_clear(struct alive_ping *ap)
 {
-	atom_guid_free(ap->muid);
+	atom_guid_free_null(&ap->muid);
 }
 
 /**
@@ -130,9 +133,16 @@ alive_make(gnutella_node_t *n, int max)
 	WALLOC0(a);
 	a->magic = ALIVE_MAGIC;
 	a->node = n;
-	a->maxcount = max;
 	a->min_rt = INFINITY;
+	a->last_sent = tm_time();
 	eslist_init(&a->pings, offsetof(struct alive_ping, ap_link));
+
+	/*
+	 * For G2 nodes, we only allow 1 pending ping: the /PI message has no
+	 * MUID and therefore we cannot know which /PI a /PO would acknowledge.
+	 */
+
+	a->maxcount = NODE_TALKS_G2(n) ? 1 : max;
 
 	return a;
 }
@@ -241,10 +251,7 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 bool
 alive_send_ping(alive_t *a)
 {
-	struct guid muid;
 	struct alive_ping *ap;
-	gnutella_msg_init_t *m;
-	uint32 size;
 	pmsg_t *mb;
 
 	alive_check(a);
@@ -252,25 +259,41 @@ alive_send_ping(alive_t *a)
 	if (eslist_count(&a->pings) >= a->maxcount)
 		return FALSE;
 
-	guid_ping_muid(&muid);
+	if (NODE_TALKS_G2(a->node)) {
+		/*
+		 * G2 pings do not bear any MUID.
+		 */
 
-	ap = ap_make(&muid);
+		ap = ap_make(NULL);
+		mb = g2_build_alive_ping();
+
+		g2_node_send(a->node, mb);
+	} else {
+		struct guid muid;
+		gnutella_msg_init_t *m;
+		uint32 size;
+
+		guid_ping_muid(&muid);
+
+		ap = ap_make(&muid);
+
+		/*
+		 * Build ping message and attach a pre-sender callback, as well as
+		 * a free routine to see whether the message is sent.
+		 */
+
+		m = build_ping_msg(&muid, 1, FALSE, &size);
+
+		g_assert(size == sizeof(*m));	/* No trailing GGEP extension */
+
+		mb = gmsg_to_ctrl_pmsg_extend(m, size, alive_pmsg_free, a->node);
+		pmsg_set_check(mb, alive_ping_can_send);
+
+		gmsg_mb_sendto_one(a->node, mb);
+	}
+
 	eslist_append(&a->pings, ap);
 	a->last_sent = tm_time();
-
-	/*
-	 * Build ping message and attach a pre-sender callback, as well as
-	 * a free routine to see whether the message is sent.
-	 */
-
-	m = build_ping_msg(&muid, 1, FALSE, &size);
-
-	g_assert(size == sizeof(*m));	/* No trailing GGEP extension */
-
-	mb = gmsg_to_ctrl_pmsg_extend(m, size, alive_pmsg_free, a->node);
-	pmsg_set_check(mb, alive_ping_can_send);
-
-	gmsg_mb_sendto_one(a->node, mb);
 
 	return TRUE;
 }
@@ -333,7 +356,7 @@ alive_trim_upto(struct alive *a, struct alive_ping *item)
 			return;
 	}
 
-	g_assert_not_reached();		/* Must have found the item */
+	g_assert(NULL == item);		/* Must have found the item if given */
 }
 
 /**
@@ -347,15 +370,32 @@ alive_ack_ping(alive_t *a, const guid_t *muid)
 	struct alive_ping *ap;
 
 	alive_check(a);
+	g_assert(!NODE_TALKS_G2(a->node) == (muid != NULL));
 
-	ESLIST_FOREACH_DATA(&a->pings, ap) {
-		if (guid_eq(ap->muid, muid)) {		/* Found it! */
-			if (GNET_PROPERTY(alive_debug))
-				g_debug("ALIVE got alive pong #%s from %s",
-					guid_hex_str(muid), node_infostr(a->node));
+	if (NULL == muid) {
+		/*
+		 * G2 pong, no MUID so we only have one pending ping at a time.
+		 */
+
+		ap = eslist_shift(&a->pings);
+		if (ap != NULL) {
+			if (GNET_PROPERTY(alive_debug)) {
+				g_debug("ALIVE got alive pong from %s", node_infostr(a->node));
+			}
 			ap_ack(ap, a);
-			alive_trim_upto(a, ap);
-			return TRUE;
+			alive_trim_upto(a, NULL);		/* Paranoid: remove everything */
+		}
+	} else {
+		ESLIST_FOREACH_DATA(&a->pings, ap) {
+			if (guid_eq(ap->muid, muid)) {		/* Found it! */
+				if (GNET_PROPERTY(alive_debug)) {
+					g_debug("ALIVE got alive pong #%s from %s",
+						guid_hex_str(muid), node_infostr(a->node));
+				}
+				ap_ack(ap, a);
+				alive_trim_upto(a, ap);
+				return TRUE;
+			}
 		}
 	}
 

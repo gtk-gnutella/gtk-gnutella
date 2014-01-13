@@ -41,6 +41,7 @@
 #include "tfmt.h"
 #include "tree.h"
 
+#include "core/alive.h"
 #include "core/mq_tcp.h"
 #include "core/mq_udp.h"
 #include "core/nodes.h"
@@ -55,7 +56,7 @@
 /**
  * Send a message to target node.
  */
-static void
+void
 g2_node_send(gnutella_node_t *n, pmsg_t *mb)
 {
 	if (NODE_IS_UDP(n))
@@ -186,6 +187,28 @@ g2_node_handle_ping(gnutella_node_t *n, g2_tree_t *t)
 }
 
 /**
+ * Handle reception of a /PO
+ */
+static void
+g2_node_handle_pong(gnutella_node_t *n, g2_tree_t *t)
+{
+	/*
+	 * Drop pongs received from UDP.
+	 */
+
+	if (NODE_IS_UDP(n)) {
+		g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
+		return;
+	}
+
+	/*
+	 * Must be a pong received because we sent an alive ping earlier.
+	 */
+
+	alive_ack_ping(n->alive_pings, NULL);	/* No MUID on G2 */
+}
+
+/**
  * Handle message coming from G2 node.
  */
 void
@@ -222,6 +245,9 @@ g2_node_handle(gnutella_node_t *n)
 	switch (type) {
 	case G2_MSG_PI:
 		g2_node_handle_ping(n, t);
+		break;
+	case G2_MSG_PO:
+		g2_node_handle_pong(n, t);
 		break;
 	default:
 		g2_node_drop(G_STRFUNC, n, t, "default");
