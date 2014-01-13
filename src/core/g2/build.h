@@ -46,6 +46,8 @@ pmsg_t *g2_build_qht_reset(int slots, int inf_val);
 pmsg_t *g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len);
 
+void g2_build_close(void);
+
 #endif /* _core_g2_build_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

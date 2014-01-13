@@ -231,4 +231,15 @@ g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 	return mb;
 }
 
+/**
+ * Free up global messages, at shutdown time.
+ */
+void
+g2_build_close(void)
+{
+	/* Don't take locks, we're shutdowning from a single thread */
+	pmsg_free_null(&build_alive_pi);
+	pmsg_free_null(&build_po);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
