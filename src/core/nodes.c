@@ -3617,6 +3617,9 @@ node_became_firewalled(void)
 		if (NODE_IS_LEAF(n))
 			continue;
 
+		if (NODE_TALKS_G2(n))
+			g2_node_send_lni(n);		/* Updates /LNI/FW status */
+
 		if (!is_host_addr(n->proxy_addr) && (n->attrs & NODE_A_CAN_VENDOR))
 			send_proxy_request(n);
 	}
@@ -10987,7 +10990,14 @@ node_qrt_changed(struct routing_table *query_table)
 		node_qrt_send(sl->data, query_table);
 	}
 
+	/*
+	 * For G2 nodes, send a new QRT plus a /LNI message since our routing
+	 * table has changed, and therefore our amount of files may have been
+	 * updated as well.
+	 */
+
     for (sl = sl_g2_nodes; sl; sl = pslist_next(sl)) {
+		g2_node_send_lni(sl->data);
 		node_qrt_send(sl->data, query_table);
 	}
 }
@@ -12122,6 +12132,9 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, uint16 port)
 
 /**
  * Cancel all our known push-proxies.
+ *
+ * This routine is called when a node previously known to be TCP-firewalled
+ * determines that it can accept incoming connections.
  */
 void
 node_proxy_cancel_all(void)
@@ -12136,6 +12149,10 @@ node_proxy_cancel_all(void)
 				vmsg_send_proxy_cancel(n);
 			n->proxy_addr = zero_host_addr;
 			n->proxy_port = 0;
+		}
+
+		if (NODE_TALKS_G2(n)) {
+			g2_node_send_lni(n);	/* Updated /LNI/FW (no longer present!) */
 		}
 	}
 
