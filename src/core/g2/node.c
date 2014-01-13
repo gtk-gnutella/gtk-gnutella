@@ -42,12 +42,16 @@
 #include "tree.h"
 
 #include "core/alive.h"
+#include "core/hosts.h"
 #include "core/mq_tcp.h"
 #include "core/mq_udp.h"
 #include "core/nodes.h"
 
 #include "if/gnet_property_priv.h"
 
+#include "if/core/guid.h"
+
+#include "lib/host_addr.h"
 #include "lib/misc.h"			/* For dump_hex() */
 #include "lib/pmsg.h"
 
@@ -162,7 +166,7 @@ g2_node_drop(const char *routine, gnutella_node_t *n, const g2_tree_t *t,
  * Handle reception of a /PI
  */
 static void
-g2_node_handle_ping(gnutella_node_t *n, g2_tree_t *t)
+g2_node_handle_ping(gnutella_node_t *n, const g2_tree_t *t)
 {
 	g2_tree_t *c;
 
@@ -205,7 +209,7 @@ g2_node_handle_ping(gnutella_node_t *n, g2_tree_t *t)
  * Handle reception of a /PO
  */
 static void
-g2_node_handle_pong(gnutella_node_t *n, g2_tree_t *t)
+g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
 {
 	/*
 	 * Drop pongs received from UDP.
@@ -221,6 +225,87 @@ g2_node_handle_pong(gnutella_node_t *n, g2_tree_t *t)
 	 */
 
 	alive_ack_ping(n->alive_pings, NULL);	/* No MUID on G2 */
+}
+
+/**
+ * Handle reception of a /LNI
+ */
+static void
+g2_node_handle_lni(gnutella_node_t *n, const g2_tree_t *t)
+{
+	g2_tree_t *c;
+
+	/* GU -- the node's GUID */
+
+	c = g2_tree_lookup(t, "/LNI/GU");
+	if (c != NULL) {
+		const void *payload;
+		size_t paylen;
+
+		payload = g2_tree_node_payload(c, &paylen);
+		if (GUID_RAW_SIZE == paylen)
+			node_set_guid(n, (guid_t *) payload, TRUE);
+	}
+
+	/* NA -- the node's address, with listening port */
+
+	c = g2_tree_lookup(t, "/LNI/NA");
+	if (c != NULL) {
+		const char *payload;
+		size_t paylen;
+
+		payload = g2_tree_node_payload(c, &paylen);
+
+		/*
+		 * Only handle if we have the port, because otherwise we already
+		 * know the remote IP address since we're connected to the node!
+		 * We only handle IPv4 because G2 does not support IPv6.
+		 */
+
+		if (6 == paylen) {		/* IPv4 + port */
+			host_addr_t addr;
+			uint16 port;
+
+			addr = host_addr_peek_ipv4(payload);
+			port = peek_le16(&payload[4]);
+
+			if (host_address_is_usable(addr))
+				n->gnet_addr = addr;
+			n->gnet_port = port;
+		}
+	}
+
+	/* LS -- library statistics */
+
+	c = g2_tree_lookup(t, "/LNI/LS");
+	if (c != NULL) {
+		const char *payload;
+		size_t paylen;
+
+		payload = g2_tree_node_payload(c, &paylen);
+
+		if (paylen >= 8) {
+			uint32 files = peek_le32(payload);
+			uint32 kbytes = peek_le32(&payload[4]);
+
+			n->gnet_files_count = files;
+			n->gnet_kbytes_count = kbytes;
+			n->flags |= NODE_F_SHARED_INFO;
+		}
+	}
+
+	/* V -- vendor code */
+
+	c = g2_tree_lookup(t, "/LNI/V");
+	if (c != NULL) {
+		const char *payload;
+		size_t paylen;
+
+		payload = g2_tree_node_payload(c, &paylen);
+
+		if (paylen >= 4)
+			n->vcode.u32 = peek_be32(payload);
+	}
 }
 
 /**
@@ -263,6 +348,9 @@ g2_node_handle(gnutella_node_t *n)
 		break;
 	case G2_MSG_PO:
 		g2_node_handle_pong(n, t);
+		break;
+	case G2_MSG_LNI:
+		g2_node_handle_lni(n, t);
 		break;
 	default:
 		g2_node_drop(G_STRFUNC, n, t, "default");
