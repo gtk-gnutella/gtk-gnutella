@@ -46,6 +46,7 @@
 #include "lib/parse.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
+#include "lib/tokenizer.h"
 #include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
@@ -278,7 +279,7 @@ upnp_service_get_common_if(pslist_t *services)
  * constant part.  The trailing ":<version>" is also removed since we are
  * identifying service types.
  */
-static struct vxml_parser_token upnp_services[] = {
+static tokenizer_t upnp_services[] = {
 	/* Sorted array */
 	{ "schemas-upnp-org:service:WANCommonInterfaceConfig",	UPNP_SVC_WAN_CIF },
 	{ "schemas-upnp-org:service:WANIPConnection",			UPNP_SVC_WAN_IP },
@@ -343,7 +344,7 @@ upnp_service_parse_type(const char *text,
 	 * Lookup the service type.
 	 */
 
-	*type = vxml_token_lookup(p, upnp_services, G_N_ELEMENTS(upnp_services));
+	*type = TOKENIZE(p, upnp_services);
 	ok = TRUE;
 
 	/* FALL THROUGH */
@@ -424,7 +425,7 @@ enum upnp_srvtok {
 /**
  * Tokens for service parsing: elements which we are interested in.
  */
-struct vxml_token upnp_service_tokens[] = {
+static struct vxml_token upnp_service_tokens[] = {
 	{ "URLBase",		UPNP_SRVTOK_URL_BASE },
 	{ "service",		UPNP_SRVTOK_SERVICE },
 	{ "serviceType",	UPNP_SRVTOK_SERVICE_TYPE },
@@ -534,7 +535,7 @@ upnp_service_xml_end(vxml_parser_t *vp, unsigned id, void *data)
 /**
  * Callbacks used to parse services.
  */
-struct vxml_ops upnp_service_ops = {
+static struct vxml_ops upnp_service_ops = {
 	NULL,						/* plain_start */
 	NULL,						/* plain_text */
 	NULL,						/* plain_end */

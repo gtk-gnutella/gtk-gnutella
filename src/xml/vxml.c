@@ -52,6 +52,7 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/symtab.h"
+#include "lib/tokenizer.h"
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/vmm.h"
@@ -349,7 +350,7 @@ const char VXS_XML_URI[]		= "http://www.w3.org/XML/1998/namespace";
 /**
  * Default entities.
  */
-static struct vxml_parser_token vxml_default_entities[] = {
+static tokenizer_t vxml_default_entities[] = {
 	/* Sorted array */
 	{ "amp",	VXC_AMP },	/* '&' */
 	{ "apos",	VXC_APOS },	/* "'" */
@@ -386,7 +387,7 @@ enum vxml_parser_token_value {
 /**
  * Declaration tokens.
  */
-static struct vxml_parser_token vxml_declaration_tokens[] = {
+static tokenizer_t vxml_declaration_tokens[] = {
 	/* Sorted array */
 	{ "ATTLIST",	VXT_ATTLIST },
 	{ "DOCTYPE",	VXT_DOCTYPE },
@@ -397,7 +398,7 @@ static struct vxml_parser_token vxml_declaration_tokens[] = {
 /**
  * Miscellaneous tokens.
  */
-static struct vxml_parser_token vxml_misc_tokens[] = {
+static tokenizer_t vxml_misc_tokens[] = {
 	/* Sorted array */
 	{ "ANY",		VXT_ANY },
 	{ "CDATA",		VXT_CDATA },
@@ -412,7 +413,7 @@ static struct vxml_parser_token vxml_misc_tokens[] = {
 /**
  * Immediate tokens (introduced by a leading '#' character).
  */
-static struct vxml_parser_token vxml_immediate_tokens[] = {
+static tokenizer_t vxml_immediate_tokens[] = {
 	/* Sorted array */
 	{ "FIXED",		VXT_FIXED },
 	{ "IMPLIED",	VXT_IMPLIED },
@@ -2584,34 +2585,6 @@ truncated:
 }
 
 /**
- * Lookup token in a sorted array of tokens.
- *
- * @param name		the token name
- * @param tokens	the token array
- * @param len		the length of the token array
- *
- * @return the token value if found, 0 if not found.
- */
-unsigned
-vxml_token_lookup(const char *name,
-	const struct vxml_parser_token *tokens, size_t len)
-{
-#define GET_KEY(i) (tokens[(i)].name)
-#define FOUND(i) G_STMT_START { \
-	return tokens[(i)].value; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``name'' */
-	BINARY_SEARCH(const char *, name, len, strcmp, GET_KEY, FOUND);
-
-#undef FOUND
-#undef GET_KEY
-
-	return 0;		/* Not found */
-}
-
-/**
  * Look whether name is that of a known default entity.
  *
  * @return VXC_NUL if entity was not found, its single Unicode character
@@ -2620,8 +2593,7 @@ vxml_token_lookup(const char *name,
 static uint32
 vxml_get_default_entity(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_default_entities, G_N_ELEMENTS(vxml_default_entities));
+	return TOKENIZE(name, vxml_default_entities);
 }
 
 /**
@@ -2632,8 +2604,7 @@ vxml_get_default_entity(const char *name)
 static enum vxml_parser_token_value
 vxml_get_declaration_token(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_declaration_tokens, G_N_ELEMENTS(vxml_declaration_tokens));
+	return TOKENIZE(name, vxml_declaration_tokens);
 }
 
 /**
@@ -2644,8 +2615,7 @@ vxml_get_declaration_token(const char *name)
 static enum vxml_parser_token_value
 vxml_get_misc_token(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_misc_tokens, G_N_ELEMENTS(vxml_misc_tokens));
+	return TOKENIZE(name, vxml_misc_tokens);
 }
 
 /**
@@ -2656,15 +2626,14 @@ vxml_get_misc_token(const char *name)
 static enum vxml_parser_token_value
 vxml_get_immediate_token(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_immediate_tokens, G_N_ELEMENTS(vxml_immediate_tokens));
+	return TOKENIZE(name, vxml_immediate_tokens);
 }
 
 /**
  * Loads vxml_token_string[] with an inverted token index.
  */
 static void
-vxml_token_to_string_load(struct vxml_parser_token *tokens, size_t count)
+vxml_token_to_string_load(tokenizer_t *tokens, size_t count)
 {
 	size_t i;
 
@@ -2673,8 +2642,11 @@ vxml_token_to_string_load(struct vxml_parser_token *tokens, size_t count)
 
 		g_assert(size_is_non_negative(value));
 		g_assert(value < G_N_ELEMENTS(vxml_token_strings));
+		g_assert_log(0 == vxml_token_strings[value],
+			"%s(): token value %zu already assigned to \"%s\"",
+			G_STRFUNC, value, tokens[i].token);
 
-		vxml_token_strings[value] = tokens[i].name;
+		vxml_token_strings[value] = tokens[i].token;
 	}
 }
 
