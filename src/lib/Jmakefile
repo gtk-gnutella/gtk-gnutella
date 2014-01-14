@@ -214,6 +214,7 @@ LSRC = \
 	timestamp.c \
 	tm.c \
 	tmalloc.c \
+	tokenizer.c \
 	tqsort.c \
 	tsig.c \
 	url.c \

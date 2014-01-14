@@ -271,6 +271,7 @@ LSRC = \
 	timestamp.c \
 	tm.c \
 	tmalloc.c \
+	tokenizer.c \
 	tqsort.c \
 	tsig.c \
 	url.c \
@@ -450,6 +451,7 @@ LOBJ = \
 	timestamp.o \
 	tm.o \
 	tmalloc.o \
+	tokenizer.o \
 	tqsort.o \
 	tsig.o \
 	url.o \

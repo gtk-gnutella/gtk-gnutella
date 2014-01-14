@@ -903,6 +903,8 @@ src/lib/tm.c
 src/lib/tm.h
 src/lib/tmalloc.c
 src/lib/tmalloc.h
+src/lib/tokenizer.c
+src/lib/tokenizer.h
 src/lib/tqsort.c
 src/lib/tqsort.h
 src/lib/tsig.c
