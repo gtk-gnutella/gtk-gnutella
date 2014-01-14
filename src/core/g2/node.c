@@ -42,6 +42,7 @@
 #include "tree.h"
 
 #include "core/alive.h"
+#include "core/hcache.h"
 #include "core/hosts.h"
 #include "core/mq_tcp.h"
 #include "core/mq_udp.h"
@@ -228,6 +229,37 @@ g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
 }
 
 /**
+ * Parse the payload of given node to extract a node address + port.
+ *
+ * @param t		the tree node whose payload we wish to parse
+ * @param addr	where to write the address part
+ * @param port	where to write the port part
+ *
+ * @return TRUE if OK, FALSE if we could not extract anything.
+ */
+static bool NON_NULL_PARAM((2, 3))
+g2_node_parse_address(const g2_tree_t *t, host_addr_t *addr, uint16 *port)
+{
+	const char *payload;
+	size_t paylen;
+
+	payload = g2_tree_node_payload(t, &paylen);
+
+	/*
+	 * Only handle if we have an IP:port entry.
+	 * We only handle IPv4 because G2 does not support IPv6.
+	 */
+
+	if (6 == paylen) {		/* IPv4 + port */
+		*addr = host_addr_peek_ipv4(payload);
+		*port = peek_le16(&payload[4]);
+		return TRUE;
+	}
+
+	return FALSE;		/* Unrecognized payload length */
+}
+
+/**
  * Handle reception of a /LNI
  */
 static void
@@ -251,24 +283,10 @@ g2_node_handle_lni(gnutella_node_t *n, const g2_tree_t *t)
 
 	c = g2_tree_lookup(t, "/LNI/NA");
 	if (c != NULL) {
-		const char *payload;
-		size_t paylen;
+		host_addr_t addr;
+		uint16 port;
 
-		payload = g2_tree_node_payload(c, &paylen);
-
-		/*
-		 * Only handle if we have the port, because otherwise we already
-		 * know the remote IP address since we're connected to the node!
-		 * We only handle IPv4 because G2 does not support IPv6.
-		 */
-
-		if (6 == paylen) {		/* IPv4 + port */
-			host_addr_t addr;
-			uint16 port;
-
-			addr = host_addr_peek_ipv4(payload);
-			port = peek_le16(&payload[4]);
-
+		if (g2_node_parse_address(c, &addr, &port)) {
 			if (host_address_is_usable(addr))
 				n->gnet_addr = addr;
 			n->gnet_port = port;
@@ -306,6 +324,43 @@ g2_node_handle_lni(gnutella_node_t *n, const g2_tree_t *t)
 		if (paylen >= 4)
 			n->vcode.u32 = peek_be32(payload);
 	}
+}
+
+/**
+ * Tree message iterator to handle "NH" nodes and extract their IP:port.
+ *
+ */
+static void
+g2_node_extract_nh(void *data, void *udata)
+{
+	const g2_tree_t *t = data;
+
+	(void) udata;
+
+	if (0 == strcmp("NH", g2_tree_name(t))) {
+		host_addr_t addr;
+		uint16 port;
+
+		if (
+			g2_node_parse_address(t, &addr, &port) &&
+			host_is_valid(addr, port)
+		) {
+			hcache_add_caught(HOST_G2HUB, addr, port, "/KHL/NH");
+		}
+	}
+}
+
+/**
+ * Handle reception of a /KHL
+ */
+static void
+g2_node_handle_khl(const g2_tree_t *t)
+{
+	/*
+	 * Extract the neighbouring node info and insert them into our cache.
+	 */
+
+	g2_tree_child_foreach(t, g2_node_extract_nh, NULL);
 }
 
 /**
@@ -351,6 +406,9 @@ g2_node_handle(gnutella_node_t *n)
 		break;
 	case G2_MSG_LNI:
 		g2_node_handle_lni(n, t);
+		break;
+	case G2_MSG_KHL:
+		g2_node_handle_khl(t);
 		break;
 	default:
 		g2_node_drop(G_STRFUNC, n, t, "default");
