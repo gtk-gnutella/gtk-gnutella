@@ -55,8 +55,24 @@
 #include "lib/host_addr.h"
 #include "lib/misc.h"			/* For dump_hex() */
 #include "lib/pmsg.h"
+#include "lib/tokenizer.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+enum g2_lni_child {
+	G2_LNI_GU = 1,
+	G2_LNI_LS,
+	G2_LNI_NA,
+	G2_LNI_V,
+};
+
+static tokenizer_t g2_lni_children[] = {
+	/* Sorted array */
+	{ "GU",		G2_LNI_GU },
+	{ "LS",		G2_LNI_LS },
+	{ "NA",		G2_LNI_NA },
+	{ "V",		G2_LNI_V },
+};
 
 /**
  * Send a message to target node.
@@ -267,62 +283,53 @@ g2_node_handle_lni(gnutella_node_t *n, const g2_tree_t *t)
 {
 	g2_tree_t *c;
 
-	/* GU -- the node's GUID */
+	/*
+	 * Handle the children of /LNI.
+	 */
 
-	c = g2_tree_lookup(t, "/LNI/GU");
-	if (c != NULL) {
-		const void *payload;
-		size_t paylen;
-
-		payload = g2_tree_node_payload(c, &paylen);
-		if (GUID_RAW_SIZE == paylen)
-			node_set_guid(n, (guid_t *) payload, TRUE);
-	}
-
-	/* NA -- the node's address, with listening port */
-
-	c = g2_tree_lookup(t, "/LNI/NA");
-	if (c != NULL) {
-		host_addr_t addr;
-		uint16 port;
-
-		if (g2_node_parse_address(c, &addr, &port)) {
-			if (host_address_is_usable(addr))
-				n->gnet_addr = addr;
-			n->gnet_port = port;
-		}
-	}
-
-	/* LS -- library statistics */
-
-	c = g2_tree_lookup(t, "/LNI/LS");
-	if (c != NULL) {
+	G2_TREE_CHILD_FOREACH(t, c) {
+		enum g2_lni_child ct = TOKENIZE(g2_tree_name(c), g2_lni_children);
 		const char *payload;
 		size_t paylen;
 
-		payload = g2_tree_node_payload(c, &paylen);
+		switch (ct) {
+		case G2_LNI_GU:			/* the node's GUID */
+			payload = g2_tree_node_payload(c, &paylen);
+			if (GUID_RAW_SIZE == paylen)
+				node_set_guid(n, (guid_t *) payload, TRUE);
+			break;
 
-		if (paylen >= 8) {
-			uint32 files = peek_le32(payload);
-			uint32 kbytes = peek_le32(&payload[4]);
+		case G2_LNI_NA:			/* the node's address, with listening port */
+			{
+				host_addr_t addr;
+				uint16 port;
 
-			n->gnet_files_count = files;
-			n->gnet_kbytes_count = kbytes;
-			n->flags |= NODE_F_SHARED_INFO;
+				if (g2_node_parse_address(c, &addr, &port)) {
+					if (host_address_is_usable(addr))
+						n->gnet_addr = addr;
+					n->gnet_port = port;
+				}
+			}
+			break;
+
+		case G2_LNI_LS:			/* library statistics */
+			payload = g2_tree_node_payload(c, &paylen);
+			if (paylen >= 8) {
+				uint32 files = peek_le32(payload);
+				uint32 kbytes = peek_le32(&payload[4]);
+
+				n->gnet_files_count = files;
+				n->gnet_kbytes_count = kbytes;
+				n->flags |= NODE_F_SHARED_INFO;
+			}
+			break;
+
+		case G2_LNI_V:			/* vendor code */
+			payload = g2_tree_node_payload(c, &paylen);
+			if (paylen >= 4)
+				n->vcode.u32 = peek_be32(payload);
+			break;
 		}
-	}
-
-	/* V -- vendor code */
-
-	c = g2_tree_lookup(t, "/LNI/V");
-	if (c != NULL) {
-		const char *payload;
-		size_t paylen;
-
-		payload = g2_tree_node_payload(c, &paylen);
-
-		if (paylen >= 4)
-			n->vcode.u32 = peek_be32(payload);
 	}
 }
 

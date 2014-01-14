@@ -66,5 +66,8 @@ void g2_tree_enter_leave(g2_tree_t *root,
 
 void g2_tree_test(void);
 
+#define G2_TREE_CHILD_FOREACH(t, c) \
+	for (c = g2_tree_first_child(t); c != NULL; c = g2_tree_next_sibling(c))
+
 #endif /* _core_g2_tree_h_ */
 
