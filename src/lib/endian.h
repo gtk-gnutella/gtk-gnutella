@@ -148,6 +148,20 @@ peek_le32(const void *p)
 	return v;
 }
 
+static inline G_GNUC_PURE uint64
+peek_le64(const void *p)
+{
+	const unsigned char *q = p;
+	uint64 v;
+
+#if IS_LITTLE_ENDIAN
+	memcpy(&v, q, sizeof v);
+#else
+	v = (uint64) peek_le32(q) | ((uint64) peek_le32(&q[sizeof v / 2]) << 32);
+#endif
+	return v;
+}
+
 /*
  * The poke_* functions return a pointer to the next byte after the
  * written bytes.
