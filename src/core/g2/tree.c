@@ -612,6 +612,8 @@ g2_tree_enter_leave(g2_tree_t *root,
 
 #ifdef TREE_TESTING
 
+#define LARGE_PAYLOAD	258		/* Force 2-byte payload length */
+
 void G_GNUC_COLD
 g2_tree_test(void)
 {
@@ -619,7 +621,7 @@ g2_tree_test(void)
 	const char root_payload[] = "root payload";
 	const char second[] = "second payload";
 	size_t needed, length, rlen;
-	void *buffer;
+	void *buffer, *large;
 	bool ok;
 
 	g_debug("%s() starting...", G_STRFUNC);
@@ -627,6 +629,8 @@ g2_tree_test(void)
 	/*
 	 * Tree primitives testing.
 	 */
+
+	large = halloc(LARGE_PAYLOAD);
 
 	root = g2_tree_alloc_copy("root", root_payload, strlen(root_payload));
 	g2_tree_add_child(root,
@@ -637,7 +641,7 @@ g2_tree_test(void)
 	g2_tree_add_child(c2, g2_tree_alloc_empty("d2"));
 	g2_tree_add_child(c2, g2_tree_alloc_empty("d1"));
 	g2_tree_add_child(first, g2_tree_alloc_empty("c3"));
-	g2_tree_add_child(first, g2_tree_alloc_empty("c1"));
+	g2_tree_add_child(first, g2_tree_alloc("c1", large, LARGE_PAYLOAD));
 
 	ok = g2_tfmt_tree_dump(root, stderr, G2FMT_O_PAYLOAD | G2FMT_O_PAYLEN);
 	g_assert(ok);
@@ -690,6 +694,7 @@ g2_tree_test(void)
 	g_assert(0 == strcmp("c2", g2_tree_name(node)));
 
 	HFREE_NULL(buffer);
+	HFREE_NULL(large);
 	g2_tree_free_null(&root);
 	g2_tree_free_null(&retrieved);
 

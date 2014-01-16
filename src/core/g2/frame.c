@@ -730,9 +730,10 @@ g2_frame_recursive_serialize(struct frame_sctx *sctx, const g2_tree_t *root)
 			end = ptr_add_offset(sctx->p, bytlen - 1);
 			sctx->len += bytlen - 1;
 
-			if (ptr_cmp(end, sctx->end) >= 0) {
+			if (ptr_cmp(end, sctx->end) > 0) {
 				sctx->full = TRUE;
-			} else if (!sctx->full) {
+				sctx->p = end;
+			} else {
 				void *namestart = ptr_add_offset(start, 2);
 				size_t amount = ptr_diff(sctx->p, namestart);
 				void *newname = ptr_add_offset(namestart, bytlen - 1);
