@@ -71,7 +71,7 @@
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/pslist.h"
-#include "lib/random.h"
+#include "lib/shuffle.h"
 #include "lib/str.h"
 #include "lib/strtok.h"
 #include "lib/timestamp.h"
@@ -1849,38 +1849,18 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 
 	/*
 	 * Second pass: choose at most `hcnt' entries at random.
+	 *
+	 * We do this by randomly shuffling the whole array and then selecting
+	 * the first `hcnt' entries.
 	 */
 
-	for (i = j = 0; i < nselected && j < hcnt; i++) {
+	shuffle(selected, nselected, sizeof selected[0]);
+
+	for (i = j = 0; i < nselected && j < hcnt; i++, j++) {
 		struct dmesh_entry *dme;
-		int nleft = nselected - i;
-		int npick = random_value(nleft - 1);
-		int k;
-		int n;
 
-		/*
-		 * The `npick' variable is the index of the selected entry, all
-		 * NULL pointers we can encounter on our path not-withstanding.
-		 */
-
-		for (k = 0, n = npick; n >= 0; /* empty */) {
-			g_assert(k < nselected);
-			if (selected[k] == NULL) {
-				k++;
-				continue;
-			}
-			n--;
-		}
-
-		g_assert(k < nselected);
-
-		dme = selected[k];
-		selected[k] = NULL;				/* Can't select same entry twice */
-
-		g_assert(j < hcnt);
-
+		dme = selected[i];
 		gnet_host_set(&hvec[j], dme->e.url.addr, dme->e.url.port);
-		j++;
 	}
 
 	return j;		/* Amount we filled in vector */
@@ -2237,32 +2217,11 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * Second pass.
 	 */
 
+	shuffle(selected, nselected, sizeof selected[0]);
+
 	for (i = 0; i < nselected; i++) {
-		struct dmesh_entry *dme;
-		int nleft = nselected - i;
-		int npick = random_value(nleft - 1);
-		int j;
-		int n;
+		struct dmesh_entry *dme = selected[i];
 		size_t url_len;
-
-		/*
-		 * The `npick' variable is the index of the selected entry, all
-		 * NULL pointers we can encounter on our path not-withstanding.
-		 */
-
-		for (j = 0, n = npick; n >= 0; /* empty */) {
-			g_assert(j < nselected);
-			if (selected[j] == NULL) {
-				j++;
-				continue;
-			}
-			n--;
-		}
-
-		g_assert(j < nselected);
-
-		dme = selected[j];
-		selected[j] = NULL;				/* Can't select same entry twice */
 
 		g_assert(delta_time(dme->inserted, last_sent) > 0);
 
