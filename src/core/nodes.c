@@ -7871,6 +7871,7 @@ node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port)
 	}
 	return NULL;
 }
+
 /**
  * Get "fake" node for DHT transmission.
  */
@@ -12396,6 +12397,16 @@ node_all_g2_nodes(void)
 }
 
 /**
+ * Is the external IP:port of a node known, so that we can connect to it?
+ */
+bool
+node_address_known(const gnutella_node_t *n)
+{
+	/* We must know the address and the listening port */
+	return host_addr_initialized(n->gnet_addr) && n->gnet_port != 0;
+}
+
+/**
  * Fill the supplied vector ``hvec'' whose size is ``hcnt'' items with ultra
  * peers, mixing randomly selected ultra peers among our neighbours and
  * hosts from the host cache.
@@ -12437,7 +12448,7 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 			continue;
 
 		/* Skip hosts for which we do not know the listening IP:port */
-		if (!host_addr_initialized(n->gnet_addr) || 0 == n->gnet_port)
+		if (!node_address_known(n))
 			continue;
 
 		/*

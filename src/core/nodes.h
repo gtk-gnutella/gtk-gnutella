@@ -737,6 +737,7 @@ void node_is_firewalled(gnutella_node_t *n);
 void node_supported_vmsg(struct gnutella_node *, const char *str, size_t len);
 void node_supported_feats(struct gnutella_node *, const char *str, size_t len);
 bool node_above_low_watermark(const gnutella_node_t *n);
+bool node_address_known(const gnutella_node_t *n);
 
 const struct nid *node_id_get_self(void);
 bool node_id_self(const struct nid *node_id);
