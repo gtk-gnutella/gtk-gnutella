@@ -284,26 +284,55 @@ g2_msg_name_type(const char *name)
 }
 
 /**
- * Log a dropped message.
+ * Log dropped message.
  */
-void
-g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
+static void
+g2_msg_log_dropped(const void *data, size_t len, const char *fmt, va_list args)
 {
 	char rbuf[256];
 
-	if (reason != NULL) {
-		va_list args;
-		va_start(args, reason);
+	if (fmt != NULL) {
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(&rbuf[2], sizeof rbuf - 2, fmt, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
 	}
 
-	g_debug("DROP G2 %s%s",
-		g2_frame_name(pmsg_start(mb), pmsg_size(mb), NULL), rbuf);
+	g_debug("DROP G2 %s%s", g2_msg_name(data, len), rbuf);
+}
+
+/**
+ * Log a dropped message.
+ */
+void
+g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *fmt, ...)
+{
+	if (fmt != NULL) {
+		va_list args;
+		va_start(args, fmt);
+		g2_msg_log_dropped(pmsg_start(mb), pmsg_size(mb), fmt, args);
+		va_end(args);
+	} else {
+		g2_msg_log_dropped(pmsg_start(mb), pmsg_size(mb), NULL, NULL);
+	}
+}
+
+/**
+ * Log a dropped message.
+ */
+void
+g2_msg_log_dropped_data(const void *data, size_t len, const char *fmt, ...)
+{
+	if (fmt != NULL) {
+		va_list args;
+		va_start(args, fmt);
+		g2_msg_log_dropped(data, len, fmt, args);
+		va_end(args);
+	} else {
+		g2_msg_log_dropped(data, len, NULL, NULL);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

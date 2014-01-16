@@ -1005,9 +1005,21 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
 	g_assert(thread_is_main());
 
-    size = n->size + sizeof(n->header);
-	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+	if (NODE_TALKS_G2(n)) {
+		int f = g2_msg_type(n->data, n->size);
+		if (f != G2_MSG_MAX) {
+			f += MSG_G2_BASE;
+		} else {
+			f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+		}
+		type = stats_lut[f];
+		size = n->size;
+	} else {
+		type = stats_lut[gnutella_header_get_function(&n->header)];
+		size = n->size + sizeof(n->header);
+	}
 
 	gnet_stats_randomness(n, type & 0xff, size);
 
@@ -1021,10 +1033,19 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	default: ;
 	}
 
-	if (GNET_PROPERTY(log_dropped_gnutella))
-		gmsg_log_split_dropped(&n->header, n->data, n->size,
-			"from %s: %s", node_infostr(n),
-			gnet_stats_drop_reason_to_string(reason));
+	if (NODE_TALKS_G2(n)) {
+		if (GNET_PROPERTY(log_dropped_g2)) {
+			g2_msg_log_dropped_data(n->data, n->size,
+				"from %s: %s", node_infostr(n),
+				gnet_stats_drop_reason_to_string(reason));
+		}
+	} else {
+		if (GNET_PROPERTY(log_dropped_gnutella)) {
+			gmsg_log_split_dropped(&n->header, n->data, n->size,
+				"from %s: %s", node_infostr(n),
+				gnet_stats_drop_reason_to_string(reason));
+		}
+	}
 }
 
 /**
