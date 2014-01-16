@@ -41,6 +41,7 @@
 #include "tree.h"
 
 
+#include "core/nodes.h"
 #include "core/share.h"			/* For shared_files_scanned() */
 #include "core/settings.h"		/* For listen_addr_primary() */
 #include "core/sockets.h"		/* For socket_listen_port() */
@@ -240,6 +241,124 @@ g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 }
 
 /**
+ * Add the local node GUID as a "GU" child to the root.
+ */
+static void
+g2_build_add_guid(g2_tree_t *t)
+{
+	g2_tree_t *c;
+
+	c = g2_tree_alloc_copy("GU", GNET_PROPERTY(servent_guid), GUID_RAW_SIZE);
+	g2_tree_add_child(t, c);
+}
+
+/**
+ * Add the vendor code as a "V" child to the root.
+ */
+static void
+g2_build_add_vendor(g2_tree_t *t)
+{
+	g2_tree_t *c;
+
+	c = g2_tree_alloc("V", GTA_VENDOR_CODE, CONST_STRLEN(GTA_VENDOR_CODE));
+	g2_tree_add_child(t, c);
+}
+
+/**
+ * Add child to the node, carrying an IP:port.
+ *
+ * @param t		the tree node where child must be added
+ * @param name	the name of the child
+ * @param addr	the IP address
+ * @param port	the port address
+ */
+static void
+g2_build_add_host(g2_tree_t *t, const char *name, host_addr_t addr, uint16 port)
+{
+	struct packed_host_addr packed;
+	uint alen;
+	char payload[18];		/* Large enough for IPv6 as well, one day? */
+	void *p;
+	g2_tree_t *c;
+
+	packed = host_addr_pack(addr);
+	alen = packed_host_addr_size(packed) - 1;	/* skip network byte */
+
+	p = mempcpy(payload, &packed.addr, alen);
+	p = poke_le16(p, port);
+
+	c = g2_tree_alloc_copy(name, payload, ptr_diff(p, payload));
+	g2_tree_add_child(t, c);
+}
+
+/**
+ * Add the local node address as a "NA" child to the root.
+ */
+static void
+g2_build_add_node_address(g2_tree_t *t)
+{
+	g2_build_add_host(t, "NA", listen_addr_primary(), socket_listen_port());
+}
+
+/**
+ * Add the servent update as a "UP" child to the root.
+ */
+static void
+g2_build_add_uptime(g2_tree_t *t)
+{
+	time_delta_t uptime;
+	char payload[8];
+	int n;
+	g2_tree_t *c;
+
+	/*
+	 * The uptime will typically be small, hence it is encoded as a variable
+	 * length little-endian value, with trailing zeros removed.  Usually
+	 * only 2 or 3 bytes will be necesssary to encode the uptime (in seconds).
+	 */
+
+	uptime = delta_time(tm_time(), GNET_PROPERTY(start_stamp));
+	n = vlint_encode(uptime, payload);
+
+	c = g2_tree_alloc_copy("UP", payload, n);	/* No trailing 0s */
+	g2_tree_add_child(t, c);
+}
+
+/**
+ * Generate a "FW" child in the root if the node is firewalled.
+ */
+static void
+g2_build_add_firewalled(g2_tree_t *t)
+{
+	if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
+		g2_tree_t *c = g2_tree_alloc_empty("FW");
+		g2_tree_add_child(t, c);
+	}
+}
+
+/**
+ * Generate as many "NH" childrend to the root as we have neihbouring hubs,
+ * when the node is firewalled.  They can act as "push proxies", as in Gnutella.
+ */
+static void
+g2_build_add_neighbours(g2_tree_t *t)
+{
+	if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
+		const pslist_t *sl;
+
+		PSLIST_FOREACH(node_all_g2_nodes(), sl) {
+			const gnutella_node_t *n = sl->data;
+
+			node_check(n);
+			g_assert(NODE_TALKS_G2(n));
+
+			if (NODE_IS_ESTABLISHED(n) && node_address_known(n))
+				g2_build_add_host(t, "NH", n->gnet_addr, n->gnet_port);
+		}
+	}
+}
+
+/**
  * Build a Local Node Info message.
  *
  * @return a /LNI message.
@@ -247,15 +366,10 @@ g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 pmsg_t *
 g2_build_lni(void)
 {
-	g2_tree_t *t, *c;
+	g2_tree_t *t;
 	pmsg_t *mb;
 
 	t = g2_tree_alloc_empty(G2_NAME(LNI));
-
-	/* V -- vendor code */
-
-	c = g2_tree_alloc("V", GTA_VENDOR_CODE, CONST_STRLEN(GTA_VENDOR_CODE));
-	g2_tree_add_child(t, c);
 
 	/* LS -- library statistics */
 
@@ -263,6 +377,7 @@ g2_build_lni(void)
 		uint32 files, kbytes;
 		char payload[8];
 		void *p = payload;
+		g2_tree_t *c;
 
 		files  = MIN(shared_files_scanned(), ~((uint32) 0U));
 		kbytes = MIN(shared_kbytes_scanned(), ~((uint32) 0U));
@@ -274,54 +389,17 @@ g2_build_lni(void)
 		g2_tree_add_child(t, c);
 	}
 
-	/* UP -- servent uptime, little-endian, amount of seconds since startup */
-
-	{
-		time_delta_t uptime;
-		char payload[8];
-		int n;
-
-		uptime = delta_time(tm_time(), GNET_PROPERTY(start_stamp));
-		n = vlint_encode(uptime, payload);
-
-		c = g2_tree_alloc_copy("UP", payload, n);	/* No trailing 0s */
-		g2_tree_add_child(t, c);
-	}
-
-	/* FW -- whether servent is firewalled */
-
-	if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
-		c = g2_tree_alloc_empty("FW");
-		g2_tree_add_child(t, c);
-	}
-
-	/* GU -- the GUID of this node */
-
-	c = g2_tree_alloc_copy("GU", GNET_PROPERTY(servent_guid), GUID_RAW_SIZE);
-	g2_tree_add_child(t, c);
-
-	/* NA -- the IP:port of this node */
-
-	{
-		struct packed_host_addr packed;
-		uint alen;
-		char payload[18];
-		void *p;
-
-		packed = host_addr_pack(listen_addr_primary());
-		alen = packed_host_addr_size(packed) - 1;	/* skip network byte */
-
-		p = mempcpy(payload, &packed.addr, alen);
-		p = poke_le16(p, socket_listen_port());
-
-		c = g2_tree_alloc_copy("NA", payload, ptr_diff(p, payload));
-		g2_tree_add_child(t, c);
-	}
+	g2_build_add_firewalled(t);		/* FW -- whether servent is firewalled */
+	g2_build_add_uptime(t);			/* UP -- servent uptime */
+	g2_build_add_vendor(t);			/* V  -- vendor code */
+	g2_build_add_guid(t);			/* GU -- the GUID of this node */
+	g2_build_add_node_address(t);	/* NA -- the IP:port of this node */
 
 	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 
 	return mb;
+
 }
 
 /**
