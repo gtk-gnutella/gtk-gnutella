@@ -577,7 +577,7 @@ typedef int socket_fd_t;
  * does not suppress this warning.
  */
 #define IGNORE_RESULT(x) \
-	G_STMT_START { switch (0 != (x)) { default: ; } }  G_STMT_END
+	G_STMT_START { if (0 != (x)) {} }  G_STMT_END
 
 /*
  * Functions using this attribute cause a warning if the variable
