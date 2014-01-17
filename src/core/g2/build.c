@@ -38,28 +38,41 @@
 
 #include "frame.h"
 #include "msg.h"
+#include "node.h"
+#include "tfmt.h"
 #include "tree.h"
 
-
+#include "core/dmesh.h"
 #include "core/nodes.h"
-#include "core/share.h"			/* For shared_files_scanned() */
+#include "core/qhit.h"
 #include "core/settings.h"		/* For listen_addr_primary() */
+#include "core/share.h"			/* For shared_files_scanned() */
 #include "core/sockets.h"		/* For socket_listen_port() */
 
 #include "lib/endian.h"
 #include "lib/halloc.h"
+#include "lib/hset.h"
 #include "lib/mempcpy.h"
 #include "lib/misc.h"			/* For CONST_STRLEN() */
 #include "lib/once.h"
 #include "lib/pmsg.h"
 #include "lib/pow2.h"
+#include "lib/pslist.h"
+#include "lib/sha1.h"
+#include "lib/stringify.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define G2_BUILD_QH2_THRESH		8192	/**< Flush /QH2 larger than this */
+#define G2_BUILD_QH2_MAX_ALT	16		/**< Max amount of alt-locs we send */
 
 enum g2_qht_type {
 	G2_QHT_RESET = 0,
 	G2_QHT_PATCH = 1,
 };
+
+const char G2_URN_SHA1[]     = "sha1";
+const char G2_URN_BITPRINT[] = "bp";
 
 static pmsg_t *build_alive_pi;		/* Single alive ping */
 static once_flag_t build_alive_pi_done;
@@ -399,7 +412,388 @@ g2_build_lni(void)
 	g2_tree_free_null(&t);
 
 	return mb;
+}
 
+/**
+ * Structure used to control the generation of query hits (/QH2 messages)
+ */
+struct g2_qh2_builder {
+	char payload[1 + GUID_RAW_SIZE];	/**< hops + MUID */
+	const guid_t *muid;			/**< MUID of query, for logging if needed */
+	hset_t *hs;					/**< Records SHA1 atoms we sent */
+	g2_tree_t *t;				/**< Current message */
+	size_t max_size;			/**< Max query hit size we want */
+	size_t common_size;			/**< Serialized size with common fields only */
+	size_t current_size;		/**< Estimated current size */
+	int messages;				/**< Counts flushed messages, for logging */
+	uint flags;					/**< Flags for optional entries in hit */
+};
+
+/**
+ * Send current /QH2 to target node.
+ */
+static void
+g2_build_qh2_flush(gnutella_node_t *n, struct g2_qh2_builder *ctx)
+{
+	pmsg_t *mb;
+
+	g_assert(ctx != NULL);
+	g_assert(ctx->t != NULL);
+
+	/*
+	 * Restore the order of children in the root packet to be the order we
+	 * used when we added the nodes, since we prepend new children.
+	 */
+
+	g2_tree_reverse_children(ctx->t);
+
+	/*
+	 * If sending over UDP, ask for reliable delivery of the query hit.
+	 */
+
+	mb = g2_build_pmsg(ctx->t);
+	if (NODE_IS_UDP(n))
+		pmsg_mark_reliable(mb);
+
+	if (GNET_PROPERTY(g2_debug) > 3) {
+		g_debug("%s(): flushing the following hit for Q2 #%s to %s (%d bytes):",
+			G_STRFUNC, guid_hex_str(ctx->muid), node_infostr(n), pmsg_size(mb));
+		g2_tfmt_tree_dump(ctx->t, stderr, G2FMT_O_PAYLOAD | G2FMT_O_PAYLEN);
+	}
+
+	g2_node_send(n, mb);
+
+	ctx->messages++;
+	g2_tree_free_null(&ctx->t);
+}
+
+/**
+ * Create new /QH2 and fill it with fields that do not depend on the hits
+ * themselves, i.e. all the common fields we have to send in every /QH2 anyway.
+ */
+static void
+g2_build_qh2_start(struct g2_qh2_builder *ctx)
+{
+	g_assert(NULL == ctx->t);
+
+	/*
+	 * The payload of the /QH2 message is one byte hop count + the MUID.
+	 */
+
+	ctx->t = g2_tree_alloc(G2_NAME(QH2), &ctx->payload[0], sizeof ctx->payload);
+
+	g2_build_add_node_address(ctx->t);	/* NA -- the IP:port of this node */
+	g2_build_add_guid(ctx->t);			/* GU -- the GUID of this node */
+	g2_build_add_vendor(ctx->t);		/* V  -- vendor code */
+	g2_build_add_firewalled(ctx->t);	/* FW -- when servent is firewalled */
+	g2_build_add_uptime(ctx->t);		/* UP -- servent uptime */
+	g2_build_add_neighbours(ctx->t);	/* NH -- neighbouring hubs, if FW */
+
+	/*
+	 * Compute size we have so far, once per query hit series.
+	 */
+
+	if G_UNLIKELY(0 == ctx->common_size)
+		ctx->common_size = g2_frame_serialize(ctx->t, NULL, 0);
+
+	ctx->current_size = ctx->common_size;
+}
+
+/**
+ * Add file to the current query hit.
+ *
+ * @return TRUE if we kept the file, FALSE if we did not include it in the hit.
+ */
+static bool
+g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
+{
+	const sha1_t *sha1;
+	g2_tree_t *h, *c;
+
+	shared_file_check(sf);
+
+	/*
+	 * Make sure the file is still in the library.
+	 */
+
+	if (0 == shared_file_index(sf))
+		return FALSE;
+
+	/*
+	 * On G2, the H/URN child is required, meaning we need the SHA1 at least.
+	 */
+
+	if (!sha1_hash_available(sf))
+		return FALSE;
+
+	/*
+	 * Do not send duplicates, as determined by the SHA1 of the resource.
+	 *
+	 * A user may share several files with different names but the same SHA1,
+	 * and if all of them are hits, we only want to send one instance.
+	 */
+
+	sha1 = shared_file_sha1(sf);		/* This is an atom */
+
+	if (hset_contains(ctx->hs, sha1))
+		return FALSE;
+
+	hset_insert(ctx->hs, sha1);
+
+	/*
+	 * Create the "H" child and attach it to the current tree.
+	 */
+
+	if (NULL == ctx->t)
+		g2_build_qh2_start(ctx);
+
+	h = g2_tree_alloc_empty("H");
+	g2_tree_add_child(ctx->t, h);
+
+	/*
+	 * URN -- Universal Resource Name
+	 *
+	 * If there is a known TTH, then we can generate a bitprint, otherwise
+	 * we just convey the SHA1.
+	 */
+
+	{
+		const tth_t * const tth = shared_file_tth(sf);
+		char payload[SHA1_RAW_SIZE + TTH_RAW_SIZE + sizeof G2_URN_BITPRINT];
+		char *p = payload;
+
+		if (NULL == tth) {
+			p = mempcpy(p, G2_URN_SHA1, sizeof G2_URN_SHA1);
+			p += clamp_memcpy(p, sizeof payload - ptr_diff(p, payload),
+				sha1, SHA1_RAW_SIZE);
+		} else {
+			p = mempcpy(p, G2_URN_BITPRINT, sizeof G2_URN_BITPRINT);
+			p += clamp_memcpy(p, sizeof payload - ptr_diff(p, payload),
+				sha1, SHA1_RAW_SIZE);
+			p += clamp_memcpy(p, sizeof payload - ptr_diff(p, payload),
+				tth, TTH_RAW_SIZE);
+		}
+
+		g_assert(ptr_diff(p, payload) <= sizeof payload);
+
+		c = g2_tree_alloc_copy("URN", payload, ptr_diff(p, payload));
+		g2_tree_add_child(h, c);
+	}
+
+	/*
+	 * URL -- empty to indicate that we share the file via uri-res.
+	 */
+
+	if (ctx->flags & QHIT_F_G2_URL) {
+		uint known;
+		uint16 csc;
+
+		c = g2_tree_alloc_empty("URL");
+		g2_tree_add_child(h, c);
+
+		/*
+		 * CSC -- if we know alternate sources, indicate how many in "CSC".
+		 *
+		 * This child is only emitted when they requested "URL".
+		 */
+
+		known = dmesh_count(sha1);
+		csc = MIN(known, MAX_INT_VAL(uint16));
+
+		if (csc != 0) {
+			char payload[2];
+
+			poke_le16(payload, csc);
+			c = g2_tree_alloc_copy("CSC", payload, sizeof payload);
+			g2_tree_add_child(h, c);
+		}
+
+		/*
+		 * PART -- if we only have a partial file, indicate how much we have.
+		 *
+		 * This child is only emitted when they requested "URL".
+		 */
+
+		if (shared_file_is_partial(sf) && !shared_file_is_finished(sf)) {
+			filesize_t available = shared_file_available(sf);
+			char payload[8];	/* If we have to encode file size as 64-bit */
+			uint32 av32;
+			time_t mtime = shared_file_modification_time(sf);
+
+			c = g2_tree_alloc_empty("PART");
+			g2_tree_add_child(h, c);
+
+			av32 = available;
+			if (av32 == available) {
+				/* Fits within a 32-bit quantity */
+				poke_le32(payload, av32);
+				g2_tree_set_payload(c, payload, sizeof av32, TRUE);
+			} else {
+				/* Encode as a 64-bit quantity then */
+				poke_le64(payload, available);
+				g2_tree_set_payload(c, payload, sizeof payload, TRUE);
+			}
+
+			/*
+			 * GTKG extension: encode the last modification time of the
+			 * partial file in an "MT" child.  This lets the other party
+			 * determine whether the host is still able to actively complete
+			 * the file.
+			 */
+
+			poke_le32(payload, (uint32) mtime);
+			g2_tree_add_child(c,
+				g2_tree_alloc_copy("MT", payload, sizeof(uint32)));
+		}
+	}
+
+	/*
+	 * DN -- distinguished name.
+	 *
+	 * Note that the presence of DN also governs the presence of SZ if the
+	 * file length does not fit a 32-bit unsigned quantity.
+	 */
+
+	if (ctx->flags & QHIT_F_G2_DN) {
+		char payload[8];		/* If we have to encode file size as 64-bit */
+		uint32 fs32;
+		filesize_t fs = shared_file_size(sf);
+		const char *name;
+		const char *rp;
+
+		c = g2_tree_alloc_empty("DN");
+
+		fs32 = fs;
+		if (fs32 == fs) {
+			/* Fits within a 32-bit quantity */
+			poke_le32(payload, fs32);
+			g2_tree_set_payload(c, payload, sizeof fs32, TRUE);
+		} else {
+			/* Does not fit a 32-bit quantity, emit a SZ child */
+			poke_le64(payload, fs);
+			g2_tree_add_child(h,
+				g2_tree_alloc_copy("SZ", payload, sizeof payload));
+		}
+
+		name = shared_file_name_nfc(sf);
+		g2_tree_append_payload(c, name, shared_file_name_nfc_len(sf));
+		g2_tree_add_child(h, c);
+
+		/*
+		 * GTKG extension: if there is a file path, expose it as a "P" child
+		 * under the DN node.
+		 */
+
+		rp = shared_file_relative_path(sf);
+		if (rp != NULL) {
+			g2_tree_add_child(c, g2_tree_alloc_copy("P", rp, strlen(rp)));
+		}
+	}
+
+	/*
+	 * GTKG extension: if they requested alt-locs in the /Q2/I with "A", then
+	 * send them some known alt-locs in an "ALT" child.
+	 *
+	 * Note that these alt-locs can be for Gnutella hosts: since both Gnutella
+	 * and G2 share a common HTTP-based file transfer mechanism with compatible
+	 * extra headers, there is no need to handle them separately.
+	 */
+
+	if (ctx->flags & QHIT_F_G2_ALT) {
+		gnet_host_t hvec[G2_BUILD_QH2_MAX_ALT];
+		int hcnt = 0;
+
+		hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
+
+		if (hcnt > 0) {
+			int i;
+
+			c = g2_tree_alloc_empty("ALT");
+
+			for (i = 0; i < hcnt; i++) {
+				host_addr_t addr;
+				uint16 port;
+
+				addr = gnet_host_get_addr(&hvec[i]);
+				port = gnet_host_get_port(&hvec[i]);
+
+				if (host_addr_is_ipv4(addr)) {
+					char payload[6];
+
+					host_ip_port_poke(payload, addr, port, NULL);
+					g2_tree_append_payload(c, payload, sizeof payload);
+				}
+			}
+
+			/*
+			 * If the payload is still empty, then drop the "ALT" child.
+			 * Otherwise, attach it to the "H" node.
+			 */
+
+			if (NULL == g2_tree_node_payload(c, NULL)) {
+				g2_tree_free_null(&c);
+			} else {
+				g2_tree_add_child(h, c);
+			}
+		}
+	}
+
+	/*
+	 * Update the size of the query hit we're generating.
+	 */
+
+	ctx->current_size += g2_frame_serialize(h, NULL, 0);
+
+	return TRUE;
+}
+
+/**
+ * Build and send query hits (/QH2) to specified node.
+ *
+ * @param n			the node where we should send results to
+ * @param files		the list of shared_file_t entries that make up results
+ * @param count		the amount of results held in the list
+ * @param muid		the query's MUID
+ * @param flags		a set of QHIT_F_G2_* flags
+ */
+void
+g2_build_send_qh2(gnutella_node_t *n,
+	pslist_t *files, int count, const guid_t *muid, uint flags)
+{
+	pslist_t *sl;
+	struct g2_qh2_builder ctx;
+	int sent = 0;
+
+	ZERO(&ctx);
+	clamp_memcpy(&ctx.payload[1], sizeof ctx.payload - 1, muid, GUID_RAW_SIZE);
+	ctx.muid = muid;
+	ctx.hs = hset_create(HASH_KEY_SELF, 0);
+	ctx.max_size = G2_BUILD_QH2_THRESH;
+	ctx.flags = flags;
+
+	PSLIST_FOREACH(files, sl) {
+		shared_file_t *sf = sl->data;
+
+		if (g2_build_qh2_add(&ctx, sf))
+			sent++;
+
+		if (ctx.current_size >= ctx.max_size)
+			g2_build_qh2_flush(n, &ctx);
+
+		shared_file_unref(&sf);
+	}
+
+	if (ctx.t != NULL)					/* Still some unflushed results */
+		g2_build_qh2_flush(n, &ctx);	/* Send last packet */
+
+	hset_free_null(&ctx.hs);
+	pslist_free(files);
+
+	if (GNET_PROPERTY(g2_debug) > 3) {
+		g_debug("%s(): sent %d/%d hit%s in %d message%s to %s",
+			G_STRFUNC, sent, count, plural(sent),
+			ctx.messages, plural(ctx.messages), node_infostr(n));
+	}
 }
 
 /**

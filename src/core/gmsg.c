@@ -189,6 +189,7 @@ gmsg_init(void)
 		case GTA_MSG_RUDP:   		 w = 6;      s = "RUDP"; break;
 		case GTA_MSG_QRP:            w = 8;      s = "QRP"; break;
 		case GTA_MSG_BYE:      		 w = 9;      s = "BYE"; break;
+		case GTA_MSG_G2_SEARCH: /* Not a real message */ break;
 		}
 		msg_name[i] = s;
 		msg_weight[i] = w;

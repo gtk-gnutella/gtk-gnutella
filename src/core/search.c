@@ -33,6 +33,7 @@
 
 #include "common.h"
 
+#define SEARCH_SOURCES
 #include "search.h"
 
 #include "ban.h"
@@ -70,6 +71,8 @@
 #include "sq.h"
 #include "version.h"
 #include "vmsg.h"
+
+#include "g2/build.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -151,33 +154,6 @@
 static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
 static sectoken_gen_t *ora_stg;			/**< OOB request ack token generator */
 static aging_table_t *ora_secure;		/**< Hosts supporting secure OOB */
-
-/**
- * Gathered query information.
- */
-struct search_request_info {
-	struct {
-		struct sha1 sha1;
-		bool matched;
-	} exv_sha1[MAX_EXTVEC];
-	host_addr_t addr;				/**< Reply address for OOB */
-	const char *extended_query;		/**< String in GGEP "XQ" */
-	int exv_sha1cnt;				/**< Amount of SHA1 to search for */
-	size_t search_len;				/**< Length of query string */
-	uint32 media_types;				/**< Media types from GGEP "M" */
-	uint16 flags;					/**< Query flags */
-	uint16 port;					/**< Reply port for OOB */
-	unsigned oob:1;					/**< Wants out-of-band hit delivery */
-	unsigned secure_oob:1;			/**< OOB v3 used? */
-	unsigned whats_new:1;			/**< This ia a "What's New?" query */
-	unsigned skip_file_search:1;	/**< Should we skip library searching? */
-	unsigned may_oob_proxy:1;		/**< Can we OOB-proxy the query? */
-	unsigned partials:1;			/**< Do they want partial results? */
-	unsigned duplicate:1;			/**< Known duplicate, with higher TTL */
-	unsigned ipv6:1;				/**< Do they support IPv6? */
-	unsigned ipv6_only:1;			/**< Do they support IPv6 only? */
-	unsigned sr_udp:1;				/**< Do they support semi-reliable UDP? */
-};
 
 enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
 
@@ -6317,7 +6293,7 @@ search_request_listener_remove(search_request_listener_t l)
     LISTENER_REMOVE(search_request, l);
 }
 
-static void
+void
 search_request_listener_emit(
 	query_type_t type, const char *query, const host_addr_t addr, uint16 port)
 {
@@ -6334,23 +6310,21 @@ search_request_listener_emit(
 struct query_context {
 	hset_t *shared_files;
 	pslist_t *files;			/**< List of shared_file_t that match */
+	const search_request_info_t *sri;
 	int found;
-	unsigned media_mask;		/**< If non-zero, which media types they want */
-	unsigned partials:1;		/**< Do they want partial results? */
 };
 
 /**
  * Create new query context.
  */
 static struct query_context *
-share_query_context_make(unsigned media_mask, bool partials)
+share_query_context_make(const search_request_info_t *sri)
 {
 	struct query_context *ctx;
 
 	WALLOC0(ctx);
 	ctx->shared_files = hset_create(HASH_KEY_SELF, 0);
-	ctx->media_mask = media_mask;
-	ctx->partials = booleanize(partials);
+	ctx->sri = sri;
 
 	return ctx;
 }
@@ -6399,6 +6373,7 @@ got_match(void *context, void *data)
 {
 	struct query_context *qctx = context;
 	const shared_file_t *sf = data;
+	const search_request_info_t *sri = qctx->sri;
 
 	shared_file_check(sf);
 
@@ -6413,8 +6388,8 @@ got_match(void *context, void *data)
 		 */
 
 		if (
-			0 != qctx->media_mask &&
-			!shared_file_has_media_type(sf, qctx->media_mask)
+			0 != sri->media_types &&
+			!shared_file_has_media_type(sf, sri->media_types)
 		) {
 			if (GNET_PROPERTY(query_debug) > 1 ||
 				GNET_PROPERTY(matching_debug) > 1
@@ -6422,10 +6397,34 @@ got_match(void *context, void *data)
 				g_debug("MATCH ignoring matched %s \"%s\", not of type %s",
 					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_canonic(sf),
-					search_media_mask_to_string(qctx->media_mask));
+					search_media_mask_to_string(sri->media_types));
 			}
 
 			return FALSE;
+		}
+
+		/*
+		 * If there is a size limit, apply it.
+		 */
+
+		if (sri->size_restrictions) {
+			filesize_t size = shared_file_size(sf);
+
+			if (size < sri->minsize || size > sri->maxsize) {
+				if (GNET_PROPERTY(query_debug) > 1 ||
+					GNET_PROPERTY(matching_debug) > 1
+				) {
+					g_debug("MATCH ignoring matched %s \"%s\": size=%s "
+						"not within boundaries [%s, %s]",
+						shared_file_is_partial(sf) ? "partial" : "shared",
+						shared_file_name_canonic(sf),
+						filesize_to_string(size),
+						filesize_to_string2(sri->minsize),
+						filesize_to_string3(sri->maxsize));
+				}
+
+				return FALSE;
+			}
 		}
 
 		shared_file_mark_found(qctx, sf);
@@ -6529,7 +6528,7 @@ do {												\
  *
  * @returns TRUE if the string is valid UTF-8, FALSE otherwise.
  */
-static bool 
+bool
 query_utf8_decode(const char *text, uint *retoff)
 {
 	const char *p;
@@ -6719,6 +6718,43 @@ search_request_info_free_null(search_request_info_t **sri_ptr)
 		WFREE(sri);
 		*sri_ptr = NULL;
 	}
+}
+
+/**
+ * Is the search string valid?
+ *
+ * If invalid, the message drop is accounted for.
+ *
+ * @attention
+ * Sets sri->skip_file_search as a side effect.
+ *
+ * @param n		the node where query comes from
+ * @param hops	the hops travelled by the query
+ * @param sri	the analyzed search string so far
+ *
+ * @return TRUE if search can be processed.
+ */
+bool
+search_is_valid(gnutella_node_t *n, uint8 hops, search_request_info_t *sri)
+{
+	/*
+	 * When an URN search is present, there can be an empty search string.
+	 *
+	 * If requester is farther than half our TTL hops. save bandwidth when
+	 * returning lots of hits from short queries, which are not specific enough.
+	 * The idea here is to give some response, but not too many.
+	 */
+
+	sri->skip_file_search = sri->search_len <= 1 || (
+		sri->search_len <= MIN_SEARCH_TERM_BYTES &&
+		hops > (GNET_PROPERTY(max_ttl) / 2));
+
+    if (0 == sri->exv_sha1cnt && sri->skip_file_search) {
+        gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
+		return FALSE;					/* Drop this search message */
+    }
+
+	return TRUE;
 }
 
 /**
@@ -7332,20 +7368,10 @@ search_request_preprocess(struct gnutella_node *n,
 
 	/*
 	 * When an URN search is present, there can be an empty search string.
-	 *
-	 * If requester if farther than half our TTL hops. save bandwidth when
-	 * returning lots of hits from short queries, which are not specific enough.
-	 * The idea here is to give some response, but not too many.
 	 */
 
-	sri->skip_file_search = sri->search_len <= 1 || (
-		sri->search_len <= MIN_SEARCH_TERM_BYTES &&
-		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
-
-    if (0 == sri->exv_sha1cnt && sri->skip_file_search) {
-        gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
-		goto drop;					/* Drop this search message */
-    }
+	if (!search_is_valid(n, gnutella_header_get_hops(&n->header), sri))
+		goto drop;			/* Drop this search message */
 
 	/*
 	 * When we are not a leaf node, we do two sanity checks here:
@@ -7699,6 +7725,12 @@ drop:
  * This routine must be called after search_request_preprocess() to actually
  * perform the querying based on the information gathered into ``sri''.
  *
+ * It can therefore be used to process traditional Gnutella queries and G2
+ * queries which have been decompiled and for which ``sri'' was populated.
+ * A fake Gnutella header is filled, with the query MUID, fake hops and TTL
+ * and a special GTA_MSG_G2_SEARCH function which indicates the G2 query,
+ * plus the fact that NODE_TALKS_G2(n) will be TRUE.
+ *
  * @param n			the node from which the query comes from (relay)
  * @param sri		the information gathered during the pre-processing stage
  * @param qhv		query hash vector (can be NULL) to fill for later routing
@@ -7712,8 +7744,10 @@ search_request(struct gnutella_node *n,
 	bool qhv_filled = FALSE;
 	bool oob;
 	char *safe_search = NULL;
+	uint8 function = gnutella_header_get_function(&n->header);
 
-	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
+	g_assert(!NODE_TALKS_G2(n) || GTA_MSG_G2_SEARCH == function);
+	g_assert(NODE_TALKS_G2(n) || GTA_MSG_SEARCH == function);
 	g_assert(sri != NULL);
 
 	/*
@@ -7765,14 +7799,15 @@ search_request(struct gnutella_node *n,
 	 * filling ``sri'' with the gathered information.
 	 */
 
-	search = n->data + 2;	/* skip flags */
+	search = sri->g2_query ? "" : n->data + 2;	/* skip flags */
 
 	if (sri->extended_query != NULL) {
 		char *safe_ext = hex_escape(sri->extended_query, FALSE);
 
 		if (GNET_PROPERTY(query_debug) > 14) {
 			g_debug("QUERY %s#%s extended: original=\"%s\", extended=\"%s\"",
-				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				NODE_TALKS_G2(n) ? "(G2) " :
+					NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				lazy_safe_search(search), safe_ext);
 		}
@@ -7782,7 +7817,8 @@ search_request(struct gnutella_node *n,
 		safe_search = hex_escape(search, FALSE);
 		if (GNET_PROPERTY(query_debug) > 14) {
 			g_debug("QUERY %s#%s \"%s\"",
-				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				NODE_TALKS_G2(n) ? "(G2) " :
+					NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				sri->whats_new ? WHATS_NEW : safe_search);
 		}
@@ -7904,13 +7940,20 @@ search_request(struct gnutella_node *n,
 			 * be counted in QRP filterting statistics.
 			 */
 
-			if (settings_is_leaf() && node_ultra_received_qrp(n)) {
-				node_inc_qrp_query(n);
+			if (NODE_TALKS_G2(n)) {
+				if (node_hub_received_qrp(n)) {
+					node_inc_qrp_query(n);
+				}
+				gnet_stats_inc_general(GNR_LOCAL_G2_SEARCHES);
+			} else {
+				if (settings_is_leaf() && node_ultra_received_qrp(n)) {
+					node_inc_qrp_query(n);
+				}
+				gnet_stats_inc_general(GNR_LOCAL_SEARCHES);
 			}
-			gnet_stats_inc_general(GNR_LOCAL_SEARCHES);
 		}
 
-		qctx = share_query_context_make(sri->media_types, sri->partials);
+		qctx = share_query_context_make(sri);
 		max_replies = GNET_PROPERTY(search_max_items) == (uint32) -1
 				? 255
 				: GNET_PROPERTY(search_max_items);
@@ -7932,8 +7975,8 @@ search_request(struct gnutella_node *n,
 					!shared_file_is_partial(sf)
 				) {
 					shared_file_check(sf);
-					got_match(qctx, sf);
-					max_replies--;
+					if (got_match(qctx, sf))
+						max_replies--;
 				}
 				shared_file_unref(&sf);
 			}
@@ -7944,7 +7987,9 @@ search_request(struct gnutella_node *n,
 			size_t cnt, i;
 
 			cnt = GNET_PROPERTY(query_answer_whats_new)
-				? share_fill_newest(sfv, G_N_ELEMENTS(sfv), sri->media_types)
+				? share_fill_newest(sfv, G_N_ELEMENTS(sfv),
+					sri->media_types,
+					sri->size_restrictions, sri->minsize, sri->maxsize)
 				: 0;
 			for (i = 0; i < cnt; i++) {
 				got_match(qctx, sfv[i]);
@@ -7953,8 +7998,14 @@ search_request(struct gnutella_node *n,
 			gnet_stats_count_general(GNR_LOCAL_WHATS_NEW_HITS, cnt);
 
 		} else if (!sri->skip_file_search) {
+			uint32 flags = 0;
+
+			flags |= sri->partials ? SHARE_FM_PARTIALS : 0;
+			flags |= NODE_TALKS_G2(n) ? SHARE_FM_G2 : 0;
+
 			shared_files_match(search,
-				got_match, qctx, max_replies, sri->partials, qhv);
+				got_match, qctx, max_replies, flags, qhv);
+
 			qhv_filled = TRUE;		/* A side effect of st_search() */
 		}
 
@@ -8009,7 +8060,7 @@ search_request(struct gnutella_node *n,
 			flags |= sri->ipv6 ? QHIT_F_IPV6 : 0;
 			flags |= sri->ipv6_only ? QHIT_F_IPV6_ONLY : 0;
 
-			should_oob = oob &&
+			should_oob = oob && !sri->g2_query &&
 							GNET_PROPERTY(process_oob_queries) && 
 							GNET_PROPERTY(recv_solicited_udp) && 
 							udp_active() &&
@@ -8019,6 +8070,14 @@ search_request(struct gnutella_node *n,
 			if (should_oob) {
 				oob_got_results(n, qctx->files, qctx->found,
 					sri->addr, sri->port, sri->secure_oob, sri->sr_udp, flags);
+			} else if (sri->g2_query) {
+				gnutella_node_t *g = n;
+				if (sri->oob)
+					g = node_udp_g2_get_addr_port(sri->addr, sri->port);
+				flags |= sri->g2_wants_url ? QHIT_F_G2_URL : 0;
+				flags |= sri->g2_wants_dn  ? QHIT_F_G2_DN  : 0;
+				flags |= sri->g2_wants_alt ? QHIT_F_G2_ALT : 0;
+				g2_build_send_qh2(g, qctx->files, qctx->found, &muid, flags);
 			} else {
 				qhit_send_results(n, qctx->files, qctx->found, &muid, flags);
 			}

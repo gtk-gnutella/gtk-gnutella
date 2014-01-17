@@ -163,6 +163,9 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"local_partial_hits",
 		"local_whats_new_hits",
 		"local_query_hits",
+		"local_g2_searches",
+		"local_g2_hits",
+		"local_g2_partial_hits",
 		"oob_proxied_query_hits",
 		"oob_queries",
 		"oob_queries_stripped",
@@ -183,6 +186,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"query_utf8",
 		"query_sha1",
 		"query_whats_new",
+		"query_g2_utf8",
+		"query_g2_sha1",
 		"query_guess",
 		"query_guess_02",
 		"guess_link_cache",
@@ -518,6 +523,7 @@ gnet_stats_init(void)
 			case GTA_MSG_HSEP_DATA:		 m = MSG_HSEP; break;
 			case GTA_MSG_BYE:      		 m = MSG_BYE; break;
 			case GTA_MSG_DHT:            m = MSG_DHT; break;
+			case GTA_MSG_G2_SEARCH:	/* Not a real message */
 				break;
 			}
 		}

@@ -516,6 +516,8 @@ void
 g2_tree_set_payload(g2_tree_t *root, const void *payload,
 	size_t paylen, bool copy)
 {
+	g2_tree_check(root);
+
 	if (root->payload != NULL && root->copied)
 		hfree(root->payload);
 
@@ -523,6 +525,57 @@ g2_tree_set_payload(g2_tree_t *root, const void *payload,
 		deconstify_gpointer(payload);
 	root->paylen = paylen;
 	root->copied = booleanize(copy);
+}
+
+/**
+ * Append data to node's payload, copying data.
+ *
+ * If there was no payload yet, this becomes the new payload, otherwise it
+ * is concatenated at the end.  The payload buffer is resized as needed to
+ * make sure everything fits.
+ *
+ * @param root		the node to which we're adding a payload
+ * @param payload	the start of the payload to concatenate at the end
+ * @param paylen	the length of the payload, in bytes
+ *
+ * @return the new length of the payload.
+ */
+size_t
+g2_tree_append_payload(g2_tree_t *root, const void *payload, size_t paylen)
+{
+	size_t newlen;
+
+	g2_tree_check(root);
+
+	newlen = root->paylen + paylen;
+
+	/*
+	 * If there was already a payload and it was not copied, we need to
+	 * allocate new buffer and copy the old data to it.
+	 *
+	 * Otherwise, resize the old buffer so that it can hold the new data.
+	 */
+
+	if (root->payload != NULL) {
+		if (!root->copied) {
+			void *p = halloc(newlen);
+			memcpy(p, root->payload, root->paylen);
+			root->payload = p;
+			root->copied = TRUE;
+		} else {
+			root->payload = hrealloc(root->payload, newlen);
+		}
+	} else {
+		root->payload = halloc(newlen);
+		root->copied = TRUE;
+	}
+
+	memcpy(ptr_add_offset(root->payload, root->paylen), payload, paylen);
+	root->paylen = newlen;
+
+	g_assert(root->copied);
+
+	return newlen;
 }
 
 /**

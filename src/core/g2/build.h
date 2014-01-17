@@ -47,6 +47,13 @@ pmsg_t *g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len);
 pmsg_t *g2_build_lni(void);
 
+struct gnutella_node;
+struct pslist;
+struct guid;
+
+void g2_build_send_qh2(struct gnutella_node *n, struct pslist *files,
+	int count, const struct guid *muid, uint flags);
+
 void g2_build_close(void);
 
 #endif /* _core_g2_build_h_ */

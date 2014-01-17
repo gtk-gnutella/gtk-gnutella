@@ -1273,9 +1273,21 @@ route_node_ttl_higher(struct gnutella_node *n, struct message *m, uint8 ttl)
 	struct route_data *route;
 
 	g_assert(n != fake_node);
+
+	/*
+	 * GTA_MSG_G2_SEARCH is a fake function used to process G2 queries.
+	 *
+	 * Since we run as a leaf node, and we fake the TTL, it does not make
+	 * sense to check whether this "duplicate" query comes with a higher TTL.
+	 * It's really a duplicate message.
+	 */
+
+	if (GTA_MSG_G2_SEARCH == m->function)
+		return FALSE;		/* As a G2 leaf, we do not care, it's a dup */
+
+	g_assert(m->ttls != NULL);
 	g_assert(
 		m->function == GTA_MSG_PUSH_REQUEST || m->function == GTA_MSG_SEARCH);
-	g_assert(m->ttls != NULL);
 
 	route = get_routing_data(n);
 
@@ -1423,6 +1435,7 @@ routing_init(void)
 		case GTA_MSG_HSEP_DATA:      s = "HSEP "; break;
 		case GTA_MSG_BYE:      		 s = "Bye  "; break;
 		case GTA_MSG_DHT:      		 s = "DHT  "; break;
+		case GTA_MSG_G2_SEARCH: 	 s = "Q2  "; break;
 		}
 		debug_msg[i] = s;
 	}
@@ -2831,6 +2844,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 	if (
 		GTA_MSG_SEARCH == function &&
+		!NODE_TALKS_G2(sender) &&
 		gmsg_split_is_oob_query(&sender->header, sender->data)
 	) {
 		mangled = route_mangled_oob_muid(muid);
@@ -2846,6 +2860,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	switch (function) {
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH:
+	case GTA_MSG_G2_SEARCH:
 	{
 		bool route_it = check_duplicate(&route_log, node, mangled, &m);
 
@@ -2899,6 +2914,9 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
 		handle_it = route_query_hit(&route_log, node, dest);
+		break;
+	case GTA_MSG_G2_SEARCH:
+		handle_it = TRUE;		/* We're a G2 leaf node */
 		break;
 	default:
 		/*

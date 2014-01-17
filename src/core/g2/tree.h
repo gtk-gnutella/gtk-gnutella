@@ -55,8 +55,10 @@ g2_tree_t *g2_tree_alloc_empty(const char *name);
 g2_tree_t *g2_tree_alloc(const char *name, const void *payload, size_t paylen);
 g2_tree_t *g2_tree_alloc_copy(const char *name,
 	const void *payload, size_t paylen);
-void g2_tree_set_payload(g2_tree_t *root, const void *payload,
-	size_t paylen, bool copy);
+void g2_tree_set_payload(g2_tree_t *root,
+	const void *payload, size_t paylen, bool copy);
+size_t g2_tree_append_payload(g2_tree_t *root,
+	const void *payload, size_t paylen);
 void g2_tree_add_child(g2_tree_t *parent, g2_tree_t *child);
 void g2_tree_reverse_children(g2_tree_t *node);
 void g2_tree_free_null(g2_tree_t **root_ptr);

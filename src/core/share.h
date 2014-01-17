@@ -62,8 +62,6 @@ enum {
 	SHARE_F_HAS_DIGEST	=	(1 << 0)		/**< Digest is set */
 };
 
-#define SHARE_REBUILDING shared_file_dummy()
-
 static inline shared_file_t *
 shared_file_dummy(void)
 {
@@ -74,13 +72,20 @@ shared_file_dummy(void)
 	return dummy;
 }
 
-struct gnutella_node;
-struct query_hashvec;
-
-/*
+/**
  * Special return value from shared_file() during library rebuild time.
  * This is needed because we no longer block the GUI whilst scanning.
  */
+#define SHARE_REBUILDING shared_file_dummy()
+
+/**
+ * Flags for shared_files_match().
+ */
+#define SHARE_FM_PARTIALS	(1 << 0)		/**< Can match partials */
+#define SHARE_FM_G2			(1 << 1)		/**< G2 query */
+
+struct gnutella_node;
+struct query_hashvec;
 
 /*
  * Global Functions
@@ -143,9 +148,10 @@ void share_update_matching_information(void);
 
 void shared_files_match(const char *query,
 		st_search_callback callback, void *user_data,
-		int max_res, bool partials, struct query_hashvec *qhv);
+		int max_res, uint32 partials, struct query_hashvec *qhv);
 
-size_t share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned mask);
+size_t share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned mask,
+	bool size_restrict, filesize_t minsize, filesize_t maxsize);
 
 unsigned share_filename_media_mask(const char *filename);
 

@@ -41,23 +41,44 @@
 #include "tfmt.h"
 #include "tree.h"
 
+#define SEARCH_SOURCES
+#include "core/search.h"
+
 #include "core/alive.h"
+#include "core/gnet_stats.h"
 #include "core/hcache.h"
+#include "core/hostiles.h"		/* For hostiles_is_bad() */
 #include "core/hosts.h"
 #include "core/mq_tcp.h"
 #include "core/mq_udp.h"
 #include "core/nodes.h"
+#include "core/routing.h"
+#include "core/settings.h"		/* For is_my_address_and_port() */
 
 #include "if/gnet_property_priv.h"
 
 #include "if/core/guid.h"
 
+#include "lib/ascii.h"
+#include "lib/halloc.h"
 #include "lib/host_addr.h"
 #include "lib/misc.h"			/* For dump_hex() */
 #include "lib/pmsg.h"
+#include "lib/str.h"
+#include "lib/stringify.h"		/* For plural() */
 #include "lib/tokenizer.h"
+#include "lib/utf8.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+enum g2_q2_child {
+	G2_Q2_DN = 1,
+	G2_Q2_I,
+	G2_Q2_MD,
+	G2_Q2_SZR,
+	G2_Q2_UDP,
+	G2_Q2_URN,
+};
 
 enum g2_lni_child {
 	G2_LNI_GU = 1,
@@ -66,12 +87,61 @@ enum g2_lni_child {
 	G2_LNI_V,
 };
 
-static tokenizer_t g2_lni_children[] = {
+static const tokenizer_t g2_q2_children[] = {
+	/* Sorted array */
+	{ "DN",		G2_Q2_DN },
+	{ "I",		G2_Q2_I },
+	{ "MD",		G2_Q2_MD },
+	{ "SZR",	G2_Q2_SZR },
+	{ "UDP",	G2_Q2_UDP },
+	{ "URN",	G2_Q2_URN },
+};
+
+static const tokenizer_t g2_lni_children[] = {
 	/* Sorted array */
 	{ "GU",		G2_LNI_GU },
 	{ "LS",		G2_LNI_LS },
 	{ "NA",		G2_LNI_NA },
 	{ "V",		G2_LNI_V },
+};
+
+/**
+ * The /Q2/I flags we parse and handle.
+ */
+#define G2_Q2_F_PFS		(1U << 0)		/**< Wants partial files */
+#define G2_Q2_F_URL		(1U << 1)		/**< Wants URL */
+#define G2_Q2_F_A		(1U << 2)		/**< Wants alt-locs */
+#define G2_Q2_F_DN		(1U << 3)		/**< Wants distinguished name */
+
+static const tokenizer_t g2_q2_i[] = {
+	/* Sorted array */
+	{ "A",		G2_Q2_F_A },
+	{ "DN",		G2_Q2_F_DN },
+	{ "PFS",	G2_Q2_F_PFS },
+	{ "URL",	G2_Q2_F_URL },
+};
+
+/**
+ * String prefix for /Q2/URN that can prefix a SHA1.
+ */
+static const char *g2_q2_urn[] = {
+	"sha1",
+	"bp",
+	"bitprint",
+};
+
+/**
+ * XML tags that we lexically recognize to intuit media types.
+ */
+static const tokenizer_t g2_q2_md[] = {
+	/* Sorted array */
+	{ "application",	SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE },
+	{ "archive",		SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE },
+	{ "audio",			SEARCH_AUDIO_TYPE },
+	{ "book",			SEARCH_DOC_TYPE },
+	{ "document",		SEARCH_DOC_TYPE },
+	{ "image",			SEARCH_IMG_TYPE },
+	{ "video",			SEARCH_VIDEO_TYPE },
 };
 
 /**
@@ -164,16 +234,28 @@ g2_node_send_lni(gnutella_node_t *n)
  * @param t				the message tree
  * @param reason		optional reason
  */
-static void
+static void G_GNUC_PRINTF(4, 5)
 g2_node_drop(const char *routine, gnutella_node_t *n, const g2_tree_t *t,
-	const char *reason)
+	const char *fmt, ...)
 {
 	if (GNET_PROPERTY(g2_debug) || GNET_PROPERTY(log_dropped_g2)) {
+		va_list args;
+		char buf[256];
+
+		va_start(args, fmt);
+
+		if (fmt != NULL)
+			str_vbprintf(buf, sizeof buf, fmt, args);
+		else
+			buf[0] = '\0';
+
 		g_debug("%s(): dropping %s packet from %s%s%s",
 			routine, g2_tree_name(t), node_infostr(n),
-			NULL == reason ? "" : ": ",
-			NULL == reason ? "" : reason);
+			NULL == fmt ? "" : ": ", buf);
+
+		va_end(args);
 	}
+
 	if (GNET_PROPERTY(log_dropped_g2)) {
 		g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN);
 	}
@@ -371,6 +453,412 @@ g2_node_handle_khl(const g2_tree_t *t)
 }
 
 /**
+ * Extract min/max sizes from the payload of a /Q2/SZR tree node.
+ *
+ * @return TRUE if we successfully extracted the information.
+ */
+static bool NON_NULL_PARAM((2, 3))
+g2_node_extract_size_request(const g2_tree_t *t, uint64 *min, uint64 *max)
+{
+	const char *p;
+	size_t paylen;
+
+	/*
+	 * The payload can be 2 32-bit or 2 64-bit values.
+	 */
+
+	p = g2_tree_node_payload(t, &paylen);
+
+	if (8 == paylen) {
+		*min = (uint64) peek_le32(p);
+		*max = (uint64) peek_le32(&p[4]);
+		return TRUE;
+	} else if (16 == paylen) {
+		*min = peek_le64(p);
+		*max = peek_le64(&p[8]);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Extract interest flags from the payload of a /Q2/I tree node.
+ *
+ * @return the consolidated flags G2_Q2_F_* requested by the payload.
+ */
+static uint32
+g2_node_extract_interest(const g2_tree_t *t)
+{
+	const char *p, *q, *end;
+	size_t paylen;
+	uint32 flags = 0;
+
+	p = q = g2_tree_node_payload(t, &paylen);
+
+	if (NULL == p)
+		return 0;
+
+	end = p + paylen;
+
+	while (q != end) {
+		if ('\0' == *q++) {
+			flags |= TOKENIZE(p, g2_q2_i);
+			p = q;
+		}
+	}
+
+	if (p != q) {
+		char *r = h_strndup(p, q - p);		/* String not NUL-terminated */
+		flags |= TOKENIZE(r, g2_q2_i);
+		hfree(r);
+	}
+
+	return flags;
+}
+
+/**
+ * Extract the URN from a /Q2/URN and populate the search request info
+ * if it is a SHA1 (or bitprint, which contains a SHA1).
+ */
+static void
+g2_node_extract_urn(const g2_tree_t *t, search_request_info_t *sri)
+{
+	const char *p;
+	size_t paylen;
+	uint i;
+
+	/*
+	 * If we have more SHA1s already than we can hold, stop.
+	 */
+
+	if (sri->exv_sha1cnt == G_N_ELEMENTS(sri->exv_sha1))
+		return;
+
+	p = g2_tree_node_payload(t, &paylen);
+
+	if (NULL == p)
+		return;
+
+	/*
+	 * We can only search by SHA1, hence we're only interested by URNs
+	 * that contain a SHA1.
+	 */
+
+	if (paylen < SHA1_RAW_SIZE)
+		return;		/* Cannot contain a SHA1 */
+
+	/*
+	 * Since we know there are at least SHA1_RAW_SIZE bytes in the payload,
+	 * we can use clamp_memcmp() to see whether we have a known prefix.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(g2_q2_urn); i++) {
+		const char *prefix = g2_q2_urn[i];
+		size_t len = strlen(prefix) + 1;	/* Wants trailing NUL as well */
+
+		if (0 == clamp_memcmp(prefix, len, p, paylen)) {
+			p += len;
+			paylen -= len;
+
+			g_assert(size_is_positive(paylen));
+
+			if (paylen >= SHA1_RAW_SIZE) {
+				uint idx = sri->exv_sha1cnt++;
+
+				g_assert(idx < G_N_ELEMENTS(sri->exv_sha1));
+
+				memcpy(&sri->exv_sha1[idx].sha1, p, SHA1_RAW_SIZE);
+			}
+			break;
+		}
+	}
+}
+
+/**
+ * Extract the UDP IP:port from a /Q2/UDP and populate the search request info
+ * if we have a valid address.
+ */
+static void
+g2_node_extract_udp(const g2_tree_t *t, search_request_info_t *sri)
+{
+	const char *p;
+	size_t paylen;
+
+	p = g2_tree_node_payload(t, &paylen);
+
+	/*
+	 * Only handle if we have an IP:port entry.
+	 * We only handle IPv4 because G2 does not support IPv6.
+	 *
+	 * We don't care about the presence of the query key because as G2 leaf,
+	 * we only process /Q2 coming from our TCP-connected hubs, and they
+	 * are in charge of validating it.  Now hubs may forward us /Q2 coming
+	 * from neighbouring hubs and those won't have a query key, hence we
+	 * need to handle payloads with no trailing 32-bit QK.
+	 */
+
+	if (6 == paylen || 10 == paylen) {	/* IPv4 + port (+ QK usually) */
+		host_addr_t addr = host_addr_peek_ipv4(p);
+		uint16 port = peek_le16(&p[4]);
+
+		if (host_is_valid(addr, port)) {
+			sri->addr = addr;
+			sri->port = port;
+			sri->oob = TRUE;
+		}
+	}
+}
+
+/**
+ * Intuit the media type they are searching based on the first XML tag
+ * we find in the meta data string, using simplistic lexical parsing which
+ * will encompass 99% of the cases.
+ */
+static uint32
+g2_node_intuit_media_type(const char *md)
+{
+	const char *p = md;
+	const char *start;
+	int c;
+	uint32 flags;
+
+	while ('<' != (c = *p++) && c != 0)
+		/* empty */;
+
+	if (0 == c)
+		return 0;		/* Did not find any tag opening */
+
+	start = p = skip_ascii_spaces(p);
+
+	while (0 != (c = *p)) {
+		if (is_ascii_space(c) || '/' == c || '>' == c) {
+			char *name;
+
+			/* Found end of word, we got the tag name */
+
+			name = h_strndup(start, p - start);
+			flags = TOKENIZE(name, g2_q2_md);
+			if (0 == flags) {
+				g_warning("%s(): unknown tag \"%s\", XML string was \"%s\"",
+					G_STRFUNC, name, md);
+			}
+			hfree(name);
+			return flags;
+		}
+		p++;
+	}
+
+	return 0;
+}
+
+/**
+ * Handle reception of a /Q2
+ */
+static void
+g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
+{
+	const guid_t *muid;
+	size_t paylen;
+	const g2_tree_t *c;
+	char *dn = NULL;
+	char *md = NULL;
+	uint32 iflags = 0;
+	search_request_info_t sri;
+
+	node_inc_rx_query(n);
+
+	/*
+	 * As a G2 leaf, we cannot handle queries coming from UDP because we
+	 * are not supposed to get any!
+	 */
+
+	if (NODE_IS_UDP(n)) {
+		g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
+		return;
+	}
+
+	/*
+	 * The MUID of the query is the payload of the root node.
+	 */
+
+	muid = g2_tree_node_payload(t, &paylen);
+
+	if (paylen != GUID_RAW_SIZE) {
+		g2_node_drop(G_STRFUNC, n, t, "missing MUID");
+		return;
+	}
+
+	/*
+	 * Make sure we have never seen this query already.
+	 *
+	 * To be able to leverage on Gnutella's routing table to detect duplicates
+	 * over a certain lifespan, we are going to fake a minimal Gnutella header
+	 * with a message type of GTA_MSG_G2_SEARCH, which is never actually used
+	 * on the network.
+	 *
+	 * The TTL and hops are set to 1 and 0 initially, so that the message seems
+	 * to come from a neighbouring host and cannot be forwarded.
+	 *
+	 * When that is done, we will be able to call route_message() and have
+	 * all the necessary bookkeeping done for us.
+	 */
+
+	{
+		struct route_dest dest;
+
+		gnutella_header_set_muid(&n->header, muid);
+		gnutella_header_set_function(&n->header, GTA_MSG_G2_SEARCH);
+		gnutella_header_set_ttl(&n->header, 1);
+		gnutella_header_set_hops(&n->header, 0);
+
+		if (!route_message(&n, &dest)) {
+			if (n != NULL) {
+				g2_node_drop(G_STRFUNC, n, t,
+					"duplicate MUID #%s", guid_hex_str(muid));
+			}
+			return;
+		}
+	}
+
+	/*
+	 * Setup request information so that we can call search_request()
+	 * to process our G2 query.
+	 */
+
+	ZERO(&sri);
+
+	/*
+	 * Handle the children of /Q2.
+	 */
+
+	G2_TREE_CHILD_FOREACH(t, c) {
+		enum g2_q2_child ct = TOKENIZE(g2_tree_name(c), g2_q2_children);
+		const char *payload;
+
+		switch (ct) {
+		case G2_Q2_DN:
+			payload = g2_tree_node_payload(c, &paylen);
+			if (payload != NULL && NULL == dn) {
+				uint off = 0;
+				/* Not NUL-terminated, need to h_strndup() it */
+				dn = h_strndup(payload, paylen);
+				if (!query_utf8_decode(dn, &off)) {
+					gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
+					goto done;		/* Drop the query */
+				}
+				sri.extended_query = dn + off;
+				sri.search_len = paylen - off;		/* In bytes */
+			}
+			break;
+
+		case G2_Q2_I:
+			if (0 == iflags)
+				iflags = g2_node_extract_interest(c);
+			break;
+
+		case G2_Q2_MD:
+			payload = g2_tree_node_payload(c, &paylen);
+			if (payload != NULL && NULL == md) {
+				/* Not NUL-terminated, need to h_strndup() it */
+				md = h_strndup(payload, paylen);
+			}
+			break;
+
+		case G2_Q2_SZR:			/* Size limits */
+			if (g2_node_extract_size_request(c, &sri.minsize, &sri.maxsize))
+				sri.size_restrictions = TRUE;
+			break;
+
+		case G2_Q2_UDP:
+			if (!sri.oob)
+				g2_node_extract_udp(c, &sri);
+			break;
+
+		case G2_Q2_URN:
+			g2_node_extract_urn(c, &sri);
+			break;
+		}
+	}
+
+	/*
+	 * If there are meta-data, try to intuit which media types there are
+	 * looking for.
+	 *
+	 * The payload is XML looking like "<audio/>" or "<video/>" but there
+	 * can be attributes and we don't want to do a full XML parsing there.
+	 * Hence we'll base our analysis on simple lexical parsing, which is
+	 * why we call a routine to "intuit", not to "extract".
+	 *
+	 * Also, this is poorer than Gnutella's GGEP "M" because apparently there
+	 * can be only one single type, since the XML payload must obey some
+	 * kind of schema and there is an audio schema, a video schema, etc...
+	 * XML was just a wrong design choice there.
+	 */
+
+	if (md != NULL)
+		sri.media_types = g2_node_intuit_media_type(md);
+
+	/*
+	 * Validate the return address if OOB hit delivery is configured.
+	 */
+
+	if (sri.oob) {
+		if (hostiles_is_bad(sri.addr)) {
+			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+			goto done;
+		}
+
+		if (is_my_address_and_port(sri.addr, sri.port)) {
+			gnet_stats_count_dropped(n, MSG_DROP_OWN_QUERY);
+			goto done;
+		}
+	}
+
+	/*
+	 * Update statistics, as done in search_request_preprocess() for Gnutella.
+	 */
+
+	if (sri.exv_sha1cnt) {
+		gnet_stats_inc_general(GNR_QUERY_G2_SHA1);
+
+		if (NULL == dn) {
+			int i;
+			for (i = 0; i < sri.exv_sha1cnt; i++) {
+				search_request_listener_emit(QUERY_SHA1,
+					sha1_base32(&sri.exv_sha1[i].sha1), n->addr, n->port);
+			}
+		}
+	}
+
+	if (dn != NULL && !is_ascii_string(dn))
+		gnet_stats_inc_general(GNR_QUERY_G2_UTF8);
+
+	if (dn != NULL)
+		search_request_listener_emit(QUERY_STRING, dn, n->addr, n->port);
+
+	if (!search_is_valid(n, 0, &sri))
+		goto done;
+
+	/*
+	 * Perform the query.
+	 */
+
+	sri.g2_query     = TRUE;
+	sri.partials     = booleanize(iflags & G2_Q2_F_PFS);
+	sri.g2_wants_url = booleanize(iflags & G2_Q2_F_URL);
+	sri.g2_wants_alt = booleanize(iflags & G2_Q2_F_A);
+	sri.g2_wants_dn  = booleanize(iflags & G2_Q2_F_DN);
+
+	search_request(n, &sri, NULL);
+
+done:
+
+	HFREE_NULL(dn);
+	HFREE_NULL(md);
+}
+
+/**
  * Handle message coming from G2 node.
  */
 void
@@ -416,6 +904,9 @@ g2_node_handle(gnutella_node_t *n)
 		break;
 	case G2_MSG_KHL:
 		g2_node_handle_khl(t);
+		break;
+	case G2_MSG_Q2:
+		g2_node_handle_q2(n, t);
 		break;
 	default:
 		g2_node_drop(G_STRFUNC, n, t, "default");

@@ -1038,6 +1038,8 @@ qhit_send_results(struct gnutella_node *n, pslist_t *files, int count,
 	pslist_t *sl;
 	int sent = 0;
 
+	g_assert(!NODE_TALKS_G2(n));
+
 	/*
 	 * We can't use n->header.muid as the query's MUID but must rely on the
 	 * parameter we're given.  Indeed, we're delivering a local hit here,

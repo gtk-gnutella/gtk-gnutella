@@ -565,6 +565,9 @@ node_type(const gnutella_node_t *n)
 #define node_leaf_sent_qrp(n) \
 	(NODE_IS_LEAF(n) && \
 	(n)->qrt_receive == NULL && (n)->recv_query_table != NULL)
+#define node_hub_received_qrp(n) \
+	(NODE_TALKS_G2(n) && \
+	(n)->qrt_update == NULL && (n)->sent_query_table != NULL)
 
 /**
  * Can we send query with hop count `h' according to node's hops-flow value?
