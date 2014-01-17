@@ -151,6 +151,8 @@ void gmsg_log_bad(const struct gnutella_node *n,
 	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_dropped_pmsg(const pmsg_t *msg,
 	const char *reason, ...) G_GNUC_PRINTF(2, 3);
+void gmsg_log_dropped(const struct gnutella_node *n,
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_split_dropped(
 	const void *head, const void *data, size_t data_len,
 	const char *reason, ...) G_GNUC_PRINTF(4, 5);

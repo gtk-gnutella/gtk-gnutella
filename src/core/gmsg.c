@@ -1434,6 +1434,36 @@ gmsg_log_split_dropped(
 }
 
 /**
+ * Log dropped message with reason.
+ */
+void
+gmsg_log_dropped(const gnutella_node_t *n, const char *reason, ...)
+{
+	char rbuf[256];
+	char buf[128];
+
+	if (NODE_TALKS_G2(n)) {
+		g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+	} else {
+		gmsg_infostr_full_split_to_buf(&n->header, n->data, n->size,
+			buf, sizeof buf);
+	}
+
+	if (reason) {
+		va_list args;
+		va_start(args, reason);
+		rbuf[0] = ':';
+		rbuf[1] = ' ';
+		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		va_end(args);
+	} else {
+		rbuf[0] = '\0';
+	}
+
+	g_debug("DROP %s%s", buf, rbuf);
+}
+
+/**
  * Log duplicate message with reason.
  */
 void

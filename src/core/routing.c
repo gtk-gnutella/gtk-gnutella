@@ -2303,7 +2303,7 @@ route_push(struct route_log *route_log,
 
 	if (is_banned_push(guid)) {
 		if (GNET_PROPERTY(routing_debug) > 3) {
-			gmsg_log_split_dropped(&sender->header, sender->data, sender->size,
+			gmsg_log_dropped(sender,
 				"from %s, banned GUID %s",
 				node_addr(sender), guid_hex_str(guid));
 		}
