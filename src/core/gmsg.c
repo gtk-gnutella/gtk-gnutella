@@ -1389,20 +1389,19 @@ const char *
 gmsg_node_infostr(const gnutella_node_t *n)
 {
 	static char buf[180];
+	uint8 hops;
 	size_t w;
 
 	if (NODE_TALKS_G2(n)) {
-		const char *name = g2_msg_name(n->data, n->size);
-
-		str_bprintf(buf, sizeof buf, "/%s (%u byte%s) //%s//",
-				name, n->size, plural(n->size), node_infostr(n));
+		w = g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		hops = 1;
 	} else {
 		w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
-
-		if (gnutella_header_get_hops(n->header) <= 1) {
-			str_bprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
-		}
+		hops = gnutella_header_get_hops(n->header);
 	}
+
+	if (hops <= 1)
+		str_bprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
 
 	return buf;
 }
@@ -1435,17 +1434,20 @@ gmsg_log_split_dropped(
 }
 
 /**
- * Log duplicate message (given with separated header and data) with reason.
+ * Log duplicate message with reason.
  */
 void
-gmsg_log_split_duplicate(
-	const void *head, const void *data, size_t data_len,
-	const char *reason, ...)
+gmsg_log_duplicate(const gnutella_node_t *n, const char *reason, ...)
 {
 	char rbuf[256];
 	char buf[160];
 
-	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
+	if (NODE_TALKS_G2(n)) {
+		g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+	} else {
+		gmsg_infostr_full_split_to_buf(&n->header, n->data, n->size,
+			buf, sizeof buf);
+	}
 
 	if (reason) {
 		va_list args;
@@ -1496,8 +1498,12 @@ gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 	char rbuf[256];
 	char buf[128];
 
-	gmsg_infostr_full_split_to_buf(
-		&n->header, n->data, n->size, buf, sizeof buf);
+	if (NODE_TALKS_G2(n)) {
+		g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+	} else {
+		gmsg_infostr_full_split_to_buf(
+			&n->header, n->data, n->size, buf, sizeof buf);
+	}
 
 	if (reason) {
 		va_list args;

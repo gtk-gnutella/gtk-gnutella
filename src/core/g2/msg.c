@@ -37,11 +37,16 @@
 
 #include "frame.h"
 
+#include "core/guid.h"
+
+#include "lib/buf.h"			/* For buf_private() */
 #include "lib/constants.h"
 #include "lib/misc.h"			/* For clamp_strncpy() */
-#include "lib/patricia.h"
 #include "lib/once.h"
+#include "lib/patricia.h"
 #include "lib/str.h"
+#include "lib/stringify.h"		/* For plural */
+#include "lib/unsigned.h"		/* For size_is_xxx() predicates */
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -281,6 +286,72 @@ g2_msg_name_type(const char *name)
 	g_assert((uint) type < UNSIGNED(G2_MSG_MAX));
 
 	return type;
+}
+
+/**
+ * Fill supplied buffer with the formatted string describing the message.
+ *
+ * @param data		start of the G2 message
+ * @param len		length of the message
+ * @param buf		buffer where formatted string is written
+ * @param buflen	length of the destination buffer
+ *
+ * @return the amount of bytes written.
+ */
+size_t
+g2_msg_infostr_to_buf(const void *data, size_t len, char *buf, size_t buflen)
+{
+	enum g2_msg m;
+	const guid_t *muid = NULL;
+
+	g_assert(size_is_non_negative(len));
+	g_assert(size_is_non_negative(buflen));
+
+	/*
+	 * Check whether we need to decompile the packet to access the GUID, which
+	 * is the payload of the root element in the tree.  Given the way things
+	 * are serialized, that would be the last 16 bytes of the message, so
+	 * we don't have to deserialize everything just to access it.
+	 */
+
+	m = g2_msg_type(data, len);
+
+	switch (m) {
+	case G2_MSG_Q2:
+	case G2_MSG_QA:
+	case G2_MSG_QH2:
+		if (len > GUID_RAW_SIZE)
+			muid = const_ptr_add_offset(data, len - GUID_RAW_SIZE);
+		/* FALL THROUGH */
+	default:
+		break;
+	}
+
+	return str_bprintf(buf, buflen,
+		"/%s (%zu byte%s)%s%s",
+		g2_msg_type_name(m), len, plural(len),
+		NULL == muid ? "" : " #",
+		NULL == muid ? "" : guid_hex_str(muid));
+}
+
+/**
+ * Pretty-print the message information.
+ *
+ * @param data		start of the G2 message
+ * @param len		length of the message
+ *
+ * @return formatted static string.
+ */
+const char *
+g2_msg_infostr(const void *data, size_t len)
+{
+	buf_t *b = buf_private(G_STRFUNC, 64);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = g2_msg_infostr_to_buf(data, len, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
