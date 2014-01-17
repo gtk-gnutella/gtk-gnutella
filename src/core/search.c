@@ -3906,7 +3906,16 @@ search_node_added(void *search, void *node)
 
 	search_ctrl_check(sch);
 	g_assert(sbool_get(sch->active));
-	g_assert(n != NULL);
+	node_check(n);
+
+	/*
+	 * FIXME
+	 * Do nothing if we're dealing with a G2 node, we're not generating G2
+	 * queries yet.
+	 */
+
+	if (NODE_TALKS_G2(n))
+		return WQ_SLEEP;		/* Keep being notified */
 
 	/*
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
