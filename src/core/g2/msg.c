@@ -371,7 +371,7 @@ g2_msg_log_dropped(const void *data, size_t len, const char *fmt, va_list args)
 		rbuf[0] = '\0';
 	}
 
-	g_debug("DROP G2 %s%s", g2_msg_name(data, len), rbuf);
+	g_debug("DROP G2 %s%s", g2_msg_infostr(data, len), rbuf);
 }
 
 /**
