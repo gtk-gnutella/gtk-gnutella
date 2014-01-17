@@ -1035,23 +1035,23 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 			g_assert(NULL == uf->resend_ev);
 			uf->resend_ev = cq_main_insert(ut_frag_delay(uf),
 				ut_frag_resend, uf);
+
+			/*
+			 * If this is the first fragment being sent, reschedule the
+			 * expiration with the original time: as far as the recipient goes,
+			 * this is when we started emitting the message.
+			 *
+			 * This is important when the UDP TX scheduler is clogged with
+			 * unsent traffic, because it will then keep dropping our fragments
+			 * and the message could globally expire before we even could send
+			 * the first fragment!
+			 */
+
+			if (1 == um->fragtx)
+				cq_resched(um->expire_ev, TX_UT_EXPIRE_MS);
 		} else {
 			ut_frag_free(uf, TRUE);
 		}
-
-		/*
-		 * If this is the first fragment being sent, reschedule the expiration
-		 * with the original time: as far as the recipient goes, this is when
-		 * we started emitting the message.
-		 *
-		 * This is important when the UDP TX scheduler is clogged with unsent
-		 * traffic, because it will then keep dropping our fragments and the
-		 * message could globally expire before we even could send the first
-		 * fragment!
-		 */
-
-		if (1 == um->fragtx)
-			cq_resched(um->expire_ev, TX_UT_EXPIRE_MS);
 	} else {
 		/*
 		 * Fragment was dropped by lower layer (expired, probably).
