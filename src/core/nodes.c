@@ -9085,7 +9085,9 @@ node_hostile_udp(gnutella_node_t *n)
 			hostiles_flags_t flags = hostiles_check(n->addr);
 			g_warning("UDP got %s%s from bad hostile %s (%s) -- dropped",
 				node_udp_is_old(n) ? "OLD " : "",
-				gmsg_infostr_full_split(&n->header, n->data, n->size),
+				NODE_TALKS_G2(n) ?
+					g2_msg_infostr(n->data, n->size) :
+					gmsg_infostr_full_split(&n->header, n->data, n->size),
 				node_infostr(n), hostiles_flags_to_string(flags));
 		}
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
@@ -9304,6 +9306,7 @@ static bool
 node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 {
 	gnutella_node_t *n;
+	bool drop_hostile = TRUE;
 
 	(void) unused_rx;
 
@@ -9345,12 +9348,50 @@ node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 	n->size = pmsg_size(mb);
 	n->data = deconstify_pointer(pmsg_read_base(mb));
 
-	/* Handle the G2 message we got from the UDP layer */
-
 	n->received++;
 	gnet_stats_count_received_payload(n, n->data);
+
+	/*
+	 * Increment reception stats, and see whether we need to drop incoming
+	 * packets coming from hostile nodes.
+	 */
+
+	switch (g2_msg_type(n->data, n->size)) {
+	case G2_MSG_Q2:
+		node_inc_rx_query(n);
+		break;
+	case G2_MSG_QH2:
+		node_inc_rx_qhit(n);
+		drop_hostile = FALSE;	/* Filter later so that we can peek at them */
+		break;
+	default:
+		break;
+	}
+
+	if (drop_hostile && node_hostile_udp(n))
+		goto done;
+
+	/*
+	 * Check limits.
+	 */
+
+	if (ctl_limit(n->addr, CTL_D_UDP)) {
+		if (GNET_PROPERTY(udp_debug) || GNET_PROPERTY(ctl_debug) > 2) {
+			g_warning("CTL UDP got %s%s from %s [%s] -- dropped",
+				node_udp_is_old(n) ? "OLD " : "",
+				g2_msg_infostr(n->data, n->size),
+				node_infostr(n), gip_country_cc(n->addr));
+		}
+
+		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
+		goto done;
+	}
+
+	/* Handle the G2 message we got from the UDP layer */
+
 	g2_node_handle(n);
 
+done:
 	pmsg_free(mb);
 	return TRUE;
 }
