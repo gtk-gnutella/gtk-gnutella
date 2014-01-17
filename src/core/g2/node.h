@@ -41,6 +41,9 @@
 struct gnutella_node;
 struct pmsg;
 
+void g2_node_init(void);
+void g2_node_close(void);
+
 void g2_node_handle(struct gnutella_node *n);
 
 void g2_node_send(struct gnutella_node *n, struct pmsg *mb);

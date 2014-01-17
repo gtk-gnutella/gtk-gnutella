@@ -59,6 +59,7 @@
 
 #include "if/core/guid.h"
 
+#include "lib/aging.h"
 #include "lib/ascii.h"
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
@@ -68,8 +69,11 @@
 #include "lib/stringify.h"		/* For plural() */
 #include "lib/tokenizer.h"
 #include "lib/utf8.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define G2_UDP_PING_FREQ	60		/**< answer to 1 ping per minute per IP */
 
 enum g2_q2_child {
 	G2_Q2_DN = 1,
@@ -143,6 +147,8 @@ static const tokenizer_t g2_q2_md[] = {
 	{ "image",			SEARCH_IMG_TYPE },
 	{ "video",			SEARCH_VIDEO_TYPE },
 };
+
+static aging_table_t *g2_udp_pings;
 
 /**
  * Send a message to target node.
@@ -270,12 +276,17 @@ g2_node_handle_ping(gnutella_node_t *n, const g2_tree_t *t)
 	g2_tree_t *c;
 
 	/*
-	 * Drop pings received from UDP.
+	 * Throttle pings received from UDP.
 	 */
 
 	if (NODE_IS_UDP(n)) {
-		g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
-		return;
+		if (aging_lookup(g2_udp_pings, &n->addr)) {
+			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+			return;
+		}
+		aging_insert(g2_udp_pings, WCOPY(&n->addr), uint_to_pointer(1));
+
+		/* FALL THROUGH */
 	}
 
 	c = g2_tree_first_child(t);
@@ -914,6 +925,29 @@ g2_node_handle(gnutella_node_t *n)
 	}
 
 	g2_tree_free_null(&t);
+}
+
+/**
+ * Initialization.
+ */
+void G_GNUC_COLD
+g2_node_init(void)
+{
+	/*
+	 * Limit asnwering to UDP pings to 1 every G2_UDP_PING_FREQ seconds
+	 */
+
+	g2_udp_pings = aging_make(G2_UDP_PING_FREQ,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+}
+
+/**
+ * Shutdown.
+ */
+void G_GNUC_COLD
+g2_node_close(void)
+{
+	aging_destroy(&g2_udp_pings);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

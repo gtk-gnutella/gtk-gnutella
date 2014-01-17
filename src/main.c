@@ -56,6 +56,7 @@
 #include "core/fileinfo.h"
 #include "core/g2/build.h"
 #include "core/g2/gwc.h"
+#include "core/g2/node.h"
 #include "core/g2/tree.h"
 #include "core/gdht.h"
 #include "core/geo_ip.h"
@@ -709,6 +710,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_info_close);
 	DO(ext_close);
 	DO(node_close);
+	DO(g2_node_close);
 	DO(share_close);	/* After node_close() */
 	DO(udp_close);
 	DO(urpc_close);
@@ -2018,6 +2020,7 @@ main(int argc, char **argv)
 	bsched_init();
 	dump_init();
 	node_init();
+	g2_node_init();
     hcache_retrieve_all();	/* after settings_init() and node_init() */
 	routing_init();
 	search_init();
