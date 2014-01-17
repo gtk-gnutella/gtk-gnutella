@@ -9304,11 +9304,9 @@ static bool
 node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 {
 	gnutella_node_t *n;
-	size_t length;
 
 	(void) unused_rx;
 
-	length = pmsg_size(mb);
 	n = node_udp_g2_get_addr_port(
 			gnet_host_get_addr(from), gnet_host_get_port(from));
 
@@ -9346,13 +9344,11 @@ node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 
 	n->size = pmsg_size(mb);
 	n->data = deconstify_pointer(pmsg_read_base(mb));
-	n->attrs = NODE_A_UDP;			/* Clears NODE_A_CAN_INFLATE */
 
-	/* FIXME -- XXX */
-	g_debug("NODE dropping G2 UDP traffic from %s: %s (%zu bytes)",
-		gnet_host_to_string(from),
-		g2_msg_raw_name(pmsg_start(mb), length), length);
+	/* Handle the G2 message we got from the UDP layer */
 
+	n->received++;
+	gnet_stats_count_received_payload(n, n->data);
 	g2_node_handle(n);
 
 	pmsg_free(mb);
