@@ -1929,7 +1929,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				GNET_PROPERTY(search_debug) > 1 ||
 				GNET_PROPERTY(secure_oob_debug)
 			) {
-				char buf[5];
+				char buf[9];
 				bin_to_hex_buf(&token, sizeof token, buf, sizeof buf);
 				g_debug("OOB received unrequested %squery hit #%s "
 					"from %s%s%s [%s]",
