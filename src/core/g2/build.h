@@ -51,7 +51,8 @@ struct gnutella_node;
 struct pslist;
 struct guid;
 
-void g2_build_send_qh2(struct gnutella_node *n, struct pslist *files,
+void g2_build_send_qh2(const struct gnutella_node *h,
+	struct gnutella_node *n, struct pslist *files,
 	int count, const struct guid *muid, uint flags);
 
 void g2_build_close(void);

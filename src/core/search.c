@@ -8086,7 +8086,7 @@ search_request(struct gnutella_node *n,
 				flags |= sri->g2_wants_url ? QHIT_F_G2_URL : 0;
 				flags |= sri->g2_wants_dn  ? QHIT_F_G2_DN  : 0;
 				flags |= sri->g2_wants_alt ? QHIT_F_G2_ALT : 0;
-				g2_build_send_qh2(g, qctx->files, qctx->found, &muid, flags);
+				g2_build_send_qh2(n, g, qctx->files, qctx->found, &muid, flags);
 			} else {
 				qhit_send_results(n, qctx->files, qctx->found, &muid, flags);
 			}

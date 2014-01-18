@@ -54,12 +54,14 @@
 #include "lib/hset.h"
 #include "lib/mempcpy.h"
 #include "lib/misc.h"			/* For CONST_STRLEN() */
+#include "lib/nid.h"
 #include "lib/once.h"
 #include "lib/pmsg.h"
 #include "lib/pow2.h"
 #include "lib/pslist.h"
 #include "lib/sha1.h"
 #include "lib/stringify.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -80,22 +82,45 @@ static once_flag_t build_alive_pi_done;
 static pmsg_t *build_po;			/* Single pong */
 static once_flag_t build_po_done;
 
+enum g2_qh2_pmi_magic { G2_QH2_PMI_MAGIC = 0x79ec9986 };
+
+/**
+ * Information about the /QH2 messages we sent to the semi-reliable UDP
+ * layer, which allows up to monitor their fate.
+ */
+struct g2_qh2_pmsg_info {
+	enum g2_qh2_pmi_magic magic;
+	struct nid *hub_id;				/**< ID of the hub which sent us the /Q2 */
+};
+
+static inline void
+g2_qh2_pmsg_info_check(const struct g2_qh2_pmsg_info * const pmi)
+{
+	g_assert(pmi != NULL);
+	g_assert(G2_QH2_PMI_MAGIC == pmi->magic);
+}
+
 /**
  * Create new message holding serialized tree.
  *
- * @param t		the tree to serialize
- * @param prio	priority of the message
+ * @param t			the tree to serialize
+ * @param prio		priority of the message
+ * @param freecb	if non-NULL, the free routine to attach to message
+ * @param arg		additional argument for the free routine
  *
  * @return a message containing the serialized tree.
  */
 static pmsg_t *
-g2_build_pmsg_prio(const g2_tree_t *t, int prio)
+g2_build_pmsg_prio(const g2_tree_t *t, int prio, pmsg_free_t freecb, void *arg)
 {
 	size_t len;
 	pmsg_t *mb;
 
 	len = g2_frame_serialize(t, NULL, 0);
-	mb = pmsg_new(prio, NULL, len);
+	if (NULL == freecb)
+		mb = pmsg_new(prio, NULL, len);
+	else
+		mb = pmsg_new_extend(prio, NULL, len, freecb, arg);
 	g2_frame_serialize(t, pmsg_start(mb), len);
 	pmsg_seek(mb, len);
 
@@ -114,7 +139,7 @@ g2_build_pmsg_prio(const g2_tree_t *t, int prio)
 static inline pmsg_t *
 g2_build_ctrl_pmsg(const g2_tree_t *t)
 {
-	return g2_build_pmsg_prio(t, PMSG_P_CONTROL);
+	return g2_build_pmsg_prio(t, PMSG_P_CONTROL, NULL, NULL);
 }
 
 /**
@@ -127,7 +152,22 @@ g2_build_ctrl_pmsg(const g2_tree_t *t)
 static inline pmsg_t *
 g2_build_pmsg(const g2_tree_t *t)
 {
-	return g2_build_pmsg_prio(t, PMSG_P_DATA);
+	return g2_build_pmsg_prio(t, PMSG_P_DATA, NULL, NULL);
+}
+
+/**
+ * Create new message holding serialized tree, with associated free routine.
+ *
+ * @param t			the tree to serialize
+ * @param freecb	the freeing callback to invoke
+ * @param arg		additional argument for the freeing callback
+ *
+ * @return a message containing the serialized tree.
+ */
+static inline pmsg_t *
+g2_build_pmsg_extended(const g2_tree_t *t, pmsg_free_t freecb, void *arg)
+{
+	return g2_build_pmsg_prio(t, PMSG_P_DATA, freecb, arg);
 }
 
 /**
@@ -415,11 +455,64 @@ g2_build_lni(void)
 }
 
 /**
+ * Free routine for the extended message blocks we send to the UDP layer.
+ */
+static void
+g2_qh2_pmsg_free(pmsg_t *mb, void *arg)
+{
+	struct g2_qh2_pmsg_info *pmi = arg;
+	gnutella_node_t *n;
+
+	g2_qh2_pmsg_info_check(pmi);
+	g_assert(pmsg_is_extended(mb));
+
+	if (pmsg_was_sent(mb))
+		goto done;
+
+	/*
+	 * Message was unsent, probably because the UDP address in the /Q2 was
+	 * wrong for some reason.
+	 *
+	 * If we're still connected to the hub which passed us this /Q2, then
+	 * we can relay back the /QH2 to the hub and it will hopefully be able
+	 * to deliver it back to the querying node.
+	 */
+
+	n = node_by_id(pmi->hub_id);
+
+	if (NULL == n) {
+		if (GNET_PROPERTY(g2_debug) > 1) {
+			g_debug("%s(): could not send %s, relaying hub is gone, dropping.",
+				G_STRFUNC, g2_msg_infostr_mb(mb));
+		}
+		goto done;
+	} else {
+		pmsg_t *nmb;
+
+		if (GNET_PROPERTY(g2_debug) > 1) {
+			g_debug("%s(): could not send %s, giving back to %s for relaying",
+				G_STRFUNC, g2_msg_infostr_mb(mb), node_infostr(n));
+		}
+
+		nmb = pmsg_clone_plain(mb);
+		pmsg_clear_reliable(nmb);
+
+		g2_node_send(n, nmb);
+	}
+
+done:
+	nid_unref(pmi->hub_id);
+	pmi->magic = 0;
+	WFREE(pmi);
+}
+
+/**
  * Structure used to control the generation of query hits (/QH2 messages)
  */
 struct g2_qh2_builder {
 	char payload[1 + GUID_RAW_SIZE];	/**< hops + MUID */
 	const guid_t *muid;			/**< MUID of query, for logging if needed */
+	const gnutella_node_t *hub;	/**< The hub that gave us the query */
 	hset_t *hs;					/**< Records SHA1 atoms we sent */
 	g2_tree_t *t;				/**< Current message */
 	size_t max_size;			/**< Max query hit size we want */
@@ -449,11 +542,21 @@ g2_build_qh2_flush(gnutella_node_t *n, struct g2_qh2_builder *ctx)
 
 	/*
 	 * If sending over UDP, ask for reliable delivery of the query hit.
+	 * To be able to monitor the fate of the message, we asssociate a free
+	 * routine to it.
 	 */
 
-	mb = g2_build_pmsg(ctx->t);
-	if (NODE_IS_UDP(n))
+	if (NODE_IS_UDP(n)) {
+		struct g2_qh2_pmsg_info *pmi;
+
+		WALLOC0(pmi);
+		pmi->magic = G2_QH2_PMI_MAGIC;
+		pmi->hub_id = nid_ref(NODE_ID(ctx->hub));
+		mb = g2_build_pmsg_extended(ctx->t, g2_qh2_pmsg_free, pmi);
 		pmsg_mark_reliable(mb);
+	} else {
+		mb = g2_build_pmsg(ctx->t);
+	}
 
 	if (GNET_PROPERTY(g2_debug) > 3) {
 		g_debug("%s(): flushing the following hit for Q2 #%s to %s (%d bytes):",
@@ -750,6 +853,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 /**
  * Build and send query hits (/QH2) to specified node.
  *
+ * @param h			the hub node which sent us the query
  * @param n			the node where we should send results to
  * @param files		the list of shared_file_t entries that make up results
  * @param count		the amount of results held in the list
@@ -757,7 +861,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
  * @param flags		a set of QHIT_F_G2_* flags
  */
 void
-g2_build_send_qh2(gnutella_node_t *n,
+g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 	pslist_t *files, int count, const guid_t *muid, uint flags)
 {
 	pslist_t *sl;
@@ -770,6 +874,7 @@ g2_build_send_qh2(gnutella_node_t *n,
 	ctx.hs = hset_create(HASH_KEY_SELF, 0);
 	ctx.max_size = G2_BUILD_QH2_THRESH;
 	ctx.flags = flags;
+	ctx.hub = h;
 
 	PSLIST_FOREACH(files, sl) {
 		shared_file_t *sf = sl->data;
