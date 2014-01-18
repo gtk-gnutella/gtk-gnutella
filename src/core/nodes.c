@@ -13063,6 +13063,16 @@ node_update_g2(bool enabled)
 		g_debug("%s(): %sabling G2 connections",
 			G_STRFUNC, enabled ? "en" : "dis");
 	}
+
+	if (!enabled) {
+		pslist_t *sl;
+
+		PSLIST_FOREACH(sl_g2_nodes, sl) {
+			gnutella_node_t *n = sl->data;
+
+			node_bye_if_writable(n, 202, "G2 protocol disabled");
+		}
+	}
 }
 
 /**
