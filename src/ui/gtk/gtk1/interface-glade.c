@@ -175,6 +175,9 @@ create_main_window (void)
   GtkObject *spinbutton_quick_connect_pool_size_adj;
   GtkWidget *spinbutton_quick_connect_pool_size;
   GtkWidget *label680;
+  GtkObject *spinbutton_max_g2_hubs_adj;
+  GtkWidget *spinbutton_max_g2_hubs;
+  GtkWidget *label8035;
   GtkWidget *vbox83;
   GtkWidget *frame_expert_node_info;
   GtkWidget *vbox34;
@@ -2042,7 +2045,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  table91 = gtk_table_new (1, 2, FALSE);
+  table91 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table91, "table91");
   gtk_widget_ref (table91);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table91", table91,
@@ -2073,6 +2076,28 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label680), 1, 0.5);
+
+  spinbutton_max_g2_hubs_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_g2_hubs = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_g2_hubs_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_g2_hubs, "spinbutton_max_g2_hubs");
+  gtk_widget_ref (spinbutton_max_g2_hubs);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_g2_hubs", spinbutton_max_g2_hubs,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_max_g2_hubs);
+  gtk_table_attach (GTK_TABLE (table91), spinbutton_max_g2_hubs, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label8035 = gtk_label_new (_("G2 hubs"));
+  gtk_widget_set_name (label8035, "label8035");
+  gtk_widget_ref (label8035);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8035", label8035,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8035);
+  gtk_table_attach (GTK_TABLE (table91), label8035, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8035), 1, 0.5);
 
   vbox83 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox83, "vbox83");

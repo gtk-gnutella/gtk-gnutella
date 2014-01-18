@@ -3199,17 +3199,21 @@ create_main_window_gnet_tab (void)
   GtkWidget *hbox164;
   GtkWidget *image34;
   GtkWidget *label415;
-  GtkWidget *hbox_leaf;
-  GtkWidget *label519;
-  GtkObject *spinbutton_max_ultrapeers_adj;
-  GtkWidget *spinbutton_max_ultrapeers;
-  GtkWidget *label520;
   GtkWidget *entry_host;
   GtkWidget *button_nodes_disconnect;
   GtkWidget *alignment135;
   GtkWidget *hbox9331;
   GtkWidget *image1258;
   GtkWidget *label987;
+  GtkWidget *hbox_leaf;
+  GtkWidget *label519;
+  GtkObject *spinbutton_max_ultrapeers_adj;
+  GtkWidget *spinbutton_max_ultrapeers;
+  GtkWidget *label520;
+  GtkWidget *hbox9354;
+  GtkWidget *label1079;
+  GtkObject *spinbutton_max_g2_hubs_adj;
+  GtkWidget *spinbutton_max_g2_hubs;
   GtkWidget *hbox_normal_or_ultrapeer;
   GtkWidget *label2;
   GtkObject *spinbutton_up_connections_adj;
@@ -3269,7 +3273,7 @@ create_main_window_gnet_tab (void)
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_nodes), TRUE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_nodes), FALSE);
 
-  table56 = gtk_table_new (1, 4, FALSE);
+  table56 = gtk_table_new (1, 5, FALSE);
   gtk_widget_set_name (table56, "table56");
   gtk_widget_show (table56);
   gtk_box_pack_start (GTK_BOX (vbox17), table56, FALSE, TRUE, 0);
@@ -3306,31 +3310,6 @@ create_main_window_gnet_tab (void)
   gtk_widget_show (label415);
   gtk_box_pack_start (GTK_BOX (hbox164), label415, FALSE, FALSE, 0);
 
-  hbox_leaf = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox_leaf, "hbox_leaf");
-  gtk_widget_show (hbox_leaf);
-  gtk_table_attach (GTK_TABLE (table56), hbox_leaf, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
-  label519 = gtk_label_new (_("Connect to"));
-  gtk_widget_set_name (label519, "label519");
-  gtk_widget_show (label519);
-  gtk_box_pack_start (GTK_BOX (hbox_leaf), label519, FALSE, TRUE, 0);
-  gtk_misc_set_padding (GTK_MISC (label519), 5, 0);
-
-  spinbutton_max_ultrapeers_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 0);
-  spinbutton_max_ultrapeers = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_ultrapeers_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_max_ultrapeers, "spinbutton_max_ultrapeers");
-  gtk_widget_show (spinbutton_max_ultrapeers);
-  gtk_box_pack_start (GTK_BOX (hbox_leaf), spinbutton_max_ultrapeers, FALSE, TRUE, 0);
-
-  label520 = gtk_label_new (_("ultrapeers"));
-  gtk_widget_set_name (label520, "label520");
-  gtk_widget_show (label520);
-  gtk_box_pack_start (GTK_BOX (hbox_leaf), label520, FALSE, TRUE, 0);
-  gtk_misc_set_padding (GTK_MISC (label520), 5, 0);
-
   entry_host = gtk_entry_new ();
   gtk_widget_set_name (entry_host, "entry_host");
   gtk_widget_show (entry_host);
@@ -3365,6 +3344,49 @@ create_main_window_gnet_tab (void)
   gtk_widget_set_name (label987, "label987");
   gtk_widget_show (label987);
   gtk_box_pack_start (GTK_BOX (hbox9331), label987, FALSE, FALSE, 0);
+
+  hbox_leaf = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_leaf, "hbox_leaf");
+  gtk_widget_show (hbox_leaf);
+  gtk_table_attach (GTK_TABLE (table56), hbox_leaf, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label519 = gtk_label_new (_("Connect to"));
+  gtk_widget_set_name (label519, "label519");
+  gtk_widget_show (label519);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), label519, FALSE, TRUE, 0);
+  gtk_misc_set_padding (GTK_MISC (label519), 5, 0);
+
+  spinbutton_max_ultrapeers_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 0);
+  spinbutton_max_ultrapeers = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_ultrapeers_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_ultrapeers, "spinbutton_max_ultrapeers");
+  gtk_widget_show (spinbutton_max_ultrapeers);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), spinbutton_max_ultrapeers, FALSE, TRUE, 0);
+
+  label520 = gtk_label_new (_("ultrapeers"));
+  gtk_widget_set_name (label520, "label520");
+  gtk_widget_show (label520);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), label520, FALSE, TRUE, 0);
+  gtk_misc_set_padding (GTK_MISC (label520), 5, 0);
+
+  hbox9354 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox9354, "hbox9354");
+  gtk_widget_show (hbox9354);
+  gtk_table_attach (GTK_TABLE (table56), hbox9354, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label1079 = gtk_label_new (_("G2 hubs"));
+  gtk_widget_set_name (label1079, "label1079");
+  gtk_widget_show (label1079);
+  gtk_box_pack_start (GTK_BOX (hbox9354), label1079, FALSE, TRUE, 0);
+
+  spinbutton_max_g2_hubs_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_g2_hubs = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_g2_hubs_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_g2_hubs, "spinbutton_max_g2_hubs");
+  gtk_widget_show (spinbutton_max_g2_hubs);
+  gtk_box_pack_start (GTK_BOX (hbox9354), spinbutton_max_g2_hubs, FALSE, TRUE, 0);
 
   hbox_normal_or_ultrapeer = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox_normal_or_ultrapeer, "hbox_normal_or_ultrapeer");
@@ -3539,16 +3561,19 @@ create_main_window_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, hbox164, "hbox164");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, image34, "image34");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label415, "label415");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, hbox_leaf, "hbox_leaf");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label519, "label519");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, spinbutton_max_ultrapeers, "spinbutton_max_ultrapeers");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label520, "label520");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, entry_host, "entry_host");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, button_nodes_disconnect, "button_nodes_disconnect");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, alignment135, "alignment135");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, hbox9331, "hbox9331");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, image1258, "image1258");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label987, "label987");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, hbox_leaf, "hbox_leaf");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label519, "label519");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, spinbutton_max_ultrapeers, "spinbutton_max_ultrapeers");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label520, "label520");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, hbox9354, "hbox9354");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label1079, "label1079");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, spinbutton_max_g2_hubs, "spinbutton_max_g2_hubs");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, hbox_normal_or_ultrapeer, "hbox_normal_or_ultrapeer");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label2, "label2");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, spinbutton_up_connections, "spinbutton_up_connections");

@@ -3260,6 +3260,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_MAX_G2_HUBS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_max_g2_hubs",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_QUICK_CONNECT_POOL_SIZE,
         update_spinbutton,
         TRUE,
