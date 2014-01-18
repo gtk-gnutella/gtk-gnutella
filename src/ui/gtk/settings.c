@@ -2670,13 +2670,8 @@ gnet_connections_changed(property_t unused_prop)
 {
     GtkProgressBar *pg;
 	gchar buf[128];
-    guint32 leaf_count;
-    guint32 normal_count;
-    guint32 ultra_count;
-    guint32 max_connections;
-    guint32 max_leaves;
-    guint32 max_normal;
-    guint32 max_ultrapeers;
+    guint32 leaf_count, normal_count, ultra_count, g2_count;
+    guint32 max_connections, max_leaves, max_normal, max_ultrapeers, max_g2;
     guint32 cnodes;
     guint32 nodes = 0;
     guint32 peermode;
@@ -2687,30 +2682,33 @@ gnet_connections_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_NODE_LEAF_COUNT, &leaf_count);
     gnet_prop_get_guint32_val(PROP_NODE_NORMAL_COUNT, &normal_count);
     gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra_count);
+    gnet_prop_get_guint32_val(PROP_NODE_G2_COUNT, &g2_count);
     gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
     gnet_prop_get_guint32_val(PROP_MAX_LEAVES, &max_leaves);
     gnet_prop_get_guint32_val(PROP_MAX_ULTRAPEERS, &max_ultrapeers);
+    gnet_prop_get_guint32_val(PROP_MAX_G2_HUBS, &max_g2);
     gnet_prop_get_guint32_val(PROP_NORMAL_CONNECTIONS, &max_normal);
     gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
-    cnodes = leaf_count + normal_count + ultra_count;
+    cnodes = leaf_count + normal_count + ultra_count + g2_count;
 
     switch (peermode) {
     case NODE_P_LEAF: /* leaf */
     case NODE_P_NORMAL: /* normal */
-        nodes = (peermode == NODE_P_NORMAL) ?
-            max_connections : max_ultrapeers;
+        nodes = g2_count + ((peermode == NODE_P_NORMAL) ?
+            max_connections : max_ultrapeers);
 		str_bprintf(buf, sizeof buf,
-			NG_("%u/%u connection", "%u/%u connections", cnodes),
-			cnodes, nodes);
+            "%u/%uU | %u/%uH",
+			ultra_count, max_ultrapeers,
+			g2_count, max_g2);
         break;
     case NODE_P_ULTRA: /* ultra */
-        nodes = max_connections + max_leaves + max_normal;
+        nodes = max_connections + max_leaves + max_normal + max_g2;
         str_bprintf(buf, sizeof buf,
-            "%u/%uU |%u/%uN | %u/%uL",
+            "%u/%uU | %u/%uH | %u/%uL",
             ultra_count,
 			max_connections < max_normal ? 0 : max_connections - max_normal,
-            normal_count, max_normal,
+            g2_count, max_g2,
             leaf_count, max_leaves);
         break;
     default:
@@ -3287,6 +3285,14 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         gui_main_window,
         PROP_NODE_ULTRA_COUNT,
+        gnet_connections_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_NODE_G2_COUNT,
         gnet_connections_changed,
         TRUE,
         NULL,
