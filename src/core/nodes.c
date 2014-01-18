@@ -12582,8 +12582,12 @@ node_by_id(const struct nid *node_id)
 	gnutella_node_t *n;
 	
 	g_return_val_if_fail(!node_id_self(node_id), NULL);
+
+	if G_UNLIKELY(NULL == nodes_by_id)
+		return NULL;		/* Shutdown time... */
+
 	n = hikset_lookup(nodes_by_id, node_id);
-	if (n) {
+	if (n != NULL) {
 		node_check(n);
 	}
 	return n;	
