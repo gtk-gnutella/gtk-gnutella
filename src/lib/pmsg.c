@@ -368,6 +368,27 @@ pmsg_clone(pmsg_t *mb)
 }
 
 /**
+ * Shallow cloning of message, making sure we have a plain clone even if
+ * the original was extended.
+ */
+pmsg_t *
+pmsg_clone_plain(pmsg_t *mb)
+{
+	pmsg_t *nmb;
+
+	pmsg_check_consistency(mb);
+
+	WALLOC(nmb);
+	memcpy(nmb, mb, sizeof *nmb);
+	nmb->magic = PMSG_MAGIC;		/* Force plain message */
+	nmb->m_flags &= ~PMSG_PF_EXT;	/* In case original was extended */
+	nmb->m_refcnt = 1;
+	pdata_addref(nmb->m_data);
+
+	return nmb;
+}
+
+/**
  * Increase the reference count on the message block.
  *
  * This must be used in TX stacks when there is a free routine installed
