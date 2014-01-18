@@ -137,8 +137,8 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 	tea_encrypt(&stg->keys[n], enc, block, sizeof block);
 
 	/*
-	 * If they gave contextual data, encrypt them by block of 8 bytes,
-	 * filling the last partial block with zeroes if needed.
+	 * If they gave contextual data, encrypt them by block of TEA_BLOCK_SIZE
+	 * bytes, filling the last partial block with zeroes if needed.
 	 */
 
 	if (data != NULL) {
@@ -149,10 +149,10 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 		STATIC_ASSERT(sizeof(denc) == sizeof(enc));
 
 		while (remain != 0) {
-			size_t fill = MIN(remain, 8U);
+			size_t fill = MIN(remain, TEA_BLOCK_SIZE);
 			unsigned i;
 
-			if (fill != 8U)
+			if (fill != TEA_BLOCK_SIZE)
 				ZERO(&block);
 
 			memcpy(block, q, fill);
