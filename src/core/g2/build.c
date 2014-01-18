@@ -43,6 +43,7 @@
 #include "tree.h"
 
 #include "core/dmesh.h"
+#include "core/gnet_stats.h"
 #include "core/nodes.h"
 #include "core/qhit.h"
 #include "core/settings.h"		/* For listen_addr_primary() */
@@ -485,6 +486,7 @@ g2_qh2_pmsg_free(pmsg_t *mb, void *arg)
 			g_debug("%s(): could not send %s, relaying hub is gone, dropping.",
 				G_STRFUNC, g2_msg_infostr_mb(mb));
 		}
+		gnet_stats_inc_general(GNR_UDP_G2_HITS_UNDELIVERED);
 		goto done;
 	} else {
 		pmsg_t *nmb;
@@ -498,6 +500,7 @@ g2_qh2_pmsg_free(pmsg_t *mb, void *arg)
 		pmsg_clear_reliable(nmb);
 
 		g2_node_send(n, nmb);
+		gnet_stats_inc_general(GNR_UDP_G2_HITS_REROUTED_TO_HUB);
 	}
 
 done:

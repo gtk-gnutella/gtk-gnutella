@@ -287,6 +287,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"udp_sr_rx_ears_for_unknown_message",
 		"udp_sr_rx_ears_for_lingering_message",
 		"udp_sr_rx_from_hostile_ip",
+		"udp_g2_hits_rerouted_to_hub",
+		"udp_g2_hits_undelivered",
 		"consolidated_servers",
 		"dup_downloads_in_consolidation",
 		"discovered_server_guid",

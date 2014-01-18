@@ -260,6 +260,8 @@ general_type_str(gint value)
 		N_("Semi-reliable UDP EARs received for unknown message"),
 		N_("Semi-reliable UDP EARs received whilst lingering"),
 		N_("Semi-reliable UDP fragments from hostile IP addresses"),
+		N_("UDP G2 hits rerouted to hub for delivery"),
+		N_("UDP G2 hits undelivered"),
 		N_("Consolidated servers (after GUID and IP address linking)"),
 		N_("Duplicate downloads found during server consolidation"),
 		N_("Discovered server GUIDs"),
