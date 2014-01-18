@@ -91,6 +91,15 @@ void g2_msg_log_dropped_data(const void *data, size_t len, const char *fmt, ...)
  */
 #define G2_NAME(x)		g2_msg_type_name(G2_MSG_ ## x)
 
+/**
+ * Convenience shortcut for getting the G2 message info from a pmsg_t.
+ */
+static inline const char *
+g2_msg_infostr_mb(const pmsg_t *mb)
+{
+	return g2_msg_infostr(pmsg_start(mb), pmsg_size(mb));
+}
+
 #endif /* _core_g2_msg_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
