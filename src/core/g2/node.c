@@ -591,7 +591,8 @@ g2_node_extract_urn(const g2_tree_t *t, search_request_info_t *sri)
  * if we have a valid address.
  */
 static void
-g2_node_extract_udp(const g2_tree_t *t, search_request_info_t *sri)
+g2_node_extract_udp(const g2_tree_t *t, search_request_info_t *sri,
+	const gnutella_node_t *n)
 {
 	const char *p;
 	size_t paylen;
@@ -616,7 +617,17 @@ g2_node_extract_udp(const g2_tree_t *t, search_request_info_t *sri)
 		if (host_is_valid(addr, port)) {
 			sri->addr = addr;
 			sri->port = port;
-			sri->oob = TRUE;
+
+			/*
+			 * If the address is that of the node sending us the query,
+			 * and it is not a UDP node, then we can deliver the hit
+			 * back via the TCP connection we have, so no need to use OOB.
+			 */
+
+			if (n->port == port && host_addr_equal(addr, n->gnet_addr))
+				sri->oob = NODE_IS_UDP(n);
+			else
+				sri->oob = TRUE;
 		}
 	}
 }
@@ -783,7 +794,7 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 
 		case G2_Q2_UDP:
 			if (!sri.oob)
-				g2_node_extract_udp(c, &sri);
+				g2_node_extract_udp(c, &sri, n);
 			break;
 
 		case G2_Q2_URN:
