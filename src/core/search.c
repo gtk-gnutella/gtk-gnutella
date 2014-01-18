@@ -4374,7 +4374,7 @@ search_init(void)
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	query_muid_map_init();	
 	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
-	ora_stg = sectoken_gen_new(ORA_KEYS, OOB_REPLY_ACK_TIMEOUT / ORA_KEYS);
+	ora_stg = sectoken_gen_new(ORA_KEYS, OOB_REPLY_ACK_TIMEOUT);
 	ora_secure = aging_make(OOB_REPLY_ACK_TIMEOUT,
 		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
 
