@@ -5784,6 +5784,18 @@ search_oob_pending_results(
 			n->addr, n->port, muid, GUID_RAW_SIZE);
 		token = peek_be32(tok.v);
 		token_opaque = array_init(&token, sizeof token);
+
+		if (
+			GNET_PROPERTY(search_debug) > 1 ||
+			GNET_PROPERTY(secure_oob_debug)
+		) {
+			char buf[17];
+			bin_to_hex_buf(
+				token_opaque.data, token_opaque.size, buf, sizeof buf);
+			g_debug("OOB secure token for %s and #%s is 0x%s",
+				host_addr_port_to_string(n->addr, n->port),
+				guid_hex_str(muid), buf);
+		}
 	} else {
 		token = 0;
 		token_opaque = zero_array;
