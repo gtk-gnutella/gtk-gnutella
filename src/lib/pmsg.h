@@ -306,6 +306,15 @@ pmsg_mark_reliable(pmsg_t *mb)
 }
 
 /**
+ * Clear the reliable marker.
+ */
+static inline void
+pmsg_clear_reliable(pmsg_t *mb)
+{
+	mb->m_flags &= ~PMSG_PF_ACKME;
+}
+
+/**
  * Mark message as "compressed", whether or not it actually is.
  *
  * This signals the TX layers that the data has either already been compressed
