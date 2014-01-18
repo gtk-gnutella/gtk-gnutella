@@ -11729,7 +11729,12 @@ node_get_status(const struct nid *node_id, gnet_node_status_t *status)
 
 	status->qrp_efficiency =
 		(float) node->qrp_matches / (float) MAX(1, node->qrp_queries);
-	status->has_qrp = settings_is_leaf() && node_ultra_received_qrp(node);
+
+	if (NODE_TALKS_G2(node)) {
+		status->has_qrp = node_hub_received_qrp(node);
+	} else {
+		status->has_qrp = settings_is_leaf() && node_ultra_received_qrp(node);
+	}
 
 	if (node->qrt_info != NULL) {
 		qrt_info_t *qi = node->qrt_info;
