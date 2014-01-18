@@ -88,6 +88,7 @@ enum g2_lni_child {
 	G2_LNI_GU = 1,
 	G2_LNI_LS,
 	G2_LNI_NA,
+	G2_LNI_UP,
 	G2_LNI_V,
 };
 
@@ -106,6 +107,7 @@ static const tokenizer_t g2_lni_children[] = {
 	{ "GU",		G2_LNI_GU },
 	{ "LS",		G2_LNI_LS },
 	{ "NA",		G2_LNI_NA },
+	{ "UP",		G2_LNI_UP },
 	{ "V",		G2_LNI_V },
 };
 
@@ -421,6 +423,12 @@ g2_node_handle_lni(gnutella_node_t *n, const g2_tree_t *t)
 			payload = g2_tree_node_payload(c, &paylen);
 			if (paylen >= 4)
 				n->vcode.u32 = peek_be32(payload);
+			break;
+
+		case G2_LNI_UP:			/* uptime */
+			payload = g2_tree_node_payload(c, &paylen);
+			if (paylen <= 4)
+				n->up_date = tm_time() - vlint_decode(payload, paylen);
 			break;
 		}
 	}
