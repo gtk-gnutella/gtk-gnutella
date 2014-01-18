@@ -8023,15 +8023,18 @@ search_request(struct gnutella_node *n,
 				node_inc_qrp_match(n);
 
 			if (GNET_PROPERTY(share_debug) > 3) {
-				g_debug("share HIT %u files '%s'%s ", qctx->found,
-						sri->whats_new ? WHATS_NEW : safe_search,
-						sri->skip_file_search ? " (skipped)" : "");
+				g_debug("share HIT %u file%s '%s'%s for #%s%s",
+					qctx->found, plural(qctx->found),
+					sri->whats_new ? WHATS_NEW : safe_search,
+					sri->skip_file_search ? " (skipped)" : "",
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					NODE_TALKS_G2(n) ? " (G2)" : "");
 				if (sri->exv_sha1cnt) {
 					int i;
 					for (i = 0; i < sri->exv_sha1cnt; i++)
 						g_debug("\t%c(%32s)",
-								sri->exv_sha1[i].matched ? '+' : '-',
-								sha1_base32(&sri->exv_sha1[i].sha1));
+							sri->exv_sha1[i].matched ? '+' : '-',
+							sha1_base32(&sri->exv_sha1[i].sha1));
 				}
 				g_debug("\tflags=0x%04x max-hits=%u (%s) "
 					"ttl=%u hops=%u",
