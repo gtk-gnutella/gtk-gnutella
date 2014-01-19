@@ -228,6 +228,18 @@ static const char gtkg_vendor[]  = "gtk-gnutella/";
 static const char APP_G2[]       = "application/x-gnutella2";
 static const char APP_GNUTELLA[] = "application/x-gnutella-packets";
 
+static const char CONTENT_TYPE_GNUTELLA[] =
+	"Content-Type: application/x-gnutella-packets\r\n";
+
+static const char ACCEPT_GNUTELLA[] =
+	"Accept: application/x-gnutella-packets\r\n";
+
+static const char CONTENT_ENCODING_DEFLATE[] =
+	"Content-Encoding: deflate\r\n";
+
+static const char ACCEPT_ENCODING_DEFLATE[] =
+	"Accept-Encoding: deflate\r\n";
+
 /* These two contain connected and connectING(!) nodes. */
 static htable_t *ht_connected_nodes   = NULL;
 static uint32 total_nodes_connected;
@@ -5884,7 +5896,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	const char *field;
 	bool incoming = (n->flags & NODE_F_INCOMING);
 	const char *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
-	const char *compressing = "Content-Encoding: deflate\r\n";
+	bool need_content_type = FALSE;
 
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got %s handshaking headers from node %s:",
@@ -5926,6 +5938,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	field = header_get(head, "Accept");
+	need_content_type = field != NULL;
 	if (incoming) {
 		if (field && !strtok_case_has(field, ",", APP_GNUTELLA)) {
 			if (strtok_case_has(field, ",", APP_G2) && node_g2_active()) {
@@ -6675,16 +6688,20 @@ check_protocol:
 				"%s"						/* Content-Encoding */
 				"Content-Type: %s\r\n",		/* Content-Type */
 				GNET_PROPERTY(gnet_deflate_enabled) &&
-					(n->attrs & NODE_A_TX_DEFLATE) ? compressing : "",
+					(n->attrs & NODE_A_TX_DEFLATE) ?
+						CONTENT_ENCODING_DEFLATE : "",
 				APP_G2);
 		} else {
 			rw = str_bprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
+				"%s"			/* Content-Type (if needed) */
 				"%s"			/* Content-Encoding */
 				"%s"			/* X-Ultrapeer */
 				"%s",			/* X-Query-Routing (tells version we'll use) */
+				need_content_type ? CONTENT_TYPE_GNUTELLA : "",
 				GNET_PROPERTY(gnet_deflate_enabled) &&
-					(n->attrs & NODE_A_TX_DEFLATE) ? compressing : "",
+					(n->attrs & NODE_A_TX_DEFLATE) ?
+						CONTENT_ENCODING_DEFLATE : "",
 				mode_changed ? "X-Ultrapeer: False\r\n" : "",
 				(n->qrp_major > 0 || n->qrp_minor > 2) ?
 					"X-Query-Routing: 0.2\r\n" : "");
@@ -6709,9 +6726,10 @@ check_protocol:
 			start_rfc822_date,
 			host_addr_to_string(n->socket->addr),
 			GNET_PROPERTY(gnet_deflate_enabled)
-				? "Accept-Encoding: deflate\r\n" : "",
+				? ACCEPT_ENCODING_DEFLATE : "",
 			(GNET_PROPERTY(gnet_deflate_enabled)
-				&& (n->attrs & NODE_A_TX_DEFLATE)) ? compressing : "",
+				&& (n->attrs & NODE_A_TX_DEFLATE)) ?
+					CONTENT_ENCODING_DEFLATE : "",
 			APP_G2, APP_G2);
 
 			header_features_generate(FEATURES_G2_CONNECTIONS,
@@ -6802,6 +6820,8 @@ check_protocol:
 				"Remote-IP: %s\r\n"
 				"X-Ultrapeer: %s\r\n"
 	 			"X-Requeries: False\r\n"
+				"%s"		/* Accept (if needed) */
+				"%s"		/* Content-Type (if needed) */
 				"%s"		/* Accept-Encoding */
 				"%s"		/* Content-Encoding */
 				"%s"		/* X-Ultrapeer-Needed */
@@ -6817,10 +6837,13 @@ check_protocol:
 				guid_hex_str(&guid),
 				host_addr_to_string(n->socket->addr),
 				settings_is_leaf() ? "False" : "True",
+				need_content_type ? ACCEPT_GNUTELLA : "",
+				need_content_type ? CONTENT_TYPE_GNUTELLA : "",
 				GNET_PROPERTY(gnet_deflate_enabled)
-					? "Accept-Encoding: deflate\r\n" : "",
+					? ACCEPT_ENCODING_DEFLATE : "",
 				(GNET_PROPERTY(gnet_deflate_enabled)
-				 	&& (n->attrs & NODE_A_TX_DEFLATE)) ? compressing : "",
+					&& (n->attrs & NODE_A_TX_DEFLATE)) ?
+						CONTENT_ENCODING_DEFLATE : "",
 				settings_is_leaf() ? "" :
 				GNET_PROPERTY(node_ultra_count) < ultra_max
 					? "X-Ultrapeer-Needed: True\r\n"
@@ -9465,7 +9488,7 @@ node_init_outgoing(struct gnutella_node *n)
 				version_string,
 				APP_G2,
 				GNET_PROPERTY(gnet_deflate_enabled)
-					? "Accept-Encoding: deflate\r\n" : "",
+					? ACCEPT_ENCODING_DEFLATE : "",
 				start_rfc822_date);
 		} else {
 			/*
@@ -9540,7 +9563,7 @@ node_init_outgoing(struct gnutella_node *n)
 				version_string,
 				guid_hex_str(&guid),
 				GNET_PROPERTY(gnet_deflate_enabled)
-					? "Accept-Encoding: deflate\r\n" : "",
+					? ACCEPT_ENCODING_DEFLATE : "",
 				tok_version(),
 				start_rfc822_date,
 				settings_is_leaf() ? "False" : "True",
