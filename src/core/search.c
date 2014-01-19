@@ -146,7 +146,7 @@
 
 #define SEARCH_ACTIVITY_TIMEOUT	120		/**< Delay before declaring idle */
 #define ORA_KEYS				2		/**< Two keys in the set */
-#define OOB_REPLY_ACK_TIMEOUT	120		/**< Timeout for OOB hit delivery */
+#define OOB_REPLY_ACK_TIMEOUT	900		/**< Timeout for OOB hit delivery */
 
 static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
 static sectoken_gen_t *ora_stg;			/**< OOB request ack token generator */
