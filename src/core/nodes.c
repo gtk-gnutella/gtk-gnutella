@@ -454,7 +454,8 @@ node_send_udp_ping(struct gnutella_node *n)
 bool
 node_g2_active(void)
 {
-	return udp_active() && GNET_PROPERTY(enable_g2);
+	return udp_active() && GNET_PROPERTY(enable_g2) &&
+		GNET_PROPERTY(max_g2_hubs) != 0;
 }
 
 /***
@@ -9312,6 +9313,9 @@ node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 
 	n = node_udp_g2_get_addr_port(
 			gnet_host_get_addr(from), gnet_host_get_port(from));
+
+	if (NULL == n)
+		goto done;		/* G2 support is disabled */
 
 	node_check(n);
 	g_assert(NODE_TALKS_G2(n));

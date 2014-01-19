@@ -981,6 +981,8 @@ udp_received(const gnutella_socket_t *s,
 		case SEMI_RELIABLE_GTA:
 			break;
 		case SEMI_RELIABLE_GND:
+			if (!node_g2_active())
+				return;		/* Blackout, ignore datagram if G2 was disabled */
 			g2 = TRUE;
 			break;
 		}

@@ -871,6 +871,9 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 	struct g2_qh2_builder ctx;
 	int sent = 0;
 
+	if (NULL == n)
+		goto done;		/* G2 support was disabled whilst processing */
+
 	ZERO(&ctx);
 	clamp_memcpy(&ctx.payload[1], sizeof ctx.payload - 1, muid, GUID_RAW_SIZE);
 	ctx.muid = muid;
@@ -895,6 +898,8 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 		g2_build_qh2_flush(n, &ctx);	/* Send last packet */
 
 	hset_free_null(&ctx.hs);
+
+done:
 	pslist_free(files);
 
 	if (GNET_PROPERTY(g2_debug) > 3) {
