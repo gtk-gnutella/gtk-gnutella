@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Raphael Manfredi
+ * Copyright (c) 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -170,7 +170,7 @@
  * RX layer.
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012, 2014
  */
 
 #include "common.h"
@@ -206,6 +206,7 @@
 #define TX_UT_SEND_MAX		4		/* Max amount of fragment transmissions */
 #define TX_UT_EAR_SEND_MAX	3		/* Max amount of EAR transmissions */
 #define TX_UT_BAN_FREQ		300		/* 5-minute ban if cannot reach host */
+#define TX_UT_GOOD_FREQ		900		/* Remember good hosts for 15 minutes */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
@@ -235,6 +236,7 @@ struct attr {
 	zlib_deflater_t *zd;	/* Deflating object */
 	struct tx_ut_cb *cb;	/* Callbacks */
 	aging_table_t *ban;		/* Short ban of hosts to whom we cannot transmit */
+	aging_table_t *good;	/* Remeber good hosts for faster transmit */
 	udp_tag_t tag;			/* Protocol tag (e.g. "GTA" or "GND") */
 	unsigned seqno_freed;	/* Sequence IDs freed, for hysteresis */
 	unsigned improved_acks:1;	/* Advertise improved ACKs in TX fragments */
@@ -325,6 +327,7 @@ struct ut_msg {
 	unsigned alive:1;				/* Got at least an ACK from host */
 	unsigned expecting_ack:1;		/* Expecting ACK to continue */
 	unsigned ear_pending:1;			/* Sent EAR to lower layer, waiting CONF */
+	unsigned cautious:1;			/* Cautious TX: only sent last fragment */
 };
 
 static void
@@ -458,6 +461,43 @@ ut_msg_is_alive(struct nid mid)
 }
 
 /**
+ * Check whether destination address is flagged as good due to recent
+ * successful transmission.
+ *
+ * @return TRUE if the host is good and most probably present.
+ */
+static bool
+ut_to_good(const struct attr *attr, const gnet_host_t *to)
+{
+	if (aging_lookup(attr->good, to)) {
+		if (tx_ut_debugging(TX_UT_DBG_MSG, NULL)) {
+			g_debug("TX UT: %s: host %s known to be responsive",
+				G_STRFUNC, gnet_host_to_string(to));
+		}
+		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_GOOD);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Flag host as being responsive, so that we can send the whole fragments
+ * at once next time.
+ */
+static void
+ut_to_flag_good(const struct attr *attr, const gnet_host_t *to)
+{
+	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, NULL)) {
+		g_debug("TX UT: %s: flagging host %s as being good for next %d secs",
+			G_STRFUNC, gnet_host_to_string(to), TX_UT_GOOD_FREQ);
+	}
+
+	if (!aging_lookup_revitalise(attr->good, to))
+		aging_insert(attr->good, atom_host_get(to), int_to_pointer(1));
+}
+
+/**
  * Free message.
  */
 static void
@@ -489,6 +529,9 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 
 	if (um->fragsent == um->fragcnt) {
 		pmsg_mark_sent(um->mb);
+
+		/* Remember that host was responsive for a while */
+		ut_to_flag_good(attr, um->to);
 
 		/* Message was fully sent out */
 		if (attr->cb->msg_account != NULL)
@@ -671,6 +714,7 @@ static void
 ut_to_ban(const struct attr *attr, const gnet_host_t *to)
 {
 	aging_insert(attr->ban, atom_host_get(to), int_to_pointer(1));
+	aging_remove(attr->good, to);
 
 	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, NULL)) {
 		g_debug("TX UT: %s: will be dropping messages to %s for %d secs",
@@ -702,6 +746,26 @@ ut_ear_send(struct ut_msg *um)
 	um->expecting_ack = TRUE;
 	um->ear_pending = TRUE;
 	ut_send_ack(um->attr->tx, um->to, &ear);
+}
+
+/*
+ * Send all the fragments unsent so far.
+ */
+static void
+ut_send_remaining(struct ut_msg *um)
+{
+	unsigned i;
+
+	ut_msg_check(um);
+
+	um->cautious = FALSE;		/* No longer cautious, if we were ever! */
+
+	for (i = 0; i < um->fragcnt; i++) {
+		struct ut_frag *uf = um->fragments[i];
+
+		if (uf != NULL)
+			ut_frag_send(uf);
+	}
 }
 
 /**
@@ -1974,6 +2038,27 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		}
 	}
 
+	/*
+	 * If we were being cautious, we can send the remaining fragments
+	 * now that we got our first acknowledgment, and we can mark the host
+	 * as being good so that further messages to that host can be sent more
+	 * quickly for a while.
+	 */
+
+	if (um->cautious) {
+		if (tx_ut_debugging(TX_UT_DBG_ACK, from)) {
+			g_debug("TX UT: %s: got first ACK (seq=0x%04x) from %s, "
+				"flushing remaining %u fragment%s",
+				G_STRFUNC, ack->seqno, gnet_host_to_string(from),
+				um->fragcnt - 1, plural(um->fragcnt - 1));
+		}
+
+		ut_send_remaining(um);
+		ut_to_flag_good(attr, um->to);
+
+		return;
+	}
+
 	/* FALL THROUGH */
 
 ear_nack:
@@ -2113,6 +2198,8 @@ tx_ut_init(txdrv_t *tx, void *args)
 	attr->zd = zlib_deflater_make(NULL, 0, Z_BEST_COMPRESSION);
 	attr->ban = aging_make(TX_UT_BAN_FREQ,
 		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+	attr->good = aging_make(TX_UT_GOOD_FREQ,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
 	attr->cb = targs->cb;
 	attr->tag = targs->tag;				/* struct copy */
 	attr->improved_acks = booleanize(targs->advertise_improved_acks);
@@ -2176,6 +2263,7 @@ tx_ut_destroy(txdrv_t *tx)
 	idtable_foreach(attr->seq, ut_destroy_msg, NULL);
 	idtable_destroy(attr->seq);
 	aging_destroy(&attr->ban);
+	aging_destroy(&attr->good);
 	ut_pending_discard(attr);
 
 	attr->magic = 0;
@@ -2195,7 +2283,6 @@ tx_ut_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 {
 	struct attr *attr = tx->opaque;
 	struct ut_msg *um;
-	unsigned i;
 
 	ut_attr_check(attr);
 
@@ -2250,13 +2337,27 @@ tx_ut_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_DEFLATED);
 
 	/*
-	 * Send all the fragments immediately.
+	 * Send all the fragments immediately if the message is unreliable or
+	 * is reliable but has only 1 fragment or the host is know to be responsive.
+	 *
+	 * Otherwise, be cautious and send only the last fragment, which should
+	 * be the shortest one in the message.  Only when we get that fragment
+	 * acknowledged will we transmit the other unsent fragments all at once.
 	 */
 
-	for (i = 0; i < um->fragcnt; i++) {
-		struct ut_frag *uf = um->fragments[i];
+	if (!um->reliable || ut_to_good(attr, to) || 1 == um->fragcnt) {
+		ut_send_remaining(um);
+	} else {
+		g_assert(um->fragcnt > 1);
 
-		ut_frag_send(uf);
+		if (tx_ut_debugging(TX_UT_DBG_MSG, NULL)) {
+			g_debug("TX UT: %s: "
+				"cautiously sending last fragment (out of %u) to %s",
+				G_STRFUNC, um->fragcnt, gnet_host_to_string(to));
+		}
+
+		um->cautious = TRUE;
+		ut_frag_send(um->fragments[um->fragcnt - 1]);
 	}
 
 done:
