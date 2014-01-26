@@ -97,7 +97,8 @@ typedef struct search {
 	time_t guess_cur_start;		/**< Start time of current query (0 if none) */
 	size_t guess_cur_max_ultra;	/**< Max amount of ultra nodes to query */
 	size_t guess_cur_pool;		/**< Current pool of unqueried nodes */
-	size_t guess_cur_queried;	/**< Current amount of queried nodes */
+	size_t guess_cur_ultra;		/**< Current amount of queried ultra nodes */
+	size_t guess_cur_g2;		/**< Current amount of queried G2 nodes */
 	size_t guess_cur_acks;		/**< Current amount of acks received */
 	size_t guess_cur_results;	/**< Current amount of results received */
 	size_t guess_cur_kept;		/**< Current amount of results kept */

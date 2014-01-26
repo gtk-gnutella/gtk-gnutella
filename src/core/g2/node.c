@@ -38,6 +38,7 @@
 #include "build.h"
 #include "frame.h"
 #include "msg.h"
+#include "rpc.h"
 #include "tfmt.h"
 #include "tree.h"
 
@@ -156,7 +157,7 @@ static aging_table_t *g2_udp_pings;
  * Send a message to target node.
  */
 void
-g2_node_send(gnutella_node_t *n, pmsg_t *mb)
+g2_node_send(const gnutella_node_t *n, pmsg_t *mb)
 {
 	node_check(n);
 	g_assert(NODE_TALKS_G2(n));
@@ -324,11 +325,12 @@ static void
 g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
 {
 	/*
-	 * Drop pongs received from UDP.
+	 * Pongs received from UDP must be RPC replies to pings.
 	 */
 
 	if (NODE_IS_UDP(n)) {
-		g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
+		if (!g2_rpc_answer(n, t))
+			g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
 		return;
 	}
 
@@ -337,6 +339,34 @@ g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
 	 */
 
 	alive_ack_ping(n->alive_pings, NULL);	/* No MUID on G2 */
+}
+
+/**
+ * Handle reception of an RPC answer (/QKA, /QA)
+ */
+static void
+g2_node_handle_rpc_answer(gnutella_node_t *n, const g2_tree_t *t)
+{
+	/*
+	 * /QKA received from UDP must be RPC replies to /QKR, otherwise
+	 * it can be sent when a /Q2 bearing the wrong query key is received
+	 * by a host.
+	 *
+	 * A /QA is sent back by a hub upon reception of the /Q2 message if
+	 * the query key was correct.
+	 */
+
+	if (NODE_IS_UDP(n)) {
+		if (!g2_rpc_answer(n, t))
+			g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
+		return;
+	}
+
+	/*
+	 * We do not expect these from TCP, since they are UDP RPC replies.
+	 */
+
+	g2_node_drop(G_STRFUNC, n, t, "coming from TCP");
 }
 
 /**
@@ -932,6 +962,10 @@ g2_node_handle(gnutella_node_t *n)
 		break;
 	case G2_MSG_Q2:
 		g2_node_handle_q2(n, t);
+		break;
+	case G2_MSG_QA:
+	case G2_MSG_QKA:
+		g2_node_handle_rpc_answer(n, t);
 		break;
 	default:
 		g2_node_drop(G_STRFUNC, n, t, "default");

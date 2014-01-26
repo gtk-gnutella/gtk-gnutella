@@ -500,6 +500,7 @@ void
 gmsg_mb_routeto_one(const struct gnutella_node *from,
 	const struct gnutella_node *to, pmsg_t *mb)
 {
+	g_assert(!NODE_TALKS_G2(to));
 	g_assert(!pmsg_was_sent(mb));
 	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
 
@@ -536,6 +537,8 @@ gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb)
 void
 gmsg_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
 {
+	g_assert(!NODE_TALKS_G2(n));
+
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
@@ -585,6 +588,7 @@ gmsg_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
 void
 gmsg_ctrl_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
 {
+	g_assert(!NODE_TALKS_G2(n));
 	g_return_if_fail(!NODE_IS_UDP(n));
 
 	gmsg_header_check(msg, size);
@@ -605,6 +609,7 @@ void
 gmsg_search_sendto_one(
 	struct gnutella_node *n, gnet_search_t sh, const void *msg, uint32 size)
 {
+	g_assert(!NODE_TALKS_G2(n));
 	g_return_if_fail(!NODE_IS_UDP(n));
 
 	gmsg_header_check(msg, size);
@@ -626,6 +631,7 @@ static void
 gmsg_split_send_from_to(struct gnutella_node *from, struct gnutella_node *to,
 	const void *head, const void *data, uint32 size)
 {
+	g_assert(!NODE_TALKS_G2(to));
 	g_return_if_fail(!NODE_IS_UDP(to));
 
 	gmsg_header_check(head, size);

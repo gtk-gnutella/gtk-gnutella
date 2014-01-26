@@ -571,13 +571,14 @@ search_gui_update_guess_stats(const struct search *search)
 				search->guess_bw_qk + search->guess_cur_bw_qk, FALSE),
 			prev);
 	} else {
+		size_t queried = search->guess_cur_ultra + search->guess_cur_g2;
 		/*
 		 * A GUESS search is active AND they don't want only summary stats.
 		 */
 		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
-			"[Pool: %zu %s, %zu/%zu queried, %zu %s (%.2f%%), %zu pending, "
-			"%zu %s%s%s]"),
+			"[Pool: %zu %s, (%zu+%zu)/%zu queried, %zu %s (%.2f%%), "
+			"%zu pending, %zu %s%s%s]"),
 			compact_time(delta_time(tm_time(), search->guess_cur_start)),
 			GUESS_QUERY_LOOSE == search->guess_cur_mode ?
 				_("loose") : _("bounded"),
@@ -588,12 +589,11 @@ search_gui_update_guess_stats(const struct search *search)
 			short_size2(search->guess_cur_bw_qk, FALSE),
 			search->guess_cur_pool,
 			NG_("host", "hosts", search->guess_cur_pool),
-			search->guess_cur_queried, search->guess_cur_max_ultra,
+			search->guess_cur_ultra, search->guess_cur_g2,
+			search->guess_cur_max_ultra,
 			search->guess_cur_acks,
 			NG_("ack", "acks", search->guess_cur_acks),
-			100.0 * search->guess_cur_acks /
-				(0 == search->guess_cur_queried ?
-					1 : search->guess_cur_queried),
+			100.0 * search->guess_cur_acks / (0 == queried ?  1 : queried),
 			search->guess_cur_rpc_pending,
 			search->guess_cur_hops,
 			NG_("hop", "hops", search->guess_cur_hops),
@@ -4465,7 +4465,8 @@ search_gui_guess_event(gnet_search_t sh, const struct guess_query *query)
 		/* Reset stats for new query */
 		search->guess_cur_start = 0;
 		search->guess_cur_pool = 0;
-		search->guess_cur_queried = 0;
+		search->guess_cur_ultra = 0;
+		search->guess_cur_g2 = 0;
 		search->guess_cur_acks = 0;
 		search->guess_cur_results = 0;
 		search->guess_cur_kept = 0;
@@ -4491,7 +4492,8 @@ search_gui_guess_stats(gnet_search_t sh, const struct guess_stats *stats)
 	g_return_if_fail(search != NULL);
 
 	search->guess_cur_pool			= stats->pool;
-	search->guess_cur_queried		= stats->queried;
+	search->guess_cur_ultra			= stats->queried_ultra;
+	search->guess_cur_g2			= stats->queried_g2;
 	search->guess_cur_acks			= stats->acks;
 	search->guess_cur_results		= stats->results;
 	search->guess_cur_kept			= stats->kept;
