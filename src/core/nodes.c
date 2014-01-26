@@ -10182,6 +10182,8 @@ node_g2_read(struct gnutella_node *n, pmsg_t *mb)
 			n->pos += r;
 			node_add_rx_read(n, r);
 			len = g2_frame_whole_length(w, n->pos);
+			if (0 == len)
+				return FALSE;		/* Not read enough to compute length */
 		} else {
 			for (;;) {
 				g_assert(n->pos < sizeof n->header);
@@ -10194,6 +10196,10 @@ node_g2_read(struct gnutella_node *n, pmsg_t *mb)
 					break;
 				if (0 == r)
 					return FALSE;	/* Reached end of buffer */
+				if (n->pos >= sizeof n->header) {
+					node_bye(n, 400, "Garbled input stream");
+					return FALSE;
+				}
 			}
 		}
 
