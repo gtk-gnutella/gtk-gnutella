@@ -52,6 +52,9 @@ struct gnutella_node;
 struct pslist;
 struct guid;
 
+pmsg_t *g2_build_q2(const struct guid *muid, const char *query,
+	unsigned mtype, const void *query_key, uint8 length);
+
 void g2_build_send_qh2(const struct gnutella_node *h,
 	struct gnutella_node *n, struct pslist *files,
 	int count, const struct guid *muid, uint flags);

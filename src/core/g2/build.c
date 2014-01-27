@@ -50,6 +50,8 @@
 #include "core/share.h"			/* For shared_files_scanned() */
 #include "core/sockets.h"		/* For socket_listen_port() */
 
+#include "if/core/search.h"		/* For SEARCH_* meta type flags */
+
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/hset.h"
@@ -325,8 +327,10 @@ g2_build_add_vendor(g2_tree_t *t)
  * @param name	the name of the child
  * @param addr	the IP address
  * @param port	the port address
+ *
+ * @return the added child node
  */
-static void
+static g2_tree_t *
 g2_build_add_host(g2_tree_t *t, const char *name, host_addr_t addr, uint16 port)
 {
 	struct packed_host_addr packed;
@@ -343,6 +347,8 @@ g2_build_add_host(g2_tree_t *t, const char *name, host_addr_t addr, uint16 port)
 
 	c = g2_tree_alloc_copy(name, payload, ptr_diff(p, payload));
 	g2_tree_add_child(t, c);
+
+	return c;
 }
 
 /**
@@ -350,11 +356,14 @@ g2_build_add_host(g2_tree_t *t, const char *name, host_addr_t addr, uint16 port)
  *
  * @param t		the tree node where child must be added
  * @param name	the name of the child
+ *
+ * @return the added child node
  */
-static void
+static g2_tree_t *
 g2_build_add_listening_address(g2_tree_t *t, const char *name)
 {
-	g2_build_add_host(t, name, listen_addr_primary(), socket_listen_port());
+	return g2_build_add_host(t, name,
+		listen_addr_primary(), socket_listen_port());
 }
 
 /**
@@ -482,6 +491,77 @@ g2_build_qkr(void)
 	g2_build_add_listening_address(t, "RNA");
 
 	mb = g2_build_ctrl_pmsg(t);
+	g2_tree_free_null(&t);
+
+	return mb;
+}
+
+/*
+ * Build a Query.
+ *
+ * @param muid		the MUID to use for the search message
+ * @param query		the query string
+ * @param mtype		media type filtering (0 if none wanted)
+ * @param query_key	the GUESS query key to use
+ * @param length	length of query key
+ *
+ *
+ * @return a /Q2 message.
+ */
+pmsg_t *
+g2_build_q2(const guid_t *muid, const char *query,
+	unsigned mtype, const void *query_key, uint8 length)
+{
+	g2_tree_t *t, *c;
+	pmsg_t *mb;
+	static const char interest[] = "URL\0PFS\0DN\0A";
+
+	t = g2_tree_alloc_copy(G2_NAME(Q2), muid, sizeof *muid);
+	c = g2_build_add_listening_address(t, "UDP");
+	g2_tree_append_payload(c, query_key, length);
+
+	c = g2_tree_alloc_copy("DN", query, strlen(query));
+	g2_tree_add_child(t, c);
+
+	c = g2_tree_alloc("I", interest, CONST_STRLEN(interest));
+	g2_tree_add_child(t, c);
+
+	if (mtype != 0) {
+		/*
+		 * Don't know how we can combine these flags on G2, hence only
+		 * emit for simple flags.
+		 */
+
+		c = NULL;
+
+		if (SEARCH_AUDIO_TYPE == (mtype & SEARCH_AUDIO_TYPE)) {
+			static const char audio[] = "<audio/>";
+			c = g2_tree_alloc("MD", audio, CONST_STRLEN(audio));
+		}
+		else if (SEARCH_VIDEO_TYPE == (mtype & SEARCH_VIDEO_TYPE)) {
+			static const char video[] = "<video/>";
+			c = g2_tree_alloc("MD", video, CONST_STRLEN(video));
+		}
+		else if (SEARCH_IMG_TYPE == (mtype & SEARCH_IMG_TYPE)) {
+			static const char image[] = "<image/>";
+			c = g2_tree_alloc("MD", image, CONST_STRLEN(image));
+		}
+		else if (SEARCH_DOC_TYPE == (mtype & SEARCH_DOC_TYPE)) {
+			static const char doc[] = "<document/>";
+			c = g2_tree_alloc("MD", doc, CONST_STRLEN(doc));
+		}
+		else if (mtype & (SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE)) {
+			static const char archive[] = "<archive/>";
+			c = g2_tree_alloc("MD", archive, CONST_STRLEN(archive));
+		}
+
+		if (c != NULL)
+			g2_tree_add_child(t, c);
+	}
+
+	g2_tree_reverse_children(t);
+
+	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 
 	return mb;
