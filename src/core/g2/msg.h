@@ -100,6 +100,15 @@ g2_msg_infostr_mb(const pmsg_t *mb)
 	return g2_msg_infostr(pmsg_start(mb), pmsg_size(mb));
 }
 
+/**
+ * Convenience shortcut for getting the G2 message type from a pmsg_t.
+ */
+static inline enum g2_msg
+g2_msg_type_mb(const pmsg_t *mb)
+{
+	return g2_msg_type(pmsg_start(mb), pmsg_size(mb));
+}
+
 #endif /* _core_g2_msg_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
