@@ -512,6 +512,7 @@ typedef enum {
     PROP_MAX_G2_HUBS,
     PROP_LOG_BAD_G2,
     PROP_LOG_DROPPED_G2,
+    PROP_G2_RPC_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
