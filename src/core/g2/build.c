@@ -346,12 +346,24 @@ g2_build_add_host(g2_tree_t *t, const char *name, host_addr_t addr, uint16 port)
 }
 
 /**
+ * Add child to the node, carrying our listening IP:port.
+ *
+ * @param t		the tree node where child must be added
+ * @param name	the name of the child
+ */
+static void
+g2_build_add_listening_address(g2_tree_t *t, const char *name)
+{
+	g2_build_add_host(t, name, listen_addr_primary(), socket_listen_port());
+}
+
+/**
  * Add the local node address as a "NA" child to the root.
  */
 static void
 g2_build_add_node_address(g2_tree_t *t)
 {
-	g2_build_add_host(t, "NA", listen_addr_primary(), socket_listen_port());
+	g2_build_add_listening_address(t, "NA");
 }
 
 /**
@@ -450,6 +462,26 @@ g2_build_lni(void)
 	g2_build_add_node_address(t);	/* NA -- the IP:port of this node */
 
 	mb = g2_build_pmsg(t);
+	g2_tree_free_null(&t);
+
+	return mb;
+}
+
+/**
+ * Build a Query Key Request
+ *
+ * @return a /QKR message.
+ */
+pmsg_t *
+g2_build_qkr(void)
+{
+	g2_tree_t *t;
+	pmsg_t *mb;
+
+	t = g2_tree_alloc_empty(G2_NAME(QKR));
+	g2_build_add_listening_address(t, "RNA");
+
+	mb = g2_build_ctrl_pmsg(t);
 	g2_tree_free_null(&t);
 
 	return mb;
