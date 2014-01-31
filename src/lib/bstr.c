@@ -398,6 +398,7 @@ bstr_trailing_error(bstr_t *bs)
 	n = bstr_unread_size(bs);
 
 	if (n != 0) {
+		bs->ok = FALSE;
 		if (bs->flags & BSTR_F_ERROR) {
 			alloc_error(bs);
 			str_printf(bs->error, "has %zu trailing unread byte%s",
