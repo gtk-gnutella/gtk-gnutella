@@ -900,14 +900,14 @@ g2_node_handle(gnutella_node_t *n)
 	if (NULL == t) {
 		g_warning("%s(): cannot deserialize %s packet from %s",
 			G_STRFUNC, g2_msg_raw_name(n->data, n->size), node_infostr(n));
-		if (GNET_PROPERTY(log_bad_g2) > 10)
+		if (GNET_PROPERTY(log_bad_g2))
 			dump_hex(stderr, "G2 Packet", n->data, n->size);
 		return;
 	} else if (plen != n->size) {
 		g_warning("%s(): consumed %zu bytes but %s packet from %s had %u",
 			G_STRFUNC, plen, g2_msg_raw_name(n->data, n->size),
 			node_infostr(n), n->size);
-		if (GNET_PROPERTY(log_bad_g2) > 10)
+		if (GNET_PROPERTY(log_bad_g2))
 			dump_hex(stderr, "G2 Packet", n->data, n->size);
 		return;
 	} else if (GNET_PROPERTY(g2_debug) > 19) {
