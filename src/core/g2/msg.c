@@ -113,19 +113,19 @@ static void
 g2_msg_build_map(void)
 {
 	uint i;
-	size_t maxlen;
 
 	STATIC_ASSERT(G2_MSG_MAX == G_N_ELEMENTS(g2_msg_english_names));
 	STATIC_ASSERT(G2_MSG_MAX == G_N_ELEMENTS(g2_msg_symbolic_names));
 
 	g_assert(NULL == g2_msg_pt);
 
-	for (i = 0, maxlen = 0; i < G_N_ELEMENTS(g2_msg_symbolic_names); i++) {
-		size_t len = strlen(g2_msg_symbolic_names[i]);
-		maxlen = MAX(maxlen, len);
-	}
+	/*
+	 * We must be prepared to handle all the possible packet names, not just
+	 * the ones we know.  Therefore, the PATRICIA key size is computed to be
+	 * able to handle the maximum architected size.
+	 */
 
-	g2_msg_pt = patricia_create(maxlen * 8);		/* Size is in bits */
+	g2_msg_pt = patricia_create(G2_FRAME_NAME_LEN_MAX * 8);	/* Size in bits */
 
 	for (i = 0; i < G_N_ELEMENTS(g2_msg_symbolic_names); i++) {
 		const char *key = g2_msg_symbolic_names[i];
