@@ -127,6 +127,7 @@ typedef enum msg_drop_reason {
 	MSG_DROP_DHT_INVALID_TOKEN,
 	MSG_DROP_DHT_TOO_MANY_STORE,
 	MSG_DROP_DHT_UNPARSEABLE,
+	MSG_DROP_G2_UNEXPECTED,
 	
 	MSG_DROP_REASON_COUNT /**< number of known reasons to drop a message */
 } msg_drop_reason_t;

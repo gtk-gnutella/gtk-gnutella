@@ -265,6 +265,8 @@ g2_node_drop(const char *routine, gnutella_node_t *n, const g2_tree_t *t,
 		va_end(args);
 	}
 
+	gnet_stats_count_dropped(n, MSG_DROP_G2_UNEXPECTED);
+
 	if (GNET_PROPERTY(log_dropped_g2)) {
 		g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN);
 	}
