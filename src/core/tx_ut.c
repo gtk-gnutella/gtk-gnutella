@@ -1976,6 +1976,17 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 	if (uf != NULL) {
 		g_assert(ack->fragno == uf->fragno);
 
+		/*
+		 * In "cautious" mode we're only sending the last fragment of the
+		 * message hence we need to check that the ACK we're getting is
+		 * for a fragment we actually sent!
+		 */
+
+		if (0 == uf->txcnt) {
+			reason = "got ACK for unsent fragment";
+			goto rejected;
+		}
+
 		if (ut_frag_free(uf, TRUE))
 			return;		/* Was the last fragment */
 	}
