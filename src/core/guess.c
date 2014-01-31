@@ -75,7 +75,7 @@
  * don't attempt to contact these hubs again during our query.
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011, 2014
  */
 
 #include "common.h"
@@ -150,6 +150,7 @@
 #define GUESS_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
 #define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that many acks */
 #define GUESS_RPC_LIFETIME		35000	/**< 35 seconds, in ms */
+#define GUESS_G2_RPC_TIMEOUT	900		/**< 900 seconds (15 minutes!) */
 #define GUESS_FIND_DELAY		5000	/**< in ms, UDP queue flush grace */
 #define GUESS_ALPHA				5		/**< Level of query concurrency */
 #define GUESS_ALPHA_MAX			50		/**< Max level of query concurrency */
@@ -400,6 +401,8 @@ static int guess_alpha = GUESS_ALPHA;	/**< Concurrency query parameter */
 static void guess_discovery_enable(void);
 static void guess_iterate(guess_t *gq);
 static bool guess_send(guess_t *gq, const gnet_host_t *host);
+static bool guess_request_qk(const gnet_host_t *host, bool intro, bool g2);
+static bool guess_has_valid_qk(const gnet_host_t *host);
 
 /**
  * Listening interface, used by the GUI through the bridge to plug in
@@ -1767,6 +1770,197 @@ guess_extract_ipp(guess_t *gq,
 }
 
 /**
+ * Add G2 host to the query key cache by requesting the query key if we have
+ * none for it already.
+ */
+static void
+guess_g2_add_qkcache(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t h;
+
+	gnet_host_set(&h, addr, port);
+	if (
+		!guess_has_valid_qk(&h) &&
+		!hostiles_is_bad(addr) &&
+		host_address_is_usable(addr)
+	)
+		guess_request_qk(&h, TRUE, TRUE);
+}
+
+enum g2_qa_child {
+	G2_QA_RA = 1,
+	G2_QA_D,
+	G2_QA_S,
+};
+
+static const tokenizer_t g2_qa_children[] = {
+	/* Sorted array */
+	{ "D",	G2_QA_D },
+	{ "RA",	G2_QA_RA },
+	{ "S",	G2_QA_S },
+};
+
+/**
+ * Handle /QA response from a queried host (G2).
+ *
+ * @param gq		the GUESS query being run (NULL if RPC expired)
+ * @param host		the queried host, replying
+ * @param t			the /QA response to analyze
+ */
+static void
+guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
+{
+	const g2_tree_t *c;
+
+	/*
+	 * We can get called when we get a /QA long after the GUESS RPC has expired
+	 * to parse the list of hosts and update the retry-after address, if any.
+	 * Hence we do not use guess_check() here.
+	 */
+
+	g_assert(NULL == gq || GUESS_MAGIC == gq->magic);
+
+	/*
+	 * Handle all the interesting children of /QA.
+	 */
+
+	G2_TREE_CHILD_FOREACH(t, c) {
+		const char *payload;
+		size_t paylen;
+		enum g2_qa_child ct = TOKENIZE(g2_tree_name(c), g2_qa_children);
+
+		switch (ct) {
+		case G2_QA_RA:
+			/*
+			 * If there is a /QA/RA, parse it to set the "retry after" time for
+			 * the host.  It can be a 16-bit or 32-bit delay.
+			 */
+
+			payload = g2_tree_node_payload(c, &paylen);
+			if (payload != NULL) {
+				uint32 ra = 0;
+
+				if (2 == paylen)
+					ra = peek_le16(payload);
+				else if (4 == paylen)
+					ra = peek_le32(payload);
+
+				if (ra != 0) {
+					struct qkdata *qk = get_qkdata(host);
+
+					if (qk != NULL)
+						qk->retry_after = tm_time() + ra;
+
+					if (GNET_PROPERTY(guess_client_debug) > 1) {
+						g_debug("GUESS QUERY[%s] G2 %s requests "
+							"%u sec%s querying delay",
+							NULL == gq ? "?" : nid_to_string(&gq->gid),
+							gnet_host_to_string(host), ra, plural(ra));
+					}
+				}
+			}
+			break;
+
+		case G2_QA_D:
+			/*
+			 * A done hub.
+			 * The payload contains an IP:port followed by a 16-bit leaf count.
+			 */
+
+			payload = g2_tree_node_payload(c, &paylen);
+			if (payload != NULL) {
+
+				/*
+				 * Only handle IPv4 since G2 does not support IPv6.
+				 */
+
+				if (8 == paylen) {		/* IPv4 + port + leaf count */
+					host_addr_t addr = host_addr_peek_ipv4(payload);
+					uint16 port = peek_le16(&payload[4]);
+					uint16 lc = peek_le16(&payload[6]);
+					gnet_host_t h;
+
+					/*
+					 * The host is reported as queried by the remote hub, hence
+					 * it's most probably a valid address.  Therefore, we add
+					 * it to the hub cache.
+					 *
+					 * Then we make sure the host is marked as "queried" and
+					 * is removed from the pool (in case it was already known)
+					 * to make sure it will not be recontacted again for that
+					 * query.
+					 */
+
+					hcache_add_caught(HOST_G2HUB, addr, port, "/QA/D address");
+					gnet_host_set(&h, addr, port);
+
+					if (GNET_PROPERTY(guess_client_debug) > 9) {
+						g_debug("GUESS QUERY[%s] "
+							"G2 %s queried (%u lea%s) via %s",
+							NULL == gq ? "?" : nid_to_string(&gq->gid),
+							host_addr_port_to_string(addr, port),
+							lc, plural_f(lc), gnet_host_to_string(host));
+					}
+
+					if (NULL == gq) {
+						/* The RPC has expired, just collecting the G2 host */
+						guess_g2_add_qkcache(addr, port);
+						break;
+					}
+
+					if (hash_list_contains(gq->pool, &h)) {
+						const gnet_host_t *hp = hash_list_remove(gq->pool, &h);
+						if (!hset_contains(gq->queried, hp)) {
+							hset_insert(gq->queried, hp);
+						} else {
+							/* Strange, was in pool AND in queried set! */
+							atom_host_free_null(&hp);
+						}
+					} else if (!hset_contains(gq->queried, &h)) {
+						hset_insert(gq->queried, atom_host_get(&h));
+					} else {
+						if (GNET_PROPERTY(guess_client_debug)) {
+							g_message("GUESS QUERY[%s] "
+								"G2 %s had already been queried",
+								nid_to_string(&gq->gid),
+								host_addr_port_to_string(addr, port));
+						}
+					}
+				}
+			}
+			break;
+
+		case G2_QA_S:
+			/*
+			 * A searchable hub given back by the queried hub.
+			 * The payload contains an IP:port optionally followed by a 32-bit
+			 * timestamp.
+			 */
+
+			payload = g2_tree_node_payload(c, &paylen);
+			if (payload != NULL) {
+				/*
+				 * Only handle IPv4 since G2 does not support IPv6.
+				 */
+
+				if (6 == paylen || 10 == paylen) {	/* IPv4 + port (+stamp) */
+					host_addr_t addr = host_addr_peek_ipv4(payload);
+					uint16 port = peek_le16(&payload[4]);
+
+					if (NULL == gq) {
+						/* The RPC has expired, just collecting the G2 host */
+						guess_g2_add_qkcache(addr, port);
+					} else {
+						guess_add_pool(gq, addr, port, TRUE);
+					}
+				}
+			}
+			break;
+		}
+	}
+}
+
+/**
  * Handle possible GUESS RPC reply on G2 for our /Q2 messages.
  */
 static void
@@ -1860,11 +2054,33 @@ guess_g2_rpc_handle(const gnutella_node_t *n, const g2_tree_t *t, void *unused)
 	grp = htable_lookup(pending, &key);
 
 	if (NULL == grp) {
+		gnet_host_t host;
+
+		/*
+		 * With G2, some hosts can reply almost 15 minutes AFTER the request
+		 * was sent!  Naturally, the GUESS RPC record has already expired,
+		 * because we need to issue our RPCs quickly and an unresponsive host
+		 * needs to be skipped or it would slow down GUESS too much.
+		 *
+		 * We're going to parse the /QA nonethless to collect G2 hub addresses
+		 * for other queries.  Since the RPC has expired, we use the MUID to
+		 * find the GUESS query, but can pass NULL if it's not found.
+		 */
+
+		gq = hikset_lookup(gmuid, key.muid);		/* Can be NULL, it's OK */
+
 		if (GNET_PROPERTY(guess_client_debug)) {
-			g_warning("GUESS got /%s reply #%s from %s, but unknown RPC",
+			g_warning("GUESS QUERY[%s] got late /%s reply #%s from %s",
+				NULL == gq ? "?" : nid_to_string(&gq->gid),
 				g2_tree_name(t), guid_hex_str(key.muid),
 				host_addr_port_to_string(n->addr, n->port));
 		}
+
+		gnet_host_set(&host, n->addr, n->port);
+		guess_traffic_from(&host, GUESS_F_G2);
+		gnet_stats_inc_general(GNR_GUESS_G2_ACKNOWLEDGED);
+
+		guess_handle_qa(gq, &host, t);
 		return;
 	}
 
@@ -1900,162 +2116,6 @@ guess_g2_rpc_handle(const gnutella_node_t *n, const g2_tree_t *t, void *unused)
 
 	guess_rpc_free(grp);
 	return;
-}
-
-enum g2_qa_child {
-	G2_QA_RA = 1,
-	G2_QA_D,
-	G2_QA_S,
-};
-
-static const tokenizer_t g2_qa_children[] = {
-	/* Sorted array */
-	{ "D",	G2_QA_D },
-	{ "RA",	G2_QA_RA },
-	{ "S",	G2_QA_S },
-};
-
-/**
- * Handle /QA response from a queried host (G2).
- *
- * @param gq		the GUESS query being run
- * @param host		the queried host, replying
- * @param t			the /QA response to analyze
- */
-static void
-guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
-{
-	const g2_tree_t *c;
-
-	guess_check(gq);
-
-	/*
-	 * Handle all the interesting children of /QA.
-	 */
-
-	G2_TREE_CHILD_FOREACH(t, c) {
-		const char *payload;
-		size_t paylen;
-		enum g2_qa_child ct = TOKENIZE(g2_tree_name(c), g2_qa_children);
-
-		switch (ct) {
-		case G2_QA_RA:
-			/*
-			 * If there is a /QA/RA, parse it to set the "retry after" time for
-			 * the host.  It can be a 16-bit or 32-bit delay.
-			 */
-
-			payload = g2_tree_node_payload(c, &paylen);
-			if (payload != NULL) {
-				uint32 ra = 0;
-
-				if (2 == paylen)
-					ra = peek_le16(payload);
-				else if (4 == paylen)
-					ra = peek_le32(payload);
-
-				if (ra != 0) {
-					struct qkdata *qk = get_qkdata(host);
-
-					if (qk != NULL)
-						qk->retry_after = tm_time() + ra;
-
-					if (GNET_PROPERTY(guess_client_debug) > 1) {
-						g_debug("GUESS QUERY[%s] G2 %s requests "
-							"%u sec%s querying delay",
-							nid_to_string(&gq->gid),
-							gnet_host_to_string(host), ra, plural(ra));
-					}
-				}
-			}
-			break;
-
-		case G2_QA_D:
-			/*
-			 * A done hub.
-			 * The payload contains an IP:port followed by a 16-bit leaf count.
-			 */
-
-			payload = g2_tree_node_payload(c, &paylen);
-			if (payload != NULL) {
-
-				/*
-				 * Only handle IPv4 since G2 does not support IPv6.
-				 */
-
-				if (8 == paylen) {		/* IPv4 + port + leaf count */
-					host_addr_t addr = host_addr_peek_ipv4(payload);
-					uint16 port = peek_le16(&payload[4]);
-					uint16 lc = peek_le16(&payload[6]);
-					gnet_host_t h;
-
-					/*
-					 * The host is reported as queried by the remote hub, hence
-					 * it's most probably a valid address.  Therefore, we add
-					 * it to the hub cache.
-					 *
-					 * Then we make sure the host is marked as "queried" and
-					 * is removed from the pool (in case it was already known)
-					 * to make sure it will not be recontacted again for that
-					 * query.
-					 */
-
-					hcache_add_caught(HOST_G2HUB, addr, port, "/QA/D address");
-					gnet_host_set(&h, addr, port);
-
-					if (hash_list_contains(gq->pool, &h)) {
-						const gnet_host_t *hp = hash_list_remove(gq->pool, &h);
-						if (!hset_contains(gq->queried, hp)) {
-							hset_insert(gq->queried, hp);
-						} else {
-							/* Strange, was in pool AND in queried set! */
-							atom_host_free_null(&hp);
-						}
-					} else if (!hset_contains(gq->queried, &h)) {
-						hset_insert(gq->queried, atom_host_get(&h));
-					} else {
-						if (GNET_PROPERTY(guess_client_debug)) {
-							g_message("GUESS QUERY[%s] "
-								"G2 %s had already been queried",
-								nid_to_string(&gq->gid),
-								host_addr_port_to_string(addr, port));
-						}
-					}
-
-					if (GNET_PROPERTY(guess_client_debug) > 9) {
-						g_debug("GUESS QUERY[%s] "
-							"G2 %s queried via %s (%u lea%s)",
-							nid_to_string(&gq->gid),
-							host_addr_port_to_string(addr, port),
-							gnet_host_to_string(host), lc, plural_f(lc));
-					}
-				}
-			}
-			break;
-
-		case G2_QA_S:
-			/*
-			 * A searchable hub given back by the queried hub.
-			 * The payload contains an IP:port optionally followed by a 32-bit
-			 * timestamp.
-			 */
-
-			payload = g2_tree_node_payload(c, &paylen);
-			if (payload != NULL) {
-				/*
-				 * Only handle IPv4 since G2 does not support IPv6.
-				 */
-
-				if (6 == paylen || 10 == paylen) {	/* IPv4 + port (+stamp) */
-					host_addr_t addr = host_addr_peek_ipv4(payload);
-					uint16 port = peek_le16(&payload[4]);
-
-					guess_add_pool(gq, addr, port, TRUE);
-				}
-			}
-			break;
-		}
-	}
 }
 
 /**
@@ -4188,15 +4248,25 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 			size_t len = pmsg_written_size(mb);
 
 			/*
+			 * The value of GUESS_G2_RPC_TIMEOUT is MUCH larger than the local
+			 * GUESS RPC lifetime.  This allows us to process late /QA replies
+			 * to collect more G2 hosts, because G2 hubs are very slow to
+			 * acknowledge the query.  This means we can re-query hubs that
+			 * have been already queried, but that's the problem of the slow
+			 * hub, which should acknowledge the query in a more timely manner.
+			 *		--RAM, 2014-01-31
+			 */
+
+			ok = g2_rpc_launch(host, mb, guess_g2_rpc_handle, NULL,
+					GUESS_G2_RPC_TIMEOUT);
+
+			/*
 			 * Limiting bandwidth is accounted for at enqueue time, not at
 			 * sending time.  Indeed, we're trying the limit the flow generated
 			 * over time.  If we counted at emission time, we could have bursts
 			 * due to queueing and clogging, but we would resume at the next
 			 * period anyway, thereby not having any smoothing effect.
 			 */
-
-			ok = g2_rpc_launch(host, mb, guess_g2_rpc_handle, NULL,
-					GUESS_RPC_LIFETIME / 1000 + 1);
 
 			if (ok)
 				guess_out_bw += len;
