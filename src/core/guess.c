@@ -149,7 +149,7 @@
 #define GUESS_ALIVE_PERIOD		(5 * 60)		/**< 5 minutes, in s */
 #define GUESS_SYNC_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
 #define GUESS_MAX_ULTRAPEERS	50000	/**< Query stops after that many acks */
-#define GUESS_RPC_LIFETIME		15000	/**< 15 seconds, in ms */
+#define GUESS_RPC_LIFETIME		35000	/**< 35 seconds, in ms */
 #define GUESS_FIND_DELAY		5000	/**< in ms, UDP queue flush grace */
 #define GUESS_ALPHA				5		/**< Level of query concurrency */
 #define GUESS_ALPHA_MAX			50		/**< Max level of query concurrency */
