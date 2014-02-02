@@ -1541,7 +1541,7 @@ static void
 guess_remove_link_cache(const gnet_host_t *h)
 {
 	gnet_host_t *atom;
-	struct qkdata *qk;
+	const struct qkdata *qk;
 
 	if G_UNLIKELY(NULL == db_qkdata)
 		return;		/* GUESS layer shut down */
@@ -1586,15 +1586,14 @@ guess_remove_link_cache(const gnet_host_t *h)
 static void
 guess_record_qk(const gnet_host_t *h, const void *buf, size_t len, bool g2)
 {
-	struct qkdata *qk;
+	const struct qkdata *qk;
 	struct qkdata new_qk;
 
 	qk = get_qkdata(h);
 	ZERO(&new_qk);
 
 	if (qk != NULL) {
-		new_qk.first_seen = qk->first_seen;
-		new_qk.flags = qk->flags;
+		new_qk = *qk;	/* Struct copy */
 	} else {
 		new_qk.first_seen = tm_time();
 
@@ -2434,7 +2433,7 @@ guess_request_qk(const gnet_host_t *host, bool intro, bool g2)
 static bool
 guess_has_valid_qk(const gnet_host_t *host)
 {
-	struct qkdata *qk = get_qkdata(host);
+	const struct qkdata *qk = get_qkdata(host);
 
 	if (NULL == qk)
 		return FALSE;
@@ -2854,7 +2853,7 @@ static void
 qk_link_cache(void *key, void *value, size_t len, void *u_data)
 {
 	const gnet_host_t *h = key;
-	struct qkdata *qk = value;
+	const struct qkdata *qk = value;
 	unsigned p;
 
 	g_assert(len == sizeof *qk);
@@ -2945,7 +2944,7 @@ guess_check_link_cache(void)
 
 		while (hash_list_iter_has_next(iter)) {
 			gnet_host_t *host = hash_list_iter_next(iter);
-			struct qkdata *qk = get_qkdata(host);
+			const struct qkdata *qk = get_qkdata(host);
 
 			if (
 				qk != NULL &&
@@ -3391,7 +3390,7 @@ static void
 guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
 {
 	struct guess_load_context *ctx = data;
-	struct qkdata *qk = value;
+	const struct qkdata *qk = value;
 	guess_t *gq = ctx->gq;
 
 	g_assert(len == sizeof *qk);
@@ -3882,7 +3881,7 @@ guess_got_query_key(enum udp_ping_ret type,
 		 */
 
 		{
-			struct qkdata *qk = get_qkdata(host);
+			const struct qkdata *qk = get_qkdata(host);
 
 			g2 = qk != NULL && (qk->flags & GUESS_F_G2);
 
@@ -3985,7 +3984,7 @@ guess_got_query_key(enum udp_ping_ret type,
 				gnet_host_get_port(host) == port &&
 				host_addr_equal(gnet_host_get_addr(host), addr)
 			) {
-				struct qkdata *qk = get_qkdata(host);
+				const struct qkdata *qk = get_qkdata(host);
 
 				if (NULL == qk || 0 == qk->length) {
 					guess_alien_host(gq, host, TRUE);
@@ -4187,7 +4186,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	struct guess_pmsg_info *pmi;
 	struct guess_rpc *grp;
 	pmsg_t *mb;
-	struct qkdata *qk;
+	const struct qkdata *qk;
 	const gnutella_node_t *n;
 	bool marked_as_queried = TRUE, g2 = FALSE;
 
