@@ -36,10 +36,10 @@
 #include "common.h"
 
 #include "magnet.h"
+
 #include "ascii.h"
 #include "atoms.h"
 #include "concat.h"
-#include "glib-missing.h"
 #include "gnet_host.h"
 #include "halloc.h"
 #include "parse.h"
@@ -47,6 +47,7 @@
 #include "str.h"
 #include "stringify.h"
 #include "tm.h"
+#include "tokenizer.h"
 #include "unsigned.h"
 #include "url.h"
 #include "urn.h"
@@ -66,7 +67,7 @@
  */
 
 enum magnet_key {
-	MAGNET_KEY_NONE,
+	MAGNET_KEY_NONE = 0,
 	MAGNET_KEY_DISPLAY_NAME,		/* Display Name */
 	MAGNET_KEY_KEYWORD_TOPIC,		/* Keyword Topic */
 	MAGNET_KEY_EXACT_LENGTH,		/* eXact file Length */
@@ -81,10 +82,7 @@ enum magnet_key {
 	NUM_MAGNET_KEYS
 };
 
-static const struct {
-	const char * const key;
-	const enum magnet_key id;
-} magnet_keys[] = {
+static tokenizer_t magnet_keys[] = {
 	/* Must be sorted alphabetically */
 	{ "",			MAGNET_KEY_NONE },
 	{ "as",			MAGNET_KEY_ALTERNATE_SOURCE },
@@ -126,21 +124,9 @@ static enum magnet_key
 magnet_key_get(const char *s)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(magnet_keys) == NUM_MAGNET_KEYS);
-	g_assert(s);
+	g_assert(s != NULL);
 
-#define GET_KEY(i) (magnet_keys[(i)].key)
-#define FOUND(i) G_STMT_START { \
-	return magnet_keys[(i)].id;	\
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(magnet_keys), ascii_strcasecmp,
-		GET_KEY, FOUND);
-	
-#undef FOUND
-#undef GET_KEY
-
-	return MAGNET_KEY_NONE;
+	return TOKENIZE_WITH(s, ascii_strcasecmp, magnet_keys);
 }
 
 static void

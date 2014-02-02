@@ -100,6 +100,11 @@ typedef unsigned long ulong;
 typedef int (*cmp_fn_t)(const void *a, const void *b);
 typedef int (*cmp_data_fn_t)(const void *a, const void *b, void *data);
 
+/* String comparison, with and without context: returns values  <0, 0, >0 */
+
+typedef int (*strcmp_fn_t)(const char *a, const char *b);
+typedef int (*strcmp_data_fn_t)(const char *a, const char *b, void *data);
+
 /* Data equality */
 
 typedef bool (*eq_fn_t)(const void *a, const void *b);

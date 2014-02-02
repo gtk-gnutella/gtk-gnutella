@@ -42,6 +42,37 @@
 /**
  * Lookup token in a sorted array of tokens.
  *
+ * The string comparison function is supplied by the caller.
+ *
+ * @param s		the input string
+ * @param cmp	the string comparison function to use
+ * @param tvec	the vector of tokenizer_t items, defining the tokens
+ * @param tcnt	the amount of items in the token vector
+ *
+ * @return the token value if found, 0 if not found.
+ */
+unsigned
+tokenizer_lookup_with(const char *s, strcmp_fn_t cmp,
+	const tokenizer_t *tvec, size_t tcnt)
+{
+#define GET_KEY(i) (tvec[(i)].token)
+#define FOUND(i) G_STMT_START { \
+	return tvec[(i)].value; \
+	/* NOTREACHED */ \
+} G_STMT_END
+
+	/* Perform a binary search to find ``s'' in tvec[] */
+	BINARY_SEARCH(const char *, s, tcnt, (*cmp), GET_KEY, FOUND);
+
+#undef FOUND
+#undef GET_KEY
+
+	return 0;		/* Not found */
+}
+
+/**
+ * Lookup token in a sorted array of tokens.
+ *
  * @param s		the input string
  * @param tvec	the vector of tokenizer_t items, defining the tokens
  * @param tcnt	the amount of items in the token vector
@@ -51,19 +82,7 @@
 unsigned
 tokenizer_lookup(const char *s, const tokenizer_t *tvec, size_t tcnt)
 {
-#define GET_KEY(i) (tvec[(i)].token)
-#define FOUND(i) G_STMT_START { \
-	return tvec[(i)].value; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' in tvec[] */
-	BINARY_SEARCH(const char *, s, tcnt, strcmp, GET_KEY, FOUND);
-
-#undef FOUND
-#undef GET_KEY
-
-	return 0;		/* Not found */
+	return tokenizer_lookup_with(s, strcmp, tvec, tcnt);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
