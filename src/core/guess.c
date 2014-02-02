@@ -3819,8 +3819,11 @@ guess_got_query_key(enum udp_ping_ret type,
 				delta_time(tm_time(), qk->last_update) <= GUESS_QK_LIFE
 			) {
 				if (GNET_PROPERTY(guess_client_debug) > 2) {
-					g_info("GUESS QUERY[%s] concurrently got query key for %s",
-						nid_to_string(&gq->gid), gnet_host_to_string(host));
+					bool g2 = booleanize(qk->flags & GUESS_F_G2);
+					g_info("GUESS QUERY[%s] "
+						"concurrently got query key for %s%s",
+						nid_to_string(&gq->gid),
+						g2 ? "G2 " : "", gnet_host_to_string(host));
 				}
 				guess_send_query(gq, host);
 				guess_qk_context_free(ctx);
@@ -4140,7 +4143,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	 */
 
 	if (GNET_PROPERTY(guess_client_debug) && NULL == qk) {
-		g_warning("GUESS QUERY[%s] host %s not in database, assuming Gnutella",
+		g_debug("GUESS QUERY[%s] host %s not in database, assuming Gnutella",
 			nid_to_string(&gq->gid), gnet_host_to_string(host));
 	}
 
