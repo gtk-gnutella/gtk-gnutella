@@ -1998,6 +1998,25 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 
 	if (ack->cumulative) {
 		unsigned i;
+		bool bad = FALSE;
+
+		/*
+		 * As above, validate that they are acking sent fragments, otherwise
+		 * the "cumulative" bit in the ACK needs to be ignored.
+		 */
+
+		for (i = 0; i < ack->fragno; i++) {
+			uf = um->fragments[i];
+			if (uf != NULL && 0 == uf->txcnt) {
+				bad = TRUE;
+				break;
+			}
+		}
+
+		if (bad) {
+			reason = "got cumulative ACK encompassing unsent fragments";
+			goto rejected;
+		}
 
 		for (i = 0; i < ack->fragno; i++) {
 			uf = um->fragments[i];
@@ -2020,12 +2039,61 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		unsigned base = ack->cumulative ? ack->fragno + 1 : 0;
 		unsigned max = base + 24;	/* Only 24 significant bits */
 		unsigned f;
-		uint32 mask = 1;			/* bit 0 */
+		uint32 mask;				/* Always starting with 1, i.e. bit 0 */
 		unsigned frags = base;		/* Counts received fragments */
+		bool bad = FALSE;
 
 		max = MIN(max, um->fragcnt);
 
-		for (f = base; f < max; f++, mask <<= 1) {
+		/*
+		 * Validate that the "extended ACK" is not claiming reception of
+		 * fragments we did not send, nor is implying such reception.
+		 */
+
+		for (f = base, mask = 1; f < max; f++, mask <<= 1) {
+			if (0 == (ack->missing & mask)) {
+				uf = um->fragments[f];		/* This fragment was received */
+				frags++;
+				if (uf != NULL && 0 == uf->txcnt) {
+					bad = TRUE;
+					break;
+				}
+			}
+		}
+
+		/*
+		 * An extended ACK can also imply reception of other fragments, based
+		 * on the received count: check that these have indeed been sent
+		 * already otherwise the extended ACK is wrong.
+		 */
+
+		if (
+			!bad &&
+			max < um->fragcnt &&
+			ack->received == frags + um->fragcnt - max
+		) {
+			for (f = max; f < um->fragcnt; f++) {
+				uf = um->fragments[f];
+				if (uf != NULL && 0 == uf->txcnt) {
+					bad = TRUE;
+					break;
+				}
+			}
+		}
+
+		if (bad) {
+			reason = "got extended ACK referring to unsent fragments";
+			goto rejected;
+		}
+
+		/*
+		 * OK, the extended acknowledgment is only referring to fragments
+		 * we actually sent.
+		 */
+
+		frags = base;
+
+		for (f = base, mask = 1; f < max; f++, mask <<= 1) {
 			if (0 == (ack->missing & mask)) {
 				uf = um->fragments[f];		/* This fragment was received */
 				frags++;
@@ -2095,12 +2163,13 @@ rejected:
 log:
 	if (tx_ut_debugging(TX_UT_DBG_ACK, NULL)) {
 		g_debug("TX UT: %s: rejecting %s%s%sACK "
-			"(seq=0x%04x, fragment #%u) from %s: %s (message to %s)",
+			"(seq=0x%04x, fragment #%u, tag=\"%s\") "
+			"from %s: %s (message to %s)",
 			G_STRFUNC, ack->cumulative ? "cumulative " : "",
 			0 != ack->received ? "extended " : "",
 			ack->ear ? "EAR N" : "",
 			ack->seqno, ack->ear ? 0 : ack->fragno + 1,
-			gnet_host_to_string(from),
+			udp_tag_to_string(attr->tag), gnet_host_to_string(from),
 			reason, NULL == um ? "N/A" : gnet_host_to_string2(um->to));
 	}
 }
