@@ -78,6 +78,7 @@ enum magnet_key {
 	MAGNET_KEY_GUID,				/* Servent GUID */
 	MAGNET_KEY_VENDOR,				/* Servent vendor */
 	MAGNET_KEY_DHT,					/* Servent known to publish in the DHT */
+	MAGNET_KEY_G2,					/* Servent is a G2 node */
 
 	NUM_MAGNET_KEYS
 };
@@ -89,6 +90,7 @@ static tokenizer_t magnet_keys[] = {
 	{ "dn",			MAGNET_KEY_DISPLAY_NAME },
 	{ "kt",			MAGNET_KEY_KEYWORD_TOPIC },
 	{ "x.dht",		MAGNET_KEY_DHT },
+	{ "x.g2",		MAGNET_KEY_G2 },
 	{ "x.guid",		MAGNET_KEY_GUID },
 	{ "x.parq-id",	MAGNET_KEY_PARQ_ID },
 	{ "x.vndr",		MAGNET_KEY_VENDOR },
@@ -507,6 +509,18 @@ magnet_handle_key(struct magnet_resource *res,
 			u = parse_uint8(value, NULL, 10, &error);
 			if (!error) {
 				magnet_set_dht(res, u);
+			}
+		}
+		break;
+
+	case MAGNET_KEY_G2:
+		{
+			int error;
+			uint8 u;
+
+			u = parse_uint8(value, NULL, 10, &error);
+			if (!error) {
+				magnet_set_g2(res, u);
 			}
 		}
 		break;
@@ -995,6 +1009,9 @@ magnet_to_string(const struct magnet_resource *res)
 	if (res->dht) {
 		magnet_append_item(s, TRUE, "x.dht", "1");
 	}
+	if (res->g2) {
+		magnet_append_item(s, TRUE, "x.g2", "1");
+	}
 
 	for (sl = res->sources; NULL != sl; sl = pslist_next(sl)) {
 		char *url;
@@ -1091,6 +1108,19 @@ magnet_set_dht(struct magnet_resource *res, bool dht_support)
 	g_return_if_fail(res);
 
 	res->dht = booleanize(dht_support);
+}
+
+/**
+ * This is a bit of a hack (an extension anyway) and should only be used
+ * for magnets with a single logical source because G2 support is only
+ * valid for a certain source.
+ */
+void
+magnet_set_g2(struct magnet_resource *res, bool g2)
+{
+	g_return_if_fail(res);
+
+	res->g2 = booleanize(g2);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
