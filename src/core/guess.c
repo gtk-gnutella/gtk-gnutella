@@ -3115,7 +3115,7 @@ guess_pick_next(guess_t *gq)
 
 		host = hash_list_iter_next(iter);
 
-		g_assert(host != NULL);
+		g_assert(atom_is_host(host));
 
 		addr = gnet_host_get_addr(host);
 
@@ -3639,6 +3639,8 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 		}
 		gq->bw_out_query += pmsg_written_size(mb);
 	} else {
+		const gnet_host_t *h;
+
 		/* Message was dropped */
 		if (GNET_PROPERTY(guess_client_debug) > 4) {
 			g_debug("GUESS QUERY[%s] dropped message to %s%s %synchronously",
@@ -3656,9 +3658,13 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 		 */
 
 		guess_rpc_cancel(gq, pmi->host);
-		hset_remove(gq->queried, pmi->host);	/* Atom moved to the pool */
+		h = hset_lookup(gq->queried, pmi->host);	/* Atom moved to the pool */
+		g_assert(atom_is_host(h));
+		hset_remove(gq->queried, pmi->host);
 		if (!hash_list_contains(gq->pool, pmi->host)) {
-			hash_list_append(gq->pool, pmi->host);
+			hash_list_append(gq->pool, h);
+		} else {
+			atom_host_free_null(&h);
 		}
 
 		/*
@@ -4033,13 +4039,17 @@ guess_handle_ack(guess_t *gq,
 		 */
 
 		if (guess_extract_qk(n, host)) {
+			const gnet_host_t *h;
+
 			if (GNET_PROPERTY(guess_client_debug) > 2) {
 				g_debug("GUESS QUERY[%s] got new query key for %s, "
 					"moving host back to pool",
 					nid_to_string(&gq->gid), gnet_host_to_string(host));
 			}
+			h = hset_lookup(gq->queried, host);
+			g_assert(atom_is_host(h));
 			hset_remove(gq->queried, host);
-			hash_list_prepend(gq->pool, host);
+			hash_list_prepend(gq->pool, h);
 		}
 	}
 
@@ -4110,14 +4120,12 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	 * with the same MUID.
 	 *
 	 * Therefore, record the host in the "queried" table if not already present.
-	 * Since it is an atom (removal from the pool), there's no need to refcount
-	 * it again.
 	 */
 
 	if (hset_contains(gq->queried, host)) {
 		marked_as_queried = FALSE;
 	} else {
-		hset_insert(gq->queried, host);
+		hset_insert(gq->queried, atom_host_get(host));
 	}
 
 	/*
@@ -4268,10 +4276,13 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 			 * period anyway, thereby not having any smoothing effect.
 			 */
 
-			if (ok)
+			if (ok) {
 				guess_out_bw += len;
-			else
-				n = NULL;		/* Flag message as "not sent", freed below */
+			} else {
+				pmsg_free(mb);	/* RPC cancel done by guess_pmsg_free() */
+				marked_as_queried = FALSE; /* Free routine unflagged it */
+				goto unqueried;
+			}
 		}
 	} else {
 		gnutella_msg_search_t *msg;
@@ -4328,14 +4339,18 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 
 unqueried:
 	if (marked_as_queried) {
+		const gnet_host_t *h;
+
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
 			g_debug("GUESS QUERY[%s] putting unqueried %s%s back to pool",
 				nid_to_string(&gq->gid), g2 ? "G2 " : "",
 				gnet_host_to_string(host));
 		}
 
+		h = hset_lookup(gq->queried, host);		/* Atom */
+		g_assert(atom_is_host(h));
 		hset_remove(gq->queried, host);
-		hash_list_append(gq->pool, host);
+		hash_list_append(gq->pool, h);
 	} else {
 		/*
 		 * If a buggy host responds to a query key request with two pongs,
@@ -4506,6 +4521,7 @@ guess_iterate(guess_t *gq)
 
 		if (!hset_contains(gq->queried, host)) {
 			if (!guess_send_query(gq, host)) {
+				atom_host_free_null(&host);
 				if (unsent++ > UNSIGNED(alpha))
 					break;
 				continue;
@@ -4513,9 +4529,8 @@ guess_iterate(guess_t *gq)
 			if (gq->flags & GQ_F_UDP_DROP)
 				break;			/* Synchronous UDP drop detected */
 			i++;
-		} else {
-			atom_host_free_null(&host);
 		}
+		atom_host_free_null(&host);
 	}
 
 	gq->flags &= ~GQ_F_SENDING;
