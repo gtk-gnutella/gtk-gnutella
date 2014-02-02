@@ -1878,18 +1878,21 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EAR_NACKS_RECEIVED);
 
 		if (tx_ut_debugging(TX_UT_DBG_ACK, from)) {
-			g_debug("TX UT: %s: EAR NACK (seq=0x%04x) from %s",
-				G_STRFUNC, ack->seqno, gnet_host_to_string(from));
+			g_debug("TX UT: %s: EAR NACK (seq=0x%04x, tag=\"%s\") from %s",
+				G_STRFUNC, ack->seqno,
+				udp_tag_to_string(attr->tag), gnet_host_to_string(from));
 		}
 	} else {
 		gnet_stats_inc_general(GNR_UDP_SR_TX_TOTAL_ACKS_RECEIVED);
 
 		if (tx_ut_debugging(TX_UT_DBG_ACK, from)) {
-			g_debug("TX UT: %s: %s%sACK (seq=0x%04x, fragment #%u) from %s",
+			g_debug("TX UT: %s: %s%sACK "
+				"(seq=0x%04x, fragment #%u, tag=\"%s\") from %s",
 				G_STRFUNC,
 				ack->cumulative ? "cumulative " : "",
 				0 != ack->received ? "extended " : "",
-				ack->seqno, ack->fragno + 1, gnet_host_to_string(from));
+				ack->seqno, ack->fragno + 1,
+				udp_tag_to_string(attr->tag), gnet_host_to_string(from));
 		}
 	}
 
