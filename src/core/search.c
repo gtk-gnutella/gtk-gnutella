@@ -997,6 +997,13 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 		NULL == n ? "==>" : node_infostr(n), buf, rbuf);
 }
 
+static inline void
+search_results_set_spam(gnet_results_set_t *rs, unsigned flag)
+{
+	rs->status |= ST_SPAM;		/* Indicates that set carries SPAM */
+	rs->spam |= flag;
+}
+
 static void
 search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 	hostiles_flags_t *hostile)
@@ -1013,7 +1020,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 		rc = sl->data;
 		key = ulong_to_pointer(rc->file_index);
 		if (htable_contains(ht, key)) {
-			rs->status |= ST_DUP_SPAM;
+			search_results_set_spam(rs, SPAM_F_DUP);
 			*hostile |= HSTL_DUP_INDEX;
 			rc->flags |= SR_SPAM;
 			dups++;
@@ -1034,7 +1041,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 			continue;
 
 		if (htable_contains(ht, key)) {
-			rs->status |= ST_DUP_SPAM;
+			search_results_set_spam(rs, SPAM_F_DUP);
 			*hostile |= HSTL_DUP_SHA1;
 			rc->flags |= SR_SPAM;
 			dups++;
@@ -1044,7 +1051,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 		}
 	}
 
-	if (rs->status & ST_DUP_SPAM)
+	if (rs->spam & SPAM_F_DUP)
 		gnet_stats_inc_general(GNR_SPAM_DUP_HITS);
 
 	htable_free_null(&ht);
@@ -1104,10 +1111,10 @@ is_lime_return_path(const extvec_t *e)
 static void
 search_results_mark_fake_spam(gnet_results_set_t *rs, hostiles_flags_t *hostile)
 {
-	if (!(rs->status & ST_FAKE_SPAM)) {
+	if (!(rs->spam & SPAM_F_FAKE)) {
 		/* Count only once per result set */
 		gnet_stats_inc_general(GNR_SPAM_FAKE_HITS);
-		rs->status |= ST_FAKE_SPAM;
+		search_results_set_spam(rs, SPAM_F_FAKE);
 		*hostile |= HSTL_FAKE_SPAM;
 	}
 }
@@ -1132,8 +1139,7 @@ search_results_from_spammer(const gnet_results_set_t *rs)
 	 * sent by innocent peers,
 	 */
 
-	return 0 !=
-		((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM | ST_DUP_SPAM)) & rs->status);
+	return 0 != (rs->spam & ~(SPAM_F_URN | SPAM_F_NAME | SPAM_F_DUP));
 }
 
 static inline bool
@@ -1224,7 +1230,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 		} else if (rc->sha1 && spam_sha1_check(rc->sha1)) {
 			search_log_spam(n, rs, "URN %s", sha1_base32(rc->sha1));
 			logged = TRUE;
-			rs->status |= ST_URN_SPAM;
+			search_results_set_spam(rs, SPAM_F_URN);
 			*hostile |= HSTL_URN_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_inc_general(GNR_SPAM_SHA1_HITS);
@@ -1241,7 +1247,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 		} else if (spam_check_filename_size(rc->filename, rc->size)) {
 			search_log_spam(n, rs, "SPAM filename/size hit");
 			logged = TRUE;
-			rs->status |= ST_NAME_SPAM;
+			search_results_set_spam(rs, SPAM_F_NAME);
 			*hostile |= HSTL_NAME_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_inc_general(GNR_SPAM_NAME_HITS);
@@ -1251,7 +1257,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 		) {
 			search_log_spam(n, rs, "LIME XML SPAM");
 			logged = TRUE;
-			rs->status |= ST_URL_SPAM;
+			search_results_set_spam(rs, SPAM_F_URL);
 			*hostile |= HSTL_URL_SPAM;
 			rc->flags |= SR_SPAM;
 		} else if (is_evil_filename(rc->filename)) {
@@ -1875,7 +1881,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			ext_reset(exv, MAX_EXTVEC);
 	} else {
 		if (is_lime_xml_spam(trailer, trailer_size)) {
-			rs->status |= ST_URL_SPAM;
+			search_results_set_spam(rs, SPAM_F_URL);
 			*hostile |= HSTL_URL_SPAM;
 		}
 	}
@@ -1900,7 +1906,9 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			/* We can send PUSH requests directly, so add it as push proxy. */
 			search_add_push_proxy(rs, n->addr, n->port);
 		} else {
-			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
+			rs->status |= ST_UNREQUESTED;
+			/* Most probably fake since it came unrequested */
+			search_results_set_spam(rs, SPAM_F_FAKE);
 			/* Count only as unrequested, not as fake spam */
 			gnet_stats_inc_general(GNR_UNREQUESTED_OOB_HITS);
 			*hostile |= HSTL_OOB;
