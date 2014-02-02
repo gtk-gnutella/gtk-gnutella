@@ -3759,13 +3759,23 @@ guess_alien_host(const guess_t *gq, const gnet_host_t *host, bool reached)
 	hevset_foreach(gqueries, guess_ignore_alien_host, deconstify_pointer(host));
 }
 
+enum guess_qk_magic { GUESS_QK_MAGIC = 0x2868c199 };
+
 /**
  * Context for requesting query keys in the middle of the iteration.
  */
 struct guess_qk_context {
+	enum guess_qk_magic magic;
 	struct nid gid;					/**< Running query ID */
 	const gnet_host_t *host;		/**< Host we're requesting the key from */
 };
+
+static inline void
+guess_qk_context_check(const struct guess_qk_context * const ctx)
+{
+	g_assert(ctx != NULL);
+	g_assert(GUESS_QK_MAGIC == ctx->magic);
+}
 
 /**
  * Free query key request context.
@@ -3773,10 +3783,11 @@ struct guess_qk_context {
 static void
 guess_qk_context_free(struct guess_qk_context *ctx)
 {
-	g_assert(ctx != NULL);
+	guess_qk_context_check(ctx);
 	g_assert(atom_is_host(ctx->host));
 
 	atom_host_free_null(&ctx->host);
+	ctx->magic = 0;
 	WFREE(ctx);
 }
 
@@ -3794,6 +3805,8 @@ guess_got_query_key(enum udp_ping_ret type,
 	struct guess_qk_context *ctx = data;
 	guess_t *gq;
 	const gnet_host_t *host = ctx->host;
+
+	guess_qk_context_check(ctx);
 
 	gq = guess_is_alive(ctx->gid);
 	if (NULL == gq) {
@@ -4158,6 +4171,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 		bool intro = settings_is_ultra();
 
 		WALLOC(ctx);
+		ctx->magic = GUESS_QK_MAGIC;
 		ctx->gid = gq->gid;
 		ctx->host = atom_host_get(host);
 
