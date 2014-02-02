@@ -372,13 +372,29 @@ static struct guess_cache guess_02_cache = { NULL, NULL, GUESS_02_CACHE_SIZE };
 static struct guess_cache guess_g2_cache = { NULL, NULL, GUESS_G2_CACHE_SIZE };
 
 /**
- * G2 query key RPC context.
+ * Uniform signature used for receiveing both Gnutella UDP Pong with query keys
+ * and G2 query keys.
  */
-struct guess_g2_qk_rpc {
-	udp_ping_cb_t cb;		/* The original callback */
+typedef void (*guess_qk_cb_t)(enum udp_ping_ret type,
+	const gnutella_node_t *n, const g2_tree_t *t, void *data);
+
+enum guess_qk_rpc_magic { GUESS_QK_RPC_MAGIC = 0x27f1c043 };
+
+/**
+ * Query key RPC context.
+ */
+struct guess_qk_rpc {
+	enum guess_qk_rpc_magic magic;
+	guess_qk_cb_t cb;		/* The original callback */
 	void *arg;				/* The original argument */
-	const g2_tree_t *t;		/* The reply tree, when received */
 };
+
+static inline void
+guess_qk_rpc_check(const struct guess_qk_rpc * const ctx)
+{
+	g_assert(ctx != NULL);
+	g_assert(GUESS_QK_RPC_MAGIC == ctx->magic);
+}
 
 static hevset_t *gqueries;				/**< Running GUESS queries */
 static hikset_t *gmuid;					/**< MUIDs of active queries */
@@ -468,6 +484,15 @@ guess_stats_fire(const guess_t *gq)
 	stats.end_starving	= booleanize(gq->flags & GQ_F_END_STARVING);
 
 	LISTENER_EMIT(guess_stats, (gq->sh, &stats));
+}
+
+static void
+guess_qk_rpc_free(struct guess_qk_rpc *ctx)
+{
+	guess_qk_rpc_check(ctx);
+
+	ctx->magic = 0;
+	WFREE(ctx);
 }
 
 /**
@@ -1022,7 +1047,7 @@ guess_rpc_register(const gnet_host_t *host, const guid_t *muid, bool g2,
  * handled as such.
  */
 bool
-guess_rpc_handle(struct gnutella_node *n)
+guess_rpc_handle(gnutella_node_t *n)
 {
 	struct guess_rpc_key key;
 	struct guess_rpc *grp;
@@ -1616,7 +1641,7 @@ guess_record_qk(const gnet_host_t *h, const void *buf, size_t len, bool g2)
  * @return TRUE if we successfully extracted the query key
  */
 static bool
-guess_extract_qk(const struct gnutella_node *n, const gnet_host_t *h)
+guess_extract_qk(const gnutella_node_t *n, const gnet_host_t *h)
 {
 	int i;
 
@@ -1644,8 +1669,10 @@ guess_extract_qk(const struct gnutella_node *n, const gnet_host_t *h)
  *
  * @param t		the reponse we got
  * @param h		the host to which the /QKR was sent
+ *
+ * @return TRUE if we successfully extracted the query key.
  */
-static void
+static bool
 guess_extract_g2_qk(const g2_tree_t *t, const gnet_host_t *h)
 {
 	const void *payload;
@@ -1657,14 +1684,17 @@ guess_extract_g2_qk(const g2_tree_t *t, const gnet_host_t *h)
 	if (payload != NULL) {
 		guess_record_qk(h, payload, paylen, TRUE);
 		guess_cache_add(&guess_g2_cache, h);
+		return TRUE;
 	}
+
+	return FALSE;
 }
 
 /**
  * Extract address from received Pong.
  */
 static host_addr_t
-guess_extract_host_addr(const struct gnutella_node *n)
+guess_extract_host_addr(const gnutella_node_t *n)
 {
 	int i;
 	host_addr_t ipv4_addr;
@@ -1715,8 +1745,7 @@ guess_extract_host_addr(const struct gnutella_node *n)
  * @param h		the host to whom we sent the message that got us a pong back
  */
 static void
-guess_extract_ipp(guess_t *gq,
-	const struct gnutella_node *n, const gnet_host_t *h)
+guess_extract_ipp(guess_t *gq, const gnutella_node_t *n, const gnet_host_t *h)
 {
 	int j;
 
@@ -2123,16 +2152,17 @@ guess_g2_rpc_handle(const gnutella_node_t *n, const g2_tree_t *t, void *unused)
  *
  * @param type		type of reply, if any
  * @param n			gnutella node replying (NULL if no reply)
+ * @param t			parsed message tree (NULL if no reply)
  * @param data		user-supplied callback data
  */
 static void
 guess_qk_g2_reply(enum udp_ping_ret type,
-	const struct gnutella_node *n, void *data)
+	const gnutella_node_t *n, const g2_tree_t *t, void *data)
 {
-	struct guess_g2_qk_rpc *ctx = data;
-	gnet_host_t *h = ctx->arg;
+	gnet_host_t *h = data;
 
 	g_assert(NULL == n || NODE_TALKS_G2(n));
+	g_assert(atom_is_host(h));
 
 	switch (type) {
 	case UDP_PING_TIMEDOUT:
@@ -2151,7 +2181,7 @@ guess_qk_g2_reply(enum udp_ping_ret type,
 			break;		/* GUESS layer was shutdown */
 
 		guess_traffic_from(h, GUESS_F_G2);
-		guess_extract_g2_qk(ctx->t, h);
+		guess_extract_g2_qk(t, h);
 		break;
 
 	case UDP_PING_EXPIRED:
@@ -2166,15 +2196,18 @@ guess_qk_g2_reply(enum udp_ping_ret type,
  *
  * @param type		type of reply, if any
  * @param n			gnutella node replying (NULL if no reply)
+ * @param t			always NULL
  * @param data		user-supplied callback data
  */
 static void
 guess_qk_reply(enum udp_ping_ret type,
-	const struct gnutella_node *n, void *data)
+	const gnutella_node_t *n, const g2_tree_t *t, void *data)
 {
 	gnet_host_t *h = data;
 
+	g_assert(NULL == t);
 	g_assert(NULL == n || !NODE_TALKS_G2(n));
+	g_assert(atom_is_host(h));
 
 	/*
 	 * This routine must be prepared to get invoked well after the GUESS
@@ -2247,24 +2280,40 @@ guess_qk_reply(enum udp_ping_ret type,
 }
 
 /**
+ * Query key RPC dispatch trampoline for Gnutella requests.
+ */
+static void
+guess_rpc_reply(enum udp_ping_ret type, const gnutella_node_t *n, void *arg)
+{
+	struct guess_qk_rpc *ctx = arg;
+
+	g_assert(NULL == n || !NODE_TALKS_G2(n));
+	guess_qk_rpc_check(ctx);
+
+	(*ctx->cb)(type, n, NULL, ctx->arg);
+
+	if (UDP_PING_EXPIRED == type)		/* Last response we'll get */
+		guess_qk_rpc_free(ctx);	
+}
+
+/**
  * Query key RPC dispatch trampoline for G2 requests.
  */
 static void
 guess_g2_rpc_reply(const gnutella_node_t *n, const g2_tree_t *t, void *arg)
 {
-	struct guess_g2_qk_rpc *ctx = arg;
+	struct guess_qk_rpc *ctx = arg;
 
-	ctx->t = t;
+	g_assert(NULL == n || NODE_TALKS_G2(n));
+	guess_qk_rpc_check(ctx);
 
 	if (NULL == n) {
-		(*ctx->cb)(UDP_PING_TIMEDOUT, n, ctx);
+		(*ctx->cb)(UDP_PING_TIMEDOUT, n, t, ctx->arg);
 	} else {
-		g_assert(NODE_TALKS_G2(n));
-
-		(*ctx->cb)(UDP_PING_REPLY, n, ctx);
+		(*ctx->cb)(UDP_PING_REPLY, n, t, ctx->arg);
 	}
 
-	WFREE(ctx);
+	guess_qk_rpc_free(ctx);
 }
 
 /**
@@ -2281,10 +2330,11 @@ guess_g2_rpc_reply(const gnutella_node_t *n, const g2_tree_t *t, void *arg)
  */
 static bool
 guess_request_qk_full(guess_t *gq, const gnet_host_t *host, bool intro, bool g2,
-	udp_ping_cb_t cb, void *arg)
+	guess_qk_cb_t cb, void *arg)
 {
 	uint32 size;
 	bool sent;
+	struct guess_qk_rpc *ctx;
 
 	/*
 	 * Refuse to send too frequent pings to a given host.
@@ -2299,39 +2349,41 @@ guess_request_qk_full(guess_t *gq, const gnet_host_t *host, bool intro, bool g2,
 	}
 
 	/*
+	 * Allocate the context to allow proper wrapping of the RPC,
+	 */
+
+	WALLOC0(ctx);
+	ctx->magic = GUESS_QK_RPC_MAGIC;
+	ctx->cb = cb;
+	ctx->arg = arg;
+
+	/*
 	 * Build and attempt to send message.
 	 */
 
 	if (g2) {
 		pmsg_t *mb;
-		struct guess_g2_qk_rpc *ctx;
 
 		mb = g2_build_qkr();
 		size = pmsg_size(mb);
 
-		WALLOC0(ctx);
-		ctx->cb = cb;
-		ctx->arg = arg;
-
 		sent = g2_rpc_launch(host, mb,
 			guess_g2_rpc_reply, ctx, GUESS_QK_TIMEOUT);
-
-		if (!sent)
-			WFREE(ctx);
-
 	} else {
 		gnutella_msg_init_t *m;
 
 		m = build_guess_ping_msg(NULL, TRUE, intro, FALSE, &size);
 
 		sent = udp_send_ping_callback(m, size,
-			gnet_host_get_addr(host), gnet_host_get_port(host), cb, arg, TRUE);
+			gnet_host_get_addr(host), gnet_host_get_port(host),
+			guess_rpc_reply, ctx, TRUE);
 	}
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
-		g_debug("GUESS requesting query key from %s%s%s",
+		g_debug("GUESS requesting query key from %s%s%s, callback is %s()",
 			g2 ? "G2 " : "",
-			gnet_host_to_string(host), sent ? "" : " (FAILED)");
+			gnet_host_to_string(host), sent ? "" : " (FAILED)",
+			stacktrace_function_name(cb));
 	}
 
 	if (sent) {
@@ -2341,6 +2393,8 @@ guess_request_qk_full(guess_t *gq, const gnet_host_t *host, bool intro, bool g2,
 			gq->bw_out_qk += size;	/* Estimated, UDP queue could drop it! */
 			guess_out_bw += size;
 		}
+	} else {
+		guess_qk_rpc_free(ctx);
 	}
 
 	return sent;
@@ -2505,7 +2559,7 @@ guess_discovery_enable(void)
  */
 static void
 guess_hosts_reply(enum udp_ping_ret type,
-	const struct gnutella_node *n, void *data)
+	const gnutella_node_t *n, void *data)
 {
 	gnet_host_t *h = data;
 
@@ -3792,25 +3846,28 @@ guess_qk_context_free(struct guess_qk_context *ctx)
 }
 
 /**
- * Process query key reply from host.
+ * Process query key reply from host in the middle of a GUESS query.
  *
  * @param type		type of reply, if any
  * @param n			gnutella node replying (NULL if no reply)
+ * @param t			parsed G2 message tree (NULL if no reply or for Gnutella)
  * @param data		user-supplied callback data
  */
 static void
 guess_got_query_key(enum udp_ping_ret type,
-	const struct gnutella_node *n, void *data)
+	const gnutella_node_t *n, const g2_tree_t *t, void *data)
 {
 	struct guess_qk_context *ctx = data;
 	guess_t *gq;
 	const gnet_host_t *host = ctx->host;
+	bool g2 = FALSE, extracted;
 
 	guess_qk_context_check(ctx);
+	g_assert(atom_is_host(ctx->host));
 
 	gq = guess_is_alive(ctx->gid);
 	if (NULL == gq) {
-		if (UDP_PING_EXPIRED == type || UDP_PING_TIMEDOUT == type)
+		if (UDP_PING_EXPIRED == type || UDP_PING_TIMEDOUT == type || t != NULL)
 			guess_qk_context_free(ctx);
 		return;
 	}
@@ -3827,12 +3884,13 @@ guess_got_query_key(enum udp_ping_ret type,
 		{
 			struct qkdata *qk = get_qkdata(host);
 
+			g2 = qk != NULL && (qk->flags & GUESS_F_G2);
+
 			if (
 				qk != NULL && qk->length != 0 &&
 				delta_time(tm_time(), qk->last_update) <= GUESS_QK_LIFE
 			) {
 				if (GNET_PROPERTY(guess_client_debug) > 2) {
-					bool g2 = booleanize(qk->flags & GUESS_F_G2);
 					g_info("GUESS QUERY[%s] "
 						"concurrently got query key for %s%s",
 						nid_to_string(&gq->gid),
@@ -3865,8 +3923,9 @@ guess_got_query_key(enum udp_ping_ret type,
 		}
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_debug("GUESS QUERY[%s] timed out waiting query key from %s",
-				nid_to_string(&gq->gid), gnet_host_to_string(host));
+			g_debug("GUESS QUERY[%s] timed out waiting query key from %s%s",
+				nid_to_string(&gq->gid),
+				g2 ? "G2 " : "", gnet_host_to_string(host));
 		}
 
 		/*
@@ -3878,20 +3937,26 @@ guess_got_query_key(enum udp_ping_ret type,
 		aging_remove(guess_qk_reqs, host);
 
 		/* FALL THROUGH */
+
 	case UDP_PING_EXPIRED:
 		guess_qk_context_free(ctx);
 		goto no_query_key;
+
 	case UDP_PING_REPLY:
 		if G_UNLIKELY(NULL == link_cache)
 			break;
-		guess_traffic_from(host, 0);
-		if (guess_extract_qk(n, host)) {
+		g2 = t != NULL;
+		guess_traffic_from(host, g2 ? GUESS_F_G2 : 0);
+		extracted = g2 ?
+			guess_extract_g2_qk(t, host) : guess_extract_qk(n, host);
+		if (extracted) {
 			if (GNET_PROPERTY(guess_client_debug) > 2) {
-				g_debug("GUESS QUERY[%s] got query key from %s, sending query",
-					nid_to_string(&gq->gid), gnet_host_to_string(host));
+				g_debug("GUESS QUERY[%s] got query key from %s%s, querying",
+					nid_to_string(&gq->gid),
+					g2 ? "G2 " : "", gnet_host_to_string(host));
 			}
 			guess_send_query(gq, host);
-		} else {
+		} else if (!g2) {
 			uint16 port = peek_le16(&n->data[0]);
 			host_addr_t addr = guess_extract_host_addr(n);
 
@@ -3931,7 +3996,10 @@ guess_got_query_key(enum udp_ping_ret type,
 				goto no_query_key;
 			}
 		}
-		guess_extract_ipp(gq, n, host);
+		if (g2)
+			guess_qk_context_free(ctx);		/* No further reply expected */
+		else
+			guess_extract_ipp(gq, n, host);
 		break;
 	}
 
@@ -4944,8 +5012,7 @@ guess_fill_caught_array(host_net_t net,
  * @param len	length of the "GUE" payload
  */
 void
-guess_introduction_ping(const struct gnutella_node *n,
-	const char *buf, uint16 len)
+guess_introduction_ping(const gnutella_node_t *n, const char *buf, uint16 len)
 {
 	uint16 port;
 	gnet_host_t host;
