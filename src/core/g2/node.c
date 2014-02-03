@@ -54,6 +54,7 @@
 #include "core/mq_udp.h"
 #include "core/nodes.h"
 #include "core/routing.h"
+#include "core/search.h"
 #include "core/settings.h"		/* For is_my_address_and_port() */
 
 #include "if/gnet_property_priv.h"
@@ -385,7 +386,7 @@ g2_node_handle_rpc_answer(gnutella_node_t *n, const g2_tree_t *t)
  *
  * @return TRUE if OK, FALSE if we could not extract anything.
  */
-static bool NON_NULL_PARAM((2, 3))
+bool
 g2_node_parse_address(const g2_tree_t *t, host_addr_t *addr, uint16 *port)
 {
 	const char *payload;
@@ -973,6 +974,9 @@ g2_node_handle(gnutella_node_t *n)
 	case G2_MSG_QA:
 	case G2_MSG_QKA:
 		g2_node_handle_rpc_answer(n, t);
+		break;
+	case G2_MSG_QH2:
+		search_g2_results(n, t);
 		break;
 	default:
 		g2_node_drop(G_STRFUNC, n, t, "default");

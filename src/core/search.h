@@ -151,8 +151,11 @@ void
 search_request_listener_emit(
 	query_type_t type, const char *query, const host_addr_t addr, uint16 port);
 
+struct g2_tree;
+
 bool search_is_valid(gnutella_node_t *n, uint8 h, search_request_info_t *sri);
 bool search_results(gnutella_node_t *n, int *results);
+void search_g2_results(gnutella_node_t *n, const struct g2_tree *t);
 bool search_query_allowed(gnet_search_t sh);
 void search_starting(gnet_search_t sh);
 void search_notify_sent(gnet_search_t sh, const struct nid *node_id);

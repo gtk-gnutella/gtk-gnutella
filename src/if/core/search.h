@@ -79,7 +79,7 @@ enum {
 	 ST_HOSTILE				= (1 << 19), /**< From an hostile host */
 	 ST_UNREQUESTED			= (1 << 18), /**< Unrequested (OOB) result */
 	 ST_EVIL				= (1 << 17), /**< Carries evil filename */
-	 ST_UNUSED_5			= (1 << 16), /**< [UNUSED] */
+	 ST_G2					= (1 << 16), /**< Sent by a G2 node */
 	 ST_UNUSED_4			= (1 << 15), /**< [UNUSED] */
 	 ST_UNUSED_3			= (1 << 14), /**< [UNUSED] */
 	 ST_UNUSED_2			= (1 << 13), /**< [UNUSED] */
@@ -145,6 +145,7 @@ typedef struct gnet_results_set {
  * Result record flags
  */
 enum {
+	SR_ALLOC_NAME	= (1 << 11),	/* Set if filename was halloc()'ed */
 	SR_MEDIA		= (1 << 10),	/* Media type filter mismatch */
 	SR_PARTIAL_HIT	= (1 << 9),		/* Got a hit for a partial file */
 	SR_PUSH			= (1 << 8),		/* Servent firewalled, will need a PUSH */

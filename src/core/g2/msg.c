@@ -36,6 +36,7 @@
 #include "msg.h"
 
 #include "frame.h"
+#include "tree.h"
 
 #include "core/guid.h"
 
@@ -286,6 +287,56 @@ g2_msg_name_type(const char *name)
 	g_assert((uint) type < UNSIGNED(G2_MSG_MAX));
 
 	return type;
+}
+
+/**
+ * Fetch the MUID in the message, if any is architected.
+ *
+ * @param t		the message tree
+ * @param buf	the buffer to fill with a copy of the MUID
+ *
+ * @return a pointer to `buf' if OK and we filled the MUID, NULL if there is
+ * no valid MUID in the message or the message is not carrying any MUID.
+ */
+guid_t *
+g2_msg_get_muid(const g2_tree_t *t, guid_t *buf)
+{
+	enum g2_msg m;
+	const void *payload;
+	size_t paylen;
+	size_t offset;
+
+	g_assert(t != NULL);
+	g_assert(buf != NULL);
+
+	m = g2_msg_name_type(g2_tree_name(t));
+
+	switch (m) {
+	case G2_MSG_Q2:
+	case G2_MSG_QA:
+		offset = 0;
+		break;
+	case G2_MSG_QH2:
+		offset = 1;			/* First payload byte is the hop count */
+		break;
+	default:
+		return NULL;		/* No MUID in message */
+	}
+
+	payload = g2_tree_node_payload(t, &paylen);
+
+	if (NULL == payload || paylen < GUID_RAW_SIZE + offset)
+		return NULL;
+
+	/*
+	 * Copy the MUID in the supplied buffer for alignment purposes, since
+	 * the MUID is offset by 1 byte in /QH2 messages, and return that aligned
+	 * pointer.
+	 */
+
+	memcpy(buf, const_ptr_add_offset(payload, offset), GUID_RAW_SIZE);
+
+	return buf;
 }
 
 /**

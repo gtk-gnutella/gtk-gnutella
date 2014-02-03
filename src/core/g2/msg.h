@@ -66,12 +66,17 @@ enum g2_msg {
  * Public interface.
  */
 
+struct guid;
+struct g2_tree;
+
 enum g2_msg g2_msg_type(const void *start, size_t len);
 const char *g2_msg_name(const void *start, size_t len);
 const char *g2_msg_full_name(const void *start, size_t len);
 const char *g2_msg_type_name(const enum g2_msg type);
 const char *g2_msg_raw_name(const void *start, size_t len);
 enum g2_msg g2_msg_name_type(const char *name);
+
+struct guid *g2_msg_get_muid(const struct g2_tree *t, struct guid *buf);
 
 const char *g2_msg_infostr(const void *data, size_t len);
 size_t g2_msg_infostr_to_buf(const void *data, size_t len,

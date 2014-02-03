@@ -132,6 +132,7 @@ static struct {
 	guint32 flag;
 	const gchar *status;
 } open_flags[] = {
+	{ ST_G2,			N_("g2") },			/* Make sure this is shown first */
 	{ ST_BUSY,			N_("busy") },
 	{ ST_UPLOADED,		N_("stable") },		/**< Allows uploads -> stable */
 	{ ST_FIREWALL,		N_("push") },
