@@ -1989,6 +1989,77 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 }
 
 /**
+ * Invoked when we get a late /QA reply from the network.
+ *
+ * @param n		the G2 node replying
+ * @param t		the message tree
+ * @param muid	the validated MUID of the messsage, NULL if not computed yet
+ *
+ * @return TRUE if we were able to handle the /QA somehow.
+ */
+bool
+guess_late_qa(const gnutella_node_t *n, const g2_tree_t *t, const guid_t *muid)
+{
+	gnet_host_t host;
+	guess_t *gq;
+	bool very_late = NULL == muid;
+
+	g_assert(NODE_TALKS_G2(n));
+	g_assert(G2_MSG_QA == g2_msg_name_type(g2_tree_name(t)));
+
+	/*
+	 * Fetch the MUID of the /QA message, if not already done by caller.
+	 */
+
+	if (NULL == muid) {
+		size_t paylen;
+		const void *payload = g2_tree_node_payload(t, &paylen);
+
+		if (NULL == payload || paylen != GUID_RAW_SIZE) {
+			if (GNET_PROPERTY(guess_client_debug)) {
+				g_warning("GUESS got garbled /%s reply from %s: %s MUID",
+					g2_tree_name(t), node_infostr(n),
+					NULL == payload ? "no" : "invalid");
+			}
+			return FALSE;
+		}
+
+		muid = payload;
+	}
+
+	/*
+	 * With G2, some hosts can reply almost 15 minutes AFTER the request
+	 * was sent!  Naturally, the GUESS RPC record has already expired,
+	 * because we need to issue our RPCs quickly and an unresponsive host
+	 * needs to be skipped or it would slow down GUESS too much.
+	 *
+	 * We're going to parse the /QA nonethless to collect G2 hub addresses
+	 * for other queries.  Since the RPC has expired, we use the MUID to
+	 * find the GUESS query, but can pass NULL if it's not found.
+	 */
+
+	gq = hikset_lookup(gmuid, muid);		/* Can be NULL, it's OK */
+
+	if (GNET_PROPERTY(guess_client_debug)) {
+		g_warning("GUESS QUERY[%s] got %slate /%s reply #%s from %s",
+			NULL == gq ? "?" : nid_to_string(&gq->gid),
+			very_late ? "very " : "",
+			g2_tree_name(t), guid_hex_str(muid),
+			host_addr_port_to_string(n->addr, n->port));
+	}
+
+	gnet_host_set(&host, n->addr, n->port);
+	guess_traffic_from(&host, GUESS_F_G2);
+	if (gq != NULL) {
+		gq->query_acks++;
+		gnet_stats_inc_general(GNR_GUESS_G2_ACKNOWLEDGED);
+	}
+
+	guess_handle_qa(gq, &host, t);
+	return TRUE;
+}
+
+/**
  * Handle possible GUESS RPC reply on G2 for our /Q2 messages.
  */
 static void
@@ -2081,34 +2152,12 @@ guess_g2_rpc_handle(const gnutella_node_t *n, const g2_tree_t *t, void *unused)
 	key.addr = n->addr;
 	grp = htable_lookup(pending, &key);
 
+	/*
+	 * If the GUESS RPC has expired, deal with the /QA as a late arrival.
+	 */
+
 	if (NULL == grp) {
-		gnet_host_t host;
-
-		/*
-		 * With G2, some hosts can reply almost 15 minutes AFTER the request
-		 * was sent!  Naturally, the GUESS RPC record has already expired,
-		 * because we need to issue our RPCs quickly and an unresponsive host
-		 * needs to be skipped or it would slow down GUESS too much.
-		 *
-		 * We're going to parse the /QA nonethless to collect G2 hub addresses
-		 * for other queries.  Since the RPC has expired, we use the MUID to
-		 * find the GUESS query, but can pass NULL if it's not found.
-		 */
-
-		gq = hikset_lookup(gmuid, key.muid);		/* Can be NULL, it's OK */
-
-		if (GNET_PROPERTY(guess_client_debug)) {
-			g_warning("GUESS QUERY[%s] got late /%s reply #%s from %s",
-				NULL == gq ? "?" : nid_to_string(&gq->gid),
-				g2_tree_name(t), guid_hex_str(key.muid),
-				host_addr_port_to_string(n->addr, n->port));
-		}
-
-		gnet_host_set(&host, n->addr, n->port);
-		guess_traffic_from(&host, GUESS_F_G2);
-		gnet_stats_inc_general(GNR_GUESS_G2_ACKNOWLEDGED);
-
-		guess_handle_qa(gq, &host, t);
+		guess_late_qa(n, t, key.muid);
 		return;
 	}
 

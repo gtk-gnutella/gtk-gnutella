@@ -71,6 +71,12 @@ bool guess_rpc_handle(struct gnutella_node *n);
 void guess_introduction_ping(const struct gnutella_node *n,
 	const char *buf, uint16 len);
 
+struct g2_tree;
+struct guid;
+
+bool guess_late_qa(const struct gnutella_node *n,
+	const struct g2_tree *t, const struct guid *muid);
+
 int guess_fill_caught_array(host_net_t net,
 	bool add_02, gnet_host_t *hosts, int hcount);
 

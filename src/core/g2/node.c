@@ -47,6 +47,7 @@
 
 #include "core/alive.h"
 #include "core/gnet_stats.h"
+#include "core/guess.h"
 #include "core/hcache.h"
 #include "core/hostiles.h"		/* For hostiles_is_bad() */
 #include "core/hosts.h"
@@ -351,9 +352,14 @@ g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
 
 /**
  * Handle reception of an RPC answer (/QKA, /QA)
+ *
+ * @param n		the node from which the answer came
+ * @param t		the message tree
+ * @param type	the type of message
  */
 static void
-g2_node_handle_rpc_answer(gnutella_node_t *n, const g2_tree_t *t)
+g2_node_handle_rpc_answer(gnutella_node_t *n,
+	const g2_tree_t *t, enum g2_msg type)
 {
 	/*
 	 * /QKA received from UDP must be RPC replies to /QKR, otherwise
@@ -365,8 +371,20 @@ g2_node_handle_rpc_answer(gnutella_node_t *n, const g2_tree_t *t)
 	 */
 
 	if (NODE_IS_UDP(n)) {
-		if (!g2_rpc_answer(n, t))
+		if (!g2_rpc_answer(n, t)) {
+			/*
+			 * Special-case /QA which can come VERY late in the process,
+			 * well after the associated RPC has expired.  Still a /QA
+			 * contains information that can be perused, and the associated
+			 * GUESS query may still be alive.  Given them to the GUESS layer
+			 * as late-comers, to see how much information we can extract.
+			 */
+
+			if (G2_MSG_QA == type && guess_late_qa(n, t, NULL))
+				return;
+
 			g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
+		}
 		return;
 	}
 
@@ -973,7 +991,7 @@ g2_node_handle(gnutella_node_t *n)
 		break;
 	case G2_MSG_QA:
 	case G2_MSG_QKA:
-		g2_node_handle_rpc_answer(n, t);
+		g2_node_handle_rpc_answer(n, t, type);
 		break;
 	case G2_MSG_QH2:
 		search_g2_results(n, t);
