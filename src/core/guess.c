@@ -1388,6 +1388,7 @@ static void
 guess_add_link_cache(const gnet_host_t *h, int p)
 {
 	host_addr_t addr;
+	uint16 port;
 
 	g_assert(h != NULL);
 	g_assert(p >= 0 && p <= 100);
@@ -1396,11 +1397,12 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 		return;
 
 	addr = gnet_host_get_addr(h);
+	port = gnet_host_get_port(h);
 
-	if (hostiles_is_bad(addr) || !host_address_is_usable(addr))
+	if (hostiles_is_bad(addr) || !host_is_valid(addr, port))
 		return;
 
-	if (is_my_address_and_port(addr, gnet_host_get_port(h)))
+	if (is_my_address_and_port(addr, port))
 		return;
 
 	if (random_value(99) < UNSIGNED(p)) {
@@ -1433,7 +1435,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 static void
 guess_discovered_host(host_addr_t addr, uint16 port)
 {
-	if (hostiles_is_bad(addr) || !host_address_is_usable(addr))
+	if (hostiles_is_bad(addr) || !host_is_valid(addr, port))
 		return;
 
 	if (is_my_address_and_port(addr, port))
@@ -1466,7 +1468,7 @@ guess_add_pool(guess_t *gq, host_addr_t addr, uint16 port, bool g2)
 
 	guess_check(gq);
 
-	if (hostiles_is_bad(addr) || !host_address_is_usable(addr))
+	if (hostiles_is_bad(addr) || !host_is_valid(addr, port))
 		return;
 
 	if (is_my_address_and_port(addr, port))
@@ -1814,7 +1816,7 @@ guess_g2_add_qkcache(const host_addr_t addr, uint16 port)
 	if (
 		!guess_has_valid_qk(&h) &&
 		!hostiles_is_bad(addr) &&
-		host_address_is_usable(addr)
+		host_is_valid(addr, port)
 	)
 		guess_request_qk(&h, TRUE, TRUE);
 }
