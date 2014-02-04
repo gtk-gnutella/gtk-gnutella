@@ -122,6 +122,8 @@ static const tokenizer_t g2_lni_children[] = {
 #define G2_Q2_F_A		(1U << 2)		/**< Wants alt-locs */
 #define G2_Q2_F_DN		(1U << 3)		/**< Wants distinguished name */
 
+#define G2_Q2_F_DFLT	(G2_Q2_F_PFS | G2_Q2_F_URL | G2_Q2_F_DN)
+
 static const tokenizer_t g2_q2_i[] = {
 	/* Sorted array */
 	{ "A",		G2_Q2_F_A },
@@ -783,6 +785,7 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 	char *md = NULL;
 	uint32 iflags = 0;
 	search_request_info_t sri;
+	bool has_interest = FALSE;
 
 	node_inc_rx_query(n);
 
@@ -866,8 +869,9 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 			break;
 
 		case G2_Q2_I:
-			if (0 == iflags)
+			if (!has_interest)
 				iflags = g2_node_extract_interest(c);
+			has_interest = TRUE;
 			break;
 
 		case G2_Q2_MD:
@@ -893,6 +897,13 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 			break;
 		}
 	}
+
+	/*
+	 * When there is no /Q2/I, return a default set of information.
+	 */
+
+	if (!has_interest)
+		iflags = G2_Q2_F_DFLT;
 
 	/*
 	 * If there are meta-data, try to intuit which media types there are
