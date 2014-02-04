@@ -3397,9 +3397,7 @@ guess_async_cancel(guess_t *gq)
 {
 	guess_check(gq);
 
-	g_assert(NULL == gq->delay_ev);
-	g_assert(!(gq->flags & GQ_F_DELAYED));
-
+	cq_cancel(&gq->delay_ev);
 	gq->flags |= GQ_F_DELAYED | GQ_F_TERMINATED;
 	gq->delay_ev = cq_main_insert(1, guess_cancel_expired, gq);
 }
