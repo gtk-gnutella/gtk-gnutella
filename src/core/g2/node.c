@@ -492,7 +492,6 @@ g2_node_handle_lni(gnutella_node_t *n, const g2_tree_t *t)
 
 /**
  * Tree message iterator to handle "NH" nodes and extract their IP:port.
- *
  */
 static void
 g2_node_extract_nh(void *data, void *udata)
@@ -515,6 +514,32 @@ g2_node_extract_nh(void *data, void *udata)
 }
 
 /**
+ * Tree message iterator to handle "CH" nodes and extract their IP:port.
+ */
+static void
+g2_node_extract_ch(void *data, void *udata)
+{
+	const g2_tree_t *t = data;
+
+	(void) udata;
+
+	if (0 == strcmp("CH", g2_tree_name(t))) {
+		const char *payload;
+		size_t paylen;
+
+		payload = g2_tree_node_payload(t, &paylen);
+
+		if (10 == paylen) {		/* IPv4:port + 32-bit timestamp */
+			host_addr_t addr = host_addr_peek_ipv4(payload);
+			uint16 port = peek_le16(&payload[4]);
+
+			if (host_is_valid(addr, port) && !hostiles_is_bad(addr))
+				guess_add_hub(addr, port);
+		}
+	}
+}
+
+/**
  * Handle reception of a /KHL
  */
 static void
@@ -525,6 +550,13 @@ g2_node_handle_khl(const g2_tree_t *t)
 	 */
 
 	g2_tree_child_foreach(t, g2_node_extract_nh, NULL);
+
+	/*
+	 * Extract cached hubs (necessarily not in the cluster of the hub sending
+	 * us the /KHL) and add them to the GUESS host cache.
+	 */
+
+	g2_tree_child_foreach(t, g2_node_extract_ch, NULL);
 }
 
 /**

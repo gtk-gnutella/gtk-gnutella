@@ -5129,6 +5129,36 @@ guess_introduction_ping(const gnutella_node_t *n, const char *buf, uint16 len)
 }
 
 /**
+ * Got a cached hub address from a /KHL message.
+ */
+void
+guess_add_hub(host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+	bool ok;
+
+	gnet_host_set(&host, addr, port);
+
+	if (guess_should_skip(&host))
+		return;
+
+	/*
+	 * Do not query a discovered G2 host if we have a non-expired query key,
+	 * since there is no notion of "introduction ping" for G2.
+	 */
+
+	if (guess_has_valid_qk(&host))
+		return;
+
+	ok = guess_request_qk(&host, FALSE, TRUE);
+
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		g_debug("GUESS requesting key from new hub %s%s",
+			host_addr_port_to_string(addr, port), ok ? "" : " (FAILED)");
+	}
+}
+
+/**
  * Initialize a GUESS cache.
  */
 static void G_GNUC_COLD
