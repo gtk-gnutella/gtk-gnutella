@@ -4489,18 +4489,34 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 
 unqueried:
 	if (marked_as_queried) {
-		const gnet_host_t *h;
+		/*
+		 * When the query is supposed to end when starving, do not put
+		 * unqueried hosts back to the pool, so that we can accelerate the
+		 * ending of the query.  Otherwise, there is a risk that we could
+		 * almost stall, not being able to complete the iteration for a long
+		 * time.
+		 */
 
-		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_debug("GUESS QUERY[%s] putting unqueried %s%s back to pool",
-				nid_to_string(&gq->gid), g2 ? "G2 " : "",
-				gnet_host_to_string(host));
+		if (gq->flags & GQ_F_END_STARVING) {
+			if (GNET_PROPERTY(guess_client_debug) > 2) {
+				g_debug("GUESS QUERY[%s] skipping unqueried %s%s (end mode)",
+					nid_to_string(&gq->gid), g2 ? "G2 " : "",
+					gnet_host_to_string(host));
+			}
+		} else {
+			const gnet_host_t *h;
+
+			if (GNET_PROPERTY(guess_client_debug) > 2) {
+				g_debug("GUESS QUERY[%s] putting unqueried %s%s back to pool",
+					nid_to_string(&gq->gid), g2 ? "G2 " : "",
+					gnet_host_to_string(host));
+			}
+
+			h = hset_lookup(gq->queried, host);		/* Atom */
+			g_assert(atom_is_host(h));
+			hset_remove(gq->queried, host);
+			hash_list_append(gq->pool, h);
 		}
-
-		h = hset_lookup(gq->queried, host);		/* Atom */
-		g_assert(atom_is_host(h));
-		hset_remove(gq->queried, host);
-		hash_list_append(gq->pool, h);
 	} else {
 		/*
 		 * If a buggy host responds to a query key request with two pongs,
