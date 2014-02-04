@@ -83,12 +83,14 @@
 #include <math.h>		/* For pow() */
 
 #include "guess.h"
+
 #include "bsched.h"
 #include "extensions.h"
 #include "ggep_type.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
 #include "gnutella.h"
+#include "guid.h"
 #include "hcache.h"
 #include "hostiles.h"
 #include "hosts.h"
@@ -142,6 +144,7 @@
 #define GUESS_QK_FREQ			60		/**< At most 1 key request / min */
 #define GUESS_QK_TIMEOUT		40		/**< Timeout for getting QK on G2 */
 #define GUESS_ALIEN_FREQ		300		/**< Time we cache non-GUESS hosts */
+#define GUESS_MUID_LINGER		1200	/**< Lingering (20 min) for old MUIDs */
 #define GUESS_STABLE_PROBA		 0.3333	/**< 33.33% */
 #define GUESS_ALIVE_PROBA		 0.5	/**< 50% */
 #define GUESS_LINK_CACHE_SIZE	75		/**< Amount of hosts to maintain */
@@ -410,6 +413,7 @@ static cperiodic_t *guess_load_ev;		/**< Periodic DBMW load checking */
 static wq_event_t *guess_new_host_ev;	/**< Waiting for a new host */
 static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
 static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
+static aging_table_t *guess_old_muids;	/**< Recently expired GUESS MUIDs */
 static uint32 guess_out_bw;				/**< Outgoing b/w used per period */
 static uint32 guess_target_bw;			/**< Outgoing b/w target for period */
 static int guess_alpha = GUESS_ALPHA;	/**< Concurrency query parameter */
@@ -3129,7 +3133,16 @@ guess_is_search_muid(const guid_t *muid)
 	if G_UNLIKELY(NULL == gmuid)
 		return FALSE;
 
-	return hikset_contains(gmuid, muid);
+	/*
+	 * Because there can be delay between the end of a GUESS query and the
+	 * time by which results come back to our node, we make the MUIDs linger
+	 * for a while in an aging table so that we can recognize recent but
+	 * expired MUIDs.
+	 */
+
+	return
+		hikset_contains(gmuid, muid) ||					/* Active MUID */
+		NULL != aging_lookup(guess_old_muids, muid);	/* Lingering MUID */
 }
 
 /**
@@ -3140,10 +3153,14 @@ guess_got_results(const guid_t *muid, uint32 hits)
 {
 	guess_t *gq;
 
+	gnet_stats_inc_general(GNR_GUESS_LOCAL_QUERY_HITS);
+
 	gq = hikset_lookup(gmuid, muid);
+	if (NULL == gq)
+		return;			/* Can be NULL because of MUID lingering */
+
 	guess_check(gq);
 	gq->recv_results += hits;
-	gnet_stats_inc_general(GNR_GUESS_LOCAL_QUERY_HITS);
 	guess_stats_fire(gq);
 }
 
@@ -4904,7 +4921,13 @@ guess_free(guess_t *gq)
 	hset_foreach(gq->queried, guess_host_set_free, NULL);
 	hash_list_foreach(gq->pool, guess_host_map_free, NULL);
 
+	/*
+	 * Let the old MUID of the query linger for a while so that we can
+	 * process hits coming late and not consider them as spam (unrequested).
+	 */
+
 	hikset_remove(gmuid, gq->muid);
+	aging_insert(guess_old_muids, atom_guid_get(gq->muid), int_to_pointer(1));
 
 	hset_free_null(&gq->queried);
 	hash_list_free(&gq->pool);
@@ -5152,6 +5175,8 @@ guess_init(void)
 		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
 	guess_alien = aging_make(GUESS_ALIEN_FREQ,
 		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+	guess_old_muids = aging_make(GUESS_MUID_LINGER,
+		guid_hash, guid_eq, guid_free_atom2);
 
 	guess_load_link_cache();
 	guess_check_link_cache();
@@ -5211,6 +5236,7 @@ guess_close(void)
 	htable_free_null(&pending);
 	aging_destroy(&guess_qk_reqs);
 	aging_destroy(&guess_alien);
+	aging_destroy(&guess_old_muids);
 	hash_list_free_all(&link_cache, gnet_host_free_atom);
 	hash_list_free_all(&alive_cache, gnet_host_free_atom);
 	hash_list_free(&load_pending);

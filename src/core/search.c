@@ -4685,7 +4685,17 @@ search_new_muid(bool initial)
 			guid_query_muid(muid, initial);
 		}
 
-		if (!htable_contains(search_by_muid, muid))
+		/*
+		 * Make sure the search MUID is not that of an older search that we
+		 * keep around or that of a recently expired GUESS query (since active
+		 * GUESS queries are already held in `search_by_muid').
+		 *		--RAM, 2014-02-04
+		 */
+
+		if (
+			!htable_contains(search_by_muid, muid) &&
+			!guess_is_search_muid(muid)
+		)
 			return muid;
 	}
 
