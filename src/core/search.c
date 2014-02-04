@@ -979,8 +979,12 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 		return;
 
 	if (n != NULL) {
-		gmsg_infostr_full_split_to_buf(
-			&n->header, n->data, n->size, buf, sizeof buf);
+		if (NODE_TALKS_G2(n)) {
+			g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		} else {
+			gmsg_infostr_full_split_to_buf(
+				&n->header, n->data, n->size, buf, sizeof buf);
+		}
 	} else {
 		buf[0] = '\0';
 	}
@@ -1021,6 +1025,13 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 	pslist_t *sl;
 	unsigned dups = 0;
 
+	/*
+	 * Since we fake the file indices for G2 hits, skip the file index tests!
+	 */
+
+	if (ST_G2 & rs->status)
+		goto sha1_check;
+
 	/* Look for identical file index */
 	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc;
@@ -1038,6 +1049,8 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs,
 			htable_insert(ht, key, rc);
 		}
 	}
+
+sha1_check:
 
 	/* Look for identical SHA-1 */
 	PSLIST_FOREACH(rs->records, sl) {
@@ -1977,15 +1990,13 @@ search_results_handle_trailer(const gnutella_node_t *n,
  */
 static void
 search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs,
-	hostiles_flags_t *hostile)
+	const guid_t *muid, hostiles_flags_t *hostile)
 {
 	/*
 	 * Hits relayed through UDP are necessarily a response to a GUESS query.
 	 */
 
 	if (1 == rs->hops && (ST_UDP & rs->status)) {
-		const guid_t *muid = gnutella_header_get_muid(&n->header);
-
 		if (guess_is_search_muid(muid)) {
 			/*
 			 * The relaying ultrapeer is necessarily a push-proxy for the node.
@@ -2272,6 +2283,125 @@ search_validate_guid(gnet_results_set_t *rs,
 	}
 
 	return NULL;	/* OK */
+}
+
+/**
+ * Finalize information in the results set.
+ *
+ * @param rs		the result set being constructed
+ * @param muid		the MUID of the search
+ * @param browse	whether we're processing a hit from a "browse host"
+ */
+static void
+search_finalize_results(gnet_results_set_t *rs, const guid_t *muid, bool browse)
+{
+	{
+		host_addr_t c_addr;
+
+		/*
+		 * Prefer an UDP source IP for the country computation.
+		 *
+		 * Have to check for hops=0 since GUESS ultrapeeers can route back
+		 * query hits returned via TCP from their leaves.
+		 */
+
+		c_addr = (0 == rs->hops && (rs->status & ST_UDP)) ?
+			rs->last_hop : rs->addr;
+		rs->country = gip_country(c_addr);
+
+		/*
+		 * If we're not only validating (i.e. we're going to peruse this hit),
+		 * and if the server is marking its hits with the Push flag, check
+		 * whether it is already known to wrongly set that bit.
+		 *		--RAM, 18/08/2002.
+		 */
+
+		if (
+			(rs->status & ST_FIREWALL) &&
+			download_server_nopush(rs->guid, rs->addr, rs->port)
+		) {
+			rs->status &= ~ST_FIREWALL;		/* Clear "Push" indication */
+		}
+	}
+
+	{
+		const char *query;
+		unsigned media_mask = 0;
+
+		query = map_muid_to_query_string(muid, &media_mask);
+		rs->query = query != NULL ? atom_str_get(query) : NULL;
+
+		/*
+		 * The field rs->media is only 8 bits, but we rely on the fact that
+		 * the currently architected media types all fit in one single byte.
+		 * This allows us to store the media type in the results without
+		 * really increasing the memory requirements (uses padding space).
+		 */
+
+		rs->media = media_mask;
+
+		if (NULL == query && !browse && settings_is_ultra()) {
+			gnet_stats_inc_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY);
+		}
+
+		/*
+		 * Morpheus ignores all non-ASCII characters in query strings
+		 * which results in completely bogus results. For example, if you
+		 * search for "<chinese>.txt" every filename ending with .txt will
+		 * match!
+		 */
+
+		if (
+			T_MRPH == rs->vcode.u32 &&
+			rs->query != NULL && !is_ascii_string(rs->query)
+		) {
+			pslist_t *sl;
+
+			rs->status |= ST_MORPHEUS_BOGUS;
+			PSLIST_FOREACH(rs->records, sl) {
+				gnet_record_t *record = sl->data;
+				record->flags |= SR_DONT_SHOW | SR_IGNORED;
+			}
+		}
+
+		/*
+		 * If we have a non-zero media type filter for the query, then
+		 * look whether at least one of the records matches.  Otherwise,
+		 * it's bye-bye.
+		 */
+
+		if (query != NULL && media_mask != 0) {
+			pslist_t *sl;
+			size_t matching = 0;
+			bool own_query = htable_contains(search_by_muid, muid);
+
+			PSLIST_FOREACH(rs->records, sl) {
+				gnet_record_t *rc = sl->data;
+				unsigned mask = share_filename_media_mask(rc->filename);
+
+				if (mask != 0 && !(mask & media_mask)) {
+					/*
+					 * Not matching the requested media type.
+					 *
+					 * Hide in the GUI, if it's for one of our queries
+					 * otherwise display them as "ignored" (in passive
+					 * searches).
+					 */
+
+					if (own_query)
+						rc->flags |= SR_DONT_SHOW;
+					rc->flags |= SR_IGNORED | SR_MEDIA;
+				} else {
+					matching++;
+				}
+			}
+
+			if (0 == matching) {
+				/* We will not forward this packet */
+				rs->status |= ST_MEDIA;		/* Lacking proper media type */
+			}
+		}
+	}
 }
 
 static void G_GNUC_PRINTF(4, 5)
@@ -2791,7 +2921,11 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 		goto bad_packet;
 	}
 
-	/* FIXME: add Gnutella-like SPAM identification */
+	/* FIXME: refresh G2 push-proxies as in get_results_set() */
+
+	search_results_postprocess(n, rs, muid, hostile);
+	search_finalize_results(rs, muid, browse);
+	search_results_identify_spam(n, rs, hostile);
 
 	return rs;
 
@@ -2843,7 +2977,6 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 	bool tag_has_nul = FALSE;
 	const char *vendor = NULL;
 	const char *badmsg = NULL;
-	unsigned media_mask = 0;
 	const guid_t *muid = gnutella_header_get_muid(&n->header);
 
 	*hostile = HSTL_CLEAN;
@@ -3461,7 +3594,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 	 * At this point we finished processing of the query hit, successfully.
 	 */
 
-	search_results_postprocess(n, rs, hostile);
+	search_results_postprocess(n, rs, muid, hostile);
 
 	/*
 	 * Refresh push-proxies if we're downloading anything from this server.
@@ -3528,113 +3661,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 					gmsg_node_infostr(n), vendor ? vendor : "????");
 	}
 
-	{
-		host_addr_t c_addr;
-
-		/*
-		 * Prefer an UDP source IP for the country computation.
-		 *
-		 * Have to check for hops=0 since GUESS ultrapeeers can route back
-		 * query hits returned via TCP from their leaves.
-		 */
-
-		c_addr = (0 == rs->hops && (rs->status & ST_UDP)) ?
-			rs->last_hop : rs->addr;
-		rs->country = gip_country(c_addr);
-		
-		/*
-		 * If we're not only validating (i.e. we're going to peruse this hit),
-		 * and if the server is marking its hits with the Push flag, check
-		 * whether it is already known to wrongly set that bit.
-		 *		--RAM, 18/08/2002.
-		 */
-
-		if (
-			(rs->status & ST_FIREWALL) &&
-			download_server_nopush(rs->guid, rs->addr, rs->port)
-		) {
-			rs->status &= ~ST_FIREWALL;		/* Clear "Push" indication */
-		}
-	}
-
-	{
-		const char *query;
-
-		query = map_muid_to_query_string(muid, &media_mask);
-		rs->query = query != NULL ? atom_str_get(query) : NULL;
-
-		/*
-		 * The field rs->media is only 8 bits, but we rely on the fact that
-		 * the currently architected media types all fit in one single byte.
-		 * This allows us to store the media type in the results without
-		 * really increasing the memory requirements (uses padding space).
-		 */
-
-		rs->media = media_mask;
-
-		if (NULL == query && !browse && settings_is_ultra()) {
-			gnet_stats_inc_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY);
-		}
-
-		/*
-		 * Morpheus ignores all non-ASCII characters in query strings
-		 * which results in completely bogus results. For example, if you
-		 * search for "<chinese>.txt" every filename ending with .txt will
-		 * match!
-		 */
-
-		if (
-			T_MRPH == rs->vcode.u32 &&
-			rs->query != NULL && !is_ascii_string(rs->query)
-		) {
-			pslist_t *sl;
-
-			rs->status |= ST_MORPHEUS_BOGUS;
-			PSLIST_FOREACH(rs->records, sl) {
-				gnet_record_t *record = sl->data;
-				record->flags |= SR_DONT_SHOW | SR_IGNORED;
-			}
-		}
-
-		/*
-		 * If we have a non-zero media type filter for the query, then
-		 * look whether at least one of the records matches.  Otherwise,
-		 * it's bye-bye.
-		 */
-
-		if (query != NULL && media_mask != 0) {
-			pslist_t *sl;
-			size_t matching = 0;
-			bool own_query = htable_contains(search_by_muid, muid);
-
-			PSLIST_FOREACH(rs->records, sl) {
-				gnet_record_t *rc = sl->data;
-				unsigned mask = share_filename_media_mask(rc->filename);
-
-				if (mask != 0 && !(mask & media_mask)) {
-					/*
-					 * Not matching the requested media type.
-					 *
-					 * Hide in the GUI, if it's for one of our queries
-					 * otherwise display them as "ignored" (in passive
-					 * searches).
-					 */
-
-					if (own_query)
-						rc->flags |= SR_DONT_SHOW;
-					rc->flags |= SR_IGNORED | SR_MEDIA;
-				} else {
-					matching++;
-				}
-			}
-
-			if (0 == matching) {
-				/* We will not forward this packet */
-				rs->status |= ST_MEDIA;		/* Lacking proper media type */
-			}
-		}
-	}
-
+	search_finalize_results(rs, muid, browse);
 	search_results_identify_spam(n, rs, hostile);
 	str_destroy_null(&info);
 
