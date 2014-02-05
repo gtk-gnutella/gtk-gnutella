@@ -1102,6 +1102,8 @@ guint32  gnet_property_variable_g2_rpc_debug     = 0;
 static const guint32  gnet_property_variable_g2_rpc_debug_default = 0;
 gboolean gnet_property_variable_log_query_hits     = FALSE;
 static const gboolean gnet_property_variable_log_query_hits_default = FALSE;
+gboolean gnet_property_variable_log_query_hit_records     = FALSE;
+static const gboolean gnet_property_variable_log_query_hit_records_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -10695,6 +10697,24 @@ gnet_prop_init(void) {
     gnet_property->props[477].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[477].data.boolean.def   = (void *) &gnet_property_variable_log_query_hits_default;
     gnet_property->props[477].data.boolean.value = (void *) &gnet_property_variable_log_query_hits;
+
+
+    /*
+     * PROP_LOG_QUERY_HIT_RECORDS:
+     *
+     * General data:
+     */
+    gnet_property->props[478].name = "log_query_hit_records";
+    gnet_property->props[478].desc = _("Whether to log summary of each record in received query hits");
+    gnet_property->props[478].ev_changed = event_new("log_query_hit_records_changed");
+    gnet_property->props[478].save = TRUE;
+    gnet_property->props[478].vector_size = 1;
+	mutex_init(&gnet_property->props[478].lock);
+
+    /* Type specific data: */
+    gnet_property->props[478].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[478].data.boolean.def   = (void *) &gnet_property_variable_log_query_hit_records_default;
+    gnet_property->props[478].data.boolean.value = (void *) &gnet_property_variable_log_query_hit_records;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

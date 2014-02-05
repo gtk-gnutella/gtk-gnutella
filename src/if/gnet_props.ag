@@ -5505,4 +5505,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_query_hit_records";
+	desc = "Whether to log summary of each record in received query hits";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

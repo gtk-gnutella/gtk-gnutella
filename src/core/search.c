@@ -1027,6 +1027,50 @@ search_rs_status_to_string(const gnet_results_set_t *rs)
 	return str_2c(s);
 }
 
+#define RC_STATUS(x)	{ SR_ ## x, #x }
+
+static struct {
+	uint32 flag;
+	const char *name;
+} rc_flags[] = {
+	RC_STATUS(ALLOC_NAME),
+	RC_STATUS(MEDIA),
+	RC_STATUS(PARTIAL_HIT),
+	RC_STATUS(PUSH),
+	RC_STATUS(ATOMIZED),
+	RC_STATUS(PARTIAL),
+	RC_STATUS(OWNED),
+	RC_STATUS(SHARED),
+	RC_STATUS(SPAM),
+	RC_STATUS(DONT_SHOW),
+	RC_STATUS(IGNORED),
+	RC_STATUS(DOWNLOADED),
+};
+
+#undef RC_STATUS
+
+/**
+ * Convert result record flags into English description.
+ */
+static const char *
+search_rc_flags_to_string(const gnet_record_t *rc)
+{
+	str_t *s = str_private(G_STRFUNC, 80);
+	uint i;
+
+	str_reset(s);
+
+	for (i = 0; i < G_N_ELEMENTS(rc_flags); i++) {
+		if (rc->flags & rc_flags[i].flag) {
+			if (0 != str_len(s))
+				STR_CAT(s, ", ");
+			str_cat(s, rc_flags[i].name);
+		}
+	}
+
+	return str_2c(s);
+}
+
 /**
  * Log query hit.
  */
@@ -1063,6 +1107,78 @@ search_results_log(const gnutella_node_t *n, const gnet_results_set_t *rs)
 		str_2c(s), iso3166_country_cc(rs->country), guid_to_string(rs->guid),
 		buf, rs->num_recs, plural(rs->num_recs),
 		search_rs_status_to_string(rs));
+
+	str_destroy_null(&s);
+}
+
+/**
+ * Log query hit records.
+ */
+static void
+search_results_records_log(const gnutella_node_t *n,
+	const gnet_results_set_t *rs)
+{
+	pslist_t *sl;
+	uint nr = 0;
+	str_t *s = str_new(80);
+	char buf[128];
+
+	if (n != NULL) {
+		if (NODE_TALKS_G2(n)) {
+			g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		} else {
+			gmsg_infostr_full_split_to_buf(
+				&n->header, n->data, n->size, buf, sizeof buf);
+		}
+	} else {
+		buf[0] = '\0';
+	}
+
+	g_debug("SEARCH %s QHIT [%s] (%s) %u rec%s {%s}:",
+		NODE_IS_UDP(n) ? "UDP" : "TCP", vendor_code_to_string(rs->vcode.u32),
+		host_addr_port_to_string(rs->addr, rs->port),
+		rs->num_recs, plural(rs->num_recs),
+		search_rs_status_to_string(rs));
+
+	PSLIST_FOREACH(rs->records, sl) {
+		const gnet_record_t *rc = sl->data;
+		char *f;
+		size_t len;
+
+		nr++;
+
+		len = 1 + strlen(rc->filename);
+		f = halloc(len);
+		ascii_enforce(f, len, rc->filename);		/* Safe logging */
+
+		if (rc->path != NULL) {
+			char *p;
+
+			len = 1 + strlen(rc->path);
+			p = halloc(len);
+			ascii_enforce(p, len, rc->path);
+			str_printf(s, "name=\"%s\", path=\"%s\"", f, p);
+			hfree(p);
+		} else {
+			str_printf(s, "name=\"%s\"", f);
+		}
+
+		HFREE_NULL(f);
+
+		str_catf(s, ", size=%s", filesize_to_string(rc->size));
+
+		if (rc->flags & SR_PARTIAL_HIT)
+			str_catf(s, ", avail=%s", filesize_to_string(rc->available));
+
+		if (rc->sha1 != NULL)
+			str_catf(s, ", sha1=%s", sha1_base32(rc->sha1));
+
+		if (rc->tth != NULL)
+			str_catf(s, ", tth=%s", tth_base32(rc->tth));
+
+		g_debug("SEARCH REC #%u/%u: %s {%s}",
+			nr, rs->num_recs, str_2c(s), search_rc_flags_to_string(rc));
+	}
 
 	str_destroy_null(&s);
 }
@@ -5634,6 +5750,10 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 		}
 
 		search_results_set_flag_records(rs);
+
+		if (GNET_PROPERTY(log_query_hit_records))
+			search_results_records_log(n, rs);
+
 		search_fire_got_results(selected_searches, guess_muid, rs);
 
 		/*
