@@ -5537,6 +5537,13 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 			search_ctrl_t *sch = search_find_by_handle(sh);
 
 			wd_kick(sch->activity);
+
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_debug("SEARCH \"%s\" got %u record%s for %s#%s from %s",
+					sch->name, rs->num_recs, plural(rs->num_recs),
+					(ST_GUESS & rs->status) ? "GUESS " : "",
+					guid_to_string(muid), node_infostr(n));
+			}
 		}
 	}
 
