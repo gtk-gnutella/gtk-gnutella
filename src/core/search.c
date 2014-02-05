@@ -1216,6 +1216,8 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 			 */
 			rc->flags |= SR_SPAM;
 			*hostile |= HSTL_BAD_FILE_INDEX;
+			search_log_spam(n, rs, "file index set to -1");
+			logged = TRUE;
 		} else if (!rc->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs, hostile);
 			search_log_spam(n, rs, "hit with invalid file index");
