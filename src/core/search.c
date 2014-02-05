@@ -965,6 +965,108 @@ is_evil_filename(const char *filename)
 	return FALSE;
 }
 
+#define RS_STATUS(x)	{ ST_ ## x, #x }
+
+static struct {
+	uint32 flag;
+	const char *name;
+} rs_status_flags[] = {
+	RS_STATUS(SR_UDP),
+	RS_STATUS(BANNED_GUID),
+	RS_STATUS(MEDIA),
+	RS_STATUS(ALIEN),
+	RS_STATUS(GUESS),
+	RS_STATUS(MORPHEUS_BOGUS),
+	RS_STATUS(GOOD_TOKEN),
+	RS_STATUS(BROWSE),
+	RS_STATUS(LOCAL),
+	RS_STATUS(FW2FW),
+	RS_STATUS(HOSTILE),
+	RS_STATUS(UNREQUESTED),
+	RS_STATUS(EVIL),
+	RS_STATUS(G2),
+	RS_STATUS(UNUSED_4),
+	RS_STATUS(UNUSED_3),
+	RS_STATUS(UNUSED_2),
+	RS_STATUS(UNUSED_1),
+	RS_STATUS(SPAM),
+	RS_STATUS(TLS),
+	RS_STATUS(BH),
+	RS_STATUS(KNOWN_VENDOR),
+	RS_STATUS(PARSED_TRAILER),
+	RS_STATUS(UDP),
+	RS_STATUS(BOGUS),
+	RS_STATUS(PUSH_PROXY),
+	RS_STATUS(GGEP),
+	RS_STATUS(UPLOADED),
+	RS_STATUS(BUSY),
+	RS_STATUS(FIREWALL),
+};
+
+#undef RS_STATUS
+
+/**
+ * Convert result set status flags into English description.
+ */
+static const char *
+search_rs_status_to_string(const gnet_results_set_t *rs)
+{
+	str_t *s = str_private(G_STRFUNC, 80);
+	uint i;
+
+	str_reset(s);
+
+	for (i = 0; i < G_N_ELEMENTS(rs_status_flags); i++) {
+		if (rs->status & rs_status_flags[i].flag) {
+			if (0 != str_len(s))
+				STR_CAT(s, ", ");
+			str_cat(s, rs_status_flags[i].name);
+		}
+	}
+
+	return str_2c(s);
+}
+
+/**
+ * Log query hit.
+ */
+static void
+search_results_log(const gnutella_node_t *n, const gnet_results_set_t *rs)
+{
+	char buf[128];
+	str_t *s = str_new(80);
+
+	if (n != NULL) {
+		if (NODE_TALKS_G2(n)) {
+			g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		} else {
+			gmsg_infostr_full_split_to_buf(
+				&n->header, n->data, n->size, buf, sizeof buf);
+		}
+	} else {
+		buf[0] = '\0';
+	}
+
+	if (
+		NODE_IS_UDP(n) &&
+		!(host_addr_equal(n->addr, rs->addr) && n->port == rs->port)
+	) {
+		str_printf(s, "%s UDP=%s",
+			host_addr_port_to_string(rs->addr, rs->port),
+			host_addr_port_to_string2(n->addr, n->port));
+	} else {
+		str_printf(s, "%s", host_addr_port_to_string(rs->addr, rs->port));
+	}
+
+	g_debug("SEARCH %s QHIT [%s] (%s [%s], %s) %s: %u rec%s {%s}",
+		NODE_IS_UDP(n) ? "UDP" : "TCP", vendor_code_to_string(rs->vcode.u32),
+		str_2c(s), iso3166_country_cc(rs->country), guid_to_string(rs->guid),
+		buf, rs->num_recs, plural(rs->num_recs),
+		search_rs_status_to_string(rs));
+
+	str_destroy_null(&s);
+}
+
 /**
  * Log spam reason.
  */
@@ -2927,6 +3029,9 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 	search_finalize_results(rs, muid, browse);
 	search_results_identify_spam(n, rs, hostile);
 
+	if (GNET_PROPERTY(log_query_hits))
+		search_results_log(n, rs);
+
 	return rs;
 
 bad_packet:
@@ -3664,6 +3769,9 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 	search_finalize_results(rs, muid, browse);
 	search_results_identify_spam(n, rs, hostile);
 	str_destroy_null(&info);
+
+	if (GNET_PROPERTY(log_query_hits))
+		search_results_log(n, rs);
 
 	return rs;
 

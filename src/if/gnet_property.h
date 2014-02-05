@@ -513,6 +513,7 @@ typedef enum {
     PROP_LOG_BAD_G2,
     PROP_LOG_DROPPED_G2,
     PROP_G2_RPC_DEBUG,
+    PROP_LOG_QUERY_HITS,
     GNET_PROPERTY_END
 } gnet_property_t;
 
