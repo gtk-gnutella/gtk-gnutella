@@ -2785,9 +2785,44 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 					p += 4;
 					paylen -= 4;
 				}
+
+				if (!utf8_is_valid_data(p, paylen)) {
+					/*
+					 * If there is a SZ record, maybe they included a 32-bit
+					 * size before the name as well (broken servent, but
+					 * still manageable in that case)?
+					 */
+
+					if (has_sz && paylen > 4) {
+						if (utf8_is_valid_data(p + 4, paylen - 4)) {
+							search_record_warn(n, rs, hit,
+								"DN probably had 32-bit size despite SZ");
+						}
+						p += 4;
+						paylen -= 4;
+						goto utf8_filename;
+					}
+
+					badmsg = has_sz ?
+						"DN payload not valid UTF-8" :
+						"filename in DN not valid UTF-8";
+					goto bad;
+				}
+
+			utf8_filename:
+
 				/* Must copy string since it is usually not NUL-terminated */
 				rc->filename = h_strndup(p, paylen);
 				rc->flags |= SR_ALLOC_NAME;
+
+				/*
+				 * Make sure the filename is not empty.
+				 */
+
+				if (0 == utf8_strlen(rc->filename)) {
+					badmsg = "empty filename";
+					goto bad;
+				}
 			}
 
 			/*
