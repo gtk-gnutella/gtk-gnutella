@@ -1008,7 +1008,7 @@ g2_node_handle(gnutella_node_t *n)
 			node_infostr(n), n->size);
 		if (GNET_PROPERTY(log_bad_g2))
 			dump_hex(stderr, "G2 Packet", n->data, n->size);
-		return;
+		goto done;
 	} else if (GNET_PROPERTY(g2_debug) > 19) {
 		g_debug("%s(): received packet from %s", G_STRFUNC, node_infostr(n));
 		g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN);
@@ -1044,6 +1044,7 @@ g2_node_handle(gnutella_node_t *n)
 		break;
 	}
 
+done:
 	g2_tree_free_null(&t);
 }
 
