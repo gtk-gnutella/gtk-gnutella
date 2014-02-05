@@ -124,6 +124,7 @@
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/listener.h"
+#include "lib/misc.h"			/* For vlint_decode() */
 #include "lib/nid.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
@@ -131,6 +132,7 @@
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/tokenizer.h"
+#include "lib/timestamp.h"		/* For timestamp_to_string() */
 #include "lib/walloc.h"
 #include "lib/wq.h"
 #include "lib/xmalloc.h"
@@ -1835,6 +1837,29 @@ static const tokenizer_t g2_qa_children[] = {
 };
 
 /**
+ * Extract the time held in the "TS" child from the message.
+ *
+ * @return the timestamp present in the message, 0 if none.
+ */
+static time_t
+guess_extract_g2_ts(const g2_tree_t *t)
+{
+	const g2_tree_t *c;
+
+	c = g2_tree_lookup(t, "TS");
+
+	if (c != NULL) {
+		const void *payload;
+		size_t paylen;
+
+		payload = g2_tree_node_payload(c, &paylen);
+		return vlint_decode(payload, paylen);
+	}
+
+	return 0;
+}
+
+/**
  * Handle /QA response from a queried host (G2).
  *
  * @param gq		the GUESS query being run (NULL if RPC expired)
@@ -1882,14 +1907,34 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 				if (ra != 0) {
 					struct qkdata *qk = get_qkdata(host);
 
-					if (qk != NULL)
-						qk->retry_after = tm_time() + ra;
+					if (qk != NULL) {
+						time_t now = tm_time();
+						time_t ts = guess_extract_g2_ts(t);
 
-					if (GNET_PROPERTY(guess_client_debug) > 1) {
+						/*
+						 * It is important to use the remote side timestamp,
+						 * the one used at the generation of the /QA message,
+						 * because it can have taken a while to receive the
+						 * message and the retry time runs starting at the
+						 * /QA generation time, not at the reception time.
+						 *
+						 * To protect against the remote clock being completely
+						 * off, we set an upper bound to the remote time: our
+						 * current time.
+						 */
+
+						if (0 == ts)
+							ts = now;
+						qk->retry_after = MIN(ts, now) + ra;
+					}
+
+					if (GNET_PROPERTY(guess_client_debug)) {
 						g_debug("GUESS QUERY[%s] G2 %s requests "
-							"%u sec%s querying delay",
+							"%u sec%s querying delay (%s)",
 							NULL == gq ? "?" : nid_to_string(&gq->gid),
-							gnet_host_to_string(host), ra, plural(ra));
+							gnet_host_to_string(host), ra, plural(ra),
+							qk != NULL ? timestamp_to_string(qk->retry_after) :
+								"not held in cache");
 					}
 				}
 			}
