@@ -431,9 +431,8 @@ iso3166_country_entry(uint16 code)
 /**
  * Maps a valid encoded country code to the country name.
  *
- * @return NULL integer isn't a validly encoded country code. If the country
- *		   is valid, a string pointing two the country name is returned. Each
- *		   string has its own buffer which is only free()d by iso3166_close().
+ * @return "(null") if integer isn't a validly encoded country code. If the
+ *		   country is valid, a string pointing two the country name is returned.
  */
 const char *
 iso3166_country_name(uint16 code)
@@ -444,9 +443,8 @@ iso3166_country_name(uint16 code)
 /**
  * Maps a valid encoded country code to the 2-letter code.
  *
- * @return NULL integer isn't a validly encoded country code. If the country
- *		   is valid, a string pointing two the 2-letter code is returned. Each
- *		   string has its own buffer which is only free()d by iso3166_close().
+ * @return "??" if integer isn't a validly encoded country code. If the country
+ *		   is valid, a string pointing two the 2-letter code is returned.
  */
 const char *
 iso3166_country_cc(uint16 code)
