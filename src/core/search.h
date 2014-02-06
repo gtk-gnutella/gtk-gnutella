@@ -167,7 +167,8 @@ void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,
 	int hits, bool udp_firewalled, bool secure);
 
 void search_dissociate_browse(gnet_search_t sh, struct download *d);
-void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
+void search_browse_results(gnutella_node_t *n, gnet_search_t sh,
+	const struct g2_tree *t);
 
 bool search_request_preprocess(struct gnutella_node *n,
 	search_request_info_t *sri, bool isdup);

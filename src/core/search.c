@@ -5458,19 +5458,27 @@ search_results_set_auto_download(gnet_results_set_t *rs)
 
 
 /**
- * This routine is called for each Query Hit packet we receive out of
+ * This routine is called for each Query Hit or /QH2 packet we receive out of
  * a browse-host request, since we know the target search result, and
  * we don't need to bother with forwarding that message.
+ *
+ * @param n			the node receiving the hit
+ * @param sh		the "browse-host" search handle
+ * @param t			the message tree (for G2, NULL for Gnutella)
  */
 void
-search_browse_results(gnutella_node_t *n, gnet_search_t sh)
+search_browse_results(gnutella_node_t *n, gnet_search_t sh, const g2_tree_t *t)
 {
 	gnet_results_set_t *rs;
 	pslist_t *search = NULL;
 	pslist_t *sl;
 	hostiles_flags_t flags;
 
-	rs = get_results_set(n, TRUE, &flags);
+	if (NULL == t)
+		rs = get_results_set(n, TRUE, &flags);
+	else
+		rs = get_g2_results_set(n, t, TRUE, &flags);
+
 	if (rs == NULL)
 		return;
 
@@ -6933,6 +6941,7 @@ search_is_whats_new(gnet_search_t sh)
  * @param guid		the GUID of the remote host.
  * @param push		whether a PUSH request is neeed to reach remote host.
  * @param proxies	vector holding known push-proxies.
+ * @param flags		connection flags like SOCK_F_PUSH, SOCK_F_TLS, SOCK_F_G2
  *
  * @return	TRUE if we successfully initialized the download layer.
  */

@@ -278,7 +278,8 @@ typedef struct gnet_node_info {
 	int proto_major;		/**< Protocol major number */
 	int proto_minor;		/**< Protocol minor number */
 	vendor_code_t vcode;	/**< Vendor code (vcode.u32 == 0 when unknown) */
-	bool is_pseudo;			/**< TRUE if it's the pseudo UDP node */
+	uint is_pseudo:1;		/**< TRUE if it's the pseudo UDP node */
+	uint is_g2:1;			/**< TRUE if this is a G2 node */
 
 	host_addr_t addr;		/**< ip of the node (connected) */
 	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */

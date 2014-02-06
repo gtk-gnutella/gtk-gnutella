@@ -216,6 +216,7 @@ static gnutella_node_t *dht_node;
 static gnutella_node_t *dht6_node;
 static gnutella_node_t *udp_route;
 static gnutella_node_t *browse_node;
+static gnutella_node_t *browse_g2_node;
 static char *payload_inflate_buffer;
 static int payload_inflate_buffer_len;
 static cpattern_t *pat_gtkg_23v1;
@@ -321,7 +322,7 @@ static gnutella_node_t *node_udp_create(enum net_type net);
 static gnutella_node_t *node_udp_sr_create(enum net_type net);
 static gnutella_node_t *node_udp_g2_create(enum net_type net);
 static gnutella_node_t *node_dht_create(enum net_type net);
-static gnutella_node_t *node_browse_create(void);
+static gnutella_node_t *node_browse_create(bool g2);
 static bool node_remove_useless_leaf(bool *is_gtkg);
 static bool node_remove_useless_ultra(bool *is_gtkg);
 static bool node_remove_uncompressed_ultra(bool *is_gtkg);
@@ -1666,7 +1667,8 @@ node_init(void)
 	udp_g2_node = node_udp_g2_create(NET_TYPE_IPV4);
 	dht_node = node_dht_create(NET_TYPE_IPV4);
 	dht6_node = node_dht_create(NET_TYPE_IPV6);
-	browse_node = node_browse_create();
+	browse_node = node_browse_create(FALSE);
+	browse_g2_node = node_browse_create(TRUE);
 	udp_route = node_udp_create(NET_TYPE_IPV4);	/* Net type does not matter */
 
 	payload_inflate_buffer_len = settings_max_msg_size();
@@ -7068,7 +7070,7 @@ call_node_process_handshake_ack(void *obj, header_t *header)
  * message before parsing of the Gnutella query hit can occur.
  */
 static gnutella_node_t *
-node_browse_create(void)
+node_browse_create(bool g2)
 {
 	gnutella_node_t *n;
 
@@ -7076,12 +7078,13 @@ node_browse_create(void)
     n->id = node_id_new();
 	n->proto_major = 0;
 	n->proto_minor = 6;
-	n->peermode = NODE_P_LEAF;
+	n->peermode = g2 ? NODE_P_G2HUB : NODE_P_LEAF;
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = tm_time();
 	n->routing_data = NULL;
 	n->status = GTA_NODE_CONNECTED;
 	n->flags = NODE_F_ESTABLISHED | NODE_F_READABLE | NODE_F_VALID;
+	n->attrs2 = g2 ? NODE_A2_TALKS_G2 : 0;
 	n->up_date = GNET_PROPERTY(start_stamp);
 	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
@@ -7096,6 +7099,8 @@ node_browse_create(void)
  * coming from the host and from a servent with the supplied vendor
  * string.
  *
+ * If the `header' variable is NULL, it means we're dealing with G2 traffic.
+ *
  * @return the shared instance, suitable for parsing the received message.
  */
 gnutella_node_t *
@@ -7103,9 +7108,16 @@ node_browse_prepare(
 	gnet_host_t *host, const char *vendor, gnutella_header_t *header,
 	char *data, uint32 size)
 {
-	gnutella_node_t *n = browse_node;
+	gnutella_node_t *n;
 
-	node_check(n);
+	if (NULL == header) {
+		n = browse_g2_node;
+		node_check(n);
+	} else {
+		n = browse_node;
+		node_check(n);
+		memcpy(n->header, header, sizeof n->header);
+	}
 
 	n->addr = gnet_host_get_addr(host);
 	n->port = gnet_host_get_port(host);
@@ -7114,7 +7126,6 @@ node_browse_prepare(
 
 	n->size = size;
 	n->msg_flags = 0;
-	memcpy(n->header, header, sizeof n->header);
 	n->data = data;
 
 	return n;
@@ -7126,7 +7137,7 @@ node_browse_prepare(
 void
 node_browse_cleanup(gnutella_node_t *n)
 {
-	g_assert(n == browse_node);
+	g_assert(n == browse_node || n == browse_g2_node);
 
 	n->vendor = NULL;
 	n->data = NULL;
@@ -11120,7 +11131,7 @@ node_close(void)
 	{
 		gnutella_node_t *special_nodes[] = {
 			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route,
-			udp_sr_node, udp6_sr_node, udp_g2_node
+			udp_sr_node, udp6_sr_node, udp_g2_node, browse_g2_node
 		};
 		uint i;
 
@@ -11154,6 +11165,7 @@ node_close(void)
 		dht_node = NULL;
 		dht6_node = NULL;
 		browse_node = NULL;
+		browse_g2_node = NULL;
 		udp_route = NULL;
 	}
 
@@ -11585,7 +11597,8 @@ node_fill_info(const struct nid *node_id, gnet_node_info_t *info)
     info->addr = node->addr;
     info->port = node->port;
 
-	info->is_pseudo = NODE_USES_UDP(node);
+	info->is_pseudo = booleanize(NODE_USES_UDP(node));
+	info->is_g2		= booleanize(NODE_TALKS_G2(node));
 
 	if (info->is_pseudo) {
 		if (NODE_IS_UDP(node)) {

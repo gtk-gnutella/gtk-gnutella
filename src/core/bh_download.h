@@ -44,6 +44,7 @@
 #define BH_DL_INFLATE	(1 << 0)	/**< Inflate input */
 #define BH_DL_GUNZIP	(1 << 1)	/**< gunzip input */
 #define BH_DL_CHUNKED	(1 << 2)	/**< Getting chunked data */
+#define BH_DL_G2		(1 << 3)	/**< Expecting G2 query hits */
 
 /*
  * Public interface.

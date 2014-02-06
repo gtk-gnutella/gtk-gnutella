@@ -1759,7 +1759,12 @@ on_search_details_key_press_event(GtkWidget *widget,
 static void
 search_gui_check_alt_locs(record_t *rc)
 {
+	const results_set_t *rs;
+
 	record_check(rc);
+
+	rs = rc->results_set;
+	results_set_check(rs);
 
 	if (rc->alt_locs) {
 		gint i, n;
@@ -1774,6 +1779,20 @@ search_gui_check_alt_locs(record_t *rc)
 			addr = gnet_host_get_addr(&host);
 			port = gnet_host_get_port(&host);
 			if (port > 0 && host_addr_is_routable(addr)) {
+				uint32 flags = 0;
+
+				/*
+				 * Even if "G2" results came back from GTKG (which is possible
+				 * since GTKG nodes are connected on G2 and respond to queries)
+				 * we know that GTKG is not going to discriminate between G2
+				 * and Gnutella and that both networks can happily download
+				 * from it, regardless of how they managed to get a hold on the
+				 * resource.
+				 */
+
+				if ((rs->status & ST_G2) && rs->vendor != T_GTKG)
+					flags = SOCK_F_G2;
+
 				guc_download_auto_new(rc->name,
 					rc->size,
 					addr,
@@ -1785,7 +1804,7 @@ search_gui_check_alt_locs(record_t *rc)
 					rc->results_set->stamp,
 					NULL,	/* fileinfo */
 					NULL,	/* proxies */
-					0);		/* flags */
+					flags);	/* flags */
 			}
 		}
 	}
@@ -1804,6 +1823,7 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 	rs = rc->results_set;
 	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+	flags |= ((rs->status & ST_G2) && rs->vendor != T_GTKG) ? SOCK_F_G2 : 0;
 
 	if (rc->sha1) {
 		uri = NULL;

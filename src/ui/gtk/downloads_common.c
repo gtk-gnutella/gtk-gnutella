@@ -1134,7 +1134,8 @@ on_popup_sources_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 	SELECTED_SOURCES_FOREACH_START(d) {
 		search_gui_new_browse_host(download_hostname(d),
-			download_addr(d), download_port(d), download_guid(d), NULL, 0);
+			download_addr(d), download_port(d), download_guid(d), NULL,
+			download_is_g2(d) ? SOCK_F_G2 : 0);
 	} SELECTED_SOURCES_FOREACH_END
 }
 
