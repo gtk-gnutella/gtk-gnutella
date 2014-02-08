@@ -1574,6 +1574,7 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, uint16 *port)
 		break;
     case HOST_GUESS:
         hc = caches[HCACHE_GUESS];
+		break;
     case HOST_GUESS6:
         hc = caches[HCACHE_GUESS6];
 		break;
