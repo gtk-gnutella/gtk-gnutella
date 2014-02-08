@@ -321,10 +321,14 @@ log:
 				node_infostr(n),
 			msg);
 		if (len != 0) {
-			iovec_t iov[2];
-			iovec_set(&iov[0], header, GTA_HEADER_SIZE);
-			iovec_set(&iov[1], payload, len - GTA_HEADER_SIZE);
-			dump_hex_vec(stderr, "UDP datagram", iov, G_N_ELEMENTS(iov));
+			if (len <= GTA_HEADER_SIZE) {
+				dump_hex(stderr, "UDP datagram", header, len);
+			} else {
+				iovec_t iov[2];
+				iovec_set(&iov[0], header, GTA_HEADER_SIZE);
+				iovec_set(&iov[1], payload, len - GTA_HEADER_SIZE);
+				dump_hex_vec(stderr, "UDP datagram", iov, G_N_ELEMENTS(iov));
+			}
 		}
 	}
 
