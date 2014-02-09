@@ -300,6 +300,11 @@ str_new_from(const char *string)
  *
  * If `len' is (size_t) -1, an strlen() is ran on `ptr' to compute the length.
  * If `size' is 0, it is set to `len + 1' (after length computation, if any).
+ *
+ * @param str	pointer to existing (and initialized) string object
+ * @param ptr	start of fix-sized buffer where string data will be held
+ * @param len	length of existing string, computed if (size_t) -1
+ * @param size	size of buffer starting at ptr (0 sets it to `len + 1')
  */
 void
 str_foreign(str_t *str, char *ptr, size_t len, size_t size)
@@ -337,7 +342,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
  *    str_new_buffer(&str, data, 0, sizeof data);
  *
  * @param str	pointer to uninitialized existing string object
- * @param ptr	start of fix sized buffer where string data will be held
+ * @param ptr	start of fix-sized buffer where string data will be held
  * @param len	length of existing string, computed if (size_t) -1
  * @param size	size (positive) of buffer starting at ptr
  */
