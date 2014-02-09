@@ -49,6 +49,7 @@
 #include "core/settings.h"		/* For listen_addr_primary() */
 #include "core/share.h"			/* For shared_files_scanned() */
 #include "core/sockets.h"		/* For socket_listen_port() */
+#include "core/tls_common.h"	/* For tls_enabled() */
 
 #include "if/core/search.h"		/* For SEARCH_* meta type flags */
 
@@ -412,6 +413,39 @@ g2_build_add_firewalled(g2_tree_t *t)
 }
 
 /**
+ * Generate a "TLS" child in the root if the node supports TLS connections.
+ * This is a documented GTKG extension.
+ */
+static void
+g2_build_add_tls(g2_tree_t *t)
+{
+	if (tls_enabled()) {
+		g2_tree_t *c = g2_tree_alloc_empty("TLS");
+		g2_tree_add_child(t, c);
+	}
+}
+
+/**
+ * Generate a "HN" child in the root to hold the DNS hostname, if defined.
+ * This is a documented GTKG extension.
+ */
+static void
+g2_build_add_hostname(g2_tree_t *t)
+{
+	if (
+		!GNET_PROPERTY(is_firewalled) &&
+		GNET_PROPERTY(give_server_hostname) &&
+		!is_null_or_empty(GNET_PROPERTY(server_hostname))
+	) {
+		g2_tree_t *c;
+		const char *hostname = GNET_PROPERTY(server_hostname);
+
+		c = g2_tree_alloc_copy("HN", hostname, strlen(hostname));
+		g2_tree_add_child(t, c);
+	}
+}
+
+/**
  * Generate as many "NH" childrend to the root as we have neihbouring hubs,
  * when the node is firewalled.  They can act as "push proxies", as in Gnutella.
  */
@@ -469,6 +503,7 @@ g2_build_lni(void)
 	g2_build_add_vendor(t);			/* V  -- vendor code */
 	g2_build_add_guid(t);			/* GU -- the GUID of this node */
 	g2_build_add_node_address(t);	/* NA -- the IP:port of this node */
+	g2_build_add_tls(t);			/* TLS -- whether TLS is supported */
 
 	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
@@ -704,8 +739,10 @@ g2_build_qh2_start(struct g2_qh2_builder *ctx)
 	g2_build_add_guid(ctx->t);			/* GU -- the GUID of this node */
 	g2_build_add_vendor(ctx->t);		/* V  -- vendor code */
 	g2_build_add_firewalled(ctx->t);	/* FW -- when servent is firewalled */
+	g2_build_add_tls(ctx->t);			/* TLS -- whether TLS is supported */
 	g2_build_add_uptime(ctx->t);		/* UP -- servent uptime */
 	g2_build_add_neighbours(ctx->t);	/* NH -- neighbouring hubs, if FW */
+	g2_build_add_hostname(ctx->t);		/* HN -- DNS hostname, if defined */
 
 	/*
 	 * Compute size we have so far, once per query hit series.
@@ -862,6 +899,24 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 			poke_le32(payload, (uint32) mtime);
 			g2_tree_add_child(c,
 				g2_tree_alloc_copy("MT", payload, sizeof(uint32)));
+		}
+
+		/*
+		 * CT -- creation time of the resource (GTKG extension).
+		 */
+
+		{
+			time_t create_time = shared_file_creation_time(sf);
+
+			if ((time_t) -1 != create_time) {
+				char payload[8];
+				int n;
+
+				create_time = MAX(0, create_time);
+				n = vlint_encode(create_time, payload);
+				g2_tree_add_child(h,
+					g2_tree_alloc_copy("CT", payload, n));	/* No trailing 0s */
+			}
 		}
 	}
 

@@ -2645,13 +2645,16 @@ enum g2_qh2_child {
 	G2_QH2_FW,
 	G2_QH2_GU,
 	G2_QH2_H,
+	G2_QH2_HN,
 	G2_QH2_NH,
+	G2_QH2_TLS,
 	G2_QH2_V
 };
 
 enum g2_qh2_h_child {
 	G2_QH2_H_ALT = 1,
 	G2_QH2_H_CSC,		/* unparsed (rather useless) */
+	G2_QH2_H_CT,
 	G2_QH2_H_DN,
 	G2_QH2_H_ID,		/* unparsed */
 	G2_QH2_H_PART,
@@ -2666,7 +2669,9 @@ static const tokenizer_t g2_qh2_children[] = {
 	{ "FW",		G2_QH2_FW },
 	{ "GU",		G2_QH2_GU },
 	{ "H",		G2_QH2_H },
+	{ "HN",		G2_QH2_HN },
 	{ "NH",		G2_QH2_NH },
+	{ "TLS",	G2_QH2_TLS },
 	{ "V",		G2_QH2_V },
 };
 
@@ -2674,6 +2679,7 @@ static const tokenizer_t g2_qh2_h_children[] = {
 	/* Sorted array */
 	{ "ALT",	G2_QH2_H_ALT },
 	{ "CSC",	G2_QH2_H_CSC },
+	{ "CT",		G2_QH2_H_CT },
 	{ "DN",		G2_QH2_H_DN },
 	{ "ID",		G2_QH2_H_ID },
 	{ "PART",	G2_QH2_H_PART },
@@ -2751,6 +2757,14 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 					search_record_warn(n, rs, hit,
 						"ignoring ALT (%zu bytes)", paylen);
 				}
+			}
+			break;
+
+		case G2_QH2_H_CT:
+			payload = g2_tree_node_payload(c, &paylen);
+			if (paylen <= 8) {
+				uint64 v = vlint_decode(payload, paylen);
+				rc->create_time = MIN(v, TIME_T_MAX);
 			}
 			break;
 
@@ -3134,6 +3148,31 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 			}
 			break;
 
+		case G2_QH2_HN:
+			payload = g2_tree_node_payload(c, &paylen);
+			if (payload != NULL && NULL == rs->hostname) {
+				char buf[MAX_HOSTLEN];
+
+				clamp_strncpy(buf, sizeof buf, payload, paylen);
+				if (utf8_is_valid_string(buf)) {
+					const char *endptr;
+					host_addr_t addr;
+
+					/*
+					 * Ensure the full string qualifies as hostname and is
+					 * not an IP address.
+					 */
+
+					if (
+						string_to_host_or_addr(buf, &endptr, &addr) &&
+						'\0' == *endptr && !is_host_addr(addr)
+					) {
+						rs->hostname = atom_str_get(buf);
+					}
+				}
+			}
+			break;
+
 		case G2_QH2_NH:
 			{
 				host_addr_t addr;
@@ -3147,6 +3186,10 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 				if (g2_node_parse_address(c, &addr, &port))
 					gnet_host_vec_add(rs->proxies, addr, port);
 			}
+			break;
+
+		case G2_QH2_TLS:
+			rs->status |= ST_TLS;
 			break;
 
 		case G2_QH2_V:
