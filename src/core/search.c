@@ -1817,6 +1817,30 @@ search_add_push_proxy(gnet_results_set_t *rs, host_addr_t addr, uint16 port)
 }
 
 /**
+ * Build a string atom representing the GGEP version information.
+ */
+static const char *
+search_results_version(const struct ggep_gtkgv *vi)
+{
+	version_ext_t ver;
+
+	ZERO(&ver);
+	ver.version.major = vi->major;
+	ver.version.minor = vi->minor;
+	ver.version.patchlevel = vi->patch;
+	ver.version.tag = vi->revchar;
+	ver.version.build = vi->build;
+	if (ver.version.tag)
+		ver.version.timestamp = vi->release;
+	ver.commit_len = vi->commit_len;
+	ver.commit = vi->commit;		/* Struct copy */
+	ver.osname = vi->osname;		/* Static string */
+	ver.dirty = vi->dirty;
+
+	return atom_str_get(version_ext_str(&ver, TRUE));
+}
+
+/**
  * Compute status bits, decompile trailer info, if present.
  *
  * @return TRUE if there were errors and the packet should be dropped.
@@ -1995,22 +2019,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 					ret = ggept_gtkgv_extract(e, &vi);
 					if (ret == GGEP_OK) {
-						version_ext_t ver;
-
-						ZERO(&ver);
-						ver.version.major = vi.major;
-						ver.version.minor = vi.minor;
-						ver.version.patchlevel = vi.patch;
-						ver.version.tag = vi.revchar;
-						ver.version.build = vi.build;
-						if (ver.version.tag)
-							ver.version.timestamp = vi.release;
-						ver.commit_len = vi.commit_len;
-						ver.commit = vi.commit;		/* Struct copy */
-						ver.osname = vi.osname;		/* Static string */
-						ver.dirty = vi.dirty;
-
-						rs->version = atom_str_get(version_ext_str(&ver, TRUE));
+						rs->version = search_results_version(&vi);
 					} else if (ret == GGEP_INVALID) {
 						search_log_bad_ggep(n, e, vendor);
 					}
@@ -2643,6 +2652,7 @@ search_record_warn(const gnutella_node_t *n,
 enum g2_qh2_child {
 	G2_QH2_BH = 1,
 	G2_QH2_FW,
+	G2_QH2_GTKGV,		/* Child is "gtkgV", this is GTKG-specific */
 	G2_QH2_GU,
 	G2_QH2_H,
 	G2_QH2_HN,
@@ -2673,6 +2683,7 @@ static const tokenizer_t g2_qh2_children[] = {
 	{ "NH",		G2_QH2_NH },
 	{ "TLS",	G2_QH2_TLS },
 	{ "V",		G2_QH2_V },
+	{ "gtkgV",	G2_QH2_GTKGV },
 };
 
 static const tokenizer_t g2_qh2_h_children[] = {
@@ -3135,6 +3146,16 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 			badmsg = search_validate_guid(rs, n, muid);
 			if (badmsg != NULL)
 				goto bad_packet;
+			break;
+
+		case G2_QH2_GTKGV:
+			payload = g2_tree_node_payload(c, &paylen);
+			if (payload != NULL && NULL == rs->version) {
+				struct ggep_gtkgv vi;
+
+				if (GGEP_OK == ggept_gtkgv_extract_data(payload, paylen, &vi))
+					rs->version = search_results_version(&vi);
+			}
 			break;
 
 		case G2_QH2_H:

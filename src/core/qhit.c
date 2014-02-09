@@ -367,8 +367,6 @@ found_insert(const void *key)
 	hset_insert(f->hs, key);
 }
 
-static time_t release_date;
-
 /**
  * Processor for query hits sent inbound.
  */
@@ -473,45 +471,15 @@ flush_match(void)
 	 */
 
 	{
-		uint8 major = product_get_major();
-		uint8 minor = product_get_minor();
-		uint8 revchar = product_get_revchar();
-		uint8 patch = product_get_patchlevel();
-		uint32 release;
-		uint32 date = release_date;
-		uint32 build;
-		uint8 version = 1;		/* This is GTKGV version 1 */
-		uint8 osname;
-		uint8 flags;
-		uint8 commit_len;
-		size_t commit_bytes;
-		const sha1_t *commit;
+		char buf[GTKGV_MAX_LEN];
+		size_t len;
 		bool ok;
 
-		flags = GTKGV_F_GIT | GTKGV_F_OS;
-		if (version_is_dirty())
-			flags |= GTKGV_F_DIRTY;
-
-		poke_be32(&release, date);
-		poke_be32(&build, product_get_build());
-
-		commit = version_get_commit(&commit_len);
-		commit_bytes = (1 + commit_len) / 2;
-		osname = ggept_gtkgv_osname_value();
+		len = ggept_gtkgv_build(buf, sizeof buf);
 
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(GTKGV), 0) &&
-			ggep_stream_write(&gs, &version, 1) &&
-			ggep_stream_write(&gs, &major, 1) &&
-			ggep_stream_write(&gs, &minor, 1) &&
-			ggep_stream_write(&gs, &patch, 1) &&
-			ggep_stream_write(&gs, &revchar, 1) &&
-			ggep_stream_write(&gs, &release, 4) &&
-			ggep_stream_write(&gs, &build, 4) &&
-			ggep_stream_write(&gs, &flags, 1) &&
-			ggep_stream_write(&gs, &commit_len, 1) &&
-			ggep_stream_write(&gs, commit, commit_bytes) &&
-			ggep_stream_write(&gs, &osname, 1) &&
+			ggep_stream_write(&gs, buf, len) &&
 			ggep_stream_end(&gs);
 
 		if (!ok)
@@ -1129,7 +1097,7 @@ qhit_build_results(const pslist_t *files, int count, size_t max_msgsize,
 void
 qhit_init(void)
 {
-	release_date = date2time(product_get_date(), tm_time());
+	/* Nada */
 }
 
 /**

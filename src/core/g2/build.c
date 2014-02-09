@@ -44,7 +44,9 @@
 
 #include "core/dmesh.h"
 #include "core/gnet_stats.h"
+#include "core/ggep_type.h"		/* For ggept_gtkgv_build() and GTKGV_MAX_LEN */
 #include "core/nodes.h"
+#include "core/guid.h"			/* For guid_query_muid_is_gtkg() */
 #include "core/qhit.h"
 #include "core/settings.h"		/* For listen_addr_primary() */
 #include "core/share.h"			/* For shared_files_scanned() */
@@ -468,6 +470,21 @@ g2_build_add_neighbours(g2_tree_t *t)
 }
 
 /**
+ * Add a "gtkgV" child to propagate GTKG version information.
+ */
+static void
+g2_build_add_gtkgv(g2_tree_t *t)
+{
+	char buf[GTKGV_MAX_LEN];
+	size_t len;
+	g2_tree_t *c;
+
+	len = ggept_gtkgv_build(buf, sizeof buf);
+	c = g2_tree_alloc_copy("gtkgV", buf, len);
+	g2_tree_add_child(t, c);
+}
+
+/**
  * Build a Local Node Info message.
  *
  * @return a /LNI message.
@@ -670,6 +687,7 @@ struct g2_qh2_builder {
 	size_t current_size;		/**< Estimated current size */
 	int messages;				/**< Counts flushed messages, for logging */
 	uint flags;					/**< Flags for optional entries in hit */
+	uint from_gtkg:1;			/**< Whether query comes from GTKG */
 };
 
 /**
@@ -743,6 +761,15 @@ g2_build_qh2_start(struct g2_qh2_builder *ctx)
 	g2_build_add_uptime(ctx->t);		/* UP -- servent uptime */
 	g2_build_add_neighbours(ctx->t);	/* NH -- neighbouring hubs, if FW */
 	g2_build_add_hostname(ctx->t);		/* HN -- DNS hostname, if defined */
+
+	/*
+	 * If the query comes from a GTKG node (not 100% safe, there can be some
+	 * false positive, but we cannot miss any true GTKG query), propagate back
+	 * detailed version information.
+	 */
+
+	if (ctx->from_gtkg)
+		g2_build_add_gtkgv(ctx->t);		/* gtkgV -- GTKG version info */
 
 	/*
 	 * Compute size we have so far, once per query hit series.
@@ -1048,6 +1075,24 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 	ctx.max_size = G2_BUILD_QH2_THRESH;
 	ctx.flags = flags;
 	ctx.hub = h;
+
+	/*
+	 * Determine whether query comes from GTKG.
+	 *
+	 * Because G2 support was added in 2014-01, we're past 2012-10-07, date
+	 * where all MUID markup in queries has been made compatible with OOB,
+	 * so that our markup does not coincide with OOB markup.  In G2, the MUID
+	 * is not supposed to carry OOB delivery information, but since we're using
+	 * the same MUID to query Gnuella and G2, we have to expect OOB-tagged
+	 * MUIDs from GTKG.
+	 */
+
+	{
+		uint8 maj, min;
+		bool rel;
+
+		ctx.from_gtkg = guid_query_muid_is_gtkg(muid, TRUE, &maj, &min, &rel);
+	}
 
 	PSLIST_FOREACH(files, sl) {
 		shared_file_t *sf = sl->data;
