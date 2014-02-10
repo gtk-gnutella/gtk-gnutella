@@ -618,11 +618,13 @@ node_ht_connected_nodes_remove(const gnutella_node_t *n)
 
 	/* This is done unconditionally, whether host was in table or not */
 	if (NODE_TALKS_G2(n)) {
-		g_assert(uint32_is_positive(total_g2_nodes_connected));
-		total_g2_nodes_connected--;
+		g_assert(uint32_is_non_negative(total_g2_nodes_connected));
+		if (total_g2_nodes_connected != 0)
+			total_g2_nodes_connected--;
 	} else {
-		g_assert(uint32_is_positive(total_nodes_connected));
-		total_nodes_connected--;
+		g_assert(uint32_is_non_negative(total_nodes_connected));
+		if (total_nodes_connected != 0)
+			total_nodes_connected--;
 	}
 }
 
