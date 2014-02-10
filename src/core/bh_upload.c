@@ -630,7 +630,8 @@ browse_host_open(
 		tx = tx_make_above(bh->tx, tx_deflate_get_ops(), &args);
 		if (tx == NULL) {
 			tx_free(bh->tx);
-			link_cb->eof_remove(owner, "Cannot setup compressing TX stack");
+			link_cb->eof_remove(owner,
+				"%s(): cannot setup compressing TX stack", G_STRFUNC);
 			WFREE(bh);
 			return NULL;
 		}
