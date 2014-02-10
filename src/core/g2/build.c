@@ -66,6 +66,7 @@
 #include "lib/pow2.h"
 #include "lib/pslist.h"
 #include "lib/sha1.h"
+#include "lib/stacktrace.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -415,6 +416,18 @@ g2_build_add_firewalled(g2_tree_t *t)
 }
 
 /**
+ * Generate a "BH" child in the root if the node is browsable.
+ */
+static void
+g2_build_add_browsable(g2_tree_t *t)
+{
+	if (GNET_PROPERTY(browse_host_enabled)) {
+		g2_tree_t *c = g2_tree_alloc_empty("BH");
+		g2_tree_add_child(t, c);
+	}
+}
+
+/**
  * Generate a "TLS" child in the root if the node supports TLS connections.
  * This is a documented GTKG extension.
  */
@@ -680,26 +693,34 @@ struct g2_qh2_builder {
 	char payload[1 + GUID_RAW_SIZE];	/**< hops + MUID */
 	const guid_t *muid;			/**< MUID of query, for logging if needed */
 	const gnutella_node_t *hub;	/**< The hub that gave us the query */
+	const gnutella_node_t *n;	/**< The node to which results are sent */
 	hset_t *hs;					/**< Records SHA1 atoms we sent */
 	g2_tree_t *t;				/**< Current message */
+	g2_build_qh2_cb_t cb;		/**< (optional) Processing callback */
+	void *arg;					/**< Processing callback argument */
 	size_t max_size;			/**< Max query hit size we want */
 	size_t common_size;			/**< Serialized size with common fields only */
 	size_t current_size;		/**< Estimated current size */
 	int messages;				/**< Counts flushed messages, for logging */
 	uint flags;					/**< Flags for optional entries in hit */
 	uint from_gtkg:1;			/**< Whether query comes from GTKG */
+	uint to_udp:1;				/**< Whether results are sent via UDP */
 };
 
 /**
- * Send current /QH2 to target node.
+ * Flush current /QH2.
+ *
+ * Depending how the QH2 builder is configured, this either sends the message
+ * to the target node or invokes a processing callback.
  */
 static void
-g2_build_qh2_flush(gnutella_node_t *n, struct g2_qh2_builder *ctx)
+g2_build_qh2_flush(struct g2_qh2_builder *ctx)
 {
 	pmsg_t *mb;
 
 	g_assert(ctx != NULL);
 	g_assert(ctx->t != NULL);
+	g_assert((ctx->n != NULL) ^ (ctx->cb != NULL));
 
 	/*
 	 * Restore the order of children in the root packet to be the order we
@@ -714,7 +735,7 @@ g2_build_qh2_flush(gnutella_node_t *n, struct g2_qh2_builder *ctx)
 	 * routine to it.
 	 */
 
-	if (NODE_IS_UDP(n)) {
+	if (ctx->to_udp) {
 		struct g2_qh2_pmsg_info *pmi;
 
 		WALLOC0(pmi);
@@ -727,12 +748,19 @@ g2_build_qh2_flush(gnutella_node_t *n, struct g2_qh2_builder *ctx)
 	}
 
 	if (GNET_PROPERTY(g2_debug) > 3) {
-		g_debug("%s(): flushing the following hit for Q2 #%s to %s (%d bytes):",
-			G_STRFUNC, guid_hex_str(ctx->muid), node_infostr(n), pmsg_size(mb));
+		g_debug("%s(): flushing the following hit for "
+			"Q2 #%s to %s%s (%d bytes):",
+			G_STRFUNC, guid_hex_str(ctx->muid),
+			NULL == ctx->n ?
+				stacktrace_function_name(ctx->cb) : node_infostr(ctx->n),
+			NULL == ctx->n ? "()" : "", pmsg_size(mb));
 		g2_tfmt_tree_dump(ctx->t, stderr, G2FMT_O_PAYLOAD | G2FMT_O_PAYLEN);
 	}
 
-	g2_node_send(n, mb);
+	if (ctx->n != NULL)
+		g2_node_send(ctx->n, mb);
+	else
+		(*ctx->cb)(mb, ctx->arg);
 
 	ctx->messages++;
 	g2_tree_free_null(&ctx->t);
@@ -757,6 +785,7 @@ g2_build_qh2_start(struct g2_qh2_builder *ctx)
 	g2_build_add_guid(ctx->t);			/* GU -- the GUID of this node */
 	g2_build_add_vendor(ctx->t);		/* V  -- vendor code */
 	g2_build_add_firewalled(ctx->t);	/* FW -- when servent is firewalled */
+	g2_build_add_browsable(ctx->t);		/* BH -- when browsing is allowed */
 	g2_build_add_tls(ctx->t);			/* TLS -- whether TLS is supported */
 	g2_build_add_uptime(ctx->t);		/* UP -- servent uptime */
 	g2_build_add_neighbours(ctx->t);	/* NH -- neighbouring hubs, if FW */
@@ -813,14 +842,19 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 	 *
 	 * A user may share several files with different names but the same SHA1,
 	 * and if all of them are hits, we only want to send one instance.
+	 *
+	 * When generating hits for host-browsing, we do not care about duplicates
+	 * and ctx->hs is NULL then.
 	 */
 
 	sha1 = shared_file_sha1(sf);		/* This is an atom */
 
-	if (hset_contains(ctx->hs, sha1))
-		return FALSE;
+	if (ctx->hs != NULL) {
+		if (hset_contains(ctx->hs, sha1))
+			return FALSE;
 
-	hset_insert(ctx->hs, sha1);
+		hset_insert(ctx->hs, sha1);
+	}
 
 	/*
 	 * Create the "H" child and attach it to the current tree.
@@ -1048,6 +1082,37 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 }
 
 /**
+ * Process the files according to the initialized /QH2 context.
+ *
+ * @return the amount of files processed.
+ */
+static int
+g2_build_qh2_process(const pslist_t *files, struct g2_qh2_builder *ctx)
+{
+	const pslist_t *sl;
+	int sent = 0;
+
+	PSLIST_FOREACH(files, sl) {
+		shared_file_t *sf = sl->data;
+
+		if (g2_build_qh2_add(ctx, sf))
+			sent++;
+
+		if (ctx->current_size >= ctx->max_size)
+			g2_build_qh2_flush(ctx);
+
+		shared_file_unref(&sf);
+	}
+
+	if (ctx->t != NULL)					/* Still some unflushed results */
+		g2_build_qh2_flush(ctx);		/* Send last packet */
+
+	hset_free_null(&ctx->hs);
+
+	return sent;
+}
+
+/**
  * Build and send query hits (/QH2) to specified node.
  *
  * @param h			the hub node which sent us the query
@@ -1061,7 +1126,6 @@ void
 g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 	pslist_t *files, int count, const guid_t *muid, uint flags)
 {
-	pslist_t *sl;
 	struct g2_qh2_builder ctx;
 	int sent = 0;
 
@@ -1075,6 +1139,8 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 	ctx.max_size = G2_BUILD_QH2_THRESH;
 	ctx.flags = flags;
 	ctx.hub = h;
+	ctx.n = n;
+	ctx.to_udp = NODE_IS_UDP(n);
 
 	/*
 	 * Determine whether query comes from GTKG.
@@ -1094,22 +1160,7 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 		ctx.from_gtkg = guid_query_muid_is_gtkg(muid, TRUE, &maj, &min, &rel);
 	}
 
-	PSLIST_FOREACH(files, sl) {
-		shared_file_t *sf = sl->data;
-
-		if (g2_build_qh2_add(&ctx, sf))
-			sent++;
-
-		if (ctx.current_size >= ctx.max_size)
-			g2_build_qh2_flush(n, &ctx);
-
-		shared_file_unref(&sf);
-	}
-
-	if (ctx.t != NULL)					/* Still some unflushed results */
-		g2_build_qh2_flush(n, &ctx);	/* Send last packet */
-
-	hset_free_null(&ctx.hs);
+	sent = g2_build_qh2_process(files, &ctx);
 
 done:
 	pslist_free(files);
@@ -1118,6 +1169,54 @@ done:
 		g_debug("%s(): sent %d/%d hit%s in %d message%s to %s",
 			G_STRFUNC, sent, count, plural(sent),
 			ctx.messages, plural(ctx.messages), node_infostr(n));
+	}
+}
+
+/**
+ * Build and post-process /QH2 messages for specified files.
+ *
+ * Results are held in the `files' list.  They are packed in hits until
+ * the message reaches the `max_msgsize' limit at which time the packet
+ * is flushed and given the the `cb' callback for processing (sending,
+ * queueing, whatever).
+ *
+ * The callback is invoked as
+ *
+ *		cb(mb, udata)
+ *
+ * where the serialized /QH2 message is held in `mb'.
+ * The `udata' parameter is simply user-supplied data, opaque for us.
+ *
+ * @param files			the list of shared_file_t entries that make up results
+ * @param count			the amount of results to deliver (first `count' files)
+ * @param max_msgsize	the targeted maximum hit size before flushing
+ * @param cb			the processor callback to invoke on each built hit
+ * @param udata			argument to pass to callback
+ * @param muid			the MUID to use on each generated hit
+ * @param flags			a set of QHIT_F_G2_* flags
+ */
+void
+g2_build_qh2_results(const pslist_t *files, int count, size_t max_msgsize,
+	g2_build_qh2_cb_t cb, void *udata, const struct guid *muid, uint flags)
+{
+	struct g2_qh2_builder ctx;
+	int sent;
+
+	ZERO(&ctx);
+	clamp_memcpy(&ctx.payload[1], sizeof ctx.payload - 1, muid, GUID_RAW_SIZE);
+	ctx.muid = muid;
+	ctx.max_size = max_msgsize;
+	ctx.flags = flags;
+	ctx.cb = cb;
+	ctx.arg = udata;
+	ctx.from_gtkg = TRUE;	/* Always include the gtkgV child */
+
+	sent = g2_build_qh2_process(files, &ctx);
+
+	if (GNET_PROPERTY(g2_debug) > 3) {
+		g_debug("%s(): procesed %d/%d hit%s in %d message%s to %s()",
+			G_STRFUNC, sent, count, plural(sent),
+			ctx.messages, plural(ctx.messages), stacktrace_function_name(cb));
 	}
 }
 

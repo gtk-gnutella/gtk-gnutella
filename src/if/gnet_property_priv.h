@@ -529,6 +529,8 @@ extern const gboolean gnet_property_variable_log_dropped_g2;
 extern const guint32  gnet_property_variable_g2_rpc_debug;
 extern const gboolean gnet_property_variable_log_query_hits;
 extern const gboolean gnet_property_variable_log_query_hit_records;
+extern const guint32  gnet_property_variable_g2_browse_count;
+extern const guint32  gnet_property_variable_g2_browse_served;
 
 
 prop_set_t *gnet_prop_init(void);
