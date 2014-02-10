@@ -1430,9 +1430,11 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 		rs->status |= ST_BANNED_GUID;
 		*hostile |= HSTL_BANNED_GUID;
 		search_log_spam(n, rs, "banned GUID %s", guid_hex_str(rs->guid));
-	} else if (!(ST_SPAM & rs->status)) {
+	} else if (0 == ((ST_SPAM | ST_BROWSE) & rs->status)) {
 		/*
 		 * Avoid costly checks if already marked as spam.
+		 * Skip duplicate checks for host browsing since they may share files
+		 * with hard links and different names, or even true duplicates.
 		 */
 		search_results_identify_dupes(n, rs, hostile);
 	}
