@@ -3827,6 +3827,10 @@ create_main_window_upload_stats_tab (void)
   GtkWidget *label419;
   GtkWidget *hbox9296;
   GtkWidget *label923;
+  GtkWidget *label_g2_browse_served;
+  GtkWidget *label1081;
+  GtkWidget *label_g2_browse_count;
+  GtkWidget *label1083;
   GtkWidget *label_html_browse_served;
   GtkWidget *label991;
   GtkWidget *label_html_browse_count;
@@ -3930,6 +3934,26 @@ create_main_window_upload_stats_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox9296), label923, TRUE, TRUE, 0);
   gtk_misc_set_alignment (GTK_MISC (label923), 1, 0.5);
 
+  label_g2_browse_served = gtk_label_new (_("[G2 served]"));
+  gtk_widget_set_name (label_g2_browse_served, "label_g2_browse_served");
+  gtk_widget_show (label_g2_browse_served);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label_g2_browse_served, FALSE, FALSE, 0);
+
+  label1081 = gtk_label_new (_(" / "));
+  gtk_widget_set_name (label1081, "label1081");
+  gtk_widget_show (label1081);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label1081, FALSE, FALSE, 0);
+
+  label_g2_browse_count = gtk_label_new (_("[G2]"));
+  gtk_widget_set_name (label_g2_browse_count, "label_g2_browse_count");
+  gtk_widget_show (label_g2_browse_count);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label_g2_browse_count, FALSE, FALSE, 0);
+
+  label1083 = gtk_label_new (_(" G2, "));
+  gtk_widget_set_name (label1083, "label1083");
+  gtk_widget_show (label1083);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label1083, FALSE, FALSE, 0);
+
   label_html_browse_served = gtk_label_new (_("[BH HTML served]"));
   gtk_widget_set_name (label_html_browse_served, "label_html_browse_served");
   gtk_widget_show (label_html_browse_served);
@@ -3995,6 +4019,10 @@ create_main_window_upload_stats_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label419, "label419");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, hbox9296, "hbox9296");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label923, "label923");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label_g2_browse_served, "label_g2_browse_served");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label1081, "label1081");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label_g2_browse_count, "label_g2_browse_count");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label1083, "label1083");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label_html_browse_served, "label_html_browse_served");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label991, "label991");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label_html_browse_count, "label_html_browse_count");
