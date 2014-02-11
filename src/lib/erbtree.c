@@ -933,12 +933,13 @@ struct erbtree_foreach_args {
 };
 
 static void
-erbtree_foreach_recursive(rbnode_t *rn, const struct erbtree_foreach_args *args)
+erbtree_foreach_recursive(
+	const rbnode_t *rn, const struct erbtree_foreach_args *args)
 {
 	if (rn->left != NULL)
 		erbtree_foreach_recursive(rn->left, args);
 
-	(*args->cb)(ptr_add_offset(rn, args->offset), args->data);
+	(*args->cb)(ptr_add_offset((void *) rn, args->offset), args->data);
 
 	if (rn->right != NULL)
 		erbtree_foreach_recursive(rn->right, args);
@@ -946,9 +947,14 @@ erbtree_foreach_recursive(rbnode_t *rn, const struct erbtree_foreach_args *args)
 
 /**
  * Traverse all the items in the tree, invoking the callback on each item.
+ *
+ * @attention
+ * The tree structure MUST NOT be modified by the callback to add (or remove)
+ * items.  For traversal with optional removal of the current item, use
+ * erbtree_foreach_remove().
  */
 void
-erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data)
+erbtree_foreach(const erbtree_t *tree, data_fn_t cb, void *data)
 {
 	erbtree_check(tree);
 
