@@ -141,6 +141,26 @@ erbtree_data(const erbtree_t *tree, rbnode_t *node)
 	return NULL == node ? NULL : ptr_add_offset(node, -tree->offset);
 }
 
+/**
+ * @return pointer to the first item of the tree, NULL if empty.
+ */
+static inline void *
+erbtree_head(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return NULL == t->first ? NULL : ptr_add_offset(t->first, -t->offset);
+}
+
+/**
+ * @return pointer to the last item of the tree, NULL if empty.
+ */
+static inline void *
+erbtree_tail(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return NULL == t->last ? NULL : ptr_add_offset(t->last, -t->offset);
+}
+
 #define ERBTREE_FOREACH(tree, rn) \
 	for ((rn) = erbtree_first(tree); (rn) != NULL; (rn) = erbtree_next(rn))
 
