@@ -157,7 +157,9 @@ aging_gc(void *obj)
 	struct aging_value *aval;
 
 	aging_check(ag);
-	assert_aging_locked(ag);
+
+	aging_synchronize(ag);
+
 	g_assert(elist_count(&ag->list) == hikset_count(ag->table));
 
 	while (NULL != (aval = elist_head(&ag->list))) {
@@ -167,7 +169,7 @@ aging_gc(void *obj)
 		aging_free(aval, ag);
 	}
 
-	return TRUE;			/* Keep calling */
+	aging_return(ag, TRUE);			/* Keep calling */
 }
 
 /**
