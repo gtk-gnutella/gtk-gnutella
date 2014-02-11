@@ -318,28 +318,6 @@ get_last(rbnode_t *node)
 }
 
 /**
- * Get first (smallest) item in the tree.
- */
-rbnode_t *
-erbtree_first(const erbtree_t *tree)
-{
-	erbtree_check(tree);
-
-	return tree->first;
-}
-
-/**
- * Get last (bigest) item in the tree.
- */
-rbnode_t *
-erbtree_last(const erbtree_t *tree)
-{
-	erbtree_check(tree);
-
-	return tree->last;
-}
-
-/**
  * Get next item in the tree, following natural order.
  */
 rbnode_t *

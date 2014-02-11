@@ -115,8 +115,6 @@ void erbtree_init_data(erbtree_ext_t *tree,
 void erbtree_clear(erbtree_t *tree);
 
 size_t erbtree_count(const erbtree_t *tree);
-rbnode_t *erbtree_first(const erbtree_t *tree);
-rbnode_t *erbtree_last(const erbtree_t *tree);
 rbnode_t *erbtree_next(const rbnode_t *node);
 rbnode_t *erbtree_prev(const rbnode_t *node);
 bool erbtree_contains(const erbtree_t *tree, const void *key);
@@ -134,11 +132,10 @@ void erbtree_discard_with_data(erbtree_t *tree, free_data_fn_t fcb, void *data);
  * Computes the data item address given the embedded node pointer.
  */
 static inline void *
-erbtree_data(const erbtree_t *tree, rbnode_t *node)
+erbtree_data(const erbtree_t *t, rbnode_t *node)
 {
-	erbtree_check(tree);
-
-	return NULL == node ? NULL : ptr_add_offset(node, -tree->offset);
+	erbtree_check(t);
+	return NULL == node ? NULL : ptr_add_offset(node, -t->offset);
 }
 
 /**
@@ -159,6 +156,26 @@ erbtree_tail(const erbtree_t * const t)
 {
 	erbtree_check(t);
 	return NULL == t->last ? NULL : ptr_add_offset(t->last, -t->offset);
+}
+
+/**
+ * Get first (smallest) item in the tree.
+ */
+static inline rbnode_t *
+erbtree_first(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return t->first;
+}
+
+/**
+ * Get last (bigest) item in the tree.
+ */
+static inline rbnode_t *
+erbtree_last(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return t->last;
 }
 
 #define ERBTREE_FOREACH(tree, rn) \
