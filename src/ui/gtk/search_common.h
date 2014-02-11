@@ -100,6 +100,7 @@ typedef struct search {
 	size_t guess_cur_ultra;		/**< Current amount of queried ultra nodes */
 	size_t guess_cur_g2;		/**< Current amount of queried G2 nodes */
 	size_t guess_cur_acks;		/**< Current amount of acks received */
+	size_t guess_cur_reached;	/**< Current amount of nodes reached */
 	size_t guess_cur_results;	/**< Current amount of results received */
 	size_t guess_cur_kept;		/**< Current amount of results kept */
 	size_t guess_cur_hops;		/**< Current query iteration count */

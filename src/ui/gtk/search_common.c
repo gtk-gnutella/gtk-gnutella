@@ -579,7 +579,7 @@ search_gui_update_guess_stats(const struct search *search)
 		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
 			"[Pool: %zu %s, (%zu+%zu)/%zu queried, %zu %s (%.2f%%), "
-			"%zu pending, %zu %s%s%s]"),
+			"%zu reached, %zu pending, %zu %s%s%s]"),
 			compact_time(delta_time(tm_time(), search->guess_cur_start)),
 			GUESS_QUERY_LOOSE == search->guess_cur_mode ?
 				_("loose") : _("bounded"),
@@ -595,6 +595,7 @@ search_gui_update_guess_stats(const struct search *search)
 			search->guess_cur_acks,
 			NG_("ack", "acks", search->guess_cur_acks),
 			100.0 * search->guess_cur_acks / (0 == queried ?  1 : queried),
+			search->guess_cur_reached,
 			search->guess_cur_rpc_pending,
 			search->guess_cur_hops,
 			NG_("hop", "hops", search->guess_cur_hops),
@@ -4481,7 +4482,7 @@ search_gui_guess_event(gnet_search_t sh, const struct guess_query *query)
 		search->guess_results += search->guess_cur_results;
 		search->guess_kept += search->guess_cur_kept;
 		search->guess_elapsed = delta_time(tm_time(), search->guess_cur_start);
-		search->guess_hosts = search->guess_cur_acks;	/* Really queried */
+		search->guess_hosts = search->guess_cur_reached;	/* Really queried */
 		search->guess_last_kept = search->guess_cur_kept;
 		/* Reset stats for new query */
 		search->guess_cur_start = 0;
@@ -4516,6 +4517,7 @@ search_gui_guess_stats(gnet_search_t sh, const struct guess_stats *stats)
 	search->guess_cur_ultra			= stats->queried_ultra;
 	search->guess_cur_g2			= stats->queried_g2;
 	search->guess_cur_acks			= stats->acks;
+	search->guess_cur_reached		= stats->reached;
 	search->guess_cur_results		= stats->results;
 	search->guess_cur_kept			= stats->kept;
 	search->guess_cur_hops			= stats->hops;

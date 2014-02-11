@@ -196,6 +196,7 @@ struct guess {
 	tm_t start;					/**< Start time */
 	size_t queried_ultra;		/**< Amount of ultra nodes queried */
 	size_t query_acks;			/**< Amount of query acknowledgments */
+	size_t query_reached;		/**< Amount of reached hosts */
 	size_t max_ultrapeers;		/**< Max amount of ultrapeers to query */
 	size_t queried_g2;			/**< Amount of G2 nodes queried */
 	enum guess_mode mode;		/**< Concurrency mode */
@@ -479,6 +480,7 @@ guess_stats_fire(const guess_t *gq)
 	stats.queried_ultra	= gq->queried_ultra;
 	stats.queried_g2	= gq->queried_g2;
 	stats.acks			= gq->query_acks;
+	stats.reached		= gq->query_reached;
 	stats.results		= gq->recv_results;
 	stats.kept			= gq->kept_results;
 	stats.hops			= gq->hops;
@@ -844,7 +846,7 @@ guess_should_terminate(guess_t *gq, bool verbose)
 		goto terminate;
 	}
 
-	if (gq->query_acks >= gq->max_ultrapeers) {
+	if (gq->query_reached >= gq->max_ultrapeers) {
 		reason = "max amount of successfully queried ultrapeers reached";
 		goto terminate;
 	}
@@ -1987,16 +1989,25 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 						break;
 					}
 
+					/*
+					 * Since G2 queries are forwarded by the receiving hub to
+					 * its neighbouring hubs, we need to account for reached
+					 * hosts separately from the amount of hosts acknowledging
+					 * the query.
+					 */
+
 					if (hash_list_contains(gq->pool, &h)) {
 						const gnet_host_t *hp = hash_list_remove(gq->pool, &h);
 						if (!hset_contains(gq->queried, hp)) {
 							hset_insert(gq->queried, hp);
+							gq->query_reached++;	/* Another host reached */
 						} else {
 							/* Strange, was in pool AND in queried set! */
 							atom_host_free_null(&hp);
 						}
 					} else if (!hset_contains(gq->queried, &h)) {
 						hset_insert(gq->queried, atom_host_get(&h));
+						gq->query_reached++;		/* Another host reached */
 					} else {
 						if (GNET_PROPERTY(guess_client_debug)) {
 							g_message("GUESS QUERY[%s] "
@@ -2103,6 +2114,7 @@ guess_late_qa(const gnutella_node_t *n, const g2_tree_t *t, const guid_t *muid)
 	guess_traffic_from(&host, GUESS_F_G2);
 	if (gq != NULL) {
 		gq->query_acks++;
+		gq->query_reached++;
 		gnet_stats_inc_general(GNR_GUESS_G2_ACKNOWLEDGED);
 	}
 
@@ -2392,7 +2404,7 @@ guess_rpc_reply(enum udp_ping_ret type, const gnutella_node_t *n, void *arg)
 	(*ctx->cb)(type, n, NULL, ctx->arg);
 
 	if (UDP_PING_EXPIRED == type)		/* Last response we'll get */
-		guess_qk_rpc_free(ctx);	
+		guess_qk_rpc_free(ctx);
 }
 
 /**
@@ -4145,6 +4157,8 @@ guess_handle_ack(guess_t *gq,
 	 * rare item or we would have stopped earlier due to the whelm of hits.
 	 * Accelerate things by switching to loose parallelism.
 	 */
+
+	gq->query_reached++;
 
 	if (GUESS_WARMING_COUNT == gq->query_acks++) {
 		if (GNET_PROPERTY(guess_client_debug) > 1) {
