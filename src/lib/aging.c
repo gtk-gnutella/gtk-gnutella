@@ -28,6 +28,10 @@
  * Hash table with aging key/value pairs, removed automatically after
  * some time has elapsed.
  *
+ * All the entries in the table are given the same lifetime, with a granularity
+ * of one second.  It is however possible to revitalize an entry being looked-up
+ * by restoring its initial lifetime (as if it had been removed and reinserted).
+ *
  * @author Raphael Manfredi
  * @date 2004, 2012
  */
@@ -57,13 +61,13 @@ enum aging_magic {
  * since the entries expire automatically after some time has elapsed.
  */
 struct aging {
-	enum aging_magic magic;	/**< Magic number */
-	hikset_t *table;		/**< The table holding values */
-	cperiodic_t *gc_ev;		/**< Periodic garbage collecting event */
-	mutex_t *lock;			/**< Optional thread-safe lock */
-	aging_free_t kvfree;	/**< The freeing callback for key/value pairs */
-	elist_t list;			/**< List of items in table, oldest first */
-	int delay;				/**< Initial aging delay, in seconds */
+	enum aging_magic magic;		/**< Magic number */
+	hikset_t *table;			/**< The table holding values */
+	cperiodic_t *gc_ev;			/**< Periodic garbage collecting event */
+	mutex_t *lock;				/**< Optional thread-safe lock */
+	free_keyval_fn_t kvfree;	/**< Freeing callback for key/value pairs */
+	elist_t list;				/**< List of items in table, oldest first */
+	int delay;					/**< Initial aging delay, in seconds */
 };
 
 static void
@@ -178,7 +182,7 @@ aging_gc(void *obj)
  * @return opaque handle to the container.
  */
 aging_table_t *
-aging_make(int delay, hash_fn_t hash, eq_fn_t eq, aging_free_t kvfree)
+aging_make(int delay, hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
 {
 	aging_table_t *ag;
 
