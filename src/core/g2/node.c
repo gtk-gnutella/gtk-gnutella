@@ -742,13 +742,8 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 		gnutella_header_set_ttl(&n->header, 1);
 		gnutella_header_set_hops(&n->header, 0);
 
-		if (!route_message(&n, &dest)) {
-			if (n != NULL) {
-				g2_node_drop(G_STRFUNC, n, t,
-					"duplicate MUID #%s", guid_hex_str(muid));
-			}
-			return;
-		}
+		if (!route_message(&n, &dest))
+			return;			/* Already accounted as duplicated, and logged */
 	}
 
 	/*
