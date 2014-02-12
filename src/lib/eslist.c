@@ -923,7 +923,10 @@ eslist_random(const eslist_t *list)
 	eslist_check(list);
 	g_assert(list->count <= MAX_INT_VAL(long));
 
-	return eslist_nth(list, random_ulong_value(list->count));
+	if G_UNLIKELY(0 == list->count)
+		return NULL;
+
+	return eslist_nth(list, random_ulong_value(list->count - 1));
 }
 
 /**

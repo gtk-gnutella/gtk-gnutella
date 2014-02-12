@@ -979,7 +979,7 @@ elist_nth(const elist_t *list, long n)
 	 * otherwise start from the tail.
 	 */
 
-	if (i <= list->count / 2) {
+	if (i < list->count / 2) {
 		for (lk = list->head; lk != NULL; lk = lk->next) {
 			if (0 == i--)
 				return ptr_add_offset(lk, -list->offset);
@@ -1055,7 +1055,10 @@ elist_random(const elist_t *list)
 	elist_check(list);
 	g_assert(list->count <= MAX_INT_VAL(long));
 
-	return elist_nth(list, random_ulong_value(list->count));
+	if G_UNLIKELY(0 == list->count)
+		return NULL;
+
+	return elist_nth(list, random_ulong_value(list->count - 1));
 }
 
 /**
