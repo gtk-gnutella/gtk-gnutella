@@ -147,6 +147,7 @@ mem_is_valid_ptr(const void *p)
 	 */
 
 	if G_UNLIKELY(!is_valid_fd(fd[0]) || !mem_valid_pipe()) {
+		mem_close_pipe();
 		if (!mem_open_pipe()) {
 			MEM_UNFUNNEL;
 			return TRUE;		/* Assume memory pointer is valid */
@@ -221,6 +222,7 @@ mem_protection(const void *p)
 	 */
 
 	if G_UNLIKELY(!is_valid_fd(fd[0]) || !mem_valid_pipe()) {
+		mem_close_pipe();
 		if (!mem_open_pipe()) {
 			MEM_UNFUNNEL;
 			return MEM_PROT_NONE;	/* Assume memory pointer is not writable */
