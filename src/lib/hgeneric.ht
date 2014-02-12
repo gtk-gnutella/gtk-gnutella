@@ -86,10 +86,13 @@ void h<generic>_lock(h<generic>_t *);
 void h<generic>_unlock(h<generic>_t *);
 
 bool h<generic>_contains(const h<generic>_t *, const void *key);
+const void *h<generic>_random(const h<generic>_t *);
 @if TABLE
 void htable_insert(htable_t *, const void *key, void *value);
 void *htable_lookup(const htable_t *, const void *key);
 bool htable_lookup_extended(const htable_t *, const void *key,
+	const void **keyptr, void **valptr);
+bool htable_random_extended(const htable_t *,
 	const void **keyptr, void **valptr);
 
 static inline void
@@ -104,6 +107,7 @@ void hset_insert(hset_t *, const void *key);
 void *hset_lookup(const hset_t *, const void *key);
 bool hset_contains_extended(const hset_t *, const void *key,
 	const void **keyptr);
+bool hset_random_extended(const hset_t *, const void **keyptr);
 @end
 bool h<generic>_remove(h<generic>_t *, const void *key);
 size_t h<generic>_count(const h<generic>_t *);

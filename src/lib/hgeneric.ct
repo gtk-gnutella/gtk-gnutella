@@ -416,6 +416,27 @@ h<generic>_contains(const h<generic>_t *hx, const void *key)
 	hash_return(HASH(hx), found);
 }
 
+/**
+ * Get a random key from the hash <generic>.
+ *
+ * @param hx		the hash <generic>
+ *
+ * @return the selected random key, NULL if the <generic> is empty.
+ */
+const void *
+h<generic>_random(const h<generic>_t *hx)
+{
+	size_t idx;
+	const void *key;
+
+	h<generic>_check(hx);
+
+	if ((size_t) -1 == (idx = hash_random(HASH(hx), &key)))
+		return NULL;
+
+	return key;
+}
+
 @if TABLE
 /**
  * Fetch value from the hash table.
@@ -480,6 +501,34 @@ htable_lookup_extended(const htable_t *ht, const void *key,
 
 	hash_return(HASH(ht), TRUE);
 }
+
+/**
+ * Fetch random key/value pair from table.
+ *
+ * @param ht		the hash table
+ * @param keyptr	if non-NULL, where the chosen key pointer is written
+ * @param valptr	if non-NULL, where the chosen value pointer is written
+ *
+ * @return whether a key was selected (always TRUE, unless table was empty).
+ */
+bool
+htable_random_extended(const htable_t *ht, const void **keyptr, void **valptr)
+{
+	size_t idx;
+	bool selected;
+
+	htable_check(ht);
+
+	hash_synchronize(HASH(ht));
+
+	idx = hash_random(HASH(ht), keyptr);
+	selected = idx != (size_t) -1;
+
+	if (selected && valptr != NULL)
+		*valptr = deconstify_pointer(ht->values[idx]);
+
+	hash_return(HASH(ht), selected);
+}
 @end	/* TABLE */
 @if SET
 /**
@@ -538,6 +587,22 @@ hset_contains_extended(const hset_t *hs, const void *key, const void **keyptr)
 		*keyptr = hs->kset.keys[idx];
 
 	hash_return(HASH(hs), TRUE);
+}
+
+/**
+ * Choose random key from set.
+ *
+ * @param hs		the hash set
+ * @param keyptr	if non-NULL, where the chosen key pointer is written
+ *
+ * @return whether a key was selected (always TRUE, unless set was empty).
+ */
+bool
+hset_random_extended(const hset_t *hs, const void **keyptr)
+{
+	hset_check(hs);
+
+	return (size_t) -1 != hash_random(HASH(hs), keyptr);
 }
 @end	/* SET */
 

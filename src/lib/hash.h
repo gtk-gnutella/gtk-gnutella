@@ -218,6 +218,7 @@ void hash_refcnt_dec(const struct hash *h);
 void hash_foreach(const struct hash *h, data_fn_t fn, void *data);
 void hash_clear(struct hash *h);
 size_t hash_count(const struct hash *h);
+size_t hash_random(const struct hash *h, const void **keyptr);
 void hash_free(struct hash *h);
 
 #endif /* _hash_h_ */

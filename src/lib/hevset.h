@@ -91,6 +91,7 @@ void hevset_insert_key(hevset_t *ht, const void *key);
 void hevset_insert(hevset_t *, const void *value);
 void *hevset_lookup(const hevset_t *, const void *key);
 bool hevset_lookup_extended(const hevset_t *, const void *key, void **valptr);
+void *hevset_random(const hevset_t *ht);
 bool hevset_remove(hevset_t *, const void *key);
 size_t hevset_count(const hevset_t *);
 void hevset_foreach(const hevset_t *, data_fn_t fn, void *data);

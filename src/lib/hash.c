@@ -108,8 +108,10 @@
 #define HASH_SOURCE
 
 #include "hash.h"
+
 #include "entropy.h"
 #include "hashing.h"
+#include "random.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
@@ -1111,6 +1113,75 @@ hash_refcnt_dec(const struct hash *h)
 	assert_hash_locked(h);
 
 	wh->refcnt--;
+}
+
+/**
+ * Pick a random key among the ones present in the table.
+ *
+ * @param h			the hash table
+ * @param keyptr	where chosen key is written, if non-NULL
+ *
+ * @return the index of the chosen key, (size_t) -1 if the table is empty.
+ */
+size_t
+hash_random(const struct hash *h, const void **keyptr)
+{
+	size_t i, n, idx;
+	const struct hkeys *hk;
+
+	hash_check(h);
+
+	hash_synchronize(h);
+
+	if G_UNLIKELY(0 == h->kset.items) {
+		i = (size_t) -1;
+		goto done;
+	}
+
+	/*
+	 * Pick a random item number, then loop through the array to find that
+	 * nth item (0-based counting).
+	 *
+	 * Assuming that the dispersion in the table is uniform, we start from the
+	 * top if the chosen number is in the upper half of the item count, and
+	 * from the bottom otherwise.
+	 */
+
+	hk = &h->kset;
+	n = (size_t) random_ulong_value(hk->items - 1);
+
+	if (n < hk->items / 2) {
+		idx = 0;
+		for (i = 0; i < hk->size; i++) {
+			unsigned ih = hk->hashes[i];
+
+			if (HASH_IS_REAL(ih)) {
+				if G_UNLIKELY(idx++ == n)
+					goto found;
+			}
+		}
+	} else {
+		idx = hk->items - 1;
+		for (i = hk->size; i != 0; /* empty */) {
+			unsigned ih = hk->hashes[--i];
+
+			if (HASH_IS_REAL(ih)) {
+				if G_UNLIKELY(idx-- == n)
+					goto found;
+			}
+		}
+	}
+
+	g_assert_not_reached();		/* Item #n must have been found in table */
+
+found:
+	if (keyptr != NULL)
+		*keyptr = hk->keys[i];
+
+	/* FALL THROUGH */
+
+done:
+	hash_return(h, i);
 }
 
 /**

@@ -89,6 +89,7 @@ void hikset_insert_key(hikset_t *hik, const void *keyptr);
 void hikset_insert(hikset_t *, const void *value);
 void *hikset_lookup(const hikset_t *, const void *key);
 bool hikset_lookup_extended(const hikset_t *, const void *key, void **valptr);
+void *hikset_random(const hikset_t *);
 bool hikset_remove(hikset_t *, const void *key);
 size_t hikset_count(const hikset_t *);
 void hikset_foreach(const hikset_t *, data_fn_t fn, void *data);

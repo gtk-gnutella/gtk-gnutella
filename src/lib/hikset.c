@@ -609,6 +609,27 @@ hikset_lookup_extended(const hikset_t *ht, const void *key, void **valptr)
 }
 
 /**
+ * Fetch a random value from the set.
+ *
+ * @return the chosen random value, NULL if the set was empty.
+ */
+void *
+hikset_random(const hikset_t *ht)
+{
+	size_t idx;
+	const void *key;
+
+	hikset_check(ht);
+
+	idx = hash_random(HASH(ht), &key);
+
+	if ((size_t) -1 == idx)
+		return NULL;
+
+	return ptr_add_offset(deconstify_pointer(key), -ht->offset);
+}
+
+/**
  * Remove key from the hash table.
  *
  * @return TRUE if the key was present in the table.
