@@ -809,7 +809,12 @@ hash_list_random(const hash_list_t *hl)
 
 	hash_list_synchronize(hl);
 
-	item = elist_random(&hl->list);
+	/*
+	 * For locality of memory references, it is more efficient to use
+	 * hikset_random() than it would be to use elist_random().
+	 */
+
+	item = hikset_random(hl->ht);
 	data = NULL == item ? NULL : deconstify_pointer(item->key);
 
 	hash_list_return(hl, data);
