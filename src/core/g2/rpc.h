@@ -36,6 +36,7 @@
 
 #include "lib/pmsg.h"
 #include "lib/gnet_host.h"
+#include "lib/timestamp.h"		/* For time_delta_t */
 
 struct gnutella_node;
 struct g2_tree;
@@ -58,7 +59,7 @@ typedef void (*g2_rpc_cb_t)(const struct gnutella_node *n,
 void g2_rpc_init(void);
 void g2_rpc_close(void);
 
-bool g2_rpc_can_launch(const gnet_host_t *host, enum g2_msg type);
+time_delta_t g2_rpc_launch_delay(const gnet_host_t *host, enum g2_msg type);
 bool g2_rpc_launch(const gnet_host_t *host, pmsg_t *mb,
 	g2_rpc_cb_t cb, void *arg, unsigned timeout);
 bool g2_rpc_answer(const struct gnutella_node *n, const struct g2_tree *t);

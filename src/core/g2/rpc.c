@@ -168,23 +168,31 @@ g2_rpc_timeout(cqueue_t *cq, void *obj)
 }
 
 /**
- * Check whether we can issue an RPC to the specified host.
+ * Compute maximum delay before we can issue an RPC to the specified host.
  *
  * @param host		the host with whom we want to issue an RPC
  * @param type		the type of RPC message we wish to send
  *
- * @return TRUE if we can launch the RPC, FALSE if there is already a
- * similar RPC pending.
+ * @return 0 if we can launch the RPC, the amount of seconds to wait
+ * (conservative) if there is already a similar RPC pending.  The amount
+ * is conservative in the sense that it is the time up to the final
+ * timeout, but if a reply comes back, we could launch it earlier.
  */
-bool
-g2_rpc_can_launch(const gnet_host_t *host, enum g2_msg type)
+time_delta_t
+g2_rpc_launch_delay(const gnet_host_t *host, enum g2_msg type)
 {
 	struct g2_rpc_key key;
+	struct g2_rpc *gr;
 
 	key.type = type;
 	key.addr = gnet_host_get_addr(host);
 
-	return !hevset_contains(g2_rpc_pending, &key);
+	gr = hevset_lookup(g2_rpc_pending, &key);
+
+	if (NULL == gr)
+		return 0;		/* Can issue RPC immediately */
+
+	return cq_remaining(gr->timeout_ev) / 1000;		/* Seconds */
 }
 
 /**
