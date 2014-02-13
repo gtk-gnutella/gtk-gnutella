@@ -1906,6 +1906,22 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 				else if (4 == paylen)
 					ra = peek_le32(payload);
 
+				/*
+				 * Cap the retry-after timeout to GUESS_TIMEOUT_DELAY, in
+				 * case we're parsing garbage data.
+				 */
+
+				if (ra > GUESS_TIMEOUT_DELAY) {
+					if (GNET_PROPERTY(guess_client_debug)) {
+						g_warning("GUESS QUERY[%s] G2 %s requests "
+							"%u sec%s querying delay, capping to %d",
+							NULL == gq ? "?" : nid_to_string(&gq->gid),
+							gnet_host_to_string(host), ra, plural(ra),
+							GUESS_TIMEOUT_DELAY);
+					}
+					ra = GUESS_TIMEOUT_DELAY;
+				}
+
 				if (ra != 0) {
 					struct qkdata *qk = get_qkdata(host);
 
