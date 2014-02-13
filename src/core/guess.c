@@ -147,8 +147,8 @@
 #define GUESS_QK_TIMEOUT		40		/**< Timeout for getting QK on G2 */
 #define GUESS_ALIEN_FREQ		300		/**< Time we cache non-GUESS hosts */
 #define GUESS_MUID_LINGER		1200	/**< Lingering (20 min) for old MUIDs */
-#define GUESS_STABLE_PROBA		 0.3333	/**< 33.33% */
-#define GUESS_ALIVE_PROBA		 0.5	/**< 50% */
+#define GUESS_STABLE_PROBA		0.3333	/**< 33.33% */
+#define GUESS_ALIVE_PROBA		0.5		/**< 50% */
 #define GUESS_LINK_CACHE_SIZE	75		/**< Amount of hosts to maintain */
 #define GUESS_CHECK_PERIOD		(60 * 1000)		/**< 1 minute, in ms */
 #define GUESS_ALIVE_PERIOD		(5 * 60)		/**< 5 minutes, in s */
