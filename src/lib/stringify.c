@@ -1060,23 +1060,30 @@ short_time(time_delta_t t)
 }
 
 /**
- * @return time spent in seconds in a consise short readable form.
+ * @return time spent in seconds in a concise short readable form.
  * @note The returned string is in English and ASCII encoded.
  */
 const char *
 short_time_ascii(time_delta_t t)
 {
 	str_t *p = str_private(G_STRFUNC, 4 * SIZE_FIELD_MAX);
-	uint s = MAX(t, 0);
+	uint s;
+	const char *m;
+
+	if (t >= 0) {
+		s = t;  m = "";
+	} else {
+		s = -t; m = "-";
+	}
 
 	if (s > 86400)
-		str_printf(p, "%ud %uh", s / 86400, (s % 86400) / 3600);
+		str_printf(p, "%s%ud %uh", m, s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		str_printf(p, "%uh %um", s / 3600, (s % 3600) / 60);
+		str_printf(p, "%s%uh %um", m, s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		str_printf(p, "%um %us", s / 60, s % 60);
+		str_printf(p, "%s%um %us", m, s / 60, s % 60);
 	else
-		str_printf(p, "%us", s);
+		str_printf(p, "%s%us", m, s);
 
 	return str_2c(p);
 }
