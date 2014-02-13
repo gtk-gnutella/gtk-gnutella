@@ -1253,6 +1253,9 @@ guess_timeout_from(const gnet_host_t *h)
 	struct qkdata *qk;
 	const gnet_host_t *atom;
 
+	if G_UNLIKELY(NULL == alive_cache)
+		return;		/* GUESS layer shutdown already */
+
 	/*
 	 * Hosts that timeout are immediately removed from the "alive" cache,
 	 * by definition.
@@ -2297,10 +2300,7 @@ guess_qk_g2_reply(enum udp_ping_ret type,
 			g_info("GUESS /QKR timeout for G2 %s", gnet_host_to_string(h));
 		}
 
-		if G_LIKELY(guess_qk_reqs != NULL) {
-			guess_timeout_from(h);
-			aging_remove(guess_qk_reqs, h);
-		}
+		guess_timeout_from(h);
 		break;
 
 	case UDP_PING_REPLY:
@@ -2314,6 +2314,9 @@ guess_qk_g2_reply(enum udp_ping_ret type,
 	case UDP_PING_EXPIRED:
 		g_assert_not_reached();
 	}
+
+	if G_LIKELY(guess_qk_reqs != NULL)
+		aging_remove(guess_qk_reqs, h);
 
 	atom_host_free(h);
 }
@@ -2350,11 +2353,8 @@ guess_qk_reply(enum udp_ping_ret type,
 			g_info("GUESS ping timeout for %s", gnet_host_to_string(h));
 		}
 
-		if G_LIKELY(guess_qk_reqs != NULL) {
-			guess_remove_link_cache(h);
-			guess_timeout_from(h);
-			aging_remove(guess_qk_reqs, h);
-		}
+		guess_remove_link_cache(h);
+		guess_timeout_from(h);
 
 		/* FALL THROUGH */
 
@@ -2367,6 +2367,8 @@ guess_qk_reply(enum udp_ping_ret type,
 			g_debug("GUESS done waiting for replies from %s",
 				gnet_host_to_string(h));
 		}
+		if G_LIKELY(guess_qk_reqs != NULL)
+			aging_remove(guess_qk_reqs, h);
 		atom_host_free(h);
 		break;
 
@@ -4072,12 +4074,12 @@ guess_got_query_key(enum udp_ping_ret type,
 		 */
 
 		guess_timeout_from(host);
-		aging_remove(guess_qk_reqs, host);
 
 		/* FALL THROUGH */
 
 	case UDP_PING_EXPIRED:
 		guess_qk_context_free(ctx);
+		aging_remove(guess_qk_reqs, host);
 		goto no_query_key;
 
 	case UDP_PING_REPLY:
@@ -4134,9 +4136,10 @@ guess_got_query_key(enum udp_ping_ret type,
 				goto no_query_key;
 			}
 		}
-		if (g2)
+		if (g2) {
 			guess_qk_context_free(ctx);		/* No further reply expected */
-		else
+			aging_remove(guess_qk_reqs, host);
+		} else
 			guess_extract_ipp(gq, n, host);
 		break;
 	}
