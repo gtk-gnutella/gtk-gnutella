@@ -235,6 +235,9 @@ static hash_table_t *zalloc_frames;	/**< Tracks allocation frame atoms */
 static hash_table_t *not_leaking;
 static hash_table_t *alloc_used_to_real;
 static hash_table_t *alloc_real_to_used;
+static spinlock_t zleak_lock = SPINLOCK_INIT;
+#define ZLEAK_LOCK		spinlock(&zleak_lock)
+#define ZLEAK_UNLOCK	spinunlock(&zleak_lock)
 #endif
 #ifdef TRACK_ZALLOC
 static leak_set_t *z_leakset;
@@ -956,6 +959,8 @@ zalloc_not_leaking(const void *o)
 	 * in memory and look for some header.
 	 */
 
+	ZLEAK_LOCK;
+
 	if (NULL == not_leaking)
 		not_leaking = hash_table_new();
 
@@ -972,6 +977,8 @@ zalloc_not_leaking(const void *o)
 
 	hash_table_insert(not_leaking, u != NULL ? u : o, GINT_TO_POINTER(1));
 
+	ZLEAK_UNLOCK;
+
 	return deconstify_pointer(o);
 }
 
@@ -985,6 +992,8 @@ zalloc_shift_pointer(const void *allocated, const void *used)
 {
 	g_assert(ptr_cmp(allocated, used) < 0);
 
+	ZLEAK_LOCK;
+
 	if (alloc_used_to_real == NULL) {
 		alloc_used_to_real = hash_table_new();
 		alloc_real_to_used = hash_table_new();
@@ -992,6 +1001,8 @@ zalloc_shift_pointer(const void *allocated, const void *used)
 
 	hash_table_insert(alloc_used_to_real, used, allocated);
 	hash_table_insert(alloc_real_to_used, allocated, used);
+
+	ZLEAK_UNLOCK;
 }
 #endif	/* TRACK_ZALLOC || MALLOC_FRAMES */
 
@@ -1053,6 +1064,8 @@ zreturn(zone_t *zone, void *ptr)
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 	if (not_leaking != NULL) {
 		void *a = NULL;
+
+		ZLEAK_LOCK;
 		if (alloc_real_to_used != NULL) {
 			a = hash_table_lookup(alloc_real_to_used, ptr);
 		}
@@ -1061,6 +1074,7 @@ zreturn(zone_t *zone, void *ptr)
 			hash_table_remove(alloc_real_to_used, ptr);
 			hash_table_remove(alloc_used_to_real, a);
 		}
+		ZLEAK_UNLOCK;
 	}
 #endif
 
@@ -2902,6 +2916,9 @@ found:
 		void *a = NULL;
 		void *b;
 		size_t offset;
+
+		ZLEAK_LOCK;
+
 		if (alloc_real_to_used != NULL) {
 			a = hash_table_lookup(alloc_real_to_used, p);
 		}
@@ -2918,6 +2935,8 @@ found:
 			hash_table_remove(alloc_used_to_real, a);
 			zalloc_shift_pointer(np, ptr_add_offset(np, offset));
 		}
+
+		ZLEAK_UNLOCK;
 	}
 #endif	/* TRACK_MALLOC || MALLOC_FRAMES */
 

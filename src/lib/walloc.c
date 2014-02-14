@@ -411,7 +411,6 @@ walloc0(size_t size)
 void
 wfree(void *ptr, size_t size)
 {
-	tmalloc_t *depot;
 	size_t rounded = zalloc_round(size);
 
 	g_assert(ptr != NULL);
@@ -422,13 +421,19 @@ wfree(void *ptr, size_t size)
 		return;
 	}
 
-	depot = walloc_get_magazine(rounded);
+#ifdef TRACK_ZALLOC
+	wfree_raw(ptr, size);
+#else
+	{
+		tmalloc_t *depot = walloc_get_magazine(rounded);
 
-	if G_UNLIKELY(NULL == depot) {
-		wfree_raw(ptr, size);
-	} else {
-		tmfree(depot, ptr);
+		if G_UNLIKELY(NULL == depot) {
+			wfree_raw(ptr, size);
+		} else {
+			tmfree(depot, ptr);
+		}
 	}
+#endif	/* TRACK_ZALLOC */
 }
 
 /**
@@ -482,7 +487,11 @@ wfree_pslist(pslist_t *pl, size_t size)
 		return;
 	}
 
+#ifdef TRACK_ZALLOC
+	depot = NULL;
+#else
 	depot = walloc_get_magazine(rounded);
+#endif
 
 	if G_UNLIKELY(NULL == depot) {
 		zone_t *zone;
@@ -525,7 +534,11 @@ wfree_eslist(eslist_t *el, size_t size)
 		return;
 	}
 
+#ifdef TRACK_ZALLOC
+	depot = NULL;
+#else
 	depot = walloc_get_magazine(rounded);
+#endif
 
 	if G_UNLIKELY(NULL == depot) {
 		zone_t *zone;
