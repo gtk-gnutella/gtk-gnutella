@@ -40,6 +40,7 @@
 #define MALLOC_SOURCE	/**< Avoid nasty remappings, but include signatures */
 
 #include "ascii.h"
+#include "atomic.h"
 #include "atoms.h"		/* For binary_hash() */
 #include "cq.h"
 #include "endian.h"		/* For peek_*() and poke_*() */
@@ -50,6 +51,7 @@
 #include "omalloc.h"
 #include "parse.h"		/* For parse_pointer() */
 #include "path.h"		/* For filepath_basename() */
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
@@ -301,7 +303,14 @@ get_frame_atom(hash_table_t **hptr, const struct stacktrace *st)
 
 	ht = *hptr;
 	if (NULL == ht) {
-		*hptr = ht = hash_table_new_full_real(stack_hash, stack_eq);
+		static spinlock_t frame_lock = SPINLOCK_INIT;
+		spinlock(&frame_lock);
+		if (NULL == (ht = *hptr)) {
+			ht = hash_table_new_full_real(stack_hash, stack_eq);
+			hash_table_thread_safe(ht);
+			*hptr = ht;
+		}
+		spinunlock(&frame_lock);
 	} else {
 		fr = hash_table_lookup(ht, ast);
 	}
@@ -918,9 +927,9 @@ real_malloc(size_t size)
 
 			stacktrace_get(&t);	/* Want to see real_malloc() in stack */
 			fr = get_frame_atom(&gst.alloc_frames, &t);
-			fr->count += size;
-			fr->total_count += size;
-			fr->blocks++;
+			ATOMIC_ADD(fr->count, size);
+			ATOMIC_ADD(fr->total_count, size);
+			ATOMIC_INC(fr->blocks);
 			rb->alloc = fr;
 		}
 #endif	/* MALLOC_FRAMES */
@@ -1256,11 +1265,16 @@ track_init(void)
 	blocks = hash_table_new_real();
 	not_leaking = hash_table_new_real();
 
+	hash_table_thread_safe(blocks);
+	hash_table_thread_safe(not_leaking);
+
 #ifdef MALLOC_STATS
 	stats = hash_table_new_full_real(stats_hash, stats_eq);
+	hash_table_thread_safe(stats);
 #endif
 #ifdef MALLOC_FRAMES
 	alloc_points = hash_table_new_real();
+	hash_table_thread_safe(alloc_points);
 #endif
 
 	init_time = reset_time = tm_time_exact();
@@ -1504,10 +1518,10 @@ malloc_record(const void *o, size_t sz, bool owned,
 			hash_table_insert(stats, st, st);
 		}
 
-		st->total_blocks++;
-		st->blocks++;
-		st->allocated += sz;
-		st->total_allocated += sz;
+		ATOMIC_INC(st->total_blocks);
+		ATOMIC_INC(st->blocks);
+		ATOMIC_ADD(st->allocated, sz);
+		ATOMIC_ADD(st->total_allocated, sz);
 	}
 #endif /* MALLOC_STATS */
 #ifdef MALLOC_FRAMES
@@ -1518,9 +1532,9 @@ malloc_record(const void *o, size_t sz, bool owned,
 		stacktrace_get_offset(&t, 1);
 		fr = get_frame_atom(st ? &st->alloc_frames : &gst.alloc_frames, &t);
 
-		fr->count += sz;
-		fr->total_count += sz;
-		fr->blocks++;
+		ATOMIC_ADD(fr->count, sz);
+		ATOMIC_ADD(fr->total_count, sz);
+		ATOMIC_INC(fr->blocks);
 
 		hash_table_insert(alloc_points, o, fr);
 	}
@@ -1652,10 +1666,10 @@ free_record(const void *o, const char *file, int line)
 				file, line, o, b->file, b->line);
 		else {
 			/* Count present block size, after possible realloc() */
-			st->freed += b->size;
-			st->total_freed += b->size;
+			ATOMIC_ADD(st->freed, b->size);
+			ATOMIC_ADD(st->total_freed, b->size);
 			if (st->total_blocks > 0)
-				st->total_blocks--;
+				ATOMIC_DEC(st->total_blocks);
 			else
 				s_warning(
 					"MALLOC (%s:%d) live # of blocks was zero at free time?",
@@ -1663,7 +1677,7 @@ free_record(const void *o, const char *file, int line)
 
 			/* We could free blocks allocated before "reset", don't warn */
 			if (st->blocks > 0)
-				st->blocks--;
+				ATOMIC_DEC(st->blocks);
 		}
 	}
 #endif /* MALLOC_STATS */
@@ -1675,8 +1689,8 @@ free_record(const void *o, const char *file, int line)
 		stacktrace_get_offset(&t, 1);
 		fr = get_frame_atom(&st->free_frames, &t);
 
-		fr->count += b->size;			/* Counts actual size, not original */
-		fr->total_count += b->size;
+		ATOMIC_INC(fr->count, b->size);	/* Counts actual size, not original */
+		ATOMIC_INC(fr->total_count, b->size);
 	}
 	hash_table_remove(alloc_points, o);
 #endif /* MALLOC_FRAMES */
@@ -1834,8 +1848,8 @@ realloc_record(void *o, void *n, size_t size, const char *file, int line)
 				file, line, o, b->file, b->line);
 		else {
 			/* We store variations in size, as algebric quantities */
-			st->reallocated += b->size - r->size;
-			st->total_reallocated += b->size - r->size;
+			ATOMIC_INC(st->reallocated, b->size - r->size);
+			ATOMIC_INC(st->total_reallocated, b->size - r->size);
 		}
 	}
 #endif /* MALLOC_STATS */
@@ -1847,8 +1861,8 @@ realloc_record(void *o, void *n, size_t size, const char *file, int line)
 		stacktrace_get_offset(&t, 1);
 		fr = get_frame_atom(&st->realloc_frames, &t);
 
-		fr->count += b->size - r->size;
-		fr->total_count += b->size - r->size;
+		ATOMIC_INC(fr->count, b->size - r->size);
+		ATOMIC_INC(fr->total_count, b->size - r->size);
 	}
 	if (n != o) {
 		struct frame *fra = hash_table_lookup(alloc_points, o);
@@ -2952,6 +2966,9 @@ malloc_init_vtable(void)
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	reals = hash_table_new_real();
 	unknowns = hash_table_new_real();
+
+	hash_table_thread_safe(reals);
+	hash_table_thread_safe(unknowns);
 #endif
 
 #ifdef MALLOC_VTABLE
