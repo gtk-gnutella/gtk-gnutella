@@ -141,7 +141,7 @@
 
 #define GUESS_QK_DB_CACHE_SIZE	1024	/**< Cached amount of query keys */
 #define GUESS_QK_MAP_CACHE_SIZE	64		/**< # of SDBM pages to cache */
-#define GUESS_QK_LIFE			3600	/**< Cached token lifetime (secs) */
+#define GUESS_QK_LIFE			86000	/**< Cached token lifetime (secs) */
 #define GUESS_QK_PRUNE_PERIOD	(GUESS_QK_LIFE / 3 * 1000)	/**< in ms */
 #define GUESS_QK_FREQ			60		/**< At most 1 key request / min */
 #define GUESS_QK_TIMEOUT		40		/**< Timeout for getting QK on G2 */
