@@ -278,10 +278,16 @@ g2_rpc_launch(const gnet_host_t *host, pmsg_t *mb,
 	}
 
 	/*
-	 * An RPC needs to be sent reliably to allow retransmission if needed.
+	 * Do not send RPCs reliably: this can cause problems if we don't receive
+	 * the ACK backm yet the message was received and processed remotely: the
+	 * remote host will send a reply back and the message will still appear to
+	 * be "unsent" locally.
+	 *
+	 * Furthermore, this alleviates the need for the remote side to actually
+	 * acknowledge the request: targeted hosts can be busy so it's best to
+	 * make the RPC "unreliable" to limit processing and bandwidth requirements.
 	 */
 
-	pmsg_mark_reliable(mb);
 	g2_node_send(n, mb);
 
 	return TRUE;
