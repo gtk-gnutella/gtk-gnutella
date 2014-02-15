@@ -2617,6 +2617,9 @@ guess_request_qk_full(guess_t *gq, const gnet_host_t *host, bool intro, bool g2,
 
 		sent = g2_rpc_launch(host, mb,
 			guess_g2_rpc_reply, ctx, GUESS_QK_TIMEOUT);
+
+		if (!sent)
+			pmsg_free(mb);
 	} else {
 		gnutella_msg_init_t *m;
 
