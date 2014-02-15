@@ -530,8 +530,13 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 	if (um->fragsent == um->fragcnt) {
 		pmsg_mark_sent(um->mb);
 
-		/* Remember that host was responsive for a while */
-		ut_to_flag_good(attr, um->to);
+		/*
+		 * Remember that host was responsive for a while, if the message was
+		 * sent reliably (i.e. we got acknowledgments back).
+		 */
+
+		if (um->reliable)
+			ut_to_flag_good(attr, um->to);
 
 		/* Message was fully sent out */
 		if (attr->cb->msg_account != NULL)
