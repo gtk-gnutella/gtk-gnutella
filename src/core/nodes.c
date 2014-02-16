@@ -3881,7 +3881,7 @@ node_msg_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 	gnutella_node_t *n = o;
 	char *mb_start = pmsg_start(mb);
 	uint8 function = gmsg_function(mb_start);
-	int mb_size = pmsg_size(mb);
+	int mb_size = pmsg_written_size(mb);
 
 	node_check(n);
 	g_assert(!NODE_TALKS_G2(n));
@@ -3890,8 +3890,7 @@ node_msg_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 
 	if (GNET_PROPERTY(log_sr_udp_tx)) {
 		g_info("UDP-SR sent %s to %s",
-			gmsg_infostr_full(mb_start, mb_size),
-			gnet_host_to_string(to));
+			gmsg_infostr_full(mb_start, mb_size), gnet_host_to_string(to));
 	}
 }
 
@@ -3907,7 +3906,7 @@ static void
 node_g2_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 {
 	gnutella_node_t *n = o;
-	int mb_size = pmsg_size(mb);
+	int mb_size = pmsg_written_size(mb);
 	enum g2_msg type = g2_msg_type(pmsg_start(mb), mb_size);
 
 	node_check(n);
@@ -3929,7 +3928,7 @@ static void
 node_g2_msg_accounting(void *o, const pmsg_t *mb)
 {
 	gnutella_node_t *n = o;
-	int mb_size = pmsg_size(mb);
+	int mb_size = pmsg_written_size(mb);
 	enum g2_msg type = g2_msg_type(pmsg_start(mb), mb_size);
 
 	node_check(n);
@@ -3956,7 +3955,7 @@ node_bytes_ut_accounting(void *o, const pmsg_t *mb)
 
 	node_check(n);
 
-	size = pmsg_size(mb);
+	size = pmsg_written_size(mb);
 	node_add_tx_written(n, size);
 
 	/*
