@@ -2718,7 +2718,13 @@ guess_rpc_reply(enum udp_ping_ret type, const gnutella_node_t *n, void *arg)
 
 	(*ctx->cb)(type, n, NULL, ctx->arg);
 
-	if (UDP_PING_EXPIRED == type)		/* Last response we'll get */
+	/*
+	 * Last response we'll get: UDP_PING_EXPIRED to signify that no more
+	 * responses are expected, UDP_PING_TIMEDOUT if we did not get anything
+	 * back at all.
+	 */
+
+	if (UDP_PING_EXPIRED == type || UDP_PING_TIMEDOUT == type)
 		guess_qk_rpc_free(ctx);
 }
 
