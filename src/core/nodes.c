@@ -3673,6 +3673,57 @@ node_became_udp_firewalled(void)
 	}
 }
 
+/**
+ * Account for Gnutella message sending to node.
+ *
+ * @param n			the node to which message was sent
+ * @param function	the message code
+ * @param mb_start	start of message (Gnutella header + payload)
+ * @param mb_size	total length of message sent
+ */
+static void
+node_sent_accounting(gnutella_node_t *n, uint8 function,
+	const void *mb_start, int mb_size)
+{
+	node_inc_sent(n);
+	gnet_stats_count_sent(n, function, mb_start, mb_size);
+	switch (function) {
+	case GTA_MSG_SEARCH:
+		node_inc_tx_query(n);
+		break;
+	case GTA_MSG_SEARCH_RESULTS:
+		node_inc_tx_qhit(n);
+		break;
+	default:
+		break;
+	}
+}
+
+/**
+ * Account for G2 message sending to node.
+ *
+ * @param n			the node to which message was sent
+ * @param type		the type of G2 message
+ * @param mb_start	start of message (G2 frame head)
+ * @param mb_size	total length of message sent
+ */
+static void
+node_g2_sent_accounting(gnutella_node_t *n, enum g2_msg type, int mb_size)
+{
+	node_inc_sent(n);
+	gnet_stats_g2_count_sent(n, type, mb_size);
+	switch (type) {
+	case G2_MSG_Q2:
+		node_inc_tx_query(n);
+		break;
+	case G2_MSG_QH2:
+		node_inc_tx_qhit(n);
+		break;
+	default:
+		break;
+	}
+}
+
 /***
  *** TX deflate callbacks
  ***/
@@ -11191,57 +11242,6 @@ node_close(void)
 	pproxy_set_free_null(&proxies);
 	rxbuf_close();
 	node_udp_scheduler_destroy_all();
-}
-
-/**
- * Account for Gnutella message sending to node.
- *
- * @param n			the node to which message was sent
- * @param function	the message code
- * @param mb_start	start of message (Gnutella header + payload)
- * @param mb_size	total length of message sent
- */
-void
-node_sent_accounting(gnutella_node_t *n, uint8 function,
-	const void *mb_start, int mb_size)
-{
-	node_inc_sent(n);
-	gnet_stats_count_sent(n, function, mb_start, mb_size);
-	switch (function) {
-	case GTA_MSG_SEARCH:
-		node_inc_tx_query(n);
-		break;
-	case GTA_MSG_SEARCH_RESULTS:
-		node_inc_tx_qhit(n);
-		break;
-	default:
-		break;
-	}
-}
-
-/**
- * Account for G2 message sending to node.
- *
- * @param n			the node to which message was sent
- * @param type		the type of G2 message
- * @param mb_start	start of message (G2 frame head)
- * @param mb_size	total length of message sent
- */
-void
-node_g2_sent_accounting(gnutella_node_t *n, enum g2_msg type, int mb_size)
-{
-	node_inc_sent(n);
-	gnet_stats_g2_count_sent(n, type, mb_size);
-	switch (type) {
-	case G2_MSG_Q2:
-		node_inc_tx_query(n);
-		break;
-	case G2_MSG_QH2:
-		node_inc_tx_qhit(n);
-		break;
-	default:
-		break;
-	}
 }
 
 void

@@ -660,8 +660,6 @@ void send_node_error(struct gnutella_socket *s, int code,
 void node_add_sent(gnutella_node_t *n, int x);
 void node_add_txdrop(void *o, int x);
 void node_add_rxdrop(gnutella_node_t *n, int x);
-void node_sent_accounting(gnutella_node_t *n, uint8 function,
-	const void *mb_start, int mb_size);
 
 void node_set_vendor(gnutella_node_t *n, const char *vendor);
 void node_mark_bad_vendor(struct gnutella_node *n);
@@ -773,7 +771,6 @@ enum g2_msg;
 
 bool node_g2_active(void);
 gnutella_node_t *node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port);
-void node_g2_sent_accounting(gnutella_node_t *n, enum g2_msg type, int mb_size);
 
 #endif /* _core_nodes_h_ */
 
