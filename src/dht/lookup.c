@@ -678,7 +678,7 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, uint level)
 
 		knode_check(kn);
 
-		if (GNET_PROPERTY(dht_lookup_debug) > level)
+		if (GNET_PROPERTY(dht_lookup_debug) >= level)
 			g_debug("DHT LOOKUP[%s] %s[%d]: %s",
 				nid_to_string(&nl->lid), what, i, knode_to_string(kn));
 		i++;
@@ -982,7 +982,7 @@ lookup_value_terminate(nlookup_t *nl,
 	roots_record(nl->ball, nl->kuid);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		log_patricia_dump(nl, nl->ball, "final value path", 2);
+		log_patricia_dump(nl, nl->ball, "final value path", 3);
 
 	lookup_free(nl);
 
@@ -1795,7 +1795,7 @@ lookup_completed(nlookup_t *nl)
 			closest ? knode_to_string(closest) : "unknown");
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
-			log_patricia_dump(nl, nl->path, "final path", 2);
+			log_patricia_dump(nl, nl->path, "final path", 3);
 	}
 
 	/*
@@ -2943,7 +2943,7 @@ lookup_load_path(nlookup_t *nl)
 	patricia_foreach_remove(nl->shortlist, remove_from_shortlist, nl->tokens);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		log_patricia_dump(nl, nl->path, "pre-loaded path", 2);
+		log_patricia_dump(nl, nl->path, "pre-loaded path", 3);
 }
 
 /**
@@ -3189,7 +3189,15 @@ lookup_handle_reply(
 			 */
 
 			knode_check(xn);
-			g_assert(patricia_contains(nl->ball, cn->id));
+			if (!patricia_contains(nl->ball, cn->id)) {
+				g_critical("%s(): node %s in shortlist but not in ball: %s",
+					G_STRFUNC, kuid_to_hex_string(cn->id),
+					knode_to_string(xn));
+				log_patricia_dump(nl, nl->shortlist, "shortlist", 0);
+				log_patricia_dump(nl, nl->ball, "ball", 0);
+				g_error("%s(): inconsistency between shortlist and ball for %s",
+					G_STRFUNC, knode_to_string(xn));
+			}
 			g_assert(knode_is_shared(xn, TRUE));	/* In shortlist + ball */
 
 			if (
@@ -4054,9 +4062,9 @@ lookup_iterate(nlookup_t *nl)
 		log_status(nl);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 5) {
-		log_patricia_dump(nl, nl->shortlist, "shortlist", 18);
-		log_patricia_dump(nl, nl->path, "path", 18);
-		log_patricia_dump(nl, nl->ball, "ball", 18);
+		log_patricia_dump(nl, nl->shortlist, "shortlist", 19);
+		log_patricia_dump(nl, nl->path, "path", 19);
+		log_patricia_dump(nl, nl->ball, "ball", 19);
 	}
 
 	/*
@@ -4215,7 +4223,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	WFREE_ARRAY(kvec, KDA_K);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 3)
-		log_patricia_dump(nl, nl->shortlist, "initial shortlist", 3);
+		log_patricia_dump(nl, nl->shortlist, "initial shortlist", 4);
 
 	if (0 == contactable && GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT LOOKUP[%s] cancelling %s lookup for %s: "
