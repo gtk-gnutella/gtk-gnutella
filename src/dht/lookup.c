@@ -3189,7 +3189,8 @@ lookup_handle_reply(
 			 */
 
 			knode_check(xn);
-			g_assert(knode_is_shared(xn, TRUE));
+			g_assert(patricia_contains(nl->ball, cn->id));
+			g_assert(knode_is_shared(xn, TRUE));	/* In shortlist + ball */
 
 			if (
 				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
