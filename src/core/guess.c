@@ -1629,6 +1629,25 @@ guess_defer(guess_t *gq, const gnet_host_t *host, time_t earliest)
 }
 
 /**
+ * Is GUESS querying allowed for the given search protocol?
+ *
+ * @param g2		if TRUE, querying using the G2 protocol
+ */
+static bool
+guess_enabled(bool g2)
+{
+	if (g2) {
+		if (!GNET_PROPERTY(enable_g2))
+			return FALSE;
+	} else {
+		if (!GNET_PROPERTY(enable_guess))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Append host to the GUESS pool or to the deferred set, depending on whether
  * the host is known to be already deferred / timeouting.
  *
@@ -1642,6 +1661,11 @@ guess_defer(guess_t *gq, const gnet_host_t *host, time_t earliest)
 static bool
 guess_add_pool_qk(guess_t *gq, const gnet_host_t *host, const struct qkdata *qk)
 {
+	if (qk != NULL) {
+		if (!guess_enabled(qk->flags & GUESS_F_G2))
+			return FALSE;
+	}
+
 	if (
 		!hset_contains(gq->queried, host) &&
 		!hash_list_contains(gq->pool, host) &&
@@ -1724,6 +1748,9 @@ guess_add_host(guess_t *gq, host_addr_t addr, uint16 port, bool g2)
 
 	guess_check(gq);
 
+	if (!guess_enabled(g2))
+		return;
+
 	if (hostiles_is_bad(addr) || !host_is_valid(addr, port))
 		return;
 
@@ -1731,10 +1758,11 @@ guess_add_host(guess_t *gq, host_addr_t addr, uint16 port, bool g2)
 		return;
 
 	gnet_host_set(&host, addr, port);
-	guess_add_pool(gq, &host);
 
 	if (g2)
 		guess_record_g2(&host);
+
+	guess_add_pool(gq, &host);
 }
 
 /**
@@ -2899,10 +2927,19 @@ guess_host_added(void *u_data, void *hostinfo)
 	switch (nhost->type) {
 	case HCACHE_FRESH_G2HUB:
 	case HCACHE_VALID_G2HUB:
+		if (!settings_use_ipv4())
+			return WQ_SLEEP;
 		g2 = TRUE;
 		break;
 	case HCACHE_GUESS:
 	case HCACHE_GUESS_INTRO:
+		if (!settings_use_ipv4())
+			return WQ_SLEEP;
+		break;
+	case HCACHE_GUESS6:
+	case HCACHE_GUESS6_INTRO:
+		if (!settings_use_ipv6())
+			return WQ_SLEEP;
 		break;
 	default:
 		return WQ_SLEEP;		/* Still waiting for a GUESS host */
@@ -2925,6 +2962,8 @@ guess_host_added(void *u_data, void *hostinfo)
 	{
 		gnet_host_t host;
 		gnet_host_set(&host, nhost->addr, nhost->port);
+		if (g2)
+			guess_record_g2(&host);
 		if (hash_list_contains(link_cache, &host) || guess_should_skip(&host))
 			return WQ_SLEEP;
 	}
@@ -4012,6 +4051,7 @@ guess_load_host_added(void *data, void *hostinfo)
 	struct hcache_new_host *nhost = hostinfo;
 	guess_t *gq = data;
 	gnet_host_t host;
+	bool g2 = FALSE;
 
 	guess_check(gq);
 
@@ -4043,6 +4083,12 @@ guess_load_host_added(void *data, void *hostinfo)
 		if (!settings_use_ipv6())
 			return WQ_SLEEP;
 		break;
+	case HCACHE_FRESH_G2HUB:
+	case HCACHE_VALID_G2HUB:
+		if (!settings_use_ipv4())
+			return WQ_SLEEP;
+		g2 = TRUE;
+		break;
 	default:
 		return WQ_SLEEP;		/* Still waiting for a GUESS host */
 	}
@@ -4052,6 +4098,8 @@ guess_load_host_added(void *data, void *hostinfo)
 	 */
 
 	gnet_host_set(&host, nhost->addr, nhost->port);
+	if (g2)
+		guess_record_g2(&host);
 
 	if (!guess_add_pool(gq, &host))
 		return WQ_SLEEP;
@@ -4679,6 +4727,15 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 
 	if (qk != NULL && (qk->flags & GUESS_F_G2))
 		g2 = TRUE;
+
+	/*
+	 * Because they can disable GUESS and G2 separately, we need to check
+	 * whether we can issue the query using the selected protocol.  If we
+	 * are not allowed, act as if the host had been queried.
+	 */
+
+	if (!guess_enabled(g2))
+		return TRUE;			/* Act as if we had queried the host */
 
 	if (
 		NULL == qk || 0 == qk->length ||
@@ -5678,7 +5735,7 @@ guess_init(void)
 	dbstore_packing_t packing =
 		{ serialize_qkdata, deserialize_qkdata, free_qkdata };
 
-	if (!GNET_PROPERTY(enable_guess))
+	if (!GNET_PROPERTY(enable_guess) && !GNET_PROPERTY(enable_g2))
 		return;
 
 	if (db_qkdata != NULL)
