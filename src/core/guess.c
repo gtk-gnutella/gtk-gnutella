@@ -2274,8 +2274,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 					 * the query.
 					 */
 
-					if (hash_list_contains(gq->pool, &h)) {
-						hp = hash_list_remove(gq->pool, &h);
+					if (NULL != (hp = hash_list_remove(gq->pool, &h))) {
 						guess_record_reached(gq, hp);
 					} else if (NULL != (hp = hset_lookup(gq->deferred, &h))) {
 						hset_remove(gq->deferred, &h);
@@ -4217,12 +4216,11 @@ guess_ignore_alien_host(void *val, void *data)
 	if (!hset_contains(gq->queried, host))
 		hset_insert(gq->queried, atom_host_get(host));
 
-	if (hash_list_contains(gq->pool, host)) {
+	if (NULL != (hkey = hash_list_remove(gq->pool, host))) {
 		if (GNET_PROPERTY(guess_client_debug) > 3) {
 			g_debug("GUESS QUERY[%s] dropping non-GUESS host %s from pool",
 				nid_to_string(&gq->gid), gnet_host_to_string(host));
 		}
-		hkey = hash_list_remove(gq->pool, host);
 		atom_host_free_null(&hkey);
 	} else if (NULL != (hkey = hset_lookup(gq->deferred, host))) {
 		if (GNET_PROPERTY(guess_client_debug) > 3) {
@@ -4816,8 +4814,8 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 			if (ok) {
 				guess_out_bw += len;
 			} else {
-				pmsg_free(mb);	/* RPC cancel done by guess_pmsg_free() */
-				marked_as_queried = FALSE; /* Free routine unflagged it */
+				pmsg_free(mb);		/* RPC cancel done by guess_pmsg_free() */
+				marked_as_queried = FALSE;	/* Free routine unflagged it */
 				goto unqueried;
 			}
 		}
