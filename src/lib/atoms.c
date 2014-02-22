@@ -107,6 +107,7 @@ typedef struct atom {
 	htable_t *get;				/**< Allocation spots */
 	htable_t *free;				/**< Free spots */
 	spinlock_t lock;			/**< Thread-safety lock */
+	size_t trackcnt;			/**< Tracking count (reference count) */
 #endif	/* TRACK_ATOMS */
 } atom_t;
 
@@ -214,6 +215,31 @@ atom_check(const atom_t *a)
 }
 
 static once_flag_t atoms_inited;
+
+#ifdef TRACK_ATOMS
+static inline void
+ATOM_ZERO(atom_t *a)
+{
+	a->get = a->free = NULL;
+	ZERO(&a->lock);
+}
+
+static inline void
+ATOM_TRACK_REFCNT(const void *key, int delta)
+{
+	atom_t *a = atom_from_arena(key);
+
+	/*
+	 * The table where the atoms lies is locked, no need to use atomic ops
+	 * to update the tracking count.
+	 */
+
+	a->trackcnt += delta;
+}
+#else	/* !TRACK_ATOMS */
+#define ATOM_ZERO(a)
+#define ATOM_TRACK_REFCNT(k, d)
+#endif	/* TRACK_ATOMS */
 
 #ifdef PROTECT_ATOMS
 struct mem_pool {
@@ -425,6 +451,7 @@ atom_alloc(size_t size)
 		a = vmm_alloc(size);
 	}
 	ATOM_SET_MAGIC(a);
+	ATOM_ZERO(a);
 
 	return a;
 }
@@ -469,6 +496,7 @@ atom_alloc(size_t size)
 {
 	atom_t *a = walloc(size);
 	ATOM_SET_MAGIC(a);
+	ATOM_ZERO(a);
 	return a;	
 }
 
@@ -1006,6 +1034,7 @@ atom_get(enum atom_type type, const void *key)
 		g_assert(atom_info_refcnt(value) > 0);
 
 		atom_refcnt_add(td, orig_key, value, +1);
+		ATOM_TRACK_REFCNT(orig_key, +1);
 		ATOM_TABLE_UNLOCK(td);
 
 		return orig_key;
@@ -1100,6 +1129,7 @@ atom_free(enum atom_type type, const void *key)
 		atom_dealloc(a, size);
 	} else {
 		atom_refcnt_add(td, key, value, -1);
+		ATOM_TRACK_REFCNT(key, -1);
 	}
 
 	ATOM_TABLE_UNLOCK(td);
@@ -1142,7 +1172,7 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	 * Initialize tracking tables on first allocation.
 	 */
 
-	init = 1 == a->refcnt;
+	init = NULL == a->get;
 
 	if G_UNLIKELY(init)
 		spinlock_init(&a->lock);
@@ -1154,6 +1184,7 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	if G_UNLIKELY(init) {
 		a->get = htable_create(HASH_KEY_STRING, 0);
 		a->free = htable_create(HASH_KEY_STRING, 0);
+		a->trackcnt = 1;
 	}
 
 	str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
@@ -1217,7 +1248,7 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
 
 	spinlock(&a->lock);
 
-	if (1 == a->refcnt) {
+	if (1 == a->trackcnt) {
 		destroy_tracking_table(a->get);
 		destroy_tracking_table(a->free);
 		spinlock_destroy(&a->lock);
