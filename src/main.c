@@ -782,7 +782,6 @@ gtk_gnutella_exit(int exit_code)
 		g_info("waiting for TEQ events from closing threads");
 
 	teq_set_throttle(0, 0);		/* No throttling */
-	DO(evq_close);				/* Can now dispose of the event queue */
 
 	while (0 != teq_dispatch()) {
 		int i;
@@ -794,6 +793,17 @@ gtk_gnutella_exit(int exit_code)
 			thread_sleep_ms(1);
 		}
 	}
+
+	/*
+	 * Prepare memory shutdown.
+	 *
+	 * Note that evq_close() must be called AFTER vmm_pre_close() to let the
+	 * periodic callbacks from the VMM layer be cleared and BEFORE we suspend
+	 * the other threads, to be able to wait for the complete EVQ shutdown.
+	 */
+
+	DO(vmm_pre_close);
+	DO(evq_close);				/* Can now dispose of the event queue */
 
 	/*
 	 * About to shutdown memory, suspend all the other running threads to
@@ -821,7 +831,7 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	DO(file_object_close);
-	DO(settings_close);	/* Must come after hcache_close() */
+	DO(settings_close);		/* Must come after hcache_close() */
 	DO(cq_close);
 
 	/*
@@ -829,7 +839,6 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	gm_mem_set_safe_vtable();
-	DO(vmm_pre_close);
 	DO(atoms_close);
 	DO(wdestroy);
 	DO(zclose);

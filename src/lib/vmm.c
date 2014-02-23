@@ -5296,6 +5296,7 @@ vmm_pre_close(void)
 
 	vmm_magazine_reset();
 	safe_to_log = FALSE;		/* Turn logging off */
+	cq_periodic_remove(&vmm_periodic);
 }
 
 /**

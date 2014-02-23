@@ -1783,6 +1783,7 @@ tmalloc_reset(tmalloc_t *tma)
 	empty = tma->tma_empty;					/* struct copy */
 	tmalloc_list_clear(&tma->tma_full);
 	tmalloc_list_clear(&tma->tma_empty);
+	cq_periodic_remove(&tma->tma_gc_ev);	/* trash is being collected */
 	TMALLOC_UNLOCK(tma);
 
 	/*
