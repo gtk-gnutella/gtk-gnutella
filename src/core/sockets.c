@@ -2846,9 +2846,17 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 		if ((ssize_t) -1 == r) {
 			/* ECONNRESET is meaningless with UDP but happens on Windows */
 			if (!is_temporary_error(errno) && errno != ECONNRESET) {
-				g_warning("ignoring datagram reception error: %m");
+				g_warning("%s(): ignoring datagram reception error: %m",
+					G_STRFUNC);
 			}
 			break;
+		}
+
+		if G_UNLIKELY(0 == r) {
+			g_warning("%s(): ignoring empty datagram from %s",
+				G_STRFUNC, host_addr_port_to_string(s->addr, s->port));
+			gnet_stats_inc_general(GNR_UDP_UNPROCESSED_MESSAGE);
+			goto next;
 		}
 
 		rd += r;
@@ -2873,6 +2881,8 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 		 * it refers to header or control msg data. */
 		if (avail <= 32)
 			break;
+
+	next:
 
 		/* Process one event at a time if configured as such */
 		if (s->flags & SOCK_F_SINGLE)
