@@ -1153,7 +1153,7 @@ static spinlock_t atom_track_slk = SPINLOCK_INIT;
  * @returns the atom's value.
  */
 const void *
-atom_get_track(enum atom_type type, const void *key, char *file, int line)
+atom_get_track(enum atom_type type, const void *key, const char *file, int line)
 {
 	const void *atom;
 	atom_t *a;
@@ -1233,7 +1233,8 @@ destroy_tracking_table(htable_t *h)
  * Dispose of atom if nobody references it anymore.
  */
 void
-atom_free_track(enum atom_type type, const void *key, char *file, int line)
+atom_free_track(enum atom_type type, const void *key,
+	const char *file, int line)
 {
 	atom_t *a;
 	char buf[512];
