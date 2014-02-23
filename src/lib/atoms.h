@@ -76,7 +76,7 @@ bool atom_exists(enum atom_type type, const void *key);
 #define atom_sha1_get(k)	atom_get_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 #define atom_sha1_free(k)	atom_free_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 
-#define atom_tth_get(k)	atom_get_track(ATOM_TTH, (k), _WHERE_, __LINE__)
+#define atom_tth_get(k)		atom_get_track(ATOM_TTH, (k), _WHERE_, __LINE__)
 #define atom_tth_free(k)	atom_free_track(ATOM_TTH, (k), _WHERE_, __LINE__)
 
 #define atom_uint64_get(k)	atom_get_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
