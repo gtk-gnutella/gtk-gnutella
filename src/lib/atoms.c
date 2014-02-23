@@ -225,7 +225,7 @@ ATOM_ZERO(atom_t *a)
 }
 
 static inline void
-ATOM_TRACK_REFCNT(const void *key, int delta)
+ATOM_TRACK_REFCNT(const void *key, int delta, size_t refcnt)
 {
 	atom_t *a = atom_from_arena(key);
 
@@ -235,10 +235,17 @@ ATOM_TRACK_REFCNT(const void *key, int delta)
 	 */
 
 	a->trackcnt += delta;
+
+	/*
+	 * Ensure our tracking count is always the same as the atom's refcount.
+	 */
+
+	g_assert_log(refcnt == a->trackcnt,
+		"refcnt=%zu, a->trackcnt=%zu", refcnt, a->trackcnt);
 }
 #else	/* !TRACK_ATOMS */
 #define ATOM_ZERO(a)
-#define ATOM_TRACK_REFCNT(k, d)
+#define ATOM_TRACK_REFCNT(k,d,r)	(void) r
 #endif	/* TRACK_ATOMS */
 
 #ifdef PROTECT_ATOMS
@@ -976,14 +983,17 @@ atom_exists(enum atom_type type, const void *key)
  * Increment / decrement the atom reference count.
  *
  * Must be called with the table description locked.
+ *
+ * @return new reference count.
  */
-static inline void
+static inline size_t
 atom_refcnt_add(const table_desc_t *td, const void *key, void *value, int delta)
 {
 	if (4 == sizeof(void *)) {
 		/* 32-bit machine, we can directly update the atom_info structure */
 		struct atom_info *ai = value;
 		ai->refcnt += delta;
+		return ai->refcnt;
 	} else {
 		/* 64-bit machine, we must update the hash table value */
 		ulong v = pointer_to_ulong(value);
@@ -992,6 +1002,7 @@ atom_refcnt_add(const table_desc_t *td, const void *key, void *value, int delta)
 		else
 			v -= -delta;	/* Necessary since int may be smaller than long */
 		htable_insert(td->table, key, ulong_to_pointer(v));
+		return ATOM_REFCNT(v);
 	}
 }
 
@@ -1023,6 +1034,8 @@ atom_get(enum atom_type type, const void *key)
 	ATOM_TABLE_LOCK(td);
 
 	if (htable_lookup_extended(td->table, key, &orig_key, &value)) {
+		size_t refcnt;
+
 		size = atom_info_length(value);
 		/* Prevent gcc warning if ARENA_OFFSET == 0 */
 		g_assert(size == ARENA_OFFSET || size > ARENA_OFFSET);
@@ -1033,8 +1046,8 @@ atom_get(enum atom_type type, const void *key)
 
 		g_assert(atom_info_refcnt(value) > 0);
 
-		atom_refcnt_add(td, orig_key, value, +1);
-		ATOM_TRACK_REFCNT(orig_key, +1);
+		refcnt = atom_refcnt_add(td, orig_key, value, +1);
+		ATOM_TRACK_REFCNT(orig_key, +1, refcnt);
 		ATOM_TABLE_UNLOCK(td);
 
 		return orig_key;
@@ -1128,8 +1141,8 @@ atom_free(enum atom_type type, const void *key)
 		atom_unprotect(a, size);
 		atom_dealloc(a, size);
 	} else {
-		atom_refcnt_add(td, key, value, -1);
-		ATOM_TRACK_REFCNT(key, -1);
+		size_t rcnt = atom_refcnt_add(td, key, value, -1);
+		ATOM_TRACK_REFCNT(key, -1, rcnt);
 	}
 
 	ATOM_TABLE_UNLOCK(td);
