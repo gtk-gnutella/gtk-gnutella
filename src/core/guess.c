@@ -5156,8 +5156,10 @@ guess_iterate(guess_t *gq)
 					break;
 				continue;
 			}
-			if (gq->flags & GQ_F_UDP_DROP)
+			if (gq->flags & GQ_F_UDP_DROP) {
+				atom_host_free_null(&host);
 				break;			/* Synchronous UDP drop detected */
+			}
 			i++;
 		}
 		atom_host_free_null(&host);
