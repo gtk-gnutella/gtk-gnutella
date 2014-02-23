@@ -1284,6 +1284,31 @@ atom_free_track(enum atom_type type, const void *key,
 }
 
 /**
+ * Helper routine for atom_track_count.
+ */
+static void
+atom_count_tracking_entry(const void *unused_key, void *value, void *user)
+{
+	struct spot *sp = value;
+	size_t *count = user;
+
+	(void) unused_key;
+	*count += sp->count;
+}
+
+/**
+ * Count amount of operations recorded in the tracking table.
+ */
+static size_t
+atom_track_count(const htable_t *h)
+{
+	size_t count = 0;
+
+	htable_foreach(h, atom_count_tracking_entry, &count);
+	return count;
+}
+
+/**
  * Dump all the spots where some tracked operation occurred, along with the
  * amount of such operations.
  */
@@ -1303,9 +1328,10 @@ static void
 dump_tracking_table(const void *atom, htable_t *h, char *what)
 {
 	size_t count = htable_count(h);
+	size_t opcount = atom_track_count(h);
 
-	g_warning("all %zu %s spot%s for %p:",
-		count, what, plural(count), atom);
+	g_warning("all %zu %s spot%s (%zu operation%s) for %p:",
+		count, what, plural(count), opcount, plural(opcount), atom);
 
 	htable_foreach(h, dump_tracking_entry, what);
 }
