@@ -155,6 +155,9 @@ static aging_table_t *g2_udp_pings;
 
 /**
  * Send a message to target node.
+ *
+ * @param n		the G2 node to which message should be sent
+ * @param mb	the message to sent (ownership taken, will be freed later)
  */
 void
 g2_node_send(const gnutella_node_t *n, pmsg_t *mb)
@@ -164,8 +167,10 @@ g2_node_send(const gnutella_node_t *n, pmsg_t *mb)
 
 	if (NODE_IS_UDP(n))
 		mq_udp_node_putq(n->outq, mb, n);
-	else
+	else if (NODE_IS_WRITABLE(n))
 		mq_tcp_putq(n->outq, mb, NULL);
+	else
+		pmsg_free(mb);		/* Cannot send it, free it now */
 }
 
 /**
