@@ -4057,6 +4057,17 @@ node_g2_msg_queued(void *node, const pmsg_t *mb)
 	gnet_stats_g2_count_queued(n, pmsg_start(mb), pmsg_size(mb));
 }
 
+static int
+node_g2_msg_zero(const void *a, const void *b)
+{
+	(void) a;
+	(void) b;
+
+	/* FIXME -- we could devise a priority scheme between messages */
+
+	return 0;		/* Treat all G2 messages as equally important */
+}
+
 static struct mq_uops node_mq_cb = {
 	gmsg_cmp,					/* msg_cmp */
 	gmsg_headcmp,				/* msg_headcmp */
@@ -4068,9 +4079,9 @@ static struct mq_uops node_mq_cb = {
 };
 
 static struct mq_uops node_g2_mq_cb = {
-	NULL,						/* msg_cmp */
-	NULL,						/* msg_headcmp */
-	NULL,						/* msg_templates */
+	node_g2_msg_zero,			/* msg_cmp */
+	node_g2_msg_zero,			/* msg_headcmp */
+	NULL,						/* msg_templates -- can be NULL */
 	node_g2_msg_accounting,		/* msg_sent */
 	node_g2_msg_flowc,			/* msg_flowc */
 	node_g2_msg_queued,			/* msg_queued */
