@@ -87,6 +87,15 @@
 #define LOG_MSG_DEFAULT		4080	/**< Default string length for logger */
 #define LOG_IOERR_GRACE		5		/**< Seconds between I/O errors */
 
+/*
+ * An internal log flag given to s_logv() to request explicit copy of the
+ * message to stdout.  Since we're extending the GLogLevelFlags enum, we have
+ * also to avoid using G_LOG_LEVEL_MASK to sort out the logging level out of
+ * the flags...
+ */
+#define LOG_FLAG_COPY	(1 << G_LOG_LEVEL_USER_SHIFT)
+#define LOG_LEVEL_MASK	(G_LOG_LEVEL_MASK & ~LOG_FLAG_COPY)
+
 static const char * const log_domains[] = {
 	G_LOG_DOMAIN, "Gtk", "Gdk", "GLib", "Pango"
 };
@@ -709,7 +718,12 @@ log_fprint(enum log_file which, const struct tm *ct, long usec,
 const char *
 log_prefix(GLogLevelFlags level)
 {
-	switch (level & G_LOG_LEVEL_MASK) {
+	/*
+	 * Don't use G_LOG_LEVEL_MASK here: we need to clear our own LOG_FLAG_COPY
+	 * flag as well
+	 */
+
+	switch (level & LOG_LEVEL_MASK) {
 	case G_LOG_LEVEL_CRITICAL: return "CRITICAL";
 	case G_LOG_LEVEL_ERROR:    return "ERROR";
 	case G_LOG_LEVEL_WARNING:  return "WARNING"; 
@@ -1049,7 +1063,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * Use minimal logging.
 		 */
 
-		copy = level & (G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL);
+		copy = level &
+			(G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL | LOG_FLAG_COPY);
 		s_minilogv(level | G_LOG_FLAG_RECURSION, copy, format, args);
 		goto done;
 	}
@@ -1134,8 +1149,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		log_flush_err_atomic();
 
 		if G_UNLIKELY(
-			level &
-				(G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR)
+			level & (
+				G_LOG_FLAG_FATAL	|	G_LOG_LEVEL_CRITICAL |
+				G_LOG_LEVEL_ERROR	|	LOG_FLAG_COPY
+			)
 		) {
 			if (log_stdout_is_distinct())
 				log_flush_out_atomic();
@@ -1184,7 +1201,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	if G_UNLIKELY(level & (G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR))
-		s_stacktrace(TRUE, 2);
+		s_stacktrace(TRUE, 2);		/* Copied to stdout if different */
 
 done:
 	errno = saved_errno;
@@ -1401,7 +1418,11 @@ s_error_from(const char *file, const char *format, ...)
 }
 
 /**
- * Safe verbose warning message.
+ * Safe verbose warning message, identifying a severe problem that could
+ * indicate some malfunction or cause one later.
+ *
+ * Although only a warning, it is duplicated (along with the stacktrace)
+ * to stdout if it is different from stderr.
  */
 void
 s_carp(const char *format, ...)
@@ -1412,10 +1433,11 @@ s_carp(const char *format, ...)
 	thread_pending_add(+1);
 
 	va_start(args, format);
-	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
+	s_logv(logthread_object(FALSE),
+		G_LOG_LEVEL_WARNING | LOG_FLAG_COPY, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);
+	s_stacktrace(in_signal_handler, 1);		/* Copied to stdout if different */
 
 	thread_pending_add(-1);
 }
@@ -1475,7 +1497,7 @@ s_minicarp(const char *format, ...)
 	s_minilogv(G_LOG_LEVEL_WARNING, TRUE, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);
+	s_stacktrace(in_signal_handler, 1);		/* Copied to stdout if different */
 }
 
 /**
@@ -1560,7 +1582,7 @@ s_rawcrit(const char *format, ...)
 	s_rawlogv(G_LOG_LEVEL_CRITICAL, TRUE, TRUE, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);
+	s_stacktrace(in_signal_handler, 1);		/* Copied to stdout if different */
 }
 
 /**
@@ -1617,7 +1639,7 @@ s_minicrit(const char *format, ...)
 	s_minilogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);
+	s_stacktrace(in_signal_handler, 1);		/* Copied to stdout if different */
 }
 
 /**
