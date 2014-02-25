@@ -2655,6 +2655,7 @@ enum g2_qh2_child {
 	G2_QH2_GU,
 	G2_QH2_H,
 	G2_QH2_HN,
+	G2_QH2_NA,
 	G2_QH2_NH,
 	G2_QH2_TLS,
 	G2_QH2_V
@@ -2679,6 +2680,7 @@ static const tokenizer_t g2_qh2_children[] = {
 	{ "GU",		G2_QH2_GU },
 	{ "H",		G2_QH2_H },
 	{ "HN",		G2_QH2_HN },
+	{ "NA",		G2_QH2_NA },
 	{ "NH",		G2_QH2_NH },
 	{ "TLS",	G2_QH2_TLS },
 	{ "V",		G2_QH2_V },
@@ -3059,6 +3061,7 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 	size_t nr = 0;
 	const char *vendor = NULL;
 	const char *badmsg = NULL;
+	bool has_na = FALSE;
 
 	*hostile = HSTL_CLEAN;
 	muid = g2_msg_get_muid(t, &muid_buf);
@@ -3075,31 +3078,6 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 	rs->last_hop = n->addr;
 	rs->status |= ST_G2 | ST_PARSED_TRAILER;	/* No trailer in G2 */
 
-	c = g2_tree_lookup(t, "NA");
-	if (NULL == c) {
-		/*
-		 * If it comes from UDP, we can derive the address, and pray for the
-		 * port to be the listening port.  Via TCP, with hops=0, we have the
-		 * node address and listening port normally.
-		 * Otherwise, reject the hit.
-		 */
-
-		if (NODE_IS_UDP(n)) {
-			rs->addr = n->addr;
-			rs->port = n->port;
-		} else {
-			if (0 != rs->hops || 0 == n->gnet_port) {
-				badmsg = "no \"NA\" in TCP hit, cannot derive source";
-				goto bad_packet;
-			}
-			rs->addr = n->gnet_addr;
-			rs->port = n->gnet_port;	/* Known listening port */
-		}
-	} else if (!g2_node_parse_address(c, &rs->addr, &rs->port)) {
-		badmsg = "no valid address in \"NA\"";
-		goto bad_packet;
-	}
-
 	/*
 	 * Count the number of hits present, so that we know how many valid
 	 * hits we parsed in case we have to bail out due to a malformed packet.
@@ -3109,15 +3087,6 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 		if (0 == strcmp(g2_tree_name(c), "H"))
 			rs->num_recs++;
 	}
-
-	/* Drop if no results in /QH2 */
-
-	if (0 == rs->num_recs) {
-		badmsg = "no results";
-		goto bad_packet;
-	}
-
-	search_validate_result_address(rs, n, browse);
 
 	/*
 	 * Parse the children.
@@ -3193,6 +3162,14 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 			}
 			break;
 
+		case G2_QH2_NA:
+			if (!g2_node_parse_address(c, &rs->addr, &rs->port)) {
+				badmsg = "no valid address in \"NA\"";
+				goto bad_packet;
+			}
+			has_na = TRUE;
+			break;
+
 		case G2_QH2_NH:
 			{
 				host_addr_t addr;
@@ -3225,6 +3202,13 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 		}
 	}
 
+	/* Drop if no results in /QH2 */
+
+	if (0 == nr) {
+		badmsg = "no results";
+		goto bad_packet;
+	}
+
 	/*
 	 * Adjust the number of records, in case we did not include all the
 	 * items in the hit.
@@ -3237,8 +3221,34 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 		goto bad_packet;
 	}
 
+	/*
+	 * If we did not find a "NA" child in the hit, try to intuit the address.
+	 */
+
+	if (!has_na) {
+		/*
+		 * If it comes from UDP, we can derive the address, and pray for the
+		 * port to be the listening port.  Via TCP, with hops=0, we have the
+		 * node address and listening port normally.
+		 * Otherwise, reject the hit.
+		 */
+
+		if (NODE_IS_UDP(n)) {
+			rs->addr = n->addr;
+			rs->port = n->port;
+		} else {
+			if (0 != rs->hops || 0 == n->gnet_port) {
+				badmsg = "no \"NA\" in TCP hit, cannot derive source";
+				goto bad_packet;
+			}
+			rs->addr = n->gnet_addr;
+			rs->port = n->gnet_port;	/* Known listening port */
+		}
+	}
+
 	/* FIXME: refresh G2 push-proxies as in get_results_set() */
 
+	search_validate_result_address(rs, n, browse);
 	search_results_postprocess(n, rs, muid, hostile);
 	search_finalize_results(rs, muid, browse);
 	search_results_identify_spam(n, rs, hostile);
