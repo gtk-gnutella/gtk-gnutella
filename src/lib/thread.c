@@ -3885,6 +3885,12 @@ thread_private_update_extended(const void *key, const void *value,
 	 * associated with that value will not be cleared until the thread
 	 * element is reused, which may never happen.
 	 *		--RAM, 2013-11-15
+	 *
+	 * Actually, since the thread is exiting, it's best to not even add the
+	 * value to the hash table: we could be in thread_private_clear() and
+	 * modifying a table on which one iterates is a no-no.  Better let the
+	 * value leak.
+	 *		--RAM, 2014-02-25
 	 */
 
 	if G_UNLIKELY(
@@ -3892,8 +3898,9 @@ thread_private_update_extended(const void *key, const void *value,
 		p_free != NULL &&
 		p_free != THREAD_PRIVATE_KEEP
 	) {
-		s_carp("%s(): adding value freed by %s() in %s",
+		s_carp("%s(): adding value freed by %s() in %s -- object will leak",
 			G_STRFUNC, stacktrace_function_name(p_free), thread_name());
+		return;
 	}
 
 	pv = zalloc(pvzone);
