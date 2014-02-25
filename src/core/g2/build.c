@@ -623,6 +623,16 @@ g2_build_q2(const guid_t *muid, const char *query,
 			g2_tree_add_child(t, c);
 	}
 
+	if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
+		/*
+		 * Shareaza uses /Q2/NAT to indicate that the querying node is
+		 * firewalled.  Why didn't they choose /Q2/FW for consistency?
+		 */
+
+		c = g2_tree_alloc_empty("NAT");
+		g2_tree_add_child(t, c);
+	}
+
 	g2_tree_reverse_children(t);
 
 	mb = g2_build_pmsg(t);

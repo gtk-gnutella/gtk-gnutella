@@ -82,9 +82,10 @@ enum g2_q2_child {
 	G2_Q2_DN = 1,
 	G2_Q2_I,
 	G2_Q2_MD,
+	G2_Q2_NAT,
 	G2_Q2_SZR,
 	G2_Q2_UDP,
-	G2_Q2_URN,
+	G2_Q2_URN
 };
 
 enum g2_lni_child {
@@ -92,7 +93,7 @@ enum g2_lni_child {
 	G2_LNI_LS,
 	G2_LNI_NA,
 	G2_LNI_UP,
-	G2_LNI_V,
+	G2_LNI_V
 };
 
 static const tokenizer_t g2_q2_children[] = {
@@ -100,6 +101,7 @@ static const tokenizer_t g2_q2_children[] = {
 	{ "DN",		G2_Q2_DN },
 	{ "I",		G2_Q2_I },
 	{ "MD",		G2_Q2_MD },
+	{ "NAT",	G2_Q2_NAT },
 	{ "SZR",	G2_Q2_SZR },
 	{ "UDP",	G2_Q2_UDP },
 	{ "URN",	G2_Q2_URN },
@@ -880,6 +882,10 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 				/* Not NUL-terminated, need to h_strndup() it */
 				md = h_strndup(payload, paylen);
 			}
+			break;
+
+		case G2_Q2_NAT:
+			sri.flags |= QUERY_F_FIREWALLED;
 			break;
 
 		case G2_Q2_SZR:			/* Size limits */
