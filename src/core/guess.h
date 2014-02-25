@@ -71,6 +71,8 @@ bool guess_rpc_handle(struct gnutella_node *n);
 void guess_introduction_ping(const struct gnutella_node *n,
 	const char *buf, uint16 len);
 void guess_add_hub(host_addr_t addr, uint16 port);
+bool guess_already_queried(const guess_t *gq,
+	const host_addr_t addr, uint16 port);
 
 struct g2_tree;
 struct guid;

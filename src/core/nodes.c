@@ -4386,7 +4386,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * dynamic querying, so there is no need for a per-node search queue.
 	 */
 
-	if (!settings_is_ultra() && !NODE_TALKS_G2(n))
+	if (!settings_is_ultra() || NODE_TALKS_G2(n))
 		n->searchq = sq_make(n);
 
 	/*

@@ -570,7 +570,6 @@ g2_build_qkr(void)
  * @param query_key	the GUESS query key to use
  * @param length	length of query key
  *
- *
  * @return a /Q2 message.
  */
 pmsg_t *

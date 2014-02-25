@@ -5291,6 +5291,20 @@ guess_end_when_starving(guess_t *gq)
 }
 
 /**
+ * Check whether a given IP:port has been queried already.
+ */
+bool
+guess_already_queried(const guess_t *gq, const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	guess_check(gq);
+
+	gnet_host_set(&host, addr, port);
+	return hset_contains(gq->queried, &host);
+}
+
+/**
  * Create a new GUESS query.
  *
  * @param sh		search handle

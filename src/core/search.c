@@ -632,7 +632,6 @@ sent_node_hash_func(const void *key)
 {
 	const gnet_host_t *sd = key;
 
-	/* ensure that we've got sizeof(int) bytes of deterministic data */
 	return host_addr_hash(gnet_host_get_addr(sd)) ^
 			port_hash(gnet_host_get_port(sd));
 }
@@ -671,7 +670,7 @@ search_reset_sent_nodes(search_ctrl_t *sch)
 }
 
 static void
-search_mark_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
+search_mark_sent_to_node(search_ctrl_t *sch, const gnutella_node_t *n)
 {
 	gnet_host_t sd;
 
@@ -4650,21 +4649,47 @@ build_search_msg(const guid_t *muid, const char *query,
  * On success a walloc()ated message is returned. Use wfree() to release
  * the memory. The size can be derived from the header, add GTA_HEADER_SIZE.
  *
- * @returns NULL if we cannot build a suitable message (bad query string
+ * @return NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
 static gnutella_msg_search_t *
-search_build_msg(search_ctrl_t *sch)
+search_build_msg(const search_ctrl_t *sch)
 {
 	search_ctrl_check(sch);
 	g_assert(sbool_get(sch->active));
 	g_assert(!sbool_get(sch->frozen));
-	g_assert(sch->muids);
+	g_assert(sch->muids != NULL);
 
 	/* Use the first MUID on the list (the last one allocated) */
 
 	return build_search_msg(sch->muids->data, sch->query,
 		sch->media_type, sbool_get(sch->whats_new), NULL);
+}
+
+/**
+ * Create a G2 search request message (/Q2) for specified search.
+ *
+ * @return NULL if we cannot build a suitable message (unsupported query type).
+ */
+static pmsg_t *
+search_g2_build_q2(const search_ctrl_t *sch)
+{
+	search_ctrl_check(sch);
+	g_assert(sbool_get(sch->active));
+	g_assert(!sbool_get(sch->frozen));
+	g_assert(sch->muids != NULL);
+
+	if (sbool_get(sch->whats_new))
+		return NULL;		/* G2 does not support "What's New?" queries */
+
+	/*
+	 * Use the first MUID on the list (the last one allocated).
+	 *
+	 * Because the /Q2 will be sent via TCP, there is no need to include a
+	 * query key in the message.
+	 */
+
+	return g2_build_q2(sch->muids->data, sch->query, sch->media_type, NULL, 0);
 }
 
 /**
@@ -4747,7 +4772,8 @@ search_whats_new_can_reissue(void)
 static void
 search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 {
-	gnutella_msg_search_t *msg;
+	gnutella_msg_search_t *msg = NULL;
+	pmsg_t *mb;
 	size_t size;
 
 	g_assert(sch != NULL);
@@ -4775,10 +4801,11 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 *		--RAM, 04/04/2003
 	 */
 
-	if (n) {
+	if (n != NULL) {
 		search_mark_sent_to_node(sch, n);
-		gmsg_search_sendto_one(n, sch->search_handle, msg, size);
-		goto cleanup;
+		if (!NODE_TALKS_G2(n))
+			gmsg_search_sendto_one(n, sch->search_handle, msg, size);
+		goto gnet_done;
 	}
 
 	/*
@@ -4789,7 +4816,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	if (settings_is_leaf()) {
 		if (sbool_get(sch->whats_new)) {
 			if (!search_whats_new_can_reissue())
-				goto cleanup;
+				goto gnet_done;
 			search_last_whats_new = tm_time();
 		} else {
 			search_starting(sch->search_handle);
@@ -4797,7 +4824,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		search_mark_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(node_all_gnet_nodes(),
 			sch->search_handle, msg, size);
-		goto cleanup;
+		goto gnet_done;
 	}
 
 	search_qhv_fill(sch, query_hashvec);
@@ -4806,15 +4833,15 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		pslist_t *nodes;
 
 		if (!search_whats_new_can_reissue())
-			goto cleanup;
+			goto gnet_done;
 
 		nodes = qrt_build_query_target(
 			query_hashvec, 0, WHATS_NEW_TTL, TRUE, NULL);
 
 		if (nodes != NULL) {
-			pmsg_t *mb = gmsg_to_pmsg(msg, size);
+			mb = gmsg_to_pmsg(msg, size);
 			gmsg_mb_sendto_all(nodes, mb);
-			pmsg_free(mb);
+			pmsg_free_null(&mb);
 			search_last_whats_new = tm_time();
 		}
 		pslist_free(nodes);
@@ -4829,8 +4856,37 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	/* FALL THROUGH */
 
-cleanup:
-	wfree(msg, size);
+gnet_done:
+	WFREE_NULL(msg, size);
+
+	/*
+	 * Now handle the G2 network side.
+	 */
+
+	if (n != NULL && NODE_TALKS_G2(n)) {
+		mb = search_g2_build_q2(sch);
+		if (mb != NULL)
+			sq_putq(n->searchq, sch->search_handle, mb);
+		/* Node already marked as "having been sent to" in code above */
+	}
+
+	if (NULL == n) {
+		mb = search_g2_build_q2(sch);
+		if (mb != NULL) {
+			const pslist_t *sl;
+
+			PSLIST_FOREACH(node_all_g2_nodes(), sl) {
+				const gnutella_node_t *n2 = sl->data;
+
+				if (NULL == n2->searchq)
+					continue;		/* Skip non-writable node */
+
+				search_mark_sent_to_node(sch, n2);
+				sq_putq(n2->searchq, sch->search_handle, pmsg_clone(mb));
+			}
+			pmsg_free_null(&mb);
+		}
+	}
 }
 
 /**
@@ -4847,30 +4903,30 @@ search_node_added(void *search, void *node)
 	node_check(n);
 
 	/*
-	 * FIXME
-	 * Do nothing if we're dealing with a G2 node, we're not generating G2
-	 * queries yet.
-	 */
-
-	if (NODE_TALKS_G2(n))
-		return WQ_SLEEP;		/* Keep being notified */
-
-	/*
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
+	 * If it's a G2 node, we're always sending out the query.
 	 */
 
-	if (settings_is_leaf()) {
+	if (settings_is_leaf() || NODE_TALKS_G2(n)) {
 		/*
 		 * Send search to new node if not already done and if the search
-		 * is still active and if we're not in GUESS querying mode.
+		 * is still active.
 		 */
 
-		if (
-			!search_already_sent_to_node(sch, n) &&
-			!sbool_get(sch->frozen) &&
-			NULL == sch->guess
-		) {
-			search_send_packet(sch, n);
+		if (!search_already_sent_to_node(sch, n) && !sbool_get(sch->frozen)) {
+			/*
+			 * If a GUESS query is active, check whether we have already
+			 * queried the node.  A GUESS search will skip nodes to which we
+			 * are already connected via TCP, but we may have not queried that
+			 * host yet.
+			 */
+
+			if (
+				NULL == sch->guess ||
+				!guess_already_queried(sch->guess, n->gnet_addr, n->gnet_port)
+			) {
+				search_send_packet(sch, n);
+			}
 		}
 	}
 
