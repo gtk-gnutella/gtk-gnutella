@@ -340,6 +340,43 @@ g2_msg_get_muid(const g2_tree_t *t, guid_t *buf)
 }
 
 /**
+ * Fetch the query text from a /Q2 message.
+ *
+ * @param mb		a message block containing a serialized /Q2
+ *
+ * @return a pointer to the search text string (as static data), NULL if
+ * is no text in the query or the message is not a /Q2.
+ */
+const char *
+g2_msg_search_get_text(const pmsg_t *mb)
+{
+	str_t *s = str_private(G_STRFUNC, 64);
+	const g2_tree_t *t;
+
+	t = g2_frame_deserialize(
+			pmsg_start(mb), pmsg_written_size(mb), NULL, FALSE);
+
+	if (NULL == t) {
+		return NULL;
+	} else {
+		const char *payload;
+		size_t paylen;
+
+		payload = g2_tree_payload(t, "/Q2/DN", &paylen);
+
+		if (NULL == payload) {
+			g2_tree_free_null_const(&t);
+			return NULL;
+		}
+
+		str_cpy_len(s, payload, paylen);
+	}
+
+	g2_tree_free_null_const(&t);
+	return str_2c(s);
+}
+
+/**
  * Fill supplied buffer with the formatted string describing the message.
  *
  * @param data		start of the G2 message
