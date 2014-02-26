@@ -88,7 +88,7 @@ struct smsg_info {
 
 static squeue_t *global_sq = NULL;
 
-static void cap_queue(squeue_t *sq);
+static void sq_cap(squeue_t *sq);
 
 /**
  * Free routine for a query message.
@@ -313,7 +313,7 @@ sq_puthere(squeue_t *sq, gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 	sq->count++;
 
 	if (sq->count > GNET_PROPERTY(search_queue_size))
-		cap_queue(sq);
+		sq_cap(sq);
 }
 
 
@@ -492,7 +492,7 @@ retry:
  * search queue based on the search count
  */
 static void
-cap_queue(squeue_t *sq)
+sq_cap(squeue_t *sq)
 {
 	while (sq->count > GNET_PROPERTY(search_queue_size)) {
 		plist_t *item = plist_last(sq->searches);
