@@ -4596,10 +4596,6 @@ build_search_message(const guid_t *muid, const char *query,
 	if (size != NULL)
 		*size = msize;
 
-if (GNET_PROPERTY(guess_client_debug) > 18 && query_key != NULL) {
-	dump_hex(stderr, "GUESS query", &msg.bytes, msize);
-}
-
 	return wcopy(&msg.bytes, msize);
 
 error:

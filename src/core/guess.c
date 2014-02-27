@@ -124,13 +124,14 @@
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/listener.h"
-#include "lib/misc.h"			/* For vlint_decode() */
+#include "lib/misc.h"			/* For vlint_decode() and dump_hex() */
 #include "lib/nid.h"
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/ripening.h"
 #include "lib/stacktrace.h"
+#include "lib/str.h"			/* For str_private() */
 #include "lib/stringify.h"
 #include "lib/timestamp.h"		/* For timestamp_to_string() */
 #include "lib/tm.h"
@@ -4673,6 +4674,22 @@ guess_rpc_callback(struct guess_rpc *grp, const gnutella_node_t *n, guess_t *gq)
 }
 
 /**
+ * Dump query message to stderr.
+ *
+ * @param gq	the GUESS query for which we're sending this message
+ * @param n		the destination node
+ * @param mb	the message that is to be sent
+ */
+static void
+guess_query_dump(const guess_t *gq, const gnutella_node_t *n, const pmsg_t *mb)
+{
+	str_t *s = str_private(G_STRFUNC, 80);
+
+	str_printf(s, "GUESS query \"%s\" to %s", gq->query, node_infostr(n));
+	dump_hex(stderr, str_2c(s), pmsg_start(mb), pmsg_written_size(mb));
+}
+
+/**
  * Send query message to host.
  *
  * @return TRUE if message was sent, FALSE if we cannot query the host.
@@ -4847,6 +4864,9 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 			bool ok;
 			size_t len = pmsg_written_size(mb);
 
+			if (GNET_PROPERTY(guess_client_debug) > 18)
+				guess_query_dump(gq, n, mb);
+
 			/*
 			 * The value of GUESS_G2_RPC_TIMEOUT is MUCH larger than the local
 			 * GUESS RPC lifetime.  This allows us to process late /QA replies
@@ -4902,6 +4922,9 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 				gnet_host_get_addr(host), gnet_host_get_port(host));
 
 		if (n != NULL) {
+			if (GNET_PROPERTY(guess_client_debug) > 18)
+				guess_query_dump(gq, n, mb);
+
 			guess_out_bw += size;
 			gmsg_mb_sendto_one(n, mb);
 		}
