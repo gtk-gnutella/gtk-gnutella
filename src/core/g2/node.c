@@ -390,6 +390,16 @@ g2_node_handle_rpc_answer(gnutella_node_t *n,
 			g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
 		}
 		return;
+	} else {
+		/*
+		 * We can get a /QA from TCP when we send a /Q2 to a neighbouring hub.
+		 * Since they are not linked to a GUESS query, but we may want to
+		 * collect new addresses from the packet and possibly update the
+		 * re-query time limit, handle these as "late" QA messages.
+		 */
+
+		if (G2_MSG_QA == type && guess_late_qa(n, t, NULL))
+			return;
 	}
 
 	/*

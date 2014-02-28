@@ -2408,7 +2408,7 @@ guess_late_qa(const gnutella_node_t *n, const g2_tree_t *t, const guid_t *muid)
 {
 	gnet_host_t host;
 	guess_t *gq;
-	bool very_late = NULL == muid;
+	bool very_late = NULL == muid && NODE_IS_UDP(n);
 
 	g_assert(NODE_TALKS_G2(n));
 	g_assert(G2_MSG_QA == g2_msg_name_type(g2_tree_name(t)));
@@ -2453,9 +2453,9 @@ guess_late_qa(const gnutella_node_t *n, const g2_tree_t *t, const guid_t *muid)
 	gq = hikset_lookup(gmuid, muid);		/* Can be NULL, it's OK */
 
 	if (GNET_PROPERTY(guess_client_debug)) {
-		g_warning("GUESS QUERY[%s] got %slate /%s reply #%s from %s",
+		g_warning("GUESS QUERY[%s] got %s%s/%s reply #%s from %s",
 			NULL == gq ? "?" : nid_to_string(&gq->gid),
-			very_late ? "very " : "",
+			very_late ? "very " : "", NODE_IS_UDP(n) ? "late " : "",
 			g2_tree_name(t), guid_hex_str(muid),
 			host_addr_port_to_string(n->addr, n->port));
 	}
