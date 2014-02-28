@@ -587,7 +587,15 @@ g2_build_q2(const guid_t *muid, const char *query,
 	c = g2_tree_alloc_copy("DN", query, strlen(query));
 	g2_tree_add_child(t, c);
 
-	c = g2_tree_alloc("I", interest, CONST_STRLEN(interest));
+	/*
+	 * Due to an important Shareaza parsing bug in versions <= 2.7.1.0,
+	 * we're including the trailing NUL in the interest[] string.
+	 * Otherwise, that simply blocks Shareaza in a looong parsing loop.
+	 * Hence the use of "sizeof" below instead of CONST_STRLEN().
+	 *		--RAM, 2014-02-28
+	 */
+
+	c = g2_tree_alloc("I", interest, sizeof interest);
 	g2_tree_add_child(t, c);
 
 	if (mtype != 0) {

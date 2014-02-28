@@ -2442,6 +2442,12 @@ guess_late_qa(const gnutella_node_t *n, const g2_tree_t *t, const guid_t *muid)
 	 * We're going to parse the /QA nonethless to collect G2 hub addresses
 	 * for other queries.  Since the RPC has expired, we use the MUID to
 	 * find the GUESS query, but can pass NULL if it's not found.
+	 *
+	 * Note from 2014-02-28: the late /QA were actually caused by a parsing
+	 * problem in Shareaza <= 2.7.1.0 whereby our /Q2/I extension was causing
+	 * a dreadful parsing loop, delaying the reply.  Now that we emit a nicer
+	 * /Q2/I for RAZA nodes, the /QA flow back instantly, but I'm leaving the
+	 * late /QA processing code in place, just in case.
 	 */
 
 	gq = hikset_lookup(gmuid, muid);		/* Can be NULL, it's OK */
