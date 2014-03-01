@@ -8537,6 +8537,9 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	if (download_is_g2(d)) {
 		pmsg_t *mb = g2_build_push(download_guid(d));
 
+		if (NULL == mb)
+			goto done;
+
 		success = download_g2_send_push(d, mb, udp, broadcast);
 		pmsg_free(mb);
 	} else {

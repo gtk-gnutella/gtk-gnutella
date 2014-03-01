@@ -546,7 +546,8 @@ g2_build_lni(void)
  *
  * @param guid	the GUID of the remote servent we're trying to reach
  *
- * @return a /PUSH message.
+ * @return a /PUSH message, or NULL if the listening address or port
+ * are invalid.
  */
 pmsg_t *
 g2_build_push(const guid_t *guid)
@@ -555,9 +556,13 @@ g2_build_push(const guid_t *guid)
 	pmsg_t *mb;
 	char payload[18];
 	size_t plen;
+	host_addr_t addr = listen_addr_primary();
+	uint16 port = socket_listen_port();
 
-	host_ip_port_poke(payload,
-		listen_addr_primary(), socket_listen_port(), &plen);
+	if (0 == port || !is_host_addr(addr))
+		return NULL;
+
+	host_ip_port_poke(payload, addr, port, &plen);
 
 	t = g2_tree_alloc(G2_NAME(PUSH), payload, plen);
 	g2_build_add_tls(t);
