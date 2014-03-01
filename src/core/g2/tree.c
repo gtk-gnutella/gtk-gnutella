@@ -549,6 +549,11 @@ g2_tree_append_payload(g2_tree_t *root, const void *payload, size_t paylen)
 
 	newlen = root->paylen + paylen;
 
+	if (0 == paylen)
+		return newlen;		/* Nothing to do and no payload copying needed */
+
+	g_assert(payload != NULL);
+
 	/*
 	 * If there was already a payload and it was not copied, we need to
 	 * allocate new buffer and copy the old data to it.

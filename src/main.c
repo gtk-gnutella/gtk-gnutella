@@ -57,6 +57,7 @@
 #include "core/g2/build.h"
 #include "core/g2/gwc.h"
 #include "core/g2/node.h"
+#include "core/g2/rpc.h"
 #include "core/g2/tree.h"
 #include "core/gdht.h"
 #include "core/geo_ip.h"
@@ -714,6 +715,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(share_close);	/* After node_close() */
 	DO(udp_close);
 	DO(urpc_close);
+	DO(g2_rpc_close);
 	DO(routing_close);	/* After node_close() */
 	DO(bsched_close);
 	DO(dmesh_close);
@@ -1969,6 +1971,7 @@ main(int argc, char **argv)
 	upnp_init();
 	udp_init();
 	urpc_init();
+	g2_rpc_init();
 	vmsg_init();
 	tsync_init();
 	watcher_init();

@@ -188,6 +188,7 @@ LSRC = \
 	random.c \
 	rbtree.c \
 	regex.c \
+	ripening.c \
 	rwlock.c \
 	sectoken.c \
 	semaphore.c \

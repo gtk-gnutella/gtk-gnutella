@@ -40,18 +40,23 @@
 
 struct gnutella_node;
 struct pmsg;
+struct g2_tree;
+struct host_addr;
 
 void g2_node_init(void);
 void g2_node_close(void);
 
 void g2_node_handle(struct gnutella_node *n);
 
-void g2_node_send(struct gnutella_node *n, struct pmsg *mb);
+void g2_node_send(const struct gnutella_node *n, struct pmsg *mb);
 void g2_node_send_qht_reset(struct gnutella_node *n, int slots, int inf_val);
 void g2_node_send_qht_patch(struct gnutella_node *n,
 	int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len);
 void g2_node_send_lni(struct gnutella_node *n);
+
+bool g2_node_parse_address(const struct g2_tree *t,
+	struct host_addr *addr, uint16 *port) NON_NULL_PARAM((2, 3));
 
 #endif /* _core_g2_node_h_ */
 

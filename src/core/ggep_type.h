@@ -63,6 +63,8 @@ typedef enum ggept_status {
 #define GTKGV_F_DIRTY	(1U << 1)	/**< Had local changes at build time */
 #define GTKGV_F_OS		(1U << 2)	/**< Has OS code */
 
+#define GTKGV_MAX_LEN	37			/**< Maximum length of "GTKGV", + 1 NUL */
+
 /*
  * Public interface.
  */
@@ -98,9 +100,11 @@ struct ggep_gtkgv {
 	unsigned dirty:1;
 };
 
-uint8 ggept_gtkgv_osname_value(void);
+size_t ggept_gtkgv_build(void *buf, size_t len);
 
 ggept_status_t ggept_gtkgv_extract(const extvec_t *, struct ggep_gtkgv *info);
+ggept_status_t ggept_gtkgv_extract_data(const void *buf, size_t len,
+	struct ggep_gtkgv *info);
 ggept_status_t ggept_gtkgv1_extract(const extvec_t *, struct ggep_gtkgv1 *info);
 ggept_status_t ggept_hname_extract(const extvec_t *, char *buf, int len);
 ggept_status_t ggept_filesize_extract(const extvec_t *, uint64 *fs);

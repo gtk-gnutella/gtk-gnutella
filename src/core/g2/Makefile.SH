@@ -84,6 +84,7 @@ SRC = \
 	gwc.c \
 	msg.c \
 	node.c \
+	rpc.c \
 	tfmt.c \
 	tree.c
 
@@ -93,6 +94,7 @@ OBJ = \
 	gwc.o \
 	msg.o \
 	node.o \
+	rpc.o \
 	tfmt.o \
 	tree.o 
 

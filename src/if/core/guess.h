@@ -49,8 +49,10 @@ struct guess_query {
  */
 struct guess_stats {
 	size_t pool;			/**< Pool size (unqueried hosts) */
-	size_t queried;			/**< Hosts queried */
+	size_t queried_ultra;	/**< Ultra nodes queried */
+	size_t queried_g2;		/**< G2 nodes queried */
 	size_t acks;			/**< Query acknowledgments */
+	size_t reached;			/**< Amount of ultras & G2 hubs reached by query */
 	size_t results;			/**< Results received */
 	size_t kept;			/**< Results kept */
 	size_t hops;			/**< Iterating hops */

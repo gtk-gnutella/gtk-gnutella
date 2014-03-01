@@ -5485,4 +5485,53 @@ prop = {
     };
 };
 
+prop = {
+	name = "g2_rpc_debug";
+	desc = "Debug level for the G2 RPC layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "log_query_hits";
+	desc = "Whether to log summary of received query hits";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_query_hit_records";
+	desc = "Whether to log summary of each record in received query hits";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "g2_browse_count";
+    desc = "Number of G2 browsing requests received in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "g2_browse_served";
+    desc = "Number of G2 browsing requests fully served in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

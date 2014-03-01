@@ -29,6 +29,7 @@ SRC = \
 	gwc.c \
 	msg.c \
 	node.c \
+	rpc.c \
 	tfmt.c \
 	tree.c
 

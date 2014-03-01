@@ -326,12 +326,14 @@ static void
 search_gui_browse_selected_helper(gpointer data, gpointer unused_udata)
 {
 	const record_t *rc = data;
+	const results_set_t *rs = rc->results_set;
 	guint32 flags = 0;
 
 	(void) unused_udata;
 	
-	flags |= (rc->results_set->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-	flags |= (rc->results_set->status & ST_TLS) ? SOCK_F_TLS : 0;
+	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+	flags |= ((rs->status & ST_G2) && T_GTKG != rs->vendor) ? SOCK_F_G2 : 0;
 	
 	search_gui_new_browse_host(
 		rc->results_set->hostname,

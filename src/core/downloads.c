@@ -158,11 +158,13 @@ static hash_list_t *sl_unqueued;	/**< Unqueued downloads only */
 static pslist_t *sl_removed;		/**< Removed downloads only */
 static pslist_t *sl_removed_servers;/**< Removed servers only */
 
-static const char DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
-static const char DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
-static const char DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
-static const char no_reason[] = "<no reason>"; /**< Don't translate this */
-static const char dev_null[] = "/dev/null";
+static const char DL_OK_EXT[]	= ".OK";	/**< Extension to mark OK files */
+static const char DL_BAD_EXT[]	= ".BAD";	/**< "Bad" files (SHA1 mismatch) */
+static const char DL_UNKN_EXT[] = ".UNKN";	/**< For unchecked files */
+static const char no_reason[]	= "<no reason>"; /**< Don't translate this */
+static const char dev_null[]	= "/dev/null";
+static const char APP_G2[]       = "application/x-gnutella2";
+static const char APP_GNUTELLA[] = "application/x-gnutella-packets";
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static bool download_send_push_request(
@@ -2397,10 +2399,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 
 allocated:
 	if (g2_cache_lookup(addr, port)) {
-		server->attrs |= DLS_A_G2_ONLY | DLS_A_MINIMAL_HTTP;
-		if (GNET_PROPERTY(enable_hackarounds)) {
-			server->attrs |= DLS_A_FAKE_G2;
-		}
+		server->attrs |= DLS_A_G2_ONLY;
 	}
 
 	/*
@@ -7252,6 +7251,16 @@ create_download(
 	}
 	server = get_server(guid, addr, port, TRUE);
 
+	/*
+	 * Set the G2 flag if needed, which will be sticky for the server.
+	 */
+
+	if (SOCK_F_G2 & cflags) {
+		cflags &= ~SOCK_F_G2;		/* Don't propagate this further down */
+		server->attrs &= ~DLS_A_FAKE_G2;
+		server->attrs |= DLS_A_G2_ONLY;
+	}
+
 	g_assert(dl_server_valid(server));
 
 	/*
@@ -11195,6 +11204,22 @@ download_request(struct download *d, header_t *header, bool ok)
 		return;
 	}
 
+	/*
+	 * The DL_F_FAKE_G2 was set when we decided to attempt advertising as
+	 * a G2 node.  Since GTKG supports both Gnutella and G2, we're not really
+	 * faking anything, it's just that we decide to "appear" as a G2 node to
+	 * be able to correctly download from another G2-only servent.
+	 *
+	 * (The Gnutella and G2 protocols are just "search engines", file exchange
+	 * is HTTP, which could not care less about the way the resource location
+	 * was obtained.)
+	 *
+	 * If we get here, it means advertising as G2 worked, hence the remote side
+	 * must be flagged as a G2 host.  This information will be persisted in
+	 * the download magnet, as well as in the G2 cache (to be able to handle
+	 * other resources on the same server when this resource is fully fetched).
+	 */
+
 	if (d->flags & DL_F_FAKE_G2) {
 		if (GNET_PROPERTY(download_debug))
 			g_debug("server %s responded well to G2 faking for \"%s\"",
@@ -11843,7 +11868,8 @@ http_version_nofix:
 			case 403:
 				if (is_strprefix(ack_message, "Network Disabled")) {
 					if (GNET_PROPERTY(enable_hackarounds)) {
-						d->server->attrs |= DLS_A_FAKE_G2;
+						if (0 == (d->server->attrs & DLS_A_G2_ONLY))
+							d->server->attrs |= DLS_A_FAKE_G2;
 					}
 					d->server->attrs |= DLS_A_G2_ONLY;
 					hold = MAX(delay, 320);				/* To be safe */
@@ -11867,8 +11893,10 @@ http_version_nofix:
 			case 503:	/* Shareaza >= 2.2.3.0 misunderstands everything */
 				fixed_ack_code = 403;				/* Fix their error */
 				hold = MAX(delay, 7260);			/* To be safe */
-				if (GNET_PROPERTY(enable_hackarounds))
-					d->server->attrs |= DLS_A_FAKE_G2;
+				if (GNET_PROPERTY(enable_hackarounds)) {
+					if (0 == (d->server->attrs & DLS_A_G2_ONLY))
+						d->server->attrs |= DLS_A_FAKE_G2;
+				}
 				d->server->attrs |= DLS_A_G2_ONLY;
 				if (download_port(d) != 0 && is_host_addr(download_addr(d))) {
 					g2_cache_insert(download_addr(d), download_port(d));
@@ -12231,6 +12259,29 @@ http_version_nofix:
 		}
 		if (is_chunked) {
 			flags |= BH_DL_CHUNKED;
+		}
+
+		/*
+		 * Are we getting proper query hits?
+		 */
+
+		buf = header_get(header, "Content-Type");		/* Mandatory */
+		if (buf != NULL) {
+			if (strtok_case_has(buf, ",", APP_GNUTELLA)) {
+				/* OK, nothing to do */
+			} else if (strtok_case_has(buf, ",", APP_G2)) {
+				flags |= BH_DL_G2;
+			} else {
+				if (GNET_PROPERTY(download_debug)) {
+					g_debug("unknown Content-Type \"%s\" from %s",
+						buf, download_host_info(d));
+				}
+				download_stop(d, GTA_DL_ERROR, _("Unexpected Content-Type"));
+				return;
+			}
+		} else {
+			download_stop(d, GTA_DL_ERROR, _("No Content-Type"));
+			return;
 		}
 
 		if (
@@ -13078,7 +13129,7 @@ picked:
 			? d->server->hostname
 			: host_addr_port_to_string(download_addr(d), download_port(d)));
 
-	if (d->server->attrs & DLS_A_FAKE_G2) {
+	if (d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) {
 		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 			"X-Features: g2/1.0\r\n");
 	} else if (!d->keep_alive) {		/* Not a follow-up HTTP request */
@@ -13101,6 +13152,8 @@ picked:
 
 	if (d->flags & DL_F_BROWSE) {
 		rw += str_bprintf(&request_buf[rw], maxsize - rw,
+			(d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) ?
+				"Accept: application/x-gnutella2\r\n" :
 				"Accept: application/x-gnutella-packets\r\n");
 	}
 	if (d->flags & DL_F_THEX) {
@@ -13179,7 +13232,8 @@ picked:
 
 	if (
 		GNET_PROPERTY(is_firewalled) &&
-		!(d->server->attrs & (DLS_A_MINIMAL_HTTP | DLS_A_FAKE_G2))
+		!(d->server->attrs &
+			(DLS_A_MINIMAL_HTTP | DLS_A_G2_ONLY | DLS_A_FAKE_G2))
 	) {
 
 		rw += node_http_fw_node_info_add(
@@ -13271,7 +13325,7 @@ picked:
 
 		if (wmesh) {
 			g_assert(sha1);
-			if (d->server->attrs & DLS_A_FAKE_G2) {
+			if (d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) {
 				rw += str_bprintf(&request_buf[rw], maxsize - rw,
 					"X-Content-URN: urn:sha1:%s\r\n",
 					sha1_base32(sha1));
@@ -13352,13 +13406,16 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_debug("----Sent Request (%s%s%s%s%s%s) to %s (%u bytes):",
+		g_debug("----Sent Request (%s%s%s%s%s%s%s) to %s (%u bytes):",
 			download_pipelining(d) ? "pipelined " : "",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
-			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
+			DLS_A_G2_ONLY ==
+				(d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) ?
+					", g2" : "",
+			(d->server->attrs & DLS_A_FAKE_G2) ? ", fake-g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(uint) rw);
 		dump_string(stderr, request_buf, rw, "----");
@@ -14146,6 +14203,7 @@ download_build_magnet(const struct download *d)
 		}
 		magnet_set_dht(magnet,
 			booleanize(d->server->attrs & DLS_A_DHT_PUBLISH));
+		magnet_set_g2(magnet, booleanize(d->server->attrs & DLS_A_G2_ONLY));
 		magnet_add_source_by_url(magnet, dl_url);
 		G_FREE_NULL(dl_url);
 		url = magnet_to_string(magnet);
@@ -15693,7 +15751,9 @@ download_get_hostname(const struct download *d)
 		encrypted ? ", TLS" : "",
 		(d->server->attrs & DLS_A_NO_PIPELINE) ? _(", no-pipeline") : "",
 		(d->server->attrs & DLS_A_BANNING) ? _(", banning") : "",
-		(d->server->attrs & (DLS_A_G2_ONLY | DLS_A_FAKE_G2)) ? _(", g2") : "",
+		(d->server->attrs & (DLS_A_G2_ONLY | DLS_A_FAKE_G2)) == DLS_A_G2_ONLY ?
+			_(", g2") : "",
+		(d->server->attrs & DLS_A_FAKE_G2) ? _(", fake-g2") : "",
 		(d->server->attrs & DLS_A_FAKED_VENDOR) ? _(", vendor?") : "",
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",
@@ -15781,8 +15841,13 @@ download_browse_start(const char *hostname,
 	{
 		char *dname;
 
-		dname = str_cmsg(_("<Browse Host %s>"),
-					host_port_to_string(hostname, addr, port));
+		if (SOCK_F_G2 & flags) {
+			dname = str_cmsg(_("<Browse G2 Host %s>"),
+				host_port_to_string(hostname, addr, port));
+		} else {
+			dname = str_cmsg(_("<Browse Host %s>"),
+				host_port_to_string(hostname, addr, port));
+		}
 
 		fi = file_info_get_transient(dname);
 		HFREE_NULL(dname);
@@ -16259,7 +16324,7 @@ download_handle_magnet(const char *url)
 			 *    - DHT support indication.
 			 */
 
-			if (res->vendor || res->dht) {
+			if (res->vendor || res->dht || res->g2) {
 				struct dl_server *server = get_server(guid, addr, port, FALSE);
 				if (server && res->vendor != NULL && NULL == server->vendor) {
 					server->vendor =
@@ -16267,6 +16332,9 @@ download_handle_magnet(const char *url)
 				}
 				if (server && res->dht) {
 					server->attrs |= DLS_A_DHT_PUBLISH;
+				}
+				if (server && res->g2) {
+					server->attrs |= DLS_A_G2_ONLY;
 				}
 			}
 

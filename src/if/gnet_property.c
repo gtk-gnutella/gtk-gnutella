@@ -1098,6 +1098,16 @@ gboolean gnet_property_variable_log_bad_g2     = FALSE;
 static const gboolean gnet_property_variable_log_bad_g2_default = FALSE;
 gboolean gnet_property_variable_log_dropped_g2     = FALSE;
 static const gboolean gnet_property_variable_log_dropped_g2_default = FALSE;
+guint32  gnet_property_variable_g2_rpc_debug     = 0;
+static const guint32  gnet_property_variable_g2_rpc_debug_default = 0;
+gboolean gnet_property_variable_log_query_hits     = FALSE;
+static const gboolean gnet_property_variable_log_query_hits_default = FALSE;
+gboolean gnet_property_variable_log_query_hit_records     = FALSE;
+static const gboolean gnet_property_variable_log_query_hit_records_default = FALSE;
+guint32  gnet_property_variable_g2_browse_count     = 0;
+static const guint32  gnet_property_variable_g2_browse_count_default = 0;
+guint32  gnet_property_variable_g2_browse_served     = 0;
+static const guint32  gnet_property_variable_g2_browse_served_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -10652,6 +10662,105 @@ gnet_prop_init(void) {
     gnet_property->props[475].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[475].data.boolean.def   = (void *) &gnet_property_variable_log_dropped_g2_default;
     gnet_property->props[475].data.boolean.value = (void *) &gnet_property_variable_log_dropped_g2;
+
+
+    /*
+     * PROP_G2_RPC_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[476].name = "g2_rpc_debug";
+    gnet_property->props[476].desc = _("Debug level for the G2 RPC layer.");
+    gnet_property->props[476].ev_changed = event_new("g2_rpc_debug_changed");
+    gnet_property->props[476].save = TRUE;
+    gnet_property->props[476].vector_size = 1;
+	mutex_init(&gnet_property->props[476].lock);
+
+    /* Type specific data: */
+    gnet_property->props[476].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[476].data.guint32.def   = (void *) &gnet_property_variable_g2_rpc_debug_default;
+    gnet_property->props[476].data.guint32.value = (void *) &gnet_property_variable_g2_rpc_debug;
+    gnet_property->props[476].data.guint32.choices = NULL;
+    gnet_property->props[476].data.guint32.max   = 20;
+    gnet_property->props[476].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_LOG_QUERY_HITS:
+     *
+     * General data:
+     */
+    gnet_property->props[477].name = "log_query_hits";
+    gnet_property->props[477].desc = _("Whether to log summary of received query hits");
+    gnet_property->props[477].ev_changed = event_new("log_query_hits_changed");
+    gnet_property->props[477].save = TRUE;
+    gnet_property->props[477].vector_size = 1;
+	mutex_init(&gnet_property->props[477].lock);
+
+    /* Type specific data: */
+    gnet_property->props[477].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[477].data.boolean.def   = (void *) &gnet_property_variable_log_query_hits_default;
+    gnet_property->props[477].data.boolean.value = (void *) &gnet_property_variable_log_query_hits;
+
+
+    /*
+     * PROP_LOG_QUERY_HIT_RECORDS:
+     *
+     * General data:
+     */
+    gnet_property->props[478].name = "log_query_hit_records";
+    gnet_property->props[478].desc = _("Whether to log summary of each record in received query hits");
+    gnet_property->props[478].ev_changed = event_new("log_query_hit_records_changed");
+    gnet_property->props[478].save = TRUE;
+    gnet_property->props[478].vector_size = 1;
+	mutex_init(&gnet_property->props[478].lock);
+
+    /* Type specific data: */
+    gnet_property->props[478].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[478].data.boolean.def   = (void *) &gnet_property_variable_log_query_hit_records_default;
+    gnet_property->props[478].data.boolean.value = (void *) &gnet_property_variable_log_query_hit_records;
+
+
+    /*
+     * PROP_G2_BROWSE_COUNT:
+     *
+     * General data:
+     */
+    gnet_property->props[479].name = "g2_browse_count";
+    gnet_property->props[479].desc = _("Number of G2 browsing requests received in this session.");
+    gnet_property->props[479].ev_changed = event_new("g2_browse_count_changed");
+    gnet_property->props[479].save = FALSE;
+    gnet_property->props[479].vector_size = 1;
+	mutex_init(&gnet_property->props[479].lock);
+
+    /* Type specific data: */
+    gnet_property->props[479].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[479].data.guint32.def   = (void *) &gnet_property_variable_g2_browse_count_default;
+    gnet_property->props[479].data.guint32.value = (void *) &gnet_property_variable_g2_browse_count;
+    gnet_property->props[479].data.guint32.choices = NULL;
+    gnet_property->props[479].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[479].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_G2_BROWSE_SERVED:
+     *
+     * General data:
+     */
+    gnet_property->props[480].name = "g2_browse_served";
+    gnet_property->props[480].desc = _("Number of G2 browsing requests fully served in this session.");
+    gnet_property->props[480].ev_changed = event_new("g2_browse_served_changed");
+    gnet_property->props[480].save = FALSE;
+    gnet_property->props[480].vector_size = 1;
+	mutex_init(&gnet_property->props[480].lock);
+
+    /* Type specific data: */
+    gnet_property->props[480].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[480].data.guint32.def   = (void *) &gnet_property_variable_g2_browse_served_default;
+    gnet_property->props[480].data.guint32.value = (void *) &gnet_property_variable_g2_browse_served;
+    gnet_property->props[480].data.guint32.choices = NULL;
+    gnet_property->props[480].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[480].data.guint32.min   = 0x00000000;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

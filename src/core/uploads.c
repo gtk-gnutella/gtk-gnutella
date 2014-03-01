@@ -4654,6 +4654,8 @@ upload_request_special(struct upload *u, const header_t *header)
 		if (buf) {
 			if (strtok_case_has(buf, ",", "application/x-gnutella-packets")) {
 				flags |= BH_F_QHITS;
+			} else if (strtok_case_has(buf, ",", "application/x-gnutella2")) {
+				flags |= BH_F_QHITS | BH_F_G2;
 			} else if (
 				strtok_has(buf, ",;", "*/*") ||
 				strtok_case_has(buf, ",;", "text/html") ||
@@ -4675,6 +4677,8 @@ upload_request_special(struct upload *u, const header_t *header)
 					"Content-Type: text/html; charset=utf-8\r\n");
 		} else {
 			upload_http_extra_line_add(u,
+				(flags & BH_F_G2) ?
+					"Content-Type: application/x-gnutella2\r\n" :
 					"Content-Type: application/x-gnutella-packets\r\n");
 		}
 
@@ -4695,7 +4699,8 @@ upload_request_special(struct upload *u, const header_t *header)
 		}
 
 		str_bprintf(name, sizeof name,
-				_("<Browse Host Request> [%s%s%s]"),
+				_("<Browse Host %sRequest> [%s%s%s]"),
+				(flags & BH_F_G2) ? "G2 " : "",
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
 				(flags & BH_F_DEFLATE) ? _(", deflate") :
 				(flags & BH_F_GZIP) ? _(", gzip") : "",

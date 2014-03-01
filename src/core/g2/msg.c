@@ -36,6 +36,7 @@
 #include "msg.h"
 
 #include "frame.h"
+#include "tree.h"
 
 #include "core/guid.h"
 
@@ -113,19 +114,19 @@ static void
 g2_msg_build_map(void)
 {
 	uint i;
-	size_t maxlen;
 
 	STATIC_ASSERT(G2_MSG_MAX == G_N_ELEMENTS(g2_msg_english_names));
 	STATIC_ASSERT(G2_MSG_MAX == G_N_ELEMENTS(g2_msg_symbolic_names));
 
 	g_assert(NULL == g2_msg_pt);
 
-	for (i = 0, maxlen = 0; i < G_N_ELEMENTS(g2_msg_symbolic_names); i++) {
-		size_t len = strlen(g2_msg_symbolic_names[i]);
-		maxlen = MAX(maxlen, len);
-	}
+	/*
+	 * We must be prepared to handle all the possible packet names, not just
+	 * the ones we know.  Therefore, the PATRICIA key size is computed to be
+	 * able to handle the maximum architected size.
+	 */
 
-	g2_msg_pt = patricia_create(maxlen * 8);		/* Size is in bits */
+	g2_msg_pt = patricia_create(G2_FRAME_NAME_LEN_MAX * 8);	/* Size in bits */
 
 	for (i = 0; i < G_N_ELEMENTS(g2_msg_symbolic_names); i++) {
 		const char *key = g2_msg_symbolic_names[i];
@@ -286,6 +287,93 @@ g2_msg_name_type(const char *name)
 	g_assert((uint) type < UNSIGNED(G2_MSG_MAX));
 
 	return type;
+}
+
+/**
+ * Fetch the MUID in the message, if any is architected.
+ *
+ * @param t		the message tree
+ * @param buf	the buffer to fill with a copy of the MUID
+ *
+ * @return a pointer to `buf' if OK and we filled the MUID, NULL if there is
+ * no valid MUID in the message or the message is not carrying any MUID.
+ */
+guid_t *
+g2_msg_get_muid(const g2_tree_t *t, guid_t *buf)
+{
+	enum g2_msg m;
+	const void *payload;
+	size_t paylen;
+	size_t offset;
+
+	g_assert(t != NULL);
+	g_assert(buf != NULL);
+
+	m = g2_msg_name_type(g2_tree_name(t));
+
+	switch (m) {
+	case G2_MSG_Q2:
+	case G2_MSG_QA:
+		offset = 0;
+		break;
+	case G2_MSG_QH2:
+		offset = 1;			/* First payload byte is the hop count */
+		break;
+	default:
+		return NULL;		/* No MUID in message */
+	}
+
+	payload = g2_tree_node_payload(t, &paylen);
+
+	if (NULL == payload || paylen < GUID_RAW_SIZE + offset)
+		return NULL;
+
+	/*
+	 * Copy the MUID in the supplied buffer for alignment purposes, since
+	 * the MUID is offset by 1 byte in /QH2 messages, and return that aligned
+	 * pointer.
+	 */
+
+	memcpy(buf, const_ptr_add_offset(payload, offset), GUID_RAW_SIZE);
+
+	return buf;
+}
+
+/**
+ * Fetch the query text from a /Q2 message.
+ *
+ * @param mb		a message block containing a serialized /Q2
+ *
+ * @return a pointer to the search text string (as static data), NULL if
+ * is no text in the query or the message is not a /Q2.
+ */
+const char *
+g2_msg_search_get_text(const pmsg_t *mb)
+{
+	str_t *s = str_private(G_STRFUNC, 64);
+	const g2_tree_t *t;
+
+	t = g2_frame_deserialize(
+			pmsg_start(mb), pmsg_written_size(mb), NULL, FALSE);
+
+	if (NULL == t) {
+		return NULL;
+	} else {
+		const char *payload;
+		size_t paylen;
+
+		payload = g2_tree_payload(t, "/Q2/DN", &paylen);
+
+		if (NULL == payload) {
+			g2_tree_free_null_const(&t);
+			return NULL;
+		}
+
+		str_cpy_len(s, payload, paylen);
+	}
+
+	g2_tree_free_null_const(&t);
+	return str_2c(s);
 }
 
 /**

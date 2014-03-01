@@ -46,6 +46,8 @@
 #include "guid.h"
 #include "version.h"
 
+#include "g2/build.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
@@ -72,6 +74,7 @@
  */
 
 #define BH_MAX_QHIT_SIZE	3500	/**< Flush hits larger than this */
+#define BH_MAX_QH2_SIZE		16384	/**< Flush hits larger than this */
 #define BH_SCAN_AHEAD		100		/**< Amount of files scanned ahead */
 
 #define BH_BUFSIZ			16384	/**< Buffer size for TX deflation */
@@ -375,6 +378,18 @@ browse_host_record_hit(void *data, size_t len, void *udata)
 }
 
 /**
+ * Enqueue /QH2 built as a message.
+ * Callback for g2_build_qh2_results().
+ */
+static void
+browse_host_record_qh2(pmsg_t *mb, void *udata)
+{
+	struct browse_host_upload *bh = udata;
+
+	bh->hits = pslist_prepend(bh->hits, mb);
+}
+
+/**
  * Writes the browse host data of the context ``ctx'' to the buffer
  * ``dest''. This must be called multiple times to retrieve the complete
  * data until zero is returned i.e., the end of file is reached.
@@ -429,8 +444,13 @@ browse_host_read_qhits(struct special_upload *ctx,
 
 		files = pslist_reverse(files);			/* Preserve order */
 
-		qhit_build_results(files, i, BH_MAX_QHIT_SIZE,
-			browse_host_record_hit, bh, &blank_guid, FALSE, &zero_array);
+		if (bh->flags & BH_F_G2) {
+			g2_build_qh2_results(files, i, BH_MAX_QH2_SIZE,
+				browse_host_record_qh2, bh, &blank_guid, 0);
+		} else {
+			qhit_build_results(files, i, BH_MAX_QHIT_SIZE,
+				browse_host_record_hit, bh, &blank_guid, 0, &zero_array);
+		}
 
 		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
 
@@ -547,6 +567,8 @@ browse_host_close(struct special_upload *ctx, bool fully_served)
 	if (fully_served) {
 		if (bh->flags & BH_F_HTML) {
 			gnet_prop_incr_guint32(PROP_HTML_BROWSE_SERVED);
+		} else if (bh->flags & BH_F_G2) {
+			gnet_prop_incr_guint32(PROP_G2_BROWSE_SERVED);
 		} else if (bh->flags & BH_F_QHITS) {
 			gnet_prop_incr_guint32(PROP_QHITS_BROWSE_SERVED);
 		}
@@ -653,6 +675,8 @@ browse_host_open(
 
 	if (flags & BH_F_HTML) {
 		gnet_prop_incr_guint32(PROP_HTML_BROWSE_COUNT);
+	} else if (flags & BH_F_G2) {
+		gnet_prop_incr_guint32(PROP_G2_BROWSE_COUNT);
 	} else if (flags & BH_F_QHITS) {
 		gnet_prop_incr_guint32(PROP_QHITS_BROWSE_COUNT);
 	}

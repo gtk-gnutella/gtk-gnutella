@@ -132,6 +132,7 @@ static struct {
 	guint32 flag;
 	const gchar *status;
 } open_flags[] = {
+	{ ST_G2,			N_("g2") },			/* Make sure this is shown first */
 	{ ST_BUSY,			N_("busy") },
 	{ ST_UPLOADED,		N_("stable") },		/**< Allows uploads -> stable */
 	{ ST_FIREWALL,		N_("push") },
@@ -571,13 +572,14 @@ search_gui_update_guess_stats(const struct search *search)
 				search->guess_bw_qk + search->guess_cur_bw_qk, FALSE),
 			prev);
 	} else {
+		size_t queried = search->guess_cur_ultra + search->guess_cur_g2;
 		/*
 		 * A GUESS search is active AND they don't want only summary stats.
 		 */
 		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
-			"[Pool: %zu %s, %zu/%zu queried, %zu %s (%.2f%%), %zu pending, "
-			"%zu %s%s%s]"),
+			"[Pool: %zu %s, (%zu+%zu)/%zu queried, %zu %s (%.2f%%), "
+			"%zu reached, %zu pending, %zu %s%s%s]"),
 			compact_time(delta_time(tm_time(), search->guess_cur_start)),
 			GUESS_QUERY_LOOSE == search->guess_cur_mode ?
 				_("loose") : _("bounded"),
@@ -588,12 +590,12 @@ search_gui_update_guess_stats(const struct search *search)
 			short_size2(search->guess_cur_bw_qk, FALSE),
 			search->guess_cur_pool,
 			NG_("host", "hosts", search->guess_cur_pool),
-			search->guess_cur_queried, search->guess_cur_max_ultra,
+			search->guess_cur_ultra, search->guess_cur_g2,
+			search->guess_cur_max_ultra,
 			search->guess_cur_acks,
 			NG_("ack", "acks", search->guess_cur_acks),
-			100.0 * search->guess_cur_acks /
-				(0 == search->guess_cur_queried ?
-					1 : search->guess_cur_queried),
+			100.0 * search->guess_cur_acks / (0 == queried ?  1 : queried),
+			search->guess_cur_reached,
 			search->guess_cur_rpc_pending,
 			search->guess_cur_hops,
 			NG_("hop", "hops", search->guess_cur_hops),
@@ -1758,7 +1760,12 @@ on_search_details_key_press_event(GtkWidget *widget,
 static void
 search_gui_check_alt_locs(record_t *rc)
 {
+	const results_set_t *rs;
+
 	record_check(rc);
+
+	rs = rc->results_set;
+	results_set_check(rs);
 
 	if (rc->alt_locs) {
 		gint i, n;
@@ -1773,6 +1780,20 @@ search_gui_check_alt_locs(record_t *rc)
 			addr = gnet_host_get_addr(&host);
 			port = gnet_host_get_port(&host);
 			if (port > 0 && host_addr_is_routable(addr)) {
+				uint32 flags = 0;
+
+				/*
+				 * Even if "G2" results came back from GTKG (which is possible
+				 * since GTKG nodes are connected on G2 and respond to queries)
+				 * we know that GTKG is not going to discriminate between G2
+				 * and Gnutella and that both networks can happily download
+				 * from it, regardless of how they managed to get a hold on the
+				 * resource.
+				 */
+
+				if ((rs->status & ST_G2) && rs->vendor != T_GTKG)
+					flags = SOCK_F_G2;
+
 				guc_download_auto_new(rc->name,
 					rc->size,
 					addr,
@@ -1784,7 +1805,7 @@ search_gui_check_alt_locs(record_t *rc)
 					rc->results_set->stamp,
 					NULL,	/* fileinfo */
 					NULL,	/* proxies */
-					0);		/* flags */
+					flags);	/* flags */
 			}
 		}
 	}
@@ -1803,6 +1824,7 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 	rs = rc->results_set;
 	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+	flags |= ((rs->status & ST_G2) && rs->vendor != T_GTKG) ? SOCK_F_G2 : 0;
 
 	if (rc->sha1) {
 		uri = NULL;
@@ -4460,12 +4482,13 @@ search_gui_guess_event(gnet_search_t sh, const struct guess_query *query)
 		search->guess_results += search->guess_cur_results;
 		search->guess_kept += search->guess_cur_kept;
 		search->guess_elapsed = delta_time(tm_time(), search->guess_cur_start);
-		search->guess_hosts = search->guess_cur_acks;	/* Really queried */
+		search->guess_hosts = search->guess_cur_reached;	/* Really queried */
 		search->guess_last_kept = search->guess_cur_kept;
 		/* Reset stats for new query */
 		search->guess_cur_start = 0;
 		search->guess_cur_pool = 0;
-		search->guess_cur_queried = 0;
+		search->guess_cur_ultra = 0;
+		search->guess_cur_g2 = 0;
 		search->guess_cur_acks = 0;
 		search->guess_cur_results = 0;
 		search->guess_cur_kept = 0;
@@ -4491,8 +4514,10 @@ search_gui_guess_stats(gnet_search_t sh, const struct guess_stats *stats)
 	g_return_if_fail(search != NULL);
 
 	search->guess_cur_pool			= stats->pool;
-	search->guess_cur_queried		= stats->queried;
+	search->guess_cur_ultra			= stats->queried_ultra;
+	search->guess_cur_g2			= stats->queried_g2;
 	search->guess_cur_acks			= stats->acks;
+	search->guess_cur_reached		= stats->reached;
 	search->guess_cur_results		= stats->results;
 	search->guess_cur_kept			= stats->kept;
 	search->guess_cur_hops			= stats->hops;

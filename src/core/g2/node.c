@@ -38,6 +38,7 @@
 #include "build.h"
 #include "frame.h"
 #include "msg.h"
+#include "rpc.h"
 #include "tfmt.h"
 #include "tree.h"
 
@@ -46,6 +47,7 @@
 
 #include "core/alive.h"
 #include "core/gnet_stats.h"
+#include "core/guess.h"
 #include "core/hcache.h"
 #include "core/hostiles.h"		/* For hostiles_is_bad() */
 #include "core/hosts.h"
@@ -53,6 +55,7 @@
 #include "core/mq_udp.h"
 #include "core/nodes.h"
 #include "core/routing.h"
+#include "core/search.h"
 #include "core/settings.h"		/* For is_my_address_and_port() */
 
 #include "if/gnet_property_priv.h"
@@ -79,9 +82,10 @@ enum g2_q2_child {
 	G2_Q2_DN = 1,
 	G2_Q2_I,
 	G2_Q2_MD,
+	G2_Q2_NAT,
 	G2_Q2_SZR,
 	G2_Q2_UDP,
-	G2_Q2_URN,
+	G2_Q2_URN
 };
 
 enum g2_lni_child {
@@ -89,7 +93,7 @@ enum g2_lni_child {
 	G2_LNI_LS,
 	G2_LNI_NA,
 	G2_LNI_UP,
-	G2_LNI_V,
+	G2_LNI_V
 };
 
 static const tokenizer_t g2_q2_children[] = {
@@ -97,6 +101,7 @@ static const tokenizer_t g2_q2_children[] = {
 	{ "DN",		G2_Q2_DN },
 	{ "I",		G2_Q2_I },
 	{ "MD",		G2_Q2_MD },
+	{ "NAT",	G2_Q2_NAT },
 	{ "SZR",	G2_Q2_SZR },
 	{ "UDP",	G2_Q2_UDP },
 	{ "URN",	G2_Q2_URN },
@@ -118,6 +123,8 @@ static const tokenizer_t g2_lni_children[] = {
 #define G2_Q2_F_URL		(1U << 1)		/**< Wants URL */
 #define G2_Q2_F_A		(1U << 2)		/**< Wants alt-locs */
 #define G2_Q2_F_DN		(1U << 3)		/**< Wants distinguished name */
+
+#define G2_Q2_F_DFLT	(G2_Q2_F_PFS | G2_Q2_F_URL | G2_Q2_F_DN)
 
 static const tokenizer_t g2_q2_i[] = {
 	/* Sorted array */
@@ -154,17 +161,22 @@ static aging_table_t *g2_udp_pings;
 
 /**
  * Send a message to target node.
+ *
+ * @param n		the G2 node to which message should be sent
+ * @param mb	the message to sent (ownership taken, will be freed later)
  */
 void
-g2_node_send(gnutella_node_t *n, pmsg_t *mb)
+g2_node_send(const gnutella_node_t *n, pmsg_t *mb)
 {
 	node_check(n);
 	g_assert(NODE_TALKS_G2(n));
 
 	if (NODE_IS_UDP(n))
 		mq_udp_node_putq(n->outq, mb, n);
-	else
+	else if (NODE_IS_WRITABLE(n))
 		mq_tcp_putq(n->outq, mb, NULL);
+	else
+		pmsg_free(mb);		/* Cannot send it, free it now */
 }
 
 /**
@@ -264,6 +276,8 @@ g2_node_drop(const char *routine, gnutella_node_t *n, const g2_tree_t *t,
 		va_end(args);
 	}
 
+	gnet_stats_count_dropped(n, MSG_DROP_G2_UNEXPECTED);
+
 	if (GNET_PROPERTY(log_dropped_g2)) {
 		g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN);
 	}
@@ -324,11 +338,12 @@ static void
 g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
 {
 	/*
-	 * Drop pongs received from UDP.
+	 * Pongs received from UDP must be RPC replies to pings.
 	 */
 
 	if (NODE_IS_UDP(n)) {
-		g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
+		if (!g2_rpc_answer(n, t))
+			g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
 		return;
 	}
 
@@ -340,6 +355,61 @@ g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
 }
 
 /**
+ * Handle reception of an RPC answer (/QKA, /QA)
+ *
+ * @param n		the node from which the answer came
+ * @param t		the message tree
+ * @param type	the type of message
+ */
+static void
+g2_node_handle_rpc_answer(gnutella_node_t *n,
+	const g2_tree_t *t, enum g2_msg type)
+{
+	/*
+	 * /QKA received from UDP must be RPC replies to /QKR, otherwise
+	 * it can be sent when a /Q2 bearing the wrong query key is received
+	 * by a host.
+	 *
+	 * A /QA is sent back by a hub upon reception of the /Q2 message if
+	 * the query key was correct.
+	 */
+
+	if (NODE_IS_UDP(n)) {
+		if (!g2_rpc_answer(n, t)) {
+			/*
+			 * Special-case /QA which can come VERY late in the process,
+			 * well after the associated RPC has expired.  Still a /QA
+			 * contains information that can be perused, and the associated
+			 * GUESS query may still be alive.  Given them to the GUESS layer
+			 * as late-comers, to see how much information we can extract.
+			 */
+
+			if (G2_MSG_QA == type && guess_late_qa(n, t, NULL))
+				return;
+
+			g2_node_drop(G_STRFUNC, n, t, "coming from UDP");
+		}
+		return;
+	} else {
+		/*
+		 * We can get a /QA from TCP when we send a /Q2 to a neighbouring hub.
+		 * Since they are not linked to a GUESS query, but we may want to
+		 * collect new addresses from the packet and possibly update the
+		 * re-query time limit, handle these as "late" QA messages.
+		 */
+
+		if (G2_MSG_QA == type && guess_late_qa(n, t, NULL))
+			return;
+	}
+
+	/*
+	 * We do not expect these from TCP, since they are UDP RPC replies.
+	 */
+
+	g2_node_drop(G_STRFUNC, n, t, "coming from TCP");
+}
+
+/**
  * Parse the payload of given node to extract a node address + port.
  *
  * @param t		the tree node whose payload we wish to parse
@@ -348,7 +418,7 @@ g2_node_handle_pong(gnutella_node_t *n, const g2_tree_t *t)
  *
  * @return TRUE if OK, FALSE if we could not extract anything.
  */
-static bool NON_NULL_PARAM((2, 3))
+bool
 g2_node_parse_address(const g2_tree_t *t, host_addr_t *addr, uint16 *port)
 {
 	const char *payload;
@@ -436,7 +506,6 @@ g2_node_handle_lni(gnutella_node_t *n, const g2_tree_t *t)
 
 /**
  * Tree message iterator to handle "NH" nodes and extract their IP:port.
- *
  */
 static void
 g2_node_extract_nh(void *data, void *udata)
@@ -459,6 +528,32 @@ g2_node_extract_nh(void *data, void *udata)
 }
 
 /**
+ * Tree message iterator to handle "CH" nodes and extract their IP:port.
+ */
+static void
+g2_node_extract_ch(void *data, void *udata)
+{
+	const g2_tree_t *t = data;
+
+	(void) udata;
+
+	if (0 == strcmp("CH", g2_tree_name(t))) {
+		const char *payload;
+		size_t paylen;
+
+		payload = g2_tree_node_payload(t, &paylen);
+
+		if (10 == paylen) {		/* IPv4:port + 32-bit timestamp */
+			host_addr_t addr = host_addr_peek_ipv4(payload);
+			uint16 port = peek_le16(&payload[4]);
+
+			if (host_is_valid(addr, port) && !hostiles_is_bad(addr))
+				guess_add_hub(addr, port);
+		}
+	}
+}
+
+/**
  * Handle reception of a /KHL
  */
 static void
@@ -469,6 +564,13 @@ g2_node_handle_khl(const g2_tree_t *t)
 	 */
 
 	g2_tree_child_foreach(t, g2_node_extract_nh, NULL);
+
+	/*
+	 * Extract cached hubs (necessarily not in the cluster of the hub sending
+	 * us the /KHL) and add them to the GUESS host cache.
+	 */
+
+	g2_tree_child_foreach(t, g2_node_extract_ch, NULL);
 }
 
 /**
@@ -695,6 +797,7 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 	char *md = NULL;
 	uint32 iflags = 0;
 	search_request_info_t sri;
+	bool has_interest = FALSE;
 
 	node_inc_rx_query(n);
 
@@ -778,8 +881,9 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 			break;
 
 		case G2_Q2_I:
-			if (0 == iflags)
+			if (!has_interest)
 				iflags = g2_node_extract_interest(c);
+			has_interest = TRUE;
 			break;
 
 		case G2_Q2_MD:
@@ -788,6 +892,10 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 				/* Not NUL-terminated, need to h_strndup() it */
 				md = h_strndup(payload, paylen);
 			}
+			break;
+
+		case G2_Q2_NAT:
+			sri.flags |= QUERY_F_FIREWALLED;
 			break;
 
 		case G2_Q2_SZR:			/* Size limits */
@@ -805,6 +913,13 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 			break;
 		}
 	}
+
+	/*
+	 * When there is no /Q2/I, return a default set of information.
+	 */
+
+	if (!has_interest)
+		iflags = G2_Q2_F_DFLT;
 
 	/*
 	 * If there are meta-data, try to intuit which media types there are
@@ -900,16 +1015,16 @@ g2_node_handle(gnutella_node_t *n)
 	if (NULL == t) {
 		g_warning("%s(): cannot deserialize %s packet from %s",
 			G_STRFUNC, g2_msg_raw_name(n->data, n->size), node_infostr(n));
-		if (GNET_PROPERTY(log_bad_g2) > 10)
+		if (GNET_PROPERTY(log_bad_g2))
 			dump_hex(stderr, "G2 Packet", n->data, n->size);
 		return;
 	} else if (plen != n->size) {
 		g_warning("%s(): consumed %zu bytes but %s packet from %s had %u",
 			G_STRFUNC, plen, g2_msg_raw_name(n->data, n->size),
 			node_infostr(n), n->size);
-		if (GNET_PROPERTY(log_bad_g2) > 10)
+		if (GNET_PROPERTY(log_bad_g2))
 			dump_hex(stderr, "G2 Packet", n->data, n->size);
-		return;
+		goto done;
 	} else if (GNET_PROPERTY(g2_debug) > 19) {
 		g_debug("%s(): received packet from %s", G_STRFUNC, node_infostr(n));
 		g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN);
@@ -933,11 +1048,19 @@ g2_node_handle(gnutella_node_t *n)
 	case G2_MSG_Q2:
 		g2_node_handle_q2(n, t);
 		break;
+	case G2_MSG_QA:
+	case G2_MSG_QKA:
+		g2_node_handle_rpc_answer(n, t, type);
+		break;
+	case G2_MSG_QH2:
+		search_g2_results(n, t);
+		break;
 	default:
 		g2_node_drop(G_STRFUNC, n, t, "default");
 		break;
 	}
 
+done:
 	g2_tree_free_null(&t);
 }
 

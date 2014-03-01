@@ -36,6 +36,8 @@
 
 #include "lib/pmsg.h"
 
+typedef void (*g2_build_qh2_cb_t)(pmsg_t *mb, void *udata);
+
 /*
  * Public interface.
  */
@@ -46,14 +48,22 @@ pmsg_t *g2_build_qht_reset(int slots, int inf_val);
 pmsg_t *g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len);
 pmsg_t *g2_build_lni(void);
+pmsg_t *g2_build_qkr(void);
 
 struct gnutella_node;
 struct pslist;
 struct guid;
 
+pmsg_t *g2_build_q2(const struct guid *muid, const char *query,
+	unsigned mtype, const void *query_key, uint8 length);
+
 void g2_build_send_qh2(const struct gnutella_node *h,
 	struct gnutella_node *n, struct pslist *files,
 	int count, const struct guid *muid, uint flags);
+
+void g2_build_qh2_results(const struct pslist *files, int count,
+	size_t max_msgsize, g2_build_qh2_cb_t cb, void *udata,
+	const struct guid *muid, uint flags);
 
 void g2_build_close(void);
 

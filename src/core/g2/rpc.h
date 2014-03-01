@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, 2011, Raphael Manfredi
+ * Copyright (c) 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,43 +25,45 @@
  * @ingroup core
  * @file
  *
- * Globally Unique ID (GUID) manager.
+ * G2 RPCs.
  *
  * @author Raphael Manfredi
- * @date 2002-2003, 2011
+ * @date 2014
  */
 
-#ifndef _core_guid_h_
-#define _core_guid_h_
+#ifndef _core_g2_rpc_h_
+#define _core_g2_rpc_h_
 
-#include "common.h"
+#include "lib/pmsg.h"
+#include "lib/gnet_host.h"
+#include "lib/timestamp.h"		/* For time_delta_t */
 
-#include "if/core/guid.h"
-#include "lib/host_addr.h"
+struct gnutella_node;
+struct g2_tree;
+enum g2_msg;
+
+/**
+ * RPC reception callback.
+ *
+ * @param n			the G2 node replying (NULL on timeout)
+ * @param t			the message tree response (NULL on timeout)
+ * @param arg		user-defined callback parameter
+ */
+typedef void (*g2_rpc_cb_t)(const struct gnutella_node *n,
+	const struct g2_tree *t, void *arg);
 
 /*
  * Public interface.
  */
 
-void guid_init(void);
-void guid_close(void);
+void g2_rpc_init(void);
+void g2_rpc_close(void);
 
-bool guid_is_banned(const struct guid *guid);
-void guid_add_banned(const struct guid *guid);
+time_delta_t g2_rpc_launch_delay(const gnet_host_t *host, enum g2_msg type);
+bool g2_rpc_launch(const gnet_host_t *host, pmsg_t *mb,
+	g2_rpc_cb_t cb, void *arg, unsigned timeout);
+bool g2_rpc_answer(const struct gnutella_node *n, const struct g2_tree *t);
 
-bool guid_is_gtkg(const struct guid *xuid,
-	uint8 *majp, uint8 *minp, bool *relp);
-bool guid_is_requery(const struct guid *xuid);
-void guid_random_muid(struct guid *muid);
-void guid_ping_muid(struct guid *muid);
-void guid_query_muid(struct guid *muid, bool initial);
-bool guid_query_muid_is_gtkg(const struct guid *guid,
-	bool oob, uint8 *majp, uint8 *minp, bool *relp);
-void guid_query_oob_muid(struct guid *muid,
-	const host_addr_t addr, uint16 port, bool initial);
-void guid_oob_get_addr_port(const struct guid *guid,
-	host_addr_t *addr, uint16 *port);
+#endif /* _core_g2_rpc_h_ */
 
-void guid_free_atom2(void *guid, void *unused);
-
-#endif /* _core_guid_h_ */
+/* vi: set ts=4 sw=4 cindent: */

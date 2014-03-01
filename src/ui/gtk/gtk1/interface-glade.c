@@ -521,6 +521,11 @@ create_main_window (void)
   GtkWidget *viewport50;
   GtkWidget *hbox2101;
   GtkWidget *label745;
+  GtkWidget *label8005;
+  GtkWidget *label_g2_browse_served;
+  GtkWidget *label8037;
+  GtkWidget *label_g2_browse_count;
+  GtkWidget *label8039;
   GtkWidget *label_html_browse_served;
   GtkWidget *label781;
   GtkWidget *label_html_browse_count;
@@ -529,7 +534,6 @@ create_main_window (void)
   GtkWidget *label779;
   GtkWidget *label_qhits_browse_count;
   GtkWidget *label749;
-  GtkWidget *label8005;
   GtkWidget *label7980;
   GtkWidget *vbox127;
   GtkWidget *scrolledwindow46;
@@ -5080,6 +5084,47 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox2101), label745, TRUE, TRUE, 0);
   gtk_misc_set_alignment (GTK_MISC (label745), 1, 0.5);
 
+  label8005 = gtk_label_new ("");
+  gtk_widget_set_name (label8005, "label8005");
+  gtk_widget_ref (label8005);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8005", label8005,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8005);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label8005, FALSE, FALSE, 0);
+  gtk_misc_set_padding (GTK_MISC (label8005), 4, 0);
+
+  label_g2_browse_served = gtk_label_new (_("[G2 served]"));
+  gtk_widget_set_name (label_g2_browse_served, "label_g2_browse_served");
+  gtk_widget_ref (label_g2_browse_served);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_g2_browse_served", label_g2_browse_served,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_g2_browse_served);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label_g2_browse_served, FALSE, FALSE, 0);
+
+  label8037 = gtk_label_new (_(" / "));
+  gtk_widget_set_name (label8037, "label8037");
+  gtk_widget_ref (label8037);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8037", label8037,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8037);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label8037, FALSE, FALSE, 0);
+
+  label_g2_browse_count = gtk_label_new (_("[G2]"));
+  gtk_widget_set_name (label_g2_browse_count, "label_g2_browse_count");
+  gtk_widget_ref (label_g2_browse_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_g2_browse_count", label_g2_browse_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_g2_browse_count);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label_g2_browse_count, FALSE, FALSE, 0);
+
+  label8039 = gtk_label_new (_(" G2, "));
+  gtk_widget_set_name (label8039, "label8039");
+  gtk_widget_ref (label8039);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8039", label8039,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8039);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label8039, FALSE, FALSE, 0);
+
   label_html_browse_served = gtk_label_new (_("[BH HTML served]"));
   gtk_widget_set_name (label_html_browse_served, "label_html_browse_served");
   gtk_widget_ref (label_html_browse_served);
@@ -5143,15 +5188,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label749);
   gtk_box_pack_start (GTK_BOX (hbox2101), label749, FALSE, FALSE, 0);
-
-  label8005 = gtk_label_new ("");
-  gtk_widget_set_name (label8005, "label8005");
-  gtk_widget_ref (label8005);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8005", label8005,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label8005);
-  gtk_box_pack_start (GTK_BOX (hbox2101), label8005, FALSE, FALSE, 0);
-  gtk_misc_set_padding (GTK_MISC (label8005), 4, 0);
 
   label7980 = gtk_label_new (_("Upload History"));
   gtk_widget_set_name (label7980, "label7980");

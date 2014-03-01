@@ -171,7 +171,7 @@ alive_ping_drop(alive_t *a, const struct guid *muid)
 	struct alive_ping *ap;
 
 	ESLIST_FOREACH_DATA(&a->pings, ap) {
-		if (guid_eq(ap->muid, muid)) {		/* Found it! */
+		if (NULL == muid || guid_eq(ap->muid, muid)) {		/* Found it! */
 			eslist_remove(&a->pings, ap);
 			ap_free(ap);
 			return;
@@ -229,15 +229,32 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 
 	if (pmsg_was_sent(mb)) {
 		n->n_ping_sent++;
-		if (GNET_PROPERTY(alive_debug))
-			g_debug("ALIVE sent ping #%s to %s",
-				guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))),
-				node_infostr(n));
+
+		if (GNET_PROPERTY(alive_debug)) {
+			if (NODE_TALKS_G2(n)) {
+				g_debug("ALIVE sent ping to %s", node_infostr(n));
+			} else {
+				g_debug("ALIVE sent ping #%s to %s",
+					guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))),
+					node_infostr(n));
+			}
+		}
 	} else {
-		struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
+		struct guid *muid;
 		alive_t *a = n->alive_pings;
 
 		g_assert(a->node == n);
+
+		muid = NODE_TALKS_G2(n) ? NULL : cast_to_guid_ptr(pmsg_start(mb));
+
+		if (GNET_PROPERTY(alive_debug)) {
+			if (NODE_TALKS_G2(n)) {
+				g_debug("ALIVE dropped ping to %s", node_infostr(n));
+			} else {
+				g_debug("ALIVE dropped ping #%s to %s",
+					guid_hex_str(muid), node_infostr(n));
+			}
+		}
 
 		alive_ping_drop(a, muid);
 	}
@@ -260,14 +277,17 @@ alive_send_ping(alive_t *a)
 		return FALSE;
 
 	if (NODE_TALKS_G2(a->node)) {
+		pmsg_t *emb;
+
 		/*
 		 * G2 pings do not bear any MUID.
 		 */
 
 		ap = ap_make(NULL);
 		mb = g2_build_alive_ping();
-
-		g2_node_send(a->node, mb);
+		emb = pmsg_clone_extend(mb, alive_pmsg_free, a->node);
+		pmsg_free(mb);
+		g2_node_send(a->node, emb);
 	} else {
 		struct guid muid;
 		gnutella_msg_init_t *m;

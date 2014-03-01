@@ -51,6 +51,18 @@ enum {
 };
 
 /*
+ * Result sets `spam' flags.
+ */
+enum {
+	SPAM_F_ALT			= 1 << 5,		/** Carries alt-loc spam [UNUSED] */
+	SPAM_F_DUP			= 1 << 4,		/**< Duplicate entries in results */
+	SPAM_F_FAKE			= 1 << 3,		/**< Fake file */
+	SPAM_F_NAME			= 1 << 2,		/**< Carries filename spam */
+	SPAM_F_URL			= 1 << 1,		/**< Carries action URL spam */
+	SPAM_F_URN			= 1 << 0		/**< Carries spam known by URN */
+};
+
+/*
  * Result sets `status' flags.
  */
 enum {
@@ -67,12 +79,12 @@ enum {
 	 ST_HOSTILE				= (1 << 19), /**< From an hostile host */
 	 ST_UNREQUESTED			= (1 << 18), /**< Unrequested (OOB) result */
 	 ST_EVIL				= (1 << 17), /**< Carries evil filename */
-	 ST_ALT_SPAM			= (1 << 16), /**< Carries alt-loc spam [UNUSED] */
-	 ST_DUP_SPAM			= (1 << 15), /**< Duplicate entries in results */
-	 ST_FAKE_SPAM			= (1 << 14), /**< Fake file */
-	 ST_NAME_SPAM			= (1 << 13), /**< Carries alt-loc spam */
-	 ST_URL_SPAM			= (1 << 12), /**< Carries action URL spam */
-	 ST_URN_SPAM			= (1 << 11), /**< Carries spam known by URN */
+	 ST_G2					= (1 << 16), /**< Sent by a G2 node */
+	 ST_UNUSED_4			= (1 << 15), /**< [UNUSED] */
+	 ST_UNUSED_3			= (1 << 14), /**< [UNUSED] */
+	 ST_UNUSED_2			= (1 << 13), /**< [UNUSED] */
+	 ST_UNUSED_1			= (1 << 12), /**< [UNUSED] */
+	 ST_SPAM				= (1 << 11), /**< Carries spam, flags in `spam' */
 	 ST_TLS					= (1 << 10), /**< Indicated support for TLS */
 	 ST_BH					= (1 << 9),	 /**< Browse Host support */
 	 ST_KNOWN_VENDOR		= (1 << 8),	 /**< Found known vendor code */
@@ -83,14 +95,7 @@ enum {
 	 ST_GGEP				= (1 << 3),	 /**< Trailer has a GGEP extension */
 	 ST_UPLOADED			= (1 << 2),	 /**< Is "stable", people downloaded */
 	 ST_BUSY				= (1 << 1),	 /**< Has currently no slots */
-	 ST_FIREWALL			= (1 << 0),	 /**< Is behind a firewall */
-
-	 ST_SPAM	= (	ST_ALT_SPAM
-			 		|ST_DUP_SPAM
-					|ST_FAKE_SPAM
-					|ST_NAME_SPAM
-					|ST_URL_SPAM
-					|ST_URN_SPAM)
+	 ST_FIREWALL			= (1 << 0)	 /**< Is behind a firewall */
 };
 
 /*
@@ -133,12 +138,14 @@ typedef struct gnet_results_set {
 	uint8 hops;
 	uint8 ttl;
 	uint8 media;				/**< Optional: media type filtering */
+	uint8 spam;					/**< Spam flags */
 } gnet_results_set_t;
 
 /*
  * Result record flags
  */
 enum {
+	SR_ALLOC_NAME	= (1 << 11),	/* Set if filename was halloc()'ed */
 	SR_MEDIA		= (1 << 10),	/* Media type filter mismatch */
 	SR_PARTIAL_HIT	= (1 << 9),		/* Got a hit for a partial file */
 	SR_PUSH			= (1 << 8),		/* Servent firewalled, will need a PUSH */

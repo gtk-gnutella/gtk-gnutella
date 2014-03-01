@@ -245,6 +245,7 @@ LSRC = \
 	random.c \
 	rbtree.c \
 	regex.c \
+	ripening.c \
 	rwlock.c \
 	sectoken.c \
 	semaphore.c \
@@ -426,6 +427,7 @@ LOBJ = \
 	random.o \
 	rbtree.o \
 	regex.o \
+	ripening.o \
 	rwlock.o \
 	sectoken.o \
 	semaphore.o \

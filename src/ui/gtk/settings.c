@@ -5623,6 +5623,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_G2_BROWSE_COUNT,
+        update_label,
+        TRUE,
+        "label_g2_browse_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_HTML_BROWSE_COUNT,
         update_label,
         TRUE,
@@ -5635,6 +5643,14 @@ static prop_map_t property_map[] = {
         update_label,
         TRUE,
         "label_qhits_browse_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_G2_BROWSE_SERVED,
+        update_label,
+        TRUE,
+        "label_g2_browse_served",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

@@ -51,6 +51,8 @@
 #include "search.h"
 #include "settings.h"
 
+#include "g2/msg.h"
+
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
@@ -162,7 +164,7 @@ smsg_discard(smsg_t *sb)
  * the mq to which it will be sent to.
  */
 static void
-smsg_mutate(smsg_t *sb, struct gnutella_node *n)
+smsg_mutate(smsg_t *sb, const gnutella_node_t *n)
 {
 	struct smsg_info *smi;
 	pmsg_t *omb;
@@ -174,6 +176,20 @@ smsg_mutate(smsg_t *sb, struct gnutella_node *n)
 	omb = sb->mb;
 	sb->mb = pmsg_clone_extend(omb, sq_pmsg_free, smi);
 	pmsg_free(omb);
+}
+
+/**
+ * Extract query text from enqueued message block (for logging purposes).
+ *
+ * @param sb		the enqueued search message object
+ * @param n			node to which message should be sent (to get the protocol)
+ */
+static const char *
+smsg_query_text(const smsg_t *sb, const gnutella_node_t *n)
+{
+	return (n != NULL && NODE_TALKS_G2(n)) ?
+		g2_msg_search_get_text(sb->mb) :
+		gnutella_msg_search_get_text(pmsg_start(sb->mb));
 }
 
 /***
@@ -265,8 +281,8 @@ sq_clear(squeue_t *sq)
 	g_assert(sq);
 
 	if (GNET_PROPERTY(sq_debug) > 3)
-		g_debug("clearing sq node %s (sent=%d, dropped=%d)",
-			sq->node ? node_addr(sq->node) : "GLOBAL",
+		g_debug("%s(): clearing sq for %s (sent=%d, dropped=%d)",
+			G_STRFUNC, sq->node ? node_infostr(sq->node) : "GLOBAL",
 			sq->n_sent, sq->n_dropped);
 
 	PLIST_FOREACH_CALL(sq->searches, smsg_discard);
@@ -425,10 +441,13 @@ retry:
 	if (n == NULL) {
 		g_assert(sb->qhv != NULL);		/* Enqueued via sq_global_putq() */
 
-		if (GNET_PROPERTY(sq_debug) > 2)
-			g_debug("sq GLOBAL, queuing \"%s\" (%u left, %d sent)",
-				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
+		/* This is not used by G2 */
+
+		if (GNET_PROPERTY(sq_debug) > 2) {
+			g_debug("%s(): GLOBAL sq, queuing \"%s\" (%u left, %d sent)",
+				G_STRFUNC, gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
+		}
 
 		dq_launch_local(sb->shandle, sb->mb, sb->qhv);
 
@@ -440,10 +459,11 @@ retry:
 
 		g_assert(sb->qhv == NULL);		/* Enqueued via sq_putq() */
 
-		if (GNET_PROPERTY(sq_debug) > 2)
-			g_debug("sq for node %s, queuing \"%s\" (%u left, %d sent)",
-				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
+		if (GNET_PROPERTY(sq_debug) > 2) {
+			g_debug("%s(): sq for %s, queuing \"%s\" (%u left, %d sent)",
+				G_STRFUNC, node_infostr(n), smsg_query_text(sb, n),
 				sq->count, sq->n_sent);
+		}
 
 		/*
 		 * If we're a leaf node, we're doing a leaf-guided dynamic query.
@@ -452,29 +472,31 @@ retry:
 		 * queries that go out.
 		 */
 
-		if (settings_is_leaf())
+		if (settings_is_leaf() && !NODE_TALKS_G2(n))
 			smsg_mutate(sb, n);
 
 		mq_tcp_putq(n->outq, sb->mb, NULL);
 
 	} else {
-		if (GNET_PROPERTY(sq_debug) > 4)
-			g_debug("sq for node %s, ignored \"%s\" (%u left, %d sent)",
-				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
+		if (GNET_PROPERTY(sq_debug) > 4) {
+			g_debug("%s(): sq for %s, ignored \"%s\" (%u left, %d sent)",
+				G_STRFUNC, node_infostr(n), smsg_query_text(sb, n),
 				sq->count, sq->n_sent);
-		pmsg_free(sb->mb);
-		if (sb->qhv)
-			qhvec_free(sb->qhv);
+		}
+
 		sent = FALSE;
 	}
+
+	sqh_remove(sq, sb->shandle);
 
 	if (sent) {
 		sq->n_sent++;
 		sq->last_sent = now;
+		smsg_free(sb);
+	} else {
+		smsg_discard(sb);
 	}
 
-	sqh_remove(sq, sb->shandle);
-	smsg_free(sb);
 	sq->searches = plist_remove_link(sq->searches, item);
 	plist_free_1(item);
 
@@ -494,25 +516,30 @@ retry:
 static void
 sq_cap(squeue_t *sq)
 {
-	while (sq->count > GNET_PROPERTY(search_queue_size)) {
-		plist_t *item = plist_last(sq->searches);
-		smsg_t *sb = item->data;
+	plist_t *last = NULL;
 
+	while (sq->count > GNET_PROPERTY(search_queue_size)) {
+		plist_t *item;
+		smsg_t *sb;
+
+		item = NULL == last ? plist_last(sq->searches) : last;
+		sb = item->data;
+		last = plist_prev(item);
 		sq->searches = plist_remove_link(sq->searches, item);
+		plist_free_1(item);
 
 		g_assert(sq->count > 0);
 		sq->count--;
 		sq->n_dropped++;
 
-		if (GNET_PROPERTY(sq_debug) > 4)
-			g_debug("sq for node %s, dropped \"%s\" (%u left, %d dropped)",
-				node_addr(sq->node),
-				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
-				sq->count, sq->n_dropped);
+		if (GNET_PROPERTY(sq_debug) > 4) {
+			g_debug("%s(): sq for %s, dropped \"%s\" (%u left, %d dropped)",
+				G_STRFUNC, node_infostr(sq->node),
+				smsg_query_text(sb, sq->node), sq->count, sq->n_dropped);
+		}
 
 		sqh_remove(sq, sb->shandle);
 		smsg_discard(sb);
-		plist_free_1(item);
 	}
 }
 
@@ -537,10 +564,11 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 		sq->count--;
 		sq->searches = plist_remove_link(sq->searches, l);
 
-		if (GNET_PROPERTY(sq_debug) > 4)
-			g_debug("sq for node %s, dropped \"%s\" on search close (%u left)",
-				sq->node ? node_addr(sq->node) : "GLOBAL",
-				gnutella_msg_search_get_text(pmsg_start(sb->mb)), sq->count);
+		if (GNET_PROPERTY(sq_debug) > 4) {
+			g_debug("%s(): sq for %s, dropped \"%s\" on search close (%u left)",
+				G_STRFUNC, sq->node ? node_infostr(sq->node) : "GLOBAL",
+				smsg_query_text(sb, sq->node), sq->count);
+		}
 
 		sqh_remove(sq, sb->shandle);
 		smsg_discard(sb);

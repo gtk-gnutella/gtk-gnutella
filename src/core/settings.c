@@ -1825,10 +1825,23 @@ enable_dht_changed(property_t prop)
 static bool
 enable_g2_changed(property_t prop)
 {
-	bool enabled;
+	bool enabled, guess_enabled;
 
     gnet_prop_get_boolean_val(prop, &enabled);
 	node_update_g2(enabled);
+
+	/*
+	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * the GUESS layer.
+	 */
+
+    gnet_prop_get_boolean_val(PROP_ENABLE_GUESS, &guess_enabled);
+
+	if (enabled || guess_enabled) {
+		guess_init();
+	} else {
+		guess_close();
+	}
 
 	return FALSE;
 }
@@ -1836,10 +1849,17 @@ enable_g2_changed(property_t prop)
 static bool
 enable_guess_changed(property_t prop)
 {
-	bool enabled;
+	bool enabled, g2_enabled;
 
+	/*
+	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * the GUESS layer.
+	 */
+
+    gnet_prop_get_boolean_val(PROP_ENABLE_G2, &g2_enabled);
     gnet_prop_get_boolean_val(prop, &enabled);
-	if (enabled) {
+
+	if (enabled || g2_enabled) {
 		guess_init();
 	} else {
 		guess_close();

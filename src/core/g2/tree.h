@@ -68,6 +68,12 @@ void g2_tree_enter_leave(g2_tree_t *root,
 
 void g2_tree_test(void);
 
+static inline void
+g2_tree_free_null_const(const g2_tree_t **root_ptr)
+{
+	g2_tree_free_null(deconstify_pointer(root_ptr));
+}
+
 #define G2_TREE_CHILD_FOREACH(t, c) \
 	for (c = g2_tree_first_child(t); c != NULL; c = g2_tree_next_sibling(c))
 
