@@ -505,6 +505,9 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
     g_assert(hash_list_length(to->hostlist) == 0);
 	g_assert(to->class == from->class);
 
+	start_mass_update(to);
+	start_mass_update(from);
+	
 	hash_list_free(&to->hostlist);
     to->hostlist = from->hostlist;
     from->hostlist = hash_list_new(NULL, NULL);
@@ -524,6 +527,9 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
             continue;
         hce->type = to->type;
     }
+
+	stop_mass_update(to);
+	stop_mass_update(from);
 
 	hash_list_iter_release(&iter);
 }
@@ -582,9 +588,7 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 	g_assert(orig_key);
 
     if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
+		gnet_prop_decr_guint32(hc->hosts_in_catcher);
     }
 
 	hc->dirty = TRUE;
@@ -899,11 +903,19 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		orig_key = hash_list_remove(caches[hce->type]->hostlist, host);
 		g_assert(orig_key);
 
+		if (caches[hce->type]->mass_update == 0) {
+			gnet_prop_decr_guint32(caches[hce->type]->hosts_in_catcher);
+		}
+
 		hash_list_prepend(hc->hostlist, host);
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
 		hce->type = type;
 		hce->time_added = added;
+		
+		if (hc->mass_update == 0) {
+			gnet_prop_incr_guint32(hc->hosts_in_catcher);
+		}
 
 		return TRUE;
     }
@@ -977,9 +989,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	hc->dirty = TRUE;
 
     if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur + 1);
+	    gnet_prop_incr_guint32(hc->hosts_in_catcher);
     }
 
     hcache_prune(hc->type);
