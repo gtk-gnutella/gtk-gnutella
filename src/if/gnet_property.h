@@ -588,6 +588,12 @@ gnet_prop_incr_guint32(property_t p)
 	guint32 value;
 	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
+	if (value == (guint32)-1) {
+		s_carp("%s: Incrementing property %s would overflow", 
+			G_STRFUNC, gnet_prop_name(p));
+		gnet_prop_unlock(p);
+		return;
+	}
 	value++;
 	gnet_prop_set_guint32_val(p, value);
 	gnet_prop_unlock(p);
@@ -599,6 +605,12 @@ gnet_prop_decr_guint32(property_t p)
 	guint32 value;
 	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
+	if (value == 0) {
+		s_carp("%s: Decrementing property %s would underflow", 
+			G_STRFUNC, gnet_prop_name(p));
+		gnet_prop_unlock(p);
+		return;
+	}
 	value--;
 	gnet_prop_set_guint32_val(p, value);
 	gnet_prop_unlock(p);
