@@ -11922,6 +11922,27 @@ node_infostr(const gnutella_node_t *n)
 	return buf;
 }
 
+/**
+ * Is addr:port that of the specified node?
+ */
+bool
+node_addr_port_equal(const gnutella_node_t *n,
+	const host_addr_t addr, uint16 port)
+{
+	uint16 nport;
+	host_addr_t naddr;
+
+	node_check(n);
+
+	nport = 0 == n->gnet_port ? n->port : n->gnet_port;
+	if (port != nport)
+		return FALSE;
+
+	naddr = is_host_addr(n->gnet_addr) ? n->gnet_addr : n->addr;
+
+	return host_addr_equal(addr, naddr);
+}
+
 /*
  * Node information string fror a node given by ID.
  *
