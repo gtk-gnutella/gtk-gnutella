@@ -77,6 +77,9 @@
 #include "version.h"
 #include "vmsg.h"
 
+#include "g2/build.h"
+#include "g2/node.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -390,12 +393,15 @@ server_host_info(const struct dl_server *server)
 	if (server->hostname) {
 		concat_strings(name, sizeof name,
 			" (", server->hostname, ") ",
-			(void *) 0);
+			NULL);
 	}
 
 	concat_strings(info, sizeof info,
-		"<", host, name, " \'", server->vendor ? server->vendor : "", "\'>",
-		(void *) 0);
+		"<",
+		(server->attrs & DLS_A_G2_ONLY) ? "G2 " : "",
+		host, name, " \'", server->vendor ? server->vendor : "", "\'>",
+		NULL);
+
 	return info;
 }
 
@@ -8338,7 +8344,7 @@ download_proxy_failed(struct download *d)
  */
 
 /**
- * Send an UDP push packet to specified host.
+ * Send a UDP push packet to specified host.
  *
  * @return TRUE on success.
  */
@@ -8349,10 +8355,9 @@ download_send_udp_push(
 	bool success = FALSE;
 	
 	if (host_is_valid(addr, port)) {
-		struct gnutella_node *n;
-				
-		n = node_udp_get_addr_port(addr, port);
-		if (n) {
+		struct gnutella_node *n = node_udp_get_addr_port(addr, port);
+
+		if (n != NULL) {
 			success = TRUE;
 			udp_send_msg(n, packet.data, packet.size);
 		}
@@ -8361,8 +8366,91 @@ download_send_udp_push(
 }
 
 /**
- * Send a push request to the target GUID, in order to request the push of
- * the file whose index is `file_id' there onto our local port `port'.
+ * Send a UDP push packet to specified G2 host.
+ *
+ * @return TRUE on success.
+ */
+static bool
+download_g2_send_udp_push(const pmsg_t *mb, host_addr_t addr, uint16 port)
+{
+	bool success = FALSE;
+
+	if (host_is_valid(addr, port)) {
+		struct gnutella_node *n = node_udp_g2_get_addr_port(addr, port);
+
+		if (n != NULL) {
+			success = TRUE;
+			g2_node_send(n, pmsg_clone(mb));
+		}
+	}
+	return success;
+}
+
+/**
+ * Send a push request to the target GUID, in order to request a remote
+ * connection from the host.
+ *
+ * We're very aggressive: we can send a PUSH via UDP to the host itself,
+ * as well as the 4 most recent push proxies when `udp' is set.
+ * We can also broadcast to the G2 nodes if `broadcast' is set.
+ *
+ * @returns TRUE if the request could be sent, FALSE if we don't have the route.
+ */
+static bool
+download_g2_send_push(struct download *d, const pmsg_t *mb,
+	bool udp, bool broadcast)
+{
+	bool success = FALSE;
+
+	download_check(d);
+
+	/* Pure luck: try to reach the remote host directly via UDP... */
+	if (udp) {
+		download_g2_send_udp_push(mb, download_addr(d), download_port(d));
+	}
+
+	if (udp && has_push_proxies(d)) {
+		sequence_t *seq = pproxy_set_sequence(d->server->proxies);
+		sequence_iter_t *iter = sequence_forward_iterator(seq);
+		int i = 0;
+
+		while (i < DOWNLOAD_MAX_UDP_PUSH && sequence_iter_has_next(iter)) {
+			gnet_host_t *host = sequence_iter_next(iter);
+
+			if (
+				download_g2_send_udp_push(mb,
+					gnet_host_get_addr(host), gnet_host_get_port(host))
+			) {
+				i++;
+			}
+		}
+		sequence_iterator_release(&iter);
+		sequence_release(&seq);
+		success = i > 0;
+	}
+
+	if (broadcast) {
+		const pslist_t *sl;
+
+		/*
+		 * Send the message to all the hubs since on G2 we cannot track
+		 * push routes at the leaf-node level.
+		 */
+
+		PSLIST_FOREACH(node_all_g2_nodes(), sl) {
+			const gnutella_node_t *n = sl->data;
+
+			g2_node_send(n, pmsg_clone(mb));
+			success = TRUE;
+		}
+	}
+
+	return success;
+}
+
+/**
+ * Send a push request to the target GUID, in order to request a connection
+ * from the remote host.
  *
  * We're very aggressive: we can send a PUSH via UDP to the host itself,
  * as well as the 4 most recent push proxies when `udp' is set.
@@ -8371,10 +8459,71 @@ download_send_udp_push(
  * @returns TRUE if the request could be sent, FALSE if we don't have the route.
  */
 static bool
+download_send_push(struct download *d, const struct array packet,
+	bool udp, bool broadcast)
+{
+	bool success = FALSE;
+
+	download_check(d);
+
+	/* Pure luck: try to reach the remote host directly via UDP... */
+	if (udp) {
+		download_send_udp_push(packet, download_addr(d), download_port(d));
+	}
+
+	if (udp && has_push_proxies(d)) {
+		sequence_t *seq = pproxy_set_sequence(d->server->proxies);
+		sequence_iter_t *iter = sequence_forward_iterator(seq);
+		int i = 0;
+
+		while (i < DOWNLOAD_MAX_UDP_PUSH && sequence_iter_has_next(iter)) {
+			gnet_host_t *host = sequence_iter_next(iter);
+
+			if (
+				download_send_udp_push(packet,
+					gnet_host_get_addr(host), gnet_host_get_port(host))
+			) {
+				i++;
+			}
+		}
+		sequence_iterator_release(&iter);
+		sequence_release(&seq);
+		success = i > 0;
+	}
+
+	if (broadcast) {
+		pslist_t *nodes = route_towards_guid(download_guid(d));
+
+		if (nodes != NULL) {
+			/*
+			 * Send the message to all the nodes that can route our
+			 * request back to the source of the query hit.
+			 */
+
+			gmsg_sendto_all(nodes, packet.data, packet.size);
+			pslist_free(nodes);
+			success = TRUE;
+		}
+	}
+
+	return success;
+}
+
+/**
+ * Send a push request to the target GUID, in order to request a remote
+ * connection from the host.
+ *
+ * We're very aggressive: we can send a PUSH via UDP to the host itself,
+ * as well as the 4 most recent push proxies when `udp' is set.
+ * We can also broadcast to the proper routes if `broadcast' is set.
+ *
+ * @returns TRUE if the request could be sent, FALSE if we don't have the route.
+ */
+static bool
 download_send_push_request(struct download *d, bool udp, bool broadcast)
 {
-	struct array packet;
 	uint16 port;
+	bool success = FALSE;
 
 	download_check(d);
 
@@ -8385,66 +8534,41 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	if (0 == port)
 		return FALSE;
 
-	packet = build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
+	if (download_is_g2(d)) {
+		pmsg_t *mb = g2_build_push(download_guid(d));
+
+		success = download_g2_send_push(d, mb, udp, broadcast);
+		pmsg_free(mb);
+	} else {
+		const struct array packet =
+			build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
 				download_guid(d), listen_addr(), listen_addr6(), port,
 				d->record_index, tls_enabled());
 
-	if (packet.data) {
-		bool success = FALSE;
+		if (NULL == packet.data)
+			goto done;
 
-		/* Pure luck: try to reach the remote host directly via UDP... */
-		if (udp) {
-			download_send_udp_push(packet, download_addr(d), download_port(d));
-		}
-
-		if (udp && has_push_proxies(d)) {
-			sequence_t *seq = pproxy_set_sequence(d->server->proxies);
-			sequence_iter_t *iter = sequence_forward_iterator(seq);
-			int i = 0;
-
-			while (i < DOWNLOAD_MAX_UDP_PUSH && sequence_iter_has_next(iter)) {
-				gnet_host_t *host = sequence_iter_next(iter);
-
-				if (
-					download_send_udp_push(packet,
-						gnet_host_get_addr(host), gnet_host_get_port(host))
-				) {
-					i++;
-				}
-			}
-			sequence_iterator_release(&iter);
-			sequence_release(&seq);
-			success = i > 0;
-		}
-
-		if (broadcast) {
-			pslist_t *nodes = route_towards_guid(download_guid(d));
-
-			if (nodes != NULL) {
-				/*
-				 * Send the message to all the nodes that can route our
-				 * request back to the source of the query hit.
-				 */
-
-				gmsg_sendto_all(nodes, packet.data, packet.size);
-				pslist_free(nodes);
-				success = TRUE;
-			}
-		}
-		if (success && download_is_running(d)) {
-			d->last_update = tm_time();
-		}
-		return success;
-	} else {
-		if (GNET_PROPERTY(download_debug)) {
-			g_warning("failed to send PUSH (udp=%s, gnet=%s) "
-				"for %s (index=%lu)",
-				udp ? "y" : "n", broadcast ? "y" : "n",
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-					(ulong) d->record_index);
-		}
-		return FALSE;
+		success = download_send_push(d, packet, udp, broadcast);
 	}
+
+	if (success && download_is_running(d)) {
+		d->last_update = tm_time();
+	}
+
+	/* FALL THROUGH */
+
+done:
+	if (!success && GNET_PROPERTY(download_debug)) {
+		g_warning("failed to send %sPUSH (udp=%s, %s=%s) "
+			"for %s (index=%lu)",
+			download_is_g2(d) ? "G2 " : "",
+			udp ? "y" : "n",
+			download_is_g2(d) ? "g2" : "gnet", broadcast ? "y" : "n",
+			host_addr_port_to_string(download_addr(d), download_port(d)),
+				(ulong) d->record_index);
+	}
+
+	return success;
 }
 
 /**
@@ -13872,7 +13996,13 @@ merge_servers(pslist_t *servers, const struct guid *guid)
 }
 
 /**
- * @return FALSE on failure, TRUE if the GIV was successfully parsed.
+ * Parse a GIV (Gnutella push callback) or PUSH (G2 push callback) line.
+ *
+ * @param line		the GIV or PUSH line we got
+ * @param hex_guid	array of 33 bytes where the hexadecimal GUID is extracted
+ * @param size		the length of the hex_guid buffer
+ *
+ * @return FALSE on failure, TRUE if the GIV / PUSH was successfully parsed.
  */
 static bool
 parse_giv(const char *line, char *hex_guid, size_t size)
@@ -13881,21 +14011,48 @@ parse_giv(const char *line, char *hex_guid, size_t size)
 	const char *endptr;
 	uint i;
 	int error;
+	bool g2 = FALSE;			/* Assume it's a Gnutella GIV line */
 
 	g_return_val_if_fail(line, FALSE);
 	g_return_val_if_fail(hex_guid, FALSE);
 	g_return_val_if_fail(size > hex_guid_len, FALSE);
 
 	endptr = is_strprefix(line, "GIV ");
-	if (!endptr)
-		return FALSE;
+	if (NULL == endptr) {
+		endptr = is_strprefix(line, "PUSH ");
+		if (NULL == endptr)
+			return FALSE;
+		g2 = TRUE;				/* A G2 PUSH line */
+	}
 
-	/* A file index must be given but we don't care about its value. */
-	(void) parse_uint32(endptr, &endptr, 10, &error);
-	if (error || ':' != *endptr)
-		return FALSE;
+	/*
+	 * A Gnutella GIV line has the following format:
+	 *
+	 *   GIV <index>:<hexadecimal GUID>/\n\n
+	 *
+	 * A G2 PUSH line has the following format:
+	 *
+	 *   PUSH guid:<hexadecimal GUID>\r\n\r\n
+	 */
 
-	endptr++;
+	if (g2) {
+		/* Skip the guid: part */
+		endptr = skip_ascii_spaces(endptr);
+		endptr = is_strprefix(endptr, "guid:");
+		if (NULL == endptr)
+			return FALSE;
+	} else {
+		/* A file index must be given but we don't care about its value. */
+		(void) parse_uint32(endptr, &endptr, 10, &error);
+		if (error || ':' != *endptr)
+			return FALSE;
+		endptr++;			/* Skip the ':' separator */
+	}
+
+	/*
+	 * Now extract the 32 bytes of the hexadecimal GUID.
+	 */
+
 	for (i = 0; i < hex_guid_len; i++) {
 		char c = *endptr++;
 
@@ -13905,14 +14062,14 @@ parse_giv(const char *line, char *hex_guid, size_t size)
 	}
 	hex_guid[i] = '\0';
 
-	return '/' == *endptr;
+	return (g2 ? '\0' : '/') == *endptr;
 }
 
 /**
  * Initiate download on the remotely initiated connection.
  *
- * This is called when an incoming "GIV" request is received in answer to
- * some of our pushes.
+ * This is called when an incoming "GIV" or "PUSH" request is received in
+ * answer to some of our pushes.
  */
 void
 download_push_ack(struct gnutella_socket *s)
@@ -13960,7 +14117,7 @@ download_push_ack(struct gnutella_socket *s)
 
 	/*
 	 * To find out which download this is, we have to parse the incoming
-	 * GIV request, which is stored in "s->getline".
+	 * GIV / PUSH request, which is stored in "s->getline".
 	 */
 
 	if (!parse_giv(giv, hex_guid, sizeof hex_guid)) {
@@ -13974,8 +14131,8 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	if (!hex_to_guid(hex_guid, &guid)) {
-		g_warning("discarding GIV with malformed GUID %s from %s",
-			hex_guid, host_addr_to_string(s->addr));
+		g_warning("discarding GIV \"%s\" with malformed GUID %s from %s",
+			giv, hex_guid, host_addr_to_string(s->addr));
 		goto discard;
 	}
 
@@ -14082,7 +14239,11 @@ download_push_ack(struct gnutella_socket *s)
 	fi_src_info_changed(d);
 
 	/*
-	 * Now we have to read that trailing "\n" which comes right afterwards.
+	 * Now we have to read that trailing "\n" (for Gnutella GIV) or "\r\n"
+	 * (for G2 PUSH) which comes right afterwards.
+	 *
+	 * We can use the same code because getline_read() parses lines ending with
+	 * a single '\n' and will swallow any preceding '\r' character.
 	 */
 
 	g_assert(NULL == d->io_opaque);

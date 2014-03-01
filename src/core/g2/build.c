@@ -542,6 +542,43 @@ g2_build_lni(void)
 }
 
 /**
+ * Build a PUSH request.
+ *
+ * @param guid	the GUID of the remote servent we're trying to reach
+ *
+ * @return a /PUSH message.
+ */
+pmsg_t *
+g2_build_push(const guid_t *guid)
+{
+	g2_tree_t *t, *c;
+	pmsg_t *mb;
+	char payload[18];
+	size_t plen;
+
+	host_ip_port_poke(payload,
+		listen_addr_primary(), socket_listen_port(), &plen);
+
+	t = g2_tree_alloc(G2_NAME(PUSH), payload, plen);
+	g2_build_add_tls(t);
+
+	/*
+	 * The /?/TO child is a generic GUID-based addressing scheme.
+	 *
+	 * To ensure it is the first child of the packet, we add it last since
+	 * our children are pre-pended to the list of existing ones.
+	 */
+
+	c = g2_tree_alloc("TO", guid, GUID_RAW_SIZE);
+	g2_tree_add_child(t, c);
+
+	mb = g2_build_ctrl_pmsg(t);
+	g2_tree_free_null(&t);
+
+	return mb;
+}
+
+/**
  * Build a Query Key Request
  *
  * @return a /QKR message.

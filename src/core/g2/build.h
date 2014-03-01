@@ -42,17 +42,19 @@ typedef void (*g2_build_qh2_cb_t)(pmsg_t *mb, void *udata);
  * Public interface.
  */
 
+struct guid;
+
 pmsg_t *g2_build_pong(void);
 pmsg_t *g2_build_alive_ping(void);
 pmsg_t *g2_build_qht_reset(int slots, int inf_val);
 pmsg_t *g2_build_qht_patch(int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len);
 pmsg_t *g2_build_lni(void);
+pmsg_t *g2_build_push(const struct guid *guid);
 pmsg_t *g2_build_qkr(void);
 
 struct gnutella_node;
 struct pslist;
-struct guid;
 
 pmsg_t *g2_build_q2(const struct guid *muid, const char *query,
 	unsigned mtype, const void *query_key, uint8 length);
