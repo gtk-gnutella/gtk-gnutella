@@ -565,6 +565,8 @@ build_push(uint8 ttl, uint8 hops, const struct guid *guid,
 	 */
 
 	primary = is_host_addr(addr_v4) ? addr_v4 : addr_v6;
+	if (!is_host_addr(primary))
+		return zero_array;
 
 	ggep_stream_init(&gs, p, size);
 
