@@ -340,9 +340,9 @@ pmsg_t * pmsg_new_extend(
 	pmsg_free_t free_cb, void *arg);
 pmsg_t *pmsg_alloc(int prio, pdata_t *db, int roff, int woff);
 pmsg_t *pmsg_ref(pmsg_t *mb);
-pmsg_t *pmsg_clone(pmsg_t *mb);
-pmsg_t *pmsg_clone_plain(pmsg_t *mb);
-pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, void *arg);
+pmsg_t *pmsg_clone(const pmsg_t *mb);
+pmsg_t *pmsg_clone_plain(const pmsg_t *mb);
+pmsg_t *pmsg_clone_extend(const pmsg_t *mb, pmsg_free_t free_cb, void *arg);
 pmsg_free_t pmsg_replace_ext(
 	pmsg_t *mb, pmsg_free_t nfree, void *narg, void **oarg);
 void *pmsg_get_metadata(const pmsg_t *mb);
