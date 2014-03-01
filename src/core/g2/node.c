@@ -57,6 +57,7 @@
 #include "core/routing.h"
 #include "core/search.h"
 #include "core/settings.h"		/* For is_my_address_and_port() */
+#include "core/uploads.h"		/* For handle_push_request() */
 
 #include "if/gnet_property_priv.h"
 
@@ -1044,6 +1045,9 @@ g2_node_handle(gnutella_node_t *n)
 		break;
 	case G2_MSG_KHL:
 		g2_node_handle_khl(t);
+		break;
+	case G2_MSG_PUSH:
+		handle_push_request(n, t);
 		break;
 	case G2_MSG_Q2:
 		g2_node_handle_q2(n, t);

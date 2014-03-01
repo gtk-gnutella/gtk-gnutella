@@ -8887,7 +8887,7 @@ route_only:
 		case GTA_MSG_PUSH_REQUEST:
 			/* Only handle if no unknown header flags */
 			if (0 == n->header_flags)
-				handle_push_request(n);
+				handle_push_request(n, NULL);
 			break;
 		case GTA_MSG_SEARCH:
 			/* Only handle if no unknown header flags */
