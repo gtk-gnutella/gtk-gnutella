@@ -2900,10 +2900,10 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 						if (utf8_is_valid_data(p + 4, paylen - 4)) {
 							search_record_warn(n, rs, hit,
 								"DN probably had 32-bit size despite SZ");
+							p += 4;
+							paylen -= 4;
+							goto utf8_filename;
 						}
-						p += 4;
-						paylen -= 4;
-						goto utf8_filename;
 					}
 
 					badmsg = has_sz ?
