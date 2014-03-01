@@ -1358,6 +1358,34 @@ search_results_mark_fake_spam(gnet_results_set_t *rs, hostiles_flags_t *hostile)
 	}
 }
 
+/**
+ * Mark close filename spam.
+ */
+static void
+search_results_mark_close_filename_spam(
+	const gnutella_node_t *n,
+	gnet_results_set_t *rs, gnet_record_t *rc, hostiles_flags_t *hostile)
+{
+	search_results_mark_fake_spam(rs, hostile);
+
+	if (GNET_PROPERTY(log_spam_query_hit)) {
+		char *f;
+		size_t len;
+
+		len = 1 + strlen(rc->filename);
+		f = halloc(len);
+		ascii_enforce(f, len, rc->filename);
+
+		search_log_spam(n, rs, "filename \"%s\" similar to query \"%s\"",
+			f, rs->query);
+
+		hfree(f);
+	}
+
+	rc->flags |= SR_SPAM;
+	*hostile |= HSTL_CLOSE_FILENAME;
+}
+
 static bool
 is_evil_timestamp(time_t t)
 {
@@ -1401,10 +1429,51 @@ search_filename_similar(const char *filename, const char *query)
 {
 	char *filename_canonic;
 	bool result;
+	size_t qlen = strlen(query);
+	size_t flen;
+	const char *ext;
 
 	filename_canonic = UNICODE_CANONIZE(filename);
+	flen = strlen(filename_canonic);
+	ext = strrchr(filename_canonic, ' ');	/* Last word */
 
 	result = NULL != is_strprefix(filename_canonic, query);
+
+	if (!result && ext != NULL) {
+		size_t len = ptr_diff(ext, filename_canonic);
+
+		/* Look before the extension */
+
+		if (len > qlen) {
+			const char *base = ext - qlen;
+			result = NULL != is_strprefix(base, query);
+		}
+	}
+
+	/*
+	 * Avoid false positives:
+	 *
+	 * - if the query string is small (less than 6 chars) or has only 1 word,
+	 *   then it must represent at least 50% of the results to be a "hit".
+	 *
+	 * - otherwise, the query string must be at least 85% of the results.
+	 */
+
+	if (result) {
+		double ratio = 0.85;
+
+		if (ext != NULL)
+			flen -= strlen(ext);		/* Remove extension chars */
+
+		if (0 == flen)
+			flen = 1;
+
+		if (qlen <= 6 || NULL == strchr(query, ' '))
+			ratio = 0.50;
+
+		if (qlen / (double) flen < ratio)
+			result = FALSE;				/* Not enough chars overall */
+	}
 
 	if (filename_canonic != filename)
 		hfree(filename_canonic);
@@ -1594,13 +1663,21 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 					search_filename_similar(rc->filename, rs->query)
 				)
 			) {
-				search_results_mark_fake_spam(rs, hostile);
-				search_log_spam(n, rs, "filename similar to query \"%s\"",
-					rs->query);
+				search_results_mark_close_filename_spam(n, rs, rc, hostile);
 				logged = TRUE;
-				rc->flags |= SR_SPAM;
-				*hostile |= HSTL_CLOSE_FILENAME;
 			}
+		}
+
+		/*
+		 * Popular G2 spam.
+		 */
+
+		if (
+			(ST_G2 & rs->status) && rs->query != NULL &&
+			search_filename_similar(rc->filename, rs->query)
+		) {
+			search_results_mark_close_filename_spam(n, rs, rc, hostile);
+			logged = TRUE;
 		}
 
 		/*
@@ -5771,7 +5848,8 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 		(rs->status & (ST_SPAM | ST_EVIL)) &&
 		(
 		 	(ST_UDP|ST_GOOD_TOKEN) == ((ST_UDP|ST_GOOD_TOKEN) & rs->status) ||
-			(0 == rs->hops && !NODE_IS_UDP(n))
+			(0 == rs->hops && !NODE_IS_UDP(n)) ||
+			(ST_UDP|ST_G2) == ((ST_UDP|ST_G2) & rs->status)
 		)
 	) {
 		hostiles_dynamic_add(rs->last_hop, "spam/evil query hits", flags);
@@ -5782,7 +5860,7 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 		 * in the future.
 		 */
 
-		if (0 == rs->hops && (ST_UDP & rs->status)) {
+		if (0 == rs->hops && ST_UDP == ((ST_UDP|ST_G2) & rs->status)) {
 			hostiles_spam_add(rs->last_hop, rs->port);
 		}
 	}
