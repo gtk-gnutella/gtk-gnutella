@@ -28,8 +28,8 @@
 #ifndef _gui_property_h_
 #define _gui_property_h_
 
-
 #include "lib/prop.h"
+#include "lib/log.h"		/* For s_carp() */
 
 #define GUI_PROPERTY_MIN (1000)
 #define GUI_PROPERTY_MAX (1000+GUI_PROPERTY_END-1)
@@ -241,8 +241,13 @@ gui_prop_incr_guint32(property_t p)
 	guint32 value;
 	gui_prop_lock(p);
 	gui_prop_get_guint32_val(p, &value);
-	value++;
-	gui_prop_set_guint32_val(p, value);
+	if G_UNLIKELY((guint32) -1 == value) {
+		s_carp("%s(): incrementing property \"%s\" would overflow",
+			G_STRFUNC, gui_prop_name(p));
+	} else {
+		value++;
+		gui_prop_set_guint32_val(p, value);
+	}
 	gui_prop_unlock(p);
 }
 
@@ -252,8 +257,13 @@ gui_prop_decr_guint32(property_t p)
 	guint32 value;
 	gui_prop_lock(p);
 	gui_prop_get_guint32_val(p, &value);
-	value--;
-	gui_prop_set_guint32_val(p, value);
+	if G_UNLIKELY(0 == value) {
+		s_carp("%s(): decrementing property \"%s\" would underflow",
+			G_STRFUNC, gui_prop_name(p));
+	} else {
+		value--;
+		gui_prop_set_guint32_val(p, value);
+	}
 	gui_prop_unlock(p);
 }
 

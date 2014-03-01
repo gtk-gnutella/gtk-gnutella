@@ -28,8 +28,8 @@
 #ifndef _gnet_property_h_
 #define _gnet_property_h_
 
-
 #include "lib/prop.h"
+#include "lib/log.h"		/* For s_carp() */
 
 #define GNET_PROPERTY_MIN ((NO_PROP+1))
 #define GNET_PROPERTY_MAX ((NO_PROP+1)+GNET_PROPERTY_END-1)
@@ -588,14 +588,13 @@ gnet_prop_incr_guint32(property_t p)
 	guint32 value;
 	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
-	if (value == (guint32)-1) {
-		s_carp("%s: Incrementing property %s would overflow", 
+	if G_UNLIKELY((guint32) -1 == value) {
+		s_carp("%s(): incrementing property \"%s\" would overflow",
 			G_STRFUNC, gnet_prop_name(p));
-		gnet_prop_unlock(p);
-		return;
+	} else {
+		value++;
+		gnet_prop_set_guint32_val(p, value);
 	}
-	value++;
-	gnet_prop_set_guint32_val(p, value);
 	gnet_prop_unlock(p);
 }
 
@@ -605,14 +604,13 @@ gnet_prop_decr_guint32(property_t p)
 	guint32 value;
 	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
-	if (value == 0) {
-		s_carp("%s: Decrementing property %s would underflow", 
+	if G_UNLIKELY(0 == value) {
+		s_carp("%s(): decrementing property \"%s\" would underflow",
 			G_STRFUNC, gnet_prop_name(p));
-		gnet_prop_unlock(p);
-		return;
+	} else {
+		value--;
+		gnet_prop_set_guint32_val(p, value);
 	}
-	value--;
-	gnet_prop_set_guint32_val(p, value);
 	gnet_prop_unlock(p);
 }
 

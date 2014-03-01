@@ -79,8 +79,8 @@ Generating files:
 #ifndef _[=(. set-name-down)=]_h_
 #define _[=(. set-name-down)=]_h_
 
-
 #include "lib/prop.h"
+#include "lib/log.h"		/* For s_carp() */
 
 #define [=(. prop-min)=] ([=offset=])
 #define [=(. prop-max)=] ([=offset=]+[=(. prop-end)=]-1)
@@ -174,8 +174,13 @@ static inline void
 	guint32 value;
 	[=(. func-prefix)=]_lock(p);
 	[=(. func-prefix)=]_get_guint32_val(p, &value);
-	value++;
-	[=(. func-prefix)=]_set_guint32_val(p, value);
+	if G_UNLIKELY((guint32) -1 == value) {
+		s_carp("%s(): incrementing property \"%s\" would overflow",
+			G_STRFUNC, [=(. func-prefix)=]_name(p));
+	} else {
+		value++;
+		[=(. func-prefix)=]_set_guint32_val(p, value);
+	}
 	[=(. func-prefix)=]_unlock(p);
 }
 
@@ -185,8 +190,13 @@ static inline void
 	guint32 value;
 	[=(. func-prefix)=]_lock(p);
 	[=(. func-prefix)=]_get_guint32_val(p, &value);
-	value--;
-	[=(. func-prefix)=]_set_guint32_val(p, value);
+	if G_UNLIKELY(0 == value) {
+		s_carp("%s(): decrementing property \"%s\" would underflow",
+			G_STRFUNC, [=(. func-prefix)=]_name(p));
+	} else {
+		value--;
+		[=(. func-prefix)=]_set_guint32_val(p, value);
+	}
 	[=(. func-prefix)=]_unlock(p);
 }
 
