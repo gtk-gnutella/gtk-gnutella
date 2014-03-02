@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Alive status checking ping/pongs.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #ifndef _core_alive_h_
@@ -36,19 +36,25 @@
 
 #include "common.h"
 
+#include "lib/timestamp.h"		/* For time_delta_t */
+
 struct gnutella_node;
 struct guid;
+
+struct alive;
+typedef struct alive alive_t;
 
 /*
  * Public interface.
  */
 
-void *alive_make(struct gnutella_node *n, int max);
-void alive_free(void *obj);
-bool alive_send_ping(void *obj);
-bool alive_ack_ping(void *obj, const struct guid *);
-void alive_ack_first(void *obj, const struct guid *);
-void alive_get_roundtrip_ms(const void *obj, uint32 *avg, uint32 *last);
+alive_t *alive_make(struct gnutella_node *n, int max);
+void alive_free(alive_t *a);
+bool alive_send_ping(alive_t *a);
+bool alive_ack_ping(alive_t *a, const struct guid *);
+void alive_ack_first(alive_t *a, const struct guid *);
+void alive_get_roundtrip_ms(const alive_t *a, uint32 *avg, uint32 *last);
+time_delta_t alive_elapsed(const alive_t *a);
 
 #endif /* _core_alive_h_ */
 

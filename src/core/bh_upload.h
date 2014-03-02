@@ -50,11 +50,12 @@
  */
 
 enum {
-	BH_F_DEFLATE = 1 << 0,		/**< Deflate output */
-	BH_F_GZIP	 = 1 << 1,		/**< gzip output */
-	BH_F_CHUNKED = 1 << 2,		/**< Emit chunked data */
+	BH_F_G2		 = 1 << 5,		/**< Use G2 query hits */
+	BH_F_QHITS	 = 1 << 4,		/**< Emit query hits */
 	BH_F_HTML	 = 1 << 3,		/**< Emit HTML data */
-	BH_F_QHITS	 = 1 << 4		/**< Emit Gnutella query hits */
+	BH_F_CHUNKED = 1 << 2,		/**< Emit chunked data */
+	BH_F_GZIP	 = 1 << 1,		/**< gzip output */
+	BH_F_DEFLATE = 1 << 0		/**< Deflate output */
 };
 
 struct gnutella_host;

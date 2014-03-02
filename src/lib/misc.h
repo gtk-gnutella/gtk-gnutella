@@ -381,6 +381,22 @@ clamp_memset(void *dst, size_t dst_size, char c, size_t n)
 }
 
 /**
+ * Compare at most MIN(a_len, b_len) bytes between "a" and "b".
+ *
+ * @param a		the first buffer.
+ * @param a_len the length of the first buffer, in bytes
+ * @param b		the second buffer.
+ * @param b_len the length of the second buffer, in bytes
+ *
+ * @return the result of the memcmp() operation (-1, 0, +1).
+ */
+static inline int
+clamp_memcmp(const void *a, size_t a_len, const void *b, size_t b_len)
+{
+	return memcmp(a, b, MIN(a_len, b_len));
+}
+
+/**
  * Copies at most MIN(dst_size - 1, src_len) characters from the buffer "src"
  * to the buffer "dst", ensuring the resulting string in "dst" is
  * NUL-terminated and truncating it if necessary. If "src_len" is (size_t)-1,

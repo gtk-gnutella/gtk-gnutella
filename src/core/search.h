@@ -40,6 +40,8 @@
 #include "gnutella.h"
 #include "lib/sectoken.h"
 
+#include "if/core/search.h"		/* For query_type_t */
+
 /*
  * Query flags used in queries (big-endian); formerly used as "speed" indicator.
  */
@@ -96,6 +98,44 @@ struct download;
 struct guid;
 struct nid;
 
+#ifdef SEARCH_SOURCES
+
+#include "extensions.h"		/* For MAX_EXTVEC */
+
+/**
+ * Gathered query information.
+ */
+struct search_request_info {
+	struct {
+		struct sha1 sha1;
+		bool matched;
+	} exv_sha1[MAX_EXTVEC];
+	host_addr_t addr;				/**< Reply address for OOB */
+	const char *extended_query;		/**< String in GGEP "XQ" */
+	int exv_sha1cnt;				/**< Amount of SHA1 to search for */
+	size_t search_len;				/**< Length of query string */
+	uint32 media_types;				/**< Media types from GGEP "M" */
+	uint16 flags;					/**< Query flags */
+	uint16 port;					/**< Reply port for OOB */
+	filesize_t minsize, maxsize;	/**< Min & max file sizes limits */
+	unsigned oob:1;					/**< Wants out-of-band hit delivery */
+	unsigned secure_oob:1;			/**< OOB v3 used? */
+	unsigned whats_new:1;			/**< This ia a "What's New?" query */
+	unsigned skip_file_search:1;	/**< Should we skip library searching? */
+	unsigned may_oob_proxy:1;		/**< Can we OOB-proxy the query? */
+	unsigned partials:1;			/**< Do they want partial results? */
+	unsigned duplicate:1;			/**< Known duplicate, with higher TTL */
+	unsigned ipv6:1;				/**< Do they support IPv6? */
+	unsigned ipv6_only:1;			/**< Do they support IPv6 only? */
+	unsigned sr_udp:1;				/**< Do they support semi-reliable UDP? */
+	unsigned size_restrictions:1;	/**< Whether to check min/max file size */
+	unsigned g2_query:1;			/**< Whether we're processing a G2 query */
+	unsigned g2_wants_url:1;		/**< Do they want URL in hits? */
+	unsigned g2_wants_dn:1;			/**< Do they want DN in hits? */
+	unsigned g2_wants_alt:1;		/**< Do they want ALT in hits? */
+};
+#endif	/* SEARCH_SOURCES */
+
 /*
  * Global Functions
  */
@@ -107,7 +147,15 @@ search_request_info_t *search_request_info_alloc(void);
 void search_request_info_free_null(search_request_info_t **sri_ptr);
 unsigned search_request_media(const search_request_info_t *sri);
 
+void
+search_request_listener_emit(
+	query_type_t type, const char *query, const host_addr_t addr, uint16 port);
+
+struct g2_tree;
+
+bool search_is_valid(gnutella_node_t *n, uint8 h, search_request_info_t *sri);
 bool search_results(gnutella_node_t *n, int *results);
+void search_g2_results(gnutella_node_t *n, const struct g2_tree *t);
 bool search_query_allowed(gnet_search_t sh);
 void search_starting(gnet_search_t sh);
 void search_notify_sent(gnet_search_t sh, const struct nid *node_id);
@@ -119,7 +167,8 @@ void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,
 	int hits, bool udp_firewalled, bool secure);
 
 void search_dissociate_browse(gnet_search_t sh, struct download *d);
-void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
+void search_browse_results(gnutella_node_t *n, gnet_search_t sh,
+	const struct g2_tree *t);
 
 bool search_request_preprocess(struct gnutella_node *n,
 	search_request_info_t *sri, bool isdup);
@@ -129,6 +178,7 @@ size_t compact_query(char *search);
 void search_compact(struct gnutella_node *n);
 void query_strip_oob_flag(struct gnutella_node *n, char *data);
 void query_set_oob_flag(const struct gnutella_node *n, char *data);
+bool query_utf8_decode(const char *text, uint *retoff);
 
 void record_query_string(const struct guid *muid,
 	const char *query, unsigned media_mask);

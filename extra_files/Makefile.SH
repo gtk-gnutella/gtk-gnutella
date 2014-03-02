@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-152]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -70,6 +70,7 @@ EXTRA_FILES = \
 	favicon.png \
 	geo-ip.txt \
 	geo-ipv6.txt \
+	gwcache.boot \
 	hostiles.txt \
 	robots.txt \
 	spam.txt \

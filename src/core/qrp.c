@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,8 +27,15 @@
  *
  * Query Routing Protocol (LimeWire's scheme).
  *
+ * As of 2014-01-03, GTKG's handling of the Bloom filter changed.  We used
+ * to require that ALL words in a query match an entry in the QRP to let the
+ * query be forwarded to a leaf node or another ultrapeer (for inter-UP QRP).
+ * But LimeWire has always used a different logic: if there are more than 2
+ * words, then only 2/3rd of the words are required to match to let the query
+ * pass.  Hence we changed our behaviour to match that of legacy LimeWires.
+ *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -47,6 +54,8 @@
 #include "search.h"					/* For search_compact() */
 #include "settings.h"
 #include "share.h"
+
+#include "g2/node.h"
 
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -86,6 +95,11 @@
 #define EMPTY_TABLE_SIZE	8
 
 #define qrp_debugging(lvl)	G_UNLIKELY(GNET_PROPERTY(qrp_debug) > (lvl))
+
+static spinlock_t qrp_task_lock = SPINLOCK_INIT;
+
+#define QRP_TASK_LOCK			spinlock(&qrp_task_lock)
+#define QRP_TASK_UNLOCK			spinunlock(&qrp_task_lock)
 
 struct query_hash {
 	uint32 hashcode;
@@ -206,20 +220,29 @@ struct routing_patch {
 };
 
 static struct routing_table *routing_table; /**< Our table */
-static struct routing_patch *routing_patch; /**< Against empty table */
 static struct routing_table *local_table;   /**< Table for local files */
 static struct routing_table *merged_table;  /**< From all our leaves */
 static int generation;
 
+/**
+ * Pre-computed routing table patches against an empty table.
+ *
+ * We have the 4-bit patch, the 1-bit patch and the byte-reversed 1-bit patch
+ * for G2 hubs.
+ */
+static struct routing_patch *routing_patch4;
+static struct routing_patch *routing_patch1;
+static struct routing_patch *routing_revpatch1;
+
 static void qrt_compress_cancel_all(void);
 static void qrt_patch_compute(
-	struct routing_table *rt, struct routing_patch **rpp);
+	struct routing_patch *rp, struct routing_patch **rpp);
 static uint32 qrt_dump(struct routing_table *rt, bool full);
 void test_hash(void);
 
-static bool
-qrp_can_route_default(const query_hashvec_t *qhv,
-					  const struct routing_table *rt);
+static bool qrp_can_route_default(
+	const query_hashvec_t *qhv, const struct routing_table *rt);
+static void qrt_patch_fire_ready(struct routing_patch *rp);
 
 /**
  * Install supplied routing_table as the global `routing_table'.
@@ -229,9 +252,13 @@ install_routing_table(struct routing_table *rt)
 {
 	g_assert(rt != NULL);
 
+	QRP_TASK_LOCK;
+
 	if (routing_table != NULL)
 		qrt_unref(routing_table);
 	routing_table = qrt_ref(rt);
+
+	QRP_TASK_UNLOCK;
 
 	/*
 	 * Update some properties with might have changed compared to the local
@@ -415,8 +442,8 @@ qrt_patch_slot(struct routing_table *rt, uint i, uint8 v)
 {
 	uint b = 0x80U >> (i & 0x7);
 
-	if (v) {
-		if (v & 0x80) {				/* Negative value -> set bit */
+	if G_UNLIKELY(v) {
+		if G_LIKELY(v & 0x80) {		/* Negative value -> set bit */
 			rt->arena[i >> 3] |= b;
 			rt->set_count++;
 		} else { 					/* Positive value -> clear bit */
@@ -575,13 +602,35 @@ qrt_patch_unref(struct routing_patch *rp)
 }
 
 /**
- * Compute patch between two (compacted) routing tables.
+ * Clear the default routing patches against an empty routing table.
+ */
+static void
+qrt_patches_clear(void)
+{
+	if (routing_patch4 != NULL) {
+		qrt_patch_unref(routing_patch4);
+		routing_patch4 = NULL;
+	}
+
+	if (routing_patch1 != NULL) {
+		qrt_patch_unref(routing_patch1);
+		routing_patch1 = NULL;
+	}
+
+	if (routing_revpatch1 != NULL) {
+		qrt_patch_unref(routing_revpatch1);
+		routing_revpatch1 = NULL;
+	}
+}
+
+/**
+ * Compute 4-bit patch between two (compacted) routing tables.
  * When `old' is NULL, then we compare against a table filled with "infinity".
  * If `old' isn't NULL, then it must have the same size as `new'.
  *
  * @returns a patch buffer (uncompressed), made of signed quartets, or NULL
  * if there were no differences between the two tables.  If the `old' table
- * was NULL, we guarantee we'll provide a non-null result.
+ * was NULL, we guarantee we'll provide a non-NULL result.
  */
 static struct routing_patch *
 qrt_diff_4(struct routing_table *old, struct routing_table *new)
@@ -618,6 +667,19 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 		uint8 nbyte = *np++;
 		int j;
 		uint8 v;
+
+		/*
+		 * Optimize computation: if bytes are equal, we can immediately
+		 * generate 8 quartets of 0, i.e. 4 bytes.
+		 */
+
+		if G_LIKELY(obyte == nbyte) {
+			*pp++ = 0;
+			*pp++ = 0;
+			*pp++ = 0;
+			*pp++ = 0;
+			continue;
+		}
 
 		/*
 		 * In our compacted table, set bits indicate presence.
@@ -659,6 +721,91 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 	return rp;
 }
 
+/**
+ * Compute 1-bit patch between two (compacted) routing tables.
+ * When `old' is NULL, then we compare against an empty table (all zeroes).
+ * If `old' isn't NULL, then it must have the same size as `new'.
+ *
+ * For G2, we have to reverse all the bits in the bytes because they number
+ * entries in a little-endian way whereas Gnutella uses big-ending numbering.
+ *
+ * @returns a patch buffer (uncompressed), made of 1-bit flips, or NULL
+ * if there were no differences between the two tables.  If the `old' table
+ * was NULL, we guarantee we'll provide a non-NULL result.
+ */
+static struct routing_patch *
+qrt_diff_1(struct routing_table *old, struct routing_table *new, bool reverse)
+{
+	int bytes;
+	struct routing_patch *rp;
+	uchar *op;
+	uchar *np;
+	uchar *pp;
+	int i;
+	bool changed = FALSE;
+
+	g_assert(old == NULL || old->magic == QRP_ROUTE_MAGIC);
+	g_assert(old == NULL || old->compacted);
+	g_assert(new->magic == QRP_ROUTE_MAGIC);
+	g_assert(new->compacted);
+	g_assert(old == NULL || new->slots == old->slots);
+
+	WALLOC(rp);
+	rp->magic = ROUTING_PATCH_MAGIC;
+	rp->refcnt = 1;
+	rp->size = new->slots;
+	rp->infinity = 1;				/* 1-bit patch, 1 is infinity */
+	rp->len = rp->size / 8;			/* Each entry stored in 1 bit */
+	rp->entry_bits = 1;
+	rp->compressed = FALSE;
+	pp = rp->arena = halloc(rp->len);
+
+	op = old ? old->arena : NULL;
+	np = new->arena;
+
+	/*
+	 * A 1-bit patch is really a flip of all the bytes.
+	 *
+	 *     old bit      new bit      patch
+	 *        0            0           0     (no change)
+	 *        0            1           1     (flip to 1)
+	 *        1            0           1     (fli to 0)
+	 *        1            1           0     (no change)
+	 *
+	 * This is the truth table of XOR.
+	 */
+
+	if (reverse) {
+		for (i = 0, bytes = new->slots / 8; i < bytes; i++) {
+			uint8 obyte = op ? *op++ : 0x0;	/* Nothing */
+			uint8 v = obyte ^ *np++;
+
+			if G_LIKELY(0 == v) {
+				*pp++ = v;
+			} else {
+				*pp++ = reverse_byte(v);
+			}
+		}
+	} else {
+		for (i = 0, bytes = new->slots / 8; i < bytes; i++) {
+			uint8 obyte = op ? *op++ : 0x0;	/* Nothing */
+
+			*pp++ = obyte ^ *np++;
+		}
+	}
+
+	g_assert(np == (new->arena + new->slots / 8));
+	g_assert(op == NULL || op == (old->arena + old->slots / 8));
+	g_assert(pp == (rp->arena + rp->len));
+
+	if (!changed && old != NULL) {
+		qrt_patch_free(rp);
+		return NULL;
+	}
+
+	return rp;
+}
+
 /*
  * Compression task context.
  */
@@ -674,20 +821,15 @@ struct qrt_compress_context {
 	zlib_deflater_t *zd;			/**< Incremental deflater */
 	bgdone_cb_t usr_done;			/**< User-defined callback */
 	void *usr_arg;					/**< Arg for user-defined callback */
+	uint allocated:1;				/**< Whether context was allocated */
+	uint done:1;					/**< Flag set to TRUE when task completed */
 };
-
-static pslist_t *qrp_compress_tasks;
-static spinlock_t qrp_task_lock = SPINLOCK_INIT;
-static spinlock_t qrp_compress_lock = SPINLOCK_INIT;
-
-#define QRP_TASK_LOCK			spinlock(&qrp_task_lock)
-#define QRP_TASK_UNLOCK			spinunlock(&qrp_task_lock)
-
-#define QRP_COMPRESS_LOCK		spinlock(&qrp_compress_lock)
-#define QRP_COMPRESS_UNLOCK		spinunlock(&qrp_compress_lock)
 
 /**
  * Free compression context.
+ *
+ * If the compression context was not allocated, then flag it as "done" but do
+ * not free it.
  */
 static void
 qrt_compress_free(void *u)
@@ -695,13 +837,19 @@ qrt_compress_free(void *u)
 	struct qrt_compress_context *ctx = u;
 
 	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
+	g_assert(!ctx->done);
 
 	if (ctx->zd) {
 		zlib_deflater_free(ctx->zd, TRUE);
 		ctx->zd = NULL;
 	}
-	ctx->magic = 0;
-	WFREE(ctx);
+
+	if (ctx->allocated) {
+		ctx->magic = 0;
+		WFREE(ctx);
+	} else {
+		ctx->done = TRUE;
+	}
 }
 
 /**
@@ -737,8 +885,9 @@ qrt_step_compress(struct bgtask *h, void *u, int ticks)
 		 */
 
 		if (qrp_debugging(1)) {
-			g_debug("QRP patch: len=%d, compressed=%d (ratio %.2f%%)",
-				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
+			g_debug("QRP %d-bit patch %p: len=%d, compressed=%d (ratio %.2f%%)",
+				ctx->rp->entry_bits, ctx->rp, ctx->rp->len,
+				zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
 					ctx->rp->len);
 		}
@@ -774,57 +923,60 @@ done:
  * Called when the compress task is finished.
  *
  * This is really a wrapper on top of the user-supplied "done" callback
- * which lets us remove the task from the list.
+ * which lets us wake-up the background task that launched us.
  */
 static void
-qrt_patch_compress_done(struct bgtask *h, void *u, bgstatus_t status,
-	void *unused_arg)
+qrt_patch_compress_done(struct bgtask *h, void *u, bgstatus_t status, void *arg)
 {
 	struct qrt_compress_context *ctx = u;
+	bgtask_t *bt = arg;
 
-	(void) unused_arg;
 	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
 
 	/*
-	 * When status is BGS_KILLED, the task is being cancelled.
-	 * This means we're iterating on the `qrp_compress_tasks' list
-	 * so don't alter it.
-	 *		--RAM, 29/01/2003
+	 * If there is a non-NULL task, wake it up now that patch compression
+	 * has been completed, unless we're being cancelled (meaning our "parent"
+	 * task is also being cancelled -- it is cancelling us).
 	 */
 
-	if (status != BGS_KILLED) {
-		QRP_COMPRESS_LOCK;
-		g_assert(pslist_find(qrp_compress_tasks, h));
-		qrp_compress_tasks = pslist_remove(qrp_compress_tasks, h);
-		QRP_COMPRESS_UNLOCK;
-	}
+	if (bt != NULL && status != BGS_CANCELLED && status != BGS_KILLED)
+		bg_task_wakeup(bt);
 
-	(*ctx->usr_done)(h, u, status, ctx->usr_arg);
+	if (ctx->usr_done != NULL)
+		(*ctx->usr_done)(h, u, status, ctx->usr_arg);
 }
 
 /**
  * Compress routing patch inplace (asynchronously).
  * When it's done, invoke callback with specified argument.
  *
- * @returns handle of the compressing task.
+ * The background task is created stopped, caller must invoke bg_task_run()
+ * to schedule it.
+ *
+ * @param rp		the routing patch to compress
+ * @param bt		if non-NULL, the background task to wakeup on completion
+ * @param done_cb	the callback to invoke when compression is complete
+ * @param arg		the argument to pass to the done_cb callback
+ * @param cp		if non-NULL, use this context as the compress context
+ *
+ * @returns handle of the compressing task (stopped), NULL on error.
  */
 static void *
-qrt_patch_compress(
-	struct routing_patch *rp,
-	bgdone_cb_t done_callback, void *arg)
+qrt_patch_compress(struct routing_patch *rp, bgtask_t *bt,
+	bgdone_cb_t done_cb, void *arg, struct qrt_compress_context *cp)
 {
 	struct qrt_compress_context *ctx;
 	zlib_deflater_t *zd;
 	struct bgtask *task;
 	bgstep_cb_t step = qrt_step_compress;
 
+	g_assert(rp != NULL);
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
-	zd = zlib_deflater_make(rp->arena, rp->len, Z_DEFAULT_COMPRESSION);
 
-	if (zd == NULL) {
-		(*done_callback)(NULL, NULL, BGS_ERROR, arg);
-		return NULL;
-	}
+	zd = zlib_deflater_make(rp->arena, rp->len, Z_BEST_COMPRESSION);
+
+	if (NULL == zd)
+		g_error("%s(): unable to initialize patch compression", G_STRFUNC);
 
 	/*
 	 * Because compression is possibly a CPU-intensive operation, it
@@ -832,26 +984,24 @@ qrt_patch_compress(
 	 * intervals.
 	 */
 
-	WALLOC0(ctx);
+	if (NULL == cp) {
+		WALLOC0(ctx);
+		ctx->allocated = TRUE;
+	} else {
+		ctx = cp;
+		ZERO(ctx);
+	}
+
 	ctx->magic = QRT_COMPRESS_MAGIC;
 	ctx->rp = rp;
 	ctx->zd = zd;
-	ctx->usr_done = done_callback;
+	ctx->usr_done = done_cb;
 	ctx->usr_arg = arg;
 
-	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (uint32) rp->len);
-
 	task = bg_task_create_stopped(NULL, "QRP patch compression",
-		&step, 1, ctx, qrt_compress_free, qrt_patch_compress_done, NULL);
+		&step, 1, ctx, qrt_compress_free, qrt_patch_compress_done, bt);
 
-	if (task != NULL) {
-		QRP_COMPRESS_LOCK;
-		qrp_compress_tasks = pslist_prepend(qrp_compress_tasks, task);
-		QRP_COMPRESS_UNLOCK;
-		bg_task_run(task);
-	}
-
-	return task;
+	return task;		/* Can be NULL if bg task layer was shutdown already */
 }
 
 /**
@@ -1110,7 +1260,7 @@ mrg_step_get_list(struct bgtask *unused_h, void *u, int unused_ticks)
 	(void) unused_ticks;
 	g_assert(MERGE_MAGIC == ctx->magic);
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 
@@ -1643,15 +1793,18 @@ struct qrp_context {
 	struct routing_patch **rpp;	/**< Points to routing patch variable to fill */
 	pslist_t *sl_substrings;	/**< List of all substrings */
 	htable_t *words;			/**< Words making up the files */
-	bgtask_t *bt;				/**< Background task using this context */
+	bgtask_t *compress_bt;		/**< Task launched to compress patch */
 	int substrings;				/**< Amount of substrings */
 	char *table;				/**< Computed routing table */
 	int slots;					/**< Amount of slots in table */
+	struct routing_table *rt;	/**< The routing table object we computed */
 	struct routing_table *st;	/**< Smaller table */
 	struct routing_table *lt;	/**< Larger table for merging (destination) */
 	int sidx;					/**< Source index in `st' */
 	int lidx;					/**< Merging index in `lt' */
 	int expand;					/**< Expansion ratio from `st' to `lt' */
+	int npatch;					/**< Index of next patch to compute */
+	struct qrt_compress_context compress_ctx;
 };
 
 static struct bgtask *qrp_comp;	/**< Background computation handle */
@@ -1697,6 +1850,8 @@ qrp_context_free(void *p)
 
 	HFREE_NULL(ctx->table);
 
+	if (ctx->rt)
+		qrt_unref(ctx->rt);
 	if (ctx->st)
 		qrt_unref(ctx->st);
 	if (ctx->lt)
@@ -1952,34 +2107,174 @@ qrp_step_create_table(struct bgtask *unused_h, void *u, int unused_ticks)
 	(void) unused_ticks;
 	g_assert(ctx->magic == QRP_MAGIC);
 	g_assert(ctx->rtp != NULL);
-	g_assert(ctx->rpp != NULL);
 
 	/*
 	 * Install new routing table and notify the nodes that it has changed.
 	 */
 
+	ctx->rt = qrt_create("Local table", ctx->table, ctx->slots, LOCAL_INFINITY);
+	qrt_ref(ctx->rt);		/* Created with refcnt=0 */
+	ctx->table = NULL;		/* Don't free table when freeing context */
+
+	QRP_TASK_LOCK;
+
 	if (*ctx->rtp != NULL)
 		qrt_unref(*ctx->rtp);
 
-	*ctx->rtp = qrt_ref(qrt_create("Local table",
-		ctx->table, ctx->slots, LOCAL_INFINITY));
-	ctx->table = NULL;		/* Don't free table when freeing context */
+	*ctx->rtp = qrt_ref(ctx->rt);
+
+	QRP_TASK_UNLOCK;
 
 	/*
-	 * Now that a new routing table is available, we'll need a new routing
-	 * patch against an empty table, to send to new connections.
+	 * Now that a new routing table is available, we'll need new routing
+	 * patches against an empty table, to send to new connections.
 	 */
 
-	if (*ctx->rpp != NULL) {
-		qrt_patch_unref(*ctx->rpp);
-		*ctx->rpp = NULL;
-	}
+	qrt_patches_clear();
 
 	elapsed = delta_time(tm_time(), (time_t) GNET_PROPERTY(qrp_timestamp));
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_COMPUTATION_TIME, elapsed);
 
 	return BGR_NEXT;		/* Proceed to next step */
+}
+
+/**
+ * Compute the routing patches against an empty routing table (those that
+ * need to be sent after a QRP RESET message).
+ */
+static bgret_t
+qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
+{
+	struct qrp_context *ctx = u;
+	struct routing_patch *rp = NULL;
+	struct routing_patch **rpp;
+
+	(void) unused_ticks;
+
+	/*
+	 * See if we have been worken up after successful compression (see below
+	 * in this step when we request sleeping).
+	 */
+
+	switch (ctx->npatch) {
+	case 0:
+		rpp = NULL;
+		break;		/* First time in the step */
+	case 1:
+		rpp = &routing_revpatch1;
+		break;
+	case 2:
+		rpp = &routing_patch1;
+		break;
+	case 3:
+		rpp = &routing_patch4;
+		break;
+	default:
+		g_assert_not_reached();		/* Bug in code below */
+	}
+
+	/*
+	 * Install the (possibly compressed) routing patch.
+	 */
+
+	if (rpp != NULL) {
+		struct qrt_compress_context *comp_ctx = &ctx->compress_ctx;
+		struct routing_patch *crp;
+
+		g_assert(comp_ctx->done);
+
+		/*
+		 * This is the routing patch we supplied initially and which may have
+		 * been optionally compressed (if its final size is less than the
+		 * original uncompressed patch).
+		 */
+
+		crp = comp_ctx->rp;
+		g_assert(ROUTING_PATCH_MAGIC == crp->magic);
+
+		if (qrp_debugging(1)) {
+			g_debug("%s(): npatch=%d, got %d-bit %scompressed patch %p "
+				"(size=%d, len=%d)",
+				G_STRFUNC, ctx->npatch, crp->entry_bits,
+				crp->compressed ? "" : "un-", crp, crp->size, crp->len);
+		}
+
+		qrt_patch_ref(crp);		/* Keep it referenced for callback below */
+
+		QRP_TASK_LOCK;
+
+		if (*rpp != NULL)
+			qrt_patch_unref(*rpp);
+		*rpp = crp;
+
+		QRP_TASK_UNLOCK;
+
+		qrt_patch_fire_ready(crp);
+		qrt_patch_unref(crp);	/* Remove extra reference taken above */
+	}
+
+	/*
+	 * If we moved to the Ultrapeer status, we just need the G2 1-bit reversed
+	 * patch to send to G2 hubs (since we're always a leaf on G2 for now).
+	 */
+
+	if (settings_is_ultra() && ctx->npatch > 0)
+		return BGR_NEXT;
+
+	/*
+	 * Launch the computation of the next routing table patch against an
+	 * empty routing table.
+	 */
+
+	switch (++ctx->npatch) {		/* Pre-increment => same cases as above */
+	case 1:
+		/* Compute routing_revpatch1 */
+		rp = qrt_diff_1(NULL, ctx->rt, TRUE);
+		break;
+	case 2:
+		/* Compute routing_patch1 */
+		rp = qrt_diff_1(NULL, ctx->rt, FALSE);
+		break;
+	case 3:
+		/* Compute routing_patch4 */
+		rp = qrt_diff_4(NULL, ctx->rt);
+		break;
+	default:
+		return BGR_NEXT;
+	}
+
+	g_assert(rp != NULL);
+
+	/*
+	 * We supply our own context for the patch compression, in order to know
+	 * whether the task is completed when we are cancelled and to easily
+	 * retrieve the compressed patch directly from the context.
+	 *
+	 * Therefore, there is no need to supply any user completion callback for
+	 * this compression.
+	 */
+
+	ctx->compress_bt =
+		qrt_patch_compress(rp, bt, NULL, NULL, &ctx->compress_ctx);
+
+	/*
+	 * Wait for the compression task to be completed by sleeping: its
+	 * internal completion callback will wake us up when it's done.
+	 */
+
+	if (ctx->compress_bt != NULL) {
+		if (qrp_debugging(1)) {
+			g_debug("%s(): npatch=%d, compressing %d-bit patch "
+				"(size=%d, len=%d)",
+				G_STRFUNC, ctx->npatch, rp->entry_bits, rp->size, rp->len);
+		}
+
+		bg_task_sleep(bt);
+		bg_task_run(ctx->compress_bt);
+	}
+
+	return BGR_MORE;	/* When woken up, redo this step */
 }
 
 /**
@@ -1994,7 +2289,6 @@ qrp_step_install_leaf(struct bgtask *unused_h, void *u, int unused_ticks)
 	(void) unused_ticks;
 	g_assert(ctx->magic == QRP_MAGIC);
 	g_assert(ctx->rtp != NULL);
-	g_assert(ctx->rpp != NULL);
 
 	/*
 	 * Default patch (stored in *ctx->rpp), is computed asynchronously.
@@ -2009,7 +2303,6 @@ qrp_step_install_leaf(struct bgtask *unused_h, void *u, int unused_ticks)
 	if (!settings_is_ultra()) {
 		install_routing_table(*ctx->rtp);
 		install_merged_table(NULL);			/* We're not an ultra node */
-		qrt_patch_compute(routing_table, ctx->rpp);
 		node_qrt_changed(routing_table);
 		return BGR_DONE;		/* Done! */
 	}
@@ -2194,7 +2487,7 @@ qrp_step_install_ultra(struct bgtask *h, void *u, int ticks)
 	 * Activate default patch computation and tell them we got a new table...
 	 */
 
-	qrt_patch_compute(routing_table, ctx->rpp);
+	qrt_patch_compute(qrt_diff_4(NULL, routing_table), &routing_patch4);
 	node_qrt_changed(routing_table);
 
 	return BGR_DONE;
@@ -2204,6 +2497,7 @@ static bgstep_cb_t qrp_compute_steps[] = {
 	qrp_step_substring,
 	qrp_step_compute,
 	qrp_step_create_table,
+	qrp_step_create_patches,
 	qrp_step_install_leaf,
 	qrp_step_wait_for_merged_table,
 	qrp_step_merge_with_leaves,
@@ -2217,11 +2511,26 @@ static bgstep_cb_t qrp_merge_steps[] = {
 };
 
 static void
-qrp_comp_done(bgtask_t *bt, void *u_ctx, bgstatus_t u_status, void *u_arg)
+qrp_comp_done(bgtask_t *bt, void *p, bgstatus_t u_status, void *u_arg)
 {
-	(void) u_ctx;
+	struct qrp_context *ctx = p;
+
 	(void) u_status;
 	(void) u_arg;
+
+	/*
+	 * If there was a compression task running, then make sure it is
+	 * being cancelled.
+	 */
+
+	if (NULL != ctx->compress_bt) {
+		struct qrt_compress_context *comp_ctx = &ctx->compress_ctx;
+
+		if (!comp_ctx->done)
+			bg_task_cancel(ctx->compress_bt);
+
+		g_assert(comp_ctx->done);	/* Cancellation happened synchronously */
+	}
 
 	QRP_TASK_LOCK;
 	if (qrp_comp == bt)
@@ -2254,7 +2563,6 @@ qrp_finalize_computation(htable_t *words)
 	WALLOC0(ctx);
 	ctx->magic = QRP_MAGIC;
 	ctx->rtp = &local_table;	/* NOT routing_table, this is for local files */
-	ctx->rpp = &routing_patch;
 	ctx->words = words;			/* Will free it, caller must forget about it */
 
 	gnet_prop_set_timestamp_val(PROP_QRP_TIMESTAMP, tm_time());
@@ -2263,7 +2571,7 @@ qrp_finalize_computation(htable_t *words)
 
 	g_soft_assert(NULL == qrp_comp);
 
-	qrp_comp = ctx->bt = bg_task_create_stopped(NULL, "QRP computation",
+	qrp_comp = bg_task_create_stopped(NULL, "QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
 		ctx, qrp_comp_context_free,
 		qrp_comp_done, NULL);
@@ -2306,13 +2614,13 @@ qrp_update_routing_table(void)
 	WALLOC0(ctx);
 	ctx->magic = QRP_MAGIC;
 	ctx->rtp = &local_table;		/* In case we call qrp_step_install_leaf */
-	ctx->rpp = &routing_patch;
+	ctx->rpp = &routing_patch4;
 
 	QRP_TASK_LOCK;
 
 	g_soft_assert(NULL == qrp_merge);
 
-	qrp_merge = ctx->bt = bg_task_create_stopped(NULL, "QRP merging",
+	qrp_merge = bg_task_create_stopped(NULL, "QRP merging",
 		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
 		ctx, qrp_merge_context_free,
 		qrp_merge_done, NULL);
@@ -2352,10 +2660,10 @@ qrp_peermode_changed(void)
 	 * Make sure we won't send an invalid patch to new connections.
 	 */
 
-	if (routing_patch != NULL) {
-		g_assert(ROUTING_PATCH_MAGIC == routing_patch->magic);
-		qrt_patch_unref(routing_patch);
-		routing_patch = NULL;
+	if (routing_patch4 != NULL) {
+		g_assert(ROUTING_PATCH_MAGIC == routing_patch4->magic);
+		qrt_patch_unref(routing_patch4);
+		routing_patch4 = NULL;
 	}
 
 	qrp_update_routing_table();
@@ -2371,13 +2679,12 @@ enum qrt_patch_magic {
 
 struct qrt_patch_context {
 	enum qrt_patch_magic magic;
+	struct routing_patch *rp;	/**< The routing patch we're compressing */
 	struct routing_patch **rpp;	/**< Pointer where final patch is stored */
-	struct routing_patch *rp;	/**< Routing patch being compressed */
-	struct routing_table *rt;	/**< Table against which patch is computed */
 	struct bgtask *compress;	/**< The compression task */
 };
 
-typedef void (*qrt_patch_computed_cb_t)(void *arg, struct routing_patch *rp);
+typedef bool (*qrt_patch_computed_cb_t)(void *arg, struct routing_patch *rp);
 
 struct patch_listener_info {
 	qrt_patch_computed_cb_t callback;
@@ -2386,6 +2693,46 @@ struct patch_listener_info {
 
 static struct qrt_patch_context *qrt_patch_ctx;
 static pslist_t *qrt_patch_computed_listeners;
+static spinlock_t qrt_patch_listeners_lock = SPINLOCK_INIT;
+
+#define QRP_PATCH_LISTEN_LOCK	spinlock(&qrt_patch_listeners_lock)
+#define QRP_PATCH_LISTEN_UNLOCK	spinunlock(&qrt_patch_listeners_lock)
+
+static bool
+qrt_patch_fire_helper(void *data, void *udata)
+{
+	struct patch_listener_info *pi = data;
+	struct routing_patch *rp = udata;
+
+	/*
+	 * If the callback returns TRUE, it means it got the patch it wanted
+	 * and therefore it can be removed from the listeners.
+	 * If the routing patch is NULL, we assume it returned TRUE anyway.
+	 */
+
+	if ((*pi->callback)(pi->arg, rp) || NULL == rp) {
+		WFREE(pi);
+		return TRUE;	/* Done, remove from listening list */
+	}
+
+	return FALSE;		/* Keep in the listening list */
+}
+
+/**
+ * Fire listenters to tell them a routine patch is ready.
+ *
+ * @param rp		the routine patch that is ready (NULL indicates failure)
+ */
+static void
+qrt_patch_fire_ready(struct routing_patch *rp)
+{
+	QRP_PATCH_LISTEN_LOCK;
+
+	qrt_patch_computed_listeners = pslist_foreach_remove(
+		qrt_patch_computed_listeners, qrt_patch_fire_helper, rp);
+
+	QRP_PATCH_LISTEN_UNLOCK;
+}
 
 /**
  * Callback invoked when the routing patch is computed.
@@ -2395,7 +2742,6 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	bgstatus_t status, void *arg)
 {
 	struct qrt_patch_context *ctx = arg;
-	pslist_t *sl;
 
 	(void) unused_h;
 	(void) unused_u;
@@ -2403,8 +2749,10 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	g_assert(qrt_patch_ctx == NULL || ctx == qrt_patch_ctx);
 	g_assert(ctx->rpp != NULL);
 
-	if (qrp_debugging(1))
-		g_debug("QRP global default patch computed (status = %d)", status);
+	if (qrp_debugging(1)) {
+		g_debug("QRP global default %d-bit patch %p computed (status = %d)",
+			ctx->rp->entry_bits, ctx->rp, status);
+	}
 
 	if (status == BGS_OK) {
 		time_t now = tm_time();
@@ -2439,13 +2787,7 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	if (ctx == qrt_patch_ctx)
 		qrt_patch_ctx = NULL;		/* Indicates that we're done */
 
-	for (sl = qrt_patch_computed_listeners; sl; sl = pslist_next(sl)) {
-		struct patch_listener_info *pi = sl->data;
-		(*pi->callback)(pi->arg, *ctx->rpp);	/* NULL indicates failure */
-		WFREE(pi);
-	}
-
-	pslist_free_null(&qrt_patch_computed_listeners);
+	qrt_patch_fire_ready(*ctx->rpp);	/* NULL indicates failure */
 
 	QRP_TASK_UNLOCK;
 
@@ -2474,12 +2816,12 @@ qrt_patch_computed_add_listener(qrt_patch_computed_cb_t cb, void *arg)
 	pi->callback = cb;
 	pi->arg = arg;
 
-	QRP_TASK_LOCK;
+	QRP_PATCH_LISTEN_LOCK;
 
 	qrt_patch_computed_listeners =
 		pslist_prepend(qrt_patch_computed_listeners, pi);
 
-	QRP_TASK_UNLOCK;
+	QRP_PATCH_LISTEN_UNLOCK;
 
 	return pi;
 }
@@ -2492,12 +2834,12 @@ qrt_patch_computed_remove_listener(void *handle)
 {
 	struct patch_listener_info *pi = handle;
 
-	QRP_TASK_LOCK;
+	QRP_PATCH_LISTEN_LOCK;
 	g_assert(qrt_patch_computed_listeners != NULL);
 
 	qrt_patch_computed_listeners =
 		pslist_remove(qrt_patch_computed_listeners, handle);
-	QRP_TASK_UNLOCK;
+	QRP_PATCH_LISTEN_UNLOCK;
 
 	WFREE(pi);
 }
@@ -2524,10 +2866,6 @@ qrt_patch_cancel_compute(void)
 
 	bg_task_cancel(comptask);
 
-	QRP_COMPRESS_LOCK;
-	qrp_compress_tasks = pslist_remove(qrp_compress_tasks, comptask);
-	QRP_COMPRESS_UNLOCK;
-
 	/* qrt_patch_computed() called! */
 	g_assert(qrt_patch_computed_listeners == NULL);
 }
@@ -2535,14 +2873,15 @@ qrt_patch_cancel_compute(void)
 /**
  * Launch asynchronous computation of the default routing patch.
  *
- * @param rt is the table for which the default patch is computed.
- * @param rpp is a pointer to a variable where the final routing patch
- * is to be stored.
+ * @param rp	the computed routing patch to compress
+ * @param rpp	pointer to a variable where to store the final routing patch
  */
 static void
-qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
+qrt_patch_compute(struct routing_patch *rp, struct routing_patch **rpp)
 {
 	struct qrt_patch_context *ctx;
+
+	g_assert(rpp != NULL);
 
 	/*
 	 * Cancel computation if already active.
@@ -2555,17 +2894,27 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 
 	gnet_prop_set_timestamp_val(PROP_QRP_PATCH_TIMESTAMP, tm_time());
 
-	WALLOC(ctx);
+	WALLOC0(ctx);
 	ctx->magic = QRT_PATCH_MAGIC;
+	ctx->rp = rp;
 	ctx->rpp = rpp;
-	ctx->rt = rt;
-	ctx->rp = qrt_diff_4(NULL, rt);
+
+	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (uint32) rp->len);
+
+	if (qrp_debugging(1)) {
+		g_debug("QRP launching compression of %d-bit patch %p",
+			rp->entry_bits, rp);
+	}
+
+	ctx->compress =
+		qrt_patch_compress(rp, NULL, qrt_patch_computed, ctx, NULL);
+
+	if (ctx->compress != NULL)
+		bg_task_run(ctx->compress);
 
 	QRP_TASK_LOCK;
 	qrt_patch_ctx = ctx;
 	QRP_TASK_UNLOCK;
-
-	ctx->compress = qrt_patch_compress(ctx->rp, qrt_patch_computed, ctx);
 }
 
 /**
@@ -2574,19 +2923,8 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 static void
 qrt_compress_cancel_all(void)
 {
-	pslist_t *sl;
-
 	if (qrt_patch_ctx != NULL)
 		qrt_patch_cancel_compute();
-
-	QRP_COMPRESS_LOCK;
-
-	for (sl = qrp_compress_tasks; sl; sl = pslist_next(sl))
-		bg_task_cancel(sl->data);
-
-	pslist_free_null(&qrp_compress_tasks);
-
-	QRP_COMPRESS_UNLOCK;
 }
 
 /***
@@ -2600,24 +2938,29 @@ qrt_compress_cancel_all(void)
 static void
 qrp_send_reset(struct gnutella_node *n, int slots, int inf_val)
 {
-	gnutella_msg_qrp_reset_t msg;
-	gnutella_header_t *header = gnutella_msg_qrp_reset_header(&msg);
-
 	g_assert(is_pow2(slots));
 	g_assert(inf_val > 0 && inf_val < 256);
 
-	message_set_muid(header, GTA_MSG_QRP);
+	if (NODE_TALKS_G2(n)) {
+		g2_node_send_qht_reset(n, slots, inf_val);
+	} else {
+		gnutella_msg_qrp_reset_t msg;
+		gnutella_header_t *header;
 
-	gnutella_header_set_function(header, GTA_MSG_QRP);
-	gnutella_header_set_ttl(header, 1);
-	gnutella_header_set_hops(header, 0);
-	gnutella_header_set_size(header, sizeof msg - GTA_HEADER_SIZE);
+		header = gnutella_msg_qrp_reset_header(&msg);
+		message_set_muid(header, GTA_MSG_QRP);
 
-	gnutella_msg_qrp_reset_set_variant(&msg, GTA_MSGV_QRP_RESET);
-	gnutella_msg_qrp_reset_set_table_length(&msg, slots);
-	gnutella_msg_qrp_reset_set_infinity(&msg, inf_val);
+		gnutella_header_set_function(header, GTA_MSG_QRP);
+		gnutella_header_set_ttl(header, 1);
+		gnutella_header_set_hops(header, 0);
+		gnutella_header_set_size(header, sizeof msg - GTA_HEADER_SIZE);
 
-	gmsg_sendto_one(n, &msg, sizeof msg);
+		gnutella_msg_qrp_reset_set_variant(&msg, GTA_MSGV_QRP_RESET);
+		gnutella_msg_qrp_reset_set_table_length(&msg, slots);
+		gnutella_msg_qrp_reset_set_infinity(&msg, inf_val);
+
+		gmsg_sendto_one(n, &msg, sizeof msg);
+	}
 
 	if (qrp_debugging(2)) {
 		g_debug("QRP sent RESET slots=%d, infinity=%d to %s",
@@ -2635,42 +2978,46 @@ qrp_send_patch(struct gnutella_node *n,
 	int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len)
 {
-	gnutella_msg_qrp_patch_t *msg;
-	uint msglen;
-
 	g_assert(seqsize >= 1 && seqsize <= 255);
 	g_assert(seqno >= 1 && seqno <= seqsize);
 	g_assert(len >= 0 && len < INT_MAX);
 
-	/*
-	 * Compute the overall message length.
-	 */
+	if (NODE_TALKS_G2(n)) {
+		g2_node_send_qht_patch(n, seqno, seqsize, compressed, bits, buf, len);
+	} else {
+		gnutella_msg_qrp_patch_t *msg;
+		uint msglen;
 
-	g_assert((size_t) len <= INT_MAX - sizeof *msg);
-	msglen = len + sizeof *msg;
-	msg = halloc(msglen);
+		/*
+		 * Compute the overall message length.
+		 */
 
-	{
-		gnutella_header_t *header = gnutella_msg_qrp_patch_header(msg);
-		
-		message_set_muid(header, GTA_MSG_QRP);
-		gnutella_header_set_function(header, GTA_MSG_QRP);
-		gnutella_header_set_ttl(header, 1);
-		gnutella_header_set_hops(header, 0);
-		gnutella_header_set_size(header, msglen - GTA_HEADER_SIZE);
+		g_assert((size_t) len <= INT_MAX - sizeof *msg);
+		msglen = len + sizeof *msg;
+		msg = halloc(msglen);
+
+		{
+			gnutella_header_t *header = gnutella_msg_qrp_patch_header(msg);
+
+			message_set_muid(header, GTA_MSG_QRP);
+			gnutella_header_set_function(header, GTA_MSG_QRP);
+			gnutella_header_set_ttl(header, 1);
+			gnutella_header_set_hops(header, 0);
+			gnutella_header_set_size(header, msglen - GTA_HEADER_SIZE);
+		}
+
+		gnutella_msg_qrp_patch_set_variant(msg, GTA_MSGV_QRP_PATCH);
+		gnutella_msg_qrp_patch_set_seq_no(msg, seqno);
+		gnutella_msg_qrp_patch_set_seq_size(msg, seqsize);
+		gnutella_msg_qrp_patch_set_compressor(msg, compressed ? 0x1 : 0x0);
+		gnutella_msg_qrp_patch_set_entry_bits(msg, bits);
+
+		memcpy(cast_to_char_ptr(msg) + sizeof *msg, buf, len);
+
+		gmsg_sendto_one(n, msg, msglen);
+
+		HFREE_NULL(msg);
 	}
-
-	gnutella_msg_qrp_patch_set_variant(msg, GTA_MSGV_QRP_PATCH);
-	gnutella_msg_qrp_patch_set_seq_no(msg, seqno);
-	gnutella_msg_qrp_patch_set_seq_size(msg, seqsize);
-	gnutella_msg_qrp_patch_set_compressor(msg, compressed ? 0x1 : 0x0);
-	gnutella_msg_qrp_patch_set_entry_bits(msg, bits);
-
-	memcpy(cast_to_char_ptr(msg) + sizeof *msg, buf, len);
-
-	gmsg_sendto_one(n, msg, msglen);
-
-	HFREE_NULL(msg);
 
 	if (qrp_debugging(2)) {
 		g_debug("QRP sent PATCH #%d/%d (%d bytes) to %s",
@@ -2780,6 +3127,25 @@ struct qrt_update {
 };
 
 /**
+ * @return the default routing patch to use for the node.
+ */
+static struct routing_patch *
+qrt_default_patch(const gnutella_node_t *n)
+{
+	struct routing_patch *rp;
+
+	if (NODE_TALKS_G2(n)) {
+		rp = routing_revpatch1;
+	} else if (NODE_CAN_QRP1(n)) {
+		rp = routing_patch1;
+	} else {
+		rp = routing_patch4;
+	}
+
+	return rp;
+}
+
+/**
  * Callback invoked when the computed patch for a connection
  * has been compressed.
  */
@@ -2810,7 +3176,7 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 		goto error;
 
 	/*
-	 * In this routine, we reference the `routing_patch' global variable
+	 * In this routine, we reference the `routing_patch4' global variable
 	 * directly, because there can be only one default routing patch,
 	 * whether we are an UP or a leaf, and it is the default patch that
 	 * can be sent against a NULL table to bring them up-to-date wrt
@@ -2826,20 +3192,20 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 	 * one instead.  We'll need an extra RESET though.
 	 */
 
-	if G_UNLIKELY(
-		routing_patch != NULL &&
-		qup->patch->len > routing_patch->len
-	) {
-		if (qrp_debugging(0))
+	rp = qrt_default_patch(qup->node);
+
+	if G_UNLIKELY(rp != NULL && qup->patch->len > rp->len) {
+		if (qrp_debugging(0)) {
 			g_warning("QRP incremental query routing patch for node %s is %d "
-				"bytes for %s slots, bigger than the default "
+				"bytes for %s slots, bigger than the default %d-bit "
 				"patch (%d bytes for %s slots) -- using latter",
 				node_gnet_addr(qup->node),
 				qup->patch->len, compact_size(qup->patch->size, FALSE),
-				routing_patch->len, compact_size2(routing_patch->size, FALSE));
+				rp->entry_bits, rp->len, compact_size2(rp->size, FALSE));
+		}
 
 		qrt_patch_unref(qup->patch);
-		qup->patch = qrt_patch_ref(routing_patch);
+		qup->patch = qrt_patch_ref(rp);
 		qup->reset_needed = TRUE;
 	}
 
@@ -2872,7 +3238,7 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 	qup->seqsize = msgcount;
 
 	/*
-	 * Although we referenced `routing_patch' freely above, we cannot
+	 * Although we referenced `routing_patch4' freely above, we cannot
 	 * reference `routing_table' here to get its size and infinity values.
 	 * We MUST use the values from the computed routing patch, since the
 	 * global routing table might have already been changed whilst we were
@@ -2909,8 +3275,10 @@ error:
  *
  * If we get a NULL pointer, it means the computation was interrupted or
  * that an error occurred.
+ *
+ * @return TRUE if we got the default routing patch suitable for the node.
  */
-static void
+static bool
 qrt_patch_available(void *arg, struct routing_patch *rp)
 {
 	struct qrt_update *qup = arg;
@@ -2932,12 +3300,30 @@ qrt_patch_available(void *arg, struct routing_patch *rp)
 	if (NULL == rp) {
 		g_assert(routing_table != NULL);
 		routing_table->cancelled = TRUE;
+	} else {
+		/*
+		 * Did we get the patch we need for that connection?
+		 */
+
+		if (rp != qrt_default_patch(qup->node)) {
+			if (qrp_debugging(1)) {
+				g_debug("QRP got %d-bit routing patch %p for %s, wait again",
+					rp->entry_bits, rp, node_infostr(qup->node));
+			}
+			return FALSE;
+		}
+
+		if (qrp_debugging(1)) {
+			g_debug("QRP got suitable %d-bit routing patch %p for %s",
+				rp->entry_bits, rp, node_infostr(qup->node));
+		}
 	}
 
 	qup->listener = NULL;
 	qup->patch = (rp == NULL) ? NULL : qrt_patch_ref(rp);
 
 	qrt_compressed(NULL, NULL, rp == NULL ? BGS_ERROR : BGS_OK, qup);
+	return TRUE;
 }
 
 /**
@@ -2987,31 +3373,51 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 	qup->reset_needed = booleanize(old_table == NULL);
 
 	if (old_table == NULL) {
+		struct routing_patch *rp = qrt_default_patch(n);
+
 		/*
-		 * If routing_patch is not NULL and has the right size, it is ready,
+		 * If routing patch is not NULL and has the right size, it is ready,
 		 * no need to compute it.
 		 * Otherwise, it means it is being computed, so enqueue a
 		 * notification callback to know when it is ready.
 		 */
 
-		if (
-			routing_patch != NULL &&
-			routing_patch->size == routing_table->slots
-		) {
+		if (rp != NULL && rp->size == routing_table->slots) {
 			if (qrp_debugging(2)) {
-				g_debug(
-					"QRP default routing patch is already there (%s)",
-					node_infostr(n));
+				g_debug("QRP default %s%d-bit routing patch already there (%s)",
+					rp->compressed ? "compressed " : "",
+					rp->entry_bits, node_infostr(n));
 			}
 
-			qup->patch = qrt_patch_ref(routing_patch);
+			/*
+			 * Make sure the 1-bit default patch is smaller than the 4-bit
+			 * one, otherwise use the 4-bit patch.
+			 */
+
+			if (NODE_CAN_QRP1(n)) {
+				struct routing_patch *rp4 = routing_patch4;
+
+				if (
+					rp4 != NULL && rp4->size == routing_table->slots &&
+					rp4->len < rp->len
+				) {
+					if (qrp_debugging(2)) {
+						g_debug("QRP default %s%d-bit patch is smaller "
+							"(%d vs. %d)",
+							rp4->compressed ? "compressed " : "",
+							rp4->entry_bits, rp4->len, rp->len);
+					}
+					rp = rp4;		/* Use smaller 4-bit patch then */
+				}
+			}
+
+			qup->patch = qrt_patch_ref(rp);
 			qrt_compressed(NULL, NULL, BGS_OK, qup);
 		} else {
 			if (qrp_debugging(1)) {
-				g_debug("QRP must wait for default routing patch "
-					"(%s): %s",
+				g_debug("QRP must wait for default routing patch (%s): %s",
 					node_infostr(n),
-					NULL == routing_patch ? "none present" : "has wrong size");
+					NULL == rp ? "none present" : "has wrong size");
 			}
 
 			qup->listener =
@@ -3024,10 +3430,20 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 		 * If there are no differences, the patch will be NULL.
 		 */
 
-		qup->patch = qrt_diff_4(old_table, routing_table);
-		if (qup->patch != NULL)
-			qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
-		else {
+		if (NODE_TALKS_G2(n)) {
+			qup->patch = qrt_diff_1(old_table, routing_table, TRUE);
+		} else if (NODE_CAN_QRP1(n)) {
+			qup->patch = qrt_diff_1(old_table, routing_table, FALSE);
+		} else {
+			qup->patch = qrt_diff_4(old_table, routing_table);
+		}
+
+		if (qup->patch != NULL) {
+			qup->compress =
+				qrt_patch_compress(qup->patch, NULL, qrt_compressed, qup, NULL);
+			if (qup->compress != NULL)
+				bg_task_run(qup->compress);
+		} else {
 			qup->empty_patch = TRUE;
 			qup->ready = TRUE;
 		}
@@ -3047,9 +3463,6 @@ qrt_update_free(struct qrt_update *qup)
 	if (qup->compress != NULL) {
 		struct bgtask *task = qup->compress;
 		bg_task_cancel(task);
-		QRP_COMPRESS_LOCK;
-		qrp_compress_tasks = pslist_remove(qrp_compress_tasks, task);
-		QRP_COMPRESS_UNLOCK;
 	}
 
 	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
@@ -3655,24 +4068,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const uchar *data, int len,
 
 	g_assert(qrcv->current_index + len <= rt->slots);
 	
-	/*
-	 * Compute the amount of entries per byte, and the initial reading mask.
-	 */
-
 	for (i = 0; i < len; i++) {
-		/*
-		 * The only possibilities for the patch are:
-		 *
-		 * . A negative value, to bring the slot value from infinity to 1.
-		 * . A null value for no change.
-		 * . A positive value to bring the slot back to infinity.
-		 *
-		 * In reality, for leaf<->ultrapeer QRT, what matters is presence.
-		 * We consider everything that is less to infinity as being
-		 * present, and therefore forget about the "hops-away" semantics
-		 * of the QRT slot value.
-		 */
-		
 		qrt_patch_slot(rt, qrcv->current_index++, data[i]);
 	}
 	qrcv->current_slot = qrcv->current_index - 1;
@@ -3691,7 +4087,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const uchar *data, int len,
  *
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
-static G_GNUC_HOT bool
+static bool
 qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 	const struct qrp_patch *patch)
 {
@@ -3700,7 +4096,7 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 
 	g_assert(qrcv->table != NULL);
 
-	/* True for this variant of patch function. 8-bit, no expansion. */
+	/* True for this variant of patch function. 4-bit, no expansion. */
 	g_assert((int)rt->client_slots == rt->slots);
 	g_assert(qrcv->entry_bits == 4);
 	g_assert(qrcv->shrink_factor == 1);
@@ -3713,26 +4109,14 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 
 	g_assert(qrcv->current_index + len * 2 <= rt->slots);
 	
-	/*
-	 * Compute the amount of entries per byte, and the initial reading mask.
-	 */
-
 	for (i = 0; i < len; i++) {
-		uint8 v = data[i];	/* Patch byte contains `epb' slots */
+		uint8 v = data[i];	/* Patch byte contains 2 slots */
 
 		/*
-		 * The only possibilities for the patch are:
-		 *
-		 * . A negative value, to bring the slot value from infinity to 1.
-		 * . A null value for no change.
-		 * . A positive value to bring the slot back to infinity.
-		 *
-		 * In reality, for leaf<->ultrapeer QRT, what matters is presence.
-		 * We consider everything that is less to infinity as being
-		 * present, and therefore forget about the "hops-away" semantics
-		 * of the QRT slot value.
+		 * Quartets are processed in big-endian way (highest nybble is
+		 * for the lowest table index).
 		 */
-	
+
 		qrt_patch_slot(rt, qrcv->current_index++, v & 0xf0);
 		qrt_patch_slot(rt, qrcv->current_index++, (v << 4) & 0xf0);
 
@@ -3743,27 +4127,136 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 }
 
 /**
+ * Apply raw 1-bit patch data (uncompressed) to the current routing table.
+ *
+ * @param qrcv			query routing table being received
+ * @param data			patch data to apply
+ * @param len			length of patch data (amount of data bytes)
+ * @param patch			the PATCH message, for logging purposes
+ *
+ * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
+ */
+static bool
+qrt_apply_patch1(struct qrt_receive *qrcv, const uchar *data, int len,
+	const struct qrp_patch *patch)
+{
+	struct routing_table *rt = qrcv->table;
+	int i;
+
+	g_assert(qrcv->table != NULL);
+
+	/* True for this variant of patch function. 1-bit, no expansion. */
+	g_assert((int)rt->client_slots == rt->slots);
+	g_assert(qrcv->entry_bits == 1);
+	g_assert(qrcv->shrink_factor == 1);
+
+	if G_UNLIKELY(len == 0)				/* No data, only zlib trailer */
+		return TRUE;
+
+	if (!qrt_patch_is_valid(qrcv, len, 8, patch))
+		return FALSE;
+
+	g_assert(qrcv->current_index + len * 8 <= rt->slots);
+
+	for (i = 0; i < len; i++) {
+		/*
+		 * Bits are processed in big-endian way.
+		 *
+		 * A non-zero bit means the current entry in the QRT needs to be
+		 * flipped, a zero bit means we need to keep it as-is.
+		 */
+
+		rt->arena[i >> 3] ^= data[i];
+		rt->set_count += bits_set(rt->arena[i >> 3]);
+	}
+
+	qrcv->current_index += len * 8;
+	qrcv->current_slot = qrcv->current_index;
+
+	return TRUE;
+}
+
+/**
+ * Apply raw 1-bit patch data (uncompressed) to the current routing table,
+ * reversing each byte as we go.
+ *
+ * @param qrcv			query routing table being received
+ * @param data			patch data to apply
+ * @param len			length of patch data (amount of data bytes)
+ * @param patch			the PATCH message, for logging purposes
+ *
+ * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
+ */
+static bool
+qrt_apply_reversed_patch1(struct qrt_receive *qrcv, const uchar *data, int len,
+	const struct qrp_patch *patch)
+{
+	struct routing_table *rt = qrcv->table;
+	int i;
+
+	g_assert(qrcv->table != NULL);
+
+	/* True for this variant of patch function. 1-bit, no expansion. */
+	g_assert((int)rt->client_slots == rt->slots);
+	g_assert(qrcv->entry_bits == 1);
+	g_assert(qrcv->shrink_factor == 1);
+
+	if G_UNLIKELY(len == 0)				/* No data, only zlib trailer */
+		return TRUE;
+
+	if (!qrt_patch_is_valid(qrcv, len, 8, patch))
+		return FALSE;
+
+	g_assert(qrcv->current_index + len * 8 <= rt->slots);
+
+	for (i = 0; i < len; i++) {
+		/*
+		 * Bits are processed in little-endian way (since patch is "reversed").
+		 *
+		 * A non-zero bit means the current entry in the QRT needs to be
+		 * flipped, a zero bit means we need to keep it as-is.
+		 */
+
+		rt->arena[i >> 3] ^= reverse_byte(data[i]);
+		rt->set_count += bits_set(rt->arena[i >> 3]);
+	}
+
+	qrcv->current_index += len * 8;
+	qrcv->current_slot = qrcv->current_index;
+
+	return TRUE;
+}
+
+/**
  * A macro that creates functions with fixed slot sizes to determine
  * if the table contains all key words.  With a parameter of 21, the
  * name will be qrp_can_route_21.
+ *
+ * This routine is called when there are no URNs in the query, only words.
  */
-#define CAN_ROUTE(bits) \
-static G_GNUC_HOT bool \
-qrp_can_route_##bits(const query_hashvec_t *qhv, \
-					 const struct routing_table *rt) \
- \
-{ \
-	const struct query_hash * const vec = qhv->vec; \
-	const uint8 * const arena = rt->arena; \
-	uint8 i = qhv->count; \
- \
-	while (i-- > 0) { \
-		uint32 idx = vec[i].hashcode >> (32 - bits); \
-		/* ALL the keywords must be present -- hardwire RT_SLOT_READ. */ \
-		if (0 == (0x80U & (arena[idx >> 3] << (idx & 0x7)))) \
-			return FALSE; \
-	} \
-	return TRUE; \
+#define CAN_ROUTE(bits)													\
+static G_GNUC_HOT bool													\
+qrp_can_route_##bits(const query_hashvec_t *qhv,						\
+					 const struct routing_table *rt)					\
+{																		\
+	const struct query_hash * const vec = qhv->vec;						\
+	const uint8 * const arena = rt->arena;								\
+	uint8 i = qhv->count;												\
+	uint8 hit = 0, word = qhv->count;									\
+																		\
+	while (i-- > 0) {													\
+		uint32 idx = vec[i].hashcode >> (32 - bits);					\
+		/*																\
+		 * We hardwire RT_SLOT_READ here.								\
+		 * To follow LimeWire's behaviour, require only 2/3 of matching	\
+		 * when there are at least 3 words.								\
+		 *		--RAM, 2014-01-03										\
+		 */																\
+		if (0 != (0x80U & (arena[idx >> 3] << (idx & 0x7)))) {			\
+			hit++;														\
+		}																\
+	}																	\
+	return word < 3 ? hit == word : 3 * hit / word >= 2;				\
 }
 
 /* Create eight QRT lookup routines with fixed shift factors. */
@@ -3784,6 +4277,16 @@ CAN_ROUTE(21)
  * will be qrp_can_route_urn_14.
  *
  * @todo: Is URN searched deprecated, with DHT queries?
+ **
+ * Answer as of 2014-01-03: Yes, they are, but legacy servents like Shareaza
+ * continue to include URNs in their QRP as they do not support the DHT.
+ * And there are still old LimeWire present out there that did include URNs
+ * in their QRP.
+ * Nonetheless, we amend the logic to still forward the query, even if the URNs
+ * did not match, as long as 2/3 of the words matched (like for a regular query
+ * with no URN) because we cannot know for sure whether URNs are present in
+ * the QRP table.
+ *		--RAM, 2014-01-03
  */
 #define CAN_ROUTE_URN(bits)                                           \
 static bool                                                           \
@@ -3793,6 +4296,7 @@ qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
 	const struct query_hash *qh = qhv->vec;                           \
 	const uint8 *arena          = rt->arena;                          \
 	uint i;                                                           \
+	uint8 hit = 0, word = 0;                                          \
 					                                                  \
 	for (i = 0; i < qhv->count; i++) {                                \
 		uint32 idx = qh[i].hashcode >> (32 - bits);                   \
@@ -3800,31 +4304,37 @@ qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
 		/*                                                            \
 		 * If there is an entry in the table and the source is an URN,\
 		 * we have to forward the query, as those are OR-ed.          \
-		 * Otherwise, ALL the keywords must be present.               \
+		 *                                                            \
+		 * To follow LimeWire's behaviour, require only 2/3 of words  \
+		 * matching, when there are at least 3 words.                 \
+		 * 		--RAM, 2014-01-03.                                    \
 		 *                                                            \
 		 * When facing a SHA1 query, we require that at least one of  \
-		 * the URN matches or we don't forward the query.             \
+		 * the URN matches or that 2/3 of the words match.            \
 		 */                                                           \
 		if (RT_SLOT_READ(arena, idx)) {                               \
 			if (qh[i].source == QUERY_H_URN)	/* URN present */     \
 				return TRUE;					/* Will forward */    \
-			return FALSE;					/* And none matched */    \
+			word++;                                                   \
+			hit++;                                                    \
 		} else {                                                      \
 			if (qh[i].source == QUERY_H_WORD) {                       \
 				/* We know no URN matched already                     \
 				   because qhv is sorted */                           \
-				return FALSE;	/* All words did not match */         \
+				word++;                                               \
 			}                                                         \
 		}                                                             \
 	}                                                                 \
 	/*                                                                \
-	 * We had some URNs and none matched so don't forward.            \
+	 * We had some URNs and none matched but forward if more than     \
+	 * 2/3 of the words did, and we had at least 3 words, otherwise   \
+	 * all the words must have matched.                               \
 	 */                                                               \
-	return FALSE;                                                     \
+	return 0 == word ? FALSE :                                        \
+		word < 3 ? hit == word : 3 * hit / word >= 2;				  \
 }
 
-/* Create eight QRT lookup routines (with a URN) with fixed shift
- * factors. */
+/* Create eight QRT lookup routines (with a URN) with fixed shift factors. */
 CAN_ROUTE_URN(14)
 CAN_ROUTE_URN(15)
 CAN_ROUTE_URN(16)
@@ -4094,18 +4604,46 @@ qrt_handle_patch(
 
 		switch (qrcv->entry_bits) {
 		case 8:
-			if (qrcv->shrink_factor == 1)
+			if (1 == qrcv->shrink_factor)
 				qrcv->patch = qrt_apply_patch8;
 			break;
 		case 4:
-			if (qrcv->shrink_factor == 1)
+			if (1 == qrcv->shrink_factor)
 				qrcv->patch = qrt_apply_patch4;
 			break;
 		case 2:
 			/* Use default handler. */
 			break;
 		case 1:	
-			/* Use default handler. */
+			/*
+			 * G2 defined the ordering of bits in the 1-bit QRP as being
+			 * "little-endian" (i.e. the bit #0 in the logical QRP is actually
+			 * the low-order bit of the first byte), whereas in Gnutella, the
+			 * QRP is ordered in a "big-endian" way (i.e. the bit #0 in the
+			 * logical QRP is actually the high-order bit of the first byte).
+			 * This is consistent with the 4-bit patch, where the first nybble
+			 * is given in the high nybble of the first byte, i.e. in bits 7-4.
+			 *
+			 * This means we need to reverse each byte of the patch when
+			 * receiving a 1-bit patch from a G2 node.  Note that this only
+			 * happens when GTKG runs as a Hub, which is not going to be
+			 * implemented at first.
+			 *		--RAM, 2014-01-03
+			 */
+			if (NODE_TALKS_G2(n)) {
+				if (1 == qrcv->shrink_factor) {
+					qrcv->patch = qrt_apply_reversed_patch1;
+				} else {
+					g_warning("%s sent QRP 1-bit PATCH with shrink factor %u",
+						node_infostr(n), qrcv->shrink_factor);
+					node_bye_if_writable(n, 413,
+						"Invalid shrink factor %u for PATCH (QRT too large)",
+						qrcv->shrink_factor);
+					return FALSE;
+				}
+			} else if (1 == qrcv->shrink_factor) {
+				qrcv->patch = qrt_apply_patch1;
+			}
 			break;
 		default:
 			g_warning("%s sent invalid QRP entry bits %u for PATCH",
@@ -4455,8 +4993,7 @@ qrp_close(void)
 	if (routing_table)
 		qrt_unref(routing_table);
 
-	if (routing_patch)
-		qrt_patch_unref(routing_patch);
+	qrt_patches_clear();
 
 	if (local_table)
 		qrt_unref(local_table);
@@ -4670,7 +5207,7 @@ qhvec_add(query_hashvec_t *qhvec, const char *word, enum query_hsrc src)
  * @param qhv			the query hit vector containing QRP hashes and types
  * @param rt			the routing table of the target node
  *
- * @note thie routine expects the query hash vector to be sorted with
+ * @note this routine expects the query hash vector to be sorted with
  * URNs coming first and words later.  This is a default
  * implementation.  The macros CAN_ROUTE and CAN_ROUTE_URN expand into
  * routines that perform the same tests with pre-computed shifts.
@@ -4681,7 +5218,7 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 	const struct query_hash *qh;
 	const uint8 *arena;
 	uint i, shift;
-	bool has_urn;
+	uint hit = 0, word = 0;
 
 	/*
 	 * This routine is a hot spot when running as an ultra node.
@@ -4689,7 +5226,6 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 	 */
 
 	arena = rt->arena;
-	has_urn = qhv->has_urn;
 	shift = 32 - rt->bits;
 	qh = qhv->vec;
 
@@ -4701,7 +5237,8 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 		/*
 		 * If there is an entry in the table and the source is an URN,
 		 * we have to forward the query, as those are OR-ed.
-		 * Otherwise, ALL the keywords must be present.
+		 * Otherwise, 2/3rd of the keywords must be present, if there
+		 * are at least 3 words.
 		 *
 		 * When facing a SHA1 query, we require that at least one of the
 		 * URN matches or we don't forward the query.
@@ -4710,22 +5247,26 @@ qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt
 		if (RT_SLOT_READ(arena, idx)) {
 			if (qh[i].source == QUERY_H_URN)	/* URN present */
 				return TRUE;					/* Will forward */
-			if (has_urn)						/* We passed all the URNs */
-				return FALSE;					/* And none matched */
+			word++;
+			hit++;
 		} else {
 			if (qh[i].source == QUERY_H_WORD) {	/* Word NOT present */
 				/* We know no URN matched already because qhv is sorted */
-				return FALSE;					/* All words did not match */
+				word++;
 			}
 		}
 	}
 
 	/*
-	 * If we had no URN, all the words matched, so route query!
-	 * If we had some URNs, none matched so don't forward.
+	 * If we had no URN, verify that 2/3rd of the words matched, or that
+	 * all matched if less than 3.
+	 * If we had some URNs, none matched so don't forward if there was no word.
 	 */
 
-	return !has_urn;
+	if (qhv->has_urn && 0 == word)
+		return FALSE;
+
+	return word < 3 ? hit == word : 3 * hit / word >= 2;
 }
 
 /**
@@ -4813,7 +5354,7 @@ qrt_build_query_target(
 	 * always get the query.
 	 */
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 		bool is_leaf;

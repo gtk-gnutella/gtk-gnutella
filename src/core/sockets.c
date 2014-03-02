@@ -1769,7 +1769,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Likewise for PARQ download resuming.
 	 */
 
-	if (is_strprefix(first, "GIV ")) {
+	if (is_strprefix(first, "GIV ") || is_strprefix(first, "PUSH ")) {
+		/* GIV is Gnutella's answer, "PUSH" is G2's answer */
 		download_push_ack(s);
 		return;
 	}
@@ -1884,7 +1885,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 	if (is_strprefix(first, GNUTELLA_HELLO)) {
 		/* Incoming control connection */
-		node_add_socket(s, s->addr, s->port, 0);
+		node_add_socket(s);
 	} else if (
 		NULL != (endptr = is_strprefix(first, "GET ")) ||
 		NULL != (endptr = is_strprefix(first, "HEAD "))

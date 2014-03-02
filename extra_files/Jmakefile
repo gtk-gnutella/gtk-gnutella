@@ -34,6 +34,7 @@ EXTRA_FILES = \
 	favicon.png \
 	geo-ip.txt \
 	geo-ipv6.txt \
+	gwcache.boot \
 	hostiles.txt \
 	robots.txt \
 	spam.txt \

@@ -45,6 +45,13 @@ typedef void (*qhit_process_t)(void *data, size_t len, void *udata);
 #define QHIT_F_IPV6			(1U << 1)	/**< Host accepts IPv6 addresses */
 #define QHIT_F_IPV6_ONLY	(1U << 2)	/**< Host only wants IPv6 addresses */
 
+/**
+ * Query hit generation flags for G2 queries.
+ */
+#define QHIT_F_G2_URL		(1U << 31)	/**< Wants URL (stating we share it) */
+#define QHIT_F_G2_DN		(1U << 30)	/**< Wants DN (distinguished name) */
+#define QHIT_F_G2_ALT		(1U << 29)	/**< Wants ALT (alt-locs) */
+
 /*
  * Public interface.
  */

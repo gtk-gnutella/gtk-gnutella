@@ -673,14 +673,26 @@ done:
 	return sf;
 }
 
+/**
+ * Apply query string to the library.
+ *
+ * @param query			the query string to apply
+ * @param callback		routine to call on each hit
+ * @param user_data		opaque context passed to callback
+ * @param max_res		maximum number of results
+ * @param flags			operating flags (SHARE_FM_* flags)
+ * @param qhv			query hash vector, filled with query words if not NULL
+ */
 void
 shared_files_match(const char *query,
 	st_search_callback callback, void *user_data,
-	int max_res, bool partials, query_hashvec_t *qhv)
+	int max_res, uint32 flags, query_hashvec_t *qhv)
 {
 	int n;
 	int remain;
 	search_table_t *gt, *pt;
+	bool partials = booleanize(flags & SHARE_FM_PARTIALS);
+	bool g2_query = booleanize(flags & SHARE_FM_G2);
 
 	/*
 	 * Take snapshots of the global search and partial tables, in case
@@ -698,7 +710,8 @@ shared_files_match(const char *query,
 
 	n = st_search(gt, query, callback, user_data, max_res, qhv);
 
-	gnet_stats_count_general(GNR_LOCAL_HITS, n);
+
+	gnet_stats_count_general(g2_query ? GNR_LOCAL_G2_HITS : GNR_LOCAL_HITS, n);
 	remain = max_res - n;
 
 	/*
@@ -712,7 +725,8 @@ shared_files_match(const char *query,
 
 	if (partials && remain > 0 && share_can_answer_partials()) {
 		n = st_search(pt, query, callback, user_data, remain, NULL);
-		gnet_stats_count_general(GNR_LOCAL_PARTIAL_HITS, n);
+		gnet_stats_count_general(
+			g2_query ? GNR_LOCAL_G2_PARTIAL_HITS : GNR_LOCAL_PARTIAL_HITS, n);
 	}
 
 	st_free(&gt);
@@ -3659,10 +3673,19 @@ shared_file_by_sha1(const struct sha1 *sha1)
  * Entries filled in the sfvec[] array are ref-counted and the caller is
  * responsible for calling shared_file_unref() on each entry after using it.
  *
+ * @param sfvec			the vector to fill in
+ * @param sfcount		the size of the vector
+ * @param media_mask	media-type filtering to apply
+ * @param size_restrict	whether to apply filesize restrictions
+ * @param minsize		if applicable, the minimal size
+ * @param maxsize		if applicable, the maximum size
+ *
  * @return the amount of entries filled in the vector.
  */
 size_t
-share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned media_mask)
+share_fill_newest(shared_file_t **sfvec, size_t sfcount,
+	unsigned media_mask,
+	bool size_restrict, filesize_t minsize, filesize_t maxsize)
 {
 	int i;
 	size_t j;
@@ -3696,6 +3719,12 @@ share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned media_mask)
 
 			if (media_mask != 0 && !shared_file_has_media_type(sf, media_mask))
 				continue;
+
+			if (size_restrict) {
+				filesize_t size = shared_file_size(sf);
+				if (size < minsize || size > maxsize)
+					continue;
+			}
 
 			sfvec[j++] = shared_file_ref(sf);
 		}

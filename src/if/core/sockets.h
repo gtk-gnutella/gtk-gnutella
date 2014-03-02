@@ -74,6 +74,7 @@ enum {
 	SOCK_F_SINGLE		= (1UL << 10), /**< Read one single datagram */
 	SOCK_F_CONNRESET	= (1UL << 11), /**< Got a connection reset event */
 	SOCK_F_OLD			= (1UL << 12), /**< Processing an "old" UDP datagram */
+	SOCK_F_G2			= (1UL << 13), /**< Targeting a G2 node */
 	SOCK_F_LOCAL		= (1UL << 28), /**< Is a local socket */
 	SOCK_F_UDP			= (1UL << 29), /**< Is a UDP socket */
 	SOCK_F_TCP			= (1UL << 30)  /**< Is a TCP socket */

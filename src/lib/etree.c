@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -61,7 +61,7 @@
  * performance given the memory trade-offs we're taking.
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012, 2014
  */
 
 #include "common.h"
@@ -431,6 +431,40 @@ etree_prepend_child(etree_t *tree, void *parent, void *child)
 	}
 
 	tree->count = 0;		/* Tree count is now unknown */
+}
+
+/**
+ * Reverse the order of children in a given node.
+ */
+void
+etree_reverse_children(etree_t *tree, void *node)
+{
+	node_t *cn, *n, *prev;
+
+	etree_check(tree);
+	g_assert(node != NULL);
+
+	n = ptr_add_offset(node, tree->offset);
+
+	/*
+	 * This is a classic one-way list reversal alogrithm, with the head
+	 * of the list being n->child and each item being linked via ``sibling''.
+	 */
+
+	for (cn = n->child, prev = NULL; cn != NULL; /* empty */) {
+		node_t *next = cn->sibling;
+
+		cn->sibling = prev;
+		prev = cn;
+		cn = next;
+	}
+
+	if (etree_is_extended(tree)) {
+		nodex_t *nx = (nodex_t *) n;
+		nx->last_child = n->child;		/* Last child is the previous head */
+	}
+
+	n->child = prev;		/* New head of list */
 }
 
 /**

@@ -35,6 +35,8 @@
 
 #include "pcache.h"
 
+#include "gtk-gnutella.h"		/* For GTA_VENDOR_CODE */
+
 #include "alive.h"
 #include "extensions.h"
 #include "ggep.h"
@@ -1200,7 +1202,7 @@ pcache_init(void)
 	 */
 
 	local_meta.flags = PONG_META_HAS_VC | PONG_META_HAS_DU;
-	memcpy(local_meta.vendor, "GTKG", 4);
+	memcpy(local_meta.vendor, GTA_VENDOR_CODE, 4);
 	local_meta.version_ua = version_get_code();
 	local_meta.version_up = 0x2;	/* X-Query-Routing: 0.2 */
 
@@ -1921,7 +1923,7 @@ pong_all_neighbours_but_one(
 {
 	const pslist_t *sl;
 
-	PSLIST_FOREACH(node_all_nodes(), sl) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		struct gnutella_node *cn = sl->data;
 
 		if (cn == n)
@@ -1985,7 +1987,7 @@ pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 
 	g_assert(settings_is_ultra());
 
-	for (sl = node_all_nodes(), leaves = 0; sl; sl = pslist_next(sl)) {
+	for (sl = node_all_gnet_nodes(), leaves = 0; sl; sl = pslist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */

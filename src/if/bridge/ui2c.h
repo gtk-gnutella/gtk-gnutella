@@ -180,6 +180,7 @@ void guc_node_remove_node_info_changed_listener(node_info_changed_listener_t);
 void guc_node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 
 void guc_node_add(const host_addr_t addr, uint16 port, uint32 flags);
+void guc_node_g2_add(const host_addr_t addr, uint16 port, uint32 flags);
 void guc_node_remove_by_id(const struct nid *);
 void guc_node_remove_nodes_by_id(const GSList *node_list);
 bool guc_node_get_status(const struct nid *, gnet_node_status_t *);

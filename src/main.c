@@ -44,8 +44,8 @@
 #include "core/bitzi.h"
 #include "core/bogons.h"
 #include "core/bsched.h"
-#include "core/ctl.h"
 #include "core/clock.h"
+#include "core/ctl.h"
 #include "core/dh.h"
 #include "core/dmesh.h"
 #include "core/downloads.h"
@@ -54,8 +54,12 @@
 #include "core/extensions.h"
 #include "core/features.h"
 #include "core/fileinfo.h"
+#include "core/g2/build.h"
+#include "core/g2/gwc.h"
+#include "core/g2/node.h"
+#include "core/g2/rpc.h"
+#include "core/g2/tree.h"
 #include "core/gdht.h"
-#include "core/pdht.h"
 #include "core/geo_ip.h"
 #include "core/ghc.h"
 #include "core/gmsg.h"
@@ -78,6 +82,7 @@
 #include "core/oob.h"
 #include "core/parq.h"
 #include "core/pcache.h"
+#include "core/pdht.h"
 #include "core/pproxy.h"
 #include "core/publisher.h"
 #include "core/routing.h"
@@ -539,6 +544,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(http_close);
 	DO(uhc_close);
 	DO(ghc_close);
+	DO(gwc_close);
 	DO(move_close);
 	DO(publisher_close);
 	DO(pdht_close);
@@ -705,9 +711,11 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_info_close);
 	DO(ext_close);
 	DO(node_close);
+	DO(g2_node_close);
 	DO(share_close);	/* After node_close() */
 	DO(udp_close);
 	DO(urpc_close);
+	DO(g2_rpc_close);
 	DO(routing_close);	/* After node_close() */
 	DO(bsched_close);
 	DO(dmesh_close);
@@ -732,6 +740,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(pattern_close);
 	DO(pmsg_close);
 	DO(gmsg_close);
+	DO(g2_build_close);
 	DO(version_close);
 	DO(ignore_close);
 	DO(iso3166_close);
@@ -1238,6 +1247,7 @@ slow_main_timer(time_t now)
 		break;
 	case 1:
 		dmesh_ban_store();
+		gwc_store_if_dirty();
 		break;
 	case 2:
 		upload_stats_flush_if_dirty();
@@ -1961,6 +1971,7 @@ main(int argc, char **argv)
 	upnp_init();
 	udp_init();
 	urpc_init();
+	g2_rpc_init();
 	vmsg_init();
 	tsync_init();
 	watcher_init();
@@ -1998,6 +2009,7 @@ main(int argc, char **argv)
 	guid_init();
 	uhc_init();
 	ghc_init();
+	gwc_init();
 	verify_sha1_init();
 	verify_tth_init();
 	move_init();
@@ -2011,6 +2023,7 @@ main(int argc, char **argv)
 	bsched_init();
 	dump_init();
 	node_init();
+	g2_node_init();
     hcache_retrieve_all();	/* after settings_init() and node_init() */
 	routing_init();
 	search_init();
@@ -2076,6 +2089,7 @@ main(int argc, char **argv)
 	dht_attempt_bootstrap();
 	http_test();
 	vxml_test();
+	g2_tree_test();
 
 	if (running_topless) {
 		topless_main_run();

@@ -371,6 +371,7 @@ enum {
  * on the remote size, in case the file is partial.
  */
 #define download_is_partial(d)	(0 != ((d)->flags & DL_F_PARTIAL))
+#define download_is_g2(d)		((d)->server->attrs & DLS_A_G2_ONLY)
 #define download_ranges(d)		((d)->ranges)
 #define download_ranges_size(d)	((d)->ranges_size)
 

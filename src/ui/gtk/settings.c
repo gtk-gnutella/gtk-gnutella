@@ -1294,6 +1294,28 @@ hosts_in_ultra_catcher_changed(property_t unused_prop)
 }
 
 static gboolean
+hosts_in_g2hub_catcher_changed(property_t unused_prop)
+{
+    guint32 hosts;
+    guint32 max_hosts;
+
+	(void) unused_prop;
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_G2HUB_CATCHER, &hosts);
+    gnet_prop_get_guint32_val(PROP_MAX_G2HUB_HOSTS_CACHED, &max_hosts);
+
+    gtk_widget_set_sensitive(
+        gui_main_window_lookup("button_g2hub_catcher_clear"),
+        hosts != 0);
+
+    set_host_progress(
+        "progressbar_hosts_in_g2hub_catcher",
+        hosts,
+        max_hosts);
+
+    return FALSE;
+}
+
+static gboolean
 hosts_in_bad_catcher_changed(property_t unused_prop)
 {
     guint32 hosts;
@@ -1374,7 +1396,10 @@ hostcache_size_changed(property_t prop)
     case PROP_MAX_BAD_HOSTS_CACHED:
         hosts_in_bad_catcher_changed(PROP_HOSTS_IN_BAD_CATCHER);
         break;
-    default:
+	case PROP_MAX_G2HUB_HOSTS_CACHED:
+		hosts_in_g2hub_catcher_changed(PROP_HOSTS_IN_G2HUB_CATCHER);
+		break;
+	default:
         g_error("hostcache_size_changed: unknown hostcache property %d", prop);
     }
 
@@ -2645,13 +2670,8 @@ gnet_connections_changed(property_t unused_prop)
 {
     GtkProgressBar *pg;
 	gchar buf[128];
-    guint32 leaf_count;
-    guint32 normal_count;
-    guint32 ultra_count;
-    guint32 max_connections;
-    guint32 max_leaves;
-    guint32 max_normal;
-    guint32 max_ultrapeers;
+    guint32 leaf_count, normal_count, ultra_count, g2_count;
+    guint32 max_connections, max_leaves, max_normal, max_ultrapeers, max_g2;
     guint32 cnodes;
     guint32 nodes = 0;
     guint32 peermode;
@@ -2662,30 +2682,33 @@ gnet_connections_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_NODE_LEAF_COUNT, &leaf_count);
     gnet_prop_get_guint32_val(PROP_NODE_NORMAL_COUNT, &normal_count);
     gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra_count);
+    gnet_prop_get_guint32_val(PROP_NODE_G2_COUNT, &g2_count);
     gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
     gnet_prop_get_guint32_val(PROP_MAX_LEAVES, &max_leaves);
     gnet_prop_get_guint32_val(PROP_MAX_ULTRAPEERS, &max_ultrapeers);
+    gnet_prop_get_guint32_val(PROP_MAX_G2_HUBS, &max_g2);
     gnet_prop_get_guint32_val(PROP_NORMAL_CONNECTIONS, &max_normal);
     gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
-    cnodes = leaf_count + normal_count + ultra_count;
+    cnodes = leaf_count + normal_count + ultra_count + g2_count;
 
     switch (peermode) {
     case NODE_P_LEAF: /* leaf */
     case NODE_P_NORMAL: /* normal */
-        nodes = (peermode == NODE_P_NORMAL) ?
-            max_connections : max_ultrapeers;
+        nodes = g2_count + ((peermode == NODE_P_NORMAL) ?
+            max_connections : max_ultrapeers);
 		str_bprintf(buf, sizeof buf,
-			NG_("%u/%u connection", "%u/%u connections", cnodes),
-			cnodes, nodes);
+            "%u/%uU | %u/%uH",
+			ultra_count, max_ultrapeers,
+			g2_count, max_g2);
         break;
     case NODE_P_ULTRA: /* ultra */
-        nodes = max_connections + max_leaves + max_normal;
+        nodes = max_connections + max_leaves + max_normal + max_g2;
         str_bprintf(buf, sizeof buf,
-            "%u/%uU |%u/%uN | %u/%uL",
+            "%u/%uU | %u/%uH | %u/%uL",
             ultra_count,
 			max_connections < max_normal ? 0 : max_connections - max_normal,
-            normal_count, max_normal,
+            g2_count, max_g2,
             leaf_count, max_leaves);
         break;
     default:
@@ -3237,6 +3260,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_MAX_G2_HUBS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_max_g2_hubs",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_QUICK_CONNECT_POOL_SIZE,
         update_spinbutton,
         TRUE,
@@ -3262,6 +3293,14 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         gui_main_window,
         PROP_NODE_ULTRA_COUNT,
+        gnet_connections_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_NODE_G2_COUNT,
         gnet_connections_changed,
         TRUE,
         NULL,
@@ -5096,6 +5135,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_HOSTS_IN_G2HUB_CATCHER,
+        hosts_in_g2hub_catcher_changed,
+        TRUE,
+        "progressbar_hosts_in_g2hub_catcher",
+        FREQ_SECS, 5
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_READING_HOSTFILE,
         reading_hostfile_changed,
         TRUE,
@@ -5124,6 +5171,14 @@ static prop_map_t property_map[] = {
         hostcache_size_changed,
         TRUE,
         "spinbutton_max_ultra_hosts_cached",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_MAX_G2HUB_HOSTS_CACHED,
+        hostcache_size_changed,
+        TRUE,
+        "spinbutton_max_g2hub_hosts_cached",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -5568,6 +5623,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_G2_BROWSE_COUNT,
+        update_label,
+        TRUE,
+        "label_g2_browse_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_HTML_BROWSE_COUNT,
         update_label,
         TRUE,
@@ -5580,6 +5643,14 @@ static prop_map_t property_map[] = {
         update_label,
         TRUE,
         "label_qhits_browse_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_G2_BROWSE_SERVED,
+        update_label,
+        TRUE,
+        "label_g2_browse_served",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -5699,6 +5770,14 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_proxy_oob_queries",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_ENABLE_G2,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_g2",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

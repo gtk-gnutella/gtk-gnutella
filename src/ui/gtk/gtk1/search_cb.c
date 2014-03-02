@@ -59,6 +59,7 @@
 #include "lib/halloc.h"
 #include "lib/misc.h"			/* Fox xml_indent() */
 #include "lib/utf8.h"
+#include "lib/vendors.h"		/* For T_GTKG */
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -336,6 +337,7 @@ search_gui_browse_selected(void)
 		rs = rc->results_set;
 		flags |= 0 != (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 		flags |= 0 != (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+		flags |= ((rs->status & ST_G2) && T_GTKG != rs->vendor) SOCK_F_G2 : 0;
 
 		(void) search_gui_new_browse_host(
 				rs->hostname, rs->addr, rs->port,

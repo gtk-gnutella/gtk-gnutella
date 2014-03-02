@@ -72,6 +72,8 @@
 #include "gnet_stats.h"
 #include "ctl.h"
 
+#include "g2/tree.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -971,12 +973,14 @@ upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops, uint8 ttl,
 	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD, flags);
 	if (!s) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(
-			"PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
-			hops, ttl, host_addr_port_to_string(addr, port));
+			"PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s%s",
+			hops, ttl, (flags & SOCK_F_G2) ? "G2 " : "",
+			host_addr_port_to_string(addr, port));
 		return;
 	}
 
 	u = upload_create(s, TRUE);
+	u->g2 = booleanize(flags & SOCK_F_G2);
 	u->file_index = file_index;
 	u->name = atom_str_get(file_name);
 
@@ -986,13 +990,16 @@ upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops, uint8 ttl,
 }
 
 /**
- * Called when we receive a Push request on Gnet.
+ * Called when we receive a Push request on Gnet or a /PUSH on G2.
+ *
+ * @param n		the receiving node
+ * @param t		for G2, the parsed message tree
  *
  * If it is not for us, discard it.
  * If we are the target, then connect back to the remote servent.
  */
 void
-handle_push_request(struct gnutella_node *n)
+handle_push_request(struct gnutella_node *n, const g2_tree_t *t)
 {
 	host_addr_t ha;
 	uint32 file_index, flags = 0;
@@ -1001,33 +1008,101 @@ handle_push_request(struct gnutella_node *n)
 	const char *file_name = "<invalid file index>";
 	int push_count;
 
-	/* Servent ID matches our GUID? */
-	if (!guid_eq(n->data, GNET_PROPERTY(servent_guid)))
-		return;								/* No: not for us */
+	if (NODE_TALKS_G2(n)) {
+		const char *payload;
+		size_t plen;
 
-	/*
-	 * We are the target of the push.
-	 */
+		/*
+		 * On G2, there is no Gnutella header, so zero it to make sure we
+		 * can safely reuse the code below which is shared with Gnutella
+		 * processing.
+		 */
 
-	if (NODE_IS_UDP(n) && ctl_limit(n->addr, CTL_D_UDP | CTL_D_INCOMING)) {
-		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
-		return;
+		ZERO(&n->header);
+
+		/*
+		 * Extract remote host information.
+		 */
+
+		payload = g2_tree_node_payload(t, &plen);
+
+		if (NULL == payload || plen < 6)
+			return;		/* Invalid /PUSH message */
+
+		file_index = 0;
+
+		if (plen >= 18) {
+			ha = host_addr_peek_ipv6(&payload[0]);
+			port = peek_le16(&payload[16]);
+		} else {
+			ha = host_addr_peek_ipv4(&payload[0]);
+			port = peek_le16(&payload[4]);
+		}
+
+		/*
+		 * Verify the packet was indeed targeted to us:
+		 *
+		 * If it has a /?/TO child, it must bear our GUID.
+		 * Otherwise if it comes from UDP, it must have a matching address
+		 * to connect back to.
+		 */
+
+		payload = g2_tree_payload(t, "TO", &plen);
+
+		if (NULL == payload || plen < GUID_RAW_SIZE) {
+			if (!NODE_IS_UDP(n))
+				return;				/* No GUID, coming from TCP */
+			if (!host_addr_equal(n->addr, ha))
+				return;				/* Mismatching remote address */
+		} else {
+			if (!guid_eq(payload, GNET_PROPERTY(servent_guid)))
+				return;				/* Mismatching GUID */
+		}
+
+		/*
+		 * Setup G2 flags and see whether they support TLS connections.
+		 */
+
+		flags = SOCK_F_G2;
+
+		if (NULL != g2_tree_lookup(t, "TLS"))
+			flags |= SOCK_F_TLS;
+	} else {
+		/* Servent ID matches our GUID? */
+		if (!guid_eq(n->data, GNET_PROPERTY(servent_guid)))
+			return;								/* No: not for us */
+
+		/*
+		 * We are the target of the push.
+		 */
+
+		if (NODE_IS_UDP(n) && ctl_limit(n->addr, CTL_D_UDP | CTL_D_INCOMING)) {
+			gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
+			return;
+		}
+
+		/*
+		 * Decode the message.
+		 */
+
+		info = &n->data[GUID_RAW_SIZE];			/* Start of file information */
+
+		file_index = peek_le32(&info[0]);
+		ha = host_addr_peek_ipv4(&info[4]);
+		port = peek_le16(&info[8]);
 	}
-
-	/*
-	 * Decode the message.
-	 */
-
-	info = &n->data[GUID_RAW_SIZE];			/* Start of file information */
-
-	file_index = peek_le32(&info[0]);
-	ha = host_addr_peek_ipv4(&info[4]);
-	port = peek_le16(&info[8]);
 
 	if (ctl_limit(ha, CTL_D_INCOMING)) {
 		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
 		return;
 	}
+
+	if (NODE_TALKS_G2(n))
+		goto connect_to_host;
+
+	/*
+	 * Gnutella message, parse GGEP extensions if any.
+	 */
 
 	if (n->size > sizeof(gnutella_push_request_t)) {
 		extvec_t exv[MAX_EXTVEC];
@@ -1127,6 +1202,8 @@ handle_push_request(struct gnutella_node *n)
 		shared_file_unref(&req_file);
 	}
 
+connect_to_host:
+
 	/*
 	 * XXX might be run inside corporations (private IPs), must be smarter.
 	 * XXX maybe a configuration variable? --RAM, 31/12/2001
@@ -1156,9 +1233,10 @@ handle_push_request(struct gnutella_node *n)
 
 	if (push_count >= PUSH_REPLY_MAX) {
 		if (GNET_PROPERTY(upload_debug)) {
-			g_warning("PUSH (hops=%d, ttl=%d) throttling callback to %s: %s",
+			g_warning("PUSH (hops=%d, ttl=%d) throttling callback to %s%s: %s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
+				NODE_TALKS_G2(n) ? "G2 " : "",
 				host_addr_port_to_string(ha, port), file_name);
 		}
 		return;
@@ -1172,9 +1250,10 @@ handle_push_request(struct gnutella_node *n)
 	 */
 
 	if (GNET_PROPERTY(upload_debug) > 3)
-		g_debug("PUSH (hops=%d, ttl=%d) to %s: %s",
+		g_debug("PUSH (hops=%d, ttl=%d) to %s%s: %s",
 			gnutella_header_get_hops(&n->header),
 			gnutella_header_get_ttl(&n->header),
+			NODE_TALKS_G2(n) ? "G2 " : "",
 			host_addr_port_to_string(ha, port),
 			file_name);
 
@@ -2777,6 +2856,7 @@ upload_connect_conf(struct upload *u)
 	struct gnutella_socket *s;
 	size_t rw;
 	ssize_t sent;
+	const guid_t *guid;
 
 	upload_check(u);
 
@@ -2793,19 +2873,25 @@ upload_connect_conf(struct upload *u)
 	g_assert(u->name);
 
 	/*
-	 * Send the GIV string, using our servent GUID.
+	 * Send the GIV or PUSH string, using our servent GUID.
 	 */
 
-	rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
-			(ulong) u->file_index,
-			guid_hex_str(cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid))));
+	guid = cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid));
+
+	if (u->g2) {
+		rw = str_bprintf(giv, sizeof giv, "PUSH guid:%s\r\n\r\n",
+				guid_hex_str(guid));
+	} else {
+		rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+				(ulong) u->file_index, guid_hex_str(guid));
+	}
 
 	s = u->socket;
 	sent = bws_write(bsched_out_select_by_addr(s->addr), &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
 		if (GNET_PROPERTY(upload_debug) > 1) g_warning(
-			"unable to send back GIV for \"%s\" to %s: %s",
-			u->name, host_addr_to_string(s->addr), g_strerror(errno));
+			"unable to send back GIV for \"%s\" to %s: %m",
+			u->name, host_addr_to_string(s->addr));
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(
 			"only sent %zu out of %zu bytes of GIV for \"%s\" to %s",
@@ -4654,6 +4740,8 @@ upload_request_special(struct upload *u, const header_t *header)
 		if (buf) {
 			if (strtok_case_has(buf, ",", "application/x-gnutella-packets")) {
 				flags |= BH_F_QHITS;
+			} else if (strtok_case_has(buf, ",", "application/x-gnutella2")) {
+				flags |= BH_F_QHITS | BH_F_G2;
 			} else if (
 				strtok_has(buf, ",;", "*/*") ||
 				strtok_case_has(buf, ",;", "text/html") ||
@@ -4675,6 +4763,8 @@ upload_request_special(struct upload *u, const header_t *header)
 					"Content-Type: text/html; charset=utf-8\r\n");
 		} else {
 			upload_http_extra_line_add(u,
+				(flags & BH_F_G2) ?
+					"Content-Type: application/x-gnutella2\r\n" :
 					"Content-Type: application/x-gnutella-packets\r\n");
 		}
 
@@ -4695,7 +4785,8 @@ upload_request_special(struct upload *u, const header_t *header)
 		}
 
 		str_bprintf(name, sizeof name,
-				_("<Browse Host Request> [%s%s%s]"),
+				_("<Browse Host %sRequest> [%s%s%s]"),
+				(flags & BH_F_G2) ? "G2 " : "",
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
 				(flags & BH_F_DEFLATE) ? _(", deflate") :
 				(flags & BH_F_GZIP) ? _(", gzip") : "",

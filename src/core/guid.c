@@ -638,6 +638,16 @@ guid_is_banned(const struct guid *guid)
 }
 
 /**
+ * Free GUID atom -- aging table callback version.
+ */
+void
+guid_free_atom2(void *guid, void *unused)
+{
+	(void) unused;
+	atom_guid_free(guid);
+}
+
+/**
  * Get banned GUID data from database, returning NULL if not found.
  */
 static struct guiddata *

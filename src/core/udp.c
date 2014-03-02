@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Handling UDP datagrams.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2012, 2014
  */
 
 #include "common.h"
@@ -938,9 +938,7 @@ udp_received(const gnutella_socket_t *s,
 	const void *data, size_t len, bool truncated)
 {
 	gnutella_node_t *n;
-	bool bogus = FALSE;
-	bool dht = FALSE;
-	bool rudp = FALSE;
+	bool bogus = FALSE, dht = FALSE, rudp = FALSE, g2 = FALSE;
 
 	/*
 	 * This must be regular Gnutella / DHT traffic.
@@ -981,7 +979,11 @@ udp_received(const gnutella_socket_t *s,
 		case UNKNOWN:
 			goto unknown;
 		case SEMI_RELIABLE_GTA:
+			break;
 		case SEMI_RELIABLE_GND:
+			if (!node_g2_active())
+				return;		/* Blackout, ignore datagram if G2 was disabled */
+			g2 = TRUE;
 			break;
 		}
 
@@ -1040,6 +1042,8 @@ rudp:
 	 * the case for TCP-based sockets.
 	 *		--RAM, 2012-11-02.
 	 */
+
+	g_assert(!g2);	/* All G2 UDP traffic comes via the semi-reliable layer */
 
 	/*
 	 * If we get traffic from a bogus IP (unroutable), warn, for now.

@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+#include "gtk-gnutella.h"		/* For GTA_VENDOR_CODE */
+
 #include "clock.h"
 #include "dmesh.h"
 #include "dq.h"
@@ -587,6 +589,10 @@ handle_features_supported(struct gnutella_node *n,
 
 		if (0 != version && 0 == strcmp(feature, "WHAT")) {
 			node_supports_whats_new(n);
+		}
+
+		if (0 != version && 0 == strcmp(feature, "QRP1")) {
+			node_supports_qrp_1bit_patches(n);
 		}
 
 		/* Any of ADHT, PDHT or LDHT means DHT is supported */
@@ -2171,7 +2177,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), &queue, sizeof queue, 0))
 			goto failure;
 
-		if (!ggep_stream_pack(&gs, GGEP_NAME(V), "GTKG", 4, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(V), GTA_VENDOR_CODE, 4, 0))
 			goto failure;
 
 		caps = tls_enabled() ? VMSG_HEAD_F_TLS : 0;
@@ -3449,6 +3455,7 @@ vmsg_send_features_supported(struct gnutella_node *n)
 
 	vmsg_features_add(&vmf, "HSEP", 1);
 	vmsg_features_add(&vmf, "WHAT", 1);
+	vmsg_features_add(&vmf, "QRP1", 1);		/* 1-bit QRP patches */
 	/* No support for NAT-to-NAT -- signal version as -1, not 0 */
 	vmsg_features_add(&vmf, "F2FT", (uint16) -1);
 	/* TCP-incoming connections: are possible if not firewalled */

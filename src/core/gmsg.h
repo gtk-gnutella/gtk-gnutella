@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Gnutella Messages.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #ifndef _core_gmsg_h_
@@ -133,7 +133,8 @@ void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 bool gmsg_can_drop(const void *pdu, int size);
 bool gmsg_is_oob_query(const void *msg);
 bool gmsg_split_is_oob_query(const void *head, const void *data);
-int gmsg_cmp(const void *pdu1, const void *pdu2, bool pdu2_complete);
+int gmsg_cmp(const void *pdu1, const void *pdu2);
+int gmsg_headcmp(const void *pdu1, const void *pdu2);
 const char *gmsg_infostr(const void *msg);
 const char *gmsg_node_infostr(const struct gnutella_node *n);
 char *gmsg_infostr_full(const void *msg, size_t msg_len);
@@ -142,18 +143,21 @@ char *gmsg_infostr_full_split(const void *head,
 size_t gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 	size_t data_len, char *buf, size_t buf_size);
 
+iovec_t *gmsg_mq_templates(bool initial, size_t *vcnt);
+
 void gmsg_install_presend(pmsg_t *mb);
 
 void gmsg_log_bad(const struct gnutella_node *n,
 	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_dropped_pmsg(const pmsg_t *msg,
 	const char *reason, ...) G_GNUC_PRINTF(2, 3);
+void gmsg_log_dropped(const struct gnutella_node *n,
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_split_dropped(
 	const void *head, const void *data, size_t data_len,
 	const char *reason, ...) G_GNUC_PRINTF(4, 5);
-void gmsg_log_split_duplicate(
-	const void *head, const void *data, size_t data_len,
-	const char *reason, ...) G_GNUC_PRINTF(4, 5);
+void gmsg_log_duplicate(const struct gnutella_node *n,
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 
 void gmsg_search_sendto_one(struct gnutella_node *n, gnet_search_t sh,
 	const void *msg, uint32 size);

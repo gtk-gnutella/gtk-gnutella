@@ -1273,9 +1273,21 @@ route_node_ttl_higher(struct gnutella_node *n, struct message *m, uint8 ttl)
 	struct route_data *route;
 
 	g_assert(n != fake_node);
+
+	/*
+	 * GTA_MSG_G2_SEARCH is a fake function used to process G2 queries.
+	 *
+	 * Since we run as a leaf node, and we fake the TTL, it does not make
+	 * sense to check whether this "duplicate" query comes with a higher TTL.
+	 * It's really a duplicate message.
+	 */
+
+	if (GTA_MSG_G2_SEARCH == m->function)
+		return FALSE;		/* As a G2 leaf, we do not care, it's a dup */
+
+	g_assert(m->ttls != NULL);
 	g_assert(
 		m->function == GTA_MSG_PUSH_REQUEST || m->function == GTA_MSG_SEARCH);
-	g_assert(m->ttls != NULL);
 
 	route = get_routing_data(n);
 
@@ -1423,6 +1435,7 @@ routing_init(void)
 		case GTA_MSG_HSEP_DATA:      s = "HSEP "; break;
 		case GTA_MSG_BYE:      		 s = "Bye  "; break;
 		case GTA_MSG_DHT:      		 s = "DHT  "; break;
+		case GTA_MSG_G2_SEARCH: 	 s = "Q2  "; break;
 		}
 		debug_msg[i] = s;
 	}
@@ -2088,8 +2101,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 		gnet_stats_inc_general(GNR_DUPS_WITH_HIGHER_TTL);
 
 		if (GNET_PROPERTY(log_dup_gnutella_higher_ttl)) {
-			gmsg_log_split_duplicate(&sender->header, sender->data,
-				sender->size,
+			gmsg_log_duplicate(sender,
 				"from %s: %shigher TTL (previous TTL was %u)",
 				node_infostr(sender), oob ? "OOB, " : "", m->ttl);
 		}
@@ -2125,8 +2137,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			routing_log_extra(route_log, "same node");
 
 			if (GNET_PROPERTY(log_dup_gnutella_higher_ttl)) {
-				gmsg_log_split_duplicate(&sender->header, sender->data,
-					sender->size,
+				gmsg_log_duplicate(sender,
 					"from %s: %ssame node, higher TTL (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "", sender->n_dups);
 			}
@@ -2134,8 +2145,8 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			routing_log_extra(route_log, "same node and no higher TTL");
 
 			if (GNET_PROPERTY(log_dup_gnutella_same_node)) {
-				gmsg_log_split_duplicate(&sender->header, sender->data,
-					sender->size, "from %s: %ssame node (dups=%u)",
+				gmsg_log_duplicate(sender,
+					"from %s: %ssame node (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "", sender->n_dups);
 			}
 		}
@@ -2172,16 +2183,14 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			*node = NULL;
 		} else {
 			if (GNET_PROPERTY(log_bad_gnutella))
-				gmsg_log_bad(sender, "dup message #%s from same node",
-				   guid_hex_str(gnutella_header_get_muid(&sender->header)));
+				gmsg_log_bad(sender, "dup message from same node");
 		}
 	} else {
 		if (m->routes == NULL) {
 			routing_log_extra(route_log, "all routes lost");
 
 			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
-				gmsg_log_split_duplicate(&sender->header, sender->data,
-					sender->size,
+				gmsg_log_duplicate(sender,
 					"from %s: %sother node, no route (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "", sender->n_dups);
 			}
@@ -2194,8 +2203,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 
 			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
 				unsigned count = pslist_length(m->routes);
-				gmsg_log_split_duplicate(&sender->header, sender->data,
-					sender->size,
+				gmsg_log_duplicate(sender,
 					"from %s: %sother node, %u route%s (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "",
 					count, plural(count), sender->n_dups);
@@ -2308,7 +2316,7 @@ route_push(struct route_log *route_log,
 
 	if (is_banned_push(guid)) {
 		if (GNET_PROPERTY(routing_debug) > 3) {
-			gmsg_log_split_dropped(&sender->header, sender->data, sender->size,
+			gmsg_log_dropped(sender,
 				"from %s, banned GUID %s",
 				node_addr(sender), guid_hex_str(guid));
 		}
@@ -2600,8 +2608,7 @@ route_query_hit(struct route_log *route_log,
 		sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
 		if (GNET_PROPERTY(log_bad_gnutella))
-			gmsg_log_bad(sender, "got reply without matching request #%s%s",
-				guid_hex_str(gnutella_header_get_muid(&sender->header)),
+			gmsg_log_bad(sender, "got reply without matching request%s",
 				is_oob_proxied ? " (OOB-proxied)" : "");
 
 		goto handle;
@@ -2837,6 +2844,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 	if (
 		GTA_MSG_SEARCH == function &&
+		!NODE_TALKS_G2(sender) &&
 		gmsg_split_is_oob_query(&sender->header, sender->data)
 	) {
 		mangled = route_mangled_oob_muid(muid);
@@ -2852,6 +2860,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	switch (function) {
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH:
+	case GTA_MSG_G2_SEARCH:
 	{
 		bool route_it = check_duplicate(&route_log, node, mangled, &m);
 
@@ -2905,6 +2914,9 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
 		handle_it = route_query_hit(&route_log, node, dest);
+		break;
+	case GTA_MSG_G2_SEARCH:
+		handle_it = TRUE;		/* We're a G2 leaf node */
 		break;
 	default:
 		/*

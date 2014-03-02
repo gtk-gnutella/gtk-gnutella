@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -19,6 +19,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Gnutella node management.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003, 2014
  */
 
 #ifndef _core_nodes_h_
@@ -196,8 +206,7 @@ typedef struct gnutella_node {
 	struct qrt_receive *qrt_receive;		/**< query routing reception */
 	qrt_info_t *qrt_info;		/**< Info about received query table */
 
-	void *alive_pings;			/**< Opaque info, for alive ping checks */
-	time_t last_alive_ping;		/**< Last time we sent an alive ping */
+	struct alive *alive_pings;	/**< For alive ping checks */
 	time_delta_t alive_period;	/**< Period for sending alive pings (secs) */
 
 	wrap_buf_t hello;			/**< Spill buffer for GNUTELLA HELLO */
@@ -357,6 +366,8 @@ enum {
  * Second attributes.
  */
 enum {
+	NODE_A2_TALKS_G2	= 1 << 7,	/**< Node talking with the G2 protocol */
+	NODE_A2_CAN_QRP1	= 1 << 6,	/**< Node supports QRP 1-bit patches  */
 	NODE_A2_NOT_GENUINE	= 1 << 5,	/**< Vendor cannot be genuine */
 	NODE_A2_CAN_TLS		= 1 << 4,	/**< Indicated support for TLS */
 	NODE_A2_TLS			= 1 << 3,	/**< TLS-tunneled */
@@ -470,6 +481,7 @@ enum {
 #define NODE_HAS_EMPTY_QRT(n)	((n)->flags & NODE_F_EMPTY_QRT)
 #define NODE_USES_DUP_GUID(n)	((n)->flags & NODE_F_DUP_GUID)
 #define NODE_IS_GENUINE(n)		(!((n)->attrs2 & NODE_A2_NOT_GENUINE))
+#define NODE_CAN_QRP1(n)		((n)->attrs2 & NODE_A2_CAN_QRP1)
 
 #define NODE_CAN_BYE(n)			((n)->attrs & NODE_A_BYE_PACKET)
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
@@ -482,6 +494,7 @@ enum {
 #define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
 #define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
 #define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
+#define NODE_TALKS_G2(n)		((n)->attrs2 & NODE_A2_TALKS_G2)
 
 /*
  * NODE_CAN_SR_UDP() checks whether the UDP node has its message queue set up
@@ -514,10 +527,18 @@ enum {
  */
 
 #define node_vendor(n)		((n)->vendor != NULL ? (n)->vendor : "????")
-#define node_type(n)			\
-	(NODE_IS_UDP(n) ? "UDP" :	\
-	 NODE_IS_LEAF(n) ? "leaf" :	\
-	 NODE_IS_ULTRA(n) ? "ultra" : "legacy")
+
+static inline const char *
+node_type(const gnutella_node_t *n)
+{
+	if (NODE_IS_UDP(n)) {
+		return NODE_TALKS_G2(n) ? "UDP (G2)" : "UDP";
+	} else if (!NODE_TALKS_G2(n)) {
+		return NODE_IS_LEAF(n) ? "leaf" : NODE_IS_ULTRA(n) ? "ultra" : "legacy";
+	} else {
+		return "G2";	/* FIXME if we have various G2 node types (leaf/hub) */
+	}
+}
 
 #define node_inc_sent(n)            node_add_sent(n, 1)
 #define node_inc_txdrop(n)          node_add_txdrop(n, 1)
@@ -544,6 +565,9 @@ enum {
 #define node_leaf_sent_qrp(n) \
 	(NODE_IS_LEAF(n) && \
 	(n)->qrt_receive == NULL && (n)->recv_query_table != NULL)
+#define node_hub_received_qrp(n) \
+	(NODE_TALKS_G2(n) && \
+	(n)->qrt_update == NULL && (n)->sent_query_table != NULL)
 
 /**
  * Can we send query with hop count `h' according to node's hops-flow value?
@@ -588,14 +612,15 @@ void node_slow_timer(time_t now);
 void node_timer(time_t now);
 uint connected_nodes(void);
 uint node_count(void);
+uint node_g2_count(void);
 int node_keep_missing(void);
 uint node_missing(void);
 uint node_leaves_missing(void);
+uint node_g2_hubs_missing(void);
 uint node_outdegree(void);
 bool node_is_connected(const host_addr_t addr, uint16 port, bool incoming);
 bool node_host_is_connected(const host_addr_t addr, uint16 port);
-void node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
-		uint16 port, uint32 flags);
+void node_add_socket(struct gnutella_socket *s);
 void node_remove(struct gnutella_node *,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 uint node_remove_by_addr(const host_addr_t addr, uint16 port);
@@ -635,8 +660,6 @@ void send_node_error(struct gnutella_socket *s, int code,
 void node_add_sent(gnutella_node_t *n, int x);
 void node_add_txdrop(void *o, int x);
 void node_add_rxdrop(gnutella_node_t *n, int x);
-void node_sent_accounting(gnutella_node_t *n, uint8 function,
-	const void *mb_start, int mb_size);
 
 void node_set_vendor(gnutella_node_t *n, const char *vendor);
 void node_mark_bad_vendor(struct gnutella_node *n);
@@ -662,6 +685,8 @@ sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const struct pslist *node_all_nodes(void);
 const struct pslist *node_all_ultranodes(void);
+const struct pslist *node_all_gnet_nodes(void);
+const struct pslist *node_all_g2_nodes(void);
 unsigned node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);
@@ -693,6 +718,7 @@ void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features);
 
 void node_update_udp_socket(void);
+void node_update_g2(bool enabled);
 void node_check_remote_ip_header(const host_addr_t peer, header_t *head);
 
 uint feed_host_cache_from_headers(header_t *headers,
@@ -706,11 +732,15 @@ void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 void node_supports_tls(struct gnutella_node *);
 void node_supports_whats_new(struct gnutella_node *);
+void node_supports_qrp_1bit_patches(struct gnutella_node *n);
 void node_supports_dht(struct gnutella_node *, dht_mode_t);
 void node_is_firewalled(gnutella_node_t *n);
 void node_supported_vmsg(struct gnutella_node *, const char *str, size_t len);
 void node_supported_feats(struct gnutella_node *, const char *str, size_t len);
 bool node_above_low_watermark(const gnutella_node_t *n);
+bool node_address_known(const gnutella_node_t *n);
+bool node_addr_port_equal(const gnutella_node_t *n,
+	const host_addr_t addr, uint16 port);
 
 const struct nid *node_id_get_self(void);
 bool node_id_self(const struct nid *node_id);
@@ -738,6 +768,11 @@ node_get_id(const struct gnutella_node * const n)
 
 bool node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet);
 struct gnutella_node *node_by_guid(const struct guid *guid);
+
+enum g2_msg;
+
+bool node_g2_active(void);
+gnutella_node_t *node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port);
 
 #endif /* _core_nodes_h_ */
 

@@ -1712,6 +1712,15 @@ max_ultra_hosts_cached_changed(property_t prop)
 }
 
 static bool
+max_g2hub_hosts_cached_changed(property_t prop)
+{
+	g_assert(PROP_MAX_G2HUB_HOSTS_CACHED == prop);
+    hcache_prune(HCACHE_FRESH_G2HUB);
+
+    return FALSE;
+}
+
+static bool
 max_bad_hosts_cached_changed(property_t prop)
 {
 	g_assert(PROP_MAX_BAD_HOSTS_CACHED == prop);
@@ -1727,7 +1736,7 @@ static host_addr_t
 get_bind_addr(enum net_type net)
 {
 	host_addr_t addr = zero_host_addr;
-	
+
 	switch (net) {
 	case NET_TYPE_IPV4:
 		addr = GNET_PROPERTY(force_local_ip)
@@ -1765,7 +1774,7 @@ static bool
 enable_udp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (s_tcp_listen) {
@@ -1801,7 +1810,7 @@ static bool
 enable_dht_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		/* Will start the DHT if UDP enabled otherwise */
@@ -1814,12 +1823,43 @@ enable_dht_changed(property_t prop)
 }
 
 static bool
+enable_g2_changed(property_t prop)
+{
+	bool enabled, guess_enabled;
+
+    gnet_prop_get_boolean_val(prop, &enabled);
+	node_update_g2(enabled);
+
+	/*
+	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * the GUESS layer.
+	 */
+
+    gnet_prop_get_boolean_val(PROP_ENABLE_GUESS, &guess_enabled);
+
+	if (enabled || guess_enabled) {
+		guess_init();
+	} else {
+		guess_close();
+	}
+
+	return FALSE;
+}
+
+static bool
 enable_guess_changed(property_t prop)
 {
-	bool enabled;
-	
+	bool enabled, g2_enabled;
+
+	/*
+	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * the GUESS layer.
+	 */
+
+    gnet_prop_get_boolean_val(PROP_ENABLE_G2, &g2_enabled);
     gnet_prop_get_boolean_val(prop, &enabled);
-	if (enabled) {
+
+	if (enabled || g2_enabled) {
 		guess_init();
 	} else {
 		guess_close();
@@ -1832,7 +1872,7 @@ static bool
 enable_upnp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		upnp_post_init();
@@ -1847,7 +1887,7 @@ static bool
 enable_natpmp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		upnp_post_init();
@@ -3029,6 +3069,11 @@ static prop_map_t property_map[] = {
         TRUE
 	},
     {
+        PROP_MAX_G2HUB_HOSTS_CACHED,
+        max_g2hub_hosts_cached_changed,
+        TRUE
+	},
+    {
         PROP_MAX_BAD_HOSTS_CACHED,
         max_bad_hosts_cached_changed,
         TRUE
@@ -3331,6 +3376,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_ENABLE_DHT,
 		enable_dht_changed,
+		FALSE,
+	},
+	{
+		PROP_ENABLE_G2,
+		enable_g2_changed,
 		FALSE,
 	},
 	{

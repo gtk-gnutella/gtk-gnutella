@@ -44,6 +44,7 @@ enum gta_msg {
 	GTA_MSG_DHT						= 0x44, /**< DHT message encapsulation */
 	GTA_MSG_SEARCH					= 0x80,
 	GTA_MSG_SEARCH_RESULTS			= 0x81,
+	GTA_MSG_G2_SEARCH				= 0x82,	/**< Internal, does not exist! */
 	GTA_MSG_HSEP_DATA 				= 0xcd
 };
 

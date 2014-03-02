@@ -278,7 +278,8 @@ typedef struct gnet_node_info {
 	int proto_major;		/**< Protocol major number */
 	int proto_minor;		/**< Protocol minor number */
 	vendor_code_t vcode;	/**< Vendor code (vcode.u32 == 0 when unknown) */
-	bool is_pseudo;			/**< TRUE if it's the pseudo UDP node */
+	uint is_pseudo:1;		/**< TRUE if it's the pseudo UDP node */
+	uint is_g2:1;			/**< TRUE if this is a G2 node */
 
 	host_addr_t addr;		/**< ip of the node (connected) */
 	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
@@ -301,6 +302,7 @@ typedef enum {
 	NODE_P_CRAWLER,				/**< Crawler node */
 	NODE_P_UDP,					/**< UDP "fake" node */
 	NODE_P_DHT,					/**< DHT "fake" node (UDP-only traffic) */
+	NODE_P_G2HUB,				/**< G2 Hub */
 	NODE_P_UNKNOWN				/**< Unknown mode yet */
 } node_peer_t;
 
@@ -386,6 +388,7 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 struct pslist;
 
 void node_add(const host_addr_t addr, uint16, uint32 flags);
+void node_g2_add(const host_addr_t addr, uint16, uint32 flags);
 void node_add_by_name(const char *host, uint16, uint32 flags);
 void node_remove_by_id(const struct nid *node_id);
 void node_remove_nodes_by_id(const struct pslist *node_list);

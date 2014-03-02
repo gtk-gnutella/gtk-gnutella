@@ -245,6 +245,7 @@ LSRC = \
 	random.c \
 	rbtree.c \
 	regex.c \
+	ripening.c \
 	rwlock.c \
 	sectoken.c \
 	semaphore.c \
@@ -291,6 +292,7 @@ LSRC = \
 	wq.c \
 	xmalloc.c \
 	xsort.c \
+	xsort_data.c \
 	xxtea.c \
 	zalloc.c \
 	zlib_util.c
@@ -425,6 +427,7 @@ LOBJ = \
 	random.o \
 	rbtree.o \
 	regex.o \
+	ripening.o \
 	rwlock.o \
 	sectoken.o \
 	semaphore.o \
@@ -471,6 +474,7 @@ LOBJ = \
 	wq.o \
 	xmalloc.o \
 	xsort.o \
+	xsort_data.o \
 	xxtea.o \
 	zalloc.o \
 	zlib_util.o 

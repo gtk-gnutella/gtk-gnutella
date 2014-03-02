@@ -30,7 +30,7 @@
  * determine whether a particular IP:port belongs to the cache and when
  * it was added.
  *
- * This is generic code hanlding entries formatted as:
+ * This is generic code handling entries formatted as:
  *
  *   HOST 10.19.182.13:1033
  *   SEEN 2010-10-27 14:25:06
