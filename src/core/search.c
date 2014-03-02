@@ -1189,7 +1189,7 @@ static void G_GNUC_PRINTF(3, 4)
 search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 	const char *reason, ...)
 {
-	char rbuf[256];
+	char rbuf[384];
 	char buf[128];
 
 	if (!GNET_PROPERTY(log_spam_query_hit))
