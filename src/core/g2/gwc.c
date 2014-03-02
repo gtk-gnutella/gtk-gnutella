@@ -54,6 +54,7 @@
 #include "lib/hset.h"
 #include "lib/log.h"			/* For log_printable() */
 #include "lib/misc.h"
+#include "lib/path.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -289,24 +290,29 @@ gwc_store_if_dirty(void)
 static void
 gwc_retrieve(void)
 {
-#ifndef OFFICIAL_BUILD
-	static file_path_t fp[3];
-#else
-	static file_path_t fp[2];
-#endif
+	file_path_t fp[4];
+	uint len = 0;
+	char *path;
 	int line;
 	FILE *in;
 	char tmp[1024];
 
-	file_path_set(&fp[0], settings_config_dir(), gwc_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, gwc_bootfile);
+	file_path_set(&fp[len++], settings_config_dir(), gwc_file);
+
+	path = get_folder_path(PRIVLIB_PATH, NULL);
+	if (path != NULL)
+		file_path_set(&fp[len++], path, gwc_bootfile);
+
+	file_path_set(&fp[len++], PRIVLIB_EXP, gwc_bootfile);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, gwc_bootfile);
+	file_path_set(&fp[len++], PACKAGE_EXTRA_SOURCE_DIR, gwc_bootfile);
 #endif
 
-	in = file_config_open_read(gwc_what, fp, G_N_ELEMENTS(fp));
-	if (!in)
-		return;
+	g_assert(len <= G_N_ELEMENTS(fp));
+
+	in = file_config_open_read(gwc_what, fp, len);
+	if (NULL == in)
+		goto done;
 
 	/*
 	 * Retrieve each line.
@@ -328,6 +334,9 @@ gwc_retrieve(void)
 	}
 
 	fclose(in);
+
+done:
+	HFREE_NULL(path);
 }
 
 /**
