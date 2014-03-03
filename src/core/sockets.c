@@ -4147,9 +4147,13 @@ socket_nodelay(struct gnutella_socket *s, bool on)
 		return;
 
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)) {
-		if (errno != ECONNRESET)
+		if (
+			errno != ECONNRESET &&
+			errno != EINVAL /* Socket has been shutdown on DARWIN */
+		) {
 			g_warning("unable to %s TCP_NODELAY on fd#%d: %m",
 				on ? "set" : "clear", s->file_desc);
+		}
 	} else {
 		s->flags &= ~SOCK_F_NODELAY;
 		s->flags |= on ? SOCK_F_NODELAY : 0;
