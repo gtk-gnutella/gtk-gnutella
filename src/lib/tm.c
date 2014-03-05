@@ -127,8 +127,7 @@ tm_current_time(tm_t *tm)
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
-	tm->tv_sec = tv.tv_sec;
-	tm->tv_usec = tv.tv_usec;
+	timeval_to_tm(tm, &tv);
 }
 
 /*
@@ -665,8 +664,13 @@ tm_cputime(double *user, double *sys)
 			s = 0;
 			g_warning("getrusage(RUSAGE_SELF, ...) failed: %m");
 		} else {
-			u = tm2f(timeval_to_tm(&usage.ru_utime));
-			s = tm2f(timeval_to_tm(&usage.ru_stime));
+			tm_t tu, ts;
+
+			timeval_to_tm(&tu, &usage.ru_utime);
+			timeval_to_tm(&ts, &usage.ru_stime);
+
+			u = tm2f(&tu);
+			s = tm2f(&ts);
 		}
 #else
 		getrusage_failed = TRUE;

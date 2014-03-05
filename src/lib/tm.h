@@ -50,10 +50,22 @@ typedef struct tmval {
 
 #define TM_ZERO		{ 0L, 0L }
 
-static inline ALWAYS_INLINE tm_t *
-timeval_to_tm(const struct timeval * const tv)
+/**
+ * Copies the timeval fields into our internal tmval structure.
+ *
+ * @param tm		the structure to fill
+ * @param tv		the system's timeval structure
+ */
+static inline ALWAYS_INLINE void
+timeval_to_tm(tm_t *tm, const struct timeval * const tv)
 {
-	return (tm_t *) tv;
+	/*
+	 * We cannot assume that the structures are equivalent (they are not on
+	 * OS/X for instance), hence we perform a field-by-field copy.
+	 */
+
+	tm->tv_sec  = tv->tv_sec;
+	tm->tv_usec = tv->tv_usec;
 }
 
 /**
