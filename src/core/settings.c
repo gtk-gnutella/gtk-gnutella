@@ -1615,9 +1615,13 @@ update_address_lifetime(void)
 	/*
 	 * If our address or port changed, we may have to republish our push
 	 * proxies to the DHT.
+	 *
+	 * We also need to invalidate all our GUESS query keys when the IP:port
+	 * changes, since a query key is a function of our IP address.
 	 */
 
 	pdht_prox_publish_if_changed();
+	guess_invalidate_keys();
 }
 
 /**
@@ -2191,6 +2195,7 @@ listen_port_changed(property_t prop)
     } else {
 		old_port = GNET_PROPERTY(listen_port);
 		remember_local_addr_port();
+		guess_invalidate_keys();	/* Port changed, query keys are invalid */
 	}
 
     return FALSE;

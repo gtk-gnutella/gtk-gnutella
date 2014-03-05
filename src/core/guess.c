@@ -107,8 +107,9 @@
 
 #include "dht/stable.h"
 
-#include "if/gnet_property_priv.h"
 #include "if/core/guess.h"
+#include "if/gnet_property.h"
+#include "if/gnet_property_priv.h"
 
 #include "lib/aging.h"
 #include "lib/atoms.h"
@@ -425,6 +426,7 @@ static ripening_table_t *guess_deferred;/**< Hosts with deferred processing */
 static uint32 guess_out_bw;				/**< Outgoing b/w used per period */
 static uint32 guess_target_bw;			/**< Outgoing b/w target for period */
 static int guess_alpha = GUESS_ALPHA;	/**< Concurrency query parameter */
+static time_t guess_qk_threshtime;		/**< Stamp threshold for query keys */
 
 static void guess_discovery_enable(void);
 static void guess_iterate(guess_t *gq);
@@ -2896,6 +2898,18 @@ guess_request_qk(const gnet_host_t *host, bool intro, bool g2)
 }
 
 /**
+ * Given a query key update time, is the query key still valid?
+ */
+static bool
+guess_key_still_valid(time_t last_update)
+{
+	if (delta_time(last_update, guess_qk_threshtime) < 0)
+		return FALSE;		/* Key invalidated by IP address change */
+
+	return delta_time(tm_time(), last_update) <= GUESS_QK_LIFE;
+}
+
+/**
  * Is query key valid (present, not expired)?
  *
  * @return TRUE if we have a valid query key for the host.
@@ -2911,7 +2925,7 @@ guess_has_valid_qk(const gnet_host_t *host)
 	if (0 == qk->length)
 		return FALSE;
 
-	return delta_time(tm_time(), qk->last_update) <= GUESS_QK_LIFE;
+	return guess_key_still_valid(qk->last_update);
 }
 
 /**
@@ -3305,7 +3319,7 @@ guess_ping_host(void *host, void *u_data)
 
 		guess_request_qk(h, random_value(99) < 25, g2);
 
-	} else if (delta_time(tm_time(), qk->last_update) > GUESS_QK_LIFE) {
+	} else if (!guess_key_still_valid(qk->last_update)) {
 		if (GNET_PROPERTY(guess_client_debug) > 4) {
 			g_debug("GUESS query key for %s%s expired, pinging",
 				g2 ? "G2 " : "", gnet_host_to_string(h));
@@ -4387,7 +4401,7 @@ guess_got_query_key(enum udp_ping_ret type,
 
 			if (
 				qk != NULL && qk->length != 0 &&
-				delta_time(tm_time(), qk->last_update) <= GUESS_QK_LIFE
+				guess_key_still_valid(qk->last_update)
 			) {
 				if (GNET_PROPERTY(guess_client_debug) > 2) {
 					g_info("GUESS QUERY[%s] "
@@ -4762,7 +4776,7 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 
 	if (
 		NULL == qk || 0 == qk->length ||
-		delta_time(tm_time(), qk->last_update) > GUESS_QK_LIFE
+		!guess_key_still_valid(qk->last_update)
 	) {
 		struct guess_qk_context *ctx;
 		bool intro = settings_is_ultra();
@@ -5759,6 +5773,37 @@ done:
 }
 
 /**
+ * Invalidate all the currently cached query keys.
+ */
+void
+guess_invalidate_keys(void)
+{
+	if (GNET_PROPERTY(guess_client_debug))
+		g_debug("GUESS cached query keys now invalidated (IP/port changed)");
+
+	/*
+	 * This is imperfect because it will not invalidate the query keys we
+	 * cached in the current second, but that's OK because whenever the query
+	 * key is invalid, the remote host will inform us and we'll request a new
+	 * one on the fly.  But this simple logic catches most of the cached keys,
+	 * hence it's good enough for our purpose here.
+	 *
+	 * Note that since the threshold is initially set with the latest IP change
+	 * time, and we don't remember the time at which the listening port changes,
+	 * we won't invalidate the cached query keys at the next startup.  Again,
+	 * this is OK because we will know our query key was invalid, somehow.
+	 *
+	 * The aim is to catch the most common case of query key invalidation:
+	 * hosts with a dynamic IP address.  Port changes within the session will
+	 * be caught however and also invalidate all the keys (for the remaining
+	 * of the session).
+	 *		--RAM, 2014-03-05
+	 */
+
+	guess_qk_threshtime = tm_time();
+}
+
+/**
  * Initialize a GUESS cache.
  */
 static void G_GNUC_COLD
@@ -5787,6 +5832,26 @@ guess_init(void)
 		return;		/* GUESS layer already initialized */
 
 	g_assert(NULL == guess_qk_prune_ev);
+
+	/*
+	 * Compute the latest time when our IP address has been determined, which
+	 * will set the initial threshold for assessing whether a query key is
+	 * still valid.
+	 */
+
+	{
+		time_t t4, t6;
+
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &t4);
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &t6);
+
+		guess_qk_threshtime = MAX(t4, t6);
+
+		if (GNET_PROPERTY(guess_client_debug)) {
+			g_debug("GUESS query key threshold time is %s",
+				timestamp_to_string(guess_qk_threshtime));
+		}
+	}
 
 	db_qkdata = dbstore_open(db_qkdata_what, settings_gnet_db_dir(),
 		db_qkdata_base, kv, packing, GUESS_QK_DB_CACHE_SIZE,
