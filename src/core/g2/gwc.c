@@ -120,8 +120,10 @@ static const char * const boot_url[] = {
 
 /**
  * Add new URL to cache, possibly pushing off an older one if cache is full.
+ *
+ * @return TRUE if the URL was added, FALSE otherwise.
  */
-static void
+static bool
 gwc_add(const char *new_url)
 {
 	const char *url_atom;
@@ -135,7 +137,7 @@ gwc_add(const char *new_url)
 		g_warning("%s(): ignoring bad web cache URL \"%s\"",
 			G_STRFUNC, new_url);
 		HFREE_NULL(url);
-		return;
+		return FALSE;
 	}
 	if (ret != url) {
 		HFREE_NULL(url);
@@ -151,7 +153,7 @@ gwc_add(const char *new_url)
 		hset_contains(gwc_failed_url, url)
 	) {
 		HFREE_NULL(url);
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -187,6 +189,8 @@ gwc_add(const char *new_url)
 	if (GNET_PROPERTY(bootstrap_debug)) {
 		g_debug("%s(): loaded GWC URL %s", G_STRFUNC, url_atom);
 	}
+
+	return TRUE;
 }
 
 /**
@@ -290,10 +294,10 @@ gwc_store_if_dirty(void)
 static void
 gwc_retrieve(void)
 {
-	file_path_t fp[4];
-	uint len = 0;
+	file_path_t fp[4], *fpv;
+	uint len = 0, added;
 	char *path;
-	int line;
+	int line, idx;
 	FILE *in;
 	char tmp[1024];
 
@@ -310,15 +314,25 @@ gwc_retrieve(void)
 
 	g_assert(len <= G_N_ELEMENTS(fp));
 
-	in = file_config_open_read(gwc_what, fp, len);
+	fpv = &fp[0];
+
+retry:
+	g_assert(ptr_cmp(fpv, &fp[G_N_ELEMENTS(fp)]) < 0);
+
+	if (&fp[0] == fpv)
+		in = file_config_open_read_chosen(gwc_what, fpv, len, &idx);
+	else
+		in = file_config_open_read_norename_chosen(gwc_what, fpv, len, &idx);
+
 	if (NULL == in)
 		goto done;
 
 	/*
-	 * Retrieve each line.
+	 * Retrieve each line, counting the amount of entries added.
 	 */
 
 	line = 0;
+	added = 0;
 
 	while (fgets(tmp, sizeof(tmp), in)) {
 		line++;
@@ -330,10 +344,31 @@ gwc_retrieve(void)
 			continue;
 
 		(void) strchomp(tmp, 0);
-		gwc_add(tmp);
+		if (gwc_add(tmp))
+			added++;
 	}
 
 	fclose(in);
+
+	/*
+	 * Now check whether we added anything from that file, and if we have not
+	 * and there are more backup files to open, retry with these fallbacks
+	 * instead.
+	 */
+
+	if (0 == added && UNSIGNED(idx) < len - 1) {
+		g_warning("%s(): nothing loaded from \"%s/%s\", trying fallbacks",
+			G_STRFUNC, fpv[idx].dir, fpv[idx].name);
+		fpv += idx + 1;
+		len -= idx + 1;
+		g_assert(size_is_positive(len));
+		goto retry;
+	} else {
+		if (GNET_PROPERTY(bootstrap_debug)) {
+			g_debug("%s(): loaded %u URL%s from \"%s/%s\"",
+				G_STRFUNC, added, plural(added), fpv[idx].dir, fpv[idx].name);
+		}
+	}
 
 done:
 	HFREE_NULL(path);
