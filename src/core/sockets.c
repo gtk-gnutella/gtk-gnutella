@@ -3133,6 +3133,16 @@ socket_connect_prepare(struct gnutella_socket *s,
 	/* Filter out flags which we cannot accept */
 	flags &= (SOCK_F_TLS | SOCK_F_FORCE);
 
+	/*
+	 * If they want a TLS connection but we're banning this address for TLS,
+	 * abort the connection immediately.
+	 */
+
+	if ((flags & SOCK_F_TLS) && socket_tls_banned(addr, port)) {
+		errno = ECONNABORTED;
+		return -1;
+	}
+
 	if (!(s->flags & SOCK_F_FORCE) && is_host_addr(addr)) {
 		if (0 != socket_connection_allowed(addr, type))
 			return -1;
@@ -3146,9 +3156,6 @@ socket_connect_prepare(struct gnutella_socket *s,
 	) {
 		flags |= SOCK_F_TLS;
 	}
-
-	if ((flags & SOCK_F_TLS) && socket_tls_banned(addr, port))
-		flags &= ~SOCK_F_TLS;
 
 	addr = socket_ipv6_trt_map(addr);
 	if (NET_TYPE_NONE == host_addr_net(addr)) {
