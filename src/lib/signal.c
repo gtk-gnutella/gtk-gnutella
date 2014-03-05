@@ -740,7 +740,7 @@ signal_stack_free(void **base_ptr)
 	bool success = TRUE;
 
 	ss.ss_sp = NULL;
-	ss.ss_size = 0;
+	ss.ss_size = round_pagesize(SIGNAL_STACK_SIZE);
 	ss.ss_flags = SS_DISABLE;
 
 	/*
@@ -748,11 +748,6 @@ signal_stack_free(void **base_ptr)
 	 * be kept in the thread element and reused the next time another thread
 	 * is launched with the same thread ID (and by then hopefully the signal
 	 * stack will have been released by the POSIX thread layer).
-	 *
-	 * This happens on OS/X where we can properly allocate the signal stack
-	 * and install it, but then it cannot be disabled when the thread exits
-	 * normally.
-	 *		--RAM, 2014-01-09
 	 */
 
 	if (-1 == sigaltstack(&ss, NULL)) {
