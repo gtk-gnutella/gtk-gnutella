@@ -355,9 +355,6 @@ gwc_init(void)
 		for (i = 0; i < G_N_ELEMENTS(boot_url) && boot_url[i]; i++)
 			gwc_add(boot_url[i]);
 	}
-
-	if (GNET_PROPERTY(ancient_version))
-		return;				/* Older versions must have a harder time */
 }
 
 /**
