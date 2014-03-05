@@ -292,6 +292,12 @@ out:
  * cannot be found, try opening the ".orig" variant if already present.
  * If not found, try with successive alternatives, if supplied.
  *
+ * @note
+ * Renaming only happens if the opened file is the first in the vector.
+ * Other entries are expected to be fallbacks and are either non-writable
+ * or should be left as-is.  Likewise, opening the ".orig" is only attempted
+ * for the first entry.
+ *
  * @attention
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
@@ -301,6 +307,17 @@ FILE *
 file_config_open_read(const char *what, const file_path_t *fv, int fvcnt)
 {
 	return open_read(what, fv, fvcnt, TRUE, NULL);
+}
+
+/**
+ * Same as file_config_open_read(), but also returns the index
+ * of the path chosen within the array, if a file was opened at all.
+ */
+FILE *
+file_config_open_read_chosen(
+	const char *what, const file_path_t *fv, int fvcnt, int *chosen)
+{
+	return open_read(what, fv, fvcnt, TRUE, chosen);
 }
 
 /**

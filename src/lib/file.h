@@ -55,6 +55,8 @@ char *file_locate_from_path(const char *argv0);
 
 FILE *file_config_open_read(
 	const char *what, const file_path_t *fv, int fvcnt);
+FILE *file_config_open_read_chosen(
+	const char *what, const file_path_t *fv, int fvcnt, int *chosen);
 FILE *file_config_open_read_norename(
 	const char *what, const file_path_t *fv, int fvcnt);
 FILE *file_config_open_read_norename_chosen(
