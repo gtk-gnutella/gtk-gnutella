@@ -461,7 +461,7 @@ g2_build_add_hostname(g2_tree_t *t)
 }
 
 /**
- * Generate as many "NH" childrend to the root as we have neihbouring hubs,
+ * Generate as many "NH" children to the root as we have neihbouring hubs,
  * when the node is firewalled.  They can act as "push proxies", as in Gnutella.
  */
 static void
