@@ -115,7 +115,8 @@ static bool gwc_file_dirty;
  */
 
 static const char * const boot_url[] = {
-	NULL,
+	"http://cache.trillinux.org/g2/bazooka.php",
+	"http://cache.ce3c.be/",
 };
 
 /**
