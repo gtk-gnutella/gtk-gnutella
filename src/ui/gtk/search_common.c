@@ -4106,9 +4106,12 @@ search_gui_set_details(const record_t *rc)
 
 		search_gui_append_detail(_("Route"), search_gui_get_route(rs));
 		if (!(ST_BROWSE & rs->status)) {
-			search_gui_append_detail(_("Protocol"),
-				ST_UDP & rs->status ? "UDP" : "TCP");
-
+			static const char *search_proto[] = {
+				"TCP", "UDP", "TCP (G2)", "UDP (G2)",
+			};
+			uint pidx = ST_UDP & rs->status ? 1 : 0;
+			pidx += ST_G2 & rs->status ? 2 : 0;
+			search_gui_append_detail(_("Protocol"), search_proto[pidx]);
 			search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
 			search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
 
