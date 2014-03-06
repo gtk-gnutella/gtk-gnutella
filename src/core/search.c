@@ -3151,15 +3151,26 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 	*hostile = HSTL_CLEAN;
 	muid = g2_msg_get_muid(t, &muid_buf);
 
-	g_assert(muid != NULL);
+	if (browse) {
+		if (NULL == muid)
+			muid = &blank_guid;
+	} else {
+		/* If we dispatch the results, we extracted the MUID before */
+		g_assert(muid != NULL);
+	}
 
 	rs = search_new_r_set();
 	rs->stamp = tm_time();
 	rs->country = ISO3166_INVALID;
 
-	payload = g2_tree_node_payload(t, &paylen);
-	g_assert(payload != NULL);
-	rs->hops = *(uint8 *) payload;
+	if (browse) {
+		rs->hops = 0;
+	} else {
+		/* Since we extracted the MUID before, there must be a "hops" byte */
+		payload = g2_tree_node_payload(t, &paylen);
+		g_assert(payload != NULL);
+		rs->hops = *(uint8 *) payload;
+	}
 	rs->last_hop = n->addr;
 	rs->status |= ST_G2 | ST_PARSED_TRAILER;	/* No trailer in G2 */
 
