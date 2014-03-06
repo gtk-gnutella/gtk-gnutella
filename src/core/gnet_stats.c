@@ -1283,7 +1283,7 @@ gnet_stats_g2_count_flowc(const gnutella_node_t *n,
 		f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
 	}
 
-	ttl = NODE_USES_UDP(n) ? 0 : 1;
+	ttl = NODE_USES_UDP(n) ? 1 : 2;		/* Purely made up, but cannot be 0 */
 	hops = 0;		/* Locally generated, this is TX flowc */
 
 	t = stats_lut[f];
