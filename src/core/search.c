@@ -9216,7 +9216,10 @@ search_request(struct gnutella_node *n,
 		}
 
 		if (qctx->found > 0) {
-			if (settings_is_leaf() && node_ultra_received_qrp(n))
+			if (
+				(settings_is_leaf() && node_ultra_received_qrp(n)) ||
+				(NODE_TALKS_G2(n) && node_hub_received_qrp(n))
+			)
 				node_inc_qrp_match(n);
 
 			if (GNET_PROPERTY(share_debug) > 3) {
