@@ -216,10 +216,7 @@ deserialize_spamdata(bstr_t *bs, void *valptr, size_t len)
 const char *
 hostiles_flags_to_string(const hostiles_flags_t flags)
 {
-	static str_t *s;
-
-	if G_UNLIKELY(NULL == s)
-		s = str_new_not_leaking(60);
+	str_t *s = str_private(G_STRFUNC, 60);
 
 	str_reset(s);
 
