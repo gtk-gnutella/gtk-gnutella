@@ -6748,17 +6748,48 @@ download_pickup_queued(void)
  */
 void
 download_got_push_proxies(const struct guid *guid,
-	const gnet_host_vec_t *proxies)
+	const gnet_host_vec_t *proxies, bool g2)
 {
 	struct dl_server *server;
 	int i;
 	size_t added = 0;
+	bool g2_server;
 
 	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
 	g_assert(dl_server_valid(server));
+
+	/*
+	 * We can only keep push-proxies that are compatible with the protocol
+	 * supported by the server:
+	 *
+	 * - If we're handling proxies coming from a G2 query, and the server is
+	 *   not flagged as being a G2 server, flag it as G2 and discard any
+	 *   known push-proxies (which were necessarily Gnutella ultrapeers).
+	 *
+	 * - If we're handling proxies coming from a Gnutella query and the server
+	 *   is already flagged as a G2 server, don't update anything.
+	 */
+
+	g2_server = booleanize(server->attrs & DLS_A_G2_ONLY);
+
+	if (g2) {
+		if (!g2_server) {
+			if (GNET_PROPERTY(download_debug)) {
+				g_debug("%s(): flagging %s as a G2 host%s",
+					G_STRFUNC, server_host_info(server),
+					server->proxies != NULL ?
+						" and discarding known push-proxies" : "");
+			}
+			server->attrs |= DLS_A_G2_ONLY;
+			pproxy_set_free_null(&server->proxies);
+		}
+	}  else {
+		if (g2_server)
+			return;		/* Ignore Gnutella push-proxies for known G2 host */
+	}
 
 	for (i = gnet_host_vec_count(proxies) - 1; i >= 0; i--) {
 		struct gnutella_host host;

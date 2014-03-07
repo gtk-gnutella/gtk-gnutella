@@ -3348,10 +3348,25 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 			"non UTF-8 filenames in hits", HSTL_NON_UTF8);
 	}
 
-	/* FIXME: refresh G2 push-proxies as in get_results_set() */
+	search_results_postprocess(n, rs, muid, hostile);
+
+	/*
+	 * Refresh push-proxies if we're downloading anything from this server.
+	 *
+	 * Special handling for GTKG hosts: they can return hits via G2 but they
+	 * are more Gnutella than G2 really, hence we can avoid recording their
+	 * connected G2 hubs as G2, and handle them as Gnutella ones: it's possible
+	 * that these G2 nodes are also supporting Gnutella (and could therefore
+	 * understand incoming PUSH requests via UDP), and we don't want to flag a
+	 * GTKG server as being G2!
+	 */
+
+	if (rs->proxies != NULL) {
+		download_got_push_proxies(rs->guid, rs->proxies,
+			rs->vcode.u32 != T_GTKG);
+	}
 
 	search_validate_result_address(rs, n, browse);
-	search_results_postprocess(n, rs, muid, hostile);
 	search_finalize_results(rs, muid, browse);
 	search_results_identify_spam(n, rs, hostile);
 
@@ -4032,7 +4047,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 	 */
 
 	if (rs->proxies != NULL)
-		download_got_push_proxies(rs->guid, rs->proxies);
+		download_got_push_proxies(rs->guid, rs->proxies, FALSE);
 	
 	/*
 	 * Now that we have the vendor, warn if the message has SHA1 errors.
