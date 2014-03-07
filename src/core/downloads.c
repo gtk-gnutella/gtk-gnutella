@@ -6784,12 +6784,17 @@ download_got_push_proxies(const struct guid *guid,
 						" and discarding known push-proxies" : "");
 			}
 			server->attrs |= DLS_A_G2_ONLY;
-			pproxy_set_free_null(&server->proxies);
 		}
-	}  else {
+	} else {
 		if (g2_server)
 			return;		/* Ignore Gnutella push-proxies for known G2 host */
 	}
+
+	/*
+	 * Always supersede the previously known push-proxies with the newest ones.
+	 */
+
+	pproxy_set_free_null(&server->proxies);
 
 	for (i = gnet_host_vec_count(proxies) - 1; i >= 0; i--) {
 		struct gnutella_host host;
