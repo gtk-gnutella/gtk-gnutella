@@ -11378,12 +11378,13 @@ download_request(struct download *d, header_t *header, bool ok)
 	 * other resources on the same server when this resource is fully fetched).
 	 */
 
-	if (d->flags & DL_F_FAKE_G2) {
+	if ((d->flags & DL_F_FAKE_G2) || (d->server->attrs & DLS_A_FAKE_G2)) {
 		if (GNET_PROPERTY(download_debug))
 			g_debug("server %s responded well to G2 faking for \"%s\"",
 				download_host_info(d), download_basename(d));
 
 		d->flags &= ~DL_F_FAKE_G2;
+		d->server->attrs &= ~DLS_A_FAKE_G2;
 		d->server->attrs |= DLS_A_G2_ONLY;
 
 		if (download_port(d) != 0 && is_host_addr(download_addr(d))) {
