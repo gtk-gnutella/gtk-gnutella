@@ -110,7 +110,6 @@ hostiles_flags_are_bad(const hostiles_flags_t flags)
 			HSTL_NAME_SPAM |
 			HSTL_OOB |
 			HSTL_CLOSE_FILENAME |
-			HSTL_ODD_GUID |
 			HSTL_BANNED_GUID
 		)
 	);
