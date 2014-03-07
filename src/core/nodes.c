@@ -9171,22 +9171,23 @@ node_udp_is_old(const gnutella_node_t *n)
 }
 
 /**
- * Check whether message comes from an hostile UDP host.
+ * Check whether message comes from a hostile UDP host.
  *
  * @return TRUE if message came from a hostile host and must be ignored.
  */
 bool
 node_hostile_udp(gnutella_node_t *n)
 {
-	if G_UNLIKELY(hostiles_is_bad(n->addr)) {
+	hostiles_flags_t hostile = hostiles_check(n->addr);
+
+	if G_UNLIKELY(hostiles_flags_are_bad(hostile)) {
 		if (GNET_PROPERTY(udp_debug)) {
-			hostiles_flags_t flags = hostiles_check(n->addr);
 			g_warning("UDP got %s%s from bad hostile %s (%s) -- dropped",
 				node_udp_is_old(n) ? "OLD " : "",
 				NODE_TALKS_G2(n) ?
 					g2_msg_infostr(n->data, n->size) :
 					gmsg_infostr_full_split(&n->header, n->data, n->size),
-				node_infostr(n), hostiles_flags_to_string(flags));
+				node_infostr(n), hostiles_flags_to_string(hostile));
 		}
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		return TRUE;

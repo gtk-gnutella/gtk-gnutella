@@ -42,7 +42,6 @@
  * Reasons why a host could be banned.
  */
 typedef enum hostiles_flags {
-	HSTL_CLEAN				= 0,			/**< Not hostile */
 	HSTL_STATIC				= (1 << 0),		/**< In static list */
 	HSTL_DUMB				= (1 << 1),		/**< Dumb spammer */
 	HSTL_WEIRD_MSG			= (1 << 2),		/**< Sends weird messages */
@@ -69,6 +68,9 @@ typedef enum hostiles_flags {
 	HSTL_ODD_GUID			= (1 << 23),	/**< Odd GUID in hits */
 	HSTL_BANNED_GUID		= (1 << 24),	/**< Banned GUID in hits */
 	HSTL_BAD_VENDOR_CODE	= (1 << 25),	/**< Bad vendor code in hits */
+	HSTL_GIBBERISH			= (1 << 26),	/**< Cannot parse messages */
+	HSTL_NON_UTF8			= (1 << 27),	/**< Non UTF-8 encoding of hits */
+	HSTL_CLEAN				= 0				/**< Not hostile */
 } hostiles_flags_t;
 
 const char *hostiles_flags_to_string(const hostiles_flags_t flags);
@@ -116,12 +118,38 @@ hostiles_flags_are_bad(const hostiles_flags_t flags)
 }
 
 /**
+ * Are hostiles flags suggesting that we avoid transactions with host?
+ */
+static inline bool
+hostiles_flags_warrant_shunning(const hostiles_flags_t flags)
+{
+	return 0 != (flags & (
+			HSTL_STATIC |
+			HSTL_WEIRD_MSG |
+			HSTL_BAD_VENDOR_CODE |
+			HSTL_BANNED_GUID |
+			HSTL_GIBBERISH |
+			HSTL_NON_UTF8
+		)
+	);
+}
+
+/**
  * Is address that of a host with hostiles flags that suggest a bad node?
  */
 static inline bool
 hostiles_is_bad(const host_addr_t addr)
 {
 	return hostiles_flags_are_bad(hostiles_check(addr));
+}
+
+/**
+ * Is address that of a host with hostiles flags suggesting we shun that node?
+ */
+static inline bool
+hostiles_should_shun(const host_addr_t addr)
+{
+	return hostiles_flags_warrant_shunning(hostiles_check(addr));
 }
 
 #endif /* _core_hostiles_h_ */

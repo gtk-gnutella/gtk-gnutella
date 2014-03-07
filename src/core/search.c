@@ -2812,7 +2812,7 @@ static const tokenizer_t g2_qh2_urn[] = {
  */
 gnet_record_t *
 get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
-	const gnet_results_set_t *rs, size_t hit)
+	const gnet_results_set_t *rs, size_t hit, hostiles_flags_t *hostile)
 {
 	gnet_record_t *rc;
 	const g2_tree_t *c;
@@ -2917,6 +2917,7 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 					badmsg = has_sz ?
 						"DN payload not valid UTF-8" :
 						"filename in DN not valid UTF-8";
+					*hostile |= HSTL_NON_UTF8;
 					goto bad;
 				}
 
@@ -3227,7 +3228,7 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 				gnet_record_t *rc;
 
 				nr++;
-				rc = get_g2_results_record(c, n, rs, nr);
+				rc = get_g2_results_record(c, n, rs, nr, hostile);
 				if (rc != NULL)
 					rs->records = pslist_prepend(rs->records, rc);
 			}
@@ -3340,6 +3341,11 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 			rs->addr = n->gnet_addr;
 			rs->port = n->gnet_port;	/* Known listening port */
 		}
+	}
+
+	if (*hostile & HSTL_NON_UTF8) {
+		hostiles_dynamic_add(rs->addr,
+			"non UTF-8 filenames in hits", HSTL_NON_UTF8);
 	}
 
 	/* FIXME: refresh G2 push-proxies as in get_results_set() */

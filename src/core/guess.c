@@ -3185,6 +3185,7 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	bool expired, hostile, g2;
 	unsigned minor;
 	double p;
+	host_addr_t addr;
 
 	(void) u_len;
 	(void) u_data;
@@ -3199,8 +3200,9 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 
 	d = delta_time(tm_time(), qk->last_seen);
 	expired = hostile = FALSE;
+	addr = gnet_host_get_addr(h);
 
-	if (hostiles_is_bad(gnet_host_get_addr(h))) {
+	if (hostiles_is_bad(addr) || hostiles_should_shun(addr)) {
 		hostile = TRUE;
 		p = 0.0;
 	} else if (d <= GUESS_QK_LIFE) {
@@ -3675,6 +3677,7 @@ guess_pick_next(guess_t *gq)
 		const char *reason = NULL;
 		host_addr_t addr;
 		time_t earliest;
+		hostiles_flags_t hostile;
 
 		host = hash_list_iter_next(iter);
 
@@ -3694,8 +3697,15 @@ guess_pick_next(guess_t *gq)
 			goto drop;
 		}
 
-		if (hostiles_is_bad(addr)) {
+		hostile = hostiles_check(addr);
+
+		if (hostiles_flags_are_bad(hostile)) {
 			reason = "bad hostile host";
+			goto drop;
+		}
+
+		if (hostiles_flags_warrant_shunning(hostile)) {
+			reason = "host should be shunned";
 			goto drop;
 		}
 

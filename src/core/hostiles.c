@@ -254,6 +254,8 @@ hostiles_flags_to_string(const hostiles_flags_t flags)
 	LOGAS(HSTL_ODD_GUID,		"odd-GUID");
 	LOGAS(HSTL_BANNED_GUID,		"banned-GUID");
 	LOGAS(HSTL_BAD_VENDOR_CODE,	"vendor-code");
+	LOGAS(HSTL_GIBBERISH,		"gibberish");
+	LOGAS(HSTL_NON_UTF8,		"non-utf8");
 
 #undef LOGAS
 
@@ -606,6 +608,14 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 	struct hostiles_dynamic_entry4 *entry;
 
 	if (hash_list_find(hl_dynamic_ipv4, &ipv4, cast_to_void_ptr(&entry))) {
+		if (GNET_PROPERTY(ban_debug)) {
+			hostiles_flags_t added = flags & ~entry->he4_flags;
+			char buf[HOST_ADDR_BUFLEN];
+
+			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
+			g_info("dynamically added hostile flags: %s (%s)", buf,
+				hostiles_flags_to_string(added));
+		}
 		entry->relative_time = tm_relative_time();
 		entry->he4_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv4, entry);
@@ -616,7 +626,7 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
-		if (GNET_PROPERTY(ban_debug) > 0) {
+		if (GNET_PROPERTY(ban_debug)) {
 			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
@@ -634,6 +644,12 @@ hostiles_dynamic_add_ipv6(const uint8 *ipv6, hostiles_flags_t flags)
 	struct hostiles_dynamic_entry6 *entry;
 
 	if (hash_list_find(hl_dynamic_ipv6, ipv6, cast_to_void_ptr(&entry))) {
+		if (GNET_PROPERTY(ban_debug)) {
+			hostiles_flags_t added = flags & ~entry->he6_flags;
+
+			g_info("dynamically added hostile flags: %s (%s)",
+				ipv6_to_string(ipv6), hostiles_flags_to_string(added));
+		}
 		entry->relative_time = tm_relative_time();
 		entry->he6_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv6, entry);
@@ -644,7 +660,7 @@ hostiles_dynamic_add_ipv6(const uint8 *ipv6, hostiles_flags_t flags)
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
-		if (GNET_PROPERTY(ban_debug) > 0) {
+		if (GNET_PROPERTY(ban_debug)) {
 			g_info("dynamically caught hostile: %s (%s)",
 				ipv6_to_string(ipv6), hostiles_flags_to_string(flags));
 		}
