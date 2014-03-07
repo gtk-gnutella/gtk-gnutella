@@ -5871,7 +5871,9 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 			(ST_UDP|ST_G2) == ((ST_UDP|ST_G2) & rs->status)
 		)
 	) {
-		hostiles_dynamic_add(rs->last_hop, "spam/evil query hits", flags);
+		host_addr_t n_addr = (0 == rs->hops) ? rs->last_hop : rs->addr;
+
+		hostiles_dynamic_add(n_addr, "spam/evil query hits", flags);
 		rs->status |= ST_HOSTILE;
 
 		/*
