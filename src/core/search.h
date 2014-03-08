@@ -154,6 +154,8 @@ search_request_listener_emit(
 struct g2_tree;
 
 bool search_is_valid(gnutella_node_t *n, uint8 h, search_request_info_t *sri);
+bool search_oob_is_allowed(
+	gnutella_node_t *n, const search_request_info_t *sri);
 bool search_results(gnutella_node_t *n, int *results);
 void search_g2_results(gnutella_node_t *n, const struct g2_tree *t);
 bool search_query_allowed(gnet_search_t sh);

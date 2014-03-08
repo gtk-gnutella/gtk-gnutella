@@ -944,17 +944,8 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 	 * Validate the return address if OOB hit delivery is configured.
 	 */
 
-	if (sri.oob) {
-		if (hostiles_is_bad(sri.addr)) {
-			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-			goto done;
-		}
-
-		if (is_my_address_and_port(sri.addr, sri.port)) {
-			gnet_stats_count_dropped(n, MSG_DROP_OWN_QUERY);
-			goto done;
-		}
-	}
+	if (sri.oob && !search_oob_is_allowed(n, &sri))
+		goto done;
 
 	/*
 	 * Update statistics, as done in search_request_preprocess() for Gnutella.

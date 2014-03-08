@@ -7964,6 +7964,53 @@ search_is_valid(gnutella_node_t *n, uint8 hops, search_request_info_t *sri)
 }
 
 /**
+ * Can we issue an OOB query with results sent to the given address?
+ *
+ * If not, the message drop is accounted for.
+ *
+ * @param n		the node where query comes from
+ * @param sri	the analyzed search string so far
+ *
+ * @return TRUE if search can be processed.
+ */
+bool
+search_oob_is_allowed(gnutella_node_t *n, const search_request_info_t *sri)
+{
+	hostiles_flags_t hostile;
+
+	node_check(n);
+	g_assert(sri->oob);
+
+	/*
+	 * Verify against the hostile IP addresses...
+	 */
+
+	hostile = hostiles_check(sri->addr);
+
+	if (
+		hostiles_flags_are_bad(hostile) ||
+		hostiles_flags_warrant_shunning(hostile)
+	) {
+		if (GNET_PROPERTY(search_debug)) {
+			g_debug("SEARCH dropping OOB query from hostile %s (%s)",
+				host_addr_to_string(sri->addr),
+				hostiles_flags_to_string(hostile));
+		}
+		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+		return FALSE;		/* Drop the message! */
+	}
+
+	if (is_my_address_and_port(sri->addr, sri->port)) {
+		if (GNET_PROPERTY(search_debug))
+			g_debug("SEARCH dropping OOB query from myself");
+		gnet_stats_count_dropped(n, MSG_DROP_OWN_QUERY);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Preprocesses searches requests (from others nodes).
  *
  * This is called after route_message(), so TTL and hops do not hold the values
@@ -8781,15 +8828,8 @@ skip_throttling:
 		 * Verify against the hostile IP addresses...
 		 */
 
-		if (hostiles_is_bad(sri->addr)) {
-			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-			goto drop;		/* Drop the message! */
-		}
-
-		if (is_my_address_and_port(sri->addr, sri->port)) {
-			gnet_stats_count_dropped(n, MSG_DROP_OWN_QUERY);
+		if (!search_oob_is_allowed(n, sri))
 			goto drop;
-		}
 
 		/*
 		 * If it's a neighbouring leaf query, make sure the IP for results
