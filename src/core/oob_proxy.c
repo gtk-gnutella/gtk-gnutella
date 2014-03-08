@@ -266,8 +266,7 @@ oob_proxy_create(gnutella_node_t *n)
 		 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
 		 */
 
-		opr = oob_proxy_rec_make(gnutella_header_get_muid(&n->header),
-				&proxied_muid, NODE_ID(n));
+		opr = oob_proxy_rec_make(muid, &proxied_muid, NODE_ID(n));
 		hikset_insert_key(proxied_queries, &opr->proxied_muid);
 
 		opr->expire_ev = cq_main_insert(PROXY_EXPIRE_MS,
@@ -285,7 +284,7 @@ oob_proxy_create(gnutella_node_t *n)
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1) {
 		g_debug("QUERY OOB-proxying query #%s from %s as #%s",
-			data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
+			guid_to_string(opr->leaf_muid),
 			node_infostr(n), guid_hex_str(opr->proxied_muid));
 	}
 
