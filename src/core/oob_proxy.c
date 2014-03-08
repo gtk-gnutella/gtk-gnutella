@@ -168,7 +168,7 @@ oob_proxy_rec_destroy(cqueue_t *cq, void *obj)
 
 	oob_proxy_rec_check(opr);
 
-	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
+	if (GNET_PROPERTY(query_debug) > 1 || GNET_PROPERTY(oob_proxy_debug) > 1)
 		g_debug("OOB proxied query leaf-MUID=%s proxied-MUID=%s expired",
 			guid_hex_str(opr->leaf_muid),
 			data_hex_str(opr->proxied_muid->v, GUID_RAW_SIZE));
@@ -185,10 +185,11 @@ oob_proxy_rec_destroy(cqueue_t *cq, void *obj)
 bool
 oob_proxy_create(gnutella_node_t *n)
 {
-	struct guid proxied_muid;
+	guid_t proxied_muid;
 	struct oob_proxy_rec *opr;
 	host_addr_t primary;
 	uint32 ipv4;
+	const guid_t *muid;
 
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH);
 	g_assert(NODE_IS_LEAF(n));
@@ -205,8 +206,9 @@ oob_proxy_create(gnutella_node_t *n)
 
 	primary = listen_addr_primary();
 	ipv4 = ipv6_ready_advertised_ipv4(primary);
+	muid = gnutella_header_get_muid(&n->header);	/* Leaf MUID */
 
-	memcpy(&proxied_muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
+	memcpy(&proxied_muid, muid, GUID_RAW_SIZE);
 	poke_be32(&proxied_muid.v[0], ipv4);
 	poke_le16(&proxied_muid.v[13], socket_listen_port());
 
@@ -217,24 +219,47 @@ oob_proxy_create(gnutella_node_t *n)
 
 	/*
 	 * Look whether we already have something for this proxied MUID.
-	 *
-	 * If it is coming from the same leaf, just increase the timeout.
-	 * Otherwise we have an MUID collision.
 	 */
 
 	opr = hikset_lookup(proxied_queries, &proxied_muid);
 
 	if (opr != NULL) {
 		if (opr->node_id != NODE_ID(n)) {
+			/* Critical enough to warrant a mandatory warning */
+			g_warning("QUERY OOB-proxying of query #%s from %s as #%s "
+				"failed: proxied MUID collision with another node",
+				guid_to_string(muid),
+				node_infostr(n),
+				guid_hex_str(&proxied_muid));
+			return FALSE;
+		}
+
+		/*
+		 * Coming from the same node as the one for which we created the
+		 * proxied MUID already.
+		 *
+		 * Make sure we have the same leaf MUID since we have the same proxied
+		 * MUID.  If there is a difference, we cannot allow proxying to continue
+		 * since an identical proxied MUID would map to two different MUIDs at
+		 * the leaf level.
+		 */
+
+		if (!guid_eq(muid, opr->leaf_muid)) {
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug)) {
 				g_warning("QUERY OOB-proxying of query #%s from %s as #%s "
-					"failed: proxied MUID collision",
-					data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
+					"failed: leaf MUID collision with #%s from same node",
+					guid_to_string(muid),
 					node_infostr(n),
-					guid_hex_str(&proxied_muid));
+					guid_hex_str(&proxied_muid),
+					data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE));
 			}
 			return FALSE;
 		}
+
+		/*
+		 * Since it is coming from the same leaf, just increase the timeout.
+		 */
+
 		cq_resched(opr->expire_ev, PROXY_EXPIRE_MS);
 	} else {
 		/*
@@ -258,7 +283,7 @@ oob_proxy_create(gnutella_node_t *n)
 
 	message_add(gnutella_header_get_muid(&n->header), GTA_MSG_SEARCH, NULL);
 
-	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug)) {
+	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1) {
 		g_debug("QUERY OOB-proxying query #%s from %s as #%s",
 			data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
 			node_infostr(n), guid_hex_str(opr->proxied_muid));
@@ -394,7 +419,7 @@ oob_proxy_pending_results(
 	 * Claim the results (all of it).
 	 */
 
-	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
+	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 2)
 		g_debug("QUERY OOB-proxied #%s notified of %d hits at %s %s"
 			" for leaf #%s %s, wants %u",
 			guid_hex_str(muid), hits,
@@ -407,7 +432,7 @@ oob_proxy_pending_results(
 	return TRUE;
 
 ignore:
-	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
+	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 2)
 		g_debug("QUERY OOB-proxied #%s "
 			"notified of %d hits at %s %s for leaf #%s %s, ignored (%s)",
 			guid_hex_str(muid), hits,
@@ -459,12 +484,16 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 	if (leaf == NULL) {
 		gnet_stats_count_dropped(n, MSG_DROP_ROUTE_LOST);
 
-		if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
+		if (
+			GNET_PROPERTY(query_debug) > 5 ||
+			GNET_PROPERTY(oob_proxy_debug) > 2
+		) {
 			g_debug(
 				"QUERY OOB-proxied #%s dropping %d hit%s from %s: no leaf #%s",
 				guid_hex_str(opr->proxied_muid),
 				results, plural(results),
 				node_addr(n), nid_to_string(opr->node_id));
+		}
 
 		return TRUE;		/* Leaf gone, drop the message */
 	}
@@ -507,7 +536,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 
 	dh_route(n, leaf, results);
 
-	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
+	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 2)
 		g_debug("QUERY OOB-proxied #%s routed %d hit%s to %s from %s %s",
 			guid_hex_str(opr->proxied_muid), results, plural(results),
 			node_infostr(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));
