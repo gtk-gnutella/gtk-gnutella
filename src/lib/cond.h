@@ -139,9 +139,9 @@ void cond_broadcast(cond_t *c, const struct mutex *m);
 
 size_t cond_vars_count(void);
 
-size_t cond_waiting_count(const cond_t const *c);
-size_t cond_signal_count(const cond_t const *c);
-size_t cond_pending_count(const cond_t const *c);
+size_t cond_waiting_count(const cond_t * const c);
+size_t cond_signal_count(const cond_t * const c);
+size_t cond_pending_count(const cond_t * const c);
 
 void cond_waiter_add(cond_t *c, struct waiter *w);
 bool cond_waiter_remove(cond_t *c, struct waiter *w);

@@ -765,7 +765,7 @@ done:
  * @return current amount of waiting threads
  */
 size_t
-cond_waiting_count(const cond_t const *c)
+cond_waiting_count(const cond_t * const c)
 {
 	cond_t *cw = deconstify_pointer(c);
 
@@ -787,7 +787,7 @@ cond_waiting_count(const cond_t const *c)
  * @return current amount of signals sent.
  */
 size_t
-cond_signal_count(const cond_t const *c)
+cond_signal_count(const cond_t * const c)
 {
 	cond_t *cw = deconstify_pointer(c);
 
@@ -805,7 +805,7 @@ cond_signal_count(const cond_t const *c)
  * its waiting predicate has been evaluated: it could go back to waiting.
  */
 size_t
-cond_pending_count(const cond_t const *c)
+cond_pending_count(const cond_t * const c)
 {
 	cond_t *cw = deconstify_pointer(c);
 	int p;
