@@ -1607,6 +1607,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	ssize_t r;
 	size_t parsed;
 	const char *first, *endptr;
+	hostiles_flags_t hostile;
 
 	(void) source;
 
@@ -1856,26 +1857,34 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * get banned silently.
 	 */
 
-	if (hostiles_is_bad(s->addr)) {
-		static const char msg[] = "Hostile IP address banned";
+	hostile = hostiles_check(s->addr);
+
+	if (
+		hostiles_flags_are_bad(hostile) ||
+		hostiles_flags_warrant_shunning(hostile)
+	) {
+		static const char banned[]  = "Hostile IP address banned";
+		static const char shunned[] = "Shunned IP address";
+		bool shun = hostiles_flags_warrant_shunning(hostile);
 
 		socket_disable_token(s);
 
 		if (GNET_PROPERTY(socket_debug)) {
 			const char *string = first;
-			hostiles_flags_t flags = hostiles_check(s->addr);
 
 			if (!is_printable_iso8859_string(first))
 				string = "<non-printable request>";
 			g_warning("denying connection from hostile %s (%s): \"%s\"",
 				host_addr_to_string(s->addr),
-				hostiles_flags_to_string(flags), string);
+				hostiles_flags_to_string(hostile), string);
 		}
 
-		if (is_strprefix(first, GNUTELLA_HELLO))
-			send_node_error(s, 550, msg);
-		else
-			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0, msg);
+		if (is_strprefix(first, GNUTELLA_HELLO)) {
+			send_node_error(s, 550, shun ? shunned : banned);
+		} else {
+			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0,
+				shun ? shunned : banned);
+		}
 		goto cleanup;
 	}
 
