@@ -610,11 +610,14 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 	if (hash_list_find(hl_dynamic_ipv4, &ipv4, cast_to_void_ptr(&entry))) {
 		if (GNET_PROPERTY(ban_debug)) {
 			hostiles_flags_t added = flags & ~entry->he4_flags;
-			char buf[HOST_ADDR_BUFLEN];
 
-			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
-			g_info("dynamically added hostile flags: %s (%s)", buf,
-				hostiles_flags_to_string(added));
+			if (added != 0) {
+				char buf[HOST_ADDR_BUFLEN];
+				host_addr_to_string_buf(host_addr_get_ipv4(ipv4),
+					buf, sizeof buf);
+				g_info("dynamically added hostile flags: %s (%s)", buf,
+					hostiles_flags_to_string(added));
+			}
 		}
 		entry->relative_time = tm_relative_time();
 		entry->he4_flags |= flags;
@@ -647,8 +650,10 @@ hostiles_dynamic_add_ipv6(const uint8 *ipv6, hostiles_flags_t flags)
 		if (GNET_PROPERTY(ban_debug)) {
 			hostiles_flags_t added = flags & ~entry->he6_flags;
 
-			g_info("dynamically added hostile flags: %s (%s)",
-				ipv6_to_string(ipv6), hostiles_flags_to_string(added));
+			if (added != 0) {
+				g_info("dynamically added hostile flags: %s (%s)",
+					ipv6_to_string(ipv6), hostiles_flags_to_string(added));
+			}
 		}
 		entry->relative_time = tm_relative_time();
 		entry->he6_flags |= flags;
