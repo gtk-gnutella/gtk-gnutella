@@ -7977,6 +7977,7 @@ bool
 search_oob_is_allowed(gnutella_node_t *n, const search_request_info_t *sri)
 {
 	hostiles_flags_t hostile;
+	msg_drop_reason_t reason = MSG_DROP_REASON_COUNT;
 
 	node_check(n);
 	g_assert(sri->oob);
@@ -7987,16 +7988,18 @@ search_oob_is_allowed(gnutella_node_t *n, const search_request_info_t *sri)
 
 	hostile = hostiles_check(sri->addr);
 
-	if (
-		hostiles_flags_are_bad(hostile) ||
-		hostiles_flags_warrant_shunning(hostile)
-	) {
+	if (hostiles_flags_are_bad(hostile))
+		reason = MSG_DROP_HOSTILE_IP;
+	else if (hostiles_flags_warrant_shunning(hostile))
+		reason = MSG_DROP_SHUNNED_IP;
+
+	if (reason != MSG_DROP_REASON_COUNT) {
 		if (GNET_PROPERTY(search_debug)) {
 			g_debug("SEARCH dropping OOB query from hostile %s (%s)",
 				host_addr_to_string(sri->addr),
 				hostiles_flags_to_string(hostile));
 		}
-		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+		gnet_stats_count_dropped(n, reason);
 		return FALSE;		/* Drop the message! */
 	}
 
