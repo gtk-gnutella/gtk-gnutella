@@ -121,7 +121,6 @@ buf_data(const buf_t *b)
  * Public interface.
  */
 
-size_t buf_size(const buf_t *b) G_GNUC_PURE;
 char *buf_data(const buf_t *b) G_GNUC_PURE;
 buf_t *buf_new(size_t size);
 buf_t *buf_new_embedded(size_t size);
