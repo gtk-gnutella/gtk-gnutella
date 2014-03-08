@@ -3406,14 +3406,14 @@ static G_GNUC_HOT gnet_results_set_t *
 get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 {
 	gnet_results_set_t *rs;
-	char *endptr, *s, *tag;
+	const char *endptr, *s, *tag;
 	uint32 nr = 0;
 	uint32 size, idx, taglen;
 	str_t *info;
 	unsigned sha1_errors = 0;
 	unsigned alt_errors = 0;
 	unsigned alt_without_hash = 0;
-	char *trailer = NULL;
+	const char *trailer = NULL;
 	bool seen_ggep_h = FALSE;
 	bool seen_ggep_alt = FALSE;
 	bool seen_ggep_alt6 = FALSE;
@@ -3464,7 +3464,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 		/* Now come the result set, and the servent ID will close the packet */
 
 		STATIC_ASSERT(11 == sizeof *r);
-		s = cast_to_pointer(&r[1]);	/* Start of the records */
+		s = cast_to_constpointer(&r[1]);	/* Start of the records */
 		endptr = &s[n->size - 11 - 16];	/* End of records, less header, GUID */
 	}
 
@@ -3483,7 +3483,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 
 	while (endptr - s > 10 && nr < rs->num_recs) {
 		gnet_record_t *rc;
-		char *filename;
+		const char *filename;
 
 		idx = peek_le32(s);
 		s += 4;					/* File Index */
