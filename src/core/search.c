@@ -8867,7 +8867,7 @@ skip_throttling:
 
 				if (
 					GNET_PROPERTY(query_debug) ||
-					GNET_PROPERTY(oob_proxy_debug)
+					GNET_PROPERTY(oob_proxy_debug) > 1
 				) {
 					g_debug("QUERY dropped from %s: invalid OOB flag "
 						"(return address mismatch: %s, node: %s)",
@@ -8890,7 +8890,7 @@ skip_throttling:
 
 			if (
 				GNET_PROPERTY(query_debug) ||
-				GNET_PROPERTY(oob_proxy_debug) ||
+				GNET_PROPERTY(oob_proxy_debug) > 1 ||
 				(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug))
 			) {
 				g_debug("QUERY %s#%s from %s: removed OOB flag "
