@@ -205,6 +205,8 @@
 #define TX_UT_MSG_MAXSIZE	(TX_UT_MTU * TX_UT_FRAG_MAX)
 #define TX_UT_SEND_MAX		4		/* Max amount of fragment transmissions */
 #define TX_UT_EAR_SEND_MAX	3		/* Max amount of EAR transmissions */
+#define TX_UT_ACK_SEND_MAX	6		/* Max amount of ACK re-queuing */
+#define TX_UT_ACK_DELAY		100		/* ms: delay before ACK re-queuing */
 #define TX_UT_BAN_FREQ		300		/* 5-minute ban if cannot reach host */
 #define TX_UT_GOOD_FREQ		900		/* Remember good hosts for 15 minutes */
 
@@ -359,6 +361,7 @@ struct ut_pmsg_info {
 	const gnet_host_t *to;	/* Destination address, simple reference */
 	struct attr *attr;		/* TX layer attributes */
 	uint8 fragno;			/* Fragment number, 0-based, 1-based for ACKs */
+	uint8 attempts;			/* Amount of ACK queuing attempts */
 };
 
 static inline void
@@ -1137,6 +1140,13 @@ cleanup:
 	WFREE(pmi);
 }
 
+static void
+ut_ack_async_send(cqueue_t *unused_cq, void *mb)
+{
+	(void) unused_cq;
+	ut_ack_send(mb);
+}
+
 /**
  * Acknowledge message free routine, invoked when the message was released by
  * a lower layer.
@@ -1150,19 +1160,53 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 	ut_attr_check(pmi->attr);		/* Signals this is info for an ack */
 
 	if (!pmsg_was_sent(mb)) {
-		pmsg_t *amb;
+		pmi->attempts++;
 
-		/*
-		 * Acknowledgment was not sent, re-enqueue a clone.
-		 *
-		 * It is safe to call pmsg_clone_extend() on the message even though
-		 * we're invoked here from pmsg_free() because it will be adding a
-		 * reference to the PDU data, and this will prevent releasing the PDU
-		 * at the end of pmsg_free().
-		 */
+		if (tx_ut_debugging(TX_UT_DBG_ACK, pmi->to)) {
+			const void *pdu = pmsg_start(mb);
+			udp_tag_t tag = udp_reliable_header_get_tag(pdu);
+			uint16 seqno = udp_reliable_header_get_seqno(pdu);
+			uint8 flags = udp_reliable_header_get_flags(pdu);
 
-		amb = pmsg_clone_extend(mb, ut_ack_pmsg_free, pmi);
-		ut_ack_send(amb);
+			g_debug("TX UT: %s: did not send %s%s%s%s "
+				"(tag=\"%s\", seq=0x%04x, fragment #%u) to %s "
+				"at attempt #%u, %s",
+				G_STRFUNC,
+				(flags & UDP_RF_CUMULATIVE_ACK) ? "cumulative " : "",
+				(flags & UDP_RF_EXTENDED_ACK) ? "extended " : "",
+				0 == pmi->fragno ? "EAR" : "ACK",
+				(0 == pmi->fragno && 0 == (flags & UDP_RF_ACKME)) ?
+					" NACK" : "",
+				udp_tag_to_string(tag),
+				seqno, pmi->fragno, gnet_host_to_string(pmi->to),
+				pmi->attempts,
+				pmi->attempts <= TX_UT_ACK_SEND_MAX ? "retrying" : "dropping");
+		}
+
+		if (pmi->attempts <= TX_UT_ACK_SEND_MAX) {
+			pmsg_t *amb;
+
+			/*
+			 * Acknowledgment was not sent, re-enqueue a clone.
+			 *
+			 * It is safe to call pmsg_clone_extend() on the message even though
+			 * we're invoked here from pmsg_free() because it will be adding a
+			 * reference to the PDU data, and this will prevent releasing the
+			 * PDU at the end of pmsg_free().
+			 */
+
+			amb = pmsg_clone_extend(mb, ut_ack_pmsg_free, pmi);
+
+			/*
+			 * Don't immediately call ut_ack_send(), because if the message is
+			 * being freed synchronously, we'll create a deadly recursion.
+			 *
+			 * We wait a little time in the hope that the condition which led
+			 * to the message being unsent will clear up.
+			 */
+
+			cq_main_insert(TX_UT_ACK_DELAY, ut_ack_async_send, amb);
+		}
 	} else {
 		if (tx_ut_debugging(TX_UT_DBG_ACK, pmi->to)) {
 			const void *pdu = pmsg_start(mb);
