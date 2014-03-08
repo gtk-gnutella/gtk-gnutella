@@ -63,7 +63,6 @@ main(int argc, char **argv)
 	bool done;
 	/* getopt() variables: */
 	extern int optind;
-	extern char *optarg;
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);

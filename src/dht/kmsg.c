@@ -2549,7 +2549,7 @@ hostile_checked:
 	 */
 
 	kmsg_handle(kn, n, header, extended_length,
-		ptr_add_offset(header, extended_length + KDA_HEADER_SIZE),
+		const_ptr_add_offset(header, extended_length + KDA_HEADER_SIZE),
 		len - KDA_HEADER_SIZE - extended_length);
 
 	knode_free(kn);		/* Will free only if not still referenced */

@@ -46,7 +46,6 @@ int
 main(int argc, char **argv)
 {
 	extern int optind;
-	extern char *optarg;
 	char *p;
 	int c;
 
