@@ -67,7 +67,7 @@ void gentime_init(void);
 void gentime_close(void);
 
 static inline bool ALWAYS_INLINE
-gentime_is_zero(const gentime_t const gt)
+gentime_is_zero(const gentime_t gt)
 {
 	return 0 == gt.stamp;
 }
@@ -76,7 +76,7 @@ gentime_is_zero(const gentime_t const gt)
  * Extract the time from a generation time.
  */
 static inline time_t ALWAYS_INLINE
-gentime_time(const gentime_t const gt)
+gentime_time(const gentime_t gt)
 {
 	return gt.stamp;
 }
