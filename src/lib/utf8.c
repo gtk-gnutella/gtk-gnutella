@@ -2400,7 +2400,7 @@ ascii_enforce(char *dst, size_t size, const char *src)
 	if (size > 0) {
 		uchar c;
 
-		for (/* NOTHING */; --size > 0 && '\0' != (c = *s); s++, size)
+		for (/* NOTHING */; --size > 0 && '\0' != (c = *s); s++)
 			*d++ = isascii(c) ? c : '_';
 
 		*d = '\0';
