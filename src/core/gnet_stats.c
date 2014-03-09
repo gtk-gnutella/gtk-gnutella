@@ -103,6 +103,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Route lost"),					 /**< MSG_DROP_ROUTE_LOST */
 		N_("No route"),						 /**< MSG_DROP_NO_ROUTE */
 		N_("Duplicate message"),			 /**< MSG_DROP_DUPLICATE */
+		N_("OOB Proxy MUID Conflict"),		 /**< MSG_DROP_OOB_PROXY_CONFLICT */
 		N_("Message to banned GUID"),		 /**< MSG_DROP_TO_BANNED */
 		N_("Message from banned GUID"),		 /**< MSG_DROP_FROM_BANNED */
 		N_("Node shutting down"),			 /**< MSG_DROP_SHUTDOWN */

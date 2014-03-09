@@ -1826,13 +1826,16 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 {
 	dquery_t *dq;
 	uint16 flags;
-	bool flags_valid;
-	const struct guid *leaf_muid;
+	bool flags_valid, proxied = FALSE;
+	const guid_t *leaf_muid;
+	guid_t orig_muid;
 
 	/* Query from leaf node */
 	g_assert(NODE_IS_LEAF(n));
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 	g_assert(NODE_IS_CONNECTED(n));
+
+	memcpy(&orig_muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
 
 	WALLOC0(dq);
 	dq->magic = DQUERY_MAGIC;
@@ -1871,7 +1874,6 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 		!(dq->flags & DQ_F_LEAF_GUIDED) &&
 		NULL == oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 	) {
-		bool proxied = FALSE;
 		if (
 			!GNET_PROPERTY(is_udp_firewalled) &&
 			GNET_PROPERTY(proxy_oob_queries) &&
@@ -1894,7 +1896,6 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 				);
 
 			if (oob_proxy_create(n)) {
-				gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
 				proxied = TRUE;
 			} else {
 				if (GNET_PROPERTY(dq_debug)) {
@@ -1928,13 +1929,72 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 	}
 
 	/*
+	 * The so-called leaf MUID is the MUID of the query originally isssued by
+	 * the leaf node if the query is being OOB-proxied locally.  It will be
+	 * NULL if the query is not being OOB-proxied.
+	 *
+	 * When non-NULL, it must not be already known (associated to another
+	 * running DQ).
+	 */
+
+	leaf_muid = oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header));
+
+	if (leaf_muid != NULL) {
+		dquery_t *odq = hikset_lookup(by_leaf_muid, leaf_muid);
+
+		if (odq != NULL) {
+			dquery_check(odq);
+
+			if (odq->flags & DQ_F_LINGER) {
+				/* No longer active, can remove this association */
+				hikset_remove(by_leaf_muid, leaf_muid);
+			} else {
+				g_warning("leaf MUID \"%s\" for dynamic query from %s, "
+					"would OOB-proxy to same MUID as \"%s\" already used by %s"
+					" -- dropping",
+					guid_hex_str(&orig_muid), node_infostr(n),
+					guid_to_string(leaf_muid),
+					NODE_ID(n) == odq->node_id ?
+						"same node" : node_id_infostr(odq->node_id));
+				goto abort_query;
+			}
+		}
+	}
+
+	/*
+	 * Likewise, the query MUID must not already be known.
+	 *
+	 * If the query MUID is not being OOB-proxied, it should already have
+	 * been caught by the routing table (as a duplicate incoming query).
+	 */
+
+	{
+		const guid_t *muid = gnutella_header_get_muid(&n->header);
+		dquery_t *odq = htable_lookup(by_muid, muid);
+
+		if (odq != NULL) {
+			dquery_check(odq);
+
+			if (odq->flags & DQ_F_LINGER) {
+				/* No longer active, can remove this association */
+				htable_remove(by_muid, muid);
+			} else {
+				g_warning("OOB-proxied MUID \"%s\" for dynamic query from %s, "
+					"is already used by another active query from %s"
+					" -- dropping",
+					guid_hex_str(muid), node_infostr(n),
+					NODE_ID(n) == odq->node_id ?
+						"same node" : node_id_infostr(odq->node_id));
+				goto abort_query;
+			}
+		}
+	}
+
+	/*
 	 * See whether we'll be seeing all the hits...
 	 */
 
-	if (
-		NULL != oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header)) ||	
-		(flags_valid && !(flags & QUERY_F_OOB_REPLY))
-	)
+	if (NULL != leaf_muid || (flags_valid && !(flags & QUERY_F_OOB_REPLY)))
 		dq->flags |= DQ_F_ROUTING_HITS;
 
 	/*
@@ -1945,6 +2005,13 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 		GNET_PROPERTY(gnet_compact_query) || (n->msg_flags & NODE_M_EXT_CLEANUP)
 	)
 		search_compact(n);
+
+	/*
+	 * We're going to launch this query coming from our leaf.
+	 */
+
+	if (proxied)
+		gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
 
 	dq->node_id = nid_ref(NODE_ID(n));
 	dq->mb = gmsg_split_to_pmsg(&n->header, n->data, n->size + GTA_HEADER_SIZE);
@@ -1959,7 +2026,6 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 	if (flags_valid)
 		dq->query_flags = flags;
 
-	leaf_muid = oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header));
 	if (leaf_muid != NULL)
 		dq->lmuid = atom_guid_get(leaf_muid);
 
@@ -1991,6 +2057,18 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 	dq_common_init(dq);
 	dq_sendto_leaves(dq, n);
 	dq_send_probe(dq);
+	return;
+
+abort_query:
+	/*
+	 * Do not launch this dynamic query.  Since we have not yet created any
+	 * data structure when we're re-routed here, we can free up local DQ and
+	 * return.
+	 */
+
+	dq->magic = 0;
+	WFREE(dq);
+	gnet_stats_count_dropped(n, MSG_DROP_OOB_PROXY_CONFLICT);
 }
 
 /**
