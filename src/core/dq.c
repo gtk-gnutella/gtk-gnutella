@@ -1760,7 +1760,7 @@ dq_common_init(dquery_t *dq)
 			"already used by %s.",
 			guid_hex_str(muid), node_id_infostr(dq->node_id),
 			dq->node_id == odq->node_id ?
-				"same node" : node_id_infostr(odq->node_id));
+				"same node" : node_id_infostr2(odq->node_id));
 	} else {
 		htable_insert(by_muid, atom_guid_get(muid), dq);
 	}
@@ -1779,7 +1779,7 @@ dq_common_init(dquery_t *dq)
 				"dynamic query from %s, already used by %s",
 				guid_hex_str(dq->lmuid), node_id_infostr(dq->node_id),
 				dq->node_id == odq->node_id ?
-					"same node" : node_id_infostr(odq->node_id));
+					"same node" : node_id_infostr2(odq->node_id));
 		} else {
 			hikset_insert_key(by_leaf_muid, &dq->lmuid);
 		}

@@ -11898,6 +11898,29 @@ node_gnet_addr(const gnutella_node_t *n)
 }
 
 /**
+ * Generate node information string into supplied buffer.
+ *
+ * @param n		the node for which we want to generate the info string
+ * @param dst	the destination buffer; may be NULL iff ``size'' is zero
+ * @param size	the size of ``dst'', in bytes
+ *
+ * @return the amount of formatted characters.
+ */
+size_t
+node_infostr_to_buf(const gnutella_node_t *n, char *dst, size_t size)
+{
+	if (NODE_USES_UDP(n)) {
+		return str_bprintf(dst, size, "UDP %snode %s",
+			NODE_CAN_SR_UDP(n) ?
+				(NODE_TALKS_G2(n) ? "(G2) " : "(semi-reliable) ") : "",
+			node_addr(n));
+	} else {
+		return str_bprintf(dst, size, "%s node %s <%s>",
+			node_type(n), node_gnet_addr(n), node_vendor(n));
+	}
+}
+
+/**
  * Node information string:
  *
  *   "leaf node 1.2.3.4:5 <vendor>"
@@ -11910,16 +11933,7 @@ node_infostr(const gnutella_node_t *n)
 {
 	static char buf[160];
 
-	if (NODE_USES_UDP(n)) {
-		str_bprintf(buf, sizeof buf, "UDP %snode %s",
-			NODE_CAN_SR_UDP(n) ?
-				(NODE_TALKS_G2(n) ? "(G2) " : "(semi-reliable) ") : "",
-			node_addr(n));
-	} else {
-		str_bprintf(buf, sizeof buf, "%s node %s <%s>",
-			node_type(n), node_gnet_addr(n), node_vendor(n));
-	}
-
+	node_infostr_to_buf(n, buf, sizeof buf);
 	return buf;
 }
 
@@ -11944,6 +11958,31 @@ node_addr_port_equal(const gnutella_node_t *n,
 	return host_addr_equal(addr, naddr);
 }
 
+/**
+ * Generate node information string into supplied buffer.
+ *
+ * @param id	the ID of node for which we want to generate the info string
+ * @param dst	the destination buffer; may be NULL iff ``size'' is zero
+ * @param size	the size of ``dst'', in bytes
+ *
+ * @return the amount of formatted characters.
+ */
+size_t
+node_id_infostr_to_buf(const struct nid *id, char *dst, size_t size)
+{
+	gnutella_node_t *n;
+
+	if (node_id_self(id))
+		return str_bprintf(dst, size, "ourselves");
+
+	n = node_by_id(id);
+	if (n != NULL) {
+		return node_infostr_to_buf(n, dst, size);
+	} else {
+		return str_bprintf(dst, size, "unknown node ID %s", nid_to_string(id));
+	}
+}
+
 /*
  * Node information string fror a node given by ID.
  *
@@ -11952,20 +11991,24 @@ node_addr_port_equal(const gnutella_node_t *n,
 const char *
 node_id_infostr(const struct nid *node_id)
 {
-	gnutella_node_t *n;
+	static char buf[160];
 
-	if (node_id_self(node_id))
-		return "ourselves";
+	node_id_infostr_to_buf(node_id, buf, sizeof buf);
+	return buf;
+}
 
-	n = node_by_id(node_id);
-	if (n != NULL) {
-		return node_infostr(n);
-	} else {
-		static char buf[128];
-		str_bprintf(buf, sizeof buf,
-			"unknown node ID %s", nid_to_string(node_id));
-		return buf;
-	}
+/*
+ * Node information string fror a node given by ID.
+ *
+ * @return pointer to static buffer.
+ */
+const char *
+node_id_infostr2(const struct nid *node_id)
+{
+	static char buf[160];
+
+	node_id_infostr_to_buf(node_id, buf, sizeof buf);
+	return buf;
 }
 
 /**
