@@ -227,10 +227,10 @@ oob_proxy_create(gnutella_node_t *n)
 		if (opr->node_id != NODE_ID(n)) {
 			/* Critical enough to warrant a mandatory warning */
 			g_warning("QUERY OOB-proxying of query #%s from %s as #%s "
-				"failed: proxied MUID collision with another node",
+				"failed: proxied MUID collision with %s",
 				guid_to_string(muid),
 				node_infostr(n),
-				guid_hex_str(&proxied_muid));
+				guid_hex_str(&proxied_muid), node_id_infostr(opr->node_id));
 			return FALSE;
 		}
 
