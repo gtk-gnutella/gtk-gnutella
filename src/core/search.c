@@ -2476,6 +2476,23 @@ lime_range_decode(const gnutella_node_t *n, const extvec_t *e, filesize_t size)
 }
 
 /**
+ * Cleanup the result record.
+ */
+static void
+search_record_cleanup(gnet_record_t *rc)
+{
+	/*
+	 * If the hit is flagged as partial, yet the remote server has 100% of
+	 * the file, clear the partial indication.
+	 */
+
+	if (rc->available >= rc->size) {
+		rc->available = 0;
+		rc->flags &= ~SR_PARTIAL_HIT;
+	}
+}
+
+/**
  * Perform address sanity check on result set and set flags accordingly.
  *
  * @param rs		the result set being constructed
@@ -3114,6 +3131,8 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 		badmsg = "no SHA1 found, resource unusable";
 		goto bad;
 	}
+
+	search_record_cleanup(rc);
 
 	return rc;
 
@@ -3931,6 +3950,8 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 				}
 			}
 		}
+
+		search_record_cleanup(rc);
 	}
 
 	/*
