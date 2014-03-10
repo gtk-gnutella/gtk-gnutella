@@ -7922,17 +7922,6 @@ search_request_info_alloc(void)
 }
 
 /**
- * @return search media type filter (0 if none).
- */
-unsigned
-search_request_media(const search_request_info_t *sri)
-{
-	g_assert(sri != NULL);
-
-	return sri->media_types;
-}
-
-/**
  * Free data structure and nullify its pointer.
  */
 void
@@ -8056,6 +8045,7 @@ search_request_preprocess(struct gnutella_node *n,
 	struct sha1 *last_sha1_digest = NULL;
 	host_addr_t ipv6_addr;
 	const guid_t *muid;
+	bool will_oob;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 	g_assert(sri != NULL);
@@ -8953,14 +8943,14 @@ skip_throttling:
 	 *                              --RAM, 2004-11-27                        
 	 */
 
-	sri->oob = sri->oob &&
+	will_oob = sri->oob &&
 			GNET_PROPERTY(process_oob_queries) && 
 			GNET_PROPERTY(recv_solicited_udp) && 
 			udp_active() &&
 			gnutella_header_get_hops(&n->header) > 1;
 
 	if (
-		!sri->oob &&
+		!will_oob &&
 		gnutella_header_get_hops(&n->header) > GNET_PROPERTY(max_ttl) &&
 		!settings_is_leaf()
 	) {
@@ -9010,7 +9000,7 @@ search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, query_hashvec_t *qhv)
 {
 	const char *search;
-	guid_t muid;
+	const guid_t *muid;
 	bool qhv_filled = FALSE;
 	bool oob;
 	char *safe_search = NULL;
@@ -9020,49 +9010,8 @@ search_request(struct gnutella_node *n,
 	g_assert(NODE_TALKS_G2(n) || GTA_MSG_SEARCH == function);
 	g_assert(sri != NULL);
 
-	/*
-	 * If the query does not have an OOB mark, comes from a leaf node and
-	 * they allow us to be an OOB-proxy, then replace the IP:port of the
-	 * query with ours, so that we are the ones to get the UDP replies.
-	 *
-	 * Since calling oob_proxy_create() is going to mangle the query's
-	 * MUID in place (alterting n->header.muid), we must save the MUID
-	 * in case we have local hits to deliver: since we send those directly
-	 *		--RAM, 2005-08-28
-	 */
-
-	muid = *gnutella_header_get_muid(&n->header);	/* Struct copy */
+	muid = gnutella_header_get_muid(&n->header);
 	oob = sri->oob;
-
-	if (
-		!oob &&
-		sri->may_oob_proxy &&
-		udp_active() &&
-		GNET_PROPERTY(proxy_oob_queries) &&
-		!GNET_PROPERTY(is_udp_firewalled) &&
-		NODE_IS_LEAF(n) &&
-		host_is_valid(listen_addr(), socket_listen_port())
-	) {
-		/*
-		 * OOB-proxying can fail if we have an MUID collision.
-		 */
-
-		if (oob_proxy_create(n)) {
-			oob = TRUE;
-			gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
-
-			/*
-			 * We're supporting OOBv3, so make sure the "SO" key is present
-			 * in the query if we're OOB-proxying it.
-			 *
-			 * We'll process the query only if it is actually sent, in
-			 * search_compact().
-			 */
-
-			n->msg_flags &= ~NODE_M_STRIP_GE_SO;
-			n->msg_flags |= NODE_M_ADD_GE_SO | NODE_M_EXT_CLEANUP;
-		}
-	}
 
 	/*
 	 * NOTE: search_request_preprocess() has already handled this query,
@@ -9353,9 +9302,9 @@ search_request(struct gnutella_node *n,
 				flags |= sri->g2_wants_url ? QHIT_F_G2_URL : 0;
 				flags |= sri->g2_wants_dn  ? QHIT_F_G2_DN  : 0;
 				flags |= sri->g2_wants_alt ? QHIT_F_G2_ALT : 0;
-				g2_build_send_qh2(n, g, qctx->files, qctx->found, &muid, flags);
+				g2_build_send_qh2(n, g, qctx->files, qctx->found, muid, flags);
 			} else {
-				qhit_send_results(n, qctx->files, qctx->found, &muid, flags);
+				qhit_send_results(n, qctx->files, qctx->found, muid, flags);
 			}
 		}
 

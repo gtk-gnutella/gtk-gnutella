@@ -145,7 +145,6 @@ void search_shutdown(void);
 
 search_request_info_t *search_request_info_alloc(void);
 void search_request_info_free_null(search_request_info_t **sri_ptr);
-unsigned search_request_media(const search_request_info_t *sri);
 
 void
 search_request_listener_emit(

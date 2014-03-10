@@ -37,6 +37,9 @@
 #include <math.h>	/* For pow() */
 #endif	/* I_MATH */
 
+#define SEARCH_SOURCES
+#include "search.h"
+
 #include "dq.h"
 
 #include "alive.h"
@@ -47,7 +50,6 @@
 #include "nodes.h"
 #include "oob_proxy.h"
 #include "qrp.h"
-#include "search.h"
 #include "settings.h"		/* For listen_addr() */
 #include "share.h"			/* For query_strip_oob_flag() */
 #include "sockets.h"		/* For udp_active() */
@@ -1819,14 +1821,16 @@ dq_common_init(dquery_t *dq)
  *
  * @param n				leaf node from which query comes from
  * @param qhv			computed query hash vector, for routing query via QRT
- * @param media_types	requested media type filters (0 if none)
+ * @param sri			query information from pre-processing stage
  */
 void
-dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
+dq_launch_net(
+	gnutella_node_t *n,
+	query_hashvec_t *qhv, const search_request_info_t *sri)
 {
 	dquery_t *dq;
 	uint16 flags;
-	bool flags_valid, proxied = FALSE;
+	bool flags_valid, proxied = FALSE, need_proxying = FALSE;
 	const guid_t *leaf_muid;
 	guid_t orig_muid;
 
@@ -1840,7 +1844,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 	WALLOC0(dq);
 	dq->magic = DQUERY_MAGIC;
 
-	flags = peek_be16(n->data);
+	flags = sri->flags;
 	flags_valid = 0 != (flags & QUERY_F_MARK);
 
 	/*
@@ -1863,68 +1867,84 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 		dq->flags |= DQ_F_LEAF_GUIDED;
 
 	/*
-	 * If the query is not leaf-guided and not OOB proxied already, then we
-	 * need to ensure results are routed back to us.
+	 * If the query is not leaf-guided, then we need to ensure results are
+	 * routed back to us by OOB-proxying the query.
+	 *
 	 * We won't know how much they filter out however, but they just have
 	 * to implement proper leaf-guidance for better results as leaves...
 	 *		--RAM, 2006-08-16
+	 *
+	 * If the leaf node is firewalled and won't be able to get UDP hits back,
+	 * make sure we also OOB-proxy the query (even if they support leaf
+	 * guidance) to avoid extra TCP traffic from the neighbouring ultrapeers.
+	 *
+	 * If the leaf node did not request OOB results, we also OOB-proxy it,
+	 * again to avoid extra TCP relaying from neighbouring ultrapeers.
+	 *
+	 * Because gtk-gnutella supports OOB-v3, we do not honour the no-proxying
+	 * flag that the host could send us.  This indication was devised by
+	 * LimeWire before the OOB-v3 days and is considered obsolete and useless
+	 * nowadays.
+	 *		--RAM, 2014-03-10
 	 */
 
-	if (
-		!(dq->flags & DQ_F_LEAF_GUIDED) &&
-		NULL == oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
-	) {
-		if (
-			!GNET_PROPERTY(is_udp_firewalled) &&
-			GNET_PROPERTY(proxy_oob_queries) &&
-			udp_active() &&
-			host_is_valid(listen_addr(), socket_listen_port())
-			/* NOTE: IPv6 OOB proxying won't work, so don't check for IPv6 */
-		) {
-			/*
-			 * Running with UDP support.
-			 * OOB-proxy the query so that we can control how much results
-			 * they get by routing the results ourselves to the leaf.
-			 */
+	need_proxying = !(dq->flags & DQ_F_LEAF_GUIDED) ||
+		(flags & QUERY_F_FIREWALLED) || !sri->oob;
 
-			if (GNET_PROPERTY(dq_debug) > 19)
-				g_debug("DQ %s #%s OOB-proxying query \"%s\" (%s)",
+	if (
+		need_proxying &&
+		!GNET_PROPERTY(is_udp_firewalled) &&
+		GNET_PROPERTY(proxy_oob_queries) &&
+		udp_active() &&
+		host_is_valid(listen_addr(), socket_listen_port())
+		/* NOTE: IPv6 OOB proxying won't work, so don't check for IPv6 */
+	) {
+		/*
+		 * Running with UDP support.
+		 * OOB-proxy the query so that we can control how much results
+		 * they get by routing the results ourselves to the leaf.
+		 */
+
+		if (GNET_PROPERTY(dq_debug) > 3) {
+			g_debug("DQ %s #%s OOB-proxying query \"%s\" (%s)",
+				node_infostr(n), nid_to_string(NODE_ID(n)),
+				n->data + 2,
+				(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
+					"guided" : "unguided"
+			);
+		}
+
+		if (oob_proxy_create(n)) {
+			proxied = TRUE;
+		} else {
+			if (GNET_PROPERTY(dq_debug)) {
+				g_warning("DQ %s #%s: "
+					"cannot OOB-proxy query \"%s\" (%s): MUID collision",
 					node_infostr(n), nid_to_string(NODE_ID(n)),
 					n->data + 2,
 					(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
-						"guided" : "unguided"
-				);
-
-			if (oob_proxy_create(n)) {
-				proxied = TRUE;
-			} else {
-				if (GNET_PROPERTY(dq_debug)) {
-					g_warning("DQ %s #%s: "
-						"cannot OOB-proxy query \"%s\" (%s): MUID collision",
-						node_infostr(n), nid_to_string(NODE_ID(n)),
-						n->data + 2,
-						(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
-							"guided" : "unguided");
-				}
+						"guided" : "unguided");
 			}
 		}
-		if (!proxied && flags_valid && (flags & QUERY_F_OOB_REPLY)) {
-			/*
-			 * Running without UDP support, or UDP-firewalled...
-			 * Must remove the OOB flag so that results be routed back.
-			 */
+	}
 
-			query_strip_oob_flag(n, n->data);
-			flags = peek_be16(n->data);	/* Refresh our cache */
+	if (!proxied && sri->oob) {
+		/*
+		 * Running without UDP support, or UDP-firewalled...
+		 * Must remove the OOB flag so that results be routed back.
+		 */
 
-			if (GNET_PROPERTY(dq_debug) > 19)
-				g_debug(
-					"DQ %s #%s stripped OOB on query \"%s\" (%s)",
-					node_infostr(n), nid_to_string(NODE_ID(n)),
-					n->data + 2,
-					(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
-						"guided" : "unguided"
-				);
+		query_strip_oob_flag(n, n->data);
+		flags = peek_be16(n->data);	/* Refresh our cache */
+
+		if (GNET_PROPERTY(dq_debug) > 1) {
+			g_debug(
+				"DQ %s #%s stripped OOB on query \"%s\" (%s)",
+				node_infostr(n), nid_to_string(NODE_ID(n)),
+				n->data + 2,
+				(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
+					"guided" : "unguided"
+			);
 		}
 	}
 
@@ -1956,7 +1976,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 					guid_to_string(leaf_muid),
 					NODE_ID(n) == odq->node_id ?
 						"same node" : node_id_infostr(odq->node_id));
-				goto abort_query;
+				goto oob_proxy_conflict;
 			}
 		}
 	}
@@ -1976,8 +1996,17 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 			dquery_check(odq);
 
 			if (odq->flags & DQ_F_LINGER) {
+				const void *key;
+				const guid_t *muid_key;
+				bool found;
+
+				found = htable_lookup_extended(by_muid, muid, &key, NULL);
+				g_assert(found);
+
 				/* No longer active, can remove this association */
 				htable_remove(by_muid, muid);
+				muid_key = key;
+				atom_guid_free_null(&muid_key);
 			} else {
 				g_warning("OOB-proxied MUID \"%s\" for dynamic query from %s, "
 					"is already used by another active query from %s"
@@ -1985,7 +2014,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 					guid_hex_str(muid), node_infostr(n),
 					NODE_ID(n) == odq->node_id ?
 						"same node" : node_id_infostr(odq->node_id));
-				goto abort_query;
+				goto oob_proxy_conflict;
 			}
 		}
 	}
@@ -1998,20 +2027,43 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 		dq->flags |= DQ_F_ROUTING_HITS;
 
 	/*
+	 * We're going to launch this query coming from our leaf.
+	 */
+
+	if (proxied) {
+		gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
+
+		/*
+		 * We're supporting OOBv3, so make sure the "SO" key is present in
+		 * the query if we're OOB-proxying it.
+		 */
+
+		n->msg_flags &= ~NODE_M_STRIP_GE_SO;
+		n->msg_flags |= NODE_M_ADD_GE_SO | NODE_M_EXT_CLEANUP;
+
+		/*
+		 * If they did not want us to OOB-proxy their query, emit a small
+		 * warning when debugging.
+		 */
+
+		if (NODE_NO_OOB_PROXY(n)) {
+			if (GNET_PROPERTY(dq_debug) || GNET_PROPERTY(oob_proxy_debug)) {
+				g_warning("OOB-proxied MUID \"%s\" for dynamic query from %s, "
+					"despite host vetoing it",
+					guid_to_string(leaf_muid), node_infostr(n));
+			}
+		}
+	}
+
+	/*
 	 * Compact query if requested.
 	 */
 
 	if (
-		GNET_PROPERTY(gnet_compact_query) || (n->msg_flags & NODE_M_EXT_CLEANUP)
+		GNET_PROPERTY(gnet_compact_query) ||
+		(n->msg_flags & NODE_M_EXT_CLEANUP)
 	)
 		search_compact(n);
-
-	/*
-	 * We're going to launch this query coming from our leaf.
-	 */
-
-	if (proxied)
-		gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
 
 	dq->node_id = nid_ref(NODE_ID(n));
 	dq->mb = gmsg_split_to_pmsg(&n->header, n->data, n->size + GTA_HEADER_SIZE);
@@ -2034,7 +2086,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 
 		packet = pmsg_start(dq->mb);
 		record_query_string(gnutella_header_get_muid(packet),
-			gnutella_msg_search_get_text(packet), media_types);
+			gnutella_msg_search_get_text(packet), sri->media_types);
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 1) {
@@ -2059,7 +2111,9 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 	dq_send_probe(dq);
 	return;
 
-abort_query:
+oob_proxy_conflict:
+	gnet_stats_count_dropped(n, MSG_DROP_OOB_PROXY_CONFLICT);
+
 	/*
 	 * Do not launch this dynamic query.  Since we have not yet created any
 	 * data structure when we're re-routed here, we can free up local DQ and
@@ -2068,7 +2122,6 @@ abort_query:
 
 	dq->magic = 0;
 	WFREE(dq);
-	gnet_stats_count_dropped(n, MSG_DROP_OOB_PROXY_CONFLICT);
 }
 
 /**

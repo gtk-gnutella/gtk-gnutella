@@ -9025,9 +9025,14 @@ route_only:
 		/*
 		 * A leaf-originated query needs to be handled via the dynamic
 		 * query mechanism.
+		 *
+		 * Skip duplicates coming from leaves with a higher TTL (leaves doing
+		 * dynamic querying of their own?... that's funny but happens!).
+		 *		--RAM, 2014-03-10
 		 */
 
-		dq_launch_net(n, qhv, search_request_media(sri));
+		if (!dest.duplicate)
+			dq_launch_net(n, qhv, sri);
 
 	} else if (settings_is_ultra()) {
 		/*

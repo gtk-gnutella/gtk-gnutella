@@ -495,6 +495,7 @@ enum {
 #define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
 #define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
 #define NODE_TALKS_G2(n)		((n)->attrs2 & NODE_A2_TALKS_G2)
+#define NODE_NO_OOB_PROXY(n)	((n)->attrs2 & NODE_A2_NO_OOB_PROXY)
 
 /*
  * NODE_CAN_SR_UDP() checks whether the UDP node has its message queue set up
