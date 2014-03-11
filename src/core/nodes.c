@@ -11097,20 +11097,10 @@ node_qrt_send(gnutella_node_t *n, struct routing_table *query_table)
 void
 node_qrt_changed(struct routing_table *query_table)
 {
-	struct gnutella_node *n;
 	pslist_t *sl;
 
-	/*
-	 * If we're in normal mode, do nothing.
-	 *
-	 * We have work to do when we're both a leaf and an ultra node, since
-	 * both can sent QRT to their peers (leaf nodes send QRT to their
-	 * ultranodes, and ultranodes send QRT to peer ultranodes supporting
-	 * the inter-UP QRP for last-hop queries).
-	 */
-
-	if (GNET_PROPERTY(current_peermode) == NODE_P_NORMAL)
-		return;
+	g_assert_log(GNET_PROPERTY(current_peermode) != NODE_P_NORMAL,
+		"%s(): normal node mode no longer supported!", G_STRFUNC);
 
 	/*
 	 * Abort sending of any patch to ultranodes, but only if we're a leaf
@@ -11122,7 +11112,7 @@ node_qrt_changed(struct routing_table *query_table)
 
 	if (settings_is_leaf()) {
 		for (sl = sl_nodes; sl; sl = pslist_next(sl)) {
-			n = sl->data;
+			gnutella_node_t *n = sl->data;
 			if (n->qrt_update != NULL) {
 				qrt_update_free(n->qrt_update);
 				n->qrt_update = NULL;
