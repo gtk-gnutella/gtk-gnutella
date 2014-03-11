@@ -148,19 +148,18 @@ host_g2_connect(host_addr_t addr, uint16 port)
 void
 host_timer(void)
 {
-    uint count, g2_count;
+	uint count, g2_count, max_nodes, max_g2_nodes;
 	int missing, g2_missing;
 	host_addr_t addr;
 	uint16 port;
 	host_type_t htype;
-	uint max_nodes;
 	bool empty_cache = FALSE, empty_g2_cache = FALSE;
 
 	if (in_shutdown || !GNET_PROPERTY(online_mode))
 		return;
 
-	max_nodes = settings_is_leaf() ?
-		GNET_PROPERTY(max_ultrapeers) : GNET_PROPERTY(max_connections);
+	max_nodes = node_outdegree();	/* Gnutella, depending on leaf/ultra mode */
+	max_g2_nodes = GNET_PROPERTY(max_g2_hubs);
 	count = node_count();			/* Established + connecting */
 	g2_count = node_g2_count();		/* Established + connecting */
 	missing = node_keep_missing();
@@ -194,10 +193,13 @@ host_timer(void)
 	 * than quick_connect_pool_size   This is the "greedy mode".
 	 */
 
-	if (count + g2_count >= GNET_PROPERTY(quick_connect_pool_size)) {
+	if (
+		(int) (count + g2_count - max_nodes - max_g2_nodes) >=
+			(int) GNET_PROPERTY(quick_connect_pool_size)
+	) {
 		if (GNET_PROPERTY(host_debug) > 1) {
-			g_debug("%s(): count %u + %u >= pool size %u",
-				G_STRFUNC, count, g2_count,
+			g_debug("%s(): count %u + %u - %u - %u >= pool size %u",
+				G_STRFUNC, count, g2_count, max_nodes, max_g2_nodes,
 				GNET_PROPERTY(quick_connect_pool_size));
 		}
 		return;
