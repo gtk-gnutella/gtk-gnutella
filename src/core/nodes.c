@@ -2832,7 +2832,7 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 	socket_eof(n->socket);
 
 	if (n->flags & NODE_F_CLOSING)		/* Bye sent or explicit shutdown */
-		node_remove_v(n, NULL, args);	/* Reuse existing reason */
+		node_remove_v(n, no_reason, args);	/* Reuse existing reason */
 	else
 		node_remove_v(n, reason, args);
 
