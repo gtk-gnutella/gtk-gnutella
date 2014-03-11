@@ -166,7 +166,8 @@ void gm_slist_free_null(GSList **sl_ptr);
 void gm_list_free_null(GList **l_ptr);
 void gm_hash_table_destroy_null(GHashTable **h_ptr);
 
-size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
+size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args)
+	G_GNUC_PRINTF(3, 0);
 size_t gm_snprintf(char *str, size_t n,
 	char const *fmt, ...) G_GNUC_PRINTF(3, 4);
 size_t gm_snprintf_unchecked(char *dst, size_t size,

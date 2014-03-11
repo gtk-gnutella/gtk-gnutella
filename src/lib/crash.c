@@ -2886,7 +2886,7 @@ crash_setbuild(unsigned build)
  * region and it should ideally be called before calling this routine.
  */
 void
-crash_setmain(int argc, const char *argv[], const char *env[])
+crash_setmain(int argc, const char **argv, const char **env)
 {
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
@@ -3131,7 +3131,7 @@ crash_save_stackframe(void *stack[], size_t count)
 
 	if (vars != NULL && 0 == vars->stackcnt) {
 		ck_memcpy(vars->mem,
-			&vars->stack, (void *) stack, count * sizeof(void *));
+			(void *) &vars->stack, (void *) stack, count * sizeof(void *));
 		crash_set_var(stackcnt, count);
 	}
 }

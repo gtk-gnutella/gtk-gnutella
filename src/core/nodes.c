@@ -2268,12 +2268,13 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
  * in shutdown mode, processing the messages we might still read from the
  * socket.
  */
-static void
+static void G_GNUC_PRINTF(3, 0)
 node_recursive_shutdown_v(
 	struct gnutella_node *n,
 	const char *where, const char *reason, va_list ap)
 {
-	char *fmt, *p;
+	char *p;
+	str_t *s = str_new(120);
 
 	g_assert(n->status == GTA_NODE_SHUTDOWN);
 	g_assert(n->error_str);
@@ -2285,9 +2286,12 @@ node_recursive_shutdown_v(
 		if (*p == '%')
 			*p = 'X';
 
-	fmt = str_cmsg("%s (%s) [within %s]", where, reason, n->error_str);
-	node_remove_v(n, fmt, ap);
-	HFREE_NULL(fmt);
+	str_printf(s, "%s (", where);
+	str_vcatf(s, reason, ap);
+	str_catf(s, ") [within %s]", n->error_str);
+
+	node_remove(n, "%s", str_2c(s));
+	str_destroy_null(&s);
 }
 
 /**
@@ -2792,11 +2796,9 @@ node_remove_by_addr(const host_addr_t addr, uint16 port)
 /**
  * The vectorized version of node_eof().
  */
-static void
+static void G_GNUC_PRINTF(2, 0)
 node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 {
-	const char *format;
-
 	node_check(n);
 
 	/*
@@ -2830,11 +2832,10 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 	socket_eof(n->socket);
 
 	if (n->flags & NODE_F_CLOSING)		/* Bye sent or explicit shutdown */
-		format = NULL;					/* Reuse existing reason */
+		node_remove_v(n, NULL, args);	/* Reuse existing reason */
 	else
-		format = reason;
+		node_remove_v(n, reason, args);
 
-	node_remove_v(n, format, args);
 }
 
 /**
@@ -2889,7 +2890,7 @@ node_shutdown_mode(struct gnutella_node *n, uint32 delay)
 /**
  * The vectorized version of node_shutdown().
  */
-static void
+static void G_GNUC_PRINTF(2, 0)
 node_shutdown_v(struct gnutella_node *n, const char *reason, va_list args)
 {
 	node_check(n);
@@ -2933,7 +2934,7 @@ node_shutdown(struct gnutella_node *n, const char *reason, ...)
 /**
  * The vectorized version of node_bye().
  */
-static void
+static void G_GNUC_PRINTF(3, 0)
 node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 {
 	gnutella_header_t head;
@@ -3738,7 +3739,7 @@ node_add_tx_deflated(void *o, int amount)
 	n->tx_deflated += amount;
 }
 
-static void
+static void G_GNUC_PRINTF(2, 3)
 node_tx_shutdown(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
@@ -3783,7 +3784,7 @@ node_add_tx_written(void *o, int amount)
 	n->last_tx = tm_time();
 }
 
-static void
+static void G_GNUC_PRINTF(2, 3)
 node_tx_eof_remove(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
@@ -3797,7 +3798,7 @@ node_tx_eof_remove(void *o, const char *reason, ...)
 	va_end(args);
 }
 
-static void
+static void G_GNUC_PRINTF(2, 3)
 node_tx_eof_shutdown(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
@@ -3997,7 +3998,7 @@ node_add_rx_inflated(void *o, int amount)
 	n->rx_inflated += amount;
 }
 
-static void 
+static void G_GNUC_PRINTF(2, 3)
 node_rx_inflate_error(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
@@ -4030,7 +4031,7 @@ node_add_rx_given(void *o, ssize_t amount)
 	n->rx_given += amount;
 }
 
-static void
+static void G_GNUC_PRINTF(2, 3)
 node_rx_read_error(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;

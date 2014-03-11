@@ -57,6 +57,7 @@
 #include "lib/utf8.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -6385,7 +6386,7 @@ const char bad_namespace3[] =
 	"<a xmlns:x='urn:x-ns' xmlns:y='urn:x-ns'><b x:a='' y:a=''/></a>";
 
 const char faulty[] = "<a>text<b>other text<c>x</c><d><e>text</a>";
-const char illseq[] = "<a>mañ</a>";
+const char illseq[] = "<a>maX</a>";
 
 static G_GNUC_COLD void
 vxml_run_simple_test(int num, const char *name,
@@ -6910,8 +6911,17 @@ vxml_test(void)
 	vxml_run_simple_test(29, "recursion_pe", recursion_pe,
 		CONST_STRLEN(recursion_pe), 0, VXML_E_ENTITY_RECURSION);
 
-	vxml_run_simple_test(30, "illseq", illseq, CONST_STRLEN(illseq),
-		0, VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE);
+	{
+		char *iseq = xstrdup(illseq);
+
+		/* Avoids warning about illegal char in litteral */
+		iseq[5] = (char) 0xF1;		/* Replaces 'X' with '\xf1' */
+
+		vxml_run_simple_test(30, "illseq", iseq, CONST_STRLEN(illseq),
+			0, VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE);
+
+		XFREE_NULL(iseq);
+	}
 }
 #else	/* !VXML_TESTING */
 void
