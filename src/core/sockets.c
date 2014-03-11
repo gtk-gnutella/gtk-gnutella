@@ -1865,7 +1865,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	) {
 		static const char banned[]  = "Hostile IP address banned";
 		static const char shunned[] = "Shunned IP address";
-		bool shun = hostiles_flags_warrant_shunning(hostile);
+		bool bad = hostiles_flags_are_bad(hostile);
 
 		socket_disable_token(s);
 
@@ -1880,10 +1880,10 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		}
 
 		if (is_strprefix(first, GNUTELLA_HELLO)) {
-			send_node_error(s, 550, shun ? shunned : banned);
+			send_node_error(s, 550, bad ? banned : shunned);
 		} else {
 			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0,
-				shun ? shunned : banned);
+				bad ? banned : shunned);
 		}
 		goto cleanup;
 	}
