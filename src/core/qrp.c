@@ -3415,9 +3415,17 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 			qrt_compressed(NULL, NULL, BGS_OK, qup);
 		} else {
 			if (qrp_debugging(1)) {
-				g_debug("QRP must wait for default routing patch (%s): %s",
-					node_infostr(n),
-					NULL == rp ? "none present" : "has wrong size");
+				if (NULL == rp) {
+					g_debug("QRP waiting for first default routing patch (%s)",
+						node_infostr(n));
+				} else {
+					g_debug("QRP default %s%d-bit routing patch (%s) has "
+						"%d entr%s but routing table has %d slot%s",
+						rp->compressed ? "compressed " : "", rp->entry_bits,
+						node_infostr(n),
+						rp->size, plural_y(rp->size),
+						routing_table->slots, plural(routing_table->slots));
+				}
 			}
 
 			qup->listener =
