@@ -3188,6 +3188,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			if (!sha1_hash_is_uptodate(sfn)) {
 				shared_file_unref(&sfn);
+				shared_file_unref(&sf);
 				goto sha1_recomputed;
 			}
 
