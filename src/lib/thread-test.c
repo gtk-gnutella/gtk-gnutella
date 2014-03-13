@@ -962,7 +962,7 @@ overflow_routine(void *arg)
 	int x = pointer_to_int(arg);
 	int c[128];
 
-	ZERO(c);
+	ZERO(&c);
 	c[0] = x;
 	c[1] = overflow_routine(&c[1]);
 
