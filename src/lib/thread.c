@@ -1121,6 +1121,7 @@ static void
 thread_stack_allocate(struct thread_element *te, size_t stacksize)
 {
 	size_t len;
+	int e;
 
 	if G_UNLIKELY(!thread_inited)
 		thread_init();
@@ -1141,7 +1142,7 @@ thread_stack_allocate(struct thread_element *te, size_t stacksize)
 		 */
 
 		te->stack_base = ptr_add_offset(te->stack, len);
-		mprotect(te->stack, thread_pagesize, PROT_NONE);	/* Red zone */
+		e = mprotect(te->stack, thread_pagesize, PROT_NONE);	/* Red zone */
 	} else {
 		/*
 		 * When the stack grows forward, the stack pointer is usually post-
@@ -1149,8 +1150,15 @@ thread_stack_allocate(struct thread_element *te, size_t stacksize)
 		 */
 
 		te->stack_base = te->stack;
-		mprotect(ptr_add_offset(te->stack, stacksize),
-			thread_pagesize, PROT_NONE);					/* Red zone */
+		e = mprotect(ptr_add_offset(te->stack, stacksize),
+			thread_pagesize, PROT_NONE);						/* Red zone */
+	}
+
+	if G_UNLIKELY(-1 == e) {
+		s_critical("%s(): cannot set red-zone page at end of "
+			"%s %zu-byte stack %p (base=%p): %m",
+			G_STRFUNC, thread_sp_direction < 0 ? "decreasing" : "increasing",
+			len, te->stack, te->stack_base);
 	}
 }
 
