@@ -1108,6 +1108,8 @@ guint32  gnet_property_variable_g2_browse_count     = 0;
 static const guint32  gnet_property_variable_g2_browse_count_default = 0;
 guint32  gnet_property_variable_g2_browse_served     = 0;
 static const guint32  gnet_property_variable_g2_browse_served_default = 0;
+gboolean gnet_property_variable_log_sending_g2     = FALSE;
+static const gboolean gnet_property_variable_log_sending_g2_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -10761,6 +10763,24 @@ gnet_prop_init(void) {
     gnet_property->props[480].data.guint32.choices = NULL;
     gnet_property->props[480].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[480].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOG_SENDING_G2:
+     *
+     * General data:
+     */
+    gnet_property->props[481].name = "log_sending_g2";
+    gnet_property->props[481].desc = _("Whether to log G2 messages we're attempting to send");
+    gnet_property->props[481].ev_changed = event_new("log_sending_g2_changed");
+    gnet_property->props[481].save = TRUE;
+    gnet_property->props[481].vector_size = 1;
+	mutex_init(&gnet_property->props[481].lock);
+
+    /* Type specific data: */
+    gnet_property->props[481].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[481].data.boolean.def   = (void *) &gnet_property_variable_log_sending_g2_default;
+    gnet_property->props[481].data.boolean.value = (void *) &gnet_property_variable_log_sending_g2;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

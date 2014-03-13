@@ -5534,4 +5534,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_sending_g2";
+	desc = "Whether to log G2 messages we're attempting to send";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

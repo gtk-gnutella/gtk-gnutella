@@ -177,7 +177,22 @@ g2_node_send(const gnutella_node_t *n, pmsg_t *mb)
 	else if (NODE_IS_WRITABLE(n))
 		mq_tcp_putq(n->outq, mb, NULL);
 	else
-		pmsg_free(mb);		/* Cannot send it, free it now */
+		goto drop;
+
+	if (GNET_PROPERTY(log_sending_g2)) {
+		g_debug("%s(): sending %s to %s",
+			G_STRFUNC, g2_msg_infostr_mb(mb), node_infostr(n));
+	}
+
+	return;
+
+drop:
+	if (GNET_PROPERTY(log_sending_g2)) {
+		g_debug("%s(): aborting sending %s to %s",
+			G_STRFUNC, g2_msg_infostr_mb(mb), node_infostr(n));
+	}
+
+	pmsg_free(mb);		/* Cannot send it, free it now */
 }
 
 /**
