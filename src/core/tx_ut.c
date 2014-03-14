@@ -1205,14 +1205,24 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 			 * to the message being unsent will clear up.
 			 */
 
+			gnet_stats_inc_general(GNR_UDP_SR_TX_ACKS_REQUEUED);
 			cq_main_insert(TX_UT_ACK_DELAY, ut_ack_async_send, amb);
+		} else {
+			const void *pdu = pmsg_start(mb);
+			uint8 flags = udp_reliable_header_get_flags(pdu);
+
+			if (flags & (UDP_RF_CUMULATIVE_ACK | UDP_RF_EXTENDED_ACK))
+				gnet_stats_inc_general(GNR_UDP_SR_TX_ENHANCED_ACKS_DROPPED);
+			else
+				gnet_stats_inc_general(GNR_UDP_SR_TX_PLAIN_ACKS_DROPPED);
 		}
 	} else {
+		const void *pdu = pmsg_start(mb);
+		uint8 flags = udp_reliable_header_get_flags(pdu);
+
 		if (tx_ut_debugging(TX_UT_DBG_ACK, pmi->to)) {
-			const void *pdu = pmsg_start(mb);
 			udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 			uint16 seqno = udp_reliable_header_get_seqno(pdu);
-			uint8 flags = udp_reliable_header_get_flags(pdu);
 
 			g_debug("TX UT: %s: sent %s%s%s%s "
 				"(tag=\"%s\", seq=0x%04x, fragment #%u) to %s",
@@ -1232,9 +1242,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 
 		if (0 == pmi->fragno) {
 			struct ut_msg *um;
-			const void *pdu = pmsg_start(mb);
 			uint16 seqno = udp_reliable_header_get_seqno(pdu);
-			uint8 flags = udp_reliable_header_get_flags(pdu);
 
 			/*
 			 * An EAR NACK is requested by the RX layer when it gets an EAR
@@ -1264,6 +1272,13 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 						ut_sending_delay(um->ears));
 				}
 			}
+		} else {
+			if (flags & UDP_RF_CUMULATIVE_ACK)
+				gnet_stats_inc_general(GNR_UDP_SR_TX_CUMULATIVE_ACKS_SENT);
+			else if (flags & UDP_RF_EXTENDED_ACK)
+				gnet_stats_inc_general(GNR_UDP_SR_TX_EXTENDED_ACKS_SENT);
+			else
+				gnet_stats_inc_general(GNR_UDP_SR_TX_PLAIN_ACKS_SENT);
 		}
 
 	done:
