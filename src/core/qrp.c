@@ -211,12 +211,13 @@ enum routing_patch_magic {
 struct routing_patch {
 	enum routing_patch_magic magic;
 	int refcnt;				/**< Amount of references */
-	uint8 *arena;
+	uint8 *arena;			/**< The patch physical arena */
 	int size;				/**< Number of entries in table */
 	int infinity;			/**< Value of infinity for the table patched */
 	int len;				/**< Length of arena in bytes */
-	int entry_bits;
-	bool compressed;
+	int entry_bits;			/**< Amount of bits for each slot in the patch */
+	uint compressed:1;		/**< Whether patch was compressed */
+	uint reversed:1;		/**< Whether each byte was reversed (for G2) */
 };
 
 static struct routing_table *routing_table; /**< Our table */
@@ -243,6 +244,32 @@ void test_hash(void);
 static bool qrp_can_route_default(
 	const query_hashvec_t *qhv, const struct routing_table *rt);
 static void qrt_patch_fire_ready(struct routing_patch *rp);
+
+/**
+ * Generate a description of the patch into a static string.
+ *
+ * @return pointer to static data.
+ */
+static const char *
+qrp_patch_to_string(const struct routing_patch * const rp)
+{
+	str_t *s = str_private(G_STRFUNC, 80);
+	char buf[16];
+
+	if (rp->compressed) {
+		int theoretical = rp->size * rp->entry_bits / 8;
+		str_bprintf(buf, sizeof buf, ", %.2f%%", rp->len * 100.0 / theoretical);
+	} else {
+		buf[0] = '\0';
+	}
+
+	str_printf(s, "%s%s%d-bit routing patch (%d slots, %d bytes%s)",
+		rp->reversed ? "reversed " : "",
+		rp->compressed ? "compressed " : "",
+		rp->entry_bits, rp->size, rp->len, buf);
+
+	return str_2c(s);
+}
 
 /**
  * Install supplied routing_table as the global `routing_table'.
@@ -750,7 +777,7 @@ qrt_diff_1(struct routing_table *old, struct routing_table *new, bool reverse)
 	g_assert(new->compacted);
 	g_assert(old == NULL || new->slots == old->slots);
 
-	WALLOC(rp);
+	WALLOC0(rp);
 	rp->magic = ROUTING_PATCH_MAGIC;
 	rp->refcnt = 1;
 	rp->size = new->slots;
@@ -758,6 +785,7 @@ qrt_diff_1(struct routing_table *old, struct routing_table *new, bool reverse)
 	rp->len = rp->size / 8;			/* Each entry stored in 1 bit */
 	rp->entry_bits = 1;
 	rp->compressed = FALSE;
+	rp->reversed = booleanize(reverse);
 	pp = rp->arena = halloc(rp->len);
 
 	op = old ? old->arena : NULL;
@@ -2194,10 +2222,8 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 		g_assert(ROUTING_PATCH_MAGIC == crp->magic);
 
 		if (qrp_debugging(1)) {
-			g_debug("%s(): npatch=%d, got %d-bit %scompressed patch %p "
-				"(size=%d, len=%d)",
-				G_STRFUNC, ctx->npatch, crp->entry_bits,
-				crp->compressed ? "" : "un-", crp, crp->size, crp->len);
+			g_debug("%s(): npatch=%d, got %s",
+				G_STRFUNC, ctx->npatch, qrp_patch_to_string(crp));
 		}
 
 		qrt_patch_ref(crp);		/* Keep it referenced for callback below */
@@ -2265,9 +2291,8 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 
 	if (ctx->compress_bt != NULL) {
 		if (qrp_debugging(1)) {
-			g_debug("%s(): npatch=%d, compressing %d-bit patch "
-				"(size=%d, len=%d)",
-				G_STRFUNC, ctx->npatch, rp->entry_bits, rp->size, rp->len);
+			g_debug("%s(): npatch=%d, compressing %s",
+				G_STRFUNC, ctx->npatch, qrp_patch_to_string(rp));
 		}
 
 		bg_task_sleep(bt);
@@ -2750,8 +2775,8 @@ qrt_patch_computed(struct bgtask *unused_h, void *unused_u,
 	g_assert(ctx->rpp != NULL);
 
 	if (qrp_debugging(1)) {
-		g_debug("QRP global default %d-bit patch %p computed (status = %d)",
-			ctx->rp->entry_bits, ctx->rp, status);
+		g_debug("QRP global default %s computed as %p (status = %s)",
+			qrp_patch_to_string(ctx->rp), ctx->rp, bgstatus_to_string(status));
 	}
 
 	if (status == BGS_OK) {
@@ -2902,8 +2927,8 @@ qrt_patch_compute(struct routing_patch *rp, struct routing_patch **rpp)
 	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (uint32) rp->len);
 
 	if (qrp_debugging(1)) {
-		g_debug("QRP launching compression of %d-bit patch %p",
-			rp->entry_bits, rp);
+		g_debug("QRP launching compression of %s at %p",
+			qrp_patch_to_string(rp), rp);
 	}
 
 	ctx->compress =
@@ -3307,15 +3332,15 @@ qrt_patch_available(void *arg, struct routing_patch *rp)
 
 		if (rp != qrt_default_patch(qup->node)) {
 			if (qrp_debugging(1)) {
-				g_debug("QRP got %d-bit routing patch %p for %s, wait again",
-					rp->entry_bits, rp, node_infostr(qup->node));
+				g_debug("QRP got %s at %p for %s, waiting again",
+					qrp_patch_to_string(rp), rp, node_infostr(qup->node));
 			}
 			return FALSE;
 		}
 
 		if (qrp_debugging(1)) {
-			g_debug("QRP got suitable %d-bit routing patch %p for %s",
-				rp->entry_bits, rp, node_infostr(qup->node));
+			g_debug("QRP got suitable %s at %p for %s",
+				qrp_patch_to_string(rp), rp, node_infostr(qup->node));
 		}
 	}
 
@@ -3384,9 +3409,8 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 
 		if (rp != NULL && rp->size == routing_table->slots) {
 			if (qrp_debugging(2)) {
-				g_debug("QRP default %s%d-bit routing patch already there (%s)",
-					rp->compressed ? "compressed " : "",
-					rp->entry_bits, node_infostr(n));
+				g_debug("QRP default %s already there (%s)",
+					qrp_patch_to_string(rp), node_infostr(n));
 			}
 
 			/*
@@ -3402,10 +3426,8 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 					rp4->len < rp->len
 				) {
 					if (qrp_debugging(2)) {
-						g_debug("QRP default %s%d-bit patch is smaller "
-							"(%d vs. %d)",
-							rp4->compressed ? "compressed " : "",
-							rp4->entry_bits, rp4->len, rp->len);
+						g_debug("QRP default %s is smaller (%d vs. %d)",
+							qrp_patch_to_string(rp4), rp4->len, rp->len);
 					}
 					rp = rp4;		/* Use smaller 4-bit patch then */
 				}
@@ -3419,10 +3441,9 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 					g_debug("QRP waiting for first default routing patch (%s)",
 						node_infostr(n));
 				} else {
-					g_debug("QRP default %s%d-bit routing patch (%s) has "
+					g_debug("QRP default %s (%s) has "
 						"%d entr%s but routing table has %d slot%s",
-						rp->compressed ? "compressed " : "", rp->entry_bits,
-						node_infostr(n),
+						qrp_patch_to_string(rp), node_infostr(n),
 						rp->size, plural_y(rp->size),
 						routing_table->slots, plural(routing_table->slots));
 				}
