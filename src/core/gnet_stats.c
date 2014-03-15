@@ -570,7 +570,7 @@ gnet_stats_digest(sha1_t *digest, const gnet_stats_t *stats)
 void
 gnet_stats_tcp_digest(sha1_t *digest)
 {
-	gnet_stats_digest(digest, &gnet_udp_stats);
+	gnet_stats_digest(digest, &gnet_tcp_stats);
 }
 
 /**
