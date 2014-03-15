@@ -2181,7 +2181,7 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 	(void) unused_ticks;
 
 	/*
-	 * See if we have been worken up after successful compression (see below
+	 * See if we have been woken up after successful compression (see below
 	 * in this step when we request sleeping).
 	 */
 
