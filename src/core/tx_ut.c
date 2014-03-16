@@ -1207,6 +1207,13 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 
 			gnet_stats_inc_general(GNR_UDP_SR_TX_ACKS_REQUEUED);
 			cq_main_insert(TX_UT_ACK_DELAY, ut_ack_async_send, amb);
+
+			/*
+			 * Leave the 'pmi' structure intact, since it's now used by the
+			 * cloned ACK message we're resending.
+			 */
+
+			return;
 		} else {
 			const void *pdu = pmsg_start(mb);
 			uint8 flags = udp_reliable_header_get_flags(pdu);
@@ -1280,12 +1287,12 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 			else
 				gnet_stats_inc_general(GNR_UDP_SR_TX_PLAIN_ACKS_SENT);
 		}
-
-	done:
-		atom_host_free_null(&pmi->to);	/* Reference taken on acks */
-		pmi->magic = 0;
-		WFREE(pmi);
 	}
+
+done:
+	atom_host_free_null(&pmi->to);	/* Reference taken on acks */
+	pmi->magic = 0;
+	WFREE(pmi);
 }
 
 /**
