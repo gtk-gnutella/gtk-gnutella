@@ -134,6 +134,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("DHT Too many STORE requests"),	 /**< MSG_DROP_DHT_TOO_MANY_STORE */
 		N_("DHT Malformed message"),		 /**< MSG_DROP_DHT_UNPARSEABLE */
 		N_("G2 Unexpected message"),		 /**< MSG_DROP_G2_UNEXPECTED */
+		N_("Cannot cross networks"),		 /**< MSG_DROP_NETWORK_CROSSING */
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(msg_drop_reasons) == MSG_DROP_REASON_COUNT);

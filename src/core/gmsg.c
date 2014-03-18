@@ -797,7 +797,7 @@ gmsg_split_routeto_all(
 }
 
 /**
- * Send message held in current node according to route specification.
+ * Send Gnutella message held in current node according to route specification.
  */
 void
 gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
@@ -822,8 +822,20 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 		g_assert_not_reached();
 		break;
 	case ROUTE_ONE:
+		node_check(rt_node);
+
 		/*
-		 * If message has size flags and the recipoent cannot understand it,
+		 * Make sure the message does not accidentally cross a network boundary.
+		 * This is a Gnutella message, it can only be sent to Gnutella nodes.
+		 */
+
+		if (NODE_TALKS_G2(rt_node)) {
+			gnet_stats_count_dropped(n, MSG_DROP_NETWORK_CROSSING);
+			return;
+		}
+
+		/*
+		 * If message has size flags and the recipient cannot understand it,
 		 * then too bad but we have to drop that message.  We account it
 		 * as dropped because this message was meant to be routed to one
 		 * recipient only.
@@ -845,6 +857,9 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	case ROUTE_MULTI:
 		for (sl = rt->ur.u_nodes; sl; sl = pslist_next(sl)) {
 			rt_node = sl->data;
+			node_check(rt_node);
+			if (NODE_TALKS_G2(rt_node))
+				continue;
 			if (n->header_flags && !NODE_CAN_SFLAG(rt_node))
 				continue;
 			gmsg_split_routeto_one(n, rt_node,
