@@ -822,6 +822,7 @@ g2_build_qh2_flush(struct g2_qh2_builder *ctx)
 		(*ctx->cb)(mb, ctx->arg);
 
 	ctx->messages++;
+	ctx->current_size = 0;
 	g2_tree_free_null(&ctx->t);
 }
 
