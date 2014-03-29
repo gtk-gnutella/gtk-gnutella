@@ -109,7 +109,6 @@ hostiles_flags_are_bad(const hostiles_flags_t flags)
 			HSTL_BAD_UTF8 |
 			HSTL_URL_SPAM |
 			HSTL_URN_SPAM |
-			HSTL_NAME_SPAM |
 			HSTL_OOB |
 			HSTL_CLOSE_FILENAME |
 			HSTL_BANNED_GUID
