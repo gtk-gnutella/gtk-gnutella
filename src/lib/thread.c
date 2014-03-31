@@ -6597,8 +6597,6 @@ thread_unblock(unsigned id)
 {
 	struct thread_element *te;
 
-	g_assert(id != thread_small_id());	/* Can't unblock oneself */
-
 	te = thread_get_element_by_id(id);
 	if (NULL == te) {
 		s_minicarp("%s(): cannot unblock thread #%u: %m", G_STRFUNC, id);
