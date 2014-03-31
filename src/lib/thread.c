@@ -3072,6 +3072,8 @@ thread_sig_handle(struct thread_element *te)
 	tsigset_t pending;
 	int s;
 
+	g_assert(0 == te->locks.count);
+
 	/*
 	 * Prevent recusion: since thread_check_suspended() will call
 	 * thread_sig_handle(), we must avoid endless checks when a signal
@@ -3155,6 +3157,12 @@ recheck:
 		te->sig_mask &= ~tsig_mask(s);
 
 		g_assert(te->in_signal_handler >= 0);
+		g_assert_log(0 == te->locks.count,
+			"%s(): handler %s() for signal #%d left %zu lock%s in %s%s%s",
+			G_STRFUNC, stacktrace_function_name(handler), s,
+			te->locks.count, plural(te->locks.count), thread_element_name(te),
+			thread_get_element() == te ? "" : " -- BUG: running in %s",
+			thread_get_element() == te ? "" : thread_name());
 
 		handled = TRUE;
 
