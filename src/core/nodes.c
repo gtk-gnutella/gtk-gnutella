@@ -10315,6 +10315,7 @@ node_g2_read(struct gnutella_node *n, pmsg_t *mb)
 
 		n->have_header = TRUE;
 		n->size = len;
+		ZERO(&n->header);					/* No header for G2 messages */
 
 		g_assert((size_t) n->size == len);	/* n->size large enough to hold */
 	}

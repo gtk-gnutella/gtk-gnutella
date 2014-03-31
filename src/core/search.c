@@ -3191,6 +3191,7 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 		g_assert(payload != NULL);
 		rs->hops = *(uint8 *) payload;
 	}
+	gnutella_header_set_hops(&n->header, rs->hops + 1);
 	rs->last_hop = n->addr;
 	rs->status |= ST_G2 | ST_PARSED_TRAILER;	/* No trailer in G2 */
 
