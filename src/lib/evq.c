@@ -122,7 +122,7 @@ evq_check(const struct evq * const evq)
 #define EVQ_UNLOCK(q)	mutex_unlock(&(q)->lock)
 
 static int evq_debug = 0;				/**< Debugging level */
-static cqueue_t *event_queue;			/**< Our private callout queue */
+static cqueue_t *ev_queue;				/**< Our private callout queue */
 static once_flag_t evq_inited;			/**< Records global initialization */
 static spinlock_t evq_global_slk = SPINLOCK_INIT;
 static uint evq_thread_id = THREAD_INVALID_ID;
@@ -201,8 +201,8 @@ evq_thread_main(void *unused_arg)
 		 * were recently run.
 		 */
 
-		if (0 != cq_heartbeat(event_queue))
-			cq_idle(event_queue);
+		if (0 != cq_heartbeat(ev_queue))
+			cq_idle(ev_queue);
 
 		/*
 		 * Compute the delay when the next event would fire in our queue, and
@@ -226,7 +226,7 @@ evq_thread_main(void *unused_arg)
 		g_assert_log(!tsig_ismember(&oset, TSIG_EVQ),
 			"%s(): cannot run with TSIG_EVQ blocked", G_STRFUNC);
 
-		delay = cq_delay(event_queue);
+		delay = cq_delay(ev_queue);
 		delay = MIN(delay, EVQ_PERIOD);	/* Run at least every EVQ_PERIOD */
 		tm_fill_ms(&ms, delay);
 
@@ -260,7 +260,7 @@ evq_thread_main(void *unused_arg)
 		s_debug("%s(): exiting", G_STRFUNC);
 
 	atomic_bool_set(&evq_running, FALSE);
-	cq_free_null(&event_queue);
+	cq_free_null(&ev_queue);
 	return NULL;
 }
 
@@ -283,7 +283,7 @@ evq_init_once(void)
 	 * first call cq_heartbeat() on it.
 	 */
 
-	event_queue = cq_make("evq", 0, EVQ_PERIOD);
+	ev_queue = cq_make("evq", 0, EVQ_PERIOD);
 	atomic_bool_set(&evq_run, TRUE);
 
 	evq_thread_id = thread_create(evq_thread_main, NULL,
@@ -399,12 +399,12 @@ evq_event_free(struct evq_event *eve)
 
 	/*
 	 * Watch out for shutdown, when the event queue thread is freeing its
-	 * own queued events: if the event_queue variable has been nullified,
+	 * own queued events: if the ev_queue variable has been nullified,
 	 * the callout queue is gone, hence we must not attempt to cancel the
 	 * events.
 	 */
 
-	if G_LIKELY(event_queue != NULL)
+	if G_LIKELY(ev_queue != NULL)
 		cq_cancel(&eve->ev);
 
 	eve->magic = 0;
@@ -777,7 +777,7 @@ evq_add(int delay, notify_fn_t fn, const void *arg, bool cancelable)
 
 	evq_init();
 
-	if G_UNLIKELY(NULL == event_queue)
+	if G_UNLIKELY(NULL == ev_queue)
 		return NULL;		/* Shutdowning */
 
 	q = evq_get(id);
@@ -816,7 +816,7 @@ evq_add(int delay, notify_fn_t fn, const void *arg, bool cancelable)
 		eve->refcnt++;
 
 	mutex_lock(&q->lock);
-	eve->ev = cq_insert(event_queue, delay, evq_trampoline, eve);
+	eve->ev = cq_insert(ev_queue, delay, evq_trampoline, eve);
 	elist_append(&q->events, eve);
 	mutex_unlock(&q->lock);
 
@@ -876,7 +876,7 @@ evq_cancel(evq_event_t **eve_ptr)
 {
 	evq_event_t *eve = *eve_ptr;
 
-	if G_UNLIKELY(NULL == event_queue)
+	if G_UNLIKELY(NULL == ev_queue)
 		return;		/* Shutdowning */
 
 	if (eve != NULL) {
@@ -984,7 +984,7 @@ evq_cancel(evq_event_t **eve_ptr)
  * Use cq_cancel() directly to cancel this event.
  *
  * @attention
- * We do not make the event_queue variable visible from the outside because
+ * We do not make the ev_queue variable visible from the outside because
  * we need to call evq_notify() each time we add an event since the event
  * queue heartbeats are not regularily spaced.
  */
@@ -995,10 +995,10 @@ evq_raw_insert(int delay, cq_service_t fn, void *arg)
 
 	evq_init();
 
-	if G_UNLIKELY(NULL == event_queue)
+	if G_UNLIKELY(NULL == ev_queue)
 		return NULL;	/* Shutdowning */
 
-	ev = cq_insert(event_queue, delay, fn, arg);
+	ev = cq_insert(ev_queue, delay, fn, arg);
 	evq_notify(delay);
 
 	return ev;
@@ -1017,10 +1017,10 @@ evq_raw_idle_add(cq_invoke_t event, void *arg)
 
 	evq_init();
 
-	if G_UNLIKELY(NULL == event_queue)
+	if G_UNLIKELY(NULL == ev_queue)
 		return NULL;	/* Shutdowning */
 
-	ci = cq_idle_add(event_queue, event, arg);
+	ci = cq_idle_add(ev_queue, event, arg);
 	evq_notify(0);		/* Always wake-up thread when new idle event added */
 
 	return ci;
@@ -1039,10 +1039,10 @@ evq_raw_periodic_add(int period, cq_invoke_t event, void *arg)
 
 	evq_init();
 
-	if G_UNLIKELY(NULL == event_queue)
+	if G_UNLIKELY(NULL == ev_queue)
 		return NULL;	/* Shutdowning */
 
-	cp = cq_periodic_add(event_queue, period, event, arg);
+	cp = cq_periodic_add(ev_queue, period, event, arg);
 	evq_notify(period);
 
 	return cp;
