@@ -5062,6 +5062,7 @@ thread_lock_reacquire(
 	const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
+	bool in_sig_handler = te->sig_handling;
 	/*
 	 * During re-acquisition of rwlocks, locks will be taken and we do not
 	 * want any pending signal delivery whilst we grab a lock that we were
@@ -5073,9 +5074,8 @@ thread_lock_reacquire(
 	 * is set.
 	 */
 
-	g_assert(!te->sig_handling);
-
-	te->sig_handling = TRUE;		/* Prevents any signal delivery */
+	if G_LIKELY(!in_sig_handler)
+		te->sig_handling = TRUE;		/* Prevents any signal delivery */
 
 	switch (kind) {
 	case THREAD_LOCK_SPINLOCK:
@@ -5110,7 +5110,8 @@ thread_lock_reacquire(
 	g_assert_not_reached();
 
 done:
-	te->sig_handling = FALSE;		/* Undo forced setting at entry */
+	if G_LIKELY(!in_sig_handler)
+		te->sig_handling = FALSE;		/* Undo forced setting at entry */
 }
 
 /**
