@@ -64,11 +64,15 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-GENERATED = msg_drop.c msg_drop.h
+GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h
 
 msg_drop.c msg_drop.h: drop.lst drop.dsc
 	-perl $(TOP)/scripts/enum-msg.pl drop.lst drop.dsc
 	touch msg_drop.c msg_drop.h
+
+gnr_stats.c gnr_stats.h: stats.lst stats.dsc
+	-perl $(TOP)/scripts/enum-msg.pl stats.lst stats.dsc
+	touch gnr_stats.c gnr_stats.h
 
 all:: $(GENERATED)
 

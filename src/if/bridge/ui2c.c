@@ -461,6 +461,13 @@ guc_gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 	return gnet_stats_drop_reason_to_string(reason);
 }
 
+const char *
+guc_gnet_stats_general_description(gnr_stats_t gs)
+{
+	return gnet_stats_general_description(gs);
+}
+
+
 /*	hcache interface functions (UI -> Core)*/
 void
 guc_hcache_clear_host_type(host_type_t type)

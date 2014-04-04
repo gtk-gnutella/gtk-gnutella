@@ -15148,7 +15148,7 @@ download_verify_sha1_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	download_set_status(d, GTA_DL_VERIFYING);
-	gnet_stats_inc_general(GRN_SHA1_VERIFICATIONS);
+	gnet_stats_inc_general(GNR_SHA1_VERIFICATIONS);
 }
 
 /**
@@ -15375,7 +15375,7 @@ download_verify_tigertree_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	download_set_status(d, GTA_DL_VERIFYING);
-	gnet_stats_inc_general(GRN_TTH_VERIFICATIONS);
+	gnet_stats_inc_general(GNR_TTH_VERIFICATIONS);
 }
 
 /**

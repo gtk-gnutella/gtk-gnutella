@@ -156,6 +156,7 @@ void guc_gnet_stats_tcp_get(gnet_stats_t *);
 void guc_gnet_stats_udp_get(gnet_stats_t *);
 void guc_gnet_get_bw_stats(gnet_bw_source, gnet_bw_stats_t *);
 const char *guc_gnet_stats_drop_reason_to_string(msg_drop_reason_t);
+const char *guc_gnet_stats_general_description(gnr_stats_t);
 
 /* hcache interface functions */
 void guc_hcache_clear_host_type(host_type_t);

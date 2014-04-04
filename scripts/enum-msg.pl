@@ -332,8 +332,16 @@ sub load_input {
 		next if /^#/ || /^\s*$/;
 		my ($sym, $text) = /^(\w+)\s*"(.*)"/;
 		unless (defined $sym) {
-			warn "$me: skipping bad line #$. '$_' in $file\n";
-			next;
+			# Handle continuations: symbol followed by text on next line
+			($sym) = /^(\w+)/;
+			if (defined $sym) {
+				$_ = <INPUT>;
+				($text) = /^\s+"(.*)"/;		# Continuation must be indented
+			}
+			if (!defined($sym) || !defined($text)) {
+				warn "$me: skipping bad line #$. '$_' in $file\n";
+				next;
+			}
 		}
 		push(@$sref, $sym);
 		push(@$tref, $text);

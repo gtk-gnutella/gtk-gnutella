@@ -112,6 +112,7 @@ SRC = \
 	features.c \
 	fileinfo.c \
 	gdht.c \
+	gen-gnr_stats.c \
 	gen-msg_drop.c \
 	geo_ip.c \
 	ggep.c \
@@ -211,6 +212,7 @@ OBJ = \
 	features.o \
 	fileinfo.o \
 	gdht.o \
+	gen-gnr_stats.o \
 	gen-msg_drop.o \
 	geo_ip.o \
 	ggep.o \
@@ -298,11 +300,15 @@ CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-GENERATED = gen-msg_drop.c
+GENERATED = gen-msg_drop.c gen-gnr_stats.c
 
 gen-msg_drop.c: $(IF)/gen/msg_drop.c
 	$(RM) -f $@
 	$(LN) $(IF)/gen/msg_drop.c $@
+
+gen-gnr_stats.c: $(IF)/gen/gnr_stats.c
+	$(RM) -f $@
+	$(LN) $(IF)/gen/gnr_stats.c $@
 
 depend:: $(GENERATED)
 

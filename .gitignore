@@ -70,6 +70,9 @@ src/bin/sha1sum
 # Generated from template
 osx/Info-gtk-gnutella.plist
 
+# Hard-linked files from if/gen
+src/core/gen-*.c
+
 /po/*.gmo
 /po/stamp-po
 /po/remove-potcdate.sed
