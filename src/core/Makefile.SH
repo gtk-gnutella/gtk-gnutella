@@ -41,6 +41,7 @@ CC = $cc
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
+LN = $ln
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
@@ -111,6 +112,7 @@ SRC = \
 	features.c \
 	fileinfo.c \
 	gdht.c \
+	gen-msg_drop.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
@@ -209,6 +211,7 @@ OBJ = \
 	features.o \
 	fileinfo.o \
 	gdht.o \
+	gen-msg_drop.o \
 	geo_ip.o \
 	ggep.o \
 	ggep_type.o \
@@ -287,13 +290,24 @@ OBJ = \
 	vmsg.o \
 	whitelist.o 
 
+IF = ../if
+GNET_PROPS = gnet_property.h
+
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
+CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+GENERATED = gen-msg_drop.c
+
+gen-msg_drop.c: $(IF)/gen/msg_drop.c
+	$(RM) -f $@
+	$(LN) $(IF)/gen/msg_drop.c $@
+
+depend:: $(GENERATED)
+
+local_realclean::
+	$(RM) -f $(GENERATED)
 
 .FORCE:
 

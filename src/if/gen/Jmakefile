@@ -1,9 +1,7 @@
 /*
- * $Id$
+ * Copyright (c) 2014 Raphael Manfredi
  *
- * Copyright (c) 2004, Raphael Manfredi
- *
- * Jmakefile for interface sources.
+ * Jmakefile for interface generated sources.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,36 +23,19 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id$
-
-SetSubdirs(bridge gen)
-DependSubdirs()
-
-SOURCES = gnet_property.c gui_property.c
-
-++GLIB_CFLAGS $glibcflags
-
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
-
-all:: properties
-
-properties: gnet_property.c gui_property.c
+GENERATED = msg_drop.c msg_drop.h
 
 /*
- * In case they don't have autogen, ignore the failure but make the
- * targets appear up to date
+ * We use "perl ..." in the command below to let the script run even though
+ * it could be edited -- this avoid the "Text file busy" check in the kernel
+ * which would happen if we had let the "#!" hook run perl.
  */
 
-gnet_property_priv.h gnet_property.c gnet_property.h: gnet_props.ag props.tpl
-	-autogen gnet_props.ag
-	touch gnet_property_priv.h gnet_property.c gnet_property.h
+msg_drop.c msg_drop.h: drop.lst drop.dsc
+	-perl $(TOP)/scripts/enum-msg.pl drop.lst drop.dsc
+	touch msg_drop.c msg_drop.h
 
-gui_property_priv.h gui_property.c gui_property.h: gui_props.ag props.tpl
-	-autogen gui_props.ag
-	touch gui_property_priv.h gui_property.c gui_property.h
+all:: $(GENERATED)
 
-NormalObjectTarget(gnet_property)
-NormalObjectTarget(gui_property)
 DependTarget()
 

@@ -46,6 +46,7 @@ SRC = \
 	features.c \
 	fileinfo.c \
 	gdht.c \
+	gen-msg_drop.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
@@ -139,13 +140,24 @@ OBJ = \
 /* Add the Socker flags */
 ++SOCKER_CFLAGS $sockercflags
 
+IF = ../if
+GNET_PROPS = gnet_property.h
+
 ;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
+CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+GENERATED = gen-msg_drop.c
+
+gen-msg_drop.c: $(IF)/gen/msg_drop.c
+	$(RM) -f $@
+	$(LN) $(IF)/gen/msg_drop.c $@
+
+depend:: $(GENERATED)
+
+local_realclean::
+	$(RM) -f $(GENERATED)
 
 RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
 NormalLibraryTarget(core, $(SRC), $(OBJ))

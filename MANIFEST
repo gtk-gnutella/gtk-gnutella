@@ -254,6 +254,7 @@ po/remove-potcdate.sin
 po/tr.po
 po/uk.po
 po/zh_CN.po
+scripts/enum-msg.pl
 scripts/fix_copyright.pl
 scripts/generic-cat
 scripts/generic-pp
@@ -571,6 +572,12 @@ src/if/dht/publish.h
 src/if/dht/routing.h
 src/if/dht/stable.h
 src/if/dht/value.h
+src/if/gen/Jmakefile
+src/if/gen/Makefile.SH
+src/if/gen/drop.dsc
+src/if/gen/drop.lst
+src/if/gen/msg_drop.c
+src/if/gen/msg_drop.h
 src/if/gnet_property.c
 src/if/gnet_property.h
 src/if/gnet_property_priv.h

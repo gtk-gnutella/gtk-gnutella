@@ -81,69 +81,6 @@ static spinlock_t gnet_stats_slk = SPINLOCK_INIT;
  ***/
 
 const char *
-gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
-{
-	static const char * const msg_drop_reasons[] = {
-		N_("Bad size"),						 /**< MSG_DROP_BAD_SIZE */
-		N_("Too small"),					 /**< MSG_DROP_TOO_SMALL */
-		N_("Too large"),					 /**< MSG_DROP_TOO_LARGE */
-		N_("Way too large"),				 /**< MSG_DROP_WAY_TOO_LARGE */
-		N_("Too old"),					 	 /**< MSG_DROP_TOO_OLD */
-		N_("Unknown message type"),			 /**< MSG_DROP_UNKNOWN_TYPE */
-		N_("Unexpected message"),			 /**< MSG_DROP_UNEXPECTED */
-		N_("Message sent with TTL = 0"),	 /**< MSG_DROP_TTL0 */
-		N_("Improper hops/ttl combination"), /**< MSG_DROP_IMPROPER_HOPS_TTL */
-		N_("Max TTL exceeded"),				 /**< MSG_DROP_MAX_TTL_EXCEEDED */
-		N_("Message throttle"),				 /**< MSG_DROP_THROTTLE */
-		N_("Message matched limits"),		 /**< MSG_DROP_LIMIT */
-		N_("Transient node"),				 /**< MSG_DROP_TRANSIENT */
-		N_("Unusable Pong"),				 /**< MSG_DROP_PONG_UNUSABLE */
-		N_("Hard TTL limit reached"),		 /**< MSG_DROP_HARD_TTL_LIMIT */
-		N_("Max hop count reached"),		 /**< MSG_DROP_MAX_HOP_COUNT */
-		N_("Route lost"),					 /**< MSG_DROP_ROUTE_LOST */
-		N_("No route"),						 /**< MSG_DROP_NO_ROUTE */
-		N_("Duplicate message"),			 /**< MSG_DROP_DUPLICATE */
-		N_("OOB Proxy MUID Conflict"),		 /**< MSG_DROP_OOB_PROXY_CONFLICT */
-		N_("Message to banned GUID"),		 /**< MSG_DROP_TO_BANNED */
-		N_("Message from banned GUID"),		 /**< MSG_DROP_FROM_BANNED */
-		N_("Node shutting down"),			 /**< MSG_DROP_SHUTDOWN */
-		N_("TX flow control"),				 /**< MSG_DROP_FLOW_CONTROL */
-		N_("Query text had no trailing NUL"),/**< MSG_DROP_QUERY_NO_NUL */
-		N_("Query text too short"),			 /**< MSG_DROP_QUERY_TOO_SHORT */
-		N_("Query had unnecessary overhead"),/**< MSG_DROP_QUERY_OVERHEAD */
-		N_("Query had bad URN"),			 /**< MSG_DROP_BAD_URN */
-		N_("Message with malformed SHA1"),	 /**< MSG_DROP_MALFORMED_SHA1 */
-		N_("Message with malformed UTF-8"),	 /**< MSG_DROP_MALFORMED_UTF_8 */
-		N_("Malformed Query Hit"),			 /**< MSG_DROP_BAD_RESULT */
-		N_("Bad return address"),			 /**< MSG_DROP_BAD_RETURN_ADDRESS */
-		N_("Hostile IP address"),			 /**< MSG_DROP_HOSTILE_IP */
-		N_("Shunned IP address"),			 /**< MSG_DROP_SHUNNED_IP */
-		N_("Bogus result from Morpheus"),	 /**< MSG_DROP_MORPHEUS_BOGUS */
-		N_("Spam"),							 /**< MSG_DROP_SPAM */
-		N_("Evil filename"),				 /**< MSG_DROP_EVIL */
-		N_("Improper media type"),			 /**< MSG_DROP_MEDIA */
-		N_("Payload inflating error"),		 /**< MSG_DROP_INFLATE_ERROR */
-		N_("Unknown header flags present"),/**< MSG_DROP_UNKNOWN_HEADER_FLAGS */
-		N_("Own search results"),			 /**< MSG_DROP_OWN_RESULT */
-		N_("Own queries"),			 		 /**< MSG_DROP_OWN_QUERY */
-		N_("Ancient query format"),			 /**< MSG_DROP_ANCIENT_QUERY */
-		N_("Blank Servent ID"),				 /**< MSG_DROP_BLANK_SERVENT_ID */
-		N_("GUESS Query missing token"), /**< MSG_DROP_GUESS_MISSING_TOKEN */
-		N_("GUESS Invalid query token"), /**< MSG_DROP_GUESS_INVALID_TOKEN */
-		N_("DHT Invalid security token"),	 /**< MSG_DROP_DHT_INVALID_TOKEN */
-		N_("DHT Too many STORE requests"),	 /**< MSG_DROP_DHT_TOO_MANY_STORE */
-		N_("DHT Malformed message"),		 /**< MSG_DROP_DHT_UNPARSEABLE */
-		N_("G2 Unexpected message"),		 /**< MSG_DROP_G2_UNEXPECTED */
-		N_("Cannot cross networks"),		 /**< MSG_DROP_NETWORK_CROSSING */
-	};
-
-	STATIC_ASSERT(G_N_ELEMENTS(msg_drop_reasons) == MSG_DROP_REASON_COUNT);
-	g_return_val_if_fail(UNSIGNED(reason) < G_N_ELEMENTS(msg_drop_reasons),
-		NULL);
-	return msg_drop_reasons[reason];
-}
-
-const char *
 gnet_stats_general_to_string(gnr_stats_t type)
 {
 	/* Do NOT translate any of these strings */

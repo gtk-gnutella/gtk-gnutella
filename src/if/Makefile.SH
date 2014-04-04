@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -48,7 +48,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = bridge
+SUBDIRS = bridge gen
 USRINC = $usrinc
 SOURCES =  gnet_property.c gui_property.c
 GLIB_CFLAGS =  $glibcflags
