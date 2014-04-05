@@ -634,6 +634,8 @@ gnet_stats_count_expired(const gnutella_node_t *n)
     gnet_stats.pkg.dropped[t]++;						\
     gnet_stats.byte.dropped[MSG_TOTAL] += (s);			\
     gnet_stats.byte.dropped[t] += (s);					\
+	gs->drop_reason[reason][MSG_TOTAL]++;				\
+	gs->drop_reason[reason][t]++;						\
     gs->pkg.dropped[MSG_TOTAL]++;						\
     gs->pkg.dropped[t]++;								\
     gs->byte.dropped[MSG_TOTAL] += (s);					\
