@@ -1,7 +1,7 @@
 /*
- * Generated on Sat Apr  5 11:22:52 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sat Apr  5 12:09:15 2014 by enum-msg.pl -- DO NOT EDIT
  *
- * Command: ../../../scripts/enum-msg.pl msg.lst msg.dsc
+ * Command: ../../../scripts/enum-msg.pl msg.lst
  */
 
 #include "common.h"

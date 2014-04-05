@@ -1,7 +1,7 @@
 /*
- * Generated on Sat Apr  5 11:22:52 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sat Apr  5 12:09:15 2014 by enum-msg.pl -- DO NOT EDIT
  *
- * Command: ../../../scripts/enum-msg.pl drop.lst drop.dsc
+ * Command: ../../../scripts/enum-msg.pl drop.lst
  */
 
 #ifndef _if_gen_msg_drop_h_

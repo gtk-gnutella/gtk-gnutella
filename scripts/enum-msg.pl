@@ -53,13 +53,10 @@
 # Protection-Prefix: xxx	-- String to prepend to #ifndef for header file
 #
 # Assuming the constants are held in "file.lst" and the parameters of this
-# script in "file.dsc", then the generation process can be launched by
-# running:
+# script are at the top (header), then the generation process can be launched
+# by running:
 #
-#	enum-msg.pl file.lst file.dsc
-#
-# By default nothing is generated if the generated files are more recent than
-# the "file.lst" file, but generation can be forced by using '-f'.
+#	enum-msg.pl file.lst
 #
 
 use strict;
@@ -87,24 +84,26 @@ use vars qw/$opt_h/;
 
 &usage unless getopts("h");
 &usage if $opt_h;
-&usage unless 2 == @ARGV;
+&usage unless 1 == @ARGV;
 
 sub usage {
 	die <<EOM;
-Usage: $me [-h] file.lst file.dsc
+Usage: $me [-h] file.lst
   -h : print this message and exit
 EOM
 }
 
 
-my ($input, $desc) = @ARGV;
+my ($input) = @ARGV;
 
 my %desc;
 my (@sym, @text);
 my (%files, %hprotect);
 
-load_desc($desc, \%desc);
-load_input($input, \@sym, \@text);
+open(INPUT, $input) || die "$me: cannot open $input: $!\n";
+
+load_desc(\*INPUT, \%desc);
+load_input(\*INPUT, \@sym, \@text);
 
 my $enum		= $desc{$KEY_ENUM};
 my $init		= $desc{$KEY_ENUM_INIT};
@@ -121,10 +120,10 @@ my $e2txt		= $desc{$KEY_ENUM_TO_DESCRIPTION};
 my $lowercase	= $desc{$KEY_LOWERCASE} =~ /yes/i;
 my $i18n		= $desc{$KEY_I18N} =~ /yes/i;
 
-die "$me: missing $KEY_ENUM_TO_CODE key in $desc to handle $KEY_SYMBOLIC\n"
+die "$me: missing $KEY_ENUM_TO_CODE key in $input to handle $KEY_SYMBOLIC\n"
 	if defined $symbolic && !defined $sym_cfile;
 
-die "$me: missing $KEY_ENUM_TO_HEADER key in $desc to handle $KEY_SYMBOLIC\n"
+die "$me: missing $KEY_ENUM_TO_HEADER key in $input to handle $KEY_SYMBOLIC\n"
 	if defined $symbolic && !defined $sym_hfile;
 
 #
@@ -181,7 +180,7 @@ EOC
 if (defined $sym_cfile && defined $symbolic) {
 	my $fdc = create_file($sym_cfile);
 	my $fdh = create_file($sym_hfile) if defined $sym_hfile;
-	die "$me: key $KEY_ENUM missing in description file $desc"
+	die "$me: key $KEY_ENUM missing in header"
 		unless defined $enum;
 	print $fdh <<EOH if defined $fdh && defined $e2sym;
 const char *$e2sym($enum x);
@@ -227,7 +226,7 @@ EOC
 if (defined $sym_cfile && defined $etext) {
 	my $fdc = create_file($sym_cfile);
 	my $fdh = create_file($sym_hfile) if defined $sym_hfile;
-	die "$me: key $KEY_ENUM missing in description file $desc"
+	die "$me: key $KEY_ENUM missing in header"
 		unless defined $enum;
 	print $fdh <<EOH if defined $fdh && defined $e2txt;
 const char *$e2txt($enum x);
@@ -293,7 +292,7 @@ sub create_file {
 /*
  * Generated on $time by $me -- DO NOT EDIT
  *
- * Command: $0 $input $desc
+ * Command: $0 $input
  */
 
 EOC
@@ -313,28 +312,28 @@ EOC
 
 # Load description: what we need to generate and where
 sub load_desc {
-	my ($file, $href) = @_;
-	open(DESC, $file) || die "$me: cannot open $file: $!\n";
+	my ($fd, $href) = @_;
+	my $seen_header = 0;
 	local $_, $.;
-	while (<DESC>) {
+	while (<$fd>) {
 		chomp;
+		last if $seen_header && /^\s*$/;	# End of header
 		next if /^#/ || /^\s*$/;
 		my ($key, $value) = /^([-\w]+):\s*(.*)/;
 		unless (defined $key) {
-			warn "$me: skipping bad line #$. '$_' in $file\n";
+			warn "$me: skipping bad line #$. '$_'\n";
 			next;
 		}
 		$href->{lc($key)} = $value;
+		$seen_header++;
 	}
-	close DESC;
 }
 
 # Load input: the symbols to define and their English description
 sub load_input {
-	my ($file, $sref, $tref) = @_;
-	open(INPUT, $file) || die "$me: cannot open $file: $!\n";
+	my ($fd, $sref, $tref) = @_;
 	local $_, $.;
-	while (<INPUT>) {
+	while (<$fd>) {
 		chomp;
 		next if /^#/ || /^\s*$/;
 		my ($sym, $text) = /^(\w+)\s*"(.*)"/;
@@ -346,13 +345,12 @@ sub load_input {
 				($text) = /^\s+"(.*)"/;		# Continuation must be indented
 			}
 			if (!defined($sym) || !defined($text)) {
-				warn "$me: skipping bad line #$. '$_' in $file\n";
+				warn "$me: skipping bad line #$. '$_'\n";
 				next;
 			}
 		}
 		push(@$sref, $sym);
 		push(@$tref, $text);
 	}
-	close INPUT;
 }
 

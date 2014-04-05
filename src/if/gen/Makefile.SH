@@ -66,16 +66,16 @@ all:: .FORCE_DEPEND
 
 GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h msg.h msg.c
 
-msg_drop.c msg_drop.h: drop.lst drop.dsc
-	-perl $(TOP)/scripts/enum-msg.pl drop.lst drop.dsc
+msg_drop.c msg_drop.h: drop.lst
+	-perl $(TOP)/scripts/enum-msg.pl drop.lst
 	touch msg_drop.c msg_drop.h
 
-gnr_stats.c gnr_stats.h: stats.lst stats.dsc
-	-perl $(TOP)/scripts/enum-msg.pl stats.lst stats.dsc
+gnr_stats.c gnr_stats.h: stats.lst
+	-perl $(TOP)/scripts/enum-msg.pl stats.lst
 	touch gnr_stats.c gnr_stats.h
 
-msg.c msg.h: msg.lst msg.dsc
-	-perl $(TOP)/scripts/enum-msg.pl msg.lst msg.dsc
+msg.c msg.h: msg.lst
+	-perl $(TOP)/scripts/enum-msg.pl msg.lst
 	touch msg.c msg.h
 
 all:: $(GENERATED)

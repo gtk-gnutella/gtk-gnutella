@@ -574,17 +574,14 @@ src/if/dht/stable.h
 src/if/dht/value.h
 src/if/gen/Jmakefile
 src/if/gen/Makefile.SH
-src/if/gen/drop.dsc
 src/if/gen/drop.lst
 src/if/gen/gnr_stats.c
 src/if/gen/gnr_stats.h
 src/if/gen/msg.c
-src/if/gen/msg.dsc
 src/if/gen/msg.h
 src/if/gen/msg.lst
 src/if/gen/msg_drop.c
 src/if/gen/msg_drop.h
-src/if/gen/stats.dsc
 src/if/gen/stats.lst
 src/if/gnet_property.c
 src/if/gnet_property.h
