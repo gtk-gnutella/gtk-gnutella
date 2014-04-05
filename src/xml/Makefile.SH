@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-174]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -41,6 +41,7 @@ CC = $cc
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
+LN = $ln
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
@@ -66,7 +67,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,12 +82,14 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	gen-vxml.c \
 	vxml.c \
 	xattr.c \
 	xfmt.c \
 	xnode.c
 
 OBJ = \
+	gen-vxml.o \
 	vxml.o \
 	xattr.o \
 	xfmt.o \
@@ -95,6 +98,17 @@ OBJ = \
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
+
+IF = ../if
+
+gen-vxml.c:   $(IF)/gen/vxml.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-vxml.c
+
+local_realclean::
+	$(RM) -f  gen-vxml.c
 
 all:: libxml.a
 

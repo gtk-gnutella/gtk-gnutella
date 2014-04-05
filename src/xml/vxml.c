@@ -1370,67 +1370,6 @@ vxml_versionsrc_to_string(enum vxml_versionsrc v)
 }
 
 /**
- * Translates errors into English.
- */
-G_GNUC_COLD const char *
-vxml_strerror(vxml_error_t error)
-{
-	switch (error) {
-	case VXML_E_OK:						return "OK";
-	case VXML_E_UNSUPPORTED_BYTE_ORDER:	return "Unsupported byte order";
-	case VXML_E_UNSUPPORTED_CHARSET:	return "Unsupported character set";
-	case VXML_E_TRUNCATED_INPUT:		return "Truncated input stream";
-	case VXML_E_EXPECTED_NAME_START:	return "Expected a valid name start";
-	case VXML_E_INVALID_CHAR_REF:		return "Invalid character reference";
-	case VXML_E_INVALID_CHARACTER:		return "Invalid Unicode character";
-	case VXML_E_INVALID_NAME_CHARACTER:	return "Invalid character in name";
-	case VXML_E_UNKNOWN_ENTITY_REF:		return "Unknown entity reference";
-	case VXML_E_UNEXPECTED_CHARACTER:	return "Unexpected character";
-	case VXML_E_UNEXPECTED_WHITESPACE:	return "Unexpected white space";
-	case VXML_E_BAD_CHAR_IN_NAME:		return "Bad character in name";
-	case VXML_E_INVALID_TAG_NESTING:	return "Invalid tag nesting";
-	case VXML_E_EXPECTED_QUOTE:			return "Expected quote (\"'\" or '\"')";
-	case VXML_E_EXPECTED_GT:			return "Expected '>'";
-	case VXML_E_EXPECTED_SPACE:			return "Expected white space";
-	case VXML_E_EXPECTED_LBRAK:			return "Expected '['";
-	case VXML_E_EXPECTED_RBRAK:			return "Expected ']'";
-	case VXML_E_EXPECTED_DOCTYPE_DECL:	return "Expected a DOCTYPE declaration";
-	case VXML_E_EXPECTED_TWO_MINUS:		return "Expected '--'";
-	case VXML_E_EXPECTED_DECL_TOKEN:	return "Expected a declaration token";
-	case VXML_E_EXPECTED_NDATA_TOKEN:	return "Expected NDATA token";
-	case VXML_E_EXPECTED_CDATA_TOKEN:	return "Expected CDATA token";
-	case VXML_E_EXPECTED_COND_TOKEN:	return "Expected INCLUDE or IGNORE";
-	case VXML_E_UNEXPECTED_LT:			return "Was not expecting '<'";
-	case VXML_E_UNEXPECTED_XML_PI:		return "Unexpected <?xml...?>";
-	case VXML_E_UNEXPECTED_TAG_END:		return "Unexpected tag end";
-	case VXML_E_NESTED_DOCTYPE_DECL:	return "Nested DOCTYPE declaration";
-	case VXML_E_INVALID_VERSION:		return "Invalid version number";
-	case VXML_E_VERSION_OUT_OF_RANGE:	return "Version number out of range";
-	case VXML_E_USER:					return "User-defined error";
-	case VXML_E_DUP_ATTRIBUTE:			return "Duplicate attribute";
-	case VXML_E_DUP_DEFAULT_NAMESPACE:	return "Duplicate default namespace";
-	case VXML_E_BAD_CHAR_IN_NAMESPACE:	return "Bad character in namespace";
-	case VXML_E_NAMESPACE_REDEFINITION:	return "Invalid namespace redefinition";
-	case VXML_E_UNKNOWN_NAMESPACE:		return "Unknown namespace prefix";
-	case VXML_E_EMPTY_NAME:				return "Empty name";
-	case VXML_E_IO:						return "I/O error";
-	case VXML_E_ENTITY_RECURSION:		return "Possible entity recursion";
-	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
-		return "Unknown character encoding name";
-	case VXML_E_INVALID_CHAR_ENCODING_NAME:
-		return "Invalid character encoding name";
-	case VXML_E_UNREADABLE_CHAR_ENCODING:
-		return "Input is unreadable in the specified encoding";
-	case VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE:
-		return "Reached illegal character byte sequence";
-	case VXML_E_MAX:
-		break;
-	}
-
-	return "Invalid VXML error code";
-}
-
-/**
  * Same as vxml_strerror() but also support user-defined error, whose string
  * is stored in the parser.
  */

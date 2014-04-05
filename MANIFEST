@@ -595,6 +595,9 @@ src/if/gen/msg.lst
 src/if/gen/msg_drop.c
 src/if/gen/msg_drop.h
 src/if/gen/stats.lst
+src/if/gen/vxml.c
+src/if/gen/vxml.h
+src/if/gen/vxml.lst
 src/if/gnet_property.c
 src/if/gnet_property.h
 src/if/gnet_property_priv.h

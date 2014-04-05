@@ -28,6 +28,7 @@
 ;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	gen-vxml.c \
 	vxml.c \
 	xattr.c \
 	xfmt.c \
@@ -44,6 +45,13 @@ OBJ = \
 ;# Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
+
+IF = ../if
+
+#define LinkGenInterface(file)		@!\
+LinkSourceFileAlias(file, $(IF)/gen, gen-file)
+
+LinkGenInterface(vxml.c)
 
 NormalLibraryTarget(xml, $(SRC), $(OBJ))
 DependTarget()

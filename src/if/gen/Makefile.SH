@@ -134,6 +134,16 @@ regenerate::
 	$(RM) -f  http_url.c  http_url.h
 	$(MAKE)  http_url.c  http_url.h
 
+vxml.c  vxml.h: vxml.lst
+	-perl $(TOP)/scripts/enum-msg.pl vxml.lst
+	touch  vxml.c  vxml.h
+
+all::  vxml.c  vxml.h
+
+regenerate::
+	$(RM) -f  vxml.c  vxml.h
+	$(MAKE)  vxml.c  vxml.h
+
 local_depend:: ../../../mkdep
 
 ../../../mkdep:

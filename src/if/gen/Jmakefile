@@ -49,6 +49,7 @@ EnumGenerate(stats.lst, gnr_stats)
 EnumGenerate(msg.lst, msg)
 EnumGenerate(http_async.lst, http_async)
 EnumGenerate(http_url.lst, http_url)
+EnumGenerate(vxml.lst, vxml)
 
 DependTarget()
 
