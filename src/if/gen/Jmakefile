@@ -42,6 +42,7 @@ regenerate::									@@\
 	$(RM) -f base.c base.h						@@\
 	$(MAKE) base.c base.h						@!\
 
+EnumGenerate(dmesh_url.lst, dmesh_url)
 EnumGenerate(drop.lst, msg_drop)
 EnumGenerate(stats.lst, gnr_stats)
 EnumGenerate(msg.lst, msg)

@@ -112,6 +112,7 @@ SRC = \
 	features.c \
 	fileinfo.c \
 	gdht.c \
+	gen-dmesh_url.c \
 	gen-gnr_stats.c \
 	gen-http_async.c \
 	gen-http_url.c \
@@ -215,6 +216,7 @@ OBJ = \
 	features.o \
 	fileinfo.o \
 	gdht.o \
+	gen-dmesh_url.o \
 	gen-gnr_stats.o \
 	gen-http_async.o \
 	gen-http_url.o \
@@ -305,6 +307,15 @@ GNET_PROPS = gnet_property.h
 CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
+
+gen-dmesh_url.c:   $(IF)/gen/dmesh_url.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-dmesh_url.c
+
+local_realclean::
+	$(RM) -f  gen-dmesh_url.c
 
 gen-gnr_stats.c:   $(IF)/gen/gnr_stats.c
 	$(RM) -f $@

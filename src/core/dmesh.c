@@ -450,35 +450,23 @@ dmesh_can_use_fwalt(void)
  *** Mesh URL parsing.
  ***/
 
-static const char * const parse_errstr[] = {
-	"OK",									/**< DMESH_URL_OK */
-	"HTTP parsing error",					/**< DMESH_URL_HTTP_PARSER */
-	"File prefix neither /uri-res nor /get",/**< DMESH_URL_BAD_FILE_PREFIX */
-	"Index in /get/index is reserved",		/**< DMESH_URL_RESERVED_INDEX */
-	"No filename after /get/index",			/**< DMESH_URL_NO_FILENAME */
-	"Bad URL encoding",						/**< DMESH_URL_BAD_ENCODING */
-	"Malformed /uri-res/N2R?",				/**< DMESH_URL_BAD_URI_RES */
-};
-
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
 const char *
 dmesh_url_strerror(dmesh_url_error_t errnum)
 {
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr))
-		return "Invalid error code";
+	if (DMESH_URL_HTTP_PARSER == errnum) {
+		str_t *s = str_private(G_STRFUNC, 80);
 
-	if (errnum == DMESH_URL_HTTP_PARSER) {
-		static char http_error_str[128];
+		str_printf(s, "%s: %s",
+			dmesh_url_error_to_string(errnum),
+			http_url_strerror(http_url_errno));
 
-		concat_strings(http_error_str, sizeof http_error_str,
-			parse_errstr[errnum], ": ", http_url_strerror(http_url_errno),
-			(void *) 0);
-		return http_error_str;
+		return str_2c(s);
 	}
 
-	return parse_errstr[errnum];
+	return dmesh_url_error_to_string(errnum);
 }
 
 /**

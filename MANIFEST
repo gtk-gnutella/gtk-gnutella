@@ -574,6 +574,9 @@ src/if/dht/stable.h
 src/if/dht/value.h
 src/if/gen/Jmakefile
 src/if/gen/Makefile.SH
+src/if/gen/dmesh_url.c
+src/if/gen/dmesh_url.h
+src/if/gen/dmesh_url.lst
 src/if/gen/drop.lst
 src/if/gen/gnr_stats.c
 src/if/gen/gnr_stats.h

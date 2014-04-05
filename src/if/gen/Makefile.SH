@@ -64,6 +64,16 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
+dmesh_url.c  dmesh_url.h: dmesh_url.lst
+	-perl $(TOP)/scripts/enum-msg.pl dmesh_url.lst
+	touch  dmesh_url.c  dmesh_url.h
+
+all::  dmesh_url.c  dmesh_url.h
+
+regenerate::
+	$(RM) -f  dmesh_url.c  dmesh_url.h
+	$(MAKE)  dmesh_url.c  dmesh_url.h
+
 msg_drop.c  msg_drop.h: drop.lst
 	-perl $(TOP)/scripts/enum-msg.pl drop.lst
 	touch  msg_drop.c  msg_drop.h
