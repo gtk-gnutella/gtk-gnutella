@@ -80,6 +80,10 @@ msg.c msg.h: msg.lst msg.dsc
 
 all:: $(GENERATED)
 
+regenerate:
+	$(RM) -f $(GENERATED)
+	$(MAKE) $(GENERATED)
+
 local_depend:: ../../../mkdep
 
 ../../../mkdep:

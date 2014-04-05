@@ -1,5 +1,5 @@
 /*
- * Generated on Sat Apr  5 10:43:36 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sat Apr  5 11:22:52 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl msg.lst msg.dsc
  */
@@ -8,7 +8,8 @@
 
 #include "msg.h"
 
-#include "lib/override.h"
+#include "lib/str.h"
+#include "lib/override.h"	/* Must be the last header included */
 
 /*
  * English descriptions for msg_type_t.
@@ -56,13 +57,16 @@ static const char *msg_type_description[] = {
 };
 
 /**
- * @return the English description of the enum value, NULL if out of bounds.
+ * @return the English description of the enum value.
  */
 const char *
 gnet_msg_type_description(msg_type_t x)
 {
-	g_return_val_if_fail(
-		UNSIGNED(x) < G_N_ELEMENTS(msg_type_description), NULL);
+	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(msg_type_description)) {
+		str_t *s = str_private(G_STRFUNC, 80);
+		str_printf(s, "Invalid msg_type_t code: %d", (int) x);
+		return str_2c(s);
+	}
 
 	return msg_type_description[x];
 }

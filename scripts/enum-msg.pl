@@ -172,7 +172,8 @@ EOC
 EOC
 	print $fdc <<EOC;
 
-#include "lib/override.h"
+#include "lib/str.h"
+#include "lib/override.h"	/* Must be the last header included */
 
 EOC
 }
@@ -202,13 +203,16 @@ EOC
 EOC
 	print $fdc <<EOC if defined $e2sym;
 /**
- * \@return the symbolic description of the enum value, NULL if out of bounds.
+ * \@return the symbolic description of the enum value.
  */
 const char *
 $e2sym($enum x)
 {
-	g_return_val_if_fail(
-		UNSIGNED(x) < G_N_ELEMENTS($symbolic), NULL);
+	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS($symbolic)) {
+		str_t *s = str_private(G_STRFUNC, 80);
+		str_printf(s, "Invalid $enum code: %d", (int) x);
+		return str_2c(s);
+	}
 
 	return $symbolic\[x];
 }
@@ -245,13 +249,16 @@ EOC
 EOC
 	print $fdc <<EOC if defined $e2txt;
 /**
- * \@return the English description of the enum value, NULL if out of bounds.
+ * \@return the English description of the enum value.
  */
 const char *
 $e2txt($enum x)
 {
-	g_return_val_if_fail(
-		UNSIGNED(x) < G_N_ELEMENTS($etext), NULL);
+	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS($etext)) {
+		str_t *s = str_private(G_STRFUNC, 80);
+		str_printf(s, "Invalid $enum code: %d", (int) x);
+		return str_2c(s);
+	}
 
 	return $etext\[x];
 }

@@ -1,5 +1,5 @@
 /*
- * Generated on Fri Apr  4 21:16:52 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sat Apr  5 11:22:52 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst stats.dsc
  */
@@ -8,7 +8,8 @@
 
 #include "gnr_stats.h"
 
-#include "lib/override.h"
+#include "lib/str.h"
+#include "lib/override.h"	/* Must be the last header included */
 
 /*
  * Symbolic descriptions for gnr_stats_t.
@@ -316,13 +317,16 @@ static const char *stats_symbols[] = {
 };
 
 /**
- * @return the symbolic description of the enum value, NULL if out of bounds.
+ * @return the symbolic description of the enum value.
  */
 const char *
 gnet_stats_general_to_string(gnr_stats_t x)
 {
-	g_return_val_if_fail(
-		UNSIGNED(x) < G_N_ELEMENTS(stats_symbols), NULL);
+	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_symbols)) {
+		str_t *s = str_private(G_STRFUNC, 80);
+		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
+		return str_2c(s);
+	}
 
 	return stats_symbols[x];
 }
@@ -633,13 +637,16 @@ static const char *stats_text[] = {
 };
 
 /**
- * @return the English description of the enum value, NULL if out of bounds.
+ * @return the English description of the enum value.
  */
 const char *
 gnet_stats_general_description(gnr_stats_t x)
 {
-	g_return_val_if_fail(
-		UNSIGNED(x) < G_N_ELEMENTS(stats_text), NULL);
+	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_text)) {
+		str_t *s = str_private(G_STRFUNC, 80);
+		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
+		return str_2c(s);
+	}
 
 	return stats_text[x];
 }

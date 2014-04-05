@@ -45,5 +45,13 @@ msg.c msg.h: msg.lst msg.dsc
 
 all:: $(GENERATED)
 
+/*
+ * Force re-generation of all the files when the script generating them
+ * is updated in a way that alters the generated code fragments.
+ */
+regenerate:
+	$(RM) -f $(GENERATED)
+	$(MAKE) $(GENERATED)
+
 DependTarget()
 
