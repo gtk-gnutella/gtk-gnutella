@@ -149,20 +149,8 @@ CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-GENERATED = gen-msg_drop.c gen-gnr_stats.c
-
-gen-msg_drop.c: $(IF)/gen/msg_drop.c
-	$(RM) -f $@
-	$(LN) $(IF)/gen/msg_drop.c $@
-
-gen-gnr_stats.c: $(IF)/gen/gnr_stats.c
-	$(RM) -f $@
-	$(LN) $(IF)/gen/gnr_stats.c $@
-
-depend:: $(GENERATED)
-
-local_realclean::
-	$(RM) -f $(GENERATED)
+LinkSourceFileAlias(msg_drop.c,  $(IF)/gen, gen-msg_drop.c)
+LinkSourceFileAlias(gnr_stats.c, $(IF)/gen, gen-gnr_stats.c)
 
 RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
 NormalLibraryTarget(core, $(SRC), $(OBJ))

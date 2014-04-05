@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-174]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -70,7 +70,7 @@ GNUTLS_CFLAGS =  $gnutlscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -300,20 +300,23 @@ CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-GENERATED = gen-msg_drop.c gen-gnr_stats.c
-
-gen-msg_drop.c: $(IF)/gen/msg_drop.c
+gen-msg_drop.c:    $(IF)/gen/msg_drop.c
 	$(RM) -f $@
-	$(LN) $(IF)/gen/msg_drop.c $@
+	$(LN) $? $@
 
-gen-gnr_stats.c: $(IF)/gen/gnr_stats.c
-	$(RM) -f $@
-	$(LN) $(IF)/gen/gnr_stats.c $@
-
-depend:: $(GENERATED)
+local_depend::  gen-msg_drop.c
 
 local_realclean::
-	$(RM) -f $(GENERATED)
+	$(RM) -f  gen-msg_drop.c
+
+gen-gnr_stats.c:   $(IF)/gen/gnr_stats.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-gnr_stats.c
+
+local_realclean::
+	$(RM) -f  gen-gnr_stats.c
 
 .FORCE:
 
