@@ -467,6 +467,11 @@ guc_gnet_stats_general_description(gnr_stats_t gs)
 	return gnet_stats_general_description(gs);
 }
 
+const char *
+guc_gnet_msg_type_description(msg_type_t mt)
+{
+	return gnet_msg_type_description(mt);
+}
 
 /*	hcache interface functions (UI -> Core)*/
 void

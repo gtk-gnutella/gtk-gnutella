@@ -42,57 +42,8 @@
 const gchar *
 msg_type_str(gint value)
 {
-	static const char * const strs[] = {
-		N_("Unknown"),
-		N_("Ping"),
-		N_("Pong"),
-		N_("Bye"),
-		N_("QRP"),
-		N_("HSEP"),
-		N_("RUDP"),
-		N_("Vendor spec."),
-		N_("Vendor std."),
-		N_("Push"),
-		N_("Query"),
-		N_("Query hit"),
-		N_("DHT (truncated)"),
-		N_("DHT Ping"),
-		N_("DHT Pong"),
-		N_("DHT Store"),
-		N_("DHT Store Ack"),
-		N_("DHT Find Node"),
-		N_("DHT Found Node"),
-		N_("DHT Find Value"),
-		N_("DHT Value"),
-		N_("G2 Crawl Request"),
-		N_("G2 Hub Advertisement"),
-		N_("G2 Hub List"),
-		N_("G2 Hub List Req"),
-		N_("G2 Hub List Ack"),
-		N_("G2 Local Node Info"),
-		N_("G2 Ping"),
-		N_("G2 Pong"),
-		N_("G2 Push"),
-		N_("G2 Query Key Ack"),
-		N_("G2 Query Key Req"),
-		N_("G2 Query"),
-		N_("G2 Query Ack"),
-		N_("G2 Query Hit"),
-		N_("G2 Query Hash Table"),
-		N_("G2 User Profile Check"),
-		N_("G2 User Profile Data"),
-		N_("Total"),
-	};
-
-	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_TYPE_COUNT);
-
-	if ((guint) value >= G_N_ELEMENTS(strs)) {
-		g_carp("%s(): requested general_type_str %d is invalid",
-			G_STRFUNC, value);
-		return "";
-	}
-
-	return _(strs[value]);
+	g_return_val_if_fail(UNSIGNED(value) < MSG_TYPE_COUNT, "");
+	return _(guc_gnet_msg_type_description(value));
 }
 
 gint

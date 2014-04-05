@@ -47,6 +47,7 @@ SRC = \
 	fileinfo.c \
 	gdht.c \
 	gen-gnr_stats.c \
+	gen-msg.c \
 	gen-msg_drop.c \
 	geo_ip.c \
 	ggep.c \
@@ -149,8 +150,9 @@ CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-LinkSourceFileAlias(msg_drop.c,  $(IF)/gen, gen-msg_drop.c)
 LinkSourceFileAlias(gnr_stats.c, $(IF)/gen, gen-gnr_stats.c)
+LinkSourceFileAlias(msg.c, $(IF)/gen, gen-msg.c)
+LinkSourceFileAlias(msg_drop.c, $(IF)/gen, gen-msg_drop.c)
 
 RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
 NormalLibraryTarget(core, $(SRC), $(OBJ))

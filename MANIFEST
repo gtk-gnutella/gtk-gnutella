@@ -578,6 +578,10 @@ src/if/gen/drop.dsc
 src/if/gen/drop.lst
 src/if/gen/gnr_stats.c
 src/if/gen/gnr_stats.h
+src/if/gen/msg.c
+src/if/gen/msg.dsc
+src/if/gen/msg.h
+src/if/gen/msg.lst
 src/if/gen/msg_drop.c
 src/if/gen/msg_drop.h
 src/if/gen/stats.dsc

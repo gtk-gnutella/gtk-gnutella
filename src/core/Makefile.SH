@@ -113,6 +113,7 @@ SRC = \
 	fileinfo.c \
 	gdht.c \
 	gen-gnr_stats.c \
+	gen-msg.c \
 	gen-msg_drop.c \
 	geo_ip.c \
 	ggep.c \
@@ -213,6 +214,7 @@ OBJ = \
 	fileinfo.o \
 	gdht.o \
 	gen-gnr_stats.o \
+	gen-msg.o \
 	gen-msg_drop.o \
 	geo_ip.o \
 	ggep.o \
@@ -300,15 +302,6 @@ CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-gen-msg_drop.c:    $(IF)/gen/msg_drop.c
-	$(RM) -f $@
-	$(LN) $? $@
-
-local_depend::  gen-msg_drop.c
-
-local_realclean::
-	$(RM) -f  gen-msg_drop.c
-
 gen-gnr_stats.c:   $(IF)/gen/gnr_stats.c
 	$(RM) -f $@
 	$(LN) $? $@
@@ -317,6 +310,24 @@ local_depend::  gen-gnr_stats.c
 
 local_realclean::
 	$(RM) -f  gen-gnr_stats.c
+
+gen-msg.c:   $(IF)/gen/msg.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-msg.c
+
+local_realclean::
+	$(RM) -f  gen-msg.c
+
+gen-msg_drop.c:   $(IF)/gen/msg_drop.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-msg_drop.c
+
+local_realclean::
+	$(RM) -f  gen-msg_drop.c
 
 .FORCE:
 

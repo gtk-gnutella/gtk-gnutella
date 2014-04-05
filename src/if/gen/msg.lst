@@ -1,0 +1,61 @@
+#
+# Message types, for accounting purposes
+#
+
+UNKNOWN				"Unknown"
+
+###
+### Gnutella messages
+###
+
+INIT				"Ping"
+INIT_RESPONSE		"Pong"
+BYE					"Bye"
+QRP					"QRP"
+HSEP				"HSEP"
+RUDP				"RUDP"
+VENDOR				"Vendor spec."
+STANDARD			"Vendor std."
+PUSH_REQUEST		"Push"
+SEARCH				"Query"
+SEARCH_RESULTS		"Query hit"
+
+###
+### DHT messages (expanded Gnutella "DHT" messages)
+###
+
+DHT					"DHT (truncated)"
+DHT_PING			"DHT Ping"
+DHT_PONG			"DHT Pong"
+DHT_STORE			"DHT Store"
+DHT_STORE_ACK		"DHT Store Ack"
+DHT_FIND_NODE		"DHT Find Node"
+DHT_FOUND_NODE		"DHT Found Node"
+DHT_FIND_VALUE		"DHT Find Value"
+DHT_VALUE			"DHT Value"
+
+###
+### G2 messages
+###
+
+# Not including CRAWLA -- not expected as we don't send requests
+G2_CRAWLR			"G2 Crawl Request"
+G2_HAW				"G2 Hub Advertisement"
+G2_KHL				"G2 Hub List"
+G2_KHLR				"G2 Hub List Req"
+G2_KHLA				"G2 Hub List Ack"
+G2_LNI				"G2 Local Node Info"
+G2_PI				"G2 Ping"
+G2_PO				"G2 Pong"
+G2_PUSH				"G2 Push"
+G2_QKA				"G2 Query Key Ack"
+G2_QKR				"G2 Query Key Req"
+G2_Q2				"G2 Query"
+G2_QA				"G2 Query Ack"
+G2_QH2				"G2 Query Hit"
+G2_QHT				"G2 Query Hash Table"
+G2_UPROC			"G2 User Profile Check"
+G2_UPROD			"G2 User Profile Data"
+
+# Always counted, for all the above message types
+TOTAL				"Total"

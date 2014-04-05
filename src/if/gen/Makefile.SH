@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-174]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -52,7 +52,7 @@ USRINC = $usrinc
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -64,7 +64,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h
+GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h msg.h msg.c
 
 msg_drop.c msg_drop.h: drop.lst drop.dsc
 	-perl $(TOP)/scripts/enum-msg.pl drop.lst drop.dsc
@@ -73,6 +73,10 @@ msg_drop.c msg_drop.h: drop.lst drop.dsc
 gnr_stats.c gnr_stats.h: stats.lst stats.dsc
 	-perl $(TOP)/scripts/enum-msg.pl stats.lst stats.dsc
 	touch gnr_stats.c gnr_stats.h
+
+msg.c msg.h: msg.lst msg.dsc
+	-perl $(TOP)/scripts/enum-msg.pl msg.lst msg.dsc
+	touch msg.c msg.h
 
 all:: $(GENERATED)
 

@@ -23,7 +23,7 @@
  *----------------------------------------------------------------------
  */
 
-GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h
+GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h msg.h msg.c
 
 /*
  * We use "perl ..." in the command below to let the script run even though
@@ -38,6 +38,10 @@ msg_drop.c msg_drop.h: drop.lst drop.dsc
 gnr_stats.c gnr_stats.h: stats.lst stats.dsc
 	-perl $(TOP)/scripts/enum-msg.pl stats.lst stats.dsc
 	touch gnr_stats.c gnr_stats.h
+
+msg.c msg.h: msg.lst msg.dsc
+	-perl $(TOP)/scripts/enum-msg.pl msg.lst msg.dsc
+	touch msg.c msg.h
 
 all:: $(GENERATED)
 
