@@ -50,6 +50,7 @@ SRC = \
 	gen-gnr_stats.c \
 	gen-http_async.c \
 	gen-http_url.c \
+	gen-ignore.c \
 	gen-msg.c \
 	gen-msg_drop.c \
 	geo_ip.c \
@@ -160,6 +161,7 @@ LinkGenInterface(dmesh_url.c)
 LinkGenInterface(gnr_stats.c)
 LinkGenInterface(http_async.c)
 LinkGenInterface(http_url.c)
+LinkGenInterface(ignore.c)
 LinkGenInterface(msg.c)
 LinkGenInterface(msg_drop.c)
 

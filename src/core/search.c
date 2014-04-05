@@ -5626,7 +5626,7 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 				rc->flags |= SR_PARTIAL;
 			}
 		} else {
-			enum ignore_val reason;
+			ignore_val_t reason;
 
 			reason = ignore_is_requested(rc->filename, rc->size, rc->sha1);
 			switch (reason) {

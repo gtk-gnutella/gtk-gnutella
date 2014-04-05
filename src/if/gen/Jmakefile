@@ -44,6 +44,7 @@ regenerate::									@@\
 
 EnumGenerate(dmesh_url.lst, dmesh_url)
 EnumGenerate(drop.lst, msg_drop)
+EnumGenerate(ignore.lst, ignore)
 EnumGenerate(stats.lst, gnr_stats)
 EnumGenerate(msg.lst, msg)
 EnumGenerate(http_async.lst, http_async)

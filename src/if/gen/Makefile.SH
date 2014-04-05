@@ -84,6 +84,16 @@ regenerate::
 	$(RM) -f  msg_drop.c  msg_drop.h
 	$(MAKE)  msg_drop.c  msg_drop.h
 
+ignore.c  ignore.h: ignore.lst
+	-perl $(TOP)/scripts/enum-msg.pl ignore.lst
+	touch  ignore.c  ignore.h
+
+all::  ignore.c  ignore.h
+
+regenerate::
+	$(RM) -f  ignore.c  ignore.h
+	$(MAKE)  ignore.c  ignore.h
+
 gnr_stats.c  gnr_stats.h: stats.lst
 	-perl $(TOP)/scripts/enum-msg.pl stats.lst
 	touch  gnr_stats.c  gnr_stats.h

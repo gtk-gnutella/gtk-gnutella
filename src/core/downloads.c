@@ -5533,7 +5533,7 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 static bool
 download_ignore_requested(struct download *d)
 {
-	enum ignore_val reason = IGNORE_FALSE;
+	ignore_val_t reason = IGNORE_FALSE;
 	fileinfo_t *fi;
 
 	download_check(d);
@@ -7570,7 +7570,7 @@ download_auto_new_common(const char *file_name,
 	uint32 flags)
 {
 	const char *reason;
-	enum ignore_val ign_reason;
+	ignore_val_t ign_reason;
 
 	/*
 	 * Make sure host is reacheable, especially if we come from the GUI,
