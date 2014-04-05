@@ -1,0 +1,28 @@
+#
+# HTTP URL parsing error codes
+#
+
+Prefix: HTTP_URL_
+Lowercase: no
+I18N: no
+#Count:
+Enum: http_url_error_t
+Enum-Init: 0
+Enum-File: http_url.h
+#Symbolic:
+Description: http_url_error_str
+#Enum-To-Symbolic:
+Enum-To-Description: http_url_strerror
+Enum-To-Code: http_url.c
+Enum-To-Header: http_url.h
+Protection-Prefix: if_gen
+
+OK						"OK"
+NOT_HTTP				"Not an http URI"
+MULTIPLE_CREDENTIALS	"More than one <user>:<password>"
+BAD_CREDENTIALS			"Truncated <user>:<password>"
+BAD_PORT_PARSING		"Could not parse port"
+BAD_PORT_RANGE			"Port value is out of range"
+BAD_HOST_PART			"Could not parse host"
+HOSTNAME_UNKNOWN		"Could not resolve host into IP"
+MISSING_URI				"URL has no URI part"

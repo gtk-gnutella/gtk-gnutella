@@ -47,6 +47,8 @@ SRC = \
 	fileinfo.c \
 	gdht.c \
 	gen-gnr_stats.c \
+	gen-http_async.c \
+	gen-http_url.c \
 	gen-msg.c \
 	gen-msg_drop.c \
 	geo_ip.c \
@@ -151,6 +153,8 @@ CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 DPFLAGS = $(CFLAGS)
 
 LinkSourceFileAlias(gnr_stats.c, $(IF)/gen, gen-gnr_stats.c)
+LinkSourceFileAlias(http_async.c, $(IF)/gen, gen-http_async.c)
+LinkSourceFileAlias(http_url.c, $(IF)/gen, gen-http_url.c)
 LinkSourceFileAlias(msg.c, $(IF)/gen, gen-msg.c)
 LinkSourceFileAlias(msg_drop.c, $(IF)/gen, gen-msg_drop.c)
 

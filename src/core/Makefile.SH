@@ -113,6 +113,8 @@ SRC = \
 	fileinfo.c \
 	gdht.c \
 	gen-gnr_stats.c \
+	gen-http_async.c \
+	gen-http_url.c \
 	gen-msg.c \
 	gen-msg_drop.c \
 	geo_ip.c \
@@ -214,6 +216,8 @@ OBJ = \
 	fileinfo.o \
 	gdht.o \
 	gen-gnr_stats.o \
+	gen-http_async.o \
+	gen-http_url.o \
 	gen-msg.o \
 	gen-msg_drop.o \
 	geo_ip.o \
@@ -310,6 +314,24 @@ local_depend::  gen-gnr_stats.c
 
 local_realclean::
 	$(RM) -f  gen-gnr_stats.c
+
+gen-http_async.c:   $(IF)/gen/http_async.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-http_async.c
+
+local_realclean::
+	$(RM) -f  gen-http_async.c
+
+gen-http_url.c:   $(IF)/gen/http_url.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-http_url.c
+
+local_realclean::
+	$(RM) -f  gen-http_url.c
 
 gen-msg.c:   $(IF)/gen/msg.c
 	$(RM) -f $@

@@ -866,33 +866,6 @@ http_parameter_get(const char *field, const char *name)
  *** HTTP URL parsing.
  ***/
 
-static const char * const parse_errstr[] = {
-	"OK",								/**< HTTP_URL_OK */
-	"Not an http URI",					/**< HTTP_URL_NOT_HTTP */
-	"More than one <user>:<password>",	/**< HTTP_URL_MULTIPLE_CREDENTIALS */
-	"Truncated <user>:<password>",		/**< HTTP_URL_BAD_CREDENTIALS */
-	"Could not parse port",				/**< HTTP_URL_BAD_PORT_PARSING */
-	"Port value is out of range",		/**< HTTP_URL_BAD_PORT_RANGE */
-	"Could not parse host",				/**< HTTP_URL_BAD_HOST_PART */
-	"Could not resolve host into IP",	/**< HTTP_URL_HOSTNAME_UNKNOWN */
-	"URL has no URI part",				/**< HTTP_URL_MISSING_URI */
-};
-
-/**
- * @return human-readable error string corresponding to error code `errnum'.
- */
-const char *
-http_url_strerror(http_url_error_t errnum)
-{
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr)) {
-		static char buf[40];
-		str_bprintf(buf, sizeof buf, "Invalid URL error code: %u", errnum);
-		return buf;
-	}
-
-	return parse_errstr[errnum];
-}
-
 /**
  * Parse HTTP url and extract the IP/port we need to connect to.
  * Also identifies the start of the path to request on the server.
@@ -1104,45 +1077,7 @@ http_content_range_parse(const char *buf,
  *** Asynchronous HTTP error code management.
  ***/
 
-static const char * const error_str[] = {
-	"OK",									/**< HTTP_ASYNC_OK */
-	"Invalid HTTP URL",						/**< HTTP_ASYNC_BAD_URL */
-	"Connection failed",					/**< HTTP_ASYNC_CONN_FAILED */
-	"I/O error",							/**< HTTP_ASYNC_IO_ERROR */
-	"Request too large",					/**< HTTP_ASYNC_REQ2BIG */
-	"Header too large",						/**< HTTP_ASYNC_HEAD2BIG */
-	"User cancel",							/**< HTTP_ASYNC_CANCELLED */
-	"Got EOF",								/**< HTTP_ASYNC_EOF */
-	"Unparseable HTTP status",				/**< HTTP_ASYNC_BAD_STATUS */
-	"Got moved status, but no location",	/**< HTTP_ASYNC_NO_LOCATION */
-	"Connection timeout",					/**< HTTP_ASYNC_CONN_TIMEOUT */
-	"Data timeout",							/**< HTTP_ASYNC_TIMEOUT */
-	"Nested redirection",					/**< HTTP_ASYNC_NESTED */
-	"Invalid URI in Location header",		/**< HTTP_ASYNC_BAD_LOCATION_URI */
-	"Connection was closed, all OK",		/**< HTTP_ASYNC_CLOSED */
-	"Redirected, following disabled",		/**< HTTP_ASYNC_REDIRECTED */
-	"Unparseable header value",				/**< HTTP_ASYNC_BAD_HEADER */
-	"Data too large",						/**< HTTP_ASYNC_DATA2BIG */
-	"Mandatory request not understood",		/**< HTTP_ASYNC_MAN_FAILURE */
-};
-
-uint http_async_errno;		/**< Used to return error codes during setup */
-
-/**
- * @return human-readable error string corresponding to error code `errnum'.
- */
-const char *
-http_async_strerror(uint errnum)
-{
-	if (errnum >= G_N_ELEMENTS(error_str)) {
-		static char buf[50];
-		str_bprintf(buf, sizeof buf,
-			"Invalid HTTP async error code: %u", errnum);
-		return buf;
-	}
-
-	return error_str[errnum];
-}
+http_async_error_t http_async_errno;	/**< Error codes during setup */
 
 /***
  *** Asynchronous HTTP transactions.

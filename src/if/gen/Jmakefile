@@ -23,35 +23,30 @@
  *----------------------------------------------------------------------
  */
 
-GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h msg.h msg.c
-
 /*
  * We use "perl ..." in the command below to let the script run even though
  * it could be edited -- this avoid the "Text file busy" check in the kernel
  * which would happen if we had let the "#!" hook run perl.
+ *
+ * The regenerate target forces re-generation of all the files when the script
+ * generating them is updated in a way that alters the generated code fragments.
  */
+#define EnumGenerate(list, base)	@!\
+base.c base.h: list								@@\
+	-perl $(TOP)/scripts/enum-msg.pl list		@@\
+	touch base.c base.h							@!\
+												@!\
+all:: base.c base.h								@!\
+												@!\
+regenerate::									@@\
+	$(RM) -f base.c base.h						@@\
+	$(MAKE) base.c base.h						@!\
 
-msg_drop.c msg_drop.h: drop.lst
-	-perl $(TOP)/scripts/enum-msg.pl drop.lst
-	touch msg_drop.c msg_drop.h
-
-gnr_stats.c gnr_stats.h: stats.lst
-	-perl $(TOP)/scripts/enum-msg.pl stats.lst
-	touch gnr_stats.c gnr_stats.h
-
-msg.c msg.h: msg.lst
-	-perl $(TOP)/scripts/enum-msg.pl msg.lst
-	touch msg.c msg.h
-
-all:: $(GENERATED)
-
-/*
- * Force re-generation of all the files when the script generating them
- * is updated in a way that alters the generated code fragments.
- */
-regenerate:
-	$(RM) -f $(GENERATED)
-	$(MAKE) $(GENERATED)
+EnumGenerate(drop.lst, msg_drop)
+EnumGenerate(stats.lst, gnr_stats)
+EnumGenerate(msg.lst, msg)
+EnumGenerate(http_async.lst, http_async)
+EnumGenerate(http_url.lst, http_url)
 
 DependTarget()
 

@@ -577,6 +577,12 @@ src/if/gen/Makefile.SH
 src/if/gen/drop.lst
 src/if/gen/gnr_stats.c
 src/if/gen/gnr_stats.h
+src/if/gen/http_async.c
+src/if/gen/http_async.h
+src/if/gen/http_async.lst
+src/if/gen/http_url.c
+src/if/gen/http_url.h
+src/if/gen/http_url.lst
 src/if/gen/msg.c
 src/if/gen/msg.h
 src/if/gen/msg.lst

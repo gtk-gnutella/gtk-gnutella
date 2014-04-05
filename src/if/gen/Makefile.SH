@@ -64,25 +64,55 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-GENERATED = msg_drop.c msg_drop.h gnr_stats.c gnr_stats.h msg.h msg.c
-
-msg_drop.c msg_drop.h: drop.lst
+msg_drop.c  msg_drop.h: drop.lst
 	-perl $(TOP)/scripts/enum-msg.pl drop.lst
-	touch msg_drop.c msg_drop.h
+	touch  msg_drop.c  msg_drop.h
 
-gnr_stats.c gnr_stats.h: stats.lst
+all::  msg_drop.c  msg_drop.h
+
+regenerate::
+	$(RM) -f  msg_drop.c  msg_drop.h
+	$(MAKE)  msg_drop.c  msg_drop.h
+
+gnr_stats.c  gnr_stats.h: stats.lst
 	-perl $(TOP)/scripts/enum-msg.pl stats.lst
-	touch gnr_stats.c gnr_stats.h
+	touch  gnr_stats.c  gnr_stats.h
 
-msg.c msg.h: msg.lst
+all::  gnr_stats.c  gnr_stats.h
+
+regenerate::
+	$(RM) -f  gnr_stats.c  gnr_stats.h
+	$(MAKE)  gnr_stats.c  gnr_stats.h
+
+msg.c  msg.h: msg.lst
 	-perl $(TOP)/scripts/enum-msg.pl msg.lst
-	touch msg.c msg.h
+	touch  msg.c  msg.h
 
-all:: $(GENERATED)
+all::  msg.c  msg.h
 
-regenerate:
-	$(RM) -f $(GENERATED)
-	$(MAKE) $(GENERATED)
+regenerate::
+	$(RM) -f  msg.c  msg.h
+	$(MAKE)  msg.c  msg.h
+
+http_async.c  http_async.h: http_async.lst
+	-perl $(TOP)/scripts/enum-msg.pl http_async.lst
+	touch  http_async.c  http_async.h
+
+all::  http_async.c  http_async.h
+
+regenerate::
+	$(RM) -f  http_async.c  http_async.h
+	$(MAKE)  http_async.c  http_async.h
+
+http_url.c  http_url.h: http_url.lst
+	-perl $(TOP)/scripts/enum-msg.pl http_url.lst
+	touch  http_url.c  http_url.h
+
+all::  http_url.c  http_url.h
+
+regenerate::
+	$(RM) -f  http_url.c  http_url.h
+	$(MAKE)  http_url.c  http_url.h
 
 local_depend:: ../../../mkdep
 

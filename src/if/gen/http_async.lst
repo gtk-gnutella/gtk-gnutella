@@ -1,0 +1,38 @@
+#
+# Asynchronous request error codes
+#
+
+Prefix: HTTP_ASYNC_
+Lowercase: no
+I18N: no
+#Count:
+Enum: http_async_error_t
+Enum-Init: 0
+Enum-File: http_async.h
+#Symbolic:
+Description: http_async_error_str
+#Enum-To-Symbolic:
+Enum-To-Description: http_async_strerror
+Enum-To-Code: http_async.c
+Enum-To-Header: http_async.h
+Protection-Prefix: if_gen
+
+OK					"OK"
+BAD_URL				"Invalid HTTP URL"
+CONN_FAILED			"Connection failed"
+IO_ERROR			"I/O error"
+REQ2BIG				"Request too large"
+HEAD2BIG			"Header too large"
+CANCELLED			"User cancel"
+EOF					"Got EOF"
+BAD_STATUS			"Unparseable HTTP status"
+NO_LOCATION			"Got moved status"
+CONN_TIMEOUT		"Connection timeout"
+TIMEOUT				"Data timeout"
+NESTED				"Nested redirection"
+BAD_LOCATION_URI	"Invalid URI in Location header"
+CLOSED				"Connection was closed"
+REDIRECTED			"Redirected"
+BAD_HEADER			"Unparseable header value"
+DATA2BIG			"Data too large"
+MAN_FAILURE			"Mandatory request not understood"
