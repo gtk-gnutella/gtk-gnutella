@@ -947,6 +947,21 @@ aje_thread_addrandom(const void *data, size_t len)
 }
 
 /**
+ * Extract random bytes from the local AJE state into buffer.
+ *
+ * @param dest		start of buffer to fill
+ * @param len		length of data buffer
+ */
+void
+aje_thread_random_bytes(void *dest, size_t len)
+{
+	g_assert(dest != NULL);
+	g_assert(size_is_positive(len));
+
+	aje_extract(aje_pool(), dest, len);
+}
+
+/**
  * @return a list of thread IDs using a thread-local AJE pool, which must
  * be freed with pslist_free().
  */
