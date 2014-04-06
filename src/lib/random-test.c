@@ -73,7 +73,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-14eghluyABMPSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-14eghluxABMPSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -1 : test entropy_rand31() instead of rand31()\n"
@@ -89,6 +89,7 @@ usage(void)
 		"  -s : skip that amount of initial random values\n"
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
+		"  -x : disable caching (pre-computing) of AJE random numbers\n"
 		"  -A : test aje_rand(), the Fortuna-like PRNG, instead of rand31()\n"
 		"  -B : count '1' occurrences of each bit\n"
 		"  -C : count how many times the random value occurs (after -b)\n"
@@ -562,24 +563,27 @@ main(int argc, char **argv)
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
-	bool generate = FALSE;
+	bool generate = FALSE, no_precompute = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "14b:c:eghlm:p:s:t:uABC:D:F:MPR:STU:WX:";
+	const char options[] = "14b:c:eghlm:p:s:t:uxABC:D:F:MPR:STU:WX:";
 
 #define SET_RANDOM(x)	\
+G_STMT_START {			\
 	fn = x;				\
-	fnname = #x;
+	fnname = #x;		\
+} G_STMT_END
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
 	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
-		if (c == 'l') {
+		if ('l' == c) {
 			test_local = TRUE;
-			break;
+		} else if ('x' == c) {
+			no_precompute = TRUE;
 		}
 	}
 
@@ -633,11 +637,19 @@ main(int argc, char **argv)
 		case 'u':			/* check rand31_u32() instead */
 			SET_RANDOM(rand31_u32);
 			break;
+		case 'x':			/* disable AJE caching (already handled before) */
+			break;
 		case 'A':			/* check aje_random() instead */
 			if (test_local) {
-				SET_RANDOM(aje_thread_rand);
+				if (no_precompute)
+					SET_RANDOM(aje_thread_rand_strong);
+				else
+					SET_RANDOM(aje_thread_rand);
 			} else {
-				SET_RANDOM(aje_rand);
+				if (no_precompute)
+					SET_RANDOM(aje_rand_strong);
+				else
+					SET_RANDOM(aje_rand);
 			}
 			break;
 		case 'B':			/* count occurrences of each bit */

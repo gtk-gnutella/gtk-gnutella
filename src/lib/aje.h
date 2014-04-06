@@ -42,11 +42,15 @@ uint32 aje_rand(void);
 uint64 aje_rand64(void);
 void aje_random_bytes(void *dest, size_t len);
 void aje_addrandom(const void *src, size_t len);
+uint32 aje_rand_strong(void);
+uint64 aje_rand64_strong(void);
 
 uint32 aje_thread_rand(void);
 uint64 aje_thread_rand64(void);
 void aje_thread_random_bytes(void *dest, size_t len);
 void aje_thread_addrandom(const void *data, size_t len);
+uint32 aje_thread_rand_strong(void);
+uint64 aje_thread_rand64_strong(void);
 
 struct pslist *aje_users(void);
 

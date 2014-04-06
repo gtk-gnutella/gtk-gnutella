@@ -825,7 +825,7 @@ aje_rand64_internal(register aje_state_t *as)
 }
 
 /**
- * Generate 32-bit random value.
+ * Generate 32-bit random value (fast).
  */
 uint32
 aje_rand(void)
@@ -842,7 +842,7 @@ aje_rand(void)
 }
 
 /**
- * Generate 64-bit random value.
+ * Generate 64-bit random value (fast).
  */
 uint64
 aje_rand64(void)
@@ -855,6 +855,42 @@ aje_rand64(void)
 	v = aje_rand64_internal(&aje_state);
 	AJE_STATE_UNLOCK(&aje_state);
 
+	return v;
+}
+
+/**
+ * Generate a strong 32-bit random value (slow).
+ *
+ * This is a strong number because it does not rely on a pre-computed buffer
+ * of random values, hence it is immediately influenced by any call to
+ * aje_addrandom(), and it will change the global AJE key.
+ *
+ * It is about 8 times slower than aje_rand() and should only be used when
+ * the numbers need to be absolutely unpredictable given all the randomness
+ * collected so-far.
+ */
+uint32
+aje_rand_strong(void)
+{
+	uint32 v;
+
+	aje_random_bytes(&v, sizeof v);
+	return v;
+}
+
+/**
+ * Generate a strong 64-bit random value (slow).
+ *
+ * This is a strong number because it does not rely on a pre-computed buffer
+ * of random values, hence it is immediately influenced by any call to
+ * aje_addrandom(), and it will change the global AJE key.
+ */
+uint64
+aje_rand64_strong(void)
+{
+	uint64 v;
+
+	aje_random_bytes(&v, sizeof v);
 	return v;
 }
 
@@ -959,6 +995,38 @@ aje_thread_random_bytes(void *dest, size_t len)
 	g_assert(size_is_positive(len));
 
 	aje_extract(aje_pool(), dest, len);
+}
+
+/**
+ * Generate a strong 32-bit random value (slow) using the thread random pool.
+ *
+ * This is a strong number because it does not rely on a pre-computed buffer
+ * of random values, hence it is immediately influenced by any call to
+ * aje_thread_addrandom(), and it will change the local AJE key.
+ */
+uint32
+aje_thread_rand_strong(void)
+{
+	uint32 v;
+
+	aje_thread_random_bytes(&v, sizeof v);
+	return v;
+}
+
+/**
+ * Generate a strong 64-bit random value (slow) using the thread random pool.
+ *
+ * This is a strong number because it does not rely on a pre-computed buffer
+ * of random values, hence it is immediately influenced by any call to
+ * aje_thread_addrandom(), and it will change the local AJE key.
+ */
+uint64
+aje_thread_rand64_strong(void)
+{
+	uint64 v;
+
+	aje_thread_random_bytes(&v, sizeof v);
+	return v;
 }
 
 /**
