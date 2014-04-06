@@ -5843,6 +5843,8 @@ guess_init(void)
 
 	g_assert(NULL == guess_qk_prune_ev);
 
+	TOKENIZE_CHECK_SORTED(g2_qa_children);
+
 	/*
 	 * Compute the latest time when our IP address has been determined, which
 	 * will set the initial threshold for assessing whether a query key is

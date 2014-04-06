@@ -6246,6 +6246,18 @@ vxml_parse_tree(vxml_parser_t *vp, xnode_t **root)
 	return vp->error;
 }
 
+/**
+ * Check that tokenizer arrays are sorted.
+ */
+static void G_GNUC_COLD
+vxml_tokenizer_check(void)
+{
+	TOKENIZE_CHECK_SORTED(vxml_default_entities);
+	TOKENIZE_CHECK_SORTED(vxml_declaration_tokens);
+	TOKENIZE_CHECK_SORTED(vxml_misc_tokens);
+	TOKENIZE_CHECK_SORTED(vxml_immediate_tokens);
+}
+
 /***
  *** XML parser testing.
  ***/
@@ -6685,6 +6697,8 @@ vxml_test(void)
 	bool seen_text;
 	xnode_t *root, *xn;
 
+	vxml_tokenizer_check();
+
 	vxml_run_simple_test(1,
 		"simple", simple, CONST_STRLEN(simple), 0, VXML_E_OK);
 	vxml_run_simple_test(2,
@@ -6863,10 +6877,10 @@ vxml_test(void)
 	}
 }
 #else	/* !VXML_TESTING */
-void
+void G_GNUC_COLD
 vxml_test(void)
 {
-	/* Nothing */
+	vxml_tokenizer_check();
 }
 #endif	/* VXML_TESTING */
 

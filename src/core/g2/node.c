@@ -1088,6 +1088,11 @@ g2_node_init(void)
 
 	g2_udp_pings = aging_make(G2_UDP_PING_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+
+	TOKENIZE_CHECK_SORTED(g2_q2_children);
+	TOKENIZE_CHECK_SORTED(g2_lni_children);
+	TOKENIZE_CHECK_SORTED(g2_q2_i);
+	TOKENIZE_CHECK_SORTED(g2_q2_md);
 }
 
 /**

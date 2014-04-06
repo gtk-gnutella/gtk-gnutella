@@ -43,6 +43,7 @@
 #include "lib/atoms.h"
 #include "lib/halloc.h"
 #include "lib/nv.h"
+#include "lib/once.h"
 #include "lib/parse.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
@@ -286,6 +287,14 @@ static tokenizer_t upnp_services[] = {
 	{ "schemas-upnp-org:service:WANPPPConnection",			UPNP_SVC_WAN_PPP },
 };
 
+static once_flag_t upnp_services_checked;
+
+static void G_GNUC_COLD
+upnp_services_check(void)
+{
+	TOKENIZE_CHECK_SORTED(upnp_services);
+}
+
 /**
  * Parse service type ("urn:schemas-dummy-com:service:Dummy:1").
  *
@@ -343,6 +352,8 @@ upnp_service_parse_type(const char *text,
 	/*
 	 * Lookup the service type.
 	 */
+
+	ONCE_FLAG_RUN(upnp_services_checked, upnp_services_check);
 
 	*type = TOKENIZE(p, upnp_services);
 	ok = TRUE;

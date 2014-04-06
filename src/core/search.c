@@ -5506,6 +5506,10 @@ search_gc(void *unused_cq)
 G_GNUC_COLD void
 search_init(void)
 {
+	TOKENIZE_CHECK_SORTED(g2_qh2_children);
+	TOKENIZE_CHECK_SORTED(g2_qh2_h_children);
+	TOKENIZE_CHECK_SORTED(g2_qh2_urn);
+
 	search_by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	search_handle_map = idtable_new(32);
 	sha1_to_search = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);

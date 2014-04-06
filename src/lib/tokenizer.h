@@ -56,10 +56,21 @@ unsigned tokenizer_lookup(const char *s, const tokenizer_t *tvec, size_t tcnt);
 unsigned tokenizer_lookup_with(const char *s, strcmp_fn_t cmp,
 	const tokenizer_t *tvec, size_t tcnt);
 
+void tokenizer_check_sorted(const char *name,
+	const tokenizer_t *tvec, size_t tcnt);
+void tokenizer_check_sorted_with(const char *name,
+	const tokenizer_t *tvec, size_t tcnt, strcmp_fn_t cmp);
+
 #define TOKENIZE(s, vec)	tokenizer_lookup((s), (vec), G_N_ELEMENTS((vec)))
 
 #define TOKENIZE_WITH(s, c, vec) \
 	tokenizer_lookup_with((s), (c), (vec), G_N_ELEMENTS((vec)))
+
+#define TOKENIZE_CHECK_SORTED(vec) \
+	tokenizer_check_sorted(STRINGIFY(vec), (vec), G_N_ELEMENTS((vec)))
+
+#define TOKENIZE_CHECK_SORTED_WITH(vec, c) \
+	tokenizer_check_sorted_with(STRINGIFY(vec), (vec), G_N_ELEMENTS((vec)), (c))
 
 #endif /* _tokenizer_h_ */
 

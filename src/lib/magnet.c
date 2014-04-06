@@ -42,6 +42,7 @@
 #include "concat.h"
 #include "gnet_host.h"
 #include "halloc.h"
+#include "once.h"
 #include "parse.h"
 #include "sequence.h"
 #include "str.h"
@@ -122,11 +123,21 @@ free_proxies_list(pslist_t *sl)
 	pslist_free(sl);
 }
 
+static once_flag_t magnet_keys_checked;
+
+static void G_GNUC_COLD
+magnet_key_check(void)
+{
+	TOKENIZE_CHECK_SORTED_WITH(magnet_keys, ascii_strcasecmp);
+}
+
 static enum magnet_key
 magnet_key_get(const char *s)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(magnet_keys) == NUM_MAGNET_KEYS);
 	g_assert(s != NULL);
+
+	ONCE_FLAG_RUN(magnet_keys_checked, magnet_key_check);
 
 	return TOKENIZE_WITH(s, ascii_strcasecmp, magnet_keys);
 }

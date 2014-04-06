@@ -85,4 +85,43 @@ tokenizer_lookup(const char *s, const tokenizer_t *tvec, size_t tcnt)
 	return tokenizer_lookup_with(s, strcmp, tvec, tcnt);
 }
 
+/**
+ * Check that token array is indeed sorted lexicographically (with supplied
+ * comparison routine).
+ *
+ * @param name	the name of the array, in case we have to report error
+ * @param tvec	the vector of tokenizer_t items
+ * @param tcnt	the amount of items in the token vector
+ * @param cmp	the string comparison routine to use
+ */
+void G_GNUC_COLD
+tokenizer_check_sorted_with(const char *name,
+	const tokenizer_t *tvec, size_t tcnt, strcmp_fn_t cmp)
+{
+	size_t i;
+
+	for (i = 1; i < tcnt; i++) {
+		const tokenizer_t *prev = &tvec[i - 1], *e = &tvec[i];
+
+		if G_UNLIKELY((*cmp)(prev->token, e->token) >= 0) {
+			g_error("tokenizer array \"%s\" unsorted "
+				"(item #%zu \"%s\" follows \"%s\")",
+				name, i + 1, e->token, prev->token);
+		}
+	}
+}
+
+/**
+ * Check that token array is indeed sorted lexicographically (with strcmp).
+ *
+ * @param name	the name of the array, in case we have to report error
+ * @param tvec	the vector of tokenizer_t items
+ * @param tcnt	the amount of items in the token vector
+ */
+void G_GNUC_COLD
+tokenizer_check_sorted(const char *name, const tokenizer_t *tvec, size_t tcnt)
+{
+	tokenizer_check_sorted_with(name, tvec, tcnt, strcmp);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
