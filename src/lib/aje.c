@@ -869,6 +869,14 @@ aje_key_init(void)
 {
 	if (-1 == thread_local_key_create(&aje_key, THREAD_LOCAL_KEEP))
 		s_error("cannot initialize AJE random pool key: %m");
+
+	/*
+	 * As a precaution, make sure the global AJE state is properly initialized
+	 * so that the forthcoming thread-local AJE state can be filled with
+	 * randomness coming from that global pool.
+	 */
+
+	ONCE_FLAG_RUN(aje_initialized, aje_default_init);
 }
 
 /**
