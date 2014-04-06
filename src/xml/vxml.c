@@ -3781,7 +3781,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 	vxml_output_discard(&vp->out);
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_attribute: name is \"%s\"", name);
+		vxml_parser_debug(vp, "%s(): name is \"%s\"", G_STRFUNC, name);
 
 	if (!vxml_parser_handle_attrval(vp, &vp->out)) {
 		atom_str_free(name);
@@ -3860,8 +3860,9 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 				start = local_name + 1;
 
 				if (vxml_debugging(18)) {
-					vxml_parser_debug(vp, "vxml_handle_attribute: "
-						"stripped name is \"%s\", URI is \"%s\"", start, uri);
+					vxml_parser_debug(vp,
+						"%s(): stripped name is \"%s\", URI is \"%s\"",
+						G_STRFUNC, start, uri);
 				}
 
 				/*
@@ -3903,8 +3904,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 		}
 
 		if (vxml_debugging(18)) {
-			vxml_parser_debug(vp, "vxml_handle_attribute: "
-				"value is \"%s\"", value);
+			vxml_parser_debug(vp, "%s(): value is \"%s\"", G_STRFUNC, value);
 		}
 	}
 
@@ -4155,8 +4155,8 @@ vxml_handle_pi(vxml_parser_t *vp)
 		return FALSE;
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_handle_pi: target is \"%s\"",
-			vxml_output_start(&vp->out));
+		vxml_parser_debug(vp, "%s(): target is \"%s\"",
+			G_STRFUNC, vxml_output_start(&vp->out));
 	}
 
 	/*
@@ -4197,7 +4197,7 @@ vxml_handle_comment(vxml_parser_t *vp)
 	 */
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_comment: begin");
+		vxml_parser_debug(vp, "%s(): begin", G_STRFUNC);
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (uc != VXC_MINUS)
@@ -4243,7 +4243,7 @@ vxml_handle_comment(vxml_parser_t *vp)
 			}
 		} else {
 			if (vxml_debugging(18))
-				vxml_parser_debug(vp, "vxml_handle_comment: end");
+				vxml_parser_debug(vp, "%s(): end", G_STRFUNC);
 
 			return TRUE;
 		}
@@ -4666,8 +4666,7 @@ vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
 	 */
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_handle_doctype_decl: name is \"%s\"",
-			name);
+		vxml_parser_debug(vp, "%s(): name is \"%s\"", G_STRFUNC, name);
 	}
 
 	uc = vxml_next_char(vp);
@@ -4713,7 +4712,7 @@ vxml_handle_cdata(vxml_parser_t *vp)
 	uint32 uc;
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_cdata: begin");
+		vxml_parser_debug(vp, "%s(): begin", G_STRFUNC);
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (VXC_RBRAK == uc) {				/* ']' */
@@ -4734,7 +4733,7 @@ vxml_handle_cdata(vxml_parser_t *vp)
 
 ended:
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_cdata: end");
+		vxml_parser_debug(vp, "%s(): end", G_STRFUNC);
 
 	return TRUE;
 }
@@ -4989,8 +4988,8 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	uc = vxml_next_char(vp);
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_decl: next char is U+%X '%c'",
-			uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+		vxml_parser_debug(vp, "%s(): next char is U+%X '%c'",
+			G_STRFUNC, uc, is_ascii_print(uc) ? uc & 0xff : ' ');
 
 	if (VXC_MINUS == uc) {
 		uc = vxml_next_char(vp);
@@ -5090,8 +5089,8 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	}
 
 	if (vxml_debugging(19)) {
-		vxml_parser_debug(vp, "vxml_handle_decl: parsed '<!%s'",
-			vxml_token_to_string(token));
+		vxml_parser_debug(vp, "%s(): parsed '<!%s'",
+			G_STRFUNC, vxml_token_to_string(token));
 	}
 
 	vxml_output_discard(&vp->out);
@@ -5145,8 +5144,8 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	vxml_output_discard(&vp->out);
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_handle_decl: parsed '<!%s %s%s'",
-			vxml_token_to_string(token), seen_pct ? "% " : "", name);
+		vxml_parser_debug(vp, "%s(): parsed '<!%s %s%s'",
+			G_STRFUNC, vxml_token_to_string(token), seen_pct ? "% " : "", name);
 	}
 
 	switch (token) {
@@ -5290,9 +5289,9 @@ vxml_parser_path_proper_ending(vxml_parser_t *vp)
 	vxml_path_entry_check(pe);
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_path_proper_ending: "
-			"would be leaving '%s' at depth %u (parsed \"%s\")",
-			pe->element, vp->loc.depth, vp->element);
+		vxml_parser_debug(vp,
+			"%s(): would be leaving '%s' at depth %u (parsed \"%s\")",
+			G_STRFUNC, pe->element, vp->loc.depth, vp->element);
 	}
 
 	/*
@@ -5324,9 +5323,9 @@ vxml_parser_path_proper_ending(vxml_parser_t *vp)
 		const char *end_uri = vxml_parser_namespace_uri(vp, vp->namespace);
 
 		if (vxml_debugging(18)) {
-			vxml_parser_debug(vp, "vxml_parser_path_proper_ending: "
-				"leaving namespace '%s' at depth %u (parsed \"%s\")",
-				start_uri, vp->loc.depth, end_uri);
+			vxml_parser_debug(vp,
+				"%s(): leaving namespace '%s' at depth %u (parsed \"%s\")",
+				G_STRFUNC, start_uri, vp->loc.depth, end_uri);
 		}
 
 		if (0 != strcmp(start_uri, end_uri)) {
@@ -5355,8 +5354,8 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	vxml_path_entry_check(pe);
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_path_leave: "
-			"leaving '%s' at depth %u", pe->element, vp->loc.depth);
+		vxml_parser_debug(vp, "%s(): leaving '%s' at depth %u",
+			G_STRFUNC, pe->element, vp->loc.depth);
 	}
 
 	/*
@@ -5535,8 +5534,8 @@ vxml_parser_tag_has_ended(vxml_parser_t *vp, uint32 uc,
 	bool *error, bool *empty)
 {
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_tag_has_ended: char is U+%X '%c'",
-			uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+		vxml_parser_debug(vp, "%s(): char is U+%X '%c'",
+			G_STRFUNC, uc, is_ascii_print(uc) ? uc & 0xff : ' ');
 	}
 
 	if (VXC_SLASH == uc) {		/* Reached a '/', tag has no content */
@@ -5568,8 +5567,8 @@ vxml_parser_tag_has_ended(vxml_parser_t *vp, uint32 uc,
 
 tag_ended:
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_tag_has_ended: yes, %s empty",
-			*empty ? "" : "not");
+		vxml_parser_debug(vp, "%s(): yes, %s empty",
+			G_STRFUNC, *empty ? "" : "not");
 	}
 
 	return TRUE;
@@ -5618,9 +5617,10 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 		return FALSE;
 	}
 
-	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_tag: next char is U+%X '%c'",
-			uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+	if (vxml_debugging(18)) {
+		vxml_parser_debug(vp, "%s(): next char is U+%X '%c'",
+			G_STRFUNC, uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+	}
 
 	/*
 	 * If we're not starting an element tag, re-route.
