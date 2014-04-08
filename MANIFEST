@@ -1053,6 +1053,7 @@ src/shell/pid.c
 src/shell/print.c
 src/shell/props.c
 src/shell/quit.c
+src/shell/random.c
 src/shell/rescan.c
 src/shell/search.c
 src/shell/set.c

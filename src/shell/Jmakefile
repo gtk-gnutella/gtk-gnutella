@@ -47,6 +47,7 @@ SRC = \
 	print.c \
 	props.c \
 	quit.c \
+	random.c \
 	rescan.c \
 	search.c \
 	set.c \
