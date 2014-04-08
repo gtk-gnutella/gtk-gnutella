@@ -14,7 +14,7 @@
 echo " "
 echo "Figuring out my version number..." >&4
 $cat > ver <<'EOC'
-/^#define GTA_VERSION/		{ major=$3 }
+/^#define GTA_VERSION	/	{ major=$3 }
 /^#define GTA_SUBVERSION/	{ minor=$3 }
 /^#define GTA_PATCHLEVEL/	{ tiny=$3 }
 /^#define GTA_REVCHAR/		{ rev=$3; gsub("[^a-zA-Z]", "", rev); }
