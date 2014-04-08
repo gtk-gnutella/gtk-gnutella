@@ -3118,6 +3118,7 @@ bsched_timer(void)
 		if (bs->flags & BS_F_DATA_READ) {
 			read_data = TRUE;
 			bs->flags &= ~BS_F_DATA_READ;
+			random_pool_append(&in_used, sizeof in_used);
 		}
 	}
 
