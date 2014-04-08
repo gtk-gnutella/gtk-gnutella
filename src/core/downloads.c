@@ -8878,6 +8878,7 @@ download_start_reading(void *o)
 
 		tm_now(&now);
 		elapsed = tm_elapsed_ms(&now, &d->header_sent);
+		random_pool_append(&elapsed, sizeof elapsed);
 
 		g_assert(dl_server_valid(server));
 
