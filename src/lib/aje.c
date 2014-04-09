@@ -63,9 +63,18 @@
  * the encryption keys are only 128-bit long, therefore our AJE algorithm
  * has only a 128-bit security strength.
  *
+ * When generating bytes without any re-seeding happening, the overall state
+ * context is an 8-byte counter and a 16-byte key, hence the period of the
+ * PRNG is bound by 2**192 - 1.
+ *
+ * However, when re-seeding happens, and even though the internal context is
+ * finite and therefore bound to experience repetitions over the long run,
+ * the ordering of these repetitions depends on external factors (the collected
+ * entropy).  Therefore, the PRNG becomes non-periodic.
+ *
  * This current AJE implementation with SHA1 and XXTEA passes 99.91% of the
  * FIPS 140-2 tests on the average and does not fail any of the dieharder
- * tets, hence it is a good source of randomness (as good as /dev/urandom).
+ * tests, hence it is a good source of randomness (as good as /dev/urandom).
  *
  *		./random-test -Al -T | rngtest -c 1000000
  *		./random-test -Al -T | dieharder -g 200 -a
