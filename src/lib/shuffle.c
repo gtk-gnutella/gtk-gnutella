@@ -34,9 +34,12 @@
 #include "common.h"
 
 #include "shuffle.h"
+
+#include "cmwc.h"
 #include "mtwist.h"
 #include "random.h"
 #include "unsigned.h"
+#include "well.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -80,6 +83,22 @@ shuffle_with(random_fn_t rf, void *b, size_t n, size_t s)
 }
 
 /**
+ * Generate a random number in the range 0 to 2^32-1, inclusive.
+ *
+ * Random number generator combining sequences of the Mersenne Twister and of
+ * the CMWC4096 PRNGs randomly using WELL1094b to select the source.
+ */
+uint32
+shuffle_thread_rand(void)
+{
+	/*
+	 * 1/4 of the numbers come from the Mersenne Twister, 3/4 from CMWC4096.
+	 */
+
+	return (well_thread_rand() & 3) ? cmwc_thread_rand() : mtp_rand();
+}
+
+/**
  * Randomly shuffle array in-place.
  *
  * @param b		the base of the array
@@ -97,9 +116,28 @@ shuffle(void *b, size_t n, size_t s)
 	 * For shuffling, we need many random numbers and it pays to use the
 	 * mtp_rand() routine, which relies on a thread-private pool.
 	 *		--RAM, 2013-09-29
+	 *
+	 * To make sure we can truly randomly shuffle the array, we need a random
+	 * number generator whose period is greater than the amount of permutations
+	 * of that array (otherwise some permutations will never come out).
+	 * The period of the Mersenne Twister is 2**19937 - 1, so we can safely
+	 * permute arrays of 2080 items or less (since 2081! is the first number
+	 * greater than its period).
+	 *
+	 * Between 2081 and 10945 entries, we can use CMWC4096, which has a
+	 * larger period of about 2**131086 - 1.  For arrays even larger than
+	 * that, we use a slower random function which randomly combines mtp_rand()
+	 * and cmwc_thread_rand() using the WELL PRNG to select one of the two
+	 * algorithms.
+	 *		--RAM, 2014-04-11
 	 */
 
-	shuffle_with(mtp_rand, b, n, s);
+	if (n <= 2080)
+		shuffle_with(mtp_rand, b, n, s);			/* Perfect */
+	else if (n <= 10945)
+		shuffle_with(cmwc_thread_rand, b, n, s);	/* Perfect */
+	else
+		shuffle_with(shuffle_thread_rand, b, n, s);	/* Misses permutations */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

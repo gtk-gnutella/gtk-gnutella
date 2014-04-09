@@ -43,6 +43,7 @@
 #include "lib/path.h"
 #include "lib/rand31.h"
 #include "lib/random.h"
+#include "lib/shuffle.h"
 #include "lib/stats.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -74,7 +75,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-14eghluxABGMPSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-14eghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -1 : test entropy_rand31() instead of rand31()\n"
@@ -99,6 +100,7 @@ usage(void)
 		"  -G : test cmwc_rand(), George Marsaglia's PRNG\n"
 		"  -M : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
 		"  -P : compute period through brute-force search\n"
+		"  -Q : test shuffle_thread_rand()\n"
 		"  -R : seed for repeatable random key sequence\n"
 		"  -S : test random_strong(), a XOR of WELL1024b and ARC4\n"
 		"  -T : dieharder test mode, dumping raw random bytes to stdout\n"
@@ -569,7 +571,7 @@ main(int argc, char **argv)
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "14b:c:eghlm:p:s:t:uxABC:D:F:GMPR:STU:WX:";
+	const char options[] = "14b:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 G_STMT_START {			\
@@ -683,6 +685,9 @@ G_STMT_START {			\
 			break;
 		case 'P':			/* compute period */
 			cperiod = TRUE;
+			break;
+		case 'Q':			/* test shuffle_thread_rand() */
+			SET_RANDOM(shuffle_thread_rand);
 			break;
 		case 'R':			/* randomize in a repeatable way */
 			rseed = get_number(optarg, c);
