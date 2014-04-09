@@ -1204,7 +1204,7 @@ entropy_aje_inited(void)
 {
 	entropy_ops.ent_collect      = entropy_aje_collect;
 	entropy_ops.ent_mini_collect = entropy_aje_collect;
-	entropy_ops.ent_random       = aje_rand;
+	entropy_ops.ent_random       = aje_rand_strong;
 	entropy_ops.ent_fill         = aje_random_bytes;
 	atomic_mb();
 }
