@@ -53,6 +53,7 @@
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/pmsg.h"
@@ -780,6 +781,20 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 	g_assert(thread_is_main());
 	g_assert(!sh->async);		/* One async request at a time */
 	g_assert(endptr != NULL);
+
+	{
+		uint16 rnd;
+		tm_t now;
+
+		/*
+		 * Collect randomness each time a command is executed, regardless
+		 * of whether we end-up actually running it.
+		 */
+
+		tm_now_exact(&now);
+		rnd = hashing_fold(now.tv_usec, 16);
+		random_pool_append(&rnd, sizeof rnd);
+	}
 
 	if (!shell_parse_command(sh, start, endptr, &argc, &argv)) {
 		shell_write(sh, "400-Syntax error:");
