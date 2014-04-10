@@ -35,6 +35,7 @@
 #include "lib/aje.h"
 #include "lib/arc4random.h"
 #include "lib/chi2.h"
+#include "lib/cmwc.h"
 #include "lib/entropy.h"
 #include "lib/misc.h"
 #include "lib/mtwist.h"
@@ -73,7 +74,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-14eghluxABMPSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-14eghluxABGMPSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -1 : test entropy_rand31() instead of rand31()\n"
@@ -95,6 +96,7 @@ usage(void)
 		"  -C : count how many times the random value occurs (after -b)\n"
 		"  -D : dump specified amount of random numbers (after -b)\n"
 		"  -F : uses random floats multiplied by supplied constant\n"
+		"  -G : test cmwc_rand(), George Marsaglia's PRNG\n"
 		"  -M : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
 		"  -P : compute period through brute-force search\n"
 		"  -R : seed for repeatable random key sequence\n"
@@ -567,7 +569,7 @@ main(int argc, char **argv)
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "14b:c:eghlm:p:s:t:uxABC:D:F:MPR:STU:WX:";
+	const char options[] = "14b:c:eghlm:p:s:t:uxABC:D:F:GMPR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 G_STMT_START {			\
@@ -664,6 +666,13 @@ G_STMT_START {			\
 			break;
 		case 'F':			/* floating-point-based random numbers */
 			fp.max = get_number(optarg, c);
+			break;
+		case 'G':			/* check cmwc_rand() */
+			if (test_local) {
+				SET_RANDOM(cmwc_thread_rand);
+			} else {
+				SET_RANDOM(cmwc_rand);
+			}
 			break;
 		case 'M':			/* check mt_rand() instead */
 			if (test_local) {

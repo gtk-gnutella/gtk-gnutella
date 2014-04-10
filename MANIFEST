@@ -662,6 +662,8 @@ src/lib/chi2.c
 src/lib/chi2.h
 src/lib/ckalloc.c
 src/lib/ckalloc.h
+src/lib/cmwc.c
+src/lib/cmwc.h
 src/lib/cobs.c
 src/lib/cobs.h
 src/lib/compat_misc.c

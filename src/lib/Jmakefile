@@ -79,6 +79,7 @@ LSRC = \
 	buf.c \
 	chi2.c \
 	ckalloc.c \
+	cmwc.c \
 	cobs.c \
 	compat_misc.c \
 	compat_pause.c \
