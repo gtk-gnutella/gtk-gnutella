@@ -151,6 +151,8 @@ mt_state_check(const struct mt_state * const mts)
 #define STATE_LOCK(m)	spinlock_hidden(&m->lock)
 #define STATE_UNLOCK(m)	spinunlock_hidden(&m->lock)
 
+static void mts_discard(mt_state_t *mts);
+
 /**
  * Initialize the state with random values drawn from specified PRNG function.
  *
@@ -268,8 +270,11 @@ mts_refresh(register mt_state_t *mts)
 	 * Mersenne Twister.
 	 */
 
-	if G_UNLIKELY(!mts->initialized)
+	if G_UNLIKELY(!mts->initialized) {
 		mts_seed_with(arc4random, mts);
+		g_assert(mts->initialized);		/* No recursion via mts_discard()! */
+		mts_discard(mts);
+	}
 
 	/*
 	 * Now generate the new pseudo-random values by applying the
@@ -400,6 +405,22 @@ mts_refresh(register mt_state_t *mts)
 	 */
 
 	mts->sp = MT_STATE_SIZE;
+}
+
+/**
+ * Discard random numbers following the initialization of the state to make
+ * sure the generated numbers exhibit good statistical properties.
+ *
+ * (function added by RAM)
+ */
+static void
+mts_discard(mt_state_t *mts)
+{
+	int i;
+
+	for (i = 0; i < 100; i++) {		/* Discard the first 624 * 100 numbers */
+		mts_refresh(mts);
+	}
 }
 
 /*
@@ -664,8 +685,10 @@ mt_state_new(random_fn_t rf)
 	WALLOC0(mts);
 	mts->magic = MT_STATE_MAGIC;
 
-	if (rf != NULL)
+	if (rf != NULL) {
 		mts_seed_with(rf, mts);
+		mts_discard(mts);
+	}
 
 	return mts;
 }
@@ -789,6 +812,7 @@ mt_init_once(void)
 {
 	MTWIST_LOCK;
 	mts_seed_with(arc4random, &mt_default);
+	mts_discard(&mt_default);
 	MTWIST_UNLOCK;
 }
 
