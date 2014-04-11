@@ -714,7 +714,7 @@ random_pool_append(void *buf, size_t len)
  * stored in ``rbd_ptr''.  Each routine will get a reference-counted structure
  * and will need to call random_byte_data_free() to cleanup that structure.
  *
- * @param users		the list of thread ID
+ * @param users		the list of thread ID (disposed of at the end)
  * @param cb		the callback to invoke in the thread
  * @param data		the random data we can give
  * @param len		the amount of bytes we can give
