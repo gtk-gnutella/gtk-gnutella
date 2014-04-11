@@ -930,10 +930,13 @@ eslist_random(const eslist_t *list)
 }
 
 /**
- * Randomly shuffle the items in the list.
+ * Randomly shuffle the items in the list using supplied random function.
+ *
+ * @param rf	the random function to use (NULL means: use defaults)
+ * @param list	the list to shuffle
  */
 void
-eslist_shuffle(eslist_t *list)
+eslist_shuffle_with(random_fn_t rf, eslist_t *list)
 {
 	slink_t *lk;
 	slink_t **array;
@@ -957,7 +960,7 @@ eslist_shuffle(eslist_t *list)
 		array[i] = lk;
 	}
 
-	shuffle(array, list->count, sizeof array[0]);
+	shuffle_with(rf, array, list->count, sizeof array[0]);
 
 	/*
 	 * Rebuild the list.
@@ -980,6 +983,15 @@ eslist_shuffle(eslist_t *list)
 
 	safety_assert(eslist_invariant(list));
 	safety_assert(eslist_length(list->head) == list->count);
+}
+
+/**
+ * Randomly shuffle the items in the list.
+ */
+void
+eslist_shuffle(eslist_t *list)
+{
+	eslist_shuffle_with(NULL, list);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

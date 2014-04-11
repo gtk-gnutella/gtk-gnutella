@@ -527,17 +527,29 @@ hash_list_sort_with_data(hash_list_t *hl, cmp_data_fn_t func, void *data)
 }
 
 /**
- * Randomly shuffle the list.
+ * Randomly shuffle the list using supplied random function.
+ *
+ * @param rf	the random function to use (NULL means: use defaults)
+ * @param hl	the hashlist to shuffle
  */
 void
-hash_list_shuffle(hash_list_t *hl)
+hash_list_shuffle_with(random_fn_t rf, hash_list_t *hl)
 {
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
 	hash_list_synchronize(hl);
-	elist_shuffle(&hl->list);
+	elist_shuffle_with(rf, &hl->list);
 	hash_list_return_void(hl);
+}
+
+/**
+ * Randomly shuffle the list.
+ */
+void
+hash_list_shuffle(hash_list_t *hl)
+{
+	hash_list_shuffle_with(NULL, hl);
 }
 
 /**

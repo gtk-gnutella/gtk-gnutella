@@ -258,6 +258,7 @@ void *eslist_nth(const eslist_t *list, long n);
 void *eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n);
 void *eslist_random(const eslist_t *list);
 void eslist_shuffle(eslist_t *list);
+void eslist_shuffle_with(random_fn_t rf, eslist_t *list);
 
 void eslist_append_list(eslist_t *list, eslist_t *other);
 void eslist_prepend_list(eslist_t *list, eslist_t *other);

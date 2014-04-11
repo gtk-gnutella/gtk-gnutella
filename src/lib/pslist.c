@@ -933,14 +933,15 @@ pslist_sort(pslist_t *pl, cmp_fn_t cmp)
 }
 
 /**
- * Randomly shuffle the items in the list.
+ * Randomly shuffle the items in the list using supplied random function.
  *
+ * @param rf		the random function to use (NULL means: use defaults)
  * @param pl		the head of the list
  *
  * @return the head of the shuffled list.
  */
 pslist_t *
-pslist_shuffle(pslist_t *pl)
+pslist_shuffle_with(random_fn_t rf, pslist_t *pl)
 {
 	eslist_t list;
 
@@ -964,15 +965,28 @@ pslist_shuffle(pslist_t *pl)
 	 * the structure.
 	 *
 	 * There is no need to set the list.tail field as this is not used by
-	 * eslist_shuffle().
+	 * eslist_shuffle_with().
 	 */
 
 	eslist_init(&list, offsetof(pslist_t, next));
 	list.head = (slink_t *) pl;
 	list.count = pslist_length(pl);		/* Have to count, unfortunately */
-	eslist_shuffle(&list);				/* Shuffles the cells */
+	eslist_shuffle_with(rf, &list);		/* Shuffles the cells */
 
 	return (pslist_t *) list.head;
+}
+
+/**
+ * Randomly shuffle the items in the list.
+ *
+ * @param pl		the head of the list
+ *
+ * @return the head of the shuffled list.
+ */
+pslist_t *
+pslist_shuffle(pslist_t *pl)
+{
+	return pslist_shuffle_with(NULL, pl);
 }
 
 /**

@@ -51,8 +51,8 @@
  * @param n		amount of items in array
  * @param s		size of items in array
  */
-void
-shuffle_with(random_fn_t rf, void *b, size_t n, size_t s)
+static void
+shuffle_internal(random_fn_t rf, void *b, size_t n, size_t s)
 {
 	size_t i;
 
@@ -133,11 +133,28 @@ shuffle(void *b, size_t n, size_t s)
 	 */
 
 	if (n <= 2080)
-		shuffle_with(mtp_rand, b, n, s);			/* Perfect */
+		shuffle_internal(mtp_rand, b, n, s);			/* Perfect */
 	else if (n <= 10945)
-		shuffle_with(cmwc_thread_rand, b, n, s);	/* Perfect */
+		shuffle_internal(cmwc_thread_rand, b, n, s);	/* Perfect */
 	else
-		shuffle_with(shuffle_thread_rand, b, n, s);	/* Misses permutations */
+		shuffle_internal(shuffle_thread_rand, b, n, s);
+}
+
+/**
+ * Randomly shuffle array in-place using supplied random function.
+ *
+ * @param rf	the random function to use (NULL to use defaults)
+ * @param b		the base of the array
+ * @param n		amount of items in array
+ * @param s		size of items in array
+ */
+void
+shuffle_with(random_fn_t rf, void *b, size_t n, size_t s)
+{
+	if (NULL == rf)
+		shuffle(b, n, s);
+	else
+		shuffle_internal(rf, b, n, s);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -130,6 +130,7 @@ plist_t *plist_sort(plist_t *pl, cmp_fn_t cmp) WARN_UNUSED_RESULT;
 plist_t *plist_sort_with_data(plist_t *pl,
 	cmp_data_fn_t cmp, void *data) WARN_UNUSED_RESULT;
 plist_t *plist_shuffle(plist_t *pl) WARN_UNUSED_RESULT;
+plist_t *plist_shuffle_with(random_fn_t rf, plist_t *pl) WARN_UNUSED_RESULT;
 plist_t *plist_random(const plist_t *pl);
 void *plist_shift(plist_t **pl) NON_NULL_PARAM((1));
 

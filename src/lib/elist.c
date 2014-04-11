@@ -1062,10 +1062,13 @@ elist_random(const elist_t *list)
 }
 
 /**
- * Randomly shuffle the items in the list.
+ * Randomly shuffle the items in the list using supplied random function.
+ *
+ * @param rf	the random function to use (NULL means: use defaults)
+ * @param list	the list to shuffle
  */
 void
-elist_shuffle(elist_t *list)
+elist_shuffle_with(random_fn_t rf, elist_t *list)
 {
 	link_t *lk;
 	link_t **array;
@@ -1089,7 +1092,7 @@ elist_shuffle(elist_t *list)
 		array[i] = lk;
 	}
 
-	shuffle(array, list->count, sizeof array[0]);
+	shuffle_with(rf, array, list->count, sizeof array[0]);
 
 	/*
 	 * Rebuild the list.
@@ -1114,6 +1117,15 @@ elist_shuffle(elist_t *list)
 
 	safety_assert(elist_invariant(list));
 	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Randomly shuffle the items in the list.
+ */
+void
+elist_shuffle(elist_t *list)
+{
+	elist_shuffle_with(NULL, list);
 }
 
 /**

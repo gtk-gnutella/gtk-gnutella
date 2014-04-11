@@ -1000,14 +1000,15 @@ plist_sort(plist_t *pl, cmp_fn_t cmp)
 }
 
 /**
- * Randomly shuffle the items in the list.
+ * Randomly shuffle the items in the list using supplied random function.
  *
+ * @param rf		the random function to use (NULL means: use defaults)
  * @param pl		the head of the list
  *
  * @return the head of the shuffled list.
  */
 plist_t *
-plist_shuffle(plist_t *pl)
+plist_shuffle_with(random_fn_t rf, plist_t *pl)
 {
 	elist_t list;
 
@@ -1038,9 +1039,22 @@ plist_shuffle(plist_t *pl)
 	elist_init(&list, offsetof(plist_t, next));
 	list.head = (link_t *) pl;
 	list.count = plist_length(pl);		/* Have to count, unfortunately */
-	elist_shuffle(&list);				/* Shuffle the cells */
+	elist_shuffle_with(rf, &list);		/* Shuffle the cells */
 
 	return (plist_t *) list.head;
+}
+
+/**
+ * Randomly shuffle the items in the list.
+ *
+ * @param pl		the head of the list
+ *
+ * @return the head of the shuffled list.
+ */
+plist_t *
+plist_shuffle(plist_t *pl)
+{
+	return plist_shuffle_with(NULL, pl);
 }
 
 /**
