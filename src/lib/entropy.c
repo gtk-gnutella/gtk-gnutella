@@ -933,6 +933,7 @@ entropy_collect_host(SHA1_context *ctx)
 	sha1_feed_string(ctx, name);
 
 	hosts = name_to_host_addr(name, NET_TYPE_NONE);
+	hosts = pslist_shuffle_with(entropy_rand31, hosts);
 
 	PSLIST_FOREACH(hosts, sl) {
 		host_addr_t *addr = sl->data;
