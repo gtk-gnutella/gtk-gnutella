@@ -5,7 +5,7 @@
  */
 
 struct DBMBIG;
-struct mutex;			/* Avoid including "mutex.h" here */
+struct lmutex;			/* Avoid including "mutex.h" here */
 
 enum sdbm_magic { SDBM_MAGIC = 0x1dac340e };
 
@@ -24,7 +24,7 @@ struct DBM {
 	void *cache;		/* LRU page cache */
 #endif
 #ifdef THREADS
-	struct mutex *lock;	/* thread-safe lock at the API level */
+	struct lmutex *lock;	/* thread-safe lock at the API level */
 #endif
 	fileoffset_t pagtail;	/* end of page file descriptor, for iterating */
 	long maxbno;		/* size of dirfile in bits */

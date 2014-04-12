@@ -104,8 +104,11 @@ enum mutex_magic {
  *
  * When the integer is 0, the lock is available, when the integer is 1
  * the lock is busy.
+ *
+ * It's called "struct lmutex" because "struct mutex" is exposed on Solaris
+ * within the <sys/mutex.h> file.
  */
-typedef struct mutex {
+typedef struct lmutex {
 	enum mutex_magic magic;
 	thread_t owner;
 	size_t depth;

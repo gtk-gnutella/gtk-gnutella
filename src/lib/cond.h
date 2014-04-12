@@ -118,24 +118,24 @@ void cond_wakeup_all(cond_t cv);
  * Public interface.
  */
 
-struct mutex;
+struct lmutex;
 struct tmval;
 struct waiter;
 
-void cond_init(cond_t *c, const struct mutex *m);
-void cond_init_full(cond_t *c, const struct mutex *m, bool emulated);
+void cond_init(cond_t *c, const struct lmutex *m);
+void cond_init_full(cond_t *c, const struct lmutex *m, bool emulated);
 void cond_destroy(cond_t *c);
 bool cond_reset(cond_t *c);
-bool cond_timed_wait_from(cond_t *c, struct mutex *m,
+bool cond_timed_wait_from(cond_t *c, struct lmutex *m,
 	const struct tmval *timeout,
 	const char *routine, const char *file, unsigned line);
-bool cond_wait_until_from(cond_t *c, struct mutex *m,
+bool cond_wait_until_from(cond_t *c, struct lmutex *m,
 	const struct tmval *abstime,
 	const char *routine, const char *file, unsigned line);
-void cond_wait_from(cond_t *c, struct mutex *m,
+void cond_wait_from(cond_t *c, struct lmutex *m,
 	const char *routine, const char *file, unsigned line);
-void cond_signal(cond_t *c, const struct mutex *m);
-void cond_broadcast(cond_t *c, const struct mutex *m);
+void cond_signal(cond_t *c, const struct lmutex *m);
+void cond_broadcast(cond_t *c, const struct lmutex *m);
 
 size_t cond_vars_count(void);
 
@@ -165,9 +165,9 @@ bool cond_waiter_remove(cond_t *c, struct waiter *w);
  * the mutex should the thread be cancelled.
  */
 
-void cond_wait_clean(cond_t *, struct mutex *);
-bool cond_timed_wait_clean(cond_t *, struct mutex *, const struct tmval *);
-bool cond_wait_until_clean(cond_t *, struct mutex *, const struct tmval *);
+void cond_wait_clean(cond_t *, struct lmutex *);
+bool cond_timed_wait_clean(cond_t *, struct lmutex *, const struct tmval *);
+bool cond_wait_until_clean(cond_t *, struct lmutex *, const struct tmval *);
 
 #endif /* _cond_h_ */
 
