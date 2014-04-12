@@ -768,7 +768,8 @@ st_search(
 	 */
 
 	if (result != NULL) {
-		result = pslist_shuffle(result);
+		if (nres > max_res)
+			result = pslist_shuffle(result);
 
 		for (i = 0; i < UNSIGNED(max_res); /* empty */) {
 			const shared_file_t *sf = pslist_shift(&result);
