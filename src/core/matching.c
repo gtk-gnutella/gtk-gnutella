@@ -36,7 +36,7 @@
 #include "lib/halloc.h"
 #include "lib/hset.h"
 #include "lib/pattern.h"
-#include "lib/random.h"
+#include "lib/pslist.h"
 #include "lib/stringify.h"	/* For hex_escape() */
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -590,7 +590,7 @@ st_search(
 	int scanned = 0;		/* measure search mask efficiency */
 	uint32 search_mask;
 	size_t minlen;
-	uint random_offset; 	 /* Randomizer for search returns */
+	pslist_t *result = NULL;
 
 	search_table_check(table);
 
@@ -715,21 +715,22 @@ st_search(
 
 	vcnt = best_bin->nvals;
 	vals = best_bin->vals;
-	random_offset = random_value(vcnt - 1);
 
 	nres = 0;
 	for (i = 0; i < vcnt; i++) {
-		const struct st_entry *e;
-		shared_file_t *sf;
+		const struct st_entry *e = vals[i];
+		const shared_file_t *sf;
 		size_t canonic_len;
 
 		/*
-		 * As we only return a limited count of results, pick a random
-		 * offset, so that repeated searches will match different items
-		 * instead of always the first - with some probability.
+		 * As we only return a limited amount of results, we insert all the
+		 * matching entries in a list, which will then be randomly shuffled.
+		 * Only its leading items will be extracted.
+		 *
+		 * That strategy allows us to possibly return all the matching entries
+		 * when they repeat the search over time.
 		 */
-		e = vals[(i + random_offset) % vcnt];
-		
+
 		if ((e->mask & search_mask) != search_mask)
 			continue;		/* Can't match */
 
@@ -750,18 +751,37 @@ st_search(
 					search, shared_file_name_nfc(sf));
 			}
 
-			if ((*callback)(ctx, sf)) {
-				nres++;
-				if (nres >= max_res)
-					break;
-			}
+			result = pslist_prepend_const(result, sf);
+			nres++;
 		}
 	}
 
-	if (GNET_PROPERTY(matching_debug) > 3)
-		g_debug("MATCH st_search(): scanned %d entr%s from the %d in bin, "
-			"got %d match%s",
-			scanned, plural_y(scanned), best_bin_size, nres, plural_es(nres));
+	if (GNET_PROPERTY(matching_debug) > 3) {
+		g_debug("MATCH %s(): "
+			"scanned %d entr%s from the %d in bin, got %d match%s",
+			G_STRFUNC, scanned, plural_y(scanned),
+			best_bin_size, nres, plural_es(nres));
+	}
+
+	/*
+	 * Randomly shuffle the results and pick the first max_res items.
+	 */
+
+	if (result != NULL) {
+		result = pslist_shuffle(result);
+
+		for (i = 0; i < UNSIGNED(max_res); /* empty */) {
+			const shared_file_t *sf = pslist_shift(&result);
+
+			if (NULL == sf)
+				break;
+
+			if ((*callback)(ctx, sf))
+				i++;						/* Entry retained */
+		}
+
+		pslist_free_null(&result);
+	}
 
 	for (i = 0; i < wocnt; i++)
 		if (pattern[i])					/* Lazily compiled by entry_match() */

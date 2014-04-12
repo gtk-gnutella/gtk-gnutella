@@ -7601,7 +7601,7 @@ shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
  * @return TRUE if the match is kept.
  */
 static bool
-got_match(void *context, void *data)
+got_match(void *context, const void *data)
 {
 	struct query_context *qctx = context;
 	const shared_file_t *sf = data;
