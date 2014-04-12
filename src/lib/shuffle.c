@@ -33,8 +33,11 @@
 
 #include "common.h"
 
+#include <math.h>			/* For log() */
+
 #include "shuffle.h"
 
+#include "arc4random.h"
 #include "cmwc.h"
 #include "mtwist.h"
 #include "random.h"
@@ -136,8 +139,60 @@ shuffle(void *b, size_t n, size_t s)
 		shuffle_internal(mtp_rand, b, n, s);			/* Perfect */
 	else if (n <= 10945)
 		shuffle_internal(cmwc_thread_rand, b, n, s);	/* Perfect */
-	else
+	else {
 		shuffle_internal(shuffle_thread_rand, b, n, s);
+
+		/*
+		 * Combining CMWC4096 and the Mersenne Twister with WELL1024b gives
+		 * us about 152047 bits of context.  That allows us to be able to
+		 * reach all the permutations of sets up to roughly 12450 items,
+		 * since 12450! has an upper bound of 2**151415.
+		 *
+		 * After that, we use the technique of re-shuffling to increase the
+		 * amount of reacheable permutations.
+		 *
+		 * Each re-shuffling with shuffle_thread_rand() is going to explore
+		 * a new set of permutations, but we need to conditionally reshuffle,
+		 * otherwise we're bound by the initial context of our PRNGs and do
+		 * not improve on anything.  Also, we need to draw randomness from
+		 * another pool to benefit from extra bits of entropy, hence we use
+		 * arc4random() to provide us the additional randomness.
+		 *
+		 * How many re-shuffling do we need to do?  We know we will never be
+		 * able to explore all the possible permutations when "n" (the amount
+		 * of items in the array) becomes that large anyway, but we want to
+		 * increase the reacheable set without being too expensive from a
+		 * computation standpoint: as "n" grows, so does the shuffling time,
+		 * which is in O(n).
+		 *
+		 * Since "n" starts to be large, we can approximate the computation of
+		 * n! using Stirling's formula, retaining only the largest term:
+		 *
+		 *		ln(n!) ~ n * ln(n) - n
+		 *
+		 * So we compute the total amount of bits of context we would need
+		 * by computing the base-2 logarithm of n!, approximated by Stirling.
+		 * And we linearily decrease the amount by 152047/2 for each additional
+		 * re-shuffling we do, with a probability of 70%.  We stop either when
+		 * we have exhausted the amount of bits we needed or when we have no
+		 * luck in our random check.
+		 *
+		 * The 0.7 probability is our safeguard to avoid a O(n**2) complexity:
+		 * it will quickly drop to 0, and the probability of doing more than
+		 * 20 re-shuffling is about 0.08%.  The 151406 constant below is the
+		 * approximation of ln2(12450!) given by Stirling (the exact value
+		 * being 151415 here).
+		 */
+
+		if (n > 12450) {
+			double bits = (n * log(n) - n) / log(2) - 151406.0;
+
+			while (bits > 0.0 && random_upto(arc4random, 99) < 70) {
+				bits -= 152047.0 / 2.0;		/* Pure conjecture */
+				shuffle_internal(shuffle_thread_rand, b, n, s);
+			}
+		}
+	}
 }
 
 /**
