@@ -75,10 +75,11 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-14eghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-124eghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -1 : test entropy_rand31() instead of rand31()\n"
+		"  -2 : test entropy_minirand() instead of rand31()\n"
 		"  -4 : test arc4random() instead of rand31()\n"
 		"  -b : bit mask to apply on random values (focus on some bits)\n"
 		"  -c : sets item count to remember, for period computation\n"
@@ -571,7 +572,7 @@ main(int argc, char **argv)
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "14b:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
+	const char options[] = "124b:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 G_STMT_START {			\
@@ -604,6 +605,9 @@ G_STMT_START {			\
 		switch (c) {
 		case '1':			/* test entropy_rand31() */
 			SET_RANDOM(entropy_rand31);
+			break;
+		case '2':			/* test entropy_minirand() */
+			SET_RANDOM(entropy_minirand);
 			break;
 		case '4':			/* test arc4random() */
 			if (test_local) {

@@ -99,11 +99,18 @@
  *
  * We're using a 31-bit random number generator, so we can't safely
  * permute randomly arrays with more than 12 items: the number of
- * combinations are 12!, which is smaller than 2^31, but 13! is greater
+ * combinations are 12!, which is smaller than 2**31, but 13! is greater
  * so our internal state for the PRNG cannot hold enough values to possibly
- * lead to an unbiased shuffling.
+ * lead to an unbiased shuffling. [Note: the period of rand31() is 2**30]
+ *
+ * As of 2014-04-13, the above is no longer true because we're now shuffling
+ * with entropy_minirand(), and that routine uses a larger context state given
+ * entropy_rand31() uses a buffer initialized via entropy_seed() to perturb
+ * the raw output of the underlying rand31().  Therefore, in theory we should
+ * be able to reach all the permutations of a larger array.  However the exact
+ * period of entropy_minirand() is unknown though...
  */
-#define RANDOM_SHUFFLE_MAX	12		/* 12! = 479001600, less than 2^29 */
+#define RANDOM_SHUFFLE_MAX	12		/* 12! = 479001600, less than 2**29 */
 
 typedef void (*entropy_cb_t)(SHA1_context *ctx);
 
@@ -315,7 +322,7 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 	if (len > RANDOM_SHUFFLE_MAX)
 		s_carp("%s: cannot shuffle %zu items without bias", G_STRFUNC, len);
 
-	shuffle_with(entropy_rand31, ary, len, elem_size);
+	shuffle_with(entropy_minirand, ary, len, elem_size);
 }
 
 /**
@@ -520,8 +527,8 @@ entropy_collect_user_id(SHA1_context *ctx)
 	id[0] = getuid();
 	id[1] = getgid();
 #else
-	id[0] = entropy_rand31();
-	id[1] = entropy_rand31();
+	id[0] = entropy_minirand();
+	id[1] = entropy_minirand();
 #endif	/* HAS_GETUID */
 
 	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
@@ -538,7 +545,7 @@ entropy_collect_process_id(SHA1_context *ctx)
 #ifdef HAS_GETPPID
 	id[0] = getppid();
 #else
-	id[0] = entropy_rand31();
+	id[0] = entropy_minirand();
 #endif	/* HAS_GETPPID */
 	id[1] = getpid();
 
@@ -584,8 +591,8 @@ entropy_collect_user(SHA1_context *ctx)
 		char user[UINT32_DEC_BUFLEN];
 		char real[UINT32_DEC_BUFLEN];
 
-		uint32_to_string_buf(entropy_rand31(), user, sizeof user);
-		uint32_to_string_buf(entropy_rand31(), real, sizeof real);
+		uint32_to_string_buf(entropy_minirand(), user, sizeof user);
+		uint32_to_string_buf(entropy_minirand(), real, sizeof real);
 		str[1] = user;
 		str[2] = real;
 		entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
@@ -606,7 +613,7 @@ entropy_collect_login(SHA1_context *ctx)
 		sha1_feed_pointer(ctx, name);	/* name points to static data */
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_ulong(ctx, entropy_minirand());
 #endif	/* HAS_GETLOGIN */
 }
 
@@ -628,7 +635,7 @@ entropy_collect_pw(SHA1_context *ctx)
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_ulong(ctx, entropy_minirand());
 #endif	/* HAS_GETUID */
 }
 
@@ -755,7 +762,7 @@ entropy_collect_usage(SHA1_context *ctx)
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_ulong(ctx, entropy_minirand());
 #endif	/* HAS_GETRUSAGE */
 }
 
@@ -776,7 +783,7 @@ entropy_collect_uname(SHA1_context *ctx)
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_ulong(ctx, entropy_minirand());
 #endif	/* HAS_UNAME */
 }
 
@@ -789,7 +796,7 @@ entropy_collect_ttyname(SHA1_context *ctx)
 #ifdef HAS_TTYNAME
 	sha1_feed_string(ctx, ttyname(STDIN_FILENO));
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_ulong(ctx, entropy_minirand());
 #endif	/* HAS_TTYNAME */
 }
 
@@ -867,13 +874,13 @@ entropy_collect_environ(SHA1_context *ctx)
  * Collect a few pseudo-random numbers.
  */
 static void
-entropy_collect_rand31(SHA1_context *ctx)
+entropy_collect_minirand(SHA1_context *ctx)
 {
 	int i;
 
 	for (i = 0; i < 16; i++) {
-		unsigned long p = entropy_rand31();
-		unsigned long q = entropy_rand31();
+		unsigned long p = entropy_minirand();
+		unsigned long q = entropy_minirand();
 		sha1_feed_ulong(ctx, p + q);
 		sha1_feed_ulong(ctx, p - q);
 	}
@@ -933,7 +940,7 @@ entropy_collect_host(SHA1_context *ctx)
 	sha1_feed_string(ctx, name);
 
 	hosts = name_to_host_addr(name, NET_TYPE_NONE);
-	hosts = pslist_shuffle_with(entropy_rand31, hosts);
+	hosts = pslist_shuffle_with(entropy_minirand, hosts);
 
 	PSLIST_FOREACH(hosts, sl) {
 		host_addr_t *addr = sl->data;
@@ -1040,7 +1047,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_uname;
 	fn[i++] = entropy_collect_pointers;
 	fn[i++] = entropy_collect_file_amount;
-	fn[i++] = entropy_collect_rand31;
+	fn[i++] = entropy_collect_minirand;
 	fn[i++] = entropy_collect_time;
 
 	g_assert(i <= G_N_ELEMENTS(fn));
