@@ -49,8 +49,8 @@ uint64 arc4random64(void);
  * ARC4 random numbers using thread-local stream.
  */
 
-uint32 arc4_rand(void);
-uint64 arc4_rand64(void);
+uint32 arc4_thread_rand(void);
+uint64 arc4_thread_rand64(void);
 void arc4_thread_addrandom(const unsigned char *dat, int datlen);
 struct pslist *arc4_users(void);
 

@@ -76,8 +76,8 @@
  * The mt_xxx() functions are thread-safe already, as a lock is always
  * taken before accessing the built-in default state.
  *
- * The mtp_xxx() functions are thread-safe and use a lock-free path, which
- * results in an even greater throughput.  They rely on a thread-local
+ * The mt_thread_xxx() functions are thread-safe and use a lock-free path,
+ * which results in an even greater throughput.  They rely on a thread-local
  * random pool.
  *
  * For the curious, a Mersenne number is an integer that is one less than
@@ -785,7 +785,7 @@ mtp_pool(void)
  * @return a 32-bit random number
  */
 uint32
-mtp_rand(void)
+mt_thread_rand(void)
 {
 	return mts_rand_internal(mtp_pool());
 }
@@ -799,7 +799,7 @@ mtp_rand(void)
  * @return a 64-bit random number
  */
 uint64
-mtp_rand64(void)
+mt_thread_rand64(void)
 {
 	return mts_rand64_internal(mtp_pool());
 }

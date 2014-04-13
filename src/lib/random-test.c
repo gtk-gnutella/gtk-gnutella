@@ -614,7 +614,7 @@ G_STMT_START {			\
 			break;
 		case '4':			/* test arc4random() */
 			if (test_local) {
-				SET_RANDOM(arc4_rand);
+				SET_RANDOM(arc4_thread_rand);
 			} else {
 				SET_RANDOM(arc4random);
 			}
@@ -685,7 +685,7 @@ G_STMT_START {			\
 			break;
 		case 'M':			/* check mt_rand() instead */
 			if (test_local) {
-				SET_RANDOM(mtp_rand);
+				SET_RANDOM(mt_thread_rand);
 			} else {
 				SET_RANDOM(mt_rand);
 			}

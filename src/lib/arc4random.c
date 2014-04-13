@@ -350,7 +350,7 @@ arc4_stream(void)
  * @return a new 32-bit random number (from thread-local stream).
  */
 G_GNUC_HOT uint32
-arc4_rand(void)
+arc4_thread_rand(void)
 {
 	return arc4_getword(arc4_stream());
 }
@@ -359,7 +359,7 @@ arc4_rand(void)
  * @return 64-bit random number (from thread-local stream).
  */
 uint64
-arc4_rand64(void)
+arc4_thread_rand64(void)
 {
 	struct arc4_stream *as = arc4_stream();
 	uint32 hi, lo;

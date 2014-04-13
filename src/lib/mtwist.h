@@ -59,8 +59,8 @@ uint64 mts_lock_rand64(register mt_state_t *mts);
 uint32 mt_rand(void);
 uint64 mt_rand64(void);
 
-uint32 mtp_rand(void);
-uint64 mtp_rand64(void);
+uint32 mt_thread_rand(void);
+uint64 mt_thread_rand64(void);
 
 #endif /* _mtwist_h_ */
 

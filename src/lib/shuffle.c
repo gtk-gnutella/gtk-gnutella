@@ -98,7 +98,7 @@ shuffle_thread_rand(void)
 	 * 1/4 of the numbers come from the Mersenne Twister, 3/4 from CMWC4096.
 	 */
 
-	return (well_thread_rand() & 3) ? cmwc_thread_rand() : mtp_rand();
+	return (well_thread_rand() & 3) ? cmwc_thread_rand() : mt_thread_rand();
 }
 
 /**
@@ -117,7 +117,7 @@ shuffle(void *b, size_t n, size_t s)
 	 *		--RAM, 2012-12-15
 	 *
 	 * For shuffling, we need many random numbers and it pays to use the
-	 * mtp_rand() routine, which relies on a thread-private pool.
+	 * mt_thread_rand() routine, which relies on a thread-private pool.
 	 *		--RAM, 2013-09-29
 	 *
 	 * To make sure we can truly randomly shuffle the array, we need a random
@@ -129,14 +129,14 @@ shuffle(void *b, size_t n, size_t s)
 	 *
 	 * Between 2081 and 10945 entries, we can use CMWC4096, which has a
 	 * larger period of about 2**131086 - 1.  For arrays even larger than
-	 * that, we use a slower random function which randomly combines mtp_rand()
-	 * and cmwc_thread_rand() using the WELL PRNG to select one of the two
-	 * algorithms.
+	 * that, we use a slower random function which randomly combines
+	 * mt_thread_rand() and cmwc_thread_rand() using the WELL PRNG to select
+	 * one of the two algorithms.
 	 *		--RAM, 2014-04-11
 	 */
 
 	if (n <= 2080)
-		shuffle_internal(mtp_rand, b, n, s);			/* Perfect */
+		shuffle_internal(mt_thread_rand, b, n, s);		/* Perfect */
 	else if (n <= 10945)
 		shuffle_internal(cmwc_thread_rand, b, n, s);	/* Perfect */
 	else {

@@ -281,7 +281,7 @@ done:
 uint32
 random_u32(void)
 {
-	return mtp_rand();
+	return mt_thread_rand();
 }
 
 /**
@@ -290,7 +290,7 @@ random_u32(void)
 uint64
 random_u64(void)
 {
-	return mtp_rand64();
+	return mt_thread_rand64();
 }
 
 /**
@@ -300,9 +300,9 @@ ulong
 random_ulong(void)
 {
 #if LONGSIZE == 8
-	return mtp_rand64();
+	return mt_thread_rand64();
 #elif LONGSIZE == 4
-	return mtp_rand();
+	return mt_thread_rand();
 #else
 #error "unhandled long size"
 #endif
@@ -326,7 +326,7 @@ random_value(uint32 max)
 	 * distribution of the random numbers, using integer-only arithmetic.
 	 *
 	 * We also switched to mt_rand() because it is faster than arc4random().
-	 * And mtp_rand() is a lock-free path, even faster than mt_rand().
+	 * And mt_thread_rand() is a lock-free path, even faster than mt_rand().
 	 *
 	 * Switching to well_thread_rand() since we now add entropy regularily
 	 * to the WELL pools.  ARC4 remains used for random_bytes() and MT is
@@ -400,11 +400,11 @@ random_bytes(void *dst, size_t size)
 	 * even one as good as the one coming out of the Mersenne Twister.
 	 *		--RAM, 2012-12-15
 	 *
-	 * Switching to arc4_rand() to use the thread-local ARC4 stream, which
-	 * avoids taking locks and is therefore faster than arc4random().
+	 * Switching to arc4_thread_rand() to use the thread-local ARC4 stream,
+	 * which avoids taking locks and is therefore faster than arc4random().
 	 */
 
-	random_bytes_with(arc4_rand, dst, size);
+	random_bytes_with(arc4_thread_rand, dst, size);
 }
 
 /**
@@ -440,7 +440,7 @@ random_strong(void)
 	 * regular calls to random_add().
 	 */
 
-	return arc4_rand() ^ well_thread_rand();
+	return arc4_thread_rand() ^ well_thread_rand();
 }
 
 /**
@@ -469,7 +469,7 @@ random_cpu_noise(void)
 
 	/* No need to make this routine thread-safe as we want noise anyway */
 
-	r = well_thread_rand() ^ mtp_rand() ^ arc4_rand();
+	r = well_thread_rand() ^ mt_thread_rand() ^ arc4_thread_rand();
 	i = r % G_N_ELEMENTS(data);
 	data[i] = r;
 
@@ -869,7 +869,7 @@ random_double_generate(random_fn_t rf)
 double
 random_double(void)
 {
-	return random_double_generate(mtp_rand);
+	return random_double_generate(mt_thread_rand);
 }
 
 /**
