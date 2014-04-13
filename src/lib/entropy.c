@@ -99,18 +99,21 @@
  *
  * We're using a 31-bit random number generator, so we can't safely
  * permute randomly arrays with more than 12 items: the number of
- * combinations are 12!, which is smaller than 2**31, but 13! is greater
- * so our internal state for the PRNG cannot hold enough values to possibly
- * lead to an unbiased shuffling. [Note: the period of rand31() is 2**30]
+ * combinations are 12!, which is smaller than 2**29, but 13! is greater than
+ * 2**32 so our internal state for the PRNG cannot hold enough values to
+ * possibly lead to an unbiased shuffling. [Note: the actual period of rand31()
+ * is 2**30]
  *
  * As of 2014-04-13, the above is no longer true because we're now shuffling
  * with entropy_minirand(), and that routine uses a larger context state given
  * entropy_rand31() uses a buffer initialized via entropy_seed() to perturb
  * the raw output of the underlying rand31().  Therefore, in theory we should
  * be able to reach all the permutations of a larger array.  However the exact
- * period of entropy_minirand() is unknown though...
+ * period of entropy_minirand() is unknown, but it works out of a 160+31 = 191
+ * bits of context.  Even if the period is less than that, we have probably
+ * enough bits to safely permute 24 items (since 24! is less than 2**80).
  */
-#define RANDOM_SHUFFLE_MAX	12		/* 12! = 479001600, less than 2**29 */
+#define RANDOM_SHUFFLE_MAX	24		/* 24! < 2**80 */
 
 typedef void (*entropy_cb_t)(SHA1_context *ctx);
 
@@ -646,19 +649,12 @@ static void
 entropy_collect_filesystem(SHA1_context *ctx)
 {
 	const char *path[RANDOM_SHUFFLE_MAX];
-	size_t i;
+	size_t i = 0;
 
-	i = 0;
 	path[i++] = gethomedir();
 	path[i++] = ".";
 	path[i++] = "..";
 	path[i++] = "/";
-
-	g_assert(i <= G_N_ELEMENTS(path));
-
-	entropy_array_stat_collect(ctx, path, i);
-
-	i = 0;
 
 	if (is_running_on_mingw()) {
 		path[i++] = "C:/";
@@ -668,12 +664,6 @@ entropy_collect_filesystem(SHA1_context *ctx)
 		path[i++] = mingw_get_cookies_path();
 		path[i++] = mingw_get_fonts_path();
 		path[i++] = mingw_get_history_path();
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
-
-		i = 0;
 		path[i++] = mingw_get_home_path();
 		path[i++] = mingw_get_internet_cache_path();
 		path[i++] = mingw_get_mypictures_path();
@@ -682,10 +672,6 @@ entropy_collect_filesystem(SHA1_context *ctx)
 		path[i++] = mingw_get_startup_path();
 		path[i++] = mingw_get_system_path();
 		path[i++] = mingw_get_windows_path();
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
 	} else {
 		path[i++] = "/bin";
 		path[i++] = "/boot";
@@ -695,12 +681,6 @@ entropy_collect_filesystem(SHA1_context *ctx)
 		path[i++] = "/lib";
 		path[i++] = "/mnt";
 		path[i++] = "/opt";
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
-
-		i = 0;
 		path[i++] = "/proc";
 		path[i++] = "/root";
 		path[i++] = "/sbin";
@@ -708,11 +688,11 @@ entropy_collect_filesystem(SHA1_context *ctx)
 		path[i++] = "/tmp";
 		path[i++] = "/usr";
 		path[i++] = "/var";
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
 	}
+
+	g_assert(i <= G_N_ELEMENTS(path));
+
+	entropy_array_stat_collect(ctx, path, i);
 }
 
 /**
@@ -1005,7 +985,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	SHA1_context ctx;
 	tm_t start, end;
 	entropy_cb_t fn[RANDOM_SHUFFLE_MAX];
-	size_t i;
+	size_t i = 0;
 
 	/*
 	 * Get random entropy from the system.
@@ -1017,7 +997,6 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	SHA1_input(&ctx, &start, sizeof start);
 
 	if (can_malloc) {
-		i = 0;
 		fn[i++] = entropy_collect_randomness;
 		fn[i++] = entropy_collect_user;
 		fn[i++] = entropy_collect_login;
@@ -1031,11 +1010,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		fn[i++] = entropy_collect_host;
 
 		g_assert(i <= G_N_ELEMENTS(fn));
-
-		entropy_array_cb_collect(&ctx, fn, i);
 	}
-
-	i = 0;
 
 	fn[i++] = entropy_collect_cpu;
 	fn[i++] = entropy_collect_environ;
