@@ -127,6 +127,7 @@
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
 #define PUSH_REPLY_MAX	5			/**< Answer to up to 5 pushes per IP... */
 #define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
+#define PUSH_BAN_FREQ	500			/**< 5-minute ban if cannot reach host */
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
 
 static pslist_t *list_uploads;
@@ -187,6 +188,7 @@ struct mesh_info_val {
 
 static htable_t *mesh_info;
 static aging_table_t *push_requests;	/**< Throttle push requests */
+static aging_table_t *push_conn_failed;	/**< Throttle unreacheable hosts */
 
 /* Remember IP address of stalling uploads for a while */
 static aging_table_t *stalling_uploads;
@@ -906,12 +908,47 @@ upload_socket_connected(gnutella_socket_t *s, void *owner)
 }
 
 /**
+ * Callback invoked when the socket connection failed.
+ */
+static void
+upload_socket_connect_failed(gnutella_socket_t *s, void *owner, const char *err)
+{
+	struct upload *u = owner;
+
+	upload_check(u);
+	g_assert(s == u->socket);
+
+	/*
+	 * Record the failing address so that we do not re-attempt to connect to
+	 * that host for a while when we receive a PUSH request.
+	 */
+
+	{
+		gnet_host_t to;
+
+		gnet_host_set(&to, s->addr, s->port);
+		aging_insert(push_conn_failed, atom_host_get(&to), int_to_pointer(1));
+
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning("PUSH can't connect to %s", gnet_host_to_string(&to));
+		}
+	}
+
+	/*
+	 * The socket_connection_failed() routine invoked us, and expects that we
+	 * destroy the socket ourselves.
+	 */
+
+	upload_remove(u, "%s", err);
+}
+
+/**
  * Socket-layer callbacks for uploads.
  */
 static struct socket_ops upload_socket_ops = {
-	NULL,						/* connect_failed */
-	upload_socket_connected,	/* connected */
-	upload_socket_destroy,		/* destroy */
+	upload_socket_connect_failed,	/* connect_failed */
+	upload_socket_connected,		/* connected */
+	upload_socket_destroy,			/* destroy */
 };
 
 /**
@@ -1221,6 +1258,30 @@ connect_to_host:
 			gnutella_header_get_ttl(&n->header),
 			host_addr_port_to_string(ha, port));
 		return;
+	}
+
+	/*
+	 * Protect from incoming PUSH listng an IP:port that we cannot connect to.
+	 */
+
+	{
+		gnet_host_t to;
+
+		gnet_host_set(&to, ha, port);
+
+		if (aging_lookup(push_conn_failed, &to)) {
+			if (GNET_PROPERTY(upload_debug)) {
+				time_delta_t age = aging_age(push_conn_failed, &to);
+				g_warning("PUSH (hops=%d, ttl=%d) "
+					"skipping %s%s (unreacheable, since %ld sec%s): %s",
+					gnutella_header_get_hops(&n->header),
+					gnutella_header_get_ttl(&n->header),
+					NODE_TALKS_G2(n) ? "G2 " : "",
+					host_addr_port_to_string(ha, port),
+					(long) age, plural(age), file_name);
+			}
+			return;
+		}
 	}
 
 	/*
@@ -5690,6 +5751,8 @@ upload_init(void)
 	upload_handle_map = idtable_new(32);
 	push_requests = aging_make(PUSH_REPLY_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+	push_conn_failed = aging_make(PUSH_BAN_FREQ,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
 
 	header_features_add_guarded(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -5738,6 +5801,7 @@ upload_close(void)
 
 	aging_destroy(&stalling_uploads);
 	aging_destroy(&push_requests);
+	aging_destroy(&push_conn_failed);
 	wd_free_null(&early_stall_wd);
 	wd_free_null(&stall_wd);
 }
