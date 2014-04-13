@@ -41,6 +41,7 @@
 #include "lib/mtwist.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pow2.h"
 #include "lib/rand31.h"
 #include "lib/random.h"
 #include "lib/shuffle.h"
@@ -145,9 +146,9 @@ small_period(const unsigned *values, size_t count, unsigned min_period)
 }
 
 static void
-count_bits(random_fn_t fn, unsigned period, unsigned bits[], unsigned bcnt)
+count_bits(random_fn_t fn, uint64 period, unsigned bits[], unsigned bcnt)
 {
-	unsigned n;
+	uint64 n;
 
 	memset(bits, 0, bcnt * sizeof bits[0]);
 
@@ -160,7 +161,7 @@ count_bits(random_fn_t fn, unsigned period, unsigned bits[], unsigned bcnt)
 				bits[i]++;
 		}
 		if (0 == (n & 0xfff)) {
-			printf("Counting bits %u\r", n);
+			printf("Counting bits %s\r", uint64_to_string(n));
 			fflush(stdout);
 		}
 	}
@@ -189,7 +190,7 @@ count_values(random_fn_t fn, unsigned period, unsigned mask, unsigned value)
 	return cnt;
 }
 
-static G_GNUC_HOT unsigned
+static G_GNUC_HOT uint64
 compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 {
 	size_t n;
@@ -263,7 +264,9 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 			}
 		}
 		if (0 == (n & 0xfff)) {
-			printf("Period %u\r", (unsigned) n);
+			int bits = highest_bit_set64(n);
+			printf("Period %s (%d bit%s)\r",
+				uint64_to_string(n), bits, plural(bits));
 			fflush(stdout);
 		}
 	}
@@ -271,7 +274,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 	period = 0 == n ? (unsigned) -1 : n - count + 1;
 
 done:
-	printf("%-20s\n", 0 == n ? "Looped over!" : "Done!");
+	printf("%-30s\n", 0 == n ? "Looped over!" : "Done!");
 
 	xfree(values);
 	xfree(window);
@@ -319,7 +322,7 @@ dump_raw(random_fn_t fn, unsigned mask)
 }
 
 static void
-display_bits(unsigned bits[], unsigned nbits, unsigned period)
+display_bits(unsigned bits[], unsigned nbits, uint64 period)
 {
 	unsigned i;
 	statx_t *st = statx_make_nodata();
@@ -347,7 +350,7 @@ display_bits(unsigned bits[], unsigned nbits, unsigned period)
 			i, bits[i], bits[i] * 100.0 / MAX(1, period),
 			odd ? "*" : "");
 	}
-	printf("Period used was %u\n", period);
+	printf("Period used was %s\n", uint64_to_string(period));
 	printf("Average bit count is %.3f (%+.3f), sdev=%.3f, bits=%u\n",
 		avg, avg - tavg, sdev, used);
 
@@ -564,7 +567,7 @@ main(int argc, char **argv)
 	size_t count = VALUES_REMEMBERED;
 	unsigned min_period = MIN_PERIOD;
 	int c;
-	unsigned period = (unsigned) -1;
+	uint64 period = (uint64) -1;
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
@@ -762,15 +765,18 @@ G_STMT_START {			\
 		skip_values(fn, skip);
 
 	if (cperiod) {
+		int bits;
 		period = compute_period(count, fn, mask, min_period);
-		printf("Period is %u (%u remembered values, mask=0x%x, min=%u)\n",
-			period, (unsigned) count, mask, min_period);
+		bits = highest_bit_set64(period);
+		printf("Period is %s "
+			"(%u remembered values, mask=0x%x, min=%u, bits=%d)\n",
+			uint64_to_string(period), (unsigned) count, mask, min_period, bits);
 	}
 
 	if (countval) {
 		unsigned n = count_values(fn, period, mask, cval);
-		printf("Found %u occurence%s of %u (mask 0x%x) within period of %u\n",
-			n, plural(n), cval & mask, mask, period);
+		printf("Found %u occurence%s of %u (mask 0x%x) within period of %s\n",
+			n, plural(n), cval & mask, mask, uint64_to_string(period));
 	}
 
 	if (countbits) {
