@@ -43,11 +43,6 @@
  * An history of the collected entropy is also kept through successive merging
  * of newly collected bits with previously collected ones.
  *
- * The weakness of our simple PRNG engine is somewhat offset by having its
- * values combined with collected entropy, as soon as we have issued a first
- * batch at collecting the initial 160 bits of randomness.  What is important
- * is that our internal array shuffling be as uniformly random as possible.
- *
  * Entropy is mostly collected at the beginning to initialize some random
  * values and set the initial state of much stronger PRNG engines: ARC4,
  * WELL, or MT.
@@ -98,23 +93,12 @@
 /**
  * Maximum amount of items we can randomly shuffle.
  *
- * We're using a 31-bit random number generator, so we can't safely
- * permute randomly arrays with more than 12 items: the number of
- * combinations are 12!, which is smaller than 2**29, but 13! is greater than
- * 2**32 so our internal state for the PRNG cannot hold enough values to
- * possibly lead to an unbiased shuffling. [Note: the actual period of rand31()
- * is 2**30]
- *
- * As of 2014-04-13, the above is no longer true because we're now shuffling
- * with entropy_minirand(), and that routine uses a larger context state given
- * entropy_rand31() uses a buffer initialized via entropy_seed() to perturb
- * the raw output of the underlying rand31().  Therefore, in theory we should
- * be able to reach all the permutations of a larger array.  However the exact
- * period of entropy_minirand() is unknown, but it works out of a 160+31 = 191
- * bits of context.  Even if the period is less than that, we have probably
- * enough bits to safely permute 24 items (since 24! is less than 2**80).
+ * We're using a PRNG with 128 bits of internal context and a period of, at
+ * least, 2**125.  To ensure we can reach all the possible permutations of
+ * the set, we cannot shuffle more than 33 items since 33! < 2**123 but 34!
+ * is greater than the minimum period.
  */
-#define RANDOM_SHUFFLE_MAX	24		/* 24! < 2**80 */
+#define RANDOM_SHUFFLE_MAX	33		/* 33! < 2**123 */
 
 typedef void (*entropy_cb_t)(SHA1_context *ctx);
 
@@ -128,15 +112,21 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
 #define ENTROPY_PREV_UNLOCK		spinunlock_hidden(&entropy_previous_slk)
 
 /**
- * Buffer used to perturb rand31()'s output for entropy_rand31().
+ * Context for the entropy_minirand() routine.
  */
-static sha1_t entropy_buffer31;
-static spinlock_t entropy_buffer31_slk = SPINLOCK_INIT;
+static struct entropy_minictx {
+	spinlock_t lock;
+	uint32 x, y, z, c;
+	bool seeded;
+} entropy_minictx = {
+	SPINLOCK_INIT,
+	0, 0, 0, 0,
+	FALSE
+};
+#define ENTROPY_MINICTX_LOCK(c)		spinlock_hidden(&(c)->lock)
+#define ENTROPY_MINICTX_UNLOCK(c)	spinunlock_hidden(&(c)->lock)
 
-#define ENTROPY_BUF31_LOCK		spinlock_hidden(&entropy_buffer31_slk)
-#define ENTROPY_BUF31_UNLOCK	spinunlock_hidden(&entropy_buffer31_slk)
-
-static void entropy_seed(void);
+static void entropy_seed(struct entropy_minictx *c);
 
 static void
 sha1_feed_ulong(SHA1_context *ctx, unsigned long value)
@@ -207,7 +197,6 @@ entropy_merge(sha1_t *digest)
 {
 	bigint_t older, newer;
 
-	STATIC_ASSERT(sizeof entropy_buffer31 == sizeof entropy_previous);
 	STATIC_ASSERT(sizeof entropy_previous == SHA1_RAW_SIZE);
 
 	/*
@@ -222,23 +211,12 @@ entropy_merge(sha1_t *digest)
 	bigint_add(&newer, &older);
 	bigint_copy(&older, &newer);
 
-	/*
-	 * Each time the entropy is refreshed, we give out a copy for perturbing
-	 * rand31()'s output: since this copy is modified in the process, we
-	 * want entropy_rand31() to work without changing the collected entropy
-	 * to avoid tainting our generation process.
-	 */
-
-	ENTROPY_BUF31_LOCK;
-	memcpy(&entropy_buffer31, &entropy_previous, sizeof entropy_buffer31);
-	ENTROPY_BUF31_UNLOCK;
-
 	ENTROPY_PREV_UNLOCK;
 }
 
 /**
- * Minimal pseudo-random number generation, combining a simple PRNG with
- * past-collected entropy.
+ * Minimal random number generation, to be used very early in the process
+ * initialization when we cannot use entropy_minimal_collect() yet.
  *
  * @note
  * This routine MUST NOT be used directly by applications, as it is only
@@ -247,70 +225,39 @@ entropy_merge(sha1_t *digest)
  * number but have not finished collecting entropy yet.
  * It is only exported to be exercised in the random-test program.
  *
- * @return a 31-bit random number.
- */
-uint32
-entropy_rand31(void)
-{
-	static size_t offset;
-	static bool seeded;
-	int result;
-	uint32 v, n;
-	void *p;
-
-	result = rand31();
-
-	/*
-	 * Combine with previously generated entropy to create even better
-	 * randomness.  That previous entropy is refreshed each time a new
-	 * entropy collection cycle is completed, by calling entropy_merge().
-	 */
-
-	ENTROPY_BUF31_LOCK;
-
-	if G_UNLIKELY(!seeded) {
-		seeded = TRUE;
-		entropy_seed();
-	}
-
-	/*
-	 * Loop over the five 32-bit words, interpreted in a big-endian way
-	 * and merge bits via XOR.
-	 */
-
-	v = peek_be32(ptr_add_offset(&entropy_buffer31, offset));
-	result += v;
-	offset = (offset + 4) % sizeof entropy_buffer31;
-
-	/*
-	 * Update the next entry as well, to have an ever-changing pool of
-	 * randomness to alter the weak rand31().  Note that we avoid including
-	 * the output of rand31() here, we just use existing entropy bits.
-	 */
-
-	p = ptr_add_offset(&entropy_buffer31, offset);	/* Next entry */
-	n = peek_be32(p);
-	poke_be32(p, (n * 101) ^ UINT32_SWAP(v));		/* 101 is prime */
-
-	ENTROPY_BUF31_UNLOCK;
-
-	return result & RAND31_MASK;
-}
-
-/**
- * Minimal random number generation, to be used very early in the process
- * initialization when we cannot use entropy_minimal_collect() yet.
- *
  * @return a 32-bit random number.
  */
 uint32
 entropy_minirand(void)
 {
-	uint32 rn;
+	uint64 t;
+	uint32 r;
+	struct entropy_minictx *ctx = &entropy_minictx;
 
-	rn = entropy_rand31();
+	ENTROPY_MINICTX_LOCK(ctx);
 
-	return UINT32_SWAP(rn) + entropy_rand31();
+	if G_UNLIKELY(!ctx->seeded) {
+		ctx->seeded = TRUE;
+		entropy_seed(ctx);
+	}
+
+	/*
+	 * George Marsaglia's KISS alogorithm, posted in sci.math circa 2003.
+	 * The period of this PRNG is more than 2**125, and it keeps 128 bits
+	 * of context.
+	 */
+
+	ctx->x = 69069 * ctx->x + 12345;
+	ctx->y ^= (ctx->y << 13);
+	ctx->y ^= (ctx->y >> 17);
+	ctx->y ^= (ctx->y << 5);
+	t = (uint64) 698769069L * ctx->z + ctx->c;
+	ctx->c = t >> 32;
+	r = ctx->x + ctx->y + (ctx->z = t);
+
+	ENTROPY_MINICTX_UNLOCK(ctx);
+
+	return r;
 }
 
 /**
@@ -1065,13 +1012,13 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 }
 
 /**
- * Seed the ``entropy_buffer31'' variable, once.
+ * Seed the entropy_minirand() context variable, once.
  *
  * We're collecting changing and contextual data, to be able to compute an
  * initial 160-bit value, which is better than the default zero value.
  */
 static G_GNUC_COLD void
-entropy_seed(void)
+entropy_seed(struct entropy_minictx *c)
 {
 	extern char **environ;
 	char garbage[64];		/* Left uninitialized on purpose */
@@ -1144,10 +1091,21 @@ entropy_seed(void)
 		ENTROPY_SHUFFLE_FEED(adouble, sha1_feed_double);
 	}
 
-	SHA1_result(&ctx, &entropy_buffer31);
-
 #undef ENTROPY_SHUFFLE_FEED
 #undef ENTROPY_CONTEXT_FEED
+
+	{
+		struct sha1 hash;
+		const void *p = &hash;
+		uint32 v;
+
+		SHA1_result(&ctx, &hash);
+		p = peek_be32_advance(p, &c->c);
+		p = peek_be32_advance(p, &c->x);
+		p = peek_be32_advance(p, &c->z);
+		p = peek_be32_advance(p, &v);
+		c->y = v ^ peek_be32(p);
+	}
 }
 
 /**

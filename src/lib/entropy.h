@@ -44,8 +44,6 @@ void entropy_fill(void *buffer, size_t len);
 void entropy_delay(void);
 void entropy_aje_inited();
 
-uint32 entropy_rand31(void);	/* Exported for tests only, DO NOT USE! */
-
 #endif /* _entropy_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
