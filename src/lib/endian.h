@@ -303,6 +303,25 @@ peek_float_be32(const void *p)
 }
 #endif	/* USE_IEEE754_FLOAT */
 
+/*
+ * The peek_*_advance() routines return a pointer to the byte immediately
+ * following the read value, and fill-in the given pointer with the read value.
+ */
+
+static inline const void *
+peek_be32_advance(const void *p, uint32 *v)
+{
+	*v = peek_be32(p);
+	return const_ptr_add_offset(p, 4);
+}
+
+static inline const void *
+peek_le32_advance(const void *p, uint32 *v)
+{
+	*v = peek_le32(p);
+	return const_ptr_add_offset(p, 4);
+}
+
 #endif /* _endian_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
