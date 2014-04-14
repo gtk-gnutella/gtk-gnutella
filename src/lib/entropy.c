@@ -804,14 +804,14 @@ entropy_collect_environ(SHA1_context *ctx)
 static void
 entropy_collect_minirand(SHA1_context *ctx)
 {
-	int i;
+	ulong rn[RANDOM_SHUFFLE_MAX];
+	int i = 0;
 
-	for (i = 0; i < 16; i++) {
-		unsigned long p = entropy_minirand();
-		unsigned long q = entropy_minirand();
-		sha1_feed_ulong(ctx, p + q);
-		sha1_feed_ulong(ctx, p - q);
+	while (i < RANDOM_SHUFFLE_MAX) {
+		rn[i++] = entropy_minirand();
 	}
+
+	entropy_array_ulong_collect(ctx, rn, G_N_ELEMENTS(rn));
 }
 
 /**
