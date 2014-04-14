@@ -1023,7 +1023,6 @@ entropy_seed(struct entropy_minictx *c)
 	extern char **environ;
 	char garbage[64];		/* Left uninitialized on purpose */
 	SHA1_context ctx;
-	double cpu, usr, sys;
 	size_t i;
 	tm_t now;
 
@@ -1067,7 +1066,7 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;
 
 	{
-		void *aptr[2] = { environ, &cpu };
+		void *aptr[2] = { environ, &now };
 		ENTROPY_SHUFFLE_FEED(aptr, sha1_feed_pointer);
 	}
 
@@ -1083,11 +1082,10 @@ entropy_seed(struct entropy_minictx *c)
 	SHA1_input(&ctx, &now, sizeof now);
 	ENTROPY_CONTEXT_FEED;
 
-	cpu = tm_cputime(&usr, &sys);
-
 	{
 		double r = random_double_generate(rand31_u32);
-		double adouble[4] = { cpu, usr, sys, r};
+		double usr, sys, cpu = tm_cputime(&usr, &sys);
+		double adouble[5] = { cpu, usr, sys, r, now.tv_usec / 101.0 };
 		ENTROPY_SHUFFLE_FEED(adouble, sha1_feed_double);
 	}
 
