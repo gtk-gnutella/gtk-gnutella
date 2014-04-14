@@ -83,6 +83,7 @@
 #include "misc.h"
 #include "pslist.h"
 #include "rand31.h"
+#include "random.h"
 #include "sha1.h"
 #include "shuffle.h"
 #include "spinlock.h"
@@ -1066,9 +1067,8 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 /**
  * Seed the ``entropy_buffer31'' variable, once.
  *
- * We're collecting changing and contextual data, always in the same order,
- * to be able to compute an initial 160-bit value, which is better than the
- * default zero value.
+ * We're collecting changing and contextual data, to be able to compute an
+ * initial 160-bit value, which is better than the default zero value.
  */
 static G_GNUC_COLD void
 entropy_seed(void)
@@ -1085,45 +1085,69 @@ entropy_seed(void)
 	 * very early during initialization.
 	 */
 
-	SHA1_reset(&ctx);
-	SHA1_input(&ctx, &ctx, sizeof ctx);
+#define ENTROPY_CONTEXT_FEED G_STMT_START {		\
+	if (random_upto(rand31_u32, 999) < 200)		\
+		SHA1_input(&ctx, &ctx, sizeof ctx);		\
+} G_STMT_END
 
-	sha1_feed_ulong(&ctx, time(NULL));
-	sha1_feed_ulong(&ctx, getpid());
-	SHA1_input(&ctx, &ctx, sizeof ctx);
+#define ENTROPY_SHUFFLE_FEED(a, f) G_STMT_START {				\
+	shuffle_with(rand31_u32, a, G_N_ELEMENTS(a), sizeof a[0]);	\
+	for (i = 0; i < G_N_ELEMENTS(a); i++)						\
+		f(&ctx, a[i]);											\
+	ENTROPY_CONTEXT_FEED;										\
+} G_STMT_END
+
+	SHA1_reset(&ctx);
+	ENTROPY_CONTEXT_FEED;
+
+	{
+		ulong along[2] = { time(NULL), getpid() };
+		ENTROPY_SHUFFLE_FEED(along, sha1_feed_ulong);
+	}
 
 	entropy_collect_cpu(&ctx);
-	SHA1_input(&ctx, &ctx, sizeof ctx);
+	ENTROPY_CONTEXT_FEED;
 
-	sha1_feed_fstat(&ctx, STDIN_FILENO);
-	sha1_feed_fstat(&ctx, STDOUT_FILENO);
-	sha1_feed_fstat(&ctx, STDERR_FILENO);
-	SHA1_input(&ctx, &ctx, sizeof ctx);
+	{
+		int afd[3] = { STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
+		ENTROPY_SHUFFLE_FEED(afd, sha1_feed_fstat);
+	}
 
 	for (i = 0; NULL != environ[i]; i++) {
 		sha1_feed_string(&ctx, environ[i]);
 	}
 	sha1_feed_ulong(&ctx, getpid());
-	SHA1_input(&ctx, &ctx, sizeof ctx);
+	ENTROPY_CONTEXT_FEED;
 
-	sha1_feed_pointer(&ctx, environ);
-	sha1_feed_pointer(&ctx, &cpu);
+	{
+		void *aptr[2] = { environ, &cpu };
+		ENTROPY_SHUFFLE_FEED(aptr, sha1_feed_pointer);
+	}
 
-	sha1_feed_stat(&ctx, ".");
-	sha1_feed_stat(&ctx, "..");
-	sha1_feed_stat(&ctx, "/");
+	{
+		const char *astr[3] = { ".", "..", "/" };
+		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_stat);
+	}
 
 	SHA1_input(&ctx, garbage, sizeof garbage);
+	ENTROPY_CONTEXT_FEED;
 
 	tm_current_time(&now);		/* Do not use tm_now_exact(), it's too soon */
 	SHA1_input(&ctx, &now, sizeof now);
+	ENTROPY_CONTEXT_FEED;
 
 	cpu = tm_cputime(&usr, &sys);
-	sha1_feed_double(&ctx, cpu);
-	sha1_feed_double(&ctx, usr);
-	sha1_feed_double(&ctx, sys);
+
+	{
+		double r = random_double_generate(rand31_u32);
+		double adouble[4] = { cpu, usr, sys, r};
+		ENTROPY_SHUFFLE_FEED(adouble, sha1_feed_double);
+	}
 
 	SHA1_result(&ctx, &entropy_buffer31);
+
+#undef ENTROPY_SHUFFLE_FEED
+#undef ENTROPY_CONTEXT_FEED
 }
 
 /**
