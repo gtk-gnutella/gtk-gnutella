@@ -662,7 +662,7 @@ static void
 aje_init(aje_state_t *as)
 {
 	size_t i;
-	uint8 buf[AJE_POOL0_FILL];
+	uint8 buf[AJE_POOL0_FILL * 8];
 
 	STATIC_ASSERT(AJE_CIPHER_KEYLEN <= AJE_DIGEST_LEN);
 	STATIC_ASSERT(AJE_CIPHER_KEYLEN == sizeof(xxtea_key_t));
@@ -690,15 +690,17 @@ aje_init(aje_state_t *as)
 	entropy_fill(&as->counter, sizeof as->counter);
 
 	/*
-	 * Throw an initial amount of entropy into pool #0.
+	 * Throw an initial amount of entropy into the pools, randomly spread.
 	 *
-	 * Use uninitialized stack values, then a random value.
+	 * Use uninitialized stack values, then random values.
 	 */
 
 	aje_add_entropy(as, buf, sizeof buf);
 
-	entropy_fill(buf, sizeof buf);
-	aje_add_entropy(as, buf, sizeof buf);
+	for (i = 0; i < 8; i++) {
+		entropy_fill(buf, sizeof buf);
+		aje_add_entropy(as, buf, sizeof buf);
+	}
 
 	/*
 	 * Even through rand31_u32() is a "bad" random number generator over the
