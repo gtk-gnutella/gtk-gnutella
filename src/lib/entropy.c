@@ -76,6 +76,7 @@
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "pow2.h"
 #include "pslist.h"
 #include "rand31.h"
 #include "random.h"
@@ -1022,18 +1023,29 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 }
 
 /**
+ * Randomly feed the SHA1 context to itself 20% of the time.
+ */
+static void G_GNUC_COLD
+entropy_self_feed_maybe(SHA1_context *ctx)
+{
+	if (random_upto(rand31_u32, 999) < 200)
+		SHA1_input(ctx, ctx, sizeof *ctx);
+}
+
+/**
  * Seed the entropy_minirand() context variable, once.
  *
  * We're collecting changing and contextual data, to be able to compute an
  * initial 160-bit value, which is better than the default zero value.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 entropy_seed(struct entropy_minictx *c)
 {
 	extern char **environ;
 	char garbage[64];		/* Left uninitialized on purpose */
+	const char *str[RANDOM_SHUFFLE_MAX];
 	SHA1_context ctx;
-	size_t i;
+	size_t i, j;
 	tm_t now;
 
 	/*
@@ -1041,20 +1053,25 @@ entropy_seed(struct entropy_minictx *c)
 	 * very early during initialization.
 	 */
 
-#define ENTROPY_CONTEXT_FEED G_STMT_START {		\
-	if (random_upto(rand31_u32, 999) < 200)		\
-		SHA1_input(&ctx, &ctx, sizeof ctx);		\
-} G_STMT_END
+#define ENTROPY_CONTEXT_FEED	entropy_self_feed_maybe(&ctx)
 
 #define ENTROPY_SHUFFLE_FEED(a, f) G_STMT_START {				\
+	size_t x;													\
 	shuffle_with(rand31_u32, a, G_N_ELEMENTS(a), sizeof a[0]);	\
-	for (i = 0; i < G_N_ELEMENTS(a); i++)						\
-		f(&ctx, a[i]);											\
+	for (x = 0; x < G_N_ELEMENTS(a); x++)						\
+		f(&ctx, a[x]);											\
 	ENTROPY_CONTEXT_FEED;										\
 } G_STMT_END
 
 	SHA1_reset(&ctx);
-	ENTROPY_CONTEXT_FEED;
+
+	tm_current_time(&now);		/* Do not use tm_now_exact(), it's too soon */
+	SHA1_input(&ctx, &now, sizeof now);
+
+	j = popcount(now.tv_usec);
+	for (i = 0; i <= j; i++) {
+		ENTROPY_CONTEXT_FEED;										\
+	}
 
 	{
 		ulong along[2] = { time(NULL), getpid() };
@@ -1069,10 +1086,19 @@ entropy_seed(struct entropy_minictx *c)
 		ENTROPY_SHUFFLE_FEED(afd, sha1_feed_fstat);
 	}
 
-	for (i = 0; NULL != environ[i]; i++) {
-		sha1_feed_string(&ctx, environ[i]);
+	for (i = 0, j = 0; NULL != environ[i]; i++) {
+		str[j++] = environ[i];
+		if (RANDOM_SHUFFLE_MAX == j) {
+			ENTROPY_SHUFFLE_FEED(str, sha1_feed_string);
+			j = 0;
+		}
 	}
-	sha1_feed_ulong(&ctx, getpid());
+	if (j != 0) {
+		shuffle_with(rand31_u32, str, j, sizeof str[0]);
+		for (i = 0; i < j; i++) {
+			sha1_feed_string(&ctx, str[i]);
+		}
+	}
 	ENTROPY_CONTEXT_FEED;
 
 	{
@@ -1088,19 +1114,51 @@ entropy_seed(struct entropy_minictx *c)
 	SHA1_input(&ctx, garbage, sizeof garbage);
 	ENTROPY_CONTEXT_FEED;
 
+	entropy_delay();
 	tm_current_time(&now);		/* Do not use tm_now_exact(), it's too soon */
 	SHA1_input(&ctx, &now, sizeof now);
-	ENTROPY_CONTEXT_FEED;
+
+	j = popcount(now.tv_usec);
+	for (i = 0; i <= j; i++) {
+		ENTROPY_CONTEXT_FEED;
+	}
+
+	/* Partial SHA1 result */
+
+	{
+		SHA1_context tmp;
+		struct sha1 hash;
+		const void *p = &hash;
+		uint32 v;
+
+		tmp = ctx;			/* struct copy */
+		SHA1_result(&tmp, &hash);
+		p = peek_be32_advance(p, &v);
+
+		tm_current_time(&now);
+		j = (v & 0xff) + popcount(now.tv_usec);
+		for (i = 0; i <= j; i++) {
+			ENTROPY_CONTEXT_FEED;
+		}
+
+		sha1_feed_ulong(&ctx, peek_be32(p));
+	}
+
+	tm_current_time(&now);
 
 	{
 		double r = random_double_generate(rand31_u32);
 		double usr, sys, cpu = tm_cputime(&usr, &sys);
-		double adouble[5] = { cpu, usr, sys, r, now.tv_usec / 101.0 };
+		double adouble[6] = { cpu, usr, sys, r,
+			now.tv_usec / 101.0, now.tv_usec / (now.tv_sec + 0.1) };
 		ENTROPY_SHUFFLE_FEED(adouble, sha1_feed_double);
 	}
 
 #undef ENTROPY_SHUFFLE_FEED
 #undef ENTROPY_CONTEXT_FEED
+
+	tm_current_time(&now);
+	SHA1_input(&ctx, &now, sizeof now);
 
 	{
 		struct sha1 hash;
