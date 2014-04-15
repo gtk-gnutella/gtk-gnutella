@@ -94,6 +94,7 @@ rand31_random_seed(void)
 {
 	char garbage[64];		/* Left uninitialized on purpose */
 	tm_t now;
+	size_t usecs;
 	double cpu;
 	jmp_buf env;
 	unsigned discard;
@@ -109,27 +110,38 @@ rand31_random_seed(void)
 	 * is interpreted as the amount of initial random values to discard.
 	 */
 
+	tm_current_time(&now);		/* NOT tm_now_exact(): it is too early */
+	usecs = now.tv_usec;
 	cpu = tm_cputime(NULL, NULL);
-	tm_current_time(&now);			/* NOT tm_now_exact(): it is too early */
+	tm_current_time(&now);
+	usecs += now.tv_usec;
 	seed = (GOLDEN_RATIO_31 * getpid()) >> 1;
 	seed += binary_hash(&now, sizeof now);
 	seed += binary_hash(&cpu, sizeof cpu);
+	seed += pointer_hash_fast(&now);
 	entropy_delay();
-	tm_current_time(&now);			/* Idem, avoid tm_now_exact() here */
+	tm_current_time(&now);
+	usecs += now.tv_usec;
 	seed += binary_hash(&now, sizeof now);
 	ZERO(&env);			/* Avoid uninitialized memory reads */
 	if (setjmp(env)) {
 		g_assert_not_reached(); /* We never longjmp() */
 	}
 	seed += binary_hash(env, sizeof env);
+	seed += binary_hash(garbage, sizeof garbage);
 	discard = binary_hash2(env, sizeof env);
 	discard ^= binary_hash2(&now, sizeof now);
 	discard += getpid();
 	discard += time(NULL);
-	discard += binary_hash2(garbage, sizeof garbage);
 	cpu = tm_cputime(NULL, NULL);
 	discard += binary_hash2(&cpu, sizeof cpu);
 	discard = hashing_fold(discard, 12);
+	tm_current_time(&now);
+	seed += binary_hash2(&now, sizeof now);
+	usecs += now.tv_usec;
+	entropy_delay();
+	tm_current_time(&now);
+	seed = UINT32_ROTL(seed, popcount(usecs + now.tv_usec));
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
 	}

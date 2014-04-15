@@ -754,7 +754,8 @@ G_STMT_START {			\
 
 	if (is_strprefix(fnname, "rand31")) {
 		rand31_set_seed(rseed);
-		printf("Initial random seed is %u\n", rand31_initial_seed());
+		printf("Initial random seed is %s\n",
+			uint32_to_gstring(rand31_initial_seed()));
 	}
 
 	if (skip != 0)
