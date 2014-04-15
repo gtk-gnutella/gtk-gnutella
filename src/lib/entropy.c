@@ -886,7 +886,17 @@ entropy_collect_host(SHA1_context *ctx)
 static void
 entropy_collect_vmm(SHA1_context *ctx)
 {
-	sha1_feed_pointer(ctx, vmm_trap_page());
+	void *p, *q;
+	void *ptr[3];
+
+	ptr[0] = deconstify_pointer(vmm_trap_page());
+	ptr[1] = p = vmm_alloc(1);
+	ptr[2] = q = vmm_alloc(1);
+
+	entropy_array_pointer_collect(ctx, ptr, G_N_ELEMENTS(ptr));
+
+	vmm_free(p, 1);
+	vmm_free(q, 1);
 }
 
 /**
