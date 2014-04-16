@@ -1057,6 +1057,25 @@ entropy_self_feed_maybe(SHA1_context *ctx)
 }
 
 /**
+ * Get partial SHA1 result without disturbing the SHA1 context.
+ *
+ * @param ctx		the SHA1 context we want partial results from
+ * @param digest	where the partial digest is written out
+ */
+static void
+entropy_sha1_result(const SHA1_context *ctx, struct sha1 *digest)
+{
+	SHA1_context tmp;
+	int ret;
+
+	tmp = *ctx;			/* struct copy */
+	ret = SHA1_result(&tmp, digest);
+
+	g_assert_log(SHA_SUCCESS == ret,
+		"%s(): error whilst computing SHA1 digest: %d", G_STRFUNC, ret);
+}
+
+/**
  * Seed the entropy_minirand() context variable, once.
  *
  * We're collecting changing and contextual data, to be able to compute an
@@ -1110,6 +1129,20 @@ entropy_seed(struct entropy_minictx *c)
 		ENTROPY_SHUFFLE_FEED(afd, sha1_feed_fstat);
 	}
 
+	/* Reseed the rand31 PRNG */
+
+	{
+		struct sha1 hash;
+		uint8 data[SHA1_RAW_SIZE];
+
+		entropy_sha1_result(&ctx, &hash);
+		memcpy(data, &hash, sizeof data);
+		shuffle_with(rand31_u32, data, G_N_ELEMENTS(data), sizeof data[0]);
+		SHA1_input(&ctx, data, sizeof data);
+		entropy_sha1_result(&ctx, &hash);
+		rand31_set_seed(peek_be32(&hash));
+	}
+
 	for (i = 0, j = 0; NULL != environ[i]; i++) {
 		str[j++] = environ[i];
 		if (RANDOM_SHUFFLE_MAX == j) {
@@ -1139,10 +1172,11 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;
 
 	entropy_delay();
-	tm_current_time(&now);		/* Do not use tm_now_exact(), it's too soon */
+	tm_current_time(&now);
 	SHA1_input(&ctx, &now, sizeof now);
 
-	j = popcount(now.tv_usec);
+	tm_current_time(&now);
+	j = popcount(now.tv_usec * 11);
 	for (i = 0; i <= j; i++) {
 		ENTROPY_CONTEXT_FEED;
 	}
@@ -1150,24 +1184,26 @@ entropy_seed(struct entropy_minictx *c)
 	/* Partial SHA1 result */
 
 	{
-		SHA1_context tmp;
 		struct sha1 hash;
 		const void *p = &hash;
-		uint32 v;
+		uint32 v, n;
 
-		tmp = ctx;			/* struct copy */
-		SHA1_result(&tmp, &hash);
+		entropy_sha1_result(&ctx, &hash);
 		p = peek_be32_advance(p, &v);
 
+		entropy_delay();
 		tm_current_time(&now);
-		j = (v & 0xff) + popcount(now.tv_usec);
+		n = popcount(peek_be32(p) + now.tv_usec);
+		j = UINT32_ROTR(v, n) & 0xff;
 		for (i = 0; i <= j; i++) {
 			ENTROPY_CONTEXT_FEED;
 		}
 
-		sha1_feed_ulong(&ctx, peek_be32(p));
+		entropy_sha1_result(&ctx, &hash);
+		sha1_feed_ulong(&ctx, peek_be32(&hash));
 	}
 
+	entropy_delay();
 	tm_current_time(&now);
 
 	{
@@ -1189,7 +1225,7 @@ entropy_seed(struct entropy_minictx *c)
 		const void *p = &hash;
 		uint32 v;
 
-		SHA1_result(&ctx, &hash);
+		entropy_sha1_result(&ctx, &hash);
 		p = peek_be32_advance(p, &c->c);
 		p = peek_be32_advance(p, &c->x);
 		p = peek_be32_advance(p, &c->z);
