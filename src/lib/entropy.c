@@ -136,6 +136,12 @@ sha1_feed_ulong(SHA1_context *ctx, unsigned long value)
 }
 
 static void
+sha1_feed_uint(SHA1_context *ctx, unsigned value)
+{
+	SHA1_input(ctx, &value, sizeof value);
+}
+
+static void
 sha1_feed_double(SHA1_context *ctx, double value)
 {
 	SHA1_input(ctx, &value, sizeof value);
@@ -160,11 +166,12 @@ sha1_feed_stat(SHA1_context *ctx, const char *path)
 {
 	filestat_t buf;
 
+	sha1_feed_string(ctx, path);
+
 	if (-1 != stat(path, &buf)) {
 		SHA1_input(ctx, &buf, sizeof buf);
 	} else {
-		sha1_feed_string(ctx, path);
-		sha1_feed_ulong(ctx, errno);
+		sha1_feed_uint(ctx, errno);
 	}
 }
 
@@ -173,11 +180,12 @@ sha1_feed_fstat(SHA1_context *ctx, int fd)
 {
 	filestat_t buf;
 
+	sha1_feed_uint(ctx, fd);
+
 	if (-1 != fstat(fd, &buf)) {
 		SHA1_input(ctx, &buf, sizeof buf);
 	} else {
-		sha1_feed_ulong(ctx, fd);
-		sha1_feed_ulong(ctx, errno);
+		sha1_feed_uint(ctx, errno);
 	}
 }
 
@@ -565,7 +573,7 @@ entropy_collect_login(SHA1_context *ctx)
 		sha1_feed_pointer(ctx, name);	/* name points to static data */
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_minirand());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_GETLOGIN */
 }
 
@@ -583,11 +591,11 @@ entropy_collect_pw(SHA1_context *ctx)
 		if (pp != NULL) {
 			SHA1_input(ctx, pp, sizeof *pp);
 		} else {
-			sha1_feed_ulong(ctx, errno);
+			sha1_feed_uint(ctx, errno);
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_minirand());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_GETUID */
 }
 
@@ -687,11 +695,11 @@ entropy_collect_usage(SHA1_context *ctx)
 		if (-1 != getrusage(RUSAGE_SELF, &usage)) {
 			SHA1_input(ctx, &usage, sizeof usage);
 		} else {
-			sha1_feed_ulong(ctx, errno);
+			sha1_feed_uint(ctx, errno);
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_minirand());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_GETRUSAGE */
 }
 
@@ -708,11 +716,11 @@ entropy_collect_uname(SHA1_context *ctx)
 		if (-1 != uname(&un)) {
 			SHA1_input(ctx, &un, sizeof un);
 		} else {
-			sha1_feed_ulong(ctx, errno);
+			sha1_feed_uint(ctx, errno);
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_minirand());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_UNAME */
 }
 
@@ -725,7 +733,7 @@ entropy_collect_ttyname(SHA1_context *ctx)
 #ifdef HAS_TTYNAME
 	sha1_feed_string(ctx, ttyname(STDIN_FILENO));
 #else
-	sha1_feed_ulong(ctx, entropy_minirand());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_TTYNAME */
 }
 
@@ -735,7 +743,7 @@ entropy_collect_ttyname(SHA1_context *ctx)
 static void
 entropy_collect_file_amount(SHA1_context *ctx)
 {
-	sha1_feed_ulong(ctx, getdtablesize());
+	sha1_feed_uint(ctx, getdtablesize());
 }
 
 /**
@@ -872,7 +880,7 @@ entropy_collect_gateway(SHA1_context *ctx)
 	ZERO(&addr);
 
 	if (-1 == getgateway(&addr))
-		sha1_feed_ulong(ctx, errno);
+		sha1_feed_uint(ctx, errno);
 
 	SHA1_input(ctx, &addr, sizeof addr);
 }
@@ -1150,6 +1158,7 @@ entropy_seed(struct entropy_minictx *c)
 			j = 0;
 		}
 	}
+	sha1_feed_ulong(&ctx, i);
 	if (j != 0) {
 		shuffle_with(rand31_u32, str, j, sizeof str[0]);
 		for (i = 0; i < j; i++) {
@@ -1200,7 +1209,7 @@ entropy_seed(struct entropy_minictx *c)
 		}
 
 		entropy_sha1_result(&ctx, &hash);
-		sha1_feed_ulong(&ctx, peek_be32(&hash));
+		sha1_feed_uint(&ctx, peek_be32(&hash));
 	}
 
 	entropy_delay();
