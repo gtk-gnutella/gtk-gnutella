@@ -563,6 +563,7 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
+	int optind_orig = optind;
 	size_t count = VALUES_REMEMBERED;
 	unsigned min_period = MIN_PERIOD;
 	int c;
@@ -601,7 +602,7 @@ G_STMT_START {			\
 	 *		--RAM, 2013-12-27
 	 */
 
-	optind = 0;
+	optind = optind_orig;
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
