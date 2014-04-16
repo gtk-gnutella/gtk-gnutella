@@ -3832,6 +3832,7 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 		xstats.user_blocks--;
 		XSTATS_UNLOCK;
 
+		g_assert(uint_is_non_negative(xck->xc_free_offset));
 		g_assert(xck->xc_free_offset < xmalloc_pagesize);
 
 		*(void **) p = head;

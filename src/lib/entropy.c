@@ -156,7 +156,8 @@ sha1_feed_pointer(SHA1_context *ctx, const void *p)
 static void
 sha1_feed_string(SHA1_context *ctx, const char *s)
 {
-	if (s) {
+	sha1_feed_pointer(ctx, s);
+	if (s != NULL) {
 		SHA1_input(ctx, s, strlen(s));
 	}
 }

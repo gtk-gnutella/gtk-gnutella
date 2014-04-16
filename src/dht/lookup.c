@@ -3198,7 +3198,8 @@ lookup_handle_reply(
 				g_error("%s(): inconsistency between shortlist and ball for %s",
 					G_STRFUNC, knode_to_string(xn));
 			}
-			g_assert(knode_is_shared(xn, TRUE));	/* In shortlist + ball */
+			g_assert_log(knode_is_shared(xn, TRUE),	/* In shortlist + ball */
+				"%s(): node = {%s}", G_STRFUNC, knode_to_string(xn));
 
 			if (
 				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
@@ -3730,7 +3731,8 @@ lk_handle_reply(void *obj, const knode_t *kn,
 	if (patricia_count(nl->shortlist)) {
 		knode_t *closest = patricia_closest(nl->shortlist, nl->kuid);
 
-		g_assert(knode_is_shared(closest, TRUE));
+		g_assert_log(knode_is_shared(closest, TRUE),
+			"%s(): node = {%s}", G_STRFUNC, knode_to_string(closest));
 
 		/*
 		 * Due to active node removal from the path, we could have a NULL
