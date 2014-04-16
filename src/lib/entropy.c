@@ -763,6 +763,7 @@ static void
 entropy_collect_cpu(SHA1_context *ctx)
 {
 	jmp_buf env;
+	ulong r[sizeof(env) / sizeof(ulong)];
 
 	/*
 	 * Add local CPU state noise.
@@ -774,7 +775,18 @@ entropy_collect_cpu(SHA1_context *ctx)
 		/* We will never longjmp() back here */
 		g_assert_not_reached();
 	}
+
+	/*
+	 * Can't call entropy_array_ulong_collect() here since we are also called
+	 * from entropy_seed(), which is used to seed entropy_minirand().
+	 * Hence we manually shuffle the registers.
+	 */
+
+	memcpy(r, env, sizeof r);
+	shuffle_with(rand31_u32, r, G_N_ELEMENTS(r), sizeof r[0]);
+
 	SHA1_input(ctx, env, sizeof env);	/* "env" is an array */
+	SHA1_input(ctx, r, sizeof r);
 }
 
 /** 
