@@ -840,6 +840,17 @@ entropy_collect_time(SHA1_context *ctx)
 }
 
 /**
+ * Collect stack garbage.
+ */
+static void
+entropy_collect_garbage(SHA1_context *ctx)
+{
+	ulong garbage[RANDOM_SHUFFLE_MAX];	/* Left un-initialized on purpose */
+
+	entropy_array_ulong_collect(ctx, garbage, G_N_ELEMENTS(garbage));
+}
+
+/**
  * Collect entropy from current thread.
  */
 static void
@@ -995,6 +1006,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_file_amount;
 	fn[i++] = entropy_collect_minirand;
 	fn[i++] = entropy_collect_time;
+	fn[i++] = entropy_collect_garbage;
 
 	g_assert(i <= G_N_ELEMENTS(fn));
 
