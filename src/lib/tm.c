@@ -130,6 +130,103 @@ tm_current_time(tm_t *tm)
 	timeval_to_tm(tm, &tv);
 }
 
+/**
+ * Fallback routine for tm_precise_time() when clock_gettime() is not working
+ * or not available.
+ */
+static void
+tm_precise_fallback(tm_nano_t *tn)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	tn->tv_sec  = tv.tv_sec;
+	tn->tv_nsec = tv.tv_usec * 1000;
+}
+
+/**
+ * Get current time at the nanosecond precision if possible, filling the
+ * supplied tm_nano_t structure.
+ *
+ * @note
+ * The returned value is not cached.
+ */
+void
+tm_precise_time(tm_nano_t *tn)
+{
+#ifdef HAS_CLOCK_GETTIME
+	struct timespec tp;
+
+	if (-1 == clock_gettime(CLOCK_REALTIME, &tp))
+		tm_precise_fallback(tn);
+	else
+		timespec_to_tm_nano(tn, &tp);
+#else
+	tm_precise_fallback(tn);
+#endif	/* HAS_CLOCK_GETTIME */
+}
+
+/**
+ * Fallback routine for tm_precise_granularity() when clock_getres() is
+ * not working or not available.
+ *
+ * @return FALSE, to indicate the value is computed and not given by system.
+ */
+static bool
+tm_precise_granularity_fallback(tm_nano_t *tn)
+{
+	static spinlock_t tm_granularity_slk = SPINLOCK_INIT;
+	static long granularity = 1000000;	/* microseconds, 1 second */
+	tm_t now;
+	long i;
+
+	/*
+	 * Computation of the granularity is done by fetching the current time
+	 * and then looking at the precision we can gather from the tv_usec
+	 * field, remembering the highest precision we see.
+	 */
+
+	tm_current_time(&now);
+
+	spinlock_hidden(&tm_granularity_slk);
+
+	for (i = 1; i < granularity; i *= 10) {
+		long factor = i * 10;
+		if (factor * (now.tv_usec / factor) != now.tv_usec)
+			break;
+	}
+	granularity = i;
+
+	spinunlock_hidden(&tm_granularity_slk);
+
+	tn->tv_sec  =  i / 1000000L;
+	tn->tv_nsec = (i % 1000000L) * 1000;	/* Convert to nanoseconds */
+
+	return FALSE;
+}
+
+/**
+ * Get the clock precision, filling the supplied tm_nano_t structure with the
+ * value in nanoseconds.
+ *
+ * @return whether the value is supplied by the system (FALSE if computed).
+ */
+bool
+tm_precise_granularity(tm_nano_t *tn)
+{
+#ifdef HAS_CLOCK_GETRES
+	struct timespec tp;
+	if (-1 == clock_getres(CLOCK_REALTIME, &tp)) {
+		return tm_precise_granularity_fallback(tn);
+	} else {
+		timespec_to_tm_nano(tn, &tp);
+		return TRUE;
+	}
+#else
+	return tm_precise_granularity_fallback(tn);
+#endif	/* HAS_CLOCK_GETRES */
+}
+
 /*
  * Recompute the GMT offset.
  */

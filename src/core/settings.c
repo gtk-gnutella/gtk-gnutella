@@ -870,6 +870,26 @@ settings_init(void)
 		} else {
 			g_info("no CPU frequency scaling detected");
 		}
+
+		{
+			tm_nano_t tn;
+			bool system_precision;
+			const char *prefix[] = { "n", "u", "m", "" };
+			ulong nano, val;
+			size_t p;
+
+			system_precision = tm_precise_granularity(&tn);
+			nano = tmn2ns(&tn);
+
+			for (p = 0, val = nano; p < G_N_ELEMENTS(prefix); p++) {
+				if (1000UL * (val / 1000UL) != val)
+					break;
+				val /= 1000UL;
+			}
+
+			g_info("%ssystem clock granularity is %lu %ss",
+				system_precision ? "" : "computed ", val, prefix[p]);
+		}
 	}
 
 	upload_stats_load_history();	/* Loads the upload statistics */

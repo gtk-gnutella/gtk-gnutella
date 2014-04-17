@@ -18,7 +18,7 @@
 
 # $Id: Head.U 167 2013-05-08 17:58:00Z rmanfredi $
 #
-# Generated on Tue Apr  8 12:45:05 CEST 2014 [metaconfig 3.5-178]
+# Generated on Thu Apr 17 12:26:57 CEST 2014 [metaconfig 3.5-178]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -323,6 +323,8 @@ d_built_clz=''
 d_built_ctz=''
 d_built_popcount=''
 d_bzero=''
+d_clock_getres=''
+d_clock_gettime=''
 d_closefrom=''
 d_const=''
 d_deflate=''
@@ -5070,6 +5072,36 @@ EOCP
 esac
 set d_can64
 eval $setvar
+
+: see whether clock_getres exists
+$cat >try.c <<EOC
+#include <time.h>
+int main(void)
+{
+	int ret;
+	struct timespec res;
+	ret = clock_getres(CLOCK_REALTIME, &res);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=clock_getres
+set d_clock_getres
+eval $trylink
+
+: see whether clock_gettime exists
+$cat >try.c <<EOC
+#include <time.h>
+int main(void)
+{
+	int ret;
+	struct timespec tp;
+	ret = clock_gettime(CLOCK_REALTIME, &tp);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=clock_gettime
+set d_clock_gettime
+eval $trylink
 
 : can we use closefrom?
 $cat >try.c <<EOC
@@ -11062,6 +11094,8 @@ d_built_ctz='$d_built_ctz'
 d_built_popcount='$d_built_popcount'
 d_bzero='$d_bzero'
 d_can64='$d_can64'
+d_clock_getres='$d_clock_getres'
+d_clock_gettime='$d_clock_gettime'
 d_closefrom='$d_closefrom'
 d_const='$d_const'
 d_dbus='$d_dbus'

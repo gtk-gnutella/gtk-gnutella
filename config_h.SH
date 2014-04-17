@@ -198,6 +198,20 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bzero HAS_BZERO	/**/
 
+/* HAS_CLOCK_GETRES:
+ *	This symbol, if defined, indicates that the clock_getres() system call is
+ *	available to fetch the granularity of available clock (CLOCK_REALTIME is
+ *	a valid clock when the symbol is defined).
+ */
+#$d_clock_getres HAS_CLOCK_GETRES	/**/
+
+/* HAS_CLOCK_GETTIME:
+ *	This symbol, if defined, indicates that the clock_gettime() system call is
+ *	available to fetch the clock (CLOCK_REALTIME is a valid clock when the
+ *	symbol is defined).
+ */
+#$d_clock_gettime HAS_CLOCK_GETTIME	/**/
+
 /* HAS_CLOSEFROM:
  *	This symbol is defined when closefrom() can be used.
  */

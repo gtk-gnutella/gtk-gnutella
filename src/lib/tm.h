@@ -69,6 +69,36 @@ timeval_to_tm(tm_t *tm, const struct timeval * const tv)
 }
 
 /**
+ * Portable representation of the "struct timespec" values, which are used
+ * internally by high-precision time handling routines.  All time information
+ * are relative to the UNIX Epoch.
+ */
+typedef struct tmspec {
+	long tv_sec;			/* seconds */
+	long tv_nsec;			/* and nanoseconds */
+} tm_nano_t;
+
+#define TM_NANO_ZERO	{ 0L, 0L }
+
+/**
+ * Copies the timespec fields into our internal tmspec structure.
+ *
+ * @param tm		the structure to fill
+ * @param tp		the system's timespec structure
+ */
+static inline ALWAYS_INLINE void
+timespec_to_tm_nano(tm_nano_t *tm, const struct timespec * const tp)
+{
+	/*
+	 * We cannot assume that the structures are equivalent, hence we perform
+	 * a field-by-field copy.
+	 */
+
+	tm->tv_sec  = tp->tv_sec;
+	tm->tv_nsec = tp->tv_nsec;
+}
+
+/**
  * @return whether time is zero.
  */
 static inline bool
@@ -113,6 +143,15 @@ tm2us(const tm_t * const t)
 	return (ulong) t->tv_sec * 1000000UL + (ulong) t->tv_usec;
 }
 
+/**
+ * Convert timespec description into nanoseconds.
+ */
+static inline ulong
+tmn2ns(const tm_nano_t * const t)
+{
+	return (ulong) t->tv_sec * 1000000000UL + (ulong) t->tv_nsec;
+}
+
 void tm_init(void);
 void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
@@ -126,6 +165,8 @@ void tm_now_exact(tm_t *tm);
 void tm_now_raw(tm_t *tm);
 time_t tm_time_exact(void);
 void tm_current_time(tm_t *tm);
+void tm_precise_time(tm_nano_t *tn);
+bool tm_precise_granularity(tm_nano_t *tn);
 double tm_cputime(double *user, double *sys);
 
 uint tm_hash(const void *key) G_GNUC_PURE;
