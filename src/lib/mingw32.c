@@ -2900,7 +2900,7 @@ found:
 	value = uint64_saturate_add(
 				uint64_saturate_mult(req->tv_sec, 10000000UL),
 				(req->tv_nsec + 99) / 100);
-	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(gint64));
+	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(int64));
 
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
 		atomic_release(&tt->lock);
