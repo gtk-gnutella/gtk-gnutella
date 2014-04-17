@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2008 Christian Biere
- * Copyright (c) 2008, 2012 Raphael Manfredi
+ * Copyright (c) 2008, 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -53,7 +53,7 @@
  * @author Christian Biere
  * @date 2008
  * @author Raphael Manfredi
- * @date 2008, 2012
+ * @date 2008, 2012, 2014
  */
 
 #include "common.h"
@@ -842,9 +842,9 @@ entropy_collect_minirand(SHA1_context *ctx)
 static void
 entropy_collect_time(SHA1_context *ctx)
 {
-	tm_t now;
+	tm_nano_t now;
 
-	tm_now_exact(&now);
+	tm_precise_time(&now);
 	SHA1_input(ctx, &now, sizeof now);
 }
 
@@ -1098,7 +1098,7 @@ entropy_seed(struct entropy_minictx *c)
 	const char *str[RANDOM_SHUFFLE_MAX];
 	SHA1_context ctx;
 	size_t i, j;
-	tm_t now;
+	tm_nano_t now;
 
 	/*
 	 * This routine must not allocate any memory because it will be called
@@ -1117,10 +1117,10 @@ entropy_seed(struct entropy_minictx *c)
 
 	SHA1_reset(&ctx);
 
-	tm_current_time(&now);		/* Do not use tm_now_exact(), it's too soon */
+	tm_precise_time(&now);		/* Do not use tm_now_exact(), it's too soon */
 	SHA1_input(&ctx, &now, sizeof now);
 
-	j = popcount(now.tv_usec);
+	j = popcount(now.tv_nsec);
 	for (i = 0; i <= j; i++) {
 		ENTROPY_CONTEXT_FEED;										\
 	}
@@ -1182,11 +1182,11 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;
 
 	entropy_delay();
-	tm_current_time(&now);
+	tm_precise_time(&now);
 	SHA1_input(&ctx, &now, sizeof now);
 
-	tm_current_time(&now);
-	j = popcount(now.tv_usec * 11);
+	tm_precise_time(&now);
+	j = popcount(now.tv_nsec * 11);
 	for (i = 0; i <= j; i++) {
 		ENTROPY_CONTEXT_FEED;
 	}
@@ -1202,8 +1202,8 @@ entropy_seed(struct entropy_minictx *c)
 		p = peek_be32_advance(p, &v);
 
 		entropy_delay();
-		tm_current_time(&now);
-		n = popcount(peek_be32(p) + now.tv_usec);
+		tm_precise_time(&now);
+		n = popcount(peek_be32(p) + now.tv_nsec);
 		j = UINT32_ROTR(v, n) & 0xff;
 		for (i = 0; i <= j; i++) {
 			ENTROPY_CONTEXT_FEED;
@@ -1214,20 +1214,20 @@ entropy_seed(struct entropy_minictx *c)
 	}
 
 	entropy_delay();
-	tm_current_time(&now);
+	tm_precise_time(&now);
 
 	{
 		double r = random_double_generate(rand31_u32);
 		double usr, sys, cpu = tm_cputime(&usr, &sys);
 		double adouble[6] = { cpu, usr, sys, r,
-			now.tv_usec / 101.0, now.tv_usec / (now.tv_sec + 0.1) };
+			now.tv_nsec / 101.0, now.tv_nsec / (now.tv_sec + 0.1) };
 		ENTROPY_SHUFFLE_FEED(adouble, sha1_feed_double);
 	}
 
 #undef ENTROPY_SHUFFLE_FEED
 #undef ENTROPY_CONTEXT_FEED
 
-	tm_current_time(&now);
+	tm_precise_time(&now);
 	SHA1_input(&ctx, &now, sizeof now);
 
 	{
