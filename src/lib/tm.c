@@ -529,6 +529,34 @@ tm_cmp(const tm_t *a, const tm_t *b)
 }
 
 /**
+ * Computes the elapsed time (t1 - t0) in the supplied structure.
+ */
+void
+tm_precise_elapsed(tm_nano_t *elapsed, const tm_nano_t *t1, const tm_nano_t *t0)
+{
+	elapsed->tv_sec = t1->tv_sec - t0->tv_sec;
+	elapsed->tv_nsec = t1->tv_nsec - t0->tv_nsec;
+	if (elapsed->tv_nsec < 0) {
+		elapsed->tv_nsec += 1000000000L;
+		elapsed->tv_sec--;
+	}
+}
+
+/**
+ * In-place add inc to tn.
+ */
+void
+tm_precise_add(tm_nano_t *tn, const tm_nano_t *inc)
+{
+	tn->tv_sec += inc->tv_sec;
+	tn->tv_nsec += inc->tv_nsec;
+	if (tn->tv_nsec >= 1000000000L) {
+		tn->tv_nsec -= 1000000000L;
+		tn->tv_sec++;
+	}
+}
+
+/**
  * Computes the remaining time to absolute end time and return duration
  * in milliseconds.
  *

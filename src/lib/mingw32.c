@@ -3196,6 +3196,109 @@ mingw_gettimeofday(struct timeval *tv, void *tz)
 }
 #endif	/* EMULATE_GETTIMEOFDAY */
 
+#ifdef EMULATE_CLOCK_GETTIME
+/**
+ * Retrieve the time of the specified clock.
+ *
+ * @note
+ * Only the CLOCK_REALTIME clock is supported.
+ *
+ * @param clock_id		the ID of the clock to fetch
+ * @param tp			where the clock time should be written to
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+mingw_clock_gettime(int clock_id, struct timespec *tp)
+{
+	LARGE_INTEGER t;
+	static bool inited;
+	static LARGE_INTEGER start;
+	static LARGE_INTEGER freq;
+	static tm_nano_t origin;
+
+	if G_UNLIKELY(clock_id != CLOCK_REALTIME) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if G_UNLIKELY(!inited) {
+		static spinlock_t clock_gettime_slk = SPINLOCK_INIT;
+
+		spinlock_hidden(&clock_gettime_slk);
+
+		if (!inited) {
+			struct timeval tm;
+
+			gettimeofday(&tm, NULL);
+			origin.tv_sec = tm.tv_sec;
+			origin.tv_nsec = tm.tv_usec * 1000;
+			QueryPerformanceCounter(&start);
+			QueryPerformanceFrequency(&freq);
+			inited = TRUE;
+		}
+
+		spinunlock_hidden(&clock_gettime_slk);
+	}
+
+	if (!QueryPerformanceCounter(&t)) {
+		errno = EINVAL;
+		return -1;
+	} else {
+		uint64 nanoseconds;		/* Elapsed nanoseconds since start */
+		tm_nano_t result;
+
+		t.QuadPart -= start.QuadPart;
+		nanoseconds = t.QuadPart * (uint64) 1000000000UL / freq.QuadPart;
+		result.tv_sec  = nanoseconds / 1000000000L;
+		result.tv_nsec = nanoseconds % 1000000000L;
+		tm_precise_add(&result, &origin);
+		tm_nano_to_timespec(tp, &result);
+	}
+
+	return 0;
+}
+#endif	/* EMULATE_CLOCK_GETTIME */
+
+#ifdef EMULATE_CLOCK_GETRES
+/**
+ * Retrieve the resolution of the specified clock.
+ *
+ * @note
+ * Only the CLOCK_REALTIME clock is supported.
+ *
+ * @param clock_id		the ID of the clock to fetch
+ * @param res			where the clock resolution should be written to
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+mingw_clock_getres(int clock_id, struct timespec *res)
+{
+	LARGE_INTEGER freq;
+	ulong nanosecs;
+
+	if G_UNLIKELY(clock_id != CLOCK_REALTIME) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (!QueryPerformanceFrequency(&freq)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	nanosecs = (uint64) 1000000000UL / freq.QuadPart;
+	if (0 == nanosecs)
+		nanosecs = 1;
+
+	res->tv_sec  = nanosecs / 1000000000UL;
+	res->tv_nsec = nanosecs % 1000000000UL;
+
+	return 0;
+}
+#endif	/* EMULATE_CLOCK_GETRES */
+
 static hash_table_t *semaphores;	/* semaphore sets by ID */
 static int next_semid;				/* next ID we create */
 static spinlock_t sem_slk = SPINLOCK_INIT;

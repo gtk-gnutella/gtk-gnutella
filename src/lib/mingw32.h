@@ -477,6 +477,32 @@ int mingw_gettimeofday(struct timeval *tv, void *unused);
 #endif	/* !HAS_GETTIMEOFDAY */
 
 /*
+ * clock_gettime() emulation.
+ */
+#ifndef HAS_CLOCK_GETTIME
+#define HAS_CLOCK_GETTIME	/* We emulate it */
+#define EMULATE_CLOCK_GETTIME
+#define clock_gettime mingw_clock_gettime
+
+int mingw_clock_gettime(int clock_id, struct timespec *tp);
+#endif	/* !HAS_CLOCK_GETTIME */
+
+/*
+ * clock_getres() emulation.
+ */
+#ifndef HAS_CLOCK_GETRES
+#define HAS_CLOCK_GETRES	/* We emulate it */
+#define EMULATE_CLOCK_GETRES
+#define clock_getres mingw_clock_getres
+
+int mingw_clock_getres(int clock_id, struct timespec *res);
+#endif	/* !HAS_CLOCK_GETTIME */
+
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME	0
+#endif
+
+/*
  * dladdr() emulation
  */
 #ifndef HAS_DLADDR

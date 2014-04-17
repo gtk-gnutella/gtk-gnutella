@@ -99,6 +99,16 @@ timespec_to_tm_nano(tm_nano_t *tm, const struct timespec * const tp)
 }
 
 /**
+ * Converts our internal tmspec structure back to POSIX timespec.
+ */
+static inline ALWAYS_INLINE void
+tm_nano_to_timespec(struct timespec *tp, const tm_nano_t * const tn)
+{
+	tp->tv_sec  = tn->tv_sec;
+	tp->tv_nsec = tn->tv_nsec;
+}
+
+/**
  * @return whether time is zero.
  */
 static inline bool
@@ -159,6 +169,9 @@ void tm_sub(tm_t *tm, const tm_t *dec);
 void tm_add(tm_t *tm, const tm_t *inc);
 int tm_cmp(const tm_t *a, const tm_t *b) G_GNUC_PURE;
 long tm_remaining_ms(const tm_t *end);
+
+void tm_precise_elapsed(tm_nano_t *e, const tm_nano_t *t1, const tm_nano_t *t0);
+void tm_precise_add(tm_nano_t *tn, const tm_nano_t *inc);
 
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
