@@ -476,7 +476,11 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 	bool found = FALSE;
 	ulong caller;
 
-	g_assert(SIGSEGV == signo);
+	g_assert(SIGSEGV == signo
+#ifdef SIGBUS
+		|| SIGBUS == signo
+#endif
+	);
 	g_assert(si != NULL);
 
 	if (1 == REGISTER_COUNT(uc)) {
@@ -628,7 +632,12 @@ signal_uncaught(int signo)
 	 * the signal_catch_segv variable to TRUE, we take the mutex.
 	 */
 
-	if (SIGSEGV == signo) {
+	if (
+		SIGSEGV == signo
+#ifdef SIGBUS
+		|| SIGBUS == signo
+#endif
+	) {
 		mutex_lock(&signal_lock);
 		signal_catch_segv = FALSE;
 	}
@@ -636,7 +645,12 @@ signal_uncaught(int signo)
 	signal_catch(signo, SIG_DFL);
 	signal_unblock(signo);
 
-	if (SIGSEGV == signo)
+	if (
+		SIGSEGV == signo
+#ifdef SIGBUS
+		|| SIGBUS == signo
+#endif
+	)
 		mutex_unlock(&signal_lock);
 
 	raise(signo);
@@ -659,10 +673,19 @@ signal_thread_init(void)
 	 * to setup the signal handler, and further make sure we are configuring
 	 * an alternate stack to process SIGSEGV when they occur, provided the
 	 * kernel supports these features.
+	 *
+	 * On OS/X, it seems that SIGBUS is delivered to the process instead of
+	 * SIGSEGV when a stack boundary is reached, hense the additional code
+	 * to handle SIGBUS in a similar way.
 	 */
 
 	if (SIG_DFL == signal_handler[SIGSEGV])
 		signal_set(SIGSEGV, signal_uncaught);
+
+#ifdef SIGBUS
+	if (SIG_DFL == signal_handler[SIGBUS])
+		signal_set(SIGBUS, signal_uncaught);
+#endif
 
 	signal_catch_segv = TRUE;
 	mutex_unlock(&signal_lock);
@@ -1024,6 +1047,12 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 	if (SIGSEGV == signo)
 		thread_stack_check_overflow(si->si_addr);
 
+#ifdef SIGBUS
+	/* On OS/X, the kernel sends a SIGBUS on stack overflows */
+	if (SIGBUS == signo)
+		thread_stack_check_overflow(si->si_addr);
+#endif
+
 	ATOMIC_INC(&in_signal_handler);
 	ATOMIC_INC(&extended);
 	atomic_mb();
@@ -1144,6 +1173,11 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	if (SIGSEGV == signo && SIG_DFL == handler && signal_catch_segv)
 		handler = signal_uncaught;
 
+#ifdef SIGBUS
+	if (SIGBUS == signo && SIG_DFL == handler && signal_catch_segv)
+		handler = signal_uncaught;
+#endif
+
 	/*
 	 * When not using SIG_DFL or SIG_IGN, make sure we go through the
 	 * signal trampoline to perform some checks before invoking the
@@ -1183,7 +1217,12 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 			sa.sa_handler = trampoline;
 #endif
 #ifdef SA_ONSTACK
-			if (SIGSEGV == signo) {
+			if (
+				SIGSEGV == signo 
+#ifdef SIGBUS
+				|| SIGBUS == signo
+#endif
+			) {
 				sa.sa_flags |= SA_ONSTACK;
 			}
 #endif
