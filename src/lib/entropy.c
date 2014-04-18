@@ -941,9 +941,9 @@ static void
 entropy_collect_timing(SHA1_context *ctx, bool slow)
 {
 	double v[4];
-	tm_t before, after;
+	tm_nano_t before, after;
 
-	tm_now_exact(&before);
+	tm_precise_time(&before);
 
 	v[0] = tm_cputime(&v[1], &v[2]);
 
@@ -953,8 +953,8 @@ entropy_collect_timing(SHA1_context *ctx, bool slow)
 		entropy_delay();			/* create small, unpredictable delay */
 	}
 
-	tm_now_exact(&after);
-	v[3] = tm_elapsed_f(&after, &before);
+	tm_precise_time(&after);
+	v[3] = tm_precise_elapsed_f(&after, &before);
 
 	entropy_array_double_collect(ctx, v, G_N_ELEMENTS(v));
 }
@@ -974,9 +974,9 @@ entropy_collect_timing(SHA1_context *ctx, bool slow)
 G_GNUC_COLD void
 entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 {
-	static tm_t last;
+	static tm_nano_t last;
 	SHA1_context ctx;
-	tm_t start, end;
+	tm_nano_t start, end;
 	entropy_cb_t fn[RANDOM_SHUFFLE_MAX];
 	size_t i = 0;
 
@@ -984,7 +984,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	 * Get random entropy from the system.
 	 */
 
-	tm_now_exact(&start);
+	tm_precise_time(&start);
 
 	SHA1_reset(&ctx);
 	SHA1_input(&ctx, &start, sizeof start);
@@ -1033,12 +1033,12 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	{
 		double v[2];
 
-		v[0] = tm_elapsed_f(&start, &last);
+		v[0] = tm_precise_elapsed_f(&start, &last);
 		last = start;		/* struct copy */
 
-		tm_now_exact(&end);
+		tm_precise_time(&end);
 		SHA1_input(&ctx, &end, sizeof end);
-		v[1] = tm_elapsed_f(&end, &start);
+		v[1] = tm_precise_elapsed_f(&end, &start);
 
 		entropy_array_double_collect(&ctx, v, G_N_ELEMENTS(v));
 	}

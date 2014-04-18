@@ -162,6 +162,15 @@ tmn2ns(const tm_nano_t * const t)
 	return (ulong) t->tv_sec * 1000000000UL + (ulong) t->tv_nsec;
 }
 
+/**
+ * Convert timespec description into floating point representation.
+ */
+static inline double
+tmn2f(const tm_nano_t * const t)
+{
+	return (double) t->tv_sec + t->tv_nsec / 1000000000.0;
+}
+
 void tm_init(void);
 void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
@@ -227,6 +236,19 @@ tm_elapsed_us(const tm_t *t1, const tm_t *t0)
 
 	tm_elapsed(&elapsed, t1, t0);
 	return tm2us(&elapsed);
+}
+
+/**
+ * Computes the elapsed time (t1 - t0) and return duration in seconds, as
+ * a floating point quantity to represent sub-seconds.
+ */
+static inline double
+tm_precise_elapsed_f(const tm_nano_t *t1, const tm_nano_t *t0)
+{
+	tm_nano_t elapsed;
+
+	tm_precise_elapsed(&elapsed, t1, t0);
+	return tmn2f(&elapsed);
 }
 
 extern tm_t tm_cached_now;			/* Currently cached time */
