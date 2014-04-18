@@ -224,6 +224,8 @@ entropy_merge(sha1_t *digest)
 	ENTROPY_PREV_UNLOCK;
 }
 
+#define ENTROPY_KISS_MULT	698769069L
+
 /**
  * Minimal random number generation, to be used very early in the process
  * initialization when we cannot use entropy_minimal_collect() yet.
@@ -261,7 +263,7 @@ entropy_minirand(void)
 	ctx->y ^= (ctx->y << 13);
 	ctx->y ^= (ctx->y >> 17);
 	ctx->y ^= (ctx->y << 5);
-	t = (uint64) 698769069L * ctx->z + ctx->c;
+	t = (uint64) ENTROPY_KISS_MULT * ctx->z + ctx->c;
 	ctx->c = t >> 32;
 	r = ctx->x + ctx->y + (ctx->z = t);
 
@@ -1236,11 +1238,11 @@ entropy_seed(struct entropy_minictx *c)
 		uint32 v;
 
 		entropy_sha1_result(&ctx, &hash);
-		p = peek_be32_advance(p, &c->c);
 		p = peek_be32_advance(p, &c->x);
+		p = peek_be32_advance(p, &c->y);
 		p = peek_be32_advance(p, &c->z);
 		p = peek_be32_advance(p, &v);
-		c->y = v ^ peek_be32(p);
+		c->c = (v ^ peek_be32(p)) % ENTROPY_KISS_MULT;
 	}
 }
 
