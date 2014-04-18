@@ -792,7 +792,7 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 		 */
 
 		tm_now_exact(&now);
-		rnd = hashing_fold(now.tv_usec, 16);
+		rnd = hashing_fold(integer_hash_fast(now.tv_usec), 16);
 		random_pool_append(&rnd, sizeof rnd);
 	}
 
