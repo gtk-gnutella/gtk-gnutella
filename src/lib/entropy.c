@@ -1446,6 +1446,10 @@ entropy_do_fill(void *buffer, size_t len)
  * @attention
  * This is a slow operation, and the routine will even sleep for 2 ms the
  * first time it is invoked.
+ *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there and
+ * the call becomes more efficient by several orders of magnitude!
  */
 G_GNUC_COLD void
 entropy_collect(sha1_t *digest)
@@ -1460,6 +1464,10 @@ entropy_collect(sha1_t *digest)
  * @attention
  * This is a slow operation, so it must be called only when a truly random
  * seed is required.
+ *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there and
+ * the call becomes more efficient by several orders of magnitude!
  */
 G_GNUC_COLD void
 entropy_minimal_collect(sha1_t *digest)
@@ -1475,6 +1483,10 @@ entropy_minimal_collect(sha1_t *digest)
  * be reserved to low-level initializations, before the ARC4 random number
  * has been properly seeded.
  *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there and
+ * the call becomes more efficient by several orders of magnitude!
+ *
  * @return 32-bit random number.
  */
 uint32
@@ -1487,6 +1499,9 @@ entropy_random(void)
  * Fill supplied buffer with random entropy bytes.
  *
  * Memory allocation may happen during this call.
+ *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there.
  *
  * @param buffer	buffer to fill
  * @param len		buffer length, in bytes
