@@ -1150,6 +1150,8 @@ entropy_seed(struct entropy_minictx *c)
 		memcpy(data, &hash, sizeof data);
 		shuffle_with(rand31_u32, data, G_N_ELEMENTS(data), sizeof data[0]);
 		SHA1_input(&ctx, data, sizeof data);
+		tm_precise_time(&now);
+		SHA1_input(&ctx, &now, sizeof now);
 		entropy_sha1_result(&ctx, &hash);
 		rand31_set_seed(peek_be32(&hash));
 	}
