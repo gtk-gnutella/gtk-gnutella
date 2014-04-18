@@ -106,6 +106,8 @@ cmwc_state_check(const struct cmwc_state * const cs)
 
 #define CMWC_STATE_MASK	(CMWC_STATE_SIZE - 1)
 
+#define CMWC_MULT	18782
+
 /**
  * Generate a new 32-bit random number using the supplied CMWC state.
  *
@@ -120,7 +122,7 @@ cmwc_rand_internal(cmwc_state_t *cs)
 	uint32 x;
 
 	cs->i = (cs->i + 1) & CMWC_STATE_MASK;
-	t = (uint64) 18782 * cs->Q[cs->i] + cs->c;
+	t = (uint64) CMWC_MULT * cs->Q[cs->i] + cs->c;
 	cs->c = t >> 32;
 	x = t + cs->c;
 
@@ -159,7 +161,7 @@ cmwc_seed_with(random_fn_t rf, cmwc_state_t *cs)
 		rf = entropy_random;
 
 	random_bytes_with(rf, &cs->Q, sizeof cs->Q);
-	cs->c = entropy_random();	/* Regardless of passed function */
+	cs->c = random_upto(rf, CMWC_MULT - 1);
 	cs->i = CMWC_STATE_SIZE - 1;
 	cmwc_state_discard(cs);
 	spinlock_init(&cs->lock);
