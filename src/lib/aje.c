@@ -92,7 +92,6 @@
 #include "omalloc.h"
 #include "once.h"
 #include "pslist.h"
-#include "rand31.h"
 #include "random.h"
 #include "sha1.h"
 #include "spinlock.h"
@@ -700,16 +699,10 @@ aje_init(aje_state_t *as)
 	for (i = 0; i < 8; i++) {
 		entropy_fill(buf, sizeof buf);
 		aje_add_entropy(as, buf, sizeof buf);
+
+		random_bytes_with(entropy_minirand, buf, sizeof buf);
+		aje_add_entropy(as, buf, sizeof buf);
 	}
-
-	/*
-	 * Even through rand31_u32() is a "bad" random number generator over the
-	 * long run, it is still providing sufficient randomness to the pool here,
-	 * given we're only generating a few values.
-	 */
-
-	random_bytes_with(rand31_u32, buf, sizeof buf);
-	aje_add_entropy(as, buf, sizeof buf);
 
 	/*
 	 * Clear the stack.
