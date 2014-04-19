@@ -160,7 +160,7 @@ update-potfiles:
 		echo "# Regenerated on `date`"; \
 		echo ""; \
 		(cd $(top_srcdir); find src -name "*.[ct]" | xargs grep -l _\( | \
-			grep -v gtk1/interface-glade.c | sort); \
+			egrep -v -e gtk1/interface-glade.c -e '/gen-.*\.c' | sort); \
 		echo "# The End"; \
 	) >POTFILES.in
 
