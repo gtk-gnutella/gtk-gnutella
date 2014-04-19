@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2013-05-08 11:12+0200\n"
+"POT-Creation-Date: 2014-04-19 18:25+0200\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -342,6 +342,13 @@ msgid "No Content-Length header"
 msgstr ""
 
 #, fuzzy
+msgid "Unexpected Content-Type"
+msgstr "Váratlan üzenet"
+
+msgid "No Content-Type"
+msgstr ""
+
+#, fuzzy
 msgid "Search already closed"
 msgstr "Keresések"
 
@@ -398,9 +405,16 @@ msgstr "Foglalás"
 msgid ", g2"
 msgstr ", "
 
+msgid ", fake-g2"
+msgstr ""
+
 #, fuzzy
 msgid ", vendor?"
 msgstr "Eladó:"
+
+#, fuzzy, c-format
+msgid "<Browse G2 Host %s>"
+msgstr "_Tallóz"
 
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
@@ -519,161 +533,13 @@ msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
 msgstr[0] ""
 
+#, fuzzy, c-format
+msgid "Connecting to web cache %s"
+msgstr "Géphez csatlakozik"
+
 #, c-format
 msgid "Bootstrapping from %s"
 msgstr ""
-
-msgid "Bad size"
-msgstr "Rossz méret"
-
-msgid "Too small"
-msgstr "Túl kicsi"
-
-msgid "Too large"
-msgstr "Túl nagy"
-
-msgid "Way too large"
-msgstr "Túlontúl nagy"
-
-#, fuzzy
-msgid "Too old"
-msgstr "Túl kicsi"
-
-msgid "Unknown message type"
-msgstr "Ismeretlen üzenetfajta"
-
-msgid "Unexpected message"
-msgstr "Váratlan üzenet"
-
-msgid "Message sent with TTL = 0"
-msgstr "TTL=0-val küldött üzenet"
-
-#, fuzzy
-msgid "Improper hops/ttl combination"
-msgstr "Helytelen ugrás/TTL párosítás"
-
-msgid "Max TTL exceeded"
-msgstr "Legnagyobb TTL túllépve"
-
-msgid "Message throttle"
-msgstr "Üzenetdobás"
-
-#, fuzzy
-msgid "Message matched limits"
-msgstr "gnutellaNet üzenetméret korlátok"
-
-msgid "Transient node"
-msgstr ""
-
-msgid "Unusable Pong"
-msgstr "Használhatatlan kop"
-
-msgid "Hard TTL limit reached"
-msgstr "_Kemény TTL korlát elérve"
-
-msgid "Max hop count reached"
-msgstr "Legnagyobb ugrásszám elérve"
-
-msgid "Route lost"
-msgstr "Út elveszett"
-
-msgid "No route"
-msgstr "Nincs út"
-
-msgid "Duplicate message"
-msgstr "Megkettőzött üzenet"
-
-msgid "Message to banned GUID"
-msgstr "Üzenet a kitiltott GUID-nek"
-
-#, fuzzy
-msgid "Message from banned GUID"
-msgstr "Üzenet a kitiltott GUID-nek"
-
-msgid "Node shutting down"
-msgstr "Csomópont kilép"
-
-#, fuzzy
-msgid "TX flow control"
-msgstr "Folyamvezérlés"
-
-msgid "Query text had no trailing NUL"
-msgstr "Keresőszöveg nincs NUL-lal lezárva"
-
-msgid "Query text too short"
-msgstr "Keresőszöveg túl rövid"
-
-msgid "Query had unnecessary overhead"
-msgstr "Keresőszöveg szükségtelen terheléssel"
-
-msgid "Query had bad URN"
-msgstr ""
-
-msgid "Message with malformed SHA1"
-msgstr "Üzenet hibás SHA1-gyel"
-
-msgid "Message with malformed UTF-8"
-msgstr "Üzenet hibás UTF-8-cal"
-
-msgid "Malformed Query Hit"
-msgstr "Hibás találat"
-
-msgid "Bad return address"
-msgstr ""
-
-msgid "Hostile IP address"
-msgstr "Ellenséges IP-cím"
-
-msgid "Bogus result from Morpheus"
-msgstr ""
-
-msgid "Spam"
-msgstr ""
-
-#, fuzzy
-msgid "Evil filename"
-msgstr "Fájlnév"
-
-#, fuzzy
-msgid "Improper media type"
-msgstr "Keresés"
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
-#, fuzzy
-msgid "Own search results"
-msgstr "Keresési eredmények"
-
-#, fuzzy
-msgid "Own queries"
-msgstr "RX keresések"
-
-msgid "Ancient query format"
-msgstr ""
-
-#, fuzzy
-msgid "Blank Servent ID"
-msgstr "Kiszolgáló-azonosító:"
-
-msgid "GUESS Query missing token"
-msgstr ""
-
-msgid "GUESS Invalid query token"
-msgstr ""
-
-msgid "DHT Invalid security token"
-msgstr ""
-
-msgid "DHT Too many STORE requests"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Malformed message"
-msgstr "A gui hibajavítási szintje"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -711,6 +577,10 @@ msgid "Gnet connections disabled"
 msgstr "gNet kapcsolatok"
 
 msgid "Connection not compressed"
+msgstr ""
+
+#, c-format
+msgid "Too many G2 hubs (%u max)"
 msgstr ""
 
 #, c-format
@@ -768,6 +638,9 @@ msgstr ""
 msgid "Not a network member"
 msgstr "Gnutella hálózati üzemmód"
 
+msgid "Need a G2 Hub"
+msgstr ""
+
 msgid "Too frequent crawling"
 msgstr ""
 
@@ -823,6 +696,9 @@ msgstr ""
 msgid "Pseudo semi-reliable UDP node"
 msgstr ""
 
+msgid "Pseudo G2 UDP node"
+msgstr ""
+
 msgid "Pseudo DHT node"
 msgstr ""
 
@@ -873,6 +749,9 @@ msgid "UDP"
 msgstr ""
 
 msgid "DHT"
+msgstr ""
+
+msgid "G2 hub"
 msgstr ""
 
 msgid "Unknown"
@@ -1091,9 +970,9 @@ msgstr ""
 msgid "Not Acceptable"
 msgstr ""
 
-#, c-format
-msgid "<Browse Host Request> [%s%s%s]"
-msgstr ""
+#, fuzzy, c-format
+msgid "<Browse Host %sRequest> [%s%s%s]"
+msgstr "_Tallóz"
 
 #, fuzzy
 msgid "query hits"
@@ -1175,6 +1054,1236 @@ msgstr ""
 #, c-format
 msgid " - Newer version available: from git %s"
 msgstr ""
+
+msgid "Routing errors"
+msgstr "Útválasztó hiba"
+
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "Keresés irányító tábla (QRP) sorszáma."
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
+msgid "Routing through transient node avoided"
+msgstr ""
+
+#, fuzzy
+msgid "Duplicates with higher TTL"
+msgstr "E keresés megkettőzése"
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+msgid "SPAM filename and size hits"
+msgstr ""
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
+
+msgid "Searches to local DB"
+msgstr "Keresés helyi AB-ban"
+
+msgid "Hits on local DB"
+msgstr "Találat helyi AB-ban"
+
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "Találat helyi AB-ban"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
+msgid "Query hits received for local queries"
+msgstr ""
+
+#, fuzzy
+msgid "G2 searches to local DB"
+msgstr "Keresés helyi AB-ban"
+
+#, fuzzy
+msgid "G2 hits on local DB"
+msgstr "Találat helyi AB-ban"
+
+#, fuzzy
+msgid "G2 hits on local partial files"
+msgstr "Találat helyi AB-ban"
+
+msgid "Query hits received for OOB-proxied queries"
+msgstr ""
+
+msgid "Queries requesting OOB hit delivery"
+msgstr ""
+
+msgid "Stripped OOB flag on queries"
+msgstr ""
+
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
+msgid "Duplicate OOB-proxied queries"
+msgstr ""
+
+msgid "OOB hits received for OOB-proxied queries"
+msgstr ""
+
+msgid "OOB hits bearing alien IP address"
+msgstr ""
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
+msgstr ""
+
+msgid "Unclaimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Partially claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Spurious OOB hit claiming received"
+msgstr ""
+
+msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
+
+msgid "Compacted queries"
+msgstr "Tömörített keresések"
+
+msgid "Bytes saved by compacting"
+msgstr "Tömörítéssel megtakarított bájtok"
+
+msgid "UTF8 queries"
+msgstr "UTF-8-keresések"
+
+msgid "SHA1 queries"
+msgstr "SHA1-keresések"
+
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "Generált keresések"
+
+#, fuzzy
+msgid "UTF8 G2 queries"
+msgstr "UTF-8-keresések"
+
+#, fuzzy
+msgid "SHA1 G2 queries"
+msgstr "SHA1-keresések"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "UTF-8-keresések"
+
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF-8-keresések"
+
+msgid "GUESS link cache size"
+msgstr ""
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
+msgstr ""
+
+msgid "GUESS cached G2 hosts held"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS locally generated queries"
+msgstr "Generált keresések"
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+msgid "GUESS hits received for locally generated queries"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS ultra nodes queried"
+msgstr "Generált keresések"
+
+msgid "GUESS ultra nodes sending back an acknowledgment"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS G2 nodes queried"
+msgstr "UTF-8-keresések"
+
+msgid "GUESS G2 nodes sending back an acknowledgment"
+msgstr ""
+
+msgid "Broadcasted push messages"
+msgstr "Szórt nyomáskérelem"
+
+#, fuzzy
+msgid "Push-proxy UDP relayed messages"
+msgstr "Proxy továbbította üzenetek nyomása"
+
+msgid "Push-proxy TCP relayed messages"
+msgstr "Proxy továbbította üzenetek nyomása"
+
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
+msgid "Push-proxy broadcasted messages"
+msgstr "Proxy szórta üzenetek nyomása"
+
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
+msgid "Push-proxy lookup failures"
+msgstr "Sikertelen proxy-keresés nyomása"
+
+msgid "Push relayed via local route"
+msgstr ""
+
+msgid "Push relayed via routing table"
+msgstr ""
+
+#, fuzzy
+msgid "Locally generated dynamic queries"
+msgstr "Generált keresések"
+
+#, fuzzy
+msgid "Leaf-generated dynamic queries"
+msgstr "Generált keresések"
+
+msgid "OOB-proxied leaf queries"
+msgstr ""
+
+msgid "Fully completed dynamic queries"
+msgstr ""
+
+msgid "Partially completed dynamic queries"
+msgstr ""
+
+msgid "Dynamic queries ended with no results"
+msgstr ""
+
+msgid "Fully completed dynamic queries getting late results"
+msgstr ""
+
+msgid "Dynamic queries with partial late results"
+msgstr ""
+
+msgid "Dynamic queries completed by late results"
+msgstr ""
+
+msgid "Queries seen from GTKG"
+msgstr ""
+
+msgid "Queries seen from GTKG that were re-queries"
+msgstr ""
+
+msgid "Queries advertising support of GGEP \"H\""
+msgstr ""
+
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr ""
+
+msgid "GIV callbacks received"
+msgstr ""
+
+msgid "GIV discarded due to no suitable download"
+msgstr ""
+
+msgid "QUEUE callbacks received"
+msgstr ""
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr ""
+
+msgid "File descriptors banned running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "Nyomás elküldve"
+
+msgid "UDP messages with bogus source IP"
+msgstr ""
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "A gui hibajavítási szintje"
+
+msgid "Alien UDP messages (non-Gnutella)"
+msgstr ""
+
+msgid "Unprocessed UDP Gnutella messages"
+msgstr ""
+
+msgid "Compressed UDP messages enqueued"
+msgstr ""
+
+msgid "Compressed UDP messages received"
+msgstr ""
+
+msgid "Uncompressed UDP messages due to no gain"
+msgstr ""
+
+msgid "Ambiguous UDP messages received"
+msgstr ""
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages dropped due to temporary ban"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages sent to known responsive hosts"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments re-queued for sending"
+msgstr ""
+
+msgid "Semi-reliable UDP plain acknowledgments dropped"
+msgstr ""
+
+msgid "Semi-reliable UDP enhanced acknowledgments dropped"
+msgstr ""
+
+msgid "Semi-reliable UDP plain acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP empty messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
+
+msgid "UDP G2 hits rerouted to hub for delivery"
+msgstr ""
+
+#, fuzzy
+msgid "UDP G2 hits undelivered"
+msgstr "meghatározatlan"
+
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr ""
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr ""
+
+msgid "Discovered server GUIDs"
+msgstr ""
+
+msgid "Changed server GUIDs"
+msgstr ""
+
+msgid "Detected GUID collisions"
+msgstr ""
+
+msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr ""
+
+msgid "Attempted download resource switching after error"
+msgstr ""
+
+msgid "Successful download resource switching (all kind)"
+msgstr ""
+
+msgid "Successful download resource switching between plain files"
+msgstr ""
+
+msgid "Successful download resource switching after error"
+msgstr ""
+
+msgid "Actively queued after resource switching attempt"
+msgstr ""
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr ""
+
+#, fuzzy
+msgid "Ignored downloaded data"
+msgstr "Letöltve"
+
+#, fuzzy
+msgid "Ignoring requested after data mismatch"
+msgstr "(%d%%) kérelem elküldése"
+
+#, fuzzy
+msgid "Ignoring requested to preserve connection"
+msgstr "(%d%%) kérelem elküldése"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr ""
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+
+msgid "Client resource switching (all detected)"
+msgstr ""
+
+msgid "Client resource switching between plain files"
+msgstr ""
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr ""
+
+msgid "PARQ client retry-after violation"
+msgstr ""
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+
+msgid "PARQ upload slot limit overrides"
+msgstr ""
+
+msgid "PARQ quick upload slots granted"
+msgstr ""
+
+msgid "PARQ QUEUE sending attempts"
+msgstr ""
+
+msgid "PARQ QUEUE messages sent"
+msgstr ""
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr ""
+
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
+msgstr ""
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "bájtok"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "bájtok"
+
+msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr ""
+
+msgid "DHT routing table buckets"
+msgstr ""
+
+msgid "DHT routing table leaves"
+msgstr ""
+
+msgid "DHT routing table maximum depth"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table good nodes"
+msgstr "Keresés irányító tábla (QRP) sorszáma."
+
+msgid "DHT routing table stale nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pending nodes"
+msgstr "Keresés irányító tábla (QRP) sorszáma."
+
+msgid "DHT routing table evicted nodes"
+msgstr ""
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table evicted nodes due to quota"
+msgstr "Keresés irányító tábla (QRP) sorszáma."
+
+msgid "DHT routing table promoted pending nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pinged promoted nodes"
+msgstr "Keresés irányító tábla (QRP) sorszáma."
+
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket refreshes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT forced bucket merges"
+msgstr "A gui hibajavítási szintje"
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr ""
+
+msgid "DHT initiated bucket alive checks"
+msgstr ""
+
+msgid "DHT alive pings sent to good nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
+msgstr ""
+
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT cached keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT cached KUID targets held"
+msgstr ""
+
+msgid "DHT cached closest root nodes"
+msgstr ""
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+msgid "DHT cached roots misses"
+msgstr ""
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+msgid "DHT cached security tokens held"
+msgstr ""
+
+msgid "DHT cached security tokens hits"
+msgstr ""
+
+#, fuzzy
+msgid "DHT stable node information held"
+msgstr "Részletes tájékoztató"
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT local hits returning values from cached keys"
+msgstr ""
+
+msgid "DHT returned expanded values"
+msgstr ""
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed values via secondary keys"
+msgstr "Türelmi idők (minden érték másodpercben)"
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed cached values via secondary keys"
+msgstr "Türelmi idők (minden érték másodpercben)"
+
+msgid "DHT successfully received value publications"
+msgstr ""
+
+msgid "DHT successfully received value removals"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr ""
+
+msgid "DHT detected KUID collisions"
+msgstr ""
+
+msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "A gui hibajavítási szintje"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr ""
+
+msgid "DHT RPC recent nodes held"
+msgstr ""
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "Részletes tájékoztató"
+
+msgid "DHT publishing attempts"
+msgstr ""
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+msgid "DHT publishing ending with proper value presence"
+msgstr ""
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+msgid "DHT publishing to self"
+msgstr ""
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
+msgstr ""
+
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+#, fuzzy
+msgid "DHT push-proxy lookups issued"
+msgstr "Sikertelen proxy-keresés nyomása"
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT successful node push-entry lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "A gui hibajavítási szintje"
+
+msgid "Ping"
+msgstr "Kip"
+
+msgid "Pong"
+msgstr "Kop"
+
+msgid "Bye"
+msgstr "Viszlát"
+
+msgid "QRP"
+msgstr "QRP"
+
+msgid "HSEP"
+msgstr ""
+
+msgid "RUDP"
+msgstr ""
+
+#, fuzzy
+msgid "Vendor spec."
+msgstr "Eladó leírás"
+
+#, fuzzy
+msgid "Vendor std."
+msgstr "Eladó std."
+
+msgid "Push"
+msgstr "Nyomás"
+
+msgid "Query"
+msgstr "Keresés"
+
+msgid "Query hit"
+msgstr "Találat"
+
+msgid "DHT (truncated)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Ping"
+msgstr "Kip"
+
+#, fuzzy
+msgid "DHT Pong"
+msgstr "Kop"
+
+#, fuzzy
+msgid "DHT Store"
+msgstr "HTTP-forgalom"
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "Méret"
+
+#, fuzzy
+msgid "G2 Crawl Request"
+msgstr "Utolsó átállás"
+
+msgid "G2 Hub Advertisement"
+msgstr ""
+
+msgid "G2 Hub List"
+msgstr ""
+
+msgid "G2 Hub List Req"
+msgstr ""
+
+msgid "G2 Hub List Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Local Node Info"
+msgstr "Saját pont"
+
+#, fuzzy
+msgid "G2 Ping"
+msgstr "Kip"
+
+#, fuzzy
+msgid "G2 Pong"
+msgstr "Kop"
+
+#, fuzzy
+msgid "G2 Push"
+msgstr "Nyomás"
+
+msgid "G2 Query Key Ack"
+msgstr ""
+
+msgid "G2 Query Key Req"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query"
+msgstr "Keresés"
+
+msgid "G2 Query Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query Hit"
+msgstr "Találat"
+
+#, fuzzy
+msgid "G2 Query Hash Table"
+msgstr "A gui hibajavítási szintje"
+
+msgid "G2 User Profile Check"
+msgstr ""
+
+msgid "G2 User Profile Data"
+msgstr ""
+
+msgid "Total"
+msgstr "Összesen"
+
+msgid "Bad size"
+msgstr "Rossz méret"
+
+msgid "Too small"
+msgstr "Túl kicsi"
+
+msgid "Too large"
+msgstr "Túl nagy"
+
+msgid "Way too large"
+msgstr "Túlontúl nagy"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Túl kicsi"
+
+msgid "Unknown message type"
+msgstr "Ismeretlen üzenetfajta"
+
+msgid "Unexpected message"
+msgstr "Váratlan üzenet"
+
+msgid "Message sent with TTL = 0"
+msgstr "TTL=0-val küldött üzenet"
+
+#, fuzzy
+msgid "Improper hops/ttl combination"
+msgstr "Helytelen ugrás/TTL párosítás"
+
+msgid "Max TTL exceeded"
+msgstr "Legnagyobb TTL túllépve"
+
+msgid "Message throttle"
+msgstr "Üzenetdobás"
+
+#, fuzzy
+msgid "Message matched limits"
+msgstr "gnutellaNet üzenetméret korlátok"
+
+msgid "Transient node"
+msgstr ""
+
+msgid "Unusable Pong"
+msgstr "Használhatatlan kop"
+
+msgid "Hard TTL limit reached"
+msgstr "_Kemény TTL korlát elérve"
+
+msgid "Max hop count reached"
+msgstr "Legnagyobb ugrásszám elérve"
+
+msgid "Route lost"
+msgstr "Út elveszett"
+
+msgid "No route"
+msgstr "Nincs út"
+
+msgid "Duplicate message"
+msgstr "Megkettőzött üzenet"
+
+msgid "OOB Proxy MUID Conflict"
+msgstr ""
+
+msgid "Message to banned GUID"
+msgstr "Üzenet a kitiltott GUID-nek"
+
+#, fuzzy
+msgid "Message from banned GUID"
+msgstr "Üzenet a kitiltott GUID-nek"
+
+msgid "Node shutting down"
+msgstr "Csomópont kilép"
+
+#, fuzzy
+msgid "TX flow control"
+msgstr "Folyamvezérlés"
+
+msgid "Query text had no trailing NUL"
+msgstr "Keresőszöveg nincs NUL-lal lezárva"
+
+msgid "Query text too short"
+msgstr "Keresőszöveg túl rövid"
+
+msgid "Query had unnecessary overhead"
+msgstr "Keresőszöveg szükségtelen terheléssel"
+
+msgid "Query had bad URN"
+msgstr ""
+
+msgid "Message with malformed SHA1"
+msgstr "Üzenet hibás SHA1-gyel"
+
+msgid "Message with malformed UTF-8"
+msgstr "Üzenet hibás UTF-8-cal"
+
+msgid "Malformed Query Hit"
+msgstr "Hibás találat"
+
+msgid "Bad return address"
+msgstr ""
+
+msgid "Hostile IP address"
+msgstr "Ellenséges IP-cím"
+
+#, fuzzy
+msgid "Shunned IP address"
+msgstr "Ellenséges IP-cím"
+
+msgid "Bogus result from Morpheus"
+msgstr ""
+
+msgid "Spam"
+msgstr ""
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Fájlnév"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Keresés"
+
+msgid "Payload inflating error"
+msgstr ""
+
+msgid "Unknown header flags present"
+msgstr ""
+
+#, fuzzy
+msgid "Own search results"
+msgstr "Keresési eredmények"
+
+#, fuzzy
+msgid "Own queries"
+msgstr "RX keresések"
+
+msgid "Ancient query format"
+msgstr ""
+
+#, fuzzy
+msgid "Blank Servent ID"
+msgstr "Kiszolgáló-azonosító:"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+msgid "GUESS Invalid query token"
+msgstr ""
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "G2 Unexpected message"
+msgstr "Váratlan üzenet"
+
+#, fuzzy
+msgid "Cannot cross networks"
+msgstr "Helyi hálózatok"
 
 #, fuzzy
 msgid "No proxy"
@@ -2838,7 +3947,7 @@ msgstr ""
 
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
 "list from the global one distributed with gtk-gnutella."
 msgstr ""
 
@@ -3735,6 +4844,70 @@ msgid "Whether the program is auto-restarting at the user's request."
 msgstr ""
 
 #, fuzzy
+msgid "Debug level for time management."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for the tmalloc() thread-magazine object distributor."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for the event queue thread."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Maximum number of G2 hubs in the hub cache."
+msgstr "Gazdák maximális száma az átjátszó gazdatárban"
+
+#, fuzzy
+msgid "Current number of IPv4 hosts in the G2 hub caches."
+msgstr "Gazdák száma jelenleg az átjátszó gazdatárban"
+
+#, fuzzy
+msgid "Whether the G2 protocol should be enabled."
+msgstr "TX forgalom tömörítési arányának kijelzése."
+
+#, fuzzy
+msgid "Number of G2 nodes currently connected."
+msgstr "Pillanatnyilag a végponti kapcsolatok száma."
+
+#, fuzzy
+msgid "Maximum amount of G2 hubs we should connect to as a leaf."
+msgstr ""
+"Átjátszó csomópontok legnagyobb száma, amelyekhez végpontként csatlakozunk."
+
+#, fuzzy
+msgid "Whether to log bad G2 messages, corrupted or unexpected."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log dropped G2 messages"
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for the G2 RPC layer."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log summary of received query hits"
+msgstr "A gui hibajavítási szintje"
+
+msgid "Whether to log summary of each record in received query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Number of G2 browsing requests received in this session."
+msgstr "Csúszó látogatások az indulás óta"
+
+#, fuzzy
+msgid "Number of G2 browsing requests fully served in this session."
+msgstr "Csúszó látogatások az indulás óta"
+
+#, fuzzy
+msgid "Whether to log G2 messages we're attempting to send"
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
 msgid "disable"
 msgstr "biztos"
 
@@ -3758,72 +4931,9 @@ msgstr ""
 msgid "UDP only"
 msgstr ""
 
-msgid "Ping"
-msgstr "Kip"
-
-msgid "Pong"
-msgstr "Kop"
-
-msgid "Bye"
-msgstr "Viszlát"
-
-msgid "QRP"
-msgstr "QRP"
-
-msgid "HSEP"
-msgstr ""
-
-msgid "RUDP"
-msgstr ""
-
-#, fuzzy
-msgid "Vendor spec."
-msgstr "Eladó leírás"
-
-#, fuzzy
-msgid "Vendor std."
-msgstr "Eladó std."
-
-msgid "Push"
-msgstr "Nyomás"
-
-msgid "Query"
-msgstr "Keresés"
-
 #, fuzzy
 msgid "Query Hit"
 msgstr "Találat"
-
-#, fuzzy
-msgid "DHT Ping"
-msgstr "Kip"
-
-#, fuzzy
-msgid "DHT Pong"
-msgstr "Kop"
-
-#, fuzzy
-msgid "DHT Store"
-msgstr "HTTP-forgalom"
-
-msgid "DHT Store Ack"
-msgstr ""
-
-msgid "DHT Find Node"
-msgstr ""
-
-msgid "DHT Found Node"
-msgstr ""
-
-msgid "DHT Find Value"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Value"
-msgstr "Méret"
-
-msgid "Total"
-msgstr "Összesen"
 
 #, fuzzy
 msgid "Icons"
@@ -5272,6 +6382,14 @@ msgstr "Inaktív forrás"
 msgid "Interactive mode turned off."
 msgstr "Inaktív forrás"
 
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Ismeretlen hiba"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Ismeretlen hiba"
+
 #, fuzzy
 msgid "Cannot determine current working directory"
 msgstr "Saját mappa nem található!"
@@ -5287,14 +6405,6 @@ msgstr "Nyomás elküldése sikertelen"
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
-
-#, fuzzy, c-format
-msgid "Unknown operation \"%s\""
-msgstr "Ismeretlen hiba"
-
-#, fuzzy, c-format
-msgid "Unknown operation \"show %s\""
-msgstr "Ismeretlen hiba"
 
 #, fuzzy, c-format
 msgid "Unknown operation \"stats %s\""
@@ -5347,6 +6457,9 @@ msgstr ""
 msgid "Good bye"
 msgstr ""
 
+msgid "Invalid command syntax"
+msgstr ""
+
 #, fuzzy
 msgid "Query string missing"
 msgstr "Proxy beállítása"
@@ -5388,9 +6501,6 @@ msgid "unterminated double-quoted string"
 msgstr ""
 
 msgid "unterminated single-quoted string"
-msgstr ""
-
-msgid "Invalid command syntax"
 msgstr ""
 
 msgid "too many arguments in command"
@@ -5922,882 +7032,6 @@ msgstr "Globális szűrők"
 
 msgid "RETURN"
 msgstr ""
-
-msgid "Query hit"
-msgstr "Találat"
-
-msgid "DHT (truncated)"
-msgstr ""
-
-msgid "Routing errors"
-msgstr "Útválasztó hiba"
-
-#, fuzzy
-msgid "Routing table chunks"
-msgstr "Keresés irányító tábla (QRP) sorszáma."
-
-msgid "Routing table message capacity"
-msgstr ""
-
-msgid "Routing table message count"
-msgstr ""
-
-msgid "Routing through transient node avoided"
-msgstr ""
-
-#, fuzzy
-msgid "Duplicates with higher TTL"
-msgstr "E keresés megkettőzése"
-
-msgid "SPAM SHA1 database hits"
-msgstr ""
-
-msgid "SPAM filename and size hits"
-msgstr ""
-
-msgid "SPAM fake hits"
-msgstr ""
-
-msgid "SPAM duplicate hits"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP held"
-msgstr ""
-
-msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
-
-msgid "Searches to local DB"
-msgstr "Keresés helyi AB-ban"
-
-msgid "Hits on local DB"
-msgstr "Találat helyi AB-ban"
-
-#, fuzzy
-msgid "Hits on local partial files"
-msgstr "Találat helyi AB-ban"
-
-msgid "Hits on \"what's new?\" queries"
-msgstr ""
-
-msgid "Query hits received for local queries"
-msgstr ""
-
-msgid "Query hits received for OOB-proxied queries"
-msgstr ""
-
-msgid "Queries requesting OOB hit delivery"
-msgstr ""
-
-msgid "Stripped OOB flag on queries"
-msgstr ""
-
-msgid "Ignored OOB queries due to unclaimed hits"
-msgstr ""
-
-msgid "Duplicate OOB-proxied queries"
-msgstr ""
-
-msgid "OOB hits received for OOB-proxied queries"
-msgstr ""
-
-msgid "OOB hits bearing alien IP address"
-msgstr ""
-
-msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
-
-msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
-
-msgid "Unclaimed locally-generated OOB hits"
-msgstr ""
-
-msgid "Partially claimed locally-generated OOB hits"
-msgstr ""
-
-msgid "Spurious OOB hit claiming received"
-msgstr ""
-
-msgid "Unrequested OOB hits received"
-msgstr ""
-
-msgid "Received query hits for untracked queries"
-msgstr ""
-
-msgid "Tracked query MUIDs"
-msgstr ""
-
-msgid "Compacted queries"
-msgstr "Tömörített keresések"
-
-msgid "Bytes saved by compacting"
-msgstr "Tömörítéssel megtakarított bájtok"
-
-msgid "UTF8 queries"
-msgstr "UTF-8-keresések"
-
-msgid "SHA1 queries"
-msgstr "SHA1-keresések"
-
-#, fuzzy
-msgid "\"What's New?\" queries"
-msgstr "Generált keresések"
-
-#, fuzzy
-msgid "GUESS queries"
-msgstr "UTF-8-keresések"
-
-#, fuzzy
-msgid "GUESS queries (0.2)"
-msgstr "UTF-8-keresések"
-
-msgid "GUESS link cache size"
-msgstr ""
-
-msgid "GUESS cached query keys held"
-msgstr ""
-
-msgid "GUESS cached 0.2 hosts held"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS locally generated queries"
-msgstr "Generált keresések"
-
-msgid "GUESS currently running queries"
-msgstr ""
-
-msgid "GUESS hits received for locally generated queries"
-msgstr ""
-
-msgid "GUESS hosts queried"
-msgstr ""
-
-msgid "GUESS hosts sending back an acknowledgment"
-msgstr ""
-
-msgid "Broadcasted push messages"
-msgstr "Szórt nyomáskérelem"
-
-#, fuzzy
-msgid "Push-proxy UDP relayed messages"
-msgstr "Proxy továbbította üzenetek nyomása"
-
-msgid "Push-proxy TCP relayed messages"
-msgstr "Proxy továbbította üzenetek nyomása"
-
-msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr ""
-
-msgid "Push-proxy broadcasted messages"
-msgstr "Proxy szórta üzenetek nyomása"
-
-msgid "Push-proxy found un-proxied local route"
-msgstr ""
-
-msgid "Push-proxy lookup failures"
-msgstr "Sikertelen proxy-keresés nyomása"
-
-msgid "Push relayed via local route"
-msgstr ""
-
-msgid "Push relayed via routing table"
-msgstr ""
-
-#, fuzzy
-msgid "Locally generated dynamic queries"
-msgstr "Generált keresések"
-
-#, fuzzy
-msgid "Leaf-generated dynamic queries"
-msgstr "Generált keresések"
-
-msgid "OOB-proxied leaf queries"
-msgstr ""
-
-msgid "Fully completed dynamic queries"
-msgstr ""
-
-msgid "Partially completed dynamic queries"
-msgstr ""
-
-msgid "Dynamic queries ended with no results"
-msgstr ""
-
-msgid "Fully completed dynamic queries getting late results"
-msgstr ""
-
-msgid "Dynamic queries with partial late results"
-msgstr ""
-
-msgid "Dynamic queries completed by late results"
-msgstr ""
-
-msgid "Queries seen from GTKG"
-msgstr ""
-
-msgid "Queries seen from GTKG that were re-queries"
-msgstr ""
-
-msgid "Queries advertising support of GGEP \"H\""
-msgstr ""
-
-msgid "Queries advertising support of semi-reliable UDP"
-msgstr ""
-
-msgid "GIV callbacks received"
-msgstr ""
-
-msgid "GIV discarded due to no suitable download"
-msgstr ""
-
-msgid "QUEUE callbacks received"
-msgstr ""
-
-msgid "QUEUE discarded due to no suitable download"
-msgstr ""
-
-msgid "UDP read-ahead datagram running count"
-msgstr ""
-
-msgid "UDP read-ahead datagram running bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram \"old\" processed"
-msgstr ""
-
-msgid "UDP read-ahead datagram max count"
-msgstr ""
-
-msgid "UDP read-ahead datagram max bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram max delay"
-msgstr ""
-
-msgid "UDP push messages received for FW<->FW connections"
-msgstr ""
-
-msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr ""
-
-msgid "UDP push messages patched for FW<->FW connections"
-msgstr ""
-
-msgid "UDP UHC pings received"
-msgstr ""
-
-#, fuzzy
-msgid "UDP UHC pongs sent"
-msgstr "Nyomás elküldve"
-
-msgid "UDP messages with bogus source IP"
-msgstr ""
-
-#, fuzzy
-msgid "UDP truncated incoming messages"
-msgstr "A gui hibajavítási szintje"
-
-msgid "Alien UDP messages (non-Gnutella)"
-msgstr ""
-
-msgid "Unprocessed UDP Gnutella messages"
-msgstr ""
-
-msgid "Compressed UDP messages enqueued"
-msgstr ""
-
-msgid "Compressed UDP messages received"
-msgstr ""
-
-msgid "Uncompressed UDP messages due to no gain"
-msgstr ""
-
-msgid "Ambiguous UDP messages received"
-msgstr ""
-
-msgid "Ambiguous UDP messages inspected more deeply"
-msgstr ""
-
-msgid "Ambiguous UDP messages handled as semi-reliable UDP"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages deflated"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages unsent"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages partially sent due to clogging"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages correctly transmited"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments resent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent too many times"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP too many EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP duplicate fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP dropped received fragments"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP messages expired before re-assembly"
-msgstr ""
-
-msgid "Semi-reliable UDP messages re-assembled completely"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated successfully"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated incorrectly"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable messages received"
-msgstr ""
-
-msgid "Semi-reliable UDP empty messages received"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received for unknown message"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr ""
-
-msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr ""
-
-msgid "Duplicate downloads found during server consolidation"
-msgstr ""
-
-msgid "Discovered server GUIDs"
-msgstr ""
-
-msgid "Changed server GUIDs"
-msgstr ""
-
-msgid "Detected GUID collisions"
-msgstr ""
-
-msgid "Detected collisions with our own GUID"
-msgstr ""
-
-msgid "GUID dynamically banned"
-msgstr ""
-
-msgid "Firewalled node info for known hosts received in upload requests"
-msgstr ""
-
-msgid "Revitalized PUSH routes"
-msgstr ""
-
-msgid "Collected new PUSH proxies from other query hits"
-msgstr ""
-
-msgid "Attempted download resource switching on completion"
-msgstr ""
-
-msgid "Attempted download resource switching after error"
-msgstr ""
-
-msgid "Successful download resource switching (all kind)"
-msgstr ""
-
-msgid "Successful download resource switching between plain files"
-msgstr ""
-
-msgid "Successful download resource switching after error"
-msgstr ""
-
-msgid "Actively queued after resource switching attempt"
-msgstr ""
-
-msgid "Sunk HTTP reply data on error codes"
-msgstr ""
-
-#, fuzzy
-msgid "Ignored downloaded data"
-msgstr "Letöltve"
-
-#, fuzzy
-msgid "Ignoring requested after data mismatch"
-msgstr "(%d%%) kérelem elküldése"
-
-#, fuzzy
-msgid "Ignoring requested to preserve connection"
-msgstr "(%d%%) kérelem elküldése"
-
-msgid "Ignoring requested due to aggressive swarming"
-msgstr ""
-
-msgid "Ignoring refused (data too large or server too slow)"
-msgstr ""
-
-msgid "Client resource switching (all detected)"
-msgstr ""
-
-msgid "Client resource switching between plain files"
-msgstr ""
-
-msgid "Client follow-up request after HTTP error was returned"
-msgstr ""
-
-msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr ""
-
-msgid "PARQ client retry-after violation"
-msgstr ""
-
-msgid "PARQ client kicked out after too many retry-after violations"
-msgstr ""
-
-msgid "PARQ upload slot limit overrides"
-msgstr ""
-
-msgid "PARQ quick upload slots granted"
-msgstr ""
-
-msgid "PARQ QUEUE sending attempts"
-msgstr ""
-
-msgid "PARQ QUEUE messages sent"
-msgstr ""
-
-msgid "PARQ QUEUE follow-up requests received"
-msgstr ""
-
-msgid "Launched SHA-1 file verifications"
-msgstr ""
-
-msgid "Launched TTH file verifications"
-msgstr ""
-
-msgid "Bitzi tickets held"
-msgstr ""
-
-msgid "Re-seeding of orphan downloads through query hits"
-msgstr ""
-
-#, fuzzy
-msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "A gui hibajavítási szintje"
-
-#, fuzzy
-msgid "RUDP sent bytes"
-msgstr "bájtok"
-
-#, fuzzy
-msgid "RUDP received bytes"
-msgstr "bájtok"
-
-msgid "DHT estimated amount of nodes"
-msgstr ""
-
-msgid "DHT standard error of estimated amount of nodes"
-msgstr ""
-
-msgid "DHT k-ball theoretical frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball furthest frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball closeest frontier (bits)"
-msgstr ""
-
-msgid "DHT routing table buckets"
-msgstr ""
-
-msgid "DHT routing table leaves"
-msgstr ""
-
-msgid "DHT routing table maximum depth"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table good nodes"
-msgstr "Keresés irányító tábla (QRP) sorszáma."
-
-msgid "DHT routing table stale nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table pending nodes"
-msgstr "Keresés irányító tábla (QRP) sorszáma."
-
-msgid "DHT routing table evicted nodes"
-msgstr ""
-
-msgid "DHT routing table evicted firewalled nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table evicted nodes due to quota"
-msgstr "Keresés irányító tábla (QRP) sorszáma."
-
-msgid "DHT routing table promoted pending nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table pinged promoted nodes"
-msgstr "Keresés irányító tábla (QRP) sorszáma."
-
-msgid "DHT routing table rejected node due to bucket network quota"
-msgstr ""
-
-msgid "DHT routing table rejected node due to global network quota"
-msgstr ""
-
-msgid "DHT completed bucket refreshes"
-msgstr ""
-
-msgid "DHT forced bucket refreshes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT forced bucket merges"
-msgstr "A gui hibajavítási szintje"
-
-msgid "DHT denied non-splitable bucket refresh"
-msgstr ""
-
-msgid "DHT initiated bucket alive checks"
-msgstr ""
-
-msgid "DHT alive pings sent to good nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to stale nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to shutdowning nodes"
-msgstr ""
-
-msgid "DHT alive pings avoided"
-msgstr ""
-
-msgid "DHT alive pings skipped"
-msgstr ""
-
-msgid "DHT revitalized stale nodes on RPC reply"
-msgstr ""
-
-msgid "DHT value store rejected on IP/network quota grounds"
-msgstr ""
-
-msgid "DHT value store rejected on creator validation grounds"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on network quota"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr ""
-
-msgid "DHT node contact IP addresses fixed during lookup"
-msgstr ""
-
-msgid "DHT keys held"
-msgstr ""
-
-msgid "DHT cached keys held"
-msgstr ""
-
-msgid "DHT values held"
-msgstr ""
-
-msgid "DHT cached KUID targets held"
-msgstr ""
-
-msgid "DHT cached closest root nodes"
-msgstr ""
-
-msgid "DHT cached roots exact hits"
-msgstr ""
-
-msgid "DHT cached roots approximate hits"
-msgstr ""
-
-msgid "DHT cached roots misses"
-msgstr ""
-
-msgid "DHT cached roots lookups within k-ball"
-msgstr ""
-
-msgid "DHT cached roots contact address refreshed"
-msgstr ""
-
-msgid "DHT cached security tokens held"
-msgstr ""
-
-msgid "DHT cached security tokens hits"
-msgstr ""
-
-#, fuzzy
-msgid "DHT stable node information held"
-msgstr "Részletes tájékoztató"
-
-msgid "DHT local hits on value lookups"
-msgstr ""
-
-msgid "DHT local hits returning values from cached keys"
-msgstr ""
-
-msgid "DHT returned expanded values"
-msgstr ""
-
-msgid "DHT returned values as secondary keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed values via secondary keys"
-msgstr "Türelmi idők (minden érték másodpercben)"
-
-msgid "DHT returned cached expanded values"
-msgstr ""
-
-msgid "DHT returned cached values as secondary-keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed cached values via secondary keys"
-msgstr "Türelmi idők (minden érték másodpercben)"
-
-msgid "DHT successfully received value publications"
-msgstr ""
-
-msgid "DHT successfully received value removals"
-msgstr ""
-
-msgid "DHT replication of stale value avoided"
-msgstr ""
-
-msgid "DHT replication of held values"
-msgstr ""
-
-msgid "DHT republishing of held values"
-msgstr ""
-
-msgid "DHT secondary-key value fetch issued"
-msgstr ""
-
-msgid "DHT duplicate values returned in lookups"
-msgstr ""
-
-msgid "DHT detected KUID collisions"
-msgstr ""
-
-msgid "DHT detected collisions with our own KUID"
-msgstr ""
-
-msgid "DHT caching attempts"
-msgstr ""
-
-msgid "DHT caching ended successfully"
-msgstr ""
-
-msgid "DHT caching partially completed"
-msgstr ""
-
-msgid "DHT key-offloading checks after discovering new closest node"
-msgstr ""
-
-msgid "DHT keys selected for offloading"
-msgstr ""
-
-msgid "DHT key-offloading attempts"
-msgstr ""
-
-msgid "DHT key-offloading ended successfully"
-msgstr ""
-
-msgid "DHT key-offloading partially completed"
-msgstr ""
-
-msgid "DHT values successfully offloaded"
-msgstr ""
-
-#, fuzzy
-msgid "DHT incoming messages"
-msgstr "A gui hibajavítási szintje"
-
-msgid "DHT incoming messages with UDP-matching contact address"
-msgstr ""
-
-msgid "DHT incoming messages with contact address fixed"
-msgstr ""
-
-msgid "DHT incoming messages from hostile addresses"
-msgstr ""
-
-msgid "DHT incoming messages with hostile contact address"
-msgstr ""
-
-msgid "DHT RPC messages prepared"
-msgstr ""
-
-msgid "DHT RPC messages cancelled"
-msgstr ""
-
-msgid "DHT RPC timed out"
-msgstr ""
-
-msgid "DHT RPC replies received"
-msgstr ""
-
-msgid "DHT RPC replies with contact address fixed"
-msgstr ""
-
-msgid "DHT RPC late replies received"
-msgstr ""
-
-msgid "DHT RPC detected KUID mismatches on reply"
-msgstr ""
-
-msgid "DHT RPC recent nodes held"
-msgstr ""
-
-#, fuzzy
-msgid "DHT node verifications"
-msgstr "Részletes tájékoztató"
-
-msgid "DHT publishing attempts"
-msgstr ""
-
-msgid "DHT publishing ended successfully (all roots)"
-msgstr ""
-
-msgid "DHT publishing partially completed (root subset only)"
-msgstr ""
-
-msgid "DHT publishing ending with proper value presence"
-msgstr ""
-
-msgid "DHT value republishing occurring too late (after expiry)"
-msgstr ""
-
-msgid "DHT publishing to self"
-msgstr ""
-
-msgid "DHT background publishing completion attempts"
-msgstr ""
-
-msgid "DHT background publishing completion showing improvements"
-msgstr ""
-
-msgid "DHT background publishing completion successful (all roots)"
-msgstr ""
-
-msgid "DHT SHA1 data type collisions"
-msgstr ""
-
-msgid "DHT lookup path passively protected against attack"
-msgstr ""
-
-msgid "DHT lookup path actively protected against attack"
-msgstr ""
-
-msgid "DHT alt-loc lookups issued"
-msgstr ""
-
-#, fuzzy
-msgid "DHT push-proxy lookups issued"
-msgstr "Sikertelen proxy-keresés nyomása"
-
-msgid "DHT successful alt-loc lookups"
-msgstr ""
-
-msgid "DHT successful push-proxy lookups"
-msgstr ""
-
-msgid "DHT successful node push-entry lookups"
-msgstr ""
-
-#, fuzzy
-msgid "DHT re-seeding of orphan downloads"
-msgstr "A gui hibajavítási szintje"
 
 #, fuzzy
 msgid "node"
@@ -9026,6 +9260,15 @@ msgstr "Feltöltési satisztikákat mutat az oldalpanelen"
 msgid "Mapping lease time"
 msgstr ""
 
+msgid "G2 hubs"
+msgstr ""
+
+msgid "Enable the G2 network"
+msgstr ""
+
+msgid " G2, "
+msgstr ""
+
 msgid "Not in database"
 msgstr ""
 
@@ -9161,10 +9404,16 @@ msgstr ""
 msgid "Served "
 msgstr "Kiszolgáló"
 
-msgid "[BH HTML served]"
+msgid "[G2 served]"
 msgstr ""
 
 msgid " / "
+msgstr ""
+
+msgid "[G2]"
+msgstr ""
+
+msgid "[BH HTML served]"
 msgstr ""
 
 msgid "[BH HTML]"
@@ -9357,6 +9606,12 @@ msgstr "Friss átjátszó"
 msgid "Valid IPv6 ultra"
 msgstr "Érvényes átjátszó"
 
+msgid "Fresh G2 hub"
+msgstr ""
+
+msgid "Valid G2 hub"
+msgstr ""
+
 msgid "Unstable"
 msgstr "Bizonytalan"
 
@@ -9428,6 +9683,10 @@ msgstr "Fejlécek fogadása"
 #, fuzzy
 msgid "UNKNOWN STATUS"
 msgstr "ISMERETLEN ÁLLAPOT %u"
+
+#, fuzzy
+msgid "g2"
+msgstr ", "
 
 msgid "busy"
 msgstr "foglalt"
@@ -9527,8 +9786,8 @@ msgstr[0] "Keresés"
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
-"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
+"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
 
 #, fuzzy
@@ -9863,11 +10122,6 @@ msgid "%u queued"
 msgstr "%u sorban"
 
 #, fuzzy, c-format
-msgid "%u/%u connection"
-msgid_plural "%u/%u connections"
-msgstr[0] "%u/%u kapcsolat"
-
-#, fuzzy, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u feltöltés"
@@ -9949,8 +10203,9 @@ msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
 
 #, fuzzy
-#~ msgid "Debug level for time management."
-#~ msgstr "A gui hibajavítási szintje"
+#~ msgid "%u/%u connection"
+#~ msgid_plural "%u/%u connections"
+#~ msgstr[0] "%u/%u kapcsolat"
 
 #, fuzzy
 #~ msgid "Splitting ougoing HTTP bandwidth evenly."

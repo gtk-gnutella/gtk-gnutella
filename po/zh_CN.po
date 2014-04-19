@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2013-05-08 11:12+0200\n"
+"POT-Creation-Date: 2014-04-19 18:25+0200\n"
 "PO-Revision-Date: 2009-12-05 16:18+0800\n"
 "Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
@@ -323,6 +323,14 @@ msgstr "Content-Length 不匹配"
 msgid "No Content-Length header"
 msgstr "无 Content-Length 头"
 
+#, fuzzy
+msgid "Unexpected Content-Type"
+msgstr "意外的消息"
+
+#, fuzzy
+msgid "No Content-Type"
+msgstr "无 Content-Length 头"
+
 msgid "Search already closed"
 msgstr "搜索已关闭"
 
@@ -375,8 +383,15 @@ msgstr "，禁止中"
 msgid ", g2"
 msgstr ""
 
+msgid ", fake-g2"
+msgstr ""
+
 msgid ", vendor?"
 msgstr ""
+
+#, fuzzy, c-format
+msgid "<Browse G2 Host %s>"
+msgstr "<浏览主机 %s>"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -490,161 +505,13 @@ msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
 msgstr[0] "从 UDP 主机缓存 %2$s 中获取到 %1$d 个主机"
 
+#, fuzzy, c-format
+msgid "Connecting to web cache %s"
+msgstr "连接到主机"
+
 #, c-format
 msgid "Bootstrapping from %s"
 msgstr ""
-
-msgid "Bad size"
-msgstr "尺寸错误"
-
-msgid "Too small"
-msgstr "太小"
-
-msgid "Too large"
-msgstr "太大"
-
-#, fuzzy
-msgid "Way too large"
-msgstr "Way过大"
-
-#, fuzzy
-msgid "Too old"
-msgstr "工具"
-
-msgid "Unknown message type"
-msgstr "未知的消息类型"
-
-msgid "Unexpected message"
-msgstr "意外的消息"
-
-msgid "Message sent with TTL = 0"
-msgstr "以 TTL = 0 发送消息"
-
-msgid "Improper hops/ttl combination"
-msgstr "hops/ttl 组合不合适"
-
-msgid "Max TTL exceeded"
-msgstr "超过了最大 TTL 值"
-
-msgid "Message throttle"
-msgstr ""
-
-#, fuzzy
-msgid "Message matched limits"
-msgstr "Gnutella 消息尺寸限制"
-
-msgid "Transient node"
-msgstr ""
-
-msgid "Unusable Pong"
-msgstr "不可用的 Pong"
-
-msgid "Hard TTL limit reached"
-msgstr "达到了 TTL 硬性限额"
-
-msgid "Max hop count reached"
-msgstr "达到了最大跃点数"
-
-msgid "Route lost"
-msgstr "路由丢失"
-
-msgid "No route"
-msgstr "没有路由"
-
-msgid "Duplicate message"
-msgstr "复制消息"
-
-msgid "Message to banned GUID"
-msgstr "发往被禁止 GUID 的消息"
-
-#, fuzzy
-msgid "Message from banned GUID"
-msgstr "发往被禁止 GUID 的消息"
-
-msgid "Node shutting down"
-msgstr "节点正在关闭"
-
-msgid "TX flow control"
-msgstr "TX 流控制"
-
-msgid "Query text had no trailing NUL"
-msgstr "查询文本没有尾随 NUL"
-
-msgid "Query text too short"
-msgstr "查询文本太短"
-
-#, fuzzy
-msgid "Query had unnecessary overhead"
-msgstr "查询包括额外的花销"
-
-msgid "Query had bad URN"
-msgstr ""
-
-msgid "Message with malformed SHA1"
-msgstr "消息包括变形的SHA1"
-
-msgid "Message with malformed UTF-8"
-msgstr "消息包括变形的UTF-8"
-
-#, fuzzy
-msgid "Malformed Query Hit"
-msgstr "变形的查询命中"
-
-msgid "Bad return address"
-msgstr "返回地址错误"
-
-msgid "Hostile IP address"
-msgstr "有害的IP地址"
-
-msgid "Bogus result from Morpheus"
-msgstr ""
-
-msgid "Spam"
-msgstr "SPAM"
-
-msgid "Evil filename"
-msgstr ""
-
-#, fuzzy
-msgid "Improper media type"
-msgstr "搜索项目"
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
-#, fuzzy
-msgid "Own search results"
-msgstr "将搜索结果限制为(_r)"
-
-#, fuzzy
-msgid "Own queries"
-msgstr "RX 查询"
-
-msgid "Ancient query format"
-msgstr ""
-
-#, fuzzy
-msgid "Blank Servent ID"
-msgstr "Servent关闭"
-
-msgid "GUESS Query missing token"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS Invalid query token"
-msgstr "无效的 DHT 安全令牌"
-
-msgid "DHT Invalid security token"
-msgstr "无效的 DHT 安全令牌"
-
-msgid "DHT Too many STORE requests"
-msgstr "DHT 上 STORE 请求过多"
-
-msgid "DHT Malformed message"
-msgstr "DHT 消息格式错误"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -681,6 +548,10 @@ msgstr "Gnet 连接被禁用"
 
 msgid "Connection not compressed"
 msgstr "连接没有被压缩"
+
+#, fuzzy, c-format
+msgid "Too many G2 hubs (%u max)"
+msgstr "节点过多(最大值为%d)"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -732,6 +603,9 @@ msgstr "Servent 关闭"
 #, fuzzy
 msgid "Not a network member"
 msgstr "Gnutella 网络模式"
+
+msgid "Need a G2 Hub"
+msgstr ""
 
 msgid "Too frequent crawling"
 msgstr "网络爬行太过频繁"
@@ -788,6 +662,10 @@ msgid "Pseudo semi-reliable UDP node"
 msgstr "伪 UDP 节点"
 
 #, fuzzy
+msgid "Pseudo G2 UDP node"
+msgstr "伪 UDP 节点"
+
+#, fuzzy
 msgid "Pseudo DHT node"
 msgstr "伪 UDP 节点"
 
@@ -834,6 +712,9 @@ msgstr "UDP"
 
 msgid "DHT"
 msgstr "DHP"
+
+msgid "G2 hub"
+msgstr ""
 
 msgid "Unknown"
 msgstr "未知"
@@ -1049,7 +930,7 @@ msgid "Not Acceptable"
 msgstr "协议不可接受"
 
 #, fuzzy, c-format
-msgid "<Browse Host Request> [%s%s%s]"
+msgid "<Browse Host %sRequest> [%s%s%s]"
 msgstr "<请求浏览主机>"
 
 msgid "query hits"
@@ -1129,6 +1010,1219 @@ msgstr " - 新版本可用：发布版 %s"
 #, c-format
 msgid " - Newer version available: from git %s"
 msgstr " - 新版本可用：git 版本 %s"
+
+msgid "Routing errors"
+msgstr "路由错误"
+
+msgid "Routing table chunks"
+msgstr ""
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
+msgid "Routing through transient node avoided"
+msgstr ""
+
+msgid "Duplicates with higher TTL"
+msgstr ""
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+#, fuzzy
+msgid "SPAM filename and size hits"
+msgstr "当文件名结束于“%s” %s"
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
+
+msgid "Searches to local DB"
+msgstr "本地数据库查询"
+
+msgid "Hits on local DB"
+msgstr "本地数据库查询命中"
+
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "本地数据库查询命中"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
+msgid "Query hits received for local queries"
+msgstr ""
+
+#, fuzzy
+msgid "G2 searches to local DB"
+msgstr "本地数据库查询"
+
+#, fuzzy
+msgid "G2 hits on local DB"
+msgstr "本地数据库查询命中"
+
+#, fuzzy
+msgid "G2 hits on local partial files"
+msgstr "本地数据库查询命中"
+
+msgid "Query hits received for OOB-proxied queries"
+msgstr ""
+
+msgid "Queries requesting OOB hit delivery"
+msgstr ""
+
+msgid "Stripped OOB flag on queries"
+msgstr ""
+
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
+msgid "Duplicate OOB-proxied queries"
+msgstr ""
+
+msgid "OOB hits received for OOB-proxied queries"
+msgstr ""
+
+msgid "OOB hits bearing alien IP address"
+msgstr ""
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
+msgstr ""
+
+msgid "Unclaimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Partially claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Spurious OOB hit claiming received"
+msgstr ""
+
+msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
+
+msgid "Compacted queries"
+msgstr ""
+
+msgid "Bytes saved by compacting"
+msgstr ""
+
+msgid "UTF8 queries"
+msgstr "UTF-8 查询"
+
+msgid "SHA1 queries"
+msgstr "SHA1 查询"
+
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "已生成的查询"
+
+#, fuzzy
+msgid "UTF8 G2 queries"
+msgstr "UTF-8 查询"
+
+#, fuzzy
+msgid "SHA1 G2 queries"
+msgstr "SHA1 查询"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "UTF-8 查询"
+
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF-8 查询"
+
+msgid "GUESS link cache size"
+msgstr ""
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
+msgstr ""
+
+msgid "GUESS cached G2 hosts held"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS locally generated queries"
+msgstr "已生成的查询"
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+msgid "GUESS hits received for locally generated queries"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS ultra nodes queried"
+msgstr "已生成的查询"
+
+msgid "GUESS ultra nodes sending back an acknowledgment"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS G2 nodes queried"
+msgstr "UTF-8 查询"
+
+msgid "GUESS G2 nodes sending back an acknowledgment"
+msgstr ""
+
+msgid "Broadcasted push messages"
+msgstr ""
+
+msgid "Push-proxy UDP relayed messages"
+msgstr ""
+
+msgid "Push-proxy TCP relayed messages"
+msgstr ""
+
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
+msgid "Push-proxy broadcasted messages"
+msgstr ""
+
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
+msgid "Push-proxy lookup failures"
+msgstr ""
+
+msgid "Push relayed via local route"
+msgstr ""
+
+msgid "Push relayed via routing table"
+msgstr ""
+
+msgid "Locally generated dynamic queries"
+msgstr ""
+
+msgid "Leaf-generated dynamic queries"
+msgstr ""
+
+msgid "OOB-proxied leaf queries"
+msgstr ""
+
+msgid "Fully completed dynamic queries"
+msgstr ""
+
+msgid "Partially completed dynamic queries"
+msgstr ""
+
+msgid "Dynamic queries ended with no results"
+msgstr ""
+
+msgid "Fully completed dynamic queries getting late results"
+msgstr ""
+
+msgid "Dynamic queries with partial late results"
+msgstr ""
+
+msgid "Dynamic queries completed by late results"
+msgstr ""
+
+msgid "Queries seen from GTKG"
+msgstr ""
+
+msgid "Queries seen from GTKG that were re-queries"
+msgstr ""
+
+msgid "Queries advertising support of GGEP \"H\""
+msgstr ""
+
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr ""
+
+msgid "GIV callbacks received"
+msgstr ""
+
+msgid "GIV discarded due to no suitable download"
+msgstr ""
+
+msgid "QUEUE callbacks received"
+msgstr ""
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr ""
+
+msgid "File descriptors banned running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+msgid "UDP UHC pongs sent"
+msgstr ""
+
+msgid "UDP messages with bogus source IP"
+msgstr ""
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "DHT 消息格式错误"
+
+msgid "Alien UDP messages (non-Gnutella)"
+msgstr ""
+
+msgid "Unprocessed UDP Gnutella messages"
+msgstr ""
+
+msgid "Compressed UDP messages enqueued"
+msgstr ""
+
+msgid "Compressed UDP messages received"
+msgstr ""
+
+msgid "Uncompressed UDP messages due to no gain"
+msgstr ""
+
+msgid "Ambiguous UDP messages received"
+msgstr ""
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages dropped due to temporary ban"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages sent to known responsive hosts"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments re-queued for sending"
+msgstr ""
+
+msgid "Semi-reliable UDP plain acknowledgments dropped"
+msgstr ""
+
+msgid "Semi-reliable UDP enhanced acknowledgments dropped"
+msgstr ""
+
+msgid "Semi-reliable UDP plain acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP empty messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
+
+msgid "UDP G2 hits rerouted to hub for delivery"
+msgstr ""
+
+#, fuzzy
+msgid "UDP G2 hits undelivered"
+msgstr "未定义显示"
+
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr ""
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr ""
+
+msgid "Discovered server GUIDs"
+msgstr ""
+
+msgid "Changed server GUIDs"
+msgstr ""
+
+msgid "Detected GUID collisions"
+msgstr ""
+
+msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr ""
+
+msgid "Attempted download resource switching after error"
+msgstr ""
+
+msgid "Successful download resource switching (all kind)"
+msgstr ""
+
+msgid "Successful download resource switching between plain files"
+msgstr ""
+
+msgid "Successful download resource switching after error"
+msgstr ""
+
+msgid "Actively queued after resource switching attempt"
+msgstr ""
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr ""
+
+#, fuzzy
+msgid "Ignored downloaded data"
+msgstr "已下载数据："
+
+msgid "Ignoring requested after data mismatch"
+msgstr ""
+
+msgid "Ignoring requested to preserve connection"
+msgstr ""
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr ""
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+
+msgid "Client resource switching (all detected)"
+msgstr ""
+
+msgid "Client resource switching between plain files"
+msgstr ""
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr ""
+
+msgid "PARQ client retry-after violation"
+msgstr ""
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+
+msgid "PARQ upload slot limit overrides"
+msgstr ""
+
+msgid "PARQ quick upload slots granted"
+msgstr ""
+
+msgid "PARQ QUEUE sending attempts"
+msgstr ""
+
+msgid "PARQ QUEUE messages sent"
+msgstr ""
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr ""
+
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
+msgstr ""
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr "用于下载的debug级别。"
+
+msgid "RUDP sent bytes"
+msgstr ""
+
+msgid "RUDP received bytes"
+msgstr ""
+
+msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr ""
+
+msgid "DHT routing table buckets"
+msgstr ""
+
+msgid "DHT routing table leaves"
+msgstr ""
+
+msgid "DHT routing table maximum depth"
+msgstr ""
+
+msgid "DHT routing table good nodes"
+msgstr ""
+
+msgid "DHT routing table stale nodes"
+msgstr ""
+
+msgid "DHT routing table pending nodes"
+msgstr ""
+
+msgid "DHT routing table evicted nodes"
+msgstr ""
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr ""
+
+msgid "DHT routing table evicted nodes due to quota"
+msgstr ""
+
+msgid "DHT routing table promoted pending nodes"
+msgstr ""
+
+msgid "DHT routing table pinged promoted nodes"
+msgstr ""
+
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket refreshes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT forced bucket merges"
+msgstr "DHT 消息格式错误"
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr ""
+
+msgid "DHT initiated bucket alive checks"
+msgstr ""
+
+msgid "DHT alive pings sent to good nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
+msgstr ""
+
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT cached keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT cached KUID targets held"
+msgstr ""
+
+msgid "DHT cached closest root nodes"
+msgstr ""
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+msgid "DHT cached roots misses"
+msgstr ""
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+#, fuzzy
+msgid "DHT cached security tokens held"
+msgstr "无效的 DHT 安全令牌"
+
+#, fuzzy
+msgid "DHT cached security tokens hits"
+msgstr "无效的 DHT 安全令牌"
+
+#, fuzzy
+msgid "DHT stable node information held"
+msgstr "主机信息"
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT local hits returning values from cached keys"
+msgstr ""
+
+msgid "DHT returned expanded values"
+msgstr ""
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+msgid "DHT claimed values via secondary keys"
+msgstr ""
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+msgid "DHT claimed cached values via secondary keys"
+msgstr ""
+
+msgid "DHT successfully received value publications"
+msgstr ""
+
+msgid "DHT successfully received value removals"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr ""
+
+msgid "DHT detected KUID collisions"
+msgstr ""
+
+msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "DHT 消息格式错误"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr ""
+
+#, fuzzy
+msgid "DHT RPC recent nodes held"
+msgstr "无效的 DHT 安全令牌"
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "主机信息"
+
+msgid "DHT publishing attempts"
+msgstr ""
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+msgid "DHT publishing ending with proper value presence"
+msgstr ""
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+msgid "DHT publishing to self"
+msgstr ""
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
+msgstr ""
+
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+msgid "DHT push-proxy lookups issued"
+msgstr ""
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT successful node push-entry lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "用于下载的debug级别。"
+
+msgid "Ping"
+msgstr "Ping"
+
+msgid "Pong"
+msgstr "Pong"
+
+msgid "Bye"
+msgstr "Bye"
+
+msgid "QRP"
+msgstr "QRP"
+
+msgid "HSEP"
+msgstr "HSEP"
+
+msgid "RUDP"
+msgstr "RUDP"
+
+msgid "Vendor spec."
+msgstr ""
+
+msgid "Vendor std."
+msgstr ""
+
+msgid "Push"
+msgstr ""
+
+msgid "Query"
+msgstr "查询"
+
+msgid "Query hit"
+msgstr "查询命中"
+
+msgid "DHT (truncated)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "DHT Pong"
+msgstr "Pong"
+
+msgid "DHT Store"
+msgstr ""
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "值"
+
+#, fuzzy
+msgid "G2 Crawl Request"
+msgstr "最近请求"
+
+msgid "G2 Hub Advertisement"
+msgstr ""
+
+msgid "G2 Hub List"
+msgstr ""
+
+msgid "G2 Hub List Req"
+msgstr ""
+
+msgid "G2 Hub List Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Local Node Info"
+msgstr "本地节点"
+
+#, fuzzy
+msgid "G2 Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "G2 Pong"
+msgstr "Pong"
+
+msgid "G2 Push"
+msgstr ""
+
+msgid "G2 Query Key Ack"
+msgstr ""
+
+msgid "G2 Query Key Req"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query"
+msgstr "查询"
+
+msgid "G2 Query Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query Hit"
+msgstr "变形的查询命中"
+
+#, fuzzy
+msgid "G2 Query Hash Table"
+msgstr "用于上传的debug级别。"
+
+msgid "G2 User Profile Check"
+msgstr ""
+
+msgid "G2 User Profile Data"
+msgstr ""
+
+msgid "Total"
+msgstr "总计"
+
+msgid "Bad size"
+msgstr "尺寸错误"
+
+msgid "Too small"
+msgstr "太小"
+
+msgid "Too large"
+msgstr "太大"
+
+#, fuzzy
+msgid "Way too large"
+msgstr "Way过大"
+
+#, fuzzy
+msgid "Too old"
+msgstr "工具"
+
+msgid "Unknown message type"
+msgstr "未知的消息类型"
+
+msgid "Unexpected message"
+msgstr "意外的消息"
+
+msgid "Message sent with TTL = 0"
+msgstr "以 TTL = 0 发送消息"
+
+msgid "Improper hops/ttl combination"
+msgstr "hops/ttl 组合不合适"
+
+msgid "Max TTL exceeded"
+msgstr "超过了最大 TTL 值"
+
+msgid "Message throttle"
+msgstr ""
+
+#, fuzzy
+msgid "Message matched limits"
+msgstr "Gnutella 消息尺寸限制"
+
+msgid "Transient node"
+msgstr ""
+
+msgid "Unusable Pong"
+msgstr "不可用的 Pong"
+
+msgid "Hard TTL limit reached"
+msgstr "达到了 TTL 硬性限额"
+
+msgid "Max hop count reached"
+msgstr "达到了最大跃点数"
+
+msgid "Route lost"
+msgstr "路由丢失"
+
+msgid "No route"
+msgstr "没有路由"
+
+msgid "Duplicate message"
+msgstr "复制消息"
+
+msgid "OOB Proxy MUID Conflict"
+msgstr ""
+
+msgid "Message to banned GUID"
+msgstr "发往被禁止 GUID 的消息"
+
+#, fuzzy
+msgid "Message from banned GUID"
+msgstr "发往被禁止 GUID 的消息"
+
+msgid "Node shutting down"
+msgstr "节点正在关闭"
+
+msgid "TX flow control"
+msgstr "TX 流控制"
+
+msgid "Query text had no trailing NUL"
+msgstr "查询文本没有尾随 NUL"
+
+msgid "Query text too short"
+msgstr "查询文本太短"
+
+#, fuzzy
+msgid "Query had unnecessary overhead"
+msgstr "查询包括额外的花销"
+
+msgid "Query had bad URN"
+msgstr ""
+
+msgid "Message with malformed SHA1"
+msgstr "消息包括变形的SHA1"
+
+msgid "Message with malformed UTF-8"
+msgstr "消息包括变形的UTF-8"
+
+#, fuzzy
+msgid "Malformed Query Hit"
+msgstr "变形的查询命中"
+
+msgid "Bad return address"
+msgstr "返回地址错误"
+
+msgid "Hostile IP address"
+msgstr "有害的IP地址"
+
+#, fuzzy
+msgid "Shunned IP address"
+msgstr "不稳定的 IP 地址"
+
+msgid "Bogus result from Morpheus"
+msgstr ""
+
+msgid "Spam"
+msgstr "SPAM"
+
+msgid "Evil filename"
+msgstr ""
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "搜索项目"
+
+msgid "Payload inflating error"
+msgstr ""
+
+msgid "Unknown header flags present"
+msgstr ""
+
+#, fuzzy
+msgid "Own search results"
+msgstr "将搜索结果限制为(_r)"
+
+#, fuzzy
+msgid "Own queries"
+msgstr "RX 查询"
+
+msgid "Ancient query format"
+msgstr ""
+
+#, fuzzy
+msgid "Blank Servent ID"
+msgstr "Servent关闭"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS Invalid query token"
+msgstr "无效的 DHT 安全令牌"
+
+msgid "DHT Invalid security token"
+msgstr "无效的 DHT 安全令牌"
+
+msgid "DHT Too many STORE requests"
+msgstr "DHT 上 STORE 请求过多"
+
+msgid "DHT Malformed message"
+msgstr "DHT 消息格式错误"
+
+#, fuzzy
+msgid "G2 Unexpected message"
+msgstr "意外的消息"
+
+#, fuzzy
+msgid "Cannot cross networks"
+msgstr "本地网络"
 
 msgid "No proxy"
 msgstr "无代理"
@@ -2464,7 +3558,7 @@ msgstr ""
 
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
 "list from the global one distributed with gtk-gnutella."
 msgstr ""
 
@@ -3335,6 +4429,67 @@ msgstr ""
 msgid "Whether the program is auto-restarting at the user's request."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for time management."
+msgstr "用于下载的debug级别。"
+
+#, fuzzy
+msgid "Debug level for the tmalloc() thread-magazine object distributor."
+msgstr "用于上传的debug级别。"
+
+#, fuzzy
+msgid "Debug level for the event queue thread."
+msgstr "动态查询的debug级别。"
+
+#, fuzzy
+msgid "Maximum number of G2 hubs in the hub cache."
+msgstr "超级节点捕捉器中的最大主机数量"
+
+#, fuzzy
+msgid "Current number of IPv4 hosts in the G2 hub caches."
+msgstr "目前超级节点缓存中的主机数量"
+
+msgid "Whether the G2 protocol should be enabled."
+msgstr ""
+
+#, fuzzy
+msgid "Number of G2 nodes currently connected."
+msgstr "当前连接的叶节点数量。"
+
+msgid "Maximum amount of G2 hubs we should connect to as a leaf."
+msgstr ""
+
+#, fuzzy
+msgid "Whether to log bad G2 messages, corrupted or unexpected."
+msgstr "制造商信息的debug级别。"
+
+#, fuzzy
+msgid "Whether to log dropped G2 messages"
+msgstr "制造商信息的debug级别。"
+
+#, fuzzy
+msgid "Debug level for the G2 RPC layer."
+msgstr "UDP交通布局的debug级别。"
+
+#, fuzzy
+msgid "Whether to log summary of received query hits"
+msgstr "制造商信息的debug级别。"
+
+msgid "Whether to log summary of each record in received query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Number of G2 browsing requests received in this session."
+msgstr "本次会话中已完成的总数"
+
+#, fuzzy
+msgid "Number of G2 browsing requests fully served in this session."
+msgstr "本次会话中已完成的总数"
+
+#, fuzzy
+msgid "Whether to log G2 messages we're attempting to send"
+msgstr "制造商信息的debug级别。"
+
 msgid "disable"
 msgstr "禁用"
 
@@ -3356,69 +4511,9 @@ msgstr "仅 TCP"
 msgid "UDP only"
 msgstr "仅 UDP"
 
-msgid "Ping"
-msgstr "Ping"
-
-msgid "Pong"
-msgstr "Pong"
-
-msgid "Bye"
-msgstr "Bye"
-
-msgid "QRP"
-msgstr "QRP"
-
-msgid "HSEP"
-msgstr "HSEP"
-
-msgid "RUDP"
-msgstr "RUDP"
-
-msgid "Vendor spec."
-msgstr ""
-
-msgid "Vendor std."
-msgstr ""
-
-msgid "Push"
-msgstr ""
-
-msgid "Query"
-msgstr "查询"
-
 #, fuzzy
 msgid "Query Hit"
 msgstr "变形的查询命中"
-
-#, fuzzy
-msgid "DHT Ping"
-msgstr "Ping"
-
-#, fuzzy
-msgid "DHT Pong"
-msgstr "Pong"
-
-msgid "DHT Store"
-msgstr ""
-
-msgid "DHT Store Ack"
-msgstr ""
-
-msgid "DHT Find Node"
-msgstr ""
-
-msgid "DHT Found Node"
-msgstr ""
-
-msgid "DHT Find Value"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Value"
-msgstr "值"
-
-msgid "Total"
-msgstr "总计"
 
 msgid "Icons"
 msgstr "图标"
@@ -4740,6 +5835,14 @@ msgstr ""
 msgid "Interactive mode turned off."
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "未知操作"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "未知操作"
+
 #, fuzzy
 msgid "Cannot determine current working directory"
 msgstr "无法找到您的主目录！"
@@ -4755,14 +5858,6 @@ msgstr "无法发送 GIV"
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
-
-#, fuzzy, c-format
-msgid "Unknown operation \"%s\""
-msgstr "未知操作"
-
-#, fuzzy, c-format
-msgid "Unknown operation \"show %s\""
-msgstr "未知操作"
 
 #, fuzzy, c-format
 msgid "Unknown operation \"stats %s\""
@@ -4812,6 +5907,9 @@ msgstr ""
 msgid "Good bye"
 msgstr "再见"
 
+msgid "Invalid command syntax"
+msgstr ""
+
 msgid "Query string missing"
 msgstr "查询字符串丢失"
 
@@ -4850,9 +5948,6 @@ msgid "unterminated double-quoted string"
 msgstr ""
 
 msgid "unterminated single-quoted string"
-msgstr ""
-
-msgid "Invalid command syntax"
 msgstr ""
 
 msgid "too many arguments in command"
@@ -5346,869 +6441,6 @@ msgstr "全球(post)"
 
 msgid "RETURN"
 msgstr "返回"
-
-msgid "Query hit"
-msgstr "查询命中"
-
-msgid "DHT (truncated)"
-msgstr ""
-
-msgid "Routing errors"
-msgstr "路由错误"
-
-msgid "Routing table chunks"
-msgstr ""
-
-msgid "Routing table message capacity"
-msgstr ""
-
-msgid "Routing table message count"
-msgstr ""
-
-msgid "Routing through transient node avoided"
-msgstr ""
-
-msgid "Duplicates with higher TTL"
-msgstr ""
-
-msgid "SPAM SHA1 database hits"
-msgstr ""
-
-#, fuzzy
-msgid "SPAM filename and size hits"
-msgstr "当文件名结束于“%s” %s"
-
-msgid "SPAM fake hits"
-msgstr ""
-
-msgid "SPAM duplicate hits"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP held"
-msgstr ""
-
-msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
-
-msgid "Searches to local DB"
-msgstr "本地数据库查询"
-
-msgid "Hits on local DB"
-msgstr "本地数据库查询命中"
-
-#, fuzzy
-msgid "Hits on local partial files"
-msgstr "本地数据库查询命中"
-
-msgid "Hits on \"what's new?\" queries"
-msgstr ""
-
-msgid "Query hits received for local queries"
-msgstr ""
-
-msgid "Query hits received for OOB-proxied queries"
-msgstr ""
-
-msgid "Queries requesting OOB hit delivery"
-msgstr ""
-
-msgid "Stripped OOB flag on queries"
-msgstr ""
-
-msgid "Ignored OOB queries due to unclaimed hits"
-msgstr ""
-
-msgid "Duplicate OOB-proxied queries"
-msgstr ""
-
-msgid "OOB hits received for OOB-proxied queries"
-msgstr ""
-
-msgid "OOB hits bearing alien IP address"
-msgstr ""
-
-msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
-
-msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
-
-msgid "Unclaimed locally-generated OOB hits"
-msgstr ""
-
-msgid "Partially claimed locally-generated OOB hits"
-msgstr ""
-
-msgid "Spurious OOB hit claiming received"
-msgstr ""
-
-msgid "Unrequested OOB hits received"
-msgstr ""
-
-msgid "Received query hits for untracked queries"
-msgstr ""
-
-msgid "Tracked query MUIDs"
-msgstr ""
-
-msgid "Compacted queries"
-msgstr ""
-
-msgid "Bytes saved by compacting"
-msgstr ""
-
-msgid "UTF8 queries"
-msgstr "UTF-8 查询"
-
-msgid "SHA1 queries"
-msgstr "SHA1 查询"
-
-#, fuzzy
-msgid "\"What's New?\" queries"
-msgstr "已生成的查询"
-
-#, fuzzy
-msgid "GUESS queries"
-msgstr "UTF-8 查询"
-
-#, fuzzy
-msgid "GUESS queries (0.2)"
-msgstr "UTF-8 查询"
-
-msgid "GUESS link cache size"
-msgstr ""
-
-msgid "GUESS cached query keys held"
-msgstr ""
-
-msgid "GUESS cached 0.2 hosts held"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS locally generated queries"
-msgstr "已生成的查询"
-
-msgid "GUESS currently running queries"
-msgstr ""
-
-msgid "GUESS hits received for locally generated queries"
-msgstr ""
-
-msgid "GUESS hosts queried"
-msgstr ""
-
-msgid "GUESS hosts sending back an acknowledgment"
-msgstr ""
-
-msgid "Broadcasted push messages"
-msgstr ""
-
-msgid "Push-proxy UDP relayed messages"
-msgstr ""
-
-msgid "Push-proxy TCP relayed messages"
-msgstr ""
-
-msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr ""
-
-msgid "Push-proxy broadcasted messages"
-msgstr ""
-
-msgid "Push-proxy found un-proxied local route"
-msgstr ""
-
-msgid "Push-proxy lookup failures"
-msgstr ""
-
-msgid "Push relayed via local route"
-msgstr ""
-
-msgid "Push relayed via routing table"
-msgstr ""
-
-msgid "Locally generated dynamic queries"
-msgstr ""
-
-msgid "Leaf-generated dynamic queries"
-msgstr ""
-
-msgid "OOB-proxied leaf queries"
-msgstr ""
-
-msgid "Fully completed dynamic queries"
-msgstr ""
-
-msgid "Partially completed dynamic queries"
-msgstr ""
-
-msgid "Dynamic queries ended with no results"
-msgstr ""
-
-msgid "Fully completed dynamic queries getting late results"
-msgstr ""
-
-msgid "Dynamic queries with partial late results"
-msgstr ""
-
-msgid "Dynamic queries completed by late results"
-msgstr ""
-
-msgid "Queries seen from GTKG"
-msgstr ""
-
-msgid "Queries seen from GTKG that were re-queries"
-msgstr ""
-
-msgid "Queries advertising support of GGEP \"H\""
-msgstr ""
-
-msgid "Queries advertising support of semi-reliable UDP"
-msgstr ""
-
-msgid "GIV callbacks received"
-msgstr ""
-
-msgid "GIV discarded due to no suitable download"
-msgstr ""
-
-msgid "QUEUE callbacks received"
-msgstr ""
-
-msgid "QUEUE discarded due to no suitable download"
-msgstr ""
-
-msgid "UDP read-ahead datagram running count"
-msgstr ""
-
-msgid "UDP read-ahead datagram running bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram \"old\" processed"
-msgstr ""
-
-msgid "UDP read-ahead datagram max count"
-msgstr ""
-
-msgid "UDP read-ahead datagram max bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram max delay"
-msgstr ""
-
-msgid "UDP push messages received for FW<->FW connections"
-msgstr ""
-
-msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr ""
-
-msgid "UDP push messages patched for FW<->FW connections"
-msgstr ""
-
-msgid "UDP UHC pings received"
-msgstr ""
-
-msgid "UDP UHC pongs sent"
-msgstr ""
-
-msgid "UDP messages with bogus source IP"
-msgstr ""
-
-#, fuzzy
-msgid "UDP truncated incoming messages"
-msgstr "DHT 消息格式错误"
-
-msgid "Alien UDP messages (non-Gnutella)"
-msgstr ""
-
-msgid "Unprocessed UDP Gnutella messages"
-msgstr ""
-
-msgid "Compressed UDP messages enqueued"
-msgstr ""
-
-msgid "Compressed UDP messages received"
-msgstr ""
-
-msgid "Uncompressed UDP messages due to no gain"
-msgstr ""
-
-msgid "Ambiguous UDP messages received"
-msgstr ""
-
-msgid "Ambiguous UDP messages inspected more deeply"
-msgstr ""
-
-msgid "Ambiguous UDP messages handled as semi-reliable UDP"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages deflated"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages unsent"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages partially sent due to clogging"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages correctly transmited"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments resent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent too many times"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP too many EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP duplicate fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP dropped received fragments"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP messages expired before re-assembly"
-msgstr ""
-
-msgid "Semi-reliable UDP messages re-assembled completely"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated successfully"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated incorrectly"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable messages received"
-msgstr ""
-
-msgid "Semi-reliable UDP empty messages received"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received for unknown message"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr ""
-
-msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr ""
-
-msgid "Duplicate downloads found during server consolidation"
-msgstr ""
-
-msgid "Discovered server GUIDs"
-msgstr ""
-
-msgid "Changed server GUIDs"
-msgstr ""
-
-msgid "Detected GUID collisions"
-msgstr ""
-
-msgid "Detected collisions with our own GUID"
-msgstr ""
-
-msgid "GUID dynamically banned"
-msgstr ""
-
-msgid "Firewalled node info for known hosts received in upload requests"
-msgstr ""
-
-msgid "Revitalized PUSH routes"
-msgstr ""
-
-msgid "Collected new PUSH proxies from other query hits"
-msgstr ""
-
-msgid "Attempted download resource switching on completion"
-msgstr ""
-
-msgid "Attempted download resource switching after error"
-msgstr ""
-
-msgid "Successful download resource switching (all kind)"
-msgstr ""
-
-msgid "Successful download resource switching between plain files"
-msgstr ""
-
-msgid "Successful download resource switching after error"
-msgstr ""
-
-msgid "Actively queued after resource switching attempt"
-msgstr ""
-
-msgid "Sunk HTTP reply data on error codes"
-msgstr ""
-
-#, fuzzy
-msgid "Ignored downloaded data"
-msgstr "已下载数据："
-
-msgid "Ignoring requested after data mismatch"
-msgstr ""
-
-msgid "Ignoring requested to preserve connection"
-msgstr ""
-
-msgid "Ignoring requested due to aggressive swarming"
-msgstr ""
-
-msgid "Ignoring refused (data too large or server too slow)"
-msgstr ""
-
-msgid "Client resource switching (all detected)"
-msgstr ""
-
-msgid "Client resource switching between plain files"
-msgstr ""
-
-msgid "Client follow-up request after HTTP error was returned"
-msgstr ""
-
-msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr ""
-
-msgid "PARQ client retry-after violation"
-msgstr ""
-
-msgid "PARQ client kicked out after too many retry-after violations"
-msgstr ""
-
-msgid "PARQ upload slot limit overrides"
-msgstr ""
-
-msgid "PARQ quick upload slots granted"
-msgstr ""
-
-msgid "PARQ QUEUE sending attempts"
-msgstr ""
-
-msgid "PARQ QUEUE messages sent"
-msgstr ""
-
-msgid "PARQ QUEUE follow-up requests received"
-msgstr ""
-
-msgid "Launched SHA-1 file verifications"
-msgstr ""
-
-msgid "Launched TTH file verifications"
-msgstr ""
-
-msgid "Bitzi tickets held"
-msgstr ""
-
-msgid "Re-seeding of orphan downloads through query hits"
-msgstr ""
-
-#, fuzzy
-msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "用于下载的debug级别。"
-
-msgid "RUDP sent bytes"
-msgstr ""
-
-msgid "RUDP received bytes"
-msgstr ""
-
-msgid "DHT estimated amount of nodes"
-msgstr ""
-
-msgid "DHT standard error of estimated amount of nodes"
-msgstr ""
-
-msgid "DHT k-ball theoretical frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball furthest frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball closeest frontier (bits)"
-msgstr ""
-
-msgid "DHT routing table buckets"
-msgstr ""
-
-msgid "DHT routing table leaves"
-msgstr ""
-
-msgid "DHT routing table maximum depth"
-msgstr ""
-
-msgid "DHT routing table good nodes"
-msgstr ""
-
-msgid "DHT routing table stale nodes"
-msgstr ""
-
-msgid "DHT routing table pending nodes"
-msgstr ""
-
-msgid "DHT routing table evicted nodes"
-msgstr ""
-
-msgid "DHT routing table evicted firewalled nodes"
-msgstr ""
-
-msgid "DHT routing table evicted nodes due to quota"
-msgstr ""
-
-msgid "DHT routing table promoted pending nodes"
-msgstr ""
-
-msgid "DHT routing table pinged promoted nodes"
-msgstr ""
-
-msgid "DHT routing table rejected node due to bucket network quota"
-msgstr ""
-
-msgid "DHT routing table rejected node due to global network quota"
-msgstr ""
-
-msgid "DHT completed bucket refreshes"
-msgstr ""
-
-msgid "DHT forced bucket refreshes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT forced bucket merges"
-msgstr "DHT 消息格式错误"
-
-msgid "DHT denied non-splitable bucket refresh"
-msgstr ""
-
-msgid "DHT initiated bucket alive checks"
-msgstr ""
-
-msgid "DHT alive pings sent to good nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to stale nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to shutdowning nodes"
-msgstr ""
-
-msgid "DHT alive pings avoided"
-msgstr ""
-
-msgid "DHT alive pings skipped"
-msgstr ""
-
-msgid "DHT revitalized stale nodes on RPC reply"
-msgstr ""
-
-msgid "DHT value store rejected on IP/network quota grounds"
-msgstr ""
-
-msgid "DHT value store rejected on creator validation grounds"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on network quota"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr ""
-
-msgid "DHT node contact IP addresses fixed during lookup"
-msgstr ""
-
-msgid "DHT keys held"
-msgstr ""
-
-msgid "DHT cached keys held"
-msgstr ""
-
-msgid "DHT values held"
-msgstr ""
-
-msgid "DHT cached KUID targets held"
-msgstr ""
-
-msgid "DHT cached closest root nodes"
-msgstr ""
-
-msgid "DHT cached roots exact hits"
-msgstr ""
-
-msgid "DHT cached roots approximate hits"
-msgstr ""
-
-msgid "DHT cached roots misses"
-msgstr ""
-
-msgid "DHT cached roots lookups within k-ball"
-msgstr ""
-
-msgid "DHT cached roots contact address refreshed"
-msgstr ""
-
-#, fuzzy
-msgid "DHT cached security tokens held"
-msgstr "无效的 DHT 安全令牌"
-
-#, fuzzy
-msgid "DHT cached security tokens hits"
-msgstr "无效的 DHT 安全令牌"
-
-#, fuzzy
-msgid "DHT stable node information held"
-msgstr "主机信息"
-
-msgid "DHT local hits on value lookups"
-msgstr ""
-
-msgid "DHT local hits returning values from cached keys"
-msgstr ""
-
-msgid "DHT returned expanded values"
-msgstr ""
-
-msgid "DHT returned values as secondary keys"
-msgstr ""
-
-msgid "DHT claimed values via secondary keys"
-msgstr ""
-
-msgid "DHT returned cached expanded values"
-msgstr ""
-
-msgid "DHT returned cached values as secondary-keys"
-msgstr ""
-
-msgid "DHT claimed cached values via secondary keys"
-msgstr ""
-
-msgid "DHT successfully received value publications"
-msgstr ""
-
-msgid "DHT successfully received value removals"
-msgstr ""
-
-msgid "DHT replication of stale value avoided"
-msgstr ""
-
-msgid "DHT replication of held values"
-msgstr ""
-
-msgid "DHT republishing of held values"
-msgstr ""
-
-msgid "DHT secondary-key value fetch issued"
-msgstr ""
-
-msgid "DHT duplicate values returned in lookups"
-msgstr ""
-
-msgid "DHT detected KUID collisions"
-msgstr ""
-
-msgid "DHT detected collisions with our own KUID"
-msgstr ""
-
-msgid "DHT caching attempts"
-msgstr ""
-
-msgid "DHT caching ended successfully"
-msgstr ""
-
-msgid "DHT caching partially completed"
-msgstr ""
-
-msgid "DHT key-offloading checks after discovering new closest node"
-msgstr ""
-
-msgid "DHT keys selected for offloading"
-msgstr ""
-
-msgid "DHT key-offloading attempts"
-msgstr ""
-
-msgid "DHT key-offloading ended successfully"
-msgstr ""
-
-msgid "DHT key-offloading partially completed"
-msgstr ""
-
-msgid "DHT values successfully offloaded"
-msgstr ""
-
-#, fuzzy
-msgid "DHT incoming messages"
-msgstr "DHT 消息格式错误"
-
-msgid "DHT incoming messages with UDP-matching contact address"
-msgstr ""
-
-msgid "DHT incoming messages with contact address fixed"
-msgstr ""
-
-msgid "DHT incoming messages from hostile addresses"
-msgstr ""
-
-msgid "DHT incoming messages with hostile contact address"
-msgstr ""
-
-msgid "DHT RPC messages prepared"
-msgstr ""
-
-msgid "DHT RPC messages cancelled"
-msgstr ""
-
-msgid "DHT RPC timed out"
-msgstr ""
-
-msgid "DHT RPC replies received"
-msgstr ""
-
-msgid "DHT RPC replies with contact address fixed"
-msgstr ""
-
-msgid "DHT RPC late replies received"
-msgstr ""
-
-msgid "DHT RPC detected KUID mismatches on reply"
-msgstr ""
-
-#, fuzzy
-msgid "DHT RPC recent nodes held"
-msgstr "无效的 DHT 安全令牌"
-
-#, fuzzy
-msgid "DHT node verifications"
-msgstr "主机信息"
-
-msgid "DHT publishing attempts"
-msgstr ""
-
-msgid "DHT publishing ended successfully (all roots)"
-msgstr ""
-
-msgid "DHT publishing partially completed (root subset only)"
-msgstr ""
-
-msgid "DHT publishing ending with proper value presence"
-msgstr ""
-
-msgid "DHT value republishing occurring too late (after expiry)"
-msgstr ""
-
-msgid "DHT publishing to self"
-msgstr ""
-
-msgid "DHT background publishing completion attempts"
-msgstr ""
-
-msgid "DHT background publishing completion showing improvements"
-msgstr ""
-
-msgid "DHT background publishing completion successful (all roots)"
-msgstr ""
-
-msgid "DHT SHA1 data type collisions"
-msgstr ""
-
-msgid "DHT lookup path passively protected against attack"
-msgstr ""
-
-msgid "DHT lookup path actively protected against attack"
-msgstr ""
-
-msgid "DHT alt-loc lookups issued"
-msgstr ""
-
-msgid "DHT push-proxy lookups issued"
-msgstr ""
-
-msgid "DHT successful alt-loc lookups"
-msgstr ""
-
-msgid "DHT successful push-proxy lookups"
-msgstr ""
-
-msgid "DHT successful node push-entry lookups"
-msgstr ""
-
-#, fuzzy
-msgid "DHT re-seeding of orphan downloads"
-msgstr "用于下载的debug级别。"
 
 msgid "node"
 msgid_plural "nodes"
@@ -8237,6 +8469,15 @@ msgstr "显示状态栏。"
 msgid "Mapping lease time"
 msgstr ""
 
+msgid "G2 hubs"
+msgstr ""
+
+msgid "Enable the G2 network"
+msgstr ""
+
+msgid " G2, "
+msgstr ""
+
 msgid "Not in database"
 msgstr "不在数据库中"
 
@@ -8356,11 +8597,17 @@ msgstr ""
 msgid "Served "
 msgstr ""
 
-msgid "[BH HTML served]"
+msgid "[G2 served]"
 msgstr ""
 
 msgid " / "
 msgstr " / "
+
+msgid "[G2]"
+msgstr ""
+
+msgid "[BH HTML served]"
+msgstr ""
 
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
@@ -8535,6 +8782,12 @@ msgstr "新超级节点"
 msgid "Valid IPv6 ultra"
 msgstr "有效超级节点"
 
+msgid "Fresh G2 hub"
+msgstr ""
+
+msgid "Valid G2 hub"
+msgstr ""
+
 msgid "Unstable"
 msgstr "不稳定"
 
@@ -8604,6 +8857,9 @@ msgstr "正在接收 hello"
 
 msgid "UNKNOWN STATUS"
 msgstr "未知状态"
+
+msgid "g2"
+msgstr ""
 
 msgid "busy"
 msgstr "忙碌"
@@ -8700,8 +8956,8 @@ msgstr[0] "查询"
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
-"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
+"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
 
 #, fuzzy
@@ -9019,11 +9275,6 @@ msgid "%u queued"
 msgstr "已将 %u 个加入队列"
 
 #, c-format
-msgid "%u/%u connection"
-msgid_plural "%u/%u connections"
-msgstr[0] "连接 %1$u/%2$u"
-
-#, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "上传 %1$u/%2$u"
@@ -9102,9 +9353,9 @@ msgstr "正发送队列，正向回连接..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
 
-#, fuzzy
-#~ msgid "Debug level for time management."
-#~ msgstr "用于下载的debug级别。"
+#~ msgid "%u/%u connection"
+#~ msgid_plural "%u/%u connections"
+#~ msgstr[0] "连接 %1$u/%2$u"
 
 #, fuzzy
 #~ msgid "Enable upload of patial files deemed rare"

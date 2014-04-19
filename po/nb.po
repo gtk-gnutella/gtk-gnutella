@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2013-05-08 11:12+0200\n"
+"POT-Creation-Date: 2014-04-19 18:25+0200\n"
 "PO-Revision-Date: 2009-03-31 23:39+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norsk (bokmål) <nb@li.org>\n"
@@ -320,6 +320,14 @@ msgstr "Innholdslengden stemmer ikke"
 msgid "No Content-Length header"
 msgstr "Ingen informasjon om innholdslengde"
 
+#, fuzzy
+msgid "Unexpected Content-Type"
+msgstr "Uventet melding"
+
+#, fuzzy
+msgid "No Content-Type"
+msgstr "Ingen informasjon om innholdslengde"
+
 msgid "Search already closed"
 msgstr "Søket er allerede lukket"
 
@@ -371,8 +379,15 @@ msgstr ", bannlysing"
 msgid ", g2"
 msgstr ", g2, "
 
+msgid ", fake-g2"
+msgstr ""
+
 msgid ", vendor?"
 msgstr "program?"
+
+#, fuzzy, c-format
+msgid "<Browse G2 Host %s>"
+msgstr "<Bla i personen %s>"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -488,156 +503,13 @@ msgid_plural "Got %d hosts from %s"
 msgstr[0] "Fikk %d vert fra UPD-vertmine %s"
 msgstr[1] "Fikk %d verter fra UPD-vertminne %s"
 
+#, fuzzy, c-format
+msgid "Connecting to web cache %s"
+msgstr "Koble til vert"
+
 #, c-format
 msgid "Bootstrapping from %s"
 msgstr ""
-
-msgid "Bad size"
-msgstr "Ugyldig størrelse"
-
-msgid "Too small"
-msgstr "For liten"
-
-msgid "Too large"
-msgstr "For stor"
-
-msgid "Way too large"
-msgstr "Altfor stor"
-
-#, fuzzy
-msgid "Too old"
-msgstr "Verktøy"
-
-msgid "Unknown message type"
-msgstr "Ukjent meldingstype"
-
-msgid "Unexpected message"
-msgstr "Uventet melding"
-
-msgid "Message sent with TTL = 0"
-msgstr "Melding sendt med TTL = 0"
-
-msgid "Improper hops/ttl combination"
-msgstr "Feil «hops»/«ttl»-kombinasjon"
-
-msgid "Max TTL exceeded"
-msgstr "Høyeste TTL er overgått"
-
-msgid "Message throttle"
-msgstr "Meldingskveling"
-
-#, fuzzy
-msgid "Message matched limits"
-msgstr "Størrelsesbegrensninger på Gnutella-meldinger"
-
-msgid "Transient node"
-msgstr ""
-
-msgid "Unusable Pong"
-msgstr "Ubrukelig pong"
-
-msgid "Hard TTL limit reached"
-msgstr "Nådde hard TTL-begrensning"
-
-msgid "Max hop count reached"
-msgstr "Nådde høyste antall «hop»"
-
-msgid "Route lost"
-msgstr "Tapt rute"
-
-msgid "No route"
-msgstr "Ingen rute"
-
-msgid "Duplicate message"
-msgstr "Duplisert melding"
-
-msgid "Message to banned GUID"
-msgstr "Melding til bannlyst GUID"
-
-#, fuzzy
-msgid "Message from banned GUID"
-msgstr "Melding til bannlyst GUID"
-
-msgid "Node shutting down"
-msgstr "Node slås av"
-
-msgid "TX flow control"
-msgstr "Kontroll av TX-flyt"
-
-msgid "Query text had no trailing NUL"
-msgstr "Spørringsteksten sluttet ikke med «NUL»"
-
-msgid "Query text too short"
-msgstr "Spørringsteksten er for kort"
-
-msgid "Query had unnecessary overhead"
-msgstr "Spørringen hadde unødvendig overhode"
-
-msgid "Query had bad URN"
-msgstr "Forespørselen hadde ugyldig URN"
-
-msgid "Message with malformed SHA1"
-msgstr "Melding med feilformet SHA1"
-
-msgid "Message with malformed UTF-8"
-msgstr "Melding med feilformet UTF-8"
-
-msgid "Malformed Query Hit"
-msgstr "Traff feilformet spørring"
-
-msgid "Bad return address"
-msgstr "Ugyldig returadresse"
-
-msgid "Hostile IP address"
-msgstr "Fiendtlig IP-adresse"
-
-msgid "Bogus result from Morpheus"
-msgstr ""
-
-msgid "Spam"
-msgstr "Spam"
-
-msgid "Evil filename"
-msgstr "Ondt filnavn"
-
-#, fuzzy
-msgid "Improper media type"
-msgstr "Søkeuttrykk"
-
-msgid "Payload inflating error"
-msgstr "Klarte ikke øke lasten"
-
-msgid "Unknown header flags present"
-msgstr "Fikk ukjent meldingshode"
-
-msgid "Own search results"
-msgstr "Egne søkeresultater"
-
-#, fuzzy
-msgid "Own queries"
-msgstr "RX-spørringer"
-
-msgid "Ancient query format"
-msgstr "Gammelt spørringsformat"
-
-msgid "Blank Servent ID"
-msgstr "Tom tjenent-ID"
-
-msgid "GUESS Query missing token"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS Invalid query token"
-msgstr "DHT: Ugyldig sikkerhetstegn"
-
-msgid "DHT Invalid security token"
-msgstr "DHT: Ugyldig sikkerhetstegn"
-
-msgid "DHT Too many STORE requests"
-msgstr "DHT: For mange STORE-forespørsler"
-
-msgid "DHT Malformed message"
-msgstr "DHT: Feilformet kommando"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -675,6 +547,10 @@ msgstr "Gnet-forbindelser er slått av"
 
 msgid "Connection not compressed"
 msgstr "Tilkoblingen er ikke komprimert"
+
+#, fuzzy, c-format
+msgid "Too many G2 hubs (%u max)"
+msgstr "For mange noder (grensen er %d)"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -726,6 +602,9 @@ msgstr "Tjenent-avslutting"
 #, fuzzy
 msgid "Not a network member"
 msgstr "Nettverksmodus for Gnutella"
+
+msgid "Need a G2 Hub"
+msgstr ""
 
 msgid "Too frequent crawling"
 msgstr "For ofte kravling"
@@ -782,6 +661,10 @@ msgid "Pseudo semi-reliable UDP node"
 msgstr "Pseudo UDP-node"
 
 #, fuzzy
+msgid "Pseudo G2 UDP node"
+msgstr "Pseudo UDP-node"
+
+#, fuzzy
 msgid "Pseudo DHT node"
 msgstr "Pseudo UDP-node"
 
@@ -828,6 +711,9 @@ msgstr "UDP"
 
 msgid "DHT"
 msgstr "DHT"
+
+msgid "G2 hub"
+msgstr ""
 
 msgid "Unknown"
 msgstr "Ukjent"
@@ -1044,8 +930,8 @@ msgstr "Klarte ikke sende hele HTTP-statusen"
 msgid "Not Acceptable"
 msgstr "Protokollen er ikke akseptabel"
 
-#, c-format
-msgid "<Browse Host Request> [%s%s%s]"
+#, fuzzy, c-format
+msgid "<Browse Host %sRequest> [%s%s%s]"
 msgstr "<Forespørsel om å bla i vert> [%s%s%s]"
 
 msgid "query hits"
@@ -1126,6 +1012,1267 @@ msgstr "- Nyere versjon tilgjengelig: utgivelse %s"
 #, c-format
 msgid " - Newer version available: from git %s"
 msgstr " - Nyere versjon tilgjengelig: fra git %s"
+
+msgid "Routing errors"
+msgstr "Dirigeringsfeil"
+
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "DHT rutingstabellbøtter"
+
+msgid "Routing table message capacity"
+msgstr ""
+
+#, fuzzy
+msgid "Routing table message count"
+msgstr "DHT rutingstabellens oppstoppede noder"
+
+msgid "Routing through transient node avoided"
+msgstr ""
+
+msgid "Duplicates with higher TTL"
+msgstr "Duplikater med høyere TTL"
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+#, fuzzy
+msgid "SPAM filename and size hits"
+msgstr "Hvis filnavnet slutter med «%s» %s"
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
+
+msgid "Searches to local DB"
+msgstr "Søk i lokal database"
+
+msgid "Hits on local DB"
+msgstr "Treff i lokal database"
+
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "Treff i lokal database"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
+msgid "Query hits received for local queries"
+msgstr "Spørringstreff mottatt for lokale spørringer"
+
+#, fuzzy
+msgid "G2 searches to local DB"
+msgstr "Søk i lokal database"
+
+#, fuzzy
+msgid "G2 hits on local DB"
+msgstr "Treff i lokal database"
+
+#, fuzzy
+msgid "G2 hits on local partial files"
+msgstr "Treff i lokal database"
+
+msgid "Query hits received for OOB-proxied queries"
+msgstr "Spørringstreff mottatt fra OOB-mellomtjente spørringer"
+
+msgid "Queries requesting OOB hit delivery"
+msgstr "Spørringer som ber om OOB-treffleveranse"
+
+msgid "Stripped OOB flag on queries"
+msgstr "Fjernet OOB-flagg på spørringer"
+
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
+msgid "Duplicate OOB-proxied queries"
+msgstr "Dupliser OOB-mellomtjente spørringer"
+
+msgid "OOB hits received for OOB-proxied queries"
+msgstr "OOB-treff mottatt for OOB-mellomtjente spørringer"
+
+msgid "OOB hits bearing alien IP address"
+msgstr "OOB-treff som bærer fremmed IP-adresse"
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
+msgstr ""
+
+msgid "Unclaimed locally-generated OOB hits"
+msgstr "Ukrevde lokallagde OOB-treff"
+
+msgid "Partially claimed locally-generated OOB hits"
+msgstr "Delvis krevde lokallagde OOB-treff"
+
+msgid "Spurious OOB hit claiming received"
+msgstr "Mottok flask OOB-treff"
+
+msgid "Unrequested OOB hits received"
+msgstr "Ikke forespurte OOB-treff mottatt"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
+
+msgid "Compacted queries"
+msgstr "Sammenpakkede spørringer"
+
+msgid "Bytes saved by compacting"
+msgstr "Byte spart med sammenpakking"
+
+msgid "UTF8 queries"
+msgstr "UTF-8-spørringer"
+
+msgid "SHA1 queries"
+msgstr "SHA1-spørringer"
+
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "Lagde spørringer"
+
+#, fuzzy
+msgid "UTF8 G2 queries"
+msgstr "UTF-8-spørringer"
+
+#, fuzzy
+msgid "SHA1 G2 queries"
+msgstr "SHA1-spørringer"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "UTF-8-spørringer"
+
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF-8-spørringer"
+
+msgid "GUESS link cache size"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS cached query keys held"
+msgstr "Lagrede DHT-nøkler"
+
+#, fuzzy
+msgid "GUESS cached 0.2 hosts held"
+msgstr "Lagrede DHT-nøkler"
+
+#, fuzzy
+msgid "GUESS cached G2 hosts held"
+msgstr "Lagrede DHT-nøkler"
+
+#, fuzzy
+msgid "GUESS locally generated queries"
+msgstr "Lokallagde dynamiske spøringer"
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS hits received for locally generated queries"
+msgstr "Spørringstreff mottatt for lokale spørringer"
+
+#, fuzzy
+msgid "GUESS ultra nodes queried"
+msgstr "Lokallagde dynamiske spøringer"
+
+msgid "GUESS ultra nodes sending back an acknowledgment"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS G2 nodes queried"
+msgstr "UTF-8-spørringer"
+
+msgid "GUESS G2 nodes sending back an acknowledgment"
+msgstr ""
+
+msgid "Broadcasted push messages"
+msgstr "Kringkastede dyttemeldinger"
+
+msgid "Push-proxy UDP relayed messages"
+msgstr "UDP-relésendte push-mellomtjenermeldinger"
+
+msgid "Push-proxy TCP relayed messages"
+msgstr "TCP-relésendte push-mellomtjenermeldinger"
+
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
+msgid "Push-proxy broadcasted messages"
+msgstr "Kringkastede push-mellomtjenermeldinger"
+
+msgid "Push-proxy found un-proxied local route"
+msgstr "Push-mellomtjener fant lokal rute uten mellomtjener"
+
+msgid "Push-proxy lookup failures"
+msgstr "Feilede push-mellomtjeneroppslag"
+
+msgid "Push relayed via local route"
+msgstr "Push ble relésendte via en lokal rute"
+
+msgid "Push relayed via routing table"
+msgstr "Push relésendte via rutingstabell"
+
+msgid "Locally generated dynamic queries"
+msgstr "Lokallagde dynamiske spøringer"
+
+msgid "Leaf-generated dynamic queries"
+msgstr "Bladlagde dynamiske spørringer"
+
+msgid "OOB-proxied leaf queries"
+msgstr "OOB-mellomtjente bladspørringer"
+
+msgid "Fully completed dynamic queries"
+msgstr "Fullt utførte dynamiske spørringer"
+
+msgid "Partially completed dynamic queries"
+msgstr "Delvis fullførte dynamiske spørringer"
+
+msgid "Dynamic queries ended with no results"
+msgstr "Dynamiske spørringer avsluttet uten resultater"
+
+msgid "Fully completed dynamic queries getting late results"
+msgstr "Fullt utførte dynamiske spørringer som får seine resultater"
+
+msgid "Dynamic queries with partial late results"
+msgstr "Dynamiske spørringer med delvis seine resultater"
+
+msgid "Dynamic queries completed by late results"
+msgstr "Dynamiske spørringer fullført av seine resultater"
+
+msgid "Queries seen from GTKG"
+msgstr "Spørringer sett fra gtk-gnutella"
+
+msgid "Queries seen from GTKG that were re-queries"
+msgstr "Gjentatte spørringer sett fra gtk-gnutella"
+
+msgid "Queries advertising support of GGEP \"H\""
+msgstr "Spørringer som viser støtte for GGEP «H»"
+
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "Spørringer som viser støtte for GGEP «H»"
+
+msgid "GIV callbacks received"
+msgstr "Mottatte GIV-tilbakekall"
+
+msgid "GIV discarded due to no suitable download"
+msgstr "GIV ble oversett fordi nedlastingen ikke passet"
+
+msgid "QUEUE callbacks received"
+msgstr "Mottok KØ-tilbakekall"
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr "QUEUE forkastet grunnet upassende nedlasting"
+
+msgid "File descriptors banned running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "Dytt sendt"
+
+msgid "UDP messages with bogus source IP"
+msgstr "UDP-meldinger med svindelkilde-IP"
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "DHT: Feilformet kommando"
+
+msgid "Alien UDP messages (non-Gnutella)"
+msgstr "Fremmede UDP-meldinger (ikke Gnutella)"
+
+msgid "Unprocessed UDP Gnutella messages"
+msgstr "Ubehandlede UDP Gnutella-meldinger"
+
+msgid "Compressed UDP messages enqueued"
+msgstr "Komprimerte UDP-meldinger lagt i køen"
+
+msgid "Compressed UDP messages received"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+msgid "Uncompressed UDP messages due to no gain"
+msgstr "Ukomprimerte UDP-meldinger fordi det ikke var noe å tjene"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP total messages dropped due to temporary ban"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+#, fuzzy
+msgid "Semi-reliable UDP total messages sent to known responsive hosts"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments re-queued for sending"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+#, fuzzy
+msgid "Semi-reliable UDP plain acknowledgments dropped"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+#, fuzzy
+msgid "Semi-reliable UDP enhanced acknowledgments dropped"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+#, fuzzy
+msgid "Semi-reliable UDP plain acknowledgments transmitted"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+#, fuzzy
+msgid "Semi-reliable UDP cumulative acknowledgments transmitted"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+#, fuzzy
+msgid "Semi-reliable UDP extended acknowledgments transmitted"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "Komprimerte UDP-meldinger mottatt"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
+
+msgid "UDP G2 hits rerouted to hub for delivery"
+msgstr ""
+
+#, fuzzy
+msgid "UDP G2 hits undelivered"
+msgstr "«DISPLAY» er ikke definert"
+
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr "Sammenkjørte tjenere (etter kobling av GUID og IP-adresse)"
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr "Fant dupliserte nedlastinger under tjenersammenkjøring"
+
+msgid "Discovered server GUIDs"
+msgstr "Oppdagede tjener-GUID'er"
+
+msgid "Changed server GUIDs"
+msgstr "Endrede tjener-GUID'er"
+
+#, fuzzy
+msgid "Detected GUID collisions"
+msgstr "DHT-oppdagede KUID-kollisjoner"
+
+msgid "Detected collisions with our own GUID"
+msgstr "Oppdaget kollisjoner med vår egen GUID"
+
+msgid "GUID dynamically banned"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+"Info om noder med brannmur for kjente adresser mottatt i "
+"opplastingsforespørsler"
+
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr "Prøvde bytting av nedlastingsressurser ved fullføring"
+
+msgid "Attempted download resource switching after error"
+msgstr "Prøvde bytting av nedlastingsressurser etter en feil"
+
+msgid "Successful download resource switching (all kind)"
+msgstr "Vellykkede bytter av nedlastingsressurser (alle typer)"
+
+msgid "Successful download resource switching between plain files"
+msgstr "Vellykkede bytter av nedlastingsressurser mellom enkle filer"
+
+msgid "Successful download resource switching after error"
+msgstr "Vellykkede bytter av nedlastingsressurser etter feil"
+
+msgid "Actively queued after resource switching attempt"
+msgstr "Aktivt i kø etter forsøk på bytte av nedlastingsressurser"
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr "Sunket HTTP-svardata ved feilkoder"
+
+msgid "Ignored downloaded data"
+msgstr "Ignorert nedlastet data"
+
+msgid "Ignoring requested after data mismatch"
+msgstr "Ignorerer forespurte data etter feile verdier"
+
+msgid "Ignoring requested to preserve connection"
+msgstr "Forespørsel om ignorering for å beholde forbindelsen"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr "Ignoerering forespurt etter aggressiv sverming"
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr "Ignorering nektet (for mye data eller for treig tjener)"
+
+msgid "Client resource switching (all detected)"
+msgstr "Klient-ressursbytte (alle oppdagede)"
+
+msgid "Client resource switching between plain files"
+msgstr "Klient-ressursbytting mellom enkle filer"
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr "Forespørsel om klient-oppfølging etter mottatt HTTP-feil"
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr "Bytte av PARQ-klientressurser i plasser (SHA-1-basert)"
+
+msgid "PARQ client retry-after violation"
+msgstr "Nytt PARQ-klientforsøk etter brudd"
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+"PARQ-klient ble sparket ut etter for mange brudd på «prøv på nytt etter»-"
+"funksjonen"
+
+msgid "PARQ upload slot limit overrides"
+msgstr "Overstyring av grenser for PARQ-opplastingsplasser"
+
+msgid "PARQ quick upload slots granted"
+msgstr "Raske PARQ-opplastingsplasser ble innvilget"
+
+msgid "PARQ QUEUE sending attempts"
+msgstr "PARQ QUEUE-sendingsforsøk"
+
+msgid "PARQ QUEUE messages sent"
+msgstr "Sendte PARQ QUEUE-meldinger"
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr "Mottatte PARQ QUEUE oppfølgingsforespørsler"
+
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
+#, fuzzy
+msgid "Bitzi tickets held"
+msgstr "Ingen Bitzi-billettforespørsler ennå."
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr "Gjenoppta kildeløse nedlastinger via søketreff"
+
+#, fuzzy
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr "Gjenoppta kildeløse nedlastinger via søketreff"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "RX-lednings-byte"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "RX-lednings-byte"
+
+msgid "DHT estimated amount of nodes"
+msgstr "DHT beregnet mengde noder"
+
+#, fuzzy
+msgid "DHT standard error of estimated amount of nodes"
+msgstr "DHT beregnet mengde noder"
+
+#, fuzzy
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr "DHT k-ball fjerneste grense (biter)"
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr "DHT k-ball fjerneste grense (biter)"
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr "DHT k-ball nærmeste grense (biter)"
+
+msgid "DHT routing table buckets"
+msgstr "DHT rutingstabellbøtter"
+
+msgid "DHT routing table leaves"
+msgstr "DHT rutingstabell-blad"
+
+msgid "DHT routing table maximum depth"
+msgstr "DHT rutingstabellens største dybde"
+
+msgid "DHT routing table good nodes"
+msgstr "DHT rutingstabellens gode noder"
+
+msgid "DHT routing table stale nodes"
+msgstr "DHT rutingstabellens oppstoppede noder"
+
+msgid "DHT routing table pending nodes"
+msgstr "DHT rutingstabellens ventende noder"
+
+msgid "DHT routing table evicted nodes"
+msgstr "DHT rutingstabellens utviste noder"
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr "DHT rutingstabellens utviste noder bak brannmur"
+
+#, fuzzy
+msgid "DHT routing table evicted nodes due to quota"
+msgstr "DHT rutingstabellens utviste noder"
+
+msgid "DHT routing table promoted pending nodes"
+msgstr "DHT rutingstabellens forfremmede ventende noder"
+
+#, fuzzy
+msgid "DHT routing table pinged promoted nodes"
+msgstr "DHT rutingstabellens gode noder"
+
+#, fuzzy
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr "DHT rutingstabellens utviste noder"
+
+#, fuzzy
+msgid "DHT routing table rejected node due to global network quota"
+msgstr "DHT rutingstabellens utviste noder"
+
+msgid "DHT completed bucket refreshes"
+msgstr "DHT fullførte oppdateringer av bøtter"
+
+#, fuzzy
+msgid "DHT forced bucket refreshes"
+msgstr "DHT fullførte oppdateringer av bøtter"
+
+#, fuzzy
+msgid "DHT forced bucket merges"
+msgstr "DHT fullførte oppdateringer av bøtter"
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr "DHT nektet oppdatering av bøtte som ikke kunne splittes"
+
+msgid "DHT initiated bucket alive checks"
+msgstr "DHT startede kontroller om bøtter er aktive"
+
+msgid "DHT alive pings sent to good nodes"
+msgstr "DHT status-pinger sendt til gode noder"
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr "DHT status-pinger sendt til gode noder"
+
+#, fuzzy
+msgid "DHT alive pings avoided"
+msgstr "DHT status-pinger sendt til gode noder"
+
+#, fuzzy
+msgid "DHT alive pings skipped"
+msgstr "DHT status-pinger sendt til gode noder"
+
+#, fuzzy
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr "DHT-oppdagede KUID-kollisjoner"
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
+msgstr ""
+
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr "Holdte DHT-nøkler"
+
+msgid "DHT cached keys held"
+msgstr "Lagrede DHT-nøkler"
+
+msgid "DHT values held"
+msgstr "Holdte DHT-verdier"
+
+#, fuzzy
+msgid "DHT cached KUID targets held"
+msgstr "Lagrede DHT-nøkler"
+
+#, fuzzy
+msgid "DHT cached closest root nodes"
+msgstr "DHT beregnet mengde noder"
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+#, fuzzy
+msgid "DHT cached roots misses"
+msgstr "Lagrede DHT-nøkler"
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+#, fuzzy
+msgid "DHT cached security tokens held"
+msgstr "Lagrede DHT-nøkler"
+
+#, fuzzy
+msgid "DHT cached security tokens hits"
+msgstr "DHT: Ugyldig sikkerhetstegn"
+
+#, fuzzy
+msgid "DHT stable node information held"
+msgstr "Maskininformasjon"
+
+msgid "DHT local hits on value lookups"
+msgstr "Lokale treff for oppslag av DHT-verdier"
+
+#, fuzzy
+msgid "DHT local hits returning values from cached keys"
+msgstr "Lokale treff for oppslag av DHT-verdier"
+
+#, fuzzy
+msgid "DHT returned expanded values"
+msgstr "Duplisering av DHT holdte verdier"
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed values via secondary keys"
+msgstr "Tidsavbrudd (i sekunder)"
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed cached values via secondary keys"
+msgstr "Tidsavbrudd (i sekunder)"
+
+msgid "DHT successfully received value publications"
+msgstr ""
+
+msgid "DHT successfully received value removals"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr "DHT-duplisering av utgått verdi unngått"
+
+msgid "DHT replication of held values"
+msgstr "Duplisering av DHT holdte verdier"
+
+msgid "DHT republishing of held values"
+msgstr "Republisering av DHT holdte verdier"
+
+msgid "DHT secondary-key value fetch issued"
+msgstr "Sendte forespørsler for sekundære DHT-nøkkelverdier"
+
+msgid "DHT duplicate values returned in lookups"
+msgstr "Dupliserte DHT-verdier returnert i oppslag"
+
+msgid "DHT detected KUID collisions"
+msgstr "DHT-oppdagede KUID-kollisjoner"
+
+msgid "DHT detected collisions with our own KUID"
+msgstr "DHT oppdaget kollisjoner med vår lokale KUID"
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "DHT: Feilformet kommando"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+#, fuzzy
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr "DHT-oppdagede KUID-kollisjoner"
+
+#, fuzzy
+msgid "DHT RPC recent nodes held"
+msgstr "Lagrede DHT-nøkler"
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "Maskininformasjon"
+
+#, fuzzy
+msgid "DHT publishing attempts"
+msgstr "Republisering av DHT holdte verdier"
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT publishing ending with proper value presence"
+msgstr "Republisering av DHT holdte verdier"
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT publishing to self"
+msgstr "Republisering av DHT holdte verdier"
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT SHA1 data type collisions"
+msgstr "DHT-oppdagede KUID-kollisjoner"
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr "Sendte DHT alt loc-oppslag"
+
+msgid "DHT push-proxy lookups issued"
+msgstr "Sendte DHT push-mellomtjener-oppslag"
+
+msgid "DHT successful alt-loc lookups"
+msgstr "Vellykkede DHT alt loc-oppslag"
+
+msgid "DHT successful push-proxy lookups"
+msgstr "Vellykkede DHT-oppslag i push-mellomtjenere"
+
+#, fuzzy
+msgid "DHT successful node push-entry lookups"
+msgstr "Vellykkede DHT-oppslag i push-mellomtjenere"
+
+msgid "DHT re-seeding of orphan downloads"
+msgstr "Gjenopta nedlastinger uten kilder ved hjelp av DHT"
+
+msgid "Ping"
+msgstr "Ping"
+
+msgid "Pong"
+msgstr "Pong"
+
+msgid "Bye"
+msgstr "Farvel"
+
+msgid "QRP"
+msgstr "QRP"
+
+msgid "HSEP"
+msgstr "HSEP"
+
+msgid "RUDP"
+msgstr "RUDP"
+
+msgid "Vendor spec."
+msgstr "Program spes."
+
+msgid "Vendor std."
+msgstr "Program std."
+
+msgid "Push"
+msgstr "Dytt"
+
+msgid "Query"
+msgstr "Spørring"
+
+msgid "Query hit"
+msgstr "Spørringstreff"
+
+msgid "DHT (truncated)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "DHT Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "DHT Store"
+msgstr "HTTP-trafikk"
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "Verdi"
+
+#, fuzzy
+msgid "G2 Crawl Request"
+msgstr "Siste forespørsel"
+
+msgid "G2 Hub Advertisement"
+msgstr ""
+
+msgid "G2 Hub List"
+msgstr ""
+
+msgid "G2 Hub List Req"
+msgstr ""
+
+msgid "G2 Hub List Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Local Node Info"
+msgstr "Lokal node"
+
+#, fuzzy
+msgid "G2 Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "G2 Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "G2 Push"
+msgstr "Dytt"
+
+msgid "G2 Query Key Ack"
+msgstr ""
+
+msgid "G2 Query Key Req"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query"
+msgstr "Spørring"
+
+msgid "G2 Query Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query Hit"
+msgstr "Spørringstreff"
+
+#, fuzzy
+msgid "G2 Query Hash Table"
+msgstr "Feilsøkingsnivå for distribuert kontrollnøkkeltabell (DHT)-koden"
+
+msgid "G2 User Profile Check"
+msgstr ""
+
+msgid "G2 User Profile Data"
+msgstr ""
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Bad size"
+msgstr "Ugyldig størrelse"
+
+msgid "Too small"
+msgstr "For liten"
+
+msgid "Too large"
+msgstr "For stor"
+
+msgid "Way too large"
+msgstr "Altfor stor"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Verktøy"
+
+msgid "Unknown message type"
+msgstr "Ukjent meldingstype"
+
+msgid "Unexpected message"
+msgstr "Uventet melding"
+
+msgid "Message sent with TTL = 0"
+msgstr "Melding sendt med TTL = 0"
+
+msgid "Improper hops/ttl combination"
+msgstr "Feil «hops»/«ttl»-kombinasjon"
+
+msgid "Max TTL exceeded"
+msgstr "Høyeste TTL er overgått"
+
+msgid "Message throttle"
+msgstr "Meldingskveling"
+
+#, fuzzy
+msgid "Message matched limits"
+msgstr "Størrelsesbegrensninger på Gnutella-meldinger"
+
+msgid "Transient node"
+msgstr ""
+
+msgid "Unusable Pong"
+msgstr "Ubrukelig pong"
+
+msgid "Hard TTL limit reached"
+msgstr "Nådde hard TTL-begrensning"
+
+msgid "Max hop count reached"
+msgstr "Nådde høyste antall «hop»"
+
+msgid "Route lost"
+msgstr "Tapt rute"
+
+msgid "No route"
+msgstr "Ingen rute"
+
+msgid "Duplicate message"
+msgstr "Duplisert melding"
+
+msgid "OOB Proxy MUID Conflict"
+msgstr ""
+
+msgid "Message to banned GUID"
+msgstr "Melding til bannlyst GUID"
+
+#, fuzzy
+msgid "Message from banned GUID"
+msgstr "Melding til bannlyst GUID"
+
+msgid "Node shutting down"
+msgstr "Node slås av"
+
+msgid "TX flow control"
+msgstr "Kontroll av TX-flyt"
+
+msgid "Query text had no trailing NUL"
+msgstr "Spørringsteksten sluttet ikke med «NUL»"
+
+msgid "Query text too short"
+msgstr "Spørringsteksten er for kort"
+
+msgid "Query had unnecessary overhead"
+msgstr "Spørringen hadde unødvendig overhode"
+
+msgid "Query had bad URN"
+msgstr "Forespørselen hadde ugyldig URN"
+
+msgid "Message with malformed SHA1"
+msgstr "Melding med feilformet SHA1"
+
+msgid "Message with malformed UTF-8"
+msgstr "Melding med feilformet UTF-8"
+
+msgid "Malformed Query Hit"
+msgstr "Traff feilformet spørring"
+
+msgid "Bad return address"
+msgstr "Ugyldig returadresse"
+
+msgid "Hostile IP address"
+msgstr "Fiendtlig IP-adresse"
+
+#, fuzzy
+msgid "Shunned IP address"
+msgstr "Ustabil IP-adresse"
+
+msgid "Bogus result from Morpheus"
+msgstr ""
+
+msgid "Spam"
+msgstr "Spam"
+
+msgid "Evil filename"
+msgstr "Ondt filnavn"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Søkeuttrykk"
+
+msgid "Payload inflating error"
+msgstr "Klarte ikke øke lasten"
+
+msgid "Unknown header flags present"
+msgstr "Fikk ukjent meldingshode"
+
+msgid "Own search results"
+msgstr "Egne søkeresultater"
+
+#, fuzzy
+msgid "Own queries"
+msgstr "RX-spørringer"
+
+msgid "Ancient query format"
+msgstr "Gammelt spørringsformat"
+
+msgid "Blank Servent ID"
+msgstr "Tom tjenent-ID"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS Invalid query token"
+msgstr "DHT: Ugyldig sikkerhetstegn"
+
+msgid "DHT Invalid security token"
+msgstr "DHT: Ugyldig sikkerhetstegn"
+
+msgid "DHT Too many STORE requests"
+msgstr "DHT: For mange STORE-forespørsler"
+
+msgid "DHT Malformed message"
+msgstr "DHT: Feilformet kommando"
+
+#, fuzzy
+msgid "G2 Unexpected message"
+msgstr "Uventet melding"
+
+#, fuzzy
+msgid "Cannot cross networks"
+msgstr "Lokale nettverk"
 
 msgid "No proxy"
 msgstr "Ingen mellomtjener"
@@ -2725,9 +3872,10 @@ msgstr ""
 "Hvorvidt opplastinger stopper ofte, noe som indikrerer at båndbredden er "
 "mettet. Ikke kjør som ultranode under sånne forhold."
 
+#, fuzzy
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
 "list from the global one distributed with gtk-gnutella."
 msgstr ""
 "Hvis dette slås på, brukes den globale «hostfiles.txt» i tillegg til den "
@@ -3676,6 +4824,70 @@ msgstr ""
 msgid "Whether the program is auto-restarting at the user's request."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for time management."
+msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
+
+#, fuzzy
+msgid "Debug level for the tmalloc() thread-magazine object distributor."
+msgstr "Feilsøkingsnivå for grensesnittet."
+
+#, fuzzy
+msgid "Debug level for the event queue thread."
+msgstr "Feilsøkingsnivå for søkekøen."
+
+#, fuzzy
+msgid "Maximum number of G2 hubs in the hub cache."
+msgstr "Høyeste antall brukere i G2-nodeminnet."
+
+#, fuzzy
+msgid "Current number of IPv4 hosts in the G2 hub caches."
+msgstr "Gjeldende antall verter i ultranodeminne."
+
+#, fuzzy
+msgid "Whether the G2 protocol should be enabled."
+msgstr "Hvorvidt komprimeringsforholdet for TX-trafikk skal vises."
+
+#, fuzzy
+msgid "Number of G2 nodes currently connected."
+msgstr "Antall bladnoder som er tilkoblet for øyeblikket."
+
+#, fuzzy
+msgid "Maximum amount of G2 hubs we should connect to as a leaf."
+msgstr "Høyeste antall ultrapersoner vi bør koble til som et blad."
+
+#, fuzzy
+msgid "Whether to log bad G2 messages, corrupted or unexpected."
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+#, fuzzy
+msgid "Whether to log dropped G2 messages"
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+#, fuzzy
+msgid "Debug level for the G2 RPC layer."
+msgstr "Feilsøkingsnivå for UDP-trafikklaget."
+
+#, fuzzy
+msgid "Whether to log summary of received query hits"
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
+msgid "Whether to log summary of each record in received query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Number of G2 browsing requests received in this session."
+msgstr "Antall forespørsler om HTML-blaing som er mottatt i denne økten."
+
+#, fuzzy
+msgid "Number of G2 browsing requests fully served in this session."
+msgstr ""
+"Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
+
+#, fuzzy
+msgid "Whether to log G2 messages we're attempting to send"
+msgstr "Feilsøkingsnivå for Gnutella-meldinger."
+
 msgid "disable"
 msgstr "slå av"
 
@@ -3697,69 +4909,8 @@ msgstr "kun TCP"
 msgid "UDP only"
 msgstr "kun UDP"
 
-msgid "Ping"
-msgstr "Ping"
-
-msgid "Pong"
-msgstr "Pong"
-
-msgid "Bye"
-msgstr "Farvel"
-
-msgid "QRP"
-msgstr "QRP"
-
-msgid "HSEP"
-msgstr "HSEP"
-
-msgid "RUDP"
-msgstr "RUDP"
-
-msgid "Vendor spec."
-msgstr "Program spes."
-
-msgid "Vendor std."
-msgstr "Program std."
-
-msgid "Push"
-msgstr "Dytt"
-
-msgid "Query"
-msgstr "Spørring"
-
 msgid "Query Hit"
 msgstr "Spørringstreff"
-
-#, fuzzy
-msgid "DHT Ping"
-msgstr "Ping"
-
-#, fuzzy
-msgid "DHT Pong"
-msgstr "Pong"
-
-#, fuzzy
-msgid "DHT Store"
-msgstr "HTTP-trafikk"
-
-msgid "DHT Store Ack"
-msgstr ""
-
-msgid "DHT Find Node"
-msgstr ""
-
-msgid "DHT Found Node"
-msgstr ""
-
-msgid "DHT Find Value"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Value"
-msgstr "Verdi"
-
-msgid "Total"
-msgstr "Total"
 
 msgid "Icons"
 msgstr "Ikoner"
@@ -5113,6 +6264,14 @@ msgstr "Interaktiv modus slått på"
 msgid "Interactive mode turned off."
 msgstr "Interaktiv modus slått av"
 
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Ukjent operasjon"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Ukjent operasjon"
+
 #, fuzzy
 msgid "Cannot determine current working directory"
 msgstr "Klarte ikke finne hjemmekatalogen din."
@@ -5128,14 +6287,6 @@ msgstr "Klarte ikke sende GIV"
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
-
-#, fuzzy, c-format
-msgid "Unknown operation \"%s\""
-msgstr "Ukjent operasjon"
-
-#, fuzzy, c-format
-msgid "Unknown operation \"show %s\""
-msgstr "Ukjent operasjon"
 
 #, fuzzy, c-format
 msgid "Unknown operation \"stats %s\""
@@ -5186,6 +6337,9 @@ msgstr "Ingen passende verdi."
 msgid "Good bye"
 msgstr "Farvel"
 
+msgid "Invalid command syntax"
+msgstr "Ugyldig kommandoform"
+
 msgid "Query string missing"
 msgstr "Manglende spørringsstreng"
 
@@ -5223,9 +6377,6 @@ msgstr ""
 
 msgid "unterminated single-quoted string"
 msgstr ""
-
-msgid "Invalid command syntax"
-msgstr "Ugyldig kommandoform"
 
 msgid "too many arguments in command"
 msgstr ""
@@ -5723,911 +6874,6 @@ msgstr "Global (etter)"
 
 msgid "RETURN"
 msgstr "RETUR"
-
-msgid "Query hit"
-msgstr "Spørringstreff"
-
-msgid "DHT (truncated)"
-msgstr ""
-
-msgid "Routing errors"
-msgstr "Dirigeringsfeil"
-
-#, fuzzy
-msgid "Routing table chunks"
-msgstr "DHT rutingstabellbøtter"
-
-msgid "Routing table message capacity"
-msgstr ""
-
-#, fuzzy
-msgid "Routing table message count"
-msgstr "DHT rutingstabellens oppstoppede noder"
-
-msgid "Routing through transient node avoided"
-msgstr ""
-
-msgid "Duplicates with higher TTL"
-msgstr "Duplikater med høyere TTL"
-
-msgid "SPAM SHA1 database hits"
-msgstr ""
-
-#, fuzzy
-msgid "SPAM filename and size hits"
-msgstr "Hvis filnavnet slutter med «%s» %s"
-
-msgid "SPAM fake hits"
-msgstr ""
-
-msgid "SPAM duplicate hits"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP held"
-msgstr ""
-
-msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
-
-msgid "Searches to local DB"
-msgstr "Søk i lokal database"
-
-msgid "Hits on local DB"
-msgstr "Treff i lokal database"
-
-#, fuzzy
-msgid "Hits on local partial files"
-msgstr "Treff i lokal database"
-
-msgid "Hits on \"what's new?\" queries"
-msgstr ""
-
-msgid "Query hits received for local queries"
-msgstr "Spørringstreff mottatt for lokale spørringer"
-
-msgid "Query hits received for OOB-proxied queries"
-msgstr "Spørringstreff mottatt fra OOB-mellomtjente spørringer"
-
-msgid "Queries requesting OOB hit delivery"
-msgstr "Spørringer som ber om OOB-treffleveranse"
-
-msgid "Stripped OOB flag on queries"
-msgstr "Fjernet OOB-flagg på spørringer"
-
-msgid "Ignored OOB queries due to unclaimed hits"
-msgstr ""
-
-msgid "Duplicate OOB-proxied queries"
-msgstr "Dupliser OOB-mellomtjente spørringer"
-
-msgid "OOB hits received for OOB-proxied queries"
-msgstr "OOB-treff mottatt for OOB-mellomtjente spørringer"
-
-msgid "OOB hits bearing alien IP address"
-msgstr "OOB-treff som bærer fremmed IP-adresse"
-
-msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
-
-msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
-
-msgid "Unclaimed locally-generated OOB hits"
-msgstr "Ukrevde lokallagde OOB-treff"
-
-msgid "Partially claimed locally-generated OOB hits"
-msgstr "Delvis krevde lokallagde OOB-treff"
-
-msgid "Spurious OOB hit claiming received"
-msgstr "Mottok flask OOB-treff"
-
-msgid "Unrequested OOB hits received"
-msgstr "Ikke forespurte OOB-treff mottatt"
-
-msgid "Received query hits for untracked queries"
-msgstr ""
-
-msgid "Tracked query MUIDs"
-msgstr ""
-
-msgid "Compacted queries"
-msgstr "Sammenpakkede spørringer"
-
-msgid "Bytes saved by compacting"
-msgstr "Byte spart med sammenpakking"
-
-msgid "UTF8 queries"
-msgstr "UTF-8-spørringer"
-
-msgid "SHA1 queries"
-msgstr "SHA1-spørringer"
-
-#, fuzzy
-msgid "\"What's New?\" queries"
-msgstr "Lagde spørringer"
-
-#, fuzzy
-msgid "GUESS queries"
-msgstr "UTF-8-spørringer"
-
-#, fuzzy
-msgid "GUESS queries (0.2)"
-msgstr "UTF-8-spørringer"
-
-msgid "GUESS link cache size"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS cached query keys held"
-msgstr "Lagrede DHT-nøkler"
-
-#, fuzzy
-msgid "GUESS cached 0.2 hosts held"
-msgstr "Lagrede DHT-nøkler"
-
-#, fuzzy
-msgid "GUESS locally generated queries"
-msgstr "Lokallagde dynamiske spøringer"
-
-msgid "GUESS currently running queries"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS hits received for locally generated queries"
-msgstr "Spørringstreff mottatt for lokale spørringer"
-
-msgid "GUESS hosts queried"
-msgstr ""
-
-msgid "GUESS hosts sending back an acknowledgment"
-msgstr ""
-
-msgid "Broadcasted push messages"
-msgstr "Kringkastede dyttemeldinger"
-
-msgid "Push-proxy UDP relayed messages"
-msgstr "UDP-relésendte push-mellomtjenermeldinger"
-
-msgid "Push-proxy TCP relayed messages"
-msgstr "TCP-relésendte push-mellomtjenermeldinger"
-
-msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr ""
-
-msgid "Push-proxy broadcasted messages"
-msgstr "Kringkastede push-mellomtjenermeldinger"
-
-msgid "Push-proxy found un-proxied local route"
-msgstr "Push-mellomtjener fant lokal rute uten mellomtjener"
-
-msgid "Push-proxy lookup failures"
-msgstr "Feilede push-mellomtjeneroppslag"
-
-msgid "Push relayed via local route"
-msgstr "Push ble relésendte via en lokal rute"
-
-msgid "Push relayed via routing table"
-msgstr "Push relésendte via rutingstabell"
-
-msgid "Locally generated dynamic queries"
-msgstr "Lokallagde dynamiske spøringer"
-
-msgid "Leaf-generated dynamic queries"
-msgstr "Bladlagde dynamiske spørringer"
-
-msgid "OOB-proxied leaf queries"
-msgstr "OOB-mellomtjente bladspørringer"
-
-msgid "Fully completed dynamic queries"
-msgstr "Fullt utførte dynamiske spørringer"
-
-msgid "Partially completed dynamic queries"
-msgstr "Delvis fullførte dynamiske spørringer"
-
-msgid "Dynamic queries ended with no results"
-msgstr "Dynamiske spørringer avsluttet uten resultater"
-
-msgid "Fully completed dynamic queries getting late results"
-msgstr "Fullt utførte dynamiske spørringer som får seine resultater"
-
-msgid "Dynamic queries with partial late results"
-msgstr "Dynamiske spørringer med delvis seine resultater"
-
-msgid "Dynamic queries completed by late results"
-msgstr "Dynamiske spørringer fullført av seine resultater"
-
-msgid "Queries seen from GTKG"
-msgstr "Spørringer sett fra gtk-gnutella"
-
-msgid "Queries seen from GTKG that were re-queries"
-msgstr "Gjentatte spørringer sett fra gtk-gnutella"
-
-msgid "Queries advertising support of GGEP \"H\""
-msgstr "Spørringer som viser støtte for GGEP «H»"
-
-#, fuzzy
-msgid "Queries advertising support of semi-reliable UDP"
-msgstr "Spørringer som viser støtte for GGEP «H»"
-
-msgid "GIV callbacks received"
-msgstr "Mottatte GIV-tilbakekall"
-
-msgid "GIV discarded due to no suitable download"
-msgstr "GIV ble oversett fordi nedlastingen ikke passet"
-
-msgid "QUEUE callbacks received"
-msgstr "Mottok KØ-tilbakekall"
-
-msgid "QUEUE discarded due to no suitable download"
-msgstr "QUEUE forkastet grunnet upassende nedlasting"
-
-msgid "UDP read-ahead datagram running count"
-msgstr ""
-
-msgid "UDP read-ahead datagram running bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram \"old\" processed"
-msgstr ""
-
-msgid "UDP read-ahead datagram max count"
-msgstr ""
-
-msgid "UDP read-ahead datagram max bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram max delay"
-msgstr ""
-
-msgid "UDP push messages received for FW<->FW connections"
-msgstr ""
-
-msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr ""
-
-msgid "UDP push messages patched for FW<->FW connections"
-msgstr ""
-
-msgid "UDP UHC pings received"
-msgstr ""
-
-#, fuzzy
-msgid "UDP UHC pongs sent"
-msgstr "Dytt sendt"
-
-msgid "UDP messages with bogus source IP"
-msgstr "UDP-meldinger med svindelkilde-IP"
-
-#, fuzzy
-msgid "UDP truncated incoming messages"
-msgstr "DHT: Feilformet kommando"
-
-msgid "Alien UDP messages (non-Gnutella)"
-msgstr "Fremmede UDP-meldinger (ikke Gnutella)"
-
-msgid "Unprocessed UDP Gnutella messages"
-msgstr "Ubehandlede UDP Gnutella-meldinger"
-
-msgid "Compressed UDP messages enqueued"
-msgstr "Komprimerte UDP-meldinger lagt i køen"
-
-msgid "Compressed UDP messages received"
-msgstr "Komprimerte UDP-meldinger mottatt"
-
-msgid "Uncompressed UDP messages due to no gain"
-msgstr "Ukomprimerte UDP-meldinger fordi det ikke var noe å tjene"
-
-#, fuzzy
-msgid "Ambiguous UDP messages received"
-msgstr "Komprimerte UDP-meldinger mottatt"
-
-msgid "Ambiguous UDP messages inspected more deeply"
-msgstr ""
-
-msgid "Ambiguous UDP messages handled as semi-reliable UDP"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages deflated"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages unsent"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages partially sent due to clogging"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages correctly transmited"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments resent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent too many times"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP too many EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP fragments received"
-msgstr "Komprimerte UDP-meldinger mottatt"
-
-msgid "Semi-reliable UDP duplicate fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP dropped received fragments"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP messages expired before re-assembly"
-msgstr ""
-
-msgid "Semi-reliable UDP messages re-assembled completely"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated successfully"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated incorrectly"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP unreliable messages received"
-msgstr "Komprimerte UDP-meldinger mottatt"
-
-#, fuzzy
-msgid "Semi-reliable UDP empty messages received"
-msgstr "Komprimerte UDP-meldinger mottatt"
-
-msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP EARs received"
-msgstr "Komprimerte UDP-meldinger mottatt"
-
-msgid "Semi-reliable UDP EARs received for unknown message"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr ""
-
-msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr "Sammenkjørte tjenere (etter kobling av GUID og IP-adresse)"
-
-msgid "Duplicate downloads found during server consolidation"
-msgstr "Fant dupliserte nedlastinger under tjenersammenkjøring"
-
-msgid "Discovered server GUIDs"
-msgstr "Oppdagede tjener-GUID'er"
-
-msgid "Changed server GUIDs"
-msgstr "Endrede tjener-GUID'er"
-
-#, fuzzy
-msgid "Detected GUID collisions"
-msgstr "DHT-oppdagede KUID-kollisjoner"
-
-msgid "Detected collisions with our own GUID"
-msgstr "Oppdaget kollisjoner med vår egen GUID"
-
-msgid "GUID dynamically banned"
-msgstr ""
-
-msgid "Firewalled node info for known hosts received in upload requests"
-msgstr ""
-"Info om noder med brannmur for kjente adresser mottatt i "
-"opplastingsforespørsler"
-
-msgid "Revitalized PUSH routes"
-msgstr ""
-
-msgid "Collected new PUSH proxies from other query hits"
-msgstr ""
-
-msgid "Attempted download resource switching on completion"
-msgstr "Prøvde bytting av nedlastingsressurser ved fullføring"
-
-msgid "Attempted download resource switching after error"
-msgstr "Prøvde bytting av nedlastingsressurser etter en feil"
-
-msgid "Successful download resource switching (all kind)"
-msgstr "Vellykkede bytter av nedlastingsressurser (alle typer)"
-
-msgid "Successful download resource switching between plain files"
-msgstr "Vellykkede bytter av nedlastingsressurser mellom enkle filer"
-
-msgid "Successful download resource switching after error"
-msgstr "Vellykkede bytter av nedlastingsressurser etter feil"
-
-msgid "Actively queued after resource switching attempt"
-msgstr "Aktivt i kø etter forsøk på bytte av nedlastingsressurser"
-
-msgid "Sunk HTTP reply data on error codes"
-msgstr "Sunket HTTP-svardata ved feilkoder"
-
-msgid "Ignored downloaded data"
-msgstr "Ignorert nedlastet data"
-
-msgid "Ignoring requested after data mismatch"
-msgstr "Ignorerer forespurte data etter feile verdier"
-
-msgid "Ignoring requested to preserve connection"
-msgstr "Forespørsel om ignorering for å beholde forbindelsen"
-
-msgid "Ignoring requested due to aggressive swarming"
-msgstr "Ignoerering forespurt etter aggressiv sverming"
-
-msgid "Ignoring refused (data too large or server too slow)"
-msgstr "Ignorering nektet (for mye data eller for treig tjener)"
-
-msgid "Client resource switching (all detected)"
-msgstr "Klient-ressursbytte (alle oppdagede)"
-
-msgid "Client resource switching between plain files"
-msgstr "Klient-ressursbytting mellom enkle filer"
-
-msgid "Client follow-up request after HTTP error was returned"
-msgstr "Forespørsel om klient-oppfølging etter mottatt HTTP-feil"
-
-msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr "Bytte av PARQ-klientressurser i plasser (SHA-1-basert)"
-
-msgid "PARQ client retry-after violation"
-msgstr "Nytt PARQ-klientforsøk etter brudd"
-
-msgid "PARQ client kicked out after too many retry-after violations"
-msgstr ""
-"PARQ-klient ble sparket ut etter for mange brudd på «prøv på nytt etter»-"
-"funksjonen"
-
-msgid "PARQ upload slot limit overrides"
-msgstr "Overstyring av grenser for PARQ-opplastingsplasser"
-
-msgid "PARQ quick upload slots granted"
-msgstr "Raske PARQ-opplastingsplasser ble innvilget"
-
-msgid "PARQ QUEUE sending attempts"
-msgstr "PARQ QUEUE-sendingsforsøk"
-
-msgid "PARQ QUEUE messages sent"
-msgstr "Sendte PARQ QUEUE-meldinger"
-
-msgid "PARQ QUEUE follow-up requests received"
-msgstr "Mottatte PARQ QUEUE oppfølgingsforespørsler"
-
-msgid "Launched SHA-1 file verifications"
-msgstr ""
-
-msgid "Launched TTH file verifications"
-msgstr ""
-
-#, fuzzy
-msgid "Bitzi tickets held"
-msgstr "Ingen Bitzi-billettforespørsler ennå."
-
-msgid "Re-seeding of orphan downloads through query hits"
-msgstr "Gjenoppta kildeløse nedlastinger via søketreff"
-
-#, fuzzy
-msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "Gjenoppta kildeløse nedlastinger via søketreff"
-
-#, fuzzy
-msgid "RUDP sent bytes"
-msgstr "RX-lednings-byte"
-
-#, fuzzy
-msgid "RUDP received bytes"
-msgstr "RX-lednings-byte"
-
-msgid "DHT estimated amount of nodes"
-msgstr "DHT beregnet mengde noder"
-
-#, fuzzy
-msgid "DHT standard error of estimated amount of nodes"
-msgstr "DHT beregnet mengde noder"
-
-#, fuzzy
-msgid "DHT k-ball theoretical frontier (bits)"
-msgstr "DHT k-ball fjerneste grense (biter)"
-
-msgid "DHT k-ball furthest frontier (bits)"
-msgstr "DHT k-ball fjerneste grense (biter)"
-
-msgid "DHT k-ball closeest frontier (bits)"
-msgstr "DHT k-ball nærmeste grense (biter)"
-
-msgid "DHT routing table buckets"
-msgstr "DHT rutingstabellbøtter"
-
-msgid "DHT routing table leaves"
-msgstr "DHT rutingstabell-blad"
-
-msgid "DHT routing table maximum depth"
-msgstr "DHT rutingstabellens største dybde"
-
-msgid "DHT routing table good nodes"
-msgstr "DHT rutingstabellens gode noder"
-
-msgid "DHT routing table stale nodes"
-msgstr "DHT rutingstabellens oppstoppede noder"
-
-msgid "DHT routing table pending nodes"
-msgstr "DHT rutingstabellens ventende noder"
-
-msgid "DHT routing table evicted nodes"
-msgstr "DHT rutingstabellens utviste noder"
-
-msgid "DHT routing table evicted firewalled nodes"
-msgstr "DHT rutingstabellens utviste noder bak brannmur"
-
-#, fuzzy
-msgid "DHT routing table evicted nodes due to quota"
-msgstr "DHT rutingstabellens utviste noder"
-
-msgid "DHT routing table promoted pending nodes"
-msgstr "DHT rutingstabellens forfremmede ventende noder"
-
-#, fuzzy
-msgid "DHT routing table pinged promoted nodes"
-msgstr "DHT rutingstabellens gode noder"
-
-#, fuzzy
-msgid "DHT routing table rejected node due to bucket network quota"
-msgstr "DHT rutingstabellens utviste noder"
-
-#, fuzzy
-msgid "DHT routing table rejected node due to global network quota"
-msgstr "DHT rutingstabellens utviste noder"
-
-msgid "DHT completed bucket refreshes"
-msgstr "DHT fullførte oppdateringer av bøtter"
-
-#, fuzzy
-msgid "DHT forced bucket refreshes"
-msgstr "DHT fullførte oppdateringer av bøtter"
-
-#, fuzzy
-msgid "DHT forced bucket merges"
-msgstr "DHT fullførte oppdateringer av bøtter"
-
-msgid "DHT denied non-splitable bucket refresh"
-msgstr "DHT nektet oppdatering av bøtte som ikke kunne splittes"
-
-msgid "DHT initiated bucket alive checks"
-msgstr "DHT startede kontroller om bøtter er aktive"
-
-msgid "DHT alive pings sent to good nodes"
-msgstr "DHT status-pinger sendt til gode noder"
-
-msgid "DHT alive pings sent to stale nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT alive pings sent to shutdowning nodes"
-msgstr "DHT status-pinger sendt til gode noder"
-
-#, fuzzy
-msgid "DHT alive pings avoided"
-msgstr "DHT status-pinger sendt til gode noder"
-
-#, fuzzy
-msgid "DHT alive pings skipped"
-msgstr "DHT status-pinger sendt til gode noder"
-
-#, fuzzy
-msgid "DHT revitalized stale nodes on RPC reply"
-msgstr "DHT-oppdagede KUID-kollisjoner"
-
-msgid "DHT value store rejected on IP/network quota grounds"
-msgstr ""
-
-msgid "DHT value store rejected on creator validation grounds"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on network quota"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr ""
-
-msgid "DHT node contact IP addresses fixed during lookup"
-msgstr ""
-
-msgid "DHT keys held"
-msgstr "Holdte DHT-nøkler"
-
-msgid "DHT cached keys held"
-msgstr "Lagrede DHT-nøkler"
-
-msgid "DHT values held"
-msgstr "Holdte DHT-verdier"
-
-#, fuzzy
-msgid "DHT cached KUID targets held"
-msgstr "Lagrede DHT-nøkler"
-
-#, fuzzy
-msgid "DHT cached closest root nodes"
-msgstr "DHT beregnet mengde noder"
-
-msgid "DHT cached roots exact hits"
-msgstr ""
-
-msgid "DHT cached roots approximate hits"
-msgstr ""
-
-#, fuzzy
-msgid "DHT cached roots misses"
-msgstr "Lagrede DHT-nøkler"
-
-msgid "DHT cached roots lookups within k-ball"
-msgstr ""
-
-msgid "DHT cached roots contact address refreshed"
-msgstr ""
-
-#, fuzzy
-msgid "DHT cached security tokens held"
-msgstr "Lagrede DHT-nøkler"
-
-#, fuzzy
-msgid "DHT cached security tokens hits"
-msgstr "DHT: Ugyldig sikkerhetstegn"
-
-#, fuzzy
-msgid "DHT stable node information held"
-msgstr "Maskininformasjon"
-
-msgid "DHT local hits on value lookups"
-msgstr "Lokale treff for oppslag av DHT-verdier"
-
-#, fuzzy
-msgid "DHT local hits returning values from cached keys"
-msgstr "Lokale treff for oppslag av DHT-verdier"
-
-#, fuzzy
-msgid "DHT returned expanded values"
-msgstr "Duplisering av DHT holdte verdier"
-
-msgid "DHT returned values as secondary keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed values via secondary keys"
-msgstr "Tidsavbrudd (i sekunder)"
-
-msgid "DHT returned cached expanded values"
-msgstr ""
-
-msgid "DHT returned cached values as secondary-keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed cached values via secondary keys"
-msgstr "Tidsavbrudd (i sekunder)"
-
-msgid "DHT successfully received value publications"
-msgstr ""
-
-msgid "DHT successfully received value removals"
-msgstr ""
-
-msgid "DHT replication of stale value avoided"
-msgstr "DHT-duplisering av utgått verdi unngått"
-
-msgid "DHT replication of held values"
-msgstr "Duplisering av DHT holdte verdier"
-
-msgid "DHT republishing of held values"
-msgstr "Republisering av DHT holdte verdier"
-
-msgid "DHT secondary-key value fetch issued"
-msgstr "Sendte forespørsler for sekundære DHT-nøkkelverdier"
-
-msgid "DHT duplicate values returned in lookups"
-msgstr "Dupliserte DHT-verdier returnert i oppslag"
-
-msgid "DHT detected KUID collisions"
-msgstr "DHT-oppdagede KUID-kollisjoner"
-
-msgid "DHT detected collisions with our own KUID"
-msgstr "DHT oppdaget kollisjoner med vår lokale KUID"
-
-msgid "DHT caching attempts"
-msgstr ""
-
-msgid "DHT caching ended successfully"
-msgstr ""
-
-msgid "DHT caching partially completed"
-msgstr ""
-
-msgid "DHT key-offloading checks after discovering new closest node"
-msgstr ""
-
-msgid "DHT keys selected for offloading"
-msgstr ""
-
-msgid "DHT key-offloading attempts"
-msgstr ""
-
-msgid "DHT key-offloading ended successfully"
-msgstr ""
-
-msgid "DHT key-offloading partially completed"
-msgstr ""
-
-msgid "DHT values successfully offloaded"
-msgstr ""
-
-#, fuzzy
-msgid "DHT incoming messages"
-msgstr "DHT: Feilformet kommando"
-
-msgid "DHT incoming messages with UDP-matching contact address"
-msgstr ""
-
-msgid "DHT incoming messages with contact address fixed"
-msgstr ""
-
-msgid "DHT incoming messages from hostile addresses"
-msgstr ""
-
-msgid "DHT incoming messages with hostile contact address"
-msgstr ""
-
-msgid "DHT RPC messages prepared"
-msgstr ""
-
-msgid "DHT RPC messages cancelled"
-msgstr ""
-
-msgid "DHT RPC timed out"
-msgstr ""
-
-msgid "DHT RPC replies received"
-msgstr ""
-
-msgid "DHT RPC replies with contact address fixed"
-msgstr ""
-
-msgid "DHT RPC late replies received"
-msgstr ""
-
-#, fuzzy
-msgid "DHT RPC detected KUID mismatches on reply"
-msgstr "DHT-oppdagede KUID-kollisjoner"
-
-#, fuzzy
-msgid "DHT RPC recent nodes held"
-msgstr "Lagrede DHT-nøkler"
-
-#, fuzzy
-msgid "DHT node verifications"
-msgstr "Maskininformasjon"
-
-#, fuzzy
-msgid "DHT publishing attempts"
-msgstr "Republisering av DHT holdte verdier"
-
-msgid "DHT publishing ended successfully (all roots)"
-msgstr ""
-
-msgid "DHT publishing partially completed (root subset only)"
-msgstr ""
-
-#, fuzzy
-msgid "DHT publishing ending with proper value presence"
-msgstr "Republisering av DHT holdte verdier"
-
-msgid "DHT value republishing occurring too late (after expiry)"
-msgstr ""
-
-#, fuzzy
-msgid "DHT publishing to self"
-msgstr "Republisering av DHT holdte verdier"
-
-msgid "DHT background publishing completion attempts"
-msgstr ""
-
-msgid "DHT background publishing completion showing improvements"
-msgstr ""
-
-msgid "DHT background publishing completion successful (all roots)"
-msgstr ""
-
-#, fuzzy
-msgid "DHT SHA1 data type collisions"
-msgstr "DHT-oppdagede KUID-kollisjoner"
-
-msgid "DHT lookup path passively protected against attack"
-msgstr ""
-
-msgid "DHT lookup path actively protected against attack"
-msgstr ""
-
-msgid "DHT alt-loc lookups issued"
-msgstr "Sendte DHT alt loc-oppslag"
-
-msgid "DHT push-proxy lookups issued"
-msgstr "Sendte DHT push-mellomtjener-oppslag"
-
-msgid "DHT successful alt-loc lookups"
-msgstr "Vellykkede DHT alt loc-oppslag"
-
-msgid "DHT successful push-proxy lookups"
-msgstr "Vellykkede DHT-oppslag i push-mellomtjenere"
-
-#, fuzzy
-msgid "DHT successful node push-entry lookups"
-msgstr "Vellykkede DHT-oppslag i push-mellomtjenere"
-
-msgid "DHT re-seeding of orphan downloads"
-msgstr "Gjenopta nedlastinger uten kilder ved hjelp av DHT"
 
 msgid "node"
 msgid_plural "nodes"
@@ -8712,6 +8958,15 @@ msgstr "Vis opplastingsstatistikk i sidelinjen."
 msgid "Mapping lease time"
 msgstr ""
 
+msgid "G2 hubs"
+msgstr ""
+
+msgid "Enable the G2 network"
+msgstr ""
+
+msgid " G2, "
+msgstr ""
+
 msgid "Not in database"
 msgstr "Ikke i databasen"
 
@@ -8836,11 +9091,18 @@ msgstr ""
 msgid "Served "
 msgstr "Tjent "
 
-msgid "[BH HTML served]"
+#, fuzzy
+msgid "[G2 served]"
 msgstr "[BH HTML betjent]"
 
 msgid " / "
 msgstr " av "
+
+msgid "[G2]"
+msgstr ""
+
+msgid "[BH HTML served]"
+msgstr "[BH HTML betjent]"
 
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
@@ -9016,6 +9278,12 @@ msgstr "Fersk ultra"
 msgid "Valid IPv6 ultra"
 msgstr "Gyldig ultra"
 
+msgid "Fresh G2 hub"
+msgstr ""
+
+msgid "Valid G2 hub"
+msgstr ""
+
 msgid "Unstable"
 msgstr "Ustabil"
 
@@ -9088,6 +9356,10 @@ msgstr "Mottar hallo"
 
 msgid "UNKNOWN STATUS"
 msgstr "UKJENT STATUS"
+
+#, fuzzy
+msgid "g2"
+msgstr ", g2, "
 
 msgid "busy"
 msgstr "opptatt"
@@ -9191,8 +9463,8 @@ msgstr[1] "Spørring"
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
-"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
+"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
 
 #, fuzzy
@@ -9524,12 +9796,6 @@ msgid "%u queued"
 msgstr "%u i kø"
 
 #, c-format
-msgid "%u/%u connection"
-msgid_plural "%u/%u connections"
-msgstr[0] "%u/%u forbindelse"
-msgstr[1] "%u/%u forbindelseer"
-
-#, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u opplasting"
@@ -9609,9 +9875,10 @@ msgstr "Sender KØ, kobler tilbake . . ."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
 
-#, fuzzy
-#~ msgid "Debug level for time management."
-#~ msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
+#~ msgid "%u/%u connection"
+#~ msgid_plural "%u/%u connections"
+#~ msgstr[0] "%u/%u forbindelse"
+#~ msgstr[1] "%u/%u forbindelseer"
 
 #, fuzzy
 #~ msgid "Splitting ougoing HTTP bandwidth evenly."

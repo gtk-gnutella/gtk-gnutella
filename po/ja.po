@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2013-05-08 11:12+0200\n"
+"POT-Creation-Date: 2014-04-19 18:25+0200\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -393,6 +393,14 @@ msgstr "コンテンツの長さが一致しません"
 msgid "No Content-Length header"
 msgstr "コンテンツの長さを示すヘッダーがありません"
 
+#, fuzzy
+msgid "Unexpected Content-Type"
+msgstr "想定外のメッセージ"
+
+#, fuzzy
+msgid "No Content-Type"
+msgstr "コンテンツの長さを示すヘッダーがありません"
+
 msgid "Search already closed"
 msgstr "検索は既に閉じられています"
 
@@ -445,8 +453,15 @@ msgstr ", 禁止処理"
 msgid ", g2"
 msgstr ", g2"
 
+msgid ", fake-g2"
+msgstr ""
+
 msgid ", vendor?"
 msgstr ", ベンダー?"
+
+#, fuzzy, c-format
+msgid "<Browse G2 Host %s>"
+msgstr "<ホスト %s の参照>"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -575,161 +590,13 @@ msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
 msgstr[0] "UDP ホストキャッシュ %2$s から %1$d 基のホストを取得しました。"
 
+#, fuzzy, c-format
+msgid "Connecting to web cache %s"
+msgstr "ホストへ接続"
+
 #, c-format
 msgid "Bootstrapping from %s"
 msgstr ""
-
-msgid "Bad size"
-msgstr "不正な大きさ"
-
-msgid "Too small"
-msgstr "小さ過ぎる"
-
-msgid "Too large"
-msgstr "大き過ぎる"
-
-msgid "Way too large"
-msgstr "遥かに大き過ぎる"
-
-#, fuzzy
-msgid "Too old"
-msgstr "ツール"
-
-msgid "Unknown message type"
-msgstr "種類不明のメッセージ"
-
-msgid "Unexpected message"
-msgstr "想定外のメッセージ"
-
-msgid "Message sent with TTL = 0"
-msgstr "TTLがゼロの送信メッセージ"
-
-msgid "Improper hops/ttl combination"
-msgstr "ホップ数/TTLの組合せが無効"
-
-msgid "Max TTL exceeded"
-msgstr "最大TTLを超過"
-
-msgid "Message throttle"
-msgstr "メッセージスロットル"
-
-# NOTE: `Gnutella' may be redundant
-#, fuzzy
-msgid "Message matched limits"
-msgstr "メッセージサイズの制限"
-
-msgid "Transient node"
-msgstr ""
-
-msgid "Unusable Pong"
-msgstr "無効なPong"
-
-msgid "Hard TTL limit reached"
-msgstr "TTLの固定上限に到達"
-
-msgid "Max hop count reached"
-msgstr "最大ホップ数に到達"
-
-msgid "Route lost"
-msgstr "経路を喪失"
-
-msgid "No route"
-msgstr "経路が無い"
-
-msgid "Duplicate message"
-msgstr "重複メッセージ"
-
-msgid "Message to banned GUID"
-msgstr "禁止GUIDへのメッセージ"
-
-#, fuzzy
-msgid "Message from banned GUID"
-msgstr "禁止GUIDへのメッセージ"
-
-# FIXME: Node -> Peer
-msgid "Node shutting down"
-msgstr "ピアが停止中"
-
-msgid "TX flow control"
-msgstr "送信フロー制御"
-
-msgid "Query text had no trailing NUL"
-msgstr "NULLで終わらない検索クエリー"
-
-msgid "Query text too short"
-msgstr "短過ぎる検索クエリー"
-
-msgid "Query had unnecessary overhead"
-msgstr "不要オーバーへッドがある検索クエリー"
-
-msgid "Query had bad URN"
-msgstr "不正URNがある検索クエリー"
-
-msgid "Message with malformed SHA1"
-msgstr "変なSHA1があるメッセージ"
-
-msgid "Message with malformed UTF-8"
-msgstr "変なUTF-8があるメッセージ"
-
-msgid "Malformed Query Hit"
-msgstr "変な検索クエリーヒット"
-
-msgid "Bad return address"
-msgstr "不正な返却アドレス"
-
-msgid "Hostile IP address"
-msgstr "有害IPアドレス"
-
-msgid "Bogus result from Morpheus"
-msgstr ""
-
-msgid "Spam"
-msgstr "スパム"
-
-msgid "Evil filename"
-msgstr "有害ファイル名"
-
-# FIXME: `Search Term' -> `Searches' or `Search queries'
-#, fuzzy
-msgid "Improper media type"
-msgstr "検索クエリー"
-
-# XXX: wtf
-msgid "Payload inflating error"
-msgstr "ペイロード膨張エラー"
-
-msgid "Unknown header flags present"
-msgstr "不明なヘッダーフラッグが存在"
-
-# FIXME: should be revised.
-msgid "Own search results"
-msgstr "自分自身の検索結果数"
-
-#, fuzzy
-msgid "Own queries"
-msgstr "RX (受信) 検索クエリー数"
-
-msgid "Ancient query format"
-msgstr "古いクエリー形式"
-
-msgid "Blank Servent ID"
-msgstr "空のサーバントID"
-
-msgid "GUESS Query missing token"
-msgstr ""
-
-msgid "GUESS Invalid query token"
-msgstr ""
-
-msgid "DHT Invalid security token"
-msgstr ""
-
-msgid "DHT Too many STORE requests"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Malformed message"
-msgstr "変なコマンドです"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -766,6 +633,11 @@ msgstr "Gnet 接続が無効になっています"
 
 msgid "Connection not compressed"
 msgstr "接続が圧縮されていません"
+
+# FIXME: nodes -> peers
+#, fuzzy, c-format
+msgid "Too many G2 hubs (%u max)"
+msgstr "ピアの数が多すぎます (最大 %d 基)"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -821,6 +693,9 @@ msgstr "サーバントが停止します"
 
 msgid "Not a network member"
 msgstr "ネットワークのメンバーではありません"
+
+msgid "Need a G2 Hub"
+msgstr ""
 
 msgid "Too frequent crawling"
 msgstr "クローリングの頻度が多過ぎます"
@@ -881,6 +756,11 @@ msgid "Pseudo semi-reliable UDP node"
 msgstr "擬似UDPピア"
 
 # FIXME: node -> peer
+#, fuzzy
+msgid "Pseudo G2 UDP node"
+msgstr "擬似UDPピア"
+
+# FIXME: node -> peer
 msgid "Pseudo DHT node"
 msgstr "擬似DHTピア"
 
@@ -926,6 +806,9 @@ msgstr "UDP"
 
 msgid "DHT"
 msgstr "DHT"
+
+msgid "G2 hub"
+msgstr ""
 
 msgid "Unknown"
 msgstr "不明"
@@ -1140,8 +1023,8 @@ msgstr "HTTPステータス全体を送信できません"
 msgid "Not Acceptable"
 msgstr "このプロトコルは受け付けられません"
 
-#, c-format
-msgid "<Browse Host Request> [%s%s%s]"
+#, fuzzy, c-format
+msgid "<Browse Host %sRequest> [%s%s%s]"
 msgstr "<ホスト参照リクエスト> [%s%s%s]"
 
 msgid "query hits"
@@ -1233,6 +1116,1273 @@ msgstr " - 新しいバージョンが利用可能です: リリース %s"
 #, c-format
 msgid " - Newer version available: from git %s"
 msgstr " - 新しいバージョンが利用可能です: git %s"
+
+msgid "Routing errors"
+msgstr "経路制御エラー"
+
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
+msgid "Routing through transient node avoided"
+msgstr ""
+
+# XXX: wtf
+msgid "Duplicates with higher TTL"
+msgstr "高TTLでの重複"
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+#, fuzzy
+msgid "SPAM filename and size hits"
+msgstr "ファイル名が「%s」%s で終わる"
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
+
+# XXX: free translation
+msgid "Searches to local DB"
+msgstr "あなたの共有ファイルへの検索"
+
+# XXX: free translation
+msgid "Hits on local DB"
+msgstr "あなたの共有ファイルにヒット"
+
+# XXX: free translation
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "あなたの共有ファイルにヒット"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
+# XXX: free translation
+msgid "Query hits received for local queries"
+msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
+
+# XXX: free translation
+#, fuzzy
+msgid "G2 searches to local DB"
+msgstr "あなたの共有ファイルへの検索"
+
+# XXX: free translation
+#, fuzzy
+msgid "G2 hits on local DB"
+msgstr "あなたの共有ファイルにヒット"
+
+# XXX: free translation
+#, fuzzy
+msgid "G2 hits on local partial files"
+msgstr "あなたの共有ファイルにヒット"
+
+# XXX: wtf
+msgid "Query hits received for OOB-proxied queries"
+msgstr "OOBプロキシ検索クエリーで受取った検索クエリーヒット"
+
+# XXX: wtf
+msgid "Queries requesting OOB hit delivery"
+msgstr "OOBヒット配送を要求する検索クエリー"
+
+# XXX: wtf
+msgid "Stripped OOB flag on queries"
+msgstr "検索クエリーでの削除済OOBフラッグ"
+
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
+# XXX: wtf
+msgid "Duplicate OOB-proxied queries"
+msgstr "重複するOOBプロキシ検索クエリー"
+
+# XXX: wtf
+msgid "OOB hits received for OOB-proxied queries"
+msgstr "OOBプロキシ検索クエリーで受取ったOOBヒット"
+
+# XXX: wtf
+msgid "OOB hits bearing alien IP address"
+msgstr "無関係なIPアドレスに関するOOBヒット"
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
+msgstr ""
+
+# XXX: wtf
+msgid "Unclaimed locally-generated OOB hits"
+msgstr "要求のないローカル生成OOBヒット"
+
+# XXX: wtf
+msgid "Partially claimed locally-generated OOB hits"
+msgstr "一部要求されているローカル生成OOBヒット"
+
+# XXX: wtf
+msgid "Spurious OOB hit claiming received"
+msgstr "受信した偽のOOBヒット要求"
+
+# XXX: wtf
+msgid "Unrequested OOB hits received"
+msgstr "リクエストしていないOOBヒットの受信数"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
+
+msgid "Compacted queries"
+msgstr "圧縮検索クエリー"
+
+# XXX: wtf
+msgid "Bytes saved by compacting"
+msgstr "圧縮保存済バイト"
+
+msgid "UTF8 queries"
+msgstr "UTF8検索クエリー"
+
+msgid "SHA1 queries"
+msgstr "SHA1検索クエリー"
+
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "生成検索クエリー数"
+
+#, fuzzy
+msgid "UTF8 G2 queries"
+msgstr "UTF8検索クエリー"
+
+#, fuzzy
+msgid "SHA1 G2 queries"
+msgstr "SHA1検索クエリー"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "UTF8検索クエリー"
+
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF8検索クエリー"
+
+msgid "GUESS link cache size"
+msgstr ""
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
+msgstr ""
+
+msgid "GUESS cached G2 hosts held"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS locally generated queries"
+msgstr "ローカル生成の動的検索クエリー"
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+# XXX: free translation
+#, fuzzy
+msgid "GUESS hits received for locally generated queries"
+msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
+
+#, fuzzy
+msgid "GUESS ultra nodes queried"
+msgstr "ローカル生成の動的検索クエリー"
+
+msgid "GUESS ultra nodes sending back an acknowledgment"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS G2 nodes queried"
+msgstr "UTF8検索クエリー"
+
+msgid "GUESS G2 nodes sending back an acknowledgment"
+msgstr ""
+
+msgid "Broadcasted push messages"
+msgstr "広域送信PUSHメッセージ"
+
+msgid "Push-proxy UDP relayed messages"
+msgstr "PUSHプロキシUDP中継メッセージ"
+
+msgid "Push-proxy TCP relayed messages"
+msgstr "PUSHプロキシTCP中継メッセージ"
+
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
+msgid "Push-proxy broadcasted messages"
+msgstr "PUSHプロキシ広域送信メッセージ"
+
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
+msgid "Push-proxy lookup failures"
+msgstr "PUSHプロキシ参照失敗"
+
+msgid "Push relayed via local route"
+msgstr ""
+
+msgid "Push relayed via routing table"
+msgstr ""
+
+msgid "Locally generated dynamic queries"
+msgstr "ローカル生成の動的検索クエリー"
+
+msgid "Leaf-generated dynamic queries"
+msgstr "リーフ生成の動的検索クエリー"
+
+# XXX: wtf
+msgid "OOB-proxied leaf queries"
+msgstr "プロキシOOBリーフ検索クエリー"
+
+# XXX: wtf
+msgid "Fully completed dynamic queries"
+msgstr "完全完成の動的検索クエリー"
+
+# XXX: wtf
+msgid "Partially completed dynamic queries"
+msgstr "部分完成の動的検索クエリー"
+
+msgid "Dynamic queries ended with no results"
+msgstr "結果無しで終了した動的検索クエリー"
+
+# XXX: wtf
+msgid "Fully completed dynamic queries getting late results"
+msgstr "後に結果を得る完全完成の動的検索クエリー"
+
+# XXX: wtf
+msgid "Dynamic queries with partial late results"
+msgstr "後の部分的な結果を伴う動的検索クエリー"
+
+# XXX: wtf
+msgid "Dynamic queries completed by late results"
+msgstr "後の結果で完成する動的検索クエリー"
+
+msgid "Queries seen from GTKG"
+msgstr "GTKGからの検索クエリー"
+
+msgid "Queries seen from GTKG that were re-queries"
+msgstr "GTKGからの検索クエリー (再問合わせ)"
+
+msgid "Queries advertising support of GGEP \"H\""
+msgstr "GGEP「H」への対応を知らせる検索クエリー"
+
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "GGEP「H」への対応を知らせる検索クエリー"
+
+msgid "GIV callbacks received"
+msgstr "受信したGIVコールバック"
+
+msgid "GIV discarded due to no suitable download"
+msgstr ""
+
+msgid "QUEUE callbacks received"
+msgstr "受信したQUEUEコールバック"
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr ""
+
+msgid "File descriptors banned running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "PUSH を送信しました"
+
+msgid "UDP messages with bogus source IP"
+msgstr "UDPメッセージ (偽の送信元IP)"
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "変なコマンドです"
+
+msgid "Alien UDP messages (non-Gnutella)"
+msgstr "無関係なUDPメッセージ (非Gnutella)"
+
+msgid "Unprocessed UDP Gnutella messages"
+msgstr "未処理のUDPメッセージ (Gnutella)"
+
+msgid "Compressed UDP messages enqueued"
+msgstr "キューにある圧縮UDPメッセージ"
+
+msgid "Compressed UDP messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+# XXX: wtf
+msgid "Uncompressed UDP messages due to no gain"
+msgstr "有効性が無いため圧縮されないUDPメッセージ"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP total messages dropped due to temporary ban"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP total messages sent to known responsive hosts"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments re-queued for sending"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP plain acknowledgments dropped"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP enhanced acknowledgments dropped"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP plain acknowledgments transmitted"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP cumulative acknowledgments transmitted"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP extended acknowledgments transmitted"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
+
+msgid "UDP G2 hits rerouted to hub for delivery"
+msgstr ""
+
+# FIXME:
+#, fuzzy
+msgid "UDP G2 hits undelivered"
+msgstr "「表示する」が未定義"
+
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr ""
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr ""
+
+msgid "Discovered server GUIDs"
+msgstr "発見されたサーバントGUID"
+
+msgid "Changed server GUIDs"
+msgstr "変更されたサーバントGUID"
+
+msgid "Detected GUID collisions"
+msgstr "競合しているGUID"
+
+msgid "Detected collisions with our own GUID"
+msgstr "競合しているGTKGのGUID"
+
+msgid "GUID dynamically banned"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr ""
+
+msgid "Attempted download resource switching after error"
+msgstr ""
+
+msgid "Successful download resource switching (all kind)"
+msgstr ""
+
+msgid "Successful download resource switching between plain files"
+msgstr ""
+
+msgid "Successful download resource switching after error"
+msgstr ""
+
+msgid "Actively queued after resource switching attempt"
+msgstr ""
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr ""
+
+msgid "Ignored downloaded data"
+msgstr "破棄されたダウンロード済データ"
+
+msgid "Ignoring requested after data mismatch"
+msgstr ""
+
+msgid "Ignoring requested to preserve connection"
+msgstr ""
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr ""
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+
+msgid "Client resource switching (all detected)"
+msgstr ""
+
+msgid "Client resource switching between plain files"
+msgstr ""
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr ""
+
+msgid "PARQ client retry-after violation"
+msgstr ""
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+
+msgid "PARQ upload slot limit overrides"
+msgstr ""
+
+msgid "PARQ quick upload slots granted"
+msgstr ""
+
+msgid "PARQ QUEUE sending attempts"
+msgstr ""
+
+msgid "PARQ QUEUE messages sent"
+msgstr ""
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr ""
+
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
+msgstr ""
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr "ダウンロードのデバッグレベルです。"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "RX (受信) 伝送バイト数"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "RX (受信) 伝送バイト数"
+
+msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr ""
+
+msgid "DHT routing table buckets"
+msgstr ""
+
+msgid "DHT routing table leaves"
+msgstr ""
+
+msgid "DHT routing table maximum depth"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table good nodes"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "DHT routing table stale nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pending nodes"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "DHT routing table evicted nodes"
+msgstr ""
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table evicted nodes due to quota"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "DHT routing table promoted pending nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pinged promoted nodes"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket refreshes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT forced bucket merges"
+msgstr "変なコマンドです"
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr ""
+
+msgid "DHT initiated bucket alive checks"
+msgstr ""
+
+msgid "DHT alive pings sent to good nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
+msgstr ""
+
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT cached keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT cached KUID targets held"
+msgstr ""
+
+msgid "DHT cached closest root nodes"
+msgstr ""
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+msgid "DHT cached roots misses"
+msgstr ""
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+msgid "DHT cached security tokens held"
+msgstr ""
+
+msgid "DHT cached security tokens hits"
+msgstr ""
+
+#, fuzzy
+msgid "DHT stable node information held"
+msgstr "ホスト情報"
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT local hits returning values from cached keys"
+msgstr ""
+
+msgid "DHT returned expanded values"
+msgstr ""
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed values via secondary keys"
+msgstr "タイムアウト (全て秒単位)"
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed cached values via secondary keys"
+msgstr "タイムアウト (全て秒単位)"
+
+msgid "DHT successfully received value publications"
+msgstr ""
+
+msgid "DHT successfully received value removals"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr ""
+
+msgid "DHT detected KUID collisions"
+msgstr ""
+
+msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "変なコマンドです"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr ""
+
+msgid "DHT RPC recent nodes held"
+msgstr ""
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "ホスト情報"
+
+msgid "DHT publishing attempts"
+msgstr ""
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+msgid "DHT publishing ending with proper value presence"
+msgstr ""
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+msgid "DHT publishing to self"
+msgstr ""
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
+msgstr ""
+
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+#, fuzzy
+msgid "DHT push-proxy lookups issued"
+msgstr "PUSHプロキシ参照失敗"
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT successful node push-entry lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "ダウンロードのデバッグレベルです。"
+
+msgid "Ping"
+msgstr "Ping"
+
+msgid "Pong"
+msgstr "Pong"
+
+msgid "Bye"
+msgstr "Bye"
+
+msgid "QRP"
+msgstr "QRP"
+
+msgid "HSEP"
+msgstr "HSEP"
+
+msgid "RUDP"
+msgstr "RUDP"
+
+msgid "Vendor spec."
+msgstr "ベンダー特定"
+
+msgid "Vendor std."
+msgstr "ベンダー標準"
+
+msgid "Push"
+msgstr "PUSH"
+
+msgid "Query"
+msgstr "検索クエリー"
+
+msgid "Query hit"
+msgstr "検索クエリーヒット"
+
+msgid "DHT (truncated)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "DHT Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "DHT Store"
+msgstr "DHTトラフィック"
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "値"
+
+#, fuzzy
+msgid "G2 Crawl Request"
+msgstr "最新リクエスト"
+
+msgid "G2 Hub Advertisement"
+msgstr ""
+
+msgid "G2 Hub List"
+msgstr ""
+
+msgid "G2 Hub List Req"
+msgstr ""
+
+msgid "G2 Hub List Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Local Node Info"
+msgstr "あなたのピア"
+
+#, fuzzy
+msgid "G2 Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "G2 Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "G2 Push"
+msgstr "PUSH"
+
+msgid "G2 Query Key Ack"
+msgstr ""
+
+msgid "G2 Query Key Req"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query"
+msgstr "検索クエリー"
+
+msgid "G2 Query Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query Hit"
+msgstr "検索クエリーヒット"
+
+#, fuzzy
+msgid "G2 Query Hash Table"
+msgstr "分散ハッシュテーブル (DHT) のデバッグレベルです。"
+
+msgid "G2 User Profile Check"
+msgstr ""
+
+msgid "G2 User Profile Data"
+msgstr ""
+
+# FIXME: separation (src/if/gui_property.c: Total -> All)
+msgid "Total"
+msgstr "合計"
+
+msgid "Bad size"
+msgstr "不正な大きさ"
+
+msgid "Too small"
+msgstr "小さ過ぎる"
+
+msgid "Too large"
+msgstr "大き過ぎる"
+
+msgid "Way too large"
+msgstr "遥かに大き過ぎる"
+
+#, fuzzy
+msgid "Too old"
+msgstr "ツール"
+
+msgid "Unknown message type"
+msgstr "種類不明のメッセージ"
+
+msgid "Unexpected message"
+msgstr "想定外のメッセージ"
+
+msgid "Message sent with TTL = 0"
+msgstr "TTLがゼロの送信メッセージ"
+
+msgid "Improper hops/ttl combination"
+msgstr "ホップ数/TTLの組合せが無効"
+
+msgid "Max TTL exceeded"
+msgstr "最大TTLを超過"
+
+msgid "Message throttle"
+msgstr "メッセージスロットル"
+
+# NOTE: `Gnutella' may be redundant
+#, fuzzy
+msgid "Message matched limits"
+msgstr "メッセージサイズの制限"
+
+msgid "Transient node"
+msgstr ""
+
+msgid "Unusable Pong"
+msgstr "無効なPong"
+
+msgid "Hard TTL limit reached"
+msgstr "TTLの固定上限に到達"
+
+msgid "Max hop count reached"
+msgstr "最大ホップ数に到達"
+
+msgid "Route lost"
+msgstr "経路を喪失"
+
+msgid "No route"
+msgstr "経路が無い"
+
+msgid "Duplicate message"
+msgstr "重複メッセージ"
+
+msgid "OOB Proxy MUID Conflict"
+msgstr ""
+
+msgid "Message to banned GUID"
+msgstr "禁止GUIDへのメッセージ"
+
+#, fuzzy
+msgid "Message from banned GUID"
+msgstr "禁止GUIDへのメッセージ"
+
+# FIXME: Node -> Peer
+msgid "Node shutting down"
+msgstr "ピアが停止中"
+
+msgid "TX flow control"
+msgstr "送信フロー制御"
+
+msgid "Query text had no trailing NUL"
+msgstr "NULLで終わらない検索クエリー"
+
+msgid "Query text too short"
+msgstr "短過ぎる検索クエリー"
+
+msgid "Query had unnecessary overhead"
+msgstr "不要オーバーへッドがある検索クエリー"
+
+msgid "Query had bad URN"
+msgstr "不正URNがある検索クエリー"
+
+msgid "Message with malformed SHA1"
+msgstr "変なSHA1があるメッセージ"
+
+msgid "Message with malformed UTF-8"
+msgstr "変なUTF-8があるメッセージ"
+
+msgid "Malformed Query Hit"
+msgstr "変な検索クエリーヒット"
+
+msgid "Bad return address"
+msgstr "不正な返却アドレス"
+
+msgid "Hostile IP address"
+msgstr "有害IPアドレス"
+
+# FIXME: how's unstable?
+#, fuzzy
+msgid "Shunned IP address"
+msgstr "不安定な IP アドレスです"
+
+msgid "Bogus result from Morpheus"
+msgstr ""
+
+msgid "Spam"
+msgstr "スパム"
+
+msgid "Evil filename"
+msgstr "有害ファイル名"
+
+# FIXME: `Search Term' -> `Searches' or `Search queries'
+#, fuzzy
+msgid "Improper media type"
+msgstr "検索クエリー"
+
+# XXX: wtf
+msgid "Payload inflating error"
+msgstr "ペイロード膨張エラー"
+
+msgid "Unknown header flags present"
+msgstr "不明なヘッダーフラッグが存在"
+
+# FIXME: should be revised.
+msgid "Own search results"
+msgstr "自分自身の検索結果数"
+
+#, fuzzy
+msgid "Own queries"
+msgstr "RX (受信) 検索クエリー数"
+
+msgid "Ancient query format"
+msgstr "古いクエリー形式"
+
+msgid "Blank Servent ID"
+msgstr "空のサーバントID"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+msgid "GUESS Invalid query token"
+msgstr ""
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "変なコマンドです"
+
+#, fuzzy
+msgid "G2 Unexpected message"
+msgstr "想定外のメッセージ"
+
+#, fuzzy
+msgid "Cannot cross networks"
+msgstr "ローカルネット"
 
 msgid "No proxy"
 msgstr "使用しない"
@@ -2830,9 +3980,10 @@ msgstr ""
 "アップロードが頻繁に停滞しており、帯域幅が飽和している事を表します。このよう"
 "な条件下ではウルトラピアとして使用するのを避けてください。"
 
+#, fuzzy
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
 "list from the global one distributed with gtk-gnutella."
 msgstr ""
 "有効にすると、システム用の hostiles.txt が個人用の $GTK_GNUTELLA_DIR/"
@@ -3734,6 +4885,69 @@ msgstr ""
 msgid "Whether the program is auto-restarting at the user's request."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for time management."
+msgstr "ホスト管理機能のデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the tmalloc() thread-magazine object distributor."
+msgstr "シェルのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the event queue thread."
+msgstr "検索キューのデバッグレベルです。"
+
+#, fuzzy
+msgid "Maximum number of G2 hubs in the hub cache."
+msgstr "G2ノードのキャッシュの最大ホスト数です。"
+
+#, fuzzy
+msgid "Current number of IPv4 hosts in the G2 hub caches."
+msgstr "ウルトラピアキャッシュの現在のホスト数です。"
+
+#, fuzzy
+msgid "Whether the G2 protocol should be enabled."
+msgstr "送信トラフィックの圧縮比を表示するかどうかを選択します。"
+
+#, fuzzy
+msgid "Number of G2 nodes currently connected."
+msgstr "現在接続しているリーフの数です。"
+
+#, fuzzy
+msgid "Maximum amount of G2 hubs we should connect to as a leaf."
+msgstr "リーフとして接続するウルトラピアの最大数です。"
+
+#, fuzzy
+msgid "Whether to log bad G2 messages, corrupted or unexpected."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log dropped G2 messages"
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the G2 RPC layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log summary of received query hits"
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+msgid "Whether to log summary of each record in received query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Number of G2 browsing requests received in this session."
+msgstr "このセッション中に受信した HTML 参照リクエストの回数です。"
+
+#, fuzzy
+msgid "Number of G2 browsing requests fully served in this session."
+msgstr "このセッション中に完全に送信された HTML 参照リクエストの回数です。"
+
+#, fuzzy
+msgid "Whether to log G2 messages we're attempting to send"
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -3755,70 +4969,8 @@ msgstr "TCPのみ"
 msgid "UDP only"
 msgstr "UDPのみ"
 
-msgid "Ping"
-msgstr "Ping"
-
-msgid "Pong"
-msgstr "Pong"
-
-msgid "Bye"
-msgstr "Bye"
-
-msgid "QRP"
-msgstr "QRP"
-
-msgid "HSEP"
-msgstr "HSEP"
-
-msgid "RUDP"
-msgstr "RUDP"
-
-msgid "Vendor spec."
-msgstr "ベンダー特定"
-
-msgid "Vendor std."
-msgstr "ベンダー標準"
-
-msgid "Push"
-msgstr "PUSH"
-
-msgid "Query"
-msgstr "検索クエリー"
-
 msgid "Query Hit"
 msgstr "検索クエリーヒット"
-
-#, fuzzy
-msgid "DHT Ping"
-msgstr "Ping"
-
-#, fuzzy
-msgid "DHT Pong"
-msgstr "Pong"
-
-#, fuzzy
-msgid "DHT Store"
-msgstr "DHTトラフィック"
-
-msgid "DHT Store Ack"
-msgstr ""
-
-msgid "DHT Find Node"
-msgstr ""
-
-msgid "DHT Found Node"
-msgstr ""
-
-msgid "DHT Find Value"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Value"
-msgstr "値"
-
-# FIXME: separation (src/if/gui_property.c: Total -> All)
-msgid "Total"
-msgstr "合計"
 
 msgid "Icons"
 msgstr "アイコンのみ"
@@ -5167,6 +6319,14 @@ msgstr "インタラクティブモードが有効になりました。"
 msgid "Interactive mode turned off."
 msgstr "インタラクティブモードが無効になりました。"
 
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "不明な操作です"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "不明な操作です"
+
 #, fuzzy
 msgid "Cannot determine current working directory"
 msgstr "ホームフォルダが見つかりません！"
@@ -5182,14 +6342,6 @@ msgstr "GIV を送信できません"
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
-
-#, fuzzy, c-format
-msgid "Unknown operation \"%s\""
-msgstr "不明な操作です"
-
-#, fuzzy, c-format
-msgid "Unknown operation \"show %s\""
-msgstr "不明な操作です"
 
 #, fuzzy, c-format
 msgid "Unknown operation \"stats %s\""
@@ -5240,6 +6392,9 @@ msgstr "合致するプロパティがありません。"
 msgid "Good bye"
 msgstr "Good Bye"
 
+msgid "Invalid command syntax"
+msgstr "無効なコマンド行です"
+
 msgid "Query string missing"
 msgstr "検索クエリー文字列がありません"
 
@@ -5277,9 +6432,6 @@ msgstr ""
 
 msgid "unterminated single-quoted string"
 msgstr ""
-
-msgid "Invalid command syntax"
-msgstr "無効なコマンド行です"
 
 msgid "too many arguments in command"
 msgstr "引数が多すぎます"
@@ -5851,907 +7003,6 @@ msgstr "全体 (振り分け後)"
 
 msgid "RETURN"
 msgstr "リターン"
-
-msgid "Query hit"
-msgstr "検索クエリーヒット"
-
-msgid "DHT (truncated)"
-msgstr ""
-
-msgid "Routing errors"
-msgstr "経路制御エラー"
-
-#, fuzzy
-msgid "Routing table chunks"
-msgstr "検索クエリー経路制御テーブルの生成番号です。"
-
-msgid "Routing table message capacity"
-msgstr ""
-
-msgid "Routing table message count"
-msgstr ""
-
-msgid "Routing through transient node avoided"
-msgstr ""
-
-# XXX: wtf
-msgid "Duplicates with higher TTL"
-msgstr "高TTLでの重複"
-
-msgid "SPAM SHA1 database hits"
-msgstr ""
-
-#, fuzzy
-msgid "SPAM filename and size hits"
-msgstr "ファイル名が「%s」%s で終わる"
-
-msgid "SPAM fake hits"
-msgstr ""
-
-msgid "SPAM duplicate hits"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP held"
-msgstr ""
-
-msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
-
-# XXX: free translation
-msgid "Searches to local DB"
-msgstr "あなたの共有ファイルへの検索"
-
-# XXX: free translation
-msgid "Hits on local DB"
-msgstr "あなたの共有ファイルにヒット"
-
-# XXX: free translation
-#, fuzzy
-msgid "Hits on local partial files"
-msgstr "あなたの共有ファイルにヒット"
-
-msgid "Hits on \"what's new?\" queries"
-msgstr ""
-
-# XXX: free translation
-msgid "Query hits received for local queries"
-msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
-
-# XXX: wtf
-msgid "Query hits received for OOB-proxied queries"
-msgstr "OOBプロキシ検索クエリーで受取った検索クエリーヒット"
-
-# XXX: wtf
-msgid "Queries requesting OOB hit delivery"
-msgstr "OOBヒット配送を要求する検索クエリー"
-
-# XXX: wtf
-msgid "Stripped OOB flag on queries"
-msgstr "検索クエリーでの削除済OOBフラッグ"
-
-msgid "Ignored OOB queries due to unclaimed hits"
-msgstr ""
-
-# XXX: wtf
-msgid "Duplicate OOB-proxied queries"
-msgstr "重複するOOBプロキシ検索クエリー"
-
-# XXX: wtf
-msgid "OOB hits received for OOB-proxied queries"
-msgstr "OOBプロキシ検索クエリーで受取ったOOBヒット"
-
-# XXX: wtf
-msgid "OOB hits bearing alien IP address"
-msgstr "無関係なIPアドレスに関するOOBヒット"
-
-msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
-
-msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
-
-# XXX: wtf
-msgid "Unclaimed locally-generated OOB hits"
-msgstr "要求のないローカル生成OOBヒット"
-
-# XXX: wtf
-msgid "Partially claimed locally-generated OOB hits"
-msgstr "一部要求されているローカル生成OOBヒット"
-
-# XXX: wtf
-msgid "Spurious OOB hit claiming received"
-msgstr "受信した偽のOOBヒット要求"
-
-# XXX: wtf
-msgid "Unrequested OOB hits received"
-msgstr "リクエストしていないOOBヒットの受信数"
-
-msgid "Received query hits for untracked queries"
-msgstr ""
-
-msgid "Tracked query MUIDs"
-msgstr ""
-
-msgid "Compacted queries"
-msgstr "圧縮検索クエリー"
-
-# XXX: wtf
-msgid "Bytes saved by compacting"
-msgstr "圧縮保存済バイト"
-
-msgid "UTF8 queries"
-msgstr "UTF8検索クエリー"
-
-msgid "SHA1 queries"
-msgstr "SHA1検索クエリー"
-
-#, fuzzy
-msgid "\"What's New?\" queries"
-msgstr "生成検索クエリー数"
-
-#, fuzzy
-msgid "GUESS queries"
-msgstr "UTF8検索クエリー"
-
-#, fuzzy
-msgid "GUESS queries (0.2)"
-msgstr "UTF8検索クエリー"
-
-msgid "GUESS link cache size"
-msgstr ""
-
-msgid "GUESS cached query keys held"
-msgstr ""
-
-msgid "GUESS cached 0.2 hosts held"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS locally generated queries"
-msgstr "ローカル生成の動的検索クエリー"
-
-msgid "GUESS currently running queries"
-msgstr ""
-
-# XXX: free translation
-#, fuzzy
-msgid "GUESS hits received for locally generated queries"
-msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
-
-msgid "GUESS hosts queried"
-msgstr ""
-
-msgid "GUESS hosts sending back an acknowledgment"
-msgstr ""
-
-msgid "Broadcasted push messages"
-msgstr "広域送信PUSHメッセージ"
-
-msgid "Push-proxy UDP relayed messages"
-msgstr "PUSHプロキシUDP中継メッセージ"
-
-msgid "Push-proxy TCP relayed messages"
-msgstr "PUSHプロキシTCP中継メッセージ"
-
-msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr ""
-
-msgid "Push-proxy broadcasted messages"
-msgstr "PUSHプロキシ広域送信メッセージ"
-
-msgid "Push-proxy found un-proxied local route"
-msgstr ""
-
-msgid "Push-proxy lookup failures"
-msgstr "PUSHプロキシ参照失敗"
-
-msgid "Push relayed via local route"
-msgstr ""
-
-msgid "Push relayed via routing table"
-msgstr ""
-
-msgid "Locally generated dynamic queries"
-msgstr "ローカル生成の動的検索クエリー"
-
-msgid "Leaf-generated dynamic queries"
-msgstr "リーフ生成の動的検索クエリー"
-
-# XXX: wtf
-msgid "OOB-proxied leaf queries"
-msgstr "プロキシOOBリーフ検索クエリー"
-
-# XXX: wtf
-msgid "Fully completed dynamic queries"
-msgstr "完全完成の動的検索クエリー"
-
-# XXX: wtf
-msgid "Partially completed dynamic queries"
-msgstr "部分完成の動的検索クエリー"
-
-msgid "Dynamic queries ended with no results"
-msgstr "結果無しで終了した動的検索クエリー"
-
-# XXX: wtf
-msgid "Fully completed dynamic queries getting late results"
-msgstr "後に結果を得る完全完成の動的検索クエリー"
-
-# XXX: wtf
-msgid "Dynamic queries with partial late results"
-msgstr "後の部分的な結果を伴う動的検索クエリー"
-
-# XXX: wtf
-msgid "Dynamic queries completed by late results"
-msgstr "後の結果で完成する動的検索クエリー"
-
-msgid "Queries seen from GTKG"
-msgstr "GTKGからの検索クエリー"
-
-msgid "Queries seen from GTKG that were re-queries"
-msgstr "GTKGからの検索クエリー (再問合わせ)"
-
-msgid "Queries advertising support of GGEP \"H\""
-msgstr "GGEP「H」への対応を知らせる検索クエリー"
-
-#, fuzzy
-msgid "Queries advertising support of semi-reliable UDP"
-msgstr "GGEP「H」への対応を知らせる検索クエリー"
-
-msgid "GIV callbacks received"
-msgstr "受信したGIVコールバック"
-
-msgid "GIV discarded due to no suitable download"
-msgstr ""
-
-msgid "QUEUE callbacks received"
-msgstr "受信したQUEUEコールバック"
-
-msgid "QUEUE discarded due to no suitable download"
-msgstr ""
-
-msgid "UDP read-ahead datagram running count"
-msgstr ""
-
-msgid "UDP read-ahead datagram running bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram \"old\" processed"
-msgstr ""
-
-msgid "UDP read-ahead datagram max count"
-msgstr ""
-
-msgid "UDP read-ahead datagram max bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram max delay"
-msgstr ""
-
-msgid "UDP push messages received for FW<->FW connections"
-msgstr ""
-
-msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr ""
-
-msgid "UDP push messages patched for FW<->FW connections"
-msgstr ""
-
-msgid "UDP UHC pings received"
-msgstr ""
-
-#, fuzzy
-msgid "UDP UHC pongs sent"
-msgstr "PUSH を送信しました"
-
-msgid "UDP messages with bogus source IP"
-msgstr "UDPメッセージ (偽の送信元IP)"
-
-#, fuzzy
-msgid "UDP truncated incoming messages"
-msgstr "変なコマンドです"
-
-msgid "Alien UDP messages (non-Gnutella)"
-msgstr "無関係なUDPメッセージ (非Gnutella)"
-
-msgid "Unprocessed UDP Gnutella messages"
-msgstr "未処理のUDPメッセージ (Gnutella)"
-
-msgid "Compressed UDP messages enqueued"
-msgstr "キューにある圧縮UDPメッセージ"
-
-msgid "Compressed UDP messages received"
-msgstr "受信した圧縮UDPメッセージ"
-
-# XXX: wtf
-msgid "Uncompressed UDP messages due to no gain"
-msgstr "有効性が無いため圧縮されないUDPメッセージ"
-
-#, fuzzy
-msgid "Ambiguous UDP messages received"
-msgstr "受信した圧縮UDPメッセージ"
-
-msgid "Ambiguous UDP messages inspected more deeply"
-msgstr ""
-
-msgid "Ambiguous UDP messages handled as semi-reliable UDP"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages deflated"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages unsent"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages partially sent due to clogging"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages correctly transmited"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments resent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent too many times"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP too many EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP fragments received"
-msgstr "受信した圧縮UDPメッセージ"
-
-msgid "Semi-reliable UDP duplicate fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP dropped received fragments"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP messages expired before re-assembly"
-msgstr ""
-
-msgid "Semi-reliable UDP messages re-assembled completely"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated successfully"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated incorrectly"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP unreliable messages received"
-msgstr "受信した圧縮UDPメッセージ"
-
-#, fuzzy
-msgid "Semi-reliable UDP empty messages received"
-msgstr "受信した圧縮UDPメッセージ"
-
-msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP EARs received"
-msgstr "受信した圧縮UDPメッセージ"
-
-msgid "Semi-reliable UDP EARs received for unknown message"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr ""
-
-msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr ""
-
-msgid "Duplicate downloads found during server consolidation"
-msgstr ""
-
-msgid "Discovered server GUIDs"
-msgstr "発見されたサーバントGUID"
-
-msgid "Changed server GUIDs"
-msgstr "変更されたサーバントGUID"
-
-msgid "Detected GUID collisions"
-msgstr "競合しているGUID"
-
-msgid "Detected collisions with our own GUID"
-msgstr "競合しているGTKGのGUID"
-
-msgid "GUID dynamically banned"
-msgstr ""
-
-msgid "Firewalled node info for known hosts received in upload requests"
-msgstr ""
-
-msgid "Revitalized PUSH routes"
-msgstr ""
-
-msgid "Collected new PUSH proxies from other query hits"
-msgstr ""
-
-msgid "Attempted download resource switching on completion"
-msgstr ""
-
-msgid "Attempted download resource switching after error"
-msgstr ""
-
-msgid "Successful download resource switching (all kind)"
-msgstr ""
-
-msgid "Successful download resource switching between plain files"
-msgstr ""
-
-msgid "Successful download resource switching after error"
-msgstr ""
-
-msgid "Actively queued after resource switching attempt"
-msgstr ""
-
-msgid "Sunk HTTP reply data on error codes"
-msgstr ""
-
-msgid "Ignored downloaded data"
-msgstr "破棄されたダウンロード済データ"
-
-msgid "Ignoring requested after data mismatch"
-msgstr ""
-
-msgid "Ignoring requested to preserve connection"
-msgstr ""
-
-msgid "Ignoring requested due to aggressive swarming"
-msgstr ""
-
-msgid "Ignoring refused (data too large or server too slow)"
-msgstr ""
-
-msgid "Client resource switching (all detected)"
-msgstr ""
-
-msgid "Client resource switching between plain files"
-msgstr ""
-
-msgid "Client follow-up request after HTTP error was returned"
-msgstr ""
-
-msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr ""
-
-msgid "PARQ client retry-after violation"
-msgstr ""
-
-msgid "PARQ client kicked out after too many retry-after violations"
-msgstr ""
-
-msgid "PARQ upload slot limit overrides"
-msgstr ""
-
-msgid "PARQ quick upload slots granted"
-msgstr ""
-
-msgid "PARQ QUEUE sending attempts"
-msgstr ""
-
-msgid "PARQ QUEUE messages sent"
-msgstr ""
-
-msgid "PARQ QUEUE follow-up requests received"
-msgstr ""
-
-msgid "Launched SHA-1 file verifications"
-msgstr ""
-
-msgid "Launched TTH file verifications"
-msgstr ""
-
-msgid "Bitzi tickets held"
-msgstr ""
-
-msgid "Re-seeding of orphan downloads through query hits"
-msgstr ""
-
-#, fuzzy
-msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "ダウンロードのデバッグレベルです。"
-
-#, fuzzy
-msgid "RUDP sent bytes"
-msgstr "RX (受信) 伝送バイト数"
-
-#, fuzzy
-msgid "RUDP received bytes"
-msgstr "RX (受信) 伝送バイト数"
-
-msgid "DHT estimated amount of nodes"
-msgstr ""
-
-msgid "DHT standard error of estimated amount of nodes"
-msgstr ""
-
-msgid "DHT k-ball theoretical frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball furthest frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball closeest frontier (bits)"
-msgstr ""
-
-msgid "DHT routing table buckets"
-msgstr ""
-
-msgid "DHT routing table leaves"
-msgstr ""
-
-msgid "DHT routing table maximum depth"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table good nodes"
-msgstr "検索クエリー経路制御テーブルの生成番号です。"
-
-msgid "DHT routing table stale nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table pending nodes"
-msgstr "検索クエリー経路制御テーブルの生成番号です。"
-
-msgid "DHT routing table evicted nodes"
-msgstr ""
-
-msgid "DHT routing table evicted firewalled nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table evicted nodes due to quota"
-msgstr "検索クエリー経路制御テーブルの生成番号です。"
-
-msgid "DHT routing table promoted pending nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table pinged promoted nodes"
-msgstr "検索クエリー経路制御テーブルの生成番号です。"
-
-msgid "DHT routing table rejected node due to bucket network quota"
-msgstr ""
-
-msgid "DHT routing table rejected node due to global network quota"
-msgstr ""
-
-msgid "DHT completed bucket refreshes"
-msgstr ""
-
-msgid "DHT forced bucket refreshes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT forced bucket merges"
-msgstr "変なコマンドです"
-
-msgid "DHT denied non-splitable bucket refresh"
-msgstr ""
-
-msgid "DHT initiated bucket alive checks"
-msgstr ""
-
-msgid "DHT alive pings sent to good nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to stale nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to shutdowning nodes"
-msgstr ""
-
-msgid "DHT alive pings avoided"
-msgstr ""
-
-msgid "DHT alive pings skipped"
-msgstr ""
-
-msgid "DHT revitalized stale nodes on RPC reply"
-msgstr ""
-
-msgid "DHT value store rejected on IP/network quota grounds"
-msgstr ""
-
-msgid "DHT value store rejected on creator validation grounds"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on network quota"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr ""
-
-msgid "DHT node contact IP addresses fixed during lookup"
-msgstr ""
-
-msgid "DHT keys held"
-msgstr ""
-
-msgid "DHT cached keys held"
-msgstr ""
-
-msgid "DHT values held"
-msgstr ""
-
-msgid "DHT cached KUID targets held"
-msgstr ""
-
-msgid "DHT cached closest root nodes"
-msgstr ""
-
-msgid "DHT cached roots exact hits"
-msgstr ""
-
-msgid "DHT cached roots approximate hits"
-msgstr ""
-
-msgid "DHT cached roots misses"
-msgstr ""
-
-msgid "DHT cached roots lookups within k-ball"
-msgstr ""
-
-msgid "DHT cached roots contact address refreshed"
-msgstr ""
-
-msgid "DHT cached security tokens held"
-msgstr ""
-
-msgid "DHT cached security tokens hits"
-msgstr ""
-
-#, fuzzy
-msgid "DHT stable node information held"
-msgstr "ホスト情報"
-
-msgid "DHT local hits on value lookups"
-msgstr ""
-
-msgid "DHT local hits returning values from cached keys"
-msgstr ""
-
-msgid "DHT returned expanded values"
-msgstr ""
-
-msgid "DHT returned values as secondary keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed values via secondary keys"
-msgstr "タイムアウト (全て秒単位)"
-
-msgid "DHT returned cached expanded values"
-msgstr ""
-
-msgid "DHT returned cached values as secondary-keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed cached values via secondary keys"
-msgstr "タイムアウト (全て秒単位)"
-
-msgid "DHT successfully received value publications"
-msgstr ""
-
-msgid "DHT successfully received value removals"
-msgstr ""
-
-msgid "DHT replication of stale value avoided"
-msgstr ""
-
-msgid "DHT replication of held values"
-msgstr ""
-
-msgid "DHT republishing of held values"
-msgstr ""
-
-msgid "DHT secondary-key value fetch issued"
-msgstr ""
-
-msgid "DHT duplicate values returned in lookups"
-msgstr ""
-
-msgid "DHT detected KUID collisions"
-msgstr ""
-
-msgid "DHT detected collisions with our own KUID"
-msgstr ""
-
-msgid "DHT caching attempts"
-msgstr ""
-
-msgid "DHT caching ended successfully"
-msgstr ""
-
-msgid "DHT caching partially completed"
-msgstr ""
-
-msgid "DHT key-offloading checks after discovering new closest node"
-msgstr ""
-
-msgid "DHT keys selected for offloading"
-msgstr ""
-
-msgid "DHT key-offloading attempts"
-msgstr ""
-
-msgid "DHT key-offloading ended successfully"
-msgstr ""
-
-msgid "DHT key-offloading partially completed"
-msgstr ""
-
-msgid "DHT values successfully offloaded"
-msgstr ""
-
-#, fuzzy
-msgid "DHT incoming messages"
-msgstr "変なコマンドです"
-
-msgid "DHT incoming messages with UDP-matching contact address"
-msgstr ""
-
-msgid "DHT incoming messages with contact address fixed"
-msgstr ""
-
-msgid "DHT incoming messages from hostile addresses"
-msgstr ""
-
-msgid "DHT incoming messages with hostile contact address"
-msgstr ""
-
-msgid "DHT RPC messages prepared"
-msgstr ""
-
-msgid "DHT RPC messages cancelled"
-msgstr ""
-
-msgid "DHT RPC timed out"
-msgstr ""
-
-msgid "DHT RPC replies received"
-msgstr ""
-
-msgid "DHT RPC replies with contact address fixed"
-msgstr ""
-
-msgid "DHT RPC late replies received"
-msgstr ""
-
-msgid "DHT RPC detected KUID mismatches on reply"
-msgstr ""
-
-msgid "DHT RPC recent nodes held"
-msgstr ""
-
-#, fuzzy
-msgid "DHT node verifications"
-msgstr "ホスト情報"
-
-msgid "DHT publishing attempts"
-msgstr ""
-
-msgid "DHT publishing ended successfully (all roots)"
-msgstr ""
-
-msgid "DHT publishing partially completed (root subset only)"
-msgstr ""
-
-msgid "DHT publishing ending with proper value presence"
-msgstr ""
-
-msgid "DHT value republishing occurring too late (after expiry)"
-msgstr ""
-
-msgid "DHT publishing to self"
-msgstr ""
-
-msgid "DHT background publishing completion attempts"
-msgstr ""
-
-msgid "DHT background publishing completion showing improvements"
-msgstr ""
-
-msgid "DHT background publishing completion successful (all roots)"
-msgstr ""
-
-msgid "DHT SHA1 data type collisions"
-msgstr ""
-
-msgid "DHT lookup path passively protected against attack"
-msgstr ""
-
-msgid "DHT lookup path actively protected against attack"
-msgstr ""
-
-msgid "DHT alt-loc lookups issued"
-msgstr ""
-
-#, fuzzy
-msgid "DHT push-proxy lookups issued"
-msgstr "PUSHプロキシ参照失敗"
-
-msgid "DHT successful alt-loc lookups"
-msgstr ""
-
-msgid "DHT successful push-proxy lookups"
-msgstr ""
-
-msgid "DHT successful node push-entry lookups"
-msgstr ""
-
-#, fuzzy
-msgid "DHT re-seeding of orphan downloads"
-msgstr "ダウンロードのデバッグレベルです。"
 
 msgid "node"
 msgid_plural "nodes"
@@ -8918,6 +9169,15 @@ msgstr "アップロード統計をサイドバーに表示します。"
 msgid "Mapping lease time"
 msgstr ""
 
+msgid "G2 hubs"
+msgstr ""
+
+msgid "Enable the G2 network"
+msgstr ""
+
+msgid " G2, "
+msgstr ""
+
 msgid "Not in database"
 msgstr "データベースにありません"
 
@@ -9070,7 +9330,8 @@ msgid "Served "
 msgstr " "
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
-msgid "[BH HTML served]"
+#, fuzzy
+msgid "[G2 served]"
 msgstr "[BH HTML served]"
 
 # NOTE: this string is used as follows
@@ -9079,6 +9340,13 @@ msgstr "[BH HTML served]"
 #
 msgid " / "
 msgstr "/"
+
+msgid "[G2]"
+msgstr ""
+
+# NOTE: it shouldn't be translated, you can simply copy & paste
+msgid "[BH HTML served]"
+msgstr "[BH HTML served]"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 msgid "[BH HTML]"
@@ -9265,6 +9533,12 @@ msgstr "新規のウルトラピア"
 msgid "Valid IPv6 ultra"
 msgstr "有効なウルトラピア"
 
+msgid "Fresh G2 hub"
+msgstr ""
+
+msgid "Valid G2 hub"
+msgstr ""
+
 msgid "Unstable"
 msgstr "不安定"
 
@@ -9339,6 +9613,11 @@ msgstr "HELLO受信中"
 
 msgid "UNKNOWN STATUS"
 msgstr "不明なステータス"
+
+# NOTE: it shouldn't be translated, you can simply copy & paste
+#, fuzzy
+msgid "g2"
+msgstr ", g2"
 
 msgid "busy"
 msgstr "使用中"
@@ -9436,8 +9715,8 @@ msgstr[0] "検索クエリー"
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
-"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
+"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
 
 #, fuzzy
@@ -9773,11 +10052,6 @@ msgid "%u queued"
 msgstr "%u 件が待機中"
 
 #, c-format
-msgid "%u/%u connection"
-msgid_plural "%u/%u connections"
-msgstr[0] "%u/%u 件の接続"
-
-#, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u 件のアップロード"
@@ -9855,9 +10129,9 @@ msgstr "QUEUE送信、折り返し接続中..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
 
-#, fuzzy
-#~ msgid "Debug level for time management."
-#~ msgstr "ホスト管理機能のデバッグレベルです。"
+#~ msgid "%u/%u connection"
+#~ msgid_plural "%u/%u connections"
+#~ msgstr[0] "%u/%u 件の接続"
 
 #, fuzzy
 #~ msgid "Splitting ougoing HTTP bandwidth evenly."

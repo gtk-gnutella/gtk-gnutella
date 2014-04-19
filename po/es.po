@@ -12,17 +12,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2014-04-19 18:25+0200\n"
 "PO-Revision-Date: 2013-04-08 22:19+0000\n"
 "Last-Translator: Eduardo Alberto Calvo <Unknown>\n"
 "Language-Team: Spanish <lanieves@gmail.com>\n"
+"Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Launchpad-Export-Date: 2013-05-08 19:08+0000\n"
 "X-Generator: Launchpad (build 16598)\n"
-"Language: es\n"
 "X-Poedit-Language: Spanish\n"
 
 #, c-format
@@ -322,6 +322,14 @@ msgstr "Discordancia en Content-Length"
 msgid "No Content-Length header"
 msgstr "Sin encabezado Content-Length"
 
+#, fuzzy
+msgid "Unexpected Content-Type"
+msgstr "Mensaje inesperado"
+
+#, fuzzy
+msgid "No Content-Type"
+msgstr "Contenido no permitido"
+
 msgid "Search already closed"
 msgstr "Búsqueda cerrada"
 
@@ -364,14 +372,24 @@ msgstr ", entrante"
 msgid ", outbound"
 msgstr ", saliente"
 
+msgid ", no-pipeline"
+msgstr ""
+
 msgid ", banning"
 msgstr ", excluyendo"
 
 msgid ", g2"
 msgstr ", g2"
 
+msgid ", fake-g2"
+msgstr ""
+
 msgid ", vendor?"
 msgstr ", ¿vendedor?"
+
+#, fuzzy, c-format
+msgid "<Browse G2 Host %s>"
+msgstr "<Navegar Nodo %s>"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -479,147 +497,13 @@ msgid_plural "Got %d hosts from %s"
 msgstr[0] ""
 msgstr[1] ""
 
+#, fuzzy, c-format
+msgid "Connecting to web cache %s"
+msgstr "Conectar al nodo"
+
 #, c-format
 msgid "Bootstrapping from %s"
 msgstr ""
-
-msgid "Bad size"
-msgstr "Tamaño incorrecto"
-
-msgid "Too small"
-msgstr "Demasiado pequeño"
-
-msgid "Too large"
-msgstr "Muy grande"
-
-msgid "Way too large"
-msgstr "Demasiado grande"
-
-msgid "Unknown message type"
-msgstr "Tipo de mensaje desconocido"
-
-msgid "Unexpected message"
-msgstr "Mensaje inesperado"
-
-msgid "Message sent with TTL = 0"
-msgstr "Mensaje enviado con TTL = 0"
-
-msgid "Improper hops/ttl combination"
-msgstr "Combinación saltos/ttl incongruente"
-
-msgid "Max TTL exceeded"
-msgstr "TTL máximo excedido"
-
-msgid "Message throttle"
-msgstr "Umbral de mensajes"
-
-msgid "Message matched limits"
-msgstr ""
-
-msgid "Transient node"
-msgstr ""
-
-msgid "Unusable Pong"
-msgstr "Pong no usable"
-
-msgid "Hard TTL limit reached"
-msgstr "Límite TTL duro alcanzado"
-
-msgid "Max hop count reached"
-msgstr "Número máximo de saltos alcanzados"
-
-msgid "Route lost"
-msgstr "Camino perdido"
-
-msgid "No route"
-msgstr "No hay camino"
-
-msgid "Duplicate message"
-msgstr "Mensaje duplicado"
-
-msgid "Message to banned GUID"
-msgstr "Mensaje para GUID baneado"
-
-msgid "Message from banned GUID"
-msgstr ""
-
-msgid "Node shutting down"
-msgstr "Nodo apagándose"
-
-msgid "TX flow control"
-msgstr "Control de flujo TX"
-
-msgid "Query text had no trailing NUL"
-msgstr "Texto de la petición to terminaba en NUL"
-
-msgid "Query text too short"
-msgstr "Texto de la petición demasiado corto"
-
-msgid "Query had unnecessary overhead"
-msgstr "Petición tenía recarga innecesaria"
-
-msgid "Query had bad URN"
-msgstr "Petición tenía URN incorrecto"
-
-msgid "Message with malformed SHA1"
-msgstr "Mensaje con SHA1 incorrecto"
-
-msgid "Message with malformed UTF-8"
-msgstr "Mensaje con UTF-8 incorrecto"
-
-msgid "Malformed Query Hit"
-msgstr "Query Hit malformado"
-
-msgid "Bad return address"
-msgstr "Dirección de retorno incorrecta"
-
-msgid "Hostile IP address"
-msgstr "Dirección IP hostil"
-
-msgid "Bogus result from Morpheus"
-msgstr ""
-
-msgid "Spam"
-msgstr "Spam"
-
-msgid "Evil filename"
-msgstr "Nombre de archivo \"malévolo\""
-
-msgid "Improper media type"
-msgstr ""
-
-msgid "Payload inflating error"
-msgstr "error al inflar carga"
-
-msgid "Unknown header flags present"
-msgstr "Indicaciones desconocidas presentes en encabezado"
-
-msgid "Own search results"
-msgstr "Resultados de búsqueda propios"
-
-msgid "Own queries"
-msgstr ""
-
-msgid "Ancient query format"
-msgstr "Formato de petición anticuado"
-
-msgid "Blank Servent ID"
-msgstr "ID de nodo vacía"
-
-msgid "GUESS Query missing token"
-msgstr ""
-
-msgid "GUESS Invalid query token"
-msgstr ""
-
-msgid "DHT Invalid security token"
-msgstr "Símbolo de seguridad DHT inválido"
-
-msgid "DHT Too many STORE requests"
-msgstr "DHT demasiadas peticiones STORE"
-
-msgid "DHT Malformed message"
-msgstr "Mensaje DHT  malformado"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -657,6 +541,10 @@ msgstr "Conexiones Gnet deshabilitadas"
 
 msgid "Connection not compressed"
 msgstr "Conexión sin comprimir"
+
+#, fuzzy, c-format
+msgid "Too many G2 hubs (%u max)"
+msgstr "Demasiados nodos (%d max)"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -707,6 +595,9 @@ msgstr "Nodo Cerrado"
 
 msgid "Not a network member"
 msgstr "No es miembro de la red"
+
+msgid "Need a G2 Hub"
+msgstr ""
 
 msgid "Too frequent crawling"
 msgstr "Arrastre demasiado frecuente"
@@ -760,6 +651,10 @@ msgstr "Pseudo-nodo UDP"
 msgid "Pseudo semi-reliable UDP node"
 msgstr ""
 
+#, fuzzy
+msgid "Pseudo G2 UDP node"
+msgstr "Pseudo-nodo UDP"
+
 msgid "Pseudo DHT node"
 msgstr ""
 
@@ -804,6 +699,9 @@ msgstr "UDP"
 
 msgid "DHT"
 msgstr "DHT"
+
+msgid "G2 hub"
+msgstr ""
 
 msgid "Unknown"
 msgstr "Desconocido"
@@ -928,9 +826,6 @@ msgstr "No encontrado"
 msgid "File was modified"
 msgstr "El archivo ha sido modificado"
 
-msgid "Library being rebuilt"
-msgstr "La biblioteca se está recompilando"
-
 msgid "Moved Permanently"
 msgstr "Movido permanentemente"
 
@@ -942,6 +837,9 @@ msgstr "URN no encontrado (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
 msgstr "El SHA1 se está recalculando"
+
+msgid "Library being rebuilt"
+msgstr "La biblioteca se está recompilando"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -1003,8 +901,8 @@ msgstr "Imposible enviar el estado completo HTTP"
 msgid "Not Acceptable"
 msgstr "No aceptable"
 
-#, c-format
-msgid "<Browse Host Request> [%s%s%s]"
+#, fuzzy, c-format
+msgid "<Browse Host %sRequest> [%s%s%s]"
 msgstr "<Petición de Navegar Nodo> [%s%s%s]"
 
 msgid "query hits"
@@ -1081,6 +979,1192 @@ msgstr " - Nueva versión disponible: versión %s"
 #, c-format
 msgid " - Newer version available: from git %s"
 msgstr " - Nueva versión disponible: basada en git %s"
+
+msgid "Routing errors"
+msgstr "Errores de enrutado"
+
+msgid "Routing table chunks"
+msgstr ""
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
+msgid "Routing through transient node avoided"
+msgstr ""
+
+msgid "Duplicates with higher TTL"
+msgstr "Duplicados con TTL mayor"
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+msgid "SPAM filename and size hits"
+msgstr ""
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
+
+msgid "Searches to local DB"
+msgstr "Búsquedas en BD locales"
+
+msgid "Hits on local DB"
+msgstr "Toques en BD local"
+
+msgid "Hits on local partial files"
+msgstr ""
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
+msgid "Query hits received for local queries"
+msgstr "Query hits recibidos para peticiones locales"
+
+#, fuzzy
+msgid "G2 searches to local DB"
+msgstr "Búsquedas en BD locales"
+
+#, fuzzy
+msgid "G2 hits on local DB"
+msgstr "Toques en BD local"
+
+msgid "G2 hits on local partial files"
+msgstr ""
+
+msgid "Query hits received for OOB-proxied queries"
+msgstr "Query hits recibidos para peticiones a través de proxy OOB"
+
+msgid "Queries requesting OOB hit delivery"
+msgstr "Peticiones de entrega de hit OOB"
+
+msgid "Stripped OOB flag on queries"
+msgstr "Indicador OOB eliminado de peticiones"
+
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
+msgid "Duplicate OOB-proxied queries"
+msgstr "Peticiones OOB-proxied duplicadas"
+
+msgid "OOB hits received for OOB-proxied queries"
+msgstr "Hits OOB recibidos para peticiones OOB-proxied"
+
+msgid "OOB hits bearing alien IP address"
+msgstr "Hits OOB con direcciones IP extrañas"
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
+msgstr ""
+
+msgid "Unclaimed locally-generated OOB hits"
+msgstr "Hits OOB generados localmente no reclamados"
+
+msgid "Partially claimed locally-generated OOB hits"
+msgstr "Hits OOB generados localmente parcialmente reclamados"
+
+msgid "Spurious OOB hit claiming received"
+msgstr "Reclamos de Hits OOB espurios recibidos"
+
+msgid "Unrequested OOB hits received"
+msgstr "Hits OOB no solicitados recibidos"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
+
+msgid "Compacted queries"
+msgstr "Peticiones compactadas"
+
+msgid "Bytes saved by compacting"
+msgstr "Bytes ahorrados por compactación"
+
+msgid "UTF8 queries"
+msgstr "Peticiones UTF8"
+
+msgid "SHA1 queries"
+msgstr "Peticiones SHA1"
+
+msgid "\"What's New?\" queries"
+msgstr ""
+
+#, fuzzy
+msgid "UTF8 G2 queries"
+msgstr "Peticiones UTF8"
+
+#, fuzzy
+msgid "SHA1 G2 queries"
+msgstr "Peticiones SHA1"
+
+msgid "GUESS queries"
+msgstr ""
+
+msgid "GUESS queries (0.2)"
+msgstr ""
+
+msgid "GUESS link cache size"
+msgstr ""
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS cached G2 hosts held"
+msgstr "DHT claves mantenidas en caché"
+
+msgid "GUESS locally generated queries"
+msgstr ""
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+msgid "GUESS hits received for locally generated queries"
+msgstr ""
+
+msgid "GUESS ultra nodes queried"
+msgstr ""
+
+msgid "GUESS ultra nodes sending back an acknowledgment"
+msgstr ""
+
+msgid "GUESS G2 nodes queried"
+msgstr ""
+
+msgid "GUESS G2 nodes sending back an acknowledgment"
+msgstr ""
+
+msgid "Broadcasted push messages"
+msgstr "Mensajes 'push' retransmitidos"
+
+msgid "Push-proxy UDP relayed messages"
+msgstr "Mensajes 'push-proxy' UDP retransmitidos"
+
+msgid "Push-proxy TCP relayed messages"
+msgstr "Mensajes 'push-proxy' TCP retransmitidos"
+
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
+msgid "Push-proxy broadcasted messages"
+msgstr "Mensajes 'push-proxy' transmitidos"
+
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
+msgid "Push-proxy lookup failures"
+msgstr "Fallas de búsqueda de push-proxy"
+
+msgid "Push relayed via local route"
+msgstr "Push entregado a través de ruta local"
+
+msgid "Push relayed via routing table"
+msgstr "Empuje enviado a través de tabla de rutas"
+
+msgid "Locally generated dynamic queries"
+msgstr "Peticiones dinámicas generadas localmente"
+
+msgid "Leaf-generated dynamic queries"
+msgstr "Peticiones dinámicas generadas por hojas"
+
+msgid "OOB-proxied leaf queries"
+msgstr "Peticiones de hojas delegadas fuera de banda"
+
+msgid "Fully completed dynamic queries"
+msgstr "Peticiones dinámicas totalmente completadas"
+
+msgid "Partially completed dynamic queries"
+msgstr "Peticiones dinámicas parcialmente completadas"
+
+msgid "Dynamic queries ended with no results"
+msgstr "Peticiones dinámicas terminaron sin resultados"
+
+msgid "Fully completed dynamic queries getting late results"
+msgstr ""
+"Peticiones dinámicas totalmente completadas recibiendo resultados tardíos"
+
+msgid "Dynamic queries with partial late results"
+msgstr "Peticiones dinámicas parcialmente recibiendo resultados tardíos"
+
+msgid "Dynamic queries completed by late results"
+msgstr "Peticiones dinámicas completadas por resultados tardíos"
+
+msgid "Queries seen from GTKG"
+msgstr "Peticiones vistas desde GTKG"
+
+msgid "Queries seen from GTKG that were re-queries"
+msgstr "Peticiones vistas desde GTKG que eran repetidas"
+
+msgid "Queries advertising support of GGEP \"H\""
+msgstr "Peticiones anunciando soporte de GGEP \"H\""
+
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr ""
+
+msgid "GIV callbacks received"
+msgstr "Llamadas GIV recibidas"
+
+msgid "GIV discarded due to no suitable download"
+msgstr "GIV descartadas al no encontrar bajadas apropiadas"
+
+msgid "QUEUE callbacks received"
+msgstr "Llamadas QUEUE recibidas"
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr "QUEUE descartadas al no encontrar bajadas apropiadas"
+
+msgid "File descriptors banned running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+msgid "UDP UHC pongs sent"
+msgstr ""
+
+msgid "UDP messages with bogus source IP"
+msgstr "Mensajes UDP con IP de origen erróneo"
+
+msgid "UDP truncated incoming messages"
+msgstr ""
+
+msgid "Alien UDP messages (non-Gnutella)"
+msgstr "Mensajes UDP alienígenas (externos a Gnutella)"
+
+msgid "Unprocessed UDP Gnutella messages"
+msgstr "Mensajes UDP Gnutella sin procesar"
+
+msgid "Compressed UDP messages enqueued"
+msgstr "Mensajes UDP comprimidos en cola"
+
+msgid "Compressed UDP messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Uncompressed UDP messages due to no gain"
+msgstr "Mensajes UDP no comprimidos debido a falta de ganancia"
+
+msgid "Ambiguous UDP messages received"
+msgstr ""
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages dropped due to temporary ban"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages sent to known responsive hosts"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments re-queued for sending"
+msgstr ""
+
+msgid "Semi-reliable UDP plain acknowledgments dropped"
+msgstr ""
+
+msgid "Semi-reliable UDP enhanced acknowledgments dropped"
+msgstr ""
+
+msgid "Semi-reliable UDP plain acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments transmitted"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP empty messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
+
+msgid "UDP G2 hits rerouted to hub for delivery"
+msgstr ""
+
+#, fuzzy
+msgid "UDP G2 hits undelivered"
+msgstr "MOSTRAR no está definido"
+
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr "Servidores consolidados (después de enlace de GUID e IP)"
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr "Encontradas bajadas duplicadas durante la consolidación de servidores"
+
+msgid "Discovered server GUIDs"
+msgstr "GUIDs de servidores descubiertas"
+
+msgid "Changed server GUIDs"
+msgstr "GUIDs de servidores cambiadas"
+
+msgid "Detected GUID collisions"
+msgstr ""
+
+msgid "Detected collisions with our own GUID"
+msgstr "Colisiones detectadas con nuestra propia GUID"
+
+msgid "GUID dynamically banned"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+"Recinida información de nodo tras cortafuego para nodo conocido en petición "
+"de subida"
+
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr "Intento de cambio en bajada de recurso al completar"
+
+msgid "Attempted download resource switching after error"
+msgstr "Intento de cambio en bajada de recurso después de error"
+
+msgid "Successful download resource switching (all kind)"
+msgstr "Cambio en bajada de recurso exitoso (todo tipo)"
+
+msgid "Successful download resource switching between plain files"
+msgstr "Cambio en bajada de recurso exitoso entre archivos planos"
+
+msgid "Successful download resource switching after error"
+msgstr "Cambio en bajada de recurso exitoso después de error"
+
+msgid "Actively queued after resource switching attempt"
+msgstr "Encolado activamente después de intento de cambio de recurso"
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr "Datos de respuesta HTTP hundidos por códigos de error"
+
+msgid "Ignored downloaded data"
+msgstr "Datos descargados ignorados"
+
+msgid "Ignoring requested after data mismatch"
+msgstr "Ignorando petición luego de discrepancia de datos"
+
+msgid "Ignoring requested to preserve connection"
+msgstr "Ignorando petición para preservar conexión"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr "Ignorando petición debido a enjambre agresivo"
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+"Ignorando rechazos (datos demasiados grandes o servidor demasiado lento)"
+
+msgid "Client resource switching (all detected)"
+msgstr "Cambio de recursos por clientes (todos los detectados)"
+
+msgid "Client resource switching between plain files"
+msgstr "Cambio de recursos por clientes entre archivos planos"
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+"Peticiones de seguimiento por clientes después de retorno de error HTTP"
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr "PARQ cambio de recursos por clientes en ranuras (basado en SHA-1)"
+
+msgid "PARQ client retry-after violation"
+msgstr "PARQ violaciones de reintento por clientes"
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr "PARQ cliente pateado por demasiadas violaciones retry-after"
+
+msgid "PARQ upload slot limit overrides"
+msgstr "PARQ invalidaciones de límite de ranuras de subida"
+
+msgid "PARQ quick upload slots granted"
+msgstr "PARQ ranuras de subida rápida concedidas"
+
+msgid "PARQ QUEUE sending attempts"
+msgstr "PARQ intentos de envío QUEUE"
+
+msgid "PARQ QUEUE messages sent"
+msgstr "PARQ mensajes QUEUE enviados"
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr "PARQ peticiones de seguimiento QUEUE recibidas"
+
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
+msgstr ""
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr "Re-siembra de descargas huérfanas a través de hits de peticiones"
+
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr ""
+
+msgid "RUDP sent bytes"
+msgstr ""
+
+msgid "RUDP received bytes"
+msgstr ""
+
+msgid "DHT estimated amount of nodes"
+msgstr "DHT número estimado de nodos"
+
+msgid "DHT standard error of estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr "DHT frontera más lejana a k-bola (bits)"
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr "DHT frontera más cercana a k-bola (bits)"
+
+msgid "DHT routing table buckets"
+msgstr "DHT tobos en tabla de rutas"
+
+msgid "DHT routing table leaves"
+msgstr "DHT hojas en tabla de rutas"
+
+msgid "DHT routing table maximum depth"
+msgstr "DHT máxima profundidad de tabla de rutas"
+
+msgid "DHT routing table good nodes"
+msgstr "DHT Nodos buenos en tabla de rutas"
+
+msgid "DHT routing table stale nodes"
+msgstr "DHT nodos estancados en tabla de rutas"
+
+msgid "DHT routing table pending nodes"
+msgstr "DHT Nodos pendientes en tabla de rutas"
+
+msgid "DHT routing table evicted nodes"
+msgstr "DHT nodos desterrados de tabla de rutas"
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr "DHT nodos tras cortafuegos desterrados de tabla de rutas"
+
+msgid "DHT routing table evicted nodes due to quota"
+msgstr ""
+
+msgid "DHT routing table promoted pending nodes"
+msgstr "DHT nodos pendientes promovidos en tabla de rutas"
+
+msgid "DHT routing table pinged promoted nodes"
+msgstr ""
+
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr "DHT refrescos de tobos completados"
+
+msgid "DHT forced bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket merges"
+msgstr ""
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr "DHT refrescos denegados de tobos indivisibles"
+
+msgid "DHT initiated bucket alive checks"
+msgstr "DHT revisiones de tobos vivos iniciadas"
+
+msgid "DHT alive pings sent to good nodes"
+msgstr "DHT notificaciones \"todavía vivo\" enviadas a nodos buenos"
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr "DHT notificaciones \"todavía vivo\" enviadas a nodos estancados"
+
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr "DHT almacén de valores rechazado debido a cuota IP/Red"
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr "DHT almacén de valores rechazado debido a validación de creador"
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
+msgstr ""
+
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr "DHT claves mantenidas"
+
+msgid "DHT cached keys held"
+msgstr "DHT claves mantenidas en caché"
+
+msgid "DHT values held"
+msgstr "DHT valores en poder"
+
+msgid "DHT cached KUID targets held"
+msgstr ""
+
+msgid "DHT cached closest root nodes"
+msgstr ""
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+msgid "DHT cached roots misses"
+msgstr ""
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+msgid "DHT cached security tokens held"
+msgstr ""
+
+msgid "DHT cached security tokens hits"
+msgstr ""
+
+msgid "DHT stable node information held"
+msgstr ""
+
+msgid "DHT local hits on value lookups"
+msgstr "DHT hits locales en búsquedas de valores"
+
+msgid "DHT local hits returning values from cached keys"
+msgstr "DHT hits locales retornando valores desde claves en caché"
+
+msgid "DHT returned expanded values"
+msgstr "DHT valores  expandidos retornados"
+
+msgid "DHT returned values as secondary keys"
+msgstr "DHT valores retornados como claves secundarias"
+
+msgid "DHT claimed values via secondary keys"
+msgstr "DHT valores reclamados vía claves secundarias"
+
+msgid "DHT returned cached expanded values"
+msgstr "DHT valores expandidos retornados desde caché"
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr "DHT valores retornados desde caché como claves secundarias"
+
+msgid "DHT claimed cached values via secondary keys"
+msgstr "DHT valores reclamados del caché vía claves secundarias"
+
+msgid "DHT successfully received value publications"
+msgstr ""
+
+msgid "DHT successfully received value removals"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr "DHT  replicaciones evitadas de valores estancado"
+
+msgid "DHT replication of held values"
+msgstr "DHT replicaciones de valores en poder"
+
+msgid "DHT republishing of held values"
+msgstr "DHT republicaciones de valores en poder"
+
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr "DHT valores duplicados retornados en búsquedas"
+
+msgid "DHT detected KUID collisions"
+msgstr "DHT colisiones de KUIDs detectadas"
+
+msgid "DHT detected collisions with our own KUID"
+msgstr "DHT colisiones detectadas con nuestra propia KUID"
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+msgid "DHT incoming messages"
+msgstr ""
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr ""
+
+msgid "DHT RPC recent nodes held"
+msgstr ""
+
+msgid "DHT node verifications"
+msgstr ""
+
+msgid "DHT publishing attempts"
+msgstr ""
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+msgid "DHT publishing ending with proper value presence"
+msgstr ""
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+msgid "DHT publishing to self"
+msgstr ""
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
+msgstr ""
+
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr "DHT búsquedas de 'alt-loc' emitidas"
+
+msgid "DHT push-proxy lookups issued"
+msgstr "DHT búsquedas de 'push-proxy' emitidas"
+
+msgid "DHT successful alt-loc lookups"
+msgstr "DHT búsquedas de 'alt-loc' exitosas"
+
+msgid "DHT successful push-proxy lookups"
+msgstr "DHT búsquedas de 'push-proxy' exitosas"
+
+msgid "DHT successful node push-entry lookups"
+msgstr ""
+
+msgid "DHT re-seeding of orphan downloads"
+msgstr "DHT re-siembras de descargas huérfanas"
+
+msgid "Ping"
+msgstr "Ping"
+
+msgid "Pong"
+msgstr "Pong"
+
+msgid "Bye"
+msgstr "Adiós"
+
+msgid "QRP"
+msgstr "QRP"
+
+msgid "HSEP"
+msgstr "HSEP"
+
+msgid "RUDP"
+msgstr "RUDP"
+
+msgid "Vendor spec."
+msgstr "Vendedor Específico"
+
+msgid "Vendor std."
+msgstr "Vendedor Estándar."
+
+msgid "Push"
+msgstr "Push"
+
+msgid "Query"
+msgstr "Petición"
+
+msgid "Query hit"
+msgstr "Query hit"
+
+msgid "DHT (truncated)"
+msgstr ""
+
+msgid "DHT Ping"
+msgstr "DHT Ping"
+
+msgid "DHT Pong"
+msgstr "DHT Pong"
+
+msgid "DHT Store"
+msgstr ""
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr "Encontrar nodo DHT"
+
+msgid "DHT Found Node"
+msgstr "Nodo dht encontrado"
+
+msgid "DHT Find Value"
+msgstr "Encontrar valor DHT"
+
+msgid "DHT Value"
+msgstr "Valor DHT"
+
+#, fuzzy
+msgid "G2 Crawl Request"
+msgstr "Solicitud errónea"
+
+msgid "G2 Hub Advertisement"
+msgstr ""
+
+msgid "G2 Hub List"
+msgstr ""
+
+msgid "G2 Hub List Req"
+msgstr ""
+
+msgid "G2 Hub List Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Local Node Info"
+msgstr "Nodo local"
+
+#, fuzzy
+msgid "G2 Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "G2 Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "G2 Push"
+msgstr "Push"
+
+msgid "G2 Query Key Ack"
+msgstr ""
+
+msgid "G2 Query Key Req"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query"
+msgstr "Petición"
+
+msgid "G2 Query Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query Hit"
+msgstr "Hit Petición"
+
+msgid "G2 Query Hash Table"
+msgstr ""
+
+msgid "G2 User Profile Check"
+msgstr ""
+
+msgid "G2 User Profile Data"
+msgstr ""
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Bad size"
+msgstr "Tamaño incorrecto"
+
+msgid "Too small"
+msgstr "Demasiado pequeño"
+
+msgid "Too large"
+msgstr "Muy grande"
+
+msgid "Way too large"
+msgstr "Demasiado grande"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Demasiado pequeño"
+
+msgid "Unknown message type"
+msgstr "Tipo de mensaje desconocido"
+
+msgid "Unexpected message"
+msgstr "Mensaje inesperado"
+
+msgid "Message sent with TTL = 0"
+msgstr "Mensaje enviado con TTL = 0"
+
+msgid "Improper hops/ttl combination"
+msgstr "Combinación saltos/ttl incongruente"
+
+msgid "Max TTL exceeded"
+msgstr "TTL máximo excedido"
+
+msgid "Message throttle"
+msgstr "Umbral de mensajes"
+
+msgid "Message matched limits"
+msgstr ""
+
+msgid "Transient node"
+msgstr ""
+
+msgid "Unusable Pong"
+msgstr "Pong no usable"
+
+msgid "Hard TTL limit reached"
+msgstr "Límite TTL duro alcanzado"
+
+msgid "Max hop count reached"
+msgstr "Número máximo de saltos alcanzados"
+
+msgid "Route lost"
+msgstr "Camino perdido"
+
+msgid "No route"
+msgstr "No hay camino"
+
+msgid "Duplicate message"
+msgstr "Mensaje duplicado"
+
+msgid "OOB Proxy MUID Conflict"
+msgstr ""
+
+msgid "Message to banned GUID"
+msgstr "Mensaje para GUID baneado"
+
+msgid "Message from banned GUID"
+msgstr ""
+
+msgid "Node shutting down"
+msgstr "Nodo apagándose"
+
+msgid "TX flow control"
+msgstr "Control de flujo TX"
+
+msgid "Query text had no trailing NUL"
+msgstr "Texto de la petición to terminaba en NUL"
+
+msgid "Query text too short"
+msgstr "Texto de la petición demasiado corto"
+
+msgid "Query had unnecessary overhead"
+msgstr "Petición tenía recarga innecesaria"
+
+msgid "Query had bad URN"
+msgstr "Petición tenía URN incorrecto"
+
+msgid "Message with malformed SHA1"
+msgstr "Mensaje con SHA1 incorrecto"
+
+msgid "Message with malformed UTF-8"
+msgstr "Mensaje con UTF-8 incorrecto"
+
+msgid "Malformed Query Hit"
+msgstr "Query Hit malformado"
+
+msgid "Bad return address"
+msgstr "Dirección de retorno incorrecta"
+
+msgid "Hostile IP address"
+msgstr "Dirección IP hostil"
+
+#, fuzzy
+msgid "Shunned IP address"
+msgstr "Dirección IP inestable"
+
+msgid "Bogus result from Morpheus"
+msgstr ""
+
+msgid "Spam"
+msgstr "Spam"
+
+msgid "Evil filename"
+msgstr "Nombre de archivo \"malévolo\""
+
+msgid "Improper media type"
+msgstr ""
+
+msgid "Payload inflating error"
+msgstr "error al inflar carga"
+
+msgid "Unknown header flags present"
+msgstr "Indicaciones desconocidas presentes en encabezado"
+
+msgid "Own search results"
+msgstr "Resultados de búsqueda propios"
+
+msgid "Own queries"
+msgstr ""
+
+msgid "Ancient query format"
+msgstr "Formato de petición anticuado"
+
+msgid "Blank Servent ID"
+msgstr "ID de nodo vacía"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+msgid "GUESS Invalid query token"
+msgstr ""
+
+msgid "DHT Invalid security token"
+msgstr "Símbolo de seguridad DHT inválido"
+
+msgid "DHT Too many STORE requests"
+msgstr "DHT demasiadas peticiones STORE"
+
+msgid "DHT Malformed message"
+msgstr "Mensaje DHT  malformado"
+
+#, fuzzy
+msgid "G2 Unexpected message"
+msgstr "Mensaje inesperado"
+
+#, fuzzy
+msgid "Cannot cross networks"
+msgstr "Redes locales"
 
 msgid "No proxy"
 msgstr "No hay proxy"
@@ -1240,8 +2324,7 @@ msgstr ""
 
 msgid ""
 "Don't upload more than this number of files in parallel to a single host."
-msgstr ""
-"No subir más de este número de archivos paralelamente a un único nodo."
+msgstr "No subir más de este número de archivos paralelamente a un único nodo."
 
 msgid "Local IPv4 address last determined."
 msgstr "Última dirección IPv4 local usada."
@@ -1280,8 +2363,7 @@ msgstr ""
 "necesario. Ten en cuenta que por omisión el puerto TCP 6346 no es usado para "
 "proteger contra la censura indebida."
 
-msgid ""
-"Use this IP address as source address if 'force local ip' is activated."
+msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
 "Usar esta dirección IP como dirección de origen si 'forzar ip local' está "
 "activada."
@@ -1578,8 +2660,7 @@ msgid "Debug level for queries."
 msgstr "Nivel de depurado para peticiones."
 
 msgid "Debug level for searches and search results management."
-msgstr ""
-"Nivel de depurado para búsquedas y gestión de resultados de búsquedas."
+msgstr "Nivel de depurado para búsquedas y gestión de resultados de búsquedas."
 
 msgid "Debug level for the UDP traffic layer."
 msgstr "Nivel de depurado para la capra de tráfico UDP."
@@ -1781,8 +2862,7 @@ msgstr "Protocolo que usa el proxy."
 msgid "Network protocols to use."
 msgstr "Protocolos de red a ser usados."
 
-msgid ""
-"Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
 msgstr ""
 "Usar un Traductor de Relevo de Transporte IPv6-a-IPv4 tal como lo especifica "
 "el RFC 3142."
@@ -1946,8 +3026,7 @@ msgstr ""
 "Ignorar directorios enlazados simbólicamente al escanear archivos para "
 "compartir"
 
-msgid ""
-"Ignore symbolically linked regular files when scanning files to share."
+msgid "Ignore symbolically linked regular files when scanning files to share."
 msgstr ""
 "Ignorar archivos enlazados simbólicamente al escanear archivos para compartir"
 
@@ -1956,8 +3035,8 @@ msgstr "Guardar archivos incompletos en este directorio."
 
 msgid ""
 "Move complete files to this directory. If this is set to the SAME directory "
-"as the incomplete or corrupted files, files will be renamed with a trailing "
-".OK"
+"as the incomplete or corrupted files, files will be renamed with a trailing ."
+"OK"
 msgstr ""
 "Mover archivos finalizados a este directorio. Si es EL MISMO directorio que "
 "el de los archivos incompletos ó corruptos, los archivos serán renombrados "
@@ -2130,8 +3209,8 @@ msgid ""
 msgstr ""
 "Si gtk-gnutella debe asegurarse de que el servidor confirma el URN del "
 "archivo que estamos solicitando cuando es conocido localmente y se usa una "
-"petición tradicional por nombre (p. ej. gtk-gnutella no hace una petición "
-"/uri-res/N2R?). Cuando está activado, se ignora la opción de primer bloque "
+"petición tradicional por nombre (p. ej. gtk-gnutella no hace una petición /"
+"uri-res/N2R?). Cuando está activado, se ignora la opción de primer bloque "
 "optimista."
 
 msgid ""
@@ -2211,8 +3290,7 @@ msgstr ""
 "atendiendo peticiones)."
 
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
-msgstr ""
-"Cantidad de bytes descargados hasta ahora, sin contar cabeceras HTTP."
+msgstr "Cantidad de bytes descargados hasta ahora, sin contar cabeceras HTTP."
 
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
 msgstr "Cantidad de bytes subidos hasta ahora, sin contar cabeceras HTTP."
@@ -2233,8 +3311,8 @@ msgid ""
 "download chunks in a random order, to maximize the spreading of the file in "
 "the network.  However, this makes auditing (file type, pre-viewing, etc...) "
 "of the file impossible. This field sets the size in bytes of the first chunk "
-"of data that should be continuously downloaded at the beginning of the file. "
-" Don't set it too large."
+"of data that should be continuously downloaded at the beginning of the "
+"file.  Don't set it too large."
 msgstr ""
 "Cuando se comparten archivos parciales (PFSP), gtk-gnutella descargará los "
 "bloques en un orden aleatorio para maximizar la distribución del archivo en "
@@ -2291,8 +3369,8 @@ msgstr ""
 
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
-"their vendor string) that are unstable, preventing further connections "
-"to/from them.  This only works when gtk-gnutella already keeps track of "
+"their vendor string) that are unstable, preventing further connections to/"
+"from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
 "Si gtk-gnutella debe determinar los tipos de nodos que son inestables "
@@ -2372,9 +3450,9 @@ msgid ""
 "incoming bandwidth."
 msgstr ""
 "Tamaño de búfer de recepción usado para los nodos, en kbytes. Cuanto más "
-"pequeño, más rápido podrá la conexión remota controlar el flujo a nivel "
-"TCP/IP si no se lee suficientemente rápido, que será el caso si limita el "
-"ancho de banda entrante."
+"pequeño, más rápido podrá la conexión remota controlar el flujo a nivel TCP/"
+"IP si no se lee suficientemente rápido, que será el caso si limita el ancho "
+"de banda entrante."
 
 msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
 msgstr ""
@@ -2416,8 +3494,7 @@ msgstr ""
 "Si se cumple el requisito de tiempo en ejecución mínimo de este nodo para "
 "pasar al modo ultra."
 
-msgid ""
-"Whether we meet the non-firewalled requirement to become an Ultra node."
+msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
 "Si cumple el requisito de no estar detrás de un cortafuegos para ser un "
 "ultranodo."
@@ -2445,8 +3522,7 @@ msgstr ""
 "Si la conexión cumple los requisitos de ancho de banda para ser un ultranodo."
 
 msgid "Whether we meet the UDP requirements to become an Ultra node."
-msgstr ""
-"Si este nodo cumple los requisitos UDP para convertirse en Ultra nodo."
+msgstr "Si este nodo cumple los requisitos UDP para convertirse en Ultra nodo."
 
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
@@ -2551,8 +3627,7 @@ msgid "Memory used by the QRP tables"
 msgstr "Memoria usada por las tablas QRP."
 
 msgid "Time at which we started query routing table generation."
-msgstr ""
-"Hora en que comenzó la generación de la tabla de rutas de peticiones."
+msgstr "Hora en que comenzó la generación de la tabla de rutas de peticiones."
 
 msgid "Time spent computing the QRP table, in seconds."
 msgstr "Tiempo empleado en computar la tabla QRP, en segundos."
@@ -2575,10 +3650,8 @@ msgstr "Número de ranuras usadas en nuestra tabla QRP."
 msgid "Percentage of slots filled within our QRP table."
 msgstr "Porcentaje de ranuras usadas en nuestra tabla QRP."
 
-msgid ""
-"Percentage of hashing conflicts whilst inserting data in our QRP table."
-msgstr ""
-"Porcentaje de conflictos tipo hash al insertar datos en la tabla QRP."
+msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
+msgstr "Porcentaje de conflictos tipo hash al insertar datos en la tabla QRP."
 
 msgid "Amount of hashed keywords in our QRP table."
 msgstr "Número de claves, tipo hash, en la tabla QRP."
@@ -2723,9 +3796,10 @@ msgstr ""
 "Si las subidas se están atascando con frecuencia, indicando que el ancho de "
 "banda está saturado. Evite el modo ultra nodo bajo estas condiciones."
 
+#, fuzzy
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
 "list from the global one distributed with gtk-gnutella."
 msgstr ""
 "Si se habilita, el arhivo global hostiles.txt se usará además del archivo "
@@ -2756,8 +3830,7 @@ msgstr ""
 "sesión."
 
 msgid "Number of Gnutella browsing requests received in this session."
-msgstr ""
-"Número de peticiones de navegación Gnutella recibidas en esta sesión."
+msgstr "Número de peticiones de navegación Gnutella recibidas en esta sesión."
 
 msgid "Number of Gnutella browsing requests fully served in this session."
 msgstr ""
@@ -2840,8 +3913,8 @@ msgid "Don't start more than this number of parallel downloads per file."
 msgstr "No iniciar más que este número de bajadas paralelas por archivo."
 
 msgid ""
-"If enabled, all received packets are dumped to "
-"$GTK_GNUTELLA_DIR/packets_rx.dump."
+"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
+"dump."
 msgstr ""
 "Si es activada, todos los paquetes recibidos son guardados en "
 "$GTK_GNUTELLA_DIR/packets_rx.dump"
@@ -3573,6 +4646,91 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for DHT key management."
+msgstr "Nivel de depuración para el manejo de malla de descargas."
+
+#, fuzzy
+msgid "Debug level for DHT value management."
+msgstr "Nivel de depuración para almacenamiento de claves/valores DHT"
+
+msgid "ID of the current process."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "Nivel de depurado para la caché de pongs."
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for time management."
+msgstr "Nivel de depuración para el manejo de malla de descargas."
+
+msgid "Debug level for the tmalloc() thread-magazine object distributor."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the event queue thread."
+msgstr "Nivel de depuración para la cola de búsqueda."
+
+#, fuzzy
+msgid "Maximum number of G2 hubs in the hub cache."
+msgstr "Número máximo de nodos en el caché G2."
+
+#, fuzzy
+msgid "Current number of IPv4 hosts in the G2 hub caches."
+msgstr "Número de nodos actualmente en la reserva de nodos incorrectos."
+
+#, fuzzy
+msgid "Whether the G2 protocol should be enabled."
+msgstr "Si el grado de compresión del tráfico saliente debe mostrarse."
+
+#, fuzzy
+msgid "Number of G2 nodes currently connected."
+msgstr "Número de nodos hoja actualmente conectados."
+
+#, fuzzy
+msgid "Maximum amount of G2 hubs we should connect to as a leaf."
+msgstr ""
+"Cantidad máxima de ultranodos a los que deberemos conectarnos en modo hoja."
+
+msgid "Whether to log bad G2 messages, corrupted or unexpected."
+msgstr ""
+
+msgid "Whether to log dropped G2 messages"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the G2 RPC layer."
+msgstr "Nivel de depurado para la capra de tráfico UDP."
+
+#, fuzzy
+msgid "Whether to log summary of received query hits"
+msgstr "Si se debe mostrar el conteo de query hits enviados."
+
+msgid "Whether to log summary of each record in received query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Number of G2 browsing requests received in this session."
+msgstr "Número de peticiones de navegación HTML recibidas en esta sesión."
+
+#, fuzzy
+msgid "Number of G2 browsing requests fully served in this session."
+msgstr ""
+"Número de peticiones de navegación HTML completamente servidas en esta "
+"sesión."
+
+msgid "Whether to log G2 messages we're attempting to send"
+msgstr ""
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -3594,65 +4752,8 @@ msgstr "sólo TCP"
 msgid "UDP only"
 msgstr "sólo UDP"
 
-msgid "Ping"
-msgstr "Ping"
-
-msgid "Pong"
-msgstr "Pong"
-
-msgid "Bye"
-msgstr "Adiós"
-
-msgid "QRP"
-msgstr "QRP"
-
-msgid "HSEP"
-msgstr "HSEP"
-
-msgid "RUDP"
-msgstr "RUDP"
-
-msgid "Vendor spec."
-msgstr "Vendedor Específico"
-
-msgid "Vendor std."
-msgstr "Vendedor Estándar."
-
-msgid "Push"
-msgstr "Push"
-
-msgid "Query"
-msgstr "Petición"
-
 msgid "Query Hit"
 msgstr "Hit Petición"
-
-msgid "DHT Ping"
-msgstr "DHT Ping"
-
-msgid "DHT Pong"
-msgstr "DHT Pong"
-
-msgid "DHT Store"
-msgstr ""
-
-msgid "DHT Store Ack"
-msgstr ""
-
-msgid "DHT Find Node"
-msgstr "Encontrar nodo DHT"
-
-msgid "DHT Found Node"
-msgstr "Nodo dht encontrado"
-
-msgid "DHT Find Value"
-msgstr "Encontrar valor DHT"
-
-msgid "DHT Value"
-msgstr "Valor DHT"
-
-msgid "Total"
-msgstr "Total"
 
 msgid "Icons"
 msgstr "Iconos"
@@ -3741,12 +4842,10 @@ msgid "Which columns are visible in the uploads table."
 msgstr "Qué columnas son visibles en la tabla de subidas."
 
 msgid "Widths of the columns in the rules table in the filter dialog."
-msgstr ""
-"Ancho de las columnas en la tabla de reglas en el diálogo de filtros."
+msgstr "Ancho de las columnas en la tabla de reglas en el diálogo de filtros."
 
 msgid "Widths of the columns in the filter table in the filter dialog."
-msgstr ""
-"Ancho de las columnas en la tabla de filtros en el diálogo de filtros."
+msgstr "Ancho de las columnas en la tabla de filtros en el diálogo de filtros."
 
 msgid "Widths of the columns in the Gnet packet stats table."
 msgstr "Ancho de las columnas en la tabla de estadísticas de paquetes Gnet."
@@ -3926,8 +5025,7 @@ msgid "Choose message type for drop reasons."
 msgstr "Escoger tipo de mensaje para razones de  abandono."
 
 msgid "Include Gnutella packet header size to the volume."
-msgstr ""
-"Incluir el tamaño de la cabecera de los paquetes Gnutella al volumen."
+msgstr "Incluir el tamaño de la cabecera de los paquetes Gnutella al volumen."
 
 msgid ""
 "Show percentages instead of absolute values in the Gnet stats (drop reasons)."
@@ -4004,8 +5102,7 @@ msgstr ""
 "Si la cuenta de peticiones locales esperando su transmisión debe mostrarse."
 
 msgid "Whether count of dropped messages on TX should be displayed."
-msgstr ""
-"Si la cuenta de mensajes abandonados en la transmisión debe mostrarse."
+msgstr "Si la cuenta de mensajes abandonados en la transmisión debe mostrarse."
 
 msgid "Whether count of dropped messages on RX should be displayed."
 msgstr "Si la cuenta de mensajes abandonados en la recepción debe mostrarse."
@@ -4137,7 +5234,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -4149,8 +5246,9 @@ msgstr ""
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
-msgid "Whether a summary line with GUESS search stats should be dispayed."
-msgstr ""
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be displayed."
+msgstr "Si se debe mostrar el conteo de query hits transmitidos."
 
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
@@ -4926,8 +6024,7 @@ msgid "Zimbabwe"
 msgstr "Zimbabue"
 
 msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr ""
-"El URI magneto contenía una URL fuente para un protocolo no soportado"
+msgstr "El URI magneto contenía una URL fuente para un protocolo no soportado"
 
 #, c-format
 msgid "%u Byte"
@@ -5015,6 +6112,14 @@ msgstr "Activado modo interactivo."
 msgid "Interactive mode turned off."
 msgstr "Desactivado modo interactivo."
 
+#, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Operación desconocida «mostrar %s»"
+
+#, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Operación desconocida «%s»"
+
 msgid "Cannot determine current working directory"
 msgstr "No se puede determinar el directorio de trabajo actual"
 
@@ -5028,14 +6133,6 @@ msgstr ""
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr "No se pudo renombrar el archivo de registro como \"%s\": %m"
-
-#, c-format
-msgid "Unknown operation \"%s\""
-msgstr "Operación desconocida «%s»"
-
-#, c-format
-msgid "Unknown operation \"show %s\""
-msgstr "Operación desconocida «mostrar %s»"
 
 #, c-format
 msgid "Unknown operation \"stats %s\""
@@ -5086,6 +6183,9 @@ msgstr "Ninguna propiedad concuerda."
 msgid "Good bye"
 msgstr "Adiós"
 
+msgid "Invalid command syntax"
+msgstr "Sintaxis de comando inválida"
+
 msgid "Query string missing"
 msgstr "Texto de la petición inexistente"
 
@@ -5123,9 +6223,6 @@ msgstr ""
 
 msgid "unterminated single-quoted string"
 msgstr ""
-
-msgid "Invalid command syntax"
-msgstr "Sintaxis de comando inválida"
 
 msgid "too many arguments in command"
 msgstr "demasiados argumentos en el comando"
@@ -5613,837 +6710,6 @@ msgstr "Global (post)"
 msgid "RETURN"
 msgstr "RETORNO"
 
-msgid "Query hit"
-msgstr "Query hit"
-
-msgid "DHT (truncated)"
-msgstr ""
-
-msgid "Routing errors"
-msgstr "Errores de enrutado"
-
-msgid "Routing table chunks"
-msgstr ""
-
-msgid "Routing table message capacity"
-msgstr ""
-
-msgid "Routing table message count"
-msgstr ""
-
-msgid "Routing through transient node avoided"
-msgstr ""
-
-msgid "Duplicates with higher TTL"
-msgstr "Duplicados con TTL mayor"
-
-msgid "SPAM SHA1 database hits"
-msgstr ""
-
-msgid "SPAM filename and size hits"
-msgstr ""
-
-msgid "SPAM fake hits"
-msgstr ""
-
-msgid "SPAM duplicate hits"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP held"
-msgstr ""
-
-msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
-
-msgid "Searches to local DB"
-msgstr "Búsquedas en BD locales"
-
-msgid "Hits on local DB"
-msgstr "Toques en BD local"
-
-msgid "Hits on local partial files"
-msgstr ""
-
-msgid "Hits on \"what's new?\" queries"
-msgstr ""
-
-msgid "Query hits received for local queries"
-msgstr "Query hits recibidos para peticiones locales"
-
-msgid "Query hits received for OOB-proxied queries"
-msgstr "Query hits recibidos para peticiones a través de proxy OOB"
-
-msgid "Queries requesting OOB hit delivery"
-msgstr "Peticiones de entrega de hit OOB"
-
-msgid "Stripped OOB flag on queries"
-msgstr "Indicador OOB eliminado de peticiones"
-
-msgid "Ignored OOB queries due to unclaimed hits"
-msgstr ""
-
-msgid "Duplicate OOB-proxied queries"
-msgstr "Peticiones OOB-proxied duplicadas"
-
-msgid "OOB hits received for OOB-proxied queries"
-msgstr "Hits OOB recibidos para peticiones OOB-proxied"
-
-msgid "OOB hits bearing alien IP address"
-msgstr "Hits OOB con direcciones IP extrañas"
-
-msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
-
-msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
-
-msgid "Unclaimed locally-generated OOB hits"
-msgstr "Hits OOB generados localmente no reclamados"
-
-msgid "Partially claimed locally-generated OOB hits"
-msgstr "Hits OOB generados localmente parcialmente reclamados"
-
-msgid "Spurious OOB hit claiming received"
-msgstr "Reclamos de Hits OOB espurios recibidos"
-
-msgid "Unrequested OOB hits received"
-msgstr "Hits OOB no solicitados recibidos"
-
-msgid "Received query hits for untracked queries"
-msgstr ""
-
-msgid "Tracked query MUIDs"
-msgstr ""
-
-msgid "Compacted queries"
-msgstr "Peticiones compactadas"
-
-msgid "Bytes saved by compacting"
-msgstr "Bytes ahorrados por compactación"
-
-msgid "UTF8 queries"
-msgstr "Peticiones UTF8"
-
-msgid "SHA1 queries"
-msgstr "Peticiones SHA1"
-
-msgid "\"What's New?\" queries"
-msgstr ""
-
-msgid "GUESS queries"
-msgstr ""
-
-msgid "GUESS queries (0.2)"
-msgstr ""
-
-msgid "GUESS link cache size"
-msgstr ""
-
-msgid "GUESS cached query keys held"
-msgstr ""
-
-msgid "GUESS cached 0.2 hosts held"
-msgstr ""
-
-msgid "GUESS locally generated queries"
-msgstr ""
-
-msgid "GUESS currently running queries"
-msgstr ""
-
-msgid "GUESS hits received for locally generated queries"
-msgstr ""
-
-msgid "GUESS hosts queried"
-msgstr ""
-
-msgid "GUESS hosts sending back an acknowledgment"
-msgstr ""
-
-msgid "Broadcasted push messages"
-msgstr "Mensajes 'push' retransmitidos"
-
-msgid "Push-proxy UDP relayed messages"
-msgstr "Mensajes 'push-proxy' UDP retransmitidos"
-
-msgid "Push-proxy TCP relayed messages"
-msgstr "Mensajes 'push-proxy' TCP retransmitidos"
-
-msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr ""
-
-msgid "Push-proxy broadcasted messages"
-msgstr "Mensajes 'push-proxy' transmitidos"
-
-msgid "Push-proxy found un-proxied local route"
-msgstr ""
-
-msgid "Push-proxy lookup failures"
-msgstr "Fallas de búsqueda de push-proxy"
-
-msgid "Push relayed via local route"
-msgstr "Push entregado a través de ruta local"
-
-msgid "Push relayed via routing table"
-msgstr "Empuje enviado a través de tabla de rutas"
-
-msgid "Locally generated dynamic queries"
-msgstr "Peticiones dinámicas generadas localmente"
-
-msgid "Leaf-generated dynamic queries"
-msgstr "Peticiones dinámicas generadas por hojas"
-
-msgid "OOB-proxied leaf queries"
-msgstr "Peticiones de hojas delegadas fuera de banda"
-
-msgid "Fully completed dynamic queries"
-msgstr "Peticiones dinámicas totalmente completadas"
-
-msgid "Partially completed dynamic queries"
-msgstr "Peticiones dinámicas parcialmente completadas"
-
-msgid "Dynamic queries ended with no results"
-msgstr "Peticiones dinámicas terminaron sin resultados"
-
-msgid "Fully completed dynamic queries getting late results"
-msgstr ""
-"Peticiones dinámicas totalmente completadas recibiendo resultados tardíos"
-
-msgid "Dynamic queries with partial late results"
-msgstr "Peticiones dinámicas parcialmente recibiendo resultados tardíos"
-
-msgid "Dynamic queries completed by late results"
-msgstr "Peticiones dinámicas completadas por resultados tardíos"
-
-msgid "Queries seen from GTKG"
-msgstr "Peticiones vistas desde GTKG"
-
-msgid "Queries seen from GTKG that were re-queries"
-msgstr "Peticiones vistas desde GTKG que eran repetidas"
-
-msgid "Queries advertising support of GGEP \"H\""
-msgstr "Peticiones anunciando soporte de GGEP \"H\""
-
-msgid "Queries advertising support of semi-reliable UDP"
-msgstr ""
-
-msgid "GIV callbacks received"
-msgstr "Llamadas GIV recibidas"
-
-msgid "GIV discarded due to no suitable download"
-msgstr "GIV descartadas al no encontrar bajadas apropiadas"
-
-msgid "QUEUE callbacks received"
-msgstr "Llamadas QUEUE recibidas"
-
-msgid "QUEUE discarded due to no suitable download"
-msgstr "QUEUE descartadas al no encontrar bajadas apropiadas"
-
-msgid "UDP push messages received for FW<->FW connections"
-msgstr ""
-
-msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr ""
-
-msgid "UDP push messages patched for FW<->FW connections"
-msgstr ""
-
-msgid "UDP UHC pings received"
-msgstr ""
-
-msgid "UDP UHC pongs sent"
-msgstr ""
-
-msgid "UDP messages with bogus source IP"
-msgstr "Mensajes UDP con IP de origen erróneo"
-
-msgid "Alien UDP messages (non-Gnutella)"
-msgstr "Mensajes UDP alienígenas (externos a Gnutella)"
-
-msgid "Unprocessed UDP Gnutella messages"
-msgstr "Mensajes UDP Gnutella sin procesar"
-
-msgid "Compressed UDP messages enqueued"
-msgstr "Mensajes UDP comprimidos en cola"
-
-msgid "Compressed UDP messages received"
-msgstr "Mensajes UDP comprimidos recibidos"
-
-msgid "Uncompressed UDP messages due to no gain"
-msgstr "Mensajes UDP no comprimidos debido a falta de ganancia"
-
-msgid "Ambiguous UDP messages received"
-msgstr ""
-
-msgid "Ambiguous UDP messages inspected more deeply"
-msgstr ""
-
-msgid "Ambiguous UDP messages handled as semi-reliable UDP"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages deflated"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages unsent"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages partially sent due to clogging"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages correctly transmited"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments resent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent too many times"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP too many EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP duplicate fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP dropped received fragments"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP messages expired before re-assembly"
-msgstr ""
-
-msgid "Semi-reliable UDP messages re-assembled completely"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated successfully"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated incorrectly"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable messages received"
-msgstr ""
-
-msgid "Semi-reliable UDP empty messages received"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received for unknown message"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr ""
-
-msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr "Servidores consolidados (después de enlace de GUID e IP)"
-
-msgid "Duplicate downloads found during server consolidation"
-msgstr ""
-"Encontradas bajadas duplicadas durante la consolidación de servidores"
-
-msgid "Discovered server GUIDs"
-msgstr "GUIDs de servidores descubiertas"
-
-msgid "Changed server GUIDs"
-msgstr "GUIDs de servidores cambiadas"
-
-msgid "Detected GUID collisions"
-msgstr ""
-
-msgid "Detected collisions with our own GUID"
-msgstr "Colisiones detectadas con nuestra propia GUID"
-
-msgid "GUID dynamically banned"
-msgstr ""
-
-msgid "Firewalled node info for known hosts received in upload requests"
-msgstr ""
-"Recinida información de nodo tras cortafuego para nodo conocido en petición "
-"de subida"
-
-msgid "Revitalized PUSH routes"
-msgstr ""
-
-msgid "Collected new PUSH proxies from other query hits"
-msgstr ""
-
-msgid "Attempted download resource switching on completion"
-msgstr "Intento de cambio en bajada de recurso al completar"
-
-msgid "Attempted download resource switching after error"
-msgstr "Intento de cambio en bajada de recurso después de error"
-
-msgid "Successful download resource switching (all kind)"
-msgstr "Cambio en bajada de recurso exitoso (todo tipo)"
-
-msgid "Successful download resource switching between plain files"
-msgstr "Cambio en bajada de recurso exitoso entre archivos planos"
-
-msgid "Successful download resource switching after error"
-msgstr "Cambio en bajada de recurso exitoso después de error"
-
-msgid "Actively queued after resource switching attempt"
-msgstr "Encolado activamente después de intento de cambio de recurso"
-
-msgid "Sunk HTTP reply data on error codes"
-msgstr "Datos de respuesta HTTP hundidos por códigos de error"
-
-msgid "Ignored downloaded data"
-msgstr "Datos descargados ignorados"
-
-msgid "Ignoring requested after data mismatch"
-msgstr "Ignorando petición luego de discrepancia de datos"
-
-msgid "Ignoring requested to preserve connection"
-msgstr "Ignorando petición para preservar conexión"
-
-msgid "Ignoring requested due to aggressive swarming"
-msgstr "Ignorando petición debido a enjambre agresivo"
-
-msgid "Ignoring refused (data too large or server too slow)"
-msgstr ""
-"Ignorando rechazos (datos demasiados grandes o servidor demasiado lento)"
-
-msgid "Client resource switching (all detected)"
-msgstr "Cambio de recursos por clientes (todos los detectados)"
-
-msgid "Client resource switching between plain files"
-msgstr "Cambio de recursos por clientes entre archivos planos"
-
-msgid "Client follow-up request after HTTP error was returned"
-msgstr ""
-"Peticiones de seguimiento por clientes después de retorno de error HTTP"
-
-msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr "PARQ cambio de recursos por clientes en ranuras (basado en SHA-1)"
-
-msgid "PARQ client retry-after violation"
-msgstr "PARQ violaciones de reintento por clientes"
-
-msgid "PARQ client kicked out after too many retry-after violations"
-msgstr "PARQ cliente pateado por demasiadas violaciones retry-after"
-
-msgid "PARQ upload slot limit overrides"
-msgstr "PARQ invalidaciones de límite de ranuras de subida"
-
-msgid "PARQ quick upload slots granted"
-msgstr "PARQ ranuras de subida rápida concedidas"
-
-msgid "PARQ QUEUE sending attempts"
-msgstr "PARQ intentos de envío QUEUE"
-
-msgid "PARQ QUEUE messages sent"
-msgstr "PARQ mensajes QUEUE enviados"
-
-msgid "PARQ QUEUE follow-up requests received"
-msgstr "PARQ peticiones de seguimiento QUEUE recibidas"
-
-msgid "Launched SHA-1 file verifications"
-msgstr ""
-
-msgid "Launched TTH file verifications"
-msgstr ""
-
-msgid "Bitzi tickets held"
-msgstr ""
-
-msgid "Re-seeding of orphan downloads through query hits"
-msgstr "Re-siembra de descargas huérfanas a través de hits de peticiones"
-
-msgid "Re-seeding of orphan downloads through upload requests"
-msgstr ""
-
-msgid "RUDP sent bytes"
-msgstr ""
-
-msgid "RUDP received bytes"
-msgstr ""
-
-msgid "DHT estimated amount of nodes"
-msgstr "DHT número estimado de nodos"
-
-msgid "DHT standard error of estimated amount of nodes"
-msgstr ""
-
-msgid "DHT k-ball theoretical frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball furthest frontier (bits)"
-msgstr "DHT frontera más lejana a k-bola (bits)"
-
-msgid "DHT k-ball closeest frontier (bits)"
-msgstr "DHT frontera más cercana a k-bola (bits)"
-
-msgid "DHT routing table buckets"
-msgstr "DHT tobos en tabla de rutas"
-
-msgid "DHT routing table leaves"
-msgstr "DHT hojas en tabla de rutas"
-
-msgid "DHT routing table maximum depth"
-msgstr "DHT máxima profundidad de tabla de rutas"
-
-msgid "DHT routing table good nodes"
-msgstr "DHT Nodos buenos en tabla de rutas"
-
-msgid "DHT routing table stale nodes"
-msgstr "DHT nodos estancados en tabla de rutas"
-
-msgid "DHT routing table pending nodes"
-msgstr "DHT Nodos pendientes en tabla de rutas"
-
-msgid "DHT routing table evicted nodes"
-msgstr "DHT nodos desterrados de tabla de rutas"
-
-msgid "DHT routing table evicted firewalled nodes"
-msgstr "DHT nodos tras cortafuegos desterrados de tabla de rutas"
-
-msgid "DHT routing table evicted nodes due to quota"
-msgstr ""
-
-msgid "DHT routing table promoted pending nodes"
-msgstr "DHT nodos pendientes promovidos en tabla de rutas"
-
-msgid "DHT routing table pinged promoted nodes"
-msgstr ""
-
-msgid "DHT routing table rejected node due to bucket network quota"
-msgstr ""
-
-msgid "DHT routing table rejected node due to global network quota"
-msgstr ""
-
-msgid "DHT completed bucket refreshes"
-msgstr "DHT refrescos de tobos completados"
-
-msgid "DHT forced bucket refreshes"
-msgstr ""
-
-msgid "DHT forced bucket merges"
-msgstr ""
-
-msgid "DHT denied non-splitable bucket refresh"
-msgstr "DHT refrescos denegados de tobos indivisibles"
-
-msgid "DHT initiated bucket alive checks"
-msgstr "DHT revisiones de tobos vivos iniciadas"
-
-msgid "DHT alive pings sent to good nodes"
-msgstr "DHT notificaciones \"todavía vivo\" enviadas a nodos buenos"
-
-msgid "DHT alive pings sent to stale nodes"
-msgstr "DHT notificaciones \"todavía vivo\" enviadas a nodos estancados"
-
-msgid "DHT alive pings sent to shutdowning nodes"
-msgstr ""
-
-msgid "DHT alive pings avoided"
-msgstr ""
-
-msgid "DHT alive pings skipped"
-msgstr ""
-
-msgid "DHT revitalized stale nodes on RPC reply"
-msgstr ""
-
-msgid "DHT value store rejected on IP/network quota grounds"
-msgstr "DHT almacén de valores rechazado debido a cuota IP/Red"
-
-msgid "DHT value store rejected on creator validation grounds"
-msgstr "DHT almacén de valores rechazado debido a validación de creador"
-
-msgid "DHT nodes rejected during lookup based on network quota"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr ""
-
-msgid "DHT node contact IP addresses fixed during lookup"
-msgstr ""
-
-msgid "DHT keys held"
-msgstr "DHT claves mantenidas"
-
-msgid "DHT cached keys held"
-msgstr "DHT claves mantenidas en caché"
-
-msgid "DHT values held"
-msgstr "DHT valores en poder"
-
-msgid "DHT cached KUID targets held"
-msgstr ""
-
-msgid "DHT cached closest root nodes"
-msgstr ""
-
-msgid "DHT cached roots exact hits"
-msgstr ""
-
-msgid "DHT cached roots approximate hits"
-msgstr ""
-
-msgid "DHT cached roots misses"
-msgstr ""
-
-msgid "DHT cached roots lookups within k-ball"
-msgstr ""
-
-msgid "DHT cached roots contact address refreshed"
-msgstr ""
-
-msgid "DHT cached security tokens held"
-msgstr ""
-
-msgid "DHT cached security tokens hits"
-msgstr ""
-
-msgid "DHT stable node information held"
-msgstr ""
-
-msgid "DHT local hits on value lookups"
-msgstr "DHT hits locales en búsquedas de valores"
-
-msgid "DHT local hits returning values from cached keys"
-msgstr "DHT hits locales retornando valores desde claves en caché"
-
-msgid "DHT returned expanded values"
-msgstr "DHT valores  expandidos retornados"
-
-msgid "DHT returned values as secondary keys"
-msgstr "DHT valores retornados como claves secundarias"
-
-msgid "DHT claimed values via secondary keys"
-msgstr "DHT valores reclamados vía claves secundarias"
-
-msgid "DHT returned cached expanded values"
-msgstr "DHT valores expandidos retornados desde caché"
-
-msgid "DHT returned cached values as secondary-keys"
-msgstr "DHT valores retornados desde caché como claves secundarias"
-
-msgid "DHT claimed cached values via secondary keys"
-msgstr "DHT valores reclamados del caché vía claves secundarias"
-
-msgid "DHT successfully received value publications"
-msgstr ""
-
-msgid "DHT successfully received value removals"
-msgstr ""
-
-msgid "DHT replication of stale value avoided"
-msgstr "DHT  replicaciones evitadas de valores estancado"
-
-msgid "DHT replication of held values"
-msgstr "DHT replicaciones de valores en poder"
-
-msgid "DHT republishing of held values"
-msgstr "DHT republicaciones de valores en poder"
-
-msgid "DHT secondary-key value fetch issued"
-msgstr ""
-
-msgid "DHT duplicate values returned in lookups"
-msgstr "DHT valores duplicados retornados en búsquedas"
-
-msgid "DHT detected KUID collisions"
-msgstr "DHT colisiones de KUIDs detectadas"
-
-msgid "DHT detected collisions with our own KUID"
-msgstr "DHT colisiones detectadas con nuestra propia KUID"
-
-msgid "DHT caching attempts"
-msgstr ""
-
-msgid "DHT caching ended successfully"
-msgstr ""
-
-msgid "DHT caching partially completed"
-msgstr ""
-
-msgid "DHT key-offloading checks after discovering new closest node"
-msgstr ""
-
-msgid "DHT keys selected for offloading"
-msgstr ""
-
-msgid "DHT key-offloading attempts"
-msgstr ""
-
-msgid "DHT key-offloading ended successfully"
-msgstr ""
-
-msgid "DHT key-offloading partially completed"
-msgstr ""
-
-msgid "DHT values successfully offloaded"
-msgstr ""
-
-msgid "DHT incoming messages"
-msgstr ""
-
-msgid "DHT incoming messages with UDP-matching contact address"
-msgstr ""
-
-msgid "DHT incoming messages with contact address fixed"
-msgstr ""
-
-msgid "DHT incoming messages from hostile addresses"
-msgstr ""
-
-msgid "DHT incoming messages with hostile contact address"
-msgstr ""
-
-msgid "DHT RPC messages prepared"
-msgstr ""
-
-msgid "DHT RPC messages cancelled"
-msgstr ""
-
-msgid "DHT RPC timed out"
-msgstr ""
-
-msgid "DHT RPC replies received"
-msgstr ""
-
-msgid "DHT RPC replies with contact address fixed"
-msgstr ""
-
-msgid "DHT RPC late replies received"
-msgstr ""
-
-msgid "DHT RPC detected KUID mismatches on reply"
-msgstr ""
-
-msgid "DHT RPC recent nodes held"
-msgstr ""
-
-msgid "DHT node verifications"
-msgstr ""
-
-msgid "DHT publishing attempts"
-msgstr ""
-
-msgid "DHT publishing ended successfully (all roots)"
-msgstr ""
-
-msgid "DHT publishing partially completed (root subset only)"
-msgstr ""
-
-msgid "DHT publishing ending with proper value presence"
-msgstr ""
-
-msgid "DHT value republishing occurring too late (after expiry)"
-msgstr ""
-
-msgid "DHT publishing to self"
-msgstr ""
-
-msgid "DHT background publishing completion attempts"
-msgstr ""
-
-msgid "DHT background publishing completion showing improvements"
-msgstr ""
-
-msgid "DHT background publishing completion successful (all roots)"
-msgstr ""
-
-msgid "DHT SHA1 data type collisions"
-msgstr ""
-
-msgid "DHT lookup path passively protected against attack"
-msgstr ""
-
-msgid "DHT lookup path actively protected against attack"
-msgstr ""
-
-msgid "DHT alt-loc lookups issued"
-msgstr "DHT búsquedas de 'alt-loc' emitidas"
-
-msgid "DHT push-proxy lookups issued"
-msgstr "DHT búsquedas de 'push-proxy' emitidas"
-
-msgid "DHT successful alt-loc lookups"
-msgstr "DHT búsquedas de 'alt-loc' exitosas"
-
-msgid "DHT successful push-proxy lookups"
-msgstr "DHT búsquedas de 'push-proxy' exitosas"
-
-msgid "DHT successful node push-entry lookups"
-msgstr ""
-
-msgid "DHT re-seeding of orphan downloads"
-msgstr "DHT re-siembras de descargas huérfanas"
-
 msgid "node"
 msgid_plural "nodes"
 msgstr[0] "nodo"
@@ -6555,8 +6821,7 @@ msgstr "Acerca de gtk-gnutella"
 msgid "Act as OOB proxy for leaves"
 msgstr "Actuar como proxy OOB para hojas"
 
-msgid ""
-"Actual amount of file descriptors used -- cannot be changed at runtime"
+msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
 msgstr ""
 "Cantidad actual de descriptores de archivo usados -- no modificable en "
 "tiempo de ejecución"
@@ -6747,8 +7012,7 @@ msgid "Condition: If IP address matches"
 msgstr "Condición: Si la dirección IP coincide"
 
 msgid "Condition: If current filter result properties match"
-msgstr ""
-"Condición: Si las propiedades del resultado del filtro actual coincide"
+msgstr "Condición: Si las propiedades del resultado del filtro actual coincide"
 
 msgid "Condition: If file size matches"
 msgstr "Condición: Si el tamaño del archivo coincide"
@@ -7780,8 +8044,7 @@ msgstr "Mostrar _porcentajes"
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "Mostrar _ayudas (Aún no afecta a todos los controles)"
 
-msgid ""
-"Show additional information and settings for advanced and _expert users"
+msgid "Show additional information and settings for advanced and _expert users"
 msgstr ""
 "Mostrar ajustes e información adicional para los usuarios avanzados y "
 "_expertos"
@@ -8372,7 +8635,7 @@ msgstr ""
 msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr ""
 
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr ""
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -8399,7 +8662,7 @@ msgstr ""
 msgid "Pipelining max chunk size"
 msgstr ""
 
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr ""
 
 msgid "Enable GUESS (additional querying)"
@@ -8492,6 +8755,18 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr ""
 
+msgid "Mapping lease time"
+msgstr ""
+
+msgid "G2 hubs"
+msgstr ""
+
+msgid "Enable the G2 network"
+msgstr ""
+
+msgid " G2, "
+msgstr ""
+
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
@@ -8572,9 +8847,6 @@ msgstr ""
 msgid "CPU overloaded"
 msgstr ""
 
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr ""
-
 msgid "Connect to"
 msgstr "Conectar a"
 
@@ -8618,11 +8890,18 @@ msgstr ""
 msgid "Served "
 msgstr "Servido "
 
-msgid "[BH HTML served]"
+#, fuzzy
+msgid "[G2 served]"
 msgstr "[Servido BH HTML]"
 
 msgid " / "
 msgstr " / "
+
+msgid "[G2]"
+msgstr ""
+
+msgid "[BH HTML served]"
+msgstr "[Servido BH HTML]"
 
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
@@ -8707,11 +8986,7 @@ msgid "Gnutella Distributed Hash Table"
 msgstr ""
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
-msgstr ""
-"Porcentaje máximo de las conexiones que cada aplicación puede ocupar."
-
-msgid "Global DHT ougoing traffic"
-msgstr ""
+msgstr "Porcentaje máximo de las conexiones que cada aplicación puede ocupar."
 
 msgid "attempts"
 msgstr "intentos"
@@ -8721,9 +8996,6 @@ msgstr ""
 
 msgid "_Remove directory"
 msgstr "_Eliminar directorio"
-
-msgid "Enable upload of partial files deemed rare"
-msgstr ""
 
 msgid "Minimum chunk _size"
 msgstr "Tamaño de bloque mí_nimo"
@@ -8798,6 +9070,12 @@ msgstr ""
 msgid "Valid IPv6 ultra"
 msgstr ""
 
+msgid "Fresh G2 hub"
+msgstr ""
+
+msgid "Valid G2 hub"
+msgstr ""
+
 msgid "Unstable"
 msgstr "Inestable"
 
@@ -8832,9 +9110,8 @@ msgstr[1] "%d segundos"
 
 msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
-"document could not be loaded. Please read the <a href=\"http://gtk-"
-"gnutella.sourceforge.net/?page=faq\">FAQ online</a> "
-"instead.</p></body></html>"
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
 msgstr ""
 "<html><head><title>Preguntas Frecuentes</title></head><body><p>El documento "
 "que contiene las Preguntas Frecuentes no ha podido ser cargado. Por favor, "
@@ -8871,6 +9148,10 @@ msgstr "Recibiendo hola"
 
 msgid "UNKNOWN STATUS"
 msgstr "ESTADO DESCONOCIDO"
+
+#, fuzzy
+msgid "g2"
+msgstr ", g2"
 
 msgid "busy"
 msgstr "ocupado"
@@ -8968,8 +9249,8 @@ msgstr[1] ""
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
-"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
+"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
 
 msgid "loose"
@@ -9236,17 +9517,17 @@ msgid "Reading ultra cache..."
 msgstr "Leyendo cache de ultranodos..."
 
 msgid ""
-"<html><head><title>Ancient version "
-"detected!</title></head><body><h1>Warning</h1><p>This version of gtk-"
-"gnutella is pretty old. Please visit <a href=\"http://gtk-"
-"gnutella.sourceforge.net/\">http://gtk-gnutella.sourceforge.net/</a> and "
-"update your copy of gtk-gnutella.</p></body></html>"
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
 msgstr ""
-"<html><head><title>¡Detectada versión "
-"anticuada!</title></head><body><h1>Advertencia</h1><p>esta versión de gtk-"
-"gnutella es bastante vieja. Por favor, visita <a href=\"http://gtk-"
-"gnutella.sourceforge.net/\">http://gtk-gnutella.sourceforge.net/</a> y "
-"actualiza tu copia de gtk-gnutella.</p></body></html>"
+"<html><head><title>¡Detectada versión anticuada!</title></"
+"head><body><h1>Advertencia</h1><p>esta versión de gtk-gnutella es bastante "
+"vieja. Por favor, visita <a href=\"http://gtk-gnutella.sourceforge.net/"
+"\">http://gtk-gnutella.sourceforge.net/</a> y actualiza tu copia de gtk-"
+"gnutella.</p></body></html>"
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** ¡EJECUTANDO VERSIÓN ANTIGUA! ***"
@@ -9292,12 +9573,6 @@ msgstr "%u activos"
 #, c-format
 msgid "%u queued"
 msgstr "%u encolados"
-
-#, c-format
-msgid "%u/%u connection"
-msgid_plural "%u/%u connections"
-msgstr[0] "%u/%u conexión"
-msgstr[1] "%u/%u conexiones"
 
 #, c-format
 msgid "%u/%u upload"
@@ -9378,3 +9653,8 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#~ msgid "%u/%u connection"
+#~ msgid_plural "%u/%u connections"
+#~ msgstr[0] "%u/%u conexión"
+#~ msgstr[1] "%u/%u conexiones"

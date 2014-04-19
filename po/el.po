@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2013-05-08 11:12+0200\n"
+"POT-Creation-Date: 2014-04-19 18:25+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -344,6 +344,13 @@ msgid "No Content-Length header"
 msgstr ""
 
 #, fuzzy
+msgid "Unexpected Content-Type"
+msgstr "Απρόβλεπτο μήνυμα"
+
+msgid "No Content-Type"
+msgstr ""
+
+#, fuzzy
 msgid "Search already closed"
 msgstr "Προστέθηκε αναζήτηση"
 
@@ -401,9 +408,16 @@ msgstr "Απαγορεύσεις"
 msgid ", g2"
 msgstr ", "
 
+msgid ", fake-g2"
+msgstr ""
+
 #, fuzzy
 msgid ", vendor?"
 msgstr "Κατασκευαστής:"
+
+#, fuzzy, c-format
+msgid "<Browse G2 Host %s>"
+msgstr "Εξερεύνηση Υπολογιστή"
 
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
@@ -525,159 +539,13 @@ msgstr[0] ""
 msgstr[1] ""
 "Ελήφθη %d υπολογιστές από την λανθάνουσα μνήμη UDP υπολογιστών %s:%u"
 
+#, fuzzy, c-format
+msgid "Connecting to web cache %s"
+msgstr "Σύνδεση στον υπολογιστή"
+
 #, c-format
 msgid "Bootstrapping from %s"
 msgstr ""
-
-msgid "Bad size"
-msgstr "Κακό μέγεθος"
-
-msgid "Too small"
-msgstr "Πολύ μικρό"
-
-msgid "Too large"
-msgstr "Πολύ μεγάλο"
-
-msgid "Way too large"
-msgstr "Πάρα πολύ μεγάλο"
-
-#, fuzzy
-msgid "Too old"
-msgstr "Πολύ μικρό"
-
-msgid "Unknown message type"
-msgstr "Άγνωστος τύπος μηνύματος"
-
-msgid "Unexpected message"
-msgstr "Απρόβλεπτο μήνυμα"
-
-msgid "Message sent with TTL = 0"
-msgstr "Το μήνυμα στάλθηκε με TTL = 0"
-
-msgid "Improper hops/ttl combination"
-msgstr ""
-
-msgid "Max TTL exceeded"
-msgstr "Υπέρβαση μέγιστου TTL"
-
-msgid "Message throttle"
-msgstr "Περιορισμός μηνυμάτων"
-
-#, fuzzy
-msgid "Message matched limits"
-msgstr "Όρια μεγέθους μηνυμάτων GnutellaNet"
-
-msgid "Transient node"
-msgstr ""
-
-msgid "Unusable Pong"
-msgstr ""
-
-msgid "Hard TTL limit reached"
-msgstr "Όριο σκληρού TTL"
-
-msgid "Max hop count reached"
-msgstr ""
-
-msgid "Route lost"
-msgstr "Απώλεια δρομολόγησης"
-
-msgid "No route"
-msgstr "Χωρίς δρομολόγηση"
-
-msgid "Duplicate message"
-msgstr "Ανατύπωση μηνύματος"
-
-msgid "Message to banned GUID"
-msgstr "Μήνυμα σε απαγορευμένο GUID"
-
-#, fuzzy
-msgid "Message from banned GUID"
-msgstr "Μήνυμα σε απαγορευμένο GUID"
-
-msgid "Node shutting down"
-msgstr "Ο κόμβος κλείνει"
-
-msgid "TX flow control"
-msgstr "Έλεγχος ροής TX"
-
-msgid "Query text had no trailing NUL"
-msgstr ""
-
-msgid "Query text too short"
-msgstr "Το κείμενο ερωτήματος είναι πολύ μικρό"
-
-msgid "Query had unnecessary overhead"
-msgstr "Το ερώτημα επιβαρύνθηκε χωρίς να χρειάζεται"
-
-msgid "Query had bad URN"
-msgstr ""
-
-msgid "Message with malformed SHA1"
-msgstr "Μήνυμα με παραμορφωμένο SHA1"
-
-msgid "Message with malformed UTF-8"
-msgstr "Μήνυμα με παραμορφωμένο UTF-8"
-
-msgid "Malformed Query Hit"
-msgstr "Παραμορφωμένο χτύπημα ερωτήματος"
-
-msgid "Bad return address"
-msgstr "Κακή διεύθυνση επιστροφής"
-
-msgid "Hostile IP address"
-msgstr "Εχθρική διεύθυνση IP"
-
-msgid "Bogus result from Morpheus"
-msgstr ""
-
-msgid "Spam"
-msgstr ""
-
-#, fuzzy
-msgid "Evil filename"
-msgstr "Όνομα αρχείου"
-
-#, fuzzy
-msgid "Improper media type"
-msgstr "Κριτήριο αναζήτησης"
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
-#, fuzzy
-msgid "Own search results"
-msgstr "Αποτελέσματα αναζήτησης"
-
-#, fuzzy
-msgid "Own queries"
-msgstr "Ερωτήματα RX"
-
-msgid "Ancient query format"
-msgstr ""
-
-#, fuzzy
-msgid "Blank Servent ID"
-msgstr "ID πελάτη:"
-
-msgid "GUESS Query missing token"
-msgstr ""
-
-msgid "GUESS Invalid query token"
-msgstr ""
-
-msgid "DHT Invalid security token"
-msgstr ""
-
-msgid "DHT Too many STORE requests"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Malformed message"
-msgstr "Παραμορφωμένη εντολή"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -715,6 +583,10 @@ msgstr "Οι συνδέσεις Gnet απενεργοποιήθηκαν"
 
 msgid "Connection not compressed"
 msgstr "Μη συμπιεσμένη σύνδεση"
+
+#, fuzzy, c-format
+msgid "Too many G2 hubs (%u max)"
+msgstr "Πάρα πολλοί κόμβοι (μέγιστο %d)"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -766,6 +638,9 @@ msgstr "Κλείσιμο πελάτη"
 #, fuzzy
 msgid "Not a network member"
 msgstr "Λειτουργία δικτύου Gnutella"
+
+msgid "Need a G2 Hub"
+msgstr ""
 
 msgid "Too frequent crawling"
 msgstr ""
@@ -822,6 +697,10 @@ msgid "Pseudo semi-reliable UDP node"
 msgstr "Κόμβος ψευδο-UDP"
 
 #, fuzzy
+msgid "Pseudo G2 UDP node"
+msgstr "Κόμβος ψευδο-UDP"
+
+#, fuzzy
 msgid "Pseudo DHT node"
 msgstr "Κόμβος ψευδο-UDP"
 
@@ -867,6 +746,9 @@ msgid "UDP"
 msgstr "UDP"
 
 msgid "DHT"
+msgstr ""
+
+msgid "G2 hub"
 msgstr ""
 
 msgid "Unknown"
@@ -1088,8 +970,8 @@ msgstr "Δεν είναι η αποστολή ολόκληρης της κατά
 msgid "Not Acceptable"
 msgstr "Μη αποδεκτό πρωτόκολλο"
 
-#, c-format
-msgid "<Browse Host Request> [%s%s%s]"
+#, fuzzy, c-format
+msgid "<Browse Host %sRequest> [%s%s%s]"
 msgstr "<Αίτημα Εξερεύνησης Υπολογιστή> [%s%s%s]"
 
 msgid "query hits"
@@ -1168,6 +1050,1251 @@ msgstr " - Υπάρχει νεότερη έκδοση διαθέσιμη: έκδ
 #, fuzzy, c-format
 msgid " - Newer version available: from git %s"
 msgstr " - Υπάρχει νεότερη έκδοση διαθέσιμη: από git %s"
+
+msgid "Routing errors"
+msgstr "Σφάλματα δρομολόγησης"
+
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
+msgid "Routing through transient node avoided"
+msgstr ""
+
+msgid "Duplicates with higher TTL"
+msgstr "Ανατυπώνει με υψηλότερο TTL"
+
+msgid "SPAM SHA1 database hits"
+msgstr ""
+
+#, fuzzy
+msgid "SPAM filename and size hits"
+msgstr "αν το όνομα αρχείου τελειώνει με \"%s\" %s"
+
+msgid "SPAM fake hits"
+msgstr ""
+
+msgid "SPAM duplicate hits"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr ""
+
+msgid "SPAM dynamically caught hostile IP held"
+msgstr ""
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr ""
+
+msgid "Searches to local DB"
+msgstr "Αναζητήσεις στην τοπική ΒΔ"
+
+msgid "Hits on local DB"
+msgstr "Χτυπήματα στην τοπική ΒΔ"
+
+#, fuzzy
+msgid "Hits on local partial files"
+msgstr "Χτυπήματα στην τοπική ΒΔ"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr ""
+
+msgid "Query hits received for local queries"
+msgstr "Ληφθέντα χτυπήματα ερωτημάτων για τοπικά ερωτήματα."
+
+#, fuzzy
+msgid "G2 searches to local DB"
+msgstr "Αναζητήσεις στην τοπική ΒΔ"
+
+#, fuzzy
+msgid "G2 hits on local DB"
+msgstr "Χτυπήματα στην τοπική ΒΔ"
+
+#, fuzzy
+msgid "G2 hits on local partial files"
+msgstr "Χτυπήματα στην τοπική ΒΔ"
+
+msgid "Query hits received for OOB-proxied queries"
+msgstr "Ληφθέντα χτυπήματα ερωτημάτων για ερωτήματα δρομολογημένα μέσω OOB"
+
+msgid "Queries requesting OOB hit delivery"
+msgstr "Ερωτήματα αναζήτησης χτυπημάτων παράδοσης OOB"
+
+msgid "Stripped OOB flag on queries"
+msgstr "Περικομμένη σημαία OOB στα ερωτήματα"
+
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
+msgid "Duplicate OOB-proxied queries"
+msgstr "Ανατυπώνει ερωτήματα δρομολογημένα μέσω OOB"
+
+msgid "OOB hits received for OOB-proxied queries"
+msgstr "Ληφθέντα χτυπήματα OOB για ερωτήματα δρομολογημένα μέσω OOB"
+
+msgid "OOB hits bearing alien IP address"
+msgstr "Χτυπήματα OOB που δημιουργούν ξένες διευθύνσεις IP"
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
+msgstr ""
+
+msgid "Unclaimed locally-generated OOB hits"
+msgstr "Αδήλωτα τοπικά δημιουργημένα χτυπήματα OOB"
+
+msgid "Partially claimed locally-generated OOB hits"
+msgstr "Μερικώς δηλωμένα τοπικά δημιουργημένα χτυπήματα OOB"
+
+msgid "Spurious OOB hit claiming received"
+msgstr ""
+
+#, fuzzy
+msgid "Unrequested OOB hits received"
+msgstr "Ερωτήματα αναζήτησης χτυπημάτων παράδοσης OOB"
+
+msgid "Received query hits for untracked queries"
+msgstr ""
+
+msgid "Tracked query MUIDs"
+msgstr ""
+
+msgid "Compacted queries"
+msgstr "Συμπαγή ερωτήματα"
+
+msgid "Bytes saved by compacting"
+msgstr "Bytes που σώθηκαν από την μετατροπή σε συμπαγή"
+
+msgid "UTF8 queries"
+msgstr "ερωτήματα UTF8"
+
+msgid "SHA1 queries"
+msgstr "ερωτήματα SHA1"
+
+#, fuzzy
+msgid "\"What's New?\" queries"
+msgstr "Δημιουργημένα ερωτήματα"
+
+#, fuzzy
+msgid "UTF8 G2 queries"
+msgstr "ερωτήματα UTF8"
+
+#, fuzzy
+msgid "SHA1 G2 queries"
+msgstr "ερωτήματα SHA1"
+
+#, fuzzy
+msgid "GUESS queries"
+msgstr "ερωτήματα UTF8"
+
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "ερωτήματα UTF8"
+
+msgid "GUESS link cache size"
+msgstr ""
+
+msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
+msgstr ""
+
+msgid "GUESS cached G2 hosts held"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS locally generated queries"
+msgstr "Τοπικά δημιουργημένα δυναμικά ερωτήματα"
+
+msgid "GUESS currently running queries"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS hits received for locally generated queries"
+msgstr "Ληφθέντα χτυπήματα ερωτημάτων για τοπικά ερωτήματα."
+
+#, fuzzy
+msgid "GUESS ultra nodes queried"
+msgstr "Τοπικά δημιουργημένα δυναμικά ερωτήματα"
+
+msgid "GUESS ultra nodes sending back an acknowledgment"
+msgstr ""
+
+#, fuzzy
+msgid "GUESS G2 nodes queried"
+msgstr "ερωτήματα UTF8"
+
+msgid "GUESS G2 nodes sending back an acknowledgment"
+msgstr ""
+
+msgid "Broadcasted push messages"
+msgstr "Μεταδιδόμενα μηνύματα ώθησης"
+
+#, fuzzy
+msgid "Push-proxy UDP relayed messages"
+msgstr "Μηνύματα διαμεσολαβητή ώθησης"
+
+msgid "Push-proxy TCP relayed messages"
+msgstr "Μηνύματα διαμεσολαβητή ώθησης"
+
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
+msgid "Push-proxy broadcasted messages"
+msgstr "Μηνύματα μεταδιδόμενα από το διαμεσολαβητή ώθησης"
+
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
+msgid "Push-proxy lookup failures"
+msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
+
+msgid "Push relayed via local route"
+msgstr ""
+
+msgid "Push relayed via routing table"
+msgstr ""
+
+msgid "Locally generated dynamic queries"
+msgstr "Τοπικά δημιουργημένα δυναμικά ερωτήματα"
+
+msgid "Leaf-generated dynamic queries"
+msgstr "Δυναμικά ερωτήματα από δικτυακούς κόμβους"
+
+msgid "OOB-proxied leaf queries"
+msgstr "Ερωτήματα δικτυακών κόμβων μέσω διαμεσολάβησης OOB"
+
+msgid "Fully completed dynamic queries"
+msgstr "Πλήρως ολοκληρωμένα δυναμικά ερωτήματα"
+
+msgid "Partially completed dynamic queries"
+msgstr "Μερικώς ολοκληρωμένα δυναμικά ερωτήματα"
+
+msgid "Dynamic queries ended with no results"
+msgstr "Τα δυναμικά ερωτήματα τελείωσαν χωρίς αποτελέσματα"
+
+msgid "Fully completed dynamic queries getting late results"
+msgstr ""
+"Πλήρως ολοκληρωμένα δυναμικά ερωτήματα με λήψη καθυστερημένων αποτελεσμάτων"
+
+msgid "Dynamic queries with partial late results"
+msgstr "Δυναμικά ερωτήματα με μερικά καθυστερημένα αποτελέσματα"
+
+msgid "Dynamic queries completed by late results"
+msgstr "Δυναμικά ερωτήματα που ολοκληρώθηκαν από καθυστερημένα αποτελέσματα"
+
+msgid "Queries seen from GTKG"
+msgstr "Ερωτήματα που προβλήθηκαν από το GTKG"
+
+msgid "Queries seen from GTKG that were re-queries"
+msgstr "Ερωτήματα που προβλήθηκαν από το GTKG που ήταν επανερωτήματα"
+
+msgid "Queries advertising support of GGEP \"H\""
+msgstr "Ερωτήματα με διαφημίσεις υποστήριξης GGEP \"H\""
+
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "Ερωτήματα με διαφημίσεις υποστήριξης GGEP \"H\""
+
+msgid "GIV callbacks received"
+msgstr "Ελήφθησαν πίσω κλήσεις GIV"
+
+msgid "GIV discarded due to no suitable download"
+msgstr ""
+
+msgid "QUEUE callbacks received"
+msgstr "Ελήφθησαν πίσω κλήσεις ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ"
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr ""
+
+msgid "File descriptors banned running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "Ώθηση εστάλη"
+
+msgid "UDP messages with bogus source IP"
+msgstr "Μηνύματα UDP με ψεύτικη πηγαία IP"
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "Παραμορφωμένη εντολή"
+
+msgid "Alien UDP messages (non-Gnutella)"
+msgstr "Ξένα μηνύματα UDP (όχι Gnutella)"
+
+msgid "Unprocessed UDP Gnutella messages"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Compressed UDP messages enqueued"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Compressed UDP messages received"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Uncompressed UDP messages due to no gain"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP total messages dropped due to temporary ban"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Semi-reliable UDP total messages sent to known responsive hosts"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments re-queued for sending"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Semi-reliable UDP plain acknowledgments dropped"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Semi-reliable UDP enhanced acknowledgments dropped"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Semi-reliable UDP plain acknowledgments transmitted"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Semi-reliable UDP cumulative acknowledgments transmitted"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Semi-reliable UDP extended acknowledgments transmitted"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
+
+msgid "UDP G2 hits rerouted to hub for delivery"
+msgstr ""
+
+#, fuzzy
+msgid "UDP G2 hits undelivered"
+msgstr "Η ΕΜΦΑΝΙΣΗ δεν έχει οριστεί"
+
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr ""
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr ""
+
+msgid "Discovered server GUIDs"
+msgstr ""
+
+msgid "Changed server GUIDs"
+msgstr ""
+
+msgid "Detected GUID collisions"
+msgstr ""
+
+msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+
+msgid "Revitalized PUSH routes"
+msgstr ""
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr ""
+
+msgid "Attempted download resource switching after error"
+msgstr ""
+
+msgid "Successful download resource switching (all kind)"
+msgstr ""
+
+msgid "Successful download resource switching between plain files"
+msgstr ""
+
+msgid "Successful download resource switching after error"
+msgstr ""
+
+msgid "Actively queued after resource switching attempt"
+msgstr ""
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr ""
+
+#, fuzzy
+msgid "Ignored downloaded data"
+msgstr "Ληφθέντα δεδομένα:"
+
+#, fuzzy
+msgid "Ignoring requested after data mismatch"
+msgstr "Αποστολή αιτήματος (%u%%)"
+
+#, fuzzy
+msgid "Ignoring requested to preserve connection"
+msgstr "Αποστολή αιτήματος (%u%%)"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr ""
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+
+msgid "Client resource switching (all detected)"
+msgstr ""
+
+msgid "Client resource switching between plain files"
+msgstr ""
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr ""
+
+msgid "PARQ client retry-after violation"
+msgstr ""
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+
+msgid "PARQ upload slot limit overrides"
+msgstr ""
+
+msgid "PARQ quick upload slots granted"
+msgstr ""
+
+msgid "PARQ QUEUE sending attempts"
+msgstr ""
+
+msgid "PARQ QUEUE messages sent"
+msgstr ""
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr ""
+
+msgid "Launched SHA-1 file verifications"
+msgstr ""
+
+msgid "Launched TTH file verifications"
+msgstr ""
+
+msgid "Bitzi tickets held"
+msgstr ""
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr "Επίπεδο αποσφαλμάτωσης λήψεων."
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "Bytes διαδρομής RX"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "Bytes διαδρομής RX"
+
+msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr ""
+
+msgid "DHT routing table buckets"
+msgstr ""
+
+msgid "DHT routing table leaves"
+msgstr ""
+
+msgid "DHT routing table maximum depth"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table good nodes"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "DHT routing table stale nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pending nodes"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "DHT routing table evicted nodes"
+msgstr ""
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table evicted nodes due to quota"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "DHT routing table promoted pending nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pinged promoted nodes"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr ""
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT forced bucket refreshes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT forced bucket merges"
+msgstr "Παραμορφωμένη εντολή"
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr ""
+
+msgid "DHT initiated bucket alive checks"
+msgstr ""
+
+msgid "DHT alive pings sent to good nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr ""
+
+msgid "DHT alive pings avoided"
+msgstr ""
+
+msgid "DHT alive pings skipped"
+msgstr ""
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr ""
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
+msgstr ""
+
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT cached keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT cached KUID targets held"
+msgstr ""
+
+msgid "DHT cached closest root nodes"
+msgstr ""
+
+msgid "DHT cached roots exact hits"
+msgstr ""
+
+msgid "DHT cached roots approximate hits"
+msgstr ""
+
+msgid "DHT cached roots misses"
+msgstr ""
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr ""
+
+msgid "DHT cached roots contact address refreshed"
+msgstr ""
+
+msgid "DHT cached security tokens held"
+msgstr ""
+
+msgid "DHT cached security tokens hits"
+msgstr ""
+
+#, fuzzy
+msgid "DHT stable node information held"
+msgstr "Λεπτομέρειες"
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT local hits returning values from cached keys"
+msgstr ""
+
+msgid "DHT returned expanded values"
+msgstr ""
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed values via secondary keys"
+msgstr "Χρονικά όρια (όλες οι τιμές σε δευτερόλεπτα)"
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed cached values via secondary keys"
+msgstr "Χρονικά όρια (όλες οι τιμές σε δευτερόλεπτα)"
+
+msgid "DHT successfully received value publications"
+msgstr ""
+
+msgid "DHT successfully received value removals"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr ""
+
+msgid "DHT detected KUID collisions"
+msgstr ""
+
+msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
+msgid "DHT caching attempts"
+msgstr ""
+
+msgid "DHT caching ended successfully"
+msgstr ""
+
+msgid "DHT caching partially completed"
+msgstr ""
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr ""
+
+msgid "DHT keys selected for offloading"
+msgstr ""
+
+msgid "DHT key-offloading attempts"
+msgstr ""
+
+msgid "DHT key-offloading ended successfully"
+msgstr ""
+
+msgid "DHT key-offloading partially completed"
+msgstr ""
+
+msgid "DHT values successfully offloaded"
+msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "Παραμορφωμένη εντολή"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr ""
+
+msgid "DHT RPC recent nodes held"
+msgstr ""
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "Λεπτομέρειες"
+
+msgid "DHT publishing attempts"
+msgstr ""
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr ""
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr ""
+
+msgid "DHT publishing ending with proper value presence"
+msgstr ""
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr ""
+
+msgid "DHT publishing to self"
+msgstr ""
+
+msgid "DHT background publishing completion attempts"
+msgstr ""
+
+msgid "DHT background publishing completion showing improvements"
+msgstr ""
+
+msgid "DHT background publishing completion successful (all roots)"
+msgstr ""
+
+msgid "DHT SHA1 data type collisions"
+msgstr ""
+
+msgid "DHT lookup path passively protected against attack"
+msgstr ""
+
+msgid "DHT lookup path actively protected against attack"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+#, fuzzy
+msgid "DHT push-proxy lookups issued"
+msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT successful node push-entry lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "Επίπεδο αποσφαλμάτωσης λήψεων."
+
+msgid "Ping"
+msgstr "Ping"
+
+msgid "Pong"
+msgstr "Pong"
+
+msgid "Bye"
+msgstr "Αντίο"
+
+msgid "QRP"
+msgstr "QRP"
+
+msgid "HSEP"
+msgstr "HSEP"
+
+#, fuzzy
+msgid "RUDP"
+msgstr "UDP"
+
+msgid "Vendor spec."
+msgstr "Προδ/φές Κατασκευαστή"
+
+msgid "Vendor std."
+msgstr ""
+
+msgid "Push"
+msgstr "Ώθηση"
+
+msgid "Query"
+msgstr "Ερώτημα"
+
+msgid "Query hit"
+msgstr "Χτύπημα ερωτήματος"
+
+msgid "DHT (truncated)"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "DHT Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "DHT Store"
+msgstr "Κυκλοφορία HTTP"
+
+msgid "DHT Store Ack"
+msgstr ""
+
+msgid "DHT Find Node"
+msgstr ""
+
+msgid "DHT Found Node"
+msgstr ""
+
+msgid "DHT Find Value"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Value"
+msgstr "Τιμή"
+
+#, fuzzy
+msgid "G2 Crawl Request"
+msgstr "Τελευταία εναλλαγή"
+
+msgid "G2 Hub Advertisement"
+msgstr ""
+
+msgid "G2 Hub List"
+msgstr ""
+
+msgid "G2 Hub List Req"
+msgstr ""
+
+msgid "G2 Hub List Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Local Node Info"
+msgstr "Τοπικός κόμβος"
+
+#, fuzzy
+msgid "G2 Ping"
+msgstr "Ping"
+
+#, fuzzy
+msgid "G2 Pong"
+msgstr "Pong"
+
+#, fuzzy
+msgid "G2 Push"
+msgstr "Ώθηση"
+
+msgid "G2 Query Key Ack"
+msgstr ""
+
+msgid "G2 Query Key Req"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query"
+msgstr "Ερώτημα"
+
+msgid "G2 Query Ack"
+msgstr ""
+
+#, fuzzy
+msgid "G2 Query Hit"
+msgstr "Χτύπημα ερωτήματος"
+
+#, fuzzy
+msgid "G2 Query Hash Table"
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα ανταλλαγής αρχείων."
+
+msgid "G2 User Profile Check"
+msgstr ""
+
+msgid "G2 User Profile Data"
+msgstr ""
+
+msgid "Total"
+msgstr "Σύνολο"
+
+msgid "Bad size"
+msgstr "Κακό μέγεθος"
+
+msgid "Too small"
+msgstr "Πολύ μικρό"
+
+msgid "Too large"
+msgstr "Πολύ μεγάλο"
+
+msgid "Way too large"
+msgstr "Πάρα πολύ μεγάλο"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Πολύ μικρό"
+
+msgid "Unknown message type"
+msgstr "Άγνωστος τύπος μηνύματος"
+
+msgid "Unexpected message"
+msgstr "Απρόβλεπτο μήνυμα"
+
+msgid "Message sent with TTL = 0"
+msgstr "Το μήνυμα στάλθηκε με TTL = 0"
+
+msgid "Improper hops/ttl combination"
+msgstr ""
+
+msgid "Max TTL exceeded"
+msgstr "Υπέρβαση μέγιστου TTL"
+
+msgid "Message throttle"
+msgstr "Περιορισμός μηνυμάτων"
+
+#, fuzzy
+msgid "Message matched limits"
+msgstr "Όρια μεγέθους μηνυμάτων GnutellaNet"
+
+msgid "Transient node"
+msgstr ""
+
+msgid "Unusable Pong"
+msgstr ""
+
+msgid "Hard TTL limit reached"
+msgstr "Όριο σκληρού TTL"
+
+msgid "Max hop count reached"
+msgstr ""
+
+msgid "Route lost"
+msgstr "Απώλεια δρομολόγησης"
+
+msgid "No route"
+msgstr "Χωρίς δρομολόγηση"
+
+msgid "Duplicate message"
+msgstr "Ανατύπωση μηνύματος"
+
+msgid "OOB Proxy MUID Conflict"
+msgstr ""
+
+msgid "Message to banned GUID"
+msgstr "Μήνυμα σε απαγορευμένο GUID"
+
+#, fuzzy
+msgid "Message from banned GUID"
+msgstr "Μήνυμα σε απαγορευμένο GUID"
+
+msgid "Node shutting down"
+msgstr "Ο κόμβος κλείνει"
+
+msgid "TX flow control"
+msgstr "Έλεγχος ροής TX"
+
+msgid "Query text had no trailing NUL"
+msgstr ""
+
+msgid "Query text too short"
+msgstr "Το κείμενο ερωτήματος είναι πολύ μικρό"
+
+msgid "Query had unnecessary overhead"
+msgstr "Το ερώτημα επιβαρύνθηκε χωρίς να χρειάζεται"
+
+msgid "Query had bad URN"
+msgstr ""
+
+msgid "Message with malformed SHA1"
+msgstr "Μήνυμα με παραμορφωμένο SHA1"
+
+msgid "Message with malformed UTF-8"
+msgstr "Μήνυμα με παραμορφωμένο UTF-8"
+
+msgid "Malformed Query Hit"
+msgstr "Παραμορφωμένο χτύπημα ερωτήματος"
+
+msgid "Bad return address"
+msgstr "Κακή διεύθυνση επιστροφής"
+
+msgid "Hostile IP address"
+msgstr "Εχθρική διεύθυνση IP"
+
+#, fuzzy
+msgid "Shunned IP address"
+msgstr "Ασταθής διεύθυνση IP"
+
+msgid "Bogus result from Morpheus"
+msgstr ""
+
+msgid "Spam"
+msgstr ""
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Όνομα αρχείου"
+
+#, fuzzy
+msgid "Improper media type"
+msgstr "Κριτήριο αναζήτησης"
+
+msgid "Payload inflating error"
+msgstr ""
+
+msgid "Unknown header flags present"
+msgstr ""
+
+#, fuzzy
+msgid "Own search results"
+msgstr "Αποτελέσματα αναζήτησης"
+
+#, fuzzy
+msgid "Own queries"
+msgstr "Ερωτήματα RX"
+
+msgid "Ancient query format"
+msgstr ""
+
+#, fuzzy
+msgid "Blank Servent ID"
+msgstr "ID πελάτη:"
+
+msgid "GUESS Query missing token"
+msgstr ""
+
+msgid "GUESS Invalid query token"
+msgstr ""
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "Παραμορφωμένη εντολή"
+
+#, fuzzy
+msgid "G2 Unexpected message"
+msgstr "Απρόβλεπτο μήνυμα"
+
+#, fuzzy
+msgid "Cannot cross networks"
+msgstr "Τοπικά δίκτυα"
 
 msgid "No proxy"
 msgstr "Χωρίς διαμεσολαβητή"
@@ -2736,7 +3863,7 @@ msgstr ""
 
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
 "list from the global one distributed with gtk-gnutella."
 msgstr ""
 
@@ -3649,6 +4776,70 @@ msgstr ""
 msgid "Whether the program is auto-restarting at the user's request."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for time management."
+msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
+
+#, fuzzy
+msgid "Debug level for the tmalloc() thread-magazine object distributor."
+msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+#, fuzzy
+msgid "Debug level for the event queue thread."
+msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+#, fuzzy
+msgid "Maximum number of G2 hubs in the hub cache."
+msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέκτη υπερ-κόμβων."
+
+#, fuzzy
+msgid "Current number of IPv4 hosts in the G2 hub caches."
+msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες υπερ-κόμβων."
+
+#, fuzzy
+msgid "Whether the G2 protocol should be enabled."
+msgstr "Αν πρέπει να εμφανίζεται ο συντελεστής συμπίεσης της κυκλοφορίας TX."
+
+#, fuzzy
+msgid "Number of G2 nodes currently connected."
+msgstr "Αριθμός συνδεδεμένων δικτυακών κόμβων."
+
+#, fuzzy
+msgid "Maximum amount of G2 hubs we should connect to as a leaf."
+msgstr ""
+"Μέγιστος αριθμός συνδέσεων με υπερ-κόμβους κατά την δικτυακή λειτουργία."
+
+#, fuzzy
+msgid "Whether to log bad G2 messages, corrupted or unexpected."
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+#, fuzzy
+msgid "Whether to log dropped G2 messages"
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+#, fuzzy
+msgid "Debug level for the G2 RPC layer."
+msgstr "Επίπεδο αποσφαλμάτωσης κυκλοφορίας επιπέδου UDP."
+
+#, fuzzy
+msgid "Whether to log summary of received query hits"
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
+msgid "Whether to log summary of each record in received query hits"
+msgstr ""
+
+#, fuzzy
+msgid "Number of G2 browsing requests received in this session."
+msgstr "Αριθμός αιτημάτων εξερεύνησης HTML που λήφθηκαν σε αυτή τη συνεδρία."
+
+#, fuzzy
+msgid "Number of G2 browsing requests fully served in this session."
+msgstr "Αριθμός αιτημάτων εξερεύνησης HTML που λήφθηκαν σε αυτή τη συνεδρία."
+
+#, fuzzy
+msgid "Whether to log G2 messages we're attempting to send"
+msgstr "Επίπεδο αποσφαλμάτωσης μηνυμάτων Gnutella."
+
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -3670,71 +4861,9 @@ msgstr "μόνο TCP"
 msgid "UDP only"
 msgstr "μόνο UDP"
 
-msgid "Ping"
-msgstr "Ping"
-
-msgid "Pong"
-msgstr "Pong"
-
-msgid "Bye"
-msgstr "Αντίο"
-
-msgid "QRP"
-msgstr "QRP"
-
-msgid "HSEP"
-msgstr "HSEP"
-
-#, fuzzy
-msgid "RUDP"
-msgstr "UDP"
-
-msgid "Vendor spec."
-msgstr "Προδ/φές Κατασκευαστή"
-
-msgid "Vendor std."
-msgstr ""
-
-msgid "Push"
-msgstr "Ώθηση"
-
-msgid "Query"
-msgstr "Ερώτημα"
-
 #, fuzzy
 msgid "Query Hit"
 msgstr "Χτύπημα ερωτήματος"
-
-#, fuzzy
-msgid "DHT Ping"
-msgstr "Ping"
-
-#, fuzzy
-msgid "DHT Pong"
-msgstr "Pong"
-
-#, fuzzy
-msgid "DHT Store"
-msgstr "Κυκλοφορία HTTP"
-
-msgid "DHT Store Ack"
-msgstr ""
-
-msgid "DHT Find Node"
-msgstr ""
-
-msgid "DHT Found Node"
-msgstr ""
-
-msgid "DHT Find Value"
-msgstr ""
-
-#, fuzzy
-msgid "DHT Value"
-msgstr "Τιμή"
-
-msgid "Total"
-msgstr "Σύνολο"
 
 msgid "Icons"
 msgstr "Εικονίδια"
@@ -5179,6 +6308,14 @@ msgstr "Ανενεργές πηγές"
 msgid "Interactive mode turned off."
 msgstr "Ανενεργές πηγές"
 
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Άγνωστη διαδικασία"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Άγνωστη διαδικασία"
+
 #, fuzzy
 msgid "Cannot determine current working directory"
 msgstr "Δεν είναι δυνατή η εύρεση του αρχικού καταλόγου σας!"
@@ -5194,14 +6331,6 @@ msgstr "Αδυναμία αποστολής GIV"
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
-
-#, fuzzy, c-format
-msgid "Unknown operation \"%s\""
-msgstr "Άγνωστη διαδικασία"
-
-#, fuzzy, c-format
-msgid "Unknown operation \"show %s\""
-msgstr "Άγνωστη διαδικασία"
 
 #, fuzzy, c-format
 msgid "Unknown operation \"stats %s\""
@@ -5254,6 +6383,9 @@ msgstr ""
 msgid "Good bye"
 msgstr "Αντίο"
 
+msgid "Invalid command syntax"
+msgstr ""
+
 msgid "Query string missing"
 msgstr "Λείπει η συμβολοσειρά ερωτήματος"
 
@@ -5292,9 +6424,6 @@ msgid "unterminated double-quoted string"
 msgstr ""
 
 msgid "unterminated single-quoted string"
-msgstr ""
-
-msgid "Invalid command syntax"
 msgstr ""
 
 msgid "too many arguments in command"
@@ -5804,892 +6933,6 @@ msgstr "Παγκόσμιο (μετά)"
 
 msgid "RETURN"
 msgstr "ΕΠΙΣΤΡΟΦΗ"
-
-msgid "Query hit"
-msgstr "Χτύπημα ερωτήματος"
-
-msgid "DHT (truncated)"
-msgstr ""
-
-msgid "Routing errors"
-msgstr "Σφάλματα δρομολόγησης"
-
-#, fuzzy
-msgid "Routing table chunks"
-msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
-
-msgid "Routing table message capacity"
-msgstr ""
-
-msgid "Routing table message count"
-msgstr ""
-
-msgid "Routing through transient node avoided"
-msgstr ""
-
-msgid "Duplicates with higher TTL"
-msgstr "Ανατυπώνει με υψηλότερο TTL"
-
-msgid "SPAM SHA1 database hits"
-msgstr ""
-
-#, fuzzy
-msgid "SPAM filename and size hits"
-msgstr "αν το όνομα αρχείου τελειώνει με \"%s\" %s"
-
-msgid "SPAM fake hits"
-msgstr ""
-
-msgid "SPAM duplicate hits"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
-
-msgid "SPAM dynamically caught hostile IP held"
-msgstr ""
-
-msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
-
-msgid "Searches to local DB"
-msgstr "Αναζητήσεις στην τοπική ΒΔ"
-
-msgid "Hits on local DB"
-msgstr "Χτυπήματα στην τοπική ΒΔ"
-
-#, fuzzy
-msgid "Hits on local partial files"
-msgstr "Χτυπήματα στην τοπική ΒΔ"
-
-msgid "Hits on \"what's new?\" queries"
-msgstr ""
-
-msgid "Query hits received for local queries"
-msgstr "Ληφθέντα χτυπήματα ερωτημάτων για τοπικά ερωτήματα."
-
-msgid "Query hits received for OOB-proxied queries"
-msgstr "Ληφθέντα χτυπήματα ερωτημάτων για ερωτήματα δρομολογημένα μέσω OOB"
-
-msgid "Queries requesting OOB hit delivery"
-msgstr "Ερωτήματα αναζήτησης χτυπημάτων παράδοσης OOB"
-
-msgid "Stripped OOB flag on queries"
-msgstr "Περικομμένη σημαία OOB στα ερωτήματα"
-
-msgid "Ignored OOB queries due to unclaimed hits"
-msgstr ""
-
-msgid "Duplicate OOB-proxied queries"
-msgstr "Ανατυπώνει ερωτήματα δρομολογημένα μέσω OOB"
-
-msgid "OOB hits received for OOB-proxied queries"
-msgstr "Ληφθέντα χτυπήματα OOB για ερωτήματα δρομολογημένα μέσω OOB"
-
-msgid "OOB hits bearing alien IP address"
-msgstr "Χτυπήματα OOB που δημιουργούν ξένες διευθύνσεις IP"
-
-msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
-
-msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
-
-msgid "Unclaimed locally-generated OOB hits"
-msgstr "Αδήλωτα τοπικά δημιουργημένα χτυπήματα OOB"
-
-msgid "Partially claimed locally-generated OOB hits"
-msgstr "Μερικώς δηλωμένα τοπικά δημιουργημένα χτυπήματα OOB"
-
-msgid "Spurious OOB hit claiming received"
-msgstr ""
-
-#, fuzzy
-msgid "Unrequested OOB hits received"
-msgstr "Ερωτήματα αναζήτησης χτυπημάτων παράδοσης OOB"
-
-msgid "Received query hits for untracked queries"
-msgstr ""
-
-msgid "Tracked query MUIDs"
-msgstr ""
-
-msgid "Compacted queries"
-msgstr "Συμπαγή ερωτήματα"
-
-msgid "Bytes saved by compacting"
-msgstr "Bytes που σώθηκαν από την μετατροπή σε συμπαγή"
-
-msgid "UTF8 queries"
-msgstr "ερωτήματα UTF8"
-
-msgid "SHA1 queries"
-msgstr "ερωτήματα SHA1"
-
-#, fuzzy
-msgid "\"What's New?\" queries"
-msgstr "Δημιουργημένα ερωτήματα"
-
-#, fuzzy
-msgid "GUESS queries"
-msgstr "ερωτήματα UTF8"
-
-#, fuzzy
-msgid "GUESS queries (0.2)"
-msgstr "ερωτήματα UTF8"
-
-msgid "GUESS link cache size"
-msgstr ""
-
-msgid "GUESS cached query keys held"
-msgstr ""
-
-msgid "GUESS cached 0.2 hosts held"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS locally generated queries"
-msgstr "Τοπικά δημιουργημένα δυναμικά ερωτήματα"
-
-msgid "GUESS currently running queries"
-msgstr ""
-
-#, fuzzy
-msgid "GUESS hits received for locally generated queries"
-msgstr "Ληφθέντα χτυπήματα ερωτημάτων για τοπικά ερωτήματα."
-
-msgid "GUESS hosts queried"
-msgstr ""
-
-msgid "GUESS hosts sending back an acknowledgment"
-msgstr ""
-
-msgid "Broadcasted push messages"
-msgstr "Μεταδιδόμενα μηνύματα ώθησης"
-
-#, fuzzy
-msgid "Push-proxy UDP relayed messages"
-msgstr "Μηνύματα διαμεσολαβητή ώθησης"
-
-msgid "Push-proxy TCP relayed messages"
-msgstr "Μηνύματα διαμεσολαβητή ώθησης"
-
-msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr ""
-
-msgid "Push-proxy broadcasted messages"
-msgstr "Μηνύματα μεταδιδόμενα από το διαμεσολαβητή ώθησης"
-
-msgid "Push-proxy found un-proxied local route"
-msgstr ""
-
-msgid "Push-proxy lookup failures"
-msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
-
-msgid "Push relayed via local route"
-msgstr ""
-
-msgid "Push relayed via routing table"
-msgstr ""
-
-msgid "Locally generated dynamic queries"
-msgstr "Τοπικά δημιουργημένα δυναμικά ερωτήματα"
-
-msgid "Leaf-generated dynamic queries"
-msgstr "Δυναμικά ερωτήματα από δικτυακούς κόμβους"
-
-msgid "OOB-proxied leaf queries"
-msgstr "Ερωτήματα δικτυακών κόμβων μέσω διαμεσολάβησης OOB"
-
-msgid "Fully completed dynamic queries"
-msgstr "Πλήρως ολοκληρωμένα δυναμικά ερωτήματα"
-
-msgid "Partially completed dynamic queries"
-msgstr "Μερικώς ολοκληρωμένα δυναμικά ερωτήματα"
-
-msgid "Dynamic queries ended with no results"
-msgstr "Τα δυναμικά ερωτήματα τελείωσαν χωρίς αποτελέσματα"
-
-msgid "Fully completed dynamic queries getting late results"
-msgstr ""
-"Πλήρως ολοκληρωμένα δυναμικά ερωτήματα με λήψη καθυστερημένων αποτελεσμάτων"
-
-msgid "Dynamic queries with partial late results"
-msgstr "Δυναμικά ερωτήματα με μερικά καθυστερημένα αποτελέσματα"
-
-msgid "Dynamic queries completed by late results"
-msgstr "Δυναμικά ερωτήματα που ολοκληρώθηκαν από καθυστερημένα αποτελέσματα"
-
-msgid "Queries seen from GTKG"
-msgstr "Ερωτήματα που προβλήθηκαν από το GTKG"
-
-msgid "Queries seen from GTKG that were re-queries"
-msgstr "Ερωτήματα που προβλήθηκαν από το GTKG που ήταν επανερωτήματα"
-
-msgid "Queries advertising support of GGEP \"H\""
-msgstr "Ερωτήματα με διαφημίσεις υποστήριξης GGEP \"H\""
-
-#, fuzzy
-msgid "Queries advertising support of semi-reliable UDP"
-msgstr "Ερωτήματα με διαφημίσεις υποστήριξης GGEP \"H\""
-
-msgid "GIV callbacks received"
-msgstr "Ελήφθησαν πίσω κλήσεις GIV"
-
-msgid "GIV discarded due to no suitable download"
-msgstr ""
-
-msgid "QUEUE callbacks received"
-msgstr "Ελήφθησαν πίσω κλήσεις ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ"
-
-msgid "QUEUE discarded due to no suitable download"
-msgstr ""
-
-msgid "UDP read-ahead datagram running count"
-msgstr ""
-
-msgid "UDP read-ahead datagram running bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram \"old\" processed"
-msgstr ""
-
-msgid "UDP read-ahead datagram max count"
-msgstr ""
-
-msgid "UDP read-ahead datagram max bytes"
-msgstr ""
-
-msgid "UDP read-ahead datagram max delay"
-msgstr ""
-
-msgid "UDP push messages received for FW<->FW connections"
-msgstr ""
-
-msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr ""
-
-msgid "UDP push messages patched for FW<->FW connections"
-msgstr ""
-
-msgid "UDP UHC pings received"
-msgstr ""
-
-#, fuzzy
-msgid "UDP UHC pongs sent"
-msgstr "Ώθηση εστάλη"
-
-msgid "UDP messages with bogus source IP"
-msgstr "Μηνύματα UDP με ψεύτικη πηγαία IP"
-
-#, fuzzy
-msgid "UDP truncated incoming messages"
-msgstr "Παραμορφωμένη εντολή"
-
-msgid "Alien UDP messages (non-Gnutella)"
-msgstr "Ξένα μηνύματα UDP (όχι Gnutella)"
-
-msgid "Unprocessed UDP Gnutella messages"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-#, fuzzy
-msgid "Compressed UDP messages enqueued"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-#, fuzzy
-msgid "Compressed UDP messages received"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-#, fuzzy
-msgid "Uncompressed UDP messages due to no gain"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-#, fuzzy
-msgid "Ambiguous UDP messages received"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-msgid "Ambiguous UDP messages inspected more deeply"
-msgstr ""
-
-msgid "Ambiguous UDP messages handled as semi-reliable UDP"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages deflated"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages unsent"
-msgstr ""
-
-msgid "Semi-reliable UDP total messages partially sent due to clogging"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages given for transmission"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages correctly transmited"
-msgstr ""
-
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments resent"
-msgstr ""
-
-msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments sent too many times"
-msgstr ""
-
-msgid "Semi-reliable UDP total acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP too many EARs sent"
-msgstr ""
-
-msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr ""
-
-msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP fragments received"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-msgid "Semi-reliable UDP duplicate fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP unreliable fragments received"
-msgstr ""
-
-msgid "Semi-reliable UDP dropped received fragments"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP messages expired before re-assembly"
-msgstr ""
-
-msgid "Semi-reliable UDP messages re-assembled completely"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated successfully"
-msgstr ""
-
-msgid "Semi-reliable UDP messages inflated incorrectly"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP unreliable messages received"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-#, fuzzy
-msgid "Semi-reliable UDP empty messages received"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr ""
-
-msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr ""
-
-#, fuzzy
-msgid "Semi-reliable UDP EARs received"
-msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
-
-msgid "Semi-reliable UDP EARs received for unknown message"
-msgstr ""
-
-msgid "Semi-reliable UDP EARs received whilst lingering"
-msgstr ""
-
-msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr ""
-
-msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr ""
-
-msgid "Duplicate downloads found during server consolidation"
-msgstr ""
-
-msgid "Discovered server GUIDs"
-msgstr ""
-
-msgid "Changed server GUIDs"
-msgstr ""
-
-msgid "Detected GUID collisions"
-msgstr ""
-
-msgid "Detected collisions with our own GUID"
-msgstr ""
-
-msgid "GUID dynamically banned"
-msgstr ""
-
-msgid "Firewalled node info for known hosts received in upload requests"
-msgstr ""
-
-msgid "Revitalized PUSH routes"
-msgstr ""
-
-msgid "Collected new PUSH proxies from other query hits"
-msgstr ""
-
-msgid "Attempted download resource switching on completion"
-msgstr ""
-
-msgid "Attempted download resource switching after error"
-msgstr ""
-
-msgid "Successful download resource switching (all kind)"
-msgstr ""
-
-msgid "Successful download resource switching between plain files"
-msgstr ""
-
-msgid "Successful download resource switching after error"
-msgstr ""
-
-msgid "Actively queued after resource switching attempt"
-msgstr ""
-
-msgid "Sunk HTTP reply data on error codes"
-msgstr ""
-
-#, fuzzy
-msgid "Ignored downloaded data"
-msgstr "Ληφθέντα δεδομένα:"
-
-#, fuzzy
-msgid "Ignoring requested after data mismatch"
-msgstr "Αποστολή αιτήματος (%u%%)"
-
-#, fuzzy
-msgid "Ignoring requested to preserve connection"
-msgstr "Αποστολή αιτήματος (%u%%)"
-
-msgid "Ignoring requested due to aggressive swarming"
-msgstr ""
-
-msgid "Ignoring refused (data too large or server too slow)"
-msgstr ""
-
-msgid "Client resource switching (all detected)"
-msgstr ""
-
-msgid "Client resource switching between plain files"
-msgstr ""
-
-msgid "Client follow-up request after HTTP error was returned"
-msgstr ""
-
-msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr ""
-
-msgid "PARQ client retry-after violation"
-msgstr ""
-
-msgid "PARQ client kicked out after too many retry-after violations"
-msgstr ""
-
-msgid "PARQ upload slot limit overrides"
-msgstr ""
-
-msgid "PARQ quick upload slots granted"
-msgstr ""
-
-msgid "PARQ QUEUE sending attempts"
-msgstr ""
-
-msgid "PARQ QUEUE messages sent"
-msgstr ""
-
-msgid "PARQ QUEUE follow-up requests received"
-msgstr ""
-
-msgid "Launched SHA-1 file verifications"
-msgstr ""
-
-msgid "Launched TTH file verifications"
-msgstr ""
-
-msgid "Bitzi tickets held"
-msgstr ""
-
-msgid "Re-seeding of orphan downloads through query hits"
-msgstr ""
-
-#, fuzzy
-msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "Επίπεδο αποσφαλμάτωσης λήψεων."
-
-#, fuzzy
-msgid "RUDP sent bytes"
-msgstr "Bytes διαδρομής RX"
-
-#, fuzzy
-msgid "RUDP received bytes"
-msgstr "Bytes διαδρομής RX"
-
-msgid "DHT estimated amount of nodes"
-msgstr ""
-
-msgid "DHT standard error of estimated amount of nodes"
-msgstr ""
-
-msgid "DHT k-ball theoretical frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball furthest frontier (bits)"
-msgstr ""
-
-msgid "DHT k-ball closeest frontier (bits)"
-msgstr ""
-
-msgid "DHT routing table buckets"
-msgstr ""
-
-msgid "DHT routing table leaves"
-msgstr ""
-
-msgid "DHT routing table maximum depth"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table good nodes"
-msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
-
-msgid "DHT routing table stale nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table pending nodes"
-msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
-
-msgid "DHT routing table evicted nodes"
-msgstr ""
-
-msgid "DHT routing table evicted firewalled nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table evicted nodes due to quota"
-msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
-
-msgid "DHT routing table promoted pending nodes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT routing table pinged promoted nodes"
-msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
-
-msgid "DHT routing table rejected node due to bucket network quota"
-msgstr ""
-
-msgid "DHT routing table rejected node due to global network quota"
-msgstr ""
-
-msgid "DHT completed bucket refreshes"
-msgstr ""
-
-msgid "DHT forced bucket refreshes"
-msgstr ""
-
-#, fuzzy
-msgid "DHT forced bucket merges"
-msgstr "Παραμορφωμένη εντολή"
-
-msgid "DHT denied non-splitable bucket refresh"
-msgstr ""
-
-msgid "DHT initiated bucket alive checks"
-msgstr ""
-
-msgid "DHT alive pings sent to good nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to stale nodes"
-msgstr ""
-
-msgid "DHT alive pings sent to shutdowning nodes"
-msgstr ""
-
-msgid "DHT alive pings avoided"
-msgstr ""
-
-msgid "DHT alive pings skipped"
-msgstr ""
-
-msgid "DHT revitalized stale nodes on RPC reply"
-msgstr ""
-
-msgid "DHT value store rejected on IP/network quota grounds"
-msgstr ""
-
-msgid "DHT value store rejected on creator validation grounds"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on network quota"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr ""
-
-msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr ""
-
-msgid "DHT node contact IP addresses fixed during lookup"
-msgstr ""
-
-msgid "DHT keys held"
-msgstr ""
-
-msgid "DHT cached keys held"
-msgstr ""
-
-msgid "DHT values held"
-msgstr ""
-
-msgid "DHT cached KUID targets held"
-msgstr ""
-
-msgid "DHT cached closest root nodes"
-msgstr ""
-
-msgid "DHT cached roots exact hits"
-msgstr ""
-
-msgid "DHT cached roots approximate hits"
-msgstr ""
-
-msgid "DHT cached roots misses"
-msgstr ""
-
-msgid "DHT cached roots lookups within k-ball"
-msgstr ""
-
-msgid "DHT cached roots contact address refreshed"
-msgstr ""
-
-msgid "DHT cached security tokens held"
-msgstr ""
-
-msgid "DHT cached security tokens hits"
-msgstr ""
-
-#, fuzzy
-msgid "DHT stable node information held"
-msgstr "Λεπτομέρειες"
-
-msgid "DHT local hits on value lookups"
-msgstr ""
-
-msgid "DHT local hits returning values from cached keys"
-msgstr ""
-
-msgid "DHT returned expanded values"
-msgstr ""
-
-msgid "DHT returned values as secondary keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed values via secondary keys"
-msgstr "Χρονικά όρια (όλες οι τιμές σε δευτερόλεπτα)"
-
-msgid "DHT returned cached expanded values"
-msgstr ""
-
-msgid "DHT returned cached values as secondary-keys"
-msgstr ""
-
-#, fuzzy
-msgid "DHT claimed cached values via secondary keys"
-msgstr "Χρονικά όρια (όλες οι τιμές σε δευτερόλεπτα)"
-
-msgid "DHT successfully received value publications"
-msgstr ""
-
-msgid "DHT successfully received value removals"
-msgstr ""
-
-msgid "DHT replication of stale value avoided"
-msgstr ""
-
-msgid "DHT replication of held values"
-msgstr ""
-
-msgid "DHT republishing of held values"
-msgstr ""
-
-msgid "DHT secondary-key value fetch issued"
-msgstr ""
-
-msgid "DHT duplicate values returned in lookups"
-msgstr ""
-
-msgid "DHT detected KUID collisions"
-msgstr ""
-
-msgid "DHT detected collisions with our own KUID"
-msgstr ""
-
-msgid "DHT caching attempts"
-msgstr ""
-
-msgid "DHT caching ended successfully"
-msgstr ""
-
-msgid "DHT caching partially completed"
-msgstr ""
-
-msgid "DHT key-offloading checks after discovering new closest node"
-msgstr ""
-
-msgid "DHT keys selected for offloading"
-msgstr ""
-
-msgid "DHT key-offloading attempts"
-msgstr ""
-
-msgid "DHT key-offloading ended successfully"
-msgstr ""
-
-msgid "DHT key-offloading partially completed"
-msgstr ""
-
-msgid "DHT values successfully offloaded"
-msgstr ""
-
-#, fuzzy
-msgid "DHT incoming messages"
-msgstr "Παραμορφωμένη εντολή"
-
-msgid "DHT incoming messages with UDP-matching contact address"
-msgstr ""
-
-msgid "DHT incoming messages with contact address fixed"
-msgstr ""
-
-msgid "DHT incoming messages from hostile addresses"
-msgstr ""
-
-msgid "DHT incoming messages with hostile contact address"
-msgstr ""
-
-msgid "DHT RPC messages prepared"
-msgstr ""
-
-msgid "DHT RPC messages cancelled"
-msgstr ""
-
-msgid "DHT RPC timed out"
-msgstr ""
-
-msgid "DHT RPC replies received"
-msgstr ""
-
-msgid "DHT RPC replies with contact address fixed"
-msgstr ""
-
-msgid "DHT RPC late replies received"
-msgstr ""
-
-msgid "DHT RPC detected KUID mismatches on reply"
-msgstr ""
-
-msgid "DHT RPC recent nodes held"
-msgstr ""
-
-#, fuzzy
-msgid "DHT node verifications"
-msgstr "Λεπτομέρειες"
-
-msgid "DHT publishing attempts"
-msgstr ""
-
-msgid "DHT publishing ended successfully (all roots)"
-msgstr ""
-
-msgid "DHT publishing partially completed (root subset only)"
-msgstr ""
-
-msgid "DHT publishing ending with proper value presence"
-msgstr ""
-
-msgid "DHT value republishing occurring too late (after expiry)"
-msgstr ""
-
-msgid "DHT publishing to self"
-msgstr ""
-
-msgid "DHT background publishing completion attempts"
-msgstr ""
-
-msgid "DHT background publishing completion showing improvements"
-msgstr ""
-
-msgid "DHT background publishing completion successful (all roots)"
-msgstr ""
-
-msgid "DHT SHA1 data type collisions"
-msgstr ""
-
-msgid "DHT lookup path passively protected against attack"
-msgstr ""
-
-msgid "DHT lookup path actively protected against attack"
-msgstr ""
-
-msgid "DHT alt-loc lookups issued"
-msgstr ""
-
-#, fuzzy
-msgid "DHT push-proxy lookups issued"
-msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
-
-msgid "DHT successful alt-loc lookups"
-msgstr ""
-
-msgid "DHT successful push-proxy lookups"
-msgstr ""
-
-msgid "DHT successful node push-entry lookups"
-msgstr ""
-
-#, fuzzy
-msgid "DHT re-seeding of orphan downloads"
-msgstr "Επίπεδο αποσφαλμάτωσης λήψεων."
 
 msgid "node"
 msgid_plural "nodes"
@@ -8841,6 +9084,15 @@ msgstr "Εμφάνιση στατιστικών αποστολής στον πλ
 msgid "Mapping lease time"
 msgstr ""
 
+msgid "G2 hubs"
+msgstr ""
+
+msgid "Enable the G2 network"
+msgstr ""
+
+msgid " G2, "
+msgstr ""
+
 msgid "Not in database"
 msgstr "Όχι στη βάση δεδομένων"
 
@@ -8974,11 +9226,18 @@ msgid "Served "
 msgstr "Εξυπηρέτησε "
 
 #, fuzzy
-msgid "[BH HTML served]"
+msgid "[G2 served]"
 msgstr "[BH HTML]"
 
 msgid " / "
 msgstr ""
+
+msgid "[G2]"
+msgstr ""
+
+#, fuzzy
+msgid "[BH HTML served]"
+msgstr "[BH HTML]"
 
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
@@ -9159,6 +9418,12 @@ msgstr "Νέοι υπερ-κόμβοι"
 msgid "Valid IPv6 ultra"
 msgstr "Έγκυροι υπερ-κόμβοι"
 
+msgid "Fresh G2 hub"
+msgstr ""
+
+msgid "Valid G2 hub"
+msgstr ""
+
 msgid "Unstable"
 msgstr "Ασταθές"
 
@@ -9232,6 +9497,10 @@ msgstr "Λήψη χαιρετισμού"
 
 msgid "UNKNOWN STATUS"
 msgstr "ΑΓΝΩΣΤΗ ΚΑΤΑΣΤΑΣΗ"
+
+#, fuzzy
+msgid "g2"
+msgstr ", "
 
 msgid "busy"
 msgstr "απασχολημένο"
@@ -9337,8 +9606,8 @@ msgstr[1] "Ερώτημα"
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
-"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
+"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
 
 #, fuzzy
@@ -9685,12 +9954,6 @@ msgid "%u queued"
 msgstr "%u στη λίστα αναμονής"
 
 #, c-format
-msgid "%u/%u connection"
-msgid_plural "%u/%u connections"
-msgstr[0] "%u/%u σύνδεση"
-msgstr[1] "%u/%u συνδέσεις"
-
-#, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u αποστολή"
@@ -9771,9 +10034,10 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
 
-#, fuzzy
-#~ msgid "Debug level for time management."
-#~ msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
+#~ msgid "%u/%u connection"
+#~ msgid_plural "%u/%u connections"
+#~ msgstr[0] "%u/%u σύνδεση"
+#~ msgstr[1] "%u/%u συνδέσεις"
 
 #, fuzzy
 #~ msgid "Splitting ougoing HTTP bandwidth evenly."
