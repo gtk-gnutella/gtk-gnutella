@@ -589,6 +589,9 @@ src/if/gen/http_url.lst
 src/if/gen/ignore.c
 src/if/gen/ignore.h
 src/if/gen/ignore.lst
+src/if/gen/iprange.c
+src/if/gen/iprange.h
+src/if/gen/iprange.lst
 src/if/gen/msg.c
 src/if/gen/msg.h
 src/if/gen/msg.lst

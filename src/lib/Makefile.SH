@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-178]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -45,6 +45,7 @@ JCPPFLAGS = $cppflags
 JLDFLAGS = \$(LDFLAGS) $optimize $pthread $ldflags
 JYFLAGS = \$(YFLAGS) $yaccflags
 LIBS = $libs
+LN = $ln
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
@@ -179,6 +180,7 @@ LSRC = \
 	fragcheck.c \
 	frand.c \
 	fs_free_space.c \
+	gen-iprange.c \
 	gentime.c \
 	getcpucount.c \
 	getdate.c \
@@ -362,6 +364,7 @@ LOBJ = \
 	fragcheck.o \
 	frand.o \
 	fs_free_space.o \
+	gen-iprange.o \
 	gentime.o \
 	getcpucount.o \
 	getdate.o \
@@ -531,6 +534,7 @@ getdate: getdate.c
 
 LDFLAGS =
 LIBS = $(GLIB_LDFLAGS) $(COMMON_LIBS)
+IF = ../if
 
 floats: floats.bz2
 	bzip2 -c -d floats.bz2 >$@
@@ -603,6 +607,15 @@ thread-test:  thread-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  thread-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+gen-iprange.c:   $(IF)/gen/iprange.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-iprange.c
+
+local_realclean::
+	$(RM) -f  gen-iprange.c
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

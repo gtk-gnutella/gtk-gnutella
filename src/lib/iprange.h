@@ -37,21 +37,7 @@
 #include "common.h"
 
 #include "lib/host_addr.h"
-
-/**
- * Error codes.
- */
-
-typedef enum {
-	IPR_ERR_OK = 0,				/**< OK */
-	IPR_ERR_BAD_PREFIX,			/**< Incorrect network prefix */
-	IPR_ERR_RANGE_CLASH,		/**< CIDR range clash */
-	IPR_ERR_RANGE_DUP,			/**< Duplicate range */
-	IPR_ERR_RANGE_SUBNET,		/**< Range is subnet of existing range */
-	IPR_ERR_RANGE_OVERLAP,		/**< Range is overlapping existing range */
-
-	IPR_ERROR_COUNT				/**< Amount of error codes defined */
-} iprange_err_t;
+#include "if/gen/iprange.h"
 
 /*
  * Public interface.

@@ -1,0 +1,25 @@
+#
+# IP CIDR range specification parsing errors
+#
+
+Prefix: IPR_ERR_
+Lowercase: no
+I18N: no
+#Count:
+Enum: iprange_err_t
+Enum-Init: 0
+Enum-File: iprange.h
+#Symbolic:
+Description: iprange_error_str
+#Enum-To-Symbolic:
+Enum-To-Description: iprange_strerror
+Enum-To-Code: iprange.c
+Enum-To-Header: iprange.h
+Protection-Prefix: if_gen
+
+OK						"OK"
+BAD_PREFIX				"Incorrect network prefix"
+RANGE_CLASH				"CIDR range clash"
+RANGE_DUP				"Duplicate range"
+RANGE_SUBNET			"Range is subnet of existing range"
+RANGE_OVERLAP			"Range is overlapping existing range"

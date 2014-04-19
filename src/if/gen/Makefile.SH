@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-174]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -93,6 +93,16 @@ all::  ignore.c  ignore.h
 regenerate::
 	$(RM) -f  ignore.c  ignore.h
 	$(MAKE)  ignore.c  ignore.h
+
+iprange.c  iprange.h: iprange.lst
+	-perl $(TOP)/scripts/enum-msg.pl iprange.lst
+	touch  iprange.c  iprange.h
+
+all::  iprange.c  iprange.h
+
+regenerate::
+	$(RM) -f  iprange.c  iprange.h
+	$(MAKE)  iprange.c  iprange.h
 
 gnr_stats.c  gnr_stats.h: stats.lst
 	-perl $(TOP)/scripts/enum-msg.pl stats.lst

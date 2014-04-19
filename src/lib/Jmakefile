@@ -122,6 +122,7 @@ LSRC = \
 	fragcheck.c \
 	frand.c \
 	fs_free_space.c \
+	gen-iprange.c \
 	gentime.c \
 	getcpucount.c \
 	getdate.c \
@@ -287,6 +288,7 @@ getdate: getdate.c
 
 LDFLAGS =
 LIBS = $(GLIB_LDFLAGS) $(COMMON_LIBS)
+IF = ../if
 
 floats: floats.bz2
 	bzip2 -c -d floats.bz2 >$@
@@ -320,4 +322,9 @@ NormalProgramLibTarget(float-test, float-test.c, float-test.o, libshared.a)
 NormalProgramLibTarget(sort-test, sort-test.c, sort-test.o, libshared.a)
 NormalProgramLibTarget(random-test, random-test.c, random-test.o, libshared.a)
 NormalProgramLibTarget(thread-test, thread-test.c, thread-test.o, libshared.a)
+
+#define LinkGenInterface(file)	@!\
+LinkSourceFileAlias(file, $(IF)/gen, gen-file)
+
+LinkGenInterface(iprange.c)
 
