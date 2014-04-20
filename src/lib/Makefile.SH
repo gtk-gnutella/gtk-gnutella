@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  sort-test.c  random-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o  random-test.o  thread-test.o
+SOURCES =  \$(LSRC)  float-test.c  random-test.c  sort-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  random-test.o  sort-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -89,32 +89,43 @@ all:: .FORCE_DEPEND
 
 # $X-Id$
 
-GENERIC = bit_array.h bit_field.h htable.h hset.h htable.c hset.c
-
 bit_array.h: bit_array.ht bit_generic.t
 	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
+
+all:: bit_array.h
+depend:: bit_array.h
+local_realclean::
+	$(RM) bit_array.h
 
 bit_field.h: bit_field.ht bit_generic.t
 	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
 
+all:: bit_field.h
+depend:: bit_field.h
+local_realclean::
+	$(RM) bit_field.h
+
 htable.h: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table ckeyval TABLE >$@
 
-htable.c: hgeneric.ct
+htable.c: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table ckeyval TABLE >$@
+
+all:: htable.h htable.c
+depend:: htable.h htable.c
+local_realclean::
+	$(RM) htable.h htable.c
 
 hset.h: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set cdata SET >$@
 
-hset.c: hgeneric.ct
+hset.c: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set cdata SET >$@
 
-all:: $(GENERIC)
-
+all:: hset.h hset.c
+depend:: hset.h hset.c
 local_realclean::
-	$(RM) $(GENERIC)
-
-depend:: $(GENERIC)
+	$(RM) hset.h hset.c
 
 LSRC = \
 	adns.c \
@@ -575,17 +586,6 @@ float-test:  float-test.o  libshared.a
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  float-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
-all:: sort-test
-
-local_realclean::
-	$(RM) sort-test$(_EXE)
-
-sort-test:  sort-test.o  libshared.a
-	-$(RM) $@$(_EXE)
-	if test -f $@$(_EXE); then \
-		$(MV) $@$(_EXE) $@~$(_EXE); fi
-	$(CC) -o $@$(_EXE)  sort-test.o $(JLDFLAGS)  libshared.a $(LIBS)
-
 all:: random-test
 
 local_realclean::
@@ -596,6 +596,17 @@ random-test:  random-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  random-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: sort-test
+
+local_realclean::
+	$(RM) sort-test$(_EXE)
+
+sort-test:  sort-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  sort-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: thread-test
 
