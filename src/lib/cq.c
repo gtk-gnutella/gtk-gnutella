@@ -38,6 +38,7 @@
 
 #include "atoms.h"
 #include "elist.h"
+#include "entropy.h"
 #include "hashing.h"		/* For integer_hash_fast() */
 #include "hset.h"
 #include "log.h"
@@ -45,7 +46,6 @@
 #include "once.h"
 #include "pow2.h"
 #include "pslist.h"
-#include "random.h"			/* For random_pool_append() */
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "stringify.h"
@@ -1379,11 +1379,13 @@ cq_heartbeat(cqueue_t *cq)
 	 */
 
 	if G_UNLIKELY(extra) {
-		unsigned entropy = integer_hash_fast(delay);
+		time_delta_t since_last;
 		tm_now_exact(&tv);
-		delay = tm_elapsed_us(&tv, &cq->cq_last_heartbeat);
-		entropy += integer_hash_fast(delay);
-		random_pool_append(&entropy, sizeof entropy);
+		since_last = tm_elapsed_us(&tv, &cq->cq_last_heartbeat);
+		entropy_harvest_small(
+			&delay, sizeof delay,
+			&since_last, sizeof since_last,
+			NULL);
 	}
 
 	return triggered;

@@ -77,6 +77,7 @@
 #include "lib/compat_un.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/fd.h"
 #include "lib/getline.h"
 #include "lib/gnet_host.h"
@@ -1517,7 +1518,7 @@ socket_free(struct gnutella_socket *s)
 		 * sockets is hard to predict.
 		 */
 
-		random_pool_append(&s->file_desc, sizeof s->file_desc);
+		entropy_harvest_single(&s->file_desc, sizeof s->file_desc);
 
 		if (compat_socket_close(s->file_desc)) {
 			g_warning("%s: close(%d) failed: %m", G_STRFUNC, s->file_desc);

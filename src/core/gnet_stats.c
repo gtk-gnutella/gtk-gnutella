@@ -44,7 +44,7 @@
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/crc.h"
+#include "lib/entropy.h"
 #include "lib/event.h"
 #include "lib/gnet_host.h"
 #include "lib/random.h"
@@ -226,19 +226,15 @@ gnet_stats_general_digest(sha1_t *digest)
 static void
 gnet_stats_randomness(const gnutella_node_t *n, uint8 type, uint32 val)
 {
-	tm_t now;
 	gnet_host_t host;
-	uint32 crc32;
 
-	tm_now(&now);
 	gnet_host_set(&host, n->addr, n->port);
 
-	crc32 = crc32_update(0, &now, sizeof now);
-	crc32 = crc32_update(crc32, &host, gnet_host_length(&host));
-	crc32 = crc32_update(crc32, &type, sizeof type);
-	crc32 = crc32_update(crc32, &val, sizeof val);
-
-	random_pool_append(&crc32, sizeof crc32);
+	entropy_harvest_small(
+		&host, gnet_host_length(&host),
+		&type, sizeof type,
+		&val, sizeof val,
+		NULL);
 }
 
 static void

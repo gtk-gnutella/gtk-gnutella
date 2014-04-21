@@ -92,10 +92,10 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/concat.h"
-#include "lib/crc.h"
 #include "lib/dbus_util.h"
 #include "lib/dualhash.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
 #include "lib/file_object.h"
 #include "lib/filename.h"
@@ -8878,7 +8878,7 @@ download_start_reading(void *o)
 
 		tm_now(&now);
 		elapsed = tm_elapsed_ms(&now, &d->header_sent);
-		random_pool_append(&elapsed, sizeof elapsed);
+		entropy_harvest_single(&elapsed, sizeof elapsed);
 
 		g_assert(dl_server_valid(server));
 
@@ -13614,14 +13614,14 @@ download_connected(struct download *d)
 
 	{
 		time_delta_t elapsed;
-		uint32 entropy;
 		host_addr_t addr = server->key->addr;
 
 		elapsed = delta_time(now, server->last_connect);
-		entropy = crc32_update(s->port, &addr, sizeof addr);
-		entropy = crc32_update(entropy, &elapsed, sizeof elapsed);
-		entropy = crc32_update(entropy, &now, sizeof now);
-		random_pool_append(&entropy, sizeof entropy);
+		entropy_harvest_small(
+			&s->port, sizeof s->port,
+			&addr, sizeof addr,
+			&elapsed, sizeof elapsed,
+			NULL);
 	}
 
 	server->last_connect = now;
@@ -16777,7 +16777,7 @@ download_timer(time_t now)
 					fi->recv_last_time = now;
 					file_info_changed(fi);
 
-					random_pool_append(&rate, sizeof rate);
+					entropy_harvest_single(&rate, sizeof rate);
 				}
 			}
 

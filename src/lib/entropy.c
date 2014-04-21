@@ -69,9 +69,11 @@
 #include "bigint.h"
 #include "compat_misc.h"
 #include "compat_usleep.h"
+#include "crc.h"
 #include "endian.h"
 #include "getgateway.h"
 #include "gethomedir.h"
+#include "hashing.h"
 #include "host_addr.h"
 #include "log.h"
 #include "mempcpy.h"
@@ -111,6 +113,12 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
 
 #define ENTROPY_PREV_LOCK		spinlock_hidden(&entropy_previous_slk)
 #define ENTROPY_PREV_UNLOCK		spinunlock_hidden(&entropy_previous_slk)
+
+/**
+ * Amount of input bytes necessary to harvest one byte of entropy to
+ * the pool when computing SHA1 sums.
+ */
+#define ENTROPY_ALPHA		3		/* Bytes to harvest 8 bits of entropy */
 
 /**
  * Context for the entropy_minirand() routine.
@@ -1260,9 +1268,7 @@ entropy_fold(sha1_t *digest, size_t n)
 	bigint_t h, v;
 
 	g_assert(size_is_non_negative(n));
-
-	if G_UNLIKELY(n >= SHA1_RAW_SIZE)
-		return digest;
+	g_assert(n < SHA1_RAW_SIZE);
 
 	bigint_use(&v, &result, SHA1_RAW_SIZE);
 	bigint_use(&h, digest, SHA1_RAW_SIZE);
@@ -1518,5 +1524,150 @@ static struct entropy_ops entropy_ops = {
 	entropy_do_random,			/* ent_random */
 	entropy_do_fill,			/* ent_fill */
 };
+
+/**
+ * Compute hash of current time, using the most precise clock time we have.
+ */
+static uint32
+entropy_clock_time(void)
+{
+	tm_nano_t now;
+
+	tm_precise_time(&now);
+	return integer_hash_fast(now.tv_nsec) + integer_hash_fast(now.tv_sec);
+}
+
+/**
+ * Harvest entropy from the current time.
+ */
+void
+entropy_harvest_time(void)
+{
+	uint16 rnd = entropy_clock_time();
+
+	random_pool_append(&rnd, sizeof rnd);
+}
+
+/**
+ * Harvest entropy from a single value.
+ *
+ * @param p		pointer to value from which we want to harvest entropy
+ * @param len	length of the data to read
+ */
+void
+entropy_harvest_single(const void *p, size_t len)
+{
+	g_assert(p != NULL);
+	g_assert(size_is_positive(len));
+
+	if (len <= sizeof(long)) {
+		entropy_harvest_small(p, len, NULL);
+	} else {
+		entropy_harvest_many(p, len, NULL);
+	}
+}
+
+/**
+ * Harvest entropy from a NULL-terminated list of (pointer, length).
+ *
+ * The overall entropy is supposed to be poor and is therefore limited
+ * to the collection of 4 bytes, using a CRC32 computation.
+ *
+ * @param p		pointer to first value
+ * @param len	length of first value
+ * @param ...	NULL-terminated list of (p, len)
+ */
+void
+entropy_harvest_small(const void *p, size_t len, ...)
+{
+	uint32 c, h;
+	va_list ap;
+
+	g_assert(p != NULL);
+	g_assert(size_is_positive(len));
+
+	h = entropy_clock_time();
+	c = crc32_update(-1U, &h, sizeof h);
+	c = crc32_update(c, p, len);
+
+	va_start(ap, len);
+
+	for (
+		p = va_arg(ap, const void *);
+		p != NULL;
+		p = va_arg(ap, const void *)
+	) {
+		len = va_arg(ap, size_t);
+		g_assert(size_is_positive(len));
+		c = crc32_update(c, p, len);
+	}
+
+	va_end(ap);
+
+	random_pool_append(&c, sizeof c);
+}
+
+/**
+ * Harvest entropy from a NULL-terminated list of (pointer, length).
+ *
+ * The overall entropy is supposed to be large and is therefore harvested
+ * through a SHA1 computation.
+ *
+ * @param p		pointer to first value
+ * @param len	length of first value
+ * @param ...	NULL-terminated list of (p, len)
+ */
+void
+entropy_harvest_many(const void *p, size_t len, ...)
+{
+	sha1_t digest;
+	SHA1_context ctx;
+	tm_nano_t now;
+	size_t runlen = 0;
+	va_list ap;
+
+	g_assert(p != NULL);
+	g_assert(size_is_positive(len));
+
+	tm_precise_time(&now);
+
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, &now, sizeof now);
+	SHA1_input(&ctx, p, len);
+	runlen = len;
+
+	va_start(ap, len);
+
+	for (
+		p = va_arg(ap, const void *);
+		p != NULL;
+		p = va_arg(ap, const void *)
+	) {
+		len = va_arg(ap, size_t);
+		g_assert(size_is_positive(len));
+		SHA1_input(&ctx, p, len);
+		runlen = size_saturate_add(runlen, len);
+	}
+
+	va_end(ap);
+
+	SHA1_result(&ctx, &digest);
+
+	/*
+	 * If we have collected data from enough bytes, we can use the full
+	 * digest to add randomness.  Otherwise, fold the digest to limit
+	 * the amount of entropy added each time.  However, we collect at least
+	 * 4 bytes each time.
+	 */
+
+	if (runlen < ENTROPY_ALPHA * SHA1_RAW_SIZE) {
+		size_t l = runlen / ENTROPY_ALPHA;
+		void *q = entropy_fold(&digest, (l = MAX(l, 4)));
+
+		random_pool_append(q, l);
+	} else {
+		random_pool_append(&digest, sizeof digest);
+	}
+}
 
 /* vi: set ts=4 sw=4 cindent: */

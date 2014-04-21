@@ -108,13 +108,12 @@
 #include "atoms.h"
 #include "cq.h"
 #include "elist.h"
+#include "entropy.h"
 #include "eslist.h"
-#include "hashing.h"		/* For integer_hash_hast() */
 #include "misc.h"
 #include "mutex.h"
 #include "once.h"
 #include "pslist.h"
-#include "random.h"			/* For random_pool_append() */
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "stringify.h"		/* For short_time_ascii() and plural() */
@@ -2042,7 +2041,6 @@ bg_sched_timer(void *arg)
 	{
 		tm_t end;
 		time_delta_t us;
-		unsigned entropy;
 
 		tm_now_exact(&end);
 		us = tm_elapsed_us(&end, &start);
@@ -2052,8 +2050,7 @@ bg_sched_timer(void *arg)
 		 * Use as a source of randomness, to harvest more entropy.
 		 */
 
-		entropy = integer_hash_fast(us) + integer_hash_fast(end.tv_usec);
-		random_pool_append(&entropy, sizeof entropy);
+		entropy_harvest_single(&us, sizeof us);
 	}
 
 	return TRUE;		/* Keep calling */
