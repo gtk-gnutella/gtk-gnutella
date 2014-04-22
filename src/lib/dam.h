@@ -38,7 +38,7 @@
  * to successfully open the dam to release the waiting threads.  This ensures
  * nobody but the creator of the dam can accidentally release it.
  *
- * To atomically make the dam a non-blocking points (before freeing it), the
+ * To atomically make the dam a non-blocking point (before freeing it), the
  * owner can disable it: this will also release all the waiting parties.
  * Anyone still holding a reference to that dam will no longer block when
  * calling dam_wait() and friends.

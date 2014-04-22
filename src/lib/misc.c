@@ -1726,7 +1726,7 @@ locale_strlower(char *dst, const char *src)
 }
 
 /**
- * Generate a new random GUID within given `xuid'.
+ * Generate a new random GUID within given `guid'.
  */
 void
 guid_random_fill(struct guid *guid)
