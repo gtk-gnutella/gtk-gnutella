@@ -36,18 +36,19 @@
 
 #include "clock.h"
 
-#include "lib/cq.h"
-#include "lib/misc.h"
-#include "lib/halloc.h"
-#include "lib/walloc.h"
-
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/cq.h"
+#include "lib/entropy.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hevset.h"
+#include "lib/misc.h"
 #include "lib/stats.h"
 #include "lib/tm.h"
+#include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define REUSE_DELAY	10800		/**< 3 hours */
@@ -199,6 +200,8 @@ clock_adjust(void)
 	avg = statx_avg(datapoints);
 	sdev = statx_sdev(datapoints);
 
+	entropy_harvest_many(VARLEN(n), VARLEN(avg), VARLEN(sdev), NULL);
+
 	/*
 	 * Incrementally remove aberration points.
 	 */
@@ -304,6 +307,9 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 		v = val_create(addr, precision);
 		hevset_insert(used, v);
 	}
+
+	entropy_harvest_small(
+		VARLEN(update), VARLEN(precision), VARLEN(addr), NULL);
 
 	now = tm_time();
 	delta = delta_time(update, (now + (int32) GNET_PROPERTY(clock_skew)));

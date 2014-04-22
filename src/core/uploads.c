@@ -491,6 +491,8 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, void *unused_obj)
 		g_debug("UL end of upload early stalling condition");
 	}
 
+	entropy_harvest_time();
+
 	/*
 	 * Allow the HTTP outgoing scheduler to use the stolen bandwidth again,
 	 * thereby being able to send more data.
@@ -534,6 +536,8 @@ upload_no_more_stalling(watchdog_t *unused_wd, void *unused_obj)
 	if (GNET_PROPERTY(upload_debug)) {
 		g_debug("UL end of upload stalling condition");
 	}
+
+	entropy_harvest_time();
 
 	/*
 	 * Allow unused bandwidth to be stolen from the HTTP outgoing scheduler
@@ -613,6 +617,8 @@ upload_new_early_stalling(const struct upload *u)
 			uint64_to_string(u->sent));
 	}
 
+	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), VARLEN(u->reqnum), NULL);
+
 	upload_early_stall();
 }
 
@@ -646,6 +652,7 @@ upload_stall(void)
 			g_warning("frequent stalling detected, using workarounds");
 		}
 		gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
+		entropy_harvest_time();
 	}
 
 	wd_kick(stall_wd);
@@ -662,6 +669,8 @@ upload_new_stalling(const struct upload *u)
 			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u),
 			uint64_to_string(u->sent));
 	}
+
+	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), NULL);
 
 	upload_stall();
 }
@@ -687,6 +696,8 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 			host_addr_to_string(u->addr), upload_vendor_str(u),
 			compact_time(d), u->reqnum, ignore ? " (IGNORED)" : "");
 	}
+
+	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), NULL);
 
 	if (ignore)
 		return;
@@ -1401,6 +1412,8 @@ upload_clone(struct upload *u)
 	bool within_error = FALSE;
 
 	upload_check(u);
+
+	entropy_harvest_time();
 
 	if (u->io_opaque) {
 		/* Was cloned after error sending, not during transfer */
@@ -5375,6 +5388,7 @@ upload_completed(struct upload *u)
 
 	socket_check(u->socket);
 
+	entropy_harvest_time();
 	gnet_prop_incr_guint32(PROP_TOTAL_UPLOADS);
 	upload_fire_upload_info_changed(u); /* gui must update last state */
 

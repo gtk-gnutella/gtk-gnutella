@@ -68,6 +68,7 @@
 #include "lib/concat.h"
 #include "lib/eclist.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/file_object.h"
@@ -826,6 +827,8 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 
 	fi->dirty = FALSE;
 	fileinfo_dirty = TRUE;
+
+	entropy_harvest_time();
 }
 
 /**
@@ -1653,6 +1656,8 @@ fi_random_guid_atom(void)
 {
 	struct guid guid;
 	size_t i;
+
+	entropy_harvest_time();
 
 	/*
 	 * Paranoid, in case the random number generator is broken.
@@ -2587,6 +2592,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	}
 
 	file_info_drop_handle(fi, "Discarding file info");
+	entropy_harvest_single(PTRLEN(fi->guid));
 
 	g_assert(GNET_PROPERTY(fi_all_count) > 0);
 	gnet_prop_decr_guint32(PROP_FI_ALL_COUNT);

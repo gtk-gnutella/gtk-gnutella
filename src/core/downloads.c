@@ -3900,6 +3900,8 @@ download_clone(struct download *d)
 	download_check(d);
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
 
+	entropy_harvest_time();
+
 	/* The socket can be NULL if we're acting on a queued source */
 
 	if (s != NULL && s->getline != NULL) {
@@ -4508,6 +4510,8 @@ download_switch(struct download *od, struct download *nd, bool on_error)
 	gnet_stats_inc_general(
 		on_error ? GNR_ATTEMPTED_RESOURCE_SWITCHING_AFTER_ERROR :
 			GNR_ATTEMPTED_RESOURCE_SWITCHING);
+
+	entropy_harvest_small(VARLEN(od), VARLEN(nd), VARLEN(on_error), NULL);
 
 	g_assert(NULL == nd->socket);
 
@@ -7223,6 +7227,19 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 
+	/*
+	 * Harvest entropy each time we attempt to create a new download.
+	 */
+
+	entropy_harvest_many(file, strlen(file), VARLEN(size), VARLEN(addr),
+		VARLEN(port), VARLEN(file_info), VARLEN(stamp), VARLEN(guid),
+		VARLEN(sha1), VARLEN(tth), VARLEN(proxies), VARLEN(parq_id), NULL);
+
+	/*
+	 * If a file_info is supplied, its SHA1 must match the one we supply and
+	 * the TTH must also match when it is known.
+	 */
+
 	if (file_info != NULL) {
 		g_return_val_if_fail(!sha1 || sha1_eq(file_info->sha1, sha1), NULL);
 		if (file_info->tth != NULL) {
@@ -9171,8 +9188,7 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 		*trimmed = FALSE;
 	}
 
-
-	/**
+	/*
 	 * writev() and others do not necessarily flush the complete buffer
 	 * to disk, especially if the configured buffer size is large. As
 	 * this is not handled gracefully i.e., the non-flushed buffer content
@@ -9186,6 +9202,8 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 	written = 0;
 	old_held = download_buffered(d);
 	old_pos = d->pos;
+
+	entropy_harvest_small(VARLEN(d), VARLEN(old_held), VARLEN(old_pos), NULL);
 
 	do {
 		iovec_t *iov;
@@ -9321,6 +9339,8 @@ download_continue(struct download *d, bool trimmed)
 	const struct sha1 *sha1 = NULL;
 
 	download_check(d);
+
+	entropy_harvest_single(VARLEN(d));
 
 	/*
 	 * Determine whether we can use this download for a follow-up request if
@@ -14920,6 +14940,8 @@ download_move(struct download *d, const char *dir, const char *ext)
 
 	name = file_info_readable_filename(fi);
 
+	entropy_harvest_many(VARLEN(d), name, strlen(name), VARLEN(fi), NULL);
+
 	/*
 	 * If the target directory is the same as the source directory, we'll
 	 * use the supplied extension and simply rename the file.
@@ -15054,6 +15076,9 @@ download_move_done(struct download *d, const char *pathname, uint elapsed)
 
 	download_check(d);
 	g_assert(d->status == GTA_DL_MOVING);
+
+	entropy_harvest_many(VARLEN(d), pathname, strlen(pathname),
+		VARLEN(elapsed), NULL);
 
 	fi = d->file_info;
 	fi->copy_elapsed = elapsed;
@@ -15202,6 +15227,13 @@ download_verify_sha1_done(struct download *d,
 
 	fi = d->file_info;
 	file_info_check(fi);
+
+	entropy_harvest_many(VARLEN(elapsed), PTRLEN(sha1),
+		/* include the TTH value if not NULL, otherwise the download variable */
+		fi->tth != NULL ? (void *) fi->tth : (void *) &d,
+		fi->tth != NULL ? sizeof *fi->tth : sizeof d,
+		NULL);
+
 	fi->cha1 = atom_sha1_get(sha1);
 	fi->vrfy_elapsed = elapsed;
 	fi->vrfy_hashed = fi->size;
@@ -15317,6 +15349,8 @@ download_verify_sha1(struct download *d)
 	g_assert(!(d->flags & DL_F_SUSPENDED));
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
+	entropy_harvest_single(VARLEN(d));
+
 	if (FI_F_VERIFYING & fi->flags)	/* Already verifying */
 		return;
 
@@ -15417,6 +15451,8 @@ download_tigertree_sweep(struct download *d,
 			uint64_to_string(fi->tigertree.slice_size));
 	}
 
+	entropy_harvest_many(VARLEN(d), PTRLEN(leaves), VARLEN(num_leaves), NULL);
+
 	if (num_leaves > fi->tigertree.num_leaves) {
 		size_t dst;
 
@@ -15486,6 +15522,8 @@ download_verify_tigertree_done(struct download *d,
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	entropy_harvest_many(VARLEN(elapsed), PTRLEN(tth), NULL);
 
 	fi = d->file_info;
 	file_info_check(fi);
@@ -15610,6 +15648,8 @@ download_verify_tigertree(struct download *d)
 		g_debug("will be verifying TTH of completed %s",
 			download_pathname(d));
 	}
+
+	entropy_harvest_single(VARLEN(d));
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file

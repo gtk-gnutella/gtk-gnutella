@@ -1815,6 +1815,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		}
 		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
+		entropy_harvest_single(VARLEN(s->addr));
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, "Banned for %s",
 				short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)));
@@ -2942,6 +2943,17 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 	gnet_stats_max_general(GNR_UDP_READ_AHEAD_BYTES_MAX, uctx->queued);
 	gnet_stats_max_general(GNR_UDP_READ_AHEAD_COUNT_MAX,
 		eslist_count(&uctx->queue));
+
+	/*
+	 * Harvest entropy.
+	 */
+
+	if (enqueue)
+		entropy_harvest_many(VARLEN(rd), VARLEN(qd), VARLEN(processing), NULL);
+	else if (i > 4)
+		entropy_harvest_small(VARLEN(rd), VARLEN(qd), VARLEN(i), NULL);
+	else
+		entropy_harvest_time();
 
 	/*
 	 * Dequeue some of the queued datagrams, processing them.

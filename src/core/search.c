@@ -93,6 +93,7 @@
 #include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
@@ -6345,6 +6346,8 @@ search_close(gnet_search_t sh)
 	g_return_if_fail(sch);
 	search_ctrl_check(sch);
 
+	entropy_harvest_single(VARLEN(sh));
+
 	/*
 	 * This needs to be done before the handle of the search is reclaimed.
 	 */
@@ -6590,6 +6593,13 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 	g_assert(utf8_is_valid_string(query));
 	
 	/*
+	 * Harvest entropy.
+	 */
+
+	entropy_harvest_many(query, strlen(query), VARLEN(mtype),
+		VARLEN(lifetime), VARLEN(reissue_timeout), VARLEN(flags), NULL);
+
+	/*
 	 * Canonicalize the query we're sending.
 	 */
 
@@ -6789,6 +6799,8 @@ search_start(gnet_search_t sh)
 	search_ctrl_check(sch);
     g_assert(sbool_get(sch->frozen));/* Coming from search_new(), or resuming */
 
+	entropy_harvest_single(VARLEN(sh));
+
     sch->frozen = sbool_set(FALSE);
 
     if (sbool_get(sch->active)) {
@@ -6806,6 +6818,8 @@ search_stop(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
 	search_ctrl_check(sch);
+
+	entropy_harvest_single(VARLEN(sh));
 
 	if (sbool_get(sch->frozen))
 		return;
@@ -7229,6 +7243,8 @@ search_browse(gnet_search_t sh,
 	g_assert(!sbool_get(sch->frozen));
 	g_assert(sch->download == NULL);
 
+	entropy_harvest_many(VARLEN(sh), VARLEN(addr), VARLEN(port), NULL);
+
 	/*
 	 * Host browsing is done thusly: a non-persistent search was created and
 	 * it is now associated with a special download that will know it will
@@ -7343,6 +7359,8 @@ search_locally(gnet_search_t sh, const char *query)
 	g_assert(!sbool_get(sch->frozen));
 	g_assert(sbool_get(sch->local));
 	g_assert(sch->download == NULL);
+
+	entropy_harvest_many(VARLEN(sh), query, strlen(query), NULL);
 
 	if ('\0' == query[0]) {
 		error = FALSE;
@@ -7471,6 +7489,10 @@ search_handle_magnet(const char *url)
 {
 	struct magnet_resource *res;
 	uint n_searches = 0;
+
+	g_assert(url != NULL);
+
+	entropy_harvest_single(url, strlen(url));
 
 	res = magnet_parse(url, NULL);
 	if (res) {

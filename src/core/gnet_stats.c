@@ -46,7 +46,6 @@
 
 #include "lib/entropy.h"
 #include "lib/event.h"
-#include "lib/gnet_host.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/spinlock.h"
@@ -226,13 +225,8 @@ gnet_stats_general_digest(sha1_t *digest)
 static void
 gnet_stats_randomness(const gnutella_node_t *n, uint8 type, uint32 val)
 {
-	gnet_host_t host;
-
-	gnet_host_set(&host, n->addr, n->port);
-
 	entropy_harvest_small(
-		&host, gnet_host_length(&host),
-		VARLEN(type), VARLEN(val), NULL);
+		VARLEN(n->addr), VARLEN(n->port), VARLEN(type), VARLEN(val), NULL);
 }
 
 static void
@@ -662,7 +656,9 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 		size = n->size + sizeof(n->header);
 	}
 
-	gnet_stats_randomness(n, type & 0xff, size);
+	entropy_harvest_small(
+		VARLEN(n->addr), VARLEN(n->port), VARLEN(reason), VARLEN(type),
+		VARLEN(size), NULL);
 
 	DROP_STATS(stats, type, size);
 	node_inc_rxdrop(n);
@@ -709,7 +705,9 @@ gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
 	type = stats_lut[opcode + MSG_DHT_BASE];
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
-	gnet_stats_randomness(n, type & 0xff, size);
+	entropy_harvest_small(
+		VARLEN(n->addr), VARLEN(n->port), VARLEN(reason), VARLEN(type),
+		VARLEN(size), NULL);
 
 	DROP_STATS(stats, type, size);
 	node_inc_rxdrop(n);
@@ -823,6 +821,8 @@ gnet_stats_count_dropped_nosize(
 	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
+	entropy_harvest_small(VARLEN(n->addr), VARLEN(n->port), NULL);
+
 	/* Data part of message not read */
 	DROP_STATS(stats, type, sizeof(n->header));
 
@@ -855,6 +855,8 @@ gnet_stats_flowc_internal(uint t,
 	gnet_stats.pkg.flowc_ttl[i][MSG_TOTAL]++;
 	gnet_stats.byte.flowc_ttl[i][t] += size;
 	gnet_stats.byte.flowc_ttl[i][MSG_TOTAL] += size;
+
+	entropy_harvest_small(VARLEN(t), VARLEN(function), VARLEN(size), NULL);
 }
 
 void

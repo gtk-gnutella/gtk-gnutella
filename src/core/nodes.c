@@ -108,6 +108,7 @@
 #include "lib/cq.h"
 #include "lib/dbus_util.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
@@ -9783,6 +9784,7 @@ void
 node_tx_enter_warnzone(struct gnutella_node *n)
 {
     node_fire_node_flags_changed(n);
+	entropy_harvest_time();
 
 	/*
 	 * If uploads are stalling, output bandwdith is probably so saturated
@@ -9826,6 +9828,7 @@ node_tx_enter_flowc(struct gnutella_node *n)
 		vmsg_send_hops_flow(n, 0, NULL, NULL);	/* Disable all query traffic */
 
     node_fire_node_flags_changed(n);
+	entropy_harvest_time();
 
 	/*
 	 * If uploads are stalling, output bandwdith is probably so saturated
@@ -9939,6 +9942,7 @@ void
 node_tx_swift_changed(struct gnutella_node *n)
 {
     node_fire_node_flags_changed(n);
+	entropy_harvest_time();
 }
 
 /**
@@ -10999,6 +11003,7 @@ node_qrt_discard(struct gnutella_node *n)
 	}
 
     node_fire_node_flags_changed(n);
+	entropy_harvest_time();
 }
 
 /**
@@ -11012,6 +11017,7 @@ node_qrt_new(struct gnutella_node *n, struct routing_table *query_table)
 	bool changed = FALSE;
 
 	qrt_get_info(query_table, n->qrt_info);
+	entropy_harvest_time();
 
 	if (n->qrt_info->is_empty) {
 		if (!NODE_HAS_EMPTY_QRT(n)) {
@@ -11408,6 +11414,8 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 		 */
 		n->attrs |= NODE_A_BAD_GUID;
 	}
+
+	entropy_harvest_many(VARLEN(n->addr), VARLEN(n->port), PTRLEN(guid), NULL);
 
 	n->guid = atom_guid_get(guid);
 	hikset_insert_key(nodes_by_guid, &n->guid);

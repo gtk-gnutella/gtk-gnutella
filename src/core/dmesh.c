@@ -61,6 +61,7 @@
 #include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/halloc.h"
@@ -369,6 +370,9 @@ dmesh_ban_add(const struct sha1 *sha1,
 		dmb->sha1 = NULL;
 
 		hikset_insert(ban_mesh, dmb);
+
+		entropy_harvest_many(VARLEN(ui), VARLEN(dmb),
+			ui->name, strlen(ui->name), PTRLEN(sha1), NULL);
 
 		/*
 		 * Keep record of banned hosts by SHA1 Hash. We will use this to send
@@ -806,6 +810,8 @@ dmesh_dispose(const struct sha1 *sha1)
 
 	hikset_remove(mesh, sha1);
 	dm_free(dm);
+
+	entropy_harvest_single(PTRLEN(sha1));
 }
 
 /**
@@ -1035,6 +1041,9 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		dme->good = FALSE;
 		dme->fw_entry = FALSE;
 
+		entropy_harvest_many(name, strlen(name),
+			VARLEN(dme), PTRLEN(sha1), NULL);
+
 		if (GNET_PROPERTY(dmesh_debug))
 			g_debug("dmesh entry created for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
@@ -1165,6 +1174,9 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		dme->bad = NULL;
 		dme->good = FALSE;
 		dme->fw_entry = TRUE;
+
+		entropy_harvest_many(PTRLEN(info->guid),
+			VARLEN(dme), PTRLEN(sha1), NULL);
 
 		if (GNET_PROPERTY(dmesh_debug))
 			g_debug("dmesh entry created for urn:sha1:%s for %s",

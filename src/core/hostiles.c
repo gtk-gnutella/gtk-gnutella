@@ -50,6 +50,7 @@
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
@@ -622,12 +623,15 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 		entry->relative_time = tm_relative_time();
 		entry->he4_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv4, entry);
+		entropy_harvest_single(VARLEN(entry->he4_flags));
 	} else {
 		entry = hostiles_dynamic_new4(ipv4, flags);
 		hash_list_append(hl_dynamic_ipv4, entry);
 
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
+
+		entropy_harvest_small(VARLEN(ipv4), VARLEN(flags), NULL);
 
 		if (GNET_PROPERTY(ban_debug)) {
 			char buf[HOST_ADDR_BUFLEN];
@@ -658,12 +662,15 @@ hostiles_dynamic_add_ipv6(const uint8 *ipv6, hostiles_flags_t flags)
 		entry->relative_time = tm_relative_time();
 		entry->he6_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv6, entry);
+		entropy_harvest_single(VARLEN(entry->he6_flags));
 	} else {
 		entry = hostiles_dynamic_new6(ipv6, flags);
 		hash_list_append(hl_dynamic_ipv6, entry);
 
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
+
+		entropy_harvest_small(ipv6, 16, VARLEN(flags), NULL);
 
 		if (GNET_PROPERTY(ban_debug)) {
 			g_info("dynamically caught hostile: %s (%s)",
@@ -869,6 +876,7 @@ hostiles_spam_add(const host_addr_t addr, uint16 port)
 			sd->create_time = sd->last_time = tm_time();
 		sd->hosts[0].port = port;
 		gnet_stats_inc_general(GNR_SPAM_IP_HELD);
+		entropy_harvest_small(VARLEN(addr), VARLEN(port), NULL);
 	} else {
 		int i;
 		bool found = FALSE;
