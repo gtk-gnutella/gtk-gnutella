@@ -77,12 +77,14 @@
 #include "arc4random.h"
 #include "atomic.h"
 #include "endian.h"
+#include "evq.h"
 #include "float.h"
 #include "listener.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "mtwist.h"
+#include "once.h"
 #include "pow2.h"
 #include "pslist.h"
 #include "sha1.h"
@@ -95,6 +97,8 @@
 #include "well.h"
 
 #include "override.h"			/* Must be the last header included */
+
+#define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
 
 /**
  * Randomness update listeners.
@@ -580,7 +584,7 @@ random_byte_aje_add(void *p)
 static bool
 random_add_pool(void *buf, size_t len)
 {
-	static uchar data[256];
+	static uint8 data[256];
 	static size_t idx;
 	static spinlock_t pool_slk = SPINLOCK_INIT;
 	uchar *p;
@@ -741,32 +745,44 @@ random_dispatch(pslist_t *users, notify_fn_t cb,
 	pslist_free(users);
 }
 
-/**
- * Add new randomness to the random number generators used by random_bytes()
- * and random_strong_bytes().
- */
-void
-random_add(const void *data, size_t datalen)
-{
-	struct random_byte_data *rbd = NULL;
-	uint8 entropy[64];
+static bool random_entropy_new;
+static spinlock_t random_entropy_slk = SPINLOCK_INIT;
 
-	g_assert(data != NULL);
-	g_assert(size_is_positive(datalen));
+#define RANDOM_ENTROPY_LOCK		spinlock(&random_entropy_slk)
+#define RANDOM_ENTROPY_UNLOCK	spinunlock(&random_entropy_slk)
+
+/**
+ * Propagate entropy periodically to random number generators.
+ */
+static bool
+random_entropy(void *unused)
+{
+	bool has_new;
+	struct random_byte_data *rbd = NULL;
+	uint8 entropy[256];
+
+	(void) unused;
+
+	RANDOM_ENTROPY_LOCK;
+
+	has_new = random_entropy_new;
+	random_entropy_new = FALSE;
+
+	RANDOM_ENTROPY_UNLOCK;
+
+	if (!has_new)
+		return TRUE;
 
 #define ELEN	(sizeof entropy)
 
 	/*
-	 * The collected data is given to AJE (the global instance), and we then
-	 * extract random data out of AJE to feed to the other generators.  This
-	 * ensures we're feeding random data to each generator.
+	 * Extract random bytes from the global AJE context.
 	 */
 
-	aje_addrandom(data, datalen);
 	aje_random_bytes(entropy, ELEN);
 
 	/*
-	 * Now feeed the random entropy to the generators.
+	 * Now feed the random entropy to the generators.
 	 */
 
 	arc4random_addrandom(entropy, (int) ELEN);
@@ -786,6 +802,56 @@ random_add(const void *data, size_t datalen)
 		random_byte_data_free(rbd);
 
 #undef ELEN
+
+	return TRUE;
+}
+
+/**
+ * Install the periodic entropy propagation call to random number generators.
+ */
+static void G_GNUC_COLD
+random_entropy_install(void)
+{
+	evq_raw_periodic_add(RANDOM_ENTROPY_PERIOD, random_entropy, NULL);
+}
+
+/**
+ * Install the periodic entropy propagation, once.
+ */
+static void
+random_entropy_install_once(void)
+{
+	static once_flag_t random_entropy_installed;
+
+	once_flag_run(&random_entropy_installed, random_entropy_install);
+}
+
+/**
+ * Add new randomness to the random number generators used by random_bytes()
+ * and random_strong_bytes().
+ */
+void
+random_add(const void *data, size_t datalen)
+{
+	g_assert(data != NULL);
+	g_assert(size_is_positive(datalen));
+
+	random_entropy_install_once();
+
+	/*
+	 * The collected data is given to AJE (the global instance), and we then
+	 * extract random data out of AJE to feed to the other generators.
+	 */
+
+	aje_addrandom(data, datalen);
+
+	/*
+	 * Signal that we have fresh entropy to dispatch.
+	 */
+
+	RANDOM_ENTROPY_LOCK;
+	random_entropy_new = TRUE;
+	RANDOM_ENTROPY_UNLOCK;
 }
 
 /**
@@ -880,6 +946,7 @@ random_init(void)
 {
 	arc4random_stir_once();
 	mt_init();
+	random_entropy_install_once();
 }
 
 /* vi: set ts=4 sw=4 cindent: */
