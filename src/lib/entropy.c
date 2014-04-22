@@ -120,6 +120,8 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
  */
 #define ENTROPY_ALPHA		3		/* Bytes to harvest 8 bits of entropy */
 
+#define ENTROPY_NONCE_MAX	1023	/* Change "nonce" after that many uses */
+
 /**
  * Context for the entropy_minirand() routine.
  */
@@ -1526,6 +1528,45 @@ static struct entropy_ops entropy_ops = {
 };
 
 /**
+ * Get the entropy nonce, a number used to alter time-based entropy collection
+ * in a way that cannot be guessed by an outsider.
+ *
+ * @return the nonce to use for the session
+ */
+static uint32
+entropy_nonce(void)
+{
+	static uint32 base;
+	static int nused;
+	int c;
+
+	c = atomic_int_inc(&nused);
+
+	/*
+	 * Should two threads collide and reach the maximum base usage time,
+	 * we want them to both recompute the base.  Sure, we could make the
+	 * first thread do that only by using an equality test, but this adds
+	 * more entropy because the computation becomes less deterministic due
+	 * to the possible lock contention.
+	 */
+
+	if G_UNLIKELY(0 == base || ENTROPY_NONCE_MAX <= c) {
+		static spinlock_t base_slk = SPINLOCK_INIT;
+
+		spinlock_hidden(&base_slk);
+
+		do {
+			base = entropy_random();
+		} while (0 == base);
+		nused = 0;
+
+		spinunlock_hidden(&base_slk);
+	}
+
+	return base + c;		/* Number used once */
+}
+
+/**
  * Compute hash of current time, using the most precise clock time we have.
  */
 static uint32
@@ -1534,7 +1575,9 @@ entropy_clock_time(void)
 	tm_nano_t now;
 
 	tm_precise_time(&now);
-	return integer_hash_fast(now.tv_nsec) + integer_hash_fast(now.tv_sec);
+
+	return integer_hash_fast(now.tv_nsec) +
+		integer_hash_fast(now.tv_sec) + entropy_nonce();
 }
 
 /**
@@ -1623,6 +1666,7 @@ entropy_harvest_many(const void *p, size_t len, ...)
 	sha1_t digest;
 	SHA1_context ctx;
 	tm_nano_t now;
+	uint32 nonce;
 	size_t runlen = 0;
 	va_list ap;
 
@@ -1630,9 +1674,11 @@ entropy_harvest_many(const void *p, size_t len, ...)
 	g_assert(size_is_positive(len));
 
 	tm_precise_time(&now);
+	nonce = entropy_nonce();
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, &now, sizeof now);
+	SHA1_input(&ctx, VARLEN(nonce));
+	SHA1_input(&ctx, VARLEN(now));
 	SHA1_input(&ctx, p, len);
 	runlen = len;
 
