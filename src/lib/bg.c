@@ -858,7 +858,7 @@ bg_task_create_internal(
 			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
-	entropy_harvest_single(bt, sizeof *bt);
+	entropy_harvest_single(PTRLEN(bt));
 
 	return bt;
 }
@@ -1030,7 +1030,7 @@ bg_daemon_create(
 			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
-	entropy_harvest_single(bt, sizeof *bt);
+	entropy_harvest_single(PTRLEN(bt));
 
 	return bt;
 }
@@ -2056,7 +2056,7 @@ bg_sched_timer(void *arg)
 		 * Use as a source of randomness, to harvest more entropy.
 		 */
 
-		entropy_harvest_single(&us, sizeof us);
+		entropy_harvest_single(VARLEN(us));
 	}
 
 	return TRUE;		/* Keep calling */

@@ -8878,7 +8878,7 @@ download_start_reading(void *o)
 
 		tm_now(&now);
 		elapsed = tm_elapsed_ms(&now, &d->header_sent);
-		entropy_harvest_single(&elapsed, sizeof elapsed);
+		entropy_harvest_single(VARLEN(elapsed));
 
 		g_assert(dl_server_valid(server));
 
@@ -13613,15 +13613,11 @@ download_connected(struct download *d)
 	s = d->socket;
 
 	{
-		time_delta_t elapsed;
+		time_delta_t e;		/* elapsed time since last connection to server */
 		host_addr_t addr = server->key->addr;
 
-		elapsed = delta_time(now, server->last_connect);
-		entropy_harvest_small(
-			&s->port, sizeof s->port,
-			&addr, sizeof addr,
-			&elapsed, sizeof elapsed,
-			NULL);
+		e = delta_time(now, server->last_connect);
+		entropy_harvest_small(VARLEN(s->port), VARLEN(addr), VARLEN(e), NULL);
 	}
 
 	server->last_connect = now;
@@ -16777,7 +16773,7 @@ download_timer(time_t now)
 					fi->recv_last_time = now;
 					file_info_changed(fi);
 
-					entropy_harvest_single(&rate, sizeof rate);
+					entropy_harvest_single(VARLEN(rate));
 				}
 			}
 

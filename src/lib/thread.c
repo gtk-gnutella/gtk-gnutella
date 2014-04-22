@@ -6790,10 +6790,7 @@ thread_launch_trampoline(void *arg)
 	 */
 
 	entropy_harvest_many(
-		u.ctx->te, sizeof *u.ctx->te,
-		&u.ctx->routine, sizeof u.ctx->routine,
-		&u.ctx->arg, sizeof u.ctx->arg,
-		NULL);
+		PTRLEN(u.ctx->te), VARLEN(u.ctx->routine), VARLEN(u.ctx->arg), NULL);
 
 	/*
 	 * Save away the values we need from the context before releasing it.

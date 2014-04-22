@@ -1382,10 +1382,7 @@ cq_heartbeat(cqueue_t *cq)
 		time_delta_t since_last;
 		tm_now_exact(&tv);
 		since_last = tm_elapsed_us(&tv, &cq->cq_last_heartbeat);
-		entropy_harvest_small(
-			&delay, sizeof delay,
-			&since_last, sizeof since_last,
-			NULL);
+		entropy_harvest_small(VARLEN(delay), VARLEN(since_last), NULL);
 	}
 
 	return triggered;

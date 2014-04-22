@@ -1587,7 +1587,7 @@ entropy_harvest_small(const void *p, size_t len, ...)
 	g_assert(size_is_positive(len));
 
 	h = entropy_clock_time();
-	c = crc32_update(-1U, &h, sizeof h);
+	c = crc32_update(-1U, VARLEN(h));
 	c = crc32_update(c, p, len);
 
 	va_start(ap, len);

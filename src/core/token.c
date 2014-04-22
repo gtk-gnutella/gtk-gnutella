@@ -828,7 +828,7 @@ tok_generate(time_t now, const char *version)
 	 */
 
 	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
-	crc32 = crc32_update(0, digest, TOKEN_VERSION_SIZE);
+	crc32 = crc32_update(0, VARLEN(digest));
 
 	for (i = 0; i < lvlsize; i++) {
 		poke_be16(&lvldigest[i*2], tok_crc(crc32, tk));
@@ -1053,7 +1053,7 @@ tok_version_valid(
 
 	rtk = tk + (lvlsize - 1);				/* Keys at that level */
 
-	crc = crc32_update(0, token, TOKEN_VERSION_SIZE);
+	crc = crc32_update(0, VARLEN(token));
 	crc = tok_crc(crc, rtk);
 
 	lvlsize--;								/* Move to 0-based offset */

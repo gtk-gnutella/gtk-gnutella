@@ -4984,7 +4984,7 @@ upload_request(struct upload *u, header_t *header)
 		if (d > IO_RTT_STALL) {
 			upload_large_followup_rtt(u, d);
 		}
-		entropy_harvest_single(&d, sizeof d);
+		entropy_harvest_single(VARLEN(d));
 	}
 
 	/*
@@ -4995,10 +4995,7 @@ upload_request(struct upload *u, header_t *header)
 		host_addr_t addr = u->socket->addr;
 		uint16 port = u->socket->port;
 
-		entropy_harvest_small(
-			&addr, sizeof addr,
-			&port, sizeof port,
-			NULL);
+		entropy_harvest_small(VARLEN(addr), VARLEN(port), NULL);
 	}
 
 	/*

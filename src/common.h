@@ -917,6 +917,22 @@ ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
  */
 #define ZERO(x)		memset((x), 0, sizeof *(x))
 
+/**
+ * Generate argument list for the address of `x' and its size, so that we can
+ * process the content of that variable.
+ *
+ * The aim is to prevent typos and make sure the two arguments are in sync.
+ */
+#define VARLEN(x)		&(x), sizeof(x)
+
+/**
+ * Generate argument list for the address pointed at by `x' and its size, so
+ * that we can process the structure content, pointed at by that variable.
+ *
+ * The aim is to prevent typos and make sure the two arguments are in sync.
+ */
+#define PTRLEN(x)		(x), sizeof *(x)
+
 /*
  * Support for alloca().
  */

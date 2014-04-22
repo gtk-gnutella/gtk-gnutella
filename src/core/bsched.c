@@ -2769,7 +2769,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 
 	overused -= bs->bw_stolen;		/* Correct for computations below */
 
-	entropy_harvest_single(&overused, sizeof overused);
+	entropy_harvest_single(VARLEN(overused));
 
 	bs->bw_max = (int) (bs->bw_per_second / 1000.0 * bs->period_ema);
 
@@ -2940,7 +2940,7 @@ bsched_stealbeat(bsched_t *bs)
 	}
 #endif
 
-	entropy_harvest_single(&underused, sizeof underused);
+	entropy_harvest_single(VARLEN(underused));
 
 	if (underused <= 0)				/* Nothing to redistribute */
 		return;
@@ -3118,7 +3118,7 @@ bsched_timer(void)
 		if (bs->flags & BS_F_DATA_READ) {
 			read_data = TRUE;
 			bs->flags &= ~BS_F_DATA_READ;
-			entropy_harvest_single(&in_used, sizeof in_used);
+			entropy_harvest_single(VARLEN(in_used));
 		}
 	}
 

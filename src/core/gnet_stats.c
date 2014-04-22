@@ -232,9 +232,7 @@ gnet_stats_randomness(const gnutella_node_t *n, uint8 type, uint32 val)
 
 	entropy_harvest_small(
 		&host, gnet_host_length(&host),
-		&type, sizeof type,
-		&val, sizeof val,
-		NULL);
+		VARLEN(type), VARLEN(val), NULL);
 }
 
 static void

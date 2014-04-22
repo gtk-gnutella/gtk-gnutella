@@ -1518,7 +1518,7 @@ socket_free(struct gnutella_socket *s)
 		 * sockets is hard to predict.
 		 */
 
-		entropy_harvest_single(&s->file_desc, sizeof s->file_desc);
+		entropy_harvest_single(VARLEN(s->file_desc));
 
 		if (compat_socket_close(s->file_desc)) {
 			g_warning("%s: close(%d) failed: %m", G_STRFUNC, s->file_desc);
@@ -2386,12 +2386,8 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 
 	/* Harvest entropy */
 	entropy_harvest_many(
-		&t, sizeof t,
-		&t->file_desc, sizeof t->file_desc,
-		&t->addr, sizeof t->addr,
-		&t->port, sizeof t->port,
-		&t->local_port, sizeof t->local_port,
-		NULL);
+		VARLEN(t), VARLEN(t->file_desc), VARLEN(t->addr),
+		VARLEN(t->port), VARLEN(t->local_port), NULL);
 
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 	if (!GNET_PROPERTY(force_local_ip))
@@ -3151,11 +3147,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	/* Harvest entropy */
 	entropy_harvest_many(
-		&s, sizeof s,
-		&addr, sizeof addr,
-		&port, sizeof port,
-		&type, sizeof type,
-		&flags, sizeof flags,
+		VARLEN(s), VARLEN(addr), VARLEN(port), VARLEN(type), VARLEN(flags),
 		NULL);
 
 	/* Filter out flags which we cannot accept */

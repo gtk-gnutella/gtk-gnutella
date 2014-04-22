@@ -1075,11 +1075,9 @@ verify_enqueue(struct verify *ctx, int high_priority,
 	g_return_val_if_fail(!ctx->shutdowned, FALSE);
 
 	entropy_harvest_many(
-		ctx, sizeof *ctx,
-		&high_priority, sizeof high_priority,
+		PTRLEN(ctx), VARLEN(high_priority),
 		pathname, strlen(pathname),
-		&amount, sizeof amount,
-		NULL);
+		VARLEN(amount), NULL);
 
 	item = verify_file_new(pathname, offset, amount, callback, user_data);
 
