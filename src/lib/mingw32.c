@@ -157,6 +157,9 @@
 
 #define MINGW_TRACEFILE_KEEP	3		/* Keep traces for that many runs */
 
+#define TM_MILLION		1000000L
+#define TM_BILLION		1000000000L
+
 /* Offset of the UNIX Epoch compared to the Window's one, in microseconds */
 #define EPOCH_OFFSET	UINT64_CONST(11644473600000000)
 
@@ -2699,8 +2702,8 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 
 	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
 	v -= offset;
-	tv->tv_usec = v % 1000000UL;
-	v /= 1000000UL;
+	tv->tv_usec = v % TM_MILLION;
+	v /= TM_MILLION;
 	/* If time_t is a 32-bit integer, there could be an overflow */
 	tv->tv_sec = MIN(v, UNSIGNED(MAX_INT_VAL(time_t)));
 }
@@ -2898,7 +2901,7 @@ found:
 	 */
 
 	value = uint64_saturate_add(
-				uint64_saturate_mult(req->tv_sec, 10000000UL),
+				uint64_saturate_mult(req->tv_sec, TM_MILLION * 10UL),
 				(req->tv_nsec + 99) / 100);
 	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(int64));
 
@@ -2986,11 +2989,11 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 		switch (freq) {
 		case MINGW_CPUFREQ_CURRENT:
 			/* Convert to Hz */
-			result = uint64_saturate_mult(p[0].CurrentMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].CurrentMhz, TM_MILLION);
 			break;
 		case MINGW_CPUFREQ_MAX:
 			/* Convert to Hz */
-			result = uint64_saturate_mult(p[0].MaxMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].MaxMhz, TM_MILLION);
 			break;
 		}
 	}
@@ -3249,9 +3252,9 @@ mingw_clock_gettime(int clock_id, struct timespec *tp)
 		tm_nano_t result;
 
 		t.QuadPart -= start.QuadPart;
-		nanoseconds = t.QuadPart * (uint64) 1000000000UL / freq.QuadPart;
-		result.tv_sec  = nanoseconds / 1000000000L;
-		result.tv_nsec = nanoseconds % 1000000000L;
+		nanoseconds = t.QuadPart * (uint64) TM_BILLION / freq.QuadPart;
+		result.tv_sec  = nanoseconds / TM_BILLION;
+		result.tv_nsec = nanoseconds % TM_BILLION;
 		tm_precise_add(&result, &origin);
 		tm_nano_to_timespec(tp, &result);
 	}
@@ -3288,12 +3291,12 @@ mingw_clock_getres(int clock_id, struct timespec *res)
 		return -1;
 	}
 
-	nanosecs = (uint64) 1000000000UL / freq.QuadPart;
+	nanosecs = (uint64) TM_BILLION / freq.QuadPart;
 	if (0 == nanosecs)
 		nanosecs = 1;
 
-	res->tv_sec  = nanosecs / 1000000000UL;
-	res->tv_nsec = nanosecs % 1000000000UL;
+	res->tv_sec  = nanosecs / TM_BILLION;
+	res->tv_nsec = nanosecs % TM_BILLION;
 
 	return 0;
 }
@@ -3674,7 +3677,7 @@ mingw_semtimedop(int semid, struct sembuf *sops,
 		if (sops->sem_flg & IPC_NOWAIT)
 			ms = 0;
 		else if (timeout != NULL)
-			ms = timeout->tv_nsec / 1000000 + timeout->tv_sec * 1000;
+			ms = timeout->tv_nsec / TM_MILLION + timeout->tv_sec * 1000;
 		else
 			ms = INFINITE;
 

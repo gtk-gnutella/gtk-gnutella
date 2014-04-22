@@ -56,6 +56,9 @@
 #define TM_THREAD_STACK		THREAD_STACK_MIN
 #define TM_THREAD_PERIOD	1000	/* ms, 1 second */
 
+#define TM_MILLION			1000000L
+#define TM_BILLION			1000000000L
+
 tm_t tm_cached_now;			/* Currently cached time */
 static spinlock_t tm_slk = SPINLOCK_INIT;
 
@@ -176,7 +179,7 @@ static bool
 tm_precise_granularity_fallback(tm_nano_t *tn)
 {
 	static spinlock_t tm_granularity_slk = SPINLOCK_INIT;
-	static long granularity = 1000000;	/* microseconds, 1 second */
+	static long granularity = TM_MILLION;	/* microseconds, 1 second */
 	tm_t now;
 	long i;
 
@@ -199,8 +202,8 @@ tm_precise_granularity_fallback(tm_nano_t *tn)
 
 	spinunlock_hidden(&tm_granularity_slk);
 
-	tn->tv_sec  =  i / 1000000L;
-	tn->tv_nsec = (i % 1000000L) * 1000;	/* Convert to nanoseconds */
+	tn->tv_sec  =  i / TM_MILLION;
+	tn->tv_nsec = (i % TM_MILLION) * 1000;	/* Convert to nanoseconds */
 
 	return FALSE;
 }
@@ -470,7 +473,7 @@ void
 f2tm(double t, tm_t *tm)
 {
 	tm->tv_sec = (unsigned long) t;
-	tm->tv_usec = (long) ((t - (double) tm->tv_sec) * 1000000.0);
+	tm->tv_usec = (long) ((t - (double) tm->tv_sec) * (double) TM_MILLION);
 }
 
 /**
@@ -482,7 +485,7 @@ tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0)
 	elapsed->tv_sec = t1->tv_sec - t0->tv_sec;
 	elapsed->tv_usec = t1->tv_usec - t0->tv_usec;
 	if (elapsed->tv_usec < 0) {
-		elapsed->tv_usec += 1000000;
+		elapsed->tv_usec += TM_MILLION;
 		elapsed->tv_sec--;
 	}
 }
@@ -496,7 +499,7 @@ tm_sub(tm_t *tm, const tm_t *dec)
 	tm->tv_sec -= dec->tv_sec;
 	tm->tv_usec -= dec->tv_usec;
 	if (tm->tv_usec < 0) {
-		tm->tv_usec += 1000000;
+		tm->tv_usec += TM_MILLION;
 		tm->tv_sec--;
 	}
 }
@@ -509,8 +512,8 @@ tm_add(tm_t *tm, const tm_t *inc)
 {
 	tm->tv_sec += inc->tv_sec;
 	tm->tv_usec += inc->tv_usec;
-	if (tm->tv_usec >= 1000000) {
-		tm->tv_usec -= 1000000;
+	if (tm->tv_usec >= TM_MILLION) {
+		tm->tv_usec -= TM_MILLION;
 		tm->tv_sec++;
 	}
 }
@@ -537,7 +540,7 @@ tm_precise_elapsed(tm_nano_t *elapsed, const tm_nano_t *t1, const tm_nano_t *t0)
 	elapsed->tv_sec = t1->tv_sec - t0->tv_sec;
 	elapsed->tv_nsec = t1->tv_nsec - t0->tv_nsec;
 	if (elapsed->tv_nsec < 0) {
-		elapsed->tv_nsec += 1000000000L;
+		elapsed->tv_nsec += TM_BILLION;
 		elapsed->tv_sec--;
 	}
 }
@@ -550,8 +553,8 @@ tm_precise_add(tm_nano_t *tn, const tm_nano_t *inc)
 {
 	tn->tv_sec += inc->tv_sec;
 	tn->tv_nsec += inc->tv_nsec;
-	if (tn->tv_nsec >= 1000000000L) {
-		tn->tv_nsec -= 1000000000L;
+	if (tn->tv_nsec >= TM_BILLION) {
+		tn->tv_nsec -= TM_BILLION;
 		tn->tv_sec++;
 	}
 }
