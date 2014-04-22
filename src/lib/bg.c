@@ -858,6 +858,8 @@ bg_task_create_internal(
 			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
+	entropy_harvest_single(bt, sizeof *bt);
+
 	return bt;
 }
 
@@ -1028,6 +1030,8 @@ bg_daemon_create(
 			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
+	entropy_harvest_single(bt, sizeof *bt);
+
 	return bt;
 }
 
@@ -1051,6 +1055,7 @@ bg_daemon_enqueue(bgtask_t *bt, void *item)
 
 	bd->wq = pslist_append(bd->wq, item);
 	bd->wq_count++;
+	entropy_harvest_time();
 
 	if (bt->flags & TASK_F_SLEEPING) {
 		awoken = TRUE;
@@ -1940,6 +1945,7 @@ bg_sched_timer(void *arg)
 			g_assert(bd->wq != NULL);	/* Runnable daemon, must have work */
 
 			item = bd->wq->data;
+			entropy_harvest_time();
 
 			if (bg_debug > 2) {
 				g_debug("BGTASK daemon \"%s\" starting with item %p",

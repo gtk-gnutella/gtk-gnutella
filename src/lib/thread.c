@@ -89,6 +89,7 @@
 #include "crash.h"				/* For print_str() et al. */
 #include "dam.h"
 #include "dump_options.h"
+#include "entropy.h"
 #include "eslist.h"
 #include "evq.h"
 #include "fd.h"					/* For fd_close() */
@@ -6783,6 +6784,16 @@ thread_launch_trampoline(void *arg)
 	 */
 
 	thread_sigstack_allocate(u.ctx->te);
+
+	/*
+	 * Harvest entropy.
+	 */
+
+	entropy_harvest_many(
+		u.ctx->te, sizeof *u.ctx->te,
+		&u.ctx->routine, sizeof u.ctx->routine,
+		&u.ctx->arg, sizeof u.ctx->arg,
+		NULL);
 
 	/*
 	 * Save away the values we need from the context before releasing it.

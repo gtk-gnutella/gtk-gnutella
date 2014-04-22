@@ -65,6 +65,7 @@
 #include "lib/compat_misc.h"
 #include "lib/constants.h"
 #include "lib/cq.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
 #include "lib/file_object.h"
 #include "lib/getcpucount.h"
@@ -1072,6 +1073,13 @@ verify_enqueue(struct verify *ctx, int high_priority,
 	g_return_val_if_fail(pathname, FALSE);
 	g_return_val_if_fail(callback, FALSE);
 	g_return_val_if_fail(!ctx->shutdowned, FALSE);
+
+	entropy_harvest_many(
+		ctx, sizeof *ctx,
+		&high_priority, sizeof high_priority,
+		pathname, strlen(pathname),
+		&amount, sizeof amount,
+		NULL);
 
 	item = verify_file_new(pathname, offset, amount, callback, user_data);
 

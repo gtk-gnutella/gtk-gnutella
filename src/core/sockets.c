@@ -2384,6 +2384,15 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 		break;
 	}
 
+	/* Harvest entropy */
+	entropy_harvest_many(
+		&t, sizeof t,
+		&t->file_desc, sizeof t->file_desc,
+		&t->addr, sizeof t->addr,
+		&t->port, sizeof t->port,
+		&t->local_port, sizeof t->local_port,
+		NULL);
+
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 	if (!GNET_PROPERTY(force_local_ip))
 		guess_local_addr(t);
@@ -3139,6 +3148,15 @@ socket_connect_prepare(struct gnutella_socket *s,
 	int fd, family;
 
 	socket_check(s);
+
+	/* Harvest entropy */
+	entropy_harvest_many(
+		&s, sizeof s,
+		&addr, sizeof addr,
+		&port, sizeof port,
+		&type, sizeof type,
+		&flags, sizeof flags,
+		NULL);
 
 	/* Filter out flags which we cannot accept */
 	flags &= (SOCK_F_TLS | SOCK_F_FORCE);

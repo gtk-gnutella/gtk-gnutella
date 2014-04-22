@@ -1870,6 +1870,8 @@ cq_run_idle(cqueue_t *cq)
 
 	cqueue_check(cq);
 
+	entropy_harvest_time();
+
 	/*
 	 * Never run idle events more than once per CQ_IDLE_PERIOD seconds.
 	 */
