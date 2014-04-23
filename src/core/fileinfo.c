@@ -1079,13 +1079,24 @@ static void
 file_info_hash_insert_name_size(fileinfo_t *fi)
 {
 	namesize_t nsk;
-	pslist_t *sl;
+	pslist_t *sl, *aliases;
 
 	file_info_check(fi);
 	g_assert(fi->file_size_known);
 
 	if (FI_F_TRANSIENT & fi->flags)
 		return;
+
+	/*
+	 * Prepend the filename to the list of aliases, for the purpose of
+	 * recording the entry by name+size.  This is useful when recovering
+	 * downloads with no SHA1, so that we can associate their persisted
+	 * magnet with the proper fileinfo.
+	 *		--RAM, 2014-04-23
+	 */
+
+	aliases = fi->alias;
+	aliases = pslist_prepend_const(aliases, filepath_basename(fi->pathname));
 
 	/*
 	 * The (name, size) tuples also point to a list of entries, one for
@@ -1096,7 +1107,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 
 	nsk.size = fi->size;
 
-	PSLIST_FOREACH(fi->alias, sl) {
+	PSLIST_FOREACH(aliases, sl) {
 		pslist_t *slist;
 		
 		nsk.name = sl->data;
@@ -1110,6 +1121,8 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 			htable_insert(fi_by_namesize, ns, slist);
 		}
 	}
+
+	pslist_shift(&aliases);		/* Get rid of extra leading item */
 }
 
 static void
