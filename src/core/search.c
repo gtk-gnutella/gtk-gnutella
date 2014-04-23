@@ -796,7 +796,7 @@ search_new_r_set(void)
 {
 	static const gnet_results_set_t zero_rs;
 	gnet_results_set_t *rs;
-   
+
 	WALLOC(rs);
 	*rs = zero_rs;
 	return rs;
@@ -1306,7 +1306,7 @@ static bool
 is_odd_guid(const guid_t *guid)
 {
 	size_t i = G_N_ELEMENTS(guid->v);
-	
+
 	do {
 		unsigned char c = guid->v[--i];
 
@@ -4071,7 +4071,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 
 	if (rs->proxies != NULL)
 		download_got_push_proxies(rs->guid, rs->proxies, FALSE);
-	
+
 	/*
 	 * Now that we have the vendor, warn if the message has SHA1 errors.
 	 * Then drop the packet!
@@ -4337,7 +4337,7 @@ build_search_message(const guid_t *muid, const char *query,
 
 	STATIC_ASSERT(25 == sizeof msg.data);
 	msize = sizeof msg.data;
-	
+
 	{
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
 		uint8 hops;
@@ -4424,7 +4424,7 @@ build_search_message(const guid_t *muid, const char *query,
 	}
 
 	gnutella_msg_search_set_flags(&msg.data, flags);
-	
+
 	/*
 	 * Are we dealing with a URN search?
 	 */
@@ -4439,7 +4439,7 @@ build_search_message(const guid_t *muid, const char *query,
 			g_warning("dropping too large query \"%s\"", query);
 			goto error;
 		}
-	
+
 		if (is_sha1_search) {
 			msg.bytes[msize++] = '\\';
 			msg.bytes[msize++] = '\0';
@@ -6231,7 +6231,7 @@ search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 
 	g_return_if_fail(sch);
 	search_ctrl_check(sch);
-	
+
 	if (sbool_get(sch->track_sha1)) {
 		if (!htable_contains(sha1_to_search, sha1)) {
 			htable_insert(sha1_to_search, atom_sha1_get(sha1),
@@ -6591,7 +6591,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 
 	g_assert(ptr);
 	g_assert(utf8_is_valid_string(query));
-	
+
 	/*
 	 * Harvest entropy.
 	 */
@@ -7405,7 +7405,7 @@ search_locally(gnet_search_t sh, const char *query)
 
 	if (GNET_PROPERTY(is_firewalled))
 		rs->status |= ST_FIREWALL;
-	
+
 	if (GNET_PROPERTY(is_firewalled) || !host_is_valid(rs->addr, rs->port)) {
 		const gnet_host_t *host = node_oldest_push_proxy();
 
@@ -7796,7 +7796,7 @@ query_utf8_decode(const char *text, uint *retoff)
 
 	if (!(p = is_strprefix(text, "\xef\xbb\xbf")))
 		p = text;
-	
+
 	if (retoff)
 		*retoff = p - text;
 
