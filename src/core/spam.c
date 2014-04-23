@@ -53,6 +53,7 @@
 #include "lib/path.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
+#include "lib/tokenizer.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
@@ -129,13 +130,10 @@ typedef enum {
 	NUM_SPAM_TAGS
 } spam_tag_t;
 
-static const struct spam_tag {
-	spam_tag_t	tag;
-	const char *str;
-} spam_tag_map[] = {
+static const tokenizer_t spam_tags[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define SPAM_TAG(x) { CAT2(SPAM_TAG_,x), #x }
+#define SPAM_TAG(x) { #x, CAT2(SPAM_TAG_,x) }
 	SPAM_TAG(ADDED),
 	SPAM_TAG(END),
 	SPAM_TAG(NAME),
@@ -146,25 +144,10 @@ static const struct spam_tag {
 #undef SPAM_TAG
 };
 
-
-static spam_tag_t
+static inline spam_tag_t
 spam_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(spam_tag_map) == NUM_SPAM_TAGS - 1U);
-
-#define GET_ITEM(i) (spam_tag_map[(i)].str)
-#define FOUND(i) G_STMT_START { \
-	return spam_tag_map[(i)].tag; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(spam_tag_map), strcmp,
-		GET_ITEM, FOUND);
-
-#undef FOUND
-#undef GET_ITEM
-	return SPAM_TAG_UNKNOWN;
+	return TOKENIZE(s, spam_tags);
 }
 
 struct namesize_item {
@@ -503,6 +486,8 @@ spam_retrieve(void)
 void
 spam_init(void)
 {
+	TOKENIZE_CHECK_SORTED(spam_tags);
+
 	spam_sha1_init();
 	spam_retrieve();
 }

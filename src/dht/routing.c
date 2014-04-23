@@ -104,6 +104,7 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
+#include "lib/tokenizer.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
 
@@ -5275,13 +5276,10 @@ typedef enum {
 /* Amount of valid route tags, excluding the unknown placeholder tag */
 #define NUM_DHT_ROUTE_TAGS	(DHT_ROUTE_TAG_MAX - 1)
 
-static const struct dht_route_tag {
-	dht_route_tag_t tag;
-	const char *str;
-} dht_route_tag_map[] = {
+static const tokenizer_t dht_route_tags[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define DHT_ROUTE_TAG(x)	{ CAT2(DHT_ROUTE_TAG_,x), #x }
+#define DHT_ROUTE_TAG(x)	{ #x, CAT2(DHT_ROUTE_TAG_,x) }
 
 	DHT_ROUTE_TAG(CTIM),
 	DHT_ROUTE_TAG(END),
@@ -5295,25 +5293,10 @@ static const struct dht_route_tag {
 #undef DHT_ROUTE_TAG
 };
 
-static dht_route_tag_t
+static inline dht_route_tag_t
 dht_route_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(dht_route_tag_map) == NUM_DHT_ROUTE_TAGS);
-
-#define GET_ITEM(i)		dht_route_tag_map[i].str
-#define FOUND(i) G_STMT_START {				\
-	return dht_route_tag_map[i].tag;		\
-	/* NOTREACHED */						\
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(dht_route_tag_map), strcmp,
-		GET_ITEM, FOUND);
-
-#undef FOUND
-#undef GET_ITEM
-
-	return DHT_ROUTE_TAG_UNKNOWN;
+	return TOKENIZE(s, dht_route_tags);
 }
 
 /**
@@ -5430,10 +5413,10 @@ dht_route_parse(FILE *f)
 
 				/* All other tags are mandatory */
 
-				for (i = 0; i < G_N_ELEMENTS(dht_route_tag_map); i++) {
-					if (!bit_array_get(tag_used, dht_route_tag_map[i].tag)) {
+				for (i = 0; i < G_N_ELEMENTS(dht_route_tags); i++) {
+					if (!bit_array_get(tag_used, dht_route_tags[i].value)) {
 						g_warning("%s(): missing %s tag near line %u",
-							G_STRFUNC, dht_route_tag_map[i].str, line_no);
+							G_STRFUNC, dht_route_tags[i].token, line_no);
 						goto damaged;
 					}
 				}
@@ -5559,6 +5542,8 @@ dht_route_retrieve(void)
 {
 	file_path_t fp[1];
 	FILE *f;
+
+	TOKENIZE_CHECK_SORTED(dht_route_tags);
 
 	file_path_set(fp, settings_config_dir(), node_file);
 	f = file_config_open_read(file_what, fp, G_N_ELEMENTS(fp));

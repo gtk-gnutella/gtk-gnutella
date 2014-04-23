@@ -80,6 +80,7 @@
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
+#include "lib/tokenizer.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"			/* Must be the last header included */
@@ -5024,13 +5025,10 @@ typedef enum {
 	NUM_PARQ_TAGS
 } parq_tag_t;
 
-static const struct parq_tag {
-	parq_tag_t	tag;
-	const char *str;
-} parq_tag_map[] = {
+static const tokenizer_t parq_tags[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define PARQ_TAG(x) { CAT2(PARQ_TAG_,x), #x }
+#define PARQ_TAG(x) { #x, CAT2(PARQ_TAG_,x) }
 	PARQ_TAG(ENTERED),
 	PARQ_TAG(EXPIRE),
 	PARQ_TAG(GOT),
@@ -5051,29 +5049,11 @@ static const struct parq_tag {
 #undef PARQ_TAG
 };
 
-
-/**
- */
-static parq_tag_t
+static inline parq_tag_t
 parq_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(parq_tag_map) == (NUM_PARQ_TAGS - 1));
-
-#define GET_ITEM(i) (parq_tag_map[(i)].str)
-#define FOUND(i) G_STMT_START { \
-	return parq_tag_map[(i)].tag; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(parq_tag_map), strcmp,
-		GET_ITEM, FOUND);
-
-#undef FOUND
-#undef GET_ITEM
-	return PARQ_TAG_UNKNOWN;
+	return TOKENIZE(s, parq_tags);
 }
-
 
 typedef struct {
 	const struct sha1 *sha1;
@@ -5184,6 +5164,7 @@ parq_upload_load_queue(void)
 
 		tag = parq_string_to_tag(tag_name);
 		g_assert(UNSIGNED(tag) < NUM_PARQ_TAGS);
+
 		if (PARQ_TAG_UNKNOWN != tag && bit_array_get(tag_used, tag)) {
 			g_warning("%s(): ignoring duplicate tag \"%s\" in entry in line %u",
 				G_STRFUNC, tag_name, line_no);
@@ -5455,11 +5436,7 @@ parq_is_enabled(void)
 G_GNUC_COLD void
 parq_init(void)
 {
-#define bs_nop(x)	(x)
-
-	BINARY_ARRAY_SORTED(parq_tag_map, struct parq_tag, str, strcmp, bs_nop);
-
-#undef bs_nop
+	TOKENIZE_CHECK_SORTED(parq_tags);
 
 	header_features_add(FEATURES_UPLOADS,
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);

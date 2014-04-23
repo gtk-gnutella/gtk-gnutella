@@ -91,6 +91,7 @@
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
+#include "lib/tokenizer.h"
 #include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/utf8.h"
@@ -2885,7 +2886,7 @@ extract_tth(const char *s)
 	return atom_tth_get(&tth);
 }
 
-typedef enum {
+enum fi_tag {
 	FI_TAG_UNKNOWN = 0,
 	FI_TAG_ALIA,
 	FI_TAG_CHA1,
@@ -2903,61 +2904,41 @@ typedef enum {
 	FI_TAG_SIZE,
 	FI_TAG_SWRM,
 	FI_TAG_TIME,
-	FI_TAG_TTH,
-
-	NUM_FI_TAGS
-} fi_tag_t;
-
-static const struct fi_tag {
-	fi_tag_t	tag;
-	const char *str;
-} fi_tag_map[] = {
-	/* Must be sorted alphabetically for dichotomic search */
-
-	{ FI_TAG_ALIA,	"ALIA" },
-	{ FI_TAG_CHA1,	"CHA1" },
-	{ FI_TAG_CHNK,	"CHNK" },
-	{ FI_TAG_CTIM,	"CTIM" },
-	{ FI_TAG_DONE,	"DONE" },
-	{ FI_TAG_FSKN,	"FSKN" },
-	{ FI_TAG_GENR,	"GENR" },
-	{ FI_TAG_GUID,	"GUID" },
-	{ FI_TAG_NAME,	"NAME" },
-	{ FI_TAG_NTIM,	"NTIM" },
-	{ FI_TAG_PATH,	"PATH" },
-	{ FI_TAG_PAUS,	"PAUS" },
-	{ FI_TAG_SHA1, 	"SHA1" },
-	{ FI_TAG_SIZE, 	"SIZE" },
-	{ FI_TAG_SWRM, 	"SWRM" },
-	{ FI_TAG_TIME, 	"TIME" },
-	{ FI_TAG_TTH, 	"TTH" },
-
-	/* Above line intentionally left blank (for "!}sort" on vi) */
+	FI_TAG_TTH
 };
 
-/**
- * Transform fileinfo tag string into tag constant.
- * For instance, "TIME" would yield FI_TAG_TIME.
- * An unknown tag yieldd FI_TAG_UNKNOWN.
- */
-static fi_tag_t
+static const tokenizer_t fi_tags[] = {
+	/* Must be sorted alphabetically for dichotomic search */
+
+#define FI_TAG(x) { #x, CAT2(FI_TAG_,x) }
+
+	FI_TAG(ALIA),
+	FI_TAG(CHA1),
+	FI_TAG(CHNK),
+	FI_TAG(CTIM),
+	FI_TAG(DONE),
+	FI_TAG(FSKN),
+	FI_TAG(GENR),
+	FI_TAG(GUID),
+	FI_TAG(NAME),
+	FI_TAG(NTIM),
+	FI_TAG(PATH),
+	FI_TAG(PAUS),
+	FI_TAG(SHA1),
+	FI_TAG(SIZE),
+	FI_TAG(SWRM),
+	FI_TAG(TIME),
+	FI_TAG(TTH),
+
+	/* Above line intentionally left blank (for "!}sort" on vi) */
+
+#undef FI_TAG
+};
+
+static inline enum fi_tag
 file_info_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(fi_tag_map) == (NUM_FI_TAGS - 1));
-
-#define GET_KEY(i) (fi_tag_map[(i)].str)
-#define FOUND(i) G_STMT_START { \
-	return fi_tag_map[(i)].tag; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(fi_tag_map), strcmp,
-		GET_KEY, FOUND);
-
-#undef FOUND
-#undef GET_KEY
-	return FI_TAG_UNKNOWN;
+	return TOKENIZE(s, fi_tags);
 }
 
 /**
@@ -3543,8 +3524,6 @@ file_info_retrieve(void)
 			if (*line)
 				g_warning("ignoring fileinfo line: \"%s %s\"", line, value);
 			break;
-		case NUM_FI_TAGS:
-			g_assert_not_reached();
 		}
 
 		if (damaged)
@@ -7942,12 +7921,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 G_GNUC_COLD void
 file_info_init(void)
 {
-
-#define bs_nop(x)	(x)
-
-	BINARY_ARRAY_SORTED(fi_tag_map, struct fi_tag, str, strcmp, bs_nop);
-
-#undef bs_nop
+	TOKENIZE_CHECK_SORTED(fi_tags);
 
 	fi_by_sha1     = hikset_create(offsetof(fileinfo_t, sha1),
 						HASH_KEY_FIXED, SHA1_RAW_SIZE);

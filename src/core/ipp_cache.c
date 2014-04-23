@@ -54,19 +54,20 @@
 
 #include "common.h"
 
-#include "lib/bit_array.h"
-#include "lib/file.h"
-#include "lib/getdate.h"
-#include "lib/hashlist.h"
-#include "lib/walloc.h"
-
-#include "lib/endian.h"
-#include "lib/host_addr.h"
-#include "lib/timestamp.h"
+#include "ipp_cache.h"
 
 #include "hosts.h"
 #include "settings.h"
-#include "ipp_cache.h"
+
+#include "lib/bit_array.h"
+#include "lib/endian.h"
+#include "lib/file.h"
+#include "lib/getdate.h"
+#include "lib/hashlist.h"
+#include "lib/host_addr.h"
+#include "lib/timestamp.h"
+#include "lib/tokenizer.h"
+#include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -167,13 +168,10 @@ typedef enum {
 	NUM_IPP_CACHE_TAGS
 } ipp_cache_tag_t;
 
-static const struct ipp_cache_tag {
-	ipp_cache_tag_t	tag;
-	const char *str;
-} ipp_cache_tag_map[] = {
+static const tokenizer_t ipp_cache_tags[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define IPP_CACHE_TAG(x) { CAT2(IPP_CACHE_TAG_,x), #x }
+#define IPP_CACHE_TAG(x) { #x, CAT2(IPP_CACHE_TAG_,x) }
 	IPP_CACHE_TAG(END),
 	IPP_CACHE_TAG(HOST),
 	IPP_CACHE_TAG(SEEN),
@@ -185,24 +183,10 @@ static const struct ipp_cache_tag {
 /**
  * Convert a string representation of a serializing tag to its token number.
  */
-static ipp_cache_tag_t
+static inline ipp_cache_tag_t
 ipp_cache_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(ipp_cache_tag_map) == (NUM_IPP_CACHE_TAGS - 1));
-
-#define GET_ITEM(i) (ipp_cache_tag_map[(i)].str)
-#define FOUND(i) G_STMT_START { \
-	return ipp_cache_tag_map[(i)].tag; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(ipp_cache_tag_map), strcmp,
-		GET_ITEM, FOUND);
-
-#undef FOUND
-#undef GET_ITEM
-	return IPP_CACHE_TAG_UNKNOWN;
+	return TOKENIZE(s, ipp_cache_tags);
 }
 
 /**
@@ -657,6 +641,8 @@ ipp_cache_invalidate(enum ipp_cache_id cid)
 G_GNUC_COLD void
 ipp_cache_init(void)
 {
+	TOKENIZE_CHECK_SORTED(ipp_cache_tags);
+
 	caches[IPP_CACHE_TLS] = ipp_cache_alloc(
 		"TLS cache", "TLS", "tls_cache", "TLS-capable hosts",
 		GNET_PROPERTY_PTR(tls_cache_max_time),
