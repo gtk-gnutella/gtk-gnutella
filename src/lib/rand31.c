@@ -106,7 +106,7 @@ rand31_random_seed(void)
 	 * It is seeded by hashing some environmental constants: the ID of
 	 * the process, the current time and current CPU state.  To further
 	 * create a unique starting point in the series of generated numbers,
-	 * a second different hashing is done and reduced to 8 bits.  This
+	 * a second different hashing is done and reduced to 12 bits.  This
 	 * is interpreted as the amount of initial random values to discard.
 	 */
 
@@ -197,7 +197,7 @@ rand31_prng(void)
 static int
 rand31_gen(void)
 {
-	unsigned lo, hi, r1, r2;
+	unsigned rx;
 
 	/*
 	 * The low-order bits of the PRNG are less random than the upper ones,
@@ -207,20 +207,13 @@ rand31_gen(void)
 	 * however because this can unexpectedly reduce the PRNG period or alter
 	 * the distribution of returned numbers.
 	 *
-	 * Therefore, we're mixing bits from two consecutive random numbers,
-	 * byte-swapping one of them so that the less random bits mix with more
-	 * random ones.  We also fold the first mixed number to 16 bits and the
-	 * second mixed one to 15 bits before concatening them to produce the
-	 * 31-bit value, thereby accounting for all the bits produced by the PRNG.
+	 * Therefore, we're mixing bits from the random number with itself in a
+	 * way that will preserve the period (2147476016, a little less 2**31).
 	 */
 
-	r1 = rand31_prng();
-	r2 = rand31_prng();
+	rx = rand31_prng();
 
-	lo = hashing_fold(r1 + (UINT32_SWAP(r2) & 0xffff), 16);
-	hi = hashing_fold(r2 - (UINT32_SWAP(r1) & 0x7fff), 15);
-
-	return lo | (hi << 16);
+	return (UINT32_SWAP(rx) + UINT32_ROTL(rx, 11)) & RAND31_MASK;
 }
 
 /**
@@ -319,9 +312,22 @@ rand31_u32(void)
 
 	rand31_check_seeded();
 
+	/*
+	 * Our algorithm below draws 3 consecutive numbers from the sequence.
+	 * The resulting period of the generator is 2147481104, which is a little
+	 * less than 2**31.
+	 *
+	 * Although this remains a weak PRNG, its behaviour is much better than
+	 * rand31(), in term of statistical dispersion of numbers.
+	 */
+
 	RAND31_LOCK;
 	rx = rand31_prng();
-	rn = UINT32_SWAP(rx) + rand31_gen();
+	rn = UINT32_ROTR(rx, 11);
+	rx = rand31_prng();
+	rn += UINT32_ROTR(rx, 16);
+	rx = rand31_prng();
+	rn += UINT32_ROTL(rx, 5);
 	RAND31_UNLOCK;
 
 	return rn;
