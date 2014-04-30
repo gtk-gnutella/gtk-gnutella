@@ -306,17 +306,22 @@ dump_random(random_fn_t fn, unsigned mask, unsigned dumpcnt)
 }
 
 static void
-dump_raw(random_fn_t fn, unsigned mask)
+dump_raw(random_fn_t fn, unsigned mask, unsigned dumpcnt)
 {
-	for (;;) {
+	uint n = dumpcnt;
+
+	while (0 == dumpcnt || n != 0) {
 		uint32 v[1024];
 		size_t i;
+		size_t g = 0 == dumpcnt ? G_N_ELEMENTS(v) : MIN(G_N_ELEMENTS(v), n);
 
-		for (i = 0; i < G_N_ELEMENTS(v); i++) {
+		for (i = 0; i < g; i++) {
 			v[i] = (*fn)() & mask;
 		}
-		if (-1 == write(STDOUT_FILENO, &v, sizeof v))
+		if (-1 == write(STDOUT_FILENO, &v, g * sizeof v[0]))
 			break;
+		if (0 != dumpcnt)
+			n -= g;
 	}
 }
 
@@ -729,7 +734,7 @@ G_STMT_START {			\
 		start_generate_thread(!dumpraw);
 
 	if (dumpraw) {
-		dump_raw(fn, mask);
+		dump_raw(fn, mask, dumpcnt);
 		return 0;
 	}
 
