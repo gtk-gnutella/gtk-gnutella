@@ -50,7 +50,6 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
-#include "lib/url_factory.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/xmalloc.h"
@@ -226,13 +225,6 @@ fi_gui_set_details(const struct fileinfo_data *file)
 	} else {
    		fi_gui_append_detail(FI_GUI_DETAIL_TIGERTREE, _("Tigertree"),
 			_("Not available"));
-	}
-
-	if (info->sha1) {
-		fi_gui_append_detail(FI_GUI_DETAIL_UNSPECIFIED, _("External metadata"),
-			NULL);	/* Separator */
-		fi_gui_append_detail(FI_GUI_DETAIL_BITZI, _("Bitzi URL"),
-			url_for_bitzi_lookup(info->sha1));
 	}
 
  	guc_fi_free_info(info);

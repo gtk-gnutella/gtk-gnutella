@@ -214,9 +214,6 @@ create_main_window (void)
   GtkWidget *scrolledwindow491;
   GtkWidget *text_result_info_xml;
   GtkWidget *label793;
-  GtkWidget *scrolledwindow4972;
-  GtkWidget *text_result_info_bitzi;
-  GtkWidget *label8010;
   GtkWidget *table68;
   guint checkbutton_search_hide_downloaded_key;
   GtkWidget *checkbutton_search_hide_downloaded;
@@ -2415,31 +2412,6 @@ create_main_window (void)
   gtk_widget_show (label793);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 1), label793);
 
-  scrolledwindow4972 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow4972, "scrolledwindow4972");
-  gtk_widget_ref (scrolledwindow4972);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow4972", scrolledwindow4972,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (scrolledwindow4972);
-  gtk_container_add (GTK_CONTAINER (notebook4), scrolledwindow4972);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow4972), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-
-  text_result_info_bitzi = gtk_text_new (NULL, NULL);
-  gtk_widget_set_name (text_result_info_bitzi, "text_result_info_bitzi");
-  gtk_widget_ref (text_result_info_bitzi);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "text_result_info_bitzi", text_result_info_bitzi,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (text_result_info_bitzi);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow4972), text_result_info_bitzi);
-
-  label8010 = gtk_label_new (_("Bitzi Metadata"));
-  gtk_widget_set_name (label8010, "label8010");
-  gtk_widget_ref (label8010);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8010", label8010,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label8010);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 2), label8010);
-
   table68 = gtk_table_new (7, 4, FALSE);
   gtk_widget_set_name (table68, "table68");
   gtk_widget_ref (table68);
@@ -2706,7 +2678,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label789", label789,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label789);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 3), label789);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 2), label789);
 
   guess_stats_line = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (guess_stats_line, "guess_stats_line");
@@ -6704,7 +6676,6 @@ create_popup_search (void)
   GtkWidget *popup_search;
   GtkAccelGroup *popup_search_accels;
   GtkWidget *popup_search_download;
-  GtkWidget *popup_search_metadata;
   GtkWidget *popup_search_browse_host;
   GtkWidget *popup_search_copy_magnet;
   GtkWidget *separator14;
@@ -6734,14 +6705,6 @@ create_popup_search (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_search_download);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_download);
-
-  popup_search_metadata = gtk_menu_item_new_with_label (_("Bitzi metadata"));
-  gtk_widget_set_name (popup_search_metadata, "popup_search_metadata");
-  gtk_widget_ref (popup_search_metadata);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_metadata", popup_search_metadata,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_search_metadata);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_metadata);
 
   popup_search_browse_host = gtk_menu_item_new_with_label (_("Browse host"));
   gtk_widget_set_name (popup_search_browse_host, "popup_search_browse_host");

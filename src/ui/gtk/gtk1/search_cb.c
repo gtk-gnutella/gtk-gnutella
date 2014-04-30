@@ -39,7 +39,6 @@
 
 #include "search_cb.h"
 
-#include "gtk/bitzi.h"
 #include "gtk/columns.h"
 #include "gtk/filter_core.h"
 #include "gtk/misc.h"
@@ -117,14 +116,6 @@ search_set_xml_metadata(const record_t *rc)
 	HFREE_NULL(indented);
 }
 
-void
-search_gui_set_bitzi_metadata_text(const char *text)
-{
-	g_return_if_fail(text);
-
-	set_text_buffer(gui_main_window_lookup("text_result_info_bitzi"), text);
-}
-
 static GtkCList *clist_search_details;
 
 void
@@ -167,7 +158,6 @@ search_gui_refresh_details(const record_t *rc)
 	search_gui_set_details(rc);
     gtk_clist_thaw(clist_search_details);
 	search_set_xml_metadata(rc);
-	search_gui_set_bitzi_metadata(rc);
 }
 
 record_t *
@@ -370,54 +360,6 @@ search_cb_collect_ctree_data(GtkCTree *ctree,
 	}
 
 	return g_slist_reverse(data_list);
-}
-
-/**
- * Queue a bitzi queries from the search context menu
- */
-void
-on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-    GList *node_list;
-	GSList *data_list;
-    search_t *search;
-	guint32 bitzi_debug;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search = search_gui_get_current_search();
-    g_assert(search != NULL);
-
-    gtk_clist_freeze(GTK_CLIST(search->tree));
-
-	node_list = g_list_copy(GTK_CLIST(search->tree)->selection);
-	data_list = search_cb_collect_ctree_data(GTK_CTREE(search->tree),
-					node_list, gui_record_sha1_eq);
-
-	/* Make sure the column is actually visible. */
-	{
-		static const gint min_width = 80;
-		GtkCList *clist = GTK_CLIST(search->tree);
-
-    	gtk_clist_set_column_visibility(clist, c_sr_meta, TRUE);
-		if (clist->column[c_sr_meta].width < min_width)
-    		gtk_clist_set_column_width(clist, c_sr_meta, min_width);
-	}
-	
-	/* Queue up our requests */
-    gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-	if (bitzi_debug > 10)
-		g_debug("on_popup_search_metadata_activate: %d items, %p",
-			  g_slist_position(data_list, g_slist_last(data_list)) + 1,
-			  cast_to_gconstpointer(data_list));
-
-	G_SLIST_FOREACH(data_list, search_gui_queue_bitzi_by_sha1);
-
-	gtk_clist_thaw(GTK_CLIST(search->tree));
-	g_slist_free(data_list);
-	g_list_free(node_list);
 }
 
 void

@@ -290,7 +290,6 @@ LSRC = \
 	tqsort.c \
 	tsig.c \
 	url.c \
-	url_factory.c \
 	urn.c \
 	utf8.c \
 	vector.c \
@@ -474,7 +473,6 @@ LOBJ = \
 	tqsort.o \
 	tsig.o \
 	url.o \
-	url_factory.o \
 	urn.o \
 	utf8.o \
 	vector.o \

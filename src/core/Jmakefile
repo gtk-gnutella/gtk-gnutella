@@ -31,7 +31,6 @@ SRC = \
 	ban.c \
 	bh_download.c \
 	bh_upload.c \
-	bitzi.c \
 	bogons.c \
 	bsched.c \
 	clock.c \

@@ -1,5 +1,5 @@
 /*
- * Generated on Sat Apr  5 12:09:15 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed Apr 30 20:24:16 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 299
+ * Enum count: 298
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -199,7 +199,6 @@ typedef enum {
 	GNR_PARQ_QUEUE_FOLLOW_UPS,
 	GNR_SHA1_VERIFICATIONS,
 	GNR_TTH_VERIFICATIONS,
-	GNR_BITZI_TICKETS_HELD,
 	GNR_QHIT_SEEDING_OF_ORPHAN,
 	GNR_UPLOAD_SEEDING_OF_ORPHAN,
 	GNR_RUDP_TX_BYTES,

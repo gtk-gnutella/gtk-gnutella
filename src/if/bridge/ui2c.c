@@ -47,7 +47,6 @@
 #include "lib/iso3166.h"
 #include "lib/pslist.h"
 
-#include "if/core/bitzi.h"
 #include "if/core/downloads.h"
 #include "if/core/fileinfo.h"
 #include "if/core/net_stats.h"
@@ -74,33 +73,6 @@ guc_adns_resolve(const char *hostname,
 	adns_callback_t user_callback, void *user_data)
 {
 	return adns_resolve(hostname, settings_dns_net(), user_callback, user_data);
-}
-
-/*	bitzi interface functions (UI -> Core)*/
-
-void
-guc_query_bitzi_by_sha1(const sha1_t *sha1, filesize_t filesize, bool refresh)
-{
-    bitzi_query_by_sha1(sha1, filesize, refresh);
-}
-
-const char *
-guc_bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
-{
-    return bitzi_ticket_by_sha1(sha1, filesize);
-}
-
-bool
-guc_bitzi_data_by_sha1(bitzi_data_t *data,
-	const struct sha1 *sha1, filesize_t filesize)
-{
-    return bitzi_data_by_sha1(data, sha1, filesize);
-}
-
-bool
-guc_bitzi_has_cached_ticket(const struct sha1 *sha1)
-{
-	return bitzi_has_cached_ticket(sha1);
 }
 
 /*	download and src interface functions (UI -> Core)*/

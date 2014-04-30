@@ -1,5 +1,5 @@
 /*
- * Generated on Sat Apr  5 12:09:15 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed Apr 30 20:24:16 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -203,7 +203,6 @@ static const char *stats_symbols[] = {
 	"parq_queue_follow_ups",
 	"sha1_verifications",
 	"tth_verifications",
-	"bitzi_tickets_held",
 	"qhit_seeding_of_orphan",
 	"upload_seeding_of_orphan",
 	"rudp_tx_bytes",
@@ -523,7 +522,6 @@ static const char *stats_text[] = {
 	N_("PARQ QUEUE follow-up requests received"),
 	N_("Launched SHA-1 file verifications"),
 	N_("Launched TTH file verifications"),
-	N_("Bitzi tickets held"),
 	N_("Re-seeding of orphan downloads through query hits"),
 	N_("Re-seeding of orphan downloads through upload requests"),
 	N_("RUDP sent bytes"),

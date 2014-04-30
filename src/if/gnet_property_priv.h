@@ -120,7 +120,6 @@ extern const guint32  gnet_property_variable_download_debug;
 extern const guint32  gnet_property_variable_fileinfo_debug;
 extern const guint32  gnet_property_variable_upload_debug;
 extern const guint32  gnet_property_variable_lib_debug;
-extern const guint32  gnet_property_variable_bitzi_debug;
 extern const guint32  gnet_property_variable_url_debug;
 extern const guint32  gnet_property_variable_dh_debug;
 extern const guint32  gnet_property_variable_dq_debug;

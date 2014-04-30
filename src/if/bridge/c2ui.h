@@ -42,7 +42,6 @@
 
 #include "if/core/downloads.h"
 #include "if/core/uploads.h"
-#include "if/core/bitzi.h"
 
 #include "lib/host_addr.h"
 #include "lib/misc.h"
@@ -74,9 +73,6 @@ void gcu_upload_stats_gui_update_name(struct ul_stats *);
 void gcu_upload_stats_gui_clear_all(void);
 void gcu_upload_stats_gui_freeze(void);
 void gcu_upload_stats_gui_thaw(void);
-
-/** bitzi results */
-void gcu_bitzi_result(bitzi_data_t *);
 
 #endif /* _if_bridge_c2ui_h_ */
 

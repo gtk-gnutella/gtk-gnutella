@@ -41,7 +41,6 @@
 #define CORE_SOURCES
 
 #include "core/ban.h"
-#include "core/bitzi.h"
 #include "core/bogons.h"
 #include "core/bsched.h"
 #include "core/clock.h"
@@ -267,7 +266,6 @@ debugging(guint t)
 {
 	return
 		GNET_PROPERTY(ban_debug) > t ||
-		GNET_PROPERTY(bitzi_debug) > t ||
 		GNET_PROPERTY(bootstrap_debug) > t ||
 		GNET_PROPERTY(dbg) > t ||
 		GNET_PROPERTY(dh_debug) > t ||
@@ -701,7 +699,6 @@ gtk_gnutella_exit(int exit_code)
 
 	DO(socket_closedown);
 	DO(upnp_close);
-	DO(bitzi_close);
 	DO(ntp_close);
 	DO(gdht_close);
 	DO(sq_close);
@@ -2042,7 +2039,6 @@ main(int argc, char **argv)
 	clock_init();
 	dq_init();
 	dh_init();
-	bitzi_init();
 	sq_init();
 	gdht_init();
 	pdht_init();

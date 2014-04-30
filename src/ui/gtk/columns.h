@@ -139,7 +139,6 @@ enum c_sr_columns {
 	c_sr_mime,
 	c_sr_count,
     c_sr_loc,
-    c_sr_meta,	/**< meta-data info column */
     c_sr_vendor,
     c_sr_info,
     c_sr_route,

@@ -285,8 +285,6 @@ src/core/bh_download.c
 src/core/bh_download.h
 src/core/bh_upload.c
 src/core/bh_upload.h
-src/core/bitzi.c
-src/core/bitzi.h
 src/core/bogons.c
 src/core/bogons.h
 src/core/bsched.c
@@ -537,7 +535,6 @@ src/if/bridge/c2ui.c
 src/if/bridge/c2ui.h
 src/if/bridge/ui2c.c
 src/if/bridge/ui2c.h
-src/if/core/bitzi.h
 src/if/core/bsched.h
 src/if/core/downloads.h
 src/if/core/fileinfo.h
@@ -610,7 +607,6 @@ src/if/gui_property.h
 src/if/gui_property_priv.h
 src/if/gui_props.ag
 src/if/props.tpl
-src/if/ui/gtk/bitzi.h
 src/if/ui/gtk/downloads.h
 src/if/ui/gtk/gnet_stats.h
 src/if/ui/gtk/misc.h
@@ -965,8 +961,6 @@ src/lib/tsig.h
 src/lib/unsigned.h
 src/lib/url.c
 src/lib/url.h
-src/lib/url_factory.c
-src/lib/url_factory.h
 src/lib/urn.c
 src/lib/urn.h
 src/lib/utf8.c
@@ -1077,8 +1071,6 @@ src/ui/Jmakefile
 src/ui/Makefile.SH
 src/ui/gtk/Jmakefile
 src/ui/gtk/Makefile.SH
-src/ui/gtk/bitzi.c
-src/ui/gtk/bitzi.h
 src/ui/gtk/clipboard.c
 src/ui/gtk/clipboard.h
 src/ui/gtk/columns.h

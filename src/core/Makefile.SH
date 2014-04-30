@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-174]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -97,7 +97,6 @@ SRC = \
 	ban.c \
 	bh_download.c \
 	bh_upload.c \
-	bitzi.c \
 	bogons.c \
 	bsched.c \
 	clock.c \
@@ -202,7 +201,6 @@ OBJ = \
 	ban.o \
 	bh_download.o \
 	bh_upload.o \
-	bitzi.o \
 	bogons.o \
 	bsched.o \
 	clock.o \

@@ -73,8 +73,6 @@ N_("Bandwidth");
 N_("Banning");
 N_("Beautify filenames by removing needless underscores");
 N_("Bind to this address");
-N_("Bitzi Metadata");
-N_("Bitzi metadata");
 N_("Browse Host");
 N_("Browse host");
 N_("Busy");

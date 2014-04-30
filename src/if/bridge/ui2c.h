@@ -43,7 +43,6 @@
 #include "lib/adns.h"
 #include "lib/pslist.h"
 
-#include "if/core/bitzi.h"
 #include "if/core/downloads.h"
 #include "if/core/fileinfo.h"
 #include "if/core/guess.h"
@@ -285,12 +284,6 @@ void guc_upload_stats_clear_all(void);
 
 /** version interface functions*/
 const char *guc_version_get_version_string(void);
-
-/* bitzi interface functions*/
-bool guc_bitzi_has_cached_ticket(const struct sha1 *);
-void guc_query_bitzi_by_sha1(const struct sha1 *, filesize_t, bool);
-const char *guc_bitzi_ticket_by_sha1(const struct sha1 *, filesize_t);
-bool guc_bitzi_data_by_sha1(bitzi_data_t *, const struct sha1 *, filesize_t);
 
 /** main functions */
 void guc_gtk_gnutella_exit(int code);

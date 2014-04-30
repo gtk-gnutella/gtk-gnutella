@@ -812,17 +812,6 @@ prop = {
 };
 
 prop = {
-    name = "bitzi_debug";
-    desc = "Verbosity of Bitzi related debug messages.";
-    type = guint32;
-    data = {
-        default = 0;
-        min     = 0;
-        max     = 20;
-    };
-};
-
-prop = {
     name = "url_debug";
     desc = "Verbosity of URL handling related debug messages.";
     type = guint32;

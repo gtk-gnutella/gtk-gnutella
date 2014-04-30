@@ -61,13 +61,10 @@
 #define statusbar_gui_warning(sec, fmt, message) g_message((fmt), (message))
 #define statusbar_gui_message(sec, fmt, message) g_message((fmt), (message))
 
-#define bitzi_gui_update(bitzi_data) ((void) bitzi_data)
-
 #endif /* USE_TOPLESS */
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
 extern bool running_topless;
-#include "if/ui/gtk/bitzi.h"
 #include "if/ui/gtk/downloads.h"
 #include "if/ui/gtk/misc.h"
 #include "if/ui/gtk/search.h"
@@ -189,21 +186,6 @@ gcu_upload_stats_gui_thaw(void)
 {
 	if (!running_topless) {
 		upload_stats_gui_thaw();
-	}
-}
-
-/**
- * Bitzi result notification (Core->UI)
- *
- * If the IPC split goes ahead then the data will need to be copied
- * across. For the time being we just pass the pointer.
- */
-
-void
-gcu_bitzi_result(bitzi_data_t *bitzi_data)
-{
-	if (!running_topless) {
-    	bitzi_gui_update(bitzi_data);
 	}
 }
 

@@ -179,7 +179,6 @@ enum fi_gui_detail {
 	FI_GUI_DETAIL_SHA1,
 	FI_GUI_DETAIL_BITPRINT,
 	FI_GUI_DETAIL_TIGERTREE,
-	FI_GUI_DETAIL_BITZI
 };
 
 void fi_gui_append_detail(enum fi_gui_detail, const char *title, const char *value);

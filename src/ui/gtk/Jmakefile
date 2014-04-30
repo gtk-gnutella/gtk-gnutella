@@ -28,9 +28,8 @@
 ;# $Id$
 
 LSRC = \
-	bitzi.c \
-	downloads_common.c \
 	clipboard.c \
+	downloads_common.c \
 	drag.c \
 	drop.c \
 	filter.c \

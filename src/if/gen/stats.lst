@@ -262,7 +262,6 @@ PARQ_QUEUE_SENT				"PARQ QUEUE messages sent"
 PARQ_QUEUE_FOLLOW_UPS		"PARQ QUEUE follow-up requests received"
 SHA1_VERIFICATIONS			"Launched SHA-1 file verifications"
 TTH_VERIFICATIONS			"Launched TTH file verifications"
-BITZI_TICKETS_HELD			"Bitzi tickets held"
 QHIT_SEEDING_OF_ORPHAN		"Re-seeding of orphan downloads through query hits"
 UPLOAD_SEEDING_OF_ORPHAN
 	"Re-seeding of orphan downloads through upload requests"

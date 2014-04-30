@@ -37,7 +37,6 @@ void search_update_tooltip(GtkTreeView *, GtkTreePath *);
 
 void *search_gui_get_record(GtkTreeModel *, GtkTreeIter *);
 
-void search_gui_request_bitzi_data(struct search *);
 const struct record *search_gui_get_record_at_path(GtkTreeView *,
 			GtkTreePath *);
 

@@ -36,7 +36,6 @@
 #include "gtk/search_common.h"
 #include "gtk/search_xml.h"
 
-#include "gtk/bitzi.h"
 #include "gtk/clipboard.h"
 #include "gtk/drag.h"
 #include "gtk/drop.h"
@@ -80,7 +79,6 @@
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/url.h"
-#include "lib/url_factory.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -3672,7 +3670,6 @@ search_gui_refresh_popup(void)
 		const gchar *name;
 		gboolean local;
 	} menu[] = {
-		{	"popup_search_metadata",	TRUE },
 		{	"popup_search_browse_host",	FALSE },
 		{	"popup_search_download",	FALSE },
 		{	"popup_search_copy_magnet", TRUE },
@@ -4040,21 +4037,6 @@ search_gui_set_details(const record_t *rc)
 	 * so don't show it explicitely as it's just visual noise.
 	 */
 
-	if (rc->sha1) {
-		bitzi_data_t data;
-
-		search_gui_append_detail(_("External metadata"), NULL);	/* Separator */
-		search_gui_append_detail(_("Bitzi URL"),
-			url_for_bitzi_lookup(rc->sha1));
-
-		if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
-			char *meta = bitzi_gui_get_metadata(&data);
-			search_gui_append_detail(_("Bitzi metadata"),
-				meta != NULL ? meta : _("Not in database"));
-			HFREE_NULL(meta);
-		}
-	}
-
 	if (ST_LOCAL & rs->status) {
 		const gchar *display_path;
 		gchar *url;
@@ -4395,51 +4377,6 @@ search_gui_get_magnet(search_t *search, record_t *record)
 	return url;
 }
 
-/* Display Bitzi data for the result if any */
-void
-search_gui_set_bitzi_metadata(const record_t *rc)
-{
-	const char *ticket;
-	char *tmp, *text;
-
-	if (NULL == rc) {
-		search_gui_set_bitzi_metadata_text("");
-		return;
-	}
-
-	record_check(rc);
-
-	if (NULL == rc->sha1) {
-		search_gui_set_bitzi_metadata_text(_("SHA-1 is unknown."));
-		return;
-	}
-
-	if (!guc_bitzi_has_cached_ticket(rc->sha1)) {
-		search_gui_set_bitzi_metadata_text(_("No Bitzi ticket requested yet."));
-		return;
-	}
-
-	ticket = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
-	if (NULL == ticket) {
-		search_gui_set_bitzi_metadata_text(_("Not in Bitzi database."));
-		return;
-	}
-
-	/* This also decodes 8-bit entities */
-	tmp = xml_indent(ticket);
-
-	/*
-	 * Bitzi converts all ticket data from ISO-8859-1 to UTF-8, therefore this
-	 * conversion must be reversed to get the original encoding back.
-	 */
-	text = utf8_to_iso8859_1(tmp);
-	HFREE_NULL(tmp);
-
-	search_gui_set_bitzi_metadata_text(
-		lazy_unknown_to_utf8_normalized(text, UNI_NORM_GUI, NULL));
-	G_FREE_NULL(text);
-}
-
 void
 search_gui_store_searches(void)
 {
@@ -4588,7 +4525,6 @@ search_gui_signals_init(void)
 	ON_ACTIVATE(toggle_tabs);
 
 	/* TODO: Code not merged yet */
-	ON_ACTIVATE(metadata);
 	ON_ACTIVATE(copy_magnet);
 
 #undef ON_ACTIVATE
@@ -4608,7 +4544,6 @@ search_gui_column_title(int column)
 	case c_sr_mime:		return _("MIME type");
 	case c_sr_count:	return _("#");
 	case c_sr_loc:		return _("Country");
-	case c_sr_meta:		return _("Metadata");
 	case c_sr_vendor:	return _("Vendor");
 	case c_sr_info:		return _("Info");
 	case c_sr_route:	return _("Route");
@@ -4640,7 +4575,6 @@ search_gui_column_justify_right(int column)
 	case c_sr_mime:		return FALSE;
 	case c_sr_count:	return TRUE;
 	case c_sr_loc:		return FALSE;
-	case c_sr_meta:		return FALSE;
 	case c_sr_vendor:	return FALSE;
 	case c_sr_info:		return FALSE;
 	case c_sr_route:	return FALSE;
