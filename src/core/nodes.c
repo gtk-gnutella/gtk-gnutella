@@ -4854,9 +4854,17 @@ node_intuit_address(struct gnutella_node *n,  header_t *header)
 		uint16 port;
 
 		if (val != NULL && parse_ip_port(val, NULL, &addr, &port)) {
-			n->gnet_port = port;
-			if (host_address_is_usable(addr))
+			if (host_address_is_usable(addr)) {
+				node_ht_connected_nodes_remove(n);
 				n->gnet_addr = addr;
+				if (port_is_valid(port))
+					n->gnet_port = port;
+				node_ht_connected_nodes_add(n);
+			} else if (n->gnet_port != port && port_is_valid(port)) {
+				node_ht_connected_nodes_remove(n);
+				n->gnet_port = port;
+				node_ht_connected_nodes_add(n);
+			}
 			return TRUE;
 		}
 	}
@@ -6096,13 +6104,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 */
 
 			if (host_addr_equal(n->gnet_addr, n->addr)) {
-                node_ht_connected_nodes_remove(n);
-
 				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
-
-                node_ht_connected_nodes_add(n);
 			}
+
 			/* FIXME: What about LAN connections? Should we blindly accept
 			 * 		  the reported external address?
 			 */
