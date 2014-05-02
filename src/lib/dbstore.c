@@ -46,6 +46,7 @@
 #include "dbmw.h"
 #include "file.h"
 #include "halloc.h"
+#include "log.h"
 #include "path.h"
 #include "stringify.h"
 
@@ -110,7 +111,7 @@ dbstore_create_internal(const char *name, const char *dir, const char *base,
 		if (dm != NULL) {
 			dbmap_set_deferred_writes(dm, TRUE);
 		} else {
-			g_warning("DBSTORE cannot open SDBM at %s for %s: %m", path, name);
+			s_warning("DBSTORE cannot open SDBM at %s for %s: %m", path, name);
 		}
 		HFREE_NULL(path);
 	} else {
@@ -369,12 +370,12 @@ dbstore_compact(dbmw_t *dw)
 static void
 dbstore_move_file(const char *old_path, const char *new_path, const char *ext)
 {
-	char *old_file = h_strconcat(old_path, ext, (void *) 0);
-	char *new_file = h_strconcat(new_path, ext, (void *) 0);
+	char *old_file = h_strconcat(old_path, ext, NULL);
+	char *new_file = h_strconcat(new_path, ext, NULL);
 
 	if (file_exists(old_file)) {
 		if (-1 == rename(old_file, new_file)) {
-			g_warning("could not rename \"%s\" as \"%s\": %m",
+			s_carp("could not rename \"%s\" as \"%s\": %m",
 				old_file, new_file);
 		}
 	}
@@ -405,6 +406,40 @@ dbstore_move(const char *src, const char *dst, const char *base)
 
 	HFREE_NULL(old_path);
 	HFREE_NULL(new_path);
+}
+
+static void
+dbstore_unlink_file(const char *path, const char *ext)
+{
+	char *file = h_strconcat(path, ext, NULL);
+
+	if (file_exists(file)) {
+		if (-1 == unlink(file)) {
+			s_carp("could not unlink \"%s\": %m", file);
+		}
+	}
+
+	HFREE_NULL(file);
+}
+
+/**
+ * Remove SDBM files from "dir".
+ *
+ * @param dir				the directory where SDBM files are stored
+ * @param base				the base name of SDBM files
+ */
+void
+dbstore_unlink(const char *dir, const char *base)
+{
+	char *path;
+
+	path = make_pathname(dir, base);
+
+	dbstore_unlink_file(path, DBM_DIRFEXT);
+	dbstore_unlink_file(path, DBM_PAGFEXT);
+	dbstore_unlink_file(path, DBM_DATFEXT);
+
+	HFREE_NULL(path);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

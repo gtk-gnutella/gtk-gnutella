@@ -753,6 +753,16 @@ settings_random_save(bool verbose)
 	HFREE_NULL(file);
 }
 
+/**
+ * Handle cleanup operation when upgrading from an older version.
+ */
+static void G_GNUC_COLD
+settings_handle_upgrades(void)
+{
+	/* 2014-05-02 -- Bitzi is now gone for version 1.1 */
+	dbstore_unlink(settings_gnet_db_dir(), "bitzi_tickets");
+}
+
 G_GNUC_COLD void
 settings_init(void)
 {
@@ -894,7 +904,6 @@ settings_init(void)
 
 	upload_stats_load_history();	/* Loads the upload statistics */
 
-
 	/* watch for filter_file defaults */
 
 	if (GNET_PROPERTY(hard_ttl_limit) < GNET_PROPERTY(max_ttl)) {
@@ -926,6 +935,7 @@ settings_init(void)
 	settings_update_downtime();
 	settings_update_firewalled();
 	settings_callbacks_init();
+	settings_handle_upgrades();
 	settings_init_running = FALSE;
 
 	settings_save_if_dirty();		/* Ensure "clean_shutdown" is now FALSE */
