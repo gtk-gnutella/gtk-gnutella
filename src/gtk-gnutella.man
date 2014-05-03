@@ -66,7 +66,7 @@ can be used to redirect log output in this case.
 Execute command specified in
 .I path
 when
-.I gtk-gnutella
+.I gtk\-gnutella
 crashes.
 .TP 
 .B "\-\-geometry"
@@ -107,6 +107,11 @@ them or delete them periodically. After moving or deleting the log
 files, you can send
 .I gtk\-gnutella
 a SIGHUP signal to create new log files.
+.TP
+.B "\-\-no\-dbus"
+Disable notifications of
+.I gtk\-gnutella
+events to D-BUS.
 .TP
 .B "\-\-no\-restart"
 Prevents
@@ -336,13 +341,14 @@ Additional information about gnutella is available at
 .B  http://rfc\\-gnutella.sourceforge.net/
 .SH AUTHORS
 Yann Grossel wrote the original
-.B gtk\-gnutella .
+.B gtk\-gnutella
+which was running as a Gnutella 0.4 client in 2000.
 .PP
 Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
 and project leader (since version 0.14, released early September 2001).
 .br
 For support, please contact the developer list, which can be reached
-at <gtk-gnutella-devel@lists.sourceforge.net>.
+at <gtk\-gnutella-devel@lists.sourceforge.net>.
 .PP
 For a full list of contributors, open the "About" menu.
 .PP
@@ -351,7 +357,7 @@ of this manpage.
 .SH COPYRIGHT
 .I gtk\-gnutella
 is Copyright (c) 2000, Yann Grossel, with additional copyrights held
-by other contributors 2000-2009.
+by other contributors 2000-2014.
 .PP
 License to use and copy
 .I gtk\-gnutella

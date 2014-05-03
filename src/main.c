@@ -896,6 +896,7 @@ enum main_arg {
 	main_arg_log_stderr,
 	main_arg_log_stdout,
 	main_arg_minimized,
+	main_arg_no_dbus,
 	main_arg_no_halloc,
 	main_arg_no_restart,
 	main_arg_no_xshm,
@@ -955,6 +956,7 @@ static struct {
 #else
 	OPTION(minimized,		NONE, "Start with minimized main window."),
 #endif	/* USE_TOPLESS */
+	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
 #else
@@ -1956,7 +1958,7 @@ main(int argc, char **argv)
 	socket_init();
 	gnet_stats_init();
 	iso3166_init();
-	dbus_util_init();
+	dbus_util_init(options[main_arg_no_dbus].used);
 	vendor_init();
 	mime_type_init();
 
