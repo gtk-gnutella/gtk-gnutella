@@ -2745,6 +2745,7 @@ sdbm_rebuild(DBM *db)
 				continue;
 			}
 			/* Other errors are fatal */
+			error = errno;
 			sdbm_endkey(db);		/* Finish iteration */
 			break;
 		}
