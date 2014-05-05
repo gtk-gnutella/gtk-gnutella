@@ -388,6 +388,7 @@ iso3166_init(void)
 
 		entry = &iso3166_entries[i];
 		strncpy(entry->cc, iso3166_tab[i].cc, sizeof entry->cc);
+		entry->cc[sizeof entry->cc - 1] = '\0';		/* Paranoid */
 		entry->country = atom_str_get(_(iso3166_tab[i].country));
 
 		{
