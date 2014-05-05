@@ -2871,7 +2871,7 @@ thread_small_id(void)
 	 */
 
 	stid = thread_stid_from_thread(thread_self());
-	if G_LIKELY(-1 != stid)
+	if G_LIKELY(stid >= 0)
 		return stid;
 
 	/*
