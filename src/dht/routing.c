@@ -1346,8 +1346,6 @@ bootstrap_completion_status(
 	 */
 
 	if (1 == b->bits) {
-		WFREE(b);
-
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT now completely bootstrapped");
 
@@ -1365,6 +1363,7 @@ bootstrap_completion_status(
 			lookup_find_node(our_kuid, NULL, NULL, NULL);
 		}
 
+		WFREE(b);
 		return;
 	}
 
