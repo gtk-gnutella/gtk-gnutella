@@ -930,7 +930,7 @@ parq_download_parse_queue_status(struct download *d,
 	int retry;
 
 	download_check(d);
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 	g_assert(header != NULL);
 
 	/*

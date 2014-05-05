@@ -294,7 +294,7 @@ static bool
 download_is_running(const struct download *d)
 {
 	download_check(d);
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 
 	return DL_LIST_RUNNING == d->list_idx;
 }
@@ -667,7 +667,7 @@ download_pipeline_can_initiate(const struct download *d)
 	avg_bps = download_speed_avg(d);
 	s = remain / (avg_bps ? avg_bps : 1);
 
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 
 	threshold = MAX(DOWNLOAD_PIPELINE_MSECS, GNET_PROPERTY(dl_http_latency));
 	threshold = MAX(threshold, d->server->latency);
@@ -11265,7 +11265,7 @@ static void
 download_detect_tls_support(struct download *d, header_t *header)
 {
 	download_check(d);
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 
 	if (d->got_giv)
 		return;
@@ -13621,7 +13621,7 @@ download_connected(struct download *d)
 	struct dl_server *server;
 
 	download_check(d);
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 	socket_check(d->socket);
 	g_assert(!download_pipelining(d));		/* Just got connected */
 
