@@ -723,6 +723,8 @@ ping_type(const gnutella_node_t *n)
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_SCP:
+			has_scp = TRUE;
+
 			/*
 		 	 * Look whether they want leaf slots, ultra slots, or don't care.
 			 * Also determine which IP addresses they want.
