@@ -1189,10 +1189,11 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 	struct g2_qh2_builder ctx;
 	int sent = 0;
 
+	ZERO(&ctx);
+
 	if (NULL == n)
 		goto done;		/* G2 support was disabled whilst processing */
 
-	ZERO(&ctx);
 	clamp_memcpy(&ctx.payload[1], sizeof ctx.payload - 1, muid, GUID_RAW_SIZE);
 	ctx.muid = muid;
 	ctx.hs = hset_create(HASH_KEY_SELF, 0);
