@@ -130,6 +130,7 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 
 	va_start(ap, first);
 	VA_COPY(ap2, ap);
+
 	len = concat_strings_v(NULL, 0, first, ap);
 	va_end(ap);
 
@@ -138,9 +139,10 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 
 		*dst_ptr = walloc(len + 1);
 		ret = concat_strings_v(*dst_ptr, len + 1, first, ap2);
-		va_end(ap2);
 		g_assert(ret == len);
 	}
+
+	va_end(ap2);
 
 	return 1 + len;
 }

@@ -3117,6 +3117,8 @@ node_bye_if_writable(
 		node_bye_v(n, code, reason, args);
 	else
 		node_remove_v(n, reason, args);
+
+	va_end(args);
 }
 
 /**
