@@ -922,7 +922,10 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 				uint64 *p;
 
 				p = &R.d[sl+1];
-				d = *p << (64 - slr) | *(p-1) >> slr;
+				if G_UNLIKELY(0 == slr)
+					d = *(p-1);
+				else
+					d = *p << (64 - slr) | *(p-1) >> slr;
 				p--;
 				*p &= ((uint64)1 << slr) - 1;
 				for (i = sl; (i > 0) && (*p == 0); i--)

@@ -1850,8 +1850,13 @@ ip_range_split(
 	g_assert(lower_ip <= upper_ip);
 
 	bits = find_common_leading(lower_ip, upper_ip);
-	mask = 1 << (32 - bits);
-	trailing = mask - 1;
+	if G_UNLIKELY(0 == bits) {
+		mask = 0;
+		trailing = ~0;
+	} else {
+		mask = 1 << (32 - bits);
+		trailing = mask - 1;
+	}
 
 	if (bits == 32) {
 		g_assert(lower_ip == upper_ip);
