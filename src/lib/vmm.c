@@ -1046,15 +1046,17 @@ done:
 	 * obsoleted by concurrent allocation in the VM space.
 	 */
 
-	VMM_HOLE_LOCK;
-	if (kernel_mapaddr_increasing) {
-		vmm_hole.start = *hole_ptr;
-		vmm_hole.end = const_ptr_add_offset(vmm_hole.start, result);
-	} else {
-		vmm_hole.end = *hole_ptr;
-		vmm_hole.start = const_ptr_add_offset(vmm_hole.end, -result);
+	if (result != 0) {
+		VMM_HOLE_LOCK;
+		if (kernel_mapaddr_increasing) {
+			vmm_hole.start = *hole_ptr;
+			vmm_hole.end = const_ptr_add_offset(vmm_hole.start, result);
+		} else {
+			vmm_hole.end = *hole_ptr;
+			vmm_hole.start = const_ptr_add_offset(vmm_hole.end, -result);
+		}
+		VMM_HOLE_UNLOCK;
 	}
-	VMM_HOLE_UNLOCK;
 
 	return result;
 }
