@@ -363,8 +363,14 @@ serialize_size_estimate(pmsg_t *mb)
 			break;		/* Found non-zero byte */
 	}
 
-	pmsg_write_u8(mb, KUID_RAW_SIZE - i);
-	pmsg_write(mb, &estimate->v[i], KUID_RAW_SIZE - i);
+	if (i < KUID_RAW_SIZE) {
+		pmsg_write_u8(mb, KUID_RAW_SIZE - i);
+		pmsg_write(mb, &estimate->v[i], KUID_RAW_SIZE - i);
+	} else {
+		/* The estimate is 0, force a 1, since we're a DHT node */
+		pmsg_write_u8(mb, 1);	/* 1-byte long */
+		pmsg_write_u8(mb, 1);	/* value */
+	}
 }
 
 /**
