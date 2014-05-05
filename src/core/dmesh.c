@@ -2944,9 +2944,6 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		if (!string_to_host_addr_port(tok, NULL, &addr, &port))
 			continue;
 
-		if (!seen_guid)
-			break;			/* No GUID before proxy list, something is wrong */
-
 		seen_proxy = TRUE;	/* Entering the push-proxy list */
 
 		if (is_private_addr(addr) || !host_is_valid(addr, port))
