@@ -1200,8 +1200,10 @@ keys_update_load(void *val, void *u)
 	 * Check for expired values.
 	 */
 
-	if (ctx->now >= ki->next_expire)
-		keys_expire_values(ki, ctx->now);
+	if (ctx->now >= ki->next_expire) {
+		if (!keys_expire_values(ki, ctx->now))
+			return TRUE;		/* ki was freed, delete entry */
+	}
 
 	/*
 	 * Collection of empty keys happens in a separate check because we also
