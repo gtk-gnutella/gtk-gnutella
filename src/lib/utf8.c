@@ -4425,7 +4425,7 @@ utf8_decompose_nfkd(const char *src, char *out, size_t size)
 static inline size_t
 utf32_decompose(const uint32 *in, uint32 *out, size_t size, bool nfkd)
 {
-	const uint32 *d, *s = in;
+	const uint32 *s = in;
 	uint32 *p = out;
 	uint32 uc;
 	size_t d_len;
@@ -4436,7 +4436,7 @@ utf32_decompose(const uint32 *in, uint32 *out, size_t size, bool nfkd)
 
 	if (size-- > 0) {
 		for (/* NOTHING */; 0x0000 != (uc = *s); s++) {
-			d = utf32_decompose_char(uc, &d_len, nfkd);
+			const uint32 *d = utf32_decompose_char(uc, &d_len, nfkd);
 			if (d_len > size)
 				break;
 			size -= d_len;
@@ -4449,7 +4449,7 @@ utf32_decompose(const uint32 *in, uint32 *out, size_t size, bool nfkd)
 	}
 
 	while (0x0000 != (uc = *s++)) {
-		d = utf32_decompose_char(uc, &d_len, nfkd);
+		(void) utf32_decompose_char(uc, &d_len, nfkd);
 		p += d_len;
 	}
 
