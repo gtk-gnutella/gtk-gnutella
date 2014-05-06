@@ -11830,7 +11830,7 @@ node_get_status(const struct nid *node_id, gnet_node_status_t *status)
 		status->shutdown_remain = 0;
 	}
 
-    if (node->error_str != NULL)
+    if (node->error_str[0] != '\0')
         g_strlcpy(status->message, node->error_str, sizeof(status->message));
     else if (node->remove_msg != NULL)
         g_strlcpy(status->message, node->remove_msg, sizeof(status->message));
