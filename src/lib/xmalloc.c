@@ -3250,8 +3250,8 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 		} else {
 			if (xmalloc_debugging(4)) {
 				s_debug(
-					"XM not attempting coalescing of %zu-byte %s region at %p",
-					len, is_heap ? "heap" : "VMM", p);
+					"XM not attempting coalescing of %zu-byte VMM region at %p",
+					len, p);
 			}
 			XSTATS_INCX(freelist_coalescing_ignore_vmm);
 		}
