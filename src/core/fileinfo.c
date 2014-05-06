@@ -1115,7 +1115,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 		slist = htable_lookup(fi_by_namesize, &nsk);
 
 		if (NULL != slist) {
-			slist = pslist_append(slist, fi);
+			pslist_append(slist, fi);		/* Head not changing */
 		} else {
 			namesize_t *ns = namesize_make(nsk.name, nsk.size);
 			slist = pslist_append(NULL, fi);
