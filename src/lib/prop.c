@@ -414,10 +414,10 @@ prop_get_def(prop_set_t *ps, property_t p)
 
 	switch (buf->type) {
 	case PROP_TYPE_BOOLEAN:
-		buf->data.boolean.def = hcopy(
-			d->data.boolean.def, sizeof(gboolean) * d->vector_size);
-		buf->data.boolean.value = hcopy(
-			d->data.boolean.value, sizeof(gboolean) * d->vector_size);
+		buf->data.boolean.def =
+			HCOPY_ARRAY(d->data.boolean.def, d->vector_size);
+		buf->data.boolean.value =
+			HCOPY_ARRAY(d->data.boolean.value, d->vector_size);
 		break;
 	case PROP_TYPE_MULTICHOICE: {
 		guint n = 0;
@@ -427,9 +427,7 @@ prop_get_def(prop_set_t *ps, property_t p)
 
 		n ++; /* Keep space for terminating {NULL, 0} field */
 
-		buf->data.guint32.choices = hcopy(
-			d->data.guint32.choices,
-			sizeof(prop_def_choice_t) * n);
+		buf->data.guint32.choices = HCOPY_ARRAY(d->data.guint32.choices, n);
 
 		buf->data.guint32.choices[n-1].title = NULL;
 		buf->data.guint32.choices[n-1].value = 0;
@@ -443,29 +441,28 @@ prop_get_def(prop_set_t *ps, property_t p)
 		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
 	case PROP_TYPE_GUINT32:
-		buf->data.guint32.def = hcopy(
-			d->data.guint32.def, sizeof(guint32) * d->vector_size);
-		buf->data.guint32.value = hcopy(
-			d->data.guint32.value, sizeof(guint32) * d->vector_size);
+		buf->data.guint32.def =
+			HCOPY_ARRAY(d->data.guint32.def, d->vector_size);
+		buf->data.guint32.value =
+			HCOPY_ARRAY(d->data.guint32.value, d->vector_size);
 		break;
 
 	case PROP_TYPE_GUINT64:
-		buf->data.guint64.def = hcopy(
-			d->data.guint64.def, sizeof(guint64) * d->vector_size);
-		buf->data.guint64.value = hcopy(
-			d->data.guint64.value, sizeof(guint64) * d->vector_size);
+		buf->data.guint64.def =
+			HCOPY_ARRAY(d->data.guint64.def, d->vector_size);
+		buf->data.guint64.value =
+			HCOPY_ARRAY(d->data.guint64.value, d->vector_size);
 		break;
 
 	case PROP_TYPE_TIMESTAMP:
-		buf->data.timestamp.def = hcopy(
-			d->data.timestamp.def, sizeof(time_t) * d->vector_size);
-		buf->data.timestamp.value = hcopy(
-			d->data.timestamp.value, sizeof(time_t) * d->vector_size);
+		buf->data.timestamp.def =
+			HCOPY_ARRAY(d->data.timestamp.def, d->vector_size);
+		buf->data.timestamp.value =
+			HCOPY_ARRAY(d->data.timestamp.value, d->vector_size);
 		break;
 
 	case PROP_TYPE_IP:
-		buf->data.ip.value = hcopy(
-			d->data.ip.value, sizeof buf->data.ip.value * d->vector_size);
+		buf->data.ip.value = HCOPY_ARRAY(d->data.ip.value, d->vector_size);
 		break;
 
 	case PROP_TYPE_STRING:
