@@ -689,6 +689,8 @@ xfmt_pass2_declare_ns(struct xfmt_pass2 *xp2, pslist_t *ns)
 
 		uri = symtab_lookup(xp2->prefixes, prefix);
 
+		g_assert(uri != NULL);
+
 		if (
 			xp2->default_ns != NULL && 0 == strcmp(uri, xp2->default_ns) &&
 			!hset_contains(xp2->attr_uris, xp2->default_ns)
