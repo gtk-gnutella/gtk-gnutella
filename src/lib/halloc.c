@@ -869,7 +869,7 @@ vprintf_get_size(const char *format, va_list ap)
 	}
 
 	WFREE_NULL(buf, size);
-	return ret < 0 ? (size_t)-1 : size_saturate_add(ret, 1);
+	return size_saturate_add(ret, 1);
 }
 
 /**
