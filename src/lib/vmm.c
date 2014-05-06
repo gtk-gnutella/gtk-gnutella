@@ -2961,8 +2961,6 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 		goto not_found;
 
 	if (n > pc->pages) {
-		size_t i;
-
 		/*
 		 * Since we're looking for more pages than what this cache line stores,
 		 * we'll have to coalesce the page with neighbouring chunks, which
@@ -2970,30 +2968,12 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 		 * cache.
 		 */
 
-		for (i = 0; i < pc->current; i++) {
-			base = kernel_mapaddr_increasing ?
-				pc->info[i].base : pc->info[pc->current - 1 - i].base;
+		g_assert(VMM_CACHE_LINES == pc->pages);		/* Highest-order line */
 
-			/*
-			 * We stop considering pages that are further away than the
-			 * identified hole.  Since we traverse the cache line in the
-			 * proper order, from "lower" addresses to "upper" ones, we can
-			 * abort as soon as we've gone beyond the hole.
-			 */
+		base = kernel_mapaddr_increasing ?
+			pc->info[0].base : pc->info[pc->current - 1].base;
 
-			if (hole != NULL && vmm_ptr_cmp(base, hole) > 0) {
-				if (vmm_debugging(7)) {
-					s_minidbg("VMM page cache #%zu: stopping lookup attempt "
-						"for %zu page%s at %p (upper than hole %p)",
-						pc->pages - 1, n, plural(n), base, hole);
-				}
-				break;
-			}
-
-			goto selected;
-		}
-
-		goto not_found;			/* Cache line was empty */
+		goto selected;
 	} else {
 		size_t i;
 		size_t max_distance = 0;
@@ -3020,8 +3000,10 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 				pc->info[i].base : pc->info[pc->current - 1 - i].base;
 
 			/*
-			 * Stop considering pages that are further away from the
-			 * identified hole.
+			 * We stop considering pages that are further away than the
+			 * identified hole.  Since we traverse the cache line in the
+			 * proper order, from "lower" addresses to "upper" ones, we can
+			 * abort as soon as we've gone beyond the hole.
 			 */
 
 			if (hole != NULL && vmm_ptr_cmp(p, hole) > 0) {
