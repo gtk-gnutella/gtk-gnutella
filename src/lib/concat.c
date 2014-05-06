@@ -136,17 +136,19 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 	len = concat_strings_v(NULL, 0, first, ap);
 	va_end(ap);
 
+	len = size_saturate_add(len, 1);
+
 	if (dst_ptr) {
 		size_t ret;
 
-		*dst_ptr = walloc(len + 1);
-		ret = concat_strings_v(*dst_ptr, len + 1, first, ap2);
-		g_assert(ret == len);
+		*dst_ptr = walloc(len);
+		ret = concat_strings_v(*dst_ptr, len, first, ap2);
+		g_assert(ret == len - 1);
 	}
 
 	va_end(ap2);
 
-	return size_saturate_add(len, 1);
+	return len;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
