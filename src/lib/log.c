@@ -2085,8 +2085,12 @@ log_reopen(enum log_file which)
 	 * freopen() to be able to log something in case we fail.
 	 */
 
-	if (LOG_STDERR == which)
+	if (LOG_STDERR == which) {
 		fd = dup(fileno(f));
+
+		if (!is_valid_fd(fd))
+			s_warning("%s(): unable to dup(%d): %m", G_STRFUNC, fileno(f));
+	}
 
 	if (freopen(lf->path, "a", f)) {
 		setvbuf(f, NULL, _IOLBF, 0);
@@ -2094,7 +2098,9 @@ log_reopen(enum log_file which)
 		lf->otime = tm_time();
 		lf->changed = FALSE;
 	} else {
-		if (LOG_STDERR == which) {
+		if (LOG_STDERR != which) {
+			s_critical("freopen(\"%s\", \"a\", ...) failed: %m", lf->path);
+		} else if (is_valid_fd(fd)) {
 			DECLARE_STR(8);
 			char time_buf[CRASH_TIME_BUFLEN];
 
@@ -2109,8 +2115,6 @@ log_reopen(enum log_file which)
 			print_str(")\n");		/* 7 */
 			flush_str_atomic(fd);
 			log_flush_out_atomic();
-		} else {
-			s_critical("freopen(\"%s\", \"a\", ...) failed: %m", lf->path);
 		}
 		lf->disabled = TRUE;
 		lf->otime = 0;
