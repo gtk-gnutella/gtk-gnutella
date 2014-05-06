@@ -801,11 +801,13 @@ h_strconcat(const char *first, ...)
 	len = concat_strings_v(NULL, 0, first, ap);
 	va_end(ap);
 
-	dst = halloc(len + 1);
+	len = size_saturate_add(len, 1);
+	dst = halloc(len);
 	va_start(ap, first);
-	ret = concat_strings_v(dst, len + 1, first, ap);
+	ret = concat_strings_v(dst, len, first, ap);
 	va_end(ap);
-	g_assert(ret == len);
+
+	g_assert(ret == len - 1);		/* Do not count the trailing NUL */
 
 	return dst;
 }
