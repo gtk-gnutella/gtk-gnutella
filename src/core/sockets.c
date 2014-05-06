@@ -3825,7 +3825,7 @@ socket_local_listen(const char *pathname)
 struct gnutella_socket *
 socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 {
-	static const int enable = 1;
+	static const int on = 1;
 	struct gnutella_socket *s;
 	int fd;
 
@@ -3845,7 +3845,10 @@ socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)) {
+		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
+			G_STRFUNC, fd);
+	}
 
 	socket_set_linger(s->file_desc);
 
