@@ -234,7 +234,7 @@ g2_tree_lookup(const g2_tree_t *root, const char *path)
 
 	if ('/' == path[0]) {
 		r = g2_tree_find_root(root);
-		tok = strtok_next(st, "/");				/* Swallow leading '/' */
+		(void) strtok_next(st, "/");	/* Swallow leading '/' */
 		for (;;) {
 			tok = strtok_next(st, "/");
 			if (NULL == tok)			/* Looking for "/", root of the tree */
