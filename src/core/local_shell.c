@@ -95,7 +95,7 @@ fd_set_nonblocking(int fd)
 	ret = fcntl(fd, F_GETFL);
 	flags = ret | O_NONBLOCK;
 	if (flags != ret)
-		fcntl(fd, F_SETFL, flags);
+		(void) fcntl(fd, F_SETFL, flags);
 }
 
 #else	/* !LOCAL_SHELL_STANDALONE */

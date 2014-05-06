@@ -37,9 +37,12 @@
 #include "common.h"
 
 #include "fd.h"
+
 #include "compat_misc.h"
 #include "compat_un.h"
 #include "glib-missing.h"		/* For g_info() */
+#include "log.h"				/* For s_carp() */
+
 #include "override.h"			/* Must be the last header included */
 
 void
@@ -51,7 +54,8 @@ set_close_on_exec(int fd)
 	flags = fcntl(fd, F_GETFD);
 	if (0 == (flags & FD_CLOEXEC)) {
 		flags |= FD_CLOEXEC;
-		fcntl(fd, F_SETFD, flags);
+		if (-1 == fcntl(fd, F_SETFD, flags))
+			s_carp("%s(): failed for #%d: %m", G_STRFUNC, fd);
 	}
 #else
 	(void) fd;
@@ -97,7 +101,7 @@ fd_first_available(void)
 
 	fd = open("/dev/null", O_RDWR, 0);
 	if (-1 == fd)
-		g_error("%s() failed to open /dev/null: %m", G_STRFUNC);
+		s_error("%s(): failed to open /dev/null: %m", G_STRFUNC);
 	close(fd);
 
 	return fd;
@@ -241,23 +245,34 @@ get_non_stdio_fd(int fd)
 
 void
 fd_set_nonblocking(int fd)
+{
+	bool failed = FALSE;
+
 #ifdef MINGW32
-{
-	unsigned long nonblock = 1;
+	{
+		unsigned long nonblock = 1;
 
-	if (ioctlsocket(fd, FIONBIO, &nonblock))
-		errno = WSAGetLastError();
-}
-#else
-{
-	int ret, flags;
+		if (ioctlsocket(fd, FIONBIO, &nonblock)) {
+			errno = WSAGetLastError();
+			failed = TRUE;
+		}
+	}
+#else	/* !MINGW32 */
+	{
+		int ret, flags;
 
-	ret = fcntl(fd, F_GETFL, 0);
-	flags = ret | VAL_O_NONBLOCK;
-	if (flags != ret)
-		fcntl(fd, F_SETFL, flags);
-}
+		ret = fcntl(fd, F_GETFL, 0);
+		flags = ret | VAL_O_NONBLOCK;
+		if (flags != ret) {
+			if (-1 == fcntl(fd, F_SETFL, flags))
+				failed = TRUE;
+		}
+	}
 #endif	/* MINGW32 */
+
+	if (failed)
+		s_carp("%s(): failed for #%d: %m", G_STRFUNC, fd);
+}
 
 /**
  * Closes the file and sets the descriptor to -1. Does nothing if
