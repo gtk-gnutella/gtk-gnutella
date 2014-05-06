@@ -523,6 +523,7 @@ error:
 		switch (zs->magic) {
 		case ZLIB_DEFLATER_MAGIC:
 			ret = deflateEnd(z);
+			break;
 		case ZLIB_INFLATER_MAGIC:
 			ret = inflateEnd(z);
 			break;
