@@ -489,7 +489,7 @@ program_path_allocate(const char *argv0)
 			errno = saved_errno;
 			s_warning("could not stat() \"%s\": %m", filepath);
 			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
-			goto error;
+			return NULL;
 		}
 	}
 
@@ -497,12 +497,6 @@ program_path_allocate(const char *argv0)
 		return file;
 
 	return h_strdup(filepath);
-
-error:
-	if (file != NULL && file != argv0)
-		hfree(file);
-
-	return NULL;
 }
 
 /**
