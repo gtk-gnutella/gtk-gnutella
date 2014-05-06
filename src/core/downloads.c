@@ -14882,7 +14882,7 @@ download_moved_with_bad_sha1(struct download *d)
 	 * If it was a faked download or has a bad bitprint, we cannot resume.
 	 */
 
-	if (d->file_info && fi_has_bad_bitprint(d->file_info)) {
+	if (fi_has_bad_bitprint(d->file_info)) {
 		g_warning("SHA1 mismatch for \"%s\" but TTH was good, cannot restart",
 			download_basename(d));
 		goto pause;
