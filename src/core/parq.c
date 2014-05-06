@@ -2807,6 +2807,8 @@ parq_upload_queue_full(struct upload *u)
 
 	puq = hash_list_head(q->by_date_dead);
 
+	parq_ul_queued_check(puq);
+
 	if (GNET_PROPERTY(parq_debug) > 1)
 		g_debug("PARQ UL: removing dead upload %s \"%s\" from %s",
 				guid_hex_str(&puq->id), puq->name,
