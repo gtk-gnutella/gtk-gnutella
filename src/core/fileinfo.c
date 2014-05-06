@@ -4133,15 +4133,13 @@ file_info_size_known(struct download *d, filesize_t size)
 
 			eslist_append(&fi->chunklist, fc);
 		} else {
-			slink_t *next;
-
 			fc->to = fi->done;
 
 			/*
 			 * Remove subsequent chunks.
 			 */
 
-			while (NULL != (next = eslist_next(&fc->lk))) {
+			while (NULL != eslist_next(&fc->lk)) {
 				struct dl_file_chunk *fcn;
 
 				fcn = eslist_remove_after(&fi->chunklist, fc);
