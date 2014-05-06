@@ -575,7 +575,7 @@ compat_pagesize_intern(void)
 #else
 	ret = sysconf(_SC_PAGE_SIZE);
 #endif
-	if (-1L == ret) {
+	if (ret < 0) {
 		return_value_unless(0 == errno, 0);
 	}
 	return ret;
@@ -589,13 +589,13 @@ compat_pagesize_intern(void)
 size_t
 compat_pagesize(void)
 {
-	static int initialized;
+	static bool initialized;
 	static size_t psize;
 
 	if G_UNLIKELY(!initialized) {
 		long n;
 		
-		initialized = 1;
+		initialized = TRUE;
 		n = compat_pagesize_intern();
 		g_assert(n > 0);
 		g_assert(n < INT_MAX);
