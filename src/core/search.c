@@ -7717,7 +7717,7 @@ do {												\
 			*p = ' ';								\
 		p++;										\
 	}												\
-	if (p != word)									\
+	if (p != word && word != NULL)					\
 		memmove(p, word, word_length);				\
 	p += word_length;								\
 } while (0)
