@@ -756,6 +756,8 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	if (-1 == dbg->fd && -1 == big_open(db))
 		return -1;
 
+	g_assert(is_valid_fd(dbg->fd));
+
 	if (dbg->scratch_len < len)
 		big_scratch_grow(dbg, len);
 
@@ -1046,6 +1048,8 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 	if (-1 == dbg->fd && -1 == big_open(db))
 		return -1;
+
+	g_assert(is_valid_fd(dbg->fd));
 
 	/*
 	 * Look at the amount of consecutive block numbers we have to be able
