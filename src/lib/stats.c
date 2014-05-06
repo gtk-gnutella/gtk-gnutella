@@ -45,16 +45,26 @@
 
 #include "override.h"		/* Must be the last header included */
 
+enum statx_magic { STATX_MAGIC = 0x560044e5 };
+
 /**
  * A one-dimension container (x).
  */
 struct statx {
+	enum statx_magic magic;	/**< Magic number */
 	elist_t data;			/**< Data points */
 	long n;					/**< Amount of data points */
 	double sx;				/**< Sx: sum of all points */
 	double sx2;				/**< Sx2: sum of the square of all points */
 	bool no_data;			/**< Do not keep data, it is managed externally */
 };
+
+static inline void
+statx_check(const struct statx * const sx)
+{
+	g_assert(sx != NULL);
+	g_assert(STATX_MAGIC == sx->magic);
+}
 
 /**
  * Items stored in the data list.
@@ -78,6 +88,7 @@ statx_make(void)
 	statx_t *sx;
 
 	WALLOC0(sx);
+	sx->magic = STATX_MAGIC;
 	elist_init(&sx->data, offsetof(struct stat_datapoint, data_link));
 	return sx;
 }
@@ -101,7 +112,10 @@ statx_make_nodata(void)
 void
 statx_free(statx_t *sx)
 {
+	statx_check(sx);
+
 	statx_clear(sx);
+	sx->magic = 0;
 	WFREE(sx);
 }
 
@@ -111,6 +125,8 @@ statx_free(statx_t *sx)
 void
 statx_clear(statx_t *sx)
 {
+	statx_check(sx);
+
 	elist_wfree(&sx->data, sizeof(struct stat_datapoint));
 
 	sx->n = 0;
@@ -168,6 +184,8 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 void
 statx_add(statx_t *sx, double val)
 {
+	statx_check(sx);
+
 	statx_opx(sx, val, STATS_OP_ADD);
 }
 
@@ -177,6 +195,8 @@ statx_add(statx_t *sx, double val)
 void
 statx_remove(statx_t *sx, double val)
 {
+	statx_check(sx);
+
 	statx_opx(sx, val, STATS_OP_REMOVE);
 }
 
@@ -189,6 +209,7 @@ statx_remove_oldest(statx_t *sx)
 	struct stat_datapoint *dp;
 	double val = 0;
 
+	statx_check(sx);
 	g_assert(!sx->no_data);
 	g_assert(sx->n >= 0);
 	g_assert((sx->n > 0) ^ (0 == elist_count(&sx->data)));
@@ -219,6 +240,8 @@ statx_remove_oldest(statx_t *sx)
 int
 statx_n(const statx_t *sx)
 {
+	statx_check(sx);
+
 	return sx->n;
 }
 
@@ -228,6 +251,7 @@ statx_n(const statx_t *sx)
 double
 statx_avg(const statx_t *sx)
 {
+	statx_check(sx);
 	g_assert(sx->n > 0);
 
 	return sx->sx / sx->n;
@@ -248,6 +272,7 @@ statx_sdev(const statx_t *sx)
 double
 statx_var(const statx_t *sx)
 {
+	statx_check(sx);
 	g_assert(sx->n > 1);
 
 	return (sx->sx2 - (sx->sx * sx->sx) / sx->n) / (sx->n - 1);
@@ -272,6 +297,7 @@ statx_data(const statx_t *sx)
 	int i;
 	struct stat_datapoint *dp;
 
+	statx_check(sx);
 	g_assert(!sx->no_data);
 	g_assert(sx->n > 0);
 
