@@ -3152,7 +3152,7 @@ static int
 socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, uint16 port, enum socket_type type, uint32 flags)
 {
-	static const int enable = 1;
+	static const int on = 1;
 	int fd, family;
 
 	socket_check(s);
@@ -3258,8 +3258,18 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	socket_wio_link(s);
 
-	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
-	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
+	if (
+		-1 == setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)
+	) {
+		s_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
+			G_STRFUNC, s->file_desc);
+	}
+	if (
+		-1 == setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on)
+	) {
+		s_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
+			G_STRFUNC, s->file_desc);
+	}
 
 	fd_set_nonblocking(s->file_desc);
 	set_close_on_exec(s->file_desc);
