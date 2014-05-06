@@ -926,13 +926,13 @@ gwc_get_hosts(void)
 		g_message("GWC host request: %s", url);
 
 	handle = http_async_get(url, NULL, gwc_host_data_ind, gwc_host_error_ind);
-	http_async_set_op_gotreply(handle, gwc_got_reply);
 
-	if (!handle) {
+	if (NULL == handle) {
 		g_warning("could not launch a \"GET %s\" request: %s",
 			url, http_async_strerror(http_async_errno));
 		gwc_clear_current_url(TRUE);
 	} else {
+		http_async_set_op_gotreply(handle, gwc_got_reply);
 		gwc_parse_context_set(handle, MAX_IP_LINES);
 		gwc_get_running = TRUE;
 	}
