@@ -1866,20 +1866,20 @@ check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
  * @returns the TTL used when forwarding the message.
  */
 static int
-route_max_forward_ttl(gnutella_node_t sender)
+route_max_forward_ttl(const gnutella_node_t *sender)
 {
-	int ttl_forward = gnutella_header_get_ttl(&sender.header);
+	int ttl_forward = gnutella_header_get_ttl(&sender->header);
 
 	if (
-		(uint) gnutella_header_get_hops(&sender.header) +
-			gnutella_header_get_ttl(&sender.header)
+		(uint) gnutella_header_get_hops(&sender->header) +
+			gnutella_header_get_ttl(&sender->header)
 				> GNET_PROPERTY(max_ttl)
 	) {
 		int ttl_max;
 
 		/* Trim down */
 		ttl_max = GNET_PROPERTY(max_ttl);
-		ttl_max -= gnutella_header_get_hops(&sender.header);
+		ttl_max -= gnutella_header_get_hops(&sender->header);
 		ttl_max = MAX(ttl_max, 1);
 
 		ttl_forward = ttl_max;
@@ -2035,7 +2035,7 @@ forward_message(
 					gnutella_header_get_ttl(&sender->header)
 						> GNET_PROPERTY(max_ttl)
 			) {
-				int ttl_max = route_max_forward_ttl(*sender);
+				int ttl_max = route_max_forward_ttl(sender);
 			   
 				/* Trim down */
 
@@ -2075,7 +2075,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 {
 	gnutella_node_t *sender = *node;
 	bool forward = FALSE;
-	int ttl_forward = route_max_forward_ttl(*sender);
+	int ttl_forward = route_max_forward_ttl(sender);
 
 	node_check(sender);
 	g_assert(m != NULL);
