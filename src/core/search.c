@@ -1092,7 +1092,7 @@ search_results_log(const gnutella_node_t *n, const gnet_results_set_t *rs)
 	}
 
 	if (
-		NODE_IS_UDP(n) &&
+		n != NULL && NODE_IS_UDP(n) &&
 		!(host_addr_equal(n->addr, rs->addr) && n->port == rs->port)
 	) {
 		str_printf(s, "%s UDP=%s",
