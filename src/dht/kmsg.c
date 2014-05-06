@@ -222,30 +222,32 @@ kmsg_handle(knode_t *kn,
 	function = kademlia_header_get_function(header);
 	km = kmsg_find(function);
 
-	/*
-	 * Users can force passive mode, even if not firewalled.
-	 * Enforce that no RPC call can be made on a non-active node.
-	 */
-
-	if (km->rpc_call && !dht_is_active()) {
-		if (GNET_PROPERTY(dht_debug)) {
-			g_debug("DHT in passive mode, ignoring %s from %s",
-				km->name, knode_to_string(kn));
-		}
-		gnet_dht_stats_count_dropped(n, function, MSG_DROP_UNEXPECTED);
-		return;
-	}
-
-	if (!km) {
+	if (NULL == km) {
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT invalid message function 0x%x from %s",
 				function, knode_to_string(kn));
-	} else if (NULL == km->handler) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT unhandled %s from %s",
-				km->name, knode_to_string(kn));
 	} else {
-		km->handler(kn, n, header, extlen, payload, len);
+		/*
+		 * Users can force passive mode, even if not firewalled.
+		 * Enforce that no RPC call can be made on a non-active node.
+		 */
+
+		if (km->rpc_call && !dht_is_active()) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT in passive mode, ignoring %s from %s",
+					km->name, knode_to_string(kn));
+			}
+			gnet_dht_stats_count_dropped(n, function, MSG_DROP_UNEXPECTED);
+			return;
+		}
+
+		if (NULL == km->handler) {
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT unhandled %s from %s",
+					km->name, knode_to_string(kn));
+		} else {
+			km->handler(kn, n, header, extlen, payload, len);
+		}
 	}
 }
 
