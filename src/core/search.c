@@ -1135,7 +1135,8 @@ search_results_records_log(const gnutella_node_t *n,
 	}
 
 	g_debug("SEARCH %s QHIT [%s] (%s) %u rec%s {%s}:",
-		NODE_IS_UDP(n) ? "UDP" : "TCP", vendor_code_to_string(rs->vcode.u32),
+		NULL == n ? "NULL" : NODE_IS_UDP(n) ? "UDP" : "TCP",
+		vendor_code_to_string(rs->vcode.u32),
 		host_addr_port_to_string(rs->addr, rs->port),
 		rs->num_recs, plural(rs->num_recs),
 		search_rs_status_to_string(rs));
