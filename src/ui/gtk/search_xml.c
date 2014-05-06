@@ -1118,14 +1118,17 @@ xml_to_sha1(xnode_t *xn, const struct search *search)
     g_assert(0 == ascii_strcasecmp(xnode_element_name(xn), NODE_SHA1));
 
 	value = xnode_first_child(xn);
-	if (!xnode_is_text(value)) {
-		g_warning("first XML child node for %s is not text but %s",
-			xnode_to_string(xn), xnode_to_string2(value));
-		goto no_content;
-	}
 
 	if (value != NULL) {
-		const char *b32 = xnode_text(value);
+		const char *b32;
+
+		if (!xnode_is_text(value)) {
+			g_warning("first XML child node for %s is not text but %s",
+				xnode_to_string(xn), xnode_to_string2(value));
+			goto no_content;
+		}
+
+		b32 = xnode_text(value);
 
 		if (b32 != NULL) {
 			const struct sha1 *sha1;
