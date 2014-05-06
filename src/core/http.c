@@ -3311,8 +3311,7 @@ nextline:
 failed:
 	if (h != NULL)
 		header_free(h);
-	if (gl != NULL)
-		getline_free(gl);
+	getline_free(gl);
 	if (msg != NULL && ack_msg != NULL) {
 		hfree(*msg);
 		*msg = NULL;
