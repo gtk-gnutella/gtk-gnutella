@@ -2083,7 +2083,7 @@ vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 	flags &= VMSG_HEAD_F_MASK;
 
 	p = poke_u8(&payload[0], flags);
-	p = poke_u8(&payload[1], code);
+	p = poke_u8(p, code);
 
 	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
 		flags = 0;
