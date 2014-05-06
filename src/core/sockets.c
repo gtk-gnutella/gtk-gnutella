@@ -3275,6 +3275,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	case SOCK_TYPE_HTTP:
 		socket_set_fastack(s);
 		socket_set_quickack(s, TRUE);
+		break;
 	default:
 		socket_set_quickack(s, FALSE);
 		break;
