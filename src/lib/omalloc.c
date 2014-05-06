@@ -735,10 +735,22 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	}
 
 done:
-	spinunlock(&omalloc_slk);
+	/*
+	 * Must initialize the object from a read-only chunk before releasing
+	 * the spinlock, since we must make sure no other thread is going to
+	 * change the protection of the chunk: we need it writable at this stage,
+	 * and a concurrent allocation from another thread could have time to reset
+	 * it read-only before the memcpy() below can be done, causing a fault.
+	 */
+
+	if (OMALLOC_RW == mode)
+		spinunlock(&omalloc_slk);
 
 	if (init != NULL)
 		memcpy(p, init, size);
+
+	if (OMALLOC_RO == mode)
+		spinunlock(&omalloc_slk);
 
 	/*
 	 * The following protects back to read-only the whole chunk in which the
