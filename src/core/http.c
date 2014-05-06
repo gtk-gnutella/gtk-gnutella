@@ -2187,20 +2187,21 @@ http_async_subrequest(
 	 * Propagate any redefined operation.
 	 */
 
-	child->op_get_request = parent->op_get_request;
-	child->op_post_request = parent->op_post_request;
-	child->op_headsent = parent->op_headsent;
-	child->op_datasent = parent->op_datasent;
-	child->op_gotreply = parent->op_gotreply;
+	if (child != NULL) {
+		child->op_get_request = parent->op_get_request;
+		child->op_post_request = parent->op_post_request;
+		child->op_headsent = parent->op_headsent;
+		child->op_datasent = parent->op_datasent;
+		child->op_gotreply = parent->op_gotreply;
 
-	/*
-	 * Indicate that the child request now has control, the parent request
-	 * being only there to record the user's callbacks (and because it's the
-	 * only one known from the outside).
-	 */
+		/*
+		 * Indicate that the child request now has control, the parent request
+		 * being only there to record the user's callbacks (and because it's
+		 * the only one known from the outside).
+		 */
 
-	if (child)
 		parent->flags |= HA_F_SUBREQ;
+	}
 
 	return child != NULL;
 }
