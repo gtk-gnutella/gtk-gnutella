@@ -3139,6 +3139,7 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 	return rc;
 
 bad:
+	gnet_host_vec_free(&hvec);
 	search_record_warn(n, rs, hit, "skipping bad record: %s", badmsg);
 	search_free_record(rc);
 	return NULL;
