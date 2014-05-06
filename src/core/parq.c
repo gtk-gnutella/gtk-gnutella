@@ -4252,7 +4252,8 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 			 * in the line.
 			 */
 
-			g_assert(puq_next->queue->active <= 1);
+			g_assert(puq_next->queue->active);		/* Since puq->has_slot */
+
 			if (
 				!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
 				!puq_next->active_queued
