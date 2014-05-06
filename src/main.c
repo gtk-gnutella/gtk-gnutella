@@ -466,9 +466,12 @@ handle_user_shutdown_request(enum shutdown_mode mode)
 	case GTKG_SHUTDOWN_ASSERT:
 		s_message("%s assertion failure", trigger);
 		g_assert_log(FALSE, "%s", msg);
+		/* NOTREACHED */
+		break;
 	case GTKG_SHUTDOWN_ERROR:
 		s_message("%s error", trigger);
 		s_error("%s", msg);
+		/* NOTREACHED */
 		break;
 	case GTKG_SHUTDOWN_MEMORY:
 		s_message("%s memory access error", trigger);
@@ -477,6 +480,7 @@ handle_user_shutdown_request(enum shutdown_mode mode)
 	case GTKG_SHUTDOWN_SIGNAL:
 		s_message("%s SIGILL", trigger);
 		raise(SIGILL);
+		/* NOTREACHED */
 		break;
 	}
 }
