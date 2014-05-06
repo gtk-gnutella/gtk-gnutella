@@ -659,9 +659,9 @@ downloads_gui_status_string(const struct download *d)
 				dl_pipeline_check(dp);
 
 				switch (dp->status) {
-				case GTA_DL_PIPE_SELECTED:	state = _("selected next");
-				case GTA_DL_PIPE_SENDING:	state = _("requesting next");
-				case GTA_DL_PIPE_SENT:		state = _("requested next");
+				case GTA_DL_PIPE_SELECTED:	state = _("selected next"); break;
+				case GTA_DL_PIPE_SENDING:	state = _("requesting next"); break;
+				case GTA_DL_PIPE_SENT:		state = _("requested next"); break;
 				}
 
 				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
