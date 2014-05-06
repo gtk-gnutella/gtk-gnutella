@@ -901,6 +901,8 @@ node_slow_timer(time_t now)
 			if (picked[0] != picked[1])
 				node_check_local_firewalled_status(picked[1]);
 		}
+
+		pslist_free_null(&candidates);
 	}
 
 	if (udp_active()) {
