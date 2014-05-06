@@ -37,9 +37,11 @@
 #include "common.h"
 
 #include "concat.h"
+
 #include "glib-missing.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 size_t
@@ -144,7 +146,7 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 
 	va_end(ap2);
 
-	return 1 + len;
+	return size_saturate_add(len, 1);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
