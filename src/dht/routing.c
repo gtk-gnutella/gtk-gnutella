@@ -4032,6 +4032,8 @@ update_cached_size_estimate(void)
 	if (dht_is_active() || statx_n(st) == 0)
 		statx_add(st, stats.local.estimate);
 
+	g_assert(statx_n(st) != 0);		/* Hence we can compute the average */
+
 	estimate = (uint64) statx_avg(st);
 	avg_stderr = statx_n(st) > 1 ? (uint64) statx_stderr(st) : 0;
 
