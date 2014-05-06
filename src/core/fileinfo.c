@@ -1258,9 +1258,9 @@ fi_alias(fileinfo_t *fi, const char *name, bool record)
 		fi->alias = pslist_append_const(fi->alias, atom_str_get(name));
 
 		if (record) {
-			if (NULL != list)
-				list = pslist_append(list, fi);
-			else {
+			if (NULL != list) {
+				pslist_append(list, fi);
+			} else {
 				list = pslist_append(list, fi);
 				htable_insert(fi_by_namesize, ns, list);
 				ns = NULL; /* Prevent freeing */
