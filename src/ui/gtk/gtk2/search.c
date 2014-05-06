@@ -146,7 +146,8 @@ search_gui_synchronize_list(GtkTreeModel *model)
 	struct synchronize_search_list ctx;
 
 	ctx.model = model;
-	gtk_tree_model_get_iter_first(model, &ctx.iter);
+	if (!gtk_tree_model_get_iter_first(model, &ctx.iter))
+		return;
 	search_gui_synchronize_search_list(synchronize_search_list_callback, &ctx);
 }
 
