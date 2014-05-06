@@ -37,7 +37,7 @@
 
 #include "core/downloads.h"
 
-#include "if/bridge/ui2c.h"
+#include "if/core/fileinfo.h"
 
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
@@ -291,8 +291,8 @@ shell_exec_download_show(struct gnutella_shell *sh,
 		goto error;
 	}
 
-	info = guc_fi_get_info(fi->fi_handle);
-	guc_fi_get_status(fi->fi_handle, &status);
+	info = fi_get_info(fi->fi_handle);
+	fi_get_status(fi->fi_handle, &status);
 
 	for (i = 3; i < argc; i++) {
 		property = argv[i];
@@ -341,7 +341,7 @@ shell_exec_download_show(struct gnutella_shell *sh,
 			HFREE_NULL(magnet);
 		}
 	}
-	guc_fi_free_info(info);
+	fi_free_info(info);
 	return REPLY_READY;
 
 error:
@@ -356,11 +356,13 @@ print_download_id(gnet_fi_t handle, void *udata)
 
 	shell_check(sh);
 
-	info = guc_fi_get_info(handle);
+	info = fi_get_info(handle);
 	g_return_if_fail(info);
 
 	shell_write(sh, guid_to_string(info->guid));
 	shell_write(sh, "\n");	/* Terminate line */
+
+	fi_free_info(info);
 }
 
 static enum shell_reply
