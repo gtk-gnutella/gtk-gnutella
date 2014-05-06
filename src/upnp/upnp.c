@@ -1260,20 +1260,6 @@ upnp_map_publish(cqueue_t *cq, void *obj)
 		return;
 	}
 
-	/*
-	 * Mappings can be recorded at startup before we had a chance to
-	 * discover the NAT device, which is why we retry more often at the
-	 * beginning (every UPNP_PUBLISH_RETRY_MS for a while).
-	 */
-
-	if (NULL == igd.dev && NULL == gw.gateway) {
-		if (GNET_PROPERTY(upnp_debug) > 5) {
-			g_message("UPNP no device yet to publish mapping for %s port %u",
-				upnp_map_proto_to_string(um->proto), um->port);
-		}
-		return;
-	}
-
 	if (GNET_PROPERTY(upnp_debug) > 2) {
 		g_message("UPNP publishing %s mapping for %s port %u",
 			upnp_method_to_string(um->method),
@@ -1294,7 +1280,7 @@ upnp_map_publish(cqueue_t *cq, void *obj)
 
 		natpmp_map(gw.gateway, um->proto, um->port, um->lease_time,
 			upnp_map_natpmp_publish_reply, um);
-	} else {
+	} else if (igd.dev != NULL) {
 		const upnp_service_t *usd;
 
 		usd = upnp_service_get_wan_connection(igd.dev->services);
@@ -1323,6 +1309,17 @@ upnp_map_publish(cqueue_t *cq, void *obj)
 					"UPNP could not launch UPnP publishing for %s port %u",
 					upnp_map_proto_to_string(um->proto), um->port);
 			}
+		}
+	} else {
+		/*
+		 * Mappings can be recorded at startup before we had a chance to
+		 * discover the NAT device, which is why we retry more often at the
+		 * beginning (every UPNP_PUBLISH_RETRY_MS for a while).
+		 */
+
+		if (GNET_PROPERTY(upnp_debug) > 5) {
+			g_message("UPNP no device yet to publish mapping for %s port %u",
+				upnp_map_proto_to_string(um->proto), um->port);
 		}
 	}
 }
