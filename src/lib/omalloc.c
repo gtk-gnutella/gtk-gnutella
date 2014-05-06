@@ -597,8 +597,10 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 
 	g_assert(size_is_positive(size));
 
-	if G_UNLIKELY(0 == omalloc_pagesize)
+	if G_UNLIKELY(0 == omalloc_pagesize) {
 		omalloc_pagesize = compat_pagesize();
+		g_assert(0 != omalloc_pagesize);
+	}
 
 	/*
 	 * This routine is fast and used infrequently enough to justify a
