@@ -680,12 +680,12 @@ stacktrace_init(const char *argv0, bool deferred)
 	/* FALL THROUGH */
 
 done:
-	HFREE_NULL(path);
 	symbols_loaded = TRUE;		/* Don't attempt again */
 
 	/* FALL THROUGH */
 
 tune:
+	HFREE_NULL(path);
 	stacktrace_auto_tune();
 }
 
