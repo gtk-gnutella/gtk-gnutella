@@ -471,10 +471,10 @@ big_check_end(DBM *db, bool completed)
 			if (old_adjustments != adjustments) {
 				size_t adj = adjustments - old_adjustments;
 
-				flush_bitbuf(db);
-
-				s_warning("sdbm: \"%s\": adjusted %zu bit%s in bitmap #%ld",
-					sdbm_name(db), adj, plural(adj), i);
+				if (flush_bitbuf(db)) {
+					s_warning("sdbm: \"%s\": adjusted %zu bit%s in bitmap #%ld",
+						sdbm_name(db), adj, plural(adj), i);
+				}
 			}
 		}
 	}
