@@ -1103,7 +1103,8 @@ search_results_log(const gnutella_node_t *n, const gnet_results_set_t *rs)
 	}
 
 	g_debug("SEARCH %s QHIT [%s] (%s [%s], %s) %s: %u rec%s {%s}",
-		NODE_IS_UDP(n) ? "UDP" : "TCP", vendor_code_to_string(rs->vcode.u32),
+		NULL == n ? "NULL" : NODE_IS_UDP(n) ? "UDP" : "TCP",
+		vendor_code_to_string(rs->vcode.u32),
 		str_2c(s), iso3166_country_cc(rs->country), guid_to_string(rs->guid),
 		buf, rs->num_recs, plural(rs->num_recs),
 		search_rs_status_to_string(rs));
