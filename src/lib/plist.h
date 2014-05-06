@@ -97,7 +97,7 @@ plist_t *plist_free_full(plist_t *pl, free_fn_t fn);
 void plist_free_full_null(plist_t **pl_ptr, free_fn_t fn);
 plist_t *plist_last(const plist_t *pl) WARN_UNUSED_RESULT;
 plist_t *plist_first(const plist_t *pl) WARN_UNUSED_RESULT;
-plist_t *plist_append(plist_t *pl, void *data) WARN_UNUSED_RESULT;
+plist_t *plist_append(plist_t *pl, void *data);
 plist_t *plist_prepend(plist_t *pl, void *data) WARN_UNUSED_RESULT;
 plist_t *plist_insert_before(plist_t *pl,
 	plist_t *sibling, void *data) WARN_UNUSED_RESULT;

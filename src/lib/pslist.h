@@ -83,7 +83,7 @@ void pslist_free_null(pslist_t **pl_ptr);
 pslist_t *pslist_free_full(pslist_t *pl, free_fn_t fn);
 void pslist_free_full_null(pslist_t **pl_ptr, free_fn_t fn);
 pslist_t *pslist_last(const pslist_t *pl) WARN_UNUSED_RESULT;
-pslist_t *pslist_append(pslist_t *pl, void *data) WARN_UNUSED_RESULT;
+pslist_t *pslist_append(pslist_t *pl, void *data);
 pslist_t *pslist_prepend(pslist_t *pl, void *data) WARN_UNUSED_RESULT;
 pslist_t *pslist_insert_before(pslist_t *pl,
 	pslist_t *sibling, void *data) WARN_UNUSED_RESULT;
