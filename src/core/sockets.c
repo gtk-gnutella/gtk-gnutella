@@ -3298,6 +3298,7 @@ socket_connect_finalize(struct gnutella_socket *s,
 	int res;
 
 	socket_check(s);
+	g_assert(is_valid_fd(s->file_desc));
 
 	/*
 	 * Allow forced connections to an hostile host.
