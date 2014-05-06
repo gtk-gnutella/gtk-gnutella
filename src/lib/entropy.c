@@ -1305,7 +1305,7 @@ static struct entropy_ops entropy_ops;
 static void
 entropy_aje_collect(sha1_t *digest)
 {
-	aje_random_bytes(digest, sizeof digest);
+	aje_random_bytes(digest, sizeof *digest);
 }
 
 /**
