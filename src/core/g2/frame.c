@@ -236,7 +236,7 @@ g2_frame_read_length(struct frame_dctx *dctx, size_t bytes, size_t *length)
 	p = dctx->p;
 
 	while (bytes--) {
-		len += *p++ << shift;
+		len += (uint) *p++ << shift;
 		shift += 8;
 	}
 
