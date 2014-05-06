@@ -670,7 +670,7 @@ verify_free(struct verify **ptr)
 {
 	struct verify *ctx = *ptr;
 
-	if (ptr) {
+	if (ctx != NULL) {
 		verify_check(ctx);
 		g_assert(!ctx->shutdowned);
 
