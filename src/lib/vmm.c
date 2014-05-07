@@ -563,6 +563,8 @@ init_stack_shape(void)
 		stack_base = const_ptr_add_offset(stack_base, kernel_pagesize);
 }
 
+#define VMM_PAGESIZE_DFLT		4096		/* If we don't know better */
+
 static long
 compat_pagesize_intern(void)
 #if defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
@@ -576,7 +578,8 @@ compat_pagesize_intern(void)
 	ret = sysconf(_SC_PAGE_SIZE);
 #endif
 	if (ret < 0) {
-		return_value_unless(0 == errno, 0);
+		return_value_unless(0 == errno, VMM_PAGESIZE_DFLT);
+		return VMM_PAGESIZE_DFLT;
 	}
 	return ret;
 }
