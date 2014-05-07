@@ -56,9 +56,7 @@
  *
  * For practical reasons and because double hashing is by design relatively
  * immune to clustering, the hash table size is a power of 2: the modulo
- * operator is much slower than a simple trailing bit masking.  To avoid losing
- * the dispertion of the original hashed value, we do not mask the output
- * of the hash function but fold all the bits down to the smaller value.
+ * operator is much slower than a simple trailing bit masking.
  *
  * When a collision occurs and alternative slots are to be used, the distance
  * from the "home" slot is computed via the secondary hash routine, and then
@@ -67,12 +65,12 @@
  * hash table size.  Because the table size is a power of 2, any odd number
  * will be prime with it.  This is enough to guarantee that for any odd number
  * "d" and a hash table size "S", the first "n", n > 1, for which n*d = 0
- * modulo S is when n = S since d and S are prime to each-other.
+ * modulo S is when n = S since d and S are prime with each-other.
  *
  * Because the final position of an item depends on the presence of other
  * items in the traversed path (in case the item is not at its "home" slot),
  * deletion of an item must not mark the slot as free, but must remember
- * that there used to be an item them.  This is done by erecting a tombstone
+ * that there used to be an item there.  This is done by erecting a tombstone
  * when the item is deleted.
  *
  * Too many items in the table or too many tombstones can affect the overall
