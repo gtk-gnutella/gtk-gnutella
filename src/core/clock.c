@@ -197,6 +197,9 @@ clock_adjust(void)
 	 */
 
 	n = statx_n(datapoints);
+
+	g_assert(n > 1);		/* To be able to compute the standard deviation */
+
 	avg = statx_avg(datapoints);
 	sdev = statx_sdev(datapoints);
 
@@ -208,6 +211,8 @@ clock_adjust(void)
 
 	for (k = 0; k < CLEAN_STEPS; k++) {
 		double *value = statx_data(datapoints);
+
+		g_assert(value != NULL);	/* Since n > 1, there are data points */
 
 		if (GNET_PROPERTY(clock_debug) > 1)
 			g_debug("CLOCK before #%d: n=%d avg=%g sdev=%g",
@@ -237,6 +242,10 @@ clock_adjust(void)
 		 */
 
 		n = statx_n(datapoints);
+
+		if (n < 2)
+			break;		/* Not enough data to compute standard deviation */
+
 		avg = statx_avg(datapoints);
 		sdev = statx_sdev(datapoints);
 
