@@ -1,5 +1,5 @@
 /*
- * Copyrigtab (c) 2006, Christian Biere
+ * Copyright (c) 2007, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -92,10 +92,13 @@ page_table_lookup(page_table_t *tab, const void *p)
 
 		i = k >> SLICE_BITSHIFT;
 		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
-		return tab->slice[i] ? tab->slice[i]->size[j] : 0;
-	} else {
-		return 0;
+		if G_LIKELY(i < G_N_ELEMENTS(tab->slice))
+			return tab->slice[i] ? tab->slice[i]->size[j] : 0;
+
+		/* FALLTHROUGH */
 	}
+
+	return 0;
 }
 
 static void
