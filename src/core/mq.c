@@ -425,8 +425,6 @@ mq_swift_checkpoint(mqueue_t *q, bool initial)
 	int added;
 	int needed;
 	int extra;
-	iovec_t *templates;
-	size_t i, tcnt = 0;
 
 	g_assert(q->flags & MQ_FLOWC);
 
@@ -505,17 +503,19 @@ mq_swift_checkpoint(mqueue_t *q, bool initial)
 	 * using the user-supplied ``msg_headcmp'' comparison callback.
 	 */
 
-	if (q->uops->msg_templates != NULL)
-		templates = q->uops->msg_templates(initial, &tcnt);
+	if (q->uops->msg_templates != NULL) {
+		size_t i, tcnt = 0;
+		iovec_t *templates = q->uops->msg_templates(initial, &tcnt);
 
-	for (i = 0; i < tcnt && needed > 0; i++) {
-		int old_size = q->size;
-		const void *base = iovec_base(&templates[i]);
+		for (i = 0; i < tcnt && needed > 0; i++) {
+			int old_size = q->size;
+			const void *base = iovec_base(&templates[i]);
 
-		if (make_room_header(q, base, PMSG_P_DATA, needed, NULL))
-			break;
+			if (make_room_header(q, base, PMSG_P_DATA, needed, NULL))
+				break;
 
-		needed -= old_size - q->size;		/* Amount we removed */
+			needed -= old_size - q->size;		/* Amount we removed */
+		}
 	}
 
 done:
