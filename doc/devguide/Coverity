@@ -1,0 +1,35 @@
+Coverity is a static code checker.
+
+The gtk-gnutella project is at:
+
+	https://scan.coverity.com/projects/2178
+
+To build gtk-gnutella for analysis, one needs to first download the
+necessary binaries for the platform, and install them say in /usr/local.
+As of this writing, this is:
+
+	/usr/local/cov-analysis-linux64-7.0.2
+
+here on my machine.  Let's call this COV.
+
+Add COV/bin to your PATH.
+
+Configure your C compiler, for instance:
+
+	cov-configure --compiler /usr/bin/cc --comptype gcc
+
+In the src/ directory run:
+
+	make realclean
+	make depend
+	mkdir cov-int		# name is hardwired in the Coverity tool chain
+	cov-build --dir cov-int make gtk-gnutella.nm
+	tar czvf gtk-gnutella.tgz cov-int
+
+Upload the gtk-gnutella.tgz file to the Coverity scanner.
+
+The file src/coverity.c is a model for the Converity scanner which teaches
+it basic things about some key functions, for the runtime analyzing the code
+paths.  The scanner may be able to automatically derive some of the properties
+from gcc attribute hints, but maybe not, so we're helping it.
+

@@ -43,6 +43,7 @@ doc/api/README
 doc/api/gtkg-apidoc.cfg
 doc/api/gtkg-apidoc.main
 doc/devguide/Announce-template.txt
+doc/devguide/Coverity
 doc/devguide/DEBUGGING
 doc/devguide/GUI-hacking
 doc/devguide/HOMEPAGE
@@ -491,6 +492,7 @@ src/core/vmsg.c
 src/core/vmsg.h
 src/core/whitelist.c
 src/core/whitelist.h
+src/coverity.c
 src/dht/Jmakefile
 src/dht/Makefile.SH
 src/dht/acct.c
