@@ -2092,20 +2092,25 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			booleanize(flags & SOCK_F_PUSH), skip_records);
 	}
 
-  	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
+	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
 		record_t *rc = sl->data;
 		enum gui_color color;
 
 		record_check(rc);
 
-        if (GUI_PROPERTY(gui_debug) > 7)
-            g_debug("%s(): [%s] considering %s",
+		if (skip_records) {
+			sch->skipped++;
+			continue;
+		}
+
+		if (GUI_PROPERTY(gui_debug) > 7)
+			g_debug("%s(): [%s] considering %s",
 				G_STRFUNC, search_gui_query(sch), rc->name);
 
-        if (rc->flags & SR_DOWNLOADED)
+		if (rc->flags & SR_DOWNLOADED)
 			sch->auto_downloaded++;
 
-        /*
+		/*
 		 * Note that we pass ALL records through search_gui_result_is_dup(),
 		 * to be able to update the index/GUID of our records correctly, when
 		 * we detect a change.
@@ -2139,11 +2144,6 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			gboolean is_hostile;
 			gint spam_score;
 
-			if (skip_records) {
-				sch->skipped++;
-				continue;
-			}
-
 			is_hostile = ST_HOSTILE & rs->status;
 			spam_score = ST_SPAM & rs->status ? 1 : 0;
 			spam_score |= SR_SPAM & rc->flags ? 2 : 0;
@@ -2153,7 +2153,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 				(!rc->sha1 && GUI_PROPERTY(search_discard_hashless)) ||
 				(
 					GUI_PROPERTY(search_discard_spam) &&
-				 	(spam_score > 1 || is_hostile)
+					(spam_score > 1 || is_hostile)
 				) ||
 				(
 					GUI_PROPERTY(search_discard_alien_ip) &&
@@ -2170,7 +2170,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 
 			g_assert(rc->refcount >= 0);
 			{
-        		filter_result_t *flt_result;
+				filter_result_t *flt_result;
 				
 				flt_result = filter_record(sch, rc);
 				filter_state = flt_result->props[FILTER_PROP_DISPLAY].state;
