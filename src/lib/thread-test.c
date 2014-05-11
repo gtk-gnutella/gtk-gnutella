@@ -256,16 +256,17 @@ test_create_one(bool repeat, bool join)
 		cq_main_dispatch();
 }
 
-static void
-posix_thread_create(thread_main_t routine, void *arg)
+static pthread_t
+posix_thread_create(thread_main_t routine, void *arg, bool joinable)
 {
 	int error;
 	pthread_attr_t attr;
 	pthread_t t;
 
 	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	pthread_attr_setstacksize(&attr, 32768);
+	pthread_attr_setdetachstate(&attr,
+		joinable ? PTHREAD_CREATE_JOINABLE : PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr, THREAD_STACK_MIN);
 	error = pthread_create(&t, &attr, routine, arg);
 	pthread_attr_destroy(&attr);
 
@@ -273,6 +274,8 @@ posix_thread_create(thread_main_t routine, void *arg)
 		errno = error;
 		s_error("cannot create POSIX thread: %m");
 	}
+
+	return t;
 }
 
 static void *
@@ -325,7 +328,7 @@ posix_threads(void *unused_arg)
 	fflush(stdout);
 
 	for (i = 0; i < 6; i++) {
-		posix_thread_create(posix_worker, NULL);
+		posix_thread_create(posix_worker, NULL, FALSE);
 	}
 
 	printf("POSIX thread launch done, mutating to worker...\n");
@@ -340,7 +343,7 @@ test_create(unsigned repeat, bool join, bool posix)
 	unsigned i;
 
 	if (posix) {
-		posix_thread_create(posix_threads, NULL);
+		posix_thread_create(posix_threads, NULL, FALSE);
 	}
 
 	for (i = 0; i < repeat; i++) {
@@ -1591,6 +1594,27 @@ struct exercise_results {
 	time_delta_t free_us;	/* Freeing time, in microseconds */
 };
 
+static void
+exercise_free_memory(const struct memory *m)
+{
+	switch (m->type) {
+	case MEMORY_XMALLOC:
+		xfree(m->p);
+		break;
+	case MEMORY_HALLOC:
+		hfree(m->p);
+		break;
+	case MEMORY_WALLOC:
+		wfree(m->p, m->size);
+		break;
+	case MEMORY_VMM:
+		vmm_free(m->p, m->size);
+		break;
+	default:
+		g_assert_not_reached();
+	}
+}
+
 static void *
 exercise_memory(void *arg)
 {
@@ -1675,23 +1699,7 @@ exercise_memory(void *arg)
 	tm_now_exact(&start);
 	for (i = 0; i < fill; i++) {
 		struct memory *m = &mem[i];
-
-		switch (m->type) {
-		case MEMORY_XMALLOC:
-			xfree(m->p);
-			break;
-		case MEMORY_HALLOC:
-			hfree(m->p);
-			break;
-		case MEMORY_WALLOC:
-			wfree(m->p, m->size);
-			break;
-		case MEMORY_VMM:
-			vmm_free(m->p, m->size);
-			break;
-		default:
-			g_assert_not_reached();
-		}
+		exercise_free_memory(m);
 	}
 	tm_now_exact(&end);
 
@@ -1703,43 +1711,77 @@ exercise_memory(void *arg)
 }
 
 static void
-test_memory_one(struct exercise_results *total)
+test_memory_one(struct exercise_results *total, bool posix)
 {
 	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	int *t, i, n;
+	pthread_t *p;
 
 	n = cpus;
 
 	WALLOC_ARRAY(t, n);
+	WALLOC_ARRAY(p, n);
 
 	for (i = 0; i < n; i++) {
 		int r = thread_create(exercise_memory, NULL, 0, THREAD_STACK_MIN);
 		if (-1 == r)
 			s_error("cannot create thread: %m");
 		t[i] = r;
+
+		if (posix) {
+			pthread_t pt = posix_thread_create(exercise_memory, NULL, TRUE);
+			p[i] = pt;
+		}
 	}
 
 	for (i = 0; i < n; i++) {
-		void *e;
-		struct exercise_results *er;
+		int j;
 
-		if (-1 == thread_join(t[i], &e)) {
-			s_error("%s(): could not join with %s: %m",
-				G_STRFUNC, thread_id_name(t[i]));
+		for (j = 0; j < 2; j++) {
+			int r;
+			void *e;
+			struct exercise_results *er;
+
+			switch (j) {
+			case 0:
+				r = thread_join(t[i], &e);
+				break;
+			case 1:
+				if (!posix)
+					goto next_thread;
+				r = pthread_join(p[i], &e);
+				if (r != 0) {
+					errno = r;
+					r = -1;
+				}
+				break;
+			default:
+				g_assert_not_reached();
+			}
+
+			if (-1 == r) {
+				s_error("%s(): could not join with %s: %m",
+					G_STRFUNC,
+					0 == j ? thread_id_name(t[i]) : "POSIX thread");
+			}
+
+			er = e;
+			total->amount += er->amount;
+			total->alloc_us += er->alloc_us;
+			total->free_us += er->free_us;
+			WFREE(er);
 		}
 
-		er = e;
-		total->amount += er->amount;
-		total->alloc_us += er->alloc_us;
-		total->free_us += er->free_us;
-		WFREE(er);
+	next_thread:
+		continue;
 	}
 
 	WFREE_ARRAY(t, n);
+	WFREE_ARRAY(p, n);
 }
 
 static void
-test_memory(unsigned repeat)
+test_memory(unsigned repeat, bool posix)
 {
 	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	unsigned i;
@@ -1759,7 +1801,7 @@ test_memory(unsigned repeat)
 		ZERO(&total);
 
 		tm_now_exact(&start);
-		test_memory_one(&total);
+		test_memory_one(&total, posix);
 		tm_now_exact(&end);
 
 		tm_elapsed(&elapsed, &end, &start);
@@ -2198,8 +2240,10 @@ main(int argc, char **argv)
 			printf("Using blocks of %lu byte%s\n", (ulong) allocator_bsize,
 				plural(allocator_bsize));
 		}
+		if (posix)
+			printf("Adding (discovered) POSIX threads\n");
 		fflush(stdout);
-		test_memory(repeat);
+		test_memory(repeat, posix);
 	}
 
 	if (teq)
