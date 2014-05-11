@@ -686,13 +686,14 @@ vmf_type_str(const vmf_type_t type)
 static const char *
 vmf_to_string(const struct vm_fragment *vmf)
 {
-	static char buf[80];
+	static char buf[THREAD_MAX][80];
+	char *b = &buf[thread_small_id()][0];
 	size_t n = pagecount_fast(vmf_size(vmf));
 
-	str_bprintf(buf, sizeof buf, "%s [%p, %p[ (%zu page%s)",
+	str_bprintf(b, sizeof buf[0], "%s [%p, %p[ (%zu page%s)",
 		vmf_type_str(vmf->type), vmf->start, vmf->end, n, plural(n));
 
-	return buf;
+	return b;
 }
 
 /**
