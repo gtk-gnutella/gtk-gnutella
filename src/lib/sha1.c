@@ -99,18 +99,15 @@ SHA1_reset(SHA1_context *context)
 	if (!context)
 		return SHA_NULL;
 
+	ZERO(context);
+
 	context->magic     = SHA1_CONTEXT_MAGIC;
-	context->length    = 0;
-	context->midx      = 0;
 
 	context->ihash[0]  = 0x67452301;
 	context->ihash[1]  = 0xEFCDAB89;
 	context->ihash[2]  = 0x98BADCFE;
 	context->ihash[3]  = 0x10325476;
 	context->ihash[4]  = 0xC3D2E1F0;
-
-	context->computed  = FALSE;
-	context->corrupted = SHA_SUCCESS;
 
 	return SHA_SUCCESS;
 }
