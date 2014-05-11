@@ -86,7 +86,7 @@ usage(void)
 {
 	fprintf(stderr,
 		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
-		"       [-f count] [-n count] [-t ms] [-T secs]\n"
+		"       [-f count] [-n count] [-r percent] [-t ms] [-T secs]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
 		"  -b : fixed block size to use for memory tests via -X\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
@@ -95,6 +95,7 @@ usage(void)
 		"  -h : prints this help message\n"
 		"  -j : join created threads\n"
 		"  -n : amount of times to repeat tests\n"
+		"  -r : let remote threads free some objects during -X tests\n"
 		"  -s : let each created thread sleep for 1 second before ending\n"
 		"  -t : timeout value (ms) for condition waits\n"
 		"  -v : dump thread statistics at the end of the tests\n"
@@ -1594,7 +1595,67 @@ struct exercise_results {
 	time_delta_t free_us;	/* Freeing time, in microseconds */
 };
 
+struct exercise_param {
+	int percentage;			/* Random percentage of blocks to free remotely */
+};
+
+/*
+ * This list is filled with memory objects that must be freed by a remote
+ * thread, randomly.  All accesses are protected by a spinlock.
+ */
+static pslist_t *exercise_list;
+static spinlock_t exercise_list_slk = SPINLOCK_INIT;
+
+#define EXERCISE_LIST_LOCK		spinlock(&exercise_list_slk)
+#define EXERCISE_LIST_UNLOCK	spinunlock(&exercise_list_slk)
+
 static void
+exercise_list_add(const struct memory *m)
+{
+	EXERCISE_LIST_LOCK;
+	exercise_list = pslist_prepend_const(exercise_list, WCOPY(m));
+	EXERCISE_LIST_UNLOCK;
+}
+
+static bool
+exercise_list_remove(struct memory *m)
+{
+	struct memory *mi;
+
+	EXERCISE_LIST_LOCK;
+	mi = pslist_shift(&exercise_list);
+	EXERCISE_LIST_UNLOCK;
+
+	if (NULL == mi)
+		return FALSE;
+
+	*m = *mi;		/* Struct copy */
+	WFREE(mi);
+	return TRUE;
+}
+
+static inline void ALWAYS_INLINE
+exercise_alloc_memory(struct memory *m)
+{
+	switch (m->type) {
+	case MEMORY_XMALLOC:
+		m->p = xmalloc(m->size);
+		break;
+	case MEMORY_HALLOC:
+		m->p = halloc(m->size);
+		break;
+	case MEMORY_WALLOC:
+		m->p = walloc(m->size);
+		break;
+	case MEMORY_VMM:
+		m->p = vmm_alloc(m->size);
+		break;
+	default:
+		g_assert_not_reached();
+	}
+}
+
+static inline void ALWAYS_INLINE
 exercise_free_memory(const struct memory *m)
 {
 	switch (m->type) {
@@ -1619,21 +1680,21 @@ static void *
 exercise_memory(void *arg)
 {
 	struct memory *mem;
-	size_t i, fill;
+	size_t i, fill, filled;
 	struct exercise_results *er;
+	struct exercise_param *ep;
 	tm_t start, end;
 
-	(void) arg;
+	ep = arg;
 
 	WALLOC(er);
 
 	fill = allocator_fill != 0 ? allocator_fill : MEMORY_ALLOCATIONS;
-	er->amount = fill;
 
 	XMALLOC_ARRAY(mem, fill);
 
-	for (i = 0; i < fill; i++) {
-		struct memory *m = &mem[i];
+	for (i = 0, filled = 0; i < fill; i++) {
+		struct memory *m = &mem[filled];
 
 		switch (allocator) {
 		case 'r':
@@ -1666,38 +1727,31 @@ exercise_memory(void *arg)
 			MEMORY_VMM == m->type ?
 				MEMORY_VMM_MIN + random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN) :
 				MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
+
+		if (ep->percentage != 0 && (int) random_value(99) < ep->percentage) {
+			exercise_alloc_memory(m);
+			exercise_list_add(m);
+		} else {
+			filled++;
+		}
 	}
 
-	tm_now_exact(&start);
-	for (i = 0; i < fill; i++) {
-		struct memory *m = &mem[i];
+	er->amount = filled;
 
-		switch (m->type) {
-		case MEMORY_XMALLOC:
-			m->p = xmalloc(m->size);
-			break;
-		case MEMORY_HALLOC:
-			m->p = halloc(m->size);
-			break;
-		case MEMORY_WALLOC:
-			m->p = walloc(m->size);
-			break;
-		case MEMORY_VMM:
-			m->p = vmm_alloc(m->size);
-			break;
-		default:
-			g_assert_not_reached();
-		}
+	tm_now_exact(&start);
+	for (i = 0; i < filled; i++) {
+		struct memory *m = &mem[i];
+		exercise_alloc_memory(m);
 	}
 	tm_now_exact(&end);
 
 	er->alloc_us = tm_elapsed_us(&end, &start);
 
 	if (randomize_free)
-		shuffle(mem, fill, sizeof mem[0]);
+		shuffle(mem, filled, sizeof mem[0]);
 
 	tm_now_exact(&start);
-	for (i = 0; i < fill; i++) {
+	for (i = 0; i < filled; i++) {
 		struct memory *m = &mem[i];
 		exercise_free_memory(m);
 	}
@@ -1707,29 +1761,39 @@ exercise_memory(void *arg)
 
 	XFREE_NULL(mem);
 
+	{
+		size_t remote = fill * ep->percentage / 100;
+		struct memory m;
+
+		while (remote-- && exercise_list_remove(&m))
+			exercise_free_memory(&m);
+	}
+
 	return er;
 }
 
 static void
-test_memory_one(struct exercise_results *total, bool posix)
+test_memory_one(struct exercise_results *total, bool posix, int percentage)
 {
 	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	int *t, i, n;
 	pthread_t *p;
+	struct exercise_param ep;
 
 	n = cpus;
+	ep.percentage = percentage;
 
 	WALLOC_ARRAY(t, n);
 	WALLOC_ARRAY(p, n);
 
 	for (i = 0; i < n; i++) {
-		int r = thread_create(exercise_memory, NULL, 0, THREAD_STACK_MIN);
+		int r = thread_create(exercise_memory, &ep, 0, THREAD_STACK_MIN);
 		if (-1 == r)
 			s_error("cannot create thread: %m");
 		t[i] = r;
 
 		if (posix) {
-			pthread_t pt = posix_thread_create(exercise_memory, NULL, TRUE);
+			pthread_t pt = posix_thread_create(exercise_memory, &ep, TRUE);
 			p[i] = pt;
 		}
 	}
@@ -1778,10 +1842,17 @@ test_memory_one(struct exercise_results *total, bool posix)
 
 	WFREE_ARRAY(t, n);
 	WFREE_ARRAY(p, n);
+
+	{
+		struct memory m;
+
+		while (exercise_list_remove(&m))
+			exercise_free_memory(&m);
+	}
 }
 
 static void
-test_memory(unsigned repeat, bool posix)
+test_memory(unsigned repeat, bool posix, int percentage)
 {
 	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	unsigned i;
@@ -1801,7 +1872,7 @@ test_memory(unsigned repeat, bool posix)
 		ZERO(&total);
 
 		tm_now_exact(&start);
-		test_memory_one(&total, posix);
+		test_memory_one(&total, posix, percentage);
 		tm_now_exact(&end);
 
 		tm_elapsed(&elapsed, &end, &start);
@@ -2050,14 +2121,14 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	int c;
+	int c, percentage = 0;
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:b:c:ef:hjn:st:vwxABCDEFIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ef:hjn:r:st:vwxABCDEFIKMNOPQRST:VWX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -2147,6 +2218,9 @@ main(int argc, char **argv)
 		case 'n':			/* repeat tests */
 			repeat = get_number(optarg, c);
 			break;
+		case 'r':			/* ratio (percentage) of objects to free remotely */
+			percentage = get_number(optarg, c);
+			break;
 		case 't':			/* condition wait timeout (0 = none) */
 			cond_timeout = get_number(optarg, c);
 			break;
@@ -2174,6 +2248,16 @@ main(int argc, char **argv)
 
 	if (!atomic_ops_available())
 		s_warning("Atomic memory operations not supported!");
+
+	if (percentage < 0) {
+		s_warning("Raising percentage (%d) to 0", percentage);
+		percentage = 0;
+	}
+
+	if (percentage > 100) {
+		s_warning("Capping percentage (%d) to 100", percentage);
+		percentage = 100;
+	}
 
 	g_assert(0 == thread_by_name("main"));
 
@@ -2242,8 +2326,10 @@ main(int argc, char **argv)
 		}
 		if (posix)
 			printf("Adding (discovered) POSIX threads\n");
+		if (percentage)
+			printf("Randomly free %d%% blocks in remote threads\n", percentage);
 		fflush(stdout);
-		test_memory(repeat, posix);
+		test_memory(repeat, posix, percentage);
 	}
 
 	if (teq)
