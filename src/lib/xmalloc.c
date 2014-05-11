@@ -942,12 +942,17 @@ bypass:
 		char *q;
 		g_assert(size_is_positive(missing));
 		q = sbrk(missing);
-		g_assert(ptr_add_offset(p, len) == q);	/* Contiguous zone */
-		p = ptr_add_offset(p, missing);
-		XSTATS_LOCK;
-		xstats.sbrk_wasted_bytes += missing;
-		XSTATS_UNLOCK;
-		sbrk_alignment += missing;
+
+		if G_UNLIKELY((void *) -1 == q) {
+			p = (void *) -1;
+		} else {
+			g_assert(ptr_add_offset(p, len) == q);	/* Contiguous zone */
+			p = ptr_add_offset(p, missing);
+			XSTATS_LOCK;
+			xstats.sbrk_wasted_bytes += missing;
+			XSTATS_UNLOCK;
+			sbrk_alignment += missing;
+		}
 	}
 #else
 	(void) locked;
