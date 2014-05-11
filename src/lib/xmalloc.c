@@ -3602,15 +3602,16 @@ assert_chunk_upointer_valid(const struct xchunk *xck, const void *p)
  *
  * @param xck		the thread chunk to check
  * @param stid		the thread ID to which chunk belongs
+ * @param local		TRUE if we're running in the context of the thread
  */
 static void
-assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid)
+assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid, bool local)
 {
 	unsigned free_items, free_count;
 	const void *p;
 
 	g_assert(xmalloc_chunk_is_valid(xck));
-	g_assert_log(xck->xc_stid == stid,
+	g_assert_log(!local || xck->xc_stid == stid,
 		"%s(): xck->xc_stid=%u, stid=%u", G_STRFUNC, xck->xc_stid, stid);
 
 	free_count = xck->xc_count;		/* Expected amount of free items */
@@ -3624,7 +3625,7 @@ assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid)
 
 	if G_UNLIKELY(free_count != xck->xc_count) {
 		s_error_from(_WHERE_,
-			"race condition whilst checking %zu-byte chunk %p in %s [#%u]",
+			"race condition whilst checking %zu-byte chunk %p for %s [#%u]",
 			xck->xc_head->blocksize, xck, thread_id_name(xck->xc_stid),
 			xck->xc_stid);
 	}
@@ -3633,13 +3634,13 @@ assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid)
 		return;
 
 	s_error_from(_WHERE_,
-		"corrupted freelist of %zu-byte chunk %p in %s [#%u]: "
+		"corrupted freelist in %zu-byte chunk %p for %s [#%u]: "
 		"expected %u free block%s, found %u",
 		xck->xc_head->blocksize, xck, thread_id_name(xck->xc_stid),
 		xck->xc_stid, free_count, plural(free_count), free_items);
 }
 #else
-#define assert_chunk_freelist_valid(x,s)
+#define assert_chunk_freelist_valid(x,s,l)
 #define assert_chunk_upointer_valid(x,p)
 #endif	/* XMALLOC_CHUNK_SAFETY */
 
@@ -3719,7 +3720,7 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	xmalloc_chunk_cram(xck);
 	XSTATS_INCX(vmm_thread_pages);
 
-	assert_chunk_freelist_valid(xck, stid);
+	assert_chunk_freelist_valid(xck, stid, TRUE);
 
 	return xck;
 }
@@ -3850,7 +3851,7 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 	g_assert(xck->xc_free_offset < xmalloc_pagesize);
 	g_assert(xck->xc_stid == stid);
 
-	assert_chunk_freelist_valid(xck, stid);
+	assert_chunk_freelist_valid(xck, stid, TRUE);
 
 	p = ptr_add_offset(xck, xck->xc_free_offset);
 	xck->xc_count--;
@@ -3877,17 +3878,22 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 		elist_append(&ch->full, xck);
 	}
 
-	assert_chunk_freelist_valid(xck, stid);
+	assert_chunk_freelist_valid(xck, stid, TRUE);
 
 	return p;
 }
 
 /**
  * Return block to thread-private chunk.
+ *
+ * @param xck		the chunk to which we want to return the block
+ * @param p			start of allocated block in chunk
+ * @param local		whether we're running in thread owning the chunk
  */
 static void
-xmalloc_chunk_return(struct xchunk *xck, void *p)
+xmalloc_chunk_return(struct xchunk *xck, void *p, bool local)
 {
+	(void) local;		/* Only used when safety chunk assertion are enabled */
 	assert_chunk_upointer_valid(xck, p);
 
 	/*
@@ -3962,7 +3968,7 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 		g_assert(uint_is_non_negative(xck->xc_free_offset));
 		g_assert(xck->xc_free_offset < xmalloc_pagesize);
 
-		assert_chunk_freelist_valid(xck, thread_small_id());
+		assert_chunk_freelist_valid(xck, thread_small_id(), local);
 
 		*(void **) p = head;
 		xck->xc_free_offset = ptr_diff(p, xck);
@@ -3979,7 +3985,7 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 			elist_append(&ch->list, xck);
 		}
 
-		assert_chunk_freelist_valid(xck, thread_small_id());
+		assert_chunk_freelist_valid(xck, thread_small_id(), local);
 	}
 }
 
@@ -3991,7 +3997,7 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
  * lock-free path.
  */
 static void
-xmalloc_thread_free_deferred(unsigned stid)
+xmalloc_thread_free_deferred(unsigned stid, bool local)
 {
 	struct xchunk *xck;
 	struct xcross *xcr;
@@ -4041,7 +4047,7 @@ xmalloc_thread_free_deferred(unsigned stid)
 		}
 
 		size += xck->xc_size;
-		xmalloc_chunk_return(xck, p);
+		xmalloc_chunk_return(xck, p, local);
 	}
 
 	g_assert(n == xcr->count);
@@ -4179,7 +4185,7 @@ xmalloc_thread_ended(unsigned stid)
 	 * reused any time soon.
 	 */
 
-	xmalloc_thread_free_deferred(stid);
+	xmalloc_thread_free_deferred(stid, FALSE);
 
 	/*
 	 * Reset thread allocation counts per chunk, which is only useful
@@ -4259,7 +4265,7 @@ xmalloc_thread_alloc(const size_t len)
 	 */
 
 	if G_UNLIKELY(xcross[stid].count != 0)
-		xmalloc_thread_free_deferred(stid);
+		xmalloc_thread_free_deferred(stid, TRUE);
 
 	return xmalloc_chunkhead_alloc(ch, stid);
 }
@@ -4403,7 +4409,7 @@ xmalloc_thread_free(void *p)
 
 		spinlock(&xcr->lock);
 		if G_UNLIKELY(xcr->dead) {
-			xmalloc_chunk_return(xck, p);
+			xmalloc_chunk_return(xck, p, FALSE);
 		} else {
 			*(void **) p = xcr->head;
 			xcr->head = p;
@@ -4425,14 +4431,14 @@ xmalloc_thread_free(void *p)
 	 * OK, block belongs to this thread, we can free safely.
 	 */
 
-	xmalloc_chunk_return(xck, p);
+	xmalloc_chunk_return(xck, p, TRUE);
 
 	/*
 	 * Handle any other pending blocks in the cross-thread free list.
 	 */
 
 	if G_UNLIKELY(xcross[stid].count != 0)
-		xmalloc_thread_free_deferred(stid);
+		xmalloc_thread_free_deferred(stid, TRUE);
 
 	return TRUE;
 }
