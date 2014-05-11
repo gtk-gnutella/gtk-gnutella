@@ -142,6 +142,8 @@ struct crash_vars {
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
+	const char *fail_name;	/**< Name of thread triggering assertion failure */
+	unsigned fail_stid;		/**< ID of thread triggering assertion failure */
 	pid_t pid;				/**< Initial process ID */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
@@ -1238,6 +1240,19 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	}
 	flush_str(clf);
 
+	if (vars->fail_name != NULL || vars->fail_stid != 0) {
+		rewind_str(0);
+		print_str("Thread-ID: ");						/* 0 */
+		print_str(PRINT_NUMBER(lbuf, vars->fail_stid));	/* 1 */
+		print_str("\n");								/* 2 */
+		if (vars->fail_name != NULL) {
+			print_str("Thread-Name: ");					/* 3 */
+			print_str(vars->fail_name);					/* 4 */
+			print_str("\n");							/* 5 */
+		}
+		flush_str(clf);
+	}
+
 	rewind_str(0);
 	print_str("Atomic-Operations: ");					/* 0 */
 	print_str(atomic_ops_available() ? "yes" : "no");	/* 1 */
@@ -1934,6 +1949,35 @@ parent_failure:
 }
 
 /**
+ * Record failing thread information.
+ */
+static void G_GNUC_COLD
+crash_record_thread(void)
+{
+	if (vars != NULL && NULL == vars->fail_name) {
+		unsigned stid = thread_safe_small_id();
+		const char *name;
+
+		if (-2U == stid) {
+			name = "could not compute thread ID";
+			crash_set_var(fail_name, name);
+		} else {
+			crash_set_var(fail_stid, stid);
+			if (vars->logck != NULL) {
+				const char *tname = thread_id_name(stid);
+				name = ck_strdup_readonly(vars->logck, tname);
+				if (NULL == name)
+					name = "could not allocate name";
+				crash_set_var(fail_name, name);
+			} else {
+				name = "no log chunk to allocate from";
+				crash_set_var(fail_name, name);
+			}
+		}
+	}
+}
+
+/**
  * Entering crash mode.
  */
 static G_GNUC_COLD void
@@ -1970,6 +2014,7 @@ crash_mode(void)
 			uint8 t = TRUE;
 
 			crash_set_var(crash_mode, t);
+			crash_record_thread();
 
 			/*
 			 * Configuring crash mode logging requires a formatting string.
