@@ -36,6 +36,19 @@
 
 #include "config.h"
 
+/**
+ * Undefining this symbol will cause gkt-gnutella to avoid using uninitialized
+ * values on the stack to collect initial entropy for random number seeds,
+ * and will prevent errors about "uninitialized value usage" when running under
+ * valgrind.
+ *
+ * By default, this symbol is defined because reading the uninitialized bytes
+ * results in undefined behaviour that precisely adds uncertainety, aka entropy.
+ */
+#if 1
+#define ALLOW_UNINIT_VALUES
+#endif
+
 #ifdef MINGW32
 /*
  * Must set WINVER before including ANY include on recent MinGW installations

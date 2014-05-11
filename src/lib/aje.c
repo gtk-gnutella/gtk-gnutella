@@ -694,6 +694,10 @@ aje_init(aje_state_t *as)
 	 * Use uninitialized stack values, then random values.
 	 */
 
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&buf);
+#endif
+
 	aje_add_entropy(as, buf, sizeof buf);
 
 	for (i = 0; i < 8; i++) {

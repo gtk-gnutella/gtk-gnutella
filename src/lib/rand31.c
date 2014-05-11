@@ -100,6 +100,10 @@ rand31_random_seed(void)
 	unsigned discard;
 	unsigned seed;
 
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&garbage);
+#endif
+
 	/*
 	 * Our simple PRNG has only 31 bits of internal state.
 	 *

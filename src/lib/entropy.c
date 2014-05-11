@@ -868,6 +868,10 @@ entropy_collect_garbage(SHA1_context *ctx)
 {
 	ulong garbage[RANDOM_SHUFFLE_MAX];	/* Left un-initialized on purpose */
 
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&garbage);
+#endif
+
 	entropy_array_ulong_collect(ctx, garbage, G_N_ELEMENTS(garbage));
 }
 
@@ -1191,6 +1195,10 @@ entropy_seed(struct entropy_minictx *c)
 		const char *astr[3] = { ".", "..", "/" };
 		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_stat);
 	}
+
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&garbage);
+#endif
 
 	SHA1_input(&ctx, garbage, sizeof garbage);
 	ENTROPY_CONTEXT_FEED;
