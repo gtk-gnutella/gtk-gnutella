@@ -277,6 +277,10 @@ host_addr_get_ipv4(uint32 ip)
 {
 	host_addr_t ha;
 
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&ha);			/* Needed for "valgrind" */
+#endif
+
 	ha.net = NET_TYPE_IPV4;
 	ha.addr.ipv4 = ip;
 	return ha;
@@ -292,7 +296,11 @@ static inline G_GNUC_PURE host_addr_t
 host_addr_peek_ipv6(const void *ipv6)
 {
 	host_addr_t ha;
-	
+
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&ha);			/* Needed for "valgrind" */
+#endif
+
 	ha.net = NET_TYPE_IPV6;
 	memcpy(ha.addr.ipv6, ipv6, 16);
 	return ha;

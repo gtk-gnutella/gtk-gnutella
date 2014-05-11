@@ -934,6 +934,18 @@ bypass:
 	p = sbrk(len);
 
 	/*
+	 * When running under valgrind, we want to avoid false reports of
+	 * uninitialized memory reads.  Since xmalloc_thread_get_chunk() can
+	 * probe memory that has been allocated on the head, we need to make
+	 * sure everything we get from sbrk() is indeed initialized to 0.
+	 */
+
+#ifndef ALLOW_UNINIT_VALUES
+	if G_LIKELY((void *) -1 != p)
+		memset(p, 0, len);
+#endif
+
+	/*
 	 * Ensure pointer is aligned.
 	 */
 
@@ -942,6 +954,11 @@ bypass:
 		char *q;
 		g_assert(size_is_positive(missing));
 		q = sbrk(missing);
+
+#ifndef ALLOW_UNINIT_VALUES
+		if G_LIKELY((void *) -1 != q)
+			memset(q, 0, len);
+#endif
 
 		if G_UNLIKELY((void *) -1 == q) {
 			p = (void *) -1;
