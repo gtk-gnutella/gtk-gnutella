@@ -3505,7 +3505,7 @@ xmalloc_chunk_is_valid(const struct xchunk *xck)
 	if (xck->xc_stid >= XM_THREAD_COUNT)
 		return FALSE;
 
-	if (xck->xc_count >= xck->xc_capacity)
+	if (xck->xc_count > xck->xc_capacity)
 		return FALSE;
 
 	ch = &xchunkhead[xch_find_chunkhead_index(xck->xc_size)][xck->xc_stid];
