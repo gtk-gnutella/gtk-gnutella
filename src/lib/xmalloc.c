@@ -3894,7 +3894,9 @@ static void
 xmalloc_chunk_return(struct xchunk *xck, void *p, bool local)
 {
 	(void) local;		/* Only used when safety chunk assertion are enabled */
+
 	assert_chunk_upointer_valid(xck, p);
+	assert_chunk_freelist_valid(xck, thread_small_id(), local);
 
 	/*
 	 * If returning the block makes the whole chunk free, free that chunk.
@@ -3967,8 +3969,6 @@ xmalloc_chunk_return(struct xchunk *xck, void *p, bool local)
 
 		g_assert(uint_is_non_negative(xck->xc_free_offset));
 		g_assert(xck->xc_free_offset < xmalloc_pagesize);
-
-		assert_chunk_freelist_valid(xck, thread_small_id(), local);
 
 		*(void **) p = head;
 		xck->xc_free_offset = ptr_diff(p, xck);
