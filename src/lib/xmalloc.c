@@ -3610,7 +3610,8 @@ assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid)
 	const void *p;
 
 	g_assert(xmalloc_chunk_is_valid(xck));
-	g_assert(xck->xc_stid == stid);
+	g_assert_log(xck->xc_stid == stid,
+		"%s(): xck->xc_stid=%u, stid=%u", G_STRFUNC, xck->xc_stid, stid);
 
 	free_count = xck->xc_count;		/* Expected amount of free items */
 	free_items = 0;
