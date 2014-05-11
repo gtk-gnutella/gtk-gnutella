@@ -98,6 +98,9 @@
 #if 0
 #define XMALLOC_PTR_SAFETY		/* Adds costly pointer validation */
 #endif
+#if 0
+#define XMALLOC_CHUNK_SAFETY	/* Adds expensive thread chunk checking */
+#endif
 
 /*
  * The VMM layer is based on mmap() and falls back to posix_memalign()
@@ -3524,6 +3527,99 @@ xmalloc_chunk_is_valid(const struct xchunk *xck)
 	return TRUE;
 }
 
+#ifdef XMALLOC_CHUNK_SAFETY
+/**
+ * Is pointer that of a valid block in the chunk?
+ */
+static bool
+xmalloc_chunk_valid_ptr(const struct xchunk *xck, const void *p)
+{
+	unsigned blocksize = xck->xc_head->blocksize;
+	unsigned capacity, offset;
+	const void *start, *end = const_ptr_add_offset(xck, xmalloc_pagesize);
+
+	/*
+	 * See diagram in xmalloc_chunk_allocate() to understand the logic here.
+	 */
+
+	capacity = (xmalloc_pagesize - sizeof *xck) / blocksize;
+	offset = xmalloc_pagesize - capacity * blocksize;
+	start = const_ptr_add_offset(xck, offset);
+
+	/* Block must be within the allocatable range within the chunk */
+	if G_UNLIKELY(ptr_cmp(p, start) < 0 || ptr_cmp(p, end) >= 0)
+		return FALSE;
+
+	/* Block must be properly aligned within the chunk */
+	if G_UNLIKELY(0 != ptr_diff(end, p) % blocksize)
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Make sure the pointer is that of an allocatable block in the chunk.
+ *
+ * @param xck		the chunk where block is supposed to be allocated from
+ * @param p			the memory block start address (user pointer)
+ */
+static void
+assert_chunk_upointer_valid(const struct xchunk *xck, const void *p)
+{
+	if G_LIKELY(xmalloc_chunk_valid_ptr(xck, p))
+		return;
+
+	s_error_from(_WHERE_,
+		"invalid chunk user pointer %p in %zu-byte chunk %p for %s [#%u]",
+		p, xck->xc_head->blocksize, xck, thread_id_name(xck->xc_stid),
+		xck->xc_stid);
+}
+
+/**
+ * Make sure the chunk freelist is consistent.
+ *
+ * @param xck		the thread chunk to check
+ * @param stid		the thread ID to which chunk belongs
+ */
+static void
+assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid)
+{
+	unsigned free_items, free_count;
+	const void *p;
+
+	g_assert(xmalloc_chunk_is_valid(xck));
+	g_assert(xck->xc_stid == stid);
+
+	free_count = xck->xc_count;		/* Expected amount of free items */
+	free_items = 0;
+	p = const_ptr_add_offset(xck, xck->xc_free_offset);
+
+	while (xmalloc_chunk_valid_ptr(xck, p)) {
+		free_items++;
+		p = *(void **) p;			/* Next free block */
+	}
+
+	if G_UNLIKELY(free_count != xck->xc_count) {
+		s_error_from(_WHERE_,
+			"race condition whilst checking %zu-byte chunk %p in %s [#%u]",
+			xck->xc_head->blocksize, xck, thread_id_name(xck->xc_stid),
+			xck->xc_stid);
+	}
+
+	if G_LIKELY(free_items == free_count)
+		return;
+
+	s_error_from(_WHERE_,
+		"corrupted freelist of %zu-byte chunk %p in %s [#%u]: "
+		"expected %u free block%s, found %u",
+		xck->xc_head->blocksize, xck, thread_id_name(xck->xc_stid),
+		xck->xc_stid, free_count, plural(free_count), free_items);
+}
+#else
+#define assert_chunk_freelist_valid(x,s)
+#define assert_chunk_upointer_valid(x,p)
+#endif	/* XMALLOC_CHUNK_SAFETY */
+
 /**
  * Cram a new chunk, linking each free block and making sure the first block
  * is the head of that list.
@@ -3599,6 +3695,8 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 
 	xmalloc_chunk_cram(xck);
 	XSTATS_INCX(vmm_thread_pages);
+
+	assert_chunk_freelist_valid(xck, stid);
 
 	return xck;
 }
@@ -3729,6 +3827,8 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 	g_assert(xck->xc_free_offset < xmalloc_pagesize);
 	g_assert(xck->xc_stid == stid);
 
+	assert_chunk_freelist_valid(xck, stid);
+
 	p = ptr_add_offset(xck, xck->xc_free_offset);
 	xck->xc_count--;
 	next = *(void **) p;		/* Next free block */
@@ -3754,6 +3854,8 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 		elist_append(&ch->full, xck);
 	}
 
+	assert_chunk_freelist_valid(xck, stid);
+
 	return p;
 }
 
@@ -3763,6 +3865,8 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 static void
 xmalloc_chunk_return(struct xchunk *xck, void *p)
 {
+	assert_chunk_upointer_valid(xck, p);
+
 	/*
 	 * If returning the block makes the whole chunk free, free that chunk.
 	 */
@@ -3835,6 +3939,8 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 		g_assert(uint_is_non_negative(xck->xc_free_offset));
 		g_assert(xck->xc_free_offset < xmalloc_pagesize);
 
+		assert_chunk_freelist_valid(xck, thread_small_id());
+
 		*(void **) p = head;
 		xck->xc_free_offset = ptr_diff(p, xck);
 
@@ -3849,6 +3955,8 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 			elist_remove(&ch->full, xck);
 			elist_append(&ch->list, xck);
 		}
+
+		assert_chunk_freelist_valid(xck, thread_small_id());
 	}
 }
 
