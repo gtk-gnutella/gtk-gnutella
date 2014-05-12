@@ -159,19 +159,10 @@ struct file_descriptor {
 };
 
 static inline void
-file_descriptor_check_minimal(const struct file_descriptor * const fd)
+file_descriptor_check(const struct file_descriptor * const fd)
 {
 	g_assert(fd != NULL);
 	g_assert(FILE_DESCRIPTOR_MAGIC == fd->magic);
-}
-
-static inline void
-file_descriptor_check(const struct file_descriptor * const fd)
-{
-	file_descriptor_check_minimal(fd);
-	g_assert(fd->pathname != NULL);
-	g_assert(fd->refcnt > 0);
-	g_assert(fd->refcnt < INT_MAX);
 }
 
 /*
@@ -190,7 +181,7 @@ static inline void
 file_object_check(const file_object_t * const fo)
 {
 	file_object_check_minimal(fo);
-	file_descriptor_check_minimal(fo->fd);
+	file_descriptor_check(fo->fd);
 }
 
 /**
@@ -264,7 +255,7 @@ file_object_find(const char * const pathname)
 	fd = file_object_lookup(pathname);
 
 	if (fd != NULL) {
-		file_descriptor_check_minimal(fd);
+		file_descriptor_check(fd);
 		g_assert(is_valid_fd(fd->fd));
 		g_assert(fd_accmode_is_valid(fd->fd, fd->omode));
 		g_assert(!fd->revoked);
@@ -279,7 +270,7 @@ file_object_find(const char * const pathname)
 static void
 file_object_free_descriptor(struct file_descriptor * const fd)
 {
-	file_descriptor_check_minimal(fd);
+	file_descriptor_check(fd);
 	g_assert(0 == fd->refcnt);
 
 	fd_close(&fd->fd);
@@ -404,7 +395,7 @@ file_object_alloc(struct file_descriptor *fd, int accmode,
 static void
 file_object_revoke(struct file_descriptor * const fd)
 {
-	file_descriptor_check_minimal(fd);
+	file_descriptor_check(fd);
 
 	assert_file_objects_locked();
 	g_return_if_fail(!fd->revoked);
