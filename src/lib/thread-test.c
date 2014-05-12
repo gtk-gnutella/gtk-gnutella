@@ -329,7 +329,7 @@ posix_threads(void *unused_arg)
 	fflush(stdout);
 
 	for (i = 0; i < 6; i++) {
-		posix_thread_create(posix_worker, NULL, FALSE);
+		(void) posix_thread_create(posix_worker, NULL, FALSE);
 	}
 
 	printf("POSIX thread launch done, mutating to worker...\n");
@@ -344,7 +344,7 @@ test_create(unsigned repeat, bool join, bool posix)
 	unsigned i;
 
 	if (posix) {
-		posix_thread_create(posix_threads, NULL, FALSE);
+		(void) posix_thread_create(posix_threads, NULL, FALSE);
 	}
 
 	for (i = 0; i < repeat; i++) {
