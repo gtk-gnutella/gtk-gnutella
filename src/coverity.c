@@ -54,6 +54,57 @@ log_abort(void)
 	__coverity_panic__();
 }
 
+typedef unsigned char uint8
+typedef volatile uint8 atomic_lock_t;
+
+bool
+atomic_acquire(atomic_lock_t *lock)
+{
+	bool success;
+	if (success) {
+		__coverity_exclusive_lock_acquire__(lock);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+void
+atomic_release(atomic_lock_t *lock)
+{
+	__coverity_exclusive_lock_release__(lock);
+}
+
+typedef struct spinlock { int lock } spinlock_t;
+
+void
+spinlock_set_owner(spinlock_t *s, const char *file, unsigned line)
+{
+	__coverity_exclusive_lock_acquire__(s);
+}
+
+void
+spinlock_clear_owner(spinlock_t *s)
+{
+	__coverity_exclusive_lock_release(s);
+}
+
+typedef struct lmutex { int lock; size_t depth } mutex_t;
+
+void
+mutex_recursive_get(mutex_t *m, const char *file, unsigned line)
+{
+	m->depth++;
+	__coverity_recursive_lock_acquire__(m);
+}
+
+size_t
+mutex_recursive_release(mutex_t *m)
+{
+	size_t depth = --m->depth;
+	__coverity_recursive_lock_release__(m);
+	return depth;
+}
+
 void *
 vmm_valloc(void *hint, size_t size)
 {

@@ -72,6 +72,26 @@ mutex_check(const volatile mutex_t * const m)
 	g_assert(mutex_is_valid(m));
 }
 
+static inline void ALWAYS_INLINE
+mutex_recursive_get(mutex_t *m)
+{
+	m->depth++;
+}
+
+static inline size_t ALWAYS_INLINE
+mutex_recursive_release(mutex_t *m)
+{
+	return --m->depth;
+}
+
+static inline void ALWAYS_INLINE
+mutex_set_owner(mutex_t *m, const char *file, unsigned line)
+{
+	m->depth = 1;
+	m->lock.file = file;
+	m->lock.line = line;
+}
+
 /**
  * Enter crash mode: allow all mutexes to be silently released.
  */
@@ -315,29 +335,23 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 
 #define MUTEX_GRAB											\
 	if (mutex_is_owned_by_fast(m, t)) {						\
-		m->depth++;											\
+		mutex_recursive_get(m);								\
 	} else if (spinlock_hidden_try(&m->lock)) {				\
 		thread_set(m->owner, t);							\
-		m->depth = 1;										\
-		m->lock.file = file;								\
-		m->lock.line = line;								\
+		mutex_set_owner(m, file, line);						\
 	} else {												\
 		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
 			mutex_deadlock, mutex_deadlocked, file, line);	\
 		thread_set(m->owner, t);							\
-		m->depth = 1;										\
-		m->lock.file = file;								\
-		m->lock.line = line;								\
+		mutex_set_owner(m, file, line);						\
 	}
 
 #define MUTEX_GRAB_TRY										\
 	if (mutex_is_owned_by_fast(m, t)) {						\
-		m->depth++;											\
+		mutex_recursive_get(m);								\
 	} else if (spinlock_hidden_try(&m->lock)) {				\
 		thread_set(m->owner, t);							\
-		m->depth = 1;										\
-		m->lock.file = file;								\
-		m->lock.line = line;								\
+		mutex_set_owner(m, file, line);						\
 	} else {												\
 		return FALSE;										\
 	}
@@ -560,7 +574,7 @@ mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
 		mutex_log_error(m, file, line);
 	}
 
-	if (0 == --m->depth) {
+	if (0 == mutex_recursive_release(m)) {
 		thread_set(m->owner, THREAD_NONE);
 		spinunlock_hidden(&m->lock);	/* Acts as a "release barrier" */
 	}
