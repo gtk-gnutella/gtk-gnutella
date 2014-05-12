@@ -2593,6 +2593,16 @@ retry:
 	if (te != NULL) {
 		if (!te->discovered)
 			atomic_uint_inc(&thread_discovered);
+
+		/*
+		 * We have a thread element for the discovered thread, and hence a
+		 * thread ID.  It is critical to let the xmalloc() layer know that this
+		 * thread is now running so that it can make sure cross-thread freeing
+		 * works correctly for the thread chunks used by the discovered thread.
+		 */
+
+		xmalloc_thread_starting(te->stid);
+
 		tstid[te->stid] = t;
 		thread_instantiate(te, t);
 		goto created;
