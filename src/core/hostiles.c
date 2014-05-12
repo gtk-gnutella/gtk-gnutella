@@ -77,7 +77,6 @@ typedef enum {
 	NUM_HOSTILES
 } hostiles_t;
 
-static const char hostile[] = "hostile";
 static const char hostiles_file[] = "hostiles.txt";
 static const char * const hostiles_what[NUM_HOSTILES] = {
 	"hostile IP addresses (global)",

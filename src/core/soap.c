@@ -105,7 +105,6 @@ static const char SOAP_CONTENT_TYPE[]	= "text/xml; charset=\"utf-8\"";
 static const char SOAP_X_ENVELOPE[]		= "Envelope";
 static const char SOAP_X_BODY[]			= "Body";
 static const char SOAP_X_FAULT[]		= "Fault";
-static const char SOAP_X_PREFIX[]		= "SOAP";
 static const char SOAP_X_ENC_STYLE[]	= "encodingStyle";
 
 static const char SOAP_NAMESPACE[] =

@@ -53,8 +53,6 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const char bogon[] = "bogon";
-
 static const char bogons_file[] = "bogons.txt";
 static const char bogons_what[] = "Bogus IP addresses";
 
