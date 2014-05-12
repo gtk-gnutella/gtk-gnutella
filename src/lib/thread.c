@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 Raphael Manfredi
+ * Copyright (c) 2011-2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -66,7 +66,7 @@
  * argument.
  *
  * @author Raphael Manfredi
- * @date 2011-2013
+ * @date 2011-2014
  */
 
 #include "common.h"
@@ -452,6 +452,21 @@ static unsigned thread_allocated_stid;
  */
 static unsigned thread_next_stid;
 static spinlock_t thread_next_stid_slk = SPINLOCK_INIT;
+
+/**
+ * Pre-allocated next thread element.
+ *
+ * Because we cannot create the current thread element for a discovered thread
+ * on the fly (whilst holding the global thread mutex, we cannot attempt to
+ * allocate memory since memory allocators are going to acquire locks and the
+ * current thread does not have its thread element yet), each thread we create
+ * is responsible for pre-allocating the next thread element to be used.
+ *
+ * These two variables are only handled under the global "thread_insert_mtx"
+ * mutex protection.
+ */
+static unsigned thread_allocated_count;
+static struct thread_element *thread_next_te;
 
 /**
  * QID cache.
@@ -1655,10 +1670,34 @@ thread_sigstack_allocate(struct thread_element *te)
 }
 
 /**
+ * Allocate a new thread element in advance, if we haven't yet allocated all
+ * our thread elements.
+ */
+static void
+thread_preallocate_element(void)
+{
+	assert_mutex_is_owned(&thread_insert_mtx);
+
+	if G_UNLIKELY(THREAD_MAX == thread_allocated_count)
+		return;
+
+	if G_UNLIKELY(NULL != thread_next_te)
+		return;
+
+	thread_allocated_count++;
+	OMALLOC0(thread_next_te);		/* Never freed */
+}
+
+/**
  * Allocate a new thread element, partially initialized.
  *
  * The ``tid'' field is left uninitialized and will have to be filled-in
  * when the item is activated, as well as other thread-specific fields.
+ *
+ * @attention
+ * After each call to thread_new_element(), one needs to call
+ * thread_preallocate_element() before releasing the "thread_insert_mtx"
+ * mutex, to prepare for the next thread.
  */
 static struct thread_element *
 thread_new_element(unsigned stid)
@@ -1675,7 +1714,16 @@ thread_new_element(unsigned stid)
 		g_assert_not_reached();
 	}
 
-	OMALLOC0(te);					/* Never freed! */
+	/*
+	 * Use pre-allocated element, since we cannot allocate memory yet in
+	 * the context of this thread.
+	 */
+
+	g_assert(thread_next_te != NULL);
+
+	te = thread_next_te;
+	thread_next_te = NULL;
+
 	te->magic = THREAD_ELEMENT_MAGIC;
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
@@ -1817,6 +1865,14 @@ thread_main_element(thread_t t)
 	thread_update_next_stid();
 
 	/*
+	 * Pre-allocate the next thread element. whilst we're holding the global
+	 * "thread_insert_mtx" lock.
+	 */
+
+	thread_allocated_count++;		/* Main thread */
+	thread_preallocate_element();
+
+	/*
 	 * Now we can allocate memory because we have created enough context
 	 * for the main thread to let any other thread created be thread #1.
 	 *
@@ -1941,8 +1997,18 @@ thread_find_element(void)
 			if (stid >= THREAD_MAX)
 				return NULL;			/* No more slots available */
 
+			/*
+			 * In case there is nothing pre-allocated yet (which could be
+			 * the case for the main thread, when we create new threads as
+			 * part of the automatic initialization), make sure there is
+			 * a thread element available before calling thread_new_element().
+			 */
+
+			thread_preallocate_element();
+
 			te = thread_new_element(stid);
 			thread_update_next_stid();
+			thread_preallocate_element();
 		}
 	}
 
@@ -2575,12 +2641,26 @@ retry:
 	 * for the current thread to be able to reuse thread elements (and
 	 * their small ID) when we detect that a thread has exited or when
 	 * we create our own threads.
+	 *
+	 * This strategy also allows us to pre-allocate thread elements so that
+	 * we do not have to allocate memory in a discovered thread before it is
+	 * properly instantiated, which could lead to problems should locks be
+	 * taken by the memory allocator.
+	 *		--RAM, 2014-05-12
 	 */
 
 	atomic_uint_inc(&thread_discovered);
 	te = thread_new_element(stid);
 	thread_instantiate(te, t);
 	thread_update_next_stid();
+
+	/*
+	 * Now that the discovered thread has been properly instantiated, we are
+	 * able to allocate memory for this thread.  Pre-allocate the next thread
+	 * element in case we have another thread to discover later.
+	 */
+
+	thread_preallocate_element();
 
 	/* FALL THROUGH */
 
