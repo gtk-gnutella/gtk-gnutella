@@ -385,6 +385,7 @@ qrp_hash(const char *s, int bits)
  * Code should use RT_SLOT_READ() only.
  */
 
+#if 0
 static inline unsigned
 RT_SLOT_READ_div(const uint8 *arena, uint i)
 {
@@ -430,6 +431,7 @@ RT_SLOT_READ_and1(const uint8 *arena, uint i)
 {
 	return 1U & (arena[i >> 3] >> (~i & 0x7));
 }
+#endif	/* Unused routines */
 
 static inline unsigned
 RT_SLOT_READ_and128(const uint8 *arena, uint i)

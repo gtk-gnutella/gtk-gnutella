@@ -351,14 +351,6 @@ found_contains(const void *key)
 	return hset_contains(f->hs, key);
 }
 
-static inline size_t
-found_contains_count(void)
-{
-	struct found_struct *f = found_get();
-
-	return hset_count(f->hs);
-}
-
 static void
 found_insert(const void *key)
 {
