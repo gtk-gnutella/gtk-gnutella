@@ -46,6 +46,7 @@
 #include "log.h"
 #include "misc.h"
 #include "mutex.h"
+#include "once.h"
 #include "parse.h"
 #include "path.h"
 #include "random.h"
@@ -1617,6 +1618,22 @@ exercise_list_add(const struct memory *m)
 	EXERCISE_LIST_UNLOCK;
 }
 
+static void
+exercise_list_shuffle_once(void)
+{
+	EXERCISE_LIST_LOCK;
+	exercise_list = pslist_shuffle(exercise_list);
+	EXERCISE_LIST_UNLOCK;
+}
+
+static void
+exercise_list_shuffle(void)
+{
+	static once_flag_t flag;
+
+	once_flag_run(&flag, exercise_list_shuffle_once);
+}
+
 static bool
 exercise_list_remove(struct memory *m)
 {
@@ -1764,6 +1781,8 @@ exercise_memory(void *arg)
 	{
 		size_t remote = fill * ep->percentage / 100;
 		struct memory m;
+
+		exercise_list_shuffle();
 
 		while (remote-- && exercise_list_remove(&m))
 			exercise_free_memory(&m);
