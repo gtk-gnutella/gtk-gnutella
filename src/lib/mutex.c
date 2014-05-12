@@ -306,6 +306,7 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	 */
 
 	if G_UNLIKELY(MUTEX_MODE_FAST == mode) {
+		*element = NULL;
 		return thread_self();
 	} else {
 		return thread_current_element(element);
@@ -354,7 +355,7 @@ void
 mutex_grab_from(mutex_t *m, enum mutex_mode mode,
 	const char *file, unsigned line)
 {
-	const void *element = NULL;
+	const void *element;
 	thread_t t;
 
 	mutex_check(m);
@@ -391,7 +392,7 @@ bool
 mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
 	const char *file, unsigned line)
 {
-	const void *element = NULL;
+	const void *element;
 	thread_t t;
 
 	mutex_check(m);
@@ -417,7 +418,7 @@ void
 mutex_grab_swap_from(mutex_t *m, const void *plock,
 	const char *file, unsigned line)
 {
-	const void *element = NULL;
+	const void *element;
 	thread_t t;
 
 	mutex_check(m);
@@ -442,7 +443,7 @@ bool
 mutex_grab_swap_try_from(mutex_t *m, const void *plock,
 	const char *file, unsigned line)
 {
-	const void *element = NULL;
+	const void *element;
 	thread_t t;
 
 	mutex_check(m);
@@ -537,7 +538,7 @@ void
 mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
 	const char *file, unsigned line)
 {
-	const void *element = NULL;
+	const void *element;
 	thread_t t;
 
 	mutex_check(m);
