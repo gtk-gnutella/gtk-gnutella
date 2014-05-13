@@ -54,8 +54,11 @@ log_abort(void)
 	__coverity_panic__();
 }
 
-typedef unsigned char uint8
+typedef unsigned char uint8;
 typedef volatile uint8 atomic_lock_t;
+
+const bool TRUE = 1;
+const bool FALSE = 0;
 
 bool
 atomic_acquire(atomic_lock_t *lock)
@@ -85,7 +88,7 @@ spinlock_set_owner(spinlock_t *s, const char *file, unsigned line)
 void
 spinlock_clear_owner(spinlock_t *s)
 {
-	__coverity_exclusive_lock_release(s);
+	__coverity_exclusive_lock_release__(s);
 }
 
 typedef struct lmutex { int lock; size_t depth } mutex_t;
