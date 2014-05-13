@@ -97,7 +97,7 @@ read_memory(int fd[2], const unsigned char *addr, size_t length,
 	}
 }
 
-static inline enum shell_reply	/* "inline" to avoid warning if unused */
+static enum shell_reply	G_GNUC_UNUSED	/* May be unused */
 shell_exec_memory_dump(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {

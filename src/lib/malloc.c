@@ -436,7 +436,7 @@ real_malloc_safe_size(size_t size)
 /**
  * Mark allocated block trailer.
  */
-static void
+static void G_GNUC_UNUSED
 block_write_trailer(void *o, size_t size)
 {
 	size_t trailer = MALLOC_TRAILER_LEN;
@@ -460,7 +460,7 @@ block_write_trailer(void *o, size_t size)
  *
  * @return whether an error was detected.
  */
-static bool
+static bool G_GNUC_UNUSED
 block_check_trailer(const void *o, size_t size,
 	const char *file, int line, const char *op_file, int op_line,
 	bool showstack)
@@ -545,11 +545,13 @@ block_check_marks(const void *o, struct block *b,
 #endif	/* TRACK_MALLOC */
 
 #else	/* !MALLOC_SAFE */
-static inline void block_write_trailer(void *o, size_t size)
+static inline void G_GNUC_UNUSED
+block_write_trailer(void *o, size_t size)
 {
 	(void) o; (void) size;
 }
-static inline bool block_check_trailer(const void *o, size_t size,
+static inline bool G_GNUC_UNUSED
+block_check_trailer(const void *o, size_t size,
 	const char *file, int line, const char *op_file, int op_line,
 	bool showstack)
 {

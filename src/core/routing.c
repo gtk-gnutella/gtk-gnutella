@@ -273,7 +273,7 @@ route_node_is_gnutella(const void *node)
  * Checks whether the generic pointer in "struct route_data" points to a
  * routing_udp_node.
  */
-static inline bool
+static inline bool G_GNUC_UNUSED
 route_node_is_udp(const void *node)
 {
 	g_assert(node != NULL);

@@ -1034,7 +1034,7 @@ g_mem_is_system_malloc(void)
 /**
  * Safe reallocation routine during final memory cleanup.
  */
-static inline void *
+static inline void * G_GNUC_UNUSED
 safe_realloc(void *p, size_t len)
 {
 	if (NULL == p) {
@@ -1051,7 +1051,7 @@ safe_realloc(void *p, size_t len)
 /**
  * Safe free routine during final memory cleanup.
  */
-static inline void
+static inline void G_GNUC_UNUSED
 safe_free(void *unused_p)
 {
 	(void) unused_p;

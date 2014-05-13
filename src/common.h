@@ -584,6 +584,16 @@ typedef int socket_fd_t;
 #endif
 
 /*
+ * Let the compiler know that the function may be unused, hence it should
+ * not emit any warning about it.
+ */
+#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
+#define G_GNUC_UNUSED __attribute__((__unused__))
+#else	/* GCC < 3.1 */
+#define G_GNUC_UNUSED
+#endif
+
+/*
  * The antidote for WARN_UNUSED_RESULT. This attribute is sometimes
  * misused for functions that return a result which SHOULD NOT be
  * ignored in contrast to MUST NOT. Unfortunately, a simple "(void)"
