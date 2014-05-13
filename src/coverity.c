@@ -118,8 +118,13 @@ vmm_valloc(void *hint, size_t size)
 int
 munmap(void *addr, size_t size)
 {
+	bool ok;
 	__coverity_negative_sink__(size);
-	__coverity_free__(addr);
+	if (ok) {
+		__coverity_free__(addr);
+		return 0;
+	}
+	return -1;
 }
 
 struct cevent { int x; };
