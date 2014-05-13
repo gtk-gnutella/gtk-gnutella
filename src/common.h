@@ -578,9 +578,9 @@ typedef int socket_fd_t;
  * or seems to be unused.
  */
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define KEEP_FUNCTION __attribute__((__used__))
+#define G_GNUC_USED __attribute__((__used__))
 #else /* GCC < 3.1 || !GCC */
-#define KEEP_FUNCTION
+#define G_GNUC_USED
 #endif
 
 /*
