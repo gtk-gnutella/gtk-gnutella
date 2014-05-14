@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-04-19 18:25+0200\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -20,14 +20,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms:  nplurals=2; plural=(1 != n);\n"
 "X-Generator: KBabel 1.10.2\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr ""
-
-#, fuzzy
-msgid "times|x"
-msgstr "Χρόνος λειτουργίας"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1656,9 +1648,6 @@ msgstr ""
 msgid "Launched TTH file verifications"
 msgstr ""
 
-msgid "Bitzi tickets held"
-msgstr ""
-
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
@@ -1741,6 +1730,13 @@ msgstr ""
 #, fuzzy
 msgid "DHT forced bucket merges"
 msgstr "Παραμορφωμένη εντολή"
+
+#, fuzzy
+msgid "DHT bucket merges"
+msgstr "Παραμορφωμένη εντολή"
+
+msgid "DHT bucket splits"
+msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -2793,9 +2789,6 @@ msgstr "Επίπεδο αποσφαλμάτωσης αποστολών."
 msgid "Debug level for code shared between gui and core."
 msgstr ""
 "Επίπεδο αποσφαλμάτωσης κώδικα επικοινωνίας γραφικού ενδιαμέσου και πυρήνα."
-
-msgid "Verbosity of Bitzi related debug messages."
-msgstr ""
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr ""
@@ -6443,49 +6436,6 @@ msgstr "Άγνωστη εντολή"
 msgid "Help: "
 msgstr "Βοήθεια: "
 
-msgid "Bitzi|Unknown"
-msgstr "Άγνωστο"
-
-#, fuzzy
-msgid "Bitzi|Unrated"
-msgstr "Υποτιμημένο"
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
-
-msgid "Bitzi|Filesize mismatch"
-msgstr ""
-
-msgid "Bitzi|Dangerous/Misleading"
-msgstr "Επικίνδυνο/Παραπλανητικό"
-
-msgid "Bitzi|Incomplete/Damaged"
-msgstr "Ανολοκλήρωτο/Κατεστραμμένο"
-
-msgid "Bitzi|Substandard"
-msgstr "Υποδεέστερο"
-
-msgid "Bitzi|Overrated"
-msgstr "Υπερεκτιμημένο"
-
-msgid "Bitzi|Normal"
-msgstr "Κανονικό"
-
-msgid "Bitzi|Underrated"
-msgstr "Υποτιμημένο"
-
-msgid "Bitzi|Complete"
-msgstr "Ολοκληρωμένο"
-
-msgid "Bitzi|Recommended"
-msgstr "Προτεινόμενο"
-
-msgid "Bitzi|Best Version"
-msgstr "Καλύτερη Έκδοση"
-
-msgid "No other data"
-msgstr "Όχι άλλα δεδομένα"
-
 msgid "Filename"
 msgstr "Όνομα αρχείου"
 
@@ -6512,12 +6462,6 @@ msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr ""
 
 msgid "Tigertree"
-msgstr ""
-
-msgid "External metadata"
-msgstr ""
-
-msgid "Bitzi URL"
 msgstr ""
 
 msgid "Rescheduled for"
@@ -7160,14 +7104,6 @@ msgstr ""
 #, fuzzy
 msgid "Bind to this address"
 msgstr "Κακή διεύθυνση επιστροφής"
-
-#, fuzzy
-msgid "Bitzi Metadata"
-msgstr "Δεδομένα XML:"
-
-#, fuzzy
-msgid "Bitzi metadata"
-msgstr "Δεδομένα XML:"
 
 msgid "Browse Host"
 msgstr "Εξερεύνηση Υπολογιστή"
@@ -9093,9 +9029,6 @@ msgstr ""
 msgid " G2, "
 msgstr ""
 
-msgid "Not in database"
-msgstr "Όχι στη βάση δεδομένων"
-
 #, fuzzy
 msgid "owned"
 msgstr "Έγινε"
@@ -9119,9 +9052,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u αποτέλεσμα απορρίφθηκε"
 msgstr[1] "%u αποτελέσματα απορρίφθηκαν"
-
-msgid "Query queued..."
-msgstr "Το ερώτημα μπήκε στη λίστα αναμονής..."
 
 #, c-format
 msgid "%u term counted"
@@ -9862,25 +9792,12 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr ""
 
-msgid "SHA-1 is unknown."
-msgstr ""
-
-msgid "No Bitzi ticket requested yet."
-msgstr ""
-
-#, fuzzy
-msgid "Not in Bitzi database."
-msgstr "Όχι στη βάση δεδομένων"
-
 #, fuzzy
 msgid "Encoding"
 msgstr "εισερχόμενο"
 
 msgid "#"
 msgstr "#"
-
-msgid "Metadata"
-msgstr ""
 
 msgid "Never"
 msgstr "Ποτέ"
@@ -10033,6 +9950,65 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#, fuzzy
+#~ msgid "times|x"
+#~ msgstr "Χρόνος λειτουργίας"
+
+#~ msgid "Bitzi|Unknown"
+#~ msgstr "Άγνωστο"
+
+#, fuzzy
+#~ msgid "Bitzi|Unrated"
+#~ msgstr "Υποτιμημένο"
+
+#~ msgid "Bitzi|Dangerous/Misleading"
+#~ msgstr "Επικίνδυνο/Παραπλανητικό"
+
+#~ msgid "Bitzi|Incomplete/Damaged"
+#~ msgstr "Ανολοκλήρωτο/Κατεστραμμένο"
+
+#~ msgid "Bitzi|Substandard"
+#~ msgstr "Υποδεέστερο"
+
+#~ msgid "Bitzi|Overrated"
+#~ msgstr "Υπερεκτιμημένο"
+
+#~ msgid "Bitzi|Normal"
+#~ msgstr "Κανονικό"
+
+#~ msgid "Bitzi|Underrated"
+#~ msgstr "Υποτιμημένο"
+
+#~ msgid "Bitzi|Complete"
+#~ msgstr "Ολοκληρωμένο"
+
+#~ msgid "Bitzi|Recommended"
+#~ msgstr "Προτεινόμενο"
+
+#~ msgid "Bitzi|Best Version"
+#~ msgstr "Καλύτερη Έκδοση"
+
+#~ msgid "No other data"
+#~ msgstr "Όχι άλλα δεδομένα"
+
+#, fuzzy
+#~ msgid "Bitzi Metadata"
+#~ msgstr "Δεδομένα XML:"
+
+#, fuzzy
+#~ msgid "Bitzi metadata"
+#~ msgstr "Δεδομένα XML:"
+
+#~ msgid "Not in database"
+#~ msgstr "Όχι στη βάση δεδομένων"
+
+#~ msgid "Query queued..."
+#~ msgstr "Το ερώτημα μπήκε στη λίστα αναμονής..."
+
+#, fuzzy
+#~ msgid "Not in Bitzi database."
+#~ msgstr "Όχι στη βάση δεδομένων"
 
 #~ msgid "%u/%u connection"
 #~ msgid_plural "%u/%u connections"

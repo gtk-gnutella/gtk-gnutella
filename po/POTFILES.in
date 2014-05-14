@@ -1,7 +1,6 @@
 # List of source files containing translatable strings.
-# Regenerated on za 19 apr 2014 18:25:01 CEST
+# Regenerated on Wed May 14 19:31:37 CEST 2014
 
-src/core/bitzi.c
 src/core/downloads.c
 src/core/fileinfo.c
 src/core/g2/gwc.c
@@ -16,6 +15,7 @@ src/core/tx_link.c
 src/core/uhc.c
 src/core/uploads.c
 src/core/version.c
+src/coverity.c
 src/if/gen/gnr_stats.c
 src/if/gen/msg.c
 src/if/gen/msg_drop.c
@@ -47,7 +47,6 @@ src/shell/stats.c
 src/shell/task.c
 src/shell/thread.c
 src/shell/whatis.c
-src/ui/gtk/bitzi.c
 src/ui/gtk/downloads_common.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c

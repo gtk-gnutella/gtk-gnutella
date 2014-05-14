@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-04-19 18:25+0200\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
 "PO-Revision-Date: 2012-11-06 18:36+0100\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -21,13 +21,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Poedit-Language: German\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr "%s%s%s%s%s fps, %s kbps"
-
-msgid "times|x"
-msgstr "x"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1602,9 +1595,6 @@ msgstr ""
 msgid "Launched TTH file verifications"
 msgstr ""
 
-msgid "Bitzi tickets held"
-msgstr ""
-
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
@@ -1685,6 +1675,13 @@ msgstr ""
 #, fuzzy
 msgid "DHT forced bucket merges"
 msgstr "Fehlerhaftes Kommando"
+
+#, fuzzy
+msgid "DHT bucket merges"
+msgstr "Fehlerhaftes Kommando"
+
+msgid "DHT bucket splits"
+msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -2723,9 +2720,6 @@ msgstr "Debug-Level für Uploads"
 
 msgid "Debug level for code shared between gui and core."
 msgstr "Debug-Level für Code, der svon GUI und Kern genutzt wird."
-
-msgid "Verbosity of Bitzi related debug messages."
-msgstr ""
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr ""
@@ -6284,49 +6278,6 @@ msgstr "Unbekanntes Kommando"
 msgid "Help: "
 msgstr "Hilfe:"
 
-msgid "Bitzi|Unknown"
-msgstr "Unbekannt"
-
-#, fuzzy
-msgid "Bitzi|Unrated"
-msgstr "Unterbewertet"
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
-
-msgid "Bitzi|Filesize mismatch"
-msgstr ""
-
-msgid "Bitzi|Dangerous/Misleading"
-msgstr "Gefährlich/Irreführend"
-
-msgid "Bitzi|Incomplete/Damaged"
-msgstr "Unvollständig/Beschädigt"
-
-msgid "Bitzi|Substandard"
-msgstr "Unterdurchschnittlich"
-
-msgid "Bitzi|Overrated"
-msgstr "Überbewertet"
-
-msgid "Bitzi|Normal"
-msgstr "Normal"
-
-msgid "Bitzi|Underrated"
-msgstr "Unterbewertet"
-
-msgid "Bitzi|Complete"
-msgstr "Komplett"
-
-msgid "Bitzi|Recommended"
-msgstr "Empfohlen"
-
-msgid "Bitzi|Best Version"
-msgstr "Beste Version"
-
-msgid "No other data"
-msgstr ""
-
 msgid "Filename"
 msgstr "Dateiname"
 
@@ -6352,12 +6303,6 @@ msgstr ""
 
 msgid "Tigertree"
 msgstr ""
-
-msgid "External metadata"
-msgstr ""
-
-msgid "Bitzi URL"
-msgstr "Bitzi-URL"
 
 msgid "Rescheduled for"
 msgstr ""
@@ -6990,14 +6935,6 @@ msgstr ""
 
 msgid "Bind to this address"
 msgstr "Binde an diese Adresse"
-
-#, fuzzy
-msgid "Bitzi Metadata"
-msgstr "Meta-Daten bei bitzi.com anfragen"
-
-#, fuzzy
-msgid "Bitzi metadata"
-msgstr "Meta-Daten bei bitzi.com anfragen"
 
 msgid "Browse Host"
 msgstr ""
@@ -8885,9 +8822,6 @@ msgstr ""
 msgid " G2, "
 msgstr ""
 
-msgid "Not in database"
-msgstr "Nicht in Datenbank"
-
 msgid "owned"
 msgstr "Status"
 
@@ -8908,9 +8842,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u Treffer verworfen"
 msgstr[1] "%u Treffer verworfen"
-
-msgid "Query queued..."
-msgstr "In Warteschlange gestellt"
 
 #, c-format
 msgid "%u term counted"
@@ -9626,24 +9557,11 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr ""
 
-msgid "SHA-1 is unknown."
-msgstr ""
-
-msgid "No Bitzi ticket requested yet."
-msgstr ""
-
-#, fuzzy
-msgid "Not in Bitzi database."
-msgstr "Nicht in Datenbank"
-
 msgid "Encoding"
 msgstr ""
 
 msgid "#"
 msgstr ""
-
-msgid "Metadata"
-msgstr "Meta-Daten"
 
 msgid "Never"
 msgstr "Nie"
@@ -9795,6 +9713,70 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#~ msgid "%s%s%s%s%s fps, %s kbps"
+#~ msgstr "%s%s%s%s%s fps, %s kbps"
+
+#~ msgid "times|x"
+#~ msgstr "x"
+
+#~ msgid "Bitzi|Unknown"
+#~ msgstr "Unbekannt"
+
+#, fuzzy
+#~ msgid "Bitzi|Unrated"
+#~ msgstr "Unterbewertet"
+
+#~ msgid "Bitzi|Dangerous/Misleading"
+#~ msgstr "Gefährlich/Irreführend"
+
+#~ msgid "Bitzi|Incomplete/Damaged"
+#~ msgstr "Unvollständig/Beschädigt"
+
+#~ msgid "Bitzi|Substandard"
+#~ msgstr "Unterdurchschnittlich"
+
+#~ msgid "Bitzi|Overrated"
+#~ msgstr "Überbewertet"
+
+#~ msgid "Bitzi|Normal"
+#~ msgstr "Normal"
+
+#~ msgid "Bitzi|Underrated"
+#~ msgstr "Unterbewertet"
+
+#~ msgid "Bitzi|Complete"
+#~ msgstr "Komplett"
+
+#~ msgid "Bitzi|Recommended"
+#~ msgstr "Empfohlen"
+
+#~ msgid "Bitzi|Best Version"
+#~ msgstr "Beste Version"
+
+#~ msgid "Bitzi URL"
+#~ msgstr "Bitzi-URL"
+
+#, fuzzy
+#~ msgid "Bitzi Metadata"
+#~ msgstr "Meta-Daten bei bitzi.com anfragen"
+
+#, fuzzy
+#~ msgid "Bitzi metadata"
+#~ msgstr "Meta-Daten bei bitzi.com anfragen"
+
+#~ msgid "Not in database"
+#~ msgstr "Nicht in Datenbank"
+
+#~ msgid "Query queued..."
+#~ msgstr "In Warteschlange gestellt"
+
+#, fuzzy
+#~ msgid "Not in Bitzi database."
+#~ msgstr "Nicht in Datenbank"
+
+#~ msgid "Metadata"
+#~ msgstr "Meta-Daten"
 
 #~ msgid "%u/%u connection"
 #~ msgid_plural "%u/%u connections"

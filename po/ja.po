@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-04-19 18:25+0200\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -85,13 +85,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr "%s%s%s%s%s·フレーム/秒,·%s·kb/秒"
-
-msgid "times|x"
-msgstr "回"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1741,9 +1734,6 @@ msgstr ""
 msgid "Launched TTH file verifications"
 msgstr ""
 
-msgid "Bitzi tickets held"
-msgstr ""
-
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
@@ -1826,6 +1816,13 @@ msgstr ""
 #, fuzzy
 msgid "DHT forced bucket merges"
 msgstr "変なコマンドです"
+
+#, fuzzy
+msgid "DHT bucket merges"
+msgstr "変なコマンドです"
+
+msgid "DHT bucket splits"
+msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -2870,9 +2867,6 @@ msgstr "アップロードのデバッグレベルです。"
 
 msgid "Debug level for code shared between gui and core."
 msgstr "GUI とコアの間で共有されるコードのデバッグレベルです。"
-
-msgid "Verbosity of Bitzi related debug messages."
-msgstr "Bitzi 関連のデバッグメッセージの冗長度です。"
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr "URL ハンドリング関連のデバッグメッセージの冗長度です。"
@@ -6450,101 +6444,6 @@ msgstr "不明なコマンド: \"%s\""
 msgid "Help: "
 msgstr "へルプ: "
 
-msgid "Bitzi|Unknown"
-msgstr "不明"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# You believe others have incorrectly judged the file negatively.
-#
-msgid "Bitzi|Unrated"
-msgstr "未評価"
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr "参照失敗"
-
-msgid "Bitzi|Filesize mismatch"
-msgstr "ファイルサイズの不一致"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# The file is potentially dangerous (e.g., software containing a virus)
-# or purposefully misleading (e.g., music files containing advertisements
-# or noise after the first 30 seconds).
-#
-msgid "Bitzi|Dangerous/Misleading"
-msgstr "危険/誤解を招く"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# The file is truncated or otherwise incomplete or contains serious
-# errors (e.g., skips in the case of an audio file).
-#
-msgid "Bitzi|Incomplete/Damaged"
-msgstr "不完全/欠損あり"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# The file's overall quality is low (e.g., obvious pixelization in the
-# case of a video file).
-#
-msgid "Bitzi|Substandard"
-msgstr "標準以下"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# You believe others have incorrectly judged the file positively.
-#
-msgid "Bitzi|Overrated"
-msgstr "過大評価"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# You can't vouch for the file's quality, but can't find anything to
-# complain about either.
-#
-msgid "Bitzi|Normal"
-msgstr "普通"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# You believe others have incorrectly judged the file negatively.
-#
-msgid "Bitzi|Underrated"
-msgstr "過小評価"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# The file in question isn't truncated or otherwise damaged.
-#
-msgid "Bitzi|Complete"
-msgstr "完全"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# You recommend this copy to others interested in the encapsulated work.
-# Presumably this means the file is complete and has no obvious flaws.
-# This is a good judgement to use if you wholeheartedly endorse a file,
-# but aren't so sure that better versions aren't likely to exist.
-#
-msgid "Bitzi|Recommended"
-msgstr "推奨"
-
-# NOTE: (from http://bitzi.com/help/judge)
-#
-# There's no reason to think a superior copy exists. Note that there
-# could be multiple "best" copies. For example, a 192kbps encoding of a
-# song and a 64kbps encoding may both be the "best" available copies in
-# different contexts - the first where uncompromising quality is most
-# important, the second where small filesize is most important. This is
-# a very fuzzy area - use your best bitizen judgement!
-#
-msgid "Bitzi|Best Version"
-msgstr "最良版"
-
-msgid "No other data"
-msgstr "他のデータはありません"
-
 msgid "Filename"
 msgstr "ファイル名"
 
@@ -6569,12 +6468,6 @@ msgstr "ハッシュ数: %lu, 深度: %u, 粒度は%s"
 
 msgid "Tigertree"
 msgstr "TigerTree"
-
-msgid "External metadata"
-msgstr "外部メタデータ"
-
-msgid "Bitzi URL"
-msgstr "Bitzi URL"
 
 msgid "Rescheduled for"
 msgstr ""
@@ -7232,12 +7125,6 @@ msgstr ""
 
 msgid "Bind to this address"
 msgstr "このアドレスにバインドする"
-
-msgid "Bitzi Metadata"
-msgstr "Bitziメタデータ"
-
-msgid "Bitzi metadata"
-msgstr "Bitziメタデータ"
 
 msgid "Browse Host"
 msgstr "ホストの参照"
@@ -9178,9 +9065,6 @@ msgstr ""
 msgid " G2, "
 msgstr ""
 
-msgid "Not in database"
-msgstr "データベースにありません"
-
 msgid "owned"
 msgstr "取得済"
 
@@ -9209,9 +9093,6 @@ msgstr[0] "%u 件のダウンロードを作成しました。"
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u 件の結果を破棄しました。"
-
-msgid "Query queued..."
-msgstr "検索クエリーをキューに入れました..."
 
 #, c-format
 msgid "%u term counted"
@@ -9960,23 +9841,11 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr "検索文字列中のURNが不正です。"
 
-msgid "SHA-1 is unknown."
-msgstr "SHA-1が不明です。"
-
-msgid "No Bitzi ticket requested yet."
-msgstr ""
-
-msgid "Not in Bitzi database."
-msgstr "Bitziデータベースにありません"
-
 msgid "Encoding"
 msgstr "エンコード方式"
 
 msgid "#"
 msgstr "数"
-
-msgid "Metadata"
-msgstr "メタデータ"
 
 msgid "Never"
 msgstr "未発生"
@@ -10128,6 +9997,137 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
+
+#~ msgid "%s%s%s%s%s fps, %s kbps"
+#~ msgstr "%s%s%s%s%s·フレーム/秒,·%s·kb/秒"
+
+#~ msgid "times|x"
+#~ msgstr "回"
+
+#~ msgid "Verbosity of Bitzi related debug messages."
+#~ msgstr "Bitzi 関連のデバッグメッセージの冗長度です。"
+
+#~ msgid "Bitzi|Unknown"
+#~ msgstr "不明"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# You believe others have incorrectly judged the file negatively.
+#
+#~ msgid "Bitzi|Unrated"
+#~ msgstr "未評価"
+
+#~ msgid "Bitzi|Bitzi lookup failure"
+#~ msgstr "参照失敗"
+
+#~ msgid "Bitzi|Filesize mismatch"
+#~ msgstr "ファイルサイズの不一致"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# The file is potentially dangerous (e.g., software containing a virus)
+# or purposefully misleading (e.g., music files containing advertisements
+# or noise after the first 30 seconds).
+#
+#~ msgid "Bitzi|Dangerous/Misleading"
+#~ msgstr "危険/誤解を招く"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# The file is truncated or otherwise incomplete or contains serious
+# errors (e.g., skips in the case of an audio file).
+#
+#~ msgid "Bitzi|Incomplete/Damaged"
+#~ msgstr "不完全/欠損あり"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# The file's overall quality is low (e.g., obvious pixelization in the
+# case of a video file).
+#
+#~ msgid "Bitzi|Substandard"
+#~ msgstr "標準以下"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# You believe others have incorrectly judged the file positively.
+#
+#~ msgid "Bitzi|Overrated"
+#~ msgstr "過大評価"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# You can't vouch for the file's quality, but can't find anything to
+# complain about either.
+#
+#~ msgid "Bitzi|Normal"
+#~ msgstr "普通"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# You believe others have incorrectly judged the file negatively.
+#
+#~ msgid "Bitzi|Underrated"
+#~ msgstr "過小評価"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# The file in question isn't truncated or otherwise damaged.
+#
+#~ msgid "Bitzi|Complete"
+#~ msgstr "完全"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# You recommend this copy to others interested in the encapsulated work.
+# Presumably this means the file is complete and has no obvious flaws.
+# This is a good judgement to use if you wholeheartedly endorse a file,
+# but aren't so sure that better versions aren't likely to exist.
+#
+#~ msgid "Bitzi|Recommended"
+#~ msgstr "推奨"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# There's no reason to think a superior copy exists. Note that there
+# could be multiple "best" copies. For example, a 192kbps encoding of a
+# song and a 64kbps encoding may both be the "best" available copies in
+# different contexts - the first where uncompromising quality is most
+# important, the second where small filesize is most important. This is
+# a very fuzzy area - use your best bitizen judgement!
+#
+#~ msgid "Bitzi|Best Version"
+#~ msgstr "最良版"
+
+#~ msgid "No other data"
+#~ msgstr "他のデータはありません"
+
+#~ msgid "External metadata"
+#~ msgstr "外部メタデータ"
+
+#~ msgid "Bitzi URL"
+#~ msgstr "Bitzi URL"
+
+#~ msgid "Bitzi Metadata"
+#~ msgstr "Bitziメタデータ"
+
+#~ msgid "Bitzi metadata"
+#~ msgstr "Bitziメタデータ"
+
+#~ msgid "Not in database"
+#~ msgstr "データベースにありません"
+
+#~ msgid "Query queued..."
+#~ msgstr "検索クエリーをキューに入れました..."
+
+#~ msgid "SHA-1 is unknown."
+#~ msgstr "SHA-1が不明です。"
+
+#~ msgid "Not in Bitzi database."
+#~ msgstr "Bitziデータベースにありません"
+
+#~ msgid "Metadata"
+#~ msgstr "メタデータ"
 
 #~ msgid "%u/%u connection"
 #~ msgid_plural "%u/%u connections"

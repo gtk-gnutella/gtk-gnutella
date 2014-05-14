@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-04-19 18:25+0200\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
 "PO-Revision-Date: 2009-03-31 23:39+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norsk (bokmål) <nb@li.org>\n"
@@ -20,13 +20,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: KBabel 1.11.4\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr "%s%s%s%s%s fps, %s kbps"
-
-msgid "times|x"
-msgstr "x"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1618,10 +1611,6 @@ msgstr ""
 msgid "Launched TTH file verifications"
 msgstr ""
 
-#, fuzzy
-msgid "Bitzi tickets held"
-msgstr "Ingen Bitzi-billettforespørsler ennå."
-
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr "Gjenoppta kildeløse nedlastinger via søketreff"
 
@@ -1707,6 +1696,13 @@ msgstr "DHT fullførte oppdateringer av bøtter"
 #, fuzzy
 msgid "DHT forced bucket merges"
 msgstr "DHT fullførte oppdateringer av bøtter"
+
+#, fuzzy
+msgid "DHT bucket merges"
+msgstr "DHT fullførte oppdateringer av bøtter"
+
+msgid "DHT bucket splits"
+msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr "DHT nektet oppdatering av bøtte som ikke kunne splittes"
@@ -2755,9 +2751,6 @@ msgstr "Feilsøkingsnivå for opplastinger."
 
 msgid "Debug level for code shared between gui and core."
 msgstr "Feilsøkingsnivå for kode som deles mellom grensesnitt og kjerne."
-
-msgid "Verbosity of Bitzi related debug messages."
-msgstr "Utdypetheten til «Bitzi»-relaterte feilsøkingsmeldinger."
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr "Utdypethet for URL-håndteringsrelaterte feilsøkingsmeldinger."
@@ -6395,48 +6388,6 @@ msgstr "Ukjent kommando"
 msgid "Help: "
 msgstr "Hjelp: "
 
-msgid "Bitzi|Unknown"
-msgstr "Ukjent"
-
-msgid "Bitzi|Unrated"
-msgstr "Urangert"
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr "Feil ved Bitzi-oppslag"
-
-msgid "Bitzi|Filesize mismatch"
-msgstr "Filstørrelsen stemmer ikke"
-
-msgid "Bitzi|Dangerous/Misleading"
-msgstr "Farlig/Villedende"
-
-msgid "Bitzi|Incomplete/Damaged"
-msgstr "Uferdig/Skadet"
-
-msgid "Bitzi|Substandard"
-msgstr "Understandard"
-
-msgid "Bitzi|Overrated"
-msgstr "Overrangert"
-
-msgid "Bitzi|Normal"
-msgstr "Normal"
-
-msgid "Bitzi|Underrated"
-msgstr "Underrangert"
-
-msgid "Bitzi|Complete"
-msgstr "Fullført"
-
-msgid "Bitzi|Recommended"
-msgstr "Anbefalt"
-
-msgid "Bitzi|Best Version"
-msgstr "Beste versjon"
-
-msgid "No other data"
-msgstr "Ikke andre data"
-
 msgid "Filename"
 msgstr "Filnavn"
 
@@ -6461,12 +6412,6 @@ msgstr "bladverdier: %lu, dybde: %u, granulering: %s"
 
 msgid "Tigertree"
 msgstr "Tigertre"
-
-msgid "External metadata"
-msgstr "Extern metadata"
-
-msgid "Bitzi URL"
-msgstr "Bitzi-URL"
 
 msgid "Rescheduled for"
 msgstr ""
@@ -7094,12 +7039,6 @@ msgstr "Gjør filnavn finere ved å fjerne unødvendige understreker"
 
 msgid "Bind to this address"
 msgstr "Bind til denne adressen"
-
-msgid "Bitzi Metadata"
-msgstr "Bitzi-metadata"
-
-msgid "Bitzi metadata"
-msgstr "Bitzi-metadata"
 
 msgid "Browse Host"
 msgstr "Vis delte filer"
@@ -8967,9 +8906,6 @@ msgstr ""
 msgid " G2, "
 msgstr ""
 
-msgid "Not in database"
-msgstr "Ikke i databasen"
-
 msgid "owned"
 msgstr "eid"
 
@@ -8990,9 +8926,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "Overså %u resultat"
 msgstr[1] "Overså %u resultater"
-
-msgid "Query queued..."
-msgstr "Spørring lagt i kø . . ."
 
 #, c-format
 msgid "%u term counted"
@@ -9702,23 +9635,11 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr "URN'en i søketeksten er ugyldig."
 
-msgid "SHA-1 is unknown."
-msgstr "SHA-1 er ukjent"
-
-msgid "No Bitzi ticket requested yet."
-msgstr "Ingen Bitzi-billettforespørsler ennå."
-
-msgid "Not in Bitzi database."
-msgstr "Ikke i Bitzi-databasen"
-
 msgid "Encoding"
 msgstr "Koding"
 
 msgid "#"
 msgstr "#"
-
-msgid "Metadata"
-msgstr "Metadata"
 
 msgid "Never"
 msgstr "Aldri"
@@ -9874,6 +9795,91 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "%s%s%s%s%s fps, %s kbps"
+#~ msgstr "%s%s%s%s%s fps, %s kbps"
+
+#~ msgid "times|x"
+#~ msgstr "x"
+
+#, fuzzy
+#~ msgid "Bitzi tickets held"
+#~ msgstr "Ingen Bitzi-billettforespørsler ennå."
+
+#~ msgid "Verbosity of Bitzi related debug messages."
+#~ msgstr "Utdypetheten til «Bitzi»-relaterte feilsøkingsmeldinger."
+
+#~ msgid "Bitzi|Unknown"
+#~ msgstr "Ukjent"
+
+#~ msgid "Bitzi|Unrated"
+#~ msgstr "Urangert"
+
+#~ msgid "Bitzi|Bitzi lookup failure"
+#~ msgstr "Feil ved Bitzi-oppslag"
+
+#~ msgid "Bitzi|Filesize mismatch"
+#~ msgstr "Filstørrelsen stemmer ikke"
+
+#~ msgid "Bitzi|Dangerous/Misleading"
+#~ msgstr "Farlig/Villedende"
+
+#~ msgid "Bitzi|Incomplete/Damaged"
+#~ msgstr "Uferdig/Skadet"
+
+#~ msgid "Bitzi|Substandard"
+#~ msgstr "Understandard"
+
+#~ msgid "Bitzi|Overrated"
+#~ msgstr "Overrangert"
+
+#~ msgid "Bitzi|Normal"
+#~ msgstr "Normal"
+
+#~ msgid "Bitzi|Underrated"
+#~ msgstr "Underrangert"
+
+#~ msgid "Bitzi|Complete"
+#~ msgstr "Fullført"
+
+#~ msgid "Bitzi|Recommended"
+#~ msgstr "Anbefalt"
+
+#~ msgid "Bitzi|Best Version"
+#~ msgstr "Beste versjon"
+
+#~ msgid "No other data"
+#~ msgstr "Ikke andre data"
+
+#~ msgid "External metadata"
+#~ msgstr "Extern metadata"
+
+#~ msgid "Bitzi URL"
+#~ msgstr "Bitzi-URL"
+
+#~ msgid "Bitzi Metadata"
+#~ msgstr "Bitzi-metadata"
+
+#~ msgid "Bitzi metadata"
+#~ msgstr "Bitzi-metadata"
+
+#~ msgid "Not in database"
+#~ msgstr "Ikke i databasen"
+
+#~ msgid "Query queued..."
+#~ msgstr "Spørring lagt i kø . . ."
+
+#~ msgid "SHA-1 is unknown."
+#~ msgstr "SHA-1 er ukjent"
+
+#~ msgid "No Bitzi ticket requested yet."
+#~ msgstr "Ingen Bitzi-billettforespørsler ennå."
+
+#~ msgid "Not in Bitzi database."
+#~ msgstr "Ikke i Bitzi-databasen"
+
+#~ msgid "Metadata"
+#~ msgstr "Metadata"
 
 #~ msgid "%u/%u connection"
 #~ msgid_plural "%u/%u connections"

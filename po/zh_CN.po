@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-04-19 18:25+0200\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
 "PO-Revision-Date: 2009-12-05 16:18+0800\n"
 "Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
@@ -19,13 +19,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr ""
-
-msgid "times|x"
-msgstr ""
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1591,9 +1584,6 @@ msgstr ""
 msgid "Launched TTH file verifications"
 msgstr ""
 
-msgid "Bitzi tickets held"
-msgstr ""
-
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
@@ -1670,6 +1660,13 @@ msgstr ""
 #, fuzzy
 msgid "DHT forced bucket merges"
 msgstr "DHT 消息格式错误"
+
+#, fuzzy
+msgid "DHT bucket merges"
+msgstr "DHT 消息格式错误"
+
+msgid "DHT bucket splits"
+msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -2659,9 +2656,6 @@ msgstr "用于上传的debug级别。"
 
 msgid "Debug level for code shared between gui and core."
 msgstr "用于在gui跟core间分享代码的debug级别"
-
-msgid "Verbosity of Bitzi related debug messages."
-msgstr "与debug信息有关的Bitzi冗余"
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr "与debug信息有关的URL处理冗余"
@@ -5967,48 +5961,6 @@ msgstr "未知命令"
 msgid "Help: "
 msgstr "帮助："
 
-msgid "Bitzi|Unknown"
-msgstr "Bitzi|未知"
-
-msgid "Bitzi|Unrated"
-msgstr ""
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr "Bitzi|Bitzi 查询失败"
-
-msgid "Bitzi|Filesize mismatch"
-msgstr "Bitzi|文件大小不匹配"
-
-msgid "Bitzi|Dangerous/Misleading"
-msgstr ""
-
-msgid "Bitzi|Incomplete/Damaged"
-msgstr ""
-
-msgid "Bitzi|Substandard"
-msgstr ""
-
-msgid "Bitzi|Overrated"
-msgstr ""
-
-msgid "Bitzi|Normal"
-msgstr "Bitzi|正常"
-
-msgid "Bitzi|Underrated"
-msgstr ""
-
-msgid "Bitzi|Complete"
-msgstr "Bitzi|完成"
-
-msgid "Bitzi|Recommended"
-msgstr "Bitzi|推荐"
-
-msgid "Bitzi|Best Version"
-msgstr "Bitzi|最佳版本"
-
-msgid "No other data"
-msgstr "无其他数据"
-
 msgid "Filename"
 msgstr "文件名"
 
@@ -6033,12 +5985,6 @@ msgstr "叶节点哈希值：%lu，深度：%u，粒度：%s"
 
 msgid "Tigertree"
 msgstr ""
-
-msgid "External metadata"
-msgstr "外部元数据"
-
-msgid "Bitzi URL"
-msgstr "Bitzi URL"
 
 msgid "Rescheduled for"
 msgstr ""
@@ -6652,12 +6598,6 @@ msgstr "删除多余的下划线使文件名更美观"
 
 msgid "Bind to this address"
 msgstr "绑定到此地址"
-
-msgid "Bitzi Metadata"
-msgstr "Bitzi 元数据"
-
-msgid "Bitzi metadata"
-msgstr "Bitzi 元数据"
 
 msgid "Browse Host"
 msgstr "浏览主机"
@@ -8478,9 +8418,6 @@ msgstr ""
 msgid " G2, "
 msgstr ""
 
-msgid "Not in database"
-msgstr "不在数据库中"
-
 msgid "owned"
 msgstr ""
 
@@ -8499,9 +8436,6 @@ msgstr[0] "已创建 %u 个下载"
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "丢弃 %u 个结果"
-
-msgid "Query queued..."
-msgstr "已将查询加入队列..."
 
 #, c-format
 msgid "%u term counted"
@@ -9188,23 +9122,11 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr ""
 
-msgid "SHA-1 is unknown."
-msgstr "SHA-1 未知。"
-
-msgid "No Bitzi ticket requested yet."
-msgstr ""
-
-msgid "Not in Bitzi database."
-msgstr "不在 Bitzi 数据库中。"
-
 msgid "Encoding"
 msgstr "编码"
 
 msgid "#"
 msgstr "#"
-
-msgid "Metadata"
-msgstr "元数据"
 
 msgid "Never"
 msgstr "从不"
@@ -9352,6 +9274,60 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#~ msgid "Verbosity of Bitzi related debug messages."
+#~ msgstr "与debug信息有关的Bitzi冗余"
+
+#~ msgid "Bitzi|Unknown"
+#~ msgstr "Bitzi|未知"
+
+#~ msgid "Bitzi|Bitzi lookup failure"
+#~ msgstr "Bitzi|Bitzi 查询失败"
+
+#~ msgid "Bitzi|Filesize mismatch"
+#~ msgstr "Bitzi|文件大小不匹配"
+
+#~ msgid "Bitzi|Normal"
+#~ msgstr "Bitzi|正常"
+
+#~ msgid "Bitzi|Complete"
+#~ msgstr "Bitzi|完成"
+
+#~ msgid "Bitzi|Recommended"
+#~ msgstr "Bitzi|推荐"
+
+#~ msgid "Bitzi|Best Version"
+#~ msgstr "Bitzi|最佳版本"
+
+#~ msgid "No other data"
+#~ msgstr "无其他数据"
+
+#~ msgid "External metadata"
+#~ msgstr "外部元数据"
+
+#~ msgid "Bitzi URL"
+#~ msgstr "Bitzi URL"
+
+#~ msgid "Bitzi Metadata"
+#~ msgstr "Bitzi 元数据"
+
+#~ msgid "Bitzi metadata"
+#~ msgstr "Bitzi 元数据"
+
+#~ msgid "Not in database"
+#~ msgstr "不在数据库中"
+
+#~ msgid "Query queued..."
+#~ msgstr "已将查询加入队列..."
+
+#~ msgid "SHA-1 is unknown."
+#~ msgstr "SHA-1 未知。"
+
+#~ msgid "Not in Bitzi database."
+#~ msgstr "不在 Bitzi 数据库中。"
+
+#~ msgid "Metadata"
+#~ msgstr "元数据"
 
 #~ msgid "%u/%u connection"
 #~ msgid_plural "%u/%u connections"

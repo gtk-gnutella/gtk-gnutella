@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-04-19 18:25+0200\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
 "PO-Revision-Date: 2012-12-31 15:21+0000\n"
 "Last-Translator: yurchor <Unknown>\n"
 "Language-Team: Ukrainian <kde-i18n-uk@kde.org>\n"
@@ -24,13 +24,6 @@ msgstr ""
 "X-Launchpad-Export-Date: 2013-05-08 19:08+0000\n"
 "X-Generator: Launchpad (build 16598)\n"
 "X-Poedit-Language: Ukrainian\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr "%s%s%s%s%s кд/с, %s кбіт/с"
-
-msgid "times|x"
-msgstr ""
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1542,9 +1535,6 @@ msgstr ""
 msgid "Launched TTH file verifications"
 msgstr ""
 
-msgid "Bitzi tickets held"
-msgstr ""
-
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
@@ -1618,6 +1608,12 @@ msgid "DHT forced bucket refreshes"
 msgstr ""
 
 msgid "DHT forced bucket merges"
+msgstr ""
+
+msgid "DHT bucket merges"
+msgstr ""
+
+msgid "DHT bucket splits"
 msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
@@ -2527,9 +2523,6 @@ msgid "Debug level for uploads."
 msgstr ""
 
 msgid "Debug level for code shared between gui and core."
-msgstr ""
-
-msgid "Verbosity of Bitzi related debug messages."
 msgstr ""
 
 msgid "Verbosity of URL handling related debug messages."
@@ -5669,48 +5662,6 @@ msgstr "Невідома команда: «%s»"
 msgid "Help: "
 msgstr "Допомога: "
 
-msgid "Bitzi|Unknown"
-msgstr ""
-
-msgid "Bitzi|Unrated"
-msgstr ""
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
-
-msgid "Bitzi|Filesize mismatch"
-msgstr ""
-
-msgid "Bitzi|Dangerous/Misleading"
-msgstr ""
-
-msgid "Bitzi|Incomplete/Damaged"
-msgstr ""
-
-msgid "Bitzi|Substandard"
-msgstr ""
-
-msgid "Bitzi|Overrated"
-msgstr ""
-
-msgid "Bitzi|Normal"
-msgstr ""
-
-msgid "Bitzi|Underrated"
-msgstr ""
-
-msgid "Bitzi|Complete"
-msgstr ""
-
-msgid "Bitzi|Recommended"
-msgstr ""
-
-msgid "Bitzi|Best Version"
-msgstr ""
-
-msgid "No other data"
-msgstr ""
-
 msgid "Filename"
 msgstr "Назва файла"
 
@@ -5734,12 +5685,6 @@ msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr ""
 
 msgid "Tigertree"
-msgstr ""
-
-msgid "External metadata"
-msgstr ""
-
-msgid "Bitzi URL"
 msgstr ""
 
 msgid "Rescheduled for"
@@ -6348,12 +6293,6 @@ msgid "Beautify filenames by removing needless underscores"
 msgstr ""
 
 msgid "Bind to this address"
-msgstr ""
-
-msgid "Bitzi Metadata"
-msgstr ""
-
-msgid "Bitzi metadata"
 msgstr ""
 
 msgid "Browse Host"
@@ -8119,9 +8058,6 @@ msgstr ""
 msgid " G2, "
 msgstr ""
 
-msgid "Not in database"
-msgstr "Немає у базі даних"
-
 msgid "owned"
 msgstr ""
 
@@ -8142,9 +8078,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
 msgstr[1] ""
-
-msgid "Query queued..."
-msgstr ""
 
 #, c-format
 msgid "%u term counted"
@@ -8820,23 +8753,11 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr ""
 
-msgid "SHA-1 is unknown."
-msgstr ""
-
-msgid "No Bitzi ticket requested yet."
-msgstr ""
-
-msgid "Not in Bitzi database."
-msgstr ""
-
 msgid "Encoding"
 msgstr "Кодування"
 
 msgid "#"
 msgstr "№"
-
-msgid "Metadata"
-msgstr "Метадані"
 
 msgid "Never"
 msgstr "Ніколи"
@@ -8988,3 +8909,12 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "%s%s%s%s%s fps, %s kbps"
+#~ msgstr "%s%s%s%s%s кд/с, %s кбіт/с"
+
+#~ msgid "Not in database"
+#~ msgstr "Немає у базі даних"
+
+#~ msgid "Metadata"
+#~ msgstr "Метадані"

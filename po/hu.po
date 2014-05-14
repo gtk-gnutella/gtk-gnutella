@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-04-19 18:25+0200\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -19,14 +19,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr ""
-
-#, fuzzy
-msgid "times|x"
-msgstr "Futási idő"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1642,9 +1634,6 @@ msgstr ""
 msgid "Launched TTH file verifications"
 msgstr ""
 
-msgid "Bitzi tickets held"
-msgstr ""
-
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
@@ -1727,6 +1716,13 @@ msgstr ""
 #, fuzzy
 msgid "DHT forced bucket merges"
 msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "DHT bucket merges"
+msgstr "A gui hibajavítási szintje"
+
+msgid "DHT bucket splits"
+msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -2813,9 +2809,6 @@ msgstr "A gui hibajavítási szintje"
 #, fuzzy
 msgid "Debug level for code shared between gui and core."
 msgstr "Hibajavítás szintje a felhasználói felület és a mag osztott kódjára"
-
-msgid "Verbosity of Bitzi related debug messages."
-msgstr ""
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr ""
@@ -6521,55 +6514,6 @@ msgstr "Ismeretlen hiba"
 msgid "Help: "
 msgstr "Súgó"
 
-#, fuzzy
-msgid "Bitzi|Unknown"
-msgstr "Ismeretlen"
-
-#, fuzzy
-msgid "Bitzi|Unrated"
-msgstr "Készített"
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
-
-msgid "Bitzi|Filesize mismatch"
-msgstr ""
-
-msgid "Bitzi|Dangerous/Misleading"
-msgstr ""
-
-msgid "Bitzi|Incomplete/Damaged"
-msgstr ""
-
-msgid "Bitzi|Substandard"
-msgstr ""
-
-#, fuzzy
-msgid "Bitzi|Overrated"
-msgstr "Készített"
-
-#, fuzzy
-msgid "Bitzi|Normal"
-msgstr "Normalizált"
-
-#, fuzzy
-msgid "Bitzi|Underrated"
-msgstr "Készített"
-
-#, fuzzy
-msgid "Bitzi|Complete"
-msgstr "Kész"
-
-#, fuzzy
-msgid "Bitzi|Recommended"
-msgstr "Fogadott"
-
-msgid "Bitzi|Best Version"
-msgstr ""
-
-msgid "No other data"
-msgstr ""
-
 msgid "Filename"
 msgstr "Fájlnév"
 
@@ -6596,12 +6540,6 @@ msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr ""
 
 msgid "Tigertree"
-msgstr ""
-
-msgid "External metadata"
-msgstr ""
-
-msgid "Bitzi URL"
 msgstr ""
 
 msgid "Rescheduled for"
@@ -7258,14 +7196,6 @@ msgstr ""
 
 msgid "Bind to this address"
 msgstr ""
-
-#, fuzzy
-msgid "Bitzi Metadata"
-msgstr "Kereső stat"
-
-#, fuzzy
-msgid "Bitzi metadata"
-msgstr "Kereső stat"
 
 #, fuzzy
 msgid "Browse Host"
@@ -9269,9 +9199,6 @@ msgstr ""
 msgid " G2, "
 msgstr ""
 
-msgid "Not in database"
-msgstr ""
-
 #, fuzzy
 msgid "owned"
 msgstr "Kész"
@@ -9293,10 +9220,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
 msgstr[1] ""
-
-#, fuzzy
-msgid "Query queued..."
-msgstr "%u sorban"
 
 #, fuzzy, c-format
 msgid "%u term counted"
@@ -10035,23 +9958,11 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr ""
 
-msgid "SHA-1 is unknown."
-msgstr ""
-
-msgid "No Bitzi ticket requested yet."
-msgstr ""
-
-msgid "Not in Bitzi database."
-msgstr ""
-
 msgid "Encoding"
 msgstr ""
 
 msgid "#"
 msgstr "#"
-
-msgid "Metadata"
-msgstr ""
 
 msgid "Never"
 msgstr "Soha"
@@ -10201,6 +10112,50 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "times|x"
+#~ msgstr "Futási idő"
+
+#, fuzzy
+#~ msgid "Bitzi|Unknown"
+#~ msgstr "Ismeretlen"
+
+#, fuzzy
+#~ msgid "Bitzi|Unrated"
+#~ msgstr "Készített"
+
+#, fuzzy
+#~ msgid "Bitzi|Overrated"
+#~ msgstr "Készített"
+
+#, fuzzy
+#~ msgid "Bitzi|Normal"
+#~ msgstr "Normalizált"
+
+#, fuzzy
+#~ msgid "Bitzi|Underrated"
+#~ msgstr "Készített"
+
+#, fuzzy
+#~ msgid "Bitzi|Complete"
+#~ msgstr "Kész"
+
+#, fuzzy
+#~ msgid "Bitzi|Recommended"
+#~ msgstr "Fogadott"
+
+#, fuzzy
+#~ msgid "Bitzi Metadata"
+#~ msgstr "Kereső stat"
+
+#, fuzzy
+#~ msgid "Bitzi metadata"
+#~ msgstr "Kereső stat"
+
+#, fuzzy
+#~ msgid "Query queued..."
+#~ msgstr "%u sorban"
 
 #, fuzzy
 #~ msgid "%u/%u connection"
