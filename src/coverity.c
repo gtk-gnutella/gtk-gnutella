@@ -111,8 +111,11 @@ mutex_recursive_release(mutex_t *m)
 void *
 vmm_valloc(void *hint, size_t size)
 {
+	bool ok;
 	__coverity_negative_sink__(size);
-	return __coverity_alloc__(size);
+	if (ok)
+		return __coverity_alloc__(size);
+	return (void *) -1;
 }
 
 int
