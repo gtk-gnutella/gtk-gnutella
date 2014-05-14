@@ -735,8 +735,8 @@ roots_fill_closest(const kuid_t *id,
 			struct rootdata *rd = get_rootdata(cri->kuid);
 			int added;
 
-			if (NULL == rd)
-				return 0;		/* I/O error or corrupted database */
+			if (NULL == rd)				/* I/O error or corrupted database */
+				goto approximate_done;	/* May have filled some nodes above */
 
 			added = roots_fill_vector(rd, &kvec[filled], kcnt - filled, aknown,
 				furthest, id);
@@ -767,6 +767,8 @@ roots_fill_closest(const kuid_t *id,
 						kuid_to_hex_string2(cri->kuid) : "<none>");
 			}
 		}
+
+	approximate_done:
 
 		if (aknown != known) {
 			patricia_destroy(aknown);
