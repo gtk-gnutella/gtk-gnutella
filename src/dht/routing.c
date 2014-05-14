@@ -906,18 +906,12 @@ forget_hashlist_node(void *knode)
 	 *
 	 * In all cases (and surely in the first two), it can happen that the
 	 * nodes are still referenced somewhere else, and still need to be
-	 * ref-uncounted, leaving all other attributes as-is.  Unless the node
-	 * is going to be disposed of, at which time we must force the status
-	 * to KNODE_UNKNOWN for knode_dispose().
+	 * ref-uncounted, leaving all other attributes as-is.
 	 *
-	 * Furthermore, at this point, all the node accounting has been done.
+	 * Furthermore, all the node accounting has already been done.
 	 */
 
-	if (DHT_BOOT_SHUTDOWN == GNET_PROPERTY(dht_boot_status))
-		kn->status = KNODE_UNKNOWN;		/* No longer in route table */
-	else if (1 == kn->refcnt)
-		kn->status = KNODE_UNKNOWN;		/* For knode_dispose() */
-
+	kn->status = KNODE_UNKNOWN;		/* No longer in route table */
 	knode_free(kn);
 }
 
@@ -1829,6 +1823,38 @@ check_leaf_bucket_consistency(const struct kbucket *kb)
 	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 }
 
+static void
+bucket_node_set_status(void *data, void *udata)
+{
+	knode_t *kn = data;
+	knode_status_t status = pointer_to_int(udata);
+
+	knode_check(kn);
+
+	kn->status = status;
+}
+
+/**
+ * Force status of all the nodes held in the list.
+ */
+static void
+bucket_list_set_status(hash_list_t *hl, knode_status_t status)
+{
+	hash_list_foreach(hl, bucket_node_set_status, int_to_pointer(status));
+}
+
+/**
+ * Reset the status to all the nodes held in the bucket to match that of
+ * the list they belong to.
+ */
+static void
+bucket_reset_node_status(const struct kbucket *kb)
+{
+	bucket_list_set_status(kb->nodes->good, KNODE_GOOD);
+	bucket_list_set_status(kb->nodes->stale, KNODE_STALE);
+	bucket_list_set_status(kb->nodes->pending, KNODE_PENDING);
+}
+
 /**
  * Context for split_among()
  */
@@ -2005,6 +2031,15 @@ dht_split_bucket(struct kbucket *kb)
 	g_assert(bucket_count(kb) == bucket_count(zero) + bucket_count(one));
 
 	free_node_lists(kb);			/* Parent bucket is now empty */
+
+	/*
+	 * Because forget_hashlist_node() forcefully resets the status of nodes
+	 * to KNODE_UNKNOWN, we need to make sure we reset the status of all the
+	 * nodes in the buckets to match that of the list they belong to.
+	 */
+
+	bucket_reset_node_status(kb->one);
+	bucket_reset_node_status(kb->zero);
 
 	g_assert(NULL == kb->nodes);	/* No longer a leaf node */
 	g_assert(kb->one);
@@ -3085,13 +3120,17 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	}
 
 	/*
-	 * Free old leaves.
+	 * Free old leaves, which will reset status of nodes to KNODE_UNKNOWN.
 	 */
 
 	free_bucket(kb);
 	free_bucket(sibling);
 
-	check_leaf_bucket_consistency(parent);
+	/*
+	 * REstore proper status for the nodes we kept in the merged bucket.
+	 */
+
+	bucket_reset_node_status(parent);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT merged buckets into %s max depth: %d",
