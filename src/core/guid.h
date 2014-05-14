@@ -62,6 +62,9 @@ void guid_query_oob_muid(struct guid *muid,
 void guid_oob_get_addr_port(const struct guid *guid,
 	host_addr_t *addr, uint16 *port);
 
+struct hikset;
+const guid_t *guid_unique_atom(const struct hikset *hik, bool gtkg);
+
 void guid_free_atom2(void *guid, void *unused);
 
 #endif /* _core_guid_h_ */

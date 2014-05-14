@@ -1668,24 +1668,7 @@ share:
 static const guid_t *
 fi_random_guid_atom(void)
 {
-	struct guid guid;
-	size_t i;
-
-	entropy_harvest_time();
-
-	/*
-	 * Paranoid, in case the random number generator is broken.
-	 */
-
-	for (i = 0; i < 100; i++) {
-		guid_random_fill(&guid);
-
-		if (!hikset_contains(fi_by_guid, &guid))
-			return atom_guid_get(&guid);
-	}
-
-	g_error("no luck with random number generator");
-	return NULL;
+	return guid_unique_atom(fi_by_guid, FALSE);
 }
 
 /**

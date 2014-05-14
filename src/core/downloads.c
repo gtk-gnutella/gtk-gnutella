@@ -1182,32 +1182,6 @@ has_good_sha1(const struct download *d)
 }
 
 /**
- * Allocate random GUID to use as the download ID.
- *
- * @return a GUID atom, refcount incremented already.
- */
-static const guid_t *
-dl_random_guid_atom(void)
-{
-	struct guid id;
-	size_t i;
-
-	/*
-	 * Paranoid, in case the random number generator is broken.
-	 */
-
-	for (i = 0; i < 100; i++) {
-		guid_random_fill(&id);
-
-		if (NULL == hikset_lookup(dl_by_id, &id))
-			return atom_guid_get(&id);
-	}
-
-	g_error("no luck with random number generator");
-	return NULL;
-}
-
-/**
  * Determine the set of networks we can return for alt-locs and push-proxies.
  */
 static host_net_t
@@ -7403,7 +7377,7 @@ create_download(
 	d->last_update = tm_time();
 	d->server = server;
 	d->server->refcnt++;
-	d->id = dl_random_guid_atom();
+	d->id = guid_unique_atom(dl_by_id, FALSE);
 	hikset_insert_key(dl_by_id, &d->id);
 
 	/*
