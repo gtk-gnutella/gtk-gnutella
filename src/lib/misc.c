@@ -874,7 +874,7 @@ bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size)
  * Convert GUID to hexadecimal string in the supplied buffer.
  */
 size_t
-guid_to_string_buf(const struct guid *guid, char *dst, size_t size)
+guid_to_string_buf(const guid_t *guid, char *dst, size_t size)
 {
 	return bin_to_hex_buf(guid->v, GUID_RAW_SIZE, dst, size);
 }
@@ -883,7 +883,7 @@ guid_to_string_buf(const struct guid *guid, char *dst, size_t size)
  * @return hexadecimal string representing given GUID, in static buffer.
  */
 const char *
-guid_to_string(const struct guid *guid)
+guid_to_string(const guid_t *guid)
 {
 	buf_t *b = buf_private(G_STRFUNC, GUID_HEX_SIZE + 1);
 	char *p = buf_data(b);
@@ -898,7 +898,7 @@ guid_to_string(const struct guid *guid)
  * @return hexadecimal string representing given GUID, in static buffer.
  */
 const char *
-guid_hex_str(const struct guid *guid)
+guid_hex_str(const guid_t *guid)
 {
 	buf_t *b = buf_private(G_STRFUNC, GUID_HEX_SIZE + 1);
 	char *p = buf_data(b);
@@ -1094,7 +1094,7 @@ alnum2int_init(void)
  * @return TRUE if OK.
  */
 bool
-hex_to_guid(const char *hexguid, struct guid *guid)
+hex_to_guid(const char *hexguid, guid_t *guid)
 {
 	size_t ret;
 		
@@ -1108,7 +1108,7 @@ hex_to_guid(const char *hexguid, struct guid *guid)
  * @return pointer to static data.
  */
 const char *
-guid_base32_str(const struct guid *guid)
+guid_base32_str(const guid_t *guid)
 {
 	buf_t *b = buf_private(G_STRFUNC, GUID_BASE32_SIZE + 1);
 	char *p = buf_data(b);
@@ -1124,8 +1124,8 @@ guid_base32_str(const struct guid *guid)
  *
  * @return pointer to supplied buffer, NULL if the input was not valid base32.
  */
-const struct guid *
-base32_to_guid(const char *base32, struct guid *guid)
+const guid_t *
+base32_to_guid(const char *base32, guid_t *guid)
 {
 	size_t ret;
 
@@ -1729,7 +1729,7 @@ locale_strlower(char *dst, const char *src)
  * Generate a new random GUID within given `guid'.
  */
 void
-guid_random_fill(struct guid *guid)
+guid_random_fill(guid_t *guid)
 {
 	random_strong_bytes(guid, GUID_RAW_SIZE);
 }
