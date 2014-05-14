@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Apr 30 20:24:16 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May 14 18:43:07 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -228,6 +228,8 @@ static const char *stats_symbols[] = {
 	"dht_completed_bucket_refresh",
 	"dht_forced_bucket_refresh",
 	"dht_forced_bucket_merge",
+	"dht_bucket_merge",
+	"dht_bucket_split",
 	"dht_denied_unsplitable_bucket_refresh",
 	"dht_bucket_alive_check",
 	"dht_alive_pings_to_good_nodes",
@@ -547,6 +549,8 @@ static const char *stats_text[] = {
 	N_("DHT completed bucket refreshes"),
 	N_("DHT forced bucket refreshes"),
 	N_("DHT forced bucket merges"),
+	N_("DHT bucket merges"),
+	N_("DHT bucket splits"),
 	N_("DHT denied non-splitable bucket refresh"),
 	N_("DHT initiated bucket alive checks"),
 	N_("DHT alive pings sent to good nodes"),

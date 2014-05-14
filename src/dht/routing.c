@@ -1932,6 +1932,8 @@ dht_split_bucket(struct kbucket *kb)
 	check_leaf_list_consistency(kb, kb->nodes->stale, KNODE_STALE);
 	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 
+	gnet_stats_inc_general(GNR_DHT_BUCKET_SPLIT);
+
 	if (GNET_PROPERTY(dht_debug))
 		g_debug("DHT splitting %s from %s subtree",
 			kbucket_to_string(kb),
@@ -3015,6 +3017,8 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	if (forced) {
 		parent->frozen_depth = TRUE;
 		gnet_stats_inc_general(GNR_DHT_FORCED_BUCKET_MERGE);
+	} else {
+		gnet_stats_inc_general(GNR_DHT_BUCKET_MERGE);
 	}
 
 	/*

@@ -294,6 +294,8 @@ DHT_ROUTING_REJECTED_NODE_GLOBAL_QUOTA
 DHT_COMPLETED_BUCKET_REFRESH	"DHT completed bucket refreshes"
 DHT_FORCED_BUCKET_REFRESH	"DHT forced bucket refreshes"
 DHT_FORCED_BUCKET_MERGE		"DHT forced bucket merges"
+DHT_BUCKET_MERGE			"DHT bucket merges"
+DHT_BUCKET_SPLIT			"DHT bucket splits"
 DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH
 	"DHT denied non-splitable bucket refresh"
 DHT_BUCKET_ALIVE_CHECK			"DHT initiated bucket alive checks"

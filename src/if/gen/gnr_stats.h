@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Apr 30 20:24:16 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May 14 18:43:07 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 298
+ * Enum count: 300
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -224,6 +224,8 @@ typedef enum {
 	GNR_DHT_COMPLETED_BUCKET_REFRESH,
 	GNR_DHT_FORCED_BUCKET_REFRESH,
 	GNR_DHT_FORCED_BUCKET_MERGE,
+	GNR_DHT_BUCKET_MERGE,
+	GNR_DHT_BUCKET_SPLIT,
 	GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH,
 	GNR_DHT_BUCKET_ALIVE_CHECK,
 	GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES,
