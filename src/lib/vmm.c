@@ -108,6 +108,7 @@
 #include "vmm.h"
 
 #include "alloca.h"			/* For alloca_stack_direction() */
+#include "array_util.h"
 #include "ascii.h"
 #include "atomic.h"
 #include "cq.h"
@@ -832,16 +833,7 @@ vmm_find_hole(size_t size)
 static inline void
 pmap_drop(struct pmap *pm, size_t idx)
 {
-	pm->count--;
-
-	/*
-	 * We need to shift data back by one slot unless we remove the last entry.
-	 */
-
-	if G_LIKELY(idx != pm->count) {
-		memmove(&pm->array[idx], &pm->array[idx + 1],
-			(pm->count - idx) * sizeof pm->array[0]);
-	}
+	ARRAY_REMOVE_DEC(pm->array, idx, pm->count);
 }
 
 /**
@@ -2006,11 +1998,10 @@ pmap_insert_region(struct pmap *pm,
 		}
 
 		/*
-		 * Make room before ``idx'', the insertion point.
+		 * Make room at ``idx'', the insertion point.
 		 */
 
-		memmove(&pm->array[idx+1], &pm->array[idx],
-			sizeof(pm->array[0]) * (pm->count - idx));
+		ARRAY_MAKEROOM(pm->array, idx, pm->count, pm->size);
 	}
 
 	pm->count++;
@@ -2719,11 +2710,7 @@ vpc_remove_at(struct page_cache *pc, const void *p, size_t idx)
 	 * last item was removed.
 	 */
 
-	pc->current--;
-	if (idx < pc->current) {
-		memmove(&pc->info[idx], &pc->info[idx + 1],
-			(pc->current - idx) * sizeof(pc->info[0]));
-	}
+	ARRAY_REMOVE_DEC(pc->info, idx, pc->current);
 }
 
 /**
@@ -2904,10 +2891,7 @@ insert:
 	 * Shift items up if we're not inserting at the last position in the array.
 	 */
 
-	if G_LIKELY(idx < pc->current) {
-		memmove(&pc->info[idx + 1], &pc->info[idx],
-			(pc->current - idx) * sizeof(pc->info[0]));
-	}
+	ARRAY_FIXED_MAKEROOM(pc->info, idx, pc->current);
 
 	pc->current++;
 	pc->info[idx].base = base;
@@ -5897,11 +5881,7 @@ unbuffer_first(struct track_buffer *dest)
 
 	*dest = vmm_buffered[0];		/* Struct copy */
 
-	/* Shift everything down one position */
-	memmove(&vmm_buffered[0], &vmm_buffered[1],
-		(vmm_buffer.idx - 1) * sizeof vmm_buffered[0]);
-
-	vmm_buffer.idx--;			/* One more slot available */
+	ARRAY_REMOVE_DEC(vmm_buffered, 0, vmm_buffer.idx);
 }
 
 /**

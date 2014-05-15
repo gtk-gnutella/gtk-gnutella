@@ -62,6 +62,7 @@
 #include "sockets.h"
 #include "uploads.h"
 
+#include "lib/array_util.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -7006,9 +7007,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		 * Shift upper (nleft - j - 1) items down 1 position.
 		 */
 
-		if (nleft - 1 != j)
-			memmove(&fc_ary[j], &fc_ary[j + 1],
-				(nleft - j - 1) * sizeof fc_ary[0]);
+		ARRAY_REMOVE(fc_ary, j, nleft);
 	}
 
 	HFREE_NULL(fc_ary);

@@ -112,6 +112,7 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/aging.h"
+#include "lib/array_util.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/dbmw.h"
@@ -574,12 +575,8 @@ guess_cache_remove(struct guess_cache *gc, const gnet_host_t *host)
 		/* Cache is small, linear lookup is OK */
 
 		for (i = 0; i < count; i++) {
-			if (khost == gc->cache[i]) {
-				count--;
-				if (count != i) {
-					memmove(&gc->cache[i], &gc->cache[i+1],
-						(count - i) * sizeof gc->cache[0]);
-				}
+			if G_UNLIKELY(khost == gc->cache[i]) {
+				ARRAY_REMOVE_DEC(gc->cache, i, count);
 				gc->cache[count] = NULL;
 				goto done;
 			}

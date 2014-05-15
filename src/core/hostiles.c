@@ -45,6 +45,7 @@
 
 #include "dht/stable.h"
 
+#include "lib/array_util.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"			/* For uint32_hash() */
 #include "lib/cq.h"
@@ -950,19 +951,17 @@ spam_remove_port(struct spamdata *sd, const host_addr_t addr, uint16 port)
 	for (i = 0; i < sd->ports; i++) {
 		struct spamhost *sh = &sd->hosts[i];
 
-		if (port == sh->port) {
+		if G_UNLIKELY(port == sh->port) {
 			gnet_host_t host;
 
-			sd->ports--;
-			if (i < sd->ports) {
-				memmove(&sd->hosts[i], &sd->hosts[i+1],
-					sizeof(sd->hosts[0]) * (sd->ports - i));
-			}
+			ARRAY_REMOVE_DEC(sd->hosts, i, sd->ports);
+
 			if (GNET_PROPERTY(spam_debug) > 5) {
 				g_debug("SPAM removing port %u for host %s (%u port%s remain)",
 					port, host_addr_to_string(addr), sd->ports,
 					plural(sd->ports));
 			}
+
 			gnet_host_set(&host, addr, 0);
 			dbmw_write(db_spam, &host, sd, sizeof *sd);
 			break;

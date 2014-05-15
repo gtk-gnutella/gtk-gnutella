@@ -40,6 +40,7 @@
 #include "gmsg.h"
 #include "gnet_stats.h"
 
+#include "lib/array_util.h"
 #include "lib/cq.h"
 #include "lib/halloc.h"
 #include "lib/htable.h"
@@ -835,12 +836,7 @@ qlink_insert_before(mqueue_t *q, int hint, plist_t *l)
 	q->qlink_count++;
 	HREALLOC_ARRAY(q->qlink, q->qlink_count);
 
-	
-	/* Shift right */
-	memmove(&q->qlink[hint + 1], &q->qlink[hint],
-		(q->qlink_count - hint - 1) * sizeof q->qlink[0]);
-
-	q->qlink[hint] = l;
+	ARRAY_INSERT(q->qlink, hint, q->qlink_count, l);
 }
 
 /**

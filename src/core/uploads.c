@@ -80,6 +80,7 @@
 #include "if/dht/dht.h"		/* For dht_enabled() */
 
 #include "lib/aging.h"
+#include "lib/array_util.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
@@ -2076,13 +2077,8 @@ upload_http_extra_callback_remove(struct upload *u, http_status_cb_t callback)
 	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
 
 	for (i = 0; i < u->hevcnt; /* empty */) {
-		if (http_extra_callback_matches(&u->hev[i], callback)) {
-			if (i < u->hevcnt - 1) {
-				memmove(&u->hev[i], &u->hev[i+1],
-					sizeof(u->hev[0]) * (u->hevcnt - i - 1));
-			}
-			g_assert(u->hevcnt != 0);
-			u->hevcnt--;
+		if G_UNLIKELY(http_extra_callback_matches(&u->hev[i], callback)) {
+			ARRAY_REMOVE_DEC(u->hev, i, u->hevcnt);
 		} else {
 			i++;
 		}

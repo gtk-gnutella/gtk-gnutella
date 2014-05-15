@@ -94,6 +94,7 @@
 
 #include "zalloc.h"
 
+#include "array_util.h"
 #include "atomic.h"
 #include "dump_options.h"
 #include "eslist.h"
@@ -2005,7 +2006,6 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	struct zone_gc *zg = zone->zn_gc;
 	unsigned low;
 	struct subzinfo *szi;
-	struct subzinfo *array;
 
 	/*
 	 * Find index at which we must insert the new zone in the sorted array.
@@ -2020,16 +2020,12 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 
 	zg->zg_zones++;
 	XREALLOC_ARRAY(zg->zg_subzinfo, zg->zg_zones);
-	array = zg->zg_subzinfo;
 
-	g_assert(uint_is_non_negative(low) && low < zg->zg_zones);
+	g_assert(uint_is_non_negative(low));
 
-	if (low < zg->zg_zones - 1) {
-		memmove(&array[low+1], &array[low],
-			sizeof(zg->zg_subzinfo[0]) * (zg->zg_zones - 1 - low));
-	}
+	ARRAY_MAKEROOM(zg->zg_subzinfo, low, zg->zg_zones - 1, zg->zg_zones);
 
-	szi = &array[low];
+	szi = &zg->zg_subzinfo[low];
 	szi->szi_base = sz->sz_base;
 	szi->szi_end = &sz->sz_base[sz->sz_size];
 	szi->szi_free_cnt = zone->zn_hint;
@@ -2076,8 +2072,7 @@ zgc_remove_subzone(const zone_t *zone, struct subzinfo *szi)
 		g_assert(uint_is_non_negative(i));
 		g_assert(i < zg->zg_zones);
 
-		memmove(&zg->zg_subzinfo[i], &zg->zg_subzinfo[i+1],
-			(zg->zg_zones - i) * sizeof(zg->zg_subzinfo[0]));
+		ARRAY_REMOVE(zg->zg_subzinfo, i, zg->zg_zones + 1);
 
 		if (zg->zg_free > i)
 			zg->zg_free--;

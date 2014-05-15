@@ -85,6 +85,7 @@
 
 #include "core/gnet_stats.h"
 
+#include "lib/array_util.h"
 #include "lib/atoms.h"
 #include "lib/bstr.h"
 #include "lib/cq.h"
@@ -672,14 +673,9 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 	g_assert(idx >= 0 && idx < kd->values);
 	g_assert(dbkey == kd->dbkeys[idx]);
 
-	if (idx < kd->values - 1) {
-		memmove(&kd->creators[idx], &kd->creators[idx+1],
-			sizeof(kd->creators[0]) * (kd->values - idx - 1));
-		memmove(&kd->dbkeys[idx], &kd->dbkeys[idx+1],
-			sizeof(kd->dbkeys[0]) * (kd->values - idx - 1));
-		memmove(&kd->expire[idx], &kd->expire[idx+1],
-			sizeof(kd->expire[0]) * (kd->values - idx - 1));
-	}
+	ARRAY_REMOVE(kd->creators, idx, kd->values);
+	ARRAY_REMOVE(kd->dbkeys,   idx, kd->values);
+	ARRAY_REMOVE(kd->expire,   idx, kd->values);
 
 	/*
 	 * We do not synchronously delete empty keys.
@@ -887,20 +883,17 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 				high = mid - 1;
 		}
 
-		/* Insert new item at `low' */
+		/* Make room for inserting new item at `low' */
 
-		if (low < kd->values) {
-			memmove(&kd->creators[low+1], &kd->creators[low],
-				sizeof(kd->creators[0]) * (kd->values - low));
-			memmove(&kd->dbkeys[low+1], &kd->dbkeys[low],
-				sizeof(kd->dbkeys[0]) * (kd->values - low));
-			memmove(&kd->expire[low+1], &kd->expire[low],
-				sizeof(kd->expire[0]) * (kd->values - low));
-		}
+		ARRAY_FIXED_MAKEROOM(kd->creators, low, kd->values);
+		ARRAY_FIXED_MAKEROOM(kd->dbkeys,   low, kd->values);
+		ARRAY_FIXED_MAKEROOM(kd->expire,   low, kd->values);
 
 		/* FALL THROUGH */
 
 	empty:
+		/* Insert new item at `low' */
+
 		kd->creators[low] = *cid;			/* struct copy */
 		kd->dbkeys[low] = dbkey;
 		kd->expire[low] = expire;

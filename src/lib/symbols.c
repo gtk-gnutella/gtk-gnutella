@@ -38,6 +38,8 @@
 #include "common.h"
 
 #include "symbols.h"
+
+#include "array_util.h"
 #include "ascii.h"
 #include "base16.h"
 #include "bfd_util.h"
@@ -307,18 +309,13 @@ symbol_cmp(const void *p, const void *q)
 static void
 symbols_remove(symbols_t *st, size_t i)
 {
-	struct symbol *s;
-
 	symbols_check(st);
 	g_assert(size_is_non_negative(i));
-	g_assert(i < st->count);
 
-	s = &st->base[i];
 	if (!st->once)
-		xfree(deconstify_pointer(s->name));
-	if (i < st->count - 1)
-		memmove(s, s + 1, (st->count - i - 1) * sizeof *s);
-	st->count--;
+		xfree(deconstify_pointer(st->base[i].name));
+
+	ARRAY_REMOVE_DEC(st->base, i, st->count);
 }
 
 /**

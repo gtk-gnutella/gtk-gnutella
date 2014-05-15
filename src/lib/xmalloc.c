@@ -59,6 +59,7 @@
 
 #include "xmalloc.h"
 
+#include "array_util.h"
 #include "atomic.h"
 #include "bit_array.h"
 #include "crash.h"			/* For crash_hook_add() */
@@ -2216,18 +2217,15 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 	g_assert_log(fl->count <= fl->capacity,
 		"count=%zu, capacity=%zu", fl->count, fl->capacity);
 
-	fl->count--;
 	if (idx < fl->sorted)
 		fl->sorted--;
+
 	XSTATS_LOCK;
 	xstats.freelist_blocks--;
 	xstats.freelist_memory -= fl->blocksize;
 	XSTATS_UNLOCK;
 
-	if (idx < fl->count) {
-		memmove(&fl->pointers[idx], &fl->pointers[idx + 1],
-			(fl->count - idx) * sizeof(fl->pointers[0]));
-	}
+	ARRAY_REMOVE_DEC(fl->pointers, idx, fl->count);
 
 	/*
 	 * Regardless of whether we removed the last item or whether we
@@ -2327,10 +2325,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 
 	g_assert(fl->pointers != NULL);
 
-	if G_LIKELY(idx < fl->count) {
-		memmove(&fl->pointers[idx + 1], &fl->pointers[idx],
-			(fl->count - idx) * sizeof(fl->pointers[0]));
-	}
+	ARRAY_MAKEROOM(fl->pointers, idx, fl->count, fl->capacity);
 
 plain_insert:
 
@@ -7036,12 +7031,8 @@ xa_delete_slot(size_t idx)
 	assert_xmalloc_xa_is_locked();
 
 	xdesc_free(aligned[idx].pdesc, aligned[idx].start);
-	aligned_count--;
 
-	if (idx < aligned_count) {
-		memmove(&aligned[idx], &aligned[idx + 1],
-			(aligned_count - idx) * sizeof(aligned[0]));
-	}
+	ARRAY_REMOVE_DEC(aligned, idx, aligned_count);
 }
 
 /**
@@ -7111,12 +7102,8 @@ xa_insert(const void *p, void *pdesc)
 	 */
 
 	g_assert(aligned != NULL);
-	g_assert(idx <= aligned_count);
 
-	if G_LIKELY(idx < aligned_count) {
-		memmove(&aligned[idx + 1], &aligned[idx],
-			(aligned_count - idx) * sizeof aligned[0]);
-	}
+	ARRAY_MAKEROOM(aligned, idx, aligned_count, aligned_capacity);
 
 	aligned_count++;
 	aligned[idx].start = p;

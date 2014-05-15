@@ -631,6 +631,7 @@ src/lib/aq.h
 src/lib/arc4random.c
 src/lib/arc4random.h
 src/lib/array.h
+src/lib/array_util.h
 src/lib/ascii.c
 src/lib/ascii.h
 src/lib/atio.c
