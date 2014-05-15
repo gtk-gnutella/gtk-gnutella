@@ -6021,6 +6021,15 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (incoming) {
 		if (field && !strtok_case_has(field, ",", APP_GNUTELLA)) {
 			if (strtok_case_has(field, ",", APP_G2) && node_g2_active()) {
+				/*
+				 * Now that we know the incoming connection is for a G2 node,
+				 * we need to fix the accounting that was done when we did
+				 * not know we would be talking to a G2 node.
+				 */
+
+				total_nodes_connected--;
+				total_g2_nodes_connected++;
+
 				n->attrs2 |= NODE_A2_TALKS_G2;
 			} else {
 				node_send_protocol_not_acceptable(n, field);
