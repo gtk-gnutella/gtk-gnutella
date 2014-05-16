@@ -102,7 +102,7 @@ static void xml_to_jump_rule(xnode_t *, void *);
 static void xml_to_sha1_rule(xnode_t *, void *);
 static void xml_to_flag_rule(xnode_t *, void *);
 static void xml_to_state_rule(xnode_t *, void *);
-static guint16 get_rule_flags_from_xml(xnode_t *);
+static uint16 get_rule_flags_from_xml(xnode_t *);
 
 /*
  * Private variables
@@ -215,11 +215,11 @@ sha1_sort_cmp(const void *a, const void *b)
  * @param error an int variable which will indicate success or failure.
  * @return On success, the parsed value is returned.
  */
-static guint64
+static uint64
 parse_number(const char *buf, int *error)
 {
 	const char *endptr;
-	guint64 ret;
+	uint64 ret;
 
 	g_assert(buf != NULL);
 	g_assert(error != NULL);
@@ -250,8 +250,8 @@ static void *
 parse_target(const char *buf, gint *error)
 {
 	const char *endptr;
-	guint64 v;
-	gulong target; /* Not guint32! for backwards compatibility. See below. */
+	uint64 v;
+	ulong target; /* Not uint32! for backwards compatibility. See below. */
 
 	g_assert(buf != NULL);
 	g_assert(error != NULL);
@@ -276,7 +276,7 @@ parse_target(const char *buf, gint *error)
 	 * the pointer cast to an integer type as target ID.
 	 */
 	if (4 == sizeof(void *)) {
-		if (0 == *error && v > (~(guint32) 0)) {
+		if (0 == *error && v > (~(uint32) 0)) {
 			*error = ERANGE;
 		}
 	}
@@ -301,8 +301,8 @@ parse_target(const char *buf, gint *error)
 static void * 
 target_new_id(gboolean do_reset)
 {
-	static guint32 id_counter;
-	guint32 ret;
+	static uint32 id_counter;
+	uint32 ret;
 
 	/* If target_map is NULL, the counter is reset */
 	if (do_reset) {
@@ -600,7 +600,7 @@ builtin_to_xml(xnode_t *parent)
 		{ TAG_BUILTIN_RETURN_UID,		filter_get_return_target },
 	};
     xnode_t *xn;
-	guint i;
+	uint i;
 
     g_assert(parent != NULL);
 
@@ -980,7 +980,7 @@ xml_to_search(xnode_t *xn, void *unused_udata)
     const char *buf;
     const char *query;
     gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
-    guint32 reissue_timeout;
+    uint32 reissue_timeout;
 	unsigned media_type = 0;
     xnode_t *xc;
     struct search *search;
@@ -1055,7 +1055,7 @@ xml_to_search(xnode_t *xn, void *unused_udata)
 	if (create_time == (time_t) -1)
 		create_time = tm_time();
 
-	lifetime = (guint) -1;
+	lifetime = -1U;
 	buf = xnode_prop_get(xn, TAG_SEARCH_LIFETIME);
     if (buf) {
 		gint error;
@@ -1182,7 +1182,7 @@ xml_to_filter(xnode_t *xn, void *unused_data)
     void *dest;
     gboolean active = TRUE;
 	int error;
-	guint64 v;
+	uint64 v;
 
     g_assert(xn != NULL);
     g_assert(xnode_element_name(xn) != NULL);
@@ -1268,8 +1268,8 @@ xml_to_text_rule(xnode_t *xn, void *data)
     const char *buf = NULL;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
-	guint64 v;
+    uint16 flags;
+	uint64 v;
 	int error;
 
     g_assert(xn != NULL);
@@ -1326,11 +1326,11 @@ static void
 xml_to_ip_rule(xnode_t *xn, void *data)
 {
     host_addr_t addr;
-    guint32 mask;
+    uint32 mask;
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1394,7 +1394,7 @@ xml_to_size_rule(xnode_t *xn, void *data)
     filesize_t lower, upper;
     const char *buf;
     rule_t *rule;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1453,7 +1453,7 @@ xml_to_jump_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1493,7 +1493,7 @@ xml_to_sha1_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1551,8 +1551,8 @@ xml_to_flag_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
-	guint64 v;
+    uint16 flags;
+	uint64 v;
 	int error;
 
     g_assert(xn != NULL);
@@ -1625,9 +1625,9 @@ xml_to_state_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
-	guint64 v;
+	uint64 v;
 
     g_assert(xn != NULL);
     g_assert(xnode_element_name(xn) != NULL);
@@ -1685,16 +1685,16 @@ failure:
 	XML_BAD_NODE(xn);
 }
 
-static guint16
+static uint16
 get_rule_flags_from_xml(xnode_t *xn)
 {
     gboolean negate = FALSE;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
-    guint16 flags;
+    uint16 flags;
     const char *buf;
 	int error;
-	guint64 v;
+	uint64 v;
 
     g_assert(xn != NULL);
 

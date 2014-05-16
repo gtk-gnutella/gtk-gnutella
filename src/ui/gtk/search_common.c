@@ -1828,7 +1828,7 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 		uri = NULL;
 		guc_search_associate_sha1(sh, rc->sha1);
 	} else {
-		uri = str_cmsg("/get/%lu/%s", (gulong) rc->file_index, rc->name);
+		uri = str_cmsg("/get/%lu/%s", (ulong) rc->file_index, rc->name);
 	}
 
 	guc_download_new(rc->name,

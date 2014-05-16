@@ -707,7 +707,7 @@ gwc_host_line(struct gwc_parse_context *ctx, const char *buf, size_t len)
 	int c;
 
 	if (GNET_PROPERTY(bootstrap_debug) > 3)
-		g_message("BOOT GWC host line (%lu bytes): %s", (gulong) len, buf);
+		g_message("BOOT GWC host line (%lu bytes): %s", (ulong) len, buf);
 
 	if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",

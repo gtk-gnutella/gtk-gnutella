@@ -1361,7 +1361,7 @@ values_expire_time(const kuid_t *key, dht_value_type_t type,
 		}
 	}
 
-	return time_advance(tm_time(), (gulong) (lifetime / decimation));
+	return time_advance(tm_time(), (ulong) (lifetime / decimation));
 }
 
 /**

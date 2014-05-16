@@ -650,7 +650,7 @@ on_tree_view_motion_notify(GtkWidget *widget,
 		EVENT_TYPE(GDK_WINDOW_STATE)
 		EVENT_TYPE(GDK_SETTING)
 		default:
-			str_bprintf(type, sizeof type, "%ld", (gulong) event->type);
+			str_bprintf(type, sizeof type, "%ld", (ulong) event->type);
 		}
 #undef EVENT_TYPE
 
