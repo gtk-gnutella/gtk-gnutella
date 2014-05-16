@@ -627,11 +627,6 @@ aje_extract(aje_state_t *as, void *dest, size_t len)
 	while (len != 0) {
 		size_t n;
 
-		aje_counter_encrypt(as, buf, sizeof buf);
-		n = MIN(len, sizeof buf);
-		p = mempcpy(p, buf, n);
-		len -= n;
-
 		/*
 		 * We must not give out too many bytes with one key to make
 		 * sure there are no duplicate blocks generated.
@@ -641,6 +636,11 @@ aje_extract(aje_state_t *as, void *dest, size_t len)
 			aje_rekey(as);
 			block_nr = 0;
 		}
+
+		aje_counter_encrypt(as, buf, sizeof buf);
+		n = MIN(len, sizeof buf);
+		p = mempcpy(p, buf, n);
+		len -= n;
 	}
 
 	/*
