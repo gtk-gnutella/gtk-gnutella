@@ -239,7 +239,7 @@ parse_number(const char *buf, int *error)
 /**
  * A wrapper around parse_uint64. It's a little stricter, so that trailing
  * characters enforce an error. It accepts base 16 (decimal) only. On failure
- * *error will be set to a non-zero "errno" value. The value is casted to
+ * *error will be set to a non-zero "errno" value. The value is cast to
  * a pointer.
  *
  * @param buf the string to parse.
@@ -273,7 +273,7 @@ parse_target(const char *buf, gint *error)
 	/*
 	 * For backwards compatibility we allow values above 2^32-1 if the
 	 * machine doesn't use 32-bit wide pointers. Older versions used
-	 * the pointer casted to an integer type as target ID.
+	 * the pointer cast to an integer type as target ID.
 	 */
 	if (4 == sizeof(void *)) {
 		if (0 == *error && v > (~(guint32) 0)) {
