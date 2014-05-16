@@ -46,7 +46,7 @@
  */
 
 #ifndef _array_util_h_
-#define _aarry_util_h_
+#define _array_util_h_
 
 /**
  * Remove item 'i' from an array of 'n' items (before removal).
