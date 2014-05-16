@@ -1668,8 +1668,8 @@ unique_file_token(const filestat_t *st)
 	struct sha1 digest;
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, &st->st_dev, sizeof st->st_dev);
-	SHA1_input(&ctx, &st->st_ino, sizeof st->st_ino);
+	SHA1_INPUT(&ctx, st->st_dev);
+	SHA1_INPUT(&ctx, st->st_ino);
 	SHA1_result(&ctx, &digest);
 
 	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);

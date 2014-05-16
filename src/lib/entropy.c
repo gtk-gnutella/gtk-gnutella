@@ -142,25 +142,25 @@ static void entropy_seed(struct entropy_minictx *c);
 static void
 sha1_feed_ulong(SHA1_context *ctx, unsigned long value)
 {
-	SHA1_input(ctx, &value, sizeof value);
+	SHA1_INPUT(ctx, value);
 }
 
 static void
 sha1_feed_uint(SHA1_context *ctx, unsigned value)
 {
-	SHA1_input(ctx, &value, sizeof value);
+	SHA1_INPUT(ctx, value);
 }
 
 static void
 sha1_feed_double(SHA1_context *ctx, double value)
 {
-	SHA1_input(ctx, &value, sizeof value);
+	SHA1_INPUT(ctx, value);
 }
 
 static void
 sha1_feed_pointer(SHA1_context *ctx, const void *p)
 {
-	SHA1_input(ctx, &p, sizeof p);
+	SHA1_INPUT(ctx, p);
 }
 
 static void
@@ -180,7 +180,7 @@ sha1_feed_stat(SHA1_context *ctx, const char *path)
 	sha1_feed_string(ctx, path);
 
 	if (-1 != stat(path, &buf)) {
-		SHA1_input(ctx, &buf, sizeof buf);
+		SHA1_INPUT(ctx, buf);
 	} else {
 		sha1_feed_uint(ctx, errno);
 	}
@@ -194,7 +194,7 @@ sha1_feed_fstat(SHA1_context *ctx, int fd)
 	sha1_feed_uint(ctx, fd);
 
 	if (-1 != fstat(fd, &buf)) {
-		SHA1_input(ctx, &buf, sizeof buf);
+		SHA1_INPUT(ctx, buf);
 	} else {
 		sha1_feed_uint(ctx, errno);
 	}
@@ -433,7 +433,7 @@ entropy_collect_randomness(SHA1_context *ctx)
 		if (0 == mingw_random_bytes(data, sizeof data)) {
 			s_warning("%s(): unable to generate random bytes: %m", G_STRFUNC);
 		} else {
-			SHA1_input(ctx, data, sizeof data);
+			SHA1_INPUT(ctx, data);
 		}
 	}
 #else	/* !MINGW32 */
@@ -450,7 +450,7 @@ entropy_collect_randomness(SHA1_context *ctx)
 		if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
 			f = fopen("/dev/urandom", "r");
 			is_pipe = FALSE;
-			SHA1_input(ctx, &buf, sizeof buf);
+			SHA1_INPUT(ctx, buf);
 		} else if (-1 != access("/bin/ps", X_OK)) {
 			f = popen("/bin/ps -ef", "r");
 		} else if (-1 != access("/usr/bin/ps", X_OK)) {
@@ -602,7 +602,7 @@ entropy_collect_pw(SHA1_context *ctx)
 
 		sha1_feed_pointer(ctx, pp);	/* pp points to static data */
 		if (pp != NULL) {
-			SHA1_input(ctx, pp, sizeof *pp);
+			SHA1_INPUT(ctx, *pp);
 		} else {
 			sha1_feed_uint(ctx, errno);
 		}
@@ -706,7 +706,7 @@ entropy_collect_usage(SHA1_context *ctx)
 		struct rusage usage;
 
 		if (-1 != getrusage(RUSAGE_SELF, &usage)) {
-			SHA1_input(ctx, &usage, sizeof usage);
+			SHA1_INPUT(ctx, usage);
 		} else {
 			sha1_feed_uint(ctx, errno);
 		}
@@ -727,7 +727,7 @@ entropy_collect_uname(SHA1_context *ctx)
 		struct utsname un;
 		
 		if (-1 != uname(&un)) {
-			SHA1_input(ctx, &un, sizeof un);
+			SHA1_INPUT(ctx, un);
 		} else {
 			sha1_feed_uint(ctx, errno);
 		}
@@ -806,8 +806,8 @@ entropy_collect_cpu(SHA1_context *ctx)
 	memcpy(r, env, sizeof r);
 	shuffle_with(rand31_u32, r, G_N_ELEMENTS(r), sizeof r[0]);
 
-	SHA1_input(ctx, env, sizeof env);	/* "env" is an array */
-	SHA1_input(ctx, r, sizeof r);
+	SHA1_INPUT(ctx, env);				/* "env" is an array */
+	SHA1_INPUT(ctx, r);
 }
 
 /** 
@@ -857,7 +857,7 @@ entropy_collect_time(SHA1_context *ctx)
 	tm_nano_t now;
 
 	tm_precise_time(&now);
-	SHA1_input(ctx, &now, sizeof now);
+	SHA1_INPUT(ctx, now);
 }
 
 /**
@@ -883,7 +883,7 @@ entropy_collect_thread(SHA1_context *ctx)
 {
 	thread_t th = thread_current();
 
-	SHA1_input(ctx, &th, sizeof th);
+	SHA1_INPUT(ctx, th);
 }
 
 /**
@@ -899,7 +899,7 @@ entropy_collect_gateway(SHA1_context *ctx)
 	if (-1 == getgateway(&addr))
 		sha1_feed_uint(ctx, errno);
 
-	SHA1_input(ctx, &addr, sizeof addr);
+	SHA1_INPUT(ctx, addr);
 }
 
 /**
@@ -1001,7 +1001,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	tm_precise_time(&start);
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, &start, sizeof start);
+	SHA1_INPUT(&ctx, start);
 
 	if (can_malloc) {
 		fn[i++] = entropy_collect_randomness;
@@ -1051,7 +1051,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		last = start;		/* struct copy */
 
 		tm_precise_time(&end);
-		SHA1_input(&ctx, &end, sizeof end);
+		SHA1_INPUT(&ctx, end);
 		v[1] = tm_precise_elapsed_f(&end, &start);
 
 		entropy_array_double_collect(&ctx, v, G_N_ELEMENTS(v));
@@ -1078,7 +1078,7 @@ static void G_GNUC_COLD
 entropy_self_feed_maybe(SHA1_context *ctx)
 {
 	if (random_upto(rand31_u32, 999) < 200)
-		SHA1_input(ctx, ctx, sizeof *ctx);
+		SHA1_INPUT(ctx, *ctx);
 }
 
 /**
@@ -1134,7 +1134,7 @@ entropy_seed(struct entropy_minictx *c)
 	SHA1_reset(&ctx);
 
 	tm_precise_time(&now);		/* Do not use tm_now_exact(), it's too soon */
-	SHA1_input(&ctx, &now, sizeof now);
+	SHA1_INPUT(&ctx, now);
 
 	j = popcount(now.tv_nsec);
 	for (i = 0; i <= j; i++) {
@@ -1163,9 +1163,9 @@ entropy_seed(struct entropy_minictx *c)
 		entropy_sha1_result(&ctx, &hash);
 		memcpy(data, &hash, sizeof data);
 		shuffle_with(rand31_u32, data, G_N_ELEMENTS(data), sizeof data[0]);
-		SHA1_input(&ctx, data, sizeof data);
+		SHA1_INPUT(&ctx, data);
 		tm_precise_time(&now);
-		SHA1_input(&ctx, &now, sizeof now);
+		SHA1_INPUT(&ctx, now);
 		entropy_sha1_result(&ctx, &hash);
 		rand31_set_seed(peek_be32(&hash));
 	}
@@ -1200,12 +1200,12 @@ entropy_seed(struct entropy_minictx *c)
 	ZERO(&garbage);
 #endif
 
-	SHA1_input(&ctx, garbage, sizeof garbage);
+	SHA1_INPUT(&ctx, garbage);
 	ENTROPY_CONTEXT_FEED;
 
 	entropy_delay();
 	tm_precise_time(&now);
-	SHA1_input(&ctx, &now, sizeof now);
+	SHA1_INPUT(&ctx, now);
 
 	tm_precise_time(&now);
 	j = popcount(now.tv_nsec * 11);
@@ -1250,7 +1250,7 @@ entropy_seed(struct entropy_minictx *c)
 #undef ENTROPY_CONTEXT_FEED
 
 	tm_precise_time(&now);
-	SHA1_input(&ctx, &now, sizeof now);
+	SHA1_INPUT(&ctx, now);
 
 	{
 		struct sha1 hash;
@@ -1685,8 +1685,8 @@ entropy_harvest_many(const void *p, size_t len, ...)
 	nonce = entropy_nonce();
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, VARLEN(nonce));
-	SHA1_input(&ctx, VARLEN(now));
+	SHA1_INPUT(&ctx, nonce);
+	SHA1_INPUT(&ctx, now);
 	SHA1_input(&ctx, p, len);
 	runlen = len;
 

@@ -194,7 +194,7 @@ aje_check(const struct aje_state * const as)
  * @param digest	where the digest is written out
  */
 static void
-aje_sha1_result(const SHA1_context *ctx, struct sha1 *digest)
+aje_sha1_result(const SHA1_context *ctx, sha1_t *digest)
 {
 	SHA1_context tmp;
 	int ret;
@@ -287,7 +287,7 @@ aje_reseed(aje_state_t *as)
 	uint k;
 	size_t n;
 	SHA1_context kctx;
-	struct sha1 buf;
+	sha1_t buf;
 
 	aje_check(as);
 
@@ -314,7 +314,7 @@ aje_reseed(aje_state_t *as)
 		 */
 
 		aje_sha1_result(&as->pool[k], &buf);
-		SHA1_input(&kctx, &buf, sizeof buf);
+		SHA1_INPUT(&kctx, buf);
 
 		if (n & 1)
 			break;
@@ -325,9 +325,9 @@ aje_reseed(aje_state_t *as)
 	 * the mix, then generate the new encryption key.
 	 */
 
-	SHA1_input(&kctx, &as->key, sizeof as->key);
-	SHA1_input(&kctx, &as->counter, sizeof as->counter);
-	SHA1_input(&kctx, &as->last_reseed, sizeof as->last_reseed);
+	SHA1_INPUT(&kctx, as->key);
+	SHA1_INPUT(&kctx, as->counter);
+	SHA1_INPUT(&kctx, as->last_reseed);
 	SHA1_result(&kctx, &buf);
 
 	STATIC_ASSERT(sizeof as->key <= sizeof buf);
@@ -579,7 +579,7 @@ aje_spread(aje_state_t *as)
 
 		for (j = 0; j < 2; j++) {
 			aje_counter_encrypt(as, buf, sizeof buf);
-			SHA1_input(&as->pool[i], buf, sizeof buf);
+			SHA1_INPUT(&as->pool[i], buf);
 		}
 	}
 

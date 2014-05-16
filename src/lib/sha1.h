@@ -85,6 +85,11 @@ int SHA1_input(SHA1_context *, const void *, size_t);
 int SHA1_result(SHA1_context *, struct sha1 *digest);
 
 /**
+ * Feed the SHA1 context with the content of a variable.
+ */
+#define SHA1_INPUT(c,v)		SHA1_input((c), &(v), sizeof(v))
+
+/**
  * Compute the SHA1 digest of (structure) ``x'' into ``d''.
  *
  * ``x'' is the data structure, and ``sizeof(x)'' gives the size to hash.

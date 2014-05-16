@@ -586,7 +586,7 @@ qrt_sha1(struct routing_table *rt)
 		for (j = 0, mask = 0x80; j < 8; j++, mask >>= 1)
 			vector[j] = (value & mask) ? 1 : 0;		/* 1 for presence */
 
-		SHA1_input(&ctx, vector, sizeof vector);
+		SHA1_INPUT(&ctx, vector);
 	}
 
 	SHA1_result(&ctx, &sha1);
@@ -5083,7 +5083,7 @@ qrt_dump(struct routing_table *rt, bool full)
 		status = qrt_dump_is_slot_present(rt, i);
 		value = status ? 1 : 0;			/* 1 for presence */
 
-		SHA1_input(&ctx, &value, sizeof value);
+		SHA1_INPUT(&ctx, value);
 
 		if (i == 0) {
 			last_slot = i;
