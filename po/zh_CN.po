@@ -1,23 +1,22 @@
-# Chinese (Simplified) translations for gtk-gnutella package.
-# Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2007 Raphaël Manfredi.
-# Copyright (C) 2009 Free Software Foundation, Inc.
-# This file is distributed under the same license as the gtk-gnutella package.
-# Wu Xiaoguang <wxgnj@yahoo.com.cn>, 2005.
-# Aron Xu <happyaron.xu@gmail.com>, 2009.
-#
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Raphael Manfredi
+# This file is distributed under the same license as the PACKAGE package.
+# 
+# Translators:
+# Aron Xu <happyaron.xu@gmail.com>, 2009
+# Wu Xiaoguang <wxgnj@yahoo.com.cn>, 2005
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.7u\n"
+"Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2014-05-14 19:31+0200\n"
-"PO-Revision-Date: 2009-12-05 16:18+0800\n"
-"Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
-"Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
-"Language: \n"
+"PO-Revision-Date: 2014-05-15 08:48+0000\n"
+"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
+"Language-Team: Chinese (China) (http://www.transifex.com/projects/p/gtk-gnutella/language/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #, c-format
@@ -32,13 +31,11 @@ msgstr "已停止 (%s)"
 msgid "Too many attempts (%u times)"
 msgstr "尝试次数过多 (%u 次)"
 
-#, fuzzy
 msgid "Requeued due to no push-proxy"
-msgstr "因超时重新排队"
+msgstr ""
 
-#, fuzzy
 msgid "Requeued due to file removal"
-msgstr "一段数据后重新排队"
+msgstr ""
 
 msgid "Requeued by file info change"
 msgstr "因文件信息改变后而请求"
@@ -79,13 +76,11 @@ msgstr ""
 msgid "Download queue is frozen"
 msgstr "下载队列已冻结"
 
-#, fuzzy
 msgid "No download slot (start)"
-msgstr "没有下载插口"
+msgstr ""
 
-#, fuzzy
 msgid "Connection failed (Out of file descriptors?)"
-msgstr "连接失败 (超出了file descriptors的范围？)"
+msgstr ""
 
 msgid "Connection failed"
 msgstr "连接失败"
@@ -96,22 +91,19 @@ msgstr "检测到SHA不匹配"
 msgid "Waiting for server PROX publishing"
 msgstr ""
 
-#, fuzzy
 msgid "Waiting for push route"
-msgstr "正等待进一步的请求..."
+msgstr ""
 
 msgid "Push route lost"
 msgstr "路由丢失"
 
-#, fuzzy
 msgid "Ignoring Push flag"
-msgstr "忽略push标志"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
-msgstr[0] "尚无直接的连接 (%d次尝试)"
-msgstr[1] "尚无直接的连接 (%d次尝试)"
+msgstr[0] ""
 
 #, c-format
 msgid "Timeout (%u retry)"
@@ -189,13 +181,11 @@ msgstr "无法保存数据：%s"
 msgid "Partial write to file"
 msgstr "部分写入到文件"
 
-#, fuzzy
 msgid "Requeued after trimmed data"
-msgstr "一段数据后重新排队"
+msgstr ""
 
-#, fuzzy
 msgid "Chunk done, connection closed"
-msgstr "块下载完毕，连接关闭"
+msgstr ""
 
 #, c-format
 msgid "Switching to \"%s\""
@@ -316,13 +306,11 @@ msgstr "Content-Length 不匹配"
 msgid "No Content-Length header"
 msgstr "无 Content-Length 头"
 
-#, fuzzy
 msgid "Unexpected Content-Type"
-msgstr "意外的消息"
+msgstr ""
 
-#, fuzzy
 msgid "No Content-Type"
-msgstr "无 Content-Length 头"
+msgstr ""
 
 msgid "Search already closed"
 msgstr "搜索已关闭"
@@ -357,9 +345,8 @@ msgstr "无法发送整个 HTTP 请求"
 msgid "Write failed: %s"
 msgstr "写入失败：%s"
 
-#, fuzzy
 msgid "Malformed push reply"
-msgstr "变形的查询命中"
+msgstr ""
 
 msgid ", inbound"
 msgstr ""
@@ -382,9 +369,9 @@ msgstr ""
 msgid ", vendor?"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "<Browse G2 Host %s>"
-msgstr "<浏览主机 %s>"
+msgstr ""
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -394,13 +381,11 @@ msgstr "<浏览主机 %s>"
 msgid "<THEX data for %s>"
 msgstr "<%s 的 THEX 数据>"
 
-#, fuzzy
 msgid "Browse search closed"
-msgstr "显示搜索列表"
+msgstr ""
 
-#, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
-msgstr "中止的数据 (EOF)"
+msgstr ""
 
 msgid "No longer connected"
 msgstr "已断开"
@@ -414,9 +399,8 @@ msgstr "超时"
 msgid "Requeued due to timeout"
 msgstr "因超时重新排队"
 
-#, fuzzy
 msgid "Partial file removed"
-msgstr "部分文件共享"
+msgstr ""
 
 msgid "File info being reset"
 msgstr ""
@@ -428,23 +412,20 @@ msgstr "正在下载(TR：%s)"
 msgid "Seeding"
 msgstr "做种中"
 
-#, fuzzy
 msgid "Computing TTH"
-msgstr "正在计算 SHA1"
+msgstr ""
 
 msgid "Computing SHA1"
 msgstr "正在计算 SHA1"
 
-#, fuzzy
 msgid "Waiting for TTH check"
-msgstr "等待 SHA1 检查"
+msgstr ""
 
 msgid "Waiting for SHA1 check"
 msgstr "等待 SHA1 检查"
 
-#, fuzzy
 msgid "SHA1"
-msgstr "SHA-1"
+msgstr ""
 
 msgid "OK"
 msgstr "完成"
@@ -452,13 +433,11 @@ msgstr "完成"
 msgid "failed"
 msgstr "失败"
 
-#, fuzzy
 msgid "not computed yet"
-msgstr "尚没有输出..."
+msgstr ""
 
-#, fuzzy
 msgid "Waiting for moving..."
-msgstr "正等待头部..."
+msgstr ""
 
 msgid "Moving"
 msgstr "正在移动"
@@ -476,9 +455,8 @@ msgstr "已排对(%u 活跃，%u 被动)"
 msgid "Waiting"
 msgstr "等待中"
 
-#, fuzzy
 msgid "Querying DHT"
-msgstr "变形的查询命中"
+msgstr ""
 
 msgid "Pending DHT query"
 msgstr ""
@@ -493,14 +471,14 @@ msgid "%u DHT lookup"
 msgid_plural "%u DHT lookups"
 msgstr[0] ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
-msgstr[0] "从 UDP 主机缓存 %2$s 中获取到 %1$d 个主机"
+msgstr[0] ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Connecting to web cache %s"
-msgstr "连接到主机"
+msgstr ""
 
 #, c-format
 msgid "Bootstrapping from %s"
@@ -542,9 +520,9 @@ msgstr "Gnet 连接被禁用"
 msgid "Connection not compressed"
 msgstr "连接没有被压缩"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Too many G2 hubs (%u max)"
-msgstr "节点过多(最大值为%d)"
+msgstr ""
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -593,9 +571,8 @@ msgstr "协议不可接受"
 msgid "Servent Shutdown"
 msgstr "Servent 关闭"
 
-#, fuzzy
 msgid "Not a network member"
-msgstr "Gnutella 网络模式"
+msgstr ""
 
 msgid "Need a G2 Hub"
 msgstr ""
@@ -603,9 +580,8 @@ msgstr ""
 msgid "Too frequent crawling"
 msgstr "网络爬行太过频繁"
 
-#, fuzzy
 msgid "Already connected to this GUID"
-msgstr "已连接"
+msgstr ""
 
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
@@ -650,28 +626,23 @@ msgstr "失败(额外的 HELLO 数据)"
 msgid "Pseudo UDP node"
 msgstr "伪 UDP 节点"
 
-#, fuzzy
 msgid "Pseudo semi-reliable UDP node"
-msgstr "伪 UDP 节点"
+msgstr ""
 
-#, fuzzy
 msgid "Pseudo G2 UDP node"
-msgstr "伪 UDP 节点"
+msgstr ""
 
-#, fuzzy
 msgid "Pseudo DHT node"
-msgstr "伪 UDP 节点"
+msgstr ""
 
 msgid "Already connected"
 msgstr "已连接"
 
-#, fuzzy
 msgid "Limited connection"
-msgstr "传统连接"
+msgstr ""
 
-#, fuzzy
 msgid "Write error during HELLO"
-msgstr "HELLO 时发生写错误：%s"
+msgstr ""
 
 #, c-format
 msgid "Write error during HELLO: %s"
@@ -684,9 +655,9 @@ msgstr "HELLO 时连接被重置"
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "踢出：消息%1$s过大 (%2$d字节)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Kicked: %s message too big (>= 64KiB limit)"
-msgstr "踢出：消息%1$s过大 (%2$d字节)"
+msgstr ""
 
 msgid "Leaf"
 msgstr "页节点"
@@ -723,9 +694,9 @@ msgstr "读取错误：%s"
 msgid "Must wait %u more seconds before resending \"What's New\""
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "mkdir(\"%s\") failed: %m"
-msgstr "写入失败：%s"
+msgstr ""
 
 msgid "Can't find your home directory!"
 msgstr "无法找到您的主目录！"
@@ -737,13 +708,12 @@ msgstr ""
 msgid "creating configuration directory \"%s\""
 msgstr "正在新建配置目录 \"%s\""
 
-#, fuzzy, c-format
+#, c-format
 msgid "creating directory \"%s\" for %s"
-msgstr "正在新建配置目录 \"%s\""
+msgstr ""
 
-#, fuzzy
 msgid "You seem to have left another gtk-gnutella running"
-msgstr "有其他 gtk-gnutella 实例在运行\n"
+msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "没有合适的配置目录则无法继续"
@@ -791,9 +761,8 @@ msgstr[0] "从 UDP 主机缓存 %2$s 中获取到 %1$d 个主机"
 msgid "Connect back timeout"
 msgstr "返回连接超时"
 
-#, fuzzy
 msgid "Request timeout"
-msgstr "因超时重新排队"
+msgstr ""
 
 msgid "Timeout waiting for follow-up"
 msgstr ""
@@ -804,24 +773,21 @@ msgstr "超出生命周期"
 msgid "Unauthorized"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Limiting connections from %s"
-msgstr "传统连接"
+msgstr ""
 
 msgid "No reason given"
 msgstr ""
 
-#, fuzzy
 msgid "Bad Request"
-msgstr "最近请求"
+msgstr ""
 
-#, fuzzy
 msgid "Header too large"
-msgstr "Way过大"
+msgstr ""
 
-#, fuzzy
 msgid "Input buffer full"
-msgstr "失败 (输入缓冲已满)"
+msgstr ""
 
 msgid "Extra data after HTTP header"
 msgstr ""
@@ -838,16 +804,14 @@ msgstr ""
 msgid "Moved Permanently"
 msgstr ""
 
-#, fuzzy
 msgid "File index/name mismatch"
-msgstr "文件尺寸不匹配"
+msgstr ""
 
 msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
-#, fuzzy
 msgid "SHA1 is being recomputed"
-msgstr "检测到SHA不匹配"
+msgstr ""
 
 msgid "Library being rebuilt"
 msgstr ""
@@ -864,52 +828,43 @@ msgstr ""
 msgid "<Browse Host Request>"
 msgstr "<请求浏览主机>"
 
-#, fuzzy
 msgid "Browse Host Disabled"
-msgstr "<浏览主机 %s>"
+msgstr ""
 
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr ""
 
-#, fuzzy
 msgid "Not Modified"
-msgstr "已更改"
+msgstr ""
 
-#, fuzzy
 msgid "Stalling upload replaced"
-msgstr "停止的上传将被替换"
+msgstr ""
 
 msgid "Already downloading this file"
 msgstr ""
 
-#, fuzzy
 msgid "Malformed Range request"
-msgstr "变形的查询命中"
+msgstr ""
 
-#, fuzzy
 msgid "Requested range not satisfiable"
-msgstr "%s 请求的范围不可用"
+msgstr ""
 
-#, fuzzy
 msgid "Requested range not available yet"
-msgstr "%s 请求的范围不可用"
+msgstr ""
 
-#, fuzzy
 msgid "Queue full"
-msgstr "队列已冻结"
+msgstr ""
 
-#, fuzzy
 msgid "Another connection is still active"
-msgstr "Gnet 连接被禁用"
+msgstr ""
 
 #, c-format
 msgid "%s not honoured; removed from PARQ queue"
 msgstr ""
 
-#, fuzzy
 msgid "Minimum retry delay"
-msgstr "最小文件尺寸："
+msgstr ""
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
@@ -918,13 +873,12 @@ msgstr "排队(%d个插口，ETA：%s)"
 msgid "Cannot send whole HTTP status"
 msgstr "无法发送整个 HTTP 状态"
 
-#, fuzzy
 msgid "Not Acceptable"
-msgstr "协议不可接受"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "<Browse Host %sRequest> [%s%s%s]"
-msgstr "<请求浏览主机>"
+msgstr ""
 
 msgid "query hits"
 msgstr ""
@@ -944,13 +898,11 @@ msgstr ""
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
 
-#, fuzzy
 msgid "Not Implemented"
-msgstr "完成"
+msgstr ""
 
-#, fuzzy
 msgid "No Content Allowed"
-msgstr "无 Content-Length 头"
+msgstr ""
 
 msgid "Bad URI"
 msgstr ""
@@ -961,9 +913,8 @@ msgstr ""
 msgid "Missing Host Header"
 msgstr ""
 
-#, fuzzy
 msgid "Sharing currently disabled"
-msgstr "当前使用"
+msgstr ""
 
 msgid "Write exception"
 msgstr "写入异常"
@@ -982,9 +933,9 @@ msgstr "数据写入出错：%s"
 msgid "No bytes written, source may be gone"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Special read error: %s"
-msgstr "文件读取出错：%s"
+msgstr ""
 
 msgid "Explicitly killed"
 msgstr "显式结束"
@@ -1025,9 +976,8 @@ msgstr ""
 msgid "SPAM SHA1 database hits"
 msgstr ""
 
-#, fuzzy
 msgid "SPAM filename and size hits"
-msgstr "当文件名结束于“%s” %s"
+msgstr ""
 
 msgid "SPAM fake hits"
 msgstr ""
@@ -1050,9 +1000,8 @@ msgstr "本地数据库查询"
 msgid "Hits on local DB"
 msgstr "本地数据库查询命中"
 
-#, fuzzy
 msgid "Hits on local partial files"
-msgstr "本地数据库查询命中"
+msgstr ""
 
 msgid "Hits on \"what's new?\" queries"
 msgstr ""
@@ -1060,17 +1009,14 @@ msgstr ""
 msgid "Query hits received for local queries"
 msgstr ""
 
-#, fuzzy
 msgid "G2 searches to local DB"
-msgstr "本地数据库查询"
+msgstr ""
 
-#, fuzzy
 msgid "G2 hits on local DB"
-msgstr "本地数据库查询命中"
+msgstr ""
 
-#, fuzzy
 msgid "G2 hits on local partial files"
-msgstr "本地数据库查询命中"
+msgstr ""
 
 msgid "Query hits received for OOB-proxied queries"
 msgstr ""
@@ -1129,25 +1075,20 @@ msgstr "UTF-8 查询"
 msgid "SHA1 queries"
 msgstr "SHA1 查询"
 
-#, fuzzy
 msgid "\"What's New?\" queries"
-msgstr "已生成的查询"
+msgstr ""
 
-#, fuzzy
 msgid "UTF8 G2 queries"
-msgstr "UTF-8 查询"
+msgstr ""
 
-#, fuzzy
 msgid "SHA1 G2 queries"
-msgstr "SHA1 查询"
+msgstr ""
 
-#, fuzzy
 msgid "GUESS queries"
-msgstr "UTF-8 查询"
+msgstr ""
 
-#, fuzzy
 msgid "GUESS queries (0.2)"
-msgstr "UTF-8 查询"
+msgstr ""
 
 msgid "GUESS link cache size"
 msgstr ""
@@ -1161,9 +1102,8 @@ msgstr ""
 msgid "GUESS cached G2 hosts held"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS locally generated queries"
-msgstr "已生成的查询"
+msgstr ""
 
 msgid "GUESS currently running queries"
 msgstr ""
@@ -1171,16 +1111,14 @@ msgstr ""
 msgid "GUESS hits received for locally generated queries"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS ultra nodes queried"
-msgstr "已生成的查询"
+msgstr ""
 
 msgid "GUESS ultra nodes sending back an acknowledgment"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS G2 nodes queried"
-msgstr "UTF-8 查询"
+msgstr ""
 
 msgid "GUESS G2 nodes sending back an acknowledgment"
 msgstr ""
@@ -1302,9 +1240,8 @@ msgstr ""
 msgid "UDP messages with bogus source IP"
 msgstr ""
 
-#, fuzzy
 msgid "UDP truncated incoming messages"
-msgstr "DHT 消息格式错误"
+msgstr ""
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr ""
@@ -1474,9 +1411,8 @@ msgstr ""
 msgid "UDP G2 hits rerouted to hub for delivery"
 msgstr ""
 
-#, fuzzy
 msgid "UDP G2 hits undelivered"
-msgstr "未定义显示"
+msgstr ""
 
 msgid "Consolidated servers (after GUID and IP address linking)"
 msgstr ""
@@ -1529,9 +1465,8 @@ msgstr ""
 msgid "Sunk HTTP reply data on error codes"
 msgstr ""
 
-#, fuzzy
 msgid "Ignored downloaded data"
-msgstr "已下载数据："
+msgstr ""
 
 msgid "Ignoring requested after data mismatch"
 msgstr ""
@@ -1587,9 +1522,8 @@ msgstr ""
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
-#, fuzzy
 msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "用于下载的debug级别。"
+msgstr ""
 
 msgid "RUDP sent bytes"
 msgstr ""
@@ -1657,13 +1591,11 @@ msgstr ""
 msgid "DHT forced bucket refreshes"
 msgstr ""
 
-#, fuzzy
 msgid "DHT forced bucket merges"
-msgstr "DHT 消息格式错误"
+msgstr ""
 
-#, fuzzy
 msgid "DHT bucket merges"
-msgstr "DHT 消息格式错误"
+msgstr ""
 
 msgid "DHT bucket splits"
 msgstr ""
@@ -1740,17 +1672,14 @@ msgstr ""
 msgid "DHT cached roots contact address refreshed"
 msgstr ""
 
-#, fuzzy
 msgid "DHT cached security tokens held"
-msgstr "无效的 DHT 安全令牌"
+msgstr ""
 
-#, fuzzy
 msgid "DHT cached security tokens hits"
-msgstr "无效的 DHT 安全令牌"
+msgstr ""
 
-#, fuzzy
 msgid "DHT stable node information held"
-msgstr "主机信息"
+msgstr ""
 
 msgid "DHT local hits on value lookups"
 msgstr ""
@@ -1830,9 +1759,8 @@ msgstr ""
 msgid "DHT values successfully offloaded"
 msgstr ""
 
-#, fuzzy
 msgid "DHT incoming messages"
-msgstr "DHT 消息格式错误"
+msgstr ""
 
 msgid "DHT incoming messages with UDP-matching contact address"
 msgstr ""
@@ -1867,13 +1795,11 @@ msgstr ""
 msgid "DHT RPC detected KUID mismatches on reply"
 msgstr ""
 
-#, fuzzy
 msgid "DHT RPC recent nodes held"
-msgstr "无效的 DHT 安全令牌"
+msgstr ""
 
-#, fuzzy
 msgid "DHT node verifications"
-msgstr "主机信息"
+msgstr ""
 
 msgid "DHT publishing attempts"
 msgstr ""
@@ -1926,9 +1852,8 @@ msgstr ""
 msgid "DHT successful node push-entry lookups"
 msgstr ""
 
-#, fuzzy
 msgid "DHT re-seeding of orphan downloads"
-msgstr "用于下载的debug级别。"
+msgstr ""
 
 msgid "Ping"
 msgstr "Ping"
@@ -1966,13 +1891,11 @@ msgstr "查询命中"
 msgid "DHT (truncated)"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Ping"
-msgstr "Ping"
+msgstr ""
 
-#, fuzzy
 msgid "DHT Pong"
-msgstr "Pong"
+msgstr ""
 
 msgid "DHT Store"
 msgstr ""
@@ -1989,13 +1912,11 @@ msgstr ""
 msgid "DHT Find Value"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Value"
-msgstr "值"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Crawl Request"
-msgstr "最近请求"
+msgstr ""
 
 msgid "G2 Hub Advertisement"
 msgstr ""
@@ -2009,17 +1930,14 @@ msgstr ""
 msgid "G2 Hub List Ack"
 msgstr ""
 
-#, fuzzy
 msgid "G2 Local Node Info"
-msgstr "本地节点"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Ping"
-msgstr "Ping"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Pong"
-msgstr "Pong"
+msgstr ""
 
 msgid "G2 Push"
 msgstr ""
@@ -2030,20 +1948,17 @@ msgstr ""
 msgid "G2 Query Key Req"
 msgstr ""
 
-#, fuzzy
 msgid "G2 Query"
-msgstr "查询"
+msgstr ""
 
 msgid "G2 Query Ack"
 msgstr ""
 
-#, fuzzy
 msgid "G2 Query Hit"
-msgstr "变形的查询命中"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Query Hash Table"
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid "G2 User Profile Check"
 msgstr ""
@@ -2063,13 +1978,11 @@ msgstr "太小"
 msgid "Too large"
 msgstr "太大"
 
-#, fuzzy
 msgid "Way too large"
-msgstr "Way过大"
+msgstr ""
 
-#, fuzzy
 msgid "Too old"
-msgstr "工具"
+msgstr ""
 
 msgid "Unknown message type"
 msgstr "未知的消息类型"
@@ -2089,9 +2002,8 @@ msgstr "超过了最大 TTL 值"
 msgid "Message throttle"
 msgstr ""
 
-#, fuzzy
 msgid "Message matched limits"
-msgstr "Gnutella 消息尺寸限制"
+msgstr ""
 
 msgid "Transient node"
 msgstr ""
@@ -2120,9 +2032,8 @@ msgstr ""
 msgid "Message to banned GUID"
 msgstr "发往被禁止 GUID 的消息"
 
-#, fuzzy
 msgid "Message from banned GUID"
-msgstr "发往被禁止 GUID 的消息"
+msgstr ""
 
 msgid "Node shutting down"
 msgstr "节点正在关闭"
@@ -2136,9 +2047,8 @@ msgstr "查询文本没有尾随 NUL"
 msgid "Query text too short"
 msgstr "查询文本太短"
 
-#, fuzzy
 msgid "Query had unnecessary overhead"
-msgstr "查询包括额外的花销"
+msgstr ""
 
 msgid "Query had bad URN"
 msgstr ""
@@ -2149,9 +2059,8 @@ msgstr "消息包括变形的SHA1"
 msgid "Message with malformed UTF-8"
 msgstr "消息包括变形的UTF-8"
 
-#, fuzzy
 msgid "Malformed Query Hit"
-msgstr "变形的查询命中"
+msgstr ""
 
 msgid "Bad return address"
 msgstr "返回地址错误"
@@ -2159,9 +2068,8 @@ msgstr "返回地址错误"
 msgid "Hostile IP address"
 msgstr "有害的IP地址"
 
-#, fuzzy
 msgid "Shunned IP address"
-msgstr "不稳定的 IP 地址"
+msgstr ""
 
 msgid "Bogus result from Morpheus"
 msgstr ""
@@ -2172,9 +2080,8 @@ msgstr "SPAM"
 msgid "Evil filename"
 msgstr ""
 
-#, fuzzy
 msgid "Improper media type"
-msgstr "搜索项目"
+msgstr ""
 
 msgid "Payload inflating error"
 msgstr ""
@@ -2182,27 +2089,23 @@ msgstr ""
 msgid "Unknown header flags present"
 msgstr ""
 
-#, fuzzy
 msgid "Own search results"
-msgstr "将搜索结果限制为(_r)"
+msgstr ""
 
-#, fuzzy
 msgid "Own queries"
-msgstr "RX 查询"
+msgstr ""
 
 msgid "Ancient query format"
 msgstr ""
 
-#, fuzzy
 msgid "Blank Servent ID"
-msgstr "Servent关闭"
+msgstr ""
 
 msgid "GUESS Query missing token"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS Invalid query token"
-msgstr "无效的 DHT 安全令牌"
+msgstr ""
 
 msgid "DHT Invalid security token"
 msgstr "无效的 DHT 安全令牌"
@@ -2213,13 +2116,11 @@ msgstr "DHT 上 STORE 请求过多"
 msgid "DHT Malformed message"
 msgstr "DHT 消息格式错误"
 
-#, fuzzy
 msgid "G2 Unexpected message"
-msgstr "意外的消息"
+msgstr ""
 
-#, fuzzy
 msgid "Cannot cross networks"
-msgstr "本地网络"
+msgstr ""
 
 msgid "No proxy"
 msgstr "无代理"
@@ -2278,24 +2179,20 @@ msgstr ""
 msgid "own KUID lookup"
 msgstr ""
 
-#, fuzzy
 msgid "completing"
-msgstr "完成"
+msgstr ""
 
 msgid "completed"
 msgstr "完成"
 
-#, fuzzy
 msgid "shutdown"
-msgstr "关闭 (%s)"
+msgstr ""
 
-#, fuzzy
 msgid "active (recommended)"
-msgstr "自动 (推荐)"
+msgstr ""
 
-#, fuzzy
 msgid "passive"
-msgstr " 被动)"
+msgstr ""
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "标识主机缓存文件是否被读取"
@@ -2318,32 +2215,24 @@ msgstr "gtk-gnutella在Gnet上发现有新版本，相关信息如下。"
 
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
-"same kind as we are (normal or ultra nodes). This should be smaller than the "
-"maximum amount of connections to allow incoming connections.  Keep in mind "
+"same kind as we are (normal or ultra nodes). This should be smaller than the"
+" maximum amount of connections to allow incoming connections.  Keep in mind "
 "that the default TTL on Gnutella is 4, so this needs to be more than 30 to "
 "provide decent range for searches."
-msgstr ""
-"至少保持这么多对同类servent(正常或超级节点)的连接数量，此数量要小于最大允许进"
-"入连接数。请记住：Gnutella的默认TTL是4，如果需要进行深层搜索，这个值要调到30"
-"以上。"
+msgstr "至少保持这么多对同类servent(正常或超级节点)的连接数量，此数量要小于最大允许进入连接数。请记住：Gnutella的默认TTL是4，如果需要进行深层搜索，这个值要调到30以上。"
 
 msgid ""
 "When in ultrapeer mode, try to keep at least this number of connections to "
 "normal servents.  This should be smaller than the maximum amount of "
 "connections to allow incoming connections."
-msgstr ""
-"当使用超级节点模式时，至少保持这么多对同等servent连接数量。此数量要比最大允许"
-"进入连接数小。"
+msgstr "当使用超级节点模式时，至少保持这么多对同等servent连接数量。此数量要比最大允许进入连接数小。"
 
-#, fuzzy
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
-"rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
-"up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
+"rule of thumb you should reserve 256 b/s bandwidth per connection. Never use"
+" up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
 "advisable that you set this to a value smaller than 40."
 msgstr ""
-"不允许跟其他servent的连接数超过此值。原则上，您得为每个连接准备256 b/s的带"
-"宽。注意不要将带宽都分配完，留点给TCP/IP的花销。建议该值不要小于30。"
 
 msgid "Number of leaf nodes currently connected."
 msgstr "当前连接的叶节点数量。"
@@ -2355,20 +2244,18 @@ msgid "Number of ultra nodes currently connected."
 msgstr "当前连接的超级节点数量。"
 
 msgid ""
-"Don't start more than this number of parallel downloads.  Others will remain "
-"in the queue waiting for a download slot."
+"Don't start more than this number of parallel downloads.  Others will remain"
+" in the queue waiting for a download slot."
 msgstr "同时下载数不能超过此值，其他的会排队等待下载插口。"
 
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
-msgstr ""
-"单个主机下载单个文件，连接数不能多，这样对其他人而言更加公平，最好采用默认值 "
-"(1)。"
+msgstr "单个主机下载单个文件，连接数不能多，这样对其他人而言更加公平，最好采用默认值 (1)。"
 
 msgid ""
-"Don't allow more than this number of uploads in total. This also defines the "
-"amount of PARQ queues that will be used. You should at least set it to 2."
+"Don't allow more than this number of uploads in total. This also defines the"
+" amount of PARQ queues that will be used. You should at least set it to 2."
 msgstr "最大上传总数量。同时也定义了以后PARQ排队的数量。最少要设2。"
 
 msgid ""
@@ -2399,67 +2286,55 @@ msgstr "servent 开始时的时间戳。"
 msgid "Average servent uptime."
 msgstr "servent 的平均在线时间。"
 
-#, fuzzy
 msgid ""
 "Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
 "traffic on TCP port 6346 so it is a good idea to change it to something in "
 "the range of 1024-65535.  Don't forget to update your firewall port "
-"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
-"is not used to guard against undue censorship."
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346"
+" is not used to guard against undue censorship."
 msgstr ""
-"gtk-gnutall侦听的本地TCP端口。您的ISP可能会封掉或者阻塞TCP端口6346，所以建议"
-"您在1024-65535之间随意选择端口号。别忘了修改您的防火墙以放行该端口。请注意，"
-"为避免被监视，不要使用默认的TCP端口6346。"
 
-msgid "Use this IP address as source address if 'force local ip' is activated."
+msgid ""
+"Use this IP address as source address if 'force local ip' is activated."
 msgstr "如果本地IP地址固定，则使用该IP作为源地址。"
 
-#, fuzzy
 msgid ""
 "Use this IPv6 address as source address if 'force local ip' is activated."
-msgstr "如果本地IP地址固定，则使用该IP作为源地址。"
+msgstr ""
 
 msgid ""
-"The connection bandwidth reported to other hosts. This is the speed at which "
-"you can upload things to others."
+"The connection bandwidth reported to other hosts. This is the speed at which"
+" you can upload things to others."
 msgstr "连接其他主机的带宽，也就是给其他主机上传东东的速度。"
 
 msgid ""
 "Whether the connection bandwidth reported to other hosts should be computed "
 "based on the current average upload speed. The reported speed is the "
-"available speed for a new upload, not the theoretical maximum configured: it "
-"is the average bandwidth (or the max configured bandwidth if no traffic yet) "
-"divided by the number of upload slots. When it is ON (recommended setting), "
-"the hardwired connection speed is not used."
-msgstr ""
-"是否要计算跟其他主机的连接带宽，该带宽基于当前平均上传速度。报告的速度是新建"
-"上传的实际速度，而不是预先配置的最大理论值，也就是平均带宽(没有阻塞的话，是配"
-"置的最大带宽)，除以上传插口的数量。该项被选中时(推荐设置)，不会采用预先设置好"
-"的连接速度。"
+"available speed for a new upload, not the theoretical maximum configured: it"
+" is the average bandwidth (or the max configured bandwidth if no traffic "
+"yet) divided by the number of upload slots. When it is ON (recommended "
+"setting), the hardwired connection speed is not used."
+msgstr "是否要计算跟其他主机的连接带宽，该带宽基于当前平均上传速度。报告的速度是新建上传的实际速度，而不是预先配置的最大理论值，也就是平均带宽(没有阻塞的话，是配置的最大带宽)，除以上传插口的数量。该项被选中时(推荐设置)，不会采用预先设置好的连接速度。"
 
 msgid ""
 "Return at most this number of results to a query, using as many query hit "
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
 "value."
-msgstr ""
-"通过使用尽量多的查询命中包，返回查询结果的最大数量。 为避免网络洪峰，请合理设"
-"置该值。"
+msgstr "通过使用尽量多的查询命中包，返回查询结果的最大数量。 为避免网络洪峰，请合理设置该值。"
 
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
 "additional upload slots."
 msgstr "只有大于等于该上传带宽的百分比时，才允许额外的上传插口。"
 
-#, fuzzy
 msgid "Number of seconds before a download connect attempt times out."
-msgstr "下载连接维持活动的秒数。"
+msgstr ""
 
 msgid "Number of seconds before a push request times out."
 msgstr "敲门请求能够维持活动的秒数。"
 
-#, fuzzy
 msgid "Number of seconds before a download times out if no data is received."
-msgstr "没有数据接收，一个下载能够坚持的秒数。"
+msgstr ""
 
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
 msgstr "自动重试等待的最少秒数"
@@ -2467,17 +2342,17 @@ msgstr "自动重试等待的最少秒数"
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
 msgstr "自动重试等待的最大秒数"
 
-#, fuzzy
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications."
-msgstr "对文件尝试下载的最大次数，该文件没有HTTP busy标识。"
+msgstr ""
 
 msgid "Delay in seconds before retrying after a connection timed out."
 msgstr "一个连接超时后，再次重试的等待秒数。"
 
 msgid ""
-"Delay in seconds before retrying after getting a 'busy' response from a host."
+"Delay in seconds before retrying after getting a 'busy' response from a "
+"host."
 msgstr "从对方获得一个'正忙'的回应后，再次重试需等待的秒数。"
 
 msgid ""
@@ -2490,22 +2365,17 @@ msgid ""
 "connection reset by peer, etc...)."
 msgstr "前一次尝试被中断(由于超时、连接被peer重置等)，再次重试需等待的秒数。"
 
-#, fuzzy
 msgid ""
 "Amount of bytes to overlap when resuming a download. It should be at least "
-"64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume "
-"a file for which we had no SHA1 known, after a server gives one back."
+"64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume"
+" a file for which we had no SHA1 known, after a server gives one back."
 msgstr ""
-"续传下载所重叠的字节数。安全的续传，至少需设成64字节，否则gtk-gnutella将不会"
-"接受续传文件，因为对方返回一个针对的SHA1后，我们没有获知。"
 
 msgid ""
 "Number of seconds before an upload times out if no connection can be "
-"established during a push.  It is also the maximum amount of time we wait to "
-"get the whole HTTP request."
-msgstr ""
-"如果在敲门过程中连接无法建立，上传算作超时的秒数。 该值也是我们等待整个HTTP请"
-"求的最大时间。"
+"established during a push.  It is also the maximum amount of time we wait to"
+" get the whole HTTP request."
+msgstr "如果在敲门过程中连接无法建立，上传算作超时的秒数。 该值也是我们等待整个HTTP请求的最大时间。"
 
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted."
@@ -2514,44 +2384,37 @@ msgstr "如果没有数据传输，算作上传超时的秒数。"
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
 "results are available.  Be very careful with this parameter, and do not set "
-"it too low or you will damage the Gnutella network.  A delay of half an hour "
-"is fine."
-msgstr ""
-"再次搜索以获取新结果的间隔秒数。这个参数要小心设置，不能设得太低以免损害"
-"Gnutella网络。间隔设成半小时比较合适。"
+"it too low or you will damage the Gnutella network.  A delay of half an hour"
+" is fine."
+msgstr "再次搜索以获取新结果的间隔秒数。这个参数要小心设置，不能设得太低以免损害Gnutella网络。间隔设成半小时比较合适。"
 
 msgid ""
 "Maximum ratio of file descriptors reserved for banning. For instance, if "
 "your OS gives you 350 file descriptors, a ratio of 10 will reserve at most "
-"35 file descriptors.  You should ensure you have around 100 file descriptors "
-"for efficient banning."
-msgstr ""
-"可被禁止的最大文件描述符比例。例如，您的系统若给予您350个文件描述符，10个百分"
-"点，将可保留35个文件描述符。要有效的禁止，请确认至少需约100个文件文件描述符。"
+"35 file descriptors.  You should ensure you have around 100 file descriptors"
+" for efficient banning."
+msgstr "可被禁止的最大文件描述符比例。例如，您的系统若给予您350个文件描述符，10个百分点，将可保留35个文件描述符。要有效的禁止，请确认至少需约100个文件文件描述符。"
 
 msgid "Maximum number of file descriptors reserved for banning."
 msgstr "可禁止文件描述符的最大数量。"
 
-#, fuzzy
 msgid ""
 "Amount of file descriptors currently used for banning, i.e. which are "
 "currently kept open for delayed close."
-msgstr "用于禁止的文件描述符数量，也就是当前为延迟目的而作保留的。"
+msgstr ""
 
 msgid "Number of file descriptors we'll actually be using for banning."
 msgstr "实际用作禁止的文件描述符数量。"
 
-#, fuzzy
 msgid ""
 "Number of seconds an incoming connection has to start sending out its "
 "request."
-msgstr "进入连接发送其请求需要的秒数。"
+msgstr ""
 
-#, fuzzy
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established."
-msgstr "Gnet尝试建立连接，但总是失败，判为超时的秒数。"
+msgstr ""
 
 msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
@@ -2559,87 +2422,68 @@ msgid ""
 msgstr "Gnet连接但没有数据传输，判为超时的秒数。"
 
 msgid ""
-"Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
-"percent of the maximum message size."
+"Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150"
+" percent of the maximum message size."
 msgstr "针对节点的发送排队的最大值(以字节为单位)。至少是最大消息尺寸的150%。"
 
-#, fuzzy
 msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
-msgstr "被踢出前，节点在传输流控中保留的最大秒数。"
+msgstr ""
 
-#, fuzzy
 msgid ""
 "Maximum percentage of time over 5 minutes that our node can remain in flow "
-"control remotely before dropping the connection.  This only works with nodes "
-"that will send us an hops-flow message when they are flow-controlling us."
+"control remotely before dropping the connection.  This only works with nodes"
+" that will send us an hops-flow message when they are flow-controlling us."
 msgstr ""
-"时间超过5分钟，而我们的节点仍可保留在远程的流控中，而不会被断掉连接的最大百分"
-"比。这只有在那些节点流控我们的时候，给我们发送中转流消息时才有效。"
 
 msgid ""
 "Maximum TTL we allow in messages we broadcast.  If a query comes in with a "
 "TTL greater than that, it will be trimmed down to that value.  On Gnutella, "
 "the standard is TTL=4, so you cannot set a value lower than that."
-msgstr ""
-"消息广播的最大允许TTL。如果查询大于该值，将被截为该值。Gnutella的标准TTL=4，"
-"所以您的设定不能小于该值。"
+msgstr "消息广播的最大允许TTL。如果查询大于该值，将被截为该值。Gnutella的标准TTL=4，所以您的设定不能小于该值。"
 
-#, fuzzy
 msgid ""
 "The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  "
 "If you set it to too large a value, you run the risk of being trimmed down "
 "by fellow gtk-gnutella nodes, or kicked out by some other servent."
 msgstr ""
-"我们在消息中生成并使用的TTL。 Gnutella中默认的TTL=4。如果您将该值设得过大，将"
-"可能导致该值被其他gtk-gnutella节点截短，甚至被其他servent踢出。"
 
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
 "greater than the standard TTL=4, because it is also applied to routed-back "
-"messages (query hits) that could be re-routed in case a connection is lost.  "
-"Standard broadcasted messages have their TTL limited by the maximum TTL you "
-"configure, and that limit should be much lower than the value of this "
+"messages (query hits) that could be re-routed in case a connection is lost."
+"  Standard broadcasted messages have their TTL limited by the maximum TTL "
+"you configure, and that limit should be much lower than the value of this "
 "parameter."
-msgstr ""
-"消息传递的TTL硬限制最大值(hops + TTL)。该值得大于标准的TTL=4，因为该值还应用"
-"于路由返回的消息(即查询命中)，万一如果连接丢失，得重新路由。广播的标准消息包"
-"含他们的TTL，由您设置的最大TTL来限制，该值得远远小于这个参数。"
+msgstr "消息传递的TTL硬限制最大值(hops + TTL)。该值得大于标准的TTL=4，因为该值还应用于路由返回的消息(即查询命中)，万一如果连接丢失，得重新路由。广播的标准消息包含他们的TTL，由您设置的最大TTL来限制，该值得远远小于这个参数。"
 
 msgid "For development use: debug level."
 msgstr "用于开发：debug级别。"
 
-#, fuzzy
 msgid "Debug level for banning code."
-msgstr "用于HTTP代码的debug级别。"
+msgstr ""
 
 msgid "If not zero, periodic messages show the used CPU time."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for download mesh management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for Gnutella messages."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for file sharing code."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for Gnutella nodes."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for sockets."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for bootstrapping into the network."
-msgstr "消息路由的debug级别。"
+msgstr ""
 
 msgid "Debug level for HTTP code."
 msgstr "用于HTTP代码的debug级别。"
@@ -2647,9 +2491,8 @@ msgstr "用于HTTP代码的debug级别。"
 msgid "Debug level for downloads."
 msgstr "用于下载的debug级别。"
 
-#, fuzzy
 msgid "Debug level for fileinfo."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid "Debug level for uploads."
 msgstr "用于上传的debug级别。"
@@ -2660,9 +2503,8 @@ msgstr "用于在gui跟core间分享代码的debug级别"
 msgid "Verbosity of URL handling related debug messages."
 msgstr "与debug信息有关的URL处理冗余"
 
-#, fuzzy
 msgid "Debug level for dynamic query hit routing."
-msgstr "动态查询后命中路由的debug级别"
+msgstr ""
 
 msgid "Debug level for dynamic queries."
 msgstr "动态查询的debug级别。"
@@ -2679,9 +2521,8 @@ msgstr "搜索以及搜索结果管理的debug级别。"
 msgid "Debug level for the UDP traffic layer."
 msgstr "UDP交通布局的debug级别。"
 
-#, fuzzy
 msgid "Debug level for the Query Routing Protocol."
-msgstr "查询路由协议的debug级别。"
+msgstr ""
 
 msgid "Debug level for message routing."
 msgstr "消息路由的debug级别。"
@@ -2695,13 +2536,11 @@ msgstr "pong缓存的debug级别。"
 msgid "Debug level for HSEP."
 msgstr "HSEP的debug级别。"
 
-#, fuzzy
 msgid "Debug level for TLS."
-msgstr "HSEP的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for PARQ."
-msgstr "GGEP的debug级别。"
+msgstr ""
 
 msgid ""
 "If set, PARQ will calculate its ETA and retry times more optimistically. If "
@@ -2712,8 +2551,8 @@ msgstr ""
 msgid ""
 "Maximum size in bytes of an upload which PARQ shall not queue and is always "
 "allowed to continue. However, if a client requests small chunks over and "
-"over the chunk sizes previously requested and uploaded are also counted.  If "
-"the size requested is greater than the threshold then, and only then, we "
+"over the chunk sizes previously requested and uploaded are also counted.  If"
+" the size requested is greater than the threshold then, and only then, we "
 "look at the theoretical time it would take to serve the whole amount to see "
 "whether we can still bypass queuing. Set to 0 to disable this size-based "
 "bypassing feature and only rely on time-based bypassing."
@@ -2737,9 +2576,8 @@ msgstr ""
 msgid "For development use: track properties."
 msgstr "用于开发：跟踪属性。"
 
-#, fuzzy
 msgid "For development use: don't add new hosts to the host cache."
-msgstr "用于开发：不要给hostcatcher增加新的主机。"
+msgstr ""
 
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
 msgstr "对进入的HTTP流量进行带宽限制。"
@@ -2780,9 +2618,8 @@ msgid ""
 "etc...)."
 msgstr "自动清除不可用的下载。(由于连接超时，push路由丢失等)"
 
-#, fuzzy
 msgid "Auto clear finished downloads"
-msgstr "自动清除已下载完毕的项目。"
+msgstr ""
 
 msgid "Remove downloaded files from the search result."
 msgstr "从搜索结果中去掉已下载的文件。"
@@ -2790,9 +2627,8 @@ msgstr "从搜索结果中去掉已下载的文件。"
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "采用[forced_local_ip]作为本地IP。"
 
-#, fuzzy
 msgid "Enable to use [forced_local_ip6] as local ip."
-msgstr "采用[forced_local_ip]作为本地IP。"
+msgstr ""
 
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
@@ -2815,10 +2651,7 @@ msgid ""
 "interactive, normal and bulk data. This is probably a good idea in most "
 "cases, and can particularly help with badly misconfigured hosts, LANs, and "
 "ISPs."
-msgstr ""
-"如果您想让gtk-gnutella使用 IP TOS 来处理交互的、正常的以及批量数据，请勾选该"
-"项。大部分场合，这都是个好主意，这样可以帮助您部分处理配置错误的主机、LANs以"
-"及ISPs。"
+msgstr "如果您想让gtk-gnutella使用 IP TOS 来处理交互的、正常的以及批量数据，请勾选该项。大部分场合，这都是个好主意，这样可以帮助您部分处理配置错误的主机、LANs以及ISPs。"
 
 msgid "Remove files of aborted downloads from disk."
 msgstr "从硬盘中删除失败的下载项"
@@ -2832,9 +2665,8 @@ msgstr "代理的用户名"
 msgid "Password for proxy."
 msgstr "代理的密码"
 
-#, fuzzy
 msgid "Address of the proxy."
-msgstr "代理的IP地址"
+msgstr ""
 
 msgid "Hostname of the proxy."
 msgstr "代理的主机名"
@@ -2845,11 +2677,11 @@ msgstr "代理侦听的TCP端口"
 msgid "Protocol the proxy uses."
 msgstr "代理用的协议"
 
-#, fuzzy
 msgid "Network protocols to use."
-msgstr "代理用的协议"
+msgstr ""
 
-msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgid ""
+"Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
 msgstr ""
 
 msgid ""
@@ -2859,20 +2691,17 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "目前正常节点缓存中的主机数量"
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in ultra node caches."
-msgstr "目前超级节点缓存中的主机数量"
+msgstr ""
 
 msgid "Current number of hosts in bad node caches."
 msgstr "目前坏节点缓存中的主机数量"
 
-#, fuzzy
 msgid "Maximum number of hosts in the regular node cache."
-msgstr "正常节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the ultra node cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
 msgstr "BUSY、UNSTABLE以及TIMEOUT列表中的最大主机数量"
@@ -2899,22 +2728,17 @@ msgstr "Gnet进入流量的带宽限制，以字节/秒为单位。"
 msgid "Bandwidth limit for outgoing Gnet traffic in bytes/sec."
 msgstr "Gnet出去流量的带宽限制，以字节/秒为单位。"
 
-#, fuzzy
 msgid ""
-"Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. When running as "
-"an ultra node, this bandwidth is stolen from the regular HTTP traffic if the "
-"shaper for leaves is enabled."
-msgstr ""
-"Gnet叶节点进入流量的带宽限制，以字节/秒为单位。若以超级节点运行，如果叶可变"
-"化，则该带宽将从正常的HTTP流量中分用。"
-
-msgid ""
-"Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. When running as "
-"an ultra node, this bandwidth is stolen from the regular HTTP traffic, if "
+"Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. When running as"
+" an ultra node, this bandwidth is stolen from the regular HTTP traffic if "
 "the shaper for leaves is enabled."
 msgstr ""
-"Gnet叶节点出去流量的带宽限制，以字节/秒为单位。若以超级节点运行，如果叶可变"
-"化，则该带宽将从正常的HTTP流量中分用。"
+
+msgid ""
+"Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. When running as"
+" an ultra node, this bandwidth is stolen from the regular HTTP traffic, if "
+"the shaper for leaves is enabled."
+msgstr "Gnet叶节点出去流量的带宽限制，以字节/秒为单位。若以超级节点运行，如果叶可变化，则该带宽将从正常的HTTP流量中分用。"
 
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)."
@@ -2935,8 +2759,8 @@ msgid ""
 msgstr "搜索回应消息可允许的最大值，若不满足连接将关闭(以字节为单位)。"
 
 msgid ""
-"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
-"Query Hits to the original search term and media type filtering to be able "
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of"
+" Query Hits to the original search term and media type filtering to be able "
 "to avoid relaying spam and non-matching results.  In the worst case this "
 "causes about 300 bytes per Query of memory overhead, but will be much lower "
 "than that in practice (minimum size is about 40 bytes). This is only used "
@@ -2951,11 +2775,10 @@ msgid ""
 "(in bytes)."
 msgstr "未知消息可允许的最大值，若不满足连接将关闭(以字节为单位)。"
 
-#, fuzzy
 msgid ""
 "Random factor for the hops field in search packets we send (between 0 and 3 "
 "inclusive)."
-msgstr "我们发送的0到3的搜索包中，针对hops域的随机因素。"
+msgstr ""
 
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
@@ -2991,32 +2814,25 @@ msgstr ""
 
 msgid ""
 "Move complete files to this directory. If this is set to the SAME directory "
-"as the incomplete or corrupted files, files will be renamed with a trailing ."
-"OK"
-msgstr ""
-"将完成的文件放到此目录中。如果跟未完成的、失败的文件是在同一个目录下，那完成"
-"的文件名将被追加 OK 以重命名。"
+"as the incomplete or corrupted files, files will be renamed with a trailing "
+".OK"
+msgstr "将完成的文件放到此目录中。如果跟未完成的、失败的文件是在同一个目录下，那完成的文件名将被追加 OK 以重命名。"
 
 msgid ""
 "Move corrupted, downloaded files to this directory. If this is set to the "
 "SAME directory as the incomplete or completed files, files will be renamed "
 "with a trailing .BAD"
-msgstr ""
-"将失败的文件都放到此目录。如果跟未完成、已完成文件在同一个目录下，失败的文件"
-"名将被追加 BAD 以重命名。"
+msgstr "将失败的文件都放到此目录。如果跟未完成、已完成文件在同一个目录下，失败的文件名将被追加 BAD 以重命名。"
 
 msgid "Directories which contain shared files."
 msgstr "包含共享文件的目录"
 
 msgid ""
 "List of networks considered local.  This is a list of IP addresses, "
-"separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, "
-"or be optionally followed by '/' and a network mask prefix length. For "
+"separated by ';'.  The IP address can be given out fully, as in 192.168.0.1,"
+" or be optionally followed by '/' and a network mask prefix length. For "
 "instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
-msgstr ""
-"被视作本地网络的列表。是以';'分开的IP地址列表。IP地址可以是完整的，比如 "
-"192.168.0.1；后面也可以跟随'/'，加上网络掩码的前缀长度，比如 192.168.0.1/24，"
-"表示整个 192.168.0.* 网络。"
+msgstr "被视作本地网络的列表。是以';'分开的IP地址列表。IP地址可以是完整的，比如 192.168.0.1；后面也可以跟随'/'，加上网络掩码的前缀长度，比如 192.168.0.1/24，表示整个 192.168.0.* 网络。"
 
 msgid "Total number of completed downloads in this session."
 msgstr "此会话中完成下载的总数。"
@@ -3024,9 +2840,8 @@ msgstr "此会话中完成下载的总数。"
 msgid "Number of running uploads."
 msgstr "在运行的上传数量"
 
-#, fuzzy
 msgid "Number of quick uploads currently running."
-msgstr "当前连接的超级节点数量。"
+msgstr ""
 
 msgid "Number of registered (pending) uploads."
 msgstr "已注册(但推延了)的上传数量"
@@ -3037,9 +2852,8 @@ msgstr "本次会话中已完成的总数"
 msgid "Global Unique IDentifier of this node."
 msgstr "节点的全局唯一标识"
 
-#, fuzzy
 msgid "Kademlia Unique IDentifier of this node in the DHT."
-msgstr "节点的全局唯一标识"
+msgstr ""
 
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr "是否使用蜂群(建议=YES)"
@@ -3085,8 +2899,8 @@ msgid "Whether gtk-gnutella determined it could receive solicited UDP."
 msgstr ""
 
 msgid ""
-"Remove unnecessary ballast from query string before processing or forwarding "
-"them. Reduces traffic at the cost of little CPU time."
+"Remove unnecessary ballast from query string before processing or forwarding"
+" them. Reduces traffic at the cost of little CPU time."
 msgstr ""
 
 msgid ""
@@ -3142,8 +2956,8 @@ msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
 msgstr ""
 
 msgid ""
-"To connect more quickly, gtk-gnutella will allow up to this many connections "
-"to be active while trying to fill up the connection slots."
+"To connect more quickly, gtk-gnutella will allow up to this many connections"
+" to be active while trying to fill up the connection slots."
 msgstr ""
 
 msgid ""
@@ -3185,16 +2999,15 @@ msgstr ""
 msgid "How many downloads are currently passively queued."
 msgstr ""
 
-#, fuzzy
 msgid "How many fileinfo do we have."
-msgstr "我们有多少文件信息"
+msgstr ""
 
 msgid "How many fileinfo with sources do we have."
 msgstr "我们有多少带源的文件信息"
 
 msgid ""
-"How many queued downloads are currently responsive (remote servent answering "
-"requests)."
+"How many queued downloads are currently responsive (remote servent answering"
+" requests)."
 msgstr ""
 
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
@@ -3214,8 +3027,8 @@ msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
 "download chunks in a random order, to maximize the spreading of the file in "
 "the network.  However, this makes auditing (file type, pre-viewing, etc...) "
-"of the file impossible. This field sets the size in bytes of the first chunk "
-"of data that should be continuously downloaded at the beginning of the "
+"of the file impossible. This field sets the size in bytes of the first chunk"
+" of data that should be continuously downloaded at the beginning of the "
 "file.  Don't set it too large."
 msgstr ""
 
@@ -3253,29 +3066,29 @@ msgstr ""
 
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
-"their vendor string) that are unstable, preventing further connections to/"
-"from them.  This only works when gtk-gnutella already keeps track of "
+"their vendor string) that are unstable, preventing further connections "
+"to/from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
 
 msgid ""
-"Whether gtk-gnutella should automatically remove the file whenever it gets a "
-"resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
+"Whether gtk-gnutella should automatically remove the file whenever it gets a"
+" resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
 "widespread, this is the easiest option."
 msgstr ""
 
 msgid ""
-"The amount of bytes which gtk-gnutella will strip off the already downloaded "
-"bytes after a resuming mismatch, in the hope that only this amount was "
-"corrupted, preventing proper resuming. Most of the time, a resuming mismatch "
-"indicates bad data on the server, but if the already downloaded data is bad "
-"then backing out some of it may allow us to recover from the problem."
+"The amount of bytes which gtk-gnutella will strip off the already downloaded"
+" bytes after a resuming mismatch, in the hope that only this amount was "
+"corrupted, preventing proper resuming. Most of the time, a resuming mismatch"
+" indicates bad data on the server, but if the already downloaded data is bad"
+" then backing out some of it may allow us to recover from the problem."
 msgstr ""
 
 msgid ""
 "The hostname of the server that can be used by downloaders to find the IP "
-"address via a DNS resolution.  If you have a dynamic IP address coupled with "
-"a dynamic DNS service, then this is valuable to downloaders: they may find "
+"address via a DNS resolution.  If you have a dynamic IP address coupled with"
+" a dynamic DNS service, then this is valuable to downloaders: they may find "
 "your node even after a few rotations of your IP address."
 msgstr ""
 
@@ -3297,8 +3110,8 @@ msgid ""
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
 "low value (default is 64K, which is fine). If you don't mind sucking up all "
 "the available bandwidth, increasing your connection latency, set it to a "
-"greater value. Remember: the smaller the value, the more you will be able to "
-"precisely control the incoming rate."
+"greater value. Remember: the smaller the value, the more you will be able to"
+" precisely control the incoming rate."
 msgstr ""
 
 msgid ""
@@ -3323,8 +3136,8 @@ msgid "Last time an automatic switch between ultra and leaf mode occurred."
 msgstr ""
 
 msgid ""
-"Whether we meet the sufficient average uptime requirement to become an Ultra "
-"node."
+"Whether we meet the sufficient average uptime requirement to become an Ultra"
+" node."
 msgstr ""
 
 msgid ""
@@ -3337,17 +3150,18 @@ msgid ""
 "node."
 msgstr ""
 
-msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
+msgid ""
+"Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
 
 msgid ""
-"Whether we meet the minimum amount of peer connections requirement to become "
-"an Ultra node."
+"Whether we meet the minimum amount of peer connections requirement to become"
+" an Ultra node."
 msgstr ""
 
 msgid ""
-"Whether we meet the amount of file descriptor requirement to become an Ultra "
-"node."
+"Whether we meet the amount of file descriptor requirement to become an Ultra"
+" node."
 msgstr ""
 
 msgid "Whether we meet the memory requirements to become an Ultra node."
@@ -3362,8 +3176,8 @@ msgstr ""
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
 "are sent on a given connection.  When full, the oldest query is dropped "
-"without being sent.  Set it so that it is slightly larger than the amount of "
-"opened searches."
+"without being sent.  Set it so that it is slightly larger than the amount of"
+" opened searches."
 msgstr ""
 
 msgid ""
@@ -3397,8 +3211,8 @@ msgstr ""
 
 msgid ""
 "Half the duration during which gtk-gnutella should remember the recently "
-"relayed queries by TTL and hop count.  The default value of 5 should be just "
-"fine, but you can experiment with different settings if you want.  The "
+"relayed queries by TTL and hop count.  The default value of 5 should be just"
+" fine, but you can experiment with different settings if you want.  The "
 "higher it is set, the more likely you are to drop legitimate queries, so be "
 "careful."
 msgstr ""
@@ -3419,9 +3233,8 @@ msgstr ""
 msgid "Time at which the last scan of the library finished."
 msgstr ""
 
-#, fuzzy
 msgid "The number of seconds the last scan of the library took."
-msgstr "自动重试等待的最少秒数"
+msgstr ""
 
 msgid "Time at which we started shared file indexing."
 msgstr ""
@@ -3456,7 +3269,8 @@ msgstr ""
 msgid "Percentage of slots filled within our QRP table."
 msgstr ""
 
-msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
+msgid ""
+"Percentage of hashing conflicts whilst inserting data in our QRP table."
 msgstr ""
 
 msgid "Amount of hashed keywords in our QRP table."
@@ -3508,8 +3322,8 @@ msgid "If not set, support for Gnutella connection compression is disabled."
 msgstr ""
 
 msgid ""
-"Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will "
-"also listen for UDP traffic on the same port as the one configured for TCP "
+"Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will"
+" also listen for UDP traffic on the same port as the one configured for TCP "
 "and process incoming Gnutella traffic in almost the same way as if it was "
 "received via TCP.  It is safe to leave this set, which is the default "
 "behavior."
@@ -3528,8 +3342,8 @@ msgstr ""
 msgid ""
 "Whether gtk-gnutella should send queries requesting out-of-band delivery of "
 "query hits via UDP.  The setting is ignored if you seem to be UDP-"
-"firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable "
-"UDP support first.  This can cause the reception of vast quantities of UDP "
+"firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable"
+" UDP support first.  This can cause the reception of vast quantities of UDP "
 "replies, so you may choose to disable this feature.  If disabled, your hits "
 "will travel through the Gnutella network and can be dropped by any flow-"
 "controlled relaying node, limiting the results you can get."
@@ -3539,10 +3353,10 @@ msgid ""
 "Whether gtk-gnutella should, when running as ultrapeer, act as proxy for "
 "leaf queries that are not requesting OOB delivery of query hits: gtk-"
 "gnutella will claim the hits from the remote nodes and forward the hits to "
-"the proper leaf.  This is very beneficial for the leaves, but can cause huge "
-"bursts of UDP traffic coming back to you.  If you disable it all ultrapeers "
-"connected to you will have to relay the hits, possibly dropping other query "
-"messages and lowering the efficiency of the search network."
+"the proper leaf.  This is very beneficial for the leaves, but can cause huge"
+" bursts of UDP traffic coming back to you.  If you disable it all ultrapeers"
+" connected to you will have to relay the hits, possibly dropping other query"
+" messages and lowering the efficiency of the search network."
 msgstr ""
 
 msgid ""
@@ -3552,8 +3366,8 @@ msgstr ""
 
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
-"list from the global one distributed with gtk-gnutella."
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban"
+" list from the global one distributed with gtk-gnutella."
 msgstr ""
 
 msgid "If set to TRUE, SO_LINGER is used for sockets."
@@ -3580,10 +3394,10 @@ msgid "Number of Gnutella browsing requests fully served in this session."
 msgstr ""
 
 msgid ""
-"The average CPU usage indicates overloading, so gtk-gnutella is reducing the "
-"amount of non-critical processing it is performing. Note that the "
-"overloading can result from gtk-gnutella not getting enough CPU time because "
-"another process is competing for the CPU. Whilst the overloading condition "
+"The average CPU usage indicates overloading, so gtk-gnutella is reducing the"
+" amount of non-critical processing it is performing. Note that the "
+"overloading can result from gtk-gnutella not getting enough CPU time because"
+" another process is competing for the CPU. Whilst the overloading condition "
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
 "file moving) are slowed down."
 msgstr ""
@@ -3594,47 +3408,43 @@ msgid ""
 "avoid using too many system calls and should also reduce the fragmentation "
 "on the filesystem.  The downside is that it uses more memory per active "
 "source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to "
-"disk as soon as it receives some data. Increase to maximum value if you have "
-"RAM."
+"disk as soon as it receives some data. Increase to maximum value if you have"
+" RAM."
 msgstr ""
 
 msgid ""
-"When set, all search results from host browsing are dispatched to all opened "
-"passive searches.  This is useful if you have different selection filters on "
-"your passive searches because it lets you classify files easily, regardless "
-"of the origin of the files."
+"When set, all search results from host browsing are dispatched to all opened"
+" passive searches.  This is useful if you have different selection filters "
+"on your passive searches because it lets you classify files easily, "
+"regardless of the origin of the files."
 msgstr ""
 
 msgid ""
-"Enable this if all units should be displayed using the metric system with SI "
-"prefixes. If disabled, certain units, for example, filesizes will be "
+"Enable this if all units should be displayed using the metric system with SI"
+" prefixes. If disabled, certain units, for example, filesizes will be "
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for Reliable UDP (RUDP) code."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the Distributed Hash Table (DHT) code."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the OOB-proxying of queries."
-msgstr "动态查询的debug级别。"
+msgstr ""
 
 msgid ""
 "If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
-#, fuzzy
 msgid "Don't start more than this number of parallel downloads per file."
-msgstr "对一个主机，同时上传文件的最大文件数。"
+msgstr ""
 
 msgid ""
-"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
-"dump."
+"If enabled, all received packets are dumped to "
+"$GTK_GNUTELLA_DIR/packets_rx.dump."
 msgstr ""
 
 msgid ""
@@ -3646,31 +3456,26 @@ msgid ""
 "of the shared files before a change becomes fully effective."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the shell."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid "If larger than zero, no downloads are started."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the search queue."
-msgstr "动态查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for push-proxy code."
-msgstr "用于HTTP代码的debug级别。"
+msgstr ""
 
 msgid "Number of THEX file requests received in this session."
 msgstr ""
 
-#, fuzzy
 msgid "Number of THEX file requests fully served in this session."
-msgstr "本次会话中已完成的总数"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for Tigertree-related code."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid ""
 "Whether gtk-gnutella is currently computing TTH of shared files in the "
@@ -3685,9 +3490,8 @@ msgstr ""
 msgid "Maximum number of results to show in any search."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of results to show in a browse_host request."
-msgstr "自动重试等待的最大秒数"
+msgstr ""
 
 msgid "Date of the latest SVN release."
 msgstr ""
@@ -3698,18 +3502,16 @@ msgstr ""
 msgid "Signature of the latest SVN release notification."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of hosts in the TLS node cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the TLS cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
 msgid ""
 "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
-"Otherwise, the TTH is only accepted if provided by the user, for example, by "
-"a magnet link."
+"Otherwise, the TTH is only accepted if provided by the user, for example, by"
+" a magnet link."
 msgstr ""
 
 msgid ""
@@ -3718,22 +3520,19 @@ msgid ""
 "experience."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of hosts in the G2 node cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the G2 cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for management of G2-only hosts."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
 msgid ""
 "Whether GTKG can switch among the several files waiting to be downloaded "
-"from a given server, when making a follow-up HTTP request.  Turn it off only "
-"if you witness problems with a particular servent you're downloading from."
+"from a given server, when making a follow-up HTTP request.  Turn it off only"
+" if you witness problems with a particular servent you're downloading from."
 msgstr ""
 
 msgid ""
@@ -3763,27 +3562,23 @@ msgid ""
 "files and push-proxies for firewalled hosts. It requires UDP support."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the callout queue."
-msgstr "查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT node lookups."
-msgstr "用于HTTP代码的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT key/value storage."
-msgstr "用于HTTP代码的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT key/value publishing."
-msgstr "用于HTTP代码的debug级别。"
+msgstr ""
 
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
-"Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times "
-"less). The larger the numbers, the more values can be looked up "
+"Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times"
+" less). The larger the numbers, the more values can be looked up "
 "concurrently, but the more bandwidth is used."
 msgstr ""
 
@@ -3808,9 +3603,8 @@ msgid ""
 "closest nodes will keep mutual knowledge about each other"
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT user lookup queue."
-msgstr "动态查询的debug级别。"
+msgstr ""
 
 msgid "If TRUE, DHT storage uses memory instead of diskspace."
 msgstr ""
@@ -3832,9 +3626,8 @@ msgid ""
 "uploads and push-proxy exchanges."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for (generic) file verification code."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid ""
 "Maximum number of hosts in the local address cache, which remembers the "
@@ -3846,77 +3639,63 @@ msgid ""
 "remembers the recent IP:port combinations we had."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for management of local address cache."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
 msgid ""
 "If enabled, all packets enqueued for transmission are dumped to "
 "$GTK_GNUTELLA_DIR/packets_tx.dump."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level the TCP message queues"
-msgstr "动态查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the UDP message queue."
-msgstr "动态查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid ""
 "Maximum size of the UDP message queue (in bytes). Must be at least 150 "
 "percent of the maximum message size."
-msgstr "针对节点的发送排队的最大值(以字节为单位)。至少是最大消息尺寸的150%。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the management of the clock accuracy."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the firewalled status management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for host management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT root node caching."
-msgstr "pong缓存的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Logged statistics level for code shared between GUI and core."
-msgstr "用于在gui跟core间分享代码的debug级别"
+msgstr ""
 
 msgid ""
-"If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
-"fast disk database, which saves a large amount of core memory and reduces "
+"If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a"
+" fast disk database, which saves a large amount of core memory and reduces "
 "the overall footprint, at the cost of an increased I/O level. However, the "
 "DB cache has a 90 percent hit rate, so the actual overhead is barely "
 "noticeable when running as an ultra node and should remain completely "
 "unnoticed when running as a leaf."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for spam detection."
-msgstr "pong缓存的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for lockfile management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the zone-based memory allocator."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the pool-based memory allocator."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the RX buffer allocator."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid ""
 "Whether the zone-based memory allocator should always keep the zones in "
@@ -3927,44 +3706,35 @@ msgid ""
 "spam_lut_in_memory to FALSE."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the virtual memory manager."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for final shutdown."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Country preferences"
-msgstr "首选项"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for country limits."
-msgstr "查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log dropped Gnutella messages"
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for whitelist management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT token caching."
-msgstr "pong缓存的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT publishing from Gnutella."
-msgstr "用于HTTP代码的debug级别。"
+msgstr ""
 
 msgid "Defines which DHT messages should be traced."
 msgstr ""
 
-#, fuzzy
 msgid "Enable bandwidth limitation for outgoing DHT traffic."
-msgstr "对出去的HTTP流量进行带宽限制。"
+msgstr ""
 
 msgid ""
 "Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled "
@@ -3972,33 +3742,26 @@ msgid ""
 "enabled, so that UDP queues can flush more quickly."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum size of the DHT message queue (in bytes)."
-msgstr "向其他节点发送的搜索回应消息的最大值(以字节为单位)"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for bandwidth scheduler."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT stable node recorder."
-msgstr "动态查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the file (re)loading, on change."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the file moving, accross filesystems."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for query hit message generation."
-msgstr "消息路由的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for version management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
 msgid "Minimum CPU frequency, in Hz."
 msgstr ""
@@ -4006,56 +3769,48 @@ msgstr ""
 msgid "Maximum CPU frequency, in Hz."
 msgstr ""
 
-#, fuzzy
 msgid "DHT bootstrap status."
-msgstr "_HTTP 浏量统计"
+msgstr ""
 
 msgid ""
 "The DHT running mode. An active node will be able to store values and is a "
-"fully participating member of the Distributed Hash Table. A passive node can "
-"perform lookups and publish but will not store values and cannot be a member "
-"of the DHT structure. A firewalled node is necessarily passive, but you can "
-"force the passive mode even if you are not firewalled, although that is not "
-"recommended because the DHT requires far more active nodes that passive ones "
-"to be efficient."
+"fully participating member of the Distributed Hash Table. A passive node can"
+" perform lookups and publish but will not store values and cannot be a "
+"member of the DHT structure. A firewalled node is necessarily passive, but "
+"you can force the passive mode even if you are not firewalled, although that"
+" is not recommended because the DHT requires far more active nodes that "
+"passive ones to be efficient."
 msgstr ""
 
 msgid "Current DHT running mode."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the one-time memory allocator."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the host cache."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid "Random bits."
 msgstr ""
 
-#, fuzzy
 msgid "Average servent downtime."
-msgstr "servent 的平均在线时间。"
+msgstr ""
 
 msgid "Time when last shutdown occurred."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for alive pings."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the versatile XML layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the UPnP layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the SOAP layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
 msgid "Defines SOAP exchanges tracing type."
 msgstr ""
@@ -4069,10 +3824,10 @@ msgid ""
 "Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP "
 "means gtk-gnutella will be able to discover your Internet Gateway Device "
 "(router) and request that the listening port be opened and redirected to "
-"your machine, thereby auto-configuring to make sure you are not firewalled.  "
-"By default you should leave it enabled unless you know how to configure your "
-"network equipment manually to prevent the firewalled condition for both TCP "
-"and UDP."
+"your machine, thereby auto-configuring to make sure you are not firewalled."
+"  By default you should leave it enabled unless you know how to configure "
+"your network equipment manually to prevent the firewalled condition for both"
+" TCP and UDP."
 msgstr ""
 
 msgid ""
@@ -4088,18 +3843,17 @@ msgstr ""
 msgid "Whether gtk-gnutella can install port mappings, if needed."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the NAT-PMP layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
 msgid ""
 "Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for "
-"NAT-PMP means gtk-gnutella will be able to look whether your default gateway "
-"(router) supports the Port Mapping Protocol to allow transparent redirection "
-"of the external ports on the router to the local machine, thereby making "
-"sure you are not firewalled. By default you should leave it enabled unless "
-"you know how to configure your network equipment manually to prevent the "
-"firewalled condition for both TCP and UDP."
+"NAT-PMP means gtk-gnutella will be able to look whether your default gateway"
+" (router) supports the Port Mapping Protocol to allow transparent "
+"redirection of the external ports on the router to the local machine, "
+"thereby making sure you are not firewalled. By default you should leave it "
+"enabled unless you know how to configure your network equipment manually to "
+"prevent the firewalled condition for both TCP and UDP."
 msgstr ""
 
 msgid ""
@@ -4107,21 +3861,17 @@ msgid ""
 "mappings, if required."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the TX (transmit) network layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the RX (receive) network layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the I/O input event layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the background task scheduler."
-msgstr "查询的debug级别。"
+msgstr ""
 
 msgid "Whether gtk-gnutella was able to configure port mappings."
 msgstr ""
@@ -4145,12 +3895,12 @@ msgstr ""
 
 msgid ""
 "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be "
-"enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to "
-"perform iterative Ultrapeer queries instead of just broadcasting, allowing "
+"enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to"
+" perform iterative Ultrapeer queries instead of just broadcasting, allowing "
 "searches to more places within the Gnutella network.  If you want gtk-"
 "gnutella to issue GUESS queries, you need to make sure the client-side is "
-"enabled as well as this setting only governs mostly the server-side of GUESS "
-"(required to allow the client-side)."
+"enabled as well as this setting only governs mostly the server-side of GUESS"
+" (required to allow the client-side)."
 msgstr ""
 
 msgid ""
@@ -4163,25 +3913,20 @@ msgid ""
 "Searches)."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
-msgstr "正常节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the regular GUESS cache."
-msgstr "目前正常节点缓存中的主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the introduction GUESS cache."
-msgstr "目前超级节点缓存中的主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DB disk/RAM storage layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
 msgid ""
 "The current Session ID.  This is a unique ID generated each time gtk-"
@@ -4197,10 +3942,10 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side "
-"should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer "
-"queries instead of just broadcasting them. If enabled, it requires general "
-"GUESS support enabled as well or it will simply be ignored."
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side"
+" should be enabled, so that gtk-gnutella can indeed issue iterative "
+"Ultrapeer queries instead of just broadcasting them. If enabled, it requires"
+" general GUESS support enabled as well or it will simply be ignored."
 msgstr ""
 
 msgid ""
@@ -4209,13 +3954,11 @@ msgid ""
 "overall"
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the matching code."
-msgstr "用于HTTP代码的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the time synchronization code."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid ""
 "Whether queries can request partial results hits, i.e. files which are "
@@ -4224,8 +3967,8 @@ msgstr ""
 
 msgid ""
 "Whether queries for partial files should be answered to.When Partial File "
-"Sharing is disabled this setting is of course ignored and no partial results "
-"are returned."
+"Sharing is disabled this setting is of course ignored and no partial results"
+" are returned."
 msgstr ""
 
 msgid "Whether what's-new? queries should be answered to."
@@ -4233,84 +3976,66 @@ msgstr ""
 
 msgid ""
 "When set, gtk-gnutella will automatically stop opened searches from which "
-"all the requested downloads have been completed, regardless of the initially "
-"configured expiration time."
+"all the requested downloads have been completed, regardless of the initially"
+" configured expiration time."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of results to show in a What's New? request."
-msgstr "自动重试等待的最大秒数"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of results to show in a passive search request."
-msgstr "自动重试等待的最大秒数"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages from same node."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages with a higher TTL."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages (not from same node)."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log new Gnutella messages, never seen before."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log Gnutella routing decisions."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
 msgid "Whether to log conditions triggering query hit spam flagging."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the ultra node cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in ultra node caches."
-msgstr "目前超级节点缓存中的主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in the regular GUESS cache."
-msgstr "目前正常节点缓存中的主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in the introduction GUESS cache."
-msgstr "目前超级节点缓存中的主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
-msgstr "正常节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the malloc() replacement allocator."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for bad query hit messages."
-msgstr "消息路由的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for GUID management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the TX (transmit) deflating network layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
 msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
 msgstr ""
@@ -4321,8 +4046,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
-"(IP addresses only)"
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit"
+" (IP addresses only)"
 msgstr ""
 
 msgid ""
@@ -4331,15 +4056,14 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
-"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless"
+" of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
 "will be used.  When running as a leaf this should be set to TRUE to make "
 "GUESS queries run faster."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the UDP TX scheduler."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid ""
 "Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
@@ -4354,45 +4078,35 @@ msgid ""
 "fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
 msgstr ""
 
-#, fuzzy
 msgid "Whether to log sent semi-reliable UDP messages."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log received semi-reliable UDP messages."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the secured OOB query hit claiming."
-msgstr "消息路由的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log sent vendor messages."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log received vendor messages."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debugging flags for the DHT token cache (developers only)."
-msgstr "pong缓存的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log weird DHT message headers when debugging."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
-msgstr "动态查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log UHC pings we receive."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log UHC pings we emit."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
 msgid "Whether the program was properly shutdown."
 msgstr ""
@@ -4400,89 +4114,73 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT key management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT value management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
 msgid "ID of the current process."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for HTTP range parsing / handling."
-msgstr "pong缓存的debug级别。"
+msgstr ""
 
 msgid ""
-"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
-"value of 0 requests permanent mappings."
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A"
+" value of 0 requests permanent mappings."
 msgstr ""
 
 msgid "Whether the program is auto-restarting at the user's request."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for time management."
-msgstr "用于下载的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the tmalloc() thread-magazine object distributor."
-msgstr "用于上传的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the event queue thread."
-msgstr "动态查询的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of G2 hubs in the hub cache."
-msgstr "超级节点捕捉器中的最大主机数量"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the G2 hub caches."
-msgstr "目前超级节点缓存中的主机数量"
+msgstr ""
 
 msgid "Whether the G2 protocol should be enabled."
 msgstr ""
 
-#, fuzzy
 msgid "Number of G2 nodes currently connected."
-msgstr "当前连接的叶节点数量。"
+msgstr ""
 
 msgid "Maximum amount of G2 hubs we should connect to as a leaf."
 msgstr ""
 
-#, fuzzy
 msgid "Whether to log bad G2 messages, corrupted or unexpected."
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log dropped G2 messages"
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the G2 RPC layer."
-msgstr "UDP交通布局的debug级别。"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log summary of received query hits"
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
 msgid "Whether to log summary of each record in received query hits"
 msgstr ""
 
-#, fuzzy
 msgid "Number of G2 browsing requests received in this session."
-msgstr "本次会话中已完成的总数"
+msgstr ""
 
-#, fuzzy
 msgid "Number of G2 browsing requests fully served in this session."
-msgstr "本次会话中已完成的总数"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log G2 messages we're attempting to send"
-msgstr "制造商信息的debug级别。"
+msgstr ""
 
 msgid "disable"
 msgstr "禁用"
@@ -4505,9 +4203,8 @@ msgstr "仅 TCP"
 msgid "UDP only"
 msgstr "仅 UDP"
 
-#, fuzzy
 msgid "Query Hit"
-msgstr "变形的查询命中"
+msgstr ""
 
 msgid "Icons"
 msgstr "图标"
@@ -4549,8 +4246,8 @@ msgid "Maximum number of queries visible in search monitor."
 msgstr ""
 
 msgid ""
-"Whether to hide hits that have been considered for auto-downloading based on "
-"the SHA1 or your filters."
+"Whether to hide hits that have been considered for auto-downloading based on"
+" the SHA1 or your filters."
 msgstr ""
 
 msgid "Widths of the columns in the nodes table."
@@ -4732,7 +4429,8 @@ msgstr ""
 
 msgid ""
 "A deletion coefficient, so that small non-significant results can be "
-"dropped.  The lower it is, the more search statistics will be kept in memory."
+"dropped.  The lower it is, the more search statistics will be kept in "
+"memory."
 msgstr ""
 
 msgid "Show confirmation dialog when leaving gtk-gnutella."
@@ -4765,7 +4463,8 @@ msgid "Include Gnutella packet header size to the volume."
 msgstr ""
 
 msgid ""
-"Show percentages instead of absolute values in the Gnet stats (drop reasons)."
+"Show percentages instead of absolute values in the Gnet stats (drop "
+"reasons)."
 msgstr ""
 
 msgid "Widths of the columns in the Gnet stats general table."
@@ -4866,8 +4565,8 @@ msgstr ""
 
 msgid ""
 "The amount of time in seconds that the GUI should buffer search results as "
-"they come in.  This prevents too frequent updates that may cause flickering, "
-"but also saves CPU cycles since less redrawing has to occur in the search "
+"they come in.  This prevents too frequent updates that may cause flickering,"
+" but also saves CPU cycles since less redrawing has to occur in the search "
 "pane."
 msgstr ""
 
@@ -5042,9 +4741,8 @@ msgstr "布隆迪"
 msgid "Benin"
 msgstr "贝宁"
 
-#, fuzzy
 msgid "Saint Barthelemy"
-msgstr "圣马力诺"
+msgstr ""
 
 msgid "Bermuda"
 msgstr "百慕大"
@@ -5067,9 +4765,8 @@ msgstr "巴哈马"
 msgid "Bhutan"
 msgstr "不丹"
 
-#, fuzzy
 msgid "Burma"
-msgstr "百慕大"
+msgstr ""
 
 msgid "Bouvet Island"
 msgstr "布维群岛"
@@ -5089,9 +4786,8 @@ msgstr "加拿大"
 msgid "Cocos (Keeling) Islands"
 msgstr "科科斯群岛"
 
-#, fuzzy
 msgid "Congo (Democratic Republic)"
-msgstr "德意志民主共和国"
+msgstr ""
 
 msgid "Central African Republic"
 msgstr "中非"
@@ -5102,9 +4798,8 @@ msgstr "刚果"
 msgid "Switzerland"
 msgstr "瑞士"
 
-#, fuzzy
 msgid "Cote d'Ivoire"
-msgstr "科特迪瓦"
+msgstr ""
 
 msgid "Cook Islands"
 msgstr "库克群岛"
@@ -5133,9 +4828,8 @@ msgstr "古巴"
 msgid "Cape Verde"
 msgstr "佛得角"
 
-#, fuzzy
 msgid "Curacao"
-msgstr "澳门"
+msgstr ""
 
 msgid "Christmas Island"
 msgstr "圣诞岛"
@@ -5197,9 +4891,8 @@ msgstr "斐济"
 msgid "Falkland Islands (Malvinas)"
 msgstr "福克兰群岛(马尔维纳斯)"
 
-#, fuzzy
 msgid "Micronesia"
-msgstr "印度尼西亚"
+msgstr ""
 
 msgid "Faroe Islands"
 msgstr "法罗群岛"
@@ -5249,9 +4942,8 @@ msgstr "赤道几内亚"
 msgid "Greece"
 msgstr "希腊"
 
-#, fuzzy
 msgid "South Georgia and The South Sandwich Islands"
-msgstr "南乔治亚岛和南桑德韦奇岛"
+msgstr ""
 
 msgid "Guatemala"
 msgstr "瓜地马拉"
@@ -5304,9 +4996,8 @@ msgstr "英属印度洋领地"
 msgid "Iraq"
 msgstr "伊拉克"
 
-#, fuzzy
 msgid "Iran"
-msgstr "伊拉克"
+msgstr ""
 
 msgid "Iceland"
 msgstr "冰岛"
@@ -5347,9 +5038,8 @@ msgstr "圣基茨和尼维斯"
 msgid "North Korea"
 msgstr ""
 
-#, fuzzy
 msgid "South Korea"
-msgstr "南非"
+msgstr ""
 
 msgid "Kuwait"
 msgstr "科威特"
@@ -5366,9 +5056,8 @@ msgstr ""
 msgid "Lebanon"
 msgstr "黎巴嫩"
 
-#, fuzzy
 msgid "Saint Lucia"
-msgstr "圣路西亚"
+msgstr ""
 
 msgid "Liechtenstein"
 msgstr "列支敦士登"
@@ -5406,9 +5095,8 @@ msgstr "摩尔多瓦"
 msgid "Montenegro"
 msgstr "黑山"
 
-#, fuzzy
 msgid "Saint Martin"
-msgstr "圣马力诺"
+msgstr ""
 
 msgid "Madagascar"
 msgstr "马达加斯加"
@@ -5416,9 +5104,8 @@ msgstr "马达加斯加"
 msgid "Marshall Islands"
 msgstr "马绍尔群岛"
 
-#, fuzzy
 msgid "Macedonia"
-msgstr "新喀里多尼亚"
+msgstr ""
 
 msgid "Mali"
 msgstr "马里"
@@ -5534,9 +5221,8 @@ msgstr "皮特克恩"
 msgid "Puerto Rico"
 msgstr "波多黎各"
 
-#, fuzzy
 msgid "Palestinian Territory"
-msgstr "巴勒斯坦被占领土"
+msgstr ""
 
 msgid "Portugal"
 msgstr "葡萄牙"
@@ -5610,9 +5296,8 @@ msgstr "索马里"
 msgid "Suriname"
 msgstr "苏里南"
 
-#, fuzzy
 msgid "South Sudan"
-msgstr "南非"
+msgstr ""
 
 msgid "Sao Tome and Principe"
 msgstr "圣多美和普林西比"
@@ -5620,9 +5305,8 @@ msgstr "圣多美和普林西比"
 msgid "El Salvador"
 msgstr "萨尔瓦多"
 
-#, fuzzy
 msgid "Sint Maarten"
-msgstr "圣马力诺"
+msgstr ""
 
 msgid "Syrian Arab Republic"
 msgstr "叙利亚"
@@ -5651,9 +5335,8 @@ msgstr "塔吉克斯坦"
 msgid "Tokelau"
 msgstr "托克劳群岛"
 
-#, fuzzy
 msgid "Timor-leste"
-msgstr "东帝汶"
+msgstr ""
 
 msgid "Turkmenistan"
 msgstr "土库曼斯坦"
@@ -5700,9 +5383,8 @@ msgstr "乌兹别克斯坦"
 msgid "Holy See (Vatican City State)"
 msgstr "梵地冈"
 
-#, fuzzy
 msgid "Saint Vincent and The Grenadines"
-msgstr "圣文森特和格林纳丁斯"
+msgstr ""
 
 msgid "Venezuela"
 msgstr "委内瑞拉"
@@ -5710,9 +5392,8 @@ msgstr "委内瑞拉"
 msgid "British Virgin Islands"
 msgstr "英属维京群岛"
 
-#, fuzzy
 msgid "U.S. Virgin Islands"
-msgstr "英属维京群岛"
+msgstr ""
 
 msgid "Viet Nam"
 msgstr "越南"
@@ -5787,9 +5468,8 @@ msgstr ""
 msgid "URL missing"
 msgstr "URL 缺失"
 
-#, fuzzy
 msgid "The download could not be created"
-msgstr "没有下载插口"
+msgstr ""
 
 msgid "Download added"
 msgstr "下载已添加"
@@ -5819,9 +5499,9 @@ msgstr "尺寸"
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "水平总尺寸 (%1$u/%2$u的节点支持HSEP)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Horizon size via HSEP node %s (%s):"
-msgstr "经由HSEP节点%1$s的水平尺寸 (%2$s)："
+msgstr ""
 
 msgid "Interactive mode turned on."
 msgstr ""
@@ -5829,41 +5509,39 @@ msgstr ""
 msgid "Interactive mode turned off."
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"show %s\""
-msgstr "未知操作"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"%s\""
-msgstr "未知操作"
+msgstr ""
 
-#, fuzzy
 msgid "Cannot determine current working directory"
-msgstr "无法找到您的主目录！"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown logfile name \"%s\""
-msgstr "未知的属性"
+msgstr ""
 
-#, fuzzy
 msgid "Unable to reopen"
-msgstr "无法发送 GIV"
+msgstr ""
 
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"stats %s\""
-msgstr "未知操作"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"check %s\""
-msgstr "未知操作"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"usage %s\""
-msgstr "未知操作"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "非法的 IP/端口"
@@ -5877,17 +5555,17 @@ msgstr "非法的 IP"
 msgid "Invalid port"
 msgstr "非法的 端口"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
-msgstr[0] "下载 %1$u/%2$u"
+msgstr[0] ""
 
 msgid "Property missing"
 msgstr "属性丢失"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown property \"%s\""
-msgstr "未知的属性"
+msgstr ""
 
 msgid "Value: "
 msgstr "值："
@@ -5907,16 +5585,14 @@ msgstr ""
 msgid "Query string missing"
 msgstr "查询字符串丢失"
 
-#, fuzzy
 msgid "Query string is not UTF-8 encoded"
-msgstr "查询字符串丢失"
+msgstr ""
 
 msgid "Search added"
 msgstr "增加搜索"
 
-#, fuzzy
 msgid "The search could not be created"
-msgstr "没有下载插口"
+msgstr ""
 
 msgid "Unknown property"
 msgstr "未知的属性"
@@ -5954,9 +5630,9 @@ msgstr ""
 msgid "Malformed command"
 msgstr "命令有误"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown command: \"%s\""
-msgstr "未知命令"
+msgstr ""
 
 msgid "Help: "
 msgstr "帮助："
@@ -5989,16 +5665,14 @@ msgstr ""
 msgid "Rescheduled for"
 msgstr ""
 
-#, fuzzy
 msgid "Restartable since"
-msgstr "已设置稳定"
+msgstr ""
 
 msgid "rescheduled for"
 msgstr ""
 
-#, fuzzy
 msgid "restartable since"
-msgstr "已设置稳定"
+msgstr ""
 
 #, c-format
 msgid " (slot %u"
@@ -6070,9 +5744,8 @@ msgstr ""
 msgid "Chunk done"
 msgstr ""
 
-#, fuzzy
 msgid "Waiting for TTH checking..."
-msgstr "等待 SHA1 检查"
+msgstr ""
 
 msgid "Waiting for SHA1 checking..."
 msgstr ""
@@ -6081,9 +5754,8 @@ msgstr ""
 msgid "Computing %s (%.02f%%)"
 msgstr ""
 
-#, fuzzy
 msgid "TTH OK"
-msgstr "TTH"
+msgstr ""
 
 msgid "SHA-1 OK"
 msgstr ""
@@ -6111,17 +5783,14 @@ msgstr ""
 msgid "(stalled)"
 msgstr ""
 
-#, fuzzy
 msgid "Receiving data"
-msgstr "正在接收 hello"
+msgstr ""
 
-#, fuzzy
 msgid "ignoring"
-msgstr "流入："
+msgstr ""
 
-#, fuzzy
 msgid "selected next"
-msgstr "已选择的属性："
+msgstr ""
 
 msgid "requesting next"
 msgstr ""
@@ -6129,9 +5798,8 @@ msgstr ""
 msgid "requested next"
 msgstr ""
 
-#, fuzzy
 msgid "Awaiting data"
-msgstr "等待中"
+msgstr ""
 
 #, c-format
 msgid "Retry in %us"
@@ -6492,9 +6160,8 @@ msgstr "关于 gtk-gnutella"
 msgid "Act as OOB proxy for leaves"
 msgstr "对叶节点作为OOB代理"
 
-#, fuzzy
 msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
-msgstr "实际使用的文件描述符数量。运行时无法被修改。"
+msgstr ""
 
 msgid "Add IP rule"
 msgstr "增加IP规则"
@@ -6502,9 +6169,8 @@ msgstr "增加IP规则"
 msgid "Add as search"
 msgstr ""
 
-#, fuzzy
 msgid "Add flag rule"
-msgstr "增加参数规则"
+msgstr ""
 
 msgid "Add jump rule"
 msgstr "增加跳转规则"
@@ -6580,9 +6246,8 @@ msgstr "Gnutella 流量带宽限制"
 msgid "Bandwidth limits for HTTP traffic"
 msgstr "HTTP 流量带宽限制"
 
-#, fuzzy
 msgid "Bandwidth limits for the Distributed Hash Table"
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid "Bandwidth targets for node lookups"
 msgstr ""
@@ -6772,13 +6437,11 @@ msgstr "当前搜索："
 msgid "Currently used"
 msgstr "当前使用"
 
-#, fuzzy
 msgid "DHT traffic stats"
-msgstr "_HTTP 浏量统计"
+msgstr ""
 
-#, fuzzy
 msgid "DHT traffic"
-msgstr "HTTP 浏览"
+msgstr ""
 
 msgid "Debugging"
 msgstr "调试"
@@ -6864,9 +6527,8 @@ msgstr "编辑值："
 msgid "Enable \"_Browse Host\" feature"
 msgstr "启用“浏览主机”功能"
 
-#, fuzzy
 msgid "Enable _DHT"
-msgstr "启用 _UDP"
+msgstr ""
 
 msgid "Enable _UDP"
 msgstr "启用 _UDP"
@@ -6902,9 +6564,7 @@ msgid ""
 "Enter a semicolon separated list of networks that are local to you in the "
 "form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
 "192.168.1.0/255.255.255.0)"
-msgstr ""
-"输入由分号分开的本地网络，格式：IP/bits，或者IP/掩码。(例如：192.168.1.0/24·"
-"或者·192.168.1.0/255.255.255.0)"
+msgstr "输入由分号分开的本地网络，格式：IP/bits，或者IP/掩码。(例如：192.168.1.0/24·或者·192.168.1.0/255.255.255.0)"
 
 msgid "Expand all"
 msgstr "展开全部"
@@ -6977,9 +6637,8 @@ msgstr "图形开发："
 msgid "GUID:"
 msgstr "GUID："
 
-#, fuzzy
 msgid "KUID:"
-msgstr "GUID："
+msgstr ""
 
 msgid "Gen. queued"
 msgstr ""
@@ -6999,9 +6658,8 @@ msgstr "已生成的查询"
 msgid "Generation:"
 msgstr ""
 
-#, fuzzy
 msgid "Global DHT outgoing traffic"
-msgstr "出站流量(_O)"
+msgstr ""
 
 msgid "Gnutella TTL settings"
 msgstr "Gnutella TTL 设置"
@@ -7141,16 +6799,14 @@ msgstr "最近上传"
 msgid "Last check"
 msgstr "最近核实"
 
-#, fuzzy
 msgid "Last chunk size"
-msgstr "最小体积："
+msgstr ""
 
 msgid "Last scan initiated on:"
 msgstr "最近一次扫描开始于："
 
-#, fuzzy
 msgid "Last switch"
-msgstr "最近切换"
+msgstr ""
 
 msgid "Leaf requery threshold"
 msgstr ""
@@ -7158,9 +6814,8 @@ msgstr ""
 msgid "Leaf traffic"
 msgstr ""
 
-#, fuzzy
 msgid "Legacy connections"
-msgstr "传统连接"
+msgstr ""
 
 msgid "Library # of files"
 msgstr ""
@@ -7192,9 +6847,8 @@ msgstr ""
 msgid "Make current sorting default"
 msgstr ""
 
-#, fuzzy
 msgid "Max # of _high TTL msg"
-msgstr "高TTL消息的最大数量"
+msgstr ""
 
 msgid "Max _TTL"
 msgstr "最大TTL(_T)"
@@ -7220,13 +6874,11 @@ msgstr "保留的最大文件描述符(_d)"
 msgid "Max. number of browse host results"
 msgstr ""
 
-#, fuzzy
 msgid "Max. number of passive results"
-msgstr "最大结果数(_N)"
+msgstr ""
 
-#, fuzzy
 msgid "Max. number of What's New? results"
-msgstr "最大结果数(_N)"
+msgstr ""
 
 msgid "Max. simultaneous downloads per file"
 msgstr ""
@@ -7272,9 +6924,8 @@ msgstr "通过 irc.freenode.net 上的 #gtk-gnutella 聊天室直接交流。"
 msgid "Min/Max:"
 msgstr "最小/最大："
 
-#, fuzzy
 msgid "Minimum chunk size"
-msgstr "最小体积："
+msgstr ""
 
 msgid "Minimum file size"
 msgstr "最小文件尺寸："
@@ -7357,16 +7008,14 @@ msgstr "最初获取自"
 msgid "Other"
 msgstr "其他"
 
-#, fuzzy
 msgid "Out of Band Querying"
-msgstr "超出波段查询"
+msgstr ""
 
 msgid "Outgoing traffic to lea_ves"
 msgstr "到叶节点的出站流量(_V)"
 
-#, fuzzy
 msgid "Output bandwidth average"
-msgstr "总出站带宽限制："
+msgstr ""
 
 msgid "PARQ development:"
 msgstr "PARQ开发："
@@ -7390,10 +7039,10 @@ msgid "Pending local queries"
 msgstr ""
 
 msgid ""
-"People can connect to you via TCP, but you are UDP-firewalled.  However, you "
-"can punch a hole into that firewall, allowing reception of replies to your "
-"UDP packets.  You will be able to send out-of-band query hits, but you won't "
-"be able to receive any."
+"People can connect to you via TCP, but you are UDP-firewalled.  However, you"
+" can punch a hole into that firewall, allowing reception of replies to your "
+"UDP packets.  You will be able to send out-of-band query hits, but you won't"
+" be able to receive any."
 msgstr ""
 
 msgid ""
@@ -7443,9 +7092,8 @@ msgstr "QRP 统计"
 msgid "Quality management"
 msgstr "质量控制"
 
-#, fuzzy
 msgid "Queries ask for OOB results"
-msgstr "查询请求OOB结果"
+msgstr ""
 
 msgid "Query Routing Protocol:"
 msgstr ""
@@ -7668,9 +7316,8 @@ msgstr "显示字节(_B)"
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "退出 gtk-gnutella 时要求确认(_C)"
 
-#, fuzzy
 msgid "Show _inbound Gnutella traffic"
-msgstr "Gnutella RX 缓冲(_G)："
+msgstr ""
 
 msgid "Show _inbound HTTP traffic"
 msgstr ""
@@ -7681,13 +7328,11 @@ msgstr ""
 msgid "Show _last"
 msgstr "显示最近"
 
-#, fuzzy
 msgid "Show _metric units"
-msgstr "显示搜索列表"
+msgstr ""
 
-#, fuzzy
 msgid "Show _outbound Gnutella traffic"
-msgstr "Gnutella RX 缓冲(_G)："
+msgstr ""
 
 msgid "Show _outbound HTTP traffic"
 msgstr ""
@@ -7701,16 +7346,15 @@ msgstr "显示百分比(_P)"
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr ""
 
-msgid "Show additional information and settings for advanced and _expert users"
+msgid ""
+"Show additional information and settings for advanced and _expert users"
 msgstr "为高级用户显示额外的信息和选项"
 
-#, fuzzy
 msgid "Show inbound DHT traffic"
-msgstr "Gnutella RX 缓冲(_G)："
+msgstr ""
 
-#, fuzzy
 msgid "Show outbound DHT traffic"
-msgstr "Gnutella RX 缓冲(_G)："
+msgstr ""
 
 msgid "Show pr_otocol:"
 msgstr "显示协议(_O)："
@@ -7724,9 +7368,10 @@ msgstr "显示标签"
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
 "downloaded, with the brighter green chunks touched during this session. "
-"Yellow chunks are active right now; these active chunks are also marked with "
-"a triangle. Red chunks have not been downloaded yet. The blue line indicates "
-"which parts of the file have been seen on the network in this session."
+"Yellow chunks are active right now; these active chunks are also marked with"
+" a triangle. Red chunks have not been downloaded yet. The blue line "
+"indicates which parts of the file have been seen on the network in this "
+"session."
 msgstr ""
 
 msgid "Similar query half-life"
@@ -7749,9 +7394,8 @@ msgstr ""
 msgid "Source quality"
 msgstr "来源质量"
 
-#, fuzzy
 msgid "Spacing"
-msgstr "空"
+msgstr ""
 
 msgid "Stable"
 msgstr "稳定"
@@ -7812,29 +7456,24 @@ msgid ""
 "to File->Preferences->Network."
 msgstr ""
 
-#, fuzzy
 msgid ""
-"There is no condition. When this rule is reached, the matching will continue "
-"in the specified target filter. That's also why you can't invert this "
+"There is no condition. When this rule is reached, the matching will continue"
+" in the specified target filter. That's also why you can't invert this "
 "condition. If you could, this rule would just be ignored."
 msgstr ""
-"没有条件。如果此符合此规则，将在指定目标的过滤器中继续尝试匹配。这就是为什么"
-"您不能反转该条件。如果您可以的话，该规则将被忽略。"
 
 msgid "This Interval"
 msgstr "本次"
 
 msgid ""
-"This limits how many results gnutella returns to other people searching your "
-"files."
+"This limits how many results gnutella returns to other people searching your"
+" files."
 msgstr "该值限定当其他人搜索您的文件时，gnutella 将返回多少个结果。"
 
 msgid ""
 "This product includes GeoIP data created by MaxMind, available from\n"
 "http://maxmind.com/"
-msgstr ""
-"此产品包括由 MaxMind 创建的 GeoIP 数据，可由以下地址获取\n"
-"http://maxmind.com/"
+msgstr "此产品包括由 MaxMind 创建的 GeoIP 数据，可由以下地址获取\nhttp://maxmind.com/"
 
 msgid "Timeouts (all values in seconds)"
 msgstr "超时(秒)"
@@ -7962,8 +7601,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic "
-"via UDP. You will not be able to send queries requesting out-of-band "
+"You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic"
+" via UDP. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
 
@@ -7971,8 +7610,8 @@ msgid ""
 "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
 "any push results, which may prevent you from seeing a large amount of "
 "results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits. However, it is possible to punch a hole into the UDP "
-"firewall, so you will be able to send out-of-band query hits."
+"delivery of query hits. However, it is possible to punch a hole into the UDP"
+" firewall, so you will be able to send out-of-band query hits."
 msgstr ""
 
 msgid ""
@@ -8124,9 +7763,8 @@ msgstr "活跃"
 msgid "and lasted"
 msgstr "并持续"
 
-#, fuzzy
 msgid "auto-hide DHT traffic stats"
-msgstr "自动隐藏叶节点流量统计(_A)"
+msgstr ""
 
 msgid "bytes"
 msgstr "字节"
@@ -8157,11 +7795,7 @@ msgid ""
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
-msgstr ""
-"gtk-gnutella 正在关闭。\n"
-"正在向其他节点发送 Bye 消息。\n"
-"\n"
-"请稍候："
+msgstr "gtk-gnutella 正在关闭。\n正在向其他节点发送 Bye 消息。\n\n请稍候："
 
 msgid "gtk-gnutella shutdown"
 msgstr "关闭 gtk-gnutella"
@@ -8235,13 +7869,11 @@ msgstr "未设置"
 msgid "uploads"
 msgstr "上传"
 
-#, fuzzy
 msgid "Available HTTP input bandwidth"
-msgstr "可用带宽"
+msgstr ""
 
-#, fuzzy
 msgid "Available HTTP output bandwidth"
-msgstr "可用带宽"
+msgstr ""
 
 msgid "DHT up, passive mode."
 msgstr ""
@@ -8255,17 +7887,14 @@ msgstr ""
 msgid "DHT looking up own KUID."
 msgstr ""
 
-#, fuzzy
 msgid "DHT seeded."
-msgstr "TX 速率"
+msgstr ""
 
-#, fuzzy
 msgid "DHT inactive."
-msgstr "%u 个活动"
+msgstr ""
 
-#, fuzzy
 msgid "Disabled stealing of outgoing HTTP bandwidth."
-msgstr "对出去的HTTP流量进行带宽限制。"
+msgstr ""
 
 msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr ""
@@ -8282,24 +7911,20 @@ msgstr ""
 msgid "Port mapping configured through UPnP."
 msgstr ""
 
-#, fuzzy
 msgid "Enable UPnP"
-msgstr "启用 _UDP"
+msgstr ""
 
-#, fuzzy
 msgid "Enable NAT-PMP"
-msgstr "启用 _UDP"
+msgstr ""
 
 msgid "Enable HTTP request pipelining"
 msgstr ""
 
-#, fuzzy
 msgid "Pipelining max chunk size"
-msgstr "最小体积："
+msgstr ""
 
-#, fuzzy
 msgid "Enable upload of partial files deemed rare"
-msgstr "启用对部分下载文件的上传(_P)"
+msgstr ""
 
 msgid "Enable GUESS (additional querying)"
 msgstr ""
@@ -8307,17 +7932,14 @@ msgstr ""
 msgid "Issue GUESS queries as well"
 msgstr ""
 
-#, fuzzy
 msgid "Bandwidth limits for GUESS queries"
-msgstr "Gnutella 流量带宽限制"
+msgstr ""
 
-#, fuzzy
 msgid "Output bandwidth hint"
-msgstr "总出站带宽限制："
+msgstr ""
 
-#, fuzzy
 msgid "Download queue is frozen."
-msgstr "下载队列已冻结"
+msgstr ""
 
 msgid "Allow TTH discovery"
 msgstr ""
@@ -8328,37 +7950,29 @@ msgstr ""
 msgid "Answer to queries for partial files"
 msgstr ""
 
-#, fuzzy
 msgid "Answer to what's-new? queries"
-msgstr "已生成的查询"
+msgstr ""
 
-#, fuzzy
 msgid "Search Media Type"
-msgstr "搜索项目"
+msgstr ""
 
-#, fuzzy
 msgid "Audio"
-msgstr "<音频>"
+msgstr ""
 
-#, fuzzy
 msgid "Video"
-msgstr "<视频>"
+msgstr ""
 
-#, fuzzy
 msgid "Document"
-msgstr "计数"
+msgstr ""
 
-#, fuzzy
 msgid "Image"
-msgstr "<图像>"
+msgstr ""
 
-#, fuzzy
 msgid "Archive"
-msgstr "<归档>"
+msgstr ""
 
-#, fuzzy
 msgid "Search Configuration"
-msgstr "搜索监视器"
+msgstr ""
 
 msgid "Stop search when last download completes"
 msgstr ""
@@ -8369,9 +7983,8 @@ msgstr ""
 msgid "What's new?"
 msgstr ""
 
-#, fuzzy
 msgid "Unspecified"
-msgstr "未定义"
+msgstr ""
 
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
@@ -8379,16 +7992,14 @@ msgstr ""
 msgid "Discard results bearing an alien IP address"
 msgstr ""
 
-#, fuzzy
 msgid "Discard results bearing a banned GUID"
-msgstr "发往被禁止 GUID 的消息"
+msgstr ""
 
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
 
-#, fuzzy
 msgid "Configured DHT mode"
-msgstr "节点模式"
+msgstr ""
 
 msgid "Store DHT keys/values in memory"
 msgstr ""
@@ -8402,9 +8013,8 @@ msgstr ""
 msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
 msgstr ""
 
-#, fuzzy
 msgid "Display GUESS statistics"
-msgstr "显示状态栏。"
+msgstr ""
 
 msgid "Mapping lease time"
 msgstr ""
@@ -8486,9 +8096,8 @@ msgstr ""
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
-#, fuzzy
 msgid "CPU overloaded"
-msgstr "已上传"
+msgstr ""
 
 msgid "Connect to"
 msgstr "连接到"
@@ -8588,9 +8197,8 @@ msgstr "保留 DNS 查询"
 msgid "Force external IPv4 address to"
 msgstr "强制外部 IPv4 地址"
 
-#, fuzzy
 msgid "_Bind to this address"
-msgstr "返回地址错误"
+msgstr ""
 
 msgid "IPv_4 settings"
 msgstr "IPv_4 设置"
@@ -8621,9 +8229,8 @@ msgstr ""
 msgid "unit_of_time|s"
 msgstr ""
 
-#, fuzzy
 msgid "Gnutella Distributed Hash Table"
-msgstr "用于上传的debug级别。"
+msgstr ""
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
@@ -8631,16 +8238,14 @@ msgstr ""
 msgid "attempts"
 msgstr "尝试 "
 
-#, fuzzy
 msgid "Pipelining maximum chunk size"
-msgstr "最小体积："
+msgstr ""
 
 msgid "_Remove directory"
 msgstr "删除目录(_R)"
 
-#, fuzzy
 msgid "Minimum chunk _size"
-msgstr "最小体积："
+msgstr ""
 
 msgid "Show a status _icon"
 msgstr "显示状态图标(_I)"
@@ -8700,21 +8305,17 @@ msgstr "新常规节点"
 msgid "Valid regular"
 msgstr "有效常规节点"
 
-#, fuzzy
 msgid "Fresh IPv4 ultra"
-msgstr "新超级节点"
+msgstr ""
 
-#, fuzzy
 msgid "Valid IPv4 ultra"
-msgstr "有效超级节点"
+msgstr ""
 
-#, fuzzy
 msgid "Fresh IPv6 ultra"
-msgstr "新超级节点"
+msgstr ""
 
-#, fuzzy
 msgid "Valid IPv6 ultra"
-msgstr "有效超级节点"
+msgstr ""
 
 msgid "Fresh G2 hub"
 msgstr ""
@@ -8725,9 +8326,8 @@ msgstr ""
 msgid "Unstable"
 msgstr "不稳定"
 
-#, fuzzy
 msgid "Alien"
-msgstr "别名"
+msgstr ""
 
 msgid "GUESS (IPv4 running)"
 msgstr ""
@@ -8747,9 +8347,7 @@ msgstr "gtk-gnutella：点击最小化/还原"
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
 msgid "translation_credit|"
-msgstr ""
-"翻译：\n"
-"Aron Xu <happyaron.xu@gmail.com>"
+msgstr "翻译：\nAron Xu <happyaron.xu@gmail.com>"
 
 #, c-format
 msgid "%d second"
@@ -8757,9 +8355,10 @@ msgid_plural "%d seconds"
 msgstr[0] "%d 秒"
 
 msgid ""
-"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
-"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
-"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ"
+" document could not be loaded. Please read the <a href=\"http://gtk-"
+"gnutella.sourceforge.net/?page=faq\">FAQ online</a> "
+"instead.</p></body></html>"
 msgstr ""
 
 #, c-format
@@ -8810,13 +8409,11 @@ msgstr "代理"
 msgid "bogus"
 msgstr ""
 
-#, fuzzy
 msgid "alien"
-msgstr "别名"
+msgstr ""
 
-#, fuzzy
 msgid "media"
-msgstr "亚美尼亚"
+msgstr ""
 
 msgid "No search"
 msgstr "无搜索"
@@ -8838,17 +8435,16 @@ msgstr "在 %s 后过期"
 msgid "Expires with this session"
 msgstr "随此会话退出过期"
 
-#, fuzzy, c-format
+#, c-format
 msgid " [%u download]"
 msgid_plural " [%u downloads]"
-msgstr[0] "%u 个下载"
+msgstr[0] ""
 
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
-msgstr ""
-"%u %s (跳过 %u，忽略 %u，隐藏 %u，自动 %u，%u %s) 命中：%u (%u TCP，%u UDP)"
+msgstr "%u %s (跳过 %u，忽略 %u，隐藏 %u，自动 %u，%u %s) 命中：%u (%u TCP，%u UDP)"
 
 msgid "item"
 msgid_plural "items"
@@ -8858,18 +8454,16 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] ""
 
-#, fuzzy
 msgid "No GUESS queries run yet"
-msgstr "UTF-8 查询"
+msgstr ""
 
 #, c-format
 msgid " previous took %s querying %zu %s with %zu %s kept"
 msgstr ""
 
-#, fuzzy
 msgid "host"
 msgid_plural "hosts"
-msgstr[0] "主机"
+msgstr[0] ""
 
 msgid "hit"
 msgid_plural "hits"
@@ -8879,28 +8473,25 @@ msgstr[0] ""
 msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
 msgstr ""
 
-#, fuzzy
 msgid "idle"
-msgstr "智利"
+msgstr ""
 
-#, fuzzy
 msgid "query"
 msgid_plural "queries"
-msgstr[0] "查询"
+msgstr[0] ""
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
-"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, "
+"(%zu+%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu "
+"%s%s%s]"
 msgstr ""
 
-#, fuzzy
 msgid "loose"
-msgstr "关闭"
+msgstr ""
 
-#, fuzzy
 msgid "bounded"
-msgstr "未定义"
+msgstr ""
 
 msgid "ack"
 msgid_plural "acks"
@@ -9008,9 +8599,8 @@ msgstr ""
 msgid "No"
 msgstr "否"
 
-#, fuzzy
 msgid "Tag"
-msgstr "目标"
+msgstr ""
 
 msgid "Yes"
 msgstr "是"
@@ -9018,32 +8608,27 @@ msgstr "是"
 msgid "Maybe"
 msgstr ""
 
-#, fuzzy
 msgid "Source"
-msgstr "%u 个源"
+msgstr ""
 
-#, fuzzy
 msgid "Alien IP"
-msgstr "别名"
+msgstr ""
 
 msgid "Alt-Locs"
 msgstr ""
 
-#, fuzzy
 msgid "Partial"
-msgstr "部分"
+msgstr ""
 
 #, c-format
 msgid "%s [%.2f%%]"
 msgstr ""
 
-#, fuzzy
 msgid "Available"
-msgstr "不可用"
+msgstr ""
 
-#, fuzzy
 msgid "Last modification"
-msgstr "主机信息"
+msgstr ""
 
 msgid "Latinized"
 msgstr ""
@@ -9060,9 +8645,8 @@ msgstr "主机信息"
 msgid "Hostname"
 msgstr "主机名"
 
-#, fuzzy
 msgid "banned"
-msgstr "禁止：%s"
+msgstr ""
 
 msgid "Servent ID"
 msgstr "Servent ID"
@@ -9073,9 +8657,8 @@ msgstr "制造商"
 msgid "Browsable"
 msgstr "可浏览"
 
-#, fuzzy
 msgid "Hostile"
-msgstr "主机(_o)："
+msgstr ""
 
 msgid "Push-proxies"
 msgstr ""
@@ -9146,11 +8729,11 @@ msgid "Reading ultra cache..."
 msgstr "正在读取超级节点缓存..."
 
 msgid ""
-"<html><head><title>Ancient version detected!</title></"
-"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
-"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
-"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
-"body></html>"
+"<html><head><title>Ancient version "
+"detected!</title></head><body><h1>Warning</h1><p>This version of gtk-"
+"gnutella is pretty old. Please visit <a href=\"http://gtk-"
+"gnutella.sourceforge.net/\">http://gtk-gnutella.sourceforge.net/</a> and "
+"update your copy of gtk-gnutella.</p></body></html>"
 msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
@@ -9249,9 +8832,8 @@ msgstr "%s %s#%u E=%u"
 msgid "Waiting for further request..."
 msgstr "正等待进一步的请求..."
 
-#, fuzzy
 msgid "Reading follow-up request..."
-msgstr "正等待进一步的请求..."
+msgstr ""
 
 msgid "Transmission aborted"
 msgstr "传输中止"
@@ -9259,9 +8841,9 @@ msgstr "传输中止"
 msgid "Transmission complete"
 msgstr "传输完成"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
-msgstr "ETA排队(插口%1$d/%2$d)：%3$s"
+msgstr ""
 
 msgid "Frozen"
 msgstr "已冻结"
@@ -9274,89 +8856,3 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
-
-#~ msgid "Verbosity of Bitzi related debug messages."
-#~ msgstr "与debug信息有关的Bitzi冗余"
-
-#~ msgid "Bitzi|Unknown"
-#~ msgstr "Bitzi|未知"
-
-#~ msgid "Bitzi|Bitzi lookup failure"
-#~ msgstr "Bitzi|Bitzi 查询失败"
-
-#~ msgid "Bitzi|Filesize mismatch"
-#~ msgstr "Bitzi|文件大小不匹配"
-
-#~ msgid "Bitzi|Normal"
-#~ msgstr "Bitzi|正常"
-
-#~ msgid "Bitzi|Complete"
-#~ msgstr "Bitzi|完成"
-
-#~ msgid "Bitzi|Recommended"
-#~ msgstr "Bitzi|推荐"
-
-#~ msgid "Bitzi|Best Version"
-#~ msgstr "Bitzi|最佳版本"
-
-#~ msgid "No other data"
-#~ msgstr "无其他数据"
-
-#~ msgid "External metadata"
-#~ msgstr "外部元数据"
-
-#~ msgid "Bitzi URL"
-#~ msgstr "Bitzi URL"
-
-#~ msgid "Bitzi Metadata"
-#~ msgstr "Bitzi 元数据"
-
-#~ msgid "Bitzi metadata"
-#~ msgstr "Bitzi 元数据"
-
-#~ msgid "Not in database"
-#~ msgstr "不在数据库中"
-
-#~ msgid "Query queued..."
-#~ msgstr "已将查询加入队列..."
-
-#~ msgid "SHA-1 is unknown."
-#~ msgstr "SHA-1 未知。"
-
-#~ msgid "Not in Bitzi database."
-#~ msgstr "不在 Bitzi 数据库中。"
-
-#~ msgid "Metadata"
-#~ msgstr "元数据"
-
-#~ msgid "%u/%u connection"
-#~ msgid_plural "%u/%u connections"
-#~ msgstr[0] "连接 %1$u/%2$u"
-
-#, fuzzy
-#~ msgid "Enable upload of patial files deemed rare"
-#~ msgstr "启用对部分下载文件的上传(_P)"
-
-#, fuzzy
-#~ msgid "Global DHT ougoing traffic"
-#~ msgstr "出站流量(_O)"
-
-#, fuzzy
-#~ msgid "Linux archives"
-#~ msgstr "%u 个活动"
-
-#~ msgid "Index"
-#~ msgstr "索引"
-
-#, fuzzy
-#~ msgid "Seaerch Media Type"
-#~ msgstr "搜索项目"
-
-#~ msgid "Banned for %s"
-#~ msgstr "因为 %s 而禁止"
-
-#~ msgid "("
-#~ msgstr "("
-
-#~ msgid "Unavailable range, waiting retry..."
-#~ msgstr "超出范围，请稍候重试..."

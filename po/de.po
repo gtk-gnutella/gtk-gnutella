@@ -1,26 +1,21 @@
-# $Id$
-#
-# German translations for gtk-gnutella package.
-# Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2010 Raphaël Manfredi.
-# This file is distributed under the same license as the gtk-gnutella package.
-# Thomas Schürger <thomas@schuerger.com>, 2004-2005.
-# Christian Biere <christianbiere@gmx.de>, 2005-2007.
-#
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Raphael Manfredi
+# This file is distributed under the same license as the PACKAGE package.
+# 
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.7u\n"
+"Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2014-05-14 19:31+0200\n"
-"PO-Revision-Date: 2012-11-06 18:36+0100\n"
-"Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
-"Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
-"Language: de\n"
+"PO-Revision-Date: 2014-05-15 08:48+0000\n"
+"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
+"Language-Team: German (http://www.transifex.com/projects/p/gtk-gnutella/language/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Poedit-Language: German\n"
+"Language: de\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -34,9 +29,8 @@ msgstr "Angehalten (%s)"
 msgid "Too many attempts (%u times)"
 msgstr "Zuviele Versuche (%u mal)"
 
-#, fuzzy
 msgid "Requeued due to no push-proxy"
-msgstr "Wegen Timeout in Warteschlange gestellt"
+msgstr ""
 
 msgid "Requeued due to file removal"
 msgstr "Wegen gelöschter Datei wieder in Warteschlange gestellt"
@@ -47,13 +41,12 @@ msgstr "Wegen Dateiinfoänderung in Warteschlage gestellt"
 msgid "Duplicate download"
 msgstr "Doppelter download"
 
-#, fuzzy
 msgid "Nothing else to switch to"
-msgstr "Nichts mehr zu holen"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Switching (after error) to \"%s\""
-msgstr "Wechsel zu \"%s\""
+msgstr ""
 
 #, c-format
 msgid " at %s"
@@ -62,9 +55,9 @@ msgstr ""
 msgid "Suspended (SHA1 checking)"
 msgstr "Gestoppt (SHA1 wird überprüft)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Ignoring requested (%s)"
-msgstr "Sende Anfrage (%u%%)"
+msgstr ""
 
 msgid "Paused"
 msgstr "Pausiert"
@@ -96,9 +89,8 @@ msgstr "SHA1-Prüfsummenfehler"
 msgid "Waiting for server PROX publishing"
 msgstr ""
 
-#, fuzzy
 msgid "Waiting for push route"
-msgstr "Warte auf weitere Anfrage..."
+msgstr ""
 
 msgid "Push route lost"
 msgstr "Push-Route verloren"
@@ -236,13 +228,12 @@ msgstr "SHA1-Duplikat entdeckt"
 msgid "More data to sink than expected"
 msgstr ""
 
-#, fuzzy
 msgid "Stopped data (EOF)"
-msgstr "Angehalten (%s)"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Stopped data (%s)"
-msgstr "Angehalten (%s)"
+msgstr ""
 
 #, c-format
 msgid "Failed (Read error: %s)"
@@ -298,17 +289,14 @@ msgstr ""
 msgid "Total/served sizes mismatch"
 msgstr ""
 
-#, fuzzy
 msgid "Range start mismatch"
-msgstr "Diese Suche neu starten"
+msgstr ""
 
-#, fuzzy
 msgid "Range end too large"
-msgstr "Viel zu groß"
+msgstr ""
 
-#, fuzzy
 msgid "Range mismatch"
-msgstr "URN aus Fileinfo stimmt nicht überein"
+msgstr ""
 
 msgid "Weird server-side chunk shrinking"
 msgstr ""
@@ -319,9 +307,8 @@ msgstr ""
 msgid "No Content-Length header"
 msgstr ""
 
-#, fuzzy
 msgid "Unexpected Content-Type"
-msgstr "Unerwartetes Paket"
+msgstr ""
 
 msgid "No Content-Type"
 msgstr ""
@@ -335,9 +322,9 @@ msgstr "THEX-Download abgebrochen"
 msgid "Pipeline flow stopped"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open %s: %s"
-msgstr "Fehler (%s kann nicht gesendet werden: %s)"
+msgstr ""
 
 msgid "Cannot resume: file gone"
 msgstr "Kann nicht fortsetzen: Datei nicht mehr verfügbar"
@@ -371,9 +358,8 @@ msgstr ", ausgehend"
 msgid ", no-pipeline"
 msgstr ""
 
-#, fuzzy
 msgid ", banning"
-msgstr "Verbannen"
+msgstr ""
 
 msgid ", g2"
 msgstr ", g2"
@@ -384,9 +370,9 @@ msgstr ""
 msgid ", vendor?"
 msgstr ", Anbieter?"
 
-#, fuzzy, c-format
+#, c-format
 msgid "<Browse G2 Host %s>"
-msgstr "<Host %s durchsuchen>"
+msgstr ""
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -396,9 +382,8 @@ msgstr "<Host %s durchsuchen>"
 msgid "<THEX data for %s>"
 msgstr "<THEX-Daten für %s>"
 
-#, fuzzy
 msgid "Browse search closed"
-msgstr "Suchliste anzeigen"
+msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
@@ -415,9 +400,8 @@ msgstr "Timeout"
 msgid "Requeued due to timeout"
 msgstr "Wegen Timeout in Warteschlange gestellt"
 
-#, fuzzy
 msgid "Partial file removed"
-msgstr "Freigabe partiell heruntergeladener Dateien"
+msgstr ""
 
 msgid "File info being reset"
 msgstr ""
@@ -429,23 +413,20 @@ msgstr "Lade herunter (TR: %s)"
 msgid "Seeding"
 msgstr ""
 
-#, fuzzy
 msgid "Computing TTH"
-msgstr "Berechne SHA1"
+msgstr ""
 
 msgid "Computing SHA1"
 msgstr "Berechne SHA1"
 
-#, fuzzy
 msgid "Waiting for TTH check"
-msgstr "Warte auf SHA1-Überprüfung..."
+msgstr ""
 
 msgid "Waiting for SHA1 check"
 msgstr "Warte auf SHA1-Überprüfung..."
 
-#, fuzzy
 msgid "SHA1"
-msgstr "SHA-1"
+msgstr ""
 
 msgid "OK"
 msgstr "OK"
@@ -453,13 +434,11 @@ msgstr "OK"
 msgid "failed"
 msgstr "fehlgeschlagen"
 
-#, fuzzy
 msgid "not computed yet"
-msgstr "Noch keine Ausgabe..."
+msgstr ""
 
-#, fuzzy
 msgid "Waiting for moving..."
-msgstr "Warte auf SHA1-Überprüfung..."
+msgstr ""
 
 msgid "Moving"
 msgstr "Verschiebe"
@@ -477,13 +456,11 @@ msgstr "In Warteschlange (%u aktiv, %u passiv)"
 msgid "Waiting"
 msgstr "Warte"
 
-#, fuzzy
 msgid "Querying DHT"
-msgstr "Suchtreffer"
+msgstr ""
 
-#, fuzzy
 msgid "Pending DHT query"
-msgstr "Sende Anfrage"
+msgstr ""
 
 #, c-format
 msgid "%u/%u successful DHT lookup"
@@ -497,15 +474,15 @@ msgid_plural "%u DHT lookups"
 msgstr[0] ""
 msgstr[1] ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
-msgstr[0] "%d Hostadresse von UDP-Hostcache %s erhalten"
-msgstr[1] "%d Hostadressen von UDP-Hostcache %s erhalten"
+msgstr[0] ""
+msgstr[1] ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Connecting to web cache %s"
-msgstr "Zu Host verbinden"
+msgstr ""
 
 #, c-format
 msgid "Bootstrapping from %s"
@@ -548,9 +525,9 @@ msgstr "Gnutella-Verbindungen deaktiviert"
 msgid "Connection not compressed"
 msgstr "Verbindung nicht komprimiert"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Too many G2 hubs (%u max)"
-msgstr "Zu viele Peers (max. %d)"
+msgstr ""
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -599,9 +576,8 @@ msgstr "Protokoll nicht akzeptabel"
 msgid "Servent Shutdown"
 msgstr "Servent wird heruntergefahren"
 
-#, fuzzy
 msgid "Not a network member"
-msgstr "Gnutella Netzwerkmodus"
+msgstr ""
 
 msgid "Need a G2 Hub"
 msgstr ""
@@ -609,9 +585,8 @@ msgstr ""
 msgid "Too frequent crawling"
 msgstr "Zu häufige Crawl-Anfragen"
 
-#, fuzzy
 msgid "Already connected to this GUID"
-msgstr "Bereits verbunden"
+msgstr ""
 
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
@@ -656,28 +631,23 @@ msgstr "Fehlgeschlagen (Zusätzliche HELLO-Daten)"
 msgid "Pseudo UDP node"
 msgstr "Pseudo-UDP-Peer"
 
-#, fuzzy
 msgid "Pseudo semi-reliable UDP node"
-msgstr "Pseudo-UDP-Peer"
+msgstr ""
 
-#, fuzzy
 msgid "Pseudo G2 UDP node"
-msgstr "Pseudo-UDP-Peer"
+msgstr ""
 
-#, fuzzy
 msgid "Pseudo DHT node"
-msgstr "Pseudo-UDP-Peer"
+msgstr ""
 
 msgid "Already connected"
 msgstr "Bereits verbunden"
 
-#, fuzzy
 msgid "Limited connection"
-msgstr "%d Pong empfangen"
+msgstr ""
 
-#, fuzzy
 msgid "Write error during HELLO"
-msgstr "Schreibfehler während HELLO: %s"
+msgstr ""
 
 #, c-format
 msgid "Write error during HELLO: %s"
@@ -729,9 +699,9 @@ msgstr "Lesefehler: %s"
 msgid "Must wait %u more seconds before resending \"What's New\""
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "mkdir(\"%s\") failed: %m"
-msgstr "Schreiben fehlgeschlagen: %s"
+msgstr ""
 
 msgid "Can't find your home directory!"
 msgstr "Kann das Heimatverzeichnis nicht finden!"
@@ -743,13 +713,12 @@ msgstr ""
 msgid "creating configuration directory \"%s\""
 msgstr "erstelle Konfigurationsverzeichnis \"%s\""
 
-#, fuzzy, c-format
+#, c-format
 msgid "creating directory \"%s\" for %s"
-msgstr "erstelle Konfigurationsverzeichnis \"%s\""
+msgstr ""
 
-#, fuzzy
 msgid "You seem to have left another gtk-gnutella running"
-msgstr "Ein anderer gtk-gnutella Prozess scheint bereits zu laufen.\n"
+msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Kann ohne gültiges Konfigurationsverzeichnis nicht fortfahren"
@@ -767,9 +736,7 @@ msgid "Failed to create listening sockets"
 msgstr "Sockets für eingehende Verbindungen konnten nicht angelegt werden"
 
 msgid "Can only run as a leaf when TCP-firewalled"
-msgstr ""
-"TCP-Verbindungen werden anscheined von einer Firewall blockiert, daher ist "
-"nur der \"Leaf\"-Modus möglich."
+msgstr "TCP-Verbindungen werden anscheined von einer Firewall blockiert, daher ist nur der \"Leaf\"-Modus möglich."
 
 msgid "Read error"
 msgstr "Lesefehler"
@@ -800,9 +767,8 @@ msgstr[1] "%d Hostadressen von UDP-Hostcache %s erhalten"
 msgid "Connect back timeout"
 msgstr "Rückverbindungs-Timeout"
 
-#, fuzzy
 msgid "Request timeout"
-msgstr "Anfrage gesendet"
+msgstr ""
 
 msgid "Timeout waiting for follow-up"
 msgstr ""
@@ -813,24 +779,21 @@ msgstr "Lebensdauer abgelaufen"
 msgid "Unauthorized"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Limiting connections from %s"
-msgstr "%d Pong empfangen"
+msgstr ""
 
 msgid "No reason given"
 msgstr ""
 
-#, fuzzy
 msgid "Bad Request"
-msgstr "Letzter Wechsel"
+msgstr ""
 
-#, fuzzy
 msgid "Header too large"
-msgstr "Viel zu groß"
+msgstr ""
 
-#, fuzzy
 msgid "Input buffer full"
-msgstr "Fehler (Eingabepuffer voll)"
+msgstr ""
 
 msgid "Extra data after HTTP header"
 msgstr ""
@@ -838,9 +801,8 @@ msgstr ""
 msgid "Unable to send GIV"
 msgstr "Konnte GIV nicht senden"
 
-#, fuzzy
 msgid "Not Found"
-msgstr ", ausgehend"
+msgstr ""
 
 msgid "File was modified"
 msgstr ""
@@ -848,16 +810,14 @@ msgstr ""
 msgid "Moved Permanently"
 msgstr ""
 
-#, fuzzy
 msgid "File index/name mismatch"
-msgstr "Dateigröße stimmt nicht überein"
+msgstr ""
 
 msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
-#, fuzzy
 msgid "SHA1 is being recomputed"
-msgstr "SHA1-Prüfsummenfehler"
+msgstr ""
 
 msgid "Library being rebuilt"
 msgstr ""
@@ -874,17 +834,15 @@ msgstr ""
 msgid "<Browse Host Request>"
 msgstr "<Browse-Host-Anfrage>"
 
-#, fuzzy
 msgid "Browse Host Disabled"
-msgstr "<Host %s durchsuchen>"
+msgstr ""
 
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr ""
 
-#, fuzzy
 msgid "Not Modified"
-msgstr "Nicht hinter Firewall"
+msgstr ""
 
 msgid "Stalling upload replaced"
 msgstr "Blockierenden Upload ersetzt"
@@ -892,9 +850,8 @@ msgstr "Blockierenden Upload ersetzt"
 msgid "Already downloading this file"
 msgstr ""
 
-#, fuzzy
 msgid "Malformed Range request"
-msgstr "Sende Anfrage"
+msgstr ""
 
 msgid "Requested range not satisfiable"
 msgstr ""
@@ -902,21 +859,18 @@ msgstr ""
 msgid "Requested range not available yet"
 msgstr ""
 
-#, fuzzy
 msgid "Queue full"
-msgstr "In Warteschlange gestellt"
+msgstr ""
 
-#, fuzzy
 msgid "Another connection is still active"
-msgstr "Gnutella-Verbindungen deaktiviert"
+msgstr ""
 
 #, c-format
 msgid "%s not honoured; removed from PARQ queue"
 msgstr ""
 
-#, fuzzy
 msgid "Minimum retry delay"
-msgstr "Minimale Größe:"
+msgstr ""
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
@@ -925,13 +879,12 @@ msgstr "Warteschlange (Slot %d, ETA: %s)"
 msgid "Cannot send whole HTTP status"
 msgstr "Kann kompletten HTTP-Status nicht sende"
 
-#, fuzzy
 msgid "Not Acceptable"
-msgstr "Protokoll nicht akzeptabel"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "<Browse Host %sRequest> [%s%s%s]"
-msgstr "<Browse-Host-Anfrage> [%s%s%s]"
+msgstr ""
 
 msgid "query hits"
 msgstr "Suchtreffer"
@@ -951,9 +904,8 @@ msgstr ""
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
 
-#, fuzzy
 msgid "Not Implemented"
-msgstr "Beendet"
+msgstr ""
 
 msgid "No Content Allowed"
 msgstr ""
@@ -964,13 +916,11 @@ msgstr ""
 msgid "Bad Path"
 msgstr ""
 
-#, fuzzy
 msgid "Missing Host Header"
-msgstr "Die Portnummer fehlt"
+msgstr ""
 
-#, fuzzy
 msgid "Sharing currently disabled"
-msgstr "Derzeit benutzt"
+msgstr ""
 
 msgid "Write exception"
 msgstr "Schreibfehler"
@@ -1014,9 +964,8 @@ msgstr " - Neuere Version verfügbar: git %s"
 msgid "Routing errors"
 msgstr "Routing-Fehler"
 
-#, fuzzy
 msgid "Routing table chunks"
-msgstr "Laufende Nummer der Routing-Tabellengenerierung."
+msgstr ""
 
 msgid "Routing table message capacity"
 msgstr ""
@@ -1033,9 +982,8 @@ msgstr "Dupletten mit höherer TTL"
 msgid "SPAM SHA1 database hits"
 msgstr ""
 
-#, fuzzy
 msgid "SPAM filename and size hits"
-msgstr "Falls der Dateiname mit \"%s\" endet %s"
+msgstr ""
 
 msgid "SPAM fake hits"
 msgstr ""
@@ -1058,9 +1006,8 @@ msgstr "Anfragen an lokale DB"
 msgid "Hits on local DB"
 msgstr "Treffer in lokaler DB"
 
-#, fuzzy
 msgid "Hits on local partial files"
-msgstr "Treffer in lokaler DB"
+msgstr ""
 
 msgid "Hits on \"what's new?\" queries"
 msgstr ""
@@ -1068,17 +1015,14 @@ msgstr ""
 msgid "Query hits received for local queries"
 msgstr ""
 
-#, fuzzy
 msgid "G2 searches to local DB"
-msgstr "Anfragen an lokale DB"
+msgstr ""
 
-#, fuzzy
 msgid "G2 hits on local DB"
-msgstr "Treffer in lokaler DB"
+msgstr ""
 
-#, fuzzy
 msgid "G2 hits on local partial files"
-msgstr "Treffer in lokaler DB"
+msgstr ""
 
 msgid "Query hits received for OOB-proxied queries"
 msgstr ""
@@ -1137,25 +1081,20 @@ msgstr "UTF8-Anfragen"
 msgid "SHA1 queries"
 msgstr "SHA1-Anfragen"
 
-#, fuzzy
 msgid "\"What's New?\" queries"
-msgstr "Generierte Anfragen"
+msgstr ""
 
-#, fuzzy
 msgid "UTF8 G2 queries"
-msgstr "UTF8-Anfragen"
+msgstr ""
 
-#, fuzzy
 msgid "SHA1 G2 queries"
-msgstr "SHA1-Anfragen"
+msgstr ""
 
-#, fuzzy
 msgid "GUESS queries"
-msgstr "UTF8-Anfragen"
+msgstr ""
 
-#, fuzzy
 msgid "GUESS queries (0.2)"
-msgstr "UTF8-Anfragen"
+msgstr ""
 
 msgid "GUESS link cache size"
 msgstr ""
@@ -1169,9 +1108,8 @@ msgstr ""
 msgid "GUESS cached G2 hosts held"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS locally generated queries"
-msgstr "Generierte dynamische Anfragen"
+msgstr ""
 
 msgid "GUESS currently running queries"
 msgstr ""
@@ -1179,16 +1117,14 @@ msgstr ""
 msgid "GUESS hits received for locally generated queries"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS ultra nodes queried"
-msgstr "Generierte dynamische Anfragen"
+msgstr ""
 
 msgid "GUESS ultra nodes sending back an acknowledgment"
 msgstr ""
 
-#, fuzzy
 msgid "GUESS G2 nodes queried"
-msgstr "UTF8-Anfragen"
+msgstr ""
 
 msgid "GUESS G2 nodes sending back an acknowledgment"
 msgstr ""
@@ -1196,9 +1132,8 @@ msgstr ""
 msgid "Broadcasted push messages"
 msgstr "Versandte Push-Pakete"
 
-#, fuzzy
 msgid "Push-proxy UDP relayed messages"
-msgstr "Durch Push-Proxy weitergeleitete Pakete"
+msgstr ""
 
 msgid "Push-proxy TCP relayed messages"
 msgstr "Durch Push-Proxy weitergeleitete Pakete"
@@ -1305,16 +1240,14 @@ msgstr ""
 msgid "UDP UHC pings received"
 msgstr ""
 
-#, fuzzy
 msgid "UDP UHC pongs sent"
-msgstr "Push gesendet"
+msgstr ""
 
 msgid "UDP messages with bogus source IP"
 msgstr ""
 
-#, fuzzy
 msgid "UDP truncated incoming messages"
-msgstr "Fehlerhaftes Kommando"
+msgstr ""
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr ""
@@ -1538,17 +1471,14 @@ msgstr ""
 msgid "Sunk HTTP reply data on error codes"
 msgstr ""
 
-#, fuzzy
 msgid "Ignored downloaded data"
-msgstr "Heruntergeladen:"
+msgstr ""
 
-#, fuzzy
 msgid "Ignoring requested after data mismatch"
-msgstr "Sende Anfrage (%u%%)"
+msgstr ""
 
-#, fuzzy
 msgid "Ignoring requested to preserve connection"
-msgstr "Sende Anfrage (%u%%)"
+msgstr ""
 
 msgid "Ignoring requested due to aggressive swarming"
 msgstr ""
@@ -1598,9 +1528,8 @@ msgstr ""
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
-#, fuzzy
 msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "Debug-Level für Downloads"
+msgstr ""
 
 msgid "RUDP sent bytes"
 msgstr ""
@@ -1632,16 +1561,14 @@ msgstr ""
 msgid "DHT routing table maximum depth"
 msgstr ""
 
-#, fuzzy
 msgid "DHT routing table good nodes"
-msgstr "Laufende Nummer der Routing-Tabellengenerierung."
+msgstr ""
 
 msgid "DHT routing table stale nodes"
 msgstr ""
 
-#, fuzzy
 msgid "DHT routing table pending nodes"
-msgstr "Laufende Nummer der Routing-Tabellengenerierung."
+msgstr ""
 
 msgid "DHT routing table evicted nodes"
 msgstr ""
@@ -1649,16 +1576,14 @@ msgstr ""
 msgid "DHT routing table evicted firewalled nodes"
 msgstr ""
 
-#, fuzzy
 msgid "DHT routing table evicted nodes due to quota"
-msgstr "Laufende Nummer der Routing-Tabellengenerierung."
+msgstr ""
 
 msgid "DHT routing table promoted pending nodes"
 msgstr ""
 
-#, fuzzy
 msgid "DHT routing table pinged promoted nodes"
-msgstr "Laufende Nummer der Routing-Tabellengenerierung."
+msgstr ""
 
 msgid "DHT routing table rejected node due to bucket network quota"
 msgstr ""
@@ -1672,13 +1597,11 @@ msgstr ""
 msgid "DHT forced bucket refreshes"
 msgstr ""
 
-#, fuzzy
 msgid "DHT forced bucket merges"
-msgstr "Fehlerhaftes Kommando"
+msgstr ""
 
-#, fuzzy
 msgid "DHT bucket merges"
-msgstr "Fehlerhaftes Kommando"
+msgstr ""
 
 msgid "DHT bucket splits"
 msgstr ""
@@ -1761,9 +1684,8 @@ msgstr ""
 msgid "DHT cached security tokens hits"
 msgstr ""
 
-#, fuzzy
 msgid "DHT stable node information held"
-msgstr "Detailinformation"
+msgstr ""
 
 msgid "DHT local hits on value lookups"
 msgstr ""
@@ -1777,9 +1699,8 @@ msgstr ""
 msgid "DHT returned values as secondary keys"
 msgstr ""
 
-#, fuzzy
 msgid "DHT claimed values via secondary keys"
-msgstr "Timeouts (alle Werte in Sekunden)"
+msgstr ""
 
 msgid "DHT returned cached expanded values"
 msgstr ""
@@ -1787,9 +1708,8 @@ msgstr ""
 msgid "DHT returned cached values as secondary-keys"
 msgstr ""
 
-#, fuzzy
 msgid "DHT claimed cached values via secondary keys"
-msgstr "Timeouts (alle Werte in Sekunden)"
+msgstr ""
 
 msgid "DHT successfully received value publications"
 msgstr ""
@@ -1845,9 +1765,8 @@ msgstr ""
 msgid "DHT values successfully offloaded"
 msgstr ""
 
-#, fuzzy
 msgid "DHT incoming messages"
-msgstr "Fehlerhaftes Kommando"
+msgstr ""
 
 msgid "DHT incoming messages with UDP-matching contact address"
 msgstr ""
@@ -1885,9 +1804,8 @@ msgstr ""
 msgid "DHT RPC recent nodes held"
 msgstr ""
 
-#, fuzzy
 msgid "DHT node verifications"
-msgstr "Detailinformation"
+msgstr ""
 
 msgid "DHT publishing attempts"
 msgstr ""
@@ -1928,9 +1846,8 @@ msgstr ""
 msgid "DHT alt-loc lookups issued"
 msgstr ""
 
-#, fuzzy
 msgid "DHT push-proxy lookups issued"
-msgstr "Push-Proxy nicht gefunden"
+msgstr ""
 
 msgid "DHT successful alt-loc lookups"
 msgstr ""
@@ -1941,9 +1858,8 @@ msgstr ""
 msgid "DHT successful node push-entry lookups"
 msgstr ""
 
-#, fuzzy
 msgid "DHT re-seeding of orphan downloads"
-msgstr "Debug-Level für Downloads"
+msgstr ""
 
 msgid "Ping"
 msgstr "Ping"
@@ -1981,17 +1897,14 @@ msgstr "Suchtreffer"
 msgid "DHT (truncated)"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Ping"
-msgstr "Ping"
+msgstr ""
 
-#, fuzzy
 msgid "DHT Pong"
-msgstr "Pong"
+msgstr ""
 
-#, fuzzy
 msgid "DHT Store"
-msgstr "HTTP-Verkehr"
+msgstr ""
 
 msgid "DHT Store Ack"
 msgstr ""
@@ -2005,13 +1918,11 @@ msgstr ""
 msgid "DHT Find Value"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Value"
-msgstr "Wert"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Crawl Request"
-msgstr "Letzter Wechsel"
+msgstr ""
 
 msgid "G2 Hub Advertisement"
 msgstr ""
@@ -2025,21 +1936,17 @@ msgstr ""
 msgid "G2 Hub List Ack"
 msgstr ""
 
-#, fuzzy
 msgid "G2 Local Node Info"
-msgstr "Eigener Peer"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Ping"
-msgstr "Ping"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Pong"
-msgstr "Pong"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Push"
-msgstr "Push"
+msgstr ""
 
 msgid "G2 Query Key Ack"
 msgstr ""
@@ -2047,20 +1954,17 @@ msgstr ""
 msgid "G2 Query Key Req"
 msgstr ""
 
-#, fuzzy
 msgid "G2 Query"
-msgstr "Suche"
+msgstr ""
 
 msgid "G2 Query Ack"
 msgstr ""
 
-#, fuzzy
 msgid "G2 Query Hit"
-msgstr "Suchtreffer"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Query Hash Table"
-msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
+msgstr ""
 
 msgid "G2 User Profile Check"
 msgstr ""
@@ -2083,9 +1987,8 @@ msgstr "Zu groß"
 msgid "Way too large"
 msgstr "Viel zu groß"
 
-#, fuzzy
 msgid "Too old"
-msgstr "Zu klein"
+msgstr ""
 
 msgid "Unknown message type"
 msgstr "Unbekannter Pakettyp"
@@ -2105,9 +2008,8 @@ msgstr "Maximale TTL überschritten"
 msgid "Message throttle"
 msgstr "Paketdrosselung"
 
-#, fuzzy
 msgid "Message matched limits"
-msgstr "Gnet-Paketgrößenbeschränkungen"
+msgstr ""
 
 msgid "Transient node"
 msgstr ""
@@ -2136,9 +2038,8 @@ msgstr ""
 msgid "Message to banned GUID"
 msgstr "Paket an verbannten GUID"
 
-#, fuzzy
 msgid "Message from banned GUID"
-msgstr "Paket an verbannten GUID"
+msgstr ""
 
 msgid "Node shutting down"
 msgstr "Peer fährt herunter"
@@ -2173,9 +2074,8 @@ msgstr ""
 msgid "Hostile IP address"
 msgstr "Feindliche IP-Adresse"
 
-#, fuzzy
 msgid "Shunned IP address"
-msgstr "Unbeständige IP-Adresse"
+msgstr ""
 
 msgid "Bogus result from Morpheus"
 msgstr ""
@@ -2186,9 +2086,8 @@ msgstr "Spam"
 msgid "Evil filename"
 msgstr "Böser Dateiname"
 
-#, fuzzy
 msgid "Improper media type"
-msgstr "Suchbegriff"
+msgstr ""
 
 msgid "Payload inflating error"
 msgstr ""
@@ -2199,9 +2098,8 @@ msgstr ""
 msgid "Own search results"
 msgstr "Eigene Suchergebnisse"
 
-#, fuzzy
 msgid "Own queries"
-msgstr "UTF8-Anfragen"
+msgstr ""
 
 msgid "Ancient query format"
 msgstr "Veraltetes Anfrage-Format"
@@ -2221,17 +2119,14 @@ msgstr ""
 msgid "DHT Too many STORE requests"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Malformed message"
-msgstr "Fehlerhaftes Kommando"
+msgstr ""
 
-#, fuzzy
 msgid "G2 Unexpected message"
-msgstr "Unerwartetes Paket"
+msgstr ""
 
-#, fuzzy
 msgid "Cannot cross networks"
-msgstr "Lokale Netzwerke"
+msgstr ""
 
 msgid "No proxy"
 msgstr "Kein Proxy"
@@ -2272,9 +2167,8 @@ msgstr "Ultrapeer"
 msgid "leaf node"
 msgstr "Leaf-Peer"
 
-#, fuzzy
 msgid "none"
-msgstr "Peers"
+msgstr ""
 
 msgid "input only"
 msgstr ""
@@ -2291,25 +2185,20 @@ msgstr ""
 msgid "own KUID lookup"
 msgstr ""
 
-#, fuzzy
 msgid "completing"
-msgstr "Beendet"
+msgstr ""
 
-#, fuzzy
 msgid "completed"
-msgstr "Beendet"
+msgstr ""
 
-#, fuzzy
 msgid "shutdown"
-msgstr "Beenden (%s)"
+msgstr ""
 
-#, fuzzy
 msgid "active (recommended)"
-msgstr "Automatisch (empfohlen)"
+msgstr ""
 
-#, fuzzy
 msgid "passive"
-msgstr " passiv)"
+msgstr ""
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Gibt an, ob gerade die Hostcache-Datei geladen wird."
@@ -2323,50 +2212,33 @@ msgid ""
 "Gnutella support that may not only damage your abilities to search and "
 "download but also harm the network since you're not supporting the newest "
 "features."
-msgstr ""
-"Gibt an, ob die genutzte Version von gtk-gnutella sehr, sehr alt ist. In "
-"diesem Fall sollte alsbald eine neuere Version von gtk-gnutella installiert "
-"werden, da veraltete Versionen bestenfalls sub-optimal funktionieren und "
-"nicht die neuesten Features von Gnutella unterstützen und das Netzwerk "
-"eventuell sogar beeinträchtigen."
+msgstr "Gibt an, ob die genutzte Version von gtk-gnutella sehr, sehr alt ist. In diesem Fall sollte alsbald eine neuere Version von gtk-gnutella installiert werden, da veraltete Versionen bestenfalls sub-optimal funktionieren und nicht die neuesten Features von Gnutella unterstützen und das Netzwerk eventuell sogar beeinträchtigen."
 
 msgid ""
 "gtk-gnutella found a newer version on the Gnet and gives information about "
 "it here."
-msgstr ""
-"gtk-gnutella hat eine neuere Version im Gnet gefunden und zeigt hier "
-"Informationen darüber an."
+msgstr "gtk-gnutella hat eine neuere Version im Gnet gefunden und zeigt hier Informationen darüber an."
 
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
-"same kind as we are (normal or ultra nodes). This should be smaller than the "
-"maximum amount of connections to allow incoming connections.  Keep in mind "
+"same kind as we are (normal or ultra nodes). This should be smaller than the"
+" maximum amount of connections to allow incoming connections.  Keep in mind "
 "that the default TTL on Gnutella is 4, so this needs to be more than 30 to "
 "provide decent range for searches."
-msgstr ""
-"Versuche, mindestens diese Anzahl Verbindungen zu gleichartigen Peers "
-"aufrecht zu erhalten. Diese Zahl sollte kleiner als die maximale Anzahl "
-"sein, um eingehende Verbindungen zu erlauben."
+msgstr "Versuche, mindestens diese Anzahl Verbindungen zu gleichartigen Peers aufrecht zu erhalten. Diese Zahl sollte kleiner als die maximale Anzahl sein, um eingehende Verbindungen zu erlauben."
 
 msgid ""
 "When in ultrapeer mode, try to keep at least this number of connections to "
 "normal servents.  This should be smaller than the maximum amount of "
 "connections to allow incoming connections."
-msgstr ""
-"Versuche im Ultrapeer-Modus, mindestens diese Anzahl an Verbindungen zu "
-"normalen Peers aufrecht zu erhalten. Diese Zahl sollte kleiner als die "
-"maximale Anzahl sein, um eingehende Verbindungen zu erlauben."
+msgstr "Versuche im Ultrapeer-Modus, mindestens diese Anzahl an Verbindungen zu normalen Peers aufrecht zu erhalten. Diese Zahl sollte kleiner als die maximale Anzahl sein, um eingehende Verbindungen zu erlauben."
 
-#, fuzzy
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
-"rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
-"up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
+"rule of thumb you should reserve 256 b/s bandwidth per connection. Never use"
+" up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
 "advisable that you set this to a value smaller than 40."
 msgstr ""
-"Begrenze die Anzahl an Verbindungen zu anderen Peers auf diese Zahl. Als "
-"Faustregel gilt: eine Verbindung nutzt ca. 512 b/s an Bandbreite. Es ist "
-"nicht ratsam, mehr als 40 Verbindungen zuzulassen."
 
 msgid "Number of leaf nodes currently connected."
 msgstr "Anzahl der derzeit verbundenen Leaf-Peers."
@@ -2378,30 +2250,23 @@ msgid "Number of ultra nodes currently connected."
 msgstr "Anzahl der derzeit verbundenen Ultrapeers."
 
 msgid ""
-"Don't start more than this number of parallel downloads.  Others will remain "
-"in the queue waiting for a download slot."
-msgstr ""
-"Starte nicht mehr als diese Anzahl paralleler Downloads. Weitere werden in "
-"die Warteschlange gestellt, bis ein Download-Slot frei ist."
+"Don't start more than this number of parallel downloads.  Others will remain"
+" in the queue waiting for a download slot."
+msgstr "Starte nicht mehr als diese Anzahl paralleler Downloads. Weitere werden in die Warteschlange gestellt, bis ein Download-Slot frei ist."
 
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
-msgstr ""
-"Benutze nicht mehr als die angegebene Anzahl an Verbindungen zu einem Peer "
-"zum Downloaden. Der Wert sollte auf dem Defaultwert (1) gelassen werden."
+msgstr "Benutze nicht mehr als die angegebene Anzahl an Verbindungen zu einem Peer zum Downloaden. Der Wert sollte auf dem Defaultwert (1) gelassen werden."
 
 msgid ""
-"Don't allow more than this number of uploads in total. This also defines the "
-"amount of PARQ queues that will be used. You should at least set it to 2."
-msgstr ""
-"Begrenze die Anzahl der Uploads auf diese Zahl. Dies gibt auch die Anzahl "
-"der benutzten PARQ-Warteschlangen an. Sollte mindestens 2 sein."
+"Don't allow more than this number of uploads in total. This also defines the"
+" amount of PARQ queues that will be used. You should at least set it to 2."
+msgstr "Begrenze die Anzahl der Uploads auf diese Zahl. Dies gibt auch die Anzahl der benutzten PARQ-Warteschlangen an. Sollte mindestens 2 sein."
 
 msgid ""
 "Don't upload more than this number of files in parallel to a single host."
-msgstr ""
-"Begrenze die Anzahl der gleichzeitigen Uploads zu einem Host auf diese Zahl."
+msgstr "Begrenze die Anzahl der gleichzeitigen Uploads zu einem Host auf diese Zahl."
 
 msgid "Local IPv4 address last determined."
 msgstr "Zuletzt ermittelte lokale IPv4-Adresse."
@@ -2431,62 +2296,42 @@ msgid ""
 "Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
 "traffic on TCP port 6346 so it is a good idea to change it to something in "
 "the range of 1024-65535.  Don't forget to update your firewall port "
-"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
-"is not used to guard against undue censorship."
-msgstr ""
-"Lokaler TCP-Port für eingehende Verbindungen. Dein Provider blockiert oder "
-"begrenzt möglicherweise den Verkehr auf Port 6346, deshalb sollte ein "
-"anderer Port im Bereich 1024-65535 benutzt werden.  Vergiss nicht, Deine "
-"Firewall für den Port zu öffnen bzw. Port-Forwarding zu aktivieren.  "
-"Standardmäßig wird Port 6346 nicht benutzt, um Zensur zu vermeiden."
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346"
+" is not used to guard against undue censorship."
+msgstr "Lokaler TCP-Port für eingehende Verbindungen. Dein Provider blockiert oder begrenzt möglicherweise den Verkehr auf Port 6346, deshalb sollte ein anderer Port im Bereich 1024-65535 benutzt werden.  Vergiss nicht, Deine Firewall für den Port zu öffnen bzw. Port-Forwarding zu aktivieren.  Standardmäßig wird Port 6346 nicht benutzt, um Zensur zu vermeiden."
 
-msgid "Use this IP address as source address if 'force local ip' is activated."
-msgstr ""
-"Benutze diese Adresse als Quelladresse, wenn 'Lokale IP setzen' aktiviert "
-"ist."
+msgid ""
+"Use this IP address as source address if 'force local ip' is activated."
+msgstr "Benutze diese Adresse als Quelladresse, wenn 'Lokale IP setzen' aktiviert ist."
 
 msgid ""
 "Use this IPv6 address as source address if 'force local ip' is activated."
-msgstr ""
-"Benutze diese IPv6-Adresse als Quelladresse, wenn 'Lokale IP setzen' "
-"aktiviert ist."
+msgstr "Benutze diese IPv6-Adresse als Quelladresse, wenn 'Lokale IP setzen' aktiviert ist."
 
 msgid ""
-"The connection bandwidth reported to other hosts. This is the speed at which "
-"you can upload things to others."
-msgstr ""
-"Eigene Bandbreite, die anderen Peers mitgeteilt wird. Dies ist die maximale "
-"Upload-Geschwindigkeit."
+"The connection bandwidth reported to other hosts. This is the speed at which"
+" you can upload things to others."
+msgstr "Eigene Bandbreite, die anderen Peers mitgeteilt wird. Dies ist die maximale Upload-Geschwindigkeit."
 
 msgid ""
 "Whether the connection bandwidth reported to other hosts should be computed "
 "based on the current average upload speed. The reported speed is the "
-"available speed for a new upload, not the theoretical maximum configured: it "
-"is the average bandwidth (or the max configured bandwidth if no traffic yet) "
-"divided by the number of upload slots. When it is ON (recommended setting), "
-"the hardwired connection speed is not used."
-msgstr ""
-"Gibt an, ob die anderen Peers mitgeteilte Bandbreite aus der mittleren "
-"Upload-Geschwindigkeit ermittelt werden soll oder nicht. Die Geschwindigkeit "
-"wird aus der mittleren Bandbreit geteilt durch die Anzahl der Upload-Slots "
-"berechnet. Wenn an (empfohlen), wird die fest eingestellte Upload-Bandbreite "
-"nicht benutzt."
+"available speed for a new upload, not the theoretical maximum configured: it"
+" is the average bandwidth (or the max configured bandwidth if no traffic "
+"yet) divided by the number of upload slots. When it is ON (recommended "
+"setting), the hardwired connection speed is not used."
+msgstr "Gibt an, ob die anderen Peers mitgeteilte Bandbreite aus der mittleren Upload-Geschwindigkeit ermittelt werden soll oder nicht. Die Geschwindigkeit wird aus der mittleren Bandbreit geteilt durch die Anzahl der Upload-Slots berechnet. Wenn an (empfohlen), wird die fest eingestellte Upload-Bandbreite nicht benutzt."
 
 msgid ""
 "Return at most this number of results to a query, using as many query hit "
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
 "value."
-msgstr ""
-"Gebe maximal diese Anzahl an Suchtreffern zurück, verteilt auf die benötigte "
-"Anzahl an Paketen. Um Netzüberflutung zu vermeiden, sollte dies auf einem "
-"vernünftigen Wert gehalten werden."
+msgstr "Gebe maximal diese Anzahl an Suchtreffern zurück, verteilt auf die benötigte Anzahl an Paketen. Um Netzüberflutung zu vermeiden, sollte dies auf einem vernünftigen Wert gehalten werden."
 
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
 "additional upload slots."
-msgstr ""
-"Erlaube zusätzliche Upload-Slots, solange weniger als dieser Prozentsatz der "
-"Upload-Bandbreite ausgenutzt wird"
+msgstr "Erlaube zusätzliche Upload-Slots, solange weniger als dieser Prozentsatz der Upload-Bandbreite ausgenutzt wird"
 
 msgid "Number of seconds before a download connect attempt times out."
 msgstr "Dauer in Sekunden bevor ein Verbindungsversuch abgebrochen wird."
@@ -2495,97 +2340,66 @@ msgid "Number of seconds before a push request times out."
 msgstr "Dauer in Sekunden bevor eine Push-Anfrage abgebrochen wird."
 
 msgid "Number of seconds before a download times out if no data is received."
-msgstr ""
-"Dauer in Sekunden bevor ein Download abgebrochen wird, wenn keine Daten mehr "
-"empfangen werden."
+msgstr "Dauer in Sekunden bevor ein Download abgebrochen wird, wenn keine Daten mehr empfangen werden."
 
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Minimale Dauer in Sekunden bevor ein automatischer Downloadversuch "
-"abgebrochen wird."
+msgstr "Minimale Dauer in Sekunden bevor ein automatischer Downloadversuch abgebrochen wird."
 
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Maximale Dauer in Sekunden bevor ein automatischer Downloadversuch "
-"abgebrochen wird."
+msgstr "Maximale Dauer in Sekunden bevor ein automatischer Downloadversuch abgebrochen wird."
 
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications."
-msgstr ""
-"Maximale Anzahl an Versuchen, um eine Datei herunterzuladen"
-"(Überlastungsantworten nicht mitgezählt)."
+msgstr "Maximale Anzahl an Versuchen, um eine Datei herunterzuladen(Überlastungsantworten nicht mitgezählt)."
 
 msgid "Delay in seconds before retrying after a connection timed out."
-msgstr ""
-"Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen."
+msgstr "Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen."
 
 msgid ""
-"Delay in seconds before retrying after getting a 'busy' response from a host."
-msgstr ""
-"Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen, "
-"wenn ein Host gerade überlastet ist."
+"Delay in seconds before retrying after getting a 'busy' response from a "
+"host."
+msgstr "Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen, wenn ein Host gerade überlastet ist."
 
 msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host."
-msgstr ""
-"Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen, "
-"wenn der Verbindungsaufbau abgelehnt wurde"
+msgstr "Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen, wenn der Verbindungsaufbau abgelehnt wurde"
 
 msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)."
-msgstr ""
-"Dauer in Sekunden bevor ein Neuversuch neu gestartet wird, nachdem er "
-"abgebrochen wurde."
+msgstr "Dauer in Sekunden bevor ein Neuversuch neu gestartet wird, nachdem er abgebrochen wurde."
 
 msgid ""
 "Amount of bytes to overlap when resuming a download. It should be at least "
-"64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume "
-"a file for which we had no SHA1 known, after a server gives one back."
-msgstr ""
-"Anzahl Bytes, die bei der Wiederaufnahme eines Downloads überlappend "
-"heruntergeladen werden sollen. Dies sollten mindestens 64 Bytes sein, um "
-"einen sicheren Download zu ermöglichen."
+"64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume"
+" a file for which we had no SHA1 known, after a server gives one back."
+msgstr "Anzahl Bytes, die bei der Wiederaufnahme eines Downloads überlappend heruntergeladen werden sollen. Dies sollten mindestens 64 Bytes sein, um einen sicheren Download zu ermöglichen."
 
 msgid ""
 "Number of seconds before an upload times out if no connection can be "
-"established during a push.  It is also the maximum amount of time we wait to "
-"get the whole HTTP request."
-msgstr ""
-"Dauer in Sekunden bevor ein Upload abgebrochen wird, wenn für einen Push "
-"keine Verbindung aufgebaut werden konnte. Dies ist auch die maximale "
-"Wartezeit für den Erhalt des HTTP-Requests."
+"established during a push.  It is also the maximum amount of time we wait to"
+" get the whole HTTP request."
+msgstr "Dauer in Sekunden bevor ein Upload abgebrochen wird, wenn für einen Push keine Verbindung aufgebaut werden konnte. Dies ist auch die maximale Wartezeit für den Erhalt des HTTP-Requests."
 
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted."
-msgstr ""
-"Dauer in Sekunden bevor ein Upload abgebrochen wird, wenn keine Daten "
-"übertragen werden konnten."
+msgstr "Dauer in Sekunden bevor ein Upload abgebrochen wird, wenn keine Daten übertragen werden konnten."
 
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
 "results are available.  Be very careful with this parameter, and do not set "
-"it too low or you will damage the Gnutella network.  A delay of half an hour "
-"is fine."
-msgstr ""
-"Anzahl Sekunden, nachdem eine Suchanfrage erneut abgeschickt wird, um "
-"weitere Suchtreffer zu erhalten. Der Wert sollte nicht zu klein gewählt "
-"werden, damit das Gnutella-Netzwerk nicht überlastet wird. Ein Wert von "
-"einer halben Stunde reicht aus."
+"it too low or you will damage the Gnutella network.  A delay of half an hour"
+" is fine."
+msgstr "Anzahl Sekunden, nachdem eine Suchanfrage erneut abgeschickt wird, um weitere Suchtreffer zu erhalten. Der Wert sollte nicht zu klein gewählt werden, damit das Gnutella-Netzwerk nicht überlastet wird. Ein Wert von einer halben Stunde reicht aus."
 
 msgid ""
 "Maximum ratio of file descriptors reserved for banning. For instance, if "
 "your OS gives you 350 file descriptors, a ratio of 10 will reserve at most "
-"35 file descriptors.  You should ensure you have around 100 file descriptors "
-"for efficient banning."
-msgstr ""
-"Maximaler Anteil an Dateideskriptoren für das Verbannen von Peers. Falls das "
-"Betriebssystem z.B. 350 Dateideskriptoren zur Verfügung stellt und der "
-"eingestellte Wert 10 ist, werden höchstens 35 Deskriptoren zum Bannen "
-"benutzt. Für effizientes Bannen sollten mindestens 100 Deskriptoren zur "
-"Verfügung stehen."
+"35 file descriptors.  You should ensure you have around 100 file descriptors"
+" for efficient banning."
+msgstr "Maximaler Anteil an Dateideskriptoren für das Verbannen von Peers. Falls das Betriebssystem z.B. 350 Dateideskriptoren zur Verfügung stellt und der eingestellte Wert 10 ist, werden höchstens 35 Deskriptoren zum Bannen benutzt. Für effizientes Bannen sollten mindestens 100 Deskriptoren zur Verfügung stehen."
 
 msgid "Maximum number of file descriptors reserved for banning."
 msgstr "Maximale Anzahl an Dateideskriptoren für das Bannen von Peers."
@@ -2593,91 +2407,62 @@ msgstr "Maximale Anzahl an Dateideskriptoren für das Bannen von Peers."
 msgid ""
 "Amount of file descriptors currently used for banning, i.e. which are "
 "currently kept open for delayed close."
-msgstr ""
-"Derzeitige Anzahl benutzter Dateideskriptoren für das Bannen von Peers."
+msgstr "Derzeitige Anzahl benutzter Dateideskriptoren für das Bannen von Peers."
 
 msgid "Number of file descriptors we'll actually be using for banning."
-msgstr ""
-"Anzahl an Dateideskriptoren, die tatsächlich für das Bannen von Peers "
-"benutzt werden"
+msgstr "Anzahl an Dateideskriptoren, die tatsächlich für das Bannen von Peers benutzt werden"
 
 msgid ""
 "Number of seconds an incoming connection has to start sending out its "
 "request."
-msgstr ""
-"Dauer in Sekunden  nach der eine eingehende Verbindung Anfragen schicken "
-"muss."
+msgstr "Dauer in Sekunden  nach der eine eingehende Verbindung Anfragen schicken muss."
 
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established."
-msgstr ""
-"Dauer in Sekunden nach der ein Gnet-Verbindungsversuch abgebrochen wird, "
-"wenn keine Verbindung hergestellt werden konnte."
+msgstr "Dauer in Sekunden nach der ein Gnet-Verbindungsversuch abgebrochen wird, wenn keine Verbindung hergestellt werden konnte."
 
 msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted."
-msgstr ""
-"Dauer in Sekunden nach der eine Gnet-Verbindung abgebrochen wird, wenn keine "
-"Daten mehr übertragen werden."
+msgstr "Dauer in Sekunden nach der eine Gnet-Verbindung abgebrochen wird, wenn keine Daten mehr übertragen werden."
 
 msgid ""
-"Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
-"percent of the maximum message size."
-msgstr ""
-"Maximale Größe der Sendewarteschlange für Peers (in Bytes). Muss mindestens "
-"150% der maximalen Paketgröße entsprechen"
+"Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150"
+" percent of the maximum message size."
+msgstr "Maximale Größe der Sendewarteschlange für Peers (in Bytes). Muss mindestens 150% der maximalen Paketgröße entsprechen"
 
 msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
-msgstr ""
-"Maximale Anzahl Sekunden, nachdem eine Verbindung geschlossen wird, wenn sie "
-"im Flow-Control-Modus ist."
+msgstr "Maximale Anzahl Sekunden, nachdem eine Verbindung geschlossen wird, wenn sie im Flow-Control-Modus ist."
 
 msgid ""
 "Maximum percentage of time over 5 minutes that our node can remain in flow "
-"control remotely before dropping the connection.  This only works with nodes "
-"that will send us an hops-flow message when they are flow-controlling us."
-msgstr ""
-"Maximaler Prozentsatz innerhalb von 5 Minuten, den dieser Peer beim "
-"Gegenüber im Flow-Control-Modus verbringen darf, bevor die Verbindung "
-"geschlossen wird. Dies funktioniert nur bei Peers, die uns Hops-Flow-Pakete "
-"schicken, wenn der Flow-Control-Modus für uns aktiv ist."
+"control remotely before dropping the connection.  This only works with nodes"
+" that will send us an hops-flow message when they are flow-controlling us."
+msgstr "Maximaler Prozentsatz innerhalb von 5 Minuten, den dieser Peer beim Gegenüber im Flow-Control-Modus verbringen darf, bevor die Verbindung geschlossen wird. Dies funktioniert nur bei Peers, die uns Hops-Flow-Pakete schicken, wenn der Flow-Control-Modus für uns aktiv ist."
 
 msgid ""
 "Maximum TTL we allow in messages we broadcast.  If a query comes in with a "
 "TTL greater than that, it will be trimmed down to that value.  On Gnutella, "
 "the standard is TTL=4, so you cannot set a value lower than that."
-msgstr ""
-"Maximaler TTL-Wert, den wir in Paketen erlauben, die wir verbreiten. Wenn "
-"ein Paket mit einer größeren TTL ankommt, wird die TTL des Pakets auf diesen "
-"Wert heruntergesetzt. Der Standardwert im Gnutella-Netzwerk ist 7, deshalb "
-"ist dies der minimal erlaubte Wert."
+msgstr "Maximaler TTL-Wert, den wir in Paketen erlauben, die wir verbreiten. Wenn ein Paket mit einer größeren TTL ankommt, wird die TTL des Pakets auf diesen Wert heruntergesetzt. Der Standardwert im Gnutella-Netzwerk ist 7, deshalb ist dies der minimal erlaubte Wert."
 
 msgid ""
 "The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  "
 "If you set it to too large a value, you run the risk of being trimmed down "
 "by fellow gtk-gnutella nodes, or kicked out by some other servent."
-msgstr ""
-"Die TTL, die wir in Paketen nutzen, die wir selbst erzeugen. Im Gnutella-"
-"Netzwerk ist dies standardmäßig 7. Wenn der Wert zu hoch gesetzt wird, wird "
-"er möglicherweise von anderen gtk-gnutella-Peers heruntergesetzt, oder von "
-"sonstigen Servents wird die Verbindung geschlossen."
+msgstr "Die TTL, die wir in Paketen nutzen, die wir selbst erzeugen. Im Gnutella-Netzwerk ist dies standardmäßig 7. Wenn der Wert zu hoch gesetzt wird, wird er möglicherweise von anderen gtk-gnutella-Peers heruntergesetzt, oder von sonstigen Servents wird die Verbindung geschlossen."
 
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
 "greater than the standard TTL=4, because it is also applied to routed-back "
-"messages (query hits) that could be re-routed in case a connection is lost.  "
-"Standard broadcasted messages have their TTL limited by the maximum TTL you "
-"configure, and that limit should be much lower than the value of this "
+"messages (query hits) that could be re-routed in case a connection is lost."
+"  Standard broadcasted messages have their TTL limited by the maximum TTL "
+"you configure, and that limit should be much lower than the value of this "
 "parameter."
-msgstr ""
-"Maximales hartes TTL-Limit (Hops + TTL) für Nachrichten, die wir "
-"weiterleiten. Dieser Wert sollte größer als der Standardwert 7 sein, da er "
-"auch für Pakete benutzt wird, die zurückgesendet werden (z.B. Suchtreffer) "
-"und für die bei verlorengegangener Route eine neue Route benutzt wird."
+msgstr "Maximales hartes TTL-Limit (Hops + TTL) für Nachrichten, die wir weiterleiten. Dieser Wert sollte größer als der Standardwert 7 sein, da er auch für Pakete benutzt wird, die zurückgesendet werden (z.B. Suchtreffer) und für die bei verlorengegangener Route eine neue Route benutzt wird."
 
 msgid "For development use: debug level."
 msgstr "Für Entwickler: Debug-Level"
@@ -2772,8 +2557,8 @@ msgstr ""
 msgid ""
 "Maximum size in bytes of an upload which PARQ shall not queue and is always "
 "allowed to continue. However, if a client requests small chunks over and "
-"over the chunk sizes previously requested and uploaded are also counted.  If "
-"the size requested is greater than the threshold then, and only then, we "
+"over the chunk sizes previously requested and uploaded are also counted.  If"
+" the size requested is greater than the threshold then, and only then, we "
 "look at the theoretical time it would take to serve the whole amount to see "
 "whether we can still bypass queuing. Set to 0 to disable this size-based "
 "bypassing feature and only rely on time-based bypassing."
@@ -2824,9 +2609,7 @@ msgstr "Dynamisches Erzeugen von Upload-Slots aktivieren"
 msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
 "If FALSE, unused bandwidth is lost."
-msgstr ""
-"Erlaube HTTP und Gnet, nicht benutzte Bandbreite des jeweils anderen zu "
-"nutzen. Falls deaktiviert, geht unbenutzte Bandbreite verloren."
+msgstr "Erlaube HTTP und Gnet, nicht benutzte Bandbreite des jeweils anderen zu nutzen. Falls deaktiviert, geht unbenutzte Bandbreite verloren."
 
 msgid "Auto clear completed downloads."
 msgstr "Fertige Downloads automatisch entfernen."
@@ -2851,8 +2634,7 @@ msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Falls aktiviert, wird [forced_local_ip] als lokale IP-Adresse benutzt."
 
 msgid "Enable to use [forced_local_ip6] as local ip."
-msgstr ""
-"Falls aktiviert, wird [forced_local_ip] als lokale IPv6-Adresse benutzt."
+msgstr "Falls aktiviert, wird [forced_local_ip] als lokale IPv6-Adresse benutzt."
 
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
@@ -2868,26 +2650,20 @@ msgstr "Zuerst Verbindungen zum lokalen Netzwerk aufbauen."
 msgid ""
 "Check this button if you want to use gtk-gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
-msgstr ""
-"Aktivieren, um gtk-gnutella dazu zu bringen, Verbindungen ins LAN aufzubauen "
-"(unter Umgehung von RFC1918)."
+msgstr "Aktivieren, um gtk-gnutella dazu zu bringen, Verbindungen ins LAN aufzubauen (unter Umgehung von RFC1918)."
 
 msgid ""
 "Check this button if you want gtk-gnutella to use IP TOS to differentiate "
 "interactive, normal and bulk data. This is probably a good idea in most "
 "cases, and can particularly help with badly misconfigured hosts, LANs, and "
 "ISPs."
-msgstr ""
-"Aktivieren, um gtk-gnutella dazu zu bringen, IP-TOS zu benutzen, um "
-"verschiedene Datenarten zu unterscheiden. Sollte in den meisten Fällen "
-"sinnvoll sein."
+msgstr "Aktivieren, um gtk-gnutella dazu zu bringen, IP-TOS zu benutzen, um verschiedene Datenarten zu unterscheiden. Sollte in den meisten Fällen sinnvoll sein."
 
 msgid "Remove files of aborted downloads from disk."
 msgstr "Lösche abgebrochene Downloads von der Platte."
 
 msgid "Use username and password to authenticate to proxy."
-msgstr ""
-"Verwende Benutzername und Passwort für die Authentifikation beim Proxy."
+msgstr "Verwende Benutzername und Passwort für die Authentifikation beim Proxy."
 
 msgid "Username for proxy."
 msgstr "Benutzername für Proxy"
@@ -2910,7 +2686,8 @@ msgstr "Vom Proxy unterstütztes Protokoll"
 msgid "Network protocols to use."
 msgstr "Zu verwendende Netzwerkprotokolle"
 
-msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgid ""
+"Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
 msgstr ""
 
 msgid ""
@@ -2920,20 +2697,17 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "Derzeitige Anzahl Peers im Peer-Cache"
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in ultra node caches."
-msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
+msgstr ""
 
 msgid "Current number of hosts in bad node caches."
 msgstr "Derzeitige Anzahl schlechter Peers im Peer-Cache"
 
-#, fuzzy
 msgid "Maximum number of hosts in the regular node cache."
-msgstr "Maximale Anzahl Legacy-Peers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the ultra node cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
 msgstr "Maximale Anzahl Peers in BUSY-, UNSTABLE- und TIMEOUT-Listen"
@@ -2941,16 +2715,12 @@ msgstr "Maximale Anzahl Peers in BUSY-, UNSTABLE- und TIMEOUT-Listen"
 msgid ""
 "Amount of tolerable messages above hard TTL limit per node. See also "
 "MAX_HIGH_TTL_RADIUS"
-msgstr ""
-"Maximale Anzahl tolerierter Pakete oberhalb das harten TTL-Limits (siehe "
-"MAX_HIGH_TTL_RADIUS)."
+msgstr "Maximale Anzahl tolerierter Pakete oberhalb das harten TTL-Limits (siehe MAX_HIGH_TTL_RADIUS)."
 
 msgid ""
 "Hop radius for counting high TTL limit messages (# hops lower than...). See "
 "also MAX_HIGH_TTL_MSG"
-msgstr ""
-"Hop-Radius für das Zählen von Paketen mit TTL-Überschreitung (Hops niedriger "
-"als ...). Siehe MAX_HIGH_TTL_MSG"
+msgstr "Hop-Radius für das Zählen von Paketen mit TTL-Überschreitung (Hops niedriger als ...). Siehe MAX_HIGH_TTL_MSG"
 
 msgid "Bandwidth limit for incoming HTTP traffic in bytes/sec."
 msgstr "Bandbreitenbegrenzung für eingehenden HTTP-Verkehr in Bytes/s"
@@ -2965,46 +2735,38 @@ msgid "Bandwidth limit for outgoing Gnet traffic in bytes/sec."
 msgstr "Bandbreitenbegrenzung für ausgehenden Gnet-Verkehr in Bytes/s"
 
 msgid ""
-"Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. When running as "
-"an ultra node, this bandwidth is stolen from the regular HTTP traffic if the "
-"shaper for leaves is enabled."
+"Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. When running as"
+" an ultra node, this bandwidth is stolen from the regular HTTP traffic if "
+"the shaper for leaves is enabled."
 msgstr "Bandbreitenbegrenzung für eingehenden Leaf-Verkehr in Bytes/s."
 
 msgid ""
-"Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. When running as "
-"an ultra node, this bandwidth is stolen from the regular HTTP traffic, if "
+"Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. When running as"
+" an ultra node, this bandwidth is stolen from the regular HTTP traffic, if "
 "the shaper for leaves is enabled."
 msgstr "Bandbreitenbegrenzung für ausgehenden Leaf-Verkehr in Bytes/s"
 
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)."
-msgstr ""
-"Maximale Größe von Suchanfragepaketen, die wir an andere weiterleiten (in "
-"Bytes)"
+msgstr "Maximale Größe von Suchanfragepaketen, die wir an andere weiterleiten (in Bytes)"
 
 msgid ""
 "Maximum size of search queries messages we allow, otherwise close the "
 "connection (in bytes)."
-msgstr ""
-"Maximal erlaubte Größe von Suchanfragepaketen (in Bytes), ansonsten wird die "
-"Verbindung geschlossen"
+msgstr "Maximal erlaubte Größe von Suchanfragepaketen (in Bytes), ansonsten wird die Verbindung geschlossen"
 
 msgid ""
 "Maximum size of search answers messages we forward to others (in bytes)."
-msgstr ""
-"Maximale Größe von Suchtrefferpaketen, die wir an andere weiterleiten (in "
-"Bytes)"
+msgstr "Maximale Größe von Suchtrefferpaketen, die wir an andere weiterleiten (in Bytes)"
 
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
 "connection (in bytes)."
-msgstr ""
-"Maximal erlaubte Größe von Suchtrefferpaketen (in Bytes), ansonsten wird die "
-"Verbindung abgebrochen."
+msgstr "Maximal erlaubte Größe von Suchtrefferpaketen (in Bytes), ansonsten wird die Verbindung abgebrochen."
 
 msgid ""
-"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of "
-"Query Hits to the original search term and media type filtering to be able "
+"Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of"
+" Query Hits to the original search term and media type filtering to be able "
 "to avoid relaying spam and non-matching results.  In the worst case this "
 "causes about 300 bytes per Query of memory overhead, but will be much lower "
 "than that in practice (minimum size is about 40 bytes). This is only used "
@@ -3017,51 +2779,35 @@ msgstr ""
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
 "(in bytes)."
-msgstr ""
-"Maximal erlaubte Größe unbekannter Pakete (in Bytes), ansonsten wird die "
-"Verbindung abgebrochen."
+msgstr "Maximal erlaubte Größe unbekannter Pakete (in Bytes), ansonsten wird die Verbindung abgebrochen."
 
 msgid ""
 "Random factor for the hops field in search packets we send (between 0 and 3 "
 "inclusive)."
-msgstr ""
-"Zufallsfaktor für das Hops-Feld in von uns gesendeten Suchanfragepaketen "
-"(0-3)"
+msgstr "Zufallsfaktor für das Hops-Feld in von uns gesendeten Suchanfragepaketen (0-3)"
 
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
 "will never send push requests anyway.  If you don't let gtk-gnutella send "
 "pushes, it will not show search results that would require a push."
-msgstr ""
-"Gibt an, ob wir Push-Anfragen schicken sollen. Falls dieser Peer hinter "
-"einer Firewall ist, schickt gtk-gnutella grundsätzlich keine Push-Anfragen. "
-"Falls deaktiviert, zeigt gtk-gnutella keine Suchtreffer an, die einen Push "
-"benötigen."
+msgstr "Gibt an, ob wir Push-Anfragen schicken sollen. Falls dieser Peer hinter einer Firewall ist, schickt gtk-gnutella grundsätzlich keine Push-Anfragen. Falls deaktiviert, zeigt gtk-gnutella keine Suchtreffer an, die einen Push benötigen."
 
 msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
 "[min_dup_ratio])."
-msgstr ""
-"Minimale Anzahl an Paketduplikaten, bevor die Verbindung zu einem Peer "
-"geschlossen wird (siehe [min_dup_ratio])"
+msgstr "Minimale Anzahl an Paketduplikaten, bevor die Verbindung zu einem Peer geschlossen wird (siehe [min_dup_ratio])"
 
 msgid ""
 "Minimum ratio of dups on received messages, per node (between 0.00 and "
 "100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) "
 "and 10000 (100.0) in the config file."
-msgstr ""
-"Minimaler Anteil an Paketduplikaten pro Peer (zwischen 0.00 und 100.00) "
-"(siehe [min_dup_msg]) Achtung: der Wert wird in der Config-Datei zwischen 0 "
-"(0.0) und 10000 (100.0) gespeichert"
+msgstr "Minimaler Anteil an Paketduplikaten pro Peer (zwischen 0.00 und 100.00) (siehe [min_dup_msg]) Achtung: der Wert wird in der Config-Datei zwischen 0 (0.0) und 10000 (100.0) gespeichert"
 
 msgid ""
 "Only files with the given extensions will be shared. The special --all-- "
 "extension matches all files, even if they don't have any extension.  Use "
 "with care."
-msgstr ""
-"Nur Dateien mit den angegebenen Dateiendungen werden anderen angeboten. Die "
-"spezielle Endung --all-- steht für alle Dateien, auch wenn sie keine "
-"Dateiendung besitzen. Vorsicht bei der Benutzung."
+msgstr "Nur Dateien mit den angegebenen Dateiendungen werden anderen angeboten. Die spezielle Endung --all-- steht für alle Dateien, auch wenn sie keine Dateiendung besitzen. Vorsicht bei der Benutzung."
 
 msgid "Ignore symbolically linked directories when scanning files to share."
 msgstr "Ignoriere Verzeichnis-Softlinks beim Scannen freizugebender Dateien."
@@ -3074,35 +2820,25 @@ msgstr "Unvollständig heruntergeladene Dateien in diesem Verzeichnis speichern"
 
 msgid ""
 "Move complete files to this directory. If this is set to the SAME directory "
-"as the incomplete or corrupted files, files will be renamed with a trailing ."
-"OK"
-msgstr ""
-"Vollständig heruntergeladene Dateien in dieses Verzeichnis verschieben. "
-"Falls es sich um dasselbe Verzeichnis wie für unvollständige oder korrupte "
-"Dateien handelt, wird die Endung .OK angehängt."
+"as the incomplete or corrupted files, files will be renamed with a trailing "
+".OK"
+msgstr "Vollständig heruntergeladene Dateien in dieses Verzeichnis verschieben. Falls es sich um dasselbe Verzeichnis wie für unvollständige oder korrupte Dateien handelt, wird die Endung .OK angehängt."
 
 msgid ""
 "Move corrupted, downloaded files to this directory. If this is set to the "
 "SAME directory as the incomplete or completed files, files will be renamed "
 "with a trailing .BAD"
-msgstr ""
-"Verschiebe korrupte Dateien in dieses Verzeichnis. Falls es sich um dasselbe "
-"Verzeichnis wie für unvollständige oder vollständige Dateien handelt, wird "
-"die Endung .BAD angehängt."
+msgstr "Verschiebe korrupte Dateien in dieses Verzeichnis. Falls es sich um dasselbe Verzeichnis wie für unvollständige oder vollständige Dateien handelt, wird die Endung .BAD angehängt."
 
 msgid "Directories which contain shared files."
 msgstr "Verzeichnisse für freizugebende Dateien"
 
 msgid ""
 "List of networks considered local.  This is a list of IP addresses, "
-"separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, "
-"or be optionally followed by '/' and a network mask prefix length. For "
+"separated by ';'.  The IP address can be given out fully, as in 192.168.0.1,"
+" or be optionally followed by '/' and a network mask prefix length. For "
 "instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
-msgstr ""
-"Liste als lokal anzusehender Netzwerke. Dies ist eine Liste von IP-Adressen, "
-"getrennt durch ';'. Eine IP-Adresse kann vollständig angegeben werden (z.B. "
-"192.168.0.1) oder optional von '/' und der Maskenpräfixlänge gefolgt sein. "
-"Beispielsweise stellt 192.168.0.1/24 das Netzwerk 192.168.0.* dar."
+msgstr "Liste als lokal anzusehender Netzwerke. Dies ist eine Liste von IP-Adressen, getrennt durch ';'. Eine IP-Adresse kann vollständig angegeben werden (z.B. 192.168.0.1) oder optional von '/' und der Maskenpräfixlänge gefolgt sein. Beispielsweise stellt 192.168.0.1/24 das Netzwerk 192.168.0.* dar."
 
 msgid "Total number of completed downloads in this session."
 msgstr "Gesamtzahl vollständiger Downloads seit Programmstart"
@@ -3110,9 +2846,8 @@ msgstr "Gesamtzahl vollständiger Downloads seit Programmstart"
 msgid "Number of running uploads."
 msgstr "Anzahl derzeit aktiver Uploads"
 
-#, fuzzy
 msgid "Number of quick uploads currently running."
-msgstr "Anzahl der derzeit verbundenen Ultrapeers."
+msgstr ""
 
 msgid "Number of registered (pending) uploads."
 msgstr "Anzahl derzeit ausstehender Uploads"
@@ -3127,24 +2862,17 @@ msgid "Kademlia Unique IDentifier of this node in the DHT."
 msgstr ""
 
 msgid "Whether or not to use swarming (recommended = YES)."
-msgstr ""
-"Gibt an, ob das Downloaden von mehreren Quellen aktiviert werden soll "
-"(empfohlen = JA)"
+msgstr "Gibt an, ob das Downloaden von mehreren Quellen aktiviert werden soll (empfohlen = JA)"
 
 msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
-msgstr ""
-"Gibt an, ob konkurrierende Downloads gestartet werden sollen, wenn genügend "
-"Quellen verfügbar sind und nur noch wenig heruntergeladen werden muss."
+msgstr "Gibt an, ob konkurrierende Downloads gestartet werden sollen, wenn genügend Quellen verfügbar sind und nur noch wenig heruntergeladen werden muss."
 
 msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
-msgstr ""
-"Minimale Chunk-Größe für das Herunterladen von mehreren Hosts. Dies ist nur "
-"eine lockere Vorgabe, da gtk-gnutella kleinere Größen benutzt, wenn eine "
-"Datei schon fast vollständig herunter geladen wurde."
+msgstr "Minimale Chunk-Größe für das Herunterladen von mehreren Hosts. Dies ist nur eine lockere Vorgabe, da gtk-gnutella kleinere Größen benutzt, wenn eine Datei schon fast vollständig herunter geladen wurde."
 
 msgid "Maximum chunk size when swarming."
 msgstr "Maximale Chunk-Größe beim Herunterladen von mehreren Hosts."
@@ -3152,60 +2880,41 @@ msgstr "Maximale Chunk-Größe beim Herunterladen von mehreren Hosts."
 msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue."
-msgstr ""
-"Gibt an, ob die Suchergebnisse automatisch nach weiteren Quellen für Dateien "
-"in der Download-Warteschlange durchsucht werden sollen"
+msgstr "Gibt an, ob die Suchergebnisse automatisch nach weiteren Quellen für Dateien in der Download-Warteschlange durchsucht werden sollen"
 
 msgid ""
 "Whether or not to automatically feed the download mesh with data gathered "
 "from the query hits that flow through our node. This looks for new entries "
 "for files we are sharing or already have in our mesh."
-msgstr ""
-"Gibt an, ob der gesamte Paketverkehr durch diesen Peer nach weiteren Quellen "
-"für Dateien durchsucht werden soll, die wir freigegeben oder bereits in "
-"unserem Mesh haben."
+msgstr "Gibt an, ob der gesamte Paketverkehr durch diesen Peer nach weiteren Quellen für Dateien durchsucht werden soll, die wir freigegeben oder bereits in unserem Mesh haben."
 
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
-msgstr ""
-"Wenn aktiviert, müssen die SHA1s von Dateien übereinstimmen, damit sie als "
-"identisch betracht werden. Ansonsten reicht es, wenn Name und Dateigröße "
-"übereinstimmen."
+msgstr "Wenn aktiviert, müssen die SHA1s von Dateien übereinstimmen, damit sie als identisch betracht werden. Ansonsten reicht es, wenn Name und Dateigröße übereinstimmen."
 
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
-msgstr ""
-"Gibt an, ob gtk-gnutella davon ausgeht, dass es hinter einer Firewall ist "
-"oder nicht"
+msgstr "Gibt an, ob gtk-gnutella davon ausgeht, dass es hinter einer Firewall ist oder nicht"
 
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
-msgstr ""
-"Gibt an, ob gtk-gnutella davon ausgeht, dass eine Verbindung zum Internet "
-"besteht"
+msgstr "Gibt an, ob gtk-gnutella davon ausgeht, dass eine Verbindung zum Internet besteht"
 
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
-msgstr ""
-"Gibt an, ob gtk-gnutella davon ausgeht, dass eine Firewall UDP-Verkehr "
-"blockiert."
+msgstr "Gibt an, ob gtk-gnutella davon ausgeht, dass eine Firewall UDP-Verkehr blockiert."
 
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
 msgstr "Gibt an, ob gtk-gnutella angeforderte UDP-Pakete empfangen konnte."
 
 msgid ""
-"Remove unnecessary ballast from query string before processing or forwarding "
-"them. Reduces traffic at the cost of little CPU time."
-msgstr ""
-"Gibt an, ob Suchanfragen bereinigt werden sollen, bevor sie verarbeitet oder "
-"weitergeleitet werden. Reduziert den Datenverkehr auf Kosten von etwas CPU-"
-"Zeit"
+"Remove unnecessary ballast from query string before processing or forwarding"
+" them. Reduces traffic at the cost of little CPU time."
+msgstr "Gibt an, ob Suchanfragen bereinigt werden sollen, bevor sie verarbeitet oder weitergeleitet werden. Reduziert den Datenverkehr auf Kosten von etwas CPU-Zeit"
 
 msgid ""
 "Also use sources that don't provide a SHA1 value for the first chunk of a "
 "file. This dramatically reduces the 'No URN on server' messages, but may "
 "result in overlap problems later if the first chunk was actually from a "
 "different file. Use with caution."
-msgstr ""
-"Benutze Quellen für das erste Stück einer Datei, die keine SHA1-Prüfsumme "
-"bereitstellen. Vorsicht bei der Benutzung."
+msgstr "Benutze Quellen für das erste Stück einer Datei, die keine SHA1-Prüfsumme bereitstellen. Vorsicht bei der Benutzung."
 
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
@@ -3214,90 +2923,63 @@ msgstr "Gibt an, ob gtk-gnutella derzeit die Dateidatenbank neu aufbaut"
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
-msgstr ""
-"Gibt an, ob gtk-gnutella gerade im Hintergrund SHA1-Prüfsummen von "
-"freigegebenen Dateien berechnet"
+msgstr "Gibt an, ob gtk-gnutella gerade im Hintergrund SHA1-Prüfsummen von freigegebenen Dateien berechnet"
 
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
-msgstr ""
-"Gibt an, ob gtk-gnutella gerade im Hintergrund die SHA1-Prüfsummen von "
-"heruntergeladenen Dateien berechnet und überprüft"
+msgstr "Gibt an, ob gtk-gnutella gerade im Hintergrund die SHA1-Prüfsummen von heruntergeladenen Dateien berechnet und überprüft"
 
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
-msgstr ""
-"Gibt an, ob gtk-gnutella gerade im Hintergrund Dateien verschiebt bzw. "
-"kopiert"
+msgstr "Gibt an, ob gtk-gnutella gerade im Hintergrund Dateien verschiebt bzw. kopiert"
 
 msgid ""
 "If active, only compressed incoming connections are allowed after the "
 "minimum number of connections has been established. Always allows for one "
 "non-compressed connection."
-msgstr ""
-"Falls aktiv, werden nur noch komprimierte Verbindungen erlaubt, nachdem die "
-"minimale Anzahl Verbindungen aufgebaut wurde. Erlaubt ist auch dann eine "
-"einzige nichtkomprimierte Verbindung."
+msgstr "Falls aktiv, werden nur noch komprimierte Verbindungen erlaubt, nachdem die minimale Anzahl Verbindungen aufgebaut wurde. Erlaubt ist auch dann eine einzige nichtkomprimierte Verbindung."
 
 msgid ""
 "If deactivated, only uploads and downloads will continue. All Gnet "
 "connections are disabled/terminated."
-msgstr ""
-"Falls deaktiviert, werden alle Gnet-Verbindungen geschlossen und nur noch "
-"Up- und Downloads erlaubt."
+msgstr "Falls deaktiviert, werden alle Gnet-Verbindungen geschlossen und nur noch Up- und Downloads erlaubt."
 
 msgid ""
 "Whether gtk-gnutella should make sure the server confirms the URN of the "
 "file we're requesting when it is known locally and a traditional request by "
 "name is used (i.e. gtk-gnutella is not issuing a /uri-res/N2R? request).  "
 "When set, it supersedes the optimistic first chunk setting."
-msgstr ""
-"Gibt an, ob gtk-gnutella auf eine Bestätigung der URN vom Peers, von dem "
-"eine Datei heruntergeladen werden soll, bestehen soll, wenn die Anfrage "
-"mittels Dateiname gestellt wurde."
+msgstr "Gibt an, ob gtk-gnutella auf eine Bestätigung der URN vom Peers, von dem eine Datei heruntergeladen werden soll, bestehen soll, wenn die Anfrage mittels Dateiname gestellt wurde."
 
 msgid ""
 "Whether gtk-gnutella should make sure the server gives us back a non-empty "
 "identifying token."
-msgstr ""
-"Gibt an, ob gtk-gnutella auf einen nicht-leeren Identifikationsstring bei "
-"anderen Peers bestehen soll."
+msgstr "Gibt an, ob gtk-gnutella auf einen nicht-leeren Identifikationsstring bei anderen Peers bestehen soll."
 
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
-msgstr ""
-"Maximale Anzahl von Ultrapeers, zu denen eine Verbindung aufgebaut werden "
-"soll, wenn der eigene Peer als Leaf-Peer betrieben wird."
+msgstr "Maximale Anzahl von Ultrapeers, zu denen eine Verbindung aufgebaut werden soll, wenn der eigene Peer als Leaf-Peer betrieben wird."
 
 msgid ""
-"To connect more quickly, gtk-gnutella will allow up to this many connections "
-"to be active while trying to fill up the connection slots."
-msgstr ""
-"Um schneller verbunden zu werden benutzt gtk-gnutella diese Anzahl von "
-"Verbindungen."
+"To connect more quickly, gtk-gnutella will allow up to this many connections"
+" to be active while trying to fill up the connection slots."
+msgstr "Um schneller verbunden zu werden benutzt gtk-gnutella diese Anzahl von Verbindungen."
 
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes of bandwidth per leaf."
-msgstr ""
-"Maximale Anzahl erlaubter Leaf-Peers. Um in den Ultrapeer-Status erhoben zu "
-"werden, sollten 32 Bytes/s an Bandbreite pro Leaf-Peer eingerechnet werden."
+msgstr "Maximale Anzahl erlaubter Leaf-Peers. Um in den Ultrapeer-Status erhoben zu werden, sollten 32 Bytes/s an Bandbreite pro Leaf-Peer eingerechnet werden."
 
 msgid "What to do with files that will be ignored for downloading."
-msgstr ""
-"Was mit Dateien passieren soll, die für den Download ignoriert werden sollen"
+msgstr "Was mit Dateien passieren soll, die für den Download ignoriert werden sollen"
 
 msgid ""
 "The peer mode you want to operate as for gtk-gnutella.  When auto is "
 "selected, gtk-gnutella will start as a leaf node and may be promoted to an "
 "ultra node if bandwidth and uptime permits, provided that you are not "
 "firewalled."
-msgstr ""
-"Gibt den Modus an, in dem gtk-gnutella betrieben werden soll. Im Modus auto "
-"startet gtk-gnutella als Leaf-Peer und wird später bei genügend Ressourcen "
-"(Bandbreite und Uptime) in den Ultrapeer-Status erhoben, falls Verbindungen "
-"von außen angenommen werden können."
+msgstr "Gibt den Modus an, in dem gtk-gnutella betrieben werden soll. Im Modus auto startet gtk-gnutella als Leaf-Peer und wird später bei genügend Ressourcen (Bandbreite und Uptime) in den Ultrapeer-Status erhoben, falls Verbindungen von außen angenommen werden können."
 
 msgid "Current peer mode for gtk-gnutella."
 msgstr "Derzeitiger Betriebsmodus von gtk-gnutella"
@@ -3330,15 +3012,12 @@ msgid "How many fileinfo with sources do we have."
 msgstr "Wieviele Fileinfo-Einträge mit Quellen zur Verfügung stehen."
 
 msgid ""
-"How many queued downloads are currently responsive (remote servent answering "
-"requests)."
-msgstr ""
-"Auf wieviele Downloads aus der Warteschlange derzeit von den zugehörigen "
-"Peers geantwortet wird."
+"How many queued downloads are currently responsive (remote servent answering"
+" requests)."
+msgstr "Auf wieviele Downloads aus der Warteschlange derzeit von den zugehörigen Peers geantwortet wird."
 
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
-msgstr ""
-"Wieviele Bytes bisher heruntergeladen wurden, ausschließlich HTTP-Kopfzeilen."
+msgstr "Wieviele Bytes bisher heruntergeladen wurden, ausschließlich HTTP-Kopfzeilen."
 
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
 msgstr "Bisher hochgeladene Bytes, ohne HTTP-Kopfzeilen."
@@ -3348,33 +3027,21 @@ msgid ""
 "incompletely downloaded.  Recommended for network's health unless you "
 "already share many files, in which case it does no harm to leave it in, but "
 "will not matter as much."
-msgstr ""
-"Gibt an, ob gtk-gnutella unvollständig heruntergeladene Dateien bereits für "
-"andere Peers freigeben soll."
+msgstr "Gibt an, ob gtk-gnutella unvollständig heruntergeladene Dateien bereits für andere Peers freigeben soll."
 
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
 "download chunks in a random order, to maximize the spreading of the file in "
 "the network.  However, this makes auditing (file type, pre-viewing, etc...) "
-"of the file impossible. This field sets the size in bytes of the first chunk "
-"of data that should be continuously downloaded at the beginning of the "
+"of the file impossible. This field sets the size in bytes of the first chunk"
+" of data that should be continuously downloaded at the beginning of the "
 "file.  Don't set it too large."
-msgstr ""
-"Wenn die Freigabe unvollständig heruntergeladener Dateien aktiviert ist, "
-"bemüht sich gtk-gnutella um das Herunterladen der Dateistücke in zufälliger "
-"Reihenfolge, um die Verbreitung der Datei im Netzwerk zu maximieren. Dies "
-"erschwert jedoch das Ansehen/Anhören bestimmter Dateitypen erheblich oder "
-"macht es unmöglich. Dieses Feld setzt die Anzahl der Bytes, die vom Beginn "
-"der Datei heruntergeladen werden sollen, bevor das Herunterladen in "
-"zufälliger Reihenfolge initiiert wird."
+msgstr "Wenn die Freigabe unvollständig heruntergeladener Dateien aktiviert ist, bemüht sich gtk-gnutella um das Herunterladen der Dateistücke in zufälliger Reihenfolge, um die Verbreitung der Datei im Netzwerk zu maximieren. Dies erschwert jedoch das Ansehen/Anhören bestimmter Dateitypen erheblich oder macht es unmöglich. Dieses Feld setzt die Anzahl der Bytes, die vom Beginn der Datei heruntergeladen werden sollen, bevor das Herunterladen in zufälliger Reihenfolge initiiert wird."
 
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will not share "
 "partial files below this filesize. Don't set it too large."
-msgstr ""
-"Wenn die Freigabe unvollständig heruntergeladener Dateien aktiviert ist, "
-"wird gtk-gnutella keine Dateien unterhalb der angebenen Dateigröße "
-"freigeben. Der Wert sollte nicht zu groß sein."
+msgstr "Wenn die Freigabe unvollständig heruntergeladener Dateien aktiviert ist, wird gtk-gnutella keine Dateien unterhalb der angebenen Dateigröße freigeben. Der Wert sollte nicht zu groß sein."
 
 msgid "Number of crawler visits during this session."
 msgstr "Anzahl von Crawler-Besuchen seit Programmstart"
@@ -3396,105 +3063,69 @@ msgstr ""
 msgid ""
 "The signed clock skew of this host compared to absolute time. Adding this "
 "skew to the host clock should give the true time."
-msgstr ""
-"Die Zeitabweichung der Systemzeit des Rechners im Vergleich zur echten Zeit. "
-"Eine Addition dieser Abweichung auf die Systemzeit sollte die echte Zeit "
-"ergeben."
+msgstr "Die Zeitabweichung der Systemzeit des Rechners im Vergleich zur echten Zeit. Eine Addition dieser Abweichung auf die Systemzeit sollte die echte Zeit ergeben."
 
 msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
-msgstr ""
-"Gibt an, ob sich gtk-gnutella IP-Adressen von instabilen Peers merken soll, "
-"um spätere Verbindungsversuche dorthin zu unterbinden."
+msgstr "Gibt an, ob sich gtk-gnutella IP-Adressen von instabilen Peers merken soll, um spätere Verbindungsversuche dorthin zu unterbinden."
 
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
-"their vendor string) that are unstable, preventing further connections to/"
-"from them.  This only works when gtk-gnutella already keeps track of "
+"their vendor string) that are unstable, preventing further connections "
+"to/from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
-msgstr ""
-"Gibt an, ob gtk-gnutella sich instabile Servent-Typen merken soll, um "
-"spätere Verbindungsversuche dorthin zu unterbinden. Funktioniert nur, wenn "
-"gtk-gnutella bereits instabile IP-Adressen mitverfolgt."
+msgstr "Gibt an, ob gtk-gnutella sich instabile Servent-Typen merken soll, um spätere Verbindungsversuche dorthin zu unterbinden. Funktioniert nur, wenn gtk-gnutella bereits instabile IP-Adressen mitverfolgt."
 
 msgid ""
-"Whether gtk-gnutella should automatically remove the file whenever it gets a "
-"resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
+"Whether gtk-gnutella should automatically remove the file whenever it gets a"
+" resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
 "widespread, this is the easiest option."
-msgstr ""
-"Gibt an, ob gtk-gnutella automatisch die Datei löschen und neu beginnen "
-"soll, wenn bei einer Wiederaufnahme eines Downloads die Daten nicht zu den "
-"bereits heruntergeladenen Daten passen. Bis Tiger-Tree-Hashes unterstützt "
-"werden, ist dies die einfachste Option."
+msgstr "Gibt an, ob gtk-gnutella automatisch die Datei löschen und neu beginnen soll, wenn bei einer Wiederaufnahme eines Downloads die Daten nicht zu den bereits heruntergeladenen Daten passen. Bis Tiger-Tree-Hashes unterstützt werden, ist dies die einfachste Option."
 
 msgid ""
-"The amount of bytes which gtk-gnutella will strip off the already downloaded "
-"bytes after a resuming mismatch, in the hope that only this amount was "
-"corrupted, preventing proper resuming. Most of the time, a resuming mismatch "
-"indicates bad data on the server, but if the already downloaded data is bad "
-"then backing out some of it may allow us to recover from the problem."
-msgstr ""
-"Anzahl Bytes, die gtk-gnutella von den bereits heruntergeladenen Daten "
-"abschneiden soll, wenn eine Wiederaufnahme eines Downloads unpassende Daten "
-"liefert. Normalerweise stellt bei einem solchen Problem der andere Server "
-"fehlerhafte Daten zur Verfügung. Wenn aber die eigene Seite das Problem hat, "
-"kann auf diese Weise manchmal der Download trotzdem erfolgreich sein."
+"The amount of bytes which gtk-gnutella will strip off the already downloaded"
+" bytes after a resuming mismatch, in the hope that only this amount was "
+"corrupted, preventing proper resuming. Most of the time, a resuming mismatch"
+" indicates bad data on the server, but if the already downloaded data is bad"
+" then backing out some of it may allow us to recover from the problem."
+msgstr "Anzahl Bytes, die gtk-gnutella von den bereits heruntergeladenen Daten abschneiden soll, wenn eine Wiederaufnahme eines Downloads unpassende Daten liefert. Normalerweise stellt bei einem solchen Problem der andere Server fehlerhafte Daten zur Verfügung. Wenn aber die eigene Seite das Problem hat, kann auf diese Weise manchmal der Download trotzdem erfolgreich sein."
 
 msgid ""
 "The hostname of the server that can be used by downloaders to find the IP "
-"address via a DNS resolution.  If you have a dynamic IP address coupled with "
-"a dynamic DNS service, then this is valuable to downloaders: they may find "
+"address via a DNS resolution.  If you have a dynamic IP address coupled with"
+" a dynamic DNS service, then this is valuable to downloaders: they may find "
 "your node even after a few rotations of your IP address."
-msgstr ""
-"Der Hostname des eigenen Rechners zwecks späterer Auflösung mittels DNS. "
-"Falls dieser Peer eine dynamische IP-Adresse mit einem dynamischen DNS-"
-"Dienst nutzt, ist dies die einzige Möglichkeit für Downloader, den eigenen "
-"Peers später nach geänderter IP-Adresse wiederzufinden."
+msgstr "Der Hostname des eigenen Rechners zwecks späterer Auflösung mittels DNS. Falls dieser Peer eine dynamische IP-Adresse mit einem dynamischen DNS-Dienst nutzt, ist dies die einzige Möglichkeit für Downloader, den eigenen Peers später nach geänderter IP-Adresse wiederzufinden."
 
 msgid ""
 "Whether gtk-gnutella should advertise the hostname of your server to "
 "downloaders and in query hits."
-msgstr ""
-"Gibt an, ob gtk-gnutella den eigenen Hostnamen an Downloader und in "
-"Suchtreffern zurückgeben soll."
+msgstr "Gibt an, ob gtk-gnutella den eigenen Hostnamen an Downloader und in Suchtreffern zurückgeben soll."
 
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
-msgstr ""
-"Prozentsatz der Verbindungen, die für gtk-gnutella reserviert werden sollen."
+msgstr "Prozentsatz der Verbindungen, die für gtk-gnutella reserviert werden sollen."
 
 msgid "Maximum percentage of slots a vendor can occupy."
-msgstr ""
-"Maximaler Prozensatz der Verbindungen, die von einem Servent-Typ belegt "
-"werden kann."
+msgstr "Maximaler Prozensatz der Verbindungen, die von einem Servent-Typ belegt werden kann."
 
-#, fuzzy
 msgid ""
 "Size of the RX socket buffer to be used for downloads, in kibibytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
 "low value (default is 64K, which is fine). If you don't mind sucking up all "
 "the available bandwidth, increasing your connection latency, set it to a "
-"greater value. Remember: the smaller the value, the more you will be able to "
-"precisely control the incoming rate."
+"greater value. Remember: the smaller the value, the more you will be able to"
+" precisely control the incoming rate."
 msgstr ""
-"Größe des RX-Socket-Puffers für Downloads (. Um zu verhindern, dass Gtk-"
-"Gnutella die gesamte Bandbreite nutzt, sollte dies auf einen niedrigen Wert "
-"gesetzt werden (8 KiB). Falls das kein Problem darstellt und auch die Latenz "
-"keine Rolle spielt, kann der Wert erhöht werden. Je kleiner der Wer ist, "
-"desto präziser lassen Bandbreitenbegrenzungen kontrollieren."
 
 msgid ""
 "Size of the RX socket buffer to be used for nodes, in kbytes. The lower the "
 "value, the faster the remote end will flow-control at the TCP/IP level if "
 "you don't read quickly enough, which would be the case if you limit the "
 "incoming bandwidth."
-msgstr ""
-"Größe des RX-Socket-Puffers für Gnet-Verbindungen (. Je niedriger der Wert, "
-"desto schneller wird seitens des Gegenübers der Flow-Control-Modus auf dem "
-"TCP/IP-Level aktiv, falls nicht schnell genug vom Socket gelesen wird, was "
-"bei Bandbreitenbegrenzug des eingehenden Gnet-Verkehrs der Fall wäre."
+msgstr "Größe des RX-Socket-Puffers für Gnet-Verbindungen (. Je niedriger der Wert, desto schneller wird seitens des Gegenübers der Flow-Control-Modus auf dem TCP/IP-Level aktiv, falls nicht schnell genug vom Socket gelesen wird, was bei Bandbreitenbegrenzug des eingehenden Gnet-Verkehrs der Fall wäre."
 
 msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
 msgstr ""
@@ -3502,9 +3133,7 @@ msgstr ""
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
 "reception of the reply from the remote server, in msecs."
-msgstr ""
-"Mittlere Latenz zwischen dem Absenden einer HTTP-Anfrage und dem Erhalt der "
-"zugehörigen HTTP-Antwort in ms."
+msgstr "Mittlere Latenz zwischen dem Absenden einer HTTP-Anfrage und dem Erhalt der zugehörigen HTTP-Antwort in ms."
 
 msgid "Last time at which we performed the ultrapeer requirement checks."
 msgstr "Letzter Zeitpunkt der Überprüfung der benötigten Ultrapeer-Ressourcen."
@@ -3513,51 +3142,39 @@ msgid "Last time an automatic switch between ultra and leaf mode occurred."
 msgstr "Letzter Zeitpunkt des Wechsels zwischen Ultrapeer und Leaf-Peer."
 
 msgid ""
-"Whether we meet the sufficient average uptime requirement to become an Ultra "
-"node."
-msgstr ""
-"Gibt an, ob die derzeitige mittlere Uptime ausreicht, um Ultrapeer zu werden."
+"Whether we meet the sufficient average uptime requirement to become an Ultra"
+" node."
+msgstr "Gibt an, ob die derzeitige mittlere Uptime ausreicht, um Ultrapeer zu werden."
 
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
 "become an Ultra node."
-msgstr ""
-"Gibt an, ob die derzeitige mittlere IP-Adressen-Uptime ausreicht, "
-"umUltrapeer zu werden."
+msgstr "Gibt an, ob die derzeitige mittlere IP-Adressen-Uptime ausreicht, umUltrapeer zu werden."
 
 msgid ""
 "Whether we meet the sufficient node uptime requirement to become an Ultra "
 "node."
-msgstr ""
-"Gibt an, ob wir die derzeitige Uptime ausreicht, um Ultrapeer zu werden."
-
-msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
-msgstr ""
-"Gibt an, ob wir die Bedingung, eingehende Verbindungen zuzulassen, erfüllen, "
-"um Ultrapeer zu werden."
+msgstr "Gibt an, ob wir die derzeitige Uptime ausreicht, um Ultrapeer zu werden."
 
 msgid ""
-"Whether we meet the minimum amount of peer connections requirement to become "
-"an Ultra node."
-msgstr ""
-"Gibt an, ob genügend Dateideskriptoren zur Verfügung stehen, um Ultrapeer zu "
-"werden."
+"Whether we meet the non-firewalled requirement to become an Ultra node."
+msgstr "Gibt an, ob wir die Bedingung, eingehende Verbindungen zuzulassen, erfüllen, um Ultrapeer zu werden."
 
 msgid ""
-"Whether we meet the amount of file descriptor requirement to become an Ultra "
-"node."
-msgstr ""
-"Gibt an, ob genügend Dateideskriptoren zur Verfügung stehen, um Ultrapeer zu "
-"werden."
+"Whether we meet the minimum amount of peer connections requirement to become"
+" an Ultra node."
+msgstr "Gibt an, ob genügend Dateideskriptoren zur Verfügung stehen, um Ultrapeer zu werden."
+
+msgid ""
+"Whether we meet the amount of file descriptor requirement to become an Ultra"
+" node."
+msgstr "Gibt an, ob genügend Dateideskriptoren zur Verfügung stehen, um Ultrapeer zu werden."
 
 msgid "Whether we meet the memory requirements to become an Ultra node."
-msgstr ""
-"Gibt an, ob genügend Speicher zur Verfügung steht, um Ultrapeer zuwerden."
+msgstr "Gibt an, ob genügend Speicher zur Verfügung steht, um Ultrapeer zuwerden."
 
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
-msgstr ""
-"Gibt an, ob die zur Verfügung stehende Bandbreite ausreicht, um Ultrapeer zu "
-"werden."
+msgstr "Gibt an, ob die zur Verfügung stehende Bandbreite ausreicht, um Ultrapeer zu werden."
 
 msgid "Whether we meet the UDP requirements to become an Ultra node."
 msgstr "Gibt an, ob UDP ausreichend funktioniert, um Ultrapeer zu werden."
@@ -3565,22 +3182,15 @@ msgstr "Gibt an, ob UDP ausreichend funktioniert, um Ultrapeer zu werden."
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
 "are sent on a given connection.  When full, the oldest query is dropped "
-"without being sent.  Set it so that it is slightly larger than the amount of "
-"opened searches."
-msgstr ""
-"Größe der Suchanfragenwarteschlage, welche die lokal generierten "
-"Suchanfragen für eine Verbindung enthält. Wenn die Warteschlange voll ist, "
-"wird der älteste Eintrag entfernt. Der Wert sollte so gesetzt sein, daß er "
-"etwas größer als die derzeitige Anzahl an geöffneter Suchen ist."
+"without being sent.  Set it so that it is slightly larger than the amount of"
+" opened searches."
+msgstr "Größe der Suchanfragenwarteschlage, welche die lokal generierten Suchanfragen für eine Verbindung enthält. Wenn die Warteschlange voll ist, wird der älteste Eintrag entfernt. Der Wert sollte so gesetzt sein, daß er etwas größer als die derzeitige Anzahl an geöffneter Suchen ist."
 
 msgid ""
 "Minimum amount of seconds between two consecutive queries sent to a given "
 "connection (for locally generated queries only!). The larger the value, the "
 "less negative impact it has on the network."
-msgstr ""
-"Minimale Zeit zwischen zwei aufeinanderfolgenden Suchanfragen an eine "
-"Verbindung (nur für lokal generierte Suchen!). Je größer dieser Wert ist, "
-"desto geringer sind die Auswirkungen auf das Netzwerk."
+msgstr "Minimale Zeit zwischen zwei aufeinanderfolgenden Suchanfragen an eine Verbindung (nur für lokal generierte Suchen!). Je größer dieser Wert ist, desto geringer sind die Auswirkungen auf das Netzwerk."
 
 msgid ""
 "Whether connection to gtk-gnutella via the 'shell' control interface should "
@@ -3603,23 +3213,15 @@ msgid ""
 "and only for queries with hop count > 0, i.e. not from our immediate "
 "neighbor.  Dropped queries will be accounted for in the 'Message throttle' "
 "counter."
-msgstr ""
-"Gibt an, ob gtk-gnutella aktiv auf Suchanfragen nach TTL und Hop-Anzahl "
-"achten und Duplikate entfernen soll. Gilt nur, wenn der Peer nicht im Leaf-"
-"Modus arbeitet und nur für weitergeleitete Suchanfragen (mit Hop-Anzahl > 0, "
-"d.h. nicht von direkten Nachbarn). Derart ignorierte Pakete werden unter "
-"'Message throttle' aufgeführt."
+msgstr "Gibt an, ob gtk-gnutella aktiv auf Suchanfragen nach TTL und Hop-Anzahl achten und Duplikate entfernen soll. Gilt nur, wenn der Peer nicht im Leaf-Modus arbeitet und nur für weitergeleitete Suchanfragen (mit Hop-Anzahl > 0, d.h. nicht von direkten Nachbarn). Derart ignorierte Pakete werden unter 'Message throttle' aufgeführt."
 
 msgid ""
 "Half the duration during which gtk-gnutella should remember the recently "
-"relayed queries by TTL and hop count.  The default value of 5 should be just "
-"fine, but you can experiment with different settings if you want.  The "
+"relayed queries by TTL and hop count.  The default value of 5 should be just"
+" fine, but you can experiment with different settings if you want.  The "
 "higher it is set, the more likely you are to drop legitimate queries, so be "
 "careful."
-msgstr ""
-"Halbe Zeit, in der gtk-gnutella sich weitergeleitete Suchanfragen nach TTL "
-"und Hop-Anzahl merkt. Der Defaultwert von 5 ist in Ordnung. Je höher der "
-"Wert ist, desto eher werden rechtmäßige Suchanfragen entfernt, also Vorsicht."
+msgstr "Halbe Zeit, in der gtk-gnutella sich weitergeleitete Suchanfragen nach TTL und Hop-Anzahl merkt. Der Defaultwert von 5 ist in Ordnung. Je höher der Wert ist, desto eher werden rechtmäßige Suchanfragen entfernt, also Vorsicht."
 
 msgid ""
 "The minimum amount of seconds to enforce between two identical queries from "
@@ -3629,16 +3231,7 @@ msgid ""
 "nature of Gnutella connections.  You can't disable this checking, but you "
 "can lower the constraint significantly. Deviations from the default of 1700 "
 "have exponential effects on the network traffic."
-msgstr ""
-"Die minimal erzwungene Zeit für das Neuversenden einer Suchanfrage durch "
-"einen Leaf-Peer. Falls die Suche vor dem angegebenen Zeitintervall "
-"wiederholt wird, wird sie fallengelassen und unter 'Message throttle' "
-"gezählt. Zu schnelle wiederholte Suchanfragen schaden dem Netzwerk, trotzdem "
-"muss es möglich sein, Suchanfragen zu wiederholen, um der dynamischen Natur "
-"des Netzwerks zu entsprechen. Diese Überprüfung kann nicht deaktiviert "
-"werden, die Einschränkung kann aber signifikant verringert werden. "
-"Abweichungen vom Standardwert 1700 haben exponentiellen Einfluss auf das "
-"Netzwerk."
+msgstr "Die minimal erzwungene Zeit für das Neuversenden einer Suchanfrage durch einen Leaf-Peer. Falls die Suche vor dem angegebenen Zeitintervall wiederholt wird, wird sie fallengelassen und unter 'Message throttle' gezählt. Zu schnelle wiederholte Suchanfragen schaden dem Netzwerk, trotzdem muss es möglich sein, Suchanfragen zu wiederholen, um der dynamischen Natur des Netzwerks zu entsprechen. Diese Überprüfung kann nicht deaktiviert werden, die Einschränkung kann aber signifikant verringert werden. Abweichungen vom Standardwert 1700 haben exponentiellen Einfluss auf das Netzwerk."
 
 msgid "Time at which we started the last scan of the library."
 msgstr "Zeitpunkt des letzten Scans der freigegebenen Dateien."
@@ -3665,8 +3258,7 @@ msgid "Time spent computing the QRP table, in seconds."
 msgstr "Zeit für die letzte Generierung der Routingtabelle, in Sekunden."
 
 msgid "Time at which we started computing our QRP patch."
-msgstr ""
-"Zeitpunkt des Starts der letzten Berechnung der Routing-Tabellenänderung."
+msgstr "Zeitpunkt des Starts der letzten Berechnung der Routing-Tabellenänderung."
 
 msgid "Time spent computing the QRP table patch, in seconds."
 msgstr "Zeit für das Berechnen des Routing-Tabellenänderung."
@@ -3683,7 +3275,8 @@ msgstr "Anzahl der gefüllten Slots der Routing-Tabelle."
 msgid "Percentage of slots filled within our QRP table."
 msgstr "Prozentsatz der gefüllten Slots der Routing-Tabelle."
 
-msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
+msgid ""
+"Percentage of hashing conflicts whilst inserting data in our QRP table."
 msgstr "Prozentsatz von Hash-Konflikten in der Routing-Tabelle."
 
 msgid "Amount of hashed keywords in our QRP table."
@@ -3693,8 +3286,7 @@ msgid "Total raw size of the QRP table patch, in bytes."
 msgstr "Gesamtgröße des Routing-Tabellen-Patches, in Bytes"
 
 msgid "Final QRP table patch length, after possible compression."
-msgstr ""
-"Resultierende Größe des Routing-Tabellen-Patches nach der Komprimierung."
+msgstr "Resultierende Größe des Routing-Tabellen-Patches nach der Komprimierung."
 
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "Kompressionsrate des Routing-Tabellen-patches (0 bedeutet keine)."
@@ -3706,41 +3298,28 @@ msgid ""
 "When set, gtk-gnutella is running short on file descriptors, but normal "
 "operations are still possible. The condition automatically clears itself "
 "after 10 minutes without any more shortage."
-msgstr ""
-"Falls gesetzt, stehen gtk-gnutella zu wenig Dateideskriptoren zur Verfügung, "
-"es kann aber normal genutzt werden. Der Zustand wird nach 10 Minuten "
-"zurückgesetzt, wenn wieder genügend Deskriptoren zur Verfügung stehen."
+msgstr "Falls gesetzt, stehen gtk-gnutella zu wenig Dateideskriptoren zur Verfügung, es kann aber normal genutzt werden. Der Zustand wird nach 10 Minuten zurückgesetzt, wenn wieder genügend Deskriptoren zur Verfügung stehen."
 
 msgid ""
 "When set, gtk-gnutella has run out of file descriptors, and operations are "
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurrence."
-msgstr ""
-"Wenn gesetzt, stehen gtk-gnutella so wenig Dateideskriptoren zur Verfügnug, "
-"dass die Benutzung eingeschränkt ist. Der Zustand wird nach 10 Minuten "
-"zurückgesetzt, wenn wieder genügend Dateideskriptoren zur Verfügung stehen."
+msgstr "Wenn gesetzt, stehen gtk-gnutella so wenig Dateideskriptoren zur Verfügnug, dass die Benutzung eingeschränkt ist. Der Zustand wird nach 10 Minuten zurückgesetzt, wenn wieder genügend Dateideskriptoren zur Verfügung stehen."
 
 msgid "If set, spaces in filenames are replaced with underscores."
-msgstr ""
-"Fall aktiviert, werden Leerzeichen in Dateinamen durch Unterstriche ersetzt."
+msgstr "Fall aktiviert, werden Leerzeichen in Dateinamen durch Unterstriche ersetzt."
 
 msgid ""
 "If set, meta shell characters in filenames are replaced with underscores. "
 "(This must also be enabled for FAT partitions.)"
-msgstr ""
-"Fall aktiviert, werden Shell-Meta-Zeichen in Dateinamen durch Unterstriche "
-"ersetzt. (Diese Option muss für FAT-Partionen aktiviert werden.)"
+msgstr "Fall aktiviert, werden Shell-Meta-Zeichen in Dateinamen durch Unterstriche ersetzt. (Diese Option muss für FAT-Partionen aktiviert werden.)"
 
 msgid ""
 "If set, gtk-gnutella will, upon startup, sanitize filenames by converting "
 "spaces and/or evil characters in them, according to your settings, on "
 "existing filenames in your temporary downloading directory. By default, the "
 "above settings apply only on newly created entries, not existing ones."
-msgstr ""
-"Fall aktiviert, bereinigt gtk-gnutella während des Starts Dateinamen, die "
-"Leerzeichen oder bösartige Zeichen enthalten, entsprechend der gewählten "
-"Optionen, im Verzeichnis für temporäre Dateien. Per Default werden die "
-"obigen Optionen nur auf neue aber nicht bestehende Dateien angewandt."
+msgstr "Fall aktiviert, bereinigt gtk-gnutella während des Starts Dateinamen, die Leerzeichen oder bösartige Zeichen enthalten, entsprechend der gewählten Optionen, im Verzeichnis für temporäre Dateien. Per Default werden die obigen Optionen nur auf neue aber nicht bestehende Dateien angewandt."
 
 msgid "If set, all outgoing connections are tunneled over TLS."
 msgstr ""
@@ -3749,8 +3328,8 @@ msgid "If not set, support for Gnutella connection compression is disabled."
 msgstr ""
 
 msgid ""
-"Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will "
-"also listen for UDP traffic on the same port as the one configured for TCP "
+"Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will"
+" also listen for UDP traffic on the same port as the one configured for TCP "
 "and process incoming Gnutella traffic in almost the same way as if it was "
 "received via TCP.  It is safe to leave this set, which is the default "
 "behavior."
@@ -3769,8 +3348,8 @@ msgstr ""
 msgid ""
 "Whether gtk-gnutella should send queries requesting out-of-band delivery of "
 "query hits via UDP.  The setting is ignored if you seem to be UDP-"
-"firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable "
-"UDP support first.  This can cause the reception of vast quantities of UDP "
+"firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable"
+" UDP support first.  This can cause the reception of vast quantities of UDP "
 "replies, so you may choose to disable this feature.  If disabled, your hits "
 "will travel through the Gnutella network and can be dropped by any flow-"
 "controlled relaying node, limiting the results you can get."
@@ -3780,10 +3359,10 @@ msgid ""
 "Whether gtk-gnutella should, when running as ultrapeer, act as proxy for "
 "leaf queries that are not requesting OOB delivery of query hits: gtk-"
 "gnutella will claim the hits from the remote nodes and forward the hits to "
-"the proper leaf.  This is very beneficial for the leaves, but can cause huge "
-"bursts of UDP traffic coming back to you.  If you disable it all ultrapeers "
-"connected to you will have to relay the hits, possibly dropping other query "
-"messages and lowering the efficiency of the search network."
+"the proper leaf.  This is very beneficial for the leaves, but can cause huge"
+" bursts of UDP traffic coming back to you.  If you disable it all ultrapeers"
+" connected to you will have to relay the hits, possibly dropping other query"
+" messages and lowering the efficiency of the search network."
 msgstr ""
 
 msgid ""
@@ -3793,8 +3372,8 @@ msgstr ""
 
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban "
-"list from the global one distributed with gtk-gnutella."
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban"
+" list from the global one distributed with gtk-gnutella."
 msgstr ""
 
 msgid "If set to TRUE, SO_LINGER is used for sockets."
@@ -3806,9 +3385,7 @@ msgid ""
 msgstr ""
 
 msgid "If TRUE, other hosts can request a complete list of all shared files."
-msgstr ""
-"Wenn aktiviert, können andere die komplette Liste der freigegebenen Datei "
-"einsehen."
+msgstr "Wenn aktiviert, können andere die komplette Liste der freigegebenen Datei einsehen."
 
 msgid "Number of HTML browsing requests received in this session."
 msgstr "Anzahl der HTML-Browse-Anfragen seit Programmstart."
@@ -3823,10 +3400,10 @@ msgid "Number of Gnutella browsing requests fully served in this session."
 msgstr "Anzahl der erfolgreichen Gnutella-Browse-Anfragen seit Programmstart."
 
 msgid ""
-"The average CPU usage indicates overloading, so gtk-gnutella is reducing the "
-"amount of non-critical processing it is performing. Note that the "
-"overloading can result from gtk-gnutella not getting enough CPU time because "
-"another process is competing for the CPU. Whilst the overloading condition "
+"The average CPU usage indicates overloading, so gtk-gnutella is reducing the"
+" amount of non-critical processing it is performing. Note that the "
+"overloading can result from gtk-gnutella not getting enough CPU time because"
+" another process is competing for the CPU. Whilst the overloading condition "
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
 "file moving) are slowed down."
 msgstr ""
@@ -3837,20 +3414,20 @@ msgid ""
 "avoid using too many system calls and should also reduce the fragmentation "
 "on the filesystem.  The downside is that it uses more memory per active "
 "source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to "
-"disk as soon as it receives some data. Increase to maximum value if you have "
-"RAM."
+"disk as soon as it receives some data. Increase to maximum value if you have"
+" RAM."
 msgstr ""
 
 msgid ""
-"When set, all search results from host browsing are dispatched to all opened "
-"passive searches.  This is useful if you have different selection filters on "
-"your passive searches because it lets you classify files easily, regardless "
-"of the origin of the files."
+"When set, all search results from host browsing are dispatched to all opened"
+" passive searches.  This is useful if you have different selection filters "
+"on your passive searches because it lets you classify files easily, "
+"regardless of the origin of the files."
 msgstr ""
 
 msgid ""
-"Enable this if all units should be displayed using the metric system with SI "
-"prefixes. If disabled, certain units, for example, filesizes will be "
+"Enable this if all units should be displayed using the metric system with SI"
+" prefixes. If disabled, certain units, for example, filesizes will be "
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
@@ -3872,8 +3449,8 @@ msgid "Don't start more than this number of parallel downloads per file."
 msgstr "Limit der parallelen Downloads pro Datei."
 
 msgid ""
-"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
-"dump."
+"If enabled, all received packets are dumped to "
+"$GTK_GNUTELLA_DIR/packets_rx.dump."
 msgstr ""
 
 msgid ""
@@ -3883,14 +3460,7 @@ msgid ""
 "without knowing the directory names as well. However, be sure the directory "
 "names do not expose confidential information. You have to initiate a rescan "
 "of the shared files before a change becomes fully effective."
-msgstr ""
-"Wenn aktiviert, werden Verzeichnisnamen relativ zu den freigegebenen "
-"Verzeichnissen für Suchanfragen miteinbezogen. Diese relativen Pfadnamen "
-"werden dann auch in Suchergebnissen angeben. Dies ist inbesondere sinnvoll, "
-"wenn die Dateinamen selbst ohne die Verzeichnisnamen nur wenig informativ "
-"sind. Es sollte darauf geachtet werden, dass die Verzeichnisnamen keine "
-"vertrauliche Daten darstellen. Eine Änderung wird erst nach einem erneuten "
-"Scan der freigegebenen Dateien oder einem Neustart aktiv."
+msgstr "Wenn aktiviert, werden Verzeichnisnamen relativ zu den freigegebenen Verzeichnissen für Suchanfragen miteinbezogen. Diese relativen Pfadnamen werden dann auch in Suchergebnissen angeben. Dies ist inbesondere sinnvoll, wenn die Dateinamen selbst ohne die Verzeichnisnamen nur wenig informativ sind. Es sollte darauf geachtet werden, dass die Verzeichnisnamen keine vertrauliche Daten darstellen. Eine Änderung wird erst nach einem erneuten Scan der freigegebenen Dateien oder einem Neustart aktiv."
 
 msgid "Debug level for the shell."
 msgstr ""
@@ -3916,17 +3486,12 @@ msgstr ""
 msgid ""
 "Whether gtk-gnutella is currently computing TTH of shared files in the "
 "background."
-msgstr ""
-"Gibt an, ob gtk-gnutella gerade im Hintergrund TTHs von freigegebenen "
-"Dateien berechnet"
+msgstr "Gibt an, ob gtk-gnutella gerade im Hintergrund TTHs von freigegebenen Dateien berechnet"
 
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently verifying the TTH of downloaded files in "
 "the background."
 msgstr ""
-"Gibt an, ob gtk-gnutella gerade im Hintergrund die SHA1-Prüfsummen von "
-"heruntergeladenen Dateien berechnet und überprüft"
 
 msgid "Maximum number of results to show in any search."
 msgstr ""
@@ -3943,18 +3508,16 @@ msgstr ""
 msgid "Signature of the latest SVN release notification."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of hosts in the TLS node cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the TLS cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
 msgid ""
 "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
-"Otherwise, the TTH is only accepted if provided by the user, for example, by "
-"a magnet link."
+"Otherwise, the TTH is only accepted if provided by the user, for example, by"
+" a magnet link."
 msgstr ""
 
 msgid ""
@@ -3963,22 +3526,19 @@ msgid ""
 "experience."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of hosts in the G2 node cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the G2 cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for management of G2-only hosts."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
 msgid ""
 "Whether GTKG can switch among the several files waiting to be downloaded "
-"from a given server, when making a follow-up HTTP request.  Turn it off only "
-"if you witness problems with a particular servent you're downloading from."
+"from a given server, when making a follow-up HTTP request.  Turn it off only"
+" if you witness problems with a particular servent you're downloading from."
 msgstr ""
 
 msgid ""
@@ -3986,7 +3546,6 @@ msgid ""
 "disable unless you know what you are doing."
 msgstr ""
 
-#, fuzzy
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
 "download chunks in a random order, to maximize the spreading of the file in "
@@ -3996,13 +3555,6 @@ msgid ""
 "tail of the file as soon as possible.  Set it to 0 to disable any tail-"
 "downloading preference."
 msgstr ""
-"Wenn die Freigabe unvollständig heruntergeladener Dateien aktiviert ist, "
-"bemüht sich gtk-gnutella um das Herunterladen der Dateistücke in zufälliger "
-"Reihenfolge, um die Verbreitung der Datei im Netzwerk zu maximieren. Dies "
-"erschwert jedoch das Ansehen/Anhören bestimmter Dateitypen erheblich oder "
-"macht es unmöglich. Dieses Feld setzt die Anzahl der Bytes, die vom Beginn "
-"der Datei heruntergeladen werden sollen, bevor das Herunterladen in "
-"zufälliger Reihenfolge initiiert wird."
 
 msgid ""
 "Whether GTKG should post-process filenames to remove consecutive '_' in the "
@@ -4016,27 +3568,23 @@ msgid ""
 "files and push-proxies for firewalled hosts. It requires UDP support."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the callout queue."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT node lookups."
-msgstr "Debug-Level für HTTP"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT key/value storage."
-msgstr "Debug-Level für HTTP"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT key/value publishing."
-msgstr "Debug-Level für HTTP"
+msgstr ""
 
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
-"Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times "
-"less). The larger the numbers, the more values can be looked up "
+"Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times"
+" less). The larger the numbers, the more values can be looked up "
 "concurrently, but the more bandwidth is used."
 msgstr ""
 
@@ -4061,9 +3609,8 @@ msgid ""
 "closest nodes will keep mutual knowledge about each other"
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT user lookup queue."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
 msgid "If TRUE, DHT storage uses memory instead of diskspace."
 msgstr ""
@@ -4085,9 +3632,8 @@ msgid ""
 "uploads and push-proxy exchanges."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for (generic) file verification code."
-msgstr "Debug-Level für File-Sharing-Code"
+msgstr ""
 
 msgid ""
 "Maximum number of hosts in the local address cache, which remembers the "
@@ -4099,79 +3645,63 @@ msgid ""
 "remembers the recent IP:port combinations we had."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for management of local address cache."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
 msgid ""
 "If enabled, all packets enqueued for transmission are dumped to "
 "$GTK_GNUTELLA_DIR/packets_tx.dump."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level the TCP message queues"
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the UDP message queue."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid ""
 "Maximum size of the UDP message queue (in bytes). Must be at least 150 "
 "percent of the maximum message size."
 msgstr ""
-"Maximale Größe der Sendewarteschlange für Peers (in Bytes). Muss mindestens "
-"150% der maximalen Paketgröße entsprechen"
 
-#, fuzzy
 msgid "Debug level for the management of the clock accuracy."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the firewalled status management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for host management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT root node caching."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Logged statistics level for code shared between GUI and core."
-msgstr "Debug-Level für Code, der svon GUI und Kern genutzt wird."
+msgstr ""
 
 msgid ""
-"If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
-"fast disk database, which saves a large amount of core memory and reduces "
+"If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a"
+" fast disk database, which saves a large amount of core memory and reduces "
 "the overall footprint, at the cost of an increased I/O level. However, the "
 "DB cache has a 90 percent hit rate, so the actual overhead is barely "
 "noticeable when running as an ultra node and should remain completely "
 "unnoticed when running as a leaf."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for spam detection."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for lockfile management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the zone-based memory allocator."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the pool-based memory allocator."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the RX buffer allocator."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
 msgid ""
 "Whether the zone-based memory allocator should always keep the zones in "
@@ -4182,44 +3712,35 @@ msgid ""
 "spam_lut_in_memory to FALSE."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the virtual memory manager."
-msgstr "Debug-Level für Vendor-spezifische Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for final shutdown."
-msgstr "Debug-Level für Dateiinfo"
+msgstr ""
 
-#, fuzzy
 msgid "Country preferences"
-msgstr "_Konfiguration"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for country limits."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log dropped Gnutella messages"
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for whitelist management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT token caching."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT publishing from Gnutella."
-msgstr "Debug-Level für HTTP"
+msgstr ""
 
 msgid "Defines which DHT messages should be traced."
 msgstr ""
 
-#, fuzzy
 msgid "Enable bandwidth limitation for outgoing DHT traffic."
-msgstr "Bandbreitenbegrenzung für ausgehenden HTTP-Verkehr aktivieren"
+msgstr ""
 
 msgid ""
 "Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled "
@@ -4227,35 +3748,26 @@ msgid ""
 "enabled, so that UDP queues can flush more quickly."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum size of the DHT message queue (in bytes)."
 msgstr ""
-"Maximale Größe von Suchtrefferpaketen, die wir an andere weiterleiten (in "
-"Bytes)"
 
-#, fuzzy
 msgid "Debug level for bandwidth scheduler."
-msgstr "Debug-Level für Bann-Code"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT stable node recorder."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the file (re)loading, on change."
-msgstr "Debug-Level für File-Sharing-Code"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the file moving, accross filesystems."
-msgstr "Debug-Level für File-Sharing-Code"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for query hit message generation."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for version management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
 msgid "Minimum CPU frequency, in Hz."
 msgstr ""
@@ -4263,56 +3775,48 @@ msgstr ""
 msgid "Maximum CPU frequency, in Hz."
 msgstr ""
 
-#, fuzzy
 msgid "DHT bootstrap status."
-msgstr "HTTP-Verkehr"
+msgstr ""
 
 msgid ""
 "The DHT running mode. An active node will be able to store values and is a "
-"fully participating member of the Distributed Hash Table. A passive node can "
-"perform lookups and publish but will not store values and cannot be a member "
-"of the DHT structure. A firewalled node is necessarily passive, but you can "
-"force the passive mode even if you are not firewalled, although that is not "
-"recommended because the DHT requires far more active nodes that passive ones "
-"to be efficient."
+"fully participating member of the Distributed Hash Table. A passive node can"
+" perform lookups and publish but will not store values and cannot be a "
+"member of the DHT structure. A firewalled node is necessarily passive, but "
+"you can force the passive mode even if you are not firewalled, although that"
+" is not recommended because the DHT requires far more active nodes that "
+"passive ones to be efficient."
 msgstr ""
 
 msgid "Current DHT running mode."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the one-time memory allocator."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the host cache."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
 msgid "Random bits."
 msgstr ""
 
-#, fuzzy
 msgid "Average servent downtime."
-msgstr "Mittlere Servent-Laufzeit."
+msgstr ""
 
 msgid "Time when last shutdown occurred."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for alive pings."
-msgstr "Debug-Level für Dateiinfo"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the versatile XML layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the UPnP layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the SOAP layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
 msgid "Defines SOAP exchanges tracing type."
 msgstr ""
@@ -4326,10 +3830,10 @@ msgid ""
 "Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP "
 "means gtk-gnutella will be able to discover your Internet Gateway Device "
 "(router) and request that the listening port be opened and redirected to "
-"your machine, thereby auto-configuring to make sure you are not firewalled.  "
-"By default you should leave it enabled unless you know how to configure your "
-"network equipment manually to prevent the firewalled condition for both TCP "
-"and UDP."
+"your machine, thereby auto-configuring to make sure you are not firewalled."
+"  By default you should leave it enabled unless you know how to configure "
+"your network equipment manually to prevent the firewalled condition for both"
+" TCP and UDP."
 msgstr ""
 
 msgid ""
@@ -4345,18 +3849,17 @@ msgstr ""
 msgid "Whether gtk-gnutella can install port mappings, if needed."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the NAT-PMP layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
 msgid ""
 "Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for "
-"NAT-PMP means gtk-gnutella will be able to look whether your default gateway "
-"(router) supports the Port Mapping Protocol to allow transparent redirection "
-"of the external ports on the router to the local machine, thereby making "
-"sure you are not firewalled. By default you should leave it enabled unless "
-"you know how to configure your network equipment manually to prevent the "
-"firewalled condition for both TCP and UDP."
+"NAT-PMP means gtk-gnutella will be able to look whether your default gateway"
+" (router) supports the Port Mapping Protocol to allow transparent "
+"redirection of the external ports on the router to the local machine, "
+"thereby making sure you are not firewalled. By default you should leave it "
+"enabled unless you know how to configure your network equipment manually to "
+"prevent the firewalled condition for both TCP and UDP."
 msgstr ""
 
 msgid ""
@@ -4364,63 +3867,46 @@ msgid ""
 "mappings, if required."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the TX (transmit) network layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the RX (receive) network layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the I/O input event layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the background task scheduler."
-msgstr "Debug-Level für Bann-Code"
+msgstr ""
 
-#, fuzzy
 msgid "Whether gtk-gnutella was able to configure port mappings."
 msgstr ""
-"Gibt an, ob gtk-gnutella davon ausgeht, dass eine Verbindung zum Internet "
-"besteht"
 
-#, fuzzy
 msgid "Whether gtk-gnutella disabled HTTP bandwidth stealing."
 msgstr ""
-"Gibt an, ob gtk-gnutella davon ausgeht, dass eine Verbindung zum Internet "
-"besteht"
 
-#, fuzzy
 msgid "Whether gtk-gnutella ignores HTTP stolen bandwidth."
 msgstr ""
-"Gibt an, ob gtk-gnutella davon ausgeht, dass eine Verbindung zum Internet "
-"besteht"
 
 msgid "Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth."
 msgstr ""
 
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella should use HTTP request pipelining when possible, in "
 "order to decrease downloading latency."
 msgstr ""
-"Gibt an, ob gtk-gnutella den eigenen Hostnamen an Downloader und in "
-"Suchtreffern zurückgeben soll."
 
-#, fuzzy
 msgid "Maximum chunk size when swarming with HTTP pipelining."
-msgstr "Maximale Chunk-Größe beim Herunterladen von mehreren Hosts."
+msgstr ""
 
 msgid ""
 "Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be "
-"enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to "
-"perform iterative Ultrapeer queries instead of just broadcasting, allowing "
+"enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to"
+" perform iterative Ultrapeer queries instead of just broadcasting, allowing "
 "searches to more places within the Gnutella network.  If you want gtk-"
 "gnutella to issue GUESS queries, you need to make sure the client-side is "
-"enabled as well as this setting only governs mostly the server-side of GUESS "
-"(required to allow the client-side)."
+"enabled as well as this setting only governs mostly the server-side of GUESS"
+" (required to allow the client-side)."
 msgstr ""
 
 msgid ""
@@ -4433,25 +3919,20 @@ msgid ""
 "Searches)."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
-msgstr "Maximale Anzahl Legacy-Peers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the regular GUESS cache."
-msgstr "Derzeitige Anzahl Peers im Peer-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the introduction GUESS cache."
-msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DB disk/RAM storage layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
 msgid ""
 "The current Session ID.  This is a unique ID generated each time gtk-"
@@ -4467,10 +3948,10 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side "
-"should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer "
-"queries instead of just broadcasting them. If enabled, it requires general "
-"GUESS support enabled as well or it will simply be ignored."
+"Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side"
+" should be enabled, so that gtk-gnutella can indeed issue iterative "
+"Ultrapeer queries instead of just broadcasting them. If enabled, it requires"
+" general GUESS support enabled as well or it will simply be ignored."
 msgstr ""
 
 msgid ""
@@ -4479,13 +3960,11 @@ msgid ""
 "overall"
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the matching code."
-msgstr "Debug-Level für Bann-Code"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the time synchronization code."
-msgstr "Debug-Level für File-Sharing-Code"
+msgstr ""
 
 msgid ""
 "Whether queries can request partial results hits, i.e. files which are "
@@ -4494,96 +3973,75 @@ msgstr ""
 
 msgid ""
 "Whether queries for partial files should be answered to.When Partial File "
-"Sharing is disabled this setting is of course ignored and no partial results "
-"are returned."
+"Sharing is disabled this setting is of course ignored and no partial results"
+" are returned."
 msgstr ""
 
-#, fuzzy
 msgid "Whether what's-new? queries should be answered to."
-msgstr "Gibt an, ob die übertragenen Suchanfragen angezeigt werden sollen."
+msgstr ""
 
 msgid ""
 "When set, gtk-gnutella will automatically stop opened searches from which "
-"all the requested downloads have been completed, regardless of the initially "
-"configured expiration time."
+"all the requested downloads have been completed, regardless of the initially"
+" configured expiration time."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of results to show in a What's New? request."
 msgstr ""
-"Maximale Dauer in Sekunden bevor ein automatischer Downloadversuch "
-"abgebrochen wird."
 
-#, fuzzy
 msgid "Maximum number of results to show in a passive search request."
-msgstr "Maximale Anzahl angezeigter Anfragen im Suchmonitor."
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages from same node."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages with a higher TTL."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log duplicate Gnutella messages (not from same node)."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log new Gnutella messages, never seen before."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log Gnutella routing decisions."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
 msgid "Whether to log conditions triggering query hit spam flagging."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the ultra node cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in ultra node caches."
-msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in the regular GUESS cache."
-msgstr "Derzeitige Anzahl Peers im Peer-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv6 hosts in the introduction GUESS cache."
-msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
-msgstr "Maximale Anzahl Legacy-Peers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the malloc() replacement allocator."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for bad query hit messages."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for GUID management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the TX (transmit) deflating network layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
 msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
 msgstr ""
@@ -4594,8 +4052,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
-"(IP addresses only)"
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit"
+" (IP addresses only)"
 msgstr ""
 
 msgid ""
@@ -4604,15 +4062,14 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
-"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless"
+" of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
 "will be used.  When running as a leaf this should be set to TRUE to make "
 "GUESS queries run faster."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the UDP TX scheduler."
-msgstr "Debug-Level für Bann-Code"
+msgstr ""
 
 msgid ""
 "Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
@@ -4627,45 +4084,35 @@ msgid ""
 "fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
 msgstr ""
 
-#, fuzzy
 msgid "Whether to log sent semi-reliable UDP messages."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log received semi-reliable UDP messages."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the secured OOB query hit claiming."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log sent vendor messages."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log received vendor messages."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Debugging flags for the DHT token cache (developers only)."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log weird DHT message headers when debugging."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log UHC pings we receive."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log UHC pings we emit."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
 msgid "Whether the program was properly shutdown."
 msgstr ""
@@ -4673,93 +4120,73 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT key management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT value management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
 msgid "ID of the current process."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for HTTP range parsing / handling."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
 msgid ""
-"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
-"value of 0 requests permanent mappings."
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A"
+" value of 0 requests permanent mappings."
 msgstr ""
 
 msgid "Whether the program is auto-restarting at the user's request."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for time management."
-msgstr "Debug-Level für Download-Mesh-Management."
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the tmalloc() thread-magazine object distributor."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the event queue thread."
-msgstr "Debug-Level für die Suchanfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Maximum number of G2 hubs in the hub cache."
-msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Current number of IPv4 hosts in the G2 hub caches."
-msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
+msgstr ""
 
-#, fuzzy
 msgid "Whether the G2 protocol should be enabled."
-msgstr "Gibt an, ob die TX-Kompressionsrate angezeigt werden soll."
+msgstr ""
 
-#, fuzzy
 msgid "Number of G2 nodes currently connected."
-msgstr "Anzahl der derzeit verbundenen Leaf-Peers."
+msgstr ""
 
-#, fuzzy
 msgid "Maximum amount of G2 hubs we should connect to as a leaf."
 msgstr ""
-"Maximale Anzahl von Ultrapeers, zu denen eine Verbindung aufgebaut werden "
-"soll, wenn der eigene Peer als Leaf-Peer betrieben wird."
 
-#, fuzzy
 msgid "Whether to log bad G2 messages, corrupted or unexpected."
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log dropped G2 messages"
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for the G2 RPC layer."
-msgstr "Debug-Level für die Oberfläche"
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log summary of received query hits"
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
 msgid "Whether to log summary of each record in received query hits"
 msgstr ""
 
-#, fuzzy
 msgid "Number of G2 browsing requests received in this session."
-msgstr "Anzahl der HTML-Browse-Anfragen seit Programmstart."
+msgstr ""
 
-#, fuzzy
 msgid "Number of G2 browsing requests fully served in this session."
-msgstr "Anzahl der erfolgreichen HTML-Browse-Anfragen seit Programmstart."
+msgstr ""
 
-#, fuzzy
 msgid "Whether to log G2 messages we're attempting to send"
-msgstr "Debug-Level für Gnutella-Pakete"
+msgstr ""
 
 msgid "disable"
 msgstr "deaktiviert"
@@ -4825,11 +4252,9 @@ msgid "Maximum number of queries visible in search monitor."
 msgstr "Maximale Anzahl angezeigter Anfragen im Suchmonitor."
 
 msgid ""
-"Whether to hide hits that have been considered for auto-downloading based on "
-"the SHA1 or your filters."
-msgstr ""
-"Gibt an, ob Dateien, die wegen SHA1 oder Filter automatisch heruntergeladen "
-"werden, versteckt werden sollen."
+"Whether to hide hits that have been considered for auto-downloading based on"
+" the SHA1 or your filters."
+msgstr "Gibt an, ob Dateien, die wegen SHA1 oder Filter automatisch heruntergeladen werden, versteckt werden sollen."
 
 msgid "Widths of the columns in the nodes table."
 msgstr ""
@@ -4930,9 +4355,8 @@ msgstr "Suchleiste anzeigen"
 msgid "Display Sidebar."
 msgstr "Seitenleiste anzeigen"
 
-#, fuzzy
 msgid "Display Menu."
-msgstr "Seitenleiste anzeigen"
+msgstr ""
 
 msgid "Display statusbar."
 msgstr "Statusleiste anzeigen"
@@ -4965,8 +4389,7 @@ msgid "Display outgoing Gnet leaf traffic bandwidth usage."
 msgstr "Bandbreite für ausgehenden Leaf-Verkehr anzeigen"
 
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode."
-msgstr ""
-"Automatisch Leaf-Peer-Anzeige verstecken, wenn nicht im Ultrapeer-Modus"
+msgstr "Automatisch Leaf-Peer-Anzeige verstecken, wenn nicht im Ultrapeer-Modus"
 
 msgid "Display incoming HTTP traffic bandwidth average."
 msgstr "Mittlere Bandbreite für eingehenden HTTP-Verkehr anzeigen"
@@ -5012,25 +4435,20 @@ msgstr "Intervall für das Aktualisieren der Suchstatistiken"
 
 msgid ""
 "A deletion coefficient, so that small non-significant results can be "
-"dropped.  The lower it is, the more search statistics will be kept in memory."
-msgstr ""
-"Koeffizient für das Löschen nichtsignifikanter Ergebnisse. Je tiefer der "
-"Wert ist, desto mehr Einträge werden im Speicher gehalten."
+"dropped.  The lower it is, the more search statistics will be kept in "
+"memory."
+msgstr "Koeffizient für das Löschen nichtsignifikanter Ergebnisse. Je tiefer der Wert ist, desto mehr Einträge werden im Speicher gehalten."
 
 msgid "Show confirmation dialog when leaving gtk-gnutella."
 msgstr "Beim Beenden von gtk-gnutella Bestätigungsdialog anzeigen"
 
 msgid "Show a helpful message when the mouse pointer lingers over a widget."
-msgstr ""
-"Hilfsnachricht anzeigen, wenn der Mauszeiger auf einem Element der "
-"Benutzeroberfläche stehen bleibt"
+msgstr "Hilfsnachricht anzeigen, wenn der Mauszeiger auf einem Element der Benutzeroberfläche stehen bleibt"
 
 msgid ""
 "Show a lot more settings to tweak. If you tamper with them be sure to read "
 "up on what they are doing."
-msgstr ""
-"Mehr Einstellungen zum Rumschrauben anzeigen. Falls man daran herumfummeln "
-"möchte, lese man bitte die Kommentare dazu."
+msgstr "Mehr Einstellungen zum Rumschrauben anzeigen. Falls man daran herumfummeln möchte, lese man bitte die Kommentare dazu."
 
 msgid "Show percentages instead of absolute values in the Gnet stats."
 msgstr "Prozentsätze statt absoluter Werte in den Gnet-Statistiken anzeigen"
@@ -5051,10 +4469,9 @@ msgid "Include Gnutella packet header size to the volume."
 msgstr "Paketkopf zum Übertragungsvolumen dazuaddieren"
 
 msgid ""
-"Show percentages instead of absolute values in the Gnet stats (drop reasons)."
-msgstr ""
-"Prozentsätze anstatt absoluter Werte in den Gnet-Statistiken (Gründe für das "
-"Fallenlassen von Paketen) anzeigen"
+"Show percentages instead of absolute values in the Gnet stats (drop "
+"reasons)."
+msgstr "Prozentsätze anstatt absoluter Werte in den Gnet-Statistiken (Gründe für das Fallenlassen von Paketen) anzeigen"
 
 msgid "Widths of the columns in the Gnet stats general table."
 msgstr ""
@@ -5068,9 +4485,7 @@ msgstr "Einträge für fehlgeschlagene Uploads automatisch entfernen"
 msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
-msgstr ""
-"Gibt an, ob die Uptime des Peers angezeigt werden soll (wird nicht von allen "
-"Peers zur Verfügung gestellt)."
+msgstr "Gibt an, ob die Uptime des Peers angezeigt werden soll (wird nicht von allen Peers zur Verfügung gestellt)."
 
 msgid "Whether the handshaking version number should be displayed."
 msgstr "Gibt an, ob die Gnutella-Protokollversion angezeigt werden soll."
@@ -5080,11 +4495,7 @@ msgid ""
 "enabled, it is possible to also customize how much information to display.  "
 "When disabled, only TX and RX message counts are displayed, followed by the "
 "message queue info."
-msgstr ""
-"Gibt an, ob detaillierte Informationen für den Peer angezeigt werden soll. "
-"Falls aktiviert, kann konfiguriert werden, was genau angezeigt wird. Falls "
-"nicht aktiviert, werden nur die TX- und RX-Paketzähler und Infos zur Paket-"
-"Warteschlange angezeigt."
+msgstr "Gibt an, ob detaillierte Informationen für den Peer angezeigt werden soll. Falls aktiviert, kann konfiguriert werden, was genau angezeigt wird. Falls nicht aktiviert, werden nur die TX- und RX-Paketzähler und Infos zur Paket-Warteschlange angezeigt."
 
 msgid "Whether TX traffic compression ratio should be displayed."
 msgstr "Gibt an, ob die TX-Kompressionsrate angezeigt werden soll."
@@ -5093,14 +4504,10 @@ msgid "Whether RX traffic compression ratio should be displayed."
 msgstr "Gibt an, ob die RX-Kompressionsrate angezeigt werden soll."
 
 msgid "Whether to display the amount of bytes sent on the TX wire."
-msgstr ""
-"Gibt an, ob die Anzahl freigegebener Dateien von Peers angezeigt werden "
-"soll, falls sie uns bekannt ist."
+msgstr "Gibt an, ob die Anzahl freigegebener Dateien von Peers angezeigt werden soll, falls sie uns bekannt ist."
 
 msgid "Whether to display the amount of bytes received on the RX wire."
-msgstr ""
-"Gibt an, ob die Anzahl freigegebener Dateien von Peers angezeigt werden "
-"soll, falls sie uns bekannt ist."
+msgstr "Gibt an, ob die Anzahl freigegebener Dateien von Peers angezeigt werden soll, falls sie uns bekannt ist."
 
 msgid "Whether TX instantaneous transmission speed should be displayed."
 msgstr "Gibt an, ob die TX-Übertragungsgeschwindigkeit angezeigt werden soll."
@@ -5121,24 +4528,17 @@ msgid "Whether count of received query hits should be displayed."
 msgstr "Gibt an, ob die empfangenen Suchtreffer angezeigt werden sollen."
 
 msgid "Whether count of locally generated queries should be displayed."
-msgstr ""
-"Gibt an, ob die lokal generierten Suchanfragen angezeigt werden sollen."
+msgstr "Gibt an, ob die lokal generierten Suchanfragen angezeigt werden sollen."
 
 msgid ""
 "Whether count of local queries pending transmission should be displayed."
-msgstr ""
-"Gibt an, ob die lokal generierten Suchanfragen in der "
-"Übertragungswarteschlange angezeigt werden sollen."
+msgstr "Gibt an, ob die lokal generierten Suchanfragen in der Übertragungswarteschlange angezeigt werden sollen."
 
 msgid "Whether count of dropped messages on TX should be displayed."
-msgstr ""
-"Gibt an, ob fallengelassene Pakete für die Übertragung angezeigt werden "
-"sollen."
+msgstr "Gibt an, ob fallengelassene Pakete für die Übertragung angezeigt werden sollen."
 
 msgid "Whether count of dropped messages on RX should be displayed."
-msgstr ""
-"Gibt an, ob die fallengelassenen Pakete für den Empfang angezeigt werden "
-"sollen."
+msgstr "Gibt an, ob die fallengelassenen Pakete für den Empfang angezeigt werden sollen."
 
 msgid ""
 "Whether Query Routing Protocol statistics should be displayed. For a leaf "
@@ -5147,14 +4547,7 @@ msgid ""
 "slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' "
 "the passing threshold and 'e' the efficiency, i.e. the proportion of "
 "received queries that are sent to the node after QRP table filtering."
-msgstr ""
-"Gibt an, ob QRP-Statistiken angezeigt werden sollen. Für einen Leaf-Peer ist "
-"das einfach das Verhältnis von Anfragen, die zu einem Treffer führten "
-"geteilt durch die Anzahl empfangener Anfragen. Für einen Ultrapeer ist das "
-"die Anzahl der Slots in der QRP-Tabelle, 'g' ist die laufende "
-"Tabellennummer, 'f' ist der Füllstand, 't' die Grenze über das Erlauben der "
-"Anfrage und 'e' die Effizienz, d.h. der Anteil empfangener Nachrichten, die "
-"an den Leaf-Peer gesendet wurden."
+msgstr "Gibt an, ob QRP-Statistiken angezeigt werden sollen. Für einen Leaf-Peer ist das einfach das Verhältnis von Anfragen, die zu einem Treffer führten geteilt durch die Anzahl empfangener Anfragen. Für einen Ultrapeer ist das die Anzahl der Slots in der QRP-Tabelle, 'g' ist die laufende Tabellennummer, 'f' ist der Füllstand, 't' die Grenze über das Erlauben der Anfrage und 'e' die Effizienz, d.h. der Anteil empfangener Nachrichten, die an den Leaf-Peer gesendet wurden."
 
 msgid ""
 "Whether we should display message counts for duplicate, bad, weird and "
@@ -5164,34 +4557,24 @@ msgstr ""
 msgid ""
 "Whether ping/pong roundtrip times (average and last) should be displayed.  "
 "Values shown are in milliseconds."
-msgstr ""
-"Gibt an, ob Laufzeiten für Hin- und Rückweg für Pings/Pongs angezeigt werden "
-"sollen. Werte werden in Millisekunden angegeben."
+msgstr "Gibt an, ob Laufzeiten für Hin- und Rückweg für Pings/Pongs angezeigt werden sollen. Werte werden in Millisekunden angegeben."
 
 msgid ""
 "Whether we should display the size of the node's library, when it is known "
 "to us."
-msgstr ""
-"Gibt an, ob die Gesamtgröße der freigegebenen Dateien eines Peers angezeigt "
-"werden soll, falls sie uns bekannt ist."
+msgstr "Gibt an, ob die Gesamtgröße der freigegebenen Dateien eines Peers angezeigt werden soll, falls sie uns bekannt ist."
 
 msgid ""
 "Whether we should display the amount of files shared by nodes, when that is "
 "known to us."
-msgstr ""
-"Gibt an, ob die Anzahl freigegebener Dateien von Peers angezeigt werden "
-"soll, falls sie uns bekannt ist."
+msgstr "Gibt an, ob die Anzahl freigegebener Dateien von Peers angezeigt werden soll, falls sie uns bekannt ist."
 
 msgid ""
 "The amount of time in seconds that the GUI should buffer search results as "
-"they come in.  This prevents too frequent updates that may cause flickering, "
-"but also saves CPU cycles since less redrawing has to occur in the search "
+"they come in.  This prevents too frequent updates that may cause flickering,"
+" but also saves CPU cycles since less redrawing has to occur in the search "
 "pane."
-msgstr ""
-"Anzahl Sekunden, welche die Benutzeroberfläche die Suchergebnisse puffert, "
-"bevor sie dargestellt werden. Dies verhindert das Flackern der Anzeige und "
-"reduziert die CPU-Belastung, weil die Tabelle weniger oft aktualisiert "
-"werden muss."
+msgstr "Anzahl Sekunden, welche die Benutzeroberfläche die Suchergebnisse puffert, bevor sie dargestellt werden. Dies verhindert das Flackern der Anzeige und reduziert die CPU-Belastung, weil die Tabelle weniger oft aktualisiert werden muss."
 
 msgid "Expanded stati of the nodes in the treemenu."
 msgstr "Erweiterte Status der Peers im Baummenü"
@@ -5207,35 +4590,27 @@ msgstr "Stellt das Aussehen der Werkzeugleiste ein"
 
 msgid ""
 "The lifetime of a search. If this time is exceeded, the search is stopped."
-msgstr ""
-"Die Laufzeit der Suche. Sobald diese Zeit abgelaufen ist, wird die Suche "
-"angehalten."
+msgstr "Die Laufzeit der Suche. Sobald diese Zeit abgelaufen ist, wird die Suche angehalten."
 
 msgid ""
 "Show a status icon in the system tray if possible (requires Gtk+ 2.10 or "
 "newer)."
 msgstr ""
 
-#, fuzzy
 msgid "Automatically hide DHT bandwidth display when DHT not enabled."
 msgstr ""
-"Automatisch Leaf-Peer-Anzeige verstecken, wenn nicht im Ultrapeer-Modus"
 
-#, fuzzy
 msgid "Display incoming DHT traffic bandwidth usage."
-msgstr "Bandbreite für eingehenden HTTP-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Display outgoing DHT traffic bandwidth usage."
-msgstr "Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Display incoming DHT traffic bandwidth as an average."
-msgstr "Mittlere Bandbreite für eingehenden HTTP-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Display outgoing DHT traffic bandwidth as an average."
-msgstr "Mittlere Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
+msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
@@ -5277,9 +4652,8 @@ msgstr ""
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
-#, fuzzy
 msgid "Whether a summary line with GUESS search stats should be displayed."
-msgstr "Gibt an, ob die übertragenen Suchtreffer angezeigt werden sollen."
+msgstr ""
 
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
@@ -6096,11 +5470,8 @@ msgstr ""
 msgid "locale_get_language|en"
 msgstr "de"
 
-#, fuzzy
 msgid "unofficial build, accessing files from"
 msgstr ""
-"Dies ist eine inoffizielle kompilierte Version, die auf Dateienin diesem "
-"Verzeichnis zugreift:"
 
 msgid "URL missing"
 msgstr "URL fehlt"
@@ -6146,41 +5517,39 @@ msgstr "Interaktiver Modus aktiviert."
 msgid "Interactive mode turned off."
 msgstr "Interaktiver Modus deaktiviert."
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"show %s\""
-msgstr "Unbekannte Operation"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"%s\""
-msgstr "Unbekannte Operation"
+msgstr ""
 
-#, fuzzy
 msgid "Cannot determine current working directory"
-msgstr "Kann das Heimatverzeichnis nicht finden!"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown logfile name \"%s\""
-msgstr "Unbekannte Eigenschaft"
+msgstr ""
 
-#, fuzzy
 msgid "Unable to reopen"
-msgstr "Konnte GIV nicht senden"
+msgstr ""
 
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"stats %s\""
-msgstr "Unbekannte Operation"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"check %s\""
-msgstr "Unbekannte Operation"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"usage %s\""
-msgstr "Unbekannte Operation"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "IP/Port fehlerhaft"
@@ -6203,9 +5572,9 @@ msgstr[1] "%u Peers entfernt"
 msgid "Property missing"
 msgstr "Eigenschaft fehlt"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown property \"%s\""
-msgstr "Unbekannte Eigenschaft"
+msgstr ""
 
 msgid "Value: "
 msgstr "Wert:"
@@ -6231,9 +5600,8 @@ msgstr "Der Suchterm ist nicht UTF-8-kodiert"
 msgid "Search added"
 msgstr "Suche hinzugefügt"
 
-#, fuzzy
 msgid "The search could not be created"
-msgstr "Der Download konnte nicht gestartet werden"
+msgstr ""
 
 msgid "Unknown property"
 msgstr "Unbekannte Eigenschaft"
@@ -6271,9 +5639,9 @@ msgstr ""
 msgid "Malformed command"
 msgstr "Fehlerhaftes Kommando"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown command: \"%s\""
-msgstr "Unbekanntes Kommando"
+msgstr ""
 
 msgid "Help: "
 msgstr "Hilfe:"
@@ -6290,9 +5658,8 @@ msgstr ""
 msgid "SHA-1"
 msgstr "SHA-1"
 
-#, fuzzy
 msgid "Not available"
-msgstr "Keine Hilfe verfügbar"
+msgstr ""
 
 msgid "Bitprint"
 msgstr ""
@@ -6307,17 +5674,14 @@ msgstr ""
 msgid "Rescheduled for"
 msgstr ""
 
-#, fuzzy
 msgid "Restartable since"
-msgstr "\"stabil\" ist gesetzt"
+msgstr ""
 
-#, fuzzy
 msgid "rescheduled for"
-msgstr " um %s - geplant für %s%s #%u"
+msgstr ""
 
-#, fuzzy
 msgid "restartable since"
-msgstr "\"stabil\" ist gesetzt"
+msgstr ""
 
 #, c-format
 msgid " (slot %u"
@@ -6361,9 +5725,8 @@ msgstr "Anfrage gesendet"
 msgid "Reading headers"
 msgstr "Lese Kopfzeilen"
 
-#, fuzzy
 msgid "UDP push sent"
-msgstr "Push gesendet"
+msgstr ""
 
 msgid "Searching for new push-proxies"
 msgstr ""
@@ -6390,23 +5753,21 @@ msgstr "Beendet"
 msgid "Chunk done"
 msgstr "Stück fertig"
 
-#, fuzzy
 msgid "Waiting for TTH checking..."
-msgstr "Warte auf SHA1-Überprüfung..."
+msgstr ""
 
 msgid "Waiting for SHA1 checking..."
 msgstr "Warte auf SHA1-Überprüfung..."
 
-#, fuzzy, c-format
+#, c-format
 msgid "Computing %s (%.02f%%)"
-msgstr "Berechne SHA1 (%.02f%%)"
+msgstr ""
 
 msgid "TTH OK"
 msgstr ""
 
-#, fuzzy
 msgid "SHA-1 OK"
-msgstr "SHA-1"
+msgstr ""
 
 msgid "SHA-1 MISMATCH"
 msgstr ""
@@ -6431,28 +5792,23 @@ msgstr "; Datei verschoben (%s) %s"
 msgid "(stalled)"
 msgstr "(blockiert)"
 
-#, fuzzy
 msgid "Receiving data"
-msgstr "Empfange Kopfzeilen"
+msgstr ""
 
 msgid "ignoring"
 msgstr "ignorieren"
 
-#, fuzzy
 msgid "selected next"
-msgstr " Ausgewählte abbrechen "
+msgstr ""
 
-#, fuzzy
 msgid "requesting next"
-msgstr "Anfrage gesendet"
+msgstr ""
 
-#, fuzzy
 msgid "requested next"
-msgstr "Anfrage gesendet"
+msgstr ""
 
-#, fuzzy
 msgid "Awaiting data"
-msgstr "Warte"
+msgstr ""
 
 #, c-format
 msgid "Retry in %us"
@@ -6468,9 +5824,8 @@ msgid_plural "Forgot %u downloads"
 msgstr[0] "%u Download verworfen"
 msgstr[1] "%u Downloads verworfen"
 
-#, fuzzy
 msgid "Filename (filtered)"
-msgstr "Dateiname:"
+msgstr ""
 
 msgid "Progress"
 msgstr "Fortschritt"
@@ -6478,9 +5833,8 @@ msgstr "Fortschritt"
 msgid "RX"
 msgstr ""
 
-#, fuzzy
 msgid "Downloaded"
-msgstr "Heruntergeladen:"
+msgstr ""
 
 msgid "Uploaded"
 msgstr "Hochgeladen"
@@ -6494,9 +5848,8 @@ msgstr "Status"
 msgid "Active"
 msgstr "Aktiv"
 
-#, fuzzy
 msgid "Incomplete"
-msgstr "Fertig"
+msgstr ""
 
 msgid "Orphaned"
 msgstr ""
@@ -6504,9 +5857,9 @@ msgstr ""
 msgid "All"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "regex error: %s"
-msgstr "Lesefehler: %s"
+msgstr ""
 
 #, c-format
 msgid "Selected %u of %u download matching \"%s\"."
@@ -6532,9 +5885,8 @@ msgstr "passt auf den regulären Ausdruck"
 msgid "is exactly"
 msgstr "ist exakt"
 
-#, fuzzy
 msgid "Built-in targets"
-msgstr "Eingebaute Ziele (nicht editierbar)"
+msgstr ""
 
 msgid "Global filters"
 msgstr "Globale Filter"
@@ -6691,9 +6043,8 @@ msgstr "(deaktiviert)"
 msgid "(invalid)"
 msgstr "(ungültig)"
 
-#, fuzzy
 msgid "<Archive>"
-msgstr "Aktiv"
+msgstr ""
 
 msgid "<Audio>"
 msgstr ""
@@ -6768,13 +6119,11 @@ msgstr " mit Quellen"
 msgid "$Id$"
 msgstr ""
 
-#, fuzzy
 msgid "%v/%u (%P%%)"
-msgstr "%u/%u Host (%u%%)"
+msgstr ""
 
-#, fuzzy
 msgid "%v/%u Gnutella peers"
-msgstr "%v/%u Gnutella-Peers"
+msgstr ""
 
 msgid "%v/%u downloads"
 msgstr "%v/%u Downloads"
@@ -6799,8 +6148,7 @@ msgstr ""
 
 msgid ""
 "==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr ""
-"==> Wir suchen nach Leuten, die zu diesem Programm beitragen möchten. <=="
+msgstr "==> Wir suchen nach Leuten, die zu diesem Programm beitragen möchten. <=="
 
 msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
@@ -6808,8 +6156,7 @@ msgid ""
 msgstr ""
 
 msgid "A passive search matches any search results routed through this node"
-msgstr ""
-"Eine passive Suche zeigt alle Suchergebnisse, die durch diesen Peer laufen"
+msgstr "Eine passive Suche zeigt alle Suchergebnisse, die durch diesen Peer laufen"
 
 msgid "A_ggressive mode"
 msgstr "A_ggressiver Modus"
@@ -6827,9 +6174,7 @@ msgid "Act as OOB proxy for leaves"
 msgstr ""
 
 msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
-msgstr ""
-"Derzeitige Anzahl benutzter Dateideskriptoren - kann nicht zur Laufzeit "
-"geändert werden"
+msgstr "Derzeitige Anzahl benutzter Dateideskriptoren - kann nicht zur Laufzeit geändert werden"
 
 msgid "Add IP rule"
 msgstr "IP-Regel hinzufügen"
@@ -6884,9 +6229,8 @@ msgstr "Einträge für beendete Uploads automatisch entfernen"
 msgid "Auto clear failed uploads"
 msgstr "Einträge für fehlgeschlagene Uploads automatisch entfernen"
 
-#, fuzzy
 msgid "Automatically clear finished files"
-msgstr "Angehaltene Downloads automatisch entfernen"
+msgstr ""
 
 msgid "Automatically clear sources when..."
 msgstr ""
@@ -6903,23 +6247,20 @@ msgstr "Mittlere Zeit zwischen Änderungen der IP-Adresse:"
 msgid "Avg. uptime of this servent:"
 msgstr "Durchschnittliche Laufzeit dieses Servents:"
 
-#, fuzzy
 msgid "Avg. downtime of this servent:"
-msgstr "Durchschnittliche Laufzeit dieses Servents:"
+msgstr ""
 
 msgid "Bad hosts"
 msgstr "Schlechte Hosts"
 
-#, fuzzy
 msgid "Bandwidth limits for Gnutella traffic"
-msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
+msgstr ""
 
 msgid "Bandwidth limits for HTTP traffic"
 msgstr "Bandbreitenkontrolle für HTTP-Verkehr"
 
-#, fuzzy
 msgid "Bandwidth limits for the Distributed Hash Table"
-msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
+msgstr ""
 
 msgid "Bandwidth targets for node lookups"
 msgstr ""
@@ -6939,9 +6280,8 @@ msgstr "Binde an diese Adresse"
 msgid "Browse Host"
 msgstr ""
 
-#, fuzzy
 msgid "Browse host"
-msgstr "<Browse-Host-Anfrage>"
+msgstr ""
 
 msgid "Busy"
 msgstr "Beschäftigt"
@@ -6979,9 +6319,8 @@ msgstr "Fertige, fehlgeschlagene und nicht verfügbare entfernen"
 msgid "Clear non-existent files"
 msgstr "Nicht existierende Dateien entfernen"
 
-#, fuzzy
 msgid "Clear results"
-msgstr "Ergebnisse _leeren"
+msgstr ""
 
 msgid "Clear stopped"
 msgstr "Angehaltene entfernen"
@@ -6998,9 +6337,8 @@ msgstr "Zeitabweichung:"
 msgid "Clock synchronization"
 msgstr "Uhrensynchronisation"
 
-#, fuzzy
 msgid "Close"
-msgstr "_Schließen"
+msgstr ""
 
 msgid "Collapse all"
 msgstr "Alles zuklappen"
@@ -7053,9 +6391,8 @@ msgstr "Verbindungs-Timeout"
 msgid "Connectin_g timeout"
 msgstr "Verbindungsaufbau-Timeout"
 
-#, fuzzy
 msgid "Connection counters"
-msgstr "Verbindungsaufbau-Timeout"
+msgstr ""
 
 msgid "Connection settings"
 msgstr "Verbindungseinstellungen"
@@ -7083,9 +6420,8 @@ msgstr "URL in die Zwischenablage kopieren"
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
-#, fuzzy
 msgid "Copy magnet to clipboard"
-msgstr "Magnet in Zwischenablage kopieren"
+msgstr ""
 
 msgid "Copy rule"
 msgstr "Regel kopieren"
@@ -7114,13 +6450,11 @@ msgstr "Suche:"
 msgid "Currently used"
 msgstr "Derzeit benutzt"
 
-#, fuzzy
 msgid "DHT traffic stats"
-msgstr "HTTP-Verkehr"
+msgstr ""
 
-#, fuzzy
 msgid "DHT traffic"
-msgstr "HTTP-Verkehr"
+msgstr ""
 
 msgid "Debugging"
 msgstr ""
@@ -7149,9 +6483,8 @@ msgstr "Wartezeiten und Zeitüberschreitungen (in Sekunden)"
 msgid "Delete file on abort"
 msgstr "Datei nach Abbruch löschen"
 
-#, fuzzy
 msgid "Delete file on mismatch"
-msgstr "Datei bei Prüfsummenfehler löschen"
+msgstr ""
 
 msgid "Detailed traffic information to display"
 msgstr "Anzuzeigende Verkehrsinformationen"
@@ -7180,9 +6513,8 @@ msgstr "Diverse Eigenschaften"
 msgid "Do you really want to quit?"
 msgstr "Wirklich beenden?"
 
-#, fuzzy
 msgid "Download"
-msgstr "Downloads"
+msgstr ""
 
 msgid "Downloaded:"
 msgstr "Heruntergeladen:"
@@ -7208,9 +6540,8 @@ msgstr "Wert editieren:"
 msgid "Enable \"_Browse Host\" feature"
 msgstr "\"_Browse Host\"-Feature aktivieren"
 
-#, fuzzy
 msgid "Enable _DHT"
-msgstr "_UDP aktivieren"
+msgstr ""
 
 msgid "Enable _UDP"
 msgstr "_UDP aktivieren"
@@ -7246,9 +6577,7 @@ msgid ""
 "Enter a semicolon separated list of networks that are local to you in the "
 "form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
 "192.168.1.0/255.255.255.0)"
-msgstr ""
-"Eine per Semikolon getrennte Liste von lokalen Netzwerken in der Form IP/"
-"Bits oder IP/Netzmaske (z.B. 192.168.1.0/24 oder 192.168.1.0/255.255.255.0)"
+msgstr "Eine per Semikolon getrennte Liste von lokalen Netzwerken in der Form IP/Bits oder IP/Netzmaske (z.B. 192.168.1.0/24 oder 192.168.1.0/255.255.255.0)"
 
 msgid "Expand all"
 msgstr "Alles aufklappen"
@@ -7298,16 +6627,13 @@ msgstr "Erzwinge externe IPv6-Adresse"
 msgid "Force push mode"
 msgstr "Push-Modus erzwingen"
 
-#, fuzzy
 msgid "Forget"
-msgstr "Ziel"
+msgstr ""
 
 msgid ""
 "Forwarded\n"
 "message"
-msgstr ""
-"Weitergeleitete\n"
-"Pakete"
+msgstr "Weitergeleitete\nPakete"
 
 msgid "Freeze queue"
 msgstr "Warteschlange einfrieren"
@@ -7324,9 +6650,8 @@ msgstr "GUI-Entwicklung:"
 msgid "GUID:"
 msgstr "GUID:"
 
-#, fuzzy
 msgid "KUID:"
-msgstr "GUID:"
+msgstr ""
 
 msgid "Gen. queued"
 msgstr ""
@@ -7346,44 +6671,35 @@ msgstr "Generierte Anfragen"
 msgid "Generation:"
 msgstr ""
 
-#, fuzzy
 msgid "Global DHT outgoing traffic"
-msgstr "_Ausgehenden HTTP-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella TTL settings"
-msgstr "GnutellaNet-TTL-Einstellungen"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella _leaf traffic stats"
-msgstr "_Leaf-Verkehr-Statistik"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella display"
-msgstr "GnutellaNet-Anzeige"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella message size limits"
-msgstr "Gnet-Paketgrößenbeschränkungen"
+msgstr ""
 
 msgid "Gnutella network mode"
 msgstr "Gnutella Netzwerkmodus"
 
-#, fuzzy
 msgid "Gnutella peers"
-msgstr "Gnutella-Statistiken"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella timeouts (all values in seconds)"
-msgstr "GnutellaNet-Timeouts (alle Werte in Sekunden)"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella traffic"
-msgstr "GnutellaNet-Verkehr"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella"
-msgstr "_GnutellaNet"
+msgstr ""
 
 msgid "HTTP traffic"
 msgstr "HTTP-Verkehr"
@@ -7487,20 +6803,17 @@ msgstr ""
 msgid "Large enough uptime"
 msgstr "Uptime genügend groß"
 
-#, fuzzy
 msgid "Last Request"
-msgstr "Letzter Wechsel"
+msgstr ""
 
-#, fuzzy
 msgid "Last Upload"
-msgstr "Uploads"
+msgstr ""
 
 msgid "Last check"
 msgstr "Letzte Überprüfung"
 
-#, fuzzy
 msgid "Last chunk size"
-msgstr "Größe des ersten Blocks"
+msgstr ""
 
 msgid "Last scan initiated on:"
 msgstr "Zuletzt gestarteter Scan:"
@@ -7574,13 +6887,11 @@ msgstr "Max. Anzahl reservierter Dateideskriptoren"
 msgid "Max. number of browse host results"
 msgstr "Max. Anzahl von Browse-Host-Ergebnissen"
 
-#, fuzzy
 msgid "Max. number of passive results"
-msgstr "Max. _Trefferzahl"
+msgstr ""
 
-#, fuzzy
 msgid "Max. number of What's New? results"
-msgstr "Max. _Trefferzahl"
+msgstr ""
 
 msgid "Max. simultaneous downloads per file"
 msgstr "Max. gleichzeitige Downloads pro Datei"
@@ -7612,9 +6923,7 @@ msgstr "Maximale Größe:"
 msgid ""
 "Maximum size\n"
 "allowed"
-msgstr ""
-"Maximal erlaubte\n"
-"Größe"
+msgstr "Maximal erlaubte\nGröße"
 
 msgid "Maximum"
 msgstr "Maximum"
@@ -7718,9 +7027,8 @@ msgstr ""
 msgid "Outgoing traffic to lea_ves"
 msgstr "Ausgehenden Leaf-Verkehr anzeigen"
 
-#, fuzzy
 msgid "Output bandwidth average"
-msgstr "Gesamte ausgehende Bandbreitenbegrenzung:"
+msgstr ""
 
 msgid "PARQ development:"
 msgstr "PARQ-Entwicklung:"
@@ -7744,10 +7052,10 @@ msgid "Pending local queries"
 msgstr ""
 
 msgid ""
-"People can connect to you via TCP, but you are UDP-firewalled.  However, you "
-"can punch a hole into that firewall, allowing reception of replies to your "
-"UDP packets.  You will be able to send out-of-band query hits, but you won't "
-"be able to receive any."
+"People can connect to you via TCP, but you are UDP-firewalled.  However, you"
+" can punch a hole into that firewall, allowing reception of replies to your "
+"UDP packets.  You will be able to send out-of-band query hits, but you won't"
+" be able to receive any."
 msgstr ""
 
 msgid ""
@@ -7866,9 +7174,7 @@ msgstr "Weitergeleitet"
 msgid ""
 "Remove all rules\n"
 "from this filter"
-msgstr ""
-"Alle Regeln in diesem\n"
-"Filter löschen"
+msgstr "Alle Regeln in diesem\nFilter löschen"
 
 msgid "Remove filter"
 msgstr "Filter löschen"
@@ -7888,31 +7194,23 @@ msgstr "_Servername benötigt"
 msgid ""
 "Reset all rule stats\n"
 "in this filter"
-msgstr ""
-"Alle Regelstatistiken für\n"
-"diesen Filter zurücksetzen"
+msgstr "Alle Regelstatistiken für\ndiesen Filter zurücksetzen"
 
 msgid ""
 "Reset filter stats\n"
 "for all filters"
-msgstr ""
-"Filterstatistiken aller\n"
-"Filter zurücksetzen"
+msgstr "Filterstatistiken aller\nFilter zurücksetzen"
 
 msgid ""
 "Reset filter stats\n"
 "for this filter"
-msgstr ""
-"Filterstatistiken für\n"
-"diesen Filter zurücksetzen"
+msgstr "Filterstatistiken für\ndiesen Filter zurücksetzen"
 
-#, fuzzy
 msgid "Restart"
-msgstr "_Statistik zurücksetzen"
+msgstr ""
 
-#, fuzzy
 msgid "Resu_me"
-msgstr "Wiederaufnehmen"
+msgstr ""
 
 msgid "Resume and retry"
 msgstr ""
@@ -7968,13 +7266,11 @@ msgstr "Speichern"
 msgid "Saved"
 msgstr "Gespeichert"
 
-#, fuzzy
 msgid "Search Monitor"
-msgstr "Suchfilter"
+msgstr ""
 
-#, fuzzy
 msgid "Search Stats"
-msgstr "Suchen"
+msgstr ""
 
 msgid "Search Term"
 msgstr "Suchbegriff"
@@ -7994,9 +7290,8 @@ msgstr "Suchen"
 msgid "Searches"
 msgstr "Suchen"
 
-#, fuzzy
 msgid "Select files by regex"
-msgstr "Alle auf Ausdruck passende selektieren"
+msgstr ""
 
 msgid "Selected property:"
 msgstr ""
@@ -8004,37 +7299,29 @@ msgstr ""
 msgid "Server"
 msgstr "Server"
 
-#, fuzzy
 msgid "Settings"
-msgstr "Einstellungen einblenden"
+msgstr ""
 
-#, fuzzy
 msgid "Show Search_bar"
-msgstr "_Suchleiste anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show Status_bar"
-msgstr "_Statusleiste anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _Connections"
-msgstr "_Verbindungen anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _Downloads"
-msgstr "_Downloads anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _Menubar"
-msgstr "Seite_nleiste anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _Sidebar"
-msgstr "Seite_nleiste anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _Uploads"
-msgstr "_Uploads anzeigen"
+msgstr ""
 
 msgid "Show _bytes"
 msgstr "_Bytes anzeigen"
@@ -8042,17 +7329,14 @@ msgstr "_Bytes anzeigen"
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "Beim Beenden von gtk-gnutella Bestätigungsdialog anzeigen"
 
-#, fuzzy
 msgid "Show _inbound Gnutella traffic"
-msgstr "GnutellaNet-Verkehr"
+msgstr ""
 
-#, fuzzy
 msgid "Show _inbound HTTP traffic"
-msgstr "e_ingehenden Gnutella-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _inbound leaf traffic"
-msgstr "e_ingehenden Gnutella-Verkehr anzeigen"
+msgstr ""
 
 msgid "Show _last"
 msgstr "Zeige die _letzten"
@@ -8060,17 +7344,14 @@ msgstr "Zeige die _letzten"
 msgid "Show _metric units"
 msgstr "Metrische Einheiten anzeigen"
 
-#, fuzzy
 msgid "Show _outbound Gnutella traffic"
-msgstr "GnutellaNet-Verkehr"
+msgstr ""
 
-#, fuzzy
 msgid "Show _outbound HTTP traffic"
-msgstr "_ausgehenden Gnutella-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _outbound leaf traffic"
-msgstr "_ausgehenden Gnutella-Verkehr anzeigen"
+msgstr ""
 
 msgid "Show _percentages"
 msgstr "_Prozentuale Anteile anzeigen"
@@ -8078,18 +7359,15 @@ msgstr "_Prozentuale Anteile anzeigen"
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "Tooltips anzeigen (geht noch nicht überall)"
 
-msgid "Show additional information and settings for advanced and _expert users"
-msgstr ""
-"Zusätzliche Informationen und Einstellungen für _Fortgeschrittene/Experten "
-"anzeigen."
+msgid ""
+"Show additional information and settings for advanced and _expert users"
+msgstr "Zusätzliche Informationen und Einstellungen für _Fortgeschrittene/Experten anzeigen."
 
-#, fuzzy
 msgid "Show inbound DHT traffic"
-msgstr "e_ingehenden Gnutella-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show outbound DHT traffic"
-msgstr "_ausgehenden Gnutella-Verkehr anzeigen"
+msgstr ""
 
 msgid "Show pr_otocol:"
 msgstr "Zeige Pr_otokoll:"
@@ -8103,15 +7381,11 @@ msgstr "Reiter anzeigen"
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
 "downloaded, with the brighter green chunks touched during this session. "
-"Yellow chunks are active right now; these active chunks are also marked with "
-"a triangle. Red chunks have not been downloaded yet. The blue line indicates "
-"which parts of the file have been seen on the network in this session."
-msgstr ""
-"Zeigt Informationen zum Fortschritt des Downloads. Grüne Stücke wurden "
-"heruntergeladen, wobei die hellgrünen Stücke seit Programmstart angefasst "
-"wurden. Gelbe Stücke sind gerade aktiv. Rote Stücke wurden noch nicht "
-"heruntergeladen. Die blaue Linie gibt an, welche Dateiteile seit "
-"Programmstart im Netz gesehen wurden."
+"Yellow chunks are active right now; these active chunks are also marked with"
+" a triangle. Red chunks have not been downloaded yet. The blue line "
+"indicates which parts of the file have been seen on the network in this "
+"session."
+msgstr "Zeigt Informationen zum Fortschritt des Downloads. Grüne Stücke wurden heruntergeladen, wobei die hellgrünen Stücke seit Programmstart angefasst wurden. Gelbe Stücke sind gerade aktiv. Rote Stücke wurden noch nicht heruntergeladen. Die blaue Linie gibt an, welche Dateiteile seit Programmstart im Netz gesehen wurden."
 
 msgid "Similar query half-life"
 msgstr ""
@@ -8142,9 +7416,8 @@ msgstr "Stabil"
 msgid "Start now"
 msgstr "Jetzt starten"
 
-#, fuzzy
 msgid "Statistics"
-msgstr "Statistiken"
+msgstr ""
 
 msgid "Statistics:"
 msgstr "Statistiken"
@@ -8194,35 +7467,26 @@ msgstr "Warteschlange freigeben"
 msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to File->Preferences->Network."
-msgstr ""
-"Aktuelle IP-Adresse/Port für diesen Peer. Änderbar in den "
-"Netzwerkeinstellungen."
+msgstr "Aktuelle IP-Adresse/Port für diesen Peer. Änderbar in den Netzwerkeinstellungen."
 
 msgid ""
-"There is no condition. When this rule is reached, the matching will continue "
-"in the specified target filter. That's also why you can't invert this "
+"There is no condition. When this rule is reached, the matching will continue"
+" in the specified target filter. That's also why you can't invert this "
 "condition. If you could, this rule would just be ignored."
-msgstr ""
-"Keine Bedingung vorhanden. Wenn diese Regel erreicht wird, wird zum "
-"angegebenen Ziel gesprungen. Deshalb kann diese Bedingung nicht invertiert "
-"werden. Falls dies möglich wäre, würde die Regel einfach ignoriert."
+msgstr "Keine Bedingung vorhanden. Wenn diese Regel erreicht wird, wird zum angegebenen Ziel gesprungen. Deshalb kann diese Bedingung nicht invertiert werden. Falls dies möglich wäre, würde die Regel einfach ignoriert."
 
 msgid "This Interval"
 msgstr "In diesem Intervall"
 
 msgid ""
-"This limits how many results gnutella returns to other people searching your "
-"files."
-msgstr ""
-"Dieses Limit gibt an, wieviele Suchergebnisse von Dir maximal an anfragende "
-"Peers zurückgeliefert werden sollen."
+"This limits how many results gnutella returns to other people searching your"
+" files."
+msgstr "Dieses Limit gibt an, wieviele Suchergebnisse von Dir maximal an anfragende Peers zurückgeliefert werden sollen."
 
 msgid ""
 "This product includes GeoIP data created by MaxMind, available from\n"
 "http://maxmind.com/"
-msgstr ""
-"Dieses Produkt enthält GeoIP-Daten erstellt von MaxMind, verfügbar bei\n"
-"http://maxmind.com/"
+msgstr "Dieses Produkt enthält GeoIP-Daten erstellt von MaxMind, verfügbar bei\nhttp://maxmind.com/"
 
 msgid "Timeouts (all values in seconds)"
 msgstr "Timeouts (alle Werte in Sekunden)"
@@ -8269,16 +7533,13 @@ msgstr "Ultrapeers"
 msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
 "additional upload slots on request."
-msgstr ""
-"Bis der konfigurierte Prozentanteil ausgehenden HTTP-Bandbreite erreicht "
-"ist, öffne auf Anfrage zusätzliche Upload-Slots."
+msgstr "Bis der konfigurierte Prozentanteil ausgehenden HTTP-Bandbreite erreicht ist, öffne auf Anfrage zusätzliche Upload-Slots."
 
 msgid "Update search results pane every"
 msgstr "Suchergebnisanzeige aktualisieren alle"
 
-#, fuzzy
 msgid "Upload History"
-msgstr "Upload-Historie"
+msgstr ""
 
 msgid "Uploaded:"
 msgstr "Hochgeladen:"
@@ -8350,14 +7611,11 @@ msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
 "download files. You will not see push results, which may prevent you from "
 "seeing a large amount of results."
-msgstr ""
-"gtk-gnutella vermutet, es befinde sich hinter einer Firewall. Bisher niemand "
-"zu diesem Peer verbunden. Push-Ergebnisse werden nicht angezeigt, daher ist "
-"die Anzahl der Suchergebnisse womöglich stark reduziert.."
+msgstr "gtk-gnutella vermutet, es befinde sich hinter einer Firewall. Bisher niemand zu diesem Peer verbunden. Push-Ergebnisse werden nicht angezeigt, daher ist die Anzahl der Suchergebnisse womöglich stark reduziert.."
 
 msgid ""
-"You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic "
-"via UDP. You will not be able to send queries requesting out-of-band "
+"You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic"
+" via UDP. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
 
@@ -8365,8 +7623,8 @@ msgid ""
 "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
 "any push results, which may prevent you from seeing a large amount of "
 "results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits. However, it is possible to punch a hole into the UDP "
-"firewall, so you will be able to send out-of-band query hits."
+"delivery of query hits. However, it is possible to punch a hole into the UDP"
+" firewall, so you will be able to send out-of-band query hits."
 msgstr ""
 
 msgid ""
@@ -8374,10 +7632,7 @@ msgid ""
 "any push results, which may prevent you from seeing a large amount of "
 "results. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
-msgstr ""
-"gtk-gnutella vermutet, es befinde sich hinter einer Firewall. Bisher hat "
-"sich niemand zu diesem Peer verbunden. Push-Ergebnisse werden nicht "
-"angezeigt."
+msgstr "gtk-gnutella vermutet, es befinde sich hinter einer Firewall. Bisher hat sich niemand zu diesem Peer verbunden. Push-Ergebnisse werden nicht angezeigt."
 
 msgid "You seem to be offline."
 msgstr "Dieser Peer ist anscheinend offline."
@@ -8398,9 +7653,8 @@ msgstr " Verzeichnis hinzufügen "
 msgid "_Browse"
 msgstr ""
 
-#, fuzzy
 msgid "_Cancel"
-msgstr "Abbrechen"
+msgstr ""
 
 msgid "_Compute upload connection speed"
 msgstr "Ermittle Upload-Bandbreite"
@@ -8417,9 +7671,8 @@ msgstr "_Download-Empfangspuffer: "
 msgid "_Download selected"
 msgstr "Ausgewählte her_unterladen"
 
-#, fuzzy
 msgid "_Duplicate"
-msgstr "Paketduplikat"
+msgstr ""
 
 msgid "_Edit filters"
 msgstr "_Filter editieren"
@@ -8439,9 +7692,8 @@ msgstr "All_gemein"
 msgid "_Gnutella RX buffer:"
 msgstr "_Gnutella-Empfangspuffer: "
 
-#, fuzzy
 msgid "_Gnutella traffic stats"
-msgstr "Gnutella-Verkehr"
+msgstr ""
 
 msgid "_HTTP traffic stats"
 msgstr "HTTP-Verkehr"
@@ -8497,9 +7749,8 @@ msgstr "_Neu scannen"
 msgid "_Reset stats"
 msgstr "_Statistik zurücksetzen"
 
-#, fuzzy
 msgid "_Restart"
-msgstr "_Statistik zurücksetzen"
+msgstr ""
 
 msgid "_Stop"
 msgstr ""
@@ -8525,9 +7776,8 @@ msgstr "aktiv"
 msgid "and lasted"
 msgstr "und dauerte"
 
-#, fuzzy
 msgid "auto-hide DHT traffic stats"
-msgstr "Leaf-Verkehr _automatisch ausblenden"
+msgstr ""
 
 msgid "bytes"
 msgstr "Bytes"
@@ -8558,18 +7808,13 @@ msgid ""
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
-msgstr ""
-"gtk-gnutella wird beendet.\n"
-"Versende Bye-Nachrichten.\n"
-"\n"
-"Verbleibende Zeit:"
+msgstr "gtk-gnutella wird beendet.\nVersende Bye-Nachrichten.\n\nVerbleibende Zeit:"
 
 msgid "gtk-gnutella shutdown"
 msgstr ""
 
-#, fuzzy
 msgid "gtk-gnutella"
-msgstr "Über gtk-gnutella"
+msgstr ""
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Beenden?"
@@ -8589,9 +7834,8 @@ msgstr "eingehend"
 msgid "invert condition"
 msgstr "Bedingung invertieren"
 
-#, fuzzy
 msgid "invert"
-msgstr "Rückgängig"
+msgstr ""
 
 msgid "items"
 msgstr ""
@@ -8626,9 +7870,8 @@ msgstr "sek."
 msgid "set"
 msgstr ""
 
-#, fuzzy
 msgid "unavailable"
-msgstr "Nicht verfügbar"
+msgstr ""
 
 msgid "undefined"
 msgstr "undefiniert"
@@ -8639,13 +7882,11 @@ msgstr ""
 msgid "uploads"
 msgstr "Uploads"
 
-#, fuzzy
 msgid "Available HTTP input bandwidth"
-msgstr "Verfügbare Bandbreite"
+msgstr ""
 
-#, fuzzy
 msgid "Available HTTP output bandwidth"
-msgstr "Verfügbare Bandbreite"
+msgstr ""
 
 msgid "DHT up, passive mode."
 msgstr ""
@@ -8659,21 +7900,17 @@ msgstr ""
 msgid "DHT looking up own KUID."
 msgstr ""
 
-#, fuzzy
 msgid "DHT seeded."
-msgstr "TX-Geschw."
+msgstr ""
 
-#, fuzzy
 msgid "DHT inactive."
-msgstr "%u aktiv"
+msgstr ""
 
-#, fuzzy
 msgid "Disabled stealing of outgoing HTTP bandwidth."
-msgstr "Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr "Mittlere Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
+msgstr ""
 
 msgid "Capping HTTP outgoing bandwidth."
 msgstr ""
@@ -8687,24 +7924,20 @@ msgstr ""
 msgid "Port mapping configured through UPnP."
 msgstr ""
 
-#, fuzzy
 msgid "Enable UPnP"
-msgstr "_UDP aktivieren"
+msgstr ""
 
-#, fuzzy
 msgid "Enable NAT-PMP"
-msgstr "_UDP aktivieren"
+msgstr ""
 
 msgid "Enable HTTP request pipelining"
 msgstr ""
 
-#, fuzzy
 msgid "Pipelining max chunk size"
-msgstr "Mindestblockgröße"
+msgstr ""
 
-#, fuzzy
 msgid "Enable upload of partial files deemed rare"
-msgstr "Erlaube das Hochladen von noch unvollständigen Dateien"
+msgstr ""
 
 msgid "Enable GUESS (additional querying)"
 msgstr ""
@@ -8712,17 +7945,14 @@ msgstr ""
 msgid "Issue GUESS queries as well"
 msgstr ""
 
-#, fuzzy
 msgid "Bandwidth limits for GUESS queries"
-msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
+msgstr ""
 
-#, fuzzy
 msgid "Output bandwidth hint"
-msgstr "Gesamte ausgehende Bandbreitenbegrenzung:"
+msgstr ""
 
-#, fuzzy
 msgid "Download queue is frozen."
-msgstr "Download-Queue ist eingefroren"
+msgstr ""
 
 msgid "Allow TTH discovery"
 msgstr ""
@@ -8733,36 +7963,29 @@ msgstr ""
 msgid "Answer to queries for partial files"
 msgstr ""
 
-#, fuzzy
 msgid "Answer to what's-new? queries"
-msgstr "Generierte Anfragen"
+msgstr ""
 
-#, fuzzy
 msgid "Search Media Type"
-msgstr "Suchbegriff"
+msgstr ""
 
 msgid "Audio"
 msgstr ""
 
-#, fuzzy
 msgid "Video"
-msgstr "_Anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Document"
-msgstr "Anzahl"
+msgstr ""
 
-#, fuzzy
 msgid "Image"
-msgstr "Bereich"
+msgstr ""
 
-#, fuzzy
 msgid "Archive"
-msgstr "Aktiv"
+msgstr ""
 
-#, fuzzy
 msgid "Search Configuration"
-msgstr "Suchfilter"
+msgstr ""
 
 msgid "Stop search when last download completes"
 msgstr ""
@@ -8773,9 +7996,8 @@ msgstr ""
 msgid "What's new?"
 msgstr ""
 
-#, fuzzy
 msgid "Unspecified"
-msgstr "undefiniert"
+msgstr ""
 
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
@@ -8783,16 +8005,14 @@ msgstr ""
 msgid "Discard results bearing an alien IP address"
 msgstr ""
 
-#, fuzzy
 msgid "Discard results bearing a banned GUID"
-msgstr "Paket an verbannten GUID"
+msgstr ""
 
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
 
-#, fuzzy
 msgid "Configured DHT mode"
-msgstr "Eingestellter Peer-Modus"
+msgstr ""
 
 msgid "Store DHT keys/values in memory"
 msgstr ""
@@ -8806,9 +8026,8 @@ msgstr ""
 msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
 msgstr ""
 
-#, fuzzy
 msgid "Display GUESS statistics"
-msgstr "Upload-Statistik in Seitenleiste anzeigen"
+msgstr ""
 
 msgid "Mapping lease time"
 msgstr ""
@@ -8872,21 +8091,17 @@ msgstr "Filter _löschen"
 msgid "_Close"
 msgstr "_Schließen"
 
-#, fuzzy
 msgid "Show _Statusbar"
-msgstr "_Statusleiste anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Show _Peers"
-msgstr "Seite_nleiste anzeigen"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella _traffic stats"
-msgstr "Gnutella-Verkehr"
+msgstr ""
 
-#, fuzzy
 msgid "_Auto-hide leaf traffic stats"
-msgstr "Leaf-Verkehr _automatisch ausblenden"
+msgstr ""
 
 msgid "_Search"
 msgstr "_Suchen"
@@ -8897,9 +8112,8 @@ msgstr ""
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
-#, fuzzy
 msgid "CPU overloaded"
-msgstr "Hochgeladen"
+msgstr ""
 
 msgid "Connect to"
 msgstr "Verbinden mit"
@@ -8920,16 +8134,12 @@ msgid "Use up to "
 msgstr "Bis zu "
 
 msgid "connections to connect more quickly while not all slots are used."
-msgstr ""
-"für schnelleren Verbindungsaufbau nutzen, falls noch nicht alle Slots belegt "
-"sind."
+msgstr "für schnelleren Verbindungsaufbau nutzen, falls noch nicht alle Slots belegt sind."
 
 msgid ""
 "The Global Unique IDentifier associated with this node. It's used for "
 "routing packets in the Gnutella network."
-msgstr ""
-"Die globale ID (GUID) dieses Peers. Diese wird für das Routing der Pakete "
-"innerhalb des Gnutella-Netzwerks benutzt."
+msgstr "Die globale ID (GUID) dieses Peers. Diese wird für das Routing der Pakete innerhalb des Gnutella-Netzwerks benutzt."
 
 msgid "[GUID placeholder]"
 msgstr ""
@@ -9021,10 +8231,7 @@ msgstr ""
 msgid ""
 "This option can give performance boosts to those on a large network with "
 "many peers by trying to locate files on the local networks first."
-msgstr ""
-"Diese Option kann mittels stärker priorisierter Dateisuche in lokalen "
-"Netzwerke zu erheblichen Leistungssteigerungen in großen Netzwerken mit "
-"vielen Teilnehmern führen."
+msgstr "Diese Option kann mittels stärker priorisierter Dateisuche in lokalen Netzwerke zu erheblichen Leistungssteigerungen in großen Netzwerken mit vielen Teilnehmern führen."
 
 msgid "_Addresses of local network(s)"
 msgstr "A_dressen lokaler Netzwerke"
@@ -9038,9 +8245,8 @@ msgstr "Slots"
 msgid "unit_of_time|s"
 msgstr ""
 
-#, fuzzy
 msgid "Gnutella Distributed Hash Table"
-msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
+msgstr ""
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Max. Prozentsatz, den ein Client-Typ einnehmen kann."
@@ -9048,9 +8254,8 @@ msgstr "Max. Prozentsatz, den ein Client-Typ einnehmen kann."
 msgid "attempts"
 msgstr "Versuche"
 
-#, fuzzy
 msgid "Pipelining maximum chunk size"
-msgstr "Mindestblockgröße"
+msgstr ""
 
 msgid "_Remove directory"
 msgstr "Verzeichnis _entfernen"
@@ -9058,13 +8263,11 @@ msgstr "Verzeichnis _entfernen"
 msgid "Minimum chunk _size"
 msgstr "M_inimale Stückgröße"
 
-#, fuzzy
 msgid "Show a status _icon"
-msgstr "Zeige G_ründe für"
+msgstr ""
 
-#, fuzzy
 msgid "Avg. downtime of this servent"
-msgstr "Durchschnittliche Laufzeit dieses Servents:"
+msgstr ""
 
 msgid "Remove completed downloads from list"
 msgstr "Fertige Downloads von Liste entfernen"
@@ -9139,9 +8342,8 @@ msgstr ""
 msgid "Unstable"
 msgstr "Instabil"
 
-#, fuzzy
 msgid "Alien"
-msgstr "Aliase"
+msgstr ""
 
 msgid "GUESS (IPv4 running)"
 msgstr ""
@@ -9170,9 +8372,10 @@ msgstr[0] "%d Sekunde"
 msgstr[1] "%d Sekunden"
 
 msgid ""
-"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
-"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
-"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ"
+" document could not be loaded. Please read the <a href=\"http://gtk-"
+"gnutella.sourceforge.net/?page=faq\">FAQ online</a> "
+"instead.</p></body></html>"
 msgstr ""
 
 #, c-format
@@ -9190,9 +8393,8 @@ msgstr "Begrüßung gesendet"
 msgid "Welcome sent"
 msgstr "Willkommen gesendet"
 
-#, fuzzy
 msgid "No UDP traffic yet"
-msgstr "HTTP-Verkehr"
+msgstr ""
 
 #, c-format
 msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
@@ -9207,9 +8409,8 @@ msgstr "Empfange Begrüßung"
 msgid "UNKNOWN STATUS"
 msgstr ""
 
-#, fuzzy
 msgid "g2"
-msgstr ", g2"
+msgstr ""
 
 msgid "busy"
 msgstr "beschäftigt"
@@ -9226,9 +8427,8 @@ msgstr "Proxy"
 msgid "bogus"
 msgstr ""
 
-#, fuzzy
 msgid "alien"
-msgstr "Aliase"
+msgstr ""
 
 msgid "media"
 msgstr ""
@@ -9240,9 +8440,8 @@ msgstr "Keine Suche"
 msgid "Flushing queue (%u results pending)"
 msgstr ""
 
-#, fuzzy
 msgid "The search has been stopped"
-msgstr "Der Download konnte nicht gestartet werden"
+msgstr ""
 
 msgid "Passive search"
 msgstr "Passive Suche"
@@ -9254,19 +8453,17 @@ msgstr "Verfällt in %s"
 msgid "Expires with this session"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid " [%u download]"
 msgid_plural " [%u downloads]"
-msgstr[0] "%u Download"
-msgstr[1] "%u Downloads"
+msgstr[0] ""
+msgstr[1] ""
 
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
-msgstr ""
-"%u %s (%u übersprungen, %u ignoriert, %u  versteckt, %u auto-d/l, %u %s) "
-"Treffer: %u (%u TCP, %u UDP)"
+msgstr "%u %s (%u übersprungen, %u ignoriert, %u  versteckt, %u auto-d/l, %u %s) Treffer: %u (%u TCP, %u UDP)"
 
 msgid "item"
 msgid_plural "items"
@@ -9278,19 +8475,17 @@ msgid_plural "dupes"
 msgstr[0] ""
 msgstr[1] ""
 
-#, fuzzy
 msgid "No GUESS queries run yet"
-msgstr "UTF8-Anfragen"
+msgstr ""
 
 #, c-format
 msgid " previous took %s querying %zu %s with %zu %s kept"
 msgstr ""
 
-#, fuzzy
 msgid "host"
 msgid_plural "hosts"
-msgstr[0] "Host"
-msgstr[1] "Host"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "hit"
 msgid_plural "hits"
@@ -9301,29 +8496,26 @@ msgstr[1] ""
 msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
 msgstr ""
 
-#, fuzzy
 msgid "idle"
-msgstr "Datei"
+msgstr ""
 
-#, fuzzy
 msgid "query"
 msgid_plural "queries"
-msgstr[0] "Suche"
-msgstr[1] "Suche"
+msgstr[0] ""
+msgstr[1] ""
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
-"%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, "
+"(%zu+%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu "
+"%s%s%s]"
 msgstr ""
 
-#, fuzzy
 msgid "loose"
-msgstr "_Schließen"
+msgstr ""
 
-#, fuzzy
 msgid "bounded"
-msgstr "Status"
+msgstr ""
 
 msgid "ack"
 msgid_plural "acks"
@@ -9349,18 +8541,13 @@ msgid ""
 "Found old searches file. The search information has been\n"
 "stored in the new XML format and the old file is renamed to\n"
 "%s"
-msgstr ""
-"Alte Suchdatei gefunden. Die Datei wurde ins neue XML-Format\n"
-"konvertiert und die alte Datei umbenannt in\n"
-"%s"
+msgstr "Alte Suchdatei gefunden. Die Datei wurde ins neue XML-Format\nkonvertiert und die alte Datei umbenannt in\n%s"
 
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
-"konnte Datei %s nicht in %s umbenennen: %s\n"
-"Die XML-Datei wird bis zur Behebung des Problems nicht benutzt."
 
 msgid "<unparsed>"
 msgstr "<ignoriert>"
@@ -9387,13 +8574,11 @@ msgstr "Magnet-link wurde verabeitet (%s, %s)."
 msgid "Ignored unusable magnet link."
 msgstr "Unbrauchbarer Magnet-link wurde ignoriert."
 
-#, fuzzy
 msgid "Created download from URL."
-msgstr "%u Download gestartet"
+msgstr ""
 
-#, fuzzy
 msgid "Ignored unusable URL."
-msgstr "Unbrauchbarer Magnet-link wurde ignoriert."
+msgstr ""
 
 msgid "The given urn type is not supported."
 msgstr "Der gegebene URN-Typ ist nicht unterstützt."
@@ -9442,9 +8627,8 @@ msgstr ""
 msgid "No"
 msgstr "Nein"
 
-#, fuzzy
 msgid "Tag"
-msgstr "Ziel"
+msgstr ""
 
 msgid "Yes"
 msgstr "Ja"
@@ -9455,28 +8639,24 @@ msgstr "vielleicht"
 msgid "Source"
 msgstr "Quelle"
 
-#, fuzzy
 msgid "Alien IP"
-msgstr "Aliase"
+msgstr ""
 
 msgid "Alt-Locs"
 msgstr ""
 
-#, fuzzy
 msgid "Partial"
-msgstr "unvollständig"
+msgstr ""
 
 #, c-format
 msgid "%s [%.2f%%]"
 msgstr ""
 
-#, fuzzy
 msgid "Available"
-msgstr "Nicht verfügbar"
+msgstr ""
 
-#, fuzzy
 msgid "Last modification"
-msgstr "Detailinformation"
+msgstr ""
 
 msgid "Latinized"
 msgstr ""
@@ -9487,16 +8667,14 @@ msgstr "Pfadname"
 msgid "File URL"
 msgstr "File-URL"
 
-#, fuzzy
 msgid "Host information"
-msgstr "Detailinformation"
+msgstr ""
 
 msgid "Hostname"
 msgstr "Hostname"
 
-#, fuzzy
 msgid "banned"
-msgstr "Verbannt: %s"
+msgstr ""
 
 msgid "Servent ID"
 msgstr "Servent-ID"
@@ -9513,9 +8691,8 @@ msgstr "Feindselig"
 msgid "Push-proxies"
 msgstr ""
 
-#, fuzzy
 msgid "Packet information"
-msgstr "Detailinformation"
+msgstr ""
 
 msgid "Route"
 msgstr "Route"
@@ -9532,9 +8709,8 @@ msgstr ""
 msgid "N2R URI"
 msgstr "N2R-URI"
 
-#, fuzzy
 msgid "Push URL"
-msgstr "Push"
+msgstr ""
 
 msgid "Classic URL"
 msgstr "Klassische URL"
@@ -9582,11 +8758,11 @@ msgid "Reading ultra cache..."
 msgstr "Lese Ultra-Cache..."
 
 msgid ""
-"<html><head><title>Ancient version detected!</title></"
-"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
-"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
-"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
-"body></html>"
+"<html><head><title>Ancient version "
+"detected!</title></head><body><h1>Warning</h1><p>This version of gtk-"
+"gnutella is pretty old. Please visit <a href=\"http://gtk-"
+"gnutella.sourceforge.net/\">http://gtk-gnutella.sourceforge.net/</a> and "
+"update your copy of gtk-gnutella.</p></body></html>"
 msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
@@ -9713,107 +8889,3 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
-
-#~ msgid "%s%s%s%s%s fps, %s kbps"
-#~ msgstr "%s%s%s%s%s fps, %s kbps"
-
-#~ msgid "times|x"
-#~ msgstr "x"
-
-#~ msgid "Bitzi|Unknown"
-#~ msgstr "Unbekannt"
-
-#, fuzzy
-#~ msgid "Bitzi|Unrated"
-#~ msgstr "Unterbewertet"
-
-#~ msgid "Bitzi|Dangerous/Misleading"
-#~ msgstr "Gefährlich/Irreführend"
-
-#~ msgid "Bitzi|Incomplete/Damaged"
-#~ msgstr "Unvollständig/Beschädigt"
-
-#~ msgid "Bitzi|Substandard"
-#~ msgstr "Unterdurchschnittlich"
-
-#~ msgid "Bitzi|Overrated"
-#~ msgstr "Überbewertet"
-
-#~ msgid "Bitzi|Normal"
-#~ msgstr "Normal"
-
-#~ msgid "Bitzi|Underrated"
-#~ msgstr "Unterbewertet"
-
-#~ msgid "Bitzi|Complete"
-#~ msgstr "Komplett"
-
-#~ msgid "Bitzi|Recommended"
-#~ msgstr "Empfohlen"
-
-#~ msgid "Bitzi|Best Version"
-#~ msgstr "Beste Version"
-
-#~ msgid "Bitzi URL"
-#~ msgstr "Bitzi-URL"
-
-#, fuzzy
-#~ msgid "Bitzi Metadata"
-#~ msgstr "Meta-Daten bei bitzi.com anfragen"
-
-#, fuzzy
-#~ msgid "Bitzi metadata"
-#~ msgstr "Meta-Daten bei bitzi.com anfragen"
-
-#~ msgid "Not in database"
-#~ msgstr "Nicht in Datenbank"
-
-#~ msgid "Query queued..."
-#~ msgstr "In Warteschlange gestellt"
-
-#, fuzzy
-#~ msgid "Not in Bitzi database."
-#~ msgstr "Nicht in Datenbank"
-
-#~ msgid "Metadata"
-#~ msgstr "Meta-Daten"
-
-#~ msgid "%u/%u connection"
-#~ msgid_plural "%u/%u connections"
-#~ msgstr[0] "%u/%u Verbindung"
-#~ msgstr[1] "%u/%u Verbindungen"
-
-#, fuzzy
-#~ msgid "Splitting ougoing HTTP bandwidth evenly."
-#~ msgstr "Mittlere Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
-
-#, fuzzy
-#~ msgid "Enable upload of patial files deemed rare"
-#~ msgstr "Erlaube das Hochladen von noch unvollständigen Dateien"
-
-#, fuzzy
-#~ msgid "Global DHT ougoing traffic"
-#~ msgstr "_Ausgehenden HTTP-Verkehr anzeigen"
-
-#, fuzzy
-#~ msgid "Linux archives"
-#~ msgstr "%u aktiv"
-
-#~ msgid "Index"
-#~ msgstr "Index"
-
-#, fuzzy
-#~ msgid "Seaerch Media Type"
-#~ msgstr "Suchbegriff"
-
-#~ msgid "Can't reach host (Push or Direct)"
-#~ msgstr "Host nicht erreichbar (Push oder direkt)"
-
-#~ msgid "Banned for %s"
-#~ msgstr "Verbannt wegen %s"
-
-#~ msgid "ShareMonkey URL"
-#~ msgstr "ShareMonkey-URL"
-
-#~ msgid "Connecting"
-#~ msgstr "Verbinde"
