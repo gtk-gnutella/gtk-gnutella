@@ -25,7 +25,7 @@
  * @ingroup gtk
  * @file
  *
- * Displaying of file information in the GUI.
+ * Displaying of file information in the GUI ("Downloads" pane).
  *
  * @author Richard Eckart
  * @date 2003
@@ -37,6 +37,8 @@
 #include "gtk/downloads_common.h"
 #include "gtk/drag.h"
 #include "gtk/misc.h"
+
+#include "column_sort.h"
 
 #include "if/gui_property.h"
 
@@ -59,8 +61,7 @@ static GtkListStore *store_sources;
 
 #if GTK_CHECK_VERSION(2,6,0)
 static GtkSortType files_sort_type;
-static enum sorting_order files_sort_order;
-static int files_sort_column;
+static struct sorting_context files_sort;
 static int files_sort_depth;
 #endif	/* Gtk+ => 2.6.0 */
 
@@ -68,7 +69,7 @@ static void
 fi_gui_files_sort_reset(void)
 {
 #if GTK_CHECK_VERSION(2,6,0)
-	files_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+	files_sort.s_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
 	files_sort_type = GTK_SORT_ASCENDING;
 	files_sort_depth = 0;
 #endif	/* Gtk+ => 2.6.0 */
@@ -85,7 +86,7 @@ fi_gui_files_sort_save(void)
 
 		sortable = GTK_TREE_SORTABLE(store_files);
 		if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
-			files_sort_column = column;
+			files_sort.s_column = column;
 			files_sort_type = order;
 			gtk_tree_sortable_set_sort_column_id(sortable,
 					GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
@@ -102,9 +103,9 @@ fi_gui_files_sort_restore(void)
 	files_sort_depth--;
 
 	if (0 == files_sort_depth) {
-		if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != files_sort_column) {
+		if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != files_sort.s_column) {
 			gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store_files),
-					files_sort_column, files_sort_type);
+					files_sort.s_column, files_sort_type);
 		}
 	}
 #endif	/* Gtk+ => 2.6.0 */
@@ -629,73 +630,16 @@ store_files_init(void)
 	}
 }
 
-/*
- * Here we enforce a tri-state sorting. Normally, Gtk+ would only
- * switch between ascending and descending but never switch back
- * to the unsorted state.
- *
- *		+--> sort ascending -> sort descending -> unsorted -+
- *		|                                                   |
- *		+-----------------------<---------------------------+
+/**
+ * Enforce a tri-state sorting.
  */
-
-#if GTK_CHECK_VERSION(2,6,0)
 static void
 on_fileinfo_treeview_column_clicked(GtkTreeViewColumn *column, void *udata)
 {
-	GtkTreeModel *model;
-	GtkTreeSortable *sortable;
-	int sort_col;
-
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view));
-	sortable = GTK_TREE_SORTABLE(model);
-	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
-
 	(void) udata;
 
-	/* If the user switched to another sort column, reset the sort order */
-	if (files_sort_column != sort_col) {
-		files_sort_order = SORT_NONE;
-	}
-
-	files_sort_column = sort_col;
-
-	/* Tri-state permutation of the sorting order */
-
-	switch (files_sort_order) {
-	case SORT_NONE:
-	case SORT_NO_COL:
-		files_sort_order = SORT_ASC;
-		break;
-	case SORT_ASC:
-		files_sort_order = SORT_DESC;
-		break;
-	case SORT_DESC:
-		files_sort_order = SORT_NONE;
-		break;
-	}
-
-	/* Enforce sorting order */
-
-	switch (files_sort_order) {
-	case SORT_NONE:
-		files_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
-		gtk_tree_sortable_set_sort_column_id(sortable,
-			files_sort_column, GTK_SORT_DESCENDING);
-		break;
-	case SORT_DESC:
-		gtk_tree_sortable_set_sort_column_id(sortable,
-			files_sort_column, GTK_SORT_DESCENDING);
-		break;
-	case SORT_ASC:
-		gtk_tree_sortable_set_sort_column_id(sortable,
-			files_sort_column, GTK_SORT_ASCENDING);
-		break;
-	case SORT_NO_COL:
-		g_assert_not_reached();
-	}
+	 column_sort_tristate(column, &files_sort);
 }
-#endif	/* GTK+ >= 2.6.0 */
 
 static void
 treeview_download_files_init(void)
@@ -717,12 +661,8 @@ treeview_download_files_init(void)
 			c_fi_progress == i ? gtk_cell_renderer_progress_new() : NULL,
 			render_files);
 
-#if GTK_CHECK_VERSION(2,6,0)
-		gui_signal_connect_after(column,
-			"clicked", on_fileinfo_treeview_column_clicked, NULL);
-#else
-		(void) column;
-#endif	/* GTK+ >= 2.6.0 */
+		column_sort_tristate_register(column,
+			on_fileinfo_treeview_column_clicked, NULL);
 	}
 
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),

@@ -1122,6 +1122,8 @@ src/ui/gtk/gtk1/upload_stats.c
 src/ui/gtk/gtk1/uploads.c
 src/ui/gtk/gtk2/Jmakefile
 src/ui/gtk/gtk2/Makefile.SH
+src/ui/gtk/gtk2/column_sort.c
+src/ui/gtk/gtk2/column_sort.h
 src/ui/gtk/gtk2/fileinfo.c
 src/ui/gtk/gtk2/gnet_stats.c
 src/ui/gtk/gtk2/gtk-gnutella.glade

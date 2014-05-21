@@ -43,6 +43,8 @@
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 
+#include "column_sort.h"
+
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
@@ -523,61 +525,20 @@ search_gui_enable_sort(struct search *search)
 	}
 }
 
-/*
- * Here we enforce a tri-state sorting. Normally, Gtk+ would only
- * switch between ascending and descending but never switch back
- * to the unsorted state.
- *
- * 			+--> sort ascending -> sort descending -> unsorted -+
- *      	|                                                   |
- *      	+-----------------------<---------------------------+
- */
-
-/*
- * "order" is set to the current sort-order, not the previous one
- * i.e., Gtk+ has already changed the order
+/**
+ * Enforce a tri-state sorting.
  */
 static void
 on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	void *udata)
 {
 	struct search *search = udata;
-	GtkTreeModel *model;
-	GtkTreeSortable *sortable;
-	int sort_col;
 
-	/* The default treeview is empty */
-	if (!search)
-		return;
+	if (NULL == search)
+		return;				/* The default treeview is empty */
 
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view));
-	sortable = GTK_TREE_SORTABLE(model);
-	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
-
-	/* If the user switched to another sort column, reset the sort order. */
-	if (search->sorting.s_column != sort_col) {
-		search->sorting.s_order = SORT_NONE;
-	}
-
-	search->sorting.s_column = sort_col;
-
-	/* The search has to keep state about the sort order itself because
-	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
-	switch (search->sorting.s_order) {
-	case SORT_NONE:
-	case SORT_NO_COL:
-		search->sorting.s_order = SORT_ASC;
-		break;
-	case SORT_ASC:
-		search->sorting.s_order = SORT_DESC;
-		break;
-	case SORT_DESC:
-		search->sorting.s_order = SORT_NONE;
-		break;
-	}
-	search_gui_enable_sort(search);
+	column_sort_tristate(column, &search->sorting);
 }
-
 
 char *
 search_gui_get_local_file_url(GtkWidget *widget)
@@ -1279,8 +1240,9 @@ search_gui_show_search(struct search *search)
 			gtk_tree_sortable_set_sort_func(
 				GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)), i,
 				search_gui_cmp, uint_to_pointer(i), NULL);
-			gui_signal_connect_after(column,
-				"clicked", on_tree_view_search_results_click_column, search);
+
+			column_sort_tristate_register(column,
+				on_tree_view_search_results_click_column, search);
 		}
 	}
 }

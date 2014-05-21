@@ -25,7 +25,7 @@
  * @ingroup gtk
  * @file
  *
- * Needs short description here.
+ * Management of the GTK2 "Uploads" pane.
  *
  * @author Richard Eckart
  * @date 2001-2003
@@ -38,6 +38,8 @@
 #include "gtk/columns.h"
 #include "gtk/misc.h"
 #include "gtk/settings.h"
+
+#include "column_sort.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
@@ -67,8 +69,7 @@ static htable_t *upload_handles;
 static GSList *sl_removed_uploads;
 
 #if GTK_CHECK_VERSION(2,6,0)
-static enum sorting_order uploads_sort_order;
-static int uploads_sort_column;
+static struct sorting_context uploads_sort;
 #endif	/* GTK+ >= 2.6.0 */
 
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
@@ -654,73 +655,16 @@ uploads_gui_clear_completed(void)
 	}
 }
 
-/*
- * Here we enforce a tri-state sorting. Normally, Gtk+ would only
- * switch between ascending and descending but never switch back
- * to the unsorted state.
- *
- *		+--> sort ascending -> sort descending -> unsorted -+
- *		|                                                   |
- *		+-----------------------<---------------------------+
+/**
+ * Enforce a tri-state sorting.
  */
-
-#if GTK_CHECK_VERSION(2,6,0)
 static void
 on_uploads_treeview_column_clicked(GtkTreeViewColumn *column, void *udata)
 {
-	GtkTreeModel *model;
-	GtkTreeSortable *sortable;
-	int sort_col;
-
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view));
-	sortable = GTK_TREE_SORTABLE(model);
-	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
-
 	(void) udata;
 
-	/* If the user switched to another sort column, reset the sort order */
-	if (uploads_sort_column != sort_col) {
-		uploads_sort_order = SORT_NONE;
-	}
-
-	uploads_sort_column = sort_col;
-
-	/* Tri-state permutation of the sorting order */
-
-	switch (uploads_sort_order) {
-	case SORT_NONE:
-	case SORT_NO_COL:
-		uploads_sort_order = SORT_ASC;
-		break;
-	case SORT_ASC:
-		uploads_sort_order = SORT_DESC;
-		break;
-	case SORT_DESC:
-		uploads_sort_order = SORT_NONE;
-		break;
-	}
-
-	/* Enforce sorting order */
-
-	switch (uploads_sort_order) {
-	case SORT_NONE:
-		uploads_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
-		gtk_tree_sortable_set_sort_column_id(sortable,
-			uploads_sort_column, GTK_SORT_DESCENDING);
-		break;
-	case SORT_DESC:
-		gtk_tree_sortable_set_sort_column_id(sortable,
-			uploads_sort_column, GTK_SORT_DESCENDING);
-		break;
-	case SORT_ASC:
-		gtk_tree_sortable_set_sort_column_id(sortable,
-			uploads_sort_column, GTK_SORT_ASCENDING);
-		break;
-	case SORT_NO_COL:
-		g_assert_not_reached();
-	}
+	column_sort_tristate(column, &uploads_sort);
 }
-#endif	/* GTK+ >= 2.6.0 */
 
 void
 uploads_gui_init(void)
@@ -758,12 +702,8 @@ uploads_gui_init(void)
 				? GTK_TYPE_CELL_RENDERER_PROGRESS
 				: GTK_TYPE_CELL_RENDERER_TEXT);
 
-#if GTK_CHECK_VERSION(2,6,0)
-		gui_signal_connect_after(column,
-			"clicked", on_uploads_treeview_column_clicked, NULL);
-#else
-		(void) column;
-#endif	/* GTK+ >= 2.6.0 */
+		column_sort_tristate_register(column,
+			on_uploads_treeview_column_clicked, NULL);
 	}
 	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
