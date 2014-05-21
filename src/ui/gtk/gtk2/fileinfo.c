@@ -58,7 +58,8 @@ static GtkListStore *store_files;
 static GtkListStore *store_sources;
 
 #if GTK_CHECK_VERSION(2,6,0)
-static GtkSortType files_sort_order;
+static GtkSortType files_sort_type;
+static enum sorting_order files_sort_order;
 static int files_sort_column;
 static int files_sort_depth;
 #endif	/* Gtk+ => 2.6.0 */
@@ -68,7 +69,7 @@ fi_gui_files_sort_reset(void)
 {
 #if GTK_CHECK_VERSION(2,6,0)
 	files_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
-	files_sort_order = GTK_SORT_ASCENDING;
+	files_sort_type = GTK_SORT_ASCENDING;
 	files_sort_depth = 0;
 #endif	/* Gtk+ => 2.6.0 */
 }
@@ -85,7 +86,7 @@ fi_gui_files_sort_save(void)
 		sortable = GTK_TREE_SORTABLE(store_files);
 		if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
 			files_sort_column = column;
-			files_sort_order = order;
+			files_sort_type = order;
 			gtk_tree_sortable_set_sort_column_id(sortable,
 					GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
 		}
@@ -103,7 +104,7 @@ fi_gui_files_sort_restore(void)
 	if (0 == files_sort_depth) {
 		if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != files_sort_column) {
 			gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store_files),
-					files_sort_column, files_sort_order);
+					files_sort_column, files_sort_type);
 		}
 	}
 #endif	/* Gtk+ => 2.6.0 */
@@ -628,6 +629,74 @@ store_files_init(void)
 	}
 }
 
+/*
+ * Here we enforce a tri-state sorting. Normally, Gtk+ would only
+ * switch between ascending and descending but never switch back
+ * to the unsorted state.
+ *
+ *		+--> sort ascending -> sort descending -> unsorted -+
+ *		|                                                   |
+ *		+-----------------------<---------------------------+
+ */
+
+#if GTK_CHECK_VERSION(2,6,0)
+static void
+on_fileinfo_treeview_column_clicked(GtkTreeViewColumn *column, void *udata)
+{
+	GtkTreeModel *model;
+	GtkTreeSortable *sortable;
+	int sort_col;
+
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view));
+	sortable = GTK_TREE_SORTABLE(model);
+	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
+
+	(void) udata;
+
+	/* If the user switched to another sort column, reset the sort order */
+	if (files_sort_column != sort_col) {
+		files_sort_order = SORT_NONE;
+	}
+
+	files_sort_column = sort_col;
+
+	/* Tri-state permutation of the sorting order */
+
+	switch (files_sort_order) {
+	case SORT_NONE:
+	case SORT_NO_COL:
+		files_sort_order = SORT_ASC;
+		break;
+	case SORT_ASC:
+		files_sort_order = SORT_DESC;
+		break;
+	case SORT_DESC:
+		files_sort_order = SORT_NONE;
+		break;
+	}
+
+	/* Enforce sorting order */
+
+	switch (files_sort_order) {
+	case SORT_NONE:
+		files_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			files_sort_column, GTK_SORT_DESCENDING);
+		break;
+	case SORT_DESC:
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			files_sort_column, GTK_SORT_DESCENDING);
+		break;
+	case SORT_ASC:
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			files_sort_column, GTK_SORT_ASCENDING);
+		break;
+	case SORT_NO_COL:
+		g_assert_not_reached();
+	}
+}
+#endif	/* GTK+ >= 2.6.0 */
+
 static void
 treeview_download_files_init(void)
 {
@@ -640,11 +709,20 @@ treeview_download_files_init(void)
 	treeview_download_files = tv;
 
 	for (i = 0; i < c_fi_num; i++) {
-		add_column(tv, i,
+		GtkTreeViewColumn *column;
+
+		column = add_column(tv, i,
 			fi_gui_files_column_title(i),
 			fi_gui_files_column_justify_right(i) ? 1.0 : 0.0,
 			c_fi_progress == i ? gtk_cell_renderer_progress_new() : NULL,
 			render_files);
+
+#if GTK_CHECK_VERSION(2,6,0)
+		gui_signal_connect_after(column,
+			"clicked", on_fileinfo_treeview_column_clicked, NULL);
+#else
+		(void) column;
+#endif	/* GTK+ >= 2.6.0 */
 	}
 
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
@@ -766,7 +844,7 @@ fi_gui_init(void)
 			renderer = tab[i].id == c_src_progress
 						? gtk_cell_renderer_progress_new()
 						: NULL;
-    		add_column(tv, tab[i].id, _(tab[i].title), 0.0,
+			(void) add_column(tv, tab[i].id, _(tab[i].title), 0.0,
 				renderer, render_sources);
 		}
 
