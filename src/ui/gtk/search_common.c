@@ -1862,9 +1862,9 @@ search_gui_set_sort_defaults(void)
 	sch = current_search;
 	if (sch) {
 		gui_prop_set_guint32_val(PROP_SEARCH_SORT_DEFAULT_COLUMN,
-			sch->sort_col);
+			sch->sorting.s_column);
 		gui_prop_set_guint32_val(PROP_SEARCH_SORT_DEFAULT_ORDER,
-			sch->sort_order);
+			sch->sorting.s_order);
 	}
 }
 
@@ -3183,17 +3183,17 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	}
 
 	if (sort_col >= 0 && (guint) sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS) {
-		search->sort_col = sort_col;
+		search->sorting.s_column = sort_col;
 	} else {
-		search->sort_col = -1;
+		search->sorting.s_column = -1;
 	}
 	switch (sort_order) {
 	case SORT_ASC:
 	case SORT_DESC:
-		search->sort_order = sort_order;
+		search->sorting.s_order = sort_order;
 		break;
 	default:
-		search->sort_order = SORT_NONE;
+		search->sorting.s_order = SORT_NONE;
 	}
  
 	search->search_handle = sch_id;
@@ -3482,7 +3482,7 @@ search_gui_duplicate_search(search_t *search)
 		search_gui_media_type(search),
 		tm_time(),
 		GUI_PROPERTY(search_lifetime),
-		timeout, search->sort_col, search->sort_order,
+		timeout, search->sorting.s_column, search->sorting.s_order,
 		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);
 }
 
@@ -3903,14 +3903,14 @@ int
 search_gui_get_sort_column(const struct search *search)
 {
 	g_return_val_if_fail(search, -1);
-	return search->sort_col;
+	return search->sorting.s_column;
 }
 
 int
 search_gui_get_sort_order(const struct search *search)
 {
 	g_return_val_if_fail(search, 0);
-	return search->sort_order;
+	return search->sorting.s_order;
 }
 
 gnet_search_t

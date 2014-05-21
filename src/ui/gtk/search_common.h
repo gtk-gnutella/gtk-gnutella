@@ -53,13 +53,12 @@ typedef struct search {
     struct filter *filter;		/**< filter ruleset bound to this search */
 	struct slist *queue;		/**< records to be inserted */
 
-	bool	list_refreshed;
-	bool	clicked;
-	bool	sort;
-	bool	frozen;
+	uint	list_refreshed:1;
+	uint	clicked:1;
+	uint	sort:1;
+	uint	frozen:1;
 
-    int     sort_col;
-    int     sort_order;
+	struct sorting_context sorting;
 
 	/*
 	 * Cached attributes.

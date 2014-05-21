@@ -115,6 +115,11 @@ enum sorting_order {
 	SORT_NO_COL = 2		/**< No column chosen yet */
 };
 
+struct sorting_context {
+	int s_column;					/**< The column being sorted */
+	enum sorting_order s_order;		/**< Sorting order attached to column */
+};
+
 #endif	/* USE_TOPLESS */
 #endif /* _gtk_ui_h_ */
 

@@ -506,18 +506,18 @@ search_gui_enable_sort(struct search *search)
 
 	if (
 		search->sort &&
-		SORT_NONE != search->sort_order &&
-		UNSIGNED(search->sort_col) < SEARCH_RESULTS_VISIBLE_COLUMNS
+		SORT_NONE != search->sorting.s_order &&
+		UNSIGNED(search->sorting.s_column) < SEARCH_RESULTS_VISIBLE_COLUMNS
 	) {
 		GtkTreeModel *model;
 		GtkSortType order;
 
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
-		order = SORT_ASC == search->sort_order
+		order = SORT_ASC == search->sorting.s_order
 					? GTK_SORT_ASCENDING
 					: GTK_SORT_DESCENDING;
 		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model),
-			search->sort_col, order);
+			search->sorting.s_column, order);
 	} else {
 		search_gui_disable_sort(search);
 	}
@@ -555,24 +555,24 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
 
 	/* If the user switched to another sort column, reset the sort order. */
-	if (search->sort_col != sort_col) {
-		search->sort_order = SORT_NONE;
+	if (search->sorting.s_column != sort_col) {
+		search->sorting.s_order = SORT_NONE;
 	}
 
-	search->sort_col = sort_col;
+	search->sorting.s_column = sort_col;
 
 	/* The search has to keep state about the sort order itself because
 	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
-	switch (search->sort_order) {
+	switch (search->sorting.s_order) {
 	case SORT_NONE:
 	case SORT_NO_COL:
-		search->sort_order = SORT_ASC;
+		search->sorting.s_order = SORT_ASC;
 		break;
 	case SORT_ASC:
-		search->sort_order = SORT_DESC;
+		search->sorting.s_order = SORT_DESC;
 		break;
 	case SORT_DESC:
-		search->sort_order = SORT_NONE;
+		search->sorting.s_order = SORT_NONE;
 		break;
 	}
 	search_gui_enable_sort(search);

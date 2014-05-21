@@ -273,7 +273,7 @@ search_gui_init_tree(search_t *search)
     row = gtk_clist_append(GTK_CLIST(clist_search()), (gchar **) titles);
     gtk_clist_set_row_data(GTK_CLIST(clist_search()), row, search);
 
-	search_gui_sort_column(search, search->sort_col);
+	search_gui_sort_column(search, search->sorting.s_column);
 }
 
 
@@ -944,7 +944,7 @@ search_gui_sort_column(search_t *search, gint column)
     }
 
     /* create new arrow */
-    switch (search->sort_order) {
+    switch (search->sorting.s_order) {
     case SORT_ASC:
         search->arrow = create_pixmap(gui_main_window(), "arrow_down.xpm");
 		ascending = TRUE;
@@ -960,7 +960,7 @@ search_gui_sort_column(search_t *search, gint column)
     }
 
     /* display arrow if necessary and set sorting parameters*/
-    if (search->sort_order != SORT_NONE) {
+    if (search->sorting.s_order != SORT_NONE) {
         cw = gtk_clist_get_column_widget(GTK_CLIST(search->tree), column);
         if (cw != NULL) {
             gtk_box_pack_start(GTK_BOX(cw), search->arrow,
@@ -1184,7 +1184,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 		 * moving the parent will move the children too so we just pretend that
 		 * the parent node was actually the node that was added, not the child.
 		 */
-		if (!is_parent && (c_sr_count == sch->sort_col)) {
+		if (!is_parent && (c_sr_count == sch->sorting.s_column)) {
 			is_parent = TRUE;
 			parent_row = GTK_CTREE_ROW(node);
 			auto_node = parent_row->parent;
@@ -1216,13 +1216,19 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				if (grc1 == grc2)
 					continue;
 
-				if (SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
+				if (SORT_ASC == sch->sorting.s_order) {
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) < 0
+					) {
 						sibling = cur_node;
 						break;
 					}
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, grc1, grc2) > 0){
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) > 0
+					){
 						sibling = cur_node;
 						break;
 					}
@@ -1243,13 +1249,19 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 
 				grc2 = gtk_ctree_node_get_row_data(ctree, cur_node);
 
-				if (SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
+				if (SORT_ASC == sch->sorting.s_order) {
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) < 0
+					){
 						sibling = cur_node;
 						break;
 					}
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, grc1, grc2) > 0){
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) > 0
+					){
 						sibling = cur_node;
 						break;
 					}
@@ -1424,7 +1436,7 @@ search_resort_required(struct search *search, GtkCTreeNode *node)
 	 *     -- Richard, 17/04/2004
 	 */
 
-	if (c_sr_count != search->sort_col)
+	if (c_sr_count != search->sorting.s_column)
 		return FALSE;
 
 	row = GTK_CTREE_ROW(node);
@@ -1540,7 +1552,7 @@ discard_selection_of_ctree(struct search *search)
 	}
 
 	if (resort) {
-		search_gui_sort_column(search, search->sort_col);
+		search_gui_sort_column(search, search->sorting.s_column);
 	}
 
 	gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
