@@ -66,6 +66,11 @@ static htable_t *upload_handles;
 /** list of all *removed* uploads; contains the handles */
 static GSList *sl_removed_uploads;
 
+#if GTK_CHECK_VERSION(2,6,0)
+static enum sorting_order uploads_sort_order;
+static int uploads_sort_column;
+#endif	/* GTK+ >= 2.6.0 */
+
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
 
@@ -414,7 +419,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	htable_insert(upload_handles, uint_to_pointer(rd->handle), rd);
 }
 
-static void
+static GtkTreeViewColumn *
 add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 {
 	GtkTreeViewColumn *column;
@@ -467,6 +472,8 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 	if (NULL != sortfunc)
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_uploads),
 			column_id, sortfunc, GINT_TO_POINTER(column_id), NULL);
+
+	return column;
 }
 
 static GtkListStore *
@@ -647,6 +654,74 @@ uploads_gui_clear_completed(void)
 	}
 }
 
+/*
+ * Here we enforce a tri-state sorting. Normally, Gtk+ would only
+ * switch between ascending and descending but never switch back
+ * to the unsorted state.
+ *
+ *		+--> sort ascending -> sort descending -> unsorted -+
+ *		|                                                   |
+ *		+-----------------------<---------------------------+
+ */
+
+#if GTK_CHECK_VERSION(2,6,0)
+static void
+on_uploads_treeview_column_clicked(GtkTreeViewColumn *column, void *udata)
+{
+	GtkTreeModel *model;
+	GtkTreeSortable *sortable;
+	int sort_col;
+
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view));
+	sortable = GTK_TREE_SORTABLE(model);
+	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
+
+	(void) udata;
+
+	/* If the user switched to another sort column, reset the sort order */
+	if (uploads_sort_column != sort_col) {
+		uploads_sort_order = SORT_NONE;
+	}
+
+	uploads_sort_column = sort_col;
+
+	/* Tri-state permutation of the sorting order */
+
+	switch (uploads_sort_order) {
+	case SORT_NONE:
+	case SORT_NO_COL:
+		uploads_sort_order = SORT_ASC;
+		break;
+	case SORT_ASC:
+		uploads_sort_order = SORT_DESC;
+		break;
+	case SORT_DESC:
+		uploads_sort_order = SORT_NONE;
+		break;
+	}
+
+	/* Enforce sorting order */
+
+	switch (uploads_sort_order) {
+	case SORT_NONE:
+		uploads_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			uploads_sort_column, GTK_SORT_DESCENDING);
+		break;
+	case SORT_DESC:
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			uploads_sort_column, GTK_SORT_DESCENDING);
+		break;
+	case SORT_ASC:
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			uploads_sort_column, GTK_SORT_ASCENDING);
+		break;
+	case SORT_NO_COL:
+		g_assert_not_reached();
+	}
+}
+#endif	/* GTK+ >= 2.6.0 */
+
 void
 uploads_gui_init(void)
 {
@@ -676,10 +751,19 @@ uploads_gui_init(void)
 	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
 
 	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
-		add_column(cols[i].id, cols[i].sortfunc,
+		GtkTreeViewColumn *column;
+
+		column = add_column(cols[i].id, cols[i].sortfunc,
 			c_ul_progress == cols[i].id
 				? GTK_TYPE_CELL_RENDERER_PROGRESS
 				: GTK_TYPE_CELL_RENDERER_TEXT);
+
+#if GTK_CHECK_VERSION(2,6,0)
+		gui_signal_connect_after(column,
+			"clicked", on_uploads_treeview_column_clicked, NULL);
+#else
+		(void) column;
+#endif	/* GTK+ >= 2.6.0 */
 	}
 	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
