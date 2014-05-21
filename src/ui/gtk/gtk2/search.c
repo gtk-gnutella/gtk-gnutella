@@ -68,6 +68,7 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 static GtkTreeView *tree_view_search;
+static struct sorting_context search_list_sort;
 
 /** For cyclic updates of the tooltip. */
 static tree_view_motion_t *tvm_search;
@@ -167,7 +168,9 @@ static void
 on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
 {
 	(void) unused_udata;
-	
+
+	column_sort_tristate(column, &search_list_sort);
+
 	search_gui_synchronize_list(gtk_tree_view_get_model(
 		GTK_TREE_VIEW(column->tree_view)));
 }
@@ -1024,8 +1027,9 @@ add_list_columns(GtkTreeView *tv)
 		column = add_column(tv, _(columns[i].title), columns[i].id,
 					columns[i].align, NULL, c_sl_fg, c_sl_bg);
 		gtk_tree_view_column_set_sort_column_id(column, columns[i].id);
-		gui_signal_connect_after(column,
-			"clicked", on_search_list_column_clicked, NULL);
+
+		column_sort_tristate_register(column,
+			on_search_list_column_clicked, NULL);
 	}
 	tree_view_restore_widths(tv, PROP_SEARCH_LIST_COL_WIDTHS);
 }
