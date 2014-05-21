@@ -1279,7 +1279,7 @@ search_gui_show_search(struct search *search)
 			gtk_tree_sortable_set_sort_func(
 				GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)), i,
 				search_gui_cmp, uint_to_pointer(i), NULL);
-			gui_signal_connect_after(gtk_tree_view_get_column(tv, i),
+			gui_signal_connect_after(column,
 				"clicked", on_tree_view_search_results_click_column, search);
 		}
 	}
