@@ -59,6 +59,7 @@
 
 #include "downloads.h"
 #include "features.h"
+#include "hosts.h"
 #include "settings.h"			/* For listen_addr() */
 #include "token.h"
 
@@ -70,6 +71,7 @@
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/host_addr.h"
 #include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/pslist.h"
@@ -1610,7 +1612,8 @@ pproxy_set_trim(const pproxy_set_t *ps)
 /**
  * Add a push-proxy to the set.
  *
- * @return TRUE if host was added, FALSE if we already knew it.
+ * @return TRUE if host was added, FALSE if we already knew it or the
+ * host was invalid.
  */
 bool
 pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, uint16 port)
@@ -1620,7 +1623,11 @@ pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, uint16 port)
 
 	pproxy_set_check(ps);
 
+	if (!host_is_valid(addr, port))
+		return FALSE;
+
 	gnet_host_set(&host, addr, port);
+
 	if (hash_list_contains(ps->proxies, &host)) {
 		hash_list_moveto_head(ps->proxies, &host);
 	} else {
@@ -1646,6 +1653,12 @@ pproxy_set_add_vec(pproxy_set_t *ps, const gnet_host_vec_t *vec)
 
 	for (i = gnet_host_vec_count(vec) - 1; i >= 0; i--) {
 		gnet_host_t host = gnet_host_vec_get(vec, i);
+		host_addr_t addr = gnet_host_get_addr(&host);
+		uint16 port = gnet_host_get_port(&host);
+
+		if (!host_is_valid(addr, port))
+			continue;
+
 		if (hash_list_contains(ps->proxies, &host)) {
 			hash_list_moveto_head(ps->proxies, &host);
 		} else {
@@ -1668,10 +1681,17 @@ pproxy_set_add_array(pproxy_set_t *ps, gnet_host_t *proxies, int proxy_count)
 	pproxy_set_check(ps);
 
 	for (i = 0; i < proxy_count; i++) {
-		if (hash_list_contains(ps->proxies, &proxies[i])) {
-			hash_list_moveto_head(ps->proxies, &proxies[i]);
+		gnet_host_t *host = &proxies[i];
+		host_addr_t addr = gnet_host_get_addr(host);
+		uint16 port = gnet_host_get_port(host);
+
+		if (!host_is_valid(addr, port))
+			continue;
+
+		if (hash_list_contains(ps->proxies, host)) {
+			hash_list_moveto_head(ps->proxies, host);
 		} else {
-			hash_list_prepend(ps->proxies, gnet_host_dup(&proxies[i]));
+			hash_list_prepend(ps->proxies, gnet_host_dup(host));
 		}
 	}
 
