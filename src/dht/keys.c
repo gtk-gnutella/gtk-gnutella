@@ -754,7 +754,9 @@ keys_update_value(const kuid_t *id, const kuid_t *cid, time_t expire)
 			}
 		}
 
-		if (!found && GNET_PROPERTY(dht_keys_debug)) {
+		if (found) {
+			dbmw_write(db_keydata, id, kd, sizeof *kd);
+		} else if (GNET_PROPERTY(dht_keys_debug)) {
 			g_warning("DHT KEYS %s(): creator %s not found under %s",
 				G_STRFUNC, kuid_to_hex_string(cid), kuid_to_hex_string2(id));
 		}
