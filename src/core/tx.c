@@ -228,6 +228,57 @@ tx_collect(void)
 }
 
 /**
+ * Check whether TX layer is writable.
+ *
+ * @return TRUE if OK, FALSE otherwise with errno set to EINVAL.
+ */
+static inline bool
+tx_is_writable(const txdrv_t *tx)
+{
+	if G_UNLIKELY(tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
+		errno = EINVAL;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Wrapper to check the returned value of a write operation to make sure
+ * we force -1 with errno set to EIO when a non-zero value is returned
+ * and the TX layer is flagging an error.
+ */
+static ssize_t
+tx_wr_wrap(const txdrv_t *tx, ssize_t ret, const char *routine)
+{
+	if G_UNLIKELY(-1 == ret)
+		return -1;
+
+	/*
+	 * The purpose of this routine is to ensure that tx_write() and friends
+	 * will always return -1 when there is an error flagged at a given TX
+	 * layer.
+	 *
+	 * If that would not be the case, there is a bug to investigate, which
+	 * is why we're carping to see when it happens exactly.  Unfortunately,
+	 * this will not help us determine which layer is at fault, and where the
+	 * bug is located...
+	 *		--RAM, 2014-05-22
+	 */
+
+	if G_UNLIKELY(tx->flags & TX_ERROR) {
+		g_carp("%s(): forcing errno=EIO and returning -1 instead of %zd",
+			routine, ret);
+		errno = EIO;
+		return -1;
+	}
+
+	return ret;
+}
+
+#define TX_WR_WRAP(t,r)		tx_wr_wrap((t), (r), G_STRFUNC)
+
+/**
  * Write `len' bytes starting at `data'.
  *
  * @return the amount of bytes written, or -1 with errno set on error.
@@ -237,12 +288,10 @@ tx_write(txdrv_t *tx, const void *data, size_t len)
 {
 	tx_check(tx);
 
-	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
-		errno = EINVAL;
+	if G_UNLIKELY(!tx_is_writable(tx))
 		return -1;
-	}
 
-	return TX_WRITE(tx, data, len);
+	return TX_WR_WRAP(tx, TX_WRITE(tx, data, len));
 }
 
 /**
@@ -255,12 +304,10 @@ tx_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 {
 	tx_check(tx);
 
-	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
-		errno = EINVAL;
+	if G_UNLIKELY(!tx_is_writable(tx))
 		return -1;
-	}
 
-	return TX_WRITEV(tx, iov, iovcnt);
+	return TX_WR_WRAP(tx, TX_WRITEV(tx, iov, iovcnt));
 }
 
 /**
@@ -273,12 +320,10 @@ tx_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 {
 	tx_check(tx);
 
-	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
-		errno = EINVAL;
+	if G_UNLIKELY(!tx_is_writable(tx))
 		return -1;
-	}
 
-	return TX_SENDTO(tx, mb, to);
+	return TX_WR_WRAP(tx, TX_SENDTO(tx, mb, to));
 }
 
 /**
