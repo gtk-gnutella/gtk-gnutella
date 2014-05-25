@@ -136,6 +136,45 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 }
 
 /**
+ * Check whether hosts are "equivalent", modulo conversion to IPv4 for IPv6.
+ *
+ * @attention
+ * This routine CANNOT be used directly or indirectly as a comparison function
+ * for hash tables because it's not possible to have two items being "equal"
+ * that do not hash to the same value!  For hash tables, use host_addr_equal()
+ * which tests true equality.
+ */
+bool
+host_addr_equiv(const host_addr_t a, const host_addr_t b)
+{
+	if (a.net == b.net) {
+		switch (a.net) {
+		case NET_TYPE_IPV4:
+			return host_addr_ipv4(a) == host_addr_ipv4(b);
+		case NET_TYPE_IPV6:
+			if (0 != memcmp(a.addr.ipv6, b.addr.ipv6, sizeof a.addr.ipv6)) {
+				host_addr_t a_ipv4, b_ipv4;
+
+				return host_addr_convert(a, &a_ipv4, NET_TYPE_IPV4) &&
+					host_addr_convert(b, &b_ipv4, NET_TYPE_IPV4) &&
+					host_addr_ipv4(a_ipv4) == host_addr_ipv4(b_ipv4);
+			}
+			return TRUE;
+
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			return TRUE;
+		}
+		g_assert_not_reached();
+	} else {
+		host_addr_t to;
+
+		return host_addr_convert(a, &to, b.net) && host_addr_equiv(to, b);
+	}
+	return FALSE;
+}
+
+/**
  * @param ha An initialized host address.
  * @return The proper AF_* value or -1 if not available.
  */

@@ -306,45 +306,6 @@ host_addr_peek_ipv6(const void *ipv6)
 	return ha;
 }
 
-/**
- * Check whether hosts are "equivalent", modulo conversion to IPv4 for IPv6.
- *
- * @attention
- * This routine CANNOT be used directly or indirectly as a comparison function
- * for hash tables because it's not possible to have two items being "equal"
- * that do not hash to the same value!  For hash tables, use host_addr_equal()
- * which tests true equality.
- */
-static inline bool
-host_addr_equiv(const host_addr_t a, const host_addr_t b)
-{
-	if (a.net == b.net) {
-		switch (a.net) {
-		case NET_TYPE_IPV4:
-			return host_addr_ipv4(a) == host_addr_ipv4(b);
-		case NET_TYPE_IPV6:
-			if (0 != memcmp(a.addr.ipv6, b.addr.ipv6, sizeof a.addr.ipv6)) {
-				host_addr_t a_ipv4, b_ipv4;
-
-				return host_addr_convert(a, &a_ipv4, NET_TYPE_IPV4) &&
-					host_addr_convert(b, &b_ipv4, NET_TYPE_IPV4) &&
-					host_addr_ipv4(a_ipv4) == host_addr_ipv4(b_ipv4);
-			}
-			return TRUE;
-
-		case NET_TYPE_LOCAL:
-		case NET_TYPE_NONE:
-			return TRUE;
-		}
-		g_assert_not_reached();
-	} else {
-		host_addr_t to;
-
-		return host_addr_convert(a, &to, b.net) && host_addr_equiv(to, b);
-	}
-	return FALSE;
-}
-
 static inline int
 host_addr_cmp(host_addr_t a, host_addr_t b)
 {
@@ -550,7 +511,8 @@ int socket_addr_getsockname(socket_addr_t *p_addr, int fd);
 
 unsigned host_addr_hash(host_addr_t ha);
 unsigned host_addr_hash2(host_addr_t ha);
-bool host_addr_equal(const host_addr_t a, const host_addr_t b);
+bool host_addr_equal(const host_addr_t a, const host_addr_t b) G_GNUC_PURE;
+bool host_addr_equiv(const host_addr_t a, const host_addr_t b);
 
 uint host_addr_hash_func(const void *key);
 uint host_addr_hash_func2(const void *key);
