@@ -266,7 +266,7 @@ listen_addr_by_net(enum net_type net)
 bool
 is_my_address(const host_addr_t addr)
 {
-	return host_addr_equal(addr, listen_addr_by_net(host_addr_net(addr)));
+	return host_addr_equiv(addr, listen_addr_by_net(host_addr_net(addr)));
 }
 
 bool
@@ -1262,7 +1262,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 			return;
 	}
 
-	if (!host_addr_equal(new_addr, last_addr_seen)) {
+	if (!host_addr_equiv(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
 		peers[0] = peer;			/* First peer to report new address */
@@ -1281,7 +1281,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 		peers[i] = zero_host_addr;
 	}
 
-	if (host_addr_equal(new_addr, GNET_PROPERTY(local_ip)))
+	if (host_addr_equiv(new_addr, GNET_PROPERTY(local_ip)))
 		return;
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP, new_addr);
@@ -1322,7 +1322,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 			return;
 	}
 
-	if (!host_addr_equal(new_addr, last_addr_seen)) {
+	if (!host_addr_equiv(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
 		peers[0] = peer;		/* First peer to report new address */
@@ -1341,7 +1341,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 		peers[i] = zero_host_addr;
 	}
 
-	if (host_addr_equal(new_addr, GNET_PROPERTY(local_ip6)))
+	if (host_addr_equiv(new_addr, GNET_PROPERTY(local_ip6)))
 		return;
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP6, new_addr);
@@ -1600,7 +1600,7 @@ update_address_lifetime(void)
 		}
 	}
 
-	if (!host_addr_equal(old_addr, addr)) {
+	if (!host_addr_equiv(old_addr, addr)) {
 		/*
 		 * IPv4 address changed, update lifetime information.
 		 */
@@ -1621,7 +1621,7 @@ update_address_lifetime(void)
 		}
 	}
 
-	if (!host_addr_equal(old_addr_v6, addr)) {
+	if (!host_addr_equiv(old_addr_v6, addr)) {
 		/*
 		 * IPv6 address changed, update lifetime information.
 		 */
@@ -2867,7 +2867,7 @@ local_addr_changed(property_t prop)
 			}
 		}
 		host_addr_free_interface_addrs(&sl_addrs);
-		if (!host_addr_equal(old_addr, addr)) {
+		if (!host_addr_equiv(old_addr, addr)) {
 			gnet_prop_set_ip_val(prop, addr);
 		}
 	}

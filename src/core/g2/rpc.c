@@ -123,7 +123,7 @@ g2_rpc_key_eq(const void *a, const void *b)
 {
 	const struct g2_rpc_key *rka = a, *rkb = b;
 
-	return rka->type == rkb->type && host_addr_equal(rka->addr, rkb->addr);
+	return rka->type == rkb->type && host_addr_equiv(rka->addr, rkb->addr);
 }
 
 /**

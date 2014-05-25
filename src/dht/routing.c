@@ -2340,7 +2340,7 @@ clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying,
 {
 	g_assert(kuid_eq(kn1->id, kn2->id));
 
-	if (!host_addr_equal(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
+	if (!host_addr_equiv(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT %scollision on node %s (also at %s) in %s()",
 				verifying ? "verification " : "",

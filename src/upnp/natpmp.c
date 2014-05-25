@@ -617,7 +617,7 @@ natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, uint16 port,
 	 * sent the RPC.
 	 */
 
-	if (!host_addr_equal(addr, rd->gateway)) {
+	if (!host_addr_equiv(addr, rd->gateway)) {
 		if (GNET_PROPERTY(natpmp_debug)) {
 			g_warning("NATPMP discarding reply from %s (sent %s to %s)",
 				host_addr_port_to_string(addr, port),

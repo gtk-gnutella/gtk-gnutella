@@ -535,7 +535,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 *		--RAM, 2004-09-10
 	 */
 
-	if (!host_addr_equal(n->addr, gnet_host_get_addr(&r->dest))) {
+	if (!host_addr_equiv(n->addr, gnet_host_get_addr(&r->dest))) {
 		/**
 		 * The sender's IP address can of course change any time as
 		 * dynamic IP addresses are very common. The sender might also
@@ -761,7 +761,7 @@ oob_init(void)
 	results_by_muid = hikset_create(
 		offsetof(struct oob_results, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	servent_by_host = hikset_create_any(
-		offsetof(struct gservent, host), gnet_host_hash, gnet_host_eq);
+		offsetof(struct gservent, host), gnet_host_hash, gnet_host_equal);
 }
 
 /**

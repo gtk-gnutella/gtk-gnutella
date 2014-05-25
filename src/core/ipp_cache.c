@@ -115,7 +115,7 @@ static int
 ipp_cache_item_eq(const void *v1, const void *v2)
 {
 	const struct ipp_cache_item *a = v1, *b = v2;
-	return gnet_host_eq(&a->host,& b->host);
+	return gnet_host_equal(&a->host,& b->host);
 }
 
 /**

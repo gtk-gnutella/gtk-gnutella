@@ -750,7 +750,7 @@ g2_node_extract_udp(const g2_tree_t *t, search_request_info_t *sri,
 			 * back via the TCP connection we have, so no need to use OOB.
 			 */
 
-			if (n->port == port && host_addr_equal(addr, n->gnet_addr))
+			if (n->port == port && host_addr_equiv(addr, n->gnet_addr))
 				sri->oob = NODE_IS_UDP(n);
 			else
 				sri->oob = TRUE;

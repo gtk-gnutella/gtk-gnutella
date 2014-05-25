@@ -103,12 +103,34 @@ gnet_host_hash2(const void *key)
 }
 
 /**
+ * Compare function which returns TRUE if the hosts are equivalent.
+ *
+ * @note
+ * The host addresses need not be equal if the conversion to an IPv4 address
+ * makes one of them equivalent to the other.
+ *
+ * @attention
+ * This routine compares the addreses in a way that makes it unsuitable for
+ * hash tables or sets because we're not testing for true equality, rather
+ * for equivalence modulo an IPv6 to IPv4 conversion.  Therefore, it breaks the
+ * implicit assumption that equal items will hash to the same value!
+ */
+bool
+gnet_host_equiv(const void *v1, const void *v2)
+{
+	const gnet_host_t *h1 = v1, *h2 = v2;
+
+	return gnet_host_get_port(h1) == gnet_host_get_port(h2) &&
+		host_addr_equiv(gnet_host_get_addr(h1), gnet_host_get_addr(h2));
+}
+
+/**
  * Compare function which returns TRUE if the hosts are equal.
  *
  * @note For use in hash tables and sets.
  */
-G_GNUC_HOT bool
-gnet_host_eq(const void *v1, const void *v2)
+bool
+gnet_host_equal(const void *v1, const void *v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
 
@@ -117,25 +139,14 @@ gnet_host_eq(const void *v1, const void *v2)
 }
 
 /**
- * Compare function which returns 0 if the hosts are equal, otherwise 1.
- *
- * @note For use in g_list_find_custom.
- */
-int
-gnet_host_cmp(const void *v1, const void *v2)
-{
-	return gnet_host_eq(v1, v2) ? 0 : 1;
-}
-
-/**
- * Compare function which returns TRUE if the host addresses are equal.
+ * Compare function which returns TRUE if the host addresses are equivalent.
  */
 bool
-gnet_host_addr_eq(const void *v1, const void *v2)
+gnet_host_addr_equiv(const void *v1, const void *v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
 
-	return host_addr_equal(gnet_host_get_addr(h1), gnet_host_get_addr(h2));
+	return host_addr_equiv(gnet_host_get_addr(h1), gnet_host_get_addr(h2));
 }
 
 /**

@@ -115,6 +115,27 @@ host_addr_hash2(host_addr_t ha)
 }
 
 /**
+ * Check whether hosts are equal.
+ */
+bool
+host_addr_equal(const host_addr_t a, const host_addr_t b)
+{
+	if (a.net == b.net) {
+		switch (a.net) {
+		case NET_TYPE_IPV4:
+			return host_addr_ipv4(a) == host_addr_ipv4(b);
+		case NET_TYPE_IPV6:
+			return 0 == memcmp(a.addr.ipv6, b.addr.ipv6, sizeof a.addr.ipv6);
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			return TRUE;
+		}
+		g_assert_not_reached();
+	}
+	return FALSE;
+}
+
+/**
  * @param ha An initialized host address.
  * @return The proper AF_* value or -1 if not available.
  */
@@ -176,7 +197,7 @@ is_private_addr(const host_addr_t addr)
 		case NET_TYPE_IPV4:
 			g_assert_not_reached();
 		case NET_TYPE_IPV6:
-			return	host_addr_equal(addr, ipv6_loopback) ||
+			return	host_addr_equiv(addr, ipv6_loopback) ||
 					host_addr_matches(addr, ipv6_link_local, 10) ||
 					host_addr_matches(addr, ipv6_site_local, 10);
 		case NET_TYPE_LOCAL:
@@ -303,7 +324,7 @@ host_addr_is_loopback(const host_addr_t addr)
 		return host_addr_ipv4(ha) == 0x7f000001; /* 127.0.0.1 in host endian */
 
 	case NET_TYPE_IPV6:
-		return host_addr_equal(ha, ipv6_loopback);
+		return host_addr_equiv(ha, ipv6_loopback);
 
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
@@ -325,7 +346,7 @@ host_addr_is_unspecified(const host_addr_t addr)
 		return host_addr_ipv4(addr) == 0;
 
 	case NET_TYPE_IPV6:
-		return host_addr_equal(addr, ipv6_unspecified);
+		return host_addr_equiv(addr, ipv6_unspecified);
 
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
@@ -1402,7 +1423,7 @@ bool
 host_addr_eq_func(const void *p, const void *q)
 {
 	const host_addr_t *a = p, *b = q;
-	return host_addr_equal(*a, *b);
+	return host_addr_equiv(*a, *b);
 }
 
 /**

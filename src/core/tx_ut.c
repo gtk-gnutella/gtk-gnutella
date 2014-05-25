@@ -1997,7 +1997,7 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 
 	/* Compare IPs, not source ports, in case of NAT and different out port */
 
-	if (!gnet_host_addr_eq(um->to, from)) {
+	if (!gnet_host_addr_equiv(um->to, from)) {
 		reason = "coming from alien host";
 		goto rejected;
 	}
@@ -2351,9 +2351,9 @@ tx_ut_init(txdrv_t *tx, void *args)
 	attr->tx = tx;
 	attr->zd = zlib_deflater_make(NULL, 0, Z_BEST_COMPRESSION);
 	attr->ban = aging_make(TX_UT_BAN_FREQ,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 	attr->good = aging_make(TX_UT_GOOD_FREQ,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 	attr->cb = targs->cb;
 	attr->tag = targs->tag;				/* struct copy */
 	attr->improved_acks = booleanize(targs->advertise_improved_acks);

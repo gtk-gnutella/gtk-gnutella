@@ -2104,8 +2104,8 @@ update_address_information(void)
 
 	if (
 		old_port != port ||
-		!host_addr_equal(old_address, addr) ||
-		!host_addr_equal(old_v6_address, addr_v6)
+		!host_addr_equiv(old_address, addr) ||
+		!host_addr_equiv(old_v6_address, addr_v6)
 	) {
 		gchar addr_buf[HOST_ADDR_PORT_BUFLEN];
 		gchar addr_v6_buf[HOST_ADDR_PORT_BUFLEN];

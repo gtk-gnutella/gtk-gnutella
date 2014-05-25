@@ -1654,7 +1654,7 @@ node_init(void)
 
 	unstable_servent   = htable_create(HASH_KEY_SELF, 0);
     ht_connected_nodes = htable_create_any(
-							gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+							gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	nodes_by_id        = hikset_create_any(
 							offsetof(struct gnutella_node, id),
 							nid_hash, nid_equal);
@@ -2786,7 +2786,7 @@ node_remove_by_addr(const host_addr_t addr, uint16 port)
 
 		sl = pslist_next(sl);	/* node_remove_by_id() will alter sl_nodes */
 
-		if ((!port || n->port == port) && host_addr_equal(n->addr, addr)) {
+		if ((!port || n->port == port) && host_addr_equiv(n->addr, addr)) {
 			node_remove_by_id(NODE_ID(n));
 			n_removed++;
 			if (port)
@@ -3152,7 +3152,7 @@ node_is_connected(const host_addr_t addr, uint16 port, bool incoming)
             if (
 				n->status != GTA_NODE_REMOVING &&
 				n->status != GTA_NODE_SHUTDOWN &&
-				host_addr_equal(n->addr, addr)
+				host_addr_equiv(n->addr, addr)
 			) {
 				return TRUE;
             }
@@ -6116,7 +6116,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 *		--RAM, 18/03/2002.
 			 */
 
-			if (host_addr_equal(n->gnet_addr, n->addr)) {
+			if (host_addr_equiv(n->gnet_addr, n->addr)) {
 				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
 			}
@@ -8542,7 +8542,7 @@ node_patch_push_fw2fw(gnutella_node_t *n)
 
 	patched = FALSE;
 
-	if (!host_addr_equal(addr, n->addr) && host_addr_is_ipv4(n->addr)) {
+	if (!host_addr_equiv(addr, n->addr) && host_addr_is_ipv4(n->addr)) {
 		poke_be32(&info[4], host_addr_ipv4(n->addr));
 		patched = TRUE;
 	}
@@ -11387,7 +11387,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 		g_soft_assert(owner != n);	/* Or n->guid would have been set */
 
 		if (
-			host_addr_equal(node_gnet(owner), node_gnet(n)) &&
+			host_addr_equiv(node_gnet(owner), node_gnet(n)) &&
 			n->vendor != NULL && owner->vendor != NULL &&
 			0 == strcmp(owner->vendor, n->vendor)
 		)
@@ -11978,7 +11978,7 @@ node_addr_port_equal(const gnutella_node_t *n,
 
 	naddr = is_host_addr(n->gnet_addr) ? n->gnet_addr : n->addr;
 
-	return host_addr_equal(addr, naddr);
+	return host_addr_equiv(addr, naddr);
 }
 
 /**
@@ -12296,17 +12296,17 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, uint16 port)
 	if (
 		GNET_PROPERTY(node_debug) &&
 		is_host_addr(n->gnet_addr) &&
-		(!host_addr_equal(addr, n->gnet_addr) || port != n->gnet_port)
+		(!host_addr_equiv(addr, n->gnet_addr) || port != n->gnet_port)
 	)
 		g_warning("push-proxy address %s from %s does not match "
 			"its advertised node address %s:%u",
 			host_addr_port_to_string(addr, port), node_infostr(n),
 			host_addr_to_string(n->gnet_addr), n->gnet_port);
 
-	if (!host_addr_equal(addr, n->addr)) {
+	if (!host_addr_equiv(addr, n->addr)) {
 		g_warning("push-proxy address %s from %s not on same host",
 			host_addr_port_to_string(addr, port), node_infostr(n));
-		if (is_host_addr(n->gnet_addr) && host_addr_equal(addr, n->gnet_addr))
+		if (is_host_addr(n->gnet_addr) && host_addr_equiv(addr, n->gnet_addr))
 			g_warning("however address %s matches the advertised node address",
 				host_addr_port_to_string(addr, port));
 	}
@@ -12621,7 +12621,8 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 	ucnt = GNET_PROPERTY(node_ultra_count);
 	ultras = ucnt != 0 ? walloc(ucnt * sizeof ultras[0]) : NULL;
 	i = 0;
-	seen_host = hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+	seen_host =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		const gnutella_node_t *n;

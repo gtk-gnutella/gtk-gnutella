@@ -194,7 +194,7 @@ urlinfo_eq(const void *a, const void *b)
 
 	return ia->port == ib->port &&
 		ia->idx == ib->idx &&
-		host_addr_equal(ia->addr, ib->addr) &&
+		host_addr_equiv(ia->addr, ib->addr) &&
 		(ia->name == ib->name || 0 == strcmp(ia->name, ib->name));
 }
 
@@ -1006,7 +1006,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		 * Entry for this host existed.
 		 */
 
-		g_assert(host_addr_equal(dme->e.url.addr, addr));
+		g_assert(host_addr_equiv(dme->e.url.addr, addr));
 		g_assert(dme->e.url.port == port);
 
 		/*
@@ -1329,7 +1329,7 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 		return;
 
 	g_assert(dme->e.url.port == port);
-	g_assert(host_addr_equal(dme->e.url.addr, addr));
+	g_assert(host_addr_equiv(dme->e.url.addr, addr));
 
 	if (dme->bad == NULL)
 		dme->bad = hash_list_new(host_addr_hash_func, host_addr_eq_func);
@@ -1405,7 +1405,7 @@ retry:
 	}
 
 	g_assert(dme->e.url.port == port);
-	g_assert(host_addr_equal(dme->e.url.addr, addr));
+	g_assert(host_addr_equiv(dme->e.url.addr, addr));
 
 	/*
 	 * Get rid of the "bad" reporting if we're flagging it as good!
@@ -2185,7 +2185,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		if (delta_time(dme->inserted, last_sent) <= 0)
 			continue;
 
-		if (host_addr_equal(dme->e.url.addr, addr))
+		if (host_addr_equiv(dme->e.url.addr, addr))
 			continue;
 
 		if (!hcache_addr_within_net(dme->e.url.addr, net))
@@ -2499,7 +2499,7 @@ dmesh_collect_compact_locations_cback(
 	if (
 		origin != NULL &&
 		port == gnet_host_get_port(origin) &&
-		host_addr_equal(addr, gnet_host_get_addr(origin))
+		host_addr_equiv(addr, gnet_host_get_addr(origin))
 	) {
 		dmesh_good_mark(sha1, addr, port, TRUE);
 
@@ -2788,7 +2788,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			URN_INDEX == info.idx &&
 			origin != NULL &&
 			info.port == gnet_host_get_port(origin) &&
-			host_addr_equal(info.addr, gnet_host_get_addr(origin))
+			host_addr_equiv(info.addr, gnet_host_get_addr(origin))
 		) {
 			dmesh_good_mark(sha1, info.addr, info.port, TRUE);
 
@@ -2950,7 +2950,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 			continue;
 
 		if (info.proxies == NULL)
-			info.proxies = hash_list_new(gnet_host_hash, gnet_host_eq);
+			info.proxies = hash_list_new(gnet_host_hash, gnet_host_equal);
 
 		gnet_host_set(&host, addr, port);
 		if (!hash_list_contains(info.proxies, &host)) {

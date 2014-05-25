@@ -251,8 +251,8 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	rd->last_update  = tm_time();
 
 	if (
-		!host_addr_equal(u->addr, rd->addr) ||
-		!host_addr_equal(u->gnet_addr, rd->gnet_addr) ||
+		!host_addr_equiv(u->addr, rd->addr) ||
+		!host_addr_equiv(u->gnet_addr, rd->gnet_addr) ||
 		u->gnet_port != rd->gnet_port
 	) {
 		rd->addr = u->addr;

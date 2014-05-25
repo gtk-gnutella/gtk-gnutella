@@ -1166,7 +1166,7 @@ validate_creator(const knode_t *sender, const dht_value_t *v)
 		what = "creator must use an IPv4 address";
 		goto wrong;
 	}
-	if (!host_addr_equal(sender->addr, creator->addr)) {
+	if (!host_addr_equiv(sender->addr, creator->addr)) {
 		what = "IP address";
 		goto mismatch;
 	}
@@ -1381,7 +1381,7 @@ fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 	 * we will enter the if() below at the first publish .
 	 */
 
-	if (!host_addr_equal(vd->addr, cn->addr)) {
+	if (!host_addr_equiv(vd->addr, cn->addr)) {
 		if (host_addr_initialized(vd->addr)) {
 			/* Republished from a different IP address */
 			acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);

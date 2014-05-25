@@ -865,7 +865,7 @@ int
 gui_record_host_eq(const void *p1, const void *p2)
 {
 	const struct record *a = p1, *b = p2;
-    return !host_addr_equal(a->results_set->addr, b->results_set->addr);
+    return !host_addr_equiv(a->results_set->addr, b->results_set->addr);
 }
 
 /**
@@ -1113,7 +1113,7 @@ search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 
 	/* Must compare same fields as search_gui_hash_func() --RAM */
 	return rc1->size == rc2->size
-		&& host_addr_equal(rc1->results_set->addr, rc2->results_set->addr)
+		&& host_addr_equiv(rc1->results_set->addr, rc2->results_set->addr)
 		&& rc1->results_set->port == rc2->results_set->port
 		&& rc1->results_set->guid == rc2->results_set->guid	/* atom! */
 		&& (rc1->sha1 != NULL /* atom! */

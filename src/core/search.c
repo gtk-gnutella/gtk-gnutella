@@ -643,7 +643,7 @@ sent_node_compare(const void *a, const void *b)
 	const gnet_host_t *sa = a, *sb = b;
 
 	return gnet_host_get_port(sa) == gnet_host_get_port(sb) &&
-		host_addr_equal(gnet_host_get_addr(sa), gnet_host_get_addr(sb));
+		host_addr_equiv(gnet_host_get_addr(sa), gnet_host_get_addr(sb));
 }
 
 static void
@@ -1093,7 +1093,7 @@ search_results_log(const gnutella_node_t *n, const gnet_results_set_t *rs)
 
 	if (
 		n != NULL && NODE_IS_UDP(n) &&
-		!(host_addr_equal(n->addr, rs->addr) && n->port == rs->port)
+		!(host_addr_equiv(n->addr, rs->addr) && n->port == rs->port)
 	) {
 		str_printf(s, "%s UDP=%s",
 			host_addr_port_to_string(rs->addr, rs->port),
@@ -2521,7 +2521,7 @@ search_validate_result_address(gnet_results_set_t *rs,
 
 		if (
 			0 == rs->hops &&	/* GUESS ultrapeers can relay hits over UDP */
-			!host_addr_equal(n->addr, rs->addr) &&
+			!host_addr_equiv(n->addr, rs->addr) &&
 			host_addr_is_routable(rs->addr)
 		) {
 			rs->status |= ST_ALIEN;
@@ -4266,17 +4266,17 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	if (
 		!(rs->status & ST_FIREWALL) &&		/* Hit not marked "firewalled" */
-		!host_addr_equal(n->addr, rs->addr) &&	/* Not socket's address */
+		!host_addr_equiv(n->addr, rs->addr) &&	/* Not socket's address */
 		host_addr_is_routable(n->addr) &&	/* Not LAN or loopback */
 		host_addr_is_routable(rs->addr)
 	) {
 		if (
 			(is_host_addr(n->gnet_qhit_addr) &&
-				!host_addr_equal(n->gnet_qhit_addr, rs->addr)
+				!host_addr_equiv(n->gnet_qhit_addr, rs->addr)
 				) ||
 			(!is_host_addr(n->gnet_qhit_addr) &&
 				is_host_addr(n->gnet_pong_addr) &&
-				!host_addr_equal(n->gnet_pong_addr, rs->addr)
+				!host_addr_equiv(n->gnet_pong_addr, rs->addr)
 			)
 		) {
 			n->n_weird++;
@@ -5523,7 +5523,7 @@ search_init(void)
 	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
 	ora_stg = sectoken_gen_new(ORA_KEYS, OOB_REPLY_ACK_TIMEOUT);
 	ora_secure = aging_make(OOB_REPLY_ACK_TIMEOUT,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
 	cq_periodic_main_add(SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
@@ -8891,7 +8891,7 @@ skip_throttling:
 			(NODE_IS_LEAF(n) || NODE_IS_UDP(n)) &&
 			is_host_addr(n->gnet_addr) &&
 			host_addr_net(n->gnet_addr) == host_addr_net(sri->addr) && 
-			!host_addr_equal(sri->addr, n->gnet_addr)
+			!host_addr_equiv(sri->addr, n->gnet_addr)
 		) {
 			if (NODE_IS_UDP(n)) {
 				query_strip_oob_flag(n, n->data);

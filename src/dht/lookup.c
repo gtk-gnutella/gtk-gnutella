@@ -3127,7 +3127,7 @@ lookup_handle_reply(
 			if (
 				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
 				(xn->port != cn->port ||
-					!host_addr_equal(xn->addr, cn->addr)) &&
+					!host_addr_equiv(xn->addr, cn->addr)) &&
 				!patricia_contains(nl->path, cn->id) &&
 				!map_contains(nl->fixed, cn->id) &&
 				!map_contains(nl->alternate, cn->id) &&
@@ -3204,7 +3204,7 @@ lookup_handle_reply(
 			if (
 				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
 				(xn->port != cn->port ||
-					!host_addr_equal(xn->addr, cn->addr)) &&
+					!host_addr_equiv(xn->addr, cn->addr)) &&
 				!map_contains(nl->fixed, cn->id) &&
 				!map_contains(nl->alternate, cn->id)
 			) {

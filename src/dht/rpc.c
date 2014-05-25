@@ -137,7 +137,7 @@ dht_record_contact(const kuid_t *kuid, host_addr_t addr, uint16 port)
 	if (host != NULL) {
 		if (
 			port == gnet_host_get_port(host) &&
-			host_addr_equal(addr, gnet_host_get_addr(host))
+			host_addr_equiv(addr, gnet_host_get_addr(host))
 		)
 			return;
 		aging_remove(rpc_recent, kuid);
@@ -183,7 +183,7 @@ dht_fix_kuid_contact(const kuid_t *kuid, host_addr_t *addr, uint16 *port,
 		host_addr_t xaddr = gnet_host_get_addr(host);
 		uint16 xport = gnet_host_get_port(host);
 
-		if (xport == *port && host_addr_equal(xaddr, *addr))
+		if (xport == *port && host_addr_equiv(xaddr, *addr))
 			return FALSE;
 
 		if (GNET_PROPERTY(dht_lookup_debug)) {
@@ -234,7 +234,7 @@ dht_fix_contact(knode_t *kn, const char *source)
 	rn = dht_find_node(kn->id);
 
 	if (rn != NULL && (rn->flags & KNODE_F_RPC)) {
-		if (rn->port == kn->port && host_addr_equal(rn->addr, kn->addr))
+		if (rn->port == kn->port && host_addr_equiv(rn->addr, kn->addr))
 			return FALSE;
 
 		if (GNET_PROPERTY(dht_lookup_debug)) {
@@ -599,7 +599,7 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 
 	if (
 		GNET_PROPERTY(dht_rpc_debug) &&
-		(rn->port != rcb->port || !host_addr_equal(rn->addr, rcb->addr))
+		(rn->port != rcb->port || !host_addr_equiv(rn->addr, rcb->addr))
 	) {
 		g_warning("DHT RPC had sent %s #%s to %s, now is %s",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),

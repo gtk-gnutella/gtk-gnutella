@@ -131,9 +131,9 @@ size_t gnet_host_to_string_buf(
 
 uint gnet_host_hash(const void *key) G_GNUC_PURE;
 uint gnet_host_hash2(const void *key) G_GNUC_PURE;
-bool gnet_host_eq(const void *v1, const void *v2) G_GNUC_PURE;
-int gnet_host_cmp(const void *v1, const void *v2) G_GNUC_PURE;
-bool gnet_host_addr_eq(const void *v1, const void *v2) G_GNUC_PURE;
+bool gnet_host_equiv(const void *v1, const void *v2) G_GNUC_PURE;
+bool gnet_host_equal(const void *v1, const void *v2) G_GNUC_PURE;
+bool gnet_host_addr_equiv(const void *v1, const void *v2) G_GNUC_PURE;
 
 /*
  * Serialized IPv4 and IPv6 Gnutella hosts.

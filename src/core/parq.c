@@ -1713,7 +1713,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 		parq_upload_frozen_clear(puq);
 
 	if (puq->by_addr->total == 0) {
-		g_assert(host_addr_equal(puq->remote_addr, puq->by_addr->addr));
+		g_assert(host_addr_equiv(puq->remote_addr, puq->by_addr->addr));
 		g_assert(NULL == puq->by_addr->list);
 
 		/* No more uploads from this ip, cleaning up */
@@ -2035,7 +2035,7 @@ parq_upload_create(struct upload *u)
 		puq->by_addr->list = NULL;
 	}
 
-	g_assert(host_addr_equal(puq->by_addr->addr, puq->remote_addr));
+	g_assert(host_addr_equiv(puq->by_addr->addr, puq->remote_addr));
 
 	puq->by_addr->total++;
 	puq->by_addr->list = plist_prepend(puq->by_addr->list, puq);
@@ -2394,7 +2394,7 @@ parq_add_banned_source(const host_addr_t addr, time_t delay)
 	}
 
 	g_assert(banned != NULL);
-	g_assert(host_addr_equal(banned->addr, addr));
+	g_assert(host_addr_equiv(banned->addr, addr));
 
 	/* Update timestamp */
 	banned->added = now;
@@ -2417,7 +2417,7 @@ parq_del_banned_source(const host_addr_t addr)
 	banned = hevset_lookup(ht_banned_source, &addr);
 
 	g_assert(banned != NULL);
-	g_assert(host_addr_equal(banned->addr, addr));
+	g_assert(host_addr_equiv(banned->addr, addr));
 
 	hevset_remove(ht_banned_source, &addr);
 	parq_banned_sources = plist_remove(parq_banned_sources, banned);
@@ -4038,7 +4038,7 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 	 */
 
 	g_assert(puq->by_addr != NULL);
-	g_assert(host_addr_equal(puq->by_addr->addr, puq->remote_addr));
+	g_assert(host_addr_equiv(puq->by_addr->addr, puq->remote_addr));
 
 	puq->has_slot = TRUE;
 	puq->by_addr->uploading++;
@@ -4226,7 +4226,7 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 		g_assert(!(puq->flags & PARQ_UL_FROZEN));
 		g_assert(puq->by_addr != NULL);
 		g_assert(puq->by_addr->uploading > 0);
-		g_assert(host_addr_equal(puq->by_addr->addr,puq->remote_addr));
+		g_assert(host_addr_equiv(puq->by_addr->addr,puq->remote_addr));
 
 		puq->by_addr->uploading--;
 

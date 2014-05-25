@@ -785,7 +785,7 @@ guess_rpc_key_eq(const void *a, const void *b)
 {
 	const struct guess_rpc_key *ka = a, *kb = b;
 
-	return guid_eq(ka->muid, kb->muid) && host_addr_equal(ka->addr, kb->addr);
+	return guid_eq(ka->muid, kb->muid) && host_addr_equiv(ka->addr, kb->addr);
 }
 
 /**
@@ -3123,7 +3123,7 @@ guess_hosts_reply(enum udp_ping_ret type,
 			}
 
 			guess_discovered_host(addr, port);
-			if (!host_addr_equal(addr, gnet_host_get_addr(h))) {
+			if (!host_addr_equiv(addr, gnet_host_get_addr(h))) {
 				guess_host_set_flags(h, GUESS_F_OTHER_HOST);
 			}
 		}
@@ -4503,7 +4503,7 @@ guess_got_query_key(enum udp_ping_ret type,
 
 			if (
 				gnet_host_get_port(host) == port &&
-				host_addr_equal(gnet_host_get_addr(host), addr)
+				host_addr_equiv(gnet_host_get_addr(host), addr)
 			) {
 				const struct qkdata *qk = get_qkdata(host);
 
@@ -4630,7 +4630,7 @@ guess_handle_ack(guess_t *gq,
 		}
 
 		guess_discovered_host(addr, port);
-		if (!host_addr_equal(addr, gnet_host_get_addr(host))) {
+		if (!host_addr_equiv(addr, gnet_host_get_addr(host))) {
 			guess_host_set_flags(host, GUESS_F_OTHER_HOST);
 			guess_add_host(gq, addr, port, FALSE);
 		}
@@ -5384,10 +5384,10 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gq->mtype = mtype;
 	gq->mode = GUESS_QUERY_BOUNDED;
 	gq->queried =
-		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	gq->deferred =
-		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
-	gq->pool = hash_list_new(gnet_host_hash, gnet_host_eq);
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
+	gq->pool = hash_list_new(gnet_host_hash, gnet_host_equal);
 	gq->cb = cb;
 	gq->arg = arg;
 	tm_now_exact(&gq->start);
@@ -5550,7 +5550,7 @@ guess_fill_caught_array(host_net_t net,
 	int i, filled, added = 0;
 	hash_list_iter_t *iter;
 	hset_t *seen_host =
-		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 
 	filled = hcache_fill_caught_array(net, HOST_GUESS, hosts, hcount);
 	iter = hash_list_iterator(link_cache);
@@ -5816,7 +5816,7 @@ guess_invalidate_keys(void)
 static void G_GNUC_COLD
 guess_cache_init(struct guess_cache *gc)
 {
-	gc->hs = hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+	gc->hs = hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	XMALLOC0_ARRAY(gc->cache, gc->max);
 }
 
@@ -5864,7 +5864,7 @@ guess_init(void)
 
 	db_qkdata = dbstore_open(db_qkdata_what, settings_gnet_db_dir(),
 		db_qkdata_base, kv, packing, GUESS_QK_DB_CACHE_SIZE,
-		gnet_host_hash, gnet_host_eq, FALSE);
+		gnet_host_hash, gnet_host_equal, FALSE);
 
 	dbmw_set_map_cache(db_qkdata, GUESS_QK_MAP_CACHE_SIZE);
 
@@ -5887,18 +5887,18 @@ guess_init(void)
 		offsetof(guess_t, gid), nid_hash, nid_hash2, nid_equal);
 	gmuid = hikset_create(
 		offsetof(guess_t, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
-	link_cache = hash_list_new(gnet_host_hash, gnet_host_eq);
-	alive_cache = hash_list_new(gnet_host_hash, gnet_host_eq);
+	link_cache = hash_list_new(gnet_host_hash, gnet_host_equal);
+	alive_cache = hash_list_new(gnet_host_hash, gnet_host_equal);
 	load_pending = hash_list_new(pointer_hash, NULL);
 	pending = htable_create_any(guess_rpc_key_hash, NULL, guess_rpc_key_eq);
 	guess_qk_reqs = aging_make(GUESS_QK_FREQ,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 	guess_alien = aging_make(GUESS_ALIEN_FREQ,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 	guess_old_muids =
 		aging_make(GUESS_MUID_LINGER, guid_hash, guid_eq, guid_free_atom2);
 	guess_deferred =
-		ripening_make(gnet_host_hash, gnet_host_eq, guess_host_available);
+		ripening_make(gnet_host_hash, gnet_host_equal, guess_host_available);
 
 	guess_load_link_cache();
 	guess_check_link_cache();

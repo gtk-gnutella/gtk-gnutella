@@ -515,7 +515,7 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 
 		ha = host_addr_peek_ipv4(&sin4.sin_addr.s_addr);
 
-		if (!host_addr_equal(ha, ipv4_loopback)) {
+		if (!host_addr_equiv(ha, ipv4_loopback)) {
 			g_warning("connection on emulated UNIX listening socket #%d "
 				"comes from non-local %s",
 				sd, host_addr_to_string(ha));

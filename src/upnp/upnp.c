@@ -409,13 +409,13 @@ upnp_check_new_wan_addr(host_addr_t addr)
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
-		if (!host_addr_equal(addr, GNET_PROPERTY(local_ip))) {
+		if (!host_addr_equiv(addr, GNET_PROPERTY(local_ip))) {
 			gnet_prop_set_ip_val(PROP_LOCAL_IP, addr);
 			learnt_external_ip = TRUE;
 		}
 		break;
 	case NET_TYPE_IPV6:
-		if (!host_addr_equal(addr, GNET_PROPERTY(local_ip6))) {
+		if (!host_addr_equiv(addr, GNET_PROPERTY(local_ip6))) {
 			gnet_prop_set_ip_val(PROP_LOCAL_IP6, addr);
 			learnt_external_ip = TRUE;
 		}
@@ -463,8 +463,8 @@ upnp_discovered(pslist_t *devlist, void *unused_arg)
 				continue;
 
 			if (
-				host_addr_equal(ud->u.igd.wan_ip, listen_addr()) ||
-				host_addr_equal(ud->u.igd.wan_ip, listen_addr6())
+				host_addr_equiv(ud->u.igd.wan_ip, listen_addr()) ||
+				host_addr_equiv(ud->u.igd.wan_ip, listen_addr6())
 			) {
 				selected = ud;
 				break;
@@ -1673,7 +1673,7 @@ upnp_unmap_udp(uint16 port)
 void
 upnp_set_local_addr(host_addr_t addr)
 {
-	if (host_addr_equal(addr, upnp_local_addr))
+	if (host_addr_equiv(addr, upnp_local_addr))
 		return;
 
 	if (GNET_PROPERTY(upnp_debug) > 1)

@@ -2146,7 +2146,7 @@ void kmsg_received(
 
 	/* Do not check the port, it can be off for firewalled nodes */
 
-	if (host_addr_equal(kaddr, addr))
+	if (host_addr_equiv(kaddr, addr))
 		gnet_stats_inc_general(GNR_DHT_MSG_MATCHING_CONTACT_ADDRESS);
 
 	/*
@@ -2178,11 +2178,11 @@ void kmsg_received(
 
 			rpc_reply = TRUE;
 
-			if (kport == rport && host_addr_equal(kaddr, raddr))
+			if (kport == rport && host_addr_equiv(kaddr, raddr))
 				goto hostile_checked;
 
 			if (GNET_PROPERTY(dht_debug)) {
-				bool matches = port == rport && host_addr_equal(addr, raddr);
+				bool matches = port == rport && host_addr_equiv(addr, raddr);
 				g_warning("DHT fixing contact address for kuid=%s "
 					"to %s:%u on RPC reply (%s UDP info%s%s) in %s",
 					kuid_to_hex_string(id),
@@ -2248,7 +2248,7 @@ hostile_checked:
 
 	if (
 		!(flags & KDA_MSG_F_FIREWALLED) &&
-		(port != kport || !host_addr_equal(addr, kaddr))
+		(port != kport || !host_addr_equiv(addr, kaddr))
 	) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT contact address is %s "
@@ -2316,7 +2316,7 @@ hostile_checked:
 		if (
 			!patched &&
 			!(flags & KDA_MSG_F_FIREWALLED) &&
-			(!host_is_valid(kaddr, kport) || !host_addr_equal(addr, kaddr))
+			(!host_is_valid(kaddr, kport) || !host_addr_equiv(addr, kaddr))
 		) {
 			if (port == kport) {
 				if (GNET_PROPERTY(dht_debug)) {
@@ -2393,12 +2393,12 @@ hostile_checked:
 				host_is_valid(kn->addr, kn->port) &&
 				(
 					!host_is_valid(kaddr, kport) ||
-					!host_addr_equal(addr, kaddr)
+					!host_addr_equiv(addr, kaddr)
 				)
 			) {
 				if (GNET_PROPERTY(dht_debug)) {
 					bool matches = port == kport &&
-						host_addr_equal(addr, kn->addr);
+						host_addr_equiv(addr, kn->addr);
 					g_warning("DHT fixing contact address for kuid=%s to %s:%u"
 						" based on routing table (%s UDP info%s%s) in %s",
 						kuid_to_hex_string(id),
@@ -2415,7 +2415,7 @@ hostile_checked:
 				kn->flags &= ~KNODE_F_FOREIGN_IP;
 			} else {
 				kn->flags &= ~(KNODE_F_PCONTACT | KNODE_F_FOREIGN_IP);
-				if (!host_addr_equal(addr, kaddr)) {
+				if (!host_addr_equiv(addr, kaddr)) {
 					if (GNET_PROPERTY(dht_debug)) {
 						g_warning("DHT not fixing contact address %s "
 							"(%s v%u.%u) kuid=%s but keeping "
@@ -2452,11 +2452,11 @@ hostile_checked:
 		if (
 			/* Node not firewalled, contact address changed */
 			(!(flags & KDA_MSG_F_FIREWALLED) &&
-				(!host_addr_equal(kaddr, kn->addr) || kport != kn->port))
+				(!host_addr_equiv(kaddr, kn->addr) || kport != kn->port))
 			||
 			/* Node firewalled, source IP address changed */
 			((flags & KDA_MSG_F_FIREWALLED) &&
-				!host_addr_equal(kn->addr, addr))
+				!host_addr_equiv(kn->addr, addr))
 		) {
 			if (GNET_PROPERTY(dht_debug))
 				g_debug("DHT new IP for %s (now at %s) -- %s verification",
@@ -2536,7 +2536,7 @@ hostile_checked:
 
 	if (
 		kport != kademlia_header_get_contact_port(header) ||
-		!host_addr_equal(kaddr,
+		!host_addr_equiv(kaddr,
 			host_addr_get_ipv4(kademlia_header_get_contact_addr(header)))
 	)
 		gnet_stats_inc_general(GNR_DHT_MSG_FIXED_CONTACT_ADDRESS);

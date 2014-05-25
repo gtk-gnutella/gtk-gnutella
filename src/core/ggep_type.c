@@ -535,7 +535,7 @@ ggept_ip_seq_append_net(ggep_stream_t *gs,
 			size_t i;
 
 			for (i = 0; i < ecnt; i++) {
-				if (gnet_host_eq(h, &evec[i]))
+				if (gnet_host_equiv(h, &evec[i]))
 					goto next;
 			}
 		}

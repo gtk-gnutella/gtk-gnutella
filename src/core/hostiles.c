@@ -1170,7 +1170,7 @@ hostiles_init(void)
 
 	db_spam = dbstore_open(db_spam_what, settings_gnet_db_dir(),
 		db_spam_base, kv, packing, SPAM_DB_CACHE_SIZE,
-		gnet_host_hash, gnet_host_eq, FALSE);
+		gnet_host_hash, gnet_host_equal, FALSE);
 
 	hostiles_spam_prune_old();
 

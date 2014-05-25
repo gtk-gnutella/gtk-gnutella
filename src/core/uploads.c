@@ -325,7 +325,7 @@ mi_key_eq(const void *a, const void *b)
 {
 	const struct mesh_info_key *mika = a, *mikb = b;
 
-	return host_addr_equal(mika->addr, mikb->addr) &&
+	return host_addr_equiv(mika->addr, mikb->addr) &&
 		sha1_eq(mika->sha1, mikb->sha1);
 }
 
@@ -1100,7 +1100,7 @@ handle_push_request(struct gnutella_node *n, const g2_tree_t *t)
 		if (NULL == payload || plen < GUID_RAW_SIZE) {
 			if (!NODE_IS_UDP(n))
 				return;				/* No GUID, coming from TCP */
-			if (!host_addr_equal(n->addr, ha))
+			if (!host_addr_equiv(n->addr, ha))
 				return;				/* Mismatching remote address */
 		} else {
 			if (!guid_eq(payload, GNET_PROPERTY(servent_guid)))
@@ -4060,7 +4060,7 @@ upload_is_already_downloading(struct upload *upload)
 		if (!UPLOAD_IS_SENDING(up) && up->status != GTA_UL_QUEUED)
 			continue;
 		if (
-			host_addr_equal(up->socket->addr, upload->socket->addr) && (
+			host_addr_equiv(up->socket->addr, upload->socket->addr) && (
 				(up->file_index != URN_INDEX &&
 				 up->file_index == upload->file_index) ||
 				(upload->sha1 && up->sha1 == upload->sha1)
@@ -5718,7 +5718,7 @@ upload_kill_addr(const host_addr_t addr)
 	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
-		if (host_addr_equal(u->addr, addr) && !UPLOAD_IS_COMPLETE(u))
+		if (host_addr_equiv(u->addr, addr) && !UPLOAD_IS_COMPLETE(u))
 			to_remove = pslist_prepend(to_remove, u);
 	}
 
@@ -5757,7 +5757,7 @@ upload_init(void)
 	push_requests = aging_make(PUSH_REPLY_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 	push_conn_failed = aging_make(PUSH_BAN_FREQ,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
 	header_features_add_guarded(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,

@@ -1089,7 +1089,7 @@ dl_key_eq(const void *a, const void *b)
 {
 	const struct dl_key *ak = a, *bk = b;
 
-	return host_addr_equal(ak->addr, bk->addr) &&
+	return host_addr_equiv(ak->addr, bk->addr) &&
 		ak->port == bk->port &&
 		guid_eq(ak->guid, bk->guid);
 }
@@ -1117,7 +1117,7 @@ dl_addr_eq(const void *a, const void *b)
 {
 	const struct dl_addr *ak = a, *bk = b;
 
-	return host_addr_equal(ak->addr, bk->addr) && ak->port == bk->port;
+	return host_addr_equiv(ak->addr, bk->addr) && ak->port == bk->port;
 }
 
 /**
@@ -2130,7 +2130,7 @@ download_found_server(const struct guid *guid,
 	 * Check whether something changed at all.
 	 */
 
-	if (host_addr_equal(addr, server->key->addr) && port == server->key->port)
+	if (host_addr_equiv(addr, server->key->addr) && port == server->key->port)
 		return;
 
 	if (GNET_PROPERTY(download_debug))
@@ -2285,7 +2285,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 			if (!allocate)
 				goto allocated;
 
-			g_assert(!host_addr_equal(skey->addr, addr) || skey->port != port);
+			g_assert(!host_addr_equiv(skey->addr, addr) || skey->port != port);
 
 			/*
 			 * We knew this server, and it bears a new IP or port.
@@ -2296,7 +2296,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 			 */
 
 			if (
-				host_addr_equal(skey->addr, addr) ||
+				host_addr_equiv(skey->addr, addr) ||
 				server->country == new_country ||
 				(
 					/* Address becomes routable */
@@ -2437,7 +2437,7 @@ allocated:
 
 	if (GNET_PROPERTY(download_debug) > 1) {
 		if (
-			!host_addr_equal(addr, server->key->addr) ||
+			!host_addr_equiv(addr, server->key->addr) ||
 			server->key->port != port ||
 			!guid_eq(server->key->guid, guid)
 		) {
@@ -2529,7 +2529,7 @@ change_server_addr(struct dl_server *server,
 
 	if (duplicate != NULL && duplicate != server) {
 		g_assert(dl_server_valid(duplicate));
-		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
+		g_assert(host_addr_equiv(duplicate->key->addr, key->addr));
 		g_assert(duplicate->key->port == key->port);
 
 		if (GNET_PROPERTY(download_debug)) {
@@ -4276,7 +4276,7 @@ download_redirect_to_server(struct download *d,
 	 */
 
 	server = d->server;
-	if (host_addr_equal(server->key->addr, addr) && server->key->port == port)
+	if (host_addr_equiv(server->key->addr, addr) && server->key->port == port)
 		return;
 
 	/*
@@ -6784,7 +6784,7 @@ download_got_push_proxies(const struct guid *guid,
 		port = gnet_host_get_port(&host);
 
 		if (
-			host_addr_equal(addr, server->key->addr) &&
+			host_addr_equiv(addr, server->key->addr) &&
 			port == server->key->port
 		)
 			continue;		/* We always try the server's own IP:port */
@@ -9692,7 +9692,7 @@ download_moved_permanently(struct download *d, header_t *header)
 	 * If ip/port changed, accept the new ones but warn.
 	 */
 
-	if (!host_addr_equal(info.addr, addr) || info.port != port) {
+	if (!host_addr_equiv(info.addr, addr) || info.port != port) {
 		g_warning("server %s (file \"%s\") redirecting us to alien %s",
 			host_addr_port_to_string(addr, port), download_basename(d), buf);
     }
@@ -10244,7 +10244,7 @@ check_xhost(struct download *d, const header_t *header)
 	 * the server knew its real IP address.
 	 */
 
-	if (!host_addr_equal(addr, download_addr(d)) || port != download_port(d))
+	if (!host_addr_equiv(addr, download_addr(d)) || port != download_port(d))
 		download_redirect_to_server(d, addr, port);
 
 	/*
@@ -10604,7 +10604,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 			string_to_port_host_addr(tok, NULL, &port, &addr)
 		) {
 			if (!is_private_addr(addr) && host_addr_is_routable(addr)) {
-				if (!host_addr_equal(key->addr, addr) || key->port != port) {
+				if (!host_addr_equiv(key->addr, addr) || key->port != port) {
 					change_server_addr(server, addr, port);
 				}
 				download_found_server(&guid, addr, port);
@@ -11201,7 +11201,7 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 
 		if (
 			port == download_port(d) &&
-			host_addr_equal(addr, download_addr(d))
+			host_addr_equiv(addr, download_addr(d))
 		) {
 			found = TRUE;
 			break;
@@ -13622,7 +13622,7 @@ download_connected(struct download *d)
 	 */
 
 	if (d->flags & DL_F_DNS_LOOKUP) {
-		if (!host_addr_equal(download_addr(d), s->addr)) {
+		if (!host_addr_equiv(download_addr(d), s->addr)) {
 			if (GNET_PROPERTY(download_debug)) {
 				g_debug("DNS lookup revealed server %s moved to %s",
 					server_host_info(server), host_addr_to_string(s->addr));
@@ -13837,7 +13837,7 @@ select_matching_servers(void *value, void *user)
 
 	if (
 		guid_eq(skey->guid, ctx->guid) ||
-		host_addr_equal(skey->addr, ctx->addr)
+		host_addr_equiv(skey->addr, ctx->addr)
 	) {
 		ctx->servers = pslist_prepend(ctx->servers, server);
 		ctx->count++;
@@ -14260,12 +14260,12 @@ download_push_ack(struct gnutella_socket *s)
 
 	g_assert(!host_addr_is_unspecified(s->addr));
 
-	if (!host_addr_equal(download_addr(d), s->addr))
+	if (!host_addr_equiv(download_addr(d), s->addr))
 		change_server_addr(d->server, s->addr, download_port(d));
 
 	download_found_server(&guid, s->addr, download_port(d));
 
-	g_assert(host_addr_equal(download_addr(d), s->addr));
+	g_assert(host_addr_equiv(download_addr(d), s->addr));
 
 	fi_src_info_changed(d);
 

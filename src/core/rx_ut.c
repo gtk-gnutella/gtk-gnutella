@@ -181,7 +181,7 @@ ut_mid_eq(const void *k1, const void *k2)
 {
 	const struct ut_mid *m1 = k1, *m2 = k2;
 
-	return m1->seqno == m2->seqno && gnet_host_eq(m1->from, m2->from);
+	return m1->seqno == m2->seqno && gnet_host_equal(m1->from, m2->from);
 }
 
 /**

@@ -1460,7 +1460,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 	hostcache_t *hc = NULL;
 	hostcache_t *hc2 = NULL;
 	hset_t *seen_host =
-		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	hash_list_iter_t *iter;
 
     switch (type) {
@@ -2092,11 +2092,11 @@ G_GNUC_COLD void
 hcache_init(void)
 {
 	ht_known_hosts =
-		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	ht_g2_hosts =
-		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	ht_guess_hosts =
-		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	no_metadata = vmm_trap_page();
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(

@@ -449,7 +449,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 				continue;		/* I/O error, most probably */
 
 			/* Update contact addr:port information, if stale */
-			if (c->port != kn->port || !host_addr_equal(c->addr, kn->addr)) {
+			if (c->port != kn->port || !host_addr_equiv(c->addr, kn->addr)) {
 				c->port = kn->port;
 				c->addr = kn->addr;
 				c->first_seen = tm_time();	/* New node address */

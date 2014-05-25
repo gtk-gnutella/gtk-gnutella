@@ -559,7 +559,7 @@ static const char *gnet_host_str(const void *v);
 #define fs_len		filesize_len
 #define fs_str		filesize_str
 #define gnh_hash	gnet_host_hash
-#define gnh_eq		gnet_host_eq
+#define gnh_eq		gnet_host_equal
 #define gnh_len		gnet_host_length
 #define gnh_str		gnet_host_str
 #define S			SPINLOCK_INIT

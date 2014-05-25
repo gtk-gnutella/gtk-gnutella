@@ -139,7 +139,7 @@ static void
 tls_ban_init(void)
 {
 	tls_ban = aging_make(TLS_BAN_FREQ,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 }
 
 static bool
@@ -1206,7 +1206,7 @@ socket_check_ipv6_address(void)
 			if (!host_addr_is_routable(addr)) {
 				continue;
 			}
-			if (host_addr_equal(old_addr, addr)) {
+			if (host_addr_equiv(old_addr, addr)) {
 				break;
 			}
 			if (!is_host_addr(first_addr)) {
@@ -1217,7 +1217,7 @@ socket_check_ipv6_address(void)
 		if (!is_host_addr(addr)) {
 			addr = first_addr;
 		}
-		if (!host_addr_equal(old_addr, addr)) {
+		if (!host_addr_equiv(old_addr, addr)) {
 			gnet_prop_set_ip_val(PROP_LOCAL_IP6, addr);
 		}
 	}
@@ -2671,7 +2671,7 @@ socket_udp_accept(struct gnutella_socket *s, bool *truncation)
 
 		if (
 			GNET_PROPERTY(socket_debug) > 1 ||
-			!host_addr_equal(last_addr, dst_addr)
+			!host_addr_equiv(last_addr, dst_addr)
 		) {
 			last_addr = dst_addr;
 			if (GNET_PROPERTY(socket_debug)) {

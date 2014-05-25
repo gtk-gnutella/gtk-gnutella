@@ -812,7 +812,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	 * since we last heard about it.
 	 */
 
-	if (!host_addr_equal(glk->addr, rc->addr) || port != glk->port)
+	if (!host_addr_equiv(glk->addr, rc->addr) || port != glk->port)
 		download_found_server(glk->guid, rc->addr, port);
 
 	/*

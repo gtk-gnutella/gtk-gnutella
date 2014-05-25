@@ -796,8 +796,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	}
 
 	if (
-		!host_addr_equal(pp->addr_v4, s->addr) &&
-		!host_addr_equal(pp->addr_v6, s->addr)
+		!host_addr_equiv(pp->addr_v4, s->addr) &&
+		!host_addr_equiv(pp->addr_v6, s->addr)
 	) {
 		g_warning("push-proxy request from %s (%s) said node was at %s/%s",
 			host_addr_to_string(s->addr), pproxy_vendor_str(pp),
@@ -1568,7 +1568,7 @@ pproxy_set_allocate(size_t max_proxies)
 
 	WALLOC0(ps);
 	ps->magic = PPROXY_SET_MAGIC;
-	ps->proxies = hash_list_new(gnet_host_hash, gnet_host_eq);
+	ps->proxies = hash_list_new(gnet_host_hash, gnet_host_equal);
 	ps->max_proxies = max_proxies;
 
 	return ps;

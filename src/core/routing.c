@@ -358,7 +358,7 @@ route_udp_node_eq(const void *n1, const void *n2)
 {
 	const struct routing_udp_node *un1 = n1, *un2 = n2;
 
-	return un1->port == un2->port && host_addr_equal(un1->addr, un2->addr);
+	return un1->port == un2->port && host_addr_equiv(un1->addr, un2->addr);
 }
 
 /**

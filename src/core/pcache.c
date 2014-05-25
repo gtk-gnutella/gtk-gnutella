@@ -1060,7 +1060,7 @@ pcache_guess_acknowledge(struct gnutella_node *n,
 			info.addr = gnet_host_get_addr(h);
 			info.port = gnet_host_get_port(h);
 
-			if (info.port == n->port && host_addr_equal(info.addr, n->addr))
+			if (info.port == n->port && host_addr_equiv(info.addr, n->addr))
 				continue;	/* Don't send pong for the host contacting us */
 	
 			goto send_pong;
@@ -1175,7 +1175,7 @@ cached_pong_eq(const void *v1, const void *v2)
 {
 	const struct cached_pong *h1 = v1, *h2 = v2;
 
-	return host_addr_equal(h1->info.addr, h2->info.addr) &&
+	return host_addr_equiv(h1->info.addr, h2->info.addr) &&
 		h1->info.port == h2->info.port;
 }
 
@@ -1342,7 +1342,7 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 		cp = l->data;
 
 		if (
-			!host_addr_equal(cp->info.addr, last_addr) ||
+			!host_addr_equiv(cp->info.addr, last_addr) ||
 			cp->info.port != last_port
 		)
 			goto found;
@@ -1355,7 +1355,7 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 		for (/* empty */ ; l; l = plist_prev(l)) {
 			cp = l->data;
 			if (
-				!host_addr_equal(cp->info.addr, last_addr) ||
+				!host_addr_equiv(cp->info.addr, last_addr) ||
 				cp->info.port != last_port
 			)
 				goto found;
@@ -1369,7 +1369,7 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 	for (l = plist_last(rec->recent_pongs); l; l = plist_prev(l)) {
 		cp = l->data;
 		if (
-			!host_addr_equal(cp->info.addr, last_addr) ||
+			!host_addr_equiv(cp->info.addr, last_addr) ||
 			cp->info.port != last_port
 		)
 			goto found;
@@ -2730,14 +2730,14 @@ pcache_pong_received(struct gnutella_node *n)
 		swapped_count = swap_uint32(files_count);
 
 		if (swapped_count > PCACHE_MAX_FILES) {
-			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
+			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
 				g_warning("%s sent us a pong with "
 					"large file count %u (0x%x), dropped",
 					node_infostr(n), files_count, files_count);
 			n->rx_dropped++;
 			goto done;
 		} else {
-			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
+			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
 				g_warning("%s sent us a pong with suspect file count %u "
 					"(fixed to %u)",
 					node_infostr(n), files_count, swapped_count);
@@ -2767,7 +2767,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 */
 
 		if (!is_host_addr(n->gnet_addr) && (n->flags & NODE_F_INCOMING)) {
-			if (host_addr_equal(addr, n->addr)) {
+			if (host_addr_equiv(addr, n->addr)) {
 				n->gnet_addr = addr;	/* Signals: we have figured it out */
 				n->gnet_port = port;
 			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
@@ -2787,7 +2787,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 *		--RAM, 11/01/2004.
 		 */
 
-		if (n->n_pong_received == 1 || host_addr_equal(addr, n->gnet_addr)) {
+		if (n->n_pong_received == 1 || host_addr_equiv(addr, n->gnet_addr)) {
 			n->gnet_files_count = files_count;
 			n->gnet_kbytes_count = kbytes_count;
 			n->flags |= NODE_F_SHARED_INFO;
@@ -2801,7 +2801,7 @@ pcache_pong_received(struct gnutella_node *n)
 
 		if (
 			is_host_addr(n->gnet_pong_addr) &&
-			!host_addr_equal(addr, n->gnet_pong_addr)
+			!host_addr_equiv(addr, n->gnet_pong_addr)
 		) {
 			if (GNET_PROPERTY(pcache_debug) && n->n_ping_sent > 2) {
 				g_warning("%s sent us a pong for new IP %s (used %s before)",
