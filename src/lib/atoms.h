@@ -60,6 +60,7 @@ void atom_free(enum atom_type type, const void *key);
 #endif
 
 bool atom_exists(enum atom_type type, const void *key);
+bool atom_is_atom(enum atom_type type, const void *key);
 
 /*
  * Convenience macros.
@@ -208,49 +209,49 @@ void atoms_close(void);
 static inline bool
 atom_is_str(const char *k)
 {
-	return atom_exists(ATOM_STRING, k);
+	return atom_is_atom(ATOM_STRING, k);
 }
 
 static inline bool
 atom_is_guid(const struct guid *k)
 {
-	return atom_exists(ATOM_GUID, k);
+	return atom_is_atom(ATOM_GUID, k);
 }
 
 static inline bool
 atom_is_sha1(const struct sha1 *k)
 {
-	return atom_exists(ATOM_SHA1, k);
+	return atom_is_atom(ATOM_SHA1, k);
 }
 
 static inline bool
 atom_is_tth(const struct tth *k)
 {
-	return atom_exists(ATOM_TTH, k);
+	return atom_is_atom(ATOM_TTH, k);
 }
 
 static inline bool
 atom_is_uint64(const uint64 *k)
 {
-	return atom_exists(ATOM_UINT64, k);
+	return atom_is_atom(ATOM_UINT64, k);
 }
 
 static inline bool
 atom_is_filesize(const filesize_t *k)
 {
-	return atom_exists(ATOM_FILESIZE, k);
+	return atom_is_atom(ATOM_FILESIZE, k);
 }
 
 static inline bool
 atom_is_uint32(const uint32 *k)
 {
-	return atom_exists(ATOM_UINT32, k);
+	return atom_is_atom(ATOM_UINT32, k);
 }
 
 static inline bool
 atom_is_host(const gnet_host_t *k)
 {
-	return atom_exists(ATOM_HOST, k);
+	return atom_is_atom(ATOM_HOST, k);
 }
 
 /*

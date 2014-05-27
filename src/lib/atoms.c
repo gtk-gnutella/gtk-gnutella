@@ -966,7 +966,7 @@ atoms_init(void)
 /**
  * Check whether atom exists.
  *
- * @return TRUE if ``key'' points to a ``type'' atom.
+ * @return TRUE if ``key'' is a known ``type'' atom.
  */
 bool
 atom_exists(enum atom_type type, const void *key)
@@ -977,6 +977,25 @@ atom_exists(enum atom_type type, const void *key)
 		return FALSE;
 
 	return htable_contains(atoms[type].table, key);
+}
+
+/**
+ * Check whether key is an atom
+ *
+ * @return TRUE if ``key'' points to a ``type'' atom.
+ */
+bool
+atom_is_atom(enum atom_type type, const void *key)
+{
+	const void *atom;
+
+	g_assert(key != NULL);
+
+	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
+		return FALSE;
+
+	return htable_lookup_extended(atoms[type].table, key, &atom, NULL)
+		&& key == atom;
 }
 
 /**
