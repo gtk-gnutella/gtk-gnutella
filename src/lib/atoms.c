@@ -523,7 +523,7 @@ typedef const char *(*str_func_t)(const void *v);
 /**
  * Description of atom types.
  */
-typedef struct table_desc {
+typedef struct atom_desc {
 	spinlock_t lock;			/**< Lock protecting the hash table */
 	const char *type;			/**< Type of atoms */
 	htable_t *table;			/**< Table of atoms: "atom value" -> size */
@@ -531,7 +531,7 @@ typedef struct table_desc {
 	eq_fn_t eq_func;			/**< Atom equality function */
 	len_func_t len_func;		/**< Atom length function */
 	str_func_t str_func;		/**< Atom to human-readable string */
-} table_desc_t;
+} atom_desc_t;
 
 #define ATOM_TABLE_LOCK(t)		spinlock(&(t)->lock)
 #define ATOM_TABLE_UNLOCK(t)	spinunlock(&(t)->lock)
@@ -568,7 +568,7 @@ static const char *gnet_host_str(const void *v);
 /**
  * The set of all atom types we know about.
  */
-static table_desc_t atoms[] = {
+static atom_desc_t atoms[] = {
 	{ S, "String", N, str_hash,    str_eq,     str_xlen,   str_str  }, /* 0 */
 	{ S, "GUID",   N, guid_hash,   guid_eq,    guid_len,   guid_str }, /* 1 */
 	{ S, "SHA1",   N, sha1_hash,   sha1_eq,	   sha1_len,   sha1_str }, /* 2 */
@@ -922,9 +922,9 @@ atoms_init_once(void)
 #endif /* PROTECT_ATOMS */
 
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
-		table_desc_t *td = &atoms[i];
+		atom_desc_t *ad = &atoms[i];
 
-		td->table = htable_create_any(td->hash_func, NULL, td->eq_func);
+		ad->table = htable_create_any(ad->hash_func, NULL, ad->eq_func);
 	}
 
 	/*
@@ -1006,7 +1006,7 @@ atom_is_atom(enum atom_type type, const void *key)
  * @return new reference count.
  */
 static inline size_t
-atom_refcnt_add(const table_desc_t *td, const void *key, void *value, int delta)
+atom_refcnt_add(const atom_desc_t *ad, const void *key, void *value, int delta)
 {
 	if (4 == sizeof(void *)) {
 		/* 32-bit machine, we can directly update the atom_info structure */
@@ -1020,7 +1020,7 @@ atom_refcnt_add(const table_desc_t *td, const void *key, void *value, int delta)
 			v += delta;
 		else
 			v -= -delta;	/* Necessary since int may be smaller than long */
-		htable_insert(td->table, key, ulong_to_pointer(v));
+		htable_insert(ad->table, key, ulong_to_pointer(v));
 		return ATOM_REFCNT(v);
 	}
 }
@@ -1034,7 +1034,7 @@ atom_refcnt_add(const table_desc_t *td, const void *key, void *value, int delta)
 const void *
 atom_get(enum atom_type type, const void *key)
 {
-	table_desc_t *td;
+	atom_desc_t *ad;
 	const void *orig_key;
 	void *value;
 	size_t size;
@@ -1049,10 +1049,10 @@ atom_get(enum atom_type type, const void *key)
 	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
 		atoms_init();
 
-	td = &atoms[type];		/* Where atoms of this type are held */
-	ATOM_TABLE_LOCK(td);
+	ad = &atoms[type];		/* Where atoms of this type are held */
+	ATOM_TABLE_LOCK(ad);
 
-	if (htable_lookup_extended(td->table, key, &orig_key, &value)) {
+	if (htable_lookup_extended(ad->table, key, &orig_key, &value)) {
 		size_t refcnt;
 
 		size = atom_info_length(value);
@@ -1065,9 +1065,9 @@ atom_get(enum atom_type type, const void *key)
 
 		g_assert(atom_info_refcnt(value) > 0);
 
-		refcnt = atom_refcnt_add(td, orig_key, value, +1);
+		refcnt = atom_refcnt_add(ad, orig_key, value, +1);
 		ATOM_TRACK_REFCNT(orig_key, +1, refcnt);
-		ATOM_TABLE_UNLOCK(td);
+		ATOM_TABLE_UNLOCK(ad);
 
 		return orig_key;
 	} else {
@@ -1077,7 +1077,7 @@ atom_get(enum atom_type type, const void *key)
 		 * Create new atom.
 		 */
 
-		len = (*td->len_func)(key);
+		len = (*ad->len_func)(key);
 		g_assert(len < ATOM_SIZE_MAX - ARENA_OFFSET);
 		size = round_size_fast(MEM_ALIGNBYTES, ARENA_OFFSET + len);
 
@@ -1098,13 +1098,13 @@ atom_get(enum atom_type type, const void *key)
 			WALLOC(ai);
 			ai->len = size;
 			ai->refcnt = 1;
-			htable_insert(td->table, atom_arena(a), ai);
+			htable_insert(ad->table, atom_arena(a), ai);
 		} else {
 			ulong v = ATOM_INFO(size) + 1;
-			htable_insert(td->table, atom_arena(a), ulong_to_pointer(v));
+			htable_insert(ad->table, atom_arena(a), ulong_to_pointer(v));
 		}
 
-		ATOM_TABLE_UNLOCK(td);
+		ATOM_TABLE_UNLOCK(ad);
 		return atom_arena(a);
 	}
 }
@@ -1116,7 +1116,7 @@ atom_get(enum atom_type type, const void *key)
 void
 atom_free(enum atom_type type, const void *key)
 {
-	table_desc_t *td;
+	atom_desc_t *ad;
 	size_t size;
 	atom_t *a;
 	bool found;
@@ -1127,16 +1127,16 @@ atom_free(enum atom_type type, const void *key)
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
-	td = &atoms[type];		/* Where atoms of this type are held */
-	ATOM_TABLE_LOCK(td);
+	ad = &atoms[type];		/* Where atoms of this type are held */
+	ATOM_TABLE_LOCK(ad);
 
-	found = htable_lookup_extended(td->table, key, &orig_key, &value);
+	found = htable_lookup_extended(ad->table, key, &orig_key, &value);
 
 	g_assert_log(found,
-		"attempting to free unknown %s atom at %p", td->type, key);
+		"attempting to free unknown %s atom at %p", ad->type, key);
 	g_assert_log(key == orig_key,
 		"attempt to free %s atom copy at %p, atom was at %p",
-			td->type, key, orig_key);
+			ad->type, key, orig_key);
 
 	size = atom_info_length(value);
 
@@ -1151,7 +1151,7 @@ atom_free(enum atom_type type, const void *key)
 	 */
 
 	if (1 == refcnt) {
-		htable_remove(td->table, key);
+		htable_remove(ad->table, key);
 		if (4 == sizeof(void *)) {
 			/* 32-bit machine */
 			struct atom_info *ai = value;
@@ -1160,11 +1160,11 @@ atom_free(enum atom_type type, const void *key)
 		atom_unprotect(a, size);
 		atom_dealloc(a, size);
 	} else {
-		size_t rcnt = atom_refcnt_add(td, key, value, -1);
+		size_t rcnt = atom_refcnt_add(ad, key, value, -1);
 		ATOM_TRACK_REFCNT(key, -1, rcnt);
 	}
 
-	ATOM_TABLE_UNLOCK(td);
+	ATOM_TABLE_UNLOCK(ad);
 }
 
 #ifdef TRACK_ATOMS
@@ -1364,10 +1364,10 @@ static void
 atom_warn_free(const void *key, void *value, void *udata)
 {
 	atom_t *a = atom_from_arena(key);
-	table_desc_t *td = udata;
+	atom_desc_t *ad = udata;
 
 	g_warning("found remaining %s atom %p, refcnt=%d: \"%s\"",
-		td->type, key, atom_info_refcnt(value), (*td->str_func)(key));
+		ad->type, key, atom_info_refcnt(value), (*ad->str_func)(key));
 
 #ifdef TRACK_ATOMS
 	spinlock(&a->lock);
@@ -1395,12 +1395,12 @@ atoms_close(void)
 	uint i;
 
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
-		table_desc_t *td = &atoms[i];
+		atom_desc_t *ad = &atoms[i];
 
-		ATOM_TABLE_LOCK(td);
-		htable_foreach(td->table, atom_warn_free, td);
-		htable_free_null(&td->table);
-		ATOM_TABLE_UNLOCK(td);
+		ATOM_TABLE_LOCK(ad);
+		htable_foreach(ad->table, atom_warn_free, ad);
+		htable_free_null(&ad->table);
+		ATOM_TABLE_UNLOCK(ad);
 	}
 }
 
