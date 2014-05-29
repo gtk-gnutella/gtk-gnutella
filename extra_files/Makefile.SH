@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -56,7 +56,7 @@ SUBDIRS = el en fr ja tr
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
@@ -82,6 +82,9 @@ PIXMAP_FILES = \
 
 DESKTOP_FILES = \
 	gtk-gnutella.desktop
+
+APPDATA_FILES = \
+	gtk-gnutella.appdata.xml
 
 INSTALLFLAGS = -m 444
 
@@ -126,6 +129,21 @@ local_deinstall::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for i in $(DESKTOP_FILES); do \
 		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications/$$i); \
+	done
+
+local_install:: $(APPDATA_FILES)
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/appdata || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/appdata); \
+	for i in $(APPDATA_FILES); do \
+		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
+			$$i $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/appdata) || exit 1;\
+	done
+
+local_deinstall::
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for i in $(APPDATA_FILES); do \
+		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/appdata/$$i); \
 	done
 
 local_install:: $(PIXMAP_FILES)
