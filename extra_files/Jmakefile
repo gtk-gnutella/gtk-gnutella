@@ -47,11 +47,15 @@ PIXMAP_FILES = \
 DESKTOP_FILES = \
 	gtk-gnutella.desktop
 
+APPDATA_FILES = \
+	gtk-gnutella.appdata.xml
+
 INSTALLFLAGS = -m 444
 
 MakeInstallDirectories($(PRIVLIB))
 InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
 InstallMultiple($(DESKTOP_FILES), $(INSTALLPREFIX)/share/applications)
+InstallMultiple($(APPDATA_FILES), $(INSTALLPREFIX)/share/appdata)
 InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)
 
 SetSubdirs(el en fr ja tr)
