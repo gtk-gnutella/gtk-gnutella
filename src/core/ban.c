@@ -65,6 +65,7 @@
 #include "lib/file.h"		/* For file_register_fd_reclaimer() */
 #include "lib/hevset.h"
 #include "lib/misc.h"
+#include "lib/parse.h"
 #include "lib/spinlock.h"
 #include "lib/stringify.h"	/* For plural() */
 #include "lib/tm.h"
@@ -942,22 +943,19 @@ ban_vendor(const char *vendor)
 	 * network is far from being mature, and we need to ensure newer
 	 * features are deployed reasonably quickly.
 	 *		--RAM, 03/01/2002.
+	 *
+	 * As of 2014-06-16, any version older than 0.98 is deemed harmful to
+	 * the network, since they are too ancient.
 	 */
 
 	if (gtkg_version) {
-		static const char * const versions[] = {
-			"0.90",
-			"0.91u",
-			"0.92b",
-			"0.93",
-			"0.94",
-		};
-		uint i;
+		uint major, minor;
 
-		for (i = 0; i < G_N_ELEMENTS(versions); i++) {
-			if (is_strprefix(gtkg_version, versions[i]))
-				return harmful;
-		}
+		if (0 != parse_major_minor(gtkg_version, NULL, &major, &minor))
+			return refused;			/* Cannot parse */
+
+		if (0 == major && minor <= 97)
+			return harmful;			/* Too old */
 
 		return NULL;
 	}
