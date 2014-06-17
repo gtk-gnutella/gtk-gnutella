@@ -54,12 +54,9 @@
         ((= type "timestamp") #t)
         ((= type "multichoice") #t)
         (else #f)))
+(define func-prefix
+	(if (exist? "func_prefix") (get "func_prefix") (. prop-set)))
 =][=
-IF (exist? "func_prefix")=][=
-    (define func-prefix (get "func_prefix"))=][=
-ELSE=][=
-    (define func-prefix (. prop-set))=][=
-ENDIF=][=
 IF (not (exist? "property_set"))=][=
     (error "property set has no name")=][=
 ENDIF=][=
@@ -281,13 +278,11 @@ gpointer [=(. func-prefix)=]_get_storage(property_t, gpointer, size_t);
 [= ENDFOR uses =]
 
 [= FOR prop =][=
-IF (exist? "data.value") =][=
 (define item (sprintf "%s_variable_%s"
-		(. set-name-down) (get "data.value"))) =][=
-ELSE =][=
-(define item (sprintf "%s_variable_%s"
-		(. set-name-down) (string-downcase (get "name")))) =][=
-ENDIF=][=
+		(. set-name-down)
+		(if (exist? "data.value")
+			(get "data.value") (string-downcase (get "name")))))
+=][=
 CASE type=][=
 = boolean=]extern const gboolean [=(. item)=][=
 = guint32=]extern const guint32  [=(. item)=][=
