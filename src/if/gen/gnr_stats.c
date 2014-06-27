@@ -1,5 +1,5 @@
 /*
- * Generated on Wed May 14 18:43:07 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Fri Jun 27 08:52:01 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -110,6 +110,7 @@ static const char *stats_symbols[] = {
 	"udp_uhc_pings",
 	"udp_uhc_pongs",
 	"udp_bogus_source_ip",
+	"udp_shunned_source_ip",
 	"udp_rx_truncated",
 	"udp_alien_message",
 	"udp_unprocessed_message",
@@ -431,6 +432,7 @@ static const char *stats_text[] = {
 	N_("UDP UHC pings received"),
 	N_("UDP UHC pongs sent"),
 	N_("UDP messages with bogus source IP"),
+	N_("UDP messages from shunned IP (discarded)"),
 	N_("UDP truncated incoming messages"),
 	N_("Alien UDP messages (non-Gnutella)"),
 	N_("Unprocessed UDP Gnutella messages"),

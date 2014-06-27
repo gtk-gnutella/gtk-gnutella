@@ -1,5 +1,5 @@
 /*
- * Generated on Wed May 14 18:43:07 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Fri Jun 27 08:52:01 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 300
+ * Enum count: 301
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -106,6 +106,7 @@ typedef enum {
 	GNR_UDP_UHC_PINGS,
 	GNR_UDP_UHC_PONGS,
 	GNR_UDP_BOGUS_SOURCE_IP,
+	GNR_UDP_SHUNNED_SOURCE_IP,
 	GNR_UDP_RX_TRUNCATED,
 	GNR_UDP_ALIEN_MESSAGE,
 	GNR_UDP_UNPROCESSED_MESSAGE,

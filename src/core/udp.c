@@ -259,9 +259,13 @@ udp_is_valid_gnet_split(gnutella_node_t *n, const gnutella_socket_t *s,
 	case GMSG_VALID_MARKED:
 		break;
 	case GMSG_VALID_NO_PROCESS:
+		hostiles_dynamic_add(n->addr,
+			"improper Gnutella header", HSTL_GIBBERISH);
 		msg = "Header flags undefined for now";
 		goto drop;
 	case GMSG_INVALID:
+		hostiles_dynamic_add(n->addr,
+			"invalid Gnutella header size", HSTL_GIBBERISH);
 		msg = "Invalid size (greater than 64 KiB without flags)";
 		goto not;		/* Probably just garbage */
 	}
@@ -942,6 +946,7 @@ udp_received(const gnutella_socket_t *s,
 {
 	gnutella_node_t *n;
 	bool bogus = FALSE, dht = FALSE, rudp = FALSE, g2 = FALSE;
+	hostiles_flags_t hflags;
 
 	/*
 	 * This must be regular Gnutella / DHT traffic.
@@ -1062,6 +1067,31 @@ rudp:
 				host_addr_to_string(s->addr));
 		}
 		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);
+	}
+
+	/*
+	 * Traffic from hosts sending gibberish data or information we previously
+	 * determined as being invalid / suspicious are simply discarded to avoid
+	 * further processing (which would probably lead to them being further
+	 * discarded as invalid, unparseable, etc...).
+	 *
+	 * We let statically-banned hosts through though so that we may parse
+	 * their message and log dropping in upper layers, for statistics per
+	 * message type.  We only drop known gibberish at this level.
+	 */
+
+	hflags = hostiles_check(s->addr);
+
+	if (hflags & HSTL_GIBBERISH) {
+		if (GNET_PROPERTY(udp_debug)) {
+			g_warning("UDP %sdatagram (%zu byte%s) received from "
+				"shunned IP %s (%s) -- dropped",
+				truncated ? "truncated " : "",
+				len, plural(len),
+				host_addr_to_string(s->addr), hostiles_flags_to_string(hflags));
+		}
+		gnet_stats_inc_general(GNR_UDP_SHUNNED_SOURCE_IP);
+		return;
 	}
 
 	/*
