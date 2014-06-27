@@ -40,6 +40,7 @@
 #include "tx_dgram.h"
 #include "udp_sched.h"
 
+#include "lib/host_addr.h"
 #include "lib/gnet_host.h"
 #include "lib/pmsg.h"
 #include "lib/walloc.h"
@@ -51,6 +52,7 @@
  */
 struct attr {
 	udp_sched_t *us;				/**< UDP TX scheduler */
+	enum net_type net;				/**< IPv4 or IPv6? */
 	const struct tx_dgram_cb *cb;	/**< Layer-specific callbacks */
 	unsigned service:1;				/**< Is servicing requested? */
 };
@@ -98,6 +100,7 @@ tx_dgram_init(txdrv_t *tx, void *args)
 
 	g_assert(tx);
 	g_assert(targs->cb != NULL);
+	g_assert(NET_TYPE_IPV4 == targs->net || NET_TYPE_IPV6 == targs->net);
 
 	WALLOC(attr);
 
@@ -109,6 +112,7 @@ tx_dgram_init(txdrv_t *tx, void *args)
 
 	attr->cb = targs->cb;
 	attr->us = targs->us;
+	attr->net = targs->net;
 	attr->service = FALSE;
 
 	tx->opaque = attr;
@@ -203,7 +207,7 @@ tx_dgram_bio_source(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	return udp_sched_bio_source(attr->us);
+	return udp_sched_bio_source(attr->us, attr->net);
 }
 
 static const struct txdrv_ops tx_dgram_ops = {

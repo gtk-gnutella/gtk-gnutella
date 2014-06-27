@@ -61,13 +61,16 @@
 #include "common.h"
 
 #include "udp_sched.h"
+
 #include "bsched.h"
 #include "inet.h"
+#include "sockets.h"
 #include "tx.h"
 #include "tx_dgram.h"
 
 #include "lib/atoms.h"
 #include "lib/eslist.h"
+#include "lib/host_addr.h"
 #include "lib/gnet_host.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
@@ -95,6 +98,18 @@ G_STMT_START {												\
 
 enum udp_sched_magic { UDP_SCHED_MAGIC = 0x23e00967 };
 
+enum udp_sched_net {
+	UDP_SCHED_IPv4 = 0,
+	UDP_SCHED_IPv6 = 1,
+
+	UDP_SCHED_NET_CNT
+};
+
+static const enum net_type udp_sched_net_type[UDP_SCHED_NET_CNT] = {
+	NET_TYPE_IPV4,			/* UDP_SCHED_IPv4 */
+	NET_TYPE_IPV6,			/* UDP_SCHED_IPv6 */
+};
+
 /**
  * The UDP TX scheduler object.
  *
@@ -104,14 +119,19 @@ enum udp_sched_magic { UDP_SCHED_MAGIC = 0x23e00967 };
  * The TX stacks using us (i.e. the ones attaching us as the sending mechanism)
  * are tracked so that we can trigger upper-level servicing when bandwidth
  * becomes available again.
+ *
+ * Each time the UDP sockets (that the application makes available to actually
+ * send UDP datagrams) change, a call to udp_sched_update_sockets() is required
+ * to update the cached information.
  */
 struct udp_sched {
 	enum udp_sched_magic magic;		/**< Magic number */
 	pool_t *txpool;					/**< TX descriptor pool */
-	bio_source_t *bio;				/**< Bandwidth-limited I/O source */
-	wrap_io_t *wio;					/**< Cached wrapped IO object on socket */
+	bio_source_t *bio[UDP_SCHED_NET_CNT];	/**< Bandwidth-limited I/O source */
+	udp_sched_socket_cb_t get_socket;		/**< Get the UDP socket by net */
 	eslist_t lifo[PMSG_P_COUNT];	/**< LIFO stacks of TX descriptors */
 	eslist_t tx_released;			/**< Deferred TX descriptor freeing */
+	bsched_bws_t bws;				/**< Bandwidth scheduler to use */
 	hset_t *seen;					/**< Remembers destinations processed */
 	hash_list_t *stacks;			/**< TX stacks using us */
 	size_t buffered;				/**< Amount buffered (regular + urgent) */
@@ -321,6 +341,8 @@ static bool
 udp_sched_write_error(const udp_sched_t *us, const gnet_host_t *to,
 	const pmsg_t *mb, const char *func)
 {
+	(void) us;		/* FIXME -- no longer used */
+
 	if (is_temporary_error(errno) || ENOBUFS == errno)
 		return FALSE;
 
@@ -332,8 +354,8 @@ udp_sched_write_error(const udp_sched_t *us, const gnet_host_t *to,
 	 */
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
 	{
-		g_warning("%s(fd=%d, len=%d) failed with weird errno = %m -- "
-			"assuming EAGAIN", func, us->wio->fd(us->wio), pmsg_size(mb));
+		g_warning("%s(to=%s, len=%d) failed with weird errno = %m -- "
+			"assuming EAGAIN", func, gnet_host_to_string(to), pmsg_size(mb));
 	}
 		break;
 	case EPIPE:
@@ -377,6 +399,23 @@ udp_sched_write_error(const udp_sched_t *us, const gnet_host_t *to,
 }
 
 /**
+ * Drop message that could not be sent.
+ *
+ * @param tx		the TX stack sending the message
+ * @param cb		callback actions on the datagram
+ *
+ * @return TRUE.
+ */
+static bool
+udp_tx_drop(const txdrv_t *tx, const struct tx_dgram_cb *cb)
+{
+	if (cb->add_tx_dropped != NULL)
+		(*cb->add_tx_dropped)(tx->owner, 1);	/* Dropped in TX */
+
+	return TRUE;
+}
+
+/**
  * Send message block to IP:port.
  *
  * @param us		the UDP scheduler
@@ -394,6 +433,7 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 {
 	ssize_t r;
 	int len = pmsg_size(mb);
+	bio_source_t *bio = NULL;
 
 	if (0 == gnet_host_get_port(to))
 		return TRUE;
@@ -406,16 +446,43 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 		return TRUE;			/* Dropped */
 
 	/*
+	 * Select the proper I/O source depending on the network address type.
+	 */
+
+	switch (gnet_host_get_net(to)) {
+	case NET_TYPE_IPV4:
+		bio = us->bio[UDP_SCHED_IPv4];
+		break;
+	case NET_TYPE_IPV6:
+		bio = us->bio[UDP_SCHED_IPv6];
+		break;
+	case NET_TYPE_NONE:
+	case NET_TYPE_LOCAL:
+		g_assert_not_reached();
+	}
+
+	/*
+	 * If there is no I/O source, then the socket to send that type of traffic
+	 * was cleared, hence we simply need to discard the message.
+	 */
+
+	if (NULL == bio) {
+		udp_sched_log(4, "%p: discarding mb=%p (%d bytes) to %s",
+			us, mb, pmsg_size(mb), gnet_host_to_string(to));
+		return udp_tx_drop(tx, cb);		/* TRUE, for "sent" */
+	}
+
+	/*
 	 * OK, proceed if we have bandwidth.
 	 */
 
-	r = bio_sendto(us->bio, to, pmsg_start(mb), len);
+	r = bio_sendto(bio, to, pmsg_start(mb), len);
 
 	if (r < 0) {		/* Error, or no bandwidth */
 		if (udp_sched_write_error(us, to, mb, G_STRFUNC)) {
 			udp_sched_log(4, "%p: dropped mb=%p (%d bytes): %m",
 				us, mb, pmsg_size(mb));
-			return TRUE;
+			return udp_tx_drop(tx, cb);	/* TRUE, for "sent" */
 		}
 		udp_sched_log(3, "%p: no bandwidth for mb=%p (%d bytes)",
 			us, mb, pmsg_size(mb));
@@ -437,7 +504,7 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 		inet_udp_record_sent(gnet_host_get_addr(to));
 	}
 
-	return TRUE;
+	return TRUE;		/* Message sent */
 }
 
 /**
@@ -492,6 +559,24 @@ udp_tx_desc_send(void *data, void *udata)
 }
 
 /**
+ * @return b/w per second configured for the attached b/w scheduler.
+ */
+static ulong
+udp_sched_bw_per_second(const udp_sched_t *us)
+{
+	uint i;
+
+	for (i = 0; i < G_N_ELEMENTS(us->bio); i++) {
+		const bio_source_t *bio = us->bio[i];
+
+		if (bio != NULL)
+			return bio_bw_per_second(bio);
+	}
+
+	return 0;	/* No known I/O source, no bandwidth available */
+}
+
+/**
  * Send datagram.
  *
  * @param us		the UDP scheduler responsible for sending the datagram
@@ -535,7 +620,7 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 
 	if (
 		PMSG_P_HIGHEST != prio &&
-		us->buffered >= UDP_SCHED_FACTOR * bio_bw_per_second(us->bio)
+		us->buffered >= UDP_SCHED_FACTOR * udp_sched_bw_per_second(us)
 	) {
 		udp_sched_log(1, "%p: flow-controlled", us);
 		us->flow_controlled = TRUE;
@@ -670,11 +755,21 @@ udp_sched_pending(const udp_sched_t *us)
  * @return the I/O source used by the scheduler.
  */
 bio_source_t *
-udp_sched_bio_source(const udp_sched_t *us)
+udp_sched_bio_source(const udp_sched_t *us, enum net_type net)
 {
 	udp_sched_check(us);
 
-	return us->bio;
+	switch (net) {
+	case NET_TYPE_IPV4:
+		return us->bio[UDP_SCHED_IPv4];
+	case NET_TYPE_IPV6:
+		return us->bio[UDP_SCHED_IPv6];
+	case NET_TYPE_NONE:
+	case NET_TYPE_LOCAL:
+		break;
+	}
+
+	g_assert_not_reached();
 }
 
 /**
@@ -761,33 +856,91 @@ udp_sched_begin(void *data, int source, inputevt_cond_t cond)
 }
 
 /**
+ * Clear the socket-related information in the UDP scheduler.
+ */
+static void
+udp_sched_clear_sockets(udp_sched_t *us)
+{
+	uint i;
+
+	for (i = 0; i < G_N_ELEMENTS(us->bio); i++) {
+		bio_source_t *bio = us->bio[i];
+
+		if (bio != NULL) {
+			bsched_source_remove(bio);
+			us->bio[i] = NULL;
+		}
+	}
+}
+
+/**
+ * Update the socket-related information in the UDP scheduler.
+ */
+void
+udp_sched_update_sockets(udp_sched_t *us)
+{
+	uint i;
+	bio_source_t *bio = NULL;
+
+	udp_sched_clear_sockets(us);
+
+	for (i = 0; i < G_N_ELEMENTS(us->bio); i++) {
+		gnutella_socket_t *s = (*us->get_socket)(udp_sched_net_type[i]);
+
+		if (s != NULL) {
+			struct wrap_io *wio = &s->wio;
+
+			wrap_io_check(wio);
+			g_assert(wio->sendto != NULL);
+
+			us->bio[i] = bsched_source_add(
+				us->bws, wio, BIO_F_WRITE, NULL, NULL);
+
+			if (NULL == bio)
+				bio = us->bio[i];	/* Remember first I/O source seen */
+		}
+	}
+
+	/*
+	 * Make sure we are informed about the start of each bandwidth scheduling
+	 * periods so that we may schedule data out and expire old data.
+	 *
+	 * We just need one of the IPv4 or IPv6 I/O source since they are linked
+	 * to the same bandwidth scheduler.
+	 */
+
+	if (bio != NULL)
+		bio_add_passive_callback(bio, udp_sched_begin, us);
+}
+
+/**
  * Creates a new UDP TX scheduling layer.
  *
  * The layer can be attached to multiple TX layers, which will then share
  * the same bandwidth limitation.  This is given by the "bws" parameter.
  *
- * The "wio" parameter contains the object linked to a UDP socket and capable
- * of sending data. For our purpose here, it represents the output link.
+ * The sockets are dynamically fetched, since the application can disable
+ * them and recreate them depending on dynamic user reconfiguration.
  *
  * @param bws			the bandwidth scheduler used for output
- * @param wio			the low-level I/O routines to call on opened socket
+ * @param get_socket	callback to get the UDP socket to write to
  *
  * @return a new scheduler.
  */
 udp_sched_t *
-udp_sched_make(bsched_bws_t bws, wrap_io_t *wio)
+udp_sched_make(
+	bsched_bws_t bws, udp_sched_socket_cb_t get_socket)
 {
 	udp_sched_t *us;
 	unsigned i;
-
-	wrap_io_check(wio);
-	g_assert(wio->sendto != NULL);
 
 	WALLOC0(us);
 	us->magic = UDP_SCHED_MAGIC;
 	us->txpool = pool_create("UDP TX descriptors", sizeof(struct udp_tx_desc),
 		udp_tx_desc_alloc, udp_tx_desc_free, NULL);
-	us->bio = bsched_source_add(bws, wio, BIO_F_WRITE, NULL, NULL);
+	us->get_socket = get_socket;
+	us->bws = bws;
+	udp_sched_update_sockets(us);
 	for (i = 0; i < G_N_ELEMENTS(us->lifo); i++) {
 		eslist_init(&us->lifo[i], offsetof(struct udp_tx_desc, lnk));
 	}
@@ -795,13 +948,6 @@ udp_sched_make(bsched_bws_t bws, wrap_io_t *wio)
 	us->seen =
 		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	us->stacks = hash_list_new(udp_tx_stack_hash, udp_tx_stack_eq);
-
-	/*
-	 * Make sure we are informed about the start of each bandwidth scheduling
-	 * periods so that we may schedule data out and expire old data.
-	 */
-
-	bio_add_passive_callback(us->bio, udp_sched_begin, us);
 
 	return us;
 }
@@ -832,7 +978,7 @@ udp_sched_free(udp_sched_t *us)
 	pool_free(us->txpool);
 	hset_free_null(&us->seen);
 	hash_list_free(&us->stacks);
-	bsched_source_remove(us->bio);
+	udp_sched_clear_sockets(us);
 
 	us->magic = 0;
 	WFREE(us);

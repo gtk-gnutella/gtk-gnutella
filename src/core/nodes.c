@@ -7314,14 +7314,33 @@ node_dht_create(enum net_type net)
 }
 
 /**
+ * Get the UDP socket to use depending on the network type.
+ *
+ * @return the socket to use, or NULL if no traffic is allowed for that net.
+ */
+static gnutella_socket_t *
+node_udp_get_socket(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_IPV4:
+		return s_udp_listen;
+	case NET_TYPE_IPV6:
+		return s_udp_listen6;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
  * Create an UDP scheduler, once per bandwidth type.
  */
 static udp_sched_t *
-node_udp_scheduler(gnutella_node_t *n, bsched_bws_t bws)
+node_udp_scheduler(bsched_bws_t bws)
 {
 	udp_sched_t *us;
-
-	node_check(n);
 
 	if G_UNLIKELY(NULL == node_udp_sched_ht)
 		node_udp_sched_ht = htable_create(HASH_KEY_SELF, 0);
@@ -7329,8 +7348,7 @@ node_udp_scheduler(gnutella_node_t *n, bsched_bws_t bws)
 	us = htable_lookup(node_udp_sched_ht, int_to_pointer(bws));
 
 	if G_UNLIKELY(NULL == us) {
-		socket_check(n->socket);
-		us = udp_sched_make(bws, &n->socket->wio);
+		us = udp_sched_make(bws, node_udp_get_socket);
 		htable_insert(node_udp_sched_ht, int_to_pointer(bws), us);
 	}
 
@@ -7352,6 +7370,21 @@ node_udp_scheduler_free(const void *unused_key, void *value, void *unused_data)
 }
 
 /**
+ * Hash table iterator to update the scheduler sockets.
+ */
+static void
+node_udp_scheduler_update_sockets(
+	const void *unused_key, void *value, void *unused_data)
+{
+	udp_sched_t *us = value;
+
+	(void) unused_key;
+	(void) unused_data;
+
+	udp_sched_update_sockets(us);
+}
+
+/**
  * Free all the created UDP schedulers and the recording hash.
  */
 static void
@@ -7365,11 +7398,23 @@ node_udp_scheduler_destroy_all(void)
 }
 
 /**
+ * Update all the create UDP schedulers to refresh their sockets.
+ */
+static void
+node_udp_scheduler_update_all(void)
+{
+	if (NULL == node_udp_sched_ht)
+		return;
+
+	htable_foreach(node_udp_sched_ht, node_udp_scheduler_update_sockets, NULL);
+}
+
+/**
  * Enable transmissions on a pseudo node by setting up a full TX stack.
  */
 static void
 node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
-	bsched_bws_t bws, uint32 qsize)
+	enum net_type net, bsched_bws_t bws, uint32 qsize)
 {
 	txdrv_t *tx;
 	struct tx_dgram_args args;
@@ -7388,7 +7433,8 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 	 */
 
 	args.cb = NODE_CAN_SR_UDP(n) ? &node_tx_sr_dgram_cb : &node_tx_dgram_cb;
-	args.us = node_udp_scheduler(n, bws);
+	args.us = node_udp_scheduler(bws);
+	args.net = net;
 
 	gnet_host_set(&host, n->addr, n->port);
 
@@ -7506,7 +7552,7 @@ node_udp_enable_by_net(enum net_type net)
 		g_assert_not_reached();
 	}
 
-	node_pseudo_enable(n, s, BSCHED_BWS_GOUT_UDP,
+	node_pseudo_enable(n, s, net, BSCHED_BWS_GOUT_UDP,
 		GNET_PROPERTY(node_udp_sendqueue_size));
 
 	switch (net) {
@@ -7523,7 +7569,7 @@ node_udp_enable_by_net(enum net_type net)
 		g_assert_not_reached();
 	}
 
-	node_pseudo_enable(n, s, BSCHED_BWS_GOUT_UDP,
+	node_pseudo_enable(n, s, net, BSCHED_BWS_GOUT_UDP,
 		GNET_PROPERTY(node_udp_sendqueue_size));
 }
 
@@ -7547,7 +7593,7 @@ node_g2_enable_by_net(enum net_type net)
 		g_assert_not_reached();
 	}
 
-	node_pseudo_enable(n, s, BSCHED_BWS_GOUT_UDP,
+	node_pseudo_enable(n, s, net, BSCHED_BWS_GOUT_UDP,
 		GNET_PROPERTY(node_udp_sendqueue_size));
 }
 
@@ -7574,7 +7620,7 @@ node_dht_enable_by_net(enum net_type net)
 		g_assert_not_reached();
 	}
 
-	node_pseudo_enable(n, s, BSCHED_BWS_DHT_OUT,
+	node_pseudo_enable(n, s, net, BSCHED_BWS_DHT_OUT,
 		GNET_PROPERTY(node_dht_sendqueue_size));
 }
 
@@ -13199,6 +13245,13 @@ void
 node_update_udp_socket(void)
 {
 	node_udp_disable();
+
+	/*
+	 * The UDP TX schedulers need to be notified each time the UDP listening
+	 * sockets for IPv4 and/or IPv6 could have been removed / recreated.
+	 */
+
+	node_udp_scheduler_update_all();
 
 	if ((udp_node || udp6_node) && udp_active()) {
 		node_udp_enable();
