@@ -4323,6 +4323,11 @@ socket_plain_sendto(
 	g_assert(!socket_uses_tls(s));
 
 	if (!host_addr_convert(gnet_host_get_addr(to), &ha, s->net)) {
+		if (GNET_PROPERTY(udp_debug)) {
+			g_carp("%s(): cannot convert %s to %s",
+				G_STRFUNC, host_addr_to_string(gnet_host_get_addr(to)),
+				net_type_to_string(s->net));
+		}
 		errno = EINVAL;
 		return -1;
 	}
