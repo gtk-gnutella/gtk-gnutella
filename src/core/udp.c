@@ -315,19 +315,31 @@ not:
 
 log:
 	if (GNET_PROPERTY(udp_debug)) {
+		hostiles_flags_t flags;
+
+		/*
+		 * Do not pollute logs with errors from messages coming from known
+		 * hostile addresses: no dumping of datagram, and flag the host as
+		 * hostile anyway so that we know.
+		 */
+
+		flags = hostiles_check(s->addr);
+
 		g_warning("UDP got invalid %sGnutella packet (%zu byte%s) "
-			"\"%s\" %sfrom %s: %s",
+			"\"%s\" %sfrom %s%s: %s",
 			socket_udp_is_old(s) ? "OLD " : "",
 			len, plural(len),
 			len >= GTA_HEADER_SIZE ?
 				gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE)
 				: "<incomplete Gnutella header>",
 			truncated ? "(truncated) " : "",
+			(flags & HSTL_STATIC) ? "static hostile " : "",
 			NULL == n ?
 				host_addr_port_to_string(s->addr, s->port) :
 				node_infostr(n),
 			msg);
-		if (len != 0) {
+
+		if (len != 0 && !(flags & HSTL_STATIC)) {
 			if (len <= GTA_HEADER_SIZE) {
 				dump_hex(stderr, "UDP datagram", header, len);
 			} else {
