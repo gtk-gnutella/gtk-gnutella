@@ -102,8 +102,9 @@ static const struct {
 #else	/* !USE_LOCAL_UHC */
 	{ "1.uhc.gtk-gnutella.nl:19104" },
 	{ "uhc.gtk-gnutella.nl:15749" },
-	{ "g1.uswest.dyslexicfish.net:33558" },
-	{ "g1.uk.dyslexicfish.net:33558" },
+	{ "useast.gnutella.dyslexicfish.net:3558" },
+	{ "uswest.gnutella.dyslexicfish.net:3558" },
+	{ "uk.gnutella.dyslexicfish.net:3558" },
 #endif	/* USE_LOCAL_UHC */
 };
 
