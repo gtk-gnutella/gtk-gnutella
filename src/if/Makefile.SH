@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -63,7 +63,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -96,13 +96,17 @@ all:: properties
 
 properties: gnet_property.c gui_property.c
 
-gnet_property_priv.h gnet_property.c gnet_property.h: gnet_props.ag props.tpl
-	-autogen gnet_props.ag
-	touch gnet_property_priv.h gnet_property.c gnet_property.h
+gnet_property_priv.h  gnet_property.h  gnet_property.c: gnet_props.ag props.tpl
+	-@if test -f $(TOP)/.package; then \
+		echo "  autogen gnet_props.ag"; \
+		autogen gnet_props.ag; \
+	else touch $@; fi
 
-gui_property_priv.h gui_property.c gui_property.h: gui_props.ag props.tpl
-	-autogen gui_props.ag
-	touch gui_property_priv.h gui_property.c gui_property.h
+gui_property_priv.h  gui_property.h  gui_property.c: gui_props.ag props.tpl
+	-@if test -f $(TOP)/.package; then \
+		echo "  autogen gui_props.ag"; \
+		autogen gui_props.ag; \
+	else touch $@; fi
 
 all:: gnet_property.o
 

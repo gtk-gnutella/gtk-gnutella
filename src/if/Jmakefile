@@ -42,19 +42,30 @@ all:: properties
 properties: gnet_property.c gui_property.c
 
 /*
- * In case they don't have autogen, ignore the failure but make the
- * targets appear up to date
+ * Recreate the property files using autogen on the template listing the
+ * known properties.
+ *
+ * NOTE: this is only done when there is a .package file at the root of the
+ * source tree.  This file is created by packinit, a tool that comes with
+ * "dist", the package which includes metaconfig and jmake.  Since only
+ * developers will need that file around, this allows us to prevent accidental
+ * regeneration of property files in distributions (should the timestamp of
+ * the files indicate that the output is not up-to-date with respect to the
+ * property defintions).
  */
+#define BuildProperties(def,base)							@!\
+base/**/_priv.h base.h base.c: def props.tpl				@@\
+	-@if test -f $(TOP)/.package; then \					@@\
+		echo "  autogen def"; \								@@\
+		autogen def; \										@@\
+	else touch $@; fi
 
-gnet_property_priv.h gnet_property.c gnet_property.h: gnet_props.ag props.tpl
-	-autogen gnet_props.ag
-	touch gnet_property_priv.h gnet_property.c gnet_property.h
 
-gui_property_priv.h gui_property.c gui_property.h: gui_props.ag props.tpl
-	-autogen gui_props.ag
-	touch gui_property_priv.h gui_property.c gui_property.h
+BuildProperties(gnet_props.ag, gnet_property)
+BuildProperties(gui_props.ag, gui_property)
 
 NormalObjectTarget(gnet_property)
 NormalObjectTarget(gui_property)
+
 DependTarget()
 
