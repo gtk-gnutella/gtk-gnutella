@@ -389,6 +389,7 @@ route_get_udp(const gnutella_node_t *n)
 {
 	struct routing_udp_node key;
 	struct routing_udp_node *un;
+
 	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 
@@ -404,15 +405,15 @@ route_get_udp(const gnutella_node_t *n)
 
 	if (un != NULL) {
 		if (GNET_PROPERTY(guess_server_debug) > 4) {
-			g_debug("GUESS reusing known UDP node route %s:%u (%s)",
-				host_addr_to_string(n->addr), n->port,
+			g_debug("GUESS reusing known UDP node route %s (%s)",
+				host_addr_port_to_string(n->addr, n->port),
 				un->sr_udp ? "reliable" :
 				un->can_deflate ? "deflatable" : "regular");
 		}
 	} else {
 		if (GNET_PROPERTY(guess_server_debug) > 4) {
-			g_debug("GUESS creating new UDP node route %s:%u (%s)",
-				host_addr_to_string(n->addr), n->port,
+			g_debug("GUESS creating new UDP node route %s (%s)",
+				host_addr_port_to_string(n->addr, n->port),
 				NODE_HAS_SR_UDP(n) ? "reliable" :
 				NODE_CAN_INFLATE(n) ? "deflatable" : "regular");
 		}
@@ -421,6 +422,29 @@ route_get_udp(const gnutella_node_t *n)
 	}
 
 	return un;
+}
+
+/**
+ * Flag UDP route as deflatable.
+ *
+ * If the route does not exist yet for that host, it is created.
+ */
+void
+route_udp_mark_deflatable(const gnutella_node_t *n)
+{
+	struct routing_udp_node *un;
+
+	node_check(n);
+	g_assert(NODE_IS_UDP(n));
+
+	un = route_get_udp(n);
+
+	if (GNET_PROPERTY(guess_server_debug) > 4 && !un->can_deflate) {
+		g_debug("GUESS flagging UDP node route %s as deflatable",
+			host_addr_port_to_string(n->addr, n->port));
+	}
+
+	un->can_deflate = TRUE;
 }
 
 /**

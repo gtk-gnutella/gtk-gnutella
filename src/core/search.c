@@ -8429,8 +8429,22 @@ search_request_preprocess(gnutella_node_t *n,
 				break;
 
 			case EXT_T_GGEP_Z:			/* Compressed UDP supported */
-				if (NODE_IS_UDP(n))
+				if (NODE_IS_UDP(n)) {
+					/*
+					 * Because UDP routes are created before the actual
+					 * message payload is analysed, they cannot know that
+					 * the host is deflatable initially (queries are not
+					 * "requests" for the "Gnutella UDP Traffic Compression"
+					 * specifications, hence are not bearing a flagged TTL).
+					 *
+					 * This is the reason why we need the GGEP "Z" extension
+					 * in queries sent over GUESS, and this is also why we
+					 * need to explicitly flag the UDP route as deflatable now.
+					 */
+
 					n->attrs |= NODE_A_CAN_INFLATE;
+					route_udp_mark_deflatable(n);
+				}
 				break;
 
 			case EXT_T_GGEP_6:			/* IPv6-Ready -- has IPv6 OOB return */

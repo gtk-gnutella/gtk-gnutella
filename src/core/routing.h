@@ -77,6 +77,7 @@ void message_forget(const struct guid *muid, uint8, struct gnutella_node *);
 struct pslist *route_towards_guid(const struct guid *guid);
 bool route_exists_for_reply(const struct guid *muid, uint8 function);
 bool route_guid_pushable(const struct guid *guid);
+void route_udp_mark_deflatable(const struct gnutella_node *n);
 
 bool route_proxy_add(const struct guid *guid, struct gnutella_node *n);
 void route_proxy_remove(const struct guid *guid);
