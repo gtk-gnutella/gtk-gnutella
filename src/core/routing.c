@@ -314,6 +314,25 @@ route_allocate_udp(const gnutella_node_t *n)
 	un->magic = NODE_UDP_MAGIC;
 	un->addr = n->addr;
 	un->port = n->port;
+
+	/*
+	 * In some cases, the UDP route is allocated before the node can be flagged
+	 * as supporting deflated traffic or semi-reliable UDP.  In particular
+	 * for GUESS queries which go through route_message() before having their
+	 * actual message content analyzed.
+	 *
+	 * This is why we have the following routines to force the behaviour later
+	 * on when the message is parsed:
+	 *		route_udp_mark_deflatable()
+	 *		route_udp_mark_semi_reliable()
+	 *
+	 * We know that a given host will not have varying support for deflation
+	 * or semi-reliable UDP, hence this works.  Because the UDP route will be
+	 * collected when it is unused for too long, we should be immune against a
+	 * new node with different characteristics reusing this IP:port.
+	 *		--RAM, 2014-06-29
+	 */
+
 	/* If it can inflate, we can deflate traffic to it */
 	un->can_deflate = booleanize(NODE_CAN_INFLATE(n));
 
@@ -460,6 +479,29 @@ route_udp_mark_deflatable(const gnutella_node_t *n)
 	}
 
 	un->can_deflate = TRUE;
+}
+
+/**
+ * Flag UDP route as semi-reliable.
+ *
+ * If the route does not exist yet for that host, it is created.
+ */
+void
+route_udp_mark_semi_reliable(const gnutella_node_t *n)
+{
+	struct routing_udp_node *un;
+
+	node_check(n);
+	g_assert(NODE_IS_UDP(n));
+
+	un = route_fetch_udp(n, FALSE);
+
+	if (GNET_PROPERTY(guess_server_debug) > 4 && !un->sr_udp) {
+		g_debug("GUESS flagging UDP node route %s as semi-reliable",
+			host_addr_port_to_string(n->addr, n->port));
+	}
+
+	un->sr_udp = TRUE;
 }
 
 /**

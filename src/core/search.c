@@ -8808,8 +8808,18 @@ skip_throttling:
 	sri->sr_udp = booleanize(sri->flags & QUERY_F_SR_UDP);
 	sri->may_oob_proxy = booleanize(0 == (n->attrs2 & NODE_A2_NO_OOB_PROXY));
 
-	if (sri->sr_udp && NODE_IS_UDP(n))
+	if (sri->sr_udp && NODE_IS_UDP(n)) {
+		/*
+		 * Because UDP routes are created before the actual message payload
+		 * is analysed, they cannot know that the host is supporting
+		 * Semi-Reliable UDB initially (queries are not "requests" for
+		 * the "Gnutella UDP Traffic Compression" specifications, hence are
+		 * not bearing a flagged TTL).
+		 */
+
 		n->attrs2 |= NODE_A2_HAS_SR_UDP;
+		route_udp_mark_semi_reliable(n);
+	}
 
 	/*
 	 * IPv6-Ready: Compute the proper IPv6 reply address if we saw GGEP "6".
