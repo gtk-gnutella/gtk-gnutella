@@ -514,8 +514,21 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 				guid_hex_str(muid), node_infostr(dest));
 		}
 
-		mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
-				src->size + GTA_HEADER_SIZE);
+		/*
+		 * Attempt to compress query hit if the destination supports it.
+		 */
+
+		if (NODE_CAN_INFLATE(dest)) {
+			mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
+					src->size + GTA_HEADER_SIZE);
+
+			if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
+				gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
+		} else {
+			mb = gmsg_split_to_pmsg(&src->header, src->data,
+					src->size + GTA_HEADER_SIZE);
+		}
+
 		mbe = pmsg_clone_extend(mb, dh_pmsg_free, pmi);
 		pmsg_free(mb);
 
