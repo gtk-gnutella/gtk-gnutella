@@ -516,9 +516,13 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 
 		/*
 		 * Attempt to compress query hit if the destination supports it.
+		 *
+		 * If we're going to send the hit using semi-reliable UDP, there's
+		 * no need to compress beforehand, since the transport layer will
+		 * attempt its own compression anyway.
 		 */
 
-		if (NODE_CAN_INFLATE(dest)) {
+		if (!NODE_CAN_SR_UDP(dest) && NODE_CAN_INFLATE(dest)) {
 			mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
 					src->size + GTA_HEADER_SIZE);
 
