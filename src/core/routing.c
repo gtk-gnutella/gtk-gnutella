@@ -383,9 +383,14 @@ route_udp_kvfree(void *key, void *unused_value)
 /**
  * Fetch a minimal UDP node data structure that can be used to record
  * the route associated with a message we got from that UDP node.
+ *
+ * @param n			the node for which we want the UDP route data
+ * @param verbose	whether debugging message should be emitted on access
+ *
+ * @return the UDP node route.
  */
 static struct routing_udp_node *
-route_get_udp(const gnutella_node_t *n)
+route_fetch_udp(const gnutella_node_t *n, bool verbose)
 {
 	struct routing_udp_node key;
 	struct routing_udp_node *un;
@@ -404,14 +409,14 @@ route_get_udp(const gnutella_node_t *n)
 	un = aging_lookup_revitalise(at_udp_routes, &key);
 
 	if (un != NULL) {
-		if (GNET_PROPERTY(guess_server_debug) > 4) {
+		if (verbose) {
 			g_debug("GUESS reusing known UDP node route %s (%s)",
 				host_addr_port_to_string(n->addr, n->port),
 				un->sr_udp ? "reliable" :
 				un->can_deflate ? "deflatable" : "regular");
 		}
 	} else {
-		if (GNET_PROPERTY(guess_server_debug) > 4) {
+		if (verbose) {
 			g_debug("GUESS creating new UDP node route %s (%s)",
 				host_addr_port_to_string(n->addr, n->port),
 				NODE_HAS_SR_UDP(n) ? "reliable" :
@@ -422,6 +427,16 @@ route_get_udp(const gnutella_node_t *n)
 	}
 
 	return un;
+}
+
+/**
+ * Fetch a minimal UDP node data structure that can be used to record
+ * the route associated with a message we got from that UDP node.
+ */
+static struct routing_udp_node *
+route_get_udp(const gnutella_node_t *n)
+{
+	return route_fetch_udp(n, GNET_PROPERTY(guess_server_debug) > 4);
 }
 
 /**
@@ -437,7 +452,7 @@ route_udp_mark_deflatable(const gnutella_node_t *n)
 	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 
-	un = route_get_udp(n);
+	un = route_fetch_udp(n, FALSE);
 
 	if (GNET_PROPERTY(guess_server_debug) > 4 && !un->can_deflate) {
 		g_debug("GUESS flagging UDP node route %s as deflatable",
