@@ -191,7 +191,7 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 		hsep_triple table[HSEP_N_MAX + 1];
 
 		PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-			const struct gnutella_node *n = sl->data;
+			const gnutella_node_t *n = sl->data;
 
 			if ((!NODE_IS_ESTABLISHED(n)) || !(n->attrs & NODE_A_CAN_HSEP))
 				continue;

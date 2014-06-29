@@ -521,7 +521,7 @@ search_media_mask_to_string(unsigned mask)
  * @return TRUE if query key is valid.
  */
 static bool
-search_query_key_validate(const struct gnutella_node *n, const extvec_t *exv)
+search_query_key_validate(const gnutella_node_t *n, const extvec_t *exv)
 {
 	size_t len = ext_paylen(exv);
 	const char *payload;
@@ -685,7 +685,7 @@ search_mark_sent_to_connected_nodes(search_ctrl_t *sch)
 	const pslist_t *sl;
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-		struct gnutella_node *n = sl->data;
+		gnutella_node_t *n = sl->data;
 
 		if (NODE_IS_WRITABLE(n))
 			search_mark_sent_to_node(sch, n);
@@ -5384,7 +5384,7 @@ static void
 search_send_query_status(search_ctrl_t *sch,
 	const struct nid *node_id, uint16 kept)
 {
-	struct gnutella_node *n;
+	gnutella_node_t *n;
 
 	n = node_active_by_id(node_id);
 	if (n == NULL)
@@ -7919,7 +7919,7 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
  * buggy clients.
  */
 static uint16
-search_request_get_flags(const struct gnutella_node *n)
+search_request_get_flags(const gnutella_node_t *n)
 {
 	const uint16 mask = QUERY_F_MARK | QUERY_F_GGEP_H | QUERY_F_LEAF_GUIDED;
 	uint16 flags;
@@ -8067,7 +8067,7 @@ search_oob_is_allowed(gnutella_node_t *n, const search_request_info_t *sri)
  * @return TRUE if the query should be discarded, FALSE if everything was OK.
  */
 bool
-search_request_preprocess(struct gnutella_node *n,
+search_request_preprocess(gnutella_node_t *n,
 	search_request_info_t *sri, bool isdup)
 {
 	static char stmp_1[4096];
@@ -9026,7 +9026,7 @@ drop:
  * @param qhv		query hash vector (can be NULL) to fill for later routing
  */
 void
-search_request(struct gnutella_node *n,
+search_request(gnutella_node_t *n,
 	const search_request_info_t *sri, query_hashvec_t *qhv)
 {
 	const char *search;
@@ -9453,7 +9453,7 @@ search_ggep_write(ggep_stream_t *gs, const extvec_t *e, const char *id,
  * node buffer, ready to be sent.
  */
 void
-search_compact(struct gnutella_node *n)
+search_compact(gnutella_node_t *n)
 {
 	const char *search;
 	size_t search_len;

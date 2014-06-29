@@ -63,6 +63,8 @@
 #include "knode.h"
 #include "kmsg.h"
 
+#include "core/nodes.h"
+
 #include "if/gnet_property_priv.h"
 
 #include "lib/nid.h"
@@ -329,7 +331,7 @@ static void
 revent_rpc_cb(
 	enum dht_rpc_ret type,
 	const knode_t *kn,
-	const struct gnutella_node *unused_n,
+	const gnutella_node_t *unused_n,
 	kda_msg_t function,
 	const char *payload, size_t len, void *arg)
 {

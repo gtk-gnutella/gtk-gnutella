@@ -629,7 +629,7 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 bool
 dht_rpc_answer(const guid_t *muid,
 	knode_t *kn,
-	const struct gnutella_node *n,
+	const gnutella_node_t *n,
 	kda_msg_t function,
 	const void *payload, size_t len)
 {

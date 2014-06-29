@@ -160,7 +160,7 @@ mq_bio(const mqueue_t *q)
 	return tx_bio_source(q->tx_drv);
 }
 
-struct gnutella_node *
+gnutella_node_t *
 mq_node(const mqueue_t *q)
 {
 	mq_check_consistency(q);

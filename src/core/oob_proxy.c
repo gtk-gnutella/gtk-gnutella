@@ -311,7 +311,7 @@ oob_proxy_pending_results(
 	int hits, bool uu_udp_firewalled, const struct array *token)
 {
 	struct oob_proxy_rec *opr;
-	struct gnutella_node *leaf;
+	gnutella_node_t *leaf;
 	uint32 wanted;
 	const char *msg = NULL;
 
@@ -458,7 +458,7 @@ bool
 oob_proxy_got_results(gnutella_node_t *n, uint results)
 {
 	struct oob_proxy_rec *opr;
-	struct gnutella_node *leaf;
+	gnutella_node_t *leaf;
 
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH_RESULTS);
 	g_assert(results > 0 && results <= INT_MAX);

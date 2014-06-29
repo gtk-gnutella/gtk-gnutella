@@ -38,14 +38,16 @@
 #include "common.h"
 
 #include "huge.h"
-#include "share.h"
-#include "gmsg.h"
+
 #include "dmesh.h"
+#include "gmsg.h"
+#include "nodes.h"
+#include "settings.h"
+#include "share.h"
+#include "spam.h"
 #include "verify_sha1.h"
 #include "verify_tth.h"
 #include "version.h"
-#include "settings.h"
-#include "spam.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -700,7 +702,7 @@ huge_improbable_sha1(const char *buf, size_t len)
  */
 bool
 huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
-	const struct gnutella_node *n)
+	const gnutella_node_t *n)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
@@ -749,7 +751,7 @@ bad:
 
 bool
 huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
-	const struct gnutella_node *n)
+	const gnutella_node_t *n)
 {
 	if (len != TTH_BASE32_SIZE)
 		goto bad;

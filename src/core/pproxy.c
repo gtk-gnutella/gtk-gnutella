@@ -723,7 +723,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 {
 	struct gnutella_socket *s = pp->socket;
 	const char *request = getline_str(s->getline);
-	struct gnutella_node *n;
+	gnutella_node_t *n;
 	const char *buf;
 	char *token;
 	char *user_agent;

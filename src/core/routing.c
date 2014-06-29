@@ -64,7 +64,7 @@
 
 #include "lib/override.h"	/* Must be the last header included */
 
-static struct gnutella_node *fake_node;		/**< Our fake node */
+static gnutella_node_t *fake_node;		/**< Our fake node */
 
 /**
  * An UDP node that sent us a message and for which we want to retain the
@@ -283,7 +283,7 @@ route_node_is_udp(const void *node)
 /**
  * Force a gnutella_node as the route destination.
  */
-static struct gnutella_node *
+static gnutella_node_t *
 route_node_get_gnutella(void *node)
 {
 	switch (((struct node_magic *) node)->magic) {
@@ -303,7 +303,7 @@ route_node_get_gnutella(void *node)
  * Allocate a new UDP node recording the UDP route from node ``n''.
  */
 static struct routing_udp_node *
-route_allocate_udp(const struct gnutella_node *n)
+route_allocate_udp(const gnutella_node_t *n)
 {
 	struct routing_udp_node *un;
 
@@ -385,7 +385,7 @@ route_udp_kvfree(void *key, void *unused_value)
  * the route associated with a message we got from that UDP node.
  */
 static struct routing_udp_node *
-route_get_udp(const struct gnutella_node *n)
+route_get_udp(const gnutella_node_t *n)
 {
 	struct routing_udp_node key;
 	struct routing_udp_node *un;
@@ -474,7 +474,7 @@ route_starving_check(const guid_t *guid)
  */
 static void
 routing_log_init(struct route_log *route_log,
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const struct guid *muid, uint8 function, uint8 hops, uint8 ttl)
 {
 	if (!GNET_PROPERTY(log_gnutella_routing))
@@ -660,7 +660,7 @@ get_routing_data(void *n)
 	switch (((struct node_magic *) n)->magic) {
 	case NODE_MAGIC:
 		{
-			struct gnutella_node *gn = n;
+			gnutella_node_t *gn = n;
 			struct routing_udp_node *un;
 
 			if (!NODE_IS_UDP(gn))
@@ -689,7 +689,7 @@ route_data_pointer(void *node, void **route_node)
 	switch (((struct node_magic *) node)->magic) {
 	case NODE_MAGIC:
 		{
-			struct gnutella_node *gn = node;
+			gnutella_node_t *gn = node;
 			struct routing_udp_node *un;
 
 			if (!NODE_IS_UDP(gn)) {
@@ -723,7 +723,7 @@ route_data_pointer(void *node, void **route_node)
  * @return created routing data structure.
  */
 static struct route_data *
-init_routing_data(struct gnutella_node *node)
+init_routing_data(gnutella_node_t *node)
 {
 	struct route_data *route;
 	struct route_data **route_ptr;
@@ -1231,7 +1231,7 @@ revitalize_entry(struct message *entry, bool force)
  * Did node send the message?
  */
 static bool
-route_node_sent_message(struct gnutella_node *n, struct message *m)
+route_node_sent_message(gnutella_node_t *n, struct message *m)
 {
 	struct route_data *route;
 	pslist_t *sl;
@@ -1266,7 +1266,7 @@ route_node_sent_message(struct gnutella_node *n, struct message *m)
  * and the node should not have broadcasted this message again.
  */
 static bool
-route_node_ttl_higher(struct gnutella_node *n, struct message *m, uint8 ttl)
+route_node_ttl_higher(gnutella_node_t *n, struct message *m, uint8 ttl)
 {
 	pslist_t *l;
 	int i;
@@ -1582,7 +1582,7 @@ routing_node_remove(void *node)
  */
 void
 message_add(const struct guid *muid, uint8 function,
-	struct gnutella_node *node)
+	gnutella_node_t *node)
 {
 	struct route_data *route;
 	struct message *entry;
@@ -1806,7 +1806,7 @@ find_message(const struct guid *muid, uint8 function, struct message **m)
  * @return TRUE if OK, FALSE if message should not be forwarded.
  */
 static bool
-check_hops(struct route_log *route_log, struct gnutella_node *sender)
+check_hops(struct route_log *route_log, gnutella_node_t *sender)
 {
 	/*
 	 * Can't forward a message with 255 hops: we can't increase the
@@ -1835,7 +1835,7 @@ check_hops(struct route_log *route_log, struct gnutella_node *sender)
  * @return TRUE if OK, FALSE if message should not be forwarded.
  */
 static bool
-check_ttl(struct route_log *route_log, struct gnutella_node *sender)
+check_ttl(struct route_log *route_log, gnutella_node_t *sender)
 {
 	if (gnutella_header_get_ttl(&sender->header) == 0) {
 		routing_log_extra(route_log, "TTL was 0");
@@ -1855,7 +1855,7 @@ check_ttl(struct route_log *route_log, struct gnutella_node *sender)
  * message.
  */
 static bool
-check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
+check_hops_ttl(struct route_log *route_log, gnutella_node_t *sender)
 {
 	return check_hops(route_log, sender) && check_ttl(route_log, sender);
 }
@@ -1907,10 +1907,10 @@ route_max_forward_ttl(const gnutella_node_t *sender)
 static bool
 forward_message(
 	struct route_log *route_log,
-	struct gnutella_node **node,
-	struct gnutella_node *target, struct route_dest *dest, pslist_t *routes)
+	gnutella_node_t **node,
+	gnutella_node_t *target, struct route_dest *dest, pslist_t *routes)
 {
-	struct gnutella_node *sender = *node;
+	gnutella_node_t *sender = *node;
 
 	g_assert(routes == NULL || target == NULL);
 	g_assert(settings_is_ultra());
@@ -2228,10 +2228,10 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
  * the message was a duplicate and it should not be handled locally.
  */
 static bool
-check_duplicate(struct route_log *route_log, struct gnutella_node **node,
+check_duplicate(struct route_log *route_log, gnutella_node_t **node,
 	const guid_t *mangled, struct message **mp)
 {
-	struct gnutella_node *sender = *node;
+	gnutella_node_t *sender = *node;
 	uint8 function = gnutella_header_get_function(&sender->header);
 	const guid_t *muid = gnutella_header_get_muid(&sender->header);
 
@@ -2276,12 +2276,12 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
  */
 static bool
 route_push(struct route_log *route_log,
-	struct gnutella_node **node, struct route_dest *dest)
+	gnutella_node_t **node, struct route_dest *dest)
 {
-	struct gnutella_node *sender = *node;
+	gnutella_node_t *sender = *node;
 	struct message *m;
 	const struct guid *guid;
-	struct gnutella_node *neighbour;
+	gnutella_node_t *neighbour;
 	host_addr_t ip;
 
 	/*
@@ -2403,9 +2403,9 @@ route_push(struct route_log *route_log,
  */
 static bool
 route_query(struct route_log *route_log,
-	struct gnutella_node **node, struct route_dest *dest)
+	gnutella_node_t **node, struct route_dest *dest)
 {
-	struct gnutella_node *sender = *node;
+	gnutella_node_t *sender = *node;
 	bool is_oob_query;
 	bool handle_it;
 
@@ -2513,12 +2513,12 @@ done:
  */
 static bool
 route_query_hit(struct route_log *route_log,
-	struct gnutella_node **node, struct route_dest *dest)
+	gnutella_node_t **node, struct route_dest *dest)
 {
-	struct gnutella_node *sender = *node;
+	gnutella_node_t *sender = *node;
 	struct message *m;
 	bool node_is_target = FALSE;
-	struct gnutella_node *found;
+	gnutella_node_t *found;
 	bool is_oob_proxied;
 	const struct guid *origin_guid;
 	const guid_t *muid = gnutella_header_get_muid(&sender->header);
@@ -2812,10 +2812,10 @@ handle:
  * @returns whether the message is to be handled locally.
  */
 bool
-route_message(struct gnutella_node **node, struct route_dest *dest)
+route_message(gnutella_node_t **node, struct route_dest *dest)
 {
 	bool handle_it = FALSE;
-	struct gnutella_node *sender = *node;
+	gnutella_node_t *sender = *node;
 	struct message *m;
 	bool duplicate = FALSE;
 	struct route_log route_log;
@@ -2983,7 +2983,7 @@ route_guid_pushable(const struct guid *guid)
 pslist_t *
 route_towards_guid(const struct guid *guid)
 {
-	struct gnutella_node *node;
+	gnutella_node_t *node;
 	struct message *m;
 
 	if (is_banned_push(guid))
@@ -3030,7 +3030,7 @@ route_proxy_remove(const struct guid *guid)
  * NB: assumes `guid' is already an atom linked somehow to `n'.
  */
 bool
-route_proxy_add(const struct guid *guid, struct gnutella_node *n)
+route_proxy_add(const struct guid *guid, gnutella_node_t *n)
 {
 	if (htable_contains(ht_proxyfied, guid))
 		return FALSE;
@@ -3046,7 +3046,7 @@ route_proxy_add(const struct guid *guid, struct gnutella_node *n)
  * @returns node address if we found it, or NULL if we aren't connected to
  * that node directly.
  */
-struct gnutella_node *
+gnutella_node_t *
 route_proxy_find(const struct guid *guid)
 {
 	return htable_lookup(ht_proxyfied, guid);

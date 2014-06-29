@@ -133,7 +133,7 @@ static aging_table_t *kmsg_aging_finds;
 #define KMSG_STORE_AIMED_SIZE	512
 #define KMSG_STORE_MAX_SIZE		640
 
-typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
+typedef void (*kmsg_handler_t)(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header,
 	uint8 extlen, const void *payload, size_t len);
 
@@ -204,7 +204,7 @@ kmsg_can_drop(const void *pdu, int size)
  */
 static void
 kmsg_handle(knode_t *kn,
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -436,7 +436,7 @@ kmsg_deserialize_contact(bstr_t *bs)
  * Send a pong message back to the host who sent the ping.
  */
 static void
-k_send_pong(struct gnutella_node *n, const guid_t *muid)
+k_send_pong(gnutella_node_t *n, const guid_t *muid)
 {
 	kademlia_header_t *header;
 	pmsg_t *mb;
@@ -494,7 +494,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
  */
 static void
 k_send_find_node_response(
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const knode_t *kn,
 	knode_t **kvec, size_t klen, const guid_t *muid)
 {
@@ -571,7 +571,7 @@ k_send_find_node_response(
  */
 static void
 k_send_find_value_response(
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const knode_t *unused_kn,
 	dht_value_t **vvec, size_t vlen, float load, bool cached,
 	const guid_t *muid)
@@ -748,7 +748,7 @@ k_send_find_value_response(
  */
 static void
 k_send_store_response(
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const knode_t *kn,
 	dht_value_t **vec, uint8 vlen,
 	bool valid_token,
@@ -845,7 +845,7 @@ k_send_store_response(
  * Handle ping messages.
  */
 static void
-k_handle_ping(knode_t *kn, struct gnutella_node *n,
+k_handle_ping(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -935,7 +935,7 @@ throttle:
  * Handle pong messages.
  */
 static void
-k_handle_pong(knode_t *kn, struct gnutella_node *n,
+k_handle_pong(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1050,7 +1050,7 @@ error:
  * @param header	the Kademlia header from which we can extract the MUID
  */
 static void
-answer_find_node(struct gnutella_node *n,
+answer_find_node(gnutella_node_t *n,
 	const knode_t *kn, const kuid_t *id, const kademlia_header_t *header)
 {
 	knode_t *kvec[KDA_K];
@@ -1265,7 +1265,7 @@ peer_replication(const knode_t *kn, const kuid_t *id)
  * Handle find_node(id) messages.
  */
 static void
-k_handle_find_node(knode_t *kn, struct gnutella_node *n,
+k_handle_find_node(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1327,7 +1327,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
  * Handle store requests.
  */
 static void
-k_handle_store(knode_t *kn, struct gnutella_node *n,
+k_handle_store(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1510,7 +1510,7 @@ cleanup:
  * Handle find_value(id) requests.
  */
 static void
-k_handle_find_value(knode_t *kn, struct gnutella_node *n,
+k_handle_find_value(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1715,7 +1715,7 @@ cleanup:
  * it will be handled by the RPC callbacks.  Otherwise, the message is ignored.
  */
 static void
-k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
+k_handle_rpc_reply(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1745,7 +1745,7 @@ k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
 void
 kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 {
-	struct gnutella_node *n = node_dht_get_addr_port(kn->addr, kn->port);
+	gnutella_node_t *n = node_dht_get_addr_port(kn->addr, kn->port);
 
 	knode_check(kn);
 

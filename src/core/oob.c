@@ -483,7 +483,7 @@ oob_record_hit(void *data, size_t len, void *udata)
  * @param token		the token for secure OOB
  */
 void
-oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
+oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 	uint8 wanted, const struct array *token)
 {
 	struct oob_results *r;
@@ -728,7 +728,7 @@ oob_send_reply_ind(struct oob_results *r)
  * @param flags			a combination of QHIT_F_* flags
  */
 void
-oob_got_results(struct gnutella_node *n, pslist_t *files,
+oob_got_results(gnutella_node_t *n, pslist_t *files,
 	int count, host_addr_t addr, uint16 port,
 	bool secure, bool reliable, unsigned flags)
 {

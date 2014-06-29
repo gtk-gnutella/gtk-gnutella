@@ -216,7 +216,7 @@ hsep_sanity_check(void)
 	 */
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-		struct gnutella_node *n = sl->data;
+		gnutella_node_t *n = sl->data;
 
 		/* also consider unestablished connections here */
 
@@ -389,7 +389,7 @@ hsep_reset(void)
 	ZERO(&hsep_global_table);
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-		struct gnutella_node *n = sl->data;
+		gnutella_node_t *n = sl->data;
 
 		/* also consider unestablished connections here */
 
@@ -422,7 +422,7 @@ hsep_reset(void)
  */
 
 void
-hsep_connection_init(struct gnutella_node *n, uint8 major, uint8 minor)
+hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 {
 	static const hsep_ctx_t zero_hsep;
 	time_t now = tm_time();
@@ -478,7 +478,7 @@ hsep_timer(time_t now)
 	}
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-		struct gnutella_node *n = sl->data;
+		gnutella_node_t *n = sl->data;
 		int diff;
 
 		/* only consider established connections here */
@@ -516,7 +516,7 @@ hsep_timer(time_t now)
  * zero and the CAN_HSEP attribute is cleared.
  */
 void
-hsep_connection_close(struct gnutella_node *n, bool in_shutdown)
+hsep_connection_close(gnutella_node_t *n, bool in_shutdown)
 {
 	unsigned int i, j;
 
@@ -583,7 +583,7 @@ hsep_fix_endian(hsep_triple *messaget, size_t n)
  */
 
 void
-hsep_process_msg(struct gnutella_node *n, time_t now)
+hsep_process_msg(gnutella_node_t *n, time_t now)
 {
 	unsigned int i, j, k, max, msgmax, length;
 	hsep_triple *messaget;
@@ -722,7 +722,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
  */
 
 void
-hsep_send_msg(struct gnutella_node *n, time_t now)
+hsep_send_msg(gnutella_node_t *n, time_t now)
 {
 	hsep_triple tmp[G_N_ELEMENTS(n->hsep->sent_table)], other;
 	unsigned int i, j, msglen, msgsize, triples, opttriples;
@@ -919,7 +919,7 @@ hsep_get_global_table(hsep_triple *buffer, unsigned int maxtriples)
  */
 
 unsigned int
-hsep_get_connection_table(const struct gnutella_node *n,
+hsep_get_connection_table(const gnutella_node_t *n,
     hsep_triple *buffer, unsigned int maxtriples)
 {
 	g_assert(n);
@@ -984,7 +984,7 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 	 */
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-		struct gnutella_node *n = sl->data;
+		gnutella_node_t *n = sl->data;
 		gnet_node_status_t status;
 
 		if ((!NODE_IS_ESTABLISHED(n)) || n->attrs & NODE_A_CAN_HSEP)

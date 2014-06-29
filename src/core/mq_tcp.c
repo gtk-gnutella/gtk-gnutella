@@ -297,7 +297,7 @@ update_servicing:
  * @param from		for TX traffic dump: the origin of message, NULL if local
  */
 void
-mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
+mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const gnutella_node_t *from)
 {
 	int size;				/* Message size */
 	char *mbs;				/* Start of message */

@@ -354,7 +354,7 @@ rudp_set_header(struct rudp_header *header, enum rudp_op op, uint8 conn_id,
 static void
 rudp_send_packet(struct rudp_con *con, const void *data, size_t size)
 {
-	const struct gnutella_node *n;
+	const gnutella_node_t *n;
 
 	RUDP_DEBUG(
 		("SENDING TO %s", host_addr_port_to_string(con->addr, con->port)));

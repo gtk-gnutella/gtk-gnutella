@@ -992,7 +992,7 @@ found_reset(size_t max_size, const struct guid *muid, unsigned flags,
  * @param flags			a combination of QHIT_F_* flags
  */
 void
-qhit_send_results(struct gnutella_node *n, pslist_t *files, int count,
+qhit_send_results(gnutella_node_t *n, pslist_t *files, int count,
 	const struct guid *muid, unsigned flags)
 {
 	pslist_t *sl;

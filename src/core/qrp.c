@@ -1291,7 +1291,7 @@ mrg_step_get_list(struct bgtask *unused_h, void *u, int unused_ticks)
 	g_assert(MERGE_MAGIC == ctx->magic);
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-		struct gnutella_node *dn = sl->data;
+		gnutella_node_t *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 
 		if (rt == NULL || !NODE_IS_LEAF(dn))
@@ -2963,7 +2963,7 @@ qrt_compress_cancel_all(void)
  * to size the table.
  */
 static void
-qrp_send_reset(struct gnutella_node *n, int slots, int inf_val)
+qrp_send_reset(gnutella_node_t *n, int slots, int inf_val)
 {
 	g_assert(is_pow2(slots));
 	g_assert(inf_val > 0 && inf_val < 256);
@@ -3001,7 +3001,7 @@ qrp_send_reset(struct gnutella_node *n, int slots, int inf_val)
  * The patch payload data is made of the `len' bytes starting at `buf'.
  */
 static void
-qrp_send_patch(struct gnutella_node *n,
+qrp_send_patch(gnutella_node_t *n,
 	int seqno, int seqsize, bool compressed, int bits,
 	char *buf, int len)
 {
@@ -3076,7 +3076,7 @@ struct qrp_patch {
  * @returns TRUE if we read the message OK.
  */
 static bool
-qrp_recv_reset(struct gnutella_node *n, struct qrp_reset *reset)
+qrp_recv_reset(gnutella_node_t *n, struct qrp_reset *reset)
 {
 	const void *msg = n->data;
 
@@ -3098,7 +3098,7 @@ qrp_recv_reset(struct gnutella_node *n, struct qrp_reset *reset)
  * @returns TRUE if we read the message OK.
  */
 static bool
-qrp_recv_patch(struct gnutella_node *n, struct qrp_patch *patch)
+qrp_recv_patch(gnutella_node_t *n, struct qrp_patch *patch)
 {
 	const void *msg = n->data;
 
@@ -3138,7 +3138,7 @@ enum qrt_update_magic {
 
 struct qrt_update {
 	enum qrt_update_magic magic;
-	struct gnutella_node *node;	 /**< Node for which we're sending */
+	gnutella_node_t *node;	 /**< Node for which we're sending */
 	struct routing_patch *patch; /**< The patch to send */
 	int seqno;					 /**< Sequence number of next message (1..n) */
 	int seqsize;				 /**< Total amount of messages to send */
@@ -3366,7 +3366,7 @@ qrt_patch_available(void *arg, struct routing_patch *rp)
  * @return opaque handle.
  */
 struct qrt_update *
-qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
+qrt_update_create(gnutella_node_t *n, struct routing_table *query_table)
 {
 	struct qrt_update *qup;
 	struct routing_table *old_table = query_table;
@@ -3519,7 +3519,7 @@ qrt_update_send_next(struct qrt_update *qup)
 	time_t elapsed;
 	int len;
 	int i;
-	struct gnutella_node *n;
+	gnutella_node_t *n;
 
 	g_assert(QRT_UPDATE_MAGIC == qup->magic);
 
@@ -3647,7 +3647,7 @@ enum qrt_receive_magic {
 
 struct qrt_receive {
 	enum qrt_receive_magic magic;
-	struct gnutella_node *node;		/**< Node for which we're receiving */
+	gnutella_node_t *node;		/**< Node for which we're receiving */
 	struct routing_table *table;	/**< Table being built / updated */
 	int shrink_factor;		/**< 1 means none, `n' means coalesce `n' entries */
 	int seqsize;			/**< Amount of patch messages to expect */
@@ -3697,7 +3697,7 @@ qrt_unknown_patch(struct qrt_receive *unused_qrcv,
  * @returns pointer to handler.
  */
 struct qrt_receive *
-qrt_receive_create(struct gnutella_node *n, struct routing_table *query_table)
+qrt_receive_create(gnutella_node_t *n, struct routing_table *query_table)
 {
 	struct routing_table *table = query_table;
 	struct qrt_receive *qrcv;
@@ -3821,7 +3821,7 @@ qrt_apply_patch(struct qrt_receive *qrcv, const uchar *data, int len,
 		return TRUE;
 
 	if G_UNLIKELY(qrcv->current_index >= rt->slots) {
-		struct gnutella_node *n = qrcv->node;
+		gnutella_node_t *n = qrcv->node;
 		g_warning("%s overflowed its QRP %d-bit patch of %s slots"
 			" (%s message #%d/%d)",
 			node_infostr(n), qrcv->entry_bits,
@@ -3992,7 +3992,7 @@ qrt_apply_patch(struct qrt_receive *qrcv, const uchar *data, int len,
 
 			if ((uint) qrcv->current_slot >= rt->client_slots) {
 				if (j != (epb - 1) || i != (len - 1)) {
-					struct gnutella_node *n = qrcv->node;
+					gnutella_node_t *n = qrcv->node;
 					g_warning("%s overflowed its QRP "
 						"%d-bit patch of %s slots",
 						node_infostr(n),
@@ -4030,7 +4030,7 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 	 */
 
 	if G_UNLIKELY(qrcv->current_index >= rt->slots) {
-		struct gnutella_node *n = qrcv->node;
+		gnutella_node_t *n = qrcv->node;
 		g_warning("%s overflowed its QRP %d-bit patch of %s slots"
 			" (current_index=%d, slots=%d at %s message #%u/%u)",
 			node_infostr(n), qrcv->entry_bits,
@@ -4051,7 +4051,7 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 	last_patch_slot = (uint) qrcv->current_slot + len * slots_per_byte;
 
 	if G_UNLIKELY(last_patch_slot > rt->client_slots) {
-		struct gnutella_node *n = qrcv->node;
+		gnutella_node_t *n = qrcv->node;
 		g_warning("%s overflowed its QRP %d-bit patch of "
 			"%s slots by extra %s at %s message #%u/%u",
 			node_infostr(n), qrcv->entry_bits,
@@ -4457,7 +4457,7 @@ qrt_dynamic_bind_empty(struct routing_table *rt)
  */
 static bool
 qrt_handle_reset(
-	struct gnutella_node *n, struct qrt_receive *qrcv, struct qrp_reset *reset)
+	gnutella_node_t *n, struct qrt_receive *qrcv, struct qrp_reset *reset)
 {
 	struct routing_table *rt;
 	int ret;
@@ -4591,7 +4591,7 @@ qrt_handle_reset(
  */
 static bool
 qrt_handle_patch(
-	struct gnutella_node *n, struct qrt_receive *qrcv, struct qrp_patch *patch,
+	gnutella_node_t *n, struct qrt_receive *qrcv, struct qrp_patch *patch,
 	bool *done)
 {
 	/*
@@ -4899,7 +4899,7 @@ qrt_handle_patch(
 bool
 qrt_receive_next(struct qrt_receive *qrcv, bool *done)
 {
-	struct gnutella_node *n = qrcv->node;
+	gnutella_node_t *n = qrcv->node;
 	uint8 type;
 
 	g_assert(qrcv->magic == QRT_RECEIVE_MAGIC);
@@ -5348,7 +5348,7 @@ qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
 G_GNUC_HOT pslist_t *
 qrt_build_query_target(
 	query_hashvec_t *qhvec, int hops, int ttl, bool leaves,
-	struct gnutella_node *source)
+	gnutella_node_t *source)
 {
 	pslist_t *nodes = NULL;		/* Targets for the query */
 	const pslist_t *sl;
@@ -5386,7 +5386,7 @@ qrt_build_query_target(
 	 */
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
-		struct gnutella_node *dn = sl->data;
+		gnutella_node_t *dn = sl->data;
 		struct routing_table *rt = dn->recv_query_table;
 		bool is_leaf;
 
@@ -5538,7 +5538,7 @@ qrt_build_query_target(
  * routing a duplicate query (with higher TTL) which leaves already got.
  */
 void
-qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
+qrt_route_query(gnutella_node_t *n, query_hashvec_t *qhvec,
 	bool with_leaves)
 {
 	pslist_t *nodes;				/* Targets for the query */
@@ -5565,7 +5565,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
 		size_t i;
 
 		for (sl = nodes; sl; sl = pslist_next(sl)) {
-			struct gnutella_node *dn = sl->data;
+			gnutella_node_t *dn = sl->data;
 
 			if (NODE_IS_LEAF(dn))
 				leaves++;

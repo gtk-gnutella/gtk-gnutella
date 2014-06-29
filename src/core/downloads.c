@@ -8382,7 +8382,7 @@ download_send_udp_push(
 	bool success = FALSE;
 	
 	if (host_is_valid(addr, port)) {
-		struct gnutella_node *n = node_udp_get_addr_port(addr, port);
+		gnutella_node_t *n = node_udp_get_addr_port(addr, port);
 
 		if (n != NULL) {
 			success = TRUE;
@@ -8403,7 +8403,7 @@ download_g2_send_udp_push(const pmsg_t *mb, host_addr_t addr, uint16 port)
 	bool success = FALSE;
 
 	if (host_is_valid(addr, port)) {
-		struct gnutella_node *n = node_udp_g2_get_addr_port(addr, port);
+		gnutella_node_t *n = node_udp_g2_get_addr_port(addr, port);
 
 		if (n != NULL) {
 			success = TRUE;

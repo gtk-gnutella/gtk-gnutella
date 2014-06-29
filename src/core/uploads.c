@@ -1047,7 +1047,7 @@ upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops, uint8 ttl,
  * If we are the target, then connect back to the remote servent.
  */
 void
-handle_push_request(struct gnutella_node *n, const g2_tree_t *t)
+handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 {
 	host_addr_t ha;
 	uint32 file_index, flags = 0;

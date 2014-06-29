@@ -483,7 +483,7 @@ gmsg_mb_sendto_all(const pslist_t *sl, pmsg_t *mb)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
-		struct gnutella_node *dn = sl->data;
+		gnutella_node_t *dn = sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
 		mq_tcp_putq(dn->outq, pmsg_clone(mb), NULL);
@@ -497,8 +497,8 @@ gmsg_mb_sendto_all(const pslist_t *sl, pmsg_t *mb)
  * a private instance is supplied.
  */
 void
-gmsg_mb_routeto_one(const struct gnutella_node *from,
-	const struct gnutella_node *to, pmsg_t *mb)
+gmsg_mb_routeto_one(const gnutella_node_t *from,
+	const gnutella_node_t *to, pmsg_t *mb)
 {
 	g_assert(!NODE_TALKS_G2(to));
 	g_assert(!pmsg_was_sent(mb));
@@ -526,7 +526,7 @@ gmsg_mb_routeto_one(const struct gnutella_node *from,
  * a private instance is supplied.
  */
 void
-gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb)
+gmsg_mb_sendto_one(const gnutella_node_t *n, pmsg_t *mb)
 {
 	gmsg_mb_routeto_one(NULL, n, mb);
 }
@@ -535,7 +535,7 @@ gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb)
  * Send message to one node.
  */
 void
-gmsg_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
+gmsg_sendto_one(gnutella_node_t *n, const void *msg, uint32 size)
 {
 	g_assert(!NODE_TALKS_G2(n));
 
@@ -586,7 +586,7 @@ gmsg_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
  * A control message is inserted ahead any other queued regular data.
  */
 void
-gmsg_ctrl_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
+gmsg_ctrl_sendto_one(gnutella_node_t *n, const void *msg, uint32 size)
 {
 	g_assert(!NODE_TALKS_G2(n));
 	g_return_if_fail(!NODE_IS_UDP(n));
@@ -607,7 +607,7 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
  */
 void
 gmsg_search_sendto_one(
-	struct gnutella_node *n, gnet_search_t sh, const void *msg, uint32 size)
+	gnutella_node_t *n, gnet_search_t sh, const void *msg, uint32 size)
 {
 	g_assert(!NODE_TALKS_G2(n));
 	g_return_if_fail(!NODE_IS_UDP(n));
@@ -628,7 +628,7 @@ gmsg_search_sendto_one(
  * Send message consisting of header and data to one node.
  */
 static void
-gmsg_split_send_from_to(struct gnutella_node *from, struct gnutella_node *to,
+gmsg_split_send_from_to(gnutella_node_t *from, gnutella_node_t *to,
 	const void *head, const void *data, uint32 size)
 {
 	g_assert(!NODE_TALKS_G2(to));
@@ -649,7 +649,7 @@ gmsg_split_send_from_to(struct gnutella_node *from, struct gnutella_node *to,
  * Send message consisting of header and data to one node.
  */
 void
-gmsg_split_sendto_one(struct gnutella_node *n,
+gmsg_split_sendto_one(gnutella_node_t *n,
 	const void *head, const void *data, uint32 size)
 {
 	gmsg_split_send_from_to(NULL, n, head, data, size);
@@ -659,7 +659,7 @@ gmsg_split_sendto_one(struct gnutella_node *n,
  * Route message consisting of header and data to one node.
  */
 static void
-gmsg_split_routeto_one(struct gnutella_node *from, struct gnutella_node *to,
+gmsg_split_routeto_one(gnutella_node_t *from, gnutella_node_t *to,
 	const void *head, const void *data, uint32 size)
 {
 	gmsg_split_send_from_to(from, to, head, data, size);
@@ -679,7 +679,7 @@ gmsg_sendto_all(const pslist_t *sl, const void *msg, uint32 size)
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
-		struct gnutella_node *dn = sl->data;
+		gnutella_node_t *dn = sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
 		mq_tcp_putq(dn->outq, pmsg_clone(mb), NULL);
@@ -704,7 +704,7 @@ gmsg_search_sendto_all(
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
-		struct gnutella_node *dn = sl->data;
+		gnutella_node_t *dn = sl->data;
 
 		/*
 		 * When switching UP -> leaf, it may happen that we try to send
@@ -727,8 +727,8 @@ gmsg_search_sendto_all(
  * We never broadcast anything to a leaf node.  Those are handled specially.
  */
 static void
-gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
-	const pslist_t *sl, const struct gnutella_node *n,
+gmsg_split_routeto_all_but_one(const gnutella_node_t *from,
+	const pslist_t *sl, const gnutella_node_t *n,
 	const void *head, const void *data, uint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
@@ -750,7 +750,7 @@ gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
-		struct gnutella_node *dn = sl->data;
+		gnutella_node_t *dn = sl->data;
 		if (dn == n)
 			continue;
 		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
@@ -771,7 +771,7 @@ gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
 void
 gmsg_split_routeto_all(
 	const pslist_t *sl,
-	const struct gnutella_node *from,
+	const gnutella_node_t *from,
 	const void *head, const void *data, uint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
@@ -781,7 +781,7 @@ gmsg_split_routeto_all(
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
-		struct gnutella_node *dn = sl->data;
+		gnutella_node_t *dn = sl->data;
 
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
@@ -800,9 +800,9 @@ gmsg_split_routeto_all(
  * Send Gnutella message held in current node according to route specification.
  */
 void
-gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
+gmsg_sendto_route(gnutella_node_t *n, struct route_dest *rt)
 {
-	struct gnutella_node *rt_node = rt->ur.u_node;
+	gnutella_node_t *rt_node = rt->ur.u_node;
 	const pslist_t *sl;
 
 	/*
@@ -1545,7 +1545,7 @@ gmsg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
  * Log bad message, the node's vendor, and reason.
  */
 void
-gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
+gmsg_log_bad(const gnutella_node_t *n, const char *reason, ...)
 {
 	char rbuf[256];
 	char buf[128];

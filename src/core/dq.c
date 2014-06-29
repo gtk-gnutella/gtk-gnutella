@@ -641,7 +641,7 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, int ncount)
 	dquery_check(dq);
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
-		struct gnutella_node *n;
+		gnutella_node_t *n;
 
 		if (i >= ncount)
 			break;
@@ -759,7 +759,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct next_up *nup, *old_nup;
-		struct gnutella_node *n;
+		gnutella_node_t *n;
 		const void *knid;
 		void *ttlv;
 		bool found;
@@ -1516,7 +1516,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	for (i = 0; i < found; i++) {
-		struct gnutella_node *node;
+		gnutella_node_t *node;
 		struct nid *nid = nv[i].node_id;
 		const void *knid;
 		void *ttlv;

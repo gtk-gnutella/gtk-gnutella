@@ -4970,7 +4970,7 @@ static void
 dht_addr_verify_cb(
 	enum dht_rpc_ret type,
 	const knode_t *kn,
-	const struct gnutella_node *unused_n,
+	const gnutella_node_t *unused_n,
 	kda_msg_t unused_function,
 	const char *unused_payload, size_t unused_len, void *arg)
 {
@@ -5119,7 +5119,7 @@ static void
 dht_ping_cb(
 	enum dht_rpc_ret type,
 	const knode_t *kn,
-	const struct gnutella_node *unused_n,
+	const gnutella_node_t *unused_n,
 	kda_msg_t unused_function,
 	const char *unused_payload, size_t unused_len, void *unused_arg)
 {
@@ -5270,7 +5270,7 @@ dht_bootstrap_if_needed(host_addr_t addr, uint16 port)
  * Collect packed IP:port DHT hosts from "DHTIPP" we get in a pong.
  */
 void
-dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen,
+dht_ipp_extract(const gnutella_node_t *n, const char *payload, int paylen,
 	enum net_type type)
 {
 	int i, cnt;

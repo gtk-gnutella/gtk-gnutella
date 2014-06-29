@@ -246,7 +246,7 @@ sqh_remove(squeue_t *sq, gnet_search_t sh)
  * Create a new search queue.
  */
 squeue_t *
-sq_make(struct gnutella_node *node)
+sq_make(gnutella_node_t *node)
 {
     squeue_t *sq;
 
@@ -374,7 +374,7 @@ sq_process(squeue_t *sq, time_t now)
     time_delta_t spacing = GNET_PROPERTY(search_queue_spacing);
 	plist_t *item;
 	smsg_t *sb;
-	struct gnutella_node *n;
+	gnutella_node_t *n;
 	bool sent;
 
 	g_assert(sq->node == NULL || sq->node->outq != NULL);

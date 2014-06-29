@@ -1386,7 +1386,7 @@ udp_ping_register(const struct guid *muid,
  * @return TRUE if indeed this was a reply for a ping we sent.
  */
 enum udp_pong_status
-udp_ping_is_registered(const struct gnutella_node *n, gnet_host_t *host)
+udp_ping_is_registered(const gnutella_node_t *n, gnet_host_t *host)
 {
 	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
@@ -1442,7 +1442,7 @@ udp_send_ping_with_callback(
 	const host_addr_t addr, uint16 port,
 	udp_ping_cb_t cb, void *arg, bool multiple)
 {
-	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
+	gnutella_node_t *n = node_udp_get_addr_port(addr, port);
 
 	if (n != NULL) {
 		const guid_t *muid = gnutella_header_get_muid(m);

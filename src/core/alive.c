@@ -223,7 +223,7 @@ alive_ping_can_send(const pmsg_t *mb, const void *q)
 static void
 alive_pmsg_free(pmsg_t *mb, void *arg)
 {
-	struct gnutella_node *n = arg;
+	gnutella_node_t *n = arg;
 
 	g_assert(pmsg_is_extended(mb));
 
