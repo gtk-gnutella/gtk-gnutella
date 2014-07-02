@@ -35,6 +35,7 @@
 
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
+#include "if/core/sockets.h"	/* For SOCK_F_G2 */
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -224,7 +225,7 @@ on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 		if (!info->is_pseudo) {
 			search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
-				&info->gnet_guid, NULL, 0);
+				&info->gnet_guid, NULL, info->is_g2 ? SOCK_F_G2 : 0);
 		}
 		guc_node_free_info(info);
 	}

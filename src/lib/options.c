@@ -199,8 +199,10 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 
 			if (flags & OPTION_F_VALUE) {	/* A value is expected */
 				if (*arg) {					/* And it follows */
-					if (opt->value)
+					if (opt->value) {
 						*opt->value = arg;
+					}
+					break;					/* Argument held option value */
 				} else
 					current = opt;			/* Expecting value as next arg */
 			} else {

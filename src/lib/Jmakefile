@@ -31,40 +31,44 @@
  * Generation of bit_array.h and bit_field.h from a generic template.
  */
 
-GENERIC = bit_array.h bit_field.h htable.h hset.h htable.c hset.c
+#define BitGenericCat(type)						@!\
+bit_/**/type.h: bit_/**/type.ht bit_generic.t	@@\
+	$(TOP)/scripts/generic-cat bit_/**/type.ht bit_generic.t type >$@ @!\
+												@!\
+all:: bit_/**/type.h							@!\
+depend:: bit_/**/type.h							@!\
+local_realclean::								@@\
+	$(RM) bit_/**/type.h
 
-bit_array.h: bit_array.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
+BitGenericCat(array)
+BitGenericCat(field)
 
-bit_field.h: bit_field.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
+#define HashGenericCat(type,sig,TYPE)			@!\
+h/**/type.h: hgeneric.ht						@@\
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht type sig TYPE >$@	@!\
+												@!\
+h/**/type.c: hgeneric.ht						@@\
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct type sig TYPE >$@	@!\
+												@!\
+all:: h/**/type.h h/**/type.c					@!\
+depend:: h/**/type.h h/**/type.c				@!\
+local_realclean::								@@\
+	$(RM) h/**/type.h h/**/type.c
 
-htable.h: hgeneric.ht
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table ckeyval TABLE >$@
-
-htable.c: hgeneric.ct
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table ckeyval TABLE >$@
-
-hset.h: hgeneric.ht
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set cdata SET >$@
-
-hset.c: hgeneric.ct
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set cdata SET >$@
-
-all:: $(GENERIC)
-
-local_realclean::
-	$(RM) $(GENERIC)
-
-depend:: $(GENERIC)
+HashGenericCat(table,ckeyval,TABLE)
+HashGenericCat(set,cdata,SET)
 
 LSRC = \
 	adns.c \
 	aging.c \
+	aje.c \
 	alloca.c \
+	aq.c \
 	arc4random.c \
 	ascii.c \
+	atio.c \
 	atoms.c \
+	barrier.c \
 	base16.c \
 	base32.c \
 	base64.c \
@@ -72,8 +76,10 @@ LSRC = \
 	bg.c \
 	bigint.c \
 	bstr.c \
+	buf.c \
 	chi2.c \
 	ckalloc.c \
+	cmwc.c \
 	cobs.c \
 	compat_misc.c \
 	compat_pause.c \
@@ -81,12 +87,15 @@ LSRC = \
 	compat_poll.c \
 	compat_sleep_ms.c \
 	compat_un.c \
+	compat_usleep.c \
 	concat.c \
+	cond.c \
 	constants.c \
 	cpufreq.c \
 	cq.c \
 	crash.c \
 	crc.c \
+	dam.c \
 	dbmap.c \
 	dbmw.c \
 	dbstore.c \
@@ -101,16 +110,20 @@ LSRC = \
 	etree.c \
 	eval.c \
 	event.c \
+	evq.c \
 	exit.c \
 	fast_assert.c \
 	fd.c \
-	fifo.c \
 	file.c \
+	file_object.c \
 	filehead.c \
 	filename.c \
 	float.c \
 	fragcheck.c \
+	frand.c \
 	fs_free_space.c \
+	gen-iprange.c \
+	gentime.c \
 	getcpucount.c \
 	getdate.c \
 	getgateway.c \
@@ -140,6 +153,7 @@ LSRC = \
 	iso3166.c \
 	leak.c \
 	list.c \
+	listener.c \
 	log.c \
 	magnet.c \
 	malloc.c \
@@ -166,15 +180,20 @@ LSRC = \
 	path.c \
 	patricia.c \
 	pattern.c \
+	plist.c \
 	pmsg.c \
 	pow2.c \
 	product.c \
 	prop.c \
+	pslist.c \
 	rand31.c \
 	random.c \
 	rbtree.c \
 	regex.c \
+	ripening.c \
+	rwlock.c \
 	sectoken.c \
+	semaphore.c \
 	sequence.c \
 	sha1.c \
 	shuffle.c \
@@ -191,26 +210,34 @@ LSRC = \
 	symbols.c \
 	symtab.c \
 	tea.c \
+	teq.c \
 	thread.c \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \
 	tm.c \
+	tmalloc.c \
+	tokenizer.c \
+	tqsort.c \
+	tsig.c \
 	url.c \
-	url_factory.c \
 	urn.c \
 	utf8.c \
 	vector.c \
 	vendors.c \
 	vmm.c \
 	vsort.c \
+	waiter.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
+	well.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
 	xsort.c \
+	xsort_data.c \
+	xxtea.c \
 	zalloc.c \
 	zlib_util.c
 
@@ -260,6 +287,7 @@ getdate: getdate.c
 
 LDFLAGS =
 LIBS = $(GLIB_LDFLAGS) $(COMMON_LIBS)
+IF = ../if
 
 floats: floats.bz2
 	bzip2 -c -d floats.bz2 >$@
@@ -289,7 +317,16 @@ float-times: float-test floats
 local_clean::
 	$(RM) floats float-dragon.out bad-fixed float-times
 
-NormalProgramLibTarget(float-test, float-test.c, float-test.o, libshared.a)
-NormalProgramLibTarget(sort-test, sort-test.c, sort-test.o, libshared.a)
-NormalProgramLibTarget(random-test, random-test.c, random-test.o, libshared.a)
+#define NormalTestTarget(base)	@!\
+NormalProgramLibTarget(base-test, base-test.c, base-test.o, libshared.a)
+
+NormalTestTarget(float)
+NormalTestTarget(random)
+NormalTestTarget(sort)
+NormalTestTarget(thread)
+
+#define LinkGenInterface(file)	@!\
+LinkSourceFileAlias(file, $(IF)/gen, gen-file)
+
+LinkGenInterface(iprange.c)
 

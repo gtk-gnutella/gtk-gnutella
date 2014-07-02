@@ -39,8 +39,10 @@
 #include "common.h"
 
 #include "dbus_util.h"
-#include "misc.h"			/* For str_chomp() */
+
 #include "halloc.h"			/* For h_strdup() */
+#include "log.h"
+#include "misc.h"			/* For str_chomp() */
 
 #include "override.h"		/* Must be last header included */
 
@@ -61,9 +63,12 @@ static DBusConnection *bus = NULL; /**< D-Bus connection to the message bus */
  * Initialize the bus connection.
  */
 G_GNUC_COLD void
-dbus_util_init(void)
+dbus_util_init(bool disabled)
 {
 	DBusError error;
+
+	if (disabled)
+		return;		/* Leaving the `bus' variable to NULL */
 
 	dbus_error_init(&error);
 	bus = dbus_bus_get(DBUS_BUS_SESSION, &error);
@@ -71,12 +76,11 @@ dbus_util_init(void)
 	if (NULL == bus) {
 		char *msg = h_strdup(error.message);
 		strchomp(msg, 0);
-		g_message("could not open connection to DBus bus: %s", msg);
+		s_warning("could not open connection to DBus bus: %s", msg);
 		hfree(msg);
 		dbus_error_free(&error);
 	} else {
-
-		g_message("D-BUS set up and ready for use.");
+		s_message("D-BUS set up and ready for use.");
 		/** @todo Include a timestamp or some other useful info */
 		dbus_util_send_message(DBS_EVT, "started");
 	}
@@ -99,7 +103,6 @@ dbus_util_close(void)
 	*/
 }
 
-
 /**
  * Send a message on the bus.
  * @param signal_name The name of the dbus signal to use
@@ -121,7 +124,7 @@ dbus_util_send_message(const char *signal_name, const char *text)
 	message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, signal_name);
 
 	if (NULL == message) {
-		g_message("could not create D-BUS message!");
+		s_message("could not create D-BUS message!");
 	} else {
 
 		/* Add the message to the Events signal */
@@ -132,7 +135,7 @@ dbus_util_send_message(const char *signal_name, const char *text)
 		dbus_connection_send(bus, message, NULL);
 
 #if 0
-		g_message("Sent D-BUS signal '%s': %s", signal_name, text);
+		s_message("Sent D-BUS signal '%s': %s", signal_name, text);
 #endif
 
 		/* Free the message */

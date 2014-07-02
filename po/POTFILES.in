@@ -1,11 +1,10 @@
 # List of source files containing translatable strings.
-# Regenerated on Sun Nov  4 13:10:21 CET 2012
+# Regenerated on Wed May 14 19:31:37 CEST 2014
 
-src/core/bitzi.c
 src/core/downloads.c
 src/core/fileinfo.c
+src/core/g2/gwc.c
 src/core/ghc.c
-src/core/gnet_stats.c
 src/core/nodes.c
 src/core/parq.c
 src/core/rx_link.c
@@ -16,8 +15,13 @@ src/core/tx_link.c
 src/core/uhc.c
 src/core/uploads.c
 src/core/version.c
+src/coverity.c
+src/if/gen/gnr_stats.c
+src/if/gen/msg.c
+src/if/gen/msg_drop.c
 src/if/gnet_property.c
 src/if/gui_property.c
+src/lib/aje.c
 src/lib/iso3166.c
 src/lib/magnet.c
 src/lib/misc.c
@@ -28,17 +32,21 @@ src/shell/download.c
 src/shell/help.c
 src/shell/horizon.c
 src/shell/intr.c
+src/shell/lib.c
 src/shell/log.c
 src/shell/memory.c
 src/shell/node.c
 src/shell/print.c
 src/shell/props.c
 src/shell/quit.c
+src/shell/random.c
 src/shell/search.c
 src/shell/set.c
 src/shell/shell.c
+src/shell/stats.c
+src/shell/task.c
+src/shell/thread.c
 src/shell/whatis.c
-src/ui/gtk/bitzi.c
 src/ui/gtk/downloads_common.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c

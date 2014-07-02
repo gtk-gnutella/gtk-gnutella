@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Jeroen Asselman & Raphael Manfredi
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * @author Jeroen Asselman
  * @date 2010
  * @author Raphael Manfredi
- * @date 2010-2012
+ * @date 2010-2013
  */
 
 #include "common.h"
@@ -60,12 +60,13 @@
 #include <stdio.h>
 #include <wchar.h>
 
+#define THREAD_SOURCE			/* we want hash_table_once_new_full_real() */
+
 #include "host_addr.h"			/* ADNS */
-#include "adns.h"
-#include "adns_msg.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "atomic.h"
+#include "compat_sleep_ms.h"
 #include "constants.h"
 #include "cq.h"
 #include "crash.h"
@@ -75,18 +76,22 @@
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
 #include "halloc.h"
+#include "hashtable.h"
 #include "hset.h"
 #include "iovec.h"
 #include "log.h"
 #include "mem.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "mutex.h"
+#include "once.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
+#include "thread.h"
 #include "unsigned.h"
 #include "utf8.h"
 #include "vmm.h"				/* For vmm_page_start() */
@@ -106,6 +111,7 @@
 #endif
 
 #undef signal
+#undef sleep
 
 #undef stat
 #undef fstat
@@ -141,6 +147,7 @@
 #undef setsockopt
 #undef recv
 #undef sendto
+#undef socketpair
 
 #undef abort
 #undef execve
@@ -149,6 +156,9 @@
 #define WS2_LIBRARY		"ws2_32.dll"
 
 #define MINGW_TRACEFILE_KEEP	3		/* Keep traces for that many runs */
+
+#define TM_MILLION		1000000L
+#define TM_BILLION		1000000000L
 
 /* Offset of the UNIX Epoch compared to the Window's one, in microseconds */
 #define EPOCH_OFFSET	UINT64_CONST(11644473600000000)
@@ -160,7 +170,7 @@
 #endif
 
 static HINSTANCE libws2_32;
-static bool mingw_inited;
+static once_flag_t mingw_inited;
 static bool mingw_vmm_inited;
 
 typedef struct processor_power_information {
@@ -404,11 +414,6 @@ mingw_win2posix(int error)
 {
 	static hset_t *warned;
 
-	if (NULL == warned && mingw_vmm_inited) {
-		/* Only allocate once VMM layer has been initialized */
-		warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
-	}
-
 	/*
 	 * This is required when using non-POSIX routines, for instance
 	 * _wmkdir() instead of mkdir(), so that regular errno procesing
@@ -513,6 +518,15 @@ mingw_win2posix(int error)
 		/* Got this error writing to a closed stdio fd, opened via pipe() */
 		return EBADF;
 	default:
+		/* Only allocate once VMM layer has been initialized */
+		if (NULL == warned && mingw_vmm_inited) {
+			static spinlock_t warned_slk = SPINLOCK_INIT;
+
+			spinlock(&warned_slk);
+			if (NULL == warned)
+				warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
+			spinunlock(&warned_slk);
+		}
 		if (warned != NULL && !hset_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
@@ -539,6 +553,18 @@ mingw_last_error(void)
 	}
 
 	return result;
+}
+
+unsigned int
+mingw_sleep(unsigned int seconds)
+{
+	while (seconds != 0) {
+		uint d = MIN(seconds, 1000);
+		compat_sleep_ms(d * 1000);
+		seconds -= d;
+	}
+
+	return 0;	/* Never interrupted by a signal here */
 }
 
 static signal_handler_t mingw_sighandler[SIGNAL_COUNT];
@@ -588,6 +614,7 @@ mingw_sigraise(int signo)
 	if (SIG_IGN == mingw_sighandler[signo]) {
 		/* Nothing */
 	} else if (SIG_DFL == mingw_sighandler[signo]) {
+		static bool done;
 		DECLARE_STR(3);
 
 		print_str("Got uncaught ");			/* 0 */
@@ -596,6 +623,14 @@ mingw_sigraise(int signo)
 		flush_err_str();
 		if (log_stdout_is_distinct())
 			flush_str(STDOUT_FILENO);
+
+		if (!done) {
+			done = TRUE;
+			crash_print_decorated_stack(STDERR_FILENO);
+			if (log_stdout_is_distinct())
+				crash_print_decorated_stack(STDOUT_FILENO);
+		}
+
 	} else {
 		(*mingw_sighandler[signo])(signo);
 	}
@@ -984,7 +1019,7 @@ get_special(int which, char *what)
 		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
 	}
 
-	return mingw_inited ? constant_str(utf8_path) : utf8_path;
+	return ONCE_DONE(mingw_inited) ? constant_str(utf8_path) : utf8_path;
 }
 
 const char *
@@ -1652,7 +1687,7 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = select(nfds, readfds, writefds, exceptfds, timeout);
@@ -1669,7 +1704,7 @@ mingw_gethostname(char *name, size_t len)
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	result = gethostname(name, len);
@@ -1686,7 +1721,7 @@ mingw_getaddrinfo(const char *node, const char *service,
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	result = getaddrinfo(node, service, hints, res);
@@ -1708,7 +1743,7 @@ mingw_socket(int domain, int type, int protocol)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	/*
@@ -1734,7 +1769,7 @@ mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = bind(sockfd, addr, addrlen);
@@ -1750,7 +1785,7 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = connect(sockfd, addr, addrlen);
@@ -1765,7 +1800,7 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = listen(sockfd, backlog);
@@ -1780,7 +1815,7 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = accept(sockfd, addr, addrlen);
@@ -1792,16 +1827,138 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
-
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = shutdown(sockfd, how);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
+	return res;
+}
+
+#ifdef EMULATE_SOCKETPAIR
+static int
+socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
+{
+	socket_fd_t as = INVALID_SOCKET, cs = INVALID_SOCKET, ls = INVALID_SOCKET;
+	struct sockaddr_in laddr, caddr;
+	socklen_t laddrlen, caddrlen;
+	int r;
+
+	if (AF_UNIX != domain) {
+		errno = EAFNOSUPPORT;
+		return -1;
+	}
+
+	if (NULL == sv) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	g_assert_log(SOCK_STREAM == type,
+		"%s() only emulates SOCK_STREAM pairs", G_STRFUNC);
+
+	ZERO(&laddr);
+	ZERO(&caddr);
+
+	ls = socket(AF_INET, type, protocol);
+	if (INVALID_SOCKET == ls) {
+		errno = mingw_wsa_last_error();
+		return -1;
+	}
+
+	laddr.sin_family = AF_INET;
+	laddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	laddr.sin_port = 0;
+
+	r = bind(ls, (struct sockaddr *) &laddr, sizeof laddr);
+	if (-1 == r)
+		goto failed;
+	r = listen(ls, 1);
+	if (-1 == r)
+		goto failed;
+
+	cs = socket(AF_INET, type, protocol);
+	if (INVALID_SOCKET == cs)
+		goto failed;
+
+	/*
+	 * Where do we connect to (the kernel chooses the port)?
+	 */
+
+	laddrlen = sizeof laddr;
+	r = getsockname(ls, (struct sockaddr *) &laddr, &laddrlen);
+	if (-1 == r || laddrlen != sizeof laddr)
+		goto failed;
+
+	/*
+	 * The following won't block because the listening socket has a backlog
+	 * of 1 and the connection will happen "immediately".
+	 */
+
+	r = connect(cs, (struct sockaddr *) &laddr, sizeof laddr);
+	if (-1 == r)
+		goto failed;
+
+	/*
+	 * Now that we have a half-opened connection on the listening socket
+	 * we can accept without blocking.
+	 */
+
+	caddrlen = sizeof caddr;
+	as = accept(ls, (struct sockaddr *) &caddr, &caddrlen);
+	if (INVALID_SOCKET == as || caddrlen != sizeof caddr)
+		goto failed;
+
+	s_close(ls);
+	ls = -1;
+
+	/*
+	 * Check that the two sockets are indeed connected to each other.
+	 */
+
+	r = getsockname(as, (struct sockaddr *) &caddr, &caddrlen);
+	if (-1 == r || caddrlen != sizeof caddr)
+		goto failed;
+
+	g_assert(caddr.sin_addr.s_addr == laddr.sin_addr.s_addr);
+	g_assert(caddr.sin_port == laddr.sin_port);
+
+	sv[0] = cs;
+	sv[1] = as;
+
+	return 0;
+
+failed:
+	errno = mingw_wsa_last_error();
+	if (INVALID_SOCKET != ls)
+		s_close(ls);
+	if (INVALID_SOCKET != as)
+		s_close(as);
+	if (INVALID_SOCKET != cs)
+		s_close(cs);
+
+	return -1;
+}
+#endif	/* EMULATE_SOCKETPAIR */
+
+int
+mingw_socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
+{
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
+		mingw_init();
+
+	res = socketpair(domain, type, protocol, sv);
+#ifndef EMULATE_SOCKETPAIR
+	if (-1 == res)
+		errno = mingw_wsa_last_error();
+#endif
 	return res;
 }
 
@@ -2308,6 +2465,7 @@ mingw_posix_strerror(int errnum)
 	case ENOTEMPTY:	return "Directory not empty";
 	case EILSEQ:	return "Illegal byte sequence";
 	case EOVERFLOW:	return "Value too large to be stored in data type";
+	case EIDRM:		return "Identifier removed";	/* Emulated */
 	default:		return NULL;
 	}
 
@@ -2544,8 +2702,8 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 
 	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
 	v -= offset;
-	tv->tv_usec = v % 1000000UL;
-	v /= 1000000UL;
+	tv->tv_usec = v % TM_MILLION;
+	v /= TM_MILLION;
 	/* If time_t is a 32-bit integer, there could be an overflow */
 	tv->tv_sec = MIN(v, UNSIGNED(MAX_INT_VAL(time_t)));
 }
@@ -2667,7 +2825,14 @@ mingw_uname(struct utsname *buf)
 int
 mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	static HANDLE t = NULL;
+	static struct thread_timer {
+		HANDLE timer;
+		atomic_lock_t lock;
+	} thread_timer[THREAD_MAX];
+	static uint idx;
+	uint i;
+	struct thread_timer *tt;
+	HANDLE t;
 	LARGE_INTEGER dueTime;
 	uint64 value;
 
@@ -2680,23 +2845,54 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 		rem->tv_nsec = 0;
 	}
 
-	if (G_UNLIKELY(NULL == t)) {
-		t = CreateWaitableTimer(NULL, TRUE, NULL);
-
-		if (NULL == t)
-			g_carp("unable to create waitable timer, ignoring nanosleep()");
-
-		errno = ENOMEM;		/* System problem anyway */
-		return -1;
-	}
+	if (0 == req->tv_sec && 0 == req->tv_nsec)
+		return 0;
 
 	if (req->tv_sec < 0 || req->tv_nsec < 0 || req->tv_nsec > 999999999L) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	if (0 == req->tv_sec && 0 == req->tv_nsec)
-		return 0;
+	/*
+	 * We need one timer per thread, but since nanosleep() is called by
+	 * spinlock_loop() indirectly through compat_sleep_ms(), we have to
+	 * manage this expectation specially.
+	 *
+	 * Since a given thread can only wait once at a time, we have a rotating
+	 * array of existing timers, one per thread at most and we rotate
+	 * atomically each time.
+	 *
+	 * Each timer is locked using a low-level lock (since we cannot recurse
+	 * into the spinlock code).
+	 */
+	
+	for (i = 0; i < 1000; i++) {
+		uint j, k;
+		for (k = 0, j = atomic_uint_inc(&idx); k < THREAD_MAX; k++, j++) {
+			tt = &thread_timer[j % THREAD_MAX];
+			if (atomic_acquire(&tt->lock))
+				goto found;
+		}
+	}
+
+	s_minierror("%s() unable to get a timer", G_STRFUNC);
+
+found:
+
+	t = tt->timer;
+
+	if (G_UNLIKELY(NULL == t)) {
+		t = CreateWaitableTimer(NULL, TRUE, NULL);
+
+		if (NULL == t) {
+			atomic_release(&tt->lock);
+			s_carp("unable to create waitable timer, ignoring nanosleep()");
+			errno = ENOMEM;		/* System problem anyway */
+			return -1;
+		}
+
+		tt->timer = t;
+	}
 
 	/*
 	 * For Windows, the time specification unit is 100 nsec.
@@ -2705,22 +2901,26 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	 */
 
 	value = uint64_saturate_add(
-				uint64_saturate_mult(req->tv_sec, 10000000UL),
+				uint64_saturate_mult(req->tv_sec, TM_MILLION * 10UL),
 				(req->tv_nsec + 99) / 100);
-	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(gint64));
+	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(int64));
 
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
+		atomic_release(&tt->lock);
 		errno = mingw_last_error();
 		s_carp("could not set timer, unable to nanosleep(): %m");
 		return -1;
 	}
 
 	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
-		s_warning("timer returned an unexpected value, nanosleep() failed");
+		atomic_release(&tt->lock);
+		errno = mingw_last_error();
+		s_carp("timer returned an unexpected value, nanosleep() failed: %m");
 		errno = EINTR;
 		return -1;
 	}
 
+	atomic_release(&tt->lock);
 	return 0;
 }
 #endif
@@ -2789,11 +2989,11 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 		switch (freq) {
 		case MINGW_CPUFREQ_CURRENT:
 			/* Convert to Hz */
-			result = uint64_saturate_mult(p[0].CurrentMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].CurrentMhz, TM_MILLION);
 			break;
 		case MINGW_CPUFREQ_MAX:
 			/* Convert to Hz */
-			result = uint64_saturate_mult(p[0].MaxMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].MaxMhz, TM_MILLION);
 			break;
 		}
 	}
@@ -2803,378 +3003,6 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 
 	return result;
 }
-
-/***
- *** ADNS
- ***
- *** Functions ending with _thread are executed in the context of the ADNS
- *** thread, others are executed in the context of the main thread.
- ***
- *** All logging within the thread must use the t_xxx() logging routines
- *** in order to be thread-safe.
- ***/
-
-static GAsyncQueue *mingw_gtkg_main_async_queue;
-static GAsyncQueue *mingw_gtkg_adns_async_queue;
-static volatile bool mingw_adns_thread_run;
-
-struct async_data {
-	void *user_data;
-	
-	void *thread_return_data;
-	void *thread_arg_data;
-	
-	void (*thread_func)(struct async_data *);
-	void (*callback_func)(struct async_data *);
-};
-
-struct arg_data {
-	const struct sockaddr *sa;
-	union {
-		struct sockaddr_in sa_inet4;
-		struct sockaddr_in6 sa_inet6;
-	} u;
-	char hostname[NI_MAXHOST];
-	char servinfo[NI_MAXSERV];
-};
-
-/* ADNS getaddrinfo */
-
-/**
- * ADNS getaddrinfo on ADNS thread.
- */
-static void
-mingw_adns_getaddrinfo_thread(struct async_data *ad)
-{
-	struct addrinfo *results;
-	const char *hostname = ad->thread_arg_data;
-	
-	if (common_dbg > 1) {
-		t_debug("ADNS resolving '%s'", hostname);
-	}	
-	getaddrinfo(hostname, NULL, NULL, &results);
-
-	if (common_dbg > 1) {
-		t_debug("ADNS got result for '%s' @%p", hostname, results);
-	}
-	ad->thread_return_data = results;	
-}
-
-/**
- * ADNS getaddrinfo callback function.
- */
-static void
-mingw_adns_getaddrinfo_cb(struct async_data *ad)
-{
-	struct adns_request *req;
-	struct addrinfo *response;
-	host_addr_t addrs[10];
-	unsigned i;
-
-	if (common_dbg > 2)
-		s_debug("mingw_adns_getaddrinfo_cb");
-		
-	g_assert(ad);
-	g_assert(ad->user_data);
-	g_assert(ad->thread_arg_data);
-	
-	req = ad->user_data;
-	response = ad->thread_return_data;
-	
-	for (i = 0; i < G_N_ELEMENTS(addrs); i++) {
-		if (NULL == response)
-			break;
-
-		addrs[i] = addrinfo_to_addr(response);						
-		if (common_dbg) {	
-			s_debug("ADNS got %s for hostname %s",
-				host_addr_to_string(addrs[i]),
-				(const char *) ad->thread_arg_data);
-		}
-		response = response->ai_next;
-	}
-	
-	{
-		adns_callback_t func = (adns_callback_t) req->common.user_callback;
-		g_assert(NULL != func);
-		if (common_dbg) {
-			s_debug("ADNS performing user-callback to %p with %u results", 
-				req->common.user_data, i);
-		}
-		func(addrs, i, req->common.user_data);		
-	}
-	
-	if (NULL != ad->thread_return_data) {
-		freeaddrinfo(ad->thread_return_data);
-		ad->thread_return_data = NULL;
-	}
-	HFREE_NULL(ad->thread_arg_data);
-	WFREE(ad);
-	HFREE_NULL(req);
-}
-
-/**
- * ADNS getaddrinfo. Retrieves DNS info by hostname. Returns multiple 
- * @see host_addr_t in the callbackfunction.
- *
- * Performs a hostname lookup on the ADNS thread. Thread function is set to 
- * @see mingw_adns_getaddrinfo_thread, which will call the 
- * @see mingw_adns_getaddrinfo_cb function on completion. The 
- * mingw_adns_getaddrinfo_cb is responsible for performing the user callback.
- * 
- * @param req The adns request, where:
- *		- req->query.by_addr.hostname the hostname to lookup.
- *		- req->common.user_callback, a @see adns_callback_t callback function 
- *		  pointer. Raised on completion.
- */
-static void 
-mingw_adns_getaddrinfo(const struct adns_request *req)
-{
-	struct async_data *ad;
-	
-	if (common_dbg > 2) {
-		s_debug("%s", G_STRFUNC);
-	}	
-	g_assert(req);
-	g_assert(req->common.user_callback);
-	
-	WALLOC0(ad);
-	ad->thread_func = mingw_adns_getaddrinfo_thread;
-	ad->callback_func = mingw_adns_getaddrinfo_cb;	
-	ad->user_data = hcopy(req, sizeof *req);
-	ad->thread_arg_data = h_strdup(req->query.by_addr.hostname);	
-	
-	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
-}
-
-/* ADNS Get name info */
-
-/**
- * ADNS getnameinfo on ADNS thread.
- */
-static void
-mingw_adns_getnameinfo_thread(struct async_data *ad)
-{
-	struct arg_data *arg_data = ad->thread_arg_data;
-	
-	getnameinfo(arg_data->sa, sizeof arg_data->u,
-		arg_data->hostname, sizeof arg_data->hostname,
-		arg_data->servinfo, sizeof arg_data->servinfo, 
-		NI_NUMERICSERV);
-
-	t_debug("ADNS resolved to %s", arg_data->hostname);
-}
-
-/**
- * ADNS getnameinfo callback function.
- */
-static void
-mingw_adns_getnameinfo_cb(struct async_data *ad)
-{
-	struct adns_request *req = ad->user_data;
-	struct arg_data *arg_data = ad->thread_arg_data;
-
-	if (common_dbg) {	
-		s_debug("ADNS resolved to %s", arg_data->hostname);
-	}
-	
-	{
-		adns_reverse_callback_t func =
-			(adns_reverse_callback_t) req->common.user_callback;
-		s_debug("ADNS getnameinfo performing user-callback to %p with %s", 
-			req->common.user_data, arg_data->hostname);
-		func(arg_data->hostname, req->common.user_data);
-	}
-	
-	HFREE_NULL(req);
-	WFREE(arg_data);
-}
-
-/**
- * ADNS getnameinfo. Retrieves DNS info by ip address. Returns the hostname in 
- * the callbackfunction.
- *
- * Performs a reverse hostname lookup on the ADNS thread. Thread function is 
- * set to @see mingw_adns_getnameinfo_thread, which will call the 
- * @see mingw_adns_getnameinfo_cb function on completion. The 
- * mingw_adns_getnameinfo_cb is responsible for performing the user callback.
- * 
- * @param req The adns request, where:
- *		- req->query.reverse.addr.net == @see NET_TYPE_IPV6 or
- *		  @see NET_TYPE_IPV4
- *		- req->query.addr.addr.ipv6 the ipv6 address if NET_TYPE_IPV6
- *		- req->query.addr.addr.ipv4 the ipv4 address if NET_TYPE_IPV4
- *		- req->common.user_callback, a @see adns_callback_t callback function 
- *		  pointer. Raised on completion.
- */
-static void
-mingw_adns_getnameinfo(const struct adns_request *req)
-{
-	const struct adns_reverse_query *query = &req->query.reverse;
-	struct async_data *ad;
-	struct arg_data *arg_data;
-
-	WALLOC0(ad);
-	WALLOC(arg_data);
-	ad->thread_func = mingw_adns_getnameinfo_thread;
-	ad->callback_func = mingw_adns_getnameinfo_cb;	
-	ad->user_data = hcopy(req, sizeof *req);
-	ad->thread_arg_data = arg_data;
-	
-	switch (query->addr.net) {
-		struct sockaddr_in *inet4;
-		struct sockaddr_in6 *inet6;
-	case NET_TYPE_IPV6:
-		inet6 = &arg_data->u.sa_inet6;
-		inet6->sin6_family = AF_INET6;
-		memcpy(inet6->sin6_addr.s6_addr, query->addr.addr.ipv6, 16);
-		arg_data->sa = (const struct sockaddr *) inet6;
-		break;
-	case NET_TYPE_IPV4:
-		inet4 = &arg_data->u.sa_inet4;
-		inet4->sin_family = AF_INET;	
-		inet4->sin_addr.s_addr = htonl(query->addr.addr.ipv4);
-		arg_data->sa = (const struct sockaddr *) inet4;
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		g_assert_not_reached();
-		break;
-	}	
-
-	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
-}
-
-/* ADNS Main thread */
-
-static void *
-mingw_adns_thread(void *unused_data)
-{
-	GAsyncQueue *read_queue, *result_queue;
-	
-	/* On ADNS thread */
-	(void) unused_data;
-
-	read_queue = g_async_queue_ref(mingw_gtkg_adns_async_queue);
-	result_queue = g_async_queue_ref(mingw_gtkg_main_async_queue);
-	mingw_adns_thread_run = TRUE;
-	
-	while (mingw_adns_thread_run) {
-		struct async_data *ad = g_async_queue_pop(read_queue);	
-
-		if (NULL == ad)
-			break;
-
-		ad->thread_func(ad);
-		g_async_queue_push(result_queue, ad);			
-	}
-
-	if (common_dbg)
-		t_message("adns thread exit");
-
-	/*
-	 * FIXME: The calls below cause a:
-	 *
-	 *    assertion `g_atomic_int_get (&queue->ref_count) > 0' failed
-	 *
-	 * I'm wondering whether they are needed since the main thread does
-	 * it and the queue could be disposed of by g_async_queue_pop() directly,
-	 * given it can detect the queue became orphan....
-	 */
-
-#if 0
-	g_async_queue_unref(mingw_gtkg_adns_async_queue);
-	g_async_queue_unref(mingw_gtkg_main_async_queue);
-#endif
-
-	g_thread_exit(NULL);
-	return NULL;
-}
-
-/**
- * Shutdown the ADNS thread.
- */
-static void
-mingw_adns_stop_thread(struct async_data *unused_data)
-{
-	(void) unused_data;
-	mingw_adns_thread_run = FALSE;
-}
-
-static bool
-mingw_adns_timer(void *unused_arg)
-{
-	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
-
-	(void) unused_arg;
-	
-	if (NULL != ad) {
-		if (common_dbg) {
-			s_debug("performing callback to func @%p", ad->callback_func);
-		}
-		ad->callback_func(ad);
-	} 
-
-	return TRUE;		/* Keep calling */
-}
-
-bool
-mingw_adns_send_request(const struct adns_request *req)
-{
-	if (req->common.reverse) {
-		mingw_adns_getnameinfo(req);
-	} else {
-		mingw_adns_getaddrinfo(req);
-	}
-	return TRUE;
-}
-
-static bool mingw_adns_running;
-
-void
-mingw_adns_init(void)
-{
-	if (mingw_adns_running)
-		return;
-
-	/*
-	 * Be extremely careful in the ADNS thread!
-	 * gtk-gnutella was designed as mono-threaded application so its regular
-	 * routines are NOT thread-safe.  Do NOT access any public functions or
-	 * modify global variables from the ADNS thread!
-	 *
-	 * Dynamic memory allocation is possible via xmalloc(), walloc() and
-	 * vmm_alloc() now that these allocators have been made thread-safe.
- 	 */
-
-	g_thread_init(NULL);
-	mingw_gtkg_main_async_queue = g_async_queue_new();
-	mingw_gtkg_adns_async_queue = g_async_queue_new();
-
-	g_thread_create(mingw_adns_thread, NULL, FALSE, NULL);
-	cq_periodic_main_add(1000, mingw_adns_timer, NULL);
-	mingw_adns_running = TRUE;
-}
-
-void
-mingw_adns_close(void)
-{
-	struct async_data *ad;
-
-	if (!mingw_adns_running)
-		return;
-
-	/* Quit our ADNS thread */
-	WALLOC0(ad);
-	ad->thread_func = mingw_adns_stop_thread;
-
-	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
-	g_async_queue_unref(mingw_gtkg_adns_async_queue);
-	g_async_queue_unref(mingw_gtkg_main_async_queue);
-	mingw_adns_running = FALSE;
-}
-
-/*** End of ADNS section ***/
 
 static const char *
 mingw_get_folder_basepath(enum special_folder which_folder)
@@ -3371,6 +3199,525 @@ mingw_gettimeofday(struct timeval *tv, void *tz)
 }
 #endif	/* EMULATE_GETTIMEOFDAY */
 
+#ifdef EMULATE_CLOCK_GETTIME
+/**
+ * Retrieve the time of the specified clock.
+ *
+ * @note
+ * Only the CLOCK_REALTIME clock is supported.
+ *
+ * @param clock_id		the ID of the clock to fetch
+ * @param tp			where the clock time should be written to
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+mingw_clock_gettime(int clock_id, struct timespec *tp)
+{
+	LARGE_INTEGER t;
+	static bool inited;
+	static LARGE_INTEGER start;
+	static LARGE_INTEGER freq;
+	static tm_nano_t origin;
+
+	if G_UNLIKELY(clock_id != CLOCK_REALTIME) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if G_UNLIKELY(!inited) {
+		static spinlock_t clock_gettime_slk = SPINLOCK_INIT;
+
+		spinlock_hidden(&clock_gettime_slk);
+
+		if (!inited) {
+			struct timeval tm;
+
+			gettimeofday(&tm, NULL);
+			origin.tv_sec = tm.tv_sec;
+			origin.tv_nsec = tm.tv_usec * 1000;
+			QueryPerformanceCounter(&start);
+			QueryPerformanceFrequency(&freq);
+			inited = TRUE;
+		}
+
+		spinunlock_hidden(&clock_gettime_slk);
+	}
+
+	if (!QueryPerformanceCounter(&t)) {
+		errno = EINVAL;
+		return -1;
+	} else {
+		uint64 nanoseconds;		/* Elapsed nanoseconds since start */
+		tm_nano_t result;
+
+		t.QuadPart -= start.QuadPart;
+		nanoseconds = t.QuadPart * (uint64) TM_BILLION / freq.QuadPart;
+		result.tv_sec  = nanoseconds / TM_BILLION;
+		result.tv_nsec = nanoseconds % TM_BILLION;
+		tm_precise_add(&result, &origin);
+		tm_nano_to_timespec(tp, &result);
+	}
+
+	return 0;
+}
+#endif	/* EMULATE_CLOCK_GETTIME */
+
+#ifdef EMULATE_CLOCK_GETRES
+/**
+ * Retrieve the resolution of the specified clock.
+ *
+ * @note
+ * Only the CLOCK_REALTIME clock is supported.
+ *
+ * @param clock_id		the ID of the clock to fetch
+ * @param res			where the clock resolution should be written to
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+mingw_clock_getres(int clock_id, struct timespec *res)
+{
+	LARGE_INTEGER freq;
+	ulong nanosecs;
+
+	if G_UNLIKELY(clock_id != CLOCK_REALTIME) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (!QueryPerformanceFrequency(&freq)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	nanosecs = (uint64) TM_BILLION / freq.QuadPart;
+	if (0 == nanosecs)
+		nanosecs = 1;
+
+	res->tv_sec  = nanosecs / TM_BILLION;
+	res->tv_nsec = nanosecs % TM_BILLION;
+
+	return 0;
+}
+#endif	/* EMULATE_CLOCK_GETRES */
+
+static hash_table_t *semaphores;	/* semaphore sets by ID */
+static int next_semid;				/* next ID we create */
+static spinlock_t sem_slk = SPINLOCK_INIT;
+
+/**
+ * A semaphore set.
+ */
+struct semset {
+	int count;					/* amount of semaphores */
+	int refcnt;					/* amount of users in a sem*() call */
+	int semid;					/* semaphore set internal ID */
+	HANDLE *handle;				/* semaphore handles */
+	int *token;					/* tokens per semaphore */
+	spinlock_t lock;			/* thread-safe lock */
+	uint destroyed:1;			/* signals the semaphore was destroyed */
+};
+
+static hash_table_t *
+sem_table(void)
+{
+	if G_UNLIKELY(NULL == semaphores) {
+		static spinlock_t semaphores_slk = SPINLOCK_INIT;
+
+		spinlock(&semaphores_slk);
+		if (NULL == semaphores) {
+			semaphores = hash_table_once_new_full_real(NULL, NULL);
+			hash_table_thread_safe(semaphores);
+		}
+		spinunlock(&semaphores_slk);
+	}
+
+	return semaphores;
+}
+
+static void
+semset_destroy(struct semset *s)
+{
+	int i;
+
+	g_assert(spinlock_is_held(&s->lock));
+	g_assert(0 == s->refcnt);
+
+	spinlock_destroy(&s->lock);
+
+	for (i = 0; i < s->count; i++) {
+		if (s->handle[i] != NULL) {
+			if (0 == CloseHandle(s->handle[i])) {
+				errno = mingw_last_error();
+				s_minicarp("%s(%d, IPC_RMID) cannot close handle "
+					"for semaphore #%d: %m", G_STRFUNC, s->semid, i);
+				/* Ignore error */
+			}
+		}
+	}
+
+	WFREE_ARRAY(s->handle, s->count);
+	WFREE_ARRAY(s->token, s->count);
+	WFREE(s);
+}
+
+/* Must be a macro for proper spinlock source tracking */
+#define SEMSET_LOCK(s,y) G_STMT_START {	\
+	spinlock_swap(&(s)->lock, (y));		\
+	atomic_int_inc(&(s)->refcnt);		\
+} G_STMT_END
+
+static void
+SEMSET_UNLOCK(struct semset *s)
+{
+	g_assert(spinlock_is_held(&s->lock));
+
+	/*
+	 * Because we release the spinlock on the set before issuing a system call,
+	 * we need to reference count the users of the semaphore set and defer
+	 * cleanup of the structure until after the last user is gone.
+	 */
+
+	if (1 == atomic_int_dec(&s->refcnt)) {
+		if G_UNLIKELY(s->destroyed) {
+			semset_destroy(s);
+			return;
+		}
+	}
+
+	spinunlock(&s->lock);
+}
+
+int
+mingw_semget(key_t key, int nsems, int semflg)
+{
+	int id;
+	struct semset *s;
+	bool ok;
+
+	g_assert_log(IPC_PRIVATE == key,
+		"%s() only supports IPC_PRIVATE keys", G_STRFUNC);
+
+	if (nsems < 0 || nsems > SEMMSL) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (0 == (semflg & IPC_CREAT)) {
+		errno = ENOENT;			/* since we only support IPC_PRIVATE */
+		return -1;
+	}
+
+	id = next_semid++;
+	WALLOC0(s);
+	s->count = nsems;
+	s->semid = id;
+	WALLOC0_ARRAY(s->handle, nsems);
+	WALLOC0_ARRAY(s->token, nsems);
+	spinlock_init(&s->lock);
+
+	ok = hash_table_insert(sem_table(), int_to_pointer(id), s);
+	g_assert(ok);
+
+	return id;
+}
+
+int
+mingw_semctl(int semid, int semnum, int cmd, ...)
+{
+	hash_table_t *sems = sem_table();
+	struct semset *s;
+	va_list args;
+	int value, result = 0;
+
+	spinlock(&sem_slk);
+
+	s = hash_table_lookup(sems, int_to_pointer(semid));
+	if (NULL == s) {
+		spinunlock(&sem_slk);
+		errno = EIDRM;
+		return -1;
+	}
+
+	/*
+	 * This critical section crossing ensures that nobody can free up the
+	 * semaphore set until we SEMSET_UNLOCK() it.  The reference count is
+	 * increased by SEMSET_LOCK().
+	 */
+
+	SEMSET_LOCK(s, &sem_slk);
+	spinunlock(&sem_slk);
+
+	if (s->destroyed) {
+		errno = EIDRM;
+		result = -1;
+		goto done;
+	}
+
+	switch (cmd) {
+	case IPC_RMID:
+		/* The semnum argument is ignored, hence not validated */
+		s->destroyed = TRUE; /* Defer destruction until last user is gone */
+		hash_table_remove(sems, int_to_pointer(semid));
+		break;
+
+	case GETVAL:
+		if (semnum < 0 || semnum >= s->count) {
+			errno = ERANGE;
+			result = -1;
+			break;
+		}
+
+		if (NULL == s->handle[semnum]) {
+			result = 0;
+		} else {
+			result = s->token[semnum];
+		}
+		break;
+
+	case SETVAL:
+		if (semnum < 0 || semnum >= s->count) {
+			errno = ERANGE;
+			result = -1;
+			break;
+		}
+
+		/*
+		 * The SETVAL command is our signal that the semaphore is initialized.
+		 * Any previous existing handle is just closed.
+		 */
+
+		if (s->handle[semnum] != NULL) {
+			HANDLE h = s->handle[semnum];
+			BOOL r;
+
+			spinunlock(&s->lock);
+			r = CloseHandle(h);
+			spinlock(&s->lock);
+			if (s->destroyed) {
+				errno = EIDRM;
+				result = -1;
+				break;
+			} else if (0 == r) {
+				errno = mingw_last_error();
+				s_minicarp("%s(%d, SETVAL) cannot close semaphore #%d: %m",
+					G_STRFUNC, s->semid, semnum);
+				/* Ignore error */
+			}
+			s->handle[semnum] = NULL;
+		}
+
+		va_start(args, cmd);
+		value = va_arg(args, int);
+		va_end(args);
+
+		/*
+		 * We release the lock but we do not call SEMSET_UNLOCK(), hence the
+		 * reference count is not altered and this prevents any physical
+		 * destruction of the object.
+		 *
+		 * However, once we release the lock we open the door for concurrent
+		 * destruction of the semaphore set so we need to recheck for that
+		 * condition once we re-enter the critical section.
+		 */
+
+		spinunlock(&s->lock);
+		s->handle[semnum] = CreateSemaphore(NULL, value, INT_MAX, NULL);
+		spinlock(&s->lock);
+
+		if G_UNLIKELY(s->destroyed) {
+			errno = EIDRM;
+			result = -1;
+		} else if (NULL == s->handle[semnum]) {
+			errno = mingw_last_error();
+			result = -1;
+		}
+
+		if G_UNLIKELY(-1 == result) {
+			/* Warn loudly since we use semaphores for inter-thread synchro */
+			s_minicarp("%s(%d, SETVAL) cannot create new semaphore #%d: %m",
+				G_STRFUNC, s->semid, semnum);
+		} else {
+			s->token[semnum] = value;
+		}
+		break;
+
+	default:
+		s_error("%s() only supports the GETVAL, SETVAL and IPC_RMID commands",
+			G_STRFUNC);
+	}
+
+done:
+	SEMSET_UNLOCK(s);
+	return result;
+}
+
+int
+mingw_semop(int semid, struct sembuf *sops, unsigned nsops)
+{
+	return mingw_semtimedop(semid, sops, nsops, NULL);
+}
+
+int
+mingw_semtimedop(int semid, struct sembuf *sops,
+	unsigned nsops, struct timespec *timeout)
+{
+	DWORD ms;
+	struct semset *s;
+	int result = 0;
+	HANDLE h;
+
+	g_assert_log(1 == nsops,
+		"%s() only supports operations on one semaphore at a time", G_STRFUNC);
+
+	spinlock(&sem_slk);
+
+	s = hash_table_lookup(sem_table(), int_to_pointer(semid));
+	if (NULL == s) {
+		spinunlock(&sem_slk);
+		errno = EIDRM;
+		return -1;
+	}
+
+	/*
+	 * This is the same critical handling as in mingw_semctl().
+	 */
+
+	SEMSET_LOCK(s, &sem_slk);
+	spinunlock(&sem_slk);
+
+	if (s->destroyed) {
+		errno = EIDRM;
+		result = -1;
+		goto done;
+	}
+
+	if (NULL == sops) {
+		errno = EFAULT;
+		result = -1;
+		goto done;
+	}
+
+	g_assert_log(0 != sops->sem_op,
+		"%s() does not support waiting for semaphores which reach zero",
+		G_STRFUNC);
+
+	g_assert_log(0 == (sops->sem_flg & SEM_UNDO),
+		"%s() does not support SEM_UNDO", G_STRFUNC);
+
+	if (sops->sem_num >= s->count) {
+		errno = EFBIG;
+		result = -1;
+		goto done;
+	}
+
+	h = s->handle[sops->sem_num];
+
+	if (NULL == h) {
+		s_minicarp("%s(%d) called on un-initialized semaphore #%d",
+			G_STRFUNC, s->semid, sops->sem_num);
+		errno = EIDRM;
+		result = -1;
+		goto done;
+	}
+
+	if (sops->sem_op > 0) {
+		BOOL r;
+
+		/*
+		 * We release the spinlock before calling ReleaseSemaphore() even if
+		 * that call cannot block because we don't want to keep a lock across
+		 * a system call.  This opens a window for failure if another thread
+		 * comes in and destroys the semaphore, but in that case our handle
+		 * would become invalid.  We trap that to transform EBADF into EIDRM.
+		 *
+		 * We update the token count before the system call to prevent a race
+		 * condition with the waiting side which could be awoken before we
+		 * re-grab the lock.
+		 */
+
+		s->token[sops->sem_num] += sops->sem_op;
+
+		/* See comment in mingw_semctl() about the following sequence */
+
+		spinunlock(&s->lock);
+		r = ReleaseSemaphore(h, sops->sem_op, NULL);
+		spinlock(&s->lock);
+
+		if G_UNLIKELY(s->destroyed) {
+			errno = EIDRM;
+			result = -1;
+		} else if (0 == r) {
+			errno = mingw_last_error();
+			if (EBADF == errno)
+				errno = EIDRM;
+			result = -1;
+		}
+		if G_UNLIKELY(-1 == result) {
+			/* Fail loudly since semaphores are used for inter-thread synchro */
+			s_minicarp("%s(%d, +%d) failed on semaphore #%d: %m",
+				G_STRFUNC, s->semid, sops->sem_op, sops->sem_num);
+		}
+	} else {
+		DWORD w;
+
+		/*
+		 * Acquiring semaphores is the tricky part because Windows does not
+		 * support atomic acquisition of more than one token.
+		 *
+		 * Fortunately, we should only need increments of 1.
+		 *		--RAM, 2012-12-27
+		 */
+
+		g_assert_log(-1 == sops->sem_op,
+			"%s(): sorry, Windows does not support getting %d tokens at a time",
+			G_STRFUNC, -sops->sem_op);
+
+		if (sops->sem_flg & IPC_NOWAIT)
+			ms = 0;
+		else if (timeout != NULL)
+			ms = timeout->tv_nsec / TM_MILLION + timeout->tv_sec * 1000;
+		else
+			ms = INFINITE;
+
+		/* See comment in mingw_semctl() about the following sequence */
+
+		spinunlock(&s->lock);
+		w = WaitForSingleObject(h, ms);
+		spinlock(&s->lock);
+
+		if G_UNLIKELY(s->destroyed) {
+			errno = EIDRM;
+			result = -1;
+			goto done;
+		}
+
+		switch (w) {
+		case WAIT_OBJECT_0:
+			s->token[sops->sem_num]--;
+			g_assert(s->token[sops->sem_num] >= 0);
+			break;
+		case WAIT_TIMEOUT:
+			errno = EAGAIN;
+			result = -1;
+			break;
+		case WAIT_ABANDONED:	/* Should not happen for a semaphore */
+		default:
+			errno = mingw_last_error();
+			s_minicarp("%s(%d): acquisition of semaphore failed: %m",
+				G_STRFUNC, s->semid);
+			result = -1;
+			break;
+		}
+	}
+
+	/* FALL THROUGH */
+done:
+	SEMSET_UNLOCK(s);
+	return result;
+}
+
 void mingw_vmm_post_init(void)
 {
 	s_info("VMM process has %s of virtual space",
@@ -3383,15 +3730,10 @@ void mingw_vmm_post_init(void)
 		compact_size(mingw_vmm.later, FALSE));
 }
 
-void
-mingw_init(void)
+static void
+mingw_init_once(void)
 {
 	WSADATA wsaData;
-
-	if G_UNLIKELY(mingw_inited)
-		return;
-
-	mingw_inited = TRUE;
 
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
 		s_error("WSAStartup() failed");
@@ -3400,6 +3742,12 @@ mingw_init(void)
     if (libws2_32 != NULL) {
         WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
     }
+}
+
+void
+mingw_init(void)
+{
+	ONCE_FLAG_RUN(mingw_inited, mingw_init_once);
 }
 
 #ifdef MINGW_BACKTRACE_DEBUG
@@ -3867,7 +4215,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 
 		BACKTRACE_DEBUG(BACK_F_OTHER,
 			"%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
-			mingw_opcode_name(op), fill, 1 == fill ? "" : "s", p);
+			mingw_opcode_name(op), fill, plural(fill), p);
 
 		first_opcode = p + fill;
 		p += (fill - 1);
@@ -4095,7 +4443,7 @@ found_offset:
 	g_assert(0 == (offset & 3));	/* Multiple of 4 */
 
 	BACKTRACE_DEBUG(BACK_F_RA, "%s: offset = %u, %zu leading push%s",
-		G_STRFUNC, offset, savings, 1 == savings ? "" : "es");
+		G_STRFUNC, offset, savings, plural_es(savings));
 
 	/*
 	 * We found that the current routine decreased the stack pointer by
@@ -4385,6 +4733,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 	static char path[MAX_PATH_LEN];
 	static wchar_t wpath[MAX_PATH_LEN];
 	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
+	static mutex_t dladdr_lk = MUTEX_INIT;
 	time_t now;
 	HANDLE process = NULL;
 	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
@@ -4399,6 +4748,23 @@ mingw_dladdr(void *addr, Dl_info *info)
 
 	if (0 == last_init || delta_time(now, last_init) > 5) {
 		static bool initialized;
+		static bool first_init;
+		static spinlock_t dladdr_first_slk = SPINLOCK_INIT;
+		bool is_first = FALSE;
+
+		spinlock_hidden(&dladdr_first_slk);
+		if (!first_init) {
+			is_first = TRUE;
+			first_init = TRUE;
+		}
+		spinunlock_hidden(&dladdr_first_slk);
+
+		if (is_first) {
+			mutex_lock_fast(&dladdr_lk);
+		} else {
+			if (!mutex_trylock_fast(&dladdr_lk))
+				goto skip_init;
+		}
 
 		process = GetCurrentProcess();
 
@@ -4416,8 +4782,10 @@ mingw_dladdr(void *addr, Dl_info *info)
 		}
 
 		last_init = now;
+		mutex_unlock_fast(&dladdr_lk);
 	}
 
+skip_init:
 	ZERO(info);
 
 	if (0 != mingw_dl_error)
@@ -4500,7 +4868,7 @@ static G_GNUC_COLD void
 mingw_exception_log(int code, const void *pc)
 {
 	DECLARE_STR(11);
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 	const char *name;
 	const char *file = NULL;
 
@@ -4560,7 +4928,7 @@ static G_GNUC_COLD void
 mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 {
 	DECLARE_STR(6);
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 	const char *prot = "unknown";
 	const void *va = NULL;
 
@@ -4604,7 +4972,7 @@ static void *mingw_stack[STACKTRACE_DEPTH_MAX];
 bool
 mingw_in_exception(void)
 {
-	return in_exception_handler;
+	return ATOMIC_GET(&in_exception_handler);
 }
 
 /**
@@ -4616,7 +4984,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	EXCEPTION_RECORD *er;
 	int signo = 0;
 
-	in_exception_handler++;		/* Will never be reset, we're crashing */
+	ATOMIC_INC(&in_exception_handler);	/* Never reset, we're crashing */
 	er = ei->ExceptionRecord;
 
 	/*
@@ -4641,12 +5009,67 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		 * far, so log the fact as soon as possible.
 		 */
 		{
-			DECLARE_STR(1);
+			char buf[ULONG_DEC_BUFLEN];
+			char lbuf[ULONG_DEC_BUFLEN];
+			char sbuf[ULONG_DEC_BUFLEN];
+			const char *s, *ss;
+			int stid;
+			size_t locks;
+			DECLARE_STR(12);
+
+			/*
+			 * Windows detects stack overflows by using a guard page at the
+			 * end of each thread stack.  Before invoking the exception handler,
+			 * it resets the guard page as read-write to give room to the thread
+			 * to process it.  However, if we overflow that page, we have no
+			 * protection and will overwrite memory belonging to... someone!
+			 *
+			 * This gives us enough room for our basic processing below.
+			 */
 
 			print_str("Got stack overflow -- crashing.\n");
 			flush_err_str();
 			if (log_stdout_is_distinct())
 				flush_str(STDOUT_FILENO);
+
+			stid = thread_safe_small_id();
+			if (stid < 0)
+				stid += 256;
+			s = PRINT_NUMBER(buf, stid);
+			locks = thread_id_lock_count(stid);
+
+			rewind_str(0);
+			print_str("(overflow in thread #");			/* 0 */
+			print_str(s);								/* 1 */
+			print_str(" at PC=0x");						/* 2 */
+			print_str(pointer_to_string(er->ExceptionAddress));	/* 3 */
+			if (locks != 0) {
+				const char *ls = PRINT_NUMBER(lbuf, locks);
+				print_str(", holds ");						/* 4 */
+				print_str(ls);								/* 5 */
+				print_str(1 == locks ? " lock" : "locks");	/* 6 */
+			}
+			ss = PRINT_NUMBER(sbuf, thread_stack_used());
+			print_str(", stack is ");					/* 7 */
+			print_str(ss);								/* 8 */
+			print_str(" bytes");						/* 9 */
+			if (0 != stid)
+				print_str(", killing it");				/* 10 */
+			print_str(")\n");							/* 11 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+
+			/*
+			 * Forcefully killing the thread is the least we can do.
+			 *
+			 * If it is holding locks, deadlocks are likely to occur
+			 * afterwards, but this is panic...
+			 */
+
+			if (0 != stid) {
+				thread_exit(NULL);
+			}
 		}
 		signo = SIGSEGV;
 		break;
@@ -4692,7 +5115,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			const char *s;
 			DECLARE_STR(3);
 
-			s = print_number(buf, sizeof buf, er->ExceptionCode);
+			s = PRINT_NUMBER(buf, er->ExceptionCode);
 			print_str("Got unknown exception #");		/* 0 */
 			print_str(s);								/* 1 */
 			print_str(" -- crashing.\n");				/* 2 */
@@ -4721,7 +5144,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 * exception: recursive calls are not interesting.
 	 */
 
-	if (1 == in_exception_handler) {
+	if (1 == ATOMIC_GET(&in_exception_handler)) {
 		int count;
 		
 		count = mingw_stack_unwind(
@@ -4732,7 +5155,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
 
 		crash_save_stackframe(mingw_stack, count);
-	} else if (in_exception_handler > 5) {
+	} else if (ATOMIC_GET(&in_exception_handler) > 5) {
 		DECLARE_STR(1);
 
 		print_str("Too many exceptions in a row -- raising SIGBART.\n");
@@ -5075,8 +5498,6 @@ mingw_early_init(void)
 void 
 mingw_close(void)
 {
-	mingw_adns_close();
-	
 	if (libws2_32 != NULL) {
 		FreeLibrary(libws2_32);
 		

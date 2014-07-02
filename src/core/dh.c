@@ -44,6 +44,7 @@
 #include "lib/glib-missing.h"
 #include "lib/htable.h"
 #include "lib/misc.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -452,7 +453,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	if (GNET_PROPERTY(dh_debug) > 19) {
 		g_debug("DH #%s got %d hit%s: "
 			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u",
-			guid_hex_str(muid), count, count == 1 ? "" : "s",
+			guid_hex_str(muid), count, plural(count),
 			dh->msg_recv, dh->hits_recv, dh->hits_sent,
 			dh->hits_queued);
 	}
@@ -507,14 +508,31 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
 			g_debug("GUESS sending %d hit%s (%s) for #%s to %s",
-				count, 1 == count ? "" : "s",
+				count, plural(count),
 				NODE_CAN_SR_UDP(dest) ? "reliably" :
 				NODE_CAN_INFLATE(dest) ? "possibly deflated" : "uncompressed",
 				guid_hex_str(muid), node_infostr(dest));
 		}
 
-		mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
-				src->size + GTA_HEADER_SIZE);
+		/*
+		 * Attempt to compress query hit if the destination supports it.
+		 *
+		 * If we're going to send the hit using semi-reliable UDP, there's
+		 * no need to compress beforehand, since the transport layer will
+		 * attempt its own compression anyway.
+		 */
+
+		if (!NODE_CAN_SR_UDP(dest) && NODE_CAN_INFLATE(dest)) {
+			mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
+					src->size + GTA_HEADER_SIZE);
+
+			if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
+				gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
+		} else {
+			mb = gmsg_split_to_pmsg(&src->header, src->data,
+					src->size + GTA_HEADER_SIZE);
+		}
+
 		mbe = pmsg_clone_extend(mb, dh_pmsg_free, pmi);
 		pmsg_free(mb);
 
@@ -529,7 +547,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 
 		if (GNET_PROPERTY(dh_debug) > 19) {
 			g_debug("DH enqueued %d hit%s for #%s to %s",
-				count, count == 1 ? "" : "s", guid_hex_str(muid),
+				count, plural(count), guid_hex_str(muid),
 				node_infostr(dest));
 		}
 	}

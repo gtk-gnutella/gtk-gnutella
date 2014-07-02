@@ -23,8 +23,10 @@
 #include "lib/fd.h"
 #include "lib/hashlist.h"
 #include "lib/htable.h"
+#include "lib/log.h"
 #include "lib/slist.h"
 #include "lib/stacktrace.h"
+#include "lib/stringify.h"		/* For plural() */
 #include "lib/vmm.h"
 #include "lib/walloc.h"
 
@@ -126,7 +128,7 @@ void lru_init(DBM *db)
 	g_assert(-1 == db->pagbno);		/* We must be called before first access */
 
 	if (-1 == init_cache(db, LRU_PAGES, FALSE))
-		g_error("out of virtual memory");
+		s_error("out of virtual memory");
 }
 
 static void
@@ -138,16 +140,16 @@ log_lrustats(DBM *db)
 
 	sdbm_lru_check(cache);
 
-	g_info("sdbm: \"%s\" LRU cache size = %ld page%s, %s writes, %s DB",
-		sdbm_name(db), cache->pages, 1 == cache->pages ? "" : "s",
+	s_info("sdbm: \"%s\" LRU cache size = %ld page%s, %s writes, %s DB",
+		sdbm_name(db), cache->pages, plural(cache->pages),
 		cache->write_deferred ? "deferred" : "synchronous",
 		db->is_volatile ? "volatile" : "persistent");
-	g_info("sdbm: \"%s\" LRU read cache hits = %.2f%% on %lu request%s",
+	s_info("sdbm: \"%s\" LRU read cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->rhits * 100.0 / MAX(raccesses, 1), raccesses,
-		1 == raccesses ? "" : "s");
-	g_info("sdbm: \"%s\" LRU write cache hits = %.2f%% on %lu request%s",
+		plural(raccesses));
+	s_info("sdbm: \"%s\" LRU write cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->whits * 100.0 / MAX(waccesses, 1), waccesses,
-		1 == waccesses ? "" : "s");
+		plural(waccesses));
 }
 
 /**
@@ -267,9 +269,9 @@ setcache(DBM *db, long pages)
 	db->pagbuf = NULL;
 
 	if (common_stats) {
-		g_info("sdbm: \"%s\" LRU cache size %s from %ld page%s to %ld",
+		s_info("sdbm: \"%s\" LRU cache size %s from %ld page%s to %ld",
 			sdbm_name(db), pages > cache->pages ? "increased" : "decreased",
-			cache->pages, 1 == cache->pages ? "" : "s", pages);
+			cache->pages, plural(cache->pages), pages);
 		log_lrustats(db);
 	}
 
@@ -514,11 +516,11 @@ getidx(DBM *db, long num)
 				if (!had_ioerr)
 					db->flags &= ~DBM_IOERR_W;
 
-				g_warning("sdbm: \"%s\": "
+				s_warning("sdbm: \"%s\": "
 					"reusing cache slot used by clean page #%ld instead",
 					sdbm_name(db), oldnum);
 			} else {
-				g_warning("sdbm: \"%s\": cannot discard dirty page #%ld",
+				s_warning("sdbm: \"%s\": cannot discard dirty page #%ld",
 					sdbm_name(db), oldnum);
 				return -1;
 			}
@@ -630,7 +632,7 @@ lru_invalidate(DBM *db, long bno)
 		 */
 
 		if (cache->dirty[idx]) {
-			g_critical("sdbm: \"%s\": %s() invalidating dirty page #%ld",
+			s_critical("sdbm: \"%s\": %s() invalidating dirty page #%ld",
 				db->name, stacktrace_caller_name(1), bno);
 		}
 
@@ -773,18 +775,18 @@ cachepag(DBM *db, char *pag, long num)
 
 		if (ino[0] != 0) {
 			weird++;
-			g_warning("sdbm: \"%s\": new page #%ld was cached but not empty",
+			s_warning("sdbm: \"%s\": new page #%ld was cached but not empty",
 				db->name, num);
 		}
 		if (cache->dirty[idx]) {
 			weird++;
-			g_warning("sdbm: \"%s\": new page #%ld was cached and not clean",
+			s_warning("sdbm: \"%s\": new page #%ld was cached and not clean",
 				db->name, num);
 		}
 		if (weird > 0) {
-			g_critical("sdbm: \"%s\": previous warning%s indicate possible "
+			s_critical("sdbm: \"%s\": previous warning%s indicate possible "
 				"corruption in the bitmap forest",
-				db->name, 1 == weird ? "" : "s");
+				db->name, plural(weird));
 		}
 
 		/*
@@ -836,10 +838,10 @@ flushpag(DBM *db, char *pag, long num)
 		if (w < 0) {
 			if G_UNLIKELY(db->flags & DBM_RDONLY)
 				errno = EPERM;		/* Instead of EBADF on linux */
-			g_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
+			s_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
 				sdbm_name(db), num);
 		} else {
-			g_critical("sdbm: \"%s\": could only flush %u bytes from page #%ld",
+			s_critical("sdbm: \"%s\": could only flush %u bytes from page #%ld",
 				sdbm_name(db), (unsigned) w, num);
 		}
 		ioerr(db, TRUE);

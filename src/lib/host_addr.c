@@ -46,14 +46,16 @@
 #include <netdb.h>				/* For gethostbyname() */
 #endif /* I_NETDB */
 
-#include "ascii.h"
 #include "host_addr.h"
+
+#include "ascii.h"
 #include "concat.h"
 #include "endian.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hset.h"
 #include "parse.h"
+#include "pslist.h"
 #include "random.h"
 #include "stringify.h"
 #include "walloc.h"
@@ -110,6 +112,66 @@ host_addr_hash2(host_addr_t ha)
 	}
 	g_assert_not_reached();
 	return (unsigned) -1;
+}
+
+/**
+ * Check whether hosts are equal.
+ */
+bool
+host_addr_equal(const host_addr_t a, const host_addr_t b)
+{
+	if (a.net == b.net) {
+		switch (a.net) {
+		case NET_TYPE_IPV4:
+			return host_addr_ipv4(a) == host_addr_ipv4(b);
+		case NET_TYPE_IPV6:
+			return 0 == memcmp(a.addr.ipv6, b.addr.ipv6, sizeof a.addr.ipv6);
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			return TRUE;
+		}
+		g_assert_not_reached();
+	}
+	return FALSE;
+}
+
+/**
+ * Check whether hosts are "equivalent", modulo conversion to IPv4 for IPv6.
+ *
+ * @attention
+ * This routine CANNOT be used directly or indirectly as a comparison function
+ * for hash tables because it's not possible to have two items being "equal"
+ * that do not hash to the same value!  For hash tables, use host_addr_equal()
+ * which tests true equality.
+ */
+bool
+host_addr_equiv(const host_addr_t a, const host_addr_t b)
+{
+	if (a.net == b.net) {
+		switch (a.net) {
+		case NET_TYPE_IPV4:
+			return host_addr_ipv4(a) == host_addr_ipv4(b);
+		case NET_TYPE_IPV6:
+			if (0 != memcmp(a.addr.ipv6, b.addr.ipv6, sizeof a.addr.ipv6)) {
+				host_addr_t a_ipv4, b_ipv4;
+
+				return host_addr_convert(a, &a_ipv4, NET_TYPE_IPV4) &&
+					host_addr_convert(b, &b_ipv4, NET_TYPE_IPV4) &&
+					host_addr_ipv4(a_ipv4) == host_addr_ipv4(b_ipv4);
+			}
+			return TRUE;
+
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			return TRUE;
+		}
+		g_assert_not_reached();
+	} else {
+		host_addr_t to;
+
+		return host_addr_convert(a, &to, b.net) && host_addr_equiv(to, b);
+	}
+	return FALSE;
 }
 
 /**
@@ -174,7 +236,7 @@ is_private_addr(const host_addr_t addr)
 		case NET_TYPE_IPV4:
 			g_assert_not_reached();
 		case NET_TYPE_IPV6:
-			return	host_addr_equal(addr, ipv6_loopback) ||
+			return	host_addr_equiv(addr, ipv6_loopback) ||
 					host_addr_matches(addr, ipv6_link_local, 10) ||
 					host_addr_matches(addr, ipv6_site_local, 10);
 		case NET_TYPE_LOCAL:
@@ -301,7 +363,7 @@ host_addr_is_loopback(const host_addr_t addr)
 		return host_addr_ipv4(ha) == 0x7f000001; /* 127.0.0.1 in host endian */
 
 	case NET_TYPE_IPV6:
-		return host_addr_equal(ha, ipv6_loopback);
+		return host_addr_equiv(ha, ipv6_loopback);
 
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
@@ -323,7 +385,7 @@ host_addr_is_unspecified(const host_addr_t addr)
 		return host_addr_ipv4(addr) == 0;
 
 	case NET_TYPE_IPV6:
-		return host_addr_equal(addr, ipv6_unspecified);
+		return host_addr_equiv(addr, ipv6_unspecified);
 
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
@@ -1175,14 +1237,14 @@ addrinfo_to_addr(const struct addrinfo *ai)
 }
 #endif	/* HAS_GETADDRINFO */
 
-static GSList *
+static pslist_t *
 resolve_hostname(const char *host, enum net_type net)
 #ifdef HAS_GETADDRINFO
 {
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
 	hset_t *hs;
-	GSList *sl_addr;
+	pslist_t *sl_addr;
 	int error;
 
 	g_assert(host);
@@ -1211,7 +1273,7 @@ resolve_hostname(const char *host, enum net_type net)
 			host_addr_t *addr_copy;
 
 			addr_copy = wcopy(&addr, sizeof addr);
-			sl_addr = g_slist_prepend(sl_addr, addr_copy);
+			sl_addr = pslist_prepend(sl_addr, addr_copy);
 			hset_insert(hs, addr_copy);
 		}
 	}
@@ -1220,13 +1282,13 @@ resolve_hostname(const char *host, enum net_type net)
 	if (ai0)
 		freeaddrinfo(ai0);
 
-	return g_slist_reverse(sl_addr);
+	return pslist_reverse(sl_addr);
 }
 #else /* !HAS_GETADDRINFO */
 {
 	const struct hostent *he;
 	hset_t *hs;
-	GSList *sl_addr;
+	pslist_t *sl_addr;
 	int af;
 	size_t i;
 
@@ -1290,13 +1352,13 @@ resolve_hostname(const char *host, enum net_type net)
 			host_addr_t *addr_copy;
 
 			addr_copy = wcopy(&addr, sizeof addr);
-			sl_addr = g_slist_prepend(sl_addr, addr_copy);
+			sl_addr = pslist_prepend(sl_addr, addr_copy);
 			hset_insert(hs, addr_copy);
 		}
 	}
 	hset_free_null(&hs);
 
-	return g_slist_reverse(sl_addr);
+	return pslist_reverse(sl_addr);
 }
 #endif /* HAS_GETADDRINFO */
 
@@ -1313,7 +1375,7 @@ resolve_hostname(const char *host, enum net_type net)
  * @return a single-linked list of walloc()ated host_addr_t on success or
  * NULL on failure.
  */
-GSList *
+pslist_t *
 name_to_host_addr(const char *host, enum net_type net)
 {
 	const char *endptr;
@@ -1328,7 +1390,7 @@ name_to_host_addr(const char *host, enum net_type net)
 	 */
 
 	if (string_to_host_addr(host, &endptr, &addr) && '\0' == *endptr) {
-		return g_slist_append(NULL, wcopy(&addr, sizeof addr));
+		return pslist_append(NULL, wcopy(&addr, sizeof addr));
 	}
 
 	return resolve_hostname(host, net);
@@ -1338,18 +1400,18 @@ name_to_host_addr(const char *host, enum net_type net)
  * Frees a singly-linked list of host_addr_t elements.
  */
 void
-host_addr_free_list(GSList **sl_ptr)
+host_addr_free_list(pslist_t **sl_ptr)
 {
 	g_assert(sl_ptr);
 
 	if (*sl_ptr) {
-		GSList *sl;
+		pslist_t *sl;
 
-		for (sl = *sl_ptr; NULL != sl; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(*sl_ptr, sl) {
 			host_addr_t *addr_ptr = sl->data;
 			WFREE(addr_ptr);
 		}
-		gm_slist_free_null(sl_ptr);
+		pslist_free_null(sl_ptr);
 	}
 }
 
@@ -1361,27 +1423,20 @@ host_addr_free_list(GSList **sl_ptr)
 host_addr_t
 name_to_single_host_addr(const char *host, enum net_type net)
 {
-	GSList *sl_addr;
+	pslist_t *sl_addr;
 	host_addr_t addr;
 	
 	addr = zero_host_addr;
 	sl_addr = name_to_host_addr(host, net);
 	if (sl_addr) {
-		GSList *sl;
 		size_t i, len;
+		const host_addr_t *addr_ptr;
 
-		len = g_slist_length(sl_addr);
+		len = pslist_length(sl_addr);
 		i = len > 1 ? random_value(len - 1) : 0;
-
-		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
-			const host_addr_t *addr_ptr = sl->data;
-
-			g_assert(addr_ptr);
-			if (0 == i--) {
-				addr = *addr_ptr;
-				break;
-			}
-		}
+		addr_ptr = pslist_nth_data(sl_addr, i);
+		g_assert(addr_ptr != NULL);
+		addr = *addr_ptr;
 
 		host_addr_free_list(&sl_addr);
 	}
@@ -1407,7 +1462,7 @@ bool
 host_addr_eq_func(const void *p, const void *q)
 {
 	const host_addr_t *a = p, *b = q;
-	return host_addr_equal(*a, *b);
+	return host_addr_equiv(*a, *b);
 }
 
 /**
@@ -1433,12 +1488,12 @@ wfree_host_addr(void *key, void *unused_data)
  * @return	A list of all IPv4 and IPv6 addresses assigned to interfaces
  *			of the machine.
  */
-GSList *
+pslist_t *
 host_addr_get_interface_addrs(const enum net_type net)
 #if defined(HAS_GETIFADDRS)
 {
 	struct ifaddrs *ifa0, *ifa;
-	GSList *sl_addrs = NULL;
+	pslist_t *sl_addrs = NULL;
 
 	if (0 != getifaddrs(&ifa0)) {
 		return NULL;
@@ -1478,12 +1533,12 @@ host_addr_get_interface_addrs(const enum net_type net)
 			(NET_TYPE_NONE == net || host_addr_net(addr) == net) &&
 			is_host_addr(addr)
 		) {
-			sl_addrs = g_slist_prepend(sl_addrs, wcopy(&addr, sizeof addr));
+			sl_addrs = pslist_prepend(sl_addrs, wcopy(&addr, sizeof addr));
 		}
 	}
 
 	freeifaddrs(ifa0);
-	return g_slist_reverse(sl_addrs);
+	return pslist_reverse(sl_addrs);
 }
 #else	/* !HAS_GETIFADDRS */
 {
@@ -1497,18 +1552,18 @@ host_addr_get_interface_addrs(const enum net_type net)
  * host_addr_get_interface_addrs() and nullifies the given pointer.
  */
 void
-host_addr_free_interface_addrs(GSList **sl_ptr)
+host_addr_free_interface_addrs(pslist_t **sl_ptr)
 {
 	g_assert(sl_ptr);
 	if (*sl_ptr) {
-		GSList *sl;
+		pslist_t *sl;
 
-		for (sl = *sl_ptr; NULL != sl; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(*sl_ptr, sl) {
             host_addr_t *addr = sl->data;
 			g_assert(host_addr_initialized(*addr));
 			WFREE(addr);
 		}
-		gm_slist_free_null(sl_ptr);
+		pslist_free_null(sl_ptr);
 	}
 }
 

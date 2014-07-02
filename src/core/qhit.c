@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+#include "gtk-gnutella.h"	/* For GTA_VENDOR_CODE */
+
 #include "qhit.h"
 #include "bsched.h"
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
@@ -54,14 +56,17 @@
 #include "if/core/main.h"			/* For main_get_build() */
 
 #include "lib/array.h"
-#include "lib/getdate.h"
 #include "lib/endian.h"
+#include "lib/getdate.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
-#include "lib/random.h"
 #include "lib/product.h"
+#include "lib/pslist.h"
+#include "lib/random.h"
 #include "lib/sequence.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
+
 #include "lib/override.h"			/* Must be the last header included */
 
 /*
@@ -346,14 +351,6 @@ found_contains(const void *key)
 	return hset_contains(f->hs, key);
 }
 
-static size_t
-found_contains_count(void)
-{
-	struct found_struct *f = found_get();
-
-	return hset_count(f->hs);
-}
-
 static void
 found_insert(const void *key)
 {
@@ -361,8 +358,6 @@ found_insert(const void *key)
 
 	hset_insert(f->hs, key);
 }
-
-static time_t release_date;
 
 /**
  * Processor for query hits sent inbound.
@@ -376,8 +371,7 @@ qhit_send_node(void *data, size_t len, void *udata)
 
 	if (GNET_PROPERTY(dbg) > 3) {
 		g_debug("flushing query hit (%u entr%s, %u bytes sofar) to %s",
-			(uint) found_file_count(),
-			found_file_count() == 1 ? "y" : "ies",
+			(uint) found_file_count(), plural_y(found_file_count()),
 			(uint) found_size(),
 			node_addr(n));
 	}
@@ -394,7 +388,7 @@ qhit_send_node(void *data, size_t len, void *udata)
 	 */
 
 	if (gnutella_header_get_hops(&n->header) == 0) {
-		g_warning("qhit_send_node(): hops=0, bug in route_message()?");
+		g_warning("%s(): hops=0, bug in route_message()?", G_STRFUNC);
 		/* Can't send message with TTL=0 */
 		gnutella_header_set_hops(&n->header, 1);
 	}
@@ -431,8 +425,8 @@ flush_match(void)
 	 * It is compatible with BearShare's one in the "open data" section.
 	 */
 
-	memcpy(trailer, "GTKG", 4);	/* Vendor code */
-	trailer[4] = 2;					/* Open data size */
+	memcpy(trailer, GTA_VENDOR_CODE, 4);/* Vendor code */
+	trailer[4] = 2;						/* Open data size */
 	trailer[5] = 0x04 | 0x08 | 0x20;	/* Valid flags we set */
 	trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
 
@@ -469,45 +463,15 @@ flush_match(void)
 	 */
 
 	{
-		uint8 major = product_get_major();
-		uint8 minor = product_get_minor();
-		uint8 revchar = product_get_revchar();
-		uint8 patch = product_get_patchlevel();
-		uint32 release;
-		uint32 date = release_date;
-		uint32 build;
-		uint8 version = 1;		/* This is GTKGV version 1 */
-		uint8 osname;
-		uint8 flags;
-		uint8 commit_len;
-		size_t commit_bytes;
-		const sha1_t *commit;
+		char buf[GTKGV_MAX_LEN];
+		size_t len;
 		bool ok;
 
-		flags = GTKGV_F_GIT | GTKGV_F_OS;
-		if (version_is_dirty())
-			flags |= GTKGV_F_DIRTY;
-
-		poke_be32(&release, date);
-		poke_be32(&build, product_get_build());
-
-		commit = version_get_commit(&commit_len);
-		commit_bytes = (1 + commit_len) / 2;
-		osname = ggept_gtkgv_osname_value();
+		len = ggept_gtkgv_build(buf, sizeof buf);
 
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(GTKGV), 0) &&
-			ggep_stream_write(&gs, &version, 1) &&
-			ggep_stream_write(&gs, &major, 1) &&
-			ggep_stream_write(&gs, &minor, 1) &&
-			ggep_stream_write(&gs, &patch, 1) &&
-			ggep_stream_write(&gs, &revchar, 1) &&
-			ggep_stream_write(&gs, &release, 4) &&
-			ggep_stream_write(&gs, &build, 4) &&
-			ggep_stream_write(&gs, &flags, 1) &&
-			ggep_stream_write(&gs, &commit_len, 1) &&
-			ggep_stream_write(&gs, commit, commit_bytes) &&
-			ggep_stream_write(&gs, &osname, 1) &&
+			ggep_stream_write(&gs, buf, len) &&
 			ggep_stream_end(&gs);
 
 		if (!ok)
@@ -621,10 +585,39 @@ failure:
 }
 
 /**
+ * Generate a random index that is not conflicting with any of the entries
+ * already present in the query hit being constructed.
+ */
+static uint32
+qhit_random_index(void)
+{
+	unsigned i;
+
+	/*
+	 * Generate a random file index, unique to this query hit.
+	 *
+	 * This is for the sake of our own spam detector which will
+	 * frown upon duplicate file indices.
+	 */
+
+	for (i = 0; i < 100; i++) {
+		uint32 file_index = 1 + random_value(INT_MAX - 1);
+
+		if (QUERY_FW2FW_FILE_INDEX == file_index)
+			continue;
+
+		if (!found_contains(uint_to_pointer(file_index)))
+			return file_index;
+	}
+
+	g_error("%s(): no luck with random number generator", G_STRFUNC);
+}
+
+/**
  * Add file to current query hit.
  *
  * @returns TRUE if we inserted the record, FALSE if we refused it due to
- * lack of space.
+ * lack of space, or because the file is no longer shared.
  */
 static bool
 add_file(const shared_file_t *sf)
@@ -657,35 +650,45 @@ add_file(const shared_file_t *sf)
 
 	file_index = shared_file_index(sf);
 
-	if (!is_partial) {
-		g_assert_log(
-			!found_contains(uint_to_pointer(file_index)),
-			"file_index=%u (%s SHA1), qhit_contains=%zu, qhit_files=%zu",
-			(unsigned) file_index, sha1_available ? "has" : "no",
-			found_contains_count(), found_file_count());
-	} else {
-		unsigned i;
+	/*
+	 * A zero file index means the file is no longer known in the library.
+	 *
+	 * This can happen when there was a concurrent rescan happening after
+	 * the query hit list was done but before the query hit is actually
+	 * generated, especially if this is an OOB-delivered hit, computed a
+	 * while back.
+	 */
 
-		/*
-		 * Generate a random file index, unique to this query hit.
-		 *
-		 * This is for the sake of our own spam detector which will
-		 * frown upon duplicate file indices.
-		 */
-
-		for (i = 0; i < 100; i++) {
-			file_index = 1 + random_value(INT_MAX - 1);
-
-			if (QUERY_FW2FW_FILE_INDEX == file_index)
-				continue;
-
-			if (!found_contains(uint_to_pointer(file_index)))
-				goto unique_file_index;
+	if G_UNLIKELY(0 == file_index) {
+		if (GNET_PROPERTY(qhit_debug)) {
+			g_warning("QHIT skipping file %s (de-indexed by library rescan)",
+				shared_file_path(sf));
 		}
-		g_error("no luck with random number generator");
+		return FALSE;		/* Cannot add file */
 	}
 
-unique_file_index:
+	if (!is_partial) {
+		/*
+		 * Due to concurrent rescan, the new file index could be conflicting
+		 * with the file index of other entries already present in the query
+		 * hit.  This must not happend, as duplicate file indices are wrong
+		 * and typically indicate spam.
+		 *
+		 * It is also possible that the legitimate valid file index is in
+		 * conflict with a previously generated random file index for a
+		 * partial file.
+		 *
+		 * FIXME:
+		 * We could reserve a region in the uint32 space for these fake partial
+		 * indices to avoid that problem.
+		 */
+
+		if (found_contains(uint_to_pointer(file_index)))
+			file_index = qhit_random_index();
+	} else {
+		file_index = qhit_random_index();
+	}
+
 	found_insert(uint_to_pointer(file_index));
 
 	/*
@@ -989,11 +992,13 @@ found_reset(size_t max_size, const struct guid *muid, unsigned flags,
  * @param flags			a combination of QHIT_F_* flags
  */
 void
-qhit_send_results(struct gnutella_node *n, GSList *files, int count,
+qhit_send_results(gnutella_node_t *n, pslist_t *files, int count,
 	const struct guid *muid, unsigned flags)
 {
-	GSList *sl;
+	pslist_t *sl;
 	int sent = 0;
+
+	g_assert(!NODE_TALKS_G2(n));
 
 	/*
 	 * We can't use n->header.muid as the query's MUID but must rely on the
@@ -1006,7 +1011,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 	found_reset(QHIT_SIZE_THRESHOLD, muid, flags, qhit_send_node, n,
 		&zero_array);
 
-	for (sl = files; sl; sl = g_slist_next(sl)) {
+	for (sl = files; sl; sl = pslist_next(sl)) {
 		shared_file_t *sf = sl->data;
 		if (add_file(sf))
 			sent++;
@@ -1016,7 +1021,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 	if (0 != found_file_count())	/* Still some unflushed results */
 		flush_match();				/* Send last packet */
 
-	g_slist_free(files);
+	pslist_free(files);
 
 	if (GNET_PROPERTY(dbg) > 3)
 		g_debug("sent %d/%d hits to %s", sent, count, node_addr(n));
@@ -1049,11 +1054,11 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
  * @param token			secure OOBv3 token to include in reply
  */
 void
-qhit_build_results(const GSList *files, int count, size_t max_msgsize,
+qhit_build_results(const pslist_t *files, int count, size_t max_msgsize,
 	qhit_process_t cb, void *udata, const struct guid *muid, unsigned flags,
 	const struct array *token)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	int sent;
 
 	g_assert(cb != NULL);
@@ -1061,7 +1066,7 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 
 	found_reset(max_msgsize, muid, flags, cb, udata, token);
 
-	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
+	for (sl = files, sent = 0; sl && sent < count; sl = pslist_next(sl)) {
 		const shared_file_t *sf = sl->data;
 
 		if (add_file(sf))
@@ -1084,7 +1089,7 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 void
 qhit_init(void)
 {
-	release_date = date2time(product_get_date(), tm_time());
+	/* Nada */
 }
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, 2010, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2010, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * HTTP routines.
  *
  * @author Raphael Manfredi
- * @date 2002-2003, 2010
+ * @date 2002-2003, 2010, 2014
  */
 
 #ifndef _core_http_h_
@@ -37,6 +37,9 @@
 #include "common.h"
 
 #include "if/core/http.h"
+#include "if/gen/http_async.h"
+#include "if/gen/http_url.h"
+
 #include "lib/host_addr.h"
 #include "lib/header.h"
 
@@ -234,48 +237,7 @@ typedef void (*http_op_gotreply_t)(const http_async_t *,
 	const struct gnutella_socket *s,
 	const char *status, const struct header *header);
 
-/*
- * Asynchronous request error codes.
- */
-
-#define HTTP_ASYNC_OK				0	/**< OK */
-#define HTTP_ASYNC_BAD_URL			1	/**< Invalid HTTP URL */
-#define HTTP_ASYNC_CONN_FAILED		2	/**< Connection failed */
-#define HTTP_ASYNC_IO_ERROR			3	/**< I/O error */
-#define HTTP_ASYNC_REQ2BIG			4	/**< Request too big */
-#define HTTP_ASYNC_HEAD2BIG			5	/**< Header too big */
-#define HTTP_ASYNC_CANCELLED		6	/**< User cancel */
-#define HTTP_ASYNC_EOF				7	/**< Got EOF */
-#define HTTP_ASYNC_BAD_STATUS		8	/**< Unparseable HTTP status */
-#define HTTP_ASYNC_NO_LOCATION		9	/**< Got moved reply, but no location */
-#define HTTP_ASYNC_CONN_TIMEOUT		10	/**< Connection timeout */
-#define HTTP_ASYNC_TIMEOUT			11	/**< Data timeout */
-#define HTTP_ASYNC_NESTED			12	/**< Nested redirections */
-#define HTTP_ASYNC_BAD_LOCATION_URI	13	/**< Invalid URI in Location header */
-#define HTTP_ASYNC_CLOSED			14	/**< Connection was closed, all OK */
-#define HTTP_ASYNC_REDIRECTED		15	/**< Redirected, following disabled */
-#define HTTP_ASYNC_BAD_HEADER		16	/**< Unparseable header value */
-#define HTTP_ASYNC_DATA2BIG			17	/**< Data too big */
-#define HTTP_ASYNC_MAN_FAILURE		18	/**< Mandatory request not understood */
-
-extern uint http_async_errno;
-
-/**
- * Error codes from http_url_parse().
- */
-
-typedef enum {
-	HTTP_URL_OK = 0,				/**< All OK */
-	HTTP_URL_NOT_HTTP,				/**< Not an http URI */
-	HTTP_URL_MULTIPLE_CREDENTIALS,	/**< More than one "<user>:<password>" */
-	HTTP_URL_BAD_CREDENTIALS,		/**< Truncated "<user>:<password>" */
-	HTTP_URL_BAD_PORT_PARSING,		/**< Could not parse port */
-	HTTP_URL_BAD_PORT_RANGE,		/**< Port value is out of range */
-	HTTP_URL_BAD_HOST_PART,			/**< Could not parse host */
-	HTTP_URL_HOSTNAME_UNKNOWN,		/**< Could not resolve host into IP */
-	HTTP_URL_MISSING_URI			/**< URL has no URI part */
-} http_url_error_t;
-
+extern http_async_error_t http_async_errno;
 extern http_url_error_t http_url_errno;
 
 /**
@@ -352,7 +314,6 @@ int
 http_content_range_parse(const char *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total);
 
-const char *http_url_strerror(http_url_error_t errnum);
 bool http_url_parse(
 	const char *url, uint16 *port, const char **host, const char **path);
 
@@ -386,10 +347,15 @@ http_async_t *http_async_post_addr(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-const char *http_async_strerror(uint errnum);
 const char *http_async_info(
-	http_async_t *handle, const char **req, const char **path,
+	const http_async_t *ha, const char **req, const char **path,
 	host_addr_t *addr, uint16 *port);
+const char *http_async_url(const http_async_t *ha);
+const char *http_async_req(const http_async_t *ha);
+const char *http_async_path(const http_async_t *ha);
+host_addr_t http_async_addr(const http_async_t *ha);
+uint16 http_async_port(const http_async_t *ha);
+
 void http_async_close(http_async_t *handle);
 void http_async_cancel(http_async_t *handle);
 void http_async_cancel_null(http_async_t **handle_ptr);

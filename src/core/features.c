@@ -39,9 +39,9 @@
 #include "if/core/main.h"
 
 #include "lib/ascii.h"
-#include "lib/glib-missing.h"
 #include "lib/header.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/walloc.h"
 
@@ -56,7 +56,7 @@ struct header_x_feature {
 };
 
 struct features {
-	GList *list;
+	pslist_t *list;
 };
 
 static struct features * 
@@ -75,25 +75,24 @@ features_get(xfeature_t xf)
  ***/
 
 /**
- * Removes all memory used by the header_features_add.
+ * Removes all memory used by header_features_add().
  */
 static void
 header_features_cleanup(xfeature_t xf)
 {
 	struct features *features;
-	GList *cur;
+	pslist_t *cur;
 
  	features = features_get(xf);
 	g_return_if_fail(features);
 
-   	cur = g_list_first(features->list);
-	for (/* NOTHING */; NULL != cur; cur = g_list_next(cur)) {
+	PSLIST_FOREACH(features->list, cur) {
 		struct header_x_feature *header = cur->data;
 
 		G_FREE_NULL(header->name);
 		WFREE(header);
 	}
-	gm_list_free_null(&features->list);
+	pslist_free_null(&features->list);
 }
 
 void
@@ -127,7 +126,7 @@ header_features_add_guarded(xfeature_t xf,
 	item->guard = guard;
 	item->guardfn = NULL;
 
-	features->list = g_list_append(features->list, item);
+	features->list = pslist_append(features->list, item);
 }
  
 /**
@@ -151,7 +150,7 @@ header_features_add_guarded_function(xfeature_t xf,
 	item->guard = NULL;
 	item->guardfn = guardfn;
 
-	features->list = g_list_append(features->list, item);
+	features->list = pslist_append(features->list, item);
 }
  
 /**
@@ -179,7 +178,7 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 {
 	static const char hdr[] = "X-Features";
 	struct features *features;
-	GList *cur;
+	pslist_t *cur;
 	header_fmt_t *fmt;
 
 	g_assert(len <= INT_MAX);
@@ -192,12 +191,12 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 	features = features_get(xf);
 	g_return_if_fail(features);
 
-	if (g_list_first(features->list) == NULL)
+	if (features->list == NULL)
 		return;
 
 	fmt = header_fmt_make(hdr, ", ", 0, len - *rw);
 
-	for (cur = g_list_first(features->list); cur; cur = g_list_next(cur)) {
+	PSLIST_FOREACH(features->list, cur) {
 		struct header_x_feature *item = cur->data;
 		char buf[50];
 

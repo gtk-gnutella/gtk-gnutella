@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
-: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -38,7 +38,7 @@ DIR = $DIR
 
 CC = $cc
 CTAGS = ctags
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
@@ -48,7 +48,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = bridge
+SUBDIRS = bridge gen
 USRINC = $usrinc
 SOURCES =  gnet_property.c gui_property.c
 GLIB_CFLAGS =  $glibcflags
@@ -63,7 +63,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -75,9 +75,11 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 6535 2004-08-28 06:36:27Z rmanfredi $
+# $X-Id$
 
-depend::
+depend:: sub_depend
+
+sub_depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
@@ -94,13 +96,17 @@ all:: properties
 
 properties: gnet_property.c gui_property.c
 
-gnet_property_priv.h gnet_property.c gnet_property.h: gnet_props.ag props.tpl
-	-autogen gnet_props.ag
-	touch gnet_property_priv.h gnet_property.c gnet_property.h
+gnet_property_priv.h  gnet_property.h  gnet_property.c: gnet_props.ag props.tpl
+	-@if test -f $(TOP)/.package; then \
+		echo "  autogen gnet_props.ag"; \
+		autogen gnet_props.ag; \
+	else touch $@; fi
 
-gui_property_priv.h gui_property.c gui_property.h: gui_props.ag props.tpl
-	-autogen gui_props.ag
-	touch gui_property_priv.h gui_property.c gui_property.h
+gui_property_priv.h  gui_property.h  gui_property.c: gui_props.ag props.tpl
+	-@if test -f $(TOP)/.package; then \
+		echo "  autogen gui_props.ag"; \
+		autogen gui_props.ag; \
+	else touch $@; fi
 
 all:: gnet_property.o
 
@@ -112,12 +118,13 @@ all:: gui_property.o
 local_realclean::
 	$(RM) gui_property.o
 
-depend:: ../../mkdep
+local_depend:: ../../mkdep
 
 ../../mkdep:
 	@echo "You have to run Configure in $(TOP) first."; exit 1
 
-depend::
+depend:: local_depend
+local_depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
@@ -147,6 +154,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install sub_install
+	@exit 0
+
 install.man:: maybe_install.man sub_install.man
 deinstall:: sub_deinstall local_deinstall
 deinstall.man:: sub_deinstall.man maybe_deinstall.man
@@ -176,6 +185,8 @@ tags::
 
 local_clobber::
 	$(RM) tags
+
+depend::
 
 ########################################################################
 # Rules for building in sub-directories -- do not edit

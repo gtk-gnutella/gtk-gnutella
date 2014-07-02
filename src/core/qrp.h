@@ -109,7 +109,9 @@ bool qhvec_whats_new(const struct query_hashvec *qhv);
 void qhvec_set_whats_new(struct query_hashvec *qhv, bool val);
 uint qhvec_count(const struct query_hashvec *qhv);
 
-GSList *qrt_build_query_target(
+struct pslist;
+
+struct pslist *qrt_build_query_target(
 	query_hashvec_t *qhvec, int hops, int ttl, bool leaves,
 	struct gnutella_node *source);
 void qrt_route_query(struct gnutella_node *n,

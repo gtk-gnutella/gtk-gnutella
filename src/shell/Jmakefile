@@ -36,6 +36,7 @@ SRC = \
 	help.c \
 	horizon.c \
 	intr.c \
+	lib.c \
 	log.c \
 	memory.c \
 	node.c \
@@ -46,6 +47,7 @@ SRC = \
 	print.c \
 	props.c \
 	quit.c \
+	random.c \
 	rescan.c \
 	search.c \
 	set.c \
@@ -53,6 +55,8 @@ SRC = \
 	shutdown.c \
 	stats.c \
 	status.c \
+	task.c \
+	thread.c \
 	uploads.c \
 	version.c \
 	whatis.c

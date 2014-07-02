@@ -1,4 +1,4 @@
-#ifndef lint
+#if 0
 static const char yysccsid[] = "@(#)yaccpar	1.9 (Berkeley) 02/21/93";
 #endif
 
@@ -942,6 +942,7 @@ time_t date2time(const char *p, time_t now)
 	|| yyHaveDay > 1)
 	return -1;
 
+	ZERO(&tm);
     tm.tm_year = ToYear(yyYear) - TM_YEAR_ORIGIN + yyRelYear;
     tm.tm_mon = yyMonth - 1 + yyRelMonth;
     tm.tm_mday = yyDay + yyRelDay;

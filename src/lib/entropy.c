@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2008 Christian Biere
- * Copyright (c) 2008, 2012 Raphael Manfredi
+ * Copyright (c) 2008, 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -43,20 +43,17 @@
  * An history of the collected entropy is also kept through successive merging
  * of newly collected bits with previously collected ones.
  *
- * The weakness of our simple PRNG engine is somewhat offset by having its
- * values combined with collected entropy, as soon as we have issued a first
- * batch at collecting the initial 160 bits of randomness.  What is important
- * is that our internal array shuffling be as uniformly random as possible.
- *
  * Entropy is mostly collected at the beginning to initialize some random
- * values and set the initial state of a much stronger PRNG engine: ARC4.
- * The application code should therefore rely on arc4random() and companion
- * routines from the ARC4 API to get its random numbers.
+ * values and set the initial state of much stronger PRNG engines: ARC4,
+ * WELL, or MT.
+ *
+ * When AJE (Alea Jacta Est) has been initialized, all entropy retrieval is
+ * transparently remapped to the global AJE state.
  *
  * @author Christian Biere
  * @date 2008
  * @author Raphael Manfredi
- * @date 2008, 2012
+ * @date 2008, 2012, 2014
  */
 
 #include "common.h"
@@ -65,25 +62,29 @@
 #include <pwd.h>				/* For getpwuid() and struct passwd */
 #endif
 
-#ifdef I_SCHED
-#include <sched.h>				/* For sched_yield() */
-#endif
-
 #include "entropy.h"
+
+#include "aje.h"
+#include "atomic.h"
 #include "bigint.h"
 #include "compat_misc.h"
-#include "compat_sleep_ms.h"
+#include "compat_usleep.h"
+#include "crc.h"
 #include "endian.h"
 #include "getgateway.h"
 #include "gethomedir.h"
-#include "glib-missing.h"		/* For GM_SLIST_FOREACH() */
+#include "hashing.h"
 #include "host_addr.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "pow2.h"
+#include "pslist.h"
 #include "rand31.h"
+#include "random.h"
 #include "sha1.h"
 #include "shuffle.h"
+#include "spinlock.h"
 #include "stringify.h"
 #include "thread.h"
 #include "tm.h"
@@ -95,70 +96,107 @@
 /**
  * Maximum amount of items we can randomly shuffle.
  *
- * We're using a 31-bit random number generator, so we can't safely
- * permute randomly arrays with more than 12 items: the number of
- * combinations are 12!, which is smaller than 2^31, but 13! is greater
- * so our internal state for the PRNG cannot hold enough values to possibly
- * lead to an unbiased shuffling.
+ * We're using a PRNG with 128 bits of internal context and a period of, at
+ * least, 2**125.  To ensure we can reach all the possible permutations of
+ * the set, we cannot shuffle more than 33 items since 33! < 2**123 but 34!
+ * is greater than the minimum period.
  */
-#define RANDOM_SHUFFLE_MAX	12		/* 12! = 479001600, less than 2^29 */
+#define RANDOM_SHUFFLE_MAX	33		/* 33! < 2**123 */
 
-typedef void (*entropy_cb_t)(SHA1Context *ctx);
+typedef void (*entropy_cb_t)(SHA1_context *ctx);
 
 /**
  * Buffer where we keep track of previously generated randomness.
  */
 static sha1_t entropy_previous;
+static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
+
+#define ENTROPY_PREV_LOCK		spinlock_hidden(&entropy_previous_slk)
+#define ENTROPY_PREV_UNLOCK		spinunlock_hidden(&entropy_previous_slk)
+
+/**
+ * Amount of input bytes necessary to harvest one byte of entropy to
+ * the pool when computing SHA1 sums.
+ */
+#define ENTROPY_ALPHA		3		/* Bytes to harvest 8 bits of entropy */
+
+#define ENTROPY_NONCE_MAX	1023	/* Change "nonce" after that many uses */
+
+/**
+ * Context for the entropy_minirand() routine.
+ */
+static struct entropy_minictx {
+	spinlock_t lock;
+	uint32 x, y, z, c;
+	bool seeded;
+} entropy_minictx = {
+	SPINLOCK_INIT,
+	0, 0, 0, 0,
+	FALSE
+};
+#define ENTROPY_MINICTX_LOCK(c)		spinlock_hidden(&(c)->lock)
+#define ENTROPY_MINICTX_UNLOCK(c)	spinunlock_hidden(&(c)->lock)
+
+static void entropy_seed(struct entropy_minictx *c);
 
 static void
-sha1_feed_ulong(SHA1Context *ctx, unsigned long value)
+sha1_feed_ulong(SHA1_context *ctx, unsigned long value)
 {
-	SHA1Input(ctx, &value, sizeof value);
+	SHA1_INPUT(ctx, value);
 }
 
 static void
-sha1_feed_double(SHA1Context *ctx, double value)
+sha1_feed_uint(SHA1_context *ctx, unsigned value)
 {
-	SHA1Input(ctx, &value, sizeof value);
+	SHA1_INPUT(ctx, value);
 }
 
 static void
-sha1_feed_pointer(SHA1Context *ctx, const void *p)
+sha1_feed_double(SHA1_context *ctx, double value)
 {
-	SHA1Input(ctx, &p, sizeof p);
+	SHA1_INPUT(ctx, value);
 }
 
 static void
-sha1_feed_string(SHA1Context *ctx, const char *s)
+sha1_feed_pointer(SHA1_context *ctx, const void *p)
 {
-	if (s) {
-		SHA1Input(ctx, s, strlen(s));
+	SHA1_INPUT(ctx, p);
+}
+
+static void
+sha1_feed_string(SHA1_context *ctx, const char *s)
+{
+	sha1_feed_pointer(ctx, s);
+	if (s != NULL) {
+		SHA1_input(ctx, s, strlen(s));
 	}
 }
 
 static void
-sha1_feed_stat(SHA1Context *ctx, const char *path)
+sha1_feed_stat(SHA1_context *ctx, const char *path)
 {
 	filestat_t buf;
+
+	sha1_feed_string(ctx, path);
 
 	if (-1 != stat(path, &buf)) {
-		SHA1Input(ctx, &buf, sizeof buf);
+		SHA1_INPUT(ctx, buf);
 	} else {
-		sha1_feed_string(ctx, path);
-		sha1_feed_ulong(ctx, errno);
+		sha1_feed_uint(ctx, errno);
 	}
 }
 
 static void
-sha1_feed_fstat(SHA1Context *ctx, int fd)
+sha1_feed_fstat(SHA1_context *ctx, int fd)
 {
 	filestat_t buf;
 
+	sha1_feed_uint(ctx, fd);
+
 	if (-1 != fstat(fd, &buf)) {
-		SHA1Input(ctx, &buf, sizeof buf);
+		SHA1_INPUT(ctx, buf);
 	} else {
-		sha1_feed_ulong(ctx, fd);
-		sha1_feed_ulong(ctx, errno);
+		sha1_feed_uint(ctx, errno);
 	}
 }
 
@@ -168,11 +206,7 @@ sha1_feed_fstat(SHA1Context *ctx, int fd)
 void
 entropy_delay(void)
 {
-#ifdef HAS_SCHED_YIELD
-	do_sched_yield();		/* See lib/mingw32.h */
-#else
-	compat_sleep_ms(0);
-#endif	/* HAS_SCHED_YIELD */
+	thread_yield();
 }
 
 /**
@@ -183,42 +217,69 @@ entropy_merge(sha1_t *digest)
 {
 	bigint_t older, newer;
 
+	STATIC_ASSERT(sizeof entropy_previous == SHA1_RAW_SIZE);
+
 	/*
 	 * These big integers operate on the buffer space from ``digest'' and
 	 * ``entropy_previous'' directly.
 	 */
 
+	ENTROPY_PREV_LOCK;
+
 	bigint_use(&older, &entropy_previous, SHA1_RAW_SIZE);
 	bigint_use(&newer, digest, SHA1_RAW_SIZE);
 	bigint_add(&newer, &older);
 	bigint_copy(&older, &newer);
+
+	ENTROPY_PREV_UNLOCK;
 }
 
-/**
- * Minimal pseudo-random number generation, combining a simple PRNG with
- * past-collected entropy.
- *
- * @return a 31-bit random number.
- */
-static int
-entropy_rand31(void)
-{
-	int result;
-	static size_t offset;
+#define ENTROPY_KISS_MULT	698769069L
 
-	result = rand31();
+/**
+ * Minimal random number generation, to be used very early in the process
+ * initialization when we cannot use entropy_minimal_collect() yet.
+ *
+ * @note
+ * This routine MUST NOT be used directly by applications, as it is only
+ * meant to be used in entropy_array_shuffle() for internal shuffling purposes
+ * and in other parts of the entropy collection process where we need a random
+ * number but have not finished collecting entropy yet.
+ * It is only exported to be exercised in the random-test program.
+ *
+ * @return a 32-bit random number.
+ */
+uint32
+entropy_minirand(void)
+{
+	uint64 t;
+	uint32 r;
+	struct entropy_minictx *ctx = &entropy_minictx;
+
+	ENTROPY_MINICTX_LOCK(ctx);
+
+	if G_UNLIKELY(!ctx->seeded) {
+		ctx->seeded = TRUE;
+		entropy_seed(ctx);
+	}
 
 	/*
-	 * Combine with previously generated entropy to create even better
-	 * randomness.  That previous entropy is refreshed each time a new
-	 * entropy collection cycle is initiated.  We simply loop over the
-	 * five 32-bit words, interpreted in a big-endian way.
+	 * George Marsaglia's KISS alogorithm, posted in sci.math circa 2003.
+	 * The period of this PRNG is more than 2**125, and it keeps 128 bits
+	 * of context.
 	 */
 
-	result += peek_be32(ptr_add_offset(&entropy_previous, offset));
-	offset = (offset + 4) % sizeof entropy_previous;
+	ctx->x = 69069 * ctx->x + 12345;
+	ctx->y ^= (ctx->y << 13);
+	ctx->y ^= (ctx->y >> 17);
+	ctx->y ^= (ctx->y << 5);
+	t = (uint64) ENTROPY_KISS_MULT * ctx->z + ctx->c;
+	ctx->c = t >> 32;
+	r = ctx->x + ctx->y + (ctx->z = t);
 
-	return result & RAND31_MASK;
+	ENTROPY_MINICTX_UNLOCK(ctx);
+
+	return r;
 }
 
 /**
@@ -234,14 +295,14 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 	if (len > RANDOM_SHUFFLE_MAX)
 		s_carp("%s: cannot shuffle %zu items without bias", G_STRFUNC, len);
 
-	shuffle_with((random_fn_t) entropy_rand31, ary, len, elem_size);
+	shuffle_with(entropy_minirand, ary, len, elem_size);
 }
 
 /**
  * Collect entropy by randomly executing the callbacks given in the array.
  */
 static void
-entropy_array_cb_collect(SHA1Context *ctx, entropy_cb_t *ary, size_t len)
+entropy_array_cb_collect(SHA1_context *ctx, entropy_cb_t *ary, size_t len)
 {
 	size_t i;
 
@@ -269,7 +330,7 @@ enum entropy_data {
  * Collect entropy by randomly feeding values from array.
  */
 static void
-entropy_array_data_collect(SHA1Context *ctx,
+entropy_array_data_collect(SHA1_context *ctx,
 	enum entropy_data data, void *ary, size_t len, size_t elem_size)
 {
 	size_t i;
@@ -310,7 +371,7 @@ entropy_array_data_collect(SHA1Context *ctx,
  * Collect entropy by randomly feeding unsigned long values from array.
  */
 static void
-entropy_array_ulong_collect(SHA1Context *ctx, unsigned long *ary, size_t len)
+entropy_array_ulong_collect(SHA1_context *ctx, unsigned long *ary, size_t len)
 {
 	entropy_array_data_collect(ctx, ENTROPY_ULONG, ary, len, sizeof ary[0]);
 }
@@ -319,7 +380,7 @@ entropy_array_ulong_collect(SHA1Context *ctx, unsigned long *ary, size_t len)
  * Collect entropy by randomly feeding strings from array.
  */
 static void
-entropy_array_string_collect(SHA1Context *ctx, const char **ary, size_t len)
+entropy_array_string_collect(SHA1_context *ctx, const char **ary, size_t len)
 {
 	entropy_array_data_collect(ctx, ENTROPY_STRING, ary, len, sizeof ary[0]);
 }
@@ -328,7 +389,7 @@ entropy_array_string_collect(SHA1Context *ctx, const char **ary, size_t len)
  * Collect entropy by randomly feeding stat() info from paths in array.
  */
 static void
-entropy_array_stat_collect(SHA1Context *ctx, const char **ary, size_t len)
+entropy_array_stat_collect(SHA1_context *ctx, const char **ary, size_t len)
 {
 	entropy_array_data_collect(ctx, ENTROPY_STAT, ary, len, sizeof ary[0]);
 }
@@ -337,7 +398,7 @@ entropy_array_stat_collect(SHA1Context *ctx, const char **ary, size_t len)
  * Collect entropy by randomly feeding fstat() info from file descriptors.
  */
 static void
-entropy_array_fstat_collect(SHA1Context *ctx, int *ary, size_t len)
+entropy_array_fstat_collect(SHA1_context *ctx, int *ary, size_t len)
 {
 	entropy_array_data_collect(ctx, ENTROPY_FSTAT, ary, len, sizeof ary[0]);
 }
@@ -346,7 +407,7 @@ entropy_array_fstat_collect(SHA1Context *ctx, int *ary, size_t len)
  * Collect entropy by randomly feeding double values from array.
  */
 static void
-entropy_array_double_collect(SHA1Context *ctx, double *ary, size_t len)
+entropy_array_double_collect(SHA1_context *ctx, double *ary, size_t len)
 {
 	entropy_array_data_collect(ctx, ENTROPY_DOUBLE, ary, len, sizeof ary[0]);
 }
@@ -355,7 +416,7 @@ entropy_array_double_collect(SHA1Context *ctx, double *ary, size_t len)
  * Collect entropy by randomly feeding pointers from array.
  */
 static void
-entropy_array_pointer_collect(SHA1Context *ctx, void **ary, size_t len)
+entropy_array_pointer_collect(SHA1_context *ctx, void **ary, size_t len)
 {
 	entropy_array_data_collect(ctx, ENTROPY_POINTER, ary, len, sizeof ary[0]);
 }
@@ -364,15 +425,15 @@ entropy_array_pointer_collect(SHA1Context *ctx, void **ary, size_t len)
  * Collect hopefully random bytes.
  */
 static void
-entropy_collect_randomness(SHA1Context *ctx)
+entropy_collect_randomness(SHA1_context *ctx)
 {
 #ifdef MINGW32
 	{
 		uint8 data[128];
 		if (0 == mingw_random_bytes(data, sizeof data)) {
-			g_warning("unable to generate random bytes: %m");
+			s_warning("%s(): unable to generate random bytes: %m", G_STRFUNC);
 		} else {
-			SHA1Input(ctx, data, sizeof data);
+			SHA1_INPUT(ctx, data);
 		}
 	}
 #else	/* !MINGW32 */
@@ -389,7 +450,7 @@ entropy_collect_randomness(SHA1Context *ctx)
 		if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
 			f = fopen("/dev/urandom", "r");
 			is_pipe = FALSE;
-			SHA1Input(ctx, &buf, sizeof buf);
+			SHA1_INPUT(ctx, buf);
 		} else if (-1 != access("/bin/ps", X_OK)) {
 			f = popen("/bin/ps -ef", "r");
 		} else if (-1 != access("/usr/bin/ps", X_OK)) {
@@ -398,10 +459,11 @@ entropy_collect_randomness(SHA1Context *ctx)
 			f = popen("/usr/ucb/ps aux", "r");
 		}
 
-		if (f == NULL)
-			g_warning("was unable to %s on your system",
+		if (f == NULL) {
+			s_warning("%s(): was unable to %s on your system",
+				G_STRFUNC,
 				is_pipe ? "find the ps command" : "open /dev/urandom");
-		else {
+		} else {
 			/*
 			 * Compute the SHA1 of the output (either ps or /dev/urandom).
 			 */
@@ -410,12 +472,9 @@ entropy_collect_randomness(SHA1Context *ctx)
 				uint8 data[1024];
 				size_t r, len = sizeof(data);
 
-				if (is_pipe)
-					len = MIN(128, len);	/* 128 is probably magic */
-
 				r = fread(data, 1, len, f);
 				if (r > 0)
-					SHA1Input(ctx, data, r);
+					SHA1_input(ctx, data, r);
 				if (r < len || !is_pipe)	/* Read once from /dev/urandom */
 					break;
 			}
@@ -433,7 +492,7 @@ entropy_collect_randomness(SHA1Context *ctx)
  * Collect user ID information.
  */
 static void
-entropy_collect_user_id(SHA1Context *ctx)
+entropy_collect_user_id(SHA1_context *ctx)
 {
 	unsigned long id[2];
 
@@ -441,8 +500,8 @@ entropy_collect_user_id(SHA1Context *ctx)
 	id[0] = getuid();
 	id[1] = getgid();
 #else
-	id[0] = entropy_rand31();
-	id[1] = entropy_rand31();
+	id[0] = entropy_minirand();
+	id[1] = entropy_minirand();
 #endif	/* HAS_GETUID */
 
 	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
@@ -452,14 +511,14 @@ entropy_collect_user_id(SHA1Context *ctx)
  * Collect process ID information
  */
 static void
-entropy_collect_process_id(SHA1Context *ctx)
+entropy_collect_process_id(SHA1_context *ctx)
 {
 	unsigned long id[2];
 
 #ifdef HAS_GETPPID
 	id[0] = getppid();
 #else
-	id[0] = entropy_rand31();
+	id[0] = entropy_minirand();
 #endif	/* HAS_GETPPID */
 	id[1] = getpid();
 
@@ -470,7 +529,7 @@ entropy_collect_process_id(SHA1Context *ctx)
  * Collect compile-time information.
  */
 static void
-entropy_collect_compile_time(SHA1Context *ctx)
+entropy_collect_compile_time(SHA1_context *ctx)
 {
 	const char *str[2];
 
@@ -484,7 +543,7 @@ entropy_collect_compile_time(SHA1Context *ctx)
  * Collect user information.
  */
 static void
-entropy_collect_user(SHA1Context *ctx)
+entropy_collect_user(SHA1_context *ctx)
 {
 	const char *str[3];
 
@@ -505,8 +564,8 @@ entropy_collect_user(SHA1Context *ctx)
 		char user[UINT32_DEC_BUFLEN];
 		char real[UINT32_DEC_BUFLEN];
 
-		uint32_to_string_buf(entropy_rand31(), user, sizeof user);
-		uint32_to_string_buf(entropy_rand31(), real, sizeof real);
+		uint32_to_string_buf(entropy_minirand(), user, sizeof user);
+		uint32_to_string_buf(entropy_minirand(), real, sizeof real);
 		str[1] = user;
 		str[2] = real;
 		entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
@@ -518,7 +577,7 @@ entropy_collect_user(SHA1Context *ctx)
  * Collect login information.
  */
 static void
-entropy_collect_login(SHA1Context *ctx)
+entropy_collect_login(SHA1_context *ctx)
 {
 #ifdef HAS_GETLOGIN
 	{
@@ -527,7 +586,7 @@ entropy_collect_login(SHA1Context *ctx)
 		sha1_feed_pointer(ctx, name);	/* name points to static data */
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_GETLOGIN */
 }
 
@@ -535,7 +594,7 @@ entropy_collect_login(SHA1Context *ctx)
  * Collect information from /etc/passwd.
  */
 static void
-entropy_collect_pw(SHA1Context *ctx)
+entropy_collect_pw(SHA1_context *ctx)
 {
 #ifdef HAS_GETUID
 	{
@@ -543,13 +602,13 @@ entropy_collect_pw(SHA1Context *ctx)
 
 		sha1_feed_pointer(ctx, pp);	/* pp points to static data */
 		if (pp != NULL) {
-			SHA1Input(ctx, pp, sizeof *pp);
+			SHA1_INPUT(ctx, *pp);
 		} else {
-			sha1_feed_ulong(ctx, errno);
+			sha1_feed_uint(ctx, errno);
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_GETUID */
 }
 
@@ -557,22 +616,15 @@ entropy_collect_pw(SHA1Context *ctx)
  * Collect information from file system.
  */
 static void
-entropy_collect_filesystem(SHA1Context *ctx)
+entropy_collect_filesystem(SHA1_context *ctx)
 {
 	const char *path[RANDOM_SHUFFLE_MAX];
-	size_t i;
+	size_t i = 0;
 
-	i = 0;
 	path[i++] = gethomedir();
 	path[i++] = ".";
 	path[i++] = "..";
 	path[i++] = "/";
-
-	g_assert(i <= G_N_ELEMENTS(path));
-
-	entropy_array_stat_collect(ctx, path, i);
-
-	i = 0;
 
 	if (is_running_on_mingw()) {
 		path[i++] = "C:/";
@@ -582,12 +634,6 @@ entropy_collect_filesystem(SHA1Context *ctx)
 		path[i++] = mingw_get_cookies_path();
 		path[i++] = mingw_get_fonts_path();
 		path[i++] = mingw_get_history_path();
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
-
-		i = 0;
 		path[i++] = mingw_get_home_path();
 		path[i++] = mingw_get_internet_cache_path();
 		path[i++] = mingw_get_mypictures_path();
@@ -596,10 +642,6 @@ entropy_collect_filesystem(SHA1Context *ctx)
 		path[i++] = mingw_get_startup_path();
 		path[i++] = mingw_get_system_path();
 		path[i++] = mingw_get_windows_path();
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
 	} else {
 		path[i++] = "/bin";
 		path[i++] = "/boot";
@@ -609,12 +651,6 @@ entropy_collect_filesystem(SHA1Context *ctx)
 		path[i++] = "/lib";
 		path[i++] = "/mnt";
 		path[i++] = "/opt";
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
-
-		i = 0;
 		path[i++] = "/proc";
 		path[i++] = "/root";
 		path[i++] = "/sbin";
@@ -622,18 +658,18 @@ entropy_collect_filesystem(SHA1Context *ctx)
 		path[i++] = "/tmp";
 		path[i++] = "/usr";
 		path[i++] = "/var";
-
-		g_assert(i <= G_N_ELEMENTS(path));
-
-		entropy_array_stat_collect(ctx, path, i);
 	}
+
+	g_assert(i <= G_N_ELEMENTS(path));
+
+	entropy_array_stat_collect(ctx, path, i);
 }
 
 /**
  * Collect entropy from standard file descriptors.
  */
 static void
-entropy_collect_stdio(SHA1Context *ctx)
+entropy_collect_stdio(SHA1_context *ctx)
 {
 	int fd[3];
 
@@ -648,7 +684,7 @@ entropy_collect_stdio(SHA1Context *ctx)
  * Collect entropy from available space on filesystem.
  */
 static void
-entropy_collect_free_space(SHA1Context *ctx)
+entropy_collect_free_space(SHA1_context *ctx)
 {
 	double fs[3];
 
@@ -663,20 +699,20 @@ entropy_collect_free_space(SHA1Context *ctx)
  * Collect entropy from used CPU time.
  */
 static void
-entropy_collect_usage(SHA1Context *ctx)
+entropy_collect_usage(SHA1_context *ctx)
 {
 #ifdef HAS_GETRUSAGE
 	{
 		struct rusage usage;
 
 		if (-1 != getrusage(RUSAGE_SELF, &usage)) {
-			SHA1Input(ctx, &usage, sizeof usage);
+			SHA1_INPUT(ctx, usage);
 		} else {
-			sha1_feed_ulong(ctx, errno);
+			sha1_feed_uint(ctx, errno);
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_GETRUSAGE */
 }
 
@@ -684,20 +720,20 @@ entropy_collect_usage(SHA1Context *ctx)
  * Collect entropy from system name.
  */
 static void
-entropy_collect_uname(SHA1Context *ctx)
+entropy_collect_uname(SHA1_context *ctx)
 {
 #ifdef HAS_UNAME
 	{
 		struct utsname un;
 		
 		if (-1 != uname(&un)) {
-			SHA1Input(ctx, &un, sizeof un);
+			SHA1_INPUT(ctx, un);
 		} else {
-			sha1_feed_ulong(ctx, errno);
+			sha1_feed_uint(ctx, errno);
 		}
 	}
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_UNAME */
 }
 
@@ -705,12 +741,12 @@ entropy_collect_uname(SHA1Context *ctx)
  * Collect entropy from terminal line name.
  */
 static void
-entropy_collect_ttyname(SHA1Context *ctx)
+entropy_collect_ttyname(SHA1_context *ctx)
 {
 #ifdef HAS_TTYNAME
 	sha1_feed_string(ctx, ttyname(STDIN_FILENO));
 #else
-	sha1_feed_ulong(ctx, entropy_rand31());
+	sha1_feed_uint(ctx, entropy_minirand());
 #endif	/* HAS_TTYNAME */
 }
 
@@ -718,16 +754,16 @@ entropy_collect_ttyname(SHA1Context *ctx)
  * Collect entropy from amount of files we can open.
  */
 static void
-entropy_collect_file_amount(SHA1Context *ctx)
+entropy_collect_file_amount(SHA1_context *ctx)
 {
-	sha1_feed_ulong(ctx, getdtablesize());
+	sha1_feed_uint(ctx, getdtablesize());
 }
 
 /**
  * Collect entropy from constant pointers.
  */
 static void
-entropy_collect_pointers(SHA1Context *ctx)
+entropy_collect_pointers(SHA1_context *ctx)
 {
 	void *ptr[6];
 
@@ -745,9 +781,10 @@ entropy_collect_pointers(SHA1Context *ctx)
  * Collect entropy based on current CPU state.
  */
 static void
-entropy_collect_cpu(SHA1Context *ctx)
+entropy_collect_cpu(SHA1_context *ctx)
 {
 	jmp_buf env;
+	ulong r[sizeof(env) / sizeof(ulong)];
 
 	/*
 	 * Add local CPU state noise.
@@ -759,14 +796,25 @@ entropy_collect_cpu(SHA1Context *ctx)
 		/* We will never longjmp() back here */
 		g_assert_not_reached();
 	}
-	SHA1Input(ctx, env, sizeof env);	/* "env" is an array */
+
+	/*
+	 * Can't call entropy_array_ulong_collect() here since we are also called
+	 * from entropy_seed(), which is used to seed entropy_minirand().
+	 * Hence we manually shuffle the registers.
+	 */
+
+	memcpy(r, env, sizeof r);
+	shuffle_with(rand31_u32, r, G_N_ELEMENTS(r), sizeof r[0]);
+
+	SHA1_INPUT(ctx, env);				/* "env" is an array */
+	SHA1_INPUT(ctx, r);
 }
 
 /** 
  * Collect entropy from environment.
  */
 static void
-entropy_collect_environ(SHA1Context *ctx)
+entropy_collect_environ(SHA1_context *ctx)
 {
 	extern char **environ;
 	size_t i, j;
@@ -788,43 +836,70 @@ entropy_collect_environ(SHA1Context *ctx)
  * Collect a few pseudo-random numbers.
  */
 static void
-entropy_collect_rand31(SHA1Context *ctx)
+entropy_collect_minirand(SHA1_context *ctx)
 {
-	int i;
+	ulong rn[RANDOM_SHUFFLE_MAX];
+	int i = 0;
 
-	for (i = 0; i < 16; i++) {
-		unsigned long p = entropy_rand31();
-		unsigned long q = entropy_rand31();
-		sha1_feed_ulong(ctx, p + q);
-		sha1_feed_ulong(ctx, p - q);
+	while (i < RANDOM_SHUFFLE_MAX) {
+		rn[i++] = entropy_minirand();
 	}
+
+	entropy_array_ulong_collect(ctx, rn, G_N_ELEMENTS(rn));
+}
+
+/**
+ * Collect entropy from current time.
+ */
+static void
+entropy_collect_time(SHA1_context *ctx)
+{
+	tm_nano_t now;
+
+	tm_precise_time(&now);
+	SHA1_INPUT(ctx, now);
+}
+
+/**
+ * Collect stack garbage.
+ */
+static void
+entropy_collect_garbage(SHA1_context *ctx)
+{
+	ulong garbage[RANDOM_SHUFFLE_MAX];	/* Left un-initialized on purpose */
+
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&garbage);
+#endif
+
+	entropy_array_ulong_collect(ctx, garbage, G_N_ELEMENTS(garbage));
 }
 
 /**
  * Collect entropy from current thread.
  */
 static void
-entropy_collect_thread(SHA1Context *ctx)
+entropy_collect_thread(SHA1_context *ctx)
 {
 	thread_t th = thread_current();
 
-	SHA1Input(ctx, &th, sizeof th);
+	SHA1_INPUT(ctx, th);
 }
 
 /**
  * Collect entropy from current IP gateway.
  */
 static void
-entropy_collect_gateway(SHA1Context *ctx)
+entropy_collect_gateway(SHA1_context *ctx)
 {
 	host_addr_t addr;
 
 	ZERO(&addr);
 
 	if (-1 == getgateway(&addr))
-		sha1_feed_ulong(ctx, errno);
+		sha1_feed_uint(ctx, errno);
 
-	SHA1Input(ctx, &addr, sizeof addr);
+	SHA1_INPUT(ctx, addr);
 }
 
 /**
@@ -833,21 +908,22 @@ entropy_collect_gateway(SHA1Context *ctx)
  * This uses the host's name and its IP addresses.
  */
 static void
-entropy_collect_host(SHA1Context *ctx)
+entropy_collect_host(SHA1_context *ctx)
 {
 	const char *name;
-	GSList *hosts, *sl;
+	pslist_t *hosts, *sl;
 
 	name = local_hostname();
 	sha1_feed_string(ctx, name);
 
 	hosts = name_to_host_addr(name, NET_TYPE_NONE);
+	hosts = pslist_shuffle_with(entropy_minirand, hosts);
 
-	GM_SLIST_FOREACH(hosts, sl) {
+	PSLIST_FOREACH(hosts, sl) {
 		host_addr_t *addr = sl->data;
 		struct packed_host_addr packed = host_addr_pack(*addr);
 
-		SHA1Input(ctx, &packed, packed_host_addr_size(packed));
+		SHA1_input(ctx, &packed, packed_host_addr_size(packed));
 	}
 
 	host_addr_free_list(&hosts);
@@ -857,32 +933,42 @@ entropy_collect_host(SHA1Context *ctx)
  * Collect entropy from VMM information.
  */
 static void
-entropy_collect_vmm(SHA1Context *ctx)
+entropy_collect_vmm(SHA1_context *ctx)
 {
-	sha1_feed_pointer(ctx, vmm_trap_page());
+	void *p, *q;
+	void *ptr[3];
+
+	ptr[0] = deconstify_pointer(vmm_trap_page());
+	ptr[1] = p = vmm_alloc(1);
+	ptr[2] = q = vmm_alloc(1);
+
+	entropy_array_pointer_collect(ctx, ptr, G_N_ELEMENTS(ptr));
+
+	vmm_free(p, 1);
+	vmm_free(q, 1);
 }
 
 /**
  * Collect entropy based on CPU time used and scheduling delays.
  */
 static void
-entropy_collect_timing(SHA1Context *ctx, bool slow)
+entropy_collect_timing(SHA1_context *ctx, bool slow)
 {
 	double v[4];
-	tm_t before, after;
+	tm_nano_t before, after;
 
-	tm_now_exact(&before);
+	tm_precise_time(&before);
 
 	v[0] = tm_cputime(&v[1], &v[2]);
 
 	if (slow) {
-		compat_sleep_ms(2);			/* 2 ms */
+		compat_usleep_nocancel(2000);	/* 2 ms */
 	} else {
 		entropy_delay();			/* create small, unpredictable delay */
 	}
 
-	tm_now_exact(&after);
-	v[3] = tm_elapsed_f(&after, &before);
+	tm_precise_time(&after);
+	v[3] = tm_precise_elapsed_f(&after, &before);
 
 	entropy_array_double_collect(ctx, v, G_N_ELEMENTS(v));
 }
@@ -902,23 +988,22 @@ entropy_collect_timing(SHA1Context *ctx, bool slow)
 G_GNUC_COLD void
 entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 {
-	static tm_t last;
-	SHA1Context ctx;
-	tm_t start, end;
+	static tm_nano_t last;
+	SHA1_context ctx;
+	tm_nano_t start, end;
 	entropy_cb_t fn[RANDOM_SHUFFLE_MAX];
-	size_t i;
+	size_t i = 0;
 
 	/*
 	 * Get random entropy from the system.
 	 */
 
-	tm_now_exact(&start);
+	tm_precise_time(&start);
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, &start, sizeof start);
+	SHA1_reset(&ctx);
+	SHA1_INPUT(&ctx, start);
 
 	if (can_malloc) {
-		i = 0;
 		fn[i++] = entropy_collect_randomness;
 		fn[i++] = entropy_collect_user;
 		fn[i++] = entropy_collect_login;
@@ -932,11 +1017,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		fn[i++] = entropy_collect_host;
 
 		g_assert(i <= G_N_ELEMENTS(fn));
-
-		entropy_array_cb_collect(&ctx, fn, i);
 	}
-
-	i = 0;
 
 	fn[i++] = entropy_collect_cpu;
 	fn[i++] = entropy_collect_environ;
@@ -948,7 +1029,9 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_uname;
 	fn[i++] = entropy_collect_pointers;
 	fn[i++] = entropy_collect_file_amount;
-	fn[i++] = entropy_collect_rand31;
+	fn[i++] = entropy_collect_minirand;
+	fn[i++] = entropy_collect_time;
+	fn[i++] = entropy_collect_garbage;
 
 	g_assert(i <= G_N_ELEMENTS(fn));
 
@@ -964,12 +1047,12 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	{
 		double v[2];
 
-		v[0] = tm_elapsed_f(&start, &last);
+		v[0] = tm_precise_elapsed_f(&start, &last);
 		last = start;		/* struct copy */
 
-		tm_now_exact(&end);
-		SHA1Input(&ctx, &end, sizeof end);
-		v[1] = tm_elapsed_f(&end, &start);
+		tm_precise_time(&end);
+		SHA1_INPUT(&ctx, end);
+		v[1] = tm_precise_elapsed_f(&end, &start);
 
 		entropy_array_double_collect(&ctx, v, G_N_ELEMENTS(v));
 	}
@@ -978,7 +1061,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	 * Done, finalize SHA1 computation into supplied digest buffer.
 	 */
 
-	SHA1Result(&ctx, digest);
+	SHA1_result(&ctx, digest);
 
 	/*
 	 * Merge entropy from all the previous calls to make this as unique
@@ -986,6 +1069,201 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	 */
 
 	entropy_merge(digest);
+}
+
+/**
+ * Randomly feed the SHA1 context to itself 20% of the time.
+ */
+static void G_GNUC_COLD
+entropy_self_feed_maybe(SHA1_context *ctx)
+{
+	if (random_upto(rand31_u32, 999) < 200)
+		SHA1_INPUT(ctx, *ctx);
+}
+
+/**
+ * Get partial SHA1 result without disturbing the SHA1 context.
+ *
+ * @param ctx		the SHA1 context we want partial results from
+ * @param digest	where the partial digest is written out
+ */
+static void
+entropy_sha1_result(const SHA1_context *ctx, struct sha1 *digest)
+{
+	SHA1_context tmp;
+	int ret;
+
+	tmp = *ctx;			/* struct copy */
+	ret = SHA1_result(&tmp, digest);
+
+	g_assert_log(SHA_SUCCESS == ret,
+		"%s(): error whilst computing SHA1 digest: %d", G_STRFUNC, ret);
+}
+
+/**
+ * Seed the entropy_minirand() context variable, once.
+ *
+ * We're collecting changing and contextual data, to be able to compute an
+ * initial 160-bit value, which is better than the default zero value.
+ */
+static void G_GNUC_COLD
+entropy_seed(struct entropy_minictx *c)
+{
+	extern char **environ;
+	char garbage[64];		/* Left uninitialized on purpose */
+	const char *str[RANDOM_SHUFFLE_MAX];
+	SHA1_context ctx;
+	size_t i, j;
+	tm_nano_t now;
+
+	/*
+	 * This routine must not allocate any memory because it will be called
+	 * very early during initialization.
+	 */
+
+#define ENTROPY_CONTEXT_FEED	entropy_self_feed_maybe(&ctx)
+
+#define ENTROPY_SHUFFLE_FEED(a, f) G_STMT_START {				\
+	size_t x;													\
+	shuffle_with(rand31_u32, a, G_N_ELEMENTS(a), sizeof a[0]);	\
+	for (x = 0; x < G_N_ELEMENTS(a); x++)						\
+		f(&ctx, a[x]);											\
+	ENTROPY_CONTEXT_FEED;										\
+} G_STMT_END
+
+	SHA1_reset(&ctx);
+
+	tm_precise_time(&now);		/* Do not use tm_now_exact(), it's too soon */
+	SHA1_INPUT(&ctx, now);
+
+	j = popcount(now.tv_nsec);
+	for (i = 0; i <= j; i++) {
+		ENTROPY_CONTEXT_FEED;										\
+	}
+
+	{
+		ulong along[2] = { time(NULL), getpid() };
+		ENTROPY_SHUFFLE_FEED(along, sha1_feed_ulong);
+	}
+
+	entropy_collect_cpu(&ctx);
+	ENTROPY_CONTEXT_FEED;
+
+	{
+		int afd[3] = { STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
+		ENTROPY_SHUFFLE_FEED(afd, sha1_feed_fstat);
+	}
+
+	/* Reseed the rand31 PRNG */
+
+	{
+		struct sha1 hash;
+		uint8 data[SHA1_RAW_SIZE];
+
+		entropy_sha1_result(&ctx, &hash);
+		memcpy(data, &hash, sizeof data);
+		shuffle_with(rand31_u32, data, G_N_ELEMENTS(data), sizeof data[0]);
+		SHA1_INPUT(&ctx, data);
+		tm_precise_time(&now);
+		SHA1_INPUT(&ctx, now);
+		entropy_sha1_result(&ctx, &hash);
+		rand31_set_seed(peek_be32(&hash));
+	}
+
+	for (i = 0, j = 0; NULL != environ[i]; i++) {
+		str[j++] = environ[i];
+		if (RANDOM_SHUFFLE_MAX == j) {
+			ENTROPY_SHUFFLE_FEED(str, sha1_feed_string);
+			j = 0;
+		}
+	}
+	sha1_feed_ulong(&ctx, i);
+	if (j != 0) {
+		shuffle_with(rand31_u32, str, j, sizeof str[0]);
+		for (i = 0; i < j; i++) {
+			sha1_feed_string(&ctx, str[i]);
+		}
+	}
+	ENTROPY_CONTEXT_FEED;
+
+	{
+		void *aptr[2] = { environ, &now };
+		ENTROPY_SHUFFLE_FEED(aptr, sha1_feed_pointer);
+	}
+
+	{
+		const char *astr[3] = { ".", "..", "/" };
+		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_stat);
+	}
+
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&garbage);
+#endif
+
+	SHA1_INPUT(&ctx, garbage);
+	ENTROPY_CONTEXT_FEED;
+
+	entropy_delay();
+	tm_precise_time(&now);
+	SHA1_INPUT(&ctx, now);
+
+	tm_precise_time(&now);
+	j = popcount(now.tv_nsec * 11);
+	for (i = 0; i <= j; i++) {
+		ENTROPY_CONTEXT_FEED;
+	}
+
+	/* Partial SHA1 result */
+
+	{
+		struct sha1 hash;
+		const void *p = &hash;
+		uint32 v, n;
+
+		entropy_sha1_result(&ctx, &hash);
+		p = peek_be32_advance(p, &v);
+
+		entropy_delay();
+		tm_precise_time(&now);
+		n = popcount(peek_be32(p) + now.tv_nsec);
+		j = UINT32_ROTR(v, n) & 0xff;
+		for (i = 0; i <= j; i++) {
+			ENTROPY_CONTEXT_FEED;
+		}
+
+		entropy_sha1_result(&ctx, &hash);
+		sha1_feed_uint(&ctx, peek_be32(&hash));
+	}
+
+	entropy_delay();
+	tm_precise_time(&now);
+
+	{
+		double r = random_double_generate(rand31_u32);
+		double usr, sys, cpu = tm_cputime(&usr, &sys);
+		double adouble[6] = { cpu, usr, sys, r,
+			now.tv_nsec / 101.0, now.tv_nsec / (now.tv_sec + 0.1) };
+		ENTROPY_SHUFFLE_FEED(adouble, sha1_feed_double);
+	}
+
+#undef ENTROPY_SHUFFLE_FEED
+#undef ENTROPY_CONTEXT_FEED
+
+	tm_precise_time(&now);
+	SHA1_INPUT(&ctx, now);
+
+	{
+		struct sha1 hash;
+		const void *p = &hash;
+		uint32 v;
+
+		entropy_sha1_result(&ctx, &hash);
+		p = peek_be32_advance(p, &c->x);
+		p = peek_be32_advance(p, &c->y);
+		p = peek_be32_advance(p, &c->z);
+		p = peek_be32_advance(p, &v);
+		c->c = (v ^ peek_be32(p)) % ENTROPY_KISS_MULT;
+	}
 }
 
 /**
@@ -1000,9 +1278,7 @@ entropy_fold(sha1_t *digest, size_t n)
 	bigint_t h, v;
 
 	g_assert(size_is_non_negative(n));
-
-	if G_UNLIKELY(n >= SHA1_RAW_SIZE)
-		return digest;
+	g_assert(n < SHA1_RAW_SIZE);
 
 	bigint_use(&v, &result, SHA1_RAW_SIZE);
 	bigint_use(&h, digest, SHA1_RAW_SIZE);
@@ -1020,6 +1296,41 @@ entropy_fold(sha1_t *digest, size_t n)
 }
 
 /**
+ * Functions to call when entropy information is needed.
+ */
+struct entropy_ops {
+	void (*ent_collect)(sha1_t *digest);
+	void (*ent_mini_collect)(sha1_t *digest);
+	uint32 (*ent_random)(void);
+	void (*ent_fill)(void *buffer, size_t len);
+};
+
+static struct entropy_ops entropy_ops;
+
+/**
+ * Internal wrapper to collect 160 bits of entropy via AJE.
+ */
+static void
+entropy_aje_collect(sha1_t *digest)
+{
+	aje_random_bytes(digest, sizeof *digest);
+}
+
+/**
+ * When AJE (Alea Jacta Est) has been initialized, we can use it as our main
+ * entropy source.  Hence redirect all entropy requests to that layer.
+ */
+G_GNUC_COLD void
+entropy_aje_inited(void)
+{
+	entropy_ops.ent_collect      = entropy_aje_collect;
+	entropy_ops.ent_mini_collect = entropy_aje_collect;
+	entropy_ops.ent_random       = aje_rand_strong;
+	entropy_ops.ent_fill         = aje_random_bytes;
+	atomic_mb();
+}
+
+/**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
  * It should be called only when a truly random seed is required, ideally only
@@ -1029,8 +1340,8 @@ entropy_fold(sha1_t *digest, size_t n)
  * This is a slow operation, and the routine will even sleep for 2 ms the
  * first time it is invoked.
  */
-G_GNUC_COLD void
-entropy_collect(sha1_t *digest)
+static G_GNUC_COLD void
+entropy_do_collect(sha1_t *digest)
 {
 	static bool done;
 
@@ -1048,8 +1359,8 @@ entropy_collect(sha1_t *digest)
  * This is a slow operation, so it must be called only when a truly random
  * seed is required.
  */
-G_GNUC_COLD void
-entropy_minimal_collect(sha1_t *digest)
+static G_GNUC_COLD void
+entropy_do_minimal_collect(sha1_t *digest)
 {
 	entropy_collect_internal(digest, FALSE, FALSE);
 }
@@ -1064,18 +1375,30 @@ entropy_minimal_collect(sha1_t *digest)
  *
  * @return 32-bit random number.
  */
-uint32
-entropy_random(void)
+static uint32
+entropy_do_random(void)
 {
 	static sha1_t digest;
 	static void *p = &digest;
+	static spinlock_t entropy_random_slk = SPINLOCK_INIT;
+	uint32 rnd;
 
 	/*
 	 * Collect entropy again once we have exhausted reading from the pool.
 	 */
 
+	spinlock_hidden(&entropy_random_slk);
+
 	if G_UNLIKELY(&digest == p) {
-		entropy_minimal_collect(&digest);
+		sha1_t tmp;
+
+		spinunlock_hidden(&entropy_random_slk);
+
+		entropy_minimal_collect(&tmp);
+
+		spinlock_hidden(&entropy_random_slk);
+
+		digest = tmp;			/* struct copy */
 		p = ptr_add_offset(&digest, sizeof digest);
 	}
 
@@ -1084,8 +1407,11 @@ entropy_random(void)
 	 */
 
 	p = ptr_add_offset(p, -4);
+	rnd = peek_be32(p);
 
-	return peek_be32(p);
+	spinunlock_hidden(&entropy_random_slk);
+
+	return rnd;
 }
 
 /**
@@ -1096,8 +1422,8 @@ entropy_random(void)
  * @param buffer	buffer to fill
  * @param len		buffer length, in bytes
  */
-void
-entropy_fill(void *buffer, size_t len)
+static void
+entropy_do_fill(void *buffer, size_t len)
 {
 	size_t complete, partial, i;
 	void *p = buffer;
@@ -1125,6 +1451,277 @@ entropy_fill(void *buffer, size_t len)
 	}
 
 	g_assert(ptr_diff(p, buffer) == len);
+}
+
+/**
+ * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
+ *
+ * It should be called only when a truly random seed is required, ideally only
+ * during initialization.
+ *
+ * @attention
+ * This is a slow operation, and the routine will even sleep for 2 ms the
+ * first time it is invoked.
+ *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there and
+ * the call becomes more efficient by several orders of magnitude!
+ */
+G_GNUC_COLD void
+entropy_collect(sha1_t *digest)
+{
+	return entropy_ops.ent_collect(digest);
+}
+
+/**
+ * Collect minimal entropy, making sure no memory is allocated, and fill
+ * supplied SHA1 buffer with 160 random bits.
+ *
+ * @attention
+ * This is a slow operation, so it must be called only when a truly random
+ * seed is required.
+ *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there and
+ * the call becomes more efficient by several orders of magnitude!
+ */
+G_GNUC_COLD void
+entropy_minimal_collect(sha1_t *digest)
+{
+	return entropy_ops.ent_mini_collect(digest);
+}
+
+/**
+ * Random number generation based on entropy collection (without any memory
+ * allocation).
+ *
+ * This is a strong random number generator, but it is very slow and should
+ * be reserved to low-level initializations, before the ARC4 random number
+ * has been properly seeded.
+ *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there and
+ * the call becomes more efficient by several orders of magnitude!
+ *
+ * @return 32-bit random number.
+ */
+uint32
+entropy_random(void)
+{
+	return entropy_ops.ent_random();
+}
+
+/**
+ * Fill supplied buffer with random entropy bytes.
+ *
+ * Memory allocation may happen during this call.
+ *
+ * @note
+ * Once AJE has been initialized, this is transparently re-routed there.
+ *
+ * @param buffer	buffer to fill
+ * @param len		buffer length, in bytes
+ */
+void
+entropy_fill(void *buffer, size_t len)
+{
+	return entropy_ops.ent_fill(buffer, len);
+}
+
+static struct entropy_ops entropy_ops = {
+	entropy_do_collect,			/* ent_collect */
+	entropy_do_minimal_collect,	/* ent_mini_collect */
+	entropy_do_random,			/* ent_random */
+	entropy_do_fill,			/* ent_fill */
+};
+
+/**
+ * Get the entropy nonce, a number used to alter time-based entropy collection
+ * in a way that cannot be guessed by an outsider.
+ *
+ * @return the nonce to use for the session
+ */
+static uint32
+entropy_nonce(void)
+{
+	static uint32 base;
+	static int nused;
+	int c;
+
+	c = atomic_int_inc(&nused);
+
+	/*
+	 * Should two threads collide and reach the maximum base usage time,
+	 * we want them to both recompute the base.  Sure, we could make the
+	 * first thread do that only by using an equality test, but this adds
+	 * more entropy because the computation becomes less deterministic due
+	 * to the possible lock contention.
+	 */
+
+	if G_UNLIKELY(0 == base || ENTROPY_NONCE_MAX <= c) {
+		static spinlock_t base_slk = SPINLOCK_INIT;
+
+		spinlock_hidden(&base_slk);
+
+		do {
+			base = entropy_random();
+		} while (0 == base);
+		nused = 0;
+
+		spinunlock_hidden(&base_slk);
+	}
+
+	return base + c;		/* Number used once */
+}
+
+/**
+ * Compute hash of current time, using the most precise clock time we have.
+ */
+static uint32
+entropy_clock_time(void)
+{
+	tm_nano_t now;
+
+	tm_precise_time(&now);
+
+	return integer_hash_fast(now.tv_nsec) +
+		integer_hash_fast(now.tv_sec) + entropy_nonce();
+}
+
+/**
+ * Harvest entropy from the current time.
+ */
+void
+entropy_harvest_time(void)
+{
+	uint16 rnd = entropy_clock_time();
+
+	random_pool_append(&rnd, sizeof rnd);
+}
+
+/**
+ * Harvest entropy from a single value.
+ *
+ * @param p		pointer to value from which we want to harvest entropy
+ * @param len	length of the data to read
+ */
+void
+entropy_harvest_single(const void *p, size_t len)
+{
+	g_assert(p != NULL);
+	g_assert(size_is_positive(len));
+
+	if (len <= sizeof(long)) {
+		entropy_harvest_small(p, len, NULL);
+	} else {
+		entropy_harvest_many(p, len, NULL);
+	}
+}
+
+/**
+ * Harvest entropy from a NULL-terminated list of (pointer, length).
+ *
+ * The overall entropy is supposed to be poor and is therefore limited
+ * to the collection of 4 bytes, using a CRC32 computation.
+ *
+ * @param p		pointer to first value
+ * @param len	length of first value
+ * @param ...	NULL-terminated list of (p, len)
+ */
+void
+entropy_harvest_small(const void *p, size_t len, ...)
+{
+	uint32 c, h;
+	va_list ap;
+
+	g_assert(p != NULL);
+	g_assert(size_is_positive(len));
+
+	h = entropy_clock_time();
+	c = crc32_update(-1U, VARLEN(h));
+	c = crc32_update(c, p, len);
+
+	va_start(ap, len);
+
+	for (
+		p = va_arg(ap, const void *);
+		p != NULL;
+		p = va_arg(ap, const void *)
+	) {
+		len = va_arg(ap, size_t);
+		g_assert(size_is_positive(len));
+		c = crc32_update(c, p, len);
+	}
+
+	va_end(ap);
+
+	random_pool_append(&c, sizeof c);
+}
+
+/**
+ * Harvest entropy from a NULL-terminated list of (pointer, length).
+ *
+ * The overall entropy is supposed to be large and is therefore harvested
+ * through a SHA1 computation.
+ *
+ * @param p		pointer to first value
+ * @param len	length of first value
+ * @param ...	NULL-terminated list of (p, len)
+ */
+void
+entropy_harvest_many(const void *p, size_t len, ...)
+{
+	sha1_t digest;
+	SHA1_context ctx;
+	tm_nano_t now;
+	uint32 nonce;
+	size_t runlen = 0;
+	va_list ap;
+
+	g_assert(p != NULL);
+	g_assert(size_is_positive(len));
+
+	tm_precise_time(&now);
+	nonce = entropy_nonce();
+
+	SHA1_reset(&ctx);
+	SHA1_INPUT(&ctx, nonce);
+	SHA1_INPUT(&ctx, now);
+	SHA1_input(&ctx, p, len);
+	runlen = len;
+
+	va_start(ap, len);
+
+	for (
+		p = va_arg(ap, const void *);
+		p != NULL;
+		p = va_arg(ap, const void *)
+	) {
+		len = va_arg(ap, size_t);
+		g_assert(size_is_positive(len));
+		SHA1_input(&ctx, p, len);
+		runlen = size_saturate_add(runlen, len);
+	}
+
+	va_end(ap);
+
+	SHA1_result(&ctx, &digest);
+
+	/*
+	 * If we have collected data from enough bytes, we can use the full
+	 * digest to add randomness.  Otherwise, fold the digest to limit
+	 * the amount of entropy added each time.  However, we collect at least
+	 * 4 bytes each time.
+	 */
+
+	if (runlen < ENTROPY_ALPHA * SHA1_RAW_SIZE) {
+		size_t l = runlen / ENTROPY_ALPHA;
+		void *q = entropy_fold(&digest, (l = MAX(l, 4)));
+
+		random_pool_append(q, l);
+	} else {
+		random_pool_append(&digest, sizeof digest);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

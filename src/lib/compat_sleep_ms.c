@@ -35,49 +35,67 @@
 
 #include "compat_sleep_ms.h"
 #include "compat_poll.h"
+#include "thread.h"
 
 #include "override.h"		/* Must be the last header included */
 
 /**
  * Suspend process execution for a duration specified in milliseconds.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @param ms milliseconds to sleep.
  */
 void
 compat_sleep_ms(unsigned int ms)
+{
+	thread_cancel_test();
+	thread_sleeping(TRUE);
+
 #if defined(HAS_NANOSLEEP)
-{
-	struct timespec ts;
+	{
+		struct timespec ts;
 
-	/**
-	 * Prefer nanosleep() over usleep() because it is guaranteed to
-	 * not interact with signals.
-	 */
-
-	ts.tv_sec = ms / 1000;
-	ts.tv_nsec = (ms % 1000) * 1000000UL;
-	nanosleep(&ts, NULL);
-}
-#elif defined(HAS_USLEEP)
-{
-	while (ms > 0) {
-		unsigned int d;
-
-		/**
-		 * usleep() may fail if the delay is not less than 1000 milliseconds.
-		 * Therefore, usleep() is called multiple times for longer delays.
+		/*
+		 * Prefer nanosleep() over usleep() because it is guaranteed to
+		 * not interact with signals.
 		 */
 
-		d = MIN(ms, 990);
-		ms -= d;
-
-		/* Value must be less than 1000000! (< 1 second) */
-		usleep(d * 1000UL);
+		ts.tv_sec = ms / 1000;
+		ts.tv_nsec = (ms % 1000) * 1000000UL;
+		nanosleep(&ts, NULL);
 	}
-}
+#elif defined(HAS_USLEEP)
+	{
+		if G_UNLIKELY(0 == ms) {
+			usleep(0);
+			return;
+		}
+
+		while (ms > 0) {
+			unsigned int d;
+
+			/*
+			 * usleep() may fail if the delay is not less than 1000 msecs.
+			 * Therefore, usleep() is called multiple times for longer delays.
+			 */
+
+			d = MIN(ms, 990);
+			ms -= d;
+
+			/* Value must be less than 1000000! (< 1 second) */
+			usleep(d * 1000UL);
+		}
+	}
 #else
-{
-	compat_poll(NULL, 0, d);
-}
+	{
+		compat_poll(NULL, 0, d);
+	}
 #endif	/* HAS_NANOSLEEP || HAS_USLEEP */
+
+	thread_sleeping(FALSE);
+	thread_cancel_test();
+}
 
 /* vi: set ts=4 sw=4 cindent: */

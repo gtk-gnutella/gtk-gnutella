@@ -33,6 +33,10 @@
 
 #include "common.h"
 
+#include "pcache.h"
+
+#include "gtk-gnutella.h"		/* For GTA_VENDOR_CODE */
+
 #include "alive.h"
 #include "extensions.h"
 #include "ggep.h"
@@ -44,18 +48,17 @@
 #include "hostiles.h"
 #include "hosts.h"
 #include "inet.h"
+#include "ipp_cache.h"
 #include "ipv6-ready.h"
 #include "nodes.h"
-#include "pcache.h"
 #include "routing.h"
+#include "search.h"	/* For search_query_key_generate() */
 #include "settings.h"
 #include "share.h" /* For shared_files_scanned() and shared_kbytes_scanned(). */
 #include "sockets.h"
-#include "ipp_cache.h"
 #include "udp.h"
 #include "uhc.h"
 #include "version.h"
-#include "search.h"	/* For search_query_key_generate() */
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
@@ -69,11 +72,15 @@
 #include "lib/hashing.h"
 #include "lib/hset.h"
 #include "lib/nid.h"
+#include "lib/plist.h"
 #include "lib/pow2.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
+#include "lib/stringify.h"	/* For plural() */
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define PCACHE_MAX_FILES	10000000	/**< Arbitrarily large file count */
@@ -135,7 +142,7 @@ ping_net(enum ping_flag flags)
  * Sends a ping to given node.
  */
 static void
-send_ping(struct gnutella_node *n, uint8 ttl)
+send_ping(gnutella_node_t *n, uint8 ttl)
 {
 	gnutella_msg_init_t *m;
 	uint32 size;
@@ -662,7 +669,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
  */
 static void
 send_pong(
-	struct gnutella_node *n, bool control, enum ping_flag flags,
+	gnutella_node_t *n, bool control, enum ping_flag flags,
 	uint8 hops, uint8 ttl, const struct guid *muid,
 	struct pong_info *info, pong_meta_t *meta)
 {
@@ -716,6 +723,8 @@ ping_type(const gnutella_node_t *n)
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_SCP:
+			has_scp = TRUE;
+
 			/*
 		 	 * Look whether they want leaf slots, ultra slots, or don't care.
 			 * Also determine which IP addresses they want.
@@ -816,7 +825,7 @@ ping_type(const gnutella_node_t *n)
  * @param flags		description of the ping we got
  */
 static void
-send_personal_info(struct gnutella_node *n, bool control, enum ping_flag flags)
+send_personal_info(gnutella_node_t *n, bool control, enum ping_flag flags)
 {
 	uint32 kbytes;
 	uint32 files;
@@ -934,9 +943,9 @@ send_personal_info(struct gnutella_node *n, bool control, enum ping_flag flags)
  * Send a pong for each of our connected neighbours to specified node.
  */
 static void
-send_neighbouring_info(struct gnutella_node *n)
+send_neighbouring_info(gnutella_node_t *n)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	/* Replying to a ping */
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_INIT);
@@ -944,8 +953,8 @@ send_neighbouring_info(struct gnutella_node *n)
 	g_assert(gnutella_header_get_hops(&n->header) == 0);
 	g_assert(gnutella_header_get_ttl(&n->header) == 2);	/* "Crawler" ping */
 
-	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *cn = sl->data;
+	PSLIST_FOREACH(node_all_ultranodes(), sl) {
+		gnutella_node_t *cn = sl->data;
 		struct pong_info info;
 
 		if (!NODE_IS_WRITABLE(cn))
@@ -1012,7 +1021,7 @@ send_neighbouring_info(struct gnutella_node *n)
  * When the query key was not good, send back a new query key in the pong.
  */
 void
-pcache_guess_acknowledge(struct gnutella_node *n,
+pcache_guess_acknowledge(gnutella_node_t *n,
 	bool good_query_key, bool wants_ipp, host_net_t net)
 {
 	struct pong_info info;
@@ -1051,7 +1060,7 @@ pcache_guess_acknowledge(struct gnutella_node *n,
 			info.addr = gnet_host_get_addr(h);
 			info.port = gnet_host_get_port(h);
 
-			if (info.port == n->port && host_addr_equal(info.addr, n->addr))
+			if (info.port == n->port && host_addr_equiv(info.addr, n->addr))
 				continue;	/* Don't send pong for the host contacting us */
 	
 			goto send_pong;
@@ -1116,14 +1125,14 @@ struct cached_pong {		/**< A cached pong */
 
 struct cache_line {			/**< A cache line for a given hop value */
 	int hops;				/**< Hop count of this cache line */
-	GSList *pongs;			/**< List of cached_pong */
-	GSList *cursor;			/**< Cursor within list: last item traversed */
+	pslist_t *pongs;		/**< List of cached_pong */
+	pslist_t *cursor;		/**< Cursor within list: last item traversed */
 };
 
 struct recent {
 	hset_t *hs_recent_pongs;	/**< Recent pongs we know about */
-	GList *recent_pongs;		/**< Recent pongs we got */
-	GList *last_returned_pong;	/**< Last returned from list */
+	plist_t *recent_pongs;		/**< Recent pongs we got */
+	plist_t *last_returned_pong;/**< Last returned from list */
 	int recent_pong_count;		/**< # of pongs in recent list */
 };
 
@@ -1166,7 +1175,7 @@ cached_pong_eq(const void *v1, const void *v2)
 {
 	const struct cached_pong *h1 = v1, *h2 = v2;
 
-	return host_addr_equal(h1->info.addr, h2->info.addr) &&
+	return host_addr_equiv(h1->info.addr, h2->info.addr) &&
 		h1->info.port == h2->info.port;
 }
 
@@ -1195,7 +1204,7 @@ pcache_init(void)
 	 */
 
 	local_meta.flags = PONG_META_HAS_VC | PONG_META_HAS_DU;
-	memcpy(local_meta.vendor, "GTKG", 4);
+	memcpy(local_meta.vendor, GTA_VENDOR_CODE, 4);
 	local_meta.version_ua = version_get_code();
 	local_meta.version_up = 0x2;	/* X-Query-Routing: 0.2 */
 
@@ -1308,7 +1317,7 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 {
 	static host_addr_t last_addr;
 	static uint16 last_port = 0;
-	GList *l;
+	plist_t *l;
 	struct cached_pong *cp;
 	struct recent *rec;
 
@@ -1329,24 +1338,24 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 	 */
 
 	if (rec->last_returned_pong == NULL) {
-		l = g_list_first(rec->recent_pongs);
+		l = plist_first(rec->recent_pongs);
 		cp = l->data;
 
 		if (
-			!host_addr_equal(cp->info.addr, last_addr) ||
+			!host_addr_equiv(cp->info.addr, last_addr) ||
 			cp->info.port != last_port
 		)
 			goto found;
 
-		if (g_list_next(l) == NULL)		/* Head is the only item in list */
+		if (plist_next(l) == NULL)		/* Head is the only item in list */
 			return FALSE;
 	} else {
 		/* Regular case */
-		l = g_list_previous(rec->last_returned_pong);
-		for (/* empty */ ; l; l = g_list_previous(l)) {
+		l = plist_prev(rec->last_returned_pong);
+		for (/* empty */ ; l; l = plist_prev(l)) {
 			cp = l->data;
 			if (
-				!host_addr_equal(cp->info.addr, last_addr) ||
+				!host_addr_equiv(cp->info.addr, last_addr) ||
 				cp->info.port != last_port
 			)
 				goto found;
@@ -1357,10 +1366,10 @@ pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 	 * Still none found, go back to the end of the list.
 	 */
 
-	for (l = g_list_last(rec->recent_pongs); l; l = g_list_previous(l)) {
+	for (l = plist_last(rec->recent_pongs); l; l = plist_prev(l)) {
 		cp = l->data;
 		if (
-			!host_addr_equal(cp->info.addr, last_addr) ||
+			!host_addr_equiv(cp->info.addr, last_addr) ||
 			cp->info.port != last_port
 		)
 			goto found;
@@ -1403,21 +1412,21 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
     }
 
 	if (rec->recent_pong_count == RECENT_PING_SIZE) {		/* Full */
-		GList *lnk = g_list_last(rec->recent_pongs);
+		plist_t *lnk = plist_last(rec->recent_pongs);
 		struct cached_pong *p = lnk->data;
 
-		rec->recent_pongs = g_list_remove_link(rec->recent_pongs, lnk);
+		rec->recent_pongs = plist_remove_link(rec->recent_pongs, lnk);
 		hset_remove(rec->hs_recent_pongs, p);
 
 		if (lnk == rec->last_returned_pong)
-			rec->last_returned_pong = g_list_previous(rec->last_returned_pong);
+			rec->last_returned_pong = plist_prev(rec->last_returned_pong);
 
 		free_cached_pong(p);
-		g_list_free_1(lnk);
+		plist_free_1(lnk);
 	} else
 		rec->recent_pong_count++;
 
-	rec->recent_pongs = g_list_prepend(rec->recent_pongs, cp);
+	rec->recent_pongs = plist_prepend(rec->recent_pongs, cp);
 	hset_insert(rec->hs_recent_pongs, cp);
 	cp->refcount++;		/* We don't refcount insertion in the hash table */
 }
@@ -1446,21 +1455,21 @@ pong_type(gnutella_init_response_t *pong)
 void
 pcache_clear_recent(host_type_t type)
 {
-	GList *l;
+	plist_t *l;
 	struct recent *rec;
 
 	g_assert(UNSIGNED(type) < HOST_MAX);
 
 	rec = &recent_pongs[type];
 
-	for (l = rec->recent_pongs; l; l = g_list_next(l)) {
+	PLIST_FOREACH(rec->recent_pongs, l) {
 		struct cached_pong *cp = l->data;
 
 		hset_remove(rec->hs_recent_pongs, cp);
 		free_cached_pong(cp);
 	}
 
-	gm_list_free_null(&rec->recent_pongs);
+	plist_free_null(&rec->recent_pongs);
 	rec->last_returned_pong = NULL;
 	rec->recent_pong_count = 0;
 }
@@ -1475,7 +1484,7 @@ pcache_clear_recent(host_type_t type)
  * - Otherwise, send a handshaking ping with TTL=1
  */
 void
-pcache_outgoing_connection(struct gnutella_node *n)
+pcache_outgoing_connection(gnutella_node_t *n)
 {
 	g_assert(NODE_IS_CONNECTED(n));
 
@@ -1494,7 +1503,7 @@ pcache_outgoing_connection(struct gnutella_node *n)
  * not sending an UHC ping).
  */
 void
-pcache_collect_dht_hosts(struct gnutella_node *n)
+pcache_collect_dht_hosts(gnutella_node_t *n)
 {
 	g_assert(NODE_IS_CONNECTED(n));
 
@@ -1512,19 +1521,19 @@ pcache_expire(void)
 
 	for (i = 0; i < PONG_CACHE_SIZE; i++) {
 		struct cache_line *cl = &pong_cache[i];
-		GSList *sl;
+		pslist_t *sl;
 
-		for (sl = cl->pongs; sl; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(cl->pongs, sl) {
 			entries++;
 			free_cached_pong(sl->data);
 		}
-		gm_slist_free_null(&cl->pongs);
+		pslist_free_null(&cl->pongs);
 		cl->cursor = NULL;
 	}
 
 	if (GNET_PROPERTY(pcache_debug) > 4)
 		g_debug("Pong CACHE expired (%d entr%s, %d in reserve)",
-			entries, entries == 1 ? "y" : "ies", hcache_size(HOST_ANY));
+			entries, plural_y(entries), hcache_size(HOST_ANY));
 }
 
 /**
@@ -1556,9 +1565,9 @@ pcache_close(void)
 void
 ping_all_neighbours(void)
 {
-	const GSList *sl;
-	GSList *may_ping = NULL;
-	GSList *to_ping = NULL;
+	const pslist_t *sl;
+	pslist_t *may_ping = NULL;
+	pslist_t *to_ping = NULL;
 	int ping_cnt = 0;
 	int selected = 0;
 	int left;
@@ -1578,8 +1587,8 @@ ping_all_neighbours(void)
 	 *		--RAM, 12/01/2004
 	 */
 
-	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = sl->data;
+	PSLIST_FOREACH(node_all_ultranodes(), sl) {
+		gnutella_node_t *n = sl->data;
 
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
 			continue;
@@ -1594,26 +1603,26 @@ ping_all_neighbours(void)
 			continue;
 
 		if ((n->attrs & NODE_A_PONG_CACHING) || now > n->next_ping) {
-			may_ping = g_slist_prepend(may_ping, n);
+			may_ping = pslist_prepend(may_ping, n);
 			ping_cnt++;
 		}
 	}
 
-	for (sl = may_ping, left = ping_cnt; sl; sl = g_slist_next(sl), left--) {
-		struct gnutella_node *n = sl->data;
+	for (sl = may_ping, left = ping_cnt; sl; sl = pslist_next(sl), left--) {
+		gnutella_node_t *n = sl->data;
 
 		if (
 			ping_cnt <= MIN_UP_PING ||
 			(selected < MIN_UP_PING && left <= (MIN_UP_PING - selected)) ||
 			random_value(99) < UP_PING_RATIO
 		) {
-			to_ping = g_slist_prepend(to_ping, n);
+			to_ping = pslist_prepend(to_ping, n);
 			selected++;
 		}
 	}
 
-	for (sl = to_ping; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = sl->data;
+	PSLIST_FOREACH(to_ping, sl) {
+		gnutella_node_t *n = sl->data;
 
 		if (!(n->attrs & NODE_A_PONG_CACHING))
 			n->next_ping = time_advance(now, OLD_PING_PERIOD);
@@ -1626,8 +1635,8 @@ ping_all_neighbours(void)
 		send_ping(n, GNET_PROPERTY(my_ttl));
 	}
 
-	g_slist_free(may_ping);
-	g_slist_free(to_ping);
+	pslist_free(may_ping);
+	pslist_free(to_ping);
 }
 
 /**
@@ -1669,7 +1678,7 @@ pcache_set_peermode(node_peer_t mode)
  * those as being "his" pongs.
  */
 static void
-setup_pong_demultiplexing(struct gnutella_node *n, uint8 ttl)
+setup_pong_demultiplexing(gnutella_node_t *n, uint8 ttl)
 {
 	int remains;
 	int h;
@@ -1724,14 +1733,14 @@ setup_pong_demultiplexing(struct gnutella_node *n, uint8 ttl)
  */
 static bool
 iterate_on_cached_line(
-	struct gnutella_node *n, struct cache_line *cl, uint8 ttl,
-	GSList *start, GSList *end, bool strict)
+	gnutella_node_t *n, struct cache_line *cl, uint8 ttl,
+	pslist_t *start, pslist_t *end, bool strict)
 {
 	int hops = cl->hops;
-	GSList *sl;
+	pslist_t *sl;
 
 	sl = start;
-	for (; sl && sl != end && n->pong_missing; sl = g_slist_next(sl)) {
+	for (; sl && sl != end && n->pong_missing; sl = pslist_next(sl)) {
 		struct cached_pong *cp = sl->data;
 
 		cl->cursor = sl;
@@ -1806,11 +1815,11 @@ iterate_on_cached_line(
  */
 static void
 send_cached_pongs(
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	struct cache_line *cl, uint8 ttl, bool strict)
 {
 	int hops = cl->hops;
-	GSList *old = cl->cursor;
+	pslist_t *old = cl->cursor;
 
 	if (strict && !n->pong_needed[hops])
 		return;
@@ -1911,13 +1920,13 @@ send_demultiplexed_pongs(gnutella_node_t *n)
  */
 static void
 pong_all_neighbours_but_one(
-	struct gnutella_node *n, struct cached_pong *cp, host_type_t ptype,
+	gnutella_node_t *n, struct cached_pong *cp, host_type_t ptype,
 	uint8 hops, uint8 ttl)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *cn = sl->data;
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
+		gnutella_node_t *cn = sl->data;
 
 		if (cn == n)
 			continue;
@@ -1974,14 +1983,14 @@ pong_all_neighbours_but_one(
 static void
 pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 	unsigned leaves;
-	struct gnutella_node *leaf = NULL;
+	gnutella_node_t *leaf = NULL;
 
 	g_assert(settings_is_ultra());
 
-	for (sl = node_all_nodes(), leaves = 0; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *cn = sl->data;
+	for (sl = node_all_gnet_nodes(), leaves = 0; sl; sl = pslist_next(sl)) {
+		gnutella_node_t *cn = sl->data;
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
 			continue;
@@ -2031,7 +2040,7 @@ pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
  * @return a walloc-ed pong_meta_t structure if meta data were found.
  */
 static pong_meta_t *
-pong_extract_metadata(struct gnutella_node *n)
+pong_extract_metadata(gnutella_node_t *n)
 {
 	int i;
 	pong_meta_t *meta = NULL;
@@ -2178,7 +2187,7 @@ pong_extract_metadata(struct gnutella_node *n)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, paylen == 1 ? "" : "s");
+					paylen, plural(paylen));
 			}
 			break;
 		}
@@ -2196,7 +2205,7 @@ pong_extract_metadata(struct gnutella_node *n)
 static struct cached_pong *
 record_fresh_pong(
 	host_type_t type,
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	uint8 hops, host_addr_t addr, uint16 port,
 	uint32 files_count, uint32 kbytes_count,
 	pong_meta_t *meta)
@@ -2219,7 +2228,7 @@ record_fresh_pong(
 
 	hop = CACHE_HOP_IDX(hops);		/* Trim high values to MAX_CACHE_HOPS */
 	cl = &pong_cache[hop];
-	cl->pongs = g_slist_append(cl->pongs, cp);
+	cl->pongs = pslist_append(cl->pongs, cp);
 	add_recent_pong(type, cp);
 
 	return cp;
@@ -2229,7 +2238,7 @@ record_fresh_pong(
  * Called when an UDP ping is received.
  */
 static void
-pcache_udp_ping_received(struct gnutella_node *n)
+pcache_udp_ping_received(gnutella_node_t *n)
 {
 	enum ping_flag flags;
 	bool is_uhc, throttled;
@@ -2367,7 +2376,7 @@ pcache_ping_accept(gnutella_node_t *n)
  * - Return cached pongs, avoiding to resend a pong coming from that node ID.
  */
 void
-pcache_ping_received(struct gnutella_node *n)
+pcache_ping_received(gnutella_node_t *n)
 {
 	time_t now = tm_time();
 
@@ -2489,7 +2498,7 @@ pcache_ping_received(struct gnutella_node *n)
  * Called when an UDP pong is received.
  */
 static void
-pcache_udp_pong_received(struct gnutella_node *n)
+pcache_udp_pong_received(gnutella_node_t *n)
 {
 	host_addr_t ipv4_addr;
 	host_addr_t ipv6_addr;	/* Extracted, but value unused currently */
@@ -2566,7 +2575,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 						"bad length for GGEP \"%s\" "
 						"(%d byte%s, not multiple of %d)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, paylen == 1 ? "" : "s", len);
+						paylen, plural(paylen), len);
 				}
 			} else {
 				switch (e->ext_token) {
@@ -2617,7 +2626,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 				paylen = ext_paylen(e);
 				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, paylen == 1 ? "" : "s");
+					paylen, plural(paylen));
 			}
 			break;
 		}
@@ -2662,7 +2671,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
  * - For all nodes but `n', propagate pong if neeed, with demultiplexing.
  */
 void
-pcache_pong_received(struct gnutella_node *n)
+pcache_pong_received(gnutella_node_t *n)
 {
 	uint16 port;
 	uint32 files_count;
@@ -2721,14 +2730,14 @@ pcache_pong_received(struct gnutella_node *n)
 		swapped_count = swap_uint32(files_count);
 
 		if (swapped_count > PCACHE_MAX_FILES) {
-			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
+			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
 				g_warning("%s sent us a pong with "
 					"large file count %u (0x%x), dropped",
 					node_infostr(n), files_count, files_count);
 			n->rx_dropped++;
 			goto done;
 		} else {
-			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
+			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
 				g_warning("%s sent us a pong with suspect file count %u "
 					"(fixed to %u)",
 					node_infostr(n), files_count, swapped_count);
@@ -2758,7 +2767,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 */
 
 		if (!is_host_addr(n->gnet_addr) && (n->flags & NODE_F_INCOMING)) {
-			if (host_addr_equal(addr, n->addr)) {
+			if (host_addr_equiv(addr, n->addr)) {
 				n->gnet_addr = addr;	/* Signals: we have figured it out */
 				n->gnet_port = port;
 			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
@@ -2778,7 +2787,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 *		--RAM, 11/01/2004.
 		 */
 
-		if (n->n_pong_received == 1 || host_addr_equal(addr, n->gnet_addr)) {
+		if (n->n_pong_received == 1 || host_addr_equiv(addr, n->gnet_addr)) {
 			n->gnet_files_count = files_count;
 			n->gnet_kbytes_count = kbytes_count;
 			n->flags |= NODE_F_SHARED_INFO;
@@ -2792,7 +2801,7 @@ pcache_pong_received(struct gnutella_node *n)
 
 		if (
 			is_host_addr(n->gnet_pong_addr) &&
-			!host_addr_equal(addr, n->gnet_pong_addr)
+			!host_addr_equiv(addr, n->gnet_pong_addr)
 		) {
 			if (GNET_PROPERTY(pcache_debug) && n->n_ping_sent > 2) {
 				g_warning("%s sent us a pong for new IP %s (used %s before)",
@@ -2945,7 +2954,7 @@ done:
  * connections as well.
  */
 void
-pcache_pong_fake(struct gnutella_node *n, const host_addr_t addr, uint16 port)
+pcache_pong_fake(gnutella_node_t *n, const host_addr_t addr, uint16 port)
 {
 	g_assert(n->attrs & NODE_A_ULTRA);
 

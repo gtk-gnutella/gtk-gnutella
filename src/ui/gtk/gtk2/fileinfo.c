@@ -25,7 +25,7 @@
  * @ingroup gtk
  * @file
  *
- * Displaying of file information in the GUI.
+ * Displaying of file information in the GUI ("Downloads" pane).
  *
  * @author Richard Eckart
  * @date 2003
@@ -37,6 +37,8 @@
 #include "gtk/downloads_common.h"
 #include "gtk/drag.h"
 #include "gtk/misc.h"
+
+#include "column_sort.h"
 
 #include "if/gui_property.h"
 
@@ -58,8 +60,8 @@ static GtkListStore *store_files;
 static GtkListStore *store_sources;
 
 #if GTK_CHECK_VERSION(2,6,0)
-static GtkSortType files_sort_order;
-static int files_sort_column;
+static GtkSortType files_sort_type;
+static struct sorting_context files_sort;
 static int files_sort_depth;
 #endif	/* Gtk+ => 2.6.0 */
 
@@ -67,8 +69,8 @@ static void
 fi_gui_files_sort_reset(void)
 {
 #if GTK_CHECK_VERSION(2,6,0)
-	files_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
-	files_sort_order = GTK_SORT_ASCENDING;
+	files_sort.s_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+	files_sort_type = GTK_SORT_ASCENDING;
 	files_sort_depth = 0;
 #endif	/* Gtk+ => 2.6.0 */
 }
@@ -84,8 +86,8 @@ fi_gui_files_sort_save(void)
 
 		sortable = GTK_TREE_SORTABLE(store_files);
 		if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
-			files_sort_column = column;
-			files_sort_order = order;
+			files_sort.s_column = column;
+			files_sort_type = order;
 			gtk_tree_sortable_set_sort_column_id(sortable,
 					GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
 		}
@@ -101,9 +103,9 @@ fi_gui_files_sort_restore(void)
 	files_sort_depth--;
 
 	if (0 == files_sort_depth) {
-		if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != files_sort_column) {
+		if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != files_sort.s_column) {
 			gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store_files),
-					files_sort_column, files_sort_order);
+					files_sort.s_column, files_sort_type);
 		}
 	}
 #endif	/* Gtk+ => 2.6.0 */
@@ -628,6 +630,17 @@ store_files_init(void)
 	}
 }
 
+/**
+ * Enforce a tri-state sorting.
+ */
+static void
+on_fileinfo_treeview_column_clicked(GtkTreeViewColumn *column, void *udata)
+{
+	(void) udata;
+
+	 column_sort_tristate(column, &files_sort);
+}
+
 static void
 treeview_download_files_init(void)
 {
@@ -640,11 +653,16 @@ treeview_download_files_init(void)
 	treeview_download_files = tv;
 
 	for (i = 0; i < c_fi_num; i++) {
-		add_column(tv, i,
+		GtkTreeViewColumn *column;
+
+		column = add_column(tv, i,
 			fi_gui_files_column_title(i),
 			fi_gui_files_column_justify_right(i) ? 1.0 : 0.0,
 			c_fi_progress == i ? gtk_cell_renderer_progress_new() : NULL,
 			render_files);
+
+		column_sort_tristate_register(column,
+			on_fileinfo_treeview_column_clicked, NULL);
 	}
 
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
@@ -766,7 +784,7 @@ fi_gui_init(void)
 			renderer = tab[i].id == c_src_progress
 						? gtk_cell_renderer_progress_new()
 						: NULL;
-    		add_column(tv, tab[i].id, _(tab[i].title), 0.0,
+			(void) add_column(tv, tab[i].id, _(tab[i].title), 0.0,
 				renderer, render_sources);
 		}
 

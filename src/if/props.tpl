@@ -1,6 +1,9 @@
 [= AutoGen5 Template =][=
 #
-# $Id$
+# Autogen template file to generate the property files.
+#
+# Copyright (c) 2001-2003, Richard Eckart
+# Copyright (c) 2013, Raphael Manfredi
 #
 =][=
 (define license (sprintf
@@ -51,12 +54,9 @@
         ((= type "timestamp") #t)
         ((= type "multichoice") #t)
         (else #f)))
+(define func-prefix
+	(if (exist? "func_prefix") (get "func_prefix") (. prop-set)))
 =][=
-IF (exist? "func_prefix")=][=
-    (define func-prefix (get "func_prefix"))=][=
-ELSE=][=
-    (define func-prefix (. prop-set))=][=
-ENDIF=][=
 IF (not (exist? "property_set"))=][=
     (error "property set has no name")=][=
 ENDIF=][=
@@ -76,8 +76,8 @@ Generating files:
 #ifndef _[=(. set-name-down)=]_h_
 #define _[=(. set-name-down)=]_h_
 
-
 #include "lib/prop.h"
+#include "lib/log.h"		/* For s_carp() */
 
 #define [=(. prop-min)=] ([=offset=])
 #define [=(. prop-max)=] ([=offset=]+[=(. prop-end)=]-1)
@@ -101,7 +101,7 @@ const prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
  */
 prop_def_t *[=(. func-prefix)=]_get_def(property_t);
 property_t [=(. func-prefix)=]_get_by_name(const char *);
-GSList *[=(. func-prefix)=]_get_by_regex(const char *, int *);
+pslist_t *[=(. func-prefix)=]_get_by_regex(const char *, int *);
 const char *[=(. func-prefix)=]_name(property_t);
 const char *[=(. func-prefix)=]_type_to_string(property_t);
 const char *[=(. func-prefix)=]_to_string(property_t prop);
@@ -110,6 +110,9 @@ const char *[=(. func-prefix)=]_description(property_t);
 gboolean [=(. func-prefix)=]_is_saved(property_t);
 prop_type_t [=(. func-prefix)=]_type(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const char *);
+
+void [=(. func-prefix)=]_lock(property_t);
+void [=(. func-prefix)=]_unlock(property_t);
 
 /*
  * Property-change listeners
@@ -166,18 +169,32 @@ static inline void
 [=(. func-prefix)=]_incr_guint32(property_t p)
 {
 	guint32 value;
+	[=(. func-prefix)=]_lock(p);
 	[=(. func-prefix)=]_get_guint32_val(p, &value);
-	value++;
-	[=(. func-prefix)=]_set_guint32_val(p, value);
+	if G_UNLIKELY((guint32) -1 == value) {
+		s_carp("%s(): incrementing property \"%s\" would overflow",
+			G_STRFUNC, [=(. func-prefix)=]_name(p));
+	} else {
+		value++;
+		[=(. func-prefix)=]_set_guint32_val(p, value);
+	}
+	[=(. func-prefix)=]_unlock(p);
 }
 
 static inline void
 [=(. func-prefix)=]_decr_guint32(property_t p)
 {
 	guint32 value;
+	[=(. func-prefix)=]_lock(p);
 	[=(. func-prefix)=]_get_guint32_val(p, &value);
-	value--;
-	[=(. func-prefix)=]_set_guint32_val(p, value);
+	if G_UNLIKELY(0 == value) {
+		s_carp("%s(): decrementing property \"%s\" would underflow",
+			G_STRFUNC, [=(. func-prefix)=]_name(p));
+	} else {
+		value--;
+		[=(. func-prefix)=]_set_guint32_val(p, value);
+	}
+	[=(. func-prefix)=]_unlock(p);
 }
 
 void [=(. func-prefix)=]_set_guint64(
@@ -261,13 +278,11 @@ gpointer [=(. func-prefix)=]_get_storage(property_t, gpointer, size_t);
 [= ENDFOR uses =]
 
 [= FOR prop =][=
-IF (exist? "data.value") =][=
 (define item (sprintf "%s_variable_%s"
-		(. set-name-down) (get "data.value"))) =][=
-ELSE =][=
-(define item (sprintf "%s_variable_%s"
-		(. set-name-down) (string-downcase (get "name")))) =][=
-ENDIF=][=
+		(. set-name-down)
+		(if (exist? "data.value")
+			(get "data.value") (string-downcase (get "name")))))
+=][=
 CASE type=][=
 = boolean=]extern const gboolean [=(. item)=][=
 = guint32=]extern const guint32  [=(. item)=][=
@@ -300,7 +315,10 @@ void [=(. func-prefix)=]_shutdown(void);
 
 #include "lib/prop.h"
 #include "lib/eval.h"
+#include "lib/mutex.h"
 #include "lib/omalloc.h"
+#include "lib/pslist.h"
+
 #include "[=(sprintf "%s.h" (. set-name-down))=]"
 
 /*
@@ -378,10 +396,11 @@ G_GNUC_COLD prop_set_t *
     [=(. prop-set)=]->size   = [=(. prop-num)=];
     [=(. prop-set)=]->offset = [=offset=];
     [=(. prop-set)=]->mtime  = 0;
-    [=(. prop-set)=]->props  = omalloc(sizeof(prop_def_t) * [=(. prop-num)=]);
+    OMALLOC_ARRAY([=(. prop-set)=]->props, [=(. prop-num)=]);
     [=(. prop-set)=]->get_stub = [=(. func-prefix)=]_get_stub;
     [=(. prop-set)=]->dirty = FALSE;
-    [=(. prop-set)=]->by_name = NULL;[=
+    [=(. prop-set)=]->by_name = NULL;
+	spinlock_init(&[=(. prop-set)=]->lock);[=
 
 FOR prop =][=
     (define current-prop (sprintf "%s[%u]"
@@ -437,6 +456,7 @@ FOR prop =][=
 					(. prop-set) (. prop-var-name)))
 	(define prop-def-var	(sprintf "%s_default" (. prop-var)))
     =][= ENDIF =]
+	mutex_init(&[=  (. current-prop) =].lock);
 
     /* Type specific data: */[=
     CASE type =][=
@@ -567,6 +587,24 @@ prop_def_t *
 [=(. func-prefix)=]_get_def(property_t p)
 {
     return prop_get_def([=(. prop-set)=], p);
+}
+
+/**
+ * Lock property.
+ */
+void
+[=(. func-prefix)=]_lock(property_t p)
+{
+    prop_lock([=(. prop-set)=], p);
+}
+
+/**
+ * Unlock property.
+ */
+void
+[=(. func-prefix)=]_unlock(property_t p)
+{
+    prop_unlock([=(. prop-set)=], p);
 }
 
 /**
@@ -743,7 +781,7 @@ property_t
     return pointer_to_uint(htable_lookup([=(. prop-set)=]->by_name, name));
 }
 
-GSList *
+pslist_t *
 [=(. func-prefix)=]_get_by_regex(const char *pattern, int *error)
 {
     return prop_get_by_regex([=(. prop-set)=], pattern, error);

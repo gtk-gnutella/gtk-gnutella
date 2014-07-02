@@ -271,7 +271,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	/* Node counts */
 	str_bprintf(buf, sizeof buf,
 		"|%s|\n"
-		"| Peers: %-7u Ultra %4u/%-7u  Leaf %4u/%-6u  Legacy %4u/%-4u |\n"
+		"| Peers: %-7u Ultra %4u/%-7u  Leaf %4u/%-6u  G2 hub %4u/%-4u |\n"
 		"|            Downloads %4u/%-4u  Uploads %4u/%-7u Browse %4u/%-4u |\n"
 		"|%s|\n",
 		equals,
@@ -283,8 +283,8 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			GNET_PROPERTY(max_connections) : GNET_PROPERTY(max_ultrapeers),
 		GNET_PROPERTY(node_leaf_count),
 		GNET_PROPERTY(max_leaves),
-		GNET_PROPERTY(node_normal_count),
-		GNET_PROPERTY(normal_connections),
+		GNET_PROPERTY(node_g2_count),
+		GNET_PROPERTY(max_g2_hubs),
 		GNET_PROPERTY(dl_active_count), GNET_PROPERTY(dl_running_count),
 		GNET_PROPERTY(ul_running), GNET_PROPERTY(ul_registered),
 		GNET_PROPERTY(html_browse_served) + GNET_PROPERTY(qhits_browse_served),
@@ -359,7 +359,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			"Shares ",
 			uint64_to_string(shared_files_scanned()),
 			" file",
-			shared_files_scanned() == 1 ? "" : "s",
+			plural(shared_files_scanned()),
 			" ",
 			short_kb_size(shared_kbytes_scanned(), metric),
 			" total",

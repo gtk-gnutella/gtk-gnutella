@@ -109,13 +109,16 @@ typedef struct {
 #include "bit_array.h"
 #include "compat_poll.h"
 #include "fd.h"
-#include "glib-missing.h"
+#include "glib-missing.h"	/* For g_main_context_get_poll_func() with GTK1 */
 #include "hashlist.h"
 #include "htable.h"
 #include "inputevt.h"
 #include "log.h"			/* For s_error() */
 #include "misc.h"
 #include "mutex.h"
+#include "plist.h"
+#include "pslist.h"
+#include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -123,6 +126,7 @@ typedef struct {
 #include "override.h"		/* Must be the last header included */
 
 static unsigned inputevt_debug;
+static unsigned inputevt_stid = THREAD_INVALID_ID;
 
 /**
  * Set debugging level.
@@ -149,6 +153,7 @@ inputevt_cond_to_string(inputevt_cond_t cond)
 {
 	switch (cond) {
 #define CASE(x) case x: return #x
+	CASE(INPUT_EVENT_NONE);
 	CASE(INPUT_EVENT_EXCEPTION);
 	CASE(INPUT_EVENT_R);
 	CASE(INPUT_EVENT_W);
@@ -173,7 +178,7 @@ typedef struct {
 } inputevt_relay_t;
 
 typedef struct relay_list {
-	GSList *sl;
+	pslist_t *sl;
 	size_t readers;
 	size_t writers;
 	unsigned poll_idx;
@@ -193,7 +198,7 @@ struct poll_ctx {
 	inputevt_relay_t **relay;	/**< The relay contexts */
 	bit_array_t *used_event_id;	/**< A bit array, which ID slots are used */
 	bit_array_t *used_poll_idx;	/**< -"-, which Poll IDX slots are used */
-	GSList *removed;			/**< List of removed IDs */
+	pslist_t *removed;			/**< List of removed IDs */
 	htable_t *ht;				/**< Records file descriptors */
 	hash_list_t *readable;		/**< Records readable file descriptors */
 	int master_fd;				/**< The ``master'' fd for epoll or kqueue */
@@ -430,7 +435,7 @@ event_get_with_epoll(const struct poll_ctx *ctx, unsigned idx)
 
 	g_assert(CTX_IS_LOCKED(ctx));
 
-	event.fd = GPOINTER_TO_INT(ev->data.ptr);
+	event.fd = pointer_to_int(ev->data.ptr);
 	event.condition =
 		((EPOLLIN | EPOLLPRI | EPOLLHUP) & ev->events ? INPUT_EVENT_R : 0)
 		| (EPOLLOUT & ev->events ? INPUT_EVENT_W : 0)
@@ -792,8 +797,8 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 		}
 		g_assert(num_unused <= ctx->max_poll_idx);
 
-		str_cat(str, "}");
-		g_debug("%s (used=%u, unused=%u)",
+		str_putc(str, '}');
+		s_debug("%s (used=%u, unused=%u)",
 			str_2c(str), ctx->max_poll_idx - num_unused, num_unused);
 		str_destroy_null(&str);
 
@@ -827,7 +832,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 	
-	rl->sl = g_slist_remove(rl->sl, uint_to_pointer(id));
+	rl->sl = pslist_remove(rl->sl, uint_to_pointer(id));
 	if (NULL == rl->sl) {
 		g_assert(0 == rl->readers && 0 == rl->writers);
 		inputevt_poll_idx_free(ctx, &rl->poll_idx);
@@ -843,15 +848,15 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 static void
 inputevt_purge_removed(struct poll_ctx *ctx)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	g_assert(CTX_IS_LOCKED(ctx));
 
-	for (sl = ctx->removed; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(ctx->removed, sl) {
 		inputevt_relay_t *relay;
 		unsigned id;
 
-		id = GPOINTER_TO_UINT(sl->data);
+		id = pointer_to_uint(sl->data);
 		g_assert(id > 0);
 		g_assert(id < ctx->num_ev);
 
@@ -864,7 +869,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 		ctx->relay[id] = NULL;
 	}
 
-	gm_slist_free_null(&ctx->removed);
+	pslist_free_null(&ctx->removed);
 }
 
 /**
@@ -875,12 +880,19 @@ inputevt_timer(struct poll_ctx *ctx)
 {
 	int num_events;
 
-	g_assert(ctx);
+	g_assert(ctx != NULL);
+
+	CTX_LOCK(ctx);
+
 	g_assert(ctx->initialized);
-	g_assert(ctx->ht);
+	g_assert(ctx->ht != NULL);
 
 	/* Maybe this must safely fail for general use, thus no assertion */
-	g_return_if_fail(!ctx->dispatching);
+	if (ctx->dispatching) {
+		CTX_UNLOCK(ctx);
+		s_critical("%s(): called recursively / concurrently", G_STRFUNC);
+		return;
+	}
 
 	num_events = (*ctx->event_check_all)(ctx);
 	if (-1 == num_events && !is_temporary_error(errno)) {
@@ -891,12 +903,11 @@ inputevt_timer(struct poll_ctx *ctx)
 
 	if (num_events > 0) {
 		unsigned idx;
+		pslist_t *evlist = NULL, *es;
 
 		g_assert(UNSIGNED(num_events) <= ctx->num_ev);
 	
 		for (idx = 0; num_events > 0 && idx < ctx->num_ev; idx++) {
-			relay_list_t *rl;
-			GSList *sl;
 			struct event event;
 
 			event = (*ctx->event_get)(ctx, idx);
@@ -906,7 +917,24 @@ inputevt_timer(struct poll_ctx *ctx)
 				continue;
 
 			num_events--;
-			rl = htable_lookup(ctx->ht, int_to_pointer(event.fd));
+			evlist = pslist_prepend(evlist, WCOPY(&event));
+		}
+
+		/*
+		 * Invoke I/O callbacks without any locks.
+		 *
+		 * Becauuse ctx->dispatching is TRUE, no changes to the relay list
+		 * can happen concurrently (hopefully -- RAM).
+		 */
+
+		CTX_UNLOCK(ctx);
+
+		PSLIST_FOREACH(evlist, es) {
+			relay_list_t *rl;
+			pslist_t *sl;
+			struct event *event = es->data;
+
+			rl = htable_lookup(ctx->ht, int_to_pointer(event->fd));
 			g_assert(NULL != rl);
 			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
@@ -914,42 +942,58 @@ inputevt_timer(struct poll_ctx *ctx)
 				inputevt_relay_t *relay;
 				unsigned id;
 
-				id = GPOINTER_TO_UINT(sl->data);
+				id = pointer_to_uint(sl->data);
 				g_assert(id > 0);
 				g_assert(id < ctx->num_ev);
 
-				sl = g_slist_next(sl);
+				sl = pslist_next(sl);
 
 				relay = ctx->relay[id];
 				g_assert(relay);
-				g_assert(relay->fd == event.fd);
+				g_assert(relay->fd == event->fd);
 
-				if (zero_handler == relay->handler)
+				if G_UNLIKELY(zero_handler == relay->handler)
 					continue;
 
-				if (relay->condition & event.condition) {
-					data_available = event.data_available;
-					relay->handler(relay->data, relay->fd, event.condition);
+				if (relay->condition & event->condition) {
+					data_available = event->data_available;
+					relay->handler(relay->data, relay->fd, event->condition);
 				}
 			}
+
+			WFREE(event);
 		}
+
+		pslist_free_null(&evlist);
+		CTX_LOCK(ctx);
 	}
 
 	if (hash_list_length(ctx->readable) > 0) {
-		GList *iter, *list = hash_list_list(ctx->readable);
+		plist_t *iter, *list = hash_list_list(ctx->readable);
 
 		hash_list_clear(ctx->readable);
 
+		/*
+		 * Now that we snapshot the list of readable file descriptors, we
+		 * can release the context lock to make sure callbacks are invoked
+		 * with not locks held.
+		 *
+		 * Same as above for regular fd events, we hope that the relay list
+		 * will not be concurrently updated in a way that would corrupt our
+		 * processing whilst we no longer hold the lock.	--RAM
+		 */
+
+		CTX_UNLOCK(ctx);
+
 		if (inputevt_debug > 2) {
-			unsigned long count = g_list_length(list);
-			g_debug("%s: %lu fake event%s", G_STRFUNC,
-				count, 1 == count ? "" : "s");
+			unsigned long count = plist_length(list);
+			s_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
 		}
 
-		for (iter = list; NULL != iter; iter = g_list_next(iter)) {
-			int fd = GPOINTER_TO_INT(iter->data);
+		PLIST_FOREACH(list, iter) {
+			int fd = pointer_to_int(iter->data);
 			relay_list_t *rl;
-			GSList *sl;
+			pslist_t *sl;
 
 			g_assert(is_valid_fd(fd));
 
@@ -961,8 +1005,8 @@ inputevt_timer(struct poll_ctx *ctx)
 				inputevt_relay_t *relay;
 				unsigned id;
 
-				id = GPOINTER_TO_UINT(sl->data);
-				sl = g_slist_next(sl);
+				id = pointer_to_uint(sl->data);
+				sl = pslist_next(sl);
 
 				g_assert(id > 0);
 				g_assert(id < ctx->num_ev);
@@ -971,7 +1015,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				g_assert(relay);
 				g_assert(relay->fd == fd);
 
-				if (zero_handler == relay->handler)
+				if G_UNLIKELY(zero_handler == relay->handler)
 					continue;
 
 				if (INPUT_EVENT_R & relay->condition) {
@@ -980,7 +1024,8 @@ inputevt_timer(struct poll_ctx *ctx)
 				}
 			}
 		}
-		gm_list_free_null(&list);
+		plist_free_null(&list);
+		CTX_LOCK(ctx);
 	}
 	
 	ctx->dispatching = FALSE;
@@ -988,6 +1033,8 @@ inputevt_timer(struct poll_ctx *ctx)
 	if (ctx->removed) {
 		inputevt_purge_removed(ctx);
 	}
+
+	CTX_UNLOCK(ctx);
 }
 
 /**
@@ -1002,10 +1049,7 @@ dispatch_poll(GIOChannel *unused_source,
 	(void) unused_cond;
 	(void) unused_source;
 
-	CTX_LOCK(ctx);
 	inputevt_timer(ctx);
-	CTX_UNLOCK(ctx);
-
 	return TRUE;
 }
 
@@ -1123,7 +1167,7 @@ inputevt_remove(unsigned *id_ptr)
 		 * Don't clear the "used_event_id" bit yet because this slot must
 		 * not be recycled whilst dispatching events.
 		 */
-		ctx->removed = g_slist_prepend(ctx->removed, GUINT_TO_POINTER(id));
+		ctx->removed = pslist_prepend(ctx->removed, uint_to_pointer(id));
 	} else {
 		relay_list_remove(ctx, id);		
 		WFREE(relay);
@@ -1178,23 +1222,14 @@ inputevt_add_source(inputevt_relay_t *relay)
 		ctx->num_ev = 0 != n ? n << 1 : 32;
 
 #ifdef HAS_KQUEUE
-		{
-			size_t size = ctx->num_ev * sizeof ctx->kev_arr[0];
-			ctx->kev_arr = xrealloc(ctx->kev_arr, size);
-		}
-#endif	/* HAS_KQUEUE */
+		XREALLOC_ARRAY(ctx->kev_arr, ctx->num_ev);
+#endif
 
 #ifdef HAS_EPOLL
-		{
-			size_t size = ctx->num_ev * sizeof ctx->ep_arr[0];
-			ctx->ep_arr = xrealloc(ctx->ep_arr, size);
-		}
-#endif	/* HAS_EPOLL */
+		XREALLOC_ARRAY(ctx->ep_arr, ctx->num_ev);
+#endif
 
-		{
-			size_t size = ctx->num_ev * sizeof ctx->pfd_arr[0];
-			ctx->pfd_arr = xrealloc(ctx->pfd_arr, size);
-		}
+		XREALLOC_ARRAY(ctx->pfd_arr, ctx->num_ev);
 
 		for (i = n; i < ctx->num_ev; i++) {
 			struct pollfd *pfd = &ctx->pfd_arr[i];
@@ -1213,12 +1248,9 @@ inputevt_add_source(inputevt_relay_t *relay)
 			id = n;
 		}
 
-		{
-			size_t size = ctx->num_ev * sizeof ctx->relay[0];
-			ctx->relay = xrealloc(ctx->relay, size);
-			for (i = n; i < ctx->num_ev; i++)
-				ctx->relay[i] = NULL;
-		}
+		XREALLOC_ARRAY(ctx->relay, ctx->num_ev);
+		for (i = n; i < ctx->num_ev; i++)
+			ctx->relay[i] = NULL;
 	}
 
 	g_assert(id < ctx->num_ev);
@@ -1240,7 +1272,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 				g_assert(NULL != rl->sl);
 
-				x = GPOINTER_TO_UINT(rl->sl->data);
+				x = pointer_to_uint(rl->sl->data);
 				g_assert(x != id);
 				g_assert(x > 0);
 				g_assert(x < ctx->num_ev);
@@ -1266,7 +1298,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		if (INPUT_EVENT_W & relay->condition)
 			rl->writers++;
 
-		rl->sl = g_slist_prepend(rl->sl, GUINT_TO_POINTER(id));
+		rl->sl = pslist_prepend(rl->sl, uint_to_pointer(id));
 	}
 
 	if 
@@ -1290,7 +1322,7 @@ inputevt_set_readable(int fd)
 	void *key = int_to_pointer(fd);
 
 	if (inputevt_debug > 3) {
-		g_debug("%s: fd=%d", G_STRFUNC, fd);
+		s_debug("%s: fd=%d", G_STRFUNC, fd);
 	}
 	g_assert(is_valid_fd(fd));
 
@@ -1422,6 +1454,15 @@ init_with_poll(struct poll_ctx *ctx)
 }
 
 /**
+ * @return the thread ID where the I/O event loop runs from.
+ */
+unsigned
+inputevt_thread_id(void)
+{
+	return inputevt_stid;
+}
+
+/**
  * Performs module initialization.
  * @param use_poll If TRUE, kqueue(), epoll(), /dev/poll etc. won't be used.
  */
@@ -1431,12 +1472,20 @@ inputevt_init(int use_poll)
 	struct poll_ctx *ctx;
 
 	ctx = get_global_poll_ctx();
+	inputevt_stid = thread_small_id();
 
 	g_assert(!ctx->initialized);
 	ctx->initialized = TRUE;
 	ctx->ht = htable_create(HASH_KEY_SELF, 0);
 	ctx->readable = hash_list_new(NULL, NULL);
 	mutex_init(&ctx->lock);
+
+	/*
+	 * This hash table can be accessed from inputevt_timer() without the
+	 * context lock, hence it needs to be marked thread-safe.
+	 */
+
+	htable_thread_safe(ctx->ht);
 
 	CTX_LOCK(ctx);
 
@@ -1467,7 +1516,7 @@ inputevt_init(int use_poll)
 	}
 
 #ifdef INPUTEVT_DEBUGGING
-	g_info("INPUTEVT using customized I/O dispatching with %s",
+	s_info("INPUTEVT using customized I/O dispatching with %s",
 		ctx->polling_method);
 #endif
 }
@@ -1501,6 +1550,8 @@ inputevt_add(int fd, inputevt_cond_t cond,
 		goto cond_is_okay;
 	case INPUT_EVENT_EXCEPTION:
 		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
+	case INPUT_EVENT_NONE:
+		g_error("cannot specify INPUT_EVENT_NONE only!");
 	}
 	g_assert_not_reached();
 
@@ -1525,9 +1576,7 @@ inputevt_dispatch(void)
 {
 	struct poll_ctx *ctx = get_global_poll_ctx();
 
-	CTX_LOCK(ctx);
 	inputevt_timer(ctx);
-	CTX_UNLOCK(ctx);
 }
 
 /**
@@ -1539,6 +1588,7 @@ inputevt_close(void)
 	struct poll_ctx *ctx;
 	
 	ctx = get_global_poll_ctx();
+	inputevt_stid = THREAD_INVALID_ID;
 
 	CTX_LOCK(ctx);
 
@@ -1547,8 +1597,8 @@ inputevt_close(void)
 	hash_list_free(&ctx->readable);
 	G_FREE_NULL(ctx->used_poll_idx);
 	G_FREE_NULL(ctx->used_event_id);
-	G_FREE_NULL(ctx->relay);
-	G_FREE_NULL(ctx->pfd_arr);
+	XFREE_NULL(ctx->relay);
+	XFREE_NULL(ctx->pfd_arr);
 	fd_close(&ctx->master_fd);
 	ctx->initialized = FALSE;
 

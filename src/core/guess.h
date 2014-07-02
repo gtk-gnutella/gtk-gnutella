@@ -70,6 +70,16 @@ void guess_kept_results(const guid_t *muid, uint32 kept);
 bool guess_rpc_handle(struct gnutella_node *n);
 void guess_introduction_ping(const struct gnutella_node *n,
 	const char *buf, uint16 len);
+void guess_add_hub(host_addr_t addr, uint16 port);
+bool guess_already_queried(const guess_t *gq,
+	const host_addr_t addr, uint16 port);
+void guess_invalidate_keys(void);
+
+struct g2_tree;
+struct guid;
+
+bool guess_late_qa(const struct gnutella_node *n,
+	const struct g2_tree *t, const struct guid *muid);
 
 int guess_fill_caught_array(host_net_t net,
 	bool add_02, gnet_host_t *hosts, int hcount);

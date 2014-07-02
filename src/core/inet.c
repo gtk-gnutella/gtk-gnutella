@@ -230,9 +230,9 @@ is_local_addr(const host_addr_t addr)
 	if (is_my_address(addr))
 		return TRUE;
 
-	if (host_addr_equal(addr, ipv4_loopback))
+	if (host_addr_equiv(addr, ipv4_loopback))
 		return TRUE;
-	if (host_addr_equal(addr, ipv6_loopback))
+	if (host_addr_equiv(addr, ipv6_loopback))
 		return TRUE;
 
 	switch (host_addr_net(addr)) {
@@ -296,12 +296,11 @@ inet_udp_firewalled(bool new_env)
  * Enter the UNSOLICITED_CHECK state.
  */
 static void
-move_to_unsolicited_check(cqueue_t *unused_cq, void *unused_data)
+move_to_unsolicited_check(cqueue_t *cq, void *unused_data)
 {
-	(void) unused_cq;
 	(void) unused_data;
 
-	unsolicited_udp_ev = NULL;		/* Event fired */
+	cq_zero(cq, &unsolicited_udp_ev);		/* Event fired */
 
 	if (GNET_PROPERTY(fw_debug))
 		g_debug("FW: will be now monitoring UDP for unsolicited messages");

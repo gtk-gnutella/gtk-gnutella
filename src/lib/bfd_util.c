@@ -79,6 +79,7 @@
 #include "bfd_util.h"
 #include "concat.h"
 #include "mutex.h"
+#include "once.h"
 #include "path.h"
 #include "symbols.h"
 #include "vmm.h"			/* For vmm_page_start() */
@@ -123,8 +124,6 @@ struct symbol_ctx {
 	bfd_vma addr;
 };
 
-static mutex_t bfd_library_mtx = MUTEX_INIT;
-
 static inline void
 bfd_ctx_check(const struct bfd_ctx * const bc)
 {
@@ -158,7 +157,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 	if (0 == bc->count)
 		return;
 
-	mutex_lock(&bc->lock);
+	mutex_lock_fast(&bc->lock);
 
 	g_assert(bc->symbols != NULL);
 
@@ -185,7 +184,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 		}
 	}
 
-	mutex_unlock(&bc->lock);
+	mutex_unlock_fast(&bc->lock);
 }
 
 /**
@@ -234,7 +233,7 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	bfd_ctx_check(bc);
 
-	mutex_lock(&bc->lock);
+	mutex_lock_fast(&bc->lock);
 
 	ZERO(&sc);
 	lookaddr = const_ptr_add_offset(addr, bc->offset);
@@ -245,7 +244,7 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	if (sc.location.function != NULL) {
 		*loc = sc.location;		/* Struct copy */
-		mutex_unlock(&bc->lock);
+		mutex_unlock_fast(&bc->lock);
 		return TRUE;
 	}
 
@@ -268,11 +267,11 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 	if (name != NULL) {
 		ZERO(loc);
 		loc->function = name;
-		mutex_unlock(&bc->lock);
+		mutex_unlock_fast(&bc->lock);
 		return TRUE;
 	}
 
-	mutex_unlock(&bc->lock);
+	mutex_unlock_fast(&bc->lock);
 	return FALSE;
 }
 
@@ -315,6 +314,7 @@ bfd_util_check_format(bfd *b, bfd_format fmt, const char *path)
 static bool
 bfd_util_open(bfd_ctx_t *bc, const char *path)
 {
+	static mutex_t bfd_library_mtx = MUTEX_INIT;
 	bfd *b;
 	void *symbols = NULL;
 	unsigned size = 0;
@@ -359,11 +359,11 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 	 * thread-safe and we could enter here concurrently.
 	 */
 
-	mutex_lock(&bfd_library_mtx);
+	mutex_lock_fast(&bfd_library_mtx);
 
 	b = bfd_fdopenr(libpath, NULL, fd);
 	if (NULL == b) {
-		mutex_unlock(&bfd_library_mtx);
+		mutex_unlock_fast(&bfd_library_mtx);
 		close(fd);
 		return FALSE;
 	}
@@ -404,7 +404,7 @@ failed:
 	/* FALL THROUGH */
 
 done:
-	mutex_unlock(&bfd_library_mtx);
+	mutex_unlock_fast(&bfd_library_mtx);
 
 	bc->magic = BFD_CTX_MAGIC;
 	bc->handle = b;
@@ -425,7 +425,7 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 	bfd_ctx_t *bc = *bc_ptr;
 
 	if (bc != NULL) {
-		mutex_lock(&bc->lock);
+		mutex_lock(&bc->lock);	/* Not a fast mutex since we'll destroy it */
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
 
@@ -517,16 +517,21 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 
 	bfd_ctx_check(bc);
 
-	mutex_lock(&bc->lock);
+	if (bc->offseted || NULL == bc->handle)
+		return;
+
+	mutex_lock_fast(&bc->lock);
 
 	if (bc->offseted) {
-		mutex_unlock(&bc->lock);
+		mutex_unlock_fast(&bc->lock);
 		return;
 	}
 
 	b = bc->handle;
-	if (NULL == b)
+	if (NULL == b) {
+		mutex_unlock_fast(&bc->lock);
 		return;
+	}
 
 	/*
 	 * Take the first section of the file and look where its page would start.
@@ -551,7 +556,7 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	}
 
 	bc->offseted = TRUE;
-	mutex_unlock(&bc->lock);
+	mutex_unlock_fast(&bc->lock);
 }
 
 /**
@@ -580,17 +585,14 @@ bfd_util_free_list(struct bfd_list *list)
 bfd_env_t *
 bfd_util_init(void)
 {
-	static bool done;
+	static once_flag_t done;
 	bfd_env_t *be;
 
 	XMALLOC0(be);
 	be->magic = BFD_ENV_MAGIC;
 	mutex_init(&be->lock);
 
-	if (!done) {
-		bfd_init();
-		done = TRUE;
-	}
+	ONCE_FLAG_RUN(done, bfd_init);
 
 	return be;
 }
@@ -612,9 +614,9 @@ bfd_util_get_context(bfd_env_t *be, const char *path)
 	bfd_env_check(be);
 	g_assert(path != NULL);
 
-	mutex_lock(&be->lock);
+	mutex_lock_fast(&be->lock);
 	bc = bfd_util_get_bc(&be->head, path);
-	mutex_unlock(&be->lock);
+	mutex_unlock_fast(&be->lock);
 
 	return bc;
 }
@@ -638,7 +640,7 @@ bfd_util_close(bfd_env_t *be)
 {
 	bfd_env_check(be);
 
-	mutex_lock(&be->lock);
+	mutex_lock(&be->lock);		/* Not a fast mutex since we'll destroy it */
   	bfd_util_free_list(be->head);
 	be->magic = 0;
 	mutex_destroy(&be->lock);

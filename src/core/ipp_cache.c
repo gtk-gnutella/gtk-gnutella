@@ -30,7 +30,7 @@
  * determine whether a particular IP:port belongs to the cache and when
  * it was added.
  *
- * This is generic code hanlding entries formatted as:
+ * This is generic code handling entries formatted as:
  *
  *   HOST 10.19.182.13:1033
  *   SEEN 2010-10-27 14:25:06
@@ -54,19 +54,20 @@
 
 #include "common.h"
 
-#include "lib/bit_array.h"
-#include "lib/file.h"
-#include "lib/getdate.h"
-#include "lib/hashlist.h"
-#include "lib/walloc.h"
-
-#include "lib/endian.h"
-#include "lib/host_addr.h"
-#include "lib/timestamp.h"
+#include "ipp_cache.h"
 
 #include "hosts.h"
 #include "settings.h"
-#include "ipp_cache.h"
+
+#include "lib/bit_array.h"
+#include "lib/endian.h"
+#include "lib/file.h"
+#include "lib/getdate.h"
+#include "lib/hashlist.h"
+#include "lib/host_addr.h"
+#include "lib/timestamp.h"
+#include "lib/tokenizer.h"
+#include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -114,7 +115,7 @@ static int
 ipp_cache_item_eq(const void *v1, const void *v2)
 {
 	const struct ipp_cache_item *a = v1, *b = v2;
-	return gnet_host_eq(&a->host,& b->host);
+	return gnet_host_equal(&a->host,& b->host);
 }
 
 /**
@@ -167,13 +168,10 @@ typedef enum {
 	NUM_IPP_CACHE_TAGS
 } ipp_cache_tag_t;
 
-static const struct ipp_cache_tag {
-	ipp_cache_tag_t	tag;
-	const char *str;
-} ipp_cache_tag_map[] = {
+static const tokenizer_t ipp_cache_tags[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define IPP_CACHE_TAG(x) { CAT2(IPP_CACHE_TAG_,x), #x }
+#define IPP_CACHE_TAG(x) { #x, CAT2(IPP_CACHE_TAG_,x) }
 	IPP_CACHE_TAG(END),
 	IPP_CACHE_TAG(HOST),
 	IPP_CACHE_TAG(SEEN),
@@ -185,24 +183,10 @@ static const struct ipp_cache_tag {
 /**
  * Convert a string representation of a serializing tag to its token number.
  */
-static ipp_cache_tag_t
+static inline ipp_cache_tag_t
 ipp_cache_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(ipp_cache_tag_map) == (NUM_IPP_CACHE_TAGS - 1));
-
-#define GET_ITEM(i) (ipp_cache_tag_map[(i)].str)
-#define FOUND(i) G_STMT_START { \
-	return ipp_cache_tag_map[(i)].tag; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(ipp_cache_tag_map), strcmp,
-		GET_ITEM, FOUND);
-
-#undef FOUND
-#undef GET_ITEM
-	return IPP_CACHE_TAG_UNKNOWN;
+	return TOKENIZE(s, ipp_cache_tags);
 }
 
 /**
@@ -506,9 +490,8 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		g_assert(UNSIGNED(tag) < NUM_IPP_CACHE_TAGS);
 		if (IPP_CACHE_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning(
-				"ipp_cache_load(\"%s\"): "
-				"duplicate tag \"%s\" in entry in line %u",
-				ic->name, tag_name, line_no);
+				"%s(\"%s\"): duplicate tag \"%s\" in entry in line %u",
+				G_STRFUNC, ic->name, tag_name, line_no);
 			break;
 		}
 		
@@ -535,11 +518,11 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 			
 		case IPP_CACHE_TAG_END:
 			if (!bit_array_get(tag_used, IPP_CACHE_TAG_HOST)) {
-				g_warning("ipp_cache_load(): missing HOST tag");
+				g_warning("%s(): missing HOST tag", G_STRFUNC);
 				damaged = TRUE;
 			}
 			if (!bit_array_get(tag_used, IPP_CACHE_TAG_SEEN)) {
-				g_warning("ipp_cache_load(): missing SEEN tag");
+				g_warning("%s(): missing SEEN tag", G_STRFUNC);
 				damaged = TRUE;
 			}
 			done = TRUE;
@@ -555,9 +538,9 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		}
 
 		if (damaged) {
-			g_warning("damaged %s cache entry in line %u: "
+			g_warning("%s(): damaged %s cache entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
-				ic->item_name, line_no, tag_name, value);
+				G_STRFUNC, ic->item_name, line_no, tag_name, value);
 			break;
 		}
 
@@ -566,9 +549,10 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 				ipp_cache_lookup_intern(ic, gnet_host_get_addr(&item.host),
 					gnet_host_get_port(&item.host))
 			) {
-				g_warning(
-					"ignoring duplicate %s cache item around line %u (%s)",
-				   	ic->item_name, line_no, gnet_host_to_string(&item.host));
+				g_warning("%s(): ignoring duplicate %s cache item around "
+					"line %u (%s)",
+					G_STRFUNC, ic->item_name, line_no,
+					gnet_host_to_string(&item.host));
 			} else if (!ipp_cache_item_expired(ic, item.seen, tm_time())) {
 				ipp_cache_insert_intern(ic, &item);
 			}
@@ -657,6 +641,8 @@ ipp_cache_invalidate(enum ipp_cache_id cid)
 G_GNUC_COLD void
 ipp_cache_init(void)
 {
+	TOKENIZE_CHECK_SORTED(ipp_cache_tags);
+
 	caches[IPP_CACHE_TLS] = ipp_cache_alloc(
 		"TLS cache", "TLS", "tls_cache", "TLS-capable hosts",
 		GNET_PROPERTY_PTR(tls_cache_max_time),

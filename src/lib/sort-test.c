@@ -40,7 +40,9 @@
 #include "lib/sha1.h"
 #include "lib/smsort.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/tqsort.h"
 #include "lib/xmalloc.h"
 #include "lib/xsort.h"
 
@@ -378,6 +380,12 @@ qsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 }
 
 static void
+tqsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
+{
+	xtest(tqsort, array, copy, cnt, isize, loops);
+}
+
+static void
 smsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
 	xtest(smsort, array, copy, cnt, isize, loops);
@@ -554,11 +562,11 @@ calibrate(void *array, size_t cnt, size_t isize)
 static void
 compute_sha1(sha1_t *digest, const void *p, size_t len)
 {
-	SHA1Context ctx;
+	SHA1_context ctx;
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, p, len);
-	SHA1Result(&ctx, digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, p, len);
+	SHA1_result(&ctx, digest);
 }
 
 static void
@@ -699,6 +707,7 @@ run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
 		timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
 	timeit(xqsort_test, loops, array, cnt, isize, chrono, what, "xqsort");
 	timeit(qsort_test, loops, array, cnt, isize, chrono, what, "qsort");
+	timeit(tqsort_test, loops, array, cnt, isize, chrono, what, "tqsort");
 	if (!qsort_only) {
 		timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
 		timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
@@ -716,7 +725,7 @@ run_degenerative(enum degenerative how, size_t cnt, size_t isize,
 
 	str_bprintf(buf, sizeof buf,
 		"%zu %s item%s of %zu bytes",
-		cnt, degenerative_to_string(how), 1 == cnt ? "" : "s", isize);
+		cnt, degenerative_to_string(how), plural(cnt), isize);
 
 	array = generate_degenerative_array(cnt, isize, how);
 	run(array, cnt, isize, chrono, loops, buf);
@@ -731,7 +740,7 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	void *copy;
 
 	str_bprintf(buf, sizeof buf, "%zu item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	array = generate_array(cnt, isize);
 	copy = xcopy(array, cnt * isize);
@@ -739,35 +748,35 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu almost sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu reverse-sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	xsort(array, cnt, isize, get_revcmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu almost rev-sorted item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu sorted 3/4-1/4 item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 
@@ -784,7 +793,7 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 
 	str_bprintf(buf, sizeof buf,
 		"%zu sorted n-8 item%s of %zu bytes",
-		cnt, 1 == cnt ? "" : "s", isize);
+		cnt, plural(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 

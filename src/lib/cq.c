@@ -35,43 +35,99 @@
 #include "common.h"
 
 #include "cq.h"
+
 #include "atoms.h"
+#include "elist.h"
+#include "entropy.h"
+#include "hashing.h"		/* For integer_hash_fast() */
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
+#include "pow2.h"
+#include "pslist.h"
+#include "spinlock.h"
+#include "stacktrace.h"
 #include "stringify.h"
+#include "thread.h"
 #include "tm.h"
+#include "tsig.h"
 #include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
-static void cq_run_idle(cqueue_t *cq);
+#define CQ_IDLE_FORCE	30	/* Force idle callbacks once every 30 seconds */
+#define CQ_IDLE_PERIOD	1	/* Minimal period in seconds for idle callbacks */
 
-static const uint32 *cq_debug_ptr;
+static size_t cq_run_idle(cqueue_t *cq);
+
+static uint32 cq_debug_ptr_default;
+static const uint32 *cq_debug_ptr = &cq_debug_ptr_default;
 static inline uint32 cq_debug(void) { return *cq_debug_ptr; }
 
-enum cevent_magic { CEVENT_MAGIC = 0x40110172U };
+#define cq_debugging(lvl)	G_UNLIKELY(cq_debug() > (lvl))
+
+enum cevent_magic {
+	CEVENT_MAGIC = 0x40110172,
+	CEVENT_EXT_MAGIC = 0x6a8fe830
+};
 
 /**
  * Callout queue event.
  */
 struct cevent {
 	enum cevent_magic ce_magic;	/**< Magic number (must be at the top) */
+	cq_time_t ce_time;			/**< Absolute trigger time (virtual cq time) */
 	struct cevent *ce_bnext;	/**< Next item in hash bucket */
 	struct cevent *ce_bprev;	/**< Prev item in hash bucket */
 	cqueue_t *ce_cq;			/**< Callout queue where event is registered */
 	cq_service_t ce_fn;			/**< Callback routine */
 	void *ce_arg;				/**< Argument to pass to said callback */
-	cq_time_t ce_time;			/**< Absolute trigger time (virtual cq time) */
 };
 
 static inline void
 cevent_check(const struct cevent * const ce)
 {
 	g_assert(ce);
-	g_assert(CEVENT_MAGIC == ce->ce_magic);
+	g_assert(CEVENT_MAGIC == ce->ce_magic || CEVENT_EXT_MAGIC == ce->ce_magic);
+}
+
+/**
+ * Callout queue extended event.
+ *
+ * An extended event is created when the thread registering the event is not
+ * the one running the callout queue: since destruction / scheduling of the
+ * event can occur concurrently, we need an extra layer of protection.
+ *
+ * Structural equivalence guarantees that we can use an extended event as
+ * a regular event as long as we don't need to access the extra fields.
+ *
+ * An extended event is created by cq_insert() (or any wrapping convenience
+ * routine) when the caller is not the thread that runs the queue, and the
+ * caller will need to keep a reference on the created event.
+ *
+ * The caller will need to explictly call cq_cancel() to free the event,
+ * regardless of whether it was already scheduled, unless it does not call
+ * cq_zero(), in which case it will be freed upon return.  This would happen
+ * if the caller does not (need to) remember the value returned by cq_insert().
+ */
+struct cevent_ext {
+	struct cevent event;
+	int cex_refcnt;				/**< Reference count */
+};
+
+static inline ALWAYS_INLINE struct cevent_ext *
+cast_to_cevent_ext(const cevent_t *ce)
+{
+	g_assert(CEVENT_EXT_MAGIC == ce->ce_magic);
+	return (struct cevent_ext *) ce;
+}
+
+static inline ALWAYS_INLINE bool
+cevent_is_extended(const cevent_t *ce)
+{
+	return CEVENT_EXT_MAGIC == ce->ce_magic;
 }
 
 /**
@@ -116,14 +172,21 @@ struct cqueue {
 	const char *cq_name;		/**< Queue name, for logging */
 	struct chash *cq_hash;		/**< Array of buckets for hash list */
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
-	hset_t *cq_periodic;		/**< Periodic events registered */
+	elist_t cq_periodic;		/**< Periodic events registered */
 	hset_t *cq_idle;			/**< Idle events registered */
+	const cevent_t *cq_call;	/**< Event being called out, for cq_zero() */
+	size_t cq_triggered;		/**< Events triggered */
+	unsigned cq_stid;			/**< Thread where callout queue runs */
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
 	int cq_period;				/**< Regular callout period, in ms */
+	uint8 cq_call_extended;		/**< Is cq_call an extended event? */
+	time_t cq_last_idle;		/**< Last time we ran the idle callbacks */
 	mutex_t cq_lock;			/**< Thread-safety for queue changes */
 	mutex_t cq_idle_lock;		/**< Protects idle callbacks */
+	spinlock_t cq_periodic_lock;/**< Protects cq_periodic */
+	link_t lk;					/**< Embedded link to list all queues */
 };
 
 static inline void
@@ -154,15 +217,50 @@ cqueue_check(const struct cqueue * const cq)
 #define CQ_LOCK(q)		mutex_lock_hidden(&(q)->cq_lock)
 #define CQ_UNLOCK(q)	mutex_unlock_hidden(&(q)->cq_lock)
 
+/**
+ * All the callout queues are linked together so that we can collect statistics
+ * about them.
+ */
+static elist_t cq_vars = ELIST_INIT(offsetof(cqueue_t, lk));
+static spinlock_t cq_vars_slk = SPINLOCK_INIT;
+
+#define CQ_VARS_LOCK		spinlock(&cq_vars_slk)
+#define CQ_VARS_UNLOCK		spinunlock(&cq_vars_slk)
+
 static cqueue_t *callout_queue;			/**< The main callout queue */
-static bool cq_global_inited;			/**< Records global initialization */
+static once_flag_t cq_global_inited;	/**< Records global initialization */
 static void cq_global_init(void);
+
+/**
+ * Add a new callout queue to the global list.
+ */
+static void
+cq_vars_add(cqueue_t *cq)
+{
+	cqueue_check(cq);
+
+	CQ_VARS_LOCK;
+	elist_append(&cq_vars, cq);
+	CQ_VARS_UNLOCK;
+}
+
+/**
+ * Remove callout queue from the list.
+ */
+static void
+cq_vars_remove(cqueue_t *cq)
+{
+	cqueue_check(cq);
+
+	CQ_VARS_LOCK;
+	elist_remove(&cq_vars, cq);
+	CQ_VARS_UNLOCK;
+}
 
 static inline ALWAYS_INLINE void
 cq_main_init(void)
 {
-	if G_UNLIKELY(!cq_global_inited)
-		once_run(&cq_global_inited, cq_global_init);
+	ONCE_FLAG_RUN(cq_global_inited, cq_global_init);
 }
 
 /**
@@ -173,6 +271,16 @@ cq_main(void)
 {
 	cq_main_init();
 	return callout_queue;
+}
+
+/**
+ * @return the thread ID running the main callout queue.
+ */
+unsigned
+cq_main_thread_id(void)
+{
+	cq_main_init();
+	return callout_queue->cq_stid;
 }
 
 /**
@@ -194,14 +302,14 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 	cq->cq_magic = CQUEUE_MAGIC;
 	cq->cq_name = atom_str_get(name);
 	XMALLOC0_ARRAY(cq->cq_hash, HASH_SIZE);
-	cq->cq_items = 0;
-	cq->cq_ticks = 0;
 	cq->cq_time = now;
 	cq->cq_last_bucket = EV_HASH(now);
-	cq->cq_current = NULL;
 	cq->cq_period = period;
+	cq->cq_stid = THREAD_INVALID_ID;
 	mutex_init(&cq->cq_lock);
 	mutex_init(&cq->cq_idle_lock);
+	spinlock_init(&cq->cq_periodic_lock);
+	tm_now_exact(&cq->cq_last_heartbeat);
 
 	cqueue_check(cq);
 	return cq;
@@ -222,7 +330,10 @@ cq_make(const char *name, cq_time_t now, int period)
 	cqueue_t *cq;
 
 	WALLOC0(cq);
-	return cq_initialize(cq, name, now, period);
+	cq_initialize(cq, name, now, period);
+	cq_vars_add(cq);
+
+	return cq;
 }
 
 /**
@@ -231,6 +342,7 @@ cq_make(const char *name, cq_time_t now, int period)
 int
 cq_count(const cqueue_t *cq)
 {
+	cqueue_check(cq);
 	return cq->cq_items;
 }
 
@@ -240,6 +352,7 @@ cq_count(const cqueue_t *cq)
 int
 cq_ticks(const cqueue_t *cq)
 {
+	cqueue_check(cq);
 	return cq->cq_ticks;
 }
 
@@ -249,7 +362,91 @@ cq_ticks(const cqueue_t *cq)
 const char *
 cq_name(const cqueue_t *cq)
 {
+	cqueue_check(cq);
 	return cq->cq_name;
+}
+
+/**
+ * Fetch the callout queue associated with the event.
+ *
+ * @return the callout queue (locked) associated with the event.
+ */
+static cqueue_t *
+EV_CQ_LOCK(const cevent_t *ev)
+{
+	cqueue_t *cq;
+
+	cevent_check(ev);
+
+	/*
+	 * An extended event is referenced twice: once by the callout queue
+	 * while it is linked into its bucket, awaiting trigger, and once by
+	 * the thread that registered the event.
+	 *
+	 * This prevents freing race conditions since both parties need to
+	 * stop referencing the event before we dispose of the structure,
+	 * bringing a guarantee that each side can call this routine freely
+	 * without fear of accessing memory that has been reused for something
+	 * else.
+	 *
+	 * Locking the queue is the minimum synchronization required, since both
+	 * sides will call this routine before handling the event.
+	 */
+
+	cq = ev->ce_cq;
+	cqueue_check(cq);
+
+	CQ_LOCK(cq);
+	return cq;
+}
+
+/**
+ * Did the event trigger?
+ */
+static bool
+ev_triggered(const cevent_t *ev)
+{
+	/*
+	 * An extended event is referenced at most twice: by the thread that
+	 * registered it and by the callout queue.
+	 *
+	 * When the callout queue triggers the event, it ceases to reference the
+	 * event, and therefore we can know that the event was fired when its
+	 * reference count is only one.
+	 *
+	 * A regular event has necessarily not fired or it would have been freed.
+	 */
+
+	if G_UNLIKELY(cevent_is_extended(ev)) {
+		const struct cevent_ext *evx = cast_to_cevent_ext(ev);
+		g_assert(evx->cex_refcnt <= 2);
+		return 1 == evx->cex_refcnt;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Free callout queue event.
+ */
+static void
+ev_free(cevent_t *ev)
+{
+	cevent_check(ev);
+
+	/*
+	 * There is no need to have a lock on the callout queue to call this
+	 * routine.
+	 */
+
+	if G_UNLIKELY(cevent_is_extended(ev)) {
+		ev->ce_magic = 0;
+		wfree(ev, sizeof(struct cevent_ext));
+	} else {
+		g_assert(CEVENT_MAGIC == ev->ce_magic);
+		ev->ce_magic = 0;
+		WFREE(ev);
+	}
 }
 
 /**
@@ -268,7 +465,7 @@ ev_link(cevent_t *ev)
 	cq = ev->ce_cq;
 	cqueue_check(cq);
 	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	trigger = ev->ce_time;
 	cq->cq_items++;
@@ -361,7 +558,7 @@ ev_unlink(cevent_t *ev)
 	cevent_check(ev);
 	cq = ev->ce_cq;
 	cqueue_check(cq);
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	ch = &cq->cq_hash[EV_HASH(ev->ce_time)];
 	cq->cq_items--;
@@ -385,32 +582,25 @@ ev_unlink(cevent_t *ev)
 }
 
 /**
- * Insert a new event in the callout queue and return an opaque handle that
- * can be used to cancel the event.
+ * Internal initialization and insertion of event in the callout queue.
  *
- * The event is specified to occur in some "delay" amount of time, at which
- * time we shall call fn(cq, arg), where cq is the callout queue from
- * where we triggered, and arg is an additional argument.
+ * @param cq		the callout queue
+ * @param ev		the allocated event
+ * @param delay		the delay, expressed in cq's "virtual time" (see cq_clock)
+ * @param fn		the callback function
+ * @param arg		the argument to be passed to the callback function
  *
- * @param cq		The callout queue
- * @param delay		The delay, expressed in cq's "virtual time" (see cq_clock)
- * @param fn		The callback function
- * @param arg		The argument to be passed to the callback function
- *
- * @returns the handle, or NULL on error.
+ * @returns the event handle.
  */
-cevent_t *
-cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
+static cevent_t *
+cq_insert_internal(cqueue_t *cq, cevent_t *ev,
+	int delay, cq_service_t fn, void *arg)
 {
-	cevent_t *ev;				/* Event to insert */
-
 	cqueue_check(cq);
+	cevent_check(ev);
 	g_assert(fn);
 	g_assert(delay >= 0);
 
-	WALLOC(ev);
-	ev->ce_magic = CEVENT_MAGIC;
-	ev->ce_time = cq->cq_time + delay;
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
 	ev->ce_cq = cq;
@@ -421,10 +611,131 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 	 */
 
 	CQ_LOCK(cq);
+	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
 	CQ_UNLOCK(cq);
 
 	return ev;
+}
+
+/**
+ * Insert a new event in the callout queue and return an opaque handle that
+ * can be used to cancel the event.
+ *
+ * The event is specified to occur in some "delay" amount of time, at which
+ * time we shall call fn(cq, arg), where cq is the callout queue from
+ * where we triggered, and arg is an additional argument.
+ *
+ * The call will happen from the thread that runs the callout queue, not
+ * necessarily from * the thread that is registering this event (which could
+ * be a "foreign" thread).
+ *
+ * Regardless of whether the call is triggered, the registering thread will
+ * need to run cq_cancel() on the event handle returned to clean it up.
+ *
+ * @param cq		The callout queue
+ * @param delay		The delay, expressed in cq's "virtual time" (see cq_clock)
+ * @param fn		The callback function
+ * @param arg		The argument to be passed to the callback function
+ *
+ * @returns the event handle.
+ */
+cevent_t *
+cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
+{
+	cevent_t *ev;				/* Event to insert */
+
+	/*
+	 * If we are called from a "foreign" thread, i.e. not from the thread
+	 * that runs the callout queue, we create extended events.
+	 */
+
+	if (thread_small_id() != cq->cq_stid) {
+		struct cevent_ext *evx;				/* Event to insert */
+
+		/*
+		 * The exented event is reference-counted: at creation time, it is
+		 * supposed to be * referenced by the queue and by the thread, which
+		 * will keep the returned value in a variable.
+		 */
+
+		WALLOC(evx);
+		ev = &evx->event;
+		ev->ce_magic = CEVENT_EXT_MAGIC;
+		evx->cex_refcnt = 2;				/* One by queue, one by thread */
+	} else {
+		WALLOC(ev);
+		ev->ce_magic = CEVENT_MAGIC;
+	}
+
+	return cq_insert_internal(cq, ev, delay, fn, arg);
+}
+
+/**
+ * Zero pointer referring to the current event being dispatched.
+ *
+ * This is the preferred way of zeroing a reference to the event because it
+ * checks that this is indeed the event being dispatched.  It can only be
+ * called from a callout callback, where the queue is already locked.
+ *
+ * It can be used on normal or extended events (registrations from a foreign
+ * thread).  It must only be called once per event, but client code should not
+ * keep multiple references to the same event anyway or they would have no way
+ * to track which ones have triggered.
+ *
+ * If the callback does not call cq_zero(), then it means it does not hold any
+ * reference to the event being triggered and therefore the event will be
+ * freed immediately upon return.
+ *
+ * If cq_zero() is called, it means a reference to the event was kept and
+ * cq_cancel() will be called.  Note that cq_zero() only clears the reference
+ * to a normal event, not a foreign event.
+ *
+ * @param cq		the callout queue that dispatched the event
+ * @param ev_ptr	reference to the event
+ */
+void
+cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
+{
+	cevent_t *ev;
+
+	cqueue_check(cq);
+	g_assert(ev_ptr != NULL);
+
+	ev = *ev_ptr;
+	CQ_LOCK(cq);
+
+	/*
+	 * One nice side effect of calling cq_zero() is that we can assert that
+	 * the proper reference is being cleared, namely the one referring to
+	 * the event being dispatched.
+	 *
+	 * Note that for external events, it is perfectly possible to get a NULL
+	 * "ev" at this point: if the item is dispatched before the event address
+	 * was returned to the calling thread to be stored in "ev_ptr".
+	 */
+
+	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
+		"%s() not called on current event: %p points to ev=%p, current is %s%p",
+		G_STRFUNC, ev_ptr, ev, cq->cq_call_extended ? "foreign " : "",
+		cq->cq_call);
+
+	cq->cq_call = NULL;		/* cq_zero() can only be called once */
+
+	/*
+	 * If the event was not extended, we need to nullify its reference
+	 * so that cq_cancel() will do nothing: the event was already freed.
+	 *
+	 * If the event is extended, we will let cq_cancel() do the cleanup.
+	 * That way, there is no race condition between the callout queue thread
+	 * and the thread that keeps a reference to the event.
+	 */
+
+	if G_LIKELY(!cq->cq_call_extended) {
+		*ev_ptr = NULL;
+	}
+
+	CQ_UNLOCK(cq);
 }
 
 /**
@@ -434,50 +745,104 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
  * If the de-referenced value is NULL, it is assumed the event has already
  * fired and therefore there is nothing to cancel.
  *
- * @note
- * This routine is also used internally to remove an expired event from
- * the list before firing it off.
+ * @return TRUE if the event has already triggered (possible if the thread
+ * recording the event is not the same as the one running the callout queue).
  */
-void
+bool
 cq_cancel(cevent_t **handle_ptr)
 {
 	cevent_t *ev = *handle_ptr;
+	bool triggered = FALSE;
 
-	if (ev) {
+	if (ev != NULL) {
 		cqueue_t *cq;
-
-		cevent_check(ev);
-		cq = ev->ce_cq;
-		cqueue_check(cq);
-		g_assert(cq->cq_items > 0);
 
 		/*
 		 * For performance reasons, we use hidden mutexes: the ev_unlink()
 		 * routine is not using locks so there is no potential for deadlocks.
 		 */
 
-		CQ_LOCK(cq);
-		ev_unlink(ev);
+		cq = EV_CQ_LOCK(ev);
+
+		if G_LIKELY(!ev_triggered(ev)) {
+			g_assert(cq->cq_items > 0);
+			ev_unlink(ev);
+		} else {
+			triggered = TRUE;
+		}
+
 		CQ_UNLOCK(cq);
-		ev->ce_magic = 0;			/* Prevent further use as a valid event */
-		WFREE(ev);
+		ev_free(ev);
 		*handle_ptr = NULL;
 	}
+
+	return triggered;
+}
+
+/**
+ * Clear event if it already triggered.
+ *
+ * A thread registering an event that is dispatched in another thread can
+ * always have a doubt whether the event has triggered upon return.
+ *
+ * This routine will atomically verify whether the event has been triggered
+ * and will reclaim it if it has, zeroing the pointer.  Otherwise, nothing
+ * happens, i.e. the event is NOT cancelled.
+ *
+ * @return TRUE if the event has triggered already.
+ */
+bool
+cq_zero_if_triggered(cevent_t **ev_ptr)
+{
+	cevent_t *ev = *ev_ptr;
+	bool triggered = FALSE;
+
+	if (ev != NULL) {
+		cqueue_t *cq;
+
+		/*
+		 * For performance reasons, we use hidden mutexes.
+		 */
+
+		cq = EV_CQ_LOCK(ev);
+
+		if G_UNLIKELY(ev_triggered(ev))
+			triggered = TRUE;
+
+		CQ_UNLOCK(cq);
+
+		if G_UNLIKELY(triggered) {
+			ev_free(ev);
+			*ev_ptr = NULL;
+		}
+	}
+
+	return triggered;
 }
 
 /**
  * Reschedule event at some other point in time. It is the responsibility
  * of the user code to determine that the handle for the event has not yet
  * expired, i.e. that the event has not triggered yet.
+ *
+ * For extended events, returns FALSE if the event has already triggered
+ * before we could reschedule it.  It still needs to be cancelled explicitly
+ * by the thread that registered it.
+ *
+ * @return TRUE if event was rescheduled.
  */
-void
+bool
 cq_resched(cevent_t *ev, int delay)
 {
 	cqueue_t *cq;
 
-	cevent_check(ev);
-	cq = ev->ce_cq;
-	cqueue_check(cq);
+	cq = EV_CQ_LOCK(ev);
+
+	if G_UNLIKELY(ev_triggered(ev)) {
+		CQ_UNLOCK(cq);
+		s_carp("%s() called on already triggered event", G_STRFUNC);
+		return FALSE;
+	}
 
 	/*
 	 * If is perfectly possible that whilst running cq_clock() and
@@ -489,7 +854,7 @@ cq_resched(cevent_t *ev, int delay)
 
 	/*
 	 * Events are sorted into the callout queue by trigger time, and are also
-	 * put into an hash list depending on that trigger time.
+	 * put into a hash list depending on that trigger time.
 	 *
 	 * Therefore, since we are updating the trigger time, we need to remove
 	 * the event from the queue lists first, update the firing delay, and relink
@@ -501,11 +866,12 @@ cq_resched(cevent_t *ev, int delay)
 	 * ev_unlink() routines are not going to take locks, so it is safe.
 	 */
 
-	CQ_LOCK(cq);
 	ev_unlink(ev);
 	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
 	CQ_UNLOCK(cq);
+
+	return TRUE;
 }
 
 /**
@@ -514,82 +880,167 @@ cq_resched(cevent_t *ev, int delay)
 cq_time_t
 cq_remaining(const cevent_t *ev)
 {
+	bool triggered = FALSE;
 	cqueue_t *cq;
+	cq_time_t remaining;
 
-	cevent_check(ev);
-	cq = ev->ce_cq;
-	cqueue_check(cq);
+	cq = EV_CQ_LOCK(ev);
 
-	if (ev->ce_time <= cq->cq_time)
-		return 0;
+	if G_UNLIKELY(ev_triggered(ev)) {
+		triggered = TRUE;
+		remaining = 0;
+	} else if (ev->ce_time <= cq->cq_time) {
+		remaining = 0;
+	} else {
+		remaining = ev->ce_time - cq->cq_time;
+	}
 
-	return ev->ce_time - cq->cq_time;
+	CQ_UNLOCK(cq);
+
+	if G_UNLIKELY(triggered) {
+		s_carp("%s() called on already triggered event", G_STRFUNC);
+	}
+
+	return remaining;
 }
 
 /**
- * Expire timeout by removing it out of the queue and firing its callback.
+ * Expire timeout by removing it from the queue and firing its callback.
  */
-void
-cq_expire(cevent_t *ev)
+static void
+cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 {
-	cqueue_t *cq;
 	cq_service_t fn;
 	void *arg;
 
-	cevent_check(ev);
-	cq = ev->ce_cq;
-	cqueue_check(cq);
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	/*
-	 * Need to lock to read-in callback information because of cq_replace().
+	 * Remove event from queue before firing.
 	 *
-	 * We can use a hidden lock because there's no function call in the
-	 * critical section, so no opportunity to ever deadlock.
+	 * If it is an extended event, mark it as fired but do not free it.
+	 * The caller who inserted that foreign event will have to call cq_cancel()
+	 * to free it.  Since the callout queue is locked, there cannot be any
+	 * race condition with the event: it cannot be cancelled now.
 	 */
 
-	CQ_LOCK(cq);
-	cevent_check(ev);		/* Not triggered since routine start */
+	ev_unlink(ev);
+
 	fn = ev->ce_fn;
 	arg = ev->ce_arg;
-	CQ_UNLOCK(cq);
 
-	g_assert(fn);
+	if G_UNLIKELY(cevent_is_extended(ev)) {
+		struct cevent_ext *evx = cast_to_cevent_ext(ev);
+		g_assert(2 == evx->cex_refcnt);		/* Not fired nor canceled yet */
+		evx->cex_refcnt--;					/* Was fired */
+		cq->cq_call_extended = TRUE;
+	} else {
+		ev_free(ev);
+		cq->cq_call_extended = FALSE;
+	}
 
-	cq_cancel(&ev);			/* Remove event from queue before firing */
+	/*
+	 * Record the address of the event being dispatched.  Even though it may
+	 * have been freed, we allow one cq_zero() call on it.
+	 */
+
+	cq->cq_call = ev;
+	cq->cq_triggered++;
 
 	/*
 	 * All the callout queue data structures were updated.
 	 * It is now safe to invoke the callback, even if there is some
 	 * re-entry to the same callout queue.
+	 *
+	 * The called-out routine may invoke cq_zero() to zero pointers
+	 * to the event being dispatched.
 	 */
 
-	(*fn)(cq, arg);
+	g_assert(fn != NULL);
+
+	CQ_UNLOCK(cq);
+	(*fn)(cq, arg);		/* Callback invoked with queue unlocked */
+	CQ_LOCK(cq);
+
+	/*
+	 * If the event was extended and they did not call cq_zero(),
+	 * then we assume they do not own any reference on the event to
+	 * call cq_cancel(), and therefore we need to free the event
+	 * immediately.
+	 */
+
+	if G_UNLIKELY(cq->cq_call_extended && NULL != cq->cq_call) {
+		if (cq_debugging(0)) {
+			s_debug("CQ called-out %s() did not to call cq_zero() on event %p",
+				stacktrace_function_name(fn), ev);
+		}
+		ev_free(ev);
+	}
+}
+
+/**
+ * Expire timeout by removing it from the queue and firing its callback.
+ *
+ * @return TRUE if we triggered the event, FALSE if it had already triggered
+ * (only possible for events registered by other threads).
+ */
+bool
+cq_expire(cevent_t *ev)
+{
+	cqueue_t *cq;
+	const cevent_t *saved_call;
+	bool saved_call_extended;
+
+	cq = EV_CQ_LOCK(ev);
+
+	if G_UNLIKELY(ev_triggered(ev)) {
+		CQ_UNLOCK(cq);
+		s_carp("%s() called on already triggered event", G_STRFUNC);
+		return FALSE;
+	}
+
+	/*
+	 * To allow cq_expire() calls from a callout event, we need to save and
+	 * restore the current call being made so that cq_zero() can work properly.
+	 */
+
+	saved_call = cq->cq_call;
+	saved_call_extended = cq->cq_call_extended;
+
+	cq_expire_internal(cq, ev);
+
+	cq->cq_call = saved_call;
+	cq->cq_call_extended = saved_call_extended;
+
+	CQ_UNLOCK(cq);
+
+	return TRUE;
 }
 
 /**
  * Change callback and argument of an existing event.
+ *
+ * @return TRUE if we were able to change the event, FALSE if the event
+ * had already triggered (only possible for events registered by other threads).
  */
-void
+bool
 cq_replace(cevent_t *ev, cq_service_t fn, void *arg)
 {
 	cqueue_t *cq;
 
-	cevent_check(ev);
-	cq = ev->ce_cq;
-	cqueue_check(cq);
+	cq = EV_CQ_LOCK(ev);
 
-	/*
-	 * Need to lock to coexist safely with cq_expire().
-	 *
-	 * We can use a hidden lock because there's no function call in the
-	 * critical section, so no opportunity to ever deadlock.
-	 */
+	if G_UNLIKELY(ev_triggered(ev)) {
+		CQ_UNLOCK(cq);
+		s_carp("%s() called on already triggered event", G_STRFUNC);
+		return FALSE;
+	}
 
-	CQ_LOCK(cq);
-	cevent_check(ev);		/* Not triggered in between */
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
 	CQ_UNLOCK(cq);
+
+	return TRUE;
 }
 
 /**
@@ -598,23 +1049,28 @@ cq_replace(cevent_t *ev, cq_service_t fn, void *arg)
  * Called to notify us about the elapsed "time" so that we can expire timeouts
  * and maintain our notion of "current time".
  *
- * NB: The time maintained by the callout queue is "virtual".  It's the
- * elapased delay given by regular calls to cq_clock() that define its unit.
- * For gtk-gnutella, the time unit is the millisecond.
+ * NB: The time maintained by the callout queue is "virtual".
+ *
+ * @param cq		the callout queue
+ * @param elapsed	the elapsed time, in milliseconds
+ *
+ * @return the amount of events triggered (excluding "idle" events).
  */
-static void
+static size_t
 cq_clock(cqueue_t *cq, int elapsed)
 {
 	int bucket;
 	int last_bucket, old_last_bucket;
 	struct chash *ch, *old_current;
 	cevent_t *ev;
+	const cevent_t *old_call;
+	bool old_call_extended, force_idle = FALSE;
 	cq_time_t now;
-	int processed = 0;
+	size_t processed = 0;
 
 	cqueue_check(cq);
 	g_assert(elapsed >= 0);
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	/*
 	 * Recursive calls are possible: in the middle of an event, we could
@@ -631,6 +1087,8 @@ cq_clock(cqueue_t *cq, int elapsed)
 	 */
 
 	old_current = cq->cq_current;
+	old_call = cq->cq_call;
+	old_call_extended = cq->cq_call_extended;
 	old_last_bucket = cq->cq_last_bucket;
 
 	cq->cq_ticks++;
@@ -658,7 +1116,7 @@ cq_clock(cqueue_t *cq, int elapsed)
 	cq->cq_current = ch;
 
 	while ((ev = ch->ch_head) && ev->ce_time <= now) {
-		cq_expire(ev);
+		cq_expire_internal(cq, ev);
 		processed++;
 	}
 
@@ -686,7 +1144,7 @@ cq_clock(cqueue_t *cq, int elapsed)
 		cq->cq_current = ch;
 
 		while ((ev = ch->ch_head) && ev->ce_time <= now) {
-			cq_expire(ev);
+			cq_expire_internal(cq, ev);
 			processed++;
 		}
 
@@ -694,19 +1152,39 @@ cq_clock(cqueue_t *cq, int elapsed)
 
 done:
 	cq->cq_current = old_current;
+	cq->cq_call = old_call;
+	cq->cq_call_extended = old_call_extended;
 
 	if G_UNLIKELY(old_current != NULL)
 		cq->cq_last_bucket = old_last_bucket;	/* Was in recursive call */
 
-	if (cq_debug() > 5) {
-		s_debug("CQ: %squeue \"%s\" %striggered %d event%s (%d item%s)",
+	if (cq_debugging(5)) {
+		s_debug("CQ: %squeue \"%s\" %striggered %zu event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
-			processed, 1 == processed ? "" : "s",
-			cq->cq_items, 1 == cq->cq_items ? "" : "s");
+			processed, plural(processed), cq->cq_items, plural(cq->cq_items));
 	}
 
-	mutex_unlock(&cq->cq_lock);
+	/*
+	 * Make sure the idle tasks are scheduled once in a while.
+	 *
+	 * We don't know how busy the callout queue is going to get, so forcing
+	 * its "idle" tasks to run may be the only option to ensure these
+	 * background but important operations get a chance to be run at all.
+	 */
+
+	if G_UNLIKELY(
+		cq->cq_idle != NULL &&
+		delta_time(tm_time(), cq->cq_last_idle) >= CQ_IDLE_FORCE
+	) {
+		if (cq_debugging(0)) {
+			s_debug("CQ: %squeue \"%s\" forcing idle callback run",
+				cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "", cq->cq_name);
+		}
+		force_idle = TRUE;		/* Will force idle run below */
+	}
+
+	CQ_UNLOCK(cq);
 
 	/*
 	 * Run idle callbacks if nothing was processed.
@@ -715,45 +1193,162 @@ done:
 	 * concurrent threads register callout events.
 	 */
 
-	if (0 == processed)
+	if G_UNLIKELY(0 == processed || force_idle)
 		cq_run_idle(cq);
+
+	return processed;		/* Do not count idle events */
+}
+
+/**
+ * Compute delay until the next registered event, expressed in units of the
+ * callout queue "virtual time".
+ *
+ * @note
+ * This is indicative only since external users do not have a way to lock
+ * the callout queue (and therefore new events could be added right after
+ * this call returns).  However, for applications creating a facade on top
+ * of the callout queue, this can be meaningful because then the facade can
+ * handle proper locking through its own interface.
+ *
+ * @param cq		the callout queue
+ *
+ * @return the "virtual time" delay until the next registered event.
+ */
+int
+cq_delay(const cqueue_t *cq)
+{
+	int delay = MAX_INT_VAL(int);
+	int last_bucket;
+	int i;
+	cq_time_t now;
+	bool adjusted = FALSE;
+
+	cqueue_check(cq);
+
+	mutex_lock_const(&cq->cq_lock);
+
+	last_bucket = cq->cq_last_bucket;	/* Last bucket scanned */
+	now = cq->cq_time;
+
+	for (i = 0; i < HASH_SIZE; i++) {
+		int b = (last_bucket + i) & HASH_MASK;
+		struct chash *ch = &cq->cq_hash[b];
+		cevent_t *ev = ch->ch_head;
+		int edelay;
+
+		/*
+		 * If the delay we have so far is not too large (does not overflow
+		 * the size of the hashing array) and we have moved away from the
+		 * last scanned bucket by an amount that is large-enough, we know
+		 * we cannot find a smaller delay ahead in the buckets.
+		 */
+
+		if (!EV_OVER(delay) && i > EV_HASH(delay))
+			break;
+
+		if (NULL == ev)
+			continue;
+
+		edelay = ev->ce_time - now;
+
+		if G_UNLIKELY(edelay <= 0) {
+			delay = 0;
+			break;
+		}
+
+		delay = MIN(delay, edelay);
+	}
+
+	/*
+	 * If there are idle events registered in the queue, then we need to make
+	 * sure they are scheduled at least once every CQ_IDLE_FORCE seconds.
+	 */
+
+	if (cq->cq_idle != NULL) {
+		time_delta_t elapsed = delta_time(tm_time(), cq->cq_last_idle);
+		int idelay = CQ_IDLE_FORCE - elapsed;
+
+		if (idelay <= 0) {
+			delay = 0;						/* Idle events are due! */
+			adjusted = TRUE;
+		} else {
+			int sdelay = delay / 1000;		/* Convert into seconds */
+
+			if (idelay < sdelay) {
+				delay = idelay * 1000;		/* Delay in ms */
+				adjusted = TRUE;
+			}
+		}
+	}
+
+	mutex_unlock_const(&cq->cq_lock);
+
+	if (cq_debugging(4)) {
+		s_debug("%s(%s): %smin delay is %d, scanned %d bucket%s",
+			G_STRFUNC, cq->cq_name, adjusted ? "adjusted " : "",
+			delay, i, plural(i));
+	}
+
+	return delay;
 }
 
 /**
  * Force callout queue idle tasks to be run.
+ *
+ * @return amount of processed events.
  */
-void
+size_t
 cq_idle(cqueue_t *cq)
 {
-	cq_run_idle(cq);
+	return cq_run_idle(cq);
 }
 
 /**
  * Convenience routine to run the idle tasks on the main callout queue.
+ *
+ * @return amount of processed events.
  */
-void
+size_t
 cq_main_idle(void)
 {
 	cq_main_init();
-	cq_run_idle(callout_queue);
+	return cq_run_idle(callout_queue);
 }
 
 /**
  * Called every period to heartbeat the callout queue.
+ *
+ * @return the amount of triggered events.
  */
-static void
+size_t
 cq_heartbeat(cqueue_t *cq)
 {
 	tm_t tv;
 	time_delta_t delay;
+	uint stid = thread_small_id();
+	bool extra = FALSE;
+	size_t triggered;
 
 	cqueue_check(cq);
+
+	CQ_LOCK(cq);
+
+	/*
+	 * Make sure the callout queue always receives its heartbeats from
+	 * the same thread.  This is important to be able to determine whether
+	 * an event needs to be inserted as "extended" or not.
+	 */
+
+	if G_UNLIKELY(THREAD_INVALID_ID == cq->cq_stid)
+		cq->cq_stid = stid;
+
+	g_assert_log(stid == cq->cq_stid,
+		"%s(): callout queue \"%s\" used to heartbeat from %s, called from %s",
+		G_STRFUNC, cq->cq_name, thread_id_name(cq->cq_stid), thread_name());
 
 	/*
 	 * How much milliseconds elapsed since last heart beat?
 	 */
-
-	mutex_lock(&cq->cq_lock);
 
 	tm_now_exact(&tv);
 	delay = tm_elapsed_ms(&tv, &cq->cq_last_heartbeat);
@@ -764,14 +1359,33 @@ cq_heartbeat(cqueue_t *cq)
 	 * Assume a single period then.
 	 */
 
-	if (delay < 0 || delay > 10 * cq->cq_period)
+	if (delay < 0 || delay > 10 * cq->cq_period) {
+		s_warning("%s(%s): adjusting delay of %'ld ms down to period (%d ms)",
+			G_STRFUNC, cq->cq_name, (long) delay, cq->cq_period);
 		delay = cq->cq_period;
+		extra = TRUE;
+	}
 
 	/*
 	 * We hold the mutex when calling cq_clock(), and it will be released there.
 	 */
 
-	cq_clock(cq, delay);
+	triggered = cq_clock(cq, delay);
+
+	/*
+	 * If there was extra delay in scheduling the heartbeat, collect this
+	 * amount as entropy, as well as the time spent in scheduling events.
+	 * We do this after the callout queue lock was released.
+	 */
+
+	if G_UNLIKELY(extra) {
+		time_delta_t since_last;
+		tm_now_exact(&tv);
+		since_last = tm_elapsed_us(&tv, &cq->cq_last_heartbeat);
+		entropy_harvest_small(VARLEN(delay), VARLEN(since_last), NULL);
+	}
+
+	return triggered;
 }
 
 /**
@@ -813,8 +1427,18 @@ cq_register_object(hset_t **hptr, void *o)
 
 	g_assert(o != NULL);
 
+	/*
+	 * We must make sure we avoid walloc() for this set, since walloc()
+	 * now uses a thread-magazine allocator, which itself relies on the
+	 * callout queue layer to register events at creation time...  We would
+	 * cause changes to the set to occur each time the arena is resized and
+	 * we need to allocate a new thread-magazine allocator for the new size
+	 * we are trying to allocate, leading to a catch 22.
+	 *		--RAM, 2013-11-23
+	 */
+
 	if (NULL == h)
-		*hptr = h = hset_create(HASH_KEY_SELF, 0);
+		*hptr = h = hset_create_real(HASH_KEY_SELF, 0);
 
 	g_assert(!hset_contains(h, o));
 
@@ -855,6 +1479,7 @@ struct cperiodic {
 	int period;						/**< Period between invocations, in ms */
 	cqueue_t *cq;					/**< Callout queue scheduling this */
 	cevent_t *ev;					/**< Scheduled event */
+	link_t lk;						/**< Links all periodic events in queue */
 	unsigned to_free:1;				/**< Marked for freeing */
 };
 
@@ -889,7 +1514,11 @@ cq_periodic_free(cperiodic_t *cp, bool force)
 		cqueue_check(cq);
 
 		cq_cancel(&cp->ev);
-		cq_unregister_object(cq->cq_periodic, cp);
+
+		spinlock(&cq->cq_periodic_lock);
+		elist_remove(&cq->cq_periodic, cp);
+		spinunlock(&cq->cq_periodic_lock);
+
 		cp->magic = 0;
 		WFREE(cp);
 	}
@@ -907,7 +1536,7 @@ cq_periodic_trampoline(cqueue_t *cq, void *data)
 	cqueue_check(cq);
 	cperiodic_check(cp);
 
-	cp->ev = NULL;
+	cq_zero(cq, &cp->ev);
 
 	/*
 	 * As long as the periodic event returns TRUE, keep scheduling it.
@@ -955,7 +1584,13 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, void *arg)
 	cp->cq = cq;
 	cp->ev = cq_insert(cq, period, cq_periodic_trampoline, cp);
 
-	cq_register_object(&cq->cq_periodic, cp);
+	spinlock(&cq->cq_periodic_lock);
+
+	if G_UNLIKELY(!elist_is_initialized(&cq->cq_periodic))
+		elist_init(&cq->cq_periodic, offsetof(cperiodic_t, lk));
+	elist_append(&cq->cq_periodic, cp);
+
+	spinunlock(&cq->cq_periodic_lock);
 
 	return cp;
 }
@@ -1055,9 +1690,12 @@ cq_submake(const char *name, cqueue_t *parent, int period)
 	WALLOC0(csq);
 	cq_initialize(&csq->sub_cq, name, parent->cq_time, period);
 	csq->sub_cq.cq_magic = CSUBQUEUE_MAGIC;
+	csq->sub_cq.cq_stid = parent->cq_stid;	/* Runs out of same thread */
 
 	csq->heartbeat = cq_periodic_add(parent, period,
 		cq_heartbeat_trampoline, &csq->sub_cq);
+
+	cq_vars_add(&csq->sub_cq);
 
 	csubqueue_check(csq);
 	cqueue_check(&csq->sub_cq);
@@ -1143,6 +1781,10 @@ cq_idle_free(cidle_t *ci)
  * Create a new idle event, invoked each time the associated callout queue
  * has nothing else to schedule on a given heartbeat.
  *
+ * Idle events are guaranteed to be scheduled at least once per CQ_IDLE_FORCE
+ * seconds, and no more frequently than CQ_IDLE_PERIOD seconds on a given
+ * callout queue.
+ *
  * When the callout queue is freed, registered idle events are automatically
  * reclaimed as well, so they need not be removed explicitly.
  *
@@ -1214,17 +1856,46 @@ cq_idle_trampoline(const void *key, void *data)
 
 /**
  * Launch idle events for the queue.
+ *
+ * @return amount of triggered events
  */
-static void
+static size_t
 cq_run_idle(cqueue_t *cq)
 {
+	time_t now = tm_time();
+	size_t triggered = 0;
+
 	cqueue_check(cq);
 
+	entropy_harvest_time();
+
+	/*
+	 * Never run idle events more than once per CQ_IDLE_PERIOD seconds.
+	 */
+
+	CQ_LOCK(cq);
+	if (delta_time(now, cq->cq_last_idle) < CQ_IDLE_PERIOD) {
+		CQ_UNLOCK(cq);
+		return 0;
+	}
+
 	if (cq->cq_idle != NULL) {
+		CQ_UNLOCK(cq);
+		/*
+		 * cq->cq_idle is never freed once created, until queue is freed
+		 */
 		mutex_lock(&cq->cq_idle_lock);
+		triggered = hset_count(cq->cq_idle);
 		hset_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
 		mutex_unlock(&cq->cq_idle_lock);
+		CQ_LOCK(cq);
+		cq->cq_last_idle = tm_time();
+		cq->cq_triggered += triggered;
 	}
+
+	CQ_UNLOCK(cq);
+
+	return triggered;
 }
 
 /**
@@ -1261,8 +1932,46 @@ cq_time_to_string(cq_time_t t)
  ***/
 
 #define CALLOUT_PERIOD			25	/* milliseconds */
+#define CALLOUT_THREAD_STACK	(32 * PTRSIZE * 1024)
 
-static uint callout_timer_id = 0;
+static uint callout_timer_id;
+static bool callout_thread;
+
+/**
+ * Callout queue thread.
+ *
+ * This is launched only when the main thread has been identified as blockable,
+ * meaning it will not be suitable for proper callout manangement.
+ *
+ * A working callout queue is necessary for semaphore emulation, otherwise
+ * timed operations will not work and deadlocks can occur.
+ */
+static void *
+cq_thread_main(void *unused_arg)
+{
+	tsigset_t set;
+	tm_t period;
+
+	(void) unused_arg;
+
+	thread_set_name("callout queue");
+
+	/*
+	 * To let cq_dispatch() work properly in case the callout queue does not
+	 * run in the same thread as the one calling cq_dispatch(), we use an
+	 * interruptible sleep in the callout queue thread.
+	 */
+
+	tsig_emptyset(&set);
+	tm_fill_ms(&period, CALLOUT_PERIOD);
+
+	while (callout_thread) {
+		cq_heartbeat(callout_queue);
+		thread_timed_sigsuspend(&set, &period);		/* Interruptible sleep */
+	}
+
+	return NULL;
+}
 
 /**
  * Global initialization, run once.
@@ -1275,10 +1984,44 @@ cq_global_init(void)
 {
 	static uint32 zero;
 
+	/*
+	 * To cut auto-initialization dependencies, we need to intialize the
+	 * time thread first.  Calling tm_now_exact() will do.
+	 *
+	 * The reason for that is because hash table routines need to compute the
+	 * random hash offset and will call the entropy collection layer, which in
+	 * turn needs to get the time.  If the time thread is not started at the
+	 * time, we could get recursion when the code attempts to auto-initialize
+	 * the callout queue again.
+	 */
+
+	(void) tm_now_exact(NULL);
+
 	cq_debug_ptr = &zero;
 	callout_queue = cq_make("main", 0, CALLOUT_PERIOD);
-	callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
-		cq_heartbeat_trampoline, callout_queue);
+
+	/*
+	 * If the main thread is blockable, instantiate the callout queue in
+	 * a separate thread to make sure events can still be called out even
+	 * when the main thread is blocked.
+	 *
+	 * The cq_insert() routine will automatically create extended events
+	 * when it is called from a different thread.
+	 */
+
+	if (thread_main_is_blockable()) {
+		callout_thread = TRUE;
+		callout_queue->cq_stid = thread_create(cq_thread_main, NULL,
+			THREAD_F_DETACH | THREAD_F_NO_POOL, CALLOUT_THREAD_STACK);
+		if (-1U == callout_queue->cq_stid) {
+			s_minierror("%s(): cannot launch callout queue thread: %m",
+				G_STRFUNC);
+		}
+	} else {
+		callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
+			cq_heartbeat_trampoline, callout_queue);
+		callout_queue->cq_stid = thread_small_id();
+	}
 }
 
 /**
@@ -1293,24 +2036,41 @@ cq_global_init(void)
 void
 cq_init(cq_invoke_t idle, const uint32 *debug)
 {
-	once_run(&cq_global_inited, cq_global_init);
+	STATIC_ASSERT(IS_POWER_OF_2(HASH_SIZE));
 
+	cq_main_init();
 	cq_debug_ptr = debug;
+
 	if (idle != NULL)
 		cq_idle_add(callout_queue, idle, callout_queue);
+
+	if (callout_queue->cq_stid != 0) {
+		s_miniinfo("callout queue will be running in thread #%u",
+			callout_queue->cq_stid);
+	}
 }
 
 /**
- * Manual callout queue ticking.
+ * Manual main callout queue ticking.
  *
  * This is meant to be used during final shutdown when the main glib loop
  * (responsible to dispatch the heart beats) may not be invoked.
  */
 void
-cq_dispatch(void)
+cq_main_dispatch(void)
 {
 	cq_main_init();
-	cq_heartbeat_trampoline(callout_queue);
+
+	/*
+	 * The callout queue must always be heartbeating from the same thread.
+	 * If it is not running in the current thread, send that thread a signal
+	 * to let it wake-up and call the heartbeat routine.
+	 */
+
+	if (thread_small_id() == callout_queue->cq_stid)
+		cq_heartbeat_trampoline(callout_queue);
+	else
+		thread_kill(callout_queue->cq_stid, TSIG_1);
 }
 
 /**
@@ -1323,12 +2083,13 @@ cq_halt(void)
 		g_source_remove(callout_timer_id);
 		callout_timer_id = 0;
 	}
+	callout_thread = FALSE;
 }
 
 static bool
-cq_free_periodic(const void *key, void *data)
+cq_free_periodic(void *key, void *data)
 {
-	cperiodic_t *cp = deconstify_pointer(key);
+	cperiodic_t *cp = key;
 
 	(void) data;
 
@@ -1364,6 +2125,8 @@ cq_free(cqueue_t *cq)
 
 	cqueue_check(cq);
 
+	cq_vars_remove(cq);
+
 	if (cq->cq_current != NULL) {
 		s_carp("%s(): %squeue \"%s\" still within cq_clock()", G_STRFUNC,
 			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "", cq->cq_name);
@@ -1374,14 +2137,13 @@ cq_free(cqueue_t *cq)
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
 			ev_next = ev->ce_bnext;
-			ev->ce_magic = 0;
-			WFREE(ev);
+			ev_free(ev);
 		}
 	}
 
-	if (cq->cq_periodic) {
-		hset_foreach_remove(cq->cq_periodic, cq_free_periodic, NULL);
-		hset_free_null(&cq->cq_periodic);
+	if (elist_is_initialized(&cq->cq_periodic)) {
+		elist_foreach_remove(&cq->cq_periodic, cq_free_periodic, NULL);
+		elist_discard(&cq->cq_periodic);
 	}
 
 	if (cq->cq_idle) {
@@ -1413,6 +2175,7 @@ cq_free(cqueue_t *cq)
 	mutex_unlock(&cq->cq_lock);
 	mutex_destroy(&cq->cq_lock);
 	mutex_destroy(&cq->cq_idle_lock);
+	spinlock_destroy(&cq->cq_periodic_lock);
 
 	/*
 	 * If freeing a sub-queue, the object is a bit larger than a queue,
@@ -1447,11 +2210,89 @@ cq_free_null(cqueue_t **cq_ptr)
 void
 cq_close(void)
 {
-	if G_LIKELY(cq_global_inited) {
+	if G_LIKELY(ONCE_DONE(cq_global_inited)) {
+		cq_halt();
 		/* No warning if we were recursing */
 		callout_queue->cq_current = NULL;
 		cq_free_null(&callout_queue);
 	}
+}
+
+/**
+ * Retrieve callout queue information.
+ *
+ * @return list of cq_info_t that must be freed by calling the
+ * cq_info_list_free_null() routine.
+ */
+pslist_t *
+cq_info_list(void)
+{
+	pslist_t *sl = NULL;
+	cqueue_t *cq;
+
+	CQ_VARS_LOCK;
+
+	ELIST_FOREACH_DATA(&cq_vars, cq) {
+		cq_info_t *cqi;
+
+		cqueue_check(cq);
+
+		WALLOC0(cqi);
+		cqi->magic = CQ_INFO_MAGIC;
+
+		CQ_LOCK(cq);
+		cqi->name = atom_str_get(cq->cq_name);
+		if (CSUBQUEUE_MAGIC == cq->cq_magic) {
+			struct csubqueue *csq = (struct csubqueue *) cq;
+			cqueue_t *pcq;
+
+			pcq = csq->heartbeat->cq;
+			cqueue_check(pcq);
+			cqi->parent = atom_str_get(pcq->cq_name);
+		}
+		cqi->stid = cq->cq_stid;
+		cqi->periodic_count = elist_is_initialized(&cq->cq_periodic) ?
+				elist_count(&cq->cq_periodic) : 0;
+		cqi->idle_count = NULL == cq->cq_idle ? 0 : hset_count(cq->cq_idle);
+		/* Each periodic event counts as an item, do not count them twice */
+		cqi->event_count = cq->cq_items - cqi->periodic_count;
+		cqi->period = cq->cq_period;
+		cqi->heartbeat_count = cq->cq_ticks;
+		cqi->triggered_count = cq->cq_triggered;
+		cqi->last_idle = cq->cq_last_idle;
+		CQ_UNLOCK(cq);
+
+		sl = pslist_prepend(sl, cqi);
+	}
+
+	CQ_VARS_UNLOCK;
+
+	return pslist_reverse(sl);			/* Order list as queue definition */
+}
+
+static void
+cq_info_free(void *data, void *udata)
+{
+	cq_info_t *cqi = data;
+
+	cq_info_check(cqi);
+	(void) udata;
+
+	atom_str_free_null(&cqi->name);
+	atom_str_free_null(&cqi->parent);
+	WFREE(cqi);
+}
+
+/**
+ * Free list created by cq_info_list() and nullify pointer.
+ */
+void
+cq_info_list_free_null(pslist_t **sl_ptr)
+{
+	pslist_t *sl = *sl_ptr;
+
+	pslist_foreach(sl, cq_info_free, NULL);
+	pslist_free_null(sl_ptr);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

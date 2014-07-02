@@ -45,6 +45,7 @@
 #include "hashing.h"
 #include "hashtable.h"
 #include "omalloc.h"
+#include "spinlock.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -56,17 +57,29 @@ static hash_table_t *constant_strings;
 const char *
 constant_str(const char *s)
 {
+	static spinlock_t constant_slk = SPINLOCK_INIT;
 	const char *v;
 
 	if G_UNLIKELY(NULL == constant_strings) {
-		constant_strings =
-			hash_table_new_full_not_leaking(string_mix_hash, string_eq);
+		spinlock(&constant_slk);
+		if (NULL == constant_strings) {
+			constant_strings =
+				hash_table_new_full_not_leaking(string_mix_hash, string_eq);
+			hash_table_thread_safe(constant_strings);
+		}
+		spinunlock(&constant_slk);
 	}
 
 	v = hash_table_lookup(constant_strings, s);
-	if (NULL == v) {
-		v = ostrdup_readonly(s);
-		hash_table_insert(constant_strings, v, v);
+
+	if G_UNLIKELY(NULL == v) {
+		hash_table_lock(constant_strings);
+		v = hash_table_lookup(constant_strings, s);
+		if G_LIKELY(NULL == v) {
+			v = ostrdup_readonly(s);
+			hash_table_insert(constant_strings, v, v);
+		}
+		hash_table_unlock(constant_strings);
 	}
 
 	return v;

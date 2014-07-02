@@ -62,7 +62,7 @@ void
 gui_update_files_scanned(void)
 {
     static GtkLabel *label_files_scanned = NULL;
-	gulong n = guc_shared_files_scanned();
+	ulong n = guc_shared_files_scanned();
 
 	if (label_files_scanned == NULL)
 		label_files_scanned =

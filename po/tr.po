@@ -1,17 +1,17 @@
-# Translations for gtk-gnutella package.
-# Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2013 Raphaël Manfredi.
-# This file is distributed under the same license as the gtk-gnutella package.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Raphael Manfredi
+# This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
 # mauron, 2013
+# mauron, 2013-2014
 # Uğur Çetin <ugur.jnmbk@gmail.com>, 2006
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2013-05-08 11:12+0200\n"
-"PO-Revision-Date: 2013-05-13 12:18+0000\n"
+"POT-Creation-Date: 2014-05-14 19:31+0200\n"
+"PO-Revision-Date: 2014-05-17 10:33+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/projects/p/gtk-gnutella/language/tr/)\n"
 "MIME-Version: 1.0\n"
@@ -19,13 +19,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: tr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-
-#, c-format
-msgid "%s%s%s%s%s fps, %s kbps"
-msgstr "%s%s%s%s%s fps, %s kbps"
-
-msgid "times|x"
-msgstr "defa|x"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -317,6 +310,12 @@ msgstr "Content-Length uyumsuzluğu"
 msgid "No Content-Length header"
 msgstr "Content-Length başlığı mevcut değil"
 
+msgid "Unexpected Content-Type"
+msgstr "Beklenmeyen içerik türü (Content-Type)"
+
+msgid "No Content-Type"
+msgstr "Boş içerik türü (Content-Type)"
+
 msgid "Search already closed"
 msgstr "Arama zaten kapatıldı"
 
@@ -368,12 +367,19 @@ msgstr ", yasaklama"
 msgid ", g2"
 msgstr ", g2"
 
+msgid ", fake-g2"
+msgstr ", sahte-g2"
+
 msgid ", vendor?"
 msgstr ", sağlayıcı?"
 
 #, c-format
+msgid "<Browse G2 Host %s>"
+msgstr "<%s G2 makinesine gözat>"
+
+#, c-format
 msgid "<Browse Host %s>"
-msgstr "<Kişiye Gözat %s>"
+msgstr "<%s makinesine gözat>"
 
 #, c-format
 msgid "<THEX data for %s>"
@@ -478,149 +484,12 @@ msgstr[0] "%d makine %s bilgisayar arabelleğinden alındı"
 msgstr[1] "%d makine %s bilgisayar arabelleğinden alındı"
 
 #, c-format
+msgid "Connecting to web cache %s"
+msgstr "%s web makine arabelleğine bağlanılıyor"
+
+#, c-format
 msgid "Bootstrapping from %s"
 msgstr "%s konumundan ön yükleme."
-
-msgid "Bad size"
-msgstr "Yanlış boyut"
-
-msgid "Too small"
-msgstr "Küçük"
-
-msgid "Too large"
-msgstr "Büyük"
-
-msgid "Way too large"
-msgstr "Çok büyük"
-
-msgid "Too old"
-msgstr "Çok eski"
-
-msgid "Unknown message type"
-msgstr "Bilinmeyen mesaj türü"
-
-msgid "Unexpected message"
-msgstr "Beklenmedik mesaj"
-
-msgid "Message sent with TTL = 0"
-msgstr "Mesaj TTL = 0 değeri ile yollandı"
-
-msgid "Improper hops/ttl combination"
-msgstr "Yanlış hop/ttl kombinasyonu"
-
-msgid "Max TTL exceeded"
-msgstr "Azami TTL aşıldı"
-
-msgid "Message throttle"
-msgstr "Mesaj sayısı sınırlaması"
-
-msgid "Message matched limits"
-msgstr "Mesaj boyutu sınırına erişildi"
-
-msgid "Transient node"
-msgstr "Geçici düğüm"
-
-msgid "Unusable Pong"
-msgstr "Kullanılamaz pong"
-
-msgid "Hard TTL limit reached"
-msgstr "Sabit TTL sınırına erişildi"
-
-msgid "Max hop count reached"
-msgstr "Azami hop sayısına ulaşıldı"
-
-msgid "Route lost"
-msgstr "Yol kaybedildi"
-
-msgid "No route"
-msgstr "Yol yok"
-
-msgid "Duplicate message"
-msgstr "Kopya mesaj"
-
-msgid "Message to banned GUID"
-msgstr "Yasaklanmış GUİD'ye mesaj"
-
-msgid "Message from banned GUID"
-msgstr "Yasaklanmış GUİD'den mesaj"
-
-msgid "Node shutting down"
-msgstr "Düğüm kapanıyor"
-
-msgid "TX flow control"
-msgstr "TX akış kontrolü"
-
-msgid "Query text had no trailing NUL"
-msgstr "Sorgu metni NUL ile bitmiyor"
-
-msgid "Query text too short"
-msgstr "Sorgu metni çok kısa"
-
-msgid "Query had unnecessary overhead"
-msgstr "Gereksiz veri taşıyan sorgular"
-
-msgid "Query had bad URN"
-msgstr "Sorgu bozuk URN içeriyor"
-
-msgid "Message with malformed SHA1"
-msgstr "Yanlış yapılandırılmış SHA1 içeren mesaj"
-
-msgid "Message with malformed UTF-8"
-msgstr "Yanlış yapılandırılmış UTF-8 içeren mesaj"
-
-msgid "Malformed Query Hit"
-msgstr "Yanlış yapılandırılmış arama cevabı"
-
-msgid "Bad return address"
-msgstr "Hatalı dönüş adresi"
-
-msgid "Hostile IP address"
-msgstr "Kötücül İP adresi"
-
-msgid "Bogus result from Morpheus"
-msgstr "Morpheus istemcisinden hatalı sonuç"
-
-msgid "Spam"
-msgstr "Spam"
-
-msgid "Evil filename"
-msgstr "Şer dosya adı"
-
-msgid "Improper media type"
-msgstr "Uygun olmayan dosya tipi"
-
-msgid "Payload inflating error"
-msgstr "Yük genişletilmesinde hata"
-
-msgid "Unknown header flags present"
-msgstr "Bilinmeyen başlık bayrakları mevcut"
-
-msgid "Own search results"
-msgstr "Kendi arama sonuçlarımız"
-
-msgid "Own queries"
-msgstr "Kendi sorgularımız"
-
-msgid "Ancient query format"
-msgstr "Eski sorgu biçimi"
-
-msgid "Blank Servent ID"
-msgstr "Boş istemci kimliği"
-
-msgid "GUESS Query missing token"
-msgstr "GUESS sorgusunda jeton eksik"
-
-msgid "GUESS Invalid query token"
-msgstr "Geçersiz GUESS sorgu jetonu"
-
-msgid "DHT Invalid security token"
-msgstr "Geçersiz DHT güvenlik jetonu"
-
-msgid "DHT Too many STORE requests"
-msgstr "DHT'de çok fazla STORE talebi"
-
-msgid "DHT Malformed message"
-msgstr "Yanlış yapılandırılmış DHT mesajı"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -658,6 +527,10 @@ msgstr "Gnet bağlantıları devre dışı"
 
 msgid "Connection not compressed"
 msgstr "Bağlantı sıkıştırılmamış"
+
+#, c-format
+msgid "Too many G2 hubs (%u max)"
+msgstr "Çok fazla G2 hub'ı (azami %u)"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -708,6 +581,9 @@ msgstr "İstemci kapanıyor"
 
 msgid "Not a network member"
 msgstr "Şebeke üyesi değil"
+
+msgid "Need a G2 Hub"
+msgstr "Bir G2 hub'ı lazım"
 
 msgid "Too frequent crawling"
 msgstr "Çok sık tarama"
@@ -761,6 +637,9 @@ msgstr "Sözde UDP düğümü"
 msgid "Pseudo semi-reliable UDP node"
 msgstr "Sözde yarı güvenilir UDP düğümü"
 
+msgid "Pseudo G2 UDP node"
+msgstr "Sözde G2 UDP düğümü"
+
 msgid "Pseudo DHT node"
 msgstr "Sözde DHT düğümü"
 
@@ -805,6 +684,9 @@ msgstr "UDP"
 
 msgid "DHT"
 msgstr "DHT"
+
+msgid "G2 hub"
+msgstr "G2 hub"
 
 msgid "Unknown"
 msgstr "Bilinmeyen"
@@ -1004,11 +886,11 @@ msgid "Not Acceptable"
 msgstr "Kabul edilemez"
 
 #, c-format
-msgid "<Browse Host Request> [%s%s%s]"
-msgstr "<Kişiye Gözatma Talebi> [%s%s%s]"
+msgid "<Browse Host %sRequest> [%s%s%s]"
+msgstr "<Makineye gözatma %stalebi> [%s%s%s]"
 
 msgid "query hits"
-msgstr "arama sonuçları"
+msgstr "sorgu isabetleri"
 
 msgid ", deflate"
 msgstr ", sıkıştırılmış"
@@ -1081,6 +963,1173 @@ msgstr " - Yeni bir sürüm mevcuttur: sürüm %s"
 #, c-format
 msgid " - Newer version available: from git %s"
 msgstr " - Yeni bir sürüm mevcuttur: git'ten %s"
+
+msgid "Routing errors"
+msgstr "Yönlendirme hataları"
+
+msgid "Routing table chunks"
+msgstr "Yönlendirme tablosundaki parçalar"
+
+msgid "Routing table message capacity"
+msgstr "Yönlendirme tablosu mesaj kapasitesi"
+
+msgid "Routing table message count"
+msgstr "Yönlendirme tablosundaki parça sayısı"
+
+msgid "Routing through transient node avoided"
+msgstr "Geçici düğüm üzerinden yönlendirilmeden kaçınıldı"
+
+msgid "Duplicates with higher TTL"
+msgstr "Daha yüksek TTL'li kopyalar"
+
+msgid "SPAM SHA1 database hits"
+msgstr "SPAM SHA1 isabetleri"
+
+msgid "SPAM filename and size hits"
+msgstr "SPAM dosya adı ve boyutu isabetleri"
+
+msgid "SPAM fake hits"
+msgstr "SPAM hile dosya isabetleri"
+
+msgid "SPAM duplicate hits"
+msgstr "SPAM kopya isabetleri"
+
+msgid "SPAM dynamically caught hostile IP addresses"
+msgstr "SPAM dinamik olarak yakalanan kötücül İP adresleri"
+
+msgid "SPAM dynamically caught hostile IP held"
+msgstr "SPAM saklanan dinamik olarak yakalanmış kötücül İP adresleri"
+
+msgid "SPAM spotted spamming IP addresses held"
+msgstr "SPAM tutulan tespit edilmiş spamcı İP adresleri"
+
+msgid "Searches to local DB"
+msgstr "Yerel veritabanında aramalar"
+
+msgid "Hits on local DB"
+msgstr "Yerel veritabanına isabetler"
+
+msgid "Hits on local partial files"
+msgstr "Yerel tamamlanmamış dosyalara isabetler"
+
+msgid "Hits on \"what's new?\" queries"
+msgstr "\"Yeni olanlar\" sorgularına isabetler"
+
+msgid "Query hits received for local queries"
+msgstr "Yerel sorgular için alınan sorgu isabetleri"
+
+msgid "G2 searches to local DB"
+msgstr "Yerel veritabanına G2 aramaları"
+
+msgid "G2 hits on local DB"
+msgstr "Yerel veritabanında G2 isabetleri"
+
+msgid "G2 hits on local partial files"
+msgstr "Yerel kısmi dosyalara G2 isabetleri"
+
+msgid "Query hits received for OOB-proxied queries"
+msgstr "OOB vekilli sorgular için alınan sorgu isabetleri"
+
+msgid "Queries requesting OOB hit delivery"
+msgstr "OOB isabet teslimi talep eden sorgular"
+
+msgid "Stripped OOB flag on queries"
+msgstr "Sorgulardan kaldırılan OOB bayrağı"
+
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr "Talep edilmeyen isabetler sebebiyle görmezden gelinen OOB (bant dışı) sorguları"
+
+msgid "Duplicate OOB-proxied queries"
+msgstr "Kopya OOB vekilli sorgular"
+
+msgid "OOB hits received for OOB-proxied queries"
+msgstr "OOB vekilli sorgular için alınan OOB isabetleri"
+
+msgid "OOB hits bearing alien IP address"
+msgstr "Yabancı İP adresi taşıyan OOB isabetleri"
+
+msgid "OOB hits ignored due to identified spamming address"
+msgstr "Bilinen spamcı adresi nedeniyle görmezden gelinen OOB isabetleri"
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
+msgstr "Bilinen güvenli makineden güvensiz söz verme sebebiyle görmezden gelinen OOB isabetleri"
+
+msgid "Unclaimed locally-generated OOB hits"
+msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
+
+msgid "Partially claimed locally-generated OOB hits"
+msgstr "Kısmi olarak talep edilen yerel olarak oluşturulmuş OOB isabetleri"
+
+msgid "Spurious OOB hit claiming received"
+msgstr "Sahte OOB isabet talebi alındı"
+
+msgid "Unrequested OOB hits received"
+msgstr "Talep edilmeden alınan OOB isabetleri"
+
+msgid "Received query hits for untracked queries"
+msgstr "İzlenmeyen sorgular için alınan sorgu isabetleri"
+
+msgid "Tracked query MUIDs"
+msgstr "İzlenen eşsiz mesaj kimlikleri (MUİD)"
+
+msgid "Compacted queries"
+msgstr "Sıkıştırılmış sorgular"
+
+msgid "Bytes saved by compacting"
+msgstr "Sıkıştırılmayla tasarruf edilen baytlar"
+
+msgid "UTF8 queries"
+msgstr "UTF8 sorgular"
+
+msgid "SHA1 queries"
+msgstr "SHA1 sorgular"
+
+msgid "\"What's New?\" queries"
+msgstr "\"Yeni olanlar\" sorguları"
+
+msgid "UTF8 G2 queries"
+msgstr "UTF8 G2 sorguları"
+
+msgid "SHA1 G2 queries"
+msgstr "SHA1 G2 sorguları"
+
+msgid "GUESS queries"
+msgstr "GUESS sorguları"
+
+msgid "GUESS queries (0.2)"
+msgstr "GUESS sorguları (0.2)"
+
+msgid "GUESS link cache size"
+msgstr "GUESS bağlantı ara bellek boyutu"
+
+msgid "GUESS cached query keys held"
+msgstr "GUESS tutulan sorgu anahtarları"
+
+msgid "GUESS cached 0.2 hosts held"
+msgstr "GUESS tutulan 0.2 bilgisayarları"
+
+msgid "GUESS cached G2 hosts held"
+msgstr "GUESS arabellekteki tutulan G2 makineleri"
+
+msgid "GUESS locally generated queries"
+msgstr "GUESS yerel olarak oluşturulan sorgular"
+
+msgid "GUESS currently running queries"
+msgstr "GUESS şu anda etkin olan sorgular"
+
+msgid "GUESS hits received for locally generated queries"
+msgstr "GUESS yerel olarak oluşturulan sorgulara erişimler"
+
+msgid "GUESS ultra nodes queried"
+msgstr "GUESS sorgulanan ultra düğümler"
+
+msgid "GUESS ultra nodes sending back an acknowledgment"
+msgstr "GUESS geri onay gönderen ultra düğümler"
+
+msgid "GUESS G2 nodes queried"
+msgstr "GUSS sorgulanan G2 düğümleri"
+
+msgid "GUESS G2 nodes sending back an acknowledgment"
+msgstr "GUESS geri onay gönderen G2 düğümleri"
+
+msgid "Broadcasted push messages"
+msgstr "Yayınlanan itme mesajları"
+
+msgid "Push-proxy UDP relayed messages"
+msgstr "İtme vekilince yönlendirilen UDP mesajları"
+
+msgid "Push-proxy TCP relayed messages"
+msgstr "İtme vekilince yönlendirilen TCP mesajları"
+
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr "GD<->GD transferleri için TCP itme vekili"
+
+msgid "Push-proxy broadcasted messages"
+msgstr "Yayınlanan itme vekili mesajları"
+
+msgid "Push-proxy found un-proxied local route"
+msgstr "İtme vekili vekilsiz yerel bir yol buldu"
+
+msgid "Push-proxy lookup failures"
+msgstr "İtme vekili danışma başarısızlıkları"
+
+msgid "Push relayed via local route"
+msgstr "İtme yerel yol ile yönlendirildi"
+
+msgid "Push relayed via routing table"
+msgstr "İtme yönlendirme tablosuyla yönlendirildi"
+
+msgid "Locally generated dynamic queries"
+msgstr "Yerel olarak oluşturulan dinamik sorgular"
+
+msgid "Leaf-generated dynamic queries"
+msgstr "Yapraklar tarafından oluşturulan dinamik sorgular"
+
+msgid "OOB-proxied leaf queries"
+msgstr "OOB vekilli yaprak sorguları"
+
+msgid "Fully completed dynamic queries"
+msgstr "Eksiksiz tamamlanan dinamik sorgular"
+
+msgid "Partially completed dynamic queries"
+msgstr "Kısmen tamamlanan dinamik sorgular"
+
+msgid "Dynamic queries ended with no results"
+msgstr "Sonuçsuz sona eren dinamik sorgular"
+
+msgid "Fully completed dynamic queries getting late results"
+msgstr "Gecikmiş cevap alan eksiksiz tamamlanmış dinamik sorgular"
+
+msgid "Dynamic queries with partial late results"
+msgstr "Kısmi geç sonuçları bulunan dinamik sorgular"
+
+msgid "Dynamic queries completed by late results"
+msgstr "Geç sonuçlarla tamamlanan dinamik sorgular"
+
+msgid "Queries seen from GTKG"
+msgstr "GTKG'den görülen sorgular"
+
+msgid "Queries seen from GTKG that were re-queries"
+msgstr "GTKG'nın gördüğü tekrar olan sorgular"
+
+msgid "Queries advertising support of GGEP \"H\""
+msgstr "GGEP \"H\" desteği bildiren sorgular"
+
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "Yarı güvenilir UDP desteği bildiren sorgular"
+
+msgid "GIV callbacks received"
+msgstr "Alınan GİV geri çağrıları"
+
+msgid "GIV discarded due to no suitable download"
+msgstr "Uygun indirme bulunmadığı için atılan GİV"
+
+msgid "QUEUE callbacks received"
+msgstr "Alınan QUEUE geri çağrıları"
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr "Uygun indirme bulunmadığı için atılan QUEUE"
+
+msgid "File descriptors banned running count"
+msgstr "Yasaklı dosya tanımlayıcısı sayısının toplamı"
+
+msgid "UDP read-ahead datagram running count"
+msgstr "UDP önceden okuma veri birimi, toplam sayı"
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr "UDP önceden okuma veri birimi, bayt olarak toplam boyut"
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr "UDP önceden okuma veri birimi işlenen \"eskiler\""
+
+msgid "UDP read-ahead datagram max count"
+msgstr "UDP önceden okuma veri birimi azami sayısı"
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr "UDP önceden okuma veri birimi azami bayt"
+
+msgid "UDP read-ahead datagram max delay"
+msgstr "UDP önceden okuma veri birimi azami gecikme"
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr "GD<->GD bağlantıları için alınan UDP itme mesajları"
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr "Bizimle GD<->GD bağlantısı talep eden UDP itme mesajları"
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr "GD<->GD (güvenlik duvarı) bağlantıları için yamalanmış UDP itme mesajları"
+
+msgid "UDP UHC pings received"
+msgstr "UDP alınan UHC pingleri"
+
+msgid "UDP UHC pongs sent"
+msgstr "UDP gönderilen UHC pongları"
+
+msgid "UDP messages with bogus source IP"
+msgstr "Bozuk kaynak İP adresi içeren UDP mesajları"
+
+msgid "UDP truncated incoming messages"
+msgstr "UDP içeriye gelen kesilmiş mesajlar"
+
+msgid "Alien UDP messages (non-Gnutella)"
+msgstr "Yabancı UDP mesajları (Gnutella'dan olmayan)"
+
+msgid "Unprocessed UDP Gnutella messages"
+msgstr "İşlenmeyen Gnutella UDP mesajları"
+
+msgid "Compressed UDP messages enqueued"
+msgstr "Kuyruğa eklenen sıkıştırılmış UDP mesajları"
+
+msgid "Compressed UDP messages received"
+msgstr "Alınan sıkıştırılmış UDP mesajları"
+
+msgid "Uncompressed UDP messages due to no gain"
+msgstr "Kazanım olmadığı için sıkıştırılmayan UDP mesajları"
+
+msgid "Ambiguous UDP messages received"
+msgstr "Alınan belirsiz UDP mesajları"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr "Daha derin incelenen belirsiz UDP mesajları"
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr "Yarı güvenilir UDP olarak ele alınan belirsiz UDP mesajları"
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr "Yarı güvenilir UDP iletim için verilen toplam mesajlar"
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr "Yarı güvenilir UDP toplam sıkıştırılmış mesajlar"
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr "Yarı güvenilir UDP toplam gönderilmeyen mesajlar"
+
+msgid "Semi-reliable UDP total messages dropped due to temporary ban"
+msgstr "Yarı güvenilir UDP geçici yasaklama nedeniyle görmezden gelinen toplam mesajlar"
+
+msgid "Semi-reliable UDP total messages sent to known responsive hosts"
+msgstr "Yarı güvenilir UDP bilinen cevap veren makinelere gönderilen toplam mesajlar"
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr "Yarı güvenilir UDP tıkanma sebebiyle kısmen gönderilen toplam mesajlar"
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr "Yarı güvenilir UDP doğru aktarılan güvenilir mesajlar"
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr "Yarı güvenilir UDP yollanan parçalar"
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr "Yarı güvenilir UDP tekrar yollanan parçalar"
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr "Yarı güvenilir UDP fazla kez yollanan parçalar"
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr "Yarı güvenilir UDP alınan toplam teyitler"
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr "Yarı güvenilir UDP alınan kümülatif teyitler"
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr "Yarı güvenilir UDP alınan genişletilmiş teyitler"
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr "Yarı güvenilir UDP alınan sahte teyitler"
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr "Yarı güvenilir UDP alınan geçersiz teyitler"
+
+msgid "Semi-reliable UDP acknowledgments re-queued for sending"
+msgstr "Yarı güvenilir UDP gönderilmek için tekrar kuyruğa konulan teyitler"
+
+msgid "Semi-reliable UDP plain acknowledgments dropped"
+msgstr "Yarı güvenilir UDP görmezden gelinen sade teyitler"
+
+msgid "Semi-reliable UDP enhanced acknowledgments dropped"
+msgstr "Yarı güvenilir UDP görmezden gelinen gelişmiş teyitler"
+
+msgid "Semi-reliable UDP plain acknowledgments transmitted"
+msgstr "Yarı güvenilir UDP aktarılmış sade teyitler"
+
+msgid "Semi-reliable UDP cumulative acknowledgments transmitted"
+msgstr "Yarı güvenilir UDP kümülatif aktarılmış teyitler"
+
+msgid "Semi-reliable UDP extended acknowledgments transmitted"
+msgstr "Yarı güvenilir UDP aktarılmış genişletilmiş teyitler"
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr "Yarı güvenilir UDP gönderilen EAR'ler"
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr "Yarı güvenilir UDP çok fazla gönderilen EAR'ler"
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr "Yarı güvenilir UDP alınan EAR negatif teyitler"
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr "Yarı güvenilir UDP EAR gönderildikten sonra alınan teyitler"
+
+msgid "Semi-reliable UDP fragments received"
+msgstr "Yarı güvenilir UDP alınan UDP parçaları"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr "Yarı güvenilir UDP alınan çift parçalar"
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr "Yarı güvenilir UDP yeniden birleştirme öncesi ömrü dolan mesajlar"
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr "Yarı güvenilir UDP tamamen yeniden birleştirilen mesajlar"
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr "Yarı güvenilir UDP sıkıştırılması başarıyla açılmış mesajlar"
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr "Yarı güvenilir UDP sıkıştırılması yanlış açılmış mesajlar"
+
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+msgid "Semi-reliable UDP empty messages received"
+msgstr "Yarı güvenilir UDP alınan boş mesajlar"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr "Yarı güvenilir UDP yollanan toplam teyitler"
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr "Yarı güvenilir UDP yollanan kümülatif teyitler"
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr "Yarı güvenilir UDP yollanan genişletilmiş teyitler"
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr "Yarı güvenilir UDP önlenen teyit gönderimleri"
+
+msgid "Semi-reliable UDP EARs received"
+msgstr "Yarı güvenilir UDP alınan EAR'ler"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr "Yarı güvenilir UDP bilinmeyen mesaj için alınan EAR'ler"
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr "Yarı güvenilir UDP beklerken alınan EAR'ler"
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr "Yarı güvenilir UDP kötücül İP adreslerinden gelen parçalar"
+
+msgid "UDP G2 hits rerouted to hub for delivery"
+msgstr "UDP teslim için hub'a tekrar yönlendirilmiş G2 isabetleri"
+
+msgid "UDP G2 hits undelivered"
+msgstr "UDP teslim edilmemiş G2 isabetleri"
+
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr "Konsolide sunucular (GUİD ve İP adresi eşleşmesinden sonra)"
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr "Sunucu konsolide edilirken bulunan çift indirmeler"
+
+msgid "Discovered server GUIDs"
+msgstr "Keşfedilen sunucu GUİD'leri"
+
+msgid "Changed server GUIDs"
+msgstr "Değişmeye uğrayan sunucu GUİD'leri"
+
+msgid "Detected GUID collisions"
+msgstr "Tespit edilen GUİD çarpışmaları"
+
+msgid "Detected collisions with our own GUID"
+msgstr "Bizim GUİD'mizle tespit edilen çarpışmalar"
+
+msgid "GUID dynamically banned"
+msgstr "GUİD dinamik olarak yasaklandı"
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr "Gönderme isteklerinde bilinen bilgisayarlar için güvenlik duvarı arkasında düğüm bilgisi"
+
+msgid "Revitalized PUSH routes"
+msgstr "Tekrar canlandırılan itme yolları"
+
+msgid "Collected new PUSH proxies from other query hits"
+msgstr "Diğer sorgu isabetlerinden toplanan yeni İTME vekilleri"
+
+msgid "Attempted download resource switching on completion"
+msgstr "Tamamlanma ardından indirme kaynak değiştirme teşebbüsü"
+
+msgid "Attempted download resource switching after error"
+msgstr "Hata sonrası indirme kaynağı değiştirme teşebbüsü"
+
+msgid "Successful download resource switching (all kind)"
+msgstr "Başarılı indirme kaynağı değiştirmesi (her tür)"
+
+msgid "Successful download resource switching between plain files"
+msgstr "Başarılı dosyalar arası indirme kaynağı değiştirmeleri"
+
+msgid "Successful download resource switching after error"
+msgstr "Hata sonrası başarılı indirme kaynağı (dosya) değiştirmesi"
+
+msgid "Actively queued after resource switching attempt"
+msgstr "Kaynak değiştirme teşebbüsü ardından aktif bir şekilde kuyruğa eklendi"
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr "HTTP cevap verileri hata kodu nedeniyle atıldı"
+
+msgid "Ignored downloaded data"
+msgstr "İndirilen veri görmezden gelindi"
+
+msgid "Ignoring requested after data mismatch"
+msgstr "İstenen veri uyumsuzluğu ardından görmezden geliniyor"
+
+msgid "Ignoring requested to preserve connection"
+msgstr "İstenen bağlantıyı korumak için görmezden geliniyor"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr "Agresif çoklu indirme nedeniyle görmezden gelinenler"
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr "Reddedilen görmezden gelmeler (veriler çok büyük veya sunucu çok yavaş)"
+
+msgid "Client resource switching (all detected)"
+msgstr "İstemci kaynak değiştirmeleri (tüm tespitler)"
+
+msgid "Client resource switching between plain files"
+msgstr "İstemciler tarafından istenen dosyalar için kaynak değiştirmeleri"
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr "HTTP hatası yollanmasını izleyen istemci isteği"
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr "PARQ oluklarda istemcinin kaynak değiştirmesi (SHA-1 değerine dayalı)"
+
+msgid "PARQ client retry-after violation"
+msgstr "PARQ istemcisi sonra-tekrar dene ihlâli"
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr "PARQ istemcisi fazla sonra-tekrar dene ihlâli nedeniyle kovulması"
+
+msgid "PARQ upload slot limit overrides"
+msgstr "PARQ gönderme oluk sınırı aşımları"
+
+msgid "PARQ quick upload slots granted"
+msgstr "Verilen PARQ çabuk gönderme olukları"
+
+msgid "PARQ QUEUE sending attempts"
+msgstr "PARQ QUEUE yollama teşebbüsleri"
+
+msgid "PARQ QUEUE messages sent"
+msgstr "Yollanan PARQ QUEUE mesajları"
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr "PARQ QUEUE yollanımından sonra alınan istekler"
+
+msgid "Launched SHA-1 file verifications"
+msgstr "Başlatılan SHA-1 dosya doğrulamaları"
+
+msgid "Launched TTH file verifications"
+msgstr "Başlatılan TTH dosya doğrulamaları"
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr "Öksüz indirmelerin sorgu isabetleri yoluyla tekrar sunumu"
+
+msgid "Re-seeding of orphan downloads through upload requests"
+msgstr "Öksüz indirmelerin gönderme istekleri yoluyla tekrar sunumu"
+
+msgid "RUDP sent bytes"
+msgstr "Gönderilen RUDP baytları"
+
+msgid "RUDP received bytes"
+msgstr "Alınan RUDP baytları"
+
+msgid "DHT estimated amount of nodes"
+msgstr "DHT tahmini düğüm sayısı"
+
+msgid "DHT standard error of estimated amount of nodes"
+msgstr "DHT standart tahmini düğüm sayı hatası"
+
+msgid "DHT k-ball theoretical frontier (bits)"
+msgstr "DHT teorik k-topu sınırı (bit olarak)"
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr "DHT en uzak k-topu sınırı (bit olarak)"
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr "DHT en yakın k-topu sınırı (bit olarak)"
+
+msgid "DHT routing table buckets"
+msgstr "DHT yönlendirme tablosu konumları"
+
+msgid "DHT routing table leaves"
+msgstr "DHT yönlendirme tablosundaki yapraklar"
+
+msgid "DHT routing table maximum depth"
+msgstr "DHT yönlendirme tablosunun azami derinliği"
+
+msgid "DHT routing table good nodes"
+msgstr "DHT yönlendirme tablosundaki iyi düğümler"
+
+msgid "DHT routing table stale nodes"
+msgstr "DHT yönlendirme tablosundaki kötü düğümler"
+
+msgid "DHT routing table pending nodes"
+msgstr "DHT yönlendirme tablosundaki bekleyen düğümler"
+
+msgid "DHT routing table evicted nodes"
+msgstr "DHT yönlendirme tablosundan çıkarılan düğümler"
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr "DHT yönlendirme tablosundan çıkarılan güvenlik duvarı arkasındaki düğümler"
+
+msgid "DHT routing table evicted nodes due to quota"
+msgstr "DHT yönlendirme tablosundan kota nedeniyle çıkarılan düğümler"
+
+msgid "DHT routing table promoted pending nodes"
+msgstr "DHT yönlendirme tablosundaki bekleyen terfi etmiş düğümler"
+
+msgid "DHT routing table pinged promoted nodes"
+msgstr "DHT yönlendirme tablosunda terfi etmiş düğümlere yollanan pingler"
+
+msgid "DHT routing table rejected node due to bucket network quota"
+msgstr "DHT yönlendirme tablosunda konum ağ kotası nedeniyle reddedilen düğümler"
+
+msgid "DHT routing table rejected node due to global network quota"
+msgstr "DHT yönlendirme tablosunda genel ağ kotası nedeniyle reddedilen düğümler"
+
+msgid "DHT completed bucket refreshes"
+msgstr "DHT tamamlanan konum tazelemeleri"
+
+msgid "DHT forced bucket refreshes"
+msgstr "DHT zorlanan konum tazelemeleri"
+
+msgid "DHT forced bucket merges"
+msgstr "DHT zorlanan konum birleşmeleri"
+
+msgid "DHT bucket merges"
+msgstr "DHT konum birleşmeleri"
+
+msgid "DHT bucket splits"
+msgstr "DHT konum bölünmeleri"
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr "DHT reddedilen bölünemez konum tazelemeleri"
+
+msgid "DHT initiated bucket alive checks"
+msgstr "DHT başlatılan konum denetlemeleri"
+
+msgid "DHT alive pings sent to good nodes"
+msgstr "DHT iyi düğümlere yollanan pingler"
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr "DHT kötü düğümlere yollanan pingler"
+
+msgid "DHT alive pings sent to shutdowning nodes"
+msgstr "DHT kapanan düğümlere yollanan pingler"
+
+msgid "DHT alive pings avoided"
+msgstr "DHT kaçınılan pingler"
+
+msgid "DHT alive pings skipped"
+msgstr "DHT atlanan pingler"
+
+msgid "DHT revitalized stale nodes on RPC reply"
+msgstr "DHT RPC cevabıyla tekrar canlandırılan kötü düğümler"
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr "DHT İP/ağ kotası nedeniyle değer tutulması retleri"
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr "DHT oluşturucu onaylaması temelinde değer tutulması retleri"
+
+msgid "DHT nodes rejected during lookup based on network quota"
+msgstr "DHT aramalar sırasında ağ kotası nedeniyle reddedilen düğümler"
+
+msgid "DHT nodes rejected during lookup based on suspicious proximity"
+msgstr "DHT aramalar sırasında şüpheli yakınlık nedeniyle reddedilen düğümler"
+
+msgid "DHT nodes rejected during lookup based on frequency divergence"
+msgstr "DHT aramalar sırasında frekans sapması nedeniyle reddedilen düğümler"
+
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr "DHT arama sırasında düzeltilen düğümle irtibat İP adresleri"
+
+msgid "DHT keys held"
+msgstr "DHT tutulan anahtarlar"
+
+msgid "DHT cached keys held"
+msgstr "DHT arabellekte tutulan anahtarlar"
+
+msgid "DHT values held"
+msgstr "DHT tutulan anahtarlar"
+
+msgid "DHT cached KUID targets held"
+msgstr "DHT arabellekte tutulan KUİD hedefleri"
+
+msgid "DHT cached closest root nodes"
+msgstr "DHT arabelleğindeki en yakın kök düğümler"
+
+msgid "DHT cached roots exact hits"
+msgstr "DHT arabelleğinde bulunan kök düğümler"
+
+msgid "DHT cached roots approximate hits"
+msgstr "DHT arabelleğinde yaklaşık kök sunan düğümler"
+
+msgid "DHT cached roots misses"
+msgstr "DHT arabelleğinde bulunamayan kök düğümler"
+
+msgid "DHT cached roots lookups within k-ball"
+msgstr "DHT arabelleğinde k-topu içerisinde kök aramaları"
+
+msgid "DHT cached roots contact address refreshed"
+msgstr "DHT arabellekteki kök adresleri tazelemesi"
+
+msgid "DHT cached security tokens held"
+msgstr "DHT arabelleğinde tutulan güvenlik jetonları"
+
+msgid "DHT cached security tokens hits"
+msgstr "DHT arabellekteki güvenlik jetonu isabetleri"
+
+msgid "DHT stable node information held"
+msgstr "DHT tutulan kararlı düğüm bilgisi"
+
+msgid "DHT local hits on value lookups"
+msgstr "DHT değer aramalarında yerel isabetler"
+
+msgid "DHT local hits returning values from cached keys"
+msgstr "DHT arabellekteki anahtarlardan değer geri gönderen yerel isabetler"
+
+msgid "DHT returned expanded values"
+msgstr "DHT geri gönderilen genişletilmiş değerler"
+
+msgid "DHT returned values as secondary keys"
+msgstr "DHT ikincil anahtarlar olarak geri gönderilen değerler"
+
+msgid "DHT claimed values via secondary keys"
+msgstr "DHT ikincil anahtarlar yoluyla istenen değerler"
+
+msgid "DHT returned cached expanded values"
+msgstr "DHT geri gönderilen arabellekteki genişletilmiş değerler"
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr "DHT arabellekte ikincil anahtar olarak geri gönderilen değerler"
+
+msgid "DHT claimed cached values via secondary keys"
+msgstr "DHT arabellekte ikincil anahtar olarak istenen değerler"
+
+msgid "DHT successfully received value publications"
+msgstr "DHT başarılı olarak alınan değer yayınları"
+
+msgid "DHT successfully received value removals"
+msgstr "DHT başarılı olarak alınan değer silinmeleri"
+
+msgid "DHT replication of stale value avoided"
+msgstr "DHT çoğaltılmasından kaçınılan bayat değerler"
+
+msgid "DHT replication of held values"
+msgstr "DHT tutulan değerlerin çoğaltılması"
+
+msgid "DHT republishing of held values"
+msgstr "DHT tutulan değerlerin tekrar yayını"
+
+msgid "DHT secondary-key value fetch issued"
+msgstr "DHT ikincil anahtarlar ile değer istekleri"
+
+msgid "DHT duplicate values returned in lookups"
+msgstr "DHT aramalarda sonuç olarak çift/kopya değerler"
+
+msgid "DHT detected KUID collisions"
+msgstr "DHT tespit edilen KUİD çarpışmaları"
+
+msgid "DHT detected collisions with our own KUID"
+msgstr "DHT Tespit edilen bizim KUİD'mizle çarpışmalar"
+
+msgid "DHT caching attempts"
+msgstr "DHT önbelleğe koyma teşebbüsleri"
+
+msgid "DHT caching ended successfully"
+msgstr "DHT başarılı önbelleğe koymalar"
+
+msgid "DHT caching partially completed"
+msgstr "DHT tamamlanmamış önbelleğe koymalar"
+
+msgid "DHT key-offloading checks after discovering new closest node"
+msgstr "DHT yeni en yakın düğüm bulunduğunda anahtar kaldırma denetimleri"
+
+msgid "DHT keys selected for offloading"
+msgstr "DHT kaldırmak için seçilen anahtarlar"
+
+msgid "DHT key-offloading attempts"
+msgstr "DHT anahtar kaldırma teşebbüsleri"
+
+msgid "DHT key-offloading ended successfully"
+msgstr "DHT başarılı bir şekilde tamamlanan anahtar kaldırmaları"
+
+msgid "DHT key-offloading partially completed"
+msgstr "DHT kısmen tamamlanan anahtar kaldırmaları"
+
+msgid "DHT values successfully offloaded"
+msgstr "DHT başarılı bir şekilde kaldırılan değerler"
+
+msgid "DHT incoming messages"
+msgstr "DHT içeriye gelen mesajlar"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr "DHT UDP ile denkleşen irtibat adresiyle alınan mesajlar"
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr "DHT içeriye gelen irtibat adresi düzeltilmiş mesajlar"
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr "DHT kötücül adreslerden gelen mesajlar"
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr "DHT kötücül irtibat adresiyle alınan mesajlar"
+
+msgid "DHT RPC messages prepared"
+msgstr "DHT RPC hazırlanan mesajlar"
+
+msgid "DHT RPC messages cancelled"
+msgstr "DHT RPC iptal edilen mesajlar"
+
+msgid "DHT RPC timed out"
+msgstr "DHT RPC zaman aşımı"
+
+msgid "DHT RPC replies received"
+msgstr "DHT RPC alınan cevaplar"
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr "DHT RPC irtibat adresi düzeltilmiş cevaplar"
+
+msgid "DHT RPC late replies received"
+msgstr "DHT RPC alınan gecikmiş cevaplar"
+
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr "DHT RCP cevaplarda tespit edilen KUİD uyumsuzlukları"
+
+msgid "DHT RPC recent nodes held"
+msgstr "DHT RPC yakın geçmişte karşılaşılan ve hatırlanan düğümler"
+
+msgid "DHT node verifications"
+msgstr "DHT düğüm doğrulamaları"
+
+msgid "DHT publishing attempts"
+msgstr "DHT yayın teşebbüsleri"
+
+msgid "DHT publishing ended successfully (all roots)"
+msgstr "DHT başarılı bir şekilde sona eren yayınlar (tüm kökler)"
+
+msgid "DHT publishing partially completed (root subset only)"
+msgstr "DHT kısmen tamamlanan yayınlar (sadece kök altkümesi)"
+
+msgid "DHT publishing ending with proper value presence"
+msgstr "DHT uygun değer varlığı ile biten yayınlar"
+
+msgid "DHT value republishing occurring too late (after expiry)"
+msgstr "DHT çok geç meydana gelen (ömründen sonra) değer tekrar yayını"
+
+msgid "DHT publishing to self"
+msgstr "DHT kendine yayın"
+
+msgid "DHT background publishing completion attempts"
+msgstr "DHT arka planda yayın tamamlama teşebbüsleri"
+
+msgid "DHT background publishing completion showing improvements"
+msgstr "DHT iyileşme gösteren arka planda yayın tamamlanması"
+
+msgid "DHT background publishing completion successful (all roots)"
+msgstr "DHT arka planda başarılı yayınlama tamamlanması (tüm kökler)"
+
+msgid "DHT SHA1 data type collisions"
+msgstr "DHT SHA1 veri tipi çarpışmaları"
+
+msgid "DHT lookup path passively protected against attack"
+msgstr "DHT arama yolunun saldırılara karşı pasif olarak korunması"
+
+msgid "DHT lookup path actively protected against attack"
+msgstr "DHT arama yolunun saldırılara karşı aktif olarak korunması"
+
+msgid "DHT alt-loc lookups issued"
+msgstr "DHT yollanan alternatif kaynak (alt-loc) aramaları"
+
+msgid "DHT push-proxy lookups issued"
+msgstr "DHT yollanan itme vekili aramaları"
+
+msgid "DHT successful alt-loc lookups"
+msgstr "DHT başarılı alt-loc aramaları"
+
+msgid "DHT successful push-proxy lookups"
+msgstr "DHT başarılı itme vekili aramaları"
+
+msgid "DHT successful node push-entry lookups"
+msgstr "DHT başarılı itme vekili aramaları"
+
+msgid "DHT re-seeding of orphan downloads"
+msgstr "DHT öksüz indirmelerin tekrar sunumu"
+
+msgid "Ping"
+msgstr "Ping"
+
+msgid "Pong"
+msgstr "Pong"
+
+msgid "Bye"
+msgstr "Bye (Hoşçakal)"
+
+msgid "QRP"
+msgstr "QRP"
+
+msgid "HSEP"
+msgstr "HSEP"
+
+msgid "RUDP"
+msgstr "RUDP"
+
+msgid "Vendor spec."
+msgstr "Özel sağlayıcı"
+
+msgid "Vendor std."
+msgstr "Standart sağlayıcı"
+
+msgid "Push"
+msgstr "İtme"
+
+msgid "Query"
+msgstr "Sorgu"
+
+msgid "Query hit"
+msgstr "Sorgu isabeti"
+
+msgid "DHT (truncated)"
+msgstr "DHT (kesilmiş)"
+
+msgid "DHT Ping"
+msgstr "DHT Ping'i"
+
+msgid "DHT Pong"
+msgstr "DHT pong'u"
+
+msgid "DHT Store"
+msgstr "DHT'ye yazma"
+
+msgid "DHT Store Ack"
+msgstr "DHT'ye yazma cevabı"
+
+msgid "DHT Find Node"
+msgstr "DHT düğüm araması"
+
+msgid "DHT Found Node"
+msgstr "Bulunan DHT düğümleri"
+
+msgid "DHT Find Value"
+msgstr "DHT değer araması"
+
+msgid "DHT Value"
+msgstr "DHT Değeri"
+
+msgid "G2 Crawl Request"
+msgstr "G2 Tarama talebi"
+
+msgid "G2 Hub Advertisement"
+msgstr "G2 Hub bildirimi"
+
+msgid "G2 Hub List"
+msgstr "G2 Hub listesi"
+
+msgid "G2 Hub List Req"
+msgstr "G2 Hub listesi talebi"
+
+msgid "G2 Hub List Ack"
+msgstr "G2 Hub listesi onayı"
+
+msgid "G2 Local Node Info"
+msgstr "G2 Yerel düğüm bilgisi"
+
+msgid "G2 Ping"
+msgstr "G2 Ping"
+
+msgid "G2 Pong"
+msgstr "G2 Pong"
+
+msgid "G2 Push"
+msgstr "G2 İtme"
+
+msgid "G2 Query Key Ack"
+msgstr "G2 Sorgu anahtarı onayı"
+
+msgid "G2 Query Key Req"
+msgstr "G2 Sorgu anahtarı talebi"
+
+msgid "G2 Query"
+msgstr "G2 Sorgu"
+
+msgid "G2 Query Ack"
+msgstr "G2 Sorgu onayı"
+
+msgid "G2 Query Hit"
+msgstr "G2 Sorgu isabeti"
+
+msgid "G2 Query Hash Table"
+msgstr "G2 Sorgu Hash tablosu"
+
+msgid "G2 User Profile Check"
+msgstr "G2 Kullanıcı profili kontrolü"
+
+msgid "G2 User Profile Data"
+msgstr "G2 Kullanıcı profili verileri"
+
+msgid "Total"
+msgstr "Toplam"
+
+msgid "Bad size"
+msgstr "Yanlış boyut"
+
+msgid "Too small"
+msgstr "Küçük"
+
+msgid "Too large"
+msgstr "Büyük"
+
+msgid "Way too large"
+msgstr "Çok büyük"
+
+msgid "Too old"
+msgstr "Çok eski"
+
+msgid "Unknown message type"
+msgstr "Bilinmeyen mesaj türü"
+
+msgid "Unexpected message"
+msgstr "Beklenmedik mesaj"
+
+msgid "Message sent with TTL = 0"
+msgstr "Mesaj TTL = 0 değeri ile yollandı"
+
+msgid "Improper hops/ttl combination"
+msgstr "Yanlış hop/ttl kombinasyonu"
+
+msgid "Max TTL exceeded"
+msgstr "Azami TTL aşıldı"
+
+msgid "Message throttle"
+msgstr "Mesaj sayısı sınırlaması"
+
+msgid "Message matched limits"
+msgstr "Mesaj boyutu sınırına erişildi"
+
+msgid "Transient node"
+msgstr "Geçici düğüm"
+
+msgid "Unusable Pong"
+msgstr "Kullanılamaz pong"
+
+msgid "Hard TTL limit reached"
+msgstr "Sabit TTL sınırına erişildi"
+
+msgid "Max hop count reached"
+msgstr "Azami hop sayısına ulaşıldı"
+
+msgid "Route lost"
+msgstr "Yol kaybedildi"
+
+msgid "No route"
+msgstr "Yol yok"
+
+msgid "Duplicate message"
+msgstr "Kopya mesaj"
+
+msgid "OOB Proxy MUID Conflict"
+msgstr "OOB vekili MUID çakışması"
+
+msgid "Message to banned GUID"
+msgstr "Yasaklanmış GUİD'ye mesaj"
+
+msgid "Message from banned GUID"
+msgstr "Yasaklanmış GUİD'den mesaj"
+
+msgid "Node shutting down"
+msgstr "Düğüm kapanıyor"
+
+msgid "TX flow control"
+msgstr "TX akış kontrolü"
+
+msgid "Query text had no trailing NUL"
+msgstr "Sorgu metni NUL ile bitmiyor"
+
+msgid "Query text too short"
+msgstr "Sorgu metni çok kısa"
+
+msgid "Query had unnecessary overhead"
+msgstr "Gereksiz veri taşıyan sorgular"
+
+msgid "Query had bad URN"
+msgstr "Sorgu bozuk URN içeriyor"
+
+msgid "Message with malformed SHA1"
+msgstr "Yanlış yapılandırılmış SHA1 içeren mesaj"
+
+msgid "Message with malformed UTF-8"
+msgstr "Yanlış yapılandırılmış UTF-8 içeren mesaj"
+
+msgid "Malformed Query Hit"
+msgstr "Yanlış yapılandırılmış arama cevabı"
+
+msgid "Bad return address"
+msgstr "Hatalı dönüş adresi"
+
+msgid "Hostile IP address"
+msgstr "Kötücül İP adresi"
+
+msgid "Shunned IP address"
+msgstr "Kaçınılan İP adresi"
+
+msgid "Bogus result from Morpheus"
+msgstr "Morpheus istemcisinden hatalı sonuç"
+
+msgid "Spam"
+msgstr "Spam"
+
+msgid "Evil filename"
+msgstr "Şer dosya adı"
+
+msgid "Improper media type"
+msgstr "Uygun olmayan dosya tipi"
+
+msgid "Payload inflating error"
+msgstr "Yük genişletilmesinde hata"
+
+msgid "Unknown header flags present"
+msgstr "Bilinmeyen başlık bayrakları mevcut"
+
+msgid "Own search results"
+msgstr "Kendi arama sonuçlarımız"
+
+msgid "Own queries"
+msgstr "Kendi sorgularımız"
+
+msgid "Ancient query format"
+msgstr "Eski sorgu biçimi"
+
+msgid "Blank Servent ID"
+msgstr "Boş istemci kimliği"
+
+msgid "GUESS Query missing token"
+msgstr "GUESS sorgusunda jeton eksik"
+
+msgid "GUESS Invalid query token"
+msgstr "Geçersiz GUESS sorgu jetonu"
+
+msgid "DHT Invalid security token"
+msgstr "Geçersiz DHT güvenlik jetonu"
+
+msgid "DHT Too many STORE requests"
+msgstr "DHT'de çok fazla STORE talebi"
+
+msgid "DHT Malformed message"
+msgstr "Yanlış yapılandırılmış DHT mesajı"
+
+msgid "G2 Unexpected message"
+msgstr "G2 Beklenmedik mesaj"
+
+msgid "Cannot cross networks"
+msgstr "Ağlar arası geçiş yapılamaz"
 
 msgid "No proxy"
 msgstr "Vekil sunucusuz"
@@ -1459,9 +2508,6 @@ msgstr "Göndermeler için hata ayıklama seviyesi."
 
 msgid "Debug level for code shared between gui and core."
 msgstr "Çekirdek ve grafik arayüz arasında paylaşılan kod için hata ayıklama seviyesi."
-
-msgid "Verbosity of Bitzi related debug messages."
-msgstr "Bitzi hakkında hata ayıklama mesajlarının gevezeliği."
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr "URL yönetimi hakkında hata ayıklama mesajlarının gevezeliği."
@@ -2329,9 +3375,9 @@ msgstr "Göndermelerin sıkça durakladığını gösterir. Bu durumda ultra dü
 
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
-"$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
-"list from the global one distributed with gtk-gnutella."
-msgstr "DOĞRU seçilirse kişisel $GTK_GNUTELLA_DIR/hostiles.txt dosyasına ek olarak genel hostiles.txt dosyası da kullanılacaktır. Bu kişisel yasaklama listenizi, gtk-gnutella ile dağıtılan genel listeden ayırmanıza imkân verir."
+"$GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban"
+" list from the global one distributed with gtk-gnutella."
+msgstr "Eğer DOĞRU olarak seçiliyse, gobal hostiles.txt ile özel $GTK_GNUTELLA_DIR/hostiles.txt dosyası da kullanılacaktır. Bu, sizin özel yasaklama listenizi gtk-gnutella ile dağıtılan global listeden ayırmanıza imkân sağlar."
 
 msgid "If set to TRUE, SO_LINGER is used for sockets."
 msgstr "DOĞRU seçiliyse soketler için SO_LINGER kullanılır."
@@ -3097,6 +4143,54 @@ msgstr "UPnP veya NAT-PMP ile port haritalamasının kurulmasında saniye olarak
 msgid "Whether the program is auto-restarting at the user's request."
 msgstr "Programın kullanıcının isteği doğrultusunda otomatik olarak tekrar başlayıp başlamayacağını belirler."
 
+msgid "Debug level for time management."
+msgstr "Zaman yönetimi için hata ayıklama seviyesi"
+
+msgid "Debug level for the tmalloc() thread-magazine object distributor."
+msgstr "Her iş parçacığına özel nesne dağıtıcı tmalloc() için hata ayıklama seviyesi."
+
+msgid "Debug level for the event queue thread."
+msgstr "Olay kuyruğu iş parçacığı için hata ayıklama seviyesi."
+
+msgid "Maximum number of G2 hubs in the hub cache."
+msgstr "Hub arabelleğindeki azami G2 hub sayısı."
+
+msgid "Current number of IPv4 hosts in the G2 hub caches."
+msgstr "G2 hub arabelleğindeki güncel İPv4 makine sayısı."
+
+msgid "Whether the G2 protocol should be enabled."
+msgstr "G2 protokolünün etkinleştirilip etkinleştirilmeyeceğini ayarlar."
+
+msgid "Number of G2 nodes currently connected."
+msgstr "Güncel olarak bağlı bulunduğumuz G2 hubları sayısı."
+
+msgid "Maximum amount of G2 hubs we should connect to as a leaf."
+msgstr "Yaprak olarak bağlanacağımız azami G2 hub sayısı."
+
+msgid "Whether to log bad G2 messages, corrupted or unexpected."
+msgstr "Kötü, yani beklenmedik ya da bozuk G2 mesajlarının kütüğünün tutulup tutulmayacağı."
+
+msgid "Whether to log dropped G2 messages"
+msgstr "Görmezden gelinen G2 mesajlarının kütüğünün tutulup tutulmayacağı"
+
+msgid "Debug level for the G2 RPC layer."
+msgstr "G2 RPC katmanı için hata ayıklama seviyesi."
+
+msgid "Whether to log summary of received query hits"
+msgstr "Alınan sorgu isabetlerinin özetlerinin kütüğünün tutulup tutulmayacağı"
+
+msgid "Whether to log summary of each record in received query hits"
+msgstr "Alınan sorgu isabetlerinde her kaydın özetinin kütüğünün tutulup tutulmayacağı"
+
+msgid "Number of G2 browsing requests received in this session."
+msgstr "Bu oturumda alınan G2 tarama taleplerinin sayısı."
+
+msgid "Number of G2 browsing requests fully served in this session."
+msgstr "Bu oturumda tamamen yanıtlanan G2 tarama taleplerinin sayısı."
+
+msgid "Whether to log G2 messages we're attempting to send"
+msgstr "Yollamayı denediğimiz G2 mesajlarının kütüğünün tutulup tutulmayacağı"
+
 msgid "disable"
 msgstr "devre dışı"
 
@@ -3118,65 +4212,8 @@ msgstr "Salt TCP"
 msgid "UDP only"
 msgstr "Salt UDP"
 
-msgid "Ping"
-msgstr "Ping"
-
-msgid "Pong"
-msgstr "Pong"
-
-msgid "Bye"
-msgstr "Bye (Hoşçakal)"
-
-msgid "QRP"
-msgstr "QRP"
-
-msgid "HSEP"
-msgstr "HSEP"
-
-msgid "RUDP"
-msgstr "RUDP"
-
-msgid "Vendor spec."
-msgstr "Özel sağlayıcı"
-
-msgid "Vendor std."
-msgstr "Standart sağlayıcı"
-
-msgid "Push"
-msgstr "İtme"
-
-msgid "Query"
-msgstr "Sorgu"
-
 msgid "Query Hit"
 msgstr "Sorgu isabeti"
-
-msgid "DHT Ping"
-msgstr "DHT Ping'i"
-
-msgid "DHT Pong"
-msgstr "DHT pong'u"
-
-msgid "DHT Store"
-msgstr "DHT'ye yazma"
-
-msgid "DHT Store Ack"
-msgstr "DHT'ye yazma cevabı"
-
-msgid "DHT Find Node"
-msgstr "DHT düğüm araması"
-
-msgid "DHT Found Node"
-msgstr "Bulunan DHT düğümleri"
-
-msgid "DHT Find Value"
-msgstr "DHT değer araması"
-
-msgid "DHT Value"
-msgstr "DHT Değeri"
-
-msgid "Total"
-msgstr "Toplam"
 
 msgid "Icons"
 msgstr "Simge"
@@ -4483,6 +5520,14 @@ msgstr "Etkileşimli mod etkin."
 msgid "Interactive mode turned off."
 msgstr "Etkileşimli mod devre dışı."
 
+#, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Bilinmeyen işlem: \"show %s\""
+
+#, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Bilinmeyen işlem: \"%s\""
+
 msgid "Cannot determine current working directory"
 msgstr "Güncel çalışma klasörü belirlenemedi"
 
@@ -4496,14 +5541,6 @@ msgstr "Tekrar açılamadı"
 #, c-format
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr "Kütük dosyasının ismi \"%s\": %m olarak değiştirilemedi"
-
-#, c-format
-msgid "Unknown operation \"%s\""
-msgstr "Bilinmeyen işlem: \"%s\""
-
-#, c-format
-msgid "Unknown operation \"show %s\""
-msgstr "Bilinmeyen işlem: \"show %s\""
 
 #, c-format
 msgid "Unknown operation \"stats %s\""
@@ -4554,6 +5591,9 @@ msgstr "Denk gelen özellik yok."
 msgid "Good bye"
 msgstr "Hoşçakal"
 
+msgid "Invalid command syntax"
+msgstr "Geçersiz komut sözdizimi"
+
 msgid "Query string missing"
 msgstr "Arama metni eksik"
 
@@ -4592,9 +5632,6 @@ msgstr "sonlandırılmamış çift tırnaklı dize"
 msgid "unterminated single-quoted string"
 msgstr "sonlandırılmamış tek tırnaklı dize"
 
-msgid "Invalid command syntax"
-msgstr "Geçersiz komut sözdizimi"
-
 msgid "too many arguments in command"
 msgstr "komutta çok fazla argüman"
 
@@ -4611,48 +5648,6 @@ msgstr "Bilinmeyen komut: \"%s\""
 
 msgid "Help: "
 msgstr "Yardım: "
-
-msgid "Bitzi|Unknown"
-msgstr "Bitzi|Bilinmiyor"
-
-msgid "Bitzi|Unrated"
-msgstr "Bitzi|Yorumlanmamış"
-
-msgid "Bitzi|Bitzi lookup failure"
-msgstr "Bitzi|Arama hatası"
-
-msgid "Bitzi|Filesize mismatch"
-msgstr "Bitzi|Dosya boyutu uyumsuzluğu"
-
-msgid "Bitzi|Dangerous/Misleading"
-msgstr "Bitzi|Tehlikeli/Yanıltıcı"
-
-msgid "Bitzi|Incomplete/Damaged"
-msgstr "Bitzi|Tamamlanmamış/Hasarlı"
-
-msgid "Bitzi|Substandard"
-msgstr "Bitzi|Vasat"
-
-msgid "Bitzi|Overrated"
-msgstr "Bitzi|Şişirilmiş not"
-
-msgid "Bitzi|Normal"
-msgstr "Bitzi|Normal"
-
-msgid "Bitzi|Underrated"
-msgstr "Bitzi|Gerekenden düşük not"
-
-msgid "Bitzi|Complete"
-msgstr "Bitzi|Tamamlanmış"
-
-msgid "Bitzi|Recommended"
-msgstr "Bitzi|Tavsiye edilen"
-
-msgid "Bitzi|Best Version"
-msgstr "Bitzi|En iyi versiyon"
-
-msgid "No other data"
-msgstr "Başka veri yok"
 
 msgid "Filename"
 msgstr "Dosya adı"
@@ -4678,12 +5673,6 @@ msgstr "yaprak hash değerleri: %lu, derinlik: %u, taneciklik: %s"
 
 msgid "Tigertree"
 msgstr "Tigertree"
-
-msgid "External metadata"
-msgstr "Harici metaveriler"
-
-msgid "Bitzi URL"
-msgstr "Bitzi URL'i"
 
 msgid "Rescheduled for"
 msgstr "Şu vakte ertelendi"
@@ -5081,852 +6070,6 @@ msgstr "Global (sonra)"
 msgid "RETURN"
 msgstr "GERİ DÖN"
 
-msgid "Query hit"
-msgstr "Sorgu isabeti"
-
-msgid "DHT (truncated)"
-msgstr "DHT (kesilmiş)"
-
-msgid "Routing errors"
-msgstr "Yönlendirme hataları"
-
-msgid "Routing table chunks"
-msgstr "Yönlendirme tablosundaki parçalar"
-
-msgid "Routing table message capacity"
-msgstr "Yönlendirme tablosu mesaj kapasitesi"
-
-msgid "Routing table message count"
-msgstr "Yönlendirme tablosundaki parça sayısı"
-
-msgid "Routing through transient node avoided"
-msgstr "Geçici düğüm üzerinden yönlendirilmeden kaçınıldı"
-
-msgid "Duplicates with higher TTL"
-msgstr "Daha yüksek TTL'li kopyalar"
-
-msgid "SPAM SHA1 database hits"
-msgstr "SPAM SHA1 isabetleri"
-
-msgid "SPAM filename and size hits"
-msgstr "SPAM dosya adı ve boyutu isabetleri"
-
-msgid "SPAM fake hits"
-msgstr "SPAM hile dosya isabetleri"
-
-msgid "SPAM duplicate hits"
-msgstr "SPAM kopya isabetleri"
-
-msgid "SPAM dynamically caught hostile IP addresses"
-msgstr "SPAM dinamik olarak yakalanan kötücül İP adresleri"
-
-msgid "SPAM dynamically caught hostile IP held"
-msgstr "SPAM saklanan dinamik olarak yakalanmış kötücül İP adresleri"
-
-msgid "SPAM spotted spamming IP addresses held"
-msgstr "SPAM tutulan tespit edilmiş spamcı İP adresleri"
-
-msgid "Searches to local DB"
-msgstr "Yerel veritabanında aramalar"
-
-msgid "Hits on local DB"
-msgstr "Yerel veritabanına isabetler"
-
-msgid "Hits on local partial files"
-msgstr "Yerel tamamlanmamış dosyalara isabetler"
-
-msgid "Hits on \"what's new?\" queries"
-msgstr "\"Yeni olanlar\" sorgularına isabetler"
-
-msgid "Query hits received for local queries"
-msgstr "Yerel sorgular için alınan sorgu isabetleri"
-
-msgid "Query hits received for OOB-proxied queries"
-msgstr "OOB vekilli sorgular için alınan sorgu isabetleri"
-
-msgid "Queries requesting OOB hit delivery"
-msgstr "OOB isabet teslimi talep eden sorgular"
-
-msgid "Stripped OOB flag on queries"
-msgstr "Sorgulardan kaldırılan OOB bayrağı"
-
-msgid "Ignored OOB queries due to unclaimed hits"
-msgstr "Talep edilmeyen isabetler sebebiyle görmezden gelinen OOB (bant dışı) sorguları"
-
-msgid "Duplicate OOB-proxied queries"
-msgstr "Kopya OOB vekilli sorgular"
-
-msgid "OOB hits received for OOB-proxied queries"
-msgstr "OOB vekilli sorgular için alınan OOB isabetleri"
-
-msgid "OOB hits bearing alien IP address"
-msgstr "Yabancı İP adresi taşıyan OOB isabetleri"
-
-msgid "OOB hits ignored due to identified spamming address"
-msgstr "Bilinen spamcı adresi nedeniyle görmezden gelinen OOB isabetleri"
-
-msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr "Bilinen güvenli makineden güvensiz söz verme sebebiyle görmezden gelinen OOB isabetleri"
-
-msgid "Unclaimed locally-generated OOB hits"
-msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
-
-msgid "Partially claimed locally-generated OOB hits"
-msgstr "Kısmi olarak talep edilen yerel olarak oluşturulmuş OOB isabetleri"
-
-msgid "Spurious OOB hit claiming received"
-msgstr "Sahte OOB isabet talebi alındı"
-
-msgid "Unrequested OOB hits received"
-msgstr "Talep edilmeden alınan OOB isabetleri"
-
-msgid "Received query hits for untracked queries"
-msgstr "İzlenmeyen sorgular için alınan sorgu isabetleri"
-
-msgid "Tracked query MUIDs"
-msgstr "İzlenen eşsiz mesaj kimlikleri (MUİD)"
-
-msgid "Compacted queries"
-msgstr "Sıkıştırılmış sorgular"
-
-msgid "Bytes saved by compacting"
-msgstr "Sıkıştırılmayla tasarruf edilen baytlar"
-
-msgid "UTF8 queries"
-msgstr "UTF8 sorgular"
-
-msgid "SHA1 queries"
-msgstr "SHA1 sorgular"
-
-msgid "\"What's New?\" queries"
-msgstr "\"Yeni olanlar\" sorguları"
-
-msgid "GUESS queries"
-msgstr "GUESS sorguları"
-
-msgid "GUESS queries (0.2)"
-msgstr "GUESS sorguları (0.2)"
-
-msgid "GUESS link cache size"
-msgstr "GUESS bağlantı ara bellek boyutu"
-
-msgid "GUESS cached query keys held"
-msgstr "GUESS tutulan sorgu anahtarları"
-
-msgid "GUESS cached 0.2 hosts held"
-msgstr "GUESS tutulan 0.2 bilgisayarları"
-
-msgid "GUESS locally generated queries"
-msgstr "GUESS yerel olarak oluşturulan sorgular"
-
-msgid "GUESS currently running queries"
-msgstr "GUESS şu anda etkin olan sorgular"
-
-msgid "GUESS hits received for locally generated queries"
-msgstr "GUESS yerel olarak oluşturulan sorgulara erişimler"
-
-msgid "GUESS hosts queried"
-msgstr "Sorgulanan GUESS bilgisayarları"
-
-msgid "GUESS hosts sending back an acknowledgment"
-msgstr "Bildirim geri gönderen GUESS bilgisayarları"
-
-msgid "Broadcasted push messages"
-msgstr "Yayınlanan itme mesajları"
-
-msgid "Push-proxy UDP relayed messages"
-msgstr "İtme vekilince yönlendirilen UDP mesajları"
-
-msgid "Push-proxy TCP relayed messages"
-msgstr "İtme vekilince yönlendirilen TCP mesajları"
-
-msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr "GD<->GD transferleri için TCP itme vekili"
-
-msgid "Push-proxy broadcasted messages"
-msgstr "Yayınlanan itme vekili mesajları"
-
-msgid "Push-proxy found un-proxied local route"
-msgstr "İtme vekili vekilsiz yerel bir yol buldu"
-
-msgid "Push-proxy lookup failures"
-msgstr "İtme vekili danışma başarısızlıkları"
-
-msgid "Push relayed via local route"
-msgstr "İtme yerel yol ile yönlendirildi"
-
-msgid "Push relayed via routing table"
-msgstr "İtme yönlendirme tablosuyla yönlendirildi"
-
-msgid "Locally generated dynamic queries"
-msgstr "Yerel olarak oluşturulan dinamik sorgular"
-
-msgid "Leaf-generated dynamic queries"
-msgstr "Yapraklar tarafından oluşturulan dinamik sorgular"
-
-msgid "OOB-proxied leaf queries"
-msgstr "OOB vekilli yaprak sorguları"
-
-msgid "Fully completed dynamic queries"
-msgstr "Eksiksiz tamamlanan dinamik sorgular"
-
-msgid "Partially completed dynamic queries"
-msgstr "Kısmen tamamlanan dinamik sorgular"
-
-msgid "Dynamic queries ended with no results"
-msgstr "Sonuçsuz sona eren dinamik sorgular"
-
-msgid "Fully completed dynamic queries getting late results"
-msgstr "Gecikmiş cevap alan eksiksiz tamamlanmış dinamik sorgular"
-
-msgid "Dynamic queries with partial late results"
-msgstr "Kısmi geç sonuçları bulunan dinamik sorgular"
-
-msgid "Dynamic queries completed by late results"
-msgstr "Geç sonuçlarla tamamlanan dinamik sorgular"
-
-msgid "Queries seen from GTKG"
-msgstr "GTKG'den görülen sorgular"
-
-msgid "Queries seen from GTKG that were re-queries"
-msgstr "GTKG'nın gördüğü tekrar olan sorgular"
-
-msgid "Queries advertising support of GGEP \"H\""
-msgstr "GGEP \"H\" desteği bildiren sorgular"
-
-msgid "Queries advertising support of semi-reliable UDP"
-msgstr "Yarı güvenilir UDP desteği bildiren sorgular"
-
-msgid "GIV callbacks received"
-msgstr "Alınan GİV geri çağrıları"
-
-msgid "GIV discarded due to no suitable download"
-msgstr "Uygun indirme bulunmadığı için atılan GİV"
-
-msgid "QUEUE callbacks received"
-msgstr "Alınan QUEUE geri çağrıları"
-
-msgid "QUEUE discarded due to no suitable download"
-msgstr "Uygun indirme bulunmadığı için atılan QUEUE"
-
-msgid "UDP read-ahead datagram running count"
-msgstr "UDP önceden okuma veri birimi, toplam sayı"
-
-msgid "UDP read-ahead datagram running bytes"
-msgstr "UDP önceden okuma veri birimi, bayt olarak toplam boyut"
-
-msgid "UDP read-ahead datagram \"old\" processed"
-msgstr "UDP önceden okuma veri birimi işlenen \"eskiler\""
-
-msgid "UDP read-ahead datagram max count"
-msgstr "UDP önceden okuma veri birimi azami sayısı"
-
-msgid "UDP read-ahead datagram max bytes"
-msgstr "UDP önceden okuma veri birimi azami bayt"
-
-msgid "UDP read-ahead datagram max delay"
-msgstr "UDP önceden okuma veri birimi azami gecikme"
-
-msgid "UDP push messages received for FW<->FW connections"
-msgstr "GD<->GD bağlantıları için alınan UDP itme mesajları"
-
-msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr "Bizimle GD<->GD bağlantısı talep eden UDP itme mesajları"
-
-msgid "UDP push messages patched for FW<->FW connections"
-msgstr "GD<->GD (güvenlik duvarı) bağlantıları için yamalanmış UDP itme mesajları"
-
-msgid "UDP UHC pings received"
-msgstr "UDP alınan UHC pingleri"
-
-msgid "UDP UHC pongs sent"
-msgstr "UDP gönderilen UHC pongları"
-
-msgid "UDP messages with bogus source IP"
-msgstr "Bozuk kaynak İP adresi içeren UDP mesajları"
-
-msgid "UDP truncated incoming messages"
-msgstr "UDP içeriye gelen kesilmiş mesajlar"
-
-msgid "Alien UDP messages (non-Gnutella)"
-msgstr "Yabancı UDP mesajları (Gnutella'dan olmayan)"
-
-msgid "Unprocessed UDP Gnutella messages"
-msgstr "İşlenmeyen Gnutella UDP mesajları"
-
-msgid "Compressed UDP messages enqueued"
-msgstr "Kuyruğa eklenen sıkıştırılmış UDP mesajları"
-
-msgid "Compressed UDP messages received"
-msgstr "Alınan sıkıştırılmış UDP mesajları"
-
-msgid "Uncompressed UDP messages due to no gain"
-msgstr "Kazanım olmadığı için sıkıştırılmayan UDP mesajları"
-
-msgid "Ambiguous UDP messages received"
-msgstr "Alınan belirsiz UDP mesajları"
-
-msgid "Ambiguous UDP messages inspected more deeply"
-msgstr "Daha derin incelenen belirsiz UDP mesajları"
-
-msgid "Ambiguous UDP messages handled as semi-reliable UDP"
-msgstr "Yarı güvenilir UDP olarak ele alınan belirsiz UDP mesajları"
-
-msgid "Semi-reliable UDP total messages given for transmission"
-msgstr "Yarı güvenilir UDP iletim için verilen toplam mesajlar"
-
-msgid "Semi-reliable UDP total messages deflated"
-msgstr "Yarı güvenilir UDP toplam sıkıştırılmış mesajlar"
-
-msgid "Semi-reliable UDP total messages unsent"
-msgstr "Yarı güvenilir UDP toplam gönderilmeyen mesajlar"
-
-msgid "Semi-reliable UDP total messages partially sent due to clogging"
-msgstr "Yarı güvenilir UDP tıkanma sebebiyle kısmen gönderilen toplam mesajlar"
-
-msgid "Semi-reliable UDP reliable messages given for transmission"
-msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
-
-msgid "Semi-reliable UDP reliable messages correctly transmited"
-msgstr "Yarı güvenilir UDP doğru aktarılan güvenilir mesajlar"
-
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
-
-msgid "Semi-reliable UDP fragments sent"
-msgstr "Yarı güvenilir UDP yollanan parçalar"
-
-msgid "Semi-reliable UDP fragments resent"
-msgstr "Yarı güvenilir UDP tekrar yollanan parçalar"
-
-msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
-
-msgid "Semi-reliable UDP fragments sent too many times"
-msgstr "Yarı güvenilir UDP fazla kez yollanan parçalar"
-
-msgid "Semi-reliable UDP total acknowledgments received"
-msgstr "Yarı güvenilir UDP alınan toplam teyitler"
-
-msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr "Yarı güvenilir UDP alınan kümülatif teyitler"
-
-msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr "Yarı güvenilir UDP alınan genişletilmiş teyitler"
-
-msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr "Yarı güvenilir UDP alınan sahte teyitler"
-
-msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr "Yarı güvenilir UDP alınan geçersiz teyitler"
-
-msgid "Semi-reliable UDP EARs sent"
-msgstr "Yarı güvenilir UDP gönderilen EAR'ler"
-
-msgid "Semi-reliable UDP too many EARs sent"
-msgstr "Yarı güvenilir UDP çok fazla gönderilen EAR'ler"
-
-msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr "Yarı güvenilir UDP alınan EAR negatif teyitler"
-
-msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr "Yarı güvenilir UDP EAR gönderildikten sonra alınan teyitler"
-
-msgid "Semi-reliable UDP fragments received"
-msgstr "Yarı güvenilir UDP alınan UDP parçaları"
-
-msgid "Semi-reliable UDP duplicate fragments received"
-msgstr "Yarı güvenilir UDP alınan çift parçalar"
-
-msgid "Semi-reliable UDP unreliable fragments received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
-
-msgid "Semi-reliable UDP dropped received fragments"
-msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
-
-msgid "Semi-reliable UDP fragments received whilst lingering"
-msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
-
-msgid "Semi-reliable UDP messages expired before re-assembly"
-msgstr "Yarı güvenilir UDP yeniden birleştirme öncesi ömrü dolan mesajlar"
-
-msgid "Semi-reliable UDP messages re-assembled completely"
-msgstr "Yarı güvenilir UDP tamamen yeniden birleştirilen mesajlar"
-
-msgid "Semi-reliable UDP messages inflated successfully"
-msgstr "Yarı güvenilir UDP sıkıştırılması başarıyla açılmış mesajlar"
-
-msgid "Semi-reliable UDP messages inflated incorrectly"
-msgstr "Yarı güvenilir UDP sıkıştırılması yanlış açılmış mesajlar"
-
-msgid "Semi-reliable UDP unreliable messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
-
-msgid "Semi-reliable UDP empty messages received"
-msgstr "Yarı güvenilir UDP alınan boş mesajlar"
-
-msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr "Yarı güvenilir UDP yollanan toplam teyitler"
-
-msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr "Yarı güvenilir UDP yollanan kümülatif teyitler"
-
-msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr "Yarı güvenilir UDP yollanan genişletilmiş teyitler"
-
-msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr "Yarı güvenilir UDP önlenen teyit gönderimleri"
-
-msgid "Semi-reliable UDP EARs received"
-msgstr "Yarı güvenilir UDP alınan EAR'ler"
-
-msgid "Semi-reliable UDP EARs received for unknown message"
-msgstr "Yarı güvenilir UDP bilinmeyen mesaj için alınan EAR'ler"
-
-msgid "Semi-reliable UDP EARs received whilst lingering"
-msgstr "Yarı güvenilir UDP beklerken alınan EAR'ler"
-
-msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr "Yarı güvenilir UDP kötücül İP adreslerinden gelen parçalar"
-
-msgid "Consolidated servers (after GUID and IP address linking)"
-msgstr "Konsolide sunucular (GUİD ve İP adresi eşleşmesinden sonra)"
-
-msgid "Duplicate downloads found during server consolidation"
-msgstr "Sunucu konsolide edilirken bulunan çift indirmeler"
-
-msgid "Discovered server GUIDs"
-msgstr "Keşfedilen sunucu GUİD'leri"
-
-msgid "Changed server GUIDs"
-msgstr "Değişmeye uğrayan sunucu GUİD'leri"
-
-msgid "Detected GUID collisions"
-msgstr "Tespit edilen GUİD çarpışmaları"
-
-msgid "Detected collisions with our own GUID"
-msgstr "Bizim GUİD'mizle tespit edilen çarpışmalar"
-
-msgid "GUID dynamically banned"
-msgstr "GUİD dinamik olarak yasaklandı"
-
-msgid "Firewalled node info for known hosts received in upload requests"
-msgstr "Gönderme isteklerinde bilinen bilgisayarlar için güvenlik duvarı arkasında düğüm bilgisi"
-
-msgid "Revitalized PUSH routes"
-msgstr "Tekrar canlandırılan itme yolları"
-
-msgid "Collected new PUSH proxies from other query hits"
-msgstr "Diğer sorgu isabetlerinden toplanan yeni İTME vekilleri"
-
-msgid "Attempted download resource switching on completion"
-msgstr "Tamamlanma ardından indirme kaynak değiştirme teşebbüsü"
-
-msgid "Attempted download resource switching after error"
-msgstr "Hata sonrası indirme kaynağı değiştirme teşebbüsü"
-
-msgid "Successful download resource switching (all kind)"
-msgstr "Başarılı indirme kaynağı değiştirmesi (her tür)"
-
-msgid "Successful download resource switching between plain files"
-msgstr "Başarılı dosyalar arası indirme kaynağı değiştirmeleri"
-
-msgid "Successful download resource switching after error"
-msgstr "Hata sonrası başarılı indirme kaynağı (dosya) değiştirmesi"
-
-msgid "Actively queued after resource switching attempt"
-msgstr "Kaynak değiştirme teşebbüsü ardından aktif bir şekilde kuyruğa eklendi"
-
-msgid "Sunk HTTP reply data on error codes"
-msgstr "HTTP cevap verileri hata kodu nedeniyle atıldı"
-
-msgid "Ignored downloaded data"
-msgstr "İndirilen veri görmezden gelindi"
-
-msgid "Ignoring requested after data mismatch"
-msgstr "İstenen veri uyumsuzluğu ardından görmezden geliniyor"
-
-msgid "Ignoring requested to preserve connection"
-msgstr "İstenen bağlantıyı korumak için görmezden geliniyor"
-
-msgid "Ignoring requested due to aggressive swarming"
-msgstr "Agresif çoklu indirme nedeniyle görmezden gelinenler"
-
-msgid "Ignoring refused (data too large or server too slow)"
-msgstr "Reddedilen görmezden gelmeler (veriler çok büyük veya sunucu çok yavaş)"
-
-msgid "Client resource switching (all detected)"
-msgstr "İstemci kaynak değiştirmeleri (tüm tespitler)"
-
-msgid "Client resource switching between plain files"
-msgstr "İstemciler tarafından istenen dosyalar için kaynak değiştirmeleri"
-
-msgid "Client follow-up request after HTTP error was returned"
-msgstr "HTTP hatası yollanmasını izleyen istemci isteği"
-
-msgid "PARQ client resource switching in slots (SHA-1 based)"
-msgstr "PARQ oluklarda istemcinin kaynak değiştirmesi (SHA-1 değerine dayalı)"
-
-msgid "PARQ client retry-after violation"
-msgstr "PARQ istemcisi sonra-tekrar dene ihlâli"
-
-msgid "PARQ client kicked out after too many retry-after violations"
-msgstr "PARQ istemcisi fazla sonra-tekrar dene ihlâli nedeniyle kovulması"
-
-msgid "PARQ upload slot limit overrides"
-msgstr "PARQ gönderme oluk sınırı aşımları"
-
-msgid "PARQ quick upload slots granted"
-msgstr "Verilen PARQ çabuk gönderme olukları"
-
-msgid "PARQ QUEUE sending attempts"
-msgstr "PARQ QUEUE yollama teşebbüsleri"
-
-msgid "PARQ QUEUE messages sent"
-msgstr "Yollanan PARQ QUEUE mesajları"
-
-msgid "PARQ QUEUE follow-up requests received"
-msgstr "PARQ QUEUE yollanımından sonra alınan istekler"
-
-msgid "Launched SHA-1 file verifications"
-msgstr "Başlatılan SHA-1 dosya doğrulamaları"
-
-msgid "Launched TTH file verifications"
-msgstr "Başlatılan TTH dosya doğrulamaları"
-
-msgid "Bitzi tickets held"
-msgstr "Elde tutulan Bitzi biletleri"
-
-msgid "Re-seeding of orphan downloads through query hits"
-msgstr "Öksüz indirmelerin sorgu isabetleri yoluyla tekrar sunumu"
-
-msgid "Re-seeding of orphan downloads through upload requests"
-msgstr "Öksüz indirmelerin gönderme istekleri yoluyla tekrar sunumu"
-
-msgid "RUDP sent bytes"
-msgstr "Gönderilen RUDP baytları"
-
-msgid "RUDP received bytes"
-msgstr "Alınan RUDP baytları"
-
-msgid "DHT estimated amount of nodes"
-msgstr "DHT tahmini düğüm sayısı"
-
-msgid "DHT standard error of estimated amount of nodes"
-msgstr "DHT standart tahmini düğüm sayı hatası"
-
-msgid "DHT k-ball theoretical frontier (bits)"
-msgstr "DHT teorik k-topu sınırı (bit olarak)"
-
-msgid "DHT k-ball furthest frontier (bits)"
-msgstr "DHT en uzak k-topu sınırı (bit olarak)"
-
-msgid "DHT k-ball closeest frontier (bits)"
-msgstr "DHT en yakın k-topu sınırı (bit olarak)"
-
-msgid "DHT routing table buckets"
-msgstr "DHT yönlendirme tablosu konumları"
-
-msgid "DHT routing table leaves"
-msgstr "DHT yönlendirme tablosundaki yapraklar"
-
-msgid "DHT routing table maximum depth"
-msgstr "DHT yönlendirme tablosunun azami derinliği"
-
-msgid "DHT routing table good nodes"
-msgstr "DHT yönlendirme tablosundaki iyi düğümler"
-
-msgid "DHT routing table stale nodes"
-msgstr "DHT yönlendirme tablosundaki kötü düğümler"
-
-msgid "DHT routing table pending nodes"
-msgstr "DHT yönlendirme tablosundaki bekleyen düğümler"
-
-msgid "DHT routing table evicted nodes"
-msgstr "DHT yönlendirme tablosundan çıkarılan düğümler"
-
-msgid "DHT routing table evicted firewalled nodes"
-msgstr "DHT yönlendirme tablosundan çıkarılan güvenlik duvarı arkasındaki düğümler"
-
-msgid "DHT routing table evicted nodes due to quota"
-msgstr "DHT yönlendirme tablosundan kota nedeniyle çıkarılan düğümler"
-
-msgid "DHT routing table promoted pending nodes"
-msgstr "DHT yönlendirme tablosundaki bekleyen terfi etmiş düğümler"
-
-msgid "DHT routing table pinged promoted nodes"
-msgstr "DHT yönlendirme tablosunda terfi etmiş düğümlere yollanan pingler"
-
-msgid "DHT routing table rejected node due to bucket network quota"
-msgstr "DHT yönlendirme tablosunda konum ağ kotası nedeniyle reddedilen düğümler"
-
-msgid "DHT routing table rejected node due to global network quota"
-msgstr "DHT yönlendirme tablosunda genel ağ kotası nedeniyle reddedilen düğümler"
-
-msgid "DHT completed bucket refreshes"
-msgstr "DHT tamamlanan konum tazelemeleri"
-
-msgid "DHT forced bucket refreshes"
-msgstr "DHT zorlanan konum tazelemeleri"
-
-msgid "DHT forced bucket merges"
-msgstr "DHT zorlanan konum birleşmeleri"
-
-msgid "DHT denied non-splitable bucket refresh"
-msgstr "DHT reddedilen bölünemez konum tazelemeleri"
-
-msgid "DHT initiated bucket alive checks"
-msgstr "DHT başlatılan konum denetlemeleri"
-
-msgid "DHT alive pings sent to good nodes"
-msgstr "DHT iyi düğümlere yollanan pingler"
-
-msgid "DHT alive pings sent to stale nodes"
-msgstr "DHT kötü düğümlere yollanan pingler"
-
-msgid "DHT alive pings sent to shutdowning nodes"
-msgstr "DHT kapanan düğümlere yollanan pingler"
-
-msgid "DHT alive pings avoided"
-msgstr "DHT kaçınılan pingler"
-
-msgid "DHT alive pings skipped"
-msgstr "DHT atlanan pingler"
-
-msgid "DHT revitalized stale nodes on RPC reply"
-msgstr "DHT RPC cevabıyla tekrar canlandırılan kötü düğümler"
-
-msgid "DHT value store rejected on IP/network quota grounds"
-msgstr "DHT İP/ağ kotası nedeniyle değer tutulması retleri"
-
-msgid "DHT value store rejected on creator validation grounds"
-msgstr "DHT oluşturucu onaylaması temelinde değer tutulması retleri"
-
-msgid "DHT nodes rejected during lookup based on network quota"
-msgstr "DHT aramalar sırasında ağ kotası nedeniyle reddedilen düğümler"
-
-msgid "DHT nodes rejected during lookup based on suspicious proximity"
-msgstr "DHT aramalar sırasında şüpheli yakınlık nedeniyle reddedilen düğümler"
-
-msgid "DHT nodes rejected during lookup based on frequency divergence"
-msgstr "DHT aramalar sırasında frekans sapması nedeniyle reddedilen düğümler"
-
-msgid "DHT node contact IP addresses fixed during lookup"
-msgstr "DHT arama sırasında düzeltilen düğümle irtibat İP adresleri"
-
-msgid "DHT keys held"
-msgstr "DHT tutulan anahtarlar"
-
-msgid "DHT cached keys held"
-msgstr "DHT arabellekte tutulan anahtarlar"
-
-msgid "DHT values held"
-msgstr "DHT tutulan anahtarlar"
-
-msgid "DHT cached KUID targets held"
-msgstr "DHT arabellekte tutulan KUİD hedefleri"
-
-msgid "DHT cached closest root nodes"
-msgstr "DHT arabelleğindeki en yakın kök düğümler"
-
-msgid "DHT cached roots exact hits"
-msgstr "DHT arabelleğinde bulunan kök düğümler"
-
-msgid "DHT cached roots approximate hits"
-msgstr "DHT arabelleğinde yaklaşık kök sunan düğümler"
-
-msgid "DHT cached roots misses"
-msgstr "DHT arabelleğinde bulunamayan kök düğümler"
-
-msgid "DHT cached roots lookups within k-ball"
-msgstr "DHT arabelleğinde k-topu içerisinde kök aramaları"
-
-msgid "DHT cached roots contact address refreshed"
-msgstr "DHT arabellekteki kök adresleri tazelemesi"
-
-msgid "DHT cached security tokens held"
-msgstr "DHT arabelleğinde tutulan güvenlik jetonları"
-
-msgid "DHT cached security tokens hits"
-msgstr "DHT arabellekteki güvenlik jetonu isabetleri"
-
-msgid "DHT stable node information held"
-msgstr "DHT tutulan kararlı düğüm bilgisi"
-
-msgid "DHT local hits on value lookups"
-msgstr "DHT değer aramalarında yerel isabetler"
-
-msgid "DHT local hits returning values from cached keys"
-msgstr "DHT arabellekteki anahtarlardan değer geri gönderen yerel isabetler"
-
-msgid "DHT returned expanded values"
-msgstr "DHT geri gönderilen genişletilmiş değerler"
-
-msgid "DHT returned values as secondary keys"
-msgstr "DHT ikincil anahtarlar olarak geri gönderilen değerler"
-
-msgid "DHT claimed values via secondary keys"
-msgstr "DHT ikincil anahtarlar yoluyla istenen değerler"
-
-msgid "DHT returned cached expanded values"
-msgstr "DHT geri gönderilen arabellekteki genişletilmiş değerler"
-
-msgid "DHT returned cached values as secondary-keys"
-msgstr "DHT arabellekte ikincil anahtar olarak geri gönderilen değerler"
-
-msgid "DHT claimed cached values via secondary keys"
-msgstr "DHT arabellekte ikincil anahtar olarak istenen değerler"
-
-msgid "DHT successfully received value publications"
-msgstr "DHT başarılı olarak alınan değer yayınları"
-
-msgid "DHT successfully received value removals"
-msgstr "DHT başarılı olarak alınan değer silinmeleri"
-
-msgid "DHT replication of stale value avoided"
-msgstr "DHT çoğaltılmasından kaçınılan bayat değerler"
-
-msgid "DHT replication of held values"
-msgstr "DHT tutulan değerlerin çoğaltılması"
-
-msgid "DHT republishing of held values"
-msgstr "DHT tutulan değerlerin tekrar yayını"
-
-msgid "DHT secondary-key value fetch issued"
-msgstr "DHT ikincil anahtarlar ile değer istekleri"
-
-msgid "DHT duplicate values returned in lookups"
-msgstr "DHT aramalarda sonuç olarak çift/kopya değerler"
-
-msgid "DHT detected KUID collisions"
-msgstr "DHT tespit edilen KUİD çarpışmaları"
-
-msgid "DHT detected collisions with our own KUID"
-msgstr "DHT Tespit edilen bizim KUİD'mizle çarpışmalar"
-
-msgid "DHT caching attempts"
-msgstr "DHT önbelleğe koyma teşebbüsleri"
-
-msgid "DHT caching ended successfully"
-msgstr "DHT başarılı önbelleğe koymalar"
-
-msgid "DHT caching partially completed"
-msgstr "DHT tamamlanmamış önbelleğe koymalar"
-
-msgid "DHT key-offloading checks after discovering new closest node"
-msgstr "DHT yeni en yakın düğüm bulunduğunda anahtar kaldırma denetimleri"
-
-msgid "DHT keys selected for offloading"
-msgstr "DHT kaldırmak için seçilen anahtarlar"
-
-msgid "DHT key-offloading attempts"
-msgstr "DHT anahtar kaldırma teşebbüsleri"
-
-msgid "DHT key-offloading ended successfully"
-msgstr "DHT başarılı bir şekilde tamamlanan anahtar kaldırmaları"
-
-msgid "DHT key-offloading partially completed"
-msgstr "DHT kısmen tamamlanan anahtar kaldırmaları"
-
-msgid "DHT values successfully offloaded"
-msgstr "DHT başarılı bir şekilde kaldırılan değerler"
-
-msgid "DHT incoming messages"
-msgstr "DHT içeriye gelen mesajlar"
-
-msgid "DHT incoming messages with UDP-matching contact address"
-msgstr "DHT UDP ile denkleşen irtibat adresiyle alınan mesajlar"
-
-msgid "DHT incoming messages with contact address fixed"
-msgstr "DHT içeriye gelen irtibat adresi düzeltilmiş mesajlar"
-
-msgid "DHT incoming messages from hostile addresses"
-msgstr "DHT kötücül adreslerden gelen mesajlar"
-
-msgid "DHT incoming messages with hostile contact address"
-msgstr "DHT kötücül irtibat adresiyle alınan mesajlar"
-
-msgid "DHT RPC messages prepared"
-msgstr "DHT RPC hazırlanan mesajlar"
-
-msgid "DHT RPC messages cancelled"
-msgstr "DHT RPC iptal edilen mesajlar"
-
-msgid "DHT RPC timed out"
-msgstr "DHT RPC zaman aşımı"
-
-msgid "DHT RPC replies received"
-msgstr "DHT RPC alınan cevaplar"
-
-msgid "DHT RPC replies with contact address fixed"
-msgstr "DHT RPC irtibat adresi düzeltilmiş cevaplar"
-
-msgid "DHT RPC late replies received"
-msgstr "DHT RPC alınan gecikmiş cevaplar"
-
-msgid "DHT RPC detected KUID mismatches on reply"
-msgstr "DHT RCP cevaplarda tespit edilen KUİD uyumsuzlukları"
-
-msgid "DHT RPC recent nodes held"
-msgstr "DHT RPC yakın geçmişte karşılaşılan ve hatırlanan düğümler"
-
-msgid "DHT node verifications"
-msgstr "DHT düğüm doğrulamaları"
-
-msgid "DHT publishing attempts"
-msgstr "DHT yayın teşebbüsleri"
-
-msgid "DHT publishing ended successfully (all roots)"
-msgstr "DHT başarılı bir şekilde sona eren yayınlar (tüm kökler)"
-
-msgid "DHT publishing partially completed (root subset only)"
-msgstr "DHT kısmen tamamlanan yayınlar (sadece kök altkümesi)"
-
-msgid "DHT publishing ending with proper value presence"
-msgstr "DHT uygun değer varlığı ile biten yayınlar"
-
-msgid "DHT value republishing occurring too late (after expiry)"
-msgstr "DHT çok geç meydana gelen (ömründen sonra) değer tekrar yayını"
-
-msgid "DHT publishing to self"
-msgstr "DHT kendine yayın"
-
-msgid "DHT background publishing completion attempts"
-msgstr "DHT arka planda yayın tamamlama teşebbüsleri"
-
-msgid "DHT background publishing completion showing improvements"
-msgstr "DHT iyileşme gösteren arka planda yayın tamamlanması"
-
-msgid "DHT background publishing completion successful (all roots)"
-msgstr "DHT arka planda başarılı yayınlama tamamlanması (tüm kökler)"
-
-msgid "DHT SHA1 data type collisions"
-msgstr "DHT SHA1 veri tipi çarpışmaları"
-
-msgid "DHT lookup path passively protected against attack"
-msgstr "DHT arama yolunun saldırılara karşı pasif olarak korunması"
-
-msgid "DHT lookup path actively protected against attack"
-msgstr "DHT arama yolunun saldırılara karşı aktif olarak korunması"
-
-msgid "DHT alt-loc lookups issued"
-msgstr "DHT yollanan alternatif kaynak (alt-loc) aramaları"
-
-msgid "DHT push-proxy lookups issued"
-msgstr "DHT yollanan itme vekili aramaları"
-
-msgid "DHT successful alt-loc lookups"
-msgstr "DHT başarılı alt-loc aramaları"
-
-msgid "DHT successful push-proxy lookups"
-msgstr "DHT başarılı itme vekili aramaları"
-
-msgid "DHT successful node push-entry lookups"
-msgstr "DHT başarılı itme vekili aramaları"
-
-msgid "DHT re-seeding of orphan downloads"
-msgstr "DHT öksüz indirmelerin tekrar sunumu"
-
 msgid "node"
 msgid_plural "nodes"
 msgstr[0] "düğüm"
@@ -6136,12 +6279,6 @@ msgstr "Dosya adlarını gereksiz alt çizgileri kaldırarak güzelleştir"
 
 msgid "Bind to this address"
 msgstr "Bu adrese bağla"
-
-msgid "Bitzi Metadata"
-msgstr "Bitzi verileri"
-
-msgid "Bitzi metadata"
-msgstr "Bitzi verileri"
 
 msgid "Browse Host"
 msgstr "Kişiye Gözat"
@@ -6392,7 +6529,7 @@ msgid "Downloads"
 msgstr "İndirmeler"
 
 msgid "Dropped"
-msgstr "Atılan"
+msgstr "Görmezden gelinen"
 
 msgid "Dup / Bad / Weird"
 msgstr "Kopya / Kötü / Garip"
@@ -7898,8 +8035,14 @@ msgstr "GUESS istatistiklerini göster"
 msgid "Mapping lease time"
 msgstr "Haritalama kira süresi"
 
-msgid "Not in database"
-msgstr "Veritabanında mevcut değil"
+msgid "G2 hubs"
+msgstr "G2 hubları"
+
+msgid "Enable the G2 network"
+msgstr "G2 şebekesini etkinleştir"
+
+msgid " G2, "
+msgstr " G2, "
 
 msgid "owned"
 msgstr "sahibiz"
@@ -7921,9 +8064,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u sonuç atıldı"
 msgstr[1] "%u sonuç atıldı"
-
-msgid "Query queued..."
-msgstr "Sorgu kuyruğa eklendi..."
 
 #, c-format
 msgid "%u term counted"
@@ -8017,13 +8157,19 @@ msgid "[IP:port placeholder]"
 msgstr "[IP:port alan tutucu]"
 
 msgid "Served "
-msgstr "Tamamlanmış "
+msgstr "Sunulmuş"
 
-msgid "[BH HTML served]"
-msgstr "[BH HTML yollandı]"
+msgid "[G2 served]"
+msgstr "[G2 sunulmuş]"
 
 msgid " / "
 msgstr " / "
+
+msgid "[G2]"
+msgstr "[G2]"
+
+msgid "[BH HTML served]"
+msgstr "[BH HTML yollandı]"
 
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
@@ -8190,6 +8336,12 @@ msgstr "Taze İPv6 ultra"
 msgid "Valid IPv6 ultra"
 msgstr "Geçerli İPv6 ultra"
 
+msgid "Fresh G2 hub"
+msgstr "Taze G2 hub"
+
+msgid "Valid G2 hub"
+msgstr "Geçerli G2 hub"
+
 msgid "Unstable"
 msgstr "Kararsız"
 
@@ -8259,6 +8411,9 @@ msgstr "Hello alınıyor"
 
 msgid "UNKNOWN STATUS"
 msgstr "BİLİNMEYEN DURUM"
+
+msgid "g2"
+msgstr "g2"
 
 msgid "busy"
 msgstr "meşgul"
@@ -8354,9 +8509,10 @@ msgstr[1] "sorgu"
 
 #, c-format
 msgid ""
-"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu"
-" queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
-msgstr "GUESS %s [%s (%zu %s, %zu tutuldu, %s sorgu, %s anahtar)] [Küme: %zu %s, %zu/%zu sorgulandı, %zu %s (%.2f%%), %zu bekleniyor, %zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, "
+"(%zu+%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu "
+"%s%s%s]"
+msgstr "GUESS %s [%s (%zu %s, %zu tutulmuş, %s sorgu, %s anahtar)] [Pool: %zu %s, (%zu+%zu)/%zu sorgulanmış, %zu %s (%.2f%%), %zu erişilmiş, %zu beklemede, %zu %s%s%s]"
 
 msgid "loose"
 msgstr "serbest"
@@ -8580,23 +8736,11 @@ msgstr "\"Yeni olanlar\" sorguları çok sık gönderilemez."
 msgid "The URN in the search text is invalid."
 msgstr "Arama metnindeki URN geçersiz."
 
-msgid "SHA-1 is unknown."
-msgstr "SHA-1 bilinmiyor."
-
-msgid "No Bitzi ticket requested yet."
-msgstr "Henüz hiçbir Bitzi bileti istenmedi."
-
-msgid "Not in Bitzi database."
-msgstr "Bitzi veritabanında mevcut değil."
-
 msgid "Encoding"
 msgstr "Kodlama"
 
 msgid "#"
 msgstr "#"
-
-msgid "Metadata"
-msgstr "Metaveriler"
 
 msgid "Never"
 msgstr "Hiçbir zaman"
@@ -8668,12 +8812,6 @@ msgstr "%u etkin"
 #, c-format
 msgid "%u queued"
 msgstr "%u kuyrukta"
-
-#, c-format
-msgid "%u/%u connection"
-msgid_plural "%u/%u connections"
-msgstr[0] "%u/%u bağlantı"
-msgstr[1] "%u/%u bağlantı"
 
 #, c-format
 msgid "%u/%u upload"

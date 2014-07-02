@@ -1,3 +1,154 @@
+# v 1.1.0   2014-07-02  [stable]
+
+This is a major release introducing new features and making gtk-gnutella
+a multi-threaded application with drastic performance boosts for background
+tasks like file hashing or library rescanning.
+
+Another major feature is the added support for the G2 search protcol: we are
+connecting to G2 hubs as a leaf, answer to search / browse requests from G2
+hosts.  We also use G2 to issue our own searches.  Finally, we freely exchange
+files with G2 hosts (downloading and uploading).
+
+The G2 protocol was further extended to make sure G2 query hits convey as
+much information as Gnutella query hits, in particular for alt-loc propagation
+and TLS support.  The G2 semi-reliable UDP layer is also leveraging the new
+features designed for the corresponding Gnutella layer (cumulative and extended
+acknowledgments), gracefully falling back to legacy features if the remote host
+is not able to understand the new features.
+
+A critical bug was fixed: reception of carefully crafted invalid DHT messages
+would lead to an immediate crash, an open door for Denial of Service (DoS)
+attacks.  That bug has been present since 0.97 (release of August 2011).
+
+Last but not least, the code base has now been checked by Coverity.  There was
+a very low defect rate of 0.26 (amount of true defects per thousand lines
+of code) and all problems were fixed.
+
+New Features:
+- Multi-threading support (file hashing, library rescan, DNS, etc...)
+- Added support for the G2 search protocol, connecting as leaf mode to G2.
+- Turned gtk-gnutella into a random number server through the "random" command.
+- Removed Bitzi support since the service has shutdown.
+- Added the --no-dbus command-line option to prevent D-BUS notifications.
+- [GTK] Added GUI enabling of the G2 protocol for searches.
+- [GTK] Added spin-button to set the amount of G2 hub connections to maintain.
+- [GTK] Report amount of G2 hubs to which we are connected.
+- [GTK] Show amount of G2 host browsing served, in the upload stats pane.
+
+Improvements:
+- [GTK2] Added tri-state column sorting to "Downloads" and "Uploads" panes.
+- Better entropy collection to initialize the pseudo random number generators.
+- Externally visible randomness (e.g. GUIDs) is now cryptographically strong.
+- We now pick random DHT nodes to send back from the whole routing table
+- Some entropy collected is persisted, for better reseeding in next session.
+- Added time change detection when switching from/to Daylight Saving Time.
+- QRP query routing now uses LimeWire's logic, less strict than the GTKG one.
+- The shell "status" command now reports the amount of G2 hub connections.
+- Detect OOB proxy MUID conflicts for leaf queries.
+- Added the "stats drop" shell command to show dropped message statistics.
+- Improved random selection of files being matched in the library (local hits).
+- When a PUSH request fails to connect back, ban target IP:port for 5 minutes.
+- Configure: correctly detect the BFD library even if no -liberty.
+- Crash handler now records and logs the ID and name of crashing thread.
+- Updated gtk-gnutella.appdata.xml to the latest specifications.
+- Updated the FAQ, along with translations to French and Turkish.
+
+Bug Fixes:
+- DHT bucket merging was incorrectly handling removal of nodes from table.
+- Reception of improper DHT messages could lead to an immediate crash (DoS).
+- ut_frag_pmsg_free(): rescheduling of expire event was in wrong block.
+- base16_encode(): would cause buffer overflow when destination too small.
+- Rotate OOB token keys less often, to avoid expiration whilst in transit.
+- socket_udp_event(): ignore empty datagrams.
+- Fixed host cache updates to avoid setting "out of bounds" property values.
+- hcache_find_nearby(): was missing a "break" in the case for HOST_GUESS.
+- Scheduled static checking by Coverity, found 81 problems requring a fix.
+- Fixed TCP message size computing bug, which could corrupt the TCP stream.
+- Configure: fixed endianess detection of IEEE-754 floats on Solaris.
+- Was never configuring TCP quick ACKs due to a missing "break" statement.
+- omalloc() could crash when configuring read-only objects.
+- Ensure we never insert any "unusable host" in the push-proxy set.
+- keys_update_value(): forgot to persist back updated expiration timestamp.
+- Properly flag UDP route as deflatable when GGEP "Z" is seen in queries.
+- Flag UDP route as supporting semi-reliable UDP when query flags are parsed.
+
+Under the Hood:
+- GUESS now avoids querying hosts to which we are connected via TCP
+- GUESS: count the amount of hosts reached by query, since G2 queries a cluster.
+- GUESS: increased cached lifetime of query keys to a little less than 1 day.
+- GUESS: defer hosts we cannot requery to avoid constantly looping over them.
+- GUESS: fixed host atom leak when message is synchronously dropped.
+- GUESS: invalidate cached query keys on IP or listening port change.
+- Added a thread management layer on top of the POSIX thread layer.
+- Added support for safe inter-thread signals, handled by our thread layer.
+- Expanded the set of atomic operations we can perform.
+- Added read-write locks, now used by the VMM layer.
+- Addded multi-threaded goodies: barriers, dams, event queues, cond variables.
+- VMM: closed race condition during allocations.
+- Added support for permanent thread-private data.
+- Added primitive fork() handling in a multi-threaded environment.
+- Made float formatting code thread-safe, removing need for funnelling.
+- The ADNS now always runs in a separate thread.
+- Provide both thread-private (hashtable) and thread-local (array) variables.
+- Added new "thread list" shell command to monitor running threads.
+- Added "task list" shell command to list currently defined background tasks.
+- Added the "thread stats" shell command to dump thread statistics.
+- Added "lib show callout" shell command to display callout queue information.
+- Added "lib show files" to show opened files via file_object_xxx().
+- Made sure PROTECT_ATOMS and ATOMS_HAVE_MAGIC are orthogonal settings.
+- Moved the reference count of atoms to the tracking hash table.
+- Callout queue runs the idle callbacks if not scheduled in the last 30 secs.
+- Logging timestamps are now emitted with a millisecond accuracy.
+- Improved g_assert_not_reached() to propagate the routine name as well.
+- Re-architected file_objects to allow permission checking on opened files.
+- Introducing tqsort(), a multi-threaded quicksort for sorting large arrays.
+- Do not mark SIGPROF as harmful to allow profiling.
+- Added a thread-magazine allocator, used by walloc() and vmm_alloc().
+- Allow execution of some shell commands in a separate thread.
+- Added our own plain one-way and two-way list implementation.
+- Added optimized item freeing for embedded lists holding walloc()'ed objects.
+- Added thread-local ARC4 random streams for increased throughput.
+- Added global and per-thread WELL and CMWC random number generators.
+- Added Fortuna-like algorithm (AJE -- Alea Jacta Est) for gathering entropy.
+- Added support for fixed-size hash tables, entirely held in a static buffer.
+- hash_table_replace(): optimized to avoid two hash_table_find() calls.
+- Protect query hit generation against concurrent library rescans.
+- No longer close all file descriptors in main, since threads use them.
+- Semi-reliable UDP: only send last fragment of large message to unknown hosts.
+- Semi-reliable UDP: make sure remote side is ACK-ing sent fragments only.
+- Semi-reliable UDP: avoid endless loops if unsent ACK message is dropped.
+- Semi-reliable UDP: added TX accounting for dropped and physically sent ACKs.
+- Semi-reliable UDP: was not releasing data structure for dropped ACKs.
+- QRP support for generation of 1-bit patches, and optimized 1-bit handling.
+- make_room_internal(): removed bug catcher from 2006, which never triggered.
+- Cleaned up Gnutella handshaking to emit an Accept if the remote sent one.
+- search_results_process(): do not record last hop as hostile on relayed hits.
+- Do not attempt to OOB-proxy queries in search_request()!
+- host_timer(): fixed wrong cut-off by "quick connect pool".
+- Added script to auto-generate enums along with symbolic and English text.
+- options_parse(): fixed parsing of values immediately following the option.
+- Shuffling of large arrays now performed using PRNGs with greater period.
+- Renamed "struct mutex" as "struct lmutex" to avoid conflicts on Solaris.
+- st_search(): randomly shuffle results only when we have more than we can send.
+- Windows: added emulated clock_gettime() and clock_getres().
+- Dispatch entropy to PRNGs only once every 30 seconds at most.
+- Simplified rand31(), restoring its full period, and redesigned rand31_u32().
+- sdbm_rebuild(): was not properly catching errors during copy.
+- prop_get_def(): switched to HCOPY_ARRAY() to avoid any size problems
+- kmsg_handle(): avoid dereferencing a potentially NULL pointer.
+- route_max_forward_ttl(): take a reference instead of a by-value parameter.
+- parq_upload_remove(): fixed assertion, which was always evaluating to TRUE.
+- Report errors if we cannot set a file non-blocking or request close on exec().
+- Base32 decoding could fail spotting bad input due to short base32_map[] array.
+- search_matched(): was not counting the amount of skipped results in a search.
+- getgateway(): properly fallback to netstat parsing when socket() fails.
+- roots_fill_closest(): avoid memory leak on the error path.
+- Fixed UDP TX schedulers to allow both IPv4 and IPv6 message sending.
+- Make sure only developers will use autogen to regenerate the property files.
+- dh_route(): only compress UDP query hits when GUESS queryier supports them.
+- dh_route(): do not attempt UDP compression if message sent via reliable UDP.
+- Count UDP compression attempts and failures, including in semi-reliable UDP.
+
 # v 1.0.1   2013-12-31  [stable]
 
 This is a minor release correcting a grave bug causing gtk-gnutella to think

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2011 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2013 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -39,14 +39,13 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2011
+ * @date 1996-2000, 2007, 2010-2013
  */
 
 #include "common.h"
 
 #include <math.h>		/* For frexp() and isfinite() */
 
-#include "str.h"
 #include "ascii.h"
 #include "ckalloc.h"
 #include "float.h"
@@ -56,7 +55,9 @@
 #include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
+#include "str.h"
 #include "stringify.h"		/* For logging */
+#include "thread.h"
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -78,6 +79,7 @@ static unsigned format_recursion;	/* Prevents recursive verbose debugging */
  */
 #define STR_FOREIGN_PTR		(1 << 0)	/**< We don't own the pointer */
 #define STR_OBJECT			(1 << 1)	/**< Object created, not a structure */
+#define STR_THREAD			(1 << 2)	/**< String is thread-private */
 
 /**
  * @return length of string.
@@ -120,7 +122,7 @@ str_new_not_leaking(size_t szhint)
 	 * Because the memory will never be freed, it's best to use omalloc().
 	 */
 
-	str = omalloc(sizeof *str);
+	OMALLOC(str);
 	str_create(str, szhint);
 	(void) NOT_LEAKING(str->s_data);
 
@@ -248,6 +250,9 @@ str_new(size_t szhint)
 /**
  * Fill in an existing string structure, of the specified hint size.
  *
+ * @param str		the string structure to fill with new data buffer
+ * @param szhint	buffer hint size
+ *
  * @return its "str" argument.
  */
 str_t *
@@ -295,6 +300,11 @@ str_new_from(const char *string)
  *
  * If `len' is (size_t) -1, an strlen() is ran on `ptr' to compute the length.
  * If `size' is 0, it is set to `len + 1' (after length computation, if any).
+ *
+ * @param str	pointer to existing (and initialized) string object
+ * @param ptr	start of fix-sized buffer where string data will be held
+ * @param len	length of existing string, computed if (size_t) -1
+ * @param size	size of buffer starting at ptr (0 sets it to `len + 1')
  */
 void
 str_foreign(str_t *str, char *ptr, size_t len, size_t size)
@@ -332,7 +342,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
  *    str_new_buffer(&str, data, 0, sizeof data);
  *
  * @param str	pointer to uninitialized existing string object
- * @param ptr	start of fix sized buffer where string data will be held
+ * @param ptr	start of fix-sized buffer where string data will be held
  * @param len	length of existing string, computed if (size_t) -1
  * @param size	size (positive) of buffer starting at ptr
  */
@@ -351,6 +361,80 @@ str_new_buffer(str_t *str, char *ptr, size_t len, size_t size)
 	str->s_size = size;
 
 	g_assert(str->s_len <= str->s_size);
+}
+
+/**
+ * Reclaim a thread-private string when the thread is exiting.
+ */
+static void
+str_private_reclaim(void *data, void *unused)
+{
+	str_t *s = data;
+
+	(void) unused;
+
+	str_check(s);
+	g_assert_log(s->s_flags & STR_THREAD,
+		"%s(): called on a regular string object", G_STRFUNC);
+
+	s->s_flags &= ~STR_THREAD;
+	str_destroy(s);
+}
+
+/**
+ * Get a thread-private string attached to the specified key.
+ *
+ * If the string already existed in the thread for this key, it is returned,
+ * and the szhint parameter is ignored.
+ *
+ * Otherwise, a new string is created and attached to the key.
+ *
+ * A typical usage of this routine is to make a routine returning static
+ * data thread-safe:
+ *
+ *   const char *
+ *   routine(int i)
+ *   {
+ *       str_t *s = str_private(G_STRFUNC, 10);
+ *
+ *       str_printf(s, "%dB", i);
+ *       return str_2c(s);	       // the private copy for this thread
+ *   }
+ *
+ * @param key		the key to use to identify this string
+ * @param szhint	initial length of the data buffer (0 for default)
+ *
+ * @note
+ * The string will be reclaimed automatically when the thread exits and its
+ * pointer should not be given to foreign threads but used solely in the
+ * context of the thread.  This applies to the string object and its buffer.
+ *
+ * @return a string object dedicated to the calling thread.
+ */
+str_t *
+str_private(const void *key, size_t szhint)
+{
+	str_t *s;
+
+	s = thread_private_get(key);
+
+	if G_LIKELY(s != NULL) {
+		str_check(s);
+		return s;
+	}
+
+	/*
+	 * Allocate a new string and declare it as a thread-private variable
+	 * with an associated free routine.  The string cannot be destroyed but
+	 * through that specialized free routine.
+	 */
+
+	s = str_new(szhint);
+	s->s_flags |= STR_THREAD;	/* Prevents plain str_free() on that string */
+
+	thread_private_add_extended(key, s, str_private_reclaim, NULL);
+
+	return s;
 }
 
 /**
@@ -403,6 +487,9 @@ str_free(str_t *str)
 {
 	str_check(str);
 
+	g_assert_log(!(str->s_flags & STR_THREAD),
+		"%s(): called on thread-private string object", G_STRFUNC);
+
 	/*
 	 * If data arena is a foreign structure, don't free it: we are not the
 	 * owner of the pointer to it.
@@ -426,8 +513,8 @@ str_destroy(str_t *str)
 {
 	str_check(str);
 
-	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		s_error("%s() called on \"static\" string object", G_STRFUNC);
+	g_assert_log(str->s_flags & STR_OBJECT,
+		"%s(): called on \"static\" string object", G_STRFUNC);
 
 	str_free(str);
 	str->s_magic = 0;
@@ -512,7 +599,25 @@ str_makeroom(str_t *s, size_t len)
 }
 
 /**
- * Expand data space if necessary, returning the (new) data location.
+ * Pre-expand string data space to be able to hold at least `len' more bytes.
+ *
+ * @param str		the string object
+ * @param len		the extra room we want to have in the buffer
+ */
+void
+str_reserve(str_t *str, size_t len)
+{
+	str_check(str);
+	g_assert(size_is_non_negative(len));
+
+	str_makeroom(str, size_saturate_add(len, 1));
+}
+
+/**
+ * Expand data space, if necessary.
+ *
+ * @param str		the string object
+ * @param size		the new buffer data size we want
  */
 void
 str_grow(str_t *str, size_t size)
@@ -716,6 +821,23 @@ str_cpy(str_t *str, const char *string)
 
 	str->s_len = 0;
 	str_cat_len(str, string, strlen(string));
+}
+
+/**
+ * Copy string argument into the string structure, keeping trailing NUL as
+ * a hidden char (thereby making the arena a C string).
+ *
+ * Since the len is provided, the data need not have a trailing NUL.
+ * Although it may contain embedded NUL, it should not however because this
+ * will disrupt the perception of the resulting string as C string.
+ */
+void
+str_cpy_len(str_t *str, const char *string, size_t len)
+{
+	str_check(str);
+
+	str->s_len = 0;
+	str_cat_len(str, string, len);
 }
 
 /**
@@ -2671,7 +2793,7 @@ clamped:
 				"(%zu arg%s processed)",
 				str->s_size, maxlen, str->s_len - origlen,
 				str->s_size - str->s_len,
-				fmt, processed, 1 == processed ? "" : "s");
+				fmt, processed, plural(processed));
 			recursion = FALSE;
 		}
 	}
@@ -2813,15 +2935,16 @@ str_msg(const char *fmt, ...)
 char *
 str_vcmsg(const char *fmt, va_list args)
 {
-	static str_t *str;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	static str_t *str[THREAD_MAX];
+	int stid = thread_small_id();
 
-	str->s_len = 0;
-	str_vncatf(str, INT_MAX, fmt, args);
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
 
-	return str_dup(str);
+	str[stid]->s_len = 0;
+	str_vncatf(str[stid], INT_MAX, fmt, args);
+
+	return str_dup(str[stid]);
 }
 
 /**
@@ -2831,18 +2954,19 @@ str_vcmsg(const char *fmt, va_list args)
 char *
 str_cmsg(const char *fmt, ...)
 {
-	static str_t *str;
+	static str_t *str[THREAD_MAX];
 	va_list args;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	int stid = thread_small_id();
 
-	str->s_len = 0;
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
+
+	str[stid]->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, args);
+	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
 
-	return str_dup(str);
+	return str_dup(str[stid]);
 }
 
 /**
@@ -2855,18 +2979,19 @@ str_cmsg(const char *fmt, ...)
 const char *
 str_smsg(const char *fmt, ...)
 {
-	static str_t *str;
+	static str_t *str[THREAD_MAX];
 	va_list args;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	int stid = thread_small_id();
 
-	str->s_len = 0;
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
+
+	str[stid]->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, args);
+	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
 
-	return str_2c(str);
+	return str_2c(str[stid]);
 }
 
 /**
@@ -2875,18 +3000,19 @@ str_smsg(const char *fmt, ...)
 const char *
 str_smsg2(const char *fmt, ...)
 {
-	static str_t *str;
+	static str_t *str[THREAD_MAX];
 	va_list args;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	int stid = thread_small_id();
 
-	str->s_len = 0;
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
+
+	str[stid]->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, args);
+	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
 
-	return str_2c(str);
+	return str_2c(str[stid]);
 }
 
 /**

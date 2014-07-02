@@ -89,32 +89,6 @@ iprange_db_check(const struct iprange_db * const idb)
 	g_assert(IPRANGE_DB_MAGIC == idb->magic);
 }
 
-/**
- * Error code stings.
- */
-static const char *iprange_errstr[] = {
-	"OK",									/**< IPR_ERR_OK */
-	"Incorrect network prefix",				/**< IPR_ERR_BAD_PREFIX */
-	"CIDR range clash",						/**< IPR_ERR_RANGE_CLASH */
-	"Duplicate range",						/**< IPR_ERR_RANGE_DUP */
-	"Range is subnet of existing range",	/**< IPR_ERR_RANGE_SUBNET */
-	"Range is overlapping existing range",	/**< IPR_ERR_RANGE_OVERLAP */
-};
-
-/**
- * @return human-readable error string for given error code.
- */
-const char *
-iprange_strerror(iprange_err_t errnum)
-{
-	STATIC_ASSERT(IPR_ERROR_COUNT == G_N_ELEMENTS(iprange_errstr));
-
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(iprange_errstr))
-		return "Invalid error code";
-
-	return iprange_errstr[errnum];
-}
-
 static G_GNUC_HOT int
 iprange_net4_cmp(const void *p, const void *q)
 {

@@ -867,7 +867,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 void
 main_gui_exit(int n)
 {
-	crash_close();
+	exit_cleanup();
 	gtk_exit(n);
 }
 

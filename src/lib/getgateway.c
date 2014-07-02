@@ -184,7 +184,7 @@ getgateway(host_addr_t *addrp)
 
 	fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
 	if (-1 == fd)
-		return -1;
+		goto error;
 
 	ZERO(&nlm);
 	nlm.hdr.nlmsg_len = NLMSG_LENGTH(sizeof nlm.rtm);
@@ -302,7 +302,7 @@ found:
 
 	fd = socket(PF_ROUTE, SOCK_RAW, 0);
 	if (-1 == fd)
-		return -1;
+		goto error;
 
 	ZERO(rt);
 	ZERO(&dest);

@@ -60,6 +60,7 @@
 
 #include "lib/cq.h"
 #include "lib/str.h"
+#include "lib/stringify.h"		/* For plural() */
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -148,7 +149,7 @@ chunk_begin(txdrv_t *tx, size_t len, bool final)
 		g_debug("TX %s: %s chunk %zu byte%s",
 			G_STRFUNC, final ? "final" :
 			attr->first ? "first" :
-			"next", len, len == 1 ? "" : "s");
+			"next", len, plural(len));
 
 	/*
 	 * Build the chunk header, committing on sending `len' bytes of data.

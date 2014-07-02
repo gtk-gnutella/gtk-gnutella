@@ -44,6 +44,7 @@
 
 #include "dl_util.h"
 #include "signal.h"
+#include "thread.h"			/* For THREAD_MAX */
 
 #include "override.h"		/* Must be the last header included */
 
@@ -80,7 +81,7 @@ dl_util_done(void)
 	}
 }
 
-static Sigjmp_buf dl_util_env;
+static Sigjmp_buf dl_util_env[THREAD_MAX];
 
 /**
  * Invoked when a fatal signal is received during dladdr().
@@ -88,9 +89,11 @@ static Sigjmp_buf dl_util_env;
 static G_GNUC_COLD void
 dl_util_got_signal(int signo)
 {
+	int stid = thread_small_id();
+
 	(void) signo;
 
-	Siglongjmp(dl_util_env, signo);
+	Siglongjmp(dl_util_env[stid], signo);
 }
 
 /**
@@ -112,6 +115,7 @@ dl_util_query(const void *addr, enum dl_addr_op op)
 	{
 		static Dl_info info;
 		static const void *last_addr;
+		int stid = thread_small_id();
 
 		/*
 		 * Cache results for a given address.  This will help our stack
@@ -141,7 +145,7 @@ dl_util_query(const void *addr, enum dl_addr_op op)
 
 			old_sigsegv = signal_catch(SIGSEGV, dl_util_got_signal);
 
-			if (Sigsetjmp(dl_util_env, TRUE)) {
+			if (Sigsetjmp(dl_util_env[stid], TRUE)) {
 				last_addr = NULL;
 				return NULL;
 			}

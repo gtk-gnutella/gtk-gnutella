@@ -111,7 +111,7 @@ void download_proxy_failed(struct download *d);
 bool download_known_guid(const struct guid *guid,
 	host_addr_t *addr, uint16 *port, sequence_t **proxies);
 void download_got_push_proxies(const struct guid *guid,
-	const gnet_host_vec_t *proxies);
+	const gnet_host_vec_t *proxies, bool g2);
 
 struct download * download_browse_start(
 	const char *hostname, host_addr_t addr, uint16 port,

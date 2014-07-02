@@ -49,6 +49,7 @@ typedef struct symbols symbols_t;
  * Public interface.
  */
 
+void symbols_set_verbose(bool verbose);
 symbols_t *symbols_make(size_t capacity, bool once);
 void symbols_free_null(symbols_t **st_ptr);
 const char *symbols_name(const symbols_t *st, const void *pc, bool offset);

@@ -58,7 +58,9 @@
 #include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -82,8 +84,8 @@ struct upnp_mcb {
 	void *arg;						/**< User-defined callback parameter */
 	struct gnutella_socket *s;		/**< Socket used to send/receive */
 	cevent_t *timeout_ev;			/**< Callout queue timeout event */
-	GSList *devices;				/**< List of upnp_dscv structs */
-	GSList *upnp_rpcs;				/**< List of pending UPnP RPCs */
+	pslist_t *devices;				/**< List of upnp_dscv structs */
+	pslist_t *upnp_rpcs;			/**< List of pending UPnP RPCs */
 	unsigned pending_probes;		/**< Amount of pending HTTP probes */
 	unsigned replies;				/**< Total amount of replies */
 	unsigned valid;					/**< Total amount of valid replies */
@@ -110,7 +112,7 @@ struct upnp_dscv {
 	host_addr_t external_ip;	/**< Reported external IP address */
 	const char *desc_url;		/**< Description URL (atom) */
 	struct http_async *ha;		/**< Asynchronous HTTP request in progress */
-	GSList *services;			/**< List of upnp_service_t discovered */
+	pslist_t *services;			/**< List of upnp_service_t discovered */
 	unsigned major;				/**< UPnP architecture major */
 	unsigned minor;				/**< UPnP architecture minor */
 };
@@ -182,7 +184,7 @@ struct upnp_ctrl_context {
 struct upnp_scpd_context {
 	struct upnp_mcb *mcb;		/**< search context it belongs to */
 	struct upnp_dscv *ud;		/**< device to whom HTTP request was sent */
-	GSList *services;			/**< services to fetch SCPDs for */
+	pslist_t *services;			/**< services to fetch SCPDs for */
 	struct http_async *ha;		/**< Asynchronous HTTP request in progress */
 };
 
@@ -195,7 +197,7 @@ upnp_dscv_free(struct upnp_dscv *ud)
 	upnp_dscv_check(ud);
 
 	atom_str_free_null(&ud->desc_url);
-	upnp_service_gslist_free_null(&ud->services);
+	upnp_service_pslist_free_null(&ud->services);
 	if (ud->ha != NULL)
 		http_async_cancel(ud->ha);
 
@@ -208,7 +210,7 @@ upnp_dscv_free(struct upnp_dscv *ud)
 static void
 upnp_mcb_free(struct upnp_mcb *mcb, bool in_shutdown)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	upnp_mcb_check(mcb);
 
@@ -218,17 +220,17 @@ upnp_mcb_free(struct upnp_mcb *mcb, bool in_shutdown)
 		htable_remove(pending, mcb->s);
 	}
 
-	GM_SLIST_FOREACH(mcb->upnp_rpcs, sl) {
+	PSLIST_FOREACH(mcb->upnp_rpcs, sl) {
 		upnp_ctrl_t *ucd = sl->data;
 		upnp_ctrl_cancel(ucd, !in_shutdown);
 	}
-	gm_slist_free_null(&mcb->upnp_rpcs);
+	pslist_free_null(&mcb->upnp_rpcs);
 
-	GM_SLIST_FOREACH(mcb->devices, sl) {
+	PSLIST_FOREACH(mcb->devices, sl) {
 		struct upnp_dscv *ud = sl->data;
 		upnp_dscv_free(ud);
 	}
-	gm_slist_free_null(&mcb->devices);
+	pslist_free_null(&mcb->devices);
 
 	cq_cancel(&mcb->timeout_ev);
 	socket_free_null(&mcb->s);
@@ -245,27 +247,27 @@ upnp_dscv_updated(struct upnp_mcb *mcb)
 	upnp_mcb_check(mcb);
 
 	if (0 == mcb->pending_probes) {
-		GSList *devlist = NULL;
-		GSList *sl;
+		pslist_t *devlist = NULL;
+		pslist_t *sl;
 
 		if (GNET_PROPERTY(upnp_debug) > 3) {
-			size_t count = g_slist_length(mcb->devices);
+			size_t count = pslist_length(mcb->devices);
 			g_message("UPNP discovery completed: kept %zu device%s",
-				count, 1 == count ? "" : "s");
+				count, plural(count));
 		}
 
 		/*
 		 * Build retained device list, then invoke user callback.
 		 */
 
-		GM_SLIST_FOREACH(mcb->devices, sl) {
+		PSLIST_FOREACH(mcb->devices, sl) {
 			struct upnp_dscv *ud = sl->data;
 			upnp_device_t *udev;
 
 			udev = upnp_dev_igd_make(ud->desc_url, ud->services,
 				ud->external_ip, ud->major, ud->minor);
 
-			devlist = g_slist_prepend(devlist, udev);
+			devlist = pslist_prepend(devlist, udev);
 
 			/*
 			 * The service list is shallow-cloned by the IGD device we
@@ -276,7 +278,7 @@ upnp_dscv_updated(struct upnp_mcb *mcb)
 			 * to free the underlying objects as well.
 			 */
 
-			gm_slist_free_null(&ud->services);
+			pslist_free_null(&ud->services);
 		}
 
 		/*
@@ -423,7 +425,7 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 
 	if (GNET_PROPERTY(upnp_debug) > 5) {
 		g_debug("UPNP SCPD fetch \"%s\" returned %zu byte%s for %s",
-			upnp_service_scpd_url(usd), len, 1 == len ? "" : "s",
+			upnp_service_scpd_url(usd), len, plural(len),
 			upnp_service_to_string(usd));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
@@ -448,7 +450,7 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 
 next:
 	HFREE_NULL(data);
-	uscpd->services = g_slist_remove(uscpd->services, usd);
+	uscpd->services = pslist_remove(uscpd->services, usd);
 	upnp_dscv_scpd_iterate(uscpd);
 
 }
@@ -489,7 +491,7 @@ next:
 	if (NULL == ha) {
 		g_warning("UPNP cannot fetch \"%s\": %s",
 			url, http_async_strerror(http_async_errno));
-		uscpd->services = g_slist_remove(uscpd->services, usd);
+		uscpd->services = pslist_remove(uscpd->services, usd);
 		goto next;
 	}
 
@@ -517,7 +519,7 @@ upnp_dscv_scpd_fetch(struct upnp_mcb *mcb, struct upnp_dscv *ud)
 
 	uscpd->mcb = mcb;
 	uscpd->ud = ud;
-	uscpd->services = g_slist_copy(ud->services);
+	uscpd->services = pslist_copy(ud->services);
 
 	upnp_dscv_scpd_iterate(uscpd);
 }
@@ -557,7 +559,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	g_assert(uint_is_positive(mcb->pending_probes));
 
 	mcb->pending_probes--;
-	mcb->upnp_rpcs = g_slist_remove(mcb->upnp_rpcs, ucd);
+	mcb->upnp_rpcs = pslist_remove(mcb->upnp_rpcs, ucd);
 
 	/*
 	 * Process the reply.
@@ -565,7 +567,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 
 	if (!(*cb)(code, value, size, ud)) {
 		/* SOAP error, remove the device */
-		mcb->devices = g_slist_remove(mcb->devices, ud);
+		mcb->devices = pslist_remove(mcb->devices, ud);
 		upnp_dscv_free(ud);
 		goto done;
 	}
@@ -636,7 +638,7 @@ upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx)
 	}
 
 	mcb->pending_probes++;
-	mcb->upnp_rpcs = g_slist_prepend(mcb->upnp_rpcs, ucd_ctx->ucd);
+	mcb->upnp_rpcs = pslist_prepend(mcb->upnp_rpcs, ucd_ctx->ucd);
 	return TRUE;
 }
 
@@ -674,7 +676,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 
 	if (GNET_PROPERTY(upnp_debug) > 5) {
 		g_debug("UPNP probe of \"%s\" returned %zu byte%s",
-			ud->desc_url, len, 1 == len ? "" : "s");
+			ud->desc_url, len, plural(len));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
 			header_dump(stderr, header, "----");
@@ -761,7 +763,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	 * of UPNP_SVC_WAN_IP or UPNP_SVC_WAN_PPP, then it's no good to us.
 	 */
 
-	if (NULL == upnp_service_gslist_find(ud->services, UPNP_SVC_WAN_CIF)) {
+	if (NULL == upnp_service_pslist_find(ud->services, UPNP_SVC_WAN_CIF)) {
 		if (GNET_PROPERTY(upnp_debug) > 1) {
 			g_message("UPNP probed \"%s\" does not support the \"%s\" service",
 				ud->desc_url, upnp_service_type_to_string(UPNP_SVC_WAN_CIF));
@@ -770,8 +772,8 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	}
 
 	if (
-		NULL == upnp_service_gslist_find(ud->services, UPNP_SVC_WAN_IP) &&
-		NULL == upnp_service_gslist_find(ud->services, UPNP_SVC_WAN_PPP)
+		NULL == upnp_service_pslist_find(ud->services, UPNP_SVC_WAN_IP) &&
+		NULL == upnp_service_pslist_find(ud->services, UPNP_SVC_WAN_PPP)
 	) {
 		if (GNET_PROPERTY(upnp_debug) > 1) {
 			g_message("UPNP probed \"%s\" lacks IP or PPP connection services",
@@ -815,7 +817,7 @@ done:
 
 remove_device:
 	HFREE_NULL(data);
-	mcb->devices = g_slist_remove(mcb->devices, ud);
+	mcb->devices = pslist_remove(mcb->devices, ud);
 	upnp_dscv_free(ud);
 	goto done;
 }
@@ -835,7 +837,7 @@ upnp_msearch_reply(const gnutella_socket_t *s,
 	char *st;
 	struct upnp_mcb *mcb;
 	struct upnp_dscv *udev;
-	GSList *sl;
+	pslist_t *sl;
 
 	/*
 	 * Fetch UPnP discovery descriptor, attached to the socket.
@@ -913,7 +915,7 @@ upnp_msearch_reply(const gnutella_socket_t *s,
 	 * search type which brought back a given device.
 	 */
 
-	GM_SLIST_FOREACH(mcb->devices, sl) {
+	PSLIST_FOREACH(mcb->devices, sl) {
 		struct upnp_dscv *ud = sl->data;
 
 		if (0 == strcmp(location, ud->desc_url))
@@ -962,7 +964,7 @@ upnp_msearch_reply(const gnutella_socket_t *s,
 	 * Record the device.
 	 */
 
-	mcb->devices = g_slist_prepend(mcb->devices, udev);
+	mcb->devices = pslist_prepend(mcb->devices, udev);
 	mcb->pending_probes++;
 
 done:
@@ -1036,14 +1038,13 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
  * Discovery timed out.
  */
 static void
-upnp_dscv_timeout(cqueue_t *unused_cq, void *obj)
+upnp_dscv_timeout(cqueue_t *cq, void *obj)
 {
 	struct upnp_mcb *mcb = obj;
 
 	upnp_mcb_check(mcb);
-	(void) unused_cq;
 
-	mcb->timeout_ev = NULL;
+	cq_zero(cq, &mcb->timeout_ev);
 
 	/*
 	 * If we already received one reply to our M-SEARCH, then it's OK and
@@ -1056,7 +1057,7 @@ upnp_dscv_timeout(cqueue_t *unused_cq, void *obj)
 
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_warning("UPNP discovery timed out after %u repl%s",
-			mcb->replies, 1 == mcb->replies ? "y" : "ies");
+			mcb->replies, plural_y(mcb->replies));
 	}
 
 	(*mcb->cb)(NULL, mcb->arg);		/* Signals timeout */

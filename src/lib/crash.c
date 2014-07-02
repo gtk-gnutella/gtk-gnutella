@@ -76,6 +76,7 @@
 #include "common.h"
 
 #include "crash.h"
+
 #include "atomic.h"
 #include "ckalloc.h"
 #include "compat_pause.h"
@@ -90,17 +91,21 @@
 #include "iovec.h"
 #include "log.h"
 #include "mempcpy.h"
+#include "mutex.h"				/* For mutex_crash_mode() */
 #include "offtime.h"
 #include "omalloc.h"
 #include "path.h"
 #include "signal.h"
+#include "spinlock.h"			/* For spinlock_crash_mode() */
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"				/* For thread_name() */
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
 #include "vmm.h"				/* For vmm_crash_mode() */
+#include "walloc.h"				/* For walloc_crash_mode() */
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -110,6 +115,8 @@
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
+
+#define CRASH_RUNTIME_BUFLEN	12	/**< Buffer length for crash_run_time() */
 
 #ifdef HAS_FORK
 #define has_fork() 1
@@ -135,8 +142,9 @@ struct crash_vars {
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
+	const char *fail_name;	/**< Name of thread triggering assertion failure */
+	unsigned fail_stid;		/**< ID of thread triggering assertion failure */
 	pid_t pid;				/**< Initial process ID */
-	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
 	str_t *logstr;			/**< String to build and hold error message */
@@ -170,6 +178,7 @@ G_STMT_START { \
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 static bool crash_closed;
+static bool crash_pausing;
 
 static const char CRASHFILE_ENV[] = "Crashfile=";
 
@@ -219,7 +228,7 @@ typedef struct cursor {
 } cursor_t;
 
 /**
- * Append positive value to buffer, formatted as "%02u".
+ * Append positive value to buffer, formatted as "%02lu".
  */
 static G_GNUC_COLD void
 crash_append_fmt_02u(cursor_t *cursor, long v)
@@ -243,7 +252,42 @@ crash_append_fmt_02u(cursor_t *cursor, long v)
 }
 
 /**
- * Append positive value to buffer, formatted as "%u".
+ * Append positive value to buffer, formatted as "%03lu".
+ */
+static G_GNUC_COLD void
+crash_append_fmt_03u(cursor_t *cursor, long v)
+{
+	if (cursor->size < 3 || v < 0)
+		return;
+
+	if (v >= 1000)
+		v %= 1000;
+
+	if (v < 10) {
+		*cursor->buf++ = '0';
+		*cursor->buf++ = '0';
+		*cursor->buf++ = dec_digit(v);
+	} else if (v < 100) {
+		int c = v / 10;
+		int d = v - c * 10;
+		*cursor->buf++ = '0';
+		*cursor->buf++ = dec_digit(c);
+		*cursor->buf++ = dec_digit(d);
+	} else {
+		int t, d, c;
+		t = v / 100;
+		v -= t * 100;
+		c = v / 10;
+		d = v - c * 10;
+		*cursor->buf++ = dec_digit(t);
+		*cursor->buf++ = dec_digit(c);
+		*cursor->buf++ = dec_digit(d);
+	}
+	cursor->size -= 3;
+}
+
+/**
+ * Append positive value to buffer, formatted as "%lu".
  */
 static G_GNUC_COLD void
 crash_append_fmt_u(cursor_t *cursor, unsigned long v)
@@ -252,7 +296,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 	const char *s;
 	size_t len;
 
-	s = print_number(buf, sizeof buf, v);
+	s = PRINT_NUMBER(buf, v);
 	len = strlen(s);
 
 	if (cursor->size < len)
@@ -276,19 +320,25 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 }
 
 /**
- * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS
- * and should be at least 18-byte long or the string will be truncated.
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
+ * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
+ * truncated.
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ * @param cached	whether to use cached time
  */
-G_GNUC_COLD void
-crash_time(char *buf, size_t size)
+static void
+crash_time_internal(char *buf, size_t size, bool cached)
 {
 	const size_t num_reserved = 1;
 	struct tm tm;
+	tm_t tv;
+	time_t loc;
 	cursor_t cursor;
-	time_delta_t gmtoff;
 
 	/* We need at least space for a NUL */
 	if (size < num_reserved)
@@ -297,14 +347,15 @@ crash_time(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	/*
-	 * If called very early from the logging layer, crash_init() may not have
-	 * been invoked yet, so vars would still be NULL.
-	 */
+	if G_UNLIKELY(cached) {
+		tm_now_raw(&tv);
+		loc = tm_localtime_raw();
+	} else {
+		tm_now_exact(&tv);
+		loc = tm_localtime();
+	}
 
-	gmtoff = (vars != NULL) ? vars->gmtoff : 0;
-
-	if (!off_time(time(NULL) + gmtoff, 0, &tm)) {
+	if (!off_time(loc, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -320,15 +371,54 @@ crash_time(char *buf, size_t size)
 	crash_append_fmt_02u(&cursor, tm.tm_min);
 	crash_append_fmt_c(&cursor, ':');
 	crash_append_fmt_02u(&cursor, tm.tm_sec);
+	crash_append_fmt_c(&cursor, '.');
+	crash_append_fmt_03u(&cursor, tv.tv_usec / 1000);
 
 	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
 	crash_append_fmt_c(&cursor, '\0');
 }
 
 /**
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
+ * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
+ * truncated.
+ *
+ * This routine can safely be used in a signal handler as it does not rely
+ * on unsafe calls.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ */
+void
+crash_time(char *buf, size_t size)
+{
+	crash_time_internal(buf, size, FALSE);
+}
+
+/**
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
+ * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
+ * truncated.
+ *
+ * The difference with crash_time() is that the routine uses the cached time
+ * and therefore does not take any locks.
+ *
+ * This routine can safely be used in a signal handler as it does not rely
+ * on unsafe calls.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ */
+void
+crash_time_cached(char *buf, size_t size)
+{
+	crash_time_internal(buf, size, TRUE);
+}
+
+/**
  * Fill supplied buffer with the current time formatted using the ISO format
- * yyyy-mm-dd HH:MM:SSZ and should be at least 21-byte long or the string
- * will be truncated.
+ * yyyy-mm-dd HH:MM:SSZ and should be at least CRASH_TIME_ISO_BUFLEN byte-long
+ * or the string will be truncated.
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
@@ -347,7 +437,7 @@ crash_time_iso(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(time(NULL) + vars->gmtoff, 0, &tm)) {
+	if (!off_time(tm_localtime_exact(), 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -464,8 +554,8 @@ crash_run_hooks(const char *logfile, int logfd)
 {
 	crash_hook_t hook;
 	const char *routine;
-	char pid_buf[22];
-	char time_buf[18];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 	DECLARE_STR(7);
 	int fd = logfd;
 
@@ -488,7 +578,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str(" invoking crash hook \"");	/* 4 */
 	print_str(routine);						/* 5 */
@@ -534,7 +624,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str("done with hook \"");			/* 4 */
 	print_str(routine);						/* 5 */
@@ -568,10 +658,10 @@ static G_GNUC_COLD void
 crash_message(const char *signame, bool trace, bool recursive)
 {
 	DECLARE_STR(11);
-	char pid_buf[22];
-	char time_buf[18];
-	char runtime_buf[22];
-	char build_buf[22];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
+	char runtime_buf[CRASH_RUNTIME_BUFLEN];
+	char build_buf[ULONG_DEC_BUFLEN];
 	unsigned iov_prolog;
 
 	crash_time(time_buf, sizeof time_buf);
@@ -580,7 +670,7 @@ crash_message(const char *signame, bool trace, bool recursive)
 	/* The following precedes each line */
 	print_str(time_buf);				/* 0 */
 	print_str(" CRASH (pid=");			/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");					/* 3 */
 	iov_prolog = getpos_str();
 
@@ -591,7 +681,7 @@ crash_message(const char *signame, bool trace, bool recursive)
 		print_str(vars->progname);		/* 5 */
 		if (0 != vars->build) {
 			print_str(" build #");		/* 6 */
-			print_str(print_number(build_buf, sizeof build_buf, vars->build));
+			print_str(PRINT_NUMBER(build_buf, vars->build));	/* 7 */
 		}
 	}
 	print_str("\n");					/* 8, at most */
@@ -624,8 +714,8 @@ static G_GNUC_COLD void
 crash_decorating_stack(void)
 {
 	DECLARE_STR(5);
-	char pid_buf[22];
-	char time_buf[18];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 
 	if (!vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
@@ -633,7 +723,7 @@ crash_decorating_stack(void)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	print_str("attempting to dump a decorated stack trace:\n");	/* 4 */
 	flush_err_str();
@@ -648,8 +738,8 @@ static G_GNUC_COLD void
 crash_end_of_line(bool forced)
 {
 	DECLARE_STR(7);
-	char pid_buf[22];
-	char time_buf[18];
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char time_buf[CRASH_TIME_BUFLEN];
 
 	if (!forced && !vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
@@ -658,7 +748,7 @@ crash_end_of_line(bool forced)
 
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	if (forced) {
 		print_str("recursively crashing -- end of line.");	/* 4 */
@@ -694,13 +784,13 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 		char num_buf[ULONG_DEC_BUFLEN + 2];
 		const char *num_str;
 
-		num_str = print_number(num_buf, sizeof num_buf, vars->major);
+		num_str = PRINT_NUMBER(num_buf, vars->major);
 		clamp_strcat(buf, len, "-");
 		clamp_strcat(buf, len, num_str);
-		num_str = print_number(num_buf, sizeof num_buf, vars->minor);
+		num_str = PRINT_NUMBER(num_buf, vars->minor);
 		clamp_strcat(buf, len, ".");
 		clamp_strcat(buf, len, num_str);
-		num_str = print_number(num_buf, sizeof num_buf, vars->patchlevel);
+		num_str = PRINT_NUMBER(num_buf, vars->patchlevel);
 		clamp_strcat(buf, len, ".");
 		clamp_strcat(buf, len, num_str);
 	}
@@ -714,7 +804,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 		char build_buf[ULONG_DEC_BUFLEN + 2];
 		const char *build_str;
 
-		build_str = print_number(build_buf, sizeof build_buf, vars->build);
+		build_str = PRINT_NUMBER(build_buf, vars->build);
 		clamp_strcat(buf, len, "-r");
 		clamp_strcat(buf, len, build_str);
 	}
@@ -761,7 +851,7 @@ crash_stack_print(int fd, size_t offset)
 	}
 }
 
-static Sigjmp_buf crash_safe_env;
+static Sigjmp_buf crash_safe_env[THREAD_MAX];
 
 /**
  * Invoked on a fatal signal during decorated stack building.
@@ -769,8 +859,10 @@ static Sigjmp_buf crash_safe_env;
 static G_GNUC_COLD void
 crash_decorated_got_signal(int signo)
 {
+	int stid = thread_small_id();
+
 	s_miniwarn("got %s during stack dump generation", signal_name(signo));
-	Siglongjmp(crash_safe_env, signo);
+	Siglongjmp(crash_safe_env[stid], signo);
 }
 
 /**
@@ -781,6 +873,7 @@ crash_decorated_got_signal(int signo)
 static G_GNUC_COLD NO_INLINE bool
 crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 {
+	int stid = thread_small_id();
 	const uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE |
 		STACKTRACE_F_GDB | STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
 		STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
@@ -803,7 +896,7 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 	old_sigbus = signal_catch(SIGBUS, crash_decorated_got_signal);
 #endif
 
-	if (Sigsetjmp(crash_safe_env, TRUE)) {
+	if (Sigsetjmp(crash_safe_env[stid], TRUE)) {
 		success = FALSE;
 		goto done;
 	}
@@ -832,6 +925,24 @@ done:
 }
 
 /**
+ * Print a decorated stack for the current frame to given file descriptor.
+ */
+void
+crash_print_decorated_stack(int fd)
+{
+	const char *name = thread_name();
+	DECLARE_STR(3);
+
+	print_str("Currently in ");
+	print_str(name);
+	print_str(":\n");
+	flush_str(fd);
+
+	crash_stack_print_decorated(fd, 2, FALSE);
+	thread_lock_dump_all(fd);
+}
+
+/**
  * Emit a decorated stack.
  */
 static G_GNUC_COLD NO_INLINE void
@@ -840,8 +951,11 @@ crash_emit_decorated_stack(size_t offset, bool in_child)
 	crash_decorating_stack();
 	if (!crash_stack_print_decorated(STDERR_FILENO, offset + 1, in_child))
 		return;
-	if (log_stdout_is_distinct())
+	thread_lock_dump_all(STDERR_FILENO);
+	if (log_stdout_is_distinct()) {
 		crash_stack_print_decorated(STDOUT_FILENO, offset + 1, in_child);
+		thread_lock_dump_all(STDOUT_FILENO);
+	}
 }
 
 /**
@@ -919,7 +1033,7 @@ static G_GNUC_COLD void
 crash_fork_timeout(int signo)
 {
 	DECLARE_STR(2);
-	char time_buf[18];
+	char time_buf[CRASH_TIME_BUFLEN];
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);
@@ -931,7 +1045,7 @@ crash_fork_timeout(int signo)
 #endif	/* HAS_FORK */
 
 /**
- * A fork() wrapper to work around libc6 bugs causing hangs within fork().
+ * A fork() wrapper to handle multi-threaded environments "safely".
  */
 static G_GNUC_COLD pid_t
 crash_fork(void)
@@ -975,6 +1089,21 @@ restore:
 	signal_set(SIGALRM, old_sigalrm);
 #endif
 
+	/*
+	 * If we are in the child process, we are now the sole thread running
+	 * because only the thread executing the fork() is kept running.
+	 *
+	 * However, we are in crash-mode, hence all the locks are pass-through
+	 * and we cannot deadlock with a lock that one of the other threads could
+	 * have been taking in the parent process.
+	 *
+	 * We MUST NOT call thread_forked() here as we would in normal user code
+	 * because that would reset the thread information that we are going to
+	 * propagate in the crash log, in particular the list of locks held by
+	 * the other non-crashing threads, or corrupt the amount of running threads
+	 * as returned by thread_count().
+	 */
+
 	return pid;
 #else
 	return 0;			/* Act as if we were in a child upon return */
@@ -991,11 +1120,11 @@ restore:
 static void
 crash_log_write_header(int clf, int signo, const char *filename)
 {
-	char tbuf[22];
-	char rbuf[22];
+	char tbuf[CRASH_TIME_BUFLEN];
+	char rbuf[CRASH_RUNTIME_BUFLEN];
 	char sbuf[ULONG_DEC_BUFLEN];
 	char nbuf[ULONG_DEC_BUFLEN];
-	char lbuf[22];
+	char lbuf[ULONG_DEC_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
@@ -1024,10 +1153,10 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	}
 	if (cpucount > 1) {
 		print_str(" * ");				/* 9 */
-		print_str(print_number(sbuf, sizeof sbuf, cpucount)); /* 10 */
+		print_str(PRINT_NUMBER(sbuf, cpucount)); /* 10 */
 	}
 	print_str(", ");					/* 11 */
-	print_str(print_number(nbuf, sizeof nbuf, PTRSIZE * 8)); /* 12 */
+	print_str(PRINT_NUMBER(nbuf, PTRSIZE * 8)); /* 12 */
 	print_str(" bits\n");				/* 13 */
 	flush_str(clf);
 	rewind_str(0);
@@ -1044,7 +1173,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str(rbuf);					/* 7 */
 	print_str("\n");					/* 8 */
 	print_str("Run-Seconds: ");			/* 9 */
-	print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 10 */
+	print_str(PRINT_NUMBER(sbuf, MAX(t, 0)));	/* 10 */
 	print_str("\n");					/* 11 */
 	print_str("Crash-Signal: ");		/* 12 */
 	print_str(signal_name(signo));		/* 13 */
@@ -1079,24 +1208,30 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("\n");					/* 2 */
 	if (vars->failure != NULL) {
 		const assertion_data *failure = vars->failure;
-		if (failure->expr != NULL) {
+		unsigned line = failure->line & ~FAST_ASSERT_NOT_REACHED;
+		bool assertion = line == failure->line;
+		if (assertion) {
 			print_str("Assertion-At: ");	/* 3 */
 		} else {
 			print_str("Reached-Code-At: ");	/* 3 */
 		}
 		print_str(failure->file);			/* 4 */
 		print_str(":");						/* 5 */
-		print_str(print_number(lbuf, sizeof lbuf, failure->line));
-		print_str("\n");					/* 6 */
-		if (failure->expr != NULL) {
-			print_str("Assertion-Expr: ");	/* 7 */
-			print_str(failure->expr);		/* 8 */
-			print_str("\n");				/* 9 */
+		print_str(PRINT_NUMBER(lbuf, line));/* 6 */
+		print_str("\n");					/* 7 */
+		if (assertion) {
+			print_str("Assertion-Expr: ");	/* 8 */
+			print_str(failure->expr);		/* 9 */
+			print_str("\n");				/* 10 */
+		} else {
+			print_str("Routine-Name: ");	/* 8 */
+			print_str(failure->expr);		/* 9 */
+			print_str("()\n");				/* 10 */
 		}
 		if (vars->message != NULL) {
-			print_str("Assertion-Info: ");	/* 10 */
-			print_str(vars->message);		/* 11 */
-			print_str("\n");				/* 12 */
+			print_str("Assertion-Info: ");	/* 11 */
+			print_str(vars->message);		/* 12 */
+			print_str("\n");				/* 13 */
 		}
 	} else if (vars->message != NULL) {
 		print_str("Error-Message: ");		/* 3 */
@@ -1105,10 +1240,28 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	}
 	flush_str(clf);
 
+	if (vars->fail_name != NULL || vars->fail_stid != 0) {
+		rewind_str(0);
+		print_str("Thread-ID: ");						/* 0 */
+		print_str(PRINT_NUMBER(lbuf, vars->fail_stid));	/* 1 */
+		print_str("\n");								/* 2 */
+		if (vars->fail_name != NULL) {
+			print_str("Thread-Name: ");					/* 3 */
+			print_str(vars->fail_name);					/* 4 */
+			print_str("\n");							/* 5 */
+		}
+		flush_str(clf);
+	}
+
 	rewind_str(0);
 	print_str("Atomic-Operations: ");					/* 0 */
 	print_str(atomic_ops_available() ? "yes" : "no");	/* 1 */
 	print_str("\n");									/* 2 */
+	print_str("Threads: ");								/* 3 */
+	print_str(PRINT_NUMBER(sbuf, thread_count()));		/* 4 */
+	print_str(" (");									/* 5 */
+	print_str(PRINT_NUMBER(nbuf, thread_discovered_count()));	/* 6 */
+	print_str(" discovered)\n");						/* 7 */
 	flush_str(clf);
 
 	rewind_str(0);
@@ -1117,7 +1270,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	if (t <= CRASH_MIN_ALIVE) {
 		char rtbuf[ULONG_DEC_BUFLEN];
 		print_str("; run time threshold of ");	/* 2 */
-		print_str(print_number(rtbuf, sizeof rtbuf, CRASH_MIN_ALIVE));
+		print_str(PRINT_NUMBER(rtbuf, CRASH_MIN_ALIVE));
 		print_str("s not reached");				/* 4 */
 	} else {
 		print_str("; ");				/* 2 */
@@ -1175,13 +1328,13 @@ crash_generate_crashlog(int signo)
 {
 	static char crashlog[MAX_PATH_LEN];
    	const char *pid_str;
-	char pid_buf[22];
+	char pid_buf[ULONG_DEC_BUFLEN];
 	char filename[80];
 	int clf;
 	const mode_t mode = S_IRUSR | S_IWUSR;
 	int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
 
-	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 	if (vars != NULL && vars->crashdir != NULL) {
 		str_bprintf(crashlog, sizeof crashlog,
@@ -1198,6 +1351,7 @@ crash_generate_crashlog(int signo)
 	}
 	crash_log_write_header(clf, signo, filename);
 	crash_stack_print_decorated(clf, 2, FALSE);
+	thread_lock_dump_all(clf);
 	crash_run_hooks(NULL, clf);
 	close(clf);
 	s_minimsg("trace left in %s", crashlog);
@@ -1217,7 +1371,7 @@ static G_GNUC_COLD bool
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
-	char pid_buf[22];
+	char pid_buf[ULONG_DEC_BUFLEN];
 	pid_t pid;
 	int fd[2];
 	const char *stage = NULL;
@@ -1226,7 +1380,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	int fork_errno = 0;
 	int parent_stdout = STDOUT_FILENO;
 
-	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, getpid());
 
 #ifdef HAS_WAITPID
 retry_child:
@@ -1261,7 +1415,7 @@ retry_child:
 		}
 	} else {
 		DECLARE_STR(2);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);
@@ -1282,7 +1436,7 @@ retry_child:
 		could_fork = FALSE;
 		{
 			DECLARE_STR(6);
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 
 			crash_time(time_buf, sizeof time_buf);
 			print_str(time_buf);
@@ -1307,7 +1461,7 @@ retry_child:
 			const mode_t mode = S_IRUSR | S_IWUSR;
 			char const *argv[8];
 			char filename[80];
-			char tbuf[22];
+			char tbuf[CRASH_TIME_BUFLEN];
 			char cmd[MAX_PATH_LEN];
 			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(10);
@@ -1434,6 +1588,7 @@ retry_child:
 				}
 				flush_str(clf);
 				crash_stack_print_decorated(clf, 2, FALSE);
+				thread_lock_dump_all(clf);
 				crash_fd_close(clf);
 				goto parent_process;
 			}
@@ -1453,6 +1608,7 @@ retry_child:
 			if (!retried_child) {
 				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
 				log_set_disabled(LOG_STDOUT, TRUE);
+				thread_lock_dump_all(STDOUT_FILENO);
 				crash_run_hooks(NULL, STDOUT_FILENO);
 				log_set_disabled(LOG_STDOUT, FALSE);
 			}
@@ -1538,7 +1694,7 @@ parent_process:
 	{
 		DECLARE_STR(10);
 		unsigned iov_prolog;
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		int status;
 		bool child_ok = FALSE;
 
@@ -1554,7 +1710,7 @@ parent_process:
 
 		if (could_fork) {
 			static const char commands[] =
-				"thread\nbt\nbt full\nthread apply bt\nquit\n";
+				"thread\nbt\nbt full\nthread apply all bt\nquit\n";
 			const size_t n = CONST_STRLEN(commands);
 			ssize_t ret;
 
@@ -1598,7 +1754,7 @@ parent_process:
 		if ((pid_t) -1 == waitpid(pid, &status, 0)) {
 			char buf[ULONG_DEC_BUFLEN];
 			print_str("could not wait for child (errno = ");	/* 4 */
-			print_str(print_number(buf, sizeof buf, errno));	/* 5 */
+			print_str(PRINT_NUMBER(buf, errno));				/* 5 */
 			print_str(")\n");									/* 6 */
 			flush_err_str();
 		} else if (WIFEXITED(status)) {
@@ -1608,8 +1764,7 @@ parent_process:
 				char buf[ULONG_DEC_BUFLEN];
 
 				print_str("child exited with status ");	/* 4 */
-				print_str(print_number(buf, sizeof buf,
-					WEXITSTATUS(status)));				/* 5 */
+				print_str(PRINT_NUMBER(buf, WEXITSTATUS(status)));	/* 5 */
 				print_str("\n");						/* 6 */
 				flush_err_str();
 				if (log_stdout_is_distinct())
@@ -1776,7 +1931,7 @@ no_fork:
 parent_failure:
 	{
 		DECLARE_STR(6);
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);					/* 0 */
@@ -1794,6 +1949,35 @@ parent_failure:
 }
 
 /**
+ * Record failing thread information.
+ */
+static void G_GNUC_COLD
+crash_record_thread(void)
+{
+	if (vars != NULL && NULL == vars->fail_name) {
+		unsigned stid = thread_safe_small_id();
+		const char *name;
+
+		if (-2U == stid) {
+			name = "could not compute thread ID";
+			crash_set_var(fail_name, name);
+		} else {
+			crash_set_var(fail_stid, stid);
+			if (vars->logck != NULL) {
+				const char *tname = thread_id_name(stid);
+				name = ck_strdup_readonly(vars->logck, tname);
+				if (NULL == name)
+					name = "could not allocate name";
+				crash_set_var(fail_name, name);
+			} else {
+				name = "no log chunk to allocate from";
+				crash_set_var(fail_name, name);
+			}
+		}
+	}
+}
+
+/**
  * Entering crash mode.
  */
 static G_GNUC_COLD void
@@ -1806,12 +1990,31 @@ crash_mode(void)
 
 	vmm_crash_mode();
 	xmalloc_crash_mode();
+	walloc_crash_mode();
+
+	/*
+	 * Suspend the other threads if possible, to avoid a cascade of errors
+	 * and other assertion failures.  If a thread is crashing, something is
+	 * wrong in the aplication global state.
+	 *
+	 * This is advisory suspension only, and we do not wait for all the other
+	 * threads to have released their locks since we are in a rather emergency
+	 * situation.
+	 */
+
+	thread_suspend_others(FALSE);
+	thread_crash_mode();
+
+	/*
+	 * Activate crash mode.
+	 */
 
 	if (vars != NULL) {
 		if (!vars->crash_mode) {
 			uint8 t = TRUE;
 
 			crash_set_var(crash_mode, t);
+			crash_record_thread();
 
 			/*
 			 * Configuring crash mode logging requires a formatting string.
@@ -1825,7 +2028,7 @@ crash_mode(void)
 			log_crashing(vars->fmtstr);
 		}
 		if (ck_is_readonly(vars->fmtck)) {
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(2);
 
 			crash_time(time_buf, sizeof time_buf);
@@ -1837,7 +2040,7 @@ crash_mode(void)
 		static bool warned;
 
 		if (!warned) {
-			char time_buf[18];
+			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(2);
 
 			warned = TRUE;
@@ -1903,7 +2106,7 @@ crash_try_reexec(void)
 		s_minimsg("launching %s", str_2c(vars->logstr));
 	} else {
 		s_minimsg("launching %s with %d argument%s", vars->argv0,
-			vars->argc, 1 == vars->argc ? "" : "s");
+			vars->argc, plural(vars->argc));
 	}
 
 	/*
@@ -1914,6 +2117,7 @@ crash_try_reexec(void)
 	signal_set(SIGPROF, SIG_IGN);	/* In case we're running under profiler */
 #endif
 
+	signal_perform_cleanup();
 	close_file_descriptors(3);
 	crash_reset_signals();
 	execve(vars->argv0, (const void *) vars->argv, (const void *) vars->envp);
@@ -1921,7 +2125,7 @@ crash_try_reexec(void)
 	/* Log exec() failure */
 
 	{
-		char tbuf[22];
+		char tbuf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(6);
 
 		crash_time(tbuf, sizeof tbuf);
@@ -1970,8 +2174,8 @@ crash_auto_restart(void)
 
 	if (delta_time(time(NULL), vars->start_time) <= CRASH_MIN_ALIVE) {
 		if (vars->may_restart) {
-			char time_buf[18];
-			char runtime_buf[22];
+			char time_buf[CRASH_TIME_BUFLEN];
+			char runtime_buf[CRASH_RUNTIME_BUFLEN];
 			DECLARE_STR(5);
 
 			crash_time(time_buf, sizeof time_buf);
@@ -1989,8 +2193,8 @@ crash_auto_restart(void)
 	}
 
 	if (vars->may_restart) {
-		char time_buf[18];
-		char runtime_buf[22];
+		char time_buf[CRASH_TIME_BUFLEN];
+		char runtime_buf[CRASH_RUNTIME_BUFLEN];
 		DECLARE_STR(6);
 
 		crash_time(time_buf, sizeof time_buf);
@@ -2069,6 +2273,17 @@ crash_auto_restart(void)
 }
 
 /**
+ * Pause the process and make sure crash_is_pausing() sees us as pausing.
+ */
+static void
+crash_pause(void)
+{
+	atomic_bool_set(&crash_pausing, TRUE);
+	compat_pause();
+	atomic_bool_set(&crash_pausing, FALSE);
+}
+
+/**
  * The signal handler used to trap harmful signals.
  */
 G_GNUC_COLD void
@@ -2079,7 +2294,7 @@ crash_handler(int signo)
 	const char *cwd = "";
 	unsigned i;
 	bool trace;
-	bool recursive = crashed > 0;
+	bool recursive = ATOMIC_GET(&crashed) > 0;
 	bool in_child = FALSE;
 
 	/*
@@ -2092,19 +2307,29 @@ crash_handler(int signo)
 	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
-	if (crashed++ > 1) {
-		if (2 == crashed) {
+	if (ATOMIC_INC(&crashed) > 1) {
+		if (2 == ATOMIC_GET(&crashed)) {
 			DECLARE_STR(1);
 
 			print_str("\nERROR: too many recursive crashes\n");
 			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
-		} else if (3 == crashed) {
+		} else if (3 == ATOMIC_GET(&crashed)) {
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
 	}
+
+	/*
+	 * Since we're about to crash, we need to perform emergency cleanup.
+	 *
+	 * This is cleanup meant to release precious system resources, as necessary,
+	 * which would not otherwise be cleaned up by the kernel upon process exit.
+	 */
+
+	if (1 == ATOMIC_GET(&crashed))
+		signal_perform_cleanup();
 
 	/*
 	 * If we are in the child process, prevent any exec() or pausing.
@@ -2231,7 +2456,7 @@ crash_handler(int signo)
 		if (signal_in_handler() && !vars->invoke_inspector)
 			crash_emit_decorated_stack(1, in_child);
 	}
-	if ((recursive && 1 == crashed) || in_child) {
+	if ((recursive && 1 == ATOMIC_GET(&crashed)) || in_child) {
 		crash_emit_decorated_stack(1, in_child);
 		crash_end_of_line(TRUE);
 		goto the_end;
@@ -2265,7 +2490,7 @@ crash_handler(int signo)
 		crash_end_of_line(FALSE);
 	}
 	if (vars->pause_process) {
-		compat_pause();
+		crash_pause();
 	}
 
 the_end:
@@ -2315,6 +2540,7 @@ G_GNUC_COLD void
 crash_exited(uint32 pid)
 {
 	str_t *cfile;
+	int i;
 
 	/*
 	 * If there is a core file in the crash directory and the process is
@@ -2335,21 +2561,55 @@ crash_exited(uint32 pid)
 	 */
 
 	cfile = str_new(MAX_PATH_LEN);
-	str_printf(cfile, "%s%ccore", vars->crashdir, G_DIR_SEPARATOR);
 
-	if (file_exists(str_2c(cfile))) {
-		str_t *pfile = str_clone(cfile);
+	for (i = 0; i < 4; i++) {
+		const char *progname = filepath_basename(vars->argv0);
 
-		str_catf(pfile, ".%u", pid);
+		/*
+		 * We look for the core file in various forms and at various places:
+		 *
+		 * 0: a file named "core" in the crash directory
+		 * 1: a file named "progname.core" in the crash directory
+		 * 2: a file named "core" in the local directory
+		 * 3: a file named "progname.core" in the local directory
+		 *
+		 * The "core" file is for Linux, the "progname.core" is for FreeBSD.
+		 * We stop our renaming logic after the first match.
+		 */
 
-		if (-1 == rename(str_2c(cfile), str_2c(pfile))) {
-			s_miniwarn("cannot rename old core file %s: %m",
-				str_2c(cfile));
-		} else {
-			s_miniinfo("previous core file renamed as %s", str_2c(pfile));
+		switch (i) {
+		case 0:
+			str_printf(cfile, "%s%ccore", vars->crashdir, G_DIR_SEPARATOR);
+			break;
+		case 1:
+			str_printf(cfile, "%s%c%s.core",
+				vars->crashdir, G_DIR_SEPARATOR, progname);
+			break;
+		case 2:
+			STR_CPY(cfile, "core");
+			break;
+		case 3:
+			str_printf(cfile, "%s.core", progname);
+			break;
+		default:
+			g_assert_not_reached();
 		}
 
-		str_destroy_null(&pfile);
+		if (file_exists(str_2c(cfile))) {
+			str_t *pfile = str_clone(cfile);
+
+			str_catf(pfile, ".%u", pid);
+
+			if (-1 == rename(str_2c(cfile), str_2c(pfile))) {
+				s_miniwarn("cannot rename old core file %s: %m",
+					str_2c(cfile));
+			} else {
+				s_miniinfo("previous core file renamed as %s", str_2c(pfile));
+			}
+
+			str_destroy_null(&pfile);
+			break;
+		}
 	}
 
 	str_destroy_null(&cfile);
@@ -2374,16 +2634,10 @@ crash_init(const char *argv0, const char *progname,
 
 	ZERO(&iv);
 
-	/*
-	 * Must set this early in case we have to call crash_time(), since
-	 * vars->gtmoff must be set.
-	 */
-
-	iv.gmtoff = timestamp_gmt_offset(time(NULL), NULL);
 	vars = &iv;
 
 	if (NULL == getcwd(dir, sizeof dir)) {
-		char time_buf[18];
+		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(4);
 
 		crash_time(time_buf, sizeof time_buf);
@@ -2544,8 +2798,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 	char filename[80];
 	size_t size = 1;	/* Minimum is one byte for NUL */
 
-	/* @BUG: The ADNS helper process has a different PID.  */
-	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 
 	if (NULL == dst) {
@@ -2678,7 +2931,7 @@ crash_setbuild(unsigned build)
  * region and it should ideally be called before calling this routine.
  */
 void
-crash_setmain(int argc, const char *argv[], const char *env[])
+crash_setmain(int argc, const char **argv, const char **env)
 {
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
@@ -2755,6 +3008,17 @@ crash_is_closed(void)
 		return vars->closed;
 
 	return crash_closed;
+}
+
+/**
+ * Are we pausing?
+ *
+ * @return TRUE if the process is voluntarily pausing.
+ */
+bool
+crash_is_pausing(void)
+{
+	return atomic_bool_get(&crash_pausing);
 }
 
 /**
@@ -2912,7 +3176,7 @@ crash_save_stackframe(void *stack[], size_t count)
 
 	if (vars != NULL && 0 == vars->stackcnt) {
 		ck_memcpy(vars->mem,
-			&vars->stack, (void *) stack, count * sizeof(void *));
+			(void *) &vars->stack, (void *) stack, count * sizeof(void *));
 		crash_set_var(stackcnt, count);
 	}
 }

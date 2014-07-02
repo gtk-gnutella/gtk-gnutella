@@ -60,6 +60,7 @@ void atom_free(enum atom_type type, const void *key);
 #endif
 
 bool atom_exists(enum atom_type type, const void *key);
+bool atom_is_atom(enum atom_type type, const void *key);
 
 /*
  * Convenience macros.
@@ -76,7 +77,7 @@ bool atom_exists(enum atom_type type, const void *key);
 #define atom_sha1_get(k)	atom_get_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 #define atom_sha1_free(k)	atom_free_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 
-#define atom_tth_get(k)	atom_get_track(ATOM_TTH, (k), _WHERE_, __LINE__)
+#define atom_tth_get(k)		atom_get_track(ATOM_TTH, (k), _WHERE_, __LINE__)
 #define atom_tth_free(k)	atom_free_track(ATOM_TTH, (k), _WHERE_, __LINE__)
 
 #define atom_uint64_get(k)	atom_get_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
@@ -208,49 +209,49 @@ void atoms_close(void);
 static inline bool
 atom_is_str(const char *k)
 {
-	return atom_exists(ATOM_STRING, k);
+	return atom_is_atom(ATOM_STRING, k);
 }
 
 static inline bool
 atom_is_guid(const struct guid *k)
 {
-	return atom_exists(ATOM_GUID, k);
+	return atom_is_atom(ATOM_GUID, k);
 }
 
 static inline bool
 atom_is_sha1(const struct sha1 *k)
 {
-	return atom_exists(ATOM_SHA1, k);
+	return atom_is_atom(ATOM_SHA1, k);
 }
 
 static inline bool
 atom_is_tth(const struct tth *k)
 {
-	return atom_exists(ATOM_TTH, k);
+	return atom_is_atom(ATOM_TTH, k);
 }
 
 static inline bool
 atom_is_uint64(const uint64 *k)
 {
-	return atom_exists(ATOM_UINT64, k);
+	return atom_is_atom(ATOM_UINT64, k);
 }
 
 static inline bool
 atom_is_filesize(const filesize_t *k)
 {
-	return atom_exists(ATOM_FILESIZE, k);
+	return atom_is_atom(ATOM_FILESIZE, k);
 }
 
 static inline bool
 atom_is_uint32(const uint32 *k)
 {
-	return atom_exists(ATOM_UINT32, k);
+	return atom_is_atom(ATOM_UINT32, k);
 }
 
 static inline bool
 atom_is_host(const gnet_host_t *k)
 {
-	return atom_exists(ATOM_HOST, k);
+	return atom_is_atom(ATOM_HOST, k);
 }
 
 /*
@@ -273,8 +274,9 @@ int uint32_eq(const void *a, const void *b) G_GNUC_PURE;
 
 #ifdef TRACK_ATOMS
 const void *atom_get_track(enum atom_type, const void *key,
-			char *file, int line);
-void atom_free_track(enum atom_type, const void *key, char *file, int line);
+	const char *file, int line);
+void atom_free_track(enum atom_type, const void *key,
+	const char *file, int line);
 #endif
 
 
@@ -283,6 +285,40 @@ void atom_free_track(enum atom_type, const void *key, char *file, int line);
  * The atom may also point to NULL, so the caller does not have to
  * check this.
  */
+
+#ifdef TRACK_ATOMS
+#define atom_str_free_wl(k,w,l)		atom_free_track(ATOM_STRING, (k), (w), (l))
+#define atom_guid_free_wl(k,w,l)	atom_free_track(ATOM_GUID, (k), (w), (l))
+#define atom_sha1_free_wl(k,w,l)	atom_free_track(ATOM_SHA1, (k), (w), (l))
+#define atom_tth_free_wl(k,w,l)		atom_free_track(ATOM_TTH, (k), (w), (l))
+#define atom_uint64_free_wl(k,w,l)	atom_free_track(ATOM_UINT64, (k), (w), (l))
+#define atom_uint32_free_wl(k,w,l)	atom_free_track(ATOM_UINT32, (k), (w), (l))
+#define atom_host_free_wl(k,w,l)	atom_free_track(ATOM_HOST, (k), (w), (l))
+
+#define atom_filesize_free_wl(k,w,l) \
+	atom_free_track(ATOM_FILESIZE, (k), (w), (l))
+
+#define atom_str_free_null(kp)		atom_str_fntrack((kp), _WHERE_, __LINE__)
+#define atom_guid_free_null(kp)		atom_guid_fntrack((kp), _WHERE_, __LINE__)
+#define atom_sha1_free_null(kp)		atom_sha1_fntrack((kp), _WHERE_, __LINE__)
+#define atom_tth_free_null(kp)		atom_tth_fntrack((kp), _WHERE_, __LINE__)
+#define atom_uint64_free_null(kp)	atom_uint64_fntrack((kp), _WHERE_, __LINE__)
+#define atom_uint32_free_null(kp)	atom_uint32_fntrack((kp), _WHERE_, __LINE__)
+#define atom_host_free_null(kp)		atom_host_fntrack((kp), _WHERE_, __LINE__)
+
+#define atom_filesize_free_null(kp) \
+	atom_filesize_fntrack((kp), _WHERE_, __LINE__)
+
+#define GENERATE_ATOM_FREE_NULL(name, type) \
+static inline void \
+atom_ ## name ## _fntrack(const type *k_ptr, const char *where, int line) \
+{ \
+	if (*k_ptr) { \
+		atom_ ## name ## _free_wl(*k_ptr, where, line); \
+		*k_ptr = NULL; \
+	} \
+}
+#else	/* !TRACK_ATOMS */
 #define GENERATE_ATOM_FREE_NULL(name, type) \
 static inline void \
 atom_ ## name ## _free_null(const type *k_ptr) \
@@ -292,6 +328,7 @@ atom_ ## name ## _free_null(const type *k_ptr) \
 		*k_ptr = NULL; \
 	} \
 }
+#endif	/* TRACK_ATOMS */
 
 struct sha1;
 struct tth;

@@ -33,6 +33,12 @@
  * are "hidden".  See "spinlock.h" for more details on "hidden" versus
  * "regular" locks.
  *
+ * As a rule of thumb, user-level code should never use "hidden" of "fast"
+ * mutexes, only "regular" ones because mutexes are supposed to be valid
+ * suspension points.  When the lock duration is just a few instructions and
+ * the critical section does not make any function calls to routines that are
+ * taking "regular" locks, then a hidden lock may be used.
+ *
  * The basic API is straightforward:
  *
  *		mutex_lock()	-- takes the lock, blocking if busy
@@ -48,6 +54,26 @@
  * it needs to track the thread which grabbed it, and involves comparisons
  * between thread descriptors to determine whether a grabbing thread already
  * owns the mutex.
+ *
+ * To allow critical section overlap, it is possible to use one of the
+ * following calls:
+ *
+ *		mutex_lock_swap()		-- take the lock, then swap lock ordering
+ *		mutex_trylock_swap()	-- try to take the lock and swap order
+ *
+ * It is possible to intermix mutexes with spinlocks during critical section
+ * overlaps, this way:
+ *
+ *		spinlock(A);
+ *		....
+ *		mutex_lock_swap(B, A);	// the critical section overlap
+ *		spinunlock(A);
+ *		....
+ *		mutex_unlock(B);
+ *
+ * Without the mutex_lock_swap() which reverses the order of A and B, it would
+ * not be possible to release A first since A was taken initially before B:
+ * the lock monitoring runtime would forbid it.
  *
  * The following extra routines are available:
  *
@@ -78,64 +104,129 @@ enum mutex_magic {
  *
  * When the integer is 0, the lock is available, when the integer is 1
  * the lock is busy.
+ *
+ * It's called "struct lmutex" because "struct mutex" is exposed on Solaris
+ * within the <sys/mutex.h> file.
  */
-typedef struct mutex {
+typedef struct lmutex {
 	enum mutex_magic magic;
-	unsigned long owner;
+	thread_t owner;
 	size_t depth;
 	spinlock_t lock;
 } mutex_t;
 
 /**
+ * Verify mutex is valid.
+ */
+static inline bool
+mutex_is_valid(const volatile mutex_t * const m)
+{
+	return m != NULL && MUTEX_MAGIC == m->magic;
+}
+
+/**
  * Static initialization value for a mutex structure.
  */
-#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, SPINLOCK_INIT }
+#define MUTEX_INIT	{ MUTEX_MAGIC, THREAD_NONE, 0L, SPINLOCK_INIT }
+
+/**
+ * Mode of operation for mutexes.
+ */
+enum mutex_mode {
+	MUTEX_MODE_NORMAL = 0,	/**< Normal mode */
+	MUTEX_MODE_HIDDEN,		/**< Hidden mode: do not declare in thread */
+	MUTEX_MODE_FAST			/**< By-pass all thread management code */
+};
+
+/*
+ * Internal.
+ */
+
+#ifdef THREAD_SOURCE
+void mutex_reset(mutex_t *m);
+#endif	/* THREAD_SOURCE */
 
 /*
  * These should not be called directly by user code to allow debugging.
  */
 
-void mutex_grab(mutex_t *m, bool hidden);
-bool mutex_grab_try(mutex_t *m, bool hidden);
-void mutex_ungrab(mutex_t *m, bool hidden);
+void mutex_grab_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line);
+bool mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
+	const char *f, unsigned l);
+void mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
+	const char *f, unsigned l);
+void mutex_unlock_const_from(const mutex_t *m,
+	const char *f, unsigned l);
+void mutex_grab_swap_from(mutex_t *m, const void *plock,
+	const char *f, unsigned l);
+bool mutex_grab_swap_try_from(mutex_t *m, const void *plock,
+	const char *f, unsigned l);
 
 /*
  * Public interface.
  */
 
-#ifdef SPINLOCK_DEBUG
-void mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line);
-bool mutex_grab_try_from(mutex_t *m, bool hidden, const char *f, unsigned l);
+#define mutex_lock(x) \
+	mutex_grab_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
+#define mutex_lock_hidden(x) \
+	mutex_grab_from((x), MUTEX_MODE_HIDDEN, _WHERE_, __LINE__)
+#define mutex_lock_fast(x) \
+	mutex_grab_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
 
-#define mutex_lock(x)			mutex_grab_from((x), FALSE, _WHERE_, __LINE__)
-#define mutex_lock_hidden(x)	mutex_grab_from((x), TRUE, _WHERE_, __LINE__)
-#define mutex_trylock(x)		mutex_grab_try_from((x), FALSE, \
-									_WHERE_, __LINE__)
-#define mutex_trylock_hidden(x)	mutex_grab_try_from((x), TRUE, \
-									_WHERE_, __LINE__)
+#define mutex_lock_swap(x,y) \
+	mutex_grab_from((x), (y), _WHERE_, __LINE__)
+
+#define mutex_trylock(x) \
+	mutex_grab_try_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
+#define mutex_trylock_hidden(x)	\
+	mutex_grab_try_from((x), MUTEX_MODE_HIDDEN, _WHERE_, __LINE__)
+#define mutex_trylock_fast(x)	\
+	mutex_grab_try_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
+
+#define mutex_trylock_swap(x,y) \
+	mutex_grab_swap_try_from((x), (y), _WHERE_, __LINE__)
 
 #define mutex_lock_const(x)	\
-	mutex_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
+	mutex_grab_from(deconstify_pointer(x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
 
-#else
-#define mutex_lock(x)			mutex_grab((x), FALSE)
-#define mutex_lock_hidden(x)	mutex_grab((x), TRUE)
-#define mutex_trylock(x)		mutex_grab_try((x), FALSE)
-#define mutex_trylock_hidden(x)	mutex_grab_try((x), TRUE)
-#define mutex_lock_const(x)		mutex_grab(deconstify_pointer(x), FALSE)
+#define mutex_unlock(x)	\
+	mutex_ungrab_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
+#define mutex_unlock_hidden(x) \
+	mutex_ungrab_from((x), MUTEX_MODE_HIDDEN, _WHERE_, __LINE__)
+#define mutex_unlock_fast(x) \
+	mutex_ungrab_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
+
+#define mutex_unlock_const(x) \
+	mutex_unlock_const_from((x), _WHERE_, __LINE__)
+
+#ifdef SPINLOCK_DEBUG
+
+const char *mutex_get_lock_source(const mutex_t * const m, unsigned *line);
+void mutex_set_lock_source(mutex_t *m, const char *file, unsigned line);
+
+#else	/* !SPINLOCK_DEBUG */
+
+#define mutex_get_lock_source(m,l)		((void) (l), NULL)
+#define mutex_set_lock_source(m,f,l)	(void) (f), (void) (l)
+
 #endif	/* SPINLOCK_DEBUG */
-
-#define mutex_unlock(x)			mutex_ungrab((x), FALSE)
-#define mutex_unlock_hidden(x)	mutex_ungrab((x), TRUE)
 
 void mutex_crash_mode(void);
 
 void mutex_init(mutex_t *m);
 void mutex_destroy(mutex_t *m);
-void mutex_unlock_const(const mutex_t *m);
 bool mutex_is_owned(const mutex_t *m);
 bool mutex_is_owned_by(const mutex_t *m, const thread_t t);
 size_t mutex_held_depth(const mutex_t *m);
+
+NON_NULL_PARAM((1, 2))
+void mutex_not_owned(const mutex_t *m, const char *file, unsigned line);
+
+#define assert_mutex_is_owned(mtx) G_STMT_START {	\
+	if G_UNLIKELY(!mutex_is_owned(mtx))				\
+		mutex_not_owned((mtx), _WHERE_, __LINE__);	\
+} G_STMT_END
 
 #endif /* _mutex_h_ */
 

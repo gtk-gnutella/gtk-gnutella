@@ -61,9 +61,9 @@ typedef struct {
 const char *hsep_get_static_str(int row, int column);
 int hsep_get_table_size(void);
 void hsep_get_non_hsep_triple(hsep_triple *tripledest);
-void hsep_add_global_table_listener(GCallback cb,
+void hsep_add_global_table_listener(callback_fn_t cb,
 	frequency_t type, uint32 interval);
-void hsep_remove_global_table_listener(GCallback cb);
+void hsep_remove_global_table_listener(callback_fn_t cb);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_hsep_h */

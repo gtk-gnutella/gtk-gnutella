@@ -50,7 +50,7 @@
 #include "common.h"
 
 #include "fs_free_space.h"
-#include "tm.h"
+#include "sha1.h"
 #include "vmm.h"
 
 #define SIZE_FIELD_MAX		64	/**< Max size of sprintf-ed size quantity */
@@ -142,9 +142,6 @@ short_string_t short_rate_get_string(uint64 rate, bool metric);
 /*
  * SHA1<->base32 string conversion
  */
-typedef struct sha1 {
-	char data[SHA1_RAW_SIZE];
-} sha1_t;
 
 #define SHA1_URN_LENGTH	(CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE)
 
@@ -195,7 +192,7 @@ const char *guid_to_string(const struct guid *);
  * GUID<->base32 string conversion
  */
 const char *guid_base32_str(const struct guid *);
-const struct guid *base32_to_guid(const char *);
+const struct guid *base32_to_guid(const char *, struct guid *);
 
 /*
  * Generic binary to hexadecimal conversion.
@@ -381,6 +378,22 @@ clamp_memset(void *dst, size_t dst_size, char c, size_t n)
 	n = MIN(dst_size, n);
 	memset(dst, c, n);
 	return n;
+}
+
+/**
+ * Compare at most MIN(a_len, b_len) bytes between "a" and "b".
+ *
+ * @param a		the first buffer.
+ * @param a_len the length of the first buffer, in bytes
+ * @param b		the second buffer.
+ * @param b_len the length of the second buffer, in bytes
+ *
+ * @return the result of the memcmp() operation (-1, 0, +1).
+ */
+static inline int
+clamp_memcmp(const void *a, size_t a_len, const void *b, size_t b_len)
+{
+	return memcmp(a, b, MIN(a_len, b_len));
 }
 
 /**

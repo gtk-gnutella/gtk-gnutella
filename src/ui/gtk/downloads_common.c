@@ -50,7 +50,6 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
-#include "lib/url_factory.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/xmalloc.h"
@@ -226,13 +225,6 @@ fi_gui_set_details(const struct fileinfo_data *file)
 	} else {
    		fi_gui_append_detail(FI_GUI_DETAIL_TIGERTREE, _("Tigertree"),
 			_("Not available"));
-	}
-
-	if (info->sha1) {
-		fi_gui_append_detail(FI_GUI_DETAIL_UNSPECIFIED, _("External metadata"),
-			NULL);	/* Separator */
-		fi_gui_append_detail(FI_GUI_DETAIL_BITZI, _("Bitzi URL"),
-			url_for_bitzi_lookup(info->sha1));
 	}
 
  	guc_fi_free_info(info);
@@ -667,9 +659,9 @@ downloads_gui_status_string(const struct download *d)
 				dl_pipeline_check(dp);
 
 				switch (dp->status) {
-				case GTA_DL_PIPE_SELECTED:	state = _("selected next");
-				case GTA_DL_PIPE_SENDING:	state = _("requesting next");
-				case GTA_DL_PIPE_SENT:		state = _("requested next");
+				case GTA_DL_PIPE_SELECTED:	state = _("selected next"); break;
+				case GTA_DL_PIPE_SENDING:	state = _("requesting next"); break;
+				case GTA_DL_PIPE_SENT:		state = _("requested next"); break;
 				}
 
 				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
@@ -1134,7 +1126,8 @@ on_popup_sources_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 	SELECTED_SOURCES_FOREACH_START(d) {
 		search_gui_new_browse_host(download_hostname(d),
-			download_addr(d), download_port(d), download_guid(d), NULL, 0);
+			download_addr(d), download_port(d), download_guid(d), NULL,
+			download_is_g2(d) ? SOCK_F_G2 : 0);
 	} SELECTED_SOURCES_FOREACH_END
 }
 

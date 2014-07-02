@@ -65,7 +65,7 @@
 #ifdef PIO_EMULATION
 static spinlock_t *pio_locks;		/* Array of spinlocks */
 static unsigned pio_capacity;		/* Capacity of the spinlock array */
-static bool pio_inited;				/* Whether array of spinlocks was inited */
+static once_flag_t pio_inited;		/* Whether array of spinlocks was inited */
 
 /**
  * Initialize the spinlock array, once.
@@ -86,31 +86,21 @@ pio_init_once(void)
 	}
 }
 
-/**
- * Initialize the emulation.
- */
-static void
-pio_init(void)
-{
-	once_run(&pio_inited, pio_init_once);
-}
-
 static inline ALWAYS_INLINE void
-THREAD_LOCK(int fd)
+PIO_LOCK(int fd)
 {
-	if G_UNLIKELY(!pio_inited)
-		pio_init();
+	ONCE_FLAG_RUN(pio_inited, pio_init_once);
 
 	g_assert(fd >= 0);
 	g_assert(UNSIGNED(fd) < pio_capacity);
 
-	spinlock_hidden(&pio_locks[fd]);
+	spinlock(&pio_locks[fd]);
 }
 
 static inline ALWAYS_INLINE void
-THREAD_UNLOCK(int fd)
+PIO_UNLOCK(int fd)
 {
-	spinunlock_hidden(&pio_locks[fd]);
+	spinunlock(&pio_locks[fd]);
 }
 #endif	/* PIO_EMULATION */
 
@@ -146,11 +136,11 @@ compat_pwrite(const int fd,
 {
 	ssize_t r;
 
-	THREAD_LOCK(fd);
+	PIO_LOCK(fd);
 	r = seek_to_filepos(fd, pos);
 	if (0 == r)
 		r = write(fd, data, size);
-	THREAD_UNLOCK(fd);
+	PIO_UNLOCK(fd);
 
 	return r;
 }
@@ -196,11 +186,11 @@ compat_pwritev(const int fd,
 	} else {
 		ssize_t r;
 
-		THREAD_LOCK(fd);
+		PIO_LOCK(fd);
 		r = seek_to_filepos(fd, pos);
 		if (0 == r)
 			r = writev(fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
-		THREAD_UNLOCK(fd);
+		PIO_UNLOCK(fd);
 
 		return r;
 	}
@@ -239,11 +229,11 @@ compat_pread(const int fd,
 {
 	ssize_t r;
 
-	THREAD_LOCK(fd);
+	PIO_LOCK(fd);
 	r = seek_to_filepos(fd, pos);
 	if (0 == r)
 		r = read(fd, data, size);
-	THREAD_UNLOCK(fd);
+	PIO_UNLOCK(fd);
 
 	return r;
 }
@@ -290,11 +280,11 @@ compat_preadv(const int fd,
 	} else {
 		ssize_t r;
 
-		THREAD_LOCK(fd);
+		PIO_LOCK(fd);
 		r = seek_to_filepos(fd, pos);
 		if (0 == r)
 			r = readv(fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
-		THREAD_UNLOCK(fd);
+		PIO_UNLOCK(fd);
 
 		return r;
 	}

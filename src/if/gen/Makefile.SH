@@ -1,0 +1,256 @@
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
+
+case $CONFIG in
+'')
+	if test -f config.sh; then TOP=.;
+	elif test -f ../config.sh; then TOP=..;
+	elif test -f ../../config.sh; then TOP=../..;
+	elif test -f ../../../config.sh; then TOP=../../..;
+	elif test -f ../../../../config.sh; then TOP=../../../..;
+	else
+		echo "Can't find config.sh."; exit 1
+	fi
+	. $TOP/config.sh
+	;;
+esac
+case "$0" in
+*/*) cd `expr X$0 : 'X\(.*\)/'` ;;
+esac
+CURRENT=src/if/gen
+DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
+echo "Extracting ${DIR}Makefile (with variable substitutions)"
+
+DATE=`date`
+
+$spitshell >Makefile <<!GROK!THIS!
+########################################################################
+# Makefile generated from Makefile.SH on $DATE
+
+SHELL = /bin/sh
+JMAKE = jmake
+TOP = ../../..
+CURRENT = $CURRENT
+DIR = $DIR
+
+########################################################################
+# Parameters set by Configure -- edit config.sh if changes are needed
+
+CTAGS = ctags
+JCPPFLAGS = $cppflags
+MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
+MV = $mv
+RM = $rm -f
+SED = $sed
+
+########################################################################
+# Automatically generated parameters -- do not edit
+
+USRINC = $usrinc
+
+!GROK!THIS!
+$spitshell >>Makefile <<'!NO!SUBS!'
+########################################################################
+# Jmake rules for building libraries, programs, scripts, and data files
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
+
+########################################################################
+# Force 'make depend' to be performed first -- do not edit
+
+all:: .FORCE_DEPEND
+
+.FORCE_DEPEND::
+
+########################################################################
+# Start of Jmakefile
+
+dmesh_url.c  dmesh_url.h: dmesh_url.lst
+	-perl $(TOP)/scripts/enum-msg.pl dmesh_url.lst
+	touch  dmesh_url.c  dmesh_url.h
+
+all::  dmesh_url.c  dmesh_url.h
+
+regenerate::
+	$(RM) -f  dmesh_url.c  dmesh_url.h
+	$(MAKE)  dmesh_url.c  dmesh_url.h
+
+msg_drop.c  msg_drop.h: drop.lst
+	-perl $(TOP)/scripts/enum-msg.pl drop.lst
+	touch  msg_drop.c  msg_drop.h
+
+all::  msg_drop.c  msg_drop.h
+
+regenerate::
+	$(RM) -f  msg_drop.c  msg_drop.h
+	$(MAKE)  msg_drop.c  msg_drop.h
+
+ignore.c  ignore.h: ignore.lst
+	-perl $(TOP)/scripts/enum-msg.pl ignore.lst
+	touch  ignore.c  ignore.h
+
+all::  ignore.c  ignore.h
+
+regenerate::
+	$(RM) -f  ignore.c  ignore.h
+	$(MAKE)  ignore.c  ignore.h
+
+iprange.c  iprange.h: iprange.lst
+	-perl $(TOP)/scripts/enum-msg.pl iprange.lst
+	touch  iprange.c  iprange.h
+
+all::  iprange.c  iprange.h
+
+regenerate::
+	$(RM) -f  iprange.c  iprange.h
+	$(MAKE)  iprange.c  iprange.h
+
+gnr_stats.c  gnr_stats.h: stats.lst
+	-perl $(TOP)/scripts/enum-msg.pl stats.lst
+	touch  gnr_stats.c  gnr_stats.h
+
+all::  gnr_stats.c  gnr_stats.h
+
+regenerate::
+	$(RM) -f  gnr_stats.c  gnr_stats.h
+	$(MAKE)  gnr_stats.c  gnr_stats.h
+
+msg.c  msg.h: msg.lst
+	-perl $(TOP)/scripts/enum-msg.pl msg.lst
+	touch  msg.c  msg.h
+
+all::  msg.c  msg.h
+
+regenerate::
+	$(RM) -f  msg.c  msg.h
+	$(MAKE)  msg.c  msg.h
+
+http_async.c  http_async.h: http_async.lst
+	-perl $(TOP)/scripts/enum-msg.pl http_async.lst
+	touch  http_async.c  http_async.h
+
+all::  http_async.c  http_async.h
+
+regenerate::
+	$(RM) -f  http_async.c  http_async.h
+	$(MAKE)  http_async.c  http_async.h
+
+http_url.c  http_url.h: http_url.lst
+	-perl $(TOP)/scripts/enum-msg.pl http_url.lst
+	touch  http_url.c  http_url.h
+
+all::  http_url.c  http_url.h
+
+regenerate::
+	$(RM) -f  http_url.c  http_url.h
+	$(MAKE)  http_url.c  http_url.h
+
+vxml.c  vxml.h: vxml.lst
+	-perl $(TOP)/scripts/enum-msg.pl vxml.lst
+	touch  vxml.c  vxml.h
+
+all::  vxml.c  vxml.h
+
+regenerate::
+	$(RM) -f  vxml.c  vxml.h
+	$(MAKE)  vxml.c  vxml.h
+
+local_depend:: ../../../mkdep
+
+../../../mkdep:
+	@echo "You have to run Configure in $(TOP) first."; exit 1
+
+depend:: local_depend
+local_depend::
+	($(SED) '/^# DO NOT DELETE/q' Makefile && \
+	$(MKDEP) $(SOURCES) | \
+	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
+		-e '/: / b print' -e '$$ b print' -e 'H; d; n; : print' \
+		-e 'x; s/\\$$//; s/\\\n//g; s/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+	) > Makefile.new
+	cp Makefile Makefile.bak
+	cp Makefile.new Makefile
+	$(RM) Makefile.new
+
+########################################################################
+# Common rules for all Makefiles -- do not edit
+
+all::
+
+clean: local_clean
+realclean: local_realclean
+clobber: local_clobber
+
+local_clean::
+	if test -f core; then $(RM) core; fi
+	$(RM) *~ *.o
+
+local_realclean:: local_clean
+
+local_clobber:: local_realclean
+	$(RM) Makefile config.sh
+
+install:: local_install
+	@exit 0
+
+install.man:: maybe_install.man
+deinstall:: local_deinstall
+deinstall.man:: maybe_deinstall.man
+
+install.man-no:
+deinstall.man-no:
+
+maybe_install.man: install.man-no
+maybe_deinstall.man: deinstall.man-no
+
+Makefile.SH: Jmakefile
+	-@if test -f $(TOP)/.package; then \
+		if test -f Makefile.SH; then \
+			echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
+			$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
+		fi; \
+		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
+		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
+	else touch $@; fi
+
+Makefile: Makefile.SH
+	/bin/sh Makefile.SH
+
+tags::
+	$(CTAGS) -w *.[ch]
+	$(CTAGS) -xw *.[ch] > tags
+
+local_clobber::
+	$(RM) tags
+
+depend::
+
+########################################################################
+# Empty rules for directories with no sub-directories -- do not edit
+
+local_install::
+	@echo "install in $(CURRENT) done."
+
+local_deinstall::
+	@echo "deinstall in $(CURRENT) done."
+
+local_install.man::
+	@echo "install.man in $(CURRENT) done."
+
+local_deinstall.man::
+	@echo "deinstall.man in $(CURRENT) done."
+
+Makefiles::
+
+Makefiles.SH::
+
+########################################################################
+# Dependencies generated by make depend
+# DO NOT DELETE THIS LINE -- make depend relies on it
+
+# Put nothing here or make depend will gobble it up
+.FORCE_DEPEND::
+	@echo "You must run 'make depend' in $(TOP) first."; exit 1
+!NO!SUBS!
+chmod 644 Makefile
+$eunicefix Makefile
+

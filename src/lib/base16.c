@@ -83,7 +83,7 @@ base16_encode(char *dst, size_t size, const void *data, size_t len)
   size_t i;
 
   if (size / 2 < len) {
-    len = size * 2;
+    len = size / 2;
   }
 
   for (i = 0; i < len; i++) {
@@ -103,7 +103,7 @@ base16_encode(char *dst, size_t size, const void *data, size_t len)
  * @param data		start of data to decode
  * @param len		amount of encoded data to decode
  *
- * @return the amount of bytes decoded into the destination.
+ * @return the amount of bytes decoded into the destination, -1 on error.
  */
 size_t
 base16_decode(char *dst, size_t size, const void *data, size_t len)

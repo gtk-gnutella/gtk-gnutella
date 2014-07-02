@@ -544,7 +544,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	 * This may also be the result of permission problems or inode
 	 * exhaustion.
 	 */
-	g_warning("no luck with random number generator");
+	g_warning("%s(): no luck with random number generator", G_STRFUNC);
 
 finish:
 	return pathname;

@@ -504,12 +504,12 @@ deflate_flush_send(txdrv_t *tx)
  * If we can send the buffer, flush it and send it.  Otherwise, reschedule.
  */
 static void
-deflate_nagle_timeout(cqueue_t *unused_cq, void *arg)
+deflate_nagle_timeout(cqueue_t *cq, void *arg)
 {
 	txdrv_t *tx = arg;
 	struct attr *attr = tx->opaque;
 
-	(void) unused_cq;
+	cq_zero(cq, &attr->tm_ev);
 
 	if (-1 != attr->send_idx) {		/* Send buffer still incompletely sent */
 
@@ -526,7 +526,6 @@ deflate_nagle_timeout(cqueue_t *unused_cq, void *arg)
 	}
 
 	attr->flags &= ~DF_NAGLE;
-	attr->tm_ev = NULL;
 
 	if (tx_deflate_debugging(9)) {
 		struct buffer *b = &attr->buf[attr->fill_idx];	/* Buffer to send */

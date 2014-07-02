@@ -1,0 +1,410 @@
+#
+# General statistics
+#
+
+Prefix: GNR_
+Lowercase: yes
+I18N: yes
+Count: TYPE_COUNT
+Enum: gnr_stats_t
+Enum-Init: 0
+Enum-File: gnr_stats.h
+Symbolic: stats_symbols
+Description: stats_text
+Enum-To-Symbolic: gnet_stats_general_to_string
+Enum-To-Description: gnet_stats_general_description
+Enum-To-Code: gnr_stats.c
+Enum-To-Header: gnr_stats.h
+Protection-Prefix: if_gen
+
+ROUTING_ERRORS				"Routing errors"
+ROUTING_TABLE_CHUNKS		"Routing table chunks"
+ROUTING_TABLE_CAPACITY		"Routing table message capacity"
+ROUTING_TABLE_COUNT			"Routing table message count"
+ROUTING_TRANSIENT_AVOIDED	"Routing through transient node avoided"
+DUPS_WITH_HIGHER_TTL		"Duplicates with higher TTL"
+SPAM_SHA1_HITS				"SPAM SHA1 database hits"
+SPAM_NAME_HITS				"SPAM filename and size hits"
+SPAM_FAKE_HITS				"SPAM fake hits"
+SPAM_DUP_HITS				"SPAM duplicate hits"
+SPAM_CAUGHT_HOSTILE_IP		"SPAM dynamically caught hostile IP addresses"
+SPAM_CAUGHT_HOSTILE_HELD	"SPAM dynamically caught hostile IP held"
+SPAM_IP_HELD				"SPAM spotted spamming IP addresses held"
+LOCAL_SEARCHES				"Searches to local DB"
+LOCAL_HITS					"Hits on local DB"
+LOCAL_PARTIAL_HITS			"Hits on local partial files"
+LOCAL_WHATS_NEW_HITS		"Hits on \"what's new?\" queries"
+LOCAL_QUERY_HITS			"Query hits received for local queries"
+LOCAL_G2_SEARCHES			"G2 searches to local DB"
+LOCAL_G2_HITS				"G2 hits on local DB"
+LOCAL_G2_PARTIAL_HITS		"G2 hits on local partial files"
+OOB_PROXIED_QUERY_HITS		"Query hits received for OOB-proxied queries"
+OOB_QUERIES					"Queries requesting OOB hit delivery"
+OOB_QUERIES_STRIPPED		"Stripped OOB flag on queries"
+OOB_QUERIES_IGNORED			"Ignored OOB queries due to unclaimed hits"
+QUERY_OOB_PROXIED_DUPS		"Duplicate OOB-proxied queries"
+OOB_HITS_FOR_PROXIED_QUERIES	"OOB hits received for OOB-proxied queries"
+OOB_HITS_WITH_ALIEN_IP		"OOB hits bearing alien IP address"
+OOB_HITS_IGNORED_ON_SPAMMER_HIT
+	"OOB hits ignored due to identified spamming address"
+OOB_HITS_IGNORED_ON_UNSECURE_HIT
+	"OOB hits ignored due to unsecure promise from known secure host"
+UNCLAIMED_OOB_HITS			"Unclaimed locally-generated OOB hits"
+PARTIALLY_CLAIMED_OOB_HITS	"Partially claimed locally-generated OOB hits"
+SPURIOUS_OOB_HIT_CLAIM		"Spurious OOB hit claiming received"
+UNREQUESTED_OOB_HITS		"Unrequested OOB hits received"
+QUERY_HIT_FOR_UNTRACKED_QUERY	"Received query hits for untracked queries"
+QUERY_TRACKED_MUIDS			"Tracked query MUIDs"
+QUERY_COMPACT_COUNT			"Compacted queries"
+QUERY_COMPACT_SIZE			"Bytes saved by compacting"
+QUERY_UTF8					"UTF8 queries"
+QUERY_SHA1					"SHA1 queries"
+QUERY_WHATS_NEW				"\"What's New?\" queries"
+QUERY_G2_UTF8				"UTF8 G2 queries"
+QUERY_G2_SHA1				"SHA1 G2 queries"
+QUERY_GUESS					"GUESS queries"
+QUERY_GUESS_02				"GUESS queries (0.2)"
+GUESS_LINK_CACHE			"GUESS link cache size"
+GUESS_CACHED_QUERY_KEYS_HELD	"GUESS cached query keys held"
+GUESS_CACHED_02_HOSTS_HELD	"GUESS cached 0.2 hosts held"
+GUESS_CACHED_G2_HOSTS_HELD	"GUESS cached G2 hosts held"
+GUESS_LOCAL_QUERIES			"GUESS locally generated queries"
+GUESS_LOCAL_RUNNING			"GUESS currently running queries"
+GUESS_LOCAL_QUERY_HITS		"GUESS hits received for locally generated queries"
+GUESS_ULTRA_QUERIED			"GUESS ultra nodes queried"
+GUESS_ULTRA_ACKNOWLEDGED	"GUESS ultra nodes sending back an acknowledgment"
+GUESS_G2_QUERIED			"GUESS G2 nodes queried"
+GUESS_G2_ACKNOWLEDGED		"GUESS G2 nodes sending back an acknowledgment"
+BROADCASTED_PUSHES			"Broadcasted push messages"
+PUSH_PROXY_UDP_RELAYED		"Push-proxy UDP relayed messages"
+PUSH_PROXY_TCP_RELAYED		"Push-proxy TCP relayed messages"
+PUSH_PROXY_TCP_FW2FW		"Push-proxy TCP for FW<->FW transfers"
+PUSH_PROXY_BROADCASTED		"Push-proxy broadcasted messages"
+PUSH_PROXY_ROUTE_NOT_PROXIED	"Push-proxy found un-proxied local route"
+PUSH_PROXY_FAILED			"Push-proxy lookup failures"
+PUSH_RELAYED_VIA_LOCAL_ROUTE	"Push relayed via local route"
+PUSH_RELAYED_VIA_TABLE_ROUTE	"Push relayed via routing table"
+LOCAL_DYN_QUERIES			"Locally generated dynamic queries"
+LEAF_DYN_QUERIES			"Leaf-generated dynamic queries"
+OOB_PROXIED_QUERIES			"OOB-proxied leaf queries"
+DYN_QUERIES_COMPLETED_FULL	"Fully completed dynamic queries"
+DYN_QUERIES_COMPLETED_PARTIAL	"Partially completed dynamic queries"
+DYN_QUERIES_COMPLETED_ZERO	"Dynamic queries ended with no results"
+DYN_QUERIES_LINGER_EXTRA
+	"Fully completed dynamic queries getting late results"
+DYN_QUERIES_LINGER_RESULTS	"Dynamic queries with partial late results"
+DYN_QUERIES_LINGER_COMPLETED	"Dynamic queries completed by late results"
+GTKG_TOTAL_QUERIES			"Queries seen from GTKG"
+GTKG_REQUERIES				"Queries seen from GTKG that were re-queries"
+QUERIES_WITH_GGEP_H			"Queries advertising support of GGEP \"H\""
+QUERIES_WITH_SR_UDP			"Queries advertising support of semi-reliable UDP"
+GIV_CALLBACKS				"GIV callbacks received"
+GIV_DISCARDED				"GIV discarded due to no suitable download"
+QUEUE_CALLBACKS				"QUEUE callbacks received"
+QUEUE_DISCARDED				"QUEUE discarded due to no suitable download"
+BANNED_FDS_TOTAL			"File descriptors banned running count"
+UDP_READ_AHEAD_COUNT_SUM	"UDP read-ahead datagram running count"
+UDP_READ_AHEAD_BYTES_SUM	"UDP read-ahead datagram running bytes"
+UDP_READ_AHEAD_OLD_SUM		"UDP read-ahead datagram \"old\" processed"
+UDP_READ_AHEAD_COUNT_MAX	"UDP read-ahead datagram max count"
+UDP_READ_AHEAD_BYTES_MAX	"UDP read-ahead datagram max bytes"
+UDP_READ_AHEAD_DELAY_MAX	"UDP read-ahead datagram max delay"
+UDP_FW2FW_PUSHES			"UDP push messages received for FW<->FW connections"
+UDP_FW2FW_PUSHES_TO_SELF
+	"UDP push messages requesting FW<->FW connection with ourselves"
+UDP_FW2FW_PUSHES_PATCHED	"UDP push messages patched for FW<->FW connections"
+UDP_UHC_PINGS				"UDP UHC pings received"
+UDP_UHC_PONGS				"UDP UHC pongs sent"
+UDP_BOGUS_SOURCE_IP			"UDP messages with bogus source IP"
+UDP_SHUNNED_SOURCE_IP		"UDP messages from shunned IP (discarded)"
+UDP_RX_TRUNCATED			"UDP truncated incoming messages"
+UDP_ALIEN_MESSAGE			"Alien UDP messages (non-Gnutella)"
+UDP_UNPROCESSED_MESSAGE		"Unprocessed UDP Gnutella messages"
+UDP_TX_COMPRESSED			"Compressed UDP messages enqueued"
+UDP_RX_COMPRESSED			"Compressed UDP messages received"
+UDP_COMPRESSION_ATTEMPTS	"Candidates for UDP message compression"
+UDP_LARGER_HENCE_NOT_COMPRESSED
+	"Uncompressed UDP messages due to no gain"
+UDP_AMBIGUOUS				"Ambiguous UDP messages received"
+UDP_AMBIGUOUS_DEEPER_INSPECTION	"Ambiguous UDP messages inspected more deeply"
+UDP_AMBIGUOUS_AS_SEMI_RELIABLE
+	"Ambiguous UDP messages handled as semi-reliable UDP"
+UDP_SR_TX_MESSAGES_GIVEN
+	"Semi-reliable UDP total messages given for transmission"
+UDP_SR_TX_MESSAGES_DEFLATED	"Semi-reliable UDP total messages deflated"
+UDP_SR_TX_MESSAGES_UNSENT	"Semi-reliable UDP total messages unsent"
+UDP_SR_TX_MESSAGES_BANNED
+	"Semi-reliable UDP total messages dropped due to temporary ban"
+UDP_SR_TX_MESSAGES_GOOD
+	"Semi-reliable UDP total messages sent to known responsive hosts"
+UDP_SR_TX_MESSAGES_CLOGGING
+	"Semi-reliable UDP total messages partially sent due to clogging"
+UDP_SR_TX_RELIABLE_MESSAGES_GIVEN
+	"Semi-reliable UDP reliable messages given for transmission"
+UDP_SR_TX_RELIABLE_MESSAGES_SENT
+	"Semi-reliable UDP reliable messages correctly transmited"
+UDP_SR_TX_RELIABLE_MESSAGES_UNSENT
+	"Semi-reliable UDP reliable messages not fully acknowledged"
+UDP_SR_TX_FRAGMENTS_SENT	"Semi-reliable UDP fragments sent"
+UDP_SR_TX_FRAGMENTS_RESENT	"Semi-reliable UDP fragments resent"
+UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED
+	"Semi-reliable UDP fragment sendings avoided"
+UDP_SR_TX_FRAGMENTS_OVERSENT
+	"Semi-reliable UDP fragments sent too many times"
+UDP_SR_TX_TOTAL_ACKS_RECEIVED
+	"Semi-reliable UDP total acknowledgments received"
+UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED
+	"Semi-reliable UDP cumulative acknowledgments received"
+UDP_SR_TX_EXTENDED_ACKS_RECEIVED
+	"Semi-reliable UDP extended acknowledgments received"
+UDP_SR_TX_SPURIOUS_ACKS_RECEIVED
+	"Semi-reliable UDP spurious acknowledgments received"
+UDP_SR_TX_INVALID_ACKS_RECEIVED
+	"Semi-reliable UDP invalid acknowledgments received"
+UDP_SR_TX_ACKS_REQUEUED
+	"Semi-reliable UDP acknowledgments re-queued for sending"
+UDP_SR_TX_PLAIN_ACKS_DROPPED
+	"Semi-reliable UDP plain acknowledgments dropped"
+UDP_SR_TX_ENHANCED_ACKS_DROPPED
+	"Semi-reliable UDP enhanced acknowledgments dropped"
+UDP_SR_TX_PLAIN_ACKS_SENT
+	"Semi-reliable UDP plain acknowledgments transmitted"
+UDP_SR_TX_CUMULATIVE_ACKS_SENT
+	"Semi-reliable UDP cumulative acknowledgments transmitted"
+UDP_SR_TX_EXTENDED_ACKS_SENT
+	"Semi-reliable UDP extended acknowledgments transmitted"
+UDP_SR_TX_EARS_SENT			"Semi-reliable UDP EARs sent"
+UDP_SR_TX_EARS_OVERSENT		"Semi-reliable UDP too many EARs sent"
+UDP_SR_TX_EAR_NACKS_RECEIVED
+	"Semi-reliable UDP EAR negative acknowledgments received"
+UDP_SR_TX_EAR_FOLLOWED_BY_ACKS
+	"Semi-reliable UDP acknowledgments received after sending EARs"
+UDP_SR_RX_FRAGMENTS_RECEIVED
+	"Semi-reliable UDP fragments received"
+UDP_SR_RX_FRAGMENTS_DUPLICATE
+	"Semi-reliable UDP duplicate fragments received"
+UDP_SR_RX_FRAGMENTS_UNRELIABLE
+	"Semi-reliable UDP unreliable fragments received"
+UDP_SR_RX_FRAGMENTS_DROPPED
+	"Semi-reliable UDP dropped received fragments"
+UDP_SR_RX_FRAGMENTS_LINGERING
+	"Semi-reliable UDP fragments received whilst lingering"
+UDP_SR_RX_MESSAGES_EXPIRED
+	"Semi-reliable UDP messages expired before re-assembly"
+UDP_SR_RX_MESSAGES_RECEIVED
+	"Semi-reliable UDP messages re-assembled completely"
+UDP_SR_RX_MESSAGES_INFLATED
+	"Semi-reliable UDP messages inflated successfully"
+UDP_SR_RX_MESSAGES_INFLATION_ERROR
+	"Semi-reliable UDP messages inflated incorrectly"
+UDP_SR_RX_MESSAGES_UNRELIABLE
+	"Semi-reliable UDP unreliable messages received"
+UDP_SR_RX_MESSAGES_EMPTY	"Semi-reliable UDP empty messages received"
+UDP_SR_RX_TOTAL_ACKS_SENT	"Semi-reliable UDP total acknowledgments sent"
+UDP_SR_RX_CUMULATIVE_ACKS_SENT
+	"Semi-reliable UDP cumulative acknowledgments sent"
+UDP_SR_RX_EXTENDED_ACKS_SENT
+	"Semi-reliable UDP extended acknowledgments sent"
+UDP_SR_RX_AVOIDED_ACKS		"Semi-reliable UDP avoided acknowledgment sendings"
+UDP_SR_RX_EARS_RECEIVED		"Semi-reliable UDP EARs received"
+UDP_SR_RX_EARS_FOR_UNKNOWN_MESSAGE
+	"Semi-reliable UDP EARs received for unknown message"
+UDP_SR_RX_EARS_FOR_LINGERING_MESSAGE
+	"Semi-reliable UDP EARs received whilst lingering"
+UDP_SR_RX_FROM_HOSTILE_IP
+	"Semi-reliable UDP fragments from hostile IP addresses"
+UDP_G2_HITS_REROUTED_TO_HUB	"UDP G2 hits rerouted to hub for delivery"
+UDP_G2_HITS_UNDELIVERED		"UDP G2 hits undelivered"
+CONSOLIDATED_SERVERS
+	"Consolidated servers (after GUID and IP address linking)"
+DUP_DOWNLOADS_IN_CONSOLIDATION
+	"Duplicate downloads found during server consolidation"
+DISCOVERED_SERVER_GUID		"Discovered server GUIDs"
+CHANGED_SERVER_GUID			"Changed server GUIDs"
+GUID_COLLISIONS				"Detected GUID collisions"
+OWN_GUID_COLLISIONS			"Detected collisions with our own GUID"
+BANNED_GUID_HELD			"GUID dynamically banned"
+RECEIVED_KNOWN_FW_NODE_INFO
+	"Firewalled node info for known hosts received in upload requests"
+REVITALIZED_PUSH_ROUTES		"Revitalized PUSH routes"
+COLLECTED_PUSH_PROXIES		"Collected new PUSH proxies from other query hits"
+ATTEMPTED_RESOURCE_SWITCHING
+	"Attempted download resource switching on completion"
+ATTEMPTED_RESOURCE_SWITCHING_AFTER_ERROR
+	"Attempted download resource switching after error"
+SUCCESSFUL_RESOURCE_SWITCHING
+	"Successful download resource switching (all kind)"
+SUCCESSFUL_PLAIN_RESOURCE_SWITCHING
+	"Successful download resource switching between plain files"
+SUCCESSFUL_RESOURCE_SWITCHING_AFTER_ERROR
+	"Successful download resource switching after error"
+QUEUED_AFTER_SWITCHING		"Actively queued after resource switching attempt"
+SUNK_DATA					"Sunk HTTP reply data on error codes"
+IGNORED_DATA				"Ignored downloaded data"
+IGNORING_AFTER_MISMATCH		"Ignoring requested after data mismatch"
+IGNORING_TO_PRESERVE_CONNECTION "Ignoring requested to preserve connection"
+IGNORING_DURING_AGGRESSIVE_SWARMING
+	"Ignoring requested due to aggressive swarming"
+IGNORING_REFUSED
+	"Ignoring refused (data too large or server too slow)"
+CLIENT_RESOURCE_SWITCHING	"Client resource switching (all detected)"
+CLIENT_PLAIN_RESOURCE_SWITCHING
+	"Client resource switching between plain files"
+CLIENT_FOLLOWUP_AFTER_ERROR
+	"Client follow-up request after HTTP error was returned"
+PARQ_SLOT_RESOURCE_SWITCHING
+	"PARQ client resource switching in slots (SHA-1 based)"
+PARQ_RETRY_AFTER_VIOLATION	"PARQ client retry-after violation"
+PARQ_RETRY_AFTER_KICK_OUT
+	"PARQ client kicked out after too many retry-after violations"
+PARQ_SLOT_LIMIT_OVERRIDES	"PARQ upload slot limit overrides"
+PARQ_QUICK_SLOTS_GRANTED	"PARQ quick upload slots granted"
+PARQ_QUEUE_SENDING_ATTEMPTS	"PARQ QUEUE sending attempts"
+PARQ_QUEUE_SENT				"PARQ QUEUE messages sent"
+PARQ_QUEUE_FOLLOW_UPS		"PARQ QUEUE follow-up requests received"
+SHA1_VERIFICATIONS			"Launched SHA-1 file verifications"
+TTH_VERIFICATIONS			"Launched TTH file verifications"
+QHIT_SEEDING_OF_ORPHAN		"Re-seeding of orphan downloads through query hits"
+UPLOAD_SEEDING_OF_ORPHAN
+	"Re-seeding of orphan downloads through upload requests"
+RUDP_TX_BYTES				"RUDP sent bytes"
+RUDP_RX_BYTES				"RUDP received bytes"
+DHT_ESTIMATED_SIZE			"DHT estimated amount of nodes"
+DHT_ESTIMATED_SIZE_STDERR	"DHT standard error of estimated amount of nodes"
+DHT_KBALL_THEORETICAL		"DHT k-ball theoretical frontier (bits)"
+DHT_KBALL_FURTHEST			"DHT k-ball furthest frontier (bits)"
+DHT_KBALL_CLOSEST			"DHT k-ball closeest frontier (bits)"
+DHT_ROUTING_BUCKETS			"DHT routing table buckets"
+DHT_ROUTING_LEAVES			"DHT routing table leaves"
+DHT_ROUTING_MAX_DEPTH		"DHT routing table maximum depth"
+DHT_ROUTING_GOOD_NODES		"DHT routing table good nodes"
+DHT_ROUTING_STALE_NODES		"DHT routing table stale nodes"
+DHT_ROUTING_PENDING_NODES	"DHT routing table pending nodes"
+DHT_ROUTING_EVICTED_NODES	"DHT routing table evicted nodes"
+DHT_ROUTING_EVICTED_FIREWALLED_NODES
+	"DHT routing table evicted firewalled nodes"
+DHT_ROUTING_EVICTED_QUOTA_NODES
+	"DHT routing table evicted nodes due to quota"
+DHT_ROUTING_PROMOTED_PENDING_NODES
+	"DHT routing table promoted pending nodes"
+DHT_ROUTING_PINGED_PROMOTED_NODES
+	"DHT routing table pinged promoted nodes"
+DHT_ROUTING_REJECTED_NODE_BUCKET_QUOTA
+	"DHT routing table rejected node due to bucket network quota"
+DHT_ROUTING_REJECTED_NODE_GLOBAL_QUOTA
+	"DHT routing table rejected node due to global network quota"
+DHT_COMPLETED_BUCKET_REFRESH	"DHT completed bucket refreshes"
+DHT_FORCED_BUCKET_REFRESH	"DHT forced bucket refreshes"
+DHT_FORCED_BUCKET_MERGE		"DHT forced bucket merges"
+DHT_BUCKET_MERGE			"DHT bucket merges"
+DHT_BUCKET_SPLIT			"DHT bucket splits"
+DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH
+	"DHT denied non-splitable bucket refresh"
+DHT_BUCKET_ALIVE_CHECK			"DHT initiated bucket alive checks"
+DHT_ALIVE_PINGS_TO_GOOD_NODES	"DHT alive pings sent to good nodes"
+DHT_ALIVE_PINGS_TO_STALE_NODES	"DHT alive pings sent to stale nodes"
+DHT_ALIVE_PINGS_TO_SHUTDOWNING_NODES
+	"DHT alive pings sent to shutdowning nodes"
+DHT_ALIVE_PINGS_AVOIDED		"DHT alive pings avoided"
+DHT_ALIVE_PINGS_SKIPPED		"DHT alive pings skipped"
+DHT_REVITALIZED_STALE_NODES	"DHT revitalized stale nodes on RPC reply"
+DHT_REJECTED_VALUE_ON_QUOTA
+	"DHT value store rejected on IP/network quota grounds"
+DHT_REJECTED_VALUE_ON_CREATOR
+	"DHT value store rejected on creator validation grounds"
+DHT_LOOKUP_REJECTED_NODE_ON_NET_QUOTA
+	"DHT nodes rejected during lookup based on network quota"
+DHT_LOOKUP_REJECTED_NODE_ON_PROXIMITY
+	"DHT nodes rejected during lookup based on suspicious proximity"
+DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE
+	"DHT nodes rejected during lookup based on frequency divergence"
+DHT_LOOKUP_FIXED_NODE_CONTACT
+	"DHT node contact IP addresses fixed during lookup"
+DHT_KEYS_HELD					"DHT keys held"
+DHT_CACHED_KEYS_HELD			"DHT cached keys held"
+DHT_VALUES_HELD					"DHT values held"
+DHT_CACHED_KUID_TARGETS_HELD	"DHT cached KUID targets held"
+DHT_CACHED_ROOTS_HELD			"DHT cached closest root nodes"
+DHT_CACHED_ROOTS_EXACT_HITS		"DHT cached roots exact hits"
+DHT_CACHED_ROOTS_APPROXIMATE_HITS	"DHT cached roots approximate hits"
+DHT_CACHED_ROOTS_MISSES			"DHT cached roots misses"
+DHT_CACHED_ROOTS_KBALL_LOOKUPS	"DHT cached roots lookups within k-ball"
+DHT_CACHED_ROOTS_CONTACT_REFRESHED	"DHT cached roots contact address refreshed"
+DHT_CACHED_TOKENS_HELD			"DHT cached security tokens held"
+DHT_CACHED_TOKENS_HITS			"DHT cached security tokens hits"
+DHT_STABLE_NODES_HELD			"DHT stable node information held"
+DHT_FETCH_LOCAL_HITS			"DHT local hits on value lookups"
+DHT_FETCH_LOCAL_CACHED_HITS
+	"DHT local hits returning values from cached keys"
+DHT_RETURNED_EXPANDED_VALUES	"DHT returned expanded values"
+DHT_RETURNED_SECONDARY_KEYS		"DHT returned values as secondary keys"
+DHT_CLAIMED_SECONDARY_KEYS		"DHT claimed values via secondary keys"
+DHT_RETURNED_EXPANDED_CACHED_VALUES
+	"DHT returned cached expanded values"
+DHT_RETURNED_CACHED_SECONDARY_KEYS
+	"DHT returned cached values as secondary-keys"
+DHT_CLAIMED_CACHED_SECONDARY_KEYS
+	"DHT claimed cached values via secondary keys"
+DHT_PUBLISHED					"DHT successfully received value publications"
+DHT_REMOVED						"DHT successfully received value removals"
+DHT_STALE_REPLICATION			"DHT replication of stale value avoided"
+DHT_REPLICATION					"DHT replication of held values"
+DHT_REPUBLISH					"DHT republishing of held values"
+DHT_SECONDARY_KEY_FETCH			"DHT secondary-key value fetch issued"
+DHT_DUP_VALUES					"DHT duplicate values returned in lookups"
+DHT_KUID_COLLISIONS				"DHT detected KUID collisions"
+DHT_OWN_KUID_COLLISIONS			"DHT detected collisions with our own KUID"
+DHT_CACHING_ATTEMPTS			"DHT caching attempts"
+DHT_CACHING_SUCCESSFUL			"DHT caching ended successfully"
+DHT_CACHING_PARTIALLY_SUCCESSFUL	"DHT caching partially completed"
+DHT_KEY_OFFLOADING_CHECKS
+	"DHT key-offloading checks after discovering new closest node"
+DHT_KEYS_SELECTED_FOR_OFFLOADING	"DHT keys selected for offloading"
+DHT_KEY_OFFLOADING_ATTEMPTS		"DHT key-offloading attempts"
+DHT_KEY_OFFLOADING_SUCCESSFUL	"DHT key-offloading ended successfully"
+DHT_KEY_OFFLOADING_PARTIALLY_SUCCESSFUL
+	"DHT key-offloading partially completed"
+DHT_VALUES_OFFLOADED			"DHT values successfully offloaded"
+DHT_MSG_RECEIVED				"DHT incoming messages"
+DHT_MSG_MATCHING_CONTACT_ADDRESS
+	"DHT incoming messages with UDP-matching contact address"
+DHT_MSG_FIXED_CONTACT_ADDRESS
+	"DHT incoming messages with contact address fixed"
+DHT_MSG_FROM_HOSTILE_ADDRESS
+	"DHT incoming messages from hostile addresses"
+DHT_MSG_FROM_HOSTILE_CONTACT_ADDRESS
+	"DHT incoming messages with hostile contact address"
+DHT_RPC_MSG_PREPARED			"DHT RPC messages prepared"
+DHT_RPC_MSG_CANCELLED			"DHT RPC messages cancelled"
+DHT_RPC_TIMED_OUT				"DHT RPC timed out"
+DHT_RPC_REPLIES_RECEIVED		"DHT RPC replies received"
+DHT_RPC_REPLIES_FIXED_CONTACT	"DHT RPC replies with contact address fixed"
+DHT_RPC_LATE_REPLIES_RECEIVED	"DHT RPC late replies received"
+DHT_RPC_KUID_REPLY_MISMATCH		"DHT RPC detected KUID mismatches on reply"
+DHT_RPC_RECENT_NODES_HELD		"DHT RPC recent nodes held"
+DHT_NODE_VERIFICATIONS			"DHT node verifications"
+DHT_PUBLISHING_ATTEMPTS			"DHT publishing attempts"
+DHT_PUBLISHING_SUCCESSFUL		"DHT publishing ended successfully (all roots)"
+DHT_PUBLISHING_PARTIALLY_SUCCESSFUL
+	"DHT publishing partially completed (root subset only)"
+DHT_PUBLISHING_SATISFACTORY
+	"DHT publishing ending with proper value presence"
+DHT_REPUBLISHED_LATE
+	"DHT value republishing occurring too late (after expiry)"
+DHT_PUBLISHING_TO_SELF			"DHT publishing to self"
+DHT_PUBLISHING_BG_ATTEMPTS		"DHT background publishing completion attempts"
+DHT_PUBLISHING_BG_IMPROVEMENTS
+	"DHT background publishing completion showing improvements"
+DHT_PUBLISHING_BG_SUCCESSFUL
+	"DHT background publishing completion successful (all roots)"
+DHT_SHA1_DATA_TYPE_COLLISIONS	"DHT SHA1 data type collisions"
+DHT_PASSIVELY_PROTECTED_LOOKUP_PATH
+	"DHT lookup path passively protected against attack"
+DHT_ACTIVELY_PROTECTED_LOOKUP_PATH
+	"DHT lookup path actively protected against attack"
+DHT_ALT_LOC_LOOKUPS				"DHT alt-loc lookups issued"
+DHT_PUSH_PROXY_LOOKUPS			"DHT push-proxy lookups issued"
+DHT_SUCCESSFUL_ALT_LOC_LOOKUPS	"DHT successful alt-loc lookups"
+DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS	"DHT successful push-proxy lookups"
+DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS	"DHT successful node push-entry lookups"
+DHT_SEEDING_OF_ORPHAN			"DHT re-seeding of orphan downloads"

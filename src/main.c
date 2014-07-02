@@ -41,11 +41,10 @@
 #define CORE_SOURCES
 
 #include "core/ban.h"
-#include "core/bitzi.h"
 #include "core/bogons.h"
 #include "core/bsched.h"
-#include "core/ctl.h"
 #include "core/clock.h"
+#include "core/ctl.h"
 #include "core/dh.h"
 #include "core/dmesh.h"
 #include "core/downloads.h"
@@ -54,9 +53,12 @@
 #include "core/extensions.h"
 #include "core/features.h"
 #include "core/fileinfo.h"
-#include "core/file_object.h"
+#include "core/g2/build.h"
+#include "core/g2/gwc.h"
+#include "core/g2/node.h"
+#include "core/g2/rpc.h"
+#include "core/g2/tree.h"
 #include "core/gdht.h"
-#include "core/pdht.h"
 #include "core/geo_ip.h"
 #include "core/ghc.h"
 #include "core/gmsg.h"
@@ -79,6 +81,7 @@
 #include "core/oob.h"
 #include "core/parq.h"
 #include "core/pcache.h"
+#include "core/pdht.h"
 #include "core/pproxy.h"
 #include "core/publisher.h"
 #include "core/routing.h"
@@ -95,8 +98,8 @@
 #include "core/tx.h"
 #include "core/udp.h"
 #include "core/uhc.h"
-#include "core/urpc.h"
 #include "core/upload_stats.h"
+#include "core/urpc.h"
 #include "core/verify_sha1.h"
 #include "core/verify_tth.h"
 #include "core/version.h"
@@ -107,21 +110,23 @@
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
-#include "lib/compat_sleep_ms.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
 #include "lib/crc.h"
-#include "lib/debug.h"
 #include "lib/dbus_util.h"
+#include "lib/debug.h"
 #include "lib/eval.h"
+#include "lib/evq.h"
+#include "lib/exit.h"
 #include "lib/fd.h"
+#include "lib/file_object.h"
+#include "lib/gentime.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
-#include "lib/exit.h"
-#include "lib/htable.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -135,16 +140,20 @@
 #include "lib/pow2.h"
 #include "lib/product.h"
 #include "lib/random.h"
+#include "lib/sha1.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
+#include "lib/symbols.h"
 #include "lib/tea.h"
+#include "lib/teq.h"
 #include "lib/thread.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
+#include "lib/tmalloc.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/vmm.h"
@@ -154,6 +163,7 @@
 #include "lib/wordvec.h"
 #include "lib/wq.h"
 #include "lib/xmalloc.h"
+#include "lib/xxtea.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
 #include "upnp/upnp.h"
@@ -195,8 +205,6 @@ static volatile const char *exit_step = "gtk_gnutella_exit";
 
 static bool main_timer(void *);
 
-pid_t adns_pid;
-
 #ifdef SIGALRM
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -225,11 +233,7 @@ sig_hup(int n)
 static void
 sig_chld(int n)
 {
-	int saved_errno = errno;
 	(void) n;
-	while (waitpid(adns_pid, NULL, WNOHANG) > 0)
-		continue;
-	errno = saved_errno;
 }
 #endif
 
@@ -262,7 +266,6 @@ debugging(guint t)
 {
 	return
 		GNET_PROPERTY(ban_debug) > t ||
-		GNET_PROPERTY(bitzi_debug) > t ||
 		GNET_PROPERTY(bootstrap_debug) > t ||
 		GNET_PROPERTY(dbg) > t ||
 		GNET_PROPERTY(dh_debug) > t ||
@@ -428,7 +431,7 @@ main_dispatch(void)
 	 */
 
 	inputevt_dispatch();
-	cq_dispatch();
+	cq_main_dispatch();
 
 	/*
 	 * If gtk_gnutella_exit() was called from main_timer(), the callout
@@ -463,9 +466,12 @@ handle_user_shutdown_request(enum shutdown_mode mode)
 	case GTKG_SHUTDOWN_ASSERT:
 		s_message("%s assertion failure", trigger);
 		g_assert_log(FALSE, "%s", msg);
+		/* NOTREACHED */
+		break;
 	case GTKG_SHUTDOWN_ERROR:
 		s_message("%s error", trigger);
 		s_error("%s", msg);
+		/* NOTREACHED */
 		break;
 	case GTKG_SHUTDOWN_MEMORY:
 		s_message("%s memory access error", trigger);
@@ -474,6 +480,7 @@ handle_user_shutdown_request(enum shutdown_mode mode)
 	case GTKG_SHUTDOWN_SIGNAL:
 		s_message("%s SIGILL", trigger);
 		raise(SIGILL);
+		/* NOTREACHED */
 		break;
 	}
 }
@@ -531,7 +538,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(upload_stats_close);
 	DO(parq_close_pre);
 	DO(verify_sha1_close);
-	DO(verify_tth_close);
+	DO(verify_tth_shutdown);
 	DO(download_close);
 	DO(file_info_store_if_dirty);	/* In case downloads had buffered data */
 	DO(parq_close);
@@ -539,6 +546,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(http_close);
 	DO(uhc_close);
 	DO(ghc_close);
+	DO(gwc_close);
 	DO(move_close);
 	DO(publisher_close);
 	DO(pdht_close);
@@ -570,6 +578,8 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	if (debugging(0)) {
+		DO(palloc_dump_stats);
+		DO(tmalloc_dump_stats);
 		DO(vmm_dump_stats);
 		DO(xmalloc_dump_stats);
 		DO(zalloc_dump_stats);
@@ -673,12 +683,19 @@ gtk_gnutella_exit(int exit_code)
 		if (!running_topless) {
 			main_gui_shutdown_tick(exit_grace - d);
 		}
-		compat_sleep_ms(50);
+		thread_sleep_ms(50);
 		main_dispatch();
 	}
 
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("running final shutdown sequence...");
+
+	/*
+	 * The main thread may now have to perform thread_join(), so we
+	 * tell the management layer that it is OK to block.
+	 */
+
+	thread_set_main(TRUE);				/* Main thread can now block */
 
 	DO(settings_terminate);	/* Entering the final sequence */
 	DO(cq_halt);			/* No more callbacks, with everything shutdown */
@@ -686,7 +703,6 @@ gtk_gnutella_exit(int exit_code)
 
 	DO(socket_closedown);
 	DO(upnp_close);
-	DO(bitzi_close);
 	DO(ntp_close);
 	DO(gdht_close);
 	DO(sq_close);
@@ -696,9 +712,11 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_info_close);
 	DO(ext_close);
 	DO(node_close);
+	DO(g2_node_close);
 	DO(share_close);	/* After node_close() */
 	DO(udp_close);
 	DO(urpc_close);
+	DO(g2_rpc_close);
 	DO(routing_close);	/* After node_close() */
 	DO(bsched_close);
 	DO(dmesh_close);
@@ -723,6 +741,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(pattern_close);
 	DO(pmsg_close);
 	DO(gmsg_close);
+	DO(g2_build_close);
 	DO(version_close);
 	DO(ignore_close);
 	DO(iso3166_close);
@@ -732,35 +751,21 @@ gtk_gnutella_exit(int exit_code)
 	DO(ipp_cache_close);
 	DO(dump_close);
 	DO(tls_global_close);
-	DO(file_object_close);
-	DO(settings_close);	/* Must come after hcache_close() */
 	DO(misc_close);
 	DO(mingw_close);
+	DO(verify_tth_close);
 	DO(inputevt_close);
 	DO(locale_close);
-	DO(cq_close);
 	DO(wq_close);
 	DO(log_close);		/* Does not disable logging */
-
-	/*
-	 * Memory shutdown must come last.
-	 */
-
-	gm_mem_set_safe_vtable();
-	DO(vmm_pre_close);
-	DO(atoms_close);
-	DO(wdestroy);
-	DO(zclose);
-	DO(malloc_close);
-	DO(hdestroy);
-	DO(omalloc_close);
-	DO(xmalloc_pre_close);
-	DO(vmm_close);
-	DO(signal_close);
+	DO(gentime_close);
 
 	/*
 	 * Wait for pending messages from other threads.
 	 */
+
+	if (debugging(0))
+		g_info("waiting for pending messages from other threads");
 
 	exit_time = time(NULL);
 	exit_grace = 10;
@@ -775,8 +780,84 @@ gtk_gnutella_exit(int exit_code)
 		if ((d = delta_time(now, exit_time)) >= exit_grace)
 			break;
 
-		do_sched_yield();
+		thread_yield();
 	}
+
+	/*
+	 * While there are events to be processed in the TEQ, handle them
+	 * and wait a little to see if more events are coming.
+	 */
+
+	if (debugging(0))
+		g_info("waiting for TEQ events from closing threads");
+
+	teq_set_throttle(0, 0);		/* No throttling */
+
+	while (0 != teq_dispatch()) {
+		int i;
+
+		for (i = 0; i < 100; i++) {
+			int n = teq_count(THREAD_MAIN);
+			if (n != 0)
+				break;
+			thread_sleep_ms(1);
+		}
+	}
+
+	/*
+	 * Prepare memory shutdown.
+	 *
+	 * Note that evq_close() must be called AFTER vmm_pre_close() to let the
+	 * periodic callbacks from the VMM layer be cleared and BEFORE we suspend
+	 * the other threads, to be able to wait for the complete EVQ shutdown.
+	 */
+
+	DO(vmm_pre_close);
+	DO(evq_close);				/* Can now dispose of the event queue */
+
+	/*
+	 * About to shutdown memory, suspend all the other running threads to
+	 * avoid problems if they wake up suddenly and attempt to allocate memory.
+	 */
+
+	if (debugging(0)) {
+		unsigned n = thread_count() - 1;
+		if (n != 0)
+			g_info("suspending other %u thread%s", n, plural(n));
+	}
+
+	thread_suspend_others(FALSE);
+
+	if (debugging(0))
+		DO(thread_dump_stats);
+
+	/*
+	 * Now we won't be dispatching any more TEQ events, which happen mostly
+	 * when the TTH and SHA-1 threads are ended with a non-empty work queue.
+	 *
+	 * We can therefore close the property system completely, and the
+	 * callout queue (required when exiting from detached threads to hold
+	 * off the thread element for a while).
+	 */
+
+	DO(file_object_close);
+	DO(settings_close);		/* Must come after hcache_close() */
+	DO(cq_close);
+
+	/*
+	 * Memory shutdown must come last.
+	 */
+
+	gm_mem_set_safe_vtable();
+	DO(atoms_close);
+	DO(wdestroy);
+	DO(zclose);
+	DO(malloc_close);
+	DO(hdestroy);
+	DO(omalloc_close);
+	DO(xmalloc_pre_close);
+	DO(vmm_close);
+	DO(signal_close);
 
 	g_info("gtk-gnutella shut down cleanly.");
 
@@ -819,6 +900,7 @@ enum main_arg {
 	main_arg_log_stderr,
 	main_arg_log_stdout,
 	main_arg_minimized,
+	main_arg_no_dbus,
 	main_arg_no_halloc,
 	main_arg_no_restart,
 	main_arg_no_xshm,
@@ -878,6 +960,7 @@ static struct {
 #else
 	OPTION(minimized,		NONE, "Start with minimized main window."),
 #endif	/* USE_TOPLESS */
+	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
 #else
@@ -1144,21 +1227,10 @@ validate_arguments(void)
 #endif	/* !HAS_FORK */
 }
 
-/**
- * Collect more randomness, periodically.
- */
-static void
-more_randomness(void)
-{
-	guint32 crc = gnet_stats_crc_reset();
-	random_pool_append(&crc, sizeof crc, settings_add_randomness);
-	random_collect(settings_add_randomness);
-}
-
 static void
 slow_main_timer(time_t now)
 {
-	static unsigned i = 0, j = 0;
+	static unsigned i = 0;
 
 	if (GNET_PROPERTY(cpu_debug)) {
 		static tm_t since = { 0, 0 };
@@ -1178,6 +1250,7 @@ slow_main_timer(time_t now)
 		break;
 	case 1:
 		dmesh_ban_store();
+		gwc_store_if_dirty();
 		break;
 	case 2:
 		upload_stats_flush_if_dirty();
@@ -1192,6 +1265,7 @@ slow_main_timer(time_t now)
 	case 5:
 		dht_route_store_if_dirty();
 		gnet_prop_set_timestamp_val(PROP_SHUTDOWN_TIME, tm_time());
+		settings_random_save(FALSE);
 		break;
 	default:
 		g_assert_not_reached();
@@ -1209,18 +1283,6 @@ slow_main_timer(time_t now)
 	download_slow_timer(now);
 	node_slow_timer(now);
 	ignore_timer(now);
-
-	/*
-	 * Our "idle" tasks need to be scheduled at least once in a while.
-	 *
-	 * We don't know how busy the callout queue is going to get, so forcing
-	 * its "idle" tasks to run may be the only option to ensure these
-	 * background but important operations get a chance to be run at all.
-	 */
-
-	if (0 == j++ % 2) {
-		cq_main_idle();
-	}
 }
 
 /**
@@ -1414,6 +1476,20 @@ main_timer(void *unused_data)
 	return TRUE;
 }
 
+typedef void (*digest_collector_cb_t)(sha1_t *digest);
+
+static digest_collector_cb_t random_source[] = {
+	palloc_stats_digest,
+	gnet_stats_tcp_digest,
+	thread_stats_digest,
+	gnet_stats_udp_digest,
+	vmm_stats_digest,
+	gnet_stats_general_digest,
+	tmalloc_stats_digest,
+	xmalloc_stats_digest,
+	zalloc_stats_digest,
+};
+
 /**
  * Called when the main callout queue is idle.
  */
@@ -1421,6 +1497,9 @@ static bool
 callout_queue_idle(void *unused_data)
 {
 	bool overloaded = GNET_PROPERTY(overloaded_cpu);
+	sha1_t digest;
+	static uint ridx = 0;
+	static size_t counter = 0;
 
 	(void) unused_data;
 
@@ -1429,12 +1508,26 @@ callout_queue_idle(void *unused_data)
 			overloaded ? "OVERLOADED" : "available");
 
 	/* Idle tasks always scheduled */
-	zgc(overloaded);
-	more_randomness();
+	random_collect();
 
-	if (!overloaded) {
-		/* Idle tasks scheduled only when CPU is not overloaded */
-		pgc();
+	/* Idle tasks only scheduled once every over run */
+	if (0 == (counter++ & 1)) {
+		size_t n;
+
+		/*
+		 * Be un-predictable: use round-robin 50% of the time, or a random
+		 * routine to call among the ones we have at our disposal.
+		 */
+
+		if (0 == random_value(1)) {
+			n = ridx;
+			ridx = (ridx + 1) % G_N_ELEMENTS(random_source);
+		} else {
+			n = random_value(G_N_ELEMENTS(random_source) - 1);
+		}
+
+		(*random_source[n])(&digest);
+		random_pool_append(&digest, sizeof digest);
 	}
 
 	return TRUE;		/* Keep scheduling this */
@@ -1633,7 +1726,6 @@ int
 main(int argc, char **argv)
 {
 	size_t str_discrepancies;
-	int first_fd;
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -1642,6 +1734,7 @@ main(int argc, char **argv)
 	product_set_interface(GTA_INTERFACE);
 
 	mingw_early_init();
+	thread_set_main(FALSE);				/* Main thread cannot block! */
 	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 	tm_init();
 
@@ -1652,6 +1745,21 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	/*
+	 * We can no longer do this: as soon as threads are created, they can
+	 * use pipe() or socketpair() to create blocking resources and we cannot
+	 * close the descriptors blindly because we have no way to know from here
+	 * whether a descriptor was already created in the parent process and
+	 * inherited or whether it was opened by the thread layer.
+	 *
+	 * Note that even moving this code up in main() is not good as our malloc()
+	 * routine can be called during the C startup, and that will immediately
+	 * create threads.
+	 *
+	 *		--RAM, 2014-01-02
+	 */
+
+#if 0
 	/*
 	 * This must be run before we allocate memory because we might
 	 * use mmap() with /dev/zero and then accidently close this
@@ -1664,9 +1772,14 @@ main(int argc, char **argv)
 	 *		--RAM, 2012-06-03
 	 */
 
-	first_fd = fd_first_available();
-	first_fd = MAX(first_fd, 3);		/* Paranoid: always keep 0,1,2 */
-	close_file_descriptors(first_fd);	/* Just in case */
+	{
+		int first_fd;
+
+		first_fd = fd_first_available();
+		first_fd = MAX(first_fd, 3);		/* Paranoid: always keep 0,1,2 */
+		close_file_descriptors(first_fd);	/* Just in case */
+	}
+#endif
 
 	if (reserve_standard_file_descriptors()) {
 		fprintf(stderr, "unable to reserve standard file descriptors\n");
@@ -1761,6 +1874,7 @@ main(int argc, char **argv)
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();
 
+	symbols_set_verbose(TRUE);
 	mingw_init();
 	atoms_init();
 	settings_early_init();
@@ -1776,6 +1890,20 @@ main(int argc, char **argv)
 
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
+
+	/*
+	 * Before using glib-1.2 routines, we absolutely need to tell the library
+	 * that we are going to run multi-threaded.
+	 */
+
+#ifdef USE_GLIB1
+	if (!g_thread_supported())
+		g_thread_init(NULL);
+#endif
+
+	/*
+	 * Continue with initializations.
+	 */
 
 	product_set_interface(running_topless ? "Topless" : GTA_INTERFACE);
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
@@ -1820,18 +1948,21 @@ main(int argc, char **argv)
 	htable_test();
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
+	teq_io_create();
+	teq_set_throttle(70, 50);	/* 70 ms max for TEQ events, every 50 ms */
 	tiger_check();
 	tt_check();
 	tea_test();
+	xxtea_test();
 	patricia_test();
 	strtok_test();
 	locale_init();
-	adns_pid = adns_init();
+	adns_init();
 	file_object_init();
 	socket_init();
 	gnet_stats_init();
 	iso3166_init();
-	dbus_util_init();
+	dbus_util_init(options[main_arg_no_dbus].used);
 	vendor_init();
 	mime_type_init();
 
@@ -1843,6 +1974,7 @@ main(int argc, char **argv)
 	upnp_init();
 	udp_init();
 	urpc_init();
+	g2_rpc_init();
 	vmsg_init();
 	tsync_init();
 	watcher_init();
@@ -1880,6 +2012,7 @@ main(int argc, char **argv)
 	guid_init();
 	uhc_init();
 	ghc_init();
+	gwc_init();
 	verify_sha1_init();
 	verify_tth_init();
 	move_init();
@@ -1893,6 +2026,7 @@ main(int argc, char **argv)
 	bsched_init();
 	dump_init();
 	node_init();
+	g2_node_init();
     hcache_retrieve_all();	/* after settings_init() and node_init() */
 	routing_init();
 	search_init();
@@ -1911,7 +2045,6 @@ main(int argc, char **argv)
 	clock_init();
 	dq_init();
 	dh_init();
-	bitzi_init();
 	sq_init();
 	gdht_init();
 	pdht_init();
@@ -1928,6 +2061,7 @@ main(int argc, char **argv)
 	file_info_init_post();
 	download_restore_state();
 	ntp_init();
+	random_added_listener_add(settings_add_randomness);
 
 	/* Some signal handlers */
 
@@ -1948,6 +2082,8 @@ main(int argc, char **argv)
 
 	/* Okay, here we go */
 
+	vmm_set_strategy(VMM_STRATEGY_LONG_TERM);
+
 	(void) tm_time_exact();
 	cq_main_insert(1000, scan_files_once, NULL);
 	bsched_enable_all();
@@ -1955,6 +2091,7 @@ main(int argc, char **argv)
 	dht_attempt_bootstrap();
 	http_test();
 	vxml_test();
+	g2_tree_test();
 
 	if (running_topless) {
 		topless_main_run();

@@ -90,6 +90,7 @@ int log_get_fd(enum log_file which);
 
 void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
+int s_error_expr(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
@@ -109,22 +110,47 @@ void s_miniwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minimsg(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_miniinfo(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minidbg(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a);
+void s_rawcrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_rawwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_rawdebug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 /*
- * Thread-safe logging interface.
+ * These routines should not be called directly, use the macros below.
+ */
+void s_critical_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_warning_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_message_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_info_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+void s_debug_once_per_from(long period, const char *origin,
+	const char *format, ...) G_GNUC_PRINTF(3, 4);
+
+#define s_critical_once_per(p,fmt,...) \
+	s_critical_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_warning_once_per(p,fmt,...) \
+	s_warning_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_message_once_per(p,fmt,...) \
+	s_message_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_info_once_per(p,fmt,...) \
+	s_info_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+#define s_debug_once_per(p,fmt,...) \
+	s_debug_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
+
+/*
+ * Pre-defined logging periods for the xxx_once_per() logging routines.
  */
 
-void t_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_error(const char *format, ...)
-	G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
-void t_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_error_from(const char *file, const char *format, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+#define LOG_PERIOD_SECOND	1
+#define LOG_PERIOD_MINUTE	60
+#define LOG_PERIOD_HOUR		3600
 
 /*
  * Polymorphic logging interface.
@@ -133,6 +159,7 @@ void t_error_from(const char *file, const char *format, ...)
 logagent_t *log_agent_stdout_get(void);
 logagent_t *log_agent_stderr_get(void);
 logagent_t *log_agent_string_make(size_t size, const char *prefix);
+void log_agent_reserve(logagent_t *la, size_t len);
 void log_agent_string_reset(logagent_t *la);
 const char *log_agent_string_get(const logagent_t *la);
 char *log_agent_string_get_null(logagent_t **la_ptr);

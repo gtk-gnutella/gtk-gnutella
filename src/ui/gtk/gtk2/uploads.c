@@ -25,7 +25,7 @@
  * @ingroup gtk
  * @file
  *
- * Needs short description here.
+ * Management of the GTK2 "Uploads" pane.
  *
  * @author Richard Eckart
  * @date 2001-2003
@@ -38,6 +38,8 @@
 #include "gtk/columns.h"
 #include "gtk/misc.h"
 #include "gtk/settings.h"
+
+#include "column_sort.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
@@ -65,6 +67,10 @@ static GtkWidget *button_uploads_clear_completed;
 static htable_t *upload_handles;
 /** list of all *removed* uploads; contains the handles */
 static GSList *sl_removed_uploads;
+
+#if GTK_CHECK_VERSION(2,6,0)
+static struct sorting_context uploads_sort;
+#endif	/* GTK+ >= 2.6.0 */
 
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
@@ -245,8 +251,8 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	rd->last_update  = tm_time();
 
 	if (
-		!host_addr_equal(u->addr, rd->addr) ||
-		!host_addr_equal(u->gnet_addr, rd->gnet_addr) ||
+		!host_addr_equiv(u->addr, rd->addr) ||
+		!host_addr_equiv(u->gnet_addr, rd->gnet_addr) ||
 		u->gnet_port != rd->gnet_port
 	) {
 		rd->addr = u->addr;
@@ -414,7 +420,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	htable_insert(upload_handles, uint_to_pointer(rd->handle), rd);
 }
 
-static void
+static GtkTreeViewColumn *
 add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 {
 	GtkTreeViewColumn *column;
@@ -467,6 +473,8 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 	if (NULL != sortfunc)
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_uploads),
 			column_id, sortfunc, GINT_TO_POINTER(column_id), NULL);
+
+	return column;
 }
 
 static GtkListStore *
@@ -647,6 +655,17 @@ uploads_gui_clear_completed(void)
 	}
 }
 
+/**
+ * Enforce a tri-state sorting.
+ */
+static void
+on_uploads_treeview_column_clicked(GtkTreeViewColumn *column, void *udata)
+{
+	(void) udata;
+
+	column_sort_tristate(column, &uploads_sort);
+}
+
 void
 uploads_gui_init(void)
 {
@@ -676,10 +695,15 @@ uploads_gui_init(void)
 	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
 
 	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
-		add_column(cols[i].id, cols[i].sortfunc,
+		GtkTreeViewColumn *column;
+
+		column = add_column(cols[i].id, cols[i].sortfunc,
 			c_ul_progress == cols[i].id
 				? GTK_TYPE_CELL_RENDERER_PROGRESS
 				: GTK_TYPE_CELL_RENDERER_TEXT);
+
+		column_sort_tristate_register(column,
+			on_uploads_treeview_column_clicked, NULL);
 	}
 	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);

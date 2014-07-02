@@ -58,6 +58,7 @@ void settings_early_init(void);
 bool settings_is_unique_instance(void);
 void settings_init(void);
 void settings_save_if_dirty(void);
+void settings_random_save(bool verbose);
 void settings_shutdown(void);
 void settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer);
 uint32 settings_max_msg_size(void);

@@ -277,6 +277,10 @@ host_addr_get_ipv4(uint32 ip)
 {
 	host_addr_t ha;
 
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&ha);			/* Needed for "valgrind" */
+#endif
+
 	ha.net = NET_TYPE_IPV4;
 	ha.addr.ipv4 = ip;
 	return ha;
@@ -292,40 +296,14 @@ static inline G_GNUC_PURE host_addr_t
 host_addr_peek_ipv6(const void *ipv6)
 {
 	host_addr_t ha;
-	
+
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&ha);			/* Needed for "valgrind" */
+#endif
+
 	ha.net = NET_TYPE_IPV6;
 	memcpy(ha.addr.ipv6, ipv6, 16);
 	return ha;
-}
-
-static inline bool
-host_addr_equal(const host_addr_t a, const host_addr_t b)
-{
-	if (a.net == b.net) {
-		switch (a.net) {
-		case NET_TYPE_IPV4:
-			return host_addr_ipv4(a) == host_addr_ipv4(b);
-		case NET_TYPE_IPV6:
-			if (0 != memcmp(a.addr.ipv6, b.addr.ipv6, sizeof a.addr.ipv6)) {
-				host_addr_t a_ipv4, b_ipv4;
-
-				return host_addr_convert(a, &a_ipv4, NET_TYPE_IPV4) &&
-					host_addr_convert(b, &b_ipv4, NET_TYPE_IPV4) &&
-					host_addr_ipv4(a_ipv4) == host_addr_ipv4(b_ipv4);
-			}
-			return TRUE;
-
-		case NET_TYPE_LOCAL:
-		case NET_TYPE_NONE:
-			return TRUE;
-		}
-		g_assert_not_reached();
-	} else {
-		host_addr_t to;
-
-		return host_addr_convert(a, &to, b.net) && host_addr_equal(to, b);
-	}
-	return FALSE;
 }
 
 static inline int
@@ -533,6 +511,8 @@ int socket_addr_getsockname(socket_addr_t *p_addr, int fd);
 
 unsigned host_addr_hash(host_addr_t ha);
 unsigned host_addr_hash2(host_addr_t ha);
+bool host_addr_equal(const host_addr_t a, const host_addr_t b) G_GNUC_PURE;
+bool host_addr_equiv(const host_addr_t a, const host_addr_t b);
 
 uint host_addr_hash_func(const void *key);
 uint host_addr_hash_func2(const void *key);
@@ -575,8 +555,8 @@ const char *port_host_addr_to_string(uint16 port, const host_addr_t ha);
 size_t host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 	char *dst, size_t size);
 
-GSList *name_to_host_addr(const char *host, enum net_type net);
-void host_addr_free_list(GSList **sl_ptr);
+struct pslist *name_to_host_addr(const char *host, enum net_type net);
+void host_addr_free_list(struct pslist **sl_ptr);
 
 host_addr_t name_to_single_host_addr(const char *host, enum net_type net);
 #ifdef HAS_GETADDRINFO
@@ -588,8 +568,8 @@ const char *host_addr_to_name(const host_addr_t addr);
 bool string_to_host_or_addr(const char *s, const char **endptr,
 		host_addr_t *ha);
 
-GSList *host_addr_get_interface_addrs(enum net_type net);
-void host_addr_free_interface_addrs(GSList **sl_ptr);
+struct pslist *host_addr_get_interface_addrs(enum net_type net);
+void host_addr_free_interface_addrs(struct pslist **sl_ptr);
 
 uint packed_host_addr_size(const struct packed_host_addr paddr);
 struct packed_host_addr host_addr_pack(const host_addr_t addr);

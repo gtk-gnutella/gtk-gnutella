@@ -36,18 +36,19 @@
 
 #include "clock.h"
 
-#include "lib/cq.h"
-#include "lib/misc.h"
-#include "lib/halloc.h"
-#include "lib/walloc.h"
-
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/cq.h"
+#include "lib/entropy.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hevset.h"
+#include "lib/misc.h"
 #include "lib/stats.h"
 #include "lib/tm.h"
+#include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define REUSE_DELAY	10800		/**< 3 hours */
@@ -104,16 +105,15 @@ val_free(struct used_val *v)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-val_destroy(cqueue_t *unused_cq, void *obj)
+val_destroy(cqueue_t *cq, void *obj)
 {
 	struct used_val *v = obj;
 
-	(void) unused_cq;
 	g_assert(v);
 	g_assert(is_host_addr(v->addr));
 
 	hevset_remove(used, &v->addr);
-	v->cq_ev = NULL;
+	cq_zero(cq, &v->cq_ev);
 	val_free(v);
 }
 
@@ -197,8 +197,13 @@ clock_adjust(void)
 	 */
 
 	n = statx_n(datapoints);
+
+	g_assert(n > 1);		/* To be able to compute the standard deviation */
+
 	avg = statx_avg(datapoints);
 	sdev = statx_sdev(datapoints);
+
+	entropy_harvest_many(VARLEN(n), VARLEN(avg), VARLEN(sdev), NULL);
 
 	/*
 	 * Incrementally remove aberration points.
@@ -206,6 +211,8 @@ clock_adjust(void)
 
 	for (k = 0; k < CLEAN_STEPS; k++) {
 		double *value = statx_data(datapoints);
+
+		g_assert(value != NULL);	/* Since n > 1, there are data points */
 
 		if (GNET_PROPERTY(clock_debug) > 1)
 			g_debug("CLOCK before #%d: n=%d avg=%g sdev=%g",
@@ -235,6 +242,10 @@ clock_adjust(void)
 		 */
 
 		n = statx_n(datapoints);
+
+		if (n < 2)
+			break;		/* Not enough data to compute standard deviation */
+
 		avg = statx_avg(datapoints);
 		sdev = statx_sdev(datapoints);
 
@@ -305,6 +316,9 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 		v = val_create(addr, precision);
 		hevset_insert(used, v);
 	}
+
+	entropy_harvest_small(
+		VARLEN(update), VARLEN(precision), VARLEN(addr), NULL);
 
 	now = tm_time();
 	delta = delta_time(update, (now + (int32) GNET_PROPERTY(clock_skew)));

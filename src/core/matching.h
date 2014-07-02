@@ -75,6 +75,7 @@ bool st_insert_item(search_table_t *, const char *key,
 	const struct shared_file *sf);
 void st_compact(search_table_t *);
 int st_count(const search_table_t *st);
+search_table_t *st_refcnt_inc(search_table_t *st);
 
 /**
  * Callback for st_search().
@@ -84,7 +85,7 @@ int st_count(const search_table_t *st);
  *
  * @return TRUE if the match must be accounted as a valid result.
  */
-typedef bool (*st_search_callback)(void *ctx, void *data);
+typedef bool (*st_search_callback)(void *ctx, const void *data);
 
 int st_search(
 	search_table_t *table,

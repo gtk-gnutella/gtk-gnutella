@@ -41,6 +41,8 @@
 void shuffle(void *b, size_t n, size_t s);
 void shuffle_with(random_fn_t rf, void *b, size_t n, size_t s);
 
+uint32 shuffle_thread_rand(void);
+
 #endif /* _shuffle_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

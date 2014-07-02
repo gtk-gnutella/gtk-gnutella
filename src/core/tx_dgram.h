@@ -38,6 +38,7 @@
 #include "tx.h"
 
 #include "lib/pmsg.h"
+#include "lib/host_addr.h"
 
 #include "if/core/bsched.h"
 
@@ -57,6 +58,7 @@ struct tx_dgram_cb {
 struct tx_dgram_args {
 	struct tx_dgram_cb *cb;			/**< Callbacks */
 	struct udp_sched *us;			/**< UDP TX scheduler */
+	enum net_type net;				/**< Network type (IPv4 or IPv6) */
 };
 
 #endif	/* _core_tx_dgram_h_ */

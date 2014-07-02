@@ -53,13 +53,12 @@ typedef struct search {
     struct filter *filter;		/**< filter ruleset bound to this search */
 	struct slist *queue;		/**< records to be inserted */
 
-	bool	list_refreshed;
-	bool	clicked;
-	bool	sort;
-	bool	frozen;
+	uint	list_refreshed:1;
+	uint	clicked:1;
+	uint	sort:1;
+	uint	frozen:1;
 
-    int     sort_col;
-    int     sort_order;
+	struct sorting_context sorting;
 
 	/*
 	 * Cached attributes.
@@ -97,8 +96,10 @@ typedef struct search {
 	time_t guess_cur_start;		/**< Start time of current query (0 if none) */
 	size_t guess_cur_max_ultra;	/**< Max amount of ultra nodes to query */
 	size_t guess_cur_pool;		/**< Current pool of unqueried nodes */
-	size_t guess_cur_queried;	/**< Current amount of queried nodes */
+	size_t guess_cur_ultra;		/**< Current amount of queried ultra nodes */
+	size_t guess_cur_g2;		/**< Current amount of queried G2 nodes */
 	size_t guess_cur_acks;		/**< Current amount of acks received */
+	size_t guess_cur_reached;	/**< Current amount of nodes reached */
 	size_t guess_cur_results;	/**< Current amount of results received */
 	size_t guess_cur_kept;		/**< Current amount of results kept */
 	size_t guess_cur_hops;		/**< Current query iteration count */
@@ -198,7 +199,6 @@ void on_spinbutton_search_reissue_timeout_changed(GtkEditable *,
 bool on_search_details_key_press_event(GtkWidget *, GdkEventKey *,
 			void *user_data);
 
-void on_popup_search_metadata_activate(GtkMenuItem *, void *user_data);
 void on_popup_search_copy_magnet_activate(GtkMenuItem *, void *user_data);
 
 int search_gui_cmp_sha1s(const struct sha1 *, const struct sha1 *);
@@ -241,8 +241,6 @@ const char *search_gui_get_vendor(const struct results_set *);
 
 bool search_gui_item_is_inspected(const record_t *);
 void search_gui_set_details(const record_t *);
-void search_gui_set_bitzi_metadata(const record_t *);
-void search_gui_set_bitzi_metadata_text(const char *);
 void search_gui_clear_details(void);
 void search_gui_append_detail(const char *title, const char *value);
 const char *search_new_error_to_string(enum search_new_result);
@@ -259,7 +257,6 @@ void search_gui_synchronize_search_list(search_gui_synchronize_list_cb,
 
 bool search_gui_start_massive_update(struct search *);
 void search_gui_end_massive_update(struct search *);
-void search_gui_queue_bitzi_by_sha1(const record_t *);
 void search_gui_add_record(struct search *, record_t *, enum gui_color);
 void search_gui_hide_search(struct search *);
 void search_gui_show_search(struct search *);

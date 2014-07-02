@@ -117,8 +117,8 @@ bool dbmw_rebuild(dbmw_t *dw);
 bool dbmw_clear(dbmw_t *dw);
 const char *dbmw_strerror(const dbmw_t *dw);
 
-GSList *dbmw_all_keys(dbmw_t *dw);
-void dbmw_free_all_keys(const dbmw_t *dw, GSList *keys);
+struct pslist *dbmw_all_keys(dbmw_t *dw);
+void dbmw_free_all_keys(const dbmw_t *dw, struct pslist *keys);
 
 void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg);
 size_t dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg);

@@ -812,17 +812,6 @@ prop = {
 };
 
 prop = {
-    name = "bitzi_debug";
-    desc = "Verbosity of Bitzi related debug messages.";
-    type = guint32;
-    data = {
-        default = 0;
-        min     = 0;
-        max     = 20;
-    };
-};
-
-prop = {
     name = "url_debug";
     desc = "Verbosity of URL handling related debug messages.";
     type = guint32;
@@ -5375,6 +5364,168 @@ prop = {
 prop = {
 	name = "user_auto_restart";
 	desc = "Whether the program is auto-restarting at the user's request.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "tm_debug";
+	desc = "Debug level for time management.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "tmalloc_debug";
+	desc = "Debug level for the tmalloc() thread-magazine object distributor.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "evq_debug";
+	desc = "Debug level for the event queue thread.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+    name = "max_g2hub_hosts_cached";
+    desc = "Maximum number of G2 hubs in the hub cache.";
+    type = guint32;
+    data = {
+        default = 10000;
+        min     = 100;
+        max     = 50000;
+    };
+};
+
+prop = {
+    name = "hosts_in_g2hub_catcher";
+    desc = "Current number of IPv4 hosts in the G2 hub caches.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = INT_MAX;
+    };
+};
+
+prop = {
+	name = "enable_g2";
+	desc = "Whether the G2 protocol should be enabled.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+    name = "node_g2_count";
+    desc = "Number of G2 nodes currently connected.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "max_g2_hubs";
+    desc = "Maximum amount of G2 hubs we should connect to as a leaf.";
+    type = guint32;
+    data = {
+        default = 2;
+        min = 0;
+        max = 3;
+    };
+};
+
+prop = {
+	name = "log_bad_g2";
+	desc = "Whether to log bad G2 messages, corrupted or unexpected.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_dropped_g2";
+	desc = "Whether to log dropped G2 messages";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "g2_rpc_debug";
+	desc = "Debug level for the G2 RPC layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "log_query_hits";
+	desc = "Whether to log summary of received query hits";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_query_hit_records";
+	desc = "Whether to log summary of each record in received query hits";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "g2_browse_count";
+    desc = "Number of G2 browsing requests received in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "g2_browse_served";
+    desc = "Number of G2 browsing requests fully served in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+	name = "log_sending_g2";
+	desc = "Whether to log G2 messages we're attempting to send";
     type = boolean;
     data = {
         default = FALSE;

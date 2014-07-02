@@ -93,7 +93,7 @@ compat_daemonize(const char *directory)
 		fflush(NULL);
 		pid = fork();
 		if ((pid_t) -1 == pid) {
-			s_warning("fork() failed: %m");
+			s_warning("%s(): fork() failed: %m", G_STRFUNC);
 			return -1;
 		}
 
@@ -105,19 +105,19 @@ compat_daemonize(const char *directory)
 
 		/* Create a new session after the first fork() */
 		if (0 == i && (pid_t) -1 == setsid()) {
-			s_warning("setsid() failed: %m");
+			s_warning("%s(): setsid() failed: %m", G_STRFUNC);
 			return -1;
 		}
 	}
 
 	pid = getpid();
 	if (setpgid(0, pid)) {
-		s_warning("setpgid(0, %lu) failed: %m", (unsigned long) pid);
+		s_warning("%s(): setpgid(0, %lu) failed: %m", G_STRFUNC, (ulong) pid);
 		return -1;
 	}
 
 	if (chdir(directory)) {
-		s_warning("chdir(\"%s\") failed: %m", directory);
+		s_warning("%s(): chdir(\"%s\") failed: %m", G_STRFUNC, directory);
 		return -1;
 	}
 

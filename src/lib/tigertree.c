@@ -195,7 +195,7 @@ tt_node_count_at_depth(filesize_t filesize, unsigned depth)
 {
 	filesize_t n, m;
 
-	m = 1 << depth;
+	m = (filesize_t) 1 << depth;
 	n = tt_block_count(filesize); 
 	while (n > m) {
 		n = (n + 1) / 2;

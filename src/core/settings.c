@@ -39,6 +39,7 @@
 #endif
 
 #include "settings.h"
+
 #include "ban.h"
 #include "bsched.h"
 #include "ctl.h"
@@ -71,6 +72,7 @@
 
 #include "xml/vxml.h"
 
+#include "lib/aje.h"
 #include "lib/bg.h"
 #include "lib/bit_array.h"
 #include "lib/compat_misc.h"
@@ -80,8 +82,10 @@
 #include "lib/dbstore.h"
 #include "lib/debug.h"
 #include "lib/eval.h"
+#include "lib/evq.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/frand.h"
 #include "lib/getcpucount.h"
 #include "lib/getgateway.h"
 #include "lib/gethomedir.h"
@@ -93,21 +97,28 @@
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
+#include "lib/tmalloc.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
 #include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define SETTINGS_RANDOM_SEED	4096	/* Amount of random bytes saved */
+
 static const char config_file[] = "config_gnet";
 
-static const mode_t IPC_DIR_MODE = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
-static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
-static const mode_t CONFIG_DIR_MODE =
+static const mode_t IPC_DIR_MODE     = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
+static const mode_t PID_FILE_MODE    = S_IRUSR | S_IWUSR; /* 0600 */
+static const mode_t CONFIG_DIR_MODE  =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
 static const char *home_dir;
@@ -134,6 +145,7 @@ static prop_set_t *properties = NULL;
 
 static const char pidfile[] = "gtk-gnutella.pid";
 static const char dirlockfile[] = ".gtk-gnutella.lock";
+static const char randseed[] = "randseed";
 
 static bool settings_init_running;
 
@@ -254,7 +266,7 @@ listen_addr_by_net(enum net_type net)
 bool
 is_my_address(const host_addr_t addr)
 {
-	return host_addr_equal(addr, listen_addr_by_net(host_addr_net(addr)));
+	return host_addr_equiv(addr, listen_addr_by_net(host_addr_net(addr)));
 }
 
 bool
@@ -682,6 +694,75 @@ settings_update_downtime(void)
 	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_DOWNTIME, average);
 }
 
+/**
+ * Reload random bytes saved in ~/.gtk-gnutella/randseed
+ */
+static void
+settings_random_reload(void)
+{
+	char *file;
+	ssize_t got;
+
+	file = make_pathname(config_dir, randseed);
+	got = frand_restore(file, aje_addrandom, SETTINGS_RANDOM_SEED);
+
+	if (-1 == got) {
+		if (errno != ENOENT)
+			g_warning("cannot reload random data from %s: %m", file);
+	} else {
+		ssize_t cleared;
+
+		if (debugging(0))
+			g_info("loaded %zd random byte%s from %s", got, plural(got), file);
+
+		/*
+		 * We clear the random bytes we load since they entered the entropy
+		 * pool now and should not be used as such again.  We don't unlink
+		 * the file to make sure we have the disk space needed at shutdown
+		 * time to persist our entropy.
+		 */
+
+		cleared = frand_clear(file, got);
+		if (cleared != got) {
+			g_warning("could not clear leading %zd byte%s from %s: %m",
+				got, plural(got), file);
+		}
+	}
+
+	HFREE_NULL(file);
+}
+
+/**
+ * Save random bytes into ~/.gtk-gnutella/randseed.
+ */
+void
+settings_random_save(bool verbose)
+{
+	char *file;
+	ssize_t saved;
+
+	file = make_pathname(config_dir, randseed);
+	saved = frand_save(file, aje_random_bytes, SETTINGS_RANDOM_SEED);
+
+	if (-1 == saved) {
+		g_warning("could not save random data into %s: %m", file);
+	} else if (verbose) {
+		g_info("saved %zd random byte%s into %s", saved, plural(saved), file);
+	}
+
+	HFREE_NULL(file);
+}
+
+/**
+ * Handle cleanup operation when upgrading from an older version.
+ */
+static void G_GNUC_COLD
+settings_handle_upgrades(void)
+{
+	/* 2014-05-02 -- Bitzi is now gone for version 1.1 */
+	dbstore_unlink(settings_gnet_db_dir(), "bitzi_tickets");
+}
+
 G_GNUC_COLD void
 settings_init(void)
 {
@@ -779,7 +860,7 @@ settings_init(void)
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
 			need_get_non_stdio_fd() ? "cannot" : "can");
-		g_info("detected %ld CPU%s", cpus, 1 == cpus ? "" : "s");
+		g_info("detected %ld CPU%s", cpus, plural(cpus));
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",
@@ -799,10 +880,29 @@ settings_init(void)
 		} else {
 			g_info("no CPU frequency scaling detected");
 		}
+
+		{
+			tm_nano_t tn;
+			bool system_precision;
+			const char *prefix[] = { "n", "u", "m", "" };
+			ulong nano, val;
+			size_t p;
+
+			system_precision = tm_precise_granularity(&tn);
+			nano = tmn2ns(&tn);
+
+			for (p = 0, val = nano; p < G_N_ELEMENTS(prefix); p++) {
+				if (1000UL * (val / 1000UL) != val)
+					break;
+				val /= 1000UL;
+			}
+
+			g_info("%ssystem clock granularity is %lu %ss",
+				system_precision ? "" : "computed ", val, prefix[p]);
+		}
 	}
 
 	upload_stats_load_history();	/* Loads the upload statistics */
-
 
 	/* watch for filter_file defaults */
 
@@ -822,6 +922,8 @@ settings_init(void)
 
 	/* propagate randomness from previous run */
 
+	settings_random_reload();		/* Before calling random_add() */
+
 	{
 		sha1_t buf;		/* 160 bits */
 
@@ -833,6 +935,7 @@ settings_init(void)
 	settings_update_downtime();
 	settings_update_firewalled();
 	settings_callbacks_init();
+	settings_handle_upgrades();
 	settings_init_running = FALSE;
 
 	settings_save_if_dirty();		/* Ensure "clean_shutdown" is now FALSE */
@@ -847,13 +950,35 @@ no_config_dir:
 /**
  * Generate new randomness.
  */
-void
-settings_add_randomness(void)
+static void
+settings_gen_randomness(void *unused)
 {
 	sha1_t buf;		/* 160 bits */
 
-	random_bytes(&buf, SHA1_RAW_SIZE);
+	(void) unused;
+	g_assert(thread_is_main());
+
+	aje_random_bytes(&buf, SHA1_RAW_SIZE);
 	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
+}
+
+/**
+ * Generate new randomness.
+ *
+ * This is an event callback invoked when new randomness has been flushed
+ * to random number generators.
+ */
+void
+settings_add_randomness(void)
+{
+	/*
+	 * Since this can be called from any thread collecting and feeding entropy
+	 * to the global random pool, we need to funnel back the generation to
+	 * the main thread, using a "safe" event in case some callbacks are attached
+	 * to the change of the "randomness" property.
+	 */
+
+	teq_safe_post(THREAD_MAIN, settings_gen_randomness, NULL);
 }
 
 /**
@@ -1137,7 +1262,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 			return;
 	}
 
-	if (!host_addr_equal(new_addr, last_addr_seen)) {
+	if (!host_addr_equiv(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
 		peers[0] = peer;			/* First peer to report new address */
@@ -1156,7 +1281,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 		peers[i] = zero_host_addr;
 	}
 
-	if (host_addr_equal(new_addr, GNET_PROPERTY(local_ip)))
+	if (host_addr_equiv(new_addr, GNET_PROPERTY(local_ip)))
 		return;
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP, new_addr);
@@ -1197,7 +1322,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 			return;
 	}
 
-	if (!host_addr_equal(new_addr, last_addr_seen)) {
+	if (!host_addr_equiv(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
 		peers[0] = peer;		/* First peer to report new address */
@@ -1216,7 +1341,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 		peers[i] = zero_host_addr;
 	}
 
-	if (host_addr_equal(new_addr, GNET_PROPERTY(local_ip6)))
+	if (host_addr_equiv(new_addr, GNET_PROPERTY(local_ip6)))
 		return;
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP6, new_addr);
@@ -1317,6 +1442,7 @@ settings_shutdown(void)
 
 	update_uptimes();
 	remember_local_addr_port();
+	settings_random_save(debugging(0));
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
@@ -1474,7 +1600,7 @@ update_address_lifetime(void)
 		}
 	}
 
-	if (!host_addr_equal(old_addr, addr)) {
+	if (!host_addr_equiv(old_addr, addr)) {
 		/*
 		 * IPv4 address changed, update lifetime information.
 		 */
@@ -1495,7 +1621,7 @@ update_address_lifetime(void)
 		}
 	}
 
-	if (!host_addr_equal(old_addr_v6, addr)) {
+	if (!host_addr_equiv(old_addr_v6, addr)) {
 		/*
 		 * IPv6 address changed, update lifetime information.
 		 */
@@ -1519,9 +1645,13 @@ update_address_lifetime(void)
 	/*
 	 * If our address or port changed, we may have to republish our push
 	 * proxies to the DHT.
+	 *
+	 * We also need to invalidate all our GUESS query keys when the IP:port
+	 * changes, since a query key is a function of our IP address.
 	 */
 
 	pdht_prox_publish_if_changed();
+	guess_invalidate_keys();
 }
 
 /**
@@ -1616,6 +1746,15 @@ max_ultra_hosts_cached_changed(property_t prop)
 }
 
 static bool
+max_g2hub_hosts_cached_changed(property_t prop)
+{
+	g_assert(PROP_MAX_G2HUB_HOSTS_CACHED == prop);
+    hcache_prune(HCACHE_FRESH_G2HUB);
+
+    return FALSE;
+}
+
+static bool
 max_bad_hosts_cached_changed(property_t prop)
 {
 	g_assert(PROP_MAX_BAD_HOSTS_CACHED == prop);
@@ -1631,7 +1770,7 @@ static host_addr_t
 get_bind_addr(enum net_type net)
 {
 	host_addr_t addr = zero_host_addr;
-	
+
 	switch (net) {
 	case NET_TYPE_IPV4:
 		addr = GNET_PROPERTY(force_local_ip)
@@ -1669,7 +1808,7 @@ static bool
 enable_udp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (s_tcp_listen) {
@@ -1705,7 +1844,7 @@ static bool
 enable_dht_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		/* Will start the DHT if UDP enabled otherwise */
@@ -1718,12 +1857,43 @@ enable_dht_changed(property_t prop)
 }
 
 static bool
+enable_g2_changed(property_t prop)
+{
+	bool enabled, guess_enabled;
+
+    gnet_prop_get_boolean_val(prop, &enabled);
+	node_update_g2(enabled);
+
+	/*
+	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * the GUESS layer.
+	 */
+
+    gnet_prop_get_boolean_val(PROP_ENABLE_GUESS, &guess_enabled);
+
+	if (enabled || guess_enabled) {
+		guess_init();
+	} else {
+		guess_close();
+	}
+
+	return FALSE;
+}
+
+static bool
 enable_guess_changed(property_t prop)
 {
-	bool enabled;
-	
+	bool enabled, g2_enabled;
+
+	/*
+	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * the GUESS layer.
+	 */
+
+    gnet_prop_get_boolean_val(PROP_ENABLE_G2, &g2_enabled);
     gnet_prop_get_boolean_val(prop, &enabled);
-	if (enabled) {
+
+	if (enabled || g2_enabled) {
 		guess_init();
 	} else {
 		guess_close();
@@ -1736,7 +1906,7 @@ static bool
 enable_upnp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		upnp_post_init();
@@ -1751,7 +1921,7 @@ static bool
 enable_natpmp_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		upnp_post_init();
@@ -2055,6 +2225,7 @@ listen_port_changed(property_t prop)
     } else {
 		old_port = GNET_PROPERTY(listen_port);
 		remember_local_addr_port();
+		guess_invalidate_keys();	/* Port changed, query keys are invalid */
 	}
 
     return FALSE;
@@ -2511,6 +2682,17 @@ dbstore_debug_changed(property_t prop)
 }
 
 static bool
+evq_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	evq_set_debug(val);
+
+    return FALSE;
+}
+
+static bool
 inputevt_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -2555,6 +2737,17 @@ palloc_debug_changed(property_t prop)
 }
 
 static bool
+tm_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_tm_debug(val);
+
+    return FALSE;
+}
+
+static bool
 vmm_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -2583,6 +2776,17 @@ xmalloc_debug_changed(property_t prop)
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_xmalloc_debug(val);
+
+    return FALSE;
+}
+
+static bool
+tmalloc_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_tmalloc_debug(val);
 
     return FALSE;
 }
@@ -2650,22 +2854,20 @@ local_addr_changed(property_t prop)
 		host_addr_is_ipv4_mapped(addr) ||
 		NET_TYPE_IPV6 == net
 	) {
-		GSList *sl_addrs, *sl;
+		pslist_t *sl_addrs, *sl;
 		host_addr_t old_addr = addr;
 
 		addr = zero_host_addr;
 		sl_addrs = host_addr_get_interface_addrs(net);
-		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
-			host_addr_t *addr_ptr;
-
-			addr_ptr = sl->data;
+		PSLIST_FOREACH(sl_addrs, sl) {
+			host_addr_t *addr_ptr = sl->data;
 			if (host_addr_is_routable(*addr_ptr)) {
 				addr = *addr_ptr;
 				break;
 			}
 		}
 		host_addr_free_interface_addrs(&sl_addrs);
-		if (!host_addr_equal(old_addr, addr)) {
+		if (!host_addr_equiv(old_addr, addr)) {
 			gnet_prop_set_ip_val(prop, addr);
 		}
 	}
@@ -2788,17 +2990,16 @@ static cevent_t *ev_file_descriptor_runout;
  * Reset the property.
  */
 static void
-reset_property_cb(cqueue_t *unused_cq, void *obj)
+reset_property_cb(cqueue_t *cq, void *obj)
 {
 	property_t prop = (property_t) GPOINTER_TO_UINT(obj);
 
-	(void) unused_cq;
 	switch (prop) {
 	case PROP_FILE_DESCRIPTOR_SHORTAGE:
-		ev_file_descriptor_shortage = NULL;
+		cq_zero(cq, &ev_file_descriptor_shortage);
 		break;
 	case PROP_FILE_DESCRIPTOR_RUNOUT:
-		ev_file_descriptor_runout = NULL;
+		cq_zero(cq, &ev_file_descriptor_runout);
 		break;
 	default:
 		g_error("unhandled property #%d", prop);
@@ -2900,6 +3101,11 @@ static prop_map_t property_map[] = {
     {
         PROP_MAX_ULTRA_HOSTS_CACHED,
         max_ultra_hosts_cached_changed,
+        TRUE
+	},
+    {
+        PROP_MAX_G2HUB_HOSTS_CACHED,
+        max_g2hub_hosts_cached_changed,
         TRUE
 	},
     {
@@ -3042,6 +3248,21 @@ static prop_map_t property_map[] = {
 		node_online_mode_changed,
 		TRUE						/* Need to call callback at init time */
 	},
+    {
+        PROP_EVQ_DEBUG,
+        evq_debug_changed,
+        TRUE
+    },
+    {
+        PROP_TM_DEBUG,
+        tm_debug_changed,
+        TRUE
+    },
+    {
+        PROP_TMALLOC_DEBUG,
+        tmalloc_debug_changed,
+        TRUE
+    },
     {
         PROP_VXML_DEBUG,
         vxml_debug_changed,
@@ -3190,6 +3411,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_ENABLE_DHT,
 		enable_dht_changed,
+		FALSE,
+	},
+	{
+		PROP_ENABLE_G2,
+		enable_g2_changed,
 		FALSE,
 	},
 	{

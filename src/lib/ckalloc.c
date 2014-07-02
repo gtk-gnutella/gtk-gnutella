@@ -310,12 +310,13 @@ ckalloc(ckhunk_t *ck, size_t len, bool critical)
 
 	ckhunk_check(ck);
 	g_assert(size_is_positive(len));
-	g_assert(!ck->read_only);
 
 	if (NULL == ck)
 		return NULL;
 
-	/**
+	g_assert(!ck->read_only);
+
+	/*
 	 * FIXME: Don't increase the alignment, a single byte allocation
 	 *		  does not have be aligned by MEM_ALIGN_BYTES.
 	 */

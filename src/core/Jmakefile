@@ -23,12 +23,14 @@
  *----------------------------------------------------------------------
  */
 
+SetSubdirs(g2)
+DependSubdirs()
+
 SRC = \
 	alive.c \
 	ban.c \
 	bh_download.c \
 	bh_upload.c \
-	bitzi.c \
 	bogons.c \
 	bsched.c \
 	clock.c \
@@ -41,9 +43,15 @@ SRC = \
 	dump.c \
 	extensions.c \
 	features.c \
-	file_object.c \
 	fileinfo.c \
 	gdht.c \
+	gen-dmesh_url.c \
+	gen-gnr_stats.c \
+	gen-http_async.c \
+	gen-http_url.c \
+	gen-ignore.c \
+	gen-msg.c \
+	gen-msg_drop.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
@@ -137,13 +145,24 @@ OBJ = \
 /* Add the Socker flags */
 ++SOCKER_CFLAGS $sockercflags
 
+IF = ../if
+GNET_PROPS = gnet_property.h
+
 ;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
+CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+#define LinkGenInterface(file)		@!\
+LinkSourceFileAlias(file, $(IF)/gen, gen-file)
+
+LinkGenInterface(dmesh_url.c)
+LinkGenInterface(gnr_stats.c)
+LinkGenInterface(http_async.c)
+LinkGenInterface(http_url.c)
+LinkGenInterface(ignore.c)
+LinkGenInterface(msg.c)
+LinkGenInterface(msg_drop.c)
 
 RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
 NormalLibraryTarget(core, $(SRC), $(OBJ))

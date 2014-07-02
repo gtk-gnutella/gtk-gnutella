@@ -313,22 +313,6 @@ ignore_sha1_filename(const struct sha1 *sha1)
 }
 
 
-const char *
-ignore_reason_to_string(enum ignore_val reason)
-{
-	switch (reason) {
-	case IGNORE_OURSELVES:	return "Points to ourselves";
-	case IGNORE_HOSTILE:	return "Hostile IP";
-	case IGNORE_LIMIT:		return "Country limit";
-	case IGNORE_SHA1:		return "SHA1";
-	case IGNORE_SPAM:		return "Known Spam";
-	case IGNORE_LIBRARY:	return "Already Owned";
-	case IGNORE_NAMESIZE:	return "Name & Size";
-	case IGNORE_FALSE:		return "NOT ignored";
-	}
-	return NULL;
-}
-
 /**
  * Is ignoring requested for `filename' of size `size' and SHA1 `sha1'?
  * `filename' and `size' are only used if `sha1' is NULL.
@@ -337,20 +321,23 @@ ignore_reason_to_string(enum ignore_val reason)
  * @param size the filesize
  * @param sha1 must point to a SHA1 (binary) or NULL
  */
-enum ignore_val
+ignore_val_t
 ignore_is_requested(const char *filename, filesize_t size,
 	const struct sha1 *sha1)
 {
 	g_assert(filename != NULL);
 
 	if (sha1) {
-		const shared_file_t *sf;
+		shared_file_t *sf;
+		bool ignore;
 		if (htable_contains(by_sha1, sha1))
 			return IGNORE_SHA1;
 		if (spam_sha1_check(sha1))
 			return IGNORE_SPAM;
 		sf = shared_file_by_sha1(sha1);
-		if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf))
+		ignore = sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf);
+		shared_file_unref(&sf);
+		if (ignore)
 			return IGNORE_LIBRARY;
 	} else {
 		namesize_t ns;

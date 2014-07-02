@@ -45,11 +45,13 @@
 
 #include "dht/stable.h"
 
+#include "lib/array_util.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"			/* For uint32_hash() */
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
@@ -76,7 +78,6 @@ typedef enum {
 	NUM_HOSTILES
 } hostiles_t;
 
-static const char hostile[] = "hostile";
 static const char hostiles_file[] = "hostiles.txt";
 static const char * const hostiles_what[NUM_HOSTILES] = {
 	"hostile IP addresses (global)",
@@ -216,18 +217,15 @@ deserialize_spamdata(bstr_t *bs, void *valptr, size_t len)
 const char *
 hostiles_flags_to_string(const hostiles_flags_t flags)
 {
-	static str_t *s;
-
-	if G_UNLIKELY(NULL == s)
-		s = str_new_not_leaking(60);
+	str_t *s = str_private(G_STRFUNC, 60);
 
 	str_reset(s);
 
 #define LOGAS(fl,str) G_STMT_START {	\
 	if G_UNLIKELY(flags & (fl)) {		\
 		if G_LIKELY(0 != str_len(s))	\
-			str_cat(s, ", ");			\
-		str_cat(s, str);				\
+			STR_CAT(s, ", ");			\
+		STR_CAT(s, str);				\
 	}									\
 } G_STMT_END
 
@@ -257,6 +255,8 @@ hostiles_flags_to_string(const hostiles_flags_t flags)
 	LOGAS(HSTL_ODD_GUID,		"odd-GUID");
 	LOGAS(HSTL_BANNED_GUID,		"banned-GUID");
 	LOGAS(HSTL_BAD_VENDOR_CODE,	"vendor-code");
+	LOGAS(HSTL_GIBBERISH,		"gibberish");
+	LOGAS(HSTL_NON_UTF8,		"non-utf8");
 
 #undef LOGAS
 
@@ -609,9 +609,21 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 	struct hostiles_dynamic_entry4 *entry;
 
 	if (hash_list_find(hl_dynamic_ipv4, &ipv4, cast_to_void_ptr(&entry))) {
+		if (GNET_PROPERTY(ban_debug)) {
+			hostiles_flags_t added = flags & ~entry->he4_flags;
+
+			if (added != 0) {
+				char buf[HOST_ADDR_BUFLEN];
+				host_addr_to_string_buf(host_addr_get_ipv4(ipv4),
+					buf, sizeof buf);
+				g_info("dynamically added hostile flags: %s (%s)", buf,
+					hostiles_flags_to_string(added));
+			}
+		}
 		entry->relative_time = tm_relative_time();
 		entry->he4_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv4, entry);
+		entropy_harvest_single(VARLEN(entry->he4_flags));
 	} else {
 		entry = hostiles_dynamic_new4(ipv4, flags);
 		hash_list_append(hl_dynamic_ipv4, entry);
@@ -619,7 +631,9 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
-		if (GNET_PROPERTY(ban_debug) > 0) {
+		entropy_harvest_small(VARLEN(ipv4), VARLEN(flags), NULL);
+
+		if (GNET_PROPERTY(ban_debug)) {
 			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
@@ -637,9 +651,18 @@ hostiles_dynamic_add_ipv6(const uint8 *ipv6, hostiles_flags_t flags)
 	struct hostiles_dynamic_entry6 *entry;
 
 	if (hash_list_find(hl_dynamic_ipv6, ipv6, cast_to_void_ptr(&entry))) {
+		if (GNET_PROPERTY(ban_debug)) {
+			hostiles_flags_t added = flags & ~entry->he6_flags;
+
+			if (added != 0) {
+				g_info("dynamically added hostile flags: %s (%s)",
+					ipv6_to_string(ipv6), hostiles_flags_to_string(added));
+			}
+		}
 		entry->relative_time = tm_relative_time();
 		entry->he6_flags |= flags;
 		hash_list_moveto_tail(hl_dynamic_ipv6, entry);
+		entropy_harvest_single(VARLEN(entry->he6_flags));
 	} else {
 		entry = hostiles_dynamic_new6(ipv6, flags);
 		hash_list_append(hl_dynamic_ipv6, entry);
@@ -647,7 +670,9 @@ hostiles_dynamic_add_ipv6(const uint8 *ipv6, hostiles_flags_t flags)
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
 		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
-		if (GNET_PROPERTY(ban_debug) > 0) {
+		entropy_harvest_small(ipv6, 16, VARLEN(flags), NULL);
+
+		if (GNET_PROPERTY(ban_debug)) {
 			g_info("dynamically caught hostile: %s (%s)",
 				ipv6_to_string(ipv6), hostiles_flags_to_string(flags));
 		}
@@ -818,7 +843,8 @@ get_spamdata(const gnet_host_t *host)
 
 	if (NULL == sd) {
 		if (dbmw_has_ioerr(db_spam)) {
-			g_warning("DBMW \"%s\" I/O error", dbmw_name(db_spam));
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error", dbmw_name(db_spam));
 		}
 	}
 
@@ -850,6 +876,7 @@ hostiles_spam_add(const host_addr_t addr, uint16 port)
 			sd->create_time = sd->last_time = tm_time();
 		sd->hosts[0].port = port;
 		gnet_stats_inc_general(GNR_SPAM_IP_HELD);
+		entropy_harvest_small(VARLEN(addr), VARLEN(port), NULL);
 	} else {
 		int i;
 		bool found = FALSE;
@@ -924,19 +951,17 @@ spam_remove_port(struct spamdata *sd, const host_addr_t addr, uint16 port)
 	for (i = 0; i < sd->ports; i++) {
 		struct spamhost *sh = &sd->hosts[i];
 
-		if (port == sh->port) {
+		if G_UNLIKELY(port == sh->port) {
 			gnet_host_t host;
 
-			sd->ports--;
-			if (i < sd->ports) {
-				memmove(&sd->hosts[i], &sd->hosts[i+1],
-					sizeof(sd->hosts[0]) * (sd->ports - i));
-			}
+			ARRAY_REMOVE_DEC(sd->hosts, i, sd->ports);
+
 			if (GNET_PROPERTY(spam_debug) > 5) {
 				g_debug("SPAM removing port %u for host %s (%u port%s remain)",
 					port, host_addr_to_string(addr), sd->ports,
-					1 == sd->ports ? "" : "s");
+					plural(sd->ports));
 			}
+
 			gnet_host_set(&host, addr, 0);
 			dbmw_write(db_spam, &host, sd, sizeof *sd);
 			break;
@@ -1145,7 +1170,7 @@ hostiles_init(void)
 
 	db_spam = dbstore_open(db_spam_what, settings_gnet_db_dir(),
 		db_spam_base, kv, packing, SPAM_DB_CACHE_SIZE,
-		gnet_host_hash, gnet_host_eq, FALSE);
+		gnet_host_hash, gnet_host_equal, FALSE);
 
 	hostiles_spam_prune_old();
 

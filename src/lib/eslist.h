@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Embedded one-way list (within another data structure).
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #ifndef _eslist_h_
@@ -72,6 +72,8 @@ eslist_check(const eslist_t * const es)
 	g_assert(ESLIST_MAGIC == es->magic);
 }
 
+#define ESLIST_INIT(offset)		{ ESLIST_MAGIC, NULL, NULL, offset, 0 }
+
 static inline bool
 eslist_invariant(const eslist_t * const list)
 {
@@ -84,6 +86,15 @@ eslist_invariant(const eslist_t * const list)
 /**
  * Public interface.
  */
+
+/**
+ * @return whether the embedded list descriptor is non-zero.
+ */
+static inline bool
+eslist_is_initialized(const eslist_t * const es)
+{
+	return 0 != es->magic;		/* Initialized, not necessarily valid! */
+}
 
 /**
  * @return length of embedded list.
@@ -221,6 +232,7 @@ eslist_next_data(const eslist_t *list, const void *p)
 void eslist_init(eslist_t *list, size_t offset);
 void eslist_discard(eslist_t *list);
 void eslist_clear(eslist_t *list);
+void eslist_wfree(eslist_t *list, size_t size);
 
 void eslist_foreach(const eslist_t *list, data_fn_t cb, void *data);
 size_t eslist_foreach_remove(eslist_t *list, data_rm_fn_t cbr, void *data);
@@ -242,8 +254,14 @@ void eslist_sort(eslist_t *list, cmp_fn_t cmp);
 void eslist_insert_sorted_with_data(eslist_t *list, void *item,
 	cmp_data_fn_t cmp, void *data);
 void eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp);
+void *eslist_nth(const eslist_t *list, long n);
 void *eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n);
+void *eslist_random(const eslist_t *list);
 void eslist_shuffle(eslist_t *list);
+void eslist_shuffle_with(random_fn_t rf, eslist_t *list);
+
+void eslist_append_list(eslist_t *list, eslist_t *other);
+void eslist_prepend_list(eslist_t *list, eslist_t *other);
 
 #define ESLIST_FOREACH(slist, l) \
 	for ((l) = eslist_first(slist); NULL != (l); (l) = eslist_next(l))

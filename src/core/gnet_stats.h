@@ -31,7 +31,6 @@
 #include "if/dht/kademlia.h"
 
 void gnet_stats_init(void);
-uint32 gnet_stats_crc_reset(void);
 
 void gnet_stats_count_received_header(gnutella_node_t *n);
 void gnet_stats_count_received_payload(const gnutella_node_t *n, const void *);
@@ -53,5 +52,21 @@ void gnet_stats_max_general(gnr_stats_t type, uint64 value);
 void gnet_stats_set_general(gnr_stats_t type, uint64 value);
 uint64 gnet_stats_get_general(gnr_stats_t type);
 void gnet_stats_count_flowc(const void *, bool head_only);
+
+void gnet_stats_g2_count_flowc(const gnutella_node_t *n,
+	const void *base, size_t len);
+void gnet_stats_g2_count_queued(const gnutella_node_t *n,
+	const void *base, size_t len);
+
+enum g2_msg;
+
+void gnet_stats_g2_count_sent(const gnutella_node_t *n,
+	enum g2_msg type, uint32 size);
+
+struct sha1;
+
+void gnet_stats_tcp_digest(struct sha1 *digest);
+void gnet_stats_udp_digest(struct sha1 *digest);
+void gnet_stats_general_digest(struct sha1 *digest);
 
 #endif /* _core_gnet_stats_h_ */

@@ -30,16 +30,17 @@
 #include "share.h"
 #include "search.h"				/* For lazy_safe_search() */
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atomic.h"
+#include "lib/atoms.h"
 #include "lib/halloc.h"
 #include "lib/hset.h"
 #include "lib/pattern.h"
-#include "lib/random.h"
+#include "lib/pslist.h"
 #include "lib/stringify.h"	/* For hex_escape() */
 #include "lib/utf8.h"
-#include "lib/wordvec.h"
 #include "lib/walloc.h"
+#include "lib/wordvec.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -101,6 +102,7 @@ struct search_table {
 	struct st_bin all_entries;
 	uchar index_map[MAX_INT_VAL(uchar)];
 	uchar fold_map[MAX_INT_VAL(uchar)];
+	int refcnt;
 };
 
 static inline void
@@ -231,6 +233,7 @@ st_initialize(search_table_t *table)
 
 	search_table_check(table);
 
+	table->refcnt = 1;
 	table->nentries = table->nchars = 0;
 	setup_map();
 
@@ -285,14 +288,21 @@ st_recreate(search_table_t *table)
 }
 
 /**
- * Destroy a search table.
+ * Destroy a search table, if its reference count dropped to 0.
+ *
+ * @return TRUE if table was destroyed, FALSE if some reference still remains.
  */
-static void
+static bool
 st_destroy(search_table_t *table)
 {
 	int i;
 
 	search_table_check(table);
+
+	if (!atomic_int_dec_is_zero(&table->refcnt))
+		return FALSE;
+
+	g_assert(0 == table->refcnt);
 
 	if (table->bins) {
 		for (i = 0; i < table->nbins; i++) {
@@ -313,6 +323,8 @@ st_destroy(search_table_t *table)
 		}
 		bin_destroy(&table->all_entries);
 	}
+
+	return TRUE;
 }
 
 /**
@@ -332,19 +344,37 @@ st_create(void)
 }
 
 /**
- * Free search table, nullifying its pointer.
+ * Free search table (if no longer referenced), nullifying its pointer.
  */
 void
 st_free(search_table_t **ptr)
 {
-	g_assert(ptr);
+	g_assert(ptr != NULL);
+
 	if (*ptr) {
 		search_table_t *table = *ptr;
-		st_destroy(table);
-		table->magic = 0;
-		WFREE(table);
+		if (st_destroy(table)) {
+			table->magic = 0;
+			WFREE(table);
+		}
 		*ptr = NULL;
 	}
+}
+
+/**
+ * Add reference to the search table.
+ *
+ * To remove a reference on the table, call st_free().
+ *
+ * @return its argument.
+ */
+search_table_t *
+st_refcnt_inc(search_table_t *st)
+{
+	search_table_check(st);
+
+	atomic_int_inc(&st->refcnt);
+	return st;
 }
 
 /**
@@ -405,6 +435,8 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 	struct st_entry *entry;
 	hset_t *seen_keys;
 
+	search_table_check(table);
+
 	len = utf8_strlen(s);
 	if (len < 2)
 		return FALSE;
@@ -446,6 +478,8 @@ void
 st_compact(search_table_t *table)
 {
 	int i;
+
+	search_table_check(table);
 
 	if (!table->all_entries.nvals)
 		return;			/* Nothing in table */
@@ -556,7 +590,9 @@ st_search(
 	int scanned = 0;		/* measure search mask efficiency */
 	uint32 search_mask;
 	size_t minlen;
-	uint random_offset; 	 /* Randomizer for search returns */
+	pslist_t *result = NULL;
+
+	search_table_check(table);
 
 	search = UNICODE_CANONIZE(search_term);
 
@@ -641,7 +677,6 @@ st_search(
 
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
 
-
 	WALLOC0_ARRAY(pattern, wocnt);
 
 	/*
@@ -680,21 +715,22 @@ st_search(
 
 	vcnt = best_bin->nvals;
 	vals = best_bin->vals;
-	random_offset = random_value(vcnt - 1);
 
 	nres = 0;
 	for (i = 0; i < vcnt; i++) {
-		const struct st_entry *e;
-		shared_file_t *sf;
+		const struct st_entry *e = vals[i];
+		const shared_file_t *sf;
 		size_t canonic_len;
 
 		/*
-		 * As we only return a limited count of results, pick a random
-		 * offset, so that repeated searches will match different items
-		 * instead of always the first - with some probability.
+		 * As we only return a limited amount of results, we insert all the
+		 * matching entries in a list, which will then be randomly shuffled.
+		 * Only its leading items will be extracted.
+		 *
+		 * That strategy allows us to possibly return all the matching entries
+		 * when they repeat the search over time.
 		 */
-		e = vals[(i + random_offset) % vcnt];
-		
+
 		if ((e->mask & search_mask) != search_mask)
 			continue;		/* Can't match */
 
@@ -715,19 +751,38 @@ st_search(
 					search, shared_file_name_nfc(sf));
 			}
 
-			if ((*callback)(ctx, sf)) {
-				nres++;
-				if (nres >= max_res)
-					break;
-			}
+			result = pslist_prepend_const(result, sf);
+			nres++;
 		}
 	}
 
-	if (GNET_PROPERTY(matching_debug) > 3)
-		g_debug("MATCH st_search(): scanned %d entr%s from the %d in bin, "
-			"got %d match%s",
-			scanned, 1 == scanned ? "y" : "ies",
-			best_bin_size, nres, 1 == nres ? "" : "es");
+	if (GNET_PROPERTY(matching_debug) > 3) {
+		g_debug("MATCH %s(): "
+			"scanned %d entr%s from the %d in bin, got %d match%s",
+			G_STRFUNC, scanned, plural_y(scanned),
+			best_bin_size, nres, plural_es(nres));
+	}
+
+	/*
+	 * Randomly shuffle the results and pick the first max_res items.
+	 */
+
+	if (result != NULL) {
+		if (nres > max_res)
+			result = pslist_shuffle(result);
+
+		for (i = 0; i < UNSIGNED(max_res); /* empty */) {
+			const shared_file_t *sf = pslist_shift(&result);
+
+			if (NULL == sf)
+				break;
+
+			if ((*callback)(ctx, sf))
+				i++;						/* Entry retained */
+		}
+
+		pslist_free_null(&result);
+	}
 
 	for (i = 0; i < wocnt; i++)
 		if (pattern[i])					/* Lazily compiled by entry_match() */

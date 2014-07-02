@@ -35,6 +35,7 @@
 
 enum shell_reply {
 	REPLY_NONE		= 0,
+	REPLY_ASYNC		= 1,
 	REPLY_READY		= 100,
 	REPLY_ERROR		= 400,
 	REPLY_BYE		= 900
@@ -54,7 +55,7 @@ void shell_write_line(struct gnutella_shell *, int code, const char *);
 void shell_write_lines(struct gnutella_shell *, int code, const char *);
 void shell_write_linef(struct gnutella_shell *, int code, const char *, ...)
 	G_GNUC_PRINTF(3, 4);
-void shell_shutdown(struct gnutella_shell *);
+void shell_exit(struct gnutella_shell *);
 bool shell_toggle_interactive(struct gnutella_shell *);
 uint64 shell_line_count(struct gnutella_shell *);
 bool shell_request_library_rescan(void);
@@ -76,7 +77,7 @@ const char *shell_property_to_string(property_t prop);
 #define SHELL_SUMMARY_PROTO(name) \
 	const char *shell_summary_ ## name (void)
 
-#define SHELL_CMD(name) \
+#define SHELL_CMD(name,t) \
 	SHELL_EXEC_PROTO(name); \
 	SHELL_HELP_PROTO(name); \
 	SHELL_SUMMARY_PROTO(name);

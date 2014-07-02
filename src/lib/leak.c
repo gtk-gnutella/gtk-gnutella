@@ -42,9 +42,10 @@
 
 #include "common.h"
 
-#include "leak.h"
 #include "concat.h"
+#include "leak.h"
 #include "htable.h"
+#include "log.h"
 #include "stacktrace.h"		/* For struct stackatom, stack_hash(), stack_eq() */
 #include "stringify.h"
 #include "xmalloc.h"
@@ -80,7 +81,7 @@ leak_init(void)
 {
 	struct leak_set *ls;
 
-	XPMALLOC0(ls);
+	XMALLOC0(ls);
 	ls->magic = LEAK_SET_MAGIC;
 	ls->places = htable_create_real(HASH_KEY_STRING, 0);	/* No walloc() */
 	ls->stacks = htable_create_any_real(stack_hash, NULL, stack_eq);
@@ -164,7 +165,7 @@ leak_add(leak_set_t *ls, size_t size, const char *file, int line)
 		lr->size += size;
 		lr->count++;
 	} else {
-		XPMALLOC(lr);
+		XMALLOC(lr);
 		lr->size = size;
 		lr->count = 1;
 		htable_insert(ls->places, xstrdup(key), lr);
@@ -190,7 +191,7 @@ leak_stack_add(leak_set_t *ls, size_t size, const struct stackatom *sa)
 		lr->size += size;
 		lr->count++;
 	} else {
-		XPMALLOC(lr);
+		XMALLOC(lr);
 		lr->size = size;
 		lr->count = 1;
 		htable_insert(ls->stacks, sa, lr);
@@ -284,7 +285,7 @@ leak_dump(const leak_set_t *ls)
 	 * decreasing leak size.
 	 */
 
-	filler.leaks = xpmalloc(sizeof(struct leak) * count);
+	XMALLOC_ARRAY(filler.leaks, count);
 	filler.count = count;
 	filler.idx = 0;
 	filler.kt = LEAK_KEY_STACK;
@@ -296,15 +297,14 @@ leak_dump(const leak_set_t *ls)
 	 * Dump the leaks by allocation place.
 	 */
 
-	g_warning("leak summary by stackframe and total decreasing size:");
-	g_warning("distinct calling stacks found: %d", count);
+	s_warning("leak summary by stackframe and total decreasing size:");
+	s_warning("distinct calling stacks found: %d", count);
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
 		size_t avg = l->lr->size / (0 == l->lr->count ? 1 : l->lr->count);
-		g_warning("%zu bytes (%zu block%s, average %zu byte%s) from:",
-			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s",
-			avg, 1 == avg ? "" : "s");
+		s_warning("%zu bytes (%zu block%s, average %zu byte%s) from:",
+			l->lr->size, l->lr->count, plural(l->lr->count), avg, plural(avg));
 		stacktrace_atom_decorate(stderr, l->u.sa,
 			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
 	}
@@ -323,7 +323,7 @@ leaks_by_place:
 	 * decreasing leak size.
 	 */
 
-	filler.leaks = xpmalloc(sizeof(struct leak) * count);
+	XMALLOC_ARRAY(filler.leaks, count);
 	filler.count = count;
 	filler.idx = 0;
 	filler.kt = LEAK_KEY_PLACE;
@@ -335,15 +335,15 @@ leaks_by_place:
 	 * Dump the leaks by allocation place.
 	 */
 
-	g_warning("leak summary by origin and total decreasing size:");
-	g_warning("distinct allocation points found: %d", count);
+	s_warning("leak summary by origin and total decreasing size:");
+	s_warning("distinct allocation points found: %d", count);
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
 		size_t avg = l->lr->size / (0 == l->lr->count ? 1 : l->lr->count);
-		g_warning("%zu bytes (%zu block%s, average %zu byte%s) from \"%s\"",
-			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s",
-			avg, 1 == avg ? "" : "s", l->u.place);
+		s_warning("%zu bytes (%zu block%s, average %zu byte%s) from \"%s\"",
+			l->lr->size, l->lr->count, plural(l->lr->count),
+			avg, plural(avg), l->u.place);
 	}
 
 	xfree(filler.leaks);

@@ -221,7 +221,7 @@ pmsg_alloc(int prio, pdata_t *db, int roff, int woff)
  * Extended cloning of message, adds a free routine callback.
  */
 pmsg_t *
-pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, void *arg)
+pmsg_clone_extend(const pmsg_t *mb, pmsg_free_t free_cb, void *arg)
 {
 	pmsg_ext_t *nmb;
 
@@ -350,7 +350,7 @@ pmsg_clone_ext(pmsg_ext_t *mb)
  * is created (albeit the data are shared with the original message).
  */
 pmsg_t *
-pmsg_clone(pmsg_t *mb)
+pmsg_clone(const pmsg_t *mb)
 {
 	if (pmsg_is_extended(mb)) {
 		return pmsg_clone_ext(cast_to_pmsg_ext(mb));
@@ -365,6 +365,27 @@ pmsg_clone(pmsg_t *mb)
 
 		return nmb;
 	}
+}
+
+/**
+ * Shallow cloning of message, making sure we have a plain clone even if
+ * the original was extended.
+ */
+pmsg_t *
+pmsg_clone_plain(const pmsg_t *mb)
+{
+	pmsg_t *nmb;
+
+	pmsg_check_consistency(mb);
+
+	WALLOC(nmb);
+	memcpy(nmb, mb, sizeof *nmb);
+	nmb->magic = PMSG_MAGIC;		/* Force plain message */
+	nmb->m_flags &= ~PMSG_PF_EXT;	/* In case original was extended */
+	nmb->m_refcnt = 1;
+	pdata_addref(nmb->m_data);
+
+	return nmb;
 }
 
 /**

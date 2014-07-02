@@ -46,6 +46,26 @@
 #include "common.h"
 
 #include "alloca.h"
+#include "spinlock.h"
+
+/**
+ * Determine whether stack is growing upwards or backwards.
+ *
+ * @return +1 if stack is growing in the virtual address space, -1 otherwise.
+ */
+static int
+alloca_stack_direction_compute(void)
+{
+	static void *old_sp;
+	int sp;
+
+	if (NULL == old_sp) {
+		old_sp = &sp;
+		return alloca_stack_direction_compute();
+	} else {
+		return ptr_cmp(&sp, old_sp);
+	}
+}
 
 /**
  * Determine whether stack is growing upwards or backwards.
@@ -55,15 +75,20 @@
 int
 alloca_stack_direction(void)
 {
-	static void *old_sp;
-	int sp;
+	static int direction;
+	static spinlock_t alloca_slk = SPINLOCK_INIT;
 
-	if (NULL == old_sp) {
-		old_sp = &sp;
-		return alloca_stack_direction();
-	} else {
-		return ptr_cmp(&sp, old_sp);
-	}
+	if G_LIKELY(direction != 0)
+		return direction;
+
+	spinlock_hidden(&alloca_slk);
+
+	if (0 == direction)
+		direction = alloca_stack_direction_compute();
+
+	spinunlock_hidden(&alloca_slk);
+
+	return direction;
 }
 
 #ifdef EMULATE_ALLOCA

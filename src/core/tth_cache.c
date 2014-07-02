@@ -185,8 +185,7 @@ tth_cache_leave_count(const struct tth *tth, const filestat_t *sb)
 	g_return_val_if_fail(sb, 0);
 
 	if (!S_ISREG(sb->st_mode)) {
-		g_warning("tth_cache_leave_count(%s): Not a regular file",
-			tth_base32(tth));
+		g_warning("%s(%s): not a regular file", G_STRFUNC, tth_base32(tth));
 		return 0;
 	}
 	if (
@@ -194,7 +193,7 @@ tth_cache_leave_count(const struct tth *tth, const filestat_t *sb)
 		sb->st_size < TTH_RAW_SIZE ||
 		sb->st_size > TTH_MAX_LEAVES * TTH_RAW_SIZE
 	) {
-		g_warning("tth_cache_leave_count(%s): Bad filesize %s",
+		g_warning("%s(%s): bad filesize %s", G_STRFUNC,
 			tth_base32(tth), fileoffset_t_to_string(sb->st_size));
 		return 0;
 	}
@@ -328,8 +327,8 @@ tth_cache_get_tree(const struct tth *tth, filesize_t filesize,
 	}
 
 	if (tth_cache_file_exists(tth)) {
-		g_warning("tth_cache_get_tree(): Removing corrupted tigertree for %s",
-			tth_base32(tth));
+		g_warning("%s(): removing corrupted tigertree for %s",
+			G_STRFUNC, tth_base32(tth));
 		tth_cache_remove(tth);
 	}
 	return 0;

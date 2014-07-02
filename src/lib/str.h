@@ -85,6 +85,7 @@ str_t *str_new_from(const char *string);
 str_t *str_new_not_leaking(size_t szhint);
 str_t *str_new_in_chunk(struct ckhunk *ck, size_t size);
 str_t *str_new_in_buffer(void *buf, size_t len);
+str_t *str_private(const void *key, size_t szhint);
 str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
@@ -98,9 +99,11 @@ char *str_dup(str_t *str);
 str_t *str_clone(str_t *str);
 void str_reset(str_t *str);
 void str_grow(str_t *str, size_t size);
+void str_reserve(str_t *str, size_t len);
 void str_setlen(str_t *str, size_t len);
 void str_putc(str_t *str, char c);
 void str_cpy(str_t *str, const char *string);
+void str_cpy_len(str_t *str, const char *string, size_t len);
 void str_cat(str_t *str, const char *string);
 void str_cat_len(str_t *str, const char *string, size_t len);
 void str_ncat(str_t *str, const char *string, size_t len);
@@ -144,6 +147,27 @@ size_t str_bcatf(char *dst, size_t size, const char *fmt, ...)
 size_t str_vbcatf(char *dst, size_t size, const char *fmt, va_list args);
 
 size_t str_test(bool verbose);
+
+/*
+ * Macros to use with constant string arguments.
+ *
+ * STR_CONST_LEN() must be used with a manifest string (or there will be
+ * a compile-time error) and it returns the length of the C string at
+ * compile time.
+ *
+ * The appended "" in the macro is NOT an error and allows catching some
+ * improper usage, relying on compile-time string concatenation when the
+ * argument is a manifest string.  It will not catch improper usage like
+ * STR_CONST_LEN(v ? "a" : "bc") though.
+ *
+ * STR_CPY() and STR_CAT() are also intended to be used with manifest strings
+ * and issue the corresponding calls with the length of their string argument
+ * pre-computed at compile time.
+ */
+
+#define STR_CONST_LEN(p)	(sizeof(p "") - 1)
+#define STR_CPY(s, p)		str_cpy_len((s), (p), STR_CONST_LEN(p))
+#define STR_CAT(s, p)		str_cat_len((s), (p), STR_CONST_LEN(p))
 
 #endif /* _str_h_ */
 

@@ -137,8 +137,8 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 	tea_encrypt(&stg->keys[n], enc, block, sizeof block);
 
 	/*
-	 * If they gave contextual data, encrypt them by block of 8 bytes,
-	 * filling the last partial block with zeroes if needed.
+	 * If they gave contextual data, encrypt them by block of TEA_BLOCK_SIZE
+	 * bytes, filling the last partial block with zeroes if needed.
 	 */
 
 	if (data != NULL) {
@@ -149,10 +149,10 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 		STATIC_ASSERT(sizeof(denc) == sizeof(enc));
 
 		while (remain != 0) {
-			size_t fill = MIN(remain, 8U);
+			size_t fill = MIN(remain, TEA_BLOCK_SIZE);
 			unsigned i;
 
-			if (fill != 8U)
+			if (fill != TEA_BLOCK_SIZE)
 				ZERO(&block);
 
 			memcpy(block, q, fill);
@@ -269,22 +269,21 @@ sectoken_is_valid_with_context(sectoken_gen_t *stg,
  * Token key rotating event.
  */
 static void
-sectoken_rotate(cqueue_t *unused_cq, void *obj)
+sectoken_rotate(cqueue_t *cq, void *obj)
 {
 	size_t i;
 	sectoken_gen_t *stg = obj;
 
 	sectoken_gen_check(stg);
 
-	(void) unused_cq;
-
+	cq_zero(cq, &stg->rotate_ev);
 	stg->rotate_ev = cq_main_insert(stg->refresh * 1000, sectoken_rotate, stg);
 
 	for (i = 0; i < stg->keycnt - 1; i++)
 		stg->keys[i + 1] = stg->keys[i];
 
 	/* 0 is most recent key */
-	random_bytes(&stg->keys[0], sizeof(stg->keys[0]));
+	random_strong_bytes(&stg->keys[0], sizeof(stg->keys[0]));
 }
 
 /**
@@ -332,7 +331,7 @@ sectoken_gen_new(size_t keys, time_delta_t refresh)
 	stg->refresh = refresh;
 
 	for (i = 0; i < stg->keycnt; i++)
-		random_bytes(&stg->keys[i], sizeof(stg->keys[0]));
+		random_strong_bytes(&stg->keys[i], sizeof(stg->keys[0]));
 
 	stg->rotate_ev = cq_main_insert(refresh * 1000, sectoken_rotate, stg);
 

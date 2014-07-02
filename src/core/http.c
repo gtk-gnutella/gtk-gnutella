@@ -53,7 +53,6 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
@@ -62,6 +61,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -82,7 +82,7 @@
 
 http_url_error_t http_url_errno;	/**< Error from http_url_parse() */
 
-static GSList *sl_outgoing = NULL;	/**< To spot reply timeouts */
+static pslist_t *sl_outgoing = NULL;	/**< To spot reply timeouts */
 
 /**
  * Send HTTP status on socket, with code and reason.
@@ -866,33 +866,6 @@ http_parameter_get(const char *field, const char *name)
  *** HTTP URL parsing.
  ***/
 
-static const char * const parse_errstr[] = {
-	"OK",								/**< HTTP_URL_OK */
-	"Not an http URI",					/**< HTTP_URL_NOT_HTTP */
-	"More than one <user>:<password>",	/**< HTTP_URL_MULTIPLE_CREDENTIALS */
-	"Truncated <user>:<password>",		/**< HTTP_URL_BAD_CREDENTIALS */
-	"Could not parse port",				/**< HTTP_URL_BAD_PORT_PARSING */
-	"Port value is out of range",		/**< HTTP_URL_BAD_PORT_RANGE */
-	"Could not parse host",				/**< HTTP_URL_BAD_HOST_PART */
-	"Could not resolve host into IP",	/**< HTTP_URL_HOSTNAME_UNKNOWN */
-	"URL has no URI part",				/**< HTTP_URL_MISSING_URI */
-};
-
-/**
- * @return human-readable error string corresponding to error code `errnum'.
- */
-const char *
-http_url_strerror(http_url_error_t errnum)
-{
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr)) {
-		static char buf[40];
-		str_bprintf(buf, sizeof buf, "Invalid URL error code: %u", errnum);
-		return buf;
-	}
-
-	return parse_errstr[errnum];
-}
-
 /**
  * Parse HTTP url and extract the IP/port we need to connect to.
  * Also identifies the start of the path to request on the server.
@@ -1104,45 +1077,7 @@ http_content_range_parse(const char *buf,
  *** Asynchronous HTTP error code management.
  ***/
 
-static const char * const error_str[] = {
-	"OK",									/**< HTTP_ASYNC_OK */
-	"Invalid HTTP URL",						/**< HTTP_ASYNC_BAD_URL */
-	"Connection failed",					/**< HTTP_ASYNC_CONN_FAILED */
-	"I/O error",							/**< HTTP_ASYNC_IO_ERROR */
-	"Request too large",					/**< HTTP_ASYNC_REQ2BIG */
-	"Header too large",						/**< HTTP_ASYNC_HEAD2BIG */
-	"User cancel",							/**< HTTP_ASYNC_CANCELLED */
-	"Got EOF",								/**< HTTP_ASYNC_EOF */
-	"Unparseable HTTP status",				/**< HTTP_ASYNC_BAD_STATUS */
-	"Got moved status, but no location",	/**< HTTP_ASYNC_NO_LOCATION */
-	"Connection timeout",					/**< HTTP_ASYNC_CONN_TIMEOUT */
-	"Data timeout",							/**< HTTP_ASYNC_TIMEOUT */
-	"Nested redirection",					/**< HTTP_ASYNC_NESTED */
-	"Invalid URI in Location header",		/**< HTTP_ASYNC_BAD_LOCATION_URI */
-	"Connection was closed, all OK",		/**< HTTP_ASYNC_CLOSED */
-	"Redirected, following disabled",		/**< HTTP_ASYNC_REDIRECTED */
-	"Unparseable header value",				/**< HTTP_ASYNC_BAD_HEADER */
-	"Data too large",						/**< HTTP_ASYNC_DATA2BIG */
-	"Mandatory request not understood",		/**< HTTP_ASYNC_MAN_FAILURE */
-};
-
-uint http_async_errno;		/**< Used to return error codes during setup */
-
-/**
- * @return human-readable error string corresponding to error code `errnum'.
- */
-const char *
-http_async_strerror(uint errnum)
-{
-	if (errnum >= G_N_ELEMENTS(error_str)) {
-		static char buf[50];
-		str_bprintf(buf, sizeof buf,
-			"Invalid HTTP async error code: %u", errnum);
-		return buf;
-	}
-
-	return error_str[errnum];
-}
+http_async_error_t http_async_errno;	/**< Error codes during setup */
 
 /***
  *** Asynchronous HTTP transactions.
@@ -1187,8 +1122,8 @@ struct http_async {
 	void *user_opaque;				/**< User opaque data */
 	http_user_free_t user_free;		/**< Free routine for opaque data */
 	struct http_async *parent;		/**< Parent request, for redirections */
-	GSList *delayed;				/**< Delayed data (list of http_buffer_t) */
-	GSList *children;				/**< Child requests */
+	pslist_t *delayed;				/**< Delayed data (list of http_buffer_t) */
+	pslist_t *children;				/**< Child requests */
 	unsigned header_sent:1;			/**< Whether HTTP request header was sent */
 
 	/*
@@ -1230,7 +1165,7 @@ struct http_async {
  * All freed structures are enqueued in the sl_ha_freed list.
  */
 
-static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
+static pslist_t *sl_ha_freed = NULL;		/* Pending physical removal */
 
 static void http_async_connected(http_async_t *handle);
 
@@ -1289,11 +1224,9 @@ static struct socket_ops http_async_socket_ops = {
  */
 const char *
 http_async_info(
-	http_async_t *handle, const char **req, const char **path,
+	const http_async_t *ha, const char **req, const char **path,
 	host_addr_t *addr, uint16 *port)
 {
-	http_async_t *ha = handle;
-
 	http_async_check(ha);
 
 	if (req)  *req  = http_verb[ha->type];
@@ -1302,6 +1235,65 @@ http_async_info(
 	if (port) *port = ha->socket->port;
 
 	return ha->url;
+}
+
+/**
+ * @return the URL of the HTTP asynchronous request.
+ */
+const char *
+http_async_url(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->url;
+}
+
+/**
+ * @return the verb used for the HTTP asynchronous request.
+ */
+const char *
+http_async_verb(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return http_verb[ha->type];
+}
+
+/**
+ * @return path (along with the query part) of the HTTP asynchronous request.
+ */
+const char *
+http_async_path(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->path;
+}
+
+/**
+ * @return the address of the host for the HTTP asynchronous request.
+ *
+ * @attention
+ * May not be known until the connection is established if the name
+ * resolution is not completed.
+ */
+host_addr_t
+http_async_addr(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->socket->addr;
+}
+
+/**
+ * @return the port of the HTTP asynchronous request.
+ */
+uint16
+http_async_port(const http_async_t *ha)
+{
+	http_async_check(ha);
+
+	return ha->socket->port;
 }
 
 /**
@@ -1377,7 +1369,7 @@ http_async_option_ctl(http_async_t *ha, uint32 mask, http_ctl_op_t what)
 static void
 http_async_free_recursive(http_async_t *ha)
 {
-	GSList *l;
+	pslist_t *l;
 
 	http_async_check(ha);
 	g_assert(sl_outgoing);
@@ -1404,14 +1396,14 @@ http_async_free_recursive(http_async_t *ha)
 		ha->data = NULL;
 	}
 	if (ha->delayed != NULL) {
-		GSList *sl;
+		pslist_t *sl;
 
-		GM_SLIST_FOREACH(ha->delayed, sl) {
+		PSLIST_FOREACH(ha->delayed, sl) {
 			http_buffer_free(sl->data);
 		}
-		gm_slist_free_null(&ha->delayed);
+		pslist_free_null(&ha->delayed);
 	}
-	sl_outgoing = g_slist_remove(sl_outgoing, ha);
+	sl_outgoing = pslist_remove(sl_outgoing, ha);
 
 	/*
 	 * Recursively free the children requests.
@@ -1426,7 +1418,7 @@ http_async_free_recursive(http_async_t *ha)
 	ha->flags |= HA_F_FREED;		/* Will be freed later */
 	ha->state = HTTP_AS_REMOVED;	/* Don't notify about state change! */
 
-	sl_ha_freed = g_slist_prepend(sl_ha_freed, ha);
+	sl_ha_freed = pslist_prepend(sl_ha_freed, ha);
 }
 
 /**
@@ -1465,7 +1457,7 @@ http_async_free(http_async_t *ha)
 static void
 http_async_free_pending(void)
 {
-	GSList *l;
+	pslist_t *l;
 
 	for (l = sl_ha_freed; l; l = l->next) {
 		http_async_t *ha = l->data;
@@ -1478,7 +1470,7 @@ http_async_free_pending(void)
 		WFREE(ha);
 	}
 
-	gm_slist_free_null(&sl_ha_freed);
+	pslist_free_null(&sl_ha_freed);
 }
 
 /**
@@ -1906,14 +1898,14 @@ http_async_create(
 	ha->op_headsent = http_async_sent_head;
 	ha->op_gotreply = http_async_got_reply;
 
-	sl_outgoing = g_slist_prepend(sl_outgoing, ha);
+	sl_outgoing = pslist_prepend(sl_outgoing, ha);
 
 	/*
 	 * If request has a parent, insert in parent's children list.
 	 */
 
 	if (parent)
-		parent->children = g_slist_prepend(parent->children, ha);
+		parent->children = pslist_prepend(parent->children, ha);
 
 	return ha;
 }
@@ -2195,20 +2187,21 @@ http_async_subrequest(
 	 * Propagate any redefined operation.
 	 */
 
-	child->op_get_request = parent->op_get_request;
-	child->op_post_request = parent->op_post_request;
-	child->op_headsent = parent->op_headsent;
-	child->op_datasent = parent->op_datasent;
-	child->op_gotreply = parent->op_gotreply;
+	if (child != NULL) {
+		child->op_get_request = parent->op_get_request;
+		child->op_post_request = parent->op_post_request;
+		child->op_headsent = parent->op_headsent;
+		child->op_datasent = parent->op_datasent;
+		child->op_gotreply = parent->op_gotreply;
 
-	/*
-	 * Indicate that the child request now has control, the parent request
-	 * being only there to record the user's callbacks (and because it's the
-	 * only one known from the outside).
-	 */
+		/*
+		 * Indicate that the child request now has control, the parent request
+		 * being only there to record the user's callbacks (and because it's
+		 * the only one known from the outside).
+		 */
 
-	if (child)
 		parent->flags |= HA_F_SUBREQ;
+	}
 
 	return child != NULL;
 }
@@ -2600,11 +2593,11 @@ http_async_state(http_async_t *ha)
 	 */
 
 	if (ha->state == HTTP_AS_REDIRECTED) {
-		GSList *l;
+		pslist_t *l;
 
 		g_assert(ha->children);
 
-		for (l = ha->children; l; l = g_slist_next(l)) {
+		for (l = ha->children; l; l = pslist_next(l)) {
 			http_async_t *cha = l->data;
 
 			switch (cha->state) {
@@ -2741,7 +2734,7 @@ next_buffer:
 		 * holds the data.
 		 */
 
-		ha->delayed = g_slist_next(ha->delayed);
+		ha->delayed = pslist_next(ha->delayed);
 		if (ha->delayed != NULL) {
 			http_buffer_free(r);
 			goto next_buffer;
@@ -2822,7 +2815,7 @@ http_async_connected(http_async_t *ha)
 		g_assert(ha->delayed == NULL);
 
 		r = http_buffer_alloc(req, rw, sent);
-		ha->delayed = g_slist_append(ha->delayed, r);
+		ha->delayed = pslist_append(ha->delayed, r);
 
 		/*
 		 * For a POST we also have to send the data following the header.
@@ -2830,7 +2823,7 @@ http_async_connected(http_async_t *ha)
 
 		if (HTTP_POST == ha->type && ha->datalen != 0) {
 			r = http_buffer_alloc(ha->data, ha->datalen, 0);
-			ha->delayed = g_slist_append(ha->delayed, r);
+			ha->delayed = pslist_append(ha->delayed, r);
 		}
 
 		/*
@@ -2869,7 +2862,7 @@ http_async_connected(http_async_t *ha)
 			g_assert(ha->delayed == NULL);
 
 			r = http_buffer_alloc(ha->data, ha->datalen, sent);
-			ha->delayed = g_slist_append(ha->delayed, r);
+			ha->delayed = pslist_append(ha->delayed, r);
 
 			/*
 			 * Install the writing callback.
@@ -3318,8 +3311,7 @@ nextline:
 failed:
 	if (h != NULL)
 		header_free(h);
-	if (gl != NULL)
-		getline_free(gl);
+	getline_free(gl);
 	if (msg != NULL && ack_msg != NULL) {
 		hfree(*msg);
 		*msg = NULL;
@@ -3400,7 +3392,7 @@ static struct io_error http_io_error = {
 void
 http_timer(time_t now)
 {
-	GSList *l;
+	pslist_t *l;
 
 retry:
 	for (l = sl_outgoing; l; l = l->next) {
@@ -3479,7 +3471,7 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 		void *ha;
 
 		g_message("HTTP async wget of \"%s\" SUCCEEDED (%zu byte%s)",
-			url, len, 1 == len ? "" : "s");
+			url, len, plural(len));
 		g_debug("---- Begin HTTP Header ----");
 		header_dump(stderr, h, NULL);
 		g_debug("---- End HTTP Header ----");

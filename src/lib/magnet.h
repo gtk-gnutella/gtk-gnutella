@@ -39,6 +39,7 @@
 #include "lib/gnet_host.h"
 #include "lib/host_addr.h"
 #include "lib/misc.h"
+#include "lib/pslist.h"
 #include "lib/sequence.h"
 
 struct magnet_source {
@@ -48,7 +49,7 @@ struct magnet_source {
 	const struct sha1 *sha1;	/* SHA1 atom */
 	const struct tth *tth;		/* TTH atom */
 	const struct guid *guid;	/* GUID atom */
-	GSList *proxies;	/* List of walloc()ed (gnet_host_t *) */
+	pslist_t *proxies;	/* List of walloc()ed (gnet_host_t *) */
 	host_addr_t addr;
 	uint16 port;
 };
@@ -60,10 +61,11 @@ struct magnet_resource {
 	const char *parq_id;		/* string atom */
 	const char *vendor;			/* string atom */
 	const char *guid;			/* string atom */
-	GSList *sources;	/* List of walloc()ed (struct magnet_source *) */
-	GSList *searches;	/* List of string atoms */
+	pslist_t *sources;		/* List of walloc()ed (struct magnet_source *) */
+	pslist_t *searches;		/* List of string atoms */
 	filesize_t size;
 	unsigned dht:1;				/* DHT support for this source */
+	unsigned g2:1;				/* G2 support for this source */
 };
 
 struct magnet_resource *magnet_parse(const char *url, const char **error_str);
@@ -92,6 +94,7 @@ void magnet_add_sha1_source(struct magnet_resource *res,
 void magnet_set_parq_id(struct magnet_resource *res, const char *parq_id);
 void magnet_set_guid(struct magnet_resource *res, const char *guid);
 void magnet_set_dht(struct magnet_resource *res, bool dht_support);
+void magnet_set_g2(struct magnet_resource *res, bool g2);
 void magnet_set_vendor(struct magnet_resource *res, const char *vendor);
 char *magnet_proxies_to_string(const sequence_t *proxies);
 

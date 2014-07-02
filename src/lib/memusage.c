@@ -47,8 +47,10 @@
 #include "hashtable.h"
 #include "log.h"
 #include "misc.h"
-#include "str.h"
+#include "mutex.h"
+#include "spinlock.h"
 #include "stacktrace.h"
+#include "str.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "vsort.h"
@@ -101,6 +103,8 @@ struct memusage {
 	hash_table_t *recent_frees;		/**< Recent freeings */
 	hash_table_t *other_frees;		/**< For half-life management */
 	unsigned recursion;				/**< Recursion detection */
+	spinlock_t lock;				/**< Thread-safe statistics lock */
+	mutex_t tlock;					/**< Thread-safe table locks */
 };
 
 static inline void
@@ -141,6 +145,12 @@ memusage_is_valid(const memusage_t * const mu)
 	return mu != NULL && MEMUSAGE_MAGIC == mu->magic;
 }
 
+#define MEMUSAGE_LOCK(mu)		spinlock_hidden(&(mu)->lock)
+#define MEMUSAGE_UNLOCK(mu)		spinunlock_hidden(&(mu)->lock)
+
+#define MEMUSAGE_THREAD_LOCK(mu)	mutex_lock(&(mu)->tlock)
+#define MEMUSAGE_THREAD_UNLOCK(mu)	mutex_unlock(&(mu)->tlock)
+
 /**
  * Allocate a new memusage counter.
  */
@@ -149,7 +159,7 @@ memusage_counter_alloc(void)
 {
 	struct memusage_counter *mc;
 
-	mc = xpmalloc0(sizeof *mc);
+	XMALLOC0(mc);
 	mc->magic = MEMUSAGE_COUNTER_MAGIC;
 
 	return mc;
@@ -222,10 +232,14 @@ memusage_swap(memusage_t *mu)
 	}														\
 } G_STMT_END
 
+	MEMUSAGE_THREAD_LOCK(mu);
+
 	mu->recursion++;		/* Could allocate or free memory we track */
 	HT_SWAP(allocs);
 	HT_SWAP(frees);
 	mu->recursion--;
+
+	MEMUSAGE_THREAD_UNLOCK(mu);
 }
 
 /**
@@ -238,6 +252,8 @@ memusage_timer(void *data)
 	uint64 delta;
 
 	memusage_check(mu);
+
+	MEMUSAGE_LOCK(mu);
 
 	if (0 != mu->width) {
 		mu->allocation_bytes += mu->width *
@@ -268,6 +284,8 @@ memusage_timer(void *data)
 
 #undef COMPUTE
 
+	MEMUSAGE_UNLOCK(mu);
+
 	if (mu->allocs != NULL)
 		memusage_swap(mu);
 
@@ -290,11 +308,13 @@ memusage_alloc(const char *name, size_t width)
 	g_assert(name != NULL);
 	g_assert(size_is_non_negative(width));
 
-	mu = xpmalloc0(sizeof *mu);
+	XMALLOC0(mu);
 	mu->magic = MEMUSAGE_MAGIC;
-	mu->name = xpstrdup(name);
+	mu->name = xstrdup(name);
 	mu->width = width;
 	mu->timer_ev = cq_periodic_main_add(MEMUSAGE_PERIOD_MS, memusage_timer, mu);
+	spinlock_init(&mu->lock);
+	mutex_init(&mu->tlock);
 
 	return mu;
 }
@@ -338,9 +358,12 @@ memusage_free(memusage_t *mu)
 {
 	memusage_check(mu);
 
+	MEMUSAGE_THREAD_LOCK(mu);
 	memusage_trace_free(mu);
 	XFREE_NULL(mu->name);
 	cq_periodic_remove(&mu->timer_ev);
+	spinlock_destroy(&mu->lock);
+	mutex_destroy(&mu->tlock);
 	mu->magic = 0;
 	XFREE_NULL(mu);
 }
@@ -476,15 +499,19 @@ memusage_stacktrace(memusage_t *mu, size_t size, hash_table_t *all,
 static inline ALWAYS_INLINE void
 memusage_trace_allocs(memusage_t *mu, size_t size)
 {
+	MEMUSAGE_THREAD_LOCK(mu);
 	memusage_stacktrace(mu, size,
 		mu->allocs, mu->recent_allocs, mu->other_allocs);
+	MEMUSAGE_THREAD_UNLOCK(mu);
 }
 
 static inline ALWAYS_INLINE void
 memusage_trace_frees(memusage_t *mu, size_t size)
 {
+	MEMUSAGE_THREAD_LOCK(mu);
 	memusage_stacktrace(mu, size,
 		mu->frees, mu->recent_frees, mu->other_frees);
+	MEMUSAGE_THREAD_UNLOCK(mu);
 }
 
 /**
@@ -495,6 +522,7 @@ memusage_set_stack_accounting(memusage_t *mu, bool on)
 {
 	memusage_check(mu);
 
+	MEMUSAGE_THREAD_LOCK(mu);
 	if (on) {
 		if (NULL == mu->allocs) {
 			memusage_trace_allocate(mu);
@@ -504,6 +532,7 @@ memusage_set_stack_accounting(memusage_t *mu, bool on)
 			memusage_trace_free(mu);
 		}
 	}
+	MEMUSAGE_THREAD_UNLOCK(mu);
 }
 
 struct callframe {
@@ -626,13 +655,12 @@ memusage_sorted_frame_dump_log(logagent_t *la, const memusage_t *mu,
 	size_t all_count;
 
 	log_info(la, "Decreasing list of %zu %s%s for %s (%zu recursion%s):",
-		count, what, 1 == count ? "" : "s", name, recurses,
-		1 == recurses ? "" : "s");
+		count, what, plural(count), name, recurses, plural(recurses));
 
 	all_count = hash_table_size(all);
 
-	log_info(la, "Totaling %zu distinct stackrame%s", all_count,
-		1 == all_count ? "" : "s");
+	log_info(la, "Totaling %zu distinct stackrame%s",
+		all_count, plural(all_count));
 
 	event = (0 == mu->width) ? "size" : "calls";
 
@@ -666,6 +694,7 @@ memusage_frame_dump_log(const memusage_t *mu, logagent_t *la)
 {
 	struct callframe_filler filler;
 	const char *name;
+	memusage_t *wmu = deconstify_pointer(mu);
 
 	memusage_check(mu);
 
@@ -676,6 +705,8 @@ memusage_frame_dump_log(const memusage_t *mu, logagent_t *la)
 		log_warning(la, "No stackframe accounting enabled for %s", name);
 		return;
 	}
+
+	MEMUSAGE_THREAD_LOCK(wmu);
 
 	memusage_summary_dump_log(mu, la, 0);
 
@@ -688,6 +719,8 @@ memusage_frame_dump_log(const memusage_t *mu, logagent_t *la)
 	memusage_sorted_frame_dump_log(la, mu, name, "recent freeing",
 		filler.array, filler.count, mu->frees, mu->free_recursions);
 	xfree(filler.array);
+
+	MEMUSAGE_THREAD_UNLOCK(wmu);
 }
 
 /***
@@ -706,7 +739,9 @@ memusage_add_one(memusage_t *mu)
 	memusage_check(mu);
 	g_assert(0 != mu->width);
 
+	MEMUSAGE_LOCK(mu);
 	mu->allocations++;
+	MEMUSAGE_UNLOCK(mu);
 
 	if G_UNLIKELY(mu->allocs != NULL)
 		memusage_trace_allocs(mu, 0);
@@ -732,7 +767,9 @@ memusage_add_batch(memusage_t *mu, size_t count)
 	memusage_check(mu);
 	g_assert(0 != mu->width);
 
+	MEMUSAGE_LOCK(mu);
 	mu->allocations += count;
+	MEMUSAGE_UNLOCK(mu);
 }
 
 /**
@@ -747,8 +784,10 @@ memusage_add(memusage_t *mu, size_t size)
 	memusage_check(mu);
 	g_assert(0 == mu->width);
 
+	MEMUSAGE_LOCK(mu);
 	mu->allocations++;
 	mu->allocation_bytes += size;
+	MEMUSAGE_UNLOCK(mu);
 
 	if G_UNLIKELY(mu->allocs != NULL)
 		memusage_trace_allocs(mu, size);
@@ -766,10 +805,38 @@ memusage_remove_one(memusage_t *mu)
 	memusage_check(mu);
 	g_assert(0 != mu->width);
 
+	MEMUSAGE_LOCK(mu);
 	mu->freeings++;
+	MEMUSAGE_UNLOCK(mu);
 
 	if G_UNLIKELY(mu->frees != NULL)
 		memusage_trace_frees(mu, 0);
+}
+
+/**
+ * Record freeing of multiple constant-width objects.
+ */
+void
+memusage_remove_multiple(memusage_t *mu, size_t n)
+{
+	if G_UNLIKELY(NULL == mu)
+		return;
+
+	memusage_check(mu);
+	g_assert(0 != mu->width);
+
+	MEMUSAGE_LOCK(mu);
+	mu->freeings += n;
+	MEMUSAGE_UNLOCK(mu);
+
+	if G_UNLIKELY(mu->frees != NULL) {
+		MEMUSAGE_THREAD_LOCK(mu);
+		while (n-- != 0) {
+			memusage_stacktrace(mu, 0,
+				mu->frees, mu->recent_frees, mu->other_frees);
+		}
+		MEMUSAGE_THREAD_UNLOCK(mu);
+	}
 }
 
 /**
@@ -784,8 +851,10 @@ memusage_remove(memusage_t *mu, size_t size)
 	memusage_check(mu);
 	g_assert(0 == mu->width);
 
+	MEMUSAGE_LOCK(mu);
 	mu->freeings++;
 	mu->freeing_bytes += size;
+	MEMUSAGE_UNLOCK(mu);
 
 	if G_UNLIKELY(mu->frees != NULL)
 		memusage_trace_frees(mu, size);
@@ -802,6 +871,7 @@ memusage_summary_dump_log(const memusage_t *mu, logagent_t *la, unsigned opt)
 	char fast[SIZE_T_DEC_GRP_BUFLEN];
 	char medium[SIZE_T_DEC_GRP_BUFLEN];
 	char slow[SIZE_T_DEC_GRP_BUFLEN];
+	memusage_t *wmu = deconstify_pointer(mu);
 
 	memusage_check(mu);
 
@@ -821,6 +891,8 @@ memusage_summary_dump_log(const memusage_t *mu, logagent_t *la, unsigned opt)
 } G_STMT_END
 
 #define MSIGN(x) (mu->alloc_##x##_ema > mu->free_##x##_ema ? '+' : '-')
+
+	MEMUSAGE_THREAD_LOCK(wmu);
 
 	COMPUTE(fast);
 	COMPUTE(medium);
@@ -847,6 +919,8 @@ memusage_summary_dump_log(const memusage_t *mu, logagent_t *la, unsigned opt)
 			(opt & DUMP_OPT_PRETTY) ?
 				uint64_to_gstring(blocks) : uint64_to_string(blocks));
 	}
+
+	MEMUSAGE_THREAD_UNLOCK(wmu);
 
 #undef COMPUTE
 #undef MSIGN

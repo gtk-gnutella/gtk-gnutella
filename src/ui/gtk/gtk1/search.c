@@ -37,7 +37,6 @@
 
 #include "search_cb.h"
 
-#include "gtk/bitzi.h"
 #include "gtk/columns.h"
 #include "gtk/drag.h"
 #include "gtk/misc.h"
@@ -129,7 +128,7 @@ remove_parent_with_sha1(search_t *search, const struct sha1 *sha1)
 		/* Then remove the key */
 		htable_remove(search->parents, key);
 	} else
-		g_warning("remove_parent_with_sha1: can't find sha1 in hash table!");
+		g_warning("%s(): can't find sha1 in hash table!", G_STRFUNC);
 
 	atom_sha1_free(key);
 }
@@ -274,7 +273,7 @@ search_gui_init_tree(search_t *search)
     row = gtk_clist_append(GTK_CLIST(clist_search()), (gchar **) titles);
     gtk_clist_set_row_data(GTK_CLIST(clist_search()), row, search);
 
-	search_gui_sort_column(search, search->sort_col);
+	search_gui_sort_column(search, search->sorting.s_column);
 }
 
 
@@ -369,9 +368,6 @@ search_gui_compare_records(gint sort_col,
             result = CMP(rs1->country, rs2->country);
             break;
 
-        case c_sr_meta:
-			break;				/* XXX Can't sort, metadata not in record! */
-			
         case c_sr_route:
 			result = host_addr_cmp(rs1->last_hop, rs2->last_hop);
 			break;
@@ -948,7 +944,7 @@ search_gui_sort_column(search_t *search, gint column)
     }
 
     /* create new arrow */
-    switch (search->sort_order) {
+    switch (search->sorting.s_order) {
     case SORT_ASC:
         search->arrow = create_pixmap(gui_main_window(), "arrow_down.xpm");
 		ascending = TRUE;
@@ -964,7 +960,7 @@ search_gui_sort_column(search_t *search, gint column)
     }
 
     /* display arrow if necessary and set sorting parameters*/
-    if (search->sort_order != SORT_NONE) {
+    if (search->sorting.s_order != SORT_NONE) {
         cw = gtk_clist_get_column_widget(GTK_CLIST(search->tree), column);
         if (cw != NULL) {
             gtk_box_pack_start(GTK_BOX(cw), search->arrow,
@@ -978,27 +974,6 @@ search_gui_sort_column(search_t *search, gint column)
 	} else {
         search->sort = FALSE;
     }
-}
-
-/**
- * Add available Bitzi metadata to a parent node.
- */
-static void
-search_parent_add_metadata(GtkCTree *ctree, GtkCTreeNode *parent, record_t *rc)
-{
-	if (guc_bitzi_has_cached_ticket(rc->sha1)) {
-		bitzi_data_t data;
-
-		if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
-			char *text = bitzi_gui_get_metadata(&data);
-			gtk_ctree_node_set_text(ctree, parent, c_sr_meta,
-				text != NULL ? text : _("Not in database"));
-			HFREE_NULL(text);
-		} else {
-			gtk_ctree_node_set_text(ctree, parent, c_sr_meta,
-				_("Not in database"));
-		}
-	}
 }
 
 /**
@@ -1111,7 +1086,6 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 					text = timestamp_to_string(rc->create_time);
 				}
 				break;
-			case c_sr_meta:
 	 		case c_sr_size:
 	 		case c_sr_count:
 				break;
@@ -1210,7 +1184,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 		 * moving the parent will move the children too so we just pretend that
 		 * the parent node was actually the node that was added, not the child.
 		 */
-		if (!is_parent && (c_sr_count == sch->sort_col)) {
+		if (!is_parent && (c_sr_count == sch->sorting.s_column)) {
 			is_parent = TRUE;
 			parent_row = GTK_CTREE_ROW(node);
 			auto_node = parent_row->parent;
@@ -1242,13 +1216,19 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				if (grc1 == grc2)
 					continue;
 
-				if (SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
+				if (SORT_ASC == sch->sorting.s_order) {
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) < 0
+					) {
 						sibling = cur_node;
 						break;
 					}
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, grc1, grc2) > 0){
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) > 0
+					){
 						sibling = cur_node;
 						break;
 					}
@@ -1269,13 +1249,19 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 
 				grc2 = gtk_ctree_node_get_row_data(ctree, cur_node);
 
-				if (SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
+				if (SORT_ASC == sch->sorting.s_order) {
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) < 0
+					){
 						sibling = cur_node;
 						break;
 					}
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, grc1, grc2) > 0){
+					if (
+						search_gui_compare_records(
+							sch->sorting.s_column, grc1, grc2) > 0
+					){
 						sibling = cur_node;
 						break;
 					}
@@ -1289,15 +1275,6 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 	gtk_ctree_node_set_foreground(ctree, node, gui_color_get(color));
 	gtk_ctree_node_set_background(ctree, node,
 		gui_color_get(GUI_COLOR_BACKGROUND));
-
-	/*
-	 * If we inserted a parent node and we have Bitzi metadata available,
-	 * display it as well.
-	 */
-
-	if (is_parent && rc->sha1 != NULL) {
-		search_parent_add_metadata(ctree, node, rc);
-	}
 }
 
 /**
@@ -1377,11 +1354,6 @@ search_gui_remove_result(struct search *search, GtkCTreeNode *node)
 			} else {
 				*tmpstr = '\0';
             }
-
-			/* Display Bitzi metadata again if available */
-			if (rc->sha1 != NULL) {
-				search_parent_add_metadata(ctree, child_node, rc);
-			}
 
 			/* Update record count, child_rc will become the rc for the parent*/
 			child_grc->num_children = n;
@@ -1464,7 +1436,7 @@ search_resort_required(struct search *search, GtkCTreeNode *node)
 	 *     -- Richard, 17/04/2004
 	 */
 
-	if (c_sr_count != search->sort_col)
+	if (c_sr_count != search->sorting.s_column)
 		return FALSE;
 
 	row = GTK_CTREE_ROW(node);
@@ -1580,7 +1552,7 @@ discard_selection_of_ctree(struct search *search)
 	}
 
 	if (resort) {
-		search_gui_sort_column(search, search->sort_col);
+		search_gui_sort_column(search, search->sorting.s_column);
 	}
 
 	gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
@@ -1959,81 +1931,6 @@ search_gui_end_massive_update(struct search *search)
 
 	search->frozen = FALSE;
 	gtk_clist_thaw(GTK_CLIST(search->tree));
-}
-
-/**
- * Update the search displays with the correct meta-data
- *
- */
-void
-search_gui_metadata_update(const bitzi_data_t *data)
-{
-    const GList *iter;
-    gchar *text;
-
-	text = bitzi_gui_get_metadata(data);
-
-	/*
-	 * Fill in the columns in each search that contains a reference
-	 */
-
-	iter = search_gui_get_searches();
-	for (/* NOTHING */; NULL != iter; iter = g_list_next(iter)) {
-		search_t *search = iter->data;
-		GtkCTree *ctree = GTK_CTREE(search->tree);
-    	GtkCTreeNode *parent;
-
-		parent = find_parent_with_sha1(search, data->sha1);
-		if (parent) {
-			gui_record_t *grc;
-			record_t *record;
-
-			gtk_ctree_node_set_text(ctree, parent,
-					c_sr_meta, text ? text : _("Not in database"));
-			grc = gtk_ctree_node_get_row_data(ctree, parent);
-			record = grc->shared_record;
-			if (search_gui_item_is_inspected(record)) {
-				search_gui_set_bitzi_metadata(record);
-				search_gui_set_details(record);
-			}
-		}
-	}
-
-	HFREE_NULL(text);
-}
-
-/**
- * Update the search displays with the correct meta-data.
- * (called from search_cb.c)
- */
-void
-search_gui_queue_bitzi_by_sha1(const record_t *rec)
-{
-	const GList *iter;
-	GtkCTreeNode *parent;
-
-	g_assert(rec != NULL);
-
-	if (!rec->sha1)
-		return;
-
-	/*
-	 * Add some feedback that a search has been kicked off.
-	 */
-
-	iter = search_gui_get_searches();
-	for (/* NOTHING */; NULL != iter; iter = g_list_next(iter)) {
-		search_t *search = iter->data;
-		GtkCTree *ctree = GTK_CTREE(search->tree);
-
-		parent = find_parent_with_sha1(search, rec->sha1);
-		if (parent)
-			gtk_ctree_node_set_text(ctree, parent, c_sr_meta,
-					_("Query queued..."));
-	}
-
-	/* and then send the query... */
-	guc_query_bitzi_by_sha1(rec->sha1, rec->size, TRUE);
 }
 
 record_t *

@@ -38,6 +38,12 @@ src/lib/float-dragon.out
 # Sort algorithm tests
 src/lib/sort-test
 
+# Random number tests
+src/lib/random-test
+
+# Thread tests
+src/lib/thread-test
+
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
 
@@ -63,6 +69,11 @@ src/bin/sha1sum
 
 # Generated from template
 osx/Info-gtk-gnutella.plist
+
+# Hard-linked files from if/gen
+src/core/gen-*.c
+src/xml/gen-*.c
+src/lib/gen-*.c
 
 /po/*.gmo
 /po/stamp-po

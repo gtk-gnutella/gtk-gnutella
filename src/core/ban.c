@@ -52,6 +52,8 @@
 #include "common.h"
 
 #include "ban.h"
+
+#include "gnet_stats.h"
 #include "sockets.h"		/* For socket_register_fd_reclaimer() */
 #include "token.h"
 #include "whitelist.h"
@@ -59,9 +61,13 @@
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fd.h"
+#include "lib/fifo.h"
 #include "lib/file.h"		/* For file_register_fd_reclaimer() */
 #include "lib/hevset.h"
 #include "lib/misc.h"
+#include "lib/parse.h"
+#include "lib/spinlock.h"
+#include "lib/stringify.h"	/* For plural() */
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -293,11 +299,10 @@ ban_free(struct ban *b)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-ipf_destroy(cqueue_t *unused_cq, void *obj)
+ipf_destroy(cqueue_t *cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 
-	(void) unused_cq;
 	addr_info_check(ipf);
 	g_assert(!ipf->banned);
 
@@ -307,7 +312,7 @@ ipf_destroy(cqueue_t *unused_cq, void *obj)
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	hevset_remove(ipf->owner->info, &ipf->addr);
-	ipf->cq_ev = NULL;
+	cq_zero(cq, &ipf->cq_ev);
 	ipf_free(ipf);
 }
 
@@ -315,18 +320,18 @@ ipf_destroy(cqueue_t *unused_cq, void *obj)
  * Called from callout queue when it's time to unban the IP.
  */
 static void
-ipf_unban(cqueue_t *unused_cq, void *obj)
+ipf_unban(cqueue_t *cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 	time_t now = tm_time();
 	int delay;
 	float decay_coeff;
 
-	(void) unused_cq;
 	addr_info_check(ipf);
 	g_assert(ipf->banned);
 	ban_check(ipf->owner);
 
+	cq_zero(cq, &ipf->cq_ev);
 	decay_coeff = ipf->owner->decay_coeff;
 
 	/*
@@ -360,7 +365,6 @@ ipf_unban(cqueue_t *unused_cq, void *obj)
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 		hevset_remove(ipf->owner->info, &ipf->addr);
-		ipf->cq_ev = NULL;
 		ipf_free(ipf);
 		return;
 	}
@@ -563,14 +567,18 @@ ban_record(const host_addr_t addr, const char *msg)
 
 #define SOCK_BUFFER		512				/**< Reduced socket buffer */
 
-static GList *banned_head = NULL;
-static GList *banned_tail = NULL;
+static fifo_t *banned_fds;
+static spinlock_t banned_fds_slk = SPINLOCK_INIT;
+
+#define BANNED_FDS_LOCK			spinlock(&banned_fds_slk)
+#define BANNED_FDS_UNLOCK		spinunlock(&banned_fds_slk)
+#define BANNED_FDS_IS_LOCKED	spinlock_is_held(&banned_fds_slk)
 
 static void
 ban_close_fd(void **data_ptr)
 {
 	void *data = *data_ptr;
-	int fd = GPOINTER_TO_INT(data);
+	int fd = pointer_to_int(data);
 
 	g_assert(is_valid_fd(fd));
 	g_assert(fd > STDERR_FILENO);	/* fd 0-2 are not used for sockets */
@@ -579,7 +587,7 @@ ban_close_fd(void **data_ptr)
 		g_debug("closing BAN fd #%d", fd);
 	}
 	fd_close(&fd);	/* Reclaim fd */
-	*data_ptr = GINT_TO_POINTER(-1);
+	*data_ptr = int_to_pointer(-1);
 }
 
 /**
@@ -592,25 +600,45 @@ ban_close_fd(void **data_ptr)
 static bool
 reclaim_fd(void)
 {
-	GList *prev;
+	void *fd;
 
-	if (banned_tail == NULL) {
-		g_assert(banned_head == NULL);
+	g_assert(BANNED_FDS_IS_LOCKED);
+
+	fd = fifo_remove(banned_fds);
+
+	if (NULL == fd) {
 		g_assert(GNET_PROPERTY(banned_count) == 0);
 		return FALSE;					/* Empty list */
 	}
 
-	g_assert(banned_head != NULL);
 	g_assert(GNET_PROPERTY(banned_count) > 0);
 
-	ban_close_fd(&banned_tail->data);
-
-	prev = g_list_previous(banned_tail);
-	banned_head = g_list_remove_link(banned_head, banned_tail);
-	g_list_free_1(banned_tail);
-	banned_tail = prev;
-
+	ban_close_fd(&fd);
 	gnet_prop_decr_guint32(PROP_BANNED_COUNT);
+
+	/*
+	 * Don't assert that:
+	 *
+	 * 	fifo_count(banned_fds) == GNET_PROPERTY(banned_count)
+	 *
+	 * at this stage because the compiler does not know that the call to
+	 * gnet_prop_decr_guint32(PROP_BANNED_COUNT) will actually modify the
+	 * value of GNET_PROPERTY(banned_count) and it can generate bad code.
+	 *
+	 * To make it work, we need to fetch the property value through
+	 * the gnet_prop_get_guint32_val() interface.
+	 *		--RAM, 2013-12-29
+	 */
+
+	{
+		uint32 banned_count;
+
+		gnet_prop_get_guint32_val(PROP_BANNED_COUNT, &banned_count);
+
+		g_assert_log(fifo_count(banned_fds) == banned_count,
+			"fifo_count=%u, banned_count=%u",
+			fifo_count(banned_fds), banned_count);
+	}
 
 	return TRUE;
 }
@@ -632,6 +660,8 @@ ban_reclaim_fd(void)
 {
 	bool reclaimed;
 
+	BANNED_FDS_LOCK;
+
 	reclaimed = reclaim_fd();
 
 	/*
@@ -643,6 +673,8 @@ ban_reclaim_fd(void)
 		gnet_prop_set_boolean_val(PROP_FILE_DESCRIPTOR_SHORTAGE, TRUE);
 	else
 		gnet_prop_set_boolean_val(PROP_FILE_DESCRIPTOR_RUNOUT, TRUE);
+
+	BANNED_FDS_UNLOCK;
 
 	return reclaimed;
 }
@@ -661,14 +693,6 @@ ban_force(struct gnutella_socket *s)
 	fd = s->file_desc;
 	g_return_if_fail(is_valid_fd(fd));
 	g_return_if_fail(fd > STDERR_FILENO); /* fd 0-2 are not used for sockets */
-
-	if (GNET_PROPERTY(banned_count) >= GNET_PROPERTY(max_banned_fd)) {
-		g_assert(banned_tail);
-		g_assert(GNET_PROPERTY(max_banned_fd) <= 1 ||
-			banned_tail != banned_head);
-
-		reclaim_fd();
-	}
 
 	/* Ensure we're not listening to I/O events anymore. */
 	socket_evt_clear(s);
@@ -692,11 +716,47 @@ ban_force(struct gnutella_socket *s)
 	 * Insert banned fd in the list.
 	 */
 
-	banned_head = g_list_prepend(banned_head, GINT_TO_POINTER(fd));
-	if (banned_tail == NULL)
-		banned_tail = banned_head;
+	BANNED_FDS_LOCK;
+
+	g_assert_log(fifo_count(banned_fds) == GNET_PROPERTY(banned_count),
+		"fifo_count=%u, banned_count=%u",
+		fifo_count(banned_fds), GNET_PROPERTY(banned_count));
+
+	while (fifo_count(banned_fds) >= GNET_PROPERTY(max_banned_fd)) {
+		if (!reclaim_fd())
+			break;
+	}
+
+	fifo_put(banned_fds, int_to_pointer(fd));
 
 	gnet_prop_incr_guint32(PROP_BANNED_COUNT);
+	gnet_stats_inc_general(GNR_BANNED_FDS_TOTAL);
+
+	/*
+	 * Don't assert that:
+	 *
+	 * 	fifo_count(banned_fds) == GNET_PROPERTY(banned_count)
+	 *
+	 * at this stage because the compiler does not know that the call to
+	 * gnet_prop_incr_guint32(PROP_BANNED_COUNT) will actually modify the
+	 * value of GNET_PROPERTY(banned_count) and it generates bad code.
+	 *
+	 * To make it work, we need to fetch the property value through
+	 * the gnet_prop_get_guint32_val() interface.
+	 *		--RAM, 2013-12-29
+	 */
+
+	{
+		uint32 banned_count;
+
+		gnet_prop_get_guint32_val(PROP_BANNED_COUNT, &banned_count);
+
+		g_assert_log(fifo_count(banned_fds) == banned_count,
+			"fifo_count=%u, banned_count=%u",
+			fifo_count(banned_fds), banned_count);
+	}
+
+	BANNED_FDS_UNLOCK;
 }
 
 /**
@@ -775,6 +835,7 @@ ban_init(void)
 	ban_object[BAN_CAT_OOB_CLAIM] = ban_make(BAN_CAT_OOB_CLAIM, BAN_DELAY,
 		MAX_OOB_REQUEST, MAX_OOB_PERIOD, MAX_OOB_BAN, 0);
 
+	banned_fds = fifo_make();
 	ban_max_recompute();
 	file_register_fd_reclaimer(ban_reclaim_fd);
 	socket_register_fd_reclaimer(ban_reclaim_fd);
@@ -794,7 +855,7 @@ ban_max_recompute(void)
 
 	if (GNET_PROPERTY(ban_debug))
 		g_info("will use at most %d file descriptor%s for banning",
-			max, max == 1 ? "" : "s");
+			max, plural(max));
 
 	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);
 
@@ -803,10 +864,24 @@ ban_max_recompute(void)
 	 * than the new maximum allowed.
 	 */
 
+	BANNED_FDS_LOCK;
+
 	while (GNET_PROPERTY(banned_count) > max) {
 		if (!reclaim_fd())
 			break;
 	}
+
+	BANNED_FDS_UNLOCK;
+}
+
+static void
+ban_fifo_fd_free(void *data, void *unused)
+{
+	int fd = pointer_to_int(data);
+
+	(void) unused;
+
+	fd_close(&fd);
 }
 
 /**
@@ -815,18 +890,13 @@ ban_max_recompute(void)
 G_GNUC_COLD void
 ban_close(void)
 {
-	GList *l;
 	int n;
 
 	for (n = 0; n < BAN_CAT_COUNT; n++) {
 		ban_free(ban_object[n]);
 	}
 
-	for (l = banned_head; NULL != l; l = g_list_next(l)) {
-		ban_close_fd(&l->data); /* Reclaim fd */
-	}
-
-	gm_list_free_null(&banned_head);
+	fifo_free_all_null(&banned_fds, ban_fifo_fd_free, NULL);
 	cq_free_null(&ban_cq);
 }
 
@@ -873,22 +943,19 @@ ban_vendor(const char *vendor)
 	 * network is far from being mature, and we need to ensure newer
 	 * features are deployed reasonably quickly.
 	 *		--RAM, 03/01/2002.
+	 *
+	 * As of 2014-06-16, any version older than 0.98 is deemed harmful to
+	 * the network, since they are too ancient.
 	 */
 
 	if (gtkg_version) {
-		static const char * const versions[] = {
-			"0.90",
-			"0.91u",
-			"0.92b",
-			"0.93",
-			"0.94",
-		};
-		uint i;
+		uint major, minor;
 
-		for (i = 0; i < G_N_ELEMENTS(versions); i++) {
-			if (is_strprefix(gtkg_version, versions[i]))
-				return harmful;
-		}
+		if (0 != parse_major_minor(gtkg_version, NULL, &major, &minor))
+			return refused;			/* Cannot parse */
+
+		if (0 == major && minor <= 97)
+			return harmful;			/* Too old */
 
 		return NULL;
 	}

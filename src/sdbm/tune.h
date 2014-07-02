@@ -14,6 +14,7 @@
 #define LRU				/* use LRU cache for pages */
 #define LRU_PAGES	64	/* default amount of pages in LRU cache */
 #define BIGDATA			/* can store large keys/values */
+#define THREADS			/* thread-safe */
 
 /*
  * misc

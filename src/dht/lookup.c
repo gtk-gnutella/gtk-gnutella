@@ -36,17 +36,18 @@
 #include <math.h>		/* For log() */
 
 #include "lookup.h"
+
 #include "acct.h"
-#include "kuid.h"
+#include "keys.h"
 #include "kmsg.h"
+#include "kuid.h"
+#include "publish.h"
+#include "revent.h"
 #include "roots.h"
 #include "routing.h"
 #include "rpc.h"
-#include "keys.h"
-#include "token.h"
-#include "revent.h"
-#include "publish.h"
 #include "tcache.h"
+#include "token.h"
 
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
@@ -55,17 +56,19 @@
 
 #include "lib/bstr.h"
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/htable.h"
 #include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
+#include "lib/plist.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
@@ -123,7 +126,7 @@ static htable_t *nlookups;
 static void lookup_iterate(nlookup_t *nl);
 static void lookup_value_free(nlookup_t *nl, bool free_vvec);
 static void lookup_value_iterate(nlookup_t *nl);
-static void lookup_value_expired(cqueue_t *unused_cq, void *obj);
+static void lookup_value_expired(cqueue_t *cq, void *obj);
 static void lookup_value_delay(nlookup_t *nl);
 static void lookup_requery(nlookup_t *nl, const knode_t *kn);
 
@@ -165,7 +168,7 @@ struct seckeys {
 struct fvalue {
 	dht_value_t **vvec;			/**< Read expanded DHT values */
 	cevent_t *delay_ev;			/**< Delay event for retries */
-	GSList *seckeys;			/**< List of "struct seckeys *" */
+	pslist_t *seckeys;			/**< List of "struct seckeys *" */
 	map_t *seen;				/**< Publisher KUID => closest KUID holding */
 	map_t *values;				/**< All DHT values, to avoid duplicates */
 	float load;					/**< Reported request load on key (summed) */
@@ -666,7 +669,7 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, uint level)
 
 	count = patricia_count(pt);
 	g_debug("DHT LOOKUP[%s] %s contains %zu item%s:",
-		nid_to_string(&nl->lid), what, count, 1 == count ? "" : "s");
+		nid_to_string(&nl->lid), what, count, plural(count));
 
 	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
 
@@ -675,7 +678,7 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, uint level)
 
 		knode_check(kn);
 
-		if (GNET_PROPERTY(dht_lookup_debug) > level)
+		if (GNET_PROPERTY(dht_lookup_debug) >= level)
 			g_debug("DHT LOOKUP[%s] %s[%d]: %s",
 				nid_to_string(&nl->lid), what, i, knode_to_string(kn));
 		i++;
@@ -704,7 +707,7 @@ lookup_final_stats(const nlookup_t *nl)
 			tm_elapsed_f(&end, &nl->start),
 			nl->hops, (unsigned) patricia_count(nl->path),
 			nl->bw_incoming, nl->bw_outgoing,
-			nl->rpc_replies, 1 == nl->rpc_replies ? "y" : "ies");
+			nl->rpc_replies, plural_y(nl->rpc_replies));
 
 	/*
 	 * Optional statistics callback, added via lookup_ctrl_stats() after
@@ -844,8 +847,7 @@ lookup_cleanup_ball(nlookup_t *nl)
 		g_debug("DHT LOOKUP[%s] %s lookup "
 			"cleaning up ball (%u item%s), path has %u",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
-			(unsigned) bcount, 1 == bcount ? "" : "s",
-			(unsigned) pcount);
+			(unsigned) bcount, plural(bcount), (unsigned) pcount);
 	}
 
 	patricia_foreach_remove(nl->ball, remove_if_in_shortlist, nl);
@@ -853,8 +855,7 @@ lookup_cleanup_ball(nlookup_t *nl)
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		size_t bcount = patricia_count(nl->ball);
 		g_debug("DHT LOOKUP[%s] ball now down to %u item%s",
-			nid_to_string(&nl->lid),
-			(unsigned) bcount, 1 == bcount ? "" : "s");
+			nid_to_string(&nl->lid), (unsigned) bcount, plural(bcount));
 	}
 }
 
@@ -889,8 +890,7 @@ lookup_value_terminate(nlookup_t *nl,
 			"for %s with %d value%s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
-			kuid_to_hex_string(nl->kuid),
-			vcnt, 1 == vcnt ? "" : "s");
+			kuid_to_hex_string(nl->kuid), vcnt, plural(vcnt));
 
 	/*
 	 * If we were unable to collect any value, abort as if we had not
@@ -934,8 +934,7 @@ lookup_value_terminate(nlookup_t *nl,
 			g_debug("DHT LOOKUP[%s] "
 				"going to cache %d \"%s\" value%s for %s at %s",
 				nid_to_string(&nl->lid),
-				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
-				1 == vcnt ? "" : "s",
+				vcnt, dht_value_type_to_string(nl->u.fv.vtype), plural(vcnt),
 				kuid_to_hex_string(nl->kuid), knode_to_string(closest));
 		}
 
@@ -952,8 +951,7 @@ lookup_value_terminate(nlookup_t *nl,
 			g_debug("DHT LOOKUP[%s] "
 				"not caching %d \"%s\" value%s for %s: local=%s, path size=%zu",
 				nid_to_string(&nl->lid),
-				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
-				1 == vcnt ? "" : "s",
+				vcnt, dht_value_type_to_string(nl->u.fv.vtype), plural(vcnt),
 				kuid_to_hex_string(nl->kuid), local ? "y" : "n", count);
 		}
 	}
@@ -984,7 +982,7 @@ lookup_value_terminate(nlookup_t *nl,
 	roots_record(nl->ball, nl->kuid);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		log_patricia_dump(nl, nl->ball, "final value path", 2);
+		log_patricia_dump(nl, nl->ball, "final value path", 3);
 
 	lookup_free(nl);
 
@@ -1088,7 +1086,7 @@ lookup_value_create(nlookup_t *nl, float load,
 
 	if (skeys) {
 		struct seckeys *sk = seckeys_create(skeys, scnt, kn);
-		fv->seckeys = g_slist_append(NULL, sk);
+		fv->seckeys = pslist_append(NULL, sk);
 	}
 
 	fv->vvec = vvec;
@@ -1152,10 +1150,10 @@ lookup_value_create(nlookup_t *nl, float load,
 static int
 lookup_value_remaining_seckeys(const struct fvalue *fv)
 {
-	GSList *sl;
+	pslist_t *sl;
 	int remain = 0;
 
-	GM_SLIST_FOREACH(fv->seckeys, sl) {
+	PSLIST_FOREACH(fv->seckeys, sl) {
 		struct seckeys *sk = sl->data;
 		remain += sk->scnt - sk->next_skey;
 	}
@@ -1200,8 +1198,8 @@ lookup_value_append(nlookup_t *nl, float load,
 	if (GNET_PROPERTY(dht_lookup_debug) > 3)
 		g_debug("DHT LOOKUP[%s] "
 			"merging %d value%s and %d secondary key%s from %s",
-			nid_to_string(&nl->lid), vcnt, 1 == vcnt ? "" : "s",
-			scnt, 1 == scnt ? "" : "s", knode_to_string(kn));
+			nid_to_string(&nl->lid), vcnt, plural(vcnt),
+			scnt, plural(scnt), knode_to_string(kn));
 
 	/*
 	 * Make room in the global DHT value vector to be able to hold all
@@ -1295,7 +1293,7 @@ lookup_value_append(nlookup_t *nl, float load,
 
 	if (skeys) {
 		struct seckeys *sk = seckeys_create(skeys, scnt, kn);
-		fv->seckeys = g_slist_append(fv->seckeys, sk);
+		fv->seckeys = pslist_append(fv->seckeys, sk);
 	}
 
 	fv->load += load;
@@ -1324,7 +1322,7 @@ lookup_value_seen_free_kv(void *unused_key, void *value, void *unused_data)
 static void
 lookup_value_free(nlookup_t *nl, bool free_vvec)
 {
-	GSList *sl;
+	pslist_t *sl;
 	struct fvalue *fv;
 	int i;
 
@@ -1339,7 +1337,7 @@ lookup_value_free(nlookup_t *nl, bool free_vvec)
 		WFREE_ARRAY(fv->vvec, fv->vsize);
 	}
 
-	GM_SLIST_FOREACH(fv->seckeys, sl) {
+	PSLIST_FOREACH(fv->seckeys, sl) {
 		struct seckeys *sk = sl->data;
 
 		g_assert(sk->skeys);
@@ -1348,7 +1346,7 @@ lookup_value_free(nlookup_t *nl, bool free_vvec)
 		seckeys_free(sk);
 	}
 
-	gm_slist_free_null(&fv->seckeys);
+	pslist_free_null(&fv->seckeys);
 	map_foreach(fv->seen, lookup_value_seen_free_kv, NULL);
 	map_destroy(fv->seen);
 	map_destroy(fv->values);
@@ -1394,7 +1392,7 @@ lookup_value_done(nlookup_t *nl)
 	 */
 
 	if (sk) {
-		fv->seckeys = g_slist_remove(fv->seckeys, sk);
+		fv->seckeys = pslist_remove(fv->seckeys, sk);
 		seckeys_free(sk);
 
 		if (fv->seckeys) {
@@ -1404,8 +1402,7 @@ lookup_value_done(nlookup_t *nl)
 				g_debug("DHT LOOKUP[%s] "
 					"now fetching %d secondary key%s from %s",
 					nid_to_string(&nl->lid),
-					sk->scnt, 1 == sk->scnt ? "" : "s",
-					knode_to_string(sk->kn));
+					sk->scnt, plural(sk->scnt), knode_to_string(sk->kn));
 			}
 
 			fv->rpc_timeouts = 0;
@@ -1426,7 +1423,7 @@ lookup_value_done(nlookup_t *nl)
 				"%sgiving a chance to %d pending FIND_VALUE RPC%s",
 				nid_to_string(&nl->lid),
 				NULL == fv->delay_ev ? "" : "already ",
-				nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+				nl->rpc_pending, plural(nl->rpc_pending));
 
 		lookup_value_delay(nl);
 		return;
@@ -1435,8 +1432,7 @@ lookup_value_done(nlookup_t *nl)
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT LOOKUP[%s] "
 			"ending value fetch with %d pending FIND_VALUE RPC%s",
-			nid_to_string(&nl->lid), nl->rpc_pending,
-			1 == nl->rpc_pending ? "" : "s");
+			nid_to_string(&nl->lid), nl->rpc_pending, plural(nl->rpc_pending));
 
 	load = fv->load / fv->nodes;
 	vvec = fv->vvec;
@@ -1451,15 +1447,14 @@ lookup_value_done(nlookup_t *nl)
  * Extra value fetching expiration timeout.
  */
 static void
-lookup_value_expired(cqueue_t *unused_cq, void *obj)
+lookup_value_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
 
-	(void) unused_cq;
 	lookup_value_check(nl);
 
-	nl->expire_ev = NULL;
+	cq_zero(cq, &nl->expire_ev);
 	fv = lookup_fv(nl);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
@@ -1474,7 +1469,7 @@ lookup_value_expired(cqueue_t *unused_cq, void *obj)
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
 			kuid_to_hex_string(nl->kuid),
-			tm_elapsed_f(&now, &fv->start), remain, 1 == remain ? "" : "s");
+			tm_elapsed_f(&now, &fv->start), remain, plural(remain));
 	}
 
 	lookup_value_done(nl);
@@ -1598,7 +1593,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 				"secondary keys: reached end of message after %u expanded "
 				"value%s",
 				nid_to_string(&nl->lid), knode_to_string(kn),
-				expanded, 1 == expanded ? "" : "s");
+				expanded, plural(expanded));
 		}
 		seckeys = 0;
 	}
@@ -1635,8 +1630,8 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 		g_warning("DHT LOOKUP[%s] the FIND_VALUE_RESPONSE payload (%lu byte%s) "
 			"from %s has %lu byte%s of unparsed trailing data (ignored)",
 			 nid_to_string(&nl->lid),
-			 (gulong) len, len == 1 ? "" : "s", knode_to_string(kn),
-			 (gulong) unparsed, 1 == unparsed ? "" : "s");
+			 (ulong) len, plural(len), knode_to_string(kn),
+			 (ulong) unparsed, plural(unparsed));
 	}
 
 	/*
@@ -1667,9 +1662,9 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"got %d value%s of type %s and %d secondary key%s from %s",
-			nid_to_string(&nl->lid), load, vcnt, 1 == vcnt ? "" : "s",
+			nid_to_string(&nl->lid), load, vcnt, plural(vcnt),
 			dht_value_type_to_string(type),
-			scnt, 1 == scnt ? "" : "s", knode_to_string(kn));
+			scnt, plural(scnt), knode_to_string(kn));
 
 	bstr_free(&bs);
 
@@ -1737,7 +1732,7 @@ bad:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 len, len == 1 ? "" : "s", knode_to_string(kn),
+			 len, plural(len), knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1796,12 +1791,11 @@ lookup_completed(nlookup_t *nl)
 			nid_to_string(&nl->lid),
 			(nl->flags & NL_F_ACTV_PROTECT) ? "actively protected " :
 			(nl->flags & NL_F_PASV_PROTECT) ? "passively protected " : "",
-			(gulong) path_len,
-			1 == path_len ? "" : "s",
+			(ulong) path_len, plural(path_len),
 			closest ? knode_to_string(closest) : "unknown");
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
-			log_patricia_dump(nl, nl->path, "final path", 2);
+			log_patricia_dump(nl, nl->path, "final path", 3);
 	}
 
 	/*
@@ -1850,14 +1844,13 @@ lookup_completed(nlookup_t *nl)
  * Expiration timeout.
  */
 static void
-lookup_expired(cqueue_t *unused_cq, void *obj)
+lookup_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
 
-	(void) unused_cq;
 	lookup_check(nl);
 
-	nl->expire_ev = NULL;
+	cq_zero(cq, &nl->expire_ev);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT LOOKUP[%s] %s lookup for %s expired (%s)",
@@ -2180,8 +2173,7 @@ kullback_leibler_div(const nlookup_t *nl, size_t nodes, int bmin,
 				"freq = %g (%u/%u node%s, log2=%g), theoric = %g => "
 				"K-L contribution: %g",
 				nid_to_string(&nl->lid), (unsigned) (i + bmin),
-				M[i], (unsigned) prefix[i], (unsigned) nodes,
-				1 == prefix[i] ? "" : "s",
+				M[i], (unsigned) prefix[i], (unsigned) nodes, plural(prefix[i]),
 				log2_frequency[nodes - 1][prefix[i] - 1],
 				1.0 / pow(2.0, i + 1.0), ct);
 		}
@@ -2205,7 +2197,7 @@ lookup_path_is_safe(nlookup_t *nl)
 	patricia_iter_t *iter;
 	size_t prefix[KDA_C + 1];
 	struct kl_item items[KDA_C + 1];
-	GList *nodelist[KDA_C + 1];
+	plist_t *nodelist[KDA_C + 1];
 	size_t nodes;
 	double dkl, previous_dkl;
 	knode_t *removed_kn;
@@ -2313,7 +2305,7 @@ compute:
 		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %g",
 			nid_to_string(&nl->lid), (unsigned) nodes,
 			(unsigned) patricia_count(nl->path),
-			1 == nodes ? "" : "s", kuid_to_hex_string(nl->kuid), dkl);
+			plural(nodes), kuid_to_hex_string(nl->kuid), dkl);
 	}
 
 	if (dkl <= KL_ABNORMAL_THRESH)
@@ -2416,7 +2408,7 @@ compute:
 		) {
 			size_t j = common - min_common_bits;
 			g_assert(j < G_N_ELEMENTS(nodelist));
-			nodelist[j] = g_list_prepend(nodelist[j], kn);
+			nodelist[j] = plist_prepend(nodelist[j], kn);
 		}
 	}
 
@@ -2461,19 +2453,19 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 		size_t j = n - min_common_bits;	/* Index in prefix[] */
 		size_t count;
 		size_t nth;
-		GList *lnk;
+		plist_t *lnk;
 
 		g_assert(size_is_non_negative(j) && j < G_N_ELEMENTS(prefix));
 		count = prefix[j];
 
 		g_assert(size_is_positive(count));
 		nth = random_value(count - 1);
-		lnk = g_list_nth(nodelist[j], nth);
+		lnk = plist_nth(nodelist[j], nth);
 
 		g_assert(lnk != NULL);			/* There is an nth item in the list */
 		lookup_path_remove(nl, lnk->data);
 		removed_kn = lnk->data;			/* Still referenced, no refcnt incr. */
-		nodelist[j] = g_list_delete_link(nodelist[j], lnk);
+		nodelist[j] = plist_delete_link(nodelist[j], lnk);
 
 		prefix[j]--;
 		nodes--;
@@ -2495,7 +2487,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %g",
 			nid_to_string(&nl->lid), (unsigned) nodes,
-			(unsigned) patricia_count(nl->path), 1 == nodes ? "" : "s", dkl);
+			(unsigned) patricia_count(nl->path), plural(nodes), dkl);
 	}
 
 	/*
@@ -2534,7 +2526,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 done:
 
 	for (i = 0; i < G_N_ELEMENTS(nodelist); i++) {
-		gm_list_free_null(&nodelist[i]);
+		plist_free_null(&nodelist[i]);
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
@@ -2542,8 +2534,8 @@ done:
 			"K-L divergence is %g (%u node%s in window, stripped %u)",
 			nid_to_string(&nl->lid),
 			(unsigned) patricia_count(nl->path),
-			1 == patricia_count(nl->path) ? "" : "s", dkl,
-			(unsigned) nodes, 1 == nodes ? "" : "s", (unsigned) stripped);
+			plural(patricia_count(nl->path)), dkl,
+			(unsigned) nodes, plural(nodes), (unsigned) stripped);
 	}
 
 	/*
@@ -2951,7 +2943,7 @@ lookup_load_path(nlookup_t *nl)
 	patricia_foreach_remove(nl->shortlist, remove_from_shortlist, nl->tokens);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		log_patricia_dump(nl, nl->path, "pre-loaded path", 2);
+		log_patricia_dump(nl, nl->path, "pre-loaded path", 3);
 }
 
 /**
@@ -3135,7 +3127,7 @@ lookup_handle_reply(
 			if (
 				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
 				(xn->port != cn->port ||
-					!host_addr_equal(xn->addr, cn->addr)) &&
+					!host_addr_equiv(xn->addr, cn->addr)) &&
 				!patricia_contains(nl->path, cn->id) &&
 				!map_contains(nl->fixed, cn->id) &&
 				!map_contains(nl->alternate, cn->id) &&
@@ -3197,12 +3189,22 @@ lookup_handle_reply(
 			 */
 
 			knode_check(xn);
-			g_assert(knode_is_shared(xn, TRUE));
+			if (!patricia_contains(nl->ball, cn->id)) {
+				g_critical("%s(): node %s in shortlist but not in ball: %s",
+					G_STRFUNC, kuid_to_hex_string(cn->id),
+					knode_to_string(xn));
+				log_patricia_dump(nl, nl->shortlist, "shortlist", 0);
+				log_patricia_dump(nl, nl->ball, "ball", 0);
+				g_error("%s(): inconsistency between shortlist and ball for %s",
+					G_STRFUNC, knode_to_string(xn));
+			}
+			g_assert_log(knode_is_shared(xn, TRUE),	/* In shortlist + ball */
+				"%s(): node = {%s}", G_STRFUNC, knode_to_string(xn));
 
 			if (
 				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
 				(xn->port != cn->port ||
-					!host_addr_equal(xn->addr, cn->addr)) &&
+					!host_addr_equiv(xn->addr, cn->addr)) &&
 				!map_contains(nl->fixed, cn->id) &&
 				!map_contains(nl->alternate, cn->id)
 			) {
@@ -3275,8 +3277,8 @@ lookup_handle_reply(
 		g_warning("DHT LOOKUP[%s] the FIND_NODE_RESPONSE payload (%lu byte%s) "
 			"from %s has %lu byte%s of unparsed trailing data (ignored)",
 			 nid_to_string(&nl->lid),
-			 (gulong) len, len == 1 ? "" : "s", knode_to_string(kn),
-			 (gulong) unparsed, 1 == unparsed ? "" : "s");
+			 (ulong) len, plural(len), knode_to_string(kn),
+			 (ulong) unparsed, plural(unparsed));
 	}
 
 	/*
@@ -3370,7 +3372,7 @@ bad:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT improper FIND_NODE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 len, len == 1 ? "" : "s", knode_to_string(kn),
+			 len, plural(len), knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	if (token != NULL)
@@ -3557,8 +3559,8 @@ lk_rpc_cancelled(void *obj, uint32 hop)
 	} else {
 		if (GNET_PROPERTY(dht_lookup_debug) > 1)
 			g_debug("DHT LOOKUP[%s] not iterating (has %d RPC%s pending)",
-				nid_to_string(&nl->lid), nl->rpc_pending,
-				1 == nl->rpc_pending ? "" : "s");
+				nid_to_string(&nl->lid),
+				nl->rpc_pending, plural(nl->rpc_pending));
 	}
 }
 
@@ -3685,7 +3687,7 @@ lk_handle_reply(void *obj, const knode_t *kn,
 				"bounded parallelism (path has %u items, %d RPC%s pending)",
 				nid_to_string(&nl->lid),
 				(unsigned) patricia_count(nl->path),
-				nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+				nl->rpc_pending, plural(nl->rpc_pending));
 		}
 		nl->mode = LOOKUP_BOUNDED;
 	}
@@ -3712,7 +3714,7 @@ lk_handle_reply(void *obj, const knode_t *kn,
 				g_debug("DHT LOOKUP[%s] ending due to amount of nodes sharing "
 					"%u common leading bit%s",
 					nid_to_string(&nl->lid),
-					(unsigned) nl->u.fn.bits, 1 == nl->u.fn.bits ? "" : "s");
+					(unsigned) nl->u.fn.bits, plural(nl->u.fn.bits));
 			}
 			lookup_completed(nl);
 			return FALSE;			/* Do not iterate */
@@ -3729,7 +3731,8 @@ lk_handle_reply(void *obj, const knode_t *kn,
 	if (patricia_count(nl->shortlist)) {
 		knode_t *closest = patricia_closest(nl->shortlist, nl->kuid);
 
-		g_assert(knode_is_shared(closest, TRUE));
+		g_assert_log(knode_is_shared(closest, TRUE),
+			"%s(): node = {%s}", G_STRFUNC, knode_to_string(closest));
 
 		/*
 		 * Due to active node removal from the path, we could have a NULL
@@ -3852,7 +3855,7 @@ lk_iterate(void *obj, enum dht_rpc_ret type, uint32 hop)
 				nid_to_string(&nl->lid),
 				DHT_RPC_TIMEOUT == type ?
 					"timeout" : "reply from previous hop",
-				nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+				nl->rpc_pending, plural(nl->rpc_pending));
 		}
 	} else {
 		lookup_iterate_if_possible(nl);
@@ -3945,18 +3948,16 @@ lookup_requery(nlookup_t *nl, const knode_t *kn)
  * Delay expiration.
  */
 static void
-lookup_delay_expired(cqueue_t *unused_cq, void *obj)
+lookup_delay_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
-
-	(void) unused_cq;
 
 	if (G_UNLIKELY(NULL == nlookups))
 		return;			/* Shutdown occurred */
 
 	lookup_check(nl);
 
-	nl->delay_ev = NULL;
+	cq_zero(cq, &nl->delay_ev);
 	nl->flags &= ~NL_F_DELAYED;
 	lookup_iterate(nl);
 }
@@ -4004,9 +4005,9 @@ static void
 lookup_iterate(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
-	GSList *to_remove = NULL;
-	GSList *ignored = NULL;
-	GSList *sl;
+	pslist_t *to_remove = NULL;
+	pslist_t *ignored = NULL;
+	pslist_t *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
 	char reason[80];
@@ -4042,8 +4043,8 @@ lookup_iterate(nlookup_t *nl)
 		if (alpha <= 0) {
 			if (GNET_PROPERTY(dht_lookup_debug) > 2)
 				g_debug("DHT LOOKUP[%s] not iterating yet (%d RPC%s pending)",
-					nid_to_string(&nl->lid), nl->rpc_pending,
-					1 == nl->rpc_pending ? "" : "s");
+					nid_to_string(&nl->lid),
+					nl->rpc_pending, plural(nl->rpc_pending));
 			return;
 		}
 	}
@@ -4057,15 +4058,15 @@ lookup_iterate(nlookup_t *nl)
 			"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
 			nid_to_string(&nl->lid), nl->hops,
 			lookup_parallelism_mode_to_string(nl->mode),
-			alpha, 1 == alpha ? "" : "s", nl->rpc_pending);
+			alpha, plural(alpha), nl->rpc_pending);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 4)
 		log_status(nl);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 5) {
-		log_patricia_dump(nl, nl->shortlist, "shortlist", 18);
-		log_patricia_dump(nl, nl->path, "path", 18);
-		log_patricia_dump(nl, nl->ball, "ball", 18);
+		log_patricia_dump(nl, nl->shortlist, "shortlist", 19);
+		log_patricia_dump(nl, nl->path, "path", 19);
+		log_patricia_dump(nl, nl->ball, "ball", 19);
 	}
 
 	/*
@@ -4094,7 +4095,7 @@ lookup_iterate(nlookup_t *nl)
 				g_debug("DHT LOOKUP[%s] ignoring %s: %s",
 					nid_to_string(&nl->lid), knode_to_string(kn), reason);
 			}
-			ignored = g_slist_prepend(ignored, knode_refcnt_inc(kn));
+			ignored = pslist_prepend(ignored, knode_refcnt_inc(kn));
 		} else if (!map_contains(nl->queried, kn->id)) {
 			lookup_send(nl, kn);
 			if (nl->flags & NL_F_UDP_DROP)
@@ -4102,7 +4103,7 @@ lookup_iterate(nlookup_t *nl)
 			i++;
 		}
 
-		to_remove = g_slist_prepend(to_remove, kn);
+		to_remove = pslist_prepend(to_remove, kn);
 	}
 
 	nl->flags &= ~NL_F_SENDING;
@@ -4114,11 +4115,11 @@ lookup_iterate(nlookup_t *nl)
 
 	g_assert(0 == i || to_remove != NULL);
 
-	GM_SLIST_FOREACH(to_remove, sl) {
+	PSLIST_FOREACH(to_remove, sl) {
 		knode_t *kn = sl->data;
 		lookup_shortlist_remove(nl, kn);
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 
 	/*
 	 * Now explicitly free ignored hosts: because removal from the shortlist
@@ -4128,12 +4129,12 @@ lookup_iterate(nlookup_t *nl)
 	 * increased.
 	 */
 
-	GM_SLIST_FOREACH(ignored, sl) {
+	PSLIST_FOREACH(ignored, sl) {
 		knode_t *kn = sl->data;
 		lookup_reset_closest(nl, kn);	/* In case kn was the closest node */
 		knode_free(kn);
 	}
-	g_slist_free(ignored);
+	pslist_free(ignored);
 
 	/*
 	 * If we detected an UDP message dropping and did not send any
@@ -4224,7 +4225,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	WFREE_ARRAY(kvec, KDA_K);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 3)
-		log_patricia_dump(nl, nl->shortlist, "initial shortlist", 3);
+		log_patricia_dump(nl, nl->shortlist, "initial shortlist", 4);
 
 	if (0 == contactable && GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT LOOKUP[%s] cancelling %s lookup for %s: "
@@ -4452,8 +4453,7 @@ lookup_value_check_here(cqueue_t *unused_cq, void *obj)
 		if (GNET_PROPERTY(dht_lookup_debug)) {
 			g_debug("DHT LOOKUP[%s] key %s found locally, with %d %s value%s",
 				nid_to_string(&nl->lid), kuid_to_string(nl->kuid),
-				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
-				1 == vcnt ? "" : "s");
+				vcnt, dht_value_type_to_string(nl->u.fv.vtype), plural(vcnt));
 		}
 
 		/*
@@ -4576,16 +4576,15 @@ lookup_bucket_refresh(
  * Value delay expiration.
  */
 static void
-lookup_value_delay_expired(cqueue_t *unused_cq, void *obj)
+lookup_value_delay_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
 
-	(void) unused_cq;
 	lookup_value_check(nl);
 
 	fv = lookup_fv(nl);
-	fv->delay_ev = NULL;
+	cq_zero(cq, &fv->delay_ev);
 
 	lookup_value_iterate(nl);
 }
@@ -4738,7 +4737,7 @@ bad:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s%s%s",
-			 len, len == 1 ? "" : "s", knode_to_string(kn), reason,
+			 len, plural(len), knode_to_string(kn), reason,
 			 bstr_has_error(bs) ? ": " : "",
 			 bstr_has_error(bs) ? bstr_error(bs) : "");
 
@@ -4985,15 +4984,15 @@ lookup_value_iterate(nlookup_t *nl)
 	if (fv->rpc_pending > 0) {
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
 			g_debug("DHT LOOKUP[%s] not iterating (%d pending value RPC%s)",
-				nid_to_string(&nl->lid), fv->rpc_pending,
-				1 == fv->rpc_pending ? "" : "s");
+				nid_to_string(&nl->lid),
+				fv->rpc_pending, plural(fv->rpc_pending));
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_debug("DHT LOOKUP[%s] "
 			"iterating in value fetch mode with %d node%s, %s secondary keys",
-			nid_to_string(&nl->lid), fv->nodes, 1 == fv->nodes ? "" : "s",
+			nid_to_string(&nl->lid), fv->nodes, plural(fv->nodes),
 			sk ? "with" : "without");
 
 	/*

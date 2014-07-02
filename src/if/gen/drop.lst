@@ -1,0 +1,70 @@
+#
+# Message drop reasons
+#
+
+Prefix: MSG_DROP_
+Lowercase: yes
+I18N: yes
+Count: REASON_COUNT
+Enum: msg_drop_reason_t
+Enum-Init: 0
+Enum-File: msg_drop.h
+Symbolic: msg_drop_reasons
+Description: msg_drop_reason_text
+Enum-To-Symbolic: gnet_stats_drop_reason_name
+Enum-To-Description: gnet_stats_drop_reason_to_string
+Enum-To-Code: msg_drop.c
+Enum-To-Header: msg_drop.h
+Protection-Prefix: if_gen
+
+BAD_SIZE				"Bad size"
+TOO_SMALL				"Too small"
+TOO_LARGE				"Too large"
+WAY_TOO_LARGE			"Way too large"
+TOO_OLD					"Too old"
+UNKNOWN_TYPE			"Unknown message type"
+UNEXPECTED				"Unexpected message"
+TTL0					"Message sent with TTL = 0"
+IMPROPER_HOPS_TTL		"Improper hops/ttl combination"
+MAX_TTL_EXCEEDED		"Max TTL exceeded"
+THROTTLE				"Message throttle"
+LIMIT					"Message matched limits"
+TRANSIENT				"Transient node"
+PONG_UNUSABLE			"Unusable Pong"
+HARD_TTL_LIMIT			"Hard TTL limit reached"
+MAX_HOP_COUNT			"Max hop count reached"
+ROUTE_LOST				"Route lost"
+NO_ROUTE				"No route"
+DUPLICATE				"Duplicate message"
+OOB_PROXY_CONFLICT		"OOB Proxy MUID Conflict"
+TO_BANNED				"Message to banned GUID"
+FROM_BANNED				"Message from banned GUID"
+SHUTDOWN				"Node shutting down"
+FLOW_CONTROL			"TX flow control"
+QUERY_NO_NUL			"Query text had no trailing NUL"
+QUERY_TOO_SHORT			"Query text too short"
+QUERY_OVERHEAD			"Query had unnecessary overhead"
+BAD_URN					"Query had bad URN"
+MALFORMED_SHA1			"Message with malformed SHA1"
+MALFORMED_UTF_8			"Message with malformed UTF-8"
+BAD_RESULT				"Malformed Query Hit"
+BAD_RETURN_ADDRESS		"Bad return address"
+HOSTILE_IP				"Hostile IP address"
+SHUNNED_IP				"Shunned IP address"
+MORPHEUS_BOGUS			"Bogus result from Morpheus"
+SPAM					"Spam"
+EVIL					"Evil filename"
+MEDIA					"Improper media type"
+INFLATE_ERROR			"Payload inflating error"
+UNKNOWN_HEADER_FLAGS	"Unknown header flags present"
+OWN_RESULT				"Own search results"
+OWN_QUERY				"Own queries"
+ANCIENT_QUERY			"Ancient query format"
+BLANK_SERVENT_ID		"Blank Servent ID"
+GUESS_MISSING_TOKEN		"GUESS Query missing token"
+GUESS_INVALID_TOKEN		"GUESS Invalid query token"
+DHT_INVALID_TOKEN		"DHT Invalid security token"
+DHT_TOO_MANY_STORE		"DHT Too many STORE requests"
+DHT_UNPARSEABLE			"DHT Malformed message"
+G2_UNEXPECTED			"G2 Unexpected message"
+NETWORK_CROSSING		"Cannot cross networks"

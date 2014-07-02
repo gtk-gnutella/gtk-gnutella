@@ -41,19 +41,23 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/nv.h"
 #include "lib/ostream.h"
 #include "lib/parse.h"
+#include "lib/plist.h"
+#include "lib/pslist.h"
 #include "lib/slist.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/symtab.h"
+#include "lib/tokenizer.h"
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -251,8 +255,8 @@ struct vxml_parser {
 	enum vxml_parser_magic magic;
 	const char *name;				/**< Parser name (static string) */
 	const char *charset;			/**< Document's charset (atom) */
-	GSList *input;					/**< List of input buffers to parse */
-	GList *path;					/**< Path (list of vxml_path_entry) */
+	pslist_t *input;				/**< List of input buffers to parse */
+	plist_t *path;					/**< Path (list of vxml_path_entry) */
 	nv_table_t *tokens;				/**< For element tokenization */
 	nv_table_t *entities;			/**< Entities defined in document */
 	nv_table_t *pe_entities;		/**< Entities defined in <!DOCTYPE...> */
@@ -347,7 +351,7 @@ const char VXS_XML_URI[]		= "http://www.w3.org/XML/1998/namespace";
 /**
  * Default entities.
  */
-static struct vxml_parser_token vxml_default_entities[] = {
+static tokenizer_t vxml_default_entities[] = {
 	/* Sorted array */
 	{ "amp",	VXC_AMP },	/* '&' */
 	{ "apos",	VXC_APOS },	/* "'" */
@@ -384,7 +388,7 @@ enum vxml_parser_token_value {
 /**
  * Declaration tokens.
  */
-static struct vxml_parser_token vxml_declaration_tokens[] = {
+static tokenizer_t vxml_declaration_tokens[] = {
 	/* Sorted array */
 	{ "ATTLIST",	VXT_ATTLIST },
 	{ "DOCTYPE",	VXT_DOCTYPE },
@@ -395,7 +399,7 @@ static struct vxml_parser_token vxml_declaration_tokens[] = {
 /**
  * Miscellaneous tokens.
  */
-static struct vxml_parser_token vxml_misc_tokens[] = {
+static tokenizer_t vxml_misc_tokens[] = {
 	/* Sorted array */
 	{ "ANY",		VXT_ANY },
 	{ "CDATA",		VXT_CDATA },
@@ -410,7 +414,7 @@ static struct vxml_parser_token vxml_misc_tokens[] = {
 /**
  * Immediate tokens (introduced by a leading '#' character).
  */
-static struct vxml_parser_token vxml_immediate_tokens[] = {
+static tokenizer_t vxml_immediate_tokens[] = {
 	/* Sorted array */
 	{ "FIXED",		VXT_FIXED },
 	{ "IMPLIED",	VXT_IMPLIED },
@@ -458,9 +462,9 @@ vxml_parser_where(const vxml_parser_t *vp)
 {
 	static char buf[2048];
 	size_t rw = 0;
-	GList *rpath, *rp;
+	plist_t *rpath, *rp;
 
-	rpath = rp = g_list_reverse(g_list_copy(vp->path));
+	rpath = rp = plist_reverse(plist_copy(vp->path));
 
 	/*
 	 * If sub-parsing an XML fragment, strip the leading part of the
@@ -469,7 +473,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 
 	if (vp->glob.depth != vp->loc.depth) {
 		g_assert(vp->glob.depth >= vp->loc.depth);
-		rp = g_list_nth(rp, vp->glob.depth - vp->loc.depth);
+		rp = plist_nth(rp, vp->glob.depth - vp->loc.depth);
 	}
 
 	if (NULL == rp) {
@@ -484,7 +488,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 			element = pe->element;
 			children = pe->children;
 
-			rp = g_list_next(rp);
+			rp = plist_next(rp);
 
 			rw += str_bprintf(&buf[rw], sizeof buf - rw, "/%s", element);
 			if (children > ((NULL == rp) ? 0 : 1))
@@ -492,7 +496,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 		}
 	}
 
-	g_list_free(rpath);
+	plist_free(rpath);
 
 	return buf;
 }
@@ -609,7 +613,7 @@ vxml_parser_parent_element(const vxml_parser_t *vp)
 	g_assert(vp->path != NULL);
 
 	if (vxml_parser_depth(vp) > 1) {
-		struct vxml_path_entry *pe = g_list_next(vp->path)->data;
+		struct vxml_path_entry *pe = plist_next(vp->path)->data;
 		vxml_path_entry_check(pe);
 		return pe->element;
 
@@ -637,10 +641,10 @@ vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n)
 	if (n >= vxml_parser_depth(vp)) {
 		return NULL;
 	} else {
-		GList *l;
+		plist_t *l;
 		struct vxml_path_entry *pe;
 
-		l = g_list_nth(vp->path, n);
+		l = plist_nth(vp->path, n);
 		pe = NULL == l ? NULL : l->data;
 
 		if (pe != NULL) {
@@ -1162,20 +1166,20 @@ vxml_parser_make(const char *name, uint32 options)
 void
 vxml_parser_free(vxml_parser_t *vp)
 {
-	GSList *sl;
-	GList *l;
+	pslist_t *sl;
+	plist_t *l;
 
 	vxml_parser_check(vp);
 
-	GM_SLIST_FOREACH(vp->input, sl) {
+	PSLIST_FOREACH(vp->input, sl) {
 		vxml_buffer_free(sl->data);
 	}
-	gm_slist_free_null(&vp->input);
+	pslist_free_null(&vp->input);
 
-	GM_LIST_FOREACH(vp->path, l) {
+	PLIST_FOREACH(vp->path, l) {
 		vxml_path_entry_free(l->data);
 	}
-	gm_list_free_null(&vp->path);
+	plist_free_null(&vp->path);
 	nv_table_free_null(&vp->tokens);
 	nv_table_free_null(&vp->entities);
 	nv_table_free_null(&vp->pe_entities);
@@ -1229,7 +1233,7 @@ vxml_parser_add_data(vxml_parser_t *vp, const char *data, size_t length)
 	 */
 
 	vb = vxml_buffer_alloc(vp->generation++, data, length, FALSE, TRUE, NULL);
-	vp->input = g_slist_append(vp->input, vb);
+	vp->input = pslist_append(vp->input, vb);
 }
 
 /**
@@ -1247,7 +1251,7 @@ vxml_parser_add_file(vxml_parser_t *vp, FILE *fd)
 	g_assert(fd != NULL);
 
 	vb = vxml_buffer_file(fd);
-	vp->input = g_slist_append(vp->input, vb);
+	vp->input = pslist_append(vp->input, vb);
 }
 
 /**
@@ -1363,67 +1367,6 @@ vxml_versionsrc_to_string(enum vxml_versionsrc v)
 	}
 
 	return "unknown version source";
-}
-
-/**
- * Translates errors into English.
- */
-G_GNUC_COLD const char *
-vxml_strerror(vxml_error_t error)
-{
-	switch (error) {
-	case VXML_E_OK:						return "OK";
-	case VXML_E_UNSUPPORTED_BYTE_ORDER:	return "Unsupported byte order";
-	case VXML_E_UNSUPPORTED_CHARSET:	return "Unsupported character set";
-	case VXML_E_TRUNCATED_INPUT:		return "Truncated input stream";
-	case VXML_E_EXPECTED_NAME_START:	return "Expected a valid name start";
-	case VXML_E_INVALID_CHAR_REF:		return "Invalid character reference";
-	case VXML_E_INVALID_CHARACTER:		return "Invalid Unicode character";
-	case VXML_E_INVALID_NAME_CHARACTER:	return "Invalid character in name";
-	case VXML_E_UNKNOWN_ENTITY_REF:		return "Unknown entity reference";
-	case VXML_E_UNEXPECTED_CHARACTER:	return "Unexpected character";
-	case VXML_E_UNEXPECTED_WHITESPACE:	return "Unexpected white space";
-	case VXML_E_BAD_CHAR_IN_NAME:		return "Bad character in name";
-	case VXML_E_INVALID_TAG_NESTING:	return "Invalid tag nesting";
-	case VXML_E_EXPECTED_QUOTE:			return "Expected quote (\"'\" or '\"')";
-	case VXML_E_EXPECTED_GT:			return "Expected '>'";
-	case VXML_E_EXPECTED_SPACE:			return "Expected white space";
-	case VXML_E_EXPECTED_LBRAK:			return "Expected '['";
-	case VXML_E_EXPECTED_RBRAK:			return "Expected ']'";
-	case VXML_E_EXPECTED_DOCTYPE_DECL:	return "Expected a DOCTYPE declaration";
-	case VXML_E_EXPECTED_TWO_MINUS:		return "Expected '--'";
-	case VXML_E_EXPECTED_DECL_TOKEN:	return "Expected a declaration token";
-	case VXML_E_EXPECTED_NDATA_TOKEN:	return "Expected NDATA token";
-	case VXML_E_EXPECTED_CDATA_TOKEN:	return "Expected CDATA token";
-	case VXML_E_EXPECTED_COND_TOKEN:	return "Expected INCLUDE or IGNORE";
-	case VXML_E_UNEXPECTED_LT:			return "Was not expecting '<'";
-	case VXML_E_UNEXPECTED_XML_PI:		return "Unexpected <?xml...?>";
-	case VXML_E_UNEXPECTED_TAG_END:		return "Unexpected tag end";
-	case VXML_E_NESTED_DOCTYPE_DECL:	return "Nested DOCTYPE declaration";
-	case VXML_E_INVALID_VERSION:		return "Invalid version number";
-	case VXML_E_VERSION_OUT_OF_RANGE:	return "Version number out of range";
-	case VXML_E_USER:					return "User-defined error";
-	case VXML_E_DUP_ATTRIBUTE:			return "Duplicate attribute";
-	case VXML_E_DUP_DEFAULT_NAMESPACE:	return "Duplicate default namespace";
-	case VXML_E_BAD_CHAR_IN_NAMESPACE:	return "Bad character in namespace";
-	case VXML_E_NAMESPACE_REDEFINITION:	return "Invalid namespace redefinition";
-	case VXML_E_UNKNOWN_NAMESPACE:		return "Unknown namespace prefix";
-	case VXML_E_EMPTY_NAME:				return "Empty name";
-	case VXML_E_IO:						return "I/O error";
-	case VXML_E_ENTITY_RECURSION:		return "Possible entity recursion";
-	case VXML_E_UNKNOWN_CHAR_ENCODING_NAME:
-		return "Unknown character encoding name";
-	case VXML_E_INVALID_CHAR_ENCODING_NAME:
-		return "Invalid character encoding name";
-	case VXML_E_UNREADABLE_CHAR_ENCODING:
-		return "Input is unreadable in the specified encoding";
-	case VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE:
-		return "Reached illegal character byte sequence";
-	case VXML_E_MAX:
-		break;
-	}
-
-	return "Invalid VXML error code";
 }
 
 /**
@@ -1619,7 +1562,7 @@ vxml_fatal_error_out(vxml_parser_t *vp, vxml_error_t error)
 static void
 vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 {
-	vp->input = g_slist_remove(vp->input, vb);
+	vp->input = pslist_remove(vp->input, vb);
 
 	if (vxml_debugging(19)) {
 		switch (vb->type) {
@@ -1632,7 +1575,7 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 
 			vxml_parser_debug(vp, "removed %sinput buffer (%zu byte%s)",
 				NULL == vp->input ? "last " : "",
-				vb->u.m->length, 1 == vb->u.m->length ? "" : "s");
+				vb->u.m->length, plural(vb->u.m->length));
 			break;
 		case VXML_BUFFER_FILE:
 			vxml_parser_debug(vp, "removed %sinput file (EOF %sreached)",
@@ -1733,7 +1676,7 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 				}
 				g_assert(VXML_BUFFER_MEMORY == vnext->type);
 				vnext->u.m->generation = vp->generation;
-				vp->input = g_slist_prepend(vp->input, vnext);
+				vp->input = pslist_prepend(vp->input, vnext);
 				continue;
 			}
 		}
@@ -2168,7 +2111,7 @@ has_buffer:
 
 	if G_UNLIKELY(0 == retlen) {
 		struct vxml_buffer *vnext;
-		GSList *next;
+		pslist_t *next;
 
 		/*
 		 * We were unable to grab the character, maybe because the input
@@ -2188,7 +2131,7 @@ has_buffer:
 		 * and retry.
 		 */
 
-		next = g_slist_next(vp->input);
+		next = pslist_next(vp->input);
 		if (NULL == next || NULL == next->data)
 			goto illegal_byte_sequence;
 
@@ -2239,7 +2182,7 @@ uc_read:
 	if G_UNLIKELY(vxml_debugging(19)) {
 		vxml_parser_debug(vp, "read U+%X '%c' %u byte%s%s", vp->last_uc,
 			is_ascii_print(vp->last_uc) ? vp->last_uc & 0xff : ' ',
-			retlen, 1 == retlen ? "" : "s", m->user ? "" : " (entity)");
+			retlen, plural(retlen), m->user ? "" : " (entity)");
 	}
 
 	return m->user;
@@ -2582,34 +2525,6 @@ truncated:
 }
 
 /**
- * Lookup token in a sorted array of tokens.
- *
- * @param name		the token name
- * @param tokens	the token array
- * @param len		the length of the token array
- *
- * @return the token value if found, 0 if not found.
- */
-unsigned
-vxml_token_lookup(const char *name,
-	const struct vxml_parser_token *tokens, size_t len)
-{
-#define GET_KEY(i) (tokens[(i)].name)
-#define FOUND(i) G_STMT_START { \
-	return tokens[(i)].value; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``name'' */
-	BINARY_SEARCH(const char *, name, len, strcmp, GET_KEY, FOUND);
-
-#undef FOUND
-#undef GET_KEY
-
-	return 0;		/* Not found */
-}
-
-/**
  * Look whether name is that of a known default entity.
  *
  * @return VXC_NUL if entity was not found, its single Unicode character
@@ -2618,8 +2533,7 @@ vxml_token_lookup(const char *name,
 static uint32
 vxml_get_default_entity(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_default_entities, G_N_ELEMENTS(vxml_default_entities));
+	return TOKENIZE(name, vxml_default_entities);
 }
 
 /**
@@ -2630,8 +2544,7 @@ vxml_get_default_entity(const char *name)
 static enum vxml_parser_token_value
 vxml_get_declaration_token(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_declaration_tokens, G_N_ELEMENTS(vxml_declaration_tokens));
+	return TOKENIZE(name, vxml_declaration_tokens);
 }
 
 /**
@@ -2642,8 +2555,7 @@ vxml_get_declaration_token(const char *name)
 static enum vxml_parser_token_value
 vxml_get_misc_token(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_misc_tokens, G_N_ELEMENTS(vxml_misc_tokens));
+	return TOKENIZE(name, vxml_misc_tokens);
 }
 
 /**
@@ -2654,15 +2566,14 @@ vxml_get_misc_token(const char *name)
 static enum vxml_parser_token_value
 vxml_get_immediate_token(const char *name)
 {
-	return vxml_token_lookup(name,
-		vxml_immediate_tokens, G_N_ELEMENTS(vxml_immediate_tokens));
+	return TOKENIZE(name, vxml_immediate_tokens);
 }
 
 /**
  * Loads vxml_token_string[] with an inverted token index.
  */
 static void
-vxml_token_to_string_load(struct vxml_parser_token *tokens, size_t count)
+vxml_token_to_string_load(tokenizer_t *tokens, size_t count)
 {
 	size_t i;
 
@@ -2671,8 +2582,11 @@ vxml_token_to_string_load(struct vxml_parser_token *tokens, size_t count)
 
 		g_assert(size_is_non_negative(value));
 		g_assert(value < G_N_ELEMENTS(vxml_token_strings));
+		g_assert_log(0 == vxml_token_strings[value],
+			"%s(): token value %zu already assigned to \"%s\"",
+			G_STRFUNC, value, tokens[i].token);
 
-		vxml_token_strings[value] = tokens[i].name;
+		vxml_token_strings[value] = tokens[i].token;
 	}
 }
 
@@ -2869,7 +2783,7 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 
 		vb = vxml_buffer_alloc(vp->generation++,
 				value, length - 1, FALSE, FALSE, utf8_decode_char_buffer);
-		vp->input = g_slist_prepend(vp->input, vb);
+		vp->input = pslist_prepend(vp->input, vb);
 
 		/*
 		 * We're prepended a non user-supplied input buffer to the list,
@@ -2886,7 +2800,7 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 			vxml_parser_debug(vp, "expanded %c%s; into \"%s\" (%zu byte%s)",
 				entities == vp->entities ? '&' :
 				entities == vp->pe_entities ? '%' : '?',
-				name, value, m->length, 1 == m->length ? "" : "s");
+				name, value, m->length, plural(m->length));
 		}
 	}
 
@@ -2954,7 +2868,7 @@ vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, bool inquote)
 		vb = vxml_buffer_alloc(vp->generation++,
 				vxc_sp_buf, CONST_STRLEN(vxc_sp_buf),
 				FALSE, FALSE, utf8_decode_char_buffer);
-		vp->input = g_slist_prepend(vp->input, vb);
+		vp->input = pslist_prepend(vp->input, vb);
 	}
 
 	ret = vxml_expand(vp, name, vp->pe_entities);
@@ -3576,7 +3490,7 @@ vxml_parser_do_notify_text(vxml_parser_t *vp,
 					vp->name,
 					text ==  vxml_output_start(&vp->out) ? "no" : "yes",
 					previous_end == current_end ? "no" : "yes",
-					len, 1 == len ? "" : "s");
+					len, plural(len));
 			}
 		}
 
@@ -3867,7 +3781,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 	vxml_output_discard(&vp->out);
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_attribute: name is \"%s\"", name);
+		vxml_parser_debug(vp, "%s(): name is \"%s\"", G_STRFUNC, name);
 
 	if (!vxml_parser_handle_attrval(vp, &vp->out)) {
 		atom_str_free(name);
@@ -3946,8 +3860,9 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 				start = local_name + 1;
 
 				if (vxml_debugging(18)) {
-					vxml_parser_debug(vp, "vxml_handle_attribute: "
-						"stripped name is \"%s\", URI is \"%s\"", start, uri);
+					vxml_parser_debug(vp,
+						"%s(): stripped name is \"%s\", URI is \"%s\"",
+						G_STRFUNC, start, uri);
 				}
 
 				/*
@@ -3989,8 +3904,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 		}
 
 		if (vxml_debugging(18)) {
-			vxml_parser_debug(vp, "vxml_handle_attribute: "
-				"value is \"%s\"", value);
+			vxml_parser_debug(vp, "%s(): value is \"%s\"", G_STRFUNC, value);
 		}
 	}
 
@@ -4241,8 +4155,8 @@ vxml_handle_pi(vxml_parser_t *vp)
 		return FALSE;
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_handle_pi: target is \"%s\"",
-			vxml_output_start(&vp->out));
+		vxml_parser_debug(vp, "%s(): target is \"%s\"",
+			G_STRFUNC, vxml_output_start(&vp->out));
 	}
 
 	/*
@@ -4283,7 +4197,7 @@ vxml_handle_comment(vxml_parser_t *vp)
 	 */
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_comment: begin");
+		vxml_parser_debug(vp, "%s(): begin", G_STRFUNC);
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (uc != VXC_MINUS)
@@ -4329,7 +4243,7 @@ vxml_handle_comment(vxml_parser_t *vp)
 			}
 		} else {
 			if (vxml_debugging(18))
-				vxml_parser_debug(vp, "vxml_handle_comment: end");
+				vxml_parser_debug(vp, "%s(): end", G_STRFUNC);
 
 			return TRUE;
 		}
@@ -4584,7 +4498,7 @@ vxml_parser_handle_entity_decl(vxml_parser_t *vp, const char *name,
 			vxml_parser_debug(vp, "defined %s entity \"%s\" as "
 				"\"%s\" (%zu byte%s)",
 				with_percent ? "parameter" : "general", name,
-				vxml_output_start(&vp->out), len, 1 == len ? "" : "s");
+				vxml_output_start(&vp->out), len, plural(len));
 		}
 
 		vxml_output_discard(&vp->out);
@@ -4752,8 +4666,7 @@ vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
 	 */
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_handle_doctype_decl: name is \"%s\"",
-			name);
+		vxml_parser_debug(vp, "%s(): name is \"%s\"", G_STRFUNC, name);
 	}
 
 	uc = vxml_next_char(vp);
@@ -4799,7 +4712,7 @@ vxml_handle_cdata(vxml_parser_t *vp)
 	uint32 uc;
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_cdata: begin");
+		vxml_parser_debug(vp, "%s(): begin", G_STRFUNC);
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (VXC_RBRAK == uc) {				/* ']' */
@@ -4820,7 +4733,7 @@ vxml_handle_cdata(vxml_parser_t *vp)
 
 ended:
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_cdata: end");
+		vxml_parser_debug(vp, "%s(): end", G_STRFUNC);
 
 	return TRUE;
 }
@@ -5075,8 +4988,8 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	uc = vxml_next_char(vp);
 
 	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_decl: next char is U+%X '%c'",
-			uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+		vxml_parser_debug(vp, "%s(): next char is U+%X '%c'",
+			G_STRFUNC, uc, is_ascii_print(uc) ? uc & 0xff : ' ');
 
 	if (VXC_MINUS == uc) {
 		uc = vxml_next_char(vp);
@@ -5176,8 +5089,8 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	}
 
 	if (vxml_debugging(19)) {
-		vxml_parser_debug(vp, "vxml_handle_decl: parsed '<!%s'",
-			vxml_token_to_string(token));
+		vxml_parser_debug(vp, "%s(): parsed '<!%s'",
+			G_STRFUNC, vxml_token_to_string(token));
 	}
 
 	vxml_output_discard(&vp->out);
@@ -5231,8 +5144,8 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	vxml_output_discard(&vp->out);
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_handle_decl: parsed '<!%s %s%s'",
-			vxml_token_to_string(token), seen_pct ? "% " : "", name);
+		vxml_parser_debug(vp, "%s(): parsed '<!%s %s%s'",
+			G_STRFUNC, vxml_token_to_string(token), seen_pct ? "% " : "", name);
 	}
 
 	switch (token) {
@@ -5348,7 +5261,7 @@ vxml_parser_path_enter(vxml_parser_t *vp,
 		parent->children++;
 	}
 
-	vp->path = g_list_prepend(vp->path, pe);
+	vp->path = plist_prepend(vp->path, pe);
 }
 
 /**
@@ -5376,9 +5289,9 @@ vxml_parser_path_proper_ending(vxml_parser_t *vp)
 	vxml_path_entry_check(pe);
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_path_proper_ending: "
-			"would be leaving '%s' at depth %u (parsed \"%s\")",
-			pe->element, vp->loc.depth, vp->element);
+		vxml_parser_debug(vp,
+			"%s(): would be leaving '%s' at depth %u (parsed \"%s\")",
+			G_STRFUNC, pe->element, vp->loc.depth, vp->element);
 	}
 
 	/*
@@ -5410,9 +5323,9 @@ vxml_parser_path_proper_ending(vxml_parser_t *vp)
 		const char *end_uri = vxml_parser_namespace_uri(vp, vp->namespace);
 
 		if (vxml_debugging(18)) {
-			vxml_parser_debug(vp, "vxml_parser_path_proper_ending: "
-				"leaving namespace '%s' at depth %u (parsed \"%s\")",
-				start_uri, vp->loc.depth, end_uri);
+			vxml_parser_debug(vp,
+				"%s(): leaving namespace '%s' at depth %u (parsed \"%s\")",
+				G_STRFUNC, start_uri, vp->loc.depth, end_uri);
 		}
 
 		if (0 != strcmp(start_uri, end_uri)) {
@@ -5441,8 +5354,8 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	vxml_path_entry_check(pe);
 
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_path_leave: "
-			"leaving '%s' at depth %u", pe->element, vp->loc.depth);
+		vxml_parser_debug(vp, "%s(): leaving '%s' at depth %u",
+			G_STRFUNC, pe->element, vp->loc.depth);
 	}
 
 	/*
@@ -5457,7 +5370,7 @@ vxml_parser_path_leave(vxml_parser_t *vp)
 	 * information for the next item in the path (i.e. the parent element).
 	 */
 
-	vp->path = g_list_remove(vp->path, pe);
+	vp->path = plist_remove(vp->path, pe);
 	vp->loc.depth--;
 	vp->glob.depth--;
 	vxml_path_entry_free(pe);
@@ -5621,8 +5534,8 @@ vxml_parser_tag_has_ended(vxml_parser_t *vp, uint32 uc,
 	bool *error, bool *empty)
 {
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_tag_has_ended: char is U+%X '%c'",
-			uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+		vxml_parser_debug(vp, "%s(): char is U+%X '%c'",
+			G_STRFUNC, uc, is_ascii_print(uc) ? uc & 0xff : ' ');
 	}
 
 	if (VXC_SLASH == uc) {		/* Reached a '/', tag has no content */
@@ -5654,8 +5567,8 @@ vxml_parser_tag_has_ended(vxml_parser_t *vp, uint32 uc,
 
 tag_ended:
 	if (vxml_debugging(18)) {
-		vxml_parser_debug(vp, "vxml_parser_tag_has_ended: yes, %s empty",
-			*empty ? "" : "not");
+		vxml_parser_debug(vp, "%s(): yes, %s empty",
+			G_STRFUNC, *empty ? "" : "not");
 	}
 
 	return TRUE;
@@ -5704,9 +5617,10 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 		return FALSE;
 	}
 
-	if (vxml_debugging(18))
-		vxml_parser_debug(vp, "vxml_handle_tag: next char is U+%X '%c'",
-			uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+	if (vxml_debugging(18)) {
+		vxml_parser_debug(vp, "%s(): next char is U+%X '%c'",
+			G_STRFUNC, uc, is_ascii_print(uc) ? uc & 0xff : ' ');
+	}
 
 	/*
 	 * If we're not starting an element tag, re-route.
@@ -6332,6 +6246,18 @@ vxml_parse_tree(vxml_parser_t *vp, xnode_t **root)
 	return vp->error;
 }
 
+/**
+ * Check that tokenizer arrays are sorted.
+ */
+static void G_GNUC_COLD
+vxml_tokenizer_check(void)
+{
+	TOKENIZE_CHECK_SORTED(vxml_default_entities);
+	TOKENIZE_CHECK_SORTED(vxml_declaration_tokens);
+	TOKENIZE_CHECK_SORTED(vxml_misc_tokens);
+	TOKENIZE_CHECK_SORTED(vxml_immediate_tokens);
+}
+
 /***
  *** XML parser testing.
  ***/
@@ -6411,7 +6337,7 @@ const char bad_namespace3[] =
 	"<a xmlns:x='urn:x-ns' xmlns:y='urn:x-ns'><b x:a='' y:a=''/></a>";
 
 const char faulty[] = "<a>text<b>other text<c>x</c><d><e>text</a>";
-const char illseq[] = "<a>mañ</a>";
+const char illseq[] = "<a>maX</a>";
 
 static G_GNUC_COLD void
 vxml_run_simple_test(int num, const char *name,
@@ -6559,8 +6485,7 @@ tricky_text(vxml_parser_t *vp,
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
 			"tricky_text: got \"%s\" (%zu byte%s) in <%s> at depth %u",
-			info->num, info->name, text, len,
-			1 == len ? "" : "s",
+			info->num, info->name, text, len, plural(len),
 			name, vxml_parser_depth(vp));
 	}
 
@@ -6590,7 +6515,7 @@ evaluation_text(vxml_parser_t *vp,
 		g_info("VXML test #%d \"%s\": "
 			"evaluation_text: "
 			"got \"%s\" (%zu byte%s) in <token #%u> at depth %u",
-			info->num, info->name, text, len, 1 == len ? "" : "s",
+			info->num, info->name, text, len, plural(len),
 			id, vxml_parser_depth(vp));
 	}
 
@@ -6610,7 +6535,7 @@ blank_text(vxml_parser_t *vp,
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
 			"blank_text: got \"%s\" (%zu byte%s) in <token #%u> at depth %u",
-			info->num, info->name, text, len, 1 == len ? "" : "s",
+			info->num, info->name, text, len, plural(len),
 			id, vxml_parser_depth(vp));
 	}
 
@@ -6771,6 +6696,8 @@ vxml_test(void)
 	};
 	bool seen_text;
 	xnode_t *root, *xn;
+
+	vxml_tokenizer_check();
 
 	vxml_run_simple_test(1,
 		"simple", simple, CONST_STRLEN(simple), 0, VXML_E_OK);
@@ -6937,14 +6864,23 @@ vxml_test(void)
 	vxml_run_simple_test(29, "recursion_pe", recursion_pe,
 		CONST_STRLEN(recursion_pe), 0, VXML_E_ENTITY_RECURSION);
 
-	vxml_run_simple_test(30, "illseq", illseq, CONST_STRLEN(illseq),
-		0, VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE);
+	{
+		char *iseq = xstrdup(illseq);
+
+		/* Avoids warning about illegal char in litteral */
+		iseq[5] = (char) 0xF1;		/* Replaces 'X' with '\xf1' */
+
+		vxml_run_simple_test(30, "illseq", iseq, CONST_STRLEN(illseq),
+			0, VXML_E_ILLEGAL_CHAR_BYTE_SEQUENCE);
+
+		XFREE_NULL(iseq);
+	}
 }
 #else	/* !VXML_TESTING */
-void
+void G_GNUC_COLD
 vxml_test(void)
 {
-	/* Nothing */
+	vxml_tokenizer_check();
 }
 #endif	/* VXML_TESTING */
 

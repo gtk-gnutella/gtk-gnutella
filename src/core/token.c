@@ -62,125 +62,6 @@
  * There can be up to 2^5 = 32 keys per version.
  */
 
-static const char *keys_096_5[] = {
-	"29af ab9b fc6b 58b7 9031 cf87 f7cc 3c63",
-	"5dee 3d3f efb1 ac8d 27f4 2fa9 b1c3 705b",
-	"117f 9530 1881 6432 ecf4 780e dbfc 45c9",
-	"4b00 06d3 7e49 563b cc0a 3ace bb1d 3f35",
-	"6a73 45a2 b30a 2096 c2a4 971c 68a7 5d87",
-	"f88e 3f5c d07d e76c 0e1b a94c c93f b40f",
-	"40b3 d33c f3c8 06e7 c565 7736 0408 9265",
-	"9d43 7091 3bad 0f2d 1554 72d4 c7ec b505",
-	"a519 2d25 0f9d 11ca a1cd 3d87 cb5d cb9d",
-	"acab b860 7c78 6989 1c9e 2314 c917 dc48",
-	"027b 7e7e e566 fb10 d799 e2fd f807 5279",
-	"e069 951d 3c2a accf d119 bd4e 0755 e59c",
-	"8e4e cd64 d147 597a 32bd d977 6b38 40d3",
-	"ee12 9716 e9f7 74f2 bec3 c7fb 915d 11e4",
-	"2882 6581 cb85 c261 3c10 af8e 8eec 5761",
-	"92ca 01b0 e81c 6ee5 9b8f ae1e 7d57 422b",
-	"8eac 6012 99ac 2157 4bf5 df1c 074b 9110",
-	"133a 694a b768 3034 693b 57ad 06ab d4e7",
-	"477c faed 3a17 d265 7916 79cc 691d c50f",
-	"f271 3f09 2b26 095b b4f3 5893 f86d 7814",
-	"ecf3 0cb2 261b 3bd1 5f22 c2f5 4e90 d1d6",
-	"1f2f 4d01 aee4 8a3b 04c7 b1a7 7557 1d7e",
-};
-
-static const char *keys_096_6[] = {
-	"ca51 4809 04ec 2415 bb26 dd7d e927 3ef1",
-	"6a44 08d8 30bb c0a8 ab9b fe97 b4a3 41b8",
-	"c1bc 3d39 7579 2755 c7a7 0825 93e3 b42b",
-	"ab20 feaf 4268 48b1 b946 61d6 b9e4 5aea",
-	"da38 81e8 13e8 0b3b df48 2230 491c e973",
-	"d016 ea65 9110 2a9e cd78 d916 7b98 f4bb",
-	"d71d d56e 47ab 820d 3e2f 384e 7e6c b864",
-	"e43b 59b1 687f bda2 0b65 78ea bfd7 43b6",
-	"216f 2bf3 5f78 f9a2 ed42 495a 8649 ff3d",
-	"def4 46c0 c9be b07a 4166 1882 4a0b 032b",
-	"97dc d2cb b336 31c9 f50a 54c3 9249 37de",
-	"f226 7955 3c3d 7322 b354 5b39 26fd 5f5b",
-	"55ff bd4f 0626 9d57 44a1 7989 b717 7fc1",
-	"3f84 3b70 88bb 9cb0 f1af 71d7 653d 8a27",
-	"ff7f eea2 f128 5cf8 1d55 6dc7 88e4 96ae",
-	"bb77 eb02 35be 2856 42ac 5198 87ed 9e65",
-	"78e4 55ac c116 9a09 f010 7177 63fb 2556",
-	"20af 1d32 f5dc a674 bf0b d0eb 0ce7 ba27",
-	"741e 144c e7d5 6017 033c 8035 ba4c 271e",
-	"839f 7a68 30c0 8119 80b5 00ce 1f47 2a4e",
-	"49a2 5e0b 2c25 8fc9 b837 a30d 5d60 7c67",
-	"88e8 a3b2 a8cd 3bdf 9695 bb4b 4cce 6137",
-	"394d 4e34 c77e 4c94 17f9 030d df2e 2a2e",
-	"6fe4 cc5b 87db 9631 e69b a1dc 48da a41a",
-	"9a51 24dd 2024 b470 3131 2c2f f14c c289",
-	"3c03 6fac 146d f9f8 0ae4 fd2c 3ac9 594f",
-	"e25d edc1 5229 2984 fa4b d45f e79c fe84",
-	"3782 c665 d5d9 4055 d1c7 8aa2 9723 0b04",
-	"587d 2f6f a442 d49f 8de3 af20 a7c8 ac20",
-};
-
-static const char *keys_096_7[] = {
-	"c75f 6c38 449c fb4d 7636 58b0 5b48 a977",
-	"04f8 bb8b 3a87 015a e019 506f 02cf e458",
-	"fa6a e76c d3bb a724 4132 4b8e 917e 102c",
-	"de57 24d2 691d 5e14 bce3 bb1e 55ee b852",
-	"f5d2 625b 19c2 6c82 9ee0 859f c55b faed",
-	"6f56 d29c 9f50 365c 87d8 ce38 ba58 96a0",
-	"27a8 c873 187c ab36 d8a7 f26e 848d dabb",
-	"8240 ceba 9a61 9133 872e 7cbb 1ff7 3c44",
-	"c174 550d ebdf bbc4 fd6e a90e c37a 3ade",
-	"cedc 9c8c e3cc 320b 4d27 cb50 91c9 e711",
-	"de55 4003 91fb 4c85 ac25 70fa d129 f6c6",
-	"5329 12d3 d43e 7747 5ff3 8c16 41b3 2234",
-	"dea9 6231 7068 7079 dfd8 241d b0fc 69f7",
-	"bdc2 3f85 9ed8 9208 4508 9fdc 68ae 0772",
-	"5bd4 fcf2 e7b8 abee f0a2 26ef 59d1 f502",
-	"0664 ffe6 8605 8eb2 6978 bb32 4e35 eabf",
-	"3787 d073 e6bc 7ee4 bc83 721e 9987 302e",
-	"22d3 cc29 ba7e 7457 af72 9036 2de6 bc62",
-	"2b78 c4ca 4a82 3c1e 8fd8 7913 4e70 a56d",
-	"50af 1568 02fc 694f 7486 6c4d 8610 b536",
-	"a4f8 a838 686f 1bdc 2fd7 d4cc 59f7 9c0e",
-	"0424 595c 7e43 4d4a c293 2dea 836a a370",
-	"d659 2830 a507 9555 c2c3 9226 aae2 d8dd",
-	"eac6 4e0d 25b5 4547 b92d 042c 5ae6 b34e",
-	"8d3c ab1c a0aa 0f1e cd4a 301d 97c3 f4c4",
-	"57b6 f87c ec89 67f3 633e 82bf e7e7 3e54",
-	"e8ba 7daf cb5b 3782 b816 98fa 179c ee6b",
-	"7ec0 052b 954e cfd7 1605 e95c fa86 61de",
-};
-
-static const char *keys_096_9[] = {
-	"31cc 4700 848d c284 9cfb 3b07 90ab fcdf",
-	"b007 033e 0d60 654d 363a df32 011a d9ad",
-	"5bfa 8fc4 a84b b0ca 6b90 1317 e83e 6c4c",
-	"d183 2611 5aaf 6e50 3aac a1c7 c442 2067",
-	"dac1 79f3 00de 0863 a850 eabf 68f5 c0cc",
-	"e580 c16f 4671 b302 787e 11fd 6158 760d",
-	"6287 ebac 1dac d3cd 423d 758a 8c50 597f",
-	"edd2 3a2b a8ed a723 4106 1a7e c1c2 2be4",
-	"1fa5 413d 5f60 0eee fdb0 f8e4 472b bdd8",
-	"ffb5 7f2b 6471 7383 0221 8f4e fcae 130b",
-	"d646 cd74 9113 cbf9 63fe e112 f381 a99c",
-	"3dea 1811 a527 8f91 9dd6 460b 9bd4 2275",
-	"2e09 d0ac 60d0 8845 a4af 1d42 61cd d9a8",
-	"155e 4184 f7c4 8f45 9595 acfe 2cdc 6825",
-	"9ba5 0bc5 fe6e 9a51 3590 e824 f364 8cbd",
-	"acd2 4eb7 a1b2 d3b8 b964 c884 9bc8 4146",
-	"b07e 2821 0957 b3bc 01fa fbc9 d986 89c0",
-	"6d99 7fd9 2d53 6851 245f ba7e a83d 5a1e",
-	"8b9e 93c4 5e84 2406 acdd 4694 1d8e 78c5",
-	"501a 7d93 f23d be6e cad9 a393 7828 708f",
-	"69a8 2f26 815e 85a6 4644 b8ef 4d73 29d9",
-	"9e89 752f f75b fefe 6505 49f2 6917 64cc",
-	"a7e8 de06 d209 0826 f4fe ea1e 8ad7 6e5e",
-	"8d34 33d2 c747 37db f2fd 910b 0006 cfeb",
-	"618c 89aa 8da2 0d95 beb3 f4db 26a6 fae8",
-	"9fbd 8d71 4550 187f 746e f286 10d4 5949",
-	"aff6 b206 55f7 10b9 cb97 d8cf ed23 409f",
-	"a348 1223 26ab e9ba a4e1 ee9d 54a2 46be",
-};
-
 static const char *keys_097_0[] = {
 	"1cf5 88ac a6a8 f440 8278 842c 6952 931b",
 	"04cc 6a81 9bbb fadd 396a d06c 148e 6b64",
@@ -465,6 +346,39 @@ static const char *keys_100_1[] = {
 	"c831 6dc0 2434 f793 4ae2 ba68 37c6 ae9c",
 };
 
+static const char *keys_101_0[] = {
+	"0e52 1f9e 9175 3956 c50c ea12 2c04 8571",
+	"6935 29db 10f5 2457 9f50 7db6 5835 6706",
+	"c584 2380 e246 5ab5 5869 5cad 717d 1b66",
+	"2f6f 8f86 35a5 3b45 a082 c980 bbd3 b11b",
+	"e19f 2759 ce8a 20db 5d63 6144 8b3d 9ca3",
+	"8768 9271 bd23 80be ff99 036a b29c fc0b",
+	"b907 d822 b334 6d60 6abf aba1 d27a d813",
+	"88d9 096a 5caf b555 08b6 d0aa 8bca ca3d",
+	"f385 2ffb 2e4c 3c67 5c4c 654f 5566 bb3a",
+	"c5cf 6783 e701 5c8f ea15 d6d4 6bd9 aba9",
+	"e761 a010 c248 1d55 baeb a273 a745 e8f8",
+	"c427 5bd7 a45d a5e6 79b9 d454 5ad4 51ad",
+	"665a 811f 57d6 fbf4 0d6c e5f8 278d 1e52",
+	"a31b 4b67 741f f021 cf3f 9c8c d001 7128",
+	"5758 7c97 7b7d f10d c985 af97 477f 44b6",
+	"a319 d8ad 5e65 6920 e548 05c8 715c 3fe5",
+	"7683 61c1 1b54 581d 185e 6675 d325 fa72",
+	"7136 394a b039 c5ee a361 28df 157d 6d39",
+	"321a 6d8a 7d4f deb0 e41c 67df 2d46 616e",
+	"f55e a8be ae4a 8f43 20de 89bf e39f 7b90",
+	"76e0 bd5e f08f 5ee1 9d45 aa9f 4c25 c9fb",
+	"fdf7 8827 d862 284a e929 194f 8e40 292e",
+	"a85b e9bd 8de0 c4ee 3397 cc7b cf9b a2e0",
+	"48b2 22d5 993a 53f5 1c41 2211 f8ab 8aeb",
+	"9b16 317b 42d1 a718 f330 a0d8 7a4e 2df1",
+	"8fd2 ac5e 7e4a 3451 d101 43d3 d2bf c943",
+	"a708 ad13 754d 6735 b9f3 137f a7e4 63d1",
+	"21d8 66c6 dbc3 49e7 3141 e11b f869 95bf",
+};
+
+#define KEYS(x)		keys_ ## x, G_N_ELEMENTS(keys_ ## x)
+
 /**
  * Describes the keys to use depending on the version.
  */
@@ -473,65 +387,19 @@ struct tokkey {
 	const char **keys;	/**< Keys to use */
 	uint count;			/**< Amount of keys defined */
 } token_keys[] = {
-	/* Keep this array sorted by increasing timestamp */
-	{
-		{ 0, 96, 5, '\0', 0, 0, 1207083000 },		/* 2008-04-01 */
-		keys_096_5, G_N_ELEMENTS(keys_096_5),
-	},
-	{
-		{ 0, 96, 6, '\0', 0, 0, 1238338209 },		/* 2009-03-29 */
-		keys_096_6, G_N_ELEMENTS(keys_096_6),
-	},
-	{
-		{ 0, 96, 7, '\0', 0, 0, 1269813600 },		/* 2010-03-29 */
-		keys_096_7, G_N_ELEMENTS(keys_096_7),
-	},
-	/* No new keys for 0.96.8: bugfix release of 0.96.7 */
-	{
-		{ 0, 96, 8, '\0', 0, 0, 1269813601 },		/* 2010-03-29 */
-		keys_096_7, G_N_ELEMENTS(keys_096_7),
-	},
-	{
-		{ 0, 96, 9, '\0', 0, 0, 1300057200 },		/* 2011-03-14 */
-		keys_096_9, G_N_ELEMENTS(keys_096_9),
-	},
-	{
-		{ 0, 97, 0, '\0', 0, 0, 1310940000 },		/* 2011-07-18 */
-		keys_097_0, G_N_ELEMENTS(keys_097_0),
-	},
-	{
-		{ 0, 97, 1, '\0', 0, 0, GIT_SWITCH },		/* 2011-09-11 */
-		keys_097_1, G_N_ELEMENTS(keys_097_1),
-	},
-	{
-		{ 0, 98, 0, '\0', 0, 0, 1323558000 },		/* 2011-12-11 */
-		keys_098_0, G_N_ELEMENTS(keys_098_0),
-	},
-	{
-		{ 0, 98, 1, '\0', 0, 0, 1323990000 },		/* 2011-12-16 */
-		keys_098_1, G_N_ELEMENTS(keys_098_1),
-	},
-	{
-		{ 0, 98, 2, '\0', 0, 0, 1325199600 },		/* 2011-12-30 */
-		keys_098_2, G_N_ELEMENTS(keys_098_2),
-	},
-	{
-		{ 0, 98, 3, '\0', 0, 0, 1338760800 },		/* 2012-06-04 */
-		keys_098_3, G_N_ELEMENTS(keys_098_3),
-	},
-	{
-		{ 0, 98, 4, '\0', 0, 0, 1352588400 },		/* 2012-11-11 */
-		keys_098_4, G_N_ELEMENTS(keys_098_4),
-	},
-	{
-		{ 1, 0, 0, '\0', 0, 0, 1377986400 },		/* 2013-09-01 */
-		keys_100_0, G_N_ELEMENTS(keys_100_0),
-	},
-	{
-		{ 1, 0, 1, '\0', 0, 0, 1388444400 },		/* 2013-12-31 */
-		keys_100_1, G_N_ELEMENTS(keys_100_1),
-	},
+	{ { 0, 97, 0, '\0', 0, 0, 1310940000 }, KEYS(097_0)	},	/* 2011-07-18 */
+	{ { 0, 97, 1, '\0', 0, 0, GIT_SWITCH }, KEYS(097_1)	},	/* 2011-09-11 */
+	{ { 0, 98, 0, '\0', 0, 0, 1323558000 }, KEYS(098_0)	},	/* 2011-12-11 */
+	{ { 0, 98, 1, '\0', 0, 0, 1323990000 }, KEYS(098_1)	},	/* 2011-12-16 */
+	{ { 0, 98, 2, '\0', 0, 0, 1325199600 }, KEYS(098_2) },	/* 2011-12-30 */
+	{ { 0, 98, 3, '\0', 0, 0, 1338760800 },	KEYS(098_3) },	/* 2012-06-04 */
+	{ { 0, 98, 4, '\0', 0, 0, 1352588400 },	KEYS(098_4) },	/* 2012-11-11 */
+	{ { 1, 0,  0, '\0', 0, 0, 1377986400 }, KEYS(100_0) },	/* 2013-09-01 */
+	{ { 1, 0,  1, '\0', 0, 0, 1388444400 }, KEYS(100_1) },	/* 2013-12-31 */
+	{ { 1, 1,  0, '\0', 0, 0, 1404252000 }, KEYS(101_0) },	/* 2014-07-02 */
 };
+
+#undef KEYS
 
 /**
  * Token validation errors.
@@ -799,7 +667,7 @@ tok_generate(time_t now, const char *version)
 	uint32 crc32;
 	uint idx;
 	const char *key;
-	SHA1Context ctx;
+	SHA1_context ctx;
     struct sha1 sha1;
 	int lvlsize;
 	int i;
@@ -816,11 +684,11 @@ tok_generate(time_t now, const char *version)
 	digest[6] &= 0xe0U;			/* Upper 3 bits only */
 	digest[6] |= idx & 0xffU;	/* Has 5 bits for the index */
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, key, strlen(key));
-	SHA1Input(&ctx, digest, 7);
-	SHA1Input(&ctx, version, strlen(version));
-	SHA1Result(&ctx, &sha1);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, digest, 7);
+	SHA1_input(&ctx, version, strlen(version));
+	SHA1_result(&ctx, &sha1);
 	memcpy(&digest[7], sha1.data, SHA1_RAW_SIZE);
 
 	/*
@@ -828,7 +696,7 @@ tok_generate(time_t now, const char *version)
 	 */
 
 	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
-	crc32 = crc32_update(0, digest, TOKEN_VERSION_SIZE);
+	crc32 = crc32_update(0, VARLEN(digest));
 
 	for (i = 0; i < lvlsize; i++) {
 		poke_be16(&lvldigest[i*2], tok_crc(crc32, tk));
@@ -934,7 +802,7 @@ tok_version_valid(
 	const struct tokkey *latest;
 	uint idx;
 	const char *key;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	char lvldigest[1024];
 	char token[TOKEN_VERSION_SIZE];
 	struct sha1 digest;
@@ -983,11 +851,11 @@ tok_version_valid(
 
 	key = tk->keys[idx];
 
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, key, strlen(key));
-	SHA1Input(&ctx, token, 7);
-	SHA1Input(&ctx, version, strlen(version));
-	SHA1Result(&ctx, &digest);
+	SHA1_reset(&ctx);
+	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, token, 7);
+	SHA1_input(&ctx, version, strlen(version));
+	SHA1_result(&ctx, &digest);
 
 	if (0 != memcmp(&token[7], digest.data, SHA1_RAW_SIZE))
 		return TOK_INVALID;
@@ -1053,7 +921,7 @@ tok_version_valid(
 
 	rtk = tk + (lvlsize - 1);				/* Keys at that level */
 
-	crc = crc32_update(0, token, TOKEN_VERSION_SIZE);
+	crc = crc32_update(0, VARLEN(token));
 	crc = tok_crc(crc, rtk);
 
 	lvlsize--;								/* Move to 0-based offset */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2012, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Handling UDP datagrams.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2012, 2014
  */
 
 #include "common.h"
@@ -61,6 +61,7 @@
 #include "lib/gnet_host.h"
 #include "lib/hashlist.h"
 #include "lib/random.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/xmalloc.h"
 #include "lib/zlib_util.h"
@@ -149,13 +150,16 @@ static rxdrv_t *
 udp_get_rx_semi_reliable(enum udp_traffic utp, host_addr_t from, size_t len)
 {
 	unsigned i = 0;
+	hostiles_flags_t hostile = hostiles_check(from);
 
-	if (hostiles_is_bad(from)) {
+	if (
+		hostiles_flags_are_bad(hostile) ||
+		hostiles_flags_warrant_shunning(hostile)
+	) {
 		if (GNET_PROPERTY(udp_debug)) {
-			hostiles_flags_t flags = hostiles_check(from);
 			g_warning("UDP got %s (%zu bytes) from hostile %s (%s) -- dropped",
 				udp_traffic_to_string(utp), len, host_addr_to_string(from),
-				hostiles_flags_to_string(flags));
+				hostiles_flags_to_string(hostile));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_RX_FROM_HOSTILE_IP);
 		return NULL;		/* Ignore message */
@@ -255,9 +259,13 @@ udp_is_valid_gnet_split(gnutella_node_t *n, const gnutella_socket_t *s,
 	case GMSG_VALID_MARKED:
 		break;
 	case GMSG_VALID_NO_PROCESS:
+		hostiles_dynamic_add(n->addr,
+			"improper Gnutella header", HSTL_GIBBERISH);
 		msg = "Header flags undefined for now";
 		goto drop;
 	case GMSG_INVALID:
+		hostiles_dynamic_add(n->addr,
+			"invalid Gnutella header size", HSTL_GIBBERISH);
 		msg = "Invalid size (greater than 64 KiB without flags)";
 		goto not;		/* Probably just garbage */
 	}
@@ -307,23 +315,39 @@ not:
 
 log:
 	if (GNET_PROPERTY(udp_debug)) {
+		hostiles_flags_t flags;
+
+		/*
+		 * Do not pollute logs with errors from messages coming from known
+		 * hostile addresses: no dumping of datagram, and flag the host as
+		 * hostile anyway so that we know.
+		 */
+
+		flags = hostiles_check(s->addr);
+
 		g_warning("UDP got invalid %sGnutella packet (%zu byte%s) "
-			"\"%s\" %sfrom %s: %s",
+			"\"%s\" %sfrom %s%s: %s",
 			socket_udp_is_old(s) ? "OLD " : "",
-			len, 1 == len ? "" : "s",
+			len, plural(len),
 			len >= GTA_HEADER_SIZE ?
 				gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE)
 				: "<incomplete Gnutella header>",
 			truncated ? "(truncated) " : "",
+			(flags & HSTL_STATIC) ? "static hostile " : "",
 			NULL == n ?
 				host_addr_port_to_string(s->addr, s->port) :
 				node_infostr(n),
 			msg);
-		if (len != 0) {
-			iovec_t iov[2];
-			iovec_set(&iov[0], header, GTA_HEADER_SIZE);
-			iovec_set(&iov[1], payload, len - GTA_HEADER_SIZE);
-			dump_hex_vec(stderr, "UDP datagram", iov, G_N_ELEMENTS(iov));
+
+		if (len != 0 && !(flags & HSTL_STATIC)) {
+			if (len <= GTA_HEADER_SIZE) {
+				dump_hex(stderr, "UDP datagram", header, len);
+			} else {
+				iovec_t iov[2];
+				iovec_set(&iov[0], header, GTA_HEADER_SIZE);
+				iovec_set(&iov[1], payload, len - GTA_HEADER_SIZE);
+				dump_hex_vec(stderr, "UDP datagram", iov, G_N_ELEMENTS(iov));
+			}
 		}
 	}
 
@@ -933,9 +957,8 @@ udp_received(const gnutella_socket_t *s,
 	const void *data, size_t len, bool truncated)
 {
 	gnutella_node_t *n;
-	bool bogus = FALSE;
-	bool dht = FALSE;
-	bool rudp = FALSE;
+	bool bogus = FALSE, dht = FALSE, rudp = FALSE, g2 = FALSE;
+	hostiles_flags_t hflags;
 
 	/*
 	 * This must be regular Gnutella / DHT traffic.
@@ -976,7 +999,11 @@ udp_received(const gnutella_socket_t *s,
 		case UNKNOWN:
 			goto unknown;
 		case SEMI_RELIABLE_GTA:
+			break;
 		case SEMI_RELIABLE_GND:
+			if (!node_g2_active())
+				return;		/* Blackout, ignore datagram if G2 was disabled */
+			g2 = TRUE;
 			break;
 		}
 
@@ -1036,6 +1063,8 @@ rudp:
 	 *		--RAM, 2012-11-02.
 	 */
 
+	g_assert(!g2);	/* All G2 UDP traffic comes via the semi-reliable layer */
+
 	/*
 	 * If we get traffic from a bogus IP (unroutable), warn, for now.
 	 */
@@ -1046,10 +1075,35 @@ rudp:
 		if (GNET_PROPERTY(udp_debug)) {
 			g_warning("UDP %sdatagram (%zu byte%s) received from bogus IP %s",
 				truncated ? "truncated " : "",
-				len, 1 == len ? "" : "s",
+				len, plural(len),
 				host_addr_to_string(s->addr));
 		}
 		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);
+	}
+
+	/*
+	 * Traffic from hosts sending gibberish data or information we previously
+	 * determined as being invalid / suspicious are simply discarded to avoid
+	 * further processing (which would probably lead to them being further
+	 * discarded as invalid, unparseable, etc...).
+	 *
+	 * We let statically-banned hosts through though so that we may parse
+	 * their message and log dropping in upper layers, for statistics per
+	 * message type.  We only drop known gibberish at this level.
+	 */
+
+	hflags = hostiles_check(s->addr);
+
+	if (hflags & HSTL_GIBBERISH) {
+		if (GNET_PROPERTY(udp_debug)) {
+			g_warning("UDP %sdatagram (%zu byte%s) received from "
+				"shunned IP %s (%s) -- dropped",
+				truncated ? "truncated " : "",
+				len, plural(len),
+				host_addr_to_string(s->addr), hostiles_flags_to_string(hflags));
+		}
+		gnet_stats_inc_general(GNR_UDP_SHUNNED_SOURCE_IP);
+		return;
 	}
 
 	/*
@@ -1332,7 +1386,7 @@ udp_ping_register(const struct guid *muid,
  * @return TRUE if indeed this was a reply for a ping we sent.
  */
 enum udp_pong_status
-udp_ping_is_registered(const struct gnutella_node *n, gnet_host_t *host)
+udp_ping_is_registered(const gnutella_node_t *n, gnet_host_t *host)
 {
 	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
@@ -1388,7 +1442,7 @@ udp_send_ping_with_callback(
 	const host_addr_t addr, uint16 port,
 	udp_ping_cb_t cb, void *arg, bool multiple)
 {
-	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
+	gnutella_node_t *n = node_udp_get_addr_port(addr, port);
 
 	if (n != NULL) {
 		const guid_t *muid = gnutella_header_get_muid(m);

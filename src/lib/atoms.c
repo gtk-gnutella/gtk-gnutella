@@ -45,7 +45,9 @@
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
+#include "omalloc.h"
 #include "once.h"
+#include "spinlock.h"
 #include "str.h"
 #include "stringify.h"
 #include "walloc.h"
@@ -66,12 +68,6 @@
  * be modified accidently. This is achieved through mprotect(). The CPU
  * overhead is significant and there is also some memory overhead but it's
  * sufficiently low for testing/debugging purposes.
- *
- * TODO: Separate the reference counter (refcount) from the atom itself.
- *       This would heavily the reduce the amount of mprotect() calls and
- *       also reduce the memory overhead.
- *		 We could possibly use the value which we insert into the global
- *       hashtable as reference counter.
  */
 
 #ifdef ATOMS_HAVE_MAGIC
@@ -81,9 +77,11 @@ typedef enum {
 
 #define ATOM_MAGIC_CHECK(a) g_assert(ATOM_MAGIC == (a)->magic)
 #define ATOM_SET_MAGIC(a) G_STMT_START { (a)->magic = ATOM_MAGIC; } G_STMT_END
+#define ATOM_CLEAR_MAGIC(a) G_STMT_START { (a)->magic = 0; } G_STMT_END
 #else
 #define ATOM_MAGIC_CHECK(a)
 #define ATOM_SET_MAGIC(a)
+#define ATOM_CLEAR_MAGIC(a)
 #endif	/* ATOMS_HAVE_MAGIC */
 
 union mem_chunk {
@@ -94,24 +92,108 @@ union mem_chunk {
 /**
  * Atoms are ref-counted.
  *
- * The reference count is held at the beginning of the data arena.
  * What we return to the outside is the value of atom_arena(), not a
  * pointer to the atom structure.
+ *
+ * The reference count is not held in the atom header but is stored in the
+ * hash table tracking atoms of a given type, to limit the memory overhead,
+ * and mprotect() overhead when compiling with PROTECT_ATOMS.
  */
 typedef struct atom {
 #ifdef ATOMS_HAVE_MAGIC
 	atom_prot_magic_t magic;	/**< Magic should be at the beginning */
 #endif /* ATOM_HAVE_MAGIC */
-	int refcnt;				/**< Amount of references */
 #ifdef TRACK_ATOMS
-	htable_t *get;			/**< Allocation spots */
-	htable_t *free;			/**< Free spots */
-#endif
+	htable_t *get;				/**< Allocation spots */
+	htable_t *free;				/**< Free spots */
+	spinlock_t lock;			/**< Thread-safety lock */
+	size_t trackcnt;			/**< Tracking count (reference count) */
+#endif	/* TRACK_ATOMS */
 } atom_t;
 
 #define ARENA_OFFSET \
 	(MEM_ALIGNBYTES * ((sizeof(atom_t) / MEM_ALIGNBYTES) + \
 		((sizeof(atom_t) % MEM_ALIGNBYTES) ? 1 : 0)))
+
+/*
+ * On 32-bit machines, the size and reference counts of atoms are stored as
+ * values in the atom hash table.
+ *
+ * On 64-bit machines, the size and reference counts are encoded in the
+ * pointer field.
+ *
+ * The atom size is therefore limited to 4 GiB, which is a reasonable upper
+ * limit given that each time the atom is requested, we need to hash it.
+ */
+
+#define ATOM_SIZE_MAX	0xffffffffU
+
+/*
+ * Atom information on 32-bit machines, stored in the hash table.
+ */
+struct atom_info {
+	size_t len;			/**< Atom length */
+	int refcnt;			/**< Reference count */
+};
+
+/*
+ * On 64-bit machines:
+ *
+ * - the size is stored in the upper 32 bits of the atom's hash table
+ *   64-bit value
+ * - the reference count is held in the lower 32 bits of that value.
+ *
+ * This allows us to simply increment or decrement the whole value to account
+ * for reference changes made to the atom.
+ */
+
+#if PTRSIZE > 4
+#define ATOM_LENGTH(x)	((x) >> 32)
+#define ATOM_REFCNT(x)	((x) & ATOM_SIZE_MAX)
+#define ATOM_INFO(l)	((l) << 32)
+#else	/* PTRSIZE <= 4 */
+/*
+ * Make sure this unreachable code on 32-bit machines does not trigger
+ * compilation warnings, and is indeed unreacheable.
+ */
+#define ATOM_LENGTH(x)	(s_error_expr("unused code called"), ATOM_SIZE_MAX)
+#define ATOM_REFCNT(x)	(s_error_expr("unused code called"), 0)
+#define ATOM_INFO(x)	(s_error_expr("unused code called"), 0)
+#endif	/* PTRSIZE > 4 */
+
+/**
+ * Return the atom's length from the information stored in the hash table.
+ */
+static inline size_t
+atom_info_length(void *p)
+{
+	if (4 == sizeof p) {
+		/* 32-bit machine, value is a pointer to a struct atom_info */
+		struct atom_info *ai = p;
+		return ai->len;
+	} else {
+		/* 64-bit machine, value is encoded */
+		return ATOM_LENGTH(pointer_to_ulong(p));
+	}
+}
+
+/**
+ * Return the atom's reference count from the information stored in
+ * the hash table.
+ */
+static inline int
+atom_info_refcnt(void *p)
+{
+	if (4 == sizeof p) {
+		/* 32-bit machine, value is a pointer to a struct atom_info */
+		struct atom_info *ai = p;
+		return ai->refcnt;
+	} else {
+		/* 64-bit machine, value is encoded */
+		return ATOM_REFCNT(pointer_to_ulong(p));
+	}
+}
+
 
 static inline atom_t *
 atom_from_arena(const void *key)
@@ -132,14 +214,50 @@ atom_check(const atom_t *a)
 	ATOM_MAGIC_CHECK(a);
 }
 
-static bool atoms_inited;
+static once_flag_t atoms_inited;
+
+#ifdef TRACK_ATOMS
+static inline void
+ATOM_ZERO(atom_t *a)
+{
+	a->get = a->free = NULL;
+	ZERO(&a->lock);
+}
+
+static inline void
+ATOM_TRACK_REFCNT(const void *key, int delta, size_t refcnt)
+{
+	atom_t *a = atom_from_arena(key);
+
+	/*
+	 * The table where the atoms lies is locked, no need to use atomic ops
+	 * to update the tracking count.
+	 */
+
+	a->trackcnt += delta;
+
+	/*
+	 * Ensure our tracking count is always the same as the atom's refcount.
+	 */
+
+	g_assert_log(refcnt == a->trackcnt,
+		"refcnt=%zu, a->trackcnt=%zu", refcnt, a->trackcnt);
+}
+#else	/* !TRACK_ATOMS */
+#define ATOM_ZERO(a)
+#define ATOM_TRACK_REFCNT(k,d,r)	(void) r
+#endif	/* TRACK_ATOMS */
 
 #ifdef PROTECT_ATOMS
 struct mem_pool {
 	union mem_chunk chunks[1];
 };
 
+#define MEM_CACHE_LOCK(m)		spinlock(&(m)->lock)
+#define MEM_CACHE_UNLOCK(m)		spinunlock(&(m)->lock)
+
 struct mem_cache {
+	spinlock_t lock;         /**< Thread safety */
 	struct mem_pool **pools; /**< Dynamic array */
 	union mem_chunk *avail;	 /**< First available chunk */
 	size_t num_pools;		 /**< Element count of ``pools''. */
@@ -152,28 +270,25 @@ static struct mem_cache *mem_cache[9];
 static struct mem_pool *
 mem_pool_new(size_t size, size_t hold)
 {
-  struct mem_pool *mp;
-  size_t len, ps;
-  
-  g_assert(size >= sizeof mp->chunks[0]);
-  g_assert(0 == size % sizeof mp->chunks[0]);
-  g_assert(hold > 0);
-  
-  ps = compat_pagesize();
-  len = hold * size;
-  
-  mp = vmm_core_alloc(len);
-  if (mp) {
-    size_t i, step = size / sizeof mp->chunks[0];
-    
+	struct mem_pool *mp;
+	size_t len;
+	size_t i, step = size / sizeof mp->chunks[0];
+
+	g_assert(size >= sizeof mp->chunks[0]);
+	g_assert(0 == size % sizeof mp->chunks[0]);
+	g_assert(hold > 0);
+
+	len = hold * size;
+
+	mp = vmm_core_alloc(len);
+
 	for (i = 0; hold-- > 1; i += step) {
-      mp->chunks[i].next = &mp->chunks[i + step];
+		mp->chunks[i].next = &mp->chunks[i + step];
 	}
 
-    mp->chunks[i].next = NULL;
-  }
+	mp->chunks[i].next = NULL;
 
-  return mp;
+	return mp;
 }
 
 /**
@@ -184,21 +299,19 @@ mem_pool_new(size_t size, size_t hold)
 static struct mem_cache *
 mem_new(size_t size)
 {
-  struct mem_cache *mc;
+	struct mem_cache *mc;
 
-  g_assert(size > 0);
-  
-  mc = xpmalloc(sizeof *mc);
-  if (mc) {
-    union mem_chunk chunk;
-    
-    mc->size = round_size(sizeof chunk, size);
-    mc->hold = MAX(1, compat_pagesize() / mc->size);
-    mc->num_pools = 0;
-    mc->avail = NULL;
-    mc->pools = NULL;
-  }
-  return mc;
+	g_assert(size > 0);
+
+	OMALLOC(mc);
+	spinlock_init(&mc->lock);
+	mc->size = round_size(sizeof(union mem_chunk), size);
+	mc->hold = MAX(1, compat_pagesize() / mc->size);
+	mc->num_pools = 0;
+	mc->avail = NULL;
+	mc->pools = NULL;
+
+	return mc;
 }
 
 /**
@@ -207,34 +320,28 @@ mem_new(size_t size)
 static void *
 mem_alloc(struct mem_cache *mc)
 {
-  void *p;
+	void *p;
 
-  g_assert(mc);
-  
-  if (NULL != (p = mc->avail)) {
-    mc->avail = mc->avail->next;
-  } else {
-    struct mem_pool *mp;
-    
-    mp = mem_pool_new(mc->size, mc->hold);
-    if (mp) {
-      void *q;
-      
-      q = xprealloc(mc->pools, (1 + mc->num_pools) * sizeof mc->pools[0]);
-      if (q) {
-        mc->pools = q;
-        mc->pools[mc->num_pools++] = mp;
-      
-        mc->avail = &mp->chunks[0];
-        p = mc->avail;
-        mc->avail = mc->avail->next;
-      } else {
-        vmm_core_free(mp, compat_pagesize() * mc->hold);
-      }
-    }
-  }
+	g_assert(mc);
 
-  return p;
+	MEM_CACHE_LOCK(mc);
+
+	if (NULL != (p = mc->avail)) {
+		mc->avail = mc->avail->next;
+	} else {
+		struct mem_pool *mp;
+
+		mp = mem_pool_new(mc->size, mc->hold);
+		XREALLOC_ARRAY(mc->pools, 1 + mc->num_pools);
+		mc->pools[mc->num_pools++] = mp;
+		mc->avail = &mp->chunks[0];
+		p = mc->avail;
+		mc->avail = mc->avail->next;
+	}
+
+	MEM_CACHE_UNLOCK(mc);
+
+	return p;
 }
 
 /**
@@ -244,14 +351,16 @@ mem_alloc(struct mem_cache *mc)
 static void
 mem_free(struct mem_cache *mc, void *p)
 {
-  g_assert(mc);
+	g_assert(mc);
 
-  if (p) {
-    union mem_chunk *c = p;
-   
-    c->next = mc->avail;
-    mc->avail = c;
-  }
+	if (p) {
+		union mem_chunk *c = p;
+
+		MEM_CACHE_LOCK(mc);
+		c->next = mc->avail;
+		mc->avail = c;
+		MEM_CACHE_UNLOCK(mc);
+	}
 }
 
 /**
@@ -284,8 +393,8 @@ mem_protect(void *ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ))
-		s_warning("mem_protect: mprotect(%p, %u, PROT_READ) failed: %m",
-			p, size);
+		s_warning("%s(): mprotect(%p, %zu, PROT_READ) failed: %m",
+			G_STRFUNC, p, size);
 }
 
 /**
@@ -303,8 +412,8 @@ mem_unprotect(void *ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ | PROT_WRITE))
-		s_warning("mem_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %m",
-			p, size);
+		s_warning("%s(): mprotect(%p, %zu, PROT_RDWR) failed: %m",
+			G_STRFUNC, p, size);
 }
 
 /**
@@ -349,6 +458,7 @@ atom_alloc(size_t size)
 		a = vmm_alloc(size);
 	}
 	ATOM_SET_MAGIC(a);
+	ATOM_ZERO(a);
 
 	return a;
 }
@@ -383,21 +493,25 @@ atom_dealloc(atom_t *a, size_t size)
 		VMM_FREE_NULL(a, size);
 	}
 }
-#else
+#else	/* !PROTECT_ATOMS */
 
-#define atom_protect(a, size)
-#define atom_unprotect(a, size)
+#define atom_protect(a, size)		ATOM_MAGIC_CHECK(a)
+#define atom_unprotect(a, size)		ATOM_MAGIC_CHECK(a)
 
 static inline atom_t *
 atom_alloc(size_t size)
 {
 	atom_t *a = walloc(size);
+	ATOM_SET_MAGIC(a);
+	ATOM_ZERO(a);
 	return a;	
 }
 
 static inline void
 atom_dealloc(atom_t *a, size_t size)
 {
+	atom_check(a);
+	ATOM_CLEAR_MAGIC(a);
 	wfree(a, size);
 }
 
@@ -409,14 +523,18 @@ typedef const char *(*str_func_t)(const void *v);
 /**
  * Description of atom types.
  */
-typedef struct table_desc {
+typedef struct atom_desc {
+	spinlock_t lock;			/**< Lock protecting the hash table */
 	const char *type;			/**< Type of atoms */
 	htable_t *table;			/**< Table of atoms: "atom value" -> size */
 	hash_fn_t hash_func;		/**< Hashing function for atoms */
 	eq_fn_t eq_func;			/**< Atom equality function */
 	len_func_t len_func;		/**< Atom length function */
 	str_func_t str_func;		/**< Atom to human-readable string */
-} table_desc_t;
+} atom_desc_t;
+
+#define ATOM_TABLE_LOCK(t)		spinlock(&(t)->lock)
+#define ATOM_TABLE_UNLOCK(t)	spinunlock(&(t)->lock)
 
 static size_t str_xlen(const void *v);
 static const char *str_str(const void *v);
@@ -441,22 +559,24 @@ static const char *gnet_host_str(const void *v);
 #define fs_len		filesize_len
 #define fs_str		filesize_str
 #define gnh_hash	gnet_host_hash
-#define gnh_eq		gnet_host_eq
+#define gnh_eq		gnet_host_equal
 #define gnh_len		gnet_host_length
 #define gnh_str		gnet_host_str
+#define S			SPINLOCK_INIT
+#define N			NULL
 
 /**
  * The set of all atom types we know about.
  */
-static table_desc_t atoms[] = {
-	{ "String",	NULL, str_hash,    str_eq,      str_xlen,   str_str  },	/* 0 */
-	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
-	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
-	{ "TTH",	NULL, tth_hash,    tth_eq,	    tth_len,    tth_str },	/* 3 */
-	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 4 */
-	{ "filesize", NULL, fs_hash,   fs_eq,       fs_len,     fs_str },	/* 5 */
-	{ "uint32",	NULL, uint32_hash, uint32_eq,   uint32_len, uint32_str},/* 6 */
-	{ "host",   NULL, gnh_hash,    gnh_eq,      gnh_len,    gnh_str },	/* 7 */
+static atom_desc_t atoms[] = {
+	{ S, "String", N, str_hash,    str_eq,     str_xlen,   str_str  }, /* 0 */
+	{ S, "GUID",   N, guid_hash,   guid_eq,    guid_len,   guid_str }, /* 1 */
+	{ S, "SHA1",   N, sha1_hash,   sha1_eq,	   sha1_len,   sha1_str }, /* 2 */
+	{ S, "TTH",    N, tth_hash,    tth_eq,	   tth_len,    tth_str },  /* 3 */
+	{ S, "uint64", N, uint64_hash, uint64_eq,  uint64_len, uint64_str},/* 4 */
+	{ S, "filesize", N, fs_hash,   fs_eq,      fs_len,     fs_str },   /* 5 */
+	{ S, "uint32", N, uint32_hash, uint32_eq,  uint32_len, uint32_str},/* 6 */
+	{ S, "host",   N, gnh_hash,    gnh_eq,     gnh_len,    gnh_str },  /* 7 */
 };
 
 #undef str_hash
@@ -469,6 +589,8 @@ static table_desc_t atoms[] = {
 #undef gnh_eq
 #undef gnh_len
 #undef gnh_str
+#undef S
+#undef N
 
 /**
  * @return length of string + trailing NUL.
@@ -791,6 +913,7 @@ atoms_init_once(void)
 	ZERO(&settings);
 
 	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
+	STATIC_ASSERT(4 == sizeof(void *) || sizeof(void *) == sizeof(ulong));
 
 #ifdef PROTECT_ATOMS
 	for (i = 0; i < G_N_ELEMENTS(mem_cache); i++) {
@@ -799,9 +922,9 @@ atoms_init_once(void)
 #endif /* PROTECT_ATOMS */
 
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
-		table_desc_t *td = &atoms[i];
+		atom_desc_t *ad = &atoms[i];
 
-		td->table = htable_create_any(td->hash_func, NULL, td->eq_func);
+		ad->table = htable_create_any(ad->hash_func, NULL, ad->eq_func);
 	}
 
 	/*
@@ -822,7 +945,7 @@ atoms_init_once(void)
 #endif
 
 	if (has_setting) {
-		g_message("atom settings: %s%s%s",
+		s_message("atom settings: %s%s%s",
 			settings.track_atoms ? "TRACK_ATOMS " : "",
 			settings.protect_atoms ? "PROTECT_ATOMS " : "",
 			settings.atoms_have_magic ? "ATOMS_HAVE_MAGIC " : "");
@@ -837,23 +960,69 @@ atoms_init_once(void)
 void
 atoms_init(void)
 {
-	once_run(&atoms_inited, atoms_init_once);
+	once_flag_run(&atoms_inited, atoms_init_once);
 }
 
 /**
  * Check whether atom exists.
  *
- * @return TRUE if ``key'' points to a ``type'' atom.
+ * @return TRUE if ``key'' is a known ``type'' atom.
  */
 bool
 atom_exists(enum atom_type type, const void *key)
 {
 	g_assert(key != NULL);
 
-	if G_UNLIKELY(!atoms_inited)
-		return 0;
+	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
+		return FALSE;
 
 	return htable_contains(atoms[type].table, key);
+}
+
+/**
+ * Check whether key is an atom
+ *
+ * @return TRUE if ``key'' points to a ``type'' atom.
+ */
+bool
+atom_is_atom(enum atom_type type, const void *key)
+{
+	const void *atom;
+
+	g_assert(key != NULL);
+
+	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
+		return FALSE;
+
+	return htable_lookup_extended(atoms[type].table, key, &atom, NULL)
+		&& key == atom;
+}
+
+/**
+ * Increment / decrement the atom reference count.
+ *
+ * Must be called with the table description locked.
+ *
+ * @return new reference count.
+ */
+static inline size_t
+atom_refcnt_add(const atom_desc_t *ad, const void *key, void *value, int delta)
+{
+	if (4 == sizeof(void *)) {
+		/* 32-bit machine, we can directly update the atom_info structure */
+		struct atom_info *ai = value;
+		ai->refcnt += delta;
+		return ai->refcnt;
+	} else {
+		/* 64-bit machine, we must update the hash table value */
+		ulong v = pointer_to_ulong(value);
+		if (delta > 0)
+			v += delta;
+		else
+			v -= -delta;	/* Necessary since int may be smaller than long */
+		htable_insert(ad->table, key, ulong_to_pointer(v));
+		return ATOM_REFCNT(v);
+	}
 }
 
 /**
@@ -865,10 +1034,11 @@ atom_exists(enum atom_type type, const void *key)
 const void *
 atom_get(enum atom_type type, const void *key)
 {
-	table_desc_t *td;
+	atom_desc_t *ad;
 	const void *orig_key;
 	void *value;
 	size_t size;
+	atom_t *a;
 
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
 	STATIC_ASSERT(ARENA_OFFSET >= sizeof(atom_t));
@@ -876,55 +1046,65 @@ atom_get(enum atom_type type, const void *key)
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
-	if G_UNLIKELY(!atoms_inited)
+	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
 		atoms_init();
 
-	td = &atoms[type];		/* Where atoms of this type are held */
+	ad = &atoms[type];		/* Where atoms of this type are held */
+	ATOM_TABLE_LOCK(ad);
 
-	if (htable_lookup_extended(td->table, key, &orig_key, &value)) {
-		size = pointer_to_size(value);
-		g_assert(size >= ARENA_OFFSET);
-	} else {
-		size = 0;
-	}
+	if (htable_lookup_extended(ad->table, key, &orig_key, &value)) {
+		size_t refcnt;
 
-	/*
-	 * If atom exists, increment ref count and return it.
-	 */
+		size = atom_info_length(value);
+		/* Prevent gcc warning if ARENA_OFFSET == 0 */
+		g_assert(size == ARENA_OFFSET || size > ARENA_OFFSET);
 
-	if (size > 0) {
-		atom_t *a;
+		/*
+		 * Atom exists, increment ref count and return it.
+		 */
 
-		a = atom_from_arena(orig_key);
-		g_assert(a->refcnt > 0);
+		g_assert(atom_info_refcnt(value) > 0);
 
-		atom_unprotect(a, size);
-		a->refcnt++;
-		atom_protect(a, size);
+		refcnt = atom_refcnt_add(ad, orig_key, value, +1);
+		ATOM_TRACK_REFCNT(orig_key, +1, refcnt);
+		ATOM_TABLE_UNLOCK(ad);
+
 		return orig_key;
 	} else {
 		size_t len;
-		atom_t *a;
 
 		/*
 		 * Create new atom.
 		 */
 
-		len = (*td->len_func)(key);
-		g_assert(len < ((size_t) -1) - ARENA_OFFSET);
+		len = (*ad->len_func)(key);
+		g_assert(len < ATOM_SIZE_MAX - ARENA_OFFSET);
 		size = round_size_fast(MEM_ALIGNBYTES, ARENA_OFFSET + len);
 
 		a = atom_alloc(size);
-		a->refcnt = 1;
 		memcpy(atom_arena(a), key, len);
 		atom_protect(a, size);
 
 		/*
 		 * Insert atom in table.
+		 *
+		 * On 32-bit machines, we have to allocate the atom_info structure.
+		 * On 64-bit machines, encode size and refcnt in a long.
 		 */
 
-		htable_insert(td->table, atom_arena(a), size_to_pointer(size));
+		if (4 == sizeof(void *)) {
+			struct atom_info *ai;
 
+			WALLOC(ai);
+			ai->len = size;
+			ai->refcnt = 1;
+			htable_insert(ad->table, atom_arena(a), ai);
+		} else {
+			ulong v = ATOM_INFO(size) + 1;
+			htable_insert(ad->table, atom_arena(a), ulong_to_pointer(v));
+		}
+
+		ATOM_TABLE_UNLOCK(ad);
 		return atom_arena(a);
 	}
 }
@@ -936,29 +1116,55 @@ atom_get(enum atom_type type, const void *key)
 void
 atom_free(enum atom_type type, const void *key)
 {
+	atom_desc_t *ad;
 	size_t size;
 	atom_t *a;
+	bool found;
+	int refcnt;
+	void *value;
+	const void *orig_key;
 
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
-	size = pointer_to_size(htable_lookup(atoms[type].table, key));
-	g_assert(size >= ARENA_OFFSET);
+	ad = &atoms[type];		/* Where atoms of this type are held */
+	ATOM_TABLE_LOCK(ad);
+
+	found = htable_lookup_extended(ad->table, key, &orig_key, &value);
+
+	g_assert_log(found,
+		"attempting to free unknown %s atom at %p", ad->type, key);
+	g_assert_log(key == orig_key,
+		"attempt to free %s atom copy at %p, atom was at %p",
+			ad->type, key, orig_key);
+
+	size = atom_info_length(value);
+
+	/* Prevent gcc warning if ARENA_OFFSET == 0 */
+	g_assert(size == ARENA_OFFSET || size > ARENA_OFFSET);
 
 	a = atom_from_arena(key);
-	g_assert(a->refcnt > 0);
+	refcnt = atom_info_refcnt(value);
 
 	/*
 	 * Dispose of atom when its reference count reaches 0.
 	 */
 
-	atom_unprotect(a, size);
-	if (--a->refcnt == 0) {
-		htable_remove(atoms[type].table, key);
+	if (1 == refcnt) {
+		htable_remove(ad->table, key);
+		if (4 == sizeof(void *)) {
+			/* 32-bit machine */
+			struct atom_info *ai = value;
+			WFREE(ai);
+		}
+		atom_unprotect(a, size);
 		atom_dealloc(a, size);
 	} else {
-		atom_protect(a, size);
+		size_t rcnt = atom_refcnt_add(ad, key, value, -1);
+		ATOM_TRACK_REFCNT(key, -1, rcnt);
 	}
+
+	ATOM_TABLE_UNLOCK(ad);
 }
 
 #ifdef TRACK_ATOMS
@@ -968,13 +1174,18 @@ struct spot {
 	int count;			/**< Amount of allocation/free performed at spot */
 };
 
+static spinlock_t atom_track_slk = SPINLOCK_INIT;
+
+#define ATOM_TRACK_LOCK		spinlock_hidden(&atom_track_slk)
+#define ATOM_TRACK_UNLOCK	spinunlock_hidden(&atom_track_slk)
+
 /**
  * The tracking version of atom_get().
  *
  * @returns the atom's value.
  */
 const void *
-atom_get_track(enum atom_type type, const void *key, char *file, int line)
+atom_get_track(enum atom_type type, const void *key, const char *file, int line)
 {
 	const void *atom;
 	atom_t *a;
@@ -982,6 +1193,9 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	const void *k;
 	void *v;
 	struct spot *sp;
+	bool init;
+
+	ATOM_TRACK_LOCK;
 
 	atom = atom_get(type, key);
 	a = atom_from_arena(atom);
@@ -990,9 +1204,19 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	 * Initialize tracking tables on first allocation.
 	 */
 
-	if (a->refcnt == 1) {
+	init = NULL == a->get;
+
+	if G_UNLIKELY(init)
+		spinlock_init(&a->lock);
+
+	spinlock(&a->lock);
+
+	ATOM_TRACK_UNLOCK;
+
+	if G_UNLIKELY(init) {
 		a->get = htable_create(HASH_KEY_STRING, 0);
 		a->free = htable_create(HASH_KEY_STRING, 0);
+		a->trackcnt = 1;
 	}
 
 	str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
@@ -1005,6 +1229,8 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 		sp->count = 1;
 		htable_insert(a->get, constant_str(buf), sp);
 	}
+
+	spinunlock(&a->lock);
 
 	return atom;
 }
@@ -1039,7 +1265,8 @@ destroy_tracking_table(htable_t *h)
  * Dispose of atom if nobody references it anymore.
  */
 void
-atom_free_track(enum atom_type type, const void *key, char *file, int line)
+atom_free_track(enum atom_type type, const void *key,
+	const char *file, int line)
 {
 	atom_t *a;
 	char buf[512];
@@ -1052,9 +1279,12 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
 	 * If we're going to free the atom, dispose of the tracking tables.
 	 */
 
-	if (1 == a->refcnt) {
+	spinlock(&a->lock);
+
+	if (1 == a->trackcnt) {
 		destroy_tracking_table(a->get);
 		destroy_tracking_table(a->free);
+		spinlock_destroy(&a->lock);
 	} else {
 		str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
@@ -1066,9 +1296,35 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
 			sp->count = 1;
 			htable_insert(a->free, constant_str(buf), sp);
 		}
+		spinunlock(&a->lock);
 	}
 
 	atom_free(type, key);
+}
+
+/**
+ * Helper routine for atom_track_count.
+ */
+static void
+atom_count_tracking_entry(const void *unused_key, void *value, void *user)
+{
+	struct spot *sp = value;
+	size_t *count = user;
+
+	(void) unused_key;
+	*count += sp->count;
+}
+
+/**
+ * Count amount of operations recorded in the tracking table.
+ */
+static size_t
+atom_track_count(const htable_t *h)
+{
+	size_t count = 0;
+
+	htable_foreach(h, atom_count_tracking_entry, &count);
+	return count;
 }
 
 /**
@@ -1091,9 +1347,10 @@ static void
 dump_tracking_table(const void *atom, htable_t *h, char *what)
 {
 	size_t count = htable_count(h);
+	size_t opcount = atom_track_count(h);
 
-	g_warning("all %zu %s spot%s for %p:",
-		count, what, count == 1 ? "" : "s", atom);
+	g_warning("all %zu %s spot%s (%zu operation%s) for %p:",
+		count, what, plural(count), opcount, plural(opcount), atom);
 
 	htable_foreach(h, dump_tracking_entry, what);
 }
@@ -1104,21 +1361,23 @@ dump_tracking_table(const void *atom, htable_t *h, char *what)
  * Warning about existing atom that should have been freed.
  */
 static void
-atom_warn_free(const void *key, void *unused_value, void *udata)
+atom_warn_free(const void *key, void *value, void *udata)
 {
 	atom_t *a = atom_from_arena(key);
-	table_desc_t *td = udata;
-
-	(void) unused_value;
+	atom_desc_t *ad = udata;
 
 	g_warning("found remaining %s atom %p, refcnt=%d: \"%s\"",
-		td->type, key, a->refcnt, (*td->str_func)(key));
+		ad->type, key, atom_info_refcnt(value), (*ad->str_func)(key));
 
 #ifdef TRACK_ATOMS
+	spinlock(&a->lock);
 	dump_tracking_table(key, a->get, "get");
 	dump_tracking_table(key, a->free, "free");
 	destroy_tracking_table(a->get);
 	destroy_tracking_table(a->free);
+	spinlock_destroy(&a->lock);
+#else
+	(void) a;
 #endif
 
 	/*
@@ -1136,10 +1395,12 @@ atoms_close(void)
 	uint i;
 
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
-		table_desc_t *td = &atoms[i];
+		atom_desc_t *ad = &atoms[i];
 
-		htable_foreach(td->table, atom_warn_free, td);
-		htable_free_null(&td->table);
+		ATOM_TABLE_LOCK(ad);
+		htable_foreach(ad->table, atom_warn_free, ad);
+		htable_free_null(&ad->table);
+		ATOM_TABLE_UNLOCK(ad);
 	}
 }
 

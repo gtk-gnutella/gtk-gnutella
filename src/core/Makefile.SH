@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-147]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -39,8 +39,9 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
+LN = $ln
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
@@ -50,6 +51,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
+SUBDIRS = g2
 USRINC = $usrinc
 SOURCES =   \$(SRC)
 OBJECTS =   \$(OBJ)
@@ -68,7 +70,7 @@ GNUTLS_CFLAGS =  $gnutlscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -80,12 +82,21 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
+depend:: sub_depend
+
+sub_depend::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo "Depending" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  depend) || exit 1; \
+	done
+
 SRC = \
 	alive.c \
 	ban.c \
 	bh_download.c \
 	bh_upload.c \
-	bitzi.c \
 	bogons.c \
 	bsched.c \
 	clock.c \
@@ -98,9 +109,15 @@ SRC = \
 	dump.c \
 	extensions.c \
 	features.c \
-	file_object.c \
 	fileinfo.c \
 	gdht.c \
+	gen-dmesh_url.c \
+	gen-gnr_stats.c \
+	gen-http_async.c \
+	gen-http_url.c \
+	gen-ignore.c \
+	gen-msg.c \
+	gen-msg_drop.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
@@ -184,7 +201,6 @@ OBJ = \
 	ban.o \
 	bh_download.o \
 	bh_upload.o \
-	bitzi.o \
 	bogons.o \
 	bsched.o \
 	clock.o \
@@ -197,9 +213,15 @@ OBJ = \
 	dump.o \
 	extensions.o \
 	features.o \
-	file_object.o \
 	fileinfo.o \
 	gdht.o \
+	gen-dmesh_url.o \
+	gen-gnr_stats.o \
+	gen-http_async.o \
+	gen-http_url.o \
+	gen-ignore.o \
+	gen-msg.o \
+	gen-msg_drop.o \
 	geo_ip.o \
 	ggep.o \
 	ggep_type.o \
@@ -278,13 +300,76 @@ OBJ = \
 	vmsg.o \
 	whitelist.o 
 
+IF = ../if
+GNET_PROPS = gnet_property.h
+
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
+CFLAGS = -I$(TOP) -I.. -I$(IF)/gen $(GLIB_CFLAGS) $(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+gen-dmesh_url.c:   $(IF)/gen/dmesh_url.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-dmesh_url.c
+
+local_realclean::
+	$(RM) -f  gen-dmesh_url.c
+
+gen-gnr_stats.c:   $(IF)/gen/gnr_stats.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-gnr_stats.c
+
+local_realclean::
+	$(RM) -f  gen-gnr_stats.c
+
+gen-http_async.c:   $(IF)/gen/http_async.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-http_async.c
+
+local_realclean::
+	$(RM) -f  gen-http_async.c
+
+gen-http_url.c:   $(IF)/gen/http_url.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-http_url.c
+
+local_realclean::
+	$(RM) -f  gen-http_url.c
+
+gen-ignore.c:   $(IF)/gen/ignore.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-ignore.c
+
+local_realclean::
+	$(RM) -f  gen-ignore.c
+
+gen-msg.c:   $(IF)/gen/msg.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-msg.c
+
+local_realclean::
+	$(RM) -f  gen-msg.c
+
+gen-msg_drop.c:   $(IF)/gen/msg_drop.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-msg_drop.c
+
+local_realclean::
+	$(RM) -f  gen-msg_drop.c
 
 .FORCE:
 
@@ -327,9 +412,9 @@ local_depend::
 
 all::
 
-clean: local_clean
-realclean: local_realclean
-clobber: local_clobber
+clean: sub_clean local_clean
+realclean: sub_realclean local_realclean
+clobber: sub_clobber local_clobber
 
 local_clean::
 	if test -f core; then $(RM) core; fi
@@ -340,12 +425,12 @@ local_realclean:: local_clean
 local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
-install:: local_install
+install:: local_install sub_install
 	@exit 0
 
-install.man:: maybe_install.man
-deinstall:: local_deinstall
-deinstall.man:: maybe_deinstall.man
+install.man:: maybe_install.man sub_install.man
+deinstall:: sub_deinstall local_deinstall
+deinstall.man:: sub_deinstall.man maybe_deinstall.man
 
 install.man-no:
 deinstall.man-no:
@@ -376,23 +461,90 @@ local_clobber::
 depend::
 
 ########################################################################
-# Empty rules for directories with no sub-directories -- do not edit
+# Rules for building in sub-directories -- do not edit
 
-local_install::
-	@echo "install in $(CURRENT) done."
+subdirs:
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)) || exit 1; \
+	done
 
-local_deinstall::
-	@echo "deinstall in $(CURRENT) done."
+sub_install::
+	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
 
-local_install.man::
-	@echo "install.man in $(CURRENT) done."
+sub_deinstall::
+	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall...
 
-local_deinstall.man::
-	@echo "deinstall.man in $(CURRENT) done."
+sub_install.man::
+	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
+
+sub_deinstall.man::
+	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall.man...
+
+sub_clean::
+	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "clean...
+
+sub_realclean::
+	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "realclean...
+
+sub_clobber::
+	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=
+	@echo "Back to $(CURRENT) for "clobber...
+
+tag::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  tag) || exit 1; \
+	done
 
 Makefiles::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		echo "Making "Makefiles" in $(DIR)$$i..."; \
+		(cd $$i || exit 1; \
+		if test ! -f Makefile; then /bin/sh Makefile.SH; fi; \
+		$(MAKE) $(MFLAGS) Makefiles) || exit 1;\
+	done
 
-Makefiles.SH::
+Makefiles.SH:: Makefile.SH
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		case "$(DIR)$$i/" in \
+		*/*/*/*/) newtop=../../../..;; \
+		*/*/*/) newtop=../../..;; \
+		*/*/) newtop=../..;; \
+		*/) newtop=..;; \
+		esac; \
+		case "$(TOP)" in \
+		/*) newtop="$(TOP)" ;; \
+		esac; \
+		echo "Making Makefiles.SH in $(DIR)$$i..."; \
+		(cd $$i || exit 1; \
+			if test -f Jmakefile; then \
+				$(MAKE) $(MFLAGS) -f ../Makefile \
+					Makefile TOP=$$newtop CURRENT=$(DIR)$$i && \
+				$(MAKE) $(MFLAGS) Makefiles.SH; \
+			fi; \
+		) || exit 1; \
+	done
+
+all::
+	@$(MAKE) subdirs TARGET=all VERB="Making all" FLAGS=
+
+local_install::
+local_deinstall::
+local_install.man::
+local_deinstall.man::
 
 ########################################################################
 # Dependencies generated by make depend

@@ -31,7 +31,7 @@
  * @date 2005
  */
 
-#ifndef _core_tx_chunk_h
+#ifndef _core_tx_chunk_h_
 #define _core_tx_chunk_h_
 
 #include "common.h"

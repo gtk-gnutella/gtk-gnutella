@@ -6,6 +6,7 @@
 #include "casts.h"
 
 #include "lib/pow2.h"		/* For bits_set() */
+#include "lib/stringify.h"	/* For plural() */
 
 #include "sdbm.h"
 
@@ -45,7 +46,6 @@ int
 main(int argc, char **argv)
 {
 	extern int optind;
-	extern char *optarg;
 	char *p;
 	int c;
 
@@ -230,8 +230,7 @@ sdump(int pagf, long npag)
 		printf("keys: %u bytes, values: %u bytes\n", ksize, vsize);
 		if (tlk || tlv)
 			printf("%d large key%s, %d large value%s\n",
-				tlk, 1 == tlk ? "" : "s",
-				tlv, 1 == tlv ? "" : "s");
+				tlk, plural(tlk), tlv, plural(tlv));
 	} else
 		oops("read failed: block %d", n);
 }

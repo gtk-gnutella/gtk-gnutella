@@ -231,7 +231,7 @@ rudp_con_eq(const void *v1, const void *v2)
 	const struct rudp_con *c1 = v1, *c2 = v2;
 
 	return c1->conn_id == c2->conn_id &&
-	   	c1->port == c2->port && host_addr_equal(c1->addr, c2->addr);
+		c1->port == c2->port && host_addr_equiv(c1->addr, c2->addr);
 }
 
 static void
@@ -354,7 +354,7 @@ rudp_set_header(struct rudp_header *header, enum rudp_op op, uint8 conn_id,
 static void
 rudp_send_packet(struct rudp_con *con, const void *data, size_t size)
 {
-	const struct gnutella_node *n;
+	const gnutella_node_t *n;
 
 	RUDP_DEBUG(
 		("SENDING TO %s", host_addr_port_to_string(con->addr, con->port)));
@@ -883,7 +883,7 @@ rudp_handle_packet(const host_addr_t addr, uint16 port,
 	con = rudp_find(addr, port, rudp_header->peer_conn_id);
 	if (con) {
 		g_assert(port == con->port);
-		g_assert(host_addr_equal(addr, con->addr));
+		g_assert(host_addr_equiv(addr, con->addr));
 		g_assert(rudp_header->peer_conn_id == con->conn_id);
 
 		if (RUDP_OP_ACK != op) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Message queues, writing to a TCP stack.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #include "common.h"
@@ -43,6 +43,7 @@
 #include "gnet_stats.h"
 #include "dump.h"
 
+#include "lib/plist.h"
 #include "lib/pmsg.h"
 #include "lib/walloc.h"
 
@@ -61,11 +62,22 @@ static const struct mq_ops mq_tcp_ops;
 /**
  * Create new message queue capable of holding `maxsize' bytes, and
  * owned by the supplied node.
+ *
+ * @param maxsize		the overall sum of message size that can be held
+ * @param n				the network node to which the message queue is attached
+ * @oaram nd			the top of the TX stack to use to send out messages
+ * @param uops			user-defined operations
  */
 mqueue_t *
-mq_tcp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
+mq_tcp_make(int maxsize,
+	gnutella_node_t *n, struct txdriver *nd, const struct mq_uops *uops)
 {
 	mqueue_t *q;
+
+	node_check(n);
+	tx_check(nd);
+	g_assert(uops != NULL);
+	g_assert(maxsize > 0);
 
 	WALLOC0(q);
 	q->magic = MQ_MAGIC;
@@ -77,6 +89,7 @@ mq_tcp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 	q->qwait = slist_new();
 	q->ops = &mq_tcp_ops;
 	q->cops = mq_get_cops();
+	q->uops = uops;
 	q->debug = GNET_PROPERTY_PTR(mq_tcp_debug);
 
 	tx_srv_register(nd, mq_tcp_service, q);
@@ -96,7 +109,7 @@ mq_tcp_service(void *data)
 	int iovcnt;
 	int sent;
 	ssize_t r;
-	GList *l;
+	plist_t *l;
 	int dropped;
 	int maxsize;
 	bool saturated;
@@ -125,7 +138,6 @@ again:
 	for (l = q->qtail; l && iovsize > 0; /* empty */) {
 		iovec_t *ie;
 		pmsg_t *mb = (pmsg_t *) l->data;
-		char *mbs = pmsg_start(mb);
 
 		/*
 		 * Don't build too much.
@@ -140,7 +152,7 @@ again:
 
 		if (pmsg_check(mb, q)) {
 			/* send the message */
-			l = g_list_previous(l);
+			l = plist_prev(l);
 			iovsize--;
 			ie = &iov[iovcnt++];
 			iovec_set(ie, deconstify_pointer(mb->m_rptr), pmsg_size(mb));
@@ -148,7 +160,8 @@ again:
 			if (pmsg_prio(mb))
 				has_prioritary = TRUE;
 		} else {
-			gnet_stats_count_flowc(mbs, FALSE);	/* Done before message freed */
+			if (q->uops->msg_flowc != NULL)
+				q->uops->msg_flowc(q->node, mb);	/* Done before msg freed */
 			if (q->qlink)
 				q->cops->qlink_remove(q, l);
 
@@ -212,11 +225,10 @@ again:
 		pmsg_t *mb = (pmsg_t *) l->data;
 
 		if ((uint) r >= iovec_len(ie)) {		/* Completely written */
-			char *mb_start = pmsg_start(mb);
-			uint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
-			node_sent_accounting(q->node, function, mb_start, pmsg_size(mb));
+			if (q->uops->msg_sent != NULL)
+				q->uops->msg_sent(q->node, mb);
 			r -= iovec_len(ie);
 			if (q->qlink)
 				q->cops->qlink_remove(q, l);
@@ -285,11 +297,10 @@ update_servicing:
  * @param from		for TX traffic dump: the origin of message, NULL if local
  */
 void
-mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
+mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const gnutella_node_t *from)
 {
 	int size;				/* Message size */
 	char *mbs;				/* Start of message */
-	uint8 function;			/* Gnutella message function */
 	bool prioritary;		/* Is message prioritary? */
 	bool error = FALSE;
 
@@ -343,10 +354,10 @@ again:
 	q->putq_entered++;
 	
 	mbs = pmsg_start(mb);
-	function = gmsg_function(mbs);
 	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
-	gnet_stats_count_queued(q->node, function, mbs, size);
+	if (q->uops->msg_queued != NULL)
+		q->uops->msg_queued(q->node, mb);
 
 	/*
 	 * If queue is empty, attempt a write immediatly.
@@ -382,7 +393,8 @@ again:
 				}
 			}
 		} else {
-			gnet_stats_count_flowc(mbs, FALSE);
+			if (q->uops->msg_flowc != NULL)
+				q->uops->msg_flowc(q->node, mb);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 			written = -1;
 		}
@@ -394,7 +406,8 @@ again:
 
 		if (written == size) {
 			pmsg_mark_sent(mb);
-			node_sent_accounting(q->node, function, mbs, size);
+			if (q->uops->msg_sent != NULL)
+				q->uops->msg_sent(q->node, mb);
 			goto cleanup;
 		}
 

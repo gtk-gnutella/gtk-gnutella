@@ -47,6 +47,8 @@
 #include "uhc.h"
 #include "whitelist.h"
 
+#include "g2/gwc.h"
+
 #include "if/gnet_property_priv.h"
 #include "if/dht/dht.h"		/* For dht_fill_random() */
 
@@ -70,16 +72,22 @@ bool host_low_on_pongs = FALSE;		/**< True when less than 12% full */
 static bool in_shutdown = FALSE;
 static aging_table_t *node_connects;
 
+#define HOST_GNET	0		/* Gnutella */
+#define HOST_G2		1		/* G2 */
+
 /*
  * Avoid nodes being stuck helplessly due to completely stale caches.
  * @return TRUE if an UHC may be contact, FALSE if it's not permissable.
  */
 static bool
-host_cache_allow_bypass(void)
+host_cache_allow_bypass(int which)
 {
-	static time_t last_try;
+	static time_t last_try[2];
+	uint count = which == HOST_GNET ? node_count() : node_g2_count();
 
-	if (node_count() > 0)
+	g_assert(UNSIGNED(which) < G_N_ELEMENTS(last_try));
+
+	if (count != 0)
 		return FALSE;
 
 	/* Wait at least 2 minutes after starting up */
@@ -91,10 +99,10 @@ host_cache_allow_bypass(void)
 	 * or downtime.
 	 */
 
-	if (last_try && delta_time(tm_time(), last_try) < 12 * 3600)
+	if (last_try[which] && delta_time(tm_time(), last_try[which]) < 12 * 3600)
 		return FALSE;
 
-	last_try = tm_time();
+	last_try[which] = tm_time();
 	return TRUE;
 }
 
@@ -108,8 +116,24 @@ host_gnutella_connect(host_addr_t addr, uint16 port)
 	if (aging_lookup(node_connects, &addr))
 		return FALSE;
 
-	node_add_socket(NULL, addr, port, 0);
-	aging_insert(node_connects, wcopy(&addr, sizeof addr), GUINT_TO_POINTER(1));
+	node_add(addr, port, 0);
+	aging_insert(node_connects, wcopy(&addr, sizeof addr), uint_to_pointer(1));
+
+	return TRUE;
+}
+
+/**
+ * Attempt G2 host connection.
+ * @return TRUE if OK, FALSE if attempt was throttled
+ */
+static bool
+host_g2_connect(host_addr_t addr, uint16 port)
+{
+	if (aging_lookup(node_connects, &addr))
+		return FALSE;
+
+	node_g2_add(addr, port, 0);
+	aging_insert(node_connects, wcopy(&addr, sizeof addr), uint_to_pointer(1));
 
 	return TRUE;
 }
@@ -124,24 +148,27 @@ host_gnutella_connect(host_addr_t addr, uint16 port)
 void
 host_timer(void)
 {
-    uint count;
-	int missing;
+	uint count, g2_count, max_nodes, max_g2_nodes;
+	int missing, g2_missing;
 	host_addr_t addr;
 	uint16 port;
 	host_type_t htype;
-	uint max_nodes;
-	bool empty_cache = FALSE;
+	bool empty_cache = FALSE, empty_g2_cache = FALSE;
 
 	if (in_shutdown || !GNET_PROPERTY(online_mode))
 		return;
 
-	max_nodes = settings_is_leaf() ?
-		GNET_PROPERTY(max_ultrapeers) : GNET_PROPERTY(max_connections);
+	max_nodes = node_outdegree();	/* Gnutella, depending on leaf/ultra mode */
+	max_g2_nodes = GNET_PROPERTY(max_g2_hubs);
 	count = node_count();			/* Established + connecting */
+	g2_count = node_g2_count();		/* Established + connecting */
 	missing = node_keep_missing();
+	g2_missing = node_g2_hubs_missing();
 
-	if (GNET_PROPERTY(host_debug) > 1)
-		g_debug("host_timer - count %u, missing %u", count, missing);
+	if (GNET_PROPERTY(host_debug) > 1) {
+		g_debug("%s(): count=%u, missing=%u, missing G2=%u",
+			G_STRFUNC, count, missing, g2_missing);
+	}
 
 	/*
 	 * If we are not connected to the Internet, apparently, make sure to
@@ -157,7 +184,7 @@ host_timer(void)
 		last_try = tm_time();
 
 		if (GNET_PROPERTY(host_debug))
-			g_debug("host_timer - not connected, trying to connect");
+			g_debug("%s(): not connected, trying to connect", G_STRFUNC);
 	}
 
 	/*
@@ -166,10 +193,15 @@ host_timer(void)
 	 * than quick_connect_pool_size   This is the "greedy mode".
 	 */
 
-	if (count >= GNET_PROPERTY(quick_connect_pool_size)) {
-		if (GNET_PROPERTY(host_debug) > 1)
-			g_debug("host_timer - count %u >= pool size %u",
-				count, GNET_PROPERTY(quick_connect_pool_size));
+	if (
+		(int) (count + g2_count - max_nodes - max_g2_nodes) >=
+			(int) GNET_PROPERTY(quick_connect_pool_size)
+	) {
+		if (GNET_PROPERTY(host_debug) > 1) {
+			g_debug("%s(): count %u + %u - %u - %u >= pool size %u",
+				G_STRFUNC, count, g2_count, max_nodes, max_g2_nodes,
+				GNET_PROPERTY(quick_connect_pool_size));
+		}
 		return;
 	}
 
@@ -195,13 +227,23 @@ host_timer(void)
 	if (hcache_size(htype) == 0)
 		htype = HOST_ANY;
 
-	if (hcache_size(htype) == 0)
-		empty_cache = TRUE;
+	empty_cache = 0 == hcache_size(htype);
+	empty_g2_cache = 0 == hcache_size(HOST_G2HUB);
 
-	if (GNET_PROPERTY(host_debug) && missing > 0)
-		g_debug("host_timer - missing %d host%s%s",
-			missing, missing == 1 ? "" : "s",
-			empty_cache ? " [empty caches]" : "");
+	if (GNET_PROPERTY(host_debug)) {
+		if (missing > 0) {
+			g_debug("%s(): missing %d host%s%s", G_STRFUNC,
+				missing, plural(missing),
+				empty_cache ? " [empty caches]" : "");
+		}
+
+		if (g2_missing > 0) {
+			g_debug("%s(): missing %d G2 host%s%s", G_STRFUNC,
+				g2_missing, plural(g2_missing),
+				empty_g2_cache ? " [empty caches]" : "");
+		}
+	}
+
 
     if (!GNET_PROPERTY(stop_host_get)) {
         if (missing > 0) {
@@ -235,9 +277,9 @@ host_timer(void)
                 to_add = max_pool - count;
 
             if (GNET_PROPERTY(host_debug) > 2) {
-                g_debug("host_timer - connecting - "
+                g_debug("%s(): connecting - "
 					"add: %d fan:%d miss:%d max_hosts:%d count:%d extra:%d",
-					 to_add, fan, missing, max_nodes, count,
+					 G_STRFUNC, to_add, fan, missing, max_nodes, count,
 					 GNET_PROPERTY(quick_connect_pool_size));
             }
 
@@ -258,8 +300,8 @@ host_timer(void)
 					port = gnet_host_get_port(&host[i]);
 					if (!hcache_node_is_bad(addr)) {
 						if (GNET_PROPERTY(host_debug) > 3) {
-							g_debug("host_timer - UHC pinging and connecting "
-								"to DHT node at %s",
+							g_debug("%s(): UHC pinging and connecting "
+								"to DHT node at %s", G_STRFUNC,
 								host_addr_port_to_string(addr, port));
 						}
 						/* Try to use the host as an UHC before connecting */
@@ -285,11 +327,39 @@ host_timer(void)
 				}
 			}
 
-			if (missing > 0 && (empty_cache || host_cache_allow_bypass())) {
+			if (
+				missing > 0 &&
+				(empty_cache || host_cache_allow_bypass(HOST_GNET))
+			) {
 				if (!uhc_is_waiting()) {
 					if (GNET_PROPERTY(host_debug))
-						g_debug("host_timer - querying UDP host cache");
+						g_debug("%s(): querying UDP host cache", G_STRFUNC);
 					uhc_get_hosts();	/* Get new hosts from UHCs */
+				}
+			}
+		}
+
+		if (g2_missing > 0) {
+			while (hcache_size(HOST_G2HUB) && g2_missing-- > 0) {
+				if (hcache_get_caught(HOST_G2HUB, &addr, &port)) {
+					if (!(hostiles_is_bad(addr) || hcache_node_is_bad(addr))) {
+						if (!host_g2_connect(addr, port)) {
+							g2_missing++;	/* Did not use entry */
+						}
+					} else {
+						g2_missing++;	/* Did not use entry */
+					}
+				}
+			}
+
+			if (
+				g2_missing != 0 &&
+				(empty_g2_cache || host_cache_allow_bypass(HOST_G2))
+			) {
+				if (!gwc_is_waiting()) {
+					if (GNET_PROPERTY(host_debug))
+						g_debug("%s(): querying GWC for G2", G_STRFUNC);
+					gwc_get_hosts();	/* Get new hosts from a random GWC */
 				}
 			}
 		}
@@ -448,7 +518,7 @@ parse_netmasks(const char *str)
 			if (strchr(p, '.')) {
 				/* get the network address from the user */
 				if (!string_to_ip_strict(p, &local_networks[i].mask, NULL))
-					g_warning("parse_netmasks(): Invalid netmask: \"%s\"", p);
+					g_warning("%s(): invalid netmask: \"%s\"", G_STRFUNC, p);
 			}
 			else {
 				int error;
@@ -456,8 +526,8 @@ parse_netmasks(const char *str)
 				mask_div = parse_uint32(p, NULL, 10, &error);
 				mask_div = MIN(32, mask_div);
 				if (error)
-					g_warning("parse_netmasks(): "
-						"Invalid CIDR prefixlen: \"%s\"", p);
+					g_warning("%s(): invalid CIDR prefixlen: \"%s\"",
+						G_STRFUNC, p);
 				else
 					local_networks[i].mask = (uint32) -1 << (32 - mask_div);
 			}
@@ -468,7 +538,7 @@ parse_netmasks(const char *str)
 		}
 		/* get the network address from the user */
 		if (!string_to_ip_strict(masks[i], &local_networks[i].net, NULL))
-			g_warning("parse_netmasks(): Invalid netmask: \"%s\"", masks[i]);
+			g_warning("%s(): invalid netmask: \"%s\"", G_STRFUNC, masks[i]);
 	}
 
 	g_strfreev(masks);

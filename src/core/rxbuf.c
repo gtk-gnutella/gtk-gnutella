@@ -116,23 +116,24 @@ rxbuf_page_alloc(size_t size)
  * Wrapper over vmm_free().
  */
 static void
-rxbuf_page_free(void *p, bool fragment)
+rxbuf_page_free(void *p, size_t size, bool fragment)
 {
-	if (GNET_PROPERTY(rxbuf_debug) > 2)
-		g_debug("RXBUF freeing %uK buffer at %p%s",
-			(unsigned) rxbuf_pagesize / 1024, p, fragment ? " (fragment)" : "");
+	g_assert(size == rxbuf_pagesize);
 
-	vmm_free(p, rxbuf_pagesize);
+	if (GNET_PROPERTY(rxbuf_debug) > 2)
+		g_debug("RXBUF freeing %zuK buffer at %p%s",
+			size / 1024, p, fragment ? " (fragment)" : "");
+
+	vmm_free(p, size);
 }
 
 /**
  * Check whether buffer is relocatable or is a memory fragment.
  */
 static bool
-rxbuf_page_is_fragment(void *p)
+rxbuf_page_is_fragment(void *p, size_t size)
 {
-	return vmm_is_relocatable(p, rxbuf_pagesize) ||
-		vmm_is_fragment(p, rxbuf_pagesize);
+	return vmm_is_relocatable(p, size) || vmm_is_fragment(p, size);
 }
 
 /**

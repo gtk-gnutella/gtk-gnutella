@@ -1,0 +1,62 @@
+#
+# Versatile XML parsing error codes.
+#
+
+Prefix: VXML_E_
+Lowercase: no
+I18N: no
+#Count:
+Enum: vxml_error_t
+Enum-Init: 0
+Enum-File: vxml.h
+#Symbolic:
+Description: vxml_error_str
+#Enum-To-Symbolic:
+Enum-To-Description: vxml_strerror
+Enum-To-Code: vxml.c
+Enum-To-Header: vxml.h
+Protection-Prefix: if_gen
+
+OK							"OK"
+UNSUPPORTED_BYTE_ORDER		"Unsupported byte order"
+UNSUPPORTED_CHARSET			"Unsupported character set"
+TRUNCATED_INPUT				"Truncated input stream"
+EXPECTED_NAME_START			"Expected a valid name start"
+INVALID_CHAR_REF			"Invalid character reference"
+INVALID_CHARACTER			"Invalid Unicode character"
+INVALID_NAME_CHARACTER		"Invalid character in name"
+UNKNOWN_ENTITY_REF			"Unknown entity reference"
+UNEXPECTED_CHARACTER		"Unexpected character"
+UNEXPECTED_WHITESPACE		"Unexpected white space"
+BAD_CHAR_IN_NAME			"Bad character in name"
+INVALID_TAG_NESTING			"Invalid tag nesting"
+EXPECTED_QUOTE				"Expected quote (\"'\" or '\"')"
+EXPECTED_GT					"Expected '>'"
+EXPECTED_SPACE				"Expected white space"
+EXPECTED_LBRAK				"Expected '['"
+EXPECTED_RBRAK				"Expected ']'"
+EXPECTED_TWO_MINUS			"Expected '--'"
+EXPECTED_DOCTYPE_DECL		"Expected a DOCTYPE declaration"
+EXPECTED_DECL_TOKEN			"Expected a declaration token"
+EXPECTED_NDATA_TOKEN		"Expected NDATA token"
+EXPECTED_CDATA_TOKEN		"Expected CDATA token"
+EXPECTED_COND_TOKEN			"Expected INCLUDE or IGNORE"
+UNEXPECTED_LT				"Was not expecting '<'"
+UNEXPECTED_XML_PI			"Unexpected <?xml...?>"
+UNEXPECTED_TAG_END			"Unexpected tag end"
+NESTED_DOCTYPE_DECL			"Nested DOCTYPE declaration"
+INVALID_VERSION				"Invalid version number"
+VERSION_OUT_OF_RANGE		"Version number out of range"
+UNKNOWN_CHAR_ENCODING_NAME	"Unknown character encoding name"
+INVALID_CHAR_ENCODING_NAME	"Invalid character encoding name"
+ILLEGAL_CHAR_BYTE_SEQUENCE	"Reached illegal character byte sequence"
+UNREADABLE_CHAR_ENCODING	"Input is unreadable in the specified encoding"
+USER						"User-defined error"
+DUP_ATTRIBUTE				"Duplicate attribute"
+DUP_DEFAULT_NAMESPACE		"Duplicate default namespace"
+BAD_CHAR_IN_NAMESPACE		"Bad character in namespace"
+NAMESPACE_REDEFINITION		"Invalid namespace redefinition"
+UNKNOWN_NAMESPACE			"Unknown namespace prefix"
+EMPTY_NAME					"Empty name"
+IO							"I/O error"
+ENTITY_RECURSION			"Possible entity recursion"

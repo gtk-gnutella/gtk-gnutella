@@ -51,14 +51,15 @@
 
 #include "if/gnet_property_priv.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
-#include "lib/halloc.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -432,14 +433,13 @@ finish:
 }
 
 static void
-thex_dump_dime_records(const GSList *records)
+thex_dump_dime_records(const pslist_t *records)
 {
-	const GSList *iter;
+	const pslist_t *iter;
 
-	for (iter = records; NULL != iter; iter = g_slist_next(iter)) {
-		const struct dime_record *record;
+	PSLIST_FOREACH(records, iter) {
+		const struct dime_record *record = iter->data;
 
-		record = iter->data;
 		g_assert(record);
 		dump_hex(stderr, "THEX DIME record type",
 			dime_record_type(record), dime_record_type_length(record));
@@ -449,10 +449,10 @@ thex_dump_dime_records(const GSList *records)
 }
 
 static const struct dime_record *
-dime_find_record(const GSList *records, const char *type, const char *id)
+dime_find_record(const pslist_t *records, const char *type, const char *id)
 {
 	size_t type_length, id_length;
-	const GSList *iter;
+	const pslist_t *iter;
 
 	g_return_val_if_fail(type, NULL);
 
@@ -461,10 +461,9 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 
 	id_length = id ? strlen(id) : 0;
 	
-	for (iter = records; NULL != iter; iter = g_slist_next(iter)) {
-		const struct dime_record *record;
-		
-		record = iter->data;
+	PSLIST_FOREACH(records, iter) {
+		const struct dime_record *record = iter->data;
+
 		g_assert(record);
 		
 		if (dime_record_type_length(record) != type_length)
@@ -495,7 +494,7 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 bool
 thex_download_finished(struct thex_download *ctx)
 {
-	GSList *records;
+	pslist_t *records;
 	bool success = FALSE;
 
 	g_return_val_if_fail(ctx, FALSE);

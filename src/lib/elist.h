@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Embedded two-way list (within another data structure).
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #ifndef _elist_h_
@@ -72,6 +72,8 @@ elist_check(const elist_t * const el)
 	g_assert(ELIST_MAGIC == el->magic);
 }
 
+#define ELIST_INIT(offset)		{ ELIST_MAGIC, NULL, NULL, offset, 0 }
+
 static inline bool
 elist_invariant(const elist_t * const list)
 {
@@ -85,6 +87,15 @@ elist_invariant(const elist_t * const list)
 /**
  * Public interface.
  */
+
+/**
+ * @return whether the embedded list descriptor is non-zero.
+ */
+static inline bool
+elist_is_initialized(const elist_t * const el)
+{
+	return 0 != el->magic;		/* Initialized, not necessarily valid! */
+}
 
 /**
  * @return length of embedded list.
@@ -276,6 +287,7 @@ elist_prev_data(const elist_t *list, const void *p)
 void elist_init(elist_t *list, size_t offset);
 void elist_discard(elist_t *list);
 void elist_clear(elist_t *list);
+void elist_wfree(elist_t *list, size_t size);
 
 void elist_foreach(const elist_t *list, data_fn_t cb, void *data);
 size_t elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data);
@@ -293,18 +305,26 @@ void elist_insert_after(elist_t *list, void *sibling, void *data);
 void elist_link_replace(elist_t *list, link_t *old, link_t *new);
 void elist_replace(elist_t *list, void *old, void *new);
 void elist_reverse(elist_t *list);
+void elist_moveto_head(elist_t *list, void *data);
+void elist_moveto_tail(elist_t *list, void *data);
 void *elist_find(const elist_t *list, const void *key, cmp_fn_t cmp);
 void elist_sort_with_data(elist_t *list, cmp_data_fn_t cmp, void *data);
 void elist_sort(elist_t *list, cmp_fn_t cmp);
 void elist_insert_sorted_with_data(elist_t *list, void *item,
 	cmp_data_fn_t cmp, void *data);
 void elist_insert_sorted(elist_t *list, void *item, cmp_fn_t cmp);
+void *elist_nth(const elist_t *list, long n);
 void *elist_nth_next_data(const elist_t *list, const link_t *lk, size_t n);
 void *elist_nth_prev_data(const elist_t *list, const link_t *lk, size_t n);
+void *elist_random(const elist_t *list);
 void elist_shuffle(elist_t *list);
+void elist_shuffle_with(random_fn_t rf, elist_t *list);
 void elist_rotate_left(elist_t *list);
 void elist_rotate_right(elist_t *list);
 void *elist_shift(elist_t *list);
+
+void elist_append_list(elist_t *list, elist_t *other);
+void elist_prepend_list(elist_t *list, elist_t *other);
 
 #define ELIST_FOREACH(list, l) \
 	for ((l) = elist_first(list); NULL != (l); (l) = elist_next(l))

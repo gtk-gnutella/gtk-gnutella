@@ -80,12 +80,16 @@ hikset_t *hikset_create_any(size_t offset, hash_fn_t primary, eq_fn_t eq);
 hikset_t *hikset_create_any_real(size_t offset, hash_fn_t primary, eq_fn_t eq);
 void hikset_free_null(hikset_t **);
 void hikset_clear(hikset_t *);
+void hikset_thread_safe(hikset_t *);
+void hikset_lock(hikset_t *);
+void hikset_unlock(hikset_t *);
 
 bool hikset_contains(const hikset_t *, const void *key);
 void hikset_insert_key(hikset_t *hik, const void *keyptr);
 void hikset_insert(hikset_t *, const void *value);
 void *hikset_lookup(const hikset_t *, const void *key);
 bool hikset_lookup_extended(const hikset_t *, const void *key, void **valptr);
+void *hikset_random(const hikset_t *);
 bool hikset_remove(hikset_t *, const void *key);
 size_t hikset_count(const hikset_t *);
 void hikset_foreach(const hikset_t *, data_fn_t fn, void *data);

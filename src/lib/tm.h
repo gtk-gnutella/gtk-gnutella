@@ -35,34 +35,8 @@
 #define _tm_h_
 
 #include "common.h"
-
-/**
- * tm_zero
- *
- * Returns true if time is zero.
- */
-#define tm_zero(t)	((t)->tv_sec == 0 && (t)->tv_usec == 0)
-
-/**
- * tm2f
- *
- * Convert timeval description into floating point representation.
- */
-#define tm2f(t)		((double) (t)->tv_sec + (t)->tv_usec / 1000000.0)
-
-/**
- * tm2ms
- *
- * Convert timeval description into milliseconds.
- */
-#define tm2ms(t)	((t)->tv_sec * 1000 + (t)->tv_usec / 1000)
-
-/**
- * tm2us
- *
- * Convert timeval description into microseconds.
- */
-#define tm2us(t)	((t)->tv_sec * 1000000 + (t)->tv_usec)
+#include "thread.h"		/* For thread_check_suspended() */
+#include "timestamp.h"	/* For time_delta_t */
 
 /**
  * Portable representation of the "struct timeval" values, which is used
@@ -74,104 +48,154 @@ typedef struct tmval {
 	long tv_usec;
 } tm_t;
 
+#define TM_ZERO		{ 0L, 0L }
+
+/**
+ * Copies the timeval fields into our internal tmval structure.
+ *
+ * @param tm		the structure to fill
+ * @param tv		the system's timeval structure
+ */
+static inline ALWAYS_INLINE void
+timeval_to_tm(tm_t *tm, const struct timeval * const tv)
+{
+	/*
+	 * We cannot assume that the structures are equivalent (they are not on
+	 * OS/X for instance), hence we perform a field-by-field copy.
+	 */
+
+	tm->tv_sec  = tv->tv_sec;
+	tm->tv_usec = tv->tv_usec;
+}
+
+/**
+ * Portable representation of the "struct timespec" values, which are used
+ * internally by high-precision time handling routines.  All time information
+ * are relative to the UNIX Epoch.
+ */
+typedef struct tmspec {
+	long tv_sec;			/* seconds */
+	long tv_nsec;			/* and nanoseconds */
+} tm_nano_t;
+
+#define TM_NANO_ZERO	{ 0L, 0L }
+
+/**
+ * Copies the timespec fields into our internal tmspec structure.
+ *
+ * @param tm		the structure to fill
+ * @param tp		the system's timespec structure
+ */
+static inline ALWAYS_INLINE void
+timespec_to_tm_nano(tm_nano_t *tm, const struct timespec * const tp)
+{
+	/*
+	 * We cannot assume that the structures are equivalent, hence we perform
+	 * a field-by-field copy.
+	 */
+
+	tm->tv_sec  = tp->tv_sec;
+	tm->tv_nsec = tp->tv_nsec;
+}
+
+/**
+ * Converts our internal tmspec structure back to POSIX timespec.
+ */
+static inline ALWAYS_INLINE void
+tm_nano_to_timespec(struct timespec *tp, const tm_nano_t * const tn)
+{
+	tp->tv_sec  = tn->tv_sec;
+	tp->tv_nsec = tn->tv_nsec;
+}
+
+/**
+ * @return whether time is zero.
+ */
+static inline bool
+tm_is_zero(const tm_t * const t)
+{
+	return 0 == t->tv_sec && 0 == t->tv_usec;
+}
+
+/**
+ * @return whether time is zero or less.
+ */
+static inline bool
+tm_is_negative(const tm_t * const t)
+{
+	return t->tv_sec < 0 || (0 == t->tv_sec && t->tv_usec <= 0);
+}
+
+/**
+ * Convert timeval description into floating point representation.
+ */
+static inline double
+tm2f(const tm_t * const t)
+{
+	return (double) t->tv_sec + t->tv_usec / 1000000.0;
+}
+
+/**
+ * Convert timeval description into milliseconds.
+ */
+static inline ulong
+tm2ms(const tm_t * const t)
+{
+	return (ulong) t->tv_sec * 1000UL + (ulong) t->tv_usec / 1000U;
+}
+
+/**
+ * Convert timeval description into microseconds.
+ */
+static inline ulong
+tm2us(const tm_t * const t)
+{
+	return (ulong) t->tv_sec * 1000000UL + (ulong) t->tv_usec;
+}
+
+/**
+ * Convert timespec description into nanoseconds.
+ */
+static inline ulong
+tmn2ns(const tm_nano_t * const t)
+{
+	return (ulong) t->tv_sec * 1000000000UL + (ulong) t->tv_nsec;
+}
+
+/**
+ * Convert timespec description into floating point representation.
+ */
+static inline double
+tmn2f(const tm_nano_t * const t)
+{
+	return (double) t->tv_sec + t->tv_nsec / 1000000000.0;
+}
+
 void tm_init(void);
 void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);
 void tm_add(tm_t *tm, const tm_t *inc);
 int tm_cmp(const tm_t *a, const tm_t *b) G_GNUC_PURE;
+long tm_remaining_ms(const tm_t *end);
+
+void tm_precise_elapsed(tm_nano_t *e, const tm_nano_t *t1, const tm_nano_t *t0);
+void tm_precise_add(tm_nano_t *tn, const tm_nano_t *inc);
 
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
+void tm_now_raw(tm_t *tm);
 time_t tm_time_exact(void);
+void tm_current_time(tm_t *tm);
+void tm_precise_time(tm_nano_t *tn);
+bool tm_precise_granularity(tm_nano_t *tn);
 double tm_cputime(double *user, double *sys);
 
 uint tm_hash(const void *key) G_GNUC_PURE;
 int tm_equal(const void *a, const void *b) G_GNUC_PURE;
 
-/*
- * We use the direct difference of time_t values instead of difftime()
- * for performance. Just in case there is any system which requires difftime()
- * e.g. if time_t is BCD-encoded, define USE_DIFFTIME.
- */
-#if defined(USE_DIFFTIME)
-typedef int64 time_delta_t;
-
-static inline time_delta_t
-delta_time(time_t t1, time_t t0)
-{
-	return difftime(t1, t0);
-}
-#else	/* !USE_DIFFTIME */
-typedef time_t time_delta_t;
-
-static inline ALWAYS_INLINE time_delta_t
-delta_time(time_t t1, time_t t0)
-{
-	return t1 - t0;
-}
-
-static inline void
-time_t_check(void)
-{
-	/* If time_t is not a signed integer type, we cannot calculate properly
-	 * with the raw values. Define USE_DIFFTIME, if this check fails.*/
-	STATIC_ASSERT((time_t) -1 < 0);
-}
-#endif /* USE_DIFFTIME*/
-
-#define TIME_DELTA_T_MAX	MAX_INT_VAL(time_delta_t)
-
-/**
- * Advances the given timestamp by delta using saturation arithmetic.
- * @param t the timestamp to advance.
- * @param delta the amount of seconds to advance.
- * @return the advanced timestamp or TIME_T_MAX.
- */
-static inline time_t G_GNUC_CONST
-time_advance(time_t t, ulong delta)
-{
-	/* Using time_t for delta and TIME_T_MAX instead of INT_MAX
-	 * would be cleaner but give a confusing interface. Jumping 136
-	 * years in time should be enough for everyone. Most systems
-	 * don't allow us to advance a time_t beyond 2038 anyway.
-	 */
-
-	do {
-		long d;
-
-		d = MIN(delta, (ulong) LONG_MAX);
-		if (d >= TIME_T_MAX - t) {
-			t = TIME_T_MAX;
-			break;
-		}
-		t += d;
-		delta -= d;
-	} while (delta > 0);
-
-	return t;
-}
-
-/**
- * Add delta to a time_delta_t, saturating towards TIME_DELTA_T_MAX.
- */
-static inline time_delta_t G_GNUC_CONST
-time_delta_add(time_delta_t td, ulong delta)
-{
-	do {
-		long d;
-
-		d = MIN(delta, (ulong) LONG_MAX);
-		if (d >= TIME_DELTA_T_MAX - td) {
-			td = TIME_DELTA_T_MAX;
-			break;
-		}
-		td += d;
-		delta -= d;
-	} while (delta > 0);
-
-	return td;
-}
+void set_tm_debug(uint32 level);
+uint32 tm_debug_level(void) G_GNUC_PURE;
 
 /*
  * Convenience routines.
@@ -214,18 +238,38 @@ tm_elapsed_us(const tm_t *t1, const tm_t *t0)
 	return tm2us(&elapsed);
 }
 
+/**
+ * Computes the elapsed time (t1 - t0) and return duration in seconds, as
+ * a floating point quantity to represent sub-seconds.
+ */
+static inline double
+tm_precise_elapsed_f(const tm_nano_t *t1, const tm_nano_t *t0)
+{
+	tm_nano_t elapsed;
+
+	tm_precise_elapsed(&elapsed, t1, t0);
+	return tmn2f(&elapsed);
+}
+
 extern tm_t tm_cached_now;			/* Currently cached time */
 
 /**
  * Get current time, at the second granularity (cached).
  */
-static inline time_t G_GNUC_PURE
+static inline time_t
 tm_time(void)
 {
-	return (time_t) tm_cached_now.tv_sec;
+	if G_UNLIKELY(thread_check_suspended()) {
+		return tm_time_exact();
+	} else {
+		return (time_t) tm_cached_now.tv_sec;
+	}
 }
 
-tm_t tm_start_time(void) G_GNUC_PURE;
+tm_t tm_start_time(void);
+time_t tm_localtime(void);
+time_t tm_localtime_exact(void);
+time_t tm_localtime_raw(void);
 
 /**
  * Returns the current time relative to the startup time (cached).
@@ -240,6 +284,26 @@ tm_relative_time(void)
 {
 	return delta_time(tm_time(), tm_start_time().tv_sec);
 }
+
+/**
+ * Fill supplied tm_t structure with specified amount of milliseconds.
+ */
+static inline void
+tm_fill_ms(tm_t *tm, ulong ms)
+{
+	tm->tv_sec = ms / 1000;
+	tm->tv_usec = (ms - 1000 * tm->tv_sec) * 1000;
+}
+
+/**
+ * Notifications for clock changes.
+ */
+
+typedef void (*tm_event_listener_t)(int delta);
+
+void tm_event_listener_add(tm_event_listener_t);
+void tm_event_listener_remove(tm_event_listener_t);
+
 #endif /* _tm_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

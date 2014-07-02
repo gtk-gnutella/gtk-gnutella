@@ -56,9 +56,7 @@
  *
  * For practical reasons and because double hashing is by design relatively
  * immune to clustering, the hash table size is a power of 2: the modulo
- * operator is much slower than a simple trailing bit masking.  To avoid losing
- * the dispertion of the original hashed value, we do not mask the output
- * of the hash function but fold all the bits down to the smaller value.
+ * operator is much slower than a simple trailing bit masking.
  *
  * When a collision occurs and alternative slots are to be used, the distance
  * from the "home" slot is computed via the secondary hash routine, and then
@@ -67,12 +65,12 @@
  * hash table size.  Because the table size is a power of 2, any odd number
  * will be prime with it.  This is enough to guarantee that for any odd number
  * "d" and a hash table size "S", the first "n", n > 1, for which n*d = 0
- * modulo S is when n = S since d and S are prime to each-other.
+ * modulo S is when n = S since d and S are prime with each-other.
  *
  * Because the final position of an item depends on the presence of other
  * items in the traversed path (in case the item is not at its "home" slot),
  * deletion of an item must not mark the slot as free, but must remember
- * that there used to be an item them.  This is done by erecting a tombstone
+ * that there used to be an item there.  This is done by erecting a tombstone
  * when the item is deleted.
  *
  * Too many items in the table or too many tombstones can affect the overall
@@ -108,8 +106,10 @@
 #define HASH_SOURCE
 
 #include "hash.h"
+
 #include "entropy.h"
 #include "hashing.h"
+#include "random.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
@@ -308,23 +308,37 @@ hash_arena_size_free(void *arena, size_t len, bool raw)
 }
 
 /**
+ * Free arena key set.
+ */
+static void
+hash_arena_kset_free(struct hash *h)
+{
+	struct hkeys *hk = &h->kset;
+	size_t size;
+
+	size = hash_arena_size(hk->size, hk->has_values);
+	hash_arena_size_free(hk->keys, size, hk->raw_memory);
+}
+
+/**
  * Free allocated arena structures.
  */
 void
 hash_arena_free(struct hash *h)
 {
-	struct hkeys *hk = &h->kset;
-	size_t size;
-
 	hash_check(h);
 
+	hash_arena_kset_free(h);
+
 	/*
-	 * If the arena size is more than a page size, we used VMM to allocate the
-	 * memory, otherwise it was walloc()'ed.
+	 * If the table was marked thread-safe, now is a good time to clean up
+	 * the allocated lock.
 	 */
 
-	size = hash_arena_size(hk->size, hk->has_values);
-	hash_arena_size_free(hk->keys, size, hk->raw_memory);
+	if (h->lock != NULL) {
+		mutex_destroy(h->lock);
+		WFREE(h->lock);
+	}
 }
 
 /**
@@ -500,7 +514,7 @@ hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 	size_t first_tomb, mask, hops;
 	bool found;
 
-	idx = hashing_fold(hv, hk->bits);
+	idx = hashing_keep(hv, hk->bits);
 	ih = hk->hashes[idx];
 
 	/*
@@ -621,16 +635,21 @@ hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 }
 
 /**
- * Erect a new tombstone.
+ * Erect a new tombstone at the specified key index.
  *
  * @return TRUE if we erected a new tombstone, FALSE if there was already one.
  */
 bool
-hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx)
+hash_erect_tombstone(struct hash *h, size_t idx)
 {
-	g_assert(hk != NULL);
+	struct hkeys *hk;
+
+	hash_check(h);
+	assert_hash_locked(h);
 	g_assert(size_is_non_negative(idx));
-	g_assert(idx < hk->size);
+	g_assert(idx < h->kset.size);
+
+	hk = &h->kset;
 
 	if G_UNLIKELY(HASH_TOMB == hk->hashes[idx])
 		return FALSE;
@@ -648,6 +667,8 @@ hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx)
 static bool
 hash_resize_min(struct hash *h)
 {
+	assert_hash_locked(h);
+
 	if G_UNLIKELY(HASH_MIN_BITS == h->kset.bits) {
 		memset(h->kset.hashes, 0,
 			(1U << HASH_MIN_BITS) * sizeof h->kset.hashes[0]);
@@ -655,7 +676,7 @@ hash_resize_min(struct hash *h)
 		h->kset.resize = FALSE;
 		return FALSE;
 	} else {
-		hash_arena_free(h);
+		hash_arena_kset_free(h);
 		hash_arena_allocate(h, HASH_MIN_BITS);
 		return TRUE;
 	}
@@ -678,6 +699,7 @@ hash_resize(struct hash *h, enum hash_resize_mode mode)
 	size_t old_size, old_arena_size, i, keys;
 
 	hash_check(h);
+	assert_hash_locked(h);
 
 	old_keys = h->kset.keys;
 	old_hashes = h->kset.hashes;
@@ -759,6 +781,7 @@ bool
 hash_resize_as_needed(struct hash *h)
 {
 	hash_check(h);
+	assert_hash_locked(h);
 	g_assert(h->kset.items + h->kset.tombs <= h->kset.size);
 
 	/*
@@ -882,6 +905,7 @@ hash_insert_key(struct hash *h, const void *key)
 	size_t idx, tombidx;
 
 	hash_check(h);
+	assert_hash_locked(h);
 
 	/*
 	 * When table is small, don't resize immediately because maybe the
@@ -943,6 +967,7 @@ hash_lookup_key(struct hash *h, const void *key)
 	size_t idx, tombidx;
 
 	hash_check(h);
+	assert_hash_locked(h);
 
 	hv = hash_compute_primary(&h->kset, key);
 	found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
@@ -1022,6 +1047,7 @@ hash_delete_key(struct hash *h, const void *key)
 	size_t idx;
 
 	hash_check(h);
+	assert_hash_locked(h);
 
 	hv = hash_compute_primary(&h->kset, key);
 	found = hash_keyset_lookup(&h->kset, key, hv, &idx, NULL);
@@ -1031,7 +1057,7 @@ hash_delete_key(struct hash *h, const void *key)
 
 		g_assert(size_is_positive(h->kset.items));
 
-		erected = hash_keyset_erect_tombstone(&h->kset, idx);
+		erected = hash_erect_tombstone(h, idx);
 		g_assert(erected);
 		h->kset.items--;
 		hash_resize_as_needed(h);
@@ -1050,8 +1076,12 @@ hash_clear(struct hash *h)
 	hash_check(h);
 	g_assert(0 == h->refcnt);
 
+	hash_synchronize(h);
+
 	hash_resize_min(h);
 	h->kset.items = 0;
+
+	hash_return_void(h);
 }
 
 /**
@@ -1063,6 +1093,7 @@ hash_refcnt_inc(const struct hash *h)
 	struct hash *wh = deconstify_pointer(h);
 
 	hash_check(h);
+	assert_hash_locked(h);
 
 	wh->refcnt++;
 }
@@ -1077,8 +1108,78 @@ hash_refcnt_dec(const struct hash *h)
 
 	hash_check(h);
 	g_assert(size_is_positive(h->refcnt));
+	assert_hash_locked(h);
 
 	wh->refcnt--;
+}
+
+/**
+ * Pick a random key among the ones present in the table.
+ *
+ * @param h			the hash table
+ * @param keyptr	where chosen key is written, if non-NULL
+ *
+ * @return the index of the chosen key, (size_t) -1 if the table is empty.
+ */
+size_t
+hash_random(const struct hash *h, const void **keyptr)
+{
+	size_t i, n, idx;
+	const struct hkeys *hk;
+
+	hash_check(h);
+
+	hash_synchronize(h);
+
+	if G_UNLIKELY(0 == h->kset.items) {
+		i = (size_t) -1;
+		goto done;
+	}
+
+	/*
+	 * Pick a random item number, then loop through the array to find that
+	 * nth item (0-based counting).
+	 *
+	 * Assuming that the dispersion in the table is uniform, we start from the
+	 * top if the chosen number is in the upper half of the item count, and
+	 * from the bottom otherwise.
+	 */
+
+	hk = &h->kset;
+	n = (size_t) random_ulong_value(hk->items - 1);
+
+	if (n < hk->items / 2) {
+		idx = 0;
+		for (i = 0; i < hk->size; i++) {
+			unsigned ih = hk->hashes[i];
+
+			if (HASH_IS_REAL(ih)) {
+				if G_UNLIKELY(idx++ == n)
+					goto found;
+			}
+		}
+	} else {
+		idx = hk->items - 1;
+		for (i = hk->size; i != 0; /* empty */) {
+			unsigned ih = hk->hashes[--i];
+
+			if (HASH_IS_REAL(ih)) {
+				if G_UNLIKELY(idx-- == n)
+					goto found;
+			}
+		}
+	}
+
+	g_assert_not_reached();		/* Item #n must have been found in table */
+
+found:
+	if (keyptr != NULL)
+		*keyptr = hk->keys[i];
+
+	/* FALL THROUGH */
+
+done:
+	hash_return(h, i);
 }
 
 /**
@@ -1096,6 +1197,8 @@ hash_foreach(const struct hash *h, data_fn_t fn, void *data)
 
 	hash_check(h);
 
+	hash_synchronize(h);
+
 	end = &h->kset.hashes[h->kset.size];
 	hash_refcnt_inc(h);			/* Prevent any key relocation */
 
@@ -1109,6 +1212,7 @@ hash_foreach(const struct hash *h, data_fn_t fn, void *data)
 	g_assert(n == h->kset.items);
 
 	hash_refcnt_dec(h);
+	hash_return_void(h);
 }
 
 /**
@@ -1117,9 +1221,13 @@ hash_foreach(const struct hash *h, data_fn_t fn, void *data)
 size_t
 hash_count(const struct hash *h)
 {
+	size_t count;
+
 	hash_check(h);
 
-	return h->kset.items;
+	hash_synchronize(h);
+	count = h->kset.items;
+	hash_return(h, count);
 }
 
 /**
@@ -1131,6 +1239,22 @@ hash_free(struct hash *h)
 	hash_check(h);
 
 	(*h->ops->hash_free)(h);
+}
+
+/**
+ * Mark the hash as thread-safe.
+ *
+ * This needs to be done right after creating the hash table, when no
+ * concurrent access to the hash can be made.
+ */
+void
+hash_thread_safe(struct hash *h)
+{
+	hash_check(h);
+	g_assert(NULL == h->lock);
+
+	WALLOC0(h->lock);
+	mutex_init(h->lock);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

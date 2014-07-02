@@ -28,6 +28,10 @@
  * Hash table with aging key/value pairs, removed automatically after
  * some time has elapsed.
  *
+ * All the entries in the table are given the same lifetime, with a granularity
+ * of one second.  It is however possible to revitalize an entry being looked-up
+ * by restoring its initial lifetime (as if it had been removed and reinserted).
+ *
  * @author Raphael Manfredi
  * @date 2004, 2012
  */
@@ -40,6 +44,7 @@
 #include "hashing.h"
 #include "hikset.h"
 #include "misc.h"
+#include "mutex.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -56,12 +61,13 @@ enum aging_magic {
  * since the entries expire automatically after some time has elapsed.
  */
 struct aging {
-	enum aging_magic magic;	/**< Magic number */
-	hikset_t *table;		/**< The table holding values */
-	cperiodic_t *gc_ev;		/**< Periodic garbage collecting event */
-	aging_free_t kvfree;	/**< The freeing callback for key/value pairs */
-	elist_t list;			/**< List of items in table, oldest first */
-	int delay;				/**< Initial aging delay, in seconds */
+	enum aging_magic magic;		/**< Magic number */
+	hikset_t *table;			/**< The table holding values */
+	cperiodic_t *gc_ev;			/**< Periodic garbage collecting event */
+	mutex_t *lock;				/**< Optional thread-safe lock */
+	free_keyval_fn_t kvfree;	/**< Freeing callback for key/value pairs */
+	elist_t list;				/**< List of items in table, oldest first */
+	int delay;					/**< Initial aging delay, in seconds */
 };
 
 static void
@@ -86,6 +92,41 @@ struct aging_value {
 	link_t lk;				/**< Embedded link to chain items together */
 };
 
+/*
+ * Thread-safe synchronization support.
+ */
+
+#define aging_synchronize(a) G_STMT_START {			\
+	if G_UNLIKELY((a)->lock != NULL) { 				\
+		aging_table_t *wa = deconstify_pointer(a);	\
+		mutex_lock(wa->lock);						\
+	}												\
+} G_STMT_END
+
+#define aging_unsynchronize(a) G_STMT_START {		\
+	if G_UNLIKELY((a)->lock != NULL) { 				\
+		aging_table_t *wa = deconstify_pointer(a);	\
+		mutex_unlock(wa->lock);						\
+	}												\
+} G_STMT_END
+
+#define aging_return(a, v) G_STMT_START {			\
+	if G_UNLIKELY((a)->lock != NULL) 				\
+		mutex_unlock((a)->lock);					\
+	return v;										\
+} G_STMT_END
+
+#define aging_return_void(a) G_STMT_START {			\
+	if G_UNLIKELY((a)->lock != NULL) 				\
+		mutex_unlock((a)->lock);					\
+	return;											\
+} G_STMT_END
+
+#define assert_aging_locked(a) G_STMT_START {		\
+	if G_UNLIKELY((a)->lock != NULL) 				\
+		assert_mutex_is_owned((a)->lock);			\
+} G_STMT_END
+
 /**
  * Free keys and values from the aging table.
  */
@@ -96,6 +137,7 @@ aging_free(void *value, void *data)
 	aging_table_t *ag = data;
 
 	aging_check(ag);
+	assert_aging_locked(ag);
 
 	if (ag->kvfree != NULL)
 		(*ag->kvfree)(aval->key, aval->value);
@@ -115,6 +157,9 @@ aging_gc(void *obj)
 	struct aging_value *aval;
 
 	aging_check(ag);
+
+	aging_synchronize(ag);
+
 	g_assert(elist_count(&ag->list) == hikset_count(ag->table));
 
 	while (NULL != (aval = elist_head(&ag->list))) {
@@ -124,7 +169,7 @@ aging_gc(void *obj)
 		aging_free(aval, ag);
 	}
 
-	return TRUE;			/* Keep calling */
+	aging_return(ag, TRUE);			/* Keep calling */
 }
 
 /**
@@ -139,11 +184,11 @@ aging_gc(void *obj)
  * @return opaque handle to the container.
  */
 aging_table_t *
-aging_make(int delay, hash_fn_t hash, eq_fn_t eq, aging_free_t kvfree)
+aging_make(int delay, hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
 {
 	aging_table_t *ag;
 
-	WALLOC(ag);
+	WALLOC0(ag);
 	ag->magic = AGING_MAGIC;
 	ag->table = hikset_create_any(
 		offsetof(struct aging_value, key),
@@ -170,13 +215,71 @@ aging_destroy(aging_table_t **ag_ptr)
 	if (ag) {
 		aging_check(ag);
 
+		aging_synchronize(ag);
+
 		hikset_foreach(ag->table, aging_free, ag);
 		hikset_free_null(&ag->table);
 		cq_periodic_remove(&ag->gc_ev);
+
+		if (ag->lock != NULL) {
+			mutex_destroy(ag->lock);
+			WFREE(ag->lock);
+		}
+
 		ag->magic = 0;
 		WFREE(ag);
 		*ag_ptr = NULL;
 	}
+}
+
+/**
+ * Mark newly created aging table as being thread-safe.
+ *
+ * This will make all external operations on the table thread-safe.
+ */
+void
+aging_thread_safe(aging_table_t *ag)
+{
+	aging_check(ag);
+	g_assert(NULL == ag->lock);
+
+	WALLOC0(ag->lock);
+	mutex_init(ag->lock);
+}
+
+/**
+ * Lock the aging table to allow a sequence of operations to be atomically
+ * conducted.
+ *
+ * It is possible to lock the table several times as long as each locking
+ * is paired with a corresponding unlocking in the execution flow.
+ *
+ * The table must have been marked thread-safe already.
+ */
+void
+aging_lock(aging_table_t *ag)
+{
+	aging_check(ag);
+	g_assert_log(ag->lock != NULL,
+		"%s(): aging table %p not marked thread-safe", G_STRFUNC, ag);
+
+	mutex_lock(ag->lock);
+}
+
+/*
+ * Release lock on aging table.
+ *
+ * The table must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+aging_unlock(aging_table_t *ag)
+{
+	aging_check(ag);
+	g_assert_log(ag->lock != NULL,
+		"%s(): aging table %p not marked thread-safe", G_STRFUNC, ag);
+
+	mutex_unlock(ag->lock);
 }
 
 /**
@@ -186,11 +289,16 @@ void *
 aging_lookup(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
+	void *data;
 
 	aging_check(ag);
 
+	aging_synchronize(ag);
+
 	aval = hikset_lookup(ag->table, key);
-	return aval == NULL ? NULL : aval->value;
+	data = aval == NULL ? NULL : aval->value;
+
+	aging_return(ag, data);
 }
 
 /**
@@ -200,24 +308,17 @@ time_delta_t
 aging_age(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
+	time_delta_t age;
 
 	aging_check(ag);
 
-	aval = hikset_lookup(ag->table, key);
-	return aval == NULL ?
-		(time_delta_t) -1 : delta_time(tm_time(), aval->last_insert);
-}
+	aging_synchronize(ag);
 
-/**
- * Move value back to the tail of the list.
- */
-static inline void
-aging_moveto_tail(aging_table_t *ag, struct aging_value *aval)
-{
-	if (elist_last(&ag->list) != &aval->lk) {
-		elist_link_remove(&ag->list, &aval->lk);
-		elist_link_append(&ag->list, &aval->lk);
-	}
+	aval = hikset_lookup(ag->table, key);
+	age = aval == NULL ?
+		(time_delta_t) -1 : delta_time(tm_time(), aval->last_insert);
+
+	aging_return(ag, age);
 }
 
 /**
@@ -228,17 +329,22 @@ void *
 aging_lookup_revitalise(aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
+	void *data;
 
 	aging_check(ag);
+
+	aging_synchronize(ag);
 
 	aval = hikset_lookup(ag->table, key);
 
 	if (aval != NULL) {
 		aval->last_insert = tm_time();
-		aging_moveto_tail(ag, aval);
+		elist_moveto_tail(&ag->list, aval);
 	}
 
-	return NULL == aval ? NULL : aval->value;
+	data = NULL == aval ? NULL : aval->value;
+
+	aging_return(ag, data);
 }
 
 /**
@@ -251,18 +357,26 @@ aging_remove(aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 	void *ovalue;
+	bool found;
 
-	g_assert(ag->magic == AGING_MAGIC);
+	aging_check(ag);
 
-	if (!hikset_lookup_extended(ag->table, key, &ovalue))
-		return FALSE;
+	aging_synchronize(ag);
+
+	if (!hikset_lookup_extended(ag->table, key, &ovalue)) {
+		found = FALSE;
+		goto done;
+	}
 
 	aval = ovalue;
 
 	hikset_remove(ag->table, aval->key);
 	aging_free(aval, ag);
 
-	return TRUE;
+	found = TRUE;
+
+done:
+	aging_return(ag, found);
 }
 
 /**
@@ -284,7 +398,9 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 	time_t now = tm_time();
 	struct aging_value *aval;
 
-	g_assert(ag->magic == AGING_MAGIC);
+	aging_check(ag);
+
+	aging_synchronize(ag);
 
 	found = hikset_lookup_extended(ag->table, key, &ovalue);
 	if (found) {
@@ -306,7 +422,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 
 		aval->value = value;
 		aval->last_insert = now;
-		aging_moveto_tail(ag, aval);
+		elist_moveto_tail(&ag->list, aval);
 	} else {
 		WALLOC(aval);
 		aval->value = value;
@@ -315,6 +431,8 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 		hikset_insert(ag->table, aval);
 		elist_append(&ag->list, aval);
 	}
+
+	aging_return_void(ag);
 }
 
 /**
@@ -323,9 +441,13 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 size_t
 aging_count(const aging_table_t *ag)
 {
+	size_t count;
+
 	aging_check(ag);
 
-	return hikset_count(ag->table);
+	aging_synchronize(ag);
+	count = hikset_count(ag->table);
+	aging_return(ag, count);
 }
 
 /* vi: set ts=4: sw=4 cindent: */

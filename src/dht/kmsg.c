@@ -63,6 +63,7 @@
 #include "lib/bstr.h"
 #include "lib/host_addr.h"
 #include "lib/pmsg.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
 #include "lib/str.h"
@@ -132,7 +133,7 @@ static aging_table_t *kmsg_aging_finds;
 #define KMSG_STORE_AIMED_SIZE	512
 #define KMSG_STORE_MAX_SIZE		640
 
-typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
+typedef void (*kmsg_handler_t)(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header,
 	uint8 extlen, const void *payload, size_t len);
 
@@ -203,7 +204,7 @@ kmsg_can_drop(const void *pdu, int size)
  */
 static void
 kmsg_handle(knode_t *kn,
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -221,30 +222,32 @@ kmsg_handle(knode_t *kn,
 	function = kademlia_header_get_function(header);
 	km = kmsg_find(function);
 
-	/*
-	 * Users can force passive mode, even if not firewalled.
-	 * Enforce that no RPC call can be made on a non-active node.
-	 */
-
-	if (km->rpc_call && !dht_is_active()) {
-		if (GNET_PROPERTY(dht_debug)) {
-			g_debug("DHT in passive mode, ignoring %s from %s",
-				km->name, knode_to_string(kn));
-		}
-		gnet_dht_stats_count_dropped(n, function, MSG_DROP_UNEXPECTED);
-		return;
-	}
-
-	if (!km) {
+	if (NULL == km) {
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT invalid message function 0x%x from %s",
 				function, knode_to_string(kn));
-	} else if (NULL == km->handler) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT unhandled %s from %s",
-				km->name, knode_to_string(kn));
 	} else {
-		km->handler(kn, n, header, extlen, payload, len);
+		/*
+		 * Users can force passive mode, even if not firewalled.
+		 * Enforce that no RPC call can be made on a non-active node.
+		 */
+
+		if (km->rpc_call && !dht_is_active()) {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT in passive mode, ignoring %s from %s",
+					km->name, knode_to_string(kn));
+			}
+			gnet_dht_stats_count_dropped(n, function, MSG_DROP_UNEXPECTED);
+			return;
+		}
+
+		if (NULL == km->handler) {
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT unhandled %s from %s",
+					km->name, knode_to_string(kn));
+		} else {
+			km->handler(kn, n, header, extlen, payload, len);
+		}
 	}
 }
 
@@ -261,7 +264,7 @@ warn_no_header_extension(const knode_t *kn,
 	if (extlen && GNET_PROPERTY(dht_debug)) {
 		uint8 function = kademlia_header_get_function(header);
 		g_warning("DHT unhandled extended header (%u byte%s) in %s from %s",
-			extlen, extlen == 1 ? "" : "s", kmsg_name(function),
+			extlen, plural(extlen), kmsg_name(function),
 			knode_to_string(kn));
 		if (GNET_PROPERTY(dht_debug) > 15)
 			dump_hex(stderr, "Kademlia extra header",
@@ -283,7 +286,7 @@ warn_unparsed_trailer(const knode_t *kn, const kademlia_header_t *header,
 		g_warning("DHT message %s from %s "
 			"has %zu byte%s of unparsed trailing data (ignored)",
 			kmsg_name(function), knode_to_string(kn),
-			unparsed, 1 == unparsed ? "" : "s");
+			unparsed, plural(unparsed));
 		if (GNET_PROPERTY(dht_debug) > 15)
 			dump_hex(stderr, "Unparsed trailing data",
 				bstr_read_base(bs), unparsed);
@@ -362,8 +365,14 @@ serialize_size_estimate(pmsg_t *mb)
 			break;		/* Found non-zero byte */
 	}
 
-	pmsg_write_u8(mb, KUID_RAW_SIZE - i);
-	pmsg_write(mb, &estimate->v[i], KUID_RAW_SIZE - i);
+	if (i < KUID_RAW_SIZE) {
+		pmsg_write_u8(mb, KUID_RAW_SIZE - i);
+		pmsg_write(mb, &estimate->v[i], KUID_RAW_SIZE - i);
+	} else {
+		/* The estimate is 0, force a 1, since we're a DHT node */
+		pmsg_write_u8(mb, 1);	/* 1-byte long */
+		pmsg_write_u8(mb, 1);	/* value */
+	}
 }
 
 /**
@@ -427,7 +436,7 @@ kmsg_deserialize_contact(bstr_t *bs)
  * Send a pong message back to the host who sent the ping.
  */
 static void
-k_send_pong(struct gnutella_node *n, const guid_t *muid)
+k_send_pong(gnutella_node_t *n, const guid_t *muid)
 {
 	kademlia_header_t *header;
 	pmsg_t *mb;
@@ -485,7 +494,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
  */
 static void
 k_send_find_node_response(
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const knode_t *kn,
 	knode_t **kvec, size_t klen, const guid_t *muid)
 {
@@ -544,8 +553,7 @@ k_send_find_node_response(
 	if (GNET_PROPERTY(dht_debug > 3))
 		g_debug("DHT sending back %s (%zu bytes) with %zu contact%s to %s",
 			kmsg_infostr(header), (size_t) pmsg_size(mb),
-			klen, klen == 1 ? "" : "s",
-			host_addr_port_to_string(n->addr, n->port));
+			klen, plural(klen), host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
 }
@@ -563,7 +571,7 @@ k_send_find_node_response(
  */
 static void
 k_send_find_value_response(
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const knode_t *unused_kn,
 	dht_value_t **vvec, size_t vlen, float load, bool cached,
 	const guid_t *muid)
@@ -642,7 +650,7 @@ k_send_find_value_response(
 			if (GNET_PROPERTY(dht_debug) > 3)
 				g_warning(
 					"DHT after sending %zu DHT values, will send %zu key%s",
-					i, vlen - i, (1 == vlen - i) ? "" : "s");
+					i, vlen - i, plural(vlen - i));
 			break;
 		}
 
@@ -722,8 +730,7 @@ k_send_find_value_response(
 		g_debug("DHT sending back %s (%zu bytes) with "
 			"%d value%s and %d secondary key%s to %s",
 			kmsg_infostr(header), (size_t) pmsg_size(mb),
-			values, values == 1 ? "" : "s",
-			secondaries, secondaries == 1 ? "" : "s",
+			values, plural(values), secondaries, plural(secondaries),
 			host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
@@ -741,7 +748,7 @@ k_send_find_value_response(
  */
 static void
 k_send_store_response(
-	struct gnutella_node *n,
+	gnutella_node_t *n,
 	const knode_t *kn,
 	dht_value_t **vec, uint8 vlen,
 	bool valid_token,
@@ -823,8 +830,7 @@ k_send_store_response(
 	if (GNET_PROPERTY(dht_debug > 3))
 		g_debug("DHT sending back %s (%zu bytes) with %d status%s to %s",
 			kmsg_infostr(header), (size_t) pmsg_size(mb),
-			i, i == 1 ? "" : "es",
-			host_addr_port_to_string(n->addr, n->port));
+			i, plural_es(i), host_addr_port_to_string(n->addr, n->port));
 
 	udp_dht_send_mb(n, mb);
 
@@ -839,7 +845,7 @@ k_send_store_response(
  * Handle ping messages.
  */
 static void
-k_handle_ping(knode_t *kn, struct gnutella_node *n,
+k_handle_ping(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -849,7 +855,7 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 
 	if (len && GNET_PROPERTY(dht_debug)) {
 		g_warning("DHT unhandled PING payload (%zu byte%s) from %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn));
+			len, plural(len), knode_to_string(kn));
 		dump_hex(stderr, "Kademlia Ping payload", payload, len);
 	}
 
@@ -929,7 +935,7 @@ throttle:
  * Handle pong messages.
  */
 static void
-k_handle_pong(knode_t *kn, struct gnutella_node *n,
+k_handle_pong(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1029,7 +1035,7 @@ error:
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT unhandled PONG payload (%zu byte%s) from %s: %s: %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn),
+			len, plural(len), knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	bstr_free(&bs);
@@ -1044,7 +1050,7 @@ error:
  * @param header	the Kademlia header from which we can extract the MUID
  */
 static void
-answer_find_node(struct gnutella_node *n,
+answer_find_node(gnutella_node_t *n,
 	const knode_t *kn, const kuid_t *id, const kademlia_header_t *header)
 {
 	knode_t *kvec[KDA_K];
@@ -1188,7 +1194,7 @@ answer:
 			within_kball ? "[in k-ball] " :
 				keys_is_foreign(id) ? "[foreign] " : "",
 			(kn->flags & KNODE_F_FIREWALLED) ? "[passive]" : "[active]",
-			requested, 1 == requested ? "" : "s");
+			requested, plural(requested));
 	}
 
 	cnt = dht_fill_closest(id, kvec, requested, kn->id, TRUE);
@@ -1259,7 +1265,7 @@ peer_replication(const knode_t *kn, const kuid_t *id)
  * Handle find_node(id) messages.
  */
 static void
-k_handle_find_node(knode_t *kn, struct gnutella_node *n,
+k_handle_find_node(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1270,7 +1276,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	if (len != KUID_RAW_SIZE) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT bad FIND_NODE payload (%zu byte%s) from %s",
-				len, len == 1 ? "" : "s", knode_to_string(kn));
+				len, plural(len), knode_to_string(kn));
 			dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
 		}
 		gnet_dht_stats_count_dropped(n,
@@ -1321,7 +1327,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
  * Handle store requests.
  */
 static void
-k_handle_store(knode_t *kn, struct gnutella_node *n,
+k_handle_store(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1394,9 +1400,8 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 
 		if (ignored && GNET_PROPERTY(dht_debug))
 			g_warning("DHT STORE ignoring the %u %svalue%s supplied by %s %s",
-				ignored, in_kball ? "additional" : "", 1 == ignored ? "" : "s",
-				in_kball ? "k-closest" : "foreigner",
-				knode_to_string(kn));
+				ignored, in_kball ? "additional" : "", plural(ignored),
+				in_kball ? "k-closest" : "foreigner", knode_to_string(kn));
 
 		if (in_kball) {
 			values = 1;
@@ -1483,7 +1488,7 @@ error:
 invalid_token:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT unhandled STORE payload (%zu byte%s) from %s: %s: %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn),
+			len, plural(len), knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1505,7 +1510,7 @@ cleanup:
  * Handle find_value(id) requests.
  */
 static void
-k_handle_find_value(knode_t *kn, struct gnutella_node *n,
+k_handle_find_value(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1531,7 +1536,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	if (len < KUID_RAW_SIZE + 4) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT bad FIND_VALUE payload (%zu byte%s) from %s",
-				len, len == 1 ? "" : "s", knode_to_string(kn));
+				len, plural(len), knode_to_string(kn));
 			dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
 		}
 		gnet_dht_stats_count_dropped(n,
@@ -1662,7 +1667,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 		g_debug("DHT FETCH \"%s\" %s (%s) FOUND %d %svalue%s",
 			dht_value_type_to_string(type),
 			kuid_to_hex_string(id), kuid_to_string(id),
-			vcnt, cached ? "cached " : "", 1 == vcnt ? "" : "s");
+			vcnt, cached ? "cached " : "", plural(vcnt));
 
 	k_send_find_value_response(n,
 		kn, vvec, vcnt, load, cached, kademlia_header_get_muid(header));
@@ -1676,7 +1681,7 @@ error:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning(
 			"DHT unhandled FIND_VALUE payload (%zu byte%s) from %s: %s: %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn),
+			len, plural(len), knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1710,7 +1715,7 @@ cleanup:
  * it will be handled by the RPC callbacks.  Otherwise, the message is ignored.
  */
 static void
-k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
+k_handle_rpc_reply(knode_t *kn, gnutella_node_t *n,
 	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1740,7 +1745,7 @@ k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
 void
 kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 {
-	struct gnutella_node *n = node_dht_get_addr_port(kn->addr, kn->port);
+	gnutella_node_t *n = node_dht_get_addr_port(kn->addr, kn->port);
 
 	knode_check(kn);
 
@@ -1893,15 +1898,15 @@ store_finalize_pmsg(pmsg_t *mb, int values_held, pmsg_offset_t value_count)
  * @param vvec		vector of values to store
  * @param vcnt		amount of values in ``vvec''
  *
- * @return a GSList of message blocks (pmsg_t *), with blank MUIDs, meant
+ * @return a pslist_t of message blocks (pmsg_t *), with blank MUIDs, meant
  * to be overwritten by the RPC layer.
  * It is up to the caller to free up the list and the blocks.
  */
-GSList *
+pslist_t *
 kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 {
 	int i;
-	GSList *result = NULL;
+	pslist_t *result = NULL;
 	pmsg_t *mb = NULL;
 	int vheld = 0;
 	pmsg_offset_t value_count = 0;
@@ -1931,7 +1936,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 			store_finalize_pmsg(mb, vheld, value_count);
 
-			result = g_slist_prepend(result, mb);
+			result = pslist_prepend(result, mb);
 			mb = NULL;
 			vheld = 0;
 		}
@@ -1990,7 +1995,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 	store_finalize_pmsg(mb, vheld, value_count);
 
-	return g_slist_prepend(result, mb);
+	return pslist_prepend(result, mb);
 }
 
 /**
@@ -2141,7 +2146,7 @@ void kmsg_received(
 
 	/* Do not check the port, it can be off for firewalled nodes */
 
-	if (host_addr_equal(kaddr, addr))
+	if (host_addr_equiv(kaddr, addr))
 		gnet_stats_inc_general(GNR_DHT_MSG_MATCHING_CONTACT_ADDRESS);
 
 	/*
@@ -2173,11 +2178,11 @@ void kmsg_received(
 
 			rpc_reply = TRUE;
 
-			if (kport == rport && host_addr_equal(kaddr, raddr))
+			if (kport == rport && host_addr_equiv(kaddr, raddr))
 				goto hostile_checked;
 
 			if (GNET_PROPERTY(dht_debug)) {
-				bool matches = port == rport && host_addr_equal(addr, raddr);
+				bool matches = port == rport && host_addr_equiv(addr, raddr);
 				g_warning("DHT fixing contact address for kuid=%s "
 					"to %s:%u on RPC reply (%s UDP info%s%s) in %s",
 					kuid_to_hex_string(id),
@@ -2243,7 +2248,7 @@ hostile_checked:
 
 	if (
 		!(flags & KDA_MSG_F_FIREWALLED) &&
-		(port != kport || !host_addr_equal(addr, kaddr))
+		(port != kport || !host_addr_equiv(addr, kaddr))
 	) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT contact address is %s "
@@ -2311,7 +2316,7 @@ hostile_checked:
 		if (
 			!patched &&
 			!(flags & KDA_MSG_F_FIREWALLED) &&
-			(!host_is_valid(kaddr, kport) || !host_addr_equal(addr, kaddr))
+			(!host_is_valid(kaddr, kport) || !host_addr_equiv(addr, kaddr))
 		) {
 			if (port == kport) {
 				if (GNET_PROPERTY(dht_debug)) {
@@ -2388,12 +2393,12 @@ hostile_checked:
 				host_is_valid(kn->addr, kn->port) &&
 				(
 					!host_is_valid(kaddr, kport) ||
-					!host_addr_equal(addr, kaddr)
+					!host_addr_equiv(addr, kaddr)
 				)
 			) {
 				if (GNET_PROPERTY(dht_debug)) {
 					bool matches = port == kport &&
-						host_addr_equal(addr, kn->addr);
+						host_addr_equiv(addr, kn->addr);
 					g_warning("DHT fixing contact address for kuid=%s to %s:%u"
 						" based on routing table (%s UDP info%s%s) in %s",
 						kuid_to_hex_string(id),
@@ -2410,7 +2415,7 @@ hostile_checked:
 				kn->flags &= ~KNODE_F_FOREIGN_IP;
 			} else {
 				kn->flags &= ~(KNODE_F_PCONTACT | KNODE_F_FOREIGN_IP);
-				if (!host_addr_equal(addr, kaddr)) {
+				if (!host_addr_equiv(addr, kaddr)) {
 					if (GNET_PROPERTY(dht_debug)) {
 						g_warning("DHT not fixing contact address %s "
 							"(%s v%u.%u) kuid=%s but keeping "
@@ -2447,11 +2452,11 @@ hostile_checked:
 		if (
 			/* Node not firewalled, contact address changed */
 			(!(flags & KDA_MSG_F_FIREWALLED) &&
-				(!host_addr_equal(kaddr, kn->addr) || kport != kn->port))
+				(!host_addr_equiv(kaddr, kn->addr) || kport != kn->port))
 			||
 			/* Node firewalled, source IP address changed */
 			((flags & KDA_MSG_F_FIREWALLED) &&
-				!host_addr_equal(kn->addr, addr))
+				!host_addr_equiv(kn->addr, addr))
 		) {
 			if (GNET_PROPERTY(dht_debug))
 				g_debug("DHT new IP for %s (now at %s) -- %s verification",
@@ -2531,7 +2536,7 @@ hostile_checked:
 
 	if (
 		kport != kademlia_header_get_contact_port(header) ||
-		!host_addr_equal(kaddr,
+		!host_addr_equiv(kaddr,
 			host_addr_get_ipv4(kademlia_header_get_contact_addr(header)))
 	)
 		gnet_stats_inc_general(GNR_DHT_MSG_FIXED_CONTACT_ADDRESS);
@@ -2552,7 +2557,7 @@ hostile_checked:
 	 */
 
 	kmsg_handle(kn, n, header, extended_length,
-		ptr_add_offset(header, extended_length + KDA_HEADER_SIZE),
+		const_ptr_add_offset(header, extended_length + KDA_HEADER_SIZE),
 		len - KDA_HEADER_SIZE - extended_length);
 
 	knode_free(kn);		/* Will free only if not still referenced */
@@ -2640,7 +2645,7 @@ kmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 
 	return str_bprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
 		kmsg_name(kademlia_header_get_function(msg)),
-		ext, size, size == 1 ? "" : "s",
+		ext, size, plural(size),
 		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),
 		kademlia_header_get_major_version(msg),
 		kademlia_header_get_minor_version(msg),

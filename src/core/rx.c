@@ -41,9 +41,10 @@
 #include "rx.h"
 #include "nodes.h"
 
-#include "lib/glib-missing.h"
 #include "lib/ipset.h"
+#include "lib/pslist.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -63,7 +64,7 @@
  * with respect to the caller (i.e. it is not happening in the same
  * calling stack), freed stacks are remembered and periodically collected.
  */
-static GSList *rx_freed = NULL;
+static pslist_t *rx_freed = NULL;
 
 /**
  * Tell upper layer that it got new data from us.
@@ -386,7 +387,7 @@ rx_free(rxdrv_t *rx)
 		rx_set_datafrom_ind(rx, rx_datafrom_ind_freed);
 	rx_disable(rx);
 	rx->flags |= RX_F_FREED;
-	rx_freed = g_slist_prepend(rx_freed, rx);
+	rx_freed = pslist_prepend(rx_freed, rx);
 }
 
 /**
@@ -395,15 +396,15 @@ rx_free(rxdrv_t *rx)
 void
 rx_collect(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = rx_freed; sl; sl = g_slist_next(sl)) {
+	for (sl = rx_freed; sl; sl = pslist_next(sl)) {
 		rxdrv_t *rx = sl->data;
 		g_assert(rx->flags & RX_F_FREED);
 		rx_deep_free(rx);
 	}
 
-	gm_slist_free_null(&rx_freed);
+	pslist_free_null(&rx_freed);
 }
 
 /**

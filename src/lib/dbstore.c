@@ -46,7 +46,10 @@
 #include "dbmw.h"
 #include "file.h"
 #include "halloc.h"
+#include "log.h"
 #include "path.h"
+#include "stringify.h"
+
 #include "override.h"		/* Must be the last header included */
 
 static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
@@ -108,7 +111,7 @@ dbstore_create_internal(const char *name, const char *dir, const char *base,
 		if (dm != NULL) {
 			dbmap_set_deferred_writes(dm, TRUE);
 		} else {
-			g_warning("DBSTORE cannot open SDBM at %s for %s: %m", path, name);
+			s_warning("DBSTORE cannot open SDBM at %s for %s: %m", path, name);
 		}
 		HFREE_NULL(path);
 	} else {
@@ -200,7 +203,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 	if (dw != NULL && dbstore_debug > 0) {
 		size_t count = dbmw_count(dw);
 		g_debug("DBSTORE opened DBMW \"%s\" (%u key%s) from %s",
-			dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+			dbmw_name(dw), (unsigned) count, plural(count), base);
 	}
 
 	/*
@@ -214,7 +217,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 
 		if (dbstore_debug > 0) {
 			g_debug("DBSTORE loading DBMW \"%s\" (%u key%s) from %s",
-				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+				dbmw_name(dw), (unsigned) count, plural(count), base);
 		}
 
 		dram = dbstore_create_internal(name, NULL, NULL, 0,
@@ -222,7 +225,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 
 		if (!dbmw_copy(dw, dram)) {
 			g_warning("DBSTORE could not load DBMW \"%s\" (%u key%s) from %s",
-				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+				dbmw_name(dw), (unsigned) count, plural(count), base);
 		}
 
 		dbmw_destroy(dw, TRUE);
@@ -246,7 +249,7 @@ dbstore_sync(dbmw_t *dw)
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u SDBM page%s in DBMW \"%s\"",
-			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
+			(unsigned) n, plural(n), dbmw_name(dw));
 	}
 }
 
@@ -264,7 +267,7 @@ dbstore_flush(dbmw_t *dw)
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u dirty value%s in DBMW \"%s\"",
-			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
+			(unsigned) n, plural(n), dbmw_name(dw));
 	}
 }
 
@@ -304,7 +307,7 @@ dbstore_close(dbmw_t *dw, const char *dir, const char *base)
 		size_t count = dbmw_count(dw);
 		g_debug("DBSTORE %ssucessfully persisted DBMW \"%s\" (%u key%s)",
 			ok ? "" : "un", dbmw_name(dw),
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	dbmw_destroy(dw, TRUE);
@@ -367,12 +370,12 @@ dbstore_compact(dbmw_t *dw)
 static void
 dbstore_move_file(const char *old_path, const char *new_path, const char *ext)
 {
-	char *old_file = h_strconcat(old_path, ext, (void *) 0);
-	char *new_file = h_strconcat(new_path, ext, (void *) 0);
+	char *old_file = h_strconcat(old_path, ext, NULL);
+	char *new_file = h_strconcat(new_path, ext, NULL);
 
 	if (file_exists(old_file)) {
 		if (-1 == rename(old_file, new_file)) {
-			g_warning("could not rename \"%s\" as \"%s\": %m",
+			s_carp("could not rename \"%s\" as \"%s\": %m",
 				old_file, new_file);
 		}
 	}
@@ -403,6 +406,40 @@ dbstore_move(const char *src, const char *dst, const char *base)
 
 	HFREE_NULL(old_path);
 	HFREE_NULL(new_path);
+}
+
+static void
+dbstore_unlink_file(const char *path, const char *ext)
+{
+	char *file = h_strconcat(path, ext, NULL);
+
+	if (file_exists(file)) {
+		if (-1 == unlink(file)) {
+			s_carp("could not unlink \"%s\": %m", file);
+		}
+	}
+
+	HFREE_NULL(file);
+}
+
+/**
+ * Remove SDBM files from "dir".
+ *
+ * @param dir				the directory where SDBM files are stored
+ * @param base				the base name of SDBM files
+ */
+void
+dbstore_unlink(const char *dir, const char *base)
+{
+	char *path;
+
+	path = make_pathname(dir, base);
+
+	dbstore_unlink_file(path, DBM_DIRFEXT);
+	dbstore_unlink_file(path, DBM_PAGFEXT);
+	dbstore_unlink_file(path, DBM_DATFEXT);
+
+	HFREE_NULL(path);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

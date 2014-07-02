@@ -61,18 +61,6 @@
 #define rotl(x, k) (((x) << (k)) | ((x) >> (32 - (k))))
 
 /**
- * Hashing of a 32-bit value.
- */
-static inline ALWAYS_INLINE unsigned
-u32_hash(uint32 v)
-{
-	uint64 hash;
-
-	hash = GOLDEN_RATIO_32 * (uint64) v;
-	return (hash >> 3) ^ (hash >> 32);
-}
-
-/**
  * Alternative hashing of a 32-bit value.
  */
 static inline ALWAYS_INLINE unsigned

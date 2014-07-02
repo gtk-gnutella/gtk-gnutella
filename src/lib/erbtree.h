@@ -112,10 +112,9 @@ erbtree_check(const erbtree_t * const t)
 void erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset);
 void erbtree_init_data(erbtree_ext_t *tree,
 	cmp_data_fn_t cmp, void *data, size_t offset);
+void erbtree_clear(erbtree_t *tree);
 
 size_t erbtree_count(const erbtree_t *tree);
-rbnode_t *erbtree_first(const erbtree_t *tree);
-rbnode_t *erbtree_last(const erbtree_t *tree);
 rbnode_t *erbtree_next(const rbnode_t *node);
 rbnode_t *erbtree_prev(const rbnode_t *node);
 bool erbtree_contains(const erbtree_t *tree, const void *key);
@@ -124,7 +123,7 @@ rbnode_t *erbtree_getnode(const erbtree_t *tree, const void *key);
 void *erbtree_insert(erbtree_t *tree, rbnode_t *node);
 void erbtree_remove(erbtree_t *tree, rbnode_t *node);
 void erbtree_replace(erbtree_t *tree, rbnode_t *old, rbnode_t *new);
-void erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data);
+void erbtree_foreach(const erbtree_t *tree, data_fn_t cb, void *data);
 size_t erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data);
 void erbtree_discard(erbtree_t *tree, free_fn_t fcb);
 void erbtree_discard_with_data(erbtree_t *tree, free_data_fn_t fcb, void *data);
@@ -133,11 +132,50 @@ void erbtree_discard_with_data(erbtree_t *tree, free_data_fn_t fcb, void *data);
  * Computes the data item address given the embedded node pointer.
  */
 static inline void *
-erbtree_data(const erbtree_t *tree, rbnode_t *node)
+erbtree_data(const erbtree_t *t, rbnode_t *node)
 {
-	erbtree_check(tree);
+	erbtree_check(t);
+	return NULL == node ? NULL : ptr_add_offset(node, -t->offset);
+}
 
-	return NULL == node ? NULL : ptr_add_offset(node, -tree->offset);
+/**
+ * @return pointer to the first item of the tree, NULL if empty.
+ */
+static inline void *
+erbtree_head(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return NULL == t->first ? NULL : ptr_add_offset(t->first, -t->offset);
+}
+
+/**
+ * @return pointer to the last item of the tree, NULL if empty.
+ */
+static inline void *
+erbtree_tail(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return NULL == t->last ? NULL : ptr_add_offset(t->last, -t->offset);
+}
+
+/**
+ * Get first (smallest) item in the tree.
+ */
+static inline rbnode_t *
+erbtree_first(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return t->first;
+}
+
+/**
+ * Get last (bigest) item in the tree.
+ */
+static inline rbnode_t *
+erbtree_last(const erbtree_t * const t)
+{
+	erbtree_check(t);
+	return t->last;
 }
 
 #define ERBTREE_FOREACH(tree, rn) \

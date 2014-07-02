@@ -44,13 +44,26 @@
 #define XMALLOC_FLCF_UNLOCKED	(1U << 3)	/**< Check unlocked buckets */
 #define XMALLOC_FLCF_LOGLOCK	(1U << 4)	/**< Log skipped locked buckets */
 
-/**
+/*
+ * Used by the thread management layer only.
+ */
+
+#ifdef THREAD_SOURCE
+void xmalloc_thread_starting(unsigned stid);
+void xmalloc_thread_ended(unsigned stid);
+void xmalloc_thread_disable_local_pool(unsigned stid, bool disable);
+#endif
+
+/*
  * Public interface.
  */
 
 struct logagent;
+struct sha1;
 
 void set_xmalloc_debug(uint32 level);
+bool xmalloc_thread_set_local_pool(bool on);
+bool xmalloc_thread_uses_local_pool(unsigned stid);
 void xmalloc_crash_mode(void);
 void xmalloc_vmm_inited(void);
 void xmalloc_pre_close(void);
@@ -59,28 +72,24 @@ bool xmalloc_is_malloc(void) G_GNUC_CONST;
 void xmalloc_show_settings(void);
 void xmalloc_show_settings_log(struct logagent *la);
 void xmalloc_stop_freeing(void);
-void xmalloc_stop_wfree(void);
 void xmalloc_dump_stats(void);
 void xmalloc_dump_stats_log(struct logagent *la, unsigned options);
 void xmalloc_dump_usage_log(struct logagent *la, unsigned options);
 void xmalloc_dump_freelist_log(struct logagent *la);
 size_t xmalloc_freelist_check(struct logagent *la, unsigned flags);
 
+void xmalloc_stats_digest(struct sha1 *digest);
+
 void xgc(void);
 
 void *xmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *xpmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *xpmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xhmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xcalloc(size_t nmemb, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xrealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
-void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void xfree(void *ptr);
 char *xstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-char *xpstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *xstrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-char *xpstrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void xstrfreev(char **str);
 size_t xallocated(const void *p);
 
@@ -92,13 +101,7 @@ xcopy(const void *p, size_t size)
 	return cp;
 }
 
-static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
-xpcopy(const void *p, size_t size)
-{
-	void *cp = xpmalloc(size);
-	memcpy(cp, p, size);
-	return cp;
-}
+#define XCOPY(p)	xcopy(p, sizeof *p)
 
 #define XMALLOC(p)			\
 G_STMT_START {				\
@@ -108,16 +111,6 @@ G_STMT_START {				\
 #define XMALLOC0(p)				\
 G_STMT_START {					\
 	p = xmalloc0(sizeof *p);	\
-} G_STMT_END
-
-#define XPMALLOC(p)				\
-G_STMT_START {					\
-	p = xpmalloc(sizeof *p);	\
-} G_STMT_END
-
-#define XPMALLOC0(p)			\
-G_STMT_START {					\
-	p = xpmalloc0(sizeof *p);	\
 } G_STMT_END
 
 #define XFREE_NULL(p)	\

@@ -54,14 +54,13 @@ typedef struct shared_file shared_file_t;
  */
 
 enum {
+	SHARE_F_FILEINFO	=	(1 << 5),		/**< File referenced by fileinfo */
 	SHARE_F_INDEXED		=	(1 << 4),		/**< File is in file_table index */
 	SHARE_F_BASENAME	=	(1 << 3),		/**< File is in basename index */
 	SHARE_F_SPECIAL		=	(1 << 2),		/**< Special (robots.txt, favicon)*/
 	SHARE_F_RECOMPUTING	=	(1 << 1),		/**< Digest being recomputed */
 	SHARE_F_HAS_DIGEST	=	(1 << 0)		/**< Digest is set */
 };
-
-#define SHARE_REBUILDING shared_file_dummy()
 
 static inline shared_file_t *
 shared_file_dummy(void)
@@ -73,13 +72,20 @@ shared_file_dummy(void)
 	return dummy;
 }
 
-struct gnutella_node;
-struct query_hashvec;
-
-/*
+/**
  * Special return value from shared_file() during library rebuild time.
  * This is needed because we no longer block the GUI whilst scanning.
  */
+#define SHARE_REBUILDING shared_file_dummy()
+
+/**
+ * Flags for shared_files_match().
+ */
+#define SHARE_FM_PARTIALS	(1 << 0)		/**< Can match partials */
+#define SHARE_FM_G2			(1 << 1)		/**< G2 query */
+
+struct gnutella_node;
+struct query_hashvec;
 
 /*
  * Global Functions
@@ -95,6 +101,7 @@ shared_file_t *shared_file_ref(const shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
 shared_file_t *shared_special(const char *path);
 void shared_file_unref(shared_file_t **sf_ptr);
+void shared_file_fileinfo_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
 
 void parse_extensions(const char *);
@@ -107,7 +114,8 @@ void shared_file_set_tth(shared_file_t *, const struct tth *tth);
 void shared_file_set_modification_time(shared_file_t *sf, time_t mtime);
 void shared_file_set_path(shared_file_t *sf, const char *pathname);
 
-void shared_file_check(const shared_file_t *sf);
+void shared_file_check(const shared_file_t * const sf);
+void shared_file_name_check(const shared_file_t * const sf);
 bool sha1_hash_available(const shared_file_t *sf) G_GNUC_PURE;
 bool sha1_hash_is_uptodate(shared_file_t *sf);
 bool shared_file_is_partial(const shared_file_t *sf) G_GNUC_PURE;
@@ -129,6 +137,7 @@ size_t shared_file_name_canonic_len(const shared_file_t *sf) G_GNUC_PURE;
 uint32 shared_file_flags(const shared_file_t *sf) G_GNUC_PURE;
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf) G_GNUC_PURE;
 const char *shared_file_mime_type(const shared_file_t *sf) G_GNUC_PURE;
+bool shared_file_indexed(const shared_file_t *sf) G_GNUC_PURE;
 void shared_file_from_fileinfo(fileinfo_t *fi);
 bool shared_file_has_media_type(const shared_file_t *sf, unsigned m)
 	G_GNUC_PURE;
@@ -139,9 +148,10 @@ void share_update_matching_information(void);
 
 void shared_files_match(const char *query,
 		st_search_callback callback, void *user_data,
-		int max_res, bool partials, struct query_hashvec *qhv);
+		int max_res, uint32 partials, struct query_hashvec *qhv);
 
-size_t share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned mask);
+size_t share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned mask,
+	bool size_restrict, filesize_t minsize, filesize_t maxsize);
 
 unsigned share_filename_media_mask(const char *filename);
 

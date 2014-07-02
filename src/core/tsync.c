@@ -90,12 +90,10 @@ tsync_free(struct tsync *ts)
  * Expire the tsync record.
  */
 static void
-tsync_expire(cqueue_t *unused_cq, void *obj)
+tsync_expire(cqueue_t *cq, void *obj)
 {
 	struct tsync *ts = obj;
-	struct gnutella_node *n;
-
-	(void) unused_cq;
+	gnutella_node_t *n;
 
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
@@ -104,7 +102,7 @@ tsync_expire(cqueue_t *unused_cq, void *obj)
 		g_debug("TSYNC expiring time %d.%d",
 			(int) ts->sent.tv_sec, (int) ts->sent.tv_usec);
 
-	ts->expire_ev = NULL;
+	cq_zero(cq, &ts->expire_ev);
 	hevset_remove(tsync_by_time, &ts->sent);
 
 	/*
@@ -128,7 +126,7 @@ tsync_expire(cqueue_t *unused_cq, void *obj)
  * we're sending the time synchronization request.
  */
 void
-tsync_send(struct gnutella_node *n, const struct nid *node_id)
+tsync_send(gnutella_node_t *n, const struct nid *node_id)
 {
 	struct tsync *ts;
 
@@ -210,7 +208,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
  * @param got is the timestamp at which we received the request
  */
 void
-tsync_got_request(struct gnutella_node *n, tm_t *got)
+tsync_got_request(gnutella_node_t *n, tm_t *got)
 {
 	vmsg_send_time_sync_reply(n, GNET_PROPERTY(ntp_detected), got);
 }
@@ -219,7 +217,7 @@ tsync_got_request(struct gnutella_node *n, tm_t *got)
  * Got a reply to our initial "Time Sync" request.
  */
 void
-tsync_got_reply(struct gnutella_node *n,
+tsync_got_reply(gnutella_node_t *n,
 	tm_t *sent, tm_t *received, tm_t *replied, tm_t *got, bool ntp)
 {
 	struct tsync *ts;
@@ -261,7 +259,7 @@ tsync_got_reply(struct gnutella_node *n,
 	} else {
 		tm_t offset;
 		double clock_offset;
-		struct gnutella_node *cn;
+		gnutella_node_t *cn;
 
 		g_assert(ts);
 		g_assert(ts->magic == TSYNC_MAGIC);

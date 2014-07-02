@@ -68,9 +68,7 @@ typedef struct GMemVTable {
 
 void gm_mem_set_safe_vtable(void);
 
-bool gm_slist_is_looping(const GSList *slist);
 GSList *gm_slist_insert_after(GSList *list, GSList *lnk, void *data);
-
 GList *gm_list_insert_after(GList *list, GList *lnk, void *data);
 
 #ifdef USE_GLIB1
@@ -168,7 +166,8 @@ void gm_slist_free_null(GSList **sl_ptr);
 void gm_list_free_null(GList **l_ptr);
 void gm_hash_table_destroy_null(GHashTable **h_ptr);
 
-size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
+size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args)
+	G_GNUC_PRINTF(3, 0);
 size_t gm_snprintf(char *str, size_t n,
 	char const *fmt, ...) G_GNUC_PRINTF(3, 4);
 size_t gm_snprintf_unchecked(char *dst, size_t size,
@@ -178,6 +177,9 @@ void gm_savemain(int argc, char **argv, char **env);
 int gm_dupmain(const char ***argv_ptr, const char ***env_ptr);
 const char *gm_getproctitle(void);
 void gm_setproctitle(const char *title);
+
+struct pslist *gm_slist_to_pslist(const GSList *sl);
+GSList *gm_pslist_to_slist(const struct pslist *sl);
 
 static inline bool
 gm_hash_table_contains(GHashTable *ht, const void *key)

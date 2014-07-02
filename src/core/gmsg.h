@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2014 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Gnutella Messages.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2014
  */
 
 #ifndef _core_gmsg_h_
@@ -112,7 +112,9 @@ pmsg_t *gmsg_split_to_pmsg(const void *head, const void *data,
 pmsg_t * gmsg_split_to_pmsg_extend(const void *head, const void *data,
 			uint32 size, pmsg_free_t free_cb, void *arg);
 
-void gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb);
+struct pslist;
+
+void gmsg_mb_sendto_all(const struct pslist *sl, pmsg_t *mb);
 void gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb);
 void gmsg_mb_routeto_one(const struct gnutella_node *from,
 	const struct gnutella_node *to, pmsg_t *mb);
@@ -122,8 +124,8 @@ void gmsg_ctrl_sendto_one(struct gnutella_node *n,
 		const void *msg, uint32 size);
 void gmsg_split_sendto_one(struct gnutella_node *n,
 		const void *head, const void *data, uint32 size);
-void gmsg_sendto_all(const GSList *l, const void *msg, uint32 size);
-void gmsg_split_routeto_all(const GSList *l,
+void gmsg_sendto_all(const struct pslist *l, const void *msg, uint32 size);
+void gmsg_split_routeto_all(const struct pslist *l,
 		const struct gnutella_node *from,
 		const void *head, const void *data, uint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
@@ -131,7 +133,8 @@ void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 bool gmsg_can_drop(const void *pdu, int size);
 bool gmsg_is_oob_query(const void *msg);
 bool gmsg_split_is_oob_query(const void *head, const void *data);
-int gmsg_cmp(const void *pdu1, const void *pdu2, bool pdu2_complete);
+int gmsg_cmp(const void *pdu1, const void *pdu2);
+int gmsg_headcmp(const void *pdu1, const void *pdu2);
 const char *gmsg_infostr(const void *msg);
 const char *gmsg_node_infostr(const struct gnutella_node *n);
 char *gmsg_infostr_full(const void *msg, size_t msg_len);
@@ -140,22 +143,25 @@ char *gmsg_infostr_full_split(const void *head,
 size_t gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 	size_t data_len, char *buf, size_t buf_size);
 
+iovec_t *gmsg_mq_templates(bool initial, size_t *vcnt);
+
 void gmsg_install_presend(pmsg_t *mb);
 
 void gmsg_log_bad(const struct gnutella_node *n,
 	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_dropped_pmsg(const pmsg_t *msg,
 	const char *reason, ...) G_GNUC_PRINTF(2, 3);
+void gmsg_log_dropped(const struct gnutella_node *n,
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_split_dropped(
 	const void *head, const void *data, size_t data_len,
 	const char *reason, ...) G_GNUC_PRINTF(4, 5);
-void gmsg_log_split_duplicate(
-	const void *head, const void *data, size_t data_len,
-	const char *reason, ...) G_GNUC_PRINTF(4, 5);
+void gmsg_log_duplicate(const struct gnutella_node *n,
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 
 void gmsg_search_sendto_one(struct gnutella_node *n, gnet_search_t sh,
 	const void *msg, uint32 size);
-void gmsg_search_sendto_all(const GSList *l, gnet_search_t sh,
+void gmsg_search_sendto_all(const struct pslist *l, gnet_search_t sh,
 	const void *msg, uint32 size);
 
 #endif	/* _core_gmsg_h_ */

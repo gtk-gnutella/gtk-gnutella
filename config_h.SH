@@ -56,12 +56,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_eunice VMS_SYSTEM		/**/
 #$d_linux LINUX_SYSTEM		/**/
 
-/* MEM_ALIGNBYTES:
- *	This symbol contains the number of bytes required to align a
- *	double. Usual values are 2, 4 and 8.
- */
-#define MEM_ALIGNBYTES $alignbytes	/**/
-
 /* ARCHLIB_EXP:
  *	This symbol contains the ~name expanded version of ARCHLIB, to be used
  *	in programs that are not prepared to deal with ~ expansion at run-time.
@@ -203,6 +197,20 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	set a memory block to 0.
  */
 #$d_bzero HAS_BZERO	/**/
+
+/* HAS_CLOCK_GETRES:
+ *	This symbol, if defined, indicates that the clock_getres() system call is
+ *	available to fetch the granularity of available clock (CLOCK_REALTIME is
+ *	a valid clock when the symbol is defined).
+ */
+#$d_clock_getres HAS_CLOCK_GETRES	/**/
+
+/* HAS_CLOCK_GETTIME:
+ *	This symbol, if defined, indicates that the clock_gettime() system call is
+ *	available to fetch the clock (CLOCK_REALTIME is a valid clock when the
+ *	symbol is defined).
+ */
+#$d_clock_gettime HAS_CLOCK_GETTIME	/**/
 
 /* HAS_CLOSEFROM:
  *	This symbol is defined when closefrom() can be used.
@@ -522,6 +530,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_preadv HAS_PREADV		/**/
 
+/* HAS_PTHREAD_ATTR_SETSTACK:
+ *	This symbol is defined when pthread_attr_setstack() can be used to set
+ *	the thread stack.  Otherwise, use obsoleted pthread_attr_setstackaddr().
+ */
+#$d_ptattr_setstack HAS_PTHREAD_ATTR_SETSTACK
+
 /* HAS_PWRITE:
  *	This symbol, if defined, indicates that the pwrite routine is
  *	available to perform writes on a file descriptor at a given offset.
@@ -581,6 +595,29 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_select HAS_SELECT	/**/
 
+/* HAS_SEMCTL:
+ *	This symbol, if defined, indicates that the semctl() routine is
+ *	available to perform semaphore control operations.
+ */
+#$d_semctl HAS_SEMCTL	/**/
+
+/* HAS_SEMGET:
+ *	This symbol, if defined, indicates that the semget() routine is
+ *	available to get a set of semaphores.
+ */
+#$d_semget HAS_SEMGET	/**/
+
+/* HAS_SEMOP:
+ *	This symbol, if defined, indicates that the semop() routine is
+ *	available to execute semaphore operations.
+ */
+/* HAS_SEMTIMEDOP:
+ *	This symbol, if defined, indicates that the semtimedop() routine is
+ *	available to execute semaphore operations with a timeout.
+ */
+#$d_semop HAS_SEMOP		/**/
+#$d_semtimedop HAS_SEMTIMEDOP		/**/
+
 /* HAS_SENDFILE:
  *	This symbol, if defined, indicates that the sendfile routine is
  *	available.
@@ -604,6 +641,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	is available.
  */
 #$d_sigaction HAS_SIGACTION	/**/
+
+/* HAS_SIGALTSTACK:
+ *	This symbol, if defined, indicates that the sigaltstack() routine
+ *	is available to define an alternate signal stack.
+ */
+#$d_sigaltstack HAS_SIGALTSTACK	/**/
 
 /* HAS_SIGPROCMASK:
  *	This symbol, if defined, indicates that the sigprocmask() routine is
@@ -651,6 +694,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	bound to privileged ports.
  */
 #$d_socker_get HAS_SOCKER_GET
+
+/* HAS_SOCKETPAIR:
+ *	This symbol, if defined, indicates that the BSD socketpair() call is
+ *	supported.
+ */
+#$d_sockpair HAS_SOCKETPAIR	/**/
 
 /* HAS_STATFS:
  *	This symbol, if defined, indicates that the Linux statfs() system call
@@ -942,6 +991,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_sysfile I_SYS_FILE		/**/
 
+/* I_SYS_IPC:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/ipc.h> to get the defines for SysV IPCs.
+ */
+#$i_sysipc I_SYS_IPC		/**/
+
 /* I_SYS_MMAN:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/mman.h>.
@@ -979,6 +1034,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/select.h> in order to get definition of struct timeval.
  */
 #$i_sysselct I_SYS_SELECT	/**/
+
+/* I_SYS_SEM:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/sem.h> to use SysV semaphores.
+ */
+#$i_syssem I_SYS_SEM		/**/
 
 /* I_SYS_SENDFILE:
  *	This symbol, if defined, indicates to the C program that it should
@@ -1121,11 +1182,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define LOCALE_EXP "$localeexp"
 
-/* USE_MY_MALLOC:
- *	This symbol, if defined, indicates that we're using our own malloc.
- */
-#$d_mymalloc USE_MY_MALLOC		/**/
-
 /* VAL_O_NONBLOCK:
  *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on
  *	non-blocking I/O for the file descriptor. Note that there is no way
@@ -1220,6 +1276,17 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define void int		/* is void to be avoided? */
 #define M_VOID			/* Xenix strikes again */
 #endif
+
+/* MEM_ALIGNBYTES:
+ *	This symbol contains the number of bytes required to align a
+ *	double. Usual values are 2, 4 and 8.
+ */
+#define MEM_ALIGNBYTES $alignbytes	/**/
+
+/* USE_MY_MALLOC:
+ *	This symbol, if defined, indicates that we're using our own malloc.
+ */
+#$d_mymalloc USE_MY_MALLOC		/**/
 
 /* CAN_PROTOTYPE:
  *	If defined, this macro indicates that the C compiler can handle

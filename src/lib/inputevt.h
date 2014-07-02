@@ -47,11 +47,13 @@ typedef enum {
 	INPUT_EVENT_W			= 1 << 1,	/* poll for Write events */
 	INPUT_EVENT_EXCEPTION	= 1 << 2,	/* poll for exceptions */
 
-	INPUT_EVENT_RX = ((unsigned) INPUT_EVENT_R | (uint) INPUT_EVENT_EXCEPTION),
-	INPUT_EVENT_WX = ((unsigned) INPUT_EVENT_W | (uint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_NONE        = 0,
+
+	INPUT_EVENT_RX  = ((uint) INPUT_EVENT_R  | (uint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_WX  = ((uint) INPUT_EVENT_W  | (uint) INPUT_EVENT_EXCEPTION),
 	
-	INPUT_EVENT_RW = ((unsigned) INPUT_EVENT_R | (uint) INPUT_EVENT_W),
-	INPUT_EVENT_RWX = ((unsigned) INPUT_EVENT_RW | (uint) INPUT_EVENT_EXCEPTION)
+	INPUT_EVENT_RW  = ((uint) INPUT_EVENT_R  | (uint) INPUT_EVENT_W),
+	INPUT_EVENT_RWX = ((uint) INPUT_EVENT_RW | (uint) INPUT_EVENT_EXCEPTION)
 } inputevt_cond_t;
 
 /**
@@ -65,13 +67,14 @@ typedef void (*inputevt_handler_t) (
 
 /*
  * Module initialization and cleanup functions.
- * These don't do anything and are not called (yet).
  */
+
 void inputevt_init(int use_poll);
 void inputevt_close(void);
 void inputevt_dispatch(void);
 
 void inputevt_set_debug(unsigned level);
+unsigned inputevt_thread_id(void);
 
 /**
  * This emulates the GDK input interface.

@@ -178,7 +178,7 @@ static ipset_t dump_tx_to_addrs = IPSET_INIT;
  * Fill dump header with node address information.
  */
 static void
-dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
+dump_header_set(struct dump_header *dh, const gnutella_node_t *node)
 {
 	ZERO(dh);
 
@@ -316,7 +316,7 @@ dump_flush(struct dump *dump)
  * Dump packet received from node.
  */
 static void
-dump_packet_from(struct dump *dump, const struct gnutella_node *node)
+dump_packet_from(struct dump *dump, const gnutella_node_t *node)
 {
 	struct dump_header dh;	
 
@@ -341,7 +341,7 @@ dump_packet_from(struct dump *dump, const struct gnutella_node *node)
  */
 static void
 dump_packet_from_to(struct dump *dump,
-	const struct gnutella_node *from, const struct gnutella_node *to,
+	const gnutella_node_t *from, const gnutella_node_t *to,
 	const pmsg_t *mb)
 {
 	struct dump_header dh_to;	
@@ -365,7 +365,7 @@ dump_packet_from_to(struct dump *dump,
 		return;
 
 	if (NULL == from) {
-		struct gnutella_node local;
+		gnutella_node_t local;
 		local.peermode = NODE_IS_UDP(to) ? NODE_P_UDP : NODE_P_NORMAL;
 		local.addr = listen_addr();
 		local.port = GNET_PROPERTY(listen_port);
@@ -393,7 +393,7 @@ dump_packet_from_to(struct dump *dump,
  * Dump packet received from node.
  */
 void
-dump_rx_packet(const struct gnutella_node *node)
+dump_rx_packet(const gnutella_node_t *node)
 {
 	if (GNET_PROPERTY(dump_received_gnutella_packets)) {
 		dump_packet_from(&dump_rx, node);
@@ -408,7 +408,7 @@ dump_rx_packet(const struct gnutella_node *node)
  */
 void
 dump_tx_tcp_packet(
-	const struct gnutella_node *from, const struct gnutella_node *to,
+	const gnutella_node_t *from, const gnutella_node_t *to,
 	const pmsg_t *mb)
 {
 	if (GNET_PROPERTY(dump_transmitted_gnutella_packets)) {
@@ -429,7 +429,7 @@ void
 dump_tx_udp_packet(const gnet_host_t *to, const pmsg_t *mb)
 {
 	if (GNET_PROPERTY(dump_transmitted_gnutella_packets)) {
-		struct gnutella_node udp;
+		gnutella_node_t udp;
 
 		g_assert(to != NULL);
 		g_assert(mb != NULL);

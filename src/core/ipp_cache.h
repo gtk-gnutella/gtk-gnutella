@@ -39,7 +39,7 @@
 
 #include "common.h"
 
-struct ipp_cache;
+#include "lib/host_addr.h"
 
 typedef struct ipp_cache ipp_cache_t;
 

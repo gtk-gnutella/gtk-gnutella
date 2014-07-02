@@ -45,7 +45,6 @@
 
 #define TEA_ROUNDS		32
 #define TEA_CONSTANT	0x9e3779b9		/* A key schedule constant */
-#define TEA_BLOCK_SIZE	8
 
 /**
  * A TEA cipher block is 64-bit wide.
@@ -101,10 +100,16 @@ t_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 	k2 = peek_le32(&key->v[8]);
 	k3 = peek_le32(&key->v[12]);
 
-    for (i = 0; i < TEA_ROUNDS; i++) {
-        sum += delta;
-        v0 += ((v1 << 4) + k0) ^ (v1 + sum) ^ ((v1 >> 5) + k1);
-        v1 += ((v0 << 4) + k2) ^ (v0 + sum) ^ ((v0 >> 5) + k3);
+#define TEA_ROUND_ESTEP											\
+	sum += delta;												\
+	v0 += ((v1 << 4) + k0) ^ (v1 + sum) ^ ((v1 >> 5) + k1);		\
+	v1 += ((v0 << 4) + k2) ^ (v0 + sum) ^ ((v0 >> 5) + k3);
+
+    for (i = 0; i < TEA_ROUNDS / 4; i++) {
+		TEA_ROUND_ESTEP;
+		TEA_ROUND_ESTEP;
+		TEA_ROUND_ESTEP;
+		TEA_ROUND_ESTEP;
     }
 
 	poke_le32(&res->v[0], v0);
@@ -134,10 +139,16 @@ t_decrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 	k2 = peek_le32(&key->v[8]);
 	k3 = peek_le32(&key->v[12]);
 
-    for (i = 0; i < TEA_ROUNDS; i++) {
-        v1 -= ((v0 << 4) + k2) ^ (v0 + sum) ^ ((v0 >> 5) + k3);
-        v0 -= ((v1 << 4) + k0) ^ (v1 + sum) ^ ((v1 >> 5) + k1);
-        sum -= delta;
+#define TEA_ROUND_DSTEP											\
+	v1 -= ((v0 << 4) + k2) ^ (v0 + sum) ^ ((v0 >> 5) + k3);		\
+	v0 -= ((v1 << 4) + k0) ^ (v1 + sum) ^ ((v1 >> 5) + k1);		\
+	sum -= delta;
+
+    for (i = 0; i < TEA_ROUNDS / 4; i++) {
+		TEA_ROUND_DSTEP;
+		TEA_ROUND_DSTEP;
+		TEA_ROUND_DSTEP;
+		TEA_ROUND_DSTEP;
     }
 
 	poke_le32(&res->v[0], v0);

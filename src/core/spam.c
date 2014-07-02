@@ -47,12 +47,13 @@
 #include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
+#include "lib/tokenizer.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
@@ -113,7 +114,7 @@ static const char spam_what[] = "Spam database";
 /****** END IDEAS ONLY ******/
 
 struct spam_lut {
-	GSList *sl_names;	/* List of g_malloc()ed regex_t items */
+	pslist_t *sl_names;	/* List of struct namesize_item */
 };
 
 static struct spam_lut spam_lut;
@@ -129,13 +130,10 @@ typedef enum {
 	NUM_SPAM_TAGS
 } spam_tag_t;
 
-static const struct spam_tag {
-	spam_tag_t	tag;
-	const char *str;
-} spam_tag_map[] = {
+static const tokenizer_t spam_tags[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define SPAM_TAG(x) { CAT2(SPAM_TAG_,x), #x }
+#define SPAM_TAG(x) { #x, CAT2(SPAM_TAG_,x) }
 	SPAM_TAG(ADDED),
 	SPAM_TAG(END),
 	SPAM_TAG(NAME),
@@ -146,25 +144,10 @@ static const struct spam_tag {
 #undef SPAM_TAG
 };
 
-
-static spam_tag_t
+static inline spam_tag_t
 spam_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(spam_tag_map) == NUM_SPAM_TAGS - 1U);
-
-#define GET_ITEM(i) (spam_tag_map[(i)].str)
-#define FOUND(i) G_STMT_START { \
-	return spam_tag_map[(i)].tag; \
-	/* NOTREACHED */ \
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(spam_tag_map), strcmp,
-		GET_ITEM, FOUND);
-
-#undef FOUND
-#undef GET_ITEM
-	return SPAM_TAG_UNKNOWN;
+	return TOKENIZE(s, spam_tags);
 }
 
 struct namesize_item {
@@ -189,14 +172,14 @@ spam_add_name_and_size(const char *name,
 		char buf[1024];
 
 		regerror(error, &item->pattern, buf, sizeof buf);
-		g_warning("spam_add_name_and_size(): regcomp() failed: %s", buf);
+		g_warning("%s(): regcomp() failed: %s", G_STRFUNC, buf);
 		regfree(&item->pattern);
 		WFREE(item);
 		return TRUE;
 	} else {
 		item->min_size = min_size;
 		item->max_size = max_size;
-		spam_lut.sl_names = g_slist_prepend(spam_lut.sl_names, item);
+		spam_lut.sl_names = pslist_prepend(spam_lut.sl_names, item);
 		return FALSE;
 	}
 }
@@ -503,6 +486,8 @@ spam_retrieve(void)
 void
 spam_init(void)
 {
+	TOKENIZE_CHECK_SORTED(spam_tags);
+
 	spam_sha1_init();
 	spam_retrieve();
 }
@@ -513,16 +498,16 @@ spam_init(void)
 void
 spam_close(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
-	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(spam_lut.sl_names, sl) {
 		struct namesize_item *item = sl->data;
 
 		g_assert(item);
 		regfree(&item->pattern);
 		WFREE(item);
 	}
-	gm_slist_free_null(&spam_lut.sl_names);
+	pslist_free_null(&spam_lut.sl_names);
 	spam_sha1_close();
 }
 
@@ -535,11 +520,11 @@ spam_close(void)
 bool
 spam_check_filename_size(const char *filename, filesize_t size)
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	g_return_val_if_fail(filename, FALSE);
 
-	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(spam_lut.sl_names, sl) {
 		const struct namesize_item *item = sl->data;
 
 		g_assert(item);

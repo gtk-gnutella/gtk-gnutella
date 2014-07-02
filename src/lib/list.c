@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2003, Christian Biere
+ * Copyright (c) 2003 Christian Biere
+ * Copyright (c) 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,24 +26,37 @@
  * @ingroup lib
  * @file
  *
- * Handling of lists on a slightly higher level than GList.
+ * Handling of lists on a slightly higher level than plist_t.
  *
  * The purpose of this list functions is providing efficient appending,
  * prepending of items to a list structure, fast lookup of the list
  * length, fast access to the list head and tail. Additionally, some basic
  * checks prevent modification of the list whilst traversing it.
  *
+ * Each linked list object can be made thread-safe, optionally, so that
+ * concurrent access to it be possible.
+ *
  * @author Christian Biere
- * @date 2006
+ * @date 2003
+ * @author Raphael Manfredi
+ * @date 2013
  */
 
 #include "common.h"
 
 #include "list.h"
+
+#include "log.h"
 #include "misc.h"
-#include "glib-missing.h"
+#include "mutex.h"
+#include "plist.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the tail header included */
+
+#if 0
+#define USE_LIST_REGRESSION
+#endif
 
 typedef enum {
 	LIST_MAGIC = 0x134747a9U
@@ -55,8 +69,9 @@ typedef enum {
 struct list {
 	list_magic_t magic;
 	int refcount;
-	GList *head;
-	GList *tail;
+	plist_t *head;
+	plist_t *tail;
+	mutex_t *lock;
 	int length;
 	uint stamp;
 };
@@ -64,14 +79,45 @@ struct list {
 struct list_iter {
 	list_iter_magic_t magic;
 	list_t *list;
-	GList *prev, *next;
+	plist_t *prev, *next;
 	void *data;
 	uint stamp;
 };
 
-#if 0
-#define USE_LIST_REGRESSION 1
-#endif
+/*
+ * Thread-safe synchronization support.
+ */
+
+#define list_synchronize(l) G_STMT_START {		\
+	if G_UNLIKELY((l)->lock != NULL) { 			\
+		list_t *wl = deconstify_pointer(l);	\
+		mutex_lock(wl->lock);					\
+	}											\
+} G_STMT_END
+
+#define list_unsynchronize(l) G_STMT_START {	\
+	if G_UNLIKELY((l)->lock != NULL) { 			\
+		list_t *wl = deconstify_pointer(l);	\
+		mutex_unlock(wl->lock);					\
+	}											\
+} G_STMT_END
+
+#define list_return(l, v) G_STMT_START {		\
+	if G_UNLIKELY((l)->lock != NULL) 			\
+		mutex_unlock((l)->lock);				\
+	return v;									\
+} G_STMT_END
+
+#define list_return_void(l) G_STMT_START {		\
+	if G_UNLIKELY((l)->lock != NULL) 			\
+		mutex_unlock((l)->lock);				\
+	return;										\
+} G_STMT_END
+
+#define assert_list_locked(l) G_STMT_START {	\
+	if G_UNLIKELY((l)->lock != NULL) 			\
+		assert_mutex_is_owned((l)->lock);		\
+} G_STMT_END
 
 #define equiv(p,q)	(!(p) == !(q))
 
@@ -79,10 +125,12 @@ struct list_iter {
 static inline void
 list_regression(const list_t *list)
 {
-	g_assert(g_list_first(list->head) == list->head);
-	g_assert(g_list_first(list->tail) == list->head);
-	g_assert(g_list_last(list->head) == list->tail);
-	g_assert(g_list_length(list->head) == (uint) list->length);
+	list_synchronize(list);
+	g_assert(plist_first(list->head) == list->head);
+	g_assert(plist_first(list->tail) == list->head);
+	g_assert(plist_last(list->head) == list->tail);
+	g_assert(plist_length(list->head) == (uint) list->length);
+	list_unsynchronize(list);
 }
 #else
 #define list_regression(list)
@@ -95,7 +143,9 @@ list_check(const list_t *list)
 	g_assert(LIST_MAGIC == list->magic);
 	g_assert(list->refcount > 0);
 	g_assert(list->length >= 0);
-	g_assert(equiv(list->length == 0, !list->head && !list->tail));
+	/* Only check the "equiv" when list is not configured for concurrency */
+	g_assert(list->lock != NULL ||
+		equiv(list->length == 0, !list->head && !list->tail));
 
 	list_regression(list);
 }
@@ -144,11 +194,8 @@ list_new(void)
 {
 	list_t *list;
 		
-	WALLOC(list);
-	list->head = NULL;
-	list->tail = NULL;
+	WALLOC0(list);
 	list->refcount = 1;
-	list->length = 0;
 	list->stamp = LIST_MAGIC + 1;
 	list->magic = LIST_MAGIC;
 	list_regression(list);
@@ -168,22 +215,75 @@ list_free(list_t **list_ptr)
 	
 		list = *list_ptr;
 		g_assert(LIST_MAGIC == list->magic);
+
+		list_synchronize(list);
+
 		g_assert(equiv(list->length == 0, list->tail == NULL));
 		list_regression(list);
 
 		if (--list->refcount != 0) {
-			g_critical("%s(): list is still referenced! "
+			s_critical("%s(): list is still referenced! "
 				"(list=%p, list->refcount=%d)",
 				G_STRFUNC, cast_to_constpointer(list), list->refcount);
 		}
 
-		gm_list_free_null(&list->head);
+		plist_free_null(&list->head);
 		list->tail = NULL;
 
 		list->magic = 0;
 		WFREE(list);
 		*list_ptr = NULL;
 	}
+}
+
+/**
+ * Mark newly created list as being thread-safe.
+ *
+ * This will make all external operations on the list thread-safe.
+ */
+void
+list_thread_safe(list_t *l)
+{
+	list_check(l);
+	g_assert(NULL == l->lock);
+
+	WALLOC0(l->lock);
+	mutex_init(l->lock);
+}
+
+/**
+ * Lock the list to allow a sequence of operations to be atomically
+ * conducted.
+ *
+ * It is possible to lock the list several times as long as each locking
+ * is paired with a corresponding unlocking in the execution flow.
+ *
+ * The list must have been marked thread-safe already.
+ */
+void
+list_lock(list_t *l)
+{
+	list_check(l);
+	g_assert_log(l->lock != NULL,
+		"%s(): list %p not marked thread-safe", G_STRFUNC, l);
+
+	mutex_lock(l->lock);
+}
+
+/*
+ * Release lock on list.
+ *
+ * The list must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+list_unlock(list_t *l)
+{
+	list_check(l);
+	g_assert_log(l->lock != NULL,
+		"%s(): list %p not marked thread-safe", G_STRFUNC, l);
+
+	mutex_unlock(l->lock);
 }
 
 /**
@@ -195,8 +295,10 @@ list_append(list_t *list, const void *key)
 	list_check(list);
 	g_assert(1 == list->refcount);
 
-	list->tail = g_list_append(list->tail, deconstify_pointer(key));
-	list->tail = g_list_last(list->tail);
+	list_synchronize(list);
+
+	list->tail = plist_append(list->tail, deconstify_pointer(key));
+	list->tail = plist_last(list->tail);
 	if (!list->head) {
 		list->head = list->tail;
 	}
@@ -205,6 +307,7 @@ list_append(list_t *list, const void *key)
 	list->stamp++;
 
 	list_regression(list);
+	list_return_void(list);
 }
 
 /**
@@ -216,7 +319,9 @@ list_prepend(list_t *list, const void *key)
 	list_check(list);
 	g_assert(1 == list->refcount);
 
-	list->head = g_list_prepend(list->head, deconstify_pointer(key));
+	list_synchronize(list);
+
+	list->head = plist_prepend(list->head, deconstify_pointer(key));
 	if (!list->tail) {
 		list->tail = list->head;
 	}
@@ -225,22 +330,25 @@ list_prepend(list_t *list, const void *key)
 	list->stamp++;
 
 	list_regression(list);
+	list_return_void(list);
 }
 
 /**
  * Insert `key' into the list.
  */
 void
-list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
+list_insert_sorted(list_t *list, const void *key, cmp_fn_t func)
 {
 	list_check(list);
-	g_assert(1 == list->refcount);
 	g_assert(func);
 
-	list->head = g_list_insert_sorted(list->head,
-		deconstify_pointer(key), func);
+	list_synchronize(list);
+
+	g_assert(1 == list->refcount);
+
+	list->head = plist_insert_sorted(list->head, deconstify_pointer(key), func);
 	if (list->tail) {
-		list->tail = g_list_last(list->tail);
+		list->tail = plist_last(list->tail);
 	} else {
 		list->tail = list->head;
 	}
@@ -249,6 +357,7 @@ list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
 	list->stamp++;
 
 	list_regression(list);
+	list_return_void(list);
 }
 
 /**
@@ -258,32 +367,33 @@ list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
 bool
 list_remove(list_t *list, const void *key)
 {
-	GList *item;
+	plist_t *item;
+	bool found;
 
 	list_check(list);
 
-	item = g_list_find(list->head, deconstify_pointer(key));
+	list_synchronize(list);
+
+	item = plist_find(list->head, deconstify_pointer(key));
 	if (item) {
 
 		if (item == list->head) {
-			list->head = g_list_next(list->head);
+			list->head = plist_next(list->head);
 		}
 		if (item == list->tail) {
-			list->tail = g_list_previous(list->tail);
+			list->tail = plist_prev(list->tail);
 		}
-		/* @note: Return value is only assigned to "item" because
-	 	 *        g_slist_delete_link is incorrectly tagged to
-	 	 *        cause a GCC compiler warning otherwise.
-	 	 */
-		item = g_list_delete_link(item, item);
+		plist_delete_link(item, item);
 
 		list->length--;
 		list->stamp++;
 
 		list_regression(list);
-		return TRUE;
+		found = TRUE;
+	} else {
+		found = FALSE;
 	}
-	return FALSE;
+	list_return(list, found);
 }
 
 /**
@@ -294,22 +404,25 @@ list_remove(list_t *list, const void *key)
 void *
 list_shift(list_t *list)
 {
-	GList *item;
+	plist_t *item;
 	void *key;
-	bool found;
 
 	list_check(list);
 
+	list_synchronize(list);
+
 	item = list->head;
-	if (NULL == item)
-		return NULL;
+	if (NULL == item) {
+		key = NULL;
+	} else {
+		bool found;
 
-	key = item->data;
-	found = list_remove(list, key);
+		key = item->data;
+		found = list_remove(list, key);
+		g_assert(found);
+	}
 
-	g_assert(found);
-
-	return key;
+	list_return(list, key);
 }
 
 /**
@@ -318,9 +431,13 @@ list_shift(list_t *list)
 void *
 list_tail(const list_t *list)
 {
+	void *data;
+
 	list_check(list);
 
-	return list->tail ? list->tail->data : NULL;
+	list_synchronize(list);
+	data = list->tail ? list->tail->data : NULL;
+	list_return(list, data);
 }
 
 /**
@@ -329,35 +446,57 @@ list_tail(const list_t *list)
 void *
 list_head(const list_t *list)
 {
+	void *data;
+
 	list_check(list);
 
-	return list->head ? list->head->data : NULL;
+	list_synchronize(list);
+	data = list->head ? list->head->data : NULL;
+	list_return(list, data);
 }
 
 /**
  * Move entry to the head of the list.
+ *
+ * @return whether key was present in the list.
  */
 bool
 list_moveto_head(list_t *list, const void *key)
 {
+	bool found;
+
+	list_synchronize(list);
+
 	if (list_remove(list, key)) {
 		list_prepend(list, key);
-		return TRUE;
+		found = TRUE;
+	} else {
+		found = FALSE;
 	}
-	return FALSE;
+
+	list_return(list, found);
 }
 
 /**
  * Move entry to the tail of the list.
+ *
+ * @return whether key was present in the list.
  */
 bool
 list_moveto_tail(list_t *list, const void *key)
 {
+	bool found;
+
+	list_synchronize(list);
+
 	if (list_remove(list, key)) {
 		list_append(list, key);
-		return TRUE;
+		found = TRUE;
+	} else {
+		found = FALSE;
 	}
-	return FALSE;
+
+	list_return(list, found);
 }
 
 /**
@@ -366,9 +505,13 @@ list_moveto_tail(list_t *list, const void *key)
 uint
 list_length(const list_t *list)
 {
+	uint length;
+
 	list_check(list);
 
-	return list->length;
+	list_synchronize(list);
+	length = list->length;
+	list_return(list, length);
 }
 
 /**
@@ -387,12 +530,16 @@ list_iter_before_head(list_t *list)
 		iter->magic = LIST_ITER_MAGIC;
 		iter->list = list;
 
-		iter->next = list->head;
 		iter->prev = NULL;
 		iter->data = NULL;
 
+		list_synchronize(list);
+
+		iter->next = list->head;
 		iter->stamp = list->stamp;
 		list->refcount++;
+
+		list_unsynchronize(list);
 	} else {
 		iter = NULL;
 	}
@@ -417,11 +564,15 @@ list_iter_after_tail(list_t *list)
 		iter->list = list;
 
 		iter->next = NULL;
-		iter->prev = list->tail;
 		iter->data = NULL;
 
+		list_synchronize(list);
+
+		iter->prev = list->tail;
 		iter->stamp = list->stamp;
 		list->refcount++;
+
+		list_unsynchronize(list);
 	} else {
 		iter = NULL;
 	}
@@ -436,19 +587,25 @@ list_iter_after_tail(list_t *list)
 void *
 list_iter_next(list_iter_t *iter)
 {
-	GList *next;
+	void *data;
+	plist_t *next;
 
 	list_iter_check(iter);
 
 	next = iter->next;
 	if (next) {
-		iter->data = next->data;
-		iter->prev = g_list_previous(next);
-		iter->next = g_list_next(next);
-		return iter->data;
+		list_t *list = iter->list;
+
+		data = iter->data = next->data;
+		list_synchronize(list);
+		iter->prev = plist_prev(next);
+		iter->next = plist_next(next);
+		list_unsynchronize(list);
 	} else {
-		return NULL;
+		data = NULL;
 	}
+
+	return data;
 }
 
 /**
@@ -472,19 +629,25 @@ list_iter_has_next(const list_iter_t *iter)
 void *
 list_iter_previous(list_iter_t *iter)
 {
-	GList *prev;
+	void *data;
+	plist_t *prev;
 
 	list_iter_check(iter);
 
 	prev = iter->prev;
 	if (prev) {
-		iter->data = prev->data;
-		iter->next = g_list_next(prev);
-		iter->prev = g_list_previous(prev);
-		return iter->data;
+		list_t *list = iter->list;
+
+		data = iter->data = prev->data;
+		list_synchronize(list);
+		iter->next = plist_next(prev);
+		iter->prev = plist_prev(prev);
+		list_unsynchronize(list);
 	} else {
-		return NULL;
+		data = NULL;
 	}
+
+	return data;
 }
 
 void *
@@ -519,11 +682,16 @@ list_iter_free(list_iter_t **iter_ptr)
 
 	if (*iter_ptr) {
 		list_iter_t *iter;
+		list_t *list;
 
 		iter = *iter_ptr;
 		list_iter_check(iter);
 
-		iter->list->refcount--;
+		list = iter->list;
+		list_synchronize(list);
+		list->refcount--;
+		list_unsynchronize(list);
+
 		iter->magic = 0;
 
 		WFREE(iter);
@@ -536,22 +704,43 @@ list_iter_free(list_iter_t **iter_ptr)
  * using `func'.
  */
 bool
-list_contains(list_t *list, const void *key, GEqualFunc func, void **orig_key)
+list_contains(const list_t *list, const void *key,
+	eq_fn_t func, void **orig_key)
 {
-	GList *item;
+	plist_t *item;
+	bool found = FALSE;
 
 	list_check(list);
 	g_assert(func);
 
-	for (item = list->head; NULL != item; item = g_list_next(item)) {
+	list_synchronize(list);
+
+	PLIST_FOREACH(list->head, item) {
 		if (func(key, item->data)) {
-			if (orig_key) {
+			if (orig_key != NULL) {
 				*orig_key = item->data;
 			}
-			return TRUE;
+			found = TRUE;
+			break;
 		}
 	}
-	return FALSE;
+
+	list_return(list, found);
+}
+
+/**
+ * Check whether list contains the `key'.
+ */
+bool
+list_contains_identical(const list_t *list, const void *key)
+{
+	bool contains;
+
+	list_check(list);
+
+	list_synchronize(list);
+	contains = NULL != plist_find(list->head, deconstify_pointer(key));
+	list_return(list, contains);
 }
 
 /**
@@ -563,9 +752,12 @@ list_foreach(const list_t *list, GFunc func, void *user_data)
 	list_check(list);
 	g_assert(func);
 
-	g_list_foreach(list->head, func, user_data);
+	list_synchronize(list);
+
+	plist_foreach(list->head, func, user_data);
 
 	list_regression(list);
+	list_return_void(list);
 }
 
 static void
@@ -590,8 +782,12 @@ list_free_all(list_t **list_ptr, list_destroy_cb freecb)
 		list_t *list = *list_ptr;
 
 		list_check(list);
-		G_LIST_FOREACH_WITH_DATA(list->head, list_freecb_wrapper,
+		list_synchronize(list);
+
+		PLIST_FOREACH_CALL_DATA(list->head, list_freecb_wrapper,
 			cast_func_to_pointer(freecb));
+
+		list_unsynchronize(list);
 		list_free(list_ptr);
 	}
 }

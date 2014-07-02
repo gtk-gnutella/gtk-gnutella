@@ -41,31 +41,64 @@
 
 #include "spinlock.h"
 #include "atomic.h"
-#include "compat_sleep_ms.h"
+#include "compat_usleep.h"
+#include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
 #include "thread.h"
-#include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
 
 #define SPINLOCK_LOOP		100		/* Loop iterations before sleeping */
-#define SPINLOCK_DELAY		2		/* Wait 2 ms before looping again */
-#define SPINLOCK_DEAD		5000	/* # of loops before flagging deadlock */
+#define SPINLOCK_DELAY		200		/* Wait 200 us before looping again */
+#define SPINLOCK_DEAD		8192	/* # of loops before flagging deadlock */
+#define SPINLOCK_DEADMASK	(SPINLOCK_DEAD - 1)
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
-static bool spinlock_pass_through;
+int spinlock_pass_through;
+static long spinlock_cpus;
 
 static inline void
-spinlock_account(const spinlock_t *s)
+spinlock_account(const spinlock_t *s, const char *file, unsigned line)
 {
-	thread_lock_got(s, THREAD_LOCK_SPINLOCK);
+	thread_lock_got(s, THREAD_LOCK_SPINLOCK, file, line, NULL);
+}
+
+static inline void
+spinlock_account_swap(const spinlock_t *s, const char *file, unsigned line,
+	const void *plock)
+{
+	thread_lock_got_swap(s, THREAD_LOCK_SPINLOCK, file, line, plock, NULL);
 }
 
 static inline void
 spinunlock_account(const spinlock_t *s)
 {
-	thread_lock_released(s, THREAD_LOCK_SPINLOCK);
+	thread_lock_released(s, THREAD_LOCK_SPINLOCK, NULL);
+}
+
+static inline void ALWAYS_INLINE
+spinlock_set_owner(spinlock_t *s, const char *file, unsigned line)
+{
+	(void) s;
+	(void) file;
+	(void) line;
+#ifdef SPINLOCK_OWNER_DEBUG
+	s->stid = thread_safe_small_id();
+#endif
+#ifdef SPINLOCK_DEBUG
+	s->file = file;
+	s->line = line;
+#endif
+}
+
+static inline void ALWAYS_INLINE
+spinlock_clear_owner(spinlock_t *s)
+{
+	(void) s;
+#ifdef SPINLOCK_OWNER_DEBUG
+	s->stid = -1;
+#endif
 }
 
 static inline void
@@ -91,17 +124,36 @@ spinlock_source_string(enum spinlock_source src)
 /**
  * Enter crash mode: let all spinlocks be grabbed immediately.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 spinlock_crash_mode(void)
 {
-	unsigned count = thread_count();
+	if (!atomic_int_get(&spinlock_pass_through)) {
+		unsigned count;
 
-	if (count > 1) {
-		s_minicrit("disabling locks, now in thread-unsafe mode (%u threads)",
-			count);
+		/*
+		 * We must set ``spinlock_pass_through'' immediately since s_miniwarn()
+		 * could call routines requiring mutexes...
+		 */
+
+		atomic_int_inc(&spinlock_pass_through);
+		count = thread_count();
+
+		if (count != 1) {
+			s_rawwarn("disabling locks, "
+				"now in thread-unsafe mode (%u threads)", count);
+		}
 	}
+}
 
-	spinlock_pass_through = TRUE;
+/**
+ * Enter exit mode: let all spinlocks be grabbed immediately.
+ *
+ * This is the same a crash_mode, only there is no warning emitted.
+ */
+void G_GNUC_COLD
+spinlock_exit_mode(void)
+{
+	atomic_int_inc(&spinlock_pass_through);
 }
 
 /**
@@ -110,17 +162,26 @@ spinlock_crash_mode(void)
  * Don't inline to provide a suitable breakpoint.
  */
 static G_GNUC_COLD NO_INLINE void
-spinlock_deadlock(const volatile void *obj, unsigned count)
+spinlock_deadlock(const volatile void *obj, unsigned count,
+	const char *file, unsigned line)
 {
 	const volatile spinlock_t *s = obj;
 
 	spinlock_check(s);
 
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("spinlock %p already held by %s:%u", obj, s->file, s->line);
+#ifdef SPINLOCK_OWNER_DEBUG
+	s_miniwarn("spinlock %p already %s by %s:%u (thread #%u)",
+		obj, s->lock ? "held" : "freed", s->file, s->line, s->stid);
+#else
+	s_miniwarn("spinlock %p already %s by %s:%u",
+		obj, s->lock ? "held" : "freed", s->file, s->line);
+#endif
 #endif
 
-	s_minicarp("possible spinlock deadlock #%u on %p", count, obj);
+	atomic_mb();
+	s_minicarp("%s spinlock deadlock #%u on %p at %s:%u",
+		s->lock ? "possible" : "improbable", count, obj, file, line);
 }
 
 /**
@@ -129,7 +190,8 @@ spinlock_deadlock(const volatile void *obj, unsigned count)
  * Don't inline to provide a suitable breakpoint.
  */
 static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
-spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
+spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
+	const char *file, unsigned line)
 {
 	const volatile spinlock_t *s = obj;
 	static int deadlocked;
@@ -137,7 +199,9 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
 	if (deadlocked != 0) {
 		if (1 == deadlocked)
 			thread_lock_deadlock(obj);
-		s_minierror("recursive deadlock on spinlock %p", obj);
+		atomic_mb();
+		s_minierror("recursive deadlock on %sspinlock %p at %s:%u",
+			s->lock ? "" : "free ", obj, file, line);
 	}
 
 	deadlocked++;
@@ -146,11 +210,19 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
 	spinlock_check(s);
 
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("spinlock %p still held by %s:%u", obj, s->file, s->line);
+#ifdef SPINLOCK_OWNER_DEBUG
+	s_miniwarn("spinlock %p %s by %s:%u (thread #%u)",
+		obj, s->lock ? "still held" : "already freed",
+		s->file, s->line, s->stid);
+#else
+	s_miniwarn("spinlock %p %s by %s:%u",
+		obj, s->lock ? "still held" : "already freed", s->file, s->line);
+#endif
 #endif
 
 	thread_lock_deadlock(obj);
-	s_error("deadlocked on spinlock %p (after %u secs)", obj, elapsed);
+	s_error("deadlocked on %sspinlock %p (after %u secs) at %s:%u",
+		s->lock ? "" : "free ", obj, elapsed, file, line);
 }
 
 /**
@@ -170,16 +242,20 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
  * @param src_object	the lock object containing the spinlock
  * @param deadlock		callback to invoke when we detect a possible deadlock
  * @param deadlocked	callback to invoke when we decide we deadlocked
+ * @param file			file where lock is being grabbed from
+ * @param line			line where lock is being grabbed from
  */
 void
 spinlock_loop(volatile spinlock_t *s,
-	enum spinlock_source src, const volatile void *src_object,
-	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked)
+	enum spinlock_source src, const void *src_object,
+	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked,
+	const char *file, unsigned line)
 {
-	static long cpus;
 	unsigned i;
-	time_t start = 0;
+	gentime_t start = GENTIME_ZERO;
 	int loops = SPINLOCK_LOOP;
+	const void *element = NULL;
+	time_delta_t d;
 
 	spinlock_check(s);
 
@@ -189,14 +265,17 @@ spinlock_loop(volatile spinlock_t *s,
 	 * afford to conduct more extended checks.
 	 */
 
-	if G_UNLIKELY(0 == cpus)
-		cpus = getcpucount();
+	if G_UNLIKELY(0 == spinlock_cpus)
+		spinlock_cpus = getcpucount();
+
+	thread_lock_contention(SPINLOCK_SRC_MUTEX == src ?
+		THREAD_LOCK_MUTEX : THREAD_LOCK_SPINLOCK);
 
 	/*
 	 * If in "pass-through" mode, we're crashing, so avoid deadlocks.
 	 */
 
-	if G_UNLIKELY(spinlock_pass_through) {
+	if G_UNLIKELY(spinlock_in_crash_mode()) {
 		spinlock_direct(s);
 		return;
 	}
@@ -207,7 +286,7 @@ spinlock_loop(volatile spinlock_t *s,
 	 */
 
 	if (thread_is_single())
-		(*deadlocked)(src_object, 0);
+		(*deadlocked)(src_object, 0, file, line);
 
 	/*
 	 * If the thread already holds the lock object, we're deadlocked.
@@ -217,50 +296,76 @@ spinlock_loop(volatile spinlock_t *s,
 	 */
 
 	if (SPINLOCK_SRC_SPINLOCK == src && thread_lock_holds(src_object))
-		(*deadlocked)(src_object, 0);
+		(*deadlocked)(src_object, 0, file, line);
 
 #ifdef HAS_SCHED_YIELD
-	if (1 == cpus)
+	if (1 == spinlock_cpus)
 		loops /= 10;
 #endif
 
-	for (i = 0; /* empty */; i++) {
+	for (i = 1; /* empty */; i++) {
 		int j;
 
 		for (j = 0; j < loops; j++) {
 			if G_UNLIKELY(SPINLOCK_MAGIC != s->magic) {
-				s_error("spinlock %s whilst waiting on %s %p, at attempt #%u",
+				s_error("spinlock %s whilst waiting on %s %p, "
+					"attempt #%u at %s:%u",
 					SPINLOCK_DESTROYED == s->magic ? "destroyed" : "corrupted",
-					spinlock_source_string(src), src_object, i);
+					spinlock_source_string(src), src_object, i, file, line);
 			}
 
-			if (s->lock) {
+			if G_LIKELY(s->lock) {
 				/* Lock is busy, do nothing as cheaply as possible */
 			} else if (atomic_acquire(&s->lock)) {
 #ifdef SPINLOCK_DEBUG
 				if (i >= SPINLOCK_DEAD) {
-					s_miniinfo("finally grabbed %s %p after %u attempts",
-						spinlock_source_string(src), src_object, i);
+					s_miniinfo("finally grabbed %s %p after %u attempts"
+						" at %s:%u",
+						spinlock_source_string(src), src_object, i, file, line);
 				}
 #endif	/* SPINLOCK_DEBUG */
+				if G_UNLIKELY(element != NULL)
+					thread_lock_waiting_done(element);
 				return;
 			}
-#ifdef HAS_SCHED_YIELD
-			if (1 == cpus)
-				do_sched_yield();		/* See lib/mingw32.h */
-#endif
+			if (1 == spinlock_cpus)
+				thread_yield();
 		}
 
-		if G_UNLIKELY(i != 0 && 0 == i % SPINLOCK_DEAD)
-			(*deadlock)(src_object, i / SPINLOCK_DEAD);
+		/*
+		 * We're about to sleep, hence we were not able to quickly grab the
+		 * lock during our earlier spinning.  We can therefore afford more
+		 * expensive checks now.
+		 *
+		 * Note that gentime_now_exact() will do a thread_check_suspended().
+		 */
 
-		if G_UNLIKELY(0 == start)
-			start = tm_time_exact();
+		if G_UNLIKELY(0 == (i & SPINLOCK_DEADMASK))
+			(*deadlock)(src_object, i / SPINLOCK_DEAD, file, line);
 
-		if (delta_time(tm_time_exact(), start) > SPINLOCK_TIMEOUT)
-			(*deadlocked)(src_object, (unsigned) delta_time(tm_time(), start));
+		if G_UNLIKELY(gentime_is_zero(start)) {
+			enum thread_lock_kind kind = THREAD_LOCK_SPINLOCK;
+			start = gentime_now_exact();
+			if G_UNLIKELY(SPINLOCK_SRC_MUTEX == src)
+				kind = THREAD_LOCK_MUTEX;
+			element = thread_lock_waiting_element(src_object, kind, file, line);
+		}
 
-		compat_sleep_ms(SPINLOCK_DELAY);
+		d = gentime_diff(gentime_now_exact(), start);
+		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
+			(*deadlocked)(src_object, (unsigned) d, file, line);
+
+		compat_usleep_nocancel(SPINLOCK_DELAY);
+
+		/*
+		 * If pass-through was activated whilst we were sleeping, return
+		 * immediately, faking success.
+		 */
+
+		if G_UNLIKELY(spinlock_in_crash_mode()) {
+			spinlock_direct(s);
+			return;
+		}
 	}
 }
 
@@ -274,11 +379,25 @@ spinlock_init(spinlock_t *s)
 
 	s->magic = SPINLOCK_MAGIC;
 	s->lock = 0;
+	spinlock_clear_owner(s);
 #ifdef SPINLOCK_DEBUG
 	s->file = NULL;
 	s->line = 0;
 #endif
 	atomic_mb();
+}
+
+/**
+ * Reset a spinlock.
+ *
+ * This is intended to be used only by the thread management layer.
+ */
+void
+spinlock_reset(spinlock_t *s)
+{
+	spinlock_check(s);
+
+	s->lock = 0;
 }
 
 /**
@@ -322,42 +441,6 @@ spinlock_destroy(spinlock_t *s)
 }
 
 /**
- * Grab a spinlock.
- */
-void
-spinlock_grab(spinlock_t *s, bool hidden)
-{
-	spinlock_check(s);
-
-	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
-		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
-			spinlock_deadlock, spinlock_deadlocked);
-	}
-
-	if G_LIKELY(!hidden)
-		spinlock_account(s);
-}
-
-/**
- * Grab spinlock only if available.
- *
- * @return whether we obtained the lock.
- */
-bool
-spinlock_grab_try(spinlock_t *s, bool hidden)
-{
-	spinlock_check(s);
-
-	if G_LIKELY(atomic_acquire(&s->lock)) {
-		if G_LIKELY(!hidden)
-			spinlock_account(s);
-		return TRUE;
-	}
-	return FALSE;
-}
-
-#ifdef SPINLOCK_DEBUG
-/**
  * Grab a spinlock from said location.
  */
 void
@@ -367,14 +450,13 @@ spinlock_grab_from(spinlock_t *s, bool hidden, const char *file, unsigned line)
 
 	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
 		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
-			spinlock_deadlock, spinlock_deadlocked);
+			spinlock_deadlock, spinlock_deadlocked, file, line);
 	}
 
-	s->file = file;
-	s->line = line;
+	spinlock_set_owner(s, file, line);
 
 	if G_LIKELY(!hidden)
-		spinlock_account(s);
+		spinlock_account(s, file, line);
 }
 
 /**
@@ -389,19 +471,59 @@ spinlock_grab_try_from(spinlock_t *s,
 	spinlock_check(s);
 
 	if (atomic_acquire(&s->lock)) {
-		s->file = file;
-		s->line = line;
+		spinlock_set_owner(s, file, line);
 		if G_LIKELY(!hidden)
-			spinlock_account(s);
+			spinlock_account(s, file, line);
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_pass_through)
+	if G_UNLIKELY(spinlock_in_crash_mode())
 		return TRUE;		/* Crashing */
 
 	return FALSE;
 }
-#endif	/* SPINLOCK_DEBUG */
+
+/**
+ * Grab regular spinlock, exchanging lock position with previous lock.
+ */
+void
+spinlock_grab_swap_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line)
+{
+	spinlock_check(s);
+
+	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
+		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+			spinlock_deadlock, spinlock_deadlocked, file, line);
+	}
+
+	spinlock_set_owner(s, file, line);
+	spinlock_account_swap(s, file, line, plock);
+}
+
+/**
+ * Attempt to grab regular spinlock, exchanging lock position with previous
+ * lock.
+ *
+ * @return whether we obtained the lock.
+ */
+bool
+spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line)
+{
+	spinlock_check(s);
+
+	if (atomic_acquire(&s->lock)) {
+		spinlock_set_owner(s, file, line);
+		spinlock_account_swap(s, file, line, plock);
+		return TRUE;
+	}
+
+	if G_UNLIKELY(spinlock_in_crash_mode())
+		return TRUE;		/* Crashing */
+
+	return FALSE;
+}
 
 /**
  * Release spinlock, which must be locked currently.
@@ -410,7 +532,9 @@ void
 spinlock_release(spinlock_t *s, bool hidden)
 {
 	spinlock_check(s);
-	g_assert(s->lock != 0 || spinlock_pass_through);
+	g_assert(s->lock != 0 || spinlock_in_crash_mode());
+
+	spinlock_clear_owner(s);
 
 	/*
 	 * The release acts as a "release barrier", ensuring that all previous
@@ -421,6 +545,34 @@ spinlock_release(spinlock_t *s, bool hidden)
 
 	if G_LIKELY(!hidden)
 		spinunlock_account(s);
+}
+
+/**
+ * Grab a hidden spinlock from said location, using custom loop and no timeout.
+ *
+ * This is reserved to code that is called from spinlock_loop() and which still
+ * needs to get some lock to protect shared resources.
+ */
+void
+spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
+{
+	int i = 0;
+	spinlock_check(s);
+
+	while (!atomic_acquire(&s->lock)) {
+		if G_UNLIKELY(spinlock_in_crash_mode()) {
+			spinlock_direct(s);
+			break;
+		}
+		if G_UNLIKELY(0 == spinlock_cpus)
+			spinlock_cpus = getcpucount();
+		if (1 == spinlock_cpus && i <= SPINLOCK_LOOP)
+			thread_yield();
+		else if (i++ > SPINLOCK_LOOP)
+			compat_usleep_nocancel(SPINLOCK_DELAY);
+	}
+
+	spinlock_set_owner(s, file, line);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

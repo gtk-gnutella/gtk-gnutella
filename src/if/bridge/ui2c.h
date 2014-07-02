@@ -41,8 +41,8 @@
  */
 
 #include "lib/adns.h"
+#include "lib/pslist.h"
 
-#include "if/core/bitzi.h"
 #include "if/core/downloads.h"
 #include "if/core/fileinfo.h"
 #include "if/core/guess.h"
@@ -155,6 +155,8 @@ void guc_gnet_stats_tcp_get(gnet_stats_t *);
 void guc_gnet_stats_udp_get(gnet_stats_t *);
 void guc_gnet_get_bw_stats(gnet_bw_source, gnet_bw_stats_t *);
 const char *guc_gnet_stats_drop_reason_to_string(msg_drop_reason_t);
+const char *guc_gnet_stats_general_description(gnr_stats_t);
+const char *guc_gnet_msg_type_description(msg_type_t);
 
 /* hcache interface functions */
 void guc_hcache_clear_host_type(host_type_t);
@@ -165,8 +167,8 @@ void guc_hcache_get_stats(hcache_stats_t *);
 int guc_hsep_get_table_size(void);
 void guc_hsep_get_non_hsep_triple(hsep_triple *);
 const char *guc_hsep_get_static_str(int row, int column);
-void guc_hsep_add_global_table_listener(GCallback, frequency_t, uint32);
-void guc_hsep_remove_global_table_listener(GCallback);
+void guc_hsep_add_global_table_listener(callback_fn_t, frequency_t, uint32);
+void guc_hsep_remove_global_table_listener(callback_fn_t);
 
 /* node interface functions */
 void guc_node_add_node_added_listener(node_added_listener_t);
@@ -179,6 +181,7 @@ void guc_node_remove_node_info_changed_listener(node_info_changed_listener_t);
 void guc_node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 
 void guc_node_add(const host_addr_t addr, uint16 port, uint32 flags);
+void guc_node_g2_add(const host_addr_t addr, uint16 port, uint32 flags);
 void guc_node_remove_by_id(const struct nid *);
 void guc_node_remove_nodes_by_id(const GSList *node_list);
 bool guc_node_get_status(const struct nid *, gnet_node_status_t *);
@@ -217,7 +220,7 @@ bool guc_search_is_passive(gnet_search_t);
 bool guc_search_is_whats_new(gnet_search_t sh);
 
 void guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
-GSList *guc_search_associated_sha1(gnet_search_t sh);
+pslist_t *guc_search_associated_sha1(gnet_search_t sh);
 unsigned guc_search_associated_sha1_count(gnet_search_t sh);
 const char *guc_search_media_mask_to_string(unsigned mask);
 
@@ -281,12 +284,6 @@ void guc_upload_stats_clear_all(void);
 
 /** version interface functions*/
 const char *guc_version_get_version_string(void);
-
-/* bitzi interface functions*/
-bool guc_bitzi_has_cached_ticket(const struct sha1 *);
-void guc_query_bitzi_by_sha1(const struct sha1 *, filesize_t, bool);
-const char *guc_bitzi_ticket_by_sha1(const struct sha1 *, filesize_t);
-bool guc_bitzi_data_by_sha1(bitzi_data_t *, const struct sha1 *, filesize_t);
 
 /** main functions */
 void guc_gtk_gnutella_exit(int code);

@@ -60,8 +60,8 @@
 #include "settings.h"
 #include "ctl.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
@@ -70,6 +70,7 @@
 #include "lib/htable.h"
 #include "lib/path.h"
 #include "lib/random.h"
+#include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
@@ -131,6 +132,7 @@ static const char ULTRAS_FILE[]		= "ultras";
 static const char ULTRAS6_FILE[]	= "ultras6";
 static const char GUESS_FILE[]		= "guess";
 static const char GUESS6_FILE[]		= "guess6";
+static const char G2HUBS_FILE[]		= "g2hubs";
 
 /**
  * Names of the host caches.
@@ -139,26 +141,33 @@ static const char GUESS6_FILE[]		= "guess6";
  * Has to be in the same order as in the hcache_type_t definition
  * in gnet_nodes.h.
  */
-static const char * const names[HCACHE_MAX] = {
-    "fresh regular",
-    "valid regular",
-    "fresh IPv4 ultra",
-    "valid IPv4 ultra",
-    "fresh IPv6 ultra",
-    "valid IPv6 ultra",
-    "timeout",
-    "busy",
-    "unstable",
-    "alien",
-	"GUESS (running)",
-	"GUESS (introductions)",
-    "none",
+static const char * const names[] = {
+    "fresh regular",			/* HCACHE_FRESH_ANY */
+    "valid regular",			/* HCACHE_VALID_ANY */
+    "fresh IPv4 ultra",			/* HCACHE_FRESH_ULTRA */
+    "valid IPv4 ultra",			/* HCACHE_VALID_ULTRA */
+    "fresh IPv6 ultra",			/* HCACHE_FRESH_ULTRA6 */
+    "valid IPv6 ultra",			/* HCACHE_VALID_ULTRA6 */
+    "timeout",					/* HCACHE_TIMEOUT */
+    "busy",						/* HCACHE_BUSY */
+    "unstable",					/* HCACHE_UNSTABLE */
+    "alien",					/* HCACHE_ALIEN */
+	"GUESS (IPv4 running)",			/* HCACHE_GUESS */
+	"GUESS (IPv4 introductions)",	/* HCACHE_GUESS_INTRO */
+	"GUESS (IPv6 running)",			/* HCACHE_GUESS6 */
+	"GUESS (IPv6 introductions)",	/* HCACHE_GUESS6_INTRO */
+	"fresh G2 hubs",			/* HCACHE_FRESH_G2HUB */
+	"valid G2 hubs",			/* HCACHE_FRESH_G2HUB */
+    "none",						/* HCACHE_NONE */
 };
 
-static const char * const host_type_names[HOST_MAX] = {
-    "any",
-    "ultra",
-	"guess"
+static const char * const host_type_names[] = {
+    "any",						/* HOST_ANY */
+    "ultra IPv4",				/* HOST_ULTRA */
+    "ultra IPv6",				/* HOST_ULTRA6 */
+	"GUESS IPv4",				/* HOST_GUESS */
+	"GUESS IPv6",				/* HOST_GUESS6 */
+	"G2 hub",					/* HOST_G2HUB */
 };
 
 enum {
@@ -193,6 +202,9 @@ hcache_class(hcache_type_t type)
 	case HCACHE_GUESS6:
 	case HCACHE_GUESS6_INTRO:
 		return HCACHE_CLASS_GUESS;
+	case HCACHE_VALID_G2HUB:
+	case HCACHE_FRESH_G2HUB:
+		return HCACHE_CLASS_G2;
 	case HCACHE_NONE:
 	case HCACHE_MAX:
 		break;
@@ -239,6 +251,11 @@ stop_mass_update(hostcache_t *hc)
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
 				hcache_size(HOST_ULTRA6));
             break;
+		case HCACHE_FRESH_G2HUB:
+		case HCACHE_VALID_G2HUB:
+            gnet_prop_set_guint32_val(hc->hosts_in_catcher,
+				hcache_size(HOST_G2HUB));
+            break;
         case HCACHE_TIMEOUT:
         case HCACHE_UNSTABLE:
         case HCACHE_BUSY:
@@ -272,6 +289,11 @@ stop_mass_update(hostcache_t *hc)
 static htable_t *ht_known_hosts;
 
 /**
+ * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_G2.
+ */
+static htable_t *ht_g2_hosts;
+
+/**
  * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_GUESS.
  */
 static htable_t *ht_guess_hosts;
@@ -281,6 +303,7 @@ hcache_ht_by_class(hcache_class_t class)
 {
 	switch (class) {
 	case HCACHE_CLASS_HOST:		return ht_known_hosts;
+	case HCACHE_CLASS_G2:		return ht_g2_hosts;
 	case HCACHE_CLASS_GUESS:	return ht_guess_hosts;
 	}
 	g_assert_not_reached();
@@ -505,6 +528,9 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
     g_assert(hash_list_length(to->hostlist) == 0);
 	g_assert(to->class == from->class);
 
+	start_mass_update(to);
+	start_mass_update(from);
+	
 	hash_list_free(&to->hostlist);
     to->hostlist = from->hostlist;
     from->hostlist = hash_list_new(NULL, NULL);
@@ -524,6 +550,9 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
             continue;
         hce->type = to->type;
     }
+
+	stop_mass_update(to);
+	stop_mass_update(from);
 
 	hash_list_iter_release(&iter);
 }
@@ -581,11 +610,8 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 	orig_key = hash_list_remove(hc->hostlist, host);
 	g_assert(orig_key);
 
-    if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
-    }
+    if (hc->mass_update == 0)
+		gnet_prop_decr_guint32(hc->hosts_in_catcher);
 
 	hc->dirty = TRUE;
 	hcache_ht_remove(hc->class, host);
@@ -605,6 +631,7 @@ const char *
 hcache_type_to_string(hcache_type_t type)
 {
 	g_assert((uint) type < HCACHE_MAX);
+	STATIC_ASSERT(HCACHE_MAX == G_N_ELEMENTS(names));
 
 	return names[type];
 }
@@ -616,6 +643,7 @@ const char *
 host_type_to_string(host_type_t type)
 {
 	g_assert((uint) type < HOST_MAX);
+	STATIC_ASSERT(HOST_MAX == G_N_ELEMENTS(host_type_names));
 
 	return host_type_names[type];
 }
@@ -635,6 +663,9 @@ hcache_slots_max(hcache_type_t type)
     case HCACHE_FRESH_ULTRA6:
     case HCACHE_VALID_ULTRA6:
         return GNET_PROPERTY(max_ultra6_hosts_cached);
+	case HCACHE_VALID_G2HUB:
+	case HCACHE_FRESH_G2HUB:
+        return GNET_PROPERTY(max_g2hub_hosts_cached);
 	case HCACHE_BUSY:
 	case HCACHE_TIMEOUT:
 	case HCACHE_UNSTABLE:
@@ -683,6 +714,10 @@ hcache_slots_left(hcache_type_t type)
     case HCACHE_FRESH_ULTRA6:
     case HCACHE_VALID_ULTRA6:
         current = hcache_size(HOST_ULTRA6);
+		break;
+	case HCACHE_FRESH_G2HUB:
+	case HCACHE_VALID_G2HUB:
+        current = hcache_size(HOST_G2HUB);
 		break;
 	case HCACHE_BUSY:
 	case HCACHE_TIMEOUT:
@@ -854,8 +889,10 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		case HCACHE_FRESH_ULTRA:
 		case HCACHE_VALID_ULTRA6:
 		case HCACHE_FRESH_ULTRA6:
+		case HCACHE_VALID_G2HUB:
+		case HCACHE_FRESH_G2HUB:
 			/*
-			 * Move the host to the "ultra" cache if it's in the "any" ones.
+			 * Move the host to the targeted cache if it's in the "any" ones.
 			 */
 
 			switch (hce->type) {
@@ -888,8 +925,13 @@ hcache_add_internal(hcache_type_t type, time_t added,
 			hcache_unlink_host(caches[hce->type], host);
 			return TRUE;
 
-		default:
+		case HCACHE_FRESH_ANY:
+		case HCACHE_VALID_ANY:
 			return TRUE;
+
+		case HCACHE_NONE:
+		case HCACHE_MAX:
+			g_assert_not_reached();
 		}
 
 		/*
@@ -899,11 +941,19 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		orig_key = hash_list_remove(caches[hce->type]->hostlist, host);
 		g_assert(orig_key);
 
+		if (caches[hce->type]->mass_update == 0) {
+			gnet_prop_decr_guint32(caches[hce->type]->hosts_in_catcher);
+		}
+
 		hash_list_prepend(hc->hostlist, host);
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
 		hce->type = type;
 		hce->time_added = added;
+		
+		if (hc->mass_update == 0) {
+			gnet_prop_incr_guint32(hc->hosts_in_catcher);
+		}
 
 		return TRUE;
     }
@@ -936,51 +986,22 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 	hcache_ht_add(type, host_atom);
 
-    switch (type) {
-    case HCACHE_FRESH_ANY:
-    case HCACHE_FRESH_ULTRA:
-    case HCACHE_FRESH_ULTRA6:
-		/*
-		 * Prepend, so that we use the freshest entries.
-		 */
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
+	/*
+	 * We prepend to the list instead of appending because the day
+	 * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
+	 * in effect using the most recent hosts we know about.
+	 *
+	 * Furthermore, hcache_expire() depends on the fact that new entries are
+	 * added to the beginning of the list
+	 */
 
-    case HCACHE_VALID_ANY:
-    case HCACHE_VALID_ULTRA:
-    case HCACHE_VALID_ULTRA6:
-        /*
-         * We prepend to the list instead of appending because the day
-         * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
-         * in effect using the most recent hosts we know about.
-         */
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
-
-	case HCACHE_GUESS:
-	case HCACHE_GUESS_INTRO:
-	case HCACHE_GUESS6:
-	case HCACHE_GUESS6_INTRO:
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
-
-    default:
-        /*
-         * hcache_expire() depends on the fact that new entries are
-         * added to the beginning of the list
-         */
-        hash_list_prepend(hc->hostlist, host_atom);
-        break;
-    }
+	hash_list_prepend(hc->hostlist, host_atom);
 
     hc->misses++;
 	hc->dirty = TRUE;
 
-    if (hc->mass_update == 0) {
-        uint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur + 1);
-    }
+    if (hc->mass_update == 0)
+		gnet_prop_incr_guint32(hc->hosts_in_catcher);
 
     hcache_prune(hc->type);
     hcache_update_low_on_pongs();
@@ -1024,6 +1045,11 @@ hcache_add_caught(host_type_t type, const host_addr_t addr, uint16 port,
 			return hcache_add(HCACHE_FRESH_ULTRA, addr, port, what);
 		else
 			return hcache_add(HCACHE_FRESH_ULTRA6, addr, port, what);
+	case HOST_G2HUB:
+		if (host_addr_is_ipv4(addr))
+			return hcache_add(HCACHE_FRESH_G2HUB, addr, port, what);
+		else
+			return FALSE;		/* G2 does not support IPv6 */
     case HOST_GUESS:
     case HOST_GUESS6:
 		if (host_addr_is_ipv4(addr))
@@ -1034,7 +1060,7 @@ hcache_add_caught(host_type_t type, const host_addr_t addr, uint16 port,
 		g_assert_not_reached();
     }
 
-    g_error("%s: unknown host type: %d", G_STRFUNC, type);
+    g_error("%s(): unknown host type: %d", G_STRFUNC, type);
     return FALSE;
 }
 
@@ -1057,6 +1083,11 @@ hcache_add_valid(host_type_t type, const host_addr_t addr, uint16 port,
 			return hcache_add(HCACHE_VALID_ULTRA, addr, port, what);
 		else
 			return hcache_add(HCACHE_VALID_ULTRA6, addr, port, what);
+	case HOST_G2HUB:
+		if (host_addr_is_ipv4(addr))
+			return hcache_add(HCACHE_VALID_G2HUB, addr, port, what);
+		else
+			return FALSE;			/* G2 does not support IPv6 yet */
     case HOST_GUESS:
     case HOST_GUESS6:
 		if (host_addr_is_ipv4(addr))
@@ -1184,6 +1215,11 @@ hcache_clear_host_type(host_type_t type)
         hcache_remove_all(caches[HCACHE_VALID_ULTRA6]);
 		valid = TRUE;
         break;
+    case HOST_G2HUB:
+        hcache_remove_all(caches[HCACHE_FRESH_G2HUB]);
+        hcache_remove_all(caches[HCACHE_VALID_G2HUB]);
+		valid = TRUE;
+        break;
     case HOST_GUESS:
         hcache_remove_all(caches[HCACHE_GUESS]);
         hcache_remove_all(caches[HCACHE_GUESS_INTRO]);
@@ -1238,10 +1274,13 @@ hcache_size(host_type_t type)
     case HOST_GUESS6:
         return hash_list_length(caches[HCACHE_GUESS6]->hostlist) +
         	hash_list_length(caches[HCACHE_GUESS6_INTRO]->hostlist);
+	case HOST_G2HUB:
+        return hash_list_length(caches[HCACHE_FRESH_G2HUB]->hostlist) +
+			hash_list_length(caches[HCACHE_VALID_G2HUB]->hostlist);
     case HOST_MAX:
 		g_assert_not_reached();
     }
-    g_error("%s: unknown host type: %d", G_STRFUNC, type);
+    g_error("%s(): unknown host type: %d", G_STRFUNC, type);
     return -1; /* Only here to make -Wall happy */
 }
 
@@ -1421,7 +1460,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 	hostcache_t *hc = NULL;
 	hostcache_t *hc2 = NULL;
 	hset_t *seen_host =
-		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	hash_list_iter_t *iter;
 
     switch (type) {
@@ -1455,6 +1494,19 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 			g_assert_not_reached();
 		}
         break;
+	case HOST_G2HUB:
+		switch (net) {
+		case HOST_NET_BOTH:
+		case HOST_NET_IPV4:
+			hc = caches[HCACHE_FRESH_G2HUB];
+			break;
+		case HOST_NET_IPV6:
+			/* G2 does not support IPv6 yet -- RAM, 2014-01-02 */
+			g_assert_not_reached();
+		case HOST_NET_MAX:
+			g_assert_not_reached();
+		}
+		break;
     case HOST_GUESS:
     case HOST_GUESS6:
 		switch (net) {
@@ -1572,8 +1624,12 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, uint16 *port)
     case HOST_ULTRA6:
         hc = caches[HCACHE_FRESH_ULTRA6];
 		break;
+	case HOST_G2HUB:
+        hc = caches[HCACHE_FRESH_G2HUB];
+		break;
     case HOST_GUESS:
         hc = caches[HCACHE_GUESS];
+		break;
     case HOST_GUESS6:
         hc = caches[HCACHE_GUESS6];
 		break;
@@ -1645,7 +1701,7 @@ hcache_sort_by_added_time(hcache_type_t type)
 	if (GNET_PROPERTY(hcache_debug)) {
 		unsigned count = hash_list_length(hc->hostlist);
 		g_debug("HCACHE sorted %s cache (%u item%s)",
-			hcache_type_to_string(type), count, 1 == count ? "" : "s");
+			hcache_type_to_string(type), count, plural(count));
 	}
 }
 
@@ -1678,6 +1734,9 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, uint16 *port)
     case HOST_ULTRA6:
         hc = caches[HCACHE_FRESH_ULTRA6];
         break;
+	case HOST_G2HUB:
+        hc = caches[HCACHE_FRESH_G2HUB];
+        break;
     case HOST_GUESS:
         hc = caches[HCACHE_GUESS];
 		if (0 == hash_list_length(hc->hostlist))
@@ -1693,7 +1752,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, uint16 *port)
     }
 
 	if (!hc)
-        g_error("%s: unknown host type: %d", G_STRFUNC, type);
+        g_error("%s(): unknown host type: %d", G_STRFUNC, type);
 
     available = hcache_require_caught(hc);
 
@@ -1927,6 +1986,9 @@ hcache_timer(void *unused_obj)
         hcache_dump_info(caches[HCACHE_FRESH_ULTRA6], "timer");
         hcache_dump_info(caches[HCACHE_VALID_ULTRA6], "timer");
 
+        hcache_dump_info(caches[HCACHE_FRESH_G2HUB], "timer");
+        hcache_dump_info(caches[HCACHE_VALID_G2HUB], "timer");
+
         hcache_dump_info(caches[HCACHE_GUESS],        "timer");
         hcache_dump_info(caches[HCACHE_GUESS_INTRO],  "timer");
 
@@ -1970,6 +2032,11 @@ hcache_store_if_dirty(host_type_t type)
 		second = HCACHE_FRESH_ULTRA6;
 		file = ULTRAS6_FILE;
 		break;
+	case HOST_G2HUB:
+		first = HCACHE_VALID_G2HUB;
+		second = HCACHE_FRESH_G2HUB;
+		file = G2HUBS_FILE;
+		break;
     case HOST_GUESS:
 		first = HCACHE_GUESS_INTRO;
 		second = HCACHE_GUESS;
@@ -1981,7 +2048,7 @@ hcache_store_if_dirty(host_type_t type)
 		file = GUESS6_FILE;
 		break;
 	default:
-		g_error("can't store cache for host type %d", type);
+		g_error("%s(): can't store cache for host type %d", G_STRFUNC, type);
 		return;
 	}
 
@@ -2009,10 +2076,11 @@ hcache_periodic_save(void *unused_obj)
 	case 2: hcache_store_if_dirty(HOST_GUESS); break;
 	case 3: hcache_store_if_dirty(HOST_ULTRA6); break;
 	case 4: hcache_store_if_dirty(HOST_GUESS6); break;
+	case 5: hcache_store_if_dirty(HOST_G2HUB); break;
 	default:
 		g_assert_not_reached();
 	}
-	i = (i + 1) % 5;
+	i = (i + 1) % 6;
 
 	return TRUE;		/* Keep calling */
 }
@@ -2024,9 +2092,11 @@ G_GNUC_COLD void
 hcache_init(void)
 {
 	ht_known_hosts =
-		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
+	ht_g2_hosts =
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	ht_guess_hosts =
-		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 	no_metadata = vmm_trap_page();
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(
@@ -2058,6 +2128,16 @@ hcache_init(void)
         HCACHE_VALID_ULTRA6,
         PROP_HOSTS_IN_ULTRA6_CATCHER,
         "hosts.valid.ultra6");
+
+    caches[HCACHE_VALID_G2HUB] = hcache_alloc(
+        HCACHE_VALID_G2HUB,
+        PROP_HOSTS_IN_G2HUB_CATCHER,
+        "hosts.valid.g2hub");
+
+    caches[HCACHE_FRESH_G2HUB] = hcache_alloc(
+        HCACHE_FRESH_G2HUB,
+        PROP_HOSTS_IN_G2HUB_CATCHER,
+        "hosts.fresh.g2hub");
 
     caches[HCACHE_TIMEOUT] = hcache_alloc(
         HCACHE_TIMEOUT,
@@ -2116,6 +2196,7 @@ hcache_retrieve_all(void)
 	hcache_retrieve(caches[HCACHE_FRESH_ANY], HOSTS_FILE);
 	hcache_retrieve(caches[HCACHE_FRESH_ULTRA], ULTRAS_FILE);
 	hcache_retrieve(caches[HCACHE_FRESH_ULTRA6], ULTRAS6_FILE);
+	hcache_retrieve(caches[HCACHE_FRESH_G2HUB], G2HUBS_FILE);
 	hcache_retrieve(caches[HCACHE_GUESS], GUESS_FILE);
 	hcache_retrieve(caches[HCACHE_GUESS6], GUESS6_FILE);
 }
@@ -2130,6 +2211,7 @@ hcache_shutdown(void)
 	hcache_store(HCACHE_VALID_ANY, HOSTS_FILE, HCACHE_FRESH_ANY);
 	hcache_store(HCACHE_VALID_ULTRA, ULTRAS_FILE, HCACHE_FRESH_ULTRA);
 	hcache_store(HCACHE_VALID_ULTRA6, ULTRAS6_FILE, HCACHE_FRESH_ULTRA6);
+	hcache_store(HCACHE_VALID_G2HUB, G2HUBS_FILE, HCACHE_FRESH_G2HUB);
 	hcache_store(HCACHE_GUESS, GUESS_FILE, HCACHE_GUESS_INTRO);
 	hcache_store(HCACHE_GUESS6, GUESS6_FILE, HCACHE_GUESS6_INTRO);
 }
@@ -2155,6 +2237,8 @@ hcache_close(void)
         HCACHE_GUESS_INTRO,
         HCACHE_GUESS6,
         HCACHE_GUESS6_INTRO,
+		HCACHE_FRESH_G2HUB,
+		HCACHE_VALID_G2HUB,
     };
 	uint i;
 
@@ -2189,9 +2273,11 @@ hcache_close(void)
 	}
 
     g_assert(0 == htable_count(ht_known_hosts));
+    g_assert(0 == htable_count(ht_g2_hosts));
     g_assert(0 == htable_count(ht_guess_hosts));
 
 	htable_free_null(&ht_known_hosts);
+	htable_free_null(&ht_g2_hosts);
 	htable_free_null(&ht_guess_hosts);
 	cq_periodic_remove(&hcache_timer_ev);
 }

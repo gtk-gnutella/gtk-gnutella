@@ -197,7 +197,7 @@ parse_attribute(const struct array attr)
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].attr;
 		}
-		g_warning("Unknown attribute: \"%s\"", name);
+		g_warning("%s(): unknown attribute: \"%s\"", G_STRFUNC, name);
 	}
 	return HTML_ATTR_UNKNOWN;
 }
@@ -285,7 +285,7 @@ parse_tag(const struct array tag)
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].tag;
 		}
-		g_warning("Unknown tag: \"%s\"", name);
+		g_warning("%s(): unknown tag: \"%s\"", G_STRFUNC, name);
 	}
 	return HTML_TAG_UNKNOWN;
 }
@@ -390,7 +390,7 @@ not_found:
 }
 
 static void
-render_tag(struct render_context *ctx, const struct array tag)
+html_render_tag(struct render_context *ctx, const struct array tag)
 {
 	if (tag.size > 0) {
 		ctx->closing = html_tag_is_closing(&tag);
@@ -471,7 +471,7 @@ error:
 }
 
 static uint32
-parse_entity(const struct array entity)
+html_parse_entity(const struct array entity)
 {
 	if (entity.size > 0) {
 		const unsigned char c = entity.data[0];
@@ -486,11 +486,11 @@ parse_entity(const struct array entity)
 }
 
 static void
-render_entity(struct render_context *ctx, const struct array entity)
+html_render_entity(struct render_context *ctx, const struct array entity)
 {
 	uint32 c;
 
-	c = parse_entity(entity);
+	c = html_parse_entity(entity);
 	if ((uint32)-1 == c) {
 		html_output_print(ctx->output, array_from_string("&"));
 		html_output_print(ctx->output, array_init(entity.data, entity.size));
@@ -505,7 +505,7 @@ render_entity(struct render_context *ctx, const struct array entity)
 }
 
 static void
-render_text(struct render_context *ctx, const struct array text)
+html_render_text(struct render_context *ctx, const struct array text)
 {
 	unsigned c_len;
 	size_t i;
@@ -546,14 +546,14 @@ render_text(struct render_context *ctx, const struct array text)
 				html_output_print(ctx->output, array_from_string(" "));
 		} else if ('&' == c) {
 			if (entity.data) {
-				render_entity(ctx, entity);
+				html_render_entity(ctx, entity);
 			}
 			entity.data = deconstify_gchar(&text.data[i + c_len]);
 			entity.size = 0;
 			continue;
 		} else if (';' == c) {
 			if (entity.data) {
-				render_entity(ctx, entity);
+				html_render_entity(ctx, entity);
 				entity = zero_array;
 				continue;
 			}
@@ -571,7 +571,7 @@ render_text(struct render_context *ctx, const struct array text)
 }
 
 static void
-render(struct render_context *ctx)
+html_render(struct render_context *ctx)
 {
 	const struct html_node *node;
 
@@ -580,17 +580,28 @@ render(struct render_context *ctx)
 		case HTML_NODE_ROOT:
 			break;
 		case HTML_NODE_TAG:
-			render_tag(ctx, node->array);
+			html_render_tag(ctx, node->array);
 			break;
 		case HTML_NODE_TEXT:
-			render_text(ctx, node->array);
+			html_render_text(ctx, node->array);
 			break;
 		}
 	}
 }
 
+static void
+html_free(struct html_node *root)
+{
+	struct html_node *node, *next;
+
+	for (node = root; NULL != node; node = next) {
+		next = node->next;
+		html_node_free(&node);
+	}
+}
+
 static int
-parse(struct html_output *output, const struct array array)
+html_parse(struct html_output *output, const struct array array)
 {
 	size_t i, line_num;
 	const char *msg;
@@ -681,29 +692,22 @@ parse(struct html_output *output, const struct array array)
 		ctx = zero_render_context;
 		ctx.output = output;
 		ctx.root = root;
-		render(&ctx);
+		html_render(&ctx);
 	}
 
-	{
-		struct html_node *node, *next;
-
-		for (node = root; NULL != node; node = next) {
-			next = node->next;
-			html_node_free(&node);
-		}
-	}
-
+	html_free(root);
 	return 0;
 
 error:
 	g_warning("line %zu: error: %s", line_num, msg);
+	html_free(root);
 	return -1;
 }
 
 int
 html_load_memory(struct html_output *output, const struct array data)
 {
-	return parse(output, data);
+	return html_parse(output, data);
 }
 
 int

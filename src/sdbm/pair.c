@@ -16,6 +16,8 @@
 #include "pair.h"
 #include "big.h"
 
+#include "lib/stringify.h"	/* For plural() */
+
 /*
  * To accommodate larger key/values (that would otherwise not
  * fit within a page), the leading bit of each offset is set
@@ -769,9 +771,9 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 
 	if G_UNLIKELY(removed != 0) {
 		db->removed_keys += removed;
-		g_warning("sdbm: \"%s\": removed %d/%d key%s (unreadable, big) "
+		s_warning("sdbm: \"%s\": removed %d/%d key%s (unreadable, big) "
 			"on page #%ld", sdbm_name(db),
-			removed, pagcount(pag) / 2, 1 == removed ? "" : "s", db->pagbno);
+			removed, pagcount(pag) / 2, plural(removed), db->pagbno);
 	}
 
 	debug(("%d split %d/%d\n", ((unsigned short *) pag)[0] / 2, 

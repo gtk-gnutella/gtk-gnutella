@@ -216,10 +216,8 @@ http_range_item_alloc(filesize_t start, filesize_t end)
  * Free HTTP range item (as generic callback for tree).
  */
 static void
-http_range_item_free(void *p)
+http_range_item_free(struct http_range_item *hri)
 {
-	struct http_range_item *hri = p;
-
 	http_range_item_check(hri);
 
 	hri->magic = 0;
@@ -281,7 +279,7 @@ http_range_item_to_string2(const struct http_range_item * const hri)
  * As a side effect, also validates that the list of ranges is sorted and
  * that there are no adjacent ranges (they should always be coalesced).
  */
-static inline filesize_t
+static inline filesize_t G_GNUC_UNUSED
 http_rangeset_compute_length(const http_rangeset_t *hrs)
 {
 	slink_t *sl;
@@ -328,8 +326,8 @@ http_rangeset_clear(http_rangeset_t *hrs)
 	http_rangeset_check(hrs);
 	http_rangeset_invariant(hrs);
 
-	erbtree_discard(&hrs->tree, http_range_item_free);
-	eslist_clear(&hrs->list);
+	eslist_wfree(&hrs->list, sizeof(struct http_range_item));
+	erbtree_clear(&hrs->tree);
 }
 
 /**
@@ -340,7 +338,7 @@ http_rangeset_free(http_rangeset_t *hrs)
 {
 	http_rangeset_check(hrs);
 
-	erbtree_discard(&hrs->tree, http_range_item_free);
+	http_rangeset_clear(hrs);
 	hrs->magic = 0;
 	WFREE(hrs);
 }
@@ -656,8 +654,7 @@ coalesce:
 	HTTP_RANGE_DEBUG(5, "final range is %s-%s, added %s byte%s",
 		filesize_to_string(left->start),
 		filesize_to_string2(left->end),
-		filesize_to_string3(newlen - length),
-		1 == newlen - length ? "" : "s");
+		filesize_to_string3(newlen - length), plural(newlen - length));
 
 	safety_assert(http_rangeset_invariant(hrs));
 	safety_assert(http_rangeset_compute_length(hrs) == hrs->length);

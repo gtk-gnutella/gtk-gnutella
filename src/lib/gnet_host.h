@@ -42,6 +42,7 @@
 
 #include "hashlist.h"
 #include "host_addr.h"
+#include "pslist.h"
 #include "vector.h"
 
 /**
@@ -130,9 +131,9 @@ size_t gnet_host_to_string_buf(
 
 uint gnet_host_hash(const void *key) G_GNUC_PURE;
 uint gnet_host_hash2(const void *key) G_GNUC_PURE;
-bool gnet_host_eq(const void *v1, const void *v2) G_GNUC_PURE;
-int gnet_host_cmp(const void *v1, const void *v2) G_GNUC_PURE;
-bool gnet_host_addr_eq(const void *v1, const void *v2) G_GNUC_PURE;
+bool gnet_host_equiv(const void *v1, const void *v2) G_GNUC_PURE;
+bool gnet_host_equal(const void *v1, const void *v2) G_GNUC_PURE;
+bool gnet_host_addr_equiv(const void *v1, const void *v2) G_GNUC_PURE;
 
 /*
  * Serialized IPv4 and IPv6 Gnutella hosts.
@@ -195,6 +196,7 @@ gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
 bool gnet_host_vec_contains(gnet_host_vec_t *, host_addr_t, uint16);
 void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, uint16 port);
 gnet_host_vec_t *gnet_host_vec_from_gslist(GSList *);
+gnet_host_vec_t *gnet_host_vec_from_pslist(pslist_t *);
 gnet_host_vec_t *gnet_host_vec_from_hash_list(hash_list_t *);
 gnet_host_vec_t *gnet_host_vec_from_vector(vector_t *);
 

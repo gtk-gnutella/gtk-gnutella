@@ -36,10 +36,10 @@ case "$gtkversion" in
 esac
 case "$ver" in
 2)
-	glibversion=2; glibpackage="glib-2.0 gobject-2.0"
+	glibversion=2; glibpackage="glib-2.0 gobject-2.0 gthread-2.0"
 	d_useglib2="$define"; d_useglib1="$undef";;
 *)
-	glibversion=1; glibpackage=glib
+	glibversion=1; glibpackage="glib gthread"
 	d_useglib1="$define"; d_useglib2="$undef";;
 esac
 

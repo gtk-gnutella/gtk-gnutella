@@ -36,13 +36,7 @@
 
 #include "common.h" 
 
-/*
- * Glib-2.30.2 assumes that all allocated blocks will be aligned on 8 bytes,
- * regardless of the memory alignment constraints.  Because xmalloc() can
- * use walloc() to allocate small blocks, we have to force 8-byte alignment
- * for zalloc() as well now.
- */
-#define ZALLOC_ALIGNBYTES	MAX(8, MEM_ALIGNBYTES)	/* 8 at least for glib */
+#define ZALLOC_ALIGNBYTES	MEM_ALIGNBYTES
 
 /*
  * Object size rounding.
@@ -63,6 +57,8 @@ zone_t *zget(size_t, unsigned, bool);
 void zdestroy(zone_t *zone);
 
 size_t zone_blocksize(const zone_t *zone) G_GNUC_PURE;
+size_t zone_size(const zone_t *zone) G_GNUC_PURE;
+size_t zalloc_overhead(void) G_GNUC_CONST;
 
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
@@ -78,14 +74,22 @@ size_t zone_blocksize(const zone_t *zone) G_GNUC_PURE;
 #endif	/* REMAP_ZALLOC && TRACK_ZALLOC */
 
 struct logagent;
+struct pslist;
+struct eslist;
+struct sha1;
 
 void *zalloc(zone_t *) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void zfree(zone_t *, void *);
 void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
+void zfree_pslist(zone_t *, struct pslist *);
+void zfree_eslist(zone_t *zone, struct eslist *el);
 void zgc(bool overloaded);
+
+void zalloc_stats_digest(struct sha1 *digest);
 
 void zinit(void);
 void zclose(void);
+void zalloc_vmm_inited(void);
 void set_zalloc_debug(uint32 level);
 void set_zalloc_always_gc(bool val);
 void zalloc_memusage_init(void);

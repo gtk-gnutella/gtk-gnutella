@@ -1,26 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2013 Raphael Manfredi <Raphael_Manfredi@pobox.com> -->
+<!-- Copyright 2014 Jeroen Asselman <jeroen@asselman.com> -->
 <application>
  <id type="desktop">gtk-gnutella.desktop</id>
- <licence>CC0</licence>
- <name>GTK+ Gnutella Servent</name>
- <summary>Access the Gnutella network via this servent</summary>
+ <metadata_license>CC0</metadata_license>
+ <project_license>GPL-2.0</project_license>
+ <summary>Access the Gnutella and G2 network via this servent</summary>
  <description>
   <p>
-   Gtk-gnutella allows you to join the Gnutella network, search, share
+   gtk-gnutella allows you to join the Gnutella and G2 network, search, share
    and download files.
   </p>
   <p>
-  After joining the network, type-in words in the search area and it will create
-  a search for files shared on the network matching that name.  You can then click
-  on an entry and attempt to download it.
+   After joining the network, type-in words in the search area and it will 
+   create a search for files shared on the network matching that name.
+   You can then click on an entry and attempt to download it.
   </p>
   <p>
-  There are many settings that can be configured for this application.  Type 'Ctrl-P'
-  to open the Preferences dialog.
+   It is compatible with all other Gnutella servents from other vendors: 
+   it will join the same network and exchange with others seamlessly.
   </p>
+  <p>Highlights:</p>
+  <ul>
+   <li>TLS support for Gnutella and HTTP connections</li>
+   <li>UPnP and NAT-PMP support to automatically enable port forwarding</li>
+   <li>Distributed Hash Table (DHT) to find alternate locations and 
+       push-proxies</li>
+   <li>Powerful filtering engine</li>
+  </ul>
  </description>
  <screenshots>
+  <screenshot type="default" width="1250" height="742">http://gtk-gnutella.sourceforge.net/images/shots/1.1/gtk-gnutella-1.1-network.png</screenshot>
+  <screenshot width="818"  height="444">http://gtk-gnutella.sourceforge.net/images/shots/1.1/gtk-gnutella-1.1-ruleset-editor.png</screenshot>
+  <screenshot width="1250" height="742">http://gtk-gnutella.sourceforge.net/images/shots/1.1/gtk-gnutella-1.1-searches.png</screenshot>
  </screenshots>
  <url type="homepage">http://gtk-gnutella.sf.net/</url>
  <updatecontact>gtk-gnutella-devel@lists.sourceforge.net</updatecontact>

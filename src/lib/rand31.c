@@ -53,6 +53,7 @@
 #include "common.h"
 
 #include "rand31.h"
+#include "atomic.h"
 #include "entropy.h"
 #include "hashing.h"
 #include "log.h"
@@ -65,14 +66,14 @@
 
 #include "override.h"			/* Must be the last header included */
 
-static bool rand31_seeded;			/**< Whether PRNG was seeded */
+static int rand31_seeded;			/**< Whether PRNG was seeded */
 static unsigned rand31_seed;		/**< The current seed */
 static unsigned rand31_first_seed;	/**< The initial seed */
 
 static spinlock_t rand31_lck = SPINLOCK_INIT;
 
-#define THREAD_LOCK		spinlock_hidden(&rand31_lck)
-#define THREAD_UNLOCK	spinunlock_hidden(&rand31_lck)
+#define RAND31_LOCK		spinlock_hidden(&rand31_lck)
+#define RAND31_UNLOCK	spinunlock_hidden(&rand31_lck)
 
 /**
  * @return next random number following given seed.
@@ -91,11 +92,17 @@ rand31_prng_next(unsigned seed)
 static unsigned
 rand31_random_seed(void)
 {
-	tm_t now;
+	char garbage[64];		/* Left uninitialized on purpose */
+	tm_nano_t now;
+	size_t nsecs;
 	double cpu;
 	jmp_buf env;
 	unsigned discard;
 	unsigned seed;
+
+#ifndef ALLOW_UNINIT_VALUES
+	ZERO(&garbage);
+#endif
 
 	/*
 	 * Our simple PRNG has only 31 bits of internal state.
@@ -103,29 +110,42 @@ rand31_random_seed(void)
 	 * It is seeded by hashing some environmental constants: the ID of
 	 * the process, the current time and current CPU state.  To further
 	 * create a unique starting point in the series of generated numbers,
-	 * a second different hashing is done and reduced to 8 bits.  This
+	 * a second different hashing is done and reduced to 12 bits.  This
 	 * is interpreted as the amount of initial random values to discard.
 	 */
 
+	tm_precise_time(&now);		/* NOT tm_now_exact(): it is too early */
+	nsecs = now.tv_nsec;
 	cpu = tm_cputime(NULL, NULL);
-	tm_now_exact(&now);
+	tm_precise_time(&now);
+	nsecs += now.tv_nsec;
 	seed = (GOLDEN_RATIO_31 * getpid()) >> 1;
 	seed += binary_hash(&now, sizeof now);
 	seed += binary_hash(&cpu, sizeof cpu);
+	seed += pointer_hash_fast(&now);
 	entropy_delay();
-	tm_now_exact(&now);
+	tm_precise_time(&now);
+	nsecs += now.tv_nsec;
 	seed += binary_hash(&now, sizeof now);
 	ZERO(&env);			/* Avoid uninitialized memory reads */
 	if (setjmp(env)) {
 		g_assert_not_reached(); /* We never longjmp() */
 	}
 	seed += binary_hash(env, sizeof env);
+	seed += binary_hash(garbage, sizeof garbage);
 	discard = binary_hash2(env, sizeof env);
 	discard ^= binary_hash2(&now, sizeof now);
 	discard += getpid();
+	discard += time(NULL);
 	cpu = tm_cputime(NULL, NULL);
 	discard += binary_hash2(&cpu, sizeof cpu);
-	discard = hashing_fold(discard, 8);
+	discard = hashing_fold(discard, 12);
+	tm_precise_time(&now);
+	seed += binary_hash2(&now, sizeof now);
+	nsecs += now.tv_nsec;
+	entropy_delay();
+	tm_precise_time(&now);
+	seed = UINT32_ROTL(seed, popcount(nsecs + now.tv_nsec));
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
 	}
@@ -137,21 +157,26 @@ rand31_random_seed(void)
  * Internal version of random seed initializer.
  *
  * Using a seed of 0 computes a new random seed.
+ *
+ * This routine can safely be called without any thread lock.
  */
 static void
 rand31_do_seed(unsigned seed)
 {
 	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
-	rand31_seeded = TRUE;
+	atomic_mb();
+	atomic_int_inc(&rand31_seeded);
 }
 
 /**
  * Seed the PRNG engine if not already done.
+ *
+ * This routine can safely be called without any thread lock.
  */
 static inline void ALWAYS_INLINE
 rand31_check_seeded(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
+	if G_UNLIKELY(0 == atomic_int_get(&rand31_seeded))
 		rand31_do_seed(0);
 }
 
@@ -176,7 +201,7 @@ rand31_prng(void)
 static int
 rand31_gen(void)
 {
-	unsigned lo, hi, r1, r2;
+	unsigned rx;
 
 	/*
 	 * The low-order bits of the PRNG are less random than the upper ones,
@@ -186,20 +211,13 @@ rand31_gen(void)
 	 * however because this can unexpectedly reduce the PRNG period or alter
 	 * the distribution of returned numbers.
 	 *
-	 * Therefore, we're mixing bits from two consecutive random numbers,
-	 * byte-swapping one of them so that the less random bits mix with more
-	 * random ones.  We also fold the first mixed number to 16 bits and the
-	 * second mixed one to 15 bits before concatening them to produce the
-	 * 31-bit value, thereby accounting for all the bits produced by the PRNG.
+	 * Therefore, we're mixing bits from the random number with itself in a
+	 * way that will preserve the period (2147476016, a little less 2**31).
 	 */
 
-	r1 = rand31_prng();
-	r2 = rand31_prng();
+	rx = rand31_prng();
 
-	lo = hashing_fold(r1 + (UINT32_SWAP(r2) & 0xffff), 16);
-	hi = hashing_fold(r2 - (UINT32_SWAP(r1) & 0x7fff), 15);
-
-	return lo | (hi << 16);
+	return (UINT32_SWAP(rx) + UINT32_ROTL(rx, 11)) & RAND31_MASK;
 }
 
 /**
@@ -212,10 +230,11 @@ rand31(void)
 {
 	int rn;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	RAND31_LOCK;
 	rn = rand31_gen();
-	THREAD_UNLOCK;
+	RAND31_UNLOCK;
 
 	return rn;
 }
@@ -228,9 +247,13 @@ rand31(void)
 void
 rand31_set_seed(unsigned seed)
 {
-	THREAD_LOCK;
-	rand31_do_seed(seed);
-	THREAD_UNLOCK;
+	unsigned s;
+
+	s = 0 == seed ? rand31_random_seed() : seed;
+
+	RAND31_LOCK;
+	rand31_do_seed(s);
+	RAND31_UNLOCK;
 }
 
 /**
@@ -241,10 +264,11 @@ rand31_initial_seed(void)
 {
 	unsigned rs;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	RAND31_LOCK;
 	rs = rand31_first_seed;
-	THREAD_UNLOCK;
+	RAND31_UNLOCK;
 
 	return rs;
 }
@@ -257,10 +281,11 @@ rand31_current_seed(void)
 {
 	unsigned rs;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	RAND31_LOCK;
 	rs = rand31_seed;
-	THREAD_UNLOCK;
+	RAND31_UNLOCK;
 
 	return rs;
 }
@@ -289,11 +314,25 @@ rand31_u32(void)
 {
 	unsigned rn, rx;
 
-	THREAD_LOCK;
 	rand31_check_seeded();
+
+	/*
+	 * Our algorithm below draws 3 consecutive numbers from the sequence.
+	 * The resulting period of the generator is 2147481104, which is a little
+	 * less than 2**31.
+	 *
+	 * Although this remains a weak PRNG, its behaviour is much better than
+	 * rand31(), in term of statistical dispersion of numbers.
+	 */
+
+	RAND31_LOCK;
 	rx = rand31_prng();
-	rn = UINT32_SWAP(rx) + rand31_gen();
-	THREAD_UNLOCK;
+	rn = UINT32_ROTR(rx, 11);
+	rx = rand31_prng();
+	rn += UINT32_ROTR(rx, 16);
+	rx = rand31_prng();
+	rn += UINT32_ROTL(rx, 5);
+	RAND31_UNLOCK;
 
 	return rn;
 }

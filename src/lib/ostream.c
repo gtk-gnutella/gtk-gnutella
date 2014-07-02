@@ -393,4 +393,17 @@ ostream_putc(ostream_t *os, int c)
 	return ostream_write(os, buf, sizeof buf);
 }
 
+/**
+ * Emit a NUL-terminated string to the stream.
+ *
+ * @return the amount of bytes written, -1 on error.
+ */
+ssize_t
+ostream_puts(ostream_t *os, const char *s)
+{
+	ostream_check(os);
+
+	return ostream_write(os, s, strlen(s));
+}
+
 /* vi: set ts=4 sw=4 cindent: */

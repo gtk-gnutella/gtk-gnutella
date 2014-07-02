@@ -216,10 +216,12 @@ get_rootdata(const kuid_t *id)
 
 	if (NULL == rd) {
 		if (dbmw_has_ioerr(db_rootdata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_rootdata));
 		} else {
-			g_warning("key %s exists but was not found in DBMW \"%s\"",
+			s_warning_once_per(LOG_PERIOD_SECOND,
+				"key %s exists but was not found in DBMW \"%s\"",
 				kuid_to_hex_string(id), dbmw_name(db_rootdata));
 		}
 	}
@@ -239,10 +241,12 @@ get_contact(uint64 dbkey, bool shout)
 
 	if (NULL == c) {
 		if (dbmw_has_ioerr(db_contact)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_contact));
 		} else if (shout) {
-			g_warning("key %s exists but was not found in DBMW \"%s\"",
+			s_warning_once_per(LOG_PERIOD_SECOND,
+				"key %s exists but was not found in DBMW \"%s\"",
 				uint64_to_string(dbkey), dbmw_name(db_contact));
 		}
 	}
@@ -309,15 +313,14 @@ reclaim_dbkey(void *u_key, void *val, void *u_data)
  * Callout queue callback to expire target.
  */
 static void
-roots_expire(cqueue_t *unused_cq, void *obj)
+roots_expire(cqueue_t *cq, void *obj)
 {
 	struct rootinfo *ri = obj;
-	(void) unused_cq;
 
 	rootinfo_check(ri);
 	g_assert(uint_is_positive(targets_managed));
 
-	ri->expire_ev = NULL;		/* Event triggered */
+	cq_zero(cq, &ri->expire_ev);		/* Event triggered */
 	delete_rootdata(ri->kuid);
 	patricia_remove(roots, ri->kuid);
 	free_rootinfo(ri);
@@ -446,7 +449,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 				continue;		/* I/O error, most probably */
 
 			/* Update contact addr:port information, if stale */
-			if (c->port != kn->port || !host_addr_equal(c->addr, kn->addr)) {
+			if (c->port != kn->port || !host_addr_equiv(c->addr, kn->addr)) {
 				c->port = kn->port;
 				c->addr = kn->addr;
 				c->first_seen = tm_time();	/* New node address */
@@ -505,8 +508,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	if (GNET_PROPERTY(dht_roots_debug) > 1) {
 		g_debug("DHT ROOTS cached %u/%u k-closest node%s to %s target %s "
 			"(new=%u, reused=%u, elapsed=%s)",
-			rd->count, (unsigned) patricia_count(nodes),
-			1 == rd->count ? "" : "s",
+			rd->count, (unsigned) patricia_count(nodes), plural(rd->count),
 			existed ? "existing" : "new",
 			kuid_to_hex_string(kuid), new, reused,
 			existed ?
@@ -624,7 +626,7 @@ roots_fill_closest(const kuid_t *id,
 			g_debug("DHT ROOTS exact match for %s (%s), filled %d new node%s",
 				kuid_to_hex_string(id),
 				compact_time(delta_time(tm_time(), ri->last_update)),
-				filled, 1 == filled ? "" : "s");
+				filled, plural(filled));
 		}
 
 		/*
@@ -733,8 +735,8 @@ roots_fill_closest(const kuid_t *id,
 			struct rootdata *rd = get_rootdata(cri->kuid);
 			int added;
 
-			if (NULL == rd)
-				return 0;		/* I/O error or corrupted database */
+			if (NULL == rd)				/* I/O error or corrupted database */
+				goto approximate_done;	/* May have filled some nodes above */
 
 			added = roots_fill_vector(rd, &kvec[filled], kcnt - filled, aknown,
 				furthest, id);
@@ -752,7 +754,7 @@ roots_fill_closest(const kuid_t *id,
 					kuid_to_hex_string(id),
 					kuid_to_hex_string2(cri->kuid),
 					compact_time(delta_time(tm_time(), cri->last_update)),
-					added, 1 == added ? "" : "s");
+					added, plural(added));
 			}
 		} else if (NULL == ri) {
 			gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_MISSES);
@@ -765,6 +767,8 @@ roots_fill_closest(const kuid_t *id,
 						kuid_to_hex_string2(cri->kuid) : "<none>");
 			}
 		}
+
+	approximate_done:
 
 		if (aknown != known) {
 			patricia_destroy(aknown);
@@ -996,7 +1000,7 @@ recreate_ri(void *key, void *value, size_t u_len, void *data)
 
 	if (GNET_PROPERTY(dht_roots_debug) > 3)
 		g_debug("DHT ROOTS retrieved %u closest node%s from %s kept (for %s)",
-			rd->count, 1 == rd->count ? "" : "s",
+			rd->count, plural(rd->count),
 			kuid_to_hex_string(id), compact_time(ROOTKEY_LIFETIME / 1000 - d));
 
 	return FALSE;
@@ -1049,7 +1053,7 @@ roots_init_rootinfo(void)
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		count = dbmw_count(db_rootdata);
 		g_debug("DHT ROOTS scanning %u retrieved target KUID%s",
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	ctx.dbkeys = hset_create(HASH_KEY_FIXED, sizeof(uint64));
@@ -1065,10 +1069,10 @@ roots_init_rootinfo(void)
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_debug("DHT ROOTS kept %u target KUID%s: targets=%u, contacts=%u",
-			(unsigned) count, 1 == count ? "" : "s",
+			(unsigned) count, plural(count),
 			targets_managed, contacts_managed);
 		g_debug("DHT ROOTS stripped %u orphan contact DB-key%s",
-			ctx.orphans, 1 == ctx.orphans ? "" : "s");
+			ctx.orphans, plural(ctx.orphans));
 	}
 
 	/*

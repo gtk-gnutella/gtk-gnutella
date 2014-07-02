@@ -38,13 +38,18 @@
 #include "hosts.h"				/* For struct gnutella_host */
 #include "ipp_cache.h"			/* For tls_cache_lookup() */
 #include "qhit.h"				/* For QHIT_F_* flags */
+#include "version.h"			/* For version_is_dirty(), etc.. */
 
 #include "lib/bstr.h"
 #include "lib/endian.h"
+#include "lib/getdate.h"
 #include "lib/gnet_host.h"
 #include "lib/log.h"
 #include "lib/misc.h"
+#include "lib/product.h"
 #include "lib/sequence.h"
+#include "lib/str.h"
+#include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/vector.h"
@@ -54,6 +59,17 @@
 #include "if/core/search.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+static time_t release_date;
+
+/**
+ * Initialization of the "release date" variable.
+ */
+static void
+ggept_release_date_init(void)
+{
+	release_date = date2time(product_get_date(), tm_time());
+}
 
 /**
  * Extract the SHA1 hash of the "H" extension into the supplied buffer.
@@ -192,9 +208,9 @@ ggept_gtkgv_osname_encode(const char *sysname)
 }
 
 /**
- * @return the value that should be advertised as the OS name.
+ * @return the value that should be advertised as the OS name in "GTKGV".
  */
-uint8
+static uint8
 ggept_gtkgv_osname_value(void)
 {
 	static uint8 result = -1;
@@ -224,18 +240,22 @@ ggept_gtkgv_osname_value(void)
 
 /**
  * Extract payload information from "GTKGV" into `info'.
+ *
+ * @param buf	start of payload
+ * @param len	length of payload
+ * @param info	where information is decompiled
+ *
+ * @return GGEP_OK if OK
  */
 ggept_status_t
-ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
+ggept_gtkgv_extract_data(const void *buf, size_t len, struct ggep_gtkgv *info)
 {
-	const char *p;
-	int tlen;
+	const char *p = buf;
 	ggept_status_t status = GGEP_OK;
 
-	g_assert(exv->ext_type == EXT_GGEP);
-	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV);
-
-	tlen = ext_paylen(exv);
+	g_assert(buf != NULL);
+	g_assert(size_is_non_negative(len));
+	g_assert(info != NULL);
 
 	/*
 	 * The original payload length was 13 bytes.
@@ -249,10 +269,8 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 	 * values for older versions of the payload.
 	 */
 
-	if (tlen < 13)
+	if (len < 13)
 		return GGEP_INVALID;
-
-	p = ext_payload(exv);
 
 	info->version = p[0];
 	info->major = p[1];
@@ -271,7 +289,7 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 		bstr_t *bs;
 		uint8 flags;
 
-		bs = bstr_open(p, tlen, GNET_PROPERTY(ggep_debug) ? BSTR_F_ERROR : 0);
+		bs = bstr_open(p, len, GNET_PROPERTY(ggep_debug) ? BSTR_F_ERROR : 0);
 		bstr_skip(bs, 13);
 
 		if (bstr_read_u8(bs, &flags)) {
@@ -324,6 +342,80 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 	}
 
 	return status;
+}
+
+/**
+ * Extract payload information from "GTKGV" into `info'.
+ */
+ggept_status_t
+ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
+{
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV);
+
+	return ggept_gtkgv_extract_data(ext_payload(exv), ext_paylen(exv), info);
+}
+
+/**
+ * Build the "GTKGV" payload into supplied buffer (which must be GTKGV_MAX_LEN
+ * bytes long).
+ *
+ * @return the length of the GTKGV extension built.
+ */
+size_t
+ggept_gtkgv_build(void *buf, size_t len)
+{
+	uint8 major = product_get_major();
+	uint8 minor = product_get_minor();
+	uint8 revchar = product_get_revchar();
+	uint8 patch = product_get_patchlevel();
+	uint32 release;
+	uint32 date;
+	uint32 build;
+	uint8 version = 1;		/* This is GTKGV version 1 */
+	uint8 osname;
+	uint8 flags;
+	uint8 commit_len;
+	size_t commit_bytes;
+	const sha1_t *commit;
+	str_t s;
+
+	/*
+	 * We can conveniently use a "string" to write binary data, because
+	 * GTKGV_MAX_LEN accounts for the trailing NUL byte that the string
+	 * package invariably accounts for.
+	 */
+
+	str_new_buffer(&s, buf, 0, len);
+
+	flags = GTKGV_F_GIT | GTKGV_F_OS;
+	if (version_is_dirty())
+		flags |= GTKGV_F_DIRTY;
+
+	if G_UNLIKELY(0 == release_date)
+		ggept_release_date_init();
+
+	date = release_date;
+	poke_be32(&release, date);
+	poke_be32(&build, product_get_build());
+
+	commit = version_get_commit(&commit_len);
+	commit_bytes = (1 + commit_len) / 2;
+	osname = ggept_gtkgv_osname_value();
+
+	str_putc(&s, version);
+	str_putc(&s, major);
+	str_putc(&s, minor);
+	str_putc(&s, patch);
+	str_putc(&s, revchar);
+	str_cat_len(&s, (char *) &release, 4);
+	str_cat_len(&s, (char *) &build, 4);
+	str_putc(&s, flags);
+	str_putc(&s, commit_len);
+	str_cat_len(&s, (char *) commit, commit_bytes);
+	str_putc(&s, osname);
+
+	return str_len(&s);
 }
 
 /**
@@ -443,7 +535,7 @@ ggept_ip_seq_append_net(ggep_stream_t *gs,
 			size_t i;
 
 			for (i = 0; i < ecnt; i++) {
-				if (gnet_host_eq(h, &evec[i]))
+				if (gnet_host_equiv(h, &evec[i]))
 					goto next;
 			}
 		}

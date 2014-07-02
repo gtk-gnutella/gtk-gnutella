@@ -136,6 +136,7 @@ struct upload {
 	unsigned last_was_error:1;	/**< Whether last request was an error */
 	unsigned parq_status:1;
 	unsigned fwalt:1;			/**< Downloader accepts firewalled locations */
+	unsigned g2:1;				/**< Initiated via G2 /PUSH */
 };
 
 static inline void
@@ -177,10 +178,12 @@ enum {
  * Global Functions
  */
 
+struct g2_tree;
+
 bool upload_is_enabled(void);
 void upload_timer(time_t now);
 void upload_remove(struct upload *, const char *, ...) G_GNUC_PRINTF(2, 3);
-void handle_push_request(struct gnutella_node *);
+void handle_push_request(struct gnutella_node *, const struct g2_tree *t);
 void upload_add(struct gnutella_socket *);
 void upload_init(void);
 void upload_close(void);
@@ -191,8 +194,8 @@ struct upload *upload_create(struct gnutella_socket *, bool push);
 void upload_fire_upload_info_changed(struct upload *);
 void expect_http_header(struct upload *, upload_stage_t new_status);
 
-GSList *upload_get_info_list(void);
-void upload_free_info_list(GSList **sl_ptr);
+struct pslist *upload_get_info_list(void);
+void upload_free_info_list(struct pslist **sl_ptr);
 
 struct upload *upload_alloc(void);
 void upload_free(struct upload **ptr);

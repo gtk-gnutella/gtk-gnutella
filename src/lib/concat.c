@@ -37,9 +37,11 @@
 #include "common.h"
 
 #include "concat.h"
+
 #include "glib-missing.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 size_t
@@ -130,19 +132,23 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 
 	va_start(ap, first);
 	VA_COPY(ap2, ap);
+
 	len = concat_strings_v(NULL, 0, first, ap);
 	va_end(ap);
+
+	len = size_saturate_add(len, 1);
 
 	if (dst_ptr) {
 		size_t ret;
 
-		*dst_ptr = walloc(len + 1);
-		ret = concat_strings_v(*dst_ptr, len + 1, first, ap2);
-		va_end(ap2);
-		g_assert(ret == len);
+		*dst_ptr = walloc(len);
+		ret = concat_strings_v(*dst_ptr, len, first, ap2);
+		g_assert(ret == len - 1);
 	}
 
-	return 1 + len;
+	va_end(ap2);
+
+	return len;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

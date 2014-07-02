@@ -54,6 +54,7 @@
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/product.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -101,7 +102,7 @@ static void xml_to_jump_rule(xnode_t *, void *);
 static void xml_to_sha1_rule(xnode_t *, void *);
 static void xml_to_flag_rule(xnode_t *, void *);
 static void xml_to_state_rule(xnode_t *, void *);
-static guint16 get_rule_flags_from_xml(xnode_t *);
+static uint16 get_rule_flags_from_xml(xnode_t *);
 
 /*
  * Private variables
@@ -214,11 +215,11 @@ sha1_sort_cmp(const void *a, const void *b)
  * @param error an int variable which will indicate success or failure.
  * @return On success, the parsed value is returned.
  */
-static guint64
+static uint64
 parse_number(const char *buf, int *error)
 {
 	const char *endptr;
-	guint64 ret;
+	uint64 ret;
 
 	g_assert(buf != NULL);
 	g_assert(error != NULL);
@@ -238,7 +239,7 @@ parse_number(const char *buf, int *error)
 /**
  * A wrapper around parse_uint64. It's a little stricter, so that trailing
  * characters enforce an error. It accepts base 16 (decimal) only. On failure
- * *error will be set to a non-zero "errno" value. The value is casted to
+ * *error will be set to a non-zero "errno" value. The value is cast to
  * a pointer.
  *
  * @param buf the string to parse.
@@ -249,8 +250,8 @@ static void *
 parse_target(const char *buf, gint *error)
 {
 	const char *endptr;
-	guint64 v;
-	gulong target; /* Not guint32! for backwards compatibility. See below. */
+	uint64 v;
+	ulong target; /* Not uint32! for backwards compatibility. See below. */
 
 	g_assert(buf != NULL);
 	g_assert(error != NULL);
@@ -272,10 +273,10 @@ parse_target(const char *buf, gint *error)
 	/*
 	 * For backwards compatibility we allow values above 2^32-1 if the
 	 * machine doesn't use 32-bit wide pointers. Older versions used
-	 * the pointer casted to an integer type as target ID.
+	 * the pointer cast to an integer type as target ID.
 	 */
 	if (4 == sizeof(void *)) {
-		if (0 == *error && v > (~(guint32) 0)) {
+		if (0 == *error && v > (~(uint32) 0)) {
 			*error = ERANGE;
 		}
 	}
@@ -300,8 +301,8 @@ parse_target(const char *buf, gint *error)
 static void * 
 target_new_id(gboolean do_reset)
 {
-	static guint32 id_counter;
-	guint32 ret;
+	static uint32 id_counter;
+	uint32 ret;
 
 	/* If target_map is NULL, the counter is reset */
 	if (do_reset) {
@@ -449,8 +450,8 @@ search_retrieve_xml(void)
      */
 
     if (e != VXML_E_OK) {
-        g_warning("error parsing %s file: %s",
-			search_file_xml, vxml_strerror(e));
+        g_warning("%s(): error parsing %s file: %s",
+			G_STRFUNC, search_file_xml, vxml_strerror(e));
 		return FALSE;
     }
 
@@ -599,7 +600,7 @@ builtin_to_xml(xnode_t *parent)
 		{ TAG_BUILTIN_RETURN_UID,		filter_get_return_target },
 	};
     xnode_t *xn;
-	guint i;
+	uint i;
 
     g_assert(parent != NULL);
 
@@ -611,17 +612,17 @@ builtin_to_xml(xnode_t *parent)
 }
 
 static void
-sha1s_to_xml(xnode_t *parent, GSList *sha1s)
+sha1s_to_xml(xnode_t *parent, pslist_t *sha1s)
 {
     xnode_t *xn;
-	GSList *sl;
+	pslist_t *sl;
 
 	if (NULL == sha1s)
 		return;
 
     xn = xml_new_empty_child(parent, NODE_SHA1S);
 
-	GM_SLIST_FOREACH(sha1s, sl) {
+	PSLIST_FOREACH(sha1s, sl) {
 		const struct sha1 *sha1 = sl->data;
 		xml_new_child(xn, NODE_SHA1, sha1_to_string(sha1));
 	}
@@ -633,7 +634,7 @@ search_to_xml(xnode_t *parent, const struct search *search)
 	gnet_search_t search_handle;
     xnode_t *newxml;
     GList *iter;
-	GSList *sha1s;
+	pslist_t *sha1s;
 
     g_assert(search != NULL);
 	search_handle = search_gui_get_handle(search);
@@ -681,9 +682,9 @@ search_to_xml(xnode_t *parent, const struct search *search)
 		search_gui_get_sort_order(search));
 
 	sha1s = guc_search_associated_sha1(search_handle);
-	sha1s = g_slist_sort(sha1s, sha1_sort_cmp);
+	sha1s = pslist_sort(sha1s, sha1_sort_cmp);
 	sha1s_to_xml(newxml, sha1s);
-	g_slist_free(sha1s);
+	pslist_free_null(&sha1s);
 
     iter = search_gui_get_filter(search)->ruleset;
     for (/* NOTHING */; iter != NULL; iter = g_list_next(iter)) {
@@ -979,7 +980,7 @@ xml_to_search(xnode_t *xn, void *unused_udata)
     const char *buf;
     const char *query;
     gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
-    guint32 reissue_timeout;
+    uint32 reissue_timeout;
 	unsigned media_type = 0;
     xnode_t *xc;
     struct search *search;
@@ -1054,7 +1055,7 @@ xml_to_search(xnode_t *xn, void *unused_udata)
 	if (create_time == (time_t) -1)
 		create_time = tm_time();
 
-	lifetime = (guint) -1;
+	lifetime = -1U;
 	buf = xnode_prop_get(xn, TAG_SEARCH_LIFETIME);
     if (buf) {
 		gint error;
@@ -1117,14 +1118,17 @@ xml_to_sha1(xnode_t *xn, const struct search *search)
     g_assert(0 == ascii_strcasecmp(xnode_element_name(xn), NODE_SHA1));
 
 	value = xnode_first_child(xn);
-	if (!xnode_is_text(value)) {
-		g_warning("first XML child node for %s is not text but %s",
-			xnode_to_string(xn), xnode_to_string2(value));
-		goto no_content;
-	}
 
 	if (value != NULL) {
-		const char *b32 = xnode_text(value);
+		const char *b32;
+
+		if (!xnode_is_text(value)) {
+			g_warning("first XML child node for %s is not text but %s",
+				xnode_to_string(xn), xnode_to_string2(value));
+			goto no_content;
+		}
+
+		b32 = xnode_text(value);
 
 		if (b32 != NULL) {
 			const struct sha1 *sha1;
@@ -1178,7 +1182,7 @@ xml_to_filter(xnode_t *xn, void *unused_data)
     void *dest;
     gboolean active = TRUE;
 	int error;
-	guint64 v;
+	uint64 v;
 
     g_assert(xn != NULL);
     g_assert(xnode_element_name(xn) != NULL);
@@ -1264,8 +1268,8 @@ xml_to_text_rule(xnode_t *xn, void *data)
     const char *buf = NULL;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
-	guint64 v;
+    uint16 flags;
+	uint64 v;
 	int error;
 
     g_assert(xn != NULL);
@@ -1322,11 +1326,11 @@ static void
 xml_to_ip_rule(xnode_t *xn, void *data)
 {
     host_addr_t addr;
-    guint32 mask;
+    uint32 mask;
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1390,7 +1394,7 @@ xml_to_size_rule(xnode_t *xn, void *data)
     filesize_t lower, upper;
     const char *buf;
     rule_t *rule;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1449,7 +1453,7 @@ xml_to_jump_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1489,7 +1493,7 @@ xml_to_sha1_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
 
     g_assert(xn != NULL);
@@ -1547,8 +1551,8 @@ xml_to_flag_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
-	guint64 v;
+    uint16 flags;
+	uint64 v;
 	int error;
 
     g_assert(xn != NULL);
@@ -1621,9 +1625,9 @@ xml_to_state_rule(xnode_t *xn, void *data)
     const char *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
-    guint16 flags;
+    uint16 flags;
 	int error;
-	guint64 v;
+	uint64 v;
 
     g_assert(xn != NULL);
     g_assert(xnode_element_name(xn) != NULL);
@@ -1681,16 +1685,16 @@ failure:
 	XML_BAD_NODE(xn);
 }
 
-static guint16
+static uint16
 get_rule_flags_from_xml(xnode_t *xn)
 {
     gboolean negate = FALSE;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
-    guint16 flags;
+    uint16 flags;
     const char *buf;
 	int error;
-	guint64 v;
+	uint64 v;
 
     g_assert(xn != NULL);
 

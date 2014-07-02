@@ -61,9 +61,9 @@
 #include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
@@ -71,7 +71,8 @@
 #include "lib/hikset.h"
 #include "lib/htable.h"
 #include "lib/parse.h"
-#include "lib/random.h"
+#include "lib/pslist.h"
+#include "lib/shuffle.h"
 #include "lib/str.h"
 #include "lib/strtok.h"
 #include "lib/timestamp.h"
@@ -193,7 +194,7 @@ urlinfo_eq(const void *a, const void *b)
 
 	return ia->port == ib->port &&
 		ia->idx == ib->idx &&
-		host_addr_equal(ia->addr, ib->addr) &&
+		host_addr_equiv(ia->addr, ib->addr) &&
 		(ia->name == ib->name || 0 == strcmp(ia->name, ib->name));
 }
 
@@ -285,8 +286,8 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 	 *		-- JA 24/10/2003
 	 */
 	if (dmb->sha1 != NULL) {
-		GSList *by_addr;
-		GSList *head;
+		pslist_t *by_addr;
+		pslist_t *head;
 		const void *key;		/* The SHA1 atom used for key in table */
 		void *x;
 		bool found;
@@ -294,7 +295,7 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 		found = htable_lookup_extended(ban_mesh_by_sha1, dmb->sha1, &key, &x);
 		g_assert(found);
 		head = by_addr = x;
-		by_addr = g_slist_remove(by_addr, dmb);
+		by_addr = pslist_remove(by_addr, dmb);
 
 		if (by_addr == NULL) {
 			htable_remove(ban_mesh_by_sha1, key);
@@ -370,6 +371,9 @@ dmesh_ban_add(const struct sha1 *sha1,
 
 		hikset_insert(ban_mesh, dmb);
 
+		entropy_harvest_many(VARLEN(ui), VARLEN(dmb),
+			ui->name, strlen(ui->name), PTRLEN(sha1), NULL);
+
 		/*
 		 * Keep record of banned hosts by SHA1 Hash. We will use this to send
 		 * out X-Nalt locations.
@@ -377,7 +381,7 @@ dmesh_ban_add(const struct sha1 *sha1,
 		 */
 
 		if (sha1 != NULL) {
-			GSList *by_addr;
+			pslist_t *by_addr;
 			bool existed;
 
 			dmb->sha1 = atom_sha1_get(sha1);
@@ -390,7 +394,7 @@ dmesh_ban_add(const struct sha1 *sha1,
              */
 			by_addr = htable_lookup(ban_mesh_by_sha1, sha1);
 			existed = by_addr != NULL;
-			by_addr = g_slist_append(by_addr, dmb);
+			by_addr = pslist_append(by_addr, dmb);
 
 			if (!existed) {
 				htable_insert_const(ban_mesh_by_sha1,
@@ -450,35 +454,23 @@ dmesh_can_use_fwalt(void)
  *** Mesh URL parsing.
  ***/
 
-static const char * const parse_errstr[] = {
-	"OK",									/**< DMESH_URL_OK */
-	"HTTP parsing error",					/**< DMESH_URL_HTTP_PARSER */
-	"File prefix neither /uri-res nor /get",/**< DMESH_URL_BAD_FILE_PREFIX */
-	"Index in /get/index is reserved",		/**< DMESH_URL_RESERVED_INDEX */
-	"No filename after /get/index",			/**< DMESH_URL_NO_FILENAME */
-	"Bad URL encoding",						/**< DMESH_URL_BAD_ENCODING */
-	"Malformed /uri-res/N2R?",				/**< DMESH_URL_BAD_URI_RES */
-};
-
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
 const char *
 dmesh_url_strerror(dmesh_url_error_t errnum)
 {
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr))
-		return "Invalid error code";
+	if (DMESH_URL_HTTP_PARSER == errnum) {
+		str_t *s = str_private(G_STRFUNC, 80);
 
-	if (errnum == DMESH_URL_HTTP_PARSER) {
-		static char http_error_str[128];
+		str_printf(s, "%s: %s",
+			dmesh_url_error_to_string(errnum),
+			http_url_strerror(http_url_errno));
 
-		concat_strings(http_error_str, sizeof http_error_str,
-			parse_errstr[errnum], ": ", http_url_strerror(http_url_errno),
-			(void *) 0);
-		return http_error_str;
+		return str_2c(s);
 	}
 
-	return parse_errstr[errnum];
+	return dmesh_url_error_to_string(errnum);
 }
 
 /**
@@ -722,9 +714,13 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 static bool
 sha1_of_finished_file(const struct sha1 *sha1)
 {
-	const shared_file_t *sf = shared_file_by_sha1(sha1);
+	shared_file_t *sf = shared_file_by_sha1(sha1);
+	bool finished;
 
-	return sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
+	finished = sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
+	shared_file_unref(&sf);
+
+	return finished;
 }
 
 /**
@@ -749,8 +745,8 @@ dm_lifetime(const struct dmesh *dm)
 static void
 dm_expire(struct dmesh *dm)
 {
-	GSList *expired = NULL;
-	GSList *sl;
+	pslist_t *expired = NULL;
+	pslist_t *sl;
 	time_t now = tm_time();
 	long agemax;
 	list_iter_t *iter;
@@ -780,18 +776,18 @@ dm_expire(struct dmesh *dm)
 					dmesh_urlinfo_to_string(&dme->e.url),
 				(unsigned) delta_time(now, dme->stamp));
 
-		expired = g_slist_prepend(expired, dme);
+		expired = pslist_prepend(expired, dme);
 	}
 
 	list_iter_free(&iter);
 
-	for (sl = expired; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(expired, sl) {
 		struct dmesh_entry *dme = sl->data;
 
 		dm_remove_entry(dm, dme);
 	}
 
-	g_slist_free(expired);
+	pslist_free(expired);
 
 	dm->last_update = tm_time();
 }
@@ -814,6 +810,8 @@ dmesh_dispose(const struct sha1 *sha1)
 
 	hikset_remove(mesh, sha1);
 	dm_free(dm);
+
+	entropy_harvest_single(PTRLEN(sha1));
 }
 
 /**
@@ -1008,7 +1006,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		 * Entry for this host existed.
 		 */
 
-		g_assert(host_addr_equal(dme->e.url.addr, addr));
+		g_assert(host_addr_equiv(dme->e.url.addr, addr));
 		g_assert(dme->e.url.port == port);
 
 		/*
@@ -1042,6 +1040,9 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		dme->bad = NULL;
 		dme->good = FALSE;
 		dme->fw_entry = FALSE;
+
+		entropy_harvest_many(name, strlen(name),
+			VARLEN(dme), PTRLEN(sha1), NULL);
 
 		if (GNET_PROPERTY(dmesh_debug))
 			g_debug("dmesh entry created for urn:sha1:%s at %s",
@@ -1173,6 +1174,9 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		dme->bad = NULL;
 		dme->good = FALSE;
 		dme->fw_entry = TRUE;
+
+		entropy_harvest_many(PTRLEN(info->guid),
+			VARLEN(dme), PTRLEN(sha1), NULL);
 
 		if (GNET_PROPERTY(dmesh_debug))
 			g_debug("dmesh entry created for urn:sha1:%s for %s",
@@ -1325,7 +1329,7 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 		return;
 
 	g_assert(dme->e.url.port == port);
-	g_assert(host_addr_equal(dme->e.url.addr, addr));
+	g_assert(host_addr_equiv(dme->e.url.addr, addr));
 
 	if (dme->bad == NULL)
 		dme->bad = hash_list_new(host_addr_hash_func, host_addr_eq_func);
@@ -1401,7 +1405,7 @@ retry:
 	}
 
 	g_assert(dme->e.url.port == port);
-	g_assert(host_addr_equal(dme->e.url.addr, addr));
+	g_assert(host_addr_equiv(dme->e.url.addr, addr));
 
 	/*
 	 * Get rid of the "bad" reporting if we're flagging it as good!
@@ -1845,38 +1849,18 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 
 	/*
 	 * Second pass: choose at most `hcnt' entries at random.
+	 *
+	 * We do this by randomly shuffling the whole array and then selecting
+	 * the first `hcnt' entries.
 	 */
 
-	for (i = j = 0; i < nselected && j < hcnt; i++) {
+	shuffle(selected, nselected, sizeof selected[0]);
+
+	for (i = j = 0; i < nselected && j < hcnt; i++, j++) {
 		struct dmesh_entry *dme;
-		int nleft = nselected - i;
-		int npick = random_value(nleft - 1);
-		int k;
-		int n;
 
-		/*
-		 * The `npick' variable is the index of the selected entry, all
-		 * NULL pointers we can encounter on our path not-withstanding.
-		 */
-
-		for (k = 0, n = npick; n >= 0; /* empty */) {
-			g_assert(k < nselected);
-			if (selected[k] == NULL) {
-				k++;
-				continue;
-			}
-			n--;
-		}
-
-		g_assert(k < nselected);
-
-		dme = selected[k];
-		selected[k] = NULL;				/* Can't select same entry twice */
-
-		g_assert(j < hcnt);
-
+		dme = selected[i];
 		gnet_host_set(&hvec[j], dme->e.url.addr, dme->e.url.port);
-		j++;
 	}
 
 	return j;		/* Amount we filled in vector */
@@ -1982,11 +1966,11 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	char url[1024];
 	struct dmesh *dm;
 	size_t len = 0;
-	GSList *l;
+	pslist_t *l;
 	int nselected = 0;
 	struct dmesh_entry *selected[MAX_ENTRIES];
 	int i;
-	GSList *by_addr;
+	pslist_t *by_addr;
 	size_t maxlinelen = 0;
 	header_fmt_t *fmt;
 	bool added;
@@ -2049,7 +2033,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		added = FALSE;
 
 		/* Loop through the X-Nalts */
-		for (l = by_addr; l != NULL; l = g_slist_next(l)) {
+		PSLIST_FOREACH(by_addr, l) {
 			struct dmesh_banned *banned = l->data;
 			dmesh_urlinfo_t *info = banned->info;
 
@@ -2201,7 +2185,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		if (delta_time(dme->inserted, last_sent) <= 0)
 			continue;
 
-		if (host_addr_equal(dme->e.url.addr, addr))
+		if (host_addr_equiv(dme->e.url.addr, addr))
 			continue;
 
 		if (!hcache_addr_within_net(dme->e.url.addr, net))
@@ -2233,32 +2217,11 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * Second pass.
 	 */
 
+	shuffle(selected, nselected, sizeof selected[0]);
+
 	for (i = 0; i < nselected; i++) {
-		struct dmesh_entry *dme;
-		int nleft = nselected - i;
-		int npick = random_value(nleft - 1);
-		int j;
-		int n;
+		struct dmesh_entry *dme = selected[i];
 		size_t url_len;
-
-		/*
-		 * The `npick' variable is the index of the selected entry, all
-		 * NULL pointers we can encounter on our path not-withstanding.
-		 */
-
-		for (j = 0, n = npick; n >= 0; /* empty */) {
-			g_assert(j < nselected);
-			if (selected[j] == NULL) {
-				j++;
-				continue;
-			}
-			n--;
-		}
-
-		g_assert(j < nselected);
-
-		dme = selected[j];
-		selected[j] = NULL;				/* Can't select same entry twice */
 
 		g_assert(delta_time(dme->inserted, last_sent) > 0);
 
@@ -2536,7 +2499,7 @@ dmesh_collect_compact_locations_cback(
 	if (
 		origin != NULL &&
 		port == gnet_host_get_port(origin) &&
-		host_addr_equal(addr, gnet_host_get_addr(origin))
+		host_addr_equiv(addr, gnet_host_get_addr(origin))
 	) {
 		dmesh_good_mark(sha1, addr, port, TRUE);
 
@@ -2825,7 +2788,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			URN_INDEX == info.idx &&
 			origin != NULL &&
 			info.port == gnet_host_get_port(origin) &&
-			host_addr_equal(info.addr, gnet_host_get_addr(origin))
+			host_addr_equiv(info.addr, gnet_host_get_addr(origin))
 		) {
 			dmesh_good_mark(sha1, info.addr, info.port, TRUE);
 
@@ -2981,16 +2944,13 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		if (!string_to_host_addr_port(tok, NULL, &addr, &port))
 			continue;
 
-		if (!seen_guid)
-			break;			/* No GUID before proxy list, something is wrong */
-
 		seen_proxy = TRUE;	/* Entering the push-proxy list */
 
 		if (is_private_addr(addr) || !host_is_valid(addr, port))
 			continue;
 
 		if (info.proxies == NULL)
-			info.proxies = hash_list_new(gnet_host_hash, gnet_host_eq);
+			info.proxies = hash_list_new(gnet_host_hash, gnet_host_equal);
 
 		gnet_host_set(&host, addr, port);
 		if (!hash_list_contains(info.proxies, &host)) {
@@ -3039,10 +2999,10 @@ dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
 void
 dmesh_check_results_set(gnet_results_set_t *rs)
 {
-	GSList *sl;
+	pslist_t *sl;
 	time_t now = tm_time();
 
-	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
 		dmesh_urlinfo_t info;
 		bool has = FALSE;
@@ -3061,10 +3021,11 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		has = hikset_contains(mesh, rc->sha1);
 
 		if (!has) {
-			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
+			shared_file_t *sf = shared_file_by_sha1(rc->sha1);
 			has =	sf != NULL &&
 					sf != SHARE_REBUILDING &&
 					!shared_file_is_partial(sf);
+			shared_file_unref(&sf);
 		}
 
 		if (has) {
@@ -3426,9 +3387,9 @@ static void
 dmesh_ban_prepend_list(void *value, void *user)
 {
 	struct dmesh_banned *dmb = value;
-	GSList **listref = user;
+	pslist_t **listref = user;
 
-	*listref = g_slist_prepend(*listref, dmb);
+	*listref = pslist_prepend(*listref, dmb);
 }
 
 /**
@@ -3437,8 +3398,8 @@ dmesh_ban_prepend_list(void *value, void *user)
 G_GNUC_COLD void
 dmesh_close(void)
 {
-	GSList *banned = NULL;
-	GSList *sl;
+	pslist_t *banned = NULL;
+	pslist_t *sl;
 
 	dmesh_store();
 	dmesh_ban_store();
@@ -3454,13 +3415,13 @@ dmesh_close(void)
 
 	hikset_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
 
-	for (sl = banned; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(banned, sl) {
 		struct dmesh_banned *dmb = sl->data;
 		cq_cancel(&dmb->cq_ev);
 		dmesh_ban_expire(dmesh_cq, dmb);
 	}
 
-	gm_slist_free_null(&banned);
+	pslist_free_null(&banned);
 	hikset_free_null(&ban_mesh);
 	htable_free_null(&ban_mesh_by_sha1);
 

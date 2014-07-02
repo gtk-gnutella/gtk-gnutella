@@ -49,6 +49,8 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
+#include "lib/hikset.h"
 #include "lib/misc.h"
 #include "lib/pmsg.h"
 #include "lib/product.h"
@@ -104,7 +106,7 @@ struct guiddata {
 static cperiodic_t *guid_prune_ev;		/**< Bad GUID pruning */
 static cperiodic_t *guid_sync_ev;		/**< Bad GUID DB sync */
 
-const struct guid blank_guid;
+const guid_t blank_guid;
 
 static uint8 syndrome_table[256];
 static uint16 gtkg_version_mark;
@@ -241,7 +243,7 @@ guid_gtkg_encode_version(unsigned major, unsigned minor, bool rel)
  * Compute HEC for GUID bytes ``start'' to ``end'', inclusive.
  */
 static inline uint8
-calculate_hec(const struct guid *guid, int start, int end)
+calculate_hec(const guid_t *guid, int start, int end)
 {
 	int i;
 	uint8 hec = 0;
@@ -259,7 +261,7 @@ calculate_hec(const struct guid *guid, int start, int end)
  * Compute GUID's HEC over bytes 1..15.
  */
 static uint8
-guid_hec(const struct guid *guid)
+guid_hec(const guid_t *guid)
 {
 	return calculate_hec(guid, 1, 15);
 }
@@ -272,7 +274,7 @@ guid_hec(const struct guid *guid)
  * an ultrapeer (the IP:port field being superseded later).
  */
 static uint8
-guid_hec_oob_legacy(const struct guid *guid)
+guid_hec_oob_legacy(const guid_t *guid)
 {
 	return calculate_hec(guid, 0, 14);
 }
@@ -289,7 +291,7 @@ guid_hec_oob_legacy(const struct guid *guid)
  * queries, even for those not initially sent out with OOB.
  */
 static uint8
-guid_hec_oob(const struct guid *guid)
+guid_hec_oob(const guid_t *guid)
 {
 	return calculate_hec(guid, 4, 12);
 }
@@ -303,7 +305,7 @@ guid_hec_oob(const struct guid *guid)
  * specially to indicate we're modern nodes.
  */
 static void
-guid_flag_modern(struct guid *muid)
+guid_flag_modern(guid_t *muid)
 {
 	/*
 	 * We're a "modern" client, meaning we're not Gnutella 0.56.
@@ -324,7 +326,7 @@ guid_flag_modern(struct guid *muid)
  * Byte 0 becomes the HEC of the remaining 15 bytes.
  */
 static void
-guid_flag_gtkg(struct guid *guid)
+guid_flag_gtkg(guid_t *guid)
 {
 	poke_be16(&guid->v[2], gtkg_version_mark);
 	guid->v[0] = guid_hec(guid);
@@ -337,7 +339,7 @@ guid_flag_gtkg(struct guid *guid)
  * Byte 15 becomes the HEC of the leading 15 bytes.
  */
 static void
-guid_flag_oob_gtkg(struct guid *muid)
+guid_flag_oob_gtkg(guid_t *muid)
 {
 	poke_be16(&muid->v[4], gtkg_version_mark);
 	muid->v[15] = guid_hec_oob(muid);		/* guid_hec() skips leading byte */
@@ -356,7 +358,7 @@ guid_flag_oob_gtkg(struct guid *muid)
  * @return whether we recognized a GTKG markup.
  */
 static bool
-guid_extract_gtkg_info(const struct guid *guid, size_t start,
+guid_extract_gtkg_info(const guid_t *guid, size_t start,
 	uint8 *majp, uint8 *minp, bool *relp)
 {
 	uint8 major;
@@ -409,8 +411,7 @@ guid_extract_gtkg_info(const struct guid *guid, size_t start,
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
 bool
-guid_is_gtkg(const struct guid *guid,
-	uint8 *majp, uint8 *minp, bool *relp)
+guid_is_gtkg(const guid_t *guid, uint8 *majp, uint8 *minp, bool *relp)
 {
 	if (peek_u8(&guid->v[0]) != guid_hec(guid))
 		return FALSE;
@@ -422,7 +423,7 @@ guid_is_gtkg(const struct guid *guid,
  * Test whether a GTKG MUID in a Query is marked as being a retry.
  */
 bool
-guid_is_requery(const struct guid *guid)
+guid_is_requery(const guid_t *guid)
 {
 	return (peek_u8(&guid->v[15]) & GUID_REQUERY) ? TRUE : FALSE;
 }
@@ -431,7 +432,7 @@ guid_is_requery(const struct guid *guid)
  * Test whether a GUID is blank.
  */
 bool
-guid_is_blank(const struct guid *guid)
+guid_is_blank(const guid_t *guid)
 {
 	size_t i;
 
@@ -448,7 +449,7 @@ guid_is_blank(const struct guid *guid)
  * Generate a new random GUID, flagged as GTKG.
  */
 void
-guid_random_muid(struct guid *muid)
+guid_random_muid(guid_t *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
@@ -458,7 +459,7 @@ guid_random_muid(struct guid *muid)
  * Generate a new random (modern) message ID for pings.
  */
 void
-guid_ping_muid(struct guid *muid)
+guid_ping_muid(guid_t *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_modern(muid);
@@ -470,7 +471,7 @@ guid_ping_muid(struct guid *muid)
  * If `initial' is false, this is a requery.
  */
 void
-guid_query_muid(struct guid *muid, bool initial)
+guid_query_muid(guid_t *muid, bool initial)
 {
 	guid_random_fill(muid);
 
@@ -492,12 +493,47 @@ guid_query_muid(struct guid *muid, bool initial)
 }
 
 /**
+ * Generate a new GUID atom that is not already conflicting with any other
+ * GUID recorded in the supplied hikset (hash set with values pointing to
+ * the GUID key).
+ *
+ * @attention
+ * It is up to the caller to later insert the value referencing this GUID in
+ * the hikset to prevent further duplicates.  To avoid race conditions between
+ * the checking of the hiset and the insertion, the hikset should be locked
+ * if it is shared by multiple threads.
+ *
+ * @param hik		the hikset against which we need to check for duplicates
+ * @param gtkg		whether to flag the GUID as being generated by GTKG.
+ *
+ * @return a new unique GUID atom.
+ */
+const guid_t *
+guid_unique_atom(const hikset_t *hik, bool gtkg)
+{
+	int i;
+	guid_t guid;
+
+	entropy_harvest_time();
+
+	for (i = 0; i < 100; i++) {
+		guid_random_fill(&guid);
+		if (gtkg)
+			guid_flag_gtkg(&guid);	/* Mark as being from GTKG */
+
+		if (NULL == hikset_lookup(hik, &guid))
+			return atom_guid_get(&guid);
+	}
+
+	g_error("%s(): no luck with random number generator", G_STRFUNC);
+}
+
+/**
  * Test whether GUID is that of GTKG, and extract version major/minor, along
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
 static bool
-guid_oob_is_gtkg(const struct guid *guid,
-	uint8 *majp, uint8 *minp, bool *relp)
+guid_oob_is_gtkg(const guid_t *guid, uint8 *majp, uint8 *minp, bool *relp)
 {
 	uint8 hec;
 
@@ -547,7 +583,7 @@ guid_oob_is_gtkg(const struct guid *guid,
  * @param relp	where the release indicator gets written, if GTKG
  */
 bool
-guid_query_muid_is_gtkg(const struct guid *guid, bool oob,
+guid_query_muid_is_gtkg(const guid_t *guid, bool oob,
 	uint8 *majp, uint8 *minp, bool *relp)
 {
 	/*
@@ -583,7 +619,7 @@ guid_query_muid_is_gtkg(const struct guid *guid, bool oob,
  * Byte 15 holds an HEC with bit 0 indicating a requery.
  */
 void
-guid_query_oob_muid(struct guid *muid, const host_addr_t addr, uint16 port,
+guid_query_oob_muid(guid_t *muid, const host_addr_t addr, uint16 port,
 	bool initial)
 {
 	uint32 ip;
@@ -612,8 +648,7 @@ guid_query_oob_muid(struct guid *muid, const host_addr_t addr, uint16 port,
  * Bytes 13 and 14 are the little endian representation of the port.
  */
 void
-guid_oob_get_addr_port(const struct guid *guid,
-	host_addr_t *addr, uint16 *port)
+guid_oob_get_addr_port(const guid_t *guid, host_addr_t *addr, uint16 *port)
 {
 	if (addr) {
 		/*
@@ -632,16 +667,26 @@ guid_oob_get_addr_port(const struct guid *guid,
  * Is GUID banned?
  */
 bool
-guid_is_banned(const struct guid *guid)
+guid_is_banned(const guid_t *guid)
 {
 	return dbmw_exists(db_guid, guid);
+}
+
+/**
+ * Free GUID atom -- aging table callback version.
+ */
+void
+guid_free_atom2(void *guid, void *unused)
+{
+	(void) unused;
+	atom_guid_free(guid);
 }
 
 /**
  * Get banned GUID data from database, returning NULL if not found.
  */
 static struct guiddata *
-get_guiddata(const struct guid *guid)
+get_guiddata(const guid_t *guid)
 {
 	struct guiddata *gd;
 
@@ -649,7 +694,8 @@ get_guiddata(const struct guid *guid)
 
 	if (NULL == gd) {
 		if (dbmw_has_ioerr(db_guid)) {
-			g_warning("DBMW \"%s\" I/O error", dbmw_name(db_guid));
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error", dbmw_name(db_guid));
 		}
 	}
 
@@ -661,7 +707,7 @@ get_guiddata(const struct guid *guid)
  * it as being worth banning.
  */
 void
-guid_add_banned(const struct guid *guid)
+guid_add_banned(const guid_t *guid)
 {
 	struct guiddata *gd;
 	struct guiddata new_gd;

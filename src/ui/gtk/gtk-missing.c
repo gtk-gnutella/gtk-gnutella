@@ -192,7 +192,7 @@ gtk_main_flush(void)
 
 	if (i > GTK_ITERATION_MAX && !val) {
 		if (GUI_PROPERTY(gui_debug)) {
-			g_warning("gtk_main_flush: too much work");
+			g_warning("%s(): too much work", G_STRFUNC);
 		}
 	}
 
@@ -219,7 +219,7 @@ option_menu_select_item_by_data(GtkOptionMenu *option_menu, gconstpointer data)
         }
     }
 
-	g_warning("option_menu_select_item_by_data: no item with data %p", data);
+	g_warning("%s(): no item with data %p", G_STRFUNC, data);
 }
 
 
@@ -650,7 +650,7 @@ on_tree_view_motion_notify(GtkWidget *widget,
 		EVENT_TYPE(GDK_WINDOW_STATE)
 		EVENT_TYPE(GDK_SETTING)
 		default:
-			str_bprintf(type, sizeof type, "%ld", (gulong) event->type);
+			str_bprintf(type, sizeof type, "%ld", (ulong) event->type);
 		}
 #undef EVENT_TYPE
 

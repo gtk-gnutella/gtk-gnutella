@@ -38,6 +38,8 @@
 #include "common.h"
 
 #include "symbols.h"
+
+#include "array_util.h"
 #include "ascii.h"
 #include "base16.h"
 #include "bfd_util.h"
@@ -91,6 +93,16 @@ symbols_check(const struct symbols * const s)
 }
 
 static const char NM_FILE[] = "gtk-gnutella.nm";
+static bool symbols_verbose;
+
+/**
+ * Should symbol loading be verbosely notified?
+ */
+void
+symbols_set_verbose(bool verbose)
+{
+	symbols_verbose = verbose;
+}
 
 /**
  * @return amount of symbols
@@ -297,18 +309,13 @@ symbol_cmp(const void *p, const void *q)
 static void
 symbols_remove(symbols_t *st, size_t i)
 {
-	struct symbol *s;
-
 	symbols_check(st);
 	g_assert(size_is_non_negative(i));
-	g_assert(i < st->count);
 
-	s = &st->base[i];
 	if (!st->once)
-		xfree(deconstify_pointer(s->name));
-	if (i < st->count - 1)
-		memmove(s, s + 1, (st->count - i - 1) * sizeof *s);
-	st->count--;
+		xfree(deconstify_pointer(st->base[i].name));
+
+	ARRAY_REMOVE_DEC(st->base, i, st->count);
 }
 
 /**
@@ -850,13 +857,13 @@ static bool
 symbols_sha1(const char *file, struct sha1 *digest)
 {
 	int fd;
-	SHA1Context ctx;
+	SHA1_context ctx;
 
 	fd = file_open(file, O_RDONLY, 0);
 	if (-1 == fd)
 		return FALSE;
 
-	SHA1Reset(&ctx);
+	SHA1_reset(&ctx);
 
 	for (;;) {
 		char buf[512];
@@ -869,14 +876,14 @@ symbols_sha1(const char *file, struct sha1 *digest)
 			return FALSE;
 		}
 
-		SHA1Input(&ctx, buf, r);
+		SHA1_input(&ctx, buf, r);
 
 		if (r != sizeof buf)
 			break;
 	}
 
 	close(fd);
-	SHA1Result(&ctx, digest);
+	SHA1_result(&ctx, digest);
 
 	return TRUE;
 }
@@ -1226,13 +1233,16 @@ use_pre_computed:
 	}
 
 done:
-	s_info("loaded %zu symbols for \"%s\" via %s", st->count, lpath, method);
+	if (symbols_verbose) {
+		s_info("loaded %zu symbols for \"%s\" via %s",
+			st->count, lpath, method);
+	}
 
 	stripped = symbols_sort(st);
 
-	if (stripped != 0) {
+	if (stripped != 0 && symbols_verbose) {
 		s_warning("stripped %zu duplicate symbol%s",
-			stripped, 1 == stripped ? "" : "s");
+			stripped, plural(stripped));
 	}
 
 	symbols_check_consistency(st);

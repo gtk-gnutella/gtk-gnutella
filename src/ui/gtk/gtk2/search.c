@@ -36,7 +36,6 @@
 
 #include "search_cb.h"
 
-#include "gtk/bitzi.h"
 #include "gtk/columns.h"
 #include "gtk/drag.h"
 #include "gtk/misc.h"
@@ -44,10 +43,11 @@
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 
+#include "column_sort.h"
+
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
-#include "if/core/bitzi.h"
 #include "if/core/sockets.h"
 
 #include "lib/ascii.h"
@@ -68,6 +68,7 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 static GtkTreeView *tree_view_search;
+static struct sorting_context search_list_sort;
 
 /** For cyclic updates of the tooltip. */
 static tree_view_motion_t *tvm_search;
@@ -76,7 +77,6 @@ struct result_data {
 	GtkTreeIter iter;
 
 	record_t *record;
-	const gchar *meta;	/**< Atom */
 	guint children;		/**< count of children */
 	gnet_search_t sh;	/**< Search handle */
 	enum gui_color color;
@@ -149,7 +149,8 @@ search_gui_synchronize_list(GtkTreeModel *model)
 	struct synchronize_search_list ctx;
 
 	ctx.model = model;
-	gtk_tree_model_get_iter_first(model, &ctx.iter);
+	if (!gtk_tree_model_get_iter_first(model, &ctx.iter))
+		return;
 	search_gui_synchronize_search_list(synchronize_search_list_callback, &ctx);
 }
 
@@ -167,7 +168,9 @@ static void
 on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
 {
 	(void) unused_udata;
-	
+
+	column_sort_tristate(column, &search_list_sort);
+
 	search_gui_synchronize_list(gtk_tree_view_get_model(
 		GTK_TREE_VIEW(column->tree_view)));
 }
@@ -198,9 +201,6 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		break;
 	case c_sr_mime:
 		text = mime_type_to_string(mime_type_from_extension(data->record->ext));
-		break;
-	case c_sr_meta:
-		text = data->meta;
 		break;
 	case c_sr_vendor:
 		if (!(ST_LOCAL & rs->status))
@@ -380,8 +380,6 @@ result_data_free(search_t *search, struct result_data *rd)
 {
 	record_check(rd->record);
 
-	atom_str_free_null(&rd->meta);
-
 	g_assert(hset_contains(search->dups, rd->record));
 	hset_remove(search->dups, rd->record);
 	search_gui_unref_record(rd->record);
@@ -513,78 +511,37 @@ search_gui_enable_sort(struct search *search)
 
 	if (
 		search->sort &&
-		SORT_NONE != search->sort_order &&
-		UNSIGNED(search->sort_col) < SEARCH_RESULTS_VISIBLE_COLUMNS
+		SORT_NONE != search->sorting.s_order &&
+		UNSIGNED(search->sorting.s_column) < SEARCH_RESULTS_VISIBLE_COLUMNS
 	) {
 		GtkTreeModel *model;
 		GtkSortType order;
 
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
-		order = SORT_ASC == search->sort_order
+		order = SORT_ASC == search->sorting.s_order
 					? GTK_SORT_ASCENDING
 					: GTK_SORT_DESCENDING;
 		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model),
-			search->sort_col, order);
+			search->sorting.s_column, order);
 	} else {
 		search_gui_disable_sort(search);
 	}
 }
 
-/*
- * Here we enforce a tri-state sorting. Normally, Gtk+ would only
- * switch between ascending and descending but never switch back
- * to the unsorted state.
- *
- * 			+--> sort ascending -> sort descending -> unsorted -+
- *      	|                                                   |
- *      	+-----------------------<---------------------------+
- */
-
-/*
- * "order" is set to the current sort-order, not the previous one
- * i.e., Gtk+ has already changed the order
+/**
+ * Enforce a tri-state sorting.
  */
 static void
 on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	void *udata)
 {
 	struct search *search = udata;
-	GtkTreeModel *model;
-	GtkTreeSortable *sortable;
-	int sort_col;
 
-	/* The default treeview is empty */
-	if (!search)
-		return;
+	if (NULL == search)
+		return;				/* The default treeview is empty */
 
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view));
-	sortable = GTK_TREE_SORTABLE(model);
-	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
-
-	/* If the user switched to another sort column, reset the sort order. */
-	if (search->sort_col != sort_col) {
-		search->sort_order = SORT_NONE;
-	}
-
-	search->sort_col = sort_col;
-
-	/* The search has to keep state about the sort order itself because
-	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
-	switch (search->sort_order) {
-	case SORT_NONE:
-	case SORT_NO_COL:
-		search->sort_order = SORT_ASC;
-		break;
-	case SORT_ASC:
-		search->sort_order = SORT_DESC;
-		break;
-	case SORT_DESC:
-		search->sort_order = SORT_NONE;
-		break;
-	}
-	search_gui_enable_sort(search);
+	column_sort_tristate(column, &search->sorting);
 }
-
 
 char *
 search_gui_get_local_file_url(GtkWidget *widget)
@@ -727,13 +684,6 @@ search_gui_cmp_mime(const struct result_data *a, const struct result_data *b)
 }
 
 static int
-search_gui_cmp_meta(const struct result_data *a, const struct result_data *b)
-{
-	return search_gui_cmp_strings(a->meta, b->meta);
-}
-
-
-static int
 search_gui_cmp_country(const struct result_data *a, const struct result_data *b)
 {
 	return SEARCH_GUI_CMP(a, b, record->results_set->country);
@@ -817,7 +767,6 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 	case c_sr_filename: ret = search_gui_cmp_filename(a, b); break;
 	case c_sr_ext:		ret = search_gui_cmp_ext(a, b); break;
 	case c_sr_mime:		ret = search_gui_cmp_mime(a, b); break;
-	case c_sr_meta:		ret = search_gui_cmp_meta(a, b); break;
 	case c_sr_vendor:	ret = search_gui_cmp_vendor(a, b); break;
 	case c_sr_info:		ret = search_gui_cmp_info(a, b); break;
 	case c_sr_size:		ret = search_gui_cmp_size(a, b); break;
@@ -945,12 +894,6 @@ remove_selected_file(void *iter_ptr, void *search_ptr)
 
 		rd->iter = *iter;
 		rd->children = children;
-
-		/*
-		 * Keep metadata from the parent row (we swapped rd and child_data).
-		 */
-
-		atom_str_change(&rd->meta, child_data->meta);
 
 		/* And remove the child's row */
 		iter = &child;
@@ -1084,8 +1027,9 @@ add_list_columns(GtkTreeView *tv)
 		column = add_column(tv, _(columns[i].title), columns[i].id,
 					columns[i].align, NULL, c_sl_fg, c_sl_bg);
 		gtk_tree_view_column_set_sort_column_id(column, columns[i].id);
-		gui_signal_connect_after(column,
-			"clicked", on_search_list_column_clicked, NULL);
+
+		column_sort_tristate_register(column,
+			on_search_list_column_clicked, NULL);
 	}
 	tree_view_restore_widths(tv, PROP_SEARCH_LIST_COL_WIDTHS);
 }
@@ -1300,8 +1244,9 @@ search_gui_show_search(struct search *search)
 			gtk_tree_sortable_set_sort_func(
 				GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)), i,
 				search_gui_cmp, uint_to_pointer(i), NULL);
-			gui_signal_connect_after(gtk_tree_view_get_column(tv, i),
-				"clicked", on_tree_view_search_results_click_column, search);
+
+			column_sort_tristate_register(column,
+				on_tree_view_search_results_click_column, search);
 		}
 	}
 }
@@ -1459,132 +1404,6 @@ search_gui_end_massive_update(struct search *search)
 	g_object_thaw_notify(G_OBJECT(model));
 	g_object_thaw_notify(G_OBJECT(search->tree));
 	search_gui_enable_sort(search);
-}
-
-static void
-collect_parents_with_sha1(GtkTreeModel *model, GtkTreePath *unused_path,
-	GtkTreeIter *iter, gpointer data)
-{
-	GtkTreeIter parent_iter;
-	struct result_data *rd;
-
-	g_assert(data);
-	(void) unused_path;
-
-	if (gtk_tree_model_iter_parent(model, &parent_iter, iter)) {
-		iter = &parent_iter;
-	}
-	rd = get_result_data(model, iter);
-	if (rd->record->sha1) {
-		hset_insert(data, rd);
-	}
-}
-
-static void
-search_gui_request_bitzi_data_helper(const void *key, void *unused_udata)
-{
-	struct result_data *rd = deconstify_pointer(key);
-
-	(void) unused_udata;
-	
-	record_check(rd->record);
-	g_return_if_fail(rd->record->sha1);
-
-	atom_str_change(&rd->meta, _("Query queued..."));
-	guc_query_bitzi_by_sha1(rd->record->sha1, rd->record->size, TRUE);
-}
-
-static void
-search_gui_make_meta_column_visible(search_t *search)
-{
-	static const int min_width = 80;
-	GtkTreeViewColumn *column;
-	gint width;
-
-	g_return_if_fail(search);
-	g_return_if_fail(search->tree);
-
-	column = gtk_tree_view_get_column(GTK_TREE_VIEW(search->tree), c_sr_meta);
-	g_return_if_fail(column);
-
-	gtk_tree_view_column_set_visible(column, TRUE);
-	width = gtk_tree_view_column_get_width(column);
-	if (width < min_width) {
-		gtk_tree_view_column_set_fixed_width(column, min_width);
-	}
-}
-
-void
-search_gui_request_bitzi_data(struct search *search)
-{
-	GtkTreeSelection *selection;
-	hset_t *results;
-	bool stopped;
-
-	/* collect the list of files selected */
-
-	g_return_if_fail(search);
-
-	stopped = search_gui_start_massive_update(search);
-
-	results = hset_create(HASH_KEY_SELF, 0);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
-	gtk_tree_selection_selected_foreach(selection,
-		collect_parents_with_sha1, results);
-
-	{
-		guint32 bitzi_debug;
-
-		gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-		if (bitzi_debug > 10) {
-			g_debug("%s: %zu items", G_STRFUNC, hset_count(results));
-		}
-	}
-
-	hset_foreach(results, search_gui_request_bitzi_data_helper, NULL);
-	hset_free_null(&results);
-
-	/* Make sure the column is actually visible. */
-	search_gui_make_meta_column_visible(search);
-
-	if (stopped)
-		search_gui_end_massive_update(search);	
-}
-
-/**
- * Update the search displays with the correct meta-data.
- */
-void
-search_gui_metadata_update(const bitzi_data_t *data)
-{
-	const GList *iter;
-	gchar *text;
-
-	text = bitzi_gui_get_metadata(data);
-
-	/*
-	 * Fill in the columns in each search that contains a reference
-	 */
-
-	iter = search_gui_get_searches();
-	for (/* NOTHING */; NULL != iter; iter = g_list_next(iter)) {
-		struct result_data *rd;
-		search_t *search;
-	
-		search = iter->data;
-	   	rd = find_parent2(search, data->sha1, data->size);
-		if (rd) {
-			GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
-			atom_str_change(&rd->meta, text ? text : _("Not in database"));
-			search_gui_data_changed(gtk_tree_view_get_model(tv), rd);
-			if (search_gui_item_is_inspected(rd->record)) {
-				search_gui_set_bitzi_metadata(rd->record);
-				search_gui_set_details(rd->record);
-			}
-		}
-	}
-
-	HFREE_NULL(text);
 }
 
 /**
@@ -1755,24 +1574,6 @@ search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
 			search_gui_data_changed(model, parent);
 		} else {
 			htable_insert(search->parents, rd, rd);
-
-			/*
-			 * Inserting a new parent.
-			 * Check for available (cached) Bitzi data.
-			 */
-
-			if (NULL == rd->meta && guc_bitzi_has_cached_ticket(rc->sha1)) {
-				bitzi_data_t data;
-				char *text = NULL;
-				const char *meta;
-
-				if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
-					text = bitzi_gui_get_metadata(&data);
-				}
-				meta = text != NULL ? text : _("Not in database");
-				atom_str_change(&rd->meta, meta);
-				HFREE_NULL(text);
-			}
 		}
 	} else {
 		parent_iter = NULL;
@@ -1780,14 +1581,6 @@ search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
 
 	gtk_tree_store_append(GTK_TREE_STORE(model), &rd->iter, parent_iter);
 	search_gui_set_data(model, rd);
-
-	/*
-	 * There might be some metadata about this record already in the
-	 * cache. If so lets update the GUI to reflect this.
-	 */
-	if (NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
-		guc_query_bitzi_by_sha1(rc->sha1, rc->size, FALSE);
-	}
 }
 
 static void

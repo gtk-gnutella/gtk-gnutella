@@ -1,0 +1,56 @@
+/*
+ * Copyright (c) 2014 Raphael Manfredi
+ *
+ * Jmakefile for interface generated sources.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/*
+ * We use "perl ..." in the command below to let the script run even though
+ * it could be edited -- this avoid the "Text file busy" check in the kernel
+ * which would happen if we had let the "#!" hook run perl.
+ *
+ * The regenerate target forces re-generation of all the files when the script
+ * generating them is updated in a way that alters the generated code fragments.
+ */
+#define EnumGenerate(list, base)	@!\
+base.c base.h: list								@@\
+	-perl $(TOP)/scripts/enum-msg.pl list		@@\
+	touch base.c base.h							@!\
+												@!\
+all:: base.c base.h								@!\
+												@!\
+regenerate::									@@\
+	$(RM) -f base.c base.h						@@\
+	$(MAKE) base.c base.h						@!\
+
+EnumGenerate(dmesh_url.lst, dmesh_url)
+EnumGenerate(drop.lst, msg_drop)
+EnumGenerate(ignore.lst, ignore)
+EnumGenerate(iprange.lst, iprange)
+EnumGenerate(stats.lst, gnr_stats)
+EnumGenerate(msg.lst, msg)
+EnumGenerate(http_async.lst, http_async)
+EnumGenerate(http_url.lst, http_url)
+EnumGenerate(vxml.lst, vxml)
+
+DependTarget()
+

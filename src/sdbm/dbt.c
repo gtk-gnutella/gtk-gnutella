@@ -34,6 +34,7 @@
 
 #include "lib/rand31.h"
 #include "lib/str.h"
+#include "lib/stringify.h"	/* For plural() */
 #include "lib/tm.h"
 
 #include "sdbm.h"
@@ -42,7 +43,7 @@ extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
 char *progname;
 static bool progress;
-static bool shrink, rebuild;
+static bool shrink, rebuild, thread_safe;
 static bool randomize;
 static unsigned rseed;
 static bool unlink_db;
@@ -57,7 +58,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiikprstvwBDEKSUV] [-R seed] [-c pages] dbname count\n"
+		"Usage: %s [-bdeiikprstvwBDEKSTUV] [-R seed] [-c pages] dbname count\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
 		"  -d : perform delete test\n"
@@ -76,6 +77,7 @@ usage(void)
 		"  -K : use large keys with common head/tail parts\n"
 		"  -R : seed for repeatable random key sequence\n"
 		"  -S : shrink database before testing\n"
+		"  -T : make database handle thread-safe\n"
 		"  -U : unlink database at the end\n"
 		"  -V : consider database as volatile\n",
 		progname);
@@ -99,6 +101,8 @@ open_db(const char *name, bool writeable, long cache, int wflags)
 		oops("error opening database \"%s\" in %s mode",
 			name, writeable ? "writing" : "reading");
 	}
+	if (thread_safe)
+		sdbm_thread_safe(db);
 	if (cache != 0) {
 		if (-1 == sdbm_set_cache(db, cache)) {
 			oops("error configuring LRU cache for \"%s\"", name);
@@ -196,7 +200,7 @@ rebuild_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	long cpage = 0 == cache ? 64 : cache;
 
 	printf("Starting rebuild test (%ld time%s), cache=%ld page%s...\n",
-		count, 1 == count ? "" : "s", cpage, 1 == cpage ? "" : "s");
+		count, plural(count), cpage, plural(cpage));
 
 	for (i = 0; i < count; i++) {
 		if (progress && 0 == i % 50)
@@ -221,7 +225,7 @@ read_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	long cpage = 0 == cache ? 64 : cache;
  
 	printf("Starting read test (%ld item%s), cache=%ld page%s...\n",
-		count, 1 == count ? "" : "s", cpage, 1 == cpage ? "" : "s");
+		count, plural(count), cpage, plural(cpage));
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
 	key.dptr = buf;
@@ -256,7 +260,7 @@ exist_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	long cpage = 0 == cache ? 64 : cache;
  
 	printf("Starting existence test (%ld item%s), cache=%ld page%s...\n",
-		count, 1 == count ? "" : "s", cpage, 1 == cpage ? "" : "s");
+		count, plural(count), cpage, plural(cpage));
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
 	key.dptr = buf;
@@ -293,7 +297,7 @@ write_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	printf("Starting %swrite test (%ld item%s), "
 		"cache=%ld page%s, %s write...\n",
 		(wflags & WR_VOLATILE) ? "volatile " : "",
-		count, 1 == count ? "" : "s", cpage, 1 == cpage ? "" : "s",
+		count, plural(count), cpage, plural(cpage),
 		(wflags & WR_DELAY) ? "delayed" : "immediate");
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
@@ -343,7 +347,7 @@ delete_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	printf("Starting %sdelete test (%ld item%s), "
 		"cache=%ld page%s, %s write...\n",
 		(wflags & WR_VOLATILE) ? "volatile " : "",
-		count, 1 == count ? "" : "s", cpage, 1 == cpage ? "" : "s",
+		count, plural(count), cpage, plural(cpage),
 		(wflags & WR_DELAY) ? "delayed" : "immediate");
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
@@ -372,8 +376,7 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 	datum key;
 
 	printf("Starting %siteration test (%ld item%s), cache=%ld page%s...\n",
-		safe ? "safe " : "", count, 1 == count ? "" : "s",
-		cpage, 1 == cpage ? "" : "s");
+		safe ? "safe " : "", count, plural(count), cpage, plural(cpage));
 
 	key = safe ? sdbm_firstkey_safe(db) : sdbm_firstkey(db);
 
@@ -390,8 +393,7 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 	}
 
 	if (i != count)
-		oops("iterated over %ld item%s but requested %ld",
-			i, 1 == i ? "s" : "", count);
+		oops("iterated over %ld item%s but requested %ld", i, plural(i), count);
 
 	show_done(done);
 
@@ -436,7 +438,7 @@ main(int argc, char **argv)
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStUvVw")) != EOF) {
+	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStTUvVw")) != EOF) {
 		switch (c) {
 		case 'B':			/* rebuild before testing */
 			rebuild++;
@@ -489,6 +491,9 @@ main(int argc, char **argv)
 		case 't':			/* timing report */
 			tflag++;
 			break;
+		case 'T':			/* thread safe */
+			thread_safe++;
+			break;
 		case 'U':			/* unlink database */
 			unlink_db++;
 			break;
@@ -524,6 +529,9 @@ main(int argc, char **argv)
 
 	if (shrink)
 		printf("Database will shrunk before each test.\n");
+
+	if (thread_safe)
+		printf("Database handle will be opened in thread-safe mode.\n");
 
 	if (large_keys)
 		printf("Will be using large keys%s.\n",

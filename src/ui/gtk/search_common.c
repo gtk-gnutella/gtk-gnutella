@@ -36,7 +36,6 @@
 #include "gtk/search_common.h"
 #include "gtk/search_xml.h"
 
-#include "gtk/bitzi.h"
 #include "gtk/clipboard.h"
 #include "gtk/drag.h"
 #include "gtk/drop.h"
@@ -72,6 +71,7 @@
 #include "lib/mime_type.h"
 #include "lib/misc.h"			/* For xml_indent() */
 #include "lib/parse.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/slist.h"
 #include "lib/str.h"
@@ -79,7 +79,6 @@
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/url.h"
-#include "lib/url_factory.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -131,6 +130,7 @@ static struct {
 	guint32 flag;
 	const gchar *status;
 } open_flags[] = {
+	{ ST_G2,			N_("g2") },			/* Make sure this is shown first */
 	{ ST_BUSY,			N_("busy") },
 	{ ST_UPLOADED,		N_("stable") },		/**< Allows uploads -> stable */
 	{ ST_FIREWALL,		N_("push") },
@@ -570,13 +570,14 @@ search_gui_update_guess_stats(const struct search *search)
 				search->guess_bw_qk + search->guess_cur_bw_qk, FALSE),
 			prev);
 	} else {
+		size_t queried = search->guess_cur_ultra + search->guess_cur_g2;
 		/*
 		 * A GUESS search is active AND they don't want only summary stats.
 		 */
 		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
-			"[Pool: %zu %s, %zu/%zu queried, %zu %s (%.2f%%), %zu pending, "
-			"%zu %s%s%s]"),
+			"[Pool: %zu %s, (%zu+%zu)/%zu queried, %zu %s (%.2f%%), "
+			"%zu reached, %zu pending, %zu %s%s%s]"),
 			compact_time(delta_time(tm_time(), search->guess_cur_start)),
 			GUESS_QUERY_LOOSE == search->guess_cur_mode ?
 				_("loose") : _("bounded"),
@@ -587,12 +588,12 @@ search_gui_update_guess_stats(const struct search *search)
 			short_size2(search->guess_cur_bw_qk, FALSE),
 			search->guess_cur_pool,
 			NG_("host", "hosts", search->guess_cur_pool),
-			search->guess_cur_queried, search->guess_cur_max_ultra,
+			search->guess_cur_ultra, search->guess_cur_g2,
+			search->guess_cur_max_ultra,
 			search->guess_cur_acks,
 			NG_("ack", "acks", search->guess_cur_acks),
-			100.0 * search->guess_cur_acks /
-				(0 == search->guess_cur_queried ?
-					1 : search->guess_cur_queried),
+			100.0 * search->guess_cur_acks / (0 == queried ?  1 : queried),
+			search->guess_cur_reached,
 			search->guess_cur_rpc_pending,
 			search->guess_cur_hops,
 			NG_("hop", "hops", search->guess_cur_hops),
@@ -864,7 +865,7 @@ int
 gui_record_host_eq(const void *p1, const void *p2)
 {
 	const struct record *a = p1, *b = p2;
-    return !host_addr_equal(a->results_set->addr, b->results_set->addr);
+    return !host_addr_equiv(a->results_set->addr, b->results_set->addr);
 }
 
 /**
@@ -1112,7 +1113,7 @@ search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 
 	/* Must compare same fields as search_gui_hash_func() --RAM */
 	return rc1->size == rc2->size
-		&& host_addr_equal(rc1->results_set->addr, rc2->results_set->addr)
+		&& host_addr_equiv(rc1->results_set->addr, rc2->results_set->addr)
 		&& rc1->results_set->port == rc2->results_set->port
 		&& rc1->results_set->guid == rc2->results_set->guid	/* atom! */
 		&& (rc1->sha1 != NULL /* atom! */
@@ -1346,15 +1347,15 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
  * Create a new GUI result set from a Gnutella one.
  */
 static results_set_t *
-search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
+search_gui_create_results_set(pslist_t *schl, const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
 	guint ignored;
-    GSList *sl;
+    pslist_t *sl;
 
     WALLOC(rs);
 	rs->magic = RESULTS_SET_MAGIC;
-    rs->schl = g_slist_copy(schl);
+    rs->schl = gm_pslist_to_slist(schl);
 
     rs->guid = atom_guid_get(r_set->guid);
     rs->addr = r_set->addr;
@@ -1377,7 +1378,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->proxies = search_gui_proxies_clone(r_set->proxies);
 
 	ignored = 0;
-    for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(r_set->records, sl) {
 		gnet_record_t *grc = sl->data;
 
 		if (grc->flags & SR_DONT_SHOW) {
@@ -1757,7 +1758,12 @@ on_search_details_key_press_event(GtkWidget *widget,
 static void
 search_gui_check_alt_locs(record_t *rc)
 {
+	const results_set_t *rs;
+
 	record_check(rc);
+
+	rs = rc->results_set;
+	results_set_check(rs);
 
 	if (rc->alt_locs) {
 		gint i, n;
@@ -1772,6 +1778,20 @@ search_gui_check_alt_locs(record_t *rc)
 			addr = gnet_host_get_addr(&host);
 			port = gnet_host_get_port(&host);
 			if (port > 0 && host_addr_is_routable(addr)) {
+				uint32 flags = 0;
+
+				/*
+				 * Even if "G2" results came back from GTKG (which is possible
+				 * since GTKG nodes are connected on G2 and respond to queries)
+				 * we know that GTKG is not going to discriminate between G2
+				 * and Gnutella and that both networks can happily download
+				 * from it, regardless of how they managed to get a hold on the
+				 * resource.
+				 */
+
+				if ((rs->status & ST_G2) && rs->vendor != T_GTKG)
+					flags = SOCK_F_G2;
+
 				guc_download_auto_new(rc->name,
 					rc->size,
 					addr,
@@ -1783,7 +1803,7 @@ search_gui_check_alt_locs(record_t *rc)
 					rc->results_set->stamp,
 					NULL,	/* fileinfo */
 					NULL,	/* proxies */
-					0);		/* flags */
+					flags);	/* flags */
 			}
 		}
 	}
@@ -1802,12 +1822,13 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 	rs = rc->results_set;
 	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+	flags |= ((rs->status & ST_G2) && rs->vendor != T_GTKG) ? SOCK_F_G2 : 0;
 
 	if (rc->sha1) {
 		uri = NULL;
 		guc_search_associate_sha1(sh, rc->sha1);
 	} else {
-		uri = str_cmsg("/get/%lu/%s", (gulong) rc->file_index, rc->name);
+		uri = str_cmsg("/get/%lu/%s", (ulong) rc->file_index, rc->name);
 	}
 
 	guc_download_new(rc->name,
@@ -1841,9 +1862,9 @@ search_gui_set_sort_defaults(void)
 	sch = current_search;
 	if (sch) {
 		gui_prop_set_guint32_val(PROP_SEARCH_SORT_DEFAULT_COLUMN,
-			sch->sort_col);
+			sch->sorting.s_column);
 		gui_prop_set_guint32_val(PROP_SEARCH_SORT_DEFAULT_ORDER,
-			sch->sort_order);
+			sch->sorting.s_order);
 	}
 }
 
@@ -1965,29 +1986,32 @@ search_gui_set_record_info(results_set_t *rs)
 
 	/* If banned GUID, make it prominent: at the start of the information! */
 	if (rs->status & ST_BANNED_GUID) {
-		str_cat(vinfo, "GUID");
+		STR_CAT(vinfo, "GUID");
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
 			if (str_len(vinfo) > 0)
-				str_cat(vinfo, ", ");
+				STR_CAT(vinfo, ", ");
 			str_cat(vinfo, _(open_flags[i].status));
 		}
 	}
 
 	if (!(rs->status & ST_PARSED_TRAILER)) {
 		if (str_len(vinfo) > 0)
-			str_cat(vinfo, ", ");
+			STR_CAT(vinfo, ", ");
 		str_cat(vinfo, _("<unparsed>"));
 	}
 
 	if (rs->status & ST_TLS) {
-		str_cat(vinfo, str_len(vinfo) > 0 ? ", TLS" : "TLS");
+		if (str_len(vinfo) > 0)
+			STR_CAT(vinfo, ", TLS");
+		else
+			STR_CAT(vinfo, "TLS");
 	}
 	if (rs->status & ST_BH) {
 		if (str_len(vinfo) > 0) {
-			str_cat(vinfo, ", ");
+			STR_CAT(vinfo, ", ");
 		}
 		str_cat(vinfo, _("browsable"));
 	}
@@ -2059,7 +2083,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 	if (GUI_PROPERTY(gui_debug) > 6) {
 		g_debug("%s(): [%s] got hit with %d record%s (from %s via %s%s%s%s) "
 			"need_push=%d, skipping=%d", G_STRFUNC,
-			search_gui_query(sch), rs->num_recs, rs->num_recs == 1 ? "" : "s",
+			search_gui_query(sch), rs->num_recs, plural(rs->num_recs),
 			host_addr_port_to_string(rs->addr, rs->port),
 			(rs->status & ST_UDP) ? "UDP" : "TCP",
 			(rs->status & ST_GUESS) ? " + GUESS" : "",
@@ -2068,20 +2092,25 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			booleanize(flags & SOCK_F_PUSH), skip_records);
 	}
 
-  	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
+	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
 		record_t *rc = sl->data;
 		enum gui_color color;
 
 		record_check(rc);
 
-        if (GUI_PROPERTY(gui_debug) > 7)
-            g_debug("%s(): [%s] considering %s",
+		if (skip_records) {
+			sch->skipped++;
+			continue;
+		}
+
+		if (GUI_PROPERTY(gui_debug) > 7)
+			g_debug("%s(): [%s] considering %s",
 				G_STRFUNC, search_gui_query(sch), rc->name);
 
-        if (rc->flags & SR_DOWNLOADED)
+		if (rc->flags & SR_DOWNLOADED)
 			sch->auto_downloaded++;
 
-        /*
+		/*
 		 * Note that we pass ALL records through search_gui_result_is_dup(),
 		 * to be able to update the index/GUID of our records correctly, when
 		 * we detect a change.
@@ -2115,11 +2144,6 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			gboolean is_hostile;
 			gint spam_score;
 
-			if (skip_records) {
-				sch->skipped++;
-				continue;
-			}
-
 			is_hostile = ST_HOSTILE & rs->status;
 			spam_score = ST_SPAM & rs->status ? 1 : 0;
 			spam_score |= SR_SPAM & rc->flags ? 2 : 0;
@@ -2129,7 +2153,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 				(!rc->sha1 && GUI_PROPERTY(search_discard_hashless)) ||
 				(
 					GUI_PROPERTY(search_discard_spam) &&
-				 	(spam_score > 1 || is_hostile)
+					(spam_score > 1 || is_hostile)
 				) ||
 				(
 					GUI_PROPERTY(search_discard_alien_ip) &&
@@ -2146,7 +2170,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 
 			g_assert(rc->refcount >= 0);
 			{
-        		filter_result_t *flt_result;
+				filter_result_t *flt_result;
 				
 				flt_result = filter_record(sch, rc);
 				filter_state = flt_result->props[FILTER_PROP_DISPLAY].state;
@@ -2394,7 +2418,7 @@ search_gui_current_search_refresh(void)
  * @param r_set		the core's result set, which will be duplicated
  */
 static void
-search_gui_got_results(GSList *schl, const struct guid *muid,
+search_gui_got_results(pslist_t *schl, const struct guid *muid,
 	const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
@@ -2417,7 +2441,7 @@ search_gui_got_results(GSList *schl, const struct guid *muid,
 	} else {
 		if (GUI_PROPERTY(gui_debug) >= 6) {
 			g_debug("%s(): ignoring %u result%s%s%s",
-				G_STRFUNC, r_set->num_recs, 1 == r_set->num_recs ? "" : "s",
+				G_STRFUNC, r_set->num_recs, plural(r_set->num_recs),
 				NULL == muid ? "" : " for GUESS ",
 				NULL == muid ? "" : guid_to_string(muid));
 		}
@@ -2495,7 +2519,7 @@ search_gui_flush(time_t now, gboolean force)
 
 		if (GUI_PROPERTY(gui_debug) > 6 && muid != NULL) {
 			g_debug("%s(): processing accumulated %u record%s for %s",
-				G_STRFUNC, rs->num_recs, 1 == rs->num_recs ? "" : "s",
+				G_STRFUNC, rs->num_recs, plural(rs->num_recs),
 				guid_to_string(muid));
 		}
 
@@ -3159,17 +3183,17 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	}
 
 	if (sort_col >= 0 && (guint) sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS) {
-		search->sort_col = sort_col;
+		search->sorting.s_column = sort_col;
 	} else {
-		search->sort_col = -1;
+		search->sorting.s_column = -1;
 	}
 	switch (sort_order) {
 	case SORT_ASC:
 	case SORT_DESC:
-		search->sort_order = sort_order;
+		search->sorting.s_order = sort_order;
 		break;
 	default:
-		search->sort_order = SORT_NONE;
+		search->sorting.s_order = SORT_NONE;
 	}
  
 	search->search_handle = sch_id;
@@ -3458,7 +3482,7 @@ search_gui_duplicate_search(search_t *search)
 		search_gui_media_type(search),
 		tm_time(),
 		GUI_PROPERTY(search_lifetime),
-		timeout, search->sort_col, search->sort_order,
+		timeout, search->sorting.s_column, search->sorting.s_order,
 		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);
 }
 
@@ -3646,7 +3670,6 @@ search_gui_refresh_popup(void)
 		const gchar *name;
 		gboolean local;
 	} menu[] = {
-		{	"popup_search_metadata",	TRUE },
 		{	"popup_search_browse_host",	FALSE },
 		{	"popup_search_download",	FALSE },
 		{	"popup_search_copy_magnet", TRUE },
@@ -3880,14 +3903,14 @@ int
 search_gui_get_sort_column(const struct search *search)
 {
 	g_return_val_if_fail(search, -1);
-	return search->sort_col;
+	return search->sorting.s_column;
 }
 
 int
 search_gui_get_sort_order(const struct search *search)
 {
 	g_return_val_if_fail(search, 0);
-	return search->sort_order;
+	return search->sorting.s_order;
 }
 
 gnet_search_t
@@ -4014,21 +4037,6 @@ search_gui_set_details(const record_t *rc)
 	 * so don't show it explicitely as it's just visual noise.
 	 */
 
-	if (rc->sha1) {
-		bitzi_data_t data;
-
-		search_gui_append_detail(_("External metadata"), NULL);	/* Separator */
-		search_gui_append_detail(_("Bitzi URL"),
-			url_for_bitzi_lookup(rc->sha1));
-
-		if (guc_bitzi_data_by_sha1(&data, rc->sha1, rc->size)) {
-			char *meta = bitzi_gui_get_metadata(&data);
-			search_gui_append_detail(_("Bitzi metadata"),
-				meta != NULL ? meta : _("Not in database"));
-			HFREE_NULL(meta);
-		}
-	}
-
 	if (ST_LOCAL & rs->status) {
 		const gchar *display_path;
 		gchar *url;
@@ -4080,9 +4088,12 @@ search_gui_set_details(const record_t *rc)
 
 		search_gui_append_detail(_("Route"), search_gui_get_route(rs));
 		if (!(ST_BROWSE & rs->status)) {
-			search_gui_append_detail(_("Protocol"),
-				ST_UDP & rs->status ? "UDP" : "TCP");
-
+			static const char *search_proto[] = {
+				"TCP", "UDP", "TCP (G2)", "UDP (G2)",
+			};
+			uint pidx = ST_UDP & rs->status ? 1 : 0;
+			pidx += ST_G2 & rs->status ? 2 : 0;
+			search_gui_append_detail(_("Protocol"), search_proto[pidx]);
 			search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
 			search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
 
@@ -4366,51 +4377,6 @@ search_gui_get_magnet(search_t *search, record_t *record)
 	return url;
 }
 
-/* Display Bitzi data for the result if any */
-void
-search_gui_set_bitzi_metadata(const record_t *rc)
-{
-	const char *ticket;
-	char *tmp, *text;
-
-	if (NULL == rc) {
-		search_gui_set_bitzi_metadata_text("");
-		return;
-	}
-
-	record_check(rc);
-
-	if (NULL == rc->sha1) {
-		search_gui_set_bitzi_metadata_text(_("SHA-1 is unknown."));
-		return;
-	}
-
-	if (!guc_bitzi_has_cached_ticket(rc->sha1)) {
-		search_gui_set_bitzi_metadata_text(_("No Bitzi ticket requested yet."));
-		return;
-	}
-
-	ticket = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
-	if (NULL == ticket) {
-		search_gui_set_bitzi_metadata_text(_("Not in Bitzi database."));
-		return;
-	}
-
-	/* This also decodes 8-bit entities */
-	tmp = xml_indent(ticket);
-
-	/*
-	 * Bitzi converts all ticket data from ISO-8859-1 to UTF-8, therefore this
-	 * conversion must be reversed to get the original encoding back.
-	 */
-	text = utf8_to_iso8859_1(tmp);
-	HFREE_NULL(tmp);
-
-	search_gui_set_bitzi_metadata_text(
-		lazy_unknown_to_utf8_normalized(text, UNI_NORM_GUI, NULL));
-	G_FREE_NULL(text);
-}
-
 void
 search_gui_store_searches(void)
 {
@@ -4456,12 +4422,13 @@ search_gui_guess_event(gnet_search_t sh, const struct guess_query *query)
 		search->guess_results += search->guess_cur_results;
 		search->guess_kept += search->guess_cur_kept;
 		search->guess_elapsed = delta_time(tm_time(), search->guess_cur_start);
-		search->guess_hosts = search->guess_cur_acks;	/* Really queried */
+		search->guess_hosts = search->guess_cur_reached;	/* Really queried */
 		search->guess_last_kept = search->guess_cur_kept;
 		/* Reset stats for new query */
 		search->guess_cur_start = 0;
 		search->guess_cur_pool = 0;
-		search->guess_cur_queried = 0;
+		search->guess_cur_ultra = 0;
+		search->guess_cur_g2 = 0;
 		search->guess_cur_acks = 0;
 		search->guess_cur_results = 0;
 		search->guess_cur_kept = 0;
@@ -4487,8 +4454,10 @@ search_gui_guess_stats(gnet_search_t sh, const struct guess_stats *stats)
 	g_return_if_fail(search != NULL);
 
 	search->guess_cur_pool			= stats->pool;
-	search->guess_cur_queried		= stats->queried;
+	search->guess_cur_ultra			= stats->queried_ultra;
+	search->guess_cur_g2			= stats->queried_g2;
 	search->guess_cur_acks			= stats->acks;
+	search->guess_cur_reached		= stats->reached;
 	search->guess_cur_results		= stats->results;
 	search->guess_cur_kept			= stats->kept;
 	search->guess_cur_hops			= stats->hops;
@@ -4556,7 +4525,6 @@ search_gui_signals_init(void)
 	ON_ACTIVATE(toggle_tabs);
 
 	/* TODO: Code not merged yet */
-	ON_ACTIVATE(metadata);
 	ON_ACTIVATE(copy_magnet);
 
 #undef ON_ACTIVATE
@@ -4576,7 +4544,6 @@ search_gui_column_title(int column)
 	case c_sr_mime:		return _("MIME type");
 	case c_sr_count:	return _("#");
 	case c_sr_loc:		return _("Country");
-	case c_sr_meta:		return _("Metadata");
 	case c_sr_vendor:	return _("Vendor");
 	case c_sr_info:		return _("Info");
 	case c_sr_route:	return _("Route");
@@ -4608,7 +4575,6 @@ search_gui_column_justify_right(int column)
 	case c_sr_mime:		return FALSE;
 	case c_sr_count:	return TRUE;
 	case c_sr_loc:		return FALSE;
-	case c_sr_meta:		return FALSE;
 	case c_sr_vendor:	return FALSE;
 	case c_sr_info:		return FALSE;
 	case c_sr_route:	return FALSE;

@@ -41,6 +41,7 @@
 
 #include "lib/iso3166.h"
 #include "lib/misc.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -76,8 +77,8 @@ print_upload_info(struct gnutella_shell *sh,
 enum shell_reply
 shell_exec_uploads(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const GSList *sl;
-	GSList *sl_info;
+	const pslist_t *sl;
+	pslist_t *sl_info;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -88,7 +89,7 @@ shell_exec_uploads(struct gnutella_shell *sh, int argc, const char *argv[])
 	shell_write(sh, "100~ \n");
 
 	sl_info = upload_get_info_list();
-	for (sl = sl_info; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(sl_info, sl) {
 		print_upload_info(sh, sl->data);
 	}
 	upload_free_info_list(&sl_info);

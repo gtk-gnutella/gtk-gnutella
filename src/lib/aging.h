@@ -41,14 +41,12 @@
 
 typedef struct aging aging_table_t;
 
-typedef void (*aging_free_t)(void *key, void *value);
-
 /*
  * Public interface.
  */
 
 aging_table_t *aging_make(int delay,
-	hash_fn_t hash, eq_fn_t eq, aging_free_t kfree);
+	hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kfree);
 
 void aging_destroy(aging_table_t **);
 

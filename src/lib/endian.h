@@ -148,6 +148,20 @@ peek_le32(const void *p)
 	return v;
 }
 
+static inline G_GNUC_PURE uint64
+peek_le64(const void *p)
+{
+	const unsigned char *q = p;
+	uint64 v;
+
+#if IS_LITTLE_ENDIAN
+	memcpy(&v, q, sizeof v);
+#else
+	v = (uint64) peek_le32(q) | ((uint64) peek_le32(&q[sizeof v / 2]) << 32);
+#endif
+	return v;
+}
+
 /*
  * The poke_* functions return a pointer to the next byte after the
  * written bytes.
@@ -288,6 +302,25 @@ peek_float_be32(const void *p)
 	return v;
 }
 #endif	/* USE_IEEE754_FLOAT */
+
+/*
+ * The peek_*_advance() routines return a pointer to the byte immediately
+ * following the read value, and fill-in the given pointer with the read value.
+ */
+
+static inline const void *
+peek_be32_advance(const void *p, uint32 *v)
+{
+	*v = peek_be32(p);
+	return const_ptr_add_offset(p, 4);
+}
+
+static inline const void *
+peek_le32_advance(const void *p, uint32 *v)
+{
+	*v = peek_le32(p);
+	return const_ptr_add_offset(p, 4);
+}
 
 #endif /* _endian_h_ */
 

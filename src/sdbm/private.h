@@ -5,6 +5,7 @@
  */
 
 struct DBMBIG;
+struct lmutex;			/* Avoid including "mutex.h" here */
 
 enum sdbm_magic { SDBM_MAGIC = 0x1dac340e };
 
@@ -21,6 +22,9 @@ struct DBM {
 	char *dirbuf;		/* directory file block buffer (size: DBM_DBLKSIZ) */
 #ifdef LRU
 	void *cache;		/* LRU page cache */
+#endif
+#ifdef THREADS
+	struct lmutex *lock;	/* thread-safe lock at the API level */
 #endif
 	fileoffset_t pagtail;	/* end of page file descriptor, for iterating */
 	long maxbno;		/* size of dirfile in bits */
@@ -58,10 +62,14 @@ struct DBM {
 	ulong bad_bigkeys;	/* stats: number of bad big keys we could not hash */
 #endif
 #if defined(LRU) || defined(BIGDATA)
-	uint8 is_volatile;			/* whether consistency of database matters */
+	uint8 is_volatile;	/* whether consistency of database matters */
 #endif
 #ifdef LRU
-	uint8 dirbuf_dirty;			/* whether dirbuf needs flushing to disk */
+	uint8 dirbuf_dirty;	/* whether dirbuf needs flushing to disk */
+#endif
+#ifdef THREADS
+	datum *returned;	/* per-thread returned values */
+	uint iterid;		/* thread small ID for iterating */
 #endif
 };
 

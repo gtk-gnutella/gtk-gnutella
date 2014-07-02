@@ -38,6 +38,8 @@
 #include "downloads.h"
 #include "hcache.h"			/* For host_net_t */
 
+#include "if/gen/dmesh_url.h"
+
 #include "lib/hashlist.h"
 #include "lib/gnet_host.h"
 
@@ -76,17 +78,6 @@ typedef struct {
 /**
  * Error codes from dmesh_url_parse().
  */
-
-typedef enum {
-	DMESH_URL_OK = 0,			/**< All OK */
-	DMESH_URL_HTTP_PARSER,		/**< Error from http_url_parse() */
-	DMESH_URL_BAD_FILE_PREFIX,	/**< File prefix neither /uri-res nor /get */
-	DMESH_URL_RESERVED_INDEX,	/**< Index in /get/index is reserved */
-	DMESH_URL_NO_FILENAME,		/**< No filename after /get/index */
-	DMESH_URL_BAD_ENCODING,		/**< Bad URL encoding */
-	DMESH_URL_BAD_URI_RES		/**< Malformed /uri-res/N2R? */
-} dmesh_url_error_t;
-
 extern dmesh_url_error_t dmesh_url_errno;
 
 /*

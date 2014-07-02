@@ -38,14 +38,16 @@
 #include "common.h"
 
 #include "huge.h"
-#include "share.h"
-#include "gmsg.h"
+
 #include "dmesh.h"
+#include "gmsg.h"
+#include "nodes.h"
+#include "settings.h"
+#include "share.h"
+#include "spam.h"
 #include "verify_sha1.h"
 #include "verify_tth.h"
 #include "version.h"
-#include "settings.h"
-#include "spam.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -497,8 +499,11 @@ huge_need_sha1(shared_file_t *sf)
 	 * no longer shared.
 	 */
 
-	if (!(SHARE_F_INDEXED & shared_file_flags(sf)))
+	if (!shared_file_indexed(sf))
 		return FALSE;
+
+	if G_UNLIKELY(NULL == sha1_cache)
+		return FALSE;		/* Shutdown occurred (processing TEQ event?) */
 
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 
@@ -623,6 +628,9 @@ request_sha1(shared_file_t *sf)
 
 	shared_file_check(sf);
 
+	if (!shared_file_indexed(sf))
+		return;		/* "stale" shared file, has been superseded or removed */
+
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 
 	if (cached && cached_entry_up_to_date(cached, sf)) {
@@ -694,7 +702,7 @@ huge_improbable_sha1(const char *buf, size_t len)
  */
 bool
 huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
-	const struct gnutella_node *n)
+	const gnutella_node_t *n)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
@@ -743,7 +751,7 @@ bad:
 
 bool
 huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
-	const struct gnutella_node *n)
+	const gnutella_node_t *n)
 {
 	if (len != TTH_BASE32_SIZE)
 		goto bad;

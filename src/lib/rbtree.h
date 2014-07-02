@@ -47,6 +47,9 @@ typedef struct rbtree_iter rbtree_iter_t;
  */
 
 rbtree_t *rbtree_create(cmp_fn_t cmp);
+void rbtree_thread_safe(rbtree_t *rbt);
+void rbtree_lock(rbtree_t *rbt);
+void rbtree_unlock(rbtree_t *rbt);
 size_t rbtree_count(const rbtree_t *tree);
 bool rbtree_contains(const rbtree_t *tree, const void *key);
 void *rbtree_lookup(const rbtree_t *tree, const void *key);

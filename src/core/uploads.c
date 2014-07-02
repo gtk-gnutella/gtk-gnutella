@@ -43,7 +43,6 @@
 #include "bsched.h"
 #include "dmesh.h"
 #include "features.h"
-#include "file_object.h"
 #include "geo_ip.h"
 #include "ggep.h"
 #include "ggep_type.h"
@@ -73,18 +72,23 @@
 #include "gnet_stats.h"
 #include "ctl.h"
 
+#include "g2/tree.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
 #include "if/dht/dht.h"		/* For dht_enabled() */
 
 #include "lib/aging.h"
+#include "lib/array_util.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
+#include "lib/file_object.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/halloc.h"
@@ -97,6 +101,7 @@
 #include "lib/listener.h"
 #include "lib/parse.h"
 #include "lib/product.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
@@ -122,9 +127,10 @@
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
 #define PUSH_REPLY_MAX	5			/**< Answer to up to 5 pushes per IP... */
 #define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
+#define PUSH_BAN_FREQ	500			/**< 5-minute ban if cannot reach host */
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
 
-static GSList *list_uploads;
+static pslist_t *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
 static watchdog_t *stall_wd;		/**< Monitor stalling events */
 
@@ -182,6 +188,7 @@ struct mesh_info_val {
 
 static htable_t *mesh_info;
 static aging_table_t *push_requests;	/**< Throttle push requests */
+static aging_table_t *push_conn_failed;	/**< Throttle unreacheable hosts */
 
 /* Remember IP address of stalling uploads for a while */
 static aging_table_t *stalling_uploads;
@@ -318,7 +325,7 @@ mi_key_eq(const void *a, const void *b)
 {
 	const struct mesh_info_key *mika = a, *mikb = b;
 
-	return host_addr_equal(mika->addr, mikb->addr) &&
+	return host_addr_equiv(mika->addr, mikb->addr) &&
 		sha1_eq(mika->sha1, mikb->sha1);
 }
 
@@ -358,7 +365,7 @@ mi_free_kv(const void *key, void *value, void *unused_udata)
  * Callout queue callback invoked to clear the entry.
  */
 static void
-mi_clean(cqueue_t *unused_cq, void *obj)
+mi_clean(cqueue_t *cq, void *obj)
 {
 	struct mesh_info_key *mik = obj;
 	struct mesh_info_val *miv;
@@ -366,7 +373,6 @@ mi_clean(cqueue_t *unused_cq, void *obj)
 	void *value;
 	bool found;
 
-	(void) unused_cq;
 	found = htable_lookup_extended(mesh_info, mik, &key, &value);
 	miv = value;
 
@@ -379,7 +385,7 @@ mi_clean(cqueue_t *unused_cq, void *obj)
 			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
 	htable_remove(mesh_info, mik);
-	miv->cq_ev = NULL;
+	cq_zero(cq, &miv->cq_ev);
 	mi_free_kv(key, value, NULL);
 }
 
@@ -486,6 +492,8 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, void *unused_obj)
 		g_debug("UL end of upload early stalling condition");
 	}
 
+	entropy_harvest_time();
+
 	/*
 	 * Allow the HTTP outgoing scheduler to use the stolen bandwidth again,
 	 * thereby being able to send more data.
@@ -529,6 +537,8 @@ upload_no_more_stalling(watchdog_t *unused_wd, void *unused_obj)
 	if (GNET_PROPERTY(upload_debug)) {
 		g_debug("UL end of upload stalling condition");
 	}
+
+	entropy_harvest_time();
 
 	/*
 	 * Allow unused bandwidth to be stolen from the HTTP outgoing scheduler
@@ -608,6 +618,8 @@ upload_new_early_stalling(const struct upload *u)
 			uint64_to_string(u->sent));
 	}
 
+	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), VARLEN(u->reqnum), NULL);
+
 	upload_early_stall();
 }
 
@@ -641,6 +653,7 @@ upload_stall(void)
 			g_warning("frequent stalling detected, using workarounds");
 		}
 		gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
+		entropy_harvest_time();
 	}
 
 	wd_kick(stall_wd);
@@ -657,6 +670,8 @@ upload_new_stalling(const struct upload *u)
 			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u),
 			uint64_to_string(u->sent));
 	}
+
+	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), NULL);
 
 	upload_stall();
 }
@@ -683,6 +698,8 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 			compact_time(d), u->reqnum, ignore ? " (IGNORED)" : "");
 	}
 
+	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), NULL);
+
 	if (ignore)
 		return;
 
@@ -702,10 +719,10 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 void
 upload_timer(time_t now)
 {
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 	time_delta_t timeout;
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 		bool is_connecting;
 
@@ -807,7 +824,7 @@ upload_timer(time_t now)
 		 */
 
 		if (delta_time(now, u->last_update) > timeout) {
-			to_remove = g_slist_prepend(to_remove, u);
+			to_remove = pslist_prepend(to_remove, u);
 		} else if (UPLOAD_IS_SENDING(u)) {
 			if (delta_time(now, u->last_update) > IO_PRE_STALL) {
 				if (socket_is_corked(u->socket)) {
@@ -829,7 +846,7 @@ upload_timer(time_t now)
 		}
 	}
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (UPLOAD_IS_CONNECTING(u)) {
@@ -842,11 +859,11 @@ upload_timer(time_t now)
 		} else if (UPLOAD_IS_SENDING(u))
 			/* Cannot use NG_ here because we can't pass a translated string */
 			upload_remove(u, "Data timeout after %s byte%s",
-				uint64_to_string(u->sent), u->sent == 1 ? "" : "s");
+				uint64_to_string(u->sent), plural(u->sent));
 		else
 			upload_remove(u, N_("Lifetime expired"));
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 struct upload *
@@ -902,12 +919,47 @@ upload_socket_connected(gnutella_socket_t *s, void *owner)
 }
 
 /**
+ * Callback invoked when the socket connection failed.
+ */
+static void
+upload_socket_connect_failed(gnutella_socket_t *s, void *owner, const char *err)
+{
+	struct upload *u = owner;
+
+	upload_check(u);
+	g_assert(s == u->socket);
+
+	/*
+	 * Record the failing address so that we do not re-attempt to connect to
+	 * that host for a while when we receive a PUSH request.
+	 */
+
+	{
+		gnet_host_t to;
+
+		gnet_host_set(&to, s->addr, s->port);
+		aging_insert(push_conn_failed, atom_host_get(&to), int_to_pointer(1));
+
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning("PUSH can't connect to %s", gnet_host_to_string(&to));
+		}
+	}
+
+	/*
+	 * The socket_connection_failed() routine invoked us, and expects that we
+	 * destroy the socket ourselves.
+	 */
+
+	upload_remove(u, "%s", err);
+}
+
+/**
  * Socket-layer callbacks for uploads.
  */
 static struct socket_ops upload_socket_ops = {
-	NULL,						/* connect_failed */
-	upload_socket_connected,	/* connected */
-	upload_socket_destroy,		/* destroy */
+	upload_socket_connect_failed,	/* connect_failed */
+	upload_socket_connected,		/* connected */
+	upload_socket_destroy,			/* destroy */
 };
 
 /**
@@ -937,7 +989,7 @@ upload_create(struct gnutella_socket *s, bool push)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	list_uploads = g_slist_prepend(list_uploads, u);
+	list_uploads = pslist_prepend(list_uploads, u);
 
 	/*
 	 * Add upload to the GUI
@@ -969,12 +1021,14 @@ upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops, uint8 ttl,
 	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD, flags);
 	if (!s) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(
-			"PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
-			hops, ttl, host_addr_port_to_string(addr, port));
+			"PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s%s",
+			hops, ttl, (flags & SOCK_F_G2) ? "G2 " : "",
+			host_addr_port_to_string(addr, port));
 		return;
 	}
 
 	u = upload_create(s, TRUE);
+	u->g2 = booleanize(flags & SOCK_F_G2);
 	u->file_index = file_index;
 	u->name = atom_str_get(file_name);
 
@@ -984,13 +1038,16 @@ upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops, uint8 ttl,
 }
 
 /**
- * Called when we receive a Push request on Gnet.
+ * Called when we receive a Push request on Gnet or a /PUSH on G2.
+ *
+ * @param n		the receiving node
+ * @param t		for G2, the parsed message tree
  *
  * If it is not for us, discard it.
  * If we are the target, then connect back to the remote servent.
  */
 void
-handle_push_request(struct gnutella_node *n)
+handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 {
 	host_addr_t ha;
 	uint32 file_index, flags = 0;
@@ -999,33 +1056,101 @@ handle_push_request(struct gnutella_node *n)
 	const char *file_name = "<invalid file index>";
 	int push_count;
 
-	/* Servent ID matches our GUID? */
-	if (!guid_eq(n->data, GNET_PROPERTY(servent_guid)))
-		return;								/* No: not for us */
+	if (NODE_TALKS_G2(n)) {
+		const char *payload;
+		size_t plen;
 
-	/*
-	 * We are the target of the push.
-	 */
+		/*
+		 * On G2, there is no Gnutella header, so zero it to make sure we
+		 * can safely reuse the code below which is shared with Gnutella
+		 * processing.
+		 */
 
-	if (NODE_IS_UDP(n) && ctl_limit(n->addr, CTL_D_UDP | CTL_D_INCOMING)) {
-		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
-		return;
+		ZERO(&n->header);
+
+		/*
+		 * Extract remote host information.
+		 */
+
+		payload = g2_tree_node_payload(t, &plen);
+
+		if (NULL == payload || plen < 6)
+			return;		/* Invalid /PUSH message */
+
+		file_index = 0;
+
+		if (plen >= 18) {
+			ha = host_addr_peek_ipv6(&payload[0]);
+			port = peek_le16(&payload[16]);
+		} else {
+			ha = host_addr_peek_ipv4(&payload[0]);
+			port = peek_le16(&payload[4]);
+		}
+
+		/*
+		 * Verify the packet was indeed targeted to us:
+		 *
+		 * If it has a /?/TO child, it must bear our GUID.
+		 * Otherwise if it comes from UDP, it must have a matching address
+		 * to connect back to.
+		 */
+
+		payload = g2_tree_payload(t, "TO", &plen);
+
+		if (NULL == payload || plen < GUID_RAW_SIZE) {
+			if (!NODE_IS_UDP(n))
+				return;				/* No GUID, coming from TCP */
+			if (!host_addr_equiv(n->addr, ha))
+				return;				/* Mismatching remote address */
+		} else {
+			if (!guid_eq(payload, GNET_PROPERTY(servent_guid)))
+				return;				/* Mismatching GUID */
+		}
+
+		/*
+		 * Setup G2 flags and see whether they support TLS connections.
+		 */
+
+		flags = SOCK_F_G2;
+
+		if (NULL != g2_tree_lookup(t, "TLS"))
+			flags |= SOCK_F_TLS;
+	} else {
+		/* Servent ID matches our GUID? */
+		if (!guid_eq(n->data, GNET_PROPERTY(servent_guid)))
+			return;								/* No: not for us */
+
+		/*
+		 * We are the target of the push.
+		 */
+
+		if (NODE_IS_UDP(n) && ctl_limit(n->addr, CTL_D_UDP | CTL_D_INCOMING)) {
+			gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
+			return;
+		}
+
+		/*
+		 * Decode the message.
+		 */
+
+		info = &n->data[GUID_RAW_SIZE];			/* Start of file information */
+
+		file_index = peek_le32(&info[0]);
+		ha = host_addr_peek_ipv4(&info[4]);
+		port = peek_le16(&info[8]);
 	}
-
-	/*
-	 * Decode the message.
-	 */
-
-	info = &n->data[GUID_RAW_SIZE];			/* Start of file information */
-
-	file_index = peek_le32(&info[0]);
-	ha = host_addr_peek_ipv4(&info[4]);
-	port = peek_le16(&info[8]);
 
 	if (ctl_limit(ha, CTL_D_INCOMING)) {
 		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
 		return;
 	}
+
+	if (NODE_TALKS_G2(n))
+		goto connect_to_host;
+
+	/*
+	 * Gnutella message, parse GGEP extensions if any.
+	 */
 
 	if (n->size > sizeof(gnutella_push_request_t)) {
 		extvec_t exv[MAX_EXTVEC];
@@ -1075,7 +1200,7 @@ handle_push_request(struct gnutella_node *n)
 					size_t paylen = ext_paylen(e);
 					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%zu byte%s)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, paylen == 1 ? "" : "s");
+						paylen, plural(paylen));
 				}
 				break;
 			}
@@ -1101,7 +1226,7 @@ handle_push_request(struct gnutella_node *n)
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header));
 	} else {
-		const shared_file_t *req_file;
+		shared_file_t *req_file;
 
 		req_file = shared_file(file_index);
 		if (req_file == SHARE_REBUILDING) {
@@ -1122,7 +1247,10 @@ handle_push_request(struct gnutella_node *n)
 		} else {
 			file_name = shared_file_name_nfc(req_file);
 		}
+		shared_file_unref(&req_file);
 	}
+
+connect_to_host:
 
 	/*
 	 * XXX might be run inside corporations (private IPs), must be smarter.
@@ -1144,6 +1272,30 @@ handle_push_request(struct gnutella_node *n)
 	}
 
 	/*
+	 * Protect from incoming PUSH listng an IP:port that we cannot connect to.
+	 */
+
+	{
+		gnet_host_t to;
+
+		gnet_host_set(&to, ha, port);
+
+		if (aging_lookup(push_conn_failed, &to)) {
+			if (GNET_PROPERTY(upload_debug)) {
+				time_delta_t age = aging_age(push_conn_failed, &to);
+				g_warning("PUSH (hops=%d, ttl=%d) "
+					"skipping %s%s (unreacheable, since %ld sec%s): %s",
+					gnutella_header_get_hops(&n->header),
+					gnutella_header_get_ttl(&n->header),
+					NODE_TALKS_G2(n) ? "G2 " : "",
+					host_addr_port_to_string(ha, port),
+					(long) age, plural(age), file_name);
+			}
+			return;
+		}
+	}
+
+	/*
 	 * Protect from PUSH flood: since each push requires us to connect
 	 * back, it uses resources and could be used to conduct a subtle denial
 	 * of service attack.	-- RAM, 03/11/2002
@@ -1153,9 +1305,10 @@ handle_push_request(struct gnutella_node *n)
 
 	if (push_count >= PUSH_REPLY_MAX) {
 		if (GNET_PROPERTY(upload_debug)) {
-			g_warning("PUSH (hops=%d, ttl=%d) throttling callback to %s: %s",
+			g_warning("PUSH (hops=%d, ttl=%d) throttling callback to %s%s: %s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
+				NODE_TALKS_G2(n) ? "G2 " : "",
 				host_addr_port_to_string(ha, port), file_name);
 		}
 		return;
@@ -1169,9 +1322,10 @@ handle_push_request(struct gnutella_node *n)
 	 */
 
 	if (GNET_PROPERTY(upload_debug) > 3)
-		g_debug("PUSH (hops=%d, ttl=%d) to %s: %s",
+		g_debug("PUSH (hops=%d, ttl=%d) to %s%s: %s",
 			gnutella_header_get_hops(&n->header),
 			gnutella_header_get_ttl(&n->header),
+			NODE_TALKS_G2(n) ? "G2 " : "",
 			host_addr_port_to_string(ha, port),
 			file_name);
 
@@ -1239,7 +1393,7 @@ upload_free_resources(struct upload *u)
 	HFREE_NULL(u->request);
 
     upload_free_handle(u->upload_handle);
-	list_uploads = g_slist_remove(list_uploads, u);
+	list_uploads = pslist_remove(list_uploads, u);
 
 	upload_free(&u);
 }
@@ -1259,6 +1413,8 @@ upload_clone(struct upload *u)
 	bool within_error = FALSE;
 
 	upload_check(u);
+
+	entropy_harvest_time();
 
 	if (u->io_opaque) {
 		/* Was cloned after error sending, not during transfer */
@@ -1325,7 +1481,7 @@ upload_clone(struct upload *u)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	list_uploads = g_slist_prepend(list_uploads, cu);
+	list_uploads = pslist_prepend(list_uploads, cu);
 
 	/*
 	 * Add upload to the GUI
@@ -1428,7 +1584,7 @@ upload_http_xhost_add(char *buf, size_t size,
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Host header back: only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1505,7 +1661,7 @@ upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	if (rw >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-GUID header back: only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return rw < size ? rw : 0;
@@ -1559,7 +1715,7 @@ upload_gnutella_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Gnutella-Content-URN header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1607,7 +1763,7 @@ upload_thex_uri_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Thex-URI header back: only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1765,7 +1921,7 @@ upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	/* Don't emit a truncated header */
@@ -1790,7 +1946,7 @@ upload_http_content_length_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Length header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1818,7 +1974,7 @@ upload_http_content_type_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Type header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1840,7 +1996,7 @@ upload_http_last_modified_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Last-Modified header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1871,7 +2027,7 @@ upload_http_content_range_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
 			"only %u byte%s left",
-			(unsigned) size, 1 == size ? "" : "s");
+			(unsigned) size, plural(size));
 	}
 
 	return len < size ? len : 0;
@@ -1921,13 +2077,8 @@ upload_http_extra_callback_remove(struct upload *u, http_status_cb_t callback)
 	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
 
 	for (i = 0; i < u->hevcnt; /* empty */) {
-		if (http_extra_callback_matches(&u->hev[i], callback)) {
-			if (i < u->hevcnt - 1) {
-				memmove(&u->hev[i], &u->hev[i+1],
-					sizeof(u->hev[0]) * (u->hevcnt - i - 1));
-			}
-			g_assert(u->hevcnt != 0);
-			u->hevcnt--;
+		if G_UNLIKELY(http_extra_callback_matches(&u->hev[i], callback)) {
+			ARRAY_REMOVE_DEC(u->hev, i, u->hevcnt);
 		} else {
 			i++;
 		}
@@ -2486,17 +2637,17 @@ upload_send_error(struct upload *u, int code, const char *msg)
 void
 upload_stop_all(struct dl_file_info *fi, const char *reason)
 {
-	GSList *sl, *to_stop = NULL;
+	pslist_t *sl, *to_stop = NULL;
 	int count = 0;
 
 	g_return_if_fail(fi);
 	file_info_check(fi);
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (u->file_info == fi) {
-			to_stop = g_slist_prepend(to_stop, u);
+			to_stop = pslist_prepend(to_stop, u);
 			count++;
 		}
 	}
@@ -2509,12 +2660,12 @@ upload_stop_all(struct dl_file_info *fi, const char *reason)
 			count, fi->pathname, reason);
 	}
 
-	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
+	for (sl = to_stop; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 		upload_remove_nowarn(u, reason);
 	}
 
-	g_slist_free(to_stop);
+	pslist_free(to_stop);
 }
 
 /**
@@ -2774,6 +2925,7 @@ upload_connect_conf(struct upload *u)
 	struct gnutella_socket *s;
 	size_t rw;
 	ssize_t sent;
+	const guid_t *guid;
 
 	upload_check(u);
 
@@ -2790,19 +2942,25 @@ upload_connect_conf(struct upload *u)
 	g_assert(u->name);
 
 	/*
-	 * Send the GIV string, using our servent GUID.
+	 * Send the GIV or PUSH string, using our servent GUID.
 	 */
 
-	rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
-			(ulong) u->file_index,
-			guid_hex_str(cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid))));
+	guid = cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid));
+
+	if (u->g2) {
+		rw = str_bprintf(giv, sizeof giv, "PUSH guid:%s\r\n\r\n",
+				guid_hex_str(guid));
+	} else {
+		rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+				(ulong) u->file_index, guid_hex_str(guid));
+	}
 
 	s = u->socket;
 	sent = bws_write(bsched_out_select_by_addr(s->addr), &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
 		if (GNET_PROPERTY(upload_debug) > 1) g_warning(
-			"unable to send back GIV for \"%s\" to %s: %s",
-			u->name, host_addr_to_string(s->addr), g_strerror(errno));
+			"unable to send back GIV for \"%s\" to %s: %m",
+			u->name, host_addr_to_string(s->addr));
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(
 			"only sent %zu out of %zu bytes of GIV for \"%s\" to %s",
@@ -2947,9 +3105,14 @@ static void
 upload_collect_locations(struct upload *u,
 	const struct sha1 *sha1, const header_t *header)
 {
+	shared_file_t *sf;
+
 	g_return_if_fail(sha1);
 
-	if (shared_file_by_sha1(sha1) || file_info_by_sha1(sha1)) {
+	sf = shared_file_by_sha1(sha1);
+	sf = SHARE_REBUILDING == sf ? NULL : sf;
+
+	if (NULL != sf || file_info_by_sha1(sha1)) {
 		char *buf;
 		gnet_host_t host;
 		gnet_host_t *origin = NULL;
@@ -2974,6 +3137,8 @@ upload_collect_locations(struct upload *u,
 		if (buf)
 			dmesh_collect_negative_locations(sha1, buf, u->addr);
 	}
+
+	shared_file_unref(&sf);
 }
 
 /**
@@ -3005,7 +3170,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	 *		--RAM, 16/01/2002
 	 */
 
-	sf = shared_file(idx);
+	sf = shared_file(idx);		/* Reference-counted */
 
 	if (SHARE_REBUILDING == sf)
 		goto library_rebuilt;
@@ -3058,8 +3223,10 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		 */
 
 		if (sf && sha1_hash_available(sf)) {
-			if (!sha1_hash_is_uptodate(sf))
+			if (!sha1_hash_is_uptodate(sf)) {
+				shared_file_unref(&sf);
 				goto sha1_recomputed;
+			}
 			if (sha1_eq(&sha1, shared_file_sha1(sf)))
 				goto found;
 		}
@@ -3071,7 +3238,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		 * know the hash.
 		 */
 
-		sfn = shared_file_by_sha1(&sha1);
+		sfn = shared_file_by_sha1(&sha1);		/* Reference-counted */
 
 		/*
 		 * Since shared_file(idx) and shared_file_by_sha1(sha1) use different
@@ -3088,8 +3255,11 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 			char location[1024];
 			char *escaped;
 
-			if (!sha1_hash_is_uptodate(sfn))
+			if (!sha1_hash_is_uptodate(sfn)) {
+				shared_file_unref(&sfn);
+				shared_file_unref(&sf);
 				goto sha1_recomputed;
+			}
 
 			/*
 			 * Be nice to pushed downloads: returning a 301 currently means
@@ -3109,6 +3279,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 						sha1_base32(&sha1), idx,
 						(uint) shared_file_index(sfn),
 						shared_file_path(sfn));
+				shared_file_unref(&sf);
 				sf = sfn;
 				goto found;
 			}
@@ -3126,6 +3297,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 						"requested \"%s\", serving \"%s\"",
 						sha1_base32(&sha1), u->name,
 						shared_file_path(sfn));
+				shared_file_unref(&sf);
 				sf = sfn;
 				goto found;
 			}
@@ -3140,11 +3312,15 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 				HFREE_NULL(escaped);
 			}
 
-			u->sf = shared_file_ref(sfn);			
+			shared_file_unref(&sf);
+			u->sf = sfn;
 			upload_error_remove_ext(u, location, 301, N_("Moved Permanently"));
 			return -1;
 		}
-		else if (sf == NULL)
+
+		shared_file_unref(&sfn);
+
+		if (NULL == sf)
 			goto urn_not_found;
 
 		/* FALL THROUGH */
@@ -3164,7 +3340,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	 */
 
 	if (sf == NULL) {
-		sf = shared_file_by_name(u->name);
+		sf = shared_file_by_name(u->name);	/* Reference counts ``sf'' */
 
 		g_assert(sf != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
@@ -3192,20 +3368,26 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 					idx, u->name, shared_file_name_nfc(sf));
 		}
 
+		shared_file_unref(&sf);
 		if (NULL == sfn) {
 			upload_send_error(u, 404, N_("File index/name mismatch"));
 			return -1;
 		} else
-			sf = sfn;
+			sf = sfn;			/* Ref-counted by shared_file_by_name() */
 	}
 
+	/*
+	 * At this point, either ``sf'' is NULL or it has been ref-counted.
+	 */
+
 	if (NULL == sf || !upload_file_present(u, sf)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 found:
 	g_assert(sf != NULL);
-	u->sf = shared_file_ref(sf);
+	u->sf = sf;				/* Already ref-counted */
 	return 0;
 
 urn_not_found:
@@ -3289,7 +3471,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	 *		--RAM, 2005-08-01, 2007-08-25
 	 */
 
-	sf = shared_file_by_sha1(&sha1);
+	sf = shared_file_by_sha1(&sha1);		/* Reference-counted */
 
 	if (sf == NULL || sf == SHARE_REBUILDING) {
 		const char *filename;
@@ -3311,17 +3493,20 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 		return -1;
 	} else if (!sha1_hash_is_uptodate(sf)) {
 		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
+		shared_file_unref(&sf);
 		return -1;
 	} else if (!upload_file_present(u, sf)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 	if (!upload_request_tth_matches(sf, tth)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 	upload_request_tth(sf);
-	u->sf = shared_file_ref(sf);
+	u->sf = sf;
 	return 0;
 
 malformed:
@@ -3386,30 +3571,35 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 		 * As long as we cannot verify the full TTH we should probably
 		 * not pass it on even if we already fetched THEX data.
 		 */
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 	
 	if (!sha1_hash_is_uptodate(sf)) {
 		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
+		shared_file_unref(&sf);
 		return -1;
 	}
 
 	if (!upload_request_tth_matches(sf, tth)) {
+		shared_file_unref(&sf);
 		goto not_found;
 	}
 
 	if (NULL == shared_file_tth(sf)) {
 		upload_request_tth(sf);
+		shared_file_unref(&sf);
 		goto tth_recomputed;
 	}
 
 	if (0 == tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf))) {
 		shared_file_set_tth(sf, NULL);
 		upload_request_tth(sf);
+		shared_file_unref(&sf);
 		goto tth_recomputed;
 	}
 
-	u->thex = shared_file_ref(sf);
+	u->thex = sf;
 	return 0;
 
 not_found:
@@ -3845,7 +4035,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 static bool
 upload_is_already_downloading(struct upload *upload)
 {
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 	bool result = FALSE;
 
 	g_assert(upload);
@@ -3862,7 +4052,7 @@ upload_is_already_downloading(struct upload *upload)
 	 * 		-- JA 12/7/'03
 	 */
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *up = cast_to_upload(sl->data);
 
 		if (up == upload)
@@ -3870,7 +4060,7 @@ upload_is_already_downloading(struct upload *upload)
 		if (!UPLOAD_IS_SENDING(up) && up->status != GTA_UL_QUEUED)
 			continue;
 		if (
-			host_addr_equal(up->socket->addr, upload->socket->addr) && (
+			host_addr_equiv(up->socket->addr, upload->socket->addr) && (
 				(up->file_index != URN_INDEX &&
 				 up->file_index == upload->file_index) ||
 				(upload->sha1 && up->sha1 == upload->sha1)
@@ -3887,7 +4077,7 @@ upload_is_already_downloading(struct upload *upload)
 				result = TRUE;
 				break;
 			}
-			to_remove = g_slist_prepend(to_remove, up);
+			to_remove = pslist_prepend(to_remove, up);
 		}
 	}
 
@@ -3898,7 +4088,7 @@ upload_is_already_downloading(struct upload *upload)
 		 * at most.
 		 */
 
-		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		for (sl = to_remove; sl; sl = pslist_next(sl)) {
 			struct upload *up = cast_to_upload(sl->data);
 
 			if (GNET_PROPERTY(upload_debug)) g_warning(
@@ -3910,7 +4100,7 @@ upload_is_already_downloading(struct upload *upload)
 		}
 	}
 
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 	return result;
 }
 
@@ -4265,25 +4455,13 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	g_assert(NULL == u->file);		/* File opened each time */
 
-	/* Open the file for reading. */
-	u->file = file_object_open(shared_file_path(u->sf), O_RDONLY);
-	if (!u->file) {
-		int fd, flags;
+	/*
+	 * Open the file for reading.
+	 */
 
-		/* If this is a partial file, we open it with O_RDWR so that
-		 * the file descriptor can be shared with download operations
-		 * for the same file. */
-		if (NULL == u->file_info || (u->file_info->flags & FI_F_SEEDING)) {
-			flags = O_RDONLY;
-		} else {
-			flags = O_RDWR;
-		}
-		fd = file_absolute_open(shared_file_path(u->sf), flags, 0);
-		if (fd >= 0) {
-			u->file = file_object_new(fd, shared_file_path(u->sf), flags);
-		}
-	}
-	if (!u->file) {
+	u->file = file_object_open(shared_file_path(u->sf), O_RDONLY);
+
+	if (NULL == u->file) {
 		upload_error_not_found(u, NULL);
 		return FALSE;
 	}
@@ -4632,6 +4810,8 @@ upload_request_special(struct upload *u, const header_t *header)
 		if (buf) {
 			if (strtok_case_has(buf, ",", "application/x-gnutella-packets")) {
 				flags |= BH_F_QHITS;
+			} else if (strtok_case_has(buf, ",", "application/x-gnutella2")) {
+				flags |= BH_F_QHITS | BH_F_G2;
 			} else if (
 				strtok_has(buf, ",;", "*/*") ||
 				strtok_case_has(buf, ",;", "text/html") ||
@@ -4653,6 +4833,8 @@ upload_request_special(struct upload *u, const header_t *header)
 					"Content-Type: text/html; charset=utf-8\r\n");
 		} else {
 			upload_http_extra_line_add(u,
+				(flags & BH_F_G2) ?
+					"Content-Type: application/x-gnutella2\r\n" :
 					"Content-Type: application/x-gnutella-packets\r\n");
 		}
 
@@ -4673,7 +4855,8 @@ upload_request_special(struct upload *u, const header_t *header)
 		}
 
 		str_bprintf(name, sizeof name,
-				_("<Browse Host Request> [%s%s%s]"),
+				_("<Browse Host %sRequest> [%s%s%s]"),
+				(flags & BH_F_G2) ? "G2 " : "",
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
 				(flags & BH_F_DEFLATE) ? _(", deflate") :
 				(flags & BH_F_GZIP) ? _(", gzip") : "",
@@ -4810,6 +4993,18 @@ upload_request(struct upload *u, header_t *header)
 		if (d > IO_RTT_STALL) {
 			upload_large_followup_rtt(u, d);
 		}
+		entropy_harvest_single(VARLEN(d));
+	}
+
+	/*
+	 * Entropy harvesting...
+	 */
+
+	{
+		host_addr_t addr = u->socket->addr;
+		uint16 port = u->socket->port;
+
+		entropy_harvest_small(VARLEN(addr), VARLEN(port), NULL);
 	}
 
 	/*
@@ -5189,6 +5384,7 @@ upload_completed(struct upload *u)
 
 	socket_check(u->socket);
 
+	entropy_harvest_time();
 	gnet_prop_incr_guint32(PROP_TOTAL_UPLOADS);
 	upload_fire_upload_info_changed(u); /* gui must update last state */
 
@@ -5271,7 +5467,7 @@ upload_writable(void *obj, int unused_source, inputevt_cond_t cond)
 		available = MIN(amount, READ_BUF_SIZE);
 		before = pos = u->pos;
 		written = bio_sendfile(&u->sendfile_ctx, u->bio,
-					file_object_get_fd(u->file), &pos, available);
+					file_object_fd(u->file), &pos, available);
 
 		g_assert((ssize_t) -1 == written ||
 			(fileoffset_t) written == pos - before);
@@ -5517,22 +5713,22 @@ upload_kill(gnet_upload_t upload)
 void
 upload_kill_addr(const host_addr_t addr)
 {
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
-		if (host_addr_equal(u->addr, addr) && !UPLOAD_IS_COMPLETE(u))
-			to_remove = g_slist_prepend(to_remove, u);
+		if (host_addr_equiv(u->addr, addr) && !UPLOAD_IS_COMPLETE(u))
+			to_remove = pslist_prepend(to_remove, u);
 	}
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		parq_upload_force_remove(u);
 		upload_remove(u, N_("IP denying uploads"));
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 /**
@@ -5560,6 +5756,8 @@ upload_init(void)
 	upload_handle_map = idtable_new(32);
 	push_requests = aging_make(PUSH_REPLY_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+	push_conn_failed = aging_make(PUSH_BAN_FREQ,
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
 	header_features_add_guarded(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -5608,6 +5806,7 @@ upload_close(void)
 
 	aging_destroy(&stalling_uploads);
 	aging_destroy(&push_requests);
+	aging_destroy(&push_conn_failed);
 	wd_free_null(&early_stall_wd);
 	wd_free_null(&stall_wd);
 }
@@ -5698,29 +5897,29 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
         si->avg_bps++;
 }
 
-GSList *
+pslist_t *
 upload_get_info_list(void)
 {
-	GSList *sl, *sl_info = NULL;
+	pslist_t *sl, *sl_info = NULL;
 
-	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
-		sl_info = g_slist_prepend(sl_info, upload_get_info(u->upload_handle));
+		sl_info = pslist_prepend(sl_info, upload_get_info(u->upload_handle));
 	}
-	return g_slist_reverse(sl_info);
+	return pslist_reverse(sl_info);
 }
 
 void
-upload_free_info_list(GSList **sl_ptr)
+upload_free_info_list(pslist_t **sl_ptr)
 {
 	g_assert(sl_ptr);
 	if (*sl_ptr) {
-		GSList *sl;
+		pslist_t *sl;
 
-		for (sl = *sl_ptr; sl; sl = g_slist_next(sl)) {
+		for (sl = *sl_ptr; sl; sl = pslist_next(sl)) {
 			upload_free_info(sl->data);
 		}
-		g_slist_free(*sl_ptr);
+		pslist_free(*sl_ptr);
 		*sl_ptr = NULL;
 	}
 }

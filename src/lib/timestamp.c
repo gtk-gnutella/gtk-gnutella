@@ -37,7 +37,9 @@
 #include "common.h"
 
 #include "timestamp.h"
+
 #include "ascii.h"
+#include "buf.h"
 #include "offtime.h"
 #include "parse.h"
 #include "str.h"
@@ -109,9 +111,13 @@ timestamp_utc_to_string_buf(time_t date, char *dst, size_t size)
 const char *
 timestamp_utc_to_string(time_t date)
 {
-	static char buf[32];
-	timestamp_utc_to_string_buf(date, buf, sizeof buf);
-	return buf;
+	buf_t *b = buf_private(G_STRFUNC, 32);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = timestamp_utc_to_string_buf(date, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -122,9 +128,13 @@ timestamp_utc_to_string(time_t date)
 const char *
 timestamp_utc_to_string2(time_t date)
 {
-	static char buf[32];
-	timestamp_utc_to_string_buf(date, buf, sizeof buf);
-	return buf;
+	buf_t *b = buf_private(G_STRFUNC, 32);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = timestamp_utc_to_string_buf(date, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -162,10 +172,30 @@ timestamp_get_string(time_t date)
 const char *
 timestamp_to_string(time_t date)
 {
-	static char buf[TIMESTAMP_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, TIMESTAMP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	timestamp_to_string_buf(date, buf, sizeof buf);
-	return buf;
+	n = timestamp_to_string_buf(date, p, sz);
+	g_assert(n < sz);
+	return p;
+}
+
+/**
+ * Convert time to ISO 8601 date plus time, e.g. "2005-11-10 20:21:57".
+ *
+ * @return pointer to static data.
+ */
+const char *
+timestamp_to_string2(time_t date)
+{
+	buf_t *b = buf_private(G_STRFUNC, TIMESTAMP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = timestamp_to_string_buf(date, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -247,10 +277,13 @@ timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 const char *
 timestamp_rfc822_to_string(time_t date)
 {
-	static char buf[80];
+	buf_t *b = buf_private(G_STRFUNC, 80);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	timestamp_rfc822_to_string_buf(date, buf, sizeof buf);
-	return buf;
+	n = timestamp_rfc822_to_string_buf(date, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -260,10 +293,13 @@ timestamp_rfc822_to_string(time_t date)
 const char *
 timestamp_rfc822_to_string2(time_t date)
 {
-	static char buf[80];
+	buf_t *b = buf_private(G_STRFUNC, 80);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	timestamp_rfc822_to_string_buf(date, buf, sizeof buf);
-	return buf;
+	n = timestamp_rfc822_to_string_buf(date, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**
@@ -295,10 +331,13 @@ timestamp_rfc1123_to_string_buf(time_t date, char *buf, size_t size)
 const char *
 timestamp_rfc1123_to_string(time_t date)
 {
-	static char buf[80];
+	buf_t *b = buf_private(G_STRFUNC, 80);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
 
-	timestamp_rfc1123_to_string_buf(date, buf, sizeof buf);
-	return buf;
+	n = timestamp_rfc1123_to_string_buf(date, p, sz);
+	g_assert(n < sz);
+	return p;
 }
 
 /**

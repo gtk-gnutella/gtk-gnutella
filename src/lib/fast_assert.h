@@ -48,9 +48,22 @@
 #ifndef _fast_assert_h_
 #define _fast_assert_h_
 
+/*
+ * Highest integer bit flags an assertion data for "code not reached".
+ * In which case the expr is not a failing expression but the routine name
+ * where the unreachable code was reached by the execution flow.
+ *
+ * This can help debug situations where the assertion fails in code that has
+ * been changed (e.g. from an old release) and the source location is not
+ * enough to spot where the failure happens, with no symbolic stack trace
+ * reported.
+ *		--RAM, 2013-10-28
+ */
+#define FAST_ASSERT_NOT_REACHED	(1U << (INTSIZE * CHAR_BIT - 1))
+
 typedef struct assertion_data {
 	const char *file, *expr;
-	unsigned line;
+	unsigned line;				/* Highest bit flags "code not reached" */
 } assertion_data;
 
 /*
@@ -99,7 +112,7 @@ G_STMT_START { \
 #define fast_assert_not_reached() \
 G_STMT_START { \
 	static const struct assertion_data assertion_data_ = { \
-		_WHERE_, NULL, __LINE__ \
+		_WHERE_, G_STRFUNC, FAST_ASSERT_NOT_REACHED | __LINE__ \
 	}; \
 	assertion_failure(&assertion_data_); \
 } G_STMT_END

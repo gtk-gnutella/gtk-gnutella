@@ -60,8 +60,8 @@
 #include "op.h"
 #include "random.h"
 #include "smsort.h"
-#include "smsort.h"
 #include "tm.h"
+#include "tqsort.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "xsort.h"
@@ -70,9 +70,10 @@
 
 #define VSORT_LOOPS			16		/* Targeted amount of benchmarking loops */
 #define VSORT_ATTEMPTS		5		/* Max retry attempts made when doubling */
-#define VSORT_ITEMS			16384	/* A rather large amount of items */
+#define VSORT_ITEMS			8192	/* A rather large amount of items */
 #define VSORT_SMALL_ITEMS	128		/* Upper limit for small arrays */
-#define VSORT_MIN_SECS		0.05	/* Lowest CPU time we want to spend */
+#define VSORT_HUGE_ITEMS	TQSORT_ITEMS	/* Huge item amount */
+#define VSORT_MIN_SECS		0.01	/* Lowest CPU time we want to spend */
 
 struct vsort_timing {
 	void *data;				/* The data to sort */
@@ -87,13 +88,15 @@ typedef void (*vsort_t)(void *b, size_t n, size_t s, cmp_fn_t cmp);
 
 #define VSORT_SMALL		0U	/* Index in vsort_table[] for small arrays */
 #define VSORT_LARGE		1U	/* Index in vsort_table[] for large arrays */
+#define VSORT_HUGE		2U	/* Index in vsort_table[] for huge arrays */
 
 static struct {
 	vsort_t v_sort;			/* Sort routine to use for general arrays */
 	vsort_t v_sort_almost;	/* Sort routine to use for almost-sorted arrays */
-} vsort_table[2] = {
+} vsort_table[] = {
 	{ xqsort, xqsort },		/* Default if they do not call vsort_init() */
 	{ xqsort, xqsort },		/* Default if they do not call vsort_init() */
+	{ tqsort, xqsort },		/* Default if they do not call vsort_init() */
 };
 
 static int
@@ -138,6 +141,17 @@ vsort_xqsort(struct vsort_timing *vt, size_t loops)
 }
 
 static void
+vsort_tqsort(struct vsort_timing *vt, size_t loops)
+{
+	size_t n = loops;
+
+	while (n-- > 0) {
+		memcpy(vt->copy, vt->data, vt->len);
+		tqsort(vt->copy, vt->items, vt->isize, vsort_long_cmp);
+	}
+}
+
+static void
 vsort_smsort(struct vsort_timing *vt, size_t loops)
 {
 	size_t n = loops;
@@ -158,17 +172,17 @@ vsort_loops(size_t items)
 	double target, used;
 
 	/*
-	 * Assume VSORT_LOOPS loops for VSORT_ITEMS items will take about the time
-	 * we want to spend for a single test.  If we have less items, we can do
-	 * more loops.
+	 * Assume VSORT_LOOPS loops for VSORT_HUGE_ITEMS items will take about the
+	 * time we want to spend for a single test.  If we have less items, we
+	 * can do more loops.
 	 *
 	 * We know the running time is O(n * log n) where n is the amount of items.
 	 */
 
-	target = VSORT_ITEMS * log(VSORT_ITEMS);
+	target = VSORT_HUGE_ITEMS * log(VSORT_HUGE_ITEMS);
 	used = items * log(items);
 
-	return target / used * VSORT_LOOPS;
+	return MAX(target / used * VSORT_LOOPS, 1);
 }
 
 /**
@@ -185,8 +199,9 @@ vsort_timeit(vsort_timer_t f, struct vsort_timing *vt, size_t *loops)
 {
 	double start, end;
 	size_t n = *loops;
-	double elapsed = 0.0;
+	double elapsed = 0.0, telapsed = 0.0;
 	uint attempts = 0;
+	tm_t tstart, tend;
 
 retry:
 	/*
@@ -206,13 +221,25 @@ retry:
 	 * This is a pure CPU grinding algorithm, hence we monitor the amount of
 	 * CPU used and not the wall clock: if the process gets suspended in the
 	 * middle of the test, that would completely taint the results.
+	 *
+	 * However, in multi-threaded processes, the accounted CPU time is for
+	 * the whole process, and this is not fair for tqsort() which uses multiple
+	 * threads in order to minimize the overall elapsed time.
+	 *
+	 * Hence we measure both the CPU time and the wall-clock time and pick
+	 * the lowest figure.
 	 */
 
+	(*f)(vt, 1);		/* Blank run to offset effect of memory caching */
+
+	tm_now_exact(&tstart);
 	tm_cputime(&start, NULL);
 	(*f)(vt, n);
 	tm_cputime(&end, NULL);
+	tm_now_exact(&tend);
 
 	elapsed = end - start;
+	telapsed = tm_elapsed_f(&tend, &tstart);
 
 	/*
 	 * If the machine is too powerful (or the clock granularity too low),
@@ -223,6 +250,8 @@ retry:
 		*loops = n = n * 2;
 		goto retry;
 	}
+
+	elapsed = MIN(elapsed, telapsed);
 
 done:
 	return elapsed / n;
@@ -238,7 +267,8 @@ done:
 void
 vsort(void *b, size_t n, size_t s, cmp_fn_t cmp)
 {
-	uint idx = n <= VSORT_SMALL_ITEMS ? VSORT_SMALL : VSORT_LARGE;
+	uint idx = n <= VSORT_SMALL_ITEMS ? VSORT_SMALL :
+		n >= VSORT_HUGE_ITEMS ? VSORT_HUGE : VSORT_LARGE;
 	vsort_t f = vsort_table[idx].v_sort;
 
 	(*f)(b, n, s, cmp);
@@ -255,7 +285,8 @@ vsort(void *b, size_t n, size_t s, cmp_fn_t cmp)
 void
 vsort_almost(void *b, size_t n, size_t s, cmp_fn_t cmp)
 {
-	uint idx = n <= VSORT_SMALL_ITEMS ? VSORT_SMALL : VSORT_LARGE;
+	uint idx = n <= VSORT_SMALL_ITEMS ? VSORT_SMALL :
+		n >= VSORT_HUGE_ITEMS ? VSORT_HUGE : VSORT_LARGE;
 	vsort_t f = vsort_table[idx].v_sort_almost;
 
 	(*f)(b, n, s, cmp);
@@ -305,6 +336,29 @@ vsort_testing_cmp(const void *a, const void *b)
 	return 0 == c ? CMP(vb->v_weight, va->v_weight) : c;
 }
 
+/*
+ * Always substitute xqsort() for tqsort() if handling less than
+ * TQSORT_ITEMS at a time since tqsort() will always remap to xqsort()
+ * in that case.
+ */
+static vsort_t
+vsort_routine(const vsort_t routine, size_t items)
+{
+	if (items < TQSORT_ITEMS && routine == tqsort)
+		return xqsort;
+
+	return routine;
+}
+
+static const char *
+vsort_routine_name(const char *name, size_t items)
+{
+	if (items < TQSORT_ITEMS && 0 == strcmp(name, "tqsort"))
+		return "xqsort";
+
+	return name;
+}
+
 /**
  * Check which of qsort(), xqsort(), xsort() or smsort() is best for sorting
  * aligned arrays with a native item size of OPSIZ.  At identical performance
@@ -323,9 +377,10 @@ vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 		{ vsort_qsort,	qsort,	0.0, 0, "qsort" },
 		{ vsort_xqsort,	xqsort,	0.0, 2, "xqsort" },
 		{ vsort_xsort,	xsort,	0.0, 1, "xsort" },
+		{ vsort_tqsort,	tqsort,	0.0, 1, "tqsort" },
 		{ vsort_smsort,	smsort,	0.0, 1, "smsort" },	/* Only for almost sorted */
 	};
-	size_t len = VSORT_ITEMS * OPSIZ;
+	size_t len = items * OPSIZ;
 	struct vsort_timing vt;
 	size_t loops, highest_loops;
 	unsigned i;
@@ -361,13 +416,45 @@ retry_random:
 		}
 	}
 
+	/*
+	 * When dealing with a large amount of items, redo the tests twice with
+	 * another set of random bytes to make sure we're not hitting a special
+	 * ordering case.
+	 */
+
+	if (items >= VSORT_ITEMS) {
+		unsigned j;
+
+		for (j = 0; j < 2; j++) {
+			random_bytes(vt.data, len);
+
+			for (i = 0; i < G_N_ELEMENTS(tests) - 1; i++) {
+				tests[i].v_elapsed +=
+					vsort_timeit(tests[i].v_timer, &vt, &loops);
+
+				if (verbose > 1) {
+					s_debug("%s() spent %.6f secs total for %s array",
+						tests[i].v_name, tests[i].v_elapsed, which);
+				}
+
+				if (loops != highest_loops) {
+					highest_loops = loops;
+					/* Redo all the tests if the number of loops changes */
+					s_info("%s(): restarting %s array tests with %zu loops",
+						G_STRFUNC, which, loops);
+					goto retry_random;
+				}
+			}
+		}
+	}
+
 	xqsort(tests, G_N_ELEMENTS(tests) - 1, sizeof tests[0], vsort_testing_cmp);
 
-	vsort_table[idx].v_sort = tests[0].v_routine;
+	vsort_table[idx].v_sort = vsort_routine(tests[0].v_routine, items);
 
 	if (verbose) {
 		s_info("vsort() will use %s() for %s arrays",
-			tests[0].v_name, which);
+			vsort_routine_name(tests[0].v_name, items), which);
 	}
 
 	/*
@@ -398,11 +485,11 @@ retry_sorted:
 
 	xqsort(tests, G_N_ELEMENTS(tests), sizeof tests[0], vsort_testing_cmp);
 
-	vsort_table[idx].v_sort_almost = tests[0].v_routine;
+	vsort_table[idx].v_sort_almost = vsort_routine(tests[0].v_routine, items);
 
 	if (verbose) {
 		s_info("vsort_almost() will use %s() for %s arrays",
-			tests[0].v_name, which);
+			vsort_routine_name(tests[0].v_name, items), which);
 	}
 
 	vmm_free(vt.data, len);
@@ -417,17 +504,39 @@ void
 vsort_init(int verbose)
 {
 	tm_t start, end;
+	bool blockable = TRUE;
+
+	STATIC_ASSERT(VSORT_HUGE_ITEMS > VSORT_ITEMS);
+	STATIC_ASSERT(VSORT_ITEMS > VSORT_SMALL_ITEMS);
 
 	if (verbose)
 		s_info("benchmarking sort routines to select the best one...");
 
+	/*
+	 * Allow main thread to block during the duration of our tests.
+	 * This is needed since tqsort() can create threads and block.
+	 */
+
+	if (thread_is_main() && !thread_main_is_blockable()) {
+		thread_set_main(TRUE);
+		blockable = FALSE;
+	}
+
 	tm_now_exact(&start);
+	vsort_init_items(VSORT_HUGE_ITEMS, VSORT_HUGE, verbose, "huge");
 	vsort_init_items(VSORT_ITEMS, VSORT_LARGE, verbose, "large");
 	vsort_init_items(VSORT_SMALL_ITEMS, VSORT_SMALL, verbose, "small");
 	tm_now_exact(&end);
 
 	if (verbose)
 		s_info("vsort() benchmarking took %F secs", tm_elapsed_f(&end, &start));
+
+	/*
+	 * Restore non-blockable main thread if needed.
+	 */
+
+	if (!blockable)
+		thread_set_main(FALSE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

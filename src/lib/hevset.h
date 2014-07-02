@@ -82,12 +82,16 @@ hevset_t *hevset_create_any_real(size_t offset, hash_fn_t primary,
 	hash_fn_t secondary, eq_fn_t eq);
 void hevset_free_null(hevset_t **);
 void hevset_clear(hevset_t *);
+void hevset_thread_safe(hevset_t *);
+void hevset_lock(hevset_t *);
+void hevset_unlock(hevset_t *);
 
 bool hevset_contains(const hevset_t *, const void *key);
 void hevset_insert_key(hevset_t *ht, const void *key);
 void hevset_insert(hevset_t *, const void *value);
 void *hevset_lookup(const hevset_t *, const void *key);
 bool hevset_lookup_extended(const hevset_t *, const void *key, void **valptr);
+void *hevset_random(const hevset_t *ht);
 bool hevset_remove(hevset_t *, const void *key);
 size_t hevset_count(const hevset_t *);
 void hevset_foreach(const hevset_t *, data_fn_t fn, void *data);

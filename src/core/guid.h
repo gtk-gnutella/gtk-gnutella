@@ -46,20 +46,25 @@
 void guid_init(void);
 void guid_close(void);
 
-bool guid_is_banned(const struct guid *guid);
-void guid_add_banned(const struct guid *guid);
+bool guid_is_banned(const guid_t *guid);
+void guid_add_banned(const guid_t *guid);
 
-bool guid_is_gtkg(const struct guid *xuid,
+bool guid_is_gtkg(const guid_t *xuid,
 	uint8 *majp, uint8 *minp, bool *relp);
-bool guid_is_requery(const struct guid *xuid);
-void guid_random_muid(struct guid *muid);
-void guid_ping_muid(struct guid *muid);
-void guid_query_muid(struct guid *muid, bool initial);
-bool guid_query_muid_is_gtkg(const struct guid *guid,
+bool guid_is_requery(const guid_t *xuid);
+void guid_random_muid(guid_t *muid);
+void guid_ping_muid(guid_t *muid);
+void guid_query_muid(guid_t *muid, bool initial);
+bool guid_query_muid_is_gtkg(const guid_t *guid,
 	bool oob, uint8 *majp, uint8 *minp, bool *relp);
-void guid_query_oob_muid(struct guid *muid,
+void guid_query_oob_muid(guid_t *muid,
 	const host_addr_t addr, uint16 port, bool initial);
-void guid_oob_get_addr_port(const struct guid *guid,
+void guid_oob_get_addr_port(const guid_t *guid,
 	host_addr_t *addr, uint16 *port);
+
+struct hikset;
+const guid_t *guid_unique_atom(const struct hikset *hik, bool gtkg);
+
+void guid_free_atom2(void *guid, void *unused);
 
 #endif /* _core_guid_h_ */

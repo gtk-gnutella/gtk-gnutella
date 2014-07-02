@@ -56,6 +56,7 @@
 #include <math.h>
 
 #include "routing.h"
+
 #include "acct.h"
 #include "kuid.h"
 #include "knode.h"
@@ -95,12 +96,15 @@
 #include "lib/map.h"
 #include "lib/parse.h"
 #include "lib/patricia.h"
+#include "lib/plist.h"
 #include "lib/pow2.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/stats.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
+#include "lib/tokenizer.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
 
@@ -275,7 +279,7 @@ static struct kbucket *dht_find_bucket(const kuid_t *id);
  * Define DHT_ROUTING_DEBUG to enable more costly run-time assertions which
  * make all hash list insertions O(n), basically.
  */
-#undef DHT_ROUTING_DEBUG
+#define DHT_ROUTING_DEBUG
 
 static const char * const boot_status_str[] = {
 	"not bootstrapped yet",			/**< DHT_BOOT_NONE */
@@ -709,8 +713,7 @@ static void
 check_leaf_list_consistency(
 	const struct kbucket *kb, hash_list_t *hl, knode_status_t status)
 {
-	GList *nodes;
-	GList *l;
+	plist_t *nodes, *l;
 	uint count = 0;
 
 	g_assert(kb->nodes);
@@ -718,19 +721,20 @@ check_leaf_list_consistency(
 
 	nodes = hash_list_list(hl);
 
-	for (l = nodes; l; l = g_list_next(l)) {
-		knode_t *kn = l->data;
+	PLIST_FOREACH(nodes, l) {
+		knode_t *kn = plist_data(l);
 
 		knode_check(kn);
 		g_assert_log(kn->status == status,
-			"kn->status=%s, status=%s",
-			knode_status_to_string(kn->status), knode_status_to_string(status));
+			"kn->status=%s, status=%s, kn={%s}",
+			knode_status_to_string(kn->status), knode_status_to_string(status),
+			knode_to_string(kn));
 		count++;
 	}
 
 	g_assert(count == hash_list_length(hl));
 
-	g_list_free(nodes);
+	plist_free(nodes);
 }
 #else
 #define check_leaf_list_consistency(a, b, c)
@@ -877,7 +881,6 @@ forget_merged_node(knode_t *kn)
 
 	list_update_stats(kn->status, -1);		/* Node leaving routing table */
 	kn->flags &= ~KNODE_F_ALIVE;
-	kn->status = KNODE_UNKNOWN;
 
 	/*
 	 * Freeing will happen in forget_hashlist_node() when the buckets
@@ -903,18 +906,12 @@ forget_hashlist_node(void *knode)
 	 *
 	 * In all cases (and surely in the first two), it can happen that the
 	 * nodes are still referenced somewhere else, and still need to be
-	 * ref-uncounted, leaving all other attributes as-is.  Unless the node
-	 * is going to be disposed of, at which time we must force the status
-	 * to KNODE_UNKNOWN for knode_dispose().
+	 * ref-uncounted, leaving all other attributes as-is.
 	 *
-	 * Furthermore, at this point, all the node accounting has been done.
+	 * Furthermore, all the node accounting has already been done.
 	 */
 
-	if (DHT_BOOT_SHUTDOWN == GNET_PROPERTY(dht_boot_status))
-		kn->status = KNODE_UNKNOWN;		/* No longer in route table */
-	else if (1 == kn->refcnt)
-		kn->status = KNODE_UNKNOWN;		/* For knode_dispose() */
-
+	kn->status = KNODE_UNKNOWN;		/* No longer in route table */
 	knode_free(kn);
 }
 
@@ -1310,7 +1307,7 @@ completion_iterate(struct bootstrap *b)
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT completing bootstrap with KUID %s (%d bit%s)",
-			kuid_to_hex_string(&b->id), b->bits, 1 == b->bits ? "" : "s");
+			kuid_to_hex_string(&b->id), b->bits, plural(b->bits));
 }
 
 /**
@@ -1335,7 +1332,7 @@ bootstrap_completion_status(
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
 		g_debug("DHT bootstrap with ID %s (%d bit%s) done: %s",
-			kuid_to_hex_string(kuid), b->bits, 1 == b->bits ? "" : "s",
+			kuid_to_hex_string(kuid), b->bits, plural(b->bits),
 			lookup_strerror(error));
 
 	/*
@@ -1343,8 +1340,6 @@ bootstrap_completion_status(
 	 */
 
 	if (1 == b->bits) {
-		WFREE(b);
-
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT now completely bootstrapped");
 
@@ -1362,6 +1357,7 @@ bootstrap_completion_status(
 			lookup_find_node(our_kuid, NULL, NULL, NULL);
 		}
 
+		WFREE(b);
 		return;
 	}
 
@@ -1827,6 +1823,38 @@ check_leaf_bucket_consistency(const struct kbucket *kb)
 	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 }
 
+static void
+bucket_node_set_status(void *data, void *udata)
+{
+	knode_t *kn = data;
+	knode_status_t status = pointer_to_int(udata);
+
+	knode_check(kn);
+
+	kn->status = status;
+}
+
+/**
+ * Force status of all the nodes held in the list.
+ */
+static void
+bucket_list_set_status(hash_list_t *hl, knode_status_t status)
+{
+	hash_list_foreach(hl, bucket_node_set_status, int_to_pointer(status));
+}
+
+/**
+ * Reset the status to all the nodes held in the bucket to match that of
+ * the list they belong to.
+ */
+static void
+bucket_reset_node_status(const struct kbucket *kb)
+{
+	bucket_list_set_status(kb->nodes->good, KNODE_GOOD);
+	bucket_list_set_status(kb->nodes->stale, KNODE_STALE);
+	bucket_list_set_status(kb->nodes->pending, KNODE_PENDING);
+}
+
 /**
  * Context for split_among()
  */
@@ -1930,6 +1958,8 @@ dht_split_bucket(struct kbucket *kb)
 	check_leaf_list_consistency(kb, kb->nodes->stale, KNODE_STALE);
 	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 
+	gnet_stats_inc_general(GNR_DHT_BUCKET_SPLIT);
+
 	if (GNET_PROPERTY(dht_debug))
 		g_debug("DHT splitting %s from %s subtree",
 			kbucket_to_string(kb),
@@ -2001,6 +2031,15 @@ dht_split_bucket(struct kbucket *kb)
 	g_assert(bucket_count(kb) == bucket_count(zero) + bucket_count(one));
 
 	free_node_lists(kb);			/* Parent bucket is now empty */
+
+	/*
+	 * Because forget_hashlist_node() forcefully resets the status of nodes
+	 * to KNODE_UNKNOWN, we need to make sure we reset the status of all the
+	 * nodes in the buckets to match that of the list they belong to.
+	 */
+
+	bucket_reset_node_status(kb->one);
+	bucket_reset_node_status(kb->zero);
 
 	g_assert(NULL == kb->nodes);	/* No longer a leaf node */
 	g_assert(kb->one);
@@ -2167,7 +2206,7 @@ move_node(struct kbucket *kb, knode_t *kn)
 	 * hikset to store nodes by KUID: when we return from WMOVE, the structure
 	 * still references an address that is invalid and has potentially been
 	 * freed.  We would have to revert to a classic hash table if we were
-	 * to re-enable moving nodes around.
+	 * to re-enable moving nodes around in memory.
 	 *		--RAM, 2012-04-30
 	 */
 #if 0
@@ -2301,7 +2340,7 @@ clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying,
 {
 	g_assert(kuid_eq(kn1->id, kn2->id));
 
-	if (!host_addr_equal(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
+	if (!host_addr_equiv(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT %scollision on node %s (also at %s) in %s()",
 				verifying ? "verification " : "",
@@ -2851,12 +2890,15 @@ dht_max_depth(void)
 /**
  * Build a list of all nodes from the two buckets belonging to specified list.
  */
-static GSList *
+static pslist_t *
 merged_node_list(knode_status_t status,
 	const struct kbucket *kb1, const struct kbucket *kb2)
 {
 	hash_list_iter_t *iter;
-	GSList *result = NULL;
+	pslist_t *result = NULL;
+
+	check_leaf_list_consistency(kb1, list_for(kb1, status), status);
+	check_leaf_list_consistency(kb2, list_for(kb2, status), status);
 
 	iter = hash_list_iterator(list_for(kb1, status));
 	while (hash_list_iter_has_next(iter)) {
@@ -2865,7 +2907,7 @@ merged_node_list(knode_status_t status,
 		knode_check(kn);
 		g_assert(status == kn->status);
 
-		result = g_slist_prepend(result, kn);
+		result = pslist_prepend(result, kn);
 	}
 	hash_list_iter_release(&iter);
 
@@ -2876,7 +2918,7 @@ merged_node_list(knode_status_t status,
 		knode_check(kn);
 		g_assert(status == kn->status);
 
-		result = g_slist_prepend(result, kn);
+		result = pslist_prepend(result, kn);
 	}
 	hash_list_iter_release(&iter);
 
@@ -2894,11 +2936,11 @@ merged_node_list(knode_status_t status,
  * @param nodes		a single linked-list of nodes to insert
  */
 static void
-insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
+insert_nodes(struct kbucket *kb, knode_status_t status, pslist_t *nodes)
 {
 	hash_list_t *hl;
 	size_t maxsize;
-	GSList *sl;
+	pslist_t *sl;
 	bool forget = FALSE;
 
 	hl = list_for(kb, status);
@@ -2906,7 +2948,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 
 	g_assert(0 == hash_list_length(hl));
 
-	GM_SLIST_FOREACH(nodes, sl) {
+	PSLIST_FOREACH(nodes, sl) {
 		knode_t *kn = sl->data;
 
 		knode_check(kn);
@@ -2960,7 +3002,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	struct kbucket *sibling;
 	unsigned good_nodes;
 	struct kbucket *parent;
-	GSList *nodes;
+	pslist_t *nodes;
 
 	g_assert(is_leaf(kb));
 
@@ -2987,7 +3029,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT merging %s%s with its sibling (total of %u good node%s)",
 			forced ? "(forced) " : "",
-			kbucket_to_string(kb), good_nodes, 1 == good_nodes ? "" :"s");
+			kbucket_to_string(kb), good_nodes, plural(good_nodes));
 	}
 
 	/*
@@ -3010,6 +3052,8 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	if (forced) {
 		parent->frozen_depth = TRUE;
 		gnet_stats_inc_general(GNR_DHT_FORCED_BUCKET_MERGE);
+	} else {
+		gnet_stats_inc_general(GNR_DHT_BUCKET_MERGE);
 	}
 
 	/*
@@ -3018,9 +3062,9 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 
 	nodes = merged_node_list(KNODE_GOOD, kb, sibling);
 	if (forced)
-		nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+		nodes = pslist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_GOOD, nodes);
-	g_slist_free(nodes);
+	pslist_free(nodes);
 
 	/*
 	 * Stale and pending nodes are sorted by increasing "dead probability",
@@ -3029,14 +3073,14 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	 */
 
 	nodes = merged_node_list(KNODE_STALE, kb, sibling);
-	nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+	nodes = pslist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_STALE, nodes);
-	g_slist_free(nodes);
+	pslist_free(nodes);
 
 	nodes = merged_node_list(KNODE_PENDING, kb, sibling);
-	nodes = g_slist_sort(nodes, knode_dead_probability_cmp);
+	nodes = pslist_sort(nodes, knode_dead_probability_cmp);
 	insert_nodes(parent, KNODE_PENDING, nodes);
-	g_slist_free(nodes);
+	pslist_free(nodes);
 
 	/*
 	 * Now that the nodes have been propagated, install periodic checks.
@@ -3076,13 +3120,17 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	}
 
 	/*
-	 * Free old leaves.
+	 * Free old leaves, which will reset status of nodes to KNODE_UNKNOWN.
 	 */
 
 	free_bucket(kb);
 	free_bucket(sibling);
 
-	check_leaf_bucket_consistency(parent);
+	/*
+	 * REstore proper status for the nodes we kept in the merged bucket.
+	 */
+
+	bucket_reset_node_status(parent);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT merged buckets into %s max depth: %d",
@@ -3154,14 +3202,12 @@ dht_node_timed_out(knode_t *kn)
  * Periodic check of stale contacts.
  */
 static void
-bucket_stale_check(cqueue_t *unused_cq, void *obj)
+bucket_stale_check(cqueue_t *cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
-	GSList *to_remove = NULL;
-	GSList *sl;
-
-	(void) unused_cq;
+	pslist_t *to_remove = NULL;
+	pslist_t *sl;
 
 	g_assert(is_leaf(kb));
 
@@ -3169,6 +3215,7 @@ bucket_stale_check(cqueue_t *unused_cq, void *obj)
 	 * Re-instantiate the periodic callback for next time.
 	 */
 
+	cq_zero(cq, &kb->nodes->staleness);
 	install_stale_check(kb);
 
 	if (0 == list_count(kb, KNODE_STALE))
@@ -3198,7 +3245,7 @@ bucket_stale_check(cqueue_t *unused_cq, void *obj)
 		g_assert(KNODE_STALE == kn->status);
 
 		if (knode_still_alive_probability(kn) < ALIVE_PROBA_LOW_THRESH) {
-			to_remove = g_slist_prepend(to_remove, kn);
+			to_remove = pslist_prepend(to_remove, kn);
 		} else if (knode_can_recontact(kn)) {
 			if (dht_lazy_rpc_ping(kn)) {
 				gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES);
@@ -3208,31 +3255,29 @@ bucket_stale_check(cqueue_t *unused_cq, void *obj)
 	hash_list_iter_release(&iter);
 
 	if (to_remove != NULL && GNET_PROPERTY(dht_debug)) {
-		unsigned count = g_slist_length(to_remove);
+		unsigned count = pslist_length(to_remove);
 		g_debug("DHT selected %u stale node%s to remove (likely dead)",
-			count, 1 == count ? "" : "s");
+			count, plural(count));
 	}
 
-	GM_SLIST_FOREACH(to_remove, sl) {
+	PSLIST_FOREACH(to_remove, sl) {
 		knode_t *kn = sl->data;
 		dht_remove_node_from_bucket(kn, kb);
 	}
 
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 }
 
 /**
  * Periodic check of live contacts.
  */
 static void
-bucket_alive_check(cqueue_t *unused_cq, void *obj)
+bucket_alive_check(cqueue_t *cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
 	time_t now = tm_time();
 	uint good_and_stale;
-
-	(void) unused_cq;
 
 	g_assert(is_leaf(kb));
 
@@ -3240,6 +3285,7 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 	 * Re-instantiate the periodic callback for next time.
 	 */
 
+	cq_zero(cq, &kb->nodes->aliveness);
 	install_alive_check(kb);
 
 	if (!GNET_PROPERTY(is_inet_connected)) {
@@ -3281,7 +3327,7 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT missing %u good node%s in %s",
-				missing, 1 == missing ? "" : "s", kbucket_to_string(kb));
+				missing, plural(missing), kbucket_to_string(kb));
 		}
 
 		do {
@@ -3297,7 +3343,7 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 			uint promoted = K_BUCKET_GOOD - good_and_stale - missing;
 			if (promoted) {
 				g_debug("DHT promoted %u pending node%s in %s",
-					promoted, 1 == promoted ? "" : "s", kbucket_to_string(kb));
+					promoted, plural(promoted), kbucket_to_string(kb));
 			}
 		}
 	}
@@ -3396,14 +3442,14 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
  * Periodic bucket refresh.
  */
 static void
-bucket_refresh(cqueue_t *unused_cq, void *obj)
+bucket_refresh(cqueue_t *cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	time_delta_t elapsed;
 
 	g_assert(is_leaf(kb));
 
-	(void) unused_cq;
+	cq_zero(cq, &kb->nodes->refresh);
 
 	/*
 	 * To adapt the size of the routing table to the local usage of the node
@@ -3592,7 +3638,7 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		double s = bigint_to_double(&sq);
 
 		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
-			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
+			kuid_to_hex_string(kuid), amount, plural(amount),
 			(unsigned) (i - 1));
 		g_debug("DHT dsum is %s = %F", bigint_to_hex_string(&dsum), ds);
 		g_debug("DHT squares is %s = %F (%d)",
@@ -3720,7 +3766,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT target KUID is %s (%u node%s in path, retained %u)",
-			kuid_to_hex_string(kuid), (unsigned) count, 1 == count ? "" : "s",
+			kuid_to_hex_string(kuid), (unsigned) count, plural(count),
 			(unsigned) retained);
 	}
 
@@ -3778,7 +3824,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT average common prefix is %f bits over %zu node%s",
-			bits, retained, 1 == retained ? "" : "s");
+			bits, retained, plural(retained));
 	}
 
 	return estimate;
@@ -4029,6 +4075,8 @@ update_cached_size_estimate(void)
 	if (dht_is_active() || statx_n(st) == 0)
 		statx_add(st, stats.local.estimate);
 
+	g_assert(statx_n(st) != 0);		/* Hence we can compute the average */
+
 	estimate = (uint64) statx_avg(st);
 	avg_stderr = statx_n(st) > 1 ? (uint64) statx_stderr(st) : 0;
 
@@ -4062,8 +4110,8 @@ update_cached_size_estimate(void)
 			"(%d point%s, skipped %d), k-ball furthest: %d bit%s",
 			uint64_to_string(stats.average.estimate),
 			uint64_to_string2(avg_stderr),
-			count, 1 == count ? "" : "s", n + 1 - count,
-			stats.kball_furthest, 1 == stats.kball_furthest ? "" : "s");
+			count, plural(count), n + 1 - count,
+			stats.kball_furthest, plural(stats.kball_furthest));
 		if (n > 1) {
 			g_debug(
 				"DHT collected average is %.0f (%d points), avg_stderr = %g",
@@ -4396,9 +4444,7 @@ fill_closest_in_bucket(
 	const kuid_t *id, struct kbucket *kb,
 	knode_t **kvec, int kcnt, const kuid_t *exclude, bool alive)
 {
-	GList *nodes = NULL;
-	GList *good;
-	GList *l;
+	plist_t *nodes = NULL, *good, *l;
 	int added;
 	int available = 0;
 
@@ -4415,7 +4461,7 @@ fill_closest_in_bucket(
 
 	good = hash_list_list(kb->nodes->good);
 
-	while (good) {
+	while (good != NULL) {
 		knode_t *kn = good->data;
 
 		knode_check(kn);
@@ -4425,11 +4471,11 @@ fill_closest_in_bucket(
 			(!exclude || !kuid_eq(kn->id, exclude)) &&
 			(!alive || (kn->flags & KNODE_F_ALIVE))
 		) {
-			nodes = g_list_prepend(nodes, kn);
+			nodes = plist_prepend(nodes, kn);
 			available++;
 		}
 
-		good = g_list_remove(good, kn);
+		good = plist_remove(good, kn);
 	}
 
 	/*
@@ -4444,9 +4490,9 @@ fill_closest_in_bucket(
 	 */
 
 	if (!alive) {
-		GList *stale = hash_list_list(kb->nodes->stale);
+		plist_t *stale = hash_list_list(kb->nodes->stale);
 
-		while (stale) {
+		while (stale != NULL) {
 			knode_t *kn = stale->data;
 
 			knode_check(kn);
@@ -4456,11 +4502,11 @@ fill_closest_in_bucket(
 				(!exclude || !kuid_eq(kn->id, exclude)) &&
 				knode_still_alive_probability(kn) >= ALIVE_PROBA_LOW_THRESH
 			) {
-				nodes = g_list_prepend(nodes, kn);
+				nodes = plist_prepend(nodes, kn);
 				available++;
 			}
 
-			stale = g_list_remove(stale, kn);
+			stale = plist_remove(stale, kn);
 		}
 	}
 
@@ -4469,10 +4515,10 @@ fill_closest_in_bucket(
 	 */
 
 	if (available < kcnt) {
-		GList *pending = hash_list_list(kb->nodes->pending);
+		plist_t *pending = hash_list_list(kb->nodes->pending);
 		time_t now = tm_time();
 
-		while (pending) {
+		while (pending != NULL) {
 			knode_t *kn = pending->data;
 
 			knode_check(kn);
@@ -4488,11 +4534,11 @@ fill_closest_in_bucket(
 					)
 				)
 			) {
-				nodes = g_list_prepend(nodes, kn);
+				nodes = plist_prepend(nodes, kn);
 				available++;
 			}
 
-			pending = g_list_remove(pending, kn);
+			pending = plist_remove(pending, kn);
 		}
 	}
 
@@ -4501,15 +4547,15 @@ fill_closest_in_bucket(
 	 * insert them in the vector.
 	 */
 
-	nodes = g_list_sort_with_data(nodes, distance_to, deconstify_pointer(id));
+	nodes = plist_sort_with_data(nodes, distance_to, deconstify_pointer(id));
 
-	for (added = 0, l = nodes; l && kcnt; l = g_list_next(l)) {
+	for (added = 0, l = nodes; l && kcnt; l = plist_next(l)) {
 		*kvec++ = l->data;
 		kcnt--;
 		added++;
 	}
 
-	g_list_free(nodes);
+	plist_free(nodes);
 
 	return added;
 }
@@ -4678,15 +4724,15 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 
 		random_bytes(id.v, sizeof id.v);
 		kb = dht_find_bucket(&id);
-		kn = hash_list_tail(list_for(kb, KNODE_GOOD));	/* Recently seen */
+		kn = hash_list_random(list_for(kb, KNODE_GOOD));
 
-		if (NULL == kn || map_contains(seen, &kb->prefix)) {
-			i--;
+		if (NULL == kn || map_contains(seen, kn->id)) {
+			i--;		/* Stay at same position in next loop */
 			continue;	/* Bad luck: empty list or already seen */
 		}
 
 		gnet_host_set(&hvec[i], kn->addr, kn->port);
-		map_insert(seen, &kb->prefix, NULL);
+		map_insert(seen, kn->id, NULL);
 	}
 
 	map_destroy(seen);
@@ -4924,7 +4970,7 @@ static void
 dht_addr_verify_cb(
 	enum dht_rpc_ret type,
 	const knode_t *kn,
-	const struct gnutella_node *unused_n,
+	const gnutella_node_t *unused_n,
 	kda_msg_t unused_function,
 	const char *unused_payload, size_t unused_len, void *arg)
 {
@@ -5073,7 +5119,7 @@ static void
 dht_ping_cb(
 	enum dht_rpc_ret type,
 	const knode_t *kn,
-	const struct gnutella_node *unused_n,
+	const gnutella_node_t *unused_n,
 	kda_msg_t unused_function,
 	const char *unused_payload, size_t unused_len, void *unused_arg)
 {
@@ -5224,7 +5270,7 @@ dht_bootstrap_if_needed(host_addr_t addr, uint16 port)
  * Collect packed IP:port DHT hosts from "DHTIPP" we get in a pong.
  */
 void
-dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen,
+dht_ipp_extract(const gnutella_node_t *n, const char *payload, int paylen,
 	enum net_type type)
 {
 	int i, cnt;
@@ -5237,7 +5283,7 @@ dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d DHT host%s in DHTIPP pong from %s",
-			cnt, cnt == 1 ? "" : "s", node_addr(n));
+			cnt, plural(cnt), node_addr(n));
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;
@@ -5274,13 +5320,10 @@ typedef enum {
 /* Amount of valid route tags, excluding the unknown placeholder tag */
 #define NUM_DHT_ROUTE_TAGS	(DHT_ROUTE_TAG_MAX - 1)
 
-static const struct dht_route_tag {
-	dht_route_tag_t tag;
-	const char *str;
-} dht_route_tag_map[] = {
+static const tokenizer_t dht_route_tags[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define DHT_ROUTE_TAG(x)	{ CAT2(DHT_ROUTE_TAG_,x), #x }
+#define DHT_ROUTE_TAG(x)	{ #x, CAT2(DHT_ROUTE_TAG_,x) }
 
 	DHT_ROUTE_TAG(CTIM),
 	DHT_ROUTE_TAG(END),
@@ -5294,25 +5337,10 @@ static const struct dht_route_tag {
 #undef DHT_ROUTE_TAG
 };
 
-static dht_route_tag_t
+static inline dht_route_tag_t
 dht_route_string_to_tag(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(dht_route_tag_map) == NUM_DHT_ROUTE_TAGS);
-
-#define GET_ITEM(i)		dht_route_tag_map[i].str
-#define FOUND(i) G_STMT_START {				\
-	return dht_route_tag_map[i].tag;		\
-	/* NOTREACHED */						\
-} G_STMT_END
-
-	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(dht_route_tag_map), strcmp,
-		GET_ITEM, FOUND);
-
-#undef FOUND
-#undef GET_ITEM
-
-	return DHT_ROUTE_TAG_UNKNOWN;
+	return TOKENIZE(s, dht_route_tags);
 }
 
 /**
@@ -5377,9 +5405,8 @@ dht_route_parse(FILE *f)
 		g_assert(UNSIGNED(tag) <= NUM_DHT_ROUTE_TAGS);
 
 		if (tag != DHT_ROUTE_TAG_UNKNOWN && !bit_array_flip(tag_used, tag)) {
-			g_warning("dht_route_parse(): "
-				"duplicate tag \"%s\" within entry at line %u",
-				tag_name, line_no);
+			g_warning("%s(): duplicate tag \"%s\" within entry at line %u",
+				G_STRFUNC, tag_name, line_no);
 			goto damaged;
 		}
 
@@ -5430,11 +5457,10 @@ dht_route_parse(FILE *f)
 
 				/* All other tags are mandatory */
 
-				for (i = 0; i < G_N_ELEMENTS(dht_route_tag_map); i++) {
-					if (!bit_array_get(tag_used, dht_route_tag_map[i].tag)) {
-						g_warning("dht_route_parse(): "
-							"missing %s tag near line %u",
-							dht_route_tag_map[i].str, line_no);
+				for (i = 0; i < G_N_ELEMENTS(dht_route_tags); i++) {
+					if (!bit_array_get(tag_used, dht_route_tags[i].value)) {
+						g_warning("%s(): missing %s tag near line %u",
+							G_STRFUNC, dht_route_tags[i].token, line_no);
 						goto damaged;
 					}
 				}
@@ -5560,6 +5586,8 @@ dht_route_retrieve(void)
 {
 	file_path_t fp[1];
 	FILE *f;
+
+	TOKENIZE_CHECK_SORTED(dht_route_tags);
 
 	file_path_set(fp, settings_config_dir(), node_file);
 	f = file_config_open_read(file_what, fp, G_N_ELEMENTS(fp));

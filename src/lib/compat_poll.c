@@ -71,7 +71,7 @@
 #define safety_assert(x)
 #endif
 
-#ifdef HAS_SELECT
+#if defined(USE_SELECT_FOR_POLL) || defined(MINGW32)
 
 static inline int
 is_okay_for_select(int fd)
@@ -148,7 +148,8 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 	}
 	return ret;
 }
-#endif	/* HAS_SELECT */
+#endif	/* USE_SELECT_FOR_POLL || MINGW32 */
+
 /**
  * A wrapper for poll() that falls back to select() when poll() is missing.
  */

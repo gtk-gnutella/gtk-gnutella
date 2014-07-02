@@ -59,10 +59,11 @@ gl_log_set_handler(gl_log_handler_t handler, void *data)
 void
 gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 {
-	static str_t *msg;
-	static bool logging;
+	static str_t *msg[THREAD_MAX];
+	static bool logging[THREAD_MAX];
+	unsigned stid = thread_small_id();
 
-	if (logging) {
+	if (logging[stid]) {
 		s_minilogv(flags | G_LOG_FLAG_RECURSION, FALSE, fmt, args);
 		return;
 	}
@@ -73,19 +74,19 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 	 * ``logging'' variable.
 	 */
 
-	logging = TRUE;
+	logging[stid] = TRUE;
 
-	if G_UNLIKELY(NULL == msg)
-		msg = str_new_not_leaking(0);
+	if G_UNLIKELY(NULL == msg[stid])
+		msg[stid] = str_new_not_leaking(0);
 
-	str_vprintf(msg, fmt, args);
+	str_vprintf(msg[stid], fmt, args);
 
 	if (handler_cb != NULL)
-		(*handler_cb)(domain, flags, str_2c(msg), handler_data);
+		(*handler_cb)(domain, flags, str_2c(msg[stid]), handler_data);
 	else
-		s_minilog(flags, "%s", str_2c(msg));
+		s_minilog(flags, "%s", str_2c(msg[stid]));
 
-	logging = FALSE;
+	logging[stid] = FALSE;
 }
 
 /**

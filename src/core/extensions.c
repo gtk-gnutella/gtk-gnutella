@@ -1567,8 +1567,8 @@ ext_ggep_strip(char *buf, int len, const char *key)
 		int newlen = end - buf;
 		g_debug("GGEP stripping of \"%s\" in %u block%s removed %d bytes "
 			"(emptied %u block%s)",
-			key, blocks, 1 == blocks ? "" : "s", len - newlen,
-			removed, 1 == removed ? "" : "s");
+			key, blocks, plural(blocks), len - newlen,
+			removed, plural(removed));
 	}
 
 	return end - buf;
@@ -1638,7 +1638,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 				if (GNET_PROPERTY(ggep_debug)) {
 					g_warning("GGEP payload \"%s\" (%d byte%s) would "
 						"decompress to more than %d bytes",
-						name, len, 1 == len ? "" : "s", GGEP_MAXLEN);
+						name, len, plural(len), GGEP_MAXLEN);
 				}
 				failed = TRUE;
 				break;
@@ -1667,7 +1667,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 		if (ret == Z_STREAM_END) {			/* All done! */
 			if (GNET_PROPERTY(ggep_debug) > 3) {
 				g_info("GGEP payload \"%s\" inflated %d byte%s into %d",
-					name, len, 1 == len ? "" : "s", inflated);
+					name, len, plural(len), inflated);
 			}
 			break;
 		}
@@ -1679,8 +1679,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 			if (GNET_PROPERTY(ggep_debug)) {
 				g_warning("GGEP payload \"%s\" does not decompress properly "
 					"(consumed %d/%d byte%s inflated into %d)",
-					name, len - inz->avail_in, len, 1 == len ? "" : "s",
-					inflated);
+					name, len - inz->avail_in, len, plural(len), inflated);
 			}
 			failed = TRUE;
 			break;
@@ -1690,7 +1689,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 			if (GNET_PROPERTY(ggep_debug)) {
 				g_warning("decompression of GGEP payload \"%s\""
 					" (%d byte%s) failed: %s [consumed %d, inflated into %d]",
-					name, len, 1 == len ? "" : "s", zlib_strerror(ret),
+					name, len, plural(len), zlib_strerror(ret),
 					len - inz->avail_in, inflated);
 			}
 			failed = TRUE;
@@ -1727,7 +1726,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 
 	if (GNET_PROPERTY(ggep_debug) > 5) {
 		g_debug("decompressed GGEP payload \"%s\" (%d byte%s) into %d",
-			name, len, 1 == len ? "" : "s", inflated);
+			name, len, plural(len), inflated);
 	}
 
 	return result;					/* OK, successfully inflated */
@@ -2090,7 +2089,7 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 	}
 
 	rw += str_bprintf(&buf[rw], len - rw, "(%u byte%s)",
-		ext_paylen(e), 1 == ext_paylen(e) ? "" : "s");
+		ext_paylen(e), plural(ext_paylen(e)));
 
 	return rw;
 }
@@ -2132,11 +2131,10 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 	phys_paylen = ext_phys_paylen(e);
 
 	if (paylen == phys_paylen) {
-		fprintf(f, "%u byte%s", paylen, 1 == paylen ? "" : "s");
+		fprintf(f, "%u byte%s", paylen, plural(paylen));
 	} else {
 		fprintf(f, "%u byte%s <%u byte%s>",
-			paylen, 1 == paylen ? "" : "s",
-			phys_paylen, 1 == phys_paylen ? "" : "s");
+			paylen, plural(paylen), phys_paylen, plural(phys_paylen));
 	}
 
 	if (e->ext_type == EXT_GGEP) {

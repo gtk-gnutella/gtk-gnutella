@@ -43,6 +43,7 @@
 #include "misc.h"			/* For is_strsuffix() */
 #include "path.h"
 #include "str.h"
+#include "stringify.h"		/* For plural() */
 #include "timestamp.h"
 #include "tm.h"
 
@@ -269,7 +270,7 @@ open_read(
 			g_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
 			g_debug("[%s] unable to retrieve: tried %d alternate location%s",
-				what, fvcnt, fvcnt == 1 ? "" : "s");
+				what, fvcnt, plural(fvcnt));
 		} else {
 			g_debug("[%s] unable to retrieve: no alternate locations known",
 				what);
@@ -291,6 +292,12 @@ out:
  * cannot be found, try opening the ".orig" variant if already present.
  * If not found, try with successive alternatives, if supplied.
  *
+ * @note
+ * Renaming only happens if the opened file is the first in the vector.
+ * Other entries are expected to be fallbacks and are either non-writable
+ * or should be left as-is.  Likewise, opening the ".orig" is only attempted
+ * for the first entry.
+ *
  * @attention
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
@@ -300,6 +307,17 @@ FILE *
 file_config_open_read(const char *what, const file_path_t *fv, int fvcnt)
 {
 	return open_read(what, fv, fvcnt, TRUE, NULL);
+}
+
+/**
+ * Same as file_config_open_read(), but also returns the index
+ * of the path chosen within the array, if a file was opened at all.
+ */
+FILE *
+file_config_open_read_chosen(
+	const char *what, const file_path_t *fv, int fvcnt, int *chosen)
+{
+	return open_read(what, fv, fvcnt, TRUE, chosen);
 }
 
 /**
@@ -465,12 +483,14 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
 
 /**
  * Open file, returning file descriptor or -1 on error with errno set.
- * Errors are logged as a warning, unless `missing' is true, in which
+ * Errors are logged as a warning, unless `missing' is TRUE, in which
  * case no error is logged for ENOENT.
+ * No errors from open() due to invalid permission are logged when `silent'
+ * is TRUE.
  */
 static int
 do_open(const char *path, int flags, int mode,
-	bool missing, bool absolute)
+	bool missing, bool absolute, bool silent)
 {
 	const char *what;
 	int fd;
@@ -490,9 +510,9 @@ do_open(const char *path, int flags, int mode,
 	if (fd < 0) {
 		if (flags & O_CREAT)
 			what = "create";
-		else if (flags & O_RDONLY)
+		else if (O_RDONLY == (flags & O_ACCMODE))
 			what = "read";
-		else if (flags & O_WRONLY)
+		else if (O_WRONLY == (flags & O_ACCMODE))
 			what = "write into";
 		else
 			what = "open";
@@ -508,7 +528,7 @@ do_open(const char *path, int flags, int mode,
 		) {
 			fd = open(path, flags, mode);
 			if (fd >= 0) {
-				s_warning("%s(): had to close a banned fd to %s file",
+				s_message("%s(): had to reclaim an unused to %s file",
 					G_STRFUNC, what);
 			}
 		}
@@ -534,7 +554,9 @@ do_open(const char *path, int flags, int mode,
 	}
 
 	if (!missing || errno != ENOENT) {
-		s_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
+		if (!silent || errno != EACCES) {
+			s_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
+		}
 	}
 
 	return -1;
@@ -550,7 +572,16 @@ do_open(const char *path, int flags, int mode,
 int
 file_open(const char *path, int flags, int mode)
 {
-	return do_open(path, flags, mode, FALSE, FALSE);
+	return do_open(path, flags, mode, FALSE, FALSE, FALSE);
+}
+
+/**
+ * Same as file_open(), no open() errors logged, but can reclaim fd on shortage.
+ */
+int
+file_open_silent(const char *path, int flags, int mode)
+{
+	return do_open(path, flags, mode, FALSE, FALSE, TRUE);
 }
 
 /**
@@ -561,7 +592,16 @@ file_open(const char *path, int flags, int mode)
 int
 file_absolute_open(const char *path, int flags, int mode)
 {
-	return do_open(path, flags, mode, FALSE, TRUE);
+	return do_open(path, flags, mode, FALSE, TRUE, FALSE);
+}
+
+/*
+ * Same as file_absolute_open(), no open() error logged.
+ */
+int
+file_absolute_open_silent(const char *path, int flags, int mode)
+{
+	return do_open(path, flags, mode, FALSE, TRUE, TRUE);
 }
 
 /**
@@ -572,7 +612,16 @@ file_absolute_open(const char *path, int flags, int mode)
 int
 file_open_missing(const char *path, int flags)
 {
-	return do_open(path, flags, 0, TRUE, TRUE);
+	return do_open(path, flags, 0, TRUE, TRUE, FALSE);
+}
+
+/**
+ * Same as file_open_missing(), no error logging.
+ */
+int
+file_open_missing_silent(const char *path, int flags)
+{
+	return do_open(path, flags, 0, TRUE, TRUE, TRUE);
 }
 
 /**
@@ -582,7 +631,7 @@ file_open_missing(const char *path, int flags)
 int
 file_create(const char *path, int flags, int mode)
 {
-	return do_open(path, flags | O_CREAT, mode, FALSE, TRUE);
+	return do_open(path, flags | O_CREAT, mode, FALSE, TRUE, FALSE);
 }
 
 /**
@@ -593,7 +642,7 @@ file_create(const char *path, int flags, int mode)
 int
 file_create_missing(const char *path, int flags, int mode)
 {
-	return do_open(path, flags | O_CREAT, mode, TRUE, TRUE);
+	return do_open(path, flags | O_CREAT, mode, TRUE, TRUE, FALSE);
 }
 
 /**
@@ -743,21 +792,36 @@ file_line_chomp_tail(char *line, size_t size, size_t *lenptr)
 const char *
 file_oflags_to_string(int flags)
 {
-	static char buf[64];
+	str_t *s = str_private(G_STRFUNC, 32);
 
 	/* We assume there will be at least one of O_RDWR, O_RDONLY or O_WRONLY */
 
-	str_bprintf(buf, sizeof buf, "%s%s%s%s%s",
-		(flags & O_RDWR) ? "O_RDWR"
-			: (flags & O_WRONLY) ? "O_WRONLY"
-			: (flags & O_RDONLY) ? "O_RDONLY"
-			: (0 == O_RDONLY) ? "O_RDONLY" : "",
+	str_printf(s, "%s%s%s%s%s",
+		file_accmode_to_string(flags),
 		(flags & O_APPEND)	? " | O_APPEND" : "",
 		(flags & O_CREAT)	? " | O_CREAT" : "",
 		(flags & O_TRUNC)	? " | O_TRUNC" : "",
 		(flags & O_EXCL)	? " | O_EXCL" : "");
 
-	return buf;
+	return str_2c(s);
+}
+
+/**
+ * Convert open() access mode to string, for debugging and logging purposes.
+ *
+ * @param accmode	open() access mode value (O_RDWR, O_RDONLY, O_WRONLY)
+ *
+ * @return pointer to static string.
+ */
+const char *
+file_accmode_to_string(const int accmode)
+{
+	switch (accmode & O_ACCMODE) {
+	case O_RDWR:	return "O_RDWR";
+	case O_WRONLY:	return "O_WRONLY";
+	case O_RDONLY:	return "O_RDONLY";
+	default:		return "UNKNOWN_ACCMODE";
+	}
 }
 
 /* vi: set ts=4: */

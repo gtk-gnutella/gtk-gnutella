@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2003, Christian Biere
+ * Copyright (c) 2009-2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,12 +31,16 @@ typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
 hash_list_t *hash_list_new(hash_fn_t, eq_fn_t);
+void hash_list_thread_safe(hash_list_t *);
+void hash_list_lock(hash_list_t *);
+void hash_list_unlock(hash_list_t *);
 void hash_list_free(hash_list_t **);
 void hash_list_free_all(hash_list_t **hl_ptr, free_fn_t freecb);
 void *hash_list_remove(hash_list_t *, const void *key);
 void *hash_list_remove_head(hash_list_t *);
 void *hash_list_remove_tail(hash_list_t *);
 void *hash_list_shift(hash_list_t *);
+void *hash_list_random(const hash_list_t *);
 void hash_list_append(hash_list_t *, const void *key);
 void hash_list_prepend(hash_list_t *, const void *key);
 void hash_list_insert_sorted(hash_list_t *, const void *key, cmp_fn_t);
@@ -47,10 +52,11 @@ void *hash_list_next(hash_list_t *, const void *key);
 void *hash_list_previous(hash_list_t *, const void *key);
 void hash_list_clear(hash_list_t *hl);
 unsigned hash_list_length(const hash_list_t *);
-GList *hash_list_list(hash_list_t *);
+struct plist *hash_list_list(hash_list_t *) WARN_UNUSED_RESULT;
 void hash_list_sort(hash_list_t *, cmp_fn_t);
 void hash_list_sort_with_data(hash_list_t *, cmp_data_fn_t, void *);
 void hash_list_shuffle(hash_list_t *hl);
+void hash_list_shuffle_with(random_fn_t rf, hash_list_t *hl);
 void hash_list_rotate_left(hash_list_t *hl);
 void hash_list_rotate_right(hash_list_t *hl);
 

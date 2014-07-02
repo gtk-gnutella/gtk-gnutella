@@ -1,0 +1,26 @@
+#
+# Error codes from dmesh_url_parse()
+#
+
+Prefix: DMESH_URL_
+Lowercase: no
+I18N: no
+#Count:
+Enum: dmesh_url_error_t
+Enum-Init: 0
+Enum-File: dmesh_url.h
+#Symbolic:
+Description: dmesh_url_error_str
+#Enum-To-Symbolic:
+Enum-To-Description: dmesh_url_error_to_string
+Enum-To-Code: dmesh_url.c
+Enum-To-Header: dmesh_url.h
+Protection-Prefix: if_gen
+
+OK					"OK"
+HTTP_PARSER			"HTTP parsing error"
+BAD_FILE_PREFIX		"File prefix neither /uri-res nor /get"
+RESERVED_INDEX		"Index in /get/index is reserved"
+NO_FILENAME			"No filename after /get/index"
+BAD_ENCODING		"Bad URL encoding"
+BAD_URI_RES			"Malformed /uri-res/N2R?"

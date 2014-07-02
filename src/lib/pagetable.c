@@ -1,5 +1,5 @@
 /*
- * Copyrigtab (c) 2006, Christian Biere
+ * Copyright (c) 2007, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -59,15 +59,12 @@ struct page_table {
 page_table_t *
 page_table_new(void)
 {
-	static const struct page_table zero_page_table;
 	struct page_table *tab;
 
 	g_assert((size_t)-1 == (uint32)-1);
 	g_assert(compat_pagesize() == (1 << PAGE_BITSHIFT));
 
-	tab = xpmalloc(sizeof *tab);	/* No walloc() re-routing */
-	g_assert(tab);
-	*tab = zero_page_table;
+	XMALLOC0(tab);
 	return tab;
 }
 
@@ -95,10 +92,13 @@ page_table_lookup(page_table_t *tab, const void *p)
 
 		i = k >> SLICE_BITSHIFT;
 		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
-		return tab->slice[i] ? tab->slice[i]->size[j] : 0;
-	} else {
-		return 0;
+		if G_LIKELY(i < G_N_ELEMENTS(tab->slice))
+			return tab->slice[i] ? tab->slice[i]->size[j] : 0;
+
+		/* FALLTHROUGH */
 	}
+
+	return 0;
 }
 
 static void

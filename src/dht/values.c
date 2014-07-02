@@ -675,7 +675,7 @@ dht_value_to_string(const dht_value_t *v)
 
 	str_bprintf(buf, sizeof buf,
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
-		kuid, type, v->major, v->minor, v->length, 1 == v->length ? "" : "s",
+		kuid, type, v->major, v->minor, v->length, plural(v->length),
 		knode);
 
 	return buf;
@@ -946,10 +946,12 @@ get_valuedata(uint64 dbkey)
 
 	if (vd == NULL) {
 		if (dbmw_has_ioerr(db_valuedata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_valuedata));
 		} else {
-			g_warning("value for DB-key %s exists but not found in DBMW \"%s\"",
+			s_warning_once_per(LOG_PERIOD_SECOND,
+				"value for DB-key %s exists but not found in DBMW \"%s\"",
 				uint64_to_string(dbkey), dbmw_name(db_valuedata));
 		}
 		return NULL;
@@ -1164,7 +1166,7 @@ validate_creator(const knode_t *sender, const dht_value_t *v)
 		what = "creator must use an IPv4 address";
 		goto wrong;
 	}
-	if (!host_addr_equal(sender->addr, creator->addr)) {
+	if (!host_addr_equiv(sender->addr, creator->addr)) {
 		what = "IP address";
 		goto mismatch;
 	}
@@ -1244,7 +1246,7 @@ validate_quotas(const dht_value_t *v)
 		uint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
 		g_debug("DHT STORE has %u/%zu value%s for class C network %s",
-			count, max_net, 1 == count ? "" : "s",
+			count, max_net, plural(count),
 			host_addr_to_string(host_addr_get_ipv4(net)));
 	}
 
@@ -1255,7 +1257,7 @@ validate_quotas(const dht_value_t *v)
 			g_debug("DHT STORE rejecting \"%s\": "
 				"has %u/%zu value%s for class C network %s",
 				dht_value_to_string(v),
-				count, max_net, 1 == count ? "" : "s",
+				count, max_net, plural(count),
 				host_addr_to_string(host_addr_get_ipv4(net)));
 		}
 		goto reject;
@@ -1265,15 +1267,14 @@ validate_quotas(const dht_value_t *v)
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_debug("DHT STORE has %u/%zu value%s for IP %s",
-			count, max_ip, 1 == count ? "" : "s",
+			count, max_ip, plural(count),
 			host_addr_to_string(c->addr));
 
 	if (count >= max_ip) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
 			g_debug("DHT STORE rejecting \"%s\": has %u/%zu value%s for IP %s",
 				dht_value_to_string(v),
-				count, max_ip, 1 == count ? "" : "s",
-				host_addr_to_string(c->addr));
+				count, max_ip, plural(count), host_addr_to_string(c->addr));
 		}
 		goto reject;
 	}
@@ -1360,7 +1361,7 @@ values_expire_time(const kuid_t *key, dht_value_type_t type,
 		}
 	}
 
-	return time_advance(tm_time(), (gulong) (lifetime / decimation));
+	return time_advance(tm_time(), (ulong) (lifetime / decimation));
 }
 
 /**
@@ -1380,7 +1381,7 @@ fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 	 * we will enter the if() below at the first publish .
 	 */
 
-	if (!host_addr_equal(vd->addr, cn->addr)) {
+	if (!host_addr_equiv(vd->addr, cn->addr)) {
 		if (host_addr_initialized(vd->addr)) {
 			/* Republished from a different IP address */
 			acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
@@ -1705,6 +1706,13 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 		data = dbmw_read(db_rawdata, &dbkey, &length);
 
+		if G_UNLIKELY(NULL == data) {
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, %s() aborted",
+				dbmw_name(db_rawdata), G_STRFUNC);
+			return STORE_SC_DB_IO;		/* I/O error or corrupted DB */
+		}
+
 		g_assert(data);
 		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
 		g_assert(v->length == vd->length);	/* Ensured by preceding code */
@@ -1747,7 +1755,7 @@ mismatch:
 			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid),
 			dht_value_type_to_string(vd->type),
 			vd->value_major, vd->value_minor,
-			vd->length, 1 == vd->length ? "" : "s",
+			vd->length, plural(vd->length),
 			vd->original ? "original" : "copy");
 	}
 
@@ -1785,7 +1793,7 @@ values_store(const knode_t *kn, const dht_value_t *v, bool token)
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
 		g_debug("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
 			kuid_to_hex_string(v->id), dht_value_type_to_string(v->type),
-			v->major, v->minor, v->length, 1 == v->length ? "" : "s",
+			v->major, v->minor, v->length, plural(v->length),
 			knode_to_string(v->creator),
 			kuid_eq(v->creator->id, kn->id) ? "original" : "copy");
 
@@ -1906,6 +1914,13 @@ values_get(uint64 dbkey, dht_value_type_t type)
 		void *data;
 
 		data = dbmw_read(db_rawdata, &dbkey, &length);
+
+		if G_UNLIKELY(NULL == data) {
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, %s() aborted",
+				dbmw_name(db_rawdata), G_STRFUNC);
+			return NULL;		/* I/O error or corrupted DB */
+		}
 
 		g_assert(data);
 		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
@@ -2114,7 +2129,7 @@ values_init_data(const hset_t *dbkeys)
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES attempting to reload %zu value%s out of %zu",
-			hset_count(dbkeys), 1 == hset_count(dbkeys) ? "" : "s",
+			hset_count(dbkeys), plural(hset_count(dbkeys)),
 			dbmw_count(db_valuedata));
 	}
 
@@ -2147,7 +2162,7 @@ values_init_data(const hset_t *dbkeys)
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES reloaded %zu value%s", dbmw_count(db_valuedata),
-			1 == dbmw_count(db_valuedata) ? "" : "s");
+			plural(dbmw_count(db_valuedata)));
 	}
 
 	/*

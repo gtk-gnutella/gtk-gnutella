@@ -46,6 +46,7 @@
 #include "lib/list.h"
 #include "lib/random.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -326,8 +327,7 @@ ghc_host_line(struct parse_context *ctx, const char *buf, size_t len)
 
 			if (GNET_PROPERTY(bootstrap_debug) > 1)
 				g_debug("BOOT collected %s from GHC %s",
-					host_addr_to_string(addr),
-					http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
+					host_addr_to_string(addr), http_async_url(ctx->handle));
 		}
 	}
 
@@ -352,14 +352,13 @@ ghc_host_eof(struct parse_context *ctx)
 
 	str_bprintf(msg, sizeof(msg),
 		NG_("Got %d host from %s", "Got %d hosts from %s", ctx->processed),
-		ctx->processed, http_async_info(ghc_ctx.ha, NULL, NULL, NULL, NULL));
+		ctx->processed, http_async_url(ghc_ctx.ha));
 
 	gcu_statusbar_message(msg);
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("BOOT GHC got %d host%s from %s",
-			ctx->processed, ctx->processed == 1 ? "" : "s",
-			http_async_info(ghc_ctx.ha, NULL, NULL, NULL, NULL));
+			ctx->processed, plural(ctx->processed), http_async_url(ghc_ctx.ha));
 
 	ghc_ctx.ha = NULL;
 	ghc_connecting = FALSE;

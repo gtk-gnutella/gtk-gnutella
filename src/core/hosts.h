@@ -32,7 +32,6 @@
  * Global Data
  */
 
-extern GList *sl_caught_hosts;
 extern bool host_low_on_pongs;
 
 /*

@@ -43,8 +43,10 @@
 
 /* includes ui needs to access core */
 #include "lib/adns.h"
+#include "lib/glib-missing.h"
 #include "lib/iso3166.h"
-#include "if/core/bitzi.h"
+#include "lib/pslist.h"
+
 #include "if/core/downloads.h"
 #include "if/core/fileinfo.h"
 #include "if/core/net_stats.h"
@@ -71,33 +73,6 @@ guc_adns_resolve(const char *hostname,
 	adns_callback_t user_callback, void *user_data)
 {
 	return adns_resolve(hostname, settings_dns_net(), user_callback, user_data);
-}
-
-/*	bitzi interface functions (UI -> Core)*/
-
-void
-guc_query_bitzi_by_sha1(const sha1_t *sha1, filesize_t filesize, bool refresh)
-{
-    bitzi_query_by_sha1(sha1, filesize, refresh);
-}
-
-const char *
-guc_bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
-{
-    return bitzi_ticket_by_sha1(sha1, filesize);
-}
-
-bool
-guc_bitzi_data_by_sha1(bitzi_data_t *data,
-	const struct sha1 *sha1, filesize_t filesize)
-{
-    return bitzi_data_by_sha1(data, sha1, filesize);
-}
-
-bool
-guc_bitzi_has_cached_ticket(const struct sha1 *sha1)
-{
-	return bitzi_has_cached_ticket(sha1);
 }
 
 /*	download and src interface functions (UI -> Core)*/
@@ -458,6 +433,18 @@ guc_gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 	return gnet_stats_drop_reason_to_string(reason);
 }
 
+const char *
+guc_gnet_stats_general_description(gnr_stats_t gs)
+{
+	return gnet_stats_general_description(gs);
+}
+
+const char *
+guc_gnet_msg_type_description(msg_type_t mt)
+{
+	return gnet_msg_type_description(mt);
+}
+
 /*	hcache interface functions (UI -> Core)*/
 void
 guc_hcache_clear_host_type(host_type_t type)
@@ -498,14 +485,14 @@ guc_hsep_get_non_hsep_triple(hsep_triple *tripledest)
 
 
 void
-guc_hsep_add_global_table_listener(GCallback cb,
+guc_hsep_add_global_table_listener(callback_fn_t cb,
 	frequency_t t, uint32 interval)
 {
 	hsep_add_global_table_listener(cb, t, interval);
 }
 
 void
-guc_hsep_remove_global_table_listener(GCallback cb)
+guc_hsep_remove_global_table_listener(callback_fn_t cb)
 {
 	hsep_remove_global_table_listener(cb);
 }
@@ -567,6 +554,12 @@ guc_node_add(const host_addr_t addr, uint16 port, uint32 flags)
 }
 
 void
+guc_node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
+{
+	node_g2_add(addr, port, flags);
+}
+
+void
 guc_node_remove_by_id(const struct nid *node_id)
 {
 	node_remove_by_id(node_id);
@@ -575,7 +568,10 @@ guc_node_remove_by_id(const struct nid *node_id)
 void
 guc_node_remove_nodes_by_id(const GSList *node_list)
 {
-	node_remove_nodes_by_id(node_list);
+	pslist_t *sl = gm_slist_to_pslist(node_list);
+
+	node_remove_nodes_by_id(sl);
+	pslist_free(sl);
 }
 
 bool
@@ -760,7 +756,7 @@ guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 	search_associate_sha1(sh, sha1);
 }
 
-GSList *
+pslist_t *
 guc_search_associated_sha1(gnet_search_t sh)
 {
 	return search_associated_sha1(sh);

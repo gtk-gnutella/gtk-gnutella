@@ -77,12 +77,14 @@
 #include "lib/compat_un.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/fd.h"
 #include "lib/getline.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/once.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -126,7 +128,7 @@ struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
 static aging_table_t *tls_ban;
-static bool tls_ban_inited;
+static once_flag_t tls_ban_inited;
 
 static bool socket_shutdowned;		/**< Set when layer has been shutdowned */
 
@@ -137,7 +139,7 @@ static void
 tls_ban_init(void)
 {
 	tls_ban = aging_make(TLS_BAN_FREQ,
-		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 }
 
 static bool
@@ -293,7 +295,7 @@ socket_evt_set(struct gnutella_socket *s,
 	socket_check(s);
 	g_assert(handler);
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
-	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
+	g_assert(0 != (INPUT_EVENT_RW & cond));
 	g_assert(0 == s->gdk_tag);
 
 	fd = socket_evt_fd(s);
@@ -357,7 +359,7 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 	reclaim_fd = callback;
 }
 
-static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
+static pslist_t *sl_incoming = NULL;	/**< To spot inactive sockets */
 
 static void guess_local_addr(const struct gnutella_socket *s);
 static void socket_destroy(struct gnutella_socket *s, const char *reason);
@@ -1188,7 +1190,7 @@ socket_check_ipv6_address(void)
 		break;
 	}
 	if (!GNET_PROPERTY(force_local_ip6)) {
-		GSList *sl_addrs, *sl;
+		pslist_t *sl_addrs, *sl;
 		host_addr_t addr, old_addr, first_addr;
 
 		addr = zero_host_addr;
@@ -1196,7 +1198,7 @@ socket_check_ipv6_address(void)
 		old_addr = listen_addr6();
 
 		sl_addrs = host_addr_get_interface_addrs(NET_TYPE_IPV6);
-		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
+		for (sl = sl_addrs; NULL != sl; sl = pslist_next(sl)) {
 			host_addr_t *addr_ptr;
 
 			addr_ptr = sl->data;
@@ -1204,7 +1206,7 @@ socket_check_ipv6_address(void)
 			if (!host_addr_is_routable(addr)) {
 				continue;
 			}
-			if (host_addr_equal(old_addr, addr)) {
+			if (host_addr_equiv(old_addr, addr)) {
 				break;
 			}
 			if (!is_host_addr(first_addr)) {
@@ -1215,7 +1217,7 @@ socket_check_ipv6_address(void)
 		if (!is_host_addr(addr)) {
 			addr = first_addr;
 		}
-		if (!host_addr_equal(old_addr, addr)) {
+		if (!host_addr_equiv(old_addr, addr)) {
 			gnet_prop_set_ip_val(PROP_LOCAL_IP6, addr);
 		}
 	}
@@ -1240,10 +1242,10 @@ socket_enable_accept(struct gnutella_socket *s)
 void
 socket_timer(time_t now)
 {
-	GSList *l;
-	GSList *to_remove = NULL;
+	pslist_t *l;
+	pslist_t *to_remove = NULL;
 
-	for (l = sl_incoming; l; l = g_slist_next(l)) {
+	for (l = sl_incoming; l; l = pslist_next(l)) {
 		struct gnutella_socket *s = l->data;
 		time_delta_t delta;
 
@@ -1265,15 +1267,15 @@ socket_timer(time_t now)
 						s->buf, MIN(s->pos, 80));
 			}
 
-			to_remove = g_slist_prepend(to_remove, s);
+			to_remove = pslist_prepend(to_remove, s);
 		}
 	}
 
-	for (l = to_remove; l; l = g_slist_next(l)) {
+	for (l = to_remove; l; l = pslist_next(l)) {
 		struct gnutella_socket *s = l->data;
 		socket_destroy(s, "Connection timeout");
 	}
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 
 	{
 		static time_t last_check;
@@ -1481,7 +1483,7 @@ socket_free(struct gnutella_socket *s)
 
 	if (s->last_update) {
 		g_assert(sl_incoming);
-		sl_incoming = g_slist_remove(sl_incoming, s);
+		sl_incoming = pslist_remove(sl_incoming, s);
 		s->last_update = 0;
 	}
 	if (s->adns & SOCK_ADNS_PENDING) {
@@ -1509,6 +1511,15 @@ socket_free(struct gnutella_socket *s)
 	if (is_valid_fd(s->file_desc)) {
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
+
+		/*
+		 * Socket closing is a source of randomness since the actual file
+		 * descriptor being closed and the closing order between different
+		 * sockets is hard to predict.
+		 */
+
+		entropy_harvest_single(VARLEN(s->file_desc));
+
 		if (compat_socket_close(s->file_desc)) {
 			g_warning("%s: close(%d) failed: %m", G_STRFUNC, s->file_desc);
 		}
@@ -1597,6 +1608,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	ssize_t r;
 	size_t parsed;
 	const char *first, *endptr;
+	hostiles_flags_t hostile;
 
 	(void) source;
 
@@ -1749,7 +1761,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 */
 
 	socket_evt_clear(s);
-	sl_incoming = g_slist_remove(sl_incoming, s);
+	sl_incoming = pslist_remove(sl_incoming, s);
 	s->last_update = 0;
 
 	first = getline_str(s->getline);
@@ -1759,7 +1771,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Likewise for PARQ download resuming.
 	 */
 
-	if (is_strprefix(first, "GIV ")) {
+	if (is_strprefix(first, "GIV ") || is_strprefix(first, "PUSH ")) {
+		/* GIV is Gnutella's answer, "PUSH" is G2's answer */
 		download_push_ack(s);
 		return;
 	}
@@ -1802,6 +1815,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		}
 		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
+		entropy_harvest_single(VARLEN(s->addr));
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, "Banned for %s",
 				short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)));
@@ -1845,26 +1859,34 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * get banned silently.
 	 */
 
-	if (hostiles_is_bad(s->addr)) {
-		static const char msg[] = "Hostile IP address banned";
+	hostile = hostiles_check(s->addr);
+
+	if (
+		hostiles_flags_are_bad(hostile) ||
+		hostiles_flags_warrant_shunning(hostile)
+	) {
+		static const char banned[]  = "Hostile IP address banned";
+		static const char shunned[] = "Shunned IP address";
+		bool bad = hostiles_flags_are_bad(hostile);
 
 		socket_disable_token(s);
 
 		if (GNET_PROPERTY(socket_debug)) {
 			const char *string = first;
-			hostiles_flags_t flags = hostiles_check(s->addr);
 
 			if (!is_printable_iso8859_string(first))
 				string = "<non-printable request>";
 			g_warning("denying connection from hostile %s (%s): \"%s\"",
 				host_addr_to_string(s->addr),
-				hostiles_flags_to_string(flags), string);
+				hostiles_flags_to_string(hostile), string);
 		}
 
-		if (is_strprefix(first, GNUTELLA_HELLO))
-			send_node_error(s, 550, msg);
-		else
-			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0, msg);
+		if (is_strprefix(first, GNUTELLA_HELLO)) {
+			send_node_error(s, 550, bad ? banned : shunned);
+		} else {
+			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0,
+				bad ? banned : shunned);
+		}
 		goto cleanup;
 	}
 
@@ -1874,7 +1896,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 	if (is_strprefix(first, GNUTELLA_HELLO)) {
 		/* Incoming control connection */
-		node_add_socket(s, s->addr, s->port, 0);
+		node_add_socket(s);
 	} else if (
 		NULL != (endptr = is_strprefix(first, "GET ")) ||
 		NULL != (endptr = is_strprefix(first, "HEAD "))
@@ -2354,7 +2376,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 		 *				--RAM, 07/09/2001
 		 */
 
-		sl_incoming = g_slist_prepend(sl_incoming, t);
+		sl_incoming = pslist_prepend(sl_incoming, t);
 		t->last_update = tm_time();
 		break;
 
@@ -2362,6 +2384,11 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 		g_assert_not_reached();			/* Can't happen */
 		break;
 	}
+
+	/* Harvest entropy */
+	entropy_harvest_many(
+		VARLEN(t), VARLEN(t->file_desc), VARLEN(t->addr),
+		VARLEN(t->port), VARLEN(t->local_port), NULL);
 
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 	if (!GNET_PROPERTY(force_local_ip))
@@ -2644,7 +2671,7 @@ socket_udp_accept(struct gnutella_socket *s, bool *truncation)
 
 		if (
 			GNET_PROPERTY(socket_debug) > 1 ||
-			!host_addr_equal(last_addr, dst_addr)
+			!host_addr_equiv(last_addr, dst_addr)
 		) {
 			last_addr = dst_addr;
 			if (GNET_PROPERTY(socket_debug)) {
@@ -2693,17 +2720,16 @@ static void socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime);
  * Timer installed to flush the enqueued read-ahead UDP datagrams.
  */
 static void
-socket_udp_flush_timer(cqueue_t *unused_cq, void *obj)
+socket_udp_flush_timer(cqueue_t *cq, void *obj)
 {
 	gnutella_socket_t *s = obj;
 	struct udpctx *uctx;
 
-	(void) unused_cq;
 	socket_check(s);
 	g_assert(s->flags & SOCK_F_UDP);
 
 	uctx = s->resource.udp;
-	uctx->queue_ev = NULL;			/* Timer expired */
+	cq_zero(cq, &uctx->queue_ev);		/* Timer expired */
 
 	/*
 	 * If the socket layer has already began shutdown, do not process
@@ -2837,9 +2863,17 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 		if ((ssize_t) -1 == r) {
 			/* ECONNRESET is meaningless with UDP but happens on Windows */
 			if (!is_temporary_error(errno) && errno != ECONNRESET) {
-				g_warning("ignoring datagram reception error: %m");
+				g_warning("%s(): ignoring datagram reception error: %m",
+					G_STRFUNC);
 			}
 			break;
+		}
+
+		if G_UNLIKELY(0 == r) {
+			g_warning("%s(): ignoring empty datagram from %s",
+				G_STRFUNC, host_addr_port_to_string(s->addr, s->port));
+			gnet_stats_inc_general(GNR_UDP_UNPROCESSED_MESSAGE);
+			goto next;
 		}
 
 		rd += r;
@@ -2864,6 +2898,8 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 		 * it refers to header or control msg data. */
 		if (avail <= 32)
 			break;
+
+	next:
 
 		/* Process one event at a time if configured as such */
 		if (s->flags & SOCK_F_SINGLE)
@@ -2895,7 +2931,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
 			"in %'u usecs",
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
-			qn, 1 == qn ? "" : "s", (unsigned) tm_elapsed_us(&end, &start));
+			qn, plural(qn), (unsigned) tm_elapsed_us(&end, &start));
 	}
 
 	/*
@@ -2907,6 +2943,17 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 	gnet_stats_max_general(GNR_UDP_READ_AHEAD_BYTES_MAX, uctx->queued);
 	gnet_stats_max_general(GNR_UDP_READ_AHEAD_COUNT_MAX,
 		eslist_count(&uctx->queue));
+
+	/*
+	 * Harvest entropy.
+	 */
+
+	if (enqueue)
+		entropy_harvest_many(VARLEN(rd), VARLEN(qd), VARLEN(processing), NULL);
+	else if (i > 4)
+		entropy_harvest_small(VARLEN(rd), VARLEN(qd), VARLEN(i), NULL);
+	else
+		entropy_harvest_time();
 
 	/*
 	 * Dequeue some of the queued datagrams, processing them.
@@ -3105,10 +3152,15 @@ static int
 socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, uint16 port, enum socket_type type, uint32 flags)
 {
-	static const int enable = 1;
+	static const int on = 1;
 	int fd, family;
 
 	socket_check(s);
+
+	/* Harvest entropy */
+	entropy_harvest_many(
+		VARLEN(s), VARLEN(addr), VARLEN(port), VARLEN(type), VARLEN(flags),
+		NULL);
 
 	/* Filter out flags which we cannot accept */
 	flags &= (SOCK_F_TLS | SOCK_F_FORCE);
@@ -3206,8 +3258,18 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	socket_wio_link(s);
 
-	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
-	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
+	if (
+		-1 == setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)
+	) {
+		s_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
+			G_STRFUNC, s->file_desc);
+	}
+	if (
+		-1 == setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on)
+	) {
+		s_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
+			G_STRFUNC, s->file_desc);
+	}
 
 	fd_set_nonblocking(s->file_desc);
 	set_close_on_exec(s->file_desc);
@@ -3223,6 +3285,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	case SOCK_TYPE_HTTP:
 		socket_set_fastack(s);
 		socket_set_quickack(s, TRUE);
+		break;
 	default:
 		socket_set_quickack(s, FALSE);
 		break;
@@ -3246,6 +3309,7 @@ socket_connect_finalize(struct gnutella_socket *s,
 	int res;
 
 	socket_check(s);
+	g_assert(is_valid_fd(s->file_desc));
 
 	/*
 	 * Allow forced connections to an hostile host.
@@ -3404,7 +3468,7 @@ socket_reconnect(struct gnutella_socket *s)
 	 *		--RAM, 2013-12-08
 	 */
 
-	once_run(&tls_ban_inited, tls_ban_init);
+	once_flag_run(&tls_ban_inited, tls_ban_init);
 
 	gnet_host_set(&to, s->addr, s->port);
 	aging_insert(tls_ban, atom_host_get(&to), int_to_pointer(1));
@@ -3771,7 +3835,7 @@ socket_local_listen(const char *pathname)
 struct gnutella_socket *
 socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 {
-	static const int enable = 1;
+	static const int on = 1;
 	struct gnutella_socket *s;
 	int fd;
 
@@ -3791,7 +3855,10 @@ socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)) {
+		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
+			G_STRFUNC, fd);
+	}
 
 	socket_set_linger(s->file_desc);
 
@@ -4134,9 +4201,13 @@ socket_nodelay(struct gnutella_socket *s, bool on)
 		return;
 
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)) {
-		if (errno != ECONNRESET)
+		if (
+			errno != ECONNRESET &&
+			errno != EINVAL /* Socket has been shutdown on DARWIN */
+		) {
 			g_warning("unable to %s TCP_NODELAY on fd#%d: %m",
 				on ? "set" : "clear", s->file_desc);
+		}
 	} else {
 		s->flags &= ~SOCK_F_NODELAY;
 		s->flags |= on ? SOCK_F_NODELAY : 0;
@@ -4252,6 +4323,11 @@ socket_plain_sendto(
 	g_assert(!socket_uses_tls(s));
 
 	if (!host_addr_convert(gnet_host_get_addr(to), &ha, s->net)) {
+		if (GNET_PROPERTY(udp_debug)) {
+			g_carp("%s(): cannot convert %s to %s",
+				G_STRFUNC, host_addr_to_string(gnet_host_get_addr(to)),
+				net_type_to_string(s->net));
+		}
 		errno = EINVAL;
 		return -1;
 	}

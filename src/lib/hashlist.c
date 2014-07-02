@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2003, Christian Biere
+ * Copyright (c) 2009-2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -37,27 +38,40 @@
  * It is NOT a hash table preserving the order of keys.  This structure only
  * stores items, not an association between a key and a value.
  *
+ * Each hash list object can be made thread-safe, optionally, so that
+ * concurrent access to it be possible.
+ *
  * @author Christian Biere
  * @date 2003
+ * @author Raphael Manfredi
+ * @date 2009-2013
  */
 
 #include "common.h"
 
 #include "hashlist.h"
+
 #include "elist.h"
 #include "hashing.h"
 #include "hikset.h"
 #include "misc.h"
+#include "mutex.h"
+#include "plist.h"
 #include "unsigned.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
+
+#if 0
+#define USE_HASH_LIST_REGRESSION
+#endif
 
 enum hash_list_magic { HASH_LIST_MAGIC = 0x338954fdU };
 
 struct hash_list {
 	enum hash_list_magic magic;
 	unsigned stamp;
+	mutex_t *lock;
 	hikset_t *ht;
 	elist_t list;
 	int refcount;
@@ -97,19 +111,51 @@ hash_list_iter_check(const hash_list_iter_t * const iter)
 	g_assert(iter->hl->stamp == iter->stamp);
 }
 
-#if 0
-#define USE_HASH_LIST_REGRESSION
-#endif
+/*
+ * Thread-safe synchronization support.
+ */
 
-#define equiv(p,q)	(!(p) == !(q))
+#define hash_list_synchronize(h) G_STMT_START {		\
+	if G_UNLIKELY((h)->lock != NULL) { 				\
+		hash_list_t *wh = deconstify_pointer(h);	\
+		mutex_lock(wh->lock);						\
+	}												\
+} G_STMT_END
+
+#define hash_list_unsynchronize(h) G_STMT_START {	\
+	if G_UNLIKELY((h)->lock != NULL) { 				\
+		hash_list_t *wh = deconstify_pointer(h);	\
+		mutex_unlock(wh->lock);						\
+	}												\
+} G_STMT_END
+
+#define hash_list_return(h, v) G_STMT_START {		\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		mutex_unlock((h)->lock);					\
+	return v;										\
+} G_STMT_END
+
+#define hash_list_return_void(h) G_STMT_START {		\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		mutex_unlock((h)->lock);					\
+	return;											\
+} G_STMT_END
+
+#define assert_hash_list_locked(h) G_STMT_START {	\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		assert_mutex_is_owned((h)->lock);			\
+} G_STMT_END
+
 
 #ifdef USE_HASH_LIST_REGRESSION
 static inline void
 hash_list_regression(const hash_list_t * const hl)
 {
 	g_assert(NULL != hl->ht);
+	hash_list_synchronize(hl);
 	g_assert(elist_count(&hl->list) == hikset_count(hl->ht));
 	g_assert(elist_count(&hl->list) == elist_length(elist_first(&hl->list)));
+	hash_list_unsynchronize(hl);
 }
 #else
 #define hash_list_regression(hl)
@@ -158,7 +204,7 @@ hash_list_new(hash_fn_t hash_func, eq_fn_t eq_func)
 {
 	hash_list_t *hl;
 
-	WALLOC(hl);
+	WALLOC0(hl);
 	hl->ht = hikset_create_any(
 		offsetof(struct hash_list_item, key),
 		NULL == hash_func ? pointer_hash : hash_func, eq_func);
@@ -172,12 +218,65 @@ hash_list_new(hash_fn_t hash_func, eq_fn_t eq_func)
 }
 
 /**
+ * Mark newly created hash list as being thread-safe.
+ *
+ * This will make all external operations on the list thread-safe.
+ */
+void
+hash_list_thread_safe(hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert(NULL == hl->lock);
+
+	WALLOC0(hl->lock);
+	mutex_init(hl->lock);
+}
+
+/**
+ * Lock the hash list to allow a sequence of operations to be atomically
+ * conducted.
+ *
+ * It is possible to lock the list several times as long as each locking
+ * is paired with a corresponding unlocking in the execution flow.
+ *
+ * The list must have been marked thread-safe already.
+ */
+void
+hash_list_lock(hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert_log(hl->lock != NULL,
+		"%s(): table %p not marked thread-safe", G_STRFUNC, hl);
+
+	mutex_lock(hl->lock);
+}
+
+/*
+ * Release lock on hash list.
+ *
+ * The list must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+hash_list_unlock(hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert_log(hl->lock != NULL,
+		"%s(): table %p not marked thread-safe", G_STRFUNC, hl);
+
+	mutex_unlock(hl->lock);
+}
+
+/**
  * Dispose of the data structure, but not of the items it holds.
  *
  * @param hl_ptr	pointer to the variable containing the address of the list
  *
  * As a side effect, the variable containing the address of the list
  * is nullified, since it is no longer allowed to refer to the structure.
+ *
+ * Calling the routine with the lock already taken is OK, since this
+ * is handled specially (given that the lock will be destroyed anyway).
  */
 void
 hash_list_free(hash_list_t **hl_ptr)
@@ -186,9 +285,19 @@ hash_list_free(hash_list_t **hl_ptr)
 
 	if (*hl_ptr) {
 		hash_list_t *hl = *hl_ptr;
-		link_t *lk, *next;
 
 		hash_list_check(hl);
+
+		/*
+		 * When coming from hash_list_free_all() we're already locked, so
+		 * we must not relock or we'll get a critical warning when the
+		 * mutex is destroyed below..
+		 */
+
+		if (hl->lock != NULL) {
+			if (!mutex_is_owned(hl->lock))
+				mutex_lock(hl->lock);
+		}
 
 		if (--hl->refcount != 0) {
 			g_critical("%s(): hash list is still referenced! "
@@ -197,14 +306,14 @@ hash_list_free(hash_list_t **hl_ptr)
 		}
 
 		hikset_free_null(&hl->ht);
+		elist_wfree(&hl->list, sizeof(struct hash_list_item));
+		elist_discard(&hl->list);
 
-		for (lk = elist_first(&hl->list); lk != NULL; lk = next) {
-			struct hash_list_item *item = ITEM(lk);
-			next = elist_next(lk);	/* Embedded, get next before freeing */
-			WFREE(item);
+		if (hl->lock != NULL) {
+			mutex_destroy(hl->lock);
+			WFREE(hl->lock);
 		}
 
-		elist_discard(&hl->list);
 		hl->magic = 0;
 		WFREE(hl);
 		*hl_ptr = NULL;
@@ -236,8 +345,12 @@ hash_list_free_all(hash_list_t **hl_ptr, free_fn_t freecb)
 		hash_list_t *hl = *hl_ptr;
 
 		hash_list_check(hl);
+
+		hash_list_synchronize(hl);
+
 		elist_foreach(&hl->list, hash_list_freecb_wrapper,
 			cast_func_to_pointer(freecb));
+
 		hash_list_free(hl_ptr);
 	}
 }
@@ -246,6 +359,8 @@ static void
 hash_list_insert_item(hash_list_t *hl, struct hash_list_item *item)
 {
 	g_assert(!hikset_contains(hl->ht, item->key));
+	assert_hash_list_locked(hl);
+
 	hikset_insert_key(hl->ht, &item->key);
 
 	/*
@@ -278,8 +393,13 @@ hash_list_append(hash_list_t *hl, const void *key)
 
 	WALLOC(item);
 	item->key = key;
+
+	hash_list_synchronize(hl);
+
 	elist_append(&hl->list, item);
 	hash_list_insert_item(hl, item);
+
+	hash_list_return_void(hl);
 }
 
 /**
@@ -296,8 +416,13 @@ hash_list_prepend(hash_list_t *hl, const void *key)
 
 	WALLOC(item);
 	item->key = key;
+
+	hash_list_synchronize(hl);
+
 	elist_prepend(&hl->list, item);
 	hash_list_insert_item(hl, item);
+
+	hash_list_return_void(hl);
 }
 
 /**
@@ -314,6 +439,8 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, cmp_fn_t func)
 	hash_list_check(hl);
 	g_assert(NULL != func);
 	g_assert(!hikset_contains(hl->ht, key));
+
+	hash_list_synchronize(hl);
 
 	for (lk = elist_first(&hl->list); lk != NULL; lk = elist_next(lk)) {
 		struct hash_list_item *item = ITEM(lk);
@@ -334,6 +461,8 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, cmp_fn_t func)
 		elist_link_insert_before(&hl->list, lk, &item->lnk);
 		hash_list_insert_item(hl, item);
 	}
+
+	hash_list_return_void(hl);
 }
 
 static int
@@ -356,7 +485,9 @@ hash_list_sort(hash_list_t *hl, cmp_fn_t func)
 	g_assert(1 == hl->refcount);
 	g_assert(NULL != func);
 
+	hash_list_synchronize(hl);
 	elist_sort_with_data(&hl->list, sort_wrapper, func_to_pointer(func));
+	hash_list_return_void(hl);
 }
 
 struct sort_with_data {
@@ -390,7 +521,26 @@ hash_list_sort_with_data(hash_list_t *hl, cmp_data_fn_t func, void *data)
 	ctx.func = func;
 	ctx.data = data;
 
+	hash_list_synchronize(hl);
 	elist_sort_with_data(&hl->list, sort_data_wrapper, &ctx);
+	hash_list_return_void(hl);
+}
+
+/**
+ * Randomly shuffle the list using supplied random function.
+ *
+ * @param rf	the random function to use (NULL means: use defaults)
+ * @param hl	the hashlist to shuffle
+ */
+void
+hash_list_shuffle_with(random_fn_t rf, hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+
+	hash_list_synchronize(hl);
+	elist_shuffle_with(rf, &hl->list);
+	hash_list_return_void(hl);
 }
 
 /**
@@ -399,10 +549,7 @@ hash_list_sort_with_data(hash_list_t *hl, cmp_data_fn_t func, void *data)
 void
 hash_list_shuffle(hash_list_t *hl)
 {
-	hash_list_check(hl);
-	g_assert(1 == hl->refcount);
-
-	elist_shuffle(&hl->list);
+	hash_list_shuffle_with(NULL, hl);
 }
 
 /**
@@ -416,7 +563,9 @@ hash_list_rotate_left(hash_list_t *hl)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
+	hash_list_synchronize(hl);
 	elist_rotate_left(&hl->list);
+	hash_list_return_void(hl);
 }
 
 /**
@@ -430,7 +579,9 @@ hash_list_rotate_right(hash_list_t *hl)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
+	hash_list_synchronize(hl);
 	elist_rotate_right(&hl->list);
+	hash_list_return_void(hl);
 }
 
 /**
@@ -444,6 +595,7 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 	void *key;
 
 	g_assert(item);
+	assert_hash_list_locked(hl);
 
 	key = deconstify_pointer(item->key);
 	hikset_remove(hl->ht, key);
@@ -453,6 +605,7 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 	hl->stamp++;		/* Unsafe operation when iterating */
 
 	hash_list_regression(hl);
+
 	return key;
 }
 
@@ -500,14 +653,20 @@ hash_list_insert_position(hash_list_t *hl, const void *key, void *position)
 
 	hash_list_check(hl);
 	hash_list_position_check(pt);
-	g_assert(1 == hl->refcount);
 	g_assert(pt->hl == hl);
-	g_assert(pt->stamp == hl->stamp);
 
 	WALLOC(item);
 	item->key = key;
+
+	hash_list_synchronize(hl);
+
+	g_assert(1 == hl->refcount);
+	g_assert(pt->stamp == hl->stamp);
+
 	elist_link_insert_after(&hl->list, pt->prev, &item->lnk);
 	hash_list_insert_item(hl, item);
+
+	hash_list_unsynchronize(hl);
 
 	hash_list_forget_position(position);
 }
@@ -530,11 +689,14 @@ hash_list_remove_position(hash_list_t *hl, const void *key)
 	struct hash_list_position *pt;
 
 	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+
 	g_assert(1 == hl->refcount);
 
 	item = hikset_lookup(hl->ht, key);
 	if (NULL == item)
-		return NULL;
+		hash_list_return(hl, NULL);
 
 	/*
 	 * Record position in the list so that re-insertion can happen after
@@ -553,7 +715,7 @@ hash_list_remove_position(hash_list_t *hl, const void *key)
 
 	hash_list_remove_item(hl, item);
 
-	return pt;
+	hash_list_return(hl, pt);
 }
 
 /**
@@ -565,12 +727,18 @@ void *
 hash_list_remove(hash_list_t *hl, const void *key)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+
 	g_assert(1 == hl->refcount);
 
 	item = hikset_lookup(hl->ht, key);
-	return item ? hash_list_remove_item(hl, item) : NULL;
+	data = item != NULL ? hash_list_remove_item(hl, item) : NULL;
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -582,11 +750,16 @@ void *
 hash_list_remove_head(hash_list_t *hl)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = elist_head(&hl->list);
-	return NULL == item ? NULL : hash_list_remove_item(hl, item);
+	data = NULL == item ? NULL : hash_list_remove_item(hl, item);
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -598,11 +771,16 @@ void *
 hash_list_remove_tail(hash_list_t *hl)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = elist_tail(&hl->list);
-	return NULL == item ? NULL : hash_list_remove_item(hl, item);
+	data = NULL == item ? NULL : hash_list_remove_item(hl, item);
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -614,12 +792,44 @@ void *
 hash_list_shift(hash_list_t *hl)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+
 	g_assert(1 == hl->refcount);
 
 	item = elist_head(&hl->list);
-	return NULL == item ? NULL : hash_list_remove_item(hl, item);
+	data = NULL == item ? NULL : hash_list_remove_item(hl, item);
+
+	hash_list_return(hl, data);
+}
+
+/**
+ * Select a random elemen in the list.
+ *
+ * @return the randomly selected item, NULL if there is none.
+ */
+void *
+hash_list_random(const hash_list_t *hl)
+{
+	struct hash_list_item *item;
+	void *data;
+
+	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+
+	/*
+	 * For locality of memory references, it is more efficient to use
+	 * hikset_random() than it would be to use elist_random().
+	 */
+
+	item = hikset_random(hl->ht);
+	data = NULL == item ? NULL : deconstify_pointer(item->key);
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -629,12 +839,17 @@ void
 hash_list_clear(hash_list_t *hl)
 {
 	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+
 	g_assert(1 == hl->refcount);
 
 	while (0 != elist_count(&hl->list)) {
 		struct hash_list_item *item = elist_head(&hl->list);
 		hash_list_remove_item(hl, item);
 	}
+
+	hash_list_return_void(hl);
 }
 
 /**
@@ -644,11 +859,16 @@ void *
 hash_list_tail(const hash_list_t *hl)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = elist_tail(&hl->list);
-	return NULL == item ? NULL : deconstify_pointer(item->key);
+	data = NULL == item ? NULL : deconstify_pointer(item->key);
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -658,11 +878,16 @@ void *
 hash_list_head(const hash_list_t *hl)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = elist_head(&hl->list);
-	return NULL == item ? NULL : deconstify_pointer(item->key);
+	data = NULL == item ? NULL : deconstify_pointer(item->key);
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -674,24 +899,20 @@ hash_list_moveto_head(hash_list_t *hl, const void *key)
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(1 == hl->refcount);
 	g_assert(size_is_positive(elist_count(&hl->list)));
+
+	hash_list_synchronize(hl);
+
+	g_assert(1 == hl->refcount);
 
 	item = hikset_lookup(hl->ht, key);
 	g_assert(item != NULL);
 
-	/*
-	 * Remove item from list and insert it back at the head.
-	 */
-
-	if (elist_first(&hl->list) != &item->lnk) {
-		elist_link_remove(&hl->list, &item->lnk);
-		elist_link_prepend(&hl->list, &item->lnk);
-	}
-
+	elist_moveto_head(&hl->list, item);
 	hl->stamp++;
 
 	hash_list_regression(hl);
+	hash_list_return_void(hl);
 }
 
 /**
@@ -703,24 +924,20 @@ hash_list_moveto_tail(hash_list_t *hl, const void *key)
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(1 == hl->refcount);
 	g_assert(size_is_positive(elist_count(&hl->list)));
+
+	hash_list_synchronize(hl);
+
+	g_assert(1 == hl->refcount);
 
 	item = hikset_lookup(hl->ht, key);
 	g_assert(item != NULL);
 
-	/*
-	 * Remove item from list and insert it back at the tail.
-	 */
-
-	if (elist_last(&hl->list) != &item->lnk) {
-		elist_link_remove(&hl->list, &item->lnk);
-		elist_link_append(&hl->list, &item->lnk);
-	}
-
+	elist_moveto_tail(&hl->list, item);
 	hl->stamp++;
 
 	hash_list_regression(hl);
+	hash_list_return_void(hl);
 }
 
 /**
@@ -729,33 +946,39 @@ hash_list_moveto_tail(hash_list_t *hl, const void *key)
 unsigned
 hash_list_length(const hash_list_t *hl)
 {
+	unsigned count;
+
 	hash_list_check(hl);
 
-	return elist_count(&hl->list);
+	hash_list_synchronize(hl);
+	count = elist_count(&hl->list);
+	hash_list_return(hl, count);
 }
 
 /**
  * Extract the list of items so that the caller can iterate at will over
- * it as sort it.  The caller must dispose of that list via g_list_free().
+ * it as sort it.  The caller must dispose of that list via plist_free().
  * The underlying data is not copied so it must NOT be freed.
  *
  * @returns a shallow copy of the underlying list.
  */
-GList *
+plist_t *
 hash_list_list(hash_list_t *hl)
 {
-	GList *l = NULL;
+	plist_t *l = NULL;
 	link_t *lk;
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	for (lk = elist_last(&hl->list); lk != NULL; lk = elist_prev(lk)) {
 		struct hash_list_item *item = ITEM(lk);
 
-		l = g_list_prepend(l, deconstify_pointer(item->key));
+		l = plist_prepend(l, deconstify_pointer(item->key));
 	}
 
-	return l;
+	hash_list_return(hl, l);
 }
 
 static hash_list_iter_t *
@@ -764,6 +987,7 @@ hash_list_iterator_new(hash_list_t *hl, enum hash_list_iter_direction dir)
 	hash_list_iter_t *iter;
 
 	hash_list_check(hl);
+	assert_hash_list_locked(hl);
 
 	WALLOC0(iter);
 	iter->magic = HASH_LIST_ITER_MAGIC;
@@ -771,6 +995,7 @@ hash_list_iterator_new(hash_list_t *hl, enum hash_list_iter_direction dir)
 	iter->hl = hl;
 	iter->stamp = hl->stamp;
 	hl->refcount++;
+
 	return iter;
 }
 
@@ -785,8 +1010,13 @@ hash_list_iterator(hash_list_t *hl)
 		hash_list_iter_t *iter;
 
 		hash_list_check(hl);
+
+		hash_list_synchronize(hl);
+
 		iter = hash_list_iterator_new(hl, HASH_LIST_ITER_FORWARDS);
 		iter->next = elist_first(&hl->list);
+
+		hash_list_unsynchronize(hl);
 		return iter;
 	} else {
 		return NULL;
@@ -804,8 +1034,13 @@ hash_list_iterator_tail(hash_list_t *hl)
 		hash_list_iter_t *iter;
 
 		hash_list_check(hl);
+
+		hash_list_synchronize(hl);
+
 		iter = hash_list_iterator_new(hl, HASH_LIST_ITER_BACKWARDS);
 		iter->prev = elist_last(&hl->list);
+
+		hash_list_unsynchronize(hl);
 		return iter;
 	} else {
 		return NULL;
@@ -826,6 +1061,8 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 
 		hash_list_check(hl);
 
+		hash_list_synchronize(hl);
+
 		item = hikset_lookup(hl->ht, key);
 		if (item) {
 			hash_list_iter_t *iter;
@@ -834,9 +1071,9 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 			iter->prev = elist_prev(&item->lnk);
 			iter->next = elist_next(&item->lnk);
 			iter->item = item;
-			return iter;
+			hash_list_return(hl, iter);
 		} else {
-			return NULL;
+			hash_list_return(hl, NULL);
 		}
 	} else {
 		return NULL;
@@ -850,18 +1087,26 @@ G_GNUC_HOT void *
 hash_list_iter_next(hash_list_iter_t *iter)
 {
 	link_t *next;
+	hash_list_t *hl;
+	void *data;
 
 	hash_list_iter_check(iter);
+
+	hl = iter->hl;
+
+	hash_list_synchronize(hl);
 
 	next = iter->next;
 	if (next != NULL) {
 		iter->item = ITEM(next);
 		iter->prev = elist_prev(next);
 		iter->next = elist_next(next);
-		return deconstify_pointer(iter->item->key);
+		data = deconstify_pointer(iter->item->key);
 	} else {
-		return NULL;
+		data = NULL;
 	}
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -882,18 +1127,25 @@ G_GNUC_HOT void *
 hash_list_iter_previous(hash_list_iter_t *iter)
 {
 	link_t *prev;
+	hash_list_t *hl;
+	void *data;
 
 	hash_list_iter_check(iter);
+
+	hl = iter->hl;
+	hash_list_synchronize(hl);
 
 	prev = iter->prev;
 	if (prev != NULL) {
 		iter->item = ITEM(prev);
 		iter->next = elist_next(prev);
 		iter->prev = elist_prev(prev);
-		return deconstify_pointer(iter->item->key);
+		data = deconstify_pointer(iter->item->key);
 	} else {
-		return NULL;
+		data = NULL;
 	}
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -958,24 +1210,27 @@ void *
 hash_list_iter_remove(hash_list_iter_t *iter)
 {
 	struct hash_list_item *item;
+	hash_list_t *hl;
+	void *key;
 
 	hash_list_iter_check(iter);
+
+	hl = iter->hl;
+	hash_list_synchronize(hl);
 
 	item = iter->item;
 
 	if (item != NULL) {
-		void *key = deconstify_pointer(item->key);
-		hash_list_t *hl = iter->hl;
-
+		key = deconstify_pointer(item->key);
 		iter->item = NULL;
 		hikset_remove(hl->ht, key);
 		elist_link_remove(&hl->list, &item->lnk);
 		WFREE(item);
-
-		return key;
 	} else {
-		return NULL;
+		key = NULL;
 	}
+
+	hash_list_return(hl, key);
 }
 
 /**
@@ -989,7 +1244,10 @@ hash_list_iter_release(hash_list_iter_t **iter_ptr)
 
 		hash_list_iter_check(iter);
 
+		hash_list_synchronize(iter->hl);
 		iter->hl->refcount--;
+		hash_list_unsynchronize(iter->hl);
+
 		iter->magic = 0;
 
 		WFREE(iter);
@@ -1011,11 +1269,14 @@ hash_list_find(hash_list_t *hl, const void *key,
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = hikset_lookup(hl->ht, key);
 	if (item && orig_key_ptr) {
 		*orig_key_ptr = item->key;
 	}
-	return NULL != item;
+
+	hash_list_return(hl, NULL != item);
 }
 
 /**
@@ -1030,9 +1291,11 @@ hash_list_lookup(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = hikset_lookup(hl->ht, key);
 
-	return NULL == item ? NULL : item->key;
+	hash_list_return(hl, NULL == item ? NULL : item->key);
 }
 
 /**
@@ -1042,9 +1305,13 @@ hash_list_lookup(hash_list_t *hl, const void *key)
 bool
 hash_list_contains(hash_list_t *hl, const void *key)
 {
+	bool contains;
+
 	hash_list_check(hl);
 
-	return hikset_contains(hl->ht, key);
+	hash_list_synchronize(hl);
+	contains = hikset_contains(hl->ht, key);
+	hash_list_return(hl, contains);
 }
 
 /**
@@ -1069,12 +1336,17 @@ void *
 hash_list_next(hash_list_t *hl, const void *key)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = hikset_lookup(hl->ht, key);
-	item = item ? elist_data(&hl->list, elist_next(&item->lnk)) : NULL;
-	return item ? deconstify_pointer(item->key) : NULL;
+	item = item != NULL ? elist_data(&hl->list, elist_next(&item->lnk)) : NULL;
+	data = item != NULL ? deconstify_pointer(item->key) : NULL;
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -1084,12 +1356,17 @@ void *
 hash_list_previous(hash_list_t *hl, const void *key)
 {
 	struct hash_list_item *item;
+	void *data;
 
 	hash_list_check(hl);
 
+	hash_list_synchronize(hl);
+
 	item = hikset_lookup(hl->ht, key);
-	item = item ? elist_data(&hl->list, elist_prev(&item->lnk)) : NULL;
-	return item ? deconstify_pointer(item->key) : NULL;
+	item = item != NULL ? elist_data(&hl->list, elist_prev(&item->lnk)) : NULL;
+	data = item != NULL ? deconstify_pointer(item->key) : NULL;
+
+	hash_list_return(hl, data);
 }
 
 /**
@@ -1103,12 +1380,15 @@ hash_list_foreach(const hash_list_t *hl, data_fn_t func, void *user_data)
 	hash_list_check(hl);
 	g_assert(NULL != func);
 
+	hash_list_synchronize(hl);
+
 	for (lk = elist_first(&hl->list); lk != NULL; lk = elist_next(lk)) {
 		struct hash_list_item *item = ITEM(lk);
 		(*func)(deconstify_pointer(item->key), user_data);
 	}
 
 	hash_list_regression(hl);
+	hash_list_return_void(hl);
 }
 
 /**
@@ -1126,6 +1406,8 @@ hash_list_foreach_remove(hash_list_t *hl, data_rm_fn_t func, void *data)
 	hash_list_check(hl);
 	g_assert(func != NULL);
 
+	hash_list_synchronize(hl);
+
 	for (lk = elist_first(&hl->list); lk != NULL; lk = next) {
 		struct hash_list_item *item = ITEM(lk);
 
@@ -1137,8 +1419,7 @@ hash_list_foreach_remove(hash_list_t *hl, data_rm_fn_t func, void *data)
 	}
 
 	hash_list_regression(hl);
-
-	return removed;
+	hash_list_return(hl, removed);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

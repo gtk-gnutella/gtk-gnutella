@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-104]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-174]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -39,7 +39,7 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
@@ -66,7 +66,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 99 2011-11-05 13:27:37Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -89,6 +89,7 @@ SRC = \
 	help.c \
 	horizon.c \
 	intr.c \
+	lib.c \
 	log.c \
 	memory.c \
 	node.c \
@@ -99,6 +100,7 @@ SRC = \
 	print.c \
 	props.c \
 	quit.c \
+	random.c \
 	rescan.c \
 	search.c \
 	set.c \
@@ -106,6 +108,8 @@ SRC = \
 	shutdown.c \
 	stats.c \
 	status.c \
+	task.c \
+	thread.c \
 	uploads.c \
 	version.c \
 	whatis.c
@@ -119,6 +123,7 @@ OBJ = \
 	help.o \
 	horizon.o \
 	intr.o \
+	lib.o \
 	log.o \
 	memory.o \
 	node.o \
@@ -129,6 +134,7 @@ OBJ = \
 	print.o \
 	props.o \
 	quit.o \
+	random.o \
 	rescan.o \
 	search.o \
 	set.o \
@@ -136,6 +142,8 @@ OBJ = \
 	shutdown.o \
 	stats.o \
 	status.o \
+	task.o \
+	thread.o \
 	uploads.o \
 	version.o \
 	whatis.o 
@@ -202,6 +210,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man

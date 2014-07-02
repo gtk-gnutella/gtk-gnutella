@@ -1,3 +1,11 @@
+gtk-gnutella (1.1-0) unstable; urgency=high
+
+  * Fixed possible Denial of Service.
+  * Made application multi-threaded.
+  * Added full support of the G2 protocol for searches.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Wed,  2 Jul 2014 18:47:53 +0000
+
 gtk-gnutella (1.0-1) unstable; urgency=high
 
   * Fixed grave bug making all other gtk-gnutella to appear hostile.

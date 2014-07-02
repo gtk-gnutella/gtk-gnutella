@@ -55,6 +55,8 @@ char *file_locate_from_path(const char *argv0);
 
 FILE *file_config_open_read(
 	const char *what, const file_path_t *fv, int fvcnt);
+FILE *file_config_open_read_chosen(
+	const char *what, const file_path_t *fv, int fvcnt, int *chosen);
 FILE *file_config_open_read_norename(
 	const char *what, const file_path_t *fv, int fvcnt);
 FILE *file_config_open_read_norename_chosen(
@@ -66,10 +68,14 @@ int file_sync_fclose(FILE *f);
 void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
 const char *file_oflags_to_string(int flags);
+const char *file_accmode_to_string(const int accmode) G_GNUC_CONST;
 
 int file_open(const char *path, int flags, int mode);
+int file_open_silent(const char *path, int flags, int mode);
 int file_absolute_open(const char *path, int flags, int mode);
+int file_absolute_open_silent(const char *path, int flags, int mode);
 int file_open_missing(const char *path, int flags);
+int file_open_missing_silent(const char *path, int flags);
 int file_create(const char *path, int flags, int mode);
 int file_create_missing(const char *path, int flags, int mode);
 FILE *file_fopen(const char *path, const char *mode);

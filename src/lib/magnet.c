@@ -36,17 +36,19 @@
 #include "common.h"
 
 #include "magnet.h"
+
 #include "ascii.h"
 #include "atoms.h"
 #include "concat.h"
-#include "glib-missing.h"
 #include "gnet_host.h"
 #include "halloc.h"
+#include "once.h"
 #include "parse.h"
 #include "sequence.h"
 #include "str.h"
 #include "stringify.h"
 #include "tm.h"
+#include "tokenizer.h"
 #include "unsigned.h"
 #include "url.h"
 #include "urn.h"
@@ -66,7 +68,7 @@
  */
 
 enum magnet_key {
-	MAGNET_KEY_NONE,
+	MAGNET_KEY_NONE = 0,
 	MAGNET_KEY_DISPLAY_NAME,		/* Display Name */
 	MAGNET_KEY_KEYWORD_TOPIC,		/* Keyword Topic */
 	MAGNET_KEY_EXACT_LENGTH,		/* eXact file Length */
@@ -77,20 +79,19 @@ enum magnet_key {
 	MAGNET_KEY_GUID,				/* Servent GUID */
 	MAGNET_KEY_VENDOR,				/* Servent vendor */
 	MAGNET_KEY_DHT,					/* Servent known to publish in the DHT */
+	MAGNET_KEY_G2,					/* Servent is a G2 node */
 
 	NUM_MAGNET_KEYS
 };
 
-static const struct {
-	const char * const key;
-	const enum magnet_key id;
-} magnet_keys[] = {
+static tokenizer_t magnet_keys[] = {
 	/* Must be sorted alphabetically */
 	{ "",			MAGNET_KEY_NONE },
 	{ "as",			MAGNET_KEY_ALTERNATE_SOURCE },
 	{ "dn",			MAGNET_KEY_DISPLAY_NAME },
 	{ "kt",			MAGNET_KEY_KEYWORD_TOPIC },
 	{ "x.dht",		MAGNET_KEY_DHT },
+	{ "x.g2",		MAGNET_KEY_G2 },
 	{ "x.guid",		MAGNET_KEY_GUID },
 	{ "x.parq-id",	MAGNET_KEY_PARQ_ID },
 	{ "x.vndr",		MAGNET_KEY_VENDOR },
@@ -116,31 +117,29 @@ clear_error_str(const char ***error_str)
 }
 
 static void
-free_proxies_list(GSList *sl)
+free_proxies_list(pslist_t *sl)
 {
-	g_slist_foreach(sl, gnet_host_free_item, NULL);
-	g_slist_free(sl);
+	pslist_foreach(sl, gnet_host_free_item, NULL);
+	pslist_free(sl);
+}
+
+static once_flag_t magnet_keys_checked;
+
+static void G_GNUC_COLD
+magnet_key_check(void)
+{
+	TOKENIZE_CHECK_SORTED_WITH(magnet_keys, ascii_strcasecmp);
 }
 
 static enum magnet_key
 magnet_key_get(const char *s)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(magnet_keys) == NUM_MAGNET_KEYS);
-	g_assert(s);
+	g_assert(s != NULL);
 
-#define GET_KEY(i) (magnet_keys[(i)].key)
-#define FOUND(i) G_STMT_START { \
-	return magnet_keys[(i)].id;	\
-	/* NOTREACHED */ \
-} G_STMT_END
+	ONCE_FLAG_RUN(magnet_keys_checked, magnet_key_check);
 
-	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(magnet_keys), ascii_strcasecmp,
-		GET_KEY, FOUND);
-	
-#undef FOUND
-#undef GET_KEY
-
-	return MAGNET_KEY_NONE;
+	return TOKENIZE_WITH(s, ascii_strcasecmp, magnet_keys);
 }
 
 static void
@@ -275,9 +274,9 @@ magnet_parse_location(const char *uri, const char **error_str)
 
 static bool
 magnet_parse_addr_list(const char *proxies,
-	const char **endptr, GSList **list, const char **error_str)
+	const char **endptr, pslist_t **list, const char **error_str)
 {
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 	const char *p;
 
 	clear_error_str(&error_str);
@@ -295,10 +294,10 @@ magnet_parse_addr_list(const char *proxies,
 			goto cleanup;
 
 		host = gnet_host_new(addr, port);
-		sl = g_slist_prepend(sl, host);		/* Will reverse list below */
+		sl = pslist_prepend(sl, host);		/* Will reverse list below */
 	}
 
-	sl = g_slist_reverse(sl);		/* Keep order of listed push-proxies */
+	sl = pslist_reverse(sl);		/* Keep order of listed push-proxies */
 	*endptr = p;
 
 	*list = sl;
@@ -314,7 +313,7 @@ magnet_parse_proxy_location(const char *uri, const char **error_str)
 {
 	struct magnet_source *ms;
 	const char *p, *endptr = NULL;
-	GSList *sl = NULL;
+	pslist_t *sl = NULL;
 
 	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
@@ -467,7 +466,7 @@ magnet_handle_key(struct magnet_resource *res,
 					res->sha1 = atom_sha1_get(ms->sha1);
 				}
 				if (!ms->sha1 || sha1_eq(res->sha1, ms->sha1)) {
-					res->sources = g_slist_prepend(res->sources, ms);
+					res->sources = pslist_prepend(res->sources, ms);
 				} else {
 					magnet_source_free(&ms);
 				}
@@ -521,6 +520,18 @@ magnet_handle_key(struct magnet_resource *res,
 			u = parse_uint8(value, NULL, 10, &error);
 			if (!error) {
 				magnet_set_dht(res, u);
+			}
+		}
+		break;
+
+	case MAGNET_KEY_G2:
+		{
+			int error;
+			uint8 u;
+
+			u = parse_uint8(value, NULL, 10, &error);
+			if (!error) {
+				magnet_set_g2(res, u);
 			}
 		}
 		break;
@@ -607,8 +618,8 @@ magnet_parse(const char *url, const char **error_str)
 		next = endptr;
 	}
 
-	res.sources = g_slist_reverse(res.sources);
-	res.searches = g_slist_reverse(res.searches);
+	res.sources = pslist_reverse(res.sources);
+	res.searches = pslist_reverse(res.searches);
 
 	return wcopy(&res, sizeof res);
 }
@@ -640,7 +651,7 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 	struct magnet_resource *res = *res_ptr;
 
 	if (res) {
-		GSList *sl;
+		pslist_t *sl;
 
 		atom_str_free_null(&res->display_name);
 		atom_sha1_free_null(&res->sha1);
@@ -649,17 +660,17 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 		atom_str_free_null(&res->guid);
 		atom_str_free_null(&res->vendor);
 
-		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
+		for (sl = res->sources; sl != NULL; sl = pslist_next(sl)) {
 			struct magnet_source *ms = sl->data;
 			magnet_source_free(&ms);
 		}
-		gm_slist_free_null(&res->sources);
+		pslist_free_null(&res->sources);
 
-		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
+		for (sl = res->searches; sl != NULL; sl = pslist_next(sl)) {
 			const char *s = sl->data;
 			atom_str_free_null(&s);
 		}
-		gm_slist_free_null(&res->searches);
+		pslist_free_null(&res->searches);
 		wfree(res, sizeof *res);
 		*res_ptr = NULL;
 	}
@@ -685,7 +696,7 @@ magnet_add_source(struct magnet_resource *res, struct magnet_source *s)
 	g_return_if_fail(res);
 	g_return_if_fail(s);
 	
-	res->sources = g_slist_prepend(res->sources, s);
+	res->sources = pslist_prepend(res->sources, s);
 }
 
 void
@@ -725,14 +736,14 @@ magnet_add_sha1_source(struct magnet_resource *res, const struct sha1 *sha1,
 
 	if (proxies != NULL) {
 		int i, n;
-		GSList *sl = NULL;
+		pslist_t *sl = NULL;
 
 		n = gnet_host_vec_count(proxies);
 		for (i = 0; i < n; i++) {
 			gnet_host_t host;
 
 			host = gnet_host_vec_get(proxies, i);
-			sl = g_slist_prepend(sl, gnet_host_dup(&host));
+			sl = pslist_prepend(sl, gnet_host_dup(&host));
 		}
 
 		s->proxies = sl;
@@ -747,7 +758,7 @@ magnet_add_search(struct magnet_resource *res, const char *search)
 	g_return_if_fail(res);
 	g_return_if_fail(search);
 
-	res->searches = g_slist_prepend(res->searches,
+	res->searches = pslist_prepend(res->searches,
 						deconstify_gchar(atom_str_get(search)));
 }
 
@@ -836,7 +847,7 @@ magnet_append_item(str_t *s, bool escape_value,
 	g_return_if_fail(value);
 
 	if (0 == str_len(s)) {
-		str_cat(s, "magnet:?");
+		STR_CAT(s, "magnet:?");
 	} else {
 		str_putc(s, '&');
 	}
@@ -885,11 +896,11 @@ proxy_sequence_to_string(const sequence_t *s)
  * @return A halloc()ed string.
  */
 static char *
-proxies_to_string(GSList *proxies)
+proxies_to_string(pslist_t *proxies)
 {
 	sequence_t seq;
 
-	return proxy_sequence_to_string(sequence_fill_from_gslist(&seq, proxies));
+	return proxy_sequence_to_string(sequence_fill_from_pslist(&seq, proxies));
 }
 
 /**
@@ -977,7 +988,7 @@ magnet_source_to_string(const struct magnet_source *s)
 char *
 magnet_to_string(const struct magnet_resource *res)
 {
-	GSList *sl;
+	pslist_t *sl;
 	str_t *s;
 
 	g_return_val_if_fail(res, NULL);
@@ -1009,8 +1020,11 @@ magnet_to_string(const struct magnet_resource *res)
 	if (res->dht) {
 		magnet_append_item(s, TRUE, "x.dht", "1");
 	}
+	if (res->g2) {
+		magnet_append_item(s, TRUE, "x.g2", "1");
+	}
 
-	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
+	for (sl = res->sources; NULL != sl; sl = pslist_next(sl)) {
 		char *url;
 
 		url = magnet_source_to_string(sl->data);
@@ -1018,7 +1032,7 @@ magnet_to_string(const struct magnet_resource *res)
 		G_FREE_NULL(url);
 	}
 
-	for (sl = res->searches; NULL != sl; sl = g_slist_next(sl)) {
+	for (sl = res->searches; NULL != sl; sl = pslist_next(sl)) {
 		magnet_append_item(s, TRUE, "kt", sl->data);
 	}
 
@@ -1105,6 +1119,19 @@ magnet_set_dht(struct magnet_resource *res, bool dht_support)
 	g_return_if_fail(res);
 
 	res->dht = booleanize(dht_support);
+}
+
+/**
+ * This is a bit of a hack (an extension anyway) and should only be used
+ * for magnets with a single logical source because G2 support is only
+ * valid for a certain source.
+ */
+void
+magnet_set_g2(struct magnet_resource *res, bool g2)
+{
+	g_return_if_fail(res);
+
+	res->g2 = booleanize(g2);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

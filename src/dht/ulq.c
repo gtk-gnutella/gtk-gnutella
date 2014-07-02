@@ -618,12 +618,11 @@ ulq_service(void)
  * Callout queue callback to perform queue servicing.
  */
 static void
-ulq_do_service(cqueue_t *unused_cq, void *unused_obj)
+ulq_do_service(cqueue_t *cq, void *unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
 
-	service_ev = NULL;
+	cq_zero(cq, &service_ev);
 
 	/*
 	 * If the DHT is not properly seeded, do not perform user lookups.

@@ -1,0 +1,27 @@
+#
+# Download ignore codes
+#
+
+Prefix: IGNORE_
+Lowercase: no
+I18N: no
+#Count:
+Enum: ignore_val_t
+Enum-Init: 0
+Enum-File: ignore.h
+#Symbolic:
+Description: ignore_val_str
+#Enum-To-Symbolic:
+Enum-To-Description: ignore_reason_to_string
+Enum-To-Code: ignore.c
+Enum-To-Header: ignore.h
+Protection-Prefix: if_gen
+
+FALSE			"Not ignored"
+SHA1			"SHA1"
+NAMESIZE		"Name & Size"
+LIBRARY			"Already owned"
+HOSTILE			"Hostile IP"
+OURSELVES		"Points to ourselves"
+LIMIT			"Country limit"
+SPAM			"Known spam"

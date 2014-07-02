@@ -843,7 +843,7 @@ xnode_prop_set_all(xnode_t *element, xattr_table_t *attrs)
  *
  * @return TRUE if this was a new property, FALSE if we replaced content.
  */
-static bool
+static bool G_GNUC_PRINTF(4, 0)
 xnode_prop_ns_vprintf(xnode_t *element,
 	const char *uri, const char *name, const char *fmt, va_list args)
 {

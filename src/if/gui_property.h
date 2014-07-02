@@ -28,8 +28,8 @@
 #ifndef _gui_property_h_
 #define _gui_property_h_
 
-
 #include "lib/prop.h"
+#include "lib/log.h"		/* For s_carp() */
 
 #define GUI_PROPERTY_MIN (1000)
 #define GUI_PROPERTY_MAX (1000+GUI_PROPERTY_END-1)
@@ -171,7 +171,7 @@ const prop_set_stub_t *gui_prop_get_stub(void);
  */
 prop_def_t *gui_prop_get_def(property_t);
 property_t gui_prop_get_by_name(const char *);
-GSList *gui_prop_get_by_regex(const char *, int *);
+pslist_t *gui_prop_get_by_regex(const char *, int *);
 const char *gui_prop_name(property_t);
 const char *gui_prop_type_to_string(property_t);
 const char *gui_prop_to_string(property_t prop);
@@ -180,6 +180,9 @@ const char *gui_prop_description(property_t);
 gboolean gui_prop_is_saved(property_t);
 prop_type_t gui_prop_type(property_t);
 void gui_prop_set_from_string(property_t, const char *);
+
+void gui_prop_lock(property_t);
+void gui_prop_unlock(property_t);
 
 /*
  * Property-change listeners
@@ -236,18 +239,32 @@ static inline void
 gui_prop_incr_guint32(property_t p)
 {
 	guint32 value;
+	gui_prop_lock(p);
 	gui_prop_get_guint32_val(p, &value);
-	value++;
-	gui_prop_set_guint32_val(p, value);
+	if G_UNLIKELY((guint32) -1 == value) {
+		s_carp("%s(): incrementing property \"%s\" would overflow",
+			G_STRFUNC, gui_prop_name(p));
+	} else {
+		value++;
+		gui_prop_set_guint32_val(p, value);
+	}
+	gui_prop_unlock(p);
 }
 
 static inline void
 gui_prop_decr_guint32(property_t p)
 {
 	guint32 value;
+	gui_prop_lock(p);
 	gui_prop_get_guint32_val(p, &value);
-	value--;
-	gui_prop_set_guint32_val(p, value);
+	if G_UNLIKELY(0 == value) {
+		s_carp("%s(): decrementing property \"%s\" would underflow",
+			G_STRFUNC, gui_prop_name(p));
+	} else {
+		value--;
+		gui_prop_set_guint32_val(p, value);
+	}
+	gui_prop_unlock(p);
 }
 
 void gui_prop_set_guint64(

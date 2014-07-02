@@ -72,17 +72,17 @@
  *  Define the SHA1 circular left shift macro.
  */
 #define SHA1CircularShift(bits,word) \
-                (((word) << (bits)) | ((word) >> (32-(bits))))
+	(((word) << (bits)) | ((word) >> (32-(bits))))
 
 /* Local Function Prototyptes */
-void SHA1PadMessage(SHA1Context *);
-void SHA1ProcessMessageBlock(SHA1Context *);
+static void SHA1_pad_message(SHA1_context *);
+static void SHA1_process_message_block(SHA1_context *);
 
 /**
- *  SHA1Reset
+ *  SHA1_reset
  *
  *  Description:
- *      This function will initialize the SHA1Context in preparation
+ *      This function will initialize the SHA1_context in preparation
  *      for computing a new SHA1 message digest.
  *
  *  Parameters:
@@ -93,84 +93,73 @@ void SHA1ProcessMessageBlock(SHA1Context *);
  *      sha Error Code.
  *
  */
-int SHA1Reset(SHA1Context *context)
+int
+SHA1_reset(SHA1_context *context)
 {
-    if (!context)
-    {
-        return shaNull;
-    }
+	if (!context)
+		return SHA_NULL;
 
-    context->Length                 = 0;
-    context->Message_Block_Index    = 0;
+	ZERO(context);
 
-    context->Intermediate_Hash[0]   = 0x67452301;
-    context->Intermediate_Hash[1]   = 0xEFCDAB89;
-    context->Intermediate_Hash[2]   = 0x98BADCFE;
-    context->Intermediate_Hash[3]   = 0x10325476;
-    context->Intermediate_Hash[4]   = 0xC3D2E1F0;
+	context->magic     = SHA1_CONTEXT_MAGIC;
 
-    context->Computed   = 0;
-    context->Corrupted  = 0;
+	context->ihash[0]  = 0x67452301;
+	context->ihash[1]  = 0xEFCDAB89;
+	context->ihash[2]  = 0x98BADCFE;
+	context->ihash[3]  = 0x10325476;
+	context->ihash[4]  = 0xC3D2E1F0;
 
-    return shaSuccess;
+	return SHA_SUCCESS;
 }
 
 /**
- *  SHA1Result
+ *  SHA1_result
  *
  *  Description:
  *      This function will return the 160-bit message digest into the
- *      Message_Digest array  provided by the caller.
+ *      digest array  provided by the caller.
  *      NOTE: The first octet of hash is stored in the 0th element,
  *            the last octet of hash in the 19th element.
  *
  *  Parameters:
  *      context: [in/out]
  *          The context to use to calculate the SHA-1 hash.
- *      Message_Digest: [out]
+ *      digest: [out]
  *          Where the digest is returned.
  *
  *  Returns:
  *      sha Error Code.
- *
  */
-int SHA1Result( SHA1Context *context, struct sha1 *Message_Digest)
+int
+SHA1_result(SHA1_context *context, struct sha1 *digest)
 {
-    unsigned i;
+	unsigned i;
 
-    if (!context || !Message_Digest)
-    {
-        return shaNull;
-    }
+	SHA1_check(context);
 
-    if (context->Corrupted)
-    {
-        return context->Corrupted;
-    }
+	if (!context || !digest)
+		return SHA_NULL;
 
-    if (!context->Computed)
-    {
-        SHA1PadMessage(context);
-        for(i=0; i<64; ++i)
-        {
-            /* message may be sensitive, clear it out */
-            context->Message_Block[i] = 0;
-        }
-        context->Length = 0;    /* and clear length */
-        context->Computed = 1;
-    }
+	if (context->corrupted)
+		return context->corrupted;
 
-    for(i = 0; i < sizeof Message_Digest->data; ++i)
-    {
-        Message_Digest->data[i] = context->Intermediate_Hash[i>>2]
-                            >> 8 * ( 3 - ( i & 0x03 ) );
-    }
+	if (!context->computed) {
+		SHA1_pad_message(context);
+		/* message may be sensitive, clear it out */
+		ZERO(&context->mblock);
+		context->length = 0;    /* and clear length */
+		context->computed = TRUE;
+	}
 
-    return shaSuccess;
+	for (i = 0; i < sizeof digest->data; ++i) {
+		digest->data[i] = context->ihash[i>>2] >> 8 * (3 - (i & 0x03));
+	}
+
+	return SHA_SUCCESS;
 }
 
 /**
- *  SHA1Input
+ *  SHA1_input
  *
  *  Description:
  *      This function accepts an array of octets as the next portion
@@ -187,63 +176,51 @@ int SHA1Result( SHA1Context *context, struct sha1 *Message_Digest)
  *
  *  Returns:
  *      sha Error Code.
- *
  */
-int SHA1Input(    SHA1Context    *context,
-                  const void  *data,
-                  size_t       length)
+int
+SHA1_input(SHA1_context *context, const void *data, size_t length)
 {
-    const unsigned char *message_array = data;
+	const uint8 *mp = data;		/* Pointer into message, viewed as byte array */
 
-    if (!length)
-    {
-        return shaSuccess;
-    }
+	SHA1_check(context);
 
-    if (!context || !message_array)
-    {
-        return shaNull;
-    }
+	if G_UNLIKELY(!length)
+		return SHA_SUCCESS;
 
-    if (context->Computed)
-    {
-        context->Corrupted = shaStateError;
-        return shaStateError;
-    }
+	if G_UNLIKELY(!context || !data)
+		return SHA_NULL;
 
-    if (context->Corrupted)
-    {
-         return context->Corrupted;
-    }
-    while(length-- && !context->Corrupted)
-    {
-    context->Message_Block[context->Message_Block_Index++] =
-                    (*message_array & 0xFF);
+	if G_UNLIKELY(context->computed) {
+		context->corrupted = SHA_STATE_ERROR;
+		return SHA_STATE_ERROR;
+	}
 
-    context->Length += 8;
-    if (context->Length < 8)
-    {
-            /* Message is too long */
-            context->Corrupted = 1;
-    }
+	if G_UNLIKELY(context->corrupted)
+		 return SHA_STATE_ERROR;
 
-    if (context->Message_Block_Index == 64)
-    {
-        SHA1ProcessMessageBlock(context);
-    }
+	while (length--) {
+		context->mblock[context->midx++] = *mp++;
+		context->length += 8;		/* This counts bits, not bytes */
 
-    message_array++;
-    }
+		if G_UNLIKELY(context->length < 8) {
+			/* Message is too long */
+			context->corrupted = SHA_INPUT_TOO_LONG;
+			return SHA_INPUT_TOO_LONG;
+		}
 
-    return shaSuccess;
+		if G_UNLIKELY(context->midx == 64)
+			SHA1_process_message_block(context);
+	}
+
+	return SHA_SUCCESS;
 }
 
 /**
- *  SHA1ProcessMessageBlock
+ *  SHA1_process_message_block
  *
  *  Description:
  *      This function will process the next 512 bits of the message
- *      stored in the Message_Block array.
+ *      stored in the mblock array.
  *
  *  Parameters:
  *      None.
@@ -255,32 +232,31 @@ int SHA1Input(    SHA1Context    *context,
  *      Many of the variable names in this code, especially the
  *      single character names, were used because those were the
  *      names used in the publication.
- *
- *
  */
-G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
+static void G_GNUC_HOT
+SHA1_process_message_block(SHA1_context *context)
 {
-    const uint32 K[] =    {       /* Constants defined in SHA-1 */
-                            0x5A827999,
-                            0x6ED9EBA1,
-                            0x8F1BBCDC,
-                            0xCA62C1D6
-                            };
-    int         t;                 /* Loop counter              */
-    uint32      temp;              /* Temporary word value      */
-    uint32      W[80];             /* Word sequence             */
-    uint32      A, B, C, D, E;     /* Word buffers              */
-    uint32      *wp;               /* Pointer in word sequence	 */
+	const uint32 K[] = {       /* Constants defined in SHA-1 */
+		0x5A827999,
+		0x6ED9EBA1,
+		0x8F1BBCDC,
+		0xCA62C1D6
+	};
+	int    t;                 /* Loop counter              */
+	uint32 temp;              /* Temporary word value      */
+	uint32 W[80];             /* Word sequence             */
+	uint32 A, B, C, D, E;     /* Word buffers              */
+	uint32 *wp;               /* Pointer in word sequence  */
 
-    /*
-     *  Initialize the first 16 words in the array W
-     */
+	/*
+	 *  Initialize the first 16 words in the array W
+	 */
 
 #define INIT(x) \
-        W[x] = (context->Message_Block[(x) * 4] << 24) | \
-        	(context->Message_Block[(x) * 4 + 1] << 16) | \
-        	(context->Message_Block[(x) * 4 +2] << 8) | \
-        	(context->Message_Block[(x) * 4 +3])
+	W[x] = (context->mblock[(x) * 4]  << 24) | \
+		(context->mblock[(x) * 4 + 1] << 16) | \
+		(context->mblock[(x) * 4 + 2] << 8)  | \
+		(context->mblock[(x) * 4 + 3])
 
 	/* Unrolling this loop saves time */
 	INIT(0);  INIT(1);  INIT(2);  INIT(3);
@@ -289,7 +265,7 @@ G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
 	INIT(12); INIT(13); INIT(14); INIT(15);
 
 #define CRUNCH \
-       *wp = SHA1CircularShift(1,wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16])
+	*wp = SHA1CircularShift(1, wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16])
 
 	wp = &W[16];
 	CRUNCH; wp++;		/* 16 */
@@ -298,7 +274,7 @@ G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
 	CRUNCH; wp++;		/* 19 */
 
 	/* Fully unrolling this loop does NOT save time due to I-cache misses */
-    for (t = 20; t < 80; t += 10) {
+	for (t = 20; t < 80; t += 10) {
 		CRUNCH; wp++;		/* t+0 */
 		CRUNCH; wp++;		/* t+1 */
 		CRUNCH; wp++;		/* t+2 */
@@ -309,13 +285,13 @@ G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
 		CRUNCH; wp++;		/* t+7 */
 		CRUNCH; wp++;		/* t+8 */
 		CRUNCH; wp++;		/* t+9 */
-    }
+	}
 
-    A = context->Intermediate_Hash[0];
-    B = context->Intermediate_Hash[1];
-    C = context->Intermediate_Hash[2];
-    D = context->Intermediate_Hash[3];
-    E = context->Intermediate_Hash[4];
+	A = context->ihash[0];
+	B = context->ihash[1];
+	C = context->ihash[2];
+	D = context->ihash[3];
+	E = context->ihash[4];
 
 	wp = &W[0];
 
@@ -411,25 +387,24 @@ G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
 	ROTATE(3, B ^ C ^ D);
 	ROTATE(3, B ^ C ^ D);
 
-    context->Intermediate_Hash[0] += A;
-    context->Intermediate_Hash[1] += B;
-    context->Intermediate_Hash[2] += C;
-    context->Intermediate_Hash[3] += D;
-    context->Intermediate_Hash[4] += E;
+	context->ihash[0] += A;
+	context->ihash[1] += B;
+	context->ihash[2] += C;
+	context->ihash[3] += D;
+	context->ihash[4] += E;
 
-    context->Message_Block_Index = 0;
+	context->midx = 0;
 }
 
-
 /**
- *  SHA1PadMessage
+ *  SHA1_pad_message
  *
  *  Description:
  *      According to the standard, the message must be padded to an even
  *      512 bits.  The first padding bit must be a '1'.  The last 64
  *      bits represent the length of the original message.  All bits in
  *      between should be 0.  This function will pad the message
- *      according to those rules by filling the Message_Block array
+ *      according to those rules by filling the mblock array
  *      accordingly.  It will also call the ProcessMessageBlock function
  *      provided appropriately.  When it returns, it can be assumed that
  *      the message digest has been computed.
@@ -437,49 +412,42 @@ G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
  *  Parameters:
  *      context: [in/out]
  *          The context to pad
- *      ProcessMessageBlock: [in]
- *          The appropriate SHA*ProcessMessageBlock function
  *  Returns:
  *      Nothing.
- *
  */
-
-void SHA1PadMessage(SHA1Context *context)
+static void
+SHA1_pad_message(SHA1_context *context)
 {
-    /*
-     *  Check to see if the current message block is too small to hold
-     *  the initial padding bits and length.  If so, we will pad the
-     *  block, process it, and then continue padding into a second
-     *  block.
+	/*
+	 *  Check to see if the current message block is too small to hold
+	 *  the initial padding bits and length.  If so, we will pad the
+	 *  block, process it, and then continue padding into a second block.
      */
-    if (context->Message_Block_Index > 55)
-    {
-        context->Message_Block[context->Message_Block_Index++] = 0x80;
-        while(context->Message_Block_Index < 64)
-        {
-            context->Message_Block[context->Message_Block_Index++] = 0;
-        }
 
-        SHA1ProcessMessageBlock(context);
+	if (context->midx > 55) {
+		context->mblock[context->midx++] = 0x80;
+		while (context->midx < 64) {
+			context->mblock[context->midx++] = 0;
+		}
 
-        while(context->Message_Block_Index < 56)
-        {
-            context->Message_Block[context->Message_Block_Index++] = 0;
-        }
-    }
-    else
-    {
-        context->Message_Block[context->Message_Block_Index++] = 0x80;
-        while(context->Message_Block_Index < 56)
-        {
-            context->Message_Block[context->Message_Block_Index++] = 0;
-        }
-    }
+		SHA1_process_message_block(context);
 
-    /*
-     *  Store the message length as the last 8 octets
-     */
-    poke_be64(&context->Message_Block[56], context->Length);
+		while (context->midx < 56) {
+			context->mblock[context->midx++] = 0;
+		}
+	} else {
+		context->mblock[context->midx++] = 0x80;
+		while (context->midx < 56) {
+			context->mblock[context->midx++] = 0;
+		}
+	}
 
-    SHA1ProcessMessageBlock(context);
+	/*
+	 *  Store the message length as the last 8 octets
+	 */
+
+	poke_be64(&context->mblock[56], context->length);
+	SHA1_process_message_block(context);
 }
+
+/* vi: set ts=4 sw=4 cindent: */

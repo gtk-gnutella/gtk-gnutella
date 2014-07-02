@@ -41,6 +41,7 @@
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
 #include "lib/options.h"
+#include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -48,7 +49,7 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 static void
-print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
+print_node_info(struct gnutella_shell *sh, const gnutella_node_t *n)
 {
 	gnet_node_flags_t flags;
 	time_delta_t up, con;
@@ -102,7 +103,7 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 enum shell_reply
 shell_exec_nodes(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const GSList *sl;
+	const pslist_t *sl;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -114,8 +115,8 @@ shell_exec_nodes(struct gnutella_shell *sh, int argc, const char *argv[])
 	  "100~ \n"
 	  "Node                  Flags       CC Since  Uptime User-Agent\n");
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		const struct gnutella_node *n = sl->data;
+	PSLIST_FOREACH(node_all_nodes(), sl) {
+		const gnutella_node_t *n = sl->data;
 		print_node_info(sh, n);
 	}
 	shell_write(sh, ".\n");	/* Terminate message body */

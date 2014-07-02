@@ -40,12 +40,15 @@
 #include "common.h"
 
 #include "glib-missing.h"
+
 #include "ascii.h"
 #include "compat_poll.h"
 #include "iovec.h"
 #include "log.h"			/* For s_minicarp() */
 #include "misc.h"			/* For clamp_strcpy() */
+#include "pslist.h"
 #include "str.h"
+#include "stringify.h"
 #include "unsigned.h"
 #include "utf8.h"
 
@@ -235,7 +238,7 @@ gm_hash_table_remove(GHashTable *ht, const void *key)
  * @param args The variable argument list.
  * @return The length of the resulting string.
  */
-static inline size_t
+static inline size_t G_GNUC_PRINTF(3, 0)
 buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #ifdef HAS_VSNPRINTF
 {
@@ -259,7 +262,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	}
 	if G_UNLIKELY(truncated != 0) {
 		s_minicarp("truncated %d byte%s when formatting into %zu-byte buffer "
-			"with \"%s\"", truncated, 1 == truncated ? "" : "s",
+			"with \"%s\"", truncated, plural(truncated),
 			size, fmt);
 	}
 	return retval;
@@ -355,7 +358,7 @@ gm_snprintf(char *dst, size_t size, const char *fmt, ...)
  * Do not use unless ``fmt'' is a variable that cannot be used for
  * static argument list checking by gcc.
  */
-size_t
+size_t G_GNUC_PRINTF(3, 0)
 gm_snprintf_unchecked(char *dst, size_t size, const char *fmt, ...)
 {
 	va_list args;
@@ -609,28 +612,6 @@ g_main_context_set_poll_func(GMainContext *context, GPollFunc func)
 }
 #endif	/* USE_GLIB1 */
 
-/**
- * Detects a loop in a singly-linked list.
- *
- * @return TRUE if the given slist contains a loop; FALSE otherwise.
- */
-bool
-gm_slist_is_looping(const GSList *slist)
-{
-	const GSList *sl, *p;
-
-	p = slist;
-	sl = slist;
-	for (sl = slist; /* NOTHING */; sl = g_slist_next(sl)) {
-		p = g_slist_next(g_slist_next(p));
-		if (p == sl || p == g_slist_next(sl)) {
-			break;
-		}
-	}
-
-	return NULL != p;
-}
-
 static void
 gm_hash_table_all_keys_helper(void *key, void *unused_value, void *udata)
 {
@@ -791,6 +772,42 @@ gm_hash_table_destroy_null(GHashTable **h_ptr)
 		g_hash_table_destroy(*h_ptr);
 		*h_ptr = NULL;
 	}
+}
+
+/***
+ *** To ease the migration off GSList and GList (still used by the GUI layer).
+ ***/
+
+/**
+ * Shallow cloning of a GSList into a pslist_t.
+ */
+pslist_t *
+gm_slist_to_pslist(const GSList *list)
+{
+	const GSList *sl;
+	pslist_t *pl = NULL;
+
+	GM_SLIST_FOREACH(list, sl) {
+		pl = pslist_prepend(pl, sl->data);
+	}
+
+	return pslist_reverse(pl);
+}
+
+/**
+ * Shallow cloning of a pslist_t into a GSList.
+ */
+GSList *
+gm_pslist_to_slist(const pslist_t *list)
+{
+	const pslist_t *pl;
+	GSList *sl = NULL;
+
+	PSLIST_FOREACH(list, pl) {
+		sl = g_slist_prepend(sl, pl->data);
+	}
+
+	return g_slist_reverse(sl);
 }
 
 /***
@@ -1017,7 +1034,7 @@ g_mem_is_system_malloc(void)
 /**
  * Safe reallocation routine during final memory cleanup.
  */
-static inline void *
+static inline void * G_GNUC_UNUSED
 safe_realloc(void *p, size_t len)
 {
 	if (NULL == p) {
@@ -1034,7 +1051,7 @@ safe_realloc(void *p, size_t len)
 /**
  * Safe free routine during final memory cleanup.
  */
-static inline void
+static inline void G_GNUC_UNUSED
 safe_free(void *unused_p)
 {
 	(void) unused_p;

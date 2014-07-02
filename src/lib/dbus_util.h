@@ -47,13 +47,13 @@
 
 #ifdef HAS_DBUS
 
-void dbus_util_init(void);
+void dbus_util_init(bool disabled);
 void dbus_util_close(void);
 void dbus_util_send_message(const char *, const char *);
 
 #else /* !HAS_DBUS */
 
-#define dbus_util_init() G_STMT_START { } G_STMT_END
+#define dbus_util_init(d) G_STMT_START { (void) (d); } G_STMT_END
 #define dbus_util_close() G_STMT_START { } G_STMT_END
 #define dbus_util_send_message(signal, txt) \
 	G_STMT_START { (void) (signal); (void) (txt); } G_STMT_END

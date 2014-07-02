@@ -172,7 +172,8 @@ get_pubdata(const sha1_t *sha1)
 	pd = dbmw_read(db_pubdata, sha1, NULL);
 
 	if (NULL == pd && dbmw_has_ioerr(db_pubdata)) {
-		g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+		s_warning_once_per(LOG_PERIOD_MINUTE,
+			"DBMW \"%s\" I/O error, bad things could happen...",
 			dbmw_name(db_pubdata));
 	}
 
@@ -194,6 +195,7 @@ delete_pubdata(const sha1_t *sha1)
 			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "");
+		shared_file_unref(&sf);
 	}
 }
 
@@ -237,14 +239,13 @@ publisher_entry_free(struct publisher_entry *pe, bool do_remove)
  * Callout queue callback to handle an entry.
  */
 static void
-handle_entry(cqueue_t *unused_cq, void *obj)
+handle_entry(cqueue_t *cq, void *obj)
 {
 	struct publisher_entry *pe = obj;
 
-	(void) unused_cq;
 	publisher_check(pe);
 
-	pe->publish_ev = NULL;
+	cq_zero(cq, &pe->publish_ev);
 	publisher_handle(pe);
 }
 
@@ -281,6 +282,7 @@ publisher_retry(struct publisher_entry *pe, int delay, const char *msg)
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			compact_time(delay), msg != NULL ? msg : "<no reason>");
+		shared_file_unref(&sf);
 	}
 }
 
@@ -500,13 +502,15 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
-			info->roots, 1 == info->roots ? "" : "s",
+			info->roots, plural(info->roots),
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pe->last_enqueued)),
-			info->all_roots, 1 == info->all_roots ? "" : "s",
+			info->all_roots, plural(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
+
+		shared_file_unref(&sf);
 	}
 
 	/*
@@ -605,6 +609,7 @@ publisher_handle(struct publisher_entry *pe)
 		(!sha1_hash_available(sf) || !sha1_hash_is_uptodate(sf))
 	) {
 		publisher_retry(pe, PUBLISH_BUSY, "SHA-1 of file unknown yet");
+		shared_file_unref(&sf);
 		return;
 	}
 
@@ -631,6 +636,7 @@ publisher_handle(struct publisher_entry *pe)
 
 		delay = MAX(delay, PUBLISH_BUSY);
 		publisher_retry(pe, delay, "minimum average uptime not reached yet");
+		shared_file_unref(&sf);
 		return;
 	}
 
@@ -651,11 +657,11 @@ publisher_handle(struct publisher_entry *pe)
 		if (GNET_PROPERTY(publisher_debug)) {
 			g_debug("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
 				"entr%s, skipped", sha1_to_string(pe->sha1),
-				is_partial ? "partial " : "",
-				shared_file_name_nfc(sf),
-				alt_locs, 1 == alt_locs ? "y" : "ies");
+				is_partial ? "partial " : "", shared_file_name_nfc(sf),
+				alt_locs, plural_y(alt_locs));
 		}
 		publisher_hold(pe, PUBLISH_POPULAR, "popular file");
+		shared_file_unref(&sf);
 		return;
 	}
 
@@ -665,6 +671,7 @@ publisher_handle(struct publisher_entry *pe)
 
 	if (!dht_enabled()) {
 		publisher_hold(pe, PUBLISH_BUSY, "DHT  disabled");
+		shared_file_unref(&sf);
 		return;
 	}
 
@@ -681,6 +688,7 @@ publisher_handle(struct publisher_entry *pe)
 			fi->done < GNET_PROPERTY(pfsp_minimum_filesize)
 		) {
 			publisher_hold(pe, PUBLISH_BUSY, "PFSP minima not reached");
+			shared_file_unref(&sf);
 			return;
 		}
 	}
@@ -708,6 +716,7 @@ publisher_handle(struct publisher_entry *pe)
 						sha1_to_string(pe->sha1), compact_time(enqueue));
 				}
 
+				shared_file_unref(&sf);
 				publisher_retry(pe, delay, "first-time delay");
 				return;
 			}
@@ -737,6 +746,7 @@ publisher_handle(struct publisher_entry *pe)
 
 	pe->last_enqueued = tm_time();
 	pdht_publish_file(sf, publisher_done, pe);
+	shared_file_unref(&sf);
 }
 
 /**
@@ -800,6 +810,25 @@ publisher_add(const sha1_t *sha1)
 	hikset_insert_key(publisher_sha1, &pe->sha1);
 
 	publisher_handle(pe);
+}
+
+/**
+ * Wrapper over publisher_add() to let other threads call it via a TEQ event.
+ */
+void
+publisher_add_event(void *sha1)
+{
+	/*
+	 * The DBMW layer is not yet thread-safe as of 2013-11-05 so we need to
+	 * funnel back publishing requests to the main thread.  Even when the
+	 * DBMW layer is made thread-safe, it might actually be more efficient to
+	 * still send back requests via TEQ to the main thread.  This will avoid
+	 * setting the SDBM layer as thread-safe as well, since we don't need
+	 * the locks in the main use cases.
+	 *		--RAM, 2013-11-05
+	 */
+
+	publisher_add(sha1);
 }
 
 /**
@@ -898,7 +927,7 @@ publisher_trim_pubdata(void)
 	if (GNET_PROPERTY(publisher_debug)) {
 		count = dbmw_count(db_pubdata);
 		g_debug("PUBLISHER scanning %u retrieved SHA1%s",
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	dbmw_foreach_remove(db_pubdata, publisher_remove_expired, NULL);
@@ -907,7 +936,7 @@ publisher_trim_pubdata(void)
 
 	if (GNET_PROPERTY(publisher_debug)) {
 		g_debug("PUBLISHER kept information about %u SHA1%s",
-			(unsigned) count, 1 == count ? "" : "s");
+			(unsigned) count, plural(count));
 	}
 
 	dbstore_compact(db_pubdata);

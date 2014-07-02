@@ -57,6 +57,8 @@ struct sequence_iterator {
 	union {
 		GSList *gsl;
 		GList *gl;
+		plist_t *pl;
+		pslist_t *psl;
 		list_iter_t *li;
 		slist_iter_t *sli;
 		hash_list_iter_t *hli;
@@ -103,6 +105,32 @@ sequence_create_from_glist(GList *gl)
 
 	WALLOC(s);
 	return sequence_fill_from_glist(s, gl);
+}
+
+/**
+ * Create a sequence out of an existing pslist_t.
+ * Use sequence_release() to discard the sequence encapsulation.
+ */
+sequence_t *
+sequence_create_from_pslist(pslist_t *pl)
+{
+	sequence_t *s;
+
+	WALLOC(s);
+	return sequence_fill_from_pslist(s, pl);
+}
+
+/**
+ * Create a sequence out of an existing plist_t.
+ * Use sequence_release() to discard the sequence encapsulation.
+ */
+sequence_t *
+sequence_create_from_plist(plist_t *pl)
+{
+	sequence_t *s;
+
+	WALLOC(s);
+	return sequence_fill_from_plist(s, pl);
 }
 
 /**
@@ -190,6 +218,30 @@ sequence_fill_from_glist(sequence_t *s, GList *gl)
 }
 
 /**
+ * Fill sequence object with plist_t.
+ */
+sequence_t *
+sequence_fill_from_plist(sequence_t *s, plist_t *pl)
+{
+	s->magic = SEQUENCE_MAGIC;
+	s->type = SEQUENCE_PLIST;
+	s->u.pl = pl;
+	return s;
+}
+
+/**
+ * Fill sequence object with pslist_t.
+ */
+sequence_t *
+sequence_fill_from_pslist(sequence_t *s, pslist_t *pl)
+{
+	s->magic = SEQUENCE_MAGIC;
+	s->type = SEQUENCE_PSLIST;
+	s->u.psl = pl;
+	return s;
+}
+
+/**
  * Fill sequence object with list_.
  */
 sequence_t *
@@ -257,6 +309,8 @@ sequence_type_to_string(const sequence_t *s)
 	case SEQUENCE_GSLIST:		return "GSList";
 	case SEQUENCE_GLIST:		return "GList";
 	case SEQUENCE_LIST:			return "list_t";
+	case SEQUENCE_PSLIST:		return "pslist_t";
+	case SEQUENCE_PLIST:		return "plist_t";
 	case SEQUENCE_SLIST:		return "slist_t";
 	case SEQUENCE_HLIST:		return "hash_list_t";
 	case SEQUENCE_VECTOR:		return "vector_t";
@@ -284,6 +338,12 @@ sequence_foreach(const sequence_t *s, GFunc func, void *data)
 		break;
 	case SEQUENCE_LIST:
 		list_foreach(s->u.l, func, data);
+		break;
+	case SEQUENCE_PSLIST:
+		pslist_foreach(s->u.psl, func, data);
+		break;
+	case SEQUENCE_PLIST:
+		plist_foreach(s->u.pl, func, data);
 		break;
 	case SEQUENCE_SLIST:
 		slist_foreach(s->u.sl, func, data);
@@ -314,6 +374,10 @@ sequence_is_empty(const sequence_t *s)
 		return NULL == s->u.gl;
 	case SEQUENCE_LIST:
 		return 0 == list_length(s->u.l);
+	case SEQUENCE_PSLIST:
+		return NULL == s->u.psl;
+	case SEQUENCE_PLIST:
+		return NULL == s->u.pl;
 	case SEQUENCE_SLIST:
 		return 0 == slist_length(s->u.sl);
 	case SEQUENCE_HLIST:
@@ -342,6 +406,10 @@ sequence_count(const sequence_t *s)
 		return g_list_length(s->u.gl);
 	case SEQUENCE_LIST:
 		return list_length(s->u.l);
+	case SEQUENCE_PSLIST:
+		return pslist_length(s->u.psl);
+	case SEQUENCE_PLIST:
+		return plist_length(s->u.pl);
 	case SEQUENCE_SLIST:
 		return slist_length(s->u.sl);
 	case SEQUENCE_HLIST:
@@ -370,6 +438,10 @@ sequence_implementation(const sequence_t *s)
 		return s->u.gl;
 	case SEQUENCE_LIST:
 		return s->u.l;
+	case SEQUENCE_PSLIST:
+		return s->u.psl;
+	case SEQUENCE_PLIST:
+		return s->u.pl;
 	case SEQUENCE_SLIST:
 		return s->u.sl;
 	case SEQUENCE_HLIST:
@@ -430,6 +502,12 @@ sequence_destroy(sequence_t *s)
 	case SEQUENCE_LIST:
 		list_free(&s->u.l);
 		break;
+	case SEQUENCE_PSLIST:
+		pslist_free_null(&s->u.psl);
+		break;
+	case SEQUENCE_PLIST:
+		plist_free_null(&s->u.pl);
+		break;
 	case SEQUENCE_SLIST:
 		slist_free(&s->u.sl);
 		break;
@@ -473,6 +551,12 @@ sequence_forward_iterator(const sequence_t *s)
 	case SEQUENCE_LIST:
 		si->u.li = list_iter_before_head(s->u.l);
 		break;
+	case SEQUENCE_PSLIST:
+		si->u.psl = s->u.psl;
+		break;
+	case SEQUENCE_PLIST:
+		si->u.pl = s->u.pl;
+		break;
 	case SEQUENCE_SLIST:
 		si->u.sli = slist_iter_before_head(s->u.sl);
 		break;
@@ -508,6 +592,10 @@ sequence_iter_has_next(const sequence_iter_t *si)
 		return si->u.gl != NULL;
 	case SEQUENCE_LIST:
 		return list_iter_has_next(si->u.li);
+	case SEQUENCE_PSLIST:
+		return si->u.psl != NULL;
+	case SEQUENCE_PLIST:
+		return si->u.pl != NULL;
 	case SEQUENCE_SLIST:
 		return slist_iter_has_next(si->u.sli);
 	case SEQUENCE_HLIST:
@@ -543,6 +631,14 @@ sequence_iter_next(sequence_iter_t *si)
 		break;
 	case SEQUENCE_LIST:
 		return list_iter_next(si->u.li);
+	case SEQUENCE_PSLIST:
+		next = si->u.psl ? si->u.psl->data : NULL;
+		si->u.psl = pslist_next(si->u.psl);
+		break;
+	case SEQUENCE_PLIST:
+		next = si->u.pl ? si->u.pl->data : NULL;
+		si->u.pl = plist_next(si->u.pl);
+		break;
 	case SEQUENCE_SLIST:
 		return slist_iter_next(si->u.sli);
 	case SEQUENCE_HLIST:
@@ -584,6 +680,12 @@ sequence_backward_iterator(const sequence_t *s, bool check)
 		break;
 	case SEQUENCE_LIST:
 		si->u.li = list_iter_after_tail(s->u.l);
+		break;
+	case SEQUENCE_PSLIST:
+		si->u.psl = pslist_last(s->u.psl);
+		break;
+	case SEQUENCE_PLIST:
+		si->u.pl = plist_last(s->u.pl);
 		break;
 	case SEQUENCE_SLIST:
 		if (check)
@@ -631,6 +733,15 @@ sequence_iter_previous(sequence_iter_t *si)
 		break;
 	case SEQUENCE_LIST:
 		return list_iter_previous(si->u.li);
+	case SEQUENCE_PSLIST:
+		/* Forward iteration only */
+		prev = si->u.psl ? si->u.psl->data : NULL;
+		si->u.psl = pslist_next(si->u.psl);
+		break;
+	case SEQUENCE_PLIST:
+		prev = si->u.pl ? si->u.pl->data : NULL;
+		si->u.pl = plist_prev(si->u.pl);
+		break;
 	case SEQUENCE_SLIST:
 		/* Forward iteration only */
 		return slist_iter_next(si->u.sli);
@@ -665,6 +776,10 @@ sequence_iter_has_previous(const sequence_iter_t *si)
 		return si->u.gl != NULL;
 	case SEQUENCE_LIST:
 		return list_iter_has_previous(si->u.li);
+	case SEQUENCE_PSLIST:
+		return si->u.psl != NULL;
+	case SEQUENCE_PLIST:
+		return si->u.pl != NULL;
 	case SEQUENCE_SLIST:
 		/* Forward iteration only */
 		return slist_iter_has_next(si->u.sli);
@@ -693,6 +808,8 @@ sequence_iterator_release(sequence_iter_t **iter_ptr)
 		switch (si->type) {
 		case SEQUENCE_GSLIST:
 		case SEQUENCE_GLIST:
+		case SEQUENCE_PSLIST:
+		case SEQUENCE_PLIST:
 			break;
 		case SEQUENCE_LIST:
 			list_iter_free(&si->u.li);

@@ -158,7 +158,7 @@ base32_encode(char *dst, size_t size, const void *data, size_t len)
 	return q - dst;
 }
 
-static char base32_map[(unsigned char) -1];
+static char base32_map[(size_t) (unsigned char) -1 + 1];
 
 /**
  * Decode a base32 encoding of `len' bytes of `data' into the buffer `dst'.

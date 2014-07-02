@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Statistics routines.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2013
  */
 
 #include "common.h"
@@ -38,20 +38,40 @@
 #endif	/* I_MATH */
 
 #include "stats.h"
-#include "glib-missing.h"	/* For g_slist_delete_link() */
+
+#include "elist.h"
 #include "halloc.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
+
+enum statx_magic { STATX_MAGIC = 0x560044e5 };
 
 /**
  * A one-dimension container (x).
  */
 struct statx {
-	GSList *data;			/**< Data points (value = double *) */
-	int n;					/**< Amount of points */
+	enum statx_magic magic;	/**< Magic number */
+	elist_t data;			/**< Data points */
+	long n;					/**< Amount of data points */
 	double sx;				/**< Sx: sum of all points */
 	double sx2;				/**< Sx2: sum of the square of all points */
 	bool no_data;			/**< Do not keep data, it is managed externally */
+};
+
+static inline void
+statx_check(const struct statx * const sx)
+{
+	g_assert(sx != NULL);
+	g_assert(STATX_MAGIC == sx->magic);
+}
+
+/**
+ * Items stored in the data list.
+ */
+struct stat_datapoint {
+	link_t data_link;		/**< Embedded link */
+	double value;
 };
 
 typedef enum op {
@@ -68,6 +88,8 @@ statx_make(void)
 	statx_t *sx;
 
 	WALLOC0(sx);
+	sx->magic = STATX_MAGIC;
+	elist_init(&sx->data, offsetof(struct stat_datapoint, data_link));
 	return sx;
 }
 
@@ -79,7 +101,7 @@ statx_make_nodata(void)
 {
 	statx_t *sx;
 
-	WALLOC0(sx);
+	sx = statx_make();
 	sx->no_data = TRUE;
 	return sx;
 }
@@ -90,7 +112,10 @@ statx_make_nodata(void)
 void
 statx_free(statx_t *sx)
 {
+	statx_check(sx);
+
 	statx_clear(sx);
+	sx->magic = 0;
 	WFREE(sx);
 }
 
@@ -100,13 +125,9 @@ statx_free(statx_t *sx)
 void
 statx_clear(statx_t *sx)
 {
-	GSList *l;
+	statx_check(sx);
 
-	for (l = sx->data; l; l = g_slist_next(l)) {
-		double *vp = (double *) l->data;
-		WFREE(vp);
-	}
-	gm_slist_free_null(&sx->data);
+	elist_wfree(&sx->data, sizeof(struct stat_datapoint));
 
 	sx->n = 0;
 	sx->sx = 0.0;
@@ -124,34 +145,31 @@ static void
 statx_opx(statx_t *sx, double val, stats_op_t op)
 {
 	g_assert(op == STATS_OP_ADD || sx->n > 0);
-	g_assert(op == STATS_OP_ADD || sx->data != NULL || sx->no_data);
+	g_assert(op == STATS_OP_ADD || 0 != elist_count(&sx->data) || sx->no_data);
 
 	if (!sx->no_data) {
-		if (op == STATS_OP_REMOVE) {
-			GSList *l;
+		struct stat_datapoint *dp;
 
+		if (op == STATS_OP_REMOVE) {
 			/*
 			 * If value is removed, it must belong to the data set.
 			 */
 
-			for (l = sx->data; l; l = g_slist_next(l)) {
-				double *vp = (double *) l->data;
-				double delta = *vp - val;
+			ELIST_FOREACH_DATA(&sx->data, dp) {
+				double delta = dp->value - val;
 
 				if (ABS(delta) < 1e-56) {
-					sx->data = g_slist_remove(sx->data, vp);
-					WFREE(vp);
+					elist_remove(&sx->data, dp);
+					WFREE(dp);
 					break;
 				}
 			}
 
-			g_assert(l != NULL);		/* Found it */
+			g_assert(dp != NULL);		/* Found it */
 		} else {
-			double *vp;
-
-			WALLOC(vp);
-			*vp = val;
-			sx->data = g_slist_prepend(sx->data, vp);
+			WALLOC(dp);
+			dp->value = val;
+			elist_prepend(&sx->data, dp);
 		}
 	}
 
@@ -166,6 +184,8 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 void
 statx_add(statx_t *sx, double val)
 {
+	statx_check(sx);
+
 	statx_opx(sx, val, STATS_OP_ADD);
 }
 
@@ -175,6 +195,8 @@ statx_add(statx_t *sx, double val)
 void
 statx_remove(statx_t *sx, double val)
 {
+	statx_check(sx);
+
 	statx_opx(sx, val, STATS_OP_REMOVE);
 }
 
@@ -184,45 +206,32 @@ statx_remove(statx_t *sx, double val)
 void
 statx_remove_oldest(statx_t *sx)
 {
-	GSList *l;
+	struct stat_datapoint *dp;
 	double val = 0;
 
+	statx_check(sx);
 	g_assert(!sx->no_data);
 	g_assert(sx->n >= 0);
-	g_assert((sx->n > 0) ^ (NULL == sx->data));
+	g_assert((sx->n > 0) ^ (0 == elist_count(&sx->data)));
 
 	if (sx->n < 1)
 		return;
 
 	/*
-	 * Since we prepend new items to the list (for speed), we need to find
-	 * the next to last item to delete the final item.
+	 * Since we prepend new items to the list, the oldest item is the last.
 	 */
 
-	for (l = sx->data; l; l = g_slist_next(l)) {
-		GSList *next = g_slist_next(l);
-		if (next == NULL) {
-			/* Only one item in list, `l' points to it */
-			double *vp = (double *) l->data;
-			val = *vp;
-			WFREE(vp);
-			gm_slist_free_null(&sx->data);
-			break;
-		} else if (NULL == g_slist_next(next)) {
-			/* The item after `l' is the last item of the list */
-			double *vp = (double *) next->data;
-			val = *vp;
-			WFREE(vp);
-			next = g_slist_delete_link(l, next);
-			break;
-		}
-	}
+	dp = elist_tail(&sx->data);
+	g_assert(dp != NULL);			/* We have at least one item */
+	val = dp->value;
+	elist_remove(&sx->data, dp);
+	WFREE(dp);
 
 	sx->n--;
 	sx->sx -= val;
 	sx->sx2 -= val * val;
 
-	g_assert((sx->n > 0) ^ (NULL == sx->data));
+	g_assert((sx->n > 0) ^ (0 == elist_count(&sx->data)));
 }
 
 /**
@@ -231,6 +240,8 @@ statx_remove_oldest(statx_t *sx)
 int
 statx_n(const statx_t *sx)
 {
+	statx_check(sx);
+
 	return sx->n;
 }
 
@@ -240,6 +251,7 @@ statx_n(const statx_t *sx)
 double
 statx_avg(const statx_t *sx)
 {
+	statx_check(sx);
 	g_assert(sx->n > 0);
 
 	return sx->sx / sx->n;
@@ -260,6 +272,7 @@ statx_sdev(const statx_t *sx)
 double
 statx_var(const statx_t *sx)
 {
+	statx_check(sx);
 	g_assert(sx->n > 1);
 
 	return (sx->sx2 - (sx->sx * sx->sx) / sx->n) / (sx->n - 1);
@@ -282,16 +295,17 @@ statx_data(const statx_t *sx)
 {
 	double *array;
 	int i;
-	GSList *l;
+	struct stat_datapoint *dp;
 
+	statx_check(sx);
 	g_assert(!sx->no_data);
 	g_assert(sx->n > 0);
 
-	array = halloc(sizeof(double) * sx->n);
+	HALLOC_ARRAY(array, sx->n);
 
-	for (i = 0, l = sx->data; i < sx->n && l; l = g_slist_next(l), i++) {
-		double *vp = (double *) l->data;
-		array[i] = *vp;
+	i = 0;
+	ELIST_FOREACH_DATA(&sx->data, dp) {
+		array[i++] = dp->value;
 	}
 
 	return array;

@@ -56,9 +56,9 @@
  * GGEP Length Encoding.
  */
 
-#define GGEP_L_CONT		'\x80'		/**< Continuation present */
-#define GGEP_L_LAST		'\x40'		/**< Last byte */
-#define GGEP_L_VALUE	'\x3f'		/**< Value */
+#define GGEP_L_CONT		0x80U		/**< Continuation present */
+#define GGEP_L_LAST		0x40U		/**< Last byte */
+#define GGEP_L_VALUE	0x3fU		/**< Value */
 #define GGEP_L_VSHIFT	6
 
 #define GGEP_L_XFLAGS	(GGEP_L_CONT | GGEP_L_LAST)

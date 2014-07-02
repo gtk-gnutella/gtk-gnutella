@@ -2,7 +2,7 @@
  * Copyright (c) 2001 Geoff Kuenning
  *
  * Adaptated and enhanced for inclusion in gtk-gnutella by Raphael Manfredi.
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -76,6 +76,10 @@
  * The mt_xxx() functions are thread-safe already, as a lock is always
  * taken before accessing the built-in default state.
  *
+ * The mt_thread_xxx() functions are thread-safe and use a lock-free path,
+ * which results in an even greater throughput.  They rely on a thread-local
+ * random pool.
+ *
  * For the curious, a Mersenne number is an integer that is one less than
  * a power-of-two.  For instance 2^32 - 1 is a Mersenne number.  This
  * implementation of the Mersenne Twister has a period of 2^19937 - 1,
@@ -88,17 +92,19 @@
  * @author Geoff Kuenning
  * @date 2001
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #include "common.h"
 
 #include "mtwist.h"
 #include "arc4random.h"
+#include "omalloc.h"
 #include "once.h"
 #include "random.h"
 #include "spinlock.h"
 #include "stacktrace.h"
+#include "thread.h"
 #include "walloc.h"
 
 /*
@@ -144,6 +150,8 @@ mt_state_check(const struct mt_state * const mts)
 
 #define STATE_LOCK(m)	spinlock_hidden(&m->lock)
 #define STATE_UNLOCK(m)	spinunlock_hidden(&m->lock)
+
+static void mts_discard(mt_state_t *mts);
 
 /**
  * Initialize the state with random values drawn from specified PRNG function.
@@ -262,8 +270,11 @@ mts_refresh(register mt_state_t *mts)
 	 * Mersenne Twister.
 	 */
 
-	if G_UNLIKELY(!mts->initialized)
+	if G_UNLIKELY(!mts->initialized) {
 		mts_seed_with(arc4random, mts);
+		g_assert(mts->initialized);		/* No recursion via mts_discard()! */
+		mts_discard(mts);
+	}
 
 	/*
 	 * Now generate the new pseudo-random values by applying the
@@ -394,6 +405,22 @@ mts_refresh(register mt_state_t *mts)
 	 */
 
 	mts->sp = MT_STATE_SIZE;
+}
+
+/**
+ * Discard random numbers following the initialization of the state to make
+ * sure the generated numbers exhibit good statistical properties.
+ *
+ * (function added by RAM)
+ */
+static void
+mts_discard(mt_state_t *mts)
+{
+	int i;
+
+	for (i = 0; i < 100; i++) {		/* Discard the first 624 * 100 numbers */
+		mts_refresh(mts);
+	}
 }
 
 /*
@@ -599,8 +626,8 @@ mts_lock_rand64(register mt_state_t *mts)
 static mt_state_t mt_default;
 static spinlock_t mtwist_lck = SPINLOCK_INIT;
 
-#define THREAD_LOCK		spinlock_hidden(&mtwist_lck)
-#define THREAD_UNLOCK	spinunlock_hidden(&mtwist_lck)
+#define MTWIST_LOCK		spinlock_hidden(&mtwist_lck)
+#define MTWIST_UNLOCK	spinunlock_hidden(&mtwist_lck)
 
 /**
  * Generate a random number in the range 0 to 2^32-1, inclusive.
@@ -612,9 +639,9 @@ mt_rand(void)
 {
 	uint32 rn;
 
-	THREAD_LOCK;
+	MTWIST_LOCK;
 	rn = mts_rand_internal(&mt_default);
-	THREAD_UNLOCK;
+	MTWIST_UNLOCK;
 
 	return rn;
 }
@@ -629,9 +656,9 @@ mt_rand64(void)
 {
 	uint64 rn;
 
-	THREAD_LOCK;
+	MTWIST_LOCK;
 	rn = mts_rand64_internal(&mt_default);
-	THREAD_UNLOCK;
+	MTWIST_UNLOCK;
 
 	return rn;
 }
@@ -658,8 +685,10 @@ mt_state_new(random_fn_t rf)
 	WALLOC0(mts);
 	mts->magic = MT_STATE_MAGIC;
 
-	if (rf != NULL)
+	if (rf != NULL) {
 		mts_seed_with(rf, mts);
+		mts_discard(mts);
+	}
 
 	return mts;
 }
@@ -709,15 +738,82 @@ mt_state_free_null(mt_state_t **mts_ptr)
 	}
 }
 
+static once_flag_t mtp_key_inited;
+static thread_key_t mtp_key = THREAD_KEY_INIT;
+
+/**
+ * Create the thread-local random pool key, once.
+ */
+static void
+mtp_key_init(void)
+{
+	if (-1 == thread_local_key_create(&mtp_key, THREAD_LOCAL_KEEP))
+		s_error("cannot initialize Mersenne Twister random pool key: %m");
+}
+
+/**
+ * Get suitable thread-local random pool.
+ */
+static mt_state_t *
+mtp_pool(void)
+{
+	mt_state_t *mts;
+
+	ONCE_FLAG_RUN(mtp_key_inited, mtp_key_init);
+
+	mts = thread_local_get(mtp_key);
+
+	if G_UNLIKELY(NULL == mts) {
+		/*
+		 * The random pool is kept for each created thread, never freed.
+		 */
+
+		OMALLOC0(mts);
+		thread_local_set(mtp_key, mts);
+	}
+
+	return mts;
+}
+
+/**
+ * Generate a random number in the range 0 to 2^32-1, inclusive.
+ *
+ * This routine uses a thread-private random pool and is mostly a
+ * lock-free execution path, resulting in a 40% increased throughput
+ * compared to mt_rand(), the version using a locked default pool.
+ *
+ * @return a 32-bit random number
+ */
+uint32
+mt_thread_rand(void)
+{
+	return mts_rand_internal(mtp_pool());
+}
+
+/**
+ * Generate a random number in the range 0 to 2^64-1, inclusive.
+ *
+ * This routine uses a thread-private random pool and is mostly a
+ * lock-free execution path.
+ *
+ * @return a 64-bit random number
+ */
+uint64
+mt_thread_rand64(void)
+{
+	return mts_rand64_internal(mtp_pool());
+}
+
 /**
  * Initialize built-in default state, once.
  */
 static void
 mt_init_once(void)
 {
-	THREAD_LOCK;
+	MTWIST_LOCK;
 	mts_seed_with(arc4random, &mt_default);
-	THREAD_UNLOCK;
+	mts_discard(&mt_default);
+	MTWIST_UNLOCK;
 }
 
 /**
@@ -727,9 +823,10 @@ mt_init_once(void)
 G_GNUC_COLD void
 mt_init(void)
 {
-	static bool inited;
+	static once_flag_t inited;
 
-	once_run(&inited, mt_init_once);
+	once_flag_run(&inited, mt_init_once);
+	once_flag_run(&mtp_key_inited, mtp_key_init);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

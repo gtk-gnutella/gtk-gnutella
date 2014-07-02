@@ -41,6 +41,7 @@
 #include "if/core/bsched.h"
 
 #include "lib/gnet_host.h"
+#include "lib/host_addr.h"
 #include "lib/inputevt.h"
 
 struct udp_sched;
@@ -48,11 +49,17 @@ typedef struct udp_sched udp_sched_t;
 
 struct bio_source;
 
+/**
+ * Callback invoked to get a socket for a given network type.
+ */
+typedef struct gnutella_socket *(*udp_sched_socket_cb_t)(enum net_type net);
+
 /*
  * Public interface.
  */
 
-udp_sched_t *udp_sched_make(bsched_bws_t bws, wrap_io_t *wio);
+udp_sched_t *udp_sched_make(bsched_bws_t bws, udp_sched_socket_cb_t get_socket);
+void udp_sched_update_sockets(udp_sched_t *us);
 void udp_sched_free(udp_sched_t *us);
 void udp_sched_attach(udp_sched_t *us, const txdrv_t *tx,
 	inputevt_handler_t writable);
@@ -60,7 +67,7 @@ void udp_sched_detach(udp_sched_t *us, const txdrv_t *tx);
 size_t udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	const txdrv_t *tx, const struct tx_dgram_cb *cb);
 size_t udp_sched_pending(const udp_sched_t *us);
-struct bio_source *udp_sched_bio_source(const udp_sched_t *us);
+struct bio_source *udp_sched_bio_source(const udp_sched_t *us, enum net_type n);
 
 #endif	/* _core_udp_sched_h_ */
 

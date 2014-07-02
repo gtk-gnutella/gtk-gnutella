@@ -32,18 +32,26 @@
 
 #include "common.h"
 
+#include "lib/aje.h"
 #include "lib/arc4random.h"
 #include "lib/chi2.h"
+#include "lib/cmwc.h"
 #include "lib/entropy.h"
 #include "lib/misc.h"
 #include "lib/mtwist.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pow2.h"
 #include "lib/rand31.h"
 #include "lib/random.h"
+#include "lib/shuffle.h"
 #include "lib/stats.h"
 #include "lib/str.h"
+#include "lib/stringify.h"
+#include "lib/teq.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
+#include "lib/well.h"
 #include "lib/xmalloc.h"
 
 #define VALUES_REMEMBERED	128
@@ -68,30 +76,41 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-4ehuwBP] [-b mask] [-c items] [-m min] [-p period]\n"
-		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
-		"       [-R seed] [-U upper] [-X upper]\n"
+		"Usage: %s [-24eghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
+		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
+		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
+		"  -2 : test entropy_minirand() instead of rand31()\n"
 		"  -4 : test arc4random() instead of rand31()\n"
 		"  -b : bit mask to apply on random values (focus on some bits)\n"
 		"  -c : sets item count to remember, for period computation\n"
 		"  -e : test entropy_random() instead of rand31()\n"
+		"  -g : add entropy every second to AJE, ARC4 and WELL generators\n"
 		"  -h : prints this help message\n"
+		"  -l : use thread-local PRNG state context, if supported by routine\n"
 		"  -m : sets minimum period to consider\n"
 		"  -p : sets period for value and bit counting\n"
 		"  -s : skip that amount of initial random values\n"
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
-		"  -w : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
+		"  -x : disable caching (pre-computing) of AJE random numbers\n"
+		"  -A : test aje_rand(), the Fortuna-like PRNG, instead of rand31()\n"
 		"  -B : count '1' occurrences of each bit\n"
 		"  -C : count how many times the random value occurs (after -b)\n"
 		"  -D : dump specified amount of random numbers (after -b)\n"
 		"  -F : uses random floats multiplied by supplied constant\n"
+		"  -G : test cmwc_rand(), George Marsaglia's PRNG\n"
+		"  -M : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
 		"  -P : compute period through brute-force search\n"
+		"  -Q : test shuffle_thread_rand()\n"
 		"  -R : seed for repeatable random key sequence\n"
+		"  -S : test random_strong(), a XOR of WELL1024b and ARC4\n"
+		"  -T : dieharder test mode, dumping raw random bytes to stdout\n"
 		"  -U : use uniform random numbers to specified upper bound\n"
+		"  -W : test well_rand(), the WELL 1024 PRNG, instead of rand31()\n"
 		"  -X : perform chi-squared test of uniform random numbers\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
-		, progname);
+		"Use -T as in: %s -4l -T | dieharder -g 200 -a\n"
+		, progname, progname);
 	exit(EXIT_FAILURE);
 }
 
@@ -126,9 +145,9 @@ small_period(const unsigned *values, size_t count, unsigned min_period)
 }
 
 static void
-count_bits(random_fn_t fn, unsigned period, unsigned bits[], unsigned bcnt)
+count_bits(random_fn_t fn, uint64 period, unsigned bits[], unsigned bcnt)
 {
-	unsigned n;
+	uint64 n;
 
 	memset(bits, 0, bcnt * sizeof bits[0]);
 
@@ -141,7 +160,7 @@ count_bits(random_fn_t fn, unsigned period, unsigned bits[], unsigned bcnt)
 				bits[i]++;
 		}
 		if (0 == (n & 0xfff)) {
-			printf("Counting bits %u\r", n);
+			printf("Counting bits %s\r", uint64_to_string(n));
 			fflush(stdout);
 		}
 	}
@@ -170,7 +189,7 @@ count_values(random_fn_t fn, unsigned period, unsigned mask, unsigned value)
 	return cnt;
 }
 
-static G_GNUC_HOT unsigned
+static G_GNUC_HOT uint64
 compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 {
 	size_t n;
@@ -244,7 +263,9 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 			}
 		}
 		if (0 == (n & 0xfff)) {
-			printf("Period %u\r", (unsigned) n);
+			int bits = highest_bit_set64(n);
+			printf("Period %s (%d bit%s)\r",
+				uint64_to_string(n), bits, plural(bits));
 			fflush(stdout);
 		}
 	}
@@ -252,7 +273,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 	period = 0 == n ? (unsigned) -1 : n - count + 1;
 
 done:
-	printf("%-20s\n", 0 == n ? "Looped over!" : "Done!");
+	printf("%-30s\n", 0 == n ? "Looped over!" : "Done!");
 
 	xfree(values);
 	xfree(window);
@@ -285,7 +306,27 @@ dump_random(random_fn_t fn, unsigned mask, unsigned dumpcnt)
 }
 
 static void
-display_bits(unsigned bits[], unsigned nbits, unsigned period)
+dump_raw(random_fn_t fn, unsigned mask, unsigned dumpcnt)
+{
+	uint n = dumpcnt;
+
+	while (0 == dumpcnt || n != 0) {
+		uint32 v[1024];
+		size_t i;
+		size_t g = 0 == dumpcnt ? G_N_ELEMENTS(v) : MIN(G_N_ELEMENTS(v), n);
+
+		for (i = 0; i < g; i++) {
+			v[i] = (*fn)() & mask;
+		}
+		if (-1 == write(STDOUT_FILENO, &v, g * sizeof v[0]))
+			break;
+		if (0 != dumpcnt)
+			n -= g;
+	}
+}
+
+static void
+display_bits(unsigned bits[], unsigned nbits, uint64 period)
 {
 	unsigned i;
 	statx_t *st = statx_make_nodata();
@@ -313,7 +354,7 @@ display_bits(unsigned bits[], unsigned nbits, unsigned period)
 			i, bits[i], bits[i] * 100.0 / MAX(1, period),
 			odd ? "*" : "");
 	}
-	printf("Period used was %u\n", period);
+	printf("Period used was %s\n", uint64_to_string(period));
 	printf("Average bit count is %.3f (%+.3f), sdev=%.3f, bits=%u\n",
 		avg, avg - tavg, sdev, used);
 
@@ -485,33 +526,100 @@ rand_fp(void)
 	return random_double_generate(fp.rf) * fp.max;
 }
 
+static void *
+add_entropy(void *p)
+{
+	(void) p;
+
+	for (;;) {
+		uint32 v[16];
+		size_t i;
+
+		thread_sleep_ms(500);
+
+		for (i = 0; i < G_N_ELEMENTS(v); i++) {
+			v[i] = rand31_u32();
+		}
+
+		random_add(v, sizeof v);
+	}
+
+	return NULL;
+}
+
+static void
+start_generate_thread(bool verbose)
+{
+	int id;
+
+	teq_create_if_none();
+
+	id = thread_create(add_entropy, NULL, THREAD_F_DETACH, THREAD_STACK_MIN);
+
+	if (-1 == id)
+		s_error("%s(): cannot create new thread: %m", G_STRFUNC);
+
+	if (verbose)
+		printf("Started entropy generation thread for ARC4 and WELL\n");
+}
+
 int
 main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
+	int optind_orig = optind;
 	size_t count = VALUES_REMEMBERED;
 	unsigned min_period = MIN_PERIOD;
 	int c;
-	unsigned period = (unsigned) -1;
+	uint64 period = (uint64) -1;
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
-	bool cperiod = FALSE, countval = FALSE, countbits = FALSE;
+	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
+	bool generate = FALSE, no_precompute = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
+	bool test_local = FALSE;
 	const char *fnname = "rand31";
+	const char options[] = "24b:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
 
 #define SET_RANDOM(x)	\
+G_STMT_START {			\
 	fn = x;				\
-	fnname = #x;
+	fnname = #x;		\
+} G_STMT_END
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
 	misc_init();
 
-	while ((c = getopt(argc, argv, "4b:c:ehm:p:s:t:uwBC:D:F:PR:U:X:")) != EOF) {
+	while ((c = getopt(argc, argv, options)) != EOF) {
+		if ('l' == c) {
+			test_local = TRUE;
+		} else if ('x' == c) {
+			no_precompute = TRUE;
+		}
+	}
+
+	/*
+	 * Despite what the manual says, the getopt() from the Linux libc6 2.17
+	 * does not work properly when resetting optind to 1 (it skips the first
+	 * argument in the second parsing).
+	 *		--RAM, 2013-12-27
+	 */
+
+	optind = optind_orig;
+
+	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
+		case '2':			/* test entropy_minirand() */
+			SET_RANDOM(entropy_minirand);
+			break;
 		case '4':			/* test arc4random() */
-			SET_RANDOM(arc4random);
+			if (test_local) {
+				SET_RANDOM(arc4_thread_rand);
+			} else {
+				SET_RANDOM(arc4random);
+			}
 			break;
 		case 'b':			/* bitmask to apply to random values */
 			mask = get_number(optarg, c);
@@ -521,6 +629,11 @@ main(int argc, char **argv)
 			break;
 		case 'e':
 			SET_RANDOM(entropy_random);
+			break;
+		case 'g':			/* generate "entropy" in background thread */
+			generate = TRUE;
+			break;
+		case 'l':			/* test thread-local (already handled before) */
 			break;
 		case 'm':			/* supersede defaul mininum period */
 			min_period = get_number(optarg, c);
@@ -537,8 +650,20 @@ main(int argc, char **argv)
 		case 'u':			/* check rand31_u32() instead */
 			SET_RANDOM(rand31_u32);
 			break;
-		case 'w':			/* check mt_rand() instead */
-			SET_RANDOM(mt_rand);
+		case 'x':			/* disable AJE caching (already handled before) */
+			break;
+		case 'A':			/* check aje_random() instead */
+			if (test_local) {
+				if (no_precompute)
+					SET_RANDOM(aje_thread_rand_strong);
+				else
+					SET_RANDOM(aje_thread_rand);
+			} else {
+				if (no_precompute)
+					SET_RANDOM(aje_rand_strong);
+				else
+					SET_RANDOM(aje_rand);
+			}
 			break;
 		case 'B':			/* count occurrences of each bit */
 			countbits = TRUE;
@@ -553,14 +678,44 @@ main(int argc, char **argv)
 		case 'F':			/* floating-point-based random numbers */
 			fp.max = get_number(optarg, c);
 			break;
+		case 'G':			/* check cmwc_rand() */
+			if (test_local) {
+				SET_RANDOM(cmwc_thread_rand);
+			} else {
+				SET_RANDOM(cmwc_rand);
+			}
+			break;
+		case 'M':			/* check mt_rand() instead */
+			if (test_local) {
+				SET_RANDOM(mt_thread_rand);
+			} else {
+				SET_RANDOM(mt_rand);
+			}
+			break;
 		case 'P':			/* compute period */
 			cperiod = TRUE;
+			break;
+		case 'Q':			/* test shuffle_thread_rand() */
+			SET_RANDOM(shuffle_thread_rand);
 			break;
 		case 'R':			/* randomize in a repeatable way */
 			rseed = get_number(optarg, c);
 			break;
+		case 'S':			/* test random_strong() */
+			SET_RANDOM(random_strong);
+			break;
+		case 'T':			/* dump raw numbers to stdout */
+			dumpraw = TRUE;
+			break;
 		case 'U':			/* uniform random numbers */
 			uniform.max = get_number(optarg, c);
+			break;
+		case 'W':			/* check well_rand() instead */
+			if (test_local) {
+				SET_RANDOM(well_thread_rand);
+			} else {
+				SET_RANDOM(well_rand);
+			}
 			break;
 		case 'X':			/* perform chi-squared test */
 			chi = get_number(optarg, c);
@@ -574,6 +729,14 @@ main(int argc, char **argv)
 
 	if ((argc -= optind) != 0)
 		usage();
+
+	if (generate)
+		start_generate_thread(!dumpraw);
+
+	if (dumpraw) {
+		dump_raw(fn, mask, dumpcnt);
+		return 0;
+	}
 
 	printf("Testing %s()\n", fnname);
 
@@ -597,22 +760,26 @@ main(int argc, char **argv)
 
 	if (is_strprefix(fnname, "rand31")) {
 		rand31_set_seed(rseed);
-		printf("Initial random seed is %u\n", rand31_initial_seed());
+		printf("Initial random seed is %s\n",
+			uint32_to_gstring(rand31_initial_seed()));
 	}
 
 	if (skip != 0)
 		skip_values(fn, skip);
 
 	if (cperiod) {
+		int bits;
 		period = compute_period(count, fn, mask, min_period);
-		printf("Period is %u (%u remembered values, mask=0x%x, min=%u)\n",
-			period, (unsigned) count, mask, min_period);
+		bits = highest_bit_set64(period);
+		printf("Period is %s "
+			"(%u remembered values, mask=0x%x, min=%u, bits=%d)\n",
+			uint64_to_string(period), (unsigned) count, mask, min_period, bits);
 	}
 
 	if (countval) {
 		unsigned n = count_values(fn, period, mask, cval);
-		printf("Found %u occurence%s of %u (mask 0x%x) within period of %u\n",
-			n, 1 == n ? "" : "s", cval & mask, mask, period);
+		printf("Found %u occurence%s of %u (mask 0x%x) within period of %s\n",
+			n, plural(n), cval & mask, mask, uint64_to_string(period));
 	}
 
 	if (countbits) {

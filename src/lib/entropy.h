@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Entropy collection.
+ * Entropy collection, during bootstrapping.
  *
  * @author Raphael Manfredi
  * @date 2008
@@ -39,8 +39,17 @@ struct sha1;
 void entropy_collect(struct sha1 *digest);
 void entropy_minimal_collect(struct sha1 *digest);
 uint32 entropy_random(void);
+uint32 entropy_minirand(void);
 void entropy_fill(void *buffer, size_t len);
 void entropy_delay(void);
+void entropy_aje_inited();
+
+void entropy_harvest_time(void);
+void entropy_harvest_single(const void *p, size_t len);
+void entropy_harvest_small(
+	const void *p, size_t len, ...) G_GNUC_NULL_TERMINATED;
+void entropy_harvest_many(
+	const void *p, size_t len, ...) G_GNUC_NULL_TERMINATED;
 
 #endif /* _entropy_h_ */
 

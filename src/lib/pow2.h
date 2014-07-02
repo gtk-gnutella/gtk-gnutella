@@ -40,9 +40,8 @@ uint32 next_pow2(uint32 n) G_GNUC_CONST;
 uint64 next_pow2_64(uint64 n) G_GNUC_CONST;
 int highest_bit_set(uint32 n) G_GNUC_PURE;
 int highest_bit_set64(uint64 n) G_GNUC_PURE;
-int bits_set(uint8 b) G_GNUC_PURE;
-int bits_set32(uint32 v) G_GNUC_CONST;
 int ctz64(uint64 n) G_GNUC_CONST;
+uint8 reverse_byte(uint8 b) G_GNUC_CONST;
 
 /**
  * Checks whether the given value is a power of 2.
@@ -75,13 +74,14 @@ popcount(uint32 x)
 }
 #else	/* !HAS_BUILTIN_POPCOUNT */
 {
-	x -= (x >> 1) & 0x55555555;
-	x = ((x >> 2) & 0x33333333) + (x & 0x33333333);
-	x = ((x >> 4) + x) & 0x0f0f0f0f;
-	x += x >> 8;
-	x += x >> 16;
-	return x & 0x1f;	/* At most 32 bits */
+	/*
+	 * Best popcount implementation, in only 12 operations.
+	 * Source: http://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious
+	 */
 
+	x -= (x >> 1) & 0x55555555;
+	x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+	return ((x + (x >> 4) & 0xf0f0f0f) * 0x1010101) >> 24;
 }
 #endif	/* HAS_BUILTIN_POPCOUNT */
 
@@ -96,7 +96,44 @@ ctz(uint32 x)
 }
 #else	/* !HAS_BUILTIN_CTZ */
 {
-	return G_UNLIKELY(0 == x) ? 0 : popcount((x & -x) - 1);
+	uint32 c;
+
+	if G_UNLIKELY(0 == x)
+		return -1;
+
+	/*
+	 * This code comes from
+	 * http://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious.
+	 *
+	 * It was designed by Matt Whitlock on January 25, 2006, and then
+	 * further optimized by Andrew Shapira on September 5, 2007 (by setting
+	 * c = 1 initially and then unconditionally subtracting at the end).
+	 */
+
+	if (x & 1) {
+		c = 0;
+	} else {
+		c = 1;
+		if (0 == (x & 0xffff)) {
+			x >>= 16;
+			c += 16;
+		}
+		if (0 == (x & 0xff)) {
+			x >>= 8;
+			c += 8;
+		}
+		if (0 == (x & 0xf)) {
+			x >>= 4;
+			c += 4;
+		}
+		if (0 == (x & 0x3)) {
+			x >>= 2;
+			c += 2;
+		}
+		c -= x & 1;
+	}
+
+	return c;
 }
 #endif	/* HAS_BUILTIN_CTZ */
 
@@ -119,6 +156,28 @@ clz(uint32 x)
 	return 32 - popcount(x);
 }
 #endif	/* HAS_BUILTIN_CLZ */
+
+#ifdef HAS_BUILTIN_POPCOUNT
+/**
+ * @returns amount of bits set in a byte.
+ */
+static inline ALWAYS_INLINE G_GNUC_CONST int
+bits_set(uint8 b)
+{
+	return __builtin_popcount(b);
+}
+#else
+int bits_set(uint8 b) G_GNUC_PURE;
+#endif	/* HAS_BUILTIN_POPCOUNT */
+
+/**
+ * @returns amount of bits set in a 32-bit value.
+ */
+static inline ALWAYS_INLINE G_GNUC_CONST int
+bits_set32(uint32 v)
+{
+	return popcount(v);
+}
 
 #endif /* _pow2_h_ */
 

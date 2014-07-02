@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-95]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -39,7 +39,7 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
 LN = $ln
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
@@ -69,7 +69,7 @@ GTK_CFLAGS =  $gtkcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,12 +81,11 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 19197 2011-05-31 20:55:41Z rmanfredi $
+# $X-Id$
 
 LSRC = \
-	bitzi.c \
-	downloads_common.c \
 	clipboard.c \
+	downloads_common.c \
 	drag.c \
 	drop.c \
 	filter.c \
@@ -114,9 +113,8 @@ LSRC = \
 	visual_progress.c
 
 LOBJ = \
-	bitzi.o \
-	downloads_common.o \
 	clipboard.o \
+	downloads_common.o \
 	drag.o \
 	drop.o \
 	filter.o \
@@ -280,6 +278,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install sub_install
+	@exit 0
+
 install.man:: maybe_install.man sub_install.man
 deinstall:: sub_deinstall local_deinstall
 deinstall.man:: sub_deinstall.man maybe_deinstall.man

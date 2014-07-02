@@ -140,6 +140,7 @@
 #define getppid()		1
 #define fcntl mingw_fcntl
 #define ffs __builtin_ffs
+#define sleep mingw_sleep
 
 #define select mingw_select
 #define socket mingw_socket
@@ -152,6 +153,12 @@
 #define shutdown mingw_shutdown
 #define s_writev mingw_s_writev
 #define s_readv mingw_s_readv
+#define socketpair mingw_socketpair
+
+#ifndef HAS_SOCKETPAIR
+#define EMULATE_SOCKETPAIR
+#define HAS_SOCKETPAIR
+#endif	/* !HAS_SOCKETPAIR */
 
 #define gethostname mingw_gethostname
 #define getaddrinfo mingw_getaddrinfo
@@ -470,6 +477,32 @@ int mingw_gettimeofday(struct timeval *tv, void *unused);
 #endif	/* !HAS_GETTIMEOFDAY */
 
 /*
+ * clock_gettime() emulation.
+ */
+#ifndef HAS_CLOCK_GETTIME
+#define HAS_CLOCK_GETTIME	/* We emulate it */
+#define EMULATE_CLOCK_GETTIME
+#define clock_gettime mingw_clock_gettime
+
+int mingw_clock_gettime(int clock_id, struct timespec *tp);
+#endif	/* !HAS_CLOCK_GETTIME */
+
+/*
+ * clock_getres() emulation.
+ */
+#ifndef HAS_CLOCK_GETRES
+#define HAS_CLOCK_GETRES	/* We emulate it */
+#define EMULATE_CLOCK_GETRES
+#define clock_getres mingw_clock_getres
+
+int mingw_clock_getres(int clock_id, struct timespec *res);
+#endif	/* !HAS_CLOCK_GETTIME */
+
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME	0
+#endif
+
+/*
  * dladdr() emulation
  */
 #ifndef HAS_DLADDR
@@ -525,9 +558,56 @@ ssize_t s_read(socket_fd_t fd, void *buf, size_t count);
 ssize_t mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt);
 ssize_t mingw_recvfrom(socket_fd_t, void *, size_t, int,
 			struct sockaddr *, socklen_t *);
+int
+mingw_socketpair(int domain, int type, int protocol, socket_fd_t sv[2]);
 
 int s_close(socket_fd_t fd);
 ssize_t mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);
+
+/*
+ * Semaphore emulation.
+ */
+
+#define semget mingw_semget
+#define semctl mingw_semctl
+#define semop mingw_semop
+#define semtimedop mingw_semtimedop
+
+typedef int key_t;
+#define IPC_PRIVATE		0			/* private resource */
+#define IPC_CREAT		00001000	/* create if key is nonexistent */
+#define IPC_EXCL		00002000	/* fail if key exists */
+#define IPC_NOWAIT		00004000	/* return error on wait */
+#define IPC_RMID		0			/* remove resource */
+#define SEM_UNDO		0x1000		/* undo the operation on exit */
+#define GETVAL			12			/* get semaphore value */
+#define SETVAL			16			/* set semaphore value */
+
+#define SEMMSL			64		/* Maximum amount of semaphores per set */
+
+#define EIDRM			(INT_MAX - 100)	/* Identifier removed */
+
+struct sembuf {
+	ushort sem_num;				/* semaphore number in the set */
+	short sem_op;				/* semaphore operation */
+	short sem_flg;				/* operation flags */
+};
+
+/* metaconfig symbols that should not be defined on Windows */
+#define HAS_SEMGET
+#define HAS_SEMCTL
+#define HAS_SEMOP
+#define HAS_SEMTIMEDOP
+
+int mingw_semget(key_t key, int nsems, int semflg);
+int mingw_semctl(int semid, int semnum, int cmd, ...);
+int mingw_semop(int semid, struct sembuf *sops, unsigned nsops);
+int mingw_semtimedop(int semid, struct sembuf *sops, unsigned nsops,
+	struct timespec *timeout);
+
+/*
+ * Miscellaneous.
+ */
 
 #define rename(oldpath, newpath) mingw_rename((oldpath), (newpath))
 #define g_strerror(errnum) mingw_strerror(errnum)
@@ -541,6 +621,7 @@ int mingw_random_bytes(void *buf, size_t len);
 bool mingw_process_is_alive(pid_t pid);
 
 int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
+unsigned int mingw_sleep(unsigned int seconds);
 long mingw_cpu_count(void);
 uint64 mingw_cpufreq_min(void);
 uint64 mingw_cpufreq_max(void);
@@ -577,9 +658,6 @@ void mingw_close(void);
 const char *mingw_filename_nearby(const char *file);
 bool mingw_stdin_pending(bool fifo);
 bool mingw_same_file_id(const char *pathname_a, const char *pathname_b);
-
-struct tmval;	/* our own portable representation of "struct timeval" */
-void mingw_current_time(struct tmval *tv);
 
 const char *dir_entry_filename(const void *dirent);
 int mingw_getgateway(uint32 *ip);

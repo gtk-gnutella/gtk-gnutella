@@ -235,7 +235,6 @@ search_gui_refresh_details(const record_t *rc)
 	search_gui_set_details(rc);
 	g_object_thaw_notify(G_OBJECT(tv));
 	search_set_xml_metadata(rc);
-	search_gui_set_bitzi_metadata(rc);
 }
 
 static void
@@ -252,16 +251,15 @@ static cevent_t *row_selected_ev;
 #define ROW_SELECT_TIMEOUT	100 /* milliseconds */
 
 static void
-row_selected_expire(cqueue_t *unused_cq, gpointer unused_udata)
+row_selected_expire(cqueue_t *cq, gpointer unused_udata)
 {
 	GtkTreePath *path = NULL;
 	GtkTreeView *tv;
 	search_t *search;
 
-	(void) unused_cq;
 	(void) unused_udata;
 
-	row_selected_ev = NULL;
+	cq_zero(cq, &row_selected_ev);
     search = search_gui_get_current_search();
 
 	if (search) {
@@ -304,35 +302,18 @@ on_tree_view_search_results_select_row(GtkTreeView *unused_tv,
  *** Search results popup
  ***/
 
-/**
- * Queue a bitzi query.
- */
-void
-on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	guint32 bitzi_debug;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-	if (bitzi_debug > 10) {
-		g_message("on_search_meta_data_active: called");
-	}
-	search_gui_request_bitzi_data(search_gui_get_current_search());
-}
-
 static void
 search_gui_browse_selected_helper(gpointer data, gpointer unused_udata)
 {
 	const record_t *rc = data;
+	const results_set_t *rs = rc->results_set;
 	guint32 flags = 0;
 
 	(void) unused_udata;
 	
-	flags |= (rc->results_set->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-	flags |= (rc->results_set->status & ST_TLS) ? SOCK_F_TLS : 0;
+	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+	flags |= ((rs->status & ST_G2) && T_GTKG != rs->vendor) ? SOCK_F_G2 : 0;
 	
 	search_gui_new_browse_host(
 		rc->results_set->hostname,

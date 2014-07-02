@@ -45,6 +45,13 @@ typedef void (*qhit_process_t)(void *data, size_t len, void *udata);
 #define QHIT_F_IPV6			(1U << 1)	/**< Host accepts IPv6 addresses */
 #define QHIT_F_IPV6_ONLY	(1U << 2)	/**< Host only wants IPv6 addresses */
 
+/**
+ * Query hit generation flags for G2 queries.
+ */
+#define QHIT_F_G2_URL		(1U << 31)	/**< Wants URL (stating we share it) */
+#define QHIT_F_G2_DN		(1U << 30)	/**< Wants DN (distinguished name) */
+#define QHIT_F_G2_ALT		(1U << 29)	/**< Wants ALT (alt-locs) */
+
 /*
  * Public interface.
  */
@@ -52,13 +59,15 @@ typedef void (*qhit_process_t)(void *data, size_t len, void *udata);
 struct gnutella_node;
 struct array; 
 struct guid;
+struct pslist;
 
 void qhit_init(void);
 void qhit_close(void);
 
-void qhit_send_results(struct gnutella_node *n, GSList *files, int count,
+void qhit_send_results(struct gnutella_node *n, struct pslist *files, int count,
 	const struct guid *muid, unsigned flags);
-void qhit_build_results(const GSList *files, int count, size_t max_msgsize,
+void qhit_build_results(const struct pslist *files,
+	int count, size_t max_msgsize,
 	qhit_process_t cb, void *udata, const struct guid *muid, unsigned flags,
 	const struct array *token);
 

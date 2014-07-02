@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,21 +25,39 @@
  * @ingroup lib
  * @file
  *
- * Explicit-width block allocator, based on zalloc().
+ * Explicit-width block allocator, based on zalloc() and tmalloc().
+ *
+ * The zalloc() layer is the zone-allocator used by walloc_raw().
+ *
+ * The tmalloc() layer is the thread-magazine allocator used by walloc()
+ * and which relies on walloc_raw() to allocate memory.
+ *
+ * The walloc_raw() / wfree_raw() routines are only visible from this
+ * file and cannot be used by the application.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2013
  */
 
 #include "common.h"
 
 #include "walloc.h"
+
+#include "atomic.h"
+#include "eslist.h"
+#include "evq.h"			/* For evq_is_inited() */
 #include "log.h"
+#include "mutex.h"
+#include "once.h"
 #include "pow2.h"
+#include "pslist.h"
 #include "spinlock.h"
+#include "str.h"
+#include "stringify.h"		/* For SIZE_T_DEC_BUFLEN */
 #include "thread.h"			/* For thread_small_id() */
+#include "tm.h"
+#include "tmalloc.h"
 #include "unsigned.h"
-#include "vmm.h"
 #include "xmalloc.h"
 #include "zalloc.h"
 
@@ -51,24 +69,67 @@
 #undef wrealloc
 #endif
 
-#define WALLOC_MINCOUNT			8	/* Minimum amount of structs in a chunk */
-#define WALLOC_THREADS			16	/* Max # of threads we handle */
-#define WALLOC_THREAD_MAXLEN	512	/* Max size for thread-private zones */
-
+#define WALLOC_MINCOUNT		8	/* Minimum amount of structs in a chunk */
 #define WZONE_SIZE			(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
-#define WZONE_THREAD_SIZE	(WALLOC_THREAD_MAXLEN / ZALLOC_ALIGNBYTES + 1)
 
 /**
- * Small blocks should be handled via a thread-private zone, assuming that
- * the thread which allocates the block will be the one freeing the block.
- *
- * This prevents locking for small objects.
+ * We use a thread magazine allocator for walloc() to be able to scale
+ * nicely when allocating concurrently, the magazine being backed by
+ * walloc_raw() to actually allocate memory.
  */
 
+static tmalloc_t *wmagazine[WZONE_SIZE];
 static struct zone *wzone[WZONE_SIZE];
-static struct zone *wtzone[WZONE_THREAD_SIZE][WALLOC_THREADS];
-static bool walloc_inited;
+static once_flag_t walloc_inited;
 static bool walloc_stopped;
+
+/**
+ * @return maximum user block size for walloc().
+ */
+size_t
+walloc_maxsize(void)
+{
+	return WALLOC_MAX - zalloc_overhead();
+}
+
+/**
+ * Initialize the width-based allocator, once.
+ */
+static G_GNUC_COLD void
+walloc_init_once(void)
+{
+	/*
+	 * The zalloc() layer is not auto-initializing but the VMM layer is
+	 * so there's no need to call vmm_init().
+	 */
+
+	zinit();
+}
+
+/**
+ * Enter crash mode: redirect all allocations to xmalloc() and avoid freeings.
+ */
+G_GNUC_COLD void
+walloc_crash_mode(void)
+{
+	/*
+	 * This will stop all thread-magazine allocation, which is important
+	 * since we no longer have locks during crashes.
+	 */
+
+	walloc_stopped = TRUE;
+	ZERO(&wmagazine);
+	atomic_mb();
+}
+
+/**
+ * Initialize the width-based allocator.
+ */
+static inline void ALWAYS_INLINE
+walloc_init_if_needed(void)
+{
+	ONCE_FLAG_RUN(walloc_inited, walloc_init_once);
+}
 
 /*
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
@@ -99,39 +160,31 @@ wzone_index(size_t rounded)
  * Allocate a new zone of given rounded size.
  */
 static zone_t *
-wzone_get(size_t rounded, bool private)
+wzone_get(size_t rounded)
 {
 	zone_t *zone;
 
 	g_assert(rounded == zalloc_round(rounded));
 
-	if G_UNLIKELY(!walloc_inited)
-		walloc_init();
+	walloc_init_if_needed();
 
 	/*
 	 * We're paying this computation/allocation cost once per size!
 	 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
+	 *
+	 * We don't create private zones because walloc() must be usable by
+	 * any thread, hence we must use global (locked) zones.  Using private
+	 * zone would force tagging of allocated blocks with the thread that
+	 * got them.  And we would have to handle foreign thread returning, since
+	 * it is very hard for a thread to guarantee that it will be freeing only
+	 * the blocks it allocated.
+	 *		--RAM, 2012-12-22
 	 */
 
-	if (!(zone = zget(rounded, WALLOC_MINCOUNT, private)))
-		s_error("zget() failed?");
+	if (!(zone = zget(rounded, WALLOC_MINCOUNT, FALSE)))
+		s_error("zget(%zu) failed?", rounded);
 
 	return zone;
-}
-
-/**
- * @return blocksize used by the underlying zalloc() for a given request.
- */
-size_t
-walloc_blocksize(size_t size)
-{
-	zone_t *zone;
-	size_t rounded = zalloc_round(size);
-	size_t idx = wzone_index(rounded);
-
-	zone = wzone[idx];
-
-	return NULL == zone ? rounded : zone_blocksize(zone);
 }
 
 /**
@@ -150,46 +203,15 @@ walloc_get_zone(size_t rounded, bool allocate)
 
 	idx = wzone_index(rounded);
 
-	/*
-	 * Must be made thread-safe because xmalloc() uses walloc() and when
-	 * xmalloc() replaces the system malloc(), we can be in a multi-threaded
-	 * environment due to GTK.
-	 *		--RAM, 2011-12-28
-	 *
-	 * Small blocks (up to WALLOC_THREAD_MAXLEN bytes) are allocated through
-	 * a thread-private array provided their small thread ID is less than
-	 * WALLOC_THREADS.  This should heavily reduce spinlock() pressure.
-	 *		--RAM, 2012-04-14
-	 */
-
-	if (rounded <= WALLOC_THREAD_MAXLEN) {
-		unsigned stid = thread_small_id();
-
-		if (stid < WALLOC_THREADS) {
-			if (NULL == (zone = wtzone[idx][stid])) {
-				if (!allocate) {
-					s_error("missing %zu-byte zone for thread #%u",
-						rounded, stid);
-				}
-				zone = wtzone[idx][stid] = wzone_get(rounded, TRUE);
-			}
-			return zone;
-		}
-
-		/* FALL THROUGH */
-	}
-
-	if (NULL == (zone = wzone[idx])) {
+	if G_UNLIKELY(NULL == (zone = wzone[idx])) {
 		static spinlock_t walloc_slk = SPINLOCK_INIT;
+
+		spinlock(&walloc_slk);
 
 		if (!allocate)
 			s_error("missing %zu-byte zone", rounded);
 
-		if (!spinlock_try(&walloc_slk))
-			return NULL;	/* Recursion, cannot allocate memory */
-
-		if (NULL == (zone = wzone[idx]))
-			zone = wzone[idx] = wzone_get(rounded, FALSE);
+		zone = wzone[idx] = wzone_get(rounded);
 
 		spinunlock(&walloc_slk);
 	}
@@ -202,13 +224,13 @@ walloc_get_zone(size_t rounded, bool allocate)
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
  * are multiples of ZALLOC_ALIGNBYTES until WALLOC_MAX (e.g. 8, 16, 24, 40, ...)
- * and to xpmalloc() if size is greater than WALLOC_MAX.
+ * and to xmalloc() if size is greater than WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
  * @return a pointer to the start of the allocated block.
  */
-G_GNUC_HOT void *
-walloc(size_t size)
+static void *
+walloc_raw(size_t size)
 {
 	zone_t *zone;
 	size_t rounded = zalloc_round(size);
@@ -216,16 +238,154 @@ walloc(size_t size)
 	g_assert(size_is_positive(size));
 
 	if G_UNLIKELY(walloc_stopped)
-		return xpmalloc(size);
+		return xmalloc(size);
 
-	if (rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
-		return xpmalloc(size);
+		return xmalloc(size);
 	}
 
 	zone = walloc_get_zone(rounded, TRUE);
 
 	return zalloc(zone);
+}
+
+/**
+ * Free a block allocated via walloc_raw().
+ *
+ * The size is used to find the zone from which the block was allocated, or
+ * to determine that we actually xmalloc()'ed it so it gets xfree()'ed.
+ */
+static void
+wfree_raw(void *ptr, size_t size)
+{
+	zone_t *zone;
+	size_t rounded = zalloc_round(size);
+
+	g_assert(ptr != NULL);
+	g_assert(size_is_positive(size));
+
+	if G_UNLIKELY(walloc_stopped)
+		return;
+
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
+		xfree(ptr);
+		return;
+	}
+
+	zone = walloc_get_zone(rounded, FALSE);
+
+	zfree(zone, ptr);
+}
+
+/**
+ * Get magazine depot for given rounded allocation size.
+ *
+ * @param rounded		rounded allocation size
+ *
+ * @return the magazine depot corresponding to the requested size.
+ */
+static tmalloc_t *
+walloc_get_magazine(size_t rounded)
+{
+	size_t idx;
+	tmalloc_t *depot;
+
+	idx = wzone_index(rounded);
+
+	if G_UNLIKELY(NULL == (depot = wmagazine[idx])) {
+		static mutex_t walloc_mtx = MUTEX_INIT;
+		static uint8 maginit[WZONE_SIZE];
+
+		/*
+		 * The thread-magazine allocator needs the event queue, so if we're
+		 * called too soon in the initialization process, we cannot enable
+		 * object distribution through magazines.
+		 */
+
+		if (!evq_is_inited())
+			return NULL;			/* Too soon */
+
+		if G_UNLIKELY(walloc_stopped)
+			return NULL;			/* In crash mode, or exiting */
+
+		/*
+		 * We need a mutex and the maginit[] protection to cut down
+		 * on recursion during auto-initialization.
+		 *
+		 * Returning a NULL depot means that walloc() will reroute to
+		 * walloc_raw(), which works because zalloc() is lighter to initialize.
+		 */
+
+		mutex_lock(&walloc_mtx);
+
+		if (NULL == (depot = wmagazine[idx]) && !maginit[idx]) {
+			char name[STR_CONST_LEN("walloc-") + SIZE_T_DEC_BUFLEN + 1];
+			size_t zsize, zidx;
+			zone_t *zone;
+
+			maginit[idx] = TRUE;
+
+			/*
+			 * Since zalloc() can round allocated blocks to avoid creating
+			 * too many zones, we need to compute the actual size that will
+			 * be used by zalloc().
+			 *
+			 * Because the depot will need to allocate objects of that size,
+			 * we can directly request the zone and then see which size this
+			 * corresponds to.
+			 */
+
+			zone = walloc_get_zone(rounded, TRUE);
+			zsize = zone_size(zone);
+			zidx = wzone_index(zsize);
+
+			if (zsize != rounded) {
+				depot = wmagazine[zidx];
+
+				if (depot != NULL) {
+					wmagazine[idx] = depot;		/* Shared zone size */
+					goto done;
+				}
+			}
+
+			str_bprintf(name, sizeof name, "walloc-%zu", zsize);
+			depot = wmagazine[idx] = wmagazine[zidx] =
+				tmalloc_create(name, zsize, walloc_raw, wfree_raw);
+		}
+
+	done:
+		mutex_unlock(&walloc_mtx);
+	}
+
+	return depot;
+}
+
+/**
+ * Allocate memory from a magazine depot suitable for the given size, or
+ * via xmalloc() if the requested size is too large.
+ *
+ * @return a pointer to the start of the allocated block.
+ */
+G_GNUC_HOT void *
+walloc(size_t size)
+{
+	tmalloc_t *depot;
+	size_t rounded = zalloc_round(size);
+
+	g_assert(size_is_positive(size));
+
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
+		/* Too big for efficient zalloc() */
+		return xmalloc(size);
+	}
+
+	depot = walloc_get_magazine(rounded);
+
+	if G_UNLIKELY(NULL == depot)
+		return walloc_raw(size);
+
+	return tmalloc(depot);
 }
 
 /**
@@ -246,28 +406,34 @@ walloc0(size_t size)
  * Free a block allocated via walloc().
  *
  * The size is used to find the zone from which the block was allocated, or
- * to determine that we actually xpmalloc()'ed it so it gets xfree()'ed.
+ * to determine that we actually xmalloc()'ed it so it gets xfree()'ed.
  */
 void
 wfree(void *ptr, size_t size)
 {
-	zone_t *zone;
 	size_t rounded = zalloc_round(size);
 
 	g_assert(ptr != NULL);
 	g_assert(size_is_positive(size));
 
-	if G_UNLIKELY(walloc_stopped)
-		return;
-
-	if (rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		xfree(ptr);
 		return;
 	}
 
-	zone = walloc_get_zone(rounded, FALSE);
+#ifdef TRACK_ZALLOC
+	wfree_raw(ptr, size);
+#else
+	{
+		tmalloc_t *depot = walloc_get_magazine(rounded);
 
-	zfree(zone, ptr);
+		if G_UNLIKELY(NULL == depot) {
+			wfree_raw(ptr, size);
+		} else {
+			tmfree(depot, ptr);
+		}
+	}
+#endif	/* TRACK_ZALLOC */
 }
 
 /**
@@ -281,6 +447,110 @@ wfree0(void *ptr, size_t size)
 
 	memset(ptr, 0, size);
 	wfree(ptr, size);
+}
+
+/**
+ * Free a list of memory blocks that can be viewed as a plain one-way list,
+ * items being linked by their first pointer.
+ */
+void
+wfree_pslist(pslist_t *pl, size_t size)
+{
+	tmalloc_t *depot;
+	size_t rounded = zalloc_round(size);
+
+	g_assert(pl != NULL);
+	g_assert(size_is_positive(size));
+
+	/*
+	 * This is a highly specialized routine, used by pslist_t and plist_t.
+	 * It quickly releases the list cells when the corresponding list is
+	 * freed: to avoid calling wfree() on each cell, we group processing
+	 * in order to leverage on the routine setup: we fetch the proper
+	 * magazines or zones once, and we apply the same setting to the whole
+	 * list of object.
+	 *
+	 * Because pslist_t and plist_t both share the same memory layout for
+	 * the ``next'' field (it is the first pointer in the memory block),
+	 * we can handle plist_t as if they were pslist_t without problem: the
+	 * only difference is the passed object size, which will redirect the
+	 * free objects to possibly different zones or magazines.
+	 */
+
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
+		pslist_t *next, *l;
+
+		for (l = pl; l != NULL; l = next) {
+			next = l->next;
+			xfree(l);
+		}
+		return;
+	}
+
+#ifdef TRACK_ZALLOC
+	depot = NULL;
+#else
+	depot = walloc_get_magazine(rounded);
+#endif
+
+	if G_UNLIKELY(NULL == depot) {
+		zone_t *zone;
+
+		if G_UNLIKELY(walloc_stopped)
+			return;
+
+		zone = walloc_get_zone(rounded, FALSE);
+		zfree_pslist(zone, pl);
+	} else {
+		tmfree_pslist(depot, pl);
+	}
+}
+
+/**
+ * Free a list of memory blocks being linked through an embedded pointer.
+ */
+void
+wfree_eslist(eslist_t *el, size_t size)
+{
+	tmalloc_t *depot;
+	size_t rounded = zalloc_round(size);
+
+	g_assert(el != NULL);
+	g_assert(size_is_positive(size));
+
+	/*
+	 * This is a highly specialized routine, used by eslist_t and elist_t.
+	 * Same principle as wfree_pslist(): we want to dispose of objects
+	 * quickly.
+	 */
+
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
+		void *next, *p;
+
+		for (p = eslist_head(el); p != NULL; p = next) {
+			next = eslist_next_data(el, p);
+			xfree(p);
+		}
+		return;
+	}
+
+#ifdef TRACK_ZALLOC
+	depot = NULL;
+#else
+	depot = walloc_get_magazine(rounded);
+#endif
+
+	if G_UNLIKELY(NULL == depot) {
+		zone_t *zone;
+
+		if G_UNLIKELY(walloc_stopped)
+			return;
+
+		zone = walloc_get_zone(rounded, FALSE);
+		zfree_eslist(zone, el);
+	} else {
+		tmfree_eslist(depot, el);
+	}
 }
 
 /**
@@ -323,7 +593,7 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 	if (old_rounded == new_rounded)
 		return old;
 
-	if (new_rounded > WALLOC_MAX || old_rounded > WALLOC_MAX)
+	if G_UNLIKELY(new_rounded > WALLOC_MAX || old_rounded > WALLOC_MAX)
 		goto resize_block;
 
 	if G_UNLIKELY(walloc_stopped)
@@ -375,13 +645,13 @@ walloc_track(size_t size, const char *file, int line)
 
 	g_assert(size_is_positive(size));
 
-	if (rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
 		void *p = 
 #ifdef TRACK_MALLOC
 			malloc_track(size, file, line);
 #else
-			xpmalloc(size);
+			xmalloc(size);
 #endif
 			return p;
 	}
@@ -454,24 +724,22 @@ wdestroy(void)
 {
 	size_t i;
 
-	xmalloc_stop_wfree();
+	for (i = 0; i < WZONE_SIZE; i++) {
+		tmalloc_t *d = wmagazine[i];
+		if (d != NULL) {
+			size_t size = tmalloc_size(d);
+
+			if (i == wzone_index(size))
+				tmalloc_reset(d);
+		}
+	}
+
 	walloc_stopped = TRUE;
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {
 			zdestroy(wzone[i]);
 			wzone[i] = NULL;
-		}
-	}
-
-	for (i = 0; i < WZONE_THREAD_SIZE; i++) {
-		size_t j;
-
-		for (j = 0; j < WALLOC_THREADS; j++) {
-			if (wtzone[i][j] != NULL) {
-				zdestroy(wtzone[i][j]);
-				wtzone[i][j] = NULL;
-			}
 		}
 	}
 }
@@ -482,17 +750,7 @@ wdestroy(void)
 G_GNUC_COLD void
 walloc_init(void)
 {
-	if G_LIKELY(walloc_inited)
-		return;			/* Already done */
-
-	walloc_inited = TRUE;
-
-	/*
-	 * Make sure the layers on top of which we are built are initialized.
-	 */
-
-	vmm_init();
-	zinit();
+	walloc_init_if_needed();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

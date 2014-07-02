@@ -85,6 +85,13 @@ int sdbm_rename_files(DBM *, const char *, const char *, const char *);
 int sdbm_rebuild(DBM *);
 
 /*
+ * only defined if compiled with THREADS set in "tune.h".
+ */
+void sdbm_thread_safe(DBM *db);
+void sdbm_lock(DBM *db);
+void sdbm_unlock(DBM *db);
+
+/*
  * Internal routines with clean semantics that can be used by user code.
  * These are not documented.
  */

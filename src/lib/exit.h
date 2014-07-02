@@ -45,6 +45,7 @@
  * Public interface.
  */
 
+void exit_cleanup(void);
 void do_exit(int status) G_GNUC_NORETURN;
 void do__exit(int status) G_GNUC_NORETURN;
 

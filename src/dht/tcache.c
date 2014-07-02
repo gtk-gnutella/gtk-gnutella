@@ -150,7 +150,8 @@ get_tokdata(const kuid_t *id)
 
 	if (NULL == td) {
 		if (dbmw_has_ioerr(db_tokdata)) {
-			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			s_warning_once_per(LOG_PERIOD_MINUTE,
+				"DBMW \"%s\" I/O error, bad things could happen...",
 				dbmw_name(db_tokdata));
 		}
 	}
@@ -243,7 +244,7 @@ record_token(void *key, void *value, void *unused_u)
 	td.length = ltok->token->length;
 	td.token = td.length ? wcopy(ltok->token->v, td.length) : NULL;
 
-	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
+	if (GNET_PROPERTY(dht_tcache_debug) > 4 && td.token != NULL) {
 		char buf[80];
 		bin_to_hex_buf(td.token, td.length, buf, sizeof buf);
 		g_debug("DHT TCACHE adding security token for %s: %u-byte \"%s\"",

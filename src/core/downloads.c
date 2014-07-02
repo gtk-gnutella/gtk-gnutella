@@ -36,6 +36,7 @@
 #include "gtk-gnutella.h"
 
 #include "downloads.h"
+
 #include "ban.h"
 #include "bh_download.h"
 #include "bh_upload.h"
@@ -44,7 +45,6 @@
 #include "ctl.h"
 #include "dmesh.h"
 #include "features.h"
-#include "file_object.h"
 #include "gdht.h"
 #include "geo_ip.h"
 #include "gmsg.h"
@@ -77,6 +77,9 @@
 #include "version.h"
 #include "vmsg.h"
 
+#include "g2/build.h"
+#include "g2/node.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -92,11 +95,12 @@
 #include "lib/dbus_util.h"
 #include "lib/dualhash.h"
 #include "lib/endian.h"
+#include "lib/entropy.h"
 #include "lib/file.h"
+#include "lib/file_object.h"
 #include "lib/filename.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
@@ -108,6 +112,8 @@
 #include "lib/magnet.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/plist.h"
+#include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
 #include "lib/str.h"
@@ -152,14 +158,16 @@
 
 static hash_list_t *sl_downloads;	/**< All downloads (queued + unqueued) */
 static hash_list_t *sl_unqueued;	/**< Unqueued downloads only */
-static GSList *sl_removed;			/**< Removed downloads only */
-static GSList *sl_removed_servers;	/**< Removed servers only */
+static pslist_t *sl_removed;		/**< Removed downloads only */
+static pslist_t *sl_removed_servers;/**< Removed servers only */
 
-static const char DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
-static const char DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
-static const char DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
-static const char no_reason[] = "<no reason>"; /**< Don't translate this */
-static const char dev_null[] = "/dev/null";
+static const char DL_OK_EXT[]	= ".OK";	/**< Extension to mark OK files */
+static const char DL_BAD_EXT[]	= ".BAD";	/**< "Bad" files (SHA1 mismatch) */
+static const char DL_UNKN_EXT[] = ".UNKN";	/**< For unchecked files */
+static const char no_reason[]	= "<no reason>"; /**< Don't translate this */
+static const char dev_null[]	= "/dev/null";
+static const char APP_G2[]       = "application/x-gnutella2";
+static const char APP_GNUTELLA[] = "application/x-gnutella-packets";
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static bool download_send_push_request(
@@ -286,7 +294,7 @@ static bool
 download_is_running(const struct download *d)
 {
 	download_check(d);
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 
 	return DL_LIST_RUNNING == d->list_idx;
 }
@@ -385,12 +393,15 @@ server_host_info(const struct dl_server *server)
 	if (server->hostname) {
 		concat_strings(name, sizeof name,
 			" (", server->hostname, ") ",
-			(void *) 0);
+			NULL);
 	}
 
 	concat_strings(info, sizeof info,
-		"<", host, name, " \'", server->vendor ? server->vendor : "", "\'>",
-		(void *) 0);
+		"<",
+		(server->attrs & DLS_A_G2_ONLY) ? "G2 " : "",
+		host, name, " \'", server->vendor ? server->vendor : "", "\'>",
+		NULL);
+
 	return info;
 }
 
@@ -411,8 +422,8 @@ static hikset_t *dl_by_host;
 #define DL_HASH(x)	((x) & DHASH_MASK)
 
 static struct {
-	GList *servers[DHASH_SIZE];		/**< Lists of servers, by retry time */
-	int change[DHASH_SIZE];		/**< Counts changes to the list */
+	plist_t *servers[DHASH_SIZE];	/**< Lists of servers, by retry time */
+	int change[DHASH_SIZE];			/**< Counts changes to the list */
 } dl_by_time;
 
 /**
@@ -656,7 +667,7 @@ download_pipeline_can_initiate(const struct download *d)
 	avg_bps = download_speed_avg(d);
 	s = remain / (avg_bps ? avg_bps : 1);
 
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 
 	threshold = MAX(DOWNLOAD_PIPELINE_MSECS, GNET_PROPERTY(dl_http_latency));
 	threshold = MAX(threshold, d->server->latency);
@@ -1078,7 +1089,7 @@ dl_key_eq(const void *a, const void *b)
 {
 	const struct dl_key *ak = a, *bk = b;
 
-	return host_addr_equal(ak->addr, bk->addr) &&
+	return host_addr_equiv(ak->addr, bk->addr) &&
 		ak->port == bk->port &&
 		guid_eq(ak->guid, bk->guid);
 }
@@ -1106,7 +1117,7 @@ dl_addr_eq(const void *a, const void *b)
 {
 	const struct dl_addr *ak = a, *bk = b;
 
-	return host_addr_equal(ak->addr, bk->addr) && ak->port == bk->port;
+	return host_addr_equiv(ak->addr, bk->addr) && ak->port == bk->port;
 }
 
 /**
@@ -1168,32 +1179,6 @@ has_good_sha1(const struct download *d)
 	fileinfo_t *fi = d->file_info;
 
 	return fi->sha1 == NULL || (fi->cha1 && sha1_eq(fi->sha1, fi->cha1));
-}
-
-/**
- * Allocate random GUID to use as the download ID.
- *
- * @return a GUID atom, refcount incremented already.
- */
-static const guid_t *
-dl_random_guid_atom(void)
-{
-	struct guid id;
-	size_t i;
-
-	/*
-	 * Paranoid, in case the random number generator is broken.
-	 */
-
-	for (i = 0; i < 100; i++) {
-		guid_random_fill(&id);
-
-		if (NULL == hikset_lookup(dl_by_id, &id))
-			return atom_guid_get(&id);
-	}
-
-	g_error("no luck with random number generator");
-	return NULL;
 }
 
 /**
@@ -1778,7 +1763,7 @@ dl_by_time_insert(struct dl_server *server)
 	g_assert(dl_server_valid(server));
 
 	dl_by_time.change[idx]++;
-	dl_by_time.servers[idx] = g_list_insert_sorted(dl_by_time.servers[idx],
+	dl_by_time.servers[idx] = plist_insert_sorted(dl_by_time.servers[idx],
 		server, dl_server_retry_cmp);
 }
 
@@ -1793,7 +1778,7 @@ dl_by_time_remove(struct dl_server *server)
 	g_assert(dl_server_valid(server));
 
 	dl_by_time.change[idx]++;
-	dl_by_time.servers[idx] = g_list_remove(dl_by_time.servers[idx], server);
+	dl_by_time.servers[idx] = plist_remove(dl_by_time.servers[idx], server);
 }
 
 /**
@@ -2044,7 +2029,7 @@ server_delay_delete(struct dl_server *server)
 	g_assert(!(server->attrs & DLS_A_REMOVED));
 
 	server->attrs |= DLS_A_REMOVED;		/* Insert once in list */
-	sl_removed_servers = g_slist_prepend(sl_removed_servers, server);
+	sl_removed_servers = pslist_prepend(sl_removed_servers, server);
 }
 
 /**
@@ -2057,7 +2042,7 @@ server_undelete(struct dl_server *server)
 	g_assert(server->attrs & DLS_A_REMOVED);
 
 	server->attrs &= ~DLS_A_REMOVED;	/* Clear flag */
-	sl_removed_servers = g_slist_remove(sl_removed_servers, server);
+	sl_removed_servers = pslist_remove(sl_removed_servers, server);
 }
 
 /**
@@ -2145,7 +2130,7 @@ download_found_server(const struct guid *guid,
 	 * Check whether something changed at all.
 	 */
 
-	if (host_addr_equal(addr, server->key->addr) && port == server->key->port)
+	if (host_addr_equiv(addr, server->key->addr) && port == server->key->port)
 		return;
 
 	if (GNET_PROPERTY(download_debug))
@@ -2300,7 +2285,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 			if (!allocate)
 				goto allocated;
 
-			g_assert(!host_addr_equal(skey->addr, addr) || skey->port != port);
+			g_assert(!host_addr_equiv(skey->addr, addr) || skey->port != port);
 
 			/*
 			 * We knew this server, and it bears a new IP or port.
@@ -2311,7 +2296,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 			 */
 
 			if (
-				host_addr_equal(skey->addr, addr) ||
+				host_addr_equiv(skey->addr, addr) ||
 				server->country == new_country ||
 				(
 					/* Address becomes routable */
@@ -2394,10 +2379,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 
 allocated:
 	if (g2_cache_lookup(addr, port)) {
-		server->attrs |= DLS_A_G2_ONLY | DLS_A_MINIMAL_HTTP;
-		if (GNET_PROPERTY(enable_hackarounds)) {
-			server->attrs |= DLS_A_FAKE_G2;
-		}
+		server->attrs |= DLS_A_G2_ONLY;
 	}
 
 	/*
@@ -2455,7 +2437,7 @@ allocated:
 
 	if (GNET_PROPERTY(download_debug) > 1) {
 		if (
-			!host_addr_equal(addr, server->key->addr) ||
+			!host_addr_equiv(addr, server->key->addr) ||
 			server->key->port != port ||
 			!guid_eq(server->key->guid, guid)
 		) {
@@ -2547,7 +2529,7 @@ change_server_addr(struct dl_server *server,
 
 	if (duplicate != NULL && duplicate != server) {
 		g_assert(dl_server_valid(duplicate));
-		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
+		g_assert(host_addr_equiv(duplicate->key->addr, key->addr));
 		g_assert(duplicate->key->port == key->port);
 
 		if (GNET_PROPERTY(download_debug)) {
@@ -2732,7 +2714,7 @@ download_can_ignore(struct download *d)
 			g_debug("download \"%s\" has incoming connection from %s "
 				"and %u waiting file%s on that server -- will sink %s bytes",
 				download_basename(d), download_host_info(d),
-				count, 1 == count ? "" : "s", uint64_to_string(remain));
+				count, plural(count), uint64_to_string(remain));
 		}
 
 		goto sink_data;
@@ -2917,7 +2899,7 @@ done:
 	if (GNET_PROPERTY(download_debug) > 1) {
 		g_debug("PUSH %s %u message%s on wakeup for GUID %s at %s",
 			broadcast ? "broadcasted" : "sent",
-			sent, 1 == sent ? "" : "s",
+			sent, plural(sent),
 			guid_hex_str(server->key->guid), server_host_info(server));
 	}
 }
@@ -2931,8 +2913,8 @@ static void
 download_push_proxy_sleep(struct dl_server *server)
 {
 	list_iter_t *iter;
-	GSList *to_sleep = NULL;
-	GSList *sl;
+	pslist_t *to_sleep = NULL;
+	pslist_t *sl;
 
 	iter = list_iter_before_head(server->list[DL_LIST_RUNNING]);
 	while (list_iter_has_next(iter)) {
@@ -2940,7 +2922,7 @@ download_push_proxy_sleep(struct dl_server *server)
 		download_check(d);
 		if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
 			/* Not moving the download out of the list over which we iterate */
-			to_sleep = g_slist_prepend(to_sleep, d);
+			to_sleep = pslist_prepend(to_sleep, d);
 		}
 	}
 	list_iter_free(&iter);
@@ -2950,7 +2932,7 @@ download_push_proxy_sleep(struct dl_server *server)
 	 * that will cause them to move to the waiting list.
 	 */
 
-	for (sl = to_sleep; sl != NULL; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(to_sleep, sl) {
 		struct download *d = sl->data;
 		uint32 delay = GNET_PROPERTY(download_retry_timeout_delay);
 		if (d->retries < GNET_PROPERTY(download_max_retries) - 1) {
@@ -2974,7 +2956,7 @@ download_push_proxy_sleep(struct dl_server *server)
 			_("Requeued due to no push-proxy"));
 	}
 
-	g_slist_free(to_sleep);
+	pslist_free(to_sleep);
 }
 
 /**
@@ -3490,7 +3472,7 @@ download_file_exists(const struct download *d)
 static void
 download_requeue_all_active(const fileinfo_t *fi)
 {
-	GSList *sources, *iter;
+	pslist_t *sources, *iter;
 
 	file_info_check(fi);
 
@@ -3499,7 +3481,7 @@ download_requeue_all_active(const fileinfo_t *fi)
 	 */
 
 	sources = file_info_get_sources(fi);
-	for (iter = sources; iter; iter = g_slist_next(iter)) {
+	PSLIST_FOREACH(sources, iter) {
 		struct download *d = iter->data;
 
 		download_check(d);
@@ -3531,7 +3513,7 @@ download_requeue_all_active(const fileinfo_t *fi)
 			download_queue(d, _("Requeued due to file removal"));
 		}
 	}
-	gm_slist_free_null(&sources);
+	pslist_free_null(&sources);
 }
 
 /**
@@ -3569,13 +3551,13 @@ download_remove_file(struct download *d, bool reset)
 void
 download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 {
-	GSList *sources, *iter;
+	pslist_t *sources, *iter;
 
 	file_info_check(old_fi);
 	file_info_check(new_fi);
 
 	sources = file_info_get_sources(old_fi);
-	for (iter = sources; iter; iter = g_slist_next(iter)) {
+	PSLIST_FOREACH(sources, iter) {
 		struct download *d = iter->data;
 		bool is_running;
 
@@ -3620,7 +3602,7 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 		if (is_running)
 			download_queue(d, _("Requeued by file info change"));
 	}
-	gm_slist_free_null(&sources);
+	pslist_free_null(&sources);
 }
 
 /**
@@ -3639,8 +3621,8 @@ download_remove_all_from_peer(const struct guid *guid,
 	struct dl_server *server[2];
 	int n = 0;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
-	GSList *to_remove = NULL;
-	GSList *sl;
+	pslist_t *to_remove = NULL;
+	pslist_t *sl;
 	int i;
 	uint j;
 
@@ -3680,7 +3662,7 @@ download_remove_all_from_peer(const struct guid *guid,
 				g_assert(d->status != GTA_DL_REMOVED);
 
 				n++;
-				to_remove = g_slist_prepend(to_remove, d);
+				to_remove = pslist_prepend(to_remove, d);
 			}
 			list_iter_free(&iter);
 		}
@@ -3693,12 +3675,12 @@ download_remove_all_from_peer(const struct guid *guid,
 	 * Do NOT mark the fileinfo as "discard".
 	 */
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(to_remove, sl) {
 		struct download *d = sl->data;
 		download_forget(d, unavailable);
 	}
 
-	g_slist_free(to_remove);
+	pslist_free(to_remove);
 
 	return n;
 }
@@ -3891,6 +3873,8 @@ download_clone(struct download *d)
 
 	download_check(d);
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
+
+	entropy_harvest_time();
 
 	/* The socket can be NULL if we're acting on a queued source */
 
@@ -4292,7 +4276,7 @@ download_redirect_to_server(struct download *d,
 	 */
 
 	server = d->server;
-	if (host_addr_equal(server->key->addr, addr) && server->key->port == port)
+	if (host_addr_equiv(server->key->addr, addr) && server->key->port == port)
 		return;
 
 	/*
@@ -4500,6 +4484,8 @@ download_switch(struct download *od, struct download *nd, bool on_error)
 	gnet_stats_inc_general(
 		on_error ? GNR_ATTEMPTED_RESOURCE_SWITCHING_AFTER_ERROR :
 			GNR_ATTEMPTED_RESOURCE_SWITCHING);
+
+	entropy_harvest_small(VARLEN(od), VARLEN(nd), VARLEN(on_error), NULL);
 
 	g_assert(NULL == nd->socket);
 
@@ -5317,12 +5303,12 @@ download_info_reget(struct download *d)
 static void
 queue_suspend_downloads_with_file(fileinfo_t *fi, bool suspend)
 {
-	GSList *sources, *iter;
+	pslist_t *sources, *iter;
 
 	file_info_check(fi);
 
 	sources = file_info_get_sources(fi);
-	for (iter = sources; iter; iter = g_slist_next(iter)) {
+	PSLIST_FOREACH(sources, iter) {
 		struct download *d = iter->data;
 
 		download_check(d);
@@ -5368,7 +5354,7 @@ queue_suspend_downloads_with_file(fileinfo_t *fi, bool suspend)
 			d->flags &= ~DL_F_SUSPENDED;
 		}
 	}
-	gm_slist_free_null(&sources);
+	pslist_free_null(&sources);
 
 	if (suspend)
 		fi->flags |= FI_F_SUSPEND;
@@ -5468,7 +5454,7 @@ download_remove(struct download *d)
 	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
 
 	download_check(d);
-	sl_removed = g_slist_prepend(sl_removed, d);
+	sl_removed = pslist_prepend(sl_removed, d);
 
 	/* download structure will be freed in download_free_removed() */
 	return TRUE;
@@ -5482,12 +5468,12 @@ download_remove(struct download *d)
 static void
 queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 {
-	GSList *sources, *iter;
+	pslist_t *sources, *iter;
 
 	file_info_check(fi);
 
 	sources = file_info_get_sources(fi);
-	for (iter = sources; iter; iter = g_slist_next(iter)) {
+	PSLIST_FOREACH(sources, iter) {
 		struct download *d = iter->data;
 
 		download_check(d);
@@ -5513,7 +5499,7 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 
 		download_remove(d);
 	}
-	gm_slist_free_null(&sources);
+	pslist_free_null(&sources);
 }
 
 
@@ -5525,7 +5511,7 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 static bool
 download_ignore_requested(struct download *d)
 {
-	enum ignore_val reason = IGNORE_FALSE;
+	ignore_val_t reason = IGNORE_FALSE;
 	fileinfo_t *fi;
 
 	download_check(d);
@@ -6569,7 +6555,7 @@ download_pickup_queued(void)
 	 */
 
 	for (i = 0; i < DHASH_SIZE; i++) {
-		GList *l;
+		plist_t *l;
 		int last_change;
 
 		if (download_queue_is_frozen())
@@ -6585,7 +6571,7 @@ download_pickup_queued(void)
 		l = dl_by_time.servers[i];
 		last_change = dl_by_time.change[i];
 
-		for (/* NOTHING */; NULL != l; l = g_list_next(l)) {
+		for (/* NOTHING */; NULL != l; l = plist_next(l)) {
 			struct dl_server *server = l->data;
 			list_iter_t *iter;
 			struct download *d;
@@ -6740,17 +6726,53 @@ download_pickup_queued(void)
  */
 void
 download_got_push_proxies(const struct guid *guid,
-	const gnet_host_vec_t *proxies)
+	const gnet_host_vec_t *proxies, bool g2)
 {
 	struct dl_server *server;
 	int i;
 	size_t added = 0;
+	bool g2_server;
 
 	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
 	g_assert(dl_server_valid(server));
+
+	/*
+	 * We can only keep push-proxies that are compatible with the protocol
+	 * supported by the server:
+	 *
+	 * - If we're handling proxies coming from a G2 query, and the server is
+	 *   not flagged as being a G2 server, flag it as G2 and discard any
+	 *   known push-proxies (which were necessarily Gnutella ultrapeers).
+	 *
+	 * - If we're handling proxies coming from a Gnutella query and the server
+	 *   is already flagged as a G2 server, don't update anything.
+	 */
+
+	g2_server = booleanize(server->attrs & DLS_A_G2_ONLY);
+
+	if (g2) {
+		if (!g2_server) {
+			if (GNET_PROPERTY(download_debug)) {
+				g_debug("%s(): flagging %s as a G2 host%s",
+					G_STRFUNC, server_host_info(server),
+					server->proxies != NULL ?
+						" and discarding known push-proxies" : "");
+			}
+			server->attrs |= DLS_A_G2_ONLY;
+		}
+	} else {
+		if (g2_server)
+			return;		/* Ignore Gnutella push-proxies for known G2 host */
+	}
+
+	/*
+	 * Always supersede the previously known push-proxies with the newest ones.
+	 */
+
+	pproxy_set_free_null(&server->proxies);
 
 	for (i = gnet_host_vec_count(proxies) - 1; i >= 0; i--) {
 		struct gnutella_host host;
@@ -6762,7 +6784,7 @@ download_got_push_proxies(const struct guid *guid,
 		port = gnet_host_get_port(&host);
 
 		if (
-			host_addr_equal(addr, server->key->addr) &&
+			host_addr_equiv(addr, server->key->addr) &&
 			port == server->key->port
 		)
 			continue;		/* We always try the server's own IP:port */
@@ -6775,7 +6797,7 @@ download_got_push_proxies(const struct guid *guid,
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("PUSH found %zu new push prox%s in query hit "
 				"for GUID %s at %s",
-				added, 1 == added ? "y" : "ies",
+				added, plural_y(added),
 				guid_hex_str(guid), server_host_info(server));
 		}
 		gnet_stats_inc_general(GNR_COLLECTED_PUSH_PROXIES);
@@ -7179,6 +7201,19 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 
+	/*
+	 * Harvest entropy each time we attempt to create a new download.
+	 */
+
+	entropy_harvest_many(file, strlen(file), VARLEN(size), VARLEN(addr),
+		VARLEN(port), VARLEN(file_info), VARLEN(stamp), VARLEN(guid),
+		VARLEN(sha1), VARLEN(tth), VARLEN(proxies), VARLEN(parq_id), NULL);
+
+	/*
+	 * If a file_info is supplied, its SHA1 must match the one we supply and
+	 * the TTH must also match when it is known.
+	 */
+
 	if (file_info != NULL) {
 		g_return_val_if_fail(!sha1 || sha1_eq(file_info->sha1, sha1), NULL);
 		if (file_info->tth != NULL) {
@@ -7248,6 +7283,16 @@ create_download(
 		guid = &blank_guid;
 	}
 	server = get_server(guid, addr, port, TRUE);
+
+	/*
+	 * Set the G2 flag if needed, which will be sticky for the server.
+	 */
+
+	if (SOCK_F_G2 & cflags) {
+		cflags &= ~SOCK_F_G2;		/* Don't propagate this further down */
+		server->attrs &= ~DLS_A_FAKE_G2;
+		server->attrs |= DLS_A_G2_ONLY;
+	}
 
 	g_assert(dl_server_valid(server));
 
@@ -7332,7 +7377,7 @@ create_download(
 	d->last_update = tm_time();
 	d->server = server;
 	d->server->refcnt++;
-	d->id = dl_random_guid_atom();
+	d->id = guid_unique_atom(dl_by_id, FALSE);
 	hikset_insert_key(dl_by_id, &d->id);
 
 	/*
@@ -7430,8 +7475,7 @@ create_download(
             g_message("forced SHA1 %s after %s byte%s "
 				"downloaded for %s",
 				sha1_base32(d->sha1), uint64_to_string(fi->done),
-				fi->done == 1 ? "" : "s",
-				download_basename(d));
+				plural(fi->done), download_basename(d));
 			download_by_sha1_add(d);
 			if (DOWNLOAD_IS_QUEUED(d)) {	/* file_info_got_sha1() can queue */
 				return d;
@@ -7517,7 +7561,7 @@ download_auto_new_common(const char *file_name,
 	uint32 flags)
 {
 	const char *reason;
-	enum ignore_val ign_reason;
+	ignore_val_t ign_reason;
 
 	/*
 	 * Make sure host is reacheable, especially if we come from the GUI,
@@ -7676,8 +7720,8 @@ download_index_changed(const host_addr_t addr, uint16 port,
 {
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
 	uint nfound = 0;
-	GSList *to_stop = NULL;
-	GSList *sl;
+	pslist_t *to_stop = NULL;
+	pslist_t *sl;
 	uint n;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
 
@@ -7717,7 +7761,7 @@ download_index_changed(const host_addr_t addr, uint16 port,
 				 */
 				g_message("stopping request for \"%s\": index changed",
 					download_basename(d));
-				to_stop = g_slist_prepend(to_stop, d);
+				to_stop = pslist_prepend(to_stop, d);
 				break;
 			case GTA_DL_RECEIVING:
 				/*
@@ -7742,13 +7786,13 @@ download_index_changed(const host_addr_t addr, uint16 port,
 		list_iter_free(&iter);
 	}
 
-	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(to_stop, sl) {
 		struct download *d = sl->data;
 		download_check(d);
 		download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
 			_("Stopped (Index changed)"));
 	}
-	gm_slist_free_null(&to_stop);
+	pslist_free_null(&to_stop);
 
 	/*
 	 * This is a sanity check: we should not have any duplicate request
@@ -7999,12 +8043,12 @@ download_orphan_new(const char *filename, filesize_t size,
 void
 download_free_removed(void)
 {
-	GSList *sl;
+	pslist_t *sl;
 
 	if (sl_removed == NULL)
 		return;
 
-	for (sl = sl_removed; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(sl_removed, sl) {
 		struct download *d = sl->data;
 
 		download_check(d);
@@ -8018,14 +8062,14 @@ download_free_removed(void)
 		download_free(&d);
 	}
 
-	gm_slist_free_null(&sl_removed);
+	pslist_free_null(&sl_removed);
 
-	for (sl = sl_removed_servers; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(sl_removed_servers, sl) {
 		struct dl_server *s = sl->data;
 		free_server(s);
 	}
 
-	gm_slist_free_null(&sl_removed_servers);
+	pslist_free_null(&sl_removed_servers);
 }
 
 /* ----------------------------------------- */
@@ -8327,7 +8371,7 @@ download_proxy_failed(struct download *d)
  */
 
 /**
- * Send an UDP push packet to specified host.
+ * Send a UDP push packet to specified host.
  *
  * @return TRUE on success.
  */
@@ -8338,10 +8382,9 @@ download_send_udp_push(
 	bool success = FALSE;
 	
 	if (host_is_valid(addr, port)) {
-		struct gnutella_node *n;
-				
-		n = node_udp_get_addr_port(addr, port);
-		if (n) {
+		gnutella_node_t *n = node_udp_get_addr_port(addr, port);
+
+		if (n != NULL) {
 			success = TRUE;
 			udp_send_msg(n, packet.data, packet.size);
 		}
@@ -8350,8 +8393,91 @@ download_send_udp_push(
 }
 
 /**
- * Send a push request to the target GUID, in order to request the push of
- * the file whose index is `file_id' there onto our local port `port'.
+ * Send a UDP push packet to specified G2 host.
+ *
+ * @return TRUE on success.
+ */
+static bool
+download_g2_send_udp_push(const pmsg_t *mb, host_addr_t addr, uint16 port)
+{
+	bool success = FALSE;
+
+	if (host_is_valid(addr, port)) {
+		gnutella_node_t *n = node_udp_g2_get_addr_port(addr, port);
+
+		if (n != NULL) {
+			success = TRUE;
+			g2_node_send(n, pmsg_clone(mb));
+		}
+	}
+	return success;
+}
+
+/**
+ * Send a push request to the target GUID, in order to request a remote
+ * connection from the host.
+ *
+ * We're very aggressive: we can send a PUSH via UDP to the host itself,
+ * as well as the 4 most recent push proxies when `udp' is set.
+ * We can also broadcast to the G2 nodes if `broadcast' is set.
+ *
+ * @returns TRUE if the request could be sent, FALSE if we don't have the route.
+ */
+static bool
+download_g2_send_push(struct download *d, const pmsg_t *mb,
+	bool udp, bool broadcast)
+{
+	bool success = FALSE;
+
+	download_check(d);
+
+	/* Pure luck: try to reach the remote host directly via UDP... */
+	if (udp) {
+		download_g2_send_udp_push(mb, download_addr(d), download_port(d));
+	}
+
+	if (udp && has_push_proxies(d)) {
+		sequence_t *seq = pproxy_set_sequence(d->server->proxies);
+		sequence_iter_t *iter = sequence_forward_iterator(seq);
+		int i = 0;
+
+		while (i < DOWNLOAD_MAX_UDP_PUSH && sequence_iter_has_next(iter)) {
+			gnet_host_t *host = sequence_iter_next(iter);
+
+			if (
+				download_g2_send_udp_push(mb,
+					gnet_host_get_addr(host), gnet_host_get_port(host))
+			) {
+				i++;
+			}
+		}
+		sequence_iterator_release(&iter);
+		sequence_release(&seq);
+		success = i > 0;
+	}
+
+	if (broadcast) {
+		const pslist_t *sl;
+
+		/*
+		 * Send the message to all the hubs since on G2 we cannot track
+		 * push routes at the leaf-node level.
+		 */
+
+		PSLIST_FOREACH(node_all_g2_nodes(), sl) {
+			const gnutella_node_t *n = sl->data;
+
+			g2_node_send(n, pmsg_clone(mb));
+			success = TRUE;
+		}
+	}
+
+	return success;
+}
+
+/**
+ * Send a push request to the target GUID, in order to request a connection
+ * from the remote host.
  *
  * We're very aggressive: we can send a PUSH via UDP to the host itself,
  * as well as the 4 most recent push proxies when `udp' is set.
@@ -8360,10 +8486,71 @@ download_send_udp_push(
  * @returns TRUE if the request could be sent, FALSE if we don't have the route.
  */
 static bool
+download_send_push(struct download *d, const struct array packet,
+	bool udp, bool broadcast)
+{
+	bool success = FALSE;
+
+	download_check(d);
+
+	/* Pure luck: try to reach the remote host directly via UDP... */
+	if (udp) {
+		download_send_udp_push(packet, download_addr(d), download_port(d));
+	}
+
+	if (udp && has_push_proxies(d)) {
+		sequence_t *seq = pproxy_set_sequence(d->server->proxies);
+		sequence_iter_t *iter = sequence_forward_iterator(seq);
+		int i = 0;
+
+		while (i < DOWNLOAD_MAX_UDP_PUSH && sequence_iter_has_next(iter)) {
+			gnet_host_t *host = sequence_iter_next(iter);
+
+			if (
+				download_send_udp_push(packet,
+					gnet_host_get_addr(host), gnet_host_get_port(host))
+			) {
+				i++;
+			}
+		}
+		sequence_iterator_release(&iter);
+		sequence_release(&seq);
+		success = i > 0;
+	}
+
+	if (broadcast) {
+		pslist_t *nodes = route_towards_guid(download_guid(d));
+
+		if (nodes != NULL) {
+			/*
+			 * Send the message to all the nodes that can route our
+			 * request back to the source of the query hit.
+			 */
+
+			gmsg_sendto_all(nodes, packet.data, packet.size);
+			pslist_free(nodes);
+			success = TRUE;
+		}
+	}
+
+	return success;
+}
+
+/**
+ * Send a push request to the target GUID, in order to request a remote
+ * connection from the host.
+ *
+ * We're very aggressive: we can send a PUSH via UDP to the host itself,
+ * as well as the 4 most recent push proxies when `udp' is set.
+ * We can also broadcast to the proper routes if `broadcast' is set.
+ *
+ * @returns TRUE if the request could be sent, FALSE if we don't have the route.
+ */
+static bool
 download_send_push_request(struct download *d, bool udp, bool broadcast)
 {
-	struct array packet;
 	uint16 port;
+	bool success = FALSE;
 
 	download_check(d);
 
@@ -8374,66 +8561,44 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	if (0 == port)
 		return FALSE;
 
-	packet = build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
+	if (download_is_g2(d)) {
+		pmsg_t *mb = g2_build_push(download_guid(d));
+
+		if (NULL == mb)
+			goto done;
+
+		success = download_g2_send_push(d, mb, udp, broadcast);
+		pmsg_free(mb);
+	} else {
+		const struct array packet =
+			build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
 				download_guid(d), listen_addr(), listen_addr6(), port,
 				d->record_index, tls_enabled());
 
-	if (packet.data) {
-		bool success = FALSE;
+		if (NULL == packet.data)
+			goto done;
 
-		/* Pure luck: try to reach the remote host directly via UDP... */
-		if (udp) {
-			download_send_udp_push(packet, download_addr(d), download_port(d));
-		}
-
-		if (udp && has_push_proxies(d)) {
-			sequence_t *seq = pproxy_set_sequence(d->server->proxies);
-			sequence_iter_t *iter = sequence_forward_iterator(seq);
-			int i = 0;
-
-			while (i < DOWNLOAD_MAX_UDP_PUSH && sequence_iter_has_next(iter)) {
-				gnet_host_t *host = sequence_iter_next(iter);
-
-				if (
-					download_send_udp_push(packet,
-						gnet_host_get_addr(host), gnet_host_get_port(host))
-				) {
-					i++;
-				}
-			}
-			sequence_iterator_release(&iter);
-			sequence_release(&seq);
-			success = i > 0;
-		}
-
-		if (broadcast) {
-			GSList *nodes = route_towards_guid(download_guid(d));
-
-			if (nodes) {
-				/*
-				 * Send the message to all the nodes that can route our
-				 * request back to the source of the query hit.
-				 */
-
-				gmsg_sendto_all(nodes, packet.data, packet.size);
-				g_slist_free(nodes);
-				success = TRUE;
-			}
-		}
-		if (success && download_is_running(d)) {
-			d->last_update = tm_time();
-		}
-		return success;
-	} else {
-		if (GNET_PROPERTY(download_debug)) {
-			g_warning("failed to send PUSH (udp=%s, gnet=%s) "
-				"for %s (index=%lu)",
-				udp ? "y" : "n", broadcast ? "y" : "n",
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-					(ulong) d->record_index);
-		}
-		return FALSE;
+		success = download_send_push(d, packet, udp, broadcast);
 	}
+
+	if (success && download_is_running(d)) {
+		d->last_update = tm_time();
+	}
+
+	/* FALL THROUGH */
+
+done:
+	if (!success && GNET_PROPERTY(download_debug)) {
+		g_warning("failed to send %sPUSH (udp=%s, %s=%s) "
+			"for %s (index=%lu)",
+			download_is_g2(d) ? "G2 " : "",
+			udp ? "y" : "n",
+			download_is_g2(d) ? "g2" : "gnet", broadcast ? "y" : "n",
+			host_addr_port_to_string(download_addr(d), download_port(d)),
+				(ulong) d->record_index);
+	}
+
+	return success;
 }
 
 /**
@@ -8704,6 +8869,7 @@ download_start_reading(void *o)
 
 		tm_now(&now);
 		elapsed = tm_elapsed_ms(&now, &d->header_sent);
+		entropy_harvest_single(VARLEN(elapsed));
 
 		g_assert(dl_server_valid(server));
 
@@ -8782,7 +8948,7 @@ download_backout(struct download *d)
 static bool
 download_overlap_check(struct download *d)
 {
-	struct file_object *fo;
+	file_object_t *fo;
 	fileinfo_t *fi;
 	bool success = FALSE;
 	char *data = NULL;
@@ -8794,27 +8960,18 @@ download_overlap_check(struct download *d)
 	g_assert(d->buffers->held >= d->chunk.overlap);
 
 	fo = file_object_open(fi->pathname, O_RDONLY);
-	if (!fo) {
-		int fd = file_absolute_open(fi->pathname, O_RDONLY, 0);
-		if (fd >= 0) {
-			fo = file_object_new(fd, fi->pathname, O_RDONLY);
-		} else {
-			const char *error = g_strerror(errno);
-			g_warning("cannot check resuming for \"%s\": %m",
-				filepath_basename(fi->pathname));
-			download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"),
-				error);
-		}
-	}
-
-	if (!fo) {
+	if (NULL == fo) {
+		const char *error = g_strerror(errno);
+		g_warning("cannot check resuming for \"%s\": %m",
+			filepath_basename(fi->pathname));
+		download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"), error);
 		goto out;
 	}
 
 	{
 		filestat_t sb;
 
-		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
+		if (-1 == file_object_fstat(fo, &sb)) {
 			/* Should never happen */
 			const char *error = g_strerror(errno);
 			g_warning("cannot stat opened \"%s\": %m", fi->pathname);
@@ -8991,7 +9148,7 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 		if (GNET_PROPERTY(download_debug)) g_debug(
 			"server %s gave us %s more byte%s than requested for \"%s\"",
 			download_host_info(d), uint64_to_string(extra),
-			extra == 1 ? "" : "s", download_basename(d));
+			plural(extra), download_basename(d));
 
 		buffers_check_held(d);
 		buffers_strip_trailing(d, extra);
@@ -9005,8 +9162,7 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 		*trimmed = FALSE;
 	}
 
-
-	/**
+	/*
 	 * writev() and others do not necessarily flush the complete buffer
 	 * to disk, especially if the configured buffer size is large. As
 	 * this is not handled gracefully i.e., the non-flushed buffer content
@@ -9020,6 +9176,8 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 	written = 0;
 	old_held = download_buffered(d);
 	old_pos = d->pos;
+
+	entropy_harvest_small(VARLEN(d), VARLEN(old_held), VARLEN(old_pos), NULL);
 
 	do {
 		iovec_t *iov;
@@ -9155,6 +9313,8 @@ download_continue(struct download *d, bool trimmed)
 	const struct sha1 *sha1 = NULL;
 
 	download_check(d);
+
+	entropy_harvest_single(VARLEN(d));
 
 	/*
 	 * Determine whether we can use this download for a follow-up request if
@@ -9532,7 +9692,7 @@ download_moved_permanently(struct download *d, header_t *header)
 	 * If ip/port changed, accept the new ones but warn.
 	 */
 
-	if (!host_addr_equal(info.addr, addr) || info.port != port) {
+	if (!host_addr_equiv(info.addr, addr) || info.port != port) {
 		g_warning("server %s (file \"%s\") redirecting us to alien %s",
 			host_addr_port_to_string(addr, port), download_basename(d), buf);
     }
@@ -10084,7 +10244,7 @@ check_xhost(struct download *d, const header_t *header)
 	 * the server knew its real IP address.
 	 */
 
-	if (!host_addr_equal(addr, download_addr(d)) || port != download_port(d))
+	if (!host_addr_equiv(addr, download_addr(d)) || port != download_port(d))
 		download_redirect_to_server(d, addr, port);
 
 	/*
@@ -10444,7 +10604,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 			string_to_port_host_addr(tok, NULL, &port, &addr)
 		) {
 			if (!is_private_addr(addr) && host_addr_is_routable(addr)) {
-				if (!host_addr_equal(key->addr, addr) || key->port != port) {
+				if (!host_addr_equiv(key->addr, addr) || key->port != port) {
 					change_server_addr(server, addr, port);
 				}
 				download_found_server(&guid, addr, port);
@@ -11041,7 +11201,7 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 
 		if (
 			port == download_port(d) &&
-			host_addr_equal(addr, download_addr(d))
+			host_addr_equiv(addr, download_addr(d))
 		) {
 			found = TRUE;
 			break;
@@ -11079,7 +11239,7 @@ static void
 download_detect_tls_support(struct download *d, header_t *header)
 {
 	download_check(d);
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 
 	if (d->got_giv)
 		return;
@@ -11102,35 +11262,8 @@ download_detect_tls_support(struct download *d, header_t *header)
  *
  * @return the created file object, NULL if file could not be opened.
  */
-struct file_object *
-download_open(const char * const pathname)
-{
-	struct file_object *fo;
-
-	/*
-	 * Try to reusing existing file descriptor attached to the path.
-	 */
-
-	fo = file_object_open(pathname, O_WRONLY);
-
-	if (!fo) {
-		int fd;
-
-		/*
-		 * Since there was no file object initially, a new one is created
-		 * for reading AND writing, in order to allow sharing the file
-		 * descriptor with uploading as well (PFSP support).  A request through
-		 * file_object_open() for O_WRONLY or O_RDONLY will still return the
-		 * same file descriptor.
-		 */
-
-		fd = file_open_missing(pathname, O_RDWR);
-		if (fd >= 0)
-			fo = file_object_new(fd, pathname, O_RDWR);
-	}
-
-	return fo;
-}
+#define download_open(p) \
+	file_object_open((p), O_WRONLY)
 
 /**
  * We discovered the total size of the resource.
@@ -11229,12 +11362,29 @@ download_request(struct download *d, header_t *header, bool ok)
 		return;
 	}
 
-	if (d->flags & DL_F_FAKE_G2) {
+	/*
+	 * The DL_F_FAKE_G2 was set when we decided to attempt advertising as
+	 * a G2 node.  Since GTKG supports both Gnutella and G2, we're not really
+	 * faking anything, it's just that we decide to "appear" as a G2 node to
+	 * be able to correctly download from another G2-only servent.
+	 *
+	 * (The Gnutella and G2 protocols are just "search engines", file exchange
+	 * is HTTP, which could not care less about the way the resource location
+	 * was obtained.)
+	 *
+	 * If we get here, it means advertising as G2 worked, hence the remote side
+	 * must be flagged as a G2 host.  This information will be persisted in
+	 * the download magnet, as well as in the G2 cache (to be able to handle
+	 * other resources on the same server when this resource is fully fetched).
+	 */
+
+	if ((d->flags & DL_F_FAKE_G2) || (d->server->attrs & DLS_A_FAKE_G2)) {
 		if (GNET_PROPERTY(download_debug))
 			g_debug("server %s responded well to G2 faking for \"%s\"",
 				download_host_info(d), download_basename(d));
 
 		d->flags &= ~DL_F_FAKE_G2;
+		d->server->attrs &= ~DLS_A_FAKE_G2;
 		d->server->attrs |= DLS_A_G2_ONLY;
 
 		if (download_port(d) != 0 && is_host_addr(download_addr(d))) {
@@ -11447,7 +11597,7 @@ http_version_nofix:
 	else {
 		uint count = header_num_lines(header);
 		str_bprintf(short_read, sizeof short_read,
-			"[short %u line%s header] ", count, count == 1 ? "" : "s");
+			"[short %u line%s header] ", count, plural(count));
 
 		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
 	}
@@ -11877,7 +12027,8 @@ http_version_nofix:
 			case 403:
 				if (is_strprefix(ack_message, "Network Disabled")) {
 					if (GNET_PROPERTY(enable_hackarounds)) {
-						d->server->attrs |= DLS_A_FAKE_G2;
+						if (0 == (d->server->attrs & DLS_A_G2_ONLY))
+							d->server->attrs |= DLS_A_FAKE_G2;
 					}
 					d->server->attrs |= DLS_A_G2_ONLY;
 					hold = MAX(delay, 320);				/* To be safe */
@@ -11901,8 +12052,10 @@ http_version_nofix:
 			case 503:	/* Shareaza >= 2.2.3.0 misunderstands everything */
 				fixed_ack_code = 403;				/* Fix their error */
 				hold = MAX(delay, 7260);			/* To be safe */
-				if (GNET_PROPERTY(enable_hackarounds))
-					d->server->attrs |= DLS_A_FAKE_G2;
+				if (GNET_PROPERTY(enable_hackarounds)) {
+					if (0 == (d->server->attrs & DLS_A_G2_ONLY))
+						d->server->attrs |= DLS_A_FAKE_G2;
+				}
 				d->server->attrs |= DLS_A_G2_ONLY;
 				if (download_port(d) != 0 && is_host_addr(download_addr(d))) {
 					g2_cache_insert(download_addr(d), download_port(d));
@@ -12267,6 +12420,29 @@ http_version_nofix:
 			flags |= BH_DL_CHUNKED;
 		}
 
+		/*
+		 * Are we getting proper query hits?
+		 */
+
+		buf = header_get(header, "Content-Type");		/* Mandatory */
+		if (buf != NULL) {
+			if (strtok_case_has(buf, ",", APP_GNUTELLA)) {
+				/* OK, nothing to do */
+			} else if (strtok_case_has(buf, ",", APP_G2)) {
+				flags |= BH_DL_G2;
+			} else {
+				if (GNET_PROPERTY(download_debug)) {
+					g_debug("unknown Content-Type \"%s\" from %s",
+						buf, download_host_info(d));
+				}
+				download_stop(d, GTA_DL_ERROR, _("Unexpected Content-Type"));
+				return;
+			}
+		} else {
+			download_stop(d, GTA_DL_ERROR, _("No Content-Type"));
+			return;
+		}
+
 		if (
 			!browse_host_dl_receive(d->browse, &host, &d->socket->wio,
 				download_vendor_str(d), flags)
@@ -12459,7 +12635,7 @@ rx_stack_setup:
 	}
 
 	d->out_file = download_open(fi->pathname);
-	if (d->out_file) {
+	if (d->out_file != NULL) {
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->chunk.start)) {
 			g_message("file '%s' changed size (now %s, but was %s)",
@@ -12473,11 +12649,9 @@ rx_stack_setup:
 		download_stop(d, GTA_DL_ERROR, _("Cannot resume: file gone"));
 		return;
 	} else {
-		int fd = file_create(fi->pathname, O_RDWR, DOWNLOAD_FILE_MODE);
-		if (fd >= 0) {
-			d->out_file = file_object_new(fd, fi->pathname, O_RDWR);
-		}
-		if (!d->out_file) {
+		d->out_file =
+			file_object_create(fi->pathname, O_WRONLY, DOWNLOAD_FILE_MODE);
+		if (NULL == d->out_file) {
 			const char *error = g_strerror(errno);
 			download_stop(d, GTA_DL_ERROR, _("Cannot write into file: %s"),
 				error);
@@ -13114,7 +13288,7 @@ picked:
 			? d->server->hostname
 			: host_addr_port_to_string(download_addr(d), download_port(d)));
 
-	if (d->server->attrs & DLS_A_FAKE_G2) {
+	if (d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) {
 		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 			"X-Features: g2/1.0\r\n");
 	} else if (!d->keep_alive) {		/* Not a follow-up HTTP request */
@@ -13137,6 +13311,8 @@ picked:
 
 	if (d->flags & DL_F_BROWSE) {
 		rw += str_bprintf(&request_buf[rw], maxsize - rw,
+			(d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) ?
+				"Accept: application/x-gnutella2\r\n" :
 				"Accept: application/x-gnutella-packets\r\n");
 	}
 	if (d->flags & DL_F_THEX) {
@@ -13215,7 +13391,8 @@ picked:
 
 	if (
 		GNET_PROPERTY(is_firewalled) &&
-		!(d->server->attrs & (DLS_A_MINIMAL_HTTP | DLS_A_FAKE_G2))
+		!(d->server->attrs &
+			(DLS_A_MINIMAL_HTTP | DLS_A_G2_ONLY | DLS_A_FAKE_G2))
 	) {
 
 		rw += node_http_fw_node_info_add(
@@ -13307,7 +13484,7 @@ picked:
 
 		if (wmesh) {
 			g_assert(sha1);
-			if (d->server->attrs & DLS_A_FAKE_G2) {
+			if (d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) {
 				rw += str_bprintf(&request_buf[rw], maxsize - rw,
 					"X-Content-URN: urn:sha1:%s\r\n",
 					sha1_base32(sha1));
@@ -13388,13 +13565,16 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_debug("----Sent Request (%s%s%s%s%s%s) to %s (%u bytes):",
+		g_debug("----Sent Request (%s%s%s%s%s%s%s) to %s (%u bytes):",
 			download_pipelining(d) ? "pipelined " : "",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
-			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
+			DLS_A_G2_ONLY ==
+				(d->server->attrs & (DLS_A_FAKE_G2 | DLS_A_G2_ONLY)) ?
+					", g2" : "",
+			(d->server->attrs & DLS_A_FAKE_G2) ? ", fake-g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(uint) rw);
 		dump_string(stderr, request_buf, rw, "----");
@@ -13411,14 +13591,30 @@ void
 download_connected(struct download *d)
 {
 	struct gnutella_socket *s;
+	time_t now = tm_time();
+	struct dl_server *server;
 
 	download_check(d);
-	dl_server_valid(d->server);
+	g_assert(dl_server_valid(d->server));
 	socket_check(d->socket);
 	g_assert(!download_pipelining(d));		/* Just got connected */
 
-	d->server->last_connect = tm_time();
+	/*
+	 * Entropy harvesting...
+	 */
+
+	server = d->server;
 	s = d->socket;
+
+	{
+		time_delta_t e;		/* elapsed time since last connection to server */
+		host_addr_t addr = server->key->addr;
+
+		e = delta_time(now, server->last_connect);
+		entropy_harvest_small(VARLEN(s->port), VARLEN(addr), VARLEN(e), NULL);
+	}
+
+	server->last_connect = now;
 	socket_nodelay(s, TRUE);
 
 	/*
@@ -13426,12 +13622,12 @@ download_connected(struct download *d)
 	 */
 
 	if (d->flags & DL_F_DNS_LOOKUP) {
-		if (!host_addr_equal(download_addr(d), s->addr)) {
+		if (!host_addr_equiv(download_addr(d), s->addr)) {
 			if (GNET_PROPERTY(download_debug)) {
 				g_debug("DNS lookup revealed server %s moved to %s",
-					server_host_info(d->server), host_addr_to_string(s->addr));
+					server_host_info(server), host_addr_to_string(s->addr));
 			}
-			change_server_addr(d->server, s->addr, download_port(d));
+			change_server_addr(server, s->addr, download_port(d));
 		}
 	}
 
@@ -13470,9 +13666,9 @@ download_push_ready(struct download *d, getline_t *empty)
  * @returns the selected download, or NULL if we could not find one.
  */
 static struct download *
-select_push_download(GSList *servers)
+select_push_download(pslist_t *servers)
 {
-	GSList *sl;
+	pslist_t *sl;
 	time_t now = tm_time();
 	struct download *d = NULL;
 	int found = 0;		/* No a boolean to trace where it was found from */
@@ -13487,7 +13683,7 @@ select_push_download(GSList *servers)
 	 *		--RAM, 19/07/2003
 	 */
 
-	for (sl = servers; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(servers, sl) {
 		struct dl_server *server = sl->data;
 		list_t *prepare;
 		list_iter_t *iter;
@@ -13618,7 +13814,7 @@ select_push_download(GSList *servers)
 struct server_select {
 	const struct guid *guid;	/* The GUID that must match */
 	host_addr_t addr;			/* The IP address that must match */
-	GSList *servers;			/* List of servers matching criteria */
+	pslist_t *servers;			/* List of servers matching criteria */
 	int count;					/* Amount of servers inserted */
 };
 
@@ -13641,9 +13837,9 @@ select_matching_servers(void *value, void *user)
 
 	if (
 		guid_eq(skey->guid, ctx->guid) ||
-		host_addr_equal(skey->addr, ctx->addr)
+		host_addr_equiv(skey->addr, ctx->addr)
 	) {
-		ctx->servers = g_slist_prepend(ctx->servers, server);
+		ctx->servers = pslist_prepend(ctx->servers, server);
 		ctx->count++;
 	}
 }
@@ -13655,9 +13851,9 @@ select_matching_servers(void *value, void *user)
  * @return a list a servers matching, with `count' being updated with the
  * amount of matching servers we found.
 
- * @note	It is up to the caller to g_slist_free() the returned list.
+ * @note	It is up to the caller to pslist_free() the returned list.
  */
-static GSList *
+static pslist_t *
 select_servers(const struct guid *guid, const host_addr_t addr, int *count)
 {
 	struct server_select ctx;
@@ -13689,11 +13885,11 @@ select_servers(const struct guid *guid, const host_addr_t addr, int *count)
  * server kept is the one with the non-blank GUID and it is set with the
  * proper address (taken from the line with the blank GUID).
  *
- * @return a new GSList with the blank GUID removed, or the initial list
+ * @return a new pslist_t with the blank GUID removed, or the initial list
  * if we could not perform the merging.
  */
-static GSList *
-merge_push_servers(GSList *servers, const struct guid *guid)
+static pslist_t *
+merge_push_servers(pslist_t *servers, const struct guid *guid)
 {
 	struct dl_server *serv[2];
 	struct dl_server *duplicate;	/* blank GUID */
@@ -13701,10 +13897,10 @@ merge_push_servers(GSList *servers, const struct guid *guid)
 	host_addr_t addr;
 	uint16 port;
 
-	g_assert(2 == g_slist_length(servers));
+	g_assert(2 == pslist_length(servers));
 
-	serv[0] = g_slist_nth_data(servers, 0);
-	serv[1] = g_slist_nth_data(servers, 1);
+	serv[0] = pslist_nth_data(servers, 0);
+	serv[1] = pslist_nth_data(servers, 1);
 
 	if (serv[0] == NULL || serv[1] == NULL)
 		return servers;
@@ -13748,9 +13944,9 @@ merge_push_servers(GSList *servers, const struct guid *guid)
 
 	download_reparent_all(duplicate, server);
 	change_server_addr(server, addr, port);
-	g_slist_free(servers);
+	pslist_free(servers);
 
-	return g_slist_prepend(NULL, server);
+	return pslist_prepend(NULL, server);
 }
 
 /**
@@ -13758,14 +13954,14 @@ merge_push_servers(GSList *servers, const struct guid *guid)
  *
  * @return new list of (hopefully merged) servers.
  */
-static GSList *
-merge_servers(GSList *servers, const struct guid *guid)
+static pslist_t *
+merge_servers(pslist_t *servers, const struct guid *guid)
 {
-	GSList *sided = NULL;
+	pslist_t *sided = NULL;
 
-	while (g_slist_length(servers) >= 2) {
-		GSList *sl;
-		GSList *tuple = NULL;
+	while (pslist_length(servers) >= 2) {
+		pslist_t *sl;
+		pslist_t *tuple = NULL;
 		struct dl_server *non_blank = NULL;
 
 		/*
@@ -13773,12 +13969,12 @@ merge_servers(GSList *servers, const struct guid *guid)
 		 * then no further merging is possible.
 		 */
 
-		for (sl = servers; sl; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(servers, sl) {
 			struct dl_server *serv = sl->data;
 
 			if (!guid_is_blank(serv->key->guid)) {
 				non_blank = serv;
-				servers = g_slist_remove(servers, non_blank);
+				servers = pslist_remove(servers, non_blank);
 				break;
 			}
 		}
@@ -13792,16 +13988,16 @@ merge_servers(GSList *servers, const struct guid *guid)
 		 */
 
 		tuple = servers;
-		servers = g_slist_remove_link(servers, servers);
-		tuple = g_slist_prepend(tuple, non_blank);
+		servers = pslist_remove_link(servers, servers);
+		tuple = pslist_prepend(tuple, non_blank);
 
-		g_assert(2 == g_slist_length(tuple));
+		g_assert(2 == pslist_length(tuple));
 
 		tuple = merge_push_servers(tuple, guid);
 
-		if (1 == g_slist_length(tuple)) {
-			servers = g_slist_prepend(servers, tuple->data);
-			g_slist_free(tuple);
+		if (1 == pslist_length(tuple)) {
+			servers = pslist_prepend(servers, tuple->data);
+			pslist_free(tuple);
 			continue;
 		}
 
@@ -13812,26 +14008,32 @@ merge_servers(GSList *servers, const struct guid *guid)
 		 * the other one to re-inject it later.
 		 */
 
-		g_assert(2 == g_slist_length(tuple));
+		g_assert(2 == pslist_length(tuple));
 
-		tuple = g_slist_remove(tuple, non_blank);
+		tuple = pslist_remove(tuple, non_blank);
 
-		g_assert(1 == g_slist_length(tuple));
+		g_assert(1 == pslist_length(tuple));
 
-		sided = g_slist_prepend(sided, tuple->data);
-		g_slist_free(tuple);
-		servers = g_slist_prepend(servers, non_blank);
+		sided = pslist_prepend(sided, tuple->data);
+		pslist_free(tuple);
+		servers = pslist_prepend(servers, non_blank);
 	}
 
 	/*
 	 * Bring back the un-mergeable servers we may have put aside.
 	 */
 
-	return g_slist_concat(servers, sided);
+	return pslist_concat(servers, sided);
 }
 
 /**
- * @return FALSE on failure, TRUE if the GIV was successfully parsed.
+ * Parse a GIV (Gnutella push callback) or PUSH (G2 push callback) line.
+ *
+ * @param line		the GIV or PUSH line we got
+ * @param hex_guid	array of 33 bytes where the hexadecimal GUID is extracted
+ * @param size		the length of the hex_guid buffer
+ *
+ * @return FALSE on failure, TRUE if the GIV / PUSH was successfully parsed.
  */
 static bool
 parse_giv(const char *line, char *hex_guid, size_t size)
@@ -13840,21 +14042,48 @@ parse_giv(const char *line, char *hex_guid, size_t size)
 	const char *endptr;
 	uint i;
 	int error;
+	bool g2 = FALSE;			/* Assume it's a Gnutella GIV line */
 
 	g_return_val_if_fail(line, FALSE);
 	g_return_val_if_fail(hex_guid, FALSE);
 	g_return_val_if_fail(size > hex_guid_len, FALSE);
 
 	endptr = is_strprefix(line, "GIV ");
-	if (!endptr)
-		return FALSE;
+	if (NULL == endptr) {
+		endptr = is_strprefix(line, "PUSH ");
+		if (NULL == endptr)
+			return FALSE;
+		g2 = TRUE;				/* A G2 PUSH line */
+	}
 
-	/* A file index must be given but we don't care about its value. */
-	(void) parse_uint32(endptr, &endptr, 10, &error);
-	if (error || ':' != *endptr)
-		return FALSE;
+	/*
+	 * A Gnutella GIV line has the following format:
+	 *
+	 *   GIV <index>:<hexadecimal GUID>/\n\n
+	 *
+	 * A G2 PUSH line has the following format:
+	 *
+	 *   PUSH guid:<hexadecimal GUID>\r\n\r\n
+	 */
 
-	endptr++;
+	if (g2) {
+		/* Skip the guid: part */
+		endptr = skip_ascii_spaces(endptr);
+		endptr = is_strprefix(endptr, "guid:");
+		if (NULL == endptr)
+			return FALSE;
+	} else {
+		/* A file index must be given but we don't care about its value. */
+		(void) parse_uint32(endptr, &endptr, 10, &error);
+		if (error || ':' != *endptr)
+			return FALSE;
+		endptr++;			/* Skip the ':' separator */
+	}
+
+	/*
+	 * Now extract the 32 bytes of the hexadecimal GUID.
+	 */
+
 	for (i = 0; i < hex_guid_len; i++) {
 		char c = *endptr++;
 
@@ -13864,14 +14093,14 @@ parse_giv(const char *line, char *hex_guid, size_t size)
 	}
 	hex_guid[i] = '\0';
 
-	return '/' == *endptr;
+	return (g2 ? '\0' : '/') == *endptr;
 }
 
 /**
  * Initiate download on the remotely initiated connection.
  *
- * This is called when an incoming "GIV" request is received in answer to
- * some of our pushes.
+ * This is called when an incoming "GIV" or "PUSH" request is received in
+ * answer to some of our pushes.
  */
 void
 download_push_ack(struct gnutella_socket *s)
@@ -13880,7 +14109,7 @@ download_push_ack(struct gnutella_socket *s)
 	const char *giv;
 	char hex_guid[33];			/* The hexadecimal GUID */
 	struct guid guid;			/* The decoded (binary) GUID */
-	GSList *servers;			/* Potential targets for the download */
+	pslist_t *servers;			/* Potential targets for the download */
 	int count;					/* Amount of potential targets found */
 
 	socket_check(s);
@@ -13919,7 +14148,7 @@ download_push_ack(struct gnutella_socket *s)
 
 	/*
 	 * To find out which download this is, we have to parse the incoming
-	 * GIV request, which is stored in "s->getline".
+	 * GIV / PUSH request, which is stored in "s->getline".
 	 */
 
 	if (!parse_giv(giv, hex_guid, sizeof hex_guid)) {
@@ -13933,8 +14162,8 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	if (!hex_to_guid(hex_guid, &guid)) {
-		g_warning("discarding GIV with malformed GUID %s from %s",
-			hex_guid, host_addr_to_string(s->addr));
+		g_warning("discarding GIV \"%s\" with malformed GUID %s from %s",
+			giv, hex_guid, host_addr_to_string(s->addr));
 		goto discard;
 	}
 
@@ -13961,13 +14190,13 @@ download_push_ack(struct gnutella_socket *s)
 		break;
 	default:
 		if (GNET_PROPERTY(download_debug)) {
-			GSList *sl;
+			pslist_t *sl;
 			uint i;
 
 			g_warning("found %d possible targets for GIV from GUID %s at %s",
 				count, hex_guid, host_addr_to_string(s->addr));
 
-			for (sl = servers, i = 0; sl; sl = g_slist_next(sl), i++) {
+			for (sl = servers, i = 0; sl; sl = pslist_next(sl), i++) {
 				struct dl_server *serv = sl->data;
 				g_debug("  #%u is GUID %s at %s <%s>",
 					i + 1, guid_hex_str(serv->key->guid),
@@ -13983,7 +14212,7 @@ download_push_ack(struct gnutella_socket *s)
 	}
 
 	d = select_push_download(servers);
-	g_slist_free(servers);
+	pslist_free(servers);
 
 	if (d) {
 		download_check(d);
@@ -14031,17 +14260,21 @@ download_push_ack(struct gnutella_socket *s)
 
 	g_assert(!host_addr_is_unspecified(s->addr));
 
-	if (!host_addr_equal(download_addr(d), s->addr))
+	if (!host_addr_equiv(download_addr(d), s->addr))
 		change_server_addr(d->server, s->addr, download_port(d));
 
 	download_found_server(&guid, s->addr, download_port(d));
 
-	g_assert(host_addr_equal(download_addr(d), s->addr));
+	g_assert(host_addr_equiv(download_addr(d), s->addr));
 
 	fi_src_info_changed(d);
 
 	/*
-	 * Now we have to read that trailing "\n" which comes right afterwards.
+	 * Now we have to read that trailing "\n" (for Gnutella GIV) or "\r\n"
+	 * (for G2 PUSH) which comes right afterwards.
+	 *
+	 * We can use the same code because getline_read() parses lines ending with
+	 * a single '\n' and will swallow any preceding '\r' character.
 	 */
 
 	g_assert(NULL == d->io_opaque);
@@ -14162,6 +14395,7 @@ download_build_magnet(const struct download *d)
 		}
 		magnet_set_dht(magnet,
 			booleanize(d->server->attrs & DLS_A_DHT_PUBLISH));
+		magnet_set_g2(magnet, booleanize(d->server->attrs & DLS_A_G2_ONLY));
 		magnet_add_source_by_url(magnet, dl_url);
 		G_FREE_NULL(dl_url);
 		url = magnet_to_string(magnet);
@@ -14317,7 +14551,7 @@ download_retrieve_magnets(FILE *f)
 
 				if (GNET_PROPERTY(download_debug)) {
 					g_debug("created %d download%s from %s",
-						created, created == 1 ? "" : "s", buffer);
+						created, plural(created), buffer);
 				}
 			} else {
 				g_warning("%s, line %u: Ignored unknown item",
@@ -14622,7 +14856,7 @@ download_moved_with_bad_sha1(struct download *d)
 	 * If it was a faked download or has a bad bitprint, we cannot resume.
 	 */
 
-	if (d->file_info && fi_has_bad_bitprint(d->file_info)) {
+	if (fi_has_bad_bitprint(d->file_info)) {
 		g_warning("SHA1 mismatch for \"%s\" but TTH was good, cannot restart",
 			download_basename(d));
 		goto pause;
@@ -14679,6 +14913,8 @@ download_move(struct download *d, const char *dir, const char *ext)
 	 */
 
 	name = file_info_readable_filename(fi);
+
+	entropy_harvest_many(VARLEN(d), name, strlen(name), VARLEN(fi), NULL);
 
 	/*
 	 * If the target directory is the same as the source directory, we'll
@@ -14815,6 +15051,9 @@ download_move_done(struct download *d, const char *pathname, uint elapsed)
 	download_check(d);
 	g_assert(d->status == GTA_DL_MOVING);
 
+	entropy_harvest_many(VARLEN(d), pathname, strlen(pathname),
+		VARLEN(elapsed), NULL);
+
 	fi = d->file_info;
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
@@ -14905,7 +15144,7 @@ download_verify_sha1_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	download_set_status(d, GTA_DL_VERIFYING);
-	gnet_stats_inc_general(GRN_SHA1_VERIFICATIONS);
+	gnet_stats_inc_general(GNR_SHA1_VERIFICATIONS);
 }
 
 /**
@@ -14962,6 +15201,13 @@ download_verify_sha1_done(struct download *d,
 
 	fi = d->file_info;
 	file_info_check(fi);
+
+	entropy_harvest_many(VARLEN(elapsed), PTRLEN(sha1),
+		/* include the TTH value if not NULL, otherwise the download variable */
+		fi->tth != NULL ? (void *) fi->tth : (void *) &d,
+		fi->tth != NULL ? sizeof *fi->tth : sizeof d,
+		NULL);
+
 	fi->cha1 = atom_sha1_get(sha1);
 	fi->vrfy_elapsed = elapsed;
 	fi->vrfy_hashed = fi->size;
@@ -15077,6 +15323,8 @@ download_verify_sha1(struct download *d)
 	g_assert(!(d->flags & DL_F_SUSPENDED));
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
+	entropy_harvest_single(VARLEN(d));
+
 	if (FI_F_VERIFYING & fi->flags)	/* Already verifying */
 		return;
 
@@ -15132,7 +15380,7 @@ download_verify_tigertree_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	download_set_status(d, GTA_DL_VERIFYING);
-	gnet_stats_inc_general(GRN_TTH_VERIFICATIONS);
+	gnet_stats_inc_general(GNR_TTH_VERIFICATIONS);
 }
 
 /**
@@ -15176,6 +15424,8 @@ download_tigertree_sweep(struct download *d,
 			filesize_to_string(download_filesize(d)),
 			uint64_to_string(fi->tigertree.slice_size));
 	}
+
+	entropy_harvest_many(VARLEN(d), PTRLEN(leaves), VARLEN(num_leaves), NULL);
 
 	if (num_leaves > fi->tigertree.num_leaves) {
 		size_t dst;
@@ -15222,12 +15472,12 @@ download_tigertree_sweep(struct download *d,
 	if (bad_slices > 0) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_warning("TTH tree sweep: %zu/%zu bad slice%s",
-				bad_slices, num_leaves, 1 == bad_slices ? "" : "s");
+				bad_slices, num_leaves, plural(bad_slices));
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH tree sweep: all %zu slice%s okay",
-				num_leaves, 1 == num_leaves ? "" : "s");
+				num_leaves, plural(num_leaves));
 		}
 	}
 	HFREE_NULL(nodes);
@@ -15246,6 +15496,8 @@ download_verify_tigertree_done(struct download *d,
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	entropy_harvest_many(VARLEN(elapsed), PTRLEN(tth), NULL);
 
 	fi = d->file_info;
 	file_info_check(fi);
@@ -15371,6 +15623,8 @@ download_verify_tigertree(struct download *d)
 			download_pathname(d));
 	}
 
+	entropy_harvest_single(VARLEN(d));
+
 	/*
 	 * Even if download was aborted or in error, we have a complete file
 	 * anyway, so start verifying its TTH.
@@ -15396,7 +15650,7 @@ static void
 download_resume_bg_tasks(void)
 {
 	struct download *next;
-	GSList *sl, *to_remove = NULL;
+	pslist_t *sl, *to_remove = NULL;
 
 	next = hash_list_head(sl_downloads);
 	while (next) {
@@ -15483,7 +15737,7 @@ download_resume_bg_tasks(void)
 				download_move(d, GNET_PROPERTY(bad_file_path), DL_BAD_EXT);
 			
 			if (!(fi->flags & FI_F_SEEDING))
-				to_remove = g_slist_prepend(to_remove, d->file_info);
+				to_remove = pslist_prepend(to_remove, d->file_info);
 		}
 	}
 
@@ -15491,7 +15745,7 @@ download_resume_bg_tasks(void)
 	 * Remove queued downloads referencing a complete file.
 	 */
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+	PSLIST_FOREACH(to_remove, sl) {
 		fileinfo_t *fi = sl->data;
 	
 		file_info_check(fi);
@@ -15505,7 +15759,7 @@ download_resume_bg_tasks(void)
 		}
 	}
 
-	gm_slist_free_null(&to_remove);
+	pslist_free_null(&to_remove);
 
 	/*
 	 * Clear the marks.
@@ -15709,7 +15963,9 @@ download_get_hostname(const struct download *d)
 		encrypted ? ", TLS" : "",
 		(d->server->attrs & DLS_A_NO_PIPELINE) ? _(", no-pipeline") : "",
 		(d->server->attrs & DLS_A_BANNING) ? _(", banning") : "",
-		(d->server->attrs & (DLS_A_G2_ONLY | DLS_A_FAKE_G2)) ? _(", g2") : "",
+		(d->server->attrs & (DLS_A_G2_ONLY | DLS_A_FAKE_G2)) == DLS_A_G2_ONLY ?
+			_(", g2") : "",
+		(d->server->attrs & DLS_A_FAKE_G2) ? _(", fake-g2") : "",
 		(d->server->attrs & DLS_A_FAKED_VENDOR) ? _(", vendor?") : "",
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",
@@ -15797,8 +16053,13 @@ download_browse_start(const char *hostname,
 	{
 		char *dname;
 
-		dname = str_cmsg(_("<Browse Host %s>"),
-					host_port_to_string(hostname, addr, port));
+		if (SOCK_F_G2 & flags) {
+			dname = str_cmsg(_("<Browse G2 Host %s>"),
+				host_port_to_string(hostname, addr, port));
+		} else {
+			dname = str_cmsg(_("<Browse Host %s>"),
+				host_port_to_string(hostname, addr, port));
+		}
 
 		fi = file_info_get_transient(dname);
 		HFREE_NULL(dname);
@@ -16108,8 +16369,8 @@ download_data_received(struct download *d, ssize_t received)
 			g_warning("%s(): receiving extra data for \"%s\" from %s: "
 				"thought size was %s bytes, receiving %zu byte%s at %s -> %s",
 				G_STRFUNC, fi->pathname, download_host_info(d),
-				filesize_to_string(fi->size), received,
-				1 == received ? "" : "s", filesize_to_string2(d->pos),
+				filesize_to_string(fi->size), received, plural(received),
+				filesize_to_string2(d->pos),
 				filesize_to_string3(upper));
 		}
 		file_info_resize(fi, upper);
@@ -16152,11 +16413,11 @@ download_handle_magnet(const char *url)
 	res = magnet_parse(url, &error_str);
 	if (res) {
 		char *filename;	/* strdup */
-		GSList *sl;
+		pslist_t *sl;
 
-		filename = g_strdup(res->display_name);
+		filename = h_strdup(res->display_name);
 		if (!filename) {
-			for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
+			PSLIST_FOREACH(res->sources, sl) {
 				struct magnet_source *ms = sl->data;
 
 				if (ms->path) {
@@ -16189,20 +16450,20 @@ download_handle_magnet(const char *url)
 					if (filename && '\0' != filename[0]) {
 						break;
 					}
-					G_FREE_NULL(filename);
+					HFREE_NULL(filename);
 				}
 			}
 		}
 		if (!filename) {
 			if (res->sha1) {
-				filename = g_strconcat("urn:sha1:",
+				filename = h_strconcat("urn:sha1:",
 								sha1_base32(res->sha1), (void *) 0);
 			} else {
-				filename = g_strdup("magnet-download");
+				filename = h_strdup("magnet-download");
 			}
 		}
 
-		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
+		PSLIST_FOREACH(res->sources, sl) {
 			struct magnet_source *ms = sl->data;
 			gnet_host_vec_t *proxies;
 			const struct guid *guid;
@@ -16237,7 +16498,7 @@ download_handle_magnet(const char *url)
 				port = 0;
 				flags |= SOCK_F_PUSH;
 				guid = ms->guid;
-				proxies = gnet_host_vec_from_gslist(ms->proxies);
+				proxies = gnet_host_vec_from_pslist(ms->proxies);
 			} else {
 				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
 				port = ms->port;
@@ -16275,7 +16536,7 @@ download_handle_magnet(const char *url)
 			 *    - DHT support indication.
 			 */
 
-			if (res->vendor || res->dht) {
+			if (res->vendor || res->dht || res->g2) {
 				struct dl_server *server = get_server(guid, addr, port, FALSE);
 				if (server && res->vendor != NULL && NULL == server->vendor) {
 					server->vendor =
@@ -16283,6 +16544,9 @@ download_handle_magnet(const char *url)
 				}
 				if (server && res->dht) {
 					server->attrs |= DLS_A_DHT_PUBLISH;
+				}
+				if (server && res->g2) {
+					server->attrs |= DLS_A_G2_ONLY;
 				}
 			}
 
@@ -16320,8 +16584,7 @@ download_handle_magnet(const char *url)
 			file_info_dht_query(res->sha1);
 		}
 
-		G_FREE_NULL(filename);
-
+		HFREE_NULL(filename);
 		magnet_resource_free(&res);
 	} else {
 		if (GNET_PROPERTY(download_debug)) {
@@ -16517,10 +16780,14 @@ download_timer(time_t now)
 				g_assert(fi->recvcount > 0);
 
 				if (delta > IO_AVG_RATE) {
+					double rate = fi->recv_amount / (double) delta;
+
 					fi->recv_last_rate = fi->recv_amount / delta;
 					fi->recv_amount = 0;
 					fi->recv_last_time = now;
 					file_info_changed(fi);
+
+					entropy_harvest_single(VARLEN(rate));
 				}
 			}
 

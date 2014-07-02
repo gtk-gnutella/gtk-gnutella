@@ -321,7 +321,7 @@ then
 	gtk-mac-bundler osx/gtk-gnutella.bundle &&
 	rm -rf osx/bundle &&
 	ln -s /Applications osx/image/Applications &&
-	dmg="${HOME}/Desktop/Gtk-Gnutella-${VN}.dmg" &&
+	dmg="${HOME}/Desktop/gtk-gnutella-${VN}.dmg" &&
 	hdiutil create -srcfolder osx/image -volname Gtk-Gnutella "${dmg}" &&
 	hdiutil internet-enable -yes "${dmg}"
 	rm -rf osx/image

@@ -28,8 +28,8 @@
 #ifndef _gnet_property_h_
 #define _gnet_property_h_
 
-
 #include "lib/prop.h"
+#include "lib/log.h"		/* For s_carp() */
 
 #define GNET_PROPERTY_MIN ((NO_PROP+1))
 #define GNET_PROPERTY_MAX ((NO_PROP+1)+GNET_PROPERTY_END-1)
@@ -106,7 +106,6 @@ typedef enum {
     PROP_FILEINFO_DEBUG,
     PROP_UPLOAD_DEBUG,
     PROP_LIB_DEBUG,
-    PROP_BITZI_DEBUG,
     PROP_URL_DEBUG,
     PROP_DH_DEBUG,
     PROP_DQ_DEBUG,
@@ -502,6 +501,22 @@ typedef enum {
     PROP_HTTP_RANGE_DEBUG,
     PROP_UPNP_MAPPING_LEASE_TIME,
     PROP_USER_AUTO_RESTART,
+    PROP_TM_DEBUG,
+    PROP_TMALLOC_DEBUG,
+    PROP_EVQ_DEBUG,
+    PROP_MAX_G2HUB_HOSTS_CACHED,
+    PROP_HOSTS_IN_G2HUB_CATCHER,
+    PROP_ENABLE_G2,
+    PROP_NODE_G2_COUNT,
+    PROP_MAX_G2_HUBS,
+    PROP_LOG_BAD_G2,
+    PROP_LOG_DROPPED_G2,
+    PROP_G2_RPC_DEBUG,
+    PROP_LOG_QUERY_HITS,
+    PROP_LOG_QUERY_HIT_RECORDS,
+    PROP_G2_BROWSE_COUNT,
+    PROP_G2_BROWSE_SERVED,
+    PROP_LOG_SENDING_G2,
     GNET_PROPERTY_END
 } gnet_property_t;
 
@@ -515,7 +530,7 @@ const prop_set_stub_t *gnet_prop_get_stub(void);
  */
 prop_def_t *gnet_prop_get_def(property_t);
 property_t gnet_prop_get_by_name(const char *);
-GSList *gnet_prop_get_by_regex(const char *, int *);
+pslist_t *gnet_prop_get_by_regex(const char *, int *);
 const char *gnet_prop_name(property_t);
 const char *gnet_prop_type_to_string(property_t);
 const char *gnet_prop_to_string(property_t prop);
@@ -524,6 +539,9 @@ const char *gnet_prop_description(property_t);
 gboolean gnet_prop_is_saved(property_t);
 prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
+
+void gnet_prop_lock(property_t);
+void gnet_prop_unlock(property_t);
 
 /*
  * Property-change listeners
@@ -580,18 +598,32 @@ static inline void
 gnet_prop_incr_guint32(property_t p)
 {
 	guint32 value;
+	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
-	value++;
-	gnet_prop_set_guint32_val(p, value);
+	if G_UNLIKELY((guint32) -1 == value) {
+		s_carp("%s(): incrementing property \"%s\" would overflow",
+			G_STRFUNC, gnet_prop_name(p));
+	} else {
+		value++;
+		gnet_prop_set_guint32_val(p, value);
+	}
+	gnet_prop_unlock(p);
 }
 
 static inline void
 gnet_prop_decr_guint32(property_t p)
 {
 	guint32 value;
+	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
-	value--;
-	gnet_prop_set_guint32_val(p, value);
+	if G_UNLIKELY(0 == value) {
+		s_carp("%s(): decrementing property \"%s\" would underflow",
+			G_STRFUNC, gnet_prop_name(p));
+	} else {
+		value--;
+		gnet_prop_set_guint32_val(p, value);
+	}
+	gnet_prop_unlock(p);
 }
 
 void gnet_prop_set_guint64(

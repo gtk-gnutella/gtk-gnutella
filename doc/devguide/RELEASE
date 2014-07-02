@@ -135,12 +135,12 @@ Release steps
 
 	VERSION=0.96.9
 
-20. Manually update the web site by logging in to projects.sourceforge.net via
-    SSH:
+20. Manually update the web site by running the update_homepage.sh script
+    from the htdocs directory:
 
-	ssh -t USER,gtk-gnutella@shell.sourceforge.net create
-	$ cd /home/project-web/gtk-gnutella
-	$ ./update_homepage.sh
+	./update_homepage.sh USER
+
+    where USER is your sourceforge login name.
 
 21. Send a message to gtk-gnutella-announce telling about the release
     using Announce-template.txt

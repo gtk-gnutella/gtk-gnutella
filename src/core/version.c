@@ -341,7 +341,8 @@ version_ext_parse(const char *str, version_ext_t *vext)
 	commit[SHA1_BASE16_SIZE] = '\0';
 	memcpy(commit, v, commit_len);
 
-	base16_decode(vext->commit.data, sizeof vext->commit,
+	ZERO(&vext->commit);
+	(void) base16_decode(vext->commit.data, sizeof vext->commit,
 		commit, SHA1_BASE16_SIZE);
 
 	if (e != NULL && is_strprefix(e, "-dirty")) {

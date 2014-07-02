@@ -138,7 +138,7 @@ parse_chunk(rxdrv_t *rx, const char *src, size_t size,
 
 					if (!(attr->flags & IF_NO_CRLF)) {
 						attr->flags |= IF_NO_CRLF;
-						g_warning("Host %s forgot CRLF after data",
+						g_warning("host %s forgot CRLF after data",
 							gnet_host_to_string(&rx->host));
 					}
 

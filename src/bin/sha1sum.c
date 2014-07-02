@@ -58,12 +58,11 @@ main(int argc, char **argv)
 {
 	int c;
 	int fd;
-	SHA1Context ctx;
+	SHA1_context ctx;
 	struct sha1 digest;
 	bool done;
 	/* getopt() variables: */
 	extern int optind;
-	extern char *optarg;
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -86,7 +85,7 @@ main(int argc, char **argv)
 	if (-1 == fd)
 		exit(EXIT_FAILURE);
 
-	SHA1Reset(&ctx);
+	SHA1_reset(&ctx);
 
 	for (done = FALSE; !done; /* empty */) {
 		char buf[512];
@@ -98,10 +97,10 @@ main(int argc, char **argv)
 			s_fatal_exit(EXIT_FAILURE, "read() error: %m");
 
 		done = r != sizeof buf;
-		SHA1Input(&ctx, buf, r);
+		SHA1_input(&ctx, buf, r);
 	}
 
-	SHA1Result(&ctx, &digest);
+	SHA1_result(&ctx, &digest);
 	close(fd);
 
 	printf("%s\n", sha1_base16(&digest));

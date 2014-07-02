@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -48,15 +48,17 @@
  * the glib list API is quite good so mirroring it is not a problem.
  *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #include "common.h"
 
 #include "eslist.h"
+
 #include "random.h"
 #include "shuffle.h"
 #include "unsigned.h"
+#include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -131,6 +133,33 @@ eslist_clear(eslist_t *list)
 
 	list->head = list->tail = NULL;
 	list->count = 0;
+}
+
+/**
+ * Free all items in the list, using wfree() on each of them, clearing the list.
+ *
+ * Each item must be of the same size and have been allocated via walloc().
+ * Each item must have been cleared first, so that any internal memory allocated
+ * and referenced by the item has been properly released.
+ *
+ * This is more efficient that looping over all the items, clearing them and
+ * then calling wfree() on them because we amortize the wfree() cost over a
+ * large amount of objects and need to lock/unlock once only, if any lock is
+ * to be taken.
+ *
+ * @param list		the list to free
+ * @param size		the size of each item, passed to wfree()
+ */
+void
+eslist_wfree(eslist_t *list, size_t size)
+{
+	eslist_check(list);
+
+	if G_UNLIKELY(0 == list->count)
+		return;
+
+	wfree_eslist(list, size);
+	eslist_clear(list);
 }
 
 static inline void
@@ -231,6 +260,87 @@ eslist_prepend(eslist_t *list, void *data)
 
 	lk = ptr_add_offset(data, list->offset);
 	eslist_link_prepend_internal(list, lk);
+}
+
+/**
+ * Prepend other list to the list.
+ *
+ * The other list descriptor is cleared, since its items are transferred
+ * to the first list.
+ *
+ * The two lists must be compatible, that is the offset to the link pointer
+ * must be identical.
+ *
+ * @param list		the destination list
+ * @param other		the other list to prepend (descriptor will be cleared)
+ */
+void
+eslist_prepend_list(eslist_t *list, eslist_t *other)
+{
+	eslist_check(list);
+	eslist_check(other);
+	g_assert(list->offset == other->offset);
+
+	if G_UNLIKELY(0 == other->count)
+		return;
+
+	if G_UNLIKELY(NULL == list->head) {
+		g_assert(NULL == list->tail);
+		g_assert(0 == list->count);
+		list->tail = other->tail;
+		list->count = other->count;
+	} else {
+		g_assert(NULL != other->tail);	/* Since list not empty */
+		g_assert(NULL == other->tail->next);
+		g_assert(size_is_positive(list->count));
+		other->tail->next = list->head;
+		list->count += other->count;
+	}
+
+	list->head = other->head;
+	eslist_clear(other);
+
+	safety_assert(eslist_length(list->head) == list->count);
+}
+
+/**
+ * Append other list to the list.
+ *
+ * The other list descriptor is cleared, since its items are transferred
+ * to the first list.
+ *
+ * The two lists must be compatible, that is the offset to the link pointer
+ * must be identical.
+ *
+ * @param list		the destination list
+ * @param other		the other list to append (descriptor will be cleared)
+ */
+void
+eslist_append_list(eslist_t *list, eslist_t *other)
+{
+	eslist_check(list);
+	eslist_check(other);
+	g_assert(list->offset == other->offset);
+
+	if G_UNLIKELY(0 == other->count)
+		return;
+
+	if G_UNLIKELY(NULL == list->tail) {
+		g_assert(NULL == list->head);
+		g_assert(0 == list->count);
+		list->head = other->head;
+		list->count = other->count;
+	} else {
+		g_assert(NULL == list->tail->next);
+		g_assert(size_is_positive(list->count));
+		list->tail->next = other->head;
+		list->count += other->count;
+	}
+
+	list->tail = other->tail;
+	eslist_clear(other);
+
+	safety_assert(eslist_length(list->head) == list->count);
 }
 
 static inline void
@@ -746,6 +856,39 @@ eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp)
 }
 
 /**
+ * Get the n-th item in the list (0-based index).
+ *
+ * A negative index gets items from the tail of the list, i.e. -1 gets the
+ * last item, -2 the penultimate one, -3 the antepenultimate one, etc...
+ *
+ * @param list	the list
+ * @param n		the n-th item index to retrieve (0 = first item)
+ *
+ * @return the n-th item, NULL if the position is off the end of the list.
+ */
+void *
+eslist_nth(const eslist_t *list, long n)
+{
+	size_t i = n;
+	slink_t *lk;
+
+	eslist_check(list);
+
+	if (n < 0)
+		i = list->count + n;
+
+	if (i >= list->count)
+		return NULL;
+
+	for (lk = list->head; lk != NULL; lk = lk->next) {
+		if (0 == i--)
+			return ptr_add_offset(lk, -list->offset);
+	}
+
+	g_assert_not_reached();		/* Item must have been selected above */
+}
+
+/**
  * Given a link, return the item associated with the nth link that follows it,
  * or NULL if there is nothing.  The 0th item is the data associated with
  * the given link.
@@ -770,10 +913,30 @@ eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n)
 }
 
 /**
- * Randomly shuffle the items in the list.
+ * Pick random item in list.
+ *
+ * @return pointer to the selected item, NULL if list is empty.
+ */
+void *
+eslist_random(const eslist_t *list)
+{
+	eslist_check(list);
+	g_assert(list->count <= MAX_INT_VAL(long));
+
+	if G_UNLIKELY(0 == list->count)
+		return NULL;
+
+	return eslist_nth(list, random_ulong_value(list->count - 1));
+}
+
+/**
+ * Randomly shuffle the items in the list using supplied random function.
+ *
+ * @param rf	the random function to use (NULL means: use defaults)
+ * @param list	the list to shuffle
  */
 void
-eslist_shuffle(eslist_t *list)
+eslist_shuffle_with(random_fn_t rf, eslist_t *list)
 {
 	slink_t *lk;
 	slink_t **array;
@@ -797,7 +960,7 @@ eslist_shuffle(eslist_t *list)
 		array[i] = lk;
 	}
 
-	shuffle(array, list->count, sizeof array[0]);
+	shuffle_with(rf, array, list->count, sizeof array[0]);
 
 	/*
 	 * Rebuild the list.
@@ -820,6 +983,15 @@ eslist_shuffle(eslist_t *list)
 
 	safety_assert(eslist_invariant(list));
 	safety_assert(eslist_length(list->head) == list->count);
+}
+
+/**
+ * Randomly shuffle the items in the list.
+ */
+void
+eslist_shuffle(eslist_t *list)
+{
+	eslist_shuffle_with(NULL, list);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -34,7 +34,8 @@
 #ifndef _tea_h_
 #define _tea_h_
 
-#define TEA_KEY_SIZE	16
+#define TEA_KEY_SIZE	16		/* Size of the TEA key, in bytes */
+#define TEA_BLOCK_SIZE	8		/* Size of TEA blocks, in bytes */
 
 /**
  * A TEA key is 128-bit wide.

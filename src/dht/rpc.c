@@ -52,6 +52,7 @@
 #include "lib/hikset.h"
 #include "lib/host_addr.h"
 #include "lib/stacktrace.h"		/* For stacktrace_function_name() */
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -136,7 +137,7 @@ dht_record_contact(const kuid_t *kuid, host_addr_t addr, uint16 port)
 	if (host != NULL) {
 		if (
 			port == gnet_host_get_port(host) &&
-			host_addr_equal(addr, gnet_host_get_addr(host))
+			host_addr_equiv(addr, gnet_host_get_addr(host))
 		)
 			return;
 		aging_remove(rpc_recent, kuid);
@@ -182,7 +183,7 @@ dht_fix_kuid_contact(const kuid_t *kuid, host_addr_t *addr, uint16 *port,
 		host_addr_t xaddr = gnet_host_get_addr(host);
 		uint16 xport = gnet_host_get_port(host);
 
-		if (xport == *port && host_addr_equal(xaddr, *addr))
+		if (xport == *port && host_addr_equiv(xaddr, *addr))
 			return FALSE;
 
 		if (GNET_PROPERTY(dht_lookup_debug)) {
@@ -233,7 +234,7 @@ dht_fix_contact(knode_t *kn, const char *source)
 	rn = dht_find_node(kn->id);
 
 	if (rn != NULL && (rn->flags & KNODE_F_RPC)) {
-		if (rn->port == kn->port && host_addr_equal(rn->addr, kn->addr))
+		if (rn->port == kn->port && host_addr_equiv(rn->addr, kn->addr))
 			return FALSE;
 
 		if (GNET_PROPERTY(dht_lookup_debug)) {
@@ -334,36 +335,27 @@ rpc_delay(const knode_t *kn)
  * End of RPC lingering time (callout queue callback).
  */
 static void
-rpc_lingered(cqueue_t *unused_cq, void *obj)
+rpc_lingered(cqueue_t *cq, void *obj)
 {
 	struct rpc_cb *rcb = obj;
 
 	rpc_cb_check(rcb);
-	(void) unused_cq;
 
 	if (GNET_PROPERTY(dht_rpc_debug) > 5) {
 		g_debug("DHT RPC %s #%s finished lingering",
 			op_to_string(rcb->op), guid_to_string(rcb->muid));
 	}
 
-	rcb->timeout = NULL;
+	cq_zero(cq, &rcb->timeout);
 	rpc_cb_free(rcb, FALSE);
 }
 
 /**
- * Generic RPC operation timeout (callout queue callback).
+ * Signal an RPC operation timeout by invoking callback, if any.
  */
 static void
-rpc_timed_out(cqueue_t *cq, void *obj)
+rpc_timeout(struct rpc_cb *rcb)
 {
-	struct rpc_cb *rcb = obj;
-
-	rpc_cb_check(rcb);
-
-	if (cq != NULL)
-		gnet_stats_inc_general(GNR_DHT_RPC_TIMED_OUT);
-
-	rcb->timeout = NULL;
 	dht_node_timed_out(rcb->kn);
 
 	/*
@@ -391,8 +383,26 @@ rpc_timed_out(cqueue_t *cq, void *obj)
 	 * Linger for a while to see how many "late" replies we get.
 	 */
 
+	g_assert(NULL == rcb->timeout);
+
 	rcb->timeout = cq_main_insert(DHT_RPC_LINGER_MS, rpc_lingered, rcb);
 	rcb->lingering = TRUE;
+}
+
+/**
+ * Generic RPC operation timeout (callout queue callback).
+ */
+static void
+rpc_timed_out(cqueue_t *cq, void *obj)
+{
+	struct rpc_cb *rcb = obj;
+
+	rpc_cb_check(rcb);
+
+	gnet_stats_inc_general(GNR_DHT_RPC_TIMED_OUT);
+	cq_zero(cq, &rcb->timeout);
+
+	rpc_timeout(rcb);
 }
 
 /**
@@ -416,25 +426,9 @@ rpc_call_prepare(
 	enum dht_rpc_op op, knode_t *kn, int delay, uint32 flags,
 	dht_rpc_cb_t cb, void *arg)
 {
-	int i;
 	struct rpc_cb *rcb;
-	struct guid muid;
 
 	knode_check(kn);
-
-	/*
-	 * Generate a new random MUID for the RPC.
-	 */
-
-	for (i = 0; i < 100; i++) {
-		guid_random_muid(&muid);
-
-		if (!hikset_contains(pending, &muid))
-			break;
-	}
-
-	if G_UNLIKELY(100 == i)
-		g_error("bad luck with random number generator");
 
 	/*
 	 * Create and fill the RPC control block.
@@ -445,7 +439,7 @@ rpc_call_prepare(
 	rcb->op = op;
 	rcb->kn = knode_refcnt_inc(kn);
 	rcb->flags = flags;
-	rcb->muid = atom_guid_get(&muid);
+	rcb->muid = guid_unique_atom(pending, TRUE);
 	rcb->addr = kn->addr;
 	rcb->port = kn->port;
 	rcb->timeout = cq_main_insert(delay, rpc_timed_out, rcb);
@@ -496,7 +490,7 @@ dht_rpc_timeout(const guid_t *muid)
 
 	gnet_stats_inc_general(GNR_DHT_RPC_MSG_CANCELLED);
 	cq_cancel(&rcb->timeout);
-	rpc_timed_out(NULL, rcb);
+	rpc_timeout(rcb);
 
 	return TRUE;
 }
@@ -605,7 +599,7 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 
 	if (
 		GNET_PROPERTY(dht_rpc_debug) &&
-		(rn->port != rcb->port || !host_addr_equal(rn->addr, rcb->addr))
+		(rn->port != rcb->port || !host_addr_equiv(rn->addr, rcb->addr))
 	) {
 		g_warning("DHT RPC had sent %s #%s to %s, now is %s",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
@@ -635,7 +629,7 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 bool
 dht_rpc_answer(const guid_t *muid,
 	knode_t *kn,
-	const struct gnutella_node *n,
+	const gnutella_node_t *n,
 	kda_msg_t function,
 	const void *payload, size_t len)
 {
@@ -740,7 +734,8 @@ dht_rpc_answer(const guid_t *muid,
 
 		stable_replace(rn, kn);			/* KUID of rn was changed */
 		dht_remove_node(rn);			/* Remove obsolete entry from routing */
-		rpc_timed_out(cq_main(), rcb);	/* Invoke user callback if any */
+		cq_cancel(&rcb->timeout);
+		rpc_timeout(rcb);				/* Invoke user callback if any */
 
 		return FALSE;	/* RPC was sent to wrong node, ignore */
 	}
@@ -822,7 +817,7 @@ dht_rpc_answer(const guid_t *muid,
 			g_debug("DHT RPC %s #%s invoking %s(REPLY, %s, %zu byte%s, %p)",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				stacktrace_function_name(rcb->cb), kmsg_name(function),
-				len, 1 == len ? "" : "s", rcb->arg);
+				len, plural(len), rcb->arg);
 		}
 		(*rcb->cb)(DHT_RPC_REPLY, rn, n, function, payload, len, rcb->arg);
 	}
@@ -881,7 +876,7 @@ dht_lazy_rpc_ping(knode_t *kn)
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT not sending any alive ping to %s (%u pending RPC%s)",
 				knode_to_string(kn), kn->rpc_pending,
-				1 == kn->rpc_pending ? "" : "s");
+				plural(kn->rpc_pending));
 		}
 		gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_AVOIDED);
 		return FALSE;
