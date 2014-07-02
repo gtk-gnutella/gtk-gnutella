@@ -1,5 +1,5 @@
 /*
- * Generated on Fri Jun 27 08:52:01 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed Jul  2 13:59:03 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -116,6 +116,7 @@ static const char *stats_symbols[] = {
 	"udp_unprocessed_message",
 	"udp_tx_compressed",
 	"udp_rx_compressed",
+	"udp_compression_attempts",
 	"udp_larger_hence_not_compressed",
 	"udp_ambiguous",
 	"udp_ambiguous_deeper_inspection",
@@ -438,6 +439,7 @@ static const char *stats_text[] = {
 	N_("Unprocessed UDP Gnutella messages"),
 	N_("Compressed UDP messages enqueued"),
 	N_("Compressed UDP messages received"),
+	N_("Candidates for UDP message compression"),
 	N_("Uncompressed UDP messages due to no gain"),
 	N_("Ambiguous UDP messages received"),
 	N_("Ambiguous UDP messages inspected more deeply"),

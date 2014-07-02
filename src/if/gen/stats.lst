@@ -122,6 +122,7 @@ UDP_ALIEN_MESSAGE			"Alien UDP messages (non-Gnutella)"
 UDP_UNPROCESSED_MESSAGE		"Unprocessed UDP Gnutella messages"
 UDP_TX_COMPRESSED			"Compressed UDP messages enqueued"
 UDP_RX_COMPRESSED			"Compressed UDP messages received"
+UDP_COMPRESSION_ATTEMPTS	"Candidates for UDP message compression"
 UDP_LARGER_HENCE_NOT_COMPRESSED
 	"Uncompressed UDP messages due to no gain"
 UDP_AMBIGUOUS				"Ambiguous UDP messages received"

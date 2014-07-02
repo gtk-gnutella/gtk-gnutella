@@ -1656,6 +1656,8 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
 
 	zlib_deflater_reset(zd, *pdu, len);
 
+	gnet_stats_inc_general(GNR_UDP_COMPRESSION_ATTEMPTS);
+
 	if (-1 == zlib_deflate_all(zd)) {
 		g_warning("%s(): cannot deflate payload", G_STRFUNC);
 		return FALSE;
@@ -1670,8 +1672,10 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
 
 	g_assert(zlib_is_valid_header(buf, deflated_len));
 
-	if (deflated_len >= len)
+	if (deflated_len >= len) {
+		gnet_stats_inc_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED);
 		return FALSE;
+	}
 
 	/*
 	 * This payload will be sent deflated.

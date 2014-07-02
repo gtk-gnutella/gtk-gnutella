@@ -1,5 +1,5 @@
 /*
- * Generated on Fri Jun 27 08:52:01 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed Jul  2 13:59:03 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 301
+ * Enum count: 302
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -112,6 +112,7 @@ typedef enum {
 	GNR_UDP_UNPROCESSED_MESSAGE,
 	GNR_UDP_TX_COMPRESSED,
 	GNR_UDP_RX_COMPRESSED,
+	GNR_UDP_COMPRESSION_ATTEMPTS,
 	GNR_UDP_LARGER_HENCE_NOT_COMPRESSED,
 	GNR_UDP_AMBIGUOUS,
 	GNR_UDP_AMBIGUOUS_DEEPER_INSPECTION,

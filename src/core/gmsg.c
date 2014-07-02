@@ -319,6 +319,8 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 
 	g_assert(zlib_is_valid_header(buf, deflated_length));
 
+	gnet_stats_inc_general(GNR_UDP_COMPRESSION_ATTEMPTS);
+
 	if (deflated_length >= plen) {
 		if (GNET_PROPERTY(udp_debug))
 			g_debug("UDP not deflating %s into %d bytes",
