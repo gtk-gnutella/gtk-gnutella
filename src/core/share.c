@@ -874,7 +874,8 @@ shared_file_get_index(const char *filename)
 	if G_UNLIKELY(FILENAME_CLASH == idx) {
 		idx = 0;
 	} else {
-		g_assert_log(idx >= 1 && idx <= shared_libfile.files_scanned,
+		/* NB: index can be 0 if no file bearing that name is shared */
+		g_assert_log(idx <= shared_libfile.files_scanned,
 			"idx=%u, files_scanned=%lu",
 			idx, (ulong) shared_libfile.files_scanned);
 	}
