@@ -464,24 +464,23 @@ bgstatus_to_string(bgstatus_t status)
 static void
 bg_task_is_running(bgtask_t *bt, const char *routine)
 {
-	bg_task_check(bt);
-
 	g_assert_log(bt->flags & TASK_F_RUNNING,
-		"%s(): task %p \"%s\" must be running to call %s()",
-		G_STRFUNC, bt, bt->name, routine);
+		"%s(): task %p \"%s\" must be running to call %s(), flags=0x%x",
+		G_STRFUNC, bt, bt->name, routine, bt->flags);
 }
 
 /**
- * Assert that a background task is currently sleeping.
+ * Assert that a background task is currently sleeping or has been flagged
+ * for sleeping.
  */
 static void
 bg_task_is_sleeping(bgtask_t *bt, const char *routine)
 {
-	bg_task_check(bt);
-
-	g_assert_log(bt->flags & TASK_F_SLEEPING,
-		"%s(): task %p \"%s\" must be sleeping to call %s()",
-		G_STRFUNC, bt, bt->name, routine);
+	g_assert_log(
+		(bt->flags & TASK_F_SLEEPING) || (bt->uflags & TASK_UF_SLEEP_REQ),
+		"%s(): task %p \"%s\" must be sleeping to call %s(), "
+			"flags=0x%x, uflags=0x%x",
+		G_STRFUNC, bt, bt->name, routine, bt->flags, bt->uflags);
 }
 
 /**
@@ -1472,7 +1471,7 @@ bg_task_cancel(bgtask_t *bt)
 	 */
 
 	if (bt->flags & TASK_F_SLEEPING)
-		bg_task_wakeup(bt);
+		bg_sched_wakeup(bt);
 
 	bs = bt->sched;
 	bg_sched_check(bs);
@@ -1589,9 +1588,19 @@ bg_task_ticks_used(bgtask_t *bt, int used)
 void
 bg_task_sleep(bgtask_t *bt)
 {
-	bg_task_is_running(bt, G_STRFUNC);
+	bg_task_check(bt);
+
+	/*
+	 * Because we expect the task to be running, it is only possible to get
+	 * here from the scheduler (i.e the call can only be made "from" the
+	 * running task code).
+	 *
+	 * Hence, we do not need to lock the scheduler: no concurrency is possible.
+	 */
 
 	BG_TASK_LOCK(bt);
+	bg_task_is_running(bt, G_STRFUNC);
+
 	bt->uflags |= TASK_UF_SLEEP_REQ;
 	BG_TASK_UNLOCK(bt);
 }
@@ -1602,9 +1611,44 @@ bg_task_sleep(bgtask_t *bt)
 void
 bg_task_wakeup(bgtask_t *bt)
 {
+	bgsched_t *bs;
+	bool only_requested = FALSE;
+
+	/*
+	 * To prevent race conditions with bg_sched_sleep() being called from
+	 * the scheduler at the same time someone would want to call this routine,
+	 * we need to hold the lock for the scheduler throughout the execution,
+	 * the leading precondition (about the task being sleeping) included.
+	 */
+
+	bg_task_check(bt);
+
+	bs = bt->sched;
+	bg_sched_check(bs);
+
+	BG_SCHED_LOCK(bs);
+
+	/*
+	 * It is possible that the running task was not yet put to sleep
+	 * in the scheduler: we only recorded its desire to be put to sleep.
+	 * In that case, there is nothing to do apart from clearing the flag.
+	 */
+
+	BG_TASK_LOCK(bt);
+
 	bg_task_is_sleeping(bt, G_STRFUNC);
 
-	bg_sched_wakeup(bt);
+	if (bt->uflags & TASK_UF_SLEEP_REQ) {
+		only_requested = TRUE;
+		bt->uflags &= ~TASK_UF_SLEEP_REQ;	/* "awoken" now */
+	}
+
+	BG_TASK_UNLOCK(bt);
+
+	if (!only_requested)
+		bg_sched_wakeup(bt);
+
+	BG_SCHED_UNLOCK(bs);
 }
 
 /**
@@ -2016,14 +2060,29 @@ bg_sched_timer(void *arg)
 
 		/*
 		 * Put the task to sleep if requested.
+		 *
+		 * To prevent race conditions with bg_sched_sleep() being run
+		 * concurrently with a bg_task_wakeup() call for instance, we need
+		 * to lock the scheduler during that check.
 		 */
 
 		if G_UNLIKELY(bt->uflags & TASK_UF_SLEEP_REQ) {
+			bool move_to_sleep = FALSE;
+
+			BG_SCHED_LOCK(bt->sched);
 			BG_TASK_LOCK(bt);
-			bt->uflags &= ~TASK_UF_SLEEP_REQ;
+
+			if (bt->uflags & TASK_UF_SLEEP_REQ) {
+				bt->uflags &= ~TASK_UF_SLEEP_REQ;
+				move_to_sleep = TRUE;
+			}
+
 			BG_TASK_UNLOCK(bt);
 
-			bg_sched_sleep(bt);
+			if (move_to_sleep)
+				bg_sched_sleep(bt);
+
+			BG_SCHED_UNLOCK(bt->sched);
 		}
 
 	ended:
