@@ -106,18 +106,20 @@ typedef struct {
 #include <sys/devpoll.h>
 #endif /* HAS_DEV_POLL */
 
+#include "inputevt.h"
+
 #include "bit_array.h"
 #include "compat_poll.h"
 #include "fd.h"
 #include "glib-missing.h"	/* For g_main_context_get_poll_func() with GTK1 */
 #include "hashlist.h"
 #include "htable.h"
-#include "inputevt.h"
 #include "log.h"			/* For s_error() */
 #include "misc.h"
 #include "mutex.h"
 #include "plist.h"
 #include "pslist.h"
+#include "stacktrace.h"
 #include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
@@ -1156,7 +1158,8 @@ inputevt_remove(unsigned *id_ptr)
 		(rl->writers ? INPUT_EVENT_W : 0);
 
 	if (-1 == (*ctx->event_set_mask)(ctx, fd, old, cur)) {
-		g_warning("event_set_mask(%d, %d) failed: %m", ctx->master_fd, fd);
+		g_warning("event_set_mask(%d, %d) failed using %s(): %m",
+			ctx->master_fd, fd, stacktrace_function_name(ctx->event_set_mask));
 	}
 
 	/* Mark as removed */
@@ -1305,8 +1308,9 @@ inputevt_add_source(inputevt_relay_t *relay)
 		(-1 == (*ctx->event_set_mask)(ctx, relay->fd,
 									 old, (old | relay->condition))
 	) {
-		g_error("event_set_mask(%d, %d, ...) failed: %m",
-			ctx->master_fd, relay->fd);
+		g_error("event_set_mask(%d, %d, ...) failed using %s(): %m",
+			ctx->master_fd, relay->fd,
+			stacktrace_function_name(ctx->event_set_mask));
 	}
 
 	CTX_UNLOCK(ctx);
