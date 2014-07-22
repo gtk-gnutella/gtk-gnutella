@@ -281,6 +281,7 @@ enum {
  * User flags, can only be modified with the task locked.
  */
 enum {
+	TASK_UF_SLEEPING	= 1 << 3,	/**< Task put to user-induced sleep */
 	TASK_UF_SLEEP_REQ	= 1 << 2,	/**< Task requesting to be put to sleep */
 	TASK_UF_NOTICK		= 1 << 1,	/**< Do no recompute tick info */
 	TASK_UF_CANCELLED	= 1 << 0,	/**< Task has been cancelled */
@@ -478,8 +479,8 @@ static void
 bg_task_is_sleeping(bgtask_t *bt, const char *routine)
 {
 	g_assert_log(
-		(bt->flags & TASK_F_SLEEPING) ||
-		(bt->uflags & (TASK_UF_SLEEP_REQ | TASK_UF_CANCELLED)),
+		(bt->uflags &
+			(TASK_UF_SLEEP_REQ | TASK_UF_SLEEPING | TASK_UF_CANCELLED)),
 		"%s(): task %p \"%s\" must be sleeping to call %s(), "
 			"flags=0x%x, uflags=0x%x",
 		G_STRFUNC, bt, bt->name, routine, bt->flags, bt->uflags);
@@ -2088,6 +2089,7 @@ bg_sched_timer(void *arg)
 
 			if (bt->uflags & TASK_UF_SLEEP_REQ) {
 				bt->uflags &= ~TASK_UF_SLEEP_REQ;
+				bt->uflags |= TASK_UF_SLEEPING;		/* Explicitly sleeping */
 				move_to_sleep = TRUE;
 			}
 
