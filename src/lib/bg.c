@@ -1466,6 +1466,31 @@ bg_task_cancel(bgtask_t *bt)
 		return;
 	}
 
+	/*
+	 * FIXME
+	 *
+	 * Warn loudly when attempting to cancel a task that has been explicitly
+	 * put to sleep (since then the user is expected to call wakeup on that
+	 * task and could find the task already reclaimed at that time).  We need
+	 * the user code to explicitly track that.
+	 *
+	 * Note that this is sub-optimal: it is not an error to cancel a sleeping
+	 * task, if we know that the user code will not attempt to wake it up again.
+	 * However, bug #527 on sourceforge indicates that we are indeed calling
+	 * wakeup on a cancelled task, hence we want to catch who is doing that for
+	 * now.  When that bug is fixed, this warning can go away.
+	 *
+	 *		--RAM, 2014-07-22
+	 */
+
+	if (
+		!(bt->uflags & TASK_UF_CANCELLED) &&		/* First time here */
+		(bt->uflags & (TASK_UF_SLEEPING | TASK_UF_SLEEP_REQ))
+	) {
+		s_carp("%s(): targeted task %p \"%s\" was explicitly put to sleep",
+			G_STRFUNC, bt, bt->name);
+	}
+
 	bt->uflags |= TASK_UF_CANCELLED;	/* Mark it cancelled */
 
 	/*
