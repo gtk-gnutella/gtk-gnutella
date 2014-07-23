@@ -2778,25 +2778,32 @@ done:
 
 clamped:
 	{
-		static bool recursion;
+#define TKEY	func_to_pointer(str_vncatf)
+
+		bool recursion = thread_private_get(TKEY) != NULL;
 
 		/*
 		 * This routine MUST be recursion-safe since it is used indirectly
 		 * by s_minicarp() through the str_vprintf() call and we're about
 		 * to call the former now!
+		 *
+		 * Hence the use of a thread-private variable to record recursions
+		 * before invoking s_minicarp().
 		 */
 
 		if (!recursion && tests_completed) {
-			recursion = TRUE;
+			thread_private_add(TKEY, uint_to_pointer(1));
 			s_minicarp("truncated output within %zu-byte buffer "
 				"(%zu max, %zu written, %zu available) with \"%s\" "
 				"(%zu arg%s processed)",
 				str->s_size, maxlen, str->s_len - origlen,
 				str->s_size - str->s_len,
 				fmt, processed, plural(processed));
-			recursion = FALSE;
+			thread_private_remove(TKEY);
 		}
 	}
+
+#undef TKEY
 
 	goto done;
 
