@@ -1654,8 +1654,8 @@ bg_task_wakeup(bgtask_t *bt)
 	bs = bt->sched;
 	bg_sched_check(bs);
 
+	BG_TASK_LOCK(bt);		/* Strict lock order: task first, then scheduler */
 	BG_SCHED_LOCK(bs);
-	BG_TASK_LOCK(bt);
 
 	bg_task_is_sleeping(bt, G_STRFUNC);
 
@@ -1683,12 +1683,11 @@ bg_task_wakeup(bgtask_t *bt)
 			"flags=0x%x", G_STRFUNC, bt, bt->name, bt->flags);
 	}
 
-	BG_TASK_UNLOCK(bt);
-
 	if (!only_requested)
 		bg_sched_wakeup(bt);
 
 	BG_SCHED_UNLOCK(bs);
+	BG_TASK_UNLOCK(bt);
 }
 
 /**
@@ -2109,8 +2108,9 @@ bg_sched_timer(void *arg)
 		if G_UNLIKELY(bt->uflags & TASK_UF_SLEEP_REQ) {
 			bool move_to_sleep = FALSE;
 
-			BG_SCHED_LOCK(bt->sched);
+			/* Strict lock order: task first, then scheduler */
 			BG_TASK_LOCK(bt);
+			BG_SCHED_LOCK(bt->sched);
 
 			if (bt->uflags & TASK_UF_SLEEP_REQ) {
 				bt->uflags &= ~TASK_UF_SLEEP_REQ;
@@ -2118,12 +2118,11 @@ bg_sched_timer(void *arg)
 				move_to_sleep = TRUE;
 			}
 
-			BG_TASK_UNLOCK(bt);
-
 			if (move_to_sleep)
 				bg_sched_sleep(bt);
 
 			BG_SCHED_UNLOCK(bt->sched);
+			BG_TASK_UNLOCK(bt);
 		}
 
 	ended:
