@@ -3447,7 +3447,7 @@ cleanup:
  * @param s		the connected socket (mandatory)
  * @param n		the node (optional, NULL if not available)
  * @param code	the error code to report
- * @param msg	the error message (printf format)
+ * @param msg	the error message (printf format), in English
  * @param ap	variable argument pointer, arguments for the error message
  */
 static void
@@ -3587,6 +3587,13 @@ send_error(
 /**
  * Send error message to remote end, a node presumably.
  *
+ * The error message MUST be in plain English, as it is sent remotely to the
+ * peer and not necessarily displayed locally.
+ *
+ * @param s		the socket on which we're sending the error
+ * @param code	the protocol error code (similar to HTTP ones)
+ * @param msg	the English text message sent remotely
+ *
  * @attention
  * NB: We don't need a node to call this routine, only a socket.
  */
@@ -3602,6 +3609,13 @@ send_node_error(struct gnutella_socket *s, int code, const char *msg, ...)
 
 /**
  * Send error message to remote node.
+ *
+ * The error message MUST be in plain English, as it is sent remotely to the
+ * other node and not necessarily displayed locally.
+ *
+ * @param n		the node to which we're sending the error
+ * @param code	the protocol error code (similar to HTTP ones)
+ * @param msg	the English text message sent remotely
  */
 static void
 node_send_error(gnutella_node_t *n, int code, const char *msg, ...)
