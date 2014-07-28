@@ -1064,7 +1064,7 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 	if (tx_ut_debugging(TX_UT_DBG_FRAG, um->to)) {
 		g_debug("TX UT[%s]: %s: %s%sfragment #%u/%u seq=0x%04x tx=%d to %s "
 			"was %s",
-			nid_to_string(&uf->msg->mid), G_STRFUNC,
+			nid_to_string(&pmi->mid), G_STRFUNC,
 			um->reliable ? "reliable " : "",
 			NULL == uf ? "ACK'ed " : "",
 			pmi->fragno + 1, um->fragcnt, um->seqno,
