@@ -907,8 +907,9 @@ ban_close(void)
 /*
  * These messages are sent to the remote site. Don't localize them.
  */
-static const char harmful[] = "Harmful version banned, upgrade required";
-static const char refused[] = "Connection refused";
+static const char harmful[]   = N_("Harmful version banned, upgrade required");
+static const char refused[]   = N_("Connection refused");
+static const char alien_net[] = N_("Use an open Gnutella or G2 servent");
 
 /**
  * Check whether servent identified by its vendor string should be banned.
@@ -960,7 +961,12 @@ ban_vendor(const char *vendor)
 		return NULL;
 	}
 
-	if (vendor[0] == 'G') {
+	if ('F' == vendor[0]) {
+		if (is_strprefix(vendor, "Foxy "))
+			return alien_net;
+	}
+
+	if ('G' == vendor[0]) {
 		const char *ver;
 
 		if (NULL != (ver = is_strprefix(vendor, "Gnucleus "))) {
