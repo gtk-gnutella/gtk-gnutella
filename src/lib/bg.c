@@ -206,8 +206,10 @@ struct bgtask {
 	uint32 uflags;			/**< User flags (can be externally modified) */
 	const char *name;		/**< Task name */
 	struct bgsched *sched;	/**< Scheduler to which task is attached */
+	int refcnt;				/**< Reference count on task */
 	int step;				/**< Current processing step */
 	int seqno;				/**< Number of calls at same step */
+	bgstatus_t status;		/**< Final exit status */
 	bgstep_cb_t *stepvec;	/**< Set of steps to run in sequence */
 	int stepcnt;			/**< Amount of steps in the `stepvec' array */
 	void *ucontext;			/**< User context */
@@ -779,6 +781,7 @@ static void
 bg_common_init(bgtask_t *bt)
 {
 	spinlock_init(&bt->lock);
+	bt->refcnt = 1;
 }
 
 static bgtask_t *
@@ -1116,13 +1119,127 @@ bg_task_free(bgtask_t *bt)
 }
 
 /**
+ * Task has finished and is ready to be reclaimed, as long as its reference
+ * count has dropped to 1 or 0.
+ */
+static void
+bg_task_finished(bgtask_t *bt)
+{
+	g_assert(bt->refcnt >= 0);
+	g_assert(bt->flags & TASK_F_EXITED);
+
+	/*
+	 * If the task is still referenced, put it back to the sleeping queue.
+	 * It should never be scheduled again (it would need to be awoken first,
+	 * but since it is finished, that would be a user-code error).
+	 *
+	 * It will be reclaimed via bg_task_unref() calls.
+	 */
+
+	if (bt->refcnt > 1) {
+		bg_sched_sleep(bt);
+		return;
+	}
+
+	/*
+	 * Let the user know this task has now ended.
+	 * Upon return from this callback, further user-reference of the
+	 * task structure are FORBIDDEN.
+	 */
+
+	if (bt->done_cb) {
+		(*bt->done_cb)(bt, bt->ucontext, bt->status, bt->done_arg);
+		bt->flags &= ~TASK_F_ZOMBIE;		/* Is now totally DEAD */
+	}
+
+	/*
+	 * Free user's context.
+	 *
+	 * User code can call bg_task_exitcode() from the context freeing callback
+	 * if it has a reference on the task (otherwise it should have installed
+	 * a "done" callback to know how the task exits).
+	 *
+	 * Therefore we can only warn about the exit status being lost after the
+	 * context has been completely destroyed.
+	 */
+
+	(*bt->uctx_free)(bt->ucontext);
+
+	if (bt->flags & TASK_F_ZOMBIE) {
+		s_carp("user code lost exit status of task %p \"%s\": %s",
+			bt, bt->name, bgstatus_to_string(bt->status));
+	}
+
+
+	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
+
+	/*
+	 * Do not free the task structure immediately, in case the calling
+	 * stack is not totally clean and we're about to probe the task
+	 * structure again.
+	 *
+	 * It will be freed at the next scheduler run.
+	 */
+
+	BG_SCHED_LOCK(bt->sched);
+	eslist_prepend(&bt->sched->dead_tasks, bt);
+	BG_SCHED_UNLOCK(bt->sched);
+}
+
+/**
+ * Add a reference to the task.
+ *
+ * @return the task as a convenience.
+ */
+bgtask_t *
+bg_task_ref(bgtask_t *bt)
+{
+	bg_task_check(bt);
+	g_assert(bt->refcnt >= 0);
+
+	bt->refcnt++;
+
+	return bt;
+}
+
+/**
+ * Remove a reference to the task.
+ */
+void
+bg_task_unref(bgtask_t *bt)
+{
+	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
+
+	/*
+	 * If there is only one reference to the task, removing the last reference
+	 * means we cannot control / cancel the task anymore.  Loudly warn when
+	 * this happens, but do not panic as it may be OK.
+	 */
+
+	if G_UNLIKELY(1 == bt->refcnt && !(bt->flags & TASK_F_EXITED)) {
+		s_carp("%s(): task %p \"%s\" will no longer be referenced",
+			G_STRFUNC, bt, bt->name);
+	}
+
+	/*
+	 * If the task has exited already and its reference count drops below 1,
+	 * we can reclaim it.
+	 */
+
+	if (bt->refcnt-- <= 2) {
+		if (bt->flags & TASK_F_EXITED)
+			bg_task_finished(bt);
+	}
+}
+
+/**
  * Terminate the task, invoking the completion callback if defined.
  */
 static void
 bg_task_terminate(bgtask_t *bt)
 {
 	bgsched_t *bs;
-	bgstatus_t status;
 
 	bg_task_check(bt);
 	g_assert(!(bt->flags & TASK_F_EXITED));
@@ -1138,9 +1255,10 @@ bg_task_terminate(bgtask_t *bt)
 	if G_UNLIKELY(bg_closed) {
 		if (0 == (bt->uflags & TASK_UF_CANCELLED)) {
 			/* Only warn if task was not cancelled as part of the shutdown */
-			s_carp("%s(): ignoring left-over %stask %p \"%s\", flags=0x%x",
+			s_carp("%s(): ignoring left-over %stask %p \"%s\", "
+				"flags=0x%x, refcnt=%d",
 				G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "",
-				bt, bt->name, bt->flags);
+				bt, bt->name, bt->flags, bt->refcnt);
 		}
 
 		/*
@@ -1206,14 +1324,14 @@ bg_task_terminate(bgtask_t *bt)
 	 * Compute proper status.
 	 */
 
-	status = BGS_OK;		/* Assume everything was fine */
+	bt->status = BGS_OK;		/* Assume everything was fine */
 
 	if (bt->flags & TASK_F_CANCELLING)
-		status = BGS_CANCELLED;
+		bt->status = BGS_CANCELLED;
 	else if (bt->flags & TASK_F_SIGNAL)
-		status = BGS_KILLED;
+		bt->status = BGS_KILLED;
 	else if (bt->exitcode != 0)
-		status = BGS_ERROR;
+		bt->status = BGS_ERROR;
 
 	/*
 	 * If there is a status to read, mark task as being a zombie: it will
@@ -1221,51 +1339,10 @@ bg_task_terminate(bgtask_t *bt)
 	 * execution status.
 	 */
 
-	if (status != BGS_OK && bt->done_cb == NULL)
+	if (bt->status != BGS_OK && bt->done_cb == NULL)
 		bt->flags |= TASK_F_ZOMBIE;
 
-	/*
-	 * Let the user know this task has now ended.
-	 * Upon return from this callback, further user-reference of the
-	 * task structure are FORBIDDEN.
-	 */
-
-	if (bt->done_cb) {
-		(*bt->done_cb)(bt, bt->ucontext, status, bt->done_arg);
-		bt->flags &= ~TASK_F_ZOMBIE;		/* Is now totally DEAD */
-	}
-
-	/*
-	 * Free user's context.
-	 *
-	 * User code can call bg_task_exitcode() from the context freeing callback
-	 * if it has a reference on the task (otherwise it should have installed
-	 * a "done" callback to know how the task exits).
-	 *
-	 * Therefore we can only warn about the exit status being lost after the
-	 * context has been completely destroyed.
-	 */
-
-	(*bt->uctx_free)(bt->ucontext);
-
-	if (bt->flags & TASK_F_ZOMBIE) {
-		s_carp("user code lost exit status of task %p \"%s\": %s",
-			bt, bt->name, bgstatus_to_string(status));
-	}
-
-	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
-
-	/*
-	 * Do not free the task structure immediately, in case the calling
-	 * stack is not totally clean and we're about to probe the task
-	 * structure again.
-	 *
-	 * It will be freed at the next scheduler run.
-	 */
-
-	BG_SCHED_LOCK(bs);
-	eslist_prepend(&bs->dead_tasks, bt);
-	BG_SCHED_UNLOCK(bs);
+	bg_task_finished(bt);
 }
 
 /**
@@ -1407,6 +1484,7 @@ bg_task_signal(bgtask_t *bt, bgsig_t sig, bgsig_cb_t handler)
 	bgsig_cb_t oldhandler;
 
 	bg_task_check(bt);
+
 	oldhandler = bt->sigh[sig];
 	bt->sigh[sig] = handler;
 
@@ -1455,6 +1533,7 @@ bg_task_cancel(bgtask_t *bt)
 	bgtask_t *old = NULL;
 
 	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
 
 	if (bt->flags & (TASK_F_EXITED | TASK_F_CANCELLING))	/* Already done */
 		return;
@@ -1464,31 +1543,6 @@ bg_task_cancel(bgtask_t *bt)
 	if (bt->flags & (TASK_F_EXITED | TASK_F_CANCELLING)) {
 		BG_TASK_UNLOCK(bt);
 		return;
-	}
-
-	/*
-	 * FIXME
-	 *
-	 * Warn loudly when attempting to cancel a task that has been explicitly
-	 * put to sleep (since then the user is expected to call wakeup on that
-	 * task and could find the task already reclaimed at that time).  We need
-	 * the user code to explicitly track that.
-	 *
-	 * Note that this is sub-optimal: it is not an error to cancel a sleeping
-	 * task, if we know that the user code will not attempt to wake it up again.
-	 * However, bug #527 on sourceforge indicates that we are indeed calling
-	 * wakeup on a cancelled task, hence we want to catch who is doing that for
-	 * now.  When that bug is fixed, this warning can go away.
-	 *
-	 *		--RAM, 2014-07-22
-	 */
-
-	if (
-		!(bt->uflags & TASK_UF_CANCELLED) &&		/* First time here */
-		(bt->uflags & (TASK_UF_SLEEPING | TASK_UF_SLEEP_REQ))
-	) {
-		s_carp("%s(): targeted task %p \"%s\" was explicitly put to sleep",
-			G_STRFUNC, bt, bt->name);
 	}
 
 	bt->uflags |= TASK_UF_CANCELLED;	/* Mark it cancelled */
@@ -1617,6 +1671,7 @@ void
 bg_task_sleep(bgtask_t *bt)
 {
 	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
 
 	/*
 	 * Because we expect the task to be running, it is only possible to get
@@ -1650,6 +1705,7 @@ bg_task_wakeup(bgtask_t *bt)
 	 */
 
 	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
 
 	bs = bt->sched;
 	bg_sched_check(bs);
@@ -1675,12 +1731,15 @@ bg_task_wakeup(bgtask_t *bt)
 	 * to wake up, there is nothing to do here, but we need to warn loudly
 	 * because there is logic bug in the application code: a cancelled task
 	 * could be reclaimed at any time, concurrently with the call to wake it up.
+	 * Therefore we only warn when the reference count on the task is 1.
 	 */
 
 	if G_UNLIKELY(bt->uflags & TASK_UF_CANCELLED) {
 		only_requested = TRUE;				/* No need to wake it up below */
-		s_carp("%s(): ignoring attempt to wakeup cancelled task %p \"%s\", "
-			"flags=0x%x", G_STRFUNC, bt, bt->name, bt->flags);
+		if (bt->refcnt <= 1) {
+			s_carp("%s(): ignoring attempt to wakeup cancelled task %p \"%s\", "
+				"flags=0x%x", G_STRFUNC, bt, bt->name, bt->flags);
+		}
 	}
 
 	if (!only_requested)

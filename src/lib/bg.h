@@ -203,6 +203,9 @@ void bg_task_exit(bgtask_t *h, int code) G_GNUC_NORETURN;
 void bg_task_ticks_used(bgtask_t *h, int used);
 bgsig_cb_t bg_task_signal(bgtask_t *h, bgsig_t sig, bgsig_cb_t handler);
 
+bgtask_t *bg_task_ref(bgtask_t *bt);
+void bg_task_unref(bgtask_t *bt);
+
 int bg_task_step(const bgtask_t *bt);
 int bg_task_seqno(const bgtask_t *h);
 void *bg_task_context(const bgtask_t *h);

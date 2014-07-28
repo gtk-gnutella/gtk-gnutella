@@ -972,6 +972,9 @@ qrt_patch_compress_done(struct bgtask *h, void *u, bgstatus_t status, void *arg)
 	if (bt != NULL && status != BGS_CANCELLED && status != BGS_KILLED)
 		bg_task_wakeup(bt);
 
+	if (bt != NULL)
+		bg_task_unref(bt);
+
 	if (ctx->usr_done != NULL)
 		(*ctx->usr_done)(h, u, status, ctx->usr_arg);
 }
@@ -2284,7 +2287,7 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 	 */
 
 	ctx->compress_bt =
-		qrt_patch_compress(rp, bt, NULL, NULL, &ctx->compress_ctx);
+		qrt_patch_compress(rp, bg_task_ref(bt), NULL, NULL, &ctx->compress_ctx);
 
 	/*
 	 * Wait for the compression task to be completed by sleeping: its
