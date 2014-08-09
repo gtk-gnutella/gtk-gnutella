@@ -5466,11 +5466,14 @@ search_dequeue_all_nodes(gnet_search_t sh)
 {
 	const pslist_t *sl;
 
-	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
-		squeue_t *sq = NODE_SQUEUE(n);
+		squeue_t *sq;
 
-		if (sq)
+		node_check(n);
+
+		sq = NODE_SQUEUE(n);
+		if (sq != NULL)
 			sq_search_closed(sq, sh);
 	}
 
