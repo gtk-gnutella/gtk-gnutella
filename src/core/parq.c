@@ -2066,7 +2066,7 @@ parq_upload_recompute_queue_num(void)
 	plist_t *l;
 	int pos = 0;
 
-	for (l = ul_parqs; l; l = plist_next(l)) {
+	PLIST_FOREACH(ul_parqs, l) {
 		struct parq_ul_queue *q = l->data;
 
 		q->num = ++pos;
