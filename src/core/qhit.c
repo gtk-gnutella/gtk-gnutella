@@ -1011,7 +1011,7 @@ qhit_send_results(gnutella_node_t *n, pslist_t *files, int count,
 	found_reset(QHIT_SIZE_THRESHOLD, muid, flags, qhit_send_node, n,
 		&zero_array);
 
-	for (sl = files; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(files, sl) {
 		shared_file_t *sf = sl->data;
 		if (add_file(sf))
 			sent++;

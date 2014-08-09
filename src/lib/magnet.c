@@ -660,13 +660,13 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 		atom_str_free_null(&res->guid);
 		atom_str_free_null(&res->vendor);
 
-		for (sl = res->sources; sl != NULL; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(res->sources, sl) {
 			struct magnet_source *ms = sl->data;
 			magnet_source_free(&ms);
 		}
 		pslist_free_null(&res->sources);
 
-		for (sl = res->searches; sl != NULL; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(res->searches, sl) {
 			const char *s = sl->data;
 			atom_str_free_null(&s);
 		}
@@ -1024,7 +1024,7 @@ magnet_to_string(const struct magnet_resource *res)
 		magnet_append_item(s, TRUE, "x.g2", "1");
 	}
 
-	for (sl = res->sources; NULL != sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(res->sources, sl) {
 		char *url;
 
 		url = magnet_source_to_string(sl->data);
@@ -1032,7 +1032,7 @@ magnet_to_string(const struct magnet_resource *res)
 		G_FREE_NULL(url);
 	}
 
-	for (sl = res->searches; NULL != sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(res->searches, sl) {
 		magnet_append_item(s, TRUE, "kt", sl->data);
 	}
 

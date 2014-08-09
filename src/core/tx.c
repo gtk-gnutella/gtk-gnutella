@@ -219,7 +219,7 @@ tx_collect(void)
 {
 	pslist_t *sl;
 
-	for (sl = tx_freed; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(tx_freed, sl) {
 		txdrv_t *tx = sl->data;
 		tx_deep_free(tx);
 	}

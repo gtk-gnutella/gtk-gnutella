@@ -857,7 +857,7 @@ gmsg_sendto_route(gnutella_node_t *n, struct route_dest *rt)
 			&n->header, n->data, n->size + GTA_HEADER_SIZE);
 		return;
 	case ROUTE_MULTI:
-		for (sl = rt->ur.u_nodes; sl; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(rt->ur.u_nodes, sl) {
 			rt_node = sl->data;
 			node_check(rt_node);
 			if (NODE_TALKS_G2(rt_node))

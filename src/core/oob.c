@@ -231,7 +231,7 @@ results_free_remove(struct oob_results *r)
 		}
 		atom_guid_free_null(&r->muid);
 
-		for (sl = r->files; sl; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(r->files, sl) {
 			shared_file_t *sf = sl->data;
 			shared_file_unref(&sf);
 		}

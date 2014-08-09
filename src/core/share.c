@@ -987,7 +987,7 @@ shared_dirs_free(void)
 	if (!shared_dirs)
 		return;
 
-	for (sl = shared_dirs; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(shared_dirs, sl) {
 		atom_str_free(sl->data);
 	}
 	pslist_free_null(&shared_dirs);
@@ -1004,7 +1004,7 @@ shared_dirs_update_prop(void)
 
 	s = str_new(0);
 
-	for (sl = shared_dirs; sl != NULL; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(shared_dirs, sl) {
 	    str_cat(s, sl->data);
 		if (pslist_next(sl) != NULL)
 			str_putc(s, G_SEARCHPATH_SEPARATOR);
@@ -1433,7 +1433,7 @@ recursive_scan_new(const pslist_t *base_dirs, time_t now)
 	ctx->partial_files = slist_new();
 	ctx->words = htable_create(HASH_KEY_STRING, 0);
 	ctx->basenames = htable_create(HASH_KEY_STRING, 0);
-	for (iter = base_dirs; NULL != iter; iter = pslist_next(iter)) {
+	PSLIST_FOREACH(base_dirs, iter) {
 		const char *dir = atom_str_get(iter->data);
 		slist_append(ctx->base_dirs, deconstify_char(dir));
 	}
@@ -1526,7 +1526,7 @@ recursive_scan_context_free(void *data)
 		XFREE_NULL(ctx->ftable);
 	}
 
-	for (sl = ctx->shared; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(ctx->shared, sl) {
 		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);
@@ -1547,7 +1547,7 @@ share_list_free_null(pslist_t **slist)
 {
 	pslist_t *sl;
 
-	for (sl = *slist; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(*slist, sl) {
 		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);

@@ -1330,7 +1330,7 @@ route_node_sent_message(gnutella_node_t *n, struct message *m)
 	if (route == NULL)
 		return FALSE;
 
-	for (sl = m->routes; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(m->routes, sl) {
 		if (route == sl->data)
 			return TRUE;
 	}
@@ -1607,8 +1607,9 @@ free_route_list(struct message *m)
 
 	g_assert(m);
 
-	for (sl = m->routes; sl; sl = pslist_next(sl))
+	PSLIST_FOREACH(m->routes, sl) {
 		remove_one_message_reference(sl->data);
+	}
 
 	pslist_free_null(&m->routes);
 
@@ -2056,7 +2057,7 @@ forward_message(
 			g_assert(gnutella_header_get_function(&sender->header)
 					== GTA_MSG_PUSH_REQUEST);
 
-			for (l = routes; l; l = pslist_next(l)) {
+			PSLIST_FOREACH(routes, l) {
 				struct route_data *rd = l->data;
 				if (rd->node == sender)
 					continue;
@@ -2750,7 +2751,7 @@ route_query_hit(struct route_log *route_log,
 		bool skipped_transient = FALSE;
 
 		found = NULL;
-		for (sl = m->routes; sl; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(m->routes, sl) {
 			struct route_data *route = sl->data;
 
 			g_assert(route);
@@ -3078,7 +3079,7 @@ route_towards_guid(const struct guid *guid)
 		pslist_t *iter, *nodes = NULL;
 		
 		revitalize_entry(m, TRUE);
-		for (iter = m->routes; NULL != iter; iter = pslist_next(iter)) {
+		PSLIST_FOREACH(m->routes, iter) {
 			struct route_data *rd = iter->data;
 			nodes = pslist_prepend(nodes, rd->node);
 		}

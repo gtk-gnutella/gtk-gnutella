@@ -398,7 +398,7 @@ rx_collect(void)
 {
 	pslist_t *sl;
 
-	for (sl = rx_freed; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(rx_freed, sl) {
 		rxdrv_t *rx = sl->data;
 		g_assert(rx->flags & RX_F_FREED);
 		rx_deep_free(rx);

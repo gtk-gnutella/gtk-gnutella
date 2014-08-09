@@ -1267,7 +1267,7 @@ merge_context_free(void *p)
 
 	QRP_TASK_UNLOCK;
 
-	for (sl = ctx->tables; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(ctx->tables, sl) {
 		struct routing_table *rt = sl->data;
 
 		qrt_unref(rt);
@@ -1871,7 +1871,7 @@ qrp_context_free(void *p)
 
 	qrp_dispose_words(&ctx->words);
 
-	for (sl = ctx->sl_substrings; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(ctx->sl_substrings, sl) {
 		char *word = sl->data;
 		size_t size;
 
@@ -2024,7 +2024,7 @@ qrp_step_compute(struct bgtask *h, void *u, int unused_ticks)
 	table = halloc(slots);
 	memset(table, LOCAL_INFINITY, slots);
 
-	for (sl = ctx->sl_substrings; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(ctx->sl_substrings, sl) {
 		const char *word = sl->data;
 		uint idx = qrp_hash(word, bits);
 
@@ -5567,7 +5567,7 @@ qrt_route_query(gnutella_node_t *n, query_hashvec_t *qhvec,
 		int urns = 0;
 		size_t i;
 
-		for (sl = nodes; sl; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(nodes, sl) {
 			gnutella_node_t *dn = sl->data;
 
 			if (NODE_IS_LEAF(dn))

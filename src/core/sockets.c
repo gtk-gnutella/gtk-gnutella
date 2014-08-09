@@ -1198,7 +1198,7 @@ socket_check_ipv6_address(void)
 		old_addr = listen_addr6();
 
 		sl_addrs = host_addr_get_interface_addrs(NET_TYPE_IPV6);
-		for (sl = sl_addrs; NULL != sl; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(sl_addrs, sl) {
 			host_addr_t *addr_ptr;
 
 			addr_ptr = sl->data;
@@ -1245,7 +1245,7 @@ socket_timer(time_t now)
 	pslist_t *l;
 	pslist_t *to_remove = NULL;
 
-	for (l = sl_incoming; l; l = pslist_next(l)) {
+	PSLIST_FOREACH(sl_incoming, l) {
 		struct gnutella_socket *s = l->data;
 		time_delta_t delta;
 
@@ -1271,7 +1271,7 @@ socket_timer(time_t now)
 		}
 	}
 
-	for (l = to_remove; l; l = pslist_next(l)) {
+	PSLIST_FOREACH(to_remove, l) {
 		struct gnutella_socket *s = l->data;
 		socket_destroy(s, "Connection timeout");
 	}
