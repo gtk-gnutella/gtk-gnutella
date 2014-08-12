@@ -1324,7 +1324,7 @@ size_t
 cq_heartbeat(cqueue_t *cq)
 {
 	tm_t tv;
-	time_delta_t delay;
+	time_delta_t delay, upper_delay;
 	uint stid = thread_small_id();
 	bool extra = FALSE;
 	size_t triggered;
@@ -1356,14 +1356,25 @@ cq_heartbeat(cqueue_t *cq)
 
 	/*
 	 * If too much variation, or too little, maybe the clock was adjusted.
-	 * Assume a single period then.
+	 * Adjust the delay so that we do not flush events for more than 10 periods,
+	 * but process at least a single period.
 	 */
 
-	if (delay < 0 || delay > 10 * cq->cq_period) {
-		s_warning("%s(%s): adjusting delay of %'ld ms down to period (%d ms)",
-			G_STRFUNC, cq->cq_name, (long) delay, cq->cq_period);
-		delay = cq->cq_period;
+	upper_delay = 10 * cq->cq_period;
+
+	if (delay < 0 || delay > upper_delay) {
+		time_delta_t adjusted;
+
+		adjusted = MAX(delay, cq->cq_period);	/* At least one period */
+		adjusted = MIN(adjusted, upper_delay);	/* At most ten periods */
+
+		if (cq_debugging(0)) {
+			s_warning("%s(%s): adjusting delay of %'ld ms down to %'ld ms",
+				G_STRFUNC, cq->cq_name, (long) delay, (long) adjusted);
+		}
+
 		extra = TRUE;
+		delay = adjusted;
 	}
 
 	/*
