@@ -1020,15 +1020,19 @@ g2_node_handle(gnutella_node_t *n)
 
 	t = g2_frame_deserialize(n->data, n->size, &plen, FALSE);
 	if (NULL == t) {
-		g_warning("%s(): cannot deserialize /%s from %s",
-			G_STRFUNC, g2_msg_raw_name(n->data, n->size), node_infostr(n));
+		if (GNET_PROPERTY(g2_debug) > 0 || GNET_PROPERTY(log_bad_g2)) {
+			g_warning("%s(): cannot deserialize /%s from %s",
+				G_STRFUNC, g2_msg_raw_name(n->data, n->size), node_infostr(n));
+		}
 		if (GNET_PROPERTY(log_bad_g2))
 			dump_hex(stderr, "G2 Packet", n->data, n->size);
 		return;
 	} else if (plen != n->size) {
-		g_warning("%s(): consumed %zu bytes but /%s from %s had %u",
-			G_STRFUNC, plen, g2_msg_raw_name(n->data, n->size),
-			node_infostr(n), n->size);
+		if (GNET_PROPERTY(g2_debug) > 0 || GNET_PROPERTY(log_bad_g2)) {
+			g_warning("%s(): consumed %zu bytes but /%s from %s had %u",
+				G_STRFUNC, plen, g2_msg_raw_name(n->data, n->size),
+				node_infostr(n), n->size);
+		}
 		if (GNET_PROPERTY(log_bad_g2))
 			dump_hex(stderr, "G2 Packet", n->data, n->size);
 		hostiles_dynamic_add(n->addr,
