@@ -744,7 +744,7 @@ tmalloc_depot_return_full(tmalloc_t *d, tmalloc_magazine_t *m)
 }
 
 /**
- * Return a magazine to the depot, when a thread is existing.
+ * Return a magazine to the depot, when a thread is exiting.
  */
 static void
 tmalloc_depot_return(tmalloc_t *d, tmalloc_magazine_t *m)
