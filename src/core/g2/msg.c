@@ -468,14 +468,10 @@ g2_msg_log_dropped(const void *data, size_t len, const char *fmt, va_list args)
 void
 g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *fmt, ...)
 {
-	if (fmt != NULL) {
-		va_list args;
-		va_start(args, fmt);
-		g2_msg_log_dropped(pmsg_start(mb), pmsg_size(mb), fmt, args);
-		va_end(args);
-	} else {
-		g2_msg_log_dropped(pmsg_start(mb), pmsg_size(mb), NULL, NULL);
-	}
+	va_list args;
+	va_start(args, fmt);
+	g2_msg_log_dropped(pmsg_start(mb), pmsg_size(mb), fmt, args);
+	va_end(args);
 }
 
 /**
@@ -484,14 +480,10 @@ g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *fmt, ...)
 void
 g2_msg_log_dropped_data(const void *data, size_t len, const char *fmt, ...)
 {
-	if (fmt != NULL) {
-		va_list args;
-		va_start(args, fmt);
-		g2_msg_log_dropped(data, len, fmt, args);
-		va_end(args);
-	} else {
-		g2_msg_log_dropped(data, len, NULL, NULL);
-	}
+	va_list args;
+	va_start(args, fmt);
+	g2_msg_log_dropped(data, len, fmt, args);
+	va_end(args);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
