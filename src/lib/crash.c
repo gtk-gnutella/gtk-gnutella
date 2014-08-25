@@ -877,7 +877,7 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 	const uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE |
 		STACKTRACE_F_GDB | STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
 		STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
-	bool success = TRUE;
+	volatile bool success = TRUE;
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
 	signal_handler_t old_sigbus;
