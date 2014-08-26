@@ -8,11 +8,41 @@
 
 set -e
 
-test $# -eq 1 || { echo "USAGE: lntool [DIRECTORY]"; exit 1; }
+# Don't overwrite by default
+force=''
 
-src="${1%%/}";
+usage() {
+	echo "USAGE: lntool [OPTIONS] [DIRECTORY]";
+	echo "OPTIONS:"
+	echo "  --force  Force ln to overwrite existing files or links.";
+	echo "           Useful when updating an existing tree.";
+	exit 1;
+}
+
+test $# -gt 0 || usage
+
+while [ $# -gt 0 ]
+do
+	case "$1" in
+	-f|--force)	force='-f'
+			;;
+	--)		shift
+			break
+			;;
+	*)		break
+			;;
+	esac
+	shift
+done
+
+test $# -eq 1 || usage
+
+src="${1%%/}"
+
 case "$src" in
 /*|./*)	
+	;;
+'')	usage
 	;;
 *) 	src="./$src"
 	;;
@@ -30,7 +60,7 @@ do
 		;;
 	esac
 	mkdir -p "$dir"
-	( cd "$dir" && ln -s "$item" )
+	( cd "$dir" && ln -s ${force} "$item" )
 done
 
 exit 0
