@@ -4906,6 +4906,14 @@ dht_close(bool exiting)
 	dht_route_store();
 
 	/*
+	 * We remember the old boot status so as to not restart from scratch
+	 * if the DHT is re-enabled again.
+	 */
+
+	old_boot_status = GNET_PROPERTY(dht_boot_status);
+	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_SHUTDOWN);
+
+	/*
 	 * Since we're shutting down the route table, we also need to shut down
 	 * the RPC and lookups, which rely on the routing table.
 	 */
@@ -4920,9 +4928,6 @@ dht_close(bool exiting)
 	dht_rpc_close();
 	token_close();
 	kmsg_close();
-
-	old_boot_status = GNET_PROPERTY(dht_boot_status);
-	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_SHUTDOWN);
 
 	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;
