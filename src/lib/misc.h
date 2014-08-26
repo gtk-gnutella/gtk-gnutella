@@ -294,6 +294,16 @@ size_t memcmp_diff(const void *a, const void *b, size_t n);
 int bitcmp(const void *s1, const void *s2, size_t n);
 
 /**
+ * Returns the length of the string plus one, i.o.w.
+ * the required buffer size in bytes.
+ */
+static inline size_t
+strsize(const char *src)
+{
+	return strlen(src) + 1;
+}
+
+/**
  * An strcpy() that returns the length of the copied string.
  */
 static inline size_t
