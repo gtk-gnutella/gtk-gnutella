@@ -249,7 +249,7 @@ signal_is_fatal(int signo)
 	 */
 
 #ifdef SIGRTMIN
-	if (signo >= SIGRTMIN && signo + SIGRTMIN <= SIGRTMAX)
+	if (signo >= SIGRTMIN && signo <= SIGRTMAX)
 		return TRUE;
 #endif
 
