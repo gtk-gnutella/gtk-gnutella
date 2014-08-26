@@ -7205,7 +7205,7 @@ create_download(
 	 * Harvest entropy each time we attempt to create a new download.
 	 */
 
-	entropy_harvest_many(file, strlen(file), VARLEN(size), VARLEN(addr),
+	entropy_harvest_many(file, strsize(file), VARLEN(size), VARLEN(addr),
 		VARLEN(port), VARLEN(file_info), VARLEN(stamp), VARLEN(guid),
 		VARLEN(sha1), VARLEN(tth), VARLEN(proxies), VARLEN(parq_id), NULL);
 
@@ -14914,7 +14914,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 
 	name = file_info_readable_filename(fi);
 
-	entropy_harvest_many(VARLEN(d), name, strlen(name), VARLEN(fi), NULL);
+	entropy_harvest_many(VARLEN(d), name, strsize(name), VARLEN(fi), NULL);
 
 	/*
 	 * If the target directory is the same as the source directory, we'll
@@ -15051,7 +15051,7 @@ download_move_done(struct download *d, const char *pathname, uint elapsed)
 	download_check(d);
 	g_assert(d->status == GTA_DL_MOVING);
 
-	entropy_harvest_many(VARLEN(d), pathname, strlen(pathname),
+	entropy_harvest_many(VARLEN(d), pathname, strsize(pathname),
 		VARLEN(elapsed), NULL);
 
 	fi = d->file_info;

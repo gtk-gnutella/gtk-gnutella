@@ -6602,7 +6602,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 	 * Harvest entropy.
 	 */
 
-	entropy_harvest_many(query, strlen(query), VARLEN(mtype),
+	entropy_harvest_many(query, strsize(query), VARLEN(mtype),
 		VARLEN(lifetime), VARLEN(reissue_timeout), VARLEN(flags), NULL);
 
 	/*
@@ -7366,7 +7366,7 @@ search_locally(gnet_search_t sh, const char *query)
 	g_assert(sbool_get(sch->local));
 	g_assert(sch->download == NULL);
 
-	entropy_harvest_many(VARLEN(sh), query, strlen(query), NULL);
+	entropy_harvest_many(VARLEN(sh), query, strsize(query), NULL);
 
 	if ('\0' == query[0]) {
 		error = FALSE;
