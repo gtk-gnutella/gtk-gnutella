@@ -1292,7 +1292,7 @@ xfl_block_size_idx(size_t idx)
 static inline G_GNUC_PURE size_t
 xfl_find_freelist_index(size_t len)
 {
-	g_assert(size_is_positive(len));
+	g_assert_log(size_is_positive(len), "len=%zd", len);
 	g_assert(xmalloc_round_blocksize(len) == len);
 	g_assert(len <= XMALLOC_MAXSIZE);
 	g_assert(len >= XMALLOC_SPLIT_MIN);
@@ -1331,7 +1331,7 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 	assert_mutex_is_owned(&fl->lock);
 
 	g_assert(array != NULL);
-	g_assert(size_is_non_negative(len));
+	g_assert_log(size_is_positive(len), "len=%zu", len);
 	g_assert(size_is_non_negative(fl->count));
 
 	ptr = fl->pointers;							/* Can be NULL */
@@ -1340,6 +1340,7 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 	capacity = len / sizeof(void *);
 
 	g_assert(ptr != NULL || 0 == used);
+	g_assert((size == 0) == (NULL == ptr));
 	g_assert(len >= used);
 	g_assert(capacity * sizeof(void *) == len);	/* Even split */
 	g_assert(array != ptr);
@@ -1373,7 +1374,17 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 	 *		--RAM, 2013-09-27
 	 */
 
-	if (ptr != NULL)
+	/*
+	 * HACK ALERT: using "size != 0" instead of original "ptr != NULL" because
+	 * the latter causes assertions failures under gcc 4.9 with optimizations:
+	 * the "ptr != NULL" test wrongly succeeds but size is 0 (and ptr is
+	 * actually NULL hence the test should never have succeeded).  Could be a
+	 * wrong pointer aliasing computation by the optimizer, hence using "size"
+	 * is safe because it's an integer value?
+	 *		--RAM, 2014-08-26
+	 */
+
+	if (size != 0)		/* i.e. ptr != NULL as well, see assertions above */
 		xmalloc_freelist_add(ptr, size, XM_COALESCE_ALL);
 }
 
