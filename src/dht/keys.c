@@ -1705,6 +1705,9 @@ keys_offload(const knode_t *kn)
 	if (kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING))
 		return;
 
+	if G_UNLIKELY(NULL == keys)
+		return;							/* Key layer already shutdown */
+
 	if (
 		!dht_bootstrapped() ||			/* Not bootstrapped */
 		!keys_within_kball(kn->id) ||	/* Node KUID outside our k-ball */
