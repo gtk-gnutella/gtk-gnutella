@@ -145,6 +145,7 @@ static const struct {
 	{ "ogm",		MIME_TYPE_VIDEO_OGM },
 	{ "ogv",		MIME_TYPE_VIDEO_OGG },
 	{ "opf",		MIME_TYPE_APPLICATION_OPEN_PACKAGING_FORMAT },
+	{ "opus",		MIME_TYPE_AUDIO_OGG },
 	{ "patch",		MIME_TYPE_TEXT_DIFF },
 	{ "pdf",		MIME_TYPE_APPLICATION_PDF },
 	{ "pif",		MIME_TYPE_APPLICATION_DOSEXEC },

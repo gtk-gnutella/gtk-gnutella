@@ -2548,10 +2548,10 @@ filter_init_presets(void)
 		filesize_t minsize;
 	} tab[] = {
 		{ N_("<Archive>"),	  "[.](bz2|gz|zip|rar|iso|7z)$", 0 },
-		{ N_("<Audio>"), 	  "[.](mp3|m4a|ogg|oga|flac)$", 1000000 },
+		{ N_("<Audio>"), 	  "[.](mp3|m4a|ogg|oga|opus|flac)$", 1000000 },
 		{ N_("<Image>"), 	  "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0 },
 		{ N_("<Literature>"), "[.](pdf|doc|lit|djvu|ps|txt)$", 10000 },
-		{ N_("<Video>"), 	  "[.](avi|mpg|mp4|mpeg|mkv|ogm|ogv)$", 10000000 },
+		{ N_("<Video>"), 	  "[.](avi|mpg|mp4|mpeg|mkv|ogm|ogv|webm)$", 10000000 },
 	};
 	unsigned i;
 
