@@ -735,6 +735,7 @@ adns_reverse_lookup(const host_addr_t addr,
 
 	g_assert(user_callback);
 
+	req.common.magic = ADNS_COMMON_MAGIC;
 	req.common.user_callback = (void (*)(void)) user_callback;
 	req.common.user_data = user_data;
 	req.common.reverse = TRUE;
