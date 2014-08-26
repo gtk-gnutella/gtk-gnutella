@@ -242,12 +242,6 @@ signal_is_fatal(int signo)
 #ifdef SIGLOST
 	case SIGLOST:	return TRUE;
 #endif
-#ifdef SIGTSTP
-	case SIGTSTP:	return FALSE;
-#endif
-#ifdef SIGCONT
-	case SIGCONT:	return FALSE;
-#endif
 	}
 
 	/*
@@ -255,7 +249,7 @@ signal_is_fatal(int signo)
 	 */
 
 #ifdef SIGRTMIN
-	if (signo + SIGRTMIN <= SIGRTMAX)
+	if (signo >= SIGRTMIN && signo + SIGRTMIN <= SIGRTMAX)
 		return TRUE;
 #endif
 
