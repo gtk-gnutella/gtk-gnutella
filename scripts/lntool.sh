@@ -12,11 +12,39 @@ set -e
 force=''
 
 usage() {
-	echo "USAGE: lntool [OPTIONS] [DIRECTORY]";
-	echo "OPTIONS:"
-	echo "  --force  Force ln to overwrite existing files or links.";
-	echo "           Useful when updating an existing tree.";
+	if [ "x$1" != 'x' ]
+	then echo "ERROR: $1" >&2
+	fi
+	cat << EOM >&2
+USAGE: lntool.sh [OPTIONS] SOURCE [DESTINATION]
+       SOURCE is the directory tree to copy.
+       DESTINATION is optional and the leaf directory of SOURCE by default.
+EXAMPLES:
+       lntool.sh /example/test -> copies tree to ./test
+       lntool.sh /example/test blah -> copies tree to ./blah
+OPTIONS:
+       --force | -f  Force ln to overwrite existing files or links.
+                     Useful when updating an existing tree.
+       --help | -h   Display this information.
+EOM
 	exit 1;
+}
+
+trimslash() {
+	arg="$1"
+	while [ "/" != "$arg" ] && [ "x${arg}" != "x${arg%/}" ]
+	do
+		arg="${arg%/}"
+	done
+	echo "$arg"
+}
+
+pathify() {
+	arg="$(trimslash "$1")"
+	case "$arg" in
+	/*|./*|'')	echo "$arg";;
+	*) 		echo "./$arg";;
+	esac
 }
 
 test $# -gt 0 || usage
@@ -24,10 +52,14 @@ test $# -gt 0 || usage
 while [ $# -gt 0 ]
 do
 	case "$1" in
-	-f|--force)	force='-f'
-			;;
 	--)		shift
 			break
+			;;
+	-h|--help)	usage	
+			;;
+	-f|--force)	force='-f'
+			;;
+	-*)		usage 'Unknown option'
 			;;
 	*)		break
 			;;
@@ -35,22 +67,25 @@ do
 	shift
 done
 
-test $# -eq 1 || usage
+test $# -gt 0 || usage 'Missing argument'
+test $# -lt 3 || usage 'ERROR: Too many arguments'
 
-src="${1%%/}"
+src="$(pathify "$1")"
+shift
 
-case "$src" in
-/*|./*)	
-	;;
-'')	usage
-	;;
-*) 	src="./$src"
-	;;
-esac
+test -d "$src" || usage 'Argument is not a directory'
 
-test -d "$src" || { echo "ERROR: Argument is not a directory"; exit 1; }
+if [ $# -eq 0 ]
+then	dst="${src##*/}"
+else	dst="$1"
+fi
 
-find "$src" -type f -print | while read item
+dst="$(pathify "$dst")"
+
+mkdir -p "$dst"
+cd "$dst"
+
+find "$src" ! -type d -print | while read item
 do
 	relpath="${item#$src/}"
 	case "$relpath" in
@@ -60,7 +95,10 @@ do
 		;;
 	esac
 	mkdir -p "$dir"
-	( cd "$dir" && ln -s ${force} "$item" )
+	(	
+		cd "$dir"
+		ln -s ${force} "$item"
+	)
 done
 
 exit 0
