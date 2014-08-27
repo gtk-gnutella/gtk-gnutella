@@ -3368,7 +3368,7 @@ create_main_window_gnet_tab (void)
   gtk_widget_show (label1079);
   gtk_box_pack_start (GTK_BOX (hbox9354), label1079, FALSE, TRUE, 0);
 
-  spinbutton_max_g2_hubs_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_g2_hubs_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_max_g2_hubs = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_g2_hubs_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_g2_hubs, "spinbutton_max_g2_hubs");
   gtk_widget_show (spinbutton_max_g2_hubs);
@@ -4309,7 +4309,7 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_browse_host_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 10);
+  spinbutton_browse_host_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 0);
   spinbutton_browse_host_max_results = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_browse_host_max_results_adj), 1, 0);
   gtk_widget_set_name (spinbutton_browse_host_max_results, "spinbutton_browse_host_max_results");
   gtk_widget_show (spinbutton_browse_host_max_results);
@@ -4386,7 +4386,7 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
-  spinbutton_passive_search_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 10);
+  spinbutton_passive_search_max_results_adj = gtk_adjustment_new (1000, 1, 50000, 1, 10, 0);
   spinbutton_passive_search_max_results = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_passive_search_max_results_adj), 1, 0);
   gtk_widget_set_name (spinbutton_passive_search_max_results, "spinbutton_passive_search_max_results");
   gtk_widget_show (spinbutton_passive_search_max_results);
@@ -9620,7 +9620,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label1077), 0, 0.5);
 
-  spinbutton_config_upnp_mapping_lease_time_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_upnp_mapping_lease_time_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_upnp_mapping_lease_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upnp_mapping_lease_time_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_upnp_mapping_lease_time, "spinbutton_config_upnp_mapping_lease_time");
   gtk_widget_show (spinbutton_config_upnp_mapping_lease_time);
@@ -11547,7 +11547,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label1076), 0, 0.5);
 
-  spinbutton_config_search_muid_track_amount_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_search_muid_track_amount_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_config_search_muid_track_amount = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_muid_track_amount_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_search_muid_track_amount, "spinbutton_config_search_muid_track_amount");
   gtk_widget_show (spinbutton_config_search_muid_track_amount);
@@ -13763,7 +13763,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label1055), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label1055), 4, 0);
 
-  spinbutton_dl_pipeline_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_pipeline_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 0);
   spinbutton_dl_pipeline_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_pipeline_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_pipeline_maxchunksize, "spinbutton_dl_pipeline_maxchunksize");
   gtk_widget_show (spinbutton_dl_pipeline_maxchunksize);
