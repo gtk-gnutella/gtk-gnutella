@@ -50,6 +50,7 @@
 #include "common.h"
 
 #include "fs_free_space.h"
+#include "pslist.h"
 #include "sha1.h"
 #include "vmm.h"
 
@@ -270,6 +271,8 @@ float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
 char *xml_indent(const char *text);
+pslist_t *dirlist_parse(const char *dirs);
+char *dirlist_to_string(const pslist_t *pl_dirs);
 
 #if defined(S_IROTH) && defined(S_IXOTH)
 /* 0755 */

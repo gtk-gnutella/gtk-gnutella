@@ -55,6 +55,7 @@
 
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/halloc.h"
 #include "lib/hikset.h"
 #include "lib/mempcpy.h"
 #include "lib/product.h"
@@ -443,45 +444,26 @@ static gboolean
 update_shared_dirs(property_t prop)
 {
 	GtkTreeModel *model;
-	gchar *str;
-	const gchar *p, *end;
-	GList *l_iter, *dirs = NULL;
+	pslist_t *sl_dirs, *sl;
+	char *dirs;
 
 	model = get_shared_dirs_model();
 	gtk_list_store_clear(GTK_LIST_STORE(model));
 
 	/* Convert the string to a list of strings for sorting */
-   	str = gnet_prop_get_string(prop, NULL, 0);
-	for (p = str; '\0' != *p; p = '\0' == *end ? end : ++end) {
-		size_t len;
-
-		end = strchr(p, G_SEARCHPATH_SEPARATOR);
-		if (!end)
-			end = strchr(p, '\0');
-
-		len = end - p;
-		if (len > 0) {
-			gchar *dir, *q;
-
-			dir = g_malloc(1 + len);
-			q = mempcpy(dir, p, len);
-			*q = '\0';
-			dirs = g_list_append(dirs, dir);
-		}
-	}
-	G_FREE_NULL(str);
+  	dirs = gnet_prop_get_string(prop, NULL, 0);
+	sl_dirs = dirlist_parse(dirs);
 
 	/* Feed the sorted list of directories to the GtkListStore */
-	dirs = g_list_sort(dirs, str_cmp_func);
-	for (l_iter = dirs; NULL != l_iter; l_iter = g_list_next(l_iter)) {
+	sl_dirs = pslist_sort(sl_dirs, str_cmp_func);
+	PSLIST_FOREACH(sl_dirs, sl) {
 		GtkTreeIter iter;
-		gchar *dir, *dir_utf8;
+		char *dir_utf8;
 
-		dir = l_iter->data;
-		dir_utf8 = filename_to_utf8_normalized(dir, UNI_NORM_GUI);
+		dir_utf8 = filename_to_utf8_normalized(sl->data, UNI_NORM_GUI);
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 		gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-			0, dir,	/* The actual pathname, not necessarily UTF-8 encoded */
+			0, sl->data,/* The actual pathname, not necessarily UTF-8 encoded */
 			1, dir_utf8, /* The best effort UTF-8 conversion for viewing */
 			(-1));
 
@@ -490,12 +472,13 @@ update_shared_dirs(property_t prop)
 		 * free the originals here.
 		 */
 
-		if (dir != dir_utf8) {
+		if (sl->data != dir_utf8) {
 			G_FREE_NULL(dir_utf8);
 		}
-		G_FREE_NULL(dir);
+		HFREE_NULL(sl->data);
 	}
-	g_list_free(dirs);
+	pslist_free_null(&sl_dirs);
+	G_FREE_NULL(dirs);
 
     return FALSE;
 }
