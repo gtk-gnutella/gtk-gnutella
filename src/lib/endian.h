@@ -56,9 +56,18 @@
 #define UINT32_SWAP_CONSTANT(x_) \
 	((UINT32_ROTR((x_), 8) & 0xff00ff00) | (UINT32_ROTL((x_), 8) & 0x00ff00ff))
 
+/**
+ * UINT64_SWAP_CONSTANT() byte-swaps a 64-bit word, preferrably a constant.
+ * If the value is a variable, use UINT64_SWAP().
+ */
 #define UINT64_SWAP_CONSTANT(x_) \
 	(UINT32_SWAP_CONSTANT((uint32) ((x_) >> 32)) | \
 	 ((uint64) UINT32_SWAP_CONSTANT((uint32) (x_)) << 32))
+
+/**
+ * UINT16_SWAP() byte-swaps a 16-bit word.
+ */
+#define UINT16_SWAP(x_) ((uint16)((x_) >> 8) | (uint16)((x_) << 8))
 
 /**
  * UINT32_SWAP() byte-swaps a 32-bit word.
@@ -70,14 +79,19 @@
 #ifdef HAS_BUILTIN_BSWAP32
 #define UINT32_SWAP(x_) \
 	(IS_CONSTANT(x_) ? UINT32_SWAP_CONSTANT(x_) : __builtin_bswap32(x_))
+#else
+#define UINT32_SWAP(x_) UINT32_SWAP_CONSTANT(x_)
+#endif
+
+/**
+ * UINT64_SWAP() byte-swaps a 64-bit word.
+ */
+#ifdef HAS_BUILTIN_BSWAP64
 #define UINT64_SWAP(x_) \
 	(IS_CONSTANT(x_) ? UINT64_SWAP_CONSTANT(x_) : __builtin_bswap64(x_))
 #else
-#define UINT32_SWAP(x_) UINT32_SWAP_CONSTANT(x_)
 #define UINT64_SWAP(x_) UINT64_SWAP_CONSTANT(x_)
 #endif
-
-#define UINT16_SWAP(x_) ((uint16)((x_) >> 8) | (uint16)((x_) << 8))
 
 /**
  * Functions for writing and reading fixed-size integers in big-endian
