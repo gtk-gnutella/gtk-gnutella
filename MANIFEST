@@ -265,6 +265,7 @@ scripts/git-revision
 scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
 scripts/gtkg-version
+scripts/lntool.sh
 scripts/magnet-handler.sh
 scripts/nm-list
 scripts/sha1_cache.pl
