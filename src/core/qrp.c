@@ -756,7 +756,8 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
  * If `old' isn't NULL, then it must have the same size as `new'.
  *
  * For G2, we have to reverse all the bits in the bytes because they number
- * entries in a little-endian way whereas Gnutella uses big-ending numbering.
+ * entries in a little-endian way whereas Gnutella uses big-endian bit numbering
+ * within a byte.
  *
  * @returns a patch buffer (uncompressed), made of 1-bit flips, or NULL
  * if there were no differences between the two tables.  If the `old' table

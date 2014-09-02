@@ -396,7 +396,7 @@ g2_node_handle_rpc_answer(gnutella_node_t *n,
 			 * Special-case /QA which can come VERY late in the process,
 			 * well after the associated RPC has expired.  Still a /QA
 			 * contains information that can be perused, and the associated
-			 * GUESS query may still be alive.  Given them to the GUESS layer
+			 * GUESS query may still be alive.  Give them to the GUESS layer
 			 * as late-comers, to see how much information we can extract.
 			 */
 

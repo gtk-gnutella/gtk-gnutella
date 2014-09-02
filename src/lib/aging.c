@@ -350,7 +350,7 @@ aging_lookup_revitalise(aging_table_t *ag, const void *key)
 /**
  * Remove key from the table, freeing it if we have a key free routine.
  *
- * @return wehether key was found and subsequently removed.
+ * @return whether key was found and subsequently removed.
  */
 bool
 aging_remove(aging_table_t *ag, const void *key)

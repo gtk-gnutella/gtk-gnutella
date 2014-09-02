@@ -151,7 +151,7 @@ sdbm_storage_needs(size_t key_size, size_t value_size, size_t *needed)
 	 *		key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size
 	 *
 	 * which would only indicate whether the expanded key and value can
-	 * fit in the page we loook at whether the sum of key + value sizes is
+	 * fit in the page we look at whether the sum of key + value sizes is
 	 * big enough to warrant offloading of the value in a .dat file, thereby
 	 * reducing the memory constraints in the .pag file.  However we don't
 	 * offload the value to the .dat if its ends up wasting more than half
@@ -350,7 +350,7 @@ sdbm_name(DBM *db)
 /**
  * Open database with specified files, flags and mode (like open() arguments).
  *
- * If the `datname' argument is NULL, large keys/values are dissabled for
+ * If the `datname' argument is NULL, large keys/values are disabled for
  * this database.
  *
  * @param dirname	the file to use for .dir

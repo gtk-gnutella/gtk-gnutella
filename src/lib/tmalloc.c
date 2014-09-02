@@ -1438,7 +1438,7 @@ tmalloc_thread_gc(void *unused_data)
 	 * If any thread layer has not been performing any operation for the
 	 * last TMALLOC_TGC_IDLE seconds, then clear its magazines to avoid
 	 * keeping objects allocated in the magazines that never get used.  This
-	 * s especially important for the larger objects, or for large magazines.
+	 * is especially important for the larger objects, or for large magazines.
 	 */
 
 	ESLIST_FOREACH_DATA(tmagazines, tmt) {
