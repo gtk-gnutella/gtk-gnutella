@@ -57,10 +57,6 @@
 
 #include "common.h"
 
-#ifdef I_SCHED
-#include <sched.h>
-#endif
-
 #include "rwlock.h"
 
 #include "compat_usleep.h"
