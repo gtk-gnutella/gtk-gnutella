@@ -1,3 +1,35 @@
+# v 1.1.1   2014-09-02  [stable]
+
+This is mostly a bug-fixing release.
+
+Improvements:
+- Share Opus files by default, added opus and webm to search filters.
+- No longer automagically unshare directories that do exist currently.
+- Revamped peek/poke functions because GCC generated unoptimized code for these.
+
+Bug Fixes:
+- Avoid crash when we cannot parse the remotely supplied push-proxy URL.
+- Fixed crash when entering "local:" as search term.
+- Fixed crash when gtk-gnutella was stopped from terminal and put to background.
+- Fixed crash on "Reverse DNS lookup" queries from the GUI node pane.
+- Fixed GtkSpinButton "adjustment with non-zero page size" deprecation message.
+- Handle G_SEARCHPATH_SEPARATOR in shared base directory correctly.
+
+Under the Hood:
+- shared_file_get_index(): fixed lower boundary of assertion.
+- fi_find_aggressive_candidate(): prevent division by 0 if no starving download.
+- Fixed possible race condition between bg_task_wakeup() and bg_sched_sleep().
+- Regenerated Configure to allow BFD library detection for newest versions.
+- teq_post_rpc(): use linearily increasing timeouts to limit logging.
+- str_vncatf(): made recursion checks before calling s_minicarp() thread-safe.
+- ut_frag_pmsg_free(): avoid SIGSEGV when fragment was already acknowledged.
+- deflate_add(): refuse further data when the TX deflate layer had an error.
+- search_dequeue_all_nodes(): must also iterate on G2 nodes.
+- cq_heartbeat(): only log delay adjustements when running with cq_debug > 0.
+- g2_node_handle(): silence warnings when not debugging.
+- Allow xfl_find_freelist_index() to work with gcc 4.9 and optimizations.
+- keys_offload(): do not process if the key layer was shutdown.
+
 # v 1.1.0   2014-07-02  [stable]
 
 This is a major release introducing new features and making gtk-gnutella
