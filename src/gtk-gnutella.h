@@ -40,10 +40,10 @@
 #define GTA_PRODUCT_NAME	"gtk-gnutella"	/**< Normally "gtk-gnutella" */
 #define GTA_VERSION			1			/**< major version */
 #define GTA_SUBVERSION 		1			/**< minor version */
-#define GTA_PATCHLEVEL 		0			/**< patch level or teeny version */
+#define GTA_PATCHLEVEL 		1			/**< patch level or teeny version */
 #define GTA_REVISION 		"stable"	/**< unstable, beta, stable */
 #define GTA_REVCHAR			""			/**< (u)nstable, (b)eta, "" -> stable */
-#define GTA_RELEASE			"2014-07-02"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE			"2014-09-02"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE			"http://gtk-gnutella.sourceforge.net/"
 #define GTA_VENDOR_CODE		"GTKG"
 
