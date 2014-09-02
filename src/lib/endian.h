@@ -40,6 +40,60 @@
 #include "common.h"
 
 /**
+ * UINT32_ROTR() rotates a 32-bit value to the right by `n' bits.
+ * UINT32_ROTL() rotates a 32-bit value to the left by `n' bits.
+ */
+#define UINT32_ROTR(x_,n_) \
+	(((uint32) (x_) >> (n_)) | ((uint32) (x_) << (32 - (n_))))
+
+#define UINT32_ROTL(x_,n_) \
+	(((uint32) (x_) << (n_)) | ((uint32) (x_) >> (32 - (n_))))
+
+/**
+ * UINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
+ * If the value is a variable, use UINT32_SWAP().
+ */
+#define UINT32_SWAP_CONSTANT(x_) \
+	((UINT32_ROTR((x_), 8) & 0xff00ff00) | (UINT32_ROTL((x_), 8) & 0x00ff00ff))
+
+/**
+ * UINT64_SWAP_CONSTANT() byte-swaps a 64-bit word, preferrably a constant.
+ * If the value is a variable, use UINT64_SWAP().
+ */
+#define UINT64_SWAP_CONSTANT(x_) \
+	(UINT32_SWAP_CONSTANT((uint32) ((x_) >> 32)) | \
+	 ((uint64) UINT32_SWAP_CONSTANT((uint32) (x_)) << 32))
+
+/**
+ * UINT16_SWAP() byte-swaps a 16-bit word.
+ */
+#define UINT16_SWAP(x_) ((uint16)((x_) >> 8) | (uint16)((x_) << 8))
+
+/**
+ * UINT32_SWAP() byte-swaps a 32-bit word.
+ *
+ * Avoid using glib's GUINT32_SWAP_LE_BE(): it triggers compile-time
+ * warnings on a wrong __asm__ statement with glib 1.2.  This version
+ * should be as efficient as the one defined by glib.
+ */
+#ifdef HAS_BUILTIN_BSWAP32
+#define UINT32_SWAP(x_) \
+	(IS_CONSTANT(x_) ? UINT32_SWAP_CONSTANT(x_) : __builtin_bswap32(x_))
+#else
+#define UINT32_SWAP(x_) UINT32_SWAP_CONSTANT(x_)
+#endif
+
+/**
+ * UINT64_SWAP() byte-swaps a 64-bit word.
+ */
+#ifdef HAS_BUILTIN_BSWAP64
+#define UINT64_SWAP(x_) \
+	(IS_CONSTANT(x_) ? UINT64_SWAP_CONSTANT(x_) : __builtin_bswap64(x_))
+#else
+#define UINT64_SWAP(x_) UINT64_SWAP_CONSTANT(x_)
+#endif
+
+/**
  * Functions for writing and reading fixed-size integers in big-endian
  * or little-endian.
  */
@@ -81,85 +135,61 @@ peek_u64(const void *p)
 static inline G_GNUC_PURE uint16
 peek_be16(const void *p)
 {
-	const unsigned char *q = p;
-	uint16 v;
-
 #if IS_BIG_ENDIAN
-	memcpy(&v, q, sizeof v);
+	return peek_u16(p);
 #else
-	v = ((uint16) peek_u8(q) << 8) | peek_u8(&q[sizeof v / 2]);
+	return UINT16_SWAP(peek_u16(p));
 #endif
-	return v;
 }
 
 static inline G_GNUC_PURE uint32
 peek_be32(const void *p)
 {
-	const unsigned char *q = p;
-	uint32 v;
-
 #if IS_BIG_ENDIAN
-	memcpy(&v, q, sizeof v);
+	return peek_u32(p);
 #else
-	v = ((uint32) peek_be16(q) << 16) | peek_be16(&q[sizeof v / 2]);
+	return UINT32_SWAP(peek_u32(p));
 #endif
-	return v;
 }
 
 static inline G_GNUC_PURE uint64
 peek_be64(const void *p)
 {
-	const unsigned char *q = p;
-	uint64 v;
-
 #if IS_BIG_ENDIAN
-	memcpy(&v, q, sizeof v);
+	return peek_u64(p);
 #else
-	v = ((uint64) peek_be32(q) << 32) | peek_be32(&q[sizeof v / 2]);
+	return UINT64_SWAP(peek_u64(p));
 #endif
-	return v;
 }
 
 static inline G_GNUC_PURE uint16
 peek_le16(const void *p)
 {
-	const unsigned char *q = p;
-	uint16 v;
-
 #if IS_LITTLE_ENDIAN
-	memcpy(&v, q, sizeof v);
+	return peek_u16(p);
 #else
-	v = peek_u8(q) | ((uint16) peek_u8(&q[sizeof v / 2]) << 8);
+	return UINT16_SWAP(peek_u32(p));
 #endif
-	return v;
 }
 
 static inline G_GNUC_PURE uint32
 peek_le32(const void *p)
 {
-	const unsigned char *q = p;
-	uint32 v;
-
 #if IS_LITTLE_ENDIAN
-	memcpy(&v, q, sizeof v);
+	return peek_u32(p);
 #else
-	v = peek_le16(q) | ((uint32) peek_le16(&q[sizeof v / 2]) << 16);
+	return UINT32_SWAP(peek_u32(p));
 #endif
-	return v;
 }
 
 static inline G_GNUC_PURE uint64
 peek_le64(const void *p)
 {
-	const unsigned char *q = p;
-	uint64 v;
-
 #if IS_LITTLE_ENDIAN
-	memcpy(&v, q, sizeof v);
+	return peek_u64(p);
 #else
-	v = (uint64) peek_le32(q) | ((uint64) peek_le32(&q[sizeof v / 2]) << 32);
+	return UINT64_SWAP(peek_u64(p));
 #endif
-	return v;
 }
 
 /*
@@ -175,94 +205,82 @@ poke_u8(void *p, unsigned char v)
 	return &q[sizeof v];
 }
 
+static inline ALWAYS_INLINE void *
+poke_u16(void *p, uint16 v)
+{
+	unsigned char *q = p;
+	memcpy(q, &v, sizeof v);
+	return &q[sizeof v];
+}
+
+static inline ALWAYS_INLINE void *
+poke_u32(void *p, uint32 v)
+{
+	unsigned char *q = p;
+	memcpy(q, &v, sizeof v);
+	return &q[sizeof v];
+}
+
+static inline ALWAYS_INLINE void *
+poke_u64(void *p, uint64 v)
+{
+	unsigned char *q = p;
+	memcpy(q, &v, sizeof v);
+	return &q[sizeof v];
+}
+
 static inline void *
 poke_be16(void *p, uint16 v)
 {
-	unsigned char *q = p;
-
-#if IS_BIG_ENDIAN
-	memcpy(q, &v, sizeof v);
-#else
-	poke_u8(&q[0], v >> 8);
-	poke_u8(&q[sizeof v / 2], v);
+#if IS_LITTLE_ENDIAN
+	v = UINT16_SWAP(v);
 #endif
-
-	return &q[sizeof v];
+	return poke_u16(p, v);
 }
 
 static inline void *
 poke_be32(void *p, uint32 v)
 {
-	unsigned char *q = p;
-
-#if IS_BIG_ENDIAN
-	memcpy(q, &v, sizeof v);
-#else
-	poke_be16(&q[0], v >> 16);
-	poke_be16(&q[sizeof v / 2], v);
+#if IS_LITTLE_ENDIAN
+	v = UINT32_SWAP(v);
 #endif
-
-	return &q[sizeof v];
+	return poke_u32(p, v);
 }
 
 static inline void *
 poke_be64(void *p, uint64 v)
 {
-	unsigned char *q = p;
-
-#if IS_BIG_ENDIAN
-	memcpy(q, &v, sizeof v);
-#else
-	poke_be32(&q[0], v >> 32);
-	poke_be32(&q[sizeof v / 2], v);
+#if IS_LITTLE_ENDIAN
+	v = UINT64_SWAP(v);
 #endif
-
-	return &q[sizeof v];
+	return poke_u64(p, v);
 }
 
 static inline void *
 poke_le16(void *p, uint16 v)
 {
-	unsigned char *q = p;
-
-#if IS_LITTLE_ENDIAN
-	memcpy(q, &v, sizeof v);
-#else
-	poke_u8(&q[0], v);
-	poke_u8(&q[sizeof v / 2], v >> 8);
+#if IS_BIG_ENDIAN
+	v = UINT16_SWAP(v);
 #endif
-
-	return &q[sizeof v];
+	return poke_u16(p, v);
 }
 
 static inline void *
 poke_le32(void *p, uint32 v)
 {
-	unsigned char *q = p;
-
-#if IS_LITTLE_ENDIAN
-	memcpy(q, &v, sizeof v);
-#else
-	poke_le16(&q[0], v);
-	poke_le16(&q[sizeof v / 2], v >> 16);
+#if IS_BIG_ENDIAN
+	v = UINT32_SWAP(v);
 #endif
-
-	return &q[sizeof v];
+	return poke_u32(p, v);
 }
 
 static inline void *
 poke_le64(void *p, uint64 v)
 {
-	unsigned char *q = p;
-
-#if IS_LITTLE_ENDIAN
-	memcpy(q, &v, sizeof v);
-#else
-	poke_le32(&q[0], v);
-	poke_le32(&q[sizeof v / 2], v >> 32);
+#if IS_BIG_ENDIAN
+	v = UINT64_SWAP(v);
 #endif
-
-	return &q[sizeof v];
+	return poke_u64(p, v);
 }
 
 #ifdef USE_IEEE754_FLOAT

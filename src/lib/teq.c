@@ -935,7 +935,7 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 	enum tevent_magic magic)
 {
 	struct tevent_rpc rpc;
-	unsigned events;
+	unsigned events, n = 1;
 
 	/*
 	 * Detect when a thread attempts to issue a RPC to itself, since using
@@ -996,13 +996,14 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 		 * prevents proper signalling to the blocked thread.
 		 */
 
-		tm_fill_ms(&tmout, TEQ_RPC_TIMEOUT);
+		tm_fill_ms(&tmout, n * TEQ_RPC_TIMEOUT);
 
 		if (!thread_timed_block_self(events, &tmout)) {
-			s_carp("%s(): timed-out waiting (RPC %s(%p) to %s %s)",
-				G_STRFUNC, stacktrace_function_name(routine), data,
+			s_carp("%s(): timeout #%u waiting (RPC %s(%p) to %s %s)",
+				G_STRFUNC, n, stacktrace_function_name(routine), data,
 				thread_id_name(id),
 				atomic_bool_get(&rpc.done) ? "completed" : "still pending");
+			n++;	/* One more timeout, increase waiting time */
 		}
 
 		events = thread_block_prepare();

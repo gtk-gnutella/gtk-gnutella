@@ -810,7 +810,7 @@ search_free_r_set(gnet_results_set_t *rs)
 {
 	pslist_t *m;
 
-	for (m = rs->records; m; m = pslist_next(m)) {
+	PSLIST_FOREACH(rs->records, m) {
 		search_free_record(m->data);
 	}
 	atom_guid_free_null(&rs->guid);
@@ -5466,11 +5466,14 @@ search_dequeue_all_nodes(gnet_search_t sh)
 {
 	const pslist_t *sl;
 
-	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
+	PSLIST_FOREACH(node_all_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
-		squeue_t *sq = NODE_SQUEUE(n);
+		squeue_t *sq;
 
-		if (sq)
+		node_check(n);
+
+		sq = NODE_SQUEUE(n);
+		if (sq != NULL)
 			sq_search_closed(sq, sh);
 	}
 
@@ -5615,7 +5618,7 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 		}
 	}
 
-	for (sl = rs->records; NULL != sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(rs->records, sl) {
 		shared_file_t *sf;
 		gnet_record_t *rc = sl->data;
 
@@ -5683,7 +5686,7 @@ search_results_set_auto_download(gnet_results_set_t *rs)
 	if (!GNET_PROPERTY(auto_download_identical))
 		return;
 
-	for (sl = rs->records; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
 		fileinfo_t *fi;
 
@@ -5777,7 +5780,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh, const g2_tree_t *t)
 	if (GNET_PROPERTY(browse_copied_to_passive)) {
 		uint32 max_items = GNET_PROPERTY(passive_search_max_results);
 
-		for (sl = sl_passive_ctrl; sl != NULL; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(sl_passive_ctrl, sl) {
 			search_ctrl_t *sch = sl->data;
 
 			search_ctrl_check(sch);
@@ -5846,7 +5849,7 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 
 	max_items = GNET_PROPERTY(passive_search_max_results);
 
-	for (sl = sl_passive_ctrl; sl != NULL; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(sl_passive_ctrl, sl) {
 		search_ctrl_t *sch = sl->data;
 
 		search_ctrl_check(sch);
@@ -6384,7 +6387,7 @@ search_close(gnet_search_t sh)
 		if (sch->muids) {
 			pslist_t *sl;
 
-			for (sl = sch->muids; sl; sl = pslist_next(sl)) {
+			PSLIST_FOREACH(sch->muids, sl) {
 				htable_remove(search_by_muid, sl->data);
 				wfree(sl->data, GUID_RAW_SIZE);
 			}
@@ -6599,7 +6602,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 	 * Harvest entropy.
 	 */
 
-	entropy_harvest_many(query, strlen(query), VARLEN(mtype),
+	entropy_harvest_many(query, strsize(query), VARLEN(mtype),
 		VARLEN(lifetime), VARLEN(reissue_timeout), VARLEN(flags), NULL);
 
 	/*
@@ -7363,7 +7366,7 @@ search_locally(gnet_search_t sh, const char *query)
 	g_assert(sbool_get(sch->local));
 	g_assert(sch->download == NULL);
 
-	entropy_harvest_many(VARLEN(sh), query, strlen(query), NULL);
+	entropy_harvest_many(VARLEN(sh), query, strsize(query), NULL);
 
 	if ('\0' == query[0]) {
 		error = FALSE;
@@ -7501,7 +7504,7 @@ search_handle_magnet(const char *url)
 	if (res) {
 		pslist_t *sl;
 
-		for (sl = res->searches; sl != NULL; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(res->searches, sl) {
 			const char *query;
 
 			/* Note that SEARCH_F_LITERAL is used to prevent that these

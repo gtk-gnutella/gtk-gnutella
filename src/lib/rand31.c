@@ -54,6 +54,7 @@
 
 #include "rand31.h"
 #include "atomic.h"
+#include "endian.h"
 #include "entropy.h"
 #include "hashing.h"
 #include "log.h"

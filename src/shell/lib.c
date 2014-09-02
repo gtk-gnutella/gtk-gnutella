@@ -302,11 +302,11 @@ shell_help_lib(int argc, const char *argv[])
 			} else {
 				if (0 == ascii_strcasecmp(argv[2], "callout")) {
 					return "lib show callout\n"
-						"diplay information about all the callout queues\n";
+						"display information about all the callout queues\n";
 				} else
 				if (0 == ascii_strcasecmp(argv[2], "files")) {
 					return "lib show files [-uw]\n"
-						"diplay open files\n"
+						"display open files\n"
 						"-u: show one entry per file path "
 							"(ignoring -w if supplied)\n"
 						"-w: show where files were opened\n";

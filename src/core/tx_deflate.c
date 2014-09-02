@@ -554,12 +554,21 @@ deflate_add(txdrv_t *tx, const void *data, int len)
 
 	if (tx_deflate_debugging(9)) {
 		g_debug("TX %s: (%s) given %u bytes (buffer #%d, nagle %s, "
-			"unflushed %zu) [%c%c]", G_STRFUNC,
+			"unflushed %zu) [%c%c]%s", G_STRFUNC,
 			gnet_host_to_string(&tx->host), len, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
-			(attr->flags & DF_FLUSH) ? 'f' : '-');
+			(attr->flags & DF_FLUSH) ? 'f' : '-',
+			(tx->flags & TX_ERROR) ? " ERROR" : "");
 	}
+
+	/*
+	 * If an error was already reported, the whole deflate stream is dead
+	 * and we cannot accept any more data.
+	 */
+
+	if G_UNLIKELY(tx->flags & TX_ERROR)
+		return -1;
 
 	while (added < len) {
 		struct buffer *b = &attr->buf[attr->fill_idx];	/* Buffer we fill */

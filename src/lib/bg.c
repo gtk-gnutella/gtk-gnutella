@@ -110,6 +110,7 @@
 #include "elist.h"
 #include "entropy.h"
 #include "eslist.h"
+#include "log.h"			/* For s_debug() and friends */
 #include "misc.h"
 #include "mutex.h"
 #include "once.h"
@@ -205,8 +206,10 @@ struct bgtask {
 	uint32 uflags;			/**< User flags (can be externally modified) */
 	const char *name;		/**< Task name */
 	struct bgsched *sched;	/**< Scheduler to which task is attached */
+	int refcnt;				/**< Reference count on task */
 	int step;				/**< Current processing step */
 	int seqno;				/**< Number of calls at same step */
+	bgstatus_t status;		/**< Final exit status */
 	bgstep_cb_t *stepvec;	/**< Set of steps to run in sequence */
 	int stepcnt;			/**< Amount of steps in the `stepvec' array */
 	void *ucontext;			/**< User context */
@@ -280,6 +283,7 @@ enum {
  * User flags, can only be modified with the task locked.
  */
 enum {
+	TASK_UF_SLEEPING	= 1 << 3,	/**< Task put to user-induced sleep */
 	TASK_UF_SLEEP_REQ	= 1 << 2,	/**< Task requesting to be put to sleep */
 	TASK_UF_NOTICK		= 1 << 1,	/**< Do no recompute tick info */
 	TASK_UF_CANCELLED	= 1 << 0,	/**< Task has been cancelled */
@@ -410,7 +414,7 @@ bg_task_exitcode(bgtask_t *bt)
 	BG_TASK_UNLOCK(bt);
 
 	if G_UNLIKELY(0 == (TASK_F_EXITED & flags)) {
-		g_carp("%s(): calling on non-terminated task %p \"%s\", "
+		s_carp("%s(): calling on non-terminated task %p \"%s\", "
 			"currently in %s()",
 			G_STRFUNC, bt, bt->name, bg_task_step_name(bt));
 		return 0;
@@ -464,24 +468,24 @@ bgstatus_to_string(bgstatus_t status)
 static void
 bg_task_is_running(bgtask_t *bt, const char *routine)
 {
-	bg_task_check(bt);
-
 	g_assert_log(bt->flags & TASK_F_RUNNING,
-		"%s(): task %p \"%s\" must be running to call %s()",
-		G_STRFUNC, bt, bt->name, routine);
+		"%s(): task %p \"%s\" must be running to call %s(), flags=0x%x",
+		G_STRFUNC, bt, bt->name, routine, bt->flags);
 }
 
 /**
- * Assert that a background task is currently sleeping.
+ * Assert that a background task is currently sleeping or has been flagged
+ * for sleeping.
  */
 static void
 bg_task_is_sleeping(bgtask_t *bt, const char *routine)
 {
-	bg_task_check(bt);
-
-	g_assert_log(bt->flags & TASK_F_SLEEPING,
-		"%s(): task %p \"%s\" must be sleeping to call %s()",
-		G_STRFUNC, bt, bt->name, routine);
+	g_assert_log(
+		(bt->uflags &
+			(TASK_UF_SLEEP_REQ | TASK_UF_SLEEPING | TASK_UF_CANCELLED)),
+		"%s(): task %p \"%s\" must be sleeping to call %s(), "
+			"flags=0x%x, uflags=0x%x",
+		G_STRFUNC, bt, bt->name, routine, bt->flags, bt->uflags);
 }
 
 /**
@@ -647,14 +651,14 @@ bg_task_suspend(bgtask_t *bt, int target)
 
 		if (target != 0 && elapsed > target) {
 			if (bg_debug > 4)
-				g_message("BGTASK \"%s\" %p resetting tick_cost", bt->name, bt);
+				s_message("BGTASK \"%s\" %p resetting tick_cost", bt->name, bt);
 			new_cost = elapsed / bt->ticks_used;
 		} else {
 			new_cost = (4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 		}
 
 		if (bg_debug > 4) {
-			g_debug("BGTASK \"%s\" %p total=%'lu msecs (%s), "
+			s_debug("BGTASK \"%s\" %p total=%'lu msecs (%s), "
 				"elapsed=%'lu usecs (targeted %d), "
 				"ticks=%d, used=%d, tick_cost=%g usecs (was %g)",
 				bt->name, bt, bt->wtime, short_time_ascii(bt->wtime / 1000),
@@ -777,6 +781,7 @@ static void
 bg_common_init(bgtask_t *bt)
 {
 	spinlock_init(&bt->lock);
+	bt->refcnt = 1;
 }
 
 static bgtask_t *
@@ -854,7 +859,7 @@ bg_task_create_internal(
 	BG_SCHED_UNLOCK(bt->sched);
 
 	if (bg_debug > 1) {
-		g_debug("BGTASK created task \"%s\" (%d step%s) in %s scheduler",
+		s_debug("BGTASK created task \"%s\" (%d step%s) in %s scheduler",
 			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
@@ -955,7 +960,7 @@ bg_task_run(bgtask_t *bt)
 	BG_TASK_UNLOCK(bt);
 
 	if G_UNLIKELY(!awoken) {
-		g_carp("%s(): task %p \"%s\" was already running",
+		s_carp("%s(): task %p \"%s\" was already running",
 			G_STRFUNC, bt, bt->name);
 	}
 }
@@ -1026,7 +1031,7 @@ bg_daemon_create(
 	BG_SCHED_UNLOCK(bt->sched);
 
 	if (bg_debug > 1) {
-		g_debug("BGTASK created daemon task \"%s\" (%d step%s) in %s scheduler",
+		s_debug("BGTASK created daemon task \"%s\" (%d step%s) in %s scheduler",
 			name, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
@@ -1065,7 +1070,7 @@ bg_daemon_enqueue(bgtask_t *bt, void *item)
 	BG_TASK_UNLOCK(bt);
 
 	if (awoken && bg_debug > 1)
-		g_debug("BGTASK waking up daemon \"%s\" task %p", bt->name, bt);
+		s_debug("BGTASK waking up daemon \"%s\" task %p", bt->name, bt);
 
 	if (awoken && bd->notify != NULL)
 		(*bd->notify)(bt, TRUE);	/* Waking up */
@@ -1102,7 +1107,7 @@ bg_task_free(bgtask_t *bt)
 		pslist_free_null(&bd->wq);
 
 		if (count) {
-			g_warning("%s(): freed %d pending item%s for daemon \"%s\" task %p",
+			s_warning("%s(): freed %d pending item%s for daemon \"%s\" task %p",
 				G_STRFUNC, count, plural(count), bt->name, bt);
 		}
 		bt->magic = 0;
@@ -1114,13 +1119,127 @@ bg_task_free(bgtask_t *bt)
 }
 
 /**
+ * Task has finished and is ready to be reclaimed, as long as its reference
+ * count has dropped to 1 or 0.
+ */
+static void
+bg_task_finished(bgtask_t *bt)
+{
+	g_assert(bt->refcnt >= 0);
+	g_assert(bt->flags & TASK_F_EXITED);
+
+	/*
+	 * If the task is still referenced, put it back to the sleeping queue.
+	 * It should never be scheduled again (it would need to be awoken first,
+	 * but since it is finished, that would be a user-code error).
+	 *
+	 * It will be reclaimed via bg_task_unref() calls.
+	 */
+
+	if (bt->refcnt > 1) {
+		bg_sched_sleep(bt);
+		return;
+	}
+
+	/*
+	 * Let the user know this task has now ended.
+	 * Upon return from this callback, further user-reference of the
+	 * task structure are FORBIDDEN.
+	 */
+
+	if (bt->done_cb) {
+		(*bt->done_cb)(bt, bt->ucontext, bt->status, bt->done_arg);
+		bt->flags &= ~TASK_F_ZOMBIE;		/* Is now totally DEAD */
+	}
+
+	/*
+	 * Free user's context.
+	 *
+	 * User code can call bg_task_exitcode() from the context freeing callback
+	 * if it has a reference on the task (otherwise it should have installed
+	 * a "done" callback to know how the task exits).
+	 *
+	 * Therefore we can only warn about the exit status being lost after the
+	 * context has been completely destroyed.
+	 */
+
+	(*bt->uctx_free)(bt->ucontext);
+
+	if (bt->flags & TASK_F_ZOMBIE) {
+		s_carp("user code lost exit status of task %p \"%s\": %s",
+			bt, bt->name, bgstatus_to_string(bt->status));
+	}
+
+
+	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
+
+	/*
+	 * Do not free the task structure immediately, in case the calling
+	 * stack is not totally clean and we're about to probe the task
+	 * structure again.
+	 *
+	 * It will be freed at the next scheduler run.
+	 */
+
+	BG_SCHED_LOCK(bt->sched);
+	eslist_prepend(&bt->sched->dead_tasks, bt);
+	BG_SCHED_UNLOCK(bt->sched);
+}
+
+/**
+ * Add a reference to the task.
+ *
+ * @return the task as a convenience.
+ */
+bgtask_t *
+bg_task_ref(bgtask_t *bt)
+{
+	bg_task_check(bt);
+	g_assert(bt->refcnt >= 0);
+
+	bt->refcnt++;
+
+	return bt;
+}
+
+/**
+ * Remove a reference to the task.
+ */
+void
+bg_task_unref(bgtask_t *bt)
+{
+	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
+
+	/*
+	 * If there is only one reference to the task, removing the last reference
+	 * means we cannot control / cancel the task anymore.  Loudly warn when
+	 * this happens, but do not panic as it may be OK.
+	 */
+
+	if G_UNLIKELY(1 == bt->refcnt && !(bt->flags & TASK_F_EXITED)) {
+		s_carp("%s(): task %p \"%s\" will no longer be referenced",
+			G_STRFUNC, bt, bt->name);
+	}
+
+	/*
+	 * If the task has exited already and its reference count drops below 1,
+	 * we can reclaim it.
+	 */
+
+	if (bt->refcnt-- <= 2) {
+		if (bt->flags & TASK_F_EXITED)
+			bg_task_finished(bt);
+	}
+}
+
+/**
  * Terminate the task, invoking the completion callback if defined.
  */
 static void
 bg_task_terminate(bgtask_t *bt)
 {
 	bgsched_t *bs;
-	bgstatus_t status;
 
 	bg_task_check(bt);
 	g_assert(!(bt->flags & TASK_F_EXITED));
@@ -1136,9 +1255,10 @@ bg_task_terminate(bgtask_t *bt)
 	if G_UNLIKELY(bg_closed) {
 		if (0 == (bt->uflags & TASK_UF_CANCELLED)) {
 			/* Only warn if task was not cancelled as part of the shutdown */
-			g_carp("%s(): ignoring left-over %stask %p \"%s\", flags=0x%x",
+			s_carp("%s(): ignoring left-over %stask %p \"%s\", "
+				"flags=0x%x, refcnt=%d",
 				G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "",
-				bt, bt->name, bt->flags);
+				bt, bt->name, bt->flags, bt->refcnt);
 		}
 
 		/*
@@ -1176,7 +1296,7 @@ bg_task_terminate(bgtask_t *bt)
 	 */
 
 	if (bg_debug > 1) {
-		g_debug("BGTASK terminating %p \"%s\"%s, ran %'lu msecs (%s)",
+		s_debug("BGTASK terminating %p \"%s\"%s, ran %'lu msecs (%s)",
 			bt, bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "",
 			bt->wtime, short_time_ascii(bt->wtime / 1000));
 	}
@@ -1204,14 +1324,14 @@ bg_task_terminate(bgtask_t *bt)
 	 * Compute proper status.
 	 */
 
-	status = BGS_OK;		/* Assume everything was fine */
+	bt->status = BGS_OK;		/* Assume everything was fine */
 
 	if (bt->flags & TASK_F_CANCELLING)
-		status = BGS_CANCELLED;
+		bt->status = BGS_CANCELLED;
 	else if (bt->flags & TASK_F_SIGNAL)
-		status = BGS_KILLED;
+		bt->status = BGS_KILLED;
 	else if (bt->exitcode != 0)
-		status = BGS_ERROR;
+		bt->status = BGS_ERROR;
 
 	/*
 	 * If there is a status to read, mark task as being a zombie: it will
@@ -1219,51 +1339,10 @@ bg_task_terminate(bgtask_t *bt)
 	 * execution status.
 	 */
 
-	if (status != BGS_OK && bt->done_cb == NULL)
+	if (bt->status != BGS_OK && bt->done_cb == NULL)
 		bt->flags |= TASK_F_ZOMBIE;
 
-	/*
-	 * Let the user know this task has now ended.
-	 * Upon return from this callback, further user-reference of the
-	 * task structure are FORBIDDEN.
-	 */
-
-	if (bt->done_cb) {
-		(*bt->done_cb)(bt, bt->ucontext, status, bt->done_arg);
-		bt->flags &= ~TASK_F_ZOMBIE;		/* Is now totally DEAD */
-	}
-
-	/*
-	 * Free user's context.
-	 *
-	 * User code can call bg_task_exitcode() from the context freeing callback
-	 * if it has a reference on the task (otherwise it should have installed
-	 * a "done" callback to know how the task exits).
-	 *
-	 * Therefore we can only warn about the exit status being lost after the
-	 * context has been completely destroyed.
-	 */
-
-	(*bt->uctx_free)(bt->ucontext);
-
-	if (bt->flags & TASK_F_ZOMBIE) {
-		g_carp("user code lost exit status of task %p \"%s\": %s",
-			bt, bt->name, bgstatus_to_string(status));
-	}
-
-	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
-
-	/*
-	 * Do not free the task structure immediately, in case the calling
-	 * stack is not totally clean and we're about to probe the task
-	 * structure again.
-	 *
-	 * It will be freed at the next scheduler run.
-	 */
-
-	BG_SCHED_LOCK(bs);
-	eslist_prepend(&bs->dead_tasks, bt);
-	BG_SCHED_UNLOCK(bs);
+	bg_task_finished(bt);
 }
 
 /**
@@ -1405,6 +1484,7 @@ bg_task_signal(bgtask_t *bt, bgsig_t sig, bgsig_cb_t handler)
 	bgsig_cb_t oldhandler;
 
 	bg_task_check(bt);
+
 	oldhandler = bt->sigh[sig];
 	bt->sigh[sig] = handler;
 
@@ -1453,6 +1533,7 @@ bg_task_cancel(bgtask_t *bt)
 	bgtask_t *old = NULL;
 
 	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
 
 	if (bt->flags & (TASK_F_EXITED | TASK_F_CANCELLING))	/* Already done */
 		return;
@@ -1472,7 +1553,7 @@ bg_task_cancel(bgtask_t *bt)
 	 */
 
 	if (bt->flags & TASK_F_SLEEPING)
-		bg_task_wakeup(bt);
+		bg_sched_wakeup(bt);
 
 	bs = bt->sched;
 	bg_sched_check(bs);
@@ -1485,7 +1566,7 @@ bg_task_cancel(bgtask_t *bt)
 	if (thread_small_id() != bs->stid) {
 		BG_TASK_UNLOCK(bt);
 		if (bg_debug > 1)
-			g_debug("BGTASK recorded foreign cancel for \"%s\", "
+			s_debug("BGTASK recorded foreign cancel for \"%s\", "
 				"currently in %s()", bt->name, bg_task_step_name(bt));
 		return;
 	}
@@ -1500,7 +1581,7 @@ bg_task_cancel(bgtask_t *bt)
 	if G_UNLIKELY(0 != thread_sighandler_level()) {
 		BG_TASK_UNLOCK(bt);
 		if (bg_debug > 1) {
-			g_debug("BGTASK recorded local cancel for \"%s\", "
+			s_debug("BGTASK recorded local cancel for \"%s\", "
 				"currently in %s()", bt->name, bg_task_step_name(bt));
 		}
 		return;
@@ -1516,7 +1597,7 @@ bg_task_cancel(bgtask_t *bt)
 	BG_TASK_UNLOCK(bt);
 
 	if (bg_debug > 1) {
-		g_debug("BGTASK cancelling \"%s\", currently in %s()",
+		s_debug("BGTASK cancelling \"%s\", currently in %s()",
 			bt->name, bg_task_step_name(bt));
 	}
 
@@ -1589,9 +1670,20 @@ bg_task_ticks_used(bgtask_t *bt, int used)
 void
 bg_task_sleep(bgtask_t *bt)
 {
-	bg_task_is_running(bt, G_STRFUNC);
+	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
+
+	/*
+	 * Because we expect the task to be running, it is only possible to get
+	 * here from the scheduler (i.e the call can only be made "from" the
+	 * running task code).
+	 *
+	 * Hence, we do not need to lock the scheduler: no concurrency is possible.
+	 */
 
 	BG_TASK_LOCK(bt);
+	bg_task_is_running(bt, G_STRFUNC);
+
 	bt->uflags |= TASK_UF_SLEEP_REQ;
 	BG_TASK_UNLOCK(bt);
 }
@@ -1602,9 +1694,59 @@ bg_task_sleep(bgtask_t *bt)
 void
 bg_task_wakeup(bgtask_t *bt)
 {
+	bgsched_t *bs;
+	bool only_requested = FALSE;
+
+	/*
+	 * To prevent race conditions with bg_sched_sleep() being called from
+	 * the scheduler at the same time someone would want to call this routine,
+	 * we need to hold the lock for the scheduler throughout the execution,
+	 * the leading precondition (about the task being sleeping) included.
+	 */
+
+	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
+
+	bs = bt->sched;
+	bg_sched_check(bs);
+
+	BG_TASK_LOCK(bt);		/* Strict lock order: task first, then scheduler */
+	BG_SCHED_LOCK(bs);
+
 	bg_task_is_sleeping(bt, G_STRFUNC);
 
-	bg_sched_wakeup(bt);
+	/*
+	 * It is possible that the running task was not yet put to sleep
+	 * in the scheduler: we only recorded its desire to be put to sleep.
+	 * In that case, there is nothing to do apart from clearing the flag.
+	 */
+
+	if G_UNLIKELY(bt->uflags & TASK_UF_SLEEP_REQ) {
+		only_requested = TRUE;
+		bt->uflags &= ~TASK_UF_SLEEP_REQ;	/* "awoken" now */
+	}
+
+	/*
+	 * If bg_task_cancel() has already been called for the task we are supposed
+	 * to wake up, there is nothing to do here, but we need to warn loudly
+	 * because there is logic bug in the application code: a cancelled task
+	 * could be reclaimed at any time, concurrently with the call to wake it up.
+	 * Therefore we only warn when the reference count on the task is 1.
+	 */
+
+	if G_UNLIKELY(bt->uflags & TASK_UF_CANCELLED) {
+		only_requested = TRUE;				/* No need to wake it up below */
+		if (bt->refcnt <= 1) {
+			s_carp("%s(): ignoring attempt to wakeup cancelled task %p \"%s\", "
+				"flags=0x%x", G_STRFUNC, bt, bt->name, bt->flags);
+		}
+	}
+
+	if (!only_requested)
+		bg_sched_wakeup(bt);
+
+	BG_SCHED_UNLOCK(bs);
+	BG_TASK_UNLOCK(bt);
 }
 
 /**
@@ -1663,7 +1805,7 @@ bg_task_ended(bgtask_t *bt)
 	item = bd->wq->data;
 
 	if (bg_debug > 2) {
-		g_debug("BGTASK daemon \"%s\" done with item %p", bt->name, item);
+		s_debug("BGTASK daemon \"%s\" done with item %p", bt->name, item);
 	}
 
 	(*bd->end_cb)(bt, bt->ucontext, item);
@@ -1705,7 +1847,7 @@ bg_task_ended(bgtask_t *bt)
 	BG_TASK_UNLOCK(bt);
 
 	if (bg_debug > 1 && stopped)
-		g_debug("BGTASK daemon \"%s\" going back to sleep", bt->name);
+		s_debug("BGTASK daemon \"%s\" going back to sleep", bt->name);
 
 	if (stopped && bd->notify != NULL)
 		(*bd->notify)(bt, FALSE);	/* Stopped */
@@ -1738,7 +1880,7 @@ bg_ticker_adjust_period(bgsched_t *bs)
 		cq_periodic_resched(bs->pev, target);
 
 		if (bg_debug > 5) {
-			g_debug("BGTASK %s scheduler will be ticking every %'d msecs "
+			s_debug("BGTASK %s scheduler will be ticking every %'d msecs "
 				"(runable = %d)",
 				bs->name, bs->period, bs->runcount);
 		}
@@ -1885,7 +2027,7 @@ bg_sched_timer(void *arg)
 			 */
 
 			if (bg_debug > 1) {
-				g_debug("BGTASK back from setjmp() for \"%s\", val=%d",
+				s_debug("BGTASK back from setjmp() for \"%s\", val=%d",
 					bt->name, status);
 			}
 
@@ -1908,7 +2050,7 @@ bg_sched_timer(void *arg)
 			bg_task_switch(bs, NULL, target);
 
 			if (bg_debug > 0 && remain < bt->elapsed) {
-				g_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
+				s_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
 					G_STRFUNC, bs->name, remain, bt->elapsed);
 			}
 			remain -= MIN(remain, bt->elapsed);
@@ -1921,12 +2063,12 @@ bg_sched_timer(void *arg)
 		 */
 
 		if (bg_debug > 2 && 0 == bt->seqno) {
-			g_debug("BGTASK \"%s\" starting step #%d (%s)",
+			s_debug("BGTASK \"%s\" starting step #%d (%s)",
 				bt->name, bt->step, bg_task_step_name(bt));
 		}
 
 		if (bg_debug > 4) {
-			g_debug("BGTASK \"%s\" running step #%d.%d with %d tick%s",
+			s_debug("BGTASK \"%s\" running step #%d.%d with %d tick%s",
 				bt->name, bt->step, bt->seqno, ticks, plural(ticks));
 		}
 
@@ -1948,7 +2090,7 @@ bg_sched_timer(void *arg)
 			entropy_harvest_time();
 
 			if (bg_debug > 2) {
-				g_debug("BGTASK daemon \"%s\" starting with item %p",
+				s_debug("BGTASK daemon \"%s\" starting with item %p",
 					bt->name, item);
 			}
 
@@ -1963,7 +2105,7 @@ bg_sched_timer(void *arg)
 		bg_task_switch(bs, NULL, target);
 
 		if (bg_debug > 0 && remain < bt->elapsed) {
-			g_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
+			s_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
 				G_STRFUNC, bs->name, remain, bt->elapsed);
 		}
 
@@ -1979,7 +2121,7 @@ bg_sched_timer(void *arg)
 		}
 
 		if (bg_debug > 4) {
-			g_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
+			s_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]",
 				bt->name, bt->step, bt->seqno,
 				bt->ticks_used, plural(bt->ticks_used),
@@ -2016,14 +2158,30 @@ bg_sched_timer(void *arg)
 
 		/*
 		 * Put the task to sleep if requested.
+		 *
+		 * To prevent race conditions with bg_sched_sleep() being run
+		 * concurrently with a bg_task_wakeup() call for instance, we need
+		 * to lock the scheduler during that check.
 		 */
 
 		if G_UNLIKELY(bt->uflags & TASK_UF_SLEEP_REQ) {
-			BG_TASK_LOCK(bt);
-			bt->uflags &= ~TASK_UF_SLEEP_REQ;
-			BG_TASK_UNLOCK(bt);
+			bool move_to_sleep = FALSE;
 
-			bg_sched_sleep(bt);
+			/* Strict lock order: task first, then scheduler */
+			BG_TASK_LOCK(bt);
+			BG_SCHED_LOCK(bt->sched);
+
+			if (bt->uflags & TASK_UF_SLEEP_REQ) {
+				bt->uflags &= ~TASK_UF_SLEEP_REQ;
+				bt->uflags |= TASK_UF_SLEEPING;		/* Explicitly sleeping */
+				move_to_sleep = TRUE;
+			}
+
+			if (move_to_sleep)
+				bg_sched_sleep(bt);
+
+			BG_SCHED_UNLOCK(bt->sched);
+			BG_TASK_UNLOCK(bt);
 		}
 
 	ended:
@@ -2034,7 +2192,7 @@ bg_sched_timer(void *arg)
 		bg_reclaim_dead(bs);		/* Free dead tasks */
 
 	if (bg_debug > 3 && MAX_LIFE != remain) {
-		g_debug("BGTASK \"%s\" runable=%d, ran for %lu usecs, "
+		s_debug("BGTASK \"%s\" runable=%d, ran for %lu usecs, "
 			"scheduling %u task%s",
 			bs->name, bs->runcount, MAX_LIFE - remain,
 			schedules, plural(schedules));
@@ -2174,12 +2332,12 @@ bg_sched_destroy(bgsched_t *bs)
 
 	count = bg_task_terminate_all(&bs->runq);
 	if (count > 0) {
-		g_warning("terminated %u running task%s", count, plural(count));
+		s_warning("terminated %u running task%s", count, plural(count));
 	}
 
 	count = bg_task_terminate_all(&bs->sleepq);
 	if (count > 0) {
-		g_warning("terminated %d daemon task%s", count, plural(count));
+		s_warning("terminated %d daemon task%s", count, plural(count));
 	}
 
 	bg_reclaim_dead(bs);				/* Free dead tasks */

@@ -108,6 +108,7 @@
 #include "hash.h"
 
 #include "entropy.h"
+#include "endian.h"
 #include "hashing.h"
 #include "random.h"
 #include "unsigned.h"

@@ -2597,7 +2597,7 @@ http_async_state(http_async_t *ha)
 
 		g_assert(ha->children);
 
-		for (l = ha->children; l; l = pslist_next(l)) {
+		PSLIST_FOREACH(ha->children, l) {
 			http_async_t *cha = l->data;
 
 			switch (cha->state) {

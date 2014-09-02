@@ -1078,7 +1078,7 @@ plist_random(const plist_t *pl)
 	 */
 
 	for (l = pl, n = 0; l != NULL; l = l->next, n++) {
-		if (random_ulong_value(n))
+		if (0 == random_ulong_value(n))
 			picked = l;		/* Item n has 1/(n+1) chances of being selected */
 	}
 

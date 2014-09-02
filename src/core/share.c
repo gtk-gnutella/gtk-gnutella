@@ -874,7 +874,8 @@ shared_file_get_index(const char *filename)
 	if G_UNLIKELY(FILENAME_CLASH == idx) {
 		idx = 0;
 	} else {
-		g_assert_log(idx >= 1 && idx <= shared_libfile.files_scanned,
+		/* NB: index can be 0 if no file bearing that name is shared */
+		g_assert_log(idx <= shared_libfile.files_scanned,
 			"idx=%u, files_scanned=%lu",
 			idx, (ulong) shared_libfile.files_scanned);
 	}
@@ -986,7 +987,7 @@ shared_dirs_free(void)
 	if (!shared_dirs)
 		return;
 
-	for (sl = shared_dirs; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(shared_dirs, sl) {
 		atom_str_free(sl->data);
 	}
 	pslist_free_null(&shared_dirs);
@@ -998,20 +999,11 @@ shared_dirs_free(void)
 void
 shared_dirs_update_prop(void)
 {
-	pslist_t *sl;
-	str_t *s;
+	char *dirs;
 
-	s = str_new(0);
-
-	for (sl = shared_dirs; sl != NULL; sl = pslist_next(sl)) {
-	    str_cat(s, sl->data);
-		if (pslist_next(sl) != NULL)
-			str_putc(s, G_SEARCHPATH_SEPARATOR);
-	}
-
-	gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, str_2c(s));
-
-	str_destroy(s);
+	dirs = dirlist_to_string(shared_dirs);
+	gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, dirs);
+	HFREE_NULL(dirs);
 }
 
 /**
@@ -1020,28 +1012,24 @@ shared_dirs_update_prop(void)
  * it returns FALSE.
  */
 bool
-shared_dirs_parse(const char *str)
+shared_dirs_parse(const char *dirs)
 {
-	char **dirs = g_strsplit(str, G_SEARCHPATH_SEPARATOR_S, 0);
-	bool ret = TRUE;
-	uint i;
-
-	/* FIXME: ESCAPING! */
+	pslist_t *sl;
 
 	shared_dirs_free();
 
-	for (i = 0; dirs[i]; i++) {
-		if (is_directory(dirs[i]))
-			shared_dirs = pslist_prepend(shared_dirs,
-								deconstify_char(atom_str_get(dirs[i])));
-		else
-			ret = FALSE;
+	shared_dirs = dirlist_parse(dirs);
+	PSLIST_FOREACH(shared_dirs, sl) {
+		char *pathname = sl->data;
+		/**
+		 * Allow non-existing directories, so that we do not
+		 * accidently unshare an directory when a drive is not
+		 * mounted currently.
+		 */
+		sl->data = deconstify_char(atom_str_get(pathname));
+		HFREE_NULL(pathname);
 	}
-
-	shared_dirs = pslist_reverse(shared_dirs);
-	g_strfreev(dirs);
-
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -1052,15 +1040,13 @@ shared_dir_add(const char *pathname)
 {
 	if (is_directory(pathname)) {
 		if (GNET_PROPERTY(share_debug) > 0) {
-			g_debug("%s: adding pathname=\"%s\"", G_STRFUNC, pathname);
+			g_debug("%s: sharing pathname=\"%s\"", G_STRFUNC, pathname);
 		}
-		shared_dirs = pslist_append(shared_dirs,
-						deconstify_char(atom_str_get(pathname)));
 	} else {
-		if (GNET_PROPERTY(share_debug) > 0) {
-			g_debug("%s: NOT adding pathname=\"%s\"", G_STRFUNC, pathname);
-		}
+		g_warning("%s: NOT sharing pathname=\"%s\"", G_STRFUNC, pathname);
 	}
+	shared_dirs = pslist_append(shared_dirs,
+						deconstify_char(atom_str_get(pathname)));
 	shared_dirs_update_prop();
 }
 
@@ -1341,6 +1327,11 @@ directory_is_unshareable(const char *dir)
 {
 	g_assert(dir);
 
+	if (!is_absolute_path(dir)) {
+		g_warning("refusing to share relative path: %s", dir);
+		return TRUE;
+	}
+
 	/* Explicitly checking is_same_file() for TRUE to ignore errors (-1)
 	 * probably caused by non-existing files or missing permission.
 	 */
@@ -1432,7 +1423,7 @@ recursive_scan_new(const pslist_t *base_dirs, time_t now)
 	ctx->partial_files = slist_new();
 	ctx->words = htable_create(HASH_KEY_STRING, 0);
 	ctx->basenames = htable_create(HASH_KEY_STRING, 0);
-	for (iter = base_dirs; NULL != iter; iter = pslist_next(iter)) {
+	PSLIST_FOREACH(base_dirs, iter) {
 		const char *dir = atom_str_get(iter->data);
 		slist_append(ctx->base_dirs, deconstify_char(dir));
 	}
@@ -1525,7 +1516,7 @@ recursive_scan_context_free(void *data)
 		XFREE_NULL(ctx->ftable);
 	}
 
-	for (sl = ctx->shared; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(ctx->shared, sl) {
 		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);
@@ -1546,7 +1537,7 @@ share_list_free_null(pslist_t **slist)
 {
 	pslist_t *sl;
 
-	for (sl = *slist; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(*slist, sl) {
 		shared_file_t *sf = sl->data;
 
 		shared_file_check(sf);

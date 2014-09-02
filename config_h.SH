@@ -174,6 +174,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_built_bswap32 HAS_BUILTIN_BSWAP32	/**/
 
+/* HAS_BUILTIN_BSWAP64:
+ *	This symbol, if defined, indicates that __builtin_bswap64 routine is
+ *	available to byte-swap a 64-bit value (little <-> big endian).
+ */
+#$d_built_bswap64 HAS_BUILTIN_BSWAP64	/**/
+
 /* HAS_BUILTIN_CLZ:
  *	This symbol, if defined, indicates that the __builtin_clz routine is
  *	available to count leading zeroes in a word.

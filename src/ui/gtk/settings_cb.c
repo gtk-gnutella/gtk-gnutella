@@ -44,6 +44,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"	/* For g_strlcpy() */
+#include "lib/halloc.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -154,7 +155,8 @@ on_button_config_remove_dir_clicked(GtkButton *unused_button,
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	GtkTreeSelection *selection;
-	str_t *s;
+	pslist_t *sl, *pl_dirs = NULL;
+	char *dirs;
 
 	(void) unused_button;
 	(void) unused_udata;
@@ -167,24 +169,26 @@ on_button_config_remove_dir_clicked(GtkButton *unused_button,
 
 	/* Regenerate the string property holding a list of paths */
 	selection = gtk_tree_view_get_selection(tv);
-	s = str_new(0);
 
 	do {
-		gchar *dir = NULL;
+		char *pathname = NULL;
 
 		/* Skip items selected for removal */
 		if (gtk_tree_selection_iter_is_selected(selection, &iter))
 			continue;
 
-		gtk_tree_model_get(model, &iter, 0, &dir, (-1));
-		if (str_len(s) > 0)
-			str_putc(s, ':');
-		str_cat(s, dir);
-		G_FREE_NULL(dir);
+		gtk_tree_model_get(model, &iter, 0, &pathname, (-1));
+		pl_dirs = pslist_prepend(pl_dirs, pathname);
 	} while (gtk_tree_model_iter_next(model, &iter));
 
-	gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, str_2c(s));
-	str_destroy(s);
+	dirs = dirlist_to_string(pl_dirs);
+	gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, dirs);
+	HFREE_NULL(dirs);
+
+	PSLIST_FOREACH(pl_dirs, sl) {
+		G_FREE_NULL(sl->data);
+	}
+	pslist_free_null(&pl_dirs);
 }
 #endif /* USE_GTK2 */
 

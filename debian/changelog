@@ -1,3 +1,9 @@
+gtk-gnutella (1.1-1) unstable; urgency=high
+
+  * Bug-fixing release from upstream.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Tue,  2 Sep 2014 06:39:05 +0000
+
 gtk-gnutella (1.1-0) unstable; urgency=high
 
   * Fixed possible Denial of Service.

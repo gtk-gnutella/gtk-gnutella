@@ -1697,7 +1697,7 @@ prop = {
 		  "jpeg;jpg;"
 		  "m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;"
           "nes;"
-		  "oga;ogg;ogm;ogv;"
+		  "oga;ogg;ogm;ogv;opus;"
 		  "qt;"
 		  "pdf;png;ps;"
 		  "ram;rar;rm;rom;rpm;"

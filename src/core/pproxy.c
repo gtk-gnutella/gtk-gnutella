@@ -413,7 +413,7 @@ get_params(struct pproxy *pp, const char *request,
 	if (!up) {
 		pproxy_error_remove(pp, 400,
 			"Malformed push-proxy request: Bad URL encoding");
-		goto error;
+		return FALSE;
 	}
 	value = url_params_get(up, attr);
 

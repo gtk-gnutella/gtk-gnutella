@@ -2161,6 +2161,103 @@ normalize_dir_separators(char *pathname)
 }
 
 /**
+ * Special-purpose function to create a string list of directories
+ * seperated by G_SEARCHPATH_SEPARATOR which may also be part of
+ * directory names.
+ */
+static void
+dirlist_cat(str_t *str, const char *dir)
+{
+	str_check(str);
+
+	if (str_len(str) > 0) {
+		str_putc(str, G_SEARCHPATH_SEPARATOR);
+	}
+	if (strchr(dir, G_SEARCHPATH_SEPARATOR)) {
+		const char *p;
+
+		for (p = dir; '\0' != *p; p++) {
+			str_putc(str, *p);
+			if (G_SEARCHPATH_SEPARATOR == *p) {
+				str_putc(str, G_SEARCHPATH_SEPARATOR);
+			}
+		}
+	} else {
+		str_cat(str, dir);
+	}
+}
+
+/**
+ * Creates a string from the given list of directory pathnames.
+ *
+ * @return a newly allocated string which must be freed via hfree().
+ */
+char *
+dirlist_to_string(const pslist_t *pl_dirs)
+{
+	const pslist_t *sl;
+	str_t *str = str_new(0);
+
+	/**
+	 * NB: The separator is escaped by appending another separator.
+	 *     This is done because the separator may actually appear
+	 *     in a pathname.
+	 */
+
+	PSLIST_FOREACH(pl_dirs, sl) {
+		dirlist_cat(str, sl->data);
+	}
+	return str_s2c_null(&str);
+}
+
+
+/**
+ * Parse a list of directory pathnames separated by G_SEARCHPATH_SEPARATOR.
+ *
+ * @return a list of newly allocated strings which must be freed via hfree().
+ */
+pslist_t *
+dirlist_parse(const char *dirs)
+{
+	char *pathname, *s;
+	const char *p;
+	pslist_t *pl_dirs = NULL;
+
+	/**
+	 * The list of directories must be unescaped as follows:
+	 * A separator followed by another separator means the pathname
+	 * included the separator itself, so one character must be skipped.
+	 */
+
+	pathname = halloc(strsize(dirs));
+	s = pathname;
+
+	for (p = dirs; /* nothing */; p++) {
+		int c = *p;
+
+		if (G_SEARCHPATH_SEPARATOR == c) {
+			if (G_SEARCHPATH_SEPARATOR == p[1]) {
+				p++;
+			} else {
+				c = '\0';
+			}
+		}
+		*s++ = c;
+		if ('\0' == c) {
+			s = pathname;
+			if (is_absolute_path(pathname)) {
+				pl_dirs = pslist_prepend(pl_dirs, h_strdup(pathname));
+			}
+		}
+		if ('\0' == *p)
+			break;
+	}
+
+	HFREE_NULL(pathname);
+	return pslist_reverse(pl_dirs);
+}
+
+/**
  * Maps errno values to their symbolic names (e.g., EPERM to "EPERM").
  *
  * @return A const static string. If errno is unhandled its stringified

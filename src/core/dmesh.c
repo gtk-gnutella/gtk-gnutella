@@ -372,7 +372,7 @@ dmesh_ban_add(const struct sha1 *sha1,
 		hikset_insert(ban_mesh, dmb);
 
 		entropy_harvest_many(VARLEN(ui), VARLEN(dmb),
-			ui->name, strlen(ui->name), PTRLEN(sha1), NULL);
+			ui->name, strsize(ui->name), PTRLEN(sha1), NULL);
 
 		/*
 		 * Keep record of banned hosts by SHA1 Hash. We will use this to send

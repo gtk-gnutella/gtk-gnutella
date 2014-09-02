@@ -722,7 +722,7 @@ upload_timer(time_t now)
 	pslist_t *sl, *to_remove = NULL;
 	time_delta_t timeout;
 
-	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(list_uploads, sl) {
 		struct upload *u = cast_to_upload(sl->data);
 		bool is_connecting;
 
@@ -846,7 +846,7 @@ upload_timer(time_t now)
 		}
 	}
 
-	for (sl = to_remove; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(to_remove, sl) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (UPLOAD_IS_CONNECTING(u)) {
@@ -2643,7 +2643,7 @@ upload_stop_all(struct dl_file_info *fi, const char *reason)
 	g_return_if_fail(fi);
 	file_info_check(fi);
 
-	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(list_uploads, sl) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (u->file_info == fi) {
@@ -2660,7 +2660,7 @@ upload_stop_all(struct dl_file_info *fi, const char *reason)
 			count, fi->pathname, reason);
 	}
 
-	for (sl = to_stop; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(to_stop, sl) {
 		struct upload *u = cast_to_upload(sl->data);
 		upload_remove_nowarn(u, reason);
 	}
@@ -4052,7 +4052,7 @@ upload_is_already_downloading(struct upload *upload)
 	 * 		-- JA 12/7/'03
 	 */
 
-	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(list_uploads, sl) {
 		struct upload *up = cast_to_upload(sl->data);
 
 		if (up == upload)
@@ -4088,7 +4088,7 @@ upload_is_already_downloading(struct upload *upload)
 		 * at most.
 		 */
 
-		for (sl = to_remove; sl; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(to_remove, sl) {
 			struct upload *up = cast_to_upload(sl->data);
 
 			if (GNET_PROPERTY(upload_debug)) g_warning(
@@ -5715,14 +5715,14 @@ upload_kill_addr(const host_addr_t addr)
 {
 	pslist_t *sl, *to_remove = NULL;
 
-	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(list_uploads, sl) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		if (host_addr_equiv(u->addr, addr) && !UPLOAD_IS_COMPLETE(u))
 			to_remove = pslist_prepend(to_remove, u);
 	}
 
-	for (sl = to_remove; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(to_remove, sl) {
 		struct upload *u = cast_to_upload(sl->data);
 
 		parq_upload_force_remove(u);
@@ -5902,7 +5902,7 @@ upload_get_info_list(void)
 {
 	pslist_t *sl, *sl_info = NULL;
 
-	for (sl = list_uploads; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(list_uploads, sl) {
 		struct upload *u = cast_to_upload(sl->data);
 		sl_info = pslist_prepend(sl_info, upload_get_info(u->upload_handle));
 	}
@@ -5916,7 +5916,7 @@ upload_free_info_list(pslist_t **sl_ptr)
 	if (*sl_ptr) {
 		pslist_t *sl;
 
-		for (sl = *sl_ptr; sl; sl = pslist_next(sl)) {
+		PSLIST_FOREACH(*sl_ptr, sl) {
 			upload_free_info(sl->data);
 		}
 		pslist_free(*sl_ptr);
