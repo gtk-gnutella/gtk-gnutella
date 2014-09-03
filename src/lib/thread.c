@@ -507,6 +507,7 @@ static uint thread_discovered;			/* Amount of discovered threads */
 static bool thread_stack_noinit;		/* Whether to skip stack allocation */
 static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
 static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
+static int thread_locks_disabled;		/* Whether locks were disabled */
 
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
@@ -5401,6 +5402,8 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 	}
 
 found:
+	if G_UNLIKELY(atomic_int_get(&thread_locks_disabled))
+		return;			/* We may not be recording locks in pass-through mode */
 
 	THREAD_STATS_INCX(locks_tracked);
 
@@ -5507,6 +5510,9 @@ found:
 			return;
 		}
 	}
+
+	if G_UNLIKELY(atomic_int_get(&thread_locks_disabled))
+		return;			/* We may not be recording locks in pass-through mode */
 
 	s_minicarp("%s(): %s %p was not registered in thread #%u",
 		G_STRFUNC, thread_lock_kind_to_string(okind), lock, te->stid);
@@ -5622,7 +5628,10 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 			 * to be able to dump useful information anyway.
 			 */
 
-			if (!thread_is_crashing()) {
+			if (
+				!thread_is_crashing() &&
+				0 == atomic_int_get(&thread_locks_disabled)
+			) {
 				s_error("out-of-order %s release",
 					thread_lock_kind_to_string(kind));
 			}
@@ -5894,6 +5903,8 @@ thread_crash_mode(void)
 	 * get at, so it's worth the risk.
 	 */
 
+	atomic_int_inc(&thread_locks_disabled);
+
 	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
 	mutex_crash_mode();		/* Allow release of all mutexes */
 	rwlock_crash_mode();
@@ -5917,6 +5928,8 @@ thread_exit_mode(void)
 	 */
 
 	thread_suspend_others(FALSE);	/* Advisory, do not wait for others */
+
+	atomic_int_inc(&thread_locks_disabled);
 
 	spinlock_exit_mode();			/* Silent crash mode for spinlocks */
 	mutex_crash_mode();
