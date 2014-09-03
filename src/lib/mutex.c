@@ -333,17 +333,16 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	}
 }
 
-#define MUTEX_GRAB											\
-	if (mutex_is_owned_by_fast(m, t)) {						\
-		mutex_recursive_get(m);								\
-	} else if (spinlock_hidden_try(&m->lock)) {				\
-		thread_set(m->owner, t);							\
-		mutex_set_owner(m, file, line);						\
-	} else {												\
-		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
-			mutex_deadlock, mutex_deadlocked, file, line);	\
-		thread_set(m->owner, t);							\
-		mutex_set_owner(m, file, line);						\
+#define MUTEX_GRAB												\
+	if (mutex_is_owned_by_fast(m, t)) {							\
+		mutex_recursive_get(m);									\
+	} else {													\
+		if G_UNLIKELY(!spinlock_hidden_try(&m->lock)) {			\
+			spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
+				mutex_deadlock, mutex_deadlocked, file, line);	\
+		}														\
+		thread_set(m->owner, t);								\
+		mutex_set_owner(m, file, line);							\
 	}
 
 #define MUTEX_GRAB_TRY										\
