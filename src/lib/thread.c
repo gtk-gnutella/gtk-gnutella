@@ -6420,7 +6420,7 @@ retry:
 	thread_cancel_test_element(te);
 
 	if (end != NULL) {
-		long remain = tm_remaining_ms(end);
+		long upper, remain = tm_remaining_ms(end);
 		gentime_t gnow;
 		time_delta_t gelapsed;
 		struct pollfd fds;
@@ -6434,6 +6434,15 @@ retry:
 		if (UNSIGNED(gelapsed) > requested)
 			goto timed_out;			/* Waiting time expired */
 
+		/*
+		 * We use the minimum between the remaining time until the absolute
+		 * timestamp given on entry, and the amount of time we have to wait
+		 * based on gentime_diff(), which will account for possible clock
+		 * adjustements (in the past, neutralizing them hopefully).
+		 */
+
+		upper = 1000 + (requested - gelapsed) * 1000;
+		remain = MIN(remain, upper);
 		remain = MIN(remain, MAX_INT_VAL(int));		/* poll() takes an int */
 		fds.fd = te->wfd[0];
 		fds.events = POLLIN;
