@@ -157,7 +157,7 @@
  * This is the maximum amount of time we allow the main thread to block, even
  * if it is configured as non-blocking.
  */
-#define THREAD_MAIN_DELAY_MS		3000	/* ms */
+#define THREAD_MAIN_DELAY_MS		5000	/* ms */
 
 /**
  * A recorded lock.
