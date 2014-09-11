@@ -51,6 +51,8 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
 #define THREAD_STACK_DFLT	(65536 * PTRSIZE)	/**< Default stack requested */
 #define THREAD_LOCAL_MAX	1024	/**< Max amount of thread-local keys */
 
+#define THREAD_SUSPEND_TIMEOUT	30	/**< secs: thread max suspension time */
+
 /**
  * Minimum thread stack requested: 24K on 32-bit systems, 32K on 64-bit ones.
  */
@@ -117,6 +119,7 @@ enum thread_lock_kind {
 	THREAD_LOCK_SPINLOCK,
 	THREAD_LOCK_RLOCK,
 	THREAD_LOCK_WLOCK,
+	THREAD_LOCK_QLOCK,
 	THREAD_LOCK_MUTEX
 };
 

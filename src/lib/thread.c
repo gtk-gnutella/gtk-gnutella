@@ -110,6 +110,7 @@
 #include "once.h"
 #include "pow2.h"
 #include "pslist.h"
+#include "qlock.h"
 #include "rwlock.h"
 #include "semaphore.h"			/* For semaphore_kernel_usage() */
 #include "sha1.h"
@@ -162,7 +163,6 @@
 #define THREAD_SUSPEND_LOOP			100
 #define THREAD_SUSPEND_DELAY		2000	/* us */
 #define THREAD_SUSPEND_PAUSING		1000000	/* us, 1 sec */
-#define THREAD_SUSPEND_TIMEOUT		30		/* seconds */
 
 /**
  * Amount of stack frames we keep when we capture a backtrace on blocking
@@ -195,8 +195,11 @@ struct thread_backtrace {
 /**
  * This is the maximum amount of time we allow the main thread to block, even
  * if it is configured as non-blocking.
+ *
+ * We need to have a large-enough delay to allow qlocks to block the main
+ * thread if they need to wait for a lock.
  */
-#define THREAD_MAIN_DELAY_MS		5000	/* ms */
+#define THREAD_MAIN_DELAY_MS		20000	/* ms */
 
 /**
  * A recorded lock.
@@ -490,14 +493,17 @@ static struct thread_stats {
 	AU64(locks_mutex_tracked);		/* Amount of tacked mutexes */
 	AU64(locks_rlock_tracked);		/* Amount of tracked read-locks */
 	AU64(locks_wlock_tracked);		/* Amount of tracked write-locks */
+	AU64(locks_qlock_tracked);		/* Amount of tracked queuing locks */
 	AU64(locks_spinlock_contention);/* Amount of contentions on spinlocks */
 	AU64(locks_mutex_contention);	/* Amount of contentions on mutex */
 	AU64(locks_rlock_contention);	/* Amount of contentions on read-locks */
 	AU64(locks_wlock_contention);	/* Amount of contentions on write-locks */
+	AU64(locks_qlock_contention);	/* Amount of contentions on queuing locks */
 	AU64(locks_spinlock_sleep);		/* Amount of sleeps done on spinlocks */
 	AU64(locks_mutex_sleep);		/* Amount of sleeps done on mutexes */
 	AU64(locks_rlock_sleep);		/* Amount of sleeps done on read-locks */
 	AU64(locks_wlock_sleep);		/* Amount of sleeps done on write-locks */
+	AU64(locks_qlock_sleep);		/* Amount of sleeps done on queuing locks */
 	AU64(locks_nested_sleeps);		/* Amount of nested sleeps done on locks */
 	AU64(cond_waitings);			/* Amount of condition variable waitings */
 	AU64(cond_nested_waitings);		/* Nested condition variable waitings */
@@ -5004,6 +5010,7 @@ thread_lock_disable(bool silent)
 			spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
 		mutex_crash_mode();			/* Allow release of all mutexes */
 		rwlock_crash_mode();
+		qlock_crash_mode();
 	}
 }
 
@@ -6429,6 +6436,7 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 	case THREAD_LOCK_SPINLOCK:	return "spinlock";
 	case THREAD_LOCK_RLOCK:		return "rwlock (R)";
 	case THREAD_LOCK_WLOCK:		return "rwlock (W)";
+	case THREAD_LOCK_QLOCK:		return "qlock";
 	case THREAD_LOCK_MUTEX:		return "mutex";
 	}
 
@@ -6708,6 +6716,51 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 				}
 			}
 			break;
+		case THREAD_LOCK_QLOCK:
+			{
+				const qlock_t *q = l->lock;
+
+				if (!mem_is_valid_range(q, sizeof *q)) {
+					print_str(" FREED");			/* 7 */
+				} else if (!qlock_magic_is_good(q)) {
+					if (QLOCK_DESTROYED == q->magic)
+						print_str(" DESTROYED");	/* 7 */
+					else
+						print_str(" BAD_MAGIC");	/* 7 */
+				} else {
+					if (QLOCK_RECURSIVE_MAGIC == q->magic)
+						print_str(" recursive");	/* 7 */
+					else
+						print_str(" plain");	/* 7 */
+					if (0 == q->held)
+						print_str(" UNLOCKED");	/* 8 */
+					else if (q->held != 1)
+						print_str(" BAD_LOCK");	/* 8 */
+					if (q->stid != te->stid)
+						print_str(" BAD_STID");	/* 9 */
+
+					print_str(" from ");		/* 10 */
+					lnum = PRINT_NUMBER(line, l->line);
+					print_str(l->file);			/* 11 */
+					print_str(":");				/* 12 */
+					print_str(lnum);			/* 13 */
+
+					if (QLOCK_RECURSIVE_MAGIC == q->magic) {
+						if (0 == q->depth) {
+							print_str(" BAD_DEPTH");	/* 14 */
+						} else {
+							char depth[ULONG_DEC_BUFLEN];
+							const char *dnum;
+
+							dnum = PRINT_NUMBER(depth, q->depth);
+							print_str(" (depth=");		/* 15 */
+							print_str(dnum);			/* 16 */
+							print_str(")");				/* 17 */
+						}
+					}
+				}
+			}
+			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				const mutex_t *m = l->lock;
@@ -6870,6 +6923,12 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind)
 			rwlock_wungrab(w);
 		}
 		return TRUE;
+	case THREAD_LOCK_QLOCK:
+		{
+			qlock_t *q = deconstify_pointer(lock);
+			return qlock_ungrab(q);
+		}
+		g_assert_not_reached();
 	case THREAD_LOCK_MUTEX:
 		{
 			mutex_t *m = deconstify_pointer(lock);
@@ -7000,6 +7059,9 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		case THREAD_LOCK_WLOCK:
 			THREAD_STATS_INCX(locks_wlock_sleep);
 			break;
+		case THREAD_LOCK_QLOCK:
+			THREAD_STATS_INCX(locks_qlock_sleep);
+			break;
 		}
 	}
 
@@ -7027,6 +7089,9 @@ thread_lock_contention(enum thread_lock_kind kind)
 		break;
 	case THREAD_LOCK_WLOCK:
 		THREAD_STATS_INCX(locks_wlock_contention);
+		break;
+	case THREAD_LOCK_QLOCK:
+		THREAD_STATS_INCX(locks_qlock_contention);
 		break;
 	}
 }
@@ -7229,6 +7294,13 @@ thread_lock_reacquire(
 			rwlock_wgrab(w, file, line, FALSE);
 		}
 		goto done;
+	case THREAD_LOCK_QLOCK:
+		{
+			qlock_t *q = deconstify_pointer(lock);
+			qlock_grab(q, file, line);
+			g_assert(QLOCK_PLAIN_MAGIC == q->magic || 1 == q->depth);
+		}
+		goto done;
 	case THREAD_LOCK_MUTEX:
 		{
 			mutex_t *m = deconstify_pointer(lock);
@@ -7287,6 +7359,9 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 		break;
 	case THREAD_LOCK_WLOCK:
 		THREAD_STATS_INCX(locks_wlock_tracked);
+		break;
+	case THREAD_LOCK_QLOCK:
+		THREAD_STATS_INCX(locks_qlock_tracked);
 		break;
 	}
 
@@ -8116,6 +8191,20 @@ thread_element_clear_locks(struct thread_element *te)
 				}
 			}
 			break;
+		case THREAD_LOCK_QLOCK:
+			{
+				qlock_t *q = deconstify_pointer(l->lock);
+
+				if (
+					mem_is_valid_range(q, sizeof *q) &&
+					qlock_magic_is_good(q) &&
+					1 == q->held
+				) {
+					unlocked = TRUE;
+					qlock_reset(q);
+				}
+			}
+			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				mutex_t *m = deconstify_pointer(l->lock);
@@ -8569,7 +8658,7 @@ thread_was_in_syscall(int *stid)
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
- * The thread must not be holding any locks since it could cause deadlocks.
+ * The thread should not be holding any locks since it could cause deadlocks.
  * The main thread cannot block itself either since it runs the callout queue.
  *
  * When this routine returns, the thread has been either successfully unblocked
@@ -8819,9 +8908,21 @@ retry:
 		bool limited_blocking = FALSE;
 
 		atomic_uint_dec(&te->signalled);	/* Consumed one signaling byte */
+
 		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
 		te->unblocked = FALSE;
+
+		/*
+		 * For qlock support, which can request blocking even though the
+		 * thread already holds some locks, we need to check that we do
+		 * not have any locks.  If we do, this implicitly blocks all signals.
+		 *		--RAM, 2016-06-19
+		 */
+
+		if (0 != thread_element_lock_count(te))
+			goto check_unblocked;
+
 		THREAD_UNLOCK(te);
 
 		/*
@@ -8857,6 +8958,8 @@ retry:
 		}
 
 		THREAD_LOCK(te);
+
+	check_unblocked:
 		/*
 		 * Since we reset te->blocked to FALSE earlier before dispatching
 		 * the signals, we need to recheck for the event count now to see
@@ -8962,8 +9065,13 @@ thread_block_self(unsigned events)
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
- * The thread must not be holding any locks since it could cause deadlocks.
- * The main thread cannot block itself either since it runs the callout queue.
+ * When no timeout is specified, the thread must not be holding any locks
+ * since it could cause deadlocks.  If a timeout is specified, it must be
+ * strictly less than THREAD_SUSPEND_TIMEOUT seconds when locks are already
+ * held.
+ *
+ * The main thread cannot block itself either for too long since it runs the
+ * callout queue, but that is up to thread_element_block_until() to check.
  *
  * When this routine returns, the thread has either been successfully unblocked
  * and is resuming its execution normally or the timeout expired.
@@ -8982,7 +9090,8 @@ thread_timed_block_self(unsigned events, const tm_t *tmout)
 	struct thread_element *te = thread_get_element();
 	tm_t end;
 
-	thread_assert_no_locks(G_STRFUNC);
+	if (NULL == tmout || tmout->tv_sec > THREAD_SUSPEND_TIMEOUT)
+		thread_assert_no_locks(G_STRFUNC);
 
 	if (tmout != NULL) {
 		tm_now_exact(&end);
@@ -12038,14 +12147,17 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_mutex_tracked);
 	DUMP64(locks_rlock_tracked);
 	DUMP64(locks_wlock_tracked);
+	DUMP64(locks_qlock_tracked);
 	DUMP64(locks_spinlock_contention);
 	DUMP64(locks_mutex_contention);
 	DUMP64(locks_rlock_contention);
 	DUMP64(locks_wlock_contention);
+	DUMP64(locks_qlock_contention);
 	DUMP64(locks_spinlock_sleep);
 	DUMP64(locks_mutex_sleep);
 	DUMP64(locks_rlock_sleep);
 	DUMP64(locks_wlock_sleep);
+	DUMP64(locks_qlock_sleep);
 	DUMP64(locks_nested_sleeps);
 	DUMP64(cond_waitings);
 	DUMP64(cond_nested_waitings);

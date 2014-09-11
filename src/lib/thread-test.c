@@ -52,7 +52,9 @@
 #include "mutex.h"
 #include "once.h"
 #include "parse.h"
+#include "path.h"
 #include "progname.h"
+#include "qlock.h"
 #include "random.h"
 #include "rwlock.h"
 #include "semaphore.h"
@@ -90,7 +92,8 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvwxABCDEFHIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
+		"Usage: %s [-hejsvwxABCDEFHIKMNOPQRSUVWX]\n"
+		"       [-a type] [-b size] [-c CPU]\n"
 		"       [-f count] [-n count] [-r percent] [-t ms] [-T msecs]\n"
 		"       [-z fn1,fn2...]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
@@ -124,7 +127,8 @@ usage(void)
 		"  -Q : test asynchronous queue\n"
 		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
-		"  -T : test condition layer via tennis session for specified msecs\n"
+		"  -T : test condition layer via tennis session for specified secs\n"
+		"  -U : test the queuing lock layer\n"
 		"  -V : test thread event queue (TEQ)\n"
 		"  -W : test local event queue (EVQ)\n"
 		"  -X : exercise concurrent memory allocation\n"
@@ -1145,6 +1149,32 @@ test_aqueue(bool emulated)
 	emit("%s() all done.", G_STRFUNC);
 }
 
+static qlock_t qsync_plain = QLOCK_PLAIN_INIT;
+static qlock_t qsync_recursive = QLOCK_RECURSIVE_INIT;
+
+static void *
+test_qthreads(void *arg)
+{
+	const char *tname = thread_name();
+	qlock_t *q = arg;
+
+	s_info("%s - starting concurrent qlock tests", tname);
+
+	qlock_lock(q);
+	s_info("%s - has read lock", tname);
+	compat_sleep_ms(100);
+
+	s_info("%s - rotating lock", tname);
+	qlock_rotate(q);
+	s_info("%s - has lock back", tname);
+	compat_sleep_ms(100);
+
+	s_info("%s - releasing lock", tname);
+	qlock_unlock(q);
+
+	return NULL;
+}
+
 static rwlock_t rwsync = RWLOCK_INIT;
 
 static void *
@@ -1185,6 +1215,66 @@ test_rwthreads(void *unused_arg)
 	s_info("%s - exiting", tname);
 
 	return NULL;
+}
+
+static void
+test_qlock(void)
+{
+	int t[3];
+	qlock_t qr = QLOCK_RECURSIVE_INIT, qp = QLOCK_PLAIN_INIT;
+	unsigned i, j;
+
+	s_info("%s starting, will be launching %s()", thread_name(),
+		stacktrace_function_name(test_qthreads));
+
+	/* The mono-threaded "cannot fail" sequence */
+
+	printf("%s(): mono-threaded tests...\n", G_STRFUNC);
+	fflush(stdout);
+
+	if (!qlock_lock_try(&qr))
+		s_error("cannot lock recursive lock");
+
+	if (!qlock_lock_try(&qp))
+		s_error("cannot lock plain lock");
+
+	if (qlock_lock_try(&qp))
+		s_error("can lock plain lock multiple times");
+
+	if (!qlock_lock_try(&qr))
+		s_error("cannot lock recursive lock multiple times");
+
+	qlock_unlock(&qr);
+	qlock_unlock(&qp);
+	qlock_unlock(&qr);
+
+	printf("%s(): mono-threaded tests succeded.\n", G_STRFUNC);
+	fflush(stdout);
+
+	/* Now for multi-threaded tests.... */
+
+	for (j = 0; j < 2; j++) {
+		qlock_t *qlocks[] = { &qsync_plain, &qsync_recursive };
+		qlock_t *q = qlocks[j];
+
+		printf("%s(): multi-threaded tests with %s...\n",
+			G_STRFUNC, qlock_type(q));
+		fflush(stdout);
+
+		for (i = 0; i < N_ITEMS(t); i++) {
+			t[i] = thread_create(test_qthreads, q, 0, 0);
+			if (-1 == t[i])
+				s_error("%s() cannot create thread %u: %m", G_STRFUNC, i);
+		}
+
+		for (i = 0; i < N_ITEMS(t); i++) {
+			thread_join(t[i], NULL);
+		}
+
+		printf("%s(): multi-threaded tests with %s done.\n",
+			G_STRFUNC, qlock_type(q));
+		fflush(stdout);
+	}
 }
 
 static void
@@ -2377,9 +2467,9 @@ main(int argc, char **argv)
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
-	bool interrupts = FALSE;
+	bool interrupts = FALSE, qlock = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFHIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFHIKMNOPQRST:UVWX";
 
 	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
@@ -2438,6 +2528,9 @@ main(int argc, char **argv)
 		case 'T':			/* test condition layer */
 			play_time = get_number(optarg, c);
 			play_tennis = TRUE;
+			break;
+		case 'U':			/* test qlock */
+			qlock = TRUE;
 			break;
 		case 'V':			/* test thread event queue */
 			teq = TRUE;
@@ -2523,6 +2616,9 @@ main(int argc, char **argv)
 
 	if (rwlock)
 		test_rwlock();
+
+	if (qlock)
+		test_qlock();
 
 	if (sem)
 		test_semaphore(emulated);

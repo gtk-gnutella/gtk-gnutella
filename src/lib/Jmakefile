@@ -199,6 +199,7 @@ LSRC = \
 	progname.c \
 	prop.c \
 	pslist.c \
+	qlock.c \
 	rand31.c \
 	random.c \
 	rbtree.c \

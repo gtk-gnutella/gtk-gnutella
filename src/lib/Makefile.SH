@@ -268,6 +268,7 @@ LSRC = \
 	progname.c \
 	prop.c \
 	pslist.c \
+	qlock.c \
 	rand31.c \
 	random.c \
 	rbtree.c \
@@ -471,6 +472,7 @@ LOBJ = \
 	progname.o \
 	prop.o \
 	pslist.o \
+	qlock.o \
 	rand31.o \
 	random.o \
 	rbtree.o \
