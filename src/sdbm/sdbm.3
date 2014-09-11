@@ -67,6 +67,9 @@ bool sdbm_is_storable(size_t key, size_t value)
 void sdbm_thread_safe(\s-1DBM\s0 *db)
 void sdbm_lock(\s-1DBM\s0 *db)
 void sdbm_unlock(\s-1DBM\s0 *db)
+.sp
+size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
+size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
 .ft R
 .fi
 .SH DESCRIPTION
@@ -361,6 +364,75 @@ but with the new filenames explicitly given.
 .BR sdbm_rebuild (\|)
 rebuilds the database, hopefully leading to a more compact on-disk
 representation. It returns -1 on failure.
+.SH ITERATING
+It is possible to use high-level iterators on the database to process all the
+items (key / value pairs) via a common routine.  That processing callback
+of type
+.B sdbm_cb_t
+has the following signature:
+.sp
+.nf
+.ft B
+void callback(const datum key, const datum value, void *arg);
+.ft R
+.fi
+.LP
+The
+.B key
+and
+.B value
+arguments are the current item key and value, and
+.B arg
+is an opaque argument given as context to the routine.  To invoke the callback
+on all the items, one uses:
+.sp
+.nf
+.ft B
+sdbm_foreach(db, flags, callback, arg);
+.ft R
+.fi
+.LP
+The
+.B arg
+here will be passed as-is to the callback routine for every item.  The
+.B flags
+govern the way the traversal is made.  It can be a combination of the following
+flags, or 0 to use the default processing:
+.B \s-1DBM_F_SAFE\s0
+will activate key checking during the iteration whilst
+.B \s-1DBM_F_SKIP\s0
+will skip unreadable values, especially for big values that cannot be correctly
+fetched from the data file.
+.LP
+The
+.BR sdbm_foreach (\|)
+routine returns the number of items that were successfully iterated over,
+in other words, the amount of entries in the databse.
+.LP
+Using
+.BR sdbm_foreach_remove (\|),
+one can also iterate over all the items and use a callback of type
+.B sdbm_cbr_t
+whose signature is:
+.sp
+.nf
+.ft B
+bool callback(const datum key, const datum value, void *arg);
+.ft R
+.fi
+.LP
+It returns a boolean value, with
+.B \s-1TRUE\s0
+indicating that the item being iterated over should be removed and
+.B \s-1FALSE\s0
+indicating that the item is to be kept.
+.LP
+The
+.BR sdbm_foreach_remove (\|)
+routine returns the number of items that were successfully iterated over, and
+for which the callback returned
+.BR \s-1FALSE\s0 ,
+in other words, it returns the amount of remaining entries in the database.
 .SH THREAD SAFETY
 By default, the database handles can only be used by the thread that created
 them.  However, invoking
@@ -634,6 +706,10 @@ The following functions:
 .BR sdbm_set_name (\|)
 .br
 .BR sdbm_name (\|)
+.br
+.BR sdbm_foreach (\|)
+.br
+.BR sdbm_foreach_remove (\|)
 .br
 .sp
 .in -5

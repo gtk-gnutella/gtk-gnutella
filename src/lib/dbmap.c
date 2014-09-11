@@ -1014,7 +1014,8 @@ dbmap_free_all_keys(const dbmap_t *dm, pslist_t *keys)
 }
 
 /**
- * Structure used as context by dbmap_foreach_*trampoline().
+ * Structure used as context by dbmap_foreach_*trampoline() and
+ * dbmap_foreach_*sdbm().
  */
 struct foreach_ctx {
 	union {
@@ -1022,6 +1023,8 @@ struct foreach_ctx {
 		dbmap_cbr_t cbr;
 	} u;
 	void *arg;
+	const dbmap_t *dm;		/* Used only by SDBM iterators */
+	size_t deleted;			/* Used only by SDBM removal iterators */
 };
 
 /**
@@ -1058,6 +1061,48 @@ dbmap_foreach_remove_trampoline(void *key, void *value, void *arg)
 }
 
 /**
+ * Trampoline to invoke the sdbm iterator and do the proper casts.
+ */
+static void
+dbmap_foreach_sdbm(const datum key, const datum value, void *arg)
+{
+	dbmap_datum_t d;
+	struct foreach_ctx *ctx = arg;
+
+	if (dbmap_keylen(ctx->dm, key.dptr) != key.dsize)
+		return;		/* Invalid key, corrupted file? */
+
+	d.data = value.dptr;
+	d.len  = value.dsize;
+
+	(*ctx->u.cb)(deconstify_pointer(key.dptr), &d, ctx->arg);
+}
+
+/**
+ * Trampoline to invoke the sdbm iterator and do the proper casts.
+ */
+static bool
+dbmap_foreach_remove_sdbm(const datum key, const datum value, void *arg)
+{
+	dbmap_datum_t d;
+	struct foreach_ctx *ctx = arg;
+	bool to_remove;
+
+	if (dbmap_keylen(ctx->dm, key.dptr) != key.dsize)
+		return FALSE;		/* Invalid key, corrupted file, keep it */
+
+	d.data = value.dptr;
+	d.len  = value.dsize;
+
+	to_remove = (*ctx->u.cbr)(deconstify_pointer(key.dptr), &d, ctx->arg);
+
+	if (to_remove)
+		ctx->deleted++;
+
+	return to_remove;
+}
+
+/**
  * Reset count of items.
  *
  * @attention
@@ -1086,59 +1131,29 @@ dbmap_foreach_remove_trampoline(void *key, void *value, void *arg)
 void
 dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 {
+	struct foreach_ctx ctx;
+
 	dbmap_check(dm);
 	g_assert(cb);
 
+	ctx.u.cb = cb;
+	ctx.arg = arg;
+
 	switch (dm->type) {
 	case DBMAP_MAP:
-		{
-			struct foreach_ctx ctx;
-
-			ctx.u.cb = cb;
-			ctx.arg = arg;
-			map_foreach(dm->u.m.map, dbmap_foreach_trampoline, &ctx);
-		}
+		map_foreach(dm->u.m.map, dbmap_foreach_trampoline, &ctx);
 		break;
 	case DBMAP_SDBM:
 		{
-			datum key;
-			DBM *sdbm = dm->u.s.sdbm;
-			size_t count = 0, invalid = 0, unreadable = 0;
+			size_t count;
 
-			errno = 0;
-			for (
-				key = sdbm_firstkey(sdbm);
-				key.dptr != NULL;
-				key = sdbm_nextkey(sdbm)
-			) {
-				datum value;
+			ctx.dm = dm;
 
-				count++;
+			count = sdbm_foreach(
+				dm->u.s.sdbm, DBM_F_SKIP, dbmap_foreach_sdbm, &ctx);
 
-				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
-					count--;
-					invalid++;
-					continue;		/* Invalid key, corrupted file? */
-				}
-
-				value = sdbm_value(sdbm);
-				if (value.dptr) {
-					dbmap_datum_t d;
-					d.data = value.dptr;
-					d.len = value.dsize;
-					(*cb)(key.dptr, &d, arg);
-				} else {
-					unreadable++;
-					count--;		/* Value is invalid, key is missing! */
-				}
-			}
 			if (!dbmap_sdbm_error_check(dm))
 				dbmap_reset_count(dm, count);
-			if (invalid || unreadable) {
-				s_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s and "
-					"%zu unreadable",
-					sdbm_name(sdbm), invalid, plural(invalid), unreadable);
-			}
 		}
 		break;
 	case DBMAP_MAXTYPE:
@@ -1156,17 +1171,18 @@ size_t
 dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 {
 	size_t deleted = 0;
+	struct foreach_ctx ctx;
 
 	dbmap_check(dm);
 	g_assert(cbr);
 
+	ctx.u.cbr = cbr;
+	ctx.arg = arg;
+
 	switch (dm->type) {
 	case DBMAP_MAP:
 		{
-			struct foreach_ctx ctx;
 
-			ctx.u.cbr = cbr;
-			ctx.arg = arg;
 			deleted = map_foreach_remove(dm->u.m.map,
 				dbmap_foreach_remove_trampoline, &ctx);
 			
@@ -1175,54 +1191,17 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 		break;
 	case DBMAP_SDBM:
 		{
-			datum key;
-			DBM *sdbm = dm->u.s.sdbm;
-			size_t count = 0, invalid = 0, unreadable = 0, errors = 0;
+			size_t count;
 
-			errno = 0;
-			for (
-				key = sdbm_firstkey(sdbm);
-				key.dptr != NULL;
-				key = sdbm_nextkey(sdbm)
-			) {
-				datum value;
+			ctx.dm = dm;
+			ctx.deleted = 0;
 
-				count++;
+			count = sdbm_foreach_remove(
+				dm->u.s.sdbm, DBM_F_SKIP, dbmap_foreach_remove_sdbm, &ctx);
 
-				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
-					count--;
-					invalid++;
-					continue;		/* Invalid key, corrupted file? */
-				}
-
-				value = sdbm_value(sdbm);
-				if (value.dptr) {
-					dbmap_datum_t d;
-					d.data = value.dptr;
-					d.len = value.dsize;
-					if ((*cbr)(key.dptr, &d, arg)) {
-						if (0 == sdbm_deletekey(sdbm)) {
-							count--;
-							deleted++;
-						} else {
-							errors++;
-							s_warning("DBMAP on sdbm \"%s\": "
-								"key deletion error: %m", sdbm_name(sdbm));
-						}
-					}
-				} else {
-					unreadable++;
-					count--;		/* Value is invalid, key is missing! */
-				}
-			}
 			dbmap_sdbm_error_check(dm);
 			dbmap_reset_count(dm, count);
-			if (invalid || errors || unreadable) {
-				s_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
-					"%zu key deletion error%s, %zu unreadable",
-					sdbm_name(sdbm), invalid, plural(invalid),
-					errors, plural(errors), unreadable);
-			}
+			deleted = ctx.deleted;
 		}
 		break;
 	case DBMAP_MAXTYPE:

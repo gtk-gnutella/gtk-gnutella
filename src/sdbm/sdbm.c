@@ -2194,6 +2194,102 @@ no_entry:
 }
 
 /**
+ * Iterate on the whole database, applying supplied callback on each item.
+ *
+ * Flags can be any combination of:
+ *
+ * DBM_F_SAFE		activate keycheck during iteration
+ * DBM_F_SKIP		skip unreadable keys/values (could happen on big entries)
+ *
+ * @param db		the database on which we're iterating
+ * @param flags		operating flags, see above
+ * @param cb		the callback to invoke on each DB entry
+ * @param arg		additional opaque argument passed to the callback
+ *
+ * @return the amount of callback invocations made, which can be viewed as the
+ * current count of the database.
+ */
+size_t
+sdbm_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg)
+{
+	datum key;
+	size_t count = 0;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
+	for (
+		key = (flags & DBM_F_SAFE) ? sdbm_firstkey_safe(db) : sdbm_firstkey(db);
+		key.dptr != NULL;
+		key = sdbm_nextkey(db)
+	) {
+		const datum value = sdbm_value(db);
+
+		if (value.dptr != NULL || 0 == (flags & DBM_F_SKIP)) {
+			(*cb)(key, value, arg);
+			count++;
+		}
+	}
+
+	sdbm_unsynchronize(db);
+
+	return count;
+}
+
+/**
+ * Iterate on the whole database, applying supplied callback on each item and
+ * removing each entry where the callback returns TRUE.
+ *
+ * Flags can be any combination of:
+ *
+ * DBM_F_SAFE		activate keycheck during iteration
+ * DBM_F_SKIP		skip unreadable keys/values (could happen on big entries)
+ *
+ * @param db		the database on which we're iterating
+ * @param flags		operating flags, see above
+ * @param cb		the callback to invoke on each DB entry
+ * @param arg		additional opaque argument passed to the callback
+ *
+ * @return the amount of callback invocations made where the callback did not
+ * return TRUE, which can be viewed as the remaining count of the database.
+ */
+size_t
+sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg)
+{
+	datum key;
+	size_t count = 0;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
+	for (
+		key = (flags & DBM_F_SAFE) ? sdbm_firstkey_safe(db) : sdbm_firstkey(db);
+		key.dptr != NULL;
+		key = sdbm_nextkey(db)
+	) {
+		const datum value = sdbm_value(db);
+
+		if (value.dptr != NULL || 0 == (flags & DBM_F_SKIP)) {
+			if ((*cb)(key, value, arg)) {
+				if (0 != sdbm_deletekey(db)) {
+					s_critical_once_per(LOG_PERIOD_SECOND,
+						"%s(): sdbm \"%s\": key deletion error: %m",
+						G_STRFUNC, sdbm_name(db));
+				}
+			} else {
+				count++;
+			}
+		}
+	}
+
+	sdbm_unsynchronize(db);
+
+	return count;
+}
+
+/**
  * Synchronize cached data to disk.
  *
  * @return the amount of pages successfully flushed as a positive number
