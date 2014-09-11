@@ -25,8 +25,8 @@
 #include "lib/hstrfn.h"
 #include "lib/log.h"
 #include "lib/misc.h"
-#include "lib/mutex.h"
 #include "lib/pow2.h"
+#include "lib/qlock.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -58,20 +58,20 @@ static void validpage(DBM *, long);
 #define sdbm_synchronize(s) G_STMT_START {		\
 	if G_UNLIKELY((s)->lock != NULL) { 			\
 		DBM *ws = deconstify_pointer(s);	\
-		mutex_lock(ws->lock);					\
+		qlock_lock(ws->lock);					\
 	}											\
 } G_STMT_END
 
 #define sdbm_unsynchronize(s) G_STMT_START {	\
 	if G_UNLIKELY((s)->lock != NULL) { 			\
 		DBM *ws = deconstify_pointer(s);	\
-		mutex_unlock(ws->lock);					\
+		qlock_unlock(ws->lock);					\
 	}											\
 } G_STMT_END
 
 #define sdbm_return(s, v) G_STMT_START {		\
 	if G_UNLIKELY((s)->lock != NULL) 			\
-		mutex_unlock((s)->lock);				\
+		qlock_unlock((s)->lock);				\
 	return v;									\
 } G_STMT_END
 
@@ -79,20 +79,20 @@ static void validpage(DBM *, long);
 	datum *rv = &(v);							\
 	if G_UNLIKELY((s)->lock != NULL) { 			\
 		rv = sdbm_thread_datum((s), &(v));		\
-		mutex_unlock((s)->lock);				\
+		qlock_unlock((s)->lock);				\
 	}											\
 	return *rv;									\
 } G_STMT_END
 
 #define sdbm_return_void(s) G_STMT_START {		\
 	if G_UNLIKELY((s)->lock != NULL) 			\
-		mutex_unlock((s)->lock);				\
+		qlock_unlock((s)->lock);				\
 	return;										\
 } G_STMT_END
 
 #define assert_sdbm_locked(s) G_STMT_START {	\
 	if G_UNLIKELY((s)->lock != NULL) 			\
-		assert_mutex_is_owned((s)->lock);		\
+		assert_qlock_is_owned((s)->lock);		\
 } G_STMT_END
 
 #else	/* !THREADS */
@@ -499,7 +499,7 @@ sdbm_thread_safe(DBM *db)
 	g_assert(NULL == db->lock);
 
 	WALLOC0(db->lock);
-	mutex_init(db->lock);
+	qlock_recursive_init(db->lock);
 	XMALLOC0_ARRAY(db->returned, THREAD_MAX);
 }
 
@@ -519,7 +519,7 @@ sdbm_lock(DBM *db)
 	g_assert_log(db->lock != NULL,
 		"%s(): SDBM \"%s\" not marked thread-safe", G_STRFUNC, sdbm_name(db));
 
-	mutex_lock(db->lock);
+	qlock_lock(db->lock);
 }
 
 /*
@@ -535,7 +535,7 @@ sdbm_unlock(DBM *db)
 	g_assert_log(db->lock != NULL,
 		"%s(): SDBM \"%s\" not marked thread-safe", G_STRFUNC, sdbm_name(db));
 
-	mutex_unlock(db->lock);
+	qlock_unlock(db->lock);
 }
 
 /**
@@ -875,7 +875,7 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 
 	if (destroy) {
 		if (db->lock != NULL) {
-			mutex_destroy(db->lock);
+			qlock_destroy(db->lock);
 			WFREE(db->lock);
 		}
 		sdbm_free(db);
