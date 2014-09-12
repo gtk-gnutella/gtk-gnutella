@@ -556,6 +556,7 @@ sdbm_thread_datum(DBM *db, datum *v)
 {
 	datum *r;
 	uint stid = thread_small_id();
+	static datum zerosized;
 
 	sdbm_check(db);
 	g_assert(stid < THREAD_MAX);
@@ -563,24 +564,30 @@ sdbm_thread_datum(DBM *db, datum *v)
 
 	r = &db->returned[stid];
 
-	if (r->dsize != 0)
-		xfree(r->dptr);						/* Free old value */
-
 	if (v->dsize != 0) {
-		r->dptr = xcopy(v->dptr, v->dsize);	/* Copy value to be returned */
+		/*
+		 * We use xrealloc() amd a memcpy() instead of just xcopy() because in
+		 * general the values returned will be roughly similar in size, and
+		 * therefore we expect that xrealloc() will end-up being a no-op!
+		 */
+
+		r->dptr = xrealloc(r->dptr, v->dsize);
+		memcpy(r->dptr, v->dptr, v->dsize);
 		r->dsize = v->dsize;
 	} else if (NULL == v->dptr) {
-		*r = nullitem;
+		r = deconstify_pointer(&nullitem);
 	} else {
 		/*
 		 * It's possible to have a zero-sized value stored, and if we come
 		 * here then v->dsize = 0 and v->dptr != NULL.
 		 *
-		 * To prevent any reference to the pointer, we use the VMM trap page.
+		 * To prevent any dereference of the pointer, we use the VMM trap page.
 		 */
 
-		r->dptr = deconstify_pointer(vmm_trap_page());
-		r->dsize = 0;
+		if G_UNLIKELY(NULL == zerosized.dptr)
+			zerosized.dptr = deconstify_pointer(vmm_trap_page());
+
+		r = &zerosized;
 	}
 
 	return r;
