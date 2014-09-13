@@ -539,6 +539,17 @@ sdbm_unlock(DBM *db)
 }
 
 /**
+ * @return whether the database was marked thread-safe.
+ */
+bool
+sdbm_is_thread_safe(const DBM *db)
+{
+	sdbm_check(db);
+
+	return db->lock != NULL;
+}
+
+/**
  * Allocate a thread-private datum to be returned to the thread.
  *
  * Although the value returned is thread-private, its lifespan is limited to

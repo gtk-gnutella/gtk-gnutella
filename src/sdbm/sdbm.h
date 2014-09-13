@@ -101,6 +101,7 @@ size_t sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg);
 void sdbm_thread_safe(DBM *db);
 void sdbm_lock(DBM *db);
 void sdbm_unlock(DBM *db);
+bool sdbm_is_thread_safe(const DBM *db);
 
 /*
  * Internal routines with clean semantics that can be used by user code.

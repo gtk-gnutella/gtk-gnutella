@@ -67,6 +67,7 @@ bool sdbm_is_storable(size_t key, size_t value)
 void sdbm_thread_safe(\s-1DBM\s0 *db)
 void sdbm_lock(\s-1DBM\s0 *db)
 void sdbm_unlock(\s-1DBM\s0 *db)
+bool sdbm_is_thread_safe(const \s-1DBM\s0 *db)
 .sp
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
