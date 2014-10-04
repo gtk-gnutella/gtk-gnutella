@@ -1311,6 +1311,7 @@ connect_to_host:
 				NODE_TALKS_G2(n) ? "G2 " : "",
 				host_addr_port_to_string(ha, port), file_name);
 		}
+		gnet_stats_inc_general(GNR_REMOTE_PUSH_THROTTLED);
 		return;
 	}
 

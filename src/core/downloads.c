@@ -87,6 +87,7 @@
 #include "if/dht/dht.h"
 
 #include "lib/adns.h"
+#include "lib/aging.h"
 #include "lib/array.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
@@ -153,6 +154,8 @@
 #define DOWNLOAD_CONNECT_DELAY	12		/**< Seconds between connections */
 #define DOWNLOAD_PIPELINE_MSECS	10000	/**< Less than 10 secs away */
 #define DOWNLOAD_FS_SPACE		16384	/**< Min filesystem free space */
+#define DOWNLOAD_PUSH_FREQ		30		/**< Each 30 secs, we allow sending... */
+#define DOWNLOAD_PUSH_MAX		4		/**< ...4 PUSHes max to a server */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -160,6 +163,7 @@ static hash_list_t *sl_downloads;	/**< All downloads (queued + unqueued) */
 static hash_list_t *sl_unqueued;	/**< Unqueued downloads only */
 static pslist_t *sl_removed;		/**< Removed downloads only */
 static pslist_t *sl_removed_servers;/**< Removed servers only */
+static aging_table_t *local_pushes;	/**< Throttle push messages to a server */
 
 static const char DL_OK_EXT[]	= ".OK";	/**< Extension to mark OK files */
 static const char DL_BAD_EXT[]	= ".BAD";	/**< "Bad" files (SHA1 mismatch) */
@@ -1316,6 +1320,7 @@ download_init(void)
 		offsetof(struct download, id), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	dhl_by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	dl_thex = dualhash_new(guid_hash, guid_eq, guid_hash, guid_eq);
+	local_pushes = aging_make(DOWNLOAD_PUSH_FREQ, dl_key_hash, dl_key_eq, NULL);
 
 	header_features_add_guarded(FEATURES_DOWNLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -1927,6 +1932,16 @@ server_list_free_all(struct dl_server *server)
 }
 
 /**
+ * Unregister server key from the tables that could reference it.
+ */
+static void
+server_key_unregister(const struct dl_key *key)
+{
+	hikset_remove(dl_by_host, key);
+	aging_remove(local_pushes, key);
+}
+
+/**
  * Unregister server so that get_server() may no longer find it.
  */
 static void
@@ -1935,7 +1950,7 @@ server_unregister(struct dl_server *server)
 	g_assert(dl_server_valid(server));
 
 	dl_by_time_remove(server);
-	hikset_remove(dl_by_host, server->key);
+	server_key_unregister(server->key);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -2107,7 +2122,7 @@ download_found_server(const struct guid *guid,
 						host_addr_port_to_string(addr, port));
 				}
 
-				hikset_remove(dl_by_host, key);
+				server_key_unregister(key);
 				gnet_stats_inc_general(GNR_DISCOVERED_SERVER_GUID);
 				atom_guid_change(&key->guid, guid);
 				htable_insert(dl_by_guid, key->guid, server);
@@ -2466,7 +2481,7 @@ change_server_addr(struct dl_server *server,
 	g_assert(dl_server_valid(server));
 	g_assert(host_addr_initialized(new_addr));
 
-	hikset_remove(dl_by_host, key);
+	server_key_unregister(key);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -8544,13 +8559,16 @@ download_send_push(struct download *d, const struct array packet,
  * as well as the 4 most recent push proxies when `udp' is set.
  * We can also broadcast to the proper routes if `broadcast' is set.
  *
- * @returns TRUE if the request could be sent, FALSE if we don't have the route.
+ * @returns TRUE if the request could be sent, FALSE if we don't have the route
+ * or we reached the throttle limit for the server.
  */
 static bool
 download_send_push_request(struct download *d, bool udp, bool broadcast)
 {
 	uint16 port;
 	bool success = FALSE;
+	int push_count;
+	struct dl_server *server;
 
 	download_check(d);
 
@@ -8560,6 +8578,39 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	port = socket_listen_port();
 	if (0 == port)
 		return FALSE;
+
+	/*
+	 * Throttle the amount of push requests we can send for a given server.
+	 *
+	 * There are many places in the code that can call this routine (when a
+	 * request times out and we try to fallback to push, or when we have
+	 * a known firewalled server and we get new push proxies for it) and if
+	 * there is a long list of files awaiting for download, this can generate
+	 * a high PUSH message sending rate.
+	 *		--RAM, 2014-10-04
+	 */
+
+	server = d->server;
+	g_assert(dl_server_valid(server));
+
+	push_count = pointer_to_int(aging_lookup(local_pushes, server->key));
+
+	if (push_count >= DOWNLOAD_PUSH_MAX) {
+		if (GNET_PROPERTY(download_debug) > 1) {
+			g_debug("throttling %sPUSH (udp=%s, %s=%s) "
+				"for %s",
+				download_is_g2(d) ? "G2 " : "",
+				udp ? "y" : "n",
+				download_is_g2(d) ? "g2" : "gnet", broadcast ? "y" : "n",
+				server_host_info(server));
+		}
+		gnet_stats_inc_general(GNR_LOCAL_PUSH_THROTTLED);
+		return FALSE;
+	}
+
+	/*
+	 * OK, we can send the push message.
+	 */
 
 	if (download_is_g2(d)) {
 		pmsg_t *mb = g2_build_push(download_guid(d));
@@ -8588,14 +8639,15 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	/* FALL THROUGH */
 
 done:
-	if (!success && GNET_PROPERTY(download_debug)) {
+	if (success) {
+		aging_insert(local_pushes, server->key, int_to_pointer(push_count + 1));
+	} else if (GNET_PROPERTY(download_debug)) {
 		g_warning("failed to send %sPUSH (udp=%s, %s=%s) "
 			"for %s (index=%lu)",
 			download_is_g2(d) ? "G2 " : "",
 			udp ? "y" : "n",
 			download_is_g2(d) ? "g2" : "gnet", broadcast ? "y" : "n",
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-				(ulong) d->record_index);
+			server_host_info(d->server), (ulong) d->record_index);
 	}
 
 	return success;
@@ -15828,6 +15880,7 @@ download_close(void)
 	hash_list_free(&sl_downloads);
 	hash_list_free(&sl_unqueued);
 
+	aging_destroy(&local_pushes);
 	htable_free_null(&dl_by_guid);
 	hikset_free_null(&dl_by_host);
 	htable_free_null(&dl_by_addr);
