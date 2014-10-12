@@ -5904,6 +5904,14 @@ node_is_authentic(const char *vendor, const header_t *head)
 				header_get(head, "Remote-IP") &&
 				header_get(head, "Vendor-Message") &&
 				header_get(head, "Accept-Encoding");
+		} else if (is_strcaseprefix(vendor, "shareaza ")) {
+			const char *field = header_get(head, "X-Ultrapeer");
+			const char *type = header_get(head, "Content-Type");
+			if (NULL == type)
+				return FALSE;
+			return NULL == field ||
+				0 == ascii_strcasecmp(field, "false") ||
+				0 == ascii_strcasecmp(type, APP_G2);
 		}
 	}
 
