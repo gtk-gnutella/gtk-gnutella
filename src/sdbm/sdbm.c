@@ -550,6 +550,29 @@ sdbm_is_thread_safe(const DBM *db)
 }
 
 /**
+ * Check whether the current thread has locked the database.
+ *
+ * If the database has not been marked thread-safe already, this predicate
+ * returns FALSE.
+ *
+ * @return whether the database was locked by the current thread.
+ */
+bool
+sdbm_is_locked(const DBM *db)
+{
+	sdbm_check(db);
+
+	if (NULL == db->lock)
+		return FALSE;
+
+	/*
+	 * Lock is recursive and therefore it has a owning thread.
+	 */
+
+	return qlock_is_owned(db->lock);
+}
+
+/**
  * Allocate a thread-private datum to be returned to the thread.
  *
  * Although the value returned is thread-private, its lifespan is limited to

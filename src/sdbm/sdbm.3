@@ -68,6 +68,7 @@ void sdbm_thread_safe(\s-1DBM\s0 *db)
 void sdbm_lock(\s-1DBM\s0 *db)
 void sdbm_unlock(\s-1DBM\s0 *db)
 bool sdbm_is_thread_safe(const \s-1DBM\s0 *db)
+bool sdbm_is_locked(const \s-1DBM\s0 *db)
 .sp
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
@@ -461,6 +462,18 @@ not marked as being concurrent via
 .BR sdbm_thread_safe (\|)
 beforehand.
 .LP
+The
+.BR sdbm_is_thread_safe (\|)
+and
+.BR sdbm_is_locked (\|)
+predicates can be used in assertions to check respectively whether the database
+was flagged as being thread-safe and whether it is currently locked by the
+calling thread.  The
+.BR sdbm_is_locked (\|)
+routine will always return
+.BR \s-1FALSE\s0
+for databases that have not been marked thread-safe.
+.LP
 Concurrent iterations on the database are forbidden, and this is enforced by
 having the iterators return
 .B nullitem
@@ -657,9 +670,6 @@ The
 data item, and the
 .BR sdbm_prep (\|),
 .BR sdbm_hash (\|),
-.BR sdbm_thread_safe (\|),
-.BR sdbm_lock (\|),
-.BR sdbm_unlock (\|),
 .BR sdbm_rdonly (\|),
 .BR sdbm_dirfno (\|),
 and
@@ -712,6 +722,16 @@ The following functions:
 .BR sdbm_set_name (\|)
 .br
 .BR sdbm_name (\|)
+.br
+.BR sdbm_thread_safe (\|)
+.br
+.BR sdbm_is_thread_safe (\|)
+.br
+.BR sdbm_lock (\|)
+.br
+.BR sdbm_unlock (\|)
+.br
+.BR sdbm_is_locked (\|)
 .br
 .BR sdbm_foreach (\|)
 .br
