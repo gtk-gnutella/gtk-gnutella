@@ -4655,13 +4655,11 @@ vmm_malloc_inited(void)
 void
 vmm_stats_digest(sha1_t *digest)
 {
-	struct vmm_stats stats;
+	/*
+	 * Don't take locks to read the statistics, to enhance unpredictability.
+	 */
 
-	VMM_STATS_LOCK;
-	stats = vmm_stats;	/* struct copy under lock protection */
-	VMM_STATS_UNLOCK;
-
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE(vmm_stats, digest);
 }
 
 /**

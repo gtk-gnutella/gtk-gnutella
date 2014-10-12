@@ -3432,13 +3432,11 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 void
 zalloc_stats_digest(sha1_t *digest)
 {
-	struct zstats stats;
+	/*
+	 * Don't take locks to read the statistics, to enhance unpredictability.
+	 */
 
-	ZSTATS_LOCK;
-	stats = zstats;		/* struct copy under lock protection */
-	ZSTATS_UNLOCK;
-
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE(zstats, digest);
 }
 
 /**

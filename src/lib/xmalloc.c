@@ -6494,13 +6494,11 @@ xmalloc_stop_freeing(void)
 void
 xmalloc_stats_digest(sha1_t *digest)
 {
-	struct xstats stats;
+	/*
+	 * Don't take locks to read the statistics, to enhance unpredictability.
+	 */
 
-	XSTATS_LOCK;
-	stats = xstats;		/* struct copy under lock protection */
-	XSTATS_UNLOCK;
-
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE(xstats, digest);
 }
 
 /**
