@@ -271,6 +271,7 @@ static struct vmm_stats {
 	AU64(munmaps);					/**< Total number of munmap() calls */
 	uint64 magazine_allocations;	/**< Allocations through thread magazine */
 	uint64 magazine_freeings;		/**< Freeings through thread magazine */
+	uint64 magazine_freeings_frag;	/**< Magazine regions that were fragments */
 	uint64 hints_followed;			/**< Allocations following hints */
 	uint64 hints_ignored;			/**< Allocations ignoring non-NULL hints */
 	uint64 alloc_from_cache;		/**< Allocation from cache */
@@ -4139,7 +4140,26 @@ vmm_free(void *p, size_t size)
 	size_t npages = pagecount_fast(size);
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		tmalloc_t *depot = vmm_get_magazine(npages);
+		tmalloc_t *depot;
+
+		/*
+		 * If we're running under a long-term VMM allocation strategy,
+		 * check whether the region we're releasing is a VMM fragment.
+		 * If it is, it should be released.
+		 */
+
+		if G_UNLIKELY(
+			VMM_STRATEGY_LONG_TERM == vmm_strategy &&
+			vmm_is_fragment(p, size)
+		) {
+			VMM_STATS_LOCK;
+			vmm_stats.magazine_freeings++;
+			vmm_stats.magazine_freeings_frag++;
+			VMM_STATS_UNLOCK;
+			goto user_free;
+		}
+
+		depot = vmm_get_magazine(npages);
 
 		if G_LIKELY(depot != NULL) {
 			VMM_STATS_LOCK;
@@ -4151,8 +4171,11 @@ vmm_free(void *p, size_t size)
 			tmfree(depot, p);
 			return;
 		}
+
+		/* FALL THROUGH -- if no depot yet for that amount of pages */
 	}
 
+user_free:
 	vmm_free_internal(p, size, TRUE);
 }
 
@@ -4716,6 +4739,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(munmaps);
 	DUMP(magazine_allocations);
 	DUMP(magazine_freeings);
+	DUMP(magazine_freeings_frag);
 	DUMP(hints_followed);
 	DUMP(hints_ignored);
 	DUMP(alloc_from_cache);
