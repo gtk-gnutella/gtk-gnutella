@@ -1104,7 +1104,8 @@ plist_shift(plist_t **pl_ptr)
 	data = pl->data;
 
 	nl = pl->next;
-	nl->prev = NULL;
+	if (nl != NULL)
+		nl->prev = NULL;
 	g_assert(NULL == pl->prev);		/* Was at the head of the list */
 	WFREE(pl);
 
