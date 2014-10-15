@@ -183,6 +183,7 @@ unsigned thread_safe_small_id(void);
 int thread_stid_from_thread(const thread_t t);
 const char *thread_to_string(const thread_t t);
 void thread_set_name(const char *name);
+void thread_set_name_atom(const char *name);
 const char *thread_name(void);
 const char *thread_id_name(unsigned id);
 unsigned thread_by_name(const char *name);

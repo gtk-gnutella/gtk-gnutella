@@ -81,6 +81,7 @@
 
 #include "alloca.h"				/* For alloca_stack_direction() */
 #include "atomic.h"
+#include "atoms.h"
 #include "buf.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
@@ -345,6 +346,7 @@ struct thread_element {
 	uint gone:1;					/**< Discovered thread is gone */
 	uint gone_seen:1;				/**< Flagged activity from gone thread */
 	uint add_monitoring:1;			/**< Must reinstall thread monitoring */
+	uint atomic_name:1;				/**< Whether name is an atomic string */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
@@ -1677,6 +1679,18 @@ thread_exiting(struct thread_element *te)
 }
 
 /**
+ * Clear the atomic name in the thread element.
+ */
+static void
+thread_element_clear_name(struct thread_element *te)
+{
+	if (te->atomic_name) {
+		atom_str_free_null(&te->name);
+		te->atomic_name = FALSE;
+	}
+}
+
+/**
  * Reset important fields from a reused thread element.
  */
 static void
@@ -1693,6 +1707,7 @@ thread_element_reset(struct thread_element *te)
 
 	te->locks.count = 0;
 	ZERO(&te->waiting);
+	thread_element_clear_name(te);
 
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
@@ -3488,13 +3503,34 @@ thread_stid_from_thread(const thread_t t)
 
 /**
  * Set the name of the current thread.
+ *
+ * @param name		the name of the current thread (copied as-is)
  */
 void
 thread_set_name(const char *name)
 {
 	struct thread_element *te = thread_get_element();
 
+	thread_element_clear_name(te);
 	te->name = name;
+}
+
+/**
+ * Set the name of the current thread, allocating an atomic string for it.
+ *
+ * @param name		the name of the current thread (atomized)
+ */
+void
+thread_set_name_atom(const char *name)
+{
+	struct thread_element *te = thread_get_element();
+
+	if (!te->atomic_name) {
+		te->name = NULL;
+		te->atomic_name = TRUE;
+	}
+
+	atom_str_change(&te->name, name);
 }
 
 /**
