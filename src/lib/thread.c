@@ -7321,7 +7321,7 @@ thread_unblock(unsigned id)
 
 struct thread_launch_context {
 	struct thread_element *te;
-	thread_main_t routine;
+	process_fn_t routine;
 	void *arg;
 	tsigset_t sig_mask;
 };
@@ -7464,7 +7464,7 @@ thread_launch_trampoline(void *arg)
 		void *result;
 		void *argument;
 	} u;
-	thread_main_t routine;
+	process_fn_t routine;
 
 	/*
 	 * This routine is run in the context of the new thread.
@@ -7535,7 +7535,7 @@ thread_launch_trampoline(void *arg)
  */
 static int
 thread_launch(struct thread_element *te,
-	thread_main_t routine, void *arg, uint flags, size_t stack)
+	process_fn_t routine, void *arg, uint flags, size_t stack)
 {
 	int error;
 	pthread_attr_t attr;
@@ -7685,7 +7685,7 @@ thread_launch(struct thread_element *te,
  * @return the new thread small ID, -1 on error with errno set.
  */
 int
-thread_create(thread_main_t routine, void *arg, uint flags, size_t stack)
+thread_create(process_fn_t routine, void *arg, uint flags, size_t stack)
 {
 	return thread_create_full(routine, arg, flags, stack, NULL, NULL);
 }
@@ -7714,7 +7714,7 @@ thread_create(thread_main_t routine, void *arg, uint flags, size_t stack)
  * @return the new thread small ID, -1 on error with errno set.
  */
 int
-thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
+thread_create_full(process_fn_t routine, void *arg, uint flags, size_t stack,
 	thread_exit_t exited, void *earg)
 {
 	struct thread_element *te;

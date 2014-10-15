@@ -37,11 +37,6 @@
 #include "tsig.h"		/* For tsigset_t */
 
 /**
- * Main entry point for thread_create().
- */
-typedef void *(*thread_main_t)(void *arg);
-
-/**
  * Thread exiting callback, which will be invoked asynchronously in the
  * context of the main thread, NOT the thread which created that exiting thread.
  */
@@ -262,8 +257,8 @@ void thread_set_main(bool can_block);
 unsigned thread_get_main(void);
 bool thread_main_is_blockable(void);
 
-int thread_create(thread_main_t routine, void *arg, uint flags, size_t stack);
-int thread_create_full(thread_main_t routine, void *arg, uint flags,
+int thread_create(process_fn_t routine, void *arg, uint flags, size_t stack);
+int thread_create_full(process_fn_t routine, void *arg, uint flags,
 	size_t stack, thread_exit_t exited, void *earg);
 void thread_exit(void *value) G_GNUC_NORETURN;
 void thread_atexit(thread_exit_t exit_cb, void *exit_arg);

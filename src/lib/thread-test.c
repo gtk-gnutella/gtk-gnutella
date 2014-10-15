@@ -330,7 +330,7 @@ test_create_one(bool repeat, bool join)
 }
 
 static pthread_t
-posix_thread_create(thread_main_t routine, void *arg, bool joinable)
+posix_thread_create(process_fn_t routine, void *arg, bool joinable)
 {
 	int error;
 	pthread_attr_t attr;
@@ -721,7 +721,7 @@ const char *name[] = { "A", "B" };
 enum game_state other[] = { PLAYER_B, PLAYER_A };
 
 static void
-create_player(thread_main_t start, int n)
+create_player(process_fn_t start, int n)
 {
 	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(name));
 
