@@ -48,6 +48,7 @@
 #include "pslist.h"
 
 #include "eslist.h"
+#include "log.h"
 #include "random.h"
 #include "walloc.h"
 
@@ -1066,6 +1067,14 @@ pslist_shift(pslist_t **pl_ptr)
 
 	nl = pl->next;
 	WFREE(pl);
+
+	/*
+	 * If the list contains NULL items, this is going to confuse the caller
+	 * because NULL is also an indication that the list was empty.
+	 */
+
+	if G_UNLIKELY(NULL == data)
+		s_carp_once("%s(): used on a list that contains NULL items", G_STRFUNC);
 
 	*pl_ptr = nl;
 	return data;
