@@ -34,8 +34,10 @@
 #include "common.h"
 
 #include "wd.h"
+
 #include "atoms.h"
 #include "cq.h"
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "tm.h"
 #include "walloc.h"
@@ -55,6 +57,7 @@ struct watchdog {
 	int period;						/**< Maximum period between kicks */
 	cevent_t *ev;					/**< Watchdog event in callout queue */
 	time_t last_kick;				/**< When last kick occurred */
+	spinlock_t *lock;				/**< Thread-safe lock */
 };
 
 static inline void
@@ -63,6 +66,16 @@ watchdog_check(const watchdog_t * const wd)
 	g_assert(wd != NULL);
 	g_assert(WATCHDOG_MAGIC == wd->magic);
 }
+
+#define WD_LOCK(w) G_STMT_START {		\
+	if G_UNLIKELY((w)->lock != NULL)	\
+		spinlock((w)->lock);			\
+} G_STMT_END
+
+#define WD_UNLOCK(w) G_STMT_START {		\
+	if G_UNLIKELY((w)->lock != NULL)	\
+		spinunlock((w)->lock);			\
+} G_STMT_END
 
 static void wd_start(watchdog_t *wd);
 
@@ -89,6 +102,7 @@ wd_expired(cqueue_t *cq, void *arg)
 
 	watchdog_check(wd);
 
+	WD_LOCK(wd);
 	cq_zero(cq, &wd->ev);
 
 	/*
@@ -98,6 +112,7 @@ wd_expired(cqueue_t *cq, void *arg)
 	 */
 
 	if (0 == wd->last_kick) {
+		WD_UNLOCK(wd);
 		wd_trigger(wd);
 	} else {
 		time_t now = tm_time();
@@ -112,10 +127,12 @@ wd_expired(cqueue_t *cq, void *arg)
 		 */
 
 		if (elapsed >= wd->period) {
+			WD_UNLOCK(wd);
 			wd_trigger(wd);
 		} else {
 			time_delta_t delay = wd->period - elapsed;
 			wd->ev = cq_insert(cq, delay * 1000, wd_expired, wd);
+			WD_UNLOCK(wd);
 		}
 	}
 }
@@ -128,9 +145,14 @@ wd_start(watchdog_t *wd)
 {
 	watchdog_check(wd);
 
+	WD_LOCK(wd);
+
 	/* watchdog period given in seconds */
 	wd->last_kick = 0;
-	wd->ev = cq_main_insert(wd->period * 1000, wd_expired, wd);
+	if (NULL == wd->ev)
+		wd->ev = cq_main_insert(wd->period * 1000, wd_expired, wd);
+
+	WD_UNLOCK(wd);
 }
 
 /**
@@ -144,7 +166,9 @@ wd_kick(watchdog_t *wd)
 {
 	watchdog_check(wd);
 
+	WD_LOCK(wd);
 	wd->last_kick = tm_time();
+	WD_UNLOCK(wd);
 }
 
 /**
@@ -167,7 +191,9 @@ wd_wakeup_kick(watchdog_t *wd)
 		awoken = TRUE;
 	}
 
+	WD_LOCK(wd);
 	wd->last_kick = tm_time();
+	WD_UNLOCK(wd);
 
 	return awoken;
 }
@@ -184,7 +210,7 @@ wd_wakeup(watchdog_t *wd)
 {
 	watchdog_check(wd);
 
-	if (wd->ev)
+	if (wd->ev != NULL)
 		return FALSE;
 
 	wd_start(wd);
@@ -205,7 +231,9 @@ wd_sleep(watchdog_t *wd)
 	if (NULL == wd->ev)
 		return FALSE;
 
+	WD_LOCK(wd);
 	cq_cancel(&wd->ev);
+	WD_UNLOCK(wd);
 
 	return TRUE;
 }
@@ -225,7 +253,10 @@ wd_expire(watchdog_t *wd)
 	if (NULL == wd->ev)
 		return FALSE;
 
+	WD_LOCK(wd);
 	cq_cancel(&wd->ev);
+	WD_UNLOCK(wd);
+
 	(*wd->trigger)(wd, wd->arg);
 
 	if (wd->ev != NULL) {
@@ -269,6 +300,19 @@ wd_make(const char *name, int period,
 }
 
 /**
+ * Make watchdog thread-safe.
+ */
+void
+wd_thread_safe(watchdog_t *wd)
+{
+	watchdog_check(wd);
+	g_assert(NULL == wd->lock);
+
+	WALLOC0(wd->lock);
+	spinlock_init(wd->lock);
+}
+
+/**
  * @return the name of the watchdog
  */
 const char *
@@ -293,9 +337,15 @@ static void
 wd_free(watchdog_t *wd)
 {
 	watchdog_check(wd);
-	
+
 	wd_sleep(wd);
+
+	WD_LOCK(wd);
 	atom_str_free_null(&wd->name);
+	if (wd->lock != NULL) {
+		spinlock_destroy(wd->lock);		/* Will unlock */
+		WFREE(wd->lock);
+	}
 	WFREE(wd);
 }
 

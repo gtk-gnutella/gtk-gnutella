@@ -57,6 +57,7 @@ typedef bool (*wd_trigger_t)(watchdog_t *wd, void *udata);
 watchdog_t *wd_make(const char *name, int period,
 	wd_trigger_t trigger, void *arg, bool start);
 void wd_free_null(watchdog_t **wd);
+void wd_thread_safe(watchdog_t *wd);
 
 const char *wd_name(const watchdog_t *wd);
 bool wd_is_awake(const watchdog_t *wd);
