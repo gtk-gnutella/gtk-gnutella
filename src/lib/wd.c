@@ -37,6 +37,7 @@
 
 #include "atoms.h"
 #include "cq.h"
+#include "log.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "tm.h"
@@ -58,6 +59,7 @@ struct watchdog {
 	cevent_t *ev;					/**< Watchdog event in callout queue */
 	time_t last_kick;				/**< When last kick occurred */
 	spinlock_t *lock;				/**< Thread-safe lock */
+	uint triggering:1;				/**< Signals that trigger is running */
 };
 
 static inline void
@@ -88,8 +90,27 @@ static void wd_start(watchdog_t *wd);
 static void
 wd_trigger(watchdog_t *wd)
 {
+	bool run = TRUE;
+
+	WD_LOCK(wd);
+	if (wd->triggering)
+		run = FALSE;
+	else
+		wd->triggering = TRUE;
+	WD_UNLOCK(wd);
+
+	if (!run) {
+		s_critical("%s(): watchdog \"%s\" was already running trigger, skipped",
+			G_STRFUNC,  wd_name(wd));
+		return;
+	}
+
 	if ((*wd->trigger)(wd, wd->arg))
 		wd_start(wd);
+
+	WD_LOCK(wd);
+	wd->triggering = FALSE;
+	WD_UNLOCK(wd);
 }
 
 /**
@@ -147,10 +168,12 @@ wd_start(watchdog_t *wd)
 
 	WD_LOCK(wd);
 
-	/* watchdog period given in seconds */
 	wd->last_kick = 0;
-	if (NULL == wd->ev)
+
+	if (NULL == wd->ev) {
+		/* watchdog period given in seconds */
 		wd->ev = cq_main_insert(wd->period * 1000, wd_expired, wd);
+	}
 
 	WD_UNLOCK(wd);
 }
@@ -243,29 +266,45 @@ wd_sleep(watchdog_t *wd)
  * from the callback to re-arm the watchdog.
  *
  * @return TRUE if we stopped the watchdog, FALSE if it was already aslept,
- * in which case the trigger was not invoked.
+ * or trigger was concurrently run, in which case the trigger was not invoked.
  */
 bool
 wd_expire(watchdog_t *wd)
 {
+	bool run = TRUE;
 	watchdog_check(wd);
 
 	if (NULL == wd->ev)
 		return FALSE;
 
 	WD_LOCK(wd);
-	cq_cancel(&wd->ev);
+	if (wd->triggering) {
+		run = FALSE;
+	} else {
+		cq_cancel(&wd->ev);
+		wd->triggering = TRUE;
+	}
 	WD_UNLOCK(wd);
 
-	(*wd->trigger)(wd, wd->arg);
+	if (run) {
+		(*wd->trigger)(wd, wd->arg);
 
-	if (wd->ev != NULL) {
-		g_critical("%s(): "
-			"watchdog \"%s\" re-armed within %s() callback, turning it off",
-			G_STRFUNC, wd_name(wd), stacktrace_function_name(wd->trigger));
+		WD_LOCK(wd);
+		wd->triggering = FALSE;
+
+		if (wd->ev != NULL) {
+			s_critical("%s(): "
+				"watchdog \"%s\" re-armed within %s() callback, turning it off",
+				G_STRFUNC, wd_name(wd), stacktrace_function_name(wd->trigger));
+			cq_cancel(&wd->ev);
+		}
+		WD_UNLOCK(wd);
+	} else {
+		s_critical("%s(): watchdog \"%s\" was already running trigger, skipped",
+			G_STRFUNC,  wd_name(wd));
 	}
 
-	return TRUE;
+	return run;
 }
 
 /**
