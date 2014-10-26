@@ -34,6 +34,13 @@
 #ifndef _xmalloc_h_
 #define _xmalloc_h_
 
+/**
+ * The largest block size in the free list represents the maximum block length
+ * we agree to fragment.  Blocks larger than that are allocated via the VMM
+ * layer and are therefore multiples of the system's page size.
+ */
+#define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
+
 /*
  * Flags for xmalloc_freelist_check()
  */

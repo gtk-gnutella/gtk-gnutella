@@ -210,7 +210,6 @@ struct xheader {
 #define XMALLOC_BUCKET_SHIFT	MAX(XMALLOC_ALIGNSHIFT, XHEADER_SHIFT)
 #define XMALLOC_BLOCK_SIZE		256
 #define XMALLOC_BLOCK_SHIFT		8
-#define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
 /**
  * Minimum size for a block split: the size of blocks in bucket #0.
