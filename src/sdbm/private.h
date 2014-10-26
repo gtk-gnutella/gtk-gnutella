@@ -9,6 +9,11 @@ struct lmutex;			/* Avoid including "mutex.h" here */
 
 enum sdbm_magic { SDBM_MAGIC = 0x1dac340e };
 
+struct dbm_returns {
+	size_t len;			/* physical block length */
+	datum value;		/* the value returned */
+};
+
 struct DBM {
 	enum sdbm_magic magic;		/* magic number */
 	char *name;			/* database name, for logging */
@@ -68,7 +73,7 @@ struct DBM {
 	uint8 dirbuf_dirty;	/* whether dirbuf needs flushing to disk */
 #endif
 #ifdef THREADS
-	datum *returned;	/* per-thread returned values */
+	struct dbm_returns *returned;	/* per-thread returned values */
 	uint iterid;		/* thread small ID for iterating */
 #endif
 };

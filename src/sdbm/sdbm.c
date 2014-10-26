@@ -299,10 +299,10 @@ sdbm_free(DBM *db)
 		int i;
 
 		for (i = 0; i < THREAD_MAX; i++) {
-			datum *r = &db->returned[i];
+			struct dbm_returns *r = &db->returned[i];
 
-			if (r->dsize != 0)
-				XFREE_NULL(r->dptr);	/* Free thread-private data copy */
+			if (r->len != 0)
+				XFREE_NULL(r->value.dptr);	/* Free thread-private data copy */
 		}
 
 		XFREE_NULL(db->returned);
@@ -554,28 +554,42 @@ sdbm_unlock(DBM *db)
 static datum *
 sdbm_thread_datum(DBM *db, datum *v)
 {
-	datum *r;
-	uint stid = thread_small_id();
+	datum *d;
 	static datum zerosized;
 
 	sdbm_check(db);
-	g_assert(stid < THREAD_MAX);
 	g_assert(db->returned != NULL);
 
-	r = &db->returned[stid];
-
 	if (v->dsize != 0) {
+		uint stid = thread_small_id();
+		struct dbm_returns *r = &db->returned[stid];
+
+		g_assert(stid < THREAD_MAX);
+
 		/*
-		 * We use xrealloc() amd a memcpy() instead of just xcopy() because in
-		 * general the values returned will be roughly similar in size, and
-		 * therefore we expect that xrealloc() will end-up being a no-op!
+		 * Until we reach XMALLOC_MAXSIZE, we keep growing the data buffer,
+		 * never shrinking it to limit the overhead.  Since most values are
+		 * going to fit in a DBM page and therefore be less than 1K, this
+		 * strategy is not going to waste much memory and remains efficient.
 		 */
 
-		r->dptr = xrealloc(r->dptr, v->dsize);
-		memcpy(r->dptr, v->dptr, v->dsize);
-		r->dsize = v->dsize;
+		d = &r->value;
+
+		if (r->len < v->dsize || r->len > XMALLOC_MAXSIZE) {
+			/*
+			 * We use xrealloc() amd a memcpy() instead of just xcopy() because
+			 * in general the values returned will be roughly similar in size,
+			 * and therefore we expect that xrealloc() ends-up being a no-op!
+			 */
+
+			d->dptr = xrealloc(d->dptr, v->dsize);
+			r->len = v->dsize;		/* Physical length of allocated buffer */
+		}
+		g_assert(r->len >= v->dsize);
+		memcpy(d->dptr, v->dptr, v->dsize);
+		d->dsize = v->dsize;
 	} else if (NULL == v->dptr) {
-		r = deconstify_pointer(&nullitem);
+		d = deconstify_pointer(&nullitem);
 	} else {
 		/*
 		 * It's possible to have a zero-sized value stored, and if we come
@@ -587,10 +601,10 @@ sdbm_thread_datum(DBM *db, datum *v)
 		if G_UNLIKELY(NULL == zerosized.dptr)
 			zerosized.dptr = deconstify_pointer(vmm_trap_page());
 
-		r = &zerosized;
+		d = &zerosized;
 	}
 
-	return r;
+	return d;
 }
 #endif	/* THREADS */
 
