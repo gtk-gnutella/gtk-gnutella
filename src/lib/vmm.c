@@ -3369,11 +3369,15 @@ retry:
 		 * evaluation to see whether the pages are still a fragment.
 		 */
 
-		if (!wlock && !rwlock_upgrade(&pm->lock)) {
-			rwlock_runlock(&pm->lock);
-			rwlock_wlock(&pm->lock);
-			wlock = TRUE;
-			goto retry;
+		if (!wlock) {
+			if (rwlock_upgrade(&pm->lock)) {
+				wlock = TRUE;
+			} else {
+				rwlock_runlock(&pm->lock);
+				rwlock_wlock(&pm->lock);
+				wlock = TRUE;
+				goto retry;
+			}
 		}
 
 		/*
