@@ -898,8 +898,16 @@ dbmw_write_nocache(dbmw_t *dw, const void *key, void *value, size_t length)
 	g_assert(length || value == NULL);
 	g_assert(length == 0 || value);
 
-	(void) remove_entry(dw, key, TRUE, FALSE);	/* Discard any cached data */
+	/*
+	 * The data allocation model of DBMW allows one to issue a dbmw_read(),
+	 * modify the actual value we got and immediately request a write of that
+	 * same data.
+	 *
+	 * Therefore, we must remove the cached entry only after flushing its value.
+	 */
+
 	write_immediately(dw, key, value, length);
+	(void) remove_entry(dw, key, TRUE, FALSE);	/* Discard any cached data */
 }
 
 /**
