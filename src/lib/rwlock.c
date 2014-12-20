@@ -646,6 +646,8 @@ rwlock_init(rwlock_t *rw)
  * It is not necessary to hold the write lock to do this, although one must be
  * careful to not destroy a lock that could be used by another thread.
  *
+ * When called with the write-lock owned, it is automatically unlocked.
+ *
  * Any further attempt to use this lock will cause an assertion failure.
  */
 void
@@ -655,13 +657,23 @@ rwlock_destroy(rwlock_t *rw)
 
 	if (rw->waiters != 0 || rw->readers != 0 || rw->writers != 0) {
 		uint rwait = rw->writers - rw->write_waiters;
+		bool owned = rwlock_is_owned(rw);
+		bool need_carp = TRUE;
 
-		s_carp("destroying rwlock %p with %u reader%s, "
-			"%u writer%s, %u read-waiter%s and %u write-waiter%s",
-			rw, rw->readers, plural(rw->readers),
-			rw->writers, plural(rw->writers),
-			rwait, plural(rwait),
-			rw->write_waiters, plural(rw->write_waiters));
+		if (owned)
+			need_carp = rw->waiters != 0 || rw->readers != 0 || rw->writers > 1;
+
+		if (need_carp) {
+			s_carp("destroying %srwlock %p with %u reader%s, "
+				"%u writer%s, %u read-waiter%s and %u write-waiter%s",
+				owned ? "owned " : "", rw, rw->readers, plural(rw->readers),
+				rw->writers, plural(rw->writers),
+				rwait, plural(rwait),
+				rw->write_waiters, plural(rw->write_waiters));
+		}
+
+		if (owned)
+			rwlock_write_unaccount(rw);
 	}
 
 	rw->magic = RWLOCK_DESTROYED;		/* Now invalid */
