@@ -135,6 +135,7 @@
 #define THREAD_QID_CACHE	(1U << THREAD_QID_BITS)	/**< QID cache size */
 
 #define THREAD_LOCK_MAX		320		/**< Max amount of locks held per thread */
+#define THREAD_LOCK_NESTED	8		/**< Max nested lock depth per thread */
 #define THREAD_FOREIGN		8		/**< Amount of "foreign" threads we allow */
 #define THREAD_CREATABLE	(THREAD_MAX - THREAD_FOREIGN)
 
@@ -390,7 +391,7 @@ struct thread_element {
 	uint stack_overflow:1;			/**< Stack overflow was detected */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
-	struct thread_lock waiting;		/**< Lock on which thread is waiting */
+	struct thread_lock_stack waits;	/**< Locks on which thread is waiting */
 	cond_t *cond;					/**< Condition on which thread waits */
 	slist_t *cond_stack;			/**< Stack of condition-waiting variables */
 	dam_t *termination;				/**< Waiters on thread termination */
@@ -447,6 +448,7 @@ static struct thread_stats {
 	AU64(locks_mutex_sleep);		/* Amount of sleeps done on mutexes */
 	AU64(locks_rlock_sleep);		/* Amount of sleeps done on read-locks */
 	AU64(locks_wlock_sleep);		/* Amount of sleeps done on write-locks */
+	AU64(locks_nested_sleeps);		/* Amount of nested sleeps done on locks */
 	AU64(cond_waitings);			/* Amount of condition variable waitings */
 	AU64(cond_nested_waitings);		/* Nested condition variable waitings */
 	AU64(signals_posted);			/* Amount of signals posted to threads */
@@ -896,16 +898,34 @@ thread_init(void)
 }
 
 /**
+ * Allocate a thread lock stack at a specified capacity.
+ */
+static void
+thread_lock_stack_allocate(struct thread_lock_stack *tls, size_t capacity)
+{
+	ZERO(tls);
+	OMALLOC_ARRAY(tls->arena, capacity);
+	tls->capacity = capacity;
+}
+
+/**
  * Initialize the lock stack for the thread element.
  */
 static void
 thread_lock_stack_init(struct thread_element *te)
 {
-	struct thread_lock_stack *tls = &te->locks;
+	thread_lock_stack_allocate(&te->locks, THREAD_LOCK_MAX);
 
-	OMALLOC_ARRAY(tls->arena, THREAD_LOCK_MAX);
-	tls->capacity = THREAD_LOCK_MAX;
-	tls->count = 0;
+	/*
+	 * Nested locks can occur when a thread is "sleeping", waiting on a lock
+	 * and we wish to trace a possible deadlock, causing more locks to be
+	 * grabbed and possibly leading to sleeping as well.
+	 *
+	 * However, this is not an usual case and the nesting depth that can
+	 * occur through these nested sleep conditions is necessarily limited.
+	 */
+
+	thread_lock_stack_allocate(&te->waits, THREAD_LOCK_NESTED);
 }
 
 /**
@@ -1334,6 +1354,35 @@ thread_element_name_to_buf(const struct thread_element *te,
  */
 static const char *
 thread_element_name(const struct thread_element *te)
+{
+	static char buf[THREAD_MAX][128];
+	static char emergency[128];
+	char *b;
+
+	/*
+	 * This routine may be called during crashes or dire conditions, so be
+	 * careful and do not call thread_small_id() lightly.
+	 */
+
+	if (signal_in_exception()) {
+		int stid = thread_safe_small_id();
+		b = stid < 0 ? emergency : &buf[stid][0];
+	} else {
+		b = &buf[thread_small_id()][0];
+	}
+
+	return thread_element_name_to_buf(te, b, sizeof buf[0], TRUE);
+}
+
+/**
+ * Format the name of the thread element.
+ *
+ * @return the thread name as "thread name" if name is known, or a default
+ * name which is "thread #n" followed by the entry point for a thread we
+ * created and ":main()" for the main thread (necessarily discovered).
+ */
+static const char *
+thread_element_name2(const struct thread_element *te)
 {
 	static char buf[THREAD_MAX][128];
 	static char emergency[128];
@@ -2121,7 +2170,7 @@ thread_element_reset(struct thread_element *te)
 	THREAD_LOCK(te);
 
 	te->locks.count = 0;
-	ZERO(&te->waiting);
+	te->waits.count = 0;
 	thread_element_clear_name(te);
 
 	thread_set(te->tid, THREAD_INVALID);
@@ -2694,6 +2743,7 @@ thread_main_element(thread_t t)
 {
 	static struct thread_element te_main;
 	static struct thread_lock locks_arena_main[THREAD_LOCK_MAX];
+	static struct thread_lock waits_arena_main[THREAD_LOCK_NESTED];
 	struct thread_element *te;
 	struct thread_lock_stack *tls;
 	thread_qid_t qid;
@@ -2738,7 +2788,12 @@ thread_main_element(thread_t t)
 
 	tls = &te->locks;
 	tls->arena = locks_arena_main;
-	tls->capacity = THREAD_LOCK_MAX;
+	tls->capacity = N_ITEMS(locks_arena_main);
+	tls->count = 0;
+
+	tls = &te->waits;
+	tls->arena = waits_arena_main;
+	tls->capacity = N_ITEMS(waits_arena_main);
 	tls->count = 0;
 
 	thread_stack_init_shape(te, &te);
@@ -6103,12 +6158,13 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 }
 
 /*
- * Slowly check whether a lock is owned by a thread.
+ * Slowly look for the owner of a lock.
  *
- * @return TRUE if lock is owned by any of the running threads.
+ * @return the thread element if lock is owned by any of the running threads,
+ * NULL when nobody owns the lock.
  */
-static bool
-thread_lock_is_busy(const void *lock)
+static const struct thread_element *
+thread_lock_find_owner(const void *lock)
 {
 	unsigned i;
 
@@ -6129,11 +6185,11 @@ thread_lock_is_busy(const void *lock)
 			const struct thread_lock *l = &tls->arena[j];
 
 			if G_UNLIKELY(l->lock == lock)
-				return TRUE;
+				return te;
 		}
 	}
 
-	return FALSE;
+	return NULL;
 }
 
 /**
@@ -6150,38 +6206,51 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 {
 	char buf[POINTER_BUFLEN];
 	char lbuf[UINT_DEC_BUFLEN];
-	DECLARE_STR(12);
+	DECLARE_STR(14);
 	const char *type, *lnum;
-	const struct thread_lock *l = &te->waiting;
+	const struct thread_lock_stack *w = &te->waits;
+	size_t i;
 
-	if G_UNLIKELY(NULL == l->lock)
+	if G_UNLIKELY(0 == w->count)
 		return;
 
-	print_str(thread_element_name(te));	/* 0 */
-	print_str(" is waiting for ");		/* 1 */
+	for (i = 0; i < w->count; i++) {
+		const struct thread_lock *l = &w->arena[i];
+		const struct thread_element *owner;
 
-	pointer_to_string_buf(l->lock, buf, sizeof buf);
-	type = thread_lock_kind_to_string(l->kind);
+		print_str(thread_element_name(te));	/* 0 */
+		print_str(" waiting for ");			/* 1 */
 
-	print_str(type);					/* 2 */
-	print_str(" ");						/* 3 */
-	print_str(buf);						/* 4 */
-	lnum = PRINT_NUMBER(lbuf, l->line);
-	print_str(" at ");				/* 5 */
-	print_str(l->file);				/* 6 */
-	print_str(":");					/* 7 */
-	print_str(lnum);				/* 8 */
+		pointer_to_string_buf(l->lock, buf, sizeof buf);
+		type = thread_lock_kind_to_string(l->kind);
 
-	if (thread_lock_is_busy(l->lock))
-		print_str(" (BUSY)");			/* 9 */
+		print_str(type);					/* 2 */
+		print_str(" ");						/* 3 */
+		print_str(buf);						/* 4 */
 
-	if (thread_backtrace_has(te, THREAD_BT_LOCK))
-		print_str(" from:");			/* 10 */
+		lnum = PRINT_NUMBER(lbuf, l->line);
+		print_str(" at ");					/* 5 */
+		print_str(l->file);					/* 6 */
+		print_str(":");						/* 7 */
+		print_str(lnum);					/* 8 */
 
-	print_str("\n");					/* 11 */
-	flush_str(fd);
+		owner = thread_lock_find_owner(l->lock);
 
-	thread_backtrace_dump_type_fd(fd, te, THREAD_BT_ANY);
+		if (owner != NULL) {
+			print_str(" (owned by ");				/* 9 */
+			print_str(thread_element_name2(owner));	/* 10 */
+			print_str(")");							/* 11 */
+		}
+
+		if (0 == i && thread_backtrace_has(te, THREAD_BT_LOCK))
+			print_str(" from:");			/* 12 */
+
+		print_str("\n");					/* 13 */
+		flush_str(fd);
+
+		if (0 == i)
+			thread_backtrace_dump_type_fd(fd, te, THREAD_BT_ANY);
+	}
 }
 
 /*
@@ -6200,8 +6269,14 @@ thread_lock_waited_for(const void *lock)
 		if G_UNLIKELY(!te->valid || te->reusable)
 			continue;
 
-		if G_UNLIKELY(lock == te->waiting.lock)
-			return TRUE;
+		if G_UNLIKELY(te->waits.count != 0) {
+			size_t j;
+
+			for (j = 0; j < te->waits.count; j++) {
+				if G_UNLIKELY(lock == te->waits.arena[j].lock)
+					return TRUE;
+			}
+		}
 	}
 
 	return FALSE;
@@ -6219,9 +6294,6 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 	const struct thread_lock_stack *tls = &te->locks;
 	unsigned i;
 	DECLARE_STR(22);
-
-	if (NULL != te->waiting.lock)
-		thread_lock_waiting_dump_fd(fd, te);
 
 	if G_UNLIKELY(0 == tls->count) {
 		print_str(thread_element_name(te));					/* 0 */
@@ -6435,6 +6507,9 @@ thread_lock_dump_all(int fd)
 		if (te->reusable)
 			goto next;
 
+		if (0 != te->waits.count)
+			thread_lock_waiting_dump_fd(fd, te);
+
 		if (0 != thread_element_lock_count(te))
 			thread_lock_dump_fd(fd, te);
 
@@ -6468,6 +6543,9 @@ thread_lock_dump_if_any(int fd, uint id)
 	te = threads[id];
 
 	if (te != NULL && te->valid) {
+		if (0 != te->waits.count)
+			thread_lock_waiting_dump_fd(fd, te);
+
 		if (0 != thread_element_lock_count(te))
 			thread_lock_dump_fd(fd, te);
 	}
@@ -6547,20 +6625,22 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
 	struct thread_element *te;
+	struct thread_lock *l;
 
 	te = thread_find(&te);
 
 	if G_LIKELY(te != NULL) {
 		bool problematic = thread_lock_is_problematic();
+		struct thread_lock_stack *tls = &te->waits;
 
 		/*
 		 * Do not perturb the waiting state we had in the crashing thread,
 		 * in case we are deadlocking.
 		 */
 
-		if (te->waiting.lock != NULL) {
-			if (!problematic) {
-				const struct thread_lock *l = &te->waiting;
+		if G_UNLIKELY(problematic) {
+			if (0 != tls->count) {
+				l = &tls->arena[tls->count - 1];
 
 				s_rawcrit("%s(): ignoring new %s %p at %s:%u, "
 					"still waiting for %s %p at %s:%u",
@@ -6569,14 +6649,29 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 					thread_lock_kind_to_string(l->kind),
 					l->lock, l->file, l->line);
 			}
-		} else if (!problematic) {
-			te->waiting.lock = lock;
-			te->waiting.kind = kind;
-			te->waiting.file = file;
-			te->waiting.line = line;
+		} else if G_UNLIKELY(0 != tls->count) {
+			THREAD_STATS_INCX(locks_nested_sleeps);
 
-			thread_backtrace_capture(te, THREAD_BT_LOCK);
+			if G_UNLIKELY(tls->capacity == tls->count) {
+				if (!tls->overflow) {
+					tls->overflow = TRUE;
+					s_rawwarn("%s overflowing its waiting stack at %s:%u",
+						thread_element_name_raw(te), file, line);
+					thread_lock_dump(te);
+					s_error("too many nested lock waiting");
+				}
+				return te;		/* Already signaled, we're crashing */
+			}
 		}
+
+		if (0 == tls->count)
+			thread_backtrace_capture(te, THREAD_BT_LOCK);
+
+		l = &tls->arena[tls->count++];
+		l->lock = lock;
+		l->file = file;
+		l->line = line;
+		l->kind = kind;
 
 		/*
 		 * Record contention leading to sleeping: if the locking code calls
@@ -6639,30 +6734,50 @@ void
 thread_lock_waiting_done(const void *element, const void *lock)
 {
 	struct thread_element *te = deconstify_pointer(element);
-	bool problematic = thread_lock_is_problematic();
+	struct thread_lock_stack *tls;
 
 	thread_element_check(te);
 
+	if G_UNLIKELY(thread_lock_is_problematic())
+		goto done;
+
+	tls = &te->waits;
+
 	/*
-	 * Do not perturb the waiting state we had in the crashing thread
+	 * Clear waiting condition only if we were able to record the waited-for
+	 * lock on the waiting stack.
+	 *
+	 * However, do not perturb the waiting state we had in the crashing thread
 	 * if we identified a deadlock condition.
 	 */
 
-	if G_LIKELY(lock == te->waiting.lock) {
-		if (!problematic) {
-			te->waiting.lock = NULL;		/* Clear waiting condition */
-			thread_backtrace_invalidate(te, THREAD_BT_LOCK);
-		}
-	} else if (te->waiting.lock != NULL) {
-		if (!problematic) {
-			const struct thread_lock *l = &te->waiting;
+	if G_LIKELY(0 != tls->count) {
+		const struct thread_lock *l = &tls->arena[tls->count - 1];
+		if G_LIKELY(lock == l->lock) {
+			tls->count--;
+			if (0 == tls->count)
+				thread_backtrace_invalidate(te, THREAD_BT_LOCK);
+		} else {
+			size_t i;
 
 			s_rawcrit("%s(): was waiting for %s %p at %s:%u but given lock %p",
 				G_STRFUNC, thread_lock_kind_to_string(l->kind), l->lock,
 				l->file, l->line, lock);
+
+			/*
+			 * Make sure the lock is not present in the waiting stack, or
+			 * we have a mismatch in the thread_lock_waiting_element() /
+			 * thread_lock_waiting_done() sequence.
+			 */
+
+			for (i = 0; i < tls->count - 1; i++) {
+				if G_UNLIKELY(lock == tls->arena[i].lock)
+					s_error("%s(): out-of-order waiting sequence", G_STRFUNC);
+			}
 		}
-	} else if (!problematic) {
-		s_rawcrit("%s(): was not waiting for lock %p", G_STRFUNC, lock);
+	} else {
+		s_rawcrit("%s(): %s was not waiting for lock %p",
+			G_STRFUNC, thread_element_name_raw(te), lock);
 	}
 
 	/*
@@ -6677,6 +6792,7 @@ thread_lock_waiting_done(const void *element, const void *lock)
 	 * easier post-mortem analysis.
 	 */
 
+done:
 	thread_check_suspended_element(te, FALSE);
 }
 
@@ -7495,10 +7611,11 @@ thread_exit_mode(void)
 void
 thread_lock_deadlock(const volatile void *lock)
 {
+	static int deadlocked;
 	struct thread_element *te;
 	struct thread_element *towner;
-	static int deadlocked;
-	enum thread_lock_kind kind;
+	struct thread_lock *l;
+	enum thread_lock_kind kind = THREAD_LOCK_ANY;
 	bool known_kind = TRUE;
 	unsigned i;
 	int depth = atomic_int_inc(&deadlocked);
@@ -7515,16 +7632,22 @@ thread_lock_deadlock(const volatile void *lock)
 	te->deadlocked = TRUE;
 	towner = thread_lock_owner(lock, &kind);
 
+	if (0 == te->waits.count) {
+		l = NULL;
+	} else {
+		l = &te->waits.arena[te->waits.count - 1];
+	}
+
 	if (NULL == towner) {
-		if (lock == te->waiting.lock) {
-			kind = te->waiting.kind;	/* Normal case: lock is waited-for */
+		if (lock == l->lock) {
+			kind = l->kind;			/* Normal case: lock is last waited-for */
 		} else {
-			known_kind = FALSE;			/* Not yet known as being waited-for */
+			known_kind = FALSE;		/* Not yet known as being waited-for */
 		}
 	}
 
-	if (lock != te->waiting.lock) {
-		s_rawwarn("%s(): %s %p was not registered as being waited-for in %s",
+	if (NULL == l || lock != l->lock) {
+		s_rawwarn("%s(): %s %p was not recorded as last being waited-for in %s",
 			G_STRFUNC,
 			known_kind ? thread_lock_kind_to_string(kind) : "lock",
 			lock, thread_element_name_raw(te));
@@ -10732,6 +10855,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_mutex_sleep);
 	DUMP64(locks_rlock_sleep);
 	DUMP64(locks_wlock_sleep);
+	DUMP64(locks_nested_sleeps);
 	DUMP64(cond_waitings);
 	DUMP64(cond_nested_waitings);
 	DUMP64(signals_posted);
@@ -10882,9 +11006,23 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%d",  add_monitoring);
 	DUMPF("%d",  cancl);
 	DUMPF("%zu", locks.count);
-	DUMPL("%p (%s)",  "waiting",
-		te->waiting.lock, NULL == te->waiting.lock ?
-			"none" : thread_lock_kind_to_string(te->waiting.kind));
+	for (i = te->locks.count; i != 0; i--) {
+		const struct thread_lock *l = &te->locks.arena[i - 1];
+		char buf[10];
+
+		str_bprintf(buf, sizeof buf, "lock[%03u]", i);
+		DUMPL("%s %p at %s:%u", buf,
+			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
+	}
+	DUMPF("%zu", waits.count);
+	for (i = te->waits.count; i != 0; i--) {
+		const struct thread_lock *l = &te->waits.arena[i - 1];
+		char buf[10];
+
+		str_bprintf(buf, sizeof buf, "wait[%03u]", i);
+		DUMPL("%s %p at %s:%u", buf,
+			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
+	}
 	DUMPF("%p",  cond);
 	DUMPL("%p, count=%u",  "cond_stack",
 		te->cond_stack,
