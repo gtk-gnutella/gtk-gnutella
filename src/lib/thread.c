@@ -6812,29 +6812,36 @@ thread_cond_waiting_element(cond_t *c)
 
 	g_assert(c != NULL);
 
-	/*
-	 * Because the te->cond field can be accessed by other threads (in the
-	 * thread_kill() routine), we need to lock the thread element to modify
-	 * it, even though we can only be called here in the context of the
-	 * current thread: this ensures we always read a consistent value.
-	 *
-	 * Allow nested condition waitings, which may happen during signal
-	 * handling on machines with emulated semaphores (at the exit of
-	 * thread_element_block_until(), where we may process signals).
-	 */
+	te = thread_find(&te);
 
-	if G_UNLIKELY(NULL == te->cond_stack)
-		te->cond_stack = slist_new();
+	if G_LIKELY(te != NULL) {
+		if G_UNLIKELY(te->cond != NULL) {
+			/*
+			 * Allow nested condition waitings, which may happen during signal
+			 * handling on machines with emulated semaphores (at the exit of
+			 * thread_element_block_until(), where we may process signals).
+			 */
 
-	THREAD_LOCK(te);
-	if G_UNLIKELY(te->cond != NULL) {
-		slist_prepend(te->cond_stack, te->cond);
-		THREAD_STATS_INCX(cond_nested_waitings);
+			if G_UNLIKELY(NULL == te->cond_stack)
+				te->cond_stack = slist_new();
+
+			slist_prepend(te->cond_stack, te->cond);
+			THREAD_STATS_INCX(cond_nested_waitings);
+		}
+
+		/*
+		 * Because the te->cond field can be accessed by other threads (in the
+		 * thread_kill() routine), we need to lock the thread element to modify
+		 * it, even though we can only be called here in the context of the
+		 * current thread: this ensures we always read a consistent value.
+		 */
+
+		THREAD_LOCK(te);
+		te->cond = c;
+		THREAD_UNLOCK(te);
+
+		THREAD_STATS_INCX(cond_waitings);
 	}
-	te->cond = c;
-	THREAD_UNLOCK(te);
-
-	THREAD_STATS_INCX(cond_waitings);
 
 	return te;
 }
@@ -6847,18 +6854,24 @@ void
 thread_cond_waiting_done(const void *element)
 {
 	struct thread_element *te = deconstify_pointer(element);
+	cond_t *c;
 
 	thread_element_check(te);
 	g_assert_log(te->cond != NULL,
 		"%s(): had no prior knowledge of any condition waiting", G_STRFUNC);
-	g_assert(te->cond_stack != NULL);
+
+	if G_UNLIKELY(te->cond_stack != NULL)
+		c = slist_shift(te->cond_stack);	/* Previous condition, or NULL */
+	else
+		c = NULL;
 
 	/*
-	 * Need locking, see thread_cond_waiting_element() and thread_kill().
+	 * Need locking to modify the cond field, see thread_cond_waiting_element()
+	 * and thread_kill().
 	 */
 
 	THREAD_LOCK(te);
-	te->cond = slist_shift(te->cond_stack);	/* Previous condition, or NULL */
+	te->cond = c;
 	THREAD_UNLOCK(te);
 }
 
