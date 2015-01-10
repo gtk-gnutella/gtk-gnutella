@@ -239,7 +239,7 @@ qlock_crash_mode(void)
 }
 
 /**
- * Warn about possible deadlock condition.
+ * Called on possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
@@ -247,30 +247,8 @@ static NO_INLINE void G_COLD
 qlock_deadlock(const void *obj, unsigned count,
 	const char *file, unsigned line)
 {
-	const qlock_t *q = obj;
-
-	qlock_check(q);
-
-#ifdef SPINLOCK_DEBUG
-
-	s_miniwarn("%s %p already %s by %s:%u (thread #%u)",
-		qlock_type(q), q, q->held ? "held" : "freed",
-		q->file, q->line, q->stid);
-
-#else	/* !SPINLOCK_DEBUG */
-
-	s_miniwarn("%s %p already %s (thread #%u)",
-		qlock_type(q), q, q->held ? "held" : "freed", q->stid);
-
-#endif	/* SPINLOCK_DEBUG */
-
-	if (q->stid != (uint8) THREAD_INVALID)
-		s_miniinfo("thread #%u is %s", q->stid, thread_id_name(q->stid));
-
-	atomic_mb();
-	s_minicarp("%s %s deadlock #%u on %p at %s:%u",
-		q->held ? "possible" : "improbable", qlock_type(q), count,
-		q, file, line);
+	(void) count;
+	thread_deadlock_check(obj, file, line);
 }
 
 /**

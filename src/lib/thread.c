@@ -505,6 +505,7 @@ static struct thread_stats {
 	AU64(locks_wlock_sleep);		/* Amount of sleeps done on write-locks */
 	AU64(locks_qlock_sleep);		/* Amount of sleeps done on queuing locks */
 	AU64(locks_nested_sleeps);		/* Amount of nested sleeps done on locks */
+	AU64(locks_deadlock_checks);	/* Amount of deadlock checks performed */
 	AU64(cond_waitings);			/* Amount of condition variable waitings */
 	AU64(cond_nested_waitings);		/* Nested condition variable waitings */
 	AU64(signals_posted);			/* Amount of signals posted to threads */
@@ -7940,7 +7941,7 @@ thread_assert_no_locks(const char *routine)
  * Find who owns a lock, and what kind of lock it is.
  *
  * @param lock		the lock address
- * @param kind		where type of lock is written, if owner found
+ * @param kind		where type of lock is written, if owner found and non-NULL
  *
  * @return thread owning a lock, NULL if we can't find it.
  */
@@ -7964,7 +7965,8 @@ thread_lock_owner(const volatile void *lock, enum thread_lock_kind *kind)
 			const struct thread_lock *l = &tls->arena[j];
 
 			if (l->lock == lock) {
-				*kind = l->kind;
+				if (kind != NULL)
+					*kind = l->kind;
 				return te;
 			}
 		}
@@ -11945,6 +11947,199 @@ thread_interrupt(uint id, process_fn_t cb, void *arg,
 }
 
 /**
+ * Perform deadlock detection for registered locks (i.e. those not hidden).
+ *
+ * Formal detection is costly and is run in one thread with all the others
+ * being asked to suspend (so that we can get a frozen picture of the locks
+ * being held and waited for).
+ *
+ * The idea is to perform a topological sort of an oriented graph Ti -> Tj,
+ * where the edge between Ti and Tj means that thread #j is waiting for a
+ * lock currently owned by thread #i.  It follows that Ti must run before
+ * Tj can, so the arrow direction represents a partial ordering of threads,
+ * with a -> b meaning that a is "greater" than b and must therefore run first.
+ *
+ * If we cannot achieve a proper topological sort of the resulting graph, it
+ * means there is a deadlock and then we can dump all the lock information for
+ * the threads involved with the deadlock, which will be part of at least one
+ * cycle.
+ *
+ * Because the deadlock detection code can run in the presence of a deadlock,
+ * its code must rely on as little layers as possible, given that low-level
+ * layers such as memory allocators are using locks and could be already part
+ * of a deadlock situation.
+ *
+ * When a deadlock condition is detected, we abort execution after dumping
+ * some relevant information.
+ *
+ * @param lock		the lock being waited for by the current thread
+ * @param file		file where lock is being grabbed from
+ * @param line		line within the file
+ */
+void
+thread_deadlock_check(const volatile void *lock, const char *file, uint line)
+{
+	static spinlock_t thread_deadlock_slk = SPINLOCK_INIT;
+	struct {
+		uint value[THREAD_MAX];			/* item is the small ID of thread */
+		uint count;						/* amount of outsiders stored */
+	} outsiders;
+	uint64 precursors[THREAD_MAX];		/* value is a bitmask of threads */
+	int i;
+	bool deadlock = FALSE;
+
+	STATIC_ASSERT(THREAD_MAX <= 8 * sizeof(uint64));
+
+	THREAD_STATS_INCX(locks_deadlock_checks);
+
+	/*
+	 * Request that other threads be suspended and then grab the spinlock.
+	 *
+	 * This ensures that other threads will stop their processing and that
+	 * no two threads which would detect a possible deadlock at the same time
+	 * can perform the check.
+	 */
+
+	thread_suspend_others(FALSE);		/* Advisory, don't wait for them */
+
+	ZERO(&outsiders);
+	ZERO(&precursors);
+
+	spinlock_raw(&thread_deadlock_slk);
+
+	/*
+	 * Build the precursors and the outsiders.
+	 *
+	 * If there exists a Ti -> Tj relationship, then pred(Tj) = Ti.
+	 *
+	 * Outsiders are Ti elements which have no precursors and are stored
+	 * in the outsiders structure.
+	 *
+	 * Precursors of a thread are stored as a bit in precursors[]. For
+	 * instance, if thread #4 is a predecessor of the current item, then
+	 * its bit #4 is set to 1.  If precursors[i] is 0, then Ti has no
+	 * precursors and is therefore an outsider.
+	 */
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		struct thread_element *te = threads[i];
+		struct thread_lock_stack *tlocks =  &te->locks;
+		struct thread_lock_stack *twaits =  &te->waits;
+		uint64 mask;
+		size_t j;
+
+		if (NULL == te)
+			continue;
+
+		/*
+		 * Threads waiting for no locks are necessarily outsiders: they
+		 * have no precursor and can run without constraint.
+		 *
+		 * An outsider with no locks held is not influencing the cycle
+		 * detection and is therefore irrelevant for our computation: we
+		 * simply skip it.
+		 */
+
+		if (0 == twaits->count) {
+			if (0 != tlocks->count) {
+				g_assert(outsiders.count < N_ITEMS(outsiders.value));
+				outsiders.value[outsiders.count++] = i;
+			}
+			continue;
+		}
+
+		/*
+		 * This thread is waiting for some locks.  Usually it will wait for
+		 * just one, but because it can invoke code whilst it is waiting and
+		 * that code can also require locks, it can create a stack of waited
+		 * locks.
+		 *
+		 * Calling thread_lock_owner(), which performs a linear probe of all
+		 * the locks registered by all the threads is sub-optimal.
+		 *
+		 * However, since the deadlock detection code is only invoked when we
+		 * are stuck waiting on a low-level lock such as a spinlock or a mutex,
+		 * we are probably alreay stuck waiting and having "slow" code check
+		 * whether we are indeed deadlocked is not a problem.
+		 */
+
+		mask = 0;
+
+		for (j = 0; j < twaits->count; j++) {
+			struct thread_element *towner;
+
+			towner = thread_lock_owner(twaits->arena[j].lock, NULL);
+			if (towner != NULL)
+				mask |= (uint64) 1U << towner->stid;
+		}
+
+		precursors[i] = mask;		/* Set of precursors for thread #i */
+
+		if (0 == mask) {
+			g_assert(outsiders.count < N_ITEMS(outsiders.value));
+			outsiders.value[outsiders.count++] = i;
+		}
+	}
+
+	/*
+	 * Now remove all the outsiders, updating the precursors as we remove
+	 * them by clearing their corresponding bit in each entry.
+	 */
+
+	while (outsiders.count != 0) {
+		uint removed = outsiders.value[--outsiders.count];
+		uint64 mask = ~((uint64) 1U << removed);
+
+		for (i = 0; i < THREAD_MAX; i++) {
+			if (0 == precursors[i])
+				continue;			/* Already an outsider */
+			precursors[i] &= mask;
+			if (0 == precursors[i]) {
+				/* Becomes a new outsider */
+				g_assert(outsiders.count < N_ITEMS(outsiders.value));
+				outsiders.value[outsiders.count++] = i;
+			}
+		}
+	}
+
+	/*
+	 * The topological sort is completed.  If there are entries in
+	 * precursors[] with a non-zero value, it means there are cycles
+	 * and therefore we have a deadlock situation!
+	 */
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		if (0 != precursors[i]) {
+			deadlock = TRUE;
+			break;
+		}
+	}
+
+	if (!deadlock) {
+		spinunlock_raw(&thread_deadlock_slk);
+		thread_unsuspend_others();
+		return;
+	}
+
+	/*
+	 * Deadlock found!
+	 */
+
+	s_rawwarn("deadlock found whilst waiting on %p at %s:%u", lock, file, line);
+	s_miniinfo("dumping lock stack of involved threads:");
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		if (0 != precursors[i])
+			thread_lock_dump(threads[i]);
+	}
+
+	s_miniinfo("end of involved threads.");
+
+	thread_lock_deadlock(lock);
+	s_error("deadlocked at %s:%u", file, line);
+}
+
+/**
  * Copy information from the internal thread_element to the public thread_info.
  */
 static void
@@ -12159,6 +12354,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_wlock_sleep);
 	DUMP64(locks_qlock_sleep);
 	DUMP64(locks_nested_sleeps);
+	DUMP64(locks_deadlock_checks);
 	DUMP64(cond_waitings);
 	DUMP64(cond_nested_waitings);
 	DUMP64(signals_posted);
