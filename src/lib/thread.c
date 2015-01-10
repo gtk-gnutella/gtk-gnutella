@@ -4066,7 +4066,7 @@ thread_unsuspend_others(void)
 
 	locked = mutex_trylock(&thread_suspend_mtx);
 
-	g_assert(locked);		/* All other threads should be sleeping */
+	g_soft_assert(locked);		/* All other threads should be sleeping */
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *xte = threads[i];
@@ -4079,7 +4079,8 @@ thread_unsuspend_others(void)
 		THREAD_UNLOCK(xte);
 	}
 
-	mutex_unlock(&thread_suspend_mtx);
+	if (locked)
+		mutex_unlock(&thread_suspend_mtx);
 
 	return n;
 }
