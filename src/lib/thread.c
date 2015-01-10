@@ -3950,6 +3950,7 @@ thread_suspend_others(bool lockwait)
 				continue;
 			}
 
+			/* Note: done without a lock on "xte" using an atomic operation */
 			atomic_int_inc(&xte->suspend);
 			n++;
 		}
@@ -3996,7 +3997,7 @@ thread_suspend_others(bool lockwait)
 		}
 
 		THREAD_LOCK(xte);
-		xte->suspend++;
+		atomic_int_inc(&xte->suspend);
 		if (0 != xte->locks.count)
 			busy++;
 		THREAD_UNLOCK(xte);
@@ -4073,7 +4074,7 @@ thread_unsuspend_others(void)
 
 		THREAD_LOCK(xte);
 		if G_LIKELY(xte->suspend) {
-			xte->suspend--;
+			atomic_int_dec(&xte->suspend);
 			n++;
 		}
 		THREAD_UNLOCK(xte);
