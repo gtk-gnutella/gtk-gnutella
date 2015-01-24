@@ -1,0 +1,21 @@
+# -*- mode: python -*-
+
+os.environ["CFLAGS"] = "-Wall"
+prependpath("PKG_CONFIG_PATH", "~/gtk-gnutella/local/lib/pkgconfig/")
+
+_jhb = os.environ.get("JHB")
+_branch = os.environ.get("BRANCH");
+
+if _branch is not None:
+	branches["gtk-gnutella"]=[None, _branch]
+	
+checkoutroot = os.path.expanduser("~/gtk-gnutella/source")
+prefix = os.path.expanduser("~/gtk-gnutella/inst")
+tarballdir = os.path.expanduser("~/gtk-gnutella/pkgs")
+
+_target = "10.5"
+setup_sdk(target=_target, sdk_version="native", architectures=[_default_arch])
+
+moduleset = "/Users/jeroen/gtk-gnutella.modules"
+modules = [ 'meta-gtk-osx-bootstrap', 'meta-gtk-osx-core', 'gtk-gnutella' ]
+append_autogenargs("libxslt", "--without-python")

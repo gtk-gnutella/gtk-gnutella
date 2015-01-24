@@ -1,0 +1,23 @@
+language: c
+os:
+  - osx
+  - linux
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then curl https://git.gnome.org/browse/gtk-osx/plain/gtk-osx-build-setup.sh | sh; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then cp -v osx/jhbuildrc-gtk-gnutella  ~/.jhbuildrc-gtk-gnutella ; fi
+
+install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild bootstrap  ;fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild ;fi
+
+script:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ./build.sh --target=osxbundle; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./build.sh; fi
+  - src/lib/random-test
+  - src/lib/sort-test
+  - src/lib/thread-test -ABCDEFIKMNOPQRSVWX
+
+notifications:
+  irc: "irc.freenode.net#gtk-gnutella"
+
