@@ -858,6 +858,37 @@ message_check(const struct message * const m, unsigned chunk_idx)
 }
 
 /**
+ * Asserts that a message entry is consistent and belongs to the correct chunk.
+ *
+ * The "chunk" parameter points to the old chunk address and is used to
+ * properly validate the m->slot value (before our caller can update it
+ * to reflect the new chunk location).
+ */
+static void
+message_check_chunk(const struct message * const m, unsigned chunk_idx,
+	struct message * const *chunk)
+{
+	const void *chunk_end;
+
+	g_assert(m != NULL);
+	g_assert(chunk_idx == m->chunk_idx);
+
+	/*
+	 * Expand a variant of slot_check() since routing.chunks[chunk_idx]
+	 * has been re-allocated and the old chunk address is given.
+	 */
+
+	g_assert(uint_is_non_negative(chunk_idx));
+	g_assert(chunk_idx < MAX_CHUNKS);
+	g_assert(chunk_idx < routing.nchunks);
+
+	chunk_end = const_ptr_add_offset(chunk, CHUNK_MESSAGES * sizeof m);
+
+	g_assert(ptr_cmp(m->slot, chunk) >= 0);
+	g_assert(ptr_cmp(m->slot, chunk_end) < 0);
+}
+
+/**
  * Clean already allocated entry.
  */
 static void
@@ -962,7 +993,7 @@ routing_chunk_move(struct message **chunk, unsigned chunk_idx)
 		struct message *m = *p;
 
 		if (m != NULL) {
-			message_check(m, chunk_idx);
+			message_check_chunk(m, chunk_idx, chunk);
 			m->slot = p;
 		}
 	}
