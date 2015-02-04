@@ -2936,6 +2936,8 @@ route_message(gnutella_node_t **node, struct route_dest *dest)
 	const guid_t *muid = NULL;
 	uint8 function;
 
+	node_check(sender);
+
 	function = gnutella_header_get_function(&sender->header);
 	muid = gnutella_header_get_muid(&sender->header);
 
@@ -2978,6 +2980,13 @@ route_message(gnutella_node_t **node, struct route_dest *dest)
 		bool route_it = check_duplicate(&route_log, node, mangled, &m);
 
 		dest->duplicate = duplicate = booleanize(m != NULL);
+
+		/*
+		 * If the node has been removed, we won't handle the message.
+		 */
+
+		if G_UNLIKELY(NULL == *node)
+			goto done;
 
 		/*
 		 * Record the message in the routing table.
