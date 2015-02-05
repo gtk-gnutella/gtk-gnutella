@@ -66,13 +66,14 @@ buf_new(size_t size)
 
 /**
  * Allocate a new embedded buffer of the specified size.
+ * The data part of the embedded buffer is zeroed.
  */
 buf_t *
 buf_new_embedded(size_t size)
 {
 	buf_t *b;
 
-	b = xmalloc(BUF_DATA_OFFSET + size);
+	b = xmalloc0(BUF_DATA_OFFSET + size);
 	b->b_magic = BUF_MAGIC_EMBEDDED;
 	b->b_size = size;
 
@@ -138,7 +139,7 @@ buf_private_reclaim(void *data, void *unused)
  * If the buffer already existed in the thread for this key, it is returned,
  * and the size parameter is ignored.
  *
- * Otherwise, a new buffer is created and attached to the key.
+ * Otherwise, a new buffer is created, zeroed, and attached to the key.
  *
  * A typical usage of this routine is to make a routine returning static
  * data thread-safe:
@@ -163,7 +164,8 @@ buf_private_reclaim(void *data, void *unused)
  * pointer should not be given to foreign threads but used solely in the
  * context of the thread.  This applies to the buffer object and its data.
  *
- * @return a buffer object dedicated to the calling thread.
+ * @return a buffer object dedicated to the calling thread, which is zeroed
+ * initially.
  */
 buf_t *
 buf_private(const void *key, size_t size)
