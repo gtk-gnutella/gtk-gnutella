@@ -360,6 +360,8 @@ static struct thread_stats {
 	uint discovered;				/* Amount of discovered threads */
 	AU64(qid_cache_lookup);			/* Amount of QID lookups in the cache */
 	AU64(qid_cache_hit);			/* Amount of QID hits */
+	AU64(qid_cache_false_hit);		/* False QID hits (discovered threads) */
+	AU64(qid_cache_self_check);		/* Check thread using thread_self() */
 	AU64(qid_cache_clash);			/* Amount of QID clashes */
 	AU64(qid_cache_miss);			/* Amount of QID lookup misses */
 	AU64(lookup_by_qid);			/* Amount of thread lookups by QID */
@@ -815,14 +817,38 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 		return FALSE;
 	}
 
+	/*
+	 * When the last_qid matched the qid, we know that the hit is correct
+	 * as long as we are in the main thread or the thread was not discovered.
+	 * Indeed, we control the created threads and the death of the main thread
+	 * would mean the death of the whole process.
+	 *
+	 * For a discovered thread however, we need to check whether the associated
+	 * recorded TID matches the current one.  Otherwise, the thread we had
+	 * discovered previously no longer exists.
+	 *		--RAM, 2015-02-11
+	 */
+
 	if G_LIKELY(te->last_qid == qid) {
-		THREAD_STATS_INCX(qid_cache_hit);
-		thread_stack_update(te);
-		return TRUE;
+		if G_LIKELY(THREAD_MAIN == te->stid || te->created)
+			goto matched;
+
+		THREAD_STATS_INCX(qid_cache_self_check);
+
+		if (thread_eq(te->tid, thread_self()))
+			goto matched;
+
+		THREAD_STATS_INCX(qid_cache_false_hit);
+		return FALSE;
 	}
 
 	THREAD_STATS_INCX(qid_cache_clash);
 	return FALSE;
+
+matched:
+	THREAD_STATS_INCX(qid_cache_hit);
+	thread_stack_update(te);
+	return TRUE;
 }
 
 /**
@@ -2604,7 +2630,7 @@ retry:
 
 		xmalloc_thread_starting(te->stid);
 
-		tstid[te->stid] = t;
+		thread_set(tstid[te->stid], t);
 		thread_instantiate(te, t);
 		goto created;
 	}
@@ -6820,7 +6846,7 @@ thread_launch_register(struct thread_element *te)
 
 	t = thread_self();
 
-	tstid[te->stid] = t;
+	thread_set(tstid[te->stid], t);
 	te->ptid = pthread_self();
 	thread_element_tie(te, t, stack);
 	thread_qid_cache_set(idx, te, qid);
@@ -8955,6 +8981,8 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(discovered);
 	DUMP64(qid_cache_lookup);
 	DUMP64(qid_cache_hit);
+	DUMP64(qid_cache_false_hit);
+	DUMP64(qid_cache_self_check);
 	DUMP64(qid_cache_clash);
 	DUMP64(qid_cache_miss);
 	DUMP64(lookup_by_qid);
