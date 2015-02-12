@@ -341,12 +341,14 @@ search_gui_option_menu_searches_update(void)
 			gchar title[BITPRINT_BASE32_SIZE * 4 + sizeof ellipse];
 			const gchar *ui_query;
 			size_t title_size;
+			size_t filled;
 
 			ui_query = lazy_utf8_to_ui_string(name);
 			title_size = sizeof title - sizeof ellipse;
 			utf8_strcpy_max(title, title_size, ui_query, BITPRINT_BASE32_SIZE);
-			if (strlen(title) < strlen(ui_query)) {
-				strncat(title, ellipse, CONST_STRLEN(ellipse));
+			filled = strlen(title);
+			if (filled < strlen(ui_query)) {
+				strncat(title, ellipse, sizeof title - filled - 1);
 			}
 
 			item = gtk_menu_item_new_with_label(title);
