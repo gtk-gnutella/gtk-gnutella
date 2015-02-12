@@ -5010,12 +5010,12 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		 */
 		{
 			char buf[ULONG_DEC_BUFLEN];
-			char lbuf[ULONG_DEC_BUFLEN];
-			char sbuf[ULONG_DEC_BUFLEN];
-			const char *s, *ss;
+			char ptr[POINTER_BUFLEN];
+			const char *s;
 			int stid;
 			size_t locks;
-			DECLARE_STR(12);
+			bool can_terminate = FALSE;
+			DECLARE_STR(5);
 
 			/*
 			 * Windows detects stack overflows by using a guard page at the
@@ -5036,26 +5036,45 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			if (stid < 0)
 				stid += 256;
 			s = PRINT_NUMBER(buf, stid);
-			locks = thread_id_lock_count(stid);
 
 			rewind_str(0);
-			print_str("(overflow in thread #");			/* 0 */
+			print_str("overflow in thread #");			/* 0 */
 			print_str(s);								/* 1 */
 			print_str(" at PC=0x");						/* 2 */
-			print_str(pointer_to_string(er->ExceptionAddress));	/* 3 */
+			pointer_to_string_buf(er->ExceptionAddress, ptr, sizeof ptr);
+			print_str(ptr);								/* 3 */
+			print_str("\n");							/* 4 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+
+			locks = thread_id_lock_count(stid);
 			if (locks != 0) {
-				const char *ls = PRINT_NUMBER(lbuf, locks);
-				print_str(", holds ");						/* 4 */
-				print_str(ls);								/* 5 */
-				print_str(1 == locks ? " lock" : "locks");	/* 6 */
+				s = PRINT_NUMBER(buf, locks);
+				rewind_str(0);
+				print_str("thread holds ");					/* 0 */
+				print_str(s);								/* 1 */
+				print_str(1 == locks ? " lock" : "locks");	/* 2 */
+				print_str("\n");							/* 3 */
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
 			}
-			ss = PRINT_NUMBER(sbuf, thread_stack_used());
-			print_str(", stack is ");					/* 7 */
-			print_str(ss);								/* 8 */
-			print_str(" bytes");						/* 9 */
-			if (0 != stid)
-				print_str(", killing it");				/* 10 */
-			print_str(")\n");							/* 11 */
+
+			s = PRINT_NUMBER(buf, thread_stack_used());
+			rewind_str(0);
+			print_str("thread stack is ");				/* 0 */
+			print_str(s);								/* 1 */
+			print_str(" bytes");						/* 2 */
+			if (0 != stid) {
+				thread_info_t info;
+
+				thread_get_info(stid, &info);
+				can_terminate = !info.discovered;
+				if (can_terminate)
+					print_str(", killing it");				/* 3 */
+			}
+			print_str("\n");							/* 4 */
 			flush_err_str();
 			if (log_stdout_is_distinct())
 				flush_str(STDOUT_FILENO);
@@ -5067,7 +5086,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			 * afterwards, but this is panic...
 			 */
 
-			if (0 != stid) {
+			if (can_terminate) {
 				thread_exit(NULL);
 			}
 		}
