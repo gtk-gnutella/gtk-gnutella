@@ -592,7 +592,7 @@ header_append(header_t *o, const char *text, int len)
 				continue;
 			}
 			if (
-				seen_space || (c != '-' &&
+				seen_space || (c != '-' && c != '.' &&
 					(!isascii(c) || is_ascii_cntrl(c) || is_ascii_punct(c)))
 			) {
 				o->flags |= HEAD_F_SKIP;
