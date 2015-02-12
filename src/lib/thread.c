@@ -1487,24 +1487,14 @@ thread_stid_tie(unsigned stid, thread_t t)
 }
 
 /**
- * Common initialization sequence between a created and a discovered thread.
+ * Make sure no other thread element bears that thread_t.
  */
 static void
-thread_element_common_init(struct thread_element *te, thread_t t)
+thread_element_unique_thread(struct thread_element *te, thread_t t)
 {
 	unsigned i;
 
 	assert_mutex_is_owned(&thread_insert_mtx);
-
-	te->creating = FALSE;
-	te->valid = TRUE;
-	thread_stid_tie(te->stid, t);
-	thread_private_clear_warn(te);
-	thread_local_clear_warn(te);
-
-	/*
-	 * Make sure no other thread element bears that thread_t.
-	 */
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *xte = threads[i];
@@ -1526,6 +1516,22 @@ thread_element_common_init(struct thread_element *te, thread_t t)
 			}
 		}
 	}
+}
+
+/**
+ * Common initialization sequence between a created and a discovered thread.
+ */
+static void
+thread_element_common_init(struct thread_element *te, thread_t t)
+{
+	assert_mutex_is_owned(&thread_insert_mtx);
+
+	te->creating = FALSE;
+	te->valid = TRUE;
+	thread_stid_tie(te->stid, t);
+	thread_private_clear_warn(te);
+	thread_local_clear_warn(te);
+	thread_element_unique_thread(te, t);
 }
 
 /**
