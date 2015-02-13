@@ -8130,8 +8130,6 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	if (NULL == te)
 		goto error;
 
-	thread_cancel_test_element(te);
-
 	if (
 		!te->created ||				/* Not a thread we created */
 		te->join_requested ||		/* Another thread already wants joining */
