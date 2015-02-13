@@ -55,13 +55,22 @@
 
 /**
  * Signals with a specific meaning, reserved for the library.
+ *
+ * The TSIG_OVFLOW signal is synchronously delivered to the thread for which
+ * a stack overflow occurs, to give it a last chance to cleanup, display
+ * a message, etc... Upon return of the signal handler, the thread is
+ * terminated.  Note that if there is no user-defined signal handler installed
+ * for TSIG_OVFLOW and the thread incurs a stack overflow, the whole process
+ * will crash.
+ *		--RAM, 2015-02-13
  */
 
 #define TSIG_TEQ	10			/**< Something is in the Thread Event Queue */
 #define TSIG_TERM	11			/**< Requesting thread termination */
 #define TSIG_EVQ	12			/**< Dispatching a thread event */
+#define TSIG_OVFLOW	13			/**< Thread stack overflow detected */
 
-#define TSIG_COUNT	13
+#define TSIG_COUNT	14
 
 #define tsig_mask(sig)	(1U << ((sig) - 1))		/* 0 is not a signal */
 

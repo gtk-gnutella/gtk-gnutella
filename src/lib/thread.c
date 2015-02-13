@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 Raphael Manfredi
+ * Copyright (c) 2011-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -66,7 +66,7 @@
  * argument.
  *
  * @author Raphael Manfredi
- * @date 2011-2014
+ * @date 2011-2015
  */
 
 #include "common.h"
@@ -2772,6 +2772,35 @@ thread_stack_used(void)
 }
 
 /**
+ * Invoke signal handler for a specified signal.
+ *
+ * @param te		the thread element of the current thread
+ * @param sig		the signal number
+ * @param handler	the signal handler to invoke.
+ */
+static void
+thread_signal_handle(struct thread_element *te, int sig, tsighandler_t handler)
+{
+	/*
+	 * Deliver signal, masking it whilst we process it to prevent
+	 * further occurrences.
+	 *
+	 * Since only the thread can manipulate its signal mask or the
+	 * in_signal_handler field, there is no need to lock the element.
+	 */
+
+	te->sig_mask |= tsig_mask(sig);
+	te->in_signal_handler++;
+	(*handler)(sig);
+	te->in_signal_handler--;
+	te->sig_mask &= ~tsig_mask(sig);
+
+	g_assert(te->in_signal_handler >= 0);
+
+	THREAD_STATS_INCX(signals_handled);
+}
+
+/**
  * Check whether current thread is overflowing its stack by hitting the
  * red-zone guard page at the end of its allocated stack.
  * When it does, we panic immediately.
@@ -2788,6 +2817,7 @@ thread_stack_check_overflow(const void *va)
 	struct thread_element *te = thread_get_element();
 	thread_qid_t qva;
 	bool extra_stack = FALSE;
+	tsighandler_t handler;
 
 	/*
 	 * If we do not have a signal stack we cannot really process a stack
@@ -2861,6 +2891,27 @@ thread_stack_check_overflow(const void *va)
 			te->stack_size, thread_id_name(te->stid));
 	} else {
 		IGNORE_RESULT(write(STDERR_FILENO, overflow, CONST_STRLEN(overflow)));
+	}
+
+	/*
+	 * If there is a signal handler installed for TSIG_OVFLOW, run it and
+	 * then exit when the handler returns.  If there is none (or if the
+	 * signal is ignored or defaulted), then the whole application will crash
+	 * because there is no way to recover from that overflow.
+	 *		--RAM, 2012-02-13
+	 */
+
+	handler = te->sigh[TSIG_OVFLOW - 1];
+
+	if (TSIG_IGN != handler && TSIG_DFL != handler) {
+		/*
+		 * Signal is delivered synchronously to the thread, but we need
+		 * to protect against another instance of the signal being generated.
+		 */
+
+		thread_signal_handle(te, TSIG_OVFLOW, handler);
+		thread_exit(THREAD_OVERFLOW);
+		/* NOTREACHED */
 	}
 
 	crash_abort();
@@ -3267,21 +3318,8 @@ recheck:
 			continue;
 		}
 
-		/*
-		 * Deliver signal, masking it whilst we process it to prevent
-		 * further occurrences.
-		 *
-		 * Since only the thread can manipulate its signal mask or the
-		 * in_signal_handler field, there is no need to lock the element.
-		 */
+		thread_signal_handle(te, s, handler);
 
-		te->sig_mask |= tsig_mask(s);
-		te->in_signal_handler++;
-		(*handler)(s);
-		te->in_signal_handler--;
-		te->sig_mask &= ~tsig_mask(s);
-
-		g_assert(te->in_signal_handler >= 0);
 		g_assert_log(0 == te->locks.count,
 			"%s(): handler %s() for signal #%d left %zu lock%s in %s%s%s",
 			G_STRFUNC, stacktrace_function_name(handler), s,
@@ -3290,8 +3328,6 @@ recheck:
 			thread_get_element() == te ? "" : thread_name());
 
 		handled = TRUE;
-
-		THREAD_STATS_INCX(signals_handled);
 	}
 
 	if (thread_sig_present(te))
@@ -7431,17 +7467,38 @@ thread_exit_internal(void *value, const void *sp)
 	 */
 
 	if (te->sig_stack != NULL) {
+		thread_qid_t qid;
+
 		/*
-		 * Reset the signal stack range before freeing it so that
-		 * thread_find_qid() can no longer return this thread should
-		 * another thread be created with a stack lying where the old
-		 * signal stack was.
+		 * We can run thread_exit() whilst running on the signal stack when
+		 * a thread is catching the TSIG_OVFLOW stack overflow signal to
+		 * attempt to cleanup and avoid a global application crash.
+		 *
+		 * Therefore, we need to detect whether we're currently running on
+		 * the signal stack and not call signal_stack_free() in that case.
+		 * When the thread exits, the signal stack memory will not be reclaimed
+		 * but will remain in the thread element, ready to be re-used by another
+		 * thread allocated for this small thread ID.
+		 *		--RAM, 2015-02-13
 		 */
 
-		te->low_sig_qid = (thread_qid_t) -1;
-		te->high_sig_qid = 0;
+		qid = thread_quasi_id_fast(&te);
 
-		signal_stack_free(&te->sig_stack);
+		if (qid < te->low_sig_qid || qid > te->high_sig_qid) {
+			/*
+			 * We're not running on the alternate signal stack.
+			 *
+			 * Reset the signal stack range before freeing it so that
+			 * thread_find_qid() can no longer return this thread should
+			 * another thread be created with a stack lying where the old
+			 * signal stack was.
+			 */
+
+			te->low_sig_qid = (thread_qid_t) -1;
+			te->high_sig_qid = 0;
+
+			signal_stack_free(&te->sig_stack);
+		}
 	}
 
 	/*

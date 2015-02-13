@@ -328,6 +328,11 @@ thread_cancel_disable(void)
 #define THREAD_CANCELLED	((void *) -1)
 
 /**
+ * Exit value for a forcefully terminated thread on stack overflow.
+ */
+#define THREAD_OVERFLOW		((void *) -3)
+
+/**
  * Push thread cleanup handler.
  *
  * @param c		the routine to invoke

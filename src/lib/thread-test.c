@@ -977,9 +977,19 @@ overflow_routine(void *arg)
 	return overflow_routine(c) + c[1];
 }
 
+static void
+overflow_handler(int unused_sig)
+{
+	(void) unused_sig;
+
+	s_rawdebug("stack overflow signal properly caught!");
+}
+
 static void *
 overflow_thread(void *arg)
 {
+	thread_signal(TSIG_OVFLOW, overflow_handler);
+
 	return int_to_pointer(overflow_routine(arg));
 }
 
