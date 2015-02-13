@@ -480,7 +480,7 @@ test_inter(void)
 
 	mw = waiter_make(NULL);
 	w = waiter_spawn(mw, int_to_pointer(31416));
-	
+
 	r = thread_create(test_inter_main, w, THREAD_F_DETACH, 0);
 	if (-1 == r)
 		s_error("could not launch thread: %m");
