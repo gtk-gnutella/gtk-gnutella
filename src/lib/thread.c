@@ -1445,6 +1445,7 @@ thread_element_reset(struct thread_element *te)
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
+	te->sig_generation = 0;
 	ZERO(&te->sigh);
 	eslist_clear(&te->exit_list);
 	eslist_clear(&te->cleanup_list);
