@@ -2283,7 +2283,7 @@ thread_find_tid(thread_t t)
 			te = threads[i];
 			if (NULL == te)
 				continue;
-			if (te->reusable) {
+			if (te->reusable || !te->valid) {
 				te = NULL;
 				continue;
 			}
