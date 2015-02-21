@@ -75,6 +75,7 @@
 #define UPNP_CHECK_DELAY		1800	/**< Every 30 minutes */
 #define UPNP_MAPPING_CAUTION	120		/**< 2 minutes */
 #define UPNP_PUBLISH_RETRY		2		/**< 2 seconds */
+#define UPNP_REDISCOVER			3600	/**< 1 hour (seconds) */
 
 #define UPNP_MONITOR_DELAY_MS	(UPNP_MONITOR_DELAY * 1000)
 #define UPNP_PUBLISH_RETRY_MS	(UPNP_PUBLISH_RETRY * 1000)
@@ -972,17 +973,6 @@ upnp_launch_discovery_if_needed(void)
 	 * We don't have any known Internet Gateway Device, look whether
 	 * they plugged one in, but not at every wakeup...
 	 *
-	 * If we're not firewalled, there's no reason to actively look for an
-	 * IGD yet.
-	 */
-
-	if (!upnp_port_mapping_required()) {
-		if (GNET_PROPERTY(upnp_debug) > 5)
-			g_debug("UPNP no need for port mapping");
-		return;
-	}
-
-	/*
 	 * When ``igd.discover'' is TRUE, we force the discovery.
 	 * This is used to rediscover devices after monitoring of the known
 	 * IGD failed at the last period, in case they replaced the IGD with
@@ -1001,7 +991,13 @@ upnp_launch_discovery_if_needed(void)
 		counter++;
 	}
 
-	if (0 == counter % 12) {
+	/*
+	 * We're scheduled once every UPNP_MONITOR_DELAY seconds, and we wish
+	 * to rediscover only once every UPNP_REDISCOVER seconds, hence the
+	 * modulo check below.
+	 */
+
+	if (0 == counter % (UPNP_REDISCOVER / UPNP_MONITOR_DELAY)) {
 		if (GNET_PROPERTY(upnp_debug) > 1) {
 			g_debug("UPNP initiating discovery");
 		}
