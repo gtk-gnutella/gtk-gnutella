@@ -87,7 +87,7 @@ usage(void)
 {
 	fprintf(stderr,
 		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
-		"       [-f count] [-n count] [-r percent] [-t ms] [-T secs]\n"
+		"       [-f count] [-n count] [-r percent] [-t ms] [-T msecs]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
 		"  -b : fixed block size to use for memory tests via -X\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
@@ -117,7 +117,7 @@ usage(void)
 		"  -Q : test asynchronous queue\n"
 		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
-		"  -T : test condition layer via tennis session for specified secs\n"
+		"  -T : test condition layer via tennis session for specified msecs\n"
 		"  -V : test thread event queue (TEQ)\n"
 		"  -W : test local event queue (EVQ)\n"
 		"  -X : exercise concurrent memory allocation\n"
@@ -752,7 +752,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 		tm_t end, play;
 
 		tm_now_exact(&end);
-		tm_fill_ms(&play, play_time * 1000);
+		tm_fill_ms(&play, play_time);
 		tm_add(&end, &play);
 
 		w = waiter_make(NULL);
@@ -794,7 +794,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 		g_assert(1 == waiter_refcnt(w));
 		waiter_refcnt_dec(w);
 	} else {
-		sleep(play_time);	/* Let them play */
+		compat_sleep_ms(play_time);	/* Let them play */
 	}
 
 	if (noise) {
