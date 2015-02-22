@@ -1325,10 +1325,18 @@ test_signals(void)
 	barrier_t *b;
 	int r, i;
 
-	if (-1 != thread_kill(12, TSIG_0))		/* 12 is random constant */
-		s_error("thread #12 already exists?");
+	/* 60 is random constant, large enough to avoid it being already used */
+
+	if (-1 != thread_kill(60, TSIG_0))
+		s_error("thread #60 already exists?");
 
 	r = thread_create(signalled_thread, NULL, 0, 0);
+	if (-1 == r)
+		s_error("cannot create new thread: %m");
+
+	printf("%s() thread %s created\n", G_STRFUNC, thread_id_name(r));
+	fflush(stdout);
+
 	for (i = 0; i < 10; i++) {
 		sleep(1);
 		if (-1 == thread_kill(r, TSIG_0))
@@ -1343,19 +1351,31 @@ test_signals(void)
 	fflush(stdout);
 
 	for (i = 0; i < 100; i++) {
-		thread_kill(r, TSIG_1);
-		thread_kill(r, TSIG_2);
-		thread_kill(r, TSIG_4);
+		printf("%d\n", i);
+		fflush(stdout);
+		if (-1 == thread_kill(r, TSIG_1))
+			s_error("cannot send TSIG_1: %m");
+		if (-1 == thread_kill(r, TSIG_2))
+			s_error("cannot send TSIG_2: %m");
+		if (-1 == thread_kill(r, TSIG_4))
+			s_error("cannot send TSIG_4: %m");
 	}
 
-	thread_kill(r, TSIG_3);
-	thread_join(r, NULL);
+	printf(" done!\n");
+	fflush(stdout);
+
+	if (-1 == thread_kill(r, TSIG_3))
+		s_error("cannot send TSIG_3: %m");
+	if (-1 == thread_join(r, NULL))
+		s_error("cannot join: %m");
 
 	printf("%s() now checking thread_sleep_ms()\n", G_STRFUNC);
 	fflush(stdout);
 
 	b = barrier_new(2);
 	r = thread_create(sleeping_thread, barrier_refcnt_inc(b), 0, 0);
+	if (-1 == r)
+		s_error("cannot create new thread: %m");
 	thread_sleep_ms(500);		/* Give it time to setup */
 	for (i = 0; i < TEST_SIGNALS_COUNT; i++) {
 		if (-1 == thread_kill(r, TSIG_1))
@@ -2400,3 +2420,4 @@ main(int argc, char **argv)
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }
 
+/* vi: set ts=4 sw=4 cindent: */
