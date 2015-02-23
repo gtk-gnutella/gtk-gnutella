@@ -6316,10 +6316,13 @@ thread_forked(void)
 	 * - need cond_reset_all() to reset all known condition variables, which
 	 *   means we'll have to track them somehow.
 	 *
-	 * For now, we only reset all the other threads' locks to prevent any
-	 * deadlock at crash time.  When we come from thread_fork(TRUE), no thread
-	 * should hold any lock since we waited, but when coming from the
-	 * crash handler or thread_fork(FALSE), we cannot be sure.
+	 * For now, we:
+	 * - reset all the other threads' locks to prevent any deadlock.
+	 * - close all the inter-thread wfd[] descriptors.
+	 *
+	 * When we come from thread_fork(TRUE), no thread should hold any lock
+	 * since we waited, but when coming from the crash handler or
+	 * thread_fork(FALSE), we cannot be sure.
 	 *
 	 * All the reset locks will be traced.  By construction "hidden" locks are
 	 * invisible and "fast" locks are not recorded, so this can only affect
@@ -6329,6 +6332,8 @@ thread_forked(void)
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *xte = threads[i];
+
+		thread_block_close(xte);
 
 		if (te == xte)
 			continue;
