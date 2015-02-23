@@ -280,6 +280,7 @@ struct thread_element {
 	thread_qid_t high_sig_qid;		/**< The highest possible QID on sigstack*/
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
+	time_t last_seen;				/**< Last seen time for discovered thread */
 	const void *last_sp;			/**< Last stack pointer seen */
 	const void *top_sp;				/**< Highest stack pointer seen */
 	const void *stack_lock;			/**< First lock seen at this SP */
@@ -832,6 +833,23 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 	if G_LIKELY(te->last_qid == qid) {
 		if G_LIKELY(THREAD_MAIN == te->stid || te->created)
 			goto matched;
+
+		/*
+		 * We are in a discovered thread, and we take this opportunity to
+		 * update the last time we see an activity for that thread.  This
+		 * allows thread tracing code to spot likely inactive discovered
+		 * thread since we cannot know when they enter a blocking state due
+		 * to thread synchronization (waiting for an event, sleeping, etc..).
+		 *
+		 * TODO:
+		 * This will also allow us to garbage-collect discovered threads for
+		 * which we have not seen any activity recently and which hold no
+		 * allocated object, when we run out of thread descriptors.
+		 *
+		 *		--RAM, 2015-02-23
+		 */
+
+		te->last_seen = tm_time_raw();
 
 		THREAD_STATS_INCX(qid_cache_self_check);
 
@@ -1692,6 +1710,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->last_seen = tm_time_raw();
 	te->cancelable = FALSE;
 	te->cancl = THREAD_CANCEL_DISABLE;
 	thread_set(te->tid, t);
@@ -1790,6 +1809,7 @@ thread_new_element(unsigned stid)
 	thread_stack_init_shape(te, &te);
 	te->valid = TRUE;				/* Minimally ready */
 	te->discovered = TRUE;			/* Assume it was discovered */
+	te->last_seen = tm_time_raw();
 
 	threads[stid] = te;				/* Record, but do not make visible yet */
 
@@ -1897,6 +1917,7 @@ thread_main_element(thread_t t)
 	te->last_qid = qid;
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	te->discovered = TRUE;
+	te->last_seen = tm_time_raw();
 	te->valid = TRUE;
 	thread_set(te->tid, t);
 	te->main_thread = TRUE;
@@ -6306,6 +6327,7 @@ thread_forked(void)
 	thread_discovered = 1;		/* We're discovering ourselves */
 	te->created = FALSE;
 	te->discovered = TRUE;
+	te->last_seen = tm_time_raw();
 
 	/*
 	 * FIXME:
@@ -8914,6 +8936,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->entry = te->entry;
 	info->exit_value = te->join_pending ? te->exit_value : NULL;
 	info->discovered = te->discovered;
+	info->last_seen = te->discovered ? te->last_seen : 0;
 	info->exited = te->join_pending || te->reusable || te->exiting;
 	info->suspended = te->suspended;
 	info->blocked = te->blocked || te->cond != NULL;

@@ -129,6 +129,7 @@ typedef struct thread_info {
 	thread_qid_t top_qid;		/**< Topmost QID seen on the stack */
 	unsigned stid;				/**< Small thread ID */
 	unsigned join_id;			/**< ID of joining thread, or THREAD_INVALID */
+	time_t last_seen;			/**< Last seen activity of discovered thread */
 	const char *name;			/**< Thread name, NULL if none set */
 	const void *last_sp;		/**< Last known stack pointer */
 	const void *bottom_sp;		/**< Computed bottom stack pointer */
