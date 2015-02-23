@@ -941,6 +941,42 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 }
 
 /**
+ * Create pipe or socketpair.
+ *
+ * @param fd[]		the array to fill with the created read/write descriptors
+ * @param caller	caller name, in case of error
+ */
+static void
+thread_pipe_open(socket_fd_t fd[2], const char *caller)
+{
+#ifdef HAS_SOCKETPAIR
+	if (-1 == socketpair(AF_LOCAL, SOCK_STREAM, 0, fd))
+		s_error("%s(): socketpair() failed: %m", caller);
+#else
+	if (-1 == pipe(te->wfd))
+		s_error("%s(): pipe() failed: %m", caller);
+#endif
+}
+
+/**
+ * Close pipe / socketpair created by thread_pipe_open().
+ */
+static void
+thread_pipe_close(socket_fd_t fd[2])
+{
+#ifdef HAS_SOCKETPAIR
+	if (INVALID_SOCKET != fd[0]) {
+		s_close(fd[0]);
+		s_close(fd[1]);
+		fd[0] = fd[1] = INVALID_SOCKET;
+	}
+#else
+	fd_close(&fd[0]);
+	fd_close(&fd[1]);
+#endif
+}
+
+/**
  * Create block/unblock synchronization socketpair or pipe if necessary.
  */
 static void
@@ -964,13 +1000,7 @@ thread_block_init(struct thread_element *te)
 	 */
 
 	if G_UNLIKELY(INVALID_FD == te->wfd[0]) {
-#ifdef HAS_SOCKETPAIR
-		if (-1 == socketpair(AF_LOCAL, SOCK_STREAM, 0, te->wfd))
-			s_error("%s(): socketpair() failed: %m", G_STRFUNC);
-#else
-		if (-1 == pipe(te->wfd))
-			s_error("%s(): pipe() failed: %m", G_STRFUNC);
-#endif
+		thread_pipe_open(te->wfd, G_STRFUNC);
 	}
 }
 
@@ -980,16 +1010,7 @@ thread_block_init(struct thread_element *te)
 static void
 thread_block_close(struct thread_element *te)
 {
-#ifdef HAS_SOCKETPAIR
-	if (INVALID_SOCKET != te->wfd[0]) {
-		s_close(te->wfd[0]);
-		s_close(te->wfd[1]);
-		te->wfd[0] = te->wfd[1] = INVALID_SOCKET;
-	}
-#else
-	fd_close(&te->wfd[0]);
-	fd_close(&te->wfd[1]);
-#endif
+	thread_pipe_close(te->wfd);
 }
 
 /**
