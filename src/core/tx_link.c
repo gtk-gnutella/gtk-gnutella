@@ -308,6 +308,7 @@ tx_link_bio_source(txdrv_t *tx)
 }
 
 static const struct txdrv_ops tx_link_ops = {
+	"link",				/**< name */
 	tx_link_init,		/**< init */
 	tx_link_destroy,	/**< destroy */
 	tx_link_write,		/**< write */

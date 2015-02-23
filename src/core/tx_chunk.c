@@ -483,6 +483,7 @@ tx_chunk_close(txdrv_t *tx, tx_closed_t cb, void *arg)
 }
 
 static const struct txdrv_ops tx_chunk_ops = {
+	"chunk",			/**< name */
 	tx_chunk_init,		/**< init */
 	tx_chunk_destroy,	/**< destroy */
 	tx_chunk_write,		/**< write */

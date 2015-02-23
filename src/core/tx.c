@@ -472,9 +472,9 @@ tx_flush(txdrv_t *tx)
  * @return TRUE if there is an error reported by any layer underneath.
  */
 bool
-tx_has_error(txdrv_t *tx)
+tx_has_error(const txdrv_t *tx)
 {
-	txdrv_t *t;
+	const txdrv_t *t;
 
 	tx_check(tx);
 
@@ -484,6 +484,24 @@ tx_has_error(txdrv_t *tx)
 	}
 
 	return FALSE;
+}
+
+/**
+ * @return the name of the first TX layer reporting an error, NULL if no error.
+ */
+const char *
+tx_error_layer_name(const txdrv_t *tx)
+{
+	const txdrv_t *t;
+
+	tx_check(tx);
+
+	for (t = tx; t; t = t->lower) {
+		if (t->flags & TX_ERROR)
+			return t->ops->name;
+	}
+
+	return NULL;
 }
 
 /**

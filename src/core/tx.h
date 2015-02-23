@@ -87,6 +87,7 @@ tx_check(const txdrv_t *tx)
 typedef void (*tx_closed_t)(txdrv_t *tx, void *arg);
 
 struct txdrv_ops {
+	const char *name;
 	void *(*init)(txdrv_t *tx, void *args);
 	void (*destroy)(txdrv_t *tx);
 	ssize_t (*write)(txdrv_t *tx, const void *data, size_t len);
@@ -126,7 +127,8 @@ void tx_flush(txdrv_t *tx);
 void tx_shutdown(txdrv_t *tx);
 void tx_close(txdrv_t *d, tx_closed_t cb, void *arg);
 void tx_close_noop(txdrv_t *tx, tx_closed_t cb, void *arg);
-bool tx_has_error(txdrv_t *tx);
+bool tx_has_error(const txdrv_t *tx);
+const char *tx_error_layer_name(const txdrv_t *tx);
 void tx_eager_mode(txdrv_t *tx, bool on);
 
 struct bio_source *tx_no_source(txdrv_t *tx);

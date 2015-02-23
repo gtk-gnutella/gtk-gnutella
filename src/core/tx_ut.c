@@ -2578,6 +2578,7 @@ tx_ut_shutdown(txdrv_t *unused_tx)
 }
 
 static const struct txdrv_ops tx_ut_ops = {
+	"UDP tranceiver",	/**< name */
 	tx_ut_init,			/**< init */
 	tx_ut_destroy,		/**< destroy */
 	tx_no_write,		/**< write */
