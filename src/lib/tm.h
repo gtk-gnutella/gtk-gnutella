@@ -266,6 +266,22 @@ tm_time(void)
 	}
 }
 
+/**
+ * Get current time, at the second granularity (cached).
+ *
+ * @attention
+ * This routine does not check for thread suspension and is reserved
+ * to low-level routines that cannot be interrupted or for which we
+ * want the minimal amount of overhead.
+ */
+static inline time_t
+tm_time_raw(void)
+{
+	return (time_t) tm_cached_now.tv_sec;
+}
+
+tm_t tm_start_time(void);
+
 tm_t tm_start_time(void);
 time_t tm_localtime(void);
 time_t tm_localtime_exact(void);
