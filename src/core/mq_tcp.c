@@ -190,7 +190,9 @@ again:
 
 	r = tx_writev(q->tx_drv, iov, iovcnt);
 
-	g_assert((ssize_t) -1 == r || !tx_has_error(q->tx_drv));
+	g_assert_log((ssize_t) -1 == r || !tx_has_error(q->tx_drv),
+		"%s(): written=%zd, yet error is reported by TX layer \"%s\"",
+		G_STRFUNC, r, tx_error_layer_name(q->tx_drv));
 
 	if ((ssize_t) -1 == r || r == 0) {
 		q->last_written = 0;
@@ -378,7 +380,9 @@ again:
 			 * reports data written and not -1.
 			 *		--RAM, 2006-12-29
 			 */
-			g_assert((ssize_t) -1 == written || !tx_has_error(q->tx_drv));
+			g_assert_log((ssize_t) -1 == written || !tx_has_error(q->tx_drv),
+				"%s(): written=%zd, yet error reported by TX layer \"%s\"",
+				G_STRFUNC, written, tx_error_layer_name(q->tx_drv));
 
 			if ((ssize_t) -1 == written) {
 				error = TRUE;
