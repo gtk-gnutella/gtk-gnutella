@@ -1464,6 +1464,7 @@ thread_element_reset(struct thread_element *te)
 	te->exiting = FALSE;
 	te->stack_lock = NULL;	/* Stack position when first lock recorded */
 	te->stack = NULL;
+	te->stack_base = NULL;
 	te->name = NULL;
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
@@ -8923,8 +8924,8 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID;
 	info->name = te->name;
 	info->last_sp = te->last_sp;
-	info->bottom_sp = te->stack_base != NULL ? te->stack_base :
-		thread_sp_direction > 0 ?
+	info->bottom_sp = te->stack_base != NULL ?
+		te->stack_base : thread_sp_direction > 0 ?
 		ulong_to_pointer(te->low_qid << thread_pageshift) :
 		ulong_to_pointer((te->high_qid + 1) << thread_pageshift);
 	info->top_sp = te->top_sp;
