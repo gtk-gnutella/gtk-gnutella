@@ -9139,6 +9139,9 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 		size_t rsc_cond_variables;
 		size_t rsc_local_keys;
 
+		DUMPV(thread_running);
+		DUMPV(thread_discovered);
+
 		rsc_semaphore_arrays = semaphore_kernel_usage(&rsc_semaphore_used);
 		rsc_cond_variables = cond_vars_count();
 		rsc_local_keys = thread_local_key_count();
