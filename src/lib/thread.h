@@ -145,6 +145,7 @@ typedef struct thread_info {
 	tsigset_t sig_pending;		/**< Signals pending delivery */
 	uint stack_addr_growing:1;	/**< Whether stack growing upwards */
 	uint discovered:1;			/**< Was thread discovered or created? */
+	uint exiting:1;				/**< Whether thread is exiting */
 	uint exited:1;				/**< Whether thread has exited */
 	uint suspended:1;			/**< Whether thread is suspended */
 	uint blocked:1;				/**< Whether thread is (voluntarily) blocked */

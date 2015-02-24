@@ -8940,6 +8940,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->discovered = te->discovered;
 	info->last_seen = te->discovered ? te->last_seen : 0;
 	info->exited = te->join_pending || te->reusable || te->exiting;
+	info->exiting = te->exit_started;
 	info->suspended = te->suspended;
 	info->blocked = te->blocked || te->cond != NULL;
 	info->sleeping = te->sleeping;

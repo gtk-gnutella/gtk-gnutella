@@ -99,6 +99,7 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 		str_putc(s, info.main_thread ? 'M' : '-');
 		str_putc(s, info.discovered ? 'D' : 'C');
 		str_putc(s, info.exited ? 'E' :
+			info.exiting ? 'X' :
 			(info.blocked || info.sleeping) ? 'S' :
 			(info.discovered && !info.main_thread &&
 				delta_time(now, info.last_seen) > ACTIVE_THRESH) ? 'I' : 'R');
