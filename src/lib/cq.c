@@ -715,6 +715,9 @@ cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
 	 * was returned to the calling thread to be stored in "ev_ptr".
 	 */
 
+	g_assert_log(cq->cq_call != NULL,
+		"%s() can only be called once on a given event", G_STRFUNC);
+
 	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
 		"%s() not called on current event: %p points to ev=%p, current is %s%p",
 		G_STRFUNC, ev_ptr, ev, cq->cq_call_extended ? "foreign " : "",
