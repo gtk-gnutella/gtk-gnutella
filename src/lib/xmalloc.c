@@ -4172,7 +4172,7 @@ xmalloc_thread_ended(unsigned stid)
 	g_assert(stid < XM_THREAD_COUNT);
 
 	/*
-	 * Mark the thread as "dead".  Until it is marked aligned again, all
+	 * Mark the thread as "dead".  Until it is marked alive again, all
 	 * the blocks allocated by this thread which could be freed by other
 	 * threads will be returned directly.
 	 */
