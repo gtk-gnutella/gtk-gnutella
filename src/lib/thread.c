@@ -7402,6 +7402,7 @@ thread_exit_internal(void *value, const void *sp)
 	g_assert(thread_eq(te->tid, thread_self()));
 	g_assert_log(!te->exit_started,
 		"%s() called recursively in %s", G_STRFUNC, thread_element_name(te));
+	g_assert(!te->discovered);
 
 	/*
 	 * Mark that we are exiting to prevent recursive calls, and disable
