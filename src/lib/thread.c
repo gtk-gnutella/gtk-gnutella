@@ -137,8 +137,17 @@
  * This is the time we wait after a "detached" thread we created has exited
  * before attempting to join with it in the callout queue thread and free
  * its stack.
+ *
+ * It is also used for discovered threads which we are told are gone, to defer
+ * the reuse of their thread element a little bit.
  */
 #define THREAD_HOLD_TIME	20		/**< in ms, keep dead thread before reuse */
+
+/**
+ * Grace time for discovered threads, before allowing their thread element
+ * to be reused.
+ */
+#define THREAD_GRACE_TIME	1000	/**< in ms, grace time before reuse */
 
 #define THREAD_SUSPEND_CHECK		4096
 #define THREAD_SUSPEND_CHECKMASK	(THREAD_SUSPEND_CHECK - 1)
@@ -325,6 +334,9 @@ struct thread_element {
 	uint cancelable:1;				/**< Whether thread is cancelable */
 	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
+	uint gone:1;					/**< Discovered thread is gone */
+	uint gone_seen:1;				/**< Flagged activity from gone thread */
+	uint add_monitoring:1;			/**< Must reinstall thread monitoring */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
@@ -517,6 +529,7 @@ static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 static void thread_lock_dump(const struct thread_element *te);
 static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
+static void thread_will_exit(void *arg);
 
 /**
  * Yield CPU time for current thread.
@@ -808,9 +821,66 @@ thread_qid_cache_force(unsigned stid, thread_qid_t low, thread_qid_t high)
 }
 
 /**
+ * Monitor discovered thread so that we are warned when the thread is about
+ * to exit, in order to reclaim its thread element.
+ *
+ * @param te		thread element for the current thread we wish to monitor
+ */
+static void
+thread_monitor_exit(struct thread_element *te)
+{
+	static size_t counter;
+	static pthread_key_t monitor_key;
+
+	g_assert(te->discovered);
+
+	/*
+	 * Create special key if not already done.  That key is equipped with
+	 * a destructor that will be called in each exiting thread when the
+	 * key holds a non-NULL data.
+	 *
+	 * This gives us the advance notification that the thread will be
+	 * exiting "soon" (either it called pthread_exit() or was cancelled).
+	 *		--RAM, 2015-02-24
+	 */
+
+	if G_UNLIKELY(0 == ATOMIC_INC(&counter)) {
+		int error = pthread_key_create(&monitor_key, thread_will_exit);
+
+		if (error != 0) {
+			/* Don't use %m, not sure we can set errno properly in thread */
+			s_minierror("%s(): cannot create monitoring key: %s (%s)",
+				G_STRFUNC, symbolic_errno(error), g_strerror(error));
+		}
+	}
+
+	/*
+	 * We must set a non-NULL key to have the destroy callback invoked
+	 * at thread exit time: use the thread element!
+	 */
+
+	pthread_setspecific(monitor_key, te);
+}
+
+/**
+ * A discovered thread was marked as "gone" and yet we are seeing some
+ * activity for it.
+ */
+static void
+thread_element_mark_gone_seen(struct thread_element *te)
+{
+	THREAD_LOCK(te);
+	if G_UNLIKELY(te->gone && !te->gone_seen) {
+		te->gone_seen = TRUE;
+		te->add_monitoring = TRUE;	/* Still active, must monitor exit again! */
+	}
+	THREAD_UNLOCK(te);
+}
+
+/**
  * @return whether thread element is matching the QID.
  */
-static inline ALWAYS_INLINE bool
+static bool
 thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 {
 	if G_UNLIKELY(NULL == te) {
@@ -835,17 +905,19 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 			goto matched;
 
 		/*
+		 * A discovered thread could be gone and still have stale entries
+		 * in the QID cache.
+		 */
+
+		if G_UNLIKELY(!te->valid)
+			goto false_hit;
+
+		/*
 		 * We are in a discovered thread, and we take this opportunity to
 		 * update the last time we see an activity for that thread.  This
 		 * allows thread tracing code to spot likely inactive discovered
 		 * thread since we cannot know when they enter a blocking state due
 		 * to thread synchronization (waiting for an event, sleeping, etc..).
-		 *
-		 * TODO:
-		 * This will also allow us to garbage-collect discovered threads for
-		 * which we have not seen any activity recently and which hold no
-		 * allocated object, when we run out of thread descriptors.
-		 *
 		 *		--RAM, 2015-02-23
 		 */
 
@@ -853,9 +925,28 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 
 		THREAD_STATS_INCX(qid_cache_self_check);
 
-		if (thread_eq(te->tid, thread_self()))
-			goto matched;
+		if (thread_eq(te->tid, thread_self())) {
+			/*
+			 * Loudly warn if the thread element is marked as gone.
+			 * It means that thread_will_exit() was called, we marked the
+			 * discovered thread as being gone and yet the same thread
+			 * is still being active.
+			 */
 
+			if G_UNLIKELY(te->gone) {
+				thread_element_mark_gone_seen(te);
+			} else if G_UNLIKELY(te->add_monitoring) {
+				/* No longer flagged as "gone", re-install monitoring */
+				THREAD_LOCK(te);
+				te->add_monitoring = FALSE;
+				THREAD_UNLOCK(te);
+				thread_monitor_exit(te);
+			}
+
+			goto matched;
+		}
+
+	false_hit:
 		THREAD_STATS_INCX(qid_cache_false_hit);
 		return FALSE;
 	}
@@ -932,7 +1023,7 @@ thread_element_name(const struct thread_element *te)
  * This is only needed for discovered thread given that we know the stack
  * shape for created threads.
  */
-static inline void
+static void
 thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 {
 	/*
@@ -947,6 +1038,9 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 	else if (qid > te->high_qid)
 		te->high_qid = qid;
 	THREAD_UNLOCK(te);
+
+	if G_UNLIKELY(te->gone)
+		thread_element_mark_gone_seen(te);
 
 	thread_stack_update(te);
 
@@ -1287,6 +1381,91 @@ thread_element_mark_reusable(struct thread_element *te)
 }
 
 /**
+ * A thread is gone (be it created or discovered).
+ */
+static void
+thread_gone(struct thread_element *te)
+{
+	/*
+	 * Need to signal xmalloc() that any thread-specific allocated chunk
+	 * can now be forcefully dismissed if they are empty and pending
+	 * cross-thread freeing for the dead chunk can be processed.
+	 */
+
+	xmalloc_thread_ended(te->stid);
+
+	thread_element_mark_reusable(te);
+}
+
+/**
+ * Callout queue callback invoked when discovered thread is surely gone.
+ */
+static void
+thread_surely_gone(cqueue_t *unused_cq, void *data)
+{
+	struct thread_element *te = data;
+	bool problem;
+	size_t locks;
+
+	thread_element_check(te);
+	g_assert(te->discovered);
+
+	(void) unused_cq;
+
+	THREAD_LOCK(te);
+	problem = te->gone_seen;
+	locks = te->locks.count;
+	if (problem || locks != 0) {
+		te->gone = FALSE;			/* Will not reuse it after all */
+		te->exit_started = FALSE;	/* And definitely not exiting */
+	}
+	THREAD_UNLOCK(te);
+
+	if (locks != 0) {
+		s_warning("%s(): %s still holding %zu lock%s, not reusing its ID",
+			G_STRFUNC, thread_id_name(te->stid), locks, plural(locks));
+	} else if (problem) {
+		s_warning("%s(): seen some activity for %s, not reusing its ID",
+			G_STRFUNC, thread_id_name(te->stid));
+	} else {
+		thread_gone(te);
+		te->discovered = FALSE;
+		atomic_uint_dec(&thread_discovered);
+	}
+}
+
+/**
+ * Callout queue callback invoked when discovered thread is probably gone.
+ */
+static void
+thread_probably_gone(cqueue_t *unused_cq, void *data)
+{
+	struct thread_element *te = data;
+
+	thread_element_check(te);
+	g_assert(te->discovered);
+
+	(void) unused_cq;
+
+	/*
+	 * We flag the discovered thread as gone, which will give us a loud
+	 * warning if we see a QID cache hit for that thread again.
+	 */
+
+	THREAD_LOCK(te);
+	te->gone = TRUE;
+	te->gone_seen = FALSE;
+	THREAD_UNLOCK(te);
+
+	/*
+	 * Now after some safety period has elapsed, mark the element as
+	 * being truly gone.
+	 */
+
+	evq_raw_insert(THREAD_GRACE_TIME, thread_surely_gone, te);
+}
+
+/**
  * A created thread has definitively ended and we can reuse its thread element.
  */
 static void
@@ -1294,16 +1473,10 @@ thread_ended(struct thread_element *te)
 {
 	g_assert(te->created);
 
-	/*
-	 * Need to signal xmalloc() that any thread-specific allocated chunk
-	 * can now be forcefully dismissed if they are empty and pending
-	 * cross-thread freeing for the dead chunk can be processed.
-	 */
-
 	if (te->stack != NULL)
 		thread_stack_free(te);
-	xmalloc_thread_ended(te->stid);
-	thread_element_mark_reusable(te);
+
+	thread_gone(te);
 	atomic_uint_dec(&thread_pending_reuse);
 }
 
@@ -1482,6 +1655,9 @@ thread_element_reset(struct thread_element *te)
 	te->cancelled = FALSE;
 	te->cancelable = TRUE;
 	te->exit_started = FALSE;
+	te->gone = FALSE;
+	te->gone_seen = FALSE;
+	te->add_monitoring = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
@@ -1648,33 +1824,75 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 			te->high_qid >= xte->low_qid &&
 			te->low_qid <= xte->high_qid
 		) {
-			bool discovered = FALSE;
-
 			/*
 			 * This old thread is necessarily dead if it overlaps our QID range
 			 * and it was a created thread.  For discovered threads, we can
 			 * never know what their QID range is for sure but we can exclude
-			 * the overlapping range.
+			 * the overlapping ranges.
 			 */
 
 			THREAD_LOCK(xte);
 			if (xte->discovered || xte->exiting) {
+				bool dead_thread = FALSE;
+
+				if (
+					xte->low_qid <= te->low_qid &&
+					xte->high_qid >= te->high_qid
+				) {
+					/* [te] fully embedded within [xte] range */
+					if (
+						xte->last_qid <=
+							xte->low_qid + (xte->high_qid - xte->low_qid) / 2
+					) {
+						/* We keep the lower part of the [xte] range */
+						xte->high_qid = te->low_qid - 1;
+						if (thread_sp_direction > 0)
+							xte->top_qid = xte->high_qid;
+					} else {
+						/* We keep the upper part of the [xte] range */
+						xte->low_qid = te->high_qid + 1;
+						if (thread_sp_direction < 0)
+							xte->top_qid = xte->low_qid;
+					}
+					if (xte->low_qid > xte->high_qid)
+						dead_thread = TRUE;
+					goto done;
+				}
+
+				if (
+					xte->low_qid <= te->low_qid &&
+					xte->high_qid >= te->high_qid
+				) {
+					/* [xte] fully embedded within [te] range */
+					dead_thread = TRUE;
+					goto done;
+				}
+
 				if (xte->low_qid <= te->low_qid) {
-					xte->high_qid = MIN(xte->high_qid, te->low_qid);
+					xte->high_qid = te->low_qid - 1;
 					if (thread_sp_direction > 0)
-						xte->top_qid = MIN(xte->top_qid, xte->high_qid);
-				}
-				if (te->low_qid <= xte->low_qid) {
-					xte->low_qid = MAX(xte->low_qid, te->high_qid);
+						xte->top_qid = xte->high_qid;
+				} else if (xte->high_qid >= te->high_qid) {
+					xte->low_qid = te->high_qid + 1;
 					if (thread_sp_direction < 0)
-						xte->top_qid = MAX(xte->top_qid, xte->low_qid);
+						xte->top_qid = xte->low_qid;
 				}
-				if G_UNLIKELY(xte->high_qid < xte->low_qid) {
+				if (xte->low_qid > xte->high_qid)
+					dead_thread = TRUE;
+
+				/* FALL THROUGH */
+
+			done:
+				if G_UNLIKELY(dead_thread) {
 					/* This thread is dead */
 					thread_set(tstid[xte->stid], THREAD_INVALID);
-					if (xte->discovered) {
+					if (xte->discovered && !xte->gone) {
+						s_miniwarn("%s(): discovered thread #%u is dead",
+							G_STRFUNC, xte->stid);
+
+						thread_element_mark_reusable(xte);
 						xte->discovered = FALSE;
-						discovered = TRUE;
+						atomic_uint_dec(&thread_discovered);
 					}
 				}
 			} else {
@@ -1686,13 +1904,41 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 					xte->stid, xte->low_qid, xte->high_qid);
 			}
 			THREAD_UNLOCK(xte);
-
-			if G_UNLIKELY(discovered)
-				atomic_uint_dec(&thread_discovered);
 		}
 	}
 
 	mutex_unlock_fast(&thread_insert_mtx);
+}
+
+/**
+ * Callback invoked when the special monitoring key we set in each discovered
+ * thread is reclaimed by the pthread runtime, which will happen when the thread
+ * is exiting.
+ */
+static void
+thread_will_exit(void *arg)
+{
+	struct thread_element *te = arg;
+
+	thread_element_check(te);
+
+	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
+
+	/*
+	 * Since the thread was discovered, we wait a little bit to reuse its
+	 * thread element: we cannot know for sure that this is the last activity
+	 * we will see for that dying thread (other cleanup could involve freeing
+	 * allocated objects).
+	 *
+	 * We have to pray for the holding time to be large enough or we will mark
+	 * the thread reusable too soon!  The consequence is that we could
+	 * re-discover the same thread on its exit path, but this time there will
+	 * be no usable hook to let us know the thread has died, possibly leading
+	 * to a thread element leak if we cannot determine for sure that the thread
+	 * is dead.
+	 */
+
+	evq_raw_insert(THREAD_HOLD_TIME, thread_probably_gone, te);
 }
 
 /**
@@ -1717,6 +1963,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_set(te->tid, t);
 	thread_stack_init_shape(te, &te);
 	thread_element_common_init(te, t);
+	thread_monitor_exit(te);
 }
 
 /**

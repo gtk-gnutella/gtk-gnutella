@@ -339,13 +339,34 @@ posix_threads(void *unused_arg)
 	return posix_worker(NULL);
 }
 
+static void *
+posix_exiting_thread(void *unused_arg)
+{
+	void *p;
+	(void) unused_arg;
+
+	p = xmalloc(100);
+	compat_sleep_ms(100);
+	xfree(p);
+
+	return NULL;
+}
+
 static void
 test_create(unsigned repeat, bool join, bool posix)
 {
 	unsigned i;
 
 	if (posix) {
+		pthread_t foreign;
+
+		foreign = posix_thread_create(posix_exiting_thread, NULL, TRUE);
 		(void) posix_thread_create(posix_threads, NULL, FALSE);
+
+		printf("Waiting for single foreign POSIX thread...\n");
+		fflush(stdout);
+		if (0 != pthread_join(foreign, NULL))
+			s_error("cannot wait for foreign POSIX thread");
 	}
 
 	for (i = 0; i < repeat; i++) {
