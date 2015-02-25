@@ -1928,6 +1928,7 @@ thread_will_exit(void *arg)
 	struct thread_element *te = arg;
 
 	thread_element_check(te);
+	g_assert(te->discovered);
 
 	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
 
