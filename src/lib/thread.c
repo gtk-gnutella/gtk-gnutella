@@ -1994,20 +1994,26 @@ thread_sigstack_allocate(struct thread_element *te)
 /**
  * Allocate a new thread element in advance, if we haven't yet allocated all
  * our thread elements.
+ *
+ * @return TRUE if we were able to allocate an element (or we already have
+ * pre-allocated the next element), FALSE if we cannot create any more elements
+ * because we have reached the maximum amount.
  */
-static void
+static bool
 thread_preallocate_element(void)
 {
 	assert_mutex_is_owned(&thread_insert_mtx);
 
-	if G_UNLIKELY(THREAD_MAX == thread_allocated_count)
-		return;
-
 	if G_UNLIKELY(NULL != thread_next_te)
-		return;
+		return TRUE;				/* Already allocated */
+
+	if G_UNLIKELY(THREAD_MAX == thread_allocated_count)
+		return FALSE;				/* Cannot allocate more elements */
 
 	thread_allocated_count++;
 	OMALLOC0(thread_next_te);		/* Never freed */
+
+	return TRUE;	/* Next element properly allocated */
 }
 
 /**
@@ -2328,7 +2334,8 @@ thread_find_element(void)
 			 * a thread element available before calling thread_new_element().
 			 */
 
-			thread_preallocate_element();
+			if (!thread_preallocate_element())
+				return NULL;			/* No more thread elements */
 
 			te = thread_new_element(stid);
 			thread_update_next_stid();
