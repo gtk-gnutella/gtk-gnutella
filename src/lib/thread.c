@@ -6816,6 +6816,10 @@ retry:
 		upper = 1000 + (requested - gelapsed) * 1000;
 		remain = MIN(remain, upper);
 		remain = MIN(remain, MAX_INT_VAL(int));		/* poll() takes an int */
+
+		if G_UNLIKELY(remain <= 0)
+			goto timed_out;			/* Waiting time expired */
+
 		fds.fd = te->wfd[0];
 		fds.events = POLLIN;
 
