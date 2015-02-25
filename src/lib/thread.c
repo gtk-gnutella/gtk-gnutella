@@ -1884,9 +1884,16 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 
 			done:
 				if G_UNLIKELY(dead_thread) {
-					/* This thread is dead */
+					/* This thread is dead and will no longer run */
 					thread_set(tstid[xte->stid], THREAD_INVALID);
-					if (xte->discovered && !xte->gone) {
+
+					/*
+					 * If the thread was discovered and flagged as
+					 * "exit_started", then we must not do anything yet
+					 * as it is being monitored and handled.
+					 */
+
+					if (xte->discovered && !xte->exit_started) {
 						s_miniwarn("%s(): discovered thread #%u is dead",
 							G_STRFUNC, xte->stid);
 
