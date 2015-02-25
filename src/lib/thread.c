@@ -3647,6 +3647,24 @@ done:
 }
 
 /**
+ * Check for pending signals and process them if any are present.
+ *
+ * @param te		the current thread element
+ *
+ * @return TRUE if we processed any signals.
+ */
+static inline bool
+thread_signal_check(struct thread_element *te)
+{
+	if (thread_sig_pending(te)) {
+		THREAD_STATS_INCX(sig_handled_while_check);
+		return thread_sig_handle(te);
+	}
+
+	return FALSE;
+}
+
+/**
  * Check whether the current thread is within a signal handler.
  *
  * @return the signal handler nesting level, 0 meaning the current thread is
@@ -3661,10 +3679,7 @@ thread_sighandler_level(void)
 	 * Use this opportunity to check for pending signals.
 	 */
 
-	if (thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 
 	return te->in_signal_handler;
 }
@@ -3691,10 +3706,7 @@ thread_sig_generation(void)
 	 * Use this opportunity to check for pending signals.
 	 */
 
-	if (thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 
 	return te->sig_generation;
 }
@@ -3765,10 +3777,8 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 	}
 
-	if G_UNLIKELY(thread_sig_pending(te) && sigs) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		delayed = thread_sig_handle(te);
-	}
+	if (sigs)
+		delayed |= thread_signal_check(te);
 
 	return delayed;
 }
@@ -8706,10 +8716,7 @@ thread_signal(int signum, tsighandler_t handler)
 	old = te->sigh[signum - 1];
 	te->sigh[signum - 1] = handler;
 
-	if G_UNLIKELY(thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 
 	return old;
 }
@@ -8871,10 +8878,7 @@ thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
 	g_assert_not_reached();
 
 done:
-	if G_UNLIKELY(thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 }
 
 /**
@@ -9121,13 +9125,8 @@ thread_sleep_interruptible(unsigned int ms,
 		 * present.
 		 */
 
-		if (thread_sig_pending(te)) {
-			THREAD_STATS_INCX(sig_handled_while_check);
-			thread_sig_handle(te);
-
-			if (interrupt)
-				return TRUE;
-		}
+		if (thread_signal_check(te) && interrupt)
+			return TRUE;
 	}
 
 	if (interrupt)
