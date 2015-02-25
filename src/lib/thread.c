@@ -6864,11 +6864,23 @@ retry:
 
 	THREAD_LOCK(te);
 	if G_UNLIKELY(te->signalled != 0) {
+		bool limited_blocking = FALSE;
+
 		te->signalled--;		/* Consumed one signaling byte */
 		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
 		te->unblocked = FALSE;
 		THREAD_UNLOCK(te);
+
+		/*
+		 * Avoid any race condition with the signal handler, which could take
+		 * a long processing time.
+		 */
+
+		if G_UNLIKELY(eve != NULL) {
+			limited_blocking = TRUE;
+			evq_cancel(&eve);
+		}
 
 		THREAD_STATS_INCX(sig_handled_while_blocked);
 		thread_sig_handle(te);
@@ -6880,6 +6892,17 @@ retry:
 
 		if (te->sleep_interruptible > 0)
 			goto timed_out;
+
+		/*
+		 * If we were blocking the "non-blockable" main thread, restart the
+		 * timeout condition since we just invoked a signal handler and
+		 * therefore we were not really blocked.
+		 */
+
+		if (limited_blocking) {
+			eve = evq_insert(THREAD_MAIN_DELAY_MS,
+				thread_block_timeout, G_STRFUNC);
+		}
 
 		THREAD_LOCK(te);
 		/*
