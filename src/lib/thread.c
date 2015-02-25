@@ -9114,6 +9114,20 @@ thread_sleep_interruptible(unsigned int ms,
 
 		if (has_signals && interrupt)
 			return TRUE;
+	} else {
+		/*
+		 * No signal mask provided but before blocking, regardless of whether
+		 * we are interruptible, handle pending signals which are already
+		 * present.
+		 */
+
+		if (thread_sig_pending(te)) {
+			THREAD_STATS_INCX(sig_handled_while_check);
+			thread_sig_handle(te);
+
+			if (interrupt)
+				return TRUE;
+		}
 	}
 
 	if (interrupt)
