@@ -6692,6 +6692,21 @@ static void
 thread_block_timeout(void *arg)
 {
 	const char *routine = arg;
+	struct thread_element *te = thread_get_element();
+
+	/*
+	 * If we're already set to non-blocking, it means there has been a delay
+	 * in the thread scheduling that caused it to sleep for too long, way past
+	 * the initial safeguard we had set.  But it is unblocked now, so no need
+	 * to panic.  Just emit a message.
+	 *		--RAM, 2015-02-25
+	 */
+
+	if (!te->blocked) {
+		s_warning("%s(): ignored as main thread no longer blocked in %s()",
+			G_STRFUNC, routine);
+		return;
+	}
 
 	s_error("%s() called from non-blockable main thread, and blocking!",
 		routine);
@@ -6722,7 +6737,7 @@ thread_element_block_until(struct thread_element *te,
 {
 	evq_event_t *eve = NULL;
 	gentime_t gstart = GENTIME_ZERO;
-	unsigned int requested = 0;
+	long requested = 0;
 	char c;
 	static once_flag_t done;
 
@@ -6821,7 +6836,7 @@ retry:
 
 		gnow = gentime_now();
 		gelapsed = gentime_diff(gnow, gstart);
-		if (UNSIGNED(gelapsed) > requested)
+		if (gelapsed > requested)
 			goto timed_out;			/* Waiting time expired */
 
 		/*
