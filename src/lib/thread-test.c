@@ -1278,6 +1278,8 @@ sleeping_thread(void *arg)
 	tm_t start, end;
 
 	thread_signal(TSIG_1, test_sigcount);
+	barrier_wait(b);
+
 	tm_now_exact(&start);
 	thread_sleep_ms(2000);
 	tm_now_exact(&end);
@@ -1285,6 +1287,15 @@ sleeping_thread(void *arg)
 	printf("%s() slept %u ms (expected 2000 ms)\n", G_STRFUNC,
 		(uint) tm_elapsed_ms(&end, &start));
 	fflush(stdout);
+
+	while (test_signals_count < TEST_SIGNALS_COUNT) {
+		printf("%s() got %d/%d signals so far\n", G_STRFUNC,
+			test_signals_count, TEST_SIGNALS_COUNT);
+		fflush(stdout);
+		thread_pause();
+	}
+
+	barrier_wait(b);
 
 	g_assert(TEST_SIGNALS_COUNT == test_signals_count);
 
@@ -1397,12 +1408,16 @@ test_signals(void)
 	r = thread_create(sleeping_thread, barrier_refcnt_inc(b), 0, 0);
 	if (-1 == r)
 		s_error("cannot create new thread: %m");
-	thread_sleep_ms(500);		/* Give it time to setup */
+	barrier_wait(b);		/* Give it time to setup */
 	for (i = 0; i < TEST_SIGNALS_COUNT; i++) {
 		if (-1 == thread_kill(r, TSIG_1))
 			s_error("thread #%d cannot be signalled: %m", r);
 		thread_sleep_ms(500);	/* Give it time to process signal */
 	}
+	printf("%s() all signals sent\n", G_STRFUNC);
+	fflush(stdout);
+
+	barrier_wait(b);		/* Let signalled thread process everything */
 
 	printf("%s() now checking thread_timed_sigsuspend()\n", G_STRFUNC);
 	fflush(stdout);
