@@ -185,6 +185,7 @@ void tm_precise_add(tm_nano_t *tn, const tm_nano_t *inc);
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
 void tm_now_raw(tm_t *tm);
+void tm_now_exact_raw(tm_t *tm);
 time_t tm_time_exact(void);
 void tm_current_time(tm_t *tm);
 void tm_precise_time(tm_nano_t *tn);
