@@ -1278,7 +1278,8 @@ sleeping_thread(void *arg)
 	tm_t start, end;
 
 	thread_signal(TSIG_1, test_sigcount);
-	barrier_wait(b);
+	if (b != NULL)
+		barrier_wait(b);
 
 	tm_now_exact(&start);
 	thread_sleep_ms(2000);
@@ -1295,7 +1296,8 @@ sleeping_thread(void *arg)
 		thread_pause();
 	}
 
-	barrier_wait(b);
+	if (b != NULL)
+		barrier_wait(b);
 
 	g_assert(TEST_SIGNALS_COUNT == test_signals_count);
 
