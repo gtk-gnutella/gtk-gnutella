@@ -159,23 +159,6 @@ search_set_xml(GtkWidget *widget, const char *xml)
 	HFREE_NULL(xml_txt);
 }
 
-void
-search_gui_set_bitzi_metadata_text(const char *text)
-{
-	GtkTextBuffer *buffer;
-	GtkWidget *widget;
-
-	g_return_if_fail(text);
-
-	widget = gui_main_window_lookup("textview_result_info_bitzi");
-	g_return_if_fail(widget);
-
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
-	g_return_if_fail(buffer);
-
-	gtk_text_buffer_set_text(buffer, text, -1);
-}
-
 /* Display XML data from the result if any */
 static void
 search_set_xml_metadata(const record_t *rc)
