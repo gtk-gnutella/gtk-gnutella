@@ -54,6 +54,7 @@
 
 #include "gtk/gui.h"
 
+#include "column_sort.h"
 #include "interface-glade.h" /* for create_popup_upload_stats */
 
 #include "gtk/columns.h"
@@ -80,6 +81,10 @@ static GtkWidget *popup_upload_stats;
 
 static htable_t *ht_uploads;
 
+#if GTK_CHECK_VERSION(2,6,0)
+static struct sorting_context upload_stats_sort;
+#endif	/* GTK+ >= 2.6.0 */
+
 struct upload_data {
 	GtkTreeIter iter;
 
@@ -105,6 +110,14 @@ on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
         return TRUE;
 	}
 	return FALSE;
+}
+
+static void
+on_uploads_stats_treeview_column_clicked(GtkTreeViewColumn *column, void *udata)
+{
+	(void) udata;
+
+	column_sort_tristate(column, &upload_stats_sort);
 }
 
 static void
@@ -168,7 +181,7 @@ cell_renderer_func(GtkTreeViewColumn *column,
  * as appropriate for the type.
  *
  */
-static void
+static GtkTreeViewColumn *
 add_column(
     GtkTreeView *tv,
 	gint column_id,
@@ -207,6 +220,8 @@ add_column(
 	gtk_tree_sortable_set_sort_func(
 		GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)),
 		column_id, sortfunc, NULL, NULL);
+
+	return column;
 }
 
 /**
@@ -373,12 +388,17 @@ upload_stats_gui_init_intern(gboolean intern)
 		g_object_unref(model);
 
 		for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-			add_column(upload_stats_treeview,
+			GtkTreeViewColumn *column;
+
+			column = add_column(upload_stats_treeview,
 				columns[i].id,
 				_(columns[i].title),
 				columns[i].align,
 				columns[i].func,
 				cell_renderer_func);
+
+			column_sort_tristate_register(column,
+				on_uploads_stats_treeview_column_clicked, NULL);
 		}
 
 		gui_signal_connect(upload_stats_treeview,
