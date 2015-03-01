@@ -187,6 +187,7 @@ void search_gui_filter_new(search_t *, GList *rules);
 void search_gui_add_targetted_search(void *data, void *user_data);
 bool search_gui_is_expired(const struct search *);
 void search_gui_new_search_entered(void);
+unsigned search_gui_download_count(const struct search *search);
 
 void search_gui_browse_selected(void);
 bool search_gui_insert_query(const char *);

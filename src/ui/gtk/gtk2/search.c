@@ -1321,6 +1321,7 @@ search_gui_update_list_label(const struct search *search)
 	GtkTreeView *tv;
 	GtkStyle *style;
 	GdkColor *fg, *bg;
+	bool downloading;
 
 	if (NULL == search)
 		return;
@@ -1331,14 +1332,18 @@ search_gui_update_list_label(const struct search *search)
 		return;
 
 	style = gtk_widget_get_style(GTK_WIDGET(tv));
+	downloading = 0 != search_gui_download_count(search);
+
 	if (search->unseen_items > 0) {
-		fg = &style->fg[GTK_STATE_ACTIVE];
+		fg = downloading ? gui_color_get(GUI_COLOR_DOWNLOADING) :
+				&style->fg[GTK_STATE_ACTIVE];
 		bg = &style->bg[GTK_STATE_ACTIVE];
 	} else if (search_gui_is_enabled(search)) {
-		fg = NULL;
+		fg = downloading ? gui_color_get(GUI_COLOR_DOWNLOADING) : NULL;
 		bg = NULL;
 	} else {
-		fg = &style->fg[GTK_STATE_INSENSITIVE];
+		fg = downloading ? gui_color_get(GUI_COLOR_DOWNLOADING) :
+				&style->fg[GTK_STATE_INSENSITIVE];
 		bg = &style->bg[GTK_STATE_INSENSITIVE];
 	}
 

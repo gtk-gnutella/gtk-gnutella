@@ -417,6 +417,15 @@ search_gui_update_tab_label(const struct search *search)
 		search->scrolled_window, label);
 }
 
+/**
+ * @return how many downloads are currently associated with that search.
+ */
+unsigned
+search_gui_download_count(const struct search *search)
+{
+	return guc_search_associated_sha1_count(search->search_handle);
+}
+
 void 
 search_gui_update_status_label(const struct search *search)
 {
@@ -432,7 +441,7 @@ search_gui_update_status_label(const struct search *search)
 		return;
 	}
 
-	dlcount = guc_search_associated_sha1_count(search->search_handle);
+	dlcount = search_gui_download_count(search);
 	expire[0] = downloads[0] = '\0';
 
 	if (!search_gui_is_enabled(search)) {
