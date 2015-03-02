@@ -1852,9 +1852,8 @@ retry:
 
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
-				s_miniwarn("VMM already recursed to pmap_extend(), "
-					"pmap is now %zu KiB",
-					(kernel_pagesize * pm->pages) / 1024);
+				s_miniwarn("VMM already recursed to %s(), pmap is now %zu KiB",
+					G_STRFUNC, (kernel_pagesize * pm->pages) / 1024);
 			}
 			g_assert(kernel_pagesize * pm->pages >= nsize);
 			if (narray != NULL)
