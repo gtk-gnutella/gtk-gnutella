@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 1.1u\n"
+"Project-Id-Version: gtk-gnutella 1.1.1\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2014-05-14 19:31+0200\n"
+"POT-Creation-Date: 2015-03-02 23:04+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,15 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+msgid "Harmful version banned, upgrade required"
+msgstr ""
+
+msgid "Connection refused"
+msgstr ""
+
+msgid "Use an open Gnutella or G2 servent"
+msgstr ""
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -1130,6 +1139,12 @@ msgstr ""
 msgid "GUESS G2 nodes sending back an acknowledgment"
 msgstr ""
 
+msgid "Throttled local push messages"
+msgstr ""
+
+msgid "Throttled received push messages"
+msgstr ""
+
 msgid "Broadcasted push messages"
 msgstr ""
 
@@ -1247,6 +1262,9 @@ msgstr ""
 msgid "UDP messages with bogus source IP"
 msgstr ""
 
+msgid "UDP messages from shunned IP (discarded)"
+msgstr ""
+
 msgid "UDP truncated incoming messages"
 msgstr ""
 
@@ -1260,6 +1278,9 @@ msgid "Compressed UDP messages enqueued"
 msgstr ""
 
 msgid "Compressed UDP messages received"
+msgstr ""
+
+msgid "Candidates for UDP message compression"
 msgstr ""
 
 msgid "Uncompressed UDP messages due to no gain"
