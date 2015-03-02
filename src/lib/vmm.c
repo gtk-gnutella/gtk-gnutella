@@ -2022,8 +2022,22 @@ done:
 	 * Therefore, always ensure we have room for at least one more slot.
 	 */
 
-	if G_UNLIKELY(pm->count == pm->size)
+	if G_UNLIKELY(pm->count == pm->size) {
 		pmap_extend(pm);
+
+		/*
+		 * After an extension of the pmap, we need to recompute the index in
+		 * the array where the region we had to insert initially has been
+		 * placed.  Indeed, the pages holding the pmap are also inserted in
+		 * the pmap array, and therefore the previous insertion index may now
+		 * be invalid (if e.g. we inserted the new pmap before, or the old pmap
+		 * which has now been freed was a fragment before the insertion point).
+		 *		--RAM, 2015-03-02
+		 */
+
+		vmf = pmap_lookup(pm, start, &idx);
+		g_assert(vmf != NULL);		/* Must be found, we just inserted it */
+	}
 
 	return idx;
 }
