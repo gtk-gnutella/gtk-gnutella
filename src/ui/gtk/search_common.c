@@ -638,8 +638,18 @@ search_gui_update_counters(struct search *search)
 static void 
 search_gui_update_status(struct search *search)
 {
+	/*
+	 * The "counters" are in the search list/tabs.
+	 *
+	 * To make sure the color in the list changes as soon as a search
+	 * stops / completes all its downloads, we go ahead updating the
+	 * counters even if the GUI is not displaying the search presently.
+	 *		--RAM, 2015-03-03
+	 */
+
+	search_gui_update_counters(search);
+
 	if (search_gui_is_visible()) {
-		search_gui_update_counters(search);
 		search_gui_update_status_label(search);
 		search_gui_update_items_label(search);
 		search_gui_update_guess_stats(search);
