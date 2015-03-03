@@ -119,6 +119,7 @@ static GtkWidget *guess_stats_line;
 
 static gboolean store_searches_requested;
 static gboolean store_searches_disabled;
+static gboolean search_gui_visible;
 
 static record_t *search_details_record;
 
@@ -4411,7 +4412,7 @@ search_gui_timer(time_t now)
 
     search_gui_flush(now, FALSE);
 
-	if (delta_time(last_update, now)) {
+	if (search_gui_visible && delta_time(last_update, now)) {
 		GList *iter;
 
 		last_update = now;
@@ -4613,6 +4614,23 @@ search_gui_column_justify_right(int column)
 	return FALSE;
 }
 
+/**
+ * Invoked when the main GUI window visibility changes.
+ */
+static void
+on_search_visibility_change(gboolean visible)
+{
+	search_gui_visible = visible;
+
+	if (visible) {
+		/*
+		 * Becoming visible, update things we left behind whilst the GUI
+		 * was not visible.
+		 */
+
+		search_gui_timer(tm_time());
+	}
+}
 
 /**
  * Initialize common structures.
@@ -4678,6 +4696,7 @@ search_gui_common_init(void)
     guc_guess_stats_listener_add(search_gui_guess_stats);
 
 	main_gui_add_timer(search_gui_timer);
+	main_gui_add_visibility_listener(on_search_visibility_change);
 }
 
 /**
@@ -4687,6 +4706,7 @@ void
 search_gui_common_shutdown(void)
 {
 	search_gui_callbacks_shutdown();
+	main_gui_remove_visibility_listener(on_search_visibility_change);
 
  	guc_search_got_results_listener_remove(search_gui_got_results);
  	guc_search_status_change_listener_remove(search_gui_status_change);
