@@ -1926,7 +1926,24 @@ search_gui_real_store_searches(void)
 static void
 search_gui_retrieve_searches(void)
 {
+	GList *l;
+
     search_retrieve_xml();
+
+	/*
+	 * Iterate through the whole searches to make sure we display them
+	 * correctly in the list (right color / background) now that we have
+	 * the whole set of searches and their associated SHA1 loaded in the
+	 * core.
+	 *		--RAM, 2015-03-03
+	 */
+
+	GM_LIST_FOREACH(list_searches, l) {
+		struct search *search = l->data;
+
+	 	/* The actual update will be done through search_gui_timer() */
+		search->list_refreshed = FALSE;		/* Force update later */
+	}
 }
 
 /**
