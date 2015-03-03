@@ -427,15 +427,12 @@ search_gui_download_count(const struct search *search)
 	return guc_search_associated_sha1_count(search->search_handle);
 }
 
-void 
+static void
 search_gui_update_status_label(const struct search *search)
 {
 	char expire[128];
 	char downloads[48];
 	unsigned dlcount;
-
-	if (search != current_search)
-		return;
 
 	if G_UNLIKELY(NULL == search) {
         gtk_label_printf(label_search_expiry, "%s", _("No search"));
@@ -494,9 +491,6 @@ search_gui_update_status_label(const struct search *search)
 static void
 search_gui_update_items_label(const struct search *search)
 {
-	if (search != current_search)
-		return;
-
     if (search) {
 		gtk_label_printf(label_items_found, _("%u %s "
 			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
@@ -539,7 +533,6 @@ search_gui_update_guess_stats(const struct search *search)
 
 	if (
 		NULL == search ||
-		search != current_search ||
 		!search_gui_can_use_guess(search) ||
 		!GUI_PROPERTY(search_display_guess_stats)
 	)
@@ -650,7 +643,7 @@ search_gui_update_status(struct search *search)
 
 	search_gui_update_counters(search);
 
-	if (search_gui_is_visible()) {
+	if (search_gui_is_visible() && search == current_search) {
 		search_gui_update_status_label(search);
 		search_gui_update_items_label(search);
 		search_gui_update_guess_stats(search);
