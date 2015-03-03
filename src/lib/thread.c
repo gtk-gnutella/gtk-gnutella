@@ -3204,7 +3204,7 @@ thread_stack_check_overflow(const void *va)
 	 * then exit when the handler returns.  If there is none (or if the
 	 * signal is ignored or defaulted), then the whole application will crash
 	 * because there is no way to recover from that overflow.
-	 *		--RAM, 2012-02-13
+	 *		--RAM, 2015-02-13
 	 */
 
 	handler = te->sigh[TSIG_OVFLOW - 1];
