@@ -2884,7 +2884,11 @@ node_shutdown_mode(gnutella_node_t *n, uint32 delay)
 	mq_discard(n->outq);					/* Discard any further data */
 	node_flushq(n);							/* Fast queue flushing */
 
-	shutdown_nodes++;
+	if (NODE_TALKS_G2(n)) {
+		shutdown_g2_nodes++;
+	} else {
+		shutdown_nodes++;
+	}
 
     node_fire_node_info_changed(n);
     node_fire_node_flags_changed(n);
