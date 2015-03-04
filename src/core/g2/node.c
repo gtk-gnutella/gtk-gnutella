@@ -153,6 +153,7 @@ static const tokenizer_t g2_q2_md[] = {
 	{ "archive",		SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE },
 	{ "audio",			SEARCH_AUDIO_TYPE },
 	{ "book",			SEARCH_DOC_TYPE },
+	{ "collection",		SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE },
 	{ "document",		SEARCH_DOC_TYPE },
 	{ "image",			SEARCH_IMG_TYPE },
 	{ "video",			SEARCH_VIDEO_TYPE },
