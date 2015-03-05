@@ -1496,7 +1496,7 @@ tmalloc_beat(void *data)
 	if (
 		elapsed >= TMALLOC_BEAT_THRESHOLD ||
 		(elapsed > 0 &&
-			d->tma_contentions / elapsed > (int) 5 * TMALLOC_CONTENTIONS)
+			d->tma_contentions / elapsed > (int) (5 * TMALLOC_CONTENTIONS))
 	) {
 		size_t contentions;
 		double rate;
