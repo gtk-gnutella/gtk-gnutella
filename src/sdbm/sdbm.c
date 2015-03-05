@@ -3095,11 +3095,12 @@ sdbm_datfno(DBM *db)
 
 	sdbm_synchronize(db);
 
-	if G_UNLIKELY(db->flags & DBM_BROKEN)
-		fno = -1;
-
 #ifdef BIGDATA
-	fno = big_datfno(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		fno = -1;
+	} else {
+		fno = big_datfno(db);
+	}
 #else
 	fno = -1;
 #endif
