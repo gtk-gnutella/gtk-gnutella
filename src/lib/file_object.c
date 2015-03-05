@@ -861,10 +861,9 @@ reopen:
 
 		if (!is_valid_fd(fd->fd)) {
 			s_warning("%s(): cannot reopen \"%s\" %s "
-				"after %s %s of \"%s\": %m",
+				"after successful %s of \"%s\": %m",
 				G_STRFUNC, fd->pathname, file_object_mode_to_string(fd->omode),
-				ok ? "successful" : "failed", file_object_op_to_string(op),
-				old_name);
+				file_object_op_to_string(op), old_name);
 		}
 	}
 
