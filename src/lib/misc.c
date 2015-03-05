@@ -876,6 +876,11 @@ bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size)
 size_t
 guid_to_string_buf(const guid_t *guid, char *dst, size_t size)
 {
+	if G_UNLIKELY(NULL == guid) {
+		/* Our constant string is 32-byte long */
+		return g_strlcpy(dst, "<------ null GUID pointer ----->", size);
+	}
+
 	return bin_to_hex_buf(guid->v, GUID_RAW_SIZE, dst, size);
 }
 
