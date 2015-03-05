@@ -3225,6 +3225,8 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 
 	rp = qrt_default_patch(qup->node);
 
+	g_assert(rp != NULL || qup->patch != NULL);
+
 	if G_UNLIKELY(rp != NULL && qup->patch->len > rp->len) {
 		if (qrp_debugging(0)) {
 			g_warning("QRP incremental query routing patch for node %s is %d "
