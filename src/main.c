@@ -1044,7 +1044,7 @@ option_pretty_name(const char *name)
 	return buf;
 }
 
-static void
+static void G_GNUC_NORETURN
 usage(int exit_code)
 {
 	FILE *f;
