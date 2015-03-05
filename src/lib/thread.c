@@ -2333,7 +2333,7 @@ thread_find_element(void)
 			unsigned stid = atomic_uint_inc(&thread_allocated_stid);
 
 			if (stid >= THREAD_MAX)
-				return NULL;			/* No more slots available */
+				goto done;			/* No more slots available */
 
 			/*
 			 * In case there is nothing pre-allocated yet (which could be
@@ -2343,7 +2343,7 @@ thread_find_element(void)
 			 */
 
 			if (!thread_preallocate_element())
-				return NULL;			/* No more thread elements */
+				goto done;			/* No more thread elements */
 
 			te = thread_new_element(stid);
 			thread_update_next_stid();
@@ -2364,6 +2364,7 @@ thread_find_element(void)
 		thread_set(tstid[te->stid], THREAD_INVALID);
 	}
 
+done:
 	mutex_unlock_fast(&thread_insert_mtx);
 
 	if (te != NULL)
