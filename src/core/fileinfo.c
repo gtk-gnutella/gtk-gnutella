@@ -7752,7 +7752,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 						_("Computing TTH") : _("Computing SHA1"),
 					short_size(status->vrfy_hashed,
 						GNET_PROPERTY(display_metric_units)),
-					(1.0 * status->vrfy_hashed / status->size) * 100.0);
+					(1.0 * status->vrfy_hashed / MAX(1, status->size)) * 100.0);
 			return buf;
 		} else {
 			return status->tth_check ?
