@@ -221,10 +221,10 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	}
 
 	pproxy_free_resources(pp);
+	pproxies = pslist_remove(pproxies, pp);
+
 	pp->magic = 0;
 	WFREE(pp);
-
-	pproxies = pslist_remove(pproxies, pp);
 }
 
 /**
