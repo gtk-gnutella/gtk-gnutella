@@ -1791,7 +1791,6 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 
 finish:
 	HFREE_NULL(fullpath);
-	dir_entry_filename(NULL);	/* release memory */
 }
 
 /**
