@@ -253,7 +253,7 @@ sdbm_open(const char *file, int flags, int mode)
 
 #ifdef BIGDATA
 	datname = h_strconcat(file, DBM_DATFEXT, (void *) 0);
-	if (NULL == pagname) {
+	if (NULL == datname) {
 		errno = ENOMEM;
 		goto error;
 	}
