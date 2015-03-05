@@ -8274,8 +8274,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 		/* This is an incoming control connection */
 		n->socket = s;
 		socket_attach_ops(s, SOCK_TYPE_CONTROL, &node_socket_ops, n);
-		n->status = (major > 0 || minor > 4) ?
-			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
+		n->status = GTA_NODE_RECEIVING_HELLO;
 
 		socket_tos_default(s);	/* Set proper Type of Service */
 
