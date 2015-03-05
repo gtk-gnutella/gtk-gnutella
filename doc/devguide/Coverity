@@ -20,16 +20,17 @@ Configure your C compiler, for instance:
 
 In the src/ directory run:
 
-	make realclean
-	make depend
-	mkdir cov-int		# name is hardwired in the Coverity tool chain
-	cov-build --dir cov-int make gtk-gnutella.nm
-	tar czvf gtk-gnutella.tgz cov-int
+	make coverity.tgz
 
-Upload the gtk-gnutella.tgz file to the Coverity scanner.
+Upload the generated coverity.tgz file to the Coverity scanner, which is
+available through the URL of the project mentionned above (one has to login
+first).
 
 The file src/coverity.c is a model for the Converity scanner which teaches
 it basic things about some key functions, for the runtime analyzing the code
 paths.  The scanner may be able to automatically derive some of the properties
 from gcc attribute hints, but maybe not, so we're helping it.
+
+The src/coverity.c file has to be manually uploaded to the Coverity scanner,
+it is not automatically picked from the source tree.
 
