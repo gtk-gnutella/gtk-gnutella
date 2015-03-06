@@ -286,6 +286,7 @@ static hikset_t *sha1_to_share;		/* Marked thread-safe */
 #define D	SEARCH_DOC_TYPE
 #define I	SEARCH_IMG_TYPE
 #define U	(SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE)
+#define T	SEARCH_TORRENT_TYPE
 
 /**
  * This table encodes for each known MIME type the searchable media type bits
@@ -305,7 +306,7 @@ static struct {
 	{ MIME_TYPE_APPLICATION_7Z,						U },
 	{ MIME_TYPE_APPLICATION_ACE,					U },
 	{ MIME_TYPE_APPLICATION_ANDROID_PACKAGE,		U },
-	{ MIME_TYPE_APPLICATION_BITTORRENT,				D },
+	{ MIME_TYPE_APPLICATION_BITTORRENT,				T },
 	{ MIME_TYPE_APPLICATION_BROADBAND_EBOOK,		D },
 	{ MIME_TYPE_APPLICATION_BZIP2,					U },
 	{ MIME_TYPE_APPLICATION_COMPILED_HTML_HELP,		D },
