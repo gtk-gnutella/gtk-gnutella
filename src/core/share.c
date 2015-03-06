@@ -288,6 +288,9 @@ static hikset_t *sha1_to_share;		/* Marked thread-safe */
 #define U	(SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE)
 #define T	SEARCH_TORRENT_TYPE
 
+#define TXT	SEARCH_G2_TEXT_TYPE
+#define ROM	SEARCH_G2_ROM_TYPE
+
 /**
  * This table encodes for each known MIME type the searchable media type bits
  * that are applicable for that type.
@@ -296,7 +299,7 @@ static hikset_t *sha1_to_share;		/* Marked thread-safe */
  * of the searchable bits.  This typically indicates a file containing
  * either application-specific data (e.g. an MP3 playlist), a programming
  * language (e.g. a C header file), or binary-specific data (e.g. a ROM
- * image).
+ * image, although these are now flagged as ROM, for the benefit of G2 queries).
  */
 static struct {
 	enum mime_type type;
@@ -316,8 +319,8 @@ static struct {
 	{ MIME_TYPE_APPLICATION_DOSEXEC,				U },
 	{ MIME_TYPE_APPLICATION_EPUB,					D },
 	{ MIME_TYPE_APPLICATION_EXCEL,					0 },
-	{ MIME_TYPE_APPLICATION_GAMEBOY_ROM,			0 },
-	{ MIME_TYPE_APPLICATION_GENESIS_ROM,			0 },
+	{ MIME_TYPE_APPLICATION_GAMEBOY_ROM,			ROM },
+	{ MIME_TYPE_APPLICATION_GENESIS_ROM,			ROM },
 	{ MIME_TYPE_APPLICATION_GZIP,					U },
 	{ MIME_TYPE_APPLICATION_IPHONE_APP,				0 },
 	{ MIME_TYPE_APPLICATION_ISO9660,				U },
@@ -331,8 +334,8 @@ static struct {
 	{ MIME_TYPE_APPLICATION_MSWORD,					D },
 	{ MIME_TYPE_APPLICATION_MS_READER,				D },
 	{ MIME_TYPE_APPLICATION_MS_SHORTCUT,			0 },
-	{ MIME_TYPE_APPLICATION_N64_ROM,				0 },
-	{ MIME_TYPE_APPLICATION_NES_ROM,				0 },
+	{ MIME_TYPE_APPLICATION_N64_ROM,				ROM },
+	{ MIME_TYPE_APPLICATION_NES_ROM,				ROM },
 	{ MIME_TYPE_APPLICATION_OBJECT,					0 },
 	{ MIME_TYPE_APPLICATION_OGG,					A },
 	{ MIME_TYPE_APPLICATION_OPEN_PACKAGING_FORMAT,	U },
@@ -346,7 +349,7 @@ static struct {
 	{ MIME_TYPE_APPLICATION_SHAR,					U },
 	{ MIME_TYPE_APPLICATION_SHOCKWAVE_FLASH,		V },
 	{ MIME_TYPE_APPLICATION_SIT,					U },
-	{ MIME_TYPE_APPLICATION_SNES_ROM,				0 },
+	{ MIME_TYPE_APPLICATION_SNES_ROM,				ROM },
 	{ MIME_TYPE_APPLICATION_TAR,					U },
 	{ MIME_TYPE_APPLICATION_TEX,					D },
 	{ MIME_TYPE_APPLICATION_TEXINFO,				D },
@@ -390,7 +393,7 @@ static struct {
 	{ MIME_TYPE_TEXT_LATEX,							D },
 	{ MIME_TYPE_TEXT_LILYPOND,						D },
 	{ MIME_TYPE_TEXT_PERL,							0 },
-	{ MIME_TYPE_TEXT_PLAIN,							D },
+	{ MIME_TYPE_TEXT_PLAIN,							D|TXT },
 	{ MIME_TYPE_TEXT_PYTHON,						0 },
 	{ MIME_TYPE_TEXT_RTF,							D },
 	{ MIME_TYPE_TEXT_XHTML,							D },
@@ -411,6 +414,9 @@ static struct {
 #undef D
 #undef I
 #undef U
+#undef T
+#undef TXT
+#undef ROM
 
 /**
  * Hash table yielding the media type flags from a MIME type.
