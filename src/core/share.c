@@ -1824,8 +1824,19 @@ recursive_scan_done(struct bgtask *bt, void *data, bgstatus_t status, void *arg)
 	if (THREAD_MAIN == share_thread_id) {
 		struct share_thread_vars *v = &share_thread_vars;
 
+		/*
+		 * Taking the lock is not really necessary here because if we run
+		 * in the main thread, everything is serialized, so there cannot be
+		 * any concurrent access on these variables.  For uniformity though...
+		 *		--RAM, 2015-03-06
+		 */
+
+		spinlock(&v->lock);
+
 		if (bt == v->task)
 			v->task = NULL;
+
+		spinunlock(&v->lock);
 	}
 }
 
