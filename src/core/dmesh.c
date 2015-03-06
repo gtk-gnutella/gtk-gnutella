@@ -2735,14 +2735,31 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			date = h_strndup(date_start, p - date_start);
 			stamp = date2time(date, now);
 
-			if (GNET_PROPERTY(dmesh_debug) > 6)
+			if ((time_t) -1 == stamp) {
+				const char *d;
+
+				/*
+				 * Some broken servents propagate two ISO dates separated by
+				 * a space, such as: "2015-03-06T16:00Z 2015-03-06T19:09Z".
+				 * So try to skip past the first space, if any, to see whether
+				 * we can be more successful.
+				 *		--RAM, 2015-03-06
+				 */
+
+				if (NULL != (d = strchr(date, ' ')))
+					stamp = date2time(++d, now);	/* Skip the space */
+
+				if ((time_t) -1 == stamp) {
+					g_warning("cannot parse Alternate-Location date: %s", date);
+					stamp = 0;
+				}
+			}
+
+			if (GNET_PROPERTY(dmesh_debug) > 6) {
 				g_debug("MESH (stamp=%s): \"%s\"",
 					timestamp_to_string(stamp), date);
-
-			if (stamp == (time_t) -1) {
-				g_warning("cannot parse Alternate-Location date: %s", date);
-				stamp = 0;
 			}
+
 			HFREE_NULL(date);
 		} else
 			stamp = 0;
