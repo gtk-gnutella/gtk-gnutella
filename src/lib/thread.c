@@ -1622,6 +1622,15 @@ thread_exiting(struct thread_element *te)
 static void
 thread_element_reset(struct thread_element *te)
 {
+	/*
+	 * Even though we do not have to take the thread element lock here,
+	 * we do, in order to avoid numerous false positives from Coverity.
+	 * (many of these fields are normally accessed with the lock taken)
+	 *		--RAM, 2015-03-06
+	 */
+
+	THREAD_LOCK(te);
+
 	te->locks.count = 0;
 	ZERO(&te->waiting);
 
@@ -1666,6 +1675,8 @@ thread_element_reset(struct thread_element *te)
 	eslist_clear(&te->exit_list);
 	eslist_clear(&te->cleanup_list);
 	slist_free(&te->cond_stack);
+
+	THREAD_UNLOCK(te);
 }
 
 /**
