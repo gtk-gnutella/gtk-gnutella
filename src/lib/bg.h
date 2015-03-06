@@ -95,6 +95,7 @@ typedef struct {
 	uint daemon:1;			/**< Is task a daemon? */
 	uint cancelled:1;		/**< Is task cancelled? */
 	uint cancelling:1;		/**< Is task cancel being processed? */
+	uint locked:1;			/**< Whether we could lock task to read all info */
 } bgtask_info_t;
 
 static inline void

@@ -71,7 +71,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			"T  Tasks Run-Q Sleep-Q Ended Slice Period  Run-time Name\n");
 	} else {
 		shell_write(sh,
-			"T  Flg S Work-Q Handled St Progress  Run-time Name (Sched)\n");
+			"T  Flag S Work-Q Handled St Progress  Run-time Name (Sched)\n");
 	}
 
 	info = opt_s != NULL ? bg_sched_info_list() : bg_info_list();
@@ -120,6 +120,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 				str_printf(s, "%-2s ", "-");
 			else
 				str_printf(s, "%-2d ", bi->stid);
+			str_putc(s, bi->locked ? ' ' : '!');
 			if (bi->cancelling)
 				str_putc(s, 'C');
 			else if (bi->cancelled)

@@ -255,6 +255,7 @@ bg_task_check(const struct bgtask * const bt)
 }
 
 #define BG_TASK_LOCK(t)		spinlock(&(t)->lock)
+#define BG_TASK_TRYLOCK(t)	spinlock_try(&(t)->lock)
 #define BG_TASK_UNLOCK(t)	spinunlock(&(t)->lock)
 
 static inline bool
@@ -2376,6 +2377,8 @@ bg_info_get(void *data, void *udata)
 	bgtask_t *bt = data;
 	struct bg_info_list_vars *v = udata;
 	bgtask_info_t *bi;
+	bool locked;
+	uint32 flags;
 
 	bg_task_check(bt);
 	bg_sched_check(v->bs);
@@ -2383,7 +2386,18 @@ bg_info_get(void *data, void *udata)
 	WALLOC0(bi);
 	bi->magic = BGTASK_INFO_MAGIC;
 
-	BG_TASK_LOCK(bt);
+	/*
+	 * The normal lock order is to lock the task, then the scheduler.
+	 * Here the scheduler is already locked, hence blindly attempting
+	 * to lock the task could create a deadlock.
+	 *
+	 * We therefore only try to lock the task and if we cannot, we avoid
+	 * accessing potentially risky information that could normally change
+	 * at runtime under lock protection.
+	 *		--RAM, 2015-03-06
+	 */
+
+	locked = BG_TASK_TRYLOCK(bt);
 
 	bi->tname = atom_str_get(bt->name);
 	bi->sname = atom_str_get(v->bs->name);
@@ -2392,11 +2406,13 @@ bg_info_get(void *data, void *udata)
 	bi->step = bt->step;
 	bi->seqno = bt->seqno;
 	bi->stepcnt = bt->stepcnt;
-	bi->signals = pslist_length(bt->signals);	/* Expecting low amount */
-	bi->running = booleanize(bt->flags & TASK_F_RUNNING);
-	bi->daemon = booleanize(bt->flags & TASK_F_DAEMON);
+	if (locked)
+		bi->signals = pslist_length(bt->signals);	/* Expecting low amount */
+	flags = bt->flags;								/* Read all bits once */
+	bi->running = booleanize(flags & TASK_F_RUNNING);
+	bi->daemon = booleanize(flags & TASK_F_DAEMON);
+	bi->cancelling = booleanize(flags & TASK_F_CANCELLING);
 	bi->cancelled = booleanize(bt->uflags & TASK_UF_CANCELLED);
-	bi->cancelling = booleanize(bt->flags & TASK_F_CANCELLING);
 
 	if (bi->daemon) {
 		struct bgdaemon *bd = BG_DAEMON(bt);
@@ -2405,7 +2421,15 @@ bg_info_get(void *data, void *udata)
 		bi->wq_done = bd->wq_done;
 	}
 
-	BG_TASK_UNLOCK(bt);
+	/*
+	 * Let them know whether the information we're reporting was obtained
+	 * with the task locked.
+	 */
+
+	bi->locked = booleanize(locked);
+
+	if (locked)
+		BG_TASK_UNLOCK(bt);
 
 	v->sl = pslist_prepend(v->sl, bi);
 }
