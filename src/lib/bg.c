@@ -387,12 +387,24 @@ const char *
 bg_task_step_name(bgtask_t *bt)
 {
 	bgstep_cb_t step;
+	bool locked;
 
 	bg_task_check(bt);
 
-	BG_TASK_LOCK(bt);
+	/*
+	 * This routine can be called with the scheduler locked, and the normal
+	 * lock order is task, then scheduler.  So to avoid deadlocks, and since
+	 * this is only for logging purposes and we don't otherwise expect any
+	 * contention, we only lock if possible.  We're only reading anyway.
+	 *		--RAM, 2015-03-06
+	 */
+
+	locked = BG_TASK_TRYLOCK(bt);
+
 	step = bt->stepvec[bt->step];
-	BG_TASK_UNLOCK(bt);
+
+	if (locked)
+		BG_TASK_UNLOCK(bt);
 
 	return stacktrace_function_name(step);
 }
