@@ -2365,10 +2365,17 @@ thread_find_element(void)
 	}
 
 done:
-	mutex_unlock_fast(&thread_insert_mtx);
+	/*
+	 * Reset the element whilst we hold the mutex.  It's not really required,
+	 * but discovered threads can also call thread_element_reset() from a
+	 * path where the mutex is held, so this gives us more consistency.
+	 *		--RAM, 2015-03-06
+	 */
 
 	if (te != NULL)
 		thread_element_reset(te);
+
+	mutex_unlock_fast(&thread_insert_mtx);
 
 	return te;
 }
