@@ -350,8 +350,6 @@ local_install:: gtk-gnutella.nm
 local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(ARCHLIB)/gtk-gnutella.nm
 
-coverity: coverity.tgz
-
 coverity.tgz: .FORCE
 	@if cov-build 2>/dev/null | grep Coverity >/dev/null 2>&1; \
 	then \

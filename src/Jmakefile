@@ -150,9 +150,6 @@ InstallNonExec(gtk-gnutella.nm, $(ARCHLIB))
  * Local Coverity builds
  */
 
-/* Convenience target */
-coverity: coverity.tgz
-
 coverity.tgz: .FORCE
 	@if cov-build 2>/dev/null | grep Coverity >/dev/null 2>&1; \
 	then \
