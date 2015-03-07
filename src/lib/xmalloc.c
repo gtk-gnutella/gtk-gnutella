@@ -4361,6 +4361,13 @@ xmalloc_thread_free(void *p)
 		return FALSE;
 
 	/*
+	 * Handle any other pending blocks in the cross-thread free list.
+	 */
+
+	if G_UNLIKELY(xcross[stid].count != 0)
+		xmalloc_thread_free_deferred(stid, TRUE);
+
+	/*
 	 * Check whether the block lies on a thread-private chunk page.
 	 */
 
@@ -4438,13 +4445,6 @@ xmalloc_thread_free(void *p)
 	 */
 
 	xmalloc_chunk_return(xck, p, TRUE);
-
-	/*
-	 * Handle any other pending blocks in the cross-thread free list.
-	 */
-
-	if G_UNLIKELY(xcross[stid].count != 0)
-		xmalloc_thread_free_deferred(stid, TRUE);
 
 	return TRUE;
 }
