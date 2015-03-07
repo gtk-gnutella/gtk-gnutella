@@ -634,7 +634,7 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	g_assert(dm);
 	g_assert(list_length(dm->entries) > 0);
 
-	if (GNET_PROPERTY(dmesh_debug)) {
+	if (GNET_PROPERTY(dmesh_debug) > 1) {
 		g_debug("dmesh %sentry removed for urn:sha1:%s at %s",
 			dme->fw_entry ? "firewalled " : "", sha1_base32(dm->sha1),
 			dme->fw_entry ?
@@ -690,7 +690,7 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 	if (!found)
 		return;
 
-	if (GNET_PROPERTY(dmesh_debug)) {
+	if (GNET_PROPERTY(dmesh_debug) > 1) {
 		g_debug("dmesh entry removed for urn:sha1:%s at %s",
 			sha1_base32(dm->sha1), host_addr_port_to_string(addr, port));
 	}
@@ -1021,7 +1021,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		if (stamp > dme->stamp)		/* Don't move stamp back in the past */
 			dme->stamp = stamp;
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry reused for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 	} else {
@@ -1044,7 +1044,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		entropy_harvest_many(name, strlen(name),
 			VARLEN(dme), PTRLEN(sha1), NULL);
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry created for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 
@@ -1156,7 +1156,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 			dme->inserted = now;	/* List of push-proxies changed */
 		}
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry reused for urn:sha1:%s for %s (%s proxies)",
 				sha1_base32(sha1), guid_hex_str(info->guid),
 				info->proxies ? "new" : "no new");
@@ -1178,7 +1178,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		entropy_harvest_many(PTRLEN(info->guid),
 			VARLEN(dme), PTRLEN(sha1), NULL);
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry created for urn:sha1:%s for %s",
 				sha1_base32(sha1), guid_hex_str(info->guid));
 
@@ -2551,21 +2551,58 @@ dmesh_collect_negative_locations(
 }
 
 /**
+ * Trace funny value of the "X-Gnutella-Alternate-Location" header, if not
+ * already done before and provided they're debugging the mesh.
+ *
+ * @param warned		set to TRUE after tracing
+ * @param value			the funny value to trace
+ * @param origin		if not-NULL, the host supplying us with the alt-locs
+ * @param user_agent	the advertised servent name giving us the value
+ */
+static void
+dmesh_location_trace(bool *warned, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
+{
+	str_t *s;
+
+	if (*warned)
+		return;		/* Already warned for that value */
+
+	*warned = TRUE;
+
+	s = str_new(256);
+	STR_CPY(s, "funny Alternate-Location");
+
+	if (user_agent != NULL)
+		str_catf(s, " from <%s>", user_agent);
+
+	if (origin != NULL)
+		str_catf(s, " at %s", gnet_host_to_string(origin));
+
+	str_catf(s, ": %s", value);
+
+	g_warning("%s", str_2c(s));
+	str_destroy_null(&s);
+}
+
+/**
  * Parse value of the "X-Gnutella-Alternate-Location" to extract alternate
  * sources for a given SHA1 key.
  *
- * @param sha1		the SHA1 for which we're collecting alt-locs
- * @param value		the value of the header field we're parsing
- * @param origin	if not-NULL, the host supplying us with the alt-locs
+ * @param sha1			the SHA1 for which we're collecting alt-locs
+ * @param value			the value of the header field we're parsing
+ * @param origin		if not NULL, the host supplying us with the alt-locs
+ * @param user_agent	if not NULL, advertised servent name giving the value
  */
 void
 dmesh_collect_locations(const sha1_t *sha1, const char *value,
-	const gnet_host_t *origin)
+	const gnet_host_t *origin, const char *user_agent)
 {
 	const char *p = value;
 	uchar c;
 	time_t now = tm_time();
 	bool finished = FALSE;
+	bool warned = FALSE;
 
 	do {
 		const char *date_start, *url_start;
@@ -2597,9 +2634,11 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			 * Quoted identifiers are one big token.
 			 */
 
-			if (in_quote && c == '\\' && p[1] == '"')
+			if (in_quote && c == '\\' && p[1] == '"') {
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("unsupported \\\" escape sequence in quoted section "
 					"for Alternate-Location: should use URL escaping instead!");
+			}
 
 			if (c == '"') {
 				in_quote = !in_quote;
@@ -2641,9 +2680,11 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 
 		if (*url_start == '"') {				/* URL enclosed in quotes? */
 			url_start++;						/* Skip that needless quote */
-			if (c != '"')
+			if (c != '"') {
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("Alternate-Location URL \"%s\" started with leading "
 					"quote, but did not end with one!", url_start);
+			}
 		}
 
 		/*
@@ -2663,9 +2704,9 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 				g_debug("MESH (parsed=%d): \"%s\"", ok, url);
 
 			if (!ok &&
-				(GNET_PROPERTY(dmesh_debug) > 1 ||
-					!is_strprefix(url, "ed2kftp://"))
+				(GNET_PROPERTY(dmesh_debug) || !is_strprefix(url, "ed2kftp://"))
 			) {
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("cannot parse Alternate-Location URL \"%s\": %s",
 					url, dmesh_url_strerror(dmesh_url_errno));
 			}
@@ -2738,6 +2779,8 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			if ((time_t) -1 == stamp) {
 				const char *d;
 
+				dmesh_location_trace(&warned, value, origin, user_agent);
+
 				/*
 				 * Some broken servents propagate two ISO dates separated by
 				 * a space, such as: "2015-03-06T16:00Z 2015-03-06T19:09Z".
@@ -2784,6 +2827,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			ok = sha1_eq(sha1, &digest);
 			if (!ok) {
 				g_assert(sha1);
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("mismatch in /uri-res/N2R? Alternate-Location "
 					"for SHA1=%s: got %s", sha1_base32(sha1), info.name);
 				goto skip_add;
@@ -3266,10 +3310,10 @@ dmesh_retrieve(void)
 			continue;
 
 		if (has_sha1) {
-			if (GNET_PROPERTY(dmesh_debug))
+			if (GNET_PROPERTY(dmesh_debug) > 3)
 				g_debug("%s(): parsing %s", G_STRFUNC, tmp);
 			if (is_strprefix(tmp, "http://")) {
-				dmesh_collect_locations(&sha1, tmp, NULL);
+				dmesh_collect_locations(&sha1, tmp, NULL, "download mesh");
 			} else {
 				dmesh_collect_fw_hosts(&sha1, tmp);
 			}

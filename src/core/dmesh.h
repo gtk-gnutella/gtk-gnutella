@@ -120,7 +120,7 @@ int dmesh_count(const struct sha1 *sha1);
 
 bool dmesh_collect_sha1(const char *value, struct sha1 *sha1);
 void dmesh_collect_locations(const struct sha1 *sha1, const char *value,
-	const gnet_host_t *origin);
+	const gnet_host_t *origin, const char *user_agent);
 void dmesh_collect_compact_locations(const struct sha1 *sha1,
 		const char *value, const gnet_host_t *origin);
 void dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value);
