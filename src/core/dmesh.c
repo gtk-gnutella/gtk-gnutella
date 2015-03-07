@@ -2779,7 +2779,8 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			if ((time_t) -1 == stamp) {
 				const char *d;
 
-				dmesh_location_trace(&warned, value, origin, user_agent);
+				if (GNET_PROPERTY(dmesh_debug))
+					dmesh_location_trace(&warned, value, origin, user_agent);
 
 				/*
 				 * Some broken servents propagate two ISO dates separated by
@@ -2798,6 +2799,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 					stamp = date2time(++d, now);	/* Skip the space */
 
 				if ((time_t) -1 == stamp) {
+					dmesh_location_trace(&warned, value, origin, user_agent);
 					g_warning("cannot parse Alternate-Location date: %s", date);
 					stamp = 0;
 				}
