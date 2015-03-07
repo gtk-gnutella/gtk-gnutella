@@ -2744,9 +2744,14 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 				 * So try to skip past the first space, if any, to see whether
 				 * we can be more successful.
 				 *		--RAM, 2015-03-06
+				 *
+				 * Actually, there can be more than two ISO dates, so just
+				 * keep the LAST one (since a valid ISO date does not contain
+				 * any space), by looking at the last space in the string.
+				 *		--RAM, 2015-03-07
 				 */
 
-				if (NULL != (d = strchr(date, ' ')))
+				if (NULL != (d = strrchr(date, ' ')))
 					stamp = date2time(++d, now);	/* Skip the space */
 
 				if ((time_t) -1 == stamp) {
