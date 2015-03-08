@@ -126,7 +126,7 @@ strtok_make_nostrip(const char *string)
 /**
  * Free string token parsing object.
  */
-void
+static void
 strtok_free(strtok_t *s)
 {
 	strtok_check(s);
@@ -136,6 +136,20 @@ strtok_free(strtok_t *s)
 
 	s->magic = 0;
 	WFREE(s);
+}
+
+/**
+ * Free string token parsing object and nullify its pointer.
+ */
+void
+strtok_free_null(strtok_t **s_ptr)
+{
+	strtok_t *s = *s_ptr;
+
+	if (s != NULL) {
+		strtok_free(s);
+		*s_ptr = NULL;
+	}
 }
 
 /**
@@ -653,7 +667,7 @@ strtok_test(void)
 	g_assert(0 == strcmp(tk, string));
 	g_assert(strtok_eos(st));
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	g_assert(strtok_has(string, ";,/", "d"));
 	g_assert(strtok_has(string, ";", "b, c"));

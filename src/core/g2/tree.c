@@ -281,7 +281,7 @@ g2_tree_lookup(const g2_tree_t *root, const char *path)
 	/* FALL THROUGH */
 
 done:
-	strtok_free(st);
+	strtok_free_null(&st);
 	return deconstify_pointer(r);
 }
 

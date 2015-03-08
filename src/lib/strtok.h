@@ -43,7 +43,7 @@ typedef struct strtok strtok_t;
 strtok_t *strtok_make(const char *string, bool no_lead, bool no_end);
 struct strtok *strtok_make_strip(const char *string);
 struct strtok *strtok_make_nostrip(const char *string);
-void strtok_free(strtok_t *s);
+void strtok_free_null(strtok_t **s);
 void strtok_restart(strtok_t *s);
 void strtok_skip(strtok_t *s, const char *delim, size_t n);
 const char *strtok_next(strtok_t *s, const char *delim);

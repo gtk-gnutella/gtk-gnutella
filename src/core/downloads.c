@@ -9980,7 +9980,7 @@ extract_bitprint(const char *buf, struct sha1 *sha1, struct tth *tth)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	return found;
 }
@@ -10679,7 +10679,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	if (!seen_guid && NULL == msg)
 		msg = "missing GUID";
@@ -10810,7 +10810,7 @@ check_push_proxies(struct download *d, const header_t *header)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	if (added > 0)
 		download_push_proxy_wakeup(d->server, TRUE, FALSE);

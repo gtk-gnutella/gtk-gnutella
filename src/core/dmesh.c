@@ -2411,7 +2411,7 @@ dmesh_collect_sha1(const char *value, struct sha1 *sha1)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	return found;
 }
@@ -3026,7 +3026,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	if (NULL == info.guid) {
 		if (GNET_PROPERTY(dmesh_debug))
@@ -3057,7 +3057,7 @@ dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
 	while ((tok = strtok_next(st, ","))) {
 		dmesh_collect_fw_host(sha1, tok);
 	}
-	strtok_free(st);
+	strtok_free_null(&st);
 }
 
 /**

@@ -3885,7 +3885,7 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	if (!seen_guid && NULL == msg)
 		msg = "missing GUID";
