@@ -127,6 +127,30 @@ usage(void)
 	exit(EXIT_FAILURE);
 }
 
+static void
+emitv(bool nl, const char *fmt, va_list args)
+{
+	str_t *s = str_new(512);
+
+	str_vprintf(s, fmt, args);
+	fputs(str_2c(s), stdout);
+	if (nl)
+		fputc('\n', stdout);
+	fflush(stdout);
+
+	str_destroy_null(&s);
+}
+
+static void G_GNUC_PRINTF(1, 2)
+emit(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	emitv(TRUE, fmt, args);
+	va_end(args);
+}
+
 static char *names[] = { "one", "two", "three", "four", "five" };
 
 static void
@@ -134,8 +158,7 @@ exit_callback(void *result, void *arg)
 {
 	char *name = arg;
 	long length = pointer_to_long(result);
-	printf("thread \"%s\" finished, result length is %ld\n", name, length);
-	fflush(stdout);
+	emit("thread \"%s\" finished, result length is %ld", name, length);
 }
 
 static void *
@@ -145,8 +168,7 @@ compute_length(void *arg)
 	const char *name = arg;
 	char *scratch = xstrdup(name);
 
-	printf("%s given \"%s\"\n", thread_id_name(stid), scratch);
-	fflush(stdout);
+	emit("%s given \"%s\"", thread_id_name(stid), scratch);
 	xfree(scratch);
 	thread_cancel_test();
 	if (sleep_before_exit)
@@ -181,18 +203,18 @@ test_create_one(bool repeat, bool join)
 		} else {
 			int j;
 			if (!repeat)
-				printf("thread i=%u created as %s\n", i, thread_id_name(r));
+				emit("thread i=%u created as %s", i, thread_id_name(r));
 			if (!join) {
 				j = thread_join(r, NULL);
 				if (-1 != j) {
-					s_warning("thread_join() worked for %s?\n",
+					s_warning("thread_join() worked for %s?",
 						thread_id_name(r));
 				} else if (errno != EINVAL) {
 					s_warning("thread_join() failure on %s: %m",
 						thread_id_name(r));
 				} else {
 					if (!repeat) {
-						printf("%s cannot be joined, that's OK\n",
+						emit("%s cannot be joined, that's OK",
 							thread_id_name(r));
 					}
 					if (wait_threads) {
@@ -223,13 +245,13 @@ test_create_one(bool repeat, bool join)
 		compat_sleep_ms(200);		/* Let all the threads run */
 
 	if (join) {
-		printf("now joining the %u threads\n", (uint) G_N_ELEMENTS(launched));
+		emit("now joining the %u threads", (uint) G_N_ELEMENTS(launched));
 		for (i = 0; i < G_N_ELEMENTS(launched); i++) {
 			int r = launched[i];
 
 			if (-1 == r) {
 				if (!repeat)
-					printf("skipping unlaunched thread i=%u\n", i);
+					emit("skipping unlaunched thread i=%u", i);
 			} else {
 				void *result;
 				int j;
@@ -246,7 +268,7 @@ test_create_one(bool repeat, bool join)
 				} else {
 					ulong length = pointer_to_ulong(result);
 					if (!repeat) {
-						printf("%s finished, result length is %lu\n",
+						emit("%s finished, result length is %lu",
 							thread_id_name(r), length);
 					}
 				}
@@ -292,9 +314,8 @@ posix_worker(void *unused_arg)
 	thread_current_info(&info);
 	thread_info_to_string_buf(&info, name, sizeof name);
 
-	printf("POSIX thread worker starting...\n");
-	printf("POSIX worker: %s\n", name);
-	fflush(stdout);
+	emit("POSIX thread worker starting...");
+	emit("POSIX worker: %s", name);
 
 	for (;;) {
 		void *p;
@@ -326,15 +347,13 @@ posix_threads(void *unused_arg)
 
 	(void) unused_arg;
 
-	printf("POSIX thread launcher starting...\n");
-	fflush(stdout);
+	emit("POSIX thread launcher starting...");
 
 	for (i = 0; i < 6; i++) {
 		(void) posix_thread_create(posix_worker, NULL, FALSE);
 	}
 
-	printf("POSIX thread launch done, mutating to worker...\n");
-	fflush(stdout);
+	emit("POSIX thread launch done, mutating to worker...");
 
 	return posix_worker(NULL);
 }
@@ -363,8 +382,7 @@ test_create(unsigned repeat, bool join, bool posix)
 		foreign = posix_thread_create(posix_exiting_thread, NULL, TRUE);
 		(void) posix_thread_create(posix_threads, NULL, FALSE);
 
-		printf("Waiting for single foreign POSIX thread...\n");
-		fflush(stdout);
+		emit("Waiting for single foreign POSIX thread...");
 		if (0 != pthread_join(foreign, NULL))
 			s_error("cannot wait for foreign POSIX thread");
 	}
@@ -401,20 +419,20 @@ test_cancel_one(bool repeat, bool join)
 		} else {
 			int j;
 			if (!repeat)
-				printf("thread i=%u created as %s\n", i, thread_id_name(r));
+				emit("thread i=%u created as %s", i, thread_id_name(r));
 			if (-1 == thread_cancel(r))
 				s_warning("thread_cancel(%u) failed: %m", r);
 			if (!join) {
 				j = thread_join(r, NULL);
 				if (-1 != j) {
-					s_warning("thread_join() worked for %s?\n",
+					s_warning("thread_join() worked for %s?",
 						thread_id_name(r));
 				} else if (errno != EINVAL) {
 					s_warning("thread_join() failure on %s: %m",
 						thread_id_name(r));
 				} else {
 					if (!repeat) {
-						printf("%s cannot be joined, that's OK\n",
+						emit("%s cannot be joined, that's OK",
 							thread_id_name(r));
 					}
 				}
@@ -426,13 +444,13 @@ test_cancel_one(bool repeat, bool join)
 		compat_sleep_ms(200);		/* Let all the threads run */
 
 	if (join) {
-		printf("now joining the %u threads\n", (uint) G_N_ELEMENTS(launched));
+		emit("now joining the %u threads", (uint) G_N_ELEMENTS(launched));
 		for (i = 0; i < G_N_ELEMENTS(launched); i++) {
 			int r = launched[i];
 
 			if (-1 == r) {
 				if (!repeat)
-					printf("skipping unlaunched thread i=%u\n", i);
+					emit("skipping unlaunched thread i=%u", i);
 			} else {
 				void *result;
 				int j = thread_join(r, &result);		/* Block */
@@ -442,7 +460,7 @@ test_cancel_one(bool repeat, bool join)
 				} else {
 					long length = pointer_to_long(result);
 					if (!repeat) {
-						printf("%s finished, result length is %ld\n",
+						emit("%s finished, result length is %ld",
 							thread_id_name(r), length);
 					}
 				}
@@ -483,8 +501,7 @@ test_inter_main(void *arg)
 	waiter_t *w = waiter_refcnt_inc(arg);
 
 	sleep(1);
-	printf("signaling main thread\n");
-	fflush(stdout);
+	emit("signaling main thread");
 	waiter_signal(w);
 	
 	compat_sleep_ms(5);
@@ -506,21 +523,19 @@ test_inter(void)
 	if (-1 == r)
 		s_error("could not launch thread: %m");
 
-	printf("main thread waiting\n");
-	fflush(stdout);
+	emit("main thread waiting");
 	if (!waiter_suspend(mw))
 		s_error("could not suspend itself");
-	printf("main thread awoken\n");
+	emit("main thread awoken");
 
 	refed = waiter_refcnt_dec(w);
-	printf("child waiter %s referenced\n", refed ? "still" : "no longer");
+	emit("child waiter %s referenced", refed ? "still" : "no longer");
 	while (waiter_child_count(mw) != 1) {
-		printf("waiting for all children in waiter to go\n");
-		fflush(stdout);
+		emit("waiting for all children in waiter to go");
 		compat_sleep_ms(5);
 	}
 	refed = waiter_refcnt_dec(mw);
-	printf("master waiter %s referenced\n", refed ? "still" : "no longer");
+	emit("master waiter %s referenced", refed ? "still" : "no longer");
 }
 
 struct test_semaphore_arg {
@@ -540,24 +555,21 @@ test_semaphore_main(void *arg)
 
 	for (i = 0; i < 6; i++) {
 		bool got = TRUE;
-		printf("thread #%d alive, waiting for event\n", n);
-		fflush(stdout);
+		emit("thread #%d alive, waiting for event", n);
 		if (semaphore_acquire(s, 1, NULL)) {
-			printf("#%d got semaphore!\n", n);
-			fflush(stdout);
+			emit("#%d got semaphore!", n);
 		} else {
 			s_warning("thread #%d cannot get semaphore: %m", n);
 			got = FALSE;
 		}
 		sleep(1);
 		if (got) {
-			printf("#%d releasing semaphore!\n", n);
-			fflush(stdout);
+			emit("#%d releasing semaphore!", n);
 			semaphore_release(s, 1);
 		}
 	}
 
-	printf("thread #%d exiting!\n", n);
+	emit("thread #%d exiting!", n);
 	return NULL;
 }
 
@@ -598,12 +610,12 @@ test_semaphore(bool emulated)
 		s_error("could not acquire semaphore, second time!");
 
 	tm_fill_ms(&timeout, 500);
-	printf("will wait 1/2 second...\n");
+	emit("will wait 1/2 second...");
 	if (semaphore_acquire(s, 1, &timeout))
 		s_error("could acquire empty semaphore!");
 	g_assert_log(EAGAIN == errno,
 		"improper errno, expected EAGAIN (%d) but got %m", EAGAIN);
-	printf("good, failed to acquire empty semaphore.\n");
+	emit("good, failed to acquire empty semaphore.");
 
 	r[0] = test_semaphore_thread_launch(1, s);
 	r[1] = test_semaphore_thread_launch(2, s);
@@ -612,20 +624,18 @@ test_semaphore(bool emulated)
 	semaphore_release(s, 1);
 
 	for (i = 0; i < 6; i++) {
-		printf("main alive\n");
-		fflush(stdout);
+		emit("main alive");
 		sleep(1);
 	}
 
-	printf("main waiting for subthreads\n");
-	fflush(stdout);
+	emit("main waiting for subthreads");
 
 	for (i = 0; UNSIGNED(i) < G_N_ELEMENTS(r); i++) {
 		if (-1 == thread_join(r[i], NULL))
 			s_error("failed to join with %s: %m", thread_id_name(r[i]));
 	}
 
-	printf("main is done, final semaphore value is %d\n", semaphore_value(s));
+	emit("main is done, final semaphore value is %d", semaphore_value(s));
 
 	semaphore_destroy(&s);
 }
@@ -692,8 +702,7 @@ player(void *num)
 
 	while (game_state < GAME_OVER) {
 		stats->play++;
-		printf("%s plays\n", me);
-		fflush(stdout);
+		emit("%s plays", me);
 
 		game_state = other_player;
 		cond_signal(&game_state_change, &game_state_lock);
@@ -707,8 +716,7 @@ player(void *num)
 
 				if (!success) {
 					stats->timeout++;
-					printf("** TIMEOUT ** %s wakeup\n", me);
-					fflush(stdout);
+					emit("** TIMEOUT ** %s wakeup", me);
 					continue;
 				}
 			} else {
@@ -717,15 +725,13 @@ player(void *num)
 
 			if (other_player == game_state) {
 				stats->spurious++;
-				printf("** SPURIOUS ** %s wakeup\n", me);
-				fflush(stdout);
+				emit("** SPURIOUS ** %s wakeup", me);
 			}
 		} while (other_player == game_state);
 	}
 
 	game_state++;
-	printf("%s leaving\n", me);
-	fflush(stdout);
+	emit("%s leaving", me);
 
 	cond_broadcast(&game_state_change, &game_state_lock);
 	mutex_unlock(&game_state_lock);
@@ -742,7 +748,7 @@ player_stats(int n)
 
 	stats = &game_stats[n];
 
-	printf("%s played %d times (%d spurious event%s, %d timeout%s)\n",
+	emit("%s played %d times (%d spurious event%s, %d timeout%s)",
 		name[n], stats->play, stats->spurious, plural(stats->spurious),
 		stats->timeout, plural(stats->timeout));
 }
@@ -804,8 +810,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 			if (ret < 0) {
 				s_warning("poll() failed: %m");
 			} else {
-				printf("[match still on]\n");
-				fflush(stdout);
+				emit("[match still on]");
 				notifications++;
 				waiter_ack(w);
 			}
@@ -819,20 +824,19 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	}
 
 	if (noise) {
-		printf("** Noise ON **\n");
+		emit("** Noise ON **");
 		for (i = 0; i < 100000; i++) {
 			mutex_lock(&game_state_lock);
 			cond_broadcast(&game_state_change, &game_state_lock);
 			mutex_unlock(&game_state_lock);
 		}
-		printf("** Noise OFF **\n");
+		emit("** Noise OFF **");
 	}
 
 	mutex_lock(&game_state_lock);
 	game_state = GAME_OVER;
 
-	printf("Stopping the game...\n");
-	fflush(stdout);
+	emit("Stopping the game...");
 
 	cond_broadcast(&game_state_change, &game_state_lock);
 
@@ -842,7 +846,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 
 	g_assert(0 == cond_waiting_count(&game_state_change));
 
-	printf("Game over!\n");
+	emit("Game over!");
 
 	mutex_unlock(&game_state_lock);
 	mutex_destroy(&game_state_lock);
@@ -859,7 +863,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 		player_stats(i);
 	}
 	if (monitor) {
-		printf("main got %u notification%s\n",
+		emit("main got %u notification%s",
 			notifications, plural(notifications));
 	}
 }
@@ -877,21 +881,18 @@ fork_locker(void *arg)
 
 	thread_set_name(fork_names[n]);
 
-	printf("%s locking...\n", thread_name());
-	fflush(stdout);
+	emit("%s locking...", thread_name());
 
 	spinlock(&locks[n]);
 	mutex_lock(&mutexes[n]);
 	rwlock_rlock(&rlocks[n]);
 	rwlock_wlock(&wlocks[n]);
 
-	printf("%s locked, sleeping for 5 secs\n", thread_name());
-	fflush(stdout);
+	emit("%s locked, sleeping for 5 secs", thread_name());
 
 	sleep(5);
 
-	printf("%s unlocking\n", thread_name());
-	fflush(stdout);
+	emit("%s unlocking", thread_name());
 
 	rwlock_wunlock(&wlocks[n]);
 	rwlock_runlock(&rlocks[n]);
@@ -908,14 +909,12 @@ fork_forker(void *arg)
 	unsigned running;
 	bool safe = booleanize(pointer_to_int(arg));
 
-	printf("%s() waiting 1 sec\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() waiting 1 sec", G_STRFUNC);
 	sleep(1);
 
 	running = thread_count();
-	printf("%s() forking with %u running thread%s, STID=%u\n", G_STRFUNC,
+	emit("%s() forking with %u running thread%s, STID=%u", G_STRFUNC,
 		running, plural(running), thread_small_id());
-	fflush(stdout);
 
 	thread_lock_dump_all(STDOUT_FILENO);
 
@@ -923,15 +922,13 @@ fork_forker(void *arg)
 	case -1:
 		s_error("%s() cannot fork(): %m", G_STRFUNC);
 	case 0:
-		printf("%s() child process started as STID=%u\n",
+		emit("%s() child process started as STID=%u",
 			G_STRFUNC, thread_small_id());
-		printf("%s() child has %u thread\n", G_STRFUNC, thread_count());
-		fflush(stdout);
+		emit("%s() child has %u thread", G_STRFUNC, thread_count());
 		thread_lock_dump_all(STDOUT_FILENO);
 		exit(EXIT_SUCCESS);
 	default:
-		printf("%s() child forked, waiting...\n", G_STRFUNC);
-		fflush(stdout);
+		emit("%s() child forked, waiting...", G_STRFUNC);
 #ifdef HAS_WAITPID
 		{
 			pid_t w = waitpid(pid, NULL, 0);
@@ -939,8 +936,7 @@ fork_forker(void *arg)
 				s_error("%s() cannot wait(): %m", G_STRFUNC);
 		}
 #endif
-		printf("%s() child terminated, exiting thread\n", G_STRFUNC);
-		fflush(stdout);
+		emit("%s() child terminated, exiting thread", G_STRFUNC);
 	}
 
 	return NULL;
@@ -952,11 +948,10 @@ test_fork(bool safe)
 	int l1, l2, fk, r;
 	unsigned running;
 
-	printf("--- testing thread_fork(%s)\n", safe ? "TRUE" : "FALSE");
+	emit("--- testing thread_fork(%s)", safe ? "TRUE" : "FALSE");
 
 	running = thread_count();
-	printf("starting with %u running thread%s\n",
-		running, plural(running));
+	emit("starting with %u running thread%s", running, plural(running));
 
 	l1 = thread_create(fork_locker, int_to_pointer(0), 0, 8192);
 	l2 = thread_create(fork_locker, int_to_pointer(1), 0, 8192);
@@ -976,10 +971,9 @@ test_fork(bool safe)
 		s_error("final thread_join() failed: %m");
 
 	running = thread_count();
-	printf("ending with %u running thread%s\n",
-		running, plural(running));
+	emit("ending with %u running thread%s", running, plural(running));
 
-	printf("--- test of thread_fork(%s) done!\n", safe ? "TRUE" : "FALSE");
+	emit("--- test of thread_fork(%s) done!", safe ? "TRUE" : "FALSE");
 }
 
 static int
@@ -1068,7 +1062,7 @@ test_aqueue(bool emulated)
 	int t;
 	uint i;
 
-	printf("%s() starting...\n", G_STRFUNC);
+	emit("%s() starting...", G_STRFUNC);
 
 	arg.r = r = aq_make_full(emulated);		/* requests */
 	arg.a = a = aq_make_full(emulated);		/* answers */
@@ -1080,18 +1074,15 @@ test_aqueue(bool emulated)
 	for (i = 0; i < G_N_ELEMENTS(names); i++) {
 		ulong res;
 
-		printf("computing length of \"%s\"\n", names[i]);
-		fflush(stdout);
+		emit("computing length of \"%s\"", names[i]);
 
 		aq_put(r, names[i]);
 		res = pointer_to_ulong(aq_remove(a));
 
-		printf("\t=> %lu bytes\n", res);
-		fflush(stdout);
+		emit("\t=> %lu bytes", res);
 	}
 
-	printf("sending EOF\n");
-	fflush(stdout);
+	emit("sending EOF");
 
 	aq_put(r, NULL);		/* Signals end to thread */
 	if (-1 == thread_join(t, NULL))
@@ -1100,7 +1091,7 @@ test_aqueue(bool emulated)
 	aq_refcnt_dec(a);
 	aq_refcnt_dec(r);
 
-	printf("%s() all done.\n", G_STRFUNC);
+	emit("%s() all done.", G_STRFUNC);
 }
 
 static rwlock_t rwsync = RWLOCK_INIT;
@@ -1157,8 +1148,7 @@ test_rwlock(void)
 
 	/* The mono-threaded "cannot fail" sequence */
 
-	printf("%s(): mono-threaded tests...\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s(): mono-threaded tests...", G_STRFUNC);
 
 	if (!rwlock_rlock_try(&rw))
 		s_error("cannot read-lock");
@@ -1180,13 +1170,11 @@ test_rwlock(void)
 	if (!rwlock_is_free(&rw))
 		s_error("lock should be free");
 
-	printf("%s(): mono-threaded tests succeded.\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s(): mono-threaded tests succeded.", G_STRFUNC);
 
 	/* Now for multi-threaded tests.... */
 
-	printf("%s(): multi-threaded tests...\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s(): multi-threaded tests...", G_STRFUNC);
 
 	for (i = 0; i < G_N_ELEMENTS(t); i++) {
 		t[i] = thread_create(test_rwthreads, NULL, 0, 0);
@@ -1198,8 +1186,7 @@ test_rwlock(void)
 		thread_join(t[i], NULL);
 	}
 
-	printf("%s(): multi-threaded tests done.\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s(): multi-threaded tests done.", G_STRFUNC);
 }
 
 static bool test_signals_done;
@@ -1210,15 +1197,13 @@ static int test_signals_count;
 static void
 test_sighandler(int sig)
 {
-	printf("%s received signal #%d\n", thread_name(), sig);
-	fflush(stdout);
+	emit("%s received signal #%d", thread_name(), sig);
 }
 
 static void
 test_sigdone(int sig)
 {
-	printf("%s got signal #%d, will exit\n", thread_name(), sig);
-	fflush(stdout);
+	emit("%s got signal #%d, will exit", thread_name(), sig);
 
 	test_signals_done = TRUE;
 }
@@ -1226,16 +1211,14 @@ test_sigdone(int sig)
 static void
 test_sigcount(int sig)
 {
-	printf("%s got signal #%d (count = %u)\n", thread_name(), sig,
+	emit("%s got signal #%d (count = %u)", thread_name(), sig,
 		++test_signals_count);
-	fflush(stdout);
 }
 
 static void
 test_printsig(int sig)
 {
-	printf("%s got signal #%d\n", thread_name(), sig);
-	fflush(stdout);
+	emit("%s got signal #%d", thread_name(), sig);
 }
 
 static void *
@@ -1259,14 +1242,12 @@ signalled_thread(void *unused_arg)
 		if (!thread_pause())
 			s_error("thread was not unblocked by signal");
 		if (3 == count++) {
-			printf("%s() will now get signal #4\n", G_STRFUNC);
-			fflush(stdout);
+			emit("%s() will now get signal #4", G_STRFUNC);
 			thread_sigmask(TSIG_SETMASK, &oset, NULL);
 		}
 	}
 
-	printf("%s() exiting\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() exiting", G_STRFUNC);
 
 	return NULL;
 }
@@ -1285,14 +1266,12 @@ sleeping_thread(void *arg)
 	thread_sleep_ms(2000);
 	tm_now_exact(&end);
 
-	printf("%s() slept %u ms (expected 2000 ms)\n", G_STRFUNC,
+	emit("%s() slept %u ms (expected 2000 ms)", G_STRFUNC,
 		(uint) tm_elapsed_ms(&end, &start));
-	fflush(stdout);
 
 	while (test_signals_count < TEST_SIGNALS_COUNT) {
-		printf("%s() got %d/%d signals so far\n", G_STRFUNC,
+		emit("%s() got %d/%d signals so far", G_STRFUNC,
 			test_signals_count, TEST_SIGNALS_COUNT);
-		fflush(stdout);
 		thread_pause();
 	}
 
@@ -1316,9 +1295,8 @@ sleeping_thread(void *arg)
 		tm_now_exact(&start);
 		if (thread_timed_sigsuspend(&oset, &timeout)) {
 			tm_now_exact(&end);
-			printf("%s() suspended %u ms before getting signal\n", G_STRFUNC,
+			emit("%s() suspended %u ms before getting signal", G_STRFUNC,
 				(uint) tm_elapsed_ms(&end, &start));
-			fflush(stdout);
 		} else {
 			g_assert_not_reached();
 		}
@@ -1329,9 +1307,8 @@ sleeping_thread(void *arg)
 			g_assert_not_reached();
 		} else {
 			tm_now_exact(&end);
-			printf("%s() suspended %u ms without getting signals\n", G_STRFUNC,
+			emit("%s() suspended %u ms without getting signals", G_STRFUNC,
 				(uint) tm_elapsed_ms(&end, &start));
-			fflush(stdout);
 		}
 
 		tm_fill_ms(&timeout, 2000);
@@ -1340,9 +1317,8 @@ sleeping_thread(void *arg)
 		tm_now_exact(&start);
 		if (thread_timed_sigsuspend(&oset, &timeout)) {
 			tm_now_exact(&end);
-			printf("%s() suspended %u ms (about 1 sec) before getting signal\n",
+			emit("%s() suspended %u ms (about 1 sec) before getting signal",
 				G_STRFUNC, (uint) tm_elapsed_ms(&end, &start));
-			fflush(stdout);
 		} else {
 			g_assert_not_reached();
 		}
@@ -1368,8 +1344,7 @@ test_signals(void)
 	if (-1 == r)
 		s_error("cannot create new thread: %m");
 
-	printf("%s() thread %s created\n", G_STRFUNC, thread_id_name(r));
-	fflush(stdout);
+	emit("%s() thread %s created", G_STRFUNC, thread_id_name(r));
 
 	for (i = 0; i < 10; i++) {
 		sleep(1);
@@ -1381,12 +1356,10 @@ test_signals(void)
 			s_error("thread #%d cannot be signalled: %m", r);
 	}
 
-	printf("%s() emitting each signal 100 times\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() emitting each signal 100 times", G_STRFUNC);
 
 	for (i = 0; i < 100; i++) {
-		printf("%d\n", i);
-		fflush(stdout);
+		emit("%d", i);
 		if (-1 == thread_kill(r, TSIG_1))
 			s_error("cannot send TSIG_1: %m");
 		if (-1 == thread_kill(r, TSIG_2))
@@ -1395,16 +1368,14 @@ test_signals(void)
 			s_error("cannot send TSIG_4: %m");
 	}
 
-	printf(" done!\n");
-	fflush(stdout);
+	emit(" done!");
 
 	if (-1 == thread_kill(r, TSIG_3))
 		s_error("cannot send TSIG_3: %m");
 	if (-1 == thread_join(r, NULL))
 		s_error("cannot join: %m");
 
-	printf("%s() now checking thread_sleep_ms()\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() now checking thread_sleep_ms()", G_STRFUNC);
 
 	b = barrier_new(2);
 	r = thread_create(sleeping_thread, barrier_refcnt_inc(b), 0, 0);
@@ -1416,13 +1387,11 @@ test_signals(void)
 			s_error("thread #%d cannot be signalled: %m", r);
 		thread_sleep_ms(500);	/* Give it time to process signal */
 	}
-	printf("%s() all signals sent\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() all signals sent", G_STRFUNC);
 
 	barrier_wait(b);		/* Let signalled thread process everything */
 
-	printf("%s() now checking thread_timed_sigsuspend()\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() now checking thread_timed_sigsuspend()", G_STRFUNC);
 
 	barrier_wait(b);
 	thread_kill(r, TSIG_2);
@@ -1450,30 +1419,26 @@ computer_thread(void *arg)
 	barrier_refcnt_inc(cb);
 	g_assert(0 == counter);
 
-	printf("%s(%d) started as %s\n", G_STRFUNC, n, thread_name());
-	fflush(stdout);
+	emit("%s(%d) started as %s", G_STRFUNC, n, thread_name());
 
 	thread_signal(TSIG_1, test_sighandler);
 	WFREE(ca);
 	barrier_wait(cb);
 
-	printf("%s(%d) incrementing counter=%d\n", G_STRFUNC, n,
+	emit("%s(%d) incrementing counter=%d", G_STRFUNC, n,
 		atomic_int_get(&counter));
-	fflush(stdout);
 	atomic_int_inc(&counter);
 
 	barrier_wait(cb);
 
-	printf("%s(%d) reincrementing counter=%d\n", G_STRFUNC, n,
+	emit("%s(%d) reincrementing counter=%d", G_STRFUNC, n,
 		atomic_int_get(&counter));
-	fflush(stdout);
 	atomic_int_inc(&counter);
 
 	barrier_wait(cb);
 	barrier_free_null(&cb);
 
-	printf("%s(%d) exiting\n", G_STRFUNC, n);
-	fflush(stdout);
+	emit("%s(%d) exiting", G_STRFUNC, n);
 
 	return NULL;
 }
@@ -1502,12 +1467,10 @@ test_barrier_one(bool emulated)
 	g_assert(0 == counter);		/* Nobody can change that before the barrier */
 
 	barrier_wait(cb);
-	printf("%s() reached barrier the first time: threads started\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() reached barrier the first time: threads started", G_STRFUNC);
 
 	barrier_master_wait(cb);
-	printf("%s() reached barrier the second time as master\n", G_STRFUNC);
-	fflush(stdout);
+	emit("%s() reached barrier the second time as master", G_STRFUNC);
 
 	for (i = 0; i < n; i++) {
 		if (-1 == thread_kill(t[i], TSIG_1))
@@ -1519,13 +1482,12 @@ test_barrier_one(bool emulated)
 	atomic_int_inc(&counter);
 	g_assert(n + 1 == counter);	/* We're the master thread */
 
-	printf("%s() releasing threads, counter=%d\n", G_STRFUNC, counter);
-	fflush(stdout);
+	emit("%s() releasing threads, counter=%d", G_STRFUNC, counter);
 	barrier_release(cb);
 
 	barrier_wait(cb);
 	barrier_free_null(&cb);
-	printf("%s() computation done, counter=%d (expected is %d)\n",
+	emit("%s() computation done, counter=%d (expected is %d)",
 		G_STRFUNC, counter, 2 * n  + 1);
 	g_assert(2 * n + 1 == counter);
 }
@@ -1556,38 +1518,33 @@ dam_thread(void *arg)
 	dam_t *d = da->d;
 	barrier_t *b= da->b;
 
-	printf("%s(%d) started as %s\n", G_STRFUNC, n, thread_name());
+	emit("%s(%d) started as %s", G_STRFUNC, n, thread_name());
 
 	dam_wait(d);
 
-	printf("%s(%d) incrementing counter=%d\n", G_STRFUNC, n,
+	emit("%s(%d) incrementing counter=%d", G_STRFUNC, n,
 		atomic_int_get(&dam_counter));
-	fflush(stdout);
 	atomic_int_inc(&dam_counter);
 
 	dam_wait(d);
 
-	printf("%s(%d) reincrementing counter=%d\n", G_STRFUNC, n,
+	emit("%s(%d) reincrementing counter=%d", G_STRFUNC, n,
 		atomic_int_get(&dam_counter));
-	fflush(stdout);
 	atomic_int_inc(&dam_counter);
 
 	dam_wait(d);		/* Dam disabled, will not wait */
-	printf("%s(%d) last incrementing counter=%d\n", G_STRFUNC, n,
+	emit("%s(%d) last incrementing counter=%d", G_STRFUNC, n,
 		atomic_int_get(&dam_counter));
-	fflush(stdout);
 	atomic_int_inc(&dam_counter);
 	dam_free_null(&d);
 
-	printf("%s(%d) waiting, counter=%d\n", G_STRFUNC, n,
+	emit("%s(%d) waiting, counter=%d", G_STRFUNC, n,
 		atomic_int_get(&dam_counter));
-	fflush(stdout);
 
 	barrier_wait(b);
 	barrier_free_null(&b);
 
-	printf("%s(%d) exiting\n", G_STRFUNC, n);
-	fflush(stdout);
+	emit("%s(%d) exiting", G_STRFUNC, n);
 
 	return NULL;
 }
@@ -1944,13 +1901,11 @@ test_memory(unsigned repeat, bool posix, int percentage)
 	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	unsigned i;
 
-	printf("%s() detected %ld CPU%s%s\n", G_STRFUNC, cpus, plural(cpus),
+	emit("%s() detected %ld CPU%s%s", G_STRFUNC, cpus, plural(cpus),
 		0 == cpu_count ? "" : " (forced by -c)");
 
 	if (randomize_free)
-		printf("%s() will free blocks in random order\n", G_STRFUNC);
-
-	fflush(stdout);
+		emit("%s() will free blocks in random order", G_STRFUNC);
 
 	for (i = 0; i < repeat; i++) {
 		tm_t start, end, elapsed;
@@ -1964,16 +1919,13 @@ test_memory(unsigned repeat, bool posix, int percentage)
 
 		tm_elapsed(&elapsed, &end, &start);
 
-		printf("%s() #%d finished! (%f secs, %.3f us/alloc, %.3f us/free)\n",
+		emit("%s() #%d finished! (%f secs, %.3f us/alloc, %.3f us/free)",
 			G_STRFUNC, i, tm2f(&elapsed),
 			total.alloc_us / (double) total.amount,
 			total.free_us / (double) total.amount);
-		fflush(stdout);
 	}
 
-	printf("%s() done!\n", G_STRFUNC);
-	fflush(stdout);
-
+	emit("%s() done!", G_STRFUNC);
 }
 
 static int teq_recv_cnt;
@@ -2391,16 +2343,16 @@ main(int argc, char **argv)
 		case 'r':
 			break;
 		case 'h':
-			printf("Using halloc() for memory tests\n");
+			emit("Using halloc() for memory tests");
 			break;
 		case 'v':
-			printf("Using vmm_alloc() for memory tests\n");
+			emit("Using vmm_alloc() for memory tests");
 			break;
 		case 'w':
-			printf("Using walloc() for memory tests\n");
+			emit("Using walloc() for memory tests");
 			break;
 		case 'x':
-			printf("Using xmalloc() for memory tests\n");
+			emit("Using xmalloc() for memory tests");
 			break;
 		default:
 			s_warning("unknown allocator '%c', using random mix", allocator);
@@ -2408,14 +2360,13 @@ main(int argc, char **argv)
 			break;
 		}
 		if (allocator_bsize != 0) {
-			printf("Using blocks of %lu byte%s\n", (ulong) allocator_bsize,
+			emit("Using blocks of %lu byte%s", (ulong) allocator_bsize,
 				plural(allocator_bsize));
 		}
 		if (posix)
-			printf("Adding (discovered) POSIX threads\n");
+			emit("Adding (discovered) POSIX threads");
 		if (percentage)
-			printf("Randomly free %d%% blocks in remote threads\n", percentage);
-		fflush(stdout);
+			emit("Randomly free %d%% blocks in remote threads", percentage);
 		test_memory(repeat, posix, percentage);
 	}
 
