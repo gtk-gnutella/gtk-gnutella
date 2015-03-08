@@ -1396,7 +1396,7 @@ test_signals(void)
 	emit("%s() emitting each signal 100 times", G_STRFUNC);
 
 	for (i = 0; i < 100; i++) {
-		emit("%d", i);
+		emitz("%d", i);
 		if (-1 == thread_kill(r, TSIG_1))
 			s_error("cannot send TSIG_1: %m");
 		if (-1 == thread_kill(r, TSIG_2))
@@ -1405,7 +1405,7 @@ test_signals(void)
 			s_error("cannot send TSIG_4: %m");
 	}
 
-	emit(" done!");
+	emit("%s() done sending!", G_STRFUNC);
 
 	if (-1 == thread_kill(r, TSIG_3))
 		s_error("cannot send TSIG_3: %m");
