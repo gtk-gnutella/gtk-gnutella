@@ -876,7 +876,7 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 		 */
 
 		if (huge_is_pure_xalt(alt, len))
-			dmesh_collect_compact_locations(sha1, alt, origin);
+			dmesh_collect_compact_locations(sha1, alt, origin, user_agent);
 		else
 			dmesh_collect_locations(sha1, alt, origin, user_agent);
     }

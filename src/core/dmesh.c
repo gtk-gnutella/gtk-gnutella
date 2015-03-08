@@ -2389,6 +2389,42 @@ nomore:
 }
 
 /**
+ * Trace funny value of the specified header field name, if not
+ * already done before.
+ *
+ * @param warned		set to TRUE after tracing
+ * @param field			the header field name whose value we're given
+ * @param value			the funny field value to trace
+ * @param origin		if not-NULL, the host supplying us with the alt-locs
+ * @param user_agent	the advertised servent name giving us the value
+ */
+static void
+dmesh_field_trace(bool *warned, const char *field, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
+{
+	str_t *s;
+
+	if (*warned)
+		return;		/* Already warned for that value */
+
+	*warned = TRUE;
+
+	s = str_new(256);
+	str_printf(s, "funny %s", field);
+
+	if (user_agent != NULL)
+		str_catf(s, " from <%s>", user_agent);
+
+	if (origin != NULL)
+		str_catf(s, " at %s", gnet_host_to_string(origin));
+
+	str_catf(s, ": %s", value);
+
+	g_warning("%s", str_2c(s));
+	str_destroy_null(&s);
+}
+
+/**
  * Parse the value of the X-(Gnutella-)Content-URN header in `value', looking
  * for a SHA1.  When found, the SHA1 is extracted and placed into the given
  * `digest' buffer.
@@ -2425,12 +2461,15 @@ dmesh_collect_sha1(const char *value, struct sha1 *sha1)
  *		func(sha1, addr, port, udata);
  *
  * where udata is opaque user-supplied data.
+ *
+ * @return whether we successfully parsed all the altnernate locations.
  */
-static void
+static bool
 dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 	dmesh_add_cb func, void *udata)
 {
 	const char *tls_hex, *p, *next;
+	bool good = TRUE;
 
 	tls_hex = NULL;
 	next = value;
@@ -2475,10 +2514,14 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 		
 		if (ok) {
 			(*func)(sha1, addr, port, udata);
-		} else if (GNET_PROPERTY(dmesh_debug)) {
-			g_warning("ignoring invalid compact alt-loc \"%s\"", start);
+		} else {
+			good = FALSE;
+			if (GNET_PROPERTY(dmesh_debug))
+				g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 		}
 	}
+
+	return good;
 }
 
 static void
@@ -2520,10 +2563,16 @@ dmesh_collect_compact_locations_cback(
  */
 void
 dmesh_collect_compact_locations(const sha1_t *sha1, const char *value,
-	const gnet_host_t *origin)
+	const gnet_host_t *origin, const char *user_agent)
 {
-	dmesh_parse_addr_port_list(sha1, value,
+	bool ok;
+
+	ok = dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_compact_locations_cback, deconstify_pointer(origin));
+
+	if G_UNLIKELY(!ok && GNET_PROPERTY(dmesh_debug)) {
+		dmesh_field_trace(&ok, "X-Alt", value, origin, user_agent);
+	}
 }
 
 static void
@@ -2548,42 +2597,6 @@ dmesh_collect_negative_locations(
 {
 	dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_negative_locations_cback, &reporter);
-}
-
-/**
- * Trace funny value of the specified header field name, if not
- * already done before.
- *
- * @param warned		set to TRUE after tracing
- * @param field			the header field name whose value we're given
- * @param value			the funny field value to trace
- * @param origin		if not-NULL, the host supplying us with the alt-locs
- * @param user_agent	the advertised servent name giving us the value
- */
-static void
-dmesh_field_trace(bool *warned, const char *field, const char *value,
-	const gnet_host_t *origin, const char *user_agent)
-{
-	str_t *s;
-
-	if (*warned)
-		return;		/* Already warned for that value */
-
-	*warned = TRUE;
-
-	s = str_new(256);
-	str_printf(s, "funny %s", field);
-
-	if (user_agent != NULL)
-		str_catf(s, " from <%s>", user_agent);
-
-	if (origin != NULL)
-		str_catf(s, " at %s", gnet_host_to_string(origin));
-
-	str_catf(s, ": %s", value);
-
-	g_warning("%s", str_2c(s));
-	str_destroy_null(&s);
 }
 
 /**
