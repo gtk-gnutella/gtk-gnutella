@@ -2551,16 +2551,17 @@ dmesh_collect_negative_locations(
 }
 
 /**
- * Trace funny value of the "X-Gnutella-Alternate-Location" header, if not
- * already done before and provided they're debugging the mesh.
+ * Trace funny value of the specified header field name, if not
+ * already done before.
  *
  * @param warned		set to TRUE after tracing
- * @param value			the funny value to trace
+ * @param field			the header field name whose value we're given
+ * @param value			the funny field value to trace
  * @param origin		if not-NULL, the host supplying us with the alt-locs
  * @param user_agent	the advertised servent name giving us the value
  */
 static void
-dmesh_location_trace(bool *warned, const char *value,
+dmesh_field_trace(bool *warned, const char *field, const char *value,
 	const gnet_host_t *origin, const char *user_agent)
 {
 	str_t *s;
@@ -2571,7 +2572,7 @@ dmesh_location_trace(bool *warned, const char *value,
 	*warned = TRUE;
 
 	s = str_new(256);
-	STR_CPY(s, "funny Alternate-Location");
+	str_printf(s, "funny %s", field);
 
 	if (user_agent != NULL)
 		str_catf(s, " from <%s>", user_agent);
@@ -2583,6 +2584,37 @@ dmesh_location_trace(bool *warned, const char *value,
 
 	g_warning("%s", str_2c(s));
 	str_destroy_null(&s);
+}
+
+/**
+ * Trace funny value of the "Alternate-Location" header, if not
+ * already done before.
+ *
+ * @param warned		set to TRUE after tracing
+ * @param value			the funny value to trace
+ * @param origin		if not-NULL, the host supplying us with the alt-locs
+ * @param user_agent	the advertised servent name giving us the value
+ */
+static void
+dmesh_location_trace(bool *warned, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
+{
+	dmesh_field_trace(warned, "Alternate-Location", value, origin, user_agent);
+}
+
+/**
+ * Trace funny value of the "X-Falt" header, if not already done before.
+ *
+ * @param warned		set to TRUE after tracing
+ * @param value			the funny value to trace
+ * @param origin		if not-NULL, the host giving us with the firewalled locs
+ * @param user_agent	the advertised servent name giving us the value
+ */
+static void
+dmesh_fw_altloc_trace(bool *warned, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
+{
+	dmesh_field_trace(warned, "X-Falt", value, origin, user_agent);
 }
 
 /**
@@ -2929,18 +2961,27 @@ dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, int count)
 
 /**
  * Parse a single firewalled location.
+ *
+ * @return TRUE if parsing was OK.
  */
-void
+static bool
 dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 {
 	struct guid guid;
-	bool seen_proxy = FALSE;
-	bool seen_guid = FALSE;
-	bool seen_pptls = FALSE;
+	bool seen_proxy = FALSE, seen_guid = FALSE, seen_pptls = FALSE, ok;
 	time_t stamp = 0;
-	const char *tok;
+	const char *tok, *start;
 	strtok_t *st;
 	dmesh_fwinfo_t info;
+
+	/*
+	 * If we're given an empty value, assume it's OK.
+	 */
+
+	start = skip_ascii_blanks(value);
+
+	if G_UNLIKELY('\0' == *start)
+		return TRUE;
 
 	/*
 	 * An X-Falt header is formatted as:
@@ -2959,7 +3000,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 	 * at the end (e.g "2010-02-23 16:06:55Z").
 	 */
 
-	st = strtok_make_strip(value);
+	st = strtok_make_strip(start);
 	info.guid = NULL;
 	info.proxies = NULL;
 
@@ -2981,7 +3022,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		if (strstr(tok, "/"))
 			continue;
 
-		/* Skip first "pptsl=" indication */
+		/* Skip first "pptls=" indication */
 		if (!seen_pptls) {
 			/* TODO: handle pptls=<hex> */
 			if (is_strcaseprefix(tok, "pptls=")) {
@@ -3028,26 +3069,37 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 
 	strtok_free_null(&st);
 
-	if (NULL == info.guid) {
+	if (NULL == info.guid || !seen_proxy) {
+		ok = FALSE;
 		if (GNET_PROPERTY(dmesh_debug))
 			g_warning("could not parse 'X-Falt: %s'", value);
 	} else {
+		ok = info.proxies != NULL;
 		if (!dmesh_raw_fw_add(sha1, &info, stamp, TRUE)) {
 			hash_list_free_all(&info.proxies, gnet_host_free);
 		}
 		atom_guid_free_null(&info.guid);
 	}
+
+	return ok;
 }
 
 /**
  * Parse value of the "X-Falt" header to extract alternate firewalled sources
  * for a given SHA1 key.
+ *
+ * @param sha1			the SHA1 for which we're collecting alt-locs
+ * @param value			the value of the header field we're parsing
+ * @param origin		if not NULL, the host supplying us with the alt-locs
+ * @param user_agent	if not NULL, advertised servent name giving the value
  */
 void
-dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
+dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
 {
 	const char *tok;
 	strtok_t *st;
+	bool ok = TRUE;
 
 	/*
 	 * An X-Falt header can contain several items, separated by ",".
@@ -3055,9 +3107,13 @@ dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
 
 	st = strtok_make_strip(value);
 	while ((tok = strtok_next(st, ","))) {
-		dmesh_collect_fw_host(sha1, tok);
+		ok &= dmesh_collect_fw_host(sha1, tok);
 	}
 	strtok_free_null(&st);
+
+	if G_UNLIKELY(!ok && GNET_PROPERTY(dmesh_debug)) {
+		dmesh_fw_altloc_trace(&ok, value, origin, user_agent);
+	}
 }
 
 /**
@@ -3317,7 +3373,7 @@ dmesh_retrieve(void)
 			if (is_strprefix(tmp, "http://")) {
 				dmesh_collect_locations(&sha1, tmp, NULL, "download mesh");
 			} else {
-				dmesh_collect_fw_hosts(&sha1, tmp);
+				dmesh_collect_fw_hosts(&sha1, tmp, NULL, "download mesh");
 			}
 		} else {
 			if (

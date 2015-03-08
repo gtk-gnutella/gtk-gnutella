@@ -123,7 +123,8 @@ void dmesh_collect_locations(const struct sha1 *sha1, const char *value,
 	const gnet_host_t *origin, const char *user_agent);
 void dmesh_collect_compact_locations(const struct sha1 *sha1,
 		const char *value, const gnet_host_t *origin);
-void dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value);
+void dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value,
+	const gnet_host_t *origin, const char *user_agent);
 void dmesh_collect_negative_locations(const struct sha1 *sha1,
 	const char *value, host_addr_t reporter);
 int dmesh_fill_alternate(const struct sha1 *sha1,

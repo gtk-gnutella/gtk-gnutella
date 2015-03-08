@@ -888,7 +888,7 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 	alt = header_get(header, "X-Falt");
 
 	if (alt != NULL) {
-		dmesh_collect_fw_hosts(sha1, alt);
+		dmesh_collect_fw_hosts(sha1, alt, origin, user_agent);
 	}
 }
 
