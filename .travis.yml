@@ -20,7 +20,7 @@ script:
   # messing-up with the file descriptor used to perform signalling?
   # Not critical since gtk-gnutella is not using thread_fork() currently.
   #		--RAM, 2015-02-22
-  - src/lib/thread-test -ABCDEIKMNOPQRSVWX -MT1 -c2
+  - src/lib/thread-test -ABCDEIKMNOPQRSVWX -T1 -c2 -z player
 
 notifications:
   irc: "irc.freenode.net#gtk-gnutella"

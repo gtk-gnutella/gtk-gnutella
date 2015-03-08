@@ -43,6 +43,7 @@
 #include "evq.h"
 #include "getcpucount.h"
 #include "halloc.h"
+#include "hset.h"
 #include "log.h"
 #include "misc.h"
 #include "mutex.h"
@@ -58,6 +59,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "strtok.h"
 #include "teq.h"
 #include "thread.h"
 #include "tm.h"
@@ -88,6 +90,7 @@ usage(void)
 	fprintf(stderr,
 		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
 		"       [-f count] [-n count] [-r percent] [-t ms] [-T msecs]\n"
+		"       [-z fn1,fn2...]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
 		"  -b : fixed block size to use for memory tests via -X\n"
 		"  -c : override amount of CPUs, driving thread count for mem tests\n"
@@ -102,6 +105,7 @@ usage(void)
 		"  -v : dump thread statistics at the end of the tests\n"
 		"  -w : wait for created threads\n"
 		"  -x : free memory allocated by -X in random order\n"
+		"  -z : zap (suppress) messages from listed routines.\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -B : test synchronization barriers\n"
 		"  -C : test thread creation\n"
@@ -127,6 +131,24 @@ usage(void)
 	exit(EXIT_FAILURE);
 }
 
+static hset_t *zap;
+
+static void
+zap_record(const char *value)
+{
+	strtok_t *s;
+	const char *tok;
+
+	zap = hset_create(HASH_KEY_STRING, 0);
+	s = strtok_make_strip(value);
+
+	while ((tok = strtok_next(s, ","))) {
+		hset_insert(zap, h_strdup(tok));
+	}
+
+	strtok_free_null(&s);
+}
+
 static void
 emitv(bool nl, const char *fmt, va_list args)
 {
@@ -150,6 +172,21 @@ emit(const char *fmt, ...)
 	emitv(TRUE, fmt, args);
 	va_end(args);
 }
+
+static void G_GNUC_PRINTF(2, 3)
+emit_zap(const char *caller, const char *fmt, ...)
+{
+	va_list args;
+
+	if (zap != NULL && hset_contains(zap, caller))
+		return;		/* Zap messages from this caller */
+
+	va_start(args, fmt);
+	emitv(TRUE, fmt, args);
+	va_end(args);
+}
+
+#define emitz(fmt, ...) emit_zap(G_STRFUNC, (fmt), __VA_ARGS__)
 
 static char *names[] = { "one", "two", "three", "four", "five" };
 
@@ -702,7 +739,7 @@ player(void *num)
 
 	while (game_state < GAME_OVER) {
 		stats->play++;
-		emit("%s plays", me);
+		emitz("%s plays", me);
 
 		game_state = other_player;
 		cond_signal(&game_state_change, &game_state_lock);
@@ -716,7 +753,7 @@ player(void *num)
 
 				if (!success) {
 					stats->timeout++;
-					emit("** TIMEOUT ** %s wakeup", me);
+					emitz("** TIMEOUT ** %s wakeup", me);
 					continue;
 				}
 			} else {
@@ -725,7 +762,7 @@ player(void *num)
 
 			if (other_player == game_state) {
 				stats->spurious++;
-				emit("** SPURIOUS ** %s wakeup", me);
+				emitz("** SPURIOUS ** %s wakeup", me);
 			}
 		} while (other_player == game_state);
 	}
@@ -810,7 +847,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 			if (ret < 0) {
 				s_warning("poll() failed: %m");
 			} else {
-				emit("[match still on]");
+				emit_zap("player", "[match still on]");
 				notifications++;
 				waiter_ack(w);
 			}
@@ -2167,7 +2204,7 @@ main(int argc, char **argv)
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:b:c:ef:hjn:r:st:vwxABCDEFIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFIKMNOPQRST:VWX";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -2274,6 +2311,9 @@ main(int argc, char **argv)
 			break;
 		case 'x':			/* free allocated memory by -X tests randomly */
 			randomize_free = TRUE;
+			break;
+		case 'z':			/* zap message from routines using emitz() */
+			zap_record(optarg);
 			break;
 		case 'h':			/* show help */
 		default:
