@@ -3136,7 +3136,7 @@ upload_collect_locations(struct upload *u,
 
 		buf = header_get(header, "X-Nalt");
 		if (buf)
-			dmesh_collect_negative_locations(sha1, buf, u->addr);
+			dmesh_collect_negative_locations(sha1, buf, u->addr, u->user_agent);
 	}
 
 	shared_file_unref(&sf);

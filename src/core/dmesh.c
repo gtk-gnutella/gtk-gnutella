@@ -2592,11 +2592,20 @@ dmesh_collect_negative_locations_cback(
  * @param reporter	the address of the host supplying the X-Nalt header
  */
 void
-dmesh_collect_negative_locations(
-	const sha1_t *sha1, const char *value, host_addr_t reporter)
+dmesh_collect_negative_locations(const sha1_t *sha1, const char *value,
+	host_addr_t reporter, const char *user_agent)
 {
-	dmesh_parse_addr_port_list(sha1, value,
+	bool ok;
+
+	ok = dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_negative_locations_cback, &reporter);
+
+	if G_UNLIKELY(!ok && GNET_PROPERTY(dmesh_debug)) {
+		gnet_host_t host;
+
+		gnet_host_set(&host, reporter, 0);
+		dmesh_field_trace(&ok, "X-Nalt", value, &host, user_agent);
+	}
 }
 
 /**

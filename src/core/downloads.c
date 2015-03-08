@@ -10553,9 +10553,10 @@ collect_locations:
 		huge_collect_locations(dsha1, header, &host);
 
 		buf = header_get(header, "X-Nalt");
-		if (buf != NULL)
-			dmesh_collect_negative_locations(dsha1, buf, download_addr(d));
-
+		if (buf != NULL) {
+			dmesh_collect_negative_locations(dsha1, buf,
+				download_addr(d), download_vendor(d));
+		}
 	}
 
 	return TRUE;
