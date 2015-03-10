@@ -4092,6 +4092,9 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 		uint8 op;
 		unsigned fill = 0;
 
+		if (!valid_ptr(p))
+			return NULL;
+
 		switch ((op = *p)) {
 		case OPCODE_NONE_1:
 		case OPCODE_NONE_2:
@@ -4370,7 +4373,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		
 		const uint8 *next;
 
-		if (!valid_ptr(p))
+		if (!valid_ptr(p) || !valid_ptr(p - 1))
 			return FALSE;
 
 		/*
