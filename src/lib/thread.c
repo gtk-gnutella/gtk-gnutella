@@ -833,7 +833,9 @@ thread_monitor_exit(struct thread_element *te)
 	static size_t counter;
 	static pthread_key_t monitor_key;
 
-	g_assert(te->discovered);
+	g_assert_log(te->discovered,
+		"%s(): thread #%u not discovered (%s created)",
+		G_STRFUNC, te->stid, te->created ? "was" : "neither");
 
 	/*
 	 * Create special key if not already done.  That key is equipped with
@@ -1409,11 +1411,18 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 	size_t locks;
 
 	thread_element_check(te);
-	g_assert(te->discovered);
 
 	(void) unused_cq;
 
 	THREAD_LOCK(te);
+
+	if (!te->valid || !te->exit_started || !te->discovered) {
+		THREAD_UNLOCK(te);
+		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+			G_STRFUNC, te->stid, thread_id_name(te->stid));
+		return;
+	}
+
 	problem = te->gone_seen;
 	locks = te->locks.count;
 	if (problem || locks != 0) {
@@ -1444,18 +1453,26 @@ thread_probably_gone(cqueue_t *unused_cq, void *data)
 	struct thread_element *te = data;
 
 	thread_element_check(te);
-	g_assert(te->discovered);
 
 	(void) unused_cq;
+
+	THREAD_LOCK(te);
+
+	if (!te->valid || !te->exit_started || !te->discovered) {
+		THREAD_UNLOCK(te);
+		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+			G_STRFUNC, te->stid, thread_id_name(te->stid));
+		return;
+	}
 
 	/*
 	 * We flag the discovered thread as gone, which will give us a loud
 	 * warning if we see a QID cache hit for that thread again.
 	 */
 
-	THREAD_LOCK(te);
 	te->gone = TRUE;
 	te->gone_seen = FALSE;
+
 	THREAD_UNLOCK(te);
 
 	/*
@@ -1940,7 +1957,9 @@ thread_will_exit(void *arg)
 	struct thread_element *te = arg;
 
 	thread_element_check(te);
-	g_assert(te->discovered);
+	g_assert_log(te->discovered,
+		"%s(): thread #%u not discovered (%s created)",
+		G_STRFUNC, te->stid, te->created ? "was" : "neither");
 
 	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
 
