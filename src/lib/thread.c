@@ -86,7 +86,7 @@
 #include "compat_usleep.h"
 #include "cond.h"
 #include "cq.h"
-#include "crash.h"				/* For print_str() et al. */
+#include "crash.h"				/* For crash_hook_add(), print_str() et al. */
 #include "dam.h"
 #include "dump_options.h"
 #include "entropy.h"
@@ -530,6 +530,7 @@ static mutex_t thread_suspend_mtx = MUTEX_INIT;
 static void thread_lock_dump(const struct thread_element *te);
 static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
 static void thread_will_exit(void *arg);
+static void thread_crash_hook(void);
 
 /**
  * Yield CPU time for current thread.
@@ -2231,6 +2232,13 @@ thread_main_element(thread_t t)
 	 */
 
 	mutex_unlock_fast(&thread_insert_mtx);
+
+	/*
+	 * We're now sufficienly far in the initialization to be able to
+	 * install a crash hook for our thread runtime.
+	 */
+
+	crash_hook_add(_WHERE_, thread_crash_hook);
 
 	return te;
 }
@@ -9493,6 +9501,173 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 #undef DUMP
 #undef DUMP64
 #undef DUMPV
+}
+
+/**
+ * Dump thread elements to stderr.
+ */
+G_GNUC_COLD void
+thread_dump_thread_elements(void)
+{
+	s_info("THREAD known %u elements:", thread_next_stid);
+
+	thread_dump_thread_elements_log(log_agent_stderr_get(), 0);
+}
+
+/**
+ * Dump thread element to specified logging agent.
+ */
+static void
+thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
+{
+	struct thread_element *te = threads[stid];
+	uint i;
+	bool locked;
+
+	if (NULL == te) {
+		log_warning(la, "THREAD NULL element #%u", stid);
+		return;
+	}
+
+	if (te->magic != THREAD_ELEMENT_MAGIC) {
+		log_warning(la, "THREAD bad magic for element #%u", stid);
+		return;
+	}
+
+	locked = THREAD_TRY_LOCK(te);
+
+	if ((options & DUMP_OPT_SHORT) && (!te->valid || te->reusable))
+		goto done;	/* Skip obsolete element when short output requested */
+
+	log_info(la, "THREAD --- begin element #%u%s ---",
+		stid, locked ? "" : " (UNLOCKED)");
+
+#define DUMPF(fmt, field) \
+	log_info(la, "THREAD %19s = " fmt, #field, te->field)
+
+#define DUMPV(fmt, field, value) \
+	log_info(la, "THREAD %19s = " fmt, #field, value)
+
+#define DUMPL(fmt, name, ...) \
+	log_info(la, "THREAD %19s = " fmt, name, __VA_ARGS__)
+
+	DUMPF("%d",  valid);
+	DUMPF("%d",  reusable);
+	DUMPF("%lu", tid);
+	DUMPF("%zu", last_qid);
+	DUMPF("%zu", low_qid);
+	DUMPF("%zu", high_qid);
+	DUMPF("%zu", top_qid);
+	DUMPF("%zu", low_sig_qid);
+	DUMPF("%zu", high_sig_qid);
+	DUMPF("%p",  last_sp);
+	DUMPF("%p",  top_sp);
+	DUMPF("%p",  stack_lock);
+	DUMPF("\"%s\"",  name);
+	DUMPF("%zu", stack_size);
+	DUMPF("%p",  stack);
+	DUMPF("%p",  stack_base);
+	DUMPF("%p",  sig_stack);
+	DUMPV("%s",  entry, stacktrace_function_name(te->entry));
+	DUMPF("%p",  argument);
+	DUMPF("%d",  suspend);
+	DUMPF("%d",  pending);
+	DUMPL("{ %d, %d }", "wfd[]", te->wfd[0], te->wfd[1]);
+	DUMPF("%d",  join_requested);
+	DUMPF("%d",  join_pending);
+	DUMPF("%u",  joining_id);
+	DUMPF("%u",  unblock_events);
+	DUMPF("%p",  exit_value);
+	DUMPF("0x%x",  sig_mask);
+	DUMPF("0x%x",  sig_pending);
+	DUMPF("%u",  signalled);
+	DUMPF("%u",  sig_generation);
+	DUMPF("%d",  in_signal_handler);
+	DUMPF("%d",  sig_handling);
+	DUMPF("%d",  sleep_interruptible);
+	DUMPF("%d",  created);
+	DUMPF("%d",  discovered);
+	DUMPF("%d",  deadlocked);
+	DUMPF("%d",  creating);
+	DUMPF("%d",  exiting);
+	DUMPF("%d",  suspended);
+	DUMPF("%d",  blocked);
+	DUMPF("%d",  timed_blocked);
+	DUMPF("%d",  unblocked);
+	DUMPF("%d",  detached);
+	DUMPF("%d",  async_exit);
+	DUMPF("%d",  main_thread);
+	DUMPF("%d",  cancelled);
+	DUMPF("%d",  cancelable);
+	DUMPF("%d",  sleeping);
+	DUMPF("%d",  exit_started);
+	DUMPF("%d",  gone);
+	DUMPF("%d",  gone_seen);
+	DUMPF("%d",  add_monitoring);
+	DUMPF("%d",  cancl);
+	DUMPF("%zu", locks.count);
+	DUMPL("%p (%s)",  "waiting",
+		te->waiting.lock, NULL == te->waiting.lock ?
+			"none" : thread_lock_kind_to_string(te->waiting.kind));
+	DUMPF("%p",  cond);
+	DUMPL("%p, count=%u",  "cond_stack",
+		te->cond_stack,
+		NULL == te->cond_stack ? 0 : slist_length(te->cond_stack));
+	DUMPL("%zu", "exit_list count", eslist_count(&te->exit_list));
+	DUMPL("%zu", "cleanup_list count", eslist_count(&te->cleanup_list));
+
+	for (i = 0; i < G_N_ELEMENTS(te->sigh); i++) {
+		if (NULL != te->sigh[i]) {
+			char buf[10];
+
+			str_bprintf(buf, sizeof buf, "sigh[%02u]", i);
+			if (TSIG_IGN == te->sigh[i]) {
+				DUMPL("%s", buf, "IGN");
+			} else {
+				DUMPL("%s", buf, stacktrace_function_name(te->sigh[i]));
+			}
+		}
+	}
+
+#undef DUMPL
+#undef DUMPV
+#undef DUMPF
+
+done:
+	if (locked)
+		THREAD_UNLOCK(te);
+}
+
+/**
+ * Dump thread elements to specified logging agent.
+ */
+G_GNUC_COLD void
+thread_dump_thread_elements_log(logagent_t *la, unsigned options)
+{
+	uint i;
+
+	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
+		if G_UNLIKELY(i >= thread_next_stid)
+			break;
+		if G_UNLIKELY(i == thread_next_stid)
+			log_warning(la, "THREAD element #%u may be partially setup", i);
+		thread_dump_thread_element_log(la, options, i);
+	}
+}
+
+/**
+ * In case an assertion failure occurs in this file, dump statistics
+ * about the known thread environment.
+ */
+static void G_GNUC_COLD
+thread_crash_hook(void)
+{
+	int sp;
+
+	s_minidbg("THREAD current sp=%p", &sp);
+
+	thread_dump_stats();
+	thread_dump_thread_elements();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

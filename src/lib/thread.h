@@ -355,6 +355,8 @@ thread_cancel_disable(void)
 struct logagent;
 void thread_dump_stats_log(struct logagent *la, unsigned options);
 void thread_dump_stats(void);
+void thread_dump_thread_elements_log(struct logagent *la, unsigned options);
+void thread_dump_thread_elements(void);
 
 struct sha1;
 void thread_stats_digest(struct sha1 *digest);
