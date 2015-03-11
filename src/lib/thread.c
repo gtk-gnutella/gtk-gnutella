@@ -3341,7 +3341,7 @@ thread_safe_small_id(void)
 	if G_LIKELY(-1 != stid)
 		return stid;
 
-	return -2;		/* Error, could not determine small thread ID */
+	return THREAD_UNKNOWN_ID;	/* Error, cannot determine small thread ID */
 }
 
 /**

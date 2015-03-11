@@ -1970,7 +1970,7 @@ crash_record_thread(void)
 		unsigned stid = thread_safe_small_id();
 		const char *name;
 
-		if (-2U == stid) {
+		if (THREAD_UNKNOWN_ID == stid) {
 			name = "could not compute thread ID";
 			crash_set_var(fail_name, name);
 		} else {
