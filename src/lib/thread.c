@@ -9540,6 +9540,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 
 		DUMPV(thread_running);
 		DUMPV(thread_discovered);
+		DUMPV(thread_pending_reuse);
 
 		rsc_semaphore_arrays = semaphore_kernel_usage(&rsc_semaphore_used);
 		rsc_cond_variables = cond_vars_count();
