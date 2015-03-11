@@ -9285,7 +9285,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->high_qid = te->high_qid;
 	info->top_qid = te->top_qid;
 	info->stid = te->stid;
-	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID;
+	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID_ID;
 	info->name = te->name;
 	info->last_sp = te->last_sp;
 	info->bottom_sp = te->stack_base != NULL ?
