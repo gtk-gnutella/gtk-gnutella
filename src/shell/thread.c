@@ -184,6 +184,44 @@ shell_exec_thread_stats(struct gnutella_shell *sh,
 	return REPLY_READY;
 }
 
+static enum shell_reply
+shell_exec_thread_elements(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	const char *all;
+	const option_t options[] = {
+		{ "a", &all },			/* include all items */
+	};
+	int parsed;
+	unsigned opt = 0;
+	logagent_t *la = log_agent_string_make(0, "THREAD ");
+
+	shell_check(sh);
+
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
+
+	argv += parsed;		/* args[0] is first command argument */
+	argc -= parsed;		/* counts only command arguments now */
+
+	if (0 != argc)
+		return REPLY_ERROR;
+
+	if (NULL == all)
+		opt |= DUMP_OPT_SHORT;		/* -a not given: skip reusable elements */
+
+	thread_dump_thread_elements_log(la, opt);
+
+	shell_write(sh, "100~\n");
+	shell_write(sh, log_agent_string_get(la));
+	shell_write(sh, ".\n");
+
+	log_agent_free_null(&la);
+
+	return REPLY_READY;
+}
+
 /**
  * Handles the thread command.
  */
@@ -204,6 +242,7 @@ shell_exec_thread(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	CMD(list);
 	CMD(stats);
+	CMD(elements);
 
 #undef CMD
 	
@@ -228,6 +267,11 @@ shell_help_thread(int argc, const char *argv[])
 			return "thread list\n"
 				"list all running threads\n";
 		}
+		else if (0 == ascii_strcasecmp(argv[1], "elements")) {
+			return "thread elements\n"
+				"list all initialized thread elements\n"
+				"-a : include all elements, even the reusable ones\n";
+		}
 		else if (0 == ascii_strcasecmp(argv[1], "stats")) {
 			return "thread stats [-p]\n"
 				"show thread global statistics\n"
@@ -236,6 +280,7 @@ shell_help_thread(int argc, const char *argv[])
 	} else {
 		return
 			"thread list\n"
+			"thread elements [-a]\n"
 			"thread stats [-p]\n"
 			;
 	}
