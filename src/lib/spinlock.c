@@ -207,12 +207,13 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 
 #ifdef SPINLOCK_DEBUG
 #ifdef SPINLOCK_OWNER_DEBUG
-	s_miniwarn("spinlock %p %s by %s:%u (thread #%u)",
+	s_miniwarn("spinlock %p %s by %s:%u (thread #%u) whilst we wait at %s:%u",
 		obj, s->lock ? "still held" : "already freed",
-		s->file, s->line, s->stid);
+		s->file, s->line, s->stid, file, line);
 #else
-	s_miniwarn("spinlock %p %s by %s:%u",
-		obj, s->lock ? "still held" : "already freed", s->file, s->line);
+	s_miniwarn("spinlock %p %s by %s:%u whilst we wait at %s:%u",
+		obj, s->lock ? "still held" : "already freed", s->file, s->line,
+		file, line);
 #endif
 #endif
 
