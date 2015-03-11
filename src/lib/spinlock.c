@@ -345,10 +345,6 @@ spinlock_loop(volatile spinlock_t *s,
 			element = thread_lock_waiting_element(src_object, kind, file, line);
 		}
 
-		d = gentime_diff(gentime_now_exact(), start);
-		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
-			(*deadlocked)(src_object, (unsigned) d, file, line);
-
 		compat_usleep_nocancel(SPINLOCK_DELAY);
 
 		/*
@@ -360,6 +356,10 @@ spinlock_loop(volatile spinlock_t *s,
 			spinlock_direct(s);
 			return;
 		}
+
+		d = gentime_diff(gentime_now_exact(), start);
+		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
+			(*deadlocked)(src_object, (unsigned) d, file, line);
 	}
 }
 
