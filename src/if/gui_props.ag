@@ -538,7 +538,7 @@ prop = {
     desc = "Display incoming HTTP traffic bandwidth average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -547,7 +547,7 @@ prop = {
     desc = "Display outgoing HTTP traffic bandwidth average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -556,7 +556,7 @@ prop = {
     desc = "Display incoming Gnet traffic bandwidth average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -565,7 +565,7 @@ prop = {
     desc = "Display outgoing Gnet traffic bandwidth average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -574,7 +574,7 @@ prop = {
     desc = "Display incoming Gnet leaf traffic bandwidth average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -583,7 +583,7 @@ prop = {
     desc = "Display outgoing Gnet leaf traffic bandwidth average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -1288,7 +1288,7 @@ prop = {
     desc = "Display incoming DHT traffic bandwidth as an average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -1297,7 +1297,7 @@ prop = {
     desc = "Display outgoing DHT traffic bandwidth as an average.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
