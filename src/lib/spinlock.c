@@ -123,16 +123,13 @@ spinlock_source_string(enum spinlock_source src)
 void G_GNUC_COLD
 spinlock_crash_mode(void)
 {
-	if (!atomic_int_get(&spinlock_pass_through)) {
-		unsigned count;
+	/*
+	 * We must set ``spinlock_pass_through'' immediately since s_miniwarn()
+	 * could call routines requiring mutexes...
+	 */
 
-		/*
-		 * We must set ``spinlock_pass_through'' immediately since s_miniwarn()
-		 * could call routines requiring mutexes...
-		 */
-
-		atomic_int_inc(&spinlock_pass_through);
-		count = thread_count();
+	if (0 == atomic_int_inc(&spinlock_pass_through)) {
+		unsigned count = thread_count();
 
 		if (count != 1) {
 			s_rawwarn("disabling locks, "
