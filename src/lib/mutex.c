@@ -88,8 +88,7 @@ static inline void ALWAYS_INLINE
 mutex_set_owner(mutex_t *m, const char *file, unsigned line)
 {
 	m->depth = 1;
-	m->lock.file = file;
-	m->lock.line = line;
+	spinlock_set_owner_external(&m->lock, file, line);
 }
 
 /**

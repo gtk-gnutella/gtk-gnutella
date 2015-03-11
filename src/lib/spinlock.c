@@ -97,6 +97,12 @@ spinlock_clear_owner(spinlock_t *s)
 #endif
 }
 
+void
+spinlock_set_owner_external(spinlock_t *s, const char *file, unsigned line)
+{
+	spinlock_set_owner(s, file, line);
+}
+
 static inline void
 spinlock_check(const volatile struct spinlock * const slock)
 {
