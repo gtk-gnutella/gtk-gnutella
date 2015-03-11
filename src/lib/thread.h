@@ -381,38 +381,9 @@ thread_is_main(void)
 void thread_foreach_local(thread_key_t key, uint flags, cdata_fn_t, void *);
 
 #if defined(THREAD_SOURCE) || defined(MUTEX_SOURCE)
-#ifdef I_PTHREAD
-/**
- * Low-level unique thread ID.
- */
-static inline thread_t
-thread_self(void)
-{
-	union {
-		thread_t t;
-		pthread_t pt;
-	} u;
 
-	STATIC_ASSERT(sizeof(thread_t) <= sizeof(pthread_t));
+thread_t thread_self(void);
 
-	/*
-	 * We truncate the pthread_t to the first "unsigned long" bytes.
-	 *
-	 * On Linux, pthread_t is already an unsigned long.
-	 * On FreeBSD, pthread_t is a pointer, which fits in unsigned long.
-	 *
-	 * On Windows, pthread_t is a structure, whose first member is a pointer.
-	 * And we don't want to use the whole pthread_t structure there, because
-	 * the second member is changing over time and we want a unique thread
-	 * identifier.
-	 */
-
-	u.pt = pthread_self();
-	return u.t;
-}
-#else
-#define thread_self()   0xc5db8dd3UL	/* Random, odd number */
-#endif	/* I_PTHREAD */
 #endif	/* THREAD_SOURCE || MUTEX_SOURCE */
 
 #endif /* _thread_h_ */

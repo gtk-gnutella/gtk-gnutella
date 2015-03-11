@@ -410,6 +410,7 @@ static struct thread_stats {
 	AU64(thread_self_suspends);		/* Threads seeing they need to suspend */
 	AU64(thread_self_block_races);	/* Detected races in thread_self_block() */
 	AU64(thread_self_pause_races);	/* Detected races in thread_sigsuspend() */
+	AU64(thread_self_calls);		/* Amount of thread_self() calls made */
 	AU64(thread_forks);				/* Amount of thread_fork() calls made */
 	AU64(thread_yields);			/* Amount of thread_yield() calls made */
 } thread_stats;
@@ -531,6 +532,38 @@ static void thread_lock_dump(const struct thread_element *te);
 static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
 static void thread_will_exit(void *arg);
 static void thread_crash_hook(void);
+
+/**
+ * Low-level unique thread ID.
+ */
+thread_t
+thread_self(void)
+{
+	union {
+		thread_t t;
+		pthread_t pt;
+	} u;
+
+	STATIC_ASSERT(sizeof(thread_t) <= sizeof(pthread_t));
+
+	THREAD_STATS_INCX(thread_self_calls);
+
+	/*
+	 * We truncate the pthread_t to the first "unsigned long" bytes.
+	 *
+	 * On Linux, pthread_t is already an unsigned long.
+	 * On FreeBSD, pthread_t is a pointer, which fits in unsigned long.
+	 *
+	 * On Windows, pthread_t is a structure, whose first member is a pointer.
+	 * And we don't want to use the whole pthread_t structure there, because
+	 * the second member is changing over time and we want a unique thread
+	 * identifier.
+	 */
+
+	u.pt = pthread_self();
+
+	return u.t;
+}
 
 /**
  * Yield CPU time for current thread.
@@ -9495,6 +9528,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(thread_self_suspends);
 	DUMP64(thread_self_block_races);
 	DUMP64(thread_self_pause_races);
+	DUMP64(thread_self_calls);
 	DUMP64(thread_forks);
 	DUMP64(thread_yields);
 
