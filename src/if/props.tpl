@@ -330,11 +330,10 @@ void [=(. func-prefix)=]_shutdown(void);
 
 [=
 FOR prop =][=
-    (if (exist? "data.value")
-        (define item (sprintf "%s_variable_%s"
-			(. set-name-down) (get "data.value")))
-        (define item (sprintf "%s_variable_%s"
-			(. set-name-down) (string-downcase (get "name")))))=][=
+	(define item (sprintf "%s_variable_%s"
+		(. set-name-down)
+		(if (exist? "data.value")
+			(get "data.value") (string-downcase (get "name")))))=][=
     IF (= (get "type") "storage")=]
 char   [=(. item)=][[=vector_size=]];
 static const char   [=(. item)=]_default[[=vector_size=]];
@@ -342,29 +341,30 @@ static const char   [=(. item)=]_default[[=vector_size=]];
     ELIF (= (get "type") "ip")=]
 host_addr_t  [=(. item)=];[=
     ELSE=][=
-        (cond
-            ((= (get "type") "boolean")
-                (define vtype "gboolean ")
-                (define vdef (get "data.default")))
-            ((= (get "type") "guint32")
-                (define vtype "guint32  ")
-                (define vdef (get "data.default")))
-            ((= (get "type") "guint64")
-                (define vtype "guint64  ")
-                (define vdef (get "data.default")))
-            ((= (get "type") "multichoice")
-                (define vtype "guint32  ")
-                (define vdef (get "data.default")))
-            ((= (get "type") "timestamp")
-                (define vtype "time_t  ")
-                (define vdef (get "data.default")))
-            ((= (get "type") "ip")
-                (define vtype "host_addr_t  "))
+		(define vtype (cond
+            ((= (get "type") "boolean")		"gboolean ")
+            ((= (get "type") "guint32")		"guint32  ")
+            ((= (get "type") "guint64")		"guint64  ")
+            ((= (get "type") "multichoice")	"guint32  ")
+            ((= (get "type") "timestamp")	"time_t  ")
+            ((= (get "type") "ip")			"host_addr_t  ")
+            ((= (get "type") "string")		"char   *")
+			)
+		)
+
+		(define vdef (cond
+            ((= (get "type") "boolean")		(get "data.default"))
+            ((= (get "type") "guint32")		(get "data.default"))
+            ((= (get "type") "guint64")		(get "data.default"))
+            ((= (get "type") "multichoice")	(get "data.default"))
+            ((= (get "type") "timestamp")	(get "data.default"))
             ((= (get "type") "string")
-                (define vtype "char   *")
-                (if (= (get "data.default") "NULL")
-                    (define vdef (sprintf "NULL"))
-                    (define vdef (sprintf "\"%s\"" (get "data.default"))))))
+				(if (= (get "data.default") "NULL")
+					(sprintf "NULL")
+					(sprintf "\"%s\"" (get "data.default"))
+				))
+			)
+		)
             =][=
         IF (exist? "vector_size")=]
 [=  (. vtype)=][=(. item)=][[=vector_size=]]     = [=(. vdef)=];
@@ -415,9 +415,12 @@ FOR prop =][=
     (if (not (exist? "desc"))
         (error "no description given"))
 
-    (if (exist? "data.value")
-        (define prop-var-name (get "data.value"))
-        (define prop-var-name (string-downcase (get "name"))))
+    (define prop-var-name
+		(if (exist? "data.value")
+			(get "data.value")
+			(string-downcase (get "name"))
+		)
+	)
 
     (if (and (not (exist? "data.default"))
 	(not (or (= (get "type") "storage") (= (get "type") "ip"))))
