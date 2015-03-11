@@ -274,9 +274,12 @@ static inline bool NON_NULL_PARAM((1))
 spinlock_is_held(const spinlock_t *s)
 {
 #ifdef SPINLOCK_OWNER_DEBUG
-	if (thread_small_id() != s->stid)
+	if (
+		(uint8) THREAD_UNKNOWN_ID != s->stid &&
+		(uint8) thread_safe_small_id() != s->stid
+	)
 		return FALSE;
-#endif
+#endif	/* SPINLOCK_OWNER_DEBUG */
 
 	/* Make this fast, no assertion on the spinlock validity */
 	return s->lock != 0 || spinlock_in_crash_mode();
