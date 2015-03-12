@@ -6782,9 +6782,25 @@ check_protocol:
 			/* XXX */
 		}
 
-		if (field && !(n->attrs & NODE_A_ULTRA))
-			g_warning("%s is not an ultrapeer but sent the "
-				"X-Ultrapeer-Needed header", node_infostr(n));
+		/*
+		 * A leaf sending us X-Ultrapeer-Needed could indicate that the
+		 * leaf node is lacking ultrapeers to connect to.  We used to warn
+		 * about this, but it's not necessarily an error, even though it
+		 * was not strictly specified that way: since a leaf connects to
+		 * an Ultrapeer, the remote node is already ultrapeer and it's
+		 * not really going to demote itself back to leaf
+		 *		--RAM, 2015-03-12
+		 */
+
+		if (field && !(n->attrs & NODE_A_ULTRA)) {
+			if (GNET_PROPERTY(node_debug) > 1) {
+				g_message("%s is not an ultrapeer but sent an "
+					"X-Ultrapeer-Needed header set to \"%s\"",
+					node_infostr(n), field);
+			}
+
+			/* XXX -- count these and act later? */
+		}
 
 		/*
 		 * Prepare our final acknowledgment.
