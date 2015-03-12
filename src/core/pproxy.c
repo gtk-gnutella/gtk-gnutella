@@ -1195,23 +1195,31 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
 		cp->directly = FALSE;
 		break;
 	case 400:
-		g_warning("push-proxy at %s (%s) for %s file #%u reported HTTP %d: %s",
-			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
-			guid_hex_str(cp->guid), cp->file_idx, code, message);
+		if (GNET_PROPERTY(push_proxy_debug)) {
+			g_warning("push-proxy at %s (%s) for %s file #%u "
+				"reported HTTP %d: %s",
+				host_addr_port_to_string(cp->addr, cp->port),
+				cproxy_vendor_str(cp), guid_hex_str(cp->guid),
+				cp->file_idx, code, message);
+		}
 		/* FALL THROUGH */
 	case 410:
 		download_proxy_failed(cp->d);
 		break;
 	default:
-		g_warning("push-proxy at %s (%s) for %s file #%u "
-			"sent unexpected HTTP %d: %s",
-			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
-			guid_hex_str(cp->guid), cp->file_idx, code, message);
+		/* Not following specifications, or not understanding push-proxy! */
+		if (GNET_PROPERTY(push_proxy_debug)) {
+			g_warning("push-proxy at %s (%s) for %s file #%u "
+				"sent unexpected HTTP %d: %s",
+				host_addr_port_to_string(cp->addr, cp->port),
+				cproxy_vendor_str(cp), guid_hex_str(cp->guid),
+				cp->file_idx, code, message);
+		}
 		download_proxy_failed(cp->d);
 		break;
 	}
 
-	if (GNET_PROPERTY(push_proxy_debug) > 0 && cp->sent)
+	if (GNET_PROPERTY(push_proxy_debug) > 1 && cp->sent)
 		g_debug("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s",
 			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx,
