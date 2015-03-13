@@ -253,10 +253,12 @@ SHA1_process_message_block(SHA1_context *context)
 	 */
 
 #define INIT(x) \
-	W[x] = (context->mblock[(x) * 4]  << 24) | \
-		(context->mblock[(x) * 4 + 1] << 16) | \
-		(context->mblock[(x) * 4 + 2] << 8)  | \
-		(context->mblock[(x) * 4 + 3])
+	W[x] = UINT32_SWAP(*wp); wp++
+
+	/* We rely on mblock[] being aligned on a 32-bit boundary, for cast below */
+	STATIC_ASSERT(0 == offsetof(struct SHA1_context, mblock) % 4);
+
+	wp = (uint32 *) &context->mblock[0];
 
 	/* Unrolling this loop saves time */
 	INIT(0);  INIT(1);  INIT(2);  INIT(3);
