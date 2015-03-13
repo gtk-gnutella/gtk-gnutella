@@ -88,7 +88,7 @@ main(int argc, char **argv)
 	SHA1_reset(&ctx);
 
 	for (done = FALSE; !done; /* empty */) {
-		char buf[512];
+		static char buf[128 * 1024];
 		int r;
 
 		r = read(fd, buf, sizeof buf);
