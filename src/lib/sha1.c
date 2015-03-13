@@ -68,12 +68,6 @@
 #include "misc.h"			/* For RCSID */
 #include "override.h"		/* Must be the last header included */
 
-/**
- *  Define the SHA1 circular left shift macro.
- */
-#define SHA1CircularShift(bits,word) \
-	(((word) << (bits)) | ((word) >> (32-(bits))))
-
 /* Local Function Prototyptes */
 static void SHA1_pad_message(SHA1_context *);
 static void SHA1_process_message_block(SHA1_context *);
@@ -243,9 +237,8 @@ SHA1_process_message_block(SHA1_context *context)
 		0xCA62C1D6
 	};
 	int    t;                 /* Loop counter              */
-	uint32 temp;              /* Temporary word value      */
 	uint32 W[80];             /* Word sequence             */
-	uint32 A, B, C, D, E;     /* Word buffers              */
+	uint32 a, b, c, d, e;     /* Word buffers              */
 	uint32 *wp;               /* Pointer in word sequence  */
 
 	/*
@@ -267,7 +260,7 @@ SHA1_process_message_block(SHA1_context *context)
 	INIT(12); INIT(13); INIT(14); INIT(15);
 
 #define CRUNCH \
-	*wp = SHA1CircularShift(1, wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16])
+	*wp = UINT32_ROTL(wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16], 1)
 
 	wp = &W[16];
 	CRUNCH; wp++;		/* 16 */
@@ -289,111 +282,135 @@ SHA1_process_message_block(SHA1_context *context)
 		CRUNCH; wp++;		/* t+9 */
 	}
 
-	A = context->ihash[0];
-	B = context->ihash[1];
-	C = context->ihash[2];
-	D = context->ihash[3];
-	E = context->ihash[4];
+	a = context->ihash[0];
+	b = context->ihash[1];
+	c = context->ihash[2];
+	d = context->ihash[3];
+	e = context->ihash[4];
 
 	wp = &W[0];
 
-#define ROTATE(k, mix) \
-	temp = SHA1CircularShift(5,A) + (mix) + E + *wp++ + K[k]; \
-	E = D; D = C; \
-	C = SHA1CircularShift(30,B); \
-	B = A; A = temp
+#define ROTATE(k, A, B, C, D, E, mix) \
+	E += UINT32_ROTL(A, 5) + mix(B, C, D) + *wp++ + K[k]; \
+	B = UINT32_ROTL(B, 30);
 
-	/* Optimizing "(B & C) | (~B & D)" into "D ^ (B & (C ^ D))" */
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
+	/*
+	 * Optimizing "(B & C) | (~B & D)" into "D ^ (B & (C ^ D))" in M0
+	 * Optimizing "(B & C) | (B & D)" into "B & (C | D)" in M2
+	 */
+#define M0(B, C, D)		(D ^ (B & (C ^ D)))
+#define M1(B, C, D)		(B ^ C ^ D)
+#define M2(B, C, D)		((B & (C | D)) | (C & D))
+#define M3(B, C, D)		(B ^ C ^ D)
 
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
+	/*
+	 * Another optimization: get rid of the temporary variable to circulate
+	 * the value.  Instead, we rotate the macro arguments, saving one
+	 * assignment per ROTATE() macro.
+	 *		--RAM, 2015-03-13
+	 */
 
-	/* Optimizing "(B & C) | (B & D)" into "B & (C | D)" */
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
 
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
 
-	context->ihash[0] += A;
-	context->ihash[1] += B;
-	context->ihash[2] += C;
-	context->ihash[3] += D;
-	context->ihash[4] += E;
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
+
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	context->ihash[0] += a;
+	context->ihash[1] += b;
+	context->ihash[2] += c;
+	context->ihash[3] += d;
+	context->ihash[4] += e;
 
 	context->midx = 0;
 }
