@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -33,7 +33,7 @@
  * as tx_write().
  *
  * @author Raphael Manfredi
- * @date 2002-2005
+ * @date 2002-2005, 2015
  */
 
 #include "common.h"
@@ -235,8 +235,25 @@ tx_collect(void)
 static inline bool
 tx_is_writable(const txdrv_t *tx)
 {
-	if G_UNLIKELY(tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
-		errno = EINVAL;
+	const int errflags = TX_ERROR | TX_DOWN | TX_CLOSING | TX_WR_FAULT;
+
+	if G_UNLIKELY(tx->flags & errflags) {
+		/*
+		 * If TX_WR_FAULT is set, warn them loudly to be able to spot
+		 * the faulty user code: we're re-entering the TX stack after an
+		 * error has been reported, probably during the execution of the
+		 * user-supplied write error callback, but maybe even afterwards!
+		 *		--RAM, 2015-03-14
+		 */
+
+		if (TX_WR_FAULT == (tx->flags & (TX_WR_FAULT | TX_WR_WARNED))) {
+			txdrv_t *wtx = deconstify_pointer(tx);
+			wtx->flags |= TX_WR_WARNED;
+			g_carp("%s(): writing to TX layer \"%s\" after error in \"%s\"",
+				G_STRFUNC, tx->ops->name, tx_error_layer_name(tx));
+		}
+
+		errno = EIO;
 		return FALSE;
 	}
 
@@ -502,6 +519,28 @@ tx_error_layer_name(const txdrv_t *tx)
 	}
 
 	return NULL;
+}
+
+/**
+ * Flag write error in current layer, disabling further writes at upper level.
+ */
+void
+tx_error(txdrv_t *tx)
+{
+	txdrv_t *t;
+
+	tx->flags |= TX_ERROR;
+
+	/*
+	 * Flag all the layers up to the top with a "write-fault" flag to help
+	 * us catch any user bug in the error processing callback, or possibly
+	 * an internal error in some TX service routine.
+	 *		--RAM, 2015-03-14
+	 */
+
+	for (t = tx; t; t = t->upper) {
+		t->flags |= TX_WR_FAULT;
+	}
 }
 
 /**

@@ -160,7 +160,7 @@ deflate_send(txdrv_t *tx)
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 	}
 	if ((ssize_t) -1 == r) {
-		tx->flags |= TX_ERROR;
+		tx_error(tx);
 		return;
 	}
 
@@ -426,7 +426,7 @@ retry:
 		break;
 	default:
 		attr->flags |= DF_SHUTDOWN;
-		tx->flags |= TX_ERROR;
+		tx_error(tx);
 
 		/* XXX: The callback must not destroy the tx! */
 		(*attr->cb->shutdown)(tx->owner, "Compression flush failed: %s",
