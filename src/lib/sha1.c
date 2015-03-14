@@ -188,10 +188,10 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 
 	SHA1_check(context);
 
-	if G_UNLIKELY(!length)
+	if G_UNLIKELY(0 == length)
 		return SHA_SUCCESS;
 
-	if G_UNLIKELY(!context || !data)
+	if G_UNLIKELY(NULL == context || NULL == data)
 		return SHA_NULL;
 
 	if G_UNLIKELY(context->computed) {
@@ -211,19 +211,29 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 	 *		--RAM, 2015-03-14
 	 */
 
-	if (0 == context->midx && 0 == pointer_to_long(data) % 4) {
-		while (length >= SHA1_BLEN) {
-			context->length += 8 * SHA1_BLEN;	/* Counts bits, not bytes */
-			SHA1_process_message_block(context, mp);
-			mp += SHA1_BLEN;
-			length -= SHA1_BLEN;
+	if G_UNLIKELY(0 != context->midx || 0 != pointer_to_long(mp) % 4)
+		goto slowpath;
+
+fastpath:
+	for (/**/; length >= SHA1_BLEN; mp += SHA1_BLEN, length -= SHA1_BLEN) {
+		context->length += 8 * SHA1_BLEN;		/* Counts bits, not bytes */
+
+		if G_UNLIKELY(context->length < 8 * SHA1_BLEN) {
+			/* Message is too long */
+			context->corrupted = SHA_INPUT_TOO_LONG;
+			return SHA_INPUT_TOO_LONG;
 		}
+
+		SHA1_process_message_block(context, mp);
 	}
 
+	/* FALL THROUGH */
+
 	/*
-	 * Normal slower processing.
+	 * Normal slower processing (requires byte-copying to a message buffer).
 	 */
 
+slowpath:
 	while (length--) {
 		context->mblock[context->midx++] = *mp++;
 		context->length += 8;		/* This counts bits, not bytes */
@@ -234,8 +244,11 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 			return SHA_INPUT_TOO_LONG;
 		}
 
-		if G_UNLIKELY(context->midx == SHA1_BLEN)
+		if G_UNLIKELY(SHA1_BLEN == context->midx) {
 			SHA1_process_message_block(context, context->mblock);
+			if (length >= SHA1_BLEN && 0 == pointer_to_long(mp) % 4)
+				goto fastpath;		/* Can use faster processing now */
+		}
 	}
 
 	return SHA_SUCCESS;
