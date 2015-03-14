@@ -3195,7 +3195,7 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 	qup->compress = NULL;
 	qup->ready = TRUE;
 
-	if G_UNLIKELY(status == BGS_KILLED)
+	if G_UNLIKELY(BGS_KILLED == status || BGS_CANCELLED == status)
 		goto error;
 	else if G_UNLIKELY(status == BGS_ERROR) {	/* Error during processing */
 		g_warning("could not compress query routing patch to send to %s",
