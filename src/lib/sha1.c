@@ -1,7 +1,7 @@
 /*
  * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -56,10 +56,12 @@
  *      a multiple of the size of an 8-bit character.
  *
  * @note
- * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
+ * This file comes from RFC 3174. Inclusion in gtk-gnutella with additional
+ * optimizations and adaptation to coding standards and specific library
+ * routines were made by Raphael Manfredi.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2015
  */
 
 #include "common.h"
@@ -68,9 +70,11 @@
 #include "misc.h"			/* For RCSID */
 #include "override.h"		/* Must be the last header included */
 
+#define SHA1_BLEN	64		/**< Message block length */
+
 /* Local Function Prototyptes */
 static void SHA1_pad_message(SHA1_context *);
-static void SHA1_process_message_block(SHA1_context *);
+static void SHA1_process_message_block(SHA1_context *, const void *mblock);
 
 /**
  *  SHA1_reset
@@ -92,6 +96,12 @@ SHA1_reset(SHA1_context *context)
 {
 	if (!context)
 		return SHA_NULL;
+
+	/*
+	 * We rely on mblock[] being aligned on a 32-bit boundary, to be able
+	 * to cast it to a uint32 * in SHA1_process_message_block().
+	 */
+	STATIC_ASSERT(0 == offsetof(struct SHA1_context, mblock) % 4);
 
 	ZERO(context);
 
@@ -192,6 +202,28 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 	if G_UNLIKELY(context->corrupted)
 		 return SHA_STATE_ERROR;
 
+	/*
+	 * Optimization: if the data block is aligned on a 32-bit boundary and
+	 * is at least 64-byte long, we can avoid moving data around and feed
+	 * them directly to SHA1_process_message_block(), as long as there are
+	 * no pending bytes in the context.  This will likely be happening when
+	 * large chunks of data are fed to the routine, e.g. when processing a file.
+	 *		--RAM, 2015-03-14
+	 */
+
+	if (0 == context->midx && 0 == pointer_to_long(data) % 4) {
+		while (length >= SHA1_BLEN) {
+			context->length += 8 * SHA1_BLEN;	/* Counts bits, not bytes */
+			SHA1_process_message_block(context, mp);
+			mp += SHA1_BLEN;
+			length -= SHA1_BLEN;
+		}
+	}
+
+	/*
+	 * Normal slower processing.
+	 */
+
 	while (length--) {
 		context->mblock[context->midx++] = *mp++;
 		context->length += 8;		/* This counts bits, not bytes */
@@ -202,8 +234,8 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 			return SHA_INPUT_TOO_LONG;
 		}
 
-		if G_UNLIKELY(context->midx == 64)
-			SHA1_process_message_block(context);
+		if G_UNLIKELY(context->midx == SHA1_BLEN)
+			SHA1_process_message_block(context, context->mblock);
 	}
 
 	return SHA_SUCCESS;
@@ -214,10 +246,11 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
  *
  *  Description:
  *      This function will process the next 512 bits of the message
- *      stored in the mblock array.
+ *      stored in the mblock parameter.
  *
  *  Parameters:
- *      None.
+ *      mblock: [in]
+ *          Start of the next 64 message bytes to process
  *
  *  Returns:
  *      Nothing.
@@ -228,7 +261,7 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
  *      names used in the publication.
  */
 static void G_GNUC_HOT
-SHA1_process_message_block(SHA1_context *context)
+SHA1_process_message_block(SHA1_context *context, const void *mblock)
 {
 	const uint32 K[] = {       /* Constants defined in SHA-1 */
 		0x5A827999,
@@ -248,10 +281,7 @@ SHA1_process_message_block(SHA1_context *context)
 #define INIT(x) \
 	W[x] = UINT32_SWAP(*wp); wp++
 
-	/* We rely on mblock[] being aligned on a 32-bit boundary, for cast below */
-	STATIC_ASSERT(0 == offsetof(struct SHA1_context, mblock) % 4);
-
-	wp = (uint32 *) &context->mblock[0];
+	wp = (uint32 *) mblock;
 
 	/* Unrolling this loop saves time */
 	INIT(0);  INIT(1);  INIT(2);  INIT(3);
@@ -443,20 +473,22 @@ SHA1_pad_message(SHA1_context *context)
 	 *  block, process it, and then continue padding into a second block.
      */
 
-	if (context->midx > 55) {
+#define SHA1_BUP	(SHA1_BLEN - 8)	/* Upper boundary before 64-bit length */
+
+	if (context->midx >= SHA1_BUP) {
 		context->mblock[context->midx++] = 0x80;
-		while (context->midx < 64) {
+		while (context->midx < SHA1_BLEN) {
 			context->mblock[context->midx++] = 0;
 		}
 
-		SHA1_process_message_block(context);
+		SHA1_process_message_block(context, context->mblock);
 
-		while (context->midx < 56) {
+		while (context->midx < SHA1_BUP) {
 			context->mblock[context->midx++] = 0;
 		}
 	} else {
 		context->mblock[context->midx++] = 0x80;
-		while (context->midx < 56) {
+		while (context->midx < SHA1_BUP) {
 			context->mblock[context->midx++] = 0;
 		}
 	}
@@ -465,8 +497,8 @@ SHA1_pad_message(SHA1_context *context)
 	 *  Store the message length as the last 8 octets
 	 */
 
-	poke_be64(&context->mblock[56], context->length);
-	SHA1_process_message_block(context);
+	poke_be64(&context->mblock[SHA1_BUP], context->length);
+	SHA1_process_message_block(context, context->mblock);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
