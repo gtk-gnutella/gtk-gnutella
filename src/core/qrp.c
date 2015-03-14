@@ -2675,7 +2675,12 @@ qrp_merge_routing_table(struct bgtask *unused_h, void *unused_c,
 	(void) unused_c;
 	(void) unused_arg;
 
-	if (status == BGS_KILLED)
+	if (BGS_ERROR == status) {
+		g_warning("%s(): merging task reported an error, "
+			"not updating routing table", G_STRFUNC);
+	}
+
+	if (BGS_OK != status)
 		return;
 
 	qrp_update_routing_table();
