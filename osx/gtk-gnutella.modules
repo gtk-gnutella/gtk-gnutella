@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE moduleset SYSTEM "moduleset.dtd">
+<?xml-stylesheet type="text/xsl" href="moduleset.xsl"?>
+<moduleset>
+	<include href="http://git.gnome.org/browse/gtk-osx/plain/modulesets-stable/gtk-osx.modules"/>
+	
+	<repository type="git" name="gtk-gnutella"
+    	href="https://github.com/gtk-gnutella"/>
+    	
+    <autotools id="gtk-gnutella" 
+    	autogenargs="--configure-only"
+    	autogen-sh="build.sh --target=osxbundle"
+    	autogen-template="%(srcdir)s/%(autogen-sh)s --prefix=%(prefix)s --libdir=%(libdir)s %(autogenargs)s"
+    	makeargs="-j1">
+    	
+    	<branch repo="gtk-gnutella" module="gtk-gnutella" revision="master"/>
+	<dependencies>
+		<dep package="gtk-gnutella-deps"/>
+	</dependencies>
+    </autotools>
+
+    <metamodule id="gtk-gnutella-deps">
+	<dependencies>
+		<dep package="meta-gtk-osx-core"/>
+	</dependencies>
+	<after>
+		<dep package="meta-gtk-osx-bootstrap"/>
+	</after>
+	<suggests>
+		<dep package="gnutls"/>
+	</suggests>
+  </metamodule>
+  
+</moduleset>
