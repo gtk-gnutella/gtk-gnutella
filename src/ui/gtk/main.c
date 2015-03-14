@@ -39,7 +39,7 @@
 #endif /* I_PWD */
 
 #ifdef HAVE_GTKOSXAPPLICATION
-#include <gtkmacintegration/gtkosxapplication.h>
+#include <gtkmacintegration-gtk2/gtkosxapplication.h>
 #include "settings_cb.h"
 #endif
 
