@@ -3091,12 +3091,20 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 
 	strtok_free_null(&st);
 
-	if (NULL == info.guid || !seen_proxy) {
+	/*
+	 * The GUID is the only mandatory part we need to parse correctly: it
+	 * is that of the firewalled node serving the file.
+	 *
+	 * Missing associated push proxies is fine, we can always collect
+	 * these later.
+	 */
+
+	if (NULL == info.guid) {
 		ok = FALSE;
 		if (GNET_PROPERTY(dmesh_debug))
 			g_warning("could not parse 'X-Falt: %s'", value);
 	} else {
-		ok = info.proxies != NULL;
+		ok = TRUE;
 		if (!dmesh_raw_fw_add(sha1, &info, stamp, TRUE)) {
 			hash_list_free_all(&info.proxies, gnet_host_free);
 		}
