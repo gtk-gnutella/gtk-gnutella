@@ -408,6 +408,37 @@ static const char *keys_101_1[] = {
 	"2547 4731 9fbd 4c83 e58a aa5b f401 c0e8",
 };
 
+static const char *keys_101_2[] = {
+	"5475 43e8 a2ca 1404 f2d9 df56 2feb 70eb",
+	"53ab ae62 458a e08a c3fc 49e0 f94e 7aff",
+	"6493 d9ac 61e7 9a3a e1ab abc7 95f6 2072",
+	"6f79 2aac e10c ebdb 1e9f e9c3 0df9 4b2b",
+	"78db 1395 8bea 63a3 933f 1760 7860 d480",
+	"e4d2 40a9 a4a3 fc73 5dfa 3f56 15f7 254a",
+	"70f6 3795 1a4e 7e32 74bc bfc6 366c b889",
+	"fc10 b6c8 1f52 3134 531b 62e0 150b 6101",
+	"02ab c0b8 1bd2 6cea 3fd0 c191 ecc4 0262",
+	"e41b 3732 d070 ae4b ac4b c36b 176f 0a03",
+	"0de1 e1bb 4dd0 81a1 5365 cf5c d358 d7ba",
+	"c0bc b0fd 762b 773a a85b 21c8 2af0 f797",
+	"405d 4997 01db e436 ba6e 2222 cc28 9b6d",
+	"2ab5 245e aaee d65d 92f0 c65a b08c d636",
+	"ff11 3970 246c ee6e a00d 4ebd 54c0 ca31",
+	"c5a9 63a7 28da b2d2 8d3b a63e 0957 cf7a",
+	"d4f0 a55a 0ea6 100c 7062 cd93 a886 e802",
+	"49c9 76e6 f907 5b02 46de 70f9 236e 828d",
+	"d1f6 91e2 7f5a e8d8 2ebe 754e 2041 31cc",
+	"4467 80bb 0874 6e60 d3a2 d12f 37cd eb8b",
+	"9a5a 6ddb 440b f584 8a7d fdd0 a026 8c05",
+	"635d 9f51 d228 70bf bdba 995f f360 4171",
+	"e7a7 b9d3 a02c b0e6 a66d 9aef aeb4 187d",
+	"989c 1c07 ebc0 a635 4a4f 2bf5 305c cb0f",
+	"790d 7a2c c570 3856 8d79 6909 3479 85de",
+	"373b 7f3e c464 de1e a6c9 a0b0 c810 20b0",
+	"de00 19a9 8674 2c20 789f f688 d721 2a23",
+	"e351 701b 3cac f6d3 37b3 7052 2b64 f64c",
+};
+
 #define KEYS(x)		keys_ ## x, G_N_ELEMENTS(keys_ ## x)
 
 /**
@@ -418,6 +449,7 @@ struct tokkey {
 	const char **keys;	/**< Keys to use */
 	uint count;			/**< Amount of keys defined */
 } token_keys[] = {
+	/* maj min PL  tag lvl #  timestamp     key array          ISO date   */
 	{ { 0, 97, 0, '\0', 0, 0, 1310940000 }, KEYS(097_0)	},	/* 2011-07-18 */
 	{ { 0, 97, 1, '\0', 0, 0, GIT_SWITCH }, KEYS(097_1)	},	/* 2011-09-11 */
 	{ { 0, 98, 0, '\0', 0, 0, 1323558000 }, KEYS(098_0)	},	/* 2011-12-11 */
@@ -429,6 +461,7 @@ struct tokkey {
 	{ { 1, 0,  1, '\0', 0, 0, 1388444400 }, KEYS(100_1) },	/* 2013-12-31 */
 	{ { 1, 1,  0, '\0', 0, 0, 1404252000 }, KEYS(101_0) },	/* 2014-07-02 */
 	{ { 1, 1,  1, '\0', 0, 0, 1409608800 }, KEYS(101_1) },	/* 2014-09-02 */
+	{ { 1, 1,  2, '\0', 0, 0, 1426892400 }, KEYS(101_2) },	/* 2015-03-21 */
 };
 
 #undef KEYS

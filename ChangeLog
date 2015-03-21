@@ -1,3 +1,93 @@
+# v 1.1.2   2015-03-21  [stable]
+
+This is mainly a bug-fixing release, addressing rare crashes that have been
+happening in production.  It also contains several improvements.
+
+It fixes a user-reported bug whreby it was not possible to properly configure
+the download paths using the GUI -- that led to application crashes due to
+the incomplete support for discovered threads (which GTK is using underneath
+to manage the dialog box).
+
+Another bug was caused by the HTTP header parsing logic which did not allow
+"." in header names.  That made it refuse to parse headers sent by some UPnP
+devices, such as "BOOTID.UPNP.ORG" or "CONFIGID.UPNP.ORG", prevening UPnP
+mappings from being installed.
+
+Hapening rarely but still annoying, there was a bug on the error handling path
+of write errors to the TX network stack, leading to assertion failures in
+the mq_tcp_putq() routine.  That was because the qrt_compressed() routine
+was not handling task cancellation properly.  The likelyhood of hitting that
+bug when running as a leaf node was very low.
+
+On the improvement side, the search list is now highlighting searches for
+which we have associated downloads by displaying the text in green.  Further
+tweaks were made to our GTK2 code to make sure the changes are reported "real
+time" when the state changes, which was not always the case before (one needed
+to go over a search by explicitly clicking on it to update the display in
+the search list).
+
+The SHA1 computation code was also further optimized to be as fast as possible,
+reducing file hashing time by two!  Since SHA1 hashing happens regularily
+in gtk-gnutella to collect entropy, optimizing the SHA1 computation affects
+more than just file verification.
+
+Improvements:
+- [GTK2] Added translation URL in the "About" GUI dialog.
+- [GTK2] Highlight searches with registered downloads by using green text.
+- [GTK2] Added tri-state column sorting to the "upload history" panel.
+- FAQ: added new entry explaining how to get the magnet of a shared file.
+- Map the "collection" G2 query tag to the Windows / Linux "archive" file set.
+- Map the "torrent" G2 query tag to the "torrent" file set.
+- Added support for "rom", "wordprocessing" and "subtitle" G2 query media types.
+- Further optimized SHA1 computation, now going about twice faster for files.
+
+Bug Fixes:
+- page_cache_insert_pages(): fixed incorrect write-lock upgrade logic.
+- pmap_insert_region(): must recompute insertion index if we extend the pmap!
+- tmalloc: fixed thread magazine accounting in the depots.
+- Did not commit back to database after updating the DHT key request count.
+- routing_chunk_move(): must check messages carefully when chunk was moved.
+- route_message(): beware of check_duplicate() which can remove the node.
+- thread_element_matches(): pay more attention to discovered threads.
+- thread_find_tid(): skip thread elements not marked as being valid!
+- node_shutdown_mode(): must correctly account for shutdowning G2 nodes!
+- bogons_changed(): forgot to close opened file descriptor
+- upload_stats_load_history(): added missing break in switch.
+- qrt_compressed(): was not handling QRP compression task cancellation properly.
+
+Under the Hood:
+- Added hostile ranges.
+- Updated GeoIP databases for IPv4 and IPv6.
+- Throttle the amount of PUSH messages we can send for a given remote server.
+- Legitimate Shareaza nodes cannot be flagging themselves as ultrapeers.
+- Windows: stack unwinding made safer with more memory checks to avoid faults.
+- UPNP: attempt rediscovery of port mapping devices every hour, if missing one.
+- UPNP: attempt rediscovery of port mapping devices every hour, if missing one.
+- Added new TSIG_OVFLOW signal sent when a thread overflows its stack.
+- Fixed race condition between concurrent waiter_refcnt_dec() calls.
+- Added logging of layer which reports a TX error in case of assert failure.
+- Track the last seen time (activity) of discovered threads other than main.
+- Prevent glade-2 from outputting support files now, since we patched them.
+- Added tracing of funny X-Falt lines we are seeing when demsh_debug is set.
+- Added tracing of funny X-Alt lines we are seeing when dmesh_debug is set.
+- Added tracing of funny X-Nalt lines we are seeing when dmesh_debug is set.
+- Added crash hook for the thread layer.
+- Added TX layer write-fault mechansim to help detect user error handling bugs.
+- Syntaxic adjustments to make the latest guile happy with definitions.
+- The GUI will now display current bandwidth by default, instead of the average.
+- mingw_exception(): write shorter messages in case of stack overflows.
+- thread_element_reset(): forgot to reset te->stack_base to NULL.
+- header_append(): allow "." in header names.
+- thread_join_internal(): no thread_cancel_test_element() on foreign thread!
+- thread_find_element(): avoid leaving routine without unlocking mutex!
+- cond_wait_until(): now correctly handle underlying cond variable mutation.
+- thread_block_timeout(): don't panic if main thread already unblocked.
+- dir_entry_filename(): made the Windows version thread-safe.
+- hfield_dump(): fixed formatting of continuation lines.
+- dmesh_collect_locations(): only parse the last timestamp when many given.
+- xmalloc_thread_free(): always handle blocks in the cross-thread free list.
+- Hide strtok_free(), forcing clients to use new strtok_free_null().
+
 # v 1.1.1   2014-09-02  [stable]
 
 This is mostly a bug-fixing release.
