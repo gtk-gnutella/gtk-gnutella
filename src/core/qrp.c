@@ -756,7 +756,8 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
  * If `old' isn't NULL, then it must have the same size as `new'.
  *
  * For G2, we have to reverse all the bits in the bytes because they number
- * entries in a little-endian way whereas Gnutella uses big-ending numbering.
+ * entries in a little-endian way whereas Gnutella uses big-endian bit numbering
+ * within a byte.
  *
  * @returns a patch buffer (uncompressed), made of 1-bit flips, or NULL
  * if there were no differences between the two tables.  If the `old' table
@@ -2674,7 +2675,12 @@ qrp_merge_routing_table(struct bgtask *unused_h, void *unused_c,
 	(void) unused_c;
 	(void) unused_arg;
 
-	if (status == BGS_KILLED)
+	if (BGS_ERROR == status) {
+		g_warning("%s(): merging task reported an error, "
+			"not updating routing table", G_STRFUNC);
+	}
+
+	if (BGS_OK != status)
 		return;
 
 	qrp_update_routing_table();
@@ -3194,7 +3200,7 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 	qup->compress = NULL;
 	qup->ready = TRUE;
 
-	if G_UNLIKELY(status == BGS_KILLED)
+	if G_UNLIKELY(BGS_KILLED == status || BGS_CANCELLED == status)
 		goto error;
 	else if G_UNLIKELY(status == BGS_ERROR) {	/* Error during processing */
 		g_warning("could not compress query routing patch to send to %s",
@@ -3223,6 +3229,8 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 	 */
 
 	rp = qrt_default_patch(qup->node);
+
+	g_assert(rp != NULL || qup->patch != NULL);
 
 	if G_UNLIKELY(rp != NULL && qup->patch->len > rp->len) {
 		if (qrp_debugging(0)) {

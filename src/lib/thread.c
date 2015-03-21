@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 Raphael Manfredi
+ * Copyright (c) 2011-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -66,7 +66,7 @@
  * argument.
  *
  * @author Raphael Manfredi
- * @date 2011-2014
+ * @date 2011-2015
  */
 
 #include "common.h"
@@ -86,7 +86,7 @@
 #include "compat_usleep.h"
 #include "cond.h"
 #include "cq.h"
-#include "crash.h"				/* For print_str() et al. */
+#include "crash.h"				/* For crash_hook_add(), print_str() et al. */
 #include "dam.h"
 #include "dump_options.h"
 #include "entropy.h"
@@ -137,8 +137,17 @@
  * This is the time we wait after a "detached" thread we created has exited
  * before attempting to join with it in the callout queue thread and free
  * its stack.
+ *
+ * It is also used for discovered threads which we are told are gone, to defer
+ * the reuse of their thread element a little bit.
  */
 #define THREAD_HOLD_TIME	20		/**< in ms, keep dead thread before reuse */
+
+/**
+ * Grace time for discovered threads, before allowing their thread element
+ * to be reused.
+ */
+#define THREAD_GRACE_TIME	1000	/**< in ms, grace time before reuse */
 
 #define THREAD_SUSPEND_CHECK		4096
 #define THREAD_SUSPEND_CHECKMASK	(THREAD_SUSPEND_CHECK - 1)
@@ -157,7 +166,7 @@
  * This is the maximum amount of time we allow the main thread to block, even
  * if it is configured as non-blocking.
  */
-#define THREAD_MAIN_DELAY_MS		3000	/* ms */
+#define THREAD_MAIN_DELAY_MS		5000	/* ms */
 
 /**
  * A recorded lock.
@@ -280,6 +289,7 @@ struct thread_element {
 	thread_qid_t high_sig_qid;		/**< The highest possible QID on sigstack*/
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
+	time_t last_seen;				/**< Last seen time for discovered thread */
 	const void *last_sp;			/**< Last stack pointer seen */
 	const void *top_sp;				/**< Highest stack pointer seen */
 	const void *stack_lock;			/**< First lock seen at this SP */
@@ -324,6 +334,9 @@ struct thread_element {
 	uint cancelable:1;				/**< Whether thread is cancelable */
 	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
+	uint gone:1;					/**< Discovered thread is gone */
+	uint gone_seen:1;				/**< Flagged activity from gone thread */
+	uint add_monitoring:1;			/**< Must reinstall thread monitoring */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
@@ -360,6 +373,8 @@ static struct thread_stats {
 	uint discovered;				/* Amount of discovered threads */
 	AU64(qid_cache_lookup);			/* Amount of QID lookups in the cache */
 	AU64(qid_cache_hit);			/* Amount of QID hits */
+	AU64(qid_cache_false_hit);		/* False QID hits (discovered threads) */
+	AU64(qid_cache_self_check);		/* Check thread using thread_self() */
 	AU64(qid_cache_clash);			/* Amount of QID clashes */
 	AU64(qid_cache_miss);			/* Amount of QID lookup misses */
 	AU64(lookup_by_qid);			/* Amount of thread lookups by QID */
@@ -395,6 +410,7 @@ static struct thread_stats {
 	AU64(thread_self_suspends);		/* Threads seeing they need to suspend */
 	AU64(thread_self_block_races);	/* Detected races in thread_self_block() */
 	AU64(thread_self_pause_races);	/* Detected races in thread_sigsuspend() */
+	AU64(thread_self_calls);		/* Amount of thread_self() calls made */
 	AU64(thread_forks);				/* Amount of thread_fork() calls made */
 	AU64(thread_yields);			/* Amount of thread_yield() calls made */
 } thread_stats;
@@ -507,12 +523,47 @@ static uint thread_discovered;			/* Amount of discovered threads */
 static bool thread_stack_noinit;		/* Whether to skip stack allocation */
 static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
 static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
+static int thread_locks_disabled;		/* Whether locks were disabled */
 
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 static void thread_lock_dump(const struct thread_element *te);
 static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
+static void thread_will_exit(void *arg);
+static void thread_crash_hook(void);
+
+/**
+ * Low-level unique thread ID.
+ */
+thread_t
+thread_self(void)
+{
+	union {
+		thread_t t;
+		pthread_t pt;
+	} u;
+
+	STATIC_ASSERT(sizeof(thread_t) <= sizeof(pthread_t));
+
+	THREAD_STATS_INCX(thread_self_calls);
+
+	/*
+	 * We truncate the pthread_t to the first "unsigned long" bytes.
+	 *
+	 * On Linux, pthread_t is already an unsigned long.
+	 * On FreeBSD, pthread_t is a pointer, which fits in unsigned long.
+	 *
+	 * On Windows, pthread_t is a structure, whose first member is a pointer.
+	 * And we don't want to use the whole pthread_t structure there, because
+	 * the second member is changing over time and we want a unique thread
+	 * identifier.
+	 */
+
+	u.pt = pthread_self();
+
+	return u.t;
+}
 
 /**
  * Yield CPU time for current thread.
@@ -804,9 +855,68 @@ thread_qid_cache_force(unsigned stid, thread_qid_t low, thread_qid_t high)
 }
 
 /**
+ * Monitor discovered thread so that we are warned when the thread is about
+ * to exit, in order to reclaim its thread element.
+ *
+ * @param te		thread element for the current thread we wish to monitor
+ */
+static void
+thread_monitor_exit(struct thread_element *te)
+{
+	static size_t counter;
+	static pthread_key_t monitor_key;
+
+	g_assert_log(te->discovered,
+		"%s(): thread #%u not discovered (%s created)",
+		G_STRFUNC, te->stid, te->created ? "was" : "neither");
+
+	/*
+	 * Create special key if not already done.  That key is equipped with
+	 * a destructor that will be called in each exiting thread when the
+	 * key holds a non-NULL data.
+	 *
+	 * This gives us the advance notification that the thread will be
+	 * exiting "soon" (either it called pthread_exit() or was cancelled).
+	 *		--RAM, 2015-02-24
+	 */
+
+	if G_UNLIKELY(0 == ATOMIC_INC(&counter)) {
+		int error = pthread_key_create(&monitor_key, thread_will_exit);
+
+		if (error != 0) {
+			/* Don't use %m, not sure we can set errno properly in thread */
+			s_minierror("%s(): cannot create monitoring key: %s (%s)",
+				G_STRFUNC, symbolic_errno(error), g_strerror(error));
+		}
+	}
+
+	/*
+	 * We must set a non-NULL key to have the destroy callback invoked
+	 * at thread exit time: use the thread element!
+	 */
+
+	pthread_setspecific(monitor_key, te);
+}
+
+/**
+ * A discovered thread was marked as "gone" and yet we are seeing some
+ * activity for it.
+ */
+static void
+thread_element_mark_gone_seen(struct thread_element *te)
+{
+	THREAD_LOCK(te);
+	if G_UNLIKELY(te->gone && !te->gone_seen) {
+		te->gone_seen = TRUE;
+		te->add_monitoring = TRUE;	/* Still active, must monitor exit again! */
+	}
+	THREAD_UNLOCK(te);
+}
+
+/**
  * @return whether thread element is matching the QID.
  */
-static inline ALWAYS_INLINE bool
+static bool
 thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 {
 	if G_UNLIKELY(NULL == te) {
@@ -814,14 +924,76 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 		return FALSE;
 	}
 
+	/*
+	 * When the last_qid matched the qid, we know that the hit is correct
+	 * as long as we are in the main thread or the thread was not discovered.
+	 * Indeed, we control the created threads and the death of the main thread
+	 * would mean the death of the whole process.
+	 *
+	 * For a discovered thread however, we need to check whether the associated
+	 * recorded TID matches the current one.  Otherwise, the thread we had
+	 * discovered previously no longer exists.
+	 *		--RAM, 2015-02-11
+	 */
+
 	if G_LIKELY(te->last_qid == qid) {
-		THREAD_STATS_INCX(qid_cache_hit);
-		thread_stack_update(te);
-		return TRUE;
+		if G_LIKELY(THREAD_MAIN == te->stid || te->created)
+			goto matched;
+
+		/*
+		 * A discovered thread could be gone and still have stale entries
+		 * in the QID cache.
+		 */
+
+		if G_UNLIKELY(!te->valid)
+			goto false_hit;
+
+		/*
+		 * We are in a discovered thread, and we take this opportunity to
+		 * update the last time we see an activity for that thread.  This
+		 * allows thread tracing code to spot likely inactive discovered
+		 * thread since we cannot know when they enter a blocking state due
+		 * to thread synchronization (waiting for an event, sleeping, etc..).
+		 *		--RAM, 2015-02-23
+		 */
+
+		te->last_seen = tm_time_raw();
+
+		THREAD_STATS_INCX(qid_cache_self_check);
+
+		if (thread_eq(te->tid, thread_self())) {
+			/*
+			 * Loudly warn if the thread element is marked as gone.
+			 * It means that thread_will_exit() was called, we marked the
+			 * discovered thread as being gone and yet the same thread
+			 * is still being active.
+			 */
+
+			if G_UNLIKELY(te->gone) {
+				thread_element_mark_gone_seen(te);
+			} else if G_UNLIKELY(te->add_monitoring) {
+				/* No longer flagged as "gone", re-install monitoring */
+				THREAD_LOCK(te);
+				te->add_monitoring = FALSE;
+				THREAD_UNLOCK(te);
+				thread_monitor_exit(te);
+			}
+
+			goto matched;
+		}
+
+	false_hit:
+		THREAD_STATS_INCX(qid_cache_false_hit);
+		return FALSE;
 	}
 
 	THREAD_STATS_INCX(qid_cache_clash);
 	return FALSE;
+
+matched:
+	THREAD_STATS_INCX(qid_cache_hit);
+	thread_stack_update(te);
+	return TRUE;
 }
 
 /**
@@ -887,7 +1059,7 @@ thread_element_name(const struct thread_element *te)
  * This is only needed for discovered thread given that we know the stack
  * shape for created threads.
  */
-static inline void
+static void
 thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 {
 	/*
@@ -903,6 +1075,9 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 		te->high_qid = qid;
 	THREAD_UNLOCK(te);
 
+	if G_UNLIKELY(te->gone)
+		thread_element_mark_gone_seen(te);
+
 	thread_stack_update(te);
 
 	/*
@@ -911,6 +1086,42 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 	 */
 
 	thread_qid_cache_force(te->stid, te->low_qid, te->high_qid);
+}
+
+/**
+ * Create pipe or socketpair.
+ *
+ * @param fd[]		the array to fill with the created read/write descriptors
+ * @param caller	caller name, in case of error
+ */
+static void
+thread_pipe_open(socket_fd_t fd[2], const char *caller)
+{
+#ifdef HAS_SOCKETPAIR
+	if (-1 == socketpair(AF_LOCAL, SOCK_STREAM, 0, fd))
+		s_error("%s(): socketpair() failed: %m", caller);
+#else
+	if (-1 == pipe(te->wfd))
+		s_error("%s(): pipe() failed: %m", caller);
+#endif
+}
+
+/**
+ * Close pipe / socketpair created by thread_pipe_open().
+ */
+static void
+thread_pipe_close(socket_fd_t fd[2])
+{
+#ifdef HAS_SOCKETPAIR
+	if (INVALID_SOCKET != fd[0]) {
+		s_close(fd[0]);
+		s_close(fd[1]);
+		fd[0] = fd[1] = INVALID_SOCKET;
+	}
+#else
+	fd_close(&fd[0]);
+	fd_close(&fd[1]);
+#endif
 }
 
 /**
@@ -937,13 +1148,7 @@ thread_block_init(struct thread_element *te)
 	 */
 
 	if G_UNLIKELY(INVALID_FD == te->wfd[0]) {
-#ifdef HAS_SOCKETPAIR
-		if (-1 == socketpair(AF_LOCAL, SOCK_STREAM, 0, te->wfd))
-			s_error("%s(): socketpair() failed: %m", G_STRFUNC);
-#else
-		if (-1 == pipe(te->wfd))
-			s_error("%s(): pipe() failed: %m", G_STRFUNC);
-#endif
+		thread_pipe_open(te->wfd, G_STRFUNC);
 	}
 }
 
@@ -953,16 +1158,7 @@ thread_block_init(struct thread_element *te)
 static void
 thread_block_close(struct thread_element *te)
 {
-#ifdef HAS_SOCKETPAIR
-	if (INVALID_SOCKET != te->wfd[0]) {
-		s_close(te->wfd[0]);
-		s_close(te->wfd[1]);
-		te->wfd[0] = te->wfd[1] = INVALID_SOCKET;
-	}
-#else
-	fd_close(&te->wfd[0]);
-	fd_close(&te->wfd[1]);
-#endif
+	thread_pipe_close(te->wfd);
 }
 
 /**
@@ -1221,6 +1417,106 @@ thread_element_mark_reusable(struct thread_element *te)
 }
 
 /**
+ * A thread is gone (be it created or discovered).
+ */
+static void
+thread_gone(struct thread_element *te)
+{
+	/*
+	 * Need to signal xmalloc() that any thread-specific allocated chunk
+	 * can now be forcefully dismissed if they are empty and pending
+	 * cross-thread freeing for the dead chunk can be processed.
+	 */
+
+	xmalloc_thread_ended(te->stid);
+
+	thread_element_mark_reusable(te);
+}
+
+/**
+ * Callout queue callback invoked when discovered thread is surely gone.
+ */
+static void
+thread_surely_gone(cqueue_t *unused_cq, void *data)
+{
+	struct thread_element *te = data;
+	bool problem;
+	size_t locks;
+
+	thread_element_check(te);
+
+	(void) unused_cq;
+
+	THREAD_LOCK(te);
+
+	if (!te->valid || !te->exit_started || !te->discovered) {
+		THREAD_UNLOCK(te);
+		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+			G_STRFUNC, te->stid, thread_id_name(te->stid));
+		return;
+	}
+
+	problem = te->gone_seen;
+	locks = te->locks.count;
+	if (problem || locks != 0) {
+		te->gone = FALSE;			/* Will not reuse it after all */
+		te->exit_started = FALSE;	/* And definitely not exiting */
+	}
+	THREAD_UNLOCK(te);
+
+	if (locks != 0) {
+		s_warning("%s(): %s still holding %zu lock%s, not reusing its ID",
+			G_STRFUNC, thread_id_name(te->stid), locks, plural(locks));
+	} else if (problem) {
+		s_warning("%s(): seen some activity for %s, not reusing its ID",
+			G_STRFUNC, thread_id_name(te->stid));
+	} else {
+		thread_gone(te);
+		te->discovered = FALSE;
+		atomic_uint_dec(&thread_discovered);
+	}
+}
+
+/**
+ * Callout queue callback invoked when discovered thread is probably gone.
+ */
+static void
+thread_probably_gone(cqueue_t *unused_cq, void *data)
+{
+	struct thread_element *te = data;
+
+	thread_element_check(te);
+
+	(void) unused_cq;
+
+	THREAD_LOCK(te);
+
+	if (!te->valid || !te->exit_started || !te->discovered) {
+		THREAD_UNLOCK(te);
+		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+			G_STRFUNC, te->stid, thread_id_name(te->stid));
+		return;
+	}
+
+	/*
+	 * We flag the discovered thread as gone, which will give us a loud
+	 * warning if we see a QID cache hit for that thread again.
+	 */
+
+	te->gone = TRUE;
+	te->gone_seen = FALSE;
+
+	THREAD_UNLOCK(te);
+
+	/*
+	 * Now after some safety period has elapsed, mark the element as
+	 * being truly gone.
+	 */
+
+	evq_raw_insert(THREAD_GRACE_TIME, thread_surely_gone, te);
+}
+
+/**
  * A created thread has definitively ended and we can reuse its thread element.
  */
 static void
@@ -1228,16 +1524,10 @@ thread_ended(struct thread_element *te)
 {
 	g_assert(te->created);
 
-	/*
-	 * Need to signal xmalloc() that any thread-specific allocated chunk
-	 * can now be forcefully dismissed if they are empty and pending
-	 * cross-thread freeing for the dead chunk can be processed.
-	 */
-
 	if (te->stack != NULL)
 		thread_stack_free(te);
-	xmalloc_thread_ended(te->stid);
-	thread_element_mark_reusable(te);
+
+	thread_gone(te);
 	atomic_uint_dec(&thread_pending_reuse);
 }
 
@@ -1383,6 +1673,15 @@ thread_exiting(struct thread_element *te)
 static void
 thread_element_reset(struct thread_element *te)
 {
+	/*
+	 * Even though we do not have to take the thread element lock here,
+	 * we do, in order to avoid numerous false positives from Coverity.
+	 * (many of these fields are normally accessed with the lock taken)
+	 *		--RAM, 2015-03-06
+	 */
+
+	THREAD_LOCK(te);
+
 	te->locks.count = 0;
 	ZERO(&te->waiting);
 
@@ -1398,6 +1697,7 @@ thread_element_reset(struct thread_element *te)
 	te->exiting = FALSE;
 	te->stack_lock = NULL;	/* Stack position when first lock recorded */
 	te->stack = NULL;
+	te->stack_base = NULL;
 	te->name = NULL;
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
@@ -1415,13 +1715,19 @@ thread_element_reset(struct thread_element *te)
 	te->cancelled = FALSE;
 	te->cancelable = TRUE;
 	te->exit_started = FALSE;
+	te->gone = FALSE;
+	te->gone_seen = FALSE;
+	te->add_monitoring = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
+	te->sig_generation = 0;
 	ZERO(&te->sigh);
 	eslist_clear(&te->exit_list);
 	eslist_clear(&te->cleanup_list);
 	slist_free(&te->cond_stack);
+
+	THREAD_UNLOCK(te);
 }
 
 /**
@@ -1460,24 +1766,14 @@ thread_stid_tie(unsigned stid, thread_t t)
 }
 
 /**
- * Common initialization sequence between a created and a discovered thread.
+ * Make sure no other thread element bears that thread_t.
  */
 static void
-thread_element_common_init(struct thread_element *te, thread_t t)
+thread_element_unique_thread(struct thread_element *te, thread_t t)
 {
 	unsigned i;
 
 	assert_mutex_is_owned(&thread_insert_mtx);
-
-	te->creating = FALSE;
-	te->valid = TRUE;
-	thread_stid_tie(te->stid, t);
-	thread_private_clear_warn(te);
-	thread_local_clear_warn(te);
-
-	/*
-	 * Make sure no other thread element bears that thread_t.
-	 */
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *xte = threads[i];
@@ -1499,6 +1795,22 @@ thread_element_common_init(struct thread_element *te, thread_t t)
 			}
 		}
 	}
+}
+
+/**
+ * Common initialization sequence between a created and a discovered thread.
+ */
+static void
+thread_element_common_init(struct thread_element *te, thread_t t)
+{
+	assert_mutex_is_owned(&thread_insert_mtx);
+
+	te->creating = FALSE;
+	te->valid = TRUE;
+	thread_stid_tie(te->stid, t);
+	thread_private_clear_warn(te);
+	thread_local_clear_warn(te);
+	thread_element_unique_thread(te, t);
 }
 
 /**
@@ -1574,33 +1886,82 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 			te->high_qid >= xte->low_qid &&
 			te->low_qid <= xte->high_qid
 		) {
-			bool discovered = FALSE;
-
 			/*
 			 * This old thread is necessarily dead if it overlaps our QID range
 			 * and it was a created thread.  For discovered threads, we can
 			 * never know what their QID range is for sure but we can exclude
-			 * the overlapping range.
+			 * the overlapping ranges.
 			 */
 
 			THREAD_LOCK(xte);
 			if (xte->discovered || xte->exiting) {
+				bool dead_thread = FALSE;
+
+				if (
+					xte->low_qid <= te->low_qid &&
+					xte->high_qid >= te->high_qid
+				) {
+					/* [te] fully embedded within [xte] range */
+					if (
+						xte->last_qid <=
+							xte->low_qid + (xte->high_qid - xte->low_qid) / 2
+					) {
+						/* We keep the lower part of the [xte] range */
+						xte->high_qid = te->low_qid - 1;
+						if (thread_sp_direction > 0)
+							xte->top_qid = xte->high_qid;
+					} else {
+						/* We keep the upper part of the [xte] range */
+						xte->low_qid = te->high_qid + 1;
+						if (thread_sp_direction < 0)
+							xte->top_qid = xte->low_qid;
+					}
+					if (xte->low_qid > xte->high_qid)
+						dead_thread = TRUE;
+					goto done;
+				}
+
+				if (
+					xte->low_qid <= te->low_qid &&
+					xte->high_qid >= te->high_qid
+				) {
+					/* [xte] fully embedded within [te] range */
+					dead_thread = TRUE;
+					goto done;
+				}
+
 				if (xte->low_qid <= te->low_qid) {
-					xte->high_qid = MIN(xte->high_qid, te->low_qid);
+					xte->high_qid = te->low_qid - 1;
 					if (thread_sp_direction > 0)
-						xte->top_qid = MIN(xte->top_qid, xte->high_qid);
-				}
-				if (te->low_qid <= xte->low_qid) {
-					xte->low_qid = MAX(xte->low_qid, te->high_qid);
+						xte->top_qid = xte->high_qid;
+				} else if (xte->high_qid >= te->high_qid) {
+					xte->low_qid = te->high_qid + 1;
 					if (thread_sp_direction < 0)
-						xte->top_qid = MAX(xte->top_qid, xte->low_qid);
+						xte->top_qid = xte->low_qid;
 				}
-				if G_UNLIKELY(xte->high_qid < xte->low_qid) {
-					/* This thread is dead */
+				if (xte->low_qid > xte->high_qid)
+					dead_thread = TRUE;
+
+				/* FALL THROUGH */
+
+			done:
+				if G_UNLIKELY(dead_thread) {
+					/* This thread is dead and will no longer run */
 					thread_set(tstid[xte->stid], THREAD_INVALID);
-					if (xte->discovered) {
+
+					/*
+					 * If the thread was discovered and flagged as
+					 * "exit_started", then we must not do anything yet
+					 * as it is being monitored and handled.
+					 */
+
+					if (xte->discovered && !xte->exit_started) {
+						s_miniwarn("%s(): discovered thread #%u is dead",
+							G_STRFUNC, xte->stid);
+
+						thread_element_mark_reusable(xte);
 						xte->discovered = FALSE;
-						discovered = TRUE;
+						atomic_uint_dec(&thread_discovered);
 					}
 				}
 			} else {
@@ -1612,13 +1973,44 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 					xte->stid, xte->low_qid, xte->high_qid);
 			}
 			THREAD_UNLOCK(xte);
-
-			if G_UNLIKELY(discovered)
-				atomic_uint_dec(&thread_discovered);
 		}
 	}
 
 	mutex_unlock_fast(&thread_insert_mtx);
+}
+
+/**
+ * Callback invoked when the special monitoring key we set in each discovered
+ * thread is reclaimed by the pthread runtime, which will happen when the thread
+ * is exiting.
+ */
+static void
+thread_will_exit(void *arg)
+{
+	struct thread_element *te = arg;
+
+	thread_element_check(te);
+	g_assert_log(te->discovered,
+		"%s(): thread #%u not discovered (%s created)",
+		G_STRFUNC, te->stid, te->created ? "was" : "neither");
+
+	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
+
+	/*
+	 * Since the thread was discovered, we wait a little bit to reuse its
+	 * thread element: we cannot know for sure that this is the last activity
+	 * we will see for that dying thread (other cleanup could involve freeing
+	 * allocated objects).
+	 *
+	 * We have to pray for the holding time to be large enough or we will mark
+	 * the thread reusable too soon!  The consequence is that we could
+	 * re-discover the same thread on its exit path, but this time there will
+	 * be no usable hook to let us know the thread has died, possibly leading
+	 * to a thread element leak if we cannot determine for sure that the thread
+	 * is dead.
+	 */
+
+	evq_raw_insert(THREAD_HOLD_TIME, thread_probably_gone, te);
 }
 
 /**
@@ -1637,11 +2029,13 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->last_seen = tm_time_raw();
 	te->cancelable = FALSE;
 	te->cancl = THREAD_CANCEL_DISABLE;
 	thread_set(te->tid, t);
 	thread_stack_init_shape(te, &te);
 	thread_element_common_init(te, t);
+	thread_monitor_exit(te);
 }
 
 /**
@@ -1672,20 +2066,26 @@ thread_sigstack_allocate(struct thread_element *te)
 /**
  * Allocate a new thread element in advance, if we haven't yet allocated all
  * our thread elements.
+ *
+ * @return TRUE if we were able to allocate an element (or we already have
+ * pre-allocated the next element), FALSE if we cannot create any more elements
+ * because we have reached the maximum amount.
  */
-static void
+static bool
 thread_preallocate_element(void)
 {
 	assert_mutex_is_owned(&thread_insert_mtx);
 
-	if G_UNLIKELY(THREAD_MAX == thread_allocated_count)
-		return;
-
 	if G_UNLIKELY(NULL != thread_next_te)
-		return;
+		return TRUE;				/* Already allocated */
+
+	if G_UNLIKELY(THREAD_MAX == thread_allocated_count)
+		return FALSE;				/* Cannot allocate more elements */
 
 	thread_allocated_count++;
 	OMALLOC0(thread_next_te);		/* Never freed */
+
+	return TRUE;	/* Next element properly allocated */
 }
 
 /**
@@ -1735,6 +2135,7 @@ thread_new_element(unsigned stid)
 	thread_stack_init_shape(te, &te);
 	te->valid = TRUE;				/* Minimally ready */
 	te->discovered = TRUE;			/* Assume it was discovered */
+	te->last_seen = tm_time_raw();
 
 	threads[stid] = te;				/* Record, but do not make visible yet */
 
@@ -1842,6 +2243,7 @@ thread_main_element(thread_t t)
 	te->last_qid = qid;
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	te->discovered = TRUE;
+	te->last_seen = tm_time_raw();
 	te->valid = TRUE;
 	thread_set(te->tid, t);
 	te->main_thread = TRUE;
@@ -1882,6 +2284,13 @@ thread_main_element(thread_t t)
 	 */
 
 	mutex_unlock_fast(&thread_insert_mtx);
+
+	/*
+	 * We're now sufficienly far in the initialization to be able to
+	 * install a crash hook for our thread runtime.
+	 */
+
+	crash_hook_add(_WHERE_, thread_crash_hook);
 
 	return te;
 }
@@ -1995,7 +2404,7 @@ thread_find_element(void)
 			unsigned stid = atomic_uint_inc(&thread_allocated_stid);
 
 			if (stid >= THREAD_MAX)
-				return NULL;			/* No more slots available */
+				goto done;			/* No more slots available */
 
 			/*
 			 * In case there is nothing pre-allocated yet (which could be
@@ -2004,7 +2413,8 @@ thread_find_element(void)
 			 * a thread element available before calling thread_new_element().
 			 */
 
-			thread_preallocate_element();
+			if (!thread_preallocate_element())
+				goto done;			/* No more thread elements */
 
 			te = thread_new_element(stid);
 			thread_update_next_stid();
@@ -2025,10 +2435,18 @@ thread_find_element(void)
 		thread_set(tstid[te->stid], THREAD_INVALID);
 	}
 
-	mutex_unlock_fast(&thread_insert_mtx);
+done:
+	/*
+	 * Reset the element whilst we hold the mutex.  It's not really required,
+	 * but discovered threads can also call thread_element_reset() from a
+	 * path where the mutex is held, so this gives us more consistency.
+	 *		--RAM, 2015-03-06
+	 */
 
 	if (te != NULL)
 		thread_element_reset(te);
+
+	mutex_unlock_fast(&thread_insert_mtx);
 
 	return te;
 }
@@ -2249,7 +2667,7 @@ thread_find_tid(thread_t t)
 			te = threads[i];
 			if (NULL == te)
 				continue;
-			if (te->reusable) {
+			if (te->reusable || !te->valid) {
 				te = NULL;
 				continue;
 			}
@@ -2603,7 +3021,7 @@ retry:
 
 		xmalloc_thread_starting(te->stid);
 
-		tstid[te->stid] = t;
+		thread_set(tstid[te->stid], t);
 		thread_instantiate(te, t);
 		goto created;
 	}
@@ -2739,6 +3157,35 @@ thread_stack_used(void)
 }
 
 /**
+ * Invoke signal handler for a specified signal.
+ *
+ * @param te		the thread element of the current thread
+ * @param sig		the signal number
+ * @param handler	the signal handler to invoke.
+ */
+static void
+thread_signal_handle(struct thread_element *te, int sig, tsighandler_t handler)
+{
+	/*
+	 * Deliver signal, masking it whilst we process it to prevent
+	 * further occurrences.
+	 *
+	 * Since only the thread can manipulate its signal mask or the
+	 * in_signal_handler field, there is no need to lock the element.
+	 */
+
+	te->sig_mask |= tsig_mask(sig);
+	te->in_signal_handler++;
+	(*handler)(sig);
+	te->in_signal_handler--;
+	te->sig_mask &= ~tsig_mask(sig);
+
+	g_assert(te->in_signal_handler >= 0);
+
+	THREAD_STATS_INCX(signals_handled);
+}
+
+/**
  * Check whether current thread is overflowing its stack by hitting the
  * red-zone guard page at the end of its allocated stack.
  * When it does, we panic immediately.
@@ -2755,6 +3202,7 @@ thread_stack_check_overflow(const void *va)
 	struct thread_element *te = thread_get_element();
 	thread_qid_t qva;
 	bool extra_stack = FALSE;
+	tsighandler_t handler;
 
 	/*
 	 * If we do not have a signal stack we cannot really process a stack
@@ -2828,6 +3276,27 @@ thread_stack_check_overflow(const void *va)
 			te->stack_size, thread_id_name(te->stid));
 	} else {
 		IGNORE_RESULT(write(STDERR_FILENO, overflow, CONST_STRLEN(overflow)));
+	}
+
+	/*
+	 * If there is a signal handler installed for TSIG_OVFLOW, run it and
+	 * then exit when the handler returns.  If there is none (or if the
+	 * signal is ignored or defaulted), then the whole application will crash
+	 * because there is no way to recover from that overflow.
+	 *		--RAM, 2015-02-13
+	 */
+
+	handler = te->sigh[TSIG_OVFLOW - 1];
+
+	if (TSIG_IGN != handler && TSIG_DFL != handler) {
+		/*
+		 * Signal is delivered synchronously to the thread, but we need
+		 * to protect against another instance of the signal being generated.
+		 */
+
+		thread_signal_handle(te, TSIG_OVFLOW, handler);
+		thread_exit(THREAD_OVERFLOW);
+		/* NOTREACHED */
 	}
 
 	crash_abort();
@@ -2905,7 +3374,7 @@ thread_safe_small_id(void)
 	if G_LIKELY(-1 != stid)
 		return stid;
 
-	return -2;		/* Error, could not determine small thread ID */
+	return THREAD_UNKNOWN_ID;	/* Error, cannot determine small thread ID */
 }
 
 /**
@@ -3234,21 +3703,8 @@ recheck:
 			continue;
 		}
 
-		/*
-		 * Deliver signal, masking it whilst we process it to prevent
-		 * further occurrences.
-		 *
-		 * Since only the thread can manipulate its signal mask or the
-		 * in_signal_handler field, there is no need to lock the element.
-		 */
+		thread_signal_handle(te, s, handler);
 
-		te->sig_mask |= tsig_mask(s);
-		te->in_signal_handler++;
-		(*handler)(s);
-		te->in_signal_handler--;
-		te->sig_mask &= ~tsig_mask(s);
-
-		g_assert(te->in_signal_handler >= 0);
 		g_assert_log(0 == te->locks.count,
 			"%s(): handler %s() for signal #%d left %zu lock%s in %s%s%s",
 			G_STRFUNC, stacktrace_function_name(handler), s,
@@ -3257,8 +3713,6 @@ recheck:
 			thread_get_element() == te ? "" : thread_name());
 
 		handled = TRUE;
-
-		THREAD_STATS_INCX(signals_handled);
 	}
 
 	if (thread_sig_present(te))
@@ -3269,6 +3723,24 @@ recheck:
 done:
 	te->sig_handling = FALSE;
 	return handled;
+}
+
+/**
+ * Check for pending signals and process them if any are present.
+ *
+ * @param te		the current thread element
+ *
+ * @return TRUE if we processed any signals.
+ */
+static inline bool
+thread_signal_check(struct thread_element *te)
+{
+	if (thread_sig_pending(te)) {
+		THREAD_STATS_INCX(sig_handled_while_check);
+		return thread_sig_handle(te);
+	}
+
+	return FALSE;
 }
 
 /**
@@ -3286,10 +3758,7 @@ thread_sighandler_level(void)
 	 * Use this opportunity to check for pending signals.
 	 */
 
-	if (thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 
 	return te->in_signal_handler;
 }
@@ -3316,10 +3785,7 @@ thread_sig_generation(void)
 	 * Use this opportunity to check for pending signals.
 	 */
 
-	if (thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 
 	return te->sig_generation;
 }
@@ -3390,10 +3856,8 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 	}
 
-	if G_UNLIKELY(thread_sig_pending(te) && sigs) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		delayed = thread_sig_handle(te);
-	}
+	if (sigs)
+		delayed |= thread_signal_check(te);
 
 	return delayed;
 }
@@ -5401,6 +5865,8 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 	}
 
 found:
+	if G_UNLIKELY(atomic_int_get(&thread_locks_disabled))
+		return;			/* We may not be recording locks in pass-through mode */
 
 	THREAD_STATS_INCX(locks_tracked);
 
@@ -5507,6 +5973,9 @@ found:
 			return;
 		}
 	}
+
+	if G_UNLIKELY(atomic_int_get(&thread_locks_disabled))
+		return;			/* We may not be recording locks in pass-through mode */
 
 	s_minicarp("%s(): %s %p was not registered in thread #%u",
 		G_STRFUNC, thread_lock_kind_to_string(okind), lock, te->stid);
@@ -5622,7 +6091,10 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 			 * to be able to dump useful information anyway.
 			 */
 
-			if (!thread_is_crashing()) {
+			if (
+				!thread_is_crashing() &&
+				0 == atomic_int_get(&thread_locks_disabled)
+			) {
 				s_error("out-of-order %s release",
 					thread_lock_kind_to_string(kind));
 			}
@@ -5894,6 +6366,8 @@ thread_crash_mode(void)
 	 * get at, so it's worth the risk.
 	 */
 
+	atomic_int_inc(&thread_locks_disabled);
+
 	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
 	mutex_crash_mode();		/* Allow release of all mutexes */
 	rwlock_crash_mode();
@@ -5917,6 +6391,8 @@ thread_exit_mode(void)
 	 */
 
 	thread_suspend_others(FALSE);	/* Advisory, do not wait for others */
+
+	atomic_int_inc(&thread_locks_disabled);
 
 	spinlock_exit_mode();			/* Silent crash mode for spinlocks */
 	mutex_crash_mode();
@@ -6203,6 +6679,7 @@ thread_forked(void)
 	thread_discovered = 1;		/* We're discovering ourselves */
 	te->created = FALSE;
 	te->discovered = TRUE;
+	te->last_seen = tm_time_raw();
 
 	/*
 	 * FIXME:
@@ -6213,10 +6690,13 @@ thread_forked(void)
 	 * - need cond_reset_all() to reset all known condition variables, which
 	 *   means we'll have to track them somehow.
 	 *
-	 * For now, we only reset all the other threads' locks to prevent any
-	 * deadlock at crash time.  When we come from thread_fork(TRUE), no thread
-	 * should hold any lock since we waited, but when coming from the
-	 * crash handler or thread_fork(FALSE), we cannot be sure.
+	 * For now, we:
+	 * - reset all the other threads' locks to prevent any deadlock.
+	 * - close all the inter-thread wfd[] descriptors.
+	 *
+	 * When we come from thread_fork(TRUE), no thread should hold any lock
+	 * since we waited, but when coming from the crash handler or
+	 * thread_fork(FALSE), we cannot be sure.
 	 *
 	 * All the reset locks will be traced.  By construction "hidden" locks are
 	 * invisible and "fast" locks are not recorded, so this can only affect
@@ -6226,6 +6706,8 @@ thread_forked(void)
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *xte = threads[i];
+
+		thread_block_close(xte);
 
 		if (te == xte)
 			continue;
@@ -6289,6 +6771,21 @@ static void
 thread_block_timeout(void *arg)
 {
 	const char *routine = arg;
+	struct thread_element *te = thread_get_element();
+
+	/*
+	 * If we're already set to non-blocking, it means there has been a delay
+	 * in the thread scheduling that caused it to sleep for too long, way past
+	 * the initial safeguard we had set.  But it is unblocked now, so no need
+	 * to panic.  Just emit a message.
+	 *		--RAM, 2015-02-25
+	 */
+
+	if (!te->blocked) {
+		s_warning("%s(): ignored as main thread no longer blocked in %s()",
+			G_STRFUNC, routine);
+		return;
+	}
 
 	s_error("%s() called from non-blockable main thread, and blocking!",
 		routine);
@@ -6319,7 +6816,7 @@ thread_element_block_until(struct thread_element *te,
 {
 	evq_event_t *eve = NULL;
 	gentime_t gstart = GENTIME_ZERO;
-	unsigned int requested = 0;
+	long requested = 0;
 	char c;
 	static once_flag_t done;
 
@@ -6407,7 +6904,7 @@ retry:
 	thread_cancel_test_element(te);
 
 	if (end != NULL) {
-		long remain = tm_remaining_ms(end);
+		long upper, remain = tm_remaining_ms(end);
 		gentime_t gnow;
 		time_delta_t gelapsed;
 		struct pollfd fds;
@@ -6418,10 +6915,23 @@ retry:
 
 		gnow = gentime_now();
 		gelapsed = gentime_diff(gnow, gstart);
-		if (UNSIGNED(gelapsed) > requested)
+		if (gelapsed > requested)
 			goto timed_out;			/* Waiting time expired */
 
+		/*
+		 * We use the minimum between the remaining time until the absolute
+		 * timestamp given on entry, and the amount of time we have to wait
+		 * based on gentime_diff(), which will account for possible clock
+		 * adjustements (in the past, neutralizing them hopefully).
+		 */
+
+		upper = 1000 + (requested - gelapsed) * 1000;
+		remain = MIN(remain, upper);
 		remain = MIN(remain, MAX_INT_VAL(int));		/* poll() takes an int */
+
+		if G_UNLIKELY(remain <= 0)
+			goto timed_out;			/* Waiting time expired */
+
 		fds.fd = te->wfd[0];
 		fds.events = POLLIN;
 
@@ -6458,11 +6968,23 @@ retry:
 
 	THREAD_LOCK(te);
 	if G_UNLIKELY(te->signalled != 0) {
+		bool limited_blocking = FALSE;
+
 		te->signalled--;		/* Consumed one signaling byte */
 		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
 		te->unblocked = FALSE;
 		THREAD_UNLOCK(te);
+
+		/*
+		 * Avoid any race condition with the signal handler, which could take
+		 * a long processing time.
+		 */
+
+		if G_UNLIKELY(eve != NULL) {
+			limited_blocking = TRUE;
+			evq_cancel(&eve);
+		}
 
 		THREAD_STATS_INCX(sig_handled_while_blocked);
 		thread_sig_handle(te);
@@ -6474,6 +6996,17 @@ retry:
 
 		if (te->sleep_interruptible > 0)
 			goto timed_out;
+
+		/*
+		 * If we were blocking the "non-blockable" main thread, restart the
+		 * timeout condition since we just invoked a signal handler and
+		 * therefore we were not really blocked.
+		 */
+
+		if (limited_blocking) {
+			eve = evq_insert(THREAD_MAIN_DELAY_MS,
+				thread_block_timeout, G_STRFUNC);
+		}
 
 		THREAD_LOCK(te);
 		/*
@@ -6798,7 +7331,7 @@ thread_launch_register(struct thread_element *te)
 
 	t = thread_self();
 
-	tstid[te->stid] = t;
+	thread_set(tstid[te->stid], t);
 	te->ptid = pthread_self();
 	thread_element_tie(te, t, stack);
 	thread_qid_cache_set(idx, te, qid);
@@ -7262,6 +7795,7 @@ thread_exit_internal(void *value, const void *sp)
 	g_assert(thread_eq(te->tid, thread_self()));
 	g_assert_log(!te->exit_started,
 		"%s() called recursively in %s", G_STRFUNC, thread_element_name(te));
+	g_assert(!te->discovered);
 
 	/*
 	 * Mark that we are exiting to prevent recursive calls, and disable
@@ -7377,17 +7911,38 @@ thread_exit_internal(void *value, const void *sp)
 	 */
 
 	if (te->sig_stack != NULL) {
+		thread_qid_t qid;
+
 		/*
-		 * Reset the signal stack range before freeing it so that
-		 * thread_find_qid() can no longer return this thread should
-		 * another thread be created with a stack lying where the old
-		 * signal stack was.
+		 * We can run thread_exit() whilst running on the signal stack when
+		 * a thread is catching the TSIG_OVFLOW stack overflow signal to
+		 * attempt to cleanup and avoid a global application crash.
+		 *
+		 * Therefore, we need to detect whether we're currently running on
+		 * the signal stack and not call signal_stack_free() in that case.
+		 * When the thread exits, the signal stack memory will not be reclaimed
+		 * but will remain in the thread element, ready to be re-used by another
+		 * thread allocated for this small thread ID.
+		 *		--RAM, 2015-02-13
 		 */
 
-		te->low_sig_qid = (thread_qid_t) -1;
-		te->high_sig_qid = 0;
+		qid = thread_quasi_id_fast(&te);
 
-		signal_stack_free(&te->sig_stack);
+		if (qid < te->low_sig_qid || qid > te->high_sig_qid) {
+			/*
+			 * We're not running on the alternate signal stack.
+			 *
+			 * Reset the signal stack range before freeing it so that
+			 * thread_find_qid() can no longer return this thread should
+			 * another thread be created with a stack lying where the old
+			 * signal stack was.
+			 */
+
+			te->low_sig_qid = (thread_qid_t) -1;
+			te->high_sig_qid = 0;
+
+			signal_stack_free(&te->sig_stack);
+		}
 	}
 
 	/*
@@ -8076,8 +8631,6 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	if (NULL == te)
 		goto error;
 
-	thread_cancel_test_element(te);
-
 	if (
 		!te->created ||				/* Not a thread we created */
 		te->join_requested ||		/* Another thread already wants joining */
@@ -8257,10 +8810,7 @@ thread_signal(int signum, tsighandler_t handler)
 	old = te->sigh[signum - 1];
 	te->sigh[signum - 1] = handler;
 
-	if G_UNLIKELY(thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 
 	return old;
 }
@@ -8422,10 +8972,7 @@ thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
 	g_assert_not_reached();
 
 done:
-	if G_UNLIKELY(thread_sig_pending(te)) {
-		THREAD_STATS_INCX(sig_handled_while_check);
-		thread_sig_handle(te);
-	}
+	thread_signal_check(te);
 }
 
 /**
@@ -8665,6 +9212,15 @@ thread_sleep_interruptible(unsigned int ms,
 
 		if (has_signals && interrupt)
 			return TRUE;
+	} else {
+		/*
+		 * No signal mask provided but before blocking, regardless of whether
+		 * we are interruptible, handle pending signals which are already
+		 * present.
+		 */
+
+		if (thread_signal_check(te) && interrupt)
+			return TRUE;
 	}
 
 	if (interrupt)
@@ -8762,11 +9318,11 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->high_qid = te->high_qid;
 	info->top_qid = te->top_qid;
 	info->stid = te->stid;
-	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID;
+	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID_ID;
 	info->name = te->name;
 	info->last_sp = te->last_sp;
-	info->bottom_sp = te->stack_base != NULL ? te->stack_base :
-		thread_sp_direction > 0 ?
+	info->bottom_sp = te->stack_base != NULL ?
+		te->stack_base : thread_sp_direction > 0 ?
 		ulong_to_pointer(te->low_qid << thread_pageshift) :
 		ulong_to_pointer((te->high_qid + 1) << thread_pageshift);
 	info->top_sp = te->top_sp;
@@ -8778,7 +9334,9 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->entry = te->entry;
 	info->exit_value = te->join_pending ? te->exit_value : NULL;
 	info->discovered = te->discovered;
+	info->last_seen = te->discovered ? te->last_seen : 0;
 	info->exited = te->join_pending || te->reusable || te->exiting;
+	info->exiting = te->exit_started;
 	info->suspended = te->suspended;
 	info->blocked = te->blocked || te->cond != NULL;
 	info->sleeping = te->sleeping;
@@ -8933,6 +9491,8 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(discovered);
 	DUMP64(qid_cache_lookup);
 	DUMP64(qid_cache_hit);
+	DUMP64(qid_cache_false_hit);
+	DUMP64(qid_cache_self_check);
 	DUMP64(qid_cache_clash);
 	DUMP64(qid_cache_miss);
 	DUMP64(lookup_by_qid);
@@ -8968,6 +9528,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(thread_self_suspends);
 	DUMP64(thread_self_block_races);
 	DUMP64(thread_self_pause_races);
+	DUMP64(thread_self_calls);
 	DUMP64(thread_forks);
 	DUMP64(thread_yields);
 
@@ -8976,6 +9537,10 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 		size_t rsc_semaphore_arrays;
 		size_t rsc_cond_variables;
 		size_t rsc_local_keys;
+
+		DUMPV(thread_running);
+		DUMPV(thread_discovered);
+		DUMPV(thread_pending_reuse);
 
 		rsc_semaphore_arrays = semaphore_kernel_usage(&rsc_semaphore_used);
 		rsc_cond_variables = cond_vars_count();
@@ -8990,6 +9555,173 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 #undef DUMP
 #undef DUMP64
 #undef DUMPV
+}
+
+/**
+ * Dump thread elements to stderr.
+ */
+G_GNUC_COLD void
+thread_dump_thread_elements(void)
+{
+	s_info("THREAD known %u elements:", thread_next_stid);
+
+	thread_dump_thread_elements_log(log_agent_stderr_get(), 0);
+}
+
+/**
+ * Dump thread element to specified logging agent.
+ */
+static void
+thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
+{
+	struct thread_element *te = threads[stid];
+	uint i;
+	bool locked;
+
+	if (NULL == te) {
+		log_warning(la, "THREAD NULL element #%u", stid);
+		return;
+	}
+
+	if (te->magic != THREAD_ELEMENT_MAGIC) {
+		log_warning(la, "THREAD bad magic for element #%u", stid);
+		return;
+	}
+
+	locked = THREAD_TRY_LOCK(te);
+
+	if ((options & DUMP_OPT_SHORT) && (!te->valid || te->reusable))
+		goto done;	/* Skip obsolete element when short output requested */
+
+	log_info(la, "THREAD --- begin element #%u%s ---",
+		stid, locked ? "" : " (UNLOCKED)");
+
+#define DUMPF(fmt, field) \
+	log_info(la, "THREAD %19s = " fmt, #field, te->field)
+
+#define DUMPV(fmt, field, value) \
+	log_info(la, "THREAD %19s = " fmt, #field, value)
+
+#define DUMPL(fmt, name, ...) \
+	log_info(la, "THREAD %19s = " fmt, name, __VA_ARGS__)
+
+	DUMPF("%d",  valid);
+	DUMPF("%d",  reusable);
+	DUMPF("%lu", tid);
+	DUMPF("%zu", last_qid);
+	DUMPF("%zu", low_qid);
+	DUMPF("%zu", high_qid);
+	DUMPF("%zu", top_qid);
+	DUMPF("%zu", low_sig_qid);
+	DUMPF("%zu", high_sig_qid);
+	DUMPF("%p",  last_sp);
+	DUMPF("%p",  top_sp);
+	DUMPF("%p",  stack_lock);
+	DUMPF("\"%s\"",  name);
+	DUMPF("%zu", stack_size);
+	DUMPF("%p",  stack);
+	DUMPF("%p",  stack_base);
+	DUMPF("%p",  sig_stack);
+	DUMPV("%s",  entry, stacktrace_function_name(te->entry));
+	DUMPF("%p",  argument);
+	DUMPF("%d",  suspend);
+	DUMPF("%d",  pending);
+	DUMPL("{ %d, %d }", "wfd[]", te->wfd[0], te->wfd[1]);
+	DUMPF("%d",  join_requested);
+	DUMPF("%d",  join_pending);
+	DUMPF("%u",  joining_id);
+	DUMPF("%u",  unblock_events);
+	DUMPF("%p",  exit_value);
+	DUMPF("0x%x",  sig_mask);
+	DUMPF("0x%x",  sig_pending);
+	DUMPF("%u",  signalled);
+	DUMPF("%u",  sig_generation);
+	DUMPF("%d",  in_signal_handler);
+	DUMPF("%d",  sig_handling);
+	DUMPF("%d",  sleep_interruptible);
+	DUMPF("%d",  created);
+	DUMPF("%d",  discovered);
+	DUMPF("%d",  deadlocked);
+	DUMPF("%d",  creating);
+	DUMPF("%d",  exiting);
+	DUMPF("%d",  suspended);
+	DUMPF("%d",  blocked);
+	DUMPF("%d",  timed_blocked);
+	DUMPF("%d",  unblocked);
+	DUMPF("%d",  detached);
+	DUMPF("%d",  async_exit);
+	DUMPF("%d",  main_thread);
+	DUMPF("%d",  cancelled);
+	DUMPF("%d",  cancelable);
+	DUMPF("%d",  sleeping);
+	DUMPF("%d",  exit_started);
+	DUMPF("%d",  gone);
+	DUMPF("%d",  gone_seen);
+	DUMPF("%d",  add_monitoring);
+	DUMPF("%d",  cancl);
+	DUMPF("%zu", locks.count);
+	DUMPL("%p (%s)",  "waiting",
+		te->waiting.lock, NULL == te->waiting.lock ?
+			"none" : thread_lock_kind_to_string(te->waiting.kind));
+	DUMPF("%p",  cond);
+	DUMPL("%p, count=%u",  "cond_stack",
+		te->cond_stack,
+		NULL == te->cond_stack ? 0 : slist_length(te->cond_stack));
+	DUMPL("%zu", "exit_list count", eslist_count(&te->exit_list));
+	DUMPL("%zu", "cleanup_list count", eslist_count(&te->cleanup_list));
+
+	for (i = 0; i < G_N_ELEMENTS(te->sigh); i++) {
+		if (NULL != te->sigh[i]) {
+			char buf[10];
+
+			str_bprintf(buf, sizeof buf, "sigh[%02u]", i);
+			if (TSIG_IGN == te->sigh[i]) {
+				DUMPL("%s", buf, "IGN");
+			} else {
+				DUMPL("%s", buf, stacktrace_function_name(te->sigh[i]));
+			}
+		}
+	}
+
+#undef DUMPL
+#undef DUMPV
+#undef DUMPF
+
+done:
+	if (locked)
+		THREAD_UNLOCK(te);
+}
+
+/**
+ * Dump thread elements to specified logging agent.
+ */
+G_GNUC_COLD void
+thread_dump_thread_elements_log(logagent_t *la, unsigned options)
+{
+	uint i;
+
+	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
+		if G_UNLIKELY(i >= thread_next_stid)
+			break;
+		if G_UNLIKELY(i == thread_next_stid)
+			log_warning(la, "THREAD element #%u may be partially setup", i);
+		thread_dump_thread_element_log(la, options, i);
+	}
+}
+
+/**
+ * In case an assertion failure occurs in this file, dump statistics
+ * about the known thread environment.
+ */
+static void G_GNUC_COLD
+thread_crash_hook(void)
+{
+	int sp;
+
+	s_minidbg("THREAD current sp=%p", &sp);
+
+	thread_dump_stats();
+	thread_dump_thread_elements();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -88,7 +88,7 @@ static void
 nodes_gui_node_removed(const struct nid *node_id)
 {
     if (GUI_PROPERTY(gui_debug) >= 5)
-        g_debug("nodes_gui_node_removed(%s)", nid_to_string(node_id));
+        g_debug("%s(%s)", G_STRFUNC, nid_to_string(node_id));
 
     nodes_gui_remove_node(node_id);
 }
@@ -104,7 +104,7 @@ nodes_gui_node_added(const struct nid *node_id)
     gnet_node_info_t info;
 
     if (GUI_PROPERTY(gui_debug) >= 5)
-        g_debug("nodes_gui_node_added(%s)", nid_to_string(node_id));
+        g_debug("%s(%s)", G_STRFUNC, nid_to_string(node_id));
 
     guc_node_fill_info(node_id, &info);
     nodes_gui_add_node(&info);

@@ -455,8 +455,19 @@ pool_free(pool_t *p)
 
 	XFREE_NULL(p->name);
 	cq_periodic_remove(&p->heart_ev);
+	mutex_destroy(&p->lock);			/* Unlocks pool */
+
+	/*
+	 * Now that the pool is unlocked, we can call pool_vars_remove().
+	 *
+	 * We must not call it with the pool locked since the normal locking
+	 * order is to get the pool_vars_slk lock and only then the pool lock.
+	 * Breaking that order could cause a deadlock.
+	 *		--RAM, 2015-03-05.
+	 */
+
 	pool_vars_remove(p);
-	mutex_destroy(&p->lock);
+
 	p->magic = 0;
 	xfree(p);
 }

@@ -63,8 +63,8 @@ const bool FALSE = 0;
 bool
 atomic_acquire(atomic_lock_t *lock)
 {
-	bool success;
-	if (success) {
+	if (0 == *lock) {
+		*lock = 1;
 		__coverity_exclusive_lock_acquire__(lock);
 		return TRUE;
 	}
@@ -74,38 +74,171 @@ atomic_acquire(atomic_lock_t *lock)
 void
 atomic_release(atomic_lock_t *lock)
 {
+	*lock = 0;
 	__coverity_exclusive_lock_release__(lock);
 }
 
 typedef struct spinlock { int lock } spinlock_t;
 
 void
-spinlock_set_owner(spinlock_t *s, const char *file, unsigned line)
+spinlock_init(spinlock_t *s)
 {
-	__coverity_exclusive_lock_acquire__(s);
+	s->lock = 0;
 }
 
 void
-spinlock_clear_owner(spinlock_t *s)
+spinlock_grab_from(spinlock_t *s, bool hidden, const char *file, unsigned line)
 {
+	__coverity_exclusive_lock_acquire__(s);
+	s->lock = 1;
+}
+
+bool
+spinlock_grab_try_from(spinlock_t *s, bool hidden,
+	const char *file, unsigned line)
+{
+	if (s->lock)
+		return FALSE;
+	__coverity_exclusive_lock_acquire__(s);
+	s->lock = 1;
+	return TRUE;
+}
+
+void
+spinlock_grab_swap_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line)
+{
+	__coverity_exclusive_lock_acquire__(s);
+	s->lock = 1;
+}
+
+bool
+spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line)
+{
+	if (s->lock)
+		return FALSE;
+	__coverity_exclusive_lock_acquire__(s);
+	s->lock = 1;
+	return TRUE;
+}
+
+void
+spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
+{
+	__coverity_exclusive_lock_acquire__(s);
+	s->lock = 1;
+}
+
+void
+spinlock_release(spinlock_t *s, bool hidden)
+{
+	s->lock = 0;
 	__coverity_exclusive_lock_release__(s);
 }
 
-typedef struct lmutex { int lock; size_t depth } mutex_t;
+void
+spinlock_reset(spinlock_t *s)
+{
+	s->lock = 0;
+	__coverity_exclusive_lock_release__(s);
+}
 
 void
-mutex_recursive_get(mutex_t *m, const char *file, unsigned line)
+spinlock_destroy(spinlock_t *s)
 {
-	m->depth++;
+	if (0 == s->lock) {
+		s->lock = 1;
+		__coverity_exclusive_lock_acquire__(s);
+	}
+	__coverity_exclusive_lock_release__(s);
+}
+
+typedef long thread_t;
+typedef struct lmutex { int lock; } mutex_t;
+enum mutex_mode { MODE = 1 };
+
+void
+mutex_init(mutex_t *m)
+{
+	m->lock = 0;
+}
+
+void
+mutex_reset(mutex_t *m)
+{
+	mutex_init(m);
+	__coverity_recursive_lock_release__(m);
+}
+
+bool
+mutex_is_owned_by_fast(const mutex_t *m, const thread_t t)
+{
+	return m->lock;
+}
+
+void
+mutex_grab_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
+{
+	m->lock++;
 	__coverity_recursive_lock_acquire__(m);
 }
 
-size_t
-mutex_recursive_release(mutex_t *m)
+bool
+mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
 {
-	size_t depth = --m->depth;
+	bool owned;
+
+	if (owned || 0 == m->lock) {
+		m->lock++;
+		__coverity_recursive_lock_acquire__(m);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+void
+mutex_grab_swap_from(mutex_t *m, const void *plock,
+	const char *file, unsigned line)
+{
+	m->lock++;
+	__coverity_recursive_lock_acquire__(m);
+}
+
+bool
+mutex_grab_swap_try_from(mutex_t *m, const void *plock,
+	const char *file, unsigned line)
+{
+	bool owned;
+
+	if (owned || 0 == m->lock) {
+		m->lock++;
+		__coverity_recursive_lock_acquire__(m);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+void
+mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
+{
+	m->lock--;
 	__coverity_recursive_lock_release__(m);
-	return depth;
+}
+
+void
+mutex_destroy(mutex_t *m)
+{
+	if (0 == m->lock) {
+		m->lock = 1;
+		__coverity_recursive_lock_acquire__(m);
+	}
+	__coverity_recursive_lock_release__(m);
 }
 
 void *

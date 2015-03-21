@@ -26,7 +26,7 @@
 
 #include "gui.h"
 #ifdef HAVE_GTKOSXAPPLICATION
-#include <gtkmacintegration/gtkosxapplication.h>
+#include <gtkmacintegration-gtk2/gtkosxapplication.h>
 #endif
 
 /***

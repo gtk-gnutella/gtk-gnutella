@@ -70,6 +70,9 @@ gboolean main_gui_window_visible(void);
 
 typedef void (*main_gui_visibility_cb)(gboolean visible);
 
+void main_gui_add_visibility_listener(main_gui_visibility_cb);
+void main_gui_remove_visibility_listener(main_gui_visibility_cb);
+
 void main_gui_add_page_visibility_listener(main_gui_visibility_cb, int page);
 void main_gui_remove_page_visibility_listener(main_gui_visibility_cb, int page);
 

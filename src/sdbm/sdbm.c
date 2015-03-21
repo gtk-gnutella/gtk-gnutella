@@ -151,7 +151,7 @@ sdbm_storage_needs(size_t key_size, size_t value_size, size_t *needed)
 	 *		key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size
 	 *
 	 * which would only indicate whether the expanded key and value can
-	 * fit in the page we loook at whether the sum of key + value sizes is
+	 * fit in the page we look at whether the sum of key + value sizes is
 	 * big enough to warrant offloading of the value in a .dat file, thereby
 	 * reducing the memory constraints in the .pag file.  However we don't
 	 * offload the value to the .dat if its ends up wasting more than half
@@ -253,7 +253,7 @@ sdbm_open(const char *file, int flags, int mode)
 
 #ifdef BIGDATA
 	datname = h_strconcat(file, DBM_DATFEXT, (void *) 0);
-	if (NULL == pagname) {
+	if (NULL == datname) {
 		errno = ENOMEM;
 		goto error;
 	}
@@ -350,7 +350,7 @@ sdbm_name(DBM *db)
 /**
  * Open database with specified files, flags and mode (like open() arguments).
  *
- * If the `datname' argument is NULL, large keys/values are dissabled for
+ * If the `datname' argument is NULL, large keys/values are disabled for
  * this database.
  *
  * @param dirname	the file to use for .dir
@@ -800,9 +800,12 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	assert_sdbm_locked(db);
 
 #ifdef LRU
-	if (!clearfiles && db->dirbuf_dirty && !(db->flags & DBM_BROKEN))
-		(void) flush_dirbuf(db);
-	lru_close(db);
+	if (!clearfiles && db->dirbuf_dirty && !(db->flags & DBM_BROKEN)) {
+		if (is_valid_fd(db->dirf))
+			(void) flush_dirbuf(db);
+	}
+	if (is_valid_fd(db->pagf))
+		lru_close(db);
 #else
 	WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
 #endif
@@ -3092,11 +3095,12 @@ sdbm_datfno(DBM *db)
 
 	sdbm_synchronize(db);
 
-	if G_UNLIKELY(db->flags & DBM_BROKEN)
-		fno = -1;
-
 #ifdef BIGDATA
-	fno = big_datfno(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		fno = -1;
+	} else {
+		fno = big_datfno(db);
+	}
 #else
 	fno = -1;
 #endif

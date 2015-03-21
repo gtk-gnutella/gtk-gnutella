@@ -9,6 +9,7 @@
   <gnome_support>FALSE</gnome_support>
   <use_widget_names>TRUE</use_widget_names>
   <output_main_file>FALSE</output_main_file>
+  <output_support_files>FALSE</output_support_files>
   <output_build_files>FALSE</output_build_files>
   <main_source_file>interface-glade.c</main_source_file>
   <main_header_file>interface-glade.h</main_header_file>

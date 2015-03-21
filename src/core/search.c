@@ -6827,16 +6827,16 @@ search_stop(gnet_search_t sh)
 
 	entropy_harvest_single(VARLEN(sh));
 
-	if (sbool_get(sch->frozen))
-		return;
+	if (!sbool_get(sch->frozen)) {
+		sch->frozen = sbool_set(TRUE);
+		wd_sleep(sch->activity);
+		guess_cancel(&sch->guess, FALSE);
 
-    sch->frozen = sbool_set(TRUE);
-	wd_sleep(sch->activity);
-	guess_cancel(&sch->guess, FALSE);
-
-    if (sbool_get(sch->active)) {
-		update_one_reissue_timeout(sch);
+		if (sbool_get(sch->active)) {
+			update_one_reissue_timeout(sch);
+		}
 	}
+
 	search_status_changed(sh);
 }
 
@@ -7279,10 +7279,7 @@ search_dissociate_browse(gnet_search_t search_handle, struct download *d)
 	g_assert(sch->download == d);
 
 	sch->download = NULL;
-	if (!sbool_get(sch->frozen)) {
-		search_stop(sch->search_handle);
-		search_status_changed(sch->search_handle);
-	}
+	search_stop(sch->search_handle);
 }
 
 #define LOCAL_MAX_ALT	30		/* Max alt-locs we report for local searches */

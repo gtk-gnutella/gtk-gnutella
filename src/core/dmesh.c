@@ -634,7 +634,7 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	g_assert(dm);
 	g_assert(list_length(dm->entries) > 0);
 
-	if (GNET_PROPERTY(dmesh_debug)) {
+	if (GNET_PROPERTY(dmesh_debug) > 1) {
 		g_debug("dmesh %sentry removed for urn:sha1:%s at %s",
 			dme->fw_entry ? "firewalled " : "", sha1_base32(dm->sha1),
 			dme->fw_entry ?
@@ -690,7 +690,7 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 	if (!found)
 		return;
 
-	if (GNET_PROPERTY(dmesh_debug)) {
+	if (GNET_PROPERTY(dmesh_debug) > 1) {
 		g_debug("dmesh entry removed for urn:sha1:%s at %s",
 			sha1_base32(dm->sha1), host_addr_port_to_string(addr, port));
 	}
@@ -1021,7 +1021,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		if (stamp > dme->stamp)		/* Don't move stamp back in the past */
 			dme->stamp = stamp;
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry reused for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 	} else {
@@ -1044,7 +1044,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		entropy_harvest_many(name, strlen(name),
 			VARLEN(dme), PTRLEN(sha1), NULL);
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry created for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 
@@ -1156,7 +1156,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 			dme->inserted = now;	/* List of push-proxies changed */
 		}
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry reused for urn:sha1:%s for %s (%s proxies)",
 				sha1_base32(sha1), guid_hex_str(info->guid),
 				info->proxies ? "new" : "no new");
@@ -1178,7 +1178,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		entropy_harvest_many(PTRLEN(info->guid),
 			VARLEN(dme), PTRLEN(sha1), NULL);
 
-		if (GNET_PROPERTY(dmesh_debug))
+		if (GNET_PROPERTY(dmesh_debug) > 1)
 			g_debug("dmesh entry created for urn:sha1:%s for %s",
 				sha1_base32(sha1), guid_hex_str(info->guid));
 
@@ -2389,6 +2389,42 @@ nomore:
 }
 
 /**
+ * Trace funny value of the specified header field name, if not
+ * already done before.
+ *
+ * @param warned		set to TRUE after tracing
+ * @param field			the header field name whose value we're given
+ * @param value			the funny field value to trace
+ * @param origin		if not-NULL, the host supplying us with the alt-locs
+ * @param user_agent	the advertised servent name giving us the value
+ */
+static void
+dmesh_field_trace(bool *warned, const char *field, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
+{
+	str_t *s;
+
+	if (*warned)
+		return;		/* Already warned for that value */
+
+	*warned = TRUE;
+
+	s = str_new(256);
+	str_printf(s, "funny %s", field);
+
+	if (user_agent != NULL)
+		str_catf(s, " from <%s>", user_agent);
+
+	if (origin != NULL)
+		str_catf(s, " at %s", gnet_host_to_string(origin));
+
+	str_catf(s, ": %s", value);
+
+	g_warning("%s", str_2c(s));
+	str_destroy_null(&s);
+}
+
+/**
  * Parse the value of the X-(Gnutella-)Content-URN header in `value', looking
  * for a SHA1.  When found, the SHA1 is extracted and placed into the given
  * `digest' buffer.
@@ -2411,7 +2447,7 @@ dmesh_collect_sha1(const char *value, struct sha1 *sha1)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	return found;
 }
@@ -2425,12 +2461,15 @@ dmesh_collect_sha1(const char *value, struct sha1 *sha1)
  *		func(sha1, addr, port, udata);
  *
  * where udata is opaque user-supplied data.
+ *
+ * @return whether we successfully parsed all the altnernate locations.
  */
-static void
+static bool
 dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 	dmesh_add_cb func, void *udata)
 {
 	const char *tls_hex, *p, *next;
+	bool good = TRUE;
 
 	tls_hex = NULL;
 	next = value;
@@ -2475,10 +2514,14 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 		
 		if (ok) {
 			(*func)(sha1, addr, port, udata);
-		} else if (GNET_PROPERTY(dmesh_debug)) {
-			g_warning("ignoring invalid compact alt-loc \"%s\"", start);
+		} else {
+			good = FALSE;
+			if (GNET_PROPERTY(dmesh_debug))
+				g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 		}
 	}
+
+	return good;
 }
 
 static void
@@ -2520,10 +2563,16 @@ dmesh_collect_compact_locations_cback(
  */
 void
 dmesh_collect_compact_locations(const sha1_t *sha1, const char *value,
-	const gnet_host_t *origin)
+	const gnet_host_t *origin, const char *user_agent)
 {
-	dmesh_parse_addr_port_list(sha1, value,
+	bool ok;
+
+	ok = dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_compact_locations_cback, deconstify_pointer(origin));
+
+	if G_UNLIKELY(!ok && GNET_PROPERTY(dmesh_debug)) {
+		dmesh_field_trace(&ok, "X-Alt", value, origin, user_agent);
+	}
 }
 
 static void
@@ -2543,29 +2592,71 @@ dmesh_collect_negative_locations_cback(
  * @param reporter	the address of the host supplying the X-Nalt header
  */
 void
-dmesh_collect_negative_locations(
-	const sha1_t *sha1, const char *value, host_addr_t reporter)
+dmesh_collect_negative_locations(const sha1_t *sha1, const char *value,
+	host_addr_t reporter, const char *user_agent)
 {
-	dmesh_parse_addr_port_list(sha1, value,
+	bool ok;
+
+	ok = dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_negative_locations_cback, &reporter);
+
+	if G_UNLIKELY(!ok && GNET_PROPERTY(dmesh_debug)) {
+		gnet_host_t host;
+
+		gnet_host_set(&host, reporter, 0);
+		dmesh_field_trace(&ok, "X-Nalt", value, &host, user_agent);
+	}
+}
+
+/**
+ * Trace funny value of the "Alternate-Location" header, if not
+ * already done before.
+ *
+ * @param warned		set to TRUE after tracing
+ * @param value			the funny value to trace
+ * @param origin		if not-NULL, the host supplying us with the alt-locs
+ * @param user_agent	the advertised servent name giving us the value
+ */
+static void
+dmesh_location_trace(bool *warned, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
+{
+	dmesh_field_trace(warned, "Alternate-Location", value, origin, user_agent);
+}
+
+/**
+ * Trace funny value of the "X-Falt" header, if not already done before.
+ *
+ * @param warned		set to TRUE after tracing
+ * @param value			the funny value to trace
+ * @param origin		if not-NULL, the host giving us with the firewalled locs
+ * @param user_agent	the advertised servent name giving us the value
+ */
+static void
+dmesh_fw_altloc_trace(bool *warned, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
+{
+	dmesh_field_trace(warned, "X-Falt", value, origin, user_agent);
 }
 
 /**
  * Parse value of the "X-Gnutella-Alternate-Location" to extract alternate
  * sources for a given SHA1 key.
  *
- * @param sha1		the SHA1 for which we're collecting alt-locs
- * @param value		the value of the header field we're parsing
- * @param origin	if not-NULL, the host supplying us with the alt-locs
+ * @param sha1			the SHA1 for which we're collecting alt-locs
+ * @param value			the value of the header field we're parsing
+ * @param origin		if not NULL, the host supplying us with the alt-locs
+ * @param user_agent	if not NULL, advertised servent name giving the value
  */
 void
 dmesh_collect_locations(const sha1_t *sha1, const char *value,
-	const gnet_host_t *origin)
+	const gnet_host_t *origin, const char *user_agent)
 {
 	const char *p = value;
 	uchar c;
 	time_t now = tm_time();
 	bool finished = FALSE;
+	bool warned = FALSE;
 
 	do {
 		const char *date_start, *url_start;
@@ -2597,9 +2688,11 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			 * Quoted identifiers are one big token.
 			 */
 
-			if (in_quote && c == '\\' && p[1] == '"')
+			if (in_quote && c == '\\' && p[1] == '"') {
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("unsupported \\\" escape sequence in quoted section "
 					"for Alternate-Location: should use URL escaping instead!");
+			}
 
 			if (c == '"') {
 				in_quote = !in_quote;
@@ -2641,9 +2734,11 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 
 		if (*url_start == '"') {				/* URL enclosed in quotes? */
 			url_start++;						/* Skip that needless quote */
-			if (c != '"')
+			if (c != '"') {
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("Alternate-Location URL \"%s\" started with leading "
 					"quote, but did not end with one!", url_start);
+			}
 		}
 
 		/*
@@ -2663,9 +2758,9 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 				g_debug("MESH (parsed=%d): \"%s\"", ok, url);
 
 			if (!ok &&
-				(GNET_PROPERTY(dmesh_debug) > 1 ||
-					!is_strprefix(url, "ed2kftp://"))
+				(GNET_PROPERTY(dmesh_debug) || !is_strprefix(url, "ed2kftp://"))
 			) {
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("cannot parse Alternate-Location URL \"%s\": %s",
 					url, dmesh_url_strerror(dmesh_url_errno));
 			}
@@ -2735,14 +2830,40 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			date = h_strndup(date_start, p - date_start);
 			stamp = date2time(date, now);
 
-			if (GNET_PROPERTY(dmesh_debug) > 6)
+			if ((time_t) -1 == stamp) {
+				const char *d;
+
+				if (GNET_PROPERTY(dmesh_debug))
+					dmesh_location_trace(&warned, value, origin, user_agent);
+
+				/*
+				 * Some broken servents propagate two ISO dates separated by
+				 * a space, such as: "2015-03-06T16:00Z 2015-03-06T19:09Z".
+				 * So try to skip past the first space, if any, to see whether
+				 * we can be more successful.
+				 *		--RAM, 2015-03-06
+				 *
+				 * Actually, there can be more than two ISO dates, so just
+				 * keep the LAST one (since a valid ISO date does not contain
+				 * any space), by looking at the last space in the string.
+				 *		--RAM, 2015-03-07
+				 */
+
+				if (NULL != (d = strrchr(date, ' ')))
+					stamp = date2time(++d, now);	/* Skip the space */
+
+				if ((time_t) -1 == stamp) {
+					dmesh_location_trace(&warned, value, origin, user_agent);
+					g_warning("cannot parse Alternate-Location date: %s", date);
+					stamp = 0;
+				}
+			}
+
+			if (GNET_PROPERTY(dmesh_debug) > 6) {
 				g_debug("MESH (stamp=%s): \"%s\"",
 					timestamp_to_string(stamp), date);
-
-			if (stamp == (time_t) -1) {
-				g_warning("cannot parse Alternate-Location date: %s", date);
-				stamp = 0;
 			}
+
 			HFREE_NULL(date);
 		} else
 			stamp = 0;
@@ -2762,6 +2883,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 			ok = sha1_eq(sha1, &digest);
 			if (!ok) {
 				g_assert(sha1);
+				dmesh_location_trace(&warned, value, origin, user_agent);
 				g_warning("mismatch in /uri-res/N2R? Alternate-Location "
 					"for SHA1=%s: got %s", sha1_base32(sha1), info.name);
 				goto skip_add;
@@ -2861,18 +2983,27 @@ dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, int count)
 
 /**
  * Parse a single firewalled location.
+ *
+ * @return TRUE if parsing was OK.
  */
-void
+static bool
 dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 {
 	struct guid guid;
-	bool seen_proxy = FALSE;
-	bool seen_guid = FALSE;
-	bool seen_pptls = FALSE;
+	bool seen_proxy = FALSE, seen_guid = FALSE, seen_pptls = FALSE, ok;
 	time_t stamp = 0;
-	const char *tok;
+	const char *tok, *start;
 	strtok_t *st;
 	dmesh_fwinfo_t info;
+
+	/*
+	 * If we're given an empty value, assume it's OK.
+	 */
+
+	start = skip_ascii_blanks(value);
+
+	if G_UNLIKELY('\0' == *start)
+		return TRUE;
 
 	/*
 	 * An X-Falt header is formatted as:
@@ -2891,7 +3022,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 	 * at the end (e.g "2010-02-23 16:06:55Z").
 	 */
 
-	st = strtok_make_strip(value);
+	st = strtok_make_strip(start);
 	info.guid = NULL;
 	info.proxies = NULL;
 
@@ -2913,7 +3044,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		if (strstr(tok, "/"))
 			continue;
 
-		/* Skip first "pptsl=" indication */
+		/* Skip first "pptls=" indication */
 		if (!seen_pptls) {
 			/* TODO: handle pptls=<hex> */
 			if (is_strcaseprefix(tok, "pptls=")) {
@@ -2958,28 +3089,47 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
+
+	/*
+	 * The GUID is the only mandatory part we need to parse correctly: it
+	 * is that of the firewalled node serving the file.
+	 *
+	 * Missing associated push proxies is fine, we can always collect
+	 * these later.
+	 */
 
 	if (NULL == info.guid) {
+		ok = FALSE;
 		if (GNET_PROPERTY(dmesh_debug))
 			g_warning("could not parse 'X-Falt: %s'", value);
 	} else {
+		ok = TRUE;
 		if (!dmesh_raw_fw_add(sha1, &info, stamp, TRUE)) {
 			hash_list_free_all(&info.proxies, gnet_host_free);
 		}
 		atom_guid_free_null(&info.guid);
 	}
+
+	return ok;
 }
 
 /**
  * Parse value of the "X-Falt" header to extract alternate firewalled sources
  * for a given SHA1 key.
+ *
+ * @param sha1			the SHA1 for which we're collecting alt-locs
+ * @param value			the value of the header field we're parsing
+ * @param origin		if not NULL, the host supplying us with the alt-locs
+ * @param user_agent	if not NULL, advertised servent name giving the value
  */
 void
-dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
+dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value,
+	const gnet_host_t *origin, const char *user_agent)
 {
 	const char *tok;
 	strtok_t *st;
+	bool ok = TRUE;
 
 	/*
 	 * An X-Falt header can contain several items, separated by ",".
@@ -2987,9 +3137,13 @@ dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value)
 
 	st = strtok_make_strip(value);
 	while ((tok = strtok_next(st, ","))) {
-		dmesh_collect_fw_host(sha1, tok);
+		ok &= dmesh_collect_fw_host(sha1, tok);
 	}
-	strtok_free(st);
+	strtok_free_null(&st);
+
+	if G_UNLIKELY(!ok && GNET_PROPERTY(dmesh_debug)) {
+		dmesh_fw_altloc_trace(&ok, value, origin, user_agent);
+	}
 }
 
 /**
@@ -3244,12 +3398,12 @@ dmesh_retrieve(void)
 			continue;
 
 		if (has_sha1) {
-			if (GNET_PROPERTY(dmesh_debug))
+			if (GNET_PROPERTY(dmesh_debug) > 3)
 				g_debug("%s(): parsing %s", G_STRFUNC, tmp);
 			if (is_strprefix(tmp, "http://")) {
-				dmesh_collect_locations(&sha1, tmp, NULL);
+				dmesh_collect_locations(&sha1, tmp, NULL, "download mesh");
 			} else {
-				dmesh_collect_fw_hosts(&sha1, tmp);
+				dmesh_collect_fw_hosts(&sha1, tmp, NULL, "download mesh");
 			}
 		} else {
 			if (

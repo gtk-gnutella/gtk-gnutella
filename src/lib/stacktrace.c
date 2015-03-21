@@ -222,12 +222,10 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 		return 0;
 
 	for (i = 0; i < offset; i++) {
-		void *nframe = getframeaddr(i + 1);
+		frame = getframeaddr(i + 1);
 
-		if (!valid_stack_ptr(nframe))
+		if (!valid_stack_ptr(frame))
 			return 0;
-
-		frame = nframe;
 	}
 
 	/*
@@ -235,15 +233,13 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	 */
 
 	for (;; i++) {
-		void *nframe = getframeaddr(i + 1);
+		frame = getframeaddr(i + 1);
 
-		if (!valid_stack_ptr(nframe) || i - offset >= count)
+		if (!valid_stack_ptr(frame) || i - offset >= count)
 			break;
 
 		if (!valid_ptr(stack[i - offset] = getreturnaddr(i)))
 			break;
-
-		frame = nframe;
 	}
 
 	return i - offset;

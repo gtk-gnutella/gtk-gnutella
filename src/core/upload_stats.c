@@ -288,20 +288,24 @@ upload_stats_load_history(void)
 			if (error || !is_ascii_space(*endptr))
 				goto corrupted;
 
+#define TIME(x)		MIN((x) + (time_t) 0, TIME_T_MAX + (uint64) 0)
+
 			switch (i) {
 			case 0: item.size = v; break;
 			case 1: item.attempts = v; break;
 			case 2: item.complete = v; break;
 			case 3: item.bytes_sent |= ((uint64) (uint32) v) << 32; break;
 			case 4: item.bytes_sent |= (uint32) v; break;
-			case 5: item.rtime = MIN(v + (time_t) 0, TIME_T_MAX + (uint64) 0);
-			case 6: item.dtime = MIN(v + (time_t) 0, TIME_T_MAX + (uint64) 0); 
+			case 5: item.rtime = TIME(v); break;
+			case 6: item.dtime = TIME(v); break;
 			case 7: break;	/* Already stored above */
 			default:
 				g_assert_not_reached();
 				goto corrupted;
 			}
 		}
+
+#undef TIME
 
 		/* 
 		 * We store the filenames UTF-8 encoded but the file might have been

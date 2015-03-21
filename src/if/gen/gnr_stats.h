@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Jul  2 13:59:03 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sat Oct  4 09:36:51 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 302
+ * Enum count: 304
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -67,6 +67,8 @@ typedef enum {
 	GNR_GUESS_ULTRA_ACKNOWLEDGED,
 	GNR_GUESS_G2_QUERIED,
 	GNR_GUESS_G2_ACKNOWLEDGED,
+	GNR_LOCAL_PUSH_THROTTLED,
+	GNR_REMOTE_PUSH_THROTTLED,
 	GNR_BROADCASTED_PUSHES,
 	GNR_PUSH_PROXY_UDP_RELAYED,
 	GNR_PUSH_PROXY_TCP_RELAYED,

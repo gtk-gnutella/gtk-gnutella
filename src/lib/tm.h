@@ -185,6 +185,7 @@ void tm_precise_add(tm_nano_t *tn, const tm_nano_t *inc);
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
 void tm_now_raw(tm_t *tm);
+void tm_now_exact_raw(tm_t *tm);
 time_t tm_time_exact(void);
 void tm_current_time(tm_t *tm);
 void tm_precise_time(tm_nano_t *tn);
@@ -265,6 +266,22 @@ tm_time(void)
 		return (time_t) tm_cached_now.tv_sec;
 	}
 }
+
+/**
+ * Get current time, at the second granularity (cached).
+ *
+ * @attention
+ * This routine does not check for thread suspension and is reserved
+ * to low-level routines that cannot be interrupted or for which we
+ * want the minimal amount of overhead.
+ */
+static inline time_t
+tm_time_raw(void)
+{
+	return (time_t) tm_cached_now.tv_sec;
+}
+
+tm_t tm_start_time(void);
 
 tm_t tm_start_time(void);
 time_t tm_localtime(void);

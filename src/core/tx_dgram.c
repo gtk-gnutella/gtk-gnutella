@@ -211,6 +211,7 @@ tx_dgram_bio_source(txdrv_t *tx)
 }
 
 static const struct txdrv_ops tx_dgram_ops = {
+	"datagram",				/**< name */
 	tx_dgram_init,			/**< init */
 	tx_dgram_destroy,		/**< destroy */
 	tx_no_write,			/**< write */

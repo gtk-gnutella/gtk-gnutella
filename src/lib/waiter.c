@@ -148,6 +148,8 @@ cast_to_mwaiter(const struct waiter *w)
 #define MWAITER_LOCK_QUICK(m)	spinlock_hidden(&(m)->lock)
 #define MWAITER_UNLOCK_QUICK(m)	spinunlock_hidden(&(m)->lock)
 
+#define MWAITER_LOCK_IS_HELD(m)	spinlock_is_held(&(m)->lock)
+
 #ifdef HAS_SOCKETPAIR
 #define INVALID_FD		INVALID_SOCKET
 #else
@@ -219,7 +221,56 @@ waiter_spawn(const waiter_t *wp, void *data)
 }
 
 /**
+ * Called to close master file descriptors.
+ *
+ * The master waiter must be locked upon entry.
+ */
+static void
+waiter_close_master_fd(struct mwaiter *mw)
+{
+	g_assert(MWAITER_LOCK_IS_HELD(mw));
+
+#ifdef HAS_SOCKETPAIR
+	if (INVALID_SOCKET != mw->wfd[0]) {
+		s_close(mw->wfd[0]);
+		s_close(mw->wfd[1]);
+		mw->wfd[0] = INVALID_SOCKET;
+		mw->wfd[1] = INVALID_SOCKET;
+	}
+#else	/* !HAS_SOCKETPAIR */
+	if (-1 != mw->wfd[0]) {
+		fd_close(&mw->wfd[0]);
+		fd_close(&mw->wfd[1]);
+	}
+#endif	/* HAS_SOCKETPAIR */
+}
+
+/**
+ * Close the waiter's file descriptors when we no longer need I/O waiting.
+ */
+void
+waiter_close_fd(waiter_t *w)
+{
+	struct mwaiter *mw;
+
+	waiter_check(w);
+
+	mw = w->parent;
+	waiter_master_check(mw);
+
+	MWAITER_LOCK(mw);
+	waiter_close_master_fd(mw);
+	MWAITER_UNLOCK(mw);
+}
+
+/**
  * Destroy a waiter.
+ *
+ * This routine must be called with the master waiter locked to avoid race
+ * conditions with a thread waiting (to release the master) for all its children
+ * to be gone by monitoring its child count.
+ *
+ * Upon return the master waiter is unlocked only if it was given as argument.
  */
 static void
 waiter_free(waiter_t *w)
@@ -231,6 +282,7 @@ waiter_free(waiter_t *w)
 		struct mwaiter *mw = cast_to_mwaiter(w);
 
 		g_assert(0 == ptr_cmp(w->parent, mw));		/* Proper master */
+		g_assert(MWAITER_LOCK_IS_HELD(mw));
 
 		/*
 		 * One should not free a master with children waiters.
@@ -249,8 +301,8 @@ waiter_free(waiter_t *w)
 	 	/* The master must be the only one left in the lists */
 		g_assert(1 == elist_count(&mw->idle) + elist_count(&mw->active));
 
-		waiter_close_fd(w);
-		spinlock_destroy(&mw->lock);
+		waiter_close_master_fd(mw);
+		spinlock_destroy(&mw->lock);	/* Unlocks the waiter */
 
 		w->magic = 0;
 		WFREE(mw);
@@ -259,22 +311,51 @@ waiter_free(waiter_t *w)
 		elist_t *list;
 
 		g_assert(0 != ptr_cmp(mw, w));		/* Or it would be a master! */
+		g_assert(MWAITER_LOCK_IS_HELD(mw));
 
 		/*
 		 * Remove the child from the master's list.
 		 * The one where it belongs to is given by its status.
 		 */
 
-		MWAITER_LOCK(mw);
 		list = w->notified ? &mw->active : &mw->idle;
 		elist_remove(list, w);
 		mw->children--;
-		MWAITER_UNLOCK(mw);
 
 		g_assert(mw->children >= 1);	/* The master remains, at least */
 
+		/* Master waiter remains locked */
+
 		w->magic = 0;
 		WFREE(w);
+	}
+}
+
+/**
+ * Signal the waiter held in the specified master waiter.
+ *
+ * @param mw		the master waiter
+ * @param w			the waiter to notify (can be mw itself)
+ */
+static void
+waiter_signal_internal(struct mwaiter *mw, waiter_t *w)
+{
+	g_assert(MWAITER_LOCK_IS_HELD(mw));
+
+	if (!w->notified) {
+		w->notified = TRUE;
+		elist_remove(&mw->idle, w);
+		elist_append(&mw->active, w);
+	}
+	if (!mw->m_notified) {
+		char c = '\0';
+		if G_UNLIKELY(INVALID_FD == mw->wfd[0]) {
+			mw->m_notified = TRUE;
+		} else if G_UNLIKELY(-1 == s_write(mw->wfd[1], &c, 1)) {
+			s_minicarp("%s(): cannot notify about event: %m", G_STRFUNC);
+		} else {
+			mw->m_notified = TRUE;
+		}
 	}
 }
 
@@ -302,7 +383,7 @@ waiter_refcnt_inc(waiter_t *w)
 bool
 waiter_refcnt_dec(waiter_t *w)
 {
-	bool ref, unblock;
+	bool ref;
 	struct mwaiter *mw;
 
 	waiter_check(w);
@@ -310,16 +391,23 @@ waiter_refcnt_dec(waiter_t *w)
 	mw = w->parent;
 	waiter_master_check(mw);
 
+	MWAITER_LOCK(mw);
+
 	if (1 == atomic_int_dec(&w->refcnt)) {
 		bool is_master = !waiter_is_child(w);
 		if (is_master && mw->m_blocking) {
 			s_error("%s(): removing last reference on blocking master waiter",
 				G_STRFUNC);
 		}
-		waiter_free(w);
+		waiter_free(w);				/* Unlocks the master waiter if is_master */
 		if (is_master)
 			return FALSE;
 		ref = FALSE;
+
+		/* Master still valid and locked */
+
+		waiter_master_check(mw);
+		g_assert(MWAITER_LOCK_IS_HELD(mw));
 	} else {
 		ref = TRUE;
 	}
@@ -329,15 +417,10 @@ waiter_refcnt_dec(waiter_t *w)
 	 * reference, we need to unblock it or it will stay blocked forever.
 	 */
 
-	unblock = FALSE;
-
-	MWAITER_LOCK_QUICK(mw);
 	if (mw->m_blocking && 1 == mw->children && 1 == mw->waiter.refcnt)
-		unblock = TRUE;
-	MWAITER_UNLOCK_QUICK(mw);
+		waiter_signal_internal(mw, &mw->waiter);
 
-	if (unblock)
-		waiter_signal(&mw->waiter);
+	MWAITER_UNLOCK(mw);
 
 	return ref;
 }
@@ -375,21 +458,7 @@ waiter_signal(waiter_t *w)
 	waiter_master_check(mw);
 
 	MWAITER_LOCK(mw);
-	if (!w->notified) {
-		w->notified = TRUE;
-		elist_remove(&mw->idle, w);
-		elist_append(&mw->active, w);
-	}
-	if (!mw->m_notified) {
-		char c = '\0';
-		if G_UNLIKELY(INVALID_FD == mw->wfd[0]) {
-			mw->m_notified = TRUE;
-		} else if G_UNLIKELY(-1 == s_write(mw->wfd[1], &c, 1)) {
-			s_minicarp("%s(): cannot notify about event: %m", G_STRFUNC);
-		} else {
-			mw->m_notified = TRUE;
-		}
-	}
+	waiter_signal_internal(mw, w);
 	MWAITER_UNLOCK(mw);
 }
 
@@ -430,12 +499,14 @@ waiter_ack(waiter_t *w)
 	mw = w->parent;
 	waiter_master_check(mw);
 
-	spinlock(&mw->lock);		/* Could block if a bug, let's record this */
+	MWAITER_LOCK(mw);		/* Could block if a bug, let's record this */
+
 	w->notified = FALSE;
 	elist_remove(&mw->active, w);
 	elist_append(&mw->idle, w);
 	waiter_master_clear(mw);
-	spinunlock(&mw->lock);
+
+	MWAITER_UNLOCK(mw);
 }
 
 /**
@@ -534,38 +605,6 @@ done:
 	}
 
 	return fd;
-}
-
-/**
- * Close the waiter's file descriptors when we no longer need I/O waiting.
- */
-void
-waiter_close_fd(waiter_t *w)
-{
-	struct mwaiter *mw;
-
-	waiter_check(w);
-
-	mw = w->parent;
-	waiter_master_check(mw);
-
-	MWAITER_LOCK(mw);
-
-#ifdef HAS_SOCKETPAIR
-	if (INVALID_SOCKET != mw->wfd[0]) {
-		s_close(mw->wfd[0]);
-		s_close(mw->wfd[1]);
-		mw->wfd[0] = INVALID_SOCKET;
-		mw->wfd[1] = INVALID_SOCKET;
-	}
-#else	/* !HAS_SOCKETPAIR */
-	if (-1 != mw->wfd[0]) {
-		fd_close(&mw->wfd[0]);
-		fd_close(&mw->wfd[1]);
-	}
-#endif	/* HAS_SOCKETPAIR */
-
-	MWAITER_UNLOCK(mw);
 }
 
 /**

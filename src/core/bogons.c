@@ -148,6 +148,7 @@ bogons_changed(const char *filename, void *unused_udata)
 
 	bogons_close();
 	count = bogons_load(f);
+	fclose(f);
 
 	str_bprintf(buf, sizeof(buf), "Reloaded %d bogus IP ranges.", count);
 	gcu_statusbar_message(buf);

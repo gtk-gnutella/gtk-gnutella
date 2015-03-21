@@ -145,3 +145,24 @@ gtk-gnutella.nm: gtk-gnutella
 	$(TOP)/scripts/nm-list gtk-gnutella$(_EXE) $(NM) > $@
 
 InstallNonExec(gtk-gnutella.nm, $(ARCHLIB))
+
+/*
+ * Local Coverity builds
+ */
+
+coverity.tgz: .FORCE
+	@if cov-build 2>/dev/null | grep Coverity >/dev/null 2>&1; \
+	then \
+		: ok; \
+	else \
+		echo "cov-build not found in PATH"; \
+		exit 1; \
+	fi
+	$(MAKE) realclean
+	$(MAKE) depend
+	cov-build --dir cov-int $(MAKE) gtk-gnutella.nm
+	tar czf $@ cov-int
+
+local_realclean::
+	$(RM) -rf cov-int
+	$(RM) -f coverity.tgz

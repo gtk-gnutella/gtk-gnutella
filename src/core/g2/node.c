@@ -153,9 +153,14 @@ static const tokenizer_t g2_q2_md[] = {
 	{ "archive",		SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE },
 	{ "audio",			SEARCH_AUDIO_TYPE },
 	{ "book",			SEARCH_DOC_TYPE },
+	{ "collection",		SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE },
 	{ "document",		SEARCH_DOC_TYPE },
 	{ "image",			SEARCH_IMG_TYPE },
+	{ "rom",			SEARCH_G2_ROM_TYPE },
+	{ "subtitle",		SEARCH_G2_TEXT_TYPE },
+	{ "torrent",		SEARCH_TORRENT_TYPE },
 	{ "video",			SEARCH_VIDEO_TYPE },
+	{ "wordprocessing",	SEARCH_DOC_TYPE },
 };
 
 static aging_table_t *g2_udp_pings;
@@ -396,7 +401,7 @@ g2_node_handle_rpc_answer(gnutella_node_t *n,
 			 * Special-case /QA which can come VERY late in the process,
 			 * well after the associated RPC has expired.  Still a /QA
 			 * contains information that can be perused, and the associated
-			 * GUESS query may still be alive.  Given them to the GUESS layer
+			 * GUESS query may still be alive.  Give them to the GUESS layer
 			 * as late-comers, to see how much information we can extract.
 			 */
 

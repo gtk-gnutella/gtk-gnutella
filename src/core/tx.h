@@ -74,11 +74,13 @@ tx_check(const txdrv_t *tx)
  * Driver flags.
  */
 
-#define TX_SERVICE		0x00000001	/**< Servicing of upper layer needed */
-#define TX_ERROR		0x00000002	/**< Fatal error detected */
-#define TX_DOWN			0x00000004	/**< No further writes allowed */
-#define TX_CLOSING		0x00000008	/**< Closing, no further writes allowed */
-#define TX_EAGER		0x00000010	/**< Always service the queue */
+#define TX_SERVICE		(1 << 0)	/**< Servicing of upper layer needed */
+#define TX_ERROR		(1 << 1)	/**< Fatal error detected */
+#define TX_DOWN			(1 << 2)	/**< No further writes allowed */
+#define TX_CLOSING		(1 << 3)	/**< Closing, no further writes allowed */
+#define TX_EAGER		(1 << 4)	/**< Always service the queue */
+#define TX_WR_FAULT		(1 << 5)	/**< Ignore writes + loudly carp */
+#define TX_WR_WARNED	(1 << 6)	/**< Has warned after a write fault */
 
 /**
  * Operations defined on all drivers.
@@ -87,6 +89,7 @@ tx_check(const txdrv_t *tx)
 typedef void (*tx_closed_t)(txdrv_t *tx, void *arg);
 
 struct txdrv_ops {
+	const char *name;
 	void *(*init)(txdrv_t *tx, void *args);
 	void (*destroy)(txdrv_t *tx);
 	ssize_t (*write)(txdrv_t *tx, const void *data, size_t len);
@@ -123,10 +126,12 @@ ssize_t tx_no_write(txdrv_t *tx, const void *data, size_t len);
 ssize_t tx_no_writev(txdrv_t *tx, iovec_t *iov, int iovcnt);
 ssize_t tx_no_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to);
 void tx_flush(txdrv_t *tx);
+void tx_error(txdrv_t *tx);
 void tx_shutdown(txdrv_t *tx);
 void tx_close(txdrv_t *d, tx_closed_t cb, void *arg);
 void tx_close_noop(txdrv_t *tx, tx_closed_t cb, void *arg);
-bool tx_has_error(txdrv_t *tx);
+bool tx_has_error(const txdrv_t *tx);
+const char *tx_error_layer_name(const txdrv_t *tx);
 void tx_eager_mode(txdrv_t *tx, bool on);
 
 struct bio_source *tx_no_source(txdrv_t *tx);

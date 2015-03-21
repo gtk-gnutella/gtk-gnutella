@@ -50,6 +50,7 @@ enum atom_type {
 	ATOM_FILESIZE,	/**< filesize_t (binary) */
 	ATOM_UINT32,	/**< unsigned 32-bit integers (binary, 4 bytes) */
 	ATOM_HOST,		/**< gnet_host_t "IP:port" (binary) */
+	ATOM_ADDR,		/**< packed_host_addr "IP" (binary) */
 
 	NUM_ATOM_TYPES
 };
@@ -88,6 +89,9 @@ bool atom_is_atom(enum atom_type type, const void *key);
 
 #define atom_host_get(k)	atom_get_track(ATOM_HOST, (k), _WHERE_, __LINE__)
 #define atom_host_free(k)	atom_free_track(ATOM_HOST, (k), _WHERE_, __LINE__)
+
+#define atom_addr_get(k)	atom_get_track(ATOM_ADDR, (k), _WHERE_, __LINE__)
+#define atom_addr_free(k)	atom_free_track(ATOM_ADDR, (k), _WHERE_, __LINE__)
 
 #define atom_filesize_get(k) \
 	atom_get_track(ATOM_FILESIZE, (k), _WHERE_, __LINE__)
@@ -197,6 +201,18 @@ atom_host_free(const gnet_host_t *k)
 	atom_free(ATOM_HOST, k);
 }
 
+static inline const struct packed_host_addr *
+atom_addr_get(const struct packed_host_addr *k)
+{
+	return atom_get(ATOM_ADDR, k);
+}
+
+static inline void
+atom_addr_free(const struct packed_host_addr *k)
+{
+	atom_free(ATOM_ADDR, k);
+}
+
 #endif	/* TRACK_ATOMS */
 
 /*
@@ -254,6 +270,12 @@ atom_is_host(const gnet_host_t *k)
 	return atom_is_atom(ATOM_HOST, k);
 }
 
+static inline bool
+atom_is_addr(const struct packed_host_addr *k)
+{
+	return atom_is_atom(ATOM_ADDR, k);
+}
+
 /*
  * Hash functions and equality checks
  */
@@ -294,6 +316,7 @@ void atom_free_track(enum atom_type, const void *key,
 #define atom_uint64_free_wl(k,w,l)	atom_free_track(ATOM_UINT64, (k), (w), (l))
 #define atom_uint32_free_wl(k,w,l)	atom_free_track(ATOM_UINT32, (k), (w), (l))
 #define atom_host_free_wl(k,w,l)	atom_free_track(ATOM_HOST, (k), (w), (l))
+#define atom_addr_free_wl(k,w,l)	atom_free_track(ATOM_ADDR, (k), (w), (l))
 
 #define atom_filesize_free_wl(k,w,l) \
 	atom_free_track(ATOM_FILESIZE, (k), (w), (l))
@@ -305,6 +328,7 @@ void atom_free_track(enum atom_type, const void *key,
 #define atom_uint64_free_null(kp)	atom_uint64_fntrack((kp), _WHERE_, __LINE__)
 #define atom_uint32_free_null(kp)	atom_uint32_fntrack((kp), _WHERE_, __LINE__)
 #define atom_host_free_null(kp)		atom_host_fntrack((kp), _WHERE_, __LINE__)
+#define atom_addr_free_null(kp)		atom_addr_fntrack((kp), _WHERE_, __LINE__)
 
 #define atom_filesize_free_null(kp) \
 	atom_filesize_fntrack((kp), _WHERE_, __LINE__)
@@ -341,6 +365,7 @@ GENERATE_ATOM_FREE_NULL(tth, struct tth *)
 GENERATE_ATOM_FREE_NULL(uint64, uint64 *)
 GENERATE_ATOM_FREE_NULL(uint32, uint32 *)
 GENERATE_ATOM_FREE_NULL(host, gnet_host_t *)
+GENERATE_ATOM_FREE_NULL(addr, struct packed_host_addr *)
 #undef GENERATE_ATOM_FREE_NULL
 
 /**
@@ -365,6 +390,8 @@ GENERATE_ATOM_CHANGE(str, char *)
 GENERATE_ATOM_CHANGE(tth, struct tth *)
 GENERATE_ATOM_CHANGE(uint64, uint64 *)
 GENERATE_ATOM_CHANGE(uint32, uint32 *)
+GENERATE_ATOM_CHANGE(host, gnet_host_t *)
+GENERATE_ATOM_CHANGE(addr, struct packed_host_addr *)
 #undef GENERATE_ATOM_CHANGE
 
 #endif	/* _atoms_h_ */

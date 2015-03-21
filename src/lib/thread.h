@@ -129,6 +129,7 @@ typedef struct thread_info {
 	thread_qid_t top_qid;		/**< Topmost QID seen on the stack */
 	unsigned stid;				/**< Small thread ID */
 	unsigned join_id;			/**< ID of joining thread, or THREAD_INVALID */
+	time_t last_seen;			/**< Last seen activity of discovered thread */
 	const char *name;			/**< Thread name, NULL if none set */
 	const void *last_sp;		/**< Last known stack pointer */
 	const void *bottom_sp;		/**< Computed bottom stack pointer */
@@ -144,6 +145,7 @@ typedef struct thread_info {
 	tsigset_t sig_pending;		/**< Signals pending delivery */
 	uint stack_addr_growing:1;	/**< Whether stack growing upwards */
 	uint discovered:1;			/**< Was thread discovered or created? */
+	uint exiting:1;				/**< Whether thread is exiting */
 	uint exited:1;				/**< Whether thread has exited */
 	uint suspended:1;			/**< Whether thread is suspended */
 	uint blocked:1;				/**< Whether thread is (voluntarily) blocked */
@@ -328,6 +330,11 @@ thread_cancel_disable(void)
 #define THREAD_CANCELLED	((void *) -1)
 
 /**
+ * Exit value for a forcefully terminated thread on stack overflow.
+ */
+#define THREAD_OVERFLOW		((void *) -3)
+
+/**
  * Push thread cleanup handler.
  *
  * @param c		the routine to invoke
@@ -348,11 +355,14 @@ thread_cancel_disable(void)
 struct logagent;
 void thread_dump_stats_log(struct logagent *la, unsigned options);
 void thread_dump_stats(void);
+void thread_dump_thread_elements_log(struct logagent *la, unsigned options);
+void thread_dump_thread_elements(void);
 
 struct sha1;
 void thread_stats_digest(struct sha1 *digest);
 
 #define THREAD_INVALID_ID	-1U		/**< Invalid ID */
+#define THREAD_UNKNOWN_ID	-2U		/**< Unknown ID */
 #define THREAD_MAIN			0		/**< ID of the main thread */
 
 static inline bool
@@ -371,38 +381,9 @@ thread_is_main(void)
 void thread_foreach_local(thread_key_t key, uint flags, cdata_fn_t, void *);
 
 #if defined(THREAD_SOURCE) || defined(MUTEX_SOURCE)
-#ifdef I_PTHREAD
-/**
- * Low-level unique thread ID.
- */
-static inline thread_t
-thread_self(void)
-{
-	union {
-		thread_t t;
-		pthread_t pt;
-	} u;
 
-	STATIC_ASSERT(sizeof(thread_t) <= sizeof(pthread_t));
+thread_t thread_self(void);
 
-	/*
-	 * We truncate the pthread_t to the first "unsigned long" bytes.
-	 *
-	 * On Linux, pthread_t is already an unsigned long.
-	 * On FreeBSD, pthread_t is a pointer, which fits in unsigned long.
-	 *
-	 * On Windows, pthread_t is a structure, whose first member is a pointer.
-	 * And we don't want to use the whole pthread_t structure there, because
-	 * the second member is changing over time and we want a unique thread
-	 * identifier.
-	 */
-
-	u.pt = pthread_self();
-	return u.t;
-}
-#else
-#define thread_self()   0xc5db8dd3UL	/* Random, odd number */
-#endif	/* I_PTHREAD */
 #endif	/* THREAD_SOURCE || MUTEX_SOURCE */
 
 #endif /* _thread_h_ */

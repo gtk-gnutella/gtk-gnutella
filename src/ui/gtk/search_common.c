@@ -119,6 +119,7 @@ static GtkWidget *guess_stats_line;
 
 static gboolean store_searches_requested;
 static gboolean store_searches_disabled;
+static gboolean search_gui_visible;
 
 static record_t *search_details_record;
 
@@ -341,12 +342,14 @@ search_gui_option_menu_searches_update(void)
 			gchar title[BITPRINT_BASE32_SIZE * 4 + sizeof ellipse];
 			const gchar *ui_query;
 			size_t title_size;
+			size_t filled;
 
 			ui_query = lazy_utf8_to_ui_string(name);
 			title_size = sizeof title - sizeof ellipse;
 			utf8_strcpy_max(title, title_size, ui_query, BITPRINT_BASE32_SIZE);
-			if (strlen(title) < strlen(ui_query)) {
-				strncat(title, ellipse, CONST_STRLEN(ellipse));
+			filled = strlen(title);
+			if (filled < strlen(ui_query)) {
+				strncat(title, ellipse, sizeof title - filled - 1);
 			}
 
 			item = gtk_menu_item_new_with_label(title);
@@ -415,22 +418,28 @@ search_gui_update_tab_label(const struct search *search)
 		search->scrolled_window, label);
 }
 
-void 
+/**
+ * @return how many downloads are currently associated with that search.
+ */
+unsigned
+search_gui_download_count(const struct search *search)
+{
+	return guc_search_associated_sha1_count(search->search_handle);
+}
+
+static void
 search_gui_update_status_label(const struct search *search)
 {
 	char expire[128];
 	char downloads[48];
 	unsigned dlcount;
 
-	if (search != current_search)
-		return;
-
 	if G_UNLIKELY(NULL == search) {
         gtk_label_printf(label_search_expiry, "%s", _("No search"));
 		return;
 	}
 
-	dlcount = guc_search_associated_sha1_count(search->search_handle);
+	dlcount = search_gui_download_count(search);
 	expire[0] = downloads[0] = '\0';
 
 	if (!search_gui_is_enabled(search)) {
@@ -482,9 +491,6 @@ search_gui_update_status_label(const struct search *search)
 static void
 search_gui_update_items_label(const struct search *search)
 {
-	if (search != current_search)
-		return;
-
     if (search) {
 		gtk_label_printf(label_items_found, _("%u %s "
 			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
@@ -527,7 +533,6 @@ search_gui_update_guess_stats(const struct search *search)
 
 	if (
 		NULL == search ||
-		search != current_search ||
 		!search_gui_can_use_guess(search) ||
 		!GUI_PROPERTY(search_display_guess_stats)
 	)
@@ -627,8 +632,18 @@ search_gui_update_counters(struct search *search)
 static void 
 search_gui_update_status(struct search *search)
 {
-	if (search_gui_is_visible()) {
-		search_gui_update_counters(search);
+	/*
+	 * The "counters" are in the search list/tabs.
+	 *
+	 * To make sure the color in the list changes as soon as a search
+	 * stops / completes all its downloads, we go ahead updating the
+	 * counters even if the GUI is not displaying the search presently.
+	 *		--RAM, 2015-03-03
+	 */
+
+	search_gui_update_counters(search);
+
+	if (search_gui_is_visible() && search == current_search) {
 		search_gui_update_status_label(search);
 		search_gui_update_items_label(search);
 		search_gui_update_guess_stats(search);
@@ -1904,7 +1919,24 @@ search_gui_real_store_searches(void)
 static void
 search_gui_retrieve_searches(void)
 {
+	GList *l;
+
     search_retrieve_xml();
+
+	/*
+	 * Iterate through the whole searches to make sure we display them
+	 * correctly in the list (right color / background) now that we have
+	 * the whole set of searches and their associated SHA1 loaded in the
+	 * core.
+	 *		--RAM, 2015-03-03
+	 */
+
+	GM_LIST_FOREACH(list_searches, l) {
+		struct search *search = l->data;
+
+	 	/* The actual update will be done through search_gui_timer() */
+		search->list_refreshed = FALSE;		/* Force update later */
+	}
 }
 
 /**
@@ -4390,7 +4422,7 @@ search_gui_timer(time_t now)
 
     search_gui_flush(now, FALSE);
 
-	if (delta_time(last_update, now)) {
+	if (search_gui_visible && delta_time(last_update, now)) {
 		GList *iter;
 
 		last_update = now;
@@ -4592,6 +4624,23 @@ search_gui_column_justify_right(int column)
 	return FALSE;
 }
 
+/**
+ * Invoked when the main GUI window visibility changes.
+ */
+static void
+on_search_visibility_change(gboolean visible)
+{
+	search_gui_visible = visible;
+
+	if (visible) {
+		/*
+		 * Becoming visible, update things we left behind whilst the GUI
+		 * was not visible.
+		 */
+
+		search_gui_timer(tm_time());
+	}
+}
 
 /**
  * Initialize common structures.
@@ -4657,6 +4706,7 @@ search_gui_common_init(void)
     guc_guess_stats_listener_add(search_gui_guess_stats);
 
 	main_gui_add_timer(search_gui_timer);
+	main_gui_add_visibility_listener(on_search_visibility_change);
 }
 
 /**
@@ -4666,6 +4716,7 @@ void
 search_gui_common_shutdown(void)
 {
 	search_gui_callbacks_shutdown();
+	main_gui_remove_visibility_listener(on_search_visibility_change);
 
  	guc_search_got_results_listener_remove(search_gui_got_results);
  	guc_search_status_change_listener_remove(search_gui_status_change);

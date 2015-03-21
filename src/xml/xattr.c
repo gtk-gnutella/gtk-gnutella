@@ -53,7 +53,7 @@ enum xattr_table_magic { XATTR_TABLE_MAGIC = 0x44d9a5d8 };
  *
  * For attributes, we normalize the name using { "URI", "name" } where URI is
  * the actual namespace, not the local prefix referring to it.  Therefore,
- * to access the { "xml", lang" } attribute, one must really look for the
+ * to access the { "xml", "lang" } attribute, one must really look for the
  * { "http://www.w3.org/XML/1998/namespace", "lang" } attribute.  The key
  * within the attribute table is therefore a structure, not a plain string.
  *

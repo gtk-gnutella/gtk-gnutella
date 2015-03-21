@@ -1832,3 +1832,10 @@
 
 # servents with "fake" names that do not behave nicely (Gnutella spammers?)
 66.212.143.0/24
+
+# Fake Shareaza clients (Tiversa AP2P)
+206.123.249.96/27
+
+# Fake Shareaza clients
+208.103.122.163
+208.103.122.164/30

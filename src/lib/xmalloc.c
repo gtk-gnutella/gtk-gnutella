@@ -4172,7 +4172,7 @@ xmalloc_thread_ended(unsigned stid)
 	g_assert(stid < XM_THREAD_COUNT);
 
 	/*
-	 * Mark the thread as "dead".  Until it is marked aligned again, all
+	 * Mark the thread as "dead".  Until it is marked alive again, all
 	 * the blocks allocated by this thread which could be freed by other
 	 * threads will be returned directly.
 	 */
@@ -4361,6 +4361,13 @@ xmalloc_thread_free(void *p)
 		return FALSE;
 
 	/*
+	 * Handle any other pending blocks in the cross-thread free list.
+	 */
+
+	if G_UNLIKELY(xcross[stid].count != 0)
+		xmalloc_thread_free_deferred(stid, TRUE);
+
+	/*
 	 * Check whether the block lies on a thread-private chunk page.
 	 */
 
@@ -4438,13 +4445,6 @@ xmalloc_thread_free(void *p)
 	 */
 
 	xmalloc_chunk_return(xck, p, TRUE);
-
-	/*
-	 * Handle any other pending blocks in the cross-thread free list.
-	 */
-
-	if G_UNLIKELY(xcross[stid].count != 0)
-		xmalloc_thread_free_deferred(stid, TRUE);
 
 	return TRUE;
 }
@@ -6494,13 +6494,11 @@ xmalloc_stop_freeing(void)
 void
 xmalloc_stats_digest(sha1_t *digest)
 {
-	struct xstats stats;
+	/*
+	 * Don't take locks to read the statistics, to enhance unpredictability.
+	 */
 
-	XSTATS_LOCK;
-	stats = xstats;		/* struct copy under lock protection */
-	XSTATS_UNLOCK;
-
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE(xstats, digest);
 }
 
 /**

@@ -1311,6 +1311,7 @@ connect_to_host:
 				NODE_TALKS_G2(n) ? "G2 " : "",
 				host_addr_port_to_string(ha, port), file_name);
 		}
+		gnet_stats_inc_general(GNR_REMOTE_PUSH_THROTTLED);
 		return;
 	}
 
@@ -3135,7 +3136,7 @@ upload_collect_locations(struct upload *u,
 
 		buf = header_get(header, "X-Nalt");
 		if (buf)
-			dmesh_collect_negative_locations(sha1, buf, u->addr);
+			dmesh_collect_negative_locations(sha1, buf, u->addr, u->user_agent);
 	}
 
 	shared_file_unref(&sf);
@@ -3884,7 +3885,7 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	if (!seen_guid && NULL == msg)
 		msg = "missing GUID";

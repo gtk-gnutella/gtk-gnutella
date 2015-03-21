@@ -271,6 +271,7 @@ static struct vmm_stats {
 	AU64(munmaps);					/**< Total number of munmap() calls */
 	uint64 magazine_allocations;	/**< Allocations through thread magazine */
 	uint64 magazine_freeings;		/**< Freeings through thread magazine */
+	uint64 magazine_freeings_frag;	/**< Magazine regions that were fragments */
 	uint64 hints_followed;			/**< Allocations following hints */
 	uint64 hints_ignored;			/**< Allocations ignoring non-NULL hints */
 	uint64 alloc_from_cache;		/**< Allocation from cache */
@@ -1851,9 +1852,8 @@ retry:
 
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
-				s_miniwarn("VMM already recursed to pmap_extend(), "
-					"pmap is now %zu KiB",
-					(kernel_pagesize * pm->pages) / 1024);
+				s_miniwarn("VMM already recursed to %s(), pmap is now %zu KiB",
+					G_STRFUNC, (kernel_pagesize * pm->pages) / 1024);
 			}
 			g_assert(kernel_pagesize * pm->pages >= nsize);
 			if (narray != NULL)
@@ -2022,8 +2022,22 @@ done:
 	 * Therefore, always ensure we have room for at least one more slot.
 	 */
 
-	if G_UNLIKELY(pm->count == pm->size)
+	if G_UNLIKELY(pm->count == pm->size) {
 		pmap_extend(pm);
+
+		/*
+		 * After an extension of the pmap, we need to recompute the index in
+		 * the array where the region we had to insert initially has been
+		 * placed.  Indeed, the pages holding the pmap are also inserted in
+		 * the pmap array, and therefore the previous insertion index may now
+		 * be invalid (if e.g. we inserted the new pmap before, or the old pmap
+		 * which has now been freed was a fragment before the insertion point).
+		 *		--RAM, 2015-03-02
+		 */
+
+		vmf = pmap_lookup(pm, start, &idx);
+		g_assert(vmf != NULL);		/* Must be found, we just inserted it */
+	}
 
 	return idx;
 }
@@ -3368,11 +3382,15 @@ retry:
 		 * evaluation to see whether the pages are still a fragment.
 		 */
 
-		if (!wlock && !rwlock_upgrade(&pm->lock)) {
-			rwlock_runlock(&pm->lock);
-			rwlock_wlock(&pm->lock);
-			wlock = TRUE;
-			goto retry;
+		if (!wlock) {
+			if (rwlock_upgrade(&pm->lock)) {
+				wlock = TRUE;
+			} else {
+				rwlock_runlock(&pm->lock);
+				rwlock_wlock(&pm->lock);
+				wlock = TRUE;
+				goto retry;
+			}
 		}
 
 		/*
@@ -4139,7 +4157,26 @@ vmm_free(void *p, size_t size)
 	size_t npages = pagecount_fast(size);
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		tmalloc_t *depot = vmm_get_magazine(npages);
+		tmalloc_t *depot;
+
+		/*
+		 * If we're running under a long-term VMM allocation strategy,
+		 * check whether the region we're releasing is a VMM fragment.
+		 * If it is, it should be released.
+		 */
+
+		if G_UNLIKELY(
+			VMM_STRATEGY_LONG_TERM == vmm_strategy &&
+			vmm_is_fragment(p, size)
+		) {
+			VMM_STATS_LOCK;
+			vmm_stats.magazine_freeings++;
+			vmm_stats.magazine_freeings_frag++;
+			VMM_STATS_UNLOCK;
+			goto user_free;
+		}
+
+		depot = vmm_get_magazine(npages);
 
 		if G_LIKELY(depot != NULL) {
 			VMM_STATS_LOCK;
@@ -4151,8 +4188,11 @@ vmm_free(void *p, size_t size)
 			tmfree(depot, p);
 			return;
 		}
+
+		/* FALL THROUGH -- if no depot yet for that amount of pages */
 	}
 
+user_free:
 	vmm_free_internal(p, size, TRUE);
 }
 
@@ -4632,13 +4672,11 @@ vmm_malloc_inited(void)
 void
 vmm_stats_digest(sha1_t *digest)
 {
-	struct vmm_stats stats;
+	/*
+	 * Don't take locks to read the statistics, to enhance unpredictability.
+	 */
 
-	VMM_STATS_LOCK;
-	stats = vmm_stats;	/* struct copy under lock protection */
-	VMM_STATS_UNLOCK;
-
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE(vmm_stats, digest);
 }
 
 /**
@@ -4716,6 +4754,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(munmaps);
 	DUMP(magazine_allocations);
 	DUMP(magazine_freeings);
+	DUMP(magazine_freeings_frag);
 	DUMP(hints_followed);
 	DUMP(hints_ignored);
 	DUMP(alloc_from_cache);

@@ -60,7 +60,7 @@ osxbundle)
 	build_osxbundle='true'
 	CPPFLAGS="$CPPFLAGS -DHAVE_GTKOSXAPPLICATION "
 	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
-	LIBS="$LIBS -lgtkmacintegration -liconv -lz"
+	LIBS="$LIBS `pkg-config gtk-mac-integration-gtk2 --libs` -liconv -lz"
 	LIBS="${LIBS# *}"           # strip leading spaces
 	PREFIX=`dirname ${PWD}/$0`/osx/bundle
 	echo $PREFIX

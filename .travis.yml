@@ -1,0 +1,27 @@
+language: c
+os:
+  - osx
+  - linux
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then curl https://git.gnome.org/browse/gtk-osx/plain/gtk-osx-build-setup.sh | sh; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then cp -v osx/jhbuildrc-gtk-gnutella  ~/.jhbuildrc-gtk-gnutella && cp -v osx/gtk-gnutella.modules ~/gtk-gnutella.modules; fi
+
+install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact bootstrap ;fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build ;fi
+
+script:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ./build.sh --target=osxbundle; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./build.sh; fi
+  - src/lib/random-test
+  - src/lib/sort-test
+  # Removing -F as the fork() call seems to disrupt the inter-thread signals,
+  # messing-up with the file descriptor used to perform signalling?
+  # Not critical since gtk-gnutella is not using thread_fork() currently.
+  #		--RAM, 2015-02-22
+  - src/lib/thread-test -ABCDEIKMNOPQRSVWX -T1 -c2 -z player,test_signals
+
+notifications:
+  irc: "irc.freenode.net#gtk-gnutella"
+

@@ -34,7 +34,9 @@
 #include "common.h"		/* For RCSID */
 
 #include "signal.h"
+
 #include "atomic.h"
+#include "buf.h"
 #include "ckalloc.h"
 #include "crash.h"
 #include "dl_util.h"
@@ -1240,18 +1242,40 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 
 #ifdef SIGNAL_HANDLER_TRACE
 		{
-			str_t *s = str_new(120);
+			buf_t *b = buf_private(G_STRFUNC, 1);
+			char *p = buf_data(b);
 
-			str_printf(s, "%s(): installing %s() trampoline ",
-				G_STRFUNC, stacktrace_function_name(
-				(sa.sa_flags & SA_SIGINFO) ?
-					(signal_handler_t) sa.sa_sigaction : sa.sa_handler));
-			str_catf(s, "going to %s() handler for %s",
-				stacktrace_function_name(handler), signal_name(signo));
-			str_catf(s, ": old handler was %s()",
-				stacktrace_function_name(old_handler));
-			s_debug("%s", str_2c(s));
-			str_destroy_null(&s);
+			/*
+			 * Avoid trace recursions, which can happen through
+			 * stacktrace_function_name() when dl_util_query() is
+			 * called, since that will attempt to ignore SIGSEGV.
+			 *
+			 * We rely on the fact that buf_private() initially
+			 * allocates a buffer that is zeroed to detect that we
+			 * are actually entering this tracing code for the first
+			 * time in a given thread.
+			 *		--RAM, 2015-02-05
+			 */
+
+			if ('\0' == *p) {
+				str_t *s;
+
+				*p = '\01';		/* Flag that we're now tracing */
+
+				s = str_new(120);
+				str_printf(s, "%s(): installing %s() trampoline ",
+					G_STRFUNC, stacktrace_function_name(
+					(sa.sa_flags & SA_SIGINFO) ?
+						(signal_handler_t) sa.sa_sigaction : sa.sa_handler));
+				str_catf(s, "going to %s() handler for %s",
+					stacktrace_function_name(handler), signal_name(signo));
+				str_catf(s, ": old handler was %s()",
+					stacktrace_function_name(old_handler));
+				s_debug("%s", str_2c(s));
+				str_destroy_null(&s);
+
+				*p = '\0';		/* Done with tracing */
+			}
 		}
 #endif	/* SIGNAL_HANDLER_TRACE */
 

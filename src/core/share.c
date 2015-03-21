@@ -286,6 +286,10 @@ static hikset_t *sha1_to_share;		/* Marked thread-safe */
 #define D	SEARCH_DOC_TYPE
 #define I	SEARCH_IMG_TYPE
 #define U	(SEARCH_WIN_TYPE | SEARCH_UNIX_TYPE)
+#define T	SEARCH_TORRENT_TYPE
+
+#define TXT	SEARCH_G2_TEXT_TYPE
+#define ROM	SEARCH_G2_ROM_TYPE
 
 /**
  * This table encodes for each known MIME type the searchable media type bits
@@ -295,7 +299,7 @@ static hikset_t *sha1_to_share;		/* Marked thread-safe */
  * of the searchable bits.  This typically indicates a file containing
  * either application-specific data (e.g. an MP3 playlist), a programming
  * language (e.g. a C header file), or binary-specific data (e.g. a ROM
- * image).
+ * image, although these are now flagged as ROM, for the benefit of G2 queries).
  */
 static struct {
 	enum mime_type type;
@@ -305,7 +309,7 @@ static struct {
 	{ MIME_TYPE_APPLICATION_7Z,						U },
 	{ MIME_TYPE_APPLICATION_ACE,					U },
 	{ MIME_TYPE_APPLICATION_ANDROID_PACKAGE,		U },
-	{ MIME_TYPE_APPLICATION_BITTORRENT,				D },
+	{ MIME_TYPE_APPLICATION_BITTORRENT,				T },
 	{ MIME_TYPE_APPLICATION_BROADBAND_EBOOK,		D },
 	{ MIME_TYPE_APPLICATION_BZIP2,					U },
 	{ MIME_TYPE_APPLICATION_COMPILED_HTML_HELP,		D },
@@ -315,8 +319,8 @@ static struct {
 	{ MIME_TYPE_APPLICATION_DOSEXEC,				U },
 	{ MIME_TYPE_APPLICATION_EPUB,					D },
 	{ MIME_TYPE_APPLICATION_EXCEL,					0 },
-	{ MIME_TYPE_APPLICATION_GAMEBOY_ROM,			0 },
-	{ MIME_TYPE_APPLICATION_GENESIS_ROM,			0 },
+	{ MIME_TYPE_APPLICATION_GAMEBOY_ROM,			ROM },
+	{ MIME_TYPE_APPLICATION_GENESIS_ROM,			ROM },
 	{ MIME_TYPE_APPLICATION_GZIP,					U },
 	{ MIME_TYPE_APPLICATION_IPHONE_APP,				0 },
 	{ MIME_TYPE_APPLICATION_ISO9660,				U },
@@ -330,8 +334,8 @@ static struct {
 	{ MIME_TYPE_APPLICATION_MSWORD,					D },
 	{ MIME_TYPE_APPLICATION_MS_READER,				D },
 	{ MIME_TYPE_APPLICATION_MS_SHORTCUT,			0 },
-	{ MIME_TYPE_APPLICATION_N64_ROM,				0 },
-	{ MIME_TYPE_APPLICATION_NES_ROM,				0 },
+	{ MIME_TYPE_APPLICATION_N64_ROM,				ROM },
+	{ MIME_TYPE_APPLICATION_NES_ROM,				ROM },
 	{ MIME_TYPE_APPLICATION_OBJECT,					0 },
 	{ MIME_TYPE_APPLICATION_OGG,					A },
 	{ MIME_TYPE_APPLICATION_OPEN_PACKAGING_FORMAT,	U },
@@ -345,7 +349,7 @@ static struct {
 	{ MIME_TYPE_APPLICATION_SHAR,					U },
 	{ MIME_TYPE_APPLICATION_SHOCKWAVE_FLASH,		V },
 	{ MIME_TYPE_APPLICATION_SIT,					U },
-	{ MIME_TYPE_APPLICATION_SNES_ROM,				0 },
+	{ MIME_TYPE_APPLICATION_SNES_ROM,				ROM },
 	{ MIME_TYPE_APPLICATION_TAR,					U },
 	{ MIME_TYPE_APPLICATION_TEX,					D },
 	{ MIME_TYPE_APPLICATION_TEXINFO,				D },
@@ -389,7 +393,7 @@ static struct {
 	{ MIME_TYPE_TEXT_LATEX,							D },
 	{ MIME_TYPE_TEXT_LILYPOND,						D },
 	{ MIME_TYPE_TEXT_PERL,							0 },
-	{ MIME_TYPE_TEXT_PLAIN,							D },
+	{ MIME_TYPE_TEXT_PLAIN,							D|TXT },
 	{ MIME_TYPE_TEXT_PYTHON,						0 },
 	{ MIME_TYPE_TEXT_RTF,							D },
 	{ MIME_TYPE_TEXT_XHTML,							D },
@@ -410,6 +414,9 @@ static struct {
 #undef D
 #undef I
 #undef U
+#undef T
+#undef TXT
+#undef ROM
 
 /**
  * Hash table yielding the media type flags from a MIME type.
@@ -1791,7 +1798,6 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 
 finish:
 	HFREE_NULL(fullpath);
-	dir_entry_filename(NULL);	/* release memory */
 }
 
 /**
@@ -1825,8 +1831,19 @@ recursive_scan_done(struct bgtask *bt, void *data, bgstatus_t status, void *arg)
 	if (THREAD_MAIN == share_thread_id) {
 		struct share_thread_vars *v = &share_thread_vars;
 
+		/*
+		 * Taking the lock is not really necessary here because if we run
+		 * in the main thread, everything is serialized, so there cannot be
+		 * any concurrent access on these variables.  For uniformity though...
+		 *		--RAM, 2015-03-06
+		 */
+
+		spinlock(&v->lock);
+
 		if (bt == v->task)
 			v->task = NULL;
+
+		spinunlock(&v->lock);
 	}
 }
 

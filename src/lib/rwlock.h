@@ -27,7 +27,7 @@
  *
  * Read-write locks.
  *
- * All read-write locks are tacked at the thread level to prevent deadlocks,
+ * All read-write locks are tracked at the thread level to prevent deadlocks,
  * allow recursive locking and become proper suspension points.
  *
  * Write locks are comparable to mutexes in that they are owned by one single

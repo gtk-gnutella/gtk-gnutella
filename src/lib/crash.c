@@ -81,6 +81,7 @@
 #include "ckalloc.h"
 #include "compat_pause.h"
 #include "compat_sleep_ms.h"
+#include "eslist.h"
 #include "fast_assert.h"
 #include "fd.h"
 #include "file.h"
@@ -179,6 +180,17 @@ G_STMT_START { \
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 static bool crash_closed;
 static bool crash_pausing;
+
+/**
+ * An item in the crash_hooks list.
+ */
+typedef struct crash_hook_item {
+	const char *filename;		/**< File for which hook is installed */
+	crash_hook_t hook;			/**< The hook to install */
+	slink_t link;				/**< Embedded link */
+} crash_hook_item_t;
+
+static eslist_t crash_hooks = ESLIST_INIT(offsetof(crash_hook_item_t, link));
 
 static const char CRASHFILE_ENV[] = "Crashfile=";
 
@@ -1958,7 +1970,7 @@ crash_record_thread(void)
 		unsigned stid = thread_safe_small_id();
 		const char *name;
 
-		if (-2U == stid) {
+		if (THREAD_UNKNOWN_ID == stid) {
 			name = "could not compute thread ID";
 			crash_set_var(fail_name, name);
 		} else {
@@ -2616,6 +2628,20 @@ crash_exited(uint32 pid)
 }
 
 /**
+ * Install crash hooks that were registered before crash_init() was called.
+ *
+ * This is an eslist iterator callback.
+ */
+G_GNUC_COLD void
+crash_hook_install(void *data, void *udata)
+{
+	crash_hook_item_t *ci = data;
+
+	(void) udata;
+	crash_hook_add(ci->filename, ci->hook);
+}
+
+/**
  * Installs a simple crash handler.
  * 
  * @param argv0		the original argv[0] from main().
@@ -2778,6 +2804,9 @@ crash_init(const char *argv0, const char *progname,
 
 		hash_table_readonly(ht);
 		ck_readonly(vars->hookmem);
+
+		eslist_foreach(&crash_hooks, crash_hook_install, NULL);
+		eslist_wfree(&crash_hooks, sizeof(crash_hook_item_t));
 	}
 }
 
@@ -2946,7 +2975,26 @@ crash_hook_add(const char *filename, const crash_hook_t hook)
 {
 	g_assert(filename != NULL);
 	g_assert(hook != NULL);
-	g_assert(vars != NULL);			/* Must have run crash_init() */
+
+	/*
+	 * If crash_init() has not been run yet, record the pending hook
+	 * for deferred processing.  The hook will not be installed until
+	 * crash_init() is called, naturally.
+	 *
+	 * This is required for low-level hooks like the thread crash hook
+	 * which is configured very early.
+	 *		--RAM, 2015-03-11
+	 */
+
+	if G_UNLIKELY(NULL == vars) {
+		crash_hook_item_t *ci;
+
+		WALLOC0(ci);
+		ci->filename = filename;		/* Must be a static item */
+		ci->hook = hook;
+		eslist_append(&crash_hooks, ci);
+		return;
+	}
 
 	/*
 	 * Only one crash hook can be added per file.

@@ -1010,13 +1010,13 @@ create_dlg_about (void)
   GtkWidget *label302;
   GtkWidget *label488;
   GtkWidget *label489;
+  GtkWidget *label538;
   GtkWidget *label490;
   GtkWidget *label491;
   GtkWidget *hseparator14;
   GtkWidget *label892;
   GtkWidget *hbox137;
   GtkWidget *button_about_close;
-  GtkWidget *label538;
 
   dlg_about = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_about, "dlg_about");
@@ -1240,6 +1240,14 @@ create_dlg_about (void)
   GTK_WIDGET_SET_FLAGS (label489, GTK_CAN_FOCUS);
   gtk_label_set_selectable (GTK_LABEL (label489), TRUE);
 
+  label538 = gtk_label_new ("Translations are on https://www.transifex.com/projects/p/gtk-gnutella/");
+  gtk_widget_set_name (label538, "label538");
+  gtk_widget_show (label538);
+  gtk_box_pack_start (GTK_BOX (vbox67), label538, FALSE, TRUE, 0);
+  GTK_WIDGET_SET_FLAGS (label538, GTK_CAN_FOCUS);
+  gtk_label_set_justify (GTK_LABEL (label538), GTK_JUSTIFY_CENTER);
+  gtk_label_set_selectable (GTK_LABEL (label538), TRUE);
+
   label490 = gtk_label_new (_("Join the users or developers mailing lists."));
   gtk_widget_set_name (label490, "label490");
   gtk_widget_show (label490);
@@ -1278,11 +1286,6 @@ create_dlg_about (void)
   gtk_container_set_border_width (GTK_CONTAINER (button_about_close), 6);
   GTK_WIDGET_SET_FLAGS (button_about_close, GTK_CAN_DEFAULT);
 
-  label538 = gtk_label_new ("@(#) $Id$");
-  gtk_widget_set_name (label538, "label538");
-  gtk_box_pack_start (GTK_BOX (vbox67), label538, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (label538, FALSE);
-
   g_signal_connect ((gpointer) dlg_about, "delete_event",
                     G_CALLBACK (on_dlg_about_delete_event),
                     NULL);
@@ -1319,13 +1322,13 @@ create_dlg_about (void)
   GLADE_HOOKUP_OBJECT (dlg_about, label302, "label302");
   GLADE_HOOKUP_OBJECT (dlg_about, label488, "label488");
   GLADE_HOOKUP_OBJECT (dlg_about, label489, "label489");
+  GLADE_HOOKUP_OBJECT (dlg_about, label538, "label538");
   GLADE_HOOKUP_OBJECT (dlg_about, label490, "label490");
   GLADE_HOOKUP_OBJECT (dlg_about, label491, "label491");
   GLADE_HOOKUP_OBJECT (dlg_about, hseparator14, "hseparator14");
   GLADE_HOOKUP_OBJECT (dlg_about, label892, "label892");
   GLADE_HOOKUP_OBJECT (dlg_about, hbox137, "hbox137");
   GLADE_HOOKUP_OBJECT (dlg_about, button_about_close, "button_about_close");
-  GLADE_HOOKUP_OBJECT (dlg_about, label538, "label538");
 
   gtk_widget_grab_focus (textview_about_contributors);
   gtk_widget_grab_default (button_about_close);

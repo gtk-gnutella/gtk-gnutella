@@ -68,7 +68,7 @@ is_writable(void *data, int unused_source, inputevt_cond_t cond)
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		tx->flags |= TX_ERROR;
+		tx_error(tx);
 		attr->cb->eof_remove(tx->owner, _("Write failed (Input Exception)"));
 		return;
 	}
@@ -157,7 +157,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	case EPIPE:
 	case ECONNRESET:
 	case ECONNABORTED:
-		tx->flags |= TX_ERROR;
+		tx_error(tx);
 		attr->cb->eof_remove(tx->owner,
 			_("Write failed: %s"), g_strerror(errno));
 		return -1;
@@ -183,7 +183,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	case ENETDOWN:
 	case ENETUNREACH:
 	case ETIMEDOUT:
-		tx->flags |= TX_ERROR;
+		tx_error(tx);
 		attr->cb->eof_shutdown(tx->owner,
 			_("Write failed: %s"), g_strerror(errno));
 		return -1;
@@ -308,6 +308,7 @@ tx_link_bio_source(txdrv_t *tx)
 }
 
 static const struct txdrv_ops tx_link_ops = {
+	"link",				/**< name */
 	tx_link_init,		/**< init */
 	tx_link_destroy,	/**< destroy */
 	tx_link_write,		/**< write */

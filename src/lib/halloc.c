@@ -56,6 +56,7 @@
 #include "pagetable.h"
 #include "spinlock.h"
 #include "stringify.h"
+#include "thread.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
@@ -940,6 +941,77 @@ h_strdup_printf(const char *format, ...)
 	return buf;
 }
 #endif /* !TRACK_MALLOC */
+
+enum hpriv_magic { HPRIV_MAGIC = 0x683e6188 };
+
+struct hpriv {
+	enum hpriv_magic magic;	/**< Magic number */
+	void *p;				/**< Thread-private pointer (halloc-ed) */
+};
+
+static inline void
+hpriv_check(const struct hpriv * const hp)
+{
+	g_assert(hp != NULL);
+	g_assert(HPRIV_MAGIC == hp->magic);
+}
+
+/**
+ * Reclaim a thread-private pointer when the thread is exiting.
+ */
+static void
+h_private_reclaim(void *data, void *unused)
+{
+	struct hpriv *hp = data;
+
+	(void) unused;
+
+	hpriv_check(hp);
+
+	HFREE_NULL(hp->p);
+	hp->magic = 0;
+	WFREE(hp);
+}
+
+/**
+ * Record a pointer as being an halloc-ed() memory zone that needs to be freed
+ * when the thread exists or when a new value is recorded.
+ *
+ * This is used to provide thread-private "lazy memory" whose lifetime does not
+ * exceeed that of the next call to the routine that produces these pointers.
+ *
+ * @param key		the key to use to identify this pointer value
+ * @param p			the allocated pointer
+ *
+ * @return the pointer, as a convenience.
+ */
+void *
+h_private(const void *key, void *p)
+{
+	struct hpriv *hp;
+
+	hp = thread_private_get(key);
+
+	if G_LIKELY(hp != NULL) {
+		hpriv_check(hp);
+
+		HFREE_NULL(hp->p);		/* Free old pointer */
+		return hp->p = p;		/* Will be freed next time or at thread exit */
+	}
+
+	/*
+	 * Allocate a new thread-private pointer object, with a specialized free
+	 * routine to be able to reclaim the allocated memory when the thread
+	 * exits.
+	 */
+
+	WALLOC0(hp);
+	hp->magic = HPRIV_MAGIC;
+
+	thread_private_add_extended(key, hp, h_private_reclaim, NULL);
+
+	return hp->p = p;
+}
 
 /**
  * Dump halloc statistics to specified log agent.

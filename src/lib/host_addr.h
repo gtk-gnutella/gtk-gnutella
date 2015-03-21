@@ -572,8 +572,10 @@ struct pslist *host_addr_get_interface_addrs(enum net_type net);
 void host_addr_free_interface_addrs(struct pslist **sl_ptr);
 
 uint packed_host_addr_size(const struct packed_host_addr paddr);
+uint packed_host_addr_size_ptr(const struct packed_host_addr *paddr);
 struct packed_host_addr host_addr_pack(const host_addr_t addr);
 host_addr_t packed_host_addr_unpack(const struct packed_host_addr paddr);
+host_addr_t packed_host_addr_unpack_ptr(const struct packed_host_addr *paddr);
 
 uint packed_host_size(const struct packed_host paddr);
 struct packed_host host_pack(const host_addr_t addr, uint16 port);
@@ -584,6 +586,13 @@ uint packed_host_hash_func2(const void *key);
 bool packed_host_eq_func(const void *p, const void *q);
 void *walloc_packed_host(const host_addr_t addr, uint16 port);
 void wfree_packed_host(void *key, void *unused_data);
+
+uint packed_host_addr_hash(const void *key);
+uint packed_host_addr_hash2(const void *key);
+bool packed_host_addr_equal(const void *p, const void *q);
+void *walloc_packed_host_addr(const host_addr_t addr);
+void *walloc_packed_host_addr_ptr(const void *paddr);
+void wfree_packed_host_addr(void *pha);
 
 #endif /* _host_addr_h_ */
 

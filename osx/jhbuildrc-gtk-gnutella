@@ -1,0 +1,21 @@
+# -*- mode: python -*-
+
+_branch = os.environ.get("BRANCH");
+
+if _branch is not None:
+	branches["gtk-gnutella"]=[None, _branch]
+	
+checkoutroot = os.path.expanduser("~/gtk-gnutella/source")
+prefix = os.path.expanduser("~/gtk-gnutella/inst")
+tarballdir = os.path.expanduser("~/gtk-gnutella/pkgs")
+
+if not "MACOSX_DEPLOYMENT_TARGET" in os.environ:
+	_target = "10.8"
+	setup_sdk(target=_target, sdk_version="native", architectures=[_default_arch])
+
+moduleset = "/Users/jeroen/gtk-gnutella.modules"
+modules = [ 'meta-gtk-osx-bootstrap', 'meta-gtk-osx-core', 'gtk-gnutella-deps' ]
+
+if os.environ["MACOSX_DEPLOYMENT_TARGET"] > 10.7:
+	skip.append("openssl")
+#append_autogenargs("libxslt", "--without-python")

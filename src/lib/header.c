@@ -231,10 +231,11 @@ hfield_dump(const header_field_t *h, FILE *out)
 	for (/* NOTHING */; slist_iter_has_item(iter); slist_iter_next(iter)) {
 		const char *s;
 
-		if (!first) {
+		if (first)
 			first = FALSE;
+		else
 			fputs("    ", out);			/* Continuation line */
-		}
+
 		s = slist_iter_current(iter);
 		if (is_printable_iso8859_string(s)) {
 			fputs(s, out);
@@ -592,7 +593,7 @@ header_append(header_t *o, const char *text, int len)
 				continue;
 			}
 			if (
-				seen_space || (c != '-' &&
+				seen_space || (c != '-' && c != '.' &&
 					(!isascii(c) || is_ascii_cntrl(c) || is_ascii_punct(c)))
 			) {
 				o->flags |= HEAD_F_SKIP;

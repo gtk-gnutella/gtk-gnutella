@@ -102,7 +102,7 @@ ipset_set_addrs(ipset_t *ips, const char *s)
 		}
 	}
 
-	strtok_free(st);
+	strtok_free_null(&st);
 
 	if (0 == hset_count(ips->addrs))
 		hset_free_null(&ips->addrs);

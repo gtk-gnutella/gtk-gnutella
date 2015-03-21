@@ -33,10 +33,6 @@
 
 #include "common.h"
 
-#ifdef I_SCHED
-#include <sched.h>
-#endif
-
 #define SPINLOCK_SOURCE
 
 #include "spinlock.h"
@@ -101,6 +97,12 @@ spinlock_clear_owner(spinlock_t *s)
 #endif
 }
 
+void
+spinlock_set_owner_external(spinlock_t *s, const char *file, unsigned line)
+{
+	spinlock_set_owner(s, file, line);
+}
+
 static inline void
 spinlock_check(const volatile struct spinlock * const slock)
 {
@@ -127,16 +129,13 @@ spinlock_source_string(enum spinlock_source src)
 void G_GNUC_COLD
 spinlock_crash_mode(void)
 {
-	if (!atomic_int_get(&spinlock_pass_through)) {
-		unsigned count;
+	/*
+	 * We must set ``spinlock_pass_through'' immediately since s_miniwarn()
+	 * could call routines requiring mutexes...
+	 */
 
-		/*
-		 * We must set ``spinlock_pass_through'' immediately since s_miniwarn()
-		 * could call routines requiring mutexes...
-		 */
-
-		atomic_int_inc(&spinlock_pass_through);
-		count = thread_count();
+	if (0 == atomic_int_inc(&spinlock_pass_through)) {
+		unsigned count = thread_count();
 
 		if (count != 1) {
 			s_rawwarn("disabling locks, "
@@ -211,12 +210,13 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 
 #ifdef SPINLOCK_DEBUG
 #ifdef SPINLOCK_OWNER_DEBUG
-	s_miniwarn("spinlock %p %s by %s:%u (thread #%u)",
+	s_miniwarn("spinlock %p %s by %s:%u (thread #%u) whilst we wait at %s:%u",
 		obj, s->lock ? "still held" : "already freed",
-		s->file, s->line, s->stid);
+		s->file, s->line, s->stid, file, line);
 #else
-	s_miniwarn("spinlock %p %s by %s:%u",
-		obj, s->lock ? "still held" : "already freed", s->file, s->line);
+	s_miniwarn("spinlock %p %s by %s:%u whilst we wait at %s:%u",
+		obj, s->lock ? "still held" : "already freed", s->file, s->line,
+		file, line);
 #endif
 #endif
 
@@ -351,10 +351,6 @@ spinlock_loop(volatile spinlock_t *s,
 			element = thread_lock_waiting_element(src_object, kind, file, line);
 		}
 
-		d = gentime_diff(gentime_now_exact(), start);
-		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
-			(*deadlocked)(src_object, (unsigned) d, file, line);
-
 		compat_usleep_nocancel(SPINLOCK_DELAY);
 
 		/*
@@ -366,6 +362,10 @@ spinlock_loop(volatile spinlock_t *s,
 			spinlock_direct(s);
 			return;
 		}
+
+		d = gentime_diff(gentime_now_exact(), start);
+		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
+			(*deadlocked)(src_object, (unsigned) d, file, line);
 	}
 }
 

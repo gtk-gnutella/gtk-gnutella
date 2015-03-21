@@ -48,6 +48,7 @@
 #include "plist.h"
 
 #include "elist.h"
+#include "log.h"
 #include "pslist.h"
 #include "random.h"
 #include "walloc.h"
@@ -1104,9 +1105,18 @@ plist_shift(plist_t **pl_ptr)
 	data = pl->data;
 
 	nl = pl->next;
-	nl->prev = NULL;
+	if (nl != NULL)
+		nl->prev = NULL;
 	g_assert(NULL == pl->prev);		/* Was at the head of the list */
 	WFREE(pl);
+
+	/*
+	 * If the list contains NULL items, this is going to confuse the caller
+	 * because NULL is also an indication that the list was empty.
+	 */
+
+	if G_UNLIKELY(NULL == data)
+		s_carp_once("%s(): used on a list that contains NULL items", G_STRFUNC);
 
 	*pl_ptr = nl;
 	return data;

@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Jul  2 13:59:03 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sat Oct  4 09:36:51 2014 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -71,6 +71,8 @@ static const char *stats_symbols[] = {
 	"guess_ultra_acknowledged",
 	"guess_g2_queried",
 	"guess_g2_acknowledged",
+	"local_push_throttled",
+	"remote_push_throttled",
 	"broadcasted_pushes",
 	"push_proxy_udp_relayed",
 	"push_proxy_tcp_relayed",
@@ -394,6 +396,8 @@ static const char *stats_text[] = {
 	N_("GUESS ultra nodes sending back an acknowledgment"),
 	N_("GUESS G2 nodes queried"),
 	N_("GUESS G2 nodes sending back an acknowledgment"),
+	N_("Throttled local push messages"),
+	N_("Throttled received push messages"),
 	N_("Broadcasted push messages"),
 	N_("Push-proxy UDP relayed messages"),
 	N_("Push-proxy TCP relayed messages"),

@@ -35,6 +35,7 @@
 #define _dump_options_h_
 
 #define DUMP_OPT_PRETTY		(1U << 0)		/**< Pretty-print option */
+#define DUMP_OPT_SHORT		(1U << 1)		/**< Give a short output */
 
 #endif /* _dump_options_h_ */
 

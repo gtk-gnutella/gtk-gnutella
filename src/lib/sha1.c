@@ -1,7 +1,7 @@
 /*
  * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -56,10 +56,12 @@
  *      a multiple of the size of an 8-bit character.
  *
  * @note
- * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
+ * This file comes from RFC 3174. Inclusion in gtk-gnutella with additional
+ * optimizations and adaptation to coding standards and specific library
+ * routines were made by Raphael Manfredi.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2015
  */
 
 #include "common.h"
@@ -68,15 +70,11 @@
 #include "misc.h"			/* For RCSID */
 #include "override.h"		/* Must be the last header included */
 
-/**
- *  Define the SHA1 circular left shift macro.
- */
-#define SHA1CircularShift(bits,word) \
-	(((word) << (bits)) | ((word) >> (32-(bits))))
+#define SHA1_BLEN	64		/**< Message block length */
 
 /* Local Function Prototyptes */
 static void SHA1_pad_message(SHA1_context *);
-static void SHA1_process_message_block(SHA1_context *);
+static void SHA1_process_message_block(SHA1_context *, const void *mblock);
 
 /**
  *  SHA1_reset
@@ -98,6 +96,12 @@ SHA1_reset(SHA1_context *context)
 {
 	if (!context)
 		return SHA_NULL;
+
+	/*
+	 * We rely on mblock[] being aligned on a 32-bit boundary, to be able
+	 * to cast it to a uint32 * in SHA1_process_message_block().
+	 */
+	STATIC_ASSERT(0 == offsetof(struct SHA1_context, mblock) % 4);
 
 	ZERO(context);
 
@@ -184,10 +188,10 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 
 	SHA1_check(context);
 
-	if G_UNLIKELY(!length)
+	if G_UNLIKELY(0 == length)
 		return SHA_SUCCESS;
 
-	if G_UNLIKELY(!context || !data)
+	if G_UNLIKELY(NULL == context || NULL == data)
 		return SHA_NULL;
 
 	if G_UNLIKELY(context->computed) {
@@ -198,6 +202,38 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 	if G_UNLIKELY(context->corrupted)
 		 return SHA_STATE_ERROR;
 
+	/*
+	 * Optimization: if the data block is aligned on a 32-bit boundary and
+	 * is at least 64-byte long, we can avoid moving data around and feed
+	 * them directly to SHA1_process_message_block(), as long as there are
+	 * no pending bytes in the context.  This will likely be happening when
+	 * large chunks of data are fed to the routine, e.g. when processing a file.
+	 *		--RAM, 2015-03-14
+	 */
+
+	if G_UNLIKELY(0 != context->midx || 0 != pointer_to_long(mp) % 4)
+		goto slowpath;
+
+fastpath:
+	for (/**/; length >= SHA1_BLEN; mp += SHA1_BLEN, length -= SHA1_BLEN) {
+		context->length += 8 * SHA1_BLEN;		/* Counts bits, not bytes */
+
+		if G_UNLIKELY(context->length < 8 * SHA1_BLEN) {
+			/* Message is too long */
+			context->corrupted = SHA_INPUT_TOO_LONG;
+			return SHA_INPUT_TOO_LONG;
+		}
+
+		SHA1_process_message_block(context, mp);
+	}
+
+	/* FALL THROUGH */
+
+	/*
+	 * Normal slower processing (requires byte-copying to a message buffer).
+	 */
+
+slowpath:
 	while (length--) {
 		context->mblock[context->midx++] = *mp++;
 		context->length += 8;		/* This counts bits, not bytes */
@@ -208,8 +244,11 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
 			return SHA_INPUT_TOO_LONG;
 		}
 
-		if G_UNLIKELY(context->midx == 64)
-			SHA1_process_message_block(context);
+		if G_UNLIKELY(SHA1_BLEN == context->midx) {
+			SHA1_process_message_block(context, context->mblock);
+			if (length >= SHA1_BLEN && 0 == pointer_to_long(mp) % 4)
+				goto fastpath;		/* Can use faster processing now */
+		}
 	}
 
 	return SHA_SUCCESS;
@@ -220,10 +259,11 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
  *
  *  Description:
  *      This function will process the next 512 bits of the message
- *      stored in the mblock array.
+ *      stored in the mblock parameter.
  *
  *  Parameters:
- *      None.
+ *      mblock: [in]
+ *          Start of the next 64 message bytes to process
  *
  *  Returns:
  *      Nothing.
@@ -234,7 +274,7 @@ SHA1_input(SHA1_context *context, const void *data, size_t length)
  *      names used in the publication.
  */
 static void G_GNUC_HOT
-SHA1_process_message_block(SHA1_context *context)
+SHA1_process_message_block(SHA1_context *context, const void *mblock)
 {
 	const uint32 K[] = {       /* Constants defined in SHA-1 */
 		0x5A827999,
@@ -243,9 +283,8 @@ SHA1_process_message_block(SHA1_context *context)
 		0xCA62C1D6
 	};
 	int    t;                 /* Loop counter              */
-	uint32 temp;              /* Temporary word value      */
 	uint32 W[80];             /* Word sequence             */
-	uint32 A, B, C, D, E;     /* Word buffers              */
+	uint32 a, b, c, d, e;     /* Word buffers              */
 	uint32 *wp;               /* Pointer in word sequence  */
 
 	/*
@@ -253,10 +292,9 @@ SHA1_process_message_block(SHA1_context *context)
 	 */
 
 #define INIT(x) \
-	W[x] = (context->mblock[(x) * 4]  << 24) | \
-		(context->mblock[(x) * 4 + 1] << 16) | \
-		(context->mblock[(x) * 4 + 2] << 8)  | \
-		(context->mblock[(x) * 4 + 3])
+	W[x] = UINT32_SWAP(*wp); wp++
+
+	wp = (uint32 *) mblock;
 
 	/* Unrolling this loop saves time */
 	INIT(0);  INIT(1);  INIT(2);  INIT(3);
@@ -265,7 +303,7 @@ SHA1_process_message_block(SHA1_context *context)
 	INIT(12); INIT(13); INIT(14); INIT(15);
 
 #define CRUNCH \
-	*wp = SHA1CircularShift(1, wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16])
+	*wp = UINT32_ROTL(wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16], 1)
 
 	wp = &W[16];
 	CRUNCH; wp++;		/* 16 */
@@ -287,111 +325,135 @@ SHA1_process_message_block(SHA1_context *context)
 		CRUNCH; wp++;		/* t+9 */
 	}
 
-	A = context->ihash[0];
-	B = context->ihash[1];
-	C = context->ihash[2];
-	D = context->ihash[3];
-	E = context->ihash[4];
+	a = context->ihash[0];
+	b = context->ihash[1];
+	c = context->ihash[2];
+	d = context->ihash[3];
+	e = context->ihash[4];
 
 	wp = &W[0];
 
-#define ROTATE(k, mix) \
-	temp = SHA1CircularShift(5,A) + (mix) + E + *wp++ + K[k]; \
-	E = D; D = C; \
-	C = SHA1CircularShift(30,B); \
-	B = A; A = temp
+#define ROTATE(k, A, B, C, D, E, mix) \
+	E += UINT32_ROTL(A, 5) + mix(B, C, D) + *wp++ + K[k]; \
+	B = UINT32_ROTL(B, 30);
 
-	/* Optimizing "(B & C) | (~B & D)" into "D ^ (B & (C ^ D))" */
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
-	ROTATE(0, D ^ (B & (C ^ D)));
+	/*
+	 * Optimizing "(B & C) | (~B & D)" into "D ^ (B & (C ^ D))" in M0
+	 * Optimizing "(B & C) | (B & D)" into "B & (C | D)" in M2
+	 */
+#define M0(B, C, D)		(D ^ (B & (C ^ D)))
+#define M1(B, C, D)		(B ^ C ^ D)
+#define M2(B, C, D)		((B & (C | D)) | (C & D))
+#define M3(B, C, D)		(B ^ C ^ D)
 
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
-	ROTATE(1, B ^ C ^ D);
+	/*
+	 * Another optimization: get rid of the temporary variable to circulate
+	 * the value.  Instead, we rotate the macro arguments, saving one
+	 * assignment per ROTATE() macro.
+	 *		--RAM, 2015-03-13
+	 */
 
-	/* Optimizing "(B & C) | (B & D)" into "B & (C | D)" */
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
-	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
 
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
-	ROTATE(3, B ^ C ^ D);
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
 
-	context->ihash[0] += A;
-	context->ihash[1] += B;
-	context->ihash[2] += C;
-	context->ihash[3] += D;
-	context->ihash[4] += E;
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
+
+	ROTATE(0, a, b, c, d, e, M0);
+	ROTATE(0, e, a, b, c, d, M0);
+	ROTATE(0, d, e, a, b, c, M0);
+	ROTATE(0, c, d, e, a, b, M0);
+	ROTATE(0, b, c, d, e, a, M0);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(1, a, b, c, d, e, M1);
+	ROTATE(1, e, a, b, c, d, M1);
+	ROTATE(1, d, e, a, b, c, M1);
+	ROTATE(1, c, d, e, a, b, M1);
+	ROTATE(1, b, c, d, e, a, M1);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(2, a, b, c, d, e, M2);
+	ROTATE(2, e, a, b, c, d, M2);
+	ROTATE(2, d, e, a, b, c, M2);
+	ROTATE(2, c, d, e, a, b, M2);
+	ROTATE(2, b, c, d, e, a, M2);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	ROTATE(3, a, b, c, d, e, M3);
+	ROTATE(3, e, a, b, c, d, M3);
+	ROTATE(3, d, e, a, b, c, M3);
+	ROTATE(3, c, d, e, a, b, M3);
+	ROTATE(3, b, c, d, e, a, M3);
+
+	context->ihash[0] += a;
+	context->ihash[1] += b;
+	context->ihash[2] += c;
+	context->ihash[3] += d;
+	context->ihash[4] += e;
 
 	context->midx = 0;
 }
@@ -424,20 +486,22 @@ SHA1_pad_message(SHA1_context *context)
 	 *  block, process it, and then continue padding into a second block.
      */
 
-	if (context->midx > 55) {
+#define SHA1_BUP	(SHA1_BLEN - 8)	/* Upper boundary before 64-bit length */
+
+	if (context->midx >= SHA1_BUP) {
 		context->mblock[context->midx++] = 0x80;
-		while (context->midx < 64) {
+		while (context->midx < SHA1_BLEN) {
 			context->mblock[context->midx++] = 0;
 		}
 
-		SHA1_process_message_block(context);
+		SHA1_process_message_block(context, context->mblock);
 
-		while (context->midx < 56) {
+		while (context->midx < SHA1_BUP) {
 			context->mblock[context->midx++] = 0;
 		}
 	} else {
 		context->mblock[context->midx++] = 0x80;
-		while (context->midx < 56) {
+		while (context->midx < SHA1_BUP) {
 			context->mblock[context->midx++] = 0;
 		}
 	}
@@ -446,8 +510,8 @@ SHA1_pad_message(SHA1_context *context)
 	 *  Store the message length as the last 8 octets
 	 */
 
-	poke_be64(&context->mblock[56], context->length);
-	SHA1_process_message_block(context);
+	poke_be64(&context->mblock[SHA1_BUP], context->length);
+	SHA1_process_message_block(context, context->mblock);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

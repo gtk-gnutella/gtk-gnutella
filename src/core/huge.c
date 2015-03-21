@@ -828,9 +828,24 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 {
 	char *alt;
 	size_t len;
+	const char *user_agent;
 
 	g_return_if_fail(sha1);
 	g_return_if_fail(header);
+
+	/*
+	 * This code can be invoked on the download path (when we analyse
+	 * locations sent by the server) or on the upload path (when we
+	 * analyze those sent by the user to whom we are uploading).
+	 *
+	 * Therefore the user agent name can be held in the Server or
+	 * User-Agent header, depending.
+	 */
+
+	user_agent = header_get(header, "User-Agent");	/* Uploading */
+
+	if (NULL == user_agent)
+		user_agent = header_get(header, "Server");	/* Downloading */
 
 	alt = header_get(header, "X-Gnutella-Alternate-Location");
 
@@ -846,7 +861,7 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 		alt = header_get(header, "Alt-Location");
 
 	if (alt != NULL) {
-		dmesh_collect_locations(sha1, alt, origin);
+		dmesh_collect_locations(sha1, alt, origin, user_agent);
 		return;
 	}
 
@@ -861,9 +876,9 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 		 */
 
 		if (huge_is_pure_xalt(alt, len))
-			dmesh_collect_compact_locations(sha1, alt, origin);
+			dmesh_collect_compact_locations(sha1, alt, origin, user_agent);
 		else
-			dmesh_collect_locations(sha1, alt, origin);
+			dmesh_collect_locations(sha1, alt, origin, user_agent);
     }
 
 	/*
@@ -873,7 +888,7 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 	alt = header_get(header, "X-Falt");
 
 	if (alt != NULL) {
-		dmesh_collect_fw_hosts(sha1, alt);
+		dmesh_collect_fw_hosts(sha1, alt, origin, user_agent);
 	}
 }
 

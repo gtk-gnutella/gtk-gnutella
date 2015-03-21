@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * DB map generic interface..
+ * DB map generic interface.
  *
  * @author Raphael Manfredi
  * @date 2008

@@ -218,6 +218,13 @@ enum search_new_result {
 #define SEARCH_UNIX_TYPE	0x0080
 #define SEARCH_TORRENT_TYPE	0x0100	/* Broken as deployed on 2011-05-15 */
 
+/**
+ * These additional type flags are specific to G2 and are not supported
+ * over Gnutella.  Hence the G2 in their name to make this more obvious.
+ */
+#define SEARCH_G2_ROM_TYPE	0x0200
+#define SEARCH_G2_TEXT_TYPE	0x0400
+
 /*
  * Search public interface, visible only from the bridge.
  */

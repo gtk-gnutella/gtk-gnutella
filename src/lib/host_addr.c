@@ -1611,17 +1611,45 @@ packed_host_addr_unpack(const struct packed_host_addr paddr)
 	return zero_host_addr;
 }
 
-uint
-packed_host_addr_size(const struct packed_host_addr paddr)
+host_addr_t
+packed_host_addr_unpack_ptr(const struct packed_host_addr *paddr)
 {
-	switch (paddr.net) {
-	case NET_TYPE_IPV4:	 return 5;
-	case NET_TYPE_IPV6:  return 17;
+	g_assert(paddr != NULL);
+
+	switch (paddr->net) {
+	case NET_TYPE_IPV4:
+		return host_addr_peek_ipv4(&paddr->addr[0]);
+	case NET_TYPE_IPV6:
+		return host_addr_peek_ipv6(paddr->addr);
+	case NET_TYPE_LOCAL:
+		return local_host_addr;
+	case NET_TYPE_NONE:
+		return zero_host_addr;
+	}
+	g_assert_not_reached();
+	return zero_host_addr;
+}
+
+/**
+ * Significant size of a packed host_addr (serialization size).
+ */
+uint
+packed_host_addr_size_ptr(const struct packed_host_addr *paddr)
+{
+	switch (paddr->net) {
+	case NET_TYPE_IPV4:	 return 1 + 4;
+	case NET_TYPE_IPV6:  return 1 + 16;
 	case NET_TYPE_LOCAL: return 1;
 	case NET_TYPE_NONE:	 return 1;
 	}
 	g_assert_not_reached();
 	return 0;
+}
+
+uint
+packed_host_addr_size(const struct packed_host_addr paddr)
+{
+	return packed_host_addr_size_ptr(&paddr);
 }
 
 struct packed_host
@@ -1703,7 +1731,6 @@ packed_host_size_ptr(const struct packed_host *phost)
 	return 0;
 }
 
-
 /**
  * Significant size of a packed host (serialization size).
  */
@@ -1760,16 +1787,9 @@ packed_host_eq_func(const void *p, const void *q)
 void *
 walloc_packed_host(const host_addr_t addr, uint16 port)
 {
-	struct packed_host packed;
-	void *key;
-	uint len;
+	struct packed_host packed = host_pack(addr, port);
 
-	packed = host_pack(addr, port);
-	len = packed_host_size_ptr(&packed);
-	key = walloc(len);
-	memcpy(key, &packed, len);
-
-	return key;
+	return wcopy(&packed, packed_host_size_ptr(&packed));
 }
 
 /**
@@ -1783,6 +1803,81 @@ wfree_packed_host(void *key, void *unused_data)
 	(void) unused_data;
 
 	wfree(key, packed_host_size_ptr(p));
+}
+
+/***
+ *** The following routines are meant to be used for hash tables indexed
+ *** by packed_host_addr structures, which are variable-sized entities.
+ ***/
+
+/**
+ * Hash a packed host_addr buffer (variable-sized).
+ */
+uint
+packed_host_addr_hash(const void *key)
+{
+	const struct packed_host_addr *p = key;
+	return binary_hash(key, packed_host_addr_size_ptr(p));
+}
+
+/**
+ * Alternate hash for a packed host_addr buffer (variable-sized).
+ */
+uint
+packed_host_addr_hash2(const void *key)
+{
+	const struct packed_host_addr *p = key;
+	return binary_hash2(key, packed_host_addr_size_ptr(p));
+}
+
+/**
+ * Compare two packed host_addr buffers (variable-sized).
+ */
+bool
+packed_host_addr_equal(const void *p, const void *q)
+{
+	const struct packed_host_addr *a = p, *b = q;
+	uint asize = packed_host_addr_size_ptr(a);
+	uint bsize = packed_host_addr_size_ptr(b);
+
+	if (asize != bsize)
+		return FALSE;
+
+	return 0 == memcmp(a, b, asize);
+}
+
+/**
+ * Allocate a packed_host_addr object from a host address.
+ */
+void *
+walloc_packed_host_addr(const host_addr_t addr)
+{
+	struct packed_host_addr packed = host_addr_pack(addr);
+
+	return wcopy(&packed, packed_host_addr_size_ptr(&packed));
+}
+
+/**
+ * Allocate a packed_host_addr object from a host address pointer.
+ */
+void *
+walloc_packed_host_addr_ptr(const void *paddr)
+{
+	const host_addr_t *addr = paddr;
+	struct packed_host_addr packed = host_addr_pack(*addr);
+
+	return wcopy(&packed, packed_host_addr_size_ptr(&packed));
+}
+
+/**
+ * Release packed_host_addr allocated via walloc_packed_host_addr().
+ */
+void
+wfree_packed_host_addr(void *pha)
+{
+	const struct packed_host_addr *p = pha;
+
+	wfree(pha, packed_host_addr_size_ptr(p));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

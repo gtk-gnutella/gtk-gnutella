@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-181]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -83,7 +83,7 @@ SOCKER_LDFLAGS =  $sockerldflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -349,6 +349,23 @@ local_install:: gtk-gnutella.nm
 
 local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(ARCHLIB)/gtk-gnutella.nm
+
+coverity.tgz: .FORCE
+	@if cov-build 2>/dev/null | grep Coverity >/dev/null 2>&1; \
+	then \
+		: ok; \
+	else \
+		echo "cov-build not found in PATH"; \
+		exit 1; \
+	fi
+	$(MAKE) realclean
+	$(MAKE) depend
+	cov-build --dir cov-int $(MAKE) gtk-gnutella.nm
+	tar czf $@ cov-int
+
+local_realclean::
+	$(RM) -rf cov-int
+	$(RM) -f coverity.tgz
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

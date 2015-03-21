@@ -2067,7 +2067,7 @@ notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 }
 
 static void
-on_visibility_change(gboolean visible)
+on_download_visibility_change(gboolean visible)
 {
 	g_return_if_fail(visible != download_gui_visible);
 
@@ -2394,7 +2394,7 @@ fi_gui_common_init(void)
 		gui_main_window_lookup("button_downloads_clear_stopped"),
 		TRUE);
 
-	main_gui_add_page_visibility_listener(on_visibility_change,
+	main_gui_add_page_visibility_listener(on_download_visibility_change,
 		nb_main_page_downloads);
 	main_gui_add_timer(fi_gui_timer);
 }
@@ -2427,7 +2427,7 @@ fi_gui_common_shutdown(void)
     guc_src_remove_listener(fi_gui_src_status_changed, EV_SRC_STATUS_CHANGED);
     guc_src_remove_listener(fi_gui_src_info_changed, EV_SRC_INFO_CHANGED);
 
-	main_gui_remove_page_visibility_listener(on_visibility_change,
+	main_gui_remove_page_visibility_listener(on_download_visibility_change,
 		nb_main_page_downloads);
 
 	filter_regex_clear();

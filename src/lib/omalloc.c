@@ -109,9 +109,9 @@
  *
  * The header marks the tail of the free space in the chunk.
  *
- * As objects are allocated, the header is update until everything before
- * the header was allocated, at which time it will probably dissolve itself
- * to provide room for one last allocation of a small object.
+ * As objects are allocated, the header is updated until everything before
+ * the header has been allocated, at which time it will probably dissolve
+ * itself to provide room for one last allocation of a small object.
  */
 struct ochunk {
 	struct ochunk *next;	/* Linking in chunk "free list" */

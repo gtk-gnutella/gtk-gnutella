@@ -1908,6 +1908,7 @@ values_get(uint64 dbkey, dht_value_type_t type)
 	 */
 
 	vd->n_requests++;
+	dbmw_write(db_valuedata, &dbkey, vd, sizeof *vd);
 
 	if (vd->length) {
 		size_t length;

@@ -2884,7 +2884,11 @@ node_shutdown_mode(gnutella_node_t *n, uint32 delay)
 	mq_discard(n->outq);					/* Discard any further data */
 	node_flushq(n);							/* Fast queue flushing */
 
-	shutdown_nodes++;
+	if (NODE_TALKS_G2(n)) {
+		shutdown_g2_nodes++;
+	} else {
+		shutdown_nodes++;
+	}
 
     node_fire_node_info_changed(n);
     node_fire_node_flags_changed(n);
@@ -5904,6 +5908,14 @@ node_is_authentic(const char *vendor, const header_t *head)
 				header_get(head, "Remote-IP") &&
 				header_get(head, "Vendor-Message") &&
 				header_get(head, "Accept-Encoding");
+		} else if (is_strcaseprefix(vendor, "shareaza ")) {
+			const char *field = header_get(head, "X-Ultrapeer");
+			const char *type = header_get(head, "Content-Type");
+			if (NULL == type)
+				return FALSE;
+			return NULL == field ||
+				0 == ascii_strcasecmp(field, "false") ||
+				0 == ascii_strcasecmp(type, APP_G2);
 		}
 	}
 
@@ -6770,9 +6782,25 @@ check_protocol:
 			/* XXX */
 		}
 
-		if (field && !(n->attrs & NODE_A_ULTRA))
-			g_warning("%s is not an ultrapeer but sent the "
-				"X-Ultrapeer-Needed header", node_infostr(n));
+		/*
+		 * A leaf sending us X-Ultrapeer-Needed could indicate that the
+		 * leaf node is lacking ultrapeers to connect to.  We used to warn
+		 * about this, but it's not necessarily an error, even though it
+		 * was not strictly specified that way: since a leaf connects to
+		 * an Ultrapeer, the remote node is already ultrapeer and it's
+		 * not really going to demote itself back to leaf
+		 *		--RAM, 2015-03-12
+		 */
+
+		if (field && !(n->attrs & NODE_A_ULTRA)) {
+			if (GNET_PROPERTY(node_debug) > 1) {
+				g_message("%s is not an ultrapeer but sent an "
+					"X-Ultrapeer-Needed header set to \"%s\"",
+					node_infostr(n), field);
+			}
+
+			/* XXX -- count these and act later? */
+		}
 
 		/*
 		 * Prepare our final acknowledgment.
@@ -8262,8 +8290,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 		/* This is an incoming control connection */
 		n->socket = s;
 		socket_attach_ops(s, SOCK_TYPE_CONTROL, &node_socket_ops, n);
-		n->status = (major > 0 || minor > 4) ?
-			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
+		n->status = GTA_NODE_RECEIVING_HELLO;
 
 		socket_tos_default(s);	/* Set proper Type of Service */
 

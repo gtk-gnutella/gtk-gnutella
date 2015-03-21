@@ -39,7 +39,7 @@
 #endif /* I_PWD */
 
 #ifdef HAVE_GTKOSXAPPLICATION
-#include <gtkmacintegration/gtkosxapplication.h>
+#include <gtkmacintegration-gtk2/gtkosxapplication.h>
 #include "settings_cb.h"
 #endif
 
@@ -158,6 +158,7 @@ gui_init_window_title(void)
 }
 
 static GSList *visibility_listeners[nb_main_page_num];
+static GSList *main_visibility_listeners;
 static int notebook_main_current_page;
 static gboolean main_window_is_visible;
 
@@ -170,15 +171,18 @@ main_gui_window_visible(void)
 static void
 main_gui_page_visibility_change(int page_num, gboolean visible)
 {
-	GSList *iter;
+	GSList *sl;
 
 	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
 
-	iter = visibility_listeners[page_num];
-	for (/* NOTHING */; NULL != iter; iter = g_slist_next(iter)) {
-		main_gui_visibility_cb func = cast_pointer_to_func(iter->data);
+	/*
+	 * Process per-page visibility change handlers.
+	 */
 
-		g_assert(func);
+	GM_SLIST_FOREACH(visibility_listeners[page_num], sl) {
+		main_gui_visibility_cb func = cast_pointer_to_func(sl->data);
+
+		g_assert(func != NULL);
 		(*func)(visible);
 	}
 }
@@ -212,6 +216,19 @@ on_main_gui_map_event(GtkWidget *unused_widget,
 		break;
 	}
 	if (was_visible != main_window_is_visible) {
+		GSList *sl;
+
+		/*
+		 * Process global visibility change handlers.
+		 */
+
+		GM_SLIST_FOREACH(main_visibility_listeners, sl) {
+			main_gui_visibility_cb func = cast_pointer_to_func(sl->data);
+
+			g_assert(func != NULL);
+			(*func)(main_window_is_visible);
+		}
+
 		main_gui_page_visibility_change(notebook_main_current_page,
 			main_window_is_visible);
 	}
@@ -237,6 +254,24 @@ on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 		main_gui_page_visibility_change(old_page, FALSE);
 		main_gui_page_visibility_change(notebook_main_current_page, TRUE);
 	}
+}
+
+void
+main_gui_add_visibility_listener(main_gui_visibility_cb func)
+{
+	g_return_if_fail(func);
+
+	main_visibility_listeners = g_slist_append(
+			main_visibility_listeners, cast_func_to_pointer(func));
+}
+
+void
+main_gui_remove_visibility_listener(main_gui_visibility_cb func)
+{
+	g_return_if_fail(func);
+
+	main_visibility_listeners = g_slist_remove(
+			main_visibility_listeners, cast_func_to_pointer(func));
 }
 
 void

@@ -577,7 +577,15 @@ tm_remaining_ms(const tm_t *end)
 	tm_t now, elapsed;
 	long remain;
 
-	tm_now_exact(&now);
+	/*
+	 * This routine is usually called from low-level code and we do not
+	 * want to dispatch signals or suspend the calling thread at this stage
+	 * since this will usually be done afterwards in the same low-level
+	 * calling routine.
+	 *		--RAM, 2015-02-25
+	 */
+
+	tm_now_exact_raw(&now);			/* Raw version, no signals nor suspension */
 	tm_elapsed(&elapsed, end, &now);
 	remain = tm2ms(&elapsed);
 
@@ -614,6 +622,24 @@ tm_now(tm_t *tm)
 
 /**
  * Fill supplied structure with current time (recomputed).
+ *
+ * @attention
+ * This raw version does not check for thread suspension.  It is meant
+ * to be used in dire circumstances to limit resource consumption or
+ * avoid any suspension or signal delivery.
+ */
+void
+tm_now_exact_raw(tm_t *tm)
+{
+	TM_LOCK;
+	tm_current_time(&tm_cached_now);
+	if G_LIKELY(tm != NULL)
+		*tm = tm_cached_now;
+	TM_UNLOCK;
+}
+
+/**
+ * Fill supplied structure with current time (recomputed).
  */
 void
 tm_now_exact(tm_t *tm)
@@ -636,12 +662,7 @@ tm_now_exact(tm_t *tm)
 	}
 
 	thread_check_suspended();
-
-	TM_LOCK;
-	tm_current_time(&tm_cached_now);
-	if G_LIKELY(tm != NULL)
-		*tm = tm_cached_now;
-	TM_UNLOCK;
+	tm_now_exact_raw(tm);
 }
 
 /**

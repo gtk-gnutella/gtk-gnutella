@@ -861,7 +861,7 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 
 	if G_UNLIKELY(raw) {
 		stid = thread_safe_small_id();
-		if (-2U == stid)
+		if (THREAD_UNKNOWN_ID == stid)
 			stid = 0;
 		crash_time_cached(time_buf, sizeof time_buf);	/* Raw, no locks! */
 	} else {

@@ -92,6 +92,8 @@ bool halloc_is_available(void);
 size_t halloc_bytes_allocated(void);
 size_t halloc_chunks_allocated(void);
 
+void *h_private(const void *key, void *p);
+
 struct logagent;
 
 void halloc_dump_stats_log(struct logagent *la, unsigned options);

@@ -503,6 +503,7 @@ extend:
 	 */
 
 	cv->sem = NULL;
+	cv->waiting = 0;				/* Old cond variable no longer used */
 	atomic_int_dec(&cv->refcnt);
 	cn->refcnt = 2;
 
@@ -1047,16 +1048,43 @@ signaled:
 			G_STRFUNC, c);
 	}
 
-	g_assert_log(cv == v.cv,	/* No change, still the same variable */
-		"%s(): condition at %p changed whilst we were waiting: was %p, now %p",
-		G_STRFUNC, c, v.cv, cv);
-
 	cond_check(cv);
+
+	/*
+	 * When a waiter is added on a condition variable, it is mutated into
+	 * an extended condition if it was a simple one.  In that case, a
+	 * new variable is allocated hence the assertion below must take care
+	 * of that.	--RAM, 2015-02-22
+	 */
+
+	g_assert_log(
+		cv == v.cv ||		/* No change, still the same variable */
+		(COND_EXT_MAGIC == cv->magic && COND_MAGIC == v.cv->magic &&
+			cv->mutex == v.cv->mutex),		/* Mutated by waiter addition */
+		"%s(): condition at %p changed whilst waiting: "
+			"was %s%p, now %s%p, mutex=%p",
+		G_STRFUNC, c, COND_EXT_MAGIC == v.cv->magic ? "extended " : "", v.cv,
+		COND_EXT_MAGIC == cv->magic ? "extended " : "", cv, cv->mutex);
 
 	g_assert(cv->sem == sem);
 	g_assert_log(cv->mutex == m,
 		"%s(): mutex changed in condition %p (used %p, now %p)",
 		G_STRFUNC, c, m, cv->mutex);
+
+	/*
+	 * In the unlikely case the condition was mutated, since we have validated
+	 * that it was referring to the same mutex, update the cleanup variable.
+	 *	--RAM, 2015-02-22
+	 */
+
+	if G_UNLIKELY(cv != v.cv) {
+		struct cond *old_cv = v.cv;
+		atomic_int_inc(&cv->refcnt);	/* Simulates cond_get_init() */
+		v.cv = cv;
+		cond_free(old_cv, FALSE);
+		g_assert(cv->sem == sem);
+		g_assert(cv->mutex == m);
+	}
 
 	/*
 	 * If we were awoken (no timeout), then we consume a signal.

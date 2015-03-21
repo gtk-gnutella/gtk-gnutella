@@ -1,6 +1,7 @@
 # List of source files containing translatable strings.
-# Regenerated on Wed May 14 19:31:37 CEST 2014
+# Regenerated on Mon Mar  2 23:04:33 CET 2015
 
+src/core/ban.c
 src/core/downloads.c
 src/core/fileinfo.c
 src/core/g2/gwc.c

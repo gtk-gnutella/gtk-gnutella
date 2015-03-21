@@ -551,6 +551,8 @@ static const char *filesize_str(const void *v);
 static size_t uint32_len(const void *v);
 static const char *uint32_str(const void *v);
 static const char *gnet_host_str(const void *v);
+static size_t packed_host_addr_len(const void *v);
+static const char *packed_host_addr_str(const void *v);
 
 #define str_hash	string_mix_hash
 #define str_eq		string_eq
@@ -562,6 +564,10 @@ static const char *gnet_host_str(const void *v);
 #define gnh_eq		gnet_host_equal
 #define gnh_len		gnet_host_length
 #define gnh_str		gnet_host_str
+#define pha_hash	packed_host_addr_hash
+#define pha_eq		packed_host_addr_equal
+#define pha_len		packed_host_addr_len
+#define pha_str		packed_host_addr_str
 #define S			SPINLOCK_INIT
 #define N			NULL
 
@@ -577,6 +583,7 @@ static atom_desc_t atoms[] = {
 	{ S, "filesize", N, fs_hash,   fs_eq,      fs_len,     fs_str },   /* 5 */
 	{ S, "uint32", N, uint32_hash, uint32_eq,  uint32_len, uint32_str},/* 6 */
 	{ S, "host",   N, gnh_hash,    gnh_eq,     gnh_len,    gnh_str },  /* 7 */
+	{ S, "addr",   N, pha_hash,    pha_eq,     pha_len,    pha_str },  /* 8 */
 };
 
 #undef str_hash
@@ -589,6 +596,10 @@ static atom_desc_t atoms[] = {
 #undef gnh_eq
 #undef gnh_len
 #undef gnh_str
+#undef pha_hash
+#undef pha_eq
+#undef pha_len
+#undef pha_str
 #undef S
 #undef N
 
@@ -756,6 +767,15 @@ uint32_len(const void *unused_v)
 }
 
 /**
+ * @return length of a struct packed_host_addr.
+ */
+static size_t
+packed_host_addr_len(const void *v)
+{
+	return packed_host_addr_size_ptr(v);
+}
+
+/**
  * @return printable form of a 64-bit integer, as pointer to static data.
  */
 static const char *
@@ -835,6 +855,22 @@ gnet_host_str(const void *v)
 	static char buf[HOST_ADDR_PORT_BUFLEN];
 
 	gnet_host_to_string_buf(v, buf, sizeof buf);
+	return buf;
+}
+
+/**
+ * @return printable form of a struct packed_host_addr *, as pointer
+ * to static data.
+ */
+static const char *
+packed_host_addr_str(const void *v)
+{
+	static char buf[HOST_ADDR_PORT_BUFLEN];
+	host_addr_t addr;
+
+	addr = packed_host_addr_unpack_ptr(v);
+	host_addr_to_string_buf(addr, buf, sizeof buf);
+
 	return buf;
 }
 

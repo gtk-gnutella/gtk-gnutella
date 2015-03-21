@@ -88,8 +88,7 @@ static inline void ALWAYS_INLINE
 mutex_set_owner(mutex_t *m, const char *file, unsigned line)
 {
 	m->depth = 1;
-	m->lock.file = file;
-	m->lock.line = line;
+	spinlock_set_owner_external(&m->lock, file, line);
 }
 
 /**
@@ -154,8 +153,10 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	stid = thread_stid_from_thread(m->owner);
 
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p still held (depth %zu) by %s:%u (%s)",
-		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid));
+	s_miniwarn("mutex %p still held (depth %zu) by %s:%u (%s) "
+		"whilst we wait at %s:%u",
+		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid),
+		file, line);
 #endif
 
 	if (-1U == stid)
@@ -333,17 +334,16 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	}
 }
 
-#define MUTEX_GRAB											\
-	if (mutex_is_owned_by_fast(m, t)) {						\
-		mutex_recursive_get(m);								\
-	} else if (spinlock_hidden_try(&m->lock)) {				\
-		thread_set(m->owner, t);							\
-		mutex_set_owner(m, file, line);						\
-	} else {												\
-		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
-			mutex_deadlock, mutex_deadlocked, file, line);	\
-		thread_set(m->owner, t);							\
-		mutex_set_owner(m, file, line);						\
+#define MUTEX_GRAB												\
+	if (mutex_is_owned_by_fast(m, t)) {							\
+		mutex_recursive_get(m);									\
+	} else {													\
+		if G_UNLIKELY(!spinlock_hidden_try(&m->lock)) {			\
+			spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
+				mutex_deadlock, mutex_deadlocked, file, line);	\
+		}														\
+		thread_set(m->owner, t);								\
+		mutex_set_owner(m, file, line);							\
 	}
 
 #define MUTEX_GRAB_TRY										\

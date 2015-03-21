@@ -627,8 +627,8 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 			free_magazine = TRUE;
 		else
 			eslist_prepend(&d->tma_empty.tml_list, m);
-	} else {
-		d->tma_magazines++;		/* Going to return empty magazine to thread */
+
+		d->tma_magazines--;		/* Thread returned a magazine */
 	}
 
 	/*
@@ -662,12 +662,12 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 		}
 	}
 
-	tmalloc_depot_unlock_hidden(d);
-
-	if G_LIKELY(fm != NULL)
+	if G_LIKELY(fm != NULL) {
 		TMALLOC_STATS_INCX(d, mag_full_loaded);
-	else
-		d->tma_magazines--;		/* No magazine returned */
+		d->tma_magazines++;			/* Returning magazine to thread */
+	}
+
+	tmalloc_depot_unlock_hidden(d);
 
 	if G_UNLIKELY(free_magazine) {
 		TMALLOC_STATS_INCX(d, mag_bad_capacity);
@@ -713,7 +713,7 @@ tmalloc_depot_return_full(tmalloc_t *d, tmalloc_magazine_t *m)
 		else
 			eslist_prepend(&d->tma_full.tml_list, m);
 	} else {
-		d->tma_magazines++;		/* Going to return full magazine to thread */
+		d->tma_magazines++;		/* We always return a new magazine */
 	}
 
 	tmalloc_depot_unlock_hidden(d);
@@ -1438,7 +1438,7 @@ tmalloc_thread_gc(void *unused_data)
 	 * If any thread layer has not been performing any operation for the
 	 * last TMALLOC_TGC_IDLE seconds, then clear its magazines to avoid
 	 * keeping objects allocated in the magazines that never get used.  This
-	 * s especially important for the larger objects, or for large magazines.
+	 * is especially important for the larger objects, or for large magazines.
 	 */
 
 	ESLIST_FOREACH_DATA(tmagazines, tmt) {
@@ -1496,7 +1496,7 @@ tmalloc_beat(void *data)
 	if (
 		elapsed >= TMALLOC_BEAT_THRESHOLD ||
 		(elapsed > 0 &&
-			d->tma_contentions / elapsed > (int) 5 * TMALLOC_CONTENTIONS)
+			d->tma_contentions / elapsed > (int) (5 * TMALLOC_CONTENTIONS))
 	) {
 		size_t contentions;
 		double rate;
