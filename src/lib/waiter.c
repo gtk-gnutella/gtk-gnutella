@@ -489,7 +489,6 @@ waiter_ack(waiter_t *w)
 	struct mwaiter *mw;
 
 	waiter_check(w);
-	g_assert(w->notified);
 
 	/*
 	 * It does not matter whether this is the master waiter or one of its
@@ -501,9 +500,35 @@ waiter_ack(waiter_t *w)
 
 	MWAITER_LOCK(mw);		/* Could block if a bug, let's record this */
 
-	w->notified = FALSE;
-	elist_remove(&mw->active, w);
-	elist_append(&mw->idle, w);
+	/*
+	 * This routine is normally called when a signal has been received on
+	 * the waiting object.  However, if for some reason there is a race
+	 * condition in other layers and no notification has been registered
+	 * on this particular waiter object, we gracefully ignore it and loudly
+	 * complain.
+	 *		--RAM, 2015-03-24
+	 */
+
+	g_soft_assert_log(w->notified,
+		"%s(): waiter %p, master %p (notified=%c, blocking=%c) "
+			"with %zu child%s: idle=%zu, active=%zu",
+		G_STRFUNC, w, mw,
+		mw->m_notified ? 'y' : 'n',
+		mw->m_blocking ? 'y' : 'n',
+		mw->children, 1 == mw->children ? "" : "ren",
+		elist_count(&mw->idle), elist_count(&mw->active));
+
+	if (w->notified) {
+		w->notified = FALSE;
+		elist_remove(&mw->active, w);
+		elist_append(&mw->idle, w);
+	}
+
+	/*
+	 * Regardless, clear notification information on the master waiter if
+	 * a signal was sent on the notification channel (pipe or socketpair).
+	 */
+
 	waiter_master_clear(mw);
 
 	MWAITER_UNLOCK(mw);
