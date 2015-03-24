@@ -112,7 +112,7 @@
 #include "ascii.h"
 #include "atomic.h"
 #include "cq.h"
-#include "crash.h"			/* For crash_hook_add() */
+#include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
 #include "evq.h"
 #include "fd.h"
@@ -1879,7 +1879,7 @@ retry:
 		}
 
 		if (NULL == narray)
-			s_minierror("cannot extend pmap: out of virtual memory");
+			crash_oom("cannot extend pmap: out of virtual memory");
 	}
 
 	oarray = pm->array;
@@ -3817,7 +3817,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 
 	p = alloc_pages(size, TRUE);
 	if (NULL == p)
-		s_error("cannot allocate %zu bytes: out of virtual memory", size);
+		crash_oom("cannot allocate %zu bytes: out of virtual memory", size);
 
 	/* Memory allocated by the kernel is already zero-ed */
 

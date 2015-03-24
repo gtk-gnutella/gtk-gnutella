@@ -101,7 +101,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
-#include "thread.h"				/* For thread_name() */
+#include "thread.h"				/* For thread_name(), et al. */
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
@@ -2069,7 +2069,7 @@ crash_mode(void)
  *
  * This function only returns when exec()ing fails.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
@@ -2175,7 +2175,7 @@ crash_try_reexec(void)
  * Handle possible auto-restart, if configured.
  * This function does not return when auto-restart succeeds
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 crash_auto_restart(void)
 {
 	/*
@@ -2298,7 +2298,7 @@ crash_pause(void)
 /**
  * The signal handler used to trap harmful signals.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_handler(int signo)
 {
 	static volatile sig_atomic_t crashed;
@@ -2520,7 +2520,7 @@ crash_ck_allocator(void *allocator, size_t len)
 /**
  * Alter crash flags.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_ctl(enum crash_alter_mode mode, int flags)
 {
 	uint8 value;
@@ -2548,7 +2548,7 @@ crash_ctl(enum crash_alter_mode mode, int flags)
  *
  * @param pid		PID of the previous process
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_exited(uint32 pid)
 {
 	str_t *cfile;
@@ -2632,7 +2632,7 @@ crash_exited(uint32 pid)
  *
  * This is an eslist iterator callback.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_hook_install(void *data, void *udata)
 {
 	crash_hook_item_t *ci = data;
@@ -2649,7 +2649,7 @@ crash_hook_install(void *data, void *udata)
  * @param flags		combination of CRASH_F_GDB, CRASH_F_PAUSE, CRASH_F_RESTART
  * @parah exec_path	pathname of custom program to execute on crash
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path)
 {
@@ -2819,7 +2819,7 @@ crash_init(const char *argv0, const char *progname,
  *
  * @return Required buffer size.
  */
-static G_GNUC_COLD size_t
+static size_t G_GNUC_COLD
 crashfile_name(char *dst, size_t dst_size, const char *pathname)
 {
 	const char *pid_str, *item;
@@ -2857,7 +2857,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 /**
  * Record current working directory and configured crash directory.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_setdir(const char *pathname)
 {
 	const char *curdir = NULL;
@@ -2913,7 +2913,7 @@ crash_setdir(const char *pathname)
 /**
  * Record program's version string.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_setver(const char *version)
 {
 	const char *value;
@@ -3084,7 +3084,7 @@ crash_abort(void)
  *
  * This function does not return: either it succeeds exec()ing or it exits.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_reexec(void)
 {
 	crash_mode();		/* Not really, but prevents any memory allocation */
@@ -3098,9 +3098,50 @@ crash_reexec(void)
  ***/
 
 /**
+ * Out of memory condition.
+ *
+ * This is critical, we may not be able to allocate more memory to even
+ * go much further.  It is also fatal, we do not return from here.
+ *
+ * Log the error and try to auto-restart the program if configured to do
+ * so, otherwise crash immediately.
+ */
+void G_GNUC_COLD
+crash_oom(const char *format, ...)
+{
+	static int recursive;
+	unsigned flags = G_LOG_LEVEL_CRITICAL;
+	va_list args;
+
+	/*
+	 * First log the error, without allocating any memory, bypassing stdio.
+	 */
+
+	va_start(args, format);
+
+	if (0 != atomic_int_inc(&recursive)) {
+		thread_check_suspended();
+		flags |= G_LOG_FLAG_RECURSION;
+	}
+
+	s_minilogv(flags, TRUE, format, args);
+	va_end(args);
+
+	/*
+	 * Now attempt auto-restart if configured.
+	 */
+
+	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
+
+	crash_mode();
+	crash_auto_restart();
+	crash_abort();
+}
+
+/**
  * Record failed assertion data.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_assert_failure(const struct assertion_data *a)
 {
 	crash_mode();
@@ -3114,7 +3155,7 @@ crash_assert_failure(const struct assertion_data *a)
  *
  * @return formatted message string, NULL if it could not be built
  */
-G_GNUC_COLD const char *
+const char * G_GNUC_COLD
 crash_assert_logv(const char * const fmt, va_list ap)
 {
 	crash_mode();
@@ -3147,7 +3188,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
  *
  * This allows triggering of crash hooks, if any defined for the file.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_set_filename(const char * const filename)
 {
 	crash_mode();
@@ -3161,7 +3202,7 @@ crash_set_filename(const char * const filename)
 /**
  * Record crash error message.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_set_error(const char * const msg)
 {
 	crash_mode();
@@ -3188,7 +3229,7 @@ crash_set_error(const char * const msg)
 /**
  * Append information to existing error message.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_append_error(const char * const msg)
 {
 	crash_mode();

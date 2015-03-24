@@ -2265,9 +2265,8 @@ mingw_valloc(void *hint, size_t size)
 		mingw_vmm.hinted++;
 		if G_UNLIKELY(mingw_vmm.consumed + size > mingw_vmm.size) {
 			spinunlock(&valloc_slk);
-			s_minicrit("%s(): out of reserved memory for %zu bytes",
+			crash_oom("%s(): out of reserved memory for %zu bytes",
 				G_STRFUNC, size);
-			goto failed;
 		}
 		p = mingw_vmm.base;
 		mingw_vmm.base = ptr_add_offset(mingw_vmm.base, size);
@@ -2283,9 +2282,7 @@ mingw_valloc(void *hint, size_t size)
 
 		if (p == NULL) {
 			errno = mingw_last_error();
-			s_minicrit("%s(): failed to allocate %zu bytes: %m",
-				G_STRFUNC, size);
-			goto failed;
+			crash_oom("%s(): cannot allocate %zu bytes: %m", G_STRFUNC, size);
 		}
 		return p;
 	} else {
@@ -2298,16 +2295,11 @@ mingw_valloc(void *hint, size_t size)
 
 	if (p == NULL) {
 		errno = mingw_last_error();
-		s_minicrit("%s(): failed to commit %zu bytes at %p: %m",
+		crash_oom("%s(): failed to commit %zu bytes at %p: %m",
 			G_STRFUNC, size, hint);
-		goto failed;
 	}
 
 	return p;
-
-failed:
-	errno = ENOMEM;		/* Expected errno value from VMM layer */
-	return MAP_FAILED;
 }
 
 int
