@@ -5902,7 +5902,7 @@ node_query_routing_header(gnutella_node_t *n)
 static bool
 node_is_authentic(const char *vendor, const header_t *head)
 {
-	if (vendor) {
+	if (vendor != NULL) {
 		if (is_strcaseprefix(vendor, "limewire/")) {
 			return !header_get(head, "Bye-Packet") &&
 				header_get(head, "Remote-IP") &&
@@ -5910,12 +5910,16 @@ node_is_authentic(const char *vendor, const header_t *head)
 				header_get(head, "Accept-Encoding");
 		} else if (is_strcaseprefix(vendor, "shareaza ")) {
 			const char *field = header_get(head, "X-Ultrapeer");
-			const char *type = header_get(head, "Content-Type");
-			if (NULL == type)
-				return FALSE;
-			return NULL == field ||
-				0 == ascii_strcasecmp(field, "false") ||
-				0 == ascii_strcasecmp(type, APP_G2);
+			if (NULL == field)
+				return TRUE;
+			if (0 == ascii_strcasecmp(field, "false")) {
+				return TRUE;
+			} else {
+				const char *acc = header_get(head, "Accept");
+				if (acc != NULL && !strtok_case_has(acc, ",", APP_GNUTELLA))
+					return TRUE;	/* G2 hub, using X-Ultrapeer */
+			}
+			return FALSE;
 		}
 	}
 
