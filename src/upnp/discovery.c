@@ -1130,7 +1130,7 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 		int r;
 
 		ZERO(&hints);
-		hints.ai_family = AF_UNSPEC;
+		hints.ai_family = AF_INET;		/* IPv4 UDP socket */
 		hints.ai_socktype = SOCK_DGRAM;
 
 		r = getaddrinfo(UPNP_MCAST_ADDR, STRINGIFY(UPNP_PORT), &hints, &serv);
