@@ -1181,9 +1181,9 @@ upnp_map_natpmp_publish_reply(int code,
 	} else {
 		if (GNET_PROPERTY(upnp_debug)) {
 			g_warning("UPNP could not publish NAT-PMP mapping for %s port %u: "
-				"%d => \"%s\"",
+				"%d => \"%s\" (returned port=%u)",
 				upnp_map_proto_to_string(um->proto), um->port,
-				code, natpmp_strerror(code));
+				code, natpmp_strerror(code), port);
 		}
 		um->published = FALSE;
 		um->method = UPNP_M_ANY;
