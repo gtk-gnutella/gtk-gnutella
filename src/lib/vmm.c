@@ -1850,6 +1850,9 @@ retry:
 
 		narray = alloc_pages(nsize, FALSE);	/* May recurse here */
 
+		if (NULL == narray)
+			crash_oom("cannot extend pmap: out of virtual memory");
+
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
 				s_miniwarn("VMM already recursed to %s(), pmap is now %zu KiB",
@@ -1877,9 +1880,6 @@ retry:
 					nsize / 1024, narray);
 			}
 		}
-
-		if (NULL == narray)
-			crash_oom("cannot extend pmap: out of virtual memory");
 	}
 
 	oarray = pm->array;

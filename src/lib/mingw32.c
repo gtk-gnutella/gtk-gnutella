@@ -2359,8 +2359,11 @@ mingw_valloc(void *hint, size_t size)
 			mingw_vmm.hinted++;
 			if G_UNLIKELY(mingw_vmm.consumed + size > mingw_vmm.size) {
 				spinunlock(&valloc_slk);
-				crash_oom("%s(): out of reserved memory for %zu bytes",
+				/* We don't want a stacktrace, use s_minilog() directly */
+				s_minilog(G_LOG_LEVEL_CRITICAL,
+					"%s(): out of reserved memory for %zu bytes",
 					G_STRFUNC, size);
+				goto failed;
 			}
 			p = mingw_vmm.base;
 			mingw_vmm.base = ptr_add_offset(mingw_vmm.base, size);
@@ -2376,9 +2379,11 @@ mingw_valloc(void *hint, size_t size)
 					MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
 			if (p == NULL) {
+				/* We don't want a stacktrace, use s_minilog() directly */
 				errno = mingw_last_error();
-				crash_oom("%s(): cannot allocate %zu bytes: %m",
-					G_STRFUNC, size);
+				s_minilog(G_LOG_LEVEL_CRITICAL,
+					"%s(): cannot allocate %'zu bytes: %m", G_STRFUNC, size);
+				goto failed;
 			}
 			goto allocated;
 		}
@@ -2393,9 +2398,12 @@ mingw_valloc(void *hint, size_t size)
 	p = VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
 
 	if (p == NULL) {
+		/* We don't want a stacktrace, use s_minilog() directly */
 		errno = mingw_last_error();
-		crash_oom("%s(): failed to commit %zu bytes at %p: %m",
+		s_minilog(G_LOG_LEVEL_CRITICAL,
+			"%s(): failed to commit %'zu bytes at %p: %m",
 			G_STRFUNC, size, hint);
+		goto failed;
 	}
 
 	/* FALL THROUGH */
@@ -2403,6 +2411,10 @@ mingw_valloc(void *hint, size_t size)
 allocated:
 	mingw_vmm.allocated += size;
 	return p;
+
+failed:
+	errno = ENOMEM;		/* Expected errno value from VMM layer */
+	return MAP_FAILED;
 }
 
 int
