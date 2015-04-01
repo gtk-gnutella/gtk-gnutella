@@ -190,12 +190,6 @@ print_hex(char *dst, size_t size, unsigned long value)
 	return p;
 }
 
-
-/**
- * Signature of a crash hook.
- */
-typedef void (*crash_hook_t)(void);
-
 /*
  * Public interface.
  */
@@ -242,7 +236,7 @@ void crash_save_current_stackframe(unsigned offset);
 void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
-void crash_hook_add(const char *filename, const crash_hook_t hook);
+void crash_hook_add(const char *filename, const callback_fn_t hook);
 void crash_reexec(void) G_GNUC_NORETURN;
 void crash_print_decorated_stack(int fd);
 

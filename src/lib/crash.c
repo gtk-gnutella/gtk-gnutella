@@ -186,7 +186,7 @@ static bool crash_pausing;
  */
 typedef struct crash_hook_item {
 	const char *filename;		/**< File for which hook is installed */
-	crash_hook_t hook;			/**< The hook to install */
+	callback_fn_t hook;			/**< The hook to install */
 	slink_t link;				/**< Embedded link */
 } crash_hook_item_t;
 
@@ -526,7 +526,7 @@ crash_run_time(char *buf, size_t size)
  *
  * @return the hook function to run, NULL if nothing.
  */
-static G_GNUC_COLD crash_hook_t
+static G_GNUC_COLD callback_fn_t
 crash_get_hook(void)
 {
 	const char *file;
@@ -564,7 +564,7 @@ crash_get_hook(void)
 static G_GNUC_COLD void
 crash_run_hooks(const char *logfile, int logfd)
 {
-	crash_hook_t hook;
+	callback_fn_t hook;
 	const char *routine;
 	char pid_buf[ULONG_DEC_BUFLEN];
 	char time_buf[CRASH_TIME_BUFLEN];
@@ -2971,7 +2971,7 @@ crash_setmain(int argc, const char **argv, const char **env)
  * Record a crash hook for a file.
  */
 void
-crash_hook_add(const char *filename, const crash_hook_t hook)
+crash_hook_add(const char *filename, const callback_fn_t hook)
 {
 	g_assert(filename != NULL);
 	g_assert(hook != NULL);
