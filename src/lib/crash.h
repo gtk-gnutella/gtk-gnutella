@@ -237,9 +237,10 @@ void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const callback_fn_t hook);
-void crash_set_restart(callback_fn_t cb);
+void crash_set_restart(action_fn_t cb);
 void crash_reexec(void) G_GNUC_NORETURN;
-void crash_restart(void) G_GNUC_NORETURN;
+void crash_restart(const char *format, ...);
+void crash_restarting(void);
 void crash_print_decorated_stack(int fd);
 
 #endif	/* _crash_h_ */

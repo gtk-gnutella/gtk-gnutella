@@ -2,7 +2,7 @@
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
  * All rights reserved.
  *
- * Copyright (c) 2009-2011 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2015 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2009-2011
+ * @date 2009-2011, 2014-2015
  */
 
 #include "common.h"
@@ -81,7 +81,9 @@
 #include "ckalloc.h"
 #include "compat_pause.h"
 #include "compat_sleep_ms.h"
+#include "cq.h"
 #include "eslist.h"
+#include "evq.h"
 #include "fast_assert.h"
 #include "fd.h"
 #include "file.h"
@@ -116,6 +118,7 @@
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
+#define CRASH_RESTART_GRACE		60		/**< secs, grace for async restart */
 
 #define CRASH_RUNTIME_BUFLEN	12	/**< Buffer length for crash_run_time() */
 
@@ -151,6 +154,7 @@ struct crash_vars {
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
+	action_fn_t restart;	/**< Optional restart callback to invoke */
 	const char * const *argv;	/**< Saved argv[] array */
 	const char * const *envp;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
@@ -2968,6 +2972,20 @@ crash_setmain(int argc, const char **argv, const char **env)
 }
 
 /**
+ * Record callback to invoke in order to restart the application cleanly.
+ *
+ * This callback will be invoked by crash_restart() if defined.  Upon return
+ * of that callback, crash_reexec() will be called if the callback returns 0.
+ * Otherwise, it will assume restarting will be asynchronous and will give
+ * the application some time to issue the restart.
+ */
+void
+crash_set_restart(action_fn_t cb)
+{
+	crash_set_var(restart, cb);
+}
+
+/**
  * Record a crash hook for a file.
  */
 void
@@ -3091,6 +3109,117 @@ crash_reexec(void)
 
 	crash_try_reexec();
 	_exit(EXIT_FAILURE);
+}
+
+static cevent_t *crash_restart_ev;		/* Async restart event */
+
+/**
+ * Callout queue event to force application restart.
+ */
+static void G_GNUC_COLD
+crash_force_restart(cqueue_t *cq, void *unused)
+{
+	(void) unused;
+
+	cq_zero(cq, &crash_restart_ev);
+	s_miniwarn("%s(): forcing immediate restart", G_STRFUNC);
+	crash_reexec();		/* Does not return */
+}
+
+/**
+ * Preventive restart of the application to avoid an out-of-memory condition.
+ *
+ * If a user-supplied callback was supplied via crash_set_restart(), it is
+ * invoked first.  It is valid for the callback to attempt to auto-restart
+ * if it needs to.  The application will be auto-restarted unconditionally
+ * should the callback return 0.  On any other reply, it is assumed that
+ * asynchronous restart will be attempted: during CRASH_RESTART_GRACE seconds,
+ * no further call of crash_restart() will be handled and once the delay
+ * expires, the application will be forcefully restarted.
+ *
+ * When this routine is called, we are not in a critical situation so we
+ * do not put a minimum runtime constrainst to restart the application: it
+ * is up to the user of that routine to ensure the conditions leading to
+ * that routine will be infrequent enough.
+ *
+ * This routine may return, hence the caller must be prepared for it.
+ */
+void G_GNUC_COLD
+crash_restart(const char *format, ...)
+{
+	static int registered;
+	bool has_callback = FALSE;
+	va_list args;
+
+	/*
+	 * Since a callback could request asynchronous restarting, we need to
+	 * record the first time we enter here and ignore subsequent calls.
+	 */
+
+	if (0 != atomic_int_inc(&registered))
+		return;
+
+	/*
+	 * First log the condition, without allocating any memory, bypassing stdio.
+	 */
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_INFO, TRUE, format, args);
+	va_end(args);
+
+	/*
+	 * If there is a restart callback, invoke it.
+	 *
+	 * Its exit status matters: a 0 means that an immediate restart should be
+	 * initiated.  Anything else means a deferred restart will be triggered
+	 * by the application, and it will do so in the next CRASH_RESTART_GRACE
+	 * seconds (or we will forcefully trigger it).
+	 */
+
+	if (vars != NULL && vars->restart != NULL) {
+		s_miniinfo("%s(): issuing shutdown via %s()...",
+			G_STRFUNC, stacktrace_function_name(vars->restart));
+
+		has_callback = TRUE;
+		if (0 != (*vars->restart)())
+			goto asynchronous;
+	}
+
+	/*
+	 * When the callback returns 0, manually attempt auto-restart.
+	 *
+	 * The callback may choose to attempt to auto-restart manually.
+	 * If it does not, we attempt to re-exec ourselves anway.
+	 */
+
+	s_miniinfo("%s(): attempting auto-restart%s...",
+		G_STRFUNC, has_callback ? " after clean shutdown" : "");
+
+	crash_reexec();		/* Does not return */
+
+	/*
+	 * Handle asynchronous restarts: we give the application some time
+	 * to shutdown manually and we will then force a shutdown.
+	 */
+
+asynchronous:
+	s_miniinfo("%s(): auto-restart should happen soon", G_STRFUNC);
+	crash_restart_ev =
+		evq_raw_insert(CRASH_RESTART_GRACE * 1000, crash_force_restart, NULL);
+}
+
+/**
+ * Signal that shutdown is starting.
+ *
+ * This routine can be called when there is a possibility to have asynchronous
+ * shutdown requested by the restart callback: it cancels the timer after
+ * which a forced and brutal shutdown wil occur.
+ */
+void
+crash_restarting(void)
+{
+	cq_cancel(&crash_restart_ev);
+	s_miniinfo("%s(): auto-restart initiated...", G_STRFUNC);
 }
 
 /***
