@@ -3127,6 +3127,94 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
 }
 
 /**
+ * Fix the exponent part of a formatted double.
+ *
+ * On Windows, and maybe on other systems, snprintf() formats exponents with
+ * 3 digits, whereas our str_vncatf() routine uses 2 digits.
+ *
+ * This routine normalizes exponents to 2 digits, for the purpose of
+ * avoiding spurious discrepancies reports when issues a verbose str_test().
+ */
+static void G_GNUC_COLD
+str_test_fix_exponent(char *std)
+{
+	char *p = std;
+	int c;
+	bool has_leading_space;
+
+	has_leading_space = ' ' == *p;
+
+	while ((c = *p++)) {
+		int a;
+
+		if ('e' == c || 'E' == c) {
+			char *extra;
+
+			c = *p++;
+			if ('-' != c && '+' != c)
+				goto error;	/* Not in an exponent */
+
+			extra = p;		/* Extra '0' spot, if any present */
+			c = *p++;
+			if (c != '0')
+				break;		/* Nothing to fix */
+
+			c = *p++;
+			if (!is_ascii_digit(c))
+				goto error;	/* Only one digit after exponent, that's bad */
+
+			c = *p++;
+			if (!is_ascii_digit(c))
+				break;		/* Out of number, in formatted space now */
+
+			/*
+			 * Ah, reached a third digit with an expoenent starting with '0'
+			 * at ``extra'' in the string.  Move everything back by one char.
+			 */
+
+			a = *p;		/* Character after the number */
+
+			g_assert(a == '\0' || is_ascii_space(a));
+
+			p = extra;
+			while (1) {
+				*p = *(p + 1);
+				if (a != '\0' && a == *p)
+					break;			/* Leave trailing spaces intact */
+				if ('\0' == *p++)
+					break;
+			}
+
+			/*
+			 * We removed one digit in the format, so we need to restore
+			 * an additional leading space to compensate for the missing
+			 * character, to not mess-up with the right-justification that
+			 * necessarily occurred during the formatting.
+			 */
+
+			if (has_leading_space) {
+				a = ' ';
+				p = std;
+				while (1) {
+					int t = *p;
+					*p++ = a;
+					if ('\0' == a)
+						break;
+					a = t;
+				}
+			}
+
+			break;			/* Done, string fixed */
+		}
+	}
+
+	return;		/* OK, nothing to fix */
+
+error:
+	s_error("%s(): invalid exponent in \"%s\"", G_STRFUNC, std);
+}
+
+/**
  * Non-regression tests for the str_vncatf() formatting routine.
  *
  * Aborts execution on failure.
@@ -3135,7 +3223,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
  *
  * @return amount of discrepancies found with the system's snprintf().
  */
-G_GNUC_COLD size_t
+size_t G_GNUC_COLD
 str_test(bool verbose)
 {
 #define MLEN		64
@@ -3474,6 +3562,8 @@ str_test(bool verbose)
 			gm_snprintf_unchecked(std, sizeof std,				\
 				t->fmt, t->value);								\
 			std[t->buflen - 1] = '\0';	/* Truncate here */		\
+			if (0 == ptr_cmp(&test_##what##s, &test_doubles))	\
+				str_test_fix_exponent(std);						\
 			gm_snprintf(value, sizeof value, vfmt, t->value);	\
 			if (0 != strcmp(std, buf)) {						\
 				discrepancies++;								\
