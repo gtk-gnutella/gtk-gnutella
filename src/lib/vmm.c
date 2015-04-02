@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2011, 2013, Raphael Manfredi
+ * Copyright (c) 2006, 2011, 2013-2015, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -99,7 +99,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009, 2011, 2013
+ * @date 2006, 2009, 2011, 2013-2015
  */
 
 #include "common.h"
@@ -442,6 +442,7 @@ static void pmap_overrule(struct pmap *pm,
 static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
+static void *page_cache_find_pages(size_t n, bool emergency);
 
 /**
  * Put the VMM layer in crashing mode.
@@ -1530,6 +1531,37 @@ done:
 }
 #endif	/* HAS_MMAP */
 
+static void
+vmm_validate_pages(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size_is_positive(size));
+#ifdef VMM_PROTECT_FREE_PAGES
+	mprotect(p, size, PROT_READ | PROT_WRITE);
+#endif	/* VMM_PROTECT_FREE_PAGES */
+#ifdef VMM_INVALIDATE_FREE_PAGES
+	/*  This should be unnecessary */
+	/*  vmm_madvise_normal(p, size); */
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
+static void
+vmm_invalidate_pages(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size_is_positive(size));
+
+	if (G_UNLIKELY(stop_freeing))
+		return;
+
+#ifdef VMM_PROTECT_FREE_PAGES
+	mprotect(p, size, PROT_NONE);
+#endif	/* VMM_PROTECT_FREE_PAGES */
+#ifdef VMM_INVALIDATE_FREE_PAGES
+	vmm_madvise_free(p, size);
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
 /**
  * Insert region in the pmap, known to be native.
  */
@@ -1575,9 +1607,36 @@ alloc_pages(size_t size, bool update_pmap)
 	p = vmm_mmap_anonymous(size, hole);
 
 	if G_UNLIKELY(NULL == p) {
+		size_t n = pagecount_fast(size);
+
+		/*
+		 * Emergency situation: we're out of memory, we're going to request
+		 * that this process be restarted.  If we return NULL from here, this
+		 * is going to be a burtal restart, and we can maybe perform a clean
+		 * one: all we have to do is be able to allocate from the page cache,
+		 * even though this would not be an optimal allocation.
+		 *		--RAM, 2015-04-02
+		 */
+
+		p = page_cache_find_pages(n, TRUE);
+		if (p != NULL) {
+			vmm_validate_pages(p, size);
+			memset(p, 0, size);				/* Kernel memory always zeroed */
+
+			/* We're going to crash and restart, don't update statistics */
+
+			crash_restart("%s(): emergency allocation of %'zu bytes from "
+				"the page cache, requesting restart",
+				G_STRFUNC, size);
+
+			/* Allocation from page cache: region is already in the pmap */
+			/* FALL THROUGH */
+		}
+
 		if (update_pmap)
 			rwlock_wunlock(&pm->lock);
-		return NULL;
+
+		return p;
 	}
 
 	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
@@ -3166,27 +3225,39 @@ not_found:
  * Find "n" consecutive pages in the page cache, and remove them if found.
  *
  * @param n			number of pages we want
+ * @param emergency	whether we need to find pages from the cache at all costs
  *
  * @return a pointer to the start of the memory region, NULL if we were
  * unable to find that amount of contiguous memory.
  */
 static void *
-page_cache_find_pages(size_t n)
+page_cache_find_pages(size_t n, bool emergency)
 {
 	void *p;
 	size_t len;
 	const void *hole = NULL;
 	struct vm_upper_hole upper;
 	struct page_cache *pc = NULL;
+	enum vmm_strategy strategy = vmm_strategy;
 
 	g_assert(size_is_positive(n));
+
+	/*
+	 * In emergency situations, we're going to act as if we were allocating
+	 * under a short-term strategy, to be able to locate a region from the
+	 * cache, knowing that we're going to end this process soon anyway due
+	 * to memory shortage.
+	 */
+
+	if G_UNLIKELY(emergency)
+		strategy = VMM_STRATEGY_SHORT_TERM;
 
 	/*
 	 * When allocating with a short-term strategy, we attempt to reuse the
 	 * cached memory as much as possible.
 	 */
 
-	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy)
+	if (VMM_STRATEGY_SHORT_TERM == strategy)
 		goto short_term_strategy;
 
 	/*
@@ -3283,9 +3354,11 @@ short_term_strategy:
 		 * achieved so far in higher-order caches.
 		 */
 
-		if (NULL == p && (VMM_STRATEGY_SHORT_TERM == vmm_strategy || n > 1)) {
+		if (NULL == p && (VMM_STRATEGY_SHORT_TERM == strategy || n > 1)) {
 			size_t i;
+			bool aggressive = FALSE;
 
+		try_harder:
 			for (i = n; i < VMM_CACHE_LINES && NULL == p; i++) {
 				pc = &page_cache[i];
 
@@ -3293,24 +3366,36 @@ short_term_strategy:
 					continue;
 
 				/*
-				 * If splitting the page woul put the remaining pages into
+				 * If splitting the page would put the remaining pages into
 				 * a full cache line, then avoid allocation from the current
-				 * cache line.
+				 * cache line unless we're being aggressive.
 				 */
 
 				{
 					size_t r = i - n + 1;		/* pc->pages == i + 1 */
 					struct page_cache *rpc = &page_cache[r - 1];
 
-					if G_UNLIKELY(VMM_CACHE_SIZE == rpc->current)
+					if G_UNLIKELY(VMM_CACHE_SIZE == rpc->current && !aggressive)
 						continue;	/* Remaining pages going to full cache */
 				}
 
 				p = vpc_find_pages(pc, n, hole);
 			}
 
-			if (p != NULL)
+			if G_LIKELY(p != NULL) {
 				VMM_STATS_INCX(cache_splits);
+			} else {
+				/*
+				 * In emergency situations, we need to retry the above lookups,
+				 * accepting to split regions even if they end-up falling into
+				 * a full cache line.
+				 */
+
+				if (emergency && !aggressive) {
+					aggressive = TRUE;
+					goto try_harder;
+				}
+			}
 		}
 
 		if (p != NULL) {
@@ -3732,37 +3817,6 @@ vmm_madvise_willneed(void *p, size_t size)
 #endif	/* MADV_WILLNEED */
 }
 
-static void
-vmm_validate_pages(void *p, size_t size)
-{
-	g_assert(p);
-	g_assert(size_is_positive(size));
-#ifdef VMM_PROTECT_FREE_PAGES
-	mprotect(p, size, PROT_READ | PROT_WRITE);
-#endif	/* VMM_PROTECT_FREE_PAGES */
-#ifdef VMM_INVALIDATE_FREE_PAGES 
-	/*  This should be unnecessary */
-	/*  vmm_madvise_normal(p, size); */
-#endif	/* VMM_INVALIDATE_FREE_PAGES */
-}
-
-static void
-vmm_invalidate_pages(void *p, size_t size)
-{
-	g_assert(p);
-	g_assert(size_is_positive(size));
-
-	if (G_UNLIKELY(stop_freeing))
-		return;
-
-#ifdef VMM_PROTECT_FREE_PAGES
-	mprotect(p, size, PROT_NONE);
-#endif	/* VMM_PROTECT_FREE_PAGES */
-#ifdef VMM_INVALIDATE_FREE_PAGES 
-	vmm_madvise_free(p, size);
-#endif	/* VMM_INVALIDATE_FREE_PAGES */
-}
-
 /**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
  * and only allocating a new region when necessary.
@@ -3801,7 +3855,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n);
+	p = page_cache_find_pages(n, FALSE);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		if G_UNLIKELY(zero_mem)
