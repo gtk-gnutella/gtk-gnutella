@@ -3385,7 +3385,8 @@ socket_connect_finalize(struct gnutella_socket *s,
 			goto failure;	/* Check the proxy configuration */
 		}
 
-		g_warning("unable to connect to %s: %m",
+		g_warning("unable to connect (for %s) to %s: %m",
+			socket_type_to_string(s->type),
 			host_addr_port_to_string(s->addr, s->port));
 		goto failure;
 	}
