@@ -5174,7 +5174,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 				rewind_str(0);
 				print_str("thread holds ");					/* 0 */
 				print_str(s);								/* 1 */
-				print_str(1 == locks ? " lock" : "locks");	/* 2 */
+				print_str(1 == locks ? " lock" : " locks");	/* 2 */
 				print_str("\n");							/* 3 */
 				flush_err_str();
 				if (log_stdout_is_distinct())
