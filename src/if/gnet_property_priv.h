@@ -138,7 +138,7 @@ extern const gboolean gnet_property_variable_parq_optimistic;
 extern const guint32  gnet_property_variable_parq_size_always_continue;
 extern const guint32  gnet_property_variable_parq_time_always_continue;
 extern const guint32  gnet_property_variable_parq_ban_bad_maxcountwait;
-extern const guint32  gnet_property_variable_track_props;
+extern const gboolean gnet_property_variable_net_buffer_shortage;
 extern const gboolean gnet_property_variable_stop_host_get;
 extern const gboolean gnet_property_variable_bws_in_enabled;
 extern const gboolean gnet_property_variable_bws_out_enabled;

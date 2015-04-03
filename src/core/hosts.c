@@ -155,7 +155,11 @@ host_timer(void)
 	host_type_t htype;
 	bool empty_cache = FALSE, empty_g2_cache = FALSE;
 
-	if (in_shutdown || !GNET_PROPERTY(online_mode))
+	if (
+		in_shutdown ||
+		!GNET_PROPERTY(online_mode) ||
+		GNET_PROPERTY(net_buffer_shortage)
+	)
 		return;
 
 	max_nodes = node_outdegree();	/* Gnutella, depending on leaf/ultra mode */

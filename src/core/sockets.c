@@ -3388,6 +3388,10 @@ socket_connect_finalize(struct gnutella_socket *s,
 		g_warning("unable to connect (for %s) to %s: %m",
 			socket_type_to_string(s->type),
 			host_addr_port_to_string(s->addr, s->port));
+
+		if G_UNLIKELY(ENOBUFS == errno)
+			inet_buf_shortage();
+
 		goto failure;
 	}
 

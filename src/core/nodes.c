@@ -8199,10 +8199,13 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 	/*
 	 * If they wish to be temporarily off Gnet, don't initiate connections.
+	 * Likewise if we are short of network buffers.
 	 */
 
-	if (!incoming && !allow_gnet_connections)
-		return;
+	if (!incoming) {
+		if (!allow_gnet_connections || GNET_PROPERTY(net_buffer_shortage))
+			return;
+	}
 
 	/*
 	 * Compute the protocol version from the first handshake line, if
@@ -12164,6 +12167,13 @@ void
 node_connect_back(const gnutella_node_t *n, uint16 port)
 {
 	gnutella_socket_t *s;
+
+	/*
+	 * Refuse connection if there is a network buffer shortage.
+	 */
+
+	if G_UNLIKELY(GNET_PROPERTY(net_buffer_shortage))
+		return;
 
 	/*
 	 * Attempt asynchronous connection.

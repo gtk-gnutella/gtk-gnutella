@@ -64,6 +64,7 @@ void inet_udp_record_sent(const host_addr_t addr);
 void inet_udp_got_unsolicited_incoming(void);
 void inet_udp_check_unsolicited(void);
 void inet_router_configured(void);
+void inet_buf_shortage(void);
 
 void inet_connection_attempted(const host_addr_t addr);
 void inet_connection_succeeded(const host_addr_t addr);

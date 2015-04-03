@@ -6037,6 +6037,13 @@ download_start(struct download *d, bool check_allowed)
 		return;
 	}
 
+	if (GNET_PROPERTY(net_buffer_shortage)) {
+		if (!DOWNLOAD_IS_QUEUED(d)) {
+			download_queue(d, _("Network buffer shortage"));
+		}
+		return;
+	}
+
 	/*
 	 * If caller did not check whether we were allowed to start downloading
 	 * this file, do it now. --RAM, 03/09/2001

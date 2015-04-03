@@ -1017,6 +1017,9 @@ upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops, uint8 ttl,
 	struct upload *u;
 	struct gnutella_socket *s;
 
+	if (GNET_PROPERTY(net_buffer_shortage))
+		return;
+
 	flags |= GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD, flags);
 	if (!s) {
