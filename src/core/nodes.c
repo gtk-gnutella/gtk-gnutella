@@ -853,6 +853,29 @@ node_check_local_firewalled_status(gnutella_node_t *n)
 }
 
 /**
+ * Switch current peermode to specified value.
+ */
+static void
+node_switch_peermode(node_peer_t mode)
+{
+	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, mode);
+	gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, tm_time());
+}
+
+/**
+ * Demote current Ultra node to a leaf.
+ */
+static void
+node_demote_to_leaf(const char *reason)
+{
+	leaf_to_up_switch *= 2;
+	leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
+	g_warning("demoted from Ultrapeer status (for %u secs): %s",
+		leaf_to_up_switch, reason);
+	node_switch_peermode(NODE_P_LEAF);
+}
+
+/**
  * Low frequency node timer.
  */
 void
@@ -966,35 +989,7 @@ node_slow_timer(time_t now)
 		can_become_ultra(now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_ULTRA);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
-		return;
-	}
-
-	/*
-	 * If we're in "auto" mode and we've been promoted to an ultra node,
-	 * evaluate how good we are and whether we would not be better off
-	 * running as a leaf node.
-	 *
-	 * We double the time we'll spend as a leaf node before switching
-	 * again to UP mode to avoid endless switches between UP and leaf.
-	 * We limit that doubling to NODE_AUTO_SWITCH_MAX, to ensure that if
-	 * we can become one, then we should do so on a regular basis.
-	 */
-
-	if (
-		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
-		settings_is_ultra() &&
-		delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch))
-			> NODE_AUTO_SWITCH_MIN &&
-		!can_become_ultra(now)
-	) {
-		leaf_to_up_switch *= 2;
-		leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
-		g_warning("being demoted from Ultrapeer status (for %u secs)",
-			leaf_to_up_switch);
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
+		node_switch_peermode(NODE_P_ULTRA);
 		return;
 	}
 
@@ -1028,35 +1023,65 @@ node_slow_timer(time_t now)
 		GNET_PROPERTY(is_firewalled)
 	) {
 		g_warning("firewalled node being demoted from Ultrapeer status");
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
+		node_switch_peermode(NODE_P_LEAF);
 		return;
 	}
 
 	/*
-	 * If we're running as an ultra node in auto mode and we have seen no leaf
-	 * node connection for some time, then we're a bad node: we're taking
-	 * an ultranode slot in a high outdegree network with a low TTL and
-	 * are therefore harming the propagation of queries to leaf nodes,
-	 * since we have none.
-	 *
-	 * Therefore, we'll be better off running as a leaf node.
+	 * Additional sanity checks when we've been automatically promoted to
+	 * the Ultrapeer mode.
 	 */
 
 	if (
 		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
-		settings_is_ultra() &&
-		no_leaves_connected != 0 &&
-		delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
+		settings_is_ultra()
 	) {
-		leaf_to_up_switch *= 2;
-		leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
-		g_warning(
-			"demoted from Ultrapeer status for %d secs due to missing leaves",
-			leaf_to_up_switch);
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
-		return;
+		/*
+		 * Evaluate how good we are and whether we would not be better off
+		 * running as a leaf node.
+		 *
+		 * We double the time we'll spend as a leaf node before switching
+		 * again to UP mode to avoid endless switches between UP and leaf.
+		 * We limit that doubling to NODE_AUTO_SWITCH_MAX, to ensure that if
+		 * we can become one, then we should do so on a regular basis.
+		 */
+
+		if (
+			delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch))
+				> NODE_AUTO_SWITCH_MIN &&
+			!can_become_ultra(now)
+		) {
+			node_demote_to_leaf("no longer meeting requirements");
+			return;
+		}
+
+		/*
+		 * If we have not seen any leaf node connection for some time, then
+		 * we're a bad node: we're taking an ultranode slot in a high outdegree
+		 * network with a low TTL and are therefore harming the propagation of
+		 * queries to leaf nodes, since we have none.
+		 *
+		 * Therefore, we'll be better off running as a leaf node.
+		 */
+
+		if (
+			no_leaves_connected != 0 &&
+			delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
+		) {
+			node_demote_to_leaf("missing leaves");
+			return;
+		}
+
+		/*
+		 * If they happen to lack memory space for the kernel to allocate
+		 * enough memory buffers to support the high connection rate of
+		 * an Ultrapeer, switch back to leaf node.
+		 */
+
+		if (GNET_PROPERTY(net_buffer_shortage)) {
+			node_demote_to_leaf("kernel network buffer shortage");
+			return;
+		}
 	}
 }
 
