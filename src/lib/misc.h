@@ -600,9 +600,6 @@ static inline bool
 is_temporary_error(int error)
 {
   switch (error) {
-#ifdef WSAEWOULDBLOCK
-  case WSAEWOULDBLOCK:
-#endif
   case EAGAIN:
 #if defined(EWOULDBLOCK) && EAGAIN != EWOULDBLOCK
   case EWOULDBLOCK:
