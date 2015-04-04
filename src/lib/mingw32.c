@@ -1785,8 +1785,22 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 		mingw_init();
 
 	res = connect(sockfd, addr, addrlen);
-	if (INVALID_SOCKET == res)
+	if (INVALID_SOCKET == res) {
 		errno = mingw_wsa_last_error();
+		/*
+		 * We need to remap WSAEWOULDBLOCK, which is translated into EAGAIN
+		 * by mingw_wsa_last_error() -- to accomodate send() and other I/O
+		 * operations -- to the expected EINPROGRESS for connect() operations.
+		 *
+		 * On modern UNIX systems, EAGAIN is used to signal that no more
+		 * local ports can be auto-assigned for this connection endpoint.
+		 * Thereby, returning EAGAIN would send the wrong message.
+		 *		--RAM, 2015-04-04.
+		 */
+
+		if (EAGAIN == errno)
+			errno = EINPROGRESS;
+	}
 	return res;
 }
 
