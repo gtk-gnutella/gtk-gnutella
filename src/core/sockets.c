@@ -3376,9 +3376,16 @@ socket_connect_finalize(struct gnutella_socket *s,
 				socket_addr_get_const_sockaddr(&addr), addr_len);
 	}
 
-	if (-1 == res && EINPROGRESS != errno && !is_temporary_error(errno)) {
+	/*
+	 * Be careful here, connect() error codes cannot use is_temporary_error()
+	 * since EAGAIN is meaningful: it indicates that the kernel is out of
+	 * local ports to bind our socket endpoint.
+	 *		--RAM, 2015-04-04
+	 */
+
+	if (-1 == res && EINPROGRESS != errno) {
 		if (proxy_is_enabled() && !is_host_addr(GNET_PROPERTY(proxy_addr))) {
-			if (!is_temporary_error(errno)) {
+			if (errno != EINTR) {
 				g_warning("SOCKS proxy isn't properly configured (%s:%u)",
 					GNET_PROPERTY(proxy_hostname), GNET_PROPERTY(proxy_port));
 			}
@@ -3389,11 +3396,39 @@ socket_connect_finalize(struct gnutella_socket *s,
 			socket_type_to_string(s->type),
 			host_addr_port_to_string(s->addr, s->port));
 
-		if G_UNLIKELY(ENOBUFS == errno)
+		/*
+		 * On Windows, there is no EAGAIN to indicate local port shortage.
+		 * It seems ENOBUFS is returned instead.
+		 *
+		 * Because I was trying to restore a sane processing on Windows,
+		 * which was returning ENOBUFS on connect(), I called the condition
+		 * "network buffer shortage".  But it is actually showing that there
+		 * is no local port available.  This explains why the condition is
+		 * called that way, but it should have been "TCP local port shortage".
+		 *
+		 * On UNIX, the error code to trap is EAGAIN.  Triggering a "network
+		 * buffer shortage" condition will refrain the application from
+		 * issuing more connection attempts, in the hope that local ports will
+		 * eventually free up.
+		 *
+		 *		--RAM, 2015-04-04.
+		 */
+
+		if G_UNLIKELY(ENOBUFS == errno || EAGAIN == errno)
 			inet_buf_shortage();
 
 		goto failure;
 	}
+
+	/*
+	 * Most of the time, we're going to come here with errno set to EINPROGRESS
+	 * because the connection is asynchronous.  If we're lucky enough to have
+	 * received the SYN+ACK back and finished the TCP handshake when we come
+	 * back from connect(), we may very well be connected already.
+	 *
+	 * This trailing code does not depend on the socket being fully connected
+	 * and works either way.
+	 */
 
 	s->local_port = socket_local_port(s);
 	bws_sock_connect(s->type);
@@ -3409,7 +3444,7 @@ socket_connect_finalize(struct gnutella_socket *s,
 failure:
 
 	if (destroy_on_error) {
-		socket_destroy(s, _("Connection failed"));
+		socket_destroy(s, _("Connection locally failed"));
 	}
 	return -1;
 }
