@@ -582,8 +582,8 @@ prop = {
             "out if no connection can be established.";
     type = guint32;
     data = {
-        default = 30;
-        min     = 15;
+        default = 90;
+        min     = 30;
         max     = 100000;
     };
 };
@@ -2111,8 +2111,8 @@ prop = {
            "slots.";
     type = guint32;
     data = {
-        default = 10;
-        min = 4;
+        default = 40;
+        min = 10;
         max = 80;
     };
 };
