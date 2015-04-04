@@ -8358,6 +8358,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 			n->gnet_port = port;
 			n->proto_major = 0;
 			n->proto_minor = 6;				/* Handshake at 0.6 intially */
+			n->peermode = g2 ? NODE_P_G2HUB : NODE_P_ULTRA;
 
 			/*
 			 * We want to establish a G2 handshaking, we do not know yet
