@@ -4064,6 +4064,30 @@ http://maxmind.com/</property>
 	      </child>
 
 	      <child>
+		<widget class="GtkEventBox" id="eventbox_net_buffer_shortage">
+		  <property name="visible">True</property>
+		  <property name="visible_window">True</property>
+		  <property name="above_child">False</property>
+
+		  <child>
+		    <widget class="GtkImage" id="image_net_buffer_shortage">
+		      <property name="visible">True</property>
+		      <property name="pixbuf">hungup.xpm</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">1</property>
+		      <property name="ypad">0</property>
+		    </widget>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">True</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
 		<widget class="GtkEventBox" id="eventbox_image_warning">
 		  <property name="visible">True</property>
 		  <property name="tooltip" translatable="yes">Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths.</property>

@@ -78,6 +78,7 @@ PIXMAPS = \
 	firewall_udp_punchable.xpm \
 	freeze.xpm \
 	go_back.xpm \
+	hungup.xpm \
 	icon.16x16.xpm \
 	icon.48x48.xpm \
 	icon.xpm \

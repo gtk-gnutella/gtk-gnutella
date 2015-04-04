@@ -1491,6 +1491,8 @@ create_main_window (void)
   GtkWidget *image_download_queue_frozen;
   GtkWidget *eventbox_image_chip;
   GtkWidget *image_chip;
+  GtkWidget *eventbox_net_buffer_shortage;
+  GtkWidget *image_net_buffer_shortage;
   GtkWidget *eventbox_image_warning;
   GtkWidget *image_warning;
   GtkWidget *hbox9345;
@@ -2416,6 +2418,17 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_chip), image_chip);
   gtk_misc_set_padding (GTK_MISC (image_chip), 1, 0);
 
+  eventbox_net_buffer_shortage = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_net_buffer_shortage, "eventbox_net_buffer_shortage");
+  gtk_widget_show (eventbox_net_buffer_shortage);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_net_buffer_shortage, TRUE, TRUE, 0);
+
+  image_net_buffer_shortage = create_pixmap (main_window, "hungup.xpm");
+  gtk_widget_set_name (image_net_buffer_shortage, "image_net_buffer_shortage");
+  gtk_widget_show (image_net_buffer_shortage);
+  gtk_container_add (GTK_CONTAINER (eventbox_net_buffer_shortage), image_net_buffer_shortage);
+  gtk_misc_set_padding (GTK_MISC (image_net_buffer_shortage), 1, 0);
+
   eventbox_image_warning = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_warning, "eventbox_image_warning");
   gtk_widget_show (eventbox_image_warning);
@@ -3016,6 +3029,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_download_queue_frozen, "image_download_queue_frozen");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_chip, "eventbox_image_chip");
   GLADE_HOOKUP_OBJECT (main_window, image_chip, "image_chip");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_net_buffer_shortage, "eventbox_net_buffer_shortage");
+  GLADE_HOOKUP_OBJECT (main_window, image_net_buffer_shortage, "image_net_buffer_shortage");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_warning, "eventbox_image_warning");
   GLADE_HOOKUP_OBJECT (main_window, image_warning, "image_warning");
   GLADE_HOOKUP_OBJECT (main_window, hbox9345, "hbox9345");
