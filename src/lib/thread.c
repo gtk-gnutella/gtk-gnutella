@@ -5758,6 +5758,8 @@ found:
 		s_rawwarn("%s overflowing its lock stack at %s:%u",
 			thread_element_name(te), file, line);
 		thread_lock_dump(te);
+		if (atomic_int_get(&thread_locks_disabled))
+			return;				/* Crashing or exiting already */
 		s_error("too many locks grabbed simultaneously");
 	}
 
@@ -5867,9 +5869,6 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 	}
 
 found:
-	if G_UNLIKELY(atomic_int_get(&thread_locks_disabled))
-		return;			/* We may not be recording locks in pass-through mode */
-
 	THREAD_STATS_INCX(locks_tracked);
 
 	tls = &te->locks;
@@ -5880,6 +5879,8 @@ found:
 		tls->overflow = TRUE;
 		s_rawwarn("%s overflowing its lock stack", thread_element_name(te));
 		thread_lock_dump(te);
+		if (atomic_int_get(&thread_locks_disabled))
+			return;			/* Crashing or exiting already */
 		s_error("too many locks grabbed simultaneously");
 	}
 
@@ -6028,8 +6029,12 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 			te->stack_lock != NULL &&
 			thread_stack_ptr_cmp(&te, te->stack_lock) >= 0
 		) {
-			s_minicarp("%s(): %s %p was not registered in thread #%u",
-				G_STRFUNC, thread_lock_kind_to_string(kind), lock, te->stid);
+			/* Locks may be missing in pass-through mode */
+			if (!atomic_int_get(&thread_locks_disabled)) {
+				s_minicarp("%s(): %s %p was not registered in thread #%u",
+					G_STRFUNC, thread_lock_kind_to_string(kind),
+					lock, te->stid);
+			}
 		}
 		return;
 	}
