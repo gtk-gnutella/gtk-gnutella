@@ -2982,6 +2982,12 @@ crash_setmain(int argc, const char **argv, const char **env)
 void
 crash_set_restart(action_fn_t cb)
 {
+	if (NULL == vars) {
+		s_carp("%s(): should not be called before crash_init(), ignoring!",
+			G_STRFUNC);
+		return;
+	}
+
 	crash_set_var(restart, cb);
 }
 
@@ -3142,6 +3148,9 @@ crash_force_restart(cqueue_t *cq, void *unused)
  * is up to the user of that routine to ensure the conditions leading to
  * that routine will be infrequent enough.
  *
+ * If the crash handling layer was not yet configured or they did not ask
+ * for auto-restarts, then calls to crash_restart() are simply ignored.
+ *
  * This routine may return, hence the caller must be prepared for it.
  */
 void G_GNUC_COLD
@@ -3150,6 +3159,14 @@ crash_restart(const char *format, ...)
 	static int registered;
 	bool has_callback = FALSE;
 	va_list args;
+
+	/*
+	 * If they did not call crash_init() yet or did not supply CRASH_F_RESTART
+	 * to allow auto-restarts, then do nothing.
+	 */
+
+	if (NULL == vars || !vars->may_restart)
+		return;		/* Silently ignored */
 
 	/*
 	 * Since a callback could request asynchronous restarting, we need to
@@ -3218,8 +3235,10 @@ asynchronous:
 void
 crash_restarting(void)
 {
-	cq_cancel(&crash_restart_ev);
-	s_miniinfo("%s(): auto-restart initiated...", G_STRFUNC);
+	if (crash_restart_ev != NULL) {
+		cq_cancel(&crash_restart_ev);
+		s_miniinfo("%s(): auto-restart initiated...", G_STRFUNC);
+	}
 }
 
 /***
