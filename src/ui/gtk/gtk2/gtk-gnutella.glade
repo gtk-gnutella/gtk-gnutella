@@ -33711,7 +33711,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_start_now_activate" last_modification_time="Sat, 28 Jul 2007 05:13:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2115">
+	<widget class="GtkImage" id="image2278">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-connect</property>
 	  <property name="icon_size">1</property>
@@ -33732,7 +33732,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_pause_activate" last_modification_time="Sat, 28 Jul 2007 05:13:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2116">
+	<widget class="GtkImage" id="image2279">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-media-pause</property>
 	  <property name="icon_size">1</property>
@@ -33753,7 +33753,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_resume_activate" last_modification_time="Sat, 28 Jul 2007 05:13:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2117">
+	<widget class="GtkImage" id="image2280">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -33774,7 +33774,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_queue_activate" last_modification_time="Sat, 28 Jul 2007 05:13:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2118">
+	<widget class="GtkImage" id="image2281">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-disconnect</property>
 	  <property name="icon_size">1</property>
@@ -33795,7 +33795,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_forget_activate" last_modification_time="Sat, 28 Jul 2007 05:13:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2119">
+	<widget class="GtkImage" id="image2282">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -33822,7 +33822,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_copy_url_activate" last_modification_time="Sat, 28 Jul 2007 02:48:25 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2120">
+	<widget class="GtkImage" id="image2283">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -33843,7 +33843,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_browse_host_activate" last_modification_time="Sat, 28 Jul 2007 17:10:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2121">
+	<widget class="GtkImage" id="image2284">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-index</property>
 	  <property name="icon_size">1</property>
@@ -33864,7 +33864,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_connect_activate" last_modification_time="Sat, 28 Jul 2007 03:01:55 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2122">
+	<widget class="GtkImage" id="image2285">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-network</property>
 	  <property name="icon_size">1</property>
@@ -33878,11 +33878,22 @@ message</property>
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="popup_sources_push">
+    <widget class="GtkImageMenuItem" id="popup_sources_push">
       <property name="visible">True</property>
       <property name="label" translatable="yes">Force push mode</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="on_popup_sources_push_activate" last_modification_time="Sat, 28 Jul 2007 06:17:17 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image2286">
+	  <property name="visible">True</property>
+	  <property name="pixbuf">go_back.xpm</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
     </widget>
   </child>
 
@@ -33900,7 +33911,7 @@ message</property>
       <signal name="activate" handler="on_popup_sources_config_cols_activate" last_modification_time="Sat, 28 Jul 2007 03:09:10 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2123">
+	<widget class="GtkImage" id="image2287">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
