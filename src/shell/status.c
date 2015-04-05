@@ -93,34 +93,36 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	/* Leading flags */
 	{
-		char flags[47];
+		char flags[52];
 		const char *fw;
 		const char *fd;
 		const char *pmp;
 		const char *dht;
 
 		/*
-		 * The flags are displayed as followed:
+		 * The reported flags are defined as follows (listed in display
+		 * order from left to right):
 		 *
 		 * UMP          port mapping configured via UPnP
 		 * NMP          port mapping configured via NAT-PMP
 		 * pmp          port mapping available (UPnP or NAT-PMP), un-configured
-		 * CLK			clock, GTKG expired
-		 * !FD or FD	red or yellow bombs for fd shortage
-		 * STL			upload stalls
+		 * CLK          clock, GTKG expired
+		 * !IP          kernel network buffer shortage
+		 * !FD or FD    red or yellow bombs for fd shortage
+		 * STL          upload stalls
 		 * gUL/yUL/rUL  green, yellow or red upload early stalling levels
-		 * CPU			cpu overloaded
-		 * MOV			file moving
-		 * SHA			SHA-1 rebuilding or verifying
-		 * TTH			TTH rebuilding or verifying
-		 * LIB			library rescan
-		 * :FW or FW	indicates whether hole punching is possible
-		 * udp or UDP	indicates UDP firewalling (lowercased for hole punching)
-		 * TCP			indicates TCP-firewalled
-		 * -			the happy face: no firewall
+		 * CPU          cpu overloaded
+		 * MOV          file moving
+		 * SHA          SHA-1 rebuilding or verifying
+		 * TTH          TTH rebuilding or verifying
+		 * LIB          library rescan
+		 * :FW or FW    indicates whether hole punching is possible
+		 * udp or UDP   indicates UDP firewalling (lowercased for hole punching)
+		 * TCP          indicates TCP-firewalled
+		 * -            the happy face: no firewall
 		 * sDH/lDH/bDH  seeded, own KUID looking or bootstrapping DHT
 		 * A or P       active or passive DHT mode
-		 * UP or LF		ultrapeer or leaf mode
+		 * UP or LF     ultrapeer or leaf mode
 		 */
 
 		pmp = (GNET_PROPERTY(upnp_possible) || GNET_PROPERTY(natpmp_possible))
@@ -176,10 +178,11 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 
 		str_bprintf(flags, sizeof flags,
-			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
+			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
 			pmp,
 			GNET_PROPERTY(download_queue_frozen) ? "DFZ " : empty,
 			GNET_PROPERTY(ancient_version) ? "CLK " : empty,
+			GNET_PROPERTY(net_buffer_shortage) ? "!IP " : empty,
 			fd,
 			GNET_PROPERTY(uploads_stalling) ? "STL " : empty,
 			GNET_PROPERTY(uploads_bw_ignore_stolen) ? "gUL " : empty,
