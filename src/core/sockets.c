@@ -2976,7 +2976,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 }
 
 static inline void
-socket_set_linger(int fd)
+socket_set_linger(socket_fd_t fd, const char *caller)
 {
 	g_assert(fd >= 0);
 
@@ -2987,8 +2987,10 @@ socket_set_linger(int fd)
 	{
 		int timeout = 20;	/* timeout in seconds for FIN_WAIT_2 */
 
-		if (setsockopt(fd, sol_tcp(), TCP_LINGER2, &timeout, sizeof timeout))
-			g_warning("setsockopt() for TCP_LINGER2 failed: %m");
+		if (setsockopt(fd, sol_tcp(), TCP_LINGER2, &timeout, sizeof timeout)) {
+			g_warning("%s(): setsockopt(%d, SOL_TCP, TCP_LINGER2) failed: %m",
+				caller, (int) fd);
+		}
 	}
 #else
 	{
@@ -2998,8 +3000,10 @@ socket_set_linger(int fd)
 		lb = zero_linger;
 		lb.l_onoff = 1;
 		lb.l_linger = 0;	/* closes connections with RST */
-		if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb))
-			g_warning("setsockopt() for SO_LINGER failed: %m");
+		if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb)) {
+			g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_LINGER) failed: %m",
+				caller, (int) fd);
+		}
 	}
 #endif /* TCP_LINGER */
 }
@@ -3053,7 +3057,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 static void
 socket_set_fastack(struct gnutella_socket *s)
 {
-	static const int on = 1;
+	const int on = 1;
 
 	socket_check(s);
 	g_return_if_fail(is_valid_fd(s->file_desc));
@@ -3091,9 +3095,38 @@ socket_set_quickack(struct gnutella_socket *s, int on)
 #endif	/* TCP_QUICKACK*/
 }
 
-/*
- * Sockets creation
+/***
+ *** Sockets creation
+ ***/
+
+/**
+ * Set SO_KEEPALIVE on the socket file descriptor.
  */
+static void
+socket_set_keepalive(socket_fd_t fd, const char *caller)
+{
+	const int on = 1;
+
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)) {
+		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
+			caller, (int) fd);
+	}
+}
+
+/**
+ * Set SO_REUSEADDR on the socket file descriptor.
+ */
+static void
+socket_set_reuseaddr(socket_fd_t fd, const char *caller)
+{
+	const int on = 1;
+
+	/* Linux absolutely wants this before bind() unlike BSD */
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on)) {
+		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
+			caller, (int) fd);
+	}
+}
 
 /**
  * Verify that connection can be made to an addr.
@@ -3152,7 +3185,6 @@ static int
 socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, uint16 port, enum socket_type type, uint32 flags)
 {
-	static const int on = 1;
 	int fd, family;
 
 	socket_check(s);
@@ -3258,22 +3290,12 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	socket_wio_link(s);
 
-	if (
-		-1 == setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)
-	) {
-		s_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
-			G_STRFUNC, s->file_desc);
-	}
-	if (
-		-1 == setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on)
-	) {
-		s_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
-			G_STRFUNC, s->file_desc);
-	}
+	socket_set_keepalive(s->file_desc, G_STRFUNC);
+	socket_set_reuseaddr(s->file_desc, G_STRFUNC);
 
 	fd_set_nonblocking(s->file_desc);
 	set_close_on_exec(s->file_desc);
-	socket_set_linger(s->file_desc);
+	socket_set_linger(s->file_desc, G_STRFUNC);
 	socket_tos_normal(s);
 
 	/*
@@ -3684,19 +3706,16 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		socket_failed = TRUE;
 		saved_errno = errno;
 	} else {
-		static const int enable = 1;
+		const int enable = 1;
 		socket_addr_t addr;
 		socklen_t len;
-
-		/* Linux absolutely wants this before bind() unlike BSD */
-		setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
 #if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
 		if (
 			host_addr_is_ipv6(bind_addr) &&
 			setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
 		) {
-			g_warning("setsockopt() failed for IPV6_V6ONLY: %m");
+			g_warning("%s(): setsockopt(IPV6_V6ONLY) failed: %m", G_STRFUNC);
 		}
 #endif /* HAS_IPV6 && IPV6_V6ONLY */
 
@@ -3705,12 +3724,27 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		len = socket_addr_set(&addr, bind_addr, port);
 		if (-1 == bind(fd, socket_addr_get_const_sockaddr(&addr), len)) {
 			saved_errno = errno;
+			if (EADDRINUSE == errno) {
+				g_warning("%s(): port %u already used by %s, attempting reuse",
+					G_STRFUNC, port, host_addr_to_string(bind_addr));
+				socket_set_reuseaddr(fd, G_STRFUNC);
+				len = socket_addr_set(&addr, bind_addr, port);
+				if (0 == bind(fd, socket_addr_get_const_sockaddr(&addr), len)) {
+					saved_errno = 0;
+					g_message("%s(): reusing port %u on %s",
+						G_STRFUNC, port, host_addr_to_string(bind_addr));
+					goto socket_bound;
+				}
+				/* FALL THROUGH on bind error */
+			}
 			s_close(fd);
 			fd = INVALID_SOCKET;
 		} else {
 			saved_errno = 0;
 		}
 	}
+
+socket_bound:
 
 #if defined(HAS_SOCKER_GET)
 	if (!is_valid_fd(fd) && (EACCES == saved_errno || EPERM == saved_errno)) {
@@ -3875,7 +3909,6 @@ socket_local_listen(const char *pathname)
 struct gnutella_socket *
 socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 {
-	static const int on = 1;
 	struct gnutella_socket *s;
 	int fd;
 
@@ -3895,17 +3928,13 @@ socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	if (-1 == setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)) {
-		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
-			G_STRFUNC, fd);
-	}
-
-	socket_set_linger(s->file_desc);
+	socket_set_keepalive(fd, G_STRFUNC);
+	socket_set_linger(fd, G_STRFUNC);
 
 	/* listen() the socket */
 
 	if (listen(fd, 5) == -1) {
-		g_warning("unable to listen() on the socket: %m");
+		g_warning("%s(): unable to listen() on the socket: %m", G_STRFUNC);
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
 	}
@@ -3920,8 +3949,8 @@ socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 		socket_addr_t addr;
 
 		if (0 != socket_addr_getsockname(&addr, fd)) {
-			g_warning("unable to get the port of the socket: "
-				"getsockname() failed: %m");
+			g_warning("%s(): unable to get the port of the socket: "
+				"getsockname() failed: %m", G_STRFUNC);
 			socket_destroy(s, "Can't probe socket for port");
 			return NULL;
 		}
@@ -3938,7 +3967,7 @@ socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 static void
 socket_enable_recvdstaddr(const struct gnutella_socket *s)
 {
-	static const int on = 1;
+	const int on = 1;
 	int fd;
 
 	socket_check(s);
