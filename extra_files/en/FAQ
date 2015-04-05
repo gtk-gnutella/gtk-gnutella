@@ -1,32 +1,30 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id$ -->
 <html>
-  <head>
-    <meta content="text/html; charset=windows-1252" http-equiv="content-type">
-    <title>gtk-gnutella FAQ</title>
-  </head>
-  <body>
+<head>
+<meta content="text/html; charset=windows-1252" http-equiv="content-type">
+<title>gtk-gnutella FAQ</title>
+</head>
+<body>
     <h1>FAQ</h1>
     <!--
   **  ** TOC  **  -->
     <h2>General</h2>
     <ul>
-      <li><a href="#general0">What is gnutella anyway?</a></li>
+<li><a href="#general0">What is gnutella anyway?</a></li>
       <li><a href="#general-G2">And what about G2?</a></li>
       <li><a href="#general-gtkg">What is GTKG?</a></li>
       <li><a href="#general1">This eats up too much bandwidth!</a></li>
       <li><a href="#general-ultrapeer">What are Ultrapeers and Leaf nodes?</a></li>
       <li><a href="#general-firewall">Why does gtk-gnutella claim it's
-          firewalled when it's not?</a> </li>
+          firewalled when it's not?</a></li>
     </ul>
-    <h2>Building from source</h2>
+<h2>Building from source</h2>
     <ul>
-      <li><a href="#build1"> How do I make Configure stop asking me all those
-          questions?</a> </li>
+<li><a href="#build1"> How do I make Configure stop asking me all those
+          questions?</a></li>
     </ul>
-    <h2>Gnutella connections</h2>
+<h2>Gnutella connections</h2>
     <ul>
-      <li><a href="#gnet0">What is a good number of connections?</a></li>
+<li><a href="#gnet0">What is a good number of connections?</a></li>
       <li><a href="#gnet1">Do I need to forward a port on my firewall?</a></li>
       <li><a href="#gnet-forward-howto">How do I configure port forwarding?</a></li>
       <li><a href="#gnet-udp">Does gtk-gnutella use UDP?</a></li>
@@ -42,18 +40,18 @@
       <li><a href="#gnet8">How can I increase the timeouts?</a></li>
       <li><a href="#gnet-auto">How does auto mode decide between ultra and leaf?</a></li>
     </ul>
-    <h2>Searches</h2>
+<h2>Searches</h2>
     <ul>
-      <li><a href="#search0">How can I get more results?</a></li>
+<li><a href="#search0">How can I get more results?</a></li>
       <li><a href="#search3">How can I ignore files with no SHA1?</a></li>
       <li><a href="#search-entry">Where did the search entry box go?</a></li>
       <li><a href="#search-passive">What are "Passive" searches?</a></li>
       <li><a href="#search-local">How can I copy the magnet link of a file I'm
           sharing?</a></li>
     </ul>
-    <h2>Downloads</h2>
+<h2>Downloads</h2>
     <ul>
-      <li><a href="#down0">What does the status "Ignoring requested [SHA1|name
+<li><a href="#down0">What does the status "Ignoring requested [SHA1|name
           &amp; size]" mean?</a></li>
       <li><a href="#down1">What does the status "No URN on server" mean?</a></li>
       <li><a href="#down2">Why is the same file downloaded X times?</a></li>
@@ -66,24 +64,23 @@
       <li><a href="#down9">In the downloads pane, what does it mean if the color
           of the text is grey instead of black?</a></li>
     </ul>
-    <h2>Uploads</h2>
+<h2>Uploads</h2>
     <ul>
-      <li><a href="#up0">What does "Normalized" mean?</a></li>
+<li><a href="#up0">What does "Normalized" mean?</a></li>
     </ul>
-    <h2>GTK+ 2.x</h2>
+<h2>GTK+ 2.x</h2>
     <ul>
-      <li><a href="#gtk2_slow">Gtk2 is way sloooow.</a></li>
+<li><a href="#gtk2_slow">Gtk2 is way sloooow.</a></li>
       <li><a href="#gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></li>
     </ul>
-    <!--
-  **  ** Questions and answers below  **  -->
-    <hr>
-    <h2>General</h2>
+<!--
+  **  ** Questions and answers below  **  --><hr>
+<h2>General</h2>
     <h3><a name="general0">What is gnutella anyway?</a></h3>
-    <p> Gnutella is a decentralized Peer to Peer information exchanging network.
+    <p>Gnutella is a decentralized Peer to Peer information exchanging network.
       At the moment you can publish and download files of any kind using the
       Gnutella network. For more information, visit the <a href="http://www.wikipedia.org/wiki/Gnutella">Wikipedia
-        definition of Gnutella</a>. </p>
+        definition of Gnutella</a>.</p>
     <h3><a name="general-G2">And what about G2?</a></h3>
     <p><a href="http://www.wikipedia.org/wiki/Gnutella2">G2</a> is a
       peer-to-peer protocol inspired by Gnutella, developed mainly by Michael
@@ -93,37 +90,37 @@
       in addition to Gnutella. The equivalents of <a href="#general-ultrapeer">ultrapeers</a>
       are called <em>hubs</em> on the G2 network.</p>
     <h3><a name="general-gtkg">What is "GTKG?"</a></h3>
-    <p> We often refer to gtk-gnutella as GTKG or gtkg (because it's shorter).
-      GTK comes from GTK+ which is the graphical toolkit used by gtk-gnutella. </p>
+    <p>We often refer to gtk-gnutella as GTKG or gtkg (because it's shorter).
+      GTK comes from GTK+ which is the graphical toolkit used by gtk-gnutella.</p>
     <h3><a name="general1">This eats up too much bandwidth!</a></h3>
-    <p> At the moment you can try one or more of the following things if you are
-      a user on a slow line (modem): </p>
+    <p>At the moment you can try one or more of the following things if you are
+      a user on a slow line (modem):</p>
     <ul>
-      <li> Run as a leaf node. You change the peermode setting in the
+<li>Run as a leaf node. You change the peermode setting in the
         configuration panel under GnutellaNet. An icon in the statusbar
-        indicates in which mode you are running. </li>
-      <li> Limit the number of gnet connections you have. </li>
-      <li> If you are able to receive incoming connections, enable <em>Prefer
-          compressed connections</em> in the <em>Bandwidth</em> options. </li>
-      <li> Even if you are on a slow connection, it's still important to share
+        indicates in which mode you are running.</li>
+      <li>Limit the number of gnet connections you have.</li>
+      <li>If you are able to receive incoming connections, enable <em>Prefer
+          compressed connections</em> in the <em>Bandwidth</em> options.</li>
+      <li>Even if you are on a slow connection, it's still important to share
         files. With <a href="#down3">swarming</a>, people can upload small
         chunks of files from you, so even a slow connection, multiplied by many
         sources on the gnet, makes a tremendous contribution. If you have a 56K
         modem, you can set <em>Bandwidth limits for HTTP traffic</em> - <em>Cumulative
           upload rate</em> to 1K/s so you still have the majority of your
-        bandwidth for downloading. </li>
-      <li> Depress the lower-left button in the GUI after your downloads have
+        bandwidth for downloading.</li>
+      <li>Depress the lower-left button in the GUI after your downloads have
         started. This will disconnect from the Gnutella network. We strongly
         advise you to NOT do that. You won't be able to get more alternate
-        locations from the net and people won't be able to search your files. </li>
+        locations from the net and people won't be able to search your files.</li>
     </ul>
-    <h3><a name="general-ultrapeer">What are Ultrapeers and Leaf nodes?</a></h3>
-    <p> Since version 0.92, gtk-gnutella has implemented <em>ultrapeers</em>
+<h3><a name="general-ultrapeer">What are Ultrapeers and Leaf nodes?</a></h3>
+    <p>Since version 0.92, gtk-gnutella has implemented <em>ultrapeers</em>
       and <em>leaf nodes</em>. This divides servents on the gnet into leaf
       nodes, which connect only to ultrapeers, and ultrapeers, which connect to
       many leaf nodes and a small number of other ultrapeers (see <a href="#gnet0">What
-        is a good number of connections?</a>). </p>
-    <p> Ultrapeers must not be not firewalled, are expected to have long uptimes
+        is a good number of connections?</a>).</p>
+    <p>Ultrapeers must not be not firewalled, are expected to have long uptimes
       (more than two hours), and have sufficient surplus bandwidth to donate to
       the gnet. Ultrapeers forward queries from their leaf nodes and leaf nodes
       upload to their ultrapeers QRP tables which contain hashes of keywords
@@ -132,10 +129,10 @@
       The result is very low gnet traffic for each leaf node, freeing bandwidth
       for sharing and downloading (which still occur directly p2p.) Ultrapeers
       can also act as <a href="#down_push">push-proxies</a> for firewalled leaf
-      nodes. </p>
+      nodes.</p>
     <h3><a name="general-firewall">Why does gtk-gnutella claim it's firewalled
-        when it's not?</a> </h3>
-    <p> gtk-gnutella needs to receive an incoming connection to determine if you
+        when it's not?</a></h3>
+    <p>gtk-gnutella needs to receive an incoming connection to determine if you
       can be reached from the outside. Until then, it's assumed that there's a
       firewall which blocks the configured listening TCP port. If you want to
       speed up the detection, use a web browser, telnet or similar and connect
@@ -144,22 +141,22 @@
       which blocks the port, a misconfigured NAT or similar. You might want to
       try a different listening TCP port because some ISPs block the default
       Gnutella port (6346). See also, <a href="#gnet1"><q>Do I need to forward
-          a port on my firewall?</q></a>. </p>
+          a port on my firewall?</q></a>.</p>
     <h2>Building from source</h2>
     <h3><a name="build1">How do I make Configure stop asking me all those
         questions?</a></h3>
-    <p> You can run the <code>Configure</code> script in the following way to
+    <p>You can run the <code>Configure</code> script in the following way to
       make it use the default settings. It then behaves as calling the old <code>configure</code>
-      script from autoconf did back in the old days. </p>
-    <p> <code>$ ./Configure -ders</code> </p>
-    <p> You can set compile options on the command line too. Here is an example
-      that will configure gtk-gnutella to </p>
+      script from autoconf did back in the old days.</p>
+    <p><code>$ ./Configure -ders</code></p>
+    <p>You can set compile options on the command line too. Here is an example
+      that will configure gtk-gnutella to</p>
     <ul>
-      <li> accept custom settings (<code>-O</code>). Without this all the
-        parameters below won't have an effect. </li>
-      <li> use the Gtk1 frontend, activate the remote shell (<code>-D
-          gtkversion=1 -D remotectrl=y</code>) </li>
-      <li> compile for a pentium with MMX support (<code>-Dccflags="-march=pentium
+<li>accept custom settings (<code>-O</code>). Without this all the
+        parameters below won't have an effect.</li>
+      <li>use the Gtk1 frontend, activate the remote shell (<code>-D
+          gtkversion=1 -D remotectrl=y</code>)</li>
+      <li>compile for a pentium with MMX support (<code>-Dccflags="-march=pentium
 
 
 
@@ -175,40 +172,38 @@
 
 
 
-          -mmmx"</code>). </li>
-      <li> compile in debugging information while turning off all compiler
-        optimizations (<code>-Doptimize="-g -O0"</code>). </li>
+          -mmmx"</code>).</li>
+      <li>compile in debugging information while turning off all compiler
+        optimizations (<code>-Doptimize="-g -O0"</code>).</li>
     </ul>
-    <p> <code>$ ./Configure -ders -O -D gtkversion=1 -D remotectrl=y
-        -Dccflags="-march=pentium -mmmx" -Doptimize="-g -O0"</code> </p>
+<p><code>$ ./Configure -ders -O -D gtkversion=1 -D remotectrl=y
+        -Dccflags="-march=pentium -mmmx" -Doptimize="-g -O0"</code></p>
     <h2>Gnutella connections</h2>
     <h3><a name="gnet0">What is a good number of connections?</a></h3>
-    <p> In <a href="#general-ultrapeer">leaf</a> mode 3 ultrapeers, in <a href="#general-ultrapeer">ultrapeer</a>
+    <p>In <a href="#general-ultrapeer">leaf</a> mode 3 ultrapeers, in <a href="#general-ultrapeer">ultrapeer</a>
       mode 32/40 (minimum/maximum) ultrapeers and around 100 leaf nodes. The
       actual number should depend on the available bandwidth. If you have set
       "Prefer compressed connections," bandwidth used will be much lower. You
       should never use up all your bandwidth with gnet connections. Especially
       on an asymmetric cable/DSL connection you can easily starve your incoming
       traffic by producing too much outgoing traffic (TCP/IP issue). Use at most
-      half of your outgoing bandwidth for gnet connections. </p>
-    <p> Since the adoption of "high outdegree" in version 0.95 you should have
+      half of your outgoing bandwidth for gnet connections.</p>
+    <p>Since the adoption of "high outdegree" in version 0.95 you should have
       32/40 connections to other ultrapeers. The number of leaf connections to
       use depends on your bandwidth and the speed of your cpu. As an absolute
       minimum an ultrapeer should connect to 20 leaf nodes and it's much better
       to connect to 100 or more. Watch the bandwidth odometers on the lower left
       of the gui and use the top command to keep track of cpu usage. Increase
       the number of leaf connections until you reach the maximum amount of
-      bandwidth and system resources you wish to devote to this purpose. </p>
-    <p> The bandwidth control settings will help you further fine-tune
-      gtk-gnutella's bandwidth usage. </p>
+      bandwidth and system resources you wish to devote to this purpose.</p>
+    <p>The bandwidth control settings will help you further fine-tune
+      gtk-gnutella's bandwidth usage.</p>
     <h3><a name="gnet1">Do I need to forward a port on my firewall?</a></h3>
-    <p> You don't need to forward any ports for gtk-gnutella to work, but it
+    <p>You don't need to forward any ports for gtk-gnutella to work, but it
       will perform much better if you do. If gtk-gnutella thinks you are
       firewalled, it will not show any <a href="#down_push">"push"</a> results
-      since you wouldn't be able to download those anyway.<br>
-      Even when people cannot connect directly to you, they can still download
-      files from your node using a <a href="#down_push">push request</a>.<br>
-      You can configure the port gtk-gnutella listens on. The setting <em>Listen
+      since you wouldn't be able to download those anyway.<br>Even when people cannot connect directly to you, they can still download
+      files from your node using a <a href="#down_push">push request</a>.<br>You can configure the port gtk-gnutella listens on. The setting <em>Listen
 
 
 
@@ -224,18 +219,16 @@
 
 
 
-        port</em> is located in the <em>File-&gt;Preferences-&gt;Network</em>.
-    </p>
+        port</em> is located in the <em>File-&gt;Preferences-&gt;Network</em>.</p>
     <h3><a name="gnet-forward-howto">How do I configure port forwarding?</a></h3>
-    <p> You can find instructions for most popular routers at <a href="http://www.portforward.com/routers.htm">http://www.portforward.com/routers.htm</a>.
+    <p>You can find instructions for most popular routers at <a href="http://www.portforward.com/routers.htm">http://www.portforward.com/routers.htm</a>.
       Try <a href="http://www.canyouseeme.org/">http://www.canyouseeme.org/</a>
-      to check your port forwarding. </p>
+      to check your port forwarding.</p>
     <h3><a name="gnet-udp">Does gtk-gnutella use UDP?</a></h3>
-    <p> Yes, starting with version 0.95 gtk-gnutella can also use <a href="http://www.faqs.org/rfcs/rfc768.html">UDP</a>
-      in addition to <a href="http://www.faqs.org/rfcs/rfc793.html">TCP</a>. </p>
+    <p>Yes, starting with version 0.95 gtk-gnutella can also use <a href="http://www.faqs.org/rfcs/rfc768.html">UDP</a>
+      in addition to <a href="http://www.faqs.org/rfcs/rfc793.html">TCP</a>.</p>
     <h3><a name="gnet2">What does "[FC]" mean?</a></h3>
-    <p> The <em>FC</em> means "flow control".<br>
-      In general, you should make sure that servents to which you are connected
+    <p>The <em>FC</em> means "flow control".<br>In general, you should make sure that servents to which you are connected
       do not flow control. Watch for the trailing <em>[FC]</em> indication at
       the end of the <em>Info</em> string (you may need to drag the right edge
       past the window to trigger the underlying scroll bar), or look at the FC
@@ -244,15 +237,15 @@
       have enough outgoing bandwidth dedicated to gnet, and therefore you are
       harming the network: either decrease the amount of connections, enable the
       <em>Prefer compressed connections</em> option or raise the outgoing
-      bandwidth limit. </p>
+      bandwidth limit.</p>
     <h3><a name="gnet3">Why do I lose gnet connections when I have an upload?</a></h3>
-    <p> Try to do bandwidth limiting. If that doesn't help, maybe your provider
+    <p>Try to do bandwidth limiting. If that doesn't help, maybe your provider
       throttles gnutella traffic. Try changing your gnutella port in the network
-      settings of gtk-gnutella. </p>
+      settings of gtk-gnutella.</p>
     <h3><a name="gnet4">What does the stuff in the Flags column mean?</a></h3>
-    <p> You can see the type and some of the settings of a connection here. Note
-      push-proxies are implemented in 0.92.1c and later. </p>
-    <pre>  012345678AB (offset)
+    <p>You can see the type and some of the settings of a connection here. Note
+      push-proxies are implemented in 0.92.1c and later.</p>
+    <pre>012345678AB (offset)
   NIrwqxZPFhE
   ||||||||||+ indicates a TLS <strong>E</strong>ncrypted connection
   |||||||||+- hops flow triggered (<strong>h</strong>), or total query flow control (<strong>f</strong>)
@@ -264,82 +257,79 @@
   |||+------- indicates whether node is <strong>w</strong>ritable
   ||+-------- indicates whether node is <strong>r</strong>eadable
   |+--------- connection type: (<strong>I</strong>ncoming, <strong>O</strong>utgoing, <strong>P</strong>onging)
-  +---------- peer mode: G2 <strong>H</strong>ub, <strong>U</strong>ltra, <strong>L</strong>eaf, or Legacy (a.k.a. <strong>N</strong>ormal)
-</pre>
+  +---------- peer mode: G2 <strong>H</strong>ub, <strong>U</strong>ltra, <strong>L</strong>eaf, or Legacy (a.k.a. <strong>N</strong>ormal)</pre>
     <h3><a name="gnet-user-agent">What's the meaning of a leading "!" in the
         User-Agent name?</a></h3>
-    <p> This indicates that the User-Agent name is <em>possibly</em> faked but
-      it could be a false-positive caused by a bad clock on either side. </p>
+    <p>This indicates that the User-Agent name is <em>possibly</em> faked but
+      it could be a false-positive caused by a bad clock on either side.</p>
     <h3><a name="gnet5">What does "Harmful version banned, upgrade required"
         mean?</a></h3>
-    <p> Sometimes, servents are discovered to have a bug or behaviour that is
+    <p>Sometimes, servents are discovered to have a bug or behaviour that is
       harmful to the gnet. For example, gtk-gnutella-0.92b had a bug that
       generated excessive queries which hammered on the GWebCache system. Such
       banning is exceptional, usually restricted to specific versions, and the
-      servent's author is informed about the banning. </p>
+      servent's author is informed about the banning.</p>
     <h3><a name="gnet6">What does "Outdated version, please upgrade" mean?</a></h3>
-    <p> It is important to upgrade versions of gtk-gnutella which are older than
+    <p>It is important to upgrade versions of gtk-gnutella which are older than
       one year since they lack features that are important to the rapidly
-      evolving gnet's health and scalability. </p>
+      evolving gnet's health and scalability.</p>
     <h3><a name="gnet7">Why doesn't my HTTP proxy work?</a></h3>
-    <p> Your HTTP proxy must support the method <code>CONNECT</code> because a
+    <p>Your HTTP proxy must support the method <code>CONNECT</code> because a
       normal <code>GET</code> doesn't work with Gnutella connections. This is
       an extension to the HTTP protocol and mainly supported by SQUID proxies.
       It's also often deactivated because it might be considered a security
       problem by your provider. At the moment, the proxy support - also for
       SOCKS - isn't very good. The developers don't use proxies but if you think
-      you can fix it, we would appreciate your patches. </p>
+      you can fix it, we would appreciate your patches.</p>
     <h3><a name="gnet8">How can I increase the timeouts?</a></h3>
-    <p> If your internet connection suffers from high latency it might help to
+    <p>If your internet connection suffers from high latency it might help to
       increase the timeouts. Go to <em>File-&gt;Preferences-&gt;User Interface</em>
       and tick <em>Expert mode</em>. Now, you'll find a lot more settings to
-      change when you go to <em>File-&gt;Preferences-&gt;Gnutella</em>. </p>
+      change when you go to <em>File-&gt;Preferences-&gt;Gnutella</em>.</p>
     <h3><a name="gnet-auto">How does auto mode decide between ultra and leaf?</a></h3>
-    <p> In order to be promoted to <a href="#general-ultrapeer">ultra mode</a>
-      the following conditions must be met: </p>
+    <p>In order to be promoted to <a href="#general-ultrapeer">ultra mode</a>
+      the following conditions must be met:</p>
     <ol>
-      <li> There must be more than 8192 bytes/s outgoing bandwidth available. </li>
-      <li> If bandwidth schedulers are enabled, leaf nodes must not be
-        configured to steal all the HTTP outgoing bandwidth. </li>
-      <li> If Gnet out scheduler is enabled, there must be at least 256 bytes/s
-        per gnet connection (ultrapeer or normal aka legacy). </li>
-      <li> Overall, there must be 32 bytes/s per configured leaf plus 256
-        bytes/s per gnet connection available. </li>
+<li>There must be more than 8192 bytes/s outgoing bandwidth available.</li>
+      <li>If bandwidth schedulers are enabled, leaf nodes must not be
+        configured to steal all the HTTP outgoing bandwidth.</li>
+      <li>If Gnet out scheduler is enabled, there must be at least 256 bytes/s
+        per gnet connection (ultrapeer or normal aka legacy).</li>
+      <li>Overall, there must be 32 bytes/s per configured leaf plus 256
+        bytes/s per gnet connection available.</li>
     </ol>
-    <h2>Searches</h2>
+<h2>Searches</h2>
     <h3><a name="search0">How can I get more results?</a></h3>
-    <p> The number of results you get depends heavily on whether people are able
-      to connect to you (see <a href="#gnet1">port forwarding</a>) and on the <a
-        href="#gnet0">number of connections</a> to other hosts. </p>
+    <p>The number of results you get depends heavily on whether people are able
+      to connect to you (see <a href="#gnet1">port forwarding</a>) and on the <a href="#gnet0">number of connections</a> to other hosts.</p>
     <h3><a name="search3">How can I ignore files with no SHA1?</a></h3>
-    <p> Click with right mouse button on a search result without a SHA1 and
+    <p>Click with right mouse button on a search result without a SHA1 and
       select "Drop results...-&gt;with the same urn:sha1" from the popup menu.
       That will drop all results with this SHA1 - in this case none - from your
-      results. You'll miss a lot of spam. </p>
+      results. You'll miss a lot of spam.</p>
     <h3><a name="search-entry">Where did the search entry box go?</a></h3>
-    <p> Searches are now entered in the <q><em>Search:</em></q> box in the
-      sidebar. </p>
+    <p>Searches are now entered in the <q><em>Search:</em></q> box in the
+      sidebar.</p>
     <h3><a name="search-passive">What are "Passive" searches?</a></h3>
-    <p> A <q><em>passive</em></q> search will return all the search results
+    <p>A <q><em>passive</em></q> search will return all the search results
       that pass through gtk-gnutella. By filtering these results, passive
-      searches can be useful. </p>
-    <p> If you are in <a href="#general-ultrapeer">ultra</a> mode, many search
+      searches can be useful.</p>
+    <p>If you are in <a href="#general-ultrapeer">ultra</a> mode, many search
       results are already passing through your node besides the ones for your
       own searches. You can take advantage of this to make searches without
-      generating any extra gnet traffic. For example, on my ultrapeer with 200 <a
-        href="#general-ultrapeer">leaf nodes</a>, I opened a passive search and
+      generating any extra gnet traffic. For example, on my ultrapeer with 200 <a href="#general-ultrapeer">leaf nodes</a>, I opened a passive search and
       filtered the results to display only hits with the name <q><em>linux</em></q>.
       Within an hour or so I had about 1500 results. Obviously, the more popular
       the search, and the more patient you are, the more useful this technique
-      is. </p>
-    <p> If you are in leaf mode, then the only search results that will pass
+      is.</p>
+    <p>If you are in leaf mode, then the only search results that will pass
       through gtk-gnutella will be those from your own searches, so the above
       technique won't be useful. But there is another way to use passive
       searches that is only useful in leaf mode. For example, if you start a
       passive search and filter it to display only mp3 files, then all mp3 files
       from all your open searches will be conveniently aggregated in one search
       window. By opening more passive searches with different filters, you can
-      display different file types in each. </p>
+      display different file types in each.</p>
     <h3><a name="search-local">How can I copy the magnet link of a file I'm
         sharing?</a></h3>
     <p>Do a search with the <code>local:.</code> keyword. The "." is a regular
@@ -349,99 +339,95 @@
     <h3>Downloads</h3>
     <h3><a name="down0">What does the status "Ignoring requested [SHA1|name
         &amp; size]" mean?</a></h3>
-    <p> This means that gtk-gnutella has that file recorded as complete in its
+    <p>This means that gtk-gnutella has that file recorded as complete in its
       database. This database is usually located in <code>~/.gtk-gnutella/done.sha1</code>
       and <code>~/.gtk-gnutella/done.namesize</code>. At the moment, there is
       no way to remove or modify an entry of that database from the gui, but you
       can edit the file with any text editor while gtk-gnutella is not running.
       If you add or remove something from one of the files, do the same to the
-      other. </p>
+      other.</p>
     <h3><a name="down1">What does the status "No URN on server" mean?</a></h3>
-    <p> This means that gtk-gnutella wants to download a new file from a host,
+    <p>This means that gtk-gnutella wants to download a new file from a host,
       but that host does not provide a SHA1 hash for the file. Since the file is
       new (not yet partially downloaded), gtk-gnutella cannot do an overlap
       check to verify that the file on the host is really the file you want. In
       such a case it relies on the SHA1 provided by the remote host, but if no
       SHA1 is supplied, then gtk-gnutella has no way of assuring that the file
       it wants to download and the file on the remote server are really the
-      same.<br>
-      If you get annoyed by those messages you can activate the <em>Optimistic
+      same.<br>If you get annoyed by those messages you can activate the <em>Optimistic
         first chunk</em> option in <em>File-&gt;Preferences-&gt;Downloads</em>
       (first you'll need to go to <em>Settings-&gt;Preferences-&gt;User
-        Interface</em> and tick <em>Expert mode</em>). </p>
+        Interface</em> and tick <em>Expert mode</em>).</p>
     <h3><a name="down2">Why is the same file downloaded X times?</a></h3>
-    <p> Check the <em>Range</em> column. This is called <a href="#down3">swarming</a>.
+    <p>Check the <em>Range</em> column. This is called <a href="#down3">swarming</a>.
       gtk-gnutella tries to get the file in <a href="#down4">chunks</a> and
-      will get it from multiple hosts in parallel, if possible. </p>
+      will get it from multiple hosts in parallel, if possible.</p>
     <h3><a name="down3">What is "swarming"?</a></h3>
-    <p> Swarming describes the ability to download a single file from multiple
+    <p>Swarming describes the ability to download a single file from multiple
       hosts in parallel. gtk-gnutella will automatically try to find additional
       sources for any queued file using the <a href="#down5">download mesh</a>
-      and by monitoring routed results. </p>
+      and by monitoring routed results.</p>
     <h3><a name="down4">What is a "chunk"?</a></h3>
-    <p> A <em>chunk</em> is another word for <em>part of a file</em>. When
+    <p>A <em>chunk</em> is another word for <em>part of a file</em>. When
       gtk-gnutella runs in <a href="#down3">swarming mode</a> it will retrieve
       multiple chunks of a downloading file until it has downloaded the complete
       file. The <em>Range</em> column shows you which chunk you are currently
-      downloading. </p>
+      downloading.</p>
     <h3><a name="down5">What is the "download mesh"?</a></h3>
-    <p> When you download a file from a host that supports the download mesh, it
+    <p>When you download a file from a host that supports the download mesh, it
       will tell you about additional sources for the requested file (provided it
-      knows of any). Those will then be used for <a href="#down3">swarming</a>.
-    </p>
+      knows of any). Those will then be used for <a href="#down3">swarming</a>.</p>
     <h3><a name="down_push">What is a "push request"?</a></h3>
-    <p> The <em>push request</em> is a facility to download files from hosts
+    <p>The <em>push request</em> is a facility to download files from hosts
       you cannot connect to directly (because they are firewalled). Well, you
       cannot connect to those hosts, but they probably can connect to you. To
       tell a remote host to connect to your host so that you can download a file
-      from the remote host you send a push request to it.<br>
-      If you download a file using a push request and you loose contact to the
+      from the remote host you send a push request to it.<br>If you download a file using a push request and you loose contact to the
       host which originally returned the result for that file to you, then the <em>push
         route</em> is lost and you can no longer download this file. Therefore
       push routes are quite fragile. You can't make use of push requests when
-      you are behind a firewall (see <a href="#gnet1">port forwarding</a>). </p>
+      you are behind a firewall (see <a href="#gnet1">port forwarding</a>).</p>
     <h3><a name="down7">Why does gtk-gnutella append a .OK to my file names?</a></h3>
-    <p> You probably haven't set up different directories for downloaded files,
-      temporary files and bad files. </p>
+    <p>You probably haven't set up different directories for downloaded files,
+      temporary files and bad files.</p>
     <h3><a name="down8">I got a file that just won't download!</a></h3>
-    <p> If you don't see a smiling yellow icon with sunglasses in the statusbar,
-      you should try to change that. See the section about <a href="#gnet1">firewalls</a>.
-    </p>
-    <p> Otherwise if gtk-gnutella says it has only a few sources for the file
+    <p>If you don't see a smiling yellow icon with sunglasses in the statusbar,
+      you should try to change that. See the section about <a href="#gnet1">firewalls</a>.</p>
+    <p>Otherwise if gtk-gnutella says it has only a few sources for the file
       (best seen in the fileinfo subtab in the downloads pane) then this can
-      have two reasons: </p>
+      have two reasons:</p>
     <ul>
-      <li>the file is a rare one</li>
-      <li> You selected a version of the file that is unique. Chances are that
+<li>the file is a rare one</li>
+      <li>You selected a version of the file that is unique. Chances are that
         there may be a more common version. A file can become unique e.g. when
         somebody changes the mp3info on an mp3 file or otherwise does some
-        custom modification to the file. </li>
+        custom modification to the file.</li>
     </ul>
-    <p> You can try to search for the file again and see if you find another
+<p>You can try to search for the file again and see if you find another
       version which is more common. It's usually a good indication if the "#"
       shows a number for a file. The larger the number, the better are the
-      chances that you can get it quickly. </p>
+      chances that you can get it quickly.</p>
     <h3><a name="down9">In the downloads pane, what does it mean if the color of
         the text is grey instead of black?</a></h3>
-    <p> It means that the file is received over a <a href="#down_push">push
-        route</a>. </p>
+    <p>It means that the file is received over a <a href="#down_push">push
+        route</a>.</p>
     <h2>Uploads</h2>
     <h3><a name="up0">What does "Normalized" mean?</a></h3>
-    <p> This shows the total amount of bytes uploaded for the file divided by
-      the file size. </p>
+    <p>This shows the total amount of bytes uploaded for the file divided by
+      the file size.</p>
     <h2>GTK+ 2.x</h2>
     <h3><a name="gtk2_slow">Gtk2 is way sloooow.</a></h3>
-    <p> Set the environment variable <code>GDK_USE_XFT</code> to 0 and see
+    <p>Set the environment variable <code>GDK_USE_XFT</code> to 0 and see
       whether this helps. This turns off anti aliasing in Gtk2 which can use a
       lot of cpu. The Gtk2 frontend is much slower than the Gtk1 frontend. So on
-      a slow machine, you should consider using the Gtk1 frontend. </p>
+      a slow machine, you should consider using the Gtk1 frontend.</p>
     <h3><a name="gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></h3>
-    <p> Set the environment variable <code>LC_CTYPE</code> or <code>LC_ALL</code>
+    <p>Set the environment variable <code>LC_CTYPE</code> or <code>LC_ALL</code>
       to an appropriate value for the encoding you use. For example, if you use
       special German characters in your filenames, set it to <code>de_DE.ISO8859-1</code>.
       The valid values depend on your operating system, see the manpage
       setlocale(3) for details. Ideally, everyone would use UTF-8 encoding which
-      covers nearly all languages. </p>
+      covers nearly all languages.</p>
     <!-- end faq -->
     <!-- vi: set et ts=2 sw=2: -->
   </body>
