@@ -2035,6 +2035,7 @@ s_close(socket_fd_t fd)
 	int res = closesocket(fd);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
+	fd_notify_socket_closed(fd);
 	return res;
 }
 
