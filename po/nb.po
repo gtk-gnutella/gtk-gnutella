@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-03-02 23:04+0100\n"
+"POT-Creation-Date: 2015-04-05 19:55+0200\n"
 "PO-Revision-Date: 2014-05-15 08:48+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Norwegian Bokmål (http://www.transifex.com/projects/p/gtk-"
@@ -85,6 +85,9 @@ msgstr "Ingen flere huller å fylle"
 
 msgid "Download queue is frozen"
 msgstr "Nedlastingskøen er frosset"
+
+msgid "Network buffer shortage"
+msgstr ""
 
 msgid "No download slot (start)"
 msgstr "Ingen nedlastingsplass (start)"
@@ -758,6 +761,10 @@ msgstr "Fikk filslutt"
 
 msgid "TLS handshake failed"
 msgstr ""
+
+#, fuzzy
+msgid "Connection locally failed"
+msgstr "Tilkobling feilet"
 
 msgid "Write failed (Input Exception)"
 msgstr "Skrivefeil (Inndatafeil)"
@@ -2722,8 +2729,8 @@ msgstr ""
 "for tidlig 10 ganger, som gir en god balanse mellom beskyttelse mot misbruk "
 "og støtte for gamle programmer."
 
-msgid "For development use: track properties."
-msgstr "For utviklere: spor verdier."
+msgid "Indicates a kernel network buffer shortage."
+msgstr ""
 
 msgid "For development use: don't add new hosts to the host cache."
 msgstr "For utviklere: ikke legg til nye maskiner i vertsminnet."
@@ -9332,6 +9339,9 @@ msgstr "*** DETTE ER EN GAMMEL VERSJON ***"
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
 msgstr "*** PROSESSOREN ER OVERLASTET; PRØVER Å SPARE ***"
 
+msgid "*** KERNEL BUFFER SHORTAGE -- LIMITING TCP CONNECTIONS ***"
+msgstr ""
+
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** OPPLASTINGER STOPPER; BÅNDBREDDEMANGEL? ***"
 
@@ -9450,3 +9460,6 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "For development use: track properties."
+#~ msgstr "For utviklere: spor verdier."

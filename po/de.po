@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-03-02 23:04+0100\n"
+"POT-Creation-Date: 2015-04-05 19:55+0200\n"
 "PO-Revision-Date: 2014-05-15 08:48+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: German (http://www.transifex.com/projects/p/gtk-gnutella/"
@@ -84,6 +84,9 @@ msgstr "Keine weiteren Lücken zu füllen"
 
 msgid "Download queue is frozen"
 msgstr "Download-Queue ist eingefroren"
+
+msgid "Network buffer shortage"
+msgstr ""
 
 msgid "No download slot (start)"
 msgstr "Kein freier Download-Slot (Start)"
@@ -759,6 +762,10 @@ msgstr "EOF erhalten"
 
 msgid "TLS handshake failed"
 msgstr ""
+
+#, fuzzy
+msgid "Connection locally failed"
+msgstr "Verbindungversuch fehlgeschlagen"
 
 msgid "Write failed (Input Exception)"
 msgstr "Schreiben fehlgeschlagen (Eingabefehler)"
@@ -2706,8 +2713,8 @@ msgid ""
 "support."
 msgstr ""
 
-msgid "For development use: track properties."
-msgstr "Für Entwickler: Properties verfolgen"
+msgid "Indicates a kernel network buffer shortage."
+msgstr ""
 
 msgid "For development use: don't add new hosts to the host cache."
 msgstr "Für Entwickler: Keine neuen Hosts zum Host-Catcher hinzufügen."
@@ -9204,6 +9211,9 @@ msgstr "*** ALTE VERSION IM BETRIEB! ***"
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
 msgstr ""
 
+msgid "*** KERNEL BUFFER SHORTAGE -- LIMITING TCP CONNECTIONS ***"
+msgstr ""
+
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr ""
 
@@ -9322,3 +9332,6 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#~ msgid "For development use: track properties."
+#~ msgstr "Für Entwickler: Properties verfolgen"
