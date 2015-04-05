@@ -175,6 +175,9 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 #ifdef EDQUOT
 	case EDQUOT:
 #endif /* EDQUOT */
+#ifdef ESHUTDOWN
+	case ESHUTDOWN:
+#endif	/* ESHUTDOWN */
 	case EACCES:
 	case EFBIG:
 	case EHOSTDOWN:

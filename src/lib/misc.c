@@ -2389,6 +2389,9 @@ symbolic_errno(int errnum)
 #ifdef ENOTBLK
 	CASE(ENOTBLK);
 #endif
+#ifdef ESHUTDOWN
+	CASE(ESHUTDOWN);
+#endif
 	}
 #undef CASE
 

@@ -2591,6 +2591,12 @@ mingw_posix_strerror(int errnum)
 	case EILSEQ:	return "Illegal byte sequence";
 	case EOVERFLOW:	return "Value too large to be stored in data type";
 	case EIDRM:		return "Identifier removed";	/* Emulated */
+
+	/*
+	 * Non-POSIX error codes for which we want our own message...
+	 */
+	case ESHUTDOWN:	return "Transport endpoint already shutdown";
+
 	default:		return NULL;
 	}
 
