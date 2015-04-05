@@ -3129,6 +3129,25 @@ socket_set_reuseaddr(socket_fd_t fd, const char *caller)
 }
 
 /**
+ * Set IPV6_V6ONLY on the socket file descriptor.
+ */
+static void
+socket_set_ipv6only(socket_fd_t fd, const char *caller)
+{
+#if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
+	const int on = 1;
+
+	if (-1 == setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &on, sizeof on)) {
+		g_warning("%s(): setsockopt(%d, SOL_IPV6, IPV6_V6ONLY) failed: %m",
+			caller, (int) fd);
+	}
+#else	/* !HAS_IPV6 || !IPV6_V6ONLY */
+	(void) fd;
+	(void) caller;
+#endif	/* HAS_IPV6 && IPV6_V6ONLY */
+}
+
+/**
  * Verify that connection can be made to an addr.
  * @return 0 if OK.
  */
@@ -3705,18 +3724,11 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		socket_failed = TRUE;
 		saved_errno = errno;
 	} else {
-		const int enable = 1;
 		socket_addr_t addr;
 		socklen_t len;
 
-#if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
-		if (
-			host_addr_is_ipv6(bind_addr) &&
-			setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
-		) {
-			g_warning("%s(): setsockopt(IPV6_V6ONLY) failed: %m", G_STRFUNC);
-		}
-#endif /* HAS_IPV6 && IPV6_V6ONLY */
+		if (host_addr_is_ipv6(bind_addr))
+			socket_set_ipv6only(fd, G_STRFUNC);
 
 		/* bind() the socket */
 		socket_failed = FALSE;
