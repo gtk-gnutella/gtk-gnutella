@@ -3133,15 +3133,16 @@ socket_set_reuseaddr(socket_fd_t fd, const char *caller)
  * @return 0 if OK.
  */
 static int
-socket_connection_allowed(const host_addr_t addr, enum socket_type type)
+socket_connection_allowed(
+	const host_addr_t addr, enum socket_type type, const char *caller)
 {
 	unsigned flag = 0;
 
 	if (hostiles_is_bad(addr)) {
 		if (GNET_PROPERTY(socket_debug)) {
 			hostiles_flags_t flags = hostiles_check(addr);
-			g_warning("not connecting [%s] to hostile host %s (%s)",
-				socket_type_to_string(type), host_addr_to_string(addr),
+			g_warning("%s(): not connecting [%s] to hostile host %s (%s)",
+				caller, socket_type_to_string(type), host_addr_to_string(addr),
 				hostiles_flags_to_string(flags));
 		}
 		errno = EPERM;
@@ -3157,8 +3158,8 @@ socket_connection_allowed(const host_addr_t addr, enum socket_type type)
 		flag = ctl_limit(addr, CTL_D_STEALTH) ? CTL_D_GNUTELLA : 0;
 		break;
 	default:
-		g_warning("socket_connect_prepare(): unexpected type \"%s\"",
-			socket_type_to_string(type));
+		g_warning("%s(): unexpected type \"%s\"",
+			caller, socket_type_to_string(type));
 		flag = CTL_D_OUTGOING;
 		break;
 	}
@@ -3208,7 +3209,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	}
 
 	if (!(s->flags & SOCK_F_FORCE) && is_host_addr(addr)) {
-		if (0 != socket_connection_allowed(addr, type))
+		if (0 != socket_connection_allowed(addr, type, G_STRFUNC))
 			return -1;
 		flags |= SOCK_F_PREPARED;
 	}
@@ -3340,7 +3341,7 @@ socket_connect_finalize(struct gnutella_socket *s,
 	 */
 
 	if (!(s->flags & (SOCK_F_FORCE | SOCK_F_PREPARED))) {
-		if (0 != socket_connection_allowed(ha, s->type))
+		if (0 != socket_connection_allowed(ha, s->type, G_STRFUNC))
 			goto failure;	/* Not connecting to hostile host */
 	}
 
