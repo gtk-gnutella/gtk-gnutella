@@ -2345,13 +2345,13 @@ mingw_valloc(void *hint, size_t size)
 			/* We don't want a stacktrace, use s_minilog() directly */
 			s_minilog(G_LOG_LEVEL_CRITICAL,
 				"%s(): allocating %'zu bytes when %'zu are already used "
-					"(upper threshold was set at %s) with %'zu allocated here "
-					"and %'zu allocated overall since startup "
-					"(%'zu in unreserved region)",
+					"with %'zu allocated here and %'zu allocated overall "
+					"since startup (%'zu in unreserved region, upper "
+					"threshold was set to %'zu)",
 				G_STRFUNC, size, committed,
-				compact_size(mingw_vmm.threshold, FALSE),
 				mingw_vmm.allocated, allocated,
-				size_saturate_sub(allocated, mingw_vmm.size));
+				size_saturate_sub(allocated, mingw_vmm.size),
+				mingw_vmm.threshold);
 
 			crash_restart("%s(): nearing out of memory condition", G_STRFUNC);
 			/* Continue nonetheless, restart may be asynchronous */
