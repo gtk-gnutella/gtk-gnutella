@@ -2978,7 +2978,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 static inline void
 socket_set_linger(socket_fd_t fd, const char *caller)
 {
-	g_assert(fd >= 0);
+	g_assert(is_valid_fd(fd));
 
 	if (!GNET_PROPERTY(use_so_linger))
 		return;
@@ -3107,6 +3107,8 @@ socket_set_keepalive(socket_fd_t fd, const char *caller)
 {
 	const int on = 1;
 
+	g_assert(is_valid_fd(fd));
+
 	if (-1 == setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)) {
 		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
 			caller, (int) fd);
@@ -3121,6 +3123,8 @@ socket_set_reuseaddr(socket_fd_t fd, const char *caller)
 {
 	const int on = 1;
 
+	g_assert(is_valid_fd(fd));
+
 	/* Linux absolutely wants this before bind() unlike BSD */
 	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on)) {
 		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
@@ -3134,6 +3138,8 @@ socket_set_reuseaddr(socket_fd_t fd, const char *caller)
 static void
 socket_set_ipv6only(socket_fd_t fd, const char *caller)
 {
+	g_assert(is_valid_fd(fd));
+
 #if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
 	const int on = 1;
 
@@ -3142,7 +3148,6 @@ socket_set_ipv6only(socket_fd_t fd, const char *caller)
 			caller, (int) fd);
 	}
 #else	/* !HAS_IPV6 || !IPV6_V6ONLY */
-	(void) fd;
 	(void) caller;
 #endif	/* HAS_IPV6 && IPV6_V6ONLY */
 }
