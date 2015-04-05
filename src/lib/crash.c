@@ -3118,6 +3118,7 @@ crash_reexec(void)
 }
 
 static cevent_t *crash_restart_ev;		/* Async restart event */
+static int crash_exit_started;
 
 /**
  * Callout queue event to force application restart.
@@ -3185,6 +3186,16 @@ crash_restart(const char *format, ...)
 	va_end(args);
 
 	/*
+	 * If we're on the exit path already for another reason, no need to
+	 * recurse into requesting another exit!
+	 */
+
+	if (atomic_int_get(&crash_exit_started)) {
+		s_miniinfo("%s(): already started exiting, ignoring.", G_STRFUNC);
+		return;
+	}
+
+	/*
 	 * If there is a restart callback, invoke it.
 	 *
 	 * Its exit status matters: a 0 means that an immediate restart should be
@@ -3230,11 +3241,16 @@ asynchronous:
  *
  * This routine can be called when there is a possibility to have asynchronous
  * shutdown requested by the restart callback: it cancels the timer after
- * which a forced and brutal shutdown wil occur.
+ * which a forced and brutal shutdown will occur.
+ *
+ * It also avoids recursion on the application exit path, so that any call to
+ * crash_restart() will be properly ignored.
  */
 void
 crash_restarting(void)
 {
+	atomic_int_inc(&crash_exit_started);
+
 	if (crash_restart_ev != NULL) {
 		cq_cancel(&crash_restart_ev);
 		s_miniinfo("%s(): auto-restart initiated...", G_STRFUNC);
