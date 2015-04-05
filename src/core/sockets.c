@@ -3291,8 +3291,6 @@ socket_connect_prepare(struct gnutella_socket *s,
 	socket_wio_link(s);
 
 	socket_set_keepalive(s->file_desc, G_STRFUNC);
-	socket_set_reuseaddr(s->file_desc, G_STRFUNC);
-
 	fd_set_nonblocking(s->file_desc);
 	set_close_on_exec(s->file_desc);
 	socket_set_linger(s->file_desc, G_STRFUNC);
