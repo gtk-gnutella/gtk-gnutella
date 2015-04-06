@@ -1939,8 +1939,10 @@ retry:
 
 		narray = alloc_pages(nsize, FALSE);	/* May recurse here */
 
-		if (NULL == narray)
-			crash_oom("cannot extend pmap: out of virtual memory");
+		if (NULL == narray) {
+			crash_oom("%s(): cannot extend pmap to %'zu bytes: "
+				"out of virtual memory", G_STRFUNC, nsize);
+		}
 
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
@@ -3922,8 +3924,10 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	}
 
 	p = alloc_pages(size, TRUE);
-	if (NULL == p)
-		crash_oom("cannot allocate %zu bytes: out of virtual memory", size);
+	if (NULL == p) {
+		crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
+			G_STRFUNC, size);
+	}
 
 	/* Memory allocated by the kernel is already zero-ed */
 
