@@ -443,6 +443,7 @@ static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
 static void *page_cache_find_pages(size_t n, bool emergency);
+static void page_cache_free_all(bool locked);
 
 /**
  * Put the VMM layer in crashing mode.
@@ -1630,15 +1631,44 @@ alloc_pages(size_t size, bool update_pmap)
 				G_STRFUNC, size);
 
 			/* Allocation from page cache: region is already in the pmap */
-			/* FALL THROUGH */
+			goto done;
 		}
 
+		/*
+		 * Critical situation: free all the pages from the page cache and
+		 * retry allocation.
+		 */
+
+		page_cache_free_all(TRUE);
+
+		if (update_pmap) {
+			if (G_UNLIKELY(stop_freeing)) {
+				hole = NULL;
+			} else {
+				hole = vmm_find_hole(size);
+			}
+		}
+
+		p = vmm_mmap_anonymous(size, hole);
+
+		if (p != NULL) {
+			/* We're going to crash and restart, don't update statistics */
+
+			crash_restart("%s(): emergency allocation of %'zu bytes after "
+				"clearing the page cache, requesting restart",
+				G_STRFUNC, size);
+
+			goto allocated;
+		}
+
+	done:
 		if (update_pmap)
 			rwlock_wunlock(&pm->lock);
 
 		return p;
 	}
 
+allocated:
 	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
 
 	if (vmm_debugging(5)) {
@@ -2832,22 +2862,6 @@ vpc_remove(struct page_cache *pc, const void *p)
 	idx = vpc_lookup(pc, p, NULL);
 	g_assert(idx != (size_t) -1);		/* Must have been found */
 	vpc_remove_at(pc, p, idx);
-}
-
-/**
- * Free page cached at given index in cache line.
- */
-static void
-vpc_free(struct page_cache *pc, size_t idx)
-{
-	void *p;
-
-	g_assert(size_is_non_negative(idx) && idx < pc->current);
-	g_assert(spinlock_is_held(&pc->lock));
-
-	p = pc->info[idx].base;
-	vpc_remove_at(pc, p, idx);
-	free_pages_forced(p, pc->chunksize);
 }
 
 /**
@@ -4642,6 +4656,51 @@ page_cache_timer(void *unused_udata)
 }
 
 /**
+ * Free all the pages in the page cache.
+ *
+ * @param locked	whether the pmap is already write-locked
+ */
+static void
+page_cache_free_all(bool locked)
+{
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(page_cache); i++) {
+		struct page_cache *pc = &page_cache[i];
+		size_t j;
+		void *freed[VMM_CACHE_SIZE];
+
+		/*
+		 * When the pmap is already write-locked, we cannot lock the page
+		 * cache or we risk a deadlock with page_cache_timer() which first
+		 * locks the cache lines and then attempts to write-lock the pmap.
+		 */
+
+		if (locked) {
+			if (!spinlock_try(&pc->lock)) {
+				size_t pages = pc->current;
+				s_miniwarn("%s(): skipping locked cache line #%zu "
+					"(%'zu bytes) with %zu page%s",
+					G_STRFUNC, i, pc->chunksize, pages, plural(pages));
+				continue;
+			}
+		} else {
+			spinlock(&pc->lock);
+		}
+
+		for (j = 0; j < pc->current; j++) {
+			freed[j] = pc->info[j].base;
+		}
+
+		free_pages_vector(freed, pc->current, pc->chunksize);
+		pc->expired += pc->current;
+		pc->current = 0;
+
+		spinunlock(&pc->lock);
+	}
+}
+
+/**
  * Get a protected region bearing a non-NULL address.
  *
  * This is used as the address of sentinel objects for which we can do
@@ -5438,18 +5497,7 @@ vmm_close(void)
 	 * Clear all cached pages.
 	 */
 
-	for (i = 0; i < VMM_CACHE_LINES; i++) {
-		struct page_cache *pc = &page_cache[i];
-		size_t j;
-
-		spinlock(&pc->lock);
-
-		for (j = 0; j < pc->current; j++) {
-			vpc_free(pc, j);
-		}
-
-		spinunlock(&pc->lock);
-	}
+	page_cache_free_all(FALSE);
 
 #ifdef TRACK_VMM
 	vmm_track_close();
