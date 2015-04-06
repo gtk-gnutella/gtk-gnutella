@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Jeroen Asselman & Raphael Manfredi
- * Copyright (c) 2012, 2013 Raphael Manfredi
+ * Copyright (c) 2012, 2013-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * @author Jeroen Asselman
  * @date 2010
  * @author Raphael Manfredi
- * @date 2010-2013
+ * @date 2010-2015
  */
 
 #include "common.h"
@@ -2419,6 +2419,37 @@ mingw_valloc(void *hint, size_t size)
 		s_minilog(G_LOG_LEVEL_CRITICAL,
 			"%s(): failed to commit %'zu bytes at %p: %m",
 			G_STRFUNC, size, hint);
+
+		/*
+		 * If errno is EFAULT and the hint was not NULL, then it means we have
+		 * selected an address that lies too close to the end of the initially
+		 * reserved memory segment, and it cannot be fully committed by the
+		 * kernel.
+		 *		--RAM, 2015-04-06
+		 */
+
+		if (hint != NULL && EFAULT == errno) {
+			/*
+			 * In order to allow the process to continue, we're going to try
+			 * to allocate memory outside our reserved region.  If we can,
+			 * we request a clean application restart.  Otherwise, we'll let
+			 * our caller handle the situation since there is nothing else
+			 * we can do from down here.
+			 *		--RAM, 2015-04-06
+			 */
+
+			p = VirtualAlloc(NULL, size,
+					MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+			if (p != NULL) {
+				crash_restart("%s(): had to allocate %'zu bytes "
+					"outside reserved region at %p", G_STRFUNC, size, p);
+				goto allocated;
+			}
+
+			/* FALL THROUGH, p is still NULL */
+		}
+
 		goto failed;
 	}
 
@@ -2436,15 +2467,18 @@ failed:
 int
 mingw_vfree(void *addr, size_t size)
 {
-	(void) addr;
-	(void) size;
+	void *end = ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size);
 
 	/*
 	 * VMM hint should always be respected. So this function should not
-	 * be reached from VMM, ever.
+	 * be reached from VMM, except when we are out-of-memory and
+	 * mingw_valloc() tried to allocate outside the reserved region and
+	 * the VMM layer is testing to see whether we're hitting "foreign"
+	 * regions.
+	 *		--RAM, 2015-04-06
 	 */
 
-	g_assert_not_reached();
+	return mingw_vfree_fragment(addr, size);
 }
 
 int
