@@ -2741,16 +2741,23 @@ free_pages_vector(void *vec[], size_t vcnt, size_t size)
 		pmap_remove(pm, vec[i], size);
 	}
 
-	rwlock_wunlock(&pm->lock);
-
 	/*
 	 * Because the pmap has already been updated, we can release all the
-	 * pages without holding any lock.
+	 * pages without holding the write lock.
+	 *
+	 * We downgrade to a read lock though to prevent another allocator for
+	 * trying to allocate from the regions we removed in the pmap, when the
+	 * corresponding pages are still held in the process.
+	 *		--RAM, 2015-04-06
 	 */
+
+	rwlock_downgrade(&pm->lock);
 
 	for (i = 0; i < vcnt; i++) {
 		free_pages_intern(vec[i], size, FALSE);
 	}
+
+	rwlock_runlock(&pm->lock);
 }
 
 /**
