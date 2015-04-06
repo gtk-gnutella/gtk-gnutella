@@ -2115,32 +2115,6 @@ pmap_log_missing(const struct pmap *pm, const void *p, size_t size)
 }
 
 /**
- * Is block within an identified region, and not at the beginning or tail?
- */
-static bool
-pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
-{
-	struct vm_fragment *vmf;
-	bool within = FALSE;
-	struct pmap *wpm = deconstify_pointer(pm);
-
-	rwlock_rlock(&wpm->lock);
-
-	vmf = pmap_lookup(pm, p, NULL);
-
-	if (NULL == vmf) {
-		pmap_log_missing(pm, p, size);
-		goto done;
-	}
-
-	within = p != vmf->start && vmf->end != const_ptr_add_offset(p, size);
-
-done:
-	rwlock_runlock(&wpm->lock);
-	return within;
-}
-
-/**
  * Given a known-to-be-mapped block (base address and size), compute the
  * distance of its middle point to the border of the region holding it:
  * the smallest distance between the middle point and the start and end of the
@@ -4569,7 +4543,7 @@ page_cache_timer(void *unused_udata)
 		 * The rationale is that this is a good place to allocate from, so we
 		 * want to reuse the space.  And releasing that space would invalidate
 		 * the computed hole, making it likely that we would then again request
-		 * allocation at that feeed spot later on.
+		 * allocation at that freed spot later on.
 		 *
 		 * The only exception is the last (or first when the VM grows down)
 		 * entry of a cache line when there is more than one item, to make
@@ -4590,13 +4564,15 @@ page_cache_timer(void *unused_udata)
 		 * To avoid undue fragmentation of the memory space, do not free
 		 * a block that lies within an already identified region too soon.
 		 * Wait longer, for it to be further coalesced hopefully.
+		 *
+		 * Under a long-term strategy, extremities above the hole are always
+		 * freed, regardless of their age in the cache.
 		 */
 
 		if (
 			d >= VMM_CACHE_MAXLIFE ||
-			(
-				d >= VMM_CACHE_LIFE &&
-				!pmap_is_within_region(vmm_pmap(), base, pc->chunksize)
+			(vmm_is_extremity(base, pc->chunksize) &&
+				(VMM_STRATEGY_LONG_TERM == vmm_strategy || d >= VMM_CACHE_LIFE)
 			)
 		) {
 
