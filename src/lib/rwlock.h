@@ -143,6 +143,7 @@ void rwlock_crash_mode(void);
 bool rwlock_is_owned(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
+bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
 
 NON_NULL_PARAM((1, 2)) G_GNUC_NORETURN
 void rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line);

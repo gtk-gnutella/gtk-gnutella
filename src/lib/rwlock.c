@@ -708,6 +708,28 @@ rwlock_is_owned(const rwlock_t *rw)
 }
 
 /**
+ * Is write lock taken by current thread (either read or write)?
+ */
+bool
+rwlock_is_taken(const rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	if (0 != rw->writers)
+		return rwlock_is_owned(rw);
+
+	if (0 != rw->readers)
+		return TRUE;			/* Assume we took it */
+
+	if G_UNLIKELY(rwlock_pass_through) {
+		thread_check_suspended();
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Check whether lock is used.
  */
 bool

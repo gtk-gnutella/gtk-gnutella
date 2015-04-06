@@ -2188,7 +2188,7 @@ pmap_is_extremity(const struct pmap *pm, const void *p, size_t npages)
 	struct vm_fragment *vmf;
 	size_t idx;
 
-	g_assert(rwlock_is_used(&pm->lock));	/* needs at least the read lock */
+	g_assert(rwlock_is_taken(&pm->lock));	/* needs at least the read lock */
 
 	vmf = pmap_lookup(pm, p, &idx);
 
@@ -2227,7 +2227,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	struct vm_fragment *vmf;
 	size_t idx;
 
-	g_assert(rwlock_is_used(&pm->lock));	/* needs at least the read lock */
+	g_assert(rwlock_is_taken(&pm->lock));	/* needs at least the read lock */
 
 	vmf = pmap_lookup(pm, p, &idx);
 
