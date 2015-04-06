@@ -2176,6 +2176,45 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 }
 
 /**
+ * Is block at a region extremity?
+ */
+static bool
+pmap_is_extremity(const struct pmap *pm, const void *p, size_t npages)
+{
+	struct vm_fragment *vmf;
+	size_t idx;
+
+	g_assert(rwlock_is_used(&pm->lock));	/* needs at least the read lock */
+
+	vmf = pmap_lookup(pm, p, &idx);
+
+	if (NULL == vmf) {
+		pmap_log_missing(pm, p, nsize_fast(npages));
+		return FALSE;
+	}
+
+	/*
+	 * The ``npages'' pages starting at ``p'' are an extremity if they lie
+	 * at the beginning or end of the region.
+	 *
+	 * Since regions are not adjacent in the pmap (or they would have been
+	 * merged), identifying an extremity is useful at free time: it increases
+	 * the amount of consecutive free space in the VM space.
+	 *
+	 * Note that a whole region is considered an extremity, and it's a memory
+	 * fragment in the sense of pmap_is_fragment().
+	 */
+
+	if (0 == ptr_cmp(p, vmf->start))
+		return TRUE;			/* Extremity at the beginning of region */
+
+	if (0 == ptr_cmp(const_ptr_add_offset(p, nsize_fast(npages)), vmf->end))
+		return TRUE;			/* Extremity at the end of region */
+
+	return FALSE;		/* Region is held within the memory fragment */
+}
+
+/**
  * Is block an identified fragment?
  */
 static bool
@@ -2353,6 +2392,26 @@ vmm_is_native_pointer(const void *p)
 
 	rwlock_runlock(&pm->lock);
 	return native;
+}
+
+/**
+ * Is region starting at ``p'' and of ``n'' pages a virtual memory
+ * extremity, i.e. at the beginning or end of an allocated region?
+ */
+static bool
+vmm_is_extremity(const void *p, size_t n)
+{
+	struct pmap *pm = vmm_pmap();
+	bool is_extremity;
+
+	g_assert(p != NULL);
+	g_assert(size_is_positive(n));
+
+	rwlock_rlock(&pm->lock);
+	is_extremity = pmap_is_extremity(pm, p, n);
+	rwlock_runlock(&pm->lock);
+
+	return is_extremity;
 }
 
 /**
@@ -3447,24 +3506,25 @@ page_cache_insert_pages(void *base, size_t n)
 		goto short_term_strategy;
 
 	/*
-	 * Identified memory fragments are immediately freed and not put
-	 * back into the cache, in order to reduce fragmentation of the
-	 * memory space.
+	 * Identified region extremities (which includes standalone fragments)
+	 * are immediately freed and not put back into the cache, in order to
+	 * reduce fragmentation of the memory space and maximize the size of
+	 * free space.
 	 *
 	 * Start with a read lock on the pmap, which only needs to be upgraded
-	 * to a write lock if the area ends up being a fragment.
+	 * to a write lock if the area ends up being an extremity.
 	 */
 
 	rwlock_rlock(&pm->lock);
 
 retry:
-	if G_UNLIKELY(pmap_is_fragment(pm, base, n)) {
+	if G_UNLIKELY(pmap_is_extremity(pm, base, n)) {
 		/*
 		 * Upgrade to write lock.
 		 *
 		 * If we cannot atomically upgrade, we need to release the read lock
 		 * and re-acquire the write lock, after which we need to retry the
-		 * evaluation to see whether the pages are still a fragment.
+		 * evaluation to see whether the pages are still an extremity.
 		 */
 
 		if (!wlock) {
@@ -3480,12 +3540,9 @@ retry:
 
 		/*
 		 * We have the write lock.
-		 *
-		 * Since we're freeing a fragment, we can remove it from the list of
-		 * known regions: a fragment is a standalone region.
 		 */
 
-		pmap_remove_whole_region(pm, base, nsize_fast(n));
+		pmap_remove(pm, base, nsize_fast(n));
 
 		/*
 		 * We do not need a write lock to free the pages, and it's best to
@@ -3943,10 +4000,11 @@ vmm_should_cache(const void *p, size_t n)
 
 		/*
 		 * If region is small-enough to fit our cache, check whether it is
-		 * a fragment: we want to release fragments as soon as possible.
+		 * an extremity: we want to release extremities as soon as possible
+		 * to maximize free space.
 		 */
 
-		if (n <= VMM_CACHE_LINES && !vmm_is_fragment(p, nsize_fast(n)))
+		if (n <= VMM_CACHE_LINES && !vmm_is_extremity(p, n))
 			return TRUE;
 	}
 
@@ -4215,13 +4273,13 @@ vmm_free(void *p, size_t size)
 
 		/*
 		 * If we're running under a long-term VMM allocation strategy,
-		 * check whether the region we're releasing is a VMM fragment.
+		 * check whether the region we're releasing is a VMM extremity.
 		 * If it is, it should be released.
 		 */
 
 		if G_UNLIKELY(
 			VMM_STRATEGY_LONG_TERM == vmm_strategy &&
-			vmm_is_fragment(p, size)
+			vmm_is_extremity(p, npages)
 		) {
 			VMM_STATS_LOCK;
 			vmm_stats.magazine_freeings++;
