@@ -424,7 +424,7 @@ static int
 gtk_gnutella_request_restart(void)
 {
 	gtk_gnutella_request_shutdown(GTKG_SHUTDOWN_NORMAL,
-		GTKG_SHUTDOWN_OFAST | GTKG_SHUTDOWN_ORESTART);
+		GTKG_SHUTDOWN_OFAST | GTKG_SHUTDOWN_ORESTART | GTKG_SHUTDOWN_OCRASH);
 
 	return 1;	/* Any non-zero return signifies: async restart in progress */
 }
@@ -670,6 +670,13 @@ gtk_gnutella_exit(int exit_code)
 	}
 
 	/*
+	 * Skip gracetime for BYE message to go through when crashing.
+	 */
+
+	if (shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OCRASH))
+		goto fast_restart;
+
+	/*
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
 	 * This amount of time is doubled when running in Ultra mode since we
 	 * have more connections to flush.
@@ -706,6 +713,8 @@ gtk_gnutella_exit(int exit_code)
 		thread_sleep_ms(50);
 		main_dispatch();
 	}
+
+fast_restart:
 
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("running final shutdown sequence...");
