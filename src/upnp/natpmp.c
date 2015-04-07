@@ -603,10 +603,16 @@ natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, uint16 port,
 
 	if (GNET_PROPERTY(natpmp_debug) > 4) {
 		g_debug("NATPMP %s for \"%s\" #%u (%lu byte%s) from %s",
-			URPC_TIMEOUT == type ? "timeout" : "got reply",
+			URPC_TIMEOUT == type ? "timeout" :
+			URPC_ABORT == type ? "aborted" : "got reply",
 			natpmp_op_to_string(rd->op), rd->count,
 			(unsigned long) len, plural(len),
 			host_addr_port_to_string(addr, port));
+	}
+
+	if (URPC_ABORT == type) {
+		natpmp_rpc_error(rd);
+		return;
 	}
 
 	if (URPC_TIMEOUT == type)
