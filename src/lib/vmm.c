@@ -1721,7 +1721,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		ret = vmm_vfree_fragment(p, size);
 
 		if G_UNLIKELY(ret != 0) {
-			s_minierror("%s(): release of %zu bytes at %p failed: %s",
+			s_minierror("%s(): release of %'zu bytes at %p failed: %s",
 				G_STRFUNC, size, p, symbolic_errno(errno));
 		}
 	}
