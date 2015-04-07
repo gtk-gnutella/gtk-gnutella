@@ -616,6 +616,7 @@ int mingw_semtimedop(int semid, struct sembuf *sops, unsigned nsops,
 void *mingw_valloc(void *hint, size_t size);
 int mingw_vfree(void *addr, size_t size);
 int mingw_vfree_fragment(void *addr, size_t size);
+void mingw_set_stop_vfree(bool val);
 int mingw_mprotect(void *addr, size_t len, int prot);
 
 int mingw_random_bytes(void *buf, size_t len);

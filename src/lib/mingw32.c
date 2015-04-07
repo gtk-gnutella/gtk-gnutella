@@ -2160,8 +2160,19 @@ static struct {
 	size_t allocated;		/* Memory we allocated */
 	size_t threshold;		/* High-memory usage threshold */
 	size_t baseline;		/* Committed memory at VMM init time */
+	bool stop_vfree;		/* VMM no longer freeing allocated memory */
 	int hinted;
 } mingw_vmm;
+
+/**
+ * Called with TRUE when the VMM layer is shutting down, no longer freeing
+ * the memory it allocates.
+ */
+void
+mingw_set_stop_vfree(bool val)
+{
+	mingw_vmm.stop_vfree = val;
+}
 
 /**
  * @return the amount of memory (in bytes) already committed by the process.
@@ -2407,10 +2418,17 @@ mingw_valloc(void *hint, size_t size)
 			 * to the system: the memory will be decomitted when the region
 			 * is freed, but the space will be taken, fragmenting the VM space.
 			 *		--RAM, 2015-04-06
+			 *
+			 * When the VMM layer stops freeing memory, it uses NULL hints,
+			 * at which point we don't want to warn about non-hinted memory
+			 * allocations since we're shutting down!
+			 *		--RAM, 2015-04-07
 			 */
 
-			s_carp("%s(): non-hinted allocation of %'zu bytes at %p",
-				G_STRFUNC, size, p);
+			if (!mingw_vmm.stop_vfree) {
+				s_carp("%s(): non-hinted allocation of %'zu bytes at %p",
+					G_STRFUNC, size, p);
+			}
 
 			goto allocated;
 		}

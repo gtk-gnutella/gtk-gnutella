@@ -1127,6 +1127,15 @@ vmm_first_hole(const void **unused, bool discard)
 }
 #endif	/* HAS_MMAP || MINGW32 */
 
+static inline void
+vmm_set_stop_freeing(bool val)
+{
+	stop_freeing = val;
+#ifdef MINGW32
+	mingw_set_stop_vfree(val);
+#endif
+}
+
 /**
  * Dump current VMM hole to specified logagent.
  */
@@ -5482,7 +5491,7 @@ vmm_stop_freeing(void)
 	memusage_free_null(&vmm_stats.user_mem);
 	memusage_free_null(&vmm_stats.core_mem);
 
-	stop_freeing = TRUE;
+	vmm_set_stop_freeing(TRUE);
 
 	if (vmm_debugging(0))
 		s_minidbg("VMM will no longer release freed pages");
