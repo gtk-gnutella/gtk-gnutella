@@ -715,11 +715,8 @@ rwlock_is_taken(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
-	if (0 != rw->writers)
-		return rwlock_is_owned(rw);
-
-	if (0 != rw->readers)
-		return TRUE;			/* Assume we took it */
+	if (thread_lock_holds(rw))
+		return TRUE;
 
 	if G_UNLIKELY(rwlock_pass_through) {
 		thread_check_suspended();
