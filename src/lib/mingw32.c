@@ -2401,6 +2401,17 @@ mingw_valloc(void *hint, size_t size)
 					"%s(): cannot allocate %'zu bytes: %m", G_STRFUNC, size);
 				goto failed;
 			}
+
+			/*
+			 * Warn them, since this VM region space will never be released
+			 * to the system: the memory will be decomitted when the region
+			 * is freed, but the space will be taken, fragmenting the VM space.
+			 *		--RAM, 2015-04-06
+			 */
+
+			s_carp("%s(): non-hinted allocation of %'zu bytes at %p",
+				G_STRFUNC, size, p);
+
 			goto allocated;
 		}
 	} else {
@@ -2499,10 +2510,31 @@ mingw_vfree_fragment(void *addr, size_t size)
 			errno = mingw_last_error();
 			return -1;
 		}
-	} else if (!VirtualFree(addr, 0, MEM_RELEASE)) {
+	} else {
+		/*
+		 * Now  that we have emergency allocations, we can no longer use
+		 * MEM_RELEASE, even if the region is not in the (initially)
+		 * non-reserved space.  The reason is that we would have to
+		 * use:
+		 *
+		 *		VirtualFree(addr, 0, MEM_RELEASE)
+		 *
+		 * (i.e. pass 0 as the size parameter) and that would decommit
+		 * and release the *whole range* starting at addr.  But because of
+		 * the way the VMM layer works and keeps track of allocated regions,
+		 * they can be coalesced and we cannot ensure we're not going to
+		 * start freeing region A, that happens to be adjacent to region B,
+		 * and passing the start of region A would release region B as well!
+		 *
+		 * To avoid this, memory allocated outside the reserved region is
+		 * never released, only decommitted.
+		 */
+
 		/* Allocated in non-reserved space */
-		errno = mingw_last_error();
-		return -1;
+		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
+			errno = mingw_last_error();
+			return -1;
+		}
 	}
 
 	return 0;
