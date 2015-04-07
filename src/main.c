@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2001-2011, Raphael Manfredi
- * Copyright (c) 2005-2011, Christian Biere
+ * Copyright (c) 2001-2015 Raphael Manfredi
+ * Copyright (c) 2005-2011 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,7 +29,7 @@
  * Main functions for gtk-gnutella.
  *
  * @author Raphael Manfredi
- * @date 2001-2011
+ * @date 2001-2015
  * @author Christian Biere
  * @date 2005-2011
  */
@@ -509,7 +509,10 @@ gtk_gnutella_exit(int exit_code)
 	static volatile sig_atomic_t safe_to_exit;
 	time_t exit_time = time(NULL);
 	time_delta_t exit_grace = EXIT_GRACE;
-	bool byeall = TRUE;
+	bool byeall =
+		!(shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OFAST));
+	bool crashing =
+		shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OCRASH);
 
 	/*
 	 * In case this routine is part of an automatic restarting sequence,
@@ -528,9 +531,6 @@ gtk_gnutella_exit(int exit_code)
 			exit_code, exit_step);
 		return;
 	}
-
-	if (shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OFAST))
-		byeall = FALSE;
 
 	exiting = TRUE;
 
@@ -670,11 +670,17 @@ gtk_gnutella_exit(int exit_code)
 	}
 
 	/*
-	 * Skip gracetime for BYE message to go through when crashing.
+	 * Skip gracetime for BYE message to go through when crashing, as well
+	 * as most the final exit sequence whose aim is to properly clean memory
+	 * to be able to trace leaks when debugging.
 	 */
 
-	if (shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OCRASH))
-		goto fast_restart;
+	if (crashing) {
+		/* Accelerated shutdown */
+		DO(settings_close);
+		DO(cq_close);
+		goto quick_restart;
+	}
 
 	/*
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
@@ -713,8 +719,6 @@ gtk_gnutella_exit(int exit_code)
 		thread_sleep_ms(50);
 		main_dispatch();
 	}
-
-fast_restart:
 
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("running final shutdown sequence...");
@@ -888,7 +892,8 @@ fast_restart:
 	DO(vmm_close);
 	DO(signal_close);
 
-	g_info("gtk-gnutella shut down cleanly.");
+quick_restart:
+	g_info("gtk-gnutella shut down %s.", crashing ? "quickly" : "cleanly");
 
 	if (shutdown_requested) {
 		handle_user_shutdown_request(shutdown_user_mode);

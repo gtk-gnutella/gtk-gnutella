@@ -60,9 +60,10 @@ shutdown_mode_string(enum shutdown_mode mode)
 enum shell_reply
 shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const char *opt_a, *opt_e, *opt_f, *opt_m, *opt_r, *opt_s;
+	const char *opt_a, *opt_c, *opt_e, *opt_f, *opt_m, *opt_r, *opt_s;
 	const option_t options[] = {
 		{ "a", &opt_a },
+		{ "c", &opt_c },
 		{ "e", &opt_e },
 		{ "f", &opt_f },
 		{ "m", &opt_m },
@@ -93,6 +94,8 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 		mode = GTKG_SHUTDOWN_NORMAL;
 	}
 
+	if (opt_c != NULL)
+		flags |= GTKG_SHUTDOWN_OCRASH;
 	if (opt_f != NULL)
 		flags |= GTKG_SHUTDOWN_OFAST;
 	if (opt_r != NULL)
@@ -113,9 +116,10 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	gtk_gnutella_request_shutdown(mode, flags);
 
-	shell_write_linef(sh, REPLY_READY, "%s %ssequence initiated%s.",
+	shell_write_linef(sh, REPLY_READY, "%s %s%ssequence initiated%s.",
 		(flags & GTKG_SHUTDOWN_ORESTART) ? "Restart" : "Shutdown",
 		(flags & GTKG_SHUTDOWN_OFAST) ? "fast " : "",
+		(flags & GTKG_SHUTDOWN_OCRASH) ? "(as if crashing) " : "",
 		shutdown_mode_string(mode));
 
 	shell_exit(sh);
@@ -133,7 +137,7 @@ shell_help_shutdown(int argc, const char *argv[])
 {
 	(void) argc;
 	(void) argv;
-	return str_smsg("shutdown [-fr] [-aems]\n"
+	return str_smsg("shutdown [-fr] [-acems]\n"
 		"Initiates a shutdown/restart of %s.\n"
 		"As a side effect the shell connection is closed as well.\n"
 		"-f: request fast shutdown, sending BYE only to nodes supporting it\n"
@@ -141,6 +145,7 @@ shell_help_shutdown(int argc, const char *argv[])
 		"The following help trigger a crash after shutdown has completed\n"
 		"to exercise the crash handler and make sure everything works:\n"
 		"-a: finish with assertion failure\n"
+		"-c: simulate a crashing condition\n"
 		"-e: finish with forced error\n"
 		"-m: finish with memory error\n"
 		"-s: finish with harmful signal\n",
