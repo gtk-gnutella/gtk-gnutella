@@ -2496,18 +2496,20 @@ failed:
 int
 mingw_vfree(void *addr, size_t size)
 {
-	void *end = ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size);
+	(void) addr;
+	(void) size;
 
 	/*
 	 * VMM hint should always be respected. So this function should not
 	 * be reached from VMM, except when we are out-of-memory and
-	 * mingw_valloc() tried to allocate outside the reserved region and
-	 * the VMM layer is testing to see whether we're hitting "foreign"
-	 * regions.
-	 *		--RAM, 2015-04-06
+	 * mingw_valloc() tried to allocate outside the reserved region.
+	 *
+	 * Since we also tell the VMM layer on Windows to avoid testing to see
+	 * whether we're hitting "foreign" regions, this routine still can never
+	 * be called.
 	 */
 
-	return mingw_vfree_fragment(addr, size);
+	s_error("%s(): should not be called on Windows", G_STRFUNC);
 }
 
 int

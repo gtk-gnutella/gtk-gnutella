@@ -1427,9 +1427,16 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * See whether we can mark something as "foreign" in the VM space so
 		 * that we avoid further attempts at the same location for blocks
 		 * of similar sizes.
+		 *
+		 * On Windows, we reserve a large chunk of VM space at startup and
+		 * allocate from there, until it is exhausted, at which time we use
+		 * emergency allocations with NULL hints.  When that happens, we near
+		 * a process restart so it is useless to start identifying regions in
+		 * the VM space where things have been mapped by the kernel.
+		 *		--RAM, 2015-04-07
 		 */
 
-		if (!pm->extending) {
+		if (!pm->extending && !is_running_on_mingw()) {
 			if (size <= kernel_pagesize) {
 				pmap_insert_foreign(pm, hint, kernel_pagesize);
 				if (vmm_debugging(0)) {
