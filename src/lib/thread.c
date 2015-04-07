@@ -6158,8 +6158,17 @@ thread_lock_holds_default(const volatile void *lock, bool dflt)
 		return FALSE;
 	}
 
-	for (i = 0; i < tls->count; i++) {
-		const struct thread_lock *l = &tls->arena[i];
+	/*
+	 * Most likely, when checking for locks, we are running assertions.
+	 * And then we are probably most interested by locks acquired lastly
+	 * in the calling chain.
+	 *
+	 * Therefore, since we are doing a linear scan, it pays to start from
+	 * the end of the lock stack.
+	 */
+
+	for (i = tls->count; i != 0; /**/) {
+		const struct thread_lock *l = &tls->arena[--i];
 
 		if G_UNLIKELY(l->lock == lock)
 			return TRUE;
