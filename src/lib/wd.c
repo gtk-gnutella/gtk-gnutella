@@ -148,6 +148,31 @@ wd_kick(watchdog_t *wd)
 }
 
 /**
+ * Kick the watchdog, waking it up if sleeping.
+ *
+ * After kicking, it's guaranteed that the callback will not be triggering
+ * before the configured period.
+ *
+ * @return TRUE if we woken up the watchdog, FALSE if it was already awake.
+ */
+bool
+wd_wakeup_kick(watchdog_t *wd)
+{
+	bool awoken = FALSE;
+
+	watchdog_check(wd);
+
+	if G_UNLIKELY(NULL == wd->ev) {
+		wd_start(wd);
+		awoken = TRUE;
+	}
+
+	wd->last_kick = tm_time();
+
+	return awoken;
+}
+
+/**
  * Wakeup the watchdog, initiating the timer at the configured period.
  * If no call to wd_kick() are made within the period, the callback will
  * fire.

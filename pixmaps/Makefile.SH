@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-181]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -50,7 +50,7 @@ RM = $rm -f
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
@@ -77,6 +77,8 @@ PIXMAPS = \
 	firewall_udp.xpm \
 	firewall_udp_punchable.xpm \
 	freeze.xpm \
+	go_back.xpm \
+	hungup.xpm \
 	icon.16x16.xpm \
 	icon.48x48.xpm \
 	icon.xpm \

@@ -52,6 +52,14 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 /***
+ *** IP network buffer shortage.
+ ***/
+
+#define BUF_SHORTAGE_WINDOW		90		/**< IP buffer shortage monitoring */
+
+static watchdog_t *buf_shortage_wd;
+
+/***
  *** Firewall status management structures.
  ***/
 
@@ -800,6 +808,51 @@ inet_read_activity(void)
 	wd_kick(outgoing_wd);
 }
 
+/***
+ *** IP network buffer shortage monitoring.
+ ***/
+
+/**
+ * This callback fires when the IP network buffer shortage is hopefully gone.
+ */
+static bool
+inet_buf_shortage_gone(watchdog_t *unused_wd, void *unused_obj)
+{
+	(void) unused_wd;
+	(void) unused_obj;
+
+	g_message("%s(): assuming network buffer shortage is gone", G_STRFUNC);
+
+	gnet_prop_set_boolean_val(PROP_NET_BUFFER_SHORTAGE, FALSE);
+	return FALSE;						/* Put watchdog back to sleep */
+}
+
+/**
+ * We just got an ENOBUFS error on a socket operation.
+ */
+void
+inet_buf_shortage(void)
+{
+	/*
+	 * Settting PROP_NET_BUFFER_SHORTAGE to TRUE means that we will try to
+	 * avoid TCP connections and socket I/Os, if possible, for a while until
+	 * hopefully more network buffers become available.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_NET_BUFFER_SHORTAGE, TRUE);
+
+	/*
+	 * Wake-up (if not already done) and kick the watchdog.  If no other
+	 * buffer shortage occurs within the monitoring period, we'll consider
+	 * that the buffer shortage condition is gone.
+	 */
+
+	if (wd_wakeup_kick(buf_shortage_wd)) {
+		g_carp("%s(): avoiding networking for a while to let buffers flush",
+			G_STRFUNC);
+	}
+}
+
 /**
  * Initialization code.
  */
@@ -830,6 +883,13 @@ inet_init(void)
 		wd_wakeup(solicited_udp_wd);
 
 	/*
+	 * This watchdog is used to monitor IP network buffer shortages.
+	 */
+
+	buf_shortage_wd = wd_make("IP network buffer shortage",
+		BUF_SHORTAGE_WINDOW, inet_buf_shortage_gone, NULL, FALSE);
+
+	/*
 	 * Monitoring watchdog for outgoing connections.
 	 */
 
@@ -854,6 +914,7 @@ inet_close(void)
 {
 	aging_destroy(&outgoing_udp);
 	cq_cancel(&unsolicited_udp_ev);
+	wd_free_null(&buf_shortage_wd);
 	wd_free_null(&outgoing_wd);
 	wd_free_null(&incoming_wd);
 	wd_free_null(&incoming_udp_wd);

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2001-2011, Raphael Manfredi
- * Copyright (c) 2005-2011, Christian Biere
+ * Copyright (c) 2001-2015 Raphael Manfredi
+ * Copyright (c) 2005-2011 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,7 +29,7 @@
  * Main functions for gtk-gnutella.
  *
  * @author Raphael Manfredi
- * @date 2001-2011
+ * @date 2001-2015
  * @author Christian Biere
  * @date 2005-2011
  */
@@ -418,6 +418,18 @@ gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags)
 }
 
 /**
+ * Crash restart callback to trigger a graceful asynchronous restart.
+ */
+static int
+gtk_gnutella_request_restart(void)
+{
+	gtk_gnutella_request_shutdown(GTKG_SHUTDOWN_NORMAL,
+		GTKG_SHUTDOWN_OFAST | GTKG_SHUTDOWN_ORESTART | GTKG_SHUTDOWN_OCRASH);
+
+	return 1;	/* Any non-zero return signifies: async restart in progress */
+}
+
+/**
  * Manually dispatch events that are normally done from glib's main loop.
  */
 static void
@@ -453,7 +465,7 @@ main_dispatch(void)
 /*
  * If they requested abnormal termination after shutdown, comply now.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 handle_user_shutdown_request(enum shutdown_mode mode)
 {
 	const char *msg = "crashing at your request";
@@ -491,13 +503,24 @@ handle_user_shutdown_request(enum shutdown_mode mode)
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
  * seconds so that BYE messages can be sent to other nodes.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 gtk_gnutella_exit(int exit_code)
 {
 	static volatile sig_atomic_t safe_to_exit;
 	time_t exit_time = time(NULL);
 	time_delta_t exit_grace = EXIT_GRACE;
-	bool byeall = TRUE;
+	bool byeall =
+		!(shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OFAST));
+	bool crashing =
+		shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OCRASH);
+
+	/*
+	 * In case this routine is part of an automatic restarting sequence,
+	 * signal to the crashing layer that we are starting in order to cancel
+	 * the automatic restart after some time.
+	 */
+
+	crash_restarting();
 
 	if (exiting) {
 		if (safe_to_exit) {
@@ -508,9 +531,6 @@ gtk_gnutella_exit(int exit_code)
 			exit_code, exit_step);
 		return;
 	}
-
-	if (shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OFAST))
-		byeall = FALSE;
 
 	exiting = TRUE;
 
@@ -647,6 +667,19 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0)) {
 		tm_t since = tm_start_time();
 		log_cpu_usage(&since, NULL, NULL);
+	}
+
+	/*
+	 * Skip gracetime for BYE message to go through when crashing, as well
+	 * as most the final exit sequence whose aim is to properly clean memory
+	 * to be able to trace leaks when debugging.
+	 */
+
+	if (crashing) {
+		/* Accelerated shutdown */
+		DO(settings_close);
+		DO(cq_close);
+		goto quick_restart;
 	}
 
 	/*
@@ -859,7 +892,8 @@ gtk_gnutella_exit(int exit_code)
 	DO(vmm_close);
 	DO(signal_close);
 
-	g_info("gtk-gnutella shut down cleanly.");
+quick_restart:
+	g_info("gtk-gnutella shut down %s.", crashing ? "quickly" : "cleanly");
 
 	if (shutdown_requested) {
 		handle_user_shutdown_request(shutdown_user_mode);
@@ -1870,6 +1904,7 @@ main(int argc, char **argv)
 			product_get_patchlevel());
 		crash_setbuild(product_get_build());
 		crash_setmain(main_argc, main_argv, main_env);
+		crash_set_restart(gtk_gnutella_request_restart);
 	}	
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();

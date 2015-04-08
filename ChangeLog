@@ -1,3 +1,68 @@
+# v 1.1.3   2015-04-08  [stable]
+
+This is mainly a critical bug-fixing release, addressing a huge shortcoming
+in 1.1.2: all Shareaza leaves are incorrectly flagged as being fakes and are
+being removed quicktly from ultrapeers, creating network churn and instability.
+Everyone running gtk-gnutella as Ultrapeer must upgrade to 1.1.3 quickly.
+
+Releasing quickly after 1.1.3 is also a pretext for improving stability on
+Windows platforms, especially after restarts: because Windows does not support
+the "close on exec" flag on file descriptors, restarted processes were left
+with several instances of a listening socket bound to the same port, causing
+havoc as behaviour is totally undefined and was most probably leading to the
+inability for the process to get any incoming connections.
+
+On Windows, we now also monitor the memory usage more closely, in order to
+avoid the C runtime from issuing a (blocking) popup signalling a fatal memory
+allocation error should it run out of space.
+
+More generally, the VMM layer is now capable of trapping fatal memory
+allocation errors and handling them more efficiently.  In particular, when
+everything has failed, the layer can request a brutal restart of the process.
+Under less dire circumstances, a graceful restart will be requested.
+
+This was also an occasion to revisit the long-term allocation strategy in
+the VMM layer and optimize it in order to further limit fragmentation of
+the VM space.  Even though avoiding fragmentation matters mostly for 32-bit
+applications, this also limits the amount of individual memory region mappings
+the kernel has to maintain and gtk-gnutella has to keep track of.
+
+Finally, a last-minute bug fix where a user reported a deadlock in the QRP
+processing code.  After investigation, it turned out that there was indeed
+a recursive locking on a spinlock that had escaped all real-life testing out
+there so far!
+
+Improvements:
+- [GTK2] Added popup menu icon in front of "force push mode" for sources.
+- [GTK2] Added warning icon in status bar when kernel runs short of net buffers.
+- Increased default node connection timeout and size of the quick connect pool.
+- Updated the shell "status" command to display "!IP" on net buffer shortage.
+- Updated FAQ along with French and Turkish translations.
+- Updated GeoIP databases.
+
+Bug Fixes:
+- Fixed invalid test for "fake" Shareaza that led to network instabilities.
+- Made QRP lock a mutex to allow for recursive locking through qrp_comp_done().
+
+Under the Hood:
+- On out-of-memory conditions, attempt to auto-restart if possible.
+- Windows: monitor committed memory, crashing before the kernel would kill us.
+- Added crash_restart() and controlling routines to request smooth restart.
+- On network buffer shortage (ENOBUFS), stop TCP connections for a while.
+- UPnP: protect upnp_mapping objects given to callbacks with reference counts.
+- Adjusted lock tracking when locks are disabled, fixing lock swapping.
+- Windows: remember socket descriptors so that we can close them on exec().
+- Refactored code for listening sockets to warn when bound port is already used.
+- When shutdowning in "crash mode", skip most of the memory cleanup.
+- rwlock_destroy(): make sure to write-unlock the lock if it was owned.
+- waiter_ack(): don't panic if waiter was not notified, but loudly complain.
+- upnp_map_natpmp_publish_reply(): trace given port on NAT-PMP mapping errors.
+- upnp_discover(): force selection of IPv4 interface for UPnP discovery.
+- thread_unsuspend_others(): relaxed hard assertion into a soft one.
+- alloc_pages(): try harder on OOM conditions to allocate from the page cache.
+- socket_connect_finalize(): fixed wrong errno processing for connect().
+- socket_connect_prepare(): no need for SO_REUSEADDR for connecting sockets.
+
 # v 1.1.2   2015-03-21  [stable]
 
 This is mainly a bug-fixing release, addressing rare crashes that have been

@@ -987,6 +987,10 @@ evq_cancel(evq_event_t **eve_ptr)
  * We do not make the ev_queue variable visible from the outside because
  * we need to call evq_notify() each time we add an event since the event
  * queue heartbeats are not regularily spaced.
+ *
+ * @param delay		delay (in ms) before triggering the event
+ * @param fn		the function to invoke when delay expired
+ * @param arg		argument to pass to function
  */
 cevent_t *
 evq_raw_insert(int delay, cq_service_t fn, void *arg)
@@ -1009,6 +1013,9 @@ evq_raw_insert(int delay, cq_service_t fn, void *arg)
  *
  * Use cq_idle_remove() directly to cancel it or have the event return FALSE
  * to stop periodic invocations..
+ *
+ * @param event		the function to invoke when idle
+ * @param arg		argument to pass to function
  */
 cidle_t *
 evq_raw_idle_add(cq_invoke_t event, void *arg)
@@ -1031,6 +1038,10 @@ evq_raw_idle_add(cq_invoke_t event, void *arg)
  *
  * Use cq_periodic_remove() directly to cancel it or have the event return
  * FALSE to stop periodic invocations..
+ *
+ * @param delay		period (in ms) between two event invocations
+ * @param event		the function to invoke periodically
+ * @param arg		argument to pass to function
  */
 cperiodic_t *
 evq_raw_periodic_add(int period, cq_invoke_t event, void *arg)

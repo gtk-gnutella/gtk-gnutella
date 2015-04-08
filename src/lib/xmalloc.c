@@ -62,7 +62,7 @@
 #include "array_util.h"
 #include "atomic.h"
 #include "bit_array.h"
-#include "crash.h"			/* For crash_hook_add() */
+#include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
 #include "elist.h"
 #include "erbtree.h"
@@ -981,7 +981,7 @@ bypass:
 	if ((void *) -1 == p) {
 		if (locked)
 			spinunlock_hidden(&xmalloc_sbrk_slk);
-		s_error("cannot allocate more core (%zu bytes): %m", len);
+		crash_oom("cannot allocate more core (%zu bytes): %m", len);
 	}
 
 	/*

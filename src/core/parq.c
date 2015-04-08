@@ -2603,7 +2603,8 @@ parq_upload_send_queue_callbacks(time_t now)
 	if (
 		GNET_PROPERTY(library_rebuilding) ||
 		0 == hash_list_length(ul_parq_queue) ||
-		0 == GNET_PROPERTY(max_uploads)
+		0 == GNET_PROPERTY(max_uploads) ||
+		GNET_PROPERTY(net_buffer_shortage)
 	)
 		return;
 

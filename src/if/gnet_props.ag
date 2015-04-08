@@ -582,8 +582,8 @@ prop = {
             "out if no connection can be established.";
     type = guint32;
     data = {
-        default = 30;
-        min     = 15;
+        default = 90;
+        min     = 30;
         max     = 100000;
     };
 };
@@ -1019,13 +1019,12 @@ prop = {
 };
 
 prop = {
-    name = "track_props";
-    desc = "For development use: track properties.";
-    type = guint32;
+    name = "net_buffer_shortage";
+    desc = "Indicates a kernel network buffer shortage.";
+	save = FALSE;
+    type = boolean;
     data = {
-        default = 0;
-        min     = 0;
-        max     = 20;
+        default = FALSE;
     };
 };
 
@@ -2112,8 +2111,8 @@ prop = {
            "slots.";
     type = guint32;
     data = {
-        default = 10;
-        min = 4;
+        default = 40;
+        min = 10;
         max = 80;
     };
 };

@@ -41,9 +41,12 @@
 #include "compat_misc.h"
 #include "compat_un.h"
 #include "glib-missing.h"		/* For g_info() */
+#include "hset.h"
 #include "log.h"				/* For s_carp() */
 
 #include "override.h"			/* Must be the last header included */
+
+static hset_t *fd_sockets;
 
 void
 set_close_on_exec(int fd)
@@ -108,6 +111,20 @@ fd_first_available(void)
 }
 
 /**
+ * Set iterator to close all known socket descriptors.
+ */
+static void
+fd_socket_close(const void *data, void *udata)
+{
+	(void) udata;
+
+	if (is_running_on_mingw()) {
+		socket_fd_t fd = pointer_to_int(data);
+		(void) s_close(fd);
+	}
+}
+
+/**
  * Closes all file descriptors greater or equal to ``first_fd''.
  */
 void
@@ -144,6 +161,29 @@ close_file_descriptors(const int first_fd)
 			}
 		}
 		fd--;
+	}
+
+	/*
+	 * When called with a first_fd of 3, and we are on Windows, also make
+	 * sure we close all the known sockets we have.  This lets the process
+	 * safely auto-restart, avoiding multiple listening sockets on the same
+	 * port.
+	 *		--RAM, 2015-04-05
+	 */
+
+	if (is_running_on_mingw() && 3 == first_fd && NULL != fd_sockets) {
+		hset_t *fds = fd_sockets;
+
+		/*
+		 * We're about to exec() another process, and we may be crashing,
+		 * hence do not bother using hset_foreach_remove() to ensure minimal
+		 * processing.  We also reset the fd_sockets pointer to NULL to
+		 * make sure s_close() will do nothing when fd_notify_socket_closed()
+		 * is called.
+		 */
+
+		fd_sockets = NULL;		/* We don't expect race conditions here */
+		hset_foreach(fds, fd_socket_close, NULL);
 	}
 }
 
@@ -240,6 +280,23 @@ get_non_stdio_fd(int fd)
 		}
 		errno = saved_errno;
 	}
+
+	/*
+	 * On Windows, files and sockets do not share the same ID space.
+	 * Therefore, on that platform we use this routine as a hook to
+	 * record active socket descriptors in a table.
+	 *		--RAM, 2015-04-05
+	 */
+
+	if (is_running_on_mingw()) {
+		/* We don't expect thread race conditions here */
+		if G_UNLIKELY(NULL == fd_sockets)
+			fd_sockets = hset_create(HASH_KEY_SELF, 0);
+
+		if (is_a_socket(fd))
+			hset_insert(fd_sockets, int_to_pointer(fd));
+	}
+
 	return fd;
 }
 
@@ -272,6 +329,27 @@ fd_set_nonblocking(int fd)
 
 	if (failed)
 		s_carp("%s(): failed for #%d: %m", G_STRFUNC, fd);
+}
+
+/**
+ * Notifies that a socket descriptor has been closed.
+ *
+ * This is only required on Windows, since we need to keep track of opened
+ * socket descriptors, in order to close them before exec().  Failure to
+ * do so would leave listen sockets around, and because we use SO_REUSEADDR
+ * to bind our listening sockets, we would have two processes listening on
+ * the same socket -- a recipe for blackouts on Windows!
+ */
+void
+fd_notify_socket_closed(socket_fd_t fd)
+{
+	if (!is_running_on_mingw()) {
+		s_carp_once("%s(): not needed on UNIX", G_STRFUNC);
+		return;
+	} else {
+		if G_LIKELY(fd_sockets != NULL)
+			hset_remove(fd_sockets, int_to_pointer(fd));
+	}
 }
 
 /**

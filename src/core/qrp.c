@@ -65,6 +65,7 @@
 #include "lib/hashing.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
+#include "lib/mutex.h"
 #include "lib/pow2.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
@@ -96,10 +97,16 @@
 
 #define qrp_debugging(lvl)	G_UNLIKELY(GNET_PROPERTY(qrp_debug) > (lvl))
 
-static spinlock_t qrp_task_lock = SPINLOCK_INIT;
+/**
+ * Lock to protect the global variables containing the routine tables.
+ *
+ * It has to be a mutex because there can be some recursive grabbing in
+ * the qrp_comp_done() callback.
+ */
+static mutex_t qrp_task_lock = MUTEX_INIT;
 
-#define QRP_TASK_LOCK			spinlock(&qrp_task_lock)
-#define QRP_TASK_UNLOCK			spinunlock(&qrp_task_lock)
+#define QRP_TASK_LOCK			mutex_lock(&qrp_task_lock)
+#define QRP_TASK_UNLOCK			mutex_unlock(&qrp_task_lock)
 
 struct query_hash {
 	uint32 hashcode;

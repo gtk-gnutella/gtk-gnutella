@@ -156,9 +156,10 @@ typedef void *(*copy_data_fn_t)(const void *src, void *data);
 typedef void (*notify_fn_t)(void *data);
 typedef void (*notify_data_fn_t)(void *data, void *user_data);
 
-/* Generic callback */
+/* Generic callbacks */
 
 typedef void (*callback_fn_t)(void);
+typedef int (*action_fn_t)(void);
 
 /* Generic stringifiers */
 

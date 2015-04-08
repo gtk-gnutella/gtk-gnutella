@@ -190,12 +190,6 @@ print_hex(char *dst, size_t size, unsigned long value)
 	return p;
 }
 
-
-/**
- * Signature of a crash hook.
- */
-typedef void (*crash_hook_t)(void);
-
 /*
  * Public interface.
  */
@@ -232,6 +226,7 @@ void crash_setver(const char *version);
 void crash_setnumbers(uint8 major, uint8 minor, uint8 patchlevel);
 void crash_setbuild(unsigned build);
 void crash_setmain(int argc, const char **argv, const char **env);
+void crash_oom(const char *format, ...) G_GNUC_NORETURN;
 void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);
 void crash_set_filename(const char * const filename);
@@ -241,8 +236,11 @@ void crash_save_current_stackframe(unsigned offset);
 void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
-void crash_hook_add(const char *filename, const crash_hook_t hook);
+void crash_hook_add(const char *filename, const callback_fn_t hook);
+void crash_set_restart(action_fn_t cb);
 void crash_reexec(void) G_GNUC_NORETURN;
+void crash_restart(const char *format, ...);
+void crash_restarting(void);
 void crash_print_decorated_stack(int fd);
 
 #endif	/* _crash_h_ */

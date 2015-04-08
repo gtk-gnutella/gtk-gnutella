@@ -766,7 +766,7 @@ nodes_gui_node_added(const struct nid *node_id)
     gnet_node_info_t *info;
 
     if (GUI_PROPERTY(gui_debug) >= 5)
-        g_debug("%s(%s)", nid_to_string(node_id));
+        g_debug("%s(%s)", G_STRFUNC, nid_to_string(node_id));
 
     info = guc_node_get_info(node_id);
 	if (info) {

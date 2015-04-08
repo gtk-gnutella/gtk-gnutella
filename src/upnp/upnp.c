@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2012 Raphael Manfredi
+ * Copyright (c) 2010, 2012, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -39,7 +39,7 @@
  * drivers to publish the mappings.
  *
  * @author Raphael Manfredi
- * @date 2010, 2012
+ * @date 2010, 2012, 2015
  */
 
 #include "common.h"
@@ -132,6 +132,7 @@ struct upnp_mapping {
 	enum upnp_mapping_magic magic;
 	enum upnp_map_proto proto;	/**< Network protocol used */
 	enum upnp_method method;	/**< Method used to publish mapping */
+	int refcnt;					/**< Reference count */
 	uint16 port;				/**< Port to map */
 	cevent_t *install_ev;		/**< Periodic install event */
 	upnp_ctrl_t *rpc;			/**< Pending control RPC */
@@ -152,6 +153,35 @@ static host_addr_t upnp_local_addr;	/**< Computed local IP address */
 static const char UPNP_CONN_IP_ROUTED[]	= "IP_Routed";
 
 static void upnp_map_publish_all(void);
+
+/**
+ * Increase reference count of an UPnP mapping object.
+ *
+ * @return the argument, as a convenience.
+ */
+static struct upnp_mapping *
+upnp_mapping_refcnt_inc(struct upnp_mapping *um)
+{
+	upnp_mapping_check(um);
+
+	atomic_int_inc(&um->refcnt);
+	return um;
+}
+
+/**
+ * Decrease reference count of an UPnP mapping object, freeing it as soon
+ * as it is no longer referenced.
+ */
+static void
+upnp_mapping_refcnt_dec(struct upnp_mapping *um)
+{
+	upnp_mapping_check(um);
+
+	if (atomic_int_dec_is_zero(&um->refcnt)) {
+		cq_cancel(&um->install_ev);
+		WFREE0(um);
+	}
+}
 
 /**
  * The state an Internet Gateway Device must be in to allow NAT.
@@ -245,12 +275,13 @@ upnp_mapping_alloc(enum upnp_map_proto proto, uint16 port)
 	um->method = UPNP_M_ANY;
 	um->proto = proto;
 	um->port = port;
+	um->refcnt = 1;
 
 	return um;
 }
 
 /**
- * Free a UPnP mapping record.
+ * Free a UPnP mapping record when its reference count drops to zero.
  */
 static void
 upnp_mapping_free(struct upnp_mapping *um, bool in_shutdown)
@@ -259,7 +290,7 @@ upnp_mapping_free(struct upnp_mapping *um, bool in_shutdown)
 
 	cq_cancel(&um->install_ev);
 	upnp_ctrl_cancel_null(&um->rpc, !in_shutdown);
-	WFREE0(um);
+	upnp_mapping_refcnt_dec(um);
 }
 
 /**
@@ -1137,23 +1168,33 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 		um->lease_time = UPNP_UNDEFINED_LEASE;
 
 		/*
-		 * Handle devices supporting only permanent leases.
-		 *
-		 * Otherwise, on publishing error, retry periodically every
-		 * UPNP_CHECK_DELAY seconds.
+		 * The um->install_ev field can be NULL if we decided to remove the
+		 * mapping already, and this is a callback happening on an object
+		 * that we are going to remove.
 		 */
 
-		if (UPNP_ERR_ONLY_PERMANENT_LEASE == code && 0 != um->lease_time) {
-			igd.only_permanent = TRUE;
-			um->lease_time = 0;
-			cq_resched(um->install_ev, 1);	/* Re-publish immediately */
-		} else {
-			cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
+		if (um->install_ev != NULL) {
+			/*
+			 * Handle devices supporting only permanent leases.
+			 *
+			 * Otherwise, on publishing error, retry periodically every
+			 * UPNP_CHECK_DELAY seconds.
+			 */
+
+			if (UPNP_ERR_ONLY_PERMANENT_LEASE == code && 0 != um->lease_time) {
+				igd.only_permanent = TRUE;
+				um->lease_time = 0;
+				cq_resched(um->install_ev, 1);	/* Re-publish immediately */
+			} else {
+				cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
+			}
 		}
 	}
 
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
 		htable_count(upnp_mappings) == upnp_published_mappings());
+
+	upnp_mapping_refcnt_dec(um);
 }
 
 /**
@@ -1177,22 +1218,26 @@ upnp_map_natpmp_publish_reply(int code,
 			inet_router_configured();	/* First time we're publishing */
 		um->published = TRUE;
 		um->method = UPNP_M_NATPMP;
-		cq_resched(um->install_ev, lifetime / 2 * 1000);
+		if (um->install_ev != NULL)
+			cq_resched(um->install_ev, lifetime / 2 * 1000);
 	} else {
 		if (GNET_PROPERTY(upnp_debug)) {
 			g_warning("UPNP could not publish NAT-PMP mapping for %s port %u: "
-				"%d => \"%s\"",
+				"%d => \"%s\" (returned port=%u)",
 				upnp_map_proto_to_string(um->proto), um->port,
-				code, natpmp_strerror(code));
+				code, natpmp_strerror(code), port);
 		}
 		um->published = FALSE;
 		um->method = UPNP_M_ANY;
 		um->lease_time = UPNP_UNDEFINED_LEASE;
-		cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
+		if (um->install_ev != NULL)
+			cq_resched(um->install_ev, UPNP_CHECK_DELAY_MS);
 	}
 
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
 		htable_count(upnp_mappings) == upnp_published_mappings());
+
+	upnp_mapping_refcnt_dec(um);
 }
 
 /**
@@ -1275,7 +1320,7 @@ upnp_map_publish(cqueue_t *cq, void *obj)
 		um->lease_time = MAX(UPNP_MAPPING_CAUTION, um->lease_time);
 
 		natpmp_map(gw.gateway, um->proto, um->port, um->lease_time,
-			upnp_map_natpmp_publish_reply, um);
+			upnp_map_natpmp_publish_reply, upnp_mapping_refcnt_inc(um));
 	} else if (igd.dev != NULL) {
 		const upnp_service_t *usd;
 
@@ -1297,7 +1342,7 @@ upnp_map_publish(cqueue_t *cq, void *obj)
 		um->rpc = upnp_ctrl_AddPortMapping(usd, um->proto, um->port,
 			upnp_get_local_addr(), um->port,
 			upnp_mapping_description(), um->lease_time,
-			upnp_map_publish_reply, um);
+			upnp_map_publish_reply, upnp_mapping_refcnt_inc(um));
 
 		if (NULL == um->rpc) {
 			if (GNET_PROPERTY(upnp_debug)) {
@@ -1305,6 +1350,7 @@ upnp_map_publish(cqueue_t *cq, void *obj)
 					"UPNP could not launch UPnP publishing for %s port %u",
 					upnp_map_proto_to_string(um->proto), um->port);
 			}
+			upnp_mapping_refcnt_dec(um);
 		}
 	} else {
 		/*
@@ -1348,7 +1394,7 @@ upnp_map_add(enum upnp_map_proto proto, uint16 port)
 	um->install_ev = cq_main_insert(1, upnp_map_publish, um);
 	um->lease_time = UPNP_UNDEFINED_LEASE;
 
-	htable_insert(upnp_mappings, um, um);
+	htable_insert(upnp_mappings, um, upnp_mapping_refcnt_inc(um));
 }
 
 /**
@@ -1385,15 +1431,12 @@ upnp_map_delete_reply(int code, void *value, size_t size, void *arg)
 /**
  * Unpublish port mapping.
  *
- * @return TRUE if we can dispose of the mapping record.
+ * @return TRUE if we can dispose of the mapping record (no RPC issued here).
  */
 static bool
 upnp_map_unpublish(struct upnp_mapping *um)
 {
 	upnp_mapping_check(um);
-
-	if (!um->published)
-		return TRUE;			/* Nothing to do, was never published */
 
 	if (GNET_PROPERTY(upnp_debug) > 1) {
 		g_debug("UPNP removing %spublished %s mapping for %s port %u",
@@ -1401,6 +1444,9 @@ upnp_map_unpublish(struct upnp_mapping *um)
 			upnp_method_to_string(um->method),
 			upnp_map_proto_to_string(um->proto), um->port);
 	}
+
+	if (!um->published)
+		return TRUE;		/* Nothing to do, was never published */
 
 	if (UPNP_M_NATPMP == um->method) {
 		if (NULL == gw.gateway) {
@@ -1429,12 +1475,16 @@ upnp_map_unpublish(struct upnp_mapping *um)
 
 		/* Freeing of ``um'' will happen in upnp_map_delete_reply() */
 		um->rpc = upnp_ctrl_DeletePortMapping(usd, um->proto, um->port,
-			upnp_map_delete_reply, um);
+			upnp_map_delete_reply, upnp_mapping_refcnt_inc(um));
 
-		if (um->rpc != NULL)
+		if (um->rpc != NULL) {
 			igd.delete_pending++;
+			return FALSE;		/* RPC issued that should not be cancelled */
+		}
 
-		return FALSE;		/* ``um'' still needed for UPnP callback */
+		upnp_mapping_refcnt_dec(um);
+
+		return TRUE;			/* No RPC launched */
 	}
 
 	g_assert_not_reached();
@@ -1465,6 +1515,8 @@ upnp_map_remove(enum upnp_map_proto proto, uint16 port)
 
 		if (upnp_map_unpublish(um)) {
 			upnp_mapping_free(um, FALSE);
+		} else {
+			upnp_mapping_refcnt_dec(um);
 		}
 	}
 }
@@ -1501,6 +1553,8 @@ upnp_map_mapping_deleted(int code, void *value, size_t size, void *arg)
 
 	um->published = FALSE;
 	um->lease_time = UPNP_UNDEFINED_LEASE;
+
+	upnp_mapping_refcnt_dec(um);
 }
 
 /**
@@ -1530,13 +1584,14 @@ upnp_remove_mapping_kv(const void *key, void *u_value, void *data)
 		upnp_ctrl_cancel_null(&um->rpc, TRUE);
 
 		um->rpc = upnp_ctrl_DeletePortMapping(usd, um->proto, um->port,
-			upnp_map_mapping_deleted, um);
+			upnp_map_mapping_deleted, upnp_mapping_refcnt_inc(um));
 
 		if (NULL == um->rpc) {
 			if (GNET_PROPERTY(upnp_debug)) {
 				g_warning("UPNP cannot remove UPnP mapping for %s port %u",
 					upnp_map_proto_to_string(um->proto), um->port);
 			}
+			upnp_mapping_refcnt_dec(um);
 		}
 	} else {
 		/* Advisory unmapping, no callback on completion or error */

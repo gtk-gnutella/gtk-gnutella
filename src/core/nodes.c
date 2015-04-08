@@ -853,6 +853,29 @@ node_check_local_firewalled_status(gnutella_node_t *n)
 }
 
 /**
+ * Switch current peermode to specified value.
+ */
+static void
+node_switch_peermode(node_peer_t mode)
+{
+	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, mode);
+	gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, tm_time());
+}
+
+/**
+ * Demote current Ultra node to a leaf.
+ */
+static void
+node_demote_to_leaf(const char *reason)
+{
+	leaf_to_up_switch *= 2;
+	leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
+	g_warning("demoted from Ultrapeer status (for %u secs): %s",
+		leaf_to_up_switch, reason);
+	node_switch_peermode(NODE_P_LEAF);
+}
+
+/**
  * Low frequency node timer.
  */
 void
@@ -966,35 +989,7 @@ node_slow_timer(time_t now)
 		can_become_ultra(now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_ULTRA);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
-		return;
-	}
-
-	/*
-	 * If we're in "auto" mode and we've been promoted to an ultra node,
-	 * evaluate how good we are and whether we would not be better off
-	 * running as a leaf node.
-	 *
-	 * We double the time we'll spend as a leaf node before switching
-	 * again to UP mode to avoid endless switches between UP and leaf.
-	 * We limit that doubling to NODE_AUTO_SWITCH_MAX, to ensure that if
-	 * we can become one, then we should do so on a regular basis.
-	 */
-
-	if (
-		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
-		settings_is_ultra() &&
-		delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch))
-			> NODE_AUTO_SWITCH_MIN &&
-		!can_become_ultra(now)
-	) {
-		leaf_to_up_switch *= 2;
-		leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
-		g_warning("being demoted from Ultrapeer status (for %u secs)",
-			leaf_to_up_switch);
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
+		node_switch_peermode(NODE_P_ULTRA);
 		return;
 	}
 
@@ -1028,35 +1023,65 @@ node_slow_timer(time_t now)
 		GNET_PROPERTY(is_firewalled)
 	) {
 		g_warning("firewalled node being demoted from Ultrapeer status");
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
+		node_switch_peermode(NODE_P_LEAF);
 		return;
 	}
 
 	/*
-	 * If we're running as an ultra node in auto mode and we have seen no leaf
-	 * node connection for some time, then we're a bad node: we're taking
-	 * an ultranode slot in a high outdegree network with a low TTL and
-	 * are therefore harming the propagation of queries to leaf nodes,
-	 * since we have none.
-	 *
-	 * Therefore, we'll be better off running as a leaf node.
+	 * Additional sanity checks when we've been automatically promoted to
+	 * the Ultrapeer mode.
 	 */
 
 	if (
 		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
-		settings_is_ultra() &&
-		no_leaves_connected != 0 &&
-		delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
+		settings_is_ultra()
 	) {
-		leaf_to_up_switch *= 2;
-		leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
-		g_warning(
-			"demoted from Ultrapeer status for %d secs due to missing leaves",
-			leaf_to_up_switch);
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
-		return;
+		/*
+		 * Evaluate how good we are and whether we would not be better off
+		 * running as a leaf node.
+		 *
+		 * We double the time we'll spend as a leaf node before switching
+		 * again to UP mode to avoid endless switches between UP and leaf.
+		 * We limit that doubling to NODE_AUTO_SWITCH_MAX, to ensure that if
+		 * we can become one, then we should do so on a regular basis.
+		 */
+
+		if (
+			delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch))
+				> NODE_AUTO_SWITCH_MIN &&
+			!can_become_ultra(now)
+		) {
+			node_demote_to_leaf("no longer meeting requirements");
+			return;
+		}
+
+		/*
+		 * If we have not seen any leaf node connection for some time, then
+		 * we're a bad node: we're taking an ultranode slot in a high outdegree
+		 * network with a low TTL and are therefore harming the propagation of
+		 * queries to leaf nodes, since we have none.
+		 *
+		 * Therefore, we'll be better off running as a leaf node.
+		 */
+
+		if (
+			no_leaves_connected != 0 &&
+			delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
+		) {
+			node_demote_to_leaf("missing leaves");
+			return;
+		}
+
+		/*
+		 * If they happen to lack memory space for the kernel to allocate
+		 * enough memory buffers to support the high connection rate of
+		 * an Ultrapeer, switch back to leaf node.
+		 */
+
+		if (GNET_PROPERTY(net_buffer_shortage)) {
+			node_demote_to_leaf("kernel network buffer shortage");
+			return;
+		}
 	}
 }
 
@@ -5902,7 +5927,7 @@ node_query_routing_header(gnutella_node_t *n)
 static bool
 node_is_authentic(const char *vendor, const header_t *head)
 {
-	if (vendor) {
+	if (vendor != NULL) {
 		if (is_strcaseprefix(vendor, "limewire/")) {
 			return !header_get(head, "Bye-Packet") &&
 				header_get(head, "Remote-IP") &&
@@ -5910,12 +5935,16 @@ node_is_authentic(const char *vendor, const header_t *head)
 				header_get(head, "Accept-Encoding");
 		} else if (is_strcaseprefix(vendor, "shareaza ")) {
 			const char *field = header_get(head, "X-Ultrapeer");
-			const char *type = header_get(head, "Content-Type");
-			if (NULL == type)
-				return FALSE;
-			return NULL == field ||
-				0 == ascii_strcasecmp(field, "false") ||
-				0 == ascii_strcasecmp(type, APP_G2);
+			if (NULL == field)
+				return TRUE;
+			if (0 == ascii_strcasecmp(field, "false")) {
+				return TRUE;
+			} else {
+				const char *acc = header_get(head, "Accept");
+				if (acc != NULL && !strtok_case_has(acc, ",", APP_GNUTELLA))
+					return TRUE;	/* G2 hub, using X-Ultrapeer */
+			}
+			return FALSE;
 		}
 	}
 
@@ -8195,10 +8224,13 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 	/*
 	 * If they wish to be temporarily off Gnet, don't initiate connections.
+	 * Likewise if we are short of network buffers.
 	 */
 
-	if (!incoming && !allow_gnet_connections)
-		return;
+	if (!incoming) {
+		if (!allow_gnet_connections || GNET_PROPERTY(net_buffer_shortage))
+			return;
+	}
 
 	/*
 	 * Compute the protocol version from the first handshake line, if
@@ -8326,6 +8358,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 			n->gnet_port = port;
 			n->proto_major = 0;
 			n->proto_minor = 6;				/* Handshake at 0.6 intially */
+			n->peermode = g2 ? NODE_P_G2HUB : NODE_P_ULTRA;
 
 			/*
 			 * We want to establish a G2 handshaking, we do not know yet
@@ -12160,6 +12193,13 @@ void
 node_connect_back(const gnutella_node_t *n, uint16 port)
 {
 	gnutella_socket_t *s;
+
+	/*
+	 * Refuse connection if there is a network buffer shortage.
+	 */
+
+	if G_UNLIKELY(GNET_PROPERTY(net_buffer_shortage))
+		return;
 
 	/*
 	 * Attempt asynchronous connection.

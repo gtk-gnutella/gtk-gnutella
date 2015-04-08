@@ -2,7 +2,7 @@
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
  * All rights reserved.
  *
- * Copyright (c) 2009-2011 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2015 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2009-2011
+ * @date 2009-2011, 2014-2015
  */
 
 #include "common.h"
@@ -81,7 +81,9 @@
 #include "ckalloc.h"
 #include "compat_pause.h"
 #include "compat_sleep_ms.h"
+#include "cq.h"
 #include "eslist.h"
+#include "evq.h"
 #include "fast_assert.h"
 #include "fd.h"
 #include "file.h"
@@ -101,7 +103,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
-#include "thread.h"				/* For thread_name() */
+#include "thread.h"				/* For thread_name(), et al. */
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
@@ -116,6 +118,7 @@
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
+#define CRASH_RESTART_GRACE		60		/**< secs, grace for async restart */
 
 #define CRASH_RUNTIME_BUFLEN	12	/**< Buffer length for crash_run_time() */
 
@@ -151,6 +154,7 @@ struct crash_vars {
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
+	action_fn_t restart;	/**< Optional restart callback to invoke */
 	const char * const *argv;	/**< Saved argv[] array */
 	const char * const *envp;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
@@ -186,7 +190,7 @@ static bool crash_pausing;
  */
 typedef struct crash_hook_item {
 	const char *filename;		/**< File for which hook is installed */
-	crash_hook_t hook;			/**< The hook to install */
+	callback_fn_t hook;			/**< The hook to install */
 	slink_t link;				/**< Embedded link */
 } crash_hook_item_t;
 
@@ -488,6 +492,11 @@ crash_run_time(char *buf, size_t size)
 	if (size < num_reserved)
 		return;
 
+	if (NULL == vars) {
+		g_strlcpy(buf, "0 s?", size);
+		return;
+	}
+
 	t = delta_time(time(NULL), vars->start_time);
 	s = MAX(t, 0);		/* seconds */
 
@@ -526,7 +535,7 @@ crash_run_time(char *buf, size_t size)
  *
  * @return the hook function to run, NULL if nothing.
  */
-static G_GNUC_COLD crash_hook_t
+static G_GNUC_COLD callback_fn_t
 crash_get_hook(void)
 {
 	const char *file;
@@ -564,7 +573,7 @@ crash_get_hook(void)
 static G_GNUC_COLD void
 crash_run_hooks(const char *logfile, int logfd)
 {
-	crash_hook_t hook;
+	callback_fn_t hook;
 	const char *routine;
 	char pid_buf[ULONG_DEC_BUFLEN];
 	char time_buf[CRASH_TIME_BUFLEN];
@@ -2069,7 +2078,7 @@ crash_mode(void)
  *
  * This function only returns when exec()ing fails.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
@@ -2175,7 +2184,7 @@ crash_try_reexec(void)
  * Handle possible auto-restart, if configured.
  * This function does not return when auto-restart succeeds
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 crash_auto_restart(void)
 {
 	/*
@@ -2298,7 +2307,7 @@ crash_pause(void)
 /**
  * The signal handler used to trap harmful signals.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_handler(int signo)
 {
 	static volatile sig_atomic_t crashed;
@@ -2520,7 +2529,7 @@ crash_ck_allocator(void *allocator, size_t len)
 /**
  * Alter crash flags.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_ctl(enum crash_alter_mode mode, int flags)
 {
 	uint8 value;
@@ -2548,7 +2557,7 @@ crash_ctl(enum crash_alter_mode mode, int flags)
  *
  * @param pid		PID of the previous process
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_exited(uint32 pid)
 {
 	str_t *cfile;
@@ -2632,7 +2641,7 @@ crash_exited(uint32 pid)
  *
  * This is an eslist iterator callback.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_hook_install(void *data, void *udata)
 {
 	crash_hook_item_t *ci = data;
@@ -2649,7 +2658,7 @@ crash_hook_install(void *data, void *udata)
  * @param flags		combination of CRASH_F_GDB, CRASH_F_PAUSE, CRASH_F_RESTART
  * @parah exec_path	pathname of custom program to execute on crash
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path)
 {
@@ -2819,7 +2828,7 @@ crash_init(const char *argv0, const char *progname,
  *
  * @return Required buffer size.
  */
-static G_GNUC_COLD size_t
+static size_t G_GNUC_COLD
 crashfile_name(char *dst, size_t dst_size, const char *pathname)
 {
 	const char *pid_str, *item;
@@ -2857,7 +2866,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 /**
  * Record current working directory and configured crash directory.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_setdir(const char *pathname)
 {
 	const char *curdir = NULL;
@@ -2913,7 +2922,7 @@ crash_setdir(const char *pathname)
 /**
  * Record program's version string.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_setver(const char *version)
 {
 	const char *value;
@@ -2968,10 +2977,30 @@ crash_setmain(int argc, const char **argv, const char **env)
 }
 
 /**
+ * Record callback to invoke in order to restart the application cleanly.
+ *
+ * This callback will be invoked by crash_restart() if defined.  Upon return
+ * of that callback, crash_reexec() will be called if the callback returns 0.
+ * Otherwise, it will assume restarting will be asynchronous and will give
+ * the application some time to issue the restart.
+ */
+void
+crash_set_restart(action_fn_t cb)
+{
+	if (NULL == vars) {
+		s_carp("%s(): should not be called before crash_init(), ignoring!",
+			G_STRFUNC);
+		return;
+	}
+
+	crash_set_var(restart, cb);
+}
+
+/**
  * Record a crash hook for a file.
  */
 void
-crash_hook_add(const char *filename, const crash_hook_t hook)
+crash_hook_add(const char *filename, const callback_fn_t hook)
 {
 	g_assert(filename != NULL);
 	g_assert(hook != NULL);
@@ -3084,7 +3113,7 @@ crash_abort(void)
  *
  * This function does not return: either it succeeds exec()ing or it exits.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_reexec(void)
 {
 	crash_mode();		/* Not really, but prevents any memory allocation */
@@ -3093,14 +3122,205 @@ crash_reexec(void)
 	_exit(EXIT_FAILURE);
 }
 
+static cevent_t *crash_restart_ev;		/* Async restart event */
+static int crash_exit_started;
+
+/**
+ * Callout queue event to force application restart.
+ */
+static void G_GNUC_COLD
+crash_force_restart(cqueue_t *cq, void *unused)
+{
+	char buf[CRASH_RUNTIME_BUFLEN];
+
+	(void) unused;
+
+	cq_zero(cq, &crash_restart_ev);
+
+	crash_run_time(buf, sizeof buf);
+	s_miniwarn("%s(): forcing immediate restart after %s", G_STRFUNC, buf);
+	crash_reexec();		/* Does not return */
+}
+
+/**
+ * Preventive restart of the application to avoid an out-of-memory condition.
+ *
+ * If a user-supplied callback was supplied via crash_set_restart(), it is
+ * invoked first.  It is valid for the callback to attempt to auto-restart
+ * if it needs to.  The application will be auto-restarted unconditionally
+ * should the callback return 0.  On any other reply, it is assumed that
+ * asynchronous restart will be attempted: during CRASH_RESTART_GRACE seconds,
+ * no further call of crash_restart() will be handled and once the delay
+ * expires, the application will be forcefully restarted.
+ *
+ * When this routine is called, we are not in a critical situation so we
+ * do not put a minimum runtime constrainst to restart the application: it
+ * is up to the user of that routine to ensure the conditions leading to
+ * that routine will be infrequent enough.
+ *
+ * If the crash handling layer was not yet configured or they did not ask
+ * for auto-restarts, then calls to crash_restart() are simply ignored.
+ *
+ * This routine may return, hence the caller must be prepared for it.
+ */
+void G_GNUC_COLD
+crash_restart(const char *format, ...)
+{
+	static int registered;
+	bool has_callback = FALSE;
+	char buf[CRASH_RUNTIME_BUFLEN];
+	va_list args;
+
+	/*
+	 * If they did not call crash_init() yet or did not supply CRASH_F_RESTART
+	 * to allow auto-restarts, then do nothing.
+	 */
+
+	if (NULL == vars || !vars->may_restart)
+		return;		/* Silently ignored */
+
+	/*
+	 * Since a callback could request asynchronous restarting, we need to
+	 * record the first time we enter here and ignore subsequent calls.
+	 */
+
+	if (0 != atomic_int_inc(&registered))
+		return;
+
+	/*
+	 * First log the condition, without allocating any memory, bypassing stdio.
+	 */
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_INFO, TRUE, format, args);
+	va_end(args);
+
+	/*
+	 * If we're on the exit path already for another reason, no need to
+	 * recurse into requesting another exit!
+	 */
+
+	if (atomic_int_get(&crash_exit_started)) {
+		s_miniinfo("%s(): already started exiting, ignoring.", G_STRFUNC);
+		return;
+	}
+
+	/*
+	 * If there is a restart callback, invoke it.
+	 *
+	 * Its exit status matters: a 0 means that an immediate restart should be
+	 * initiated.  Anything else means a deferred restart will be triggered
+	 * by the application, and it will do so in the next CRASH_RESTART_GRACE
+	 * seconds (or we will forcefully trigger it).
+	 */
+
+	if (vars != NULL && vars->restart != NULL) {
+		s_miniinfo("%s(): issuing shutdown via %s()...",
+			G_STRFUNC, stacktrace_function_name(vars->restart));
+
+		has_callback = TRUE;
+		if (0 != (*vars->restart)())
+			goto asynchronous;
+	}
+
+	/*
+	 * When the callback returns 0, manually attempt auto-restart.
+	 *
+	 * The callback may choose to attempt to auto-restart manually.
+	 * If it does not, we attempt to re-exec ourselves anway.
+	 */
+
+	crash_run_time(buf, sizeof buf);
+	s_miniinfo("%s(): attempting auto-restart%s after %s...",
+		G_STRFUNC, has_callback ? " on clean shutdown" : "", buf);
+
+	crash_reexec();		/* Does not return */
+
+	/*
+	 * Handle asynchronous restarts: we give the application some time
+	 * to shutdown manually and we will then force a shutdown.
+	 */
+
+asynchronous:
+	s_miniinfo("%s(): auto-restart should happen soon", G_STRFUNC);
+	crash_restart_ev =
+		evq_raw_insert(CRASH_RESTART_GRACE * 1000, crash_force_restart, NULL);
+}
+
+/**
+ * Signal that shutdown is starting.
+ *
+ * This routine can be called when there is a possibility to have asynchronous
+ * shutdown requested by the restart callback: it cancels the timer after
+ * which a forced and brutal shutdown will occur.
+ *
+ * It also avoids recursion on the application exit path, so that any call to
+ * crash_restart() will be properly ignored.
+ */
+void
+crash_restarting(void)
+{
+	atomic_int_inc(&crash_exit_started);
+
+	if (crash_restart_ev != NULL) {
+		char buf[CRASH_RUNTIME_BUFLEN];
+
+		cq_cancel(&crash_restart_ev);
+
+		crash_run_time(buf, sizeof buf);
+		s_miniinfo("%s(): auto-restart initiated after %s...", G_STRFUNC, buf);
+	}
+}
+
 /***
  *** Calling any of the following routines means we're about to crash.
  ***/
 
 /**
+ * Out of memory condition.
+ *
+ * This is critical, we may not be able to allocate more memory to even
+ * go much further.  It is also fatal, we do not return from here.
+ *
+ * Log the error and try to auto-restart the program if configured to do
+ * so, otherwise crash immediately.
+ */
+void G_GNUC_COLD
+crash_oom(const char *format, ...)
+{
+	static int recursive;
+	unsigned flags = G_LOG_LEVEL_CRITICAL;
+	va_list args;
+
+	/*
+	 * First log the error, without allocating any memory, bypassing stdio.
+	 */
+
+	va_start(args, format);
+
+	if (0 != atomic_int_inc(&recursive)) {
+		thread_check_suspended();
+		flags |= G_LOG_FLAG_RECURSION;
+	}
+
+	s_minilogv(flags, TRUE, format, args);
+	va_end(args);
+
+	/*
+	 * Now attempt auto-restart if configured.
+	 */
+
+	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
+
+	crash_mode();
+	crash_auto_restart();
+	crash_abort();
+}
+
+/**
  * Record failed assertion data.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_assert_failure(const struct assertion_data *a)
 {
 	crash_mode();
@@ -3114,7 +3334,7 @@ crash_assert_failure(const struct assertion_data *a)
  *
  * @return formatted message string, NULL if it could not be built
  */
-G_GNUC_COLD const char *
+const char * G_GNUC_COLD
 crash_assert_logv(const char * const fmt, va_list ap)
 {
 	crash_mode();
@@ -3147,7 +3367,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
  *
  * This allows triggering of crash hooks, if any defined for the file.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_set_filename(const char * const filename)
 {
 	crash_mode();
@@ -3161,7 +3381,7 @@ crash_set_filename(const char * const filename)
 /**
  * Record crash error message.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_set_error(const char * const msg)
 {
 	crash_mode();
@@ -3188,7 +3408,7 @@ crash_set_error(const char * const msg)
 /**
  * Append information to existing error message.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 crash_append_error(const char * const msg)
 {
 	crash_mode();

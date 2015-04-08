@@ -200,6 +200,9 @@ ntp_received(enum urpc_ret type, host_addr_t addr, uint16 unused_port,
 	(void) unused_port;
 	(void) unused_arg;
 
+	if (URPC_ABORT == type)
+		return;
+
 	if (URPC_TIMEOUT == type) {
 		ntp_no_reply();
 		return;

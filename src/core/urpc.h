@@ -43,6 +43,7 @@
  */
 enum urpc_ret {
 	URPC_TIMEOUT,		/**< timed out */
+	URPC_ABORT,			/**< abort notification */
 	URPC_REPLY			/**< reply from host */
 };
 

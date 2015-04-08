@@ -1555,19 +1555,20 @@ entropy_nonce(void)
 	 * we want them to both recompute the base.  Sure, we could make the
 	 * first thread do that only by using an equality test, but this adds
 	 * more entropy because the computation becomes less deterministic due
-	 * to the possible lock contention.
+	 * to the possible lock contentions.
 	 */
 
 	if G_UNLIKELY(0 == base || ENTROPY_NONCE_MAX <= c) {
 		static spinlock_t base_slk = SPINLOCK_INIT;
-
-		spinlock_hidden(&base_slk);
+		uint32 newbase;
 
 		do {
-			base = entropy_random();
-		} while (0 == base);
-		nused = 0;
+			newbase = entropy_random();
+		} while (0 == newbase);
 
+		spinlock_hidden(&base_slk);
+		base = newbase;
+		nused = 0;
 		spinunlock_hidden(&base_slk);
 	}
 

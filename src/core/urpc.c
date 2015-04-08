@@ -85,7 +85,7 @@ urpc_cb_free(struct urpc_cb *ucb, bool in_shutdown)
 	urpc_cb_check(ucb);
 
 	if (in_shutdown) {
-		(*ucb->cb)(URPC_TIMEOUT, ucb->addr, ucb->port, NULL, 0, ucb->arg);
+		(*ucb->cb)(URPC_ABORT, ucb->addr, ucb->port, NULL, 0, ucb->arg);
 	} else {
 		htable_remove(pending, ucb->s);
 	}

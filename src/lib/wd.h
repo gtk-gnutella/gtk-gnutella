@@ -65,6 +65,7 @@ bool wd_sleep(watchdog_t *wd);
 bool wd_wakeup(watchdog_t *wd);
 bool wd_expire(watchdog_t *wd);
 void wd_kick(watchdog_t *wd);
+bool wd_wakeup_kick(watchdog_t *wd);
 
 #endif /* _wd_h_ */
 

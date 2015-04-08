@@ -3950,6 +3950,7 @@ thread_suspend_others(bool lockwait)
 				continue;
 			}
 
+			/* Note: done without a lock on "xte" using an atomic operation */
 			atomic_int_inc(&xte->suspend);
 			n++;
 		}
@@ -3996,7 +3997,7 @@ thread_suspend_others(bool lockwait)
 		}
 
 		THREAD_LOCK(xte);
-		xte->suspend++;
+		atomic_int_inc(&xte->suspend);
 		if (0 != xte->locks.count)
 			busy++;
 		THREAD_UNLOCK(xte);
@@ -4066,20 +4067,21 @@ thread_unsuspend_others(void)
 
 	locked = mutex_trylock(&thread_suspend_mtx);
 
-	g_assert(locked);		/* All other threads should be sleeping */
+	g_soft_assert(locked);		/* All other threads should be sleeping */
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *xte = threads[i];
 
 		THREAD_LOCK(xte);
 		if G_LIKELY(xte->suspend) {
-			xte->suspend--;
+			atomic_int_dec(&xte->suspend);
 			n++;
 		}
 		THREAD_UNLOCK(xte);
 	}
 
-	mutex_unlock(&thread_suspend_mtx);
+	if (locked)
+		mutex_unlock(&thread_suspend_mtx);
 
 	return n;
 }
@@ -5756,6 +5758,8 @@ found:
 		s_rawwarn("%s overflowing its lock stack at %s:%u",
 			thread_element_name(te), file, line);
 		thread_lock_dump(te);
+		if (atomic_int_get(&thread_locks_disabled))
+			return;				/* Crashing or exiting already */
 		s_error("too many locks grabbed simultaneously");
 	}
 
@@ -5865,9 +5869,6 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 	}
 
 found:
-	if G_UNLIKELY(atomic_int_get(&thread_locks_disabled))
-		return;			/* We may not be recording locks in pass-through mode */
-
 	THREAD_STATS_INCX(locks_tracked);
 
 	tls = &te->locks;
@@ -5878,6 +5879,8 @@ found:
 		tls->overflow = TRUE;
 		s_rawwarn("%s overflowing its lock stack", thread_element_name(te));
 		thread_lock_dump(te);
+		if (atomic_int_get(&thread_locks_disabled))
+			return;			/* Crashing or exiting already */
 		s_error("too many locks grabbed simultaneously");
 	}
 
@@ -6026,8 +6029,12 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 			te->stack_lock != NULL &&
 			thread_stack_ptr_cmp(&te, te->stack_lock) >= 0
 		) {
-			s_minicarp("%s(): %s %p was not registered in thread #%u",
-				G_STRFUNC, thread_lock_kind_to_string(kind), lock, te->stid);
+			/* Locks may be missing in pass-through mode */
+			if (!atomic_int_get(&thread_locks_disabled)) {
+				s_minicarp("%s(): %s %p was not registered in thread #%u",
+					G_STRFUNC, thread_lock_kind_to_string(kind),
+					lock, te->stid);
+			}
 		}
 		return;
 	}
@@ -6151,8 +6158,17 @@ thread_lock_holds_default(const volatile void *lock, bool dflt)
 		return FALSE;
 	}
 
-	for (i = 0; i < tls->count; i++) {
-		const struct thread_lock *l = &tls->arena[i];
+	/*
+	 * Most likely, when checking for locks, we are running assertions.
+	 * And then we are probably most interested by locks acquired lastly
+	 * in the calling chain.
+	 *
+	 * Therefore, since we are doing a linear scan, it pays to start from
+	 * the end of the lock stack.
+	 */
+
+	for (i = tls->count; i != 0; /**/) {
+		const struct thread_lock *l = &tls->arena[--i];
 
 		if G_UNLIKELY(l->lock == lock)
 			return TRUE;

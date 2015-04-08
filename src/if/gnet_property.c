@@ -142,8 +142,8 @@ guint32  gnet_property_variable_max_banned_fd     = 100;
 static const guint32  gnet_property_variable_max_banned_fd_default = 100;
 guint32  gnet_property_variable_incoming_connecting_timeout     = 60;
 static const guint32  gnet_property_variable_incoming_connecting_timeout_default = 60;
-guint32  gnet_property_variable_node_connecting_timeout     = 30;
-static const guint32  gnet_property_variable_node_connecting_timeout_default = 30;
+guint32  gnet_property_variable_node_connecting_timeout     = 90;
+static const guint32  gnet_property_variable_node_connecting_timeout_default = 90;
 guint32  gnet_property_variable_node_connected_timeout     = 180;
 static const guint32  gnet_property_variable_node_connected_timeout_default = 180;
 guint32  gnet_property_variable_node_sendqueue_size     = 98304;
@@ -222,8 +222,8 @@ guint32  gnet_property_variable_parq_time_always_continue     = 5;
 static const guint32  gnet_property_variable_parq_time_always_continue_default = 5;
 guint32  gnet_property_variable_parq_ban_bad_maxcountwait     = 10;
 static const guint32  gnet_property_variable_parq_ban_bad_maxcountwait_default = 10;
-guint32  gnet_property_variable_track_props     = 0;
-static const guint32  gnet_property_variable_track_props_default = 0;
+gboolean gnet_property_variable_net_buffer_shortage     = FALSE;
+static const gboolean gnet_property_variable_net_buffer_shortage_default = FALSE;
 gboolean gnet_property_variable_stop_host_get     = FALSE;
 static const gboolean gnet_property_variable_stop_host_get_default = FALSE;
 gboolean gnet_property_variable_bws_in_enabled     = FALSE;
@@ -423,8 +423,8 @@ gboolean gnet_property_variable_download_require_server_name     = TRUE;
 static const gboolean gnet_property_variable_download_require_server_name_default = TRUE;
 guint32  gnet_property_variable_max_ultrapeers     = 4;
 static const guint32  gnet_property_variable_max_ultrapeers_default = 4;
-guint32  gnet_property_variable_quick_connect_pool_size     = 10;
-static const guint32  gnet_property_variable_quick_connect_pool_size_default = 10;
+guint32  gnet_property_variable_quick_connect_pool_size     = 40;
+static const guint32  gnet_property_variable_quick_connect_pool_size_default = 40;
 guint32  gnet_property_variable_max_leaves     = 150;
 static const guint32  gnet_property_variable_max_leaves_default = 150;
 guint32  gnet_property_variable_search_handle_ignored_files     = 0;
@@ -2127,7 +2127,7 @@ gnet_prop_init(void) {
     gnet_property->props[48].data.guint32.value = (void *) &gnet_property_variable_node_connecting_timeout;
     gnet_property->props[48].data.guint32.choices = NULL;
     gnet_property->props[48].data.guint32.max   = 100000;
-    gnet_property->props[48].data.guint32.min   = 15;
+    gnet_property->props[48].data.guint32.min   = 30;
 
 
     /*
@@ -2947,24 +2947,21 @@ gnet_prop_init(void) {
 
 
     /*
-     * PROP_TRACK_PROPS:
+     * PROP_NET_BUFFER_SHORTAGE:
      *
      * General data:
      */
-    gnet_property->props[88].name = "track_props";
-    gnet_property->props[88].desc = _("For development use: track properties.");
-    gnet_property->props[88].ev_changed = event_new("track_props_changed");
-    gnet_property->props[88].save = TRUE;
+    gnet_property->props[88].name = "net_buffer_shortage";
+    gnet_property->props[88].desc = _("Indicates a kernel network buffer shortage.");
+    gnet_property->props[88].ev_changed = event_new("net_buffer_shortage_changed");
+    gnet_property->props[88].save = FALSE;
     gnet_property->props[88].vector_size = 1;
 	mutex_init(&gnet_property->props[88].lock);
 
     /* Type specific data: */
-    gnet_property->props[88].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[88].data.guint32.def   = (void *) &gnet_property_variable_track_props_default;
-    gnet_property->props[88].data.guint32.value = (void *) &gnet_property_variable_track_props;
-    gnet_property->props[88].data.guint32.choices = NULL;
-    gnet_property->props[88].data.guint32.max   = 20;
-    gnet_property->props[88].data.guint32.min   = 0;
+    gnet_property->props[88].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[88].data.boolean.def   = (void *) &gnet_property_variable_net_buffer_shortage_default;
+    gnet_property->props[88].data.boolean.value = (void *) &gnet_property_variable_net_buffer_shortage;
 
 
     /*
@@ -4793,7 +4790,7 @@ gnet_prop_init(void) {
     gnet_property->props[182].data.guint32.value = (void *) &gnet_property_variable_quick_connect_pool_size;
     gnet_property->props[182].data.guint32.choices = NULL;
     gnet_property->props[182].data.guint32.max   = 80;
-    gnet_property->props[182].data.guint32.min   = 4;
+    gnet_property->props[182].data.guint32.min   = 10;
 
 
     /*

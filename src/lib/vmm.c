@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2011, 2013, Raphael Manfredi
+ * Copyright (c) 2006, 2011, 2013-2015, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -99,7 +99,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009, 2011, 2013
+ * @date 2006, 2009, 2011, 2013-2015
  */
 
 #include "common.h"
@@ -112,7 +112,7 @@
 #include "ascii.h"
 #include "atomic.h"
 #include "cq.h"
-#include "crash.h"			/* For crash_hook_add() */
+#include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
 #include "evq.h"
 #include "fd.h"
@@ -442,6 +442,8 @@ static void pmap_overrule(struct pmap *pm,
 static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
+static void *page_cache_find_pages(size_t n, bool emergency);
+static void page_cache_free_all(bool locked);
 
 /**
  * Put the VMM layer in crashing mode.
@@ -1125,6 +1127,15 @@ vmm_first_hole(const void **unused, bool discard)
 }
 #endif	/* HAS_MMAP || MINGW32 */
 
+static inline void
+vmm_set_stop_freeing(bool val)
+{
+	stop_freeing = val;
+#ifdef MINGW32
+	mingw_set_stop_vfree(val);
+#endif
+}
+
 /**
  * Dump current VMM hole to specified logagent.
  */
@@ -1416,9 +1427,16 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * See whether we can mark something as "foreign" in the VM space so
 		 * that we avoid further attempts at the same location for blocks
 		 * of similar sizes.
+		 *
+		 * On Windows, we reserve a large chunk of VM space at startup and
+		 * allocate from there, until it is exhausted, at which time we use
+		 * emergency allocations with NULL hints.  When that happens, we near
+		 * a process restart so it is useless to start identifying regions in
+		 * the VM space where things have been mapped by the kernel.
+		 *		--RAM, 2015-04-07
 		 */
 
-		if (!pm->extending) {
+		if (!pm->extending && !is_running_on_mingw()) {
 			if (size <= kernel_pagesize) {
 				pmap_insert_foreign(pm, hint, kernel_pagesize);
 				if (vmm_debugging(0)) {
@@ -1530,6 +1548,37 @@ done:
 }
 #endif	/* HAS_MMAP */
 
+static void
+vmm_validate_pages(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size_is_positive(size));
+#ifdef VMM_PROTECT_FREE_PAGES
+	mprotect(p, size, PROT_READ | PROT_WRITE);
+#endif	/* VMM_PROTECT_FREE_PAGES */
+#ifdef VMM_INVALIDATE_FREE_PAGES
+	/*  This should be unnecessary */
+	/*  vmm_madvise_normal(p, size); */
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
+static void
+vmm_invalidate_pages(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size_is_positive(size));
+
+	if (G_UNLIKELY(stop_freeing))
+		return;
+
+#ifdef VMM_PROTECT_FREE_PAGES
+	mprotect(p, size, PROT_NONE);
+#endif	/* VMM_PROTECT_FREE_PAGES */
+#ifdef VMM_INVALIDATE_FREE_PAGES
+	vmm_madvise_free(p, size);
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
 /**
  * Insert region in the pmap, known to be native.
  */
@@ -1575,11 +1624,67 @@ alloc_pages(size_t size, bool update_pmap)
 	p = vmm_mmap_anonymous(size, hole);
 
 	if G_UNLIKELY(NULL == p) {
+		size_t n = pagecount_fast(size);
+
+		/*
+		 * Emergency situation: we're out of memory, we're going to request
+		 * that this process be restarted.  If we return NULL from here, this
+		 * is going to be a burtal restart, and we can maybe perform a clean
+		 * one: all we have to do is be able to allocate from the page cache,
+		 * even though this would not be an optimal allocation.
+		 *		--RAM, 2015-04-02
+		 */
+
+		p = page_cache_find_pages(n, TRUE);
+		if (p != NULL) {
+			vmm_validate_pages(p, size);
+			memset(p, 0, size);				/* Kernel memory always zeroed */
+
+			/* We're going to crash and restart, don't update statistics */
+
+			crash_restart("%s(): emergency allocation of %'zu bytes from "
+				"the page cache, requesting restart",
+				G_STRFUNC, size);
+
+			/* Allocation from page cache: region is already in the pmap */
+			goto done;
+		}
+
+		/*
+		 * Critical situation: free all the pages from the page cache and
+		 * retry allocation.
+		 */
+
+		page_cache_free_all(TRUE);
+
+		if (update_pmap) {
+			if (G_UNLIKELY(stop_freeing)) {
+				hole = NULL;
+			} else {
+				hole = vmm_find_hole(size);
+			}
+		}
+
+		p = vmm_mmap_anonymous(size, hole);
+
+		if (p != NULL) {
+			/* We're going to crash and restart, don't update statistics */
+
+			crash_restart("%s(): emergency allocation of %'zu bytes after "
+				"clearing the page cache, requesting restart",
+				G_STRFUNC, size);
+
+			goto allocated;
+		}
+
+	done:
 		if (update_pmap)
 			rwlock_wunlock(&pm->lock);
-		return NULL;
+
+		return p;
 	}
 
+allocated:
 	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
 
 	if (vmm_debugging(5)) {
@@ -1632,7 +1737,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		ret = vmm_vfree_fragment(p, size);
 
 		if G_UNLIKELY(ret != 0) {
-			s_minierror("%s(): release of %zu bytes at %p failed: %s",
+			s_minierror("%s(): release of %'zu bytes at %p failed: %s",
 				G_STRFUNC, size, p, symbolic_errno(errno));
 		}
 	}
@@ -1850,6 +1955,11 @@ retry:
 
 		narray = alloc_pages(nsize, FALSE);	/* May recurse here */
 
+		if (NULL == narray) {
+			crash_oom("%s(): cannot extend pmap to %'zu bytes: "
+				"out of virtual memory", G_STRFUNC, nsize);
+		}
+
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
 				s_miniwarn("VMM already recursed to %s(), pmap is now %zu KiB",
@@ -1877,9 +1987,6 @@ retry:
 					nsize / 1024, narray);
 			}
 		}
-
-		if (NULL == narray)
-			s_minierror("cannot extend pmap: out of virtual memory");
 	}
 
 	oarray = pm->array;
@@ -2056,32 +2163,6 @@ pmap_log_missing(const struct pmap *pm, const void *p, size_t size)
 }
 
 /**
- * Is block within an identified region, and not at the beginning or tail?
- */
-static bool
-pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
-{
-	struct vm_fragment *vmf;
-	bool within = FALSE;
-	struct pmap *wpm = deconstify_pointer(pm);
-
-	rwlock_rlock(&wpm->lock);
-
-	vmf = pmap_lookup(pm, p, NULL);
-
-	if (NULL == vmf) {
-		pmap_log_missing(pm, p, size);
-		goto done;
-	}
-
-	within = p != vmf->start && vmf->end != const_ptr_add_offset(p, size);
-
-done:
-	rwlock_runlock(&wpm->lock);
-	return within;
-}
-
-/**
  * Given a known-to-be-mapped block (base address and size), compute the
  * distance of its middle point to the border of the region holding it:
  * the smallest distance between the middle point and the start and end of the
@@ -2117,6 +2198,45 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 }
 
 /**
+ * Is block at a region extremity?
+ */
+static bool
+pmap_is_extremity(const struct pmap *pm, const void *p, size_t npages)
+{
+	struct vm_fragment *vmf;
+	size_t idx;
+
+	g_assert(rwlock_is_taken(&pm->lock));	/* needs at least the read lock */
+
+	vmf = pmap_lookup(pm, p, &idx);
+
+	if (NULL == vmf) {
+		pmap_log_missing(pm, p, nsize_fast(npages));
+		return FALSE;
+	}
+
+	/*
+	 * The ``npages'' pages starting at ``p'' are an extremity if they lie
+	 * at the beginning or end of the region.
+	 *
+	 * Since regions are not adjacent in the pmap (or they would have been
+	 * merged), identifying an extremity is useful at free time: it increases
+	 * the amount of consecutive free space in the VM space.
+	 *
+	 * Note that a whole region is considered an extremity, and it's a memory
+	 * fragment in the sense of pmap_is_fragment().
+	 */
+
+	if (0 == ptr_cmp(p, vmf->start))
+		return TRUE;			/* Extremity at the beginning of region */
+
+	if (0 == ptr_cmp(const_ptr_add_offset(p, nsize_fast(npages)), vmf->end))
+		return TRUE;			/* Extremity at the end of region */
+
+	return FALSE;		/* Region is held within the memory fragment */
+}
+
+/**
  * Is block an identified fragment?
  */
 static bool
@@ -2125,7 +2245,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	struct vm_fragment *vmf;
 	size_t idx;
 
-	g_assert(rwlock_is_used(&pm->lock));	/* needs at least the read lock */
+	g_assert(rwlock_is_taken(&pm->lock));	/* needs at least the read lock */
 
 	vmf = pmap_lookup(pm, p, &idx);
 
@@ -2294,6 +2414,26 @@ vmm_is_native_pointer(const void *p)
 
 	rwlock_runlock(&pm->lock);
 	return native;
+}
+
+/**
+ * Is region starting at ``p'' and of ``n'' pages a virtual memory
+ * extremity, i.e. at the beginning or end of an allocated region?
+ */
+static bool
+vmm_is_extremity(const void *p, size_t n)
+{
+	struct pmap *pm = vmm_pmap();
+	bool is_extremity;
+
+	g_assert(p != NULL);
+	g_assert(size_is_positive(n));
+
+	rwlock_rlock(&pm->lock);
+	is_extremity = pmap_is_extremity(pm, p, n);
+	rwlock_runlock(&pm->lock);
+
+	return is_extremity;
 }
 
 /**
@@ -2619,16 +2759,23 @@ free_pages_vector(void *vec[], size_t vcnt, size_t size)
 		pmap_remove(pm, vec[i], size);
 	}
 
-	rwlock_wunlock(&pm->lock);
-
 	/*
 	 * Because the pmap has already been updated, we can release all the
-	 * pages without holding any lock.
+	 * pages without holding the write lock.
+	 *
+	 * We downgrade to a read lock though to prevent another allocator for
+	 * trying to allocate from the regions we removed in the pmap, when the
+	 * corresponding pages are still held in the process.
+	 *		--RAM, 2015-04-06
 	 */
+
+	rwlock_downgrade(&pm->lock);
 
 	for (i = 0; i < vcnt; i++) {
 		free_pages_intern(vec[i], size, FALSE);
 	}
+
+	rwlock_runlock(&pm->lock);
 }
 
 /**
@@ -2740,22 +2887,6 @@ vpc_remove(struct page_cache *pc, const void *p)
 	idx = vpc_lookup(pc, p, NULL);
 	g_assert(idx != (size_t) -1);		/* Must have been found */
 	vpc_remove_at(pc, p, idx);
-}
-
-/**
- * Free page cached at given index in cache line.
- */
-static void
-vpc_free(struct page_cache *pc, size_t idx)
-{
-	void *p;
-
-	g_assert(size_is_non_negative(idx) && idx < pc->current);
-	g_assert(spinlock_is_held(&pc->lock));
-
-	p = pc->info[idx].base;
-	vpc_remove_at(pc, p, idx);
-	free_pages_forced(p, pc->chunksize);
 }
 
 /**
@@ -3166,27 +3297,39 @@ not_found:
  * Find "n" consecutive pages in the page cache, and remove them if found.
  *
  * @param n			number of pages we want
+ * @param emergency	whether we need to find pages from the cache at all costs
  *
  * @return a pointer to the start of the memory region, NULL if we were
  * unable to find that amount of contiguous memory.
  */
 static void *
-page_cache_find_pages(size_t n)
+page_cache_find_pages(size_t n, bool emergency)
 {
 	void *p;
 	size_t len;
 	const void *hole = NULL;
 	struct vm_upper_hole upper;
 	struct page_cache *pc = NULL;
+	enum vmm_strategy strategy = vmm_strategy;
 
 	g_assert(size_is_positive(n));
+
+	/*
+	 * In emergency situations, we're going to act as if we were allocating
+	 * under a short-term strategy, to be able to locate a region from the
+	 * cache, knowing that we're going to end this process soon anyway due
+	 * to memory shortage.
+	 */
+
+	if G_UNLIKELY(emergency)
+		strategy = VMM_STRATEGY_SHORT_TERM;
 
 	/*
 	 * When allocating with a short-term strategy, we attempt to reuse the
 	 * cached memory as much as possible.
 	 */
 
-	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy)
+	if (VMM_STRATEGY_SHORT_TERM == strategy)
 		goto short_term_strategy;
 
 	/*
@@ -3283,9 +3426,11 @@ short_term_strategy:
 		 * achieved so far in higher-order caches.
 		 */
 
-		if (NULL == p && (VMM_STRATEGY_SHORT_TERM == vmm_strategy || n > 1)) {
+		if (NULL == p && (VMM_STRATEGY_SHORT_TERM == strategy || n > 1)) {
 			size_t i;
+			bool aggressive = FALSE;
 
+		try_harder:
 			for (i = n; i < VMM_CACHE_LINES && NULL == p; i++) {
 				pc = &page_cache[i];
 
@@ -3293,24 +3438,36 @@ short_term_strategy:
 					continue;
 
 				/*
-				 * If splitting the page woul put the remaining pages into
+				 * If splitting the page would put the remaining pages into
 				 * a full cache line, then avoid allocation from the current
-				 * cache line.
+				 * cache line unless we're being aggressive.
 				 */
 
 				{
 					size_t r = i - n + 1;		/* pc->pages == i + 1 */
 					struct page_cache *rpc = &page_cache[r - 1];
 
-					if G_UNLIKELY(VMM_CACHE_SIZE == rpc->current)
+					if G_UNLIKELY(VMM_CACHE_SIZE == rpc->current && !aggressive)
 						continue;	/* Remaining pages going to full cache */
 				}
 
 				p = vpc_find_pages(pc, n, hole);
 			}
 
-			if (p != NULL)
+			if G_LIKELY(p != NULL) {
 				VMM_STATS_INCX(cache_splits);
+			} else {
+				/*
+				 * In emergency situations, we need to retry the above lookups,
+				 * accepting to split regions even if they end-up falling into
+				 * a full cache line.
+				 */
+
+				if (emergency && !aggressive) {
+					aggressive = TRUE;
+					goto try_harder;
+				}
+			}
 		}
 
 		if (p != NULL) {
@@ -3362,24 +3519,25 @@ page_cache_insert_pages(void *base, size_t n)
 		goto short_term_strategy;
 
 	/*
-	 * Identified memory fragments are immediately freed and not put
-	 * back into the cache, in order to reduce fragmentation of the
-	 * memory space.
+	 * Identified region extremities (which includes standalone fragments)
+	 * are immediately freed and not put back into the cache, in order to
+	 * reduce fragmentation of the memory space and maximize the size of
+	 * free space.
 	 *
 	 * Start with a read lock on the pmap, which only needs to be upgraded
-	 * to a write lock if the area ends up being a fragment.
+	 * to a write lock if the area ends up being an extremity.
 	 */
 
 	rwlock_rlock(&pm->lock);
 
 retry:
-	if G_UNLIKELY(pmap_is_fragment(pm, base, n)) {
+	if G_UNLIKELY(pmap_is_extremity(pm, base, n)) {
 		/*
 		 * Upgrade to write lock.
 		 *
 		 * If we cannot atomically upgrade, we need to release the read lock
 		 * and re-acquire the write lock, after which we need to retry the
-		 * evaluation to see whether the pages are still a fragment.
+		 * evaluation to see whether the pages are still an extremity.
 		 */
 
 		if (!wlock) {
@@ -3395,12 +3553,9 @@ retry:
 
 		/*
 		 * We have the write lock.
-		 *
-		 * Since we're freeing a fragment, we can remove it from the list of
-		 * known regions: a fragment is a standalone region.
 		 */
 
-		pmap_remove_whole_region(pm, base, nsize_fast(n));
+		pmap_remove(pm, base, nsize_fast(n));
 
 		/*
 		 * We do not need a write lock to free the pages, and it's best to
@@ -3732,37 +3887,6 @@ vmm_madvise_willneed(void *p, size_t size)
 #endif	/* MADV_WILLNEED */
 }
 
-static void
-vmm_validate_pages(void *p, size_t size)
-{
-	g_assert(p);
-	g_assert(size_is_positive(size));
-#ifdef VMM_PROTECT_FREE_PAGES
-	mprotect(p, size, PROT_READ | PROT_WRITE);
-#endif	/* VMM_PROTECT_FREE_PAGES */
-#ifdef VMM_INVALIDATE_FREE_PAGES 
-	/*  This should be unnecessary */
-	/*  vmm_madvise_normal(p, size); */
-#endif	/* VMM_INVALIDATE_FREE_PAGES */
-}
-
-static void
-vmm_invalidate_pages(void *p, size_t size)
-{
-	g_assert(p);
-	g_assert(size_is_positive(size));
-
-	if (G_UNLIKELY(stop_freeing))
-		return;
-
-#ifdef VMM_PROTECT_FREE_PAGES
-	mprotect(p, size, PROT_NONE);
-#endif	/* VMM_PROTECT_FREE_PAGES */
-#ifdef VMM_INVALIDATE_FREE_PAGES 
-	vmm_madvise_free(p, size);
-#endif	/* VMM_INVALIDATE_FREE_PAGES */
-}
-
 /**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
  * and only allocating a new region when necessary.
@@ -3801,7 +3925,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n);
+	p = page_cache_find_pages(n, FALSE);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		if G_UNLIKELY(zero_mem)
@@ -3816,8 +3940,10 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	}
 
 	p = alloc_pages(size, TRUE);
-	if (NULL == p)
-		s_error("cannot allocate %zu bytes: out of virtual memory", size);
+	if (NULL == p) {
+		crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
+			G_STRFUNC, size);
+	}
 
 	/* Memory allocated by the kernel is already zero-ed */
 
@@ -3889,10 +4015,11 @@ vmm_should_cache(const void *p, size_t n)
 
 		/*
 		 * If region is small-enough to fit our cache, check whether it is
-		 * a fragment: we want to release fragments as soon as possible.
+		 * an extremity: we want to release extremities as soon as possible
+		 * to maximize free space.
 		 */
 
-		if (n <= VMM_CACHE_LINES && !vmm_is_fragment(p, nsize_fast(n)))
+		if (n <= VMM_CACHE_LINES && !vmm_is_extremity(p, n))
 			return TRUE;
 	}
 
@@ -4161,13 +4288,13 @@ vmm_free(void *p, size_t size)
 
 		/*
 		 * If we're running under a long-term VMM allocation strategy,
-		 * check whether the region we're releasing is a VMM fragment.
+		 * check whether the region we're releasing is a VMM extremity.
 		 * If it is, it should be released.
 		 */
 
 		if G_UNLIKELY(
 			VMM_STRATEGY_LONG_TERM == vmm_strategy &&
-			vmm_is_fragment(p, size)
+			vmm_is_extremity(p, npages)
 		) {
 			VMM_STATS_LOCK;
 			vmm_stats.magazine_freeings++;
@@ -4457,7 +4584,7 @@ page_cache_timer(void *unused_udata)
 		 * The rationale is that this is a good place to allocate from, so we
 		 * want to reuse the space.  And releasing that space would invalidate
 		 * the computed hole, making it likely that we would then again request
-		 * allocation at that feeed spot later on.
+		 * allocation at that freed spot later on.
 		 *
 		 * The only exception is the last (or first when the VM grows down)
 		 * entry of a cache line when there is more than one item, to make
@@ -4478,13 +4605,15 @@ page_cache_timer(void *unused_udata)
 		 * To avoid undue fragmentation of the memory space, do not free
 		 * a block that lies within an already identified region too soon.
 		 * Wait longer, for it to be further coalesced hopefully.
+		 *
+		 * Under a long-term strategy, extremities above the hole are always
+		 * freed, regardless of their age in the cache.
 		 */
 
 		if (
 			d >= VMM_CACHE_MAXLIFE ||
-			(
-				d >= VMM_CACHE_LIFE &&
-				!pmap_is_within_region(vmm_pmap(), base, pc->chunksize)
+			(vmm_is_extremity(base, pc->chunksize) &&
+				(VMM_STRATEGY_LONG_TERM == vmm_strategy || d >= VMM_CACHE_LIFE)
 			)
 		) {
 
@@ -4551,6 +4680,51 @@ page_cache_timer(void *unused_udata)
 		page_cache_line++;
 
 	return TRUE;	/* Keep scheduling */
+}
+
+/**
+ * Free all the pages in the page cache.
+ *
+ * @param locked	whether the pmap is already write-locked
+ */
+static void
+page_cache_free_all(bool locked)
+{
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(page_cache); i++) {
+		struct page_cache *pc = &page_cache[i];
+		size_t j;
+		void *freed[VMM_CACHE_SIZE];
+
+		/*
+		 * When the pmap is already write-locked, we cannot lock the page
+		 * cache or we risk a deadlock with page_cache_timer() which first
+		 * locks the cache lines and then attempts to write-lock the pmap.
+		 */
+
+		if (locked) {
+			if (!spinlock_try(&pc->lock)) {
+				size_t pages = pc->current;
+				s_miniwarn("%s(): skipping locked cache line #%zu "
+					"(%'zu bytes) with %zu page%s",
+					G_STRFUNC, i, pc->chunksize, pages, plural(pages));
+				continue;
+			}
+		} else {
+			spinlock(&pc->lock);
+		}
+
+		for (j = 0; j < pc->current; j++) {
+			freed[j] = pc->info[j].base;
+		}
+
+		free_pages_vector(freed, pc->current, pc->chunksize);
+		pc->expired += pc->current;
+		pc->current = 0;
+
+		spinunlock(&pc->lock);
+	}
 }
 
 /**
@@ -5324,7 +5498,7 @@ vmm_stop_freeing(void)
 	memusage_free_null(&vmm_stats.user_mem);
 	memusage_free_null(&vmm_stats.core_mem);
 
-	stop_freeing = TRUE;
+	vmm_set_stop_freeing(TRUE);
 
 	if (vmm_debugging(0))
 		s_minidbg("VMM will no longer release freed pages");
@@ -5350,18 +5524,7 @@ vmm_close(void)
 	 * Clear all cached pages.
 	 */
 
-	for (i = 0; i < VMM_CACHE_LINES; i++) {
-		struct page_cache *pc = &page_cache[i];
-		size_t j;
-
-		spinlock(&pc->lock);
-
-		for (j = 0; j < pc->current; j++) {
-			vpc_free(pc, j);
-		}
-
-		spinunlock(&pc->lock);
-	}
+	page_cache_free_all(FALSE);
 
 #ifdef TRACK_VMM
 	vmm_track_close();

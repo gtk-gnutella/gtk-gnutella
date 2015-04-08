@@ -46,6 +46,7 @@ int fd_fsync(int fd);
 int fd_fdatasync(int fd);
 int fd_forget_and_close(int *fd_ptr);
 int fd_close(int *fd_ptr);
+void fd_notify_socket_closed(socket_fd_t fd);
 int get_non_stdio_fd(int fd);
 bool need_get_non_stdio_fd();
 bool is_a_socket(int fd);
