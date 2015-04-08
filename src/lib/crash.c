@@ -492,6 +492,11 @@ crash_run_time(char *buf, size_t size)
 	if (size < num_reserved)
 		return;
 
+	if (NULL == vars) {
+		g_strlcpy(buf, "0 s?", size);
+		return;
+	}
+
 	t = delta_time(time(NULL), vars->start_time);
 	s = MAX(t, 0);		/* seconds */
 
@@ -3126,10 +3131,14 @@ static int crash_exit_started;
 static void G_GNUC_COLD
 crash_force_restart(cqueue_t *cq, void *unused)
 {
+	char buf[CRASH_RUNTIME_BUFLEN];
+
 	(void) unused;
 
 	cq_zero(cq, &crash_restart_ev);
-	s_miniwarn("%s(): forcing immediate restart", G_STRFUNC);
+
+	crash_run_time(buf, sizeof buf);
+	s_miniwarn("%s(): forcing immediate restart after %s", G_STRFUNC, buf);
 	crash_reexec();		/* Does not return */
 }
 
@@ -3159,6 +3168,7 @@ crash_restart(const char *format, ...)
 {
 	static int registered;
 	bool has_callback = FALSE;
+	char buf[CRASH_RUNTIME_BUFLEN];
 	va_list args;
 
 	/*
@@ -3220,8 +3230,9 @@ crash_restart(const char *format, ...)
 	 * If it does not, we attempt to re-exec ourselves anway.
 	 */
 
-	s_miniinfo("%s(): attempting auto-restart%s...",
-		G_STRFUNC, has_callback ? " after clean shutdown" : "");
+	crash_run_time(buf, sizeof buf);
+	s_miniinfo("%s(): attempting auto-restart%s after %s...",
+		G_STRFUNC, has_callback ? " on clean shutdown" : "", buf);
 
 	crash_reexec();		/* Does not return */
 
@@ -3252,8 +3263,12 @@ crash_restarting(void)
 	atomic_int_inc(&crash_exit_started);
 
 	if (crash_restart_ev != NULL) {
+		char buf[CRASH_RUNTIME_BUFLEN];
+
 		cq_cancel(&crash_restart_ev);
-		s_miniinfo("%s(): auto-restart initiated...", G_STRFUNC);
+
+		crash_run_time(buf, sizeof buf);
+		s_miniinfo("%s(): auto-restart initiated after %s...", G_STRFUNC, buf);
 	}
 }
 
