@@ -138,7 +138,6 @@
 #define SIGTRAP	12		/* Simulated, unassigned signal number in MinGW32 */
 #endif
 
-#define getppid()		1
 #define fcntl mingw_fcntl
 #define ffs __builtin_ffs
 #define sleep mingw_sleep
@@ -332,6 +331,17 @@ int mingw_getrusage(int who, struct rusage *usage);
 
 int mingw_fsync(int fd);
 #endif	/* !HAS_FSYNC */
+
+/*
+ * getppid() emulation.
+ */
+#ifndef HAS_GETPPID
+#define HAS_GETPPID
+#define EMULATE_GETPPID
+#define getppid mingw_getppid
+
+pid_t mingw_getppid(void);
+#endif	/* !HAS_GETPPID */
 
 /*
  * uname() emulation.

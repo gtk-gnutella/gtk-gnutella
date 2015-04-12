@@ -53,6 +53,7 @@
 #include <conio.h>				/* For _kbhit() */
 #include <imagehlp.h>			/* For backtrace() emulation */
 #include <iphlpapi.h>			/* For GetBestRoute() */
+#include <tlhelp32.h>			/* For CreateToolhelp32Snapshot() et al. */
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -767,6 +768,44 @@ mingw_fsync(int fd)
 	return 0;
 }
 #endif	/* EMULATE_FSYNC */
+
+#ifdef EMULATE_GETPPID
+/**
+ * Get the ID of the parent process.
+ *
+ * @note
+ * This is unreliable, prone to race conditions, as the kernel could immediately
+ * reuse the ID of a dead process and does not actively maintain a process tree
+ * as on UNIX.
+ *
+ * @return the ID of the parent process.
+ */
+pid_t
+mingw_getppid(void)
+{
+	pid_t our_pid = GetCurrentProcessId();
+	pid_t parent_pid = 1;
+	HANDLE h;
+	PROCESSENTRY32 pe;
+	BOOL ok;
+
+	ZERO(&pe);
+	pe.dwSize = sizeof(PROCESSENTRY32);
+
+	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	for (ok = Process32First(h, &pe); ok; ok = Process32Next(h, &pe)) {
+		if ((pid_t) pe.th32ProcessID == our_pid) {
+			parent_pid = pe.th32ParentProcessID;
+			break;
+		}
+	}
+
+	CloseHandle(h);
+
+	return parent_pid;
+}
+#endif	/* EMULATE_GETPPID */
 
 /**
  * Computes the memory necessary to include the string into quotes and escape
@@ -3149,7 +3188,6 @@ mingw_process_is_alive(pid_t pid)
 	char process_name[1024];
 	HANDLE p;
 	BOOL res = FALSE;
-
 	pid_t our_pid = GetCurrentProcessId();
 
 	/* PID might be reused */
