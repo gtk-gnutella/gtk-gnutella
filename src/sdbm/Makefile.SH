@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
-: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-183]
+: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -71,7 +71,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 183 2015-04-12 09:48:11Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -247,6 +247,9 @@ local_clobber:: local_realclean
 install:: local_install
 	@exit 0
 
+install-strip:: local_install-strip
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man
@@ -284,6 +287,9 @@ depend::
 
 local_install::
 	@echo "install in $(CURRENT) done."
+
+local_install-strip::
+	@echo "install (strip) in $(CURRENT) done."
 
 local_deinstall::
 	@echo "deinstall in $(CURRENT) done."
