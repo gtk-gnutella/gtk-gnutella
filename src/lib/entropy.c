@@ -1131,6 +1131,12 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;										\
 } G_STMT_END
 
+#ifdef HAS_GETPPID
+#define ENTROPY_PPID	getppid()
+#else
+#define ENTROPY_PPID	rand31_u32()
+#endif
+
 	SHA1_reset(&ctx);
 
 	tm_precise_time(&now);		/* Do not use tm_now_exact(), it's too soon */
@@ -1142,7 +1148,7 @@ entropy_seed(struct entropy_minictx *c)
 	}
 
 	{
-		ulong along[2] = { time(NULL), getpid() };
+		ulong along[4] = { time(NULL), getpid(), ENTROPY_PPID, now.tv_nsec };
 		ENTROPY_SHUFFLE_FEED(along, sha1_feed_ulong);
 	}
 
