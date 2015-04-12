@@ -1077,8 +1077,13 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 static void G_GNUC_COLD
 entropy_self_feed_maybe(SHA1_context *ctx)
 {
-	if (random_upto(rand31_u32, 999) < 200)
-		SHA1_INPUT(ctx, *ctx);
+	if (random_upto(rand31_u32, 999) < 200) {
+		char cbytes[sizeof(SHA1_context)];
+
+		memcpy(cbytes, ctx, sizeof cbytes);
+		shuffle_with(rand31_u32, cbytes, sizeof cbytes, 1);
+		SHA1_INPUT(ctx, cbytes);
+	}
 }
 
 /**
