@@ -83,6 +83,7 @@ SHA1_check(const SHA1_context * const ctx)
 int SHA1_reset(SHA1_context *);
 int SHA1_input(SHA1_context *, const void *, size_t);
 int SHA1_result(SHA1_context *, struct sha1 *digest);
+int SHA1_intermediate(const SHA1_context *, struct sha1 *digest);
 
 /**
  * Feed the SHA1 context with the content of a variable.

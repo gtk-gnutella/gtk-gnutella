@@ -163,6 +163,43 @@ SHA1_result(SHA1_context *context, struct sha1 *digest)
 }
 
 /**
+ *  SHA1_intermediate
+ *
+ *  Description:
+ *      This function will return the 160-bit hash of the data seen so far.
+ *      It may be called at any time during data feeding and does not
+ *      disrupt the context, which may get new data.
+ *
+ *      NOTE: This routine is not part of the original SHA1 API.
+ *
+ *  Parameters:
+ *      context: [in/out]
+ *          The context to use to calculate the SHA-1 hash.
+ *      digest: [out]
+ *          Where the current digest is returned.
+ *
+ *  Returns:
+ *      sha Error Code.
+ */
+int
+SHA1_intermediate(const SHA1_context *context, struct sha1 *digest)
+{
+	SHA1_context tmp;
+	int ret;
+
+	SHA1_check(context);
+
+	if (!context || !digest)
+		return SHA_NULL;
+
+	tmp = *context;						/* struct copy */
+	ret = SHA1_result(&tmp, digest);
+	ZERO(&tmp);							/* clear values on the stack */
+
+	return ret;
+}
+
+/**
  *  SHA1_input
  *
  *  Description:
