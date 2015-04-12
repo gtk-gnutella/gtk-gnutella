@@ -418,7 +418,7 @@ file_info_checksum(uint32 *checksum, const void *data, size_t len)
 {
 	const uchar *p = data;
 	while (len--)
-		*checksum = (*checksum << 1) ^ (*checksum >> 31) ^ *p++;
+		*checksum = UINT32_ROTL(*checksum, 1) ^ *p++;
 }
 
 /*
