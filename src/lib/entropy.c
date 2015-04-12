@@ -1138,7 +1138,7 @@ entropy_seed(struct entropy_minictx *c)
 
 	j = popcount(now.tv_nsec);
 	for (i = 0; i <= j; i++) {
-		ENTROPY_CONTEXT_FEED;										\
+		ENTROPY_CONTEXT_FEED;
 	}
 
 	{
