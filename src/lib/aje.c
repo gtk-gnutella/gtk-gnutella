@@ -187,28 +187,6 @@ aje_check(const struct aje_state * const as)
 #define AJE_STATE_UNLOCK(a)		spinunlock_hidden(&(a)->lock)
 
 /**
- * Wrapper over SHA1_result() to keep the context whilst obtaining
- * the digest of the data fed so far.
- *
- * @param ctx		the SHA1 context
- * @param digest	where the digest is written out
- */
-static void
-aje_sha1_result(const SHA1_context *ctx, sha1_t *digest)
-{
-	SHA1_context tmp;
-	int ret;
-
-	tmp = *ctx;					/* struct copy */
-	ret = SHA1_result(&tmp, digest);
-
-	g_assert_log(SHA_SUCCESS == ret,
-		"%s(): error whilst computing SHA1 digest: %d", G_STRFUNC, ret);
-
-	ZERO(&tmp);					/* clear the values on the stack */
-}
-
-/**
  * Increment counter, so that it changes without repeating itself, ever.
  */
 static void
@@ -313,7 +291,7 @@ aje_reseed(aje_state_t *as)
 		 * new entropy added to the pool will add to the previous hash context.
 		 */
 
-		aje_sha1_result(&as->pool[k], &buf);
+		SHA1_intermediate(&as->pool[k], &buf);
 		SHA1_INPUT(&kctx, buf);
 
 		if (n & 1)
