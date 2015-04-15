@@ -1141,8 +1141,15 @@ file_object_fstat(const file_object_t * const fo, filestat_t *buf)
 	fd = fo->fd;
 	FILE_DESCRIPTOR_LOCK(fd);
 
-	g_assert(is_valid_fd(fd->fd));
-	s = fstat(fd->fd, buf);
+	if G_UNLIKELY(fd->revoked) {
+		s_carp("%s(): descriptor for \"%s\" was revoked",
+			G_STRFUNC, fd->pathname);
+		s = -1;
+		errno = EBADF;
+	} else {
+		g_assert(is_valid_fd(fd->fd));
+		s = fstat(fd->fd, buf);
+	}
 
 	FILE_DESCRIPTOR_UNLOCK(fd);
 
@@ -1165,8 +1172,15 @@ file_object_ftruncate(const file_object_t * const fo, filesize_t off)
 	fd = fo->fd;
 	FILE_DESCRIPTOR_LOCK(fd);
 
-	g_assert(is_valid_fd(fd->fd));
-	s = ftruncate(fd->fd, off);
+	if G_UNLIKELY(fd->revoked) {
+		s_carp("%s(): descriptor for \"%s\" was revoked",
+			G_STRFUNC, fd->pathname);
+		s = -1;
+		errno = EBADF;
+	} else {
+		g_assert(is_valid_fd(fd->fd));
+		s = ftruncate(fd->fd, off);
+	}
 
 	FILE_DESCRIPTOR_UNLOCK(fd);
 
@@ -1186,8 +1200,13 @@ file_object_fadvise_sequential(const file_object_t * const fo)
 	fd = fo->fd;
 	FILE_DESCRIPTOR_LOCK(fd);
 
-	g_assert(is_valid_fd(fd->fd));
-	compat_fadvise_sequential(fd->fd, 0, 0);
+	if G_UNLIKELY(fd->revoked) {
+		s_carp("%s(): descriptor for \"%s\" was revoked",
+			G_STRFUNC, fd->pathname);
+	} else {
+		g_assert(is_valid_fd(fd->fd));
+		compat_fadvise_sequential(fd->fd, 0, 0);
+	}
 
 	FILE_DESCRIPTOR_UNLOCK(fd);
 }
@@ -1218,8 +1237,14 @@ file_object_fd(const file_object_t * const fo)
 	fd = fo->fd;
 	FILE_DESCRIPTOR_LOCK(fd);
 
-	g_assert(is_valid_fd(fd->fd));
-	d = fd->fd;
+	if G_UNLIKELY(fd->revoked) {
+		s_carp("%s(): descriptor for \"%s\" was revoked",
+			G_STRFUNC, fd->pathname);
+		d = -1;
+	} else {
+		g_assert(is_valid_fd(fd->fd));
+		d = fd->fd;
+	}
 
 	FILE_DESCRIPTOR_UNLOCK(fd);
 
