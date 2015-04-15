@@ -427,7 +427,6 @@ move_progress(void *ctx)
 	g_assert(thread_is_main());
 
 	download_move_progress(md->d, md->copied);
-	md->last_notify = tm_time();
 
 	return NULL;
 }
@@ -517,8 +516,10 @@ again:		/* Avoids indenting all this code */
 	 * the benefit of the GUI.
 	 */
 
-	if (delta_time(tm_time(), md->last_notify) >= 1)
+	if (delta_time(tm_time(), md->last_notify) >= 1) {
 		teq_safe_rpc(THREAD_MAIN, move_progress, md);
+		md->last_notify = tm_time();
+	}
 
 	if (md->copied == md->size)
 		return BGR_DONE;
