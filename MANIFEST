@@ -679,6 +679,8 @@ src/lib/compat_pio.c
 src/lib/compat_pio.h
 src/lib/compat_poll.c
 src/lib/compat_poll.h
+src/lib/compat_sendfile.c
+src/lib/compat_sendfile.h
 src/lib/compat_sleep_ms.c
 src/lib/compat_sleep_ms.h
 src/lib/compat_un.c

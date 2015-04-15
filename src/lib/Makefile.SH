@@ -154,6 +154,7 @@ LSRC = \
 	compat_pause.c \
 	compat_pio.c \
 	compat_poll.c \
+	compat_sendfile.c \
 	compat_sleep_ms.c \
 	compat_un.c \
 	compat_usleep.c \
@@ -337,6 +338,7 @@ LOBJ = \
 	compat_pause.o \
 	compat_pio.o \
 	compat_poll.o \
+	compat_sendfile.o \
 	compat_sleep_ms.o \
 	compat_un.o \
 	compat_usleep.o \
