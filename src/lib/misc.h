@@ -209,7 +209,7 @@ bool is_symlink(const char *pathname);
 int is_same_file(const char *, const char *);
 
 /**
- * Tries to extrace the file mode from a struct dirent. Not all systems
+ * Tries to extract the file mode from a struct dirent. Not all systems
  * support this, in which case zero is returned. Types other than regular
  * files, directories and symlinks are ignored and gain a value of zero
  * as well.

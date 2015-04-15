@@ -44,7 +44,7 @@
  * problem, only bad luck.
  *
  * To (slowly) generate strong random numbers, use entropy_random().
- * For (faster) strong random nubers, use arc4random().
+ * For (faster) strong random numbers, use arc4random().
  *
  * @author Raphael Manfredi
  * @date 2012
