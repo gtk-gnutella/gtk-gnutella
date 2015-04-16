@@ -178,6 +178,7 @@ const char *gui_prop_to_string(property_t prop);
 const char *gui_prop_default_to_string(property_t);
 const char *gui_prop_description(property_t);
 gboolean gui_prop_is_saved(property_t);
+gboolean gui_prop_is_internal(property_t);
 prop_type_t gui_prop_type(property_t);
 void gui_prop_set_from_string(property_t, const char *);
 

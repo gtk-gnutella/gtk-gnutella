@@ -76,6 +76,11 @@ shell_exec_set(struct gnutella_shell *sh, int argc, const char *argv[])
 		goto error;
 	}
 
+	if (gnet_prop_is_internal(prop)) {
+		shell_set_msg(sh, _("Property cannot be changed"));
+		goto error;
+	}
+
 	if (verbose) {
 		shell_write_linef(sh, REPLY_READY, _("Previous value was %s"),
 			shell_property_to_string(prop));

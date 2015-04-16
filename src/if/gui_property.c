@@ -376,6 +376,7 @@ gui_prop_init(void) {
     gui_property->props[0].desc = _("Search monitor enabled.");
     gui_property->props[0].ev_changed = event_new("monitor_enabled_changed");
     gui_property->props[0].save = FALSE;
+    gui_property->props[0].internal = FALSE;
     gui_property->props[0].vector_size = 1;
 	mutex_init(&gui_property->props[0].lock);
 
@@ -394,6 +395,7 @@ gui_prop_init(void) {
     gui_property->props[1].desc = _("Maximum number of queries visible in search monitor.");
     gui_property->props[1].ev_changed = event_new("monitor_max_items_changed");
     gui_property->props[1].save = TRUE;
+    gui_property->props[1].internal = FALSE;
     gui_property->props[1].vector_size = 1;
 	mutex_init(&gui_property->props[1].lock);
 
@@ -415,6 +417,7 @@ gui_prop_init(void) {
     gui_property->props[2].desc = _("Whether to hide hits that have been considered for auto-downloading based on the SHA1 or your filters.");
     gui_property->props[2].ev_changed = event_new("search_hide_downloaded_changed");
     gui_property->props[2].save = TRUE;
+    gui_property->props[2].internal = FALSE;
     gui_property->props[2].vector_size = 1;
 	mutex_init(&gui_property->props[2].lock);
 
@@ -433,6 +436,7 @@ gui_prop_init(void) {
     gui_property->props[3].desc = _("Widths of the columns in the nodes table.");
     gui_property->props[3].ev_changed = event_new("nodes_col_widths_changed");
     gui_property->props[3].save = TRUE;
+    gui_property->props[3].internal = FALSE;
     gui_property->props[3].vector_size = NODES_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[3].lock);
 
@@ -454,6 +458,7 @@ gui_prop_init(void) {
     gui_property->props[4].desc = _("Which columns are visible in the nodes pane.");
     gui_property->props[4].ev_changed = event_new("nodes_col_visible_changed");
     gui_property->props[4].save = TRUE;
+    gui_property->props[4].internal = FALSE;
     gui_property->props[4].vector_size = NODES_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[4].lock);
 
@@ -472,6 +477,7 @@ gui_prop_init(void) {
     gui_property->props[5].desc = _("Widths of the columns in the file info table.");
     gui_property->props[5].ev_changed = event_new("file_info_col_widths_changed");
     gui_property->props[5].save = TRUE;
+    gui_property->props[5].internal = FALSE;
     gui_property->props[5].vector_size = FILEINFO_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[5].lock);
 
@@ -493,6 +499,7 @@ gui_prop_init(void) {
     gui_property->props[6].desc = _("Visibility of the columns in the file info table.");
     gui_property->props[6].ev_changed = event_new("file_info_col_visible_changed");
     gui_property->props[6].save = TRUE;
+    gui_property->props[6].internal = FALSE;
     gui_property->props[6].vector_size = FILEINFO_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[6].lock);
 
@@ -511,6 +518,7 @@ gui_prop_init(void) {
     gui_property->props[7].desc = _("Widths of the columns in the sources table.");
     gui_property->props[7].ev_changed = event_new("sources_col_widths_changed");
     gui_property->props[7].save = TRUE;
+    gui_property->props[7].internal = FALSE;
     gui_property->props[7].vector_size = SOURCES_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[7].lock);
 
@@ -532,6 +540,7 @@ gui_prop_init(void) {
     gui_property->props[8].desc = _("Widths of the columns in the search list on the sidebar.");
     gui_property->props[8].ev_changed = event_new("search_list_col_widths_changed");
     gui_property->props[8].save = TRUE;
+    gui_property->props[8].internal = FALSE;
     gui_property->props[8].vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[8].lock);
 
@@ -553,6 +562,7 @@ gui_prop_init(void) {
     gui_property->props[9].desc = _("Which columns are visible in the search results tables.");
     gui_property->props[9].ev_changed = event_new("search_results_col_visible_changed");
     gui_property->props[9].save = TRUE;
+    gui_property->props[9].internal = FALSE;
     gui_property->props[9].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[9].lock);
 
@@ -571,6 +581,7 @@ gui_prop_init(void) {
     gui_property->props[10].desc = _("Widths of the columns in the search results tables.");
     gui_property->props[10].ev_changed = event_new("search_results_col_widths_changed");
     gui_property->props[10].save = TRUE;
+    gui_property->props[10].internal = FALSE;
     gui_property->props[10].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[10].lock);
 
@@ -592,6 +603,7 @@ gui_prop_init(void) {
     gui_property->props[11].desc = _("Widths of the columns in the search stats table.");
     gui_property->props[11].ev_changed = event_new("search_stats_col_widths_changed");
     gui_property->props[11].save = TRUE;
+    gui_property->props[11].internal = FALSE;
     gui_property->props[11].vector_size = 3;
 	mutex_init(&gui_property->props[11].lock);
 
@@ -613,6 +625,7 @@ gui_prop_init(void) {
     gui_property->props[12].desc = _("Widths of the columns in the upload stats table.");
     gui_property->props[12].ev_changed = event_new("ul_stats_col_widths_changed");
     gui_property->props[12].save = TRUE;
+    gui_property->props[12].internal = FALSE;
     gui_property->props[12].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[12].lock);
 
@@ -634,6 +647,7 @@ gui_prop_init(void) {
     gui_property->props[13].desc = _("Which columns are visible in the upload stats table.");
     gui_property->props[13].ev_changed = event_new("ul_stats_col_visible_changed");
     gui_property->props[13].save = TRUE;
+    gui_property->props[13].internal = FALSE;
     gui_property->props[13].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[13].lock);
 
@@ -652,6 +666,7 @@ gui_prop_init(void) {
     gui_property->props[14].desc = _("Widths of the columns in the uploads table.");
     gui_property->props[14].ev_changed = event_new("uploads_col_widths_changed");
     gui_property->props[14].save = TRUE;
+    gui_property->props[14].internal = FALSE;
     gui_property->props[14].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[14].lock);
 
@@ -673,6 +688,7 @@ gui_prop_init(void) {
     gui_property->props[15].desc = _("Which columns are visible in the uploads table.");
     gui_property->props[15].ev_changed = event_new("uploads_col_visible_changed");
     gui_property->props[15].save = TRUE;
+    gui_property->props[15].internal = FALSE;
     gui_property->props[15].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
 	mutex_init(&gui_property->props[15].lock);
 
@@ -691,6 +707,7 @@ gui_prop_init(void) {
     gui_property->props[16].desc = _("Widths of the columns in the rules table in the filter dialog.");
     gui_property->props[16].ev_changed = event_new("filter_rules_col_widths_changed");
     gui_property->props[16].save = TRUE;
+    gui_property->props[16].internal = FALSE;
     gui_property->props[16].vector_size = 4;
 	mutex_init(&gui_property->props[16].lock);
 
@@ -712,6 +729,7 @@ gui_prop_init(void) {
     gui_property->props[17].desc = _("Widths of the columns in the filter table in the filter dialog.");
     gui_property->props[17].ev_changed = event_new("filter_filters_col_widths_changed");
     gui_property->props[17].save = TRUE;
+    gui_property->props[17].internal = FALSE;
     gui_property->props[17].vector_size = 3;
 	mutex_init(&gui_property->props[17].lock);
 
@@ -733,6 +751,7 @@ gui_prop_init(void) {
     gui_property->props[18].desc = _("Widths of the columns in the Gnet packet stats table.");
     gui_property->props[18].ev_changed = event_new("gnet_stats_msg_col_widths_changed");
     gui_property->props[18].save = TRUE;
+    gui_property->props[18].internal = FALSE;
     gui_property->props[18].vector_size = 8;
 	mutex_init(&gui_property->props[18].lock);
 
@@ -754,6 +773,7 @@ gui_prop_init(void) {
     gui_property->props[19].desc = _("Widths of the columns in the Gnet fc ttl stats table.");
     gui_property->props[19].ev_changed = event_new("gnet_stats_fc_ttl_col_widths_changed");
     gui_property->props[19].save = TRUE;
+    gui_property->props[19].internal = FALSE;
     gui_property->props[19].vector_size = 10;
 	mutex_init(&gui_property->props[19].lock);
 
@@ -775,6 +795,7 @@ gui_prop_init(void) {
     gui_property->props[20].desc = _("Widths of the columns in the Gnet fc hops stats table.");
     gui_property->props[20].ev_changed = event_new("gnet_stats_fc_hops_col_widths_changed");
     gui_property->props[20].save = TRUE;
+    gui_property->props[20].internal = FALSE;
     gui_property->props[20].vector_size = 10;
 	mutex_init(&gui_property->props[20].lock);
 
@@ -796,6 +817,7 @@ gui_prop_init(void) {
     gui_property->props[21].desc = _("Widths of the columns in the Gnet fc hops stats table.");
     gui_property->props[21].ev_changed = event_new("gnet_stats_fc_col_widths_changed");
     gui_property->props[21].save = TRUE;
+    gui_property->props[21].internal = FALSE;
     gui_property->props[21].vector_size = 10;
 	mutex_init(&gui_property->props[21].lock);
 
@@ -817,6 +839,7 @@ gui_prop_init(void) {
     gui_property->props[22].desc = _("Widths of the columns in the Gnet horizon stats table.");
     gui_property->props[22].ev_changed = event_new("gnet_stats_horizon_col_widths_changed");
     gui_property->props[22].save = TRUE;
+    gui_property->props[22].internal = FALSE;
     gui_property->props[22].vector_size = 4;
 	mutex_init(&gui_property->props[22].lock);
 
@@ -838,6 +861,7 @@ gui_prop_init(void) {
     gui_property->props[23].desc = _("Widths of the columns in the Gnet stats drop reasons table.");
     gui_property->props[23].ev_changed = event_new("gnet_stats_drop_reasons_col_widths_changed");
     gui_property->props[23].save = TRUE;
+    gui_property->props[23].internal = FALSE;
     gui_property->props[23].vector_size = 2;
 	mutex_init(&gui_property->props[23].lock);
 
@@ -859,6 +883,7 @@ gui_prop_init(void) {
     gui_property->props[24].desc = _("Widths of the columns in the Gnet stats drop reasons table.");
     gui_property->props[24].ev_changed = event_new("gnet_stats_recv_col_widths_changed");
     gui_property->props[24].save = TRUE;
+    gui_property->props[24].internal = FALSE;
     gui_property->props[24].vector_size = 10;
 	mutex_init(&gui_property->props[24].lock);
 
@@ -880,6 +905,7 @@ gui_prop_init(void) {
     gui_property->props[25].desc = _("Widths of the columns in the hostcache table.");
     gui_property->props[25].ev_changed = event_new("hcache_col_widths_changed");
     gui_property->props[25].save = TRUE;
+    gui_property->props[25].internal = FALSE;
     gui_property->props[25].vector_size = 4;
 	mutex_init(&gui_property->props[25].lock);
 
@@ -901,6 +927,7 @@ gui_prop_init(void) {
     gui_property->props[26].desc = _("Position and size of the main window.");
     gui_property->props[26].ev_changed = event_new("window_coords_changed");
     gui_property->props[26].save = TRUE;
+    gui_property->props[26].internal = FALSE;
     gui_property->props[26].vector_size = 4;
 	mutex_init(&gui_property->props[26].lock);
 
@@ -922,6 +949,7 @@ gui_prop_init(void) {
     gui_property->props[27].desc = _("Position and size of the filter dialog.");
     gui_property->props[27].ev_changed = event_new("filter_dlg_coords_changed");
     gui_property->props[27].save = TRUE;
+    gui_property->props[27].internal = FALSE;
     gui_property->props[27].vector_size = 4;
 	mutex_init(&gui_property->props[27].lock);
 
@@ -943,6 +971,7 @@ gui_prop_init(void) {
     gui_property->props[28].desc = _("Position and size of the preferences dialog.");
     gui_property->props[28].ev_changed = event_new("prefs_dlg_coords_changed");
     gui_property->props[28].save = TRUE;
+    gui_property->props[28].internal = FALSE;
     gui_property->props[28].vector_size = 4;
 	mutex_init(&gui_property->props[28].lock);
 
@@ -964,6 +993,7 @@ gui_prop_init(void) {
     gui_property->props[29].desc = _("Position of the divider in the fileinfo panel.");
     gui_property->props[29].ev_changed = event_new("fileinfo_divider_pos_changed");
     gui_property->props[29].save = TRUE;
+    gui_property->props[29].internal = FALSE;
     gui_property->props[29].vector_size = 1;
 	mutex_init(&gui_property->props[29].lock);
 
@@ -985,6 +1015,7 @@ gui_prop_init(void) {
     gui_property->props[30].desc = _("Size of the sidebar.");
     gui_property->props[30].ev_changed = event_new("main_divider_pos_changed");
     gui_property->props[30].save = TRUE;
+    gui_property->props[30].internal = FALSE;
     gui_property->props[30].vector_size = 1;
 	mutex_init(&gui_property->props[30].lock);
 
@@ -1006,6 +1037,7 @@ gui_prop_init(void) {
     gui_property->props[31].desc = _("Position of the divider in the Gnet stats pane.");
     gui_property->props[31].ev_changed = event_new("gnet_stats_divider_pos_changed");
     gui_property->props[31].save = TRUE;
+    gui_property->props[31].internal = FALSE;
     gui_property->props[31].vector_size = 1;
 	mutex_init(&gui_property->props[31].lock);
 
@@ -1027,6 +1059,7 @@ gui_prop_init(void) {
     gui_property->props[32].desc = _("Position of the divider in the search results pane.");
     gui_property->props[32].ev_changed = event_new("results_divider_pos_changed");
     gui_property->props[32].save = TRUE;
+    gui_property->props[32].internal = FALSE;
     gui_property->props[32].vector_size = 1;
 	mutex_init(&gui_property->props[32].lock);
 
@@ -1048,6 +1081,7 @@ gui_prop_init(void) {
     gui_property->props[33].desc = _("Debug level for the gui.");
     gui_property->props[33].ev_changed = event_new("gui_debug_changed");
     gui_property->props[33].save = TRUE;
+    gui_property->props[33].internal = FALSE;
     gui_property->props[33].vector_size = 1;
 	mutex_init(&gui_property->props[33].lock);
 
@@ -1069,6 +1103,7 @@ gui_prop_init(void) {
     gui_property->props[34].desc = _("Size of the filter tree in the filter dialog.");
     gui_property->props[34].ev_changed = event_new("filter_main_divider_pos_changed");
     gui_property->props[34].save = TRUE;
+    gui_property->props[34].internal = FALSE;
     gui_property->props[34].vector_size = 1;
 	mutex_init(&gui_property->props[34].lock);
 
@@ -1090,6 +1125,7 @@ gui_prop_init(void) {
     gui_property->props[35].desc = _("Show tabs or search list.");
     gui_property->props[35].ev_changed = event_new("search_results_show_tabs_changed");
     gui_property->props[35].save = TRUE;
+    gui_property->props[35].internal = FALSE;
     gui_property->props[35].vector_size = 1;
 	mutex_init(&gui_property->props[35].lock);
 
@@ -1108,6 +1144,7 @@ gui_prop_init(void) {
     gui_property->props[36].desc = _("Display Searchbar.");
     gui_property->props[36].ev_changed = event_new("searchbar_visible_changed");
     gui_property->props[36].save = TRUE;
+    gui_property->props[36].internal = FALSE;
     gui_property->props[36].vector_size = 1;
 	mutex_init(&gui_property->props[36].lock);
 
@@ -1126,6 +1163,7 @@ gui_prop_init(void) {
     gui_property->props[37].desc = _("Display Sidebar.");
     gui_property->props[37].ev_changed = event_new("sidebar_visible_changed");
     gui_property->props[37].save = TRUE;
+    gui_property->props[37].internal = FALSE;
     gui_property->props[37].vector_size = 1;
 	mutex_init(&gui_property->props[37].lock);
 
@@ -1144,6 +1182,7 @@ gui_prop_init(void) {
     gui_property->props[38].desc = _("Display Menu.");
     gui_property->props[38].ev_changed = event_new("menubar_visible_changed");
     gui_property->props[38].save = FALSE;
+    gui_property->props[38].internal = FALSE;
     gui_property->props[38].vector_size = 1;
 	mutex_init(&gui_property->props[38].lock);
 
@@ -1162,6 +1201,7 @@ gui_prop_init(void) {
     gui_property->props[39].desc = _("Display statusbar.");
     gui_property->props[39].ev_changed = event_new("statusbar_visible_changed");
     gui_property->props[39].save = TRUE;
+    gui_property->props[39].internal = FALSE;
     gui_property->props[39].vector_size = 1;
 	mutex_init(&gui_property->props[39].lock);
 
@@ -1180,6 +1220,7 @@ gui_prop_init(void) {
     gui_property->props[40].desc = _("Display upload statistics in sidebar.");
     gui_property->props[40].ev_changed = event_new("progressbar_uploads_visible_changed");
     gui_property->props[40].save = TRUE;
+    gui_property->props[40].internal = FALSE;
     gui_property->props[40].vector_size = 1;
 	mutex_init(&gui_property->props[40].lock);
 
@@ -1198,6 +1239,7 @@ gui_prop_init(void) {
     gui_property->props[41].desc = _("Display download statistics in sidebar.");
     gui_property->props[41].ev_changed = event_new("progressbar_downloads_visible_changed");
     gui_property->props[41].save = TRUE;
+    gui_property->props[41].internal = FALSE;
     gui_property->props[41].vector_size = 1;
 	mutex_init(&gui_property->props[41].lock);
 
@@ -1216,6 +1258,7 @@ gui_prop_init(void) {
     gui_property->props[42].desc = _("Display connection statistics in sidebar.");
     gui_property->props[42].ev_changed = event_new("progressbar_connections_visible_changed");
     gui_property->props[42].save = TRUE;
+    gui_property->props[42].internal = FALSE;
     gui_property->props[42].vector_size = 1;
 	mutex_init(&gui_property->props[42].lock);
 
@@ -1234,6 +1277,7 @@ gui_prop_init(void) {
     gui_property->props[43].desc = _("Display incoming HTTP traffic bandwidth usage.");
     gui_property->props[43].ev_changed = event_new("progressbar_bws_in_visible_changed");
     gui_property->props[43].save = TRUE;
+    gui_property->props[43].internal = FALSE;
     gui_property->props[43].vector_size = 1;
 	mutex_init(&gui_property->props[43].lock);
 
@@ -1252,6 +1296,7 @@ gui_prop_init(void) {
     gui_property->props[44].desc = _("Display outgoing HTTP traffic bandwidth usage.");
     gui_property->props[44].ev_changed = event_new("progressbar_bws_out_visible_changed");
     gui_property->props[44].save = TRUE;
+    gui_property->props[44].internal = FALSE;
     gui_property->props[44].vector_size = 1;
 	mutex_init(&gui_property->props[44].lock);
 
@@ -1270,6 +1315,7 @@ gui_prop_init(void) {
     gui_property->props[45].desc = _("Display incoming Gnet traffic bandwidth usage.");
     gui_property->props[45].ev_changed = event_new("progressbar_bws_gin_visible_changed");
     gui_property->props[45].save = TRUE;
+    gui_property->props[45].internal = FALSE;
     gui_property->props[45].vector_size = 1;
 	mutex_init(&gui_property->props[45].lock);
 
@@ -1288,6 +1334,7 @@ gui_prop_init(void) {
     gui_property->props[46].desc = _("Display outgoing Gnet traffic bandwidth usage.");
     gui_property->props[46].ev_changed = event_new("progressbar_bws_gout_visible_changed");
     gui_property->props[46].save = TRUE;
+    gui_property->props[46].internal = FALSE;
     gui_property->props[46].vector_size = 1;
 	mutex_init(&gui_property->props[46].lock);
 
@@ -1306,6 +1353,7 @@ gui_prop_init(void) {
     gui_property->props[47].desc = _("Display incoming Gnet leaf traffic bandwidth usage.");
     gui_property->props[47].ev_changed = event_new("progressbar_bws_glin_visible_changed");
     gui_property->props[47].save = TRUE;
+    gui_property->props[47].internal = FALSE;
     gui_property->props[47].vector_size = 1;
 	mutex_init(&gui_property->props[47].lock);
 
@@ -1324,6 +1372,7 @@ gui_prop_init(void) {
     gui_property->props[48].desc = _("Display outgoing Gnet leaf traffic bandwidth usage.");
     gui_property->props[48].ev_changed = event_new("progressbar_bws_glout_visible_changed");
     gui_property->props[48].save = TRUE;
+    gui_property->props[48].internal = FALSE;
     gui_property->props[48].vector_size = 1;
 	mutex_init(&gui_property->props[48].lock);
 
@@ -1342,6 +1391,7 @@ gui_prop_init(void) {
     gui_property->props[49].desc = _("Automatically hide leaf bandwidth display when not in ultrapeer mode.");
     gui_property->props[49].ev_changed = event_new("autohide_bws_gleaf_changed");
     gui_property->props[49].save = TRUE;
+    gui_property->props[49].internal = FALSE;
     gui_property->props[49].vector_size = 1;
 	mutex_init(&gui_property->props[49].lock);
 
@@ -1360,6 +1410,7 @@ gui_prop_init(void) {
     gui_property->props[50].desc = _("Display incoming HTTP traffic bandwidth average.");
     gui_property->props[50].ev_changed = event_new("progressbar_bws_in_avg_changed");
     gui_property->props[50].save = TRUE;
+    gui_property->props[50].internal = FALSE;
     gui_property->props[50].vector_size = 1;
 	mutex_init(&gui_property->props[50].lock);
 
@@ -1378,6 +1429,7 @@ gui_prop_init(void) {
     gui_property->props[51].desc = _("Display outgoing HTTP traffic bandwidth average.");
     gui_property->props[51].ev_changed = event_new("progressbar_bws_out_avg_changed");
     gui_property->props[51].save = TRUE;
+    gui_property->props[51].internal = FALSE;
     gui_property->props[51].vector_size = 1;
 	mutex_init(&gui_property->props[51].lock);
 
@@ -1396,6 +1448,7 @@ gui_prop_init(void) {
     gui_property->props[52].desc = _("Display incoming Gnet traffic bandwidth average.");
     gui_property->props[52].ev_changed = event_new("progressbar_bws_gin_avg_changed");
     gui_property->props[52].save = TRUE;
+    gui_property->props[52].internal = FALSE;
     gui_property->props[52].vector_size = 1;
 	mutex_init(&gui_property->props[52].lock);
 
@@ -1414,6 +1467,7 @@ gui_prop_init(void) {
     gui_property->props[53].desc = _("Display outgoing Gnet traffic bandwidth average.");
     gui_property->props[53].ev_changed = event_new("progressbar_bws_gout_avg_changed");
     gui_property->props[53].save = TRUE;
+    gui_property->props[53].internal = FALSE;
     gui_property->props[53].vector_size = 1;
 	mutex_init(&gui_property->props[53].lock);
 
@@ -1432,6 +1486,7 @@ gui_prop_init(void) {
     gui_property->props[54].desc = _("Display incoming Gnet leaf traffic bandwidth average.");
     gui_property->props[54].ev_changed = event_new("progressbar_bws_glin_avg_changed");
     gui_property->props[54].save = TRUE;
+    gui_property->props[54].internal = FALSE;
     gui_property->props[54].vector_size = 1;
 	mutex_init(&gui_property->props[54].lock);
 
@@ -1450,6 +1505,7 @@ gui_prop_init(void) {
     gui_property->props[55].desc = _("Display outgoing Gnet leaf traffic bandwidth average.");
     gui_property->props[55].ev_changed = event_new("progressbar_bws_glout_avg_changed");
     gui_property->props[55].save = TRUE;
+    gui_property->props[55].internal = FALSE;
     gui_property->props[55].vector_size = 1;
 	mutex_init(&gui_property->props[55].lock);
 
@@ -1468,6 +1524,7 @@ gui_prop_init(void) {
     gui_property->props[56].desc = _("Do a case sensitive sorting.");
     gui_property->props[56].ev_changed = event_new("search_sort_casesense_changed");
     gui_property->props[56].save = TRUE;
+    gui_property->props[56].internal = FALSE;
     gui_property->props[56].vector_size = 1;
 	mutex_init(&gui_property->props[56].lock);
 
@@ -1486,6 +1543,7 @@ gui_prop_init(void) {
     gui_property->props[57].desc = _("Default sort order for search results.");
     gui_property->props[57].ev_changed = event_new("search_sort_default_order_changed");
     gui_property->props[57].save = TRUE;
+    gui_property->props[57].internal = FALSE;
     gui_property->props[57].vector_size = 1;
 	mutex_init(&gui_property->props[57].lock);
 
@@ -1507,6 +1565,7 @@ gui_prop_init(void) {
     gui_property->props[58].desc = _("Default sort column for search results.");
     gui_property->props[58].ev_changed = event_new("search_sort_default_column_changed");
     gui_property->props[58].save = TRUE;
+    gui_property->props[58].internal = FALSE;
     gui_property->props[58].vector_size = 1;
 	mutex_init(&gui_property->props[58].lock);
 
@@ -1528,6 +1587,7 @@ gui_prop_init(void) {
     gui_property->props[59].desc = _("Discard search results which are considered spam.");
     gui_property->props[59].ev_changed = event_new("search_discard_spam_changed");
     gui_property->props[59].save = TRUE;
+    gui_property->props[59].internal = FALSE;
     gui_property->props[59].vector_size = 1;
 	mutex_init(&gui_property->props[59].lock);
 
@@ -1546,6 +1606,7 @@ gui_prop_init(void) {
     gui_property->props[60].desc = _("Discard search results which carry no hashsum.");
     gui_property->props[60].ev_changed = event_new("search_discard_hashless_changed");
     gui_property->props[60].save = TRUE;
+    gui_property->props[60].internal = FALSE;
     gui_property->props[60].vector_size = 1;
 	mutex_init(&gui_property->props[60].lock);
 
@@ -1564,6 +1625,7 @@ gui_prop_init(void) {
     gui_property->props[61].desc = _("Jump to newly created searches");
     gui_property->props[61].ev_changed = event_new("search_jump_to_created_changed");
     gui_property->props[61].save = TRUE;
+    gui_property->props[61].internal = FALSE;
     gui_property->props[61].vector_size = 1;
 	mutex_init(&gui_property->props[61].lock);
 
@@ -1582,6 +1644,7 @@ gui_prop_init(void) {
     gui_property->props[62].desc = _("Collect statistics about searches that go through this node.");
     gui_property->props[62].ev_changed = event_new("search_stats_mode_changed");
     gui_property->props[62].save = TRUE;
+    gui_property->props[62].internal = FALSE;
     gui_property->props[62].vector_size = 1;
 	mutex_init(&gui_property->props[62].lock);
 
@@ -1603,6 +1666,7 @@ gui_prop_init(void) {
     gui_property->props[63].desc = _("Interval in which the search stats are updated.");
     gui_property->props[63].ev_changed = event_new("search_stats_update_interval_changed");
     gui_property->props[63].save = TRUE;
+    gui_property->props[63].internal = FALSE;
     gui_property->props[63].vector_size = 1;
 	mutex_init(&gui_property->props[63].lock);
 
@@ -1624,6 +1688,7 @@ gui_prop_init(void) {
     gui_property->props[64].desc = _("A deletion coefficient, so that small non-significant results can be dropped.  The lower it is, the more search statistics will be kept in memory.");
     gui_property->props[64].ev_changed = event_new("search_stats_delcoef_changed");
     gui_property->props[64].save = TRUE;
+    gui_property->props[64].internal = FALSE;
     gui_property->props[64].vector_size = 1;
 	mutex_init(&gui_property->props[64].lock);
 
@@ -1645,6 +1710,7 @@ gui_prop_init(void) {
     gui_property->props[65].desc = _("Show confirmation dialog when leaving gtk-gnutella.");
     gui_property->props[65].ev_changed = event_new("confirm_quit_changed");
     gui_property->props[65].save = TRUE;
+    gui_property->props[65].internal = FALSE;
     gui_property->props[65].vector_size = 1;
 	mutex_init(&gui_property->props[65].lock);
 
@@ -1663,6 +1729,7 @@ gui_prop_init(void) {
     gui_property->props[66].desc = _("Show a helpful message when the mouse pointer lingers over a widget.");
     gui_property->props[66].ev_changed = event_new("show_tooltips_changed");
     gui_property->props[66].save = TRUE;
+    gui_property->props[66].internal = FALSE;
     gui_property->props[66].vector_size = 1;
 	mutex_init(&gui_property->props[66].lock);
 
@@ -1681,6 +1748,7 @@ gui_prop_init(void) {
     gui_property->props[67].desc = _("Show a lot more settings to tweak. If you tamper with them be sure to read up on what they are doing.");
     gui_property->props[67].ev_changed = event_new("expert_mode_changed");
     gui_property->props[67].save = TRUE;
+    gui_property->props[67].internal = FALSE;
     gui_property->props[67].vector_size = 1;
 	mutex_init(&gui_property->props[67].lock);
 
@@ -1699,6 +1767,7 @@ gui_prop_init(void) {
     gui_property->props[68].desc = _("Show percentages instead of absolute values in the Gnet stats.");
     gui_property->props[68].ev_changed = event_new("gnet_stats_perc_changed");
     gui_property->props[68].save = TRUE;
+    gui_property->props[68].internal = FALSE;
     gui_property->props[68].vector_size = 1;
 	mutex_init(&gui_property->props[68].lock);
 
@@ -1717,6 +1786,7 @@ gui_prop_init(void) {
     gui_property->props[69].desc = _("Show bytes instead of packets in the Gnet stats.");
     gui_property->props[69].ev_changed = event_new("gnet_stats_bytes_changed");
     gui_property->props[69].save = TRUE;
+    gui_property->props[69].internal = FALSE;
     gui_property->props[69].vector_size = 1;
 	mutex_init(&gui_property->props[69].lock);
 
@@ -1735,6 +1805,7 @@ gui_prop_init(void) {
     gui_property->props[70].desc = _("Show stats per hops instead of per TTL.");
     gui_property->props[70].ev_changed = event_new("gnet_stats_hops_changed");
     gui_property->props[70].save = TRUE;
+    gui_property->props[70].internal = FALSE;
     gui_property->props[70].vector_size = 1;
 	mutex_init(&gui_property->props[70].lock);
 
@@ -1753,6 +1824,7 @@ gui_prop_init(void) {
     gui_property->props[71].desc = _("Choose source of stats to be displayed.");
     gui_property->props[71].ev_changed = event_new("gnet_stats_source_changed");
     gui_property->props[71].save = TRUE;
+    gui_property->props[71].internal = FALSE;
     gui_property->props[71].vector_size = 1;
 	mutex_init(&gui_property->props[71].lock);
 
@@ -1774,6 +1846,7 @@ gui_prop_init(void) {
     gui_property->props[72].desc = _("Choose message type for drop reasons.");
     gui_property->props[72].ev_changed = event_new("gnet_stats_drop_reasons_type_changed");
     gui_property->props[72].save = TRUE;
+    gui_property->props[72].internal = FALSE;
     gui_property->props[72].vector_size = 1;
 	mutex_init(&gui_property->props[72].lock);
 
@@ -1795,6 +1868,7 @@ gui_prop_init(void) {
     gui_property->props[73].desc = _("Include Gnutella packet header size to the volume.");
     gui_property->props[73].ev_changed = event_new("gnet_stats_with_headers_changed");
     gui_property->props[73].save = TRUE;
+    gui_property->props[73].internal = FALSE;
     gui_property->props[73].vector_size = 1;
 	mutex_init(&gui_property->props[73].lock);
 
@@ -1813,6 +1887,7 @@ gui_prop_init(void) {
     gui_property->props[74].desc = _("Show percentages instead of absolute values in the Gnet stats (drop reasons).");
     gui_property->props[74].ev_changed = event_new("gnet_stats_drop_perc_changed");
     gui_property->props[74].save = TRUE;
+    gui_property->props[74].internal = FALSE;
     gui_property->props[74].vector_size = 1;
 	mutex_init(&gui_property->props[74].lock);
 
@@ -1831,6 +1906,7 @@ gui_prop_init(void) {
     gui_property->props[75].desc = _("Widths of the columns in the Gnet stats general table.");
     gui_property->props[75].ev_changed = event_new("gnet_stats_general_col_widths_changed");
     gui_property->props[75].save = TRUE;
+    gui_property->props[75].internal = FALSE;
     gui_property->props[75].vector_size = 2;
 	mutex_init(&gui_property->props[75].lock);
 
@@ -1852,6 +1928,7 @@ gui_prop_init(void) {
     gui_property->props[76].desc = _("Auto clear completed uploads.");
     gui_property->props[76].ev_changed = event_new("autoclear_completed_uploads_changed");
     gui_property->props[76].save = TRUE;
+    gui_property->props[76].internal = FALSE;
     gui_property->props[76].vector_size = 1;
 	mutex_init(&gui_property->props[76].lock);
 
@@ -1870,6 +1947,7 @@ gui_prop_init(void) {
     gui_property->props[77].desc = _("Auto clear failed uploads.");
     gui_property->props[77].ev_changed = event_new("autoclear_failed_uploads_changed");
     gui_property->props[77].save = TRUE;
+    gui_property->props[77].internal = FALSE;
     gui_property->props[77].vector_size = 1;
 	mutex_init(&gui_property->props[77].lock);
 
@@ -1888,6 +1966,7 @@ gui_prop_init(void) {
     gui_property->props[78].desc = _("Whether the node's uptime should be shown (not all nodes provide this information).");
     gui_property->props[78].ev_changed = event_new("node_show_uptime_changed");
     gui_property->props[78].save = TRUE;
+    gui_property->props[78].internal = FALSE;
     gui_property->props[78].vector_size = 1;
 	mutex_init(&gui_property->props[78].lock);
 
@@ -1906,6 +1985,7 @@ gui_prop_init(void) {
     gui_property->props[79].desc = _("Whether the handshaking version number should be displayed.");
     gui_property->props[79].ev_changed = event_new("node_show_handshake_version_changed");
     gui_property->props[79].save = TRUE;
+    gui_property->props[79].internal = FALSE;
     gui_property->props[79].vector_size = 1;
 	mutex_init(&gui_property->props[79].lock);
 
@@ -1924,6 +2004,7 @@ gui_prop_init(void) {
     gui_property->props[80].desc = _("Whether detailed traffic information should be shown for the node.  When enabled, it is possible to also customize how much information to display.  When disabled, only TX and RX message counts are displayed, followed by the message queue info.");
     gui_property->props[80].ev_changed = event_new("node_show_detailed_info_changed");
     gui_property->props[80].save = TRUE;
+    gui_property->props[80].internal = FALSE;
     gui_property->props[80].vector_size = 1;
 	mutex_init(&gui_property->props[80].lock);
 
@@ -1942,6 +2023,7 @@ gui_prop_init(void) {
     gui_property->props[81].desc = _("Whether TX traffic compression ratio should be displayed.");
     gui_property->props[81].ev_changed = event_new("show_gnet_info_txc_changed");
     gui_property->props[81].save = TRUE;
+    gui_property->props[81].internal = FALSE;
     gui_property->props[81].vector_size = 1;
 	mutex_init(&gui_property->props[81].lock);
 
@@ -1960,6 +2042,7 @@ gui_prop_init(void) {
     gui_property->props[82].desc = _("Whether RX traffic compression ratio should be displayed.");
     gui_property->props[82].ev_changed = event_new("show_gnet_info_rxc_changed");
     gui_property->props[82].save = TRUE;
+    gui_property->props[82].internal = FALSE;
     gui_property->props[82].vector_size = 1;
 	mutex_init(&gui_property->props[82].lock);
 
@@ -1978,6 +2061,7 @@ gui_prop_init(void) {
     gui_property->props[83].desc = _("Whether to display the amount of bytes sent on the TX wire.");
     gui_property->props[83].ev_changed = event_new("show_gnet_info_tx_wire_changed");
     gui_property->props[83].save = TRUE;
+    gui_property->props[83].internal = FALSE;
     gui_property->props[83].vector_size = 1;
 	mutex_init(&gui_property->props[83].lock);
 
@@ -1996,6 +2080,7 @@ gui_prop_init(void) {
     gui_property->props[84].desc = _("Whether to display the amount of bytes received on the RX wire.");
     gui_property->props[84].ev_changed = event_new("show_gnet_info_rx_wire_changed");
     gui_property->props[84].save = TRUE;
+    gui_property->props[84].internal = FALSE;
     gui_property->props[84].vector_size = 1;
 	mutex_init(&gui_property->props[84].lock);
 
@@ -2014,6 +2099,7 @@ gui_prop_init(void) {
     gui_property->props[85].desc = _("Whether TX instantaneous transmission speed should be displayed.");
     gui_property->props[85].ev_changed = event_new("show_gnet_info_tx_speed_changed");
     gui_property->props[85].save = TRUE;
+    gui_property->props[85].internal = FALSE;
     gui_property->props[85].vector_size = 1;
 	mutex_init(&gui_property->props[85].lock);
 
@@ -2032,6 +2118,7 @@ gui_prop_init(void) {
     gui_property->props[86].desc = _("Whether RX instantaneous transmission speed should be displayed.");
     gui_property->props[86].ev_changed = event_new("show_gnet_info_rx_speed_changed");
     gui_property->props[86].save = TRUE;
+    gui_property->props[86].internal = FALSE;
     gui_property->props[86].vector_size = 1;
 	mutex_init(&gui_property->props[86].lock);
 
@@ -2050,6 +2137,7 @@ gui_prop_init(void) {
     gui_property->props[87].desc = _("Whether count of transmitted queries should be displayed.");
     gui_property->props[87].ev_changed = event_new("show_gnet_info_tx_queries_changed");
     gui_property->props[87].save = TRUE;
+    gui_property->props[87].internal = FALSE;
     gui_property->props[87].vector_size = 1;
 	mutex_init(&gui_property->props[87].lock);
 
@@ -2068,6 +2156,7 @@ gui_prop_init(void) {
     gui_property->props[88].desc = _("Whether count of received queries should be displayed.");
     gui_property->props[88].ev_changed = event_new("show_gnet_info_rx_queries_changed");
     gui_property->props[88].save = TRUE;
+    gui_property->props[88].internal = FALSE;
     gui_property->props[88].vector_size = 1;
 	mutex_init(&gui_property->props[88].lock);
 
@@ -2086,6 +2175,7 @@ gui_prop_init(void) {
     gui_property->props[89].desc = _("Whether count of transmitted query hits should be displayed.");
     gui_property->props[89].ev_changed = event_new("show_gnet_info_tx_hits_changed");
     gui_property->props[89].save = TRUE;
+    gui_property->props[89].internal = FALSE;
     gui_property->props[89].vector_size = 1;
 	mutex_init(&gui_property->props[89].lock);
 
@@ -2104,6 +2194,7 @@ gui_prop_init(void) {
     gui_property->props[90].desc = _("Whether count of received query hits should be displayed.");
     gui_property->props[90].ev_changed = event_new("show_gnet_info_rx_hits_changed");
     gui_property->props[90].save = TRUE;
+    gui_property->props[90].internal = FALSE;
     gui_property->props[90].vector_size = 1;
 	mutex_init(&gui_property->props[90].lock);
 
@@ -2122,6 +2213,7 @@ gui_prop_init(void) {
     gui_property->props[91].desc = _("Whether count of locally generated queries should be displayed.");
     gui_property->props[91].ev_changed = event_new("show_gnet_info_gen_queries_changed");
     gui_property->props[91].save = TRUE;
+    gui_property->props[91].internal = FALSE;
     gui_property->props[91].vector_size = 1;
 	mutex_init(&gui_property->props[91].lock);
 
@@ -2140,6 +2232,7 @@ gui_prop_init(void) {
     gui_property->props[92].desc = _("Whether count of local queries pending transmission should be displayed.");
     gui_property->props[92].ev_changed = event_new("show_gnet_info_sq_queries_changed");
     gui_property->props[92].save = TRUE;
+    gui_property->props[92].internal = FALSE;
     gui_property->props[92].vector_size = 1;
 	mutex_init(&gui_property->props[92].lock);
 
@@ -2158,6 +2251,7 @@ gui_prop_init(void) {
     gui_property->props[93].desc = _("Whether count of dropped messages on TX should be displayed.");
     gui_property->props[93].ev_changed = event_new("show_gnet_info_tx_dropped_changed");
     gui_property->props[93].save = TRUE;
+    gui_property->props[93].internal = FALSE;
     gui_property->props[93].vector_size = 1;
 	mutex_init(&gui_property->props[93].lock);
 
@@ -2176,6 +2270,7 @@ gui_prop_init(void) {
     gui_property->props[94].desc = _("Whether count of dropped messages on RX should be displayed.");
     gui_property->props[94].ev_changed = event_new("show_gnet_info_rx_dropped_changed");
     gui_property->props[94].save = TRUE;
+    gui_property->props[94].internal = FALSE;
     gui_property->props[94].vector_size = 1;
 	mutex_init(&gui_property->props[94].lock);
 
@@ -2194,6 +2289,7 @@ gui_prop_init(void) {
     gui_property->props[95].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an ultrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the node after QRP table filtering.");
     gui_property->props[95].ev_changed = event_new("show_gnet_info_qrp_stats_changed");
     gui_property->props[95].save = TRUE;
+    gui_property->props[95].internal = FALSE;
     gui_property->props[95].vector_size = 1;
 	mutex_init(&gui_property->props[95].lock);
 
@@ -2212,6 +2308,7 @@ gui_prop_init(void) {
     gui_property->props[96].desc = _("Whether we should display message counts for duplicate, bad, weird and messages bearing an hostile IP address.");
     gui_property->props[96].ev_changed = event_new("show_gnet_info_dbw_changed");
     gui_property->props[96].save = TRUE;
+    gui_property->props[96].internal = FALSE;
     gui_property->props[96].vector_size = 1;
 	mutex_init(&gui_property->props[96].lock);
 
@@ -2230,6 +2327,7 @@ gui_prop_init(void) {
     gui_property->props[97].desc = _("Whether ping/pong roundtrip times (average and last) should be displayed.  Values shown are in milliseconds.");
     gui_property->props[97].ev_changed = event_new("show_gnet_info_rt_changed");
     gui_property->props[97].save = TRUE;
+    gui_property->props[97].internal = FALSE;
     gui_property->props[97].vector_size = 1;
 	mutex_init(&gui_property->props[97].lock);
 
@@ -2248,6 +2346,7 @@ gui_prop_init(void) {
     gui_property->props[98].desc = _("Whether we should display the size of the node's library, when it is known to us.");
     gui_property->props[98].ev_changed = event_new("show_gnet_info_shared_size_changed");
     gui_property->props[98].save = TRUE;
+    gui_property->props[98].internal = FALSE;
     gui_property->props[98].vector_size = 1;
 	mutex_init(&gui_property->props[98].lock);
 
@@ -2266,6 +2365,7 @@ gui_prop_init(void) {
     gui_property->props[99].desc = _("Whether we should display the amount of files shared by nodes, when that is known to us.");
     gui_property->props[99].ev_changed = event_new("show_gnet_info_shared_files_changed");
     gui_property->props[99].save = TRUE;
+    gui_property->props[99].internal = FALSE;
     gui_property->props[99].vector_size = 1;
 	mutex_init(&gui_property->props[99].lock);
 
@@ -2284,6 +2384,7 @@ gui_prop_init(void) {
     gui_property->props[100].desc = _("The amount of time in seconds that the GUI should buffer search results as they come in.  This prevents too frequent updates that may cause flickering, but also saves CPU cycles since less redrawing has to occur in the search pane.");
     gui_property->props[100].ev_changed = event_new("search_accumulation_period_changed");
     gui_property->props[100].save = TRUE;
+    gui_property->props[100].internal = FALSE;
     gui_property->props[100].vector_size = 1;
 	mutex_init(&gui_property->props[100].lock);
 
@@ -2305,6 +2406,7 @@ gui_prop_init(void) {
     gui_property->props[101].desc = _("Expanded stati of the nodes in the treemenu.");
     gui_property->props[101].ev_changed = event_new("treemenu_nodes_expanded_changed");
     gui_property->props[101].save = TRUE;
+    gui_property->props[101].internal = FALSE;
     gui_property->props[101].vector_size = nb_main_page_num;
 	mutex_init(&gui_property->props[101].lock);
 
@@ -2326,6 +2428,7 @@ gui_prop_init(void) {
     gui_property->props[102].desc = _("Widths of the columns in the Gnet packet stats table (pkg). [GTK2]");
     gui_property->props[102].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
     gui_property->props[102].save = TRUE;
+    gui_property->props[102].internal = FALSE;
     gui_property->props[102].vector_size = 6;
 	mutex_init(&gui_property->props[102].lock);
 
@@ -2347,6 +2450,7 @@ gui_prop_init(void) {
     gui_property->props[103].desc = _("Widths of the columns in the Gnet packet stats table (byte). [GTK2]");
     gui_property->props[103].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
     gui_property->props[103].save = TRUE;
+    gui_property->props[103].internal = FALSE;
     gui_property->props[103].vector_size = 6;
 	mutex_init(&gui_property->props[103].lock);
 
@@ -2368,6 +2472,7 @@ gui_prop_init(void) {
     gui_property->props[104].desc = _("Configures the appearance of the toolbar.");
     gui_property->props[104].ev_changed = event_new("config_toolbar_style_changed");
     gui_property->props[104].save = TRUE;
+    gui_property->props[104].internal = FALSE;
     gui_property->props[104].vector_size = 1;
 	mutex_init(&gui_property->props[104].lock);
 
@@ -2389,6 +2494,7 @@ gui_prop_init(void) {
     gui_property->props[105].desc = _("The lifetime of a search. If this time is exceeded, the search is stopped.");
     gui_property->props[105].ev_changed = event_new("search_lifetime_changed");
     gui_property->props[105].save = FALSE;
+    gui_property->props[105].internal = FALSE;
     gui_property->props[105].vector_size = 1;
 	mutex_init(&gui_property->props[105].lock);
 
@@ -2410,6 +2516,7 @@ gui_prop_init(void) {
     gui_property->props[106].desc = _("Show a status icon in the system tray if possible (requires Gtk+ 2.10 or newer).");
     gui_property->props[106].ev_changed = event_new("status_icon_enabled_changed");
     gui_property->props[106].save = TRUE;
+    gui_property->props[106].internal = FALSE;
     gui_property->props[106].vector_size = 1;
 	mutex_init(&gui_property->props[106].lock);
 
@@ -2428,6 +2535,7 @@ gui_prop_init(void) {
     gui_property->props[107].desc = _("Automatically hide DHT bandwidth display when DHT not enabled.");
     gui_property->props[107].ev_changed = event_new("autohide_bws_dht_changed");
     gui_property->props[107].save = TRUE;
+    gui_property->props[107].internal = FALSE;
     gui_property->props[107].vector_size = 1;
 	mutex_init(&gui_property->props[107].lock);
 
@@ -2446,6 +2554,7 @@ gui_prop_init(void) {
     gui_property->props[108].desc = _("Display incoming DHT traffic bandwidth usage.");
     gui_property->props[108].ev_changed = event_new("progressbar_bws_dht_in_visible_changed");
     gui_property->props[108].save = TRUE;
+    gui_property->props[108].internal = FALSE;
     gui_property->props[108].vector_size = 1;
 	mutex_init(&gui_property->props[108].lock);
 
@@ -2464,6 +2573,7 @@ gui_prop_init(void) {
     gui_property->props[109].desc = _("Display outgoing DHT traffic bandwidth usage.");
     gui_property->props[109].ev_changed = event_new("progressbar_bws_dht_out_visible_changed");
     gui_property->props[109].save = TRUE;
+    gui_property->props[109].internal = FALSE;
     gui_property->props[109].vector_size = 1;
 	mutex_init(&gui_property->props[109].lock);
 
@@ -2482,6 +2592,7 @@ gui_prop_init(void) {
     gui_property->props[110].desc = _("Display incoming DHT traffic bandwidth as an average.");
     gui_property->props[110].ev_changed = event_new("progressbar_bws_dht_in_avg_changed");
     gui_property->props[110].save = TRUE;
+    gui_property->props[110].internal = FALSE;
     gui_property->props[110].vector_size = 1;
 	mutex_init(&gui_property->props[110].lock);
 
@@ -2500,6 +2611,7 @@ gui_prop_init(void) {
     gui_property->props[111].desc = _("Display outgoing DHT traffic bandwidth as an average.");
     gui_property->props[111].ev_changed = event_new("progressbar_bws_dht_out_avg_changed");
     gui_property->props[111].save = TRUE;
+    gui_property->props[111].internal = FALSE;
     gui_property->props[111].vector_size = 1;
 	mutex_init(&gui_property->props[111].lock);
 
@@ -2518,6 +2630,7 @@ gui_prop_init(void) {
     gui_property->props[112].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their audio files.");
     gui_property->props[112].ev_changed = event_new("search_media_type_audio_changed");
     gui_property->props[112].save = TRUE;
+    gui_property->props[112].internal = FALSE;
     gui_property->props[112].vector_size = 1;
 	mutex_init(&gui_property->props[112].lock);
 
@@ -2536,6 +2649,7 @@ gui_prop_init(void) {
     gui_property->props[113].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their video files.");
     gui_property->props[113].ev_changed = event_new("search_media_type_video_changed");
     gui_property->props[113].save = TRUE;
+    gui_property->props[113].internal = FALSE;
     gui_property->props[113].vector_size = 1;
 	mutex_init(&gui_property->props[113].lock);
 
@@ -2554,6 +2668,7 @@ gui_prop_init(void) {
     gui_property->props[114].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their document files. Document files are XML, HTML, Word, PDF, etc...");
     gui_property->props[114].ev_changed = event_new("search_media_type_document_changed");
     gui_property->props[114].save = TRUE;
+    gui_property->props[114].internal = FALSE;
     gui_property->props[114].vector_size = 1;
 	mutex_init(&gui_property->props[114].lock);
 
@@ -2572,6 +2687,7 @@ gui_prop_init(void) {
     gui_property->props[115].desc = _("Remote nodes supporting media type filtering will apply your query specifically on their image files.");
     gui_property->props[115].ev_changed = event_new("search_media_type_image_changed");
     gui_property->props[115].save = TRUE;
+    gui_property->props[115].internal = FALSE;
     gui_property->props[115].vector_size = 1;
 	mutex_init(&gui_property->props[115].lock);
 
@@ -2590,6 +2706,7 @@ gui_prop_init(void) {
     gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files.");
     gui_property->props[116].ev_changed = event_new("search_media_type_archive_changed");
     gui_property->props[116].save = TRUE;
+    gui_property->props[116].internal = FALSE;
     gui_property->props[116].vector_size = 1;
 	mutex_init(&gui_property->props[116].lock);
 
@@ -2608,6 +2725,7 @@ gui_prop_init(void) {
     gui_property->props[117].desc = _("Discard search results with an alien IP address, not matching the one from which the results come from.");
     gui_property->props[117].ev_changed = event_new("search_discard_alien_ip_changed");
     gui_property->props[117].save = TRUE;
+    gui_property->props[117].internal = FALSE;
     gui_property->props[117].vector_size = 1;
 	mutex_init(&gui_property->props[117].lock);
 
@@ -2626,6 +2744,7 @@ gui_prop_init(void) {
     gui_property->props[118].desc = _("Whether session-only searches which happen to have pending downloads should be restarted when gtk-gnutella is launched.");
     gui_property->props[118].ev_changed = event_new("search_restart_when_pending_changed");
     gui_property->props[118].save = TRUE;
+    gui_property->props[118].internal = FALSE;
     gui_property->props[118].vector_size = 1;
 	mutex_init(&gui_property->props[118].lock);
 
@@ -2644,6 +2763,7 @@ gui_prop_init(void) {
     gui_property->props[119].desc = _("Discard search results coming from servents with a banned GUID.");
     gui_property->props[119].ev_changed = event_new("search_discard_banned_guid_changed");
     gui_property->props[119].save = TRUE;
+    gui_property->props[119].internal = FALSE;
     gui_property->props[119].vector_size = 1;
 	mutex_init(&gui_property->props[119].lock);
 
@@ -2662,6 +2782,7 @@ gui_prop_init(void) {
     gui_property->props[120].desc = _("Whether a summary line with GUESS search stats should be displayed.");
     gui_property->props[120].ev_changed = event_new("search_display_guess_stats_changed");
     gui_property->props[120].save = TRUE;
+    gui_property->props[120].internal = FALSE;
     gui_property->props[120].vector_size = 1;
 	mutex_init(&gui_property->props[120].lock);
 
@@ -2680,6 +2801,7 @@ gui_prop_init(void) {
     gui_property->props[121].desc = _("Whether the GUESS summary line should show total statistics or ones pertaining to the current search only.");
     gui_property->props[121].ev_changed = event_new("guess_stats_show_total_changed");
     gui_property->props[121].save = TRUE;
+    gui_property->props[121].internal = FALSE;
     gui_property->props[121].vector_size = 1;
 	mutex_init(&gui_property->props[121].lock);
 
@@ -2916,6 +3038,12 @@ gboolean
 gui_prop_is_saved(property_t p)
 {
     return prop_is_saved(gui_property, p);
+}
+
+gboolean
+gui_prop_is_internal(property_t p)
+{
+    return prop_is_internal(gui_property, p);
 }
 
 property_t

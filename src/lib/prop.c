@@ -1370,6 +1370,12 @@ prop_is_saved(prop_set_t *ps, property_t prop)
 	return PROP(ps,prop).save;
 }
 
+gboolean
+prop_is_internal(prop_set_t *ps, property_t prop)
+{
+	return PROP(ps,prop).internal;
+}
+
 /**
  * Fetches the value of property as a string.
  */

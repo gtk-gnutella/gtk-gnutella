@@ -174,7 +174,8 @@ typedef struct prop_def {
         prop_def_ip_t  ip;
     } data;
 	mutex_t lock;		/* thread-safe access */
-    gboolean save; 		/* persist across sessions */
+    uint save:1; 		/* persist across sessions */
+    uint internal:1;	/* if set, users cannot modify the property */
     size_t vector_size; /* number of items in array, 1 for non-vector */
     struct event *ev_changed;
 } prop_def_t;
@@ -258,6 +259,7 @@ const char *prop_type_to_string(prop_set_t *ps, property_t prop);
 const char *prop_default_to_string(prop_set_t *ps, property_t prop);
 prop_type_t prop_type(prop_set_t *ps, property_t prop);
 gboolean prop_is_saved(prop_set_t *ps, property_t prop);
+gboolean prop_is_internal(prop_set_t *ps, property_t prop);
 
 void prop_lock(prop_set_t *ps, property_t p);
 void prop_unlock(prop_set_t *ps, property_t p);
