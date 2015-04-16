@@ -34,6 +34,10 @@
 
 #include "gui.h"
 
+#ifdef USE_GTK2
+#include "gtk2/column_sort.h"
+#endif
+
 #include "misc.h"
 #include "settings_cb.h"
 #include "settings.h"
@@ -377,6 +381,7 @@ enum dbg_cols {
 
 #ifdef USE_GTK2
 static tree_view_motion_t *tvm_dbg_property;
+static struct sorting_context dbg_column_sort;
 
 static void
 update_tooltip(GtkTreeView *tv, GtkTreePath *path)
@@ -543,6 +548,36 @@ on_cursor_changed(GtkTreeView *unused_tv, gpointer unused_udata)
 }
 
 static void
+on_dbg_column_clicked(GtkTreeViewColumn *column, void *udata)
+{
+	(void) udata;
+
+	column_sort_tristate(column, &dbg_column_sort);
+}
+
+static inline const char *
+dbg_get_data(GtkTreeModel *model, GtkTreeIter *iter, gint column)
+{
+	GValue value;
+
+	ZERO(&value);
+	gtk_tree_model_get_value(model, iter, column, &value);
+	return g_value_get_string(&value);
+}
+
+static gint
+dbg_column_cmp(
+	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer col)
+{
+	const char *sa, *sb;
+	gint column = pointer_to_int(col);
+
+	sa = dbg_get_data(model, a, column);
+	sb = dbg_get_data(model, b, column);
+	return strcmp(sa, sb);
+}
+
+static void
 dbg_tree_init(void)
 {
 	static const struct {
@@ -623,6 +658,12 @@ dbg_tree_init(void)
 
 		gtk_tree_view_column_set_sort_column_id(column, i);
 		gtk_tree_view_append_column(tv, column);
+
+		gtk_tree_sortable_set_sort_func(
+			GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)),
+			i, dbg_column_cmp, uint_to_pointer(i), NULL);
+
+		column_sort_tristate_register(column, on_dbg_column_clicked, NULL);
 	}
 
 	gui_signal_connect(tv, "enter-notify-event", on_enter_notify, tv);
