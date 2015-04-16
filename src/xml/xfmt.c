@@ -893,6 +893,7 @@ xfmt_handle_pass2_enter(const void *node, void *data)
 
 			/* FIXME: handle blank collapsing */
 			(void) start;
+			g_carp_once("%s(): XFMT_O_SKIP_BLANKS not handled yet", G_STRFUNC);
 		}
 
 		/*
@@ -1048,8 +1049,8 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 
 	if (options & XFMT_O_COLLAPSE_BLANKS) {
 		/* FIXME */
-		g_carp("XFMT_O_COLLAPSE_BLANKS not supported yet");
-		stacktrace_where_print(stderr);
+		g_carp_once("%s(): XFMT_O_COLLAPSE_BLANKS not supported yet",
+			G_STRFUNC);
 	}
 
 	if (options & XFMT_O_SINGLE_LINE)
