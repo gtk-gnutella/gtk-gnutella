@@ -197,6 +197,7 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #undef getdtablesize
 #define getdtablesize mingw_getdtablesize
 #define mkdir mingw_mkdir
+#define rmdir mingw_rmdir
 #define access mingw_access
 #define chdir mingw_chdir
 #define remove mingw_remove
@@ -451,6 +452,7 @@ fileoffset_t mingw_lseek(int fd, fileoffset_t offset, int whence);
 int mingw_rename(const char *oldpathname, const char *newpathname);
 int mingw_truncate(const char *pathname, fileoffset_t len);
 int mingw_mkdir(const char *pathname, mode_t mode);
+int mingw_rmdir(const char *pathname);
 int mingw_access(const char *pathname, int mode);
 int mingw_chdir(const char *pathname);
 int mingw_remove(const char *pathname);

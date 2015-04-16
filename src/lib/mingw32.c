@@ -1375,6 +1375,22 @@ mingw_mkdir(const char *pathname, mode_t mode)
 }
 
 int
+mingw_rmdir(const char *pathname)
+{
+	int res;
+	pncs_t pncs;
+
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
+	res = _wrmdir(pncs.utf16);
+	if (-1 == res)
+		errno = mingw_last_error();
+
+	return res;
+}
+
+int
 mingw_access(const char *pathname, int mode)
 {
 	int res;
