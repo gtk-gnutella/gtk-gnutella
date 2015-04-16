@@ -76,6 +76,7 @@
 #include "aje.h"
 #include "arc4random.h"
 #include "atomic.h"
+#include "cmwc.h"
 #include "endian.h"
 #include "evq.h"
 #include "float.h"
@@ -88,6 +89,7 @@
 #include "pow2.h"
 #include "pslist.h"
 #include "sha1.h"
+#include "shuffle.h"
 #include "spinlock.h"
 #include "teq.h"
 #include "thread.h"
@@ -99,6 +101,20 @@
 #include "override.h"			/* Must be the last header included */
 
 #define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
+#define RANDOM_PRNG_SELECT		2			/* # of PRNGs to feed entropy to */
+
+/**
+ * Pseudo Random Number Generators managed by this library and for which
+ * we periodically spread new entropy.
+ */
+enum random_prng {
+	RANDOM_AJE = 0,
+	RANDOM_ARC4,
+	RANDOM_CMWC,
+	RANDOM_WELL,
+
+	RANDOM_PRNG_COUNT
+};
 
 /**
  * Randomness update listeners.
@@ -571,6 +587,19 @@ random_byte_aje_add(void *p)
 	random_byte_data_free(rbd);
 }
 
+/**
+ * TEQ event delivered to a thread to add random bytes to the local CMWC stream.
+ */
+static void
+random_byte_cmwc_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	cmwc_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
+}
 
 /**
  * Add collected random byte(s) to the random pool used by random_bytes(),
@@ -757,9 +786,12 @@ static spinlock_t random_entropy_slk = SPINLOCK_INIT;
 static bool
 random_entropy(void *unused)
 {
+	static enum random_prng prngs[] =
+		{ RANDOM_AJE, RANDOM_ARC4, RANDOM_CMWC, RANDOM_WELL };
 	bool has_new;
 	struct random_byte_data *rbd = NULL;
 	uint8 entropy[256];
+	size_t i;
 
 	(void) unused;
 
@@ -782,21 +814,50 @@ random_entropy(void *unused)
 	aje_random_bytes(entropy, ELEN);
 
 	/*
-	 * Now feed the random entropy to the generators.
+	 * Now feed the random entropy to RANDOM_PRNG_SELECT randomly selected
+	 * generators.
+	 *
+	 * NOTE: we do not need to lock the global prngs[] array here since we
+	 * know this routine is periodically dispatched from the event queue
+	 * and therefore it cannot be concurrently executed.
 	 */
 
-	arc4random_addrandom(entropy, (int) ELEN);
-	well_addrandom(entropy, ELEN);
+	shuffle(prngs, G_N_ELEMENTS(prngs), sizeof prngs[0]);
+
+	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
+		switch (prngs[i]) {
+		case RANDOM_AJE:  aje_addrandom(entropy, ELEN); break;
+		case RANDOM_ARC4: arc4random_addrandom(entropy, (int) ELEN); break;
+		case RANDOM_CMWC: cmwc_addrandom(entropy, ELEN); break;
+		case RANDOM_WELL: well_addrandom(entropy, ELEN); break;
+		case RANDOM_PRNG_COUNT: g_assert_not_reached();
+		}
+	}
 
 	/*
-	 * Propagate the random bytes to all the threads using a
-	 * local ARC4, AJE or WELL stream, provided the target threads
-	 * have created a Thread Event Queue (TEQ).
+	 * Propagate other random bytes to RANDOM_PRNG_SELECT randomly selected
+	 * threads using a local PRNG stream, provided the target threads have
+	 * created a Thread Event Queue (TEQ).
 	 */
 
-	random_dispatch(arc4_users(), random_byte_arc4_add, entropy, ELEN, &rbd);
-	random_dispatch(well_users(), random_byte_well_add, entropy, ELEN, &rbd);
-	random_dispatch(aje_users(),  random_byte_aje_add,  entropy, ELEN, &rbd);
+	aje_random_bytes(entropy, ELEN);	/* New random bytes */
+
+	shuffle(prngs, G_N_ELEMENTS(prngs), sizeof prngs[0]);
+
+	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
+		pslist_t *u = NULL;
+		notify_fn_t cb = NULL;
+
+		switch (prngs[i]) {
+		case RANDOM_AJE:  u = aje_users();  cb = random_byte_aje_add;  break;
+		case RANDOM_ARC4: u = arc4_users(); cb = random_byte_arc4_add; break;
+		case RANDOM_CMWC: u = cmwc_users(); cb = random_byte_cmwc_add; break;
+		case RANDOM_WELL: u = well_users(); cb = random_byte_well_add; break;
+		case RANDOM_PRNG_COUNT: g_assert_not_reached();
+		}
+
+		random_dispatch(u, cb, entropy, ELEN, &rbd);
+	}
 
 	if (rbd != NULL)
 		random_byte_data_free(rbd);
@@ -840,7 +901,7 @@ random_add(const void *data, size_t datalen)
 
 	/*
 	 * The collected data is given to AJE (the global instance), and we then
-	 * extract random data out of AJE to feed to the other generators.
+	 * extract random data out of AJE to feed it to the other generators.
 	 */
 
 	aje_addrandom(data, datalen);
