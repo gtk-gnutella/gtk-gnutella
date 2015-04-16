@@ -877,11 +877,18 @@ xfmt_handle_pass2_enter(const void *node, void *data)
 		ostream_write(xp2->os, XFMT_GT, CONST_STRLEN(XFMT_GT));
 		xp2->last_was_nl = FALSE;
 
-	} else if (xnode_is_text(xn)) {
+	} else if (xnode_has_text(xn)) {
 		const char *text = xnode_text(xn);
 		size_t len;
 		size_t overhead;
 		bool amp;
+
+		g_assert(text != NULL);		/* Since we checked xnode_has_text() */
+
+		if (xnode_is_comment(xn)) {
+			g_carp_once("%s(): comment nodes ignored for now", G_STRFUNC);
+			goto ignore;
+		}
 
 		if (xp2->options & XFMT_O_SKIP_BLANKS) {
 			const char *start;
