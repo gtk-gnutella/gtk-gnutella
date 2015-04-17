@@ -167,7 +167,7 @@ filepath_exists(const char *dir, const char *file)
 const char *
 filepath_basename(const char *pathname)
 {
-	const char *p, *q;
+	const char *p;
 	
 	g_assert(pathname);
 	
@@ -177,9 +177,10 @@ filepath_basename(const char *pathname)
 	} else {
 		p = pathname;
 	}
-	q = strrchr(p, G_DIR_SEPARATOR);
-	if (q) {
-		p = &q[1];
+	if (G_DIR_SEPARATOR != '/') {
+		const char *q = strrchr(p, G_DIR_SEPARATOR);
+		if (q)
+			p = &q[1];
 	}
 	return p;
 }
