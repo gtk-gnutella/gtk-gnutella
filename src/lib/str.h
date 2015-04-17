@@ -91,6 +91,7 @@ str_t *str_make(char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
 void str_new_buffer(str_t *str, char *ptr, size_t len, size_t size);
 void str_free(str_t *str);
+void str_discard(str_t *str);
 void str_destroy(str_t *str);
 void str_destroy_null(str_t **s_ptr);
 char *str_2c(str_t *str);

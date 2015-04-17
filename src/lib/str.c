@@ -506,6 +506,19 @@ str_free(str_t *str)
 }
 
 /**
+ * Discard the str_t structure, freeing string data and making object invalid.
+ *
+ * This is to be used on static str_t structures, when we want to free the
+ * allocated memory and prevent any further usage of the structure.
+ */
+void
+str_discard(str_t *str)
+{
+	str_free(str);
+	str->s_magic = 0;
+}
+
+/**
  * Destroy string held within the str_t structure, then the structure.
  */
 void
@@ -516,8 +529,7 @@ str_destroy(str_t *str)
 	g_assert_log(str->s_flags & STR_OBJECT,
 		"%s(): called on \"static\" string object", G_STRFUNC);
 
-	str_free(str);
-	str->s_magic = 0;
+	str_discard(str);
 	WFREE(str);
 }
 
