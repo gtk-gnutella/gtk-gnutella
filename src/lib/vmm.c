@@ -4205,6 +4205,33 @@ vmm_get_magazine(size_t npages)
 }
 
 /**
+ *  Allocate pages through magazine, if possible.
+ *
+ * @param npages		amount of pages to allocate
+ * @param zero			whether to zero the allocated region
+ *
+ * @return pointer to start of allocated region, NULL if we did not allocate.
+ */
+static void *
+vmm_magazine_alloc(size_t npages, bool zero)
+{
+	tmalloc_t *depot = vmm_get_magazine(npages);
+
+	if G_UNLIKELY(NULL == depot)
+		return NULL;
+
+	VMM_STATS_LOCK;
+	vmm_stats.allocations++;
+	vmm_stats.allocations_user++;
+	vmm_stats.magazine_allocations++;
+	if (zero)
+		vmm_stats.allocations_zeroed++;
+	VMM_STATS_UNLOCK;
+
+	return zero ? tmalloc0(depot) : tmalloc(depot);
+}
+
+/**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
  * and only allocating a new region when necessary.
  *
@@ -4216,17 +4243,10 @@ vmm_alloc(size_t size)
 	size_t npages = pagecount_fast(size);
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		tmalloc_t *depot = vmm_get_magazine(npages);
+		void *p = vmm_magazine_alloc(npages, FALSE);
 
-		if G_LIKELY(depot != NULL) {
-			VMM_STATS_LOCK;
-			vmm_stats.allocations++;
-			vmm_stats.allocations_user++;
-			vmm_stats.magazine_allocations++;
-			VMM_STATS_UNLOCK;
-
-			return tmalloc(depot);
-		}
+		if G_LIKELY(p != NULL)
+			return p;
 	}
 
 	return vmm_alloc_internal(size, TRUE, FALSE);
@@ -4241,18 +4261,10 @@ vmm_alloc0(size_t size)
 	size_t npages = pagecount_fast(size);
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		tmalloc_t *depot = vmm_get_magazine(npages);
+		void *p = vmm_magazine_alloc(npages, TRUE);
 
-		if G_LIKELY(depot != NULL) {
-			VMM_STATS_LOCK;
-			vmm_stats.allocations++;
-			vmm_stats.allocations_zeroed++;
-			vmm_stats.allocations_user++;
-			vmm_stats.magazine_allocations++;
-			VMM_STATS_UNLOCK;
-
-			return tmalloc0(depot);
-		}
+		if G_LIKELY(p != NULL)
+			return p;
 	}
 
 	return vmm_alloc_internal(size, TRUE, TRUE);
