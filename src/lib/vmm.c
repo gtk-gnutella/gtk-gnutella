@@ -443,7 +443,7 @@ static void pmap_overrule(struct pmap *pm,
 static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
-static void *page_cache_find_pages(size_t n, bool emergency);
+static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static void page_cache_free_all(bool locked);
 
 /**
@@ -1650,9 +1650,12 @@ alloc_pages(size_t size, bool update_pmap)
 		 * one: all we have to do is be able to allocate from the page cache,
 		 * even though this would not be an optimal allocation.
 		 *		--RAM, 2015-04-02
+		 *
+		 * We request "user memory" from the page cache to ensure we're going
+		 * to be served if there is memory available there.
 		 */
 
-		p = page_cache_find_pages(n, TRUE);
+		p = page_cache_find_pages(n, TRUE, TRUE);
 		if (p != NULL) {
 			vmm_validate_pages(p, size);
 			memset(p, 0, size);				/* Kernel memory always zeroed */
@@ -3314,13 +3317,14 @@ not_found:
  * Find "n" consecutive pages in the page cache, and remove them if found.
  *
  * @param n			number of pages we want
+ * @param user_mem	whether we're allocating user memory (as opposed to core)
  * @param emergency	whether we need to find pages from the cache at all costs
  *
  * @return a pointer to the start of the memory region, NULL if we were
  * unable to find that amount of contiguous memory.
  */
 static void *
-page_cache_find_pages(size_t n, bool emergency)
+page_cache_find_pages(size_t n, bool user_mem, bool emergency)
 {
 	void *p;
 	size_t len;
@@ -3344,9 +3348,16 @@ page_cache_find_pages(size_t n, bool emergency)
 	/*
 	 * When allocating with a short-term strategy, we attempt to reuse the
 	 * cached memory as much as possible.
+	 *
+	 * Likewise for user memory: as opposed to core memory which will likely
+	 * be further fragmented into smaller pieces and therefore less prone to
+	 * ever beeing freed soon, user memory is typically allocated, used and
+	 * freed as a whole.  So it's more important to be careful when allocating
+	 * core memory under a long-term strategy: it will most probably be a
+	 * memory region we will not free before a long time, if ever.
 	 */
 
-	if (VMM_STRATEGY_SHORT_TERM == strategy)
+	if (user_mem || VMM_STRATEGY_SHORT_TERM == strategy)
 		goto short_term_strategy;
 
 	/*
@@ -3422,6 +3433,8 @@ short_term_strategy:
 			s_minidbg("VMM lookup for large area (%zu pages) returned %p", n, p);
 		}
 	} else {
+		bool single_page = user_mem || VMM_STRATEGY_SHORT_TERM == strategy;
+
 		/*
 		 * Start looking for a suitable page in the page cache matching
 		 * the size we want.
@@ -3433,7 +3446,7 @@ short_term_strategy:
 		/*
 		 * Visit higher-order cache lines if we found nothing in the cache.
 		 *
-		 * Short-term strategy:
+		 * Short-term strategy or user memory:
 		 * If we have data in our cache, reuse it, even for a single page.
 		 *
 		 * Long-term strategy:
@@ -3443,7 +3456,7 @@ short_term_strategy:
 		 * achieved so far in higher-order caches.
 		 */
 
-		if (NULL == p && (VMM_STRATEGY_SHORT_TERM == strategy || n > 1)) {
+		if (NULL == p && (single_page || n > 1)) {
 			size_t i;
 			bool aggressive = FALSE;
 
@@ -3942,7 +3955,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n, FALSE);
+	p = page_cache_find_pages(n, user_mem, FALSE);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		if G_UNLIKELY(zero_mem)
