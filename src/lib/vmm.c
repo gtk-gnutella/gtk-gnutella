@@ -126,6 +126,7 @@
 #include "rwlock.h"
 #include "sha1.h"
 #include "spinlock.h"
+#include "stacktrace.h"
 #include "str.h"			/* For str_bprintf() */
 #include "stringify.h"
 #include "thread.h"			/* For thread_small_id() */
@@ -137,7 +138,6 @@
 
 #ifdef TRACK_VMM
 #include "hashtable.h"
-#include "stacktrace.h"
 #endif
 
 #ifdef MINGW32
@@ -187,6 +187,7 @@ static bool vmm_crashing;
 #define VMM_STACK_MINSIZE	(64 * 1024)		/**< Minimum stack size */
 #define VMM_FOREIGN_LIFE	(60 * 60)		/**< 60 minutes */
 #define VMM_FOREIGN_MAXLEN	(512 * 1024)	/**< 512 KiB */
+#define VMM_WARN_THRESH		512	/**< Pages, 2 MiB with 4K pages */
 
 struct page_info {
 	void *base;		/**< base address */
@@ -551,6 +552,22 @@ size_t
 vmm_page_count(size_t size)
 {
 	return pagecount_fast(size);
+}
+
+/**
+ * Loudly warn with a possible stack trace.
+ */
+static void G_GNUC_PRINTF(1, 2)
+vmm_warn_once(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_WARNING, TRUE, format, args);
+	va_end(args);
+
+	if (!stacktrace_caller_known(2))		/* Caller of our caller */
+		s_stacktrace(TRUE, 2);
 }
 
 /**
@@ -3938,6 +3955,21 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 		vmm_stats.alloc_from_cache_pages += n;
 		goto update_stats;
 	}
+
+	/*
+	 * When debugging, spot areas of the code that perform large allocations.
+	 * Each spot is only traced once, the first time we go over the allocation
+	 * threshold.
+	 */
+
+	if (n > VMM_WARN_THRESH && vmm_debugging(1)) {
+		vmm_warn_once("%s(): large allocation of %'zu bytes",
+			G_STRFUNC, size);
+	}
+
+	/*
+	 * Could not find suitable page in cache, need to allocate more memory.
+	 */
 
 	p = alloc_pages(size, TRUE);
 	if (NULL == p) {
