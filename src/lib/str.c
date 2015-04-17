@@ -1418,6 +1418,52 @@ str_escape(str_t *str, char c, char e)
 }
 
 /**
+ * Look for character ``c'' in string, starting at position 0.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_chr(const str_t *s, int c)
+{
+	size_t len, i;
+	const char *p;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	for (i = 0, p = s->s_data; i < len; i++) {
+		if G_UNLIKELY(*p++ == c)
+			return i;
+	}
+
+	return -1;
+}
+
+/**
+ * Backward look for character ``c'' in string, starting at end of string.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_rchr(const str_t *s, int c)
+{
+	size_t i;
+	const char *p;
+
+	str_check(s);
+
+	for (i = s->s_len, p = s->s_data + i - 1; i != 0; i--) {
+		if G_UNLIKELY(*p-- == c)
+			return i - 1;
+	}
+
+	return -1;
+}
+
+/**
  * Round up floating-point mantissa, with leading extra carry digit.
  *
  * For instance, given "314159" with a rounding position of 2, the routine
