@@ -117,10 +117,11 @@ rand31_random_seed(void)
 
 	tm_precise_time(&now);		/* NOT tm_now_exact(): it is too early */
 	nsecs = now.tv_nsec;
+	seed = integer_hash_fast(now.tv_nsec) + integer_hash_fast(now.tv_sec);
 	cpu = tm_cputime(NULL, NULL);
 	tm_precise_time(&now);
 	nsecs += now.tv_nsec;
-	seed = (GOLDEN_RATIO_31 * getpid()) >> 1;
+	seed += (GOLDEN_RATIO_31 * getpid()) >> 1;
 #ifdef HAS_GETPPID
 	seed += integer_hash_fast(getppid());
 #endif
@@ -131,6 +132,7 @@ rand31_random_seed(void)
 	tm_precise_time(&now);
 	nsecs += now.tv_nsec;
 	seed += binary_hash(&now, sizeof now);
+	seed += integer_hash_fast(nsecs);
 	ZERO(&env);			/* Avoid uninitialized memory reads */
 	if (setjmp(env)) {
 		g_assert_not_reached(); /* We never longjmp() */
@@ -149,6 +151,7 @@ rand31_random_seed(void)
 	nsecs += now.tv_nsec;
 	entropy_delay();
 	tm_precise_time(&now);
+	seed += integer_hash2(now.tv_sec + now.tv_nsec);
 	seed = UINT32_ROTL(seed, popcount(nsecs + now.tv_nsec));
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
