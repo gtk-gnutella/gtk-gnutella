@@ -182,8 +182,8 @@ static bool vmm_crashing;
 
 #define VMM_CACHE_SIZE		256	/**< Amount of entries per cache line */
 #define VMM_CACHE_LINES		32	/**< Amount of cache lines */
-#define VMM_CACHE_LIFE		60	/**< At most 1 minute if not fragmenting */
-#define VMM_CACHE_MAXLIFE	180	/**< At most 3 minutes if fragmenting */
+#define VMM_CACHE_LIFE		60	/**< At most 1 minute on short-term strategy */
+#define VMM_CACHE_MAXLIFE	900	/**< At most 15 minutes on long-term strategy */
 #define VMM_STACK_MINSIZE	(64 * 1024)		/**< Minimum stack size */
 #define VMM_FOREIGN_LIFE	(60 * 60)		/**< 60 minutes */
 #define VMM_FOREIGN_MAXLEN	(512 * 1024)	/**< 512 KiB */
