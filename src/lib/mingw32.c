@@ -1591,6 +1591,19 @@ dir_entry_filename(const void *dirent)
 	return h_private(G_STRFUNC, utf16_to_utf8_string(wdirent->d_name));
 }
 
+/**
+ * @return the byte length of the directory entry filename, converted to UTF-8.
+ */
+size_t
+dir_entry_namelen(const void *dirent)
+{
+	const struct _wdirent *wdirent = dirent;
+
+	g_assert(dirent != NULL);
+
+	return utf16_to_utf8(wdirent->d_name, NULL, 0);
+}
+
 fileoffset_t
 mingw_lseek(int fd, fileoffset_t offset, int whence)
 {

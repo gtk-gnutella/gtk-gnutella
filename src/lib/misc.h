@@ -246,6 +246,20 @@ dir_entry_filename(const struct dirent *dir_entry)
 
 	return dir_entry->d_name;
 }
+
+/* There is a MINGW32 version defined for Windows in lib/mingw32.c */
+static inline size_t
+dir_entry_namelen(const struct dirent *dir_entry)
+{
+	g_assert(dir_entry != NULL);
+
+#ifdef HAS_DIRENT_D_NAMLEN
+	if G_LIKELY(dir_entry->d_namlen != 0)
+		return dir_entry->d_namlen;
+#endif	/* HAS_DIRENT_D_NAMLEN */
+
+	return strlen(dir_entry->d_name);
+}
 #endif	/* MINGW32 */
 
 /*

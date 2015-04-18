@@ -674,10 +674,11 @@ bool mingw_stdin_pending(bool fifo);
 bool mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
 const char *dir_entry_filename(const void *dirent);
-int mingw_getgateway(uint32 *ip);
+size_t dir_entry_namelen(const void *dirent);
 
+int mingw_getgateway(uint32 *ip);
 bool mingw_in_exception(void);
-void G_GNUC_NORETURN mingw_abort(void);
+void mingw_abort(void) G_GNUC_NORETURN;
 int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
 
 struct adns_request;
