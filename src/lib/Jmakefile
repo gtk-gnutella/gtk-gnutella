@@ -123,6 +123,7 @@ LSRC = \
 	fragcheck.c \
 	frand.c \
 	fs_free_space.c \
+	ftw.c \
 	gen-iprange.c \
 	gentime.c \
 	getcpucount.c \

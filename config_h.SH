@@ -259,6 +259,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
 
+/* HAS_DIRFD:
+ *	This symbol, if defined, indicates that the dirfd() routine is
+ *	available to get the underlying file descriptor from a DIR *
+ *	opened by opendir().
+ */
+#$d_dirfd HAS_DIRFD		/**/
+
 /* HAS_DLADDR:
  *	This symbol, if defined, indicates that the dladdr() routine is
  *	available to query the dynamic linker about a specified address.
@@ -291,17 +298,38 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_fast_assert FAST_ASSERTIONS	/**/
 
+/* HAS_FCHDIR:
+ *	This symbol, if defined, indicates that the fchdir routine is
+ *	available to change the working directory to that of the opened
+ *	directory whose file descriptor is given.
+ */
+#$d_fchdir HAS_FCHDIR	/**/
+
 /* HAS_FDATASYNC:
  *	This symbol, if defined, indicates that the fdatasync routine is available
  *	to synchronize a file's in-core data with the storage device.
  */
 #$d_fdatasync HAS_FDATASYNC		/**/
 
+/* HAS_FDOPENDIR:
+ *	This symbol, if defined, indicates that the fdopendir() routine is
+ *	available to open directories using an opened file descriptor already
+ *	referring to that directory.
+ */
+#$d_fdopendir HAS_FDOPENDIR		/**/
+
 /* HAS_FORK:
  *	This symbol, if defined, indicates that the fork routine is
  *	available.
  */
 #$d_fork HAS_FORK		/**/
+
+/* HAS_FSTATAT:
+ *	This symbol, if defined, indicates that the fstatat() routine is
+ *	available to do file stats with a relative path interepreted in
+ *	the context of an opened directory.
+ */
+#$d_fstatat HAS_FSTATAT		/**/
 
 /* HAS_FSYNC:
  *	This symbol, if defined, indicates that the fsync routine is available
@@ -501,6 +529,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	is available.
  */
 #$d_nanosleep HAS_NANOSLEEP		/**/
+
+/* HAS_OPENAT:
+ *	This symbol, if defined, indicates that the openat() routine is
+ *	available to open files with a relative path interepreted in
+ *	the context of an opened directory.
+ */
+#$d_openat HAS_OPENAT		/**/
 
 /* HAS_PAUSE:
  *	This symbol, if defined, indicates that the pause routine is
