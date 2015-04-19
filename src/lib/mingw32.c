@@ -1559,10 +1559,20 @@ void *
 mingw_readdir(void *dir)
 {
 	struct _wdirent *res;
+	int saved_errno = errno;
+
+	/*
+	 * Do not perturb errno in this routine unless it changes.
+	 * The MinGW runtime implementation of _wreaddir() will make sure
+	 * errno is left untouched when we end up reaching the end of the
+	 * directory.
+	 *		--RAM, 2015-04-19
+	 */
 
 	res = _wreaddir(dir);
 	if (NULL == res) {
-		errno = mingw_last_error();
+		if (errno != saved_errno)
+			errno = mingw_last_error();
 		return NULL;
 	}
 	return res;
