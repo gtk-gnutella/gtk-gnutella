@@ -1455,9 +1455,40 @@ mingw_stat(const char *pathname, filestat_t *buf)
 		return -1;
 
 	res = _wstati64(pncs.utf16, buf);
-	if (-1 == res)
+	if (-1 == res) {
 		errno = mingw_last_error();
 
+		/*
+		 * If there is a trailing '/' in the pathname, this will perturb
+		 * stat() and we'll get ENOENT.  Likewise for a trailing "/." so
+		 * if "/usr" exists, "/usr/" and "/usr/." will fail, but "/usr/.."
+		 * will work.  On UNIX, the first two are strictly equivalent.
+		 *		--RAM, 2015-04-19
+		 */
+
+		if (ENOENT == errno) {
+			size_t len = strlen(pathname);
+			char *fixed;
+			const char *p = &pathname[len - 1];
+
+			if (len <= 1)
+				goto nofix;		/* A simple "/" would have worked */
+
+			if ('/' == *p)
+				len--;
+			else if ('.' == *p && '/' == p[-1])
+				len -= 2;
+			else
+				goto nofix;
+
+			fixed = h_strndup(pathname, len);
+			if (0 == pncs_convert(&pncs, fixed))
+				res = _wstati64(pncs.utf16, buf);
+			hfree(fixed);
+		}
+	}
+
+nofix:
 	return res;
 }
 
