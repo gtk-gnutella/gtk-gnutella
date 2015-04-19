@@ -245,9 +245,17 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$use_difftime USE_DIFFTIME		/**/
 
+/* HAS_DIRENT_D_NAMLEN:
+ *	This symbol, if defined, indicates that struct dirent has an
+ *	integer member d_namlen to hold the actual string length of d_name.
+ */
+#$d_dirent_d_namlen HAS_DIRENT_D_NAMLEN		/**/
+
 /* HAS_DIRENT_D_TYPE:
  *	This symbol, if defined, indicates that struct dirent has an
- *	integer member d_type.
+ *	integer member d_type.  Note that DT_WHT is BSD-specific and may
+ *	not be available.  If DT_UNKNOWN is returned, the filesystem does
+ *	not fill d_type even though it is present in the dir entry.
  */
 #$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
 
