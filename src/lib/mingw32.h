@@ -437,6 +437,10 @@ const char *mingw_get_startup_path(void);
 const char *mingw_get_system_path(void);
 const char *mingw_get_windows_path(void);
 
+DIR *mingw_opendir(const char *pathname);
+struct dirent *mingw_readdir(DIR *);
+int mingw_closedir(DIR *);
+
 uint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
@@ -445,9 +449,6 @@ int mingw_fstat(int fd, filestat_t *buf);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_unlink(const char *pathname);
-void *mingw_opendir(const char *pathname);
-void *mingw_readdir(void *);
-int mingw_closedir(void *);
 fileoffset_t mingw_lseek(int fd, fileoffset_t offset, int whence);
 int mingw_rename(const char *oldpathname, const char *newpathname);
 int mingw_truncate(const char *pathname, fileoffset_t len);

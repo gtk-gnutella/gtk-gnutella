@@ -1539,7 +1539,7 @@ mingw_open(const char *pathname, int flags, ...)
 	return res;
 }
 
-void *
+DIR *
 mingw_opendir(const char *pathname)
 {
 	_WDIR *res;
@@ -1552,11 +1552,11 @@ mingw_opendir(const char *pathname)
 	if (NULL == res)
 		errno = mingw_last_error();
 
-	return res;
+	return (DIR *) res;
 }
 
-void *
-mingw_readdir(void *dir)
+struct dirent *
+mingw_readdir(DIR *dir)
 {
 	struct _wdirent *res;
 	int saved_errno = errno;
@@ -1569,19 +1569,19 @@ mingw_readdir(void *dir)
 	 *		--RAM, 2015-04-19
 	 */
 
-	res = _wreaddir(dir);
+	res = _wreaddir((_WDIR *) dir);
 	if (NULL == res) {
 		if (errno != saved_errno)
 			errno = mingw_last_error();
 		return NULL;
 	}
-	return res;
+	return (struct dirent *) res;
 }
 
 int
-mingw_closedir(void *dir)
+mingw_closedir(DIR *dir)
 {
-	int res = _wclosedir(dir);
+	int res = _wclosedir((_WDIR *) dir);
 	if (-1 == res)
 		errno = mingw_last_error();
 	return 0;
