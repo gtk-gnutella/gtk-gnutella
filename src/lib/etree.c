@@ -109,6 +109,20 @@ etree_init(etree_t *tree, bool extended, size_t offset)
 }
 
 /**
+ * Set initial root of empty tree.
+ */
+void
+etree_set_root(etree_t *tree, const void *root)
+{
+	etree_check(tree);
+	g_assert(NULL == tree->root);
+
+	tree->root = ptr_add_offset(deconstify_pointer(root), tree->offset);
+	if (NULL == tree->root->child)
+		tree->count = 1;
+}
+
+/**
  * Discard tree, making the tree object invalid.
  *
  * This does not free any of the items, it just discards the tree descriptor.
