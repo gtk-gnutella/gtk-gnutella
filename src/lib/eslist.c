@@ -665,7 +665,7 @@ eslist_foreach_remove(eslist_t *list, data_rm_fn_t cbr, void *data)
  *
  * @return the head of the list
  */
-static slink_t *
+static slink_t * G_GNUC_HOT
 eslist_merge_sort(eslist_t *list, slink_t *sublist, size_t count,
 	cmp_data_fn_t cmp, void *data)
 {
