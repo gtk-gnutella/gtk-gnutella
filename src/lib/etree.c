@@ -565,7 +565,7 @@ etree_traverse_internal(const etree_t *tree, node_t *root,
 	unsigned flags, unsigned curdepth, unsigned mindepth, unsigned maxdepth,
 	match_fn_t enter, data_fn_t action, void *data)
 {
-	size_t visited = 0;
+	size_t visited = 1;		/* 1 for this node */
 	void *item;
 	bool actionable;
 	node_t *child;
@@ -579,7 +579,7 @@ etree_traverse_internal(const etree_t *tree, node_t *root,
 	 * Check whether we need to execute action on the node.
 	 */
 
-	child = root->child;	/* Save pointer in case "action" frees node */
+	child = root->child;
 
 	if (curdepth < mindepth)
 		actionable = FALSE;
@@ -620,7 +620,7 @@ etree_traverse_internal(const etree_t *tree, node_t *root,
 	if (actionable && (flags & ETREE_CALL_AFTER))
 		(*action)(item, data);		/* Can safely free node */
 
-	return visited + 1;		/* "+1" for this node */
+	return visited;
 }
 
 /**
