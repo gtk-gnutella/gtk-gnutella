@@ -227,6 +227,9 @@ etree_count(const etree_t *et)
 		NULL, NULL, NULL);
 }
 
+void etree_init(etree_t *tree, bool extended, size_t offset);
+void etree_set_root(etree_t *tree, const void *root);
+
 bool etree_is_standalone(const etree_t *tree, const void *item);
 bool etree_is_orphan(const etree_t *tree, const void *item);
 
@@ -246,7 +249,6 @@ void etree_add_left_sibling(etree_t *tree, void *node, void *item);
 
 void *etree_last_child(const etree_t *tree, const void *item);
 
-void etree_set_root(etree_t *tree, const void *root);
 void etree_detach(etree_t *tree, void *item);
 
 void etree_sort(etree_t *tree, cmp_fn_t cmp);
