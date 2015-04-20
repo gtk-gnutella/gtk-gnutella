@@ -368,6 +368,18 @@ etree_detach(etree_t *tree, void *item)
 }
 
 /**
+ * Increment tree count if known and added node is a leaf.
+ */
+static inline void
+etree_count_update_added(etree_t *tree, const node_t *node)
+{
+	if (NULL == node->child && 0 != tree->count)
+		tree->count++;			/* Adding leaf node */
+	else
+		tree->count = 0;		/* Tree count is now unknown */
+}
+
+/**
  * Append child to parent.
  *
  * If this is a frequent operation, consider using an extended tree.
@@ -412,7 +424,8 @@ etree_append_child(etree_t *tree, void *parent, void *child)
 	}
 
 	cn->parent = pn;
-	tree->count = 0;		/* Tree count is now unknown */
+
+	etree_count_update_added(tree, cn);
 }
 
 /**
@@ -446,7 +459,7 @@ etree_prepend_child(etree_t *tree, void *parent, void *child)
 		}
 	}
 
-	tree->count = 0;		/* Tree count is now unknown */
+	etree_count_update_added(tree, cn);
 }
 
 /**
@@ -509,7 +522,7 @@ etree_add_right_sibling(etree_t *tree, void *node, void *item)
 		px->last_child = i;
 	}
 
-	tree->count = 0;		/* Tree count is now unknown */
+	etree_count_update_added(tree, i);
 }
 
 /**
@@ -549,7 +562,7 @@ etree_add_left_sibling(etree_t *tree, void *node, void *item)
 		p->sibling = i;
 	}
 
-	tree->count = 0;		/* Tree count is now unknown */
+	etree_count_update_added(tree, i);
 }
 
 /**
