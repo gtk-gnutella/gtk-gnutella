@@ -111,7 +111,7 @@ etree_init_root(etree_t *tree, const void *root, bool extended, size_t offset)
 	tree->magic = extended ? ETREE_EXT_MAGIC : ETREE_MAGIC;
 	tree->root = ptr_add_offset(deconstify_pointer(root), offset);
 	tree->offset = offset;
-	tree->count = 0;			/* Means: unknown yet if root != NULL */
+	tree->count = (NULL == tree->root->child) ? 1 : 0;
 }
 
 /**
