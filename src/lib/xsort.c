@@ -55,4 +55,12 @@
 
 #include "xsort-gen.c"
 
+/*
+ * These defines are there only for tags.
+ * Routines are defined in xsort-gen.c, as included above.
+ */
+
+#define xsort	XSORT
+#define xqsort	XQSORT
+
 /* vi: set ts=4 sw=4 cindent: */
