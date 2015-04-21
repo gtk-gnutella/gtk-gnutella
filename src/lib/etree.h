@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014 Raphael Manfredi
+ * Copyright (c) 2012, 2014-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Embedded n-ary trees (within another data structure).
  *
  * @author Raphael Manfredi
- * @date 2012, 2014
+ * @date 2012, 2014-2015
  */
 
 #ifndef _etree_h_
@@ -247,6 +247,9 @@ void etree_add_left_sibling(etree_t *tree, void *node, void *item);
 void *etree_last_child(const etree_t *tree, const void *item);
 
 void etree_detach(etree_t *tree, void *item);
+
+void etree_sort(etree_t *tree, cmp_fn_t cmp);
+void etree_sort_with_data(etree_t *tree, cmp_data_fn_t cmp, void *data);
 
 void etree_free_data(etree_t *tree, free_data_fn_t fcb, void *data);
 void etree_free(etree_t *tree, free_fn_t fcb);

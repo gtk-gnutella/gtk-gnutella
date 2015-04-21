@@ -67,7 +67,9 @@
 #include "common.h"
 
 #include "etree.h"
+
 #include "unsigned.h"
+#include "xslist.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -534,6 +536,103 @@ etree_add_left_sibling(etree_t *tree, void *node, void *item)
 	}
 
 	tree->count = 0;		/* Tree count is now unknown */
+}
+
+/**
+ * Recursively sort all the children of each tree node.
+ *
+ * This does NOT sort the tree so that traversal is in a given order implied
+ * by the comparison routine.  It only deals with the immediate children of
+ * each parent node.
+ *
+ * @param tree		the tree to sort
+ * @param root		the parent node whose children we want to sort
+ * @param cmp		the comparison routine for two items in the tree
+ * @param data		additional argument to supply to comparison routine
+ *
+ * @return amount of nodes visited.
+ */
+static size_t
+etree_sort_internal(etree_t *tree, node_t *root, cmp_data_fn_t cmp, void *data)
+{
+	void *child;
+	node_t *n, *next;
+	xslist_t siblings;
+	bool is_extended;
+	size_t visited;
+
+	etree_check(tree);
+
+	if (NULL == root->child)
+		return 1;
+
+	/*
+	 * Sort the siblings before iterating over them to recurse.
+	 *
+	 * We're going to treat the sibling list (one-way linked via n->sibling)
+	 * as an expanded single list whose link offset is the offset of the
+	 * ``sibling'' field in the node_t structure.
+	 */
+
+	child = ptr_add_offset(root->child, -tree->offset);
+	xslist_load(&siblings, child, tree->offset, offsetof(node_t, sibling));
+	xslist_sort_with_data(&siblings, cmp, data);
+	root->child = xslist_first(&siblings);
+
+	is_extended = etree_is_extended(tree);
+	visited = 1;
+
+	for (n = root->child; n != NULL; n = next) {
+		g_assert(root == n->parent);	/* Sorting did not alter structure */
+
+		next = n->sibling;
+		visited += etree_sort_internal(tree, n, cmp, data);
+
+		if G_UNLIKELY(is_extended && NULL == next) {
+			nodex_t *nx = (nodex_t *) root;
+			nx->last_child = n;
+		}
+	}
+
+	return visited;
+}
+
+/**
+ * Sort the children of each tree node with the item-comparison routine.
+ *
+ * @param tree	the tree whose children we want to sort
+ * @param cmp	the comparison routine to compare two items
+ */
+void
+etree_sort(etree_t *tree, cmp_fn_t cmp)
+{
+	etree_check(tree);
+
+	if (NULL == tree->root)
+		return;
+
+	tree->count =
+		etree_sort_internal(tree, tree->root, (cmp_data_fn_t) cmp, NULL);
+}
+
+/**
+ * Sort the children of each tree node with the item-comparison routine,
+ * which is extended to take an additional user-supplied context.
+ *
+ * @param tree	the tree whose children we want to sort
+ * @param cmp	the comparison routine to compare two items
+ * @param data	additional argument to supply to comparison routine
+ */
+void
+etree_sort_with_data(etree_t *tree, cmp_data_fn_t cmp, void *data)
+{
+	etree_check(tree);
+
+	if (NULL == tree->root)
+		return;
+
+	tree->count =
+		etree_sort_internal(tree, tree->root, (cmp_data_fn_t) cmp, data);
 }
 
 /**
