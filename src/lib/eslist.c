@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Raphael Manfredi
+ * Copyright (c) 2012-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -48,7 +48,7 @@
  * the glib list API is quite good so mirroring it is not a problem.
  *
  * @author Raphael Manfredi
- * @date 2012-2013
+ * @date 2012-2015
  */
 
 #include "common.h"
@@ -160,6 +160,60 @@ eslist_wfree(eslist_t *list, size_t size)
 
 	wfree_eslist(list, size);
 	eslist_clear(list);
+}
+
+/**
+ * Initialize and load linked items into a list.
+ *
+ * This routine is meant to allow the creation of an embedded list from
+ * homogeneous items that happen to be linked into another data structure
+ * through a single pointer.
+ *
+ * It is useful to allow reuse of code that can process such lists, such
+ * as eslist_sort(), eslist_shuffle(), etc...  It is naturally up to the
+ * caller to then refetch the proper head pointer.
+ *
+ * @param list		the list into which we are loading items
+ * @param head		first data element part of the linked list (NULL possible)
+ * @param offset	the offset of the embedded link field within items
+ *
+ * @return the amount of loaded items, as a convenience.
+ */
+size_t
+eslist_load(eslist_t *list, void *head, size_t offset)
+{
+	slink_t *lk;
+	size_t n;
+
+	g_assert(list != NULL);
+	g_assert(size_is_non_negative(offset));
+
+	/*
+	 * This assertion guarantees that the offset of any chaining pointer
+	 * between items can be passed as ``offset'' here, as if the chaining
+	 * field had been declared as "slink_t *", due to physical equivalence
+	 * of pointers, regardless of their declared type.
+	 */
+
+	STATIC_ASSERT(0 == offsetof(slink_t, next));
+
+	eslist_init(list, offset);
+
+	if G_UNLIKELY(NULL == head)
+		return 0;
+
+	lk = ptr_add_offset(head, offset);
+	list->head = lk;
+
+	for (n = 1; lk->next != NULL; n++, lk = lk->next)
+		/* empty */;
+
+	list->tail = lk;
+	list->count = n;
+
+	safety_assert(eslist_length(list->head) == list->count);
+
+	return n;
 }
 
 static inline void
