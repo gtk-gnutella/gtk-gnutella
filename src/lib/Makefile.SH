@@ -306,6 +306,7 @@ LSRC = \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
+	xslist.c \
 	xsort.c \
 	xsort_data.c \
 	xxtea.c \
@@ -491,6 +492,7 @@ LOBJ = \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \
+	xslist.o \
 	xsort.o \
 	xsort_data.o \
 	xxtea.o \

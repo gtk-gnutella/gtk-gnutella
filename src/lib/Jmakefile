@@ -237,6 +237,7 @@ LSRC = \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
+	xslist.c \
 	xsort.c \
 	xsort_data.c \
 	xxtea.c \

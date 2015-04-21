@@ -1000,6 +1000,8 @@ src/lib/wq.c
 src/lib/wq.h
 src/lib/xmalloc.c
 src/lib/xmalloc.h
+src/lib/xslist.c
+src/lib/xslist.h
 src/lib/xsort-gen.c
 src/lib/xsort.c
 src/lib/xsort.h
