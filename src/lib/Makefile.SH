@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  random-test.c  sort-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  random-test.o  sort-test.o  thread-test.o
+SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  random-test.c  sort-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  random-test.o  sort-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -576,8 +576,14 @@ float-times: float-test floats
 	echo -n "free:    " >>$@
 	sh -c "time ./float-test floats dragon > /dev/null" >>$@ 2>&1
 
+ftw-check: ftw-test
+	./ftw-mktree
+	./ftw-test -s ftw-root | diff -u - ftw-root.out >$@
+
 local_clean::
-	$(RM) floats float-dragon.out bad-fixed float-times
+	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
+	if test -d ftw-root; then chmod -R a+rX ftw-root; fi
+	$(RM) -r ftw-root
 
 all:: float-test
 
@@ -589,6 +595,17 @@ float-test:  float-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  float-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: ftw-test
+
+local_realclean::
+	$(RM) ftw-test$(_EXE)
+
+ftw-test:  ftw-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  ftw-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: random-test
 

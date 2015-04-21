@@ -762,6 +762,9 @@ src/lib/frand.c
 src/lib/frand.h
 src/lib/fs_free_space.c
 src/lib/fs_free_space.h
+src/lib/ftw-mktree
+src/lib/ftw-root.out
+src/lib/ftw-test.c
 src/lib/ftw.c
 src/lib/ftw.h
 src/lib/gentime.c

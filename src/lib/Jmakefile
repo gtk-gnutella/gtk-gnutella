@@ -317,13 +317,20 @@ float-times: float-test floats
 	echo -n "free:    " >>$@
 	sh -c "time ./float-test floats dragon > /dev/null" >>$@ 2>&1
 
+ftw-check: ftw-test
+	./ftw-mktree
+	./ftw-test -s ftw-root | diff -u - ftw-root.out >$@
+
 local_clean::
-	$(RM) floats float-dragon.out bad-fixed float-times
+	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
+	if test -d ftw-root; then chmod -R a+rX ftw-root; fi
+	$(RM) -r ftw-root
 
 #define NormalTestTarget(base)	@!\
 NormalProgramLibTarget(base-test, base-test.c, base-test.o, libshared.a)
 
 NormalTestTarget(float)
+NormalTestTarget(ftw)
 NormalTestTarget(random)
 NormalTestTarget(sort)
 NormalTestTarget(thread)
