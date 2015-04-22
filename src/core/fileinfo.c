@@ -2848,8 +2848,7 @@ extract_sha1(const char *s)
 	if (strlen(s) < SHA1_BASE32_SIZE)
 		return NULL;
 
-	if (SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
-							s, SHA1_BASE32_SIZE))
+	if (SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1, s, SHA1_BASE32_SIZE))
 		return NULL;
 
 	return atom_sha1_get(&sha1);
@@ -2863,8 +2862,7 @@ extract_tth(const char *s)
 	if (strlen(s) < TTH_BASE32_SIZE)
 		return NULL;
 
-	if (TTH_RAW_SIZE != base32_decode(tth.data, sizeof tth.data,
-							s, TTH_BASE32_SIZE))
+	if (TTH_RAW_SIZE != base32_decode(&tth, sizeof tth, s, TTH_BASE32_SIZE))
 		return NULL;
 
 	return atom_tth_get(&tth);

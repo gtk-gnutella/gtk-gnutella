@@ -996,8 +996,8 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 			return FALSE;
 
 		if (
-			SHA1_RAW_SIZE != base16_decode(cast_to_char_ptr(&nm[i++]),
-				SHA1_RAW_SIZE, p, strlen(p))
+			SHA1_RAW_SIZE !=
+				base16_decode(&nm[i++], SHA1_RAW_SIZE, p, strlen(p))
 		)
 			return FALSE;
 	}
