@@ -55,7 +55,7 @@
 
 #include "common.h"
 
-size_t base16_decode(char *dst, size_t size, const void *data, size_t len);
+size_t base16_decode(void *dst, size_t size, const char *data, size_t len);
 size_t base16_encode(char *dst, size_t size, const void *data, size_t len);
 
 #endif /* BASE16_HEADER_FILE */

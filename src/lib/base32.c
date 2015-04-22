@@ -171,10 +171,10 @@ static char base32_map[(size_t) (unsigned char) -1 + 1];
  * @return the amount of bytes decoded into the destination.
  */
 G_GNUC_HOT size_t
-base32_decode(char *dst, size_t size, const void *data, size_t len)
+base32_decode(void *dst, size_t size, const char *data, size_t len)
 {
-	const char *end = &dst[size];
-	const unsigned char *p = data;
+	const char *end = ptr_add_offset(dst, size);
+	const unsigned char *p = cast_to_constpointer(data);
 	char s[8];
 	char *q = dst;
 	int pad = 0;
@@ -245,7 +245,7 @@ base32_decode(char *dst, size_t size, const void *data, size_t len)
 		}
 	}
 
-	return q - dst;
+	return ptr_diff(q, dst);
 }
 
 /* vi: set ai et ts=4 sw=4 cindent: */
