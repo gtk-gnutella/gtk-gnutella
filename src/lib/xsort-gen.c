@@ -142,8 +142,9 @@ typedef struct {
  *
  * @return TRUE if OK, FALSE when we decide to bail-out.
  */
+#define insertsort		CAT2(insertsort,TAG)
 static G_GNUC_HOT bool
-CAT2(insertsort,TAG)(void *const pbase, size_t lastoff, size_t size,
+insertsort(void *const pbase, size_t lastoff, size_t size,
 	CMP_FN_T cmp, bool can_bail_out UDATA_DECL)
 {
 	char *base = pbase;
@@ -297,8 +298,9 @@ median_three(void *a, void *b, void *c, CMP_FN_T cmp UDATA_DECL)
  *    stack size is needed (actually O(1) in this case)!
  */
 
+#define quicksort	CAT2(quicksort,TAG)
 static G_GNUC_HOT void
-CAT2(quicksort,TAG)(void *const pbase, size_t total_elems, size_t size,
+quicksort(void *const pbase, size_t total_elems, size_t size,
 	CMP_FN_T cmp UDATA_DECL)
 {
 	char *base = pbase;
@@ -448,13 +450,11 @@ CAT2(quicksort,TAG)(void *const pbase, size_t total_elems, size_t size,
 				 */
 
 				ok = lsize - size > max_thresh ?
-					CAT2(insertsort,TAG)
-						(lo, lsize - size, size, cmp, TRUE UDATA) : TRUE;
+					insertsort(lo, lsize - size, size, cmp, TRUE UDATA) : TRUE;
 
 				if (ok) {
 					ok = rsize > max_thresh ?
-						CAT2(insertsort,TAG)
-							(hi - rsize, rsize, size, cmp, TRUE UDATA) :
+						insertsort(hi - rsize, rsize, size, cmp, TRUE UDATA) :
 						TRUE;
 					if (ok) {
 						POP(lo, hi);	/* Done with partition */
@@ -502,8 +502,7 @@ CAT2(quicksort,TAG)(void *const pbase, size_t total_elems, size_t size,
 	 * leave small partitions of less than MAX_THRESH items unsorted.
 	 */
 
-	CAT2(insertsort,TAG)
-		(pbase, (total_elems - 1) * size, size, cmp, FALSE UDATA);
+	insertsort(pbase, (total_elems - 1) * size, size, cmp, FALSE UDATA);
 }
 
 /*
@@ -511,8 +510,9 @@ CAT2(quicksort,TAG)(void *const pbase, size_t total_elems, size_t size,
  * Written by Mike Haertel, September 1988.
  */
 
+#define msort_with_tmp	CAT2(msort_with_tmp,TAG)
 static void
-CAT2(msort_with_tmp,TAG)(void *b, size_t n, size_t s,
+msort_with_tmp(void *b, size_t n, size_t s,
 	CMP_FN_T cmp, char *t UDATA_DECL)
 {
 	char *tmp;
@@ -527,8 +527,8 @@ CAT2(msort_with_tmp,TAG)(void *b, size_t n, size_t s,
 	b1 = b;
 	b2 = ptr_add_offset(b, n1 * s);
 
-	CAT2(msort_with_tmp,TAG)(b1, n1, s, cmp, t UDATA);
-	CAT2(msort_with_tmp,TAG)(b2, n2, s, cmp, t UDATA);
+	msort_with_tmp(b1, n1, s, cmp, t UDATA);
+	msort_with_tmp(b2, n2, s, cmp, t UDATA);
 
 	tmp = t;
 
@@ -598,7 +598,7 @@ XSORT(void *b, size_t n, size_t s, CMP_FN_T cmp UDATA_DECL)
 		/* The temporary array is small, so put it on the stack */
 		void *buf = alloca(size);
 
-		CAT2(msort_with_tmp,TAG)(b, n, s, cmp, buf UDATA);
+		msort_with_tmp(b, n, s, cmp, buf UDATA);
 	} else {
 		static uint64 memsize;
 
@@ -615,14 +615,14 @@ XSORT(void *b, size_t n, size_t s, CMP_FN_T cmp UDATA_DECL)
 
 		/* If the memory requirements are too high don't allocate memory */
 		if ((uint64) size > memsize / 4) {
-			CAT2(quicksort,TAG)(b, n, s, cmp UDATA);
+			quicksort(b, n, s, cmp UDATA);
 		} else {
 			char *tmp;
 
 			/* It's somewhat large, so alloc it through VMM */
 
 			tmp = vmm_alloc(size);
-			CAT2(msort_with_tmp,TAG)(b, n, s, cmp, tmp UDATA);
+			msort_with_tmp(b, n, s, cmp, tmp UDATA);
 			vmm_free(tmp, size);
 		}
 	}
@@ -638,7 +638,7 @@ XSORT(void *b, size_t n, size_t s, CMP_FN_T cmp UDATA_DECL)
 void
 XQSORT(void *b, size_t n, size_t s, CMP_FN_T cmp UDATA_DECL)
 {
-	CAT2(quicksort,TAG)(b, n, s, cmp UDATA);
+	quicksort(b, n, s, cmp UDATA);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
