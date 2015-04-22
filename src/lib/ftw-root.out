@@ -6,79 +6,79 @@ sorted_tree(): tree has 20 items
 printpath(): level=2, fbase = a1
 	flags = FTW_F_FILE
 	fpath = ftw-root/a/a1
-	rpath = /a/a1
+	rpath = a/a1
 printpath(): level=2, fbase = a2
 	flags = FTW_F_FILE
 	fpath = ftw-root/a/a2
-	rpath = /a/a2
+	rpath = a/a2
 printpath(): level=2, fbase = a3
 	flags = FTW_F_FILE
 	fpath = ftw-root/a/a3
-	rpath = /a/a3
+	rpath = a/a3
 printpath(): level=2, fbase = bar
 	flags = FTW_F_SYMLINK
 	fpath = ftw-root/a/bar
-	rpath = /a/bar
+	rpath = a/bar
 printpath(): level=2, fbase = d1
 	flags = FTW_F_SYMLINK
 	fpath = ftw-root/a/d1
-	rpath = /a/d1
+	rpath = a/d1
 printpath(): level=2, fbase = foo
 	flags = FTW_F_OTHER
 	fpath = ftw-root/a/foo
-	rpath = /a/foo
+	rpath = a/foo
 printpath(): level=2, fbase = ls
 	flags = FTW_F_FILE
 	fpath = ftw-root/a/ls
-	rpath = /a/ls
+	rpath = a/ls
 printpath(): level=1, fbase = a
 	flags = FTW_F_DIR
 	fpath = ftw-root/a
-	rpath = /a
+	rpath = a
 printpath(): level=1, fbase = b
 	flags = FTW_F_DIR | FTW_F_NOREAD
 	fpath = ftw-root/b
-	rpath = /b
+	rpath = b
 printpath(): level=2, fbase = c1
 	flags = FTW_F_FILE | FTW_F_NOSTAT
 	fpath = ftw-root/c/c1
-	rpath = /c/c1
+	rpath = c/c1
 printpath(): level=2, fbase = c2
 	flags = FTW_F_FILE | FTW_F_NOSTAT
 	fpath = ftw-root/c/c2
-	rpath = /c/c2
+	rpath = c/c2
 printpath(): level=2, fbase = c3
 	flags = FTW_F_FILE | FTW_F_NOSTAT
 	fpath = ftw-root/c/c3
-	rpath = /c/c3
+	rpath = c/c3
 printpath(): level=2, fbase = ls
 	flags = FTW_F_FILE | FTW_F_NOSTAT
 	fpath = ftw-root/c/ls
-	rpath = /c/ls
+	rpath = c/ls
 printpath(): level=1, fbase = c
 	flags = FTW_F_DIR
 	fpath = ftw-root/c
-	rpath = /c
+	rpath = c
 printpath(): level=2, fbase = d1
 	flags = FTW_F_FILE
 	fpath = ftw-root/d/d1
-	rpath = /d/d1
+	rpath = d/d1
 printpath(): level=2, fbase = d2
 	flags = FTW_F_FILE
 	fpath = ftw-root/d/d2
-	rpath = /d/d2
+	rpath = d/d2
 printpath(): level=2, fbase = d3
 	flags = FTW_F_FILE
 	fpath = ftw-root/d/d3
-	rpath = /d/d3
+	rpath = d/d3
 printpath(): level=2, fbase = ls
 	flags = FTW_F_FILE
 	fpath = ftw-root/d/ls
-	rpath = /d/ls
+	rpath = d/ls
 printpath(): level=1, fbase = d
 	flags = FTW_F_DIR
 	fpath = ftw-root/d
-	rpath = /d
+	rpath = d
 printpath(): level=0, fbase = ftw-root
 	flags = FTW_F_DIR
 	fpath = ftw-root

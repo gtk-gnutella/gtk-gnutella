@@ -573,6 +573,8 @@ ftw_callback(struct ftw_ctx *fx, filestat_t *sb, uint32 flags)
 
 	fx->info.fpath = str_2c(&fx->spath);
 	fx->info.fbase = fx->info.fpath + fx->base;
+	fx->info.base = fx->base;
+	fx->info.level = fx->level;
 
 	/*
 	 * Make sure the relative path (empty when we are processing the root
@@ -582,12 +584,10 @@ ftw_callback(struct ftw_ctx *fx, filestat_t *sb, uint32 flags)
 	fx->info.rpath = fx->info.fpath + fx->rootlen;
 	if ('/' == *fx->info.rpath)
 		fx->info.rpath++;
+	fx->info.root = fx->info.rpath - fx->info.fpath;
 
 	fx->info.flags = flags;
 	fx->info.ftw_flags = fx->flags;
-	fx->info.root = fx->rootlen;
-	fx->info.base = fx->base;
-	fx->info.level = fx->level;
 
 	return (*fx->cb)(&fx->info, sb, fx->udata);
 }
