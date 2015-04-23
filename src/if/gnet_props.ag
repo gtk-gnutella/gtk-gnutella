@@ -5640,4 +5640,16 @@ prop = {
     };
 };
 
+prop = {
+    name = "session_start_stamp";
+    desc = "Timestamp at which the current session was started.  This stamp "
+		"remains unchanged when gtk-gnutella restarts after a crash or "
+		"an explicit restart request.";
+	internal = TRUE;
+    type = timestamp;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

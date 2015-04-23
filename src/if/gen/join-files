@@ -1,0 +1,9 @@
+my ($f1, $f2) = @ARGV;
+
+open(F1, $f1) || die "can't open $f1: $!\n";
+open(F2, $f2) || die "can't open $f2: $!\n";
+
+while (($f1 = <F1>) && ($f2 = <F2>)) {
+	chomp $f1;
+	print "$f1\t$f2";
+}

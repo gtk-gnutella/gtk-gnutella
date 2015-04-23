@@ -770,6 +770,7 @@ settings_init(void)
 	uint64 amount = memory / 1024;
 	long cpus = getcpucount();
 	uint max_fd;
+	time_t session_start = 0;
 
 	settings_init_running = TRUE;
 
@@ -840,18 +841,35 @@ settings_init(void)
 		 *		--RAM, 2012-12-28
 		 */
 		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, !auto_restart);
-		if (auto_restart)
+		if (auto_restart) {
 			g_info("restarting session as requested");
+			session_start = GNET_PROPERTY(session_start_stamp);
+		}
 	} else {
 		uint32 pid = GNET_PROPERTY(pid);
 		g_warning("restarting after abnormal termination (pid was %u)", pid);
 		crash_exited(pid);
 		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
 	gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, FALSE);
 	gnet_prop_set_guint32_val(PROP_PID, (uint32) getpid());
+
+	/*
+	 * On explicit auto-restart, or restart after a crash, we have propagated
+	 * the persisted session start timestamp into ``session_start''.
+	 * Otherwise, the value will still be zero and we're starting a new session.
+	 *
+	 * The session start timestamp is used to track the first time gtk-gnutella
+	 * was started in a conscious way, so to speak.
+	 *		--RAM, 2015-04-23
+	 */
+
+	if (0 == session_start)
+		session_start = tm_time();
+	gnet_prop_set_timestamp_val(PROP_SESSION_START_STAMP, session_start);
 
 	/*
 	 * Emit configuration / system information, but only if debugging.

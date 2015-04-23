@@ -517,6 +517,7 @@ typedef enum {
     PROP_G2_BROWSE_COUNT,
     PROP_G2_BROWSE_SERVED,
     PROP_LOG_SENDING_G2,
+    PROP_SESSION_START_STAMP,
     GNET_PROPERTY_END
 } gnet_property_t;
 

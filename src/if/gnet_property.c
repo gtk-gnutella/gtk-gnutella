@@ -1108,6 +1108,8 @@ guint32  gnet_property_variable_g2_browse_served     = 0;
 static const guint32  gnet_property_variable_g2_browse_served_default = 0;
 gboolean gnet_property_variable_log_sending_g2     = FALSE;
 static const gboolean gnet_property_variable_log_sending_g2_default = FALSE;
+time_t  gnet_property_variable_session_start_stamp     = 0;
+static const time_t  gnet_property_variable_session_start_stamp_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -11236,6 +11238,28 @@ gnet_prop_init(void) {
     gnet_property->props[480].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[480].data.boolean.def   = (void *) &gnet_property_variable_log_sending_g2_default;
     gnet_property->props[480].data.boolean.value = (void *) &gnet_property_variable_log_sending_g2;
+
+
+    /*
+     * PROP_SESSION_START_STAMP:
+     *
+     * General data:
+     */
+    gnet_property->props[481].name = "session_start_stamp";
+    gnet_property->props[481].desc = _("Timestamp at which the current session was started.  This stamp remains unchanged when gtk-gnutella restarts after a crash or an explicit restart request.");
+    gnet_property->props[481].ev_changed = event_new("session_start_stamp_changed");
+    gnet_property->props[481].save = TRUE;
+    gnet_property->props[481].internal = TRUE;
+    gnet_property->props[481].vector_size = 1;
+	mutex_init(&gnet_property->props[481].lock);
+
+    /* Type specific data: */
+    gnet_property->props[481].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[481].data.timestamp.def   = (void *) &gnet_property_variable_session_start_stamp_default;
+    gnet_property->props[481].data.timestamp.value = (void *) &gnet_property_variable_session_start_stamp;
+    gnet_property->props[481].data.timestamp.choices = NULL;
+    gnet_property->props[481].data.timestamp.max   = (time_t) ((1U << 31) - 1);
+    gnet_property->props[481].data.timestamp.min   = 0x0000000000000000;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
