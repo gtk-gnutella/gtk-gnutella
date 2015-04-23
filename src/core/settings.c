@@ -626,8 +626,8 @@ settings_init_session_id(void)
 	 * sufficiently random to be used as-is.
 	 */
 
-	random_bytes(id.v, sizeof id.v);
-	gnet_prop_set_storage(PROP_SESSION_ID, id.v, sizeof id.v);
+	random_bytes(&id, sizeof id);
+	gnet_prop_set_storage(PROP_SESSION_ID, &id, sizeof id);
 }
 
 /**
