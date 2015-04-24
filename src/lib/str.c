@@ -1455,6 +1455,34 @@ str_offset(const str_t *s, ssize_t offset)
 }
 
 /**
+ * Translate algebric offset into physical offset within string.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * The offset is always adjusted to fall within the string, rounding it up
+ * to 0 when it is negative and points before the start, or down to the last
+ * character in the string when it is positive and points beyond the end.
+ *
+ * @return a safe offset, between 0 (inclusive) and length (exclusive).
+ */
+static size_t
+str_offset_safe(const str_t *s, ssize_t offset)
+{
+	size_t i;
+
+	if (offset >= 0) {
+		size_t pos = offset;
+		i = pos >= s->s_len ? (0 == s->s_len ? 0 : s->s_len - 1) : pos;
+	} else {
+		size_t pos = s->s_len + offset;
+		i = pos >= s->s_len ? 0 : pos;
+	}
+
+	return i;
+}
+
+/**
  * Look for character ``c'' in string, starting at given offset.
  *
  * A negative offset is interpreted starting from the end of the string,
@@ -1542,6 +1570,36 @@ ssize_t
 str_rchr(const str_t *s, int c)
 {
 	return str_rchr_at(s, c, -1);
+}
+
+/**
+ * Generate a new string from the characters within the specified range
+ * in the given string.  Range is inclusive on both sides.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @return a new string object
+ */
+str_t *
+str_slice(const str_t *s, ssize_t from, ssize_t to)
+{
+	str_t *n;
+	size_t len, start, end;
+
+	str_check(s);
+
+	start = str_offset_safe(s, from);
+	end   = str_offset_safe(s, to);
+
+	len = start <= end ? end - start + 1 : 0;
+	if (0 == s->s_len)
+		len = 0;
+	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
+	n->s_len = len;
+	memcpy(n->s_data, s->s_data + start, len);
+
+	return n;
 }
 
 /**
