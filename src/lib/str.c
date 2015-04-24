@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2013 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2015 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -39,7 +39,7 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2013
+ * @date 1996-2000, 2007, 2010-2015
  */
 
 #include "common.h"
@@ -1430,6 +1430,64 @@ str_escape(str_t *str, char c, char e)
 }
 
 /**
+ * Translate algebric offset into physical offset, with specific off-limit
+ * indication.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * When the physical offset falls before the start of the string, -1 is
+ * returned.  If it falls beyond the end of the string, length is returned
+ * (i.e. one character beyond the actual end).
+ */
+static ssize_t
+str_offset(const str_t *s, ssize_t offset)
+{
+	ssize_t i;
+
+	i = offset >= 0 ? offset : (ssize_t) s->s_len + offset;
+	if (i < 0)
+		i = -1;
+	else if (UNSIGNED(i) > s->s_len)
+		i = s->s_len;
+
+	return i;
+}
+
+/**
+ * Look for character ``c'' in string, starting at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_chr_at(const str_t *s, int c, ssize_t offset)
+{
+	size_t len, i;
+	ssize_t pos;
+	const char *p;
+
+	str_check(s);
+
+	len = s->s_len;
+	i = pos = str_offset(s, offset);
+	if (pos < 0)
+		i = 0;
+	else if (UNSIGNED(pos) >= len)
+		return -1;
+
+	for (p = s->s_data + i; i < len; i++) {
+		if G_UNLIKELY(*p++ == c)
+			return i;
+	}
+
+	return -1;
+}
+
+/**
  * Look for character ``c'' in string, starting at position 0.
  *
  * @return the offset from the start of the string where character is found,
@@ -1438,16 +1496,37 @@ str_escape(str_t *str, char c, char e)
 ssize_t
 str_chr(const str_t *s, int c)
 {
+	return str_chr_at(s, c, 0);
+}
+
+/**
+ * Backward look for character ``c'' in string, starting at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_rchr_at(const str_t *s, int c, ssize_t offset)
+{
 	size_t len, i;
+	ssize_t pos;
 	const char *p;
 
 	str_check(s);
 
 	len = s->s_len;
+	i = pos = str_offset(s, offset);
+	if (pos < 0)
+		return -1;
+	else if (UNSIGNED(pos) >= len)
+		i = len - 1;
 
-	for (i = 0, p = s->s_data; i < len; i++) {
-		if G_UNLIKELY(*p++ == c)
-			return i;
+	for (p = s->s_data + i++; i != 0; i--) {
+		if G_UNLIKELY(*p-- == c)
+			return i - 1;
 	}
 
 	return -1;
@@ -1462,17 +1541,7 @@ str_chr(const str_t *s, int c)
 ssize_t
 str_rchr(const str_t *s, int c)
 {
-	size_t i;
-	const char *p;
-
-	str_check(s);
-
-	for (i = s->s_len, p = s->s_data + i - 1; i != 0; i--) {
-		if G_UNLIKELY(*p-- == c)
-			return i - 1;
-	}
-
-	return -1;
+	return str_rchr_at(s, c, -1);
 }
 
 /**
