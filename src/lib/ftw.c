@@ -973,9 +973,12 @@ ftw_process_dir(
 
 	/*
 	 * If we're notifying directories in post-order, now is the time.
+	 *
+	 * Note that we do not invoke the post-order callback if we have an
+	 * error / abort condition so far.
 	 */
 
-	if (fx->flags & FTW_O_DEPTH) {
+	if (FTW_STATUS_OK == result && (fx->flags & FTW_O_DEPTH)) {
 		result = ftw_callback(fx, sb, FTW_F_DIR | FTW_F_DONE);
 
 		if G_UNLIKELY(FTW_STATUS_SKIP_SUBTREE == result) {
