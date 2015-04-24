@@ -56,6 +56,7 @@
 #include "log.h"
 #include "misc.h"			/* For dir_entry_mode() */
 #include "path.h"
+#include "stacktrace.h"
 #include "str.h"
 #include "walloc.h"
 
@@ -977,8 +978,13 @@ ftw_process_dir(
 	if (fx->flags & FTW_O_DEPTH) {
 		result = ftw_callback(fx, sb, FTW_F_DIR | FTW_F_DONE);
 
-		if G_UNLIKELY(FTW_STATUS_SKIP_SUBTREE == result)
-			result = FTW_STATUS_OK;		/* They are confused, it's too late! */
+		if G_UNLIKELY(FTW_STATUS_SKIP_SUBTREE == result) {
+			/* They are confused, it's too late! */
+			s_carp_once("%s(): ignoring FTW_STATUS_SKIP_SUBTREE from %s(): "
+				"called with FTW_F_DONE (post-order visit)",
+				G_STRFUNC, stacktrace_function_name(fx->cb));
+			result = FTW_STATUS_OK;
+		}
 	}
 
 	/*
