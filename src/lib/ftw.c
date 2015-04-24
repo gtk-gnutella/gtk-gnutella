@@ -129,8 +129,9 @@ enum ftw_dir_magic { FTW_DIR_MAGIC = 0x0d63ab62 };
  */
 struct ftw_dir {
 	enum ftw_dir_magic magic;		/* Magic number */
-	DIR *dp;						/* If non-NULL, opened directory */
 	int fd;							/* dirfd(dp), or -1 if no dirfd() */
+	DIR *dp;						/* If non-NULL, opened directory */
+	struct ftw_dir *parent;			/* Parent directory, NULL if at root */
 	eslist_t listing;				/* Content */
 	size_t count;					/* Amount of listing entries to process */
 };
@@ -269,6 +270,52 @@ ftw_readdir_all(struct ftw_ctx *fx, struct ftw_dir *dir)
 }
 
 /**
+ * Find a directory among our parents that we could close.
+ *
+ * @param fx		the tree walker context
+ * @param dir		first directory which we can consider for closing
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+static int
+ftw_parent_close(struct ftw_ctx *fx, struct ftw_dir *dir)
+{
+	struct ftw_dir *d;
+	int n;
+
+	for (d = dir, n = 1; d != NULL; d = d->parent, n++) {
+		if (d->dp != NULL) {
+			if (0 == ftw_readdir_all(fx, d))
+				return 0;
+
+			if (0 == (fx->flags & FTW_O_SILENT)) {
+				ssize_t pos = 0;	/* End of path string, due to "--" below */
+				int i;
+
+				for (i = n; i != 0; i--) {
+					pos = str_rchr_at(&fx->spath, '/', --pos);
+					if (pos <= 0)
+						break;		/* No more '/' found, or reached start */
+				}
+
+				if (pos > 0) {
+					str_t *sub = str_slice(&fx->spath, 0, pos - 1);
+					s_carp("%s(): cannot fully read \"%s\": %m",
+						G_STRFUNC, str_2c(sub));
+					str_destroy(sub);
+				} else {
+					s_carp("%s(): cannot grab %dth parent dir of \"%s\": %m",
+						G_STRFUNC, n, str_2c(&fx->spath));
+				}
+			}
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+/**
  * Open new directory.
  *
  * @param fx		the tree walker context
@@ -280,12 +327,15 @@ ftw_readdir_all(struct ftw_ctx *fx, struct ftw_dir *dir)
 static int
 ftw_opendir(struct ftw_ctx *fx, struct ftw_dir *dir, struct ftw_dir *pdir)
 {
+	bool retried;
+
 	ftw_ctx_check(fx);
 	g_assert(fx->odirs <= fx->nfd);
 
 	ZERO(dir);
 	dir->magic = FTW_DIR_MAGIC;
 	dir->fd = -1;
+	dir->parent = pdir;
 
 	/*
 	 * If we have used up all the descriptors we could, we have to close
@@ -293,13 +343,8 @@ ftw_opendir(struct ftw_ctx *fx, struct ftw_dir *dir, struct ftw_dir *pdir)
 	 */
 
 	if G_UNLIKELY(fx->odirs == fx->nfd) {
-		if (0 != ftw_readdir_all(fx, pdir)) {
-			if (0 == (fx->flags & FTW_O_SILENT)) {
-				s_carp("%s(): failed to fully read parent dir of \"%s\": %m",
-					G_STRFUNC, str_2c(&fx->spath));
-			}
+		if (0 != ftw_parent_close(fx, pdir))
 			return -1;
-		}
 	}
 
 	g_assert(fx->odirs < fx->nfd);
@@ -323,8 +368,24 @@ ftw_opendir(struct ftw_ctx *fx, struct ftw_dir *dir, struct ftw_dir *pdir)
 		g_assert('\0' != *dname);
 
 		nfd = openat(pdir->fd, dname, flags);
-		if G_UNLIKELY(-1 == nfd)
+
+		/*
+		 * Even though we are below the amount of configured file descriptors
+		 * for our tree walking, the system or the process could hit a limit
+		 * on the amount of files that can be opened.
+		 *
+		 * When that happens, we attempt to close file descriptors still opened
+		 * among our parent directories.
+		 */
+
+		if G_UNLIKELY(-1 == nfd) {
+			if (EMFILE == errno || ENFILE == errno) {
+				if (0 != ftw_parent_close(fx, pdir))
+					return -1;
+				goto use_opendir;	/* Parent directory closed */
+			}
 			goto error;
+		}
 
 		dir->dp = fdopendir(nfd);
 		if G_UNLIKELY(NULL == dir->dp) {
@@ -342,6 +403,12 @@ ftw_opendir(struct ftw_ctx *fx, struct ftw_dir *dir, struct ftw_dir *pdir)
 	 * an opened parent directory.
 	 */
 
+use_opendir:
+	retried = FALSE;
+
+	/* FALL THROUGH */
+
+retry:
 	if (NULL == dir->dp) {
 		if (fx->flags & FTW_O_CHDIR) {
 			dir->dp = opendir(str_2c(&fx->spath) + fx->base);
@@ -349,8 +416,23 @@ ftw_opendir(struct ftw_ctx *fx, struct ftw_dir *dir, struct ftw_dir *pdir)
 			dir->dp = opendir(str_2c(&fx->spath));
 		}
 
-		if G_UNLIKELY(NULL == dir->dp)
+		/*
+		 * Same logic as above: retry once after closing one of the
+		 * descriptors still kept opened in our parent directories should
+		 * we hit an "out of descriptors" error condition.
+		 */
+
+		if G_UNLIKELY(NULL == dir->dp) {
+			if (EMFILE == errno || ENFILE == errno) {
+				if (!retried) {
+					if (0 != ftw_parent_close(fx, pdir))
+						return -1;
+					retried = TRUE;
+					goto retry;
+				}
+			}
 			goto error;
+		}
 
 #ifdef HAS_DIRFD
 		dir->fd = dirfd(dir->dp);
