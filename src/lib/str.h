@@ -130,6 +130,7 @@ ssize_t str_chr_at(const str_t *s, int c, ssize_t offset);
 ssize_t str_rchr(const str_t *s, int c);
 ssize_t str_rchr_at(const str_t *s, int c, ssize_t offset);
 str_t *str_slice(const str_t *s, ssize_t from, ssize_t to);
+str_t *str_substr(const str_t *s, ssize_t from, size_t length);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);

@@ -1603,6 +1603,44 @@ str_slice(const str_t *s, ssize_t from, ssize_t to)
 }
 
 /**
+ * Generate a new string that is a substring of characters from given
+ * string, starting at a given offset and of specified length.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * When the length specified would include characters beyond the end of
+ * the string, the length is truncated to the actual string length.
+ *
+ * @return a new string object
+ */
+str_t *
+str_substr(const str_t *s, ssize_t from, size_t length)
+{
+	str_t *n;
+	size_t len, start;
+
+	str_check(s);
+	g_assert(size_is_non_negative(length));
+
+	start = str_offset_safe(s, from);
+	if (0 == s->s_len) {
+		len = 0;
+	} else {
+		size_t end = start + length;	/* One char beyond */
+		if (end > s->s_len)
+			end = s->s_len;
+		len = start <= end ? end - start : 0;
+	}
+
+	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
+	n->s_len = len;
+	memcpy(n->s_data, s->s_data + start, len);
+
+	return n;
+}
+
+/**
  * Round up floating-point mantissa, with leading extra carry digit.
  *
  * For instance, given "314159" with a rounding position of 2, the routine
