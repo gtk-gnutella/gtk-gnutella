@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2008 Christian Biere
- * Copyright (c) 2008, 2012, 2014 Raphael Manfredi
+ * Copyright (c) 2008, 2012, 2014-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -53,13 +53,17 @@
  * @author Christian Biere
  * @date 2008
  * @author Raphael Manfredi
- * @date 2008, 2012, 2014
+ * @date 2008, 2012, 2014-2015
  */
 
 #include "common.h"
 
 #ifdef I_PWD
 #include <pwd.h>				/* For getpwuid() and struct passwd */
+#endif
+
+#ifdef I_SYS_STATVFS
+#include <sys/statvfs.h>		/* For statvfs()  and struct statvfs */
 #endif
 
 #include "entropy.h"
@@ -211,6 +215,26 @@ sha1_feed_fstat(SHA1_context *ctx, int fd)
 	}
 }
 
+static void
+sha1_feed_statvfs(SHA1_context *ctx, const char *path)
+{
+	sha1_feed_string(ctx, path);
+
+#ifdef HAS_STATVFS
+	{
+		struct statvfs buf;
+
+		if (-1 != statvfs(path, &buf)) {
+			SHA1_INPUT(ctx, buf);
+		} else {
+			sha1_feed_errno(ctx);
+		}
+	}
+#else	/* !HAS_STATVFS */
+	sha1_feed_uint(ctx, rand31_u32());
+#endif
+}
+
 /**
  * Create a small but unpredictable delay in the process execution.
  */
@@ -333,8 +357,9 @@ enum entropy_data {
 	ENTROPY_STRING,
 	ENTROPY_STAT,
 	ENTROPY_FSTAT,
+	ENTROPY_STATVFS,
 	ENTROPY_DOUBLE,
-	ENTROPY_POINTER,
+	ENTROPY_POINTER
 };
 
 /**
@@ -367,6 +392,9 @@ entropy_array_data_collect(SHA1_context *ctx,
 			break;
 		case ENTROPY_FSTAT:
 			sha1_feed_fstat(ctx, *(int *) p);
+			break;
+		case ENTROPY_STATVFS:
+			sha1_feed_statvfs(ctx, *(char **) p);
 			break;
 		case ENTROPY_DOUBLE:
 			sha1_feed_double(ctx, *(double *) p);
@@ -403,6 +431,15 @@ static void
 entropy_array_stat_collect(SHA1_context *ctx, const char **ary, size_t len)
 {
 	entropy_array_data_collect(ctx, ENTROPY_STAT, ary, len, sizeof ary[0]);
+}
+
+/**
+ * Collect entropy by randomly feeding statvfs() info from paths in array.
+ */
+static void
+entropy_array_statvfs_collect(SHA1_context *ctx, const char **ary, size_t len)
+{
+	entropy_array_data_collect(ctx, ENTROPY_STATVFS, ary, len, sizeof ary[0]);
 }
 
 /**
@@ -639,6 +676,7 @@ entropy_collect_filesystem(SHA1_context *ctx)
 
 	if (is_running_on_mingw()) {
 		path[i++] = "C:/";
+		path[i++] = "C:/WINDOWS/Temp";
 		path[i++] = mingw_get_admin_tools_path();
 		path[i++] = mingw_get_common_appdata_path();
 		path[i++] = mingw_get_common_docs_path();
@@ -669,11 +707,13 @@ entropy_collect_filesystem(SHA1_context *ctx)
 		path[i++] = "/tmp";
 		path[i++] = "/usr";
 		path[i++] = "/var";
+		path[i++] = "/var/run";
 	}
 
 	g_assert(i <= G_N_ELEMENTS(path));
 
 	entropy_array_stat_collect(ctx, path, i);
+	entropy_array_statvfs_collect(ctx, path, i);
 }
 
 /**
@@ -887,6 +927,31 @@ entropy_collect_garbage(SHA1_context *ctx)
 }
 
 /**
+ * Collect volume entropy.
+ */
+static void
+entropy_collect_vfs(SHA1_context *ctx)
+{
+	const char *path[RANDOM_SHUFFLE_MAX];
+	size_t i = 0;
+
+	path[i++] = ".";
+	path[i++] = "/";
+
+	if (is_running_on_mingw()) {
+		path[i++] = "C:/";
+		path[i++] = "D:/";
+	} else {
+		path[i++] = "/tmp";
+		path[i++] = "/var/run";
+	}
+
+	g_assert(i <= G_N_ELEMENTS(path));
+
+	entropy_array_statvfs_collect(ctx, path, i);
+}
+
+/**
  * Collect entropy from current thread.
  */
 static void
@@ -1043,6 +1108,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_minirand;
 	fn[i++] = entropy_collect_time;
 	fn[i++] = entropy_collect_garbage;
+	fn[i++] = entropy_collect_vfs;
 
 	g_assert(i <= G_N_ELEMENTS(fn));
 
@@ -1215,13 +1281,20 @@ entropy_seed(struct entropy_minictx *c)
 
 #ifdef MINGW32
 #define ENTROPY_TMP	"C:/WINDOWS/Temp"
+#define ENTROPY_VAR	"D:/"
 #else
 #define ENTROPY_TMP	"/tmp"
+#define ENTROPY_VAR	"/var"
 #endif
 
 	{
 		const char *astr[4] = { ".", "..", "/", ENTROPY_TMP };
 		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_stat);
+	}
+
+	{
+		const char *astr[4] = { ".", "/", ENTROPY_TMP, ENTROPY_VAR };
+		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_statvfs);
 	}
 
 #ifndef ALLOW_UNINIT_VALUES
