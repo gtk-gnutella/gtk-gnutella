@@ -19,4 +19,4 @@ chmod a-r $ROOT/b
 cd $ROOT/a
 ln -s .. bar
 ln -s ../d/d1 .
-mknod foo p
+mknod foo p 2>/dev/null || mkfifo foo
