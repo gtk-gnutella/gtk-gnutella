@@ -1202,8 +1202,14 @@ entropy_seed(struct entropy_minictx *c)
 		ENTROPY_SHUFFLE_FEED(aptr, sha1_feed_pointer);
 	}
 
+#ifdef MINGW32
+#define ENTROPY_TMP	"C:/WINDOWS/Temp"
+#else
+#define ENTROPY_TMP	"/tmp"
+#endif
+
 	{
-		const char *astr[3] = { ".", "..", "/" };
+		const char *astr[4] = { ".", "..", "/", ENTROPY_TMP };
 		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_stat);
 	}
 
