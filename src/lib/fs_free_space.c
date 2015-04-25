@@ -103,18 +103,7 @@ get_fs_info(const char *path, struct fs_info *fsi)
 			total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_bsize;
 		}
 	}
-#elif defined(MINGW32)
-	{
-		struct mingw_statvfs buf;
-
-		if (-1 == mingw_statvfs(path, &buf)) {
-			g_warning("statvfs(\"%s\") failed: %m", path);
-		} else {
-			free_space = ((filesize_t) 0 + buf.f_cavail) * buf.f_csize;
-			total_space = ((filesize_t) 0 + buf.f_clusters) * buf.f_csize;
-		}
-	}
-#endif	/* HAS_STATVFS || HAS_STATFS || MINGW32 */
+#endif	/* HAS_STATVFS || HAS_STATFS */
 
 	fsi->free_space = free_space;
 	fsi->total_space = total_space;

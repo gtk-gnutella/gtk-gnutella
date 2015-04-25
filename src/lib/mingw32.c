@@ -77,6 +77,7 @@
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
 #include "halloc.h"
+#include "hashing.h"			/* For string_mix_hash() */
 #include "hashtable.h"
 #include "hset.h"
 #include "iovec.h"
@@ -152,6 +153,7 @@
 
 #undef abort
 #undef execve
+#undef statvfs
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
@@ -2931,7 +2933,13 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 	DWORD BytesPerSector;
 	DWORD NumberOfFreeClusters;
 	DWORD TotalNumberOfClusters;
+	DWORD MaxComponentLength;
+	DWORD FileSystemFlags;
+	wchar_t vname[256];
+	wchar_t mountp[MAX_PATH_LEN];
 	pncs_t pncs;
+	const wchar_t *root;
+	char volume[256];
 
 	if (pncs_convert(&pncs, pathname))
 		return -1;
@@ -2946,9 +2954,42 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 		return -1;
 	}
 
-	buf->f_csize = SectorsPerCluster * BytesPerSector;
-	buf->f_clusters = TotalNumberOfClusters;
-	buf->f_cavail = NumberOfFreeClusters;
+	ZERO(buf);
+
+	buf->f_bsize = SectorsPerCluster * BytesPerSector;
+	buf->f_frsize = buf->f_bsize;
+	buf->f_blocks = TotalNumberOfClusters;
+	buf->f_bfree = NumberOfFreeClusters;
+	buf->f_bavail = NumberOfFreeClusters;
+	buf->f_namemax = FILENAME_MAX;		/* From <stdio.h> */
+
+	ZERO(&mountp);
+
+	ret = GetVolumePathNameW(pncs.utf16, mountp, G_N_ELEMENTS(mountp));
+	root = ret ? mountp : pncs.utf16;
+
+	ZERO(&vname);
+
+	ret = GetVolumeInformationW(root,
+		vname, G_N_ELEMENTS(vname),		/* VolumeName{Buffer,Size} */
+		NULL,							/* VolumeSerialNumber */
+		&MaxComponentLength,			/* MaximumComponentLength */
+		&FileSystemFlags,				/* FileSystemFlags */
+		NULL, 0);						/* FileSystemName{Buffer,Size} */
+
+	if (ret) {
+		if (FileSystemFlags & FILE_READ_ONLY_VOLUME)
+			buf->f_flag |= ST_RDONLY;
+		buf->f_namemax = MaxComponentLength;
+
+		/*
+		 * All we want is a stable file system ID, so we hash the volume name.
+		 */
+
+		utf16_to_utf8(vname, volume, G_N_ELEMENTS(volume));
+		volume[G_N_ELEMENTS(volume) - 1] = '\0';
+		buf->f_fsid = string_mix_hash(volume);
+	}
 
 	return 0;
 }

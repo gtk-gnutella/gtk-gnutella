@@ -241,19 +241,44 @@ struct passwd {
 };
 
 struct flock {
-    short int l_type;	/* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK.  */
-    short int l_whence;	/* Where `l_start' is relative to (like `lseek').  */
-    fileoffset_t l_start;		/* Offset where the lock begins.  */
-    fileoffset_t l_len;		/* Size of the locked area; zero means until EOF.  */
-    pid_t l_pid;		/* Process holding the lock.  */
+    short int l_type;		/* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK */
+    short int l_whence;		/* Where `l_start' is relative to (like `lseek') */
+    fileoffset_t l_start;	/* Offset where the lock begins */
+    fileoffset_t l_len;		/* Size of the locked area; zero means until EOF */
+    pid_t l_pid;			/* Process holding the lock  */
 };
 
-struct mingw_statvfs {
-	unsigned long f_csize;		/* Cluster size, in bytes */
-	unsigned long f_cavail;		/* Available clusters */
-	unsigned long f_clusters;	/* Total amount of clusters */
+/*
+ * statvfs() emulation.
+ */
 
+#ifndef HAS_STATVFS
+#define HAS_STATVFS				/* We emulate it */
+#endif
+
+typedef unsigned long fsblkcnt_t;
+typedef unsigned long fsfilcnt_t;
+
+#define statvfs mingw_statvfs	/* Aliases both struct and routine */
+
+#define ST_RDONLY	(1U << 0)	/* Read-only file system */
+#define ST_NOSUID	(1U << 1)	/* Setuid/setgid bits are ignored by exec() */
+
+struct statvfs {
+	unsigned long  f_bsize;		/* file system block size */
+	unsigned long  f_frsize;	/* fragment size */
+	fsblkcnt_t     f_blocks;	/* size of fs in f_frsize units */
+	fsblkcnt_t     f_bfree;		/* # free blocks */
+	fsblkcnt_t     f_bavail;	/* # free blocks for unprivileged users */
+	fsfilcnt_t     f_files;		/* # inodes */
+	fsfilcnt_t     f_ffree;		/* # free inodes */
+	fsfilcnt_t     f_favail;	/* # free inodes for unprivileged users */
+	unsigned long  f_fsid;		/* file system ID */
+	unsigned long  f_flag;		/* mount flags */
+	unsigned long  f_namemax;	/* maximum filename length */
 };
+
+int mingw_statvfs(const char *pathname, struct statvfs *buf);
 
 #ifndef HAS_GETLOGIN
 #define HAS_GETLOGIN			/* We emulate it */
@@ -635,7 +660,6 @@ int mingw_mprotect(void *addr, size_t len, int prot);
 int mingw_random_bytes(void *buf, size_t len);
 bool mingw_process_is_alive(pid_t pid);
 
-int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
 unsigned int mingw_sleep(unsigned int seconds);
 long mingw_cpu_count(void);
 uint64 mingw_cpufreq_min(void);
