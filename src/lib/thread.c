@@ -7700,6 +7700,9 @@ error:
 	if (THREAD_F_WARN & flags) {
 		s_carp("%s(): cannot create thread for %s(%p): %m",
 			G_STRFUNC, stacktrace_function_name(routine), arg);
+	} else if (THREAD_F_PANIC & flags) {
+		s_error("%s(): cannot create thread for %s(%p): %m",
+			G_STRFUNC, stacktrace_function_name(routine), arg);
 	}
 
 	return -1;
