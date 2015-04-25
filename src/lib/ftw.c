@@ -905,6 +905,13 @@ ftw_process_entry(
 		result = ftw_process_dir(fx, sb, dir, 0 != (flags & FTW_F_SYMLINK));
 	} else {
 		result = ftw_callback(fx, sb, flags);
+
+		if G_UNLIKELY(FTW_STATUS_SKIP_SUBTREE == result) {
+			s_carp_once("%s(): ignoring FTW_STATUS_SKIP_SUBTREE from %s(): "
+				"called on entry without FTW_F_DIR",
+				G_STRFUNC, stacktrace_function_name(fx->cb));
+			result = FTW_STATUS_OK;
+		}
 	}
 
 	return result;
