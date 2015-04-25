@@ -1030,7 +1030,11 @@ ftw_process_dir(
 	while (0 == (r = ftw_readdir(&dir, &entry))) {
 		str_setlen(&fx->spath, fx->base);	/* Useless for first entry */
 		result = ftw_process_entry(fx, sb, &dir, &entry);
-		if (result != FTW_STATUS_OK)
+
+		if G_UNLIKELY(FTW_STATUS_SKIP_SUBTREE == result)
+			result = FTW_STATUS_OK;
+
+		if G_UNLIKELY(result != FTW_STATUS_OK)
 			break;
 	}
 
