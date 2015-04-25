@@ -656,6 +656,7 @@ ftw_callback(struct ftw_ctx *fx, filestat_t *sb, uint32 flags)
 
 	fx->info.fpath = str_2c(&fx->spath);
 	fx->info.fbase = fx->info.fpath + fx->base;
+	fx->info.fbase_len = str_len(&fx->spath) - fx->base;
 	fx->info.base = fx->base;
 	fx->info.level = fx->level;
 
