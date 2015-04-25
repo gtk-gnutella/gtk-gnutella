@@ -87,6 +87,7 @@
 #include "fast_assert.h"
 #include "fd.h"
 #include "file.h"
+#include "ftw.h"
 #include "getcpucount.h"
 #include "halloc.h"
 #include "hashing.h"
@@ -213,6 +214,8 @@ static const int signals[] = {
 	SIGILL,
 	SIGSEGV,
 };
+
+static void crash_directory_cleanup(const char *crashdir);
 
 /**
  * Determines whether coredumps are disabled.
@@ -2865,6 +2868,8 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 
 /**
  * Record current working directory and configured crash directory.
+ *
+ * @param pathname		the absolute pathname of the crash directory
  */
 void G_GNUC_COLD
 crash_setdir(const char *pathname)
@@ -2872,6 +2877,8 @@ crash_setdir(const char *pathname)
 	const char *curdir = NULL;
 	size_t crashfile_size = 0;
 	char dir[MAX_PATH_LEN];
+
+	g_assert(is_absolute_path(pathname));
 
 	if (
 		NULL != getcwd(dir, sizeof dir) &&
@@ -2917,6 +2924,13 @@ crash_setdir(const char *pathname)
 	if (curdir != NULL) {
 		crash_set_var(cwd, curdir);
 	}
+
+	/*
+	 * Now that we know they have a crash directory, clean it up to remove
+	 * old files that could otherwise stay there for a long, long time.
+	 */
+
+	crash_directory_cleanup(pathname);
 }
 
 /**
@@ -3468,6 +3482,108 @@ crash_save_current_stackframe(unsigned offset)
 		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 		crash_save_stackframe(stack, count);
 	}
+}
+
+#define DAYS				86400
+#define CRASH_LOG_MAXAGE	(183 * DAYS)	/* 6 months */
+#define CRASH_CORE_MAXAGE	(30 * DAYS)		/* 1 month */
+
+static void
+crash_directory_unlink(const char *path)
+{
+	if (-1 == unlink(path))
+		g_warning("%s(): cannot unlink %s: %m", G_STRFUNC, path);
+}
+
+/**
+ * ftw_foreach() callback to remove old crashlogs and core files.
+ */
+static ftw_status_t
+crash_directory_cleanup_cb(
+	const ftw_info_t *info, const filestat_t *sb, void *unused_data)
+{
+	(void) unused_data;
+
+	if (0 == info->level)
+		return FTW_STATUS_OK;				/* Don't process root */
+
+	if (FTW_F_DIR & info->flags)
+		return FTW_STATUS_SKIP_SUBTREE;		/* No recursion */
+
+	g_assert(1 == info->level);
+
+	if (0 == (FTW_F_FILE & info->flags)) {
+		g_warning("%s(): ignoring non-file entry: %s", G_STRFUNC, info->fpath);
+		return FTW_STATUS_OK;
+	}
+
+	if (FTW_F_NOSTAT & info->flags)
+		return FTW_STATUS_OK;
+
+	if (0 == (sb->st_mode & S_IWUSR))
+		return FTW_STATUS_OK;				/* Skip write-protected files */
+
+	if (is_strsuffix(info->fbase, info->fbase_len, ".log")) {
+		if (delta_time(tm_time(), sb->st_mtime) >= CRASH_LOG_MAXAGE)
+			crash_directory_unlink(info->fpath);
+	} else if (
+		NULL != strstr(info->fbase, "core.") ||
+		0 == strcmp(info->fbase, "core")
+	) {
+		if (delta_time(tm_time(), sb->st_mtime) >= CRASH_CORE_MAXAGE)
+			crash_directory_unlink(info->fpath);
+	} else {
+		g_warning("%s(): skipping unknown file: %s", G_STRFUNC, info->fpath);
+	}
+
+	return FTW_STATUS_OK;
+}
+
+static void *
+crash_directory_cleanup_thread(void *arg)
+{
+	const char *crashdir = arg;
+	char *rootdir;
+	uint32 flags;
+	ftw_status_t res;
+
+	if (!is_directory(crashdir))
+		return NULL;		/* No crash directory yet */
+
+	flags = FTW_O_PHYS | FTW_O_MOUNT;
+	rootdir = h_strdup(crashdir);
+	res = ftw_foreach(rootdir, flags, 0, crash_directory_cleanup_cb, NULL);
+
+	if (res != FTW_STATUS_OK) {
+		g_warning("%s(): cleanup traversal of \"%s\" failed with %d",
+			G_STRFUNC, rootdir, res);
+	}
+
+	hfree(rootdir);
+	return NULL;
+}
+
+/**
+ * Clean specified crash directory.
+ *
+ * Crashlog files are kept for CRASH_LOG_MAXAGE seconds and core files are
+ * kept for CRASH_CORE_MAXAGE.
+ *
+ * To prevent files from being purged when they reach their maximum age,
+ * write-protect them by clearing the user-writeable bit.
+ */
+static void
+crash_directory_cleanup(const char *crashdir)
+{
+	int id;
+
+	g_assert(is_absolute_path(crashdir));
+
+	id = thread_create(crash_directory_cleanup_thread,
+			deconstify_char(crashdir), THREAD_F_DETACH, THREAD_STACK_MIN);
+
+	if (-1 == id)
+		g_warning("%s(): cannot launch new thread: %m", G_STRFUNC);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
