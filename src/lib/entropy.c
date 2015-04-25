@@ -173,6 +173,17 @@ sha1_feed_string(SHA1_context *ctx, const char *s)
 }
 
 static void
+sha1_feed_errno(SHA1_context *ctx)
+{
+	uint32 e = integer_hash_fast(errno);
+	uint32 b = rand31_u32() & 0x1f;
+	tm_nano_t now;
+
+	tm_precise_time(&now);
+	sha1_feed_uint(ctx, integer_hash_fast(now.tv_nsec) + UINT32_ROTL(e, b));
+}
+
+static void
 sha1_feed_stat(SHA1_context *ctx, const char *path)
 {
 	filestat_t buf;
@@ -182,7 +193,7 @@ sha1_feed_stat(SHA1_context *ctx, const char *path)
 	if (-1 != stat(path, &buf)) {
 		SHA1_INPUT(ctx, buf);
 	} else {
-		sha1_feed_uint(ctx, errno);
+		sha1_feed_errno(ctx);
 	}
 }
 
@@ -196,7 +207,7 @@ sha1_feed_fstat(SHA1_context *ctx, int fd)
 	if (-1 != fstat(fd, &buf)) {
 		SHA1_INPUT(ctx, buf);
 	} else {
-		sha1_feed_uint(ctx, errno);
+		sha1_feed_errno(ctx);
 	}
 }
 
@@ -604,7 +615,7 @@ entropy_collect_pw(SHA1_context *ctx)
 		if (pp != NULL) {
 			SHA1_INPUT(ctx, *pp);
 		} else {
-			sha1_feed_uint(ctx, errno);
+			sha1_feed_errno(ctx);
 		}
 	}
 #else
@@ -708,7 +719,7 @@ entropy_collect_usage(SHA1_context *ctx)
 		if (-1 != getrusage(RUSAGE_SELF, &usage)) {
 			SHA1_INPUT(ctx, usage);
 		} else {
-			sha1_feed_uint(ctx, errno);
+			sha1_feed_errno(ctx);
 		}
 	}
 #else
@@ -729,7 +740,7 @@ entropy_collect_uname(SHA1_context *ctx)
 		if (-1 != uname(&un)) {
 			SHA1_INPUT(ctx, un);
 		} else {
-			sha1_feed_uint(ctx, errno);
+			sha1_feed_errno(ctx);
 		}
 	}
 #else
@@ -897,7 +908,7 @@ entropy_collect_gateway(SHA1_context *ctx)
 	ZERO(&addr);
 
 	if (-1 == getgateway(&addr))
-		sha1_feed_uint(ctx, errno);
+		sha1_feed_errno(ctx);
 
 	SHA1_INPUT(ctx, addr);
 }
