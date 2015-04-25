@@ -3575,15 +3575,11 @@ crash_directory_cleanup_thread(void *arg)
 static void
 crash_directory_cleanup(const char *crashdir)
 {
-	int id;
-
 	g_assert(is_absolute_path(crashdir));
 
-	id = thread_create(crash_directory_cleanup_thread,
-			deconstify_char(crashdir), THREAD_F_DETACH, THREAD_STACK_MIN);
-
-	if (-1 == id)
-		g_warning("%s(): cannot launch new thread: %m", G_STRFUNC);
+	thread_create(crash_directory_cleanup_thread,
+		deconstify_char(crashdir), THREAD_F_DETACH | THREAD_F_WARN,
+		THREAD_STACK_MIN);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -607,9 +607,9 @@ tth_cache_cleanup(void)
 {
 	if (0 == atomic_int_inc(&tth_cache_cleanups)) {
 		int id = thread_create(tth_cache_cleanup_thread,
-					NULL, THREAD_F_DETACH, THREAD_STACK_MIN);
+					NULL, THREAD_F_DETACH | THREAD_F_WARN, THREAD_STACK_MIN);
 		if (-1 == id)
-			g_warning("%s(): cannot launch new thread: %m", G_STRFUNC);
+			atomic_int_dec(&tth_cache_cleanups);
 	} else if (debugging(0)) {
 		g_warning("%s(): concurrent cleanup in progress", G_STRFUNC);
 		atomic_int_dec(&tth_cache_cleanups);
