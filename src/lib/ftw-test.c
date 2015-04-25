@@ -193,10 +193,11 @@ printpath(const ftw_info_t *info, const filestat_t *sb, void *data)
 {
 	(void) data;
 
-	emitz("%s(): level=%d, fbase = %s", G_STRFUNC, info->level, info->fbase);
+	emitz("%s(): level=%d, fbase = %s [%d]", G_STRFUNC, info->level,
+		info->fbase, info->fbase_len);
 	emitz("\tflags = %s", cbflags(info->flags));
-	emitz("\tfpath = %s", info->fpath);
-	emitz("\trpath = %s", info->rpath);
+	emitz("\tfpath = %s [%d]", info->fpath, info->fpath_len);
+	emitz("\trpath = %s [%d]", info->rpath, info->rpath_len);
 	if (show_length)
 		emitz("\tsize  = %zu", (size_t) sb->st_size);
 

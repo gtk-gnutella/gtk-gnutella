@@ -64,7 +64,9 @@ typedef struct ftw_info {
 	int root;						/**< Offset of rootdir in ``fpath'' */
 	int base;						/**< Offset of file basename in ``fpath'' */
 	int level;						/**< Depth of ``fpath'' in root tree */
+	int fpath_len;					/**< Length of file path */
 	int fbase_len;					/**< Length of file basename */
+	int rpath_len;					/**< Length of relative path */
 } ftw_info_t;
 
 /**
