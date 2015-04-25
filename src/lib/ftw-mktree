@@ -3,8 +3,15 @@
 
 ROOT=ftw-root
 
-test -d $ROOT && chmod -R a+rX $ROOT
-rm -rf $ROOT
+if test -d $ROOT; then
+	chmod -R a+rX $ROOT 2>/dev/null
+	chmod a+x $ROOT/c
+	rm -rf $ROOT
+fi
+
+case "$1" in
+-r) exit 0;;
+esac
 
 for dir in a b c d; do
 	mkdir -p $ROOT/$dir

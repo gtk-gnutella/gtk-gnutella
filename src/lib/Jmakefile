@@ -323,8 +323,7 @@ ftw-check: ftw-test
 
 local_clean::
 	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
-	if test -d ftw-root; then chmod -R a+rX ftw-root; fi
-	$(RM) -r ftw-root
+	./ftw-mktree -r
 
 #define NormalTestTarget(base)	@!\
 NormalProgramLibTarget(base-test, base-test.c, base-test.o, libshared.a)

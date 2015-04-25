@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-193]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-194]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -582,8 +582,7 @@ ftw-check: ftw-test
 
 local_clean::
 	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
-	if test -d ftw-root; then chmod -R a+rX ftw-root; fi
-	$(RM) -r ftw-root
+	./ftw-mktree -r
 
 all:: float-test
 
