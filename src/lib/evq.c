@@ -287,11 +287,9 @@ evq_init_once(void)
 	atomic_bool_set(&evq_run, TRUE);
 
 	evq_thread_id = thread_create(evq_thread_main, NULL,
-			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL |
+				THREAD_F_NO_POOL | THREAD_F_PANIC,
 			EVQ_STACK_SIZE);
-
-	if (-1U == evq_thread_id)
-		s_error("%s(): cannot create the event queue thread: %m", G_STRFUNC);
 
 	evq_fully_inited = TRUE;
 }
