@@ -97,6 +97,7 @@
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
+#include "log.h"
 #include "mem.h"
 #include "mutex.h"
 #include "omalloc.h"
@@ -7645,6 +7646,7 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 	thread_exit_t exited, void *earg)
 {
 	struct thread_element *te;
+	int ret;
 
 	g_assert(routine != NULL);
 	g_assert(size_is_non_negative(stack));
@@ -7668,7 +7670,7 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 
 	if (NULL == te) {
 		errno = EAGAIN;		/* Not enough resources to create new thread */
-		return -1;
+		goto error;
 	}
 
 	/*
@@ -7687,7 +7689,20 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 		eslist_prepend(&te->exit_list, e);
 	}
 
-	return thread_launch(te, routine, arg, flags, stack);
+	ret = thread_launch(te, routine, arg, flags, stack);
+
+	if G_LIKELY(ret >= 0)
+		return ret;
+
+	/* FALL THROUGH */
+
+error:
+	if (THREAD_F_WARN & flags) {
+		s_carp("%s(): cannot create thread for %s(%p): %m",
+			G_STRFUNC, stacktrace_function_name(routine), arg);
+	}
+
+	return -1;
 }
 
 struct thread_exit_context {
