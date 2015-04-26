@@ -623,6 +623,7 @@ ftw_readdir(struct ftw_dir *dir, struct ftw_dirent *entry)
 		 */
 
 		fde = eslist_head(&dir->listing);
+		g_assert(fde != NULL);				/* Since dir->count was not 0 */
 		eslist_rotate_left(&dir->listing);	/* Keep record around */
 		dir->count--;
 
