@@ -683,6 +683,8 @@ src/lib/compat_sendfile.c
 src/lib/compat_sendfile.h
 src/lib/compat_sleep_ms.c
 src/lib/compat_sleep_ms.h
+src/lib/compat_statvfs.c
+src/lib/compat_statvfs.h
 src/lib/compat_un.c
 src/lib/compat_un.h
 src/lib/compat_usleep.c
