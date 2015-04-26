@@ -663,6 +663,8 @@ entropy_collect_filesystem(SHA1_context *ctx)
 	path[i++] = gethomedir();
 	path[i++] = ".";
 	path[i++] = "..";
+	path[i++] = "../..";
+	path[i++] = "../../..";
 	path[i++] = "/";
 
 	if (is_running_on_mingw()) {
@@ -1279,12 +1281,13 @@ entropy_seed(struct entropy_minictx *c)
 #endif
 
 	{
-		const char *astr[4] = { ".", "..", "/", ENTROPY_TMP };
+		const char *astr[] =
+			{ ".", "..", "../..", "../../..", "/", ENTROPY_TMP, ENTROPY_VAR };
 		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_stat);
 	}
 
 	{
-		const char *astr[4] = { ".", "/", ENTROPY_TMP, ENTROPY_VAR };
+		const char *astr[] = { ".", "/", ENTROPY_TMP, ENTROPY_VAR };
 		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_statvfs);
 	}
 
