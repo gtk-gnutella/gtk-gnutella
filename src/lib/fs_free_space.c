@@ -33,29 +33,10 @@
 
 #include "common.h"
 
-/*
- * NOTE: The following header files pull in definition of ST_* macros
- * 	 which are conflicting with identifiers in the GUI code. Therefore,
- *	 these are only included here.
- */
-#if defined(HAS_STATVFS)
-
-#if defined(I_SYS_STATVFS)
-#include <sys/statvfs.h>
-#endif
-
-#elif defined(HAS_STATFS)
-
-#ifdef I_SYS_VFS
-#include <sys/vfs.h>
-#endif
-#ifdef I_SYS_MOUNT
-#include <sys/mount.h>
-#endif
-
-#endif	/* HAS_STATFS */
-
 #include "fs_free_space.h"
+
+#include "compat_statvfs.h"
+#include "log.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -68,45 +49,21 @@ struct fs_info {
  * Get information about the filesystem mounted under the given directory
  * by filling the fs_info structure.
  */
-static void
+static int
 get_fs_info(const char *path, struct fs_info *fsi)
 {
-	filesize_t free_space = MAX_INT_VAL(filesize_t);
-	filesize_t total_space = MAX_INT_VAL(filesize_t);
+	struct statvfs buf;
 
-	g_assert(path);
-	g_assert(fsi);
+	g_assert(path != NULL);
+	g_assert(fsi != NULL);
 
-	(void) path;
+	if (-1 == compat_statvfs(path, &buf))
+		return -1;
 
-#if defined(HAS_STATVFS)
-	{
-		/* statvfs() is a POSIX.1-2001 system call */
-		struct statvfs buf;
+	fsi->free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
+	fsi->total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_frsize;
 
-		if (-1 == statvfs(path, &buf)) {
-			g_warning("statvfs(\"%s\") failed: %m", path);
-		} else {
-			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
-			total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_frsize;
-		}
-	}
-#elif defined(HAS_STATFS)
-	{
-		/* statfs() is deprecated but older systems may not have statvfs() */
-		struct statfs buf;
-
-		if (-1 == statfs(path, &buf)) {
-			g_warning("statfs(\"%s\") failed: %m", path);
-		} else {
-			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
-			total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_bsize;
-		}
-	}
-#endif	/* HAS_STATVFS || HAS_STATFS */
-
-	fsi->free_space = free_space;
-	fsi->total_space = total_space;
+	return 0;
 }
 
 /**
@@ -118,7 +75,10 @@ fs_free_space(const char *path)
 {
 	struct fs_info buf;
 
-	get_fs_info(path, &buf);
+	if (-1 == get_fs_info(path, &buf)) {
+		s_warning("%s(): cannot statvfs(\"%s\"): %m", G_STRFUNC, path);
+		return 0;
+	}
 
 	return buf.free_space;
 }
@@ -126,13 +86,17 @@ fs_free_space(const char *path)
 /**
  * Return the free space available currently in the filesystem mounted
  * under the given directory in percentage of the total space.
+ *
+ * This routine is used for entropy collection, therefore we are totally
+ * silent on failures.
  */
 double
 fs_free_space_pct(const char *path)
 {
 	struct fs_info buf;
 
-	get_fs_info(path, &buf);
+	if (-1 == get_fs_info(path, &buf))
+		return 0.0;
 
 	if (buf.total_space == 0 || buf.total_space < buf.free_space)
 		return 100.0;		/* Something is wrong */

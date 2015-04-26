@@ -62,16 +62,13 @@
 #include <pwd.h>				/* For getpwuid() and struct passwd */
 #endif
 
-#ifdef I_SYS_STATVFS
-#include <sys/statvfs.h>		/* For statvfs()  and struct statvfs */
-#endif
-
 #include "entropy.h"
 
 #include "aje.h"
 #include "atomic.h"
 #include "bigint.h"
 #include "compat_misc.h"
+#include "compat_statvfs.h"
 #include "compat_usleep.h"
 #include "crc.h"
 #include "endian.h"
@@ -218,21 +215,15 @@ sha1_feed_fstat(SHA1_context *ctx, int fd)
 static void
 sha1_feed_statvfs(SHA1_context *ctx, const char *path)
 {
+	struct statvfs buf;
+
 	sha1_feed_string(ctx, path);
 
-#ifdef HAS_STATVFS
-	{
-		struct statvfs buf;
-
-		if (-1 != statvfs(path, &buf)) {
-			SHA1_INPUT(ctx, buf);
-		} else {
-			sha1_feed_errno(ctx);
-		}
+	if (-1 != compat_statvfs(path, &buf)) {
+		SHA1_INPUT(ctx, buf);
+	} else {
+		sha1_feed_errno(ctx);
 	}
-#else	/* !HAS_STATVFS */
-	sha1_feed_uint(ctx, rand31_u32());
-#endif
 }
 
 /**
