@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-183]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -69,7 +69,7 @@ GTK_CFLAGS =  $gtkcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 183 2015-04-12 09:48:11Z rmanfredi $
+# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -322,7 +322,7 @@ subdirs:
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
-		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
+		(cd $$i ; echo "$(VERB) in $(DIR)$$i..."; \
 			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)) || exit 1; \
 	done
 
