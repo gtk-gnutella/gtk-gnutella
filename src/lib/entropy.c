@@ -1198,25 +1198,6 @@ entropy_self_feed_maybe(SHA1_context *ctx)
 }
 
 /**
- * Get partial SHA1 result without disturbing the SHA1 context.
- *
- * @param ctx		the SHA1 context we want partial results from
- * @param digest	where the partial digest is written out
- */
-static void
-entropy_sha1_result(const SHA1_context *ctx, struct sha1 *digest)
-{
-	SHA1_context tmp;
-	int ret;
-
-	tmp = *ctx;			/* struct copy */
-	ret = SHA1_result(&tmp, digest);
-
-	g_assert_log(SHA_SUCCESS == ret,
-		"%s(): error whilst computing SHA1 digest: %d", G_STRFUNC, ret);
-}
-
-/**
  * Seed the entropy_minirand() context variable, once.
  *
  * We're collecting changing and contextual data, to be able to compute an
@@ -1282,13 +1263,13 @@ entropy_seed(struct entropy_minictx *c)
 		struct sha1 hash;
 		uint8 data[SHA1_RAW_SIZE];
 
-		entropy_sha1_result(&ctx, &hash);
+		SHA1_intermediate(&ctx, &hash);
 		memcpy(data, &hash, sizeof data);
 		shuffle_with(rand31_u32, data, G_N_ELEMENTS(data), sizeof data[0]);
 		SHA1_INPUT(&ctx, data);
 		tm_precise_time(&now);
 		SHA1_INPUT(&ctx, now);
-		entropy_sha1_result(&ctx, &hash);
+		SHA1_intermediate(&ctx, &hash);
 		rand31_set_seed(peek_be32(&hash));
 	}
 
@@ -1356,7 +1337,7 @@ entropy_seed(struct entropy_minictx *c)
 		const void *p = &hash;
 		uint32 v, n;
 
-		entropy_sha1_result(&ctx, &hash);
+		SHA1_intermediate(&ctx, &hash);
 		p = peek_be32_advance(p, &v);
 
 		entropy_delay();
@@ -1367,7 +1348,7 @@ entropy_seed(struct entropy_minictx *c)
 			ENTROPY_CONTEXT_FEED;
 		}
 
-		entropy_sha1_result(&ctx, &hash);
+		SHA1_intermediate(&ctx, &hash);
 		sha1_feed_uint(&ctx, peek_be32(&hash));
 	}
 
@@ -1393,7 +1374,7 @@ entropy_seed(struct entropy_minictx *c)
 		const void *p = &hash;
 		uint32 v;
 
-		entropy_sha1_result(&ctx, &hash);
+		SHA1_intermediate(&ctx, &hash);
 		p = peek_be32_advance(p, &c->x);
 		p = peek_be32_advance(p, &c->y);
 		p = peek_be32_advance(p, &c->z);
