@@ -66,10 +66,7 @@
 static inline ALWAYS_INLINE unsigned
 u32_hash2(uint32 v)
 {
-	uint64 hash;
-
-	hash = GOLDEN_RATIO_48 * (uint64) v;
-	return (hash >> 13) ^ (hash >> 32);
+	return (GOLDEN_RATIO_48 * (uint64) v) >> 7;
 }
 
 /**

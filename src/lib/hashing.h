@@ -94,10 +94,7 @@ unsigned hashing_fold(unsigned hash, size_t bits) G_GNUC_CONST;
 static inline ALWAYS_INLINE unsigned
 u32_hash(uint32 v)
 {
-	uint64 hash;
-
-	hash = GOLDEN_RATIO_32 * (uint64) v;
-	return (hash >> 3) ^ (hash >> 32);
+	return (GOLDEN_RATIO_32 * (uint64) v) >> 3;
 }
 
 /**
