@@ -638,9 +638,8 @@ zone_hash(const void *key)
 {
 	const zone_t *z = key;
 
-	return integer_hash(z->zn_size) +
-		integer_hash2(z->zn_stid) -
-		(z->private ? GOLDEN_RATIO_32 : 0);
+	return integer_hash_fast(z->zn_size) + u16_hash(z->zn_stid) -
+		z->private * GOLDEN_RATIO_32;
 }
 
 /**

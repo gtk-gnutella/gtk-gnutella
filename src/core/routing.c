@@ -1443,7 +1443,7 @@ message_hash_func(const void *key)
 {
 	const struct message *msg = key;
 
-	return integer_hash(msg->function) ^
+	return integer_hash_fast(msg->function) ^
 		universal_hash(&msg->muid, GUID_RAW_SIZE);
 }
 

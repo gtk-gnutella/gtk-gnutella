@@ -369,7 +369,7 @@ stats_hash(const void *key)
 {
 	const struct stats *s = key;
 
-	return string_mix_hash(s->file) ^ integer_hash(s->line);
+	return string_mix_hash(s->file) ^ integer_hash_fast(s->line);
 }
 
 /**

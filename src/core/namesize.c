@@ -51,7 +51,7 @@ namesize_hash(const void *key)
 	uint32 hash;
 
 	hash = string_mix_hash(k->name);
-	hash ^= integer_hash(k->size);
+	hash ^= integer_hash_fast(k->size);
 
 	return hash;
 }

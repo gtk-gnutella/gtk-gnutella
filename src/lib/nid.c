@@ -50,7 +50,12 @@ nid_hash(const void *key)
 {
 	const struct nid *p = key;
 	uint64 v = nid_value(p);
-	return (unsigned) integer_hash2(v >> 32) ^ integer_hash(v);
+#if LONGSIZE <= 4
+	return integer_hash_fast(v ^ (v >> 32));
+#else
+	/* uint64 and ulong are identical types */
+	return integer_hash_fast(v);
+#endif
 }
 
 /**
@@ -61,7 +66,12 @@ nid_hash2(const void *key)
 {
 	const struct nid *p = key;
 	uint64 v = nid_value(p);
-	return (unsigned) integer_hash(v >> 32) ^ integer_hash2(v);
+#if LONGSIZE <= 4
+	return integer_hash2(v ^ (v >> 32));
+#else
+	/* uint64 and ulong are identical types */
+	return integer_hash2(v);
+#endif
 }
 
 /**

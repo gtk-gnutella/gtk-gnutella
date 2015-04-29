@@ -807,7 +807,12 @@ uint
 uint64_hash(const void *p)
 {
 	uint64 v = *(const uint64 *) p;
-	return integer_hash(v ^ (v >> 32));
+#if LONGSIZE <= 4
+	return integer_hash_fast(v ^ (v >> 32));
+#else
+	/* uint64 and ulong are identical types */
+	return integer_hash_fast(v);
+#endif
 }
 
 /**
@@ -917,7 +922,7 @@ uint
 uint32_hash(const void *p)
 {
 	uint32 v = *(const uint32 *) p;
-	return integer_hash(v);
+	return u32_hash(v);
 }
 
 /**

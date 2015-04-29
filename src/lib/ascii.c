@@ -181,7 +181,7 @@ ascii_strcase_hash(const void *key)
 	while ((c = ascii_tolower(*s++))) {
 		hash += (hash << 5) + c;
 	}
-	return integer_hash(hash);
+	return integer_hash_fast(hash);
 }
 
 /**

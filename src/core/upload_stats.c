@@ -97,7 +97,7 @@ ul_stats_hash(const void *p)
 {
 	const struct ul_stats *s = p;
   
-	return string_mix_hash(s->pathname) ^ integer_hash(s->size);
+	return string_mix_hash(s->pathname) ^ integer_hash_fast(s->size);
 }
 
 /**
