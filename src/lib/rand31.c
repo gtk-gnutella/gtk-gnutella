@@ -121,7 +121,7 @@ rand31_random_seed(void)
 	cpu = tm_cputime(NULL, NULL);
 	tm_precise_time(&now);
 	nsecs += now.tv_nsec;
-	seed += (GOLDEN_RATIO_31 * getpid()) >> 1;
+	seed += integer_hash_fast(getpid());
 #ifdef HAS_GETPPID
 	seed += integer_hash_fast(getppid());
 #endif
