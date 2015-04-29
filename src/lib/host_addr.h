@@ -511,6 +511,8 @@ int socket_addr_getsockname(socket_addr_t *p_addr, int fd);
 
 unsigned host_addr_hash(host_addr_t ha);
 unsigned host_addr_hash2(host_addr_t ha);
+unsigned host_addr_port_hash(host_addr_t ha, uint16 port);
+unsigned host_addr_port_hash2(host_addr_t ha, uint16 port);
 bool host_addr_equal(const host_addr_t a, const host_addr_t b) G_GNUC_PURE;
 bool host_addr_equiv(const host_addr_t a, const host_addr_t b);
 

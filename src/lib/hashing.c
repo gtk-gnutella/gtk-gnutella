@@ -61,15 +61,6 @@
 #define rotl(x, k) (((x) << (k)) | ((x) >> (32 - (k))))
 
 /**
- * Alternative hashing of a 32-bit value.
- */
-static inline ALWAYS_INLINE unsigned
-u32_hash2(uint32 v)
-{
-	return (GOLDEN_RATIO_48 * (uint64) v) >> 7;
-}
-
-/**
  * Hashing of pointers.
  *
  * The identity function makes a poor hash for pointers.
@@ -138,24 +129,6 @@ integer_hash2(ulong v)
 #else
 	return u32_hash2(v) + u32_hash2(v >> 32);
 #endif
-}
-
-/**
- * Hashing of port numbers.
- */
-unsigned
-port_hash(uint16 v)
-{
-	return integer_hash(((uint32) v << 16) | (uint32) v);
-}
-
-/**
- * Alternate hashing of port numbers.
- */
-unsigned
-port_hash2(uint16 v)
-{
-	return integer_hash2(((uint32) v << 16) | (uint32) v);
 }
 
 /**

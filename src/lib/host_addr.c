@@ -79,7 +79,7 @@ host_addr_hash(host_addr_t ha)
 		}
 		/* FALL THROUGH */
 	case NET_TYPE_IPV4:
-		return ha.net ^ integer_hash(host_addr_ipv4(ha));
+		return ha.net ^ integer_hash_fast(host_addr_ipv4(ha));
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return ha.net;
@@ -109,6 +109,58 @@ host_addr_hash2(host_addr_t ha)
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return ha.net;
+	}
+	g_assert_not_reached();
+	return (unsigned) -1;
+}
+
+/**
+ * Hashing of host_addr_t + port.
+ */
+unsigned
+host_addr_port_hash(host_addr_t ha, uint16 port)
+{
+	switch (ha.net) {
+	case NET_TYPE_IPV6:
+		{
+			host_addr_t ha_ipv4;
+
+			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
+				return binary_hash(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+			ha = ha_ipv4;
+		}
+		/* FALL THROUGH */
+	case NET_TYPE_IPV4:
+		return ha.net + integer_hash_fast(host_addr_ipv4(ha)) + u16_hash(port);
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		return ha.net + u16_hash(port);
+	}
+	g_assert_not_reached();
+	return (unsigned) -1;
+}
+
+/**
+ * Alternate hashing of host_addr_t + port.
+ */
+unsigned
+host_addr_port_hash2(host_addr_t ha, uint16 port)
+{
+	switch (ha.net) {
+	case NET_TYPE_IPV6:
+		{
+			host_addr_t ha_ipv4;
+
+			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
+				return binary_hash2(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+			ha = ha_ipv4;
+		}
+		/* FALL THROUGH */
+	case NET_TYPE_IPV4:
+		return ha.net + integer_hash2(host_addr_ipv4(ha)) + u16_hash2(port);
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		return ha.net + u16_hash2(port);
 	}
 	g_assert_not_reached();
 	return (unsigned) -1;

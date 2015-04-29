@@ -1096,12 +1096,11 @@ search_gui_hash_func(gconstpointer p)
 
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
-		pointer_hash(rc->sha1) ^	/* atom! (may be NULL) */
-		pointer_hash(rc->results_set->guid) ^	/* atom! */
+		pointer_hash_fast(rc->sha1) ^	/* atom! (may be NULL) */
+		pointer_hash_fast(rc->results_set->guid) ^	/* atom! */
 		(NULL != rc->sha1 ? 0 : string_mix_hash(rc->name)) ^
-		integer_hash(rc->size) ^
-		host_addr_hash(rc->results_set->addr) ^
-		port_hash(rc->results_set->port);
+		integer_hash_fast(rc->size) ^
+		host_addr_port_hash(rc->results_set->addr, rc->results_set->port);
 }
 
 static guint
@@ -1117,8 +1116,7 @@ search_gui_hash_func2(gconstpointer p)
 		pointer_hash2(rc->results_set->guid) ^	/* atom! */
 		(NULL != rc->sha1 ? 0 : string_hash(rc->name)) ^
 		integer_hash2(rc->size) ^
-		host_addr_hash2(rc->results_set->addr) ^
-		port_hash2(rc->results_set->port);
+		host_addr_port_hash2(rc->results_set->addr, rc->results_set->port);
 }
 
 static gint

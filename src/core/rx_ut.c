@@ -159,7 +159,7 @@ ut_mid_hash(const void *key)
 {
 	const struct ut_mid *m = key;
 
-	return gnet_host_hash(m->from) ^ port_hash(m->seqno);
+	return gnet_host_hash(m->from) ^ u16_hash(m->seqno);
 }
 
 /**
@@ -170,7 +170,7 @@ ut_mid_hash2(const void *key)
 {
 	const struct ut_mid *m = key;
 
-	return gnet_host_hash2(m->from) ^ port_hash2(m->seqno);
+	return gnet_host_hash2(m->from) ^ u16_hash2(m->seqno);
 }
 
 /**

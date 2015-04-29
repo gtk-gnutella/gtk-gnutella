@@ -145,14 +145,14 @@ static uint
 vmsg_hash_func(const void *key)
 {
 	const struct vmsg *vmsg = key;
-	return integer_hash(vmsg->vendor) ^ port_hash(vmsg->id);
+	return u32_hash(vmsg->vendor) ^ u16_hash(vmsg->id);
 }
 
 static uint
 vmsg_hash_func2(const void *key)
 {
 	const struct vmsg *vmsg = key;
-	return integer_hash2(vmsg->vendor) ^ port_hash2(vmsg->id);
+	return u32_hash2(vmsg->vendor) ^ u16_hash2(vmsg->id);
 }
 
 static bool

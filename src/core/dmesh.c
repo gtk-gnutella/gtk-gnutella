@@ -176,9 +176,8 @@ urlinfo_hash(const void *key)
 	const dmesh_urlinfo_t *info = key;
 	uint hash;
 
-	hash = host_addr_hash(info->addr);
-	hash ^= port_hash(info->port);
-	hash ^= integer_hash(info->idx);
+	hash = host_addr_port_hash(info->addr, info->port);
+	hash += integer_hash_fast(info->idx);
 	hash ^= string_mix_hash(info->name);
 
 	return hash;

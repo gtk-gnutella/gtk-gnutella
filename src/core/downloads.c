@@ -1079,8 +1079,7 @@ dl_key_hash(const void *key)
 	uint hash;
 
 	hash = guid_hash(k->guid);
-	hash ^= host_addr_hash(k->addr);
-	hash ^= port_hash(k->port);
+	hash ^= host_addr_port_hash(k->addr, k->port);
 
 	return hash;
 }
