@@ -162,6 +162,20 @@ hashing_keep(unsigned hash, size_t bits)
 	return hash & (~0U >> (sizeof(unsigned) * 8 - bits));
 }
 
+/**
+ * Force "avalanching" of all the bits among the 32-bit value.
+ */
+static inline uint32 ALWAYS_INLINE
+hashing_mix32(uint32 h)
+{
+	h ^= h >> 16;
+	h *= 0x85EBCA6BU;
+	h ^= h >> 13;
+	h *= 0xC2B2AE35U;
+	h ^= h >> 16;
+	return h;
+}
+
 #endif /* _hashing_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

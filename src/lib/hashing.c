@@ -164,7 +164,7 @@ binary_hash(const void *data, size_t len)
 		hash = rotl(hash, 23);
 	}
 
-	return pointer_hash(ulong_to_pointer(hash));
+	return hashing_mix32(hash);
 }
 
 /**
@@ -200,7 +200,7 @@ binary_hash2(const void *data, size_t len)
 		hash = rotl(hash, 25);
 	}
 
-	return pointer_hash(ulong_to_pointer(hash));
+	return hashing_mix32(hash);
 }
 
 /**
@@ -319,13 +319,8 @@ universal_hash(const void *data, size_t len)
 	 */
 
 	hash ^= len;
-	hash ^= hash >> 16;
-	hash *= 0x85EBCA6BU;
-	hash ^= hash >> 13;
-	hash *= 0xC2B2AE35U;
-	hash ^= hash >> 16;
 
-	return hash;
+	return hashing_mix32(hash);
 }
 
 #define mix(a, b, c) G_STMT_START {   \
