@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008-2012, Raphael Manfredi
- * Copyright (c) 2003-2008, Christian Biere
+ * Copyright (c) 2003-2008 Christian Biere
+ * Copyright (c) 2008-2012, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -264,16 +264,18 @@ string_eq(const void *a, const void *b)
 	return a == b || 0 == strcmp(a, b);
 }
 
+#define HASH_M3_C1		0xCC9E2D51U
+#define HASH_M3_C2		0x1B873593U
+#define HASH_M3_C3		0xE6546B64U
+
 /**
- * Paul Hsieh's so-called "super fast hash" routine.
- *
- * This routine is slower than binary_hash() and is included here to be
- * able to measure clustering impacts when an alternative hash is used.
+ * This is the Murmur3 hashing algorithm which exhibits good distribution
+ * properties leading to fewer collisions in hash tables.
  */
-G_GNUC_HOT unsigned
+unsigned G_GNUC_HOT
 universal_hash(const void *data, size_t len)
 {
-	uint32 hash = len;
+	uint32 k, hash = len * GOLDEN_RATIO_32;		/* Initial hash by RAM */
 	size_t n, remain;
 	const unsigned char *p = data;
 
@@ -286,54 +288,42 @@ universal_hash(const void *data, size_t len)
  	 * Process 32-bit words
 	 */
 
-	for (n = len >> 2; n != 0; n--) {
-		uint32 tmp;
+	for (n = len >> 2; n != 0; n--, p += 4) {
+		k = peek_le32(p);
 
-		hash += peek_le16(p);
-		p += 2;
-		tmp	= (peek_le16(p) << 11) ^ hash;
-		hash = (hash << 16) ^ tmp;
-		p += 2;
-		hash += hash >> 11;
+		k *= HASH_M3_C1;
+		k = rotl(k, 15);
+		k *= HASH_M3_C2;
+
+		hash ^= k;
+		hash = rotl(hash, 13);
+		hash = hash * 5 + HASH_M3_C3;
 	}
 
 	/*
 	 * Process trailing bytes.
 	 */
 
+	k = 0;
+
 	switch (remain) {
-	case 3:
-		hash += peek_le16(p);
-		hash ^= hash << 16;
-		hash ^= *(p + 2) << 18;
-		hash += hash >> 11;
-		break;
-	case 2:
-		hash += peek_le16(p);
-		hash ^= hash << 11;
-		hash += hash >> 17;
-		break;
-	case 1:
-		hash += *p;
-		hash ^= hash << 10;
-		hash += hash >> 1;
-		/* FALL THROUGH */
-	case 0:
-		break;
-	default:
-		g_assert_not_reached();
+	case 3: k ^= *(p + 2) << 16;
+	case 2: k ^= *(p + 1) << 8;
+	case 1: k ^= *p;
+			k *= HASH_M3_C1; k = rotl(k, 15); k *= HASH_M3_C2;
+			hash ^= k;
 	}
 
 	/*
-	 * Force "avalanching" of final 127 bits.
+	 * Force "avalanching" of bits.
 	 */
 
-	hash ^= hash << 3;
-	hash += hash >> 5;
-	hash ^= hash << 4;
-	hash += hash >> 17;
-	hash ^= hash << 25;
-	hash += hash >> 6;
+	hash ^= len;
+	hash ^= hash >> 16;
+	hash *= 0x85EBCA6BU;
+	hash ^= hash >> 13;
+	hash *= 0xC2B2AE35U;
+	hash ^= hash >> 16;
 
 	return hash;
 }

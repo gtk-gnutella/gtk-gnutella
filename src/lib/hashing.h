@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008-2012, Raphael Manfredi
- * Copyright (c) 2003-2008, Christian Biere
+ * Copyright (c) 2003-2008 Christian Biere
+ * Copyright (c) 2008-2012, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,10 +28,10 @@
  *
  * Hashing functions and other ancillary routines.
  *
- * @author Raphael Manfredi
- * @date 2008-2012
  * @author Christian Biere
  * @date 2003-2008
+ * @author Raphael Manfredi
+ * @date 2008-2012, 2015
  */
 
 #ifndef _hashing_h_
