@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.

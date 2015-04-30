@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "bstr.h"
+
 #include "casts.h"
 #include "endian.h"
 #include "glib-missing.h"
@@ -43,6 +44,7 @@
 #include "stringify.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 #define BSTR_ERRLEN		160			/**< Default length for error string */
@@ -456,7 +458,7 @@ bstr_skip(bstr_t *bs, size_t count)
 	if (!count)
 		return TRUE;
 
-	if (!expect(bs, count, "bstr_skip"))
+	if (!expect(bs, count, G_STRFUNC))
 		return FALSE;
 
 	bs->rptr += count;
@@ -479,7 +481,7 @@ bstr_read(bstr_t *bs, void *buf, size_t count)
 	g_assert(size_is_positive(count));
 	g_assert(buf);
 
-	if (!expect(bs, count, "bstr_read"))
+	if (!expect(bs, count, G_STRFUNC))
 		return FALSE;
 
 	memcpy(buf, bs->rptr, count);
@@ -501,7 +503,7 @@ bstr_read_u8(bstr_t *bs, uint8 *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 1, "bstr_read_u8"))
+	if (!expect(bs, 1, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_u8(bs->rptr++);
@@ -522,7 +524,7 @@ bstr_read_boolean(bstr_t *bs, bool *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 1, "bstr_read_boolean"))
+	if (!expect(bs, 1, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_u8(bs->rptr++) ? TRUE : FALSE;
@@ -543,7 +545,7 @@ bstr_read_le16(bstr_t *bs, uint16 *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 2, "bstr_read_le16"))
+	if (!expect(bs, 2, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_le16(bs->rptr);
@@ -565,7 +567,7 @@ bstr_read_be16(bstr_t *bs, uint16 *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 2, "bstr_read_be16"))
+	if (!expect(bs, 2, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_be16(bs->rptr);
@@ -587,7 +589,7 @@ bstr_read_le32(bstr_t *bs, uint32 *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 4, "bstr_read_le32"))
+	if (!expect(bs, 4, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_le32(bs->rptr);
@@ -609,7 +611,7 @@ bstr_read_be32(bstr_t *bs, uint32 *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 4, "bstr_read_be32"))
+	if (!expect(bs, 4, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_be32(bs->rptr);
@@ -631,7 +633,7 @@ bstr_read_be64(bstr_t *bs, uint64 *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 8, "bstr_read_be64"))
+	if (!expect(bs, 8, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_be64(bs->rptr);
@@ -653,7 +655,7 @@ bstr_read_time(bstr_t *bs, time_t *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 4, "bstr_read_time"))
+	if (!expect(bs, 4, G_STRFUNC))
 		return FALSE;
 
 	*pv = (time_t) peek_be32(bs->rptr);
@@ -675,7 +677,7 @@ bstr_read_float_be(bstr_t *bs, float *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 4, "bstr_read_float"))
+	if (!expect(bs, 4, G_STRFUNC))
 		return FALSE;
 
 	*pv = peek_float_be32(bs->rptr);
@@ -695,12 +697,10 @@ bstr_read_float_be(bstr_t *bs, float *pv)
 bool
 bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
 {
-	static const char where[] = "bstr_read_ipv4_addr";
-
 	bstr_check(bs);
 	g_assert(ha);
 
-	if (!expect(bs, 4, where))
+	if (!expect(bs, 4, G_STRFUNC))
 		return FALSE;
 
 	*ha = host_addr_peek_ipv4(bs->rptr);
@@ -720,12 +720,10 @@ bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
 bool
 bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
-	static const char where[] = "bstr_read_ipv6_addr";
-
 	bstr_check(bs);
 	g_assert(ha);
 
-	if (!expect(bs, 16, where))
+	if (!expect(bs, 16, G_STRFUNC))
 		return FALSE;
 
 	*ha = host_addr_peek_ipv6(bs->rptr);
@@ -748,20 +746,19 @@ bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 bool
 bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
-	static const char where[] = "bstr_read_packed_ipv4_or_ipv6_addr";
 	uint8 len;
 
 	bstr_check(bs);
 	g_assert(ha);
 
-	if (!expect(bs, 1, where))
+	if (!expect(bs, 1, G_STRFUNC))
 		return FALSE;
 
 	len = peek_u8(bs->rptr++);
 	if (len != 4 && len != 16)
-		return invalid_len(bs, len, "IP address", where);
+		return invalid_len(bs, len, "IP address", G_STRFUNC);
 
-	if (!expect(bs, len, where))
+	if (!expect(bs, len, G_STRFUNC))
 		return FALSE;
 
 	switch (len) {
@@ -793,23 +790,22 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 bool
 bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, uint8 *pr)
 {
-	static const char where[] = "bstr_read_packed_array_u8";
 	uint8 len;
 
 	bstr_check(bs);
 	g_assert(ptr);
 	g_assert(pr);
 
-	if (!expect(bs, 1, where))
+	if (!expect(bs, 1, G_STRFUNC))
 		return FALSE;
 
 	len = peek_u8(bs->rptr++);
 
 	if (len > max)
-		return invalid_len_max(bs, len, max, "array size", where);
+		return invalid_len_max(bs, len, max, "array size", G_STRFUNC);
 
 	if (len) {
-		if (!expect(bs, len, where))
+		if (!expect(bs, len, G_STRFUNC))
 			return FALSE;
 
 		memcpy(ptr, bs->rptr, len);
@@ -834,7 +830,6 @@ bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, uint8 *pr)
 bool
 bstr_read_ule64(bstr_t *bs, uint64 *pv)
 {
-	static const char where[] = "bstr_read_ule64";
 	uint64 value = 0;
 	uint8 shift = 0;
 	uint8 n = 0;
@@ -842,7 +837,7 @@ bstr_read_ule64(bstr_t *bs, uint64 *pv)
 	bstr_check(bs);
 	g_assert(pv);
 
-	if (!expect(bs, 1, where))	/* Need at least one byte */
+	if (!expect(bs, 1, G_STRFUNC))	/* Need at least one byte */
 		return FALSE;
 
 	for (;;) {
@@ -851,7 +846,7 @@ bstr_read_ule64(bstr_t *bs, uint64 *pv)
 			return FALSE;
 		n++;
 		if (n > 10)
-			return invalid_encoding(bs, "no end seen after 10 bytes", where);
+			return invalid_encoding(bs, "no end seen after 10 bytes", G_STRFUNC);
 		value |= (byt & 0x7f) << shift;	/* Got 7 more bits */
 		if (byt & 0x80)
 			break;			/* Highest bit set, end of encoding */
@@ -880,7 +875,6 @@ bstr_read_ule64(bstr_t *bs, uint64 *pv)
 bool
 bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 {
-	static const char where[] = "bstr_read_fixed_string";
 	uint64 length;
 	size_t n;
 
@@ -889,14 +883,14 @@ bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 	g_assert(buf);
 	g_assert(size_is_positive(len));
 
-	if (!expect(bs, 1, where))	/* Need at least one byte */
+	if (!expect(bs, 1, G_STRFUNC))	/* Need at least one byte */
 		return FALSE;
 
 	if (!bstr_read_ule64(bs, &length))
 		return FALSE;
 
 	if (length > MAX_INT_VAL(size_t))
-		return report_error(bs, "encoded length too large", where);
+		return report_error(bs, "encoded length too large", G_STRFUNC);
 
 	n = (size_t) length;
 
@@ -907,7 +901,7 @@ bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 	}
 
 	if (len < n + 1)
-		return report_error(bs, "buffer smaller than string", where);
+		return report_error(bs, "buffer smaller than string", G_STRFUNC);
 
 	buf[n] = '\0';				/* NUL-terminate in advance */
 
@@ -932,7 +926,6 @@ bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 bool
 bstr_read_string(bstr_t *bs, size_t *slen, char **sptr)
 {
-	static const char where[] = "bstr_read_string";
 	uint64 length;
 	size_t n;
 	char *buf;
@@ -941,14 +934,14 @@ bstr_read_string(bstr_t *bs, size_t *slen, char **sptr)
 	bstr_check(bs);
 	g_assert(sptr);
 
-	if (!expect(bs, 1, where))	/* Need at least one byte */
+	if (!expect(bs, 1, G_STRFUNC))	/* Need at least one byte */
 		return FALSE;
 
 	if (!bstr_read_ule64(bs, &length))
 		return FALSE;
 
 	if (length > MAX_INT_VAL(size_t))
-		return report_error(bs, "encoded length too large", where);
+		return report_error(bs, "encoded length too large", G_STRFUNC);
 
 	n = (size_t) length;
 
