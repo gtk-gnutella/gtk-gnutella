@@ -155,13 +155,13 @@ binary_hash(const void *data, size_t len)
 		};
 		hash ^= peek_le32(&key[i]);
 		hash += x[(i >> 2) & 0x7];
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 13);
 	}
 
 	for (i = 0; i < remain; i++) {
 		hash += key[t4 + i];
 		hash ^= key[t4 + i] << (i * 8);
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 23);
 	}
 
 	return pointer_hash(ulong_to_pointer(hash));
@@ -191,13 +191,13 @@ binary_hash2(const void *data, size_t len)
 		};
 		hash ^= peek_le32(&key[i]);
 		hash += x[(i >> 2) & 0x7];
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 15);
 	}
 
 	for (i = 0; i < remain; i++) {
 		hash += key[t4 + i];
 		hash ^= key[t4 + i] << (i * 8);
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 25);
 	}
 
 	return pointer_hash(ulong_to_pointer(hash));
