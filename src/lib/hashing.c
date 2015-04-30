@@ -68,12 +68,16 @@
 unsigned
 pointer_hash(const void *p)
 {
+	unsigned h;
+
 #if PTRSIZE <= 4
-	return u32_hash(pointer_to_ulong(p));
+	h = u32_hash(pointer_to_ulong(p));
 #else
 	uint64 v = pointer_to_ulong(p);
-	return u32_hash(v) + u32_hash(v >> 32);
+	h = u32_hash(v) + u32_hash(v >> 32);
 #endif
+
+	return hashing_mix32(h);
 }
 
 /**
@@ -84,12 +88,16 @@ pointer_hash(const void *p)
 unsigned
 pointer_hash2(const void *p)
 {
+	unsigned h;
+
 #if PTRSIZE <= 4
-	return u32_hash2(pointer_to_ulong(p));
+	h = u32_hash2(pointer_to_ulong(p));
 #else
 	uint64 v = pointer_to_ulong(p);
-	return u32_hash2(v) + u32_hash2(v >> 32);
+	h = u32_hash2(v) + u32_hash2(v >> 32);
 #endif
+
+	return hashing_mix32(h);
 }
 
 /**

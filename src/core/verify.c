@@ -342,11 +342,12 @@ verify_item_hash(const void *key)
 
 	verify_file_check(ctx);
 	
-	return string_mix_hash(ctx->pathname)
+	return hashing_mix32(
+		string_mix_hash(ctx->pathname)
 		^ uint64_hash(&ctx->offset)
 		^ uint64_hash(&ctx->amount)
 		^ pointer_hash(func_to_pointer(ctx->callback))
-		^ pointer_hash(ctx->user_data);
+		^ pointer_hash(ctx->user_data));
 }
 
 static int

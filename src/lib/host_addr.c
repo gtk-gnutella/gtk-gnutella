@@ -131,10 +131,11 @@ host_addr_port_hash(host_addr_t ha, uint16 port)
 		}
 		/* FALL THROUGH */
 	case NET_TYPE_IPV4:
-		return ha.net + integer_hash_fast(host_addr_ipv4(ha)) + u16_hash(port);
+		return hashing_mix32(
+			ha.net + integer_hash_fast(host_addr_ipv4(ha)) + u16_hash(port));
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		return ha.net + u16_hash(port);
+		return hashing_mix32(ha.net + u16_hash(port));
 	}
 	g_assert_not_reached();
 	return (unsigned) -1;

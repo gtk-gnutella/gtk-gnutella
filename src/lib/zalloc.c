@@ -637,9 +637,12 @@ static unsigned
 zone_hash(const void *key)
 {
 	const zone_t *z = key;
+	uint32 h;
 
-	return integer_hash_fast(z->zn_size) + u16_hash(z->zn_stid) -
-		z->private * GOLDEN_RATIO_32;
+	h = integer_hash_fast(z->zn_size) + u16_hash(z->zn_stid) -
+			z->private * GOLDEN_RATIO_32;
+
+	return hashing_mix32(h);
 }
 
 /**
