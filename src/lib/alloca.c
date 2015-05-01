@@ -158,10 +158,7 @@ alloca_ptr_cmp(const void *a, const void *b)
 		g_assert(direction != 0);
 	}
 
-	if G_UNLIKELY(a == b)
-		return 0;
-
-	return (direction > 0 ? +1 : -1) * ptr_cmp(a, b);
+	return CMP(direction, 0) * ptr_cmp(a, b);
 }
 
 /**

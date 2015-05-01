@@ -229,7 +229,7 @@ ripening_gc(cqueue_t *cq, void *obj)
 		g_assert(delta > 0);		/* Checked in the above loop */
 
 		/*
-		 * Because ripening_free() above may case a recursion via the freeing
+		 * Because ripening_free() above may cause a recursion via the freeing
 		 * hooks into ripening_insert(), we may have an expiration callback
 		 * configured already.
 		 */
@@ -261,7 +261,7 @@ ripening_cmp(const void *a, const void *b)
 		/* Artificial ordering of items: keys CANNOT be equal */
 		return ptr_cmp(ra->key, rb->key);
 	} else {
-		return ra->expire > rb->expire ? +1 : -1;
+		return CMP(ra->expire, rb->expire);
 	}
 }
 

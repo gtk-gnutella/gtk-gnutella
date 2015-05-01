@@ -343,7 +343,7 @@ search_gui_compare_records(gint sort_col,
 			if (r1->size == r2->size)
             	result = search_gui_cmp_sha1s(r1->sha1, r2->sha1);
 			else
-				result = (r1->size > r2->size) ? +1 : -1;
+				result = CMP(r1->size, r2->size);
             break;
 
         case c_sr_vendor:

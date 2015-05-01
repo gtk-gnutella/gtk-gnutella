@@ -126,14 +126,11 @@ knode_dead_probability_cmp(const void *a, const void *b)
 		 */
 
 		d = delta_time(k1->first_seen, k2->first_seen);
-		if (0 == d) {
-			d = delta_time(k1->last_seen, k2->last_seen);
-			return 0 == d ? 0 : d > 0 ? -1 : +1;
-		} else {
-			return d > 0 ? +1 : -1;
-		}
+		if G_UNLIKELY(0 == d)
+			d = delta_time(k2->last_seen, k1->last_seen);	/* Inversed! */
+		return CMP(d, 0);
 	} else {
-		return p2 > p1 ? +1 : -1;
+		return CMP(p2, p1);
 	}
 }
 

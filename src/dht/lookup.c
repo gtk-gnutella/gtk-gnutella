@@ -2051,15 +2051,10 @@ kl_item_revcmp(const void *a, const void *b)
 {
 	const struct kl_item *kl_a = a;
 	const struct kl_item *kl_b = b;
-	double d;
-
-	d = kl_a->contrib - kl_b->contrib;
-	if (d < 0.0)
-		d = -d;
 
 	/* Reverse comparison: largest values come first */
 
-	return d < 1e-15 ? 0 : kl_a->contrib < kl_b->contrib ? +1 : -1;
+	return CMP(kl_b->contrib, kl_a->contrib);
 }
 
 /**

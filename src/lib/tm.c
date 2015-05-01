@@ -520,10 +520,8 @@ int
 tm_cmp(const tm_t *a, const tm_t *b)
 {
 	if (a->tv_sec != b->tv_sec)
-		return (a->tv_sec > b->tv_sec) ? +1 : -1;
-	if (a->tv_usec == b->tv_usec)
-		return 0;
-	return (a->tv_usec > b->tv_usec) ? +1 : -1;
+		return CMP(a->tv_sec, b->tv_sec);
+	return CMP(a->tv_usec, b->tv_usec);
 }
 
 /**
