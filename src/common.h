@@ -771,13 +771,10 @@ typedef int socket_fd_t;
 #endif /* GCC >= 3.0 */
 
 /**
- * CMP() returns the sign of a-b, that means -1, 0, or 1.
+ * CMP() returns the sign of a-b, that means <0, 0, or >0.
  *
  * This version avoids branches, which should be faster on all types of CPUs.
- * However, if a TRUE expression does not evaluate to 1, it will not always
- * return -1, 0, or 1 as promised, but the sign will be correct.
  *		--RAM, 2015-04-15
- *
  */
 #define CMP(a, b) (((a) > (b)) - ((a) < (b)))
 
