@@ -602,6 +602,9 @@ upnp_discover:
 	 * port mappings via NAT-PMP, see whether we can do UPnP.
 	 */
 
+	if G_UNLIKELY(NULL == upnp_mappings)
+		return;		/* Layer was shutdown, abort */
+
 	upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
 }
 
