@@ -60,7 +60,7 @@
  */
 #define GOLDEN_RATIO_31	0x4F1BBCDCUL		/* Golden ratio of 2^31 */
 #define GOLDEN_RATIO_32	0x9E3779B9UL		/* Golden ratio of 2^32 */
-#define GOLDEN_RATIO_48	UINT64_CONST(0x9E3779B97F4A) /* Golden ratio of 2^48 */
+#define GOLDEN_RATIO_48	UINT64_CONST(0x9E3779B97F4B) /* Golden ratio of 2^48 */
 
 /*
  * Public interface.
@@ -175,13 +175,7 @@ u32_ptr_hash(uint32 v)
 static inline ALWAYS_INLINE unsigned
 u32_ptr_hash2(uint32 v)
 {
-	/*
-	 * The additional offsetting of 1 is necessary to ensure an even
-	 * distribution of the trailing bits within the hashed value when
-	 * multiplying by GOLDEN_RATIO_48 -- verified by experimenting.
-	 */
-
-	return (GOLDEN_RATIO_48 * (uint64) v) >> (1 + HASHING_PTR_SHIFT);
+	return (GOLDEN_RATIO_48 * (uint64) v) >> HASHING_PTR_SHIFT;
 }
 
 /**
