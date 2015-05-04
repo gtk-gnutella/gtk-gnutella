@@ -8,7 +8,7 @@
  * @ingroup sdbm
  * @file
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009, 2015
  */
 
 #include "common.h"
@@ -20,11 +20,10 @@
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
+#include "lib/elist.h"
 #include "lib/fd.h"
-#include "lib/hashlist.h"
-#include "lib/htable.h"
+#include "lib/hevset.h"
 #include "lib/log.h"
-#include "lib/slist.h"
 #include "lib/stacktrace.h"
 #include "lib/stringify.h"		/* For plural() */
 #include "lib/vmm.h"
@@ -37,17 +36,21 @@ enum sdbm_lru_magic { SDBM_LRU_MAGIC = 0x6a6daa37 };
 
 /**
  * The LRU page cache.
+ *
+ * Regular cached pages are inserted in the `lru' list, the most recently
+ * used page being put at the head of the list.  Each cached page is held
+ * within a lru_cpage object.
+ *
+ * When the SDBM layer wires pages, they are put in the `wired' list and
+ * can no longer be reclaimed, regardless of the configured amount of
+ * cached pages, until they are un-wired.
  */
 struct lru_cache {
 	enum sdbm_lru_magic magic;	/* Magic number */
-	htable_t *pagnum;			/* Associates page number to cached index */
-	hash_list_t *used;			/* Ordered list of used cache indices */
-	slist_t *available;			/* Available indices */
-	char *arena;				/* Cache arena */
-	long *numpag;				/* Associates a cache index to a page number */
-	uint8 *dirty;				/* Flags dirty pages (write cache enabled) */
-	long pages;					/* Amount of pages in arena */
-	long next;					/* Next allocated page index */
+	hevset_t *pagnum;			/* Associates page number to cached page */
+	elist_t lru;				/* LRU-ordered list of cached pages */
+	elist_t wired;				/* Wired (non-removable) cached pages */
+	uint pages;					/* Configured amount of pages to cache */
 	uint8 write_deferred;		/* Whether writes should be deferred */
 	unsigned long rhits;		/* Stats: amount of cache hits on reads */
 	unsigned long rmisses;		/* Stats: amount of cache misses on reads */
@@ -62,25 +65,136 @@ sdbm_lru_check(const struct lru_cache * const c)
 	g_assert(SDBM_LRU_MAGIC == c->magic);
 }
 
+enum sdbm_lru_cpage_magic { SDBM_LRU_CPAGE_MAGIC = 0x22015b77 };
+
+/**
+ * Description of a cached page, held in the LRU page cache.
+ *
+ * Each page is identified by a unique key, its `numpag' field.
+ *
+ * When a page is "wired", it means it is kept as a cached page, regardless
+ * of how large the cache is configured, until the page is explicitly "unwired".
+ *
+ * Wiring a page lets the application make sure that page is held in the cache
+ * and monitored for changes through its `mstamp' field, which is atomically
+ * incremented each time a wired page is changed.
+ */
+struct lru_cpage {
+	enum sdbm_lru_cpage_magic magic;	/* Magic number */
+	uint dirty:1;						/* Dirty page (write cache enabled) */
+	uint wired:1;						/* Wired page, do not reuse */
+	uint was_cached:1;					/* Was in LRU list before being wired */
+	uint invalid:1;						/* Wired page was invalidated */
+	ulong mstamp;						/* Modification stamp (counter) */
+	long numpag;						/* Cache key: page number within DB */
+	DBM *db;							/* Associated DB */
+	link_t chain;						/* Chaining pointers for lists */
+	char page[1];						/* Start of embedded page data */
+};
+
+#define LRU_EMBEDDED_OFFSET		offsetof(struct lru_cpage, page)
+#define LRU_CPAGE_LEN			(DBM_PBLKSIZ + LRU_EMBEDDED_OFFSET)
+
+static inline void
+sdbm_lru_cpage_check(const struct lru_cpage * const c)
+{
+	g_assert(c != NULL);
+	g_assert(SDBM_LRU_CPAGE_MAGIC == c->magic);
+}
+
+/**
+ * Allocate a new cached page.
+ *
+ * @param db	the database to which the page is associated
+ *
+ * @return the LRU cached page structure (NOT the start of the embedded page).
+ */
+static struct lru_cpage *
+sdbm_lru_cpage_alloc(DBM *db)
+{
+	struct lru_cpage *cp;
+
+	cp = walloc(LRU_CPAGE_LEN);
+	ZERO(cp);
+	cp->magic = SDBM_LRU_CPAGE_MAGIC;
+	cp->db = db;
+
+	return cp;
+}
+
+/**
+ * Free a cached page.
+ *
+ * @param cp	the cached page to free
+ */
+static void
+sdbm_lru_cpage_free(struct lru_cpage *cp)
+{
+	sdbm_lru_cpage_check(cp);
+
+	ZERO(cp);
+	wfree(cp, LRU_CPAGE_LEN);
+}
+
+/**
+ * Fetch the cached page structure that embeds the given page buffer address.
+ *
+ * @param db		the database to which the page belongs (for sanity check)
+ * @param pag		the page address for which we want the holding cached page
+ * @param safe		whether to check the validity of the pointer
+ *
+ * @return the cached page object, NULL if the address was not valid.
+ */
+static struct lru_cpage *
+sdbm_lru_cpage_get(const DBM *db, const char *pag, bool safe)
+{
+	const struct lru_cpage *cp;
+
+	cp = const_ptr_add_offset(pag, -LRU_EMBEDDED_OFFSET);
+
+	/*
+	 * We allocate all the cached pages via walloc(), which means `cp' has
+	 * to be a valid native VMM pointer for `cp' to be valid.
+	 */
+
+	if G_UNLIKELY(safe && !vmm_is_native_pointer(cp))
+		return NULL;
+
+	if G_UNLIKELY(cp->magic != SDBM_LRU_CPAGE_MAGIC || cp->db != db)
+		return NULL;
+
+	return deconstify_pointer(cp);
+}
+
 /**
  * Setup allocated LRU page cache.
  */
-static int
-setup_cache(struct lru_cache *cache, long pages, bool wdelay)
+static void
+setup_cache(struct lru_cache *cache, uint pages, bool wdelay)
 {
-	cache->arena = vmm_alloc(pages * DBM_PBLKSIZ);
-	if (NULL == cache->arena)
-		return -1;
-	cache->pagnum = htable_create(HASH_KEY_SELF, 0);
-	cache->used = hash_list_new(NULL, NULL);
-	cache->available = slist_new();
-	cache->pages = pages;
-	cache->next = 0;
-	cache->write_deferred = wdelay;
-	cache->dirty = walloc(cache->pages);
-	WALLOC_ARRAY(cache->numpag, cache->pages);
+	struct lru_cpage dummy;
 
-	return 0;
+	cache->pagnum = hevset_create(offsetof(struct lru_cpage, numpag),
+		HASH_KEY_FIXED, sizeof(dummy.numpag));
+
+	/*
+	 * The same "chain" field is used for the two lists because a page
+	 * can only be inserted in one of these lists at a given time.
+	 */
+
+	elist_init(&cache->lru,   offsetof(struct lru_cpage, chain));
+	elist_init(&cache->wired, offsetof(struct lru_cpage, chain));
+
+	cache->pages = pages;
+	cache->write_deferred = wdelay;
+}
+
+static void
+free_cached_page(void *data, void *unused)
+{
+	(void) unused;
+
+	sdbm_lru_cpage_free(data);
 }
 
 /**
@@ -89,21 +203,18 @@ setup_cache(struct lru_cache *cache, long pages, bool wdelay)
 static void
 free_cache(struct lru_cache *cache)
 {
-	hash_list_free(&cache->used);
-	slist_free(&cache->available);
-	htable_free_null(&cache->pagnum);
-	VMM_FREE_NULL(cache->arena, cache->pages * DBM_PBLKSIZ);
-	WFREE_ARRAY_NULL(cache->numpag, cache->pages);
-	WFREE_NULL(cache->dirty, cache->pages);
-	cache->pages = cache->next = 0;
+	hevset_foreach(cache->pagnum, free_cached_page, NULL);
+	hevset_free_null(&cache->pagnum);
+	cache->pages = 0;
+	cache->magic = 0;
+	WFREE(cache);
 }
 
 /**
  * Create a new LRU cache.
- * @return -1 with errno set on error, 0 if OK.
  */
 static int
-init_cache(DBM *db, long pages, bool wdelay)
+init_cache(DBM *db, uint pages, bool wdelay)
 {
 	struct lru_cache *cache;
 
@@ -111,12 +222,10 @@ init_cache(DBM *db, long pages, bool wdelay)
 
 	WALLOC0(cache);
 	cache->magic = SDBM_LRU_MAGIC;
-	if (-1 == setup_cache(cache, pages, wdelay)) {
-		WFREE(cache);
-		return -1;
-	}
+	setup_cache(cache, pages, wdelay);
 	db->cache = cache;
-	return 0;
+
+	return 0;		/* Always OK */
 }
 
 /**
@@ -127,8 +236,7 @@ void lru_init(DBM *db)
 	g_assert(NULL == db->cache);
 	g_assert(-1 == db->pagbno);		/* We must be called before first access */
 
-	if (-1 == init_cache(db, LRU_PAGES, FALSE))
-		s_error("out of virtual memory");
+	init_cache(db, LRU_PAGES, FALSE);
 }
 
 static void
@@ -140,7 +248,7 @@ log_lrustats(DBM *db)
 
 	sdbm_lru_check(cache);
 
-	s_info("sdbm: \"%s\" LRU cache size = %ld page%s, %s writes, %s DB",
+	s_info("sdbm: \"%s\" LRU cache size = %u page%s, %s writes, %s DB",
 		sdbm_name(db), cache->pages, plural(cache->pages),
 		cache->write_deferred ? "deferred" : "synchronous",
 		db->is_volatile ? "volatile" : "persistent");
@@ -157,18 +265,33 @@ log_lrustats(DBM *db)
  * @return TRUE on success.
  */
 static bool
-writebuf(DBM *db, long oldnum, long idx)
+writebuf(struct lru_cpage *cp)
 {
-	struct lru_cache *cache = db->cache;
-	char *pag = cache->arena + OFF_PAG(idx);
+	sdbm_lru_cpage_check(cp);
 
-	g_assert(idx >= 0 && idx < cache->pages);
-
-	if (!flushpag(db, pag, oldnum))
+	if (!flushpag(cp->db, cp->page, cp->numpag))
 		return FALSE;
 
-	cache->dirty[idx] = FALSE;
+	cp->dirty = FALSE;
 	return TRUE;
+}
+
+static inline bool
+flush_cpage(struct lru_cpage *cp, ssize_t *amount, int *error)
+{
+	sdbm_lru_cpage_check(cp);
+
+	if (cp->dirty) {
+		if (writebuf(cp)) {
+			(*amount)++;
+			return TRUE;
+		} else {
+			*error = errno;
+			return FALSE;
+		}
+	}
+
+	return TRUE;	/* Everything OK, page was clean */
 }
 
 /**
@@ -182,23 +305,21 @@ ssize_t
 flush_dirtypag(DBM *db)
 {
 	struct lru_cache *cache = db->cache;
-	int n;
+	struct lru_cpage *cp;
 	ssize_t amount = 0;
 	int saved_errno = 0;
-	long pages;
 
 	sdbm_lru_check(cache);
 
-	pages = MIN(cache->pages, cache->next);
+	ELIST_FOREACH_DATA(&cache->lru, cp) {
+		if (!flush_cpage(cp, &amount, &saved_errno))
+			break;
+	}
 
-	for (n = 0; n < pages; n++) {
-		if (cache->dirty[n]) {
-			long num = cache->numpag[n];
-			if (writebuf(db, num, n)) {
-				amount++;
-			} else {
-				saved_errno = errno;
-			}
+	if (saved_errno != 0) {
+		ELIST_FOREACH_DATA(&cache->wired, cp) {
+			if (!flush_cpage(cp, &amount, &saved_errno))
+				break;
 		}
 	}
 
@@ -211,9 +332,9 @@ flush_dirtypag(DBM *db)
 }
 
 /*
- * @return the page cache size, 0 for no cache.
+ * @return the configured max amount of pages in cache, 0 for no cache.
  */
-long
+uint
 getcache(const DBM *db)
 {
 	const struct lru_cache *cache = db->cache;
@@ -225,14 +346,17 @@ getcache(const DBM *db)
 }
 
 /**
- * Set the page cache size.
+ * Set the page cache size, i.e. the maximum amount of pages we can cache.
+ *
+ * @param db		the targeted database
+ * @param pages		maximum amount of pages to cache (0 = disable caching)
+ *
  * @return 0 if OK, -1 on failure with errno set.
  */
 int
-setcache(DBM *db, long pages)
+setcache(DBM *db, uint pages)
 {
 	struct lru_cache *cache = db->cache;
-	bool wdelay;
 
 	sdbm_lru_check(cache);
 
@@ -241,11 +365,14 @@ setcache(DBM *db, long pages)
 		return -1;
 	}
 
-	if (NULL == cache)
-		return init_cache(db, pages, FALSE);
+	if (NULL == cache) {
+		if (pages != 0)
+			return init_cache(db, pages, FALSE);
+		return 0;
+	}
 
 	/*
-	 * Easiest case: the size identical.
+	 * Easiest case: the size is identical.
 	 */
 
 	if (pages == cache->pages)
@@ -254,22 +381,12 @@ setcache(DBM *db, long pages)
 	/*
 	 * Cache size is changed.
 	 *
-	 * This means the arena will be reallocated, so we must invalidate the
-	 * current db->pagbuf pointer, which lies within the old arena.  It is
-	 * sufficient to reset db->pagbno, forcing a reload from the upper layers.
-	 * Note than when the cache size is enlarged, the old page is still cached
-	 * so reloading will be just a matter of recomputing db->pagbuf.  We could
-	 * do so here, but cache size changes should only be infrequent.
-	 *
-	 * We also reset all the cache statistics, since a different cache size
+	 * We reset all the cache statistics, since a different cache size
 	 * will imply a different set of hit/miss ratio.
 	 */
 
-	db->pagbno = -1;		/* Current page address will become invalid */
-	db->pagbuf = NULL;
-
 	if (common_stats) {
-		s_info("sdbm: \"%s\" LRU cache size %s from %ld page%s to %ld",
+		s_info("sdbm: \"%s\" LRU cache size %s from %u page%s to %u",
 			sdbm_name(db), pages > cache->pages ? "increased" : "decreased",
 			cache->pages, plural(cache->pages), pages);
 		log_lrustats(db);
@@ -279,40 +396,114 @@ setcache(DBM *db, long pages)
 	cache->whits = cache->wmisses = 0;
 
 	/*
-	 * Straightforward: the size is increased.
+	 * If the size is merely increasing, we're done.
+	 *
+	 * Next time we need to cache more pages, we will dynamically allocate
+	 * new lru_cpage objects and insert them into the cache.
 	 */
 
 	if (pages > cache->pages) {
-		char *new_arena = vmm_alloc(pages * DBM_PBLKSIZ);
-		if (NULL == new_arena)
-			return -1;
-		memmove(new_arena, cache->arena, cache->pages * DBM_PBLKSIZ);
-		vmm_free(cache->arena, cache->pages * DBM_PBLKSIZ);
-		cache->arena = new_arena;
-		cache->dirty = wrealloc(cache->dirty, cache->pages, pages);
-		cache->numpag = wrealloc(cache->numpag,
-			cache->pages * sizeof(long), pages * sizeof(long));
 		cache->pages = pages;
 		return 0;
 	}
 
 	/*
-	 * Difficult: the size is decreased.
-	 *
-	 * The current page buffer could point in a cache area that is going
-	 * to disappear, and the internal data structures must forget about
-	 * all the old indices that are greater than the new limit.
-	 *
-	 * We do not try to optimize anything here, as this call should happen
-	 * only infrequently: we flush the current cache (in case there are
-	 * deferred writes), destroy the LRU cache data structures, recreate a
-	 * new one and invalidate the current DB page.
+	 * Flush all dirty pages.
 	 */
 
-	wdelay = cache->write_deferred;
-	flush_dirtypag(db);
-	free_cache(cache);
-	return setup_cache(cache, pages, wdelay);
+	if ((ssize_t) -1 == flush_dirtypag(db))
+		return -1;
+
+	/*
+	 * If they are disabling the cache, we must invalidate the current
+	 * db->pagbuf pointer, which lies within a cached page arena.
+	 * It is sufficient to reset db->pagbno, forcing a reload from the
+	 * upper layers.
+	 */
+
+	cache->pages = pages;
+
+	if (0 == pages) {
+		size_t wired = elist_count(&cache->wired);
+
+		db->pagbno = -1;		/* Current page address could become invalid */
+		db->pagbuf = NULL;
+
+		/*
+		 * If there are still some wired pages, we cannot free the cache right
+		 * now, but we can reset the count and it will be disposed of when the
+		 * last wired page goes.
+		 *
+		 * Disabling the cache when there are wired pages is weird!  Indeed,
+		 * wired pages are used to perform "loose" iterations on the database,
+		 * so having a thread change the cache disposition to remove all caching
+		 * is rather troubling is could indicate an application error.  This
+		 * is why we issue a mandory warning in that case.
+		 */
+
+		if (0 == wired) {
+			free_cache(cache);
+			db->cache = NULL;
+		} else {
+			s_carp_once("%s(): attempting to disable cache on SDBM \"%s\""
+				"whilst still holding %zu wired page%s",
+				G_STRFUNC, sdbm_name(db), wired, plural(wired));
+		}
+
+		return 0;
+	}
+
+	/*
+	 * If we have less pages in the LRU cache that we can hold, we're done.
+	 */
+
+	if (elist_count(&cache->lru) <= pages)
+		return 0;
+
+	/*
+	 * The cache is reducing, and we're caching at least one page.
+	 *
+	 * We're going to identify the current page being pointed at, and move
+	 * it at the head of the LRU list (which avoids resetting db->pagbuf)
+	 * provided it is not already wired..
+	 *
+	 * Note that db->pagbuf MUST be a cached page since caching was on.
+	 */
+
+	{
+		struct lru_cpage *cp = sdbm_lru_cpage_get(db, db->pagbuf, TRUE);
+
+		g_assert_log(cp != NULL,
+			"%s(): db->pagbuf=%p is not a cached page pointer",
+			G_STRFUNC, db->pagbuf);
+
+		if (!cp->wired)
+			elist_moveto_head(&cache->lru, cp);
+	}
+
+	/*
+	 * Now remove excess pages.
+	 *
+	 * We flushed all the dirty pages earlier, so we can simply drop the
+	 * cached entries  We also know that db->pagbuf cannot point to any
+	 * of the dropped entries due to the precaution we took above to move
+	 * that entry at the head of the list.
+	 */
+
+	{
+		int excess = elist_count(&cache->lru) - pages;
+
+		g_assert(excess > 0);
+
+		while (excess-- != 0) {
+			struct lru_cpage *cp = elist_pop(&cache->lru);
+			bool found = hevset_remove(cache->pagnum, &cp->numpag);
+			g_assert(found);
+			sdbm_lru_cpage_free(cp);
+		}
+	}
+
+	return 0;
 }
 
 /**
@@ -368,18 +559,36 @@ lru_close(DBM *db)
 {
 	struct lru_cache *cache = db->cache;
 
-	if (cache) {
+	if (cache != NULL) {
 		sdbm_lru_check(cache);
 
 		if (common_stats)
 			log_lrustats(db);
 
 		free_cache(cache);
-		cache->magic = 0;
-		WFREE(cache);
+		db->cache = NULL;
 	}
+}
 
-	db->cache = NULL;
+/**
+ * Signal that we are about to modify the current page (db->pagbuf).
+ */
+void
+modifypag(const DBM *db)
+{
+	const struct lru_cache *cache = db->cache;
+	struct lru_cpage *cp = sdbm_lru_cpage_get(db, db->pagbuf, FALSE);
+
+	sdbm_lru_check(cache);
+	g_assert(cp != NULL);
+
+	/*
+	 * If the page is wired, this is our hook to identify that it is about
+	 * to be modified by the application.
+	 */
+
+	if G_UNLIKELY(cp->wired)
+		ATOMIC_INC(&cp->mstamp);
 }
 
 /**
@@ -392,31 +601,27 @@ bool
 dirtypag(DBM *db, bool force)
 {
 	struct lru_cache *cache = db->cache;
-	long n;
+	struct lru_cpage *cp = sdbm_lru_cpage_get(db, db->pagbuf, FALSE);
 
 	sdbm_lru_check(cache);
-
-	n = (db->pagbuf - cache->arena) / DBM_PBLKSIZ;
-
-	g_assert(n >= 0 && n < cache->pages);
-	g_assert(db->pagbno == cache->numpag[n]);
+	g_assert(cp != NULL);
 
 	if (cache->write_deferred && !force) {
-		if (cache->dirty[n])
+		if (cp->dirty)
 			cache->whits++;		/* Was already dirty -> write cache hit */
 		else
 			cache->wmisses++;
-		cache->dirty[n] = TRUE;
+		cp->dirty = TRUE;
 		return TRUE;
 	}
 
 	/*
-	 * Flush current page to the kernel.  If they are forcing the flush,
+	 * Flush current page to the disk.  If they are forcing the flush,
 	 * make sure we ask the kernel to synchronize the data as well.
 	 */
 
 	if (flushpag(db, db->pagbuf, db->pagbno)) {
-		cache->dirty[n] = FALSE;
+		cp->dirty = FALSE;
 		if G_UNLIKELY(force)
 			fd_fdatasync(db->pagf);
 		return TRUE;
@@ -426,57 +631,40 @@ dirtypag(DBM *db, bool force)
 }
 
 /**
- * Get a new index in the cache, and update LRU data structures.
+ * Get a new cached page entry for given DB page number.
  *
  * @param db	the database
- * @param num	page number in the DB for which we want a cache index
+ * @param num	page number in the DB for which we want a cache entry
  *
- *
- * @return -1 on error, or the allocated cache index.
+ * @return NULL on error, or the allocated cached page.
  */
-static int
-getidx(DBM *db, long num)
+static struct lru_cpage *
+getcpage(DBM *db, long num)
 {
 	struct lru_cache *cache = db->cache;
-	long n;		/* Cache index */
+	struct lru_cpage *cp;
 
-	/*
-	 * If we invalidated pages, reuse their indices.
-	 * If we have not used all the pages yet, get the next one.
-	 * Otherwise, use the least-recently requested page.
-	 */
+	g_assert(!hevset_contains(cache->pagnum, &num));
 
-	if (slist_length(cache->available)) {
-		void *v = slist_shift(cache->available);
-		n = pointer_to_int(v);
-		g_assert(n >= 0 && n < cache->pages);
-		g_assert(!cache->dirty[n]);
-		g_assert(-1 == cache->numpag[n]);
-		hash_list_prepend(cache->used, int_to_pointer(n));
-	} else if (cache->next < cache->pages) {
-		n = cache->next++;
-		cache->dirty[n] = FALSE;
-		hash_list_prepend(cache->used, int_to_pointer(n));
-	} else {
-		void *last = hash_list_tail(cache->used);
-		long oldnum;
-		bool had_ioerr = booleanize(db->flags & DBM_IOERR_W);
 
-		hash_list_moveto_head(cache->used, last);
-		n = pointer_to_int(last);
-
+	if (elist_count(&cache->lru) < cache->pages) {
 		/*
-		 * This page is no longer cached as its cache index is being reused
-		 * Flush it to disk if dirty before discarding it.
+		 * Has less pages than the configured maximum, allocate a new entry.
 		 */
 
-		g_assert(n >= 0 && n < cache->pages);
+		cp = sdbm_lru_cpage_alloc(db);
+		elist_prepend(&cache->lru, cp);
+	} else {
+		bool had_ioerr = booleanize(db->flags & DBM_IOERR_W);
 
-		oldnum = cache->numpag[n];
+		/*
+		 * We need to evict the least-recently used page from the cache to be
+		 * able to reuse its entry.
+		 */
 
-		if (cache->dirty[n] && !writebuf(db, oldnum, n)) {
-			hash_list_iter_t *iter;
-			void *item;
+		cp = elist_tail(&cache->lru);
+
+		if (cp->dirty && !writebuf(cp)) {
 			bool found = FALSE;
 
 			/*
@@ -487,27 +675,14 @@ getidx(DBM *db, long num)
 			 * be properly flushed later.
 			 */
 
-			iter = hash_list_iterator_tail(cache->used);
-
-			while (NULL != (item = hash_list_iter_previous(iter))) {
-				long i = pointer_to_int(item);
-
-				g_assert(i >= 0 && i < cache->pages);
-
-				if (!cache->dirty[i]) {
-					found = TRUE;	/* OK, reuse cache slot #i then */
-					n = i;
-					oldnum = cache->numpag[i];
+			ELIST_FOREACH_DATA(&cache->lru, cp) {
+				if (!cp->dirty) {
+					found = TRUE;	/* OK, reuse cache slot then */
 					break;
 				}
 			}
 
-			hash_list_iter_release(&iter);
-
 			if (found) {
-				g_assert(item != NULL);
-				hash_list_moveto_head(cache->used, item);
-
 				/*
 				 * Clear error condition if we had none prior to the flush
 				 * attempt, since we can do without it for now.
@@ -518,28 +693,34 @@ getidx(DBM *db, long num)
 
 				s_warning("sdbm: \"%s\": "
 					"reusing cache slot used by clean page #%ld instead",
-					sdbm_name(db), oldnum);
+					sdbm_name(db), cp->numpag);
 			} else {
-				s_warning("sdbm: \"%s\": cannot discard dirty page #%ld",
-					sdbm_name(db), oldnum);
-				return -1;
+				cp = elist_tail(&cache->lru);
+				s_warning("sdbm: \"%s\": cannot discard dirty page #%ld: %m",
+					sdbm_name(db), cp->numpag);
+				return NULL;
 			}
 		}
 
-		htable_remove(cache->pagnum, ulong_to_pointer(oldnum));
-		cache->dirty[n] = FALSE;
+		/*
+		 * Move page at the beginning of the LRU list, since it is now the
+		 * most recently used page.
+		 */
+
+		g_assert(!cp->dirty);
+
+		elist_moveto_head(&cache->lru, cp);
+		hevset_remove(cache->pagnum, &cp->numpag);
 	}
 
 	/*
-	 * Record the association between the cache index and the page number.
+	 * Record that we are now caching the page.
 	 */
 
-	g_assert(n >= 0 && n < cache->pages);
+	cp->numpag = num;
+	hevset_insert(cache->pagnum, cp);
 
-	cache->numpag[n] = num;
-	htable_insert(cache->pagnum, ulong_to_pointer(num), int_to_pointer(n));
-
-	return n;
+	return cp;
 }
 
 /**
@@ -554,25 +735,54 @@ char *
 lru_cached_page(DBM *db, long num)
 {
 	struct lru_cache *cache = db->cache;
-	void *value;
+	struct lru_cpage *cp = NULL;
 
 	sdbm_lru_check(cache);
 	g_assert(num >= 0);
 
-	if (
-		cache != NULL &&
-		htable_lookup_extended(cache->pagnum,
-			ulong_to_pointer(num), NULL, &value)
-	) {
-		long idx = pointer_to_int(value);
+	if (cache != NULL)
+		cp = hevset_lookup(cache->pagnum, &num);
 
-		g_assert(idx >= 0 && idx < cache->pages);
-		g_assert(cache->numpag[idx] == num);
+	return NULL == cp ? NULL : cp->page;
+}
 
-		return cache->arena + OFF_PAG(idx);
+static bool
+lru_discard_page(void *data, void *udata)
+{
+	struct lru_cpage *cp = data;
+	long bno = pointer_to_long(udata);
+
+	sdbm_lru_cpage_check(cp);
+	g_assert(!cp->wired);
+
+	if (cp->numpag >= bno) {
+		DBM *db = cp->db;
+		struct lru_cache *cache;
+
+		sdbm_check(db);
+		cache  = db->cache;
+		sdbm_lru_check(cache);
+
+		hevset_remove(cache->pagnum, &cp->numpag);
+		sdbm_lru_cpage_free(cp);
+		return TRUE;
 	}
 
-	return NULL;
+	return FALSE;
+}
+
+static inline void
+lru_discard_wired_page(struct lru_cpage *cp, long bno)
+{
+	sdbm_lru_cpage_check(cp);
+	g_assert(cp->wired);
+
+	if (cp->numpag >= bno) {
+		ATOMIC_INC(&cp->mstamp);
+		cp->dirty = FALSE;
+		cp->invalid = TRUE;
+		memset(cp->page, 0, DBM_PBLKSIZ);
+	}
 }
 
 /**
@@ -583,21 +793,14 @@ void
 lru_discard(DBM *db, long bno)
 {
 	struct lru_cache *cache = db->cache;
-	int n;
-	long pages;
+	struct lru_cpage *cp;
 
 	sdbm_lru_check(cache);
 
-	pages = MIN(cache->pages, cache->next);
+	elist_foreach_remove(&cache->lru, lru_discard_page, long_to_pointer(bno));
 
-	for (n = 0; n < pages; n++) {
-		long num = cache->numpag[n];
-
-		if (num >= bno) {
-			void *base = cache->arena + OFF_PAG(n);
-			cache->dirty[n] = FALSE;
-			memset(base, 0, DBM_PBLKSIZ);
-		}
+	ELIST_FOREACH_DATA(&cache->wired, cp) {
+		lru_discard_wired_page(cp, bno);
 	}
 }
 
@@ -612,35 +815,32 @@ void
 lru_invalidate(DBM *db, long bno)
 {
 	struct lru_cache *cache = db->cache;
-	void *value;
+	struct lru_cpage *cp;
 
 	sdbm_lru_check(cache);
 
-	if (
-		htable_lookup_extended(cache->pagnum,
-			ulong_to_pointer(bno), NULL, &value)
-	) {
-		long idx = pointer_to_int(value);
+	cp = hevset_lookup(cache->pagnum, &bno);
 
-		g_assert(idx >= 0 && idx < cache->pages);
-		g_assert(cache->numpag[idx] == bno);
-
+	if (cp != NULL) {
 		/*
 		 * One should never be invalidating a dirty page, unless something
 		 * went wrong during a split and we're trying to undo things.
 		 * Since the operation will cause a data loss, warn.
 		 */
 
-		if (cache->dirty[idx]) {
-			s_critical("sdbm: \"%s\": %s() invalidating dirty page #%ld",
-				db->name, stacktrace_caller_name(1), bno);
+		if (cp->dirty) {
+			s_carp("sdbm: \"%s\": %s() invalidating dirty page #%ld",
+				sdbm_name(db), stacktrace_caller_name(1), bno);
 		}
 
-		hash_list_remove(cache->used, value);
-		htable_remove(cache->pagnum, ulong_to_pointer(bno));
-		cache->numpag[idx] = -1;
-		cache->dirty[idx] = FALSE;
-		slist_append(cache->available, value);	/* Make index available */
+		if (cp->wired) {
+			ATOMIC_INC(&cp->mstamp);
+			cp->invalid = TRUE;
+		} else {
+			elist_remove(&cache->lru, cp);
+			hevset_remove(cache->pagnum, &bno);
+			sdbm_lru_cpage_free(cp);
+		}
 	}
 }
 
@@ -653,23 +853,59 @@ fileoffset_t
 lru_tail_offset(const DBM *db)
 {
 	const struct lru_cache *cache = db->cache;
-	long pages, n, bno;
+	const struct lru_cpage *cp;
+	long bno = -1;
 
 	sdbm_lru_check(cache);
 
-	pages = MIN(cache->pages, cache->next);
+	ELIST_FOREACH_DATA(&cache->lru, cp) {
+		if (cp->dirty)
+			bno = MAX(bno, cp->numpag);
+	}
 
-	for (bno = -1, n = 0; n < pages; n++) {
-		long num;
-
-		if (!cache->dirty[n])
-			continue;
-
-		num = cache->numpag[n];
-		bno = MAX(bno, num);
+	ELIST_FOREACH_DATA(&cache->wired, cp) {
+		if (cp->dirty)
+			bno = MAX(bno, cp->numpag);
 	}
 
 	return OFF_PAG(bno + 1);
+}
+
+struct lru_reparent_args {
+	const DBM *db;
+	const DBM *pdb;
+};
+
+static void
+reparent_cpage(void *data, void *udata)
+{
+	struct lru_cpage *cp = data;
+	const struct lru_reparent_args *a = udata;
+
+	sdbm_lru_cpage_check(cp);
+	g_assert(cp->db == a->pdb);		/* Page belongs to previous DB descriptor */
+
+	cp->db = deconstify_pointer(a->db);
+}
+
+/**
+ * Transfer ownership of all the cached pages present in `db' and which refer
+ * to `pdb' back to `db'.
+ *
+ * @param db	the database descriptor
+ * @param pdb	the previoud DB descriptor to which cached pages belong
+ */
+void
+lru_reparent(const DBM *db, const DBM *pdb)
+{
+	const struct lru_cache *cache = db->cache;
+	struct lru_reparent_args a;
+
+	sdbm_lru_check(cache);
+
+	a.db = db;
+	a.pdb = pdb;
+	hevset_foreach(cache->pagnum, reparent_cpage, &a);
 }
 
 /**
@@ -686,37 +922,33 @@ bool
 readbuf(DBM *db, long num, bool *loaded)
 {
 	struct lru_cache *cache = db->cache;
-	void *value;
-	long idx;
-	bool good_page;
+	struct lru_cpage *cp;
+	bool cached;
 
 	sdbm_lru_check(cache);
 	g_assert(num >= 0);
 
-	if (
-		htable_lookup_extended(cache->pagnum,
-			ulong_to_pointer(num), NULL, &value)
-	) {
-		hash_list_moveto_head(cache->used, value);
-		idx = pointer_to_int(value);
+	cp = hevset_lookup(cache->pagnum, &num);
 
-		g_assert(idx >= 0 && idx < cache->pages);
-		g_assert(cache->numpag[idx] == num);
+	if (cp != NULL) {
+		sdbm_lru_cpage_check(cp);
 
-		good_page = TRUE;
+		if (!cp->wired)
+			elist_moveto_head(&cache->lru, cp);
+		cached = TRUE;
 		cache->rhits++;
 	} else {
-		idx = getidx(db, num);
-		if (-1 == idx)
+		cp = getcpage(db, num);
+		if (NULL == cp)
 			return FALSE;	/* Do not update db->pagbuf */
 
-		good_page = FALSE;
+		cached = FALSE;
 		cache->rmisses++;
 	}
 
-	db->pagbuf = cache->arena + OFF_PAG(idx);
+	db->pagbuf = cp->page;
 	if (loaded != NULL)
-		*loaded = good_page;
+		*loaded = cached;
 
 	return TRUE;
 }
@@ -729,7 +961,7 @@ bool
 cachepag(DBM *db, char *pag, long num)
 {
 	struct lru_cache *cache = db->cache;
-	void *value;
+	struct lru_cpage *cp;
 
 	sdbm_lru_check(cache);
 	g_assert(num >= 0);
@@ -746,14 +978,14 @@ cachepag(DBM *db, char *pag, long num)
 	 * writes, or flush it to disk immediately (without caching it).
 	 */
 
-	if (
-		htable_lookup_extended(cache->pagnum,
-			ulong_to_pointer(num), NULL, &value)
-	) {
-		long idx;
+	cp = hevset_lookup(cache->pagnum, &num);
+
+	if (cp != NULL) {
 		unsigned short *ino;
 		unsigned weird = 0;
 		char *cpag;
+
+		sdbm_lru_cpage_check(cp);
 
 		/*
 		 * Do not move the page to the head of the cache list.
@@ -762,15 +994,11 @@ cachepag(DBM *db, char *pag, long num)
 		 * hole up to now) and its being cached now does not constitute usage.
 		 */
 
-		idx = pointer_to_int(value);
-		g_assert(idx >= 0 && idx < cache->pages);
-		g_assert(cache->numpag[idx] == num);
-
 		/*
 		 * Not a read hit since we're about to supersede the data
 		 */
 
-		cpag = cache->arena + OFF_PAG(idx);
+		cpag = cp->page;
 		ino = (unsigned short *) cpag;
 
 		if (ino[0] != 0) {
@@ -778,7 +1006,7 @@ cachepag(DBM *db, char *pag, long num)
 			s_warning("sdbm: \"%s\": new page #%ld was cached but not empty",
 				db->name, num);
 		}
-		if (cache->dirty[idx]) {
+		if (cp->dirty) {
 			weird++;
 			s_warning("sdbm: \"%s\": new page #%ld was cached and not clean",
 				db->name, num);
@@ -796,22 +1024,18 @@ cachepag(DBM *db, char *pag, long num)
 		memmove(cpag, pag, DBM_PBLKSIZ);
 
 		if (cache->write_deferred) {
-			cache->dirty[idx] = TRUE;
+			cp->dirty = TRUE;
 		} else {
-			cache->dirty[idx] = !flushpag(db, pag, num);
+			cp->dirty = !flushpag(db, pag, num);
 		}
 		return TRUE;
 	} else if (cache->write_deferred) {
-		long idx;
-		char *cpag;
-
-		idx = getidx(db, num);
-		if (-1 == idx)
+		cp = getcpage(db, num);
+		if (NULL == cp)
 			return FALSE;
 
-		cpag = cache->arena + OFF_PAG(idx);
-		memmove(cpag, pag, DBM_PBLKSIZ);
-		cache->dirty[idx] = TRUE;
+		memmove(cp->page, pag, DBM_PBLKSIZ);
+		cp->dirty = TRUE;
 		return TRUE;
 	} else {
 		return flushpag(db, pag, num);
@@ -829,6 +1053,7 @@ flushpag(DBM *db, char *pag, long num)
 {
 	ssize_t w;
 
+	sdbm_check(db);
 	g_assert(num >= 0);
 
 	db->pagwrite++;

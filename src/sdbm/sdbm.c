@@ -3032,6 +3032,9 @@ sdbm_rebuild(DBM *db)
 	ndb->lock = NULL;							/* was copied over */
 	ndb->returned = NULL;
 #endif
+#ifdef LRU
+	lru_reparent(db, ndb);	/* Cached pages refer DB descriptor, update them */
+#endif
 	sdbm_free_null(&ndb);
 
 	/*
