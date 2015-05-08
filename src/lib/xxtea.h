@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Raphael Manfredi
+ * Copyright (c) 2013, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Corrected Block TEA (Tiny Encryption Algorithm), also known as XXTEA.
  *
  * @author Raphael Manfredi
- * @date 2013
+ * @date 2013, 2015
  */
 
 #ifndef _xxtea_h_
@@ -41,7 +41,7 @@
  * A Corrected Block TEA key is 128-bit wide.
  */
 typedef struct xxtea_key {
-	uchar v[XXTEA_KEY_SIZE];
+	uint32 v[XXTEA_KEY_SIZE / sizeof(uint32)];
 } xxtea_key_t;
 
 /*
