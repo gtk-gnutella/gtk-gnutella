@@ -724,15 +724,17 @@ G_GNUC_COLD void
 vmm_dump_pmap_log(logagent_t *la)
 {
 	struct pmap *pm = vmm_pmap();
-	size_t i;
+	size_t i, count, size, length;
 	time_t now = tm_time();
+	struct vm_fragment *array;
 
 	/*
 	 * We use a write-lock and not a read-lock here, which can seem surprising
 	 * at first since we're in essence reading the pmap.  However, we are
-	 * using external routines that can allocate memory and recurse back to
-	 * the VMM layer, attempting to then grab the write-lock.  And it is not
-	 * allowed to request a write-lock when the read-lock is already owned.
+	 * allocating memory and re-enter the VMM layer, attempting to then grab
+	 * the write-lock.  It is not allowed to request a write-lock when the
+	 * read-lock is already owned (one needs to upgrade it or release the read
+	 * lock and request the write lock).
 	 *
 	 * Therefore we need to take the write-lock to be fully protected, since
 	 * we can then take it again or request read-locks whilst we own the
@@ -741,15 +743,27 @@ vmm_dump_pmap_log(logagent_t *la)
 
 	rwlock_wlock(&pm->lock);
 
-	log_debug(la, "VMM local pmap (%zu/%zu region%s):",
-		pm->count, pm->size, plural(pm->count));
+	count = pm->count;
+	size = pm->size;
+	length = count * sizeof array[0];
+	array = vmm_alloc(length);			/* Why we need a write-lock on pmap */
+	memcpy(array, pm->array, length);
 
-	for (i = 0; i < pm->count; i++) {
-		struct vm_fragment *vmf = &pm->array[i];
+	rwlock_wunlock(&pm->lock);
+
+	/*
+	 * Remaining code running without any lock, using the data we just copied.
+	 */
+
+	log_debug(la, "VMM local pmap (%zu/%zu region%s):",
+		count, size, plural(count));
+
+	for (i = 0; i < count; i++) {
+		struct vm_fragment *vmf = &array[i];
 		size_t hole = 0;
 
-		if (i < pm->count - 1) {
-			const void *next = pm->array[i+1].start;
+		if (i < count - 1) {
+			const void *next = array[i+1].start;
 			hole = ptr_diff(next, vmf->end);
 		}
 
@@ -772,7 +786,7 @@ vmm_dump_pmap_log(logagent_t *la)
 			size_is_non_negative(hole) ? "" : " *UNSORTED*");
 	}
 
-	rwlock_wunlock(&pm->lock);
+	vmm_free(array, length);
 }
 
 /**
