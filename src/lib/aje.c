@@ -94,6 +94,7 @@
 #include "pslist.h"
 #include "random.h"
 #include "sha1.h"
+#include "pow2.h"				/* For IS_POWER_OF_2() */
 #include "spinlock.h"
 #include "thread.h"
 #include "tm.h"
@@ -263,7 +264,7 @@ static void
 aje_reseed(aje_state_t *as)
 {
 	uint k;
-	size_t n;
+	size_t n, offset;
 	SHA1_context kctx;
 	sha1_t buf;
 
@@ -299,6 +300,30 @@ aje_reseed(aje_state_t *as)
 	}
 
 	/*
+	 * If the key is smaller than the SHA1 buffer, we can randomly offset
+	 * the key start within the buffer to add more entropy.
+	 */
+
+#define AJE_EXTRABYTES	(AJE_DIGEST_LEN - AJE_CIPHER_KEYLEN)
+
+	if (AJE_DIGEST_LEN > AJE_CIPHER_KEYLEN) {
+		/*
+		 * We avoid modulo bias by masking an entire set of trailing bits.
+		 * Surely, that limits the amount of values ``offset'' can take by
+		 * removing the upper value AJE_EXTRABYTES, but it simplifies code.
+		 */
+
+		STATIC_ASSERT(IS_POWER_OF_2(AJE_EXTRABYTES));
+		g_assert(as->krnd < G_N_ELEMENTS(as->key));
+
+		offset = as->key[as->krnd] & (AJE_EXTRABYTES - 1);
+	} else {
+		offset = 0;
+	}
+
+#undef AJE_EXTRABYTES
+
+	/*
 	 * Add the old key, the current counter and the previous reseed time into
 	 * the mix, then generate the new encryption key.
 	 */
@@ -309,8 +334,10 @@ aje_reseed(aje_state_t *as)
 	SHA1_result(&kctx, &buf);
 
 	STATIC_ASSERT(sizeof as->key <= sizeof buf);
+	g_assert(offset + sizeof as->key <= sizeof buf);
 
-	memcpy(as->key, &buf, sizeof as->key);
+	memcpy(as->key, ptr_add_offset(&buf, offset), sizeof as->key);
+	as->krnd = 0;
 
 	/*
 	 * Clear intermediate values from the stack.
