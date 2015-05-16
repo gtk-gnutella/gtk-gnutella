@@ -1806,7 +1806,7 @@ exercise_memory(void *arg)
 	er->alloc_us = tm_elapsed_us(&end, &start);
 
 	if (randomize_free)
-		shuffle(mem, filled, sizeof mem[0]);
+		SHUFFLE_ARRAY_N(mem, filled);
 
 	tm_now_exact(&start);
 	for (i = 0; i < filled; i++) {

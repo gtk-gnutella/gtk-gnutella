@@ -34,6 +34,27 @@
 #ifndef _shuffle_h_
 #define _shuffle_h_
 
+/**
+ * Shuffle specified array ``a'' in-place.
+ */
+#define SHUFFLE_ARRAY(a) G_STMT_START {				\
+	shuffle((a), G_N_ELEMENTS(a), sizeof((a)[0]));	\
+} G_STMT_END
+
+/**
+ * Shuffle first ``n'' items of array ``a'' in-place.
+ */
+#define SHUFFLE_ARRAY_N(a,n) G_STMT_START { \
+	shuffle((a), (n), sizeof((a)[0]));		\
+} G_STMT_END
+
+/**
+ * Shuffle specified array ``a'' in-place with random function ``f''.
+ */
+#define SHUFFLE_ARRAY_WITH(f,a) G_STMT_START {					\
+	shuffle_with((f), (a), G_N_ELEMENTS(a), sizeof((a)[0]));	\
+} G_STMT_END
+
 /*
  * Public interface.
  */

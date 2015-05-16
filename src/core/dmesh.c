@@ -1853,7 +1853,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 	 * the first `hcnt' entries.
 	 */
 
-	shuffle(selected, nselected, sizeof selected[0]);
+	SHUFFLE_ARRAY_N(selected, nselected);
 
 	for (i = j = 0; i < nselected && j < hcnt; i++, j++) {
 		struct dmesh_entry *dme;
@@ -2216,7 +2216,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * Second pass.
 	 */
 
-	shuffle(selected, nselected, sizeof selected[0]);
+	SHUFFLE_ARRAY_N(selected, nselected);
 
 	for (i = 0; i < nselected; i++) {
 		struct dmesh_entry *dme = selected[i];

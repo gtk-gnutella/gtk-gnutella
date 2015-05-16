@@ -872,7 +872,7 @@ entropy_collect_cpu(SHA1_context *ctx)
 	 */
 
 	memcpy(r, env, sizeof r);
-	shuffle_with(rand31_u32, r, G_N_ELEMENTS(r), sizeof r[0]);
+	SHUFFLE_ARRAY_WITH(rand31_u32, r);
 
 	SHA1_INPUT(ctx, env);				/* "env" is an array */
 	SHA1_INPUT(ctx, r);
@@ -1192,7 +1192,7 @@ entropy_self_feed_maybe(SHA1_context *ctx)
 
 		memcpy(cbytes, ctx, sizeof cbytes);
 		for (i = 0; i < 7; i++)
-			shuffle_with(rand31_u32, cbytes, sizeof cbytes, 1);
+			SHUFFLE_ARRAY_WITH(rand31_u32, cbytes);
 		SHA1_INPUT(ctx, cbytes);
 	}
 }
@@ -1207,7 +1207,7 @@ static void G_GNUC_COLD
 entropy_seed(struct entropy_minictx *c)
 {
 	extern char **environ;
-	char garbage[64];		/* Left uninitialized on purpose */
+	ulong garbage[16];		/* Left uninitialized on purpose */
 	const char *str[RANDOM_SHUFFLE_MAX];
 	SHA1_context ctx;
 	size_t i, j;
@@ -1222,7 +1222,7 @@ entropy_seed(struct entropy_minictx *c)
 
 #define ENTROPY_SHUFFLE_FEED(a, f) G_STMT_START {				\
 	size_t x;													\
-	shuffle_with(rand31_u32, a, G_N_ELEMENTS(a), sizeof a[0]);	\
+	SHUFFLE_ARRAY_WITH(rand31_u32, a);							\
 	for (x = 0; x < G_N_ELEMENTS(a); x++)						\
 		f(&ctx, a[x]);											\
 	ENTROPY_CONTEXT_FEED;										\
@@ -1265,7 +1265,7 @@ entropy_seed(struct entropy_minictx *c)
 
 		SHA1_intermediate(&ctx, &hash);
 		memcpy(data, &hash, sizeof data);
-		shuffle_with(rand31_u32, data, G_N_ELEMENTS(data), sizeof data[0]);
+		SHUFFLE_ARRAY_WITH(rand31_u32, data);
 		SHA1_INPUT(&ctx, data);
 		tm_precise_time(&now);
 		SHA1_INPUT(&ctx, now);
@@ -1317,6 +1317,7 @@ entropy_seed(struct entropy_minictx *c)
 	ZERO(&garbage);
 #endif
 
+	SHUFFLE_ARRAY_WITH(rand31_u32, garbage);
 	SHA1_INPUT(&ctx, garbage);
 	ENTROPY_CONTEXT_FEED;
 

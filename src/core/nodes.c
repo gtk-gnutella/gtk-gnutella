@@ -12791,7 +12791,7 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 	/* ``i'' is the amount of ultranodes we put in the array */
 
 	if (ultras != NULL)
-		shuffle(ultras, i, sizeof ultras[0]);
+		SHUFFLE_ARRAY_N(ultras, i);
 
 	/*
 	 * Start by filling hosts from the cache, so that we can remove duplicates.

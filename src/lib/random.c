@@ -822,7 +822,7 @@ random_entropy(void *unused)
 	 * and therefore it cannot be concurrently executed.
 	 */
 
-	shuffle(prngs, G_N_ELEMENTS(prngs), sizeof prngs[0]);
+	SHUFFLE_ARRAY(prngs);
 
 	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
 		switch (prngs[i]) {
@@ -842,7 +842,7 @@ random_entropy(void *unused)
 
 	aje_random_bytes(entropy, ELEN);	/* New random bytes */
 
-	shuffle(prngs, G_N_ELEMENTS(prngs), sizeof prngs[0]);
+	SHUFFLE_ARRAY(prngs);
 
 	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
 		pslist_t *u = NULL;
