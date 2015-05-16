@@ -1260,7 +1260,7 @@ entropy_seed(struct entropy_minictx *c)
 	/* Reseed the rand31 PRNG */
 
 	{
-		struct sha1 hash;
+		sha1_t hash;
 		uint8 data[SHA1_RAW_SIZE];
 
 		SHA1_intermediate(&ctx, &hash);
@@ -1333,7 +1333,7 @@ entropy_seed(struct entropy_minictx *c)
 	/* Partial SHA1 result */
 
 	{
-		struct sha1 hash;
+		sha1_t hash;
 		const void *p = &hash;
 		uint32 v, n;
 
@@ -1370,11 +1370,11 @@ entropy_seed(struct entropy_minictx *c)
 	SHA1_INPUT(&ctx, now);
 
 	{
-		struct sha1 hash;
+		sha1_t hash;
 		const void *p = &hash;
 		uint32 v;
 
-		SHA1_intermediate(&ctx, &hash);
+		SHA1_result(&ctx, &hash);
 		p = peek_be32_advance(p, &c->x);
 		p = peek_be32_advance(p, &c->y);
 		p = peek_be32_advance(p, &c->z);
