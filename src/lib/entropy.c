@@ -1067,6 +1067,40 @@ entropy_collect_timing(SHA1_context *ctx, bool slow)
 }
 
 /**
+ * Feed the (shuffled) SHA1 context to itself.
+ */
+static void
+entropy_self_feed(SHA1_context *ctx)
+{
+	char cbytes[sizeof(SHA1_context)];
+	int i;
+
+	/*
+	 * Because there are about 108 bytes to shuffle, rand31_u32()
+	 * is a poor source of randomness: we don't have enough bits
+	 * of context to produce all the combinations.  Therefore, the
+	 * shuffling is biased.
+	 *
+	 * To randomize things a little more, we perform our shuffling
+	 * several times.
+	 *
+	 * Here, we want to introduce as much chaos as possible in the original
+	 * seed computation to prevent several computers executing the same
+	 * logic (this program) at around the same time with similar machines
+	 * from producing the same seed.
+	 *
+	 * We cannot use entropy_minirand() to shuffle since we can be called
+	 * from entropy_seed() when we're precisely seeding the initial context
+	 * used by entropy_minirand().
+	 */
+
+	memcpy(cbytes, ctx, sizeof cbytes);
+	for (i = 0; i < 7; i++)
+		SHUFFLE_ARRAY_WITH(rand31_u32, cbytes);
+	SHA1_INPUT(ctx, cbytes);
+}
+
+/**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
  * @param digest			where generated random 160 bits are output
@@ -1126,6 +1160,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_time;
 	fn[i++] = entropy_collect_garbage;
 	fn[i++] = entropy_collect_vfs;
+	fn[i++] = entropy_self_feed;
 
 	g_assert(i <= G_N_ELEMENTS(fn));
 
@@ -1171,30 +1206,8 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 static void G_GNUC_COLD
 entropy_self_feed_maybe(SHA1_context *ctx)
 {
-	if (random_upto(rand31_u32, 999) < 200) {
-		char cbytes[sizeof(SHA1_context)];
-		int i;
-
-		/*
-		 * Because there are about 108 bytes to shuffle, rand31_u32()
-		 * is a poor source of randomness: we don't have enough bits
-		 * of context to produce all the combinations.  Therefore, the
-		 * shuffling is biased.
-		 *
-		 * To randomize things a little more, we perform our shuffling
-		 * several times.
-		 *
-		 * Here, we want to introduce as much chaos as possible in the original
-		 * seed computation to prevent several computers executing the same
-		 * logic (this program) at around the same time with similar machines
-		 * from producing the same seed.
-		 */
-
-		memcpy(cbytes, ctx, sizeof cbytes);
-		for (i = 0; i < 7; i++)
-			SHUFFLE_ARRAY_WITH(rand31_u32, cbytes);
-		SHA1_INPUT(ctx, cbytes);
-	}
+	if (random_upto(rand31_u32, 999) < 200)
+		entropy_self_feed(ctx);
 }
 
 /**
