@@ -3771,9 +3771,11 @@ retry:
 			 * with ``reuse_addr'' still being FALSE.
 			 */
 
-			if (!reuse_addr) {
-				g_warning("%s(): cannot reuse after failed bind(), retrying...",
-					G_STRFUNC);
+			if (EADDRINUSE == errno && !reuse_addr) {
+				g_warning("%s(): cannot reuse %s port %u on %s "
+					"after failed bind(), retrying...",
+					G_STRFUNC, SOCK_DGRAM == type ? "UDP" : "TCP",
+					port, host_addr_to_string(bind_addr));
 				reuse_addr = TRUE;
 				goto retry;
 			}
