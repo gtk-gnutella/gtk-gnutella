@@ -1317,6 +1317,19 @@ slow_main_timer(time_t now)
 	download_slow_timer(now);
 	node_slow_timer(now);
 	ignore_timer(now);
+
+	/*
+	 * Unfortunately, Linux is not always correctly handling SO_REUSEADDR:
+	 * a bind() can fail with errno set to EADDRINUSE despite the flag being
+	 * requested on the socket descriptor prior to calling bind().
+	 *
+	 * So we have no other choice but to periodically re-attempt the creation
+	 * when we end-up with no TCP listening socket.
+	 *		--RAM, 2015-05-17
+	 */
+
+	if (GNET_PROPERTY(tcp_no_listening))
+		settings_create_listening_sockets();
 }
 
 /**

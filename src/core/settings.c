@@ -2109,7 +2109,7 @@ request_new_sockets(uint16 port, bool check_firewalled)
 
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
 
-		if (GNET_PROPERTY(enable_udp)) {
+		if (GNET_PROPERTY(enable_udp) && s_tcp_listen != NULL) {
 			g_assert(NULL == s_udp_listen);
 
 			s_udp_listen = socket_udp_listen(bind_addr, port, udp_received);
@@ -2123,7 +2123,7 @@ request_new_sockets(uint16 port, bool check_firewalled)
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV6);
 
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
-		if (GNET_PROPERTY(enable_udp)) {
+		if (GNET_PROPERTY(enable_udp) && s_tcp_listen6 != NULL) {
 			g_assert(NULL == s_udp_listen6);
 
 			s_udp_listen6 = socket_udp_listen(bind_addr, port, udp_received);
@@ -2196,10 +2196,12 @@ listen_port_changed(property_t prop)
 		bit_array_set_range(tried, 0, 1023);
 		bit_array_clear_range(tried, 1024, 65535);
 
+#define PORT_RANGE	(65535 - 1024)
+
 		do {
 			uint32 i;
 
-			i = random_value(65535 - 1024) + 1024;
+			i = random_value(PORT_RANGE) + 1024;
 			port = i;
 
 			/* Check whether this port was tried before */
@@ -2217,7 +2219,9 @@ listen_port_changed(property_t prop)
 			if (s_tcp_listen || s_tcp_listen6)
 				break;
 
-		} while (++num_tried < 65535 - 1024);
+		} while (++num_tried < PORT_RANGE);
+
+#undef PORT_RANGE
 
 		old_port = port;
 		gnet_prop_set_guint32_val(prop, port);
@@ -2232,7 +2236,7 @@ listen_port_changed(property_t prop)
 		upnp_map_tcp(old_port);
 
 	if (s_udp_listen != NULL)
-			upnp_map_udp(old_port);
+		upnp_map_udp(old_port);
 
 	if (!settings_init_running) {
 		inet_firewalled();
@@ -2245,7 +2249,6 @@ listen_port_changed(property_t prop)
      */
 
     if (s_tcp_listen == NULL && GNET_PROPERTY(listen_port) != 0) {
-		gcu_statusbar_warning(_("Failed to create listening sockets"));
 		old_port = (uint32) -1;
         return TRUE;
     } else {
@@ -2255,6 +2258,24 @@ listen_port_changed(property_t prop)
 	}
 
     return FALSE;
+}
+
+/**
+ * Re-attempt creation of listening sockets.
+ *
+ * At startup, it is possible that we may not be allowed to bind to the proper
+ * listining port, despite SO_REUSEADDR being set before bind(): on Linux
+ * this is not always working --RAM, 2015-05-17
+ */
+void
+settings_create_listening_sockets(void)
+{
+	(void) listen_port_changed(PROP_LISTEN_PORT);
+
+	if (!GNET_PROPERTY(tcp_no_listening)) {
+		g_message("%s(): established TCP listening socket on port %u",
+			G_STRFUNC, GNET_PROPERTY(listen_port));
+	}
 }
 
 static bool

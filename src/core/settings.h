@@ -65,6 +65,7 @@ uint32 settings_max_msg_size(void);
 void settings_add_randomness();
 void settings_close(void);
 void settings_terminate(void);
+void settings_create_listening_sockets(void);
 
 uint32 get_average_servent_uptime(time_t now);
 uint32 get_average_ip_lifetime(time_t now, enum net_type net);
