@@ -2098,7 +2098,7 @@ request_new_sockets(uint16 port, bool check_firewalled)
 	 */
 
 	if (0 == port)
-		return;
+		goto done;
 
 	/*
 	 * If UDP is enabled, also listen on the same UDP port.
@@ -2142,6 +2142,14 @@ request_new_sockets(uint16 port, bool check_firewalled)
 		inet_firewalled();
 		inet_udp_firewalled(TRUE);
 	}
+
+done:
+	/*
+	 * Let them know when they have no listening socket established.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_TCP_NO_LISTENING,
+		NULL == s_tcp_listen && NULL == s_tcp_listen6);
 }
 
 static bool

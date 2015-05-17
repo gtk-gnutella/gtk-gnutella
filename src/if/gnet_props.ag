@@ -5652,4 +5652,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "tcp_no_listening";
+    desc = "No TCP listening socket bound to allow incoming connections.";
+	save = FALSE;
+	internal = TRUE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

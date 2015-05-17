@@ -59,6 +59,7 @@ PIXMAPS = \
 	magnet.64x64.png \
 	natpmp.xpm \
 	no_firewall.xpm \
+	no_listening.xpm \
 	offline.xpm \
 	online.xpm \
 	pause.xpm \

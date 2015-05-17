@@ -518,6 +518,7 @@ typedef enum {
     PROP_G2_BROWSE_SERVED,
     PROP_LOG_SENDING_G2,
     PROP_SESSION_START_STAMP,
+    PROP_TCP_NO_LISTENING,
     GNET_PROPERTY_END
 } gnet_property_t;
 
