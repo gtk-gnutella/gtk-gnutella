@@ -105,6 +105,10 @@
  *** LIST_ARG(l)		either "l," when the list is needed, or empty
  ***/
 
+#ifndef OWLIST_T
+#error "this file is not meant to be compiled directly"
+#endif
+
 /**
  * Discard list, making the list object invalid.
  *
