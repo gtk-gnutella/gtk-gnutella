@@ -78,6 +78,7 @@
 #include "atomic.h"
 #include "cmwc.h"
 #include "endian.h"
+#include "entropy.h"
 #include "evq.h"
 #include "float.h"
 #include "listener.h"
@@ -719,11 +720,12 @@ random_collect(void)
 }
 
 /**
- * This routine is meant to be called periodically and generates a little
+ * This routine is meant to be called periodically and collects a little
  * bit of random information. Once in a while, when enough randomness has
- * been collected, it feeds it to the random number generator.
+ * been collected, it feeds it to the AJE random number generator.
  *
- * This helps generating unique sequences via random_bytes().
+ * When the collected random pool has been flushed to AJE, we invoke any user
+ * callback registered to be called after fresh randomness was added.
  *
  * @param buf		buffer holding random data
  * @param len		length of random data
@@ -735,6 +737,16 @@ random_pool_append(void *buf, size_t len)
 	g_assert(size_is_positive(len));
 
 	if (random_add_pool(buf, len)) {
+		/*
+		 * The time at which the pool was flushed is in itself a random event.
+		 *
+		 * Calling entropy_harvest_time() will recurse back into this routine
+		 * but the chance of us having to flush the pool again are low, unless
+		 * much randomness was added by other threads.  Therefore, we will not
+		 * be stuck in an endless recursion.
+		 */
+
+		entropy_harvest_time();	/* More randomness */
 		random_added_fire();	/* Let them know new randomness is available */
 	}
 }
