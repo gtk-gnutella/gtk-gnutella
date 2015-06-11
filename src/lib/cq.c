@@ -676,7 +676,7 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
  *
  * This is the preferred way of zeroing a reference to the event because it
  * checks that this is indeed the event being dispatched.  It can only be
- * called from a callout callback, where the queue is already locked.
+ * called from a callout callback.
  *
  * It can be used on normal or extended events (registrations from a foreign
  * thread).  It must only be called once per event, but client code should not
