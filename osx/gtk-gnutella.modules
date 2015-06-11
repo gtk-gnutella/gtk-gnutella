@@ -28,6 +28,7 @@
 	</after>
 	<suggests>
 		<dep package="gnutls"/>
+		<dep package="gtk-osx-themes"/>
 	</suggests>
   </metamodule>
   
