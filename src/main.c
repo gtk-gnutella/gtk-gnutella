@@ -598,6 +598,7 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	if (debugging(0)) {
+		DO(random_dump_stats);
 		DO(palloc_dump_stats);
 		DO(tmalloc_dump_stats);
 		DO(vmm_dump_stats);
@@ -1526,6 +1527,7 @@ main_timer(void *unused_data)
 typedef void (*digest_collector_cb_t)(sha1_t *digest);
 
 static digest_collector_cb_t random_source[] = {
+	random_stats_digest,
 	palloc_stats_digest,
 	gnet_stats_tcp_digest,
 	thread_stats_digest,

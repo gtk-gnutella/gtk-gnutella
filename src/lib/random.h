@@ -70,6 +70,13 @@ typedef void (*random_added_listener_t)(void);
 void random_added_listener_add(random_added_listener_t l);
 void random_added_listener_remove(random_added_listener_t l);
 
+struct logagent;
+struct sha1;
+
+void random_dump_stats(void);
+void random_dump_stats_log(struct logagent *la, unsigned options);
+void random_stats_digest(struct sha1 *digest);
+
 #endif /* _random_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

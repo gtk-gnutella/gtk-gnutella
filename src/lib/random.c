@@ -77,6 +77,7 @@
 #include "arc4random.h"
 #include "atomic.h"
 #include "cmwc.h"
+#include "dump_options.h"
 #include "endian.h"
 #include "entropy.h"
 #include "evq.h"
@@ -92,6 +93,7 @@
 #include "sha1.h"
 #include "shuffle.h"
 #include "spinlock.h"
+#include "stringify.h"
 #include "teq.h"
 #include "thread.h"
 #include "tm.h"
@@ -118,6 +120,49 @@ enum random_prng {
 };
 
 /**
+ * Statistics.
+ */
+static struct random_stats {
+	AU64(input_random_add);
+	AU64(input_random_add_pool);
+	AU64(output_random_bytes);
+	AU64(output_random_bytes_with);
+	AU64(output_random_strong_bytes);
+	AU64(random_entropy_distribution);
+	AU64(aje_distributed);
+	AU64(aje_thread_distributed);
+	AU64(arc4_distributed);
+	AU64(arc4_thread_distributed);
+	AU64(cmwc_distributed);
+	AU64(cmwc_thread_distributed);
+	AU64(well_distributed);
+	AU64(well_thread_distributed);
+	AU64(random_cpu_noise);
+	AU64(random_collect);
+	AU64(random_entropy);
+	AU64(random_upto);
+	AU64(random_u32);
+	AU64(random_u64);
+	AU64(random_ulong);
+	AU64(random_value);
+	AU64(random_ulong_value);
+	AU64(random64_upto);
+	AU64(random64_value);
+	AU64(random_bytes);
+	AU64(random_bytes_with);
+	AU64(random_strong_bytes);
+	AU64(random_double);
+	AU64(random_double_generate);
+	AU64(random_add);
+	AU64(random_add_pool);
+	AU64(random_added_fire);
+	AU64(random_stats_digest);
+} random_stats;
+
+#define RANDOM_STATS_INC(name)		AU64_INC(&random_stats.name)
+#define RANDOM_STATS_ADD(name, val)	AU64_ADD(&random_stats.name, (val))
+
+/**
  * Randomness update listeners.
  *
  * These are invoked right after new randomness was added to the random
@@ -138,6 +183,8 @@ void random_added_listener_remove(random_added_listener_t l)
 static void
 random_added_fire(void)
 {
+	RANDOM_STATS_INC(random_added_fire);
+
 	LISTENER_EMIT(random_added, ());
 }
 
@@ -154,6 +201,8 @@ uint32
 random_upto(random_fn_t rf, uint32 max)
 {
 	uint32 range, min, value;
+
+	RANDOM_STATS_INC(random_upto);
 
 	if G_UNLIKELY(0 == max)
 		return 0;
@@ -255,6 +304,8 @@ random64_upto(random64_fn_t rf, uint64 max)
 {
 	uint64 range, min, value;
 
+	RANDOM_STATS_INC(random64_upto);
+
 	if G_UNLIKELY(0 == max)
 		return 0;
 
@@ -302,6 +353,8 @@ done:
 uint32
 random_u32(void)
 {
+	RANDOM_STATS_INC(random_u32);
+
 	return mt_thread_rand();
 }
 
@@ -311,6 +364,8 @@ random_u32(void)
 uint64
 random_u64(void)
 {
+	RANDOM_STATS_INC(random_u64);
+
 	return mt_thread_rand64();
 }
 
@@ -320,6 +375,8 @@ random_u64(void)
 ulong
 random_ulong(void)
 {
+	RANDOM_STATS_INC(random_ulong);
+
 #if LONGSIZE == 8
 	return mt_thread_rand64();
 #elif LONGSIZE == 4
@@ -335,6 +392,8 @@ random_ulong(void)
 uint32
 random_value(uint32 max)
 {
+	RANDOM_STATS_INC(random_value);
+
 	/*
 	 * This used to return:
 	 *
@@ -364,6 +423,8 @@ random_value(uint32 max)
 uint64
 random64_value(uint64 max)
 {
+	RANDOM_STATS_INC(random64_value);
+
 	return random64_upto(well_thread_rand64, max);
 }
 
@@ -373,6 +434,8 @@ random64_value(uint64 max)
 ulong
 random_ulong_value(ulong max)
 {
+	RANDOM_STATS_INC(random_ulong_value);
+
 #if LONGSIZE == 8
 	return random64_upto(well_thread_rand64, max);
 #elif LONGSIZE == 4
@@ -389,6 +452,9 @@ void
 random_bytes_with(random_fn_t rf, void *dst, size_t size)
 {
 	char *p = dst;
+
+	RANDOM_STATS_INC(random_bytes_with);
+	RANDOM_STATS_ADD(output_random_bytes_with, size);
 
 	while (size > 4) {
 		const uint32 value = (*rf)();
@@ -413,6 +479,9 @@ random_bytes_with(random_fn_t rf, void *dst, size_t size)
 void
 random_bytes(void *dst, size_t size)
 {
+	RANDOM_STATS_INC(random_bytes);
+	RANDOM_STATS_ADD(output_random_bytes, size);
+
 	/*
 	 * This routine must continue to use arc4random(), even though it is
 	 * slower than mt_rand(), because of random_add_pool(): periodic collection
@@ -474,6 +543,9 @@ random_strong(void)
 void
 random_strong_bytes(void *dst, size_t size)
 {
+	RANDOM_STATS_INC(random_strong_bytes);
+	RANDOM_STATS_ADD(output_random_strong_bytes, size);
+
 	random_bytes_with(random_strong, dst, size);
 }
 
@@ -487,6 +559,8 @@ random_cpu_noise(void)
 	struct sha1 digest;
 	SHA1_context ctx;
 	uint32 r, i;
+
+	RANDOM_STATS_INC(random_cpu_noise);
 
 	/* No need to make this routine thread-safe as we want noise anyway */
 
@@ -556,6 +630,8 @@ random_byte_arc4_add(void *p)
 
 	random_byte_data_check(rbd);
 
+	RANDOM_STATS_INC(arc4_thread_distributed);
+
 	arc4_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
 }
@@ -569,6 +645,8 @@ random_byte_well_add(void *p)
 	struct random_byte_data *rbd = p;
 
 	random_byte_data_check(rbd);
+
+	RANDOM_STATS_INC(well_thread_distributed);
 
 	well_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
@@ -584,6 +662,8 @@ random_byte_aje_add(void *p)
 
 	random_byte_data_check(rbd);
 
+	RANDOM_STATS_INC(aje_thread_distributed);
+
 	aje_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
 }
@@ -597,6 +677,8 @@ random_byte_cmwc_add(void *p)
 	struct random_byte_data *rbd = p;
 
 	random_byte_data_check(rbd);
+
+	RANDOM_STATS_INC(cmwc_thread_distributed);
 
 	cmwc_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
@@ -620,6 +702,9 @@ random_add_pool(void *buf, size_t len)
 	uchar *p;
 	size_t n;
 	bool flushed = FALSE;
+
+	RANDOM_STATS_INC(random_add_pool);
+	RANDOM_STATS_ADD(input_random_add_pool, len);
 
 	spinlock(&pool_slk);
 
@@ -667,6 +752,7 @@ random_collect(void)
 	uchar rbyte;
 
 	tm_now_exact(&now);
+	RANDOM_STATS_INC(random_collect);
 
 	spinlock(&collect_slk);
 
@@ -806,6 +892,7 @@ random_entropy(void *unused)
 	size_t i;
 
 	(void) unused;
+	RANDOM_STATS_INC(random_entropy);
 
 	RANDOM_ENTROPY_LOCK;
 
@@ -816,6 +903,8 @@ random_entropy(void *unused)
 
 	if (!has_new)
 		return TRUE;
+
+	RANDOM_STATS_INC(random_entropy_distribution);
 
 #define ELEN	(sizeof entropy)
 
@@ -838,11 +927,24 @@ random_entropy(void *unused)
 
 	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
 		switch (prngs[i]) {
-		case RANDOM_AJE:  aje_addrandom(entropy, ELEN); break;
-		case RANDOM_ARC4: arc4random_addrandom(entropy, (int) ELEN); break;
-		case RANDOM_CMWC: cmwc_addrandom(entropy, ELEN); break;
-		case RANDOM_WELL: well_addrandom(entropy, ELEN); break;
-		case RANDOM_PRNG_COUNT: g_assert_not_reached();
+		case RANDOM_AJE:
+			RANDOM_STATS_INC(aje_distributed);
+			aje_addrandom(entropy, ELEN);
+			break;
+		case RANDOM_ARC4:
+			RANDOM_STATS_INC(arc4_distributed);
+			arc4random_addrandom(entropy, (int) ELEN);
+			break;
+		case RANDOM_CMWC:
+			RANDOM_STATS_INC(cmwc_distributed);
+			cmwc_addrandom(entropy, ELEN);
+			break;
+		case RANDOM_WELL:
+			RANDOM_STATS_INC(well_distributed);
+			well_addrandom(entropy, ELEN);
+			break;
+		case RANDOM_PRNG_COUNT:
+			g_assert_not_reached();
 		}
 	}
 
@@ -911,6 +1013,9 @@ random_add(const void *data, size_t datalen)
 
 	random_entropy_install_once();
 
+	RANDOM_STATS_INC(random_add);
+	RANDOM_STATS_ADD(input_random_add, datalen);
+
 	/*
 	 * The collected data is given to AJE (the global instance), and we then
 	 * extract random data out of AJE to feed it to the other generators.
@@ -945,6 +1050,8 @@ random_double_generate(random_fn_t rf)
 	union double_decomposition dc;
 	uint32 high, low;
 	int lzeroes, exponent;
+
+	RANDOM_STATS_INC(random_double_generate);
 
 	/*
 	 * Floating points in IEEE754 double format have a mantissa of 52 bits,
@@ -1008,6 +1115,8 @@ random_double_generate(random_fn_t rf)
 double
 random_double(void)
 {
+	RANDOM_STATS_INC(random_double);
+
 	return random_double_generate(mt_thread_rand);
 }
 
@@ -1020,6 +1129,85 @@ random_init(void)
 	arc4random_stir_once();
 	mt_init();
 	random_entropy_install_once();
+}
+
+/**
+ * Generate a SHA1 digest of the current random statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+random_stats_digest(sha1_t *digest)
+{
+	RANDOM_STATS_INC(random_stats_digest);
+
+	SHA1_COMPUTE(random_stats, digest);
+}
+
+/**
+ * Dump random statistics to specified logagent.
+ */
+void G_GNUC_COLD
+random_dump_stats_log(logagent_t *la, unsigned options)
+{
+	struct random_stats r;
+
+	atomic_mb();
+	r = random_stats;		/* Struct copy */
+
+#define DUMP64(x) G_STMT_START {							\
+	uint64 v = AU64_VALUE(&r.x);							\
+	log_info(la, "RANDOM %s = %s", #x,						\
+		(options & DUMP_OPT_PRETTY) ?						\
+			uint64_to_gstring(v) : uint64_to_string(v));	\
+} G_STMT_END
+
+	DUMP64(input_random_add);
+	DUMP64(input_random_add_pool);
+	DUMP64(output_random_bytes);
+	DUMP64(output_random_bytes_with);
+	DUMP64(output_random_strong_bytes);
+	DUMP64(random_entropy_distribution);
+	DUMP64(aje_distributed);
+	DUMP64(aje_thread_distributed);
+	DUMP64(arc4_distributed);
+	DUMP64(arc4_thread_distributed);
+	DUMP64(cmwc_distributed);
+	DUMP64(cmwc_thread_distributed);
+	DUMP64(well_distributed);
+	DUMP64(well_thread_distributed);
+	DUMP64(random_cpu_noise);
+	DUMP64(random_collect);
+	DUMP64(random_entropy);
+	DUMP64(random_upto);
+	DUMP64(random_u32);
+	DUMP64(random_u64);
+	DUMP64(random_ulong);
+	DUMP64(random_value);
+	DUMP64(random_ulong_value);
+	DUMP64(random64_upto);
+	DUMP64(random64_value);
+	DUMP64(random_bytes);
+	DUMP64(random_bytes_with);
+	DUMP64(random_strong_bytes);
+	DUMP64(random_double);
+	DUMP64(random_double_generate);
+	DUMP64(random_add);
+	DUMP64(random_add_pool);
+	DUMP64(random_added_fire);
+	DUMP64(random_stats_digest);
+
+#undef DUMP64
+}
+
+/**
+ * Dump random statistics to stderr.
+ */
+void G_GNUC_COLD
+random_dump_stats(void)
+{
+	s_info("RANDOM running statistics:");
+	random_dump_stats_log(log_agent_stderr_get(), 0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
