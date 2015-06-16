@@ -9511,7 +9511,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 		uint_to_gstring(t.x) : uint_to_string(t.x))
 
 #define DUMP64(x) G_STMT_START {							\
-	uint64 v = AU64_VALUE(&thread_stats.x);					\
+	uint64 v = AU64_VALUE(&t.x);							\
 	log_info(la, "THREAD %s = %s", #x,						\
 		(options & DUMP_OPT_PRETTY) ?						\
 			uint64_to_gstring(v) : uint64_to_string(v));	\
