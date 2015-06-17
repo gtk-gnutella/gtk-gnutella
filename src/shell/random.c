@@ -138,10 +138,11 @@ shell_exec_random_stats(struct gnutella_shell *sh, int argc, const char *argv[])
 static enum shell_reply
 shell_exec_random_val(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const char *opt_x, *opt_b, *opt_n;
+	const char *opt_x, *opt_b, *opt_n, *opt_s;
 	const option_t options[] = {
 		{ "b:", &opt_b },			/* how many bytes to generate */
 		{ "n:", &opt_n },			/* how many numbers to generate */
+		{ "s",  &opt_s },			/* use "random_strong" instead of AJE */
 		{ "x",  &opt_x },			/* display in hexadecimal */
 	};
 	uint32 upper = 255, lower = 0;
@@ -202,11 +203,18 @@ shell_exec_random_val(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	while (amount-- != 0) {
 		if (buf != NULL) {
-			aje_random_bytes(buf, bytes);
+			if (opt_s != NULL) {
+				random_strong_bytes(buf, bytes);
+			} else {
+				aje_random_bytes(buf, bytes);
+			}
 			base16_encode(hexbuf, 2 * bytes, buf, bytes);
 			shell_write_line(sh, REPLY_READY, hexbuf);
 		} else {
-			int32 r = lower + random_upto(aje_rand_strong, upper - lower);
+			int32 r;
+			random_fn_t rf = opt_s != NULL ? random_strong : aje_rand_strong;
+
+			r = lower + random_upto(rf, upper - lower);
 			shell_write_line(sh, REPLY_READY,
 				str_smsg(opt_x != NULL ? "%x" : "%d", r));
 		}
@@ -266,12 +274,13 @@ shell_help_random(int argc, const char *argv[])
 		}
 	}
 
-	return "random [-b bytes] [-n amount] [-x] [upper [lower]]\n"
+	return "random [-b bytes] [-n amount] [-sx] [upper [lower]]\n"
 		"Generate uniformly distributed random numbers.\n"
 		"By default: upper=255, lower=0\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		"-b : amount of random bytes to generate (implies -x), max 4096.\n"
 		"-n : amount of numbers or sequences of random bytes (1024 max).\n"
+		"-s : use RC4-encrypted WELL instead of AJE randomness.\n"
 		"-x : display numbers in hexadecimal.\n";
 }
 
