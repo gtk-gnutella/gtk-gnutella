@@ -1528,6 +1528,7 @@ typedef void (*digest_collector_cb_t)(sha1_t *digest);
 
 static digest_collector_cb_t random_source[] = {
 	random_stats_digest,
+	halloc_stats_digest,
 	palloc_stats_digest,
 	gnet_stats_tcp_digest,
 	thread_stats_digest,

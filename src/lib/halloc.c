@@ -95,6 +95,8 @@ static struct hstats {
 	uint64 wasted_cumulative_vmm;		/**< Cumulated waste for VMM allocs */
 	size_t memory;						/**< Amount of bytes allocated */
 	size_t blocks;						/**< Amount of blocks allocated */
+	/* Counter to prevent digest from being the same twice in a row */
+	AU64(halloc_stats_digest);
 } hstats;
 static spinlock_t hstats_slk = SPINLOCK_INIT;
 
@@ -1014,6 +1016,22 @@ h_private(const void *key, void *p)
 }
 
 /**
+ * Generate a SHA1 digest of the current halloc statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+halloc_stats_digest(sha1_t *digest)
+{
+	/*
+	 * Don't take locks to read the statistics, to enhance unpredictability.
+	 */
+
+	HSTATS_INCX(halloc_stats_digest);
+	SHA1_COMPUTE(hstats, digest);
+}
+
+/**
  * Dump halloc statistics to specified log agent.
  */
 G_GNUC_COLD void
@@ -1072,6 +1090,8 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMV(wasted_average_vmm);
 	DUMS(memory);
 	DUMS(blocks);
+
+	DUMP64(halloc_stats_digest);
 
 #undef DUMP
 #undef DUMP64
