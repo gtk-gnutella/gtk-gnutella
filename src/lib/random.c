@@ -123,48 +123,48 @@ enum random_prng {
  * Statistics.
  */
 static struct random_stats {
-	uint aje_threads;
-	uint arc4_threads;
-	uint cmwc_threads;
-	uint well_threads;
-	uint aje_ignored_threads;
-	uint arc4_ignored_threads;
-	uint cmwc_ignored_threads;
-	uint well_ignored_threads;
-	AU64(input_random_add);
-	AU64(input_random_add_pool);
-	AU64(output_random_bytes);
-	AU64(output_random_bytes_with);
-	AU64(output_random_strong_bytes);
-	AU64(random_entropy_distribution);
-	AU64(aje_distributed);
-	AU64(aje_thread_distributed);
-	AU64(arc4_distributed);
-	AU64(arc4_thread_distributed);
-	AU64(cmwc_distributed);
-	AU64(cmwc_thread_distributed);
-	AU64(well_distributed);
-	AU64(well_thread_distributed);
-	AU64(random_cpu_noise);
-	AU64(random_collect);
-	AU64(random_entropy);
-	AU64(random_upto);
-	AU64(random_u32);
-	AU64(random_u64);
-	AU64(random_ulong);
-	AU64(random_value);
-	AU64(random_ulong_value);
-	AU64(random64_upto);
-	AU64(random64_value);
-	AU64(random_bytes);
-	AU64(random_bytes_with);
-	AU64(random_strong_bytes);
-	AU64(random_double);
-	AU64(random_double_generate);
-	AU64(random_add);
-	AU64(random_add_pool);
-	AU64(random_added_fire);
-	AU64(random_stats_digest);
+	uint aje_threads;					/* Amount of threads using AJE */
+	uint arc4_threads;					/* Amount of threads using ARC4 */
+	uint cmwc_threads;					/* Amount of threads using CMWC */
+	uint well_threads;					/* Amount of threads using WELL */
+	uint aje_ignored_threads;			/* Threads using AJE with no TEQ */
+	uint arc4_ignored_threads;			/* Threads using ARC4 with no TEQ */
+	uint cmwc_ignored_threads;			/* Threads using CMWC with no TEQ */
+	uint well_ignored_threads;			/* Threads using WELL with no TEQ */
+	AU64(input_random_add);				/* Bytes input to random_add() */
+	AU64(input_random_add_pool);		/* Bytes input to random_add_pool() */
+	AU64(output_random_bytes);			/* Bytes emitted via random_bytes() */
+	AU64(output_random_bytes_with);		/* ... via random_bytes_with() */
+	AU64(output_random_strong_bytes);	/* ... via random_strong_bytes() */
+	AU64(random_entropy_distribution);	/* Entropy distribution to PRNGs */
+	AU64(aje_distributed);				/* # of distributions to global AJE */
+	AU64(aje_thread_distributed);		/* # of distributions to thread AJE */
+	AU64(arc4_distributed);				/* # of distributions to global ARC4 */
+	AU64(arc4_thread_distributed);		/* # of distributions to thread ARC4 */
+	AU64(cmwc_distributed);				/* # of distributions to global CMWC */
+	AU64(cmwc_thread_distributed);		/* # of distributions to thread CMWC */
+	AU64(well_distributed);				/* # of distributions to global WELL */
+	AU64(well_thread_distributed);		/* # of distributions to thread WELL */
+	AU64(random_cpu_noise);				/* Calls to routine */
+	AU64(random_collect);				/* Calls to routine */
+	AU64(random_entropy);				/* Calls to routine */
+	AU64(random_upto);					/* Calls to routine */
+	AU64(random_u32);					/* Calls to routine */
+	AU64(random_u64);					/* Calls to routine */
+	AU64(random_ulong);					/* Calls to routine */
+	AU64(random_value);					/* Calls to routine */
+	AU64(random_ulong_value);			/* Calls to routine */
+	AU64(random64_upto);				/* Calls to routine */
+	AU64(random64_value);				/* Calls to routine */
+	AU64(random_bytes);					/* Calls to routine */
+	AU64(random_bytes_with);			/* Calls to routine */
+	AU64(random_strong_bytes);			/* Calls to routine */
+	AU64(random_double);				/* Calls to routine */
+	AU64(random_double_generate);		/* Calls to routine */
+	AU64(random_add);					/* Calls to routine */
+	AU64(random_add_pool);				/* Calls to routine */
+	AU64(random_added_fire);			/* Calls to routine */
+	AU64(random_stats_digest);			/* Calls to routine */
 } random_stats;
 
 static spinlock_t random_stats_lock = SPINLOCK_INIT;
