@@ -414,6 +414,7 @@ static struct thread_stats {
 	AU64(thread_self_calls);		/* Amount of thread_self() calls made */
 	AU64(thread_forks);				/* Amount of thread_fork() calls made */
 	AU64(thread_yields);			/* Amount of thread_yield() calls made */
+	AU64(thread_stats_digest);		/* Amount of calls to compute SHA1 digest */
 } thread_stats;
 
 #define THREAD_STATS_INCX(name) AU64_INC(&thread_stats.name)
@@ -9479,6 +9480,8 @@ thread_stats_digest(sha1_t *digest)
 {
 	struct thread_stats t;
 
+	THREAD_STATS_INCX(thread_stats_digest);
+
 	atomic_mb();
 	t = thread_stats;			/* Struct copy */
 
@@ -9565,6 +9568,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(thread_self_calls);
 	DUMP64(thread_forks);
 	DUMP64(thread_yields);
+	DUMP64(thread_stats_digest);
 
 	{
 		size_t rsc_semaphore_used;

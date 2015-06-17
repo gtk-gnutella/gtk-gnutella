@@ -565,6 +565,8 @@ static struct xstats {
 	size_t user_memory;					/**< Current user memory allocated */
 	size_t user_blocks;					/**< Current amount of user blocks */
 	memusage_t *user_mem;				/**< EMA tracker */
+	/* Counter to prevent digest from being the same twice in a row */
+	AU64(xmalloc_stats_digest);
 } xstats;
 static spinlock_t xstats_slk = SPINLOCK_INIT;
 
@@ -6498,6 +6500,7 @@ xmalloc_stats_digest(sha1_t *digest)
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
+	XSTATS_INCX(xmalloc_stats_digest);
 	SHA1_COMPUTE(xstats, digest);
 }
 
@@ -6647,6 +6650,8 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(xgc_bucket_shrinkings);
 	DUMP(user_memory);
 	DUMP(user_blocks);
+
+	DUMP64(xmalloc_stats_digest);
 
 #undef DUMP
 #undef DUMP64

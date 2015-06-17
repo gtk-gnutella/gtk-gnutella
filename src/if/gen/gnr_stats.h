@@ -1,5 +1,5 @@
 /*
- * Generated on Sat Oct  4 09:36:51 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed Jun 17 13:02:21 2015 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 304
+ * Enum count: 307
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -315,6 +315,9 @@ typedef enum {
 	GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS,
 	GNR_DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS,
 	GNR_DHT_SEEDING_OF_ORPHAN,
+	GNR_STATS_DIGEST,
+	GNR_STATS_TCP_DIGEST,
+	GNR_STATS_UDP_DIGEST,
 
 	GNR_TYPE_COUNT
 } gnr_stats_t;

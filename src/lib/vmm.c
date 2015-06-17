@@ -312,6 +312,8 @@ static struct vmm_stats {
 	/* Tracking core blocks doesn't make sense: "core" can be fragmented */
 	memusage_t *user_mem;			/**< User memory usage statistics */
 	memusage_t *core_mem;			/**< Core usage statistics */
+	/* Counter to prevent digest from being the same twice in a row */
+	AU64(vmm_stats_digest);
 } vmm_stats;
 static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
 
@@ -4921,6 +4923,7 @@ vmm_stats_digest(sha1_t *digest)
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
+	VMM_STATS_INCX(vmm_stats_digest);
 	SHA1_COMPUTE(vmm_stats, digest);
 }
 
@@ -5095,7 +5098,6 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(core_pages);
 
 #undef DUMP
-#undef DUMP64
 
 	/*
 	 * Compute amount of cached pages.
@@ -5144,6 +5146,9 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP("computed_native_pages",
 		cached_pages + stats.user_pages + stats.core_pages + local_pmap.pages);
 
+	DUMP64(vmm_stats_digest);
+
+#undef DUMP64
 #undef DUMP
 }
 
