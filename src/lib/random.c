@@ -123,6 +123,14 @@ enum random_prng {
  * Statistics.
  */
 static struct random_stats {
+	uint aje_threads;
+	uint arc4_threads;
+	uint cmwc_threads;
+	uint well_threads;
+	uint aje_ignored_threads;
+	uint arc4_ignored_threads;
+	uint cmwc_ignored_threads;
+	uint well_ignored_threads;
 	AU64(input_random_add);
 	AU64(input_random_add_pool);
 	AU64(output_random_bytes);
@@ -158,6 +166,11 @@ static struct random_stats {
 	AU64(random_added_fire);
 	AU64(random_stats_digest);
 } random_stats;
+
+static spinlock_t random_stats_lock = SPINLOCK_INIT;
+
+#define RANDOM_STATS_LOCK			spinlock(&random_stats_lock)
+#define RANDOM_STATS_UNLOCK			spinunlock(&random_stats_lock)
 
 #define RANDOM_STATS_INC(name)		AU64_INC(&random_stats.name)
 #define RANDOM_STATS_ADD(name, val)	AU64_ADD(&random_stats.name, (val))
@@ -838,28 +851,62 @@ random_pool_append(void *buf, size_t len)
 }
 
 /**
- * Dispatch randomly collected bytes to all the threads listed in ``users''
- * by sending them a TEQ message to invoke ``cb''.
+ * Dispatch randomly collected bytes to all the threads using a given random
+ * number algorithm by sending them a TEQ message.
  *
  * The callback argument is generated the first time we need it, and it is
  * stored in ``rbd_ptr''.  Each routine will get a reference-counted structure
  * and will need to call random_byte_data_free() to cleanup that structure.
  *
- * @param users		the list of thread ID (disposed of at the end)
- * @param cb		the callback to invoke in the thread
+ * @param prng		the random algorithm type
  * @param data		the random data we can give
  * @param len		the amount of bytes we can give
  * @param rbd_ptr	where the allocated callback argument is stored.
  */
 static void
-random_dispatch(pslist_t *users, notify_fn_t cb,
+random_thread_dispatch(enum random_prng prng,
 	const void *data, size_t len, struct random_byte_data **rbd_ptr)
 {
 	struct random_byte_data *rbd = *rbd_ptr;
-	pslist_t *sl;
+	pslist_t *users = NULL, *sl;
+	notify_fn_t cb = NULL;
+	uint threads = 0, ignored = 0, *tcount = NULL, *icount = NULL;
+
+	switch (prng) {
+	case RANDOM_AJE:
+		users = aje_users();
+		cb = random_byte_aje_add;
+		tcount = &random_stats.aje_threads;
+		icount = &random_stats.aje_ignored_threads;
+		break;
+	case RANDOM_ARC4:
+		users = arc4_users();
+		cb = random_byte_arc4_add;
+		tcount = &random_stats.arc4_threads;
+		icount = &random_stats.arc4_ignored_threads;
+		break;
+	case RANDOM_CMWC:
+		users = cmwc_users();
+		cb = random_byte_cmwc_add;
+		tcount = &random_stats.cmwc_threads;
+		icount = &random_stats.cmwc_ignored_threads;
+		break;
+	case RANDOM_WELL:
+		users = well_users();
+		cb = random_byte_well_add;
+		tcount = &random_stats.well_threads;
+		icount = &random_stats.well_ignored_threads;
+		break;
+	case RANDOM_PRNG_COUNT:
+		g_assert_not_reached();
+	}
+
+	g_assert(tcount != NULL);
+	g_assert(icount != NULL);
 
 	PSLIST_FOREACH(users, sl) {
 		uint id = pointer_to_uint(sl->data);	/* Thread ID */
+		threads++;
 		if (teq_is_supported(id)) {
 			if (NULL == rbd) {
 				rbd = random_byte_data_alloc(data, len);
@@ -867,9 +914,16 @@ random_dispatch(pslist_t *users, notify_fn_t cb,
 			}
 			atomic_int_inc(&rbd->refcnt);
 			teq_post(id, cb, rbd);
+		} else {
+			ignored++;
 		}
 	}
 	pslist_free(users);
+
+	RANDOM_STATS_LOCK;
+	*tcount = threads;
+	*icount = ignored;
+	RANDOM_STATS_UNLOCK;
 }
 
 static bool random_entropy_new;
@@ -959,18 +1013,7 @@ random_entropy(void *unused)
 	SHUFFLE_ARRAY(prngs);
 
 	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
-		pslist_t *u = NULL;
-		notify_fn_t cb = NULL;
-
-		switch (prngs[i]) {
-		case RANDOM_AJE:  u = aje_users();  cb = random_byte_aje_add;  break;
-		case RANDOM_ARC4: u = arc4_users(); cb = random_byte_arc4_add; break;
-		case RANDOM_CMWC: u = cmwc_users(); cb = random_byte_cmwc_add; break;
-		case RANDOM_WELL: u = well_users(); cb = random_byte_well_add; break;
-		case RANDOM_PRNG_COUNT: g_assert_not_reached();
-		}
-
-		random_dispatch(u, cb, entropy, ELEN, &rbd);
+		random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
 	}
 
 	if (rbd != NULL)
@@ -1155,6 +1198,10 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	atomic_mb();
 	r = random_stats;		/* Struct copy */
 
+#define DUMP(x)	log_info(la, "RANDOM %s = %s", #x,	\
+	(options & DUMP_OPT_PRETTY) ?					\
+		uint_to_gstring(r.x) : uint_to_string(r.x))
+
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&r.x);							\
 	log_info(la, "RANDOM %s = %s", #x,						\
@@ -1170,12 +1217,20 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_entropy_distribution);
 	DUMP64(aje_distributed);
 	DUMP64(aje_thread_distributed);
+	DUMP(aje_threads);
+	DUMP(aje_ignored_threads);
 	DUMP64(arc4_distributed);
 	DUMP64(arc4_thread_distributed);
+	DUMP(arc4_threads);
+	DUMP(arc4_ignored_threads);
 	DUMP64(cmwc_distributed);
 	DUMP64(cmwc_thread_distributed);
+	DUMP(cmwc_threads);
+	DUMP(cmwc_ignored_threads);
 	DUMP64(well_distributed);
 	DUMP64(well_thread_distributed);
+	DUMP(well_threads);
+	DUMP(well_ignored_threads);
 	DUMP64(random_cpu_noise);
 	DUMP64(random_collect);
 	DUMP64(random_entropy);
