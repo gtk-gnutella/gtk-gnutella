@@ -1142,6 +1142,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		fn[i++] = entropy_collect_thread;
 		fn[i++] = entropy_collect_gateway;
 		fn[i++] = entropy_collect_host;
+		fn[i++] = entropy_collect_vfs;
 
 		g_assert(i <= G_N_ELEMENTS(fn));
 	}
@@ -1159,7 +1160,6 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_minirand;
 	fn[i++] = entropy_collect_time;
 	fn[i++] = entropy_collect_garbage;
-	fn[i++] = entropy_collect_vfs;
 	fn[i++] = entropy_self_feed;
 
 	g_assert(i <= G_N_ELEMENTS(fn));
@@ -1319,11 +1319,6 @@ entropy_seed(struct entropy_minictx *c)
 		const char *astr[] =
 			{ ".", "..", "../..", "../../..", "/", ENTROPY_TMP, ENTROPY_VAR };
 		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_stat);
-	}
-
-	{
-		const char *astr[] = { ".", "/", ENTROPY_TMP, ENTROPY_VAR };
-		ENTROPY_SHUFFLE_FEED(astr, sha1_feed_statvfs);
 	}
 
 #ifndef ALLOW_UNINIT_VALUES
