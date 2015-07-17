@@ -107,9 +107,9 @@
 
 #include "hash.h"
 
-#include "entropy.h"
 #include "endian.h"
 #include "hashing.h"
+#include "rand31.h"
 #include "random.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -170,9 +170,18 @@ hash_random_offset_init(void)
 {
 	static bool done;
 
+	/*
+	 * We used to call entropy_random() here but we really do not need such
+	 * a strong random number.  Moreover, this triggers quite a lot of code
+	 * whilst we can be called very early in the auto-initialization sequence.
+	 * Therefore, let's switch to rand31_u32() which will be lighter and
+	 * less likely to accidentally trigger auto-init loops.
+	 *		--RAM, 2015-07-17
+	 */
+
 	if G_UNLIKELY(!done) {
-		hash_offset_primary = entropy_random();
-		hash_offset_secondary = entropy_random();
+		hash_offset_primary = rand31_u32();
+		hash_offset_secondary = rand31_u32();
 		done = TRUE;
 	}
 }
