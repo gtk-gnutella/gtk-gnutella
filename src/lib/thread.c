@@ -7375,12 +7375,12 @@ thread_sp(void)
 	int sp;
 
 	/*
-	 * The cast_to_pointer() is of course unnecessary but is there to
-	 * prevent the "function returns address of local variable" warning
-	 * from gcc.
+	 * The useless masking computation below is there to avoid gcc 5.x from
+	 * (wrongly) optimizing this routine to return NULL.
+	 *		--RAM, 2015-07-20
 	 */
 
-	return cast_to_pointer(&sp);
+	return ulong_to_pointer(pointer_to_ulong(&sp) & ~(MEM_ALIGNBYTES - 1));
 }
 
 /**
