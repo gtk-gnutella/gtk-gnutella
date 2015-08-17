@@ -10894,6 +10894,15 @@ update_available_ranges(struct download *d, const header_t *header)
 
 	buf = header_get(header, available_ranges);
 
+	if (NULL == buf && !seen_available) {
+		/*
+		 * Neither X-Available nor X-Available-Ranges were seen, therefore
+		 * file must be complete.
+		 */
+
+		available_bytes = download_filesize(d);
+	}
+
 	if (NULL == buf || download_filesize(d) == 0)
 		goto send_event;
 
@@ -10956,7 +10965,8 @@ update_available_ranges(struct download *d, const header_t *header)
 		has_new_ranges = TRUE;
 
 		if (GNET_PROPERTY(download_debug)) {
-			g_debug("X-Available header from %s: has %s bytes for \"%s\"",
+			g_debug("%s X-Available header from %s: has %s bytes for \"%s\"",
+				seen_available ? "seen some" : "no",
 				download_host_info(d), uint64_to_string(available_bytes),
 				download_basename(d));
 		}
