@@ -542,17 +542,21 @@ again:		/* Avoids indenting all this code */
 
 
 	/*
-	 * Notify main thread only once per second at most, this is only for
-	 * the benefit of the GUI.
+	 * Notify main thread only once per second at most, or when the file
+	 * is completely copied.
+	 *
+	 * This is only for the benefit of the GUI.
 	 */
+
+	if G_UNLIKELY(md->copied == md->size) {
+		teq_safe_rpc(THREAD_MAIN, move_progress, md);
+		return BGR_DONE;
+	}
 
 	if (delta_time(tm_time(), md->last_notify) >= 1) {
 		teq_safe_rpc(THREAD_MAIN, move_progress, md);
 		md->last_notify = tm_time();
 	}
-
-	if (md->copied == md->size)
-		return BGR_DONE;
 
 	/*
 	 * If we still have unused ticks, repeat.
