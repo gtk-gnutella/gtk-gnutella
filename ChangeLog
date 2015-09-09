@@ -1,3 +1,63 @@
+# v 1.1.4   2015-09-09  [stable]
+
+This release is mostly a bug-fixing release.
+
+One major bug (leading to crash) was found in the G2 frame parsing layer: a
+carefully crafter G2 packet sent to GTKG could crash it, leading to a Denial
+of Service.  For that reason, an upgrade to 1.1.4 is strongly recommended.
+
+The only major new feature is the added cleanups of the TTH cache and the
+crash log directory to make sure we do not keep useless files on the disk
+forever.
+
+Because the Phex servent is no longer maintained, there is now a workaround
+for that particular servent to ensure it can correctly download from GTKG.
+
+Improvements:
+- [GTK2] Added tri-state column sorting in "property editor" preference pane.
+- [GTK2] Show icon + warning message when we have no TCP listening socket.
+- Added an "install-strip" target to all Makefiles to install with stripping.
+- Can no longer edit properties flagged as "internal" through shell or GUI.
+- Added new "session_start_stamp" property to hold the true starting time.
+- Added support for TTH cache cleanup.
+- Added automatic cleanup of the crash log directory.
+- New shell command "random stats" to display the statistics on random layer.
+- Workaround for Phex: always send X-Gnutella-Content-URN in upload replies.
+- Updated GeoIP database.
+
+Bug Fixes:
+- upnp_natpmp_discovered(): detect when UPnP layer was shutdown and abort.
+- Fixed bad definition of XXTEA key, which led us to use only its first 4 bytes.
+- node_g2_read(): need to only read 3 bytes usually to determine frame length.
+- thread_sp(): tweaked to defeat gcc 5.x optimization leading to a NULL return.
+- File moving: notify main thread as soon as file is completely copied.
+- update_available_ranges(): lack of X-Available means file is full on server.
+
+Under the Hood:
+- Windows: added getppid() and statvfs() emulation, plus rmdir() support.
+- Improved the unpredictability of our random numbers.
+- Loudly warn if attempting a file-descriptor operation on a revoked descriptor.
+- Added compat_sendfile() with fallback to emulated version when necessary.
+- Added compat_statvfs() for portability and code simplification.
+- File moving operations now use sendfile() if available.
+- XFMT: made it loudly clear that comment nodes are ignored for now.
+- VMM: when debugging, trace large allocation spots.
+- VMM: raised maximum page cache lifetime from 3 to 15 minutes.
+- page_cache_find_pages(): treat user memory as if under short-term strategy.
+- filepath_basename(): optimize code when G_DIR_SEPARATOR is '/'.
+- Optimized CMP() to avoid branching regardless of the arguments.
+- Added ftw_foreach() to traverse a file system and process each entry.
+- mingw_readdir(): do not change errno if it was left untouched by _wreaddir().
+- Let mingw_{opendir,readdir,closedir} use normal types, not generic ones.
+- mingw_stat(): added workaround for trailing "/" or "/." in paths.
+- etree_traverse_internal(): minor optimization to avoid trailing +1 each time.
+- Added etree_sort() and etree_sort_with_data() to sort children of all nodes.
+- Changed signature of decoding base16 and base32 routines.
+- Regenerated Configure to fix the fdopendir() compile test.
+- Make sure pointer hashing distributes its trailing bits evenly.
+- elist_merge_sort(): don't update tail, just do one single pass at the end.
+- vmm_dump_pmap_log(): copy pmap data, then process dumping without locks.
+
 # v 1.1.3   2015-04-08  [stable]
 
 This is mainly a critical bug-fixing release, addressing a huge shortcoming
