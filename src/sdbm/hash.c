@@ -18,12 +18,31 @@
  * use: 65599	nice.
  *      65587   even better. 
  */
-G_GNUC_HOT long
+long G_GNUC_HOT
 sdbm_hash(const char *s, size_t len)
 {
 	unsigned long n = 0;
 
-#define HASHC	n = (unsigned char) *s++ + 65599UL * n
+	/*
+	 * Noting that 65599 = 2^16 + 2^6 - 1, we could rewrite:
+	 *
+	 *     n = (uint8) *s++ + 65599UL * n
+	 *
+	 * as:
+	 *
+	 *     n = (uint8) *s++ + (n << 16) + (n << 6) - n;
+	 *
+	 * which is a much faster choice of operations since multiplication
+	 * takes more CPU cycles than bit shifts and additions.
+	 *
+	 * However gcc is already smart enough to perform this optimization
+	 * by itself, even when compiling with -O0, so we keep the multiplicative
+	 * expression, as in the original code, leaving this low-level rewrite
+	 * business to the compiler.
+	 *		--RAM, 2015-04-30
+	 */
+
+#define HASHC	n = (uint8) *s++ + 65599UL * n
 
 	if (len > 0) {
 #ifdef DUFF

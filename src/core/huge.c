@@ -319,7 +319,7 @@ parse_and_append_cache_entry(char *line)
 		if (
 			*p != '\t' ||
 			(p - sha1_digest_ascii) != SHA1_BASE32_SIZE ||
-			SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
+			SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
 								sha1_digest_ascii, SHA1_BASE32_SIZE)
 		) {
 			goto failure;
@@ -707,7 +707,7 @@ huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
 
-	if (SHA1_RAW_SIZE != base32_decode(sha1->data, sizeof sha1->data, buf, len))
+	if (SHA1_RAW_SIZE != base32_decode(sha1, sizeof *sha1, buf, len))
 		goto bad;
 
 	/*
@@ -756,7 +756,7 @@ huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	if (len != TTH_BASE32_SIZE)
 		goto bad;
 
-	if (TTH_RAW_SIZE != base32_decode(tth->data, sizeof tth->data, buf, len))
+	if (TTH_RAW_SIZE != base32_decode(tth, sizeof *tth, buf, len))
 		goto bad;
 
 	return TRUE;

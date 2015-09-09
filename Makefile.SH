@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-148]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
+: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -50,7 +50,7 @@ SUBDIRS = src pixmaps po extra_files
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
+# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
@@ -94,6 +94,9 @@ local_clobber:: local_realclean
 install:: local_install sub_install
 	@exit 0
 
+install-strip:: local_install-strip sub_install-strip
+	@exit 0
+
 install.man:: maybe_install.man sub_install.man
 deinstall:: sub_deinstall local_deinstall
 deinstall.man:: sub_deinstall.man maybe_deinstall.man
@@ -133,12 +136,15 @@ subdirs:
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
-		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
+		(cd $$i ; echo "$(VERB) in $(DIR)$$i..."; \
 			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)) || exit 1; \
 	done
 
 sub_install::
 	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
+
+sub_install-strip::
+	@$(MAKE) subdirs TARGET=install-strip VERB="Installing (strip)" FLAGS=
 
 sub_deinstall::
 	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
@@ -208,6 +214,7 @@ all::
 	@$(MAKE) subdirs TARGET=all VERB="Making all" FLAGS=
 
 local_install::
+local_install-strip::
 local_deinstall::
 local_install.man::
 local_deinstall.man::

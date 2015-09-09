@@ -85,7 +85,9 @@ LSRC = \
 	compat_pause.c \
 	compat_pio.c \
 	compat_poll.c \
+	compat_sendfile.c \
 	compat_sleep_ms.c \
+	compat_statvfs.c \
 	compat_un.c \
 	compat_usleep.c \
 	concat.c \
@@ -122,6 +124,7 @@ LSRC = \
 	fragcheck.c \
 	frand.c \
 	fs_free_space.c \
+	ftw.c \
 	gen-iprange.c \
 	gentime.c \
 	getcpucount.c \
@@ -235,6 +238,7 @@ LSRC = \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
+	xslist.c \
 	xsort.c \
 	xsort_data.c \
 	xxtea.c \
@@ -314,13 +318,19 @@ float-times: float-test floats
 	echo -n "free:    " >>$@
 	sh -c "time ./float-test floats dragon > /dev/null" >>$@ 2>&1
 
+ftw-check: ftw-test
+	./ftw-mktree
+	./ftw-test -s ftw-root | diff -u - ftw-root.out >$@
+
 local_clean::
-	$(RM) floats float-dragon.out bad-fixed float-times
+	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
+	./ftw-mktree -r
 
 #define NormalTestTarget(base)	@!\
 NormalProgramLibTarget(base-test, base-test.c, base-test.o, libshared.a)
 
 NormalTestTarget(float)
+NormalTestTarget(ftw)
 NormalTestTarget(random)
 NormalTestTarget(sort)
 NormalTestTarget(thread)

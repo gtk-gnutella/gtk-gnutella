@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014 Raphael Manfredi
+ * Copyright (c) 2012, 2014-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Embedded n-ary trees (within another data structure).
  *
  * @author Raphael Manfredi
- * @date 2012, 2014
+ * @date 2012, 2014-2015
  */
 
 #ifndef _etree_h_
@@ -111,7 +111,7 @@ etree_init_root(etree_t *tree, const void *root, bool extended, size_t offset)
 	tree->magic = extended ? ETREE_EXT_MAGIC : ETREE_MAGIC;
 	tree->root = ptr_add_offset(deconstify_pointer(root), offset);
 	tree->offset = offset;
-	tree->count = 0;			/* Means: unknown yet if root != NULL */
+	tree->count = (NULL == tree->root->child) ? 1 : 0;
 }
 
 /**
@@ -227,6 +227,9 @@ etree_count(const etree_t *et)
 		NULL, NULL, NULL);
 }
 
+void etree_init(etree_t *tree, bool extended, size_t offset);
+void etree_set_root(etree_t *tree, const void *root);
+
 bool etree_is_standalone(const etree_t *tree, const void *item);
 bool etree_is_orphan(const etree_t *tree, const void *item);
 
@@ -247,6 +250,9 @@ void etree_add_left_sibling(etree_t *tree, void *node, void *item);
 void *etree_last_child(const etree_t *tree, const void *item);
 
 void etree_detach(etree_t *tree, void *item);
+
+void etree_sort(etree_t *tree, cmp_fn_t cmp);
+void etree_sort_with_data(etree_t *tree, cmp_data_fn_t cmp, void *data);
 
 void etree_free_data(etree_t *tree, free_data_fn_t fcb, void *data);
 void etree_free(etree_t *tree, free_fn_t fcb);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Raphael Manfredi
+ * Copyright (c) 2012-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,6 +27,14 @@
  *
  * Embedded one-way list (within another data structure).
  *
+ *   +-----+     +-----+     +-----+  ^
+ *   |/////|     |/////|     |/////|  |
+ *   |/////|     |/////|     |/////|  |  offset
+ *   |/////|     |/////|     |/////|  |
+ *   +=====+     +=====+     +=====+  v
+ *   | ***-+---->| ***-+---->|(nil)|     link offset = 0
+ *   +=====+     +=====+     +=====+
+ *
  * Embedded lists are created when the linking pointers are directly
  * held within the data structure, as opposed to glib's lists which are
  * containers pointing at objects.
@@ -48,20 +56,15 @@
  * the glib list API is quite good so mirroring it is not a problem.
  *
  * @author Raphael Manfredi
- * @date 2012-2013
+ * @date 2012-2015
  */
 
 #include "common.h"
 
 #include "eslist.h"
 
-#include "random.h"
-#include "shuffle.h"
 #include "unsigned.h"
 #include "walloc.h"
-#include "xmalloc.h"
-
-#include "override.h"			/* Must be the last header included */
 
 #if 0
 #define ESLIST_SAFETY_ASSERT	/**< Turn on costly integrity assertions */
@@ -72,6 +75,21 @@
 #else
 #define safety_assert(x)
 #endif
+
+/*
+ * Configure owlist-gen.c for an "eslist".
+ */
+
+#define CHECK(l)			eslist_check(l)
+#define INVARIANT(l)		eslist_invariant(l)
+#define PREFIX				eslist_
+#define OWLIST_T			eslist_t
+#define OWLINK_T			slink_t
+#define NEXT(l,lk)			((lk)->next)
+#define SET_NEXT(l,lk,v)	((lk)->next = (v))
+#define LENGTH(l,h)			eslist_length(h)
+#define LINK_OFFSET(l)		0
+#define LIST_ARG(l)
 
 /**
  * Initialize embedded list.
@@ -106,36 +124,6 @@ eslist_init(eslist_t *list, size_t offset)
 }
 
 /**
- * Discard list, making the list object invalid.
- *
- * This does not free any of the items, it just discards the list descriptor.
- * The underlying items remain chained though, so retaining a pointer to one
- * of the slink_t of one item still allows limited link-level traversal.
- */
-void
-eslist_discard(eslist_t *list)
-{
-	eslist_check(list);
-
-	list->magic = 0;
-}
-
-/**
- * Clear list, forgetting about all the items
- *
- * This does not free or unlink any of the items, it just empties the list
- * descriptor.
- */
-void
-eslist_clear(eslist_t *list)
-{
-	eslist_check(list);
-
-	list->head = list->tail = NULL;
-	list->count = 0;
-}
-
-/**
  * Free all items in the list, using wfree() on each of them, clearing the list.
  *
  * Each item must be of the same size and have been allocated via walloc().
@@ -162,836 +150,46 @@ eslist_wfree(eslist_t *list, size_t size)
 	eslist_clear(list);
 }
 
-static inline void
-eslist_link_append_internal(eslist_t *list, slink_t *lk)
-{
-	if G_UNLIKELY(NULL == list->tail) {
-		g_assert(NULL == list->head);
-		g_assert(0 == list->count);
-		list->head = list->tail = lk;
-		lk->next = NULL;
-	} else {
-		g_assert(NULL == list->tail->next);
-		g_assert(NULL != list->head);	/* Since list not empty */
-		g_assert(size_is_positive(list->count));
-		list->tail->next = lk;
-		lk->next = NULL;
-		list->tail = lk;
-	}
+#include "owlist-gen.c"
 
-	list->count++;
-
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Append new link to the list.
- *
- * This is efficient and does not require a full traversal of the list.
+/*
+ * These defines are there only for tags
+ * Routines are defined in owlist-gen.c, as included above
  */
-void
-eslist_link_append(eslist_t *list, slink_t *lk)
-{
-	eslist_check(list);
-	g_assert(lk != NULL);
 
-	eslist_link_append_internal(list, lk);
-}
-
-/**
- * Append new item with embedded link to the list.
- *
- * This is efficient and does not require a full traversal of the list.
- */
-void
-eslist_append(eslist_t *list, void *data)
-{
-	slink_t *lk;
-
-	eslist_check(list);
-	g_assert(data != NULL);
-
-	lk = ptr_add_offset(data, list->offset);
-	eslist_link_append_internal(list, lk);
-}
-
-static inline void
-eslist_link_prepend_internal(eslist_t *list, slink_t *lk)
-{
-	if G_UNLIKELY(NULL == list->head) {
-		g_assert(NULL == list->tail);
-		g_assert(0 == list->count);
-		list->head = list->tail = lk;
-		lk->next = NULL;
-	} else {
-		g_assert(NULL != list->tail);	/* Since list not empty */
-		g_assert(size_is_positive(list->count));
-		lk->next = list->head;
-		list->head = lk;
-	}
-
-	list->count++;
-
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Prepend link to the list.
- */
-void
-eslist_link_prepend(eslist_t *list, slink_t *lk)
-{
-	eslist_check(list);
-	g_assert(lk != NULL);
-
-	eslist_link_prepend_internal(list, lk);
-}
-
-/**
- * Prepend new item with embedded link to the list.
- */
-void
-eslist_prepend(eslist_t *list, void *data)
-{
-	slink_t *lk;
-
-	eslist_check(list);
-	g_assert(data != NULL);
-
-	lk = ptr_add_offset(data, list->offset);
-	eslist_link_prepend_internal(list, lk);
-}
-
-/**
- * Prepend other list to the list.
- *
- * The other list descriptor is cleared, since its items are transferred
- * to the first list.
- *
- * The two lists must be compatible, that is the offset to the link pointer
- * must be identical.
- *
- * @param list		the destination list
- * @param other		the other list to prepend (descriptor will be cleared)
- */
-void
-eslist_prepend_list(eslist_t *list, eslist_t *other)
-{
-	eslist_check(list);
-	eslist_check(other);
-	g_assert(list->offset == other->offset);
-
-	if G_UNLIKELY(0 == other->count)
-		return;
-
-	if G_UNLIKELY(NULL == list->head) {
-		g_assert(NULL == list->tail);
-		g_assert(0 == list->count);
-		list->tail = other->tail;
-		list->count = other->count;
-	} else {
-		g_assert(NULL != other->tail);	/* Since list not empty */
-		g_assert(NULL == other->tail->next);
-		g_assert(size_is_positive(list->count));
-		other->tail->next = list->head;
-		list->count += other->count;
-	}
-
-	list->head = other->head;
-	eslist_clear(other);
-
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Append other list to the list.
- *
- * The other list descriptor is cleared, since its items are transferred
- * to the first list.
- *
- * The two lists must be compatible, that is the offset to the link pointer
- * must be identical.
- *
- * @param list		the destination list
- * @param other		the other list to append (descriptor will be cleared)
- */
-void
-eslist_append_list(eslist_t *list, eslist_t *other)
-{
-	eslist_check(list);
-	eslist_check(other);
-	g_assert(list->offset == other->offset);
-
-	if G_UNLIKELY(0 == other->count)
-		return;
-
-	if G_UNLIKELY(NULL == list->tail) {
-		g_assert(NULL == list->head);
-		g_assert(0 == list->count);
-		list->head = other->head;
-		list->count = other->count;
-	} else {
-		g_assert(NULL == list->tail->next);
-		g_assert(size_is_positive(list->count));
-		list->tail->next = other->head;
-		list->count += other->count;
-	}
-
-	list->tail = other->tail;
-	eslist_clear(other);
-
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-static inline void
-eslist_link_remove_after_internal(eslist_t *list, slink_t *prevlk, slink_t *lk)
-{
-	g_assert(size_is_positive(list->count));
-	eslist_invariant(list);
-
-	if G_UNLIKELY(list->tail == lk)
-		list->tail = prevlk;
-
-	if (NULL == prevlk) {
-		/* Removing the head */
-		g_assert(list->head == lk);
-		list->head = lk->next;
-	} else {
-		prevlk->next = lk->next;
-	}
-
-	lk->next = NULL;
-	list->count--;
-
-	safety_assert(eslist_invariant(list));
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Remove head of list, return pointer to item, NULL if list was empty.
- */
-void *
-eslist_shift(eslist_t *list)
-{
-	void *item;
-
-	eslist_check(list);
-
-	if (NULL == list->head) {
-		item = NULL;
-	} else {
-		item = ptr_add_offset(list->head, -list->offset);
-		eslist_link_remove_after_internal(list, NULL, list->head);
-	}
-
-	return item;
-}
-
-/**
- * Rotate list by one item to the left.
- *
- * The head is inserted back at the tail.
- */
-void
-eslist_rotate_left(eslist_t *list)
-{
-	slink_t *lk;
-
-	eslist_check(list);
-
-	if G_UNLIKELY(list->count <= 1U)
-		return;
-
-	lk = list->head;
-	eslist_link_remove_after_internal(list, NULL, lk);
-	eslist_link_append_internal(list, lk);
-
-	safety_assert(eslist_invariant(list));
-}
-
-static void
-eslist_link_insert_after_internal(eslist_t *list, slink_t *siblk, slink_t *lk)
-{
-	g_assert(size_is_positive(list->count));
-	eslist_invariant(list);
-
-	if G_UNLIKELY(list->tail == siblk)
-		list->tail = lk;
-
-	lk->next = siblk->next;
-	siblk->next = lk;
-
-	list->count++;
-	safety_assert(eslist_invariant(list));
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Insert link after another one in list.
- *
- * The sibling must already be part of the list, the new link must not.
- * If the sibling is NULL, insertion happens at the head of the list.
- */
-void
-eslist_link_insert_after(eslist_t *list, slink_t *sibling_lk, slink_t *lk)
-{
-	eslist_check(list);
-	g_assert(lk != NULL);
-
-	if (NULL == sibling_lk)
-		eslist_link_prepend_internal(list, lk);
-	else
-		eslist_link_insert_after_internal(list, sibling_lk, lk);
-}
-
-/**
- * Insert item after another one in list.
- *
- * The sibling item must already be part of the list, the data item must not.
- */
-void
-eslist_insert_after(eslist_t *list, void *sibling, void *data)
-{
-	slink_t *lk;
-
-	eslist_check(list);
-	g_assert(data != NULL);
-
-	lk = ptr_add_offset(data, list->offset);
-	if (NULL == sibling) {
-		eslist_link_prepend_internal(list, lk);
-	} else {
-		slink_t *siblk = ptr_add_offset(sibling, list->offset);
-		eslist_link_insert_after_internal(list, siblk, lk);
-	}
-}
-
-/**
- * Remove data item from list.
- *
- * This is usually very inefficient as the list needs to be traversed
- * to find the previous item.
- */
-void
-eslist_remove(eslist_t *list, void *data)
-{
-	slink_t *lk, *prevlk, *datalk;
-
-	eslist_check(list);
-	g_assert(data != NULL);
-
-	datalk = ptr_add_offset(data, list->offset);
-	prevlk = NULL;
-
-	for (lk = list->head; lk != NULL; prevlk = lk, lk = lk->next) {
-		if (datalk == lk) {
-			eslist_link_remove_after_internal(list, prevlk, lk);
-			return;
-		}
-	}
-
-	g_assert_not_reached();		/* Item not found in list! */
-}
-
-/**
- * Remove data item following sibling, if any.
- *
- * @return the item removed, NULL if there was nother after sibling.
- */
-void *
-eslist_remove_after(eslist_t *list, void *sibling)
-{
-	slink_t *lk;
-	void *data;
-
-	eslist_check(list);
-	g_assert(sibling != NULL);
-
-	lk = ptr_add_offset(sibling, list->offset);
-
-	if G_UNLIKELY(NULL == lk->next)
-		return NULL;		/* Nothing after, not an error */
-
-	data = ptr_add_offset(lk->next, -list->offset);
-	eslist_link_remove_after_internal(list, lk, lk->next);
-
-	return data;
-}
-
-/**
- * Reverse list.
- */
-void
-eslist_reverse(eslist_t *list)
-{
-	slink_t *lk, *prev;
-
-	eslist_check(list);
-	eslist_invariant(list);
-
-	for (lk = list->head, prev = NULL; lk != NULL; /* empty */) {
-		slink_t *next = lk->next;
-
-		lk->next = prev;
-		prev = lk;
-		lk = next;
-	}
-
-	/* Swap head and tail */
-	lk = list->head;
-	list->head = list->tail;
-	list->tail = lk;
-
-	safety_assert(eslist_invariant(list));
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Find item in list, using supplied comparison callback to compare list
- * items with the key we're looking for.
- *
- * The key is usually a "dummy" structure with enough fields set to allow
- * comparisons to be made.
- *
- * @param list		the list
- * @param key		key item to locate
- * @param cmp		comparison function to use
- *
- * @return the found item, or NULL if not found.
- */
-void *
-eslist_find(const eslist_t *list, const void *key, cmp_fn_t cmp)
-{
-	slink_t *lk;
-
-	eslist_check(list);
-	g_assert(key != NULL);
-	g_assert(cmp != NULL);
-
-	for (lk = list->head; lk != NULL; lk = lk->next) {
-		void *data = ptr_add_offset(lk, -list->offset);
-		if (0 == (*cmp)(data, key))
-			return data;
-	}
-
-	return NULL;
-}
-
-/**
- * Iterate over the list, invoking the callback for every data item.
- *
- * It is safe for the callback to destroy the item, however this corrupts
- * the list which must therefore be discarded upon return.
- *
- * @param list		the list
- * @param cb		function to invoke on all items
- * @param data		opaque user-data to pass to callback
- */
-void
-eslist_foreach(const eslist_t *list, data_fn_t cb, void *data)
-{
-	slink_t *lk, *next;
-
-	eslist_check(list);
-	eslist_invariant(list);
-	g_return_unless(cb != NULL);
-	safety_assert(eslist_length(list->head) == list->count);
-
-	for (lk = list->head; lk != NULL; lk = next) {
-		void *item = ptr_add_offset(lk, -list->offset);
-		next = lk->next;		/* Allow callback to destroy item */
-		(*cb)(item, data);
-	}
-
-	safety_assert(eslist_invariant(list));
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Iterate over the list, invoking the callback for every data item
- * and removing the current item if it returns TRUE.
- *
- * @param list		the list
- * @param cbr		function to invoke to determine whether to remove item
- * @param data		opaque user-data to pass to callback
- *
- * @return amount of removed items from the list.
- */
-size_t
-eslist_foreach_remove(eslist_t *list, data_rm_fn_t cbr, void *data)
-{
-	slink_t *lk, *next, *prev;
-	size_t removed = 0;
-
-	eslist_check(list);
-	eslist_invariant(list);
-	g_return_val_unless(cbr != NULL, 0);
-	safety_assert(eslist_length(list->head) == list->count);
-
-	for (lk = list->head, prev = NULL; lk != NULL; lk = next) {
-		void *item = ptr_add_offset(lk, -list->offset);
-
-		/*
-		 * The callback can free the item, so we must copy the next
-		 * pointer first.
-		 */
-
-		next = lk->next;
-
-		if ((*cbr)(item, data)) {
-			if G_UNLIKELY(list->head == lk)
-				list->head = next;
-			if G_UNLIKELY(list->tail == lk) {
-				g_assert(NULL == next);
-				list->tail = prev;
-			}
-			if (prev != NULL)
-				prev->next = next;
-			list->count--;
-			removed++;
-		} else {
-			prev = lk;		/* Item not removed, becomes new previous */
-		}
-	}
-
-	safety_assert(eslist_invariant(list));
-	safety_assert(eslist_length(list->head) == list->count);
-
-	return removed;
-}
-
-/**
- * Run the merge sort algorithm of the sublist, merging back into list.
- *
- * @return the head of the list
- */
-static slink_t *
-eslist_merge_sort(eslist_t *list, slink_t *sublist, size_t count,
-	cmp_data_fn_t cmp, void *data)
-{
-	slink_t *l1, *l2, *l;
-	size_t n1, i;
-	slink_t head;
-
-	if (count <= 1) {
-		g_assert(0 != count || NULL == sublist);
-		g_assert(0 == count || NULL == sublist->next);
-
-		return sublist;		/* Trivially sorted */
-	}
-
-	/*
-	 * Divide and conquer: split the list into two, sort each part then
-	 * merge the two sorted sublists.
-	 */
-
-	n1 = count / 2;
-
-	for (i = 1, l1 = sublist; i < n1; l1 = l1->next, i++)
-		/* empty */;
-
-	l2 = l1->next;			/* Start of second list */
-	l1->next = NULL;		/* End of first list with ``n1'' items */
-
-	l1 = eslist_merge_sort(list, sublist, n1, cmp, data);
-	l2 = eslist_merge_sort(list, l2, count - n1, cmp, data);
-
-	/*
-	 * We now have two sorted (one-way) lists: ``l1'' and ``l2''.
-	 * Merge them into `list', taking care of updating its tail, since
-	 * we return the head.
-	 */
-
-	l = &head;
-
-	while (l1 != NULL && l2 != NULL) {
-		void *d1 = ptr_add_offset(l1, -list->offset);
-		void *d2 = ptr_add_offset(l2, -list->offset);
-		int c = (*cmp)(d1, d2, data);
-
-		if (c <= 0) {
-			l = l->next = l1;
-			l1 = l1->next;
-		} else {
-			l = l->next = l2;
-			l2 = l2->next;
-		}
-	}
-
-	l->next = (NULL == l1) ? l2 : l1;
-
-	while (l->next != NULL)
-		l = l->next;
-
-	list->tail = l;
-	return head.next;
-}
-
-/**
- * Sort list in place using a merge sort.
- */
-static void
-eslist_sort_internal(eslist_t *list, cmp_data_fn_t cmp, void *data)
-{
-	eslist_check(list);
-	eslist_invariant(list);
-	g_return_unless(cmp != NULL);
-
-	/*
-	 * During merging, we use the list as a one-way list chained through
-	 * its next pointers and identified by its head and by its amount of
-	 * items (to make sub-splitting faster).
-	 *
-	 * When we come back from the recursion we merge the two sorted lists.
-	 */
-
-	list->head = eslist_merge_sort(list, list->head, list->count, cmp, data);
-
-	safety_assert(eslist_invariant(list));
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Sort list according to the comparison function, which takes two items
- * plus an additional opaque argument, meant to be used as context to sort
- * the two items.
- *
- * @param list	the list to sort
- * @param cmp	comparison routine to use (for two items)
- * @param data	additional argument to supply to comparison routine
- */
-void
-eslist_sort_with_data(eslist_t *list, cmp_data_fn_t cmp, void *data)
-{
-	eslist_sort_internal(list, cmp, data);
-}
-
-/**
- * Sort list according to the comparison function, which compares items.
- *
- * @param list	the list to sort
- * @param cmp	comparison routine to use (for two items)
- */
-void
-eslist_sort(eslist_t *list, cmp_fn_t cmp)
-{
-	eslist_sort_internal(list, (cmp_data_fn_t) cmp, NULL);
-}
-
-/**
- * Insert item in sorted list at the proper position.
- *
- * @param list	the list into which we insert
- * @param item	the item to insert
- * @param cmp	comparison routine to use (for two items) with extra data
- * @param data	user-supplied data for the comparison routine
- */
-static void
-eslist_insert_sorted_internal(eslist_t *list, void *item,
-	cmp_data_fn_t cmp, void *data)
-{
-	slink_t *lk, *ln, *prev;
-
-	eslist_check(list);
-	eslist_invariant(list);
-	g_assert(item != NULL);
-	g_assert(cmp != NULL);
-
-	ln = ptr_add_offset(item, list->offset);
-
-	for (lk = list->head, prev = NULL; lk != NULL; prev = lk, lk = lk->next) {
-		void *p = ptr_add_offset(lk, -list->offset);
-		if ((*cmp)(item, p, data) <= 0)
-			break;
-	}
-
-	if (NULL == lk) {
-		eslist_link_append_internal(list, ln);
-	} else {
-		/* Insert ``ln'' before ``lk'' */
-		if (prev != NULL) {
-			prev->next = ln;
-		} else {
-			list->head = ln;
-		}
-		ln->next = lk;
-	}
-
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Insert item in sorted list at the proper position, as determined by
- * the item comparison routine, in order to keep the whole list sorted
- * after insertion, using the same comparison criteria.
- *
- * The comparison routine takes an extra user-defined context, to assist
- * in the item comparison.
- *
- * @param list	the list into which we insert
- * @param item	the item to insert
- * @param cmp	comparison routine to use (for two items) with extra data
- * @param data	user-supplied data for the comparison routine
- */
-void
-eslist_insert_sorted_with_data(eslist_t *list, void *item,
-	cmp_data_fn_t cmp, void *data)
-{
-	eslist_insert_sorted_internal(list, item, cmp, data);
-}
-
-/**
- * Insert item in sorted list at the proper position, as determined by
- * the item comparison routine, in order to keep the whole list sorted
- * after insertion, using the same comparison criteria.
- *
- * @param list	the list into which we insert
- * @param item	the item to insert
- * @param cmp	comparison routine to use (for two items)
- */
-void
-eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp)
-{
-	eslist_insert_sorted_internal(list, item, (cmp_data_fn_t) cmp, NULL);
-}
-
-/**
- * Get the n-th item in the list (0-based index).
- *
- * A negative index gets items from the tail of the list, i.e. -1 gets the
- * last item, -2 the penultimate one, -3 the antepenultimate one, etc...
- *
- * @param list	the list
- * @param n		the n-th item index to retrieve (0 = first item)
- *
- * @return the n-th item, NULL if the position is off the end of the list.
- */
-void *
-eslist_nth(const eslist_t *list, long n)
-{
-	size_t i = n;
-	slink_t *lk;
-
-	eslist_check(list);
-
-	if (n < 0)
-		i = list->count + n;
-
-	if (i >= list->count)
-		return NULL;
-
-	for (lk = list->head; lk != NULL; lk = lk->next) {
-		if (0 == i--)
-			return ptr_add_offset(lk, -list->offset);
-	}
-
-	g_assert_not_reached();		/* Item must have been selected above */
-}
-
-/**
- * Given a link, return the item associated with the nth link that follows it,
- * or NULL if there is nothing.  The 0th item is the data associated with
- * the given link.
- *
- * @param list	the list
- * @param lk	the starting link, which must be part of the list
- * @param n		how mnay items to move forward starting from the link
- *
- * @return item at the nth position following the link, NULL if none.
- */
-void *
-eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n)
-{
-	slink_t *l;
-
-	eslist_check(list);
-	g_assert(lk != NULL);
-	g_assert(size_is_non_negative(n));
-
-	l = eslist_nth_next(lk, n);
-	return NULL == l ? NULL : ptr_add_offset(l, -list->offset);
-}
-
-/**
- * Pick random item in list.
- *
- * @return pointer to the selected item, NULL if list is empty.
- */
-void *
-eslist_random(const eslist_t *list)
-{
-	eslist_check(list);
-	g_assert(list->count <= MAX_INT_VAL(long));
-
-	if G_UNLIKELY(0 == list->count)
-		return NULL;
-
-	return eslist_nth(list, random_ulong_value(list->count - 1));
-}
-
-/**
- * Randomly shuffle the items in the list using supplied random function.
- *
- * @param rf	the random function to use (NULL means: use defaults)
- * @param list	the list to shuffle
- */
-void
-eslist_shuffle_with(random_fn_t rf, eslist_t *list)
-{
-	slink_t *lk;
-	slink_t **array;
-	size_t i;
-
-	eslist_check(list);
-	eslist_invariant(list);
-
-	if G_UNLIKELY(list->count <= 1U)
-		return;
-
-	/*
-	 * To ensure O(n) shuffling, build an array containing all the items,
-	 * shuffle that array then recreate the list according to the shuffled
-	 * array.
-	 */
-
-	XMALLOC_ARRAY(array, list->count);
-
-	for (i = 0, lk = list->head; lk != NULL; i++, lk = lk->next) {
-		array[i] = lk;
-	}
-
-	shuffle_with(rf, array, list->count, sizeof array[0]);
-
-	/*
-	 * Rebuild the list.
-	 */
-
-	list->head = array[0];
-	list->tail = array[list->count - 1];
-
-	lk = list->head;
-
-	for (i = 1; i < list->count; i++) {
-		slink_t *ln = array[i];
-
-		lk->next = ln;
-		lk = ln;
-	}
-
-	lk->next = NULL;
-	xfree(array);
-
-	safety_assert(eslist_invariant(list));
-	safety_assert(eslist_length(list->head) == list->count);
-}
-
-/**
- * Randomly shuffle the items in the list.
- */
-void
-eslist_shuffle(eslist_t *list)
-{
-	eslist_shuffle_with(NULL, list);
-}
+#define eslist_discard						OWLIST_discard
+#define eslist_clear						OWLIST_clear
+#define eslist_link_append_internal			OWLIST_link_append_internal
+#define eslist_link_append					OWLIST_link_append
+#define eslist_append						OWLIST_append
+#define eslist_link_prepend_internal		OWLIST_link_prepend_internal
+#define eslist_link_prepend					OWLIST_link_prepend
+#define eslist_prepend						OWLIST_prepend
+#define eslist_prepend_list					OWLIST_prepend_list
+#define eslist_append_list					OWLIST_append_list
+#define eslist_link_remove_after_internal	OWLIST_link_remove_after_internal
+#define eslist_shift						OWLIST_shift
+#define eslist_rotate_left					OWLIST_rotate_left
+#define eslist_link_insert_after_internal	OWLIST_link_insert_after_internal
+#define eslist_link_insert_after			OWLIST_link_insert_after
+#define eslist_insert_after					OWLIST_insert_after
+#define eslist_remove						OWLIST_remove
+#define eslist_remove_after					OWLIST_remove_after
+#define eslist_reverse						OWLIST_reverse
+#define eslist_find							OWLIST_find
+#define eslist_foreach						OWLIST_foreach
+#define eslist_foreach_remove				OWLIST_foreach_remove
+#define eslist_merge_sort					OWLIST_merge_sort
+#define eslist_sort_internal				OWLIST_sort_internal
+#define eslist_sort_with_data				OWLIST_sort_with_data
+#define eslist_sort							OWLIST_sort
+#define eslist_insert_sorted_internal		OWLIST_insert_sorted_internal
+#define eslist_insert_sorted_with_data		OWLIST_insert_sorted_with_data
+#define eslist_insert_sorted				OWLIST_insert_sorted
+#define eslist_nth							OWLIST_nth
+#define eslist_nth_next_data				OWLIST_nth_next_data
+#define eslist_random						OWLIST_random
+#define eslist_shuffle_with					OWLIST_shuffle_with
+#define eslist_shuffle						OWLIST_shuffle
 
 /* vi: set ts=4 sw=4 cindent: */

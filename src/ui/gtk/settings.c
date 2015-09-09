@@ -1513,6 +1513,30 @@ net_buffer_shortage_changed(property_t prop)
 }
 
 static gboolean
+tcp_no_listening_changed(property_t prop)
+{
+    gboolean b;
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    const prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    w = lookup_widget(top, map_entry->wid);
+    stub->boolean.get(prop, &b, 0, 1);
+
+    if (b) {
+        statusbar_gui_message(15,
+			_("*** NO LISTENING TCP SOCKET -- NO INBOUND CONNECTIONS ***"));
+        gtk_widget_show(w);
+    } else {
+        gtk_widget_hide(w);
+		shrink_frame_status();
+    }
+
+    return FALSE;
+}
+
+static gboolean
 uploads_stalling_changed(property_t prop)
 {
     gboolean b;
@@ -5691,6 +5715,15 @@ static prop_map_t property_map[] = {
         net_buffer_shortage_changed,
         TRUE,
         "eventbox_net_buffer_shortage",
+        /* need eventbox because image has no tooltip */
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_TCP_NO_LISTENING,
+        tcp_no_listening_changed,
+        TRUE,
+        "eventbox_tcp_no_listening",
         /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     ),

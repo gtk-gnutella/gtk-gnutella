@@ -363,6 +363,8 @@ static struct zstats {
 	uint64 zgc_shrinked;			/**< Amount of zn_shrink() calls */
 	size_t user_memory;				/**< Current user memory allocated */
 	size_t user_blocks;				/**< Current amount of user blocks */
+	/* Counter to prevent digest from being the same twice in a row */
+	AU64(zalloc_stats_digest);
 } zstats;
 static spinlock_t zstats_slk = SPINLOCK_INIT;
 
@@ -637,10 +639,12 @@ static unsigned
 zone_hash(const void *key)
 {
 	const zone_t *z = key;
+	uint32 h;
 
-	return integer_hash(z->zn_size) +
-		integer_hash2(z->zn_stid) -
-		(z->private ? GOLDEN_RATIO_32 : 0);
+	h = integer_hash_fast(z->zn_size) + u16_hash(z->zn_stid) -
+			z->private * GOLDEN_RATIO_32;
+
+	return hashing_mix32(h);
 }
 
 /**
@@ -3436,6 +3440,7 @@ zalloc_stats_digest(sha1_t *digest)
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
+	ZSTATS_INCX(zalloc_stats_digest);
 	SHA1_COMPUTE(zstats, digest);
 }
 
@@ -3601,6 +3606,8 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 	DUMP(user_memory);
 	DUMP(user_blocks);
+
+	DUMP64(zalloc_stats_digest);
 
 #undef DUMP
 #undef DUMP64

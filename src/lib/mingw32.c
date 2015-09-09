@@ -53,6 +53,7 @@
 #include <conio.h>				/* For _kbhit() */
 #include <imagehlp.h>			/* For backtrace() emulation */
 #include <iphlpapi.h>			/* For GetBestRoute() */
+#include <tlhelp32.h>			/* For CreateToolhelp32Snapshot() et al. */
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -76,6 +77,7 @@
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
 #include "halloc.h"
+#include "hashing.h"			/* For string_mix_hash() */
 #include "hashtable.h"
 #include "hset.h"
 #include "iovec.h"
@@ -151,6 +153,7 @@
 
 #undef abort
 #undef execve
+#undef statvfs
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
@@ -768,6 +771,44 @@ mingw_fsync(int fd)
 }
 #endif	/* EMULATE_FSYNC */
 
+#ifdef EMULATE_GETPPID
+/**
+ * Get the ID of the parent process.
+ *
+ * @note
+ * This is unreliable, prone to race conditions, as the kernel could immediately
+ * reuse the ID of a dead process and does not actively maintain a process tree
+ * as on UNIX.
+ *
+ * @return the ID of the parent process.
+ */
+pid_t
+mingw_getppid(void)
+{
+	pid_t our_pid = GetCurrentProcessId();
+	pid_t parent_pid = 1;
+	HANDLE h;
+	PROCESSENTRY32 pe;
+	BOOL ok;
+
+	ZERO(&pe);
+	pe.dwSize = sizeof(PROCESSENTRY32);
+
+	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	for (ok = Process32First(h, &pe); ok; ok = Process32Next(h, &pe)) {
+		if ((pid_t) pe.th32ProcessID == our_pid) {
+			parent_pid = pe.th32ParentProcessID;
+			break;
+		}
+	}
+
+	CloseHandle(h);
+
+	return parent_pid;
+}
+#endif	/* EMULATE_GETPPID */
+
 /**
  * Computes the memory necessary to include the string into quotes and escape
  * embedded quotes, provided there are embedded spaces.
@@ -1336,6 +1377,22 @@ mingw_mkdir(const char *pathname, mode_t mode)
 }
 
 int
+mingw_rmdir(const char *pathname)
+{
+	int res;
+	pncs_t pncs;
+
+	if (pncs_convert(&pncs, pathname))
+		return -1;
+
+	res = _wrmdir(pncs.utf16);
+	if (-1 == res)
+		errno = mingw_last_error();
+
+	return res;
+}
+
+int
 mingw_access(const char *pathname, int mode)
 {
 	int res;
@@ -1400,9 +1457,40 @@ mingw_stat(const char *pathname, filestat_t *buf)
 		return -1;
 
 	res = _wstati64(pncs.utf16, buf);
-	if (-1 == res)
+	if (-1 == res) {
 		errno = mingw_last_error();
 
+		/*
+		 * If there is a trailing '/' in the pathname, this will perturb
+		 * stat() and we'll get ENOENT.  Likewise for a trailing "/." so
+		 * if "/usr" exists, "/usr/" and "/usr/." will fail, but "/usr/.."
+		 * will work.  On UNIX, the first two are strictly equivalent.
+		 *		--RAM, 2015-04-19
+		 */
+
+		if (ENOENT == errno) {
+			size_t len = strlen(pathname);
+			char *fixed;
+			const char *p = &pathname[len - 1];
+
+			if (len <= 1)
+				goto nofix;		/* A simple "/" would have worked */
+
+			if ('/' == *p)
+				len--;
+			else if ('.' == *p && '/' == p[-1])
+				len -= 2;
+			else
+				goto nofix;
+
+			fixed = h_strndup(pathname, len);
+			if (0 == pncs_convert(&pncs, fixed))
+				res = _wstati64(pncs.utf16, buf);
+			hfree(fixed);
+		}
+	}
+
+nofix:
 	return res;
 }
 
@@ -1484,7 +1572,7 @@ mingw_open(const char *pathname, int flags, ...)
 	return res;
 }
 
-void *
+DIR *
 mingw_opendir(const char *pathname)
 {
 	_WDIR *res;
@@ -1497,26 +1585,36 @@ mingw_opendir(const char *pathname)
 	if (NULL == res)
 		errno = mingw_last_error();
 
-	return res;
+	return (DIR *) res;
 }
 
-void *
-mingw_readdir(void *dir)
+struct dirent *
+mingw_readdir(DIR *dir)
 {
 	struct _wdirent *res;
+	int saved_errno = errno;
 
-	res = _wreaddir(dir);
+	/*
+	 * Do not perturb errno in this routine unless it changes.
+	 * The MinGW runtime implementation of _wreaddir() will make sure
+	 * errno is left untouched when we end up reaching the end of the
+	 * directory.
+	 *		--RAM, 2015-04-19
+	 */
+
+	res = _wreaddir((_WDIR *) dir);
 	if (NULL == res) {
-		errno = mingw_last_error();
+		if (errno != saved_errno)
+			errno = mingw_last_error();
 		return NULL;
 	}
-	return res;
+	return (struct dirent *) res;
 }
 
 int
-mingw_closedir(void *dir)
+mingw_closedir(DIR *dir)
 {
-	int res = _wclosedir(dir);
+	int res = _wclosedir((_WDIR *) dir);
 	if (-1 == res)
 		errno = mingw_last_error();
 	return 0;
@@ -1534,6 +1632,19 @@ dir_entry_filename(const void *dirent)
 	g_assert(dirent != NULL);
 
 	return h_private(G_STRFUNC, utf16_to_utf8_string(wdirent->d_name));
+}
+
+/**
+ * @return the byte length of the directory entry filename, converted to UTF-8.
+ */
+size_t
+dir_entry_namelen(const void *dirent)
+{
+	const struct _wdirent *wdirent = dirent;
+
+	g_assert(dirent != NULL);
+
+	return utf16_to_utf8(wdirent->d_name, NULL, 0);
 }
 
 fileoffset_t
@@ -2822,7 +2933,13 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 	DWORD BytesPerSector;
 	DWORD NumberOfFreeClusters;
 	DWORD TotalNumberOfClusters;
+	DWORD MaxComponentLength;
+	DWORD FileSystemFlags;
+	wchar_t vname[256];
+	wchar_t mountp[MAX_PATH_LEN];
 	pncs_t pncs;
+	const wchar_t *root;
+	char volume[256];
 
 	if (pncs_convert(&pncs, pathname))
 		return -1;
@@ -2837,9 +2954,42 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 		return -1;
 	}
 
-	buf->f_csize = SectorsPerCluster * BytesPerSector;
-	buf->f_clusters = TotalNumberOfClusters;
-	buf->f_cavail = NumberOfFreeClusters;
+	ZERO(buf);
+
+	buf->f_bsize = SectorsPerCluster * BytesPerSector;
+	buf->f_frsize = buf->f_bsize;
+	buf->f_blocks = TotalNumberOfClusters;
+	buf->f_bfree = NumberOfFreeClusters;
+	buf->f_bavail = NumberOfFreeClusters;
+	buf->f_namemax = FILENAME_MAX;		/* From <stdio.h> */
+
+	ZERO(&mountp);
+
+	ret = GetVolumePathNameW(pncs.utf16, mountp, G_N_ELEMENTS(mountp));
+	root = ret ? mountp : pncs.utf16;
+
+	ZERO(&vname);
+
+	ret = GetVolumeInformationW(root,
+		vname, G_N_ELEMENTS(vname),		/* VolumeName{Buffer,Size} */
+		NULL,							/* VolumeSerialNumber */
+		&MaxComponentLength,			/* MaximumComponentLength */
+		&FileSystemFlags,				/* FileSystemFlags */
+		NULL, 0);						/* FileSystemName{Buffer,Size} */
+
+	if (ret) {
+		if (FileSystemFlags & FILE_READ_ONLY_VOLUME)
+			buf->f_flag |= ST_RDONLY;
+		buf->f_namemax = MaxComponentLength;
+
+		/*
+		 * All we want is a stable file system ID, so we hash the volume name.
+		 */
+
+		utf16_to_utf8(vname, volume, G_N_ELEMENTS(volume));
+		volume[G_N_ELEMENTS(volume) - 1] = '\0';
+		buf->f_fsid = string_mix_hash(volume);
+	}
 
 	return 0;
 }
@@ -3149,7 +3299,6 @@ mingw_process_is_alive(pid_t pid)
 	char process_name[1024];
 	HANDLE p;
 	BOOL res = FALSE;
-
 	pid_t our_pid = GetCurrentProcessId();
 
 	/* PID might be reused */

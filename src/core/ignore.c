@@ -182,7 +182,7 @@ sha1_parse(FILE *f, const char *file)
 
 		if (
 			len < SHA1_BASE32_SIZE ||
-			SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
+			SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
 								ign_tmp, SHA1_BASE32_SIZE)
 		) {
 			g_warning("invalid SHA1 at \"%s\" line %d: %s",

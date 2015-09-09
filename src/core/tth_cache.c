@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2007 Christian Biere
+ * Copyright (c) 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -42,21 +43,36 @@
  *
  * @author Christian Biere
  * @date 2007
+ * @author Raphael Manfredi
+ * @date 2015
  */
 
 #include "common.h"
 
-#include "settings.h"
 #include "tth_cache.h"
 
+#include "settings.h"
+#include "share.h"
+
 #include "lib/atoms.h"
+#include "lib/base32.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/ftw.h"
 #include "lib/halloc.h"
+#include "lib/hset.h"
 #include "lib/path.h"
+#include "lib/pslist.h"
+#include "lib/spinlock.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/thread.h"
 #include "lib/tigertree.h"
+#include "lib/timestamp.h"
 #include "lib/walloc.h"
+
+#include "if/gnet_property_priv.h"
+#include "if/core/main.h"		/* For debugging() */
 
 #include "lib/override.h"       /* Must be the last header included */
 
@@ -65,6 +81,15 @@
 #else
 #define TTH_FILE_MODE (S_IRUSR | S_IWUSR | S_IRGRP) /* 0640 */
 #endif
+
+/**
+ * This lock is used to protect the creation / removal of directories
+ * under the TTH cache.
+ */
+static spinlock_t tth_path_lk = SPINLOCK_INIT;
+
+#define TTH_PATH_LOCK		spinlock(&tth_path_lk)
+#define TTH_PATH_UNLOCK		spinunlock(&tth_path_lk)
 
 static const char *
 tth_cache_directory(void)
@@ -101,6 +126,15 @@ tth_cache_file_create(const struct tth *tth)
 
 	accmode = O_WRONLY | O_TRUNC;
 	pathname = tth_cache_pathname(tth);
+
+	/*
+	 * Critical section required since we could have a concurrent thread
+	 * deciding to remove empty directories whilst we are attempting
+	 * to create a new directory to store the new cached entry!
+	 */
+
+	TTH_PATH_LOCK;
+
 	fd = file_create_missing(pathname, accmode, TTH_FILE_MODE);
 	if (fd < 0 && ENOENT == errno) {
 		char *dir = filepath_directory(pathname);
@@ -109,6 +143,9 @@ tth_cache_file_create(const struct tth *tth)
 		}
 		HFREE_NULL(dir);
 	}
+
+	TTH_PATH_UNLOCK;
+
 	HFREE_NULL(pathname);
 	return fd;
 }
@@ -332,6 +369,251 @@ tth_cache_get_tree(const struct tth *tth, filesize_t filesize,
 		tth_cache_remove(tth);
 	}
 	return 0;
+}
+
+/**
+ * Remove directory, warning only when it cannot be done for a reason other
+ * than it not being empty.
+ */
+static void
+tth_cache_dir_rmdir(const char *path)
+{
+	if (debugging(0))
+		g_message("%s(): removing TTH cache directory %s", G_STRFUNC, path);
+
+	/*
+	 * To avoid any conflicts with another thread attempting to create a
+	 * file under that directory, take a lock.
+	 *
+	 * Note that there is a race condition between the traversal that detects
+	 * the directory is empty and the time we actually attempt to remove it.
+	 * Hence, we silence any error having to deal with the directory being
+	 * non-empty and therefore non-removable.
+	 */
+
+	TTH_PATH_LOCK;
+
+	if (-1 == rmdir(path) && ENOTEMPTY != errno) {
+		g_warning("%s(): cannot remove TTH cache directory %s: %m",
+			G_STRFUNC, path);
+	}
+
+	TTH_PATH_UNLOCK;
+}
+
+
+/**
+ * ftw_foreach() callback to remove empty directories.
+ */
+static ftw_status_t
+tth_cache_cleanup_rmdir(
+	const ftw_info_t *info, const filestat_t *unused_sb, void *data)
+{
+	pslist_t **dirsp = data;
+
+	(void) unused_sb;
+
+	if (FTW_F_DIR & info->flags) {
+		if (FTW_F_NOREAD & info->flags) {
+			tth_cache_dir_rmdir(info->fpath);	/* Try, we can't read it */
+		} else if (FTW_F_DONE & info->flags) {
+			void *cnt = (*dirsp)->data;
+			if (NULL == cnt && 0 != info->level)
+				tth_cache_dir_rmdir(info->fpath);
+			*dirsp = pslist_delete_link(*dirsp, *dirsp);	/* Strip head */
+		} else {
+			*dirsp = pslist_prepend(*dirsp, NULL);
+		}
+		return FTW_STATUS_OK;
+	}
+
+	(*dirsp)->data = int_to_pointer(1);	/* There is something in directory */
+	return FTW_STATUS_OK;
+}
+
+/**
+ * Unlink cached file entry, warning if it cannot be done but otherwise not
+ * logging anything on success.
+ *
+ * @return TRUE on success
+ */
+static bool
+tth_cache_file_unlink(const char *path, const char *reason)
+{
+	if (-1 == unlink(path)) {
+		g_warning("%s(): cannot remove %s TTH cache entry %s: %m",
+			G_STRFUNC, reason, path);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Remove cached file entry, logging success.
+ */
+static void
+tth_cache_file_remove(const char *path, const char *reason)
+{
+	if (tth_cache_file_unlink(path, reason))
+		g_message("removed %s TTH cache entry: %s", reason, path);
+}
+
+/**
+ * ftw_foreach() callback to remove obsolete / spurious files.
+ */
+static ftw_status_t
+tth_cache_cleanup_unlink(
+	const ftw_info_t *info, const filestat_t *sb, void *data)
+{
+	const hset_t *shared = data;
+
+	if (FTW_F_DIR & info->flags)
+		return FTW_STATUS_OK;
+
+	if ((FTW_F_OTHER | FTW_F_SYMLINK) & info->flags) {
+		tth_cache_file_remove(info->fpath, "alien");
+		return FTW_STATUS_OK;
+	}
+
+	if (FTW_F_FILE & info->flags) {
+		char **path;
+		struct tth tth;
+		char b32[TTH_BASE32_SIZE + 2];
+		size_t len;
+
+		if (FTW_F_NOSTAT & info->flags) {
+			g_warning("%s(): ignoring unaccessible cached TTH %s",
+				G_STRFUNC, info->fpath);
+			return FTW_STATUS_OK;
+		}
+
+		if (info->level != 2) {
+			tth_cache_file_remove(info->fpath, "spurious");
+			return FTW_STATUS_OK;
+		}
+
+		path = g_strsplit(info->rpath, "/", 2);
+
+		if (NULL == path)
+			return FTW_STATUS_ABORT;	/* Weird, empty relative path? */
+
+		len = str_bprintf(b32, sizeof b32, "%s", path[0]);
+		if (len != 2)		/* Expected first path component is 2-char long */
+			len = 0;
+		len += str_bprintf(&b32[len], sizeof b32 - len, "%s", path[1]);
+
+		if (
+			TTH_BASE32_SIZE != len ||
+			TTH_RAW_SIZE !=
+				base32_decode(&tth, sizeof tth, b32, TTH_BASE32_SIZE)
+		) {
+			tth_cache_file_remove(info->fpath, "invalid");
+			goto done;
+		}
+
+		/*
+		 * At this point, we have a valid TTH cache filename.
+		 *
+		 * We want to only process files created before the session started.
+		 *
+		 * The rationale is that users could start unsharing directories,
+		 * moving files around, add new files, etc..  Each time a new library
+		 * rescan occurs, we're going to create new TTH cache files, or some
+		 * cached files could become unused for a while and then files will
+		 * reappear in the library.
+		 *
+		 * By only ever cleaning up files created before the current session,
+		 * we have a higher likelyhood of processing an obsolete cache entry.
+		 */
+
+		if (delta_time(sb->st_mtime, GNET_PROPERTY(session_start_stamp)) >= 0)
+			goto done;		/* Created after session started, skip */
+
+		if (!hset_contains(shared, &tth)) {
+			if (debugging(0))
+				g_debug("%s(): unshared TTH (%s)", G_STRFUNC, info->rpath);
+			(void) tth_cache_file_unlink(info->fpath, "unshared");
+		}
+
+		/* FALL THROUGH */
+
+	done:
+		g_strfreev(path);
+		return FTW_STATUS_OK;
+	}
+
+	g_assert_not_reached();
+	return FTW_STATUS_ERROR;
+}
+
+static int tth_cache_cleanups;
+
+/**
+ * Main entry point for the thread that cleans up the TTH cache.
+ */
+static void *
+tth_cache_cleanup_thread(void *unused_arg)
+{
+	hset_t *shared;
+	const char *rootdir = tth_cache_directory();
+	pslist_t *dirstack;
+	uint32 flags;
+	ftw_status_t res;
+
+	(void) unused_arg;
+
+	if (!is_directory(rootdir))
+		goto done;			/* No TTH cache */
+
+	/*
+	 * First pass: spot all file entries that are older than our start
+	 * time (i.e. were created in another session) and which cannot be
+	 * associated with a shared file.
+	 */
+
+	shared = share_tthset_get();
+	flags = FTW_O_PHYS | FTW_O_MOUNT | FTW_O_ALL;
+	res = ftw_foreach(rootdir, flags, 0, tth_cache_cleanup_unlink, shared);
+	share_tthset_free(shared);
+
+	if (res != FTW_STATUS_OK) {
+		g_warning("%s(): initial traversal failed with %d, aborting",
+			G_STRFUNC, res);
+		goto done;
+	}
+
+	/*
+	 * Second pass: spot empty directories and remove them.
+	 */
+
+	flags |= FTW_O_ENTRY | FTW_O_DEPTH;
+	dirstack = NULL;
+	(void) ftw_foreach(rootdir, flags, 0, tth_cache_cleanup_rmdir, &dirstack);
+	pslist_free(dirstack);
+
+	/* FALL THROUGH */
+
+done:
+	atomic_int_dec(&tth_cache_cleanups);
+	return NULL;
+}
+
+/**
+ * Cleanup the TTH cache by removing needless entries.
+ */
+void
+tth_cache_cleanup(void)
+{
+	if (0 == atomic_int_inc(&tth_cache_cleanups)) {
+		int id = thread_create(tth_cache_cleanup_thread,
+					NULL, THREAD_F_DETACH | THREAD_F_WARN, THREAD_STACK_MIN);
+		if (-1 == id)
+			atomic_int_dec(&tth_cache_cleanups);
+	} else if (debugging(0)) {
+		g_warning("%s(): concurrent cleanup in progress", G_STRFUNC);
+		atomic_int_dec(&tth_cache_cleanups);
+	}
 }
 
 void

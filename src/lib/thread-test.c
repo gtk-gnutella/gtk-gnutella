@@ -508,9 +508,7 @@ test_cancel_one(bool repeat, bool join)
 	if (async_exit)
 		cq_main_dispatch();
 
-	i = thread_create(sleeping_thread, NULL, 0, STACK_SIZE);
-	if (-1U == i)
-		s_error("cannot create sleeping thread: %m");
+	i = thread_create(sleeping_thread, NULL, THREAD_F_PANIC, STACK_SIZE);
 	if (-1 == thread_cancel(i)) {
 		s_error("cannot cancel sleeping thread: %m");
 	} else {
@@ -549,16 +547,13 @@ test_inter_main(void *arg)
 static void
 test_inter(void)
 {
-	int r;
 	waiter_t *mw, *w;
 	bool refed;
 
 	mw = waiter_make(NULL);
 	w = waiter_spawn(mw, int_to_pointer(31416));
 
-	r = thread_create(test_inter_main, w, THREAD_F_DETACH, 0);
-	if (-1 == r)
-		s_error("could not launch thread: %m");
+	thread_create(test_inter_main, w, THREAD_F_DETACH | THREAD_F_PANIC, 0);
 
 	emit("main thread waiting");
 	if (!waiter_suspend(mw))
@@ -614,16 +609,12 @@ static int
 test_semaphore_thread_launch(int n, semaphore_t *s)
 {
 	struct test_semaphore_arg *arg;
-	int r;
 
 	XMALLOC(arg);
 	arg->n = n;
 	arg->s = s;
-	r = thread_create(test_semaphore_main, arg, 0, 0);
-	if (-1 == r)
-		s_error("could not launch thread #%d: %m", n);
 
-	return r;
+	return thread_create(test_semaphore_main, arg, THREAD_F_PANIC, 0);
 }
 
 static void
@@ -990,12 +981,9 @@ test_fork(bool safe)
 	running = thread_count();
 	emit("starting with %u running thread%s", running, plural(running));
 
-	l1 = thread_create(fork_locker, int_to_pointer(0), 0, 8192);
-	l2 = thread_create(fork_locker, int_to_pointer(1), 0, 8192);
-	fk = thread_create(fork_forker, int_to_pointer(safe), 0, 8192);
-
-	if (-1 == l1 || -1 == l2 || -1 == fk)
-		s_error("%s() could not create threads", G_STRFUNC);
+	l1 = thread_create(fork_locker, int_to_pointer(0), THREAD_F_PANIC, 8192);
+	l2 = thread_create(fork_locker, int_to_pointer(1), THREAD_F_PANIC, 8192);
+	fk = thread_create(fork_forker, int_to_pointer(safe), THREAD_F_PANIC, 8192);
 
 	r = thread_join(l1, NULL);
 	if (-1 == r)
@@ -1050,9 +1038,7 @@ test_overflow(void)
 {
 	int t, r;
 
-	t = thread_create(overflow_thread, int_to_pointer(0), 0, 8192);
-	if (-1 == t)
-		s_error("%s() could not create thread", G_STRFUNC);
+	t = thread_create(overflow_thread, int_to_pointer(0), THREAD_F_PANIC, 8192);
 	r = thread_join(t, NULL);
 	if (-1 == r)
 		s_error("%s(): thread_join() failed: %m", G_STRFUNC);
@@ -1104,9 +1090,7 @@ test_aqueue(bool emulated)
 	arg.r = r = aq_make_full(emulated);		/* requests */
 	arg.a = a = aq_make_full(emulated);		/* answers */
 
-	t = thread_create(aqt_processor, &arg, 0, 0);
-	if (-1 == t)
-		s_error("cannot create processor thread: %m");
+	t = thread_create(aqt_processor, &arg, THREAD_F_PANIC, 0);
 
 	for (i = 0; i < G_N_ELEMENTS(names); i++) {
 		ulong res;
@@ -1377,9 +1361,7 @@ test_signals(void)
 	if (-1 != thread_kill(60, TSIG_0))
 		s_error("thread #60 already exists?");
 
-	r = thread_create(signalled_thread, NULL, 0, 0);
-	if (-1 == r)
-		s_error("cannot create new thread: %m");
+	r = thread_create(signalled_thread, NULL, THREAD_F_PANIC, 0);
 
 	emit("%s() thread %s created", G_STRFUNC, thread_id_name(r));
 
@@ -1415,9 +1397,8 @@ test_signals(void)
 	emit("%s() now checking thread_sleep_ms()", G_STRFUNC);
 
 	b = barrier_new(2);
-	r = thread_create(sleeping_thread, barrier_refcnt_inc(b), 0, 0);
-	if (-1 == r)
-		s_error("cannot create new thread: %m");
+	r = thread_create(sleeping_thread,
+			barrier_refcnt_inc(b), THREAD_F_PANIC, 0);
 	barrier_wait(b);		/* Give it time to setup */
 	for (i = 0; i < TEST_SIGNALS_COUNT; i++) {
 		if (-1 == thread_kill(r, TSIG_1))
@@ -1495,9 +1476,8 @@ test_barrier_one(bool emulated)
 		WALLOC(ca);
 		ca->n = i;
 		ca->b = cb;
-		t[i] = thread_create(computer_thread, ca, THREAD_F_DETACH, 0);
-		if (-1 == t[i])
-			s_error("cannot create processor thread %u: %m", i);
+		t[i] = thread_create(computer_thread, ca,
+				THREAD_F_DETACH | THREAD_F_PANIC, 0);
 	}
 
 	sleep(1);					/* Wait until threads have started */
@@ -1605,9 +1585,8 @@ test_dam_one(bool emulated)
 		da->n = i;
 		da->d = dam_refcnt_inc(d);
 		da->b = barrier_refcnt_inc(b);
-		t[i] = thread_create(dam_thread, da, THREAD_F_DETACH, 0);
-		if (-1 == t[i])
-			s_error("cannot create dam thread %u: %m", i);
+		t[i] = thread_create(dam_thread, da,
+				THREAD_F_DETACH | THREAD_F_PANIC, 0);
 	}
 
 	thread_sleep_ms(500);
@@ -1827,7 +1806,7 @@ exercise_memory(void *arg)
 	er->alloc_us = tm_elapsed_us(&end, &start);
 
 	if (randomize_free)
-		shuffle(mem, filled, sizeof mem[0]);
+		SHUFFLE_ARRAY_N(mem, filled);
 
 	tm_now_exact(&start);
 	for (i = 0; i < filled; i++) {
@@ -1868,10 +1847,8 @@ test_memory_one(struct exercise_results *total, bool posix, int percentage)
 	WALLOC_ARRAY(p, n);
 
 	for (i = 0; i < n; i++) {
-		int r = thread_create(exercise_memory, &ep, 0, THREAD_STACK_MIN);
-		if (-1 == r)
-			s_error("cannot create thread: %m");
-		t[i] = r;
+		t[i] = thread_create(exercise_memory, &ep,
+				THREAD_F_PANIC, THREAD_STACK_MIN);
 
 		if (posix) {
 			pthread_t pt = posix_thread_create(exercise_memory, &ep, TRUE);
@@ -2095,10 +2072,10 @@ test_teq(unsigned repeat)
 
 		b = barrier_new(2);
 		r = thread_create(teq_receiver, barrier_refcnt_inc(b),
-			0, THREAD_STACK_MIN);
+				THREAD_F_PANIC, THREAD_STACK_MIN);
 		arg.receiver = r;
 		arg.b = b;
-		s = thread_create(teq_sender, &arg, 0, THREAD_STACK_MIN);
+		s = thread_create(teq_sender, &arg, THREAD_F_PANIC, THREAD_STACK_MIN);
 
 		thread_join(r, NULL);
 		thread_join(s, NULL);
@@ -2168,8 +2145,8 @@ test_evq(unsigned repeat)
 	while (repeat--) {
 		int s, r;
 
-		r = thread_create(evq_one, NULL, 0, THREAD_STACK_MIN);
-		s = thread_create(evq_two, NULL, 0, THREAD_STACK_MIN);
+		r = thread_create(evq_one, NULL, THREAD_F_PANIC, THREAD_STACK_MIN);
+		s = thread_create(evq_two, NULL, THREAD_F_PANIC, THREAD_STACK_MIN);
 
 		thread_join(r, NULL);
 		thread_join(s, NULL);

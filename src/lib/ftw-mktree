@@ -1,0 +1,29 @@
+#!/bin/sh
+# Create a test tree for ftw-test
+
+ROOT=ftw-root
+
+if test -d $ROOT; then
+	chmod -R a+rX $ROOT 2>/dev/null
+	chmod a+x $ROOT/c
+	rm -rf $ROOT
+fi
+
+case "$1" in
+-r) exit 0;;
+esac
+
+for dir in a b c d; do
+	mkdir -p $ROOT/$dir
+	for file in 1 2 3; do
+		touch $ROOT/$dir/$dir$file
+		ls -l $ROOT/$dir > $ROOT/$dir/ls
+	done
+done
+
+chmod a-x $ROOT/c
+chmod a-r $ROOT/b
+cd $ROOT/a
+ln -s .. bar
+ln -s ../d/d1 .
+mknod foo p 2>/dev/null || mkfifo foo

@@ -107,7 +107,7 @@ RemoteTargetDependency(main.o, lib, htable.h)
 
 DependTarget()
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) $(EXTRA))
-InstallProgramNoStrip(gtk-gnutella, $(BINDIR))
+InstallProgram(gtk-gnutella, $(BINDIR))
 InstallManPage(gtk-gnutella, $(MANSRC))
 
 /*

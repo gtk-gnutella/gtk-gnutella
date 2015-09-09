@@ -456,13 +456,8 @@ tm_thread_main(void *unused_arg)
 static void
 tm_thread_start(void)
 {
-	int r;
-
-	r = thread_create(tm_thread_main, NULL,
-			THREAD_F_DETACH | THREAD_F_NO_POOL, TM_THREAD_STACK);
-
-	if G_UNLIKELY(-1 == r)
-		s_minierror("%s(): cannot launch time thread: %m", G_STRFUNC);
+	thread_create(tm_thread_main, NULL,
+		THREAD_F_DETACH | THREAD_F_NO_POOL | THREAD_F_PANIC, TM_THREAD_STACK);
 }
 
 /**
@@ -525,10 +520,8 @@ int
 tm_cmp(const tm_t *a, const tm_t *b)
 {
 	if (a->tv_sec != b->tv_sec)
-		return (a->tv_sec > b->tv_sec) ? +1 : -1;
-	if (a->tv_usec == b->tv_usec)
-		return 0;
-	return (a->tv_usec > b->tv_usec) ? +1 : -1;
+		return CMP(a->tv_sec, b->tv_sec);
+	return CMP(a->tv_usec, b->tv_usec);
 }
 
 /**

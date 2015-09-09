@@ -760,7 +760,7 @@ elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data)
  *
  * @return the head of the list
  */
-static link_t *
+static link_t * G_GNUC_HOT
 elist_merge_sort(elist_t *list, link_t *sublist, size_t count,
 	cmp_data_fn_t cmp, void *data)
 {
@@ -819,10 +819,6 @@ elist_merge_sort(elist_t *list, link_t *sublist, size_t count,
 	l->next = (NULL == l1) ? l2 : l1;
 	l->next->prev = l;
 
-	while (l->next != NULL)
-		l = l->next;
-
-	list->tail = l;
 	return head.next;
 }
 
@@ -846,6 +842,7 @@ elist_sort_internal(elist_t *list, cmp_data_fn_t cmp, void *data)
 	 */
 
 	list->head = elist_merge_sort(list, list->head, list->count, cmp, data);
+	list->tail = elist_last_link(list->head);
 
 	safety_assert(elist_invariant(list));
 	safety_assert(elist_length(list->head) == list->count);

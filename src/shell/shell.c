@@ -847,10 +847,10 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 
 				if (
 					-1 == thread_create(shell_async_handler, args,
-						THREAD_F_NO_POOL | THREAD_F_DETACH | THREAD_F_NO_CANCEL,
+						THREAD_F_NO_POOL | THREAD_F_DETACH |
+							THREAD_F_NO_CANCEL | THREAD_F_WARN,
 						SHELL_STACK_SIZE)
 				) {
-					s_warning("%s(): cannot create new thread: %m", G_STRFUNC);
 					WFREE(args);
 					sh->async = FALSE;
 					shell_handle_event(sh, INPUT_EVENT_NONE);

@@ -60,7 +60,7 @@ parse_base32_sha1(const char *buf, size_t size, struct sha1 *sha1)
 	if (size < SHA1_BASE32_SIZE)
 		return FALSE;
 		
-	len = base32_decode(sha1->data, SHA1_RAW_SIZE, buf, SHA1_BASE32_SIZE);
+	len = base32_decode(sha1, sizeof *sha1, buf, SHA1_BASE32_SIZE);
 	if (SHA1_RAW_SIZE != len)
 		return FALSE;
 
@@ -185,9 +185,9 @@ urn_get_bitprint(const char *buf, size_t size,
 		return FALSE;
 	}
 	if (base16_tth) {
-		len = base16_decode(tth->data, TTH_RAW_SIZE, p, TTH_BASE16_SIZE);
+		len = base16_decode(tth, sizeof *tth, p, TTH_BASE16_SIZE);
 	} else {
-		len = base32_decode(tth->data, TTH_RAW_SIZE, p, TTH_BASE32_SIZE);
+		len = base32_decode(tth, sizeof *tth, p, TTH_BASE32_SIZE);
 	}
 	if (len != TTH_RAW_SIZE) {
 		return FALSE;

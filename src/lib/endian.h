@@ -26,7 +26,7 @@
  * @ingroup lib
  * @file
  *
- * Endiannes peek/poke routines.
+ * Endianness peek/poke routines.
  *
  * @author Raphael Manfredi
  * @date 2001-2003

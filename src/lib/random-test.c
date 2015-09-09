@@ -550,14 +550,10 @@ add_entropy(void *p)
 static void
 start_generate_thread(bool verbose)
 {
-	int id;
-
 	teq_create_if_none();
 
-	id = thread_create(add_entropy, NULL, THREAD_F_DETACH, THREAD_STACK_MIN);
-
-	if (-1 == id)
-		s_error("%s(): cannot create new thread: %m", G_STRFUNC);
+	thread_create(add_entropy, NULL,
+		THREAD_F_DETACH | THREAD_F_PANIC, THREAD_STACK_MIN);
 
 	if (verbose)
 		printf("Started entropy generation thread for ARC4 and WELL\n");

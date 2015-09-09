@@ -507,6 +507,16 @@ waiter_ack(waiter_t *w)
 	 * on this particular waiter object, we gracefully ignore it and loudly
 	 * complain.
 	 *		--RAM, 2015-03-24
+	 *
+	 * This assertion (which is soft, so no harm done) seems to only fail
+	 * on Windows, with an empty active list whilst the master is not being
+	 * flagged as notified either (the waiter being the master).  Caller is
+	 * the teq_io_callback() routine and the log typically says:
+	 *
+	 *     (notified=n, blocking=n) with 1 child: idle=1, active=0
+	 *
+	 * which is consistent with a spurious triggering of the I/O callback.
+	 *		--RAM, 2015-04-15
 	 */
 
 	g_soft_assert_log(w->notified,

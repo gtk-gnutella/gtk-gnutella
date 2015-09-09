@@ -1167,7 +1167,7 @@ cached_pong_hash(const void *key)
 {
 	const struct cached_pong *cp = key;
 
-	return host_addr_hash(cp->info.addr) ^ port_hash(cp->info.port);
+	return host_addr_port_hash(cp->info.addr, cp->info.port);
 }
 
 static int

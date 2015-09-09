@@ -106,9 +106,9 @@ base16_encode(char *dst, size_t size, const void *data, size_t len)
  * @return the amount of bytes decoded into the destination, -1 on error.
  */
 size_t
-base16_decode(char *dst, size_t size, const void *data, size_t len)
+base16_decode(void *dst, size_t size, const char *data, size_t len)
 {
-  const unsigned char *p = data;
+  const unsigned char *p = cast_to_constpointer(data);
   char *q = dst;
   size_t i;
 
@@ -131,7 +131,7 @@ base16_decode(char *dst, size_t size, const void *data, size_t len)
     *q++ = (high << 4) | low;
   }
 
-  return q - dst;
+  return ptr_diff(q, dst);
 }
 
 /* vi: set ai et sts=2 sw=2 cindent: */

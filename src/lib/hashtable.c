@@ -281,23 +281,6 @@ hash_table_check(const hash_table_t *ht)
 	g_assert(ht->num_bins > 0 && ht->num_bins < SIZE_MAX / 2);
 }
 
-static inline unsigned
-hash_id_key(const void *key)
-{
-	/*
-	 * A naive direct use of the pointer has a much worse distribution,
-	 * e.g. only a quarter of the bins are used.
-	 */
-
-	return GOLDEN_RATIO_32 * pointer_to_ulong(key);
-}
-
-static inline bool
-hash_id_eq(const void *a, const void *b)
-{
-	return a == b;
-}
-
 static hash_item_t *
 hash_item_alloc(hash_table_t *ht, const void *key, const void *value)
 {
@@ -363,9 +346,9 @@ hash_table_new_intern(hash_table_t *ht,
 	ht->magic = HASHTABLE_MAGIC;
 	ht->num_held = 0;
 	ht->bin_fill = 0;
-	ht->hash = hash != NULL ? hash : hash_id_key;
-	ht->eq = eq != NULL ? eq : hash_id_eq;
-	ht->self_keys = booleanize(hash_id_eq == ht->eq);
+	ht->hash = hash != NULL ? hash : pointer_hash;
+	ht->eq = eq != NULL ? eq : pointer_eq;
+	ht->self_keys = booleanize(pointer_eq == ht->eq);
 
 	/*
 	 * If data space is not-NULL, then the table is going to be of fixed_size.

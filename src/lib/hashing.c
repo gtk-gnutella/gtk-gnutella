@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008-2012, Raphael Manfredi
- * Copyright (c) 2003-2008, Christian Biere
+ * Copyright (c) 2003-2008 Christian Biere
+ * Copyright (c) 2008-2012, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -61,18 +61,6 @@
 #define rotl(x, k) (((x) << (k)) | ((x) >> (32 - (k))))
 
 /**
- * Alternative hashing of a 32-bit value.
- */
-static inline ALWAYS_INLINE unsigned
-u32_hash2(uint32 v)
-{
-	uint64 hash;
-
-	hash = GOLDEN_RATIO_48 * (uint64) v;
-	return (hash >> 13) ^ (hash >> 32);
-}
-
-/**
  * Hashing of pointers.
  *
  * The identity function makes a poor hash for pointers.
@@ -81,10 +69,10 @@ unsigned
 pointer_hash(const void *p)
 {
 #if PTRSIZE <= 4
-	return u32_hash(pointer_to_ulong(p));
+	return u32_ptr_hash(pointer_to_ulong(p));
 #else
 	uint64 v = pointer_to_ulong(p);
-	return u32_hash(v) + u32_hash(v >> 32);
+	return u32_ptr_hash(v) + u32_hash(v >> 32);
 #endif
 }
 
@@ -97,10 +85,10 @@ unsigned
 pointer_hash2(const void *p)
 {
 #if PTRSIZE <= 4
-	return u32_hash2(pointer_to_ulong(p));
+	return u32_ptr_hash2(pointer_to_ulong(p));
 #else
 	uint64 v = pointer_to_ulong(p);
-	return u32_hash2(v) + u32_hash2(v >> 32);
+	return u32_ptr_hash2(v) + u32_hash2(v >> 32);
 #endif
 }
 
@@ -144,24 +132,6 @@ integer_hash2(ulong v)
 }
 
 /**
- * Hashing of port numbers.
- */
-unsigned
-port_hash(uint16 v)
-{
-	return integer_hash(((uint32) v << 16) | (uint32) v);
-}
-
-/**
- * Alternate hashing of port numbers.
- */
-unsigned
-port_hash2(uint16 v)
-{
-	return integer_hash2(((uint32) v << 16) | (uint32) v);
-}
-
-/**
  * Hash `len' bytes starting from `data'.
  */
 G_GNUC_HOT unsigned
@@ -185,16 +155,16 @@ binary_hash(const void *data, size_t len)
 		};
 		hash ^= peek_le32(&key[i]);
 		hash += x[(i >> 2) & 0x7];
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 13);
 	}
 
 	for (i = 0; i < remain; i++) {
 		hash += key[t4 + i];
 		hash ^= key[t4 + i] << (i * 8);
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 23);
 	}
 
-	return pointer_hash(ulong_to_pointer(hash));
+	return hashing_mix32(hash);
 }
 
 /**
@@ -221,16 +191,16 @@ binary_hash2(const void *data, size_t len)
 		};
 		hash ^= peek_le32(&key[i]);
 		hash += x[(i >> 2) & 0x7];
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 15);
 	}
 
 	for (i = 0; i < remain; i++) {
 		hash += key[t4 + i];
 		hash ^= key[t4 + i] << (i * 8);
-		hash = rotl(hash, 24);
+		hash = rotl(hash, 25);
 	}
 
-	return pointer_hash(ulong_to_pointer(hash));
+	return hashing_mix32(hash);
 }
 
 /**
@@ -294,16 +264,18 @@ string_eq(const void *a, const void *b)
 	return a == b || 0 == strcmp(a, b);
 }
 
+#define HASH_M3_C1		0xCC9E2D51U
+#define HASH_M3_C2		0x1B873593U
+#define HASH_M3_C3		0xE6546B64U
+
 /**
- * Paul Hsieh's so-called "super fast hash" routine.
- *
- * This routine is slower than binary_hash() and is included here to be
- * able to measure clustering impacts when an alternative hash is used.
+ * This is the Murmur3 hashing algorithm which exhibits good distribution
+ * properties leading to fewer collisions in hash tables.
  */
-G_GNUC_HOT unsigned
+unsigned G_GNUC_HOT
 universal_hash(const void *data, size_t len)
 {
-	uint32 hash = len;
+	uint32 k, hash = len * GOLDEN_RATIO_32;		/* Initial hash by RAM */
 	size_t n, remain;
 	const unsigned char *p = data;
 
@@ -316,56 +288,39 @@ universal_hash(const void *data, size_t len)
  	 * Process 32-bit words
 	 */
 
-	for (n = len >> 2; n != 0; n--) {
-		uint32 tmp;
+	for (n = len >> 2; n != 0; n--, p += 4) {
+		k = peek_le32(p);
 
-		hash += peek_le16(p);
-		p += 2;
-		tmp	= (peek_le16(p) << 11) ^ hash;
-		hash = (hash << 16) ^ tmp;
-		p += 2;
-		hash += hash >> 11;
+		k *= HASH_M3_C1;
+		k = rotl(k, 15);
+		k *= HASH_M3_C2;
+
+		hash ^= k;
+		hash = rotl(hash, 13);
+		hash = hash * 5 + HASH_M3_C3;
 	}
 
 	/*
 	 * Process trailing bytes.
 	 */
 
+	k = 0;
+
 	switch (remain) {
-	case 3:
-		hash += peek_le16(p);
-		hash ^= hash << 16;
-		hash ^= *(p + 2) << 18;
-		hash += hash >> 11;
-		break;
-	case 2:
-		hash += peek_le16(p);
-		hash ^= hash << 11;
-		hash += hash >> 17;
-		break;
-	case 1:
-		hash += *p;
-		hash ^= hash << 10;
-		hash += hash >> 1;
-		/* FALL THROUGH */
-	case 0:
-		break;
-	default:
-		g_assert_not_reached();
+	case 3: k ^= *(p + 2) << 16;
+	case 2: k ^= *(p + 1) << 8;
+	case 1: k ^= *p;
+			k *= HASH_M3_C1; k = rotl(k, 15); k *= HASH_M3_C2;
+			hash ^= k;
 	}
 
 	/*
-	 * Force "avalanching" of final 127 bits.
+	 * Force "avalanching" of bits.
 	 */
 
-	hash ^= hash << 3;
-	hash += hash >> 5;
-	hash ^= hash << 4;
-	hash += hash >> 17;
-	hash ^= hash << 25;
-	hash += hash >> 6;
+	hash ^= len;
 
-	return hash;
+	return hashing_mix32(hash);
 }
 
 #define mix(a, b, c) G_STMT_START {   \

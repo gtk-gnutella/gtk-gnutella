@@ -44,6 +44,7 @@
 #include "lib/barrier.h"
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
+#include "lib/compat_sendfile.h"
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/file_object.h"
@@ -427,7 +428,6 @@ move_progress(void *ctx)
 	g_assert(thread_is_main());
 
 	download_move_progress(md->d, md->copied);
-	md->last_notify = tm_time();
 
 	return NULL;
 }
@@ -457,7 +457,15 @@ again:		/* Avoids indenting all this code */
 
 	g_assert(md->size > md->copied);
 	remain = md->size - md->copied;
+
+	/*
+	 * When we use sendfile(), we have no use for the internal buffer,
+	 * hence there is no need to limit the amount of data to transfer.
+	 */
+
+#ifndef HAS_SENDFILE
 	remain = MIN(remain, COPY_BUF_SIZE);
+#endif
 
 	/*
 	 * Each tick we have can buy us COPY_BLOCK_FRAGMENT bytes.
@@ -472,6 +480,26 @@ again:		/* Avoids indenting all this code */
 
 	g_assert(amount > 0);
 
+#ifdef HAS_SENDFILE
+	{
+		off_t off = md->copied;
+
+		/*
+		 * Calling file_object_fd() is safe here since we are in the process
+		 * of moving the downloaded file, and therefore the file object's
+		 * file descriptor is still valid: we know no other concurrent moving
+		 * operation is occurring.
+		 */
+
+		r = compat_sendfile(md->wd, file_object_fd(md->rd), &off, amount);
+		if (r <= 0) {
+			md->error = 0 == r ? EPIPE : errno;
+			g_warning("error while reading \"%s\" for moving \"%s\": %m",
+				file_object_pathname(md->rd), download_basename(md->d));
+			return BGR_DONE;
+		}
+	}
+#else	/* !HAS_SENDFILE */
 	r = file_object_pread(md->rd, md->buffer, amount, md->copied);
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
@@ -487,15 +515,6 @@ again:		/* Avoids indenting all this code */
 
 	g_assert((size_t) r == amount);
 
-	/*
-	 * Any partially read block counts as one block, hence the second term.
-	 */
-
-	t = (r / COPY_BLOCK_FRAGMENT) + (r % COPY_BLOCK_FRAGMENT ? 1 : 0);
-	used += t;
-
-	bg_task_ticks_used(h, used);
-
 	r = write(md->wd, md->buffer, amount);
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
@@ -507,21 +526,37 @@ again:		/* Avoids indenting all this code */
 		g_warning("short write whilst moving \"%s\"", download_basename(md->d));
 		return BGR_DONE;
 	}
+#endif	/* HAS_SENDFILE */
 
 	g_assert((size_t) r == amount);
 
 	md->copied += r;
 
 	/*
-	 * Notify main thread only once per second at most, this is only for
-	 * the benefit of the GUI.
+	 * Any partially read block counts as one block, hence the second term.
 	 */
 
-	if (delta_time(tm_time(), md->last_notify) >= 1)
-		teq_safe_rpc(THREAD_MAIN, move_progress, md);
+	t = (r / COPY_BLOCK_FRAGMENT) + (r % COPY_BLOCK_FRAGMENT ? 1 : 0);
+	used += t;
+	bg_task_ticks_used(h, used);
 
-	if (md->copied == md->size)
+
+	/*
+	 * Notify main thread only once per second at most, or when the file
+	 * is completely copied.
+	 *
+	 * This is only for the benefit of the GUI.
+	 */
+
+	if G_UNLIKELY(md->copied == md->size) {
+		teq_safe_rpc(THREAD_MAIN, move_progress, md);
 		return BGR_DONE;
+	}
+
+	if (delta_time(tm_time(), md->last_notify) >= 1) {
+		teq_safe_rpc(THREAD_MAIN, move_progress, md);
+		md->last_notify = tm_time();
+	}
 
 	/*
 	 * If we still have unused ticks, repeat.
@@ -637,12 +672,19 @@ move_init(void)
 	barrier_t *b;
 	int r;
 
-	WALLOC(md);
+	WALLOC0(md);
 	md->magic = MOVED_MAGIC;
 	md->rd = NULL;
 	md->wd = -1;
-	md->buffer = halloc(COPY_BUF_SIZE);
 	md->target = NULL;
+
+	/*
+	 * The internal copy buffer is only required when we lack sendfile().
+	 */
+
+#ifndef HAS_SENDFILE
+	md->buffer = halloc(COPY_BUF_SIZE);
+#endif
 
 	/*
 	 * Because the file moving operation is I/O intensive and not CPU
@@ -655,11 +697,9 @@ move_init(void)
 	args.bs = bg_sched_create("moving", 1000000 /* 1 s */);
 
 	r = thread_create(move_thread_main, &args,
-			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL |
+				THREAD_F_NO_POOL | THREAD_F_PANIC,
 			THREAD_STACK_MIN);
-
-	if (-1 == r)
-		s_error("%s(): cannot create file moving thread: %m", G_STRFUNC);
 
 	move_thread_id = r;
 

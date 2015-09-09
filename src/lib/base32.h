@@ -64,7 +64,7 @@
 #ifndef BASE32_HEADER_FILE
 #define BASE32_HEADER_FILE
 
-size_t base32_decode(char *dst, size_t size, const void *data, size_t len);
+size_t base32_decode(void *dst, size_t size, const char *data, size_t len);
 size_t base32_encode(char *dst, size_t size, const void *data, size_t len);
 
 #endif /* BASE32_HEADER_FILE */

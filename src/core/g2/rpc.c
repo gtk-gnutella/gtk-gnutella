@@ -101,7 +101,7 @@ g2_rpc_key_hash(const void *key)
 {
 	const struct g2_rpc_key *rk = key;
 
-	return integer_hash(rk->type) ^ host_addr_hash(rk->addr);
+	return integer_hash_fast(rk->type) ^ host_addr_hash(rk->addr);
 }
 
 /**

@@ -342,11 +342,12 @@ verify_item_hash(const void *key)
 
 	verify_file_check(ctx);
 	
-	return string_mix_hash(ctx->pathname)
+	return hashing_mix32(
+		string_mix_hash(ctx->pathname)
 		^ uint64_hash(&ctx->offset)
 		^ uint64_hash(&ctx->amount)
 		^ pointer_hash(func_to_pointer(ctx->callback))
-		^ pointer_hash(ctx->user_data);
+		^ pointer_hash(ctx->user_data));
 }
 
 static int
@@ -537,11 +538,9 @@ verify_thread_create(struct verify *v, bgsched_t *bs, const char *name)
 	 */
 
 	r = thread_create(verify_thread_main, args,
-			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL |
+				THREAD_F_NO_POOL | THREAD_F_PANIC,
 			THREAD_STACK_MIN);
-
-	if (-1 == r)
-		s_error("%s(): cannot create thread \"%s\": %m", G_STRFUNC, name);
 
 	v->verify_stid = r;
 	v->sched = bs;

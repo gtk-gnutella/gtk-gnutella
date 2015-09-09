@@ -94,6 +94,7 @@
 #include "pslist.h"
 #include "random.h"
 #include "sha1.h"
+#include "pow2.h"				/* For IS_POWER_OF_2() */
 #include "spinlock.h"
 #include "thread.h"
 #include "tm.h"
@@ -187,28 +188,6 @@ aje_check(const struct aje_state * const as)
 #define AJE_STATE_UNLOCK(a)		spinunlock_hidden(&(a)->lock)
 
 /**
- * Wrapper over SHA1_result() to keep the context whilst obtaining
- * the digest of the data fed so far.
- *
- * @param ctx		the SHA1 context
- * @param digest	where the digest is written out
- */
-static void
-aje_sha1_result(const SHA1_context *ctx, sha1_t *digest)
-{
-	SHA1_context tmp;
-	int ret;
-
-	tmp = *ctx;					/* struct copy */
-	ret = SHA1_result(&tmp, digest);
-
-	g_assert_log(SHA_SUCCESS == ret,
-		"%s(): error whilst computing SHA1 digest: %d", G_STRFUNC, ret);
-
-	ZERO(&tmp);					/* clear the values on the stack */
-}
-
-/**
  * Increment counter, so that it changes without repeating itself, ever.
  */
 static void
@@ -285,7 +264,7 @@ static void
 aje_reseed(aje_state_t *as)
 {
 	uint k;
-	size_t n;
+	size_t n, offset;
 	SHA1_context kctx;
 	sha1_t buf;
 
@@ -313,12 +292,36 @@ aje_reseed(aje_state_t *as)
 		 * new entropy added to the pool will add to the previous hash context.
 		 */
 
-		aje_sha1_result(&as->pool[k], &buf);
+		SHA1_intermediate(&as->pool[k], &buf);
 		SHA1_INPUT(&kctx, buf);
 
 		if (n & 1)
 			break;
 	}
+
+	/*
+	 * If the key is smaller than the SHA1 buffer, we can randomly offset
+	 * the key start within the buffer to add more entropy.
+	 */
+
+#define AJE_EXTRABYTES	(AJE_DIGEST_LEN - AJE_CIPHER_KEYLEN)
+
+	if (AJE_DIGEST_LEN > AJE_CIPHER_KEYLEN) {
+		/*
+		 * We avoid modulo bias by masking an entire set of trailing bits.
+		 * Surely, that limits the amount of values ``offset'' can take by
+		 * removing the upper value AJE_EXTRABYTES, but it simplifies code.
+		 */
+
+		STATIC_ASSERT(IS_POWER_OF_2(AJE_EXTRABYTES));
+		g_assert(as->krnd < G_N_ELEMENTS(as->key));
+
+		offset = as->key[as->krnd] & (AJE_EXTRABYTES - 1);
+	} else {
+		offset = 0;
+	}
+
+#undef AJE_EXTRABYTES
 
 	/*
 	 * Add the old key, the current counter and the previous reseed time into
@@ -331,8 +334,10 @@ aje_reseed(aje_state_t *as)
 	SHA1_result(&kctx, &buf);
 
 	STATIC_ASSERT(sizeof as->key <= sizeof buf);
+	g_assert(offset + sizeof as->key <= sizeof buf);
 
-	memcpy(as->key, &buf, sizeof as->key);
+	memcpy(as->key, ptr_add_offset(&buf, offset), sizeof as->key);
+	as->krnd = 0;
 
 	/*
 	 * Clear intermediate values from the stack.

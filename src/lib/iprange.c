@@ -337,7 +337,7 @@ iprange_net4_collision(const void *p, const void *q)
 		ip_to_string(a->ip), a->bits,
 		host_addr_to_string(host_addr_get_ipv4(b->ip)), b->bits);
 
-	return a->bits < b->bits ? 1 : -1;
+	return CMP(b->bits, a->bits);		/* Reversed comparison */
 }
 
 static int
@@ -348,7 +348,7 @@ iprange_net6_collision(const void *p, const void *q)
 	g_warning("iprange_sync(): %s/%u overlaps with %s/%u",
 		ipv6_to_string(a->ip), a->bits, ipv6_to_string2(b->ip), b->bits);
 
-	return a->bits < b->bits ? 1 : -1;
+	return CMP(b->bits, a->bits);		/* Reversed comparison */
 }
 
 /**

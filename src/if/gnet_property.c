@@ -1108,6 +1108,10 @@ guint32  gnet_property_variable_g2_browse_served     = 0;
 static const guint32  gnet_property_variable_g2_browse_served_default = 0;
 gboolean gnet_property_variable_log_sending_g2     = FALSE;
 static const gboolean gnet_property_variable_log_sending_g2_default = FALSE;
+time_t  gnet_property_variable_session_start_stamp     = 0;
+static const time_t  gnet_property_variable_session_start_stamp_default = 0;
+gboolean gnet_property_variable_tcp_no_listening     = FALSE;
+static const gboolean gnet_property_variable_tcp_no_listening_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -1137,6 +1141,7 @@ gnet_prop_init(void) {
     gnet_property->props[0].desc = _("Indicates whether the hostcache file is being read.");
     gnet_property->props[0].ev_changed = event_new("reading_hostfile_changed");
     gnet_property->props[0].save = FALSE;
+    gnet_property->props[0].internal = TRUE;
     gnet_property->props[0].vector_size = 1;
 	mutex_init(&gnet_property->props[0].lock);
 
@@ -1155,6 +1160,7 @@ gnet_prop_init(void) {
     gnet_property->props[1].desc = _("Indicates whether the ultracache file is being read.");
     gnet_property->props[1].ev_changed = event_new("reading_ultrafile_changed");
     gnet_property->props[1].save = FALSE;
+    gnet_property->props[1].internal = TRUE;
     gnet_property->props[1].vector_size = 1;
 	mutex_init(&gnet_property->props[1].lock);
 
@@ -1173,6 +1179,7 @@ gnet_prop_init(void) {
     gnet_property->props[2].desc = _("Indicates that gtk-gnutella finds the version you run very VERY old.  You should upgrade as soon as possible to avoid suffering from non-optimal Gnutella support that may not only damage your abilities to search and download but also harm the network since you're not supporting the newest features.");
     gnet_property->props[2].ev_changed = event_new("ancient_version_changed");
     gnet_property->props[2].save = FALSE;
+    gnet_property->props[2].internal = TRUE;
     gnet_property->props[2].vector_size = 1;
 	mutex_init(&gnet_property->props[2].lock);
 
@@ -1191,6 +1198,7 @@ gnet_prop_init(void) {
     gnet_property->props[3].desc = _("gtk-gnutella found a newer version on the Gnet and gives information about it here.");
     gnet_property->props[3].ev_changed = event_new("new_version_str_changed");
     gnet_property->props[3].save = FALSE;
+    gnet_property->props[3].internal = TRUE;
     gnet_property->props[3].vector_size = 1;
 	mutex_init(&gnet_property->props[3].lock);
 
@@ -1213,6 +1221,7 @@ gnet_prop_init(void) {
     gnet_property->props[4].desc = _("Try to keep at least this number of connections to other servents of the same kind as we are (normal or ultra nodes). This should be smaller than the maximum amount of connections to allow incoming connections.  Keep in mind that the default TTL on Gnutella is 4, so this needs to be more than 30 to provide decent range for searches.");
     gnet_property->props[4].ev_changed = event_new("up_connections_changed");
     gnet_property->props[4].save = TRUE;
+    gnet_property->props[4].internal = FALSE;
     gnet_property->props[4].vector_size = 1;
 	mutex_init(&gnet_property->props[4].lock);
 
@@ -1234,6 +1243,7 @@ gnet_prop_init(void) {
     gnet_property->props[5].desc = _("When in ultrapeer mode, try to keep at least this number of connections to normal servents.  This should be smaller than the maximum amount of connections to allow incoming connections.");
     gnet_property->props[5].ev_changed = event_new("normal_connections_changed");
     gnet_property->props[5].save = TRUE;
+    gnet_property->props[5].internal = FALSE;
     gnet_property->props[5].vector_size = 1;
 	mutex_init(&gnet_property->props[5].lock);
 
@@ -1255,6 +1265,7 @@ gnet_prop_init(void) {
     gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 256 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value smaller than 40.");
     gnet_property->props[6].ev_changed = event_new("max_connections_changed");
     gnet_property->props[6].save = TRUE;
+    gnet_property->props[6].internal = FALSE;
     gnet_property->props[6].vector_size = 1;
 	mutex_init(&gnet_property->props[6].lock);
 
@@ -1276,6 +1287,7 @@ gnet_prop_init(void) {
     gnet_property->props[7].desc = _("Number of leaf nodes currently connected.");
     gnet_property->props[7].ev_changed = event_new("node_leaf_count_changed");
     gnet_property->props[7].save = FALSE;
+    gnet_property->props[7].internal = TRUE;
     gnet_property->props[7].vector_size = 1;
 	mutex_init(&gnet_property->props[7].lock);
 
@@ -1297,6 +1309,7 @@ gnet_prop_init(void) {
     gnet_property->props[8].desc = _("Number of normal nodes currently connected.");
     gnet_property->props[8].ev_changed = event_new("node_normal_count_changed");
     gnet_property->props[8].save = FALSE;
+    gnet_property->props[8].internal = TRUE;
     gnet_property->props[8].vector_size = 1;
 	mutex_init(&gnet_property->props[8].lock);
 
@@ -1318,6 +1331,7 @@ gnet_prop_init(void) {
     gnet_property->props[9].desc = _("Number of ultra nodes currently connected.");
     gnet_property->props[9].ev_changed = event_new("node_ultra_count_changed");
     gnet_property->props[9].save = FALSE;
+    gnet_property->props[9].internal = TRUE;
     gnet_property->props[9].vector_size = 1;
 	mutex_init(&gnet_property->props[9].lock);
 
@@ -1339,6 +1353,7 @@ gnet_prop_init(void) {
     gnet_property->props[10].desc = _("Don't start more than this number of parallel downloads.  Others will remain in the queue waiting for a download slot.");
     gnet_property->props[10].ev_changed = event_new("max_downloads_changed");
     gnet_property->props[10].save = TRUE;
+    gnet_property->props[10].internal = FALSE;
     gnet_property->props[10].vector_size = 1;
 	mutex_init(&gnet_property->props[10].lock);
 
@@ -1360,6 +1375,7 @@ gnet_prop_init(void) {
     gnet_property->props[11].desc = _("Don't make more connections than given here to a single host to download a file.  Be nice to others, and leave it at the default value (1).");
     gnet_property->props[11].ev_changed = event_new("max_host_downloads_changed");
     gnet_property->props[11].save = TRUE;
+    gnet_property->props[11].internal = FALSE;
     gnet_property->props[11].vector_size = 1;
 	mutex_init(&gnet_property->props[11].lock);
 
@@ -1381,6 +1397,7 @@ gnet_prop_init(void) {
     gnet_property->props[12].desc = _("Don't allow more than this number of uploads in total. This also defines the amount of PARQ queues that will be used. You should at least set it to 2.");
     gnet_property->props[12].ev_changed = event_new("max_uploads_changed");
     gnet_property->props[12].save = TRUE;
+    gnet_property->props[12].internal = FALSE;
     gnet_property->props[12].vector_size = 1;
 	mutex_init(&gnet_property->props[12].lock);
 
@@ -1402,6 +1419,7 @@ gnet_prop_init(void) {
     gnet_property->props[13].desc = _("Don't upload more than this number of files in parallel to a single host.");
     gnet_property->props[13].ev_changed = event_new("max_uploads_ip_changed");
     gnet_property->props[13].save = TRUE;
+    gnet_property->props[13].internal = FALSE;
     gnet_property->props[13].vector_size = 1;
 	mutex_init(&gnet_property->props[13].lock);
 
@@ -1423,6 +1441,7 @@ gnet_prop_init(void) {
     gnet_property->props[14].desc = _("Local IPv4 address last determined.");
     gnet_property->props[14].ev_changed = event_new("local_ip_changed");
     gnet_property->props[14].save = TRUE;
+    gnet_property->props[14].internal = FALSE;
     gnet_property->props[14].vector_size = 1;
 	mutex_init(&gnet_property->props[14].lock);
 
@@ -1440,6 +1459,7 @@ gnet_prop_init(void) {
     gnet_property->props[15].desc = _("Local IPv6 address last determined.");
     gnet_property->props[15].ev_changed = event_new("local_ip6_changed");
     gnet_property->props[15].save = TRUE;
+    gnet_property->props[15].internal = FALSE;
     gnet_property->props[15].vector_size = 1;
 	mutex_init(&gnet_property->props[15].lock);
 
@@ -1457,6 +1477,7 @@ gnet_prop_init(void) {
     gnet_property->props[16].desc = _("When the current IPv4 address was determined.");
     gnet_property->props[16].ev_changed = event_new("current_ip_stamp_changed");
     gnet_property->props[16].save = TRUE;
+    gnet_property->props[16].internal = TRUE;
     gnet_property->props[16].vector_size = 1;
 	mutex_init(&gnet_property->props[16].lock);
 
@@ -1478,6 +1499,7 @@ gnet_prop_init(void) {
     gnet_property->props[17].desc = _("When the current IPv6 address was determined.");
     gnet_property->props[17].ev_changed = event_new("current_ip6_stamp_changed");
     gnet_property->props[17].save = TRUE;
+    gnet_property->props[17].internal = TRUE;
     gnet_property->props[17].vector_size = 1;
 	mutex_init(&gnet_property->props[17].lock);
 
@@ -1499,6 +1521,7 @@ gnet_prop_init(void) {
     gnet_property->props[18].desc = _("Average uptime with the same IPv4 address.");
     gnet_property->props[18].ev_changed = event_new("average_ip_uptime_changed");
     gnet_property->props[18].save = TRUE;
+    gnet_property->props[18].internal = TRUE;
     gnet_property->props[18].vector_size = 1;
 	mutex_init(&gnet_property->props[18].lock);
 
@@ -1520,6 +1543,7 @@ gnet_prop_init(void) {
     gnet_property->props[19].desc = _("Average uptime with the same IPv6 address.");
     gnet_property->props[19].ev_changed = event_new("average_ip6_uptime_changed");
     gnet_property->props[19].save = TRUE;
+    gnet_property->props[19].internal = TRUE;
     gnet_property->props[19].vector_size = 1;
 	mutex_init(&gnet_property->props[19].lock);
 
@@ -1541,6 +1565,7 @@ gnet_prop_init(void) {
     gnet_property->props[20].desc = _("Timestamp at which servent was started.");
     gnet_property->props[20].ev_changed = event_new("start_stamp_changed");
     gnet_property->props[20].save = FALSE;
+    gnet_property->props[20].internal = TRUE;
     gnet_property->props[20].vector_size = 1;
 	mutex_init(&gnet_property->props[20].lock);
 
@@ -1562,6 +1587,7 @@ gnet_prop_init(void) {
     gnet_property->props[21].desc = _("Average servent uptime.");
     gnet_property->props[21].ev_changed = event_new("average_servent_uptime_changed");
     gnet_property->props[21].save = TRUE;
+    gnet_property->props[21].internal = TRUE;
     gnet_property->props[21].vector_size = 1;
 	mutex_init(&gnet_property->props[21].lock);
 
@@ -1583,6 +1609,7 @@ gnet_prop_init(void) {
     gnet_property->props[22].desc = _("Local TCP port gtk-gnutella is listening on. ISPs often block or throttle traffic on TCP port 6346 so it is a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the TCP port 6346 is not used to guard against undue censorship.");
     gnet_property->props[22].ev_changed = event_new("listen_port_changed");
     gnet_property->props[22].save = TRUE;
+    gnet_property->props[22].internal = FALSE;
     gnet_property->props[22].vector_size = 1;
 	mutex_init(&gnet_property->props[22].lock);
 
@@ -1604,6 +1631,7 @@ gnet_prop_init(void) {
     gnet_property->props[23].desc = _("Use this IP address as source address if 'force local ip' is activated.");
     gnet_property->props[23].ev_changed = event_new("forced_local_ip_changed");
     gnet_property->props[23].save = TRUE;
+    gnet_property->props[23].internal = FALSE;
     gnet_property->props[23].vector_size = 1;
 	mutex_init(&gnet_property->props[23].lock);
 
@@ -1621,6 +1649,7 @@ gnet_prop_init(void) {
     gnet_property->props[24].desc = _("Use this IPv6 address as source address if 'force local ip' is activated.");
     gnet_property->props[24].ev_changed = event_new("forced_local_ip6_changed");
     gnet_property->props[24].save = TRUE;
+    gnet_property->props[24].internal = FALSE;
     gnet_property->props[24].vector_size = 1;
 	mutex_init(&gnet_property->props[24].lock);
 
@@ -1638,6 +1667,7 @@ gnet_prop_init(void) {
     gnet_property->props[25].desc = _("The connection bandwidth reported to other hosts. This is the speed at which you can upload things to others.");
     gnet_property->props[25].ev_changed = event_new("connection_speed_changed");
     gnet_property->props[25].save = TRUE;
+    gnet_property->props[25].internal = FALSE;
     gnet_property->props[25].vector_size = 1;
 	mutex_init(&gnet_property->props[25].lock);
 
@@ -1659,6 +1689,7 @@ gnet_prop_init(void) {
     gnet_property->props[26].desc = _("Whether the connection bandwidth reported to other hosts should be computed based on the current average upload speed. The reported speed is the available speed for a new upload, not the theoretical maximum configured: it is the average bandwidth (or the max configured bandwidth if no traffic yet) divided by the number of upload slots. When it is ON (recommended setting), the hardwired connection speed is not used.");
     gnet_property->props[26].ev_changed = event_new("compute_connection_speed_changed");
     gnet_property->props[26].save = TRUE;
+    gnet_property->props[26].internal = FALSE;
     gnet_property->props[26].vector_size = 1;
 	mutex_init(&gnet_property->props[26].lock);
 
@@ -1677,6 +1708,7 @@ gnet_prop_init(void) {
     gnet_property->props[27].desc = _("Return at most this number of results to a query, using as many query hit packets as necessary.  To avoid network flooding, keep this to a reasonable value.");
     gnet_property->props[27].ev_changed = event_new("query_response_max_items_changed");
     gnet_property->props[27].save = TRUE;
+    gnet_property->props[27].internal = FALSE;
     gnet_property->props[27].vector_size = 1;
 	mutex_init(&gnet_property->props[27].lock);
 
@@ -1698,6 +1730,7 @@ gnet_prop_init(void) {
     gnet_property->props[28].desc = _("Unless this percentage or more of the upload bandwidth is used, allow additional upload slots.");
     gnet_property->props[28].ev_changed = event_new("ul_usage_min_percentage_changed");
     gnet_property->props[28].save = TRUE;
+    gnet_property->props[28].internal = FALSE;
     gnet_property->props[28].vector_size = 1;
 	mutex_init(&gnet_property->props[28].lock);
 
@@ -1719,6 +1752,7 @@ gnet_prop_init(void) {
     gnet_property->props[29].desc = _("Number of seconds before a download connect attempt times out.");
     gnet_property->props[29].ev_changed = event_new("download_connecting_timeout_changed");
     gnet_property->props[29].save = TRUE;
+    gnet_property->props[29].internal = FALSE;
     gnet_property->props[29].vector_size = 1;
 	mutex_init(&gnet_property->props[29].lock);
 
@@ -1740,6 +1774,7 @@ gnet_prop_init(void) {
     gnet_property->props[30].desc = _("Number of seconds before a push request times out.");
     gnet_property->props[30].ev_changed = event_new("download_push_sent_timeout_changed");
     gnet_property->props[30].save = TRUE;
+    gnet_property->props[30].internal = FALSE;
     gnet_property->props[30].vector_size = 1;
 	mutex_init(&gnet_property->props[30].lock);
 
@@ -1761,6 +1796,7 @@ gnet_prop_init(void) {
     gnet_property->props[31].desc = _("Number of seconds before a download times out if no data is received.");
     gnet_property->props[31].ev_changed = event_new("download_connected_timeout_changed");
     gnet_property->props[31].save = TRUE;
+    gnet_property->props[31].internal = FALSE;
     gnet_property->props[31].vector_size = 1;
 	mutex_init(&gnet_property->props[31].lock);
 
@@ -1782,6 +1818,7 @@ gnet_prop_init(void) {
     gnet_property->props[32].desc = _("Minimum number of seconds to wait on auto-retry timeouts.");
     gnet_property->props[32].ev_changed = event_new("download_retry_timeout_min_changed");
     gnet_property->props[32].save = TRUE;
+    gnet_property->props[32].internal = FALSE;
     gnet_property->props[32].vector_size = 1;
 	mutex_init(&gnet_property->props[32].lock);
 
@@ -1803,6 +1840,7 @@ gnet_prop_init(void) {
     gnet_property->props[33].desc = _("Maximum number of seconds to wait on auto-retry timeouts.");
     gnet_property->props[33].ev_changed = event_new("download_retry_timeout_max_changed");
     gnet_property->props[33].save = TRUE;
+    gnet_property->props[33].internal = FALSE;
     gnet_property->props[33].vector_size = 1;
 	mutex_init(&gnet_property->props[33].lock);
 
@@ -1824,6 +1862,7 @@ gnet_prop_init(void) {
     gnet_property->props[34].desc = _("Maximum number of attempts to download a file not counting HTTP busy indications.");
     gnet_property->props[34].ev_changed = event_new("download_max_retries_changed");
     gnet_property->props[34].save = TRUE;
+    gnet_property->props[34].internal = FALSE;
     gnet_property->props[34].vector_size = 1;
 	mutex_init(&gnet_property->props[34].lock);
 
@@ -1845,6 +1884,7 @@ gnet_prop_init(void) {
     gnet_property->props[35].desc = _("Delay in seconds before retrying after a connection timed out.");
     gnet_property->props[35].ev_changed = event_new("download_retry_timeout_delay_changed");
     gnet_property->props[35].save = TRUE;
+    gnet_property->props[35].internal = FALSE;
     gnet_property->props[35].vector_size = 1;
 	mutex_init(&gnet_property->props[35].lock);
 
@@ -1866,6 +1906,7 @@ gnet_prop_init(void) {
     gnet_property->props[36].desc = _("Delay in seconds before retrying after getting a 'busy' response from a host.");
     gnet_property->props[36].ev_changed = event_new("download_retry_busy_delay_changed");
     gnet_property->props[36].save = TRUE;
+    gnet_property->props[36].internal = FALSE;
     gnet_property->props[36].vector_size = 1;
 	mutex_init(&gnet_property->props[36].lock);
 
@@ -1887,6 +1928,7 @@ gnet_prop_init(void) {
     gnet_property->props[37].desc = _("Delay in seconds before retrying after getting a 'connection refused' response from a host.");
     gnet_property->props[37].ev_changed = event_new("download_retry_refused_delay_changed");
     gnet_property->props[37].save = TRUE;
+    gnet_property->props[37].internal = FALSE;
     gnet_property->props[37].vector_size = 1;
 	mutex_init(&gnet_property->props[37].lock);
 
@@ -1908,6 +1950,7 @@ gnet_prop_init(void) {
     gnet_property->props[38].desc = _("Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc...).");
     gnet_property->props[38].ev_changed = event_new("download_retry_stopped_delay_changed");
     gnet_property->props[38].save = TRUE;
+    gnet_property->props[38].internal = FALSE;
     gnet_property->props[38].vector_size = 1;
 	mutex_init(&gnet_property->props[38].lock);
 
@@ -1929,6 +1972,7 @@ gnet_prop_init(void) {
     gnet_property->props[39].desc = _("Amount of bytes to overlap when resuming a download. It should be at least 64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume a file for which we had no SHA1 known, after a server gives one back.");
     gnet_property->props[39].ev_changed = event_new("download_overlap_range_changed");
     gnet_property->props[39].save = TRUE;
+    gnet_property->props[39].internal = FALSE;
     gnet_property->props[39].vector_size = 1;
 	mutex_init(&gnet_property->props[39].lock);
 
@@ -1950,6 +1994,7 @@ gnet_prop_init(void) {
     gnet_property->props[40].desc = _("Number of seconds before an upload times out if no connection can be established during a push.  It is also the maximum amount of time we wait to get the whole HTTP request.");
     gnet_property->props[40].ev_changed = event_new("upload_connecting_timeout_changed");
     gnet_property->props[40].save = TRUE;
+    gnet_property->props[40].internal = FALSE;
     gnet_property->props[40].vector_size = 1;
 	mutex_init(&gnet_property->props[40].lock);
 
@@ -1971,6 +2016,7 @@ gnet_prop_init(void) {
     gnet_property->props[41].desc = _("Number of seconds after which an upload times out if no data is transmitted.");
     gnet_property->props[41].ev_changed = event_new("upload_connected_timeout_changed");
     gnet_property->props[41].save = TRUE;
+    gnet_property->props[41].internal = FALSE;
     gnet_property->props[41].vector_size = 1;
 	mutex_init(&gnet_property->props[41].lock);
 
@@ -1992,6 +2038,7 @@ gnet_prop_init(void) {
     gnet_property->props[42].desc = _("Amount of seconds to wait before a search is issued again to see if new results are available.  Be very careful with this parameter, and do not set it too low or you will damage the Gnutella network.  A delay of half an hour is fine.");
     gnet_property->props[42].ev_changed = event_new("search_reissue_timeout_changed");
     gnet_property->props[42].save = TRUE;
+    gnet_property->props[42].internal = FALSE;
     gnet_property->props[42].vector_size = 1;
 	mutex_init(&gnet_property->props[42].lock);
 
@@ -2013,6 +2060,7 @@ gnet_prop_init(void) {
     gnet_property->props[43].desc = _("Maximum ratio of file descriptors reserved for banning. For instance, if your OS gives you 350 file descriptors, a ratio of 10 will reserve at most 35 file descriptors.  You should ensure you have around 100 file descriptors for efficient banning.");
     gnet_property->props[43].ev_changed = event_new("ban_ratio_fds_changed");
     gnet_property->props[43].save = TRUE;
+    gnet_property->props[43].internal = FALSE;
     gnet_property->props[43].vector_size = 1;
 	mutex_init(&gnet_property->props[43].lock);
 
@@ -2034,6 +2082,7 @@ gnet_prop_init(void) {
     gnet_property->props[44].desc = _("Maximum number of file descriptors reserved for banning.");
     gnet_property->props[44].ev_changed = event_new("ban_max_fds_changed");
     gnet_property->props[44].save = TRUE;
+    gnet_property->props[44].internal = FALSE;
     gnet_property->props[44].vector_size = 1;
 	mutex_init(&gnet_property->props[44].lock);
 
@@ -2055,6 +2104,7 @@ gnet_prop_init(void) {
     gnet_property->props[45].desc = _("Amount of file descriptors currently used for banning, i.e. which are currently kept open for delayed close.");
     gnet_property->props[45].ev_changed = event_new("banned_count_changed");
     gnet_property->props[45].save = FALSE;
+    gnet_property->props[45].internal = TRUE;
     gnet_property->props[45].vector_size = 1;
 	mutex_init(&gnet_property->props[45].lock);
 
@@ -2076,6 +2126,7 @@ gnet_prop_init(void) {
     gnet_property->props[46].desc = _("Number of file descriptors we'll actually be using for banning.");
     gnet_property->props[46].ev_changed = event_new("max_banned_fd_changed");
     gnet_property->props[46].save = FALSE;
+    gnet_property->props[46].internal = TRUE;
     gnet_property->props[46].vector_size = 1;
 	mutex_init(&gnet_property->props[46].lock);
 
@@ -2097,6 +2148,7 @@ gnet_prop_init(void) {
     gnet_property->props[47].desc = _("Number of seconds an incoming connection has to start sending out its request.");
     gnet_property->props[47].ev_changed = event_new("incoming_connecting_timeout_changed");
     gnet_property->props[47].save = TRUE;
+    gnet_property->props[47].internal = FALSE;
     gnet_property->props[47].vector_size = 1;
 	mutex_init(&gnet_property->props[47].lock);
 
@@ -2118,6 +2170,7 @@ gnet_prop_init(void) {
     gnet_property->props[48].desc = _("Number of seconds before a Gnet connect attempt times out if no connection can be established.");
     gnet_property->props[48].ev_changed = event_new("node_connecting_timeout_changed");
     gnet_property->props[48].save = TRUE;
+    gnet_property->props[48].internal = FALSE;
     gnet_property->props[48].vector_size = 1;
 	mutex_init(&gnet_property->props[48].lock);
 
@@ -2139,6 +2192,7 @@ gnet_prop_init(void) {
     gnet_property->props[49].desc = _("Number of seconds before a Gnet connection times out if no data is transmitted.");
     gnet_property->props[49].ev_changed = event_new("node_connected_timeout_changed");
     gnet_property->props[49].save = TRUE;
+    gnet_property->props[49].internal = FALSE;
     gnet_property->props[49].vector_size = 1;
 	mutex_init(&gnet_property->props[49].lock);
 
@@ -2160,6 +2214,7 @@ gnet_prop_init(void) {
     gnet_property->props[50].desc = _("Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 percent of the maximum message size.");
     gnet_property->props[50].ev_changed = event_new("node_sendqueue_size_changed");
     gnet_property->props[50].save = TRUE;
+    gnet_property->props[50].internal = FALSE;
     gnet_property->props[50].vector_size = 1;
 	mutex_init(&gnet_property->props[50].lock);
 
@@ -2181,6 +2236,7 @@ gnet_prop_init(void) {
     gnet_property->props[51].desc = _("Maximum number of seconds a node can remain in transmit flow control before being kicked out.");
     gnet_property->props[51].ev_changed = event_new("node_tx_flowc_timeout_changed");
     gnet_property->props[51].save = TRUE;
+    gnet_property->props[51].internal = FALSE;
     gnet_property->props[51].vector_size = 1;
 	mutex_init(&gnet_property->props[51].lock);
 
@@ -2202,6 +2258,7 @@ gnet_prop_init(void) {
     gnet_property->props[52].desc = _("Maximum percentage of time over 5 minutes that our node can remain in flow control remotely before dropping the connection.  This only works with nodes that will send us an hops-flow message when they are flow-controlling us.");
     gnet_property->props[52].ev_changed = event_new("node_rx_flowc_ratio_changed");
     gnet_property->props[52].save = TRUE;
+    gnet_property->props[52].internal = FALSE;
     gnet_property->props[52].vector_size = 1;
 	mutex_init(&gnet_property->props[52].lock);
 
@@ -2223,6 +2280,7 @@ gnet_prop_init(void) {
     gnet_property->props[53].desc = _("Maximum TTL we allow in messages we broadcast.  If a query comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=4, so you cannot set a value lower than that.");
     gnet_property->props[53].ev_changed = event_new("max_ttl_changed");
     gnet_property->props[53].save = TRUE;
+    gnet_property->props[53].internal = FALSE;
     gnet_property->props[53].vector_size = 1;
 	mutex_init(&gnet_property->props[53].lock);
 
@@ -2244,6 +2302,7 @@ gnet_prop_init(void) {
     gnet_property->props[54].desc = _("The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent.");
     gnet_property->props[54].ev_changed = event_new("my_ttl_changed");
     gnet_property->props[54].save = TRUE;
+    gnet_property->props[54].internal = FALSE;
     gnet_property->props[54].vector_size = 1;
 	mutex_init(&gnet_property->props[54].lock);
 
@@ -2265,6 +2324,7 @@ gnet_prop_init(void) {
     gnet_property->props[55].desc = _("Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be greater than the standard TTL=4, because it is also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.");
     gnet_property->props[55].ev_changed = event_new("hard_ttl_limit_changed");
     gnet_property->props[55].save = TRUE;
+    gnet_property->props[55].internal = FALSE;
     gnet_property->props[55].vector_size = 1;
 	mutex_init(&gnet_property->props[55].lock);
 
@@ -2286,6 +2346,7 @@ gnet_prop_init(void) {
     gnet_property->props[56].desc = _("For development use: debug level.");
     gnet_property->props[56].ev_changed = event_new("dbg_changed");
     gnet_property->props[56].save = TRUE;
+    gnet_property->props[56].internal = FALSE;
     gnet_property->props[56].vector_size = 1;
 	mutex_init(&gnet_property->props[56].lock);
 
@@ -2307,6 +2368,7 @@ gnet_prop_init(void) {
     gnet_property->props[57].desc = _("Debug level for banning code.");
     gnet_property->props[57].ev_changed = event_new("ban_debug_changed");
     gnet_property->props[57].save = TRUE;
+    gnet_property->props[57].internal = FALSE;
     gnet_property->props[57].vector_size = 1;
 	mutex_init(&gnet_property->props[57].lock);
 
@@ -2328,6 +2390,7 @@ gnet_prop_init(void) {
     gnet_property->props[58].desc = _("If not zero, periodic messages show the used CPU time.");
     gnet_property->props[58].ev_changed = event_new("cpu_debug_changed");
     gnet_property->props[58].save = TRUE;
+    gnet_property->props[58].internal = FALSE;
     gnet_property->props[58].vector_size = 1;
 	mutex_init(&gnet_property->props[58].lock);
 
@@ -2349,6 +2412,7 @@ gnet_prop_init(void) {
     gnet_property->props[59].desc = _("Debug level for download mesh management.");
     gnet_property->props[59].ev_changed = event_new("dmesh_debug_changed");
     gnet_property->props[59].save = TRUE;
+    gnet_property->props[59].internal = FALSE;
     gnet_property->props[59].vector_size = 1;
 	mutex_init(&gnet_property->props[59].lock);
 
@@ -2370,6 +2434,7 @@ gnet_prop_init(void) {
     gnet_property->props[60].desc = _("Debug level for Gnutella messages.");
     gnet_property->props[60].ev_changed = event_new("gmsg_debug_changed");
     gnet_property->props[60].save = TRUE;
+    gnet_property->props[60].internal = FALSE;
     gnet_property->props[60].vector_size = 1;
 	mutex_init(&gnet_property->props[60].lock);
 
@@ -2391,6 +2456,7 @@ gnet_prop_init(void) {
     gnet_property->props[61].desc = _("Debug level for file sharing code.");
     gnet_property->props[61].ev_changed = event_new("share_debug_changed");
     gnet_property->props[61].save = TRUE;
+    gnet_property->props[61].internal = FALSE;
     gnet_property->props[61].vector_size = 1;
 	mutex_init(&gnet_property->props[61].lock);
 
@@ -2412,6 +2478,7 @@ gnet_prop_init(void) {
     gnet_property->props[62].desc = _("Debug level for Gnutella nodes.");
     gnet_property->props[62].ev_changed = event_new("node_debug_changed");
     gnet_property->props[62].save = TRUE;
+    gnet_property->props[62].internal = FALSE;
     gnet_property->props[62].vector_size = 1;
 	mutex_init(&gnet_property->props[62].lock);
 
@@ -2433,6 +2500,7 @@ gnet_prop_init(void) {
     gnet_property->props[63].desc = _("Debug level for sockets.");
     gnet_property->props[63].ev_changed = event_new("socket_debug_changed");
     gnet_property->props[63].save = TRUE;
+    gnet_property->props[63].internal = FALSE;
     gnet_property->props[63].vector_size = 1;
 	mutex_init(&gnet_property->props[63].lock);
 
@@ -2454,6 +2522,7 @@ gnet_prop_init(void) {
     gnet_property->props[64].desc = _("Debug level for bootstrapping into the network.");
     gnet_property->props[64].ev_changed = event_new("bootstrap_debug_changed");
     gnet_property->props[64].save = TRUE;
+    gnet_property->props[64].internal = FALSE;
     gnet_property->props[64].vector_size = 1;
 	mutex_init(&gnet_property->props[64].lock);
 
@@ -2475,6 +2544,7 @@ gnet_prop_init(void) {
     gnet_property->props[65].desc = _("Debug level for HTTP code.");
     gnet_property->props[65].ev_changed = event_new("http_debug_changed");
     gnet_property->props[65].save = TRUE;
+    gnet_property->props[65].internal = FALSE;
     gnet_property->props[65].vector_size = 1;
 	mutex_init(&gnet_property->props[65].lock);
 
@@ -2496,6 +2566,7 @@ gnet_prop_init(void) {
     gnet_property->props[66].desc = _("Debug level for downloads.");
     gnet_property->props[66].ev_changed = event_new("download_debug_changed");
     gnet_property->props[66].save = TRUE;
+    gnet_property->props[66].internal = FALSE;
     gnet_property->props[66].vector_size = 1;
 	mutex_init(&gnet_property->props[66].lock);
 
@@ -2517,6 +2588,7 @@ gnet_prop_init(void) {
     gnet_property->props[67].desc = _("Debug level for fileinfo.");
     gnet_property->props[67].ev_changed = event_new("fileinfo_debug_changed");
     gnet_property->props[67].save = TRUE;
+    gnet_property->props[67].internal = FALSE;
     gnet_property->props[67].vector_size = 1;
 	mutex_init(&gnet_property->props[67].lock);
 
@@ -2538,6 +2610,7 @@ gnet_prop_init(void) {
     gnet_property->props[68].desc = _("Debug level for uploads.");
     gnet_property->props[68].ev_changed = event_new("upload_debug_changed");
     gnet_property->props[68].save = TRUE;
+    gnet_property->props[68].internal = FALSE;
     gnet_property->props[68].vector_size = 1;
 	mutex_init(&gnet_property->props[68].lock);
 
@@ -2559,6 +2632,7 @@ gnet_prop_init(void) {
     gnet_property->props[69].desc = _("Debug level for code shared between gui and core.");
     gnet_property->props[69].ev_changed = event_new("lib_debug_changed");
     gnet_property->props[69].save = TRUE;
+    gnet_property->props[69].internal = FALSE;
     gnet_property->props[69].vector_size = 1;
 	mutex_init(&gnet_property->props[69].lock);
 
@@ -2580,6 +2654,7 @@ gnet_prop_init(void) {
     gnet_property->props[70].desc = _("Verbosity of URL handling related debug messages.");
     gnet_property->props[70].ev_changed = event_new("url_debug_changed");
     gnet_property->props[70].save = TRUE;
+    gnet_property->props[70].internal = FALSE;
     gnet_property->props[70].vector_size = 1;
 	mutex_init(&gnet_property->props[70].lock);
 
@@ -2601,6 +2676,7 @@ gnet_prop_init(void) {
     gnet_property->props[71].desc = _("Debug level for dynamic query hit routing.");
     gnet_property->props[71].ev_changed = event_new("dh_debug_changed");
     gnet_property->props[71].save = TRUE;
+    gnet_property->props[71].internal = FALSE;
     gnet_property->props[71].vector_size = 1;
 	mutex_init(&gnet_property->props[71].lock);
 
@@ -2622,6 +2698,7 @@ gnet_prop_init(void) {
     gnet_property->props[72].desc = _("Debug level for dynamic queries.");
     gnet_property->props[72].ev_changed = event_new("dq_debug_changed");
     gnet_property->props[72].save = TRUE;
+    gnet_property->props[72].internal = FALSE;
     gnet_property->props[72].vector_size = 1;
 	mutex_init(&gnet_property->props[72].lock);
 
@@ -2643,6 +2720,7 @@ gnet_prop_init(void) {
     gnet_property->props[73].desc = _("Debug level for vendor messages.");
     gnet_property->props[73].ev_changed = event_new("vmsg_debug_changed");
     gnet_property->props[73].save = TRUE;
+    gnet_property->props[73].internal = FALSE;
     gnet_property->props[73].vector_size = 1;
 	mutex_init(&gnet_property->props[73].lock);
 
@@ -2664,6 +2742,7 @@ gnet_prop_init(void) {
     gnet_property->props[74].desc = _("Debug level for queries.");
     gnet_property->props[74].ev_changed = event_new("query_debug_changed");
     gnet_property->props[74].save = TRUE;
+    gnet_property->props[74].internal = FALSE;
     gnet_property->props[74].vector_size = 1;
 	mutex_init(&gnet_property->props[74].lock);
 
@@ -2685,6 +2764,7 @@ gnet_prop_init(void) {
     gnet_property->props[75].desc = _("Debug level for searches and search results management.");
     gnet_property->props[75].ev_changed = event_new("search_debug_changed");
     gnet_property->props[75].save = TRUE;
+    gnet_property->props[75].internal = FALSE;
     gnet_property->props[75].vector_size = 1;
 	mutex_init(&gnet_property->props[75].lock);
 
@@ -2706,6 +2786,7 @@ gnet_prop_init(void) {
     gnet_property->props[76].desc = _("Debug level for the UDP traffic layer.");
     gnet_property->props[76].ev_changed = event_new("udp_debug_changed");
     gnet_property->props[76].save = TRUE;
+    gnet_property->props[76].internal = FALSE;
     gnet_property->props[76].vector_size = 1;
 	mutex_init(&gnet_property->props[76].lock);
 
@@ -2727,6 +2808,7 @@ gnet_prop_init(void) {
     gnet_property->props[77].desc = _("Debug level for the Query Routing Protocol.");
     gnet_property->props[77].ev_changed = event_new("qrp_debug_changed");
     gnet_property->props[77].save = TRUE;
+    gnet_property->props[77].internal = FALSE;
     gnet_property->props[77].vector_size = 1;
 	mutex_init(&gnet_property->props[77].lock);
 
@@ -2748,6 +2830,7 @@ gnet_prop_init(void) {
     gnet_property->props[78].desc = _("Debug level for message routing.");
     gnet_property->props[78].ev_changed = event_new("routing_debug_changed");
     gnet_property->props[78].save = TRUE;
+    gnet_property->props[78].internal = FALSE;
     gnet_property->props[78].vector_size = 1;
 	mutex_init(&gnet_property->props[78].lock);
 
@@ -2769,6 +2852,7 @@ gnet_prop_init(void) {
     gnet_property->props[79].desc = _("Debug level for GGEP.");
     gnet_property->props[79].ev_changed = event_new("ggep_debug_changed");
     gnet_property->props[79].save = TRUE;
+    gnet_property->props[79].internal = FALSE;
     gnet_property->props[79].vector_size = 1;
 	mutex_init(&gnet_property->props[79].lock);
 
@@ -2790,6 +2874,7 @@ gnet_prop_init(void) {
     gnet_property->props[80].desc = _("Debug level for pong caching.");
     gnet_property->props[80].ev_changed = event_new("pcache_debug_changed");
     gnet_property->props[80].save = TRUE;
+    gnet_property->props[80].internal = FALSE;
     gnet_property->props[80].vector_size = 1;
 	mutex_init(&gnet_property->props[80].lock);
 
@@ -2811,6 +2896,7 @@ gnet_prop_init(void) {
     gnet_property->props[81].desc = _("Debug level for HSEP.");
     gnet_property->props[81].ev_changed = event_new("hsep_debug_changed");
     gnet_property->props[81].save = TRUE;
+    gnet_property->props[81].internal = FALSE;
     gnet_property->props[81].vector_size = 1;
 	mutex_init(&gnet_property->props[81].lock);
 
@@ -2832,6 +2918,7 @@ gnet_prop_init(void) {
     gnet_property->props[82].desc = _("Debug level for TLS.");
     gnet_property->props[82].ev_changed = event_new("tls_debug_changed");
     gnet_property->props[82].save = TRUE;
+    gnet_property->props[82].internal = FALSE;
     gnet_property->props[82].vector_size = 1;
 	mutex_init(&gnet_property->props[82].lock);
 
@@ -2853,6 +2940,7 @@ gnet_prop_init(void) {
     gnet_property->props[83].desc = _("Debug level for PARQ.");
     gnet_property->props[83].ev_changed = event_new("parq_debug_changed");
     gnet_property->props[83].save = TRUE;
+    gnet_property->props[83].internal = FALSE;
     gnet_property->props[83].vector_size = 1;
 	mutex_init(&gnet_property->props[83].lock);
 
@@ -2874,6 +2962,7 @@ gnet_prop_init(void) {
     gnet_property->props[84].desc = _("If set, PARQ will calculate its ETA and retry times more optimistically. If not set PARQ will calculate using a worst case scenario.  The default is to be optimistic.");
     gnet_property->props[84].ev_changed = event_new("parq_optimistic_changed");
     gnet_property->props[84].save = TRUE;
+    gnet_property->props[84].internal = FALSE;
     gnet_property->props[84].vector_size = 1;
 	mutex_init(&gnet_property->props[84].lock);
 
@@ -2892,6 +2981,7 @@ gnet_prop_init(void) {
     gnet_property->props[85].desc = _("Maximum size in bytes of an upload which PARQ shall not queue and is always allowed to continue. However, if a client requests small chunks over and over the chunk sizes previously requested and uploaded are also counted.  If the size requested is greater than the threshold then, and only then, we look at the theoretical time it would take to serve the whole amount to see whether we can still bypass queuing. Set to 0 to disable this size-based bypassing feature and only rely on time-based bypassing.");
     gnet_property->props[85].ev_changed = event_new("parq_size_always_continue_changed");
     gnet_property->props[85].save = TRUE;
+    gnet_property->props[85].internal = FALSE;
     gnet_property->props[85].vector_size = 1;
 	mutex_init(&gnet_property->props[85].lock);
 
@@ -2913,6 +3003,7 @@ gnet_prop_init(void) {
     gnet_property->props[86].desc = _("When an upload is expected to take less than this setting in seconds, PARQ will be instructed to not queue the upload. This check is done AFTER the file size-based bypassing. Set to 0 to disable this time-based bypassing feature.");
     gnet_property->props[86].ev_changed = event_new("parq_time_always_continue_changed");
     gnet_property->props[86].save = TRUE;
+    gnet_property->props[86].internal = FALSE;
     gnet_property->props[86].vector_size = 1;
 	mutex_init(&gnet_property->props[86].lock);
 
@@ -2934,6 +3025,7 @@ gnet_prop_init(void) {
     gnet_property->props[87].desc = _("Ban the client if it violates the Retry-After interval too often. Set this to 0 to disable the banning. The upload will be removed from the queue in any case though. Default is 10, so the client is banned after retrying too soon 10 times, which is a good balance between abuse and legacy client support.");
     gnet_property->props[87].ev_changed = event_new("parq_ban_bad_maxcountwait_changed");
     gnet_property->props[87].save = TRUE;
+    gnet_property->props[87].internal = FALSE;
     gnet_property->props[87].vector_size = 1;
 	mutex_init(&gnet_property->props[87].lock);
 
@@ -2955,6 +3047,7 @@ gnet_prop_init(void) {
     gnet_property->props[88].desc = _("Indicates a kernel network buffer shortage.");
     gnet_property->props[88].ev_changed = event_new("net_buffer_shortage_changed");
     gnet_property->props[88].save = FALSE;
+    gnet_property->props[88].internal = TRUE;
     gnet_property->props[88].vector_size = 1;
 	mutex_init(&gnet_property->props[88].lock);
 
@@ -2973,6 +3066,7 @@ gnet_prop_init(void) {
     gnet_property->props[89].desc = _("For development use: don't add new hosts to the host cache.");
     gnet_property->props[89].ev_changed = event_new("stop_host_get_changed");
     gnet_property->props[89].save = TRUE;
+    gnet_property->props[89].internal = FALSE;
     gnet_property->props[89].vector_size = 1;
 	mutex_init(&gnet_property->props[89].lock);
 
@@ -2991,6 +3085,7 @@ gnet_prop_init(void) {
     gnet_property->props[90].desc = _("Enable bandwidth limitation for incoming HTTP traffic.");
     gnet_property->props[90].ev_changed = event_new("bw_http_in_enabled_changed");
     gnet_property->props[90].save = TRUE;
+    gnet_property->props[90].internal = FALSE;
     gnet_property->props[90].vector_size = 1;
 	mutex_init(&gnet_property->props[90].lock);
 
@@ -3009,6 +3104,7 @@ gnet_prop_init(void) {
     gnet_property->props[91].desc = _("Enable bandwidth limitation for outgoing HTTP traffic.");
     gnet_property->props[91].ev_changed = event_new("bw_http_out_enabled_changed");
     gnet_property->props[91].save = TRUE;
+    gnet_property->props[91].internal = FALSE;
     gnet_property->props[91].vector_size = 1;
 	mutex_init(&gnet_property->props[91].lock);
 
@@ -3027,6 +3123,7 @@ gnet_prop_init(void) {
     gnet_property->props[92].desc = _("Enable bandwidth limitation for incoming Gnet traffic.");
     gnet_property->props[92].ev_changed = event_new("bw_gnet_in_enabled_changed");
     gnet_property->props[92].save = TRUE;
+    gnet_property->props[92].internal = FALSE;
     gnet_property->props[92].vector_size = 1;
 	mutex_init(&gnet_property->props[92].lock);
 
@@ -3045,6 +3142,7 @@ gnet_prop_init(void) {
     gnet_property->props[93].desc = _("Enable bandwidth limitation for incoming Gnet leaf traffic.");
     gnet_property->props[93].ev_changed = event_new("bw_gnet_leaf_in_enabled_changed");
     gnet_property->props[93].save = TRUE;
+    gnet_property->props[93].internal = FALSE;
     gnet_property->props[93].vector_size = 1;
 	mutex_init(&gnet_property->props[93].lock);
 
@@ -3063,6 +3161,7 @@ gnet_prop_init(void) {
     gnet_property->props[94].desc = _("Enable bandwidth limitation for outgoing Gnet traffic.");
     gnet_property->props[94].ev_changed = event_new("bw_gnet_out_enabled_changed");
     gnet_property->props[94].save = TRUE;
+    gnet_property->props[94].internal = FALSE;
     gnet_property->props[94].vector_size = 1;
 	mutex_init(&gnet_property->props[94].lock);
 
@@ -3081,6 +3180,7 @@ gnet_prop_init(void) {
     gnet_property->props[95].desc = _("Enable bandwidth limitation for outgoing Gnet leaf traffic.");
     gnet_property->props[95].ev_changed = event_new("bw_gnet_leaf_out_enabled_changed");
     gnet_property->props[95].save = TRUE;
+    gnet_property->props[95].internal = FALSE;
     gnet_property->props[95].vector_size = 1;
 	mutex_init(&gnet_property->props[95].lock);
 
@@ -3099,6 +3199,7 @@ gnet_prop_init(void) {
     gnet_property->props[96].desc = _("Enable dynamic upload slots allocation.");
     gnet_property->props[96].ev_changed = event_new("bw_ul_usage_enabled_changed");
     gnet_property->props[96].save = TRUE;
+    gnet_property->props[96].internal = FALSE;
     gnet_property->props[96].vector_size = 1;
 	mutex_init(&gnet_property->props[96].lock);
 
@@ -3117,6 +3218,7 @@ gnet_prop_init(void) {
     gnet_property->props[97].desc = _("Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  If FALSE, unused bandwidth is lost.");
     gnet_property->props[97].ev_changed = event_new("bw_allow_stealing_changed");
     gnet_property->props[97].save = TRUE;
+    gnet_property->props[97].internal = FALSE;
     gnet_property->props[97].vector_size = 1;
 	mutex_init(&gnet_property->props[97].lock);
 
@@ -3135,6 +3237,7 @@ gnet_prop_init(void) {
     gnet_property->props[98].desc = _("Auto clear completed downloads.");
     gnet_property->props[98].ev_changed = event_new("autoclear_completed_downloads_changed");
     gnet_property->props[98].save = TRUE;
+    gnet_property->props[98].internal = FALSE;
     gnet_property->props[98].vector_size = 1;
 	mutex_init(&gnet_property->props[98].lock);
 
@@ -3153,6 +3256,7 @@ gnet_prop_init(void) {
     gnet_property->props[99].desc = _("Auto clear failed downloads (HTTP error, failure to resume, write error, etc...).");
     gnet_property->props[99].ev_changed = event_new("autoclear_failed_downloads_changed");
     gnet_property->props[99].save = TRUE;
+    gnet_property->props[99].internal = FALSE;
     gnet_property->props[99].vector_size = 1;
 	mutex_init(&gnet_property->props[99].lock);
 
@@ -3171,6 +3275,7 @@ gnet_prop_init(void) {
     gnet_property->props[100].desc = _("Auto clear unavailable downloads (connection timeout, push route lost, etc...).");
     gnet_property->props[100].ev_changed = event_new("autoclear_unavailable_downloads_changed");
     gnet_property->props[100].save = TRUE;
+    gnet_property->props[100].internal = FALSE;
     gnet_property->props[100].vector_size = 1;
 	mutex_init(&gnet_property->props[100].lock);
 
@@ -3189,6 +3294,7 @@ gnet_prop_init(void) {
     gnet_property->props[101].desc = _("Auto clear finished downloads");
     gnet_property->props[101].ev_changed = event_new("autoclear_finished_downloads_changed");
     gnet_property->props[101].save = TRUE;
+    gnet_property->props[101].internal = FALSE;
     gnet_property->props[101].vector_size = 1;
 	mutex_init(&gnet_property->props[101].lock);
 
@@ -3207,6 +3313,7 @@ gnet_prop_init(void) {
     gnet_property->props[102].desc = _("Remove downloaded files from the search result.");
     gnet_property->props[102].ev_changed = event_new("search_remove_downloaded_changed");
     gnet_property->props[102].save = TRUE;
+    gnet_property->props[102].internal = FALSE;
     gnet_property->props[102].vector_size = 1;
 	mutex_init(&gnet_property->props[102].lock);
 
@@ -3225,6 +3332,7 @@ gnet_prop_init(void) {
     gnet_property->props[103].desc = _("Enable to use [forced_local_ip] as local ip.");
     gnet_property->props[103].ev_changed = event_new("force_local_ip_changed");
     gnet_property->props[103].save = TRUE;
+    gnet_property->props[103].internal = FALSE;
     gnet_property->props[103].vector_size = 1;
 	mutex_init(&gnet_property->props[103].lock);
 
@@ -3243,6 +3351,7 @@ gnet_prop_init(void) {
     gnet_property->props[104].desc = _("Enable to use [forced_local_ip6] as local ip.");
     gnet_property->props[104].ev_changed = event_new("force_local_ip6_changed");
     gnet_property->props[104].save = TRUE;
+    gnet_property->props[104].internal = FALSE;
     gnet_property->props[104].vector_size = 1;
 	mutex_init(&gnet_property->props[104].lock);
 
@@ -3261,6 +3370,7 @@ gnet_prop_init(void) {
     gnet_property->props[105].desc = _("If 'forced_local_ip' is enabled, bind the socket to the forced IP address.");
     gnet_property->props[105].ev_changed = event_new("bind_to_forced_local_ip_changed");
     gnet_property->props[105].save = TRUE;
+    gnet_property->props[105].internal = FALSE;
     gnet_property->props[105].vector_size = 1;
 	mutex_init(&gnet_property->props[105].lock);
 
@@ -3279,6 +3389,7 @@ gnet_prop_init(void) {
     gnet_property->props[106].desc = _("If 'forced_local_ip6' is enabled, bind the socket to the forced IP address.");
     gnet_property->props[106].ev_changed = event_new("bind_to_forced_local_ip6_changed");
     gnet_property->props[106].save = TRUE;
+    gnet_property->props[106].internal = FALSE;
     gnet_property->props[106].vector_size = 1;
 	mutex_init(&gnet_property->props[106].lock);
 
@@ -3297,6 +3408,7 @@ gnet_prop_init(void) {
     gnet_property->props[107].desc = _("Try to connect to local networks first.");
     gnet_property->props[107].ev_changed = event_new("use_netmasks_changed");
     gnet_property->props[107].save = TRUE;
+    gnet_property->props[107].internal = FALSE;
     gnet_property->props[107].vector_size = 1;
 	mutex_init(&gnet_property->props[107].lock);
 
@@ -3315,6 +3427,7 @@ gnet_prop_init(void) {
     gnet_property->props[108].desc = _("Check this button if you want to use gtk-gnutella on your Local Area Network. RFC1918 will be ignored.");
     gnet_property->props[108].ev_changed = event_new("allow_private_network_connection_changed");
     gnet_property->props[108].save = TRUE;
+    gnet_property->props[108].internal = FALSE;
     gnet_property->props[108].vector_size = 1;
 	mutex_init(&gnet_property->props[108].lock);
 
@@ -3333,6 +3446,7 @@ gnet_prop_init(void) {
     gnet_property->props[109].desc = _("Check this button if you want gtk-gnutella to use IP TOS to differentiate interactive, normal and bulk data. This is probably a good idea in most cases, and can particularly help with badly misconfigured hosts, LANs, and ISPs.");
     gnet_property->props[109].ev_changed = event_new("use_ip_tos_changed");
     gnet_property->props[109].save = TRUE;
+    gnet_property->props[109].internal = FALSE;
     gnet_property->props[109].vector_size = 1;
 	mutex_init(&gnet_property->props[109].lock);
 
@@ -3351,6 +3465,7 @@ gnet_prop_init(void) {
     gnet_property->props[110].desc = _("Remove files of aborted downloads from disk.");
     gnet_property->props[110].ev_changed = event_new("download_delete_aborted_changed");
     gnet_property->props[110].save = TRUE;
+    gnet_property->props[110].internal = FALSE;
     gnet_property->props[110].vector_size = 1;
 	mutex_init(&gnet_property->props[110].lock);
 
@@ -3369,6 +3484,7 @@ gnet_prop_init(void) {
     gnet_property->props[111].desc = _("Use username and password to authenticate to proxy.");
     gnet_property->props[111].ev_changed = event_new("proxy_auth_changed");
     gnet_property->props[111].save = TRUE;
+    gnet_property->props[111].internal = FALSE;
     gnet_property->props[111].vector_size = 1;
 	mutex_init(&gnet_property->props[111].lock);
 
@@ -3387,6 +3503,7 @@ gnet_prop_init(void) {
     gnet_property->props[112].desc = _("Username for proxy.");
     gnet_property->props[112].ev_changed = event_new("socks_user_changed");
     gnet_property->props[112].save = TRUE;
+    gnet_property->props[112].internal = FALSE;
     gnet_property->props[112].vector_size = 1;
 	mutex_init(&gnet_property->props[112].lock);
 
@@ -3409,6 +3526,7 @@ gnet_prop_init(void) {
     gnet_property->props[113].desc = _("Password for proxy.");
     gnet_property->props[113].ev_changed = event_new("socks_pass_changed");
     gnet_property->props[113].save = TRUE;
+    gnet_property->props[113].internal = FALSE;
     gnet_property->props[113].vector_size = 1;
 	mutex_init(&gnet_property->props[113].lock);
 
@@ -3431,6 +3549,7 @@ gnet_prop_init(void) {
     gnet_property->props[114].desc = _("Address of the proxy.");
     gnet_property->props[114].ev_changed = event_new("proxy_addr_changed");
     gnet_property->props[114].save = FALSE;
+    gnet_property->props[114].internal = FALSE;
     gnet_property->props[114].vector_size = 1;
 	mutex_init(&gnet_property->props[114].lock);
 
@@ -3448,6 +3567,7 @@ gnet_prop_init(void) {
     gnet_property->props[115].desc = _("Hostname of the proxy.");
     gnet_property->props[115].ev_changed = event_new("proxy_hostname_changed");
     gnet_property->props[115].save = TRUE;
+    gnet_property->props[115].internal = FALSE;
     gnet_property->props[115].vector_size = 1;
 	mutex_init(&gnet_property->props[115].lock);
 
@@ -3470,6 +3590,7 @@ gnet_prop_init(void) {
     gnet_property->props[116].desc = _("TCP Port the proxy is listening on.");
     gnet_property->props[116].ev_changed = event_new("proxy_port_changed");
     gnet_property->props[116].save = TRUE;
+    gnet_property->props[116].internal = FALSE;
     gnet_property->props[116].vector_size = 1;
 	mutex_init(&gnet_property->props[116].lock);
 
@@ -3491,6 +3612,7 @@ gnet_prop_init(void) {
     gnet_property->props[117].desc = _("Protocol the proxy uses.");
     gnet_property->props[117].ev_changed = event_new("proxy_protocol_changed");
     gnet_property->props[117].save = TRUE;
+    gnet_property->props[117].internal = FALSE;
     gnet_property->props[117].vector_size = 1;
 	mutex_init(&gnet_property->props[117].lock);
 
@@ -3512,6 +3634,7 @@ gnet_prop_init(void) {
     gnet_property->props[118].desc = _("Network protocols to use.");
     gnet_property->props[118].ev_changed = event_new("network_protocol_changed");
     gnet_property->props[118].save = TRUE;
+    gnet_property->props[118].internal = FALSE;
     gnet_property->props[118].vector_size = 1;
 	mutex_init(&gnet_property->props[118].lock);
 
@@ -3533,6 +3656,7 @@ gnet_prop_init(void) {
     gnet_property->props[119].desc = _("Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142.");
     gnet_property->props[119].ev_changed = event_new("use_ipv6_trt_changed");
     gnet_property->props[119].save = TRUE;
+    gnet_property->props[119].internal = FALSE;
     gnet_property->props[119].vector_size = 1;
 	mutex_init(&gnet_property->props[119].lock);
 
@@ -3551,6 +3675,7 @@ gnet_prop_init(void) {
     gnet_property->props[120].desc = _("The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator.");
     gnet_property->props[120].ev_changed = event_new("ipv6_trt_prefix_changed");
     gnet_property->props[120].save = TRUE;
+    gnet_property->props[120].internal = FALSE;
     gnet_property->props[120].vector_size = 1;
 	mutex_init(&gnet_property->props[120].lock);
 
@@ -3568,6 +3693,7 @@ gnet_prop_init(void) {
     gnet_property->props[121].desc = _("Current number of hosts in regular node caches.");
     gnet_property->props[121].ev_changed = event_new("hosts_in_catcher_changed");
     gnet_property->props[121].save = FALSE;
+    gnet_property->props[121].internal = TRUE;
     gnet_property->props[121].vector_size = 1;
 	mutex_init(&gnet_property->props[121].lock);
 
@@ -3589,6 +3715,7 @@ gnet_prop_init(void) {
     gnet_property->props[122].desc = _("Current number of IPv4 hosts in ultra node caches.");
     gnet_property->props[122].ev_changed = event_new("hosts_in_ultra_catcher_changed");
     gnet_property->props[122].save = FALSE;
+    gnet_property->props[122].internal = TRUE;
     gnet_property->props[122].vector_size = 1;
 	mutex_init(&gnet_property->props[122].lock);
 
@@ -3610,6 +3737,7 @@ gnet_prop_init(void) {
     gnet_property->props[123].desc = _("Current number of hosts in bad node caches.");
     gnet_property->props[123].ev_changed = event_new("hosts_in_bad_catcher_changed");
     gnet_property->props[123].save = FALSE;
+    gnet_property->props[123].internal = TRUE;
     gnet_property->props[123].vector_size = 1;
 	mutex_init(&gnet_property->props[123].lock);
 
@@ -3631,6 +3759,7 @@ gnet_prop_init(void) {
     gnet_property->props[124].desc = _("Maximum number of hosts in the regular node cache.");
     gnet_property->props[124].ev_changed = event_new("max_hosts_cached_changed");
     gnet_property->props[124].save = TRUE;
+    gnet_property->props[124].internal = FALSE;
     gnet_property->props[124].vector_size = 1;
 	mutex_init(&gnet_property->props[124].lock);
 
@@ -3652,6 +3781,7 @@ gnet_prop_init(void) {
     gnet_property->props[125].desc = _("Maximum number of IPv4 hosts in the ultra node cache.");
     gnet_property->props[125].ev_changed = event_new("max_ultra_hosts_cached_changed");
     gnet_property->props[125].save = TRUE;
+    gnet_property->props[125].internal = FALSE;
     gnet_property->props[125].vector_size = 1;
 	mutex_init(&gnet_property->props[125].lock);
 
@@ -3673,6 +3803,7 @@ gnet_prop_init(void) {
     gnet_property->props[126].desc = _("Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists.");
     gnet_property->props[126].ev_changed = event_new("max_bad_hosts_cached_changed");
     gnet_property->props[126].save = TRUE;
+    gnet_property->props[126].internal = FALSE;
     gnet_property->props[126].vector_size = 1;
 	mutex_init(&gnet_property->props[126].lock);
 
@@ -3694,6 +3825,7 @@ gnet_prop_init(void) {
     gnet_property->props[127].desc = _("Amount of tolerable messages above hard TTL limit per node. See also MAX_HIGH_TTL_RADIUS");
     gnet_property->props[127].ev_changed = event_new("max_high_ttl_msg_changed");
     gnet_property->props[127].save = TRUE;
+    gnet_property->props[127].internal = FALSE;
     gnet_property->props[127].vector_size = 1;
 	mutex_init(&gnet_property->props[127].lock);
 
@@ -3715,6 +3847,7 @@ gnet_prop_init(void) {
     gnet_property->props[128].desc = _("Hop radius for counting high TTL limit messages (# hops lower than...). See also MAX_HIGH_TTL_MSG");
     gnet_property->props[128].ev_changed = event_new("max_high_ttl_radius_changed");
     gnet_property->props[128].save = TRUE;
+    gnet_property->props[128].internal = FALSE;
     gnet_property->props[128].vector_size = 1;
 	mutex_init(&gnet_property->props[128].lock);
 
@@ -3736,6 +3869,7 @@ gnet_prop_init(void) {
     gnet_property->props[129].desc = _("Bandwidth limit for incoming HTTP traffic in bytes/sec.");
     gnet_property->props[129].ev_changed = event_new("bw_http_in_changed");
     gnet_property->props[129].save = TRUE;
+    gnet_property->props[129].internal = FALSE;
     gnet_property->props[129].vector_size = 1;
 	mutex_init(&gnet_property->props[129].lock);
 
@@ -3757,6 +3891,7 @@ gnet_prop_init(void) {
     gnet_property->props[130].desc = _("Bandwidth limit for outgoing HTTP traffic in bytes/sec.");
     gnet_property->props[130].ev_changed = event_new("bw_http_out_changed");
     gnet_property->props[130].save = TRUE;
+    gnet_property->props[130].internal = FALSE;
     gnet_property->props[130].vector_size = 1;
 	mutex_init(&gnet_property->props[130].lock);
 
@@ -3778,6 +3913,7 @@ gnet_prop_init(void) {
     gnet_property->props[131].desc = _("Bandwidth limit for incoming Gnet traffic in bytes/sec.");
     gnet_property->props[131].ev_changed = event_new("bw_gnet_in_changed");
     gnet_property->props[131].save = TRUE;
+    gnet_property->props[131].internal = FALSE;
     gnet_property->props[131].vector_size = 1;
 	mutex_init(&gnet_property->props[131].lock);
 
@@ -3799,6 +3935,7 @@ gnet_prop_init(void) {
     gnet_property->props[132].desc = _("Bandwidth limit for outgoing Gnet traffic in bytes/sec.");
     gnet_property->props[132].ev_changed = event_new("bw_gnet_out_changed");
     gnet_property->props[132].save = TRUE;
+    gnet_property->props[132].internal = FALSE;
     gnet_property->props[132].vector_size = 1;
 	mutex_init(&gnet_property->props[132].lock);
 
@@ -3820,6 +3957,7 @@ gnet_prop_init(void) {
     gnet_property->props[133].desc = _("Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. When running as an ultra node, this bandwidth is stolen from the regular HTTP traffic if the shaper for leaves is enabled.");
     gnet_property->props[133].ev_changed = event_new("bw_gnet_lin_changed");
     gnet_property->props[133].save = TRUE;
+    gnet_property->props[133].internal = FALSE;
     gnet_property->props[133].vector_size = 1;
 	mutex_init(&gnet_property->props[133].lock);
 
@@ -3841,6 +3979,7 @@ gnet_prop_init(void) {
     gnet_property->props[134].desc = _("Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. When running as an ultra node, this bandwidth is stolen from the regular HTTP traffic, if the shaper for leaves is enabled.");
     gnet_property->props[134].ev_changed = event_new("bw_gnet_lout_changed");
     gnet_property->props[134].save = TRUE;
+    gnet_property->props[134].internal = FALSE;
     gnet_property->props[134].vector_size = 1;
 	mutex_init(&gnet_property->props[134].lock);
 
@@ -3862,6 +4001,7 @@ gnet_prop_init(void) {
     gnet_property->props[135].desc = _("Maximum size of search queries messages we forward to others  (in bytes).");
     gnet_property->props[135].ev_changed = event_new("search_queries_forward_size_changed");
     gnet_property->props[135].save = TRUE;
+    gnet_property->props[135].internal = FALSE;
     gnet_property->props[135].vector_size = 1;
 	mutex_init(&gnet_property->props[135].lock);
 
@@ -3883,6 +4023,7 @@ gnet_prop_init(void) {
     gnet_property->props[136].desc = _("Maximum size of search queries messages we allow, otherwise close the connection (in bytes).");
     gnet_property->props[136].ev_changed = event_new("search_queries_kick_size_changed");
     gnet_property->props[136].save = TRUE;
+    gnet_property->props[136].internal = FALSE;
     gnet_property->props[136].vector_size = 1;
 	mutex_init(&gnet_property->props[136].lock);
 
@@ -3904,6 +4045,7 @@ gnet_prop_init(void) {
     gnet_property->props[137].desc = _("Maximum size of search answers messages we forward to others (in bytes).");
     gnet_property->props[137].ev_changed = event_new("search_answers_forward_size_changed");
     gnet_property->props[137].save = TRUE;
+    gnet_property->props[137].internal = FALSE;
     gnet_property->props[137].vector_size = 1;
 	mutex_init(&gnet_property->props[137].lock);
 
@@ -3925,6 +4067,7 @@ gnet_prop_init(void) {
     gnet_property->props[138].desc = _("Maximum size of search answers messages we allow, otherwise close the connection (in bytes).");
     gnet_property->props[138].ev_changed = event_new("search_answers_kick_size_changed");
     gnet_property->props[138].save = TRUE;
+    gnet_property->props[138].internal = FALSE;
     gnet_property->props[138].vector_size = 1;
 	mutex_init(&gnet_property->props[138].lock);
 
@@ -3946,6 +4089,7 @@ gnet_prop_init(void) {
     gnet_property->props[139].desc = _("Maximum number of relayed Query MUIDs to track. This allows mapping MUIDs of Query Hits to the original search term and media type filtering to be able to avoid relaying spam and non-matching results.  In the worst case this causes about 300 bytes per Query of memory overhead, but will be much lower than that in practice (minimum size is about 40 bytes). This is only used when running as an Ultrapeer. When the value specified is greater than the amount of messages that the Gnutella routing table can track, gtk-gnutella will automatically cap the amount of tracked MUIDs to fit the queries it remembers for routing.");
     gnet_property->props[139].ev_changed = event_new("search_muid_track_amount_changed");
     gnet_property->props[139].save = TRUE;
+    gnet_property->props[139].internal = FALSE;
     gnet_property->props[139].vector_size = 1;
 	mutex_init(&gnet_property->props[139].lock);
 
@@ -3967,6 +4111,7 @@ gnet_prop_init(void) {
     gnet_property->props[140].desc = _("Maximum size of unknown messages we allow, otherwise close the connection (in bytes).");
     gnet_property->props[140].ev_changed = event_new("other_messages_kick_size_changed");
     gnet_property->props[140].save = TRUE;
+    gnet_property->props[140].internal = FALSE;
     gnet_property->props[140].vector_size = 1;
 	mutex_init(&gnet_property->props[140].lock);
 
@@ -3988,6 +4133,7 @@ gnet_prop_init(void) {
     gnet_property->props[141].desc = _("Random factor for the hops field in search packets we send (between 0 and 3 inclusive).");
     gnet_property->props[141].ev_changed = event_new("hops_random_factor_changed");
     gnet_property->props[141].save = TRUE;
+    gnet_property->props[141].internal = FALSE;
     gnet_property->props[141].vector_size = 1;
 	mutex_init(&gnet_property->props[141].lock);
 
@@ -4009,6 +4155,7 @@ gnet_prop_init(void) {
     gnet_property->props[142].desc = _("Whether or not to send push requests.  If you are firewalled, gtk-gnutella will never send push requests anyway.  If you don't let gtk-gnutella send pushes, it will not show search results that would require a push.");
     gnet_property->props[142].ev_changed = event_new("send_pushes_changed");
     gnet_property->props[142].save = TRUE;
+    gnet_property->props[142].internal = FALSE;
     gnet_property->props[142].vector_size = 1;
 	mutex_init(&gnet_property->props[142].lock);
 
@@ -4027,6 +4174,7 @@ gnet_prop_init(void) {
     gnet_property->props[143].desc = _("Minimum amount of dup messages to enable kicking, per node (also see [min_dup_ratio]).");
     gnet_property->props[143].ev_changed = event_new("min_dup_msg_changed");
     gnet_property->props[143].save = TRUE;
+    gnet_property->props[143].internal = FALSE;
     gnet_property->props[143].vector_size = 1;
 	mutex_init(&gnet_property->props[143].lock);
 
@@ -4048,6 +4196,7 @@ gnet_prop_init(void) {
     gnet_property->props[144].desc = _("Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file.");
     gnet_property->props[144].ev_changed = event_new("min_dup_ratio_changed");
     gnet_property->props[144].save = TRUE;
+    gnet_property->props[144].internal = FALSE;
     gnet_property->props[144].vector_size = 1;
 	mutex_init(&gnet_property->props[144].lock);
 
@@ -4069,6 +4218,7 @@ gnet_prop_init(void) {
     gnet_property->props[145].desc = _("Only files with the given extensions will be shared. The special --all-- extension matches all files, even if they don't have any extension.  Use with care.");
     gnet_property->props[145].ev_changed = event_new("scan_extensions_changed");
     gnet_property->props[145].save = TRUE;
+    gnet_property->props[145].internal = FALSE;
     gnet_property->props[145].vector_size = 1;
 	mutex_init(&gnet_property->props[145].lock);
 
@@ -4091,6 +4241,7 @@ gnet_prop_init(void) {
     gnet_property->props[146].desc = _("Ignore symbolically linked directories when scanning files to share.");
     gnet_property->props[146].ev_changed = event_new("scan_ignore_symlink_dirs_changed");
     gnet_property->props[146].save = TRUE;
+    gnet_property->props[146].internal = FALSE;
     gnet_property->props[146].vector_size = 1;
 	mutex_init(&gnet_property->props[146].lock);
 
@@ -4109,6 +4260,7 @@ gnet_prop_init(void) {
     gnet_property->props[147].desc = _("Ignore symbolically linked regular files when scanning files to share.");
     gnet_property->props[147].ev_changed = event_new("scan_ignore_symlink_regfiles_changed");
     gnet_property->props[147].save = TRUE;
+    gnet_property->props[147].internal = FALSE;
     gnet_property->props[147].vector_size = 1;
 	mutex_init(&gnet_property->props[147].lock);
 
@@ -4127,6 +4279,7 @@ gnet_prop_init(void) {
     gnet_property->props[148].desc = _("Store incomplete files in this directory.");
     gnet_property->props[148].ev_changed = event_new("save_file_path_changed");
     gnet_property->props[148].save = TRUE;
+    gnet_property->props[148].internal = FALSE;
     gnet_property->props[148].vector_size = 1;
 	mutex_init(&gnet_property->props[148].lock);
 
@@ -4149,6 +4302,7 @@ gnet_prop_init(void) {
     gnet_property->props[149].desc = _("Move complete files to this directory. If this is set to the SAME directory as the incomplete or corrupted files, files will be renamed with a trailing .OK");
     gnet_property->props[149].ev_changed = event_new("move_file_path_changed");
     gnet_property->props[149].save = TRUE;
+    gnet_property->props[149].internal = FALSE;
     gnet_property->props[149].vector_size = 1;
 	mutex_init(&gnet_property->props[149].lock);
 
@@ -4171,6 +4325,7 @@ gnet_prop_init(void) {
     gnet_property->props[150].desc = _("Move corrupted, downloaded files to this directory. If this is set to the SAME directory as the incomplete or completed files, files will be renamed with a trailing .BAD");
     gnet_property->props[150].ev_changed = event_new("bad_file_path_changed");
     gnet_property->props[150].save = TRUE;
+    gnet_property->props[150].internal = FALSE;
     gnet_property->props[150].vector_size = 1;
 	mutex_init(&gnet_property->props[150].lock);
 
@@ -4193,6 +4348,7 @@ gnet_prop_init(void) {
     gnet_property->props[151].desc = _("Directories which contain shared files.");
     gnet_property->props[151].ev_changed = event_new("shared_dirs_paths_changed");
     gnet_property->props[151].save = TRUE;
+    gnet_property->props[151].internal = FALSE;
     gnet_property->props[151].vector_size = 1;
 	mutex_init(&gnet_property->props[151].lock);
 
@@ -4215,6 +4371,7 @@ gnet_prop_init(void) {
     gnet_property->props[152].desc = _("List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network.");
     gnet_property->props[152].ev_changed = event_new("local_netmasks_string_changed");
     gnet_property->props[152].save = TRUE;
+    gnet_property->props[152].internal = FALSE;
     gnet_property->props[152].vector_size = 1;
 	mutex_init(&gnet_property->props[152].lock);
 
@@ -4237,6 +4394,7 @@ gnet_prop_init(void) {
     gnet_property->props[153].desc = _("Total number of completed downloads in this session.");
     gnet_property->props[153].ev_changed = event_new("total_downloads_changed");
     gnet_property->props[153].save = FALSE;
+    gnet_property->props[153].internal = TRUE;
     gnet_property->props[153].vector_size = 1;
 	mutex_init(&gnet_property->props[153].lock);
 
@@ -4258,6 +4416,7 @@ gnet_prop_init(void) {
     gnet_property->props[154].desc = _("Number of running uploads.");
     gnet_property->props[154].ev_changed = event_new("ul_running_changed");
     gnet_property->props[154].save = FALSE;
+    gnet_property->props[154].internal = TRUE;
     gnet_property->props[154].vector_size = 1;
 	mutex_init(&gnet_property->props[154].lock);
 
@@ -4279,6 +4438,7 @@ gnet_prop_init(void) {
     gnet_property->props[155].desc = _("Number of quick uploads currently running.");
     gnet_property->props[155].ev_changed = event_new("ul_quick_running_changed");
     gnet_property->props[155].save = FALSE;
+    gnet_property->props[155].internal = TRUE;
     gnet_property->props[155].vector_size = 1;
 	mutex_init(&gnet_property->props[155].lock);
 
@@ -4300,6 +4460,7 @@ gnet_prop_init(void) {
     gnet_property->props[156].desc = _("Number of registered (pending) uploads.");
     gnet_property->props[156].ev_changed = event_new("ul_registered_changed");
     gnet_property->props[156].save = FALSE;
+    gnet_property->props[156].internal = TRUE;
     gnet_property->props[156].vector_size = 1;
 	mutex_init(&gnet_property->props[156].lock);
 
@@ -4321,6 +4482,7 @@ gnet_prop_init(void) {
     gnet_property->props[157].desc = _("Total number of completed uploads in this session.");
     gnet_property->props[157].ev_changed = event_new("total_uploads_changed");
     gnet_property->props[157].save = FALSE;
+    gnet_property->props[157].internal = TRUE;
     gnet_property->props[157].vector_size = 1;
 	mutex_init(&gnet_property->props[157].lock);
 
@@ -4342,6 +4504,7 @@ gnet_prop_init(void) {
     gnet_property->props[158].desc = _("Global Unique IDentifier of this node.");
     gnet_property->props[158].ev_changed = event_new("servent_guid_changed");
     gnet_property->props[158].save = TRUE;
+    gnet_property->props[158].internal = FALSE;
     gnet_property->props[158].vector_size = GUID_RAW_SIZE;
 	mutex_init(&gnet_property->props[158].lock);
 
@@ -4359,6 +4522,7 @@ gnet_prop_init(void) {
     gnet_property->props[159].desc = _("Kademlia Unique IDentifier of this node in the DHT.");
     gnet_property->props[159].ev_changed = event_new("kuid_changed");
     gnet_property->props[159].save = TRUE;
+    gnet_property->props[159].internal = FALSE;
     gnet_property->props[159].vector_size = KUID_RAW_SIZE;
 	mutex_init(&gnet_property->props[159].lock);
 
@@ -4376,6 +4540,7 @@ gnet_prop_init(void) {
     gnet_property->props[160].desc = _("Whether or not to use swarming (recommended = YES).");
     gnet_property->props[160].ev_changed = event_new("use_swarming_changed");
     gnet_property->props[160].save = TRUE;
+    gnet_property->props[160].internal = FALSE;
     gnet_property->props[160].vector_size = 1;
 	mutex_init(&gnet_property->props[160].lock);
 
@@ -4394,6 +4559,7 @@ gnet_prop_init(void) {
     gnet_property->props[161].desc = _("Whether or not to launch competing downloads when swarming and there are many sources available with a few chunks left.");
     gnet_property->props[161].ev_changed = event_new("use_aggressive_swarming_changed");
     gnet_property->props[161].save = TRUE;
+    gnet_property->props[161].internal = FALSE;
     gnet_property->props[161].vector_size = 1;
 	mutex_init(&gnet_property->props[161].lock);
 
@@ -4412,6 +4578,7 @@ gnet_prop_init(void) {
     gnet_property->props[162].desc = _("Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file...");
     gnet_property->props[162].ev_changed = event_new("dl_minchunksize_changed");
     gnet_property->props[162].save = TRUE;
+    gnet_property->props[162].internal = FALSE;
     gnet_property->props[162].vector_size = 1;
 	mutex_init(&gnet_property->props[162].lock);
 
@@ -4433,6 +4600,7 @@ gnet_prop_init(void) {
     gnet_property->props[163].desc = _("Maximum chunk size when swarming.");
     gnet_property->props[163].ev_changed = event_new("dl_maxchunksize_changed");
     gnet_property->props[163].save = TRUE;
+    gnet_property->props[163].internal = FALSE;
     gnet_property->props[163].vector_size = 1;
 	mutex_init(&gnet_property->props[163].lock);
 
@@ -4454,6 +4622,7 @@ gnet_prop_init(void) {
     gnet_property->props[164].desc = _("Whether or not to automatically queue search results that match a file in the download queue.");
     gnet_property->props[164].ev_changed = event_new("auto_download_identical_changed");
     gnet_property->props[164].save = TRUE;
+    gnet_property->props[164].internal = FALSE;
     gnet_property->props[164].vector_size = 1;
 	mutex_init(&gnet_property->props[164].lock);
 
@@ -4472,6 +4641,7 @@ gnet_prop_init(void) {
     gnet_property->props[165].desc = _("Whether or not to automatically feed the download mesh with data gathered from the query hits that flow through our node. This looks for new entries for files we are sharing or already have in our mesh.");
     gnet_property->props[165].ev_changed = event_new("auto_feed_download_mesh_changed");
     gnet_property->props[165].save = TRUE;
+    gnet_property->props[165].internal = FALSE;
     gnet_property->props[165].vector_size = 1;
 	mutex_init(&gnet_property->props[165].lock);
 
@@ -4490,6 +4660,7 @@ gnet_prop_init(void) {
     gnet_property->props[166].desc = _("When enabled, SHA1s must match. Otherwise, name and size will be sufficient.");
     gnet_property->props[166].ev_changed = event_new("strict_sha1_matching_changed");
     gnet_property->props[166].save = TRUE;
+    gnet_property->props[166].internal = FALSE;
     gnet_property->props[166].vector_size = 1;
 	mutex_init(&gnet_property->props[166].lock);
 
@@ -4508,6 +4679,7 @@ gnet_prop_init(void) {
     gnet_property->props[167].desc = _("Whether gtk-gnutella thinks you're currently firewalled, TCP-wise.");
     gnet_property->props[167].ev_changed = event_new("is_firewalled_changed");
     gnet_property->props[167].save = TRUE;
+    gnet_property->props[167].internal = FALSE;
     gnet_property->props[167].vector_size = 1;
 	mutex_init(&gnet_property->props[167].lock);
 
@@ -4526,6 +4698,7 @@ gnet_prop_init(void) {
     gnet_property->props[168].desc = _("Whether gtk-gnutella thinks it's connected to the Internet.");
     gnet_property->props[168].ev_changed = event_new("is_inet_connected_changed");
     gnet_property->props[168].save = FALSE;
+    gnet_property->props[168].internal = FALSE;
     gnet_property->props[168].vector_size = 1;
 	mutex_init(&gnet_property->props[168].lock);
 
@@ -4544,6 +4717,7 @@ gnet_prop_init(void) {
     gnet_property->props[169].desc = _("Whether gtk-gnutella thinks you're currently firewalled, UDP-wise.");
     gnet_property->props[169].ev_changed = event_new("is_udp_firewalled_changed");
     gnet_property->props[169].save = TRUE;
+    gnet_property->props[169].internal = FALSE;
     gnet_property->props[169].vector_size = 1;
 	mutex_init(&gnet_property->props[169].lock);
 
@@ -4562,6 +4736,7 @@ gnet_prop_init(void) {
     gnet_property->props[170].desc = _("Whether gtk-gnutella determined it could receive solicited UDP.");
     gnet_property->props[170].ev_changed = event_new("recv_solicited_udp_changed");
     gnet_property->props[170].save = TRUE;
+    gnet_property->props[170].internal = FALSE;
     gnet_property->props[170].vector_size = 1;
 	mutex_init(&gnet_property->props[170].lock);
 
@@ -4580,6 +4755,7 @@ gnet_prop_init(void) {
     gnet_property->props[171].desc = _("Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic at the cost of little CPU time.");
     gnet_property->props[171].ev_changed = event_new("gnet_compact_query_changed");
     gnet_property->props[171].save = TRUE;
+    gnet_property->props[171].internal = FALSE;
     gnet_property->props[171].vector_size = 1;
 	mutex_init(&gnet_property->props[171].lock);
 
@@ -4598,6 +4774,7 @@ gnet_prop_init(void) {
     gnet_property->props[172].desc = _("Also use sources that don't provide a SHA1 value for the first chunk of a file. This dramatically reduces the 'No URN on server' messages, but may result in overlap problems later if the first chunk was actually from a different file. Use with caution.");
     gnet_property->props[172].ev_changed = event_new("download_optimistic_start_changed");
     gnet_property->props[172].save = TRUE;
+    gnet_property->props[172].internal = FALSE;
     gnet_property->props[172].vector_size = 1;
 	mutex_init(&gnet_property->props[172].lock);
 
@@ -4616,6 +4793,7 @@ gnet_prop_init(void) {
     gnet_property->props[173].desc = _("Whether gtk-gnutella is currently rebuilding its library in the background.");
     gnet_property->props[173].ev_changed = event_new("library_rebuilding_changed");
     gnet_property->props[173].save = FALSE;
+    gnet_property->props[173].internal = TRUE;
     gnet_property->props[173].vector_size = 1;
 	mutex_init(&gnet_property->props[173].lock);
 
@@ -4634,6 +4812,7 @@ gnet_prop_init(void) {
     gnet_property->props[174].desc = _("Whether gtk-gnutella is currently computing SHA1 of shared files in the background.");
     gnet_property->props[174].ev_changed = event_new("sha1_rebuilding_changed");
     gnet_property->props[174].save = FALSE;
+    gnet_property->props[174].internal = TRUE;
     gnet_property->props[174].vector_size = 1;
 	mutex_init(&gnet_property->props[174].lock);
 
@@ -4652,6 +4831,7 @@ gnet_prop_init(void) {
     gnet_property->props[175].desc = _("Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the background.");
     gnet_property->props[175].ev_changed = event_new("sha1_verifying_changed");
     gnet_property->props[175].save = FALSE;
+    gnet_property->props[175].internal = TRUE;
     gnet_property->props[175].vector_size = 1;
 	mutex_init(&gnet_property->props[175].lock);
 
@@ -4670,6 +4850,7 @@ gnet_prop_init(void) {
     gnet_property->props[176].desc = _("Whether gtk-gnutella is currently moving files across filesystems or simply copying in the background.");
     gnet_property->props[176].ev_changed = event_new("file_moving_changed");
     gnet_property->props[176].save = FALSE;
+    gnet_property->props[176].internal = TRUE;
     gnet_property->props[176].vector_size = 1;
 	mutex_init(&gnet_property->props[176].lock);
 
@@ -4688,6 +4869,7 @@ gnet_prop_init(void) {
     gnet_property->props[177].desc = _("If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.");
     gnet_property->props[177].ev_changed = event_new("prefer_compressed_gnet_changed");
     gnet_property->props[177].save = TRUE;
+    gnet_property->props[177].internal = FALSE;
     gnet_property->props[177].vector_size = 1;
 	mutex_init(&gnet_property->props[177].lock);
 
@@ -4706,6 +4888,7 @@ gnet_prop_init(void) {
     gnet_property->props[178].desc = _("If deactivated, only uploads and downloads will continue. All Gnet connections are disabled/terminated.");
     gnet_property->props[178].ev_changed = event_new("online_mode_changed");
     gnet_property->props[178].save = TRUE;
+    gnet_property->props[178].internal = FALSE;
     gnet_property->props[178].vector_size = 1;
 	mutex_init(&gnet_property->props[178].lock);
 
@@ -4724,6 +4907,7 @@ gnet_prop_init(void) {
     gnet_property->props[179].desc = _("Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issuing a /uri-res/N2R? request).  When set, it supersedes the optimistic first chunk setting.");
     gnet_property->props[179].ev_changed = event_new("download_require_urn_changed");
     gnet_property->props[179].save = TRUE;
+    gnet_property->props[179].internal = FALSE;
     gnet_property->props[179].vector_size = 1;
 	mutex_init(&gnet_property->props[179].lock);
 
@@ -4742,6 +4926,7 @@ gnet_prop_init(void) {
     gnet_property->props[180].desc = _("Whether gtk-gnutella should make sure the server gives us back a non-empty identifying token.");
     gnet_property->props[180].ev_changed = event_new("download_require_server_name_changed");
     gnet_property->props[180].save = TRUE;
+    gnet_property->props[180].internal = FALSE;
     gnet_property->props[180].vector_size = 1;
 	mutex_init(&gnet_property->props[180].lock);
 
@@ -4760,6 +4945,7 @@ gnet_prop_init(void) {
     gnet_property->props[181].desc = _("Maximum amount of Ultrapeers we should connect to as a leaf.");
     gnet_property->props[181].ev_changed = event_new("max_ultrapeers_changed");
     gnet_property->props[181].save = TRUE;
+    gnet_property->props[181].internal = FALSE;
     gnet_property->props[181].vector_size = 1;
 	mutex_init(&gnet_property->props[181].lock);
 
@@ -4781,6 +4967,7 @@ gnet_prop_init(void) {
     gnet_property->props[182].desc = _("To connect more quickly, gtk-gnutella will allow up to this many connections to be active while trying to fill up the connection slots.");
     gnet_property->props[182].ev_changed = event_new("quick_connect_pool_size_changed");
     gnet_property->props[182].save = TRUE;
+    gnet_property->props[182].internal = FALSE;
     gnet_property->props[182].vector_size = 1;
 	mutex_init(&gnet_property->props[182].lock);
 
@@ -4802,6 +4989,7 @@ gnet_prop_init(void) {
     gnet_property->props[183].desc = _("Maximum amount of leaves we can accept.  To be promoted Ultra, you should reserve 32 bytes of bandwidth per leaf.");
     gnet_property->props[183].ev_changed = event_new("max_leaves_changed");
     gnet_property->props[183].save = TRUE;
+    gnet_property->props[183].internal = FALSE;
     gnet_property->props[183].vector_size = 1;
 	mutex_init(&gnet_property->props[183].lock);
 
@@ -4823,6 +5011,7 @@ gnet_prop_init(void) {
     gnet_property->props[184].desc = _("What to do with files that will be ignored for downloading.");
     gnet_property->props[184].ev_changed = event_new("search_handle_ignored_files_changed");
     gnet_property->props[184].save = TRUE;
+    gnet_property->props[184].internal = FALSE;
     gnet_property->props[184].vector_size = 1;
 	mutex_init(&gnet_property->props[184].lock);
 
@@ -4844,6 +5033,7 @@ gnet_prop_init(void) {
     gnet_property->props[185].desc = _("The peer mode you want to operate as for gtk-gnutella.  When auto is selected, gtk-gnutella will start as a leaf node and may be promoted to an ultra node if bandwidth and uptime permits, provided that you are not firewalled.");
     gnet_property->props[185].ev_changed = event_new("configured_peermode_changed");
     gnet_property->props[185].save = TRUE;
+    gnet_property->props[185].internal = FALSE;
     gnet_property->props[185].vector_size = 1;
 	mutex_init(&gnet_property->props[185].lock);
 
@@ -4865,6 +5055,7 @@ gnet_prop_init(void) {
     gnet_property->props[186].desc = _("Current peer mode for gtk-gnutella.");
     gnet_property->props[186].ev_changed = event_new("current_peermode_changed");
     gnet_property->props[186].save = FALSE;
+    gnet_property->props[186].internal = TRUE;
     gnet_property->props[186].vector_size = 1;
 	mutex_init(&gnet_property->props[186].lock);
 
@@ -4886,6 +5077,7 @@ gnet_prop_init(void) {
     gnet_property->props[187].desc = _("How many file descriptors this process can open.");
     gnet_property->props[187].ev_changed = event_new("sys_nofile_changed");
     gnet_property->props[187].save = FALSE;
+    gnet_property->props[187].internal = TRUE;
     gnet_property->props[187].vector_size = 1;
 	mutex_init(&gnet_property->props[187].lock);
 
@@ -4907,6 +5099,7 @@ gnet_prop_init(void) {
     gnet_property->props[188].desc = _("How much physical memory is available.");
     gnet_property->props[188].ev_changed = event_new("sys_physmem_changed");
     gnet_property->props[188].save = FALSE;
+    gnet_property->props[188].internal = TRUE;
     gnet_property->props[188].vector_size = 1;
 	mutex_init(&gnet_property->props[188].lock);
 
@@ -4928,6 +5121,7 @@ gnet_prop_init(void) {
     gnet_property->props[189].desc = _("How many downloads are currently held in the queue.");
     gnet_property->props[189].ev_changed = event_new("dl_queue_count_changed");
     gnet_property->props[189].save = FALSE;
+    gnet_property->props[189].internal = TRUE;
     gnet_property->props[189].vector_size = 1;
 	mutex_init(&gnet_property->props[189].lock);
 
@@ -4949,6 +5143,7 @@ gnet_prop_init(void) {
     gnet_property->props[190].desc = _("How many downloads are currently running (downloading / connecting).");
     gnet_property->props[190].ev_changed = event_new("dl_running_count_changed");
     gnet_property->props[190].save = FALSE;
+    gnet_property->props[190].internal = TRUE;
     gnet_property->props[190].vector_size = 1;
 	mutex_init(&gnet_property->props[190].lock);
 
@@ -4970,6 +5165,7 @@ gnet_prop_init(void) {
     gnet_property->props[191].desc = _("How many downloads are currently active.");
     gnet_property->props[191].ev_changed = event_new("dl_active_count_changed");
     gnet_property->props[191].save = FALSE;
+    gnet_property->props[191].internal = TRUE;
     gnet_property->props[191].vector_size = 1;
 	mutex_init(&gnet_property->props[191].lock);
 
@@ -4991,6 +5187,7 @@ gnet_prop_init(void) {
     gnet_property->props[192].desc = _("How many downloads are currently actively queued.");
     gnet_property->props[192].ev_changed = event_new("dl_aqueued_count_changed");
     gnet_property->props[192].save = FALSE;
+    gnet_property->props[192].internal = TRUE;
     gnet_property->props[192].vector_size = 1;
 	mutex_init(&gnet_property->props[192].lock);
 
@@ -5012,6 +5209,7 @@ gnet_prop_init(void) {
     gnet_property->props[193].desc = _("How many downloads are currently passively queued.");
     gnet_property->props[193].ev_changed = event_new("dl_pqueued_count_changed");
     gnet_property->props[193].save = FALSE;
+    gnet_property->props[193].internal = TRUE;
     gnet_property->props[193].vector_size = 1;
 	mutex_init(&gnet_property->props[193].lock);
 
@@ -5033,6 +5231,7 @@ gnet_prop_init(void) {
     gnet_property->props[194].desc = _("How many fileinfo do we have.");
     gnet_property->props[194].ev_changed = event_new("fi_all_count_changed");
     gnet_property->props[194].save = FALSE;
+    gnet_property->props[194].internal = TRUE;
     gnet_property->props[194].vector_size = 1;
 	mutex_init(&gnet_property->props[194].lock);
 
@@ -5054,6 +5253,7 @@ gnet_prop_init(void) {
     gnet_property->props[195].desc = _("How many fileinfo with sources do we have.");
     gnet_property->props[195].ev_changed = event_new("fi_with_source_count_changed");
     gnet_property->props[195].save = FALSE;
+    gnet_property->props[195].internal = TRUE;
     gnet_property->props[195].vector_size = 1;
 	mutex_init(&gnet_property->props[195].lock);
 
@@ -5075,6 +5275,7 @@ gnet_prop_init(void) {
     gnet_property->props[196].desc = _("How many queued downloads are currently responsive (remote servent answering requests).");
     gnet_property->props[196].ev_changed = event_new("dl_qalive_count_changed");
     gnet_property->props[196].save = FALSE;
+    gnet_property->props[196].internal = TRUE;
     gnet_property->props[196].vector_size = 1;
 	mutex_init(&gnet_property->props[196].lock);
 
@@ -5096,6 +5297,7 @@ gnet_prop_init(void) {
     gnet_property->props[197].desc = _("Amount of bytes downloaded so far, HTTP headers notwithstanding.");
     gnet_property->props[197].ev_changed = event_new("dl_byte_count_changed");
     gnet_property->props[197].save = FALSE;
+    gnet_property->props[197].internal = TRUE;
     gnet_property->props[197].vector_size = 1;
 	mutex_init(&gnet_property->props[197].lock);
 
@@ -5117,6 +5319,7 @@ gnet_prop_init(void) {
     gnet_property->props[198].desc = _("Amount of bytes uploaded so far, HTTP headers notwithstanding.");
     gnet_property->props[198].ev_changed = event_new("ul_byte_count_changed");
     gnet_property->props[198].save = FALSE;
+    gnet_property->props[198].internal = TRUE;
     gnet_property->props[198].vector_size = 1;
 	mutex_init(&gnet_property->props[198].lock);
 
@@ -5138,6 +5341,7 @@ gnet_prop_init(void) {
     gnet_property->props[199].desc = _("Whether gtk-gnutella should serve partial files whilst they are still incompletely downloaded.  Recommended for network's health unless you already share many files, in which case it does no harm to leave it in, but will not matter as much.");
     gnet_property->props[199].ev_changed = event_new("pfsp_server_changed");
     gnet_property->props[199].save = TRUE;
+    gnet_property->props[199].internal = FALSE;
     gnet_property->props[199].vector_size = 1;
 	mutex_init(&gnet_property->props[199].lock);
 
@@ -5156,6 +5360,7 @@ gnet_prop_init(void) {
     gnet_property->props[200].desc = _("When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this makes auditing (file type, pre-viewing, etc...) of the file impossible. This field sets the size in bytes of the first chunk of data that should be continuously downloaded at the beginning of the file.  Don't set it too large.");
     gnet_property->props[200].ev_changed = event_new("pfsp_first_chunk_changed");
     gnet_property->props[200].save = TRUE;
+    gnet_property->props[200].internal = FALSE;
     gnet_property->props[200].vector_size = 1;
 	mutex_init(&gnet_property->props[200].lock);
 
@@ -5177,6 +5382,7 @@ gnet_prop_init(void) {
     gnet_property->props[201].desc = _("When partial file sharing (PFSP) is enabled, gtk-gnutella will not share partial files below this filesize. Don't set it too large.");
     gnet_property->props[201].ev_changed = event_new("pfsp_minimum_filesize_changed");
     gnet_property->props[201].save = TRUE;
+    gnet_property->props[201].internal = FALSE;
     gnet_property->props[201].vector_size = 1;
 	mutex_init(&gnet_property->props[201].lock);
 
@@ -5198,6 +5404,7 @@ gnet_prop_init(void) {
     gnet_property->props[202].desc = _("Number of crawler visits during this session.");
     gnet_property->props[202].ev_changed = event_new("crawler_visit_count_changed");
     gnet_property->props[202].save = FALSE;
+    gnet_property->props[202].internal = TRUE;
     gnet_property->props[202].vector_size = 1;
 	mutex_init(&gnet_property->props[202].lock);
 
@@ -5219,6 +5426,7 @@ gnet_prop_init(void) {
     gnet_property->props[203].desc = _("Number of UDP crawler visits during this session.");
     gnet_property->props[203].ev_changed = event_new("udp_crawler_visit_count_changed");
     gnet_property->props[203].save = FALSE;
+    gnet_property->props[203].internal = TRUE;
     gnet_property->props[203].vector_size = 1;
 	mutex_init(&gnet_property->props[203].lock);
 
@@ -5240,6 +5448,7 @@ gnet_prop_init(void) {
     gnet_property->props[204].desc = _("Whether the clock of this host is kept accurate via NTP. When set, the computed clock skew is ignored. Normally, gtk-gnutella automatically determines whether you are running NTP locally, but it won't be able to determine whether your host is kept synchronized by regular calls to ntpdate, for instance.");
     gnet_property->props[204].ev_changed = event_new("host_runs_ntp_changed");
     gnet_property->props[204].save = TRUE;
+    gnet_property->props[204].internal = FALSE;
     gnet_property->props[204].vector_size = 1;
 	mutex_init(&gnet_property->props[204].lock);
 
@@ -5258,6 +5467,7 @@ gnet_prop_init(void) {
     gnet_property->props[205].desc = _("Whether a running NTP daemon was detected locally.");
     gnet_property->props[205].ev_changed = event_new("ntp_detected_changed");
     gnet_property->props[205].save = FALSE;
+    gnet_property->props[205].internal = FALSE;
     gnet_property->props[205].vector_size = 1;
 	mutex_init(&gnet_property->props[205].lock);
 
@@ -5276,6 +5486,7 @@ gnet_prop_init(void) {
     gnet_property->props[206].desc = _("The signed clock skew of this host compared to absolute time. Adding this skew to the host clock should give the true time.");
     gnet_property->props[206].ev_changed = event_new("clock_skew_changed");
     gnet_property->props[206].save = TRUE;
+    gnet_property->props[206].internal = TRUE;
     gnet_property->props[206].vector_size = 1;
 	mutex_init(&gnet_property->props[206].lock);
 
@@ -5297,6 +5508,7 @@ gnet_prop_init(void) {
     gnet_property->props[207].desc = _("Whether gtk-gnutella should keep track of the IP of unstable servents it encounters, preventing further connections attempts to/from them.");
     gnet_property->props[207].ev_changed = event_new("node_monitor_unstable_ip_changed");
     gnet_property->props[207].save = TRUE;
+    gnet_property->props[207].internal = FALSE;
     gnet_property->props[207].vector_size = 1;
 	mutex_init(&gnet_property->props[207].lock);
 
@@ -5315,6 +5527,7 @@ gnet_prop_init(void) {
     gnet_property->props[208].desc = _("Whether gtk-gnutella should determine the servent types (as identified by their vendor string) that are unstable, preventing further connections to/from them.  This only works when gtk-gnutella already keeps track of unstable IP addresses.");
     gnet_property->props[208].ev_changed = event_new("node_monitor_unstable_servents_changed");
     gnet_property->props[208].save = TRUE;
+    gnet_property->props[208].internal = FALSE;
     gnet_property->props[208].vector_size = 1;
 	mutex_init(&gnet_property->props[208].lock);
 
@@ -5333,6 +5546,7 @@ gnet_prop_init(void) {
     gnet_property->props[209].desc = _("Whether gtk-gnutella should automatically remove the file whenever it gets a resuming mismatch and retry from scratch. Until Tiger Tree Hashes are widespread, this is the easiest option.");
     gnet_property->props[209].ev_changed = event_new("dl_remove_file_on_mismatch_changed");
     gnet_property->props[209].save = TRUE;
+    gnet_property->props[209].internal = FALSE;
     gnet_property->props[209].vector_size = 1;
 	mutex_init(&gnet_property->props[209].lock);
 
@@ -5351,6 +5565,7 @@ gnet_prop_init(void) {
     gnet_property->props[210].desc = _("The amount of bytes which gtk-gnutella will strip off the already downloaded bytes after a resuming mismatch, in the hope that only this amount was corrupted, preventing proper resuming. Most of the time, a resuming mismatch indicates bad data on the server, but if the already downloaded data is bad then backing out some of it may allow us to recover from the problem.");
     gnet_property->props[210].ev_changed = event_new("dl_mismatch_backout_changed");
     gnet_property->props[210].save = TRUE;
+    gnet_property->props[210].internal = FALSE;
     gnet_property->props[210].vector_size = 1;
 	mutex_init(&gnet_property->props[210].lock);
 
@@ -5372,6 +5587,7 @@ gnet_prop_init(void) {
     gnet_property->props[211].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution.  If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotations of your IP address.");
     gnet_property->props[211].ev_changed = event_new("server_hostname_changed");
     gnet_property->props[211].save = TRUE;
+    gnet_property->props[211].internal = FALSE;
     gnet_property->props[211].vector_size = 1;
 	mutex_init(&gnet_property->props[211].lock);
 
@@ -5394,6 +5610,7 @@ gnet_prop_init(void) {
     gnet_property->props[212].desc = _("Whether gtk-gnutella should advertise the hostname of your server to downloaders and in query hits.");
     gnet_property->props[212].ev_changed = event_new("give_server_hostname_changed");
     gnet_property->props[212].save = TRUE;
+    gnet_property->props[212].internal = FALSE;
     gnet_property->props[212].vector_size = 1;
 	mutex_init(&gnet_property->props[212].lock);
 
@@ -5412,6 +5629,7 @@ gnet_prop_init(void) {
     gnet_property->props[213].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes.");
     gnet_property->props[213].ev_changed = event_new("reserve_gtkg_nodes_changed");
     gnet_property->props[213].save = TRUE;
+    gnet_property->props[213].internal = FALSE;
     gnet_property->props[213].vector_size = 1;
 	mutex_init(&gnet_property->props[213].lock);
 
@@ -5433,6 +5651,7 @@ gnet_prop_init(void) {
     gnet_property->props[214].desc = _("Maximum percentage of slots a vendor can occupy.");
     gnet_property->props[214].ev_changed = event_new("unique_nodes_changed");
     gnet_property->props[214].save = TRUE;
+    gnet_property->props[214].internal = FALSE;
     gnet_property->props[214].vector_size = 1;
 	mutex_init(&gnet_property->props[214].lock);
 
@@ -5454,6 +5673,7 @@ gnet_prop_init(void) {
     gnet_property->props[215].desc = _("Size of the RX socket buffer to be used for downloads, in kibibytes. If you wish to avoid Gnutella downloads using up all your bandwidth, set it to a low value (default is 64K, which is fine). If you don't mind sucking up all the available bandwidth, increasing your connection latency, set it to a greater value. Remember: the smaller the value, the more you will be able to precisely control the incoming rate.");
     gnet_property->props[215].ev_changed = event_new("download_rx_size_changed");
     gnet_property->props[215].save = TRUE;
+    gnet_property->props[215].internal = FALSE;
     gnet_property->props[215].vector_size = 1;
 	mutex_init(&gnet_property->props[215].lock);
 
@@ -5475,6 +5695,7 @@ gnet_prop_init(void) {
     gnet_property->props[216].desc = _("Size of the RX socket buffer to be used for nodes, in kbytes. The lower the value, the faster the remote end will flow-control at the TCP/IP level if you don't read quickly enough, which would be the case if you limit the incoming bandwidth.");
     gnet_property->props[216].ev_changed = event_new("node_rx_size_changed");
     gnet_property->props[216].save = TRUE;
+    gnet_property->props[216].internal = FALSE;
     gnet_property->props[216].vector_size = 1;
 	mutex_init(&gnet_property->props[216].lock);
 
@@ -5496,6 +5717,7 @@ gnet_prop_init(void) {
     gnet_property->props[217].desc = _("Size of the TX socket buffer to be used for uploads, in kibibytes.");
     gnet_property->props[217].ev_changed = event_new("upload_tx_size_changed");
     gnet_property->props[217].save = TRUE;
+    gnet_property->props[217].internal = FALSE;
     gnet_property->props[217].vector_size = 1;
 	mutex_init(&gnet_property->props[217].lock);
 
@@ -5517,6 +5739,7 @@ gnet_prop_init(void) {
     gnet_property->props[218].desc = _("Average recent latency between the sending of the HTTP request and the reception of the reply from the remote server, in msecs.");
     gnet_property->props[218].ev_changed = event_new("dl_http_latency_changed");
     gnet_property->props[218].save = FALSE;
+    gnet_property->props[218].internal = TRUE;
     gnet_property->props[218].vector_size = 1;
 	mutex_init(&gnet_property->props[218].lock);
 
@@ -5538,6 +5761,7 @@ gnet_prop_init(void) {
     gnet_property->props[219].desc = _("Last time at which we performed the ultrapeer requirement checks.");
     gnet_property->props[219].ev_changed = event_new("node_last_ultra_check_changed");
     gnet_property->props[219].save = TRUE;
+    gnet_property->props[219].internal = FALSE;
     gnet_property->props[219].vector_size = 1;
 	mutex_init(&gnet_property->props[219].lock);
 
@@ -5559,6 +5783,7 @@ gnet_prop_init(void) {
     gnet_property->props[220].desc = _("Last time an automatic switch between ultra and leaf mode occurred.");
     gnet_property->props[220].ev_changed = event_new("node_last_ultra_leaf_switch_changed");
     gnet_property->props[220].save = FALSE;
+    gnet_property->props[220].internal = TRUE;
     gnet_property->props[220].vector_size = 1;
 	mutex_init(&gnet_property->props[220].lock);
 
@@ -5580,6 +5805,7 @@ gnet_prop_init(void) {
     gnet_property->props[221].desc = _("Whether we meet the sufficient average uptime requirement to become an Ultra node.");
     gnet_property->props[221].ev_changed = event_new("up_req_avg_servent_uptime_changed");
     gnet_property->props[221].save = FALSE;
+    gnet_property->props[221].internal = TRUE;
     gnet_property->props[221].vector_size = 1;
 	mutex_init(&gnet_property->props[221].lock);
 
@@ -5598,6 +5824,7 @@ gnet_prop_init(void) {
     gnet_property->props[222].desc = _("Whether we meet the sufficient average IP address uptime requirement to become an Ultra node.");
     gnet_property->props[222].ev_changed = event_new("up_req_avg_ip_uptime_changed");
     gnet_property->props[222].save = FALSE;
+    gnet_property->props[222].internal = TRUE;
     gnet_property->props[222].vector_size = 1;
 	mutex_init(&gnet_property->props[222].lock);
 
@@ -5616,6 +5843,7 @@ gnet_prop_init(void) {
     gnet_property->props[223].desc = _("Whether we meet the sufficient node uptime requirement to become an Ultra node.");
     gnet_property->props[223].ev_changed = event_new("up_req_node_uptime_changed");
     gnet_property->props[223].save = FALSE;
+    gnet_property->props[223].internal = TRUE;
     gnet_property->props[223].vector_size = 1;
 	mutex_init(&gnet_property->props[223].lock);
 
@@ -5634,6 +5862,7 @@ gnet_prop_init(void) {
     gnet_property->props[224].desc = _("Whether we meet the non-firewalled requirement to become an Ultra node.");
     gnet_property->props[224].ev_changed = event_new("up_req_not_firewalled_changed");
     gnet_property->props[224].save = FALSE;
+    gnet_property->props[224].internal = TRUE;
     gnet_property->props[224].vector_size = 1;
 	mutex_init(&gnet_property->props[224].lock);
 
@@ -5652,6 +5881,7 @@ gnet_prop_init(void) {
     gnet_property->props[225].desc = _("Whether we meet the minimum amount of peer connections requirement to become an Ultra node.");
     gnet_property->props[225].ev_changed = event_new("up_req_enough_conn_changed");
     gnet_property->props[225].save = FALSE;
+    gnet_property->props[225].internal = TRUE;
     gnet_property->props[225].vector_size = 1;
 	mutex_init(&gnet_property->props[225].lock);
 
@@ -5670,6 +5900,7 @@ gnet_prop_init(void) {
     gnet_property->props[226].desc = _("Whether we meet the amount of file descriptor requirement to become an Ultra node.");
     gnet_property->props[226].ev_changed = event_new("up_req_enough_fd_changed");
     gnet_property->props[226].save = FALSE;
+    gnet_property->props[226].internal = TRUE;
     gnet_property->props[226].vector_size = 1;
 	mutex_init(&gnet_property->props[226].lock);
 
@@ -5688,6 +5919,7 @@ gnet_prop_init(void) {
     gnet_property->props[227].desc = _("Whether we meet the memory requirements to become an Ultra node.");
     gnet_property->props[227].ev_changed = event_new("up_req_enough_mem_changed");
     gnet_property->props[227].save = FALSE;
+    gnet_property->props[227].internal = TRUE;
     gnet_property->props[227].vector_size = 1;
 	mutex_init(&gnet_property->props[227].lock);
 
@@ -5706,6 +5938,7 @@ gnet_prop_init(void) {
     gnet_property->props[228].desc = _("Whether we meet the bandwidth requirements to become an Ultra node.");
     gnet_property->props[228].ev_changed = event_new("up_req_enough_bw_changed");
     gnet_property->props[228].save = FALSE;
+    gnet_property->props[228].internal = TRUE;
     gnet_property->props[228].vector_size = 1;
 	mutex_init(&gnet_property->props[228].lock);
 
@@ -5724,6 +5957,7 @@ gnet_prop_init(void) {
     gnet_property->props[229].desc = _("Whether we meet the UDP requirements to become an Ultra node.");
     gnet_property->props[229].ev_changed = event_new("up_req_good_udp_changed");
     gnet_property->props[229].save = FALSE;
+    gnet_property->props[229].internal = TRUE;
     gnet_property->props[229].vector_size = 1;
 	mutex_init(&gnet_property->props[229].lock);
 
@@ -5742,6 +5976,7 @@ gnet_prop_init(void) {
     gnet_property->props[230].desc = _("Size of the search queue holding the locally generated queries before they are sent on a given connection.  When full, the oldest query is dropped without being sent.  Set it so that it is slightly larger than the amount of opened searches.");
     gnet_property->props[230].ev_changed = event_new("search_queue_size_changed");
     gnet_property->props[230].save = TRUE;
+    gnet_property->props[230].internal = FALSE;
     gnet_property->props[230].vector_size = 1;
 	mutex_init(&gnet_property->props[230].lock);
 
@@ -5763,6 +5998,7 @@ gnet_prop_init(void) {
     gnet_property->props[231].desc = _("Minimum amount of seconds between two consecutive queries sent to a given connection (for locally generated queries only!). The larger the value, the less negative impact it has on the network.");
     gnet_property->props[231].ev_changed = event_new("search_queue_spacing_changed");
     gnet_property->props[231].save = TRUE;
+    gnet_property->props[231].internal = FALSE;
     gnet_property->props[231].vector_size = 1;
 	mutex_init(&gnet_property->props[231].lock);
 
@@ -5784,6 +6020,7 @@ gnet_prop_init(void) {
     gnet_property->props[232].desc = _("Whether connection to gtk-gnutella via the 'shell' control interface should be allowed.");
     gnet_property->props[232].ev_changed = event_new("enable_shell_changed");
     gnet_property->props[232].save = TRUE;
+    gnet_property->props[232].internal = FALSE;
     gnet_property->props[232].vector_size = 1;
 	mutex_init(&gnet_property->props[232].lock);
 
@@ -5802,6 +6039,7 @@ gnet_prop_init(void) {
     gnet_property->props[233].desc = _("Amount of seconds until an idle remote shell session gets disconnected. If set to zero, no timeout occurs.");
     gnet_property->props[233].ev_changed = event_new("remote_shell_timeout_changed");
     gnet_property->props[233].save = TRUE;
+    gnet_property->props[233].internal = FALSE;
     gnet_property->props[233].vector_size = 1;
 	mutex_init(&gnet_property->props[233].lock);
 
@@ -5823,6 +6061,7 @@ gnet_prop_init(void) {
     gnet_property->props[234].desc = _("Amount of seconds to leave 'dead' entries around so that they can still be displayed by the GUI along with the termination status.");
     gnet_property->props[234].ev_changed = event_new("entry_removal_timeout_changed");
     gnet_property->props[234].save = TRUE;
+    gnet_property->props[234].internal = FALSE;
     gnet_property->props[234].vector_size = 1;
 	mutex_init(&gnet_property->props[234].lock);
 
@@ -5844,6 +6083,7 @@ gnet_prop_init(void) {
     gnet_property->props[235].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbor.  Dropped queries will be accounted for in the 'Message throttle' counter.");
     gnet_property->props[235].ev_changed = event_new("node_watch_similar_queries_changed");
     gnet_property->props[235].save = TRUE;
+    gnet_property->props[235].internal = FALSE;
     gnet_property->props[235].vector_size = 1;
 	mutex_init(&gnet_property->props[235].lock);
 
@@ -5862,6 +6102,7 @@ gnet_prop_init(void) {
     gnet_property->props[236].desc = _("Half the duration during which gtk-gnutella should remember the recently relayed queries by TTL and hop count.  The default value of 5 should be just fine, but you can experiment with different settings if you want.  The higher it is set, the more likely you are to drop legitimate queries, so be careful.");
     gnet_property->props[236].ev_changed = event_new("node_queries_half_life_changed");
     gnet_property->props[236].save = TRUE;
+    gnet_property->props[236].internal = FALSE;
     gnet_property->props[236].vector_size = 1;
 	mutex_init(&gnet_property->props[236].lock);
 
@@ -5883,6 +6124,7 @@ gnet_prop_init(void) {
     gnet_property->props[237].desc = _("The minimum amount of seconds to enforce between two identical queries from leaf nodes.  If the requery too early, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
     gnet_property->props[237].ev_changed = event_new("node_requery_threshold_changed");
     gnet_property->props[237].save = TRUE;
+    gnet_property->props[237].internal = FALSE;
     gnet_property->props[237].vector_size = 1;
 	mutex_init(&gnet_property->props[237].lock);
 
@@ -5904,6 +6146,7 @@ gnet_prop_init(void) {
     gnet_property->props[238].desc = _("Time at which we started the last scan of the library.");
     gnet_property->props[238].ev_changed = event_new("library_rescan_started_changed");
     gnet_property->props[238].save = FALSE;
+    gnet_property->props[238].internal = TRUE;
     gnet_property->props[238].vector_size = 1;
 	mutex_init(&gnet_property->props[238].lock);
 
@@ -5925,6 +6168,7 @@ gnet_prop_init(void) {
     gnet_property->props[239].desc = _("Time at which the last scan of the library finished.");
     gnet_property->props[239].ev_changed = event_new("library_rescan_finished_changed");
     gnet_property->props[239].save = FALSE;
+    gnet_property->props[239].internal = TRUE;
     gnet_property->props[239].vector_size = 1;
 	mutex_init(&gnet_property->props[239].lock);
 
@@ -5946,6 +6190,7 @@ gnet_prop_init(void) {
     gnet_property->props[240].desc = _("The number of seconds the last scan of the library took.");
     gnet_property->props[240].ev_changed = event_new("library_rescan_duration_changed");
     gnet_property->props[240].save = FALSE;
+    gnet_property->props[240].internal = TRUE;
     gnet_property->props[240].vector_size = 1;
 	mutex_init(&gnet_property->props[240].lock);
 
@@ -5967,6 +6212,7 @@ gnet_prop_init(void) {
     gnet_property->props[241].desc = _("Time at which we started shared file indexing.");
     gnet_property->props[241].ev_changed = event_new("qrp_indexing_started_changed");
     gnet_property->props[241].save = FALSE;
+    gnet_property->props[241].internal = TRUE;
     gnet_property->props[241].vector_size = 1;
 	mutex_init(&gnet_property->props[241].lock);
 
@@ -5988,6 +6234,7 @@ gnet_prop_init(void) {
     gnet_property->props[242].desc = _("Time spent indexing shared files.");
     gnet_property->props[242].ev_changed = event_new("qrp_indexing_duration_changed");
     gnet_property->props[242].save = FALSE;
+    gnet_property->props[242].internal = TRUE;
     gnet_property->props[242].vector_size = 1;
 	mutex_init(&gnet_property->props[242].lock);
 
@@ -6009,6 +6256,7 @@ gnet_prop_init(void) {
     gnet_property->props[243].desc = _("Memory used by the QRP tables");
     gnet_property->props[243].ev_changed = event_new("qrp_memory_changed");
     gnet_property->props[243].save = FALSE;
+    gnet_property->props[243].internal = TRUE;
     gnet_property->props[243].vector_size = 1;
 	mutex_init(&gnet_property->props[243].lock);
 
@@ -6030,6 +6278,7 @@ gnet_prop_init(void) {
     gnet_property->props[244].desc = _("Time at which we started query routing table generation.");
     gnet_property->props[244].ev_changed = event_new("qrp_timestamp_changed");
     gnet_property->props[244].save = FALSE;
+    gnet_property->props[244].internal = TRUE;
     gnet_property->props[244].vector_size = 1;
 	mutex_init(&gnet_property->props[244].lock);
 
@@ -6051,6 +6300,7 @@ gnet_prop_init(void) {
     gnet_property->props[245].desc = _("Time spent computing the QRP table, in seconds.");
     gnet_property->props[245].ev_changed = event_new("qrp_computation_time_changed");
     gnet_property->props[245].save = FALSE;
+    gnet_property->props[245].internal = TRUE;
     gnet_property->props[245].vector_size = 1;
 	mutex_init(&gnet_property->props[245].lock);
 
@@ -6072,6 +6322,7 @@ gnet_prop_init(void) {
     gnet_property->props[246].desc = _("Time at which we started computing our QRP patch.");
     gnet_property->props[246].ev_changed = event_new("qrp_patch_timestamp_changed");
     gnet_property->props[246].save = FALSE;
+    gnet_property->props[246].internal = TRUE;
     gnet_property->props[246].vector_size = 1;
 	mutex_init(&gnet_property->props[246].lock);
 
@@ -6093,6 +6344,7 @@ gnet_prop_init(void) {
     gnet_property->props[247].desc = _("Time spent computing the QRP table patch, in seconds.");
     gnet_property->props[247].ev_changed = event_new("qrp_patch_computation_time_changed");
     gnet_property->props[247].save = FALSE;
+    gnet_property->props[247].internal = TRUE;
     gnet_property->props[247].vector_size = 1;
 	mutex_init(&gnet_property->props[247].lock);
 
@@ -6114,6 +6366,7 @@ gnet_prop_init(void) {
     gnet_property->props[248].desc = _("Query routing table generation number.");
     gnet_property->props[248].ev_changed = event_new("qrp_generation_changed");
     gnet_property->props[248].save = FALSE;
+    gnet_property->props[248].internal = TRUE;
     gnet_property->props[248].vector_size = 1;
 	mutex_init(&gnet_property->props[248].lock);
 
@@ -6135,6 +6388,7 @@ gnet_prop_init(void) {
     gnet_property->props[249].desc = _("Amount of slots used by our QRP table.");
     gnet_property->props[249].ev_changed = event_new("qrp_slots_changed");
     gnet_property->props[249].save = FALSE;
+    gnet_property->props[249].internal = TRUE;
     gnet_property->props[249].vector_size = 1;
 	mutex_init(&gnet_property->props[249].lock);
 
@@ -6156,6 +6410,7 @@ gnet_prop_init(void) {
     gnet_property->props[250].desc = _("Amount of slots filled within our QRP table.");
     gnet_property->props[250].ev_changed = event_new("qrp_slots_filled_changed");
     gnet_property->props[250].save = FALSE;
+    gnet_property->props[250].internal = TRUE;
     gnet_property->props[250].vector_size = 1;
 	mutex_init(&gnet_property->props[250].lock);
 
@@ -6177,6 +6432,7 @@ gnet_prop_init(void) {
     gnet_property->props[251].desc = _("Percentage of slots filled within our QRP table.");
     gnet_property->props[251].ev_changed = event_new("qrp_fill_ratio_changed");
     gnet_property->props[251].save = FALSE;
+    gnet_property->props[251].internal = TRUE;
     gnet_property->props[251].vector_size = 1;
 	mutex_init(&gnet_property->props[251].lock);
 
@@ -6198,6 +6454,7 @@ gnet_prop_init(void) {
     gnet_property->props[252].desc = _("Percentage of hashing conflicts whilst inserting data in our QRP table.");
     gnet_property->props[252].ev_changed = event_new("qrp_conflict_ratio_changed");
     gnet_property->props[252].save = FALSE;
+    gnet_property->props[252].internal = TRUE;
     gnet_property->props[252].vector_size = 1;
 	mutex_init(&gnet_property->props[252].lock);
 
@@ -6219,6 +6476,7 @@ gnet_prop_init(void) {
     gnet_property->props[253].desc = _("Amount of hashed keywords in our QRP table.");
     gnet_property->props[253].ev_changed = event_new("qrp_hashed_keywords_changed");
     gnet_property->props[253].save = FALSE;
+    gnet_property->props[253].internal = TRUE;
     gnet_property->props[253].vector_size = 1;
 	mutex_init(&gnet_property->props[253].lock);
 
@@ -6240,6 +6498,7 @@ gnet_prop_init(void) {
     gnet_property->props[254].desc = _("Total raw size of the QRP table patch, in bytes.");
     gnet_property->props[254].ev_changed = event_new("qrp_patch_raw_length_changed");
     gnet_property->props[254].save = FALSE;
+    gnet_property->props[254].internal = TRUE;
     gnet_property->props[254].vector_size = 1;
 	mutex_init(&gnet_property->props[254].lock);
 
@@ -6261,6 +6520,7 @@ gnet_prop_init(void) {
     gnet_property->props[255].desc = _("Final QRP table patch length, after possible compression.");
     gnet_property->props[255].ev_changed = event_new("qrp_patch_length_changed");
     gnet_property->props[255].save = FALSE;
+    gnet_property->props[255].internal = TRUE;
     gnet_property->props[255].vector_size = 1;
 	mutex_init(&gnet_property->props[255].lock);
 
@@ -6282,6 +6542,7 @@ gnet_prop_init(void) {
     gnet_property->props[256].desc = _("QRP table patch compression ratio, in percent, 0 means none.");
     gnet_property->props[256].ev_changed = event_new("qrp_patch_comp_ratio_changed");
     gnet_property->props[256].save = FALSE;
+    gnet_property->props[256].internal = TRUE;
     gnet_property->props[256].vector_size = 1;
 	mutex_init(&gnet_property->props[256].lock);
 
@@ -6303,6 +6564,7 @@ gnet_prop_init(void) {
     gnet_property->props[257].desc = _("Indicates that gtk-gnutella will expire in that many days.");
     gnet_property->props[257].ev_changed = event_new("ancient_version_left_days_changed");
     gnet_property->props[257].save = FALSE;
+    gnet_property->props[257].internal = FALSE;
     gnet_property->props[257].vector_size = 1;
 	mutex_init(&gnet_property->props[257].lock);
 
@@ -6324,6 +6586,7 @@ gnet_prop_init(void) {
     gnet_property->props[258].desc = _("When set, gtk-gnutella is running short on file descriptors, but normal operations are still possible. The condition automatically clears itself after 10 minutes without any more shortage.");
     gnet_property->props[258].ev_changed = event_new("file_descriptor_shortage_changed");
     gnet_property->props[258].save = FALSE;
+    gnet_property->props[258].internal = TRUE;
     gnet_property->props[258].vector_size = 1;
 	mutex_init(&gnet_property->props[258].lock);
 
@@ -6342,6 +6605,7 @@ gnet_prop_init(void) {
     gnet_property->props[259].desc = _("When set, gtk-gnutella has run out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurrence.");
     gnet_property->props[259].ev_changed = event_new("file_descriptor_runout_changed");
     gnet_property->props[259].save = FALSE;
+    gnet_property->props[259].internal = TRUE;
     gnet_property->props[259].vector_size = 1;
 	mutex_init(&gnet_property->props[259].lock);
 
@@ -6360,6 +6624,7 @@ gnet_prop_init(void) {
     gnet_property->props[260].desc = _("If set, spaces in filenames are replaced with underscores.");
     gnet_property->props[260].ev_changed = event_new("convert_spaces_changed");
     gnet_property->props[260].save = TRUE;
+    gnet_property->props[260].internal = FALSE;
     gnet_property->props[260].vector_size = 1;
 	mutex_init(&gnet_property->props[260].lock);
 
@@ -6378,6 +6643,7 @@ gnet_prop_init(void) {
     gnet_property->props[261].desc = _("If set, meta shell characters in filenames are replaced with underscores. (This must also be enabled for FAT partitions.)");
     gnet_property->props[261].ev_changed = event_new("convert_evil_chars_changed");
     gnet_property->props[261].save = TRUE;
+    gnet_property->props[261].internal = FALSE;
     gnet_property->props[261].vector_size = 1;
 	mutex_init(&gnet_property->props[261].lock);
 
@@ -6396,6 +6662,7 @@ gnet_prop_init(void) {
     gnet_property->props[262].desc = _("If set, gtk-gnutella will, upon startup, sanitize filenames by converting spaces and/or evil characters in them, according to your settings, on existing filenames in your temporary downloading directory. By default, the above settings apply only on newly created entries, not existing ones.");
     gnet_property->props[262].ev_changed = event_new("convert_old_filenames_changed");
     gnet_property->props[262].save = TRUE;
+    gnet_property->props[262].internal = FALSE;
     gnet_property->props[262].vector_size = 1;
 	mutex_init(&gnet_property->props[262].lock);
 
@@ -6414,6 +6681,7 @@ gnet_prop_init(void) {
     gnet_property->props[263].desc = _("If set, all outgoing connections are tunneled over TLS.");
     gnet_property->props[263].ev_changed = event_new("tls_enforce_changed");
     gnet_property->props[263].save = TRUE;
+    gnet_property->props[263].internal = FALSE;
     gnet_property->props[263].vector_size = 1;
 	mutex_init(&gnet_property->props[263].lock);
 
@@ -6432,6 +6700,7 @@ gnet_prop_init(void) {
     gnet_property->props[264].desc = _("If not set, support for Gnutella connection compression is disabled.");
     gnet_property->props[264].ev_changed = event_new("gnet_deflate_enabled_changed");
     gnet_property->props[264].save = TRUE;
+    gnet_property->props[264].internal = FALSE;
     gnet_property->props[264].vector_size = 1;
 	mutex_init(&gnet_property->props[264].lock);
 
@@ -6450,6 +6719,7 @@ gnet_prop_init(void) {
     gnet_property->props[265].desc = _("Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will also listen for UDP traffic on the same port as the one configured for TCP and process incoming Gnutella traffic in almost the same way as if it was received via TCP.  It is safe to leave this set, which is the default behavior.");
     gnet_property->props[265].ev_changed = event_new("enable_udp_changed");
     gnet_property->props[265].save = TRUE;
+    gnet_property->props[265].internal = FALSE;
     gnet_property->props[265].vector_size = 1;
 	mutex_init(&gnet_property->props[265].lock);
 
@@ -6468,6 +6738,7 @@ gnet_prop_init(void) {
     gnet_property->props[266].desc = _("Whether gtk-gnutella should honor the request for out-of-band delivery of query hits via UDP, provided UDP support is enabled.  It should not be necessary to add a port forwarding to enable this as your node will be the origin of the UDP traffic and can therefore receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honors the bandwidth limitations.");
     gnet_property->props[266].ev_changed = event_new("process_oob_queries_changed");
     gnet_property->props[266].save = TRUE;
+    gnet_property->props[266].internal = FALSE;
     gnet_property->props[266].vector_size = 1;
 	mutex_init(&gnet_property->props[266].lock);
 
@@ -6486,6 +6757,7 @@ gnet_prop_init(void) {
     gnet_property->props[267].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  The setting is ignored if you seem to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies, so you may choose to disable this feature.  If disabled, your hits will travel through the Gnutella network and can be dropped by any flow-controlled relaying node, limiting the results you can get.");
     gnet_property->props[267].ev_changed = event_new("send_oob_queries_changed");
     gnet_property->props[267].save = TRUE;
+    gnet_property->props[267].internal = FALSE;
     gnet_property->props[267].vector_size = 1;
 	mutex_init(&gnet_property->props[267].lock);
 
@@ -6504,6 +6776,7 @@ gnet_prop_init(void) {
     gnet_property->props[268].desc = _("Whether gtk-gnutella should, when running as ultrapeer, act as proxy for leaf queries that are not requesting OOB delivery of query hits: gtk-gnutella will claim the hits from the remote nodes and forward the hits to the proper leaf.  This is very beneficial for the leaves, but can cause huge bursts of UDP traffic coming back to you.  If you disable it all ultrapeers connected to you will have to relay the hits, possibly dropping other query messages and lowering the efficiency of the search network.");
     gnet_property->props[268].ev_changed = event_new("proxy_oob_queries_changed");
     gnet_property->props[268].save = TRUE;
+    gnet_property->props[268].internal = FALSE;
     gnet_property->props[268].vector_size = 1;
 	mutex_init(&gnet_property->props[268].lock);
 
@@ -6522,6 +6795,7 @@ gnet_prop_init(void) {
     gnet_property->props[269].desc = _("Whether uploads are frequently stalling, indicating that the bandwidth is saturated.  Avoid running as an ultra-node under those conditions.");
     gnet_property->props[269].ev_changed = event_new("uploads_stalling_changed");
     gnet_property->props[269].save = FALSE;
+    gnet_property->props[269].internal = TRUE;
     gnet_property->props[269].vector_size = 1;
 	mutex_init(&gnet_property->props[269].lock);
 
@@ -6540,6 +6814,7 @@ gnet_prop_init(void) {
     gnet_property->props[270].desc = _("If set to TRUE, the global hostiles.txt is used as well as the private $GTK_GNUTELLA_DIR/hostiles.txt. This allows you to separate your private ban list from the global one distributed with gtk-gnutella.");
     gnet_property->props[270].ev_changed = event_new("use_global_hostiles_txt_changed");
     gnet_property->props[270].save = TRUE;
+    gnet_property->props[270].internal = FALSE;
     gnet_property->props[270].vector_size = 1;
 	mutex_init(&gnet_property->props[270].lock);
 
@@ -6558,6 +6833,7 @@ gnet_prop_init(void) {
     gnet_property->props[271].desc = _("If set to TRUE, SO_LINGER is used for sockets.");
     gnet_property->props[271].ev_changed = event_new("use_so_linger_changed");
     gnet_property->props[271].save = TRUE;
+    gnet_property->props[271].internal = FALSE;
     gnet_property->props[271].vector_size = 1;
 	mutex_init(&gnet_property->props[271].lock);
 
@@ -6576,6 +6852,7 @@ gnet_prop_init(void) {
     gnet_property->props[272].desc = _("See the man page for tcp(7). This feature typically only available on Linux systems.");
     gnet_property->props[272].ev_changed = event_new("tcp_defer_accept_timeout_changed");
     gnet_property->props[272].save = TRUE;
+    gnet_property->props[272].internal = FALSE;
     gnet_property->props[272].vector_size = 1;
 	mutex_init(&gnet_property->props[272].lock);
 
@@ -6597,6 +6874,7 @@ gnet_prop_init(void) {
     gnet_property->props[273].desc = _("If TRUE, other hosts can request a complete list of all shared files.");
     gnet_property->props[273].ev_changed = event_new("browse_host_enabled_changed");
     gnet_property->props[273].save = TRUE;
+    gnet_property->props[273].internal = FALSE;
     gnet_property->props[273].vector_size = 1;
 	mutex_init(&gnet_property->props[273].lock);
 
@@ -6615,6 +6893,7 @@ gnet_prop_init(void) {
     gnet_property->props[274].desc = _("Number of HTML browsing requests received in this session.");
     gnet_property->props[274].ev_changed = event_new("html_browse_count_changed");
     gnet_property->props[274].save = FALSE;
+    gnet_property->props[274].internal = TRUE;
     gnet_property->props[274].vector_size = 1;
 	mutex_init(&gnet_property->props[274].lock);
 
@@ -6636,6 +6915,7 @@ gnet_prop_init(void) {
     gnet_property->props[275].desc = _("Number of HTML browsing requests fully served in this session.");
     gnet_property->props[275].ev_changed = event_new("html_browse_served_changed");
     gnet_property->props[275].save = FALSE;
+    gnet_property->props[275].internal = TRUE;
     gnet_property->props[275].vector_size = 1;
 	mutex_init(&gnet_property->props[275].lock);
 
@@ -6657,6 +6937,7 @@ gnet_prop_init(void) {
     gnet_property->props[276].desc = _("Number of Gnutella browsing requests received in this session.");
     gnet_property->props[276].ev_changed = event_new("qhits_browse_count_changed");
     gnet_property->props[276].save = FALSE;
+    gnet_property->props[276].internal = TRUE;
     gnet_property->props[276].vector_size = 1;
 	mutex_init(&gnet_property->props[276].lock);
 
@@ -6678,6 +6959,7 @@ gnet_prop_init(void) {
     gnet_property->props[277].desc = _("Number of Gnutella browsing requests fully served in this session.");
     gnet_property->props[277].ev_changed = event_new("qhits_browse_served_changed");
     gnet_property->props[277].save = FALSE;
+    gnet_property->props[277].internal = TRUE;
     gnet_property->props[277].vector_size = 1;
 	mutex_init(&gnet_property->props[277].lock);
 
@@ -6699,6 +6981,7 @@ gnet_prop_init(void) {
     gnet_property->props[278].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gnutella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are slowed down.");
     gnet_property->props[278].ev_changed = event_new("overloaded_cpu_changed");
     gnet_property->props[278].save = FALSE;
+    gnet_property->props[278].internal = FALSE;
     gnet_property->props[278].vector_size = 1;
 	mutex_init(&gnet_property->props[278].lock);
 
@@ -6717,6 +7000,7 @@ gnet_prop_init(void) {
     gnet_property->props[279].desc = _("Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM.");
     gnet_property->props[279].ev_changed = event_new("download_buffer_size_changed");
     gnet_property->props[279].save = TRUE;
+    gnet_property->props[279].internal = FALSE;
     gnet_property->props[279].vector_size = 1;
 	mutex_init(&gnet_property->props[279].lock);
 
@@ -6738,6 +7022,7 @@ gnet_prop_init(void) {
     gnet_property->props[280].desc = _("When set, all search results from host browsing are dispatched to all opened passive searches.  This is useful if you have different selection filters on your passive searches because it lets you classify files easily, regardless of the origin of the files.");
     gnet_property->props[280].ev_changed = event_new("browse_copied_to_passive_changed");
     gnet_property->props[280].save = TRUE;
+    gnet_property->props[280].internal = FALSE;
     gnet_property->props[280].vector_size = 1;
 	mutex_init(&gnet_property->props[280].lock);
 
@@ -6756,6 +7041,7 @@ gnet_prop_init(void) {
     gnet_property->props[281].desc = _("Enable this if all units should be displayed using the metric system with SI prefixes. If disabled, certain units, for example, filesizes will be displayed using the historical base2 convention with binary prefixes.");
     gnet_property->props[281].ev_changed = event_new("display_metric_units_changed");
     gnet_property->props[281].save = TRUE;
+    gnet_property->props[281].internal = FALSE;
     gnet_property->props[281].vector_size = 1;
 	mutex_init(&gnet_property->props[281].lock);
 
@@ -6774,6 +7060,7 @@ gnet_prop_init(void) {
     gnet_property->props[282].desc = _("Debug level for Reliable UDP (RUDP) code.");
     gnet_property->props[282].ev_changed = event_new("rudp_debug_changed");
     gnet_property->props[282].save = TRUE;
+    gnet_property->props[282].internal = FALSE;
     gnet_property->props[282].vector_size = 1;
 	mutex_init(&gnet_property->props[282].lock);
 
@@ -6795,6 +7082,7 @@ gnet_prop_init(void) {
     gnet_property->props[283].desc = _("Debug level for the Distributed Hash Table (DHT) code.");
     gnet_property->props[283].ev_changed = event_new("dht_debug_changed");
     gnet_property->props[283].save = TRUE;
+    gnet_property->props[283].internal = FALSE;
     gnet_property->props[283].vector_size = 1;
 	mutex_init(&gnet_property->props[283].lock);
 
@@ -6816,6 +7104,7 @@ gnet_prop_init(void) {
     gnet_property->props[284].desc = _("Debug level for the OOB-proxying of queries.");
     gnet_property->props[284].ev_changed = event_new("oob_proxy_debug_changed");
     gnet_property->props[284].save = TRUE;
+    gnet_property->props[284].internal = FALSE;
     gnet_property->props[284].vector_size = 1;
 	mutex_init(&gnet_property->props[284].lock);
 
@@ -6837,6 +7126,7 @@ gnet_prop_init(void) {
     gnet_property->props[285].desc = _("If set gtk-gnutella also listens on a local (unix domain) socket which is located in ~/.gtk-gnutella/socket.");
     gnet_property->props[285].ev_changed = event_new("enable_local_socket_changed");
     gnet_property->props[285].save = TRUE;
+    gnet_property->props[285].internal = FALSE;
     gnet_property->props[285].vector_size = 1;
 	mutex_init(&gnet_property->props[285].lock);
 
@@ -6855,6 +7145,7 @@ gnet_prop_init(void) {
     gnet_property->props[286].desc = _("Don't start more than this number of parallel downloads per file.");
     gnet_property->props[286].ev_changed = event_new("max_simultaneous_downloads_per_file_changed");
     gnet_property->props[286].save = TRUE;
+    gnet_property->props[286].internal = FALSE;
     gnet_property->props[286].vector_size = 1;
 	mutex_init(&gnet_property->props[286].lock);
 
@@ -6876,6 +7167,7 @@ gnet_prop_init(void) {
     gnet_property->props[287].desc = _("If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx.dump.");
     gnet_property->props[287].ev_changed = event_new("dump_received_gnutella_packets_changed");
     gnet_property->props[287].save = FALSE;
+    gnet_property->props[287].internal = FALSE;
     gnet_property->props[287].vector_size = 1;
 	mutex_init(&gnet_property->props[287].lock);
 
@@ -6894,6 +7186,7 @@ gnet_prop_init(void) {
     gnet_property->props[288].desc = _("If enabled, queries are also matched against the directory names which are relative to the shared ones. Further, search results will show these. This is especially useful if the shared filenames are ambiguous or meaningless without knowing the directory names as well. However, be sure the directory names do not expose confidential information. You have to initiate a rescan of the shared files before a change becomes fully effective.");
     gnet_property->props[288].ev_changed = event_new("search_results_expose_relative_paths_changed");
     gnet_property->props[288].save = TRUE;
+    gnet_property->props[288].internal = FALSE;
     gnet_property->props[288].vector_size = 1;
 	mutex_init(&gnet_property->props[288].lock);
 
@@ -6912,6 +7205,7 @@ gnet_prop_init(void) {
     gnet_property->props[289].desc = _("Debug level for the shell.");
     gnet_property->props[289].ev_changed = event_new("shell_debug_changed");
     gnet_property->props[289].save = TRUE;
+    gnet_property->props[289].internal = FALSE;
     gnet_property->props[289].vector_size = 1;
 	mutex_init(&gnet_property->props[289].lock);
 
@@ -6933,6 +7227,7 @@ gnet_prop_init(void) {
     gnet_property->props[290].desc = _("If larger than zero, no downloads are started.");
     gnet_property->props[290].ev_changed = event_new("download_queue_frozen_changed");
     gnet_property->props[290].save = FALSE;
+    gnet_property->props[290].internal = FALSE;
     gnet_property->props[290].vector_size = 1;
 	mutex_init(&gnet_property->props[290].lock);
 
@@ -6954,6 +7249,7 @@ gnet_prop_init(void) {
     gnet_property->props[291].desc = _("Debug level for the search queue.");
     gnet_property->props[291].ev_changed = event_new("sq_debug_changed");
     gnet_property->props[291].save = TRUE;
+    gnet_property->props[291].internal = FALSE;
     gnet_property->props[291].vector_size = 1;
 	mutex_init(&gnet_property->props[291].lock);
 
@@ -6975,6 +7271,7 @@ gnet_prop_init(void) {
     gnet_property->props[292].desc = _("Debug level for push-proxy code.");
     gnet_property->props[292].ev_changed = event_new("push_proxy_debug_changed");
     gnet_property->props[292].save = TRUE;
+    gnet_property->props[292].internal = FALSE;
     gnet_property->props[292].vector_size = 1;
 	mutex_init(&gnet_property->props[292].lock);
 
@@ -6996,6 +7293,7 @@ gnet_prop_init(void) {
     gnet_property->props[293].desc = _("Number of THEX file requests received in this session.");
     gnet_property->props[293].ev_changed = event_new("thex_files_requested_changed");
     gnet_property->props[293].save = FALSE;
+    gnet_property->props[293].internal = TRUE;
     gnet_property->props[293].vector_size = 1;
 	mutex_init(&gnet_property->props[293].lock);
 
@@ -7017,6 +7315,7 @@ gnet_prop_init(void) {
     gnet_property->props[294].desc = _("Number of THEX file requests fully served in this session.");
     gnet_property->props[294].ev_changed = event_new("thex_files_served_changed");
     gnet_property->props[294].save = FALSE;
+    gnet_property->props[294].internal = TRUE;
     gnet_property->props[294].vector_size = 1;
 	mutex_init(&gnet_property->props[294].lock);
 
@@ -7038,6 +7337,7 @@ gnet_prop_init(void) {
     gnet_property->props[295].desc = _("Debug level for Tigertree-related code.");
     gnet_property->props[295].ev_changed = event_new("tigertree_debug_changed");
     gnet_property->props[295].save = TRUE;
+    gnet_property->props[295].internal = FALSE;
     gnet_property->props[295].vector_size = 1;
 	mutex_init(&gnet_property->props[295].lock);
 
@@ -7059,6 +7359,7 @@ gnet_prop_init(void) {
     gnet_property->props[296].desc = _("Whether gtk-gnutella is currently computing TTH of shared files in the background.");
     gnet_property->props[296].ev_changed = event_new("tth_rebuilding_changed");
     gnet_property->props[296].save = FALSE;
+    gnet_property->props[296].internal = FALSE;
     gnet_property->props[296].vector_size = 1;
 	mutex_init(&gnet_property->props[296].lock);
 
@@ -7077,6 +7378,7 @@ gnet_prop_init(void) {
     gnet_property->props[297].desc = _("Whether gtk-gnutella is currently verifying the TTH of downloaded files in the background.");
     gnet_property->props[297].ev_changed = event_new("tth_verifying_changed");
     gnet_property->props[297].save = FALSE;
+    gnet_property->props[297].internal = FALSE;
     gnet_property->props[297].vector_size = 1;
 	mutex_init(&gnet_property->props[297].lock);
 
@@ -7095,6 +7397,7 @@ gnet_prop_init(void) {
     gnet_property->props[298].desc = _("Maximum number of results to show in any search.");
     gnet_property->props[298].ev_changed = event_new("search_max_results_changed");
     gnet_property->props[298].save = TRUE;
+    gnet_property->props[298].internal = FALSE;
     gnet_property->props[298].vector_size = 1;
 	mutex_init(&gnet_property->props[298].lock);
 
@@ -7116,6 +7419,7 @@ gnet_prop_init(void) {
     gnet_property->props[299].desc = _("Maximum number of results to show in a browse_host request.");
     gnet_property->props[299].ev_changed = event_new("browse_host_max_results_changed");
     gnet_property->props[299].save = TRUE;
+    gnet_property->props[299].internal = FALSE;
     gnet_property->props[299].vector_size = 1;
 	mutex_init(&gnet_property->props[299].lock);
 
@@ -7137,6 +7441,7 @@ gnet_prop_init(void) {
     gnet_property->props[300].desc = _("Date of the latest SVN release.");
     gnet_property->props[300].ev_changed = event_new("latest_svn_release_date_changed");
     gnet_property->props[300].save = TRUE;
+    gnet_property->props[300].internal = FALSE;
     gnet_property->props[300].vector_size = 1;
 	mutex_init(&gnet_property->props[300].lock);
 
@@ -7158,6 +7463,7 @@ gnet_prop_init(void) {
     gnet_property->props[301].desc = _("Revision of the latest SVN release.");
     gnet_property->props[301].ev_changed = event_new("latest_svn_release_revision_changed");
     gnet_property->props[301].save = TRUE;
+    gnet_property->props[301].internal = FALSE;
     gnet_property->props[301].vector_size = 1;
 	mutex_init(&gnet_property->props[301].lock);
 
@@ -7179,6 +7485,7 @@ gnet_prop_init(void) {
     gnet_property->props[302].desc = _("Signature of the latest SVN release notification.");
     gnet_property->props[302].ev_changed = event_new("latest_svn_release_signature_changed");
     gnet_property->props[302].save = TRUE;
+    gnet_property->props[302].internal = FALSE;
     gnet_property->props[302].vector_size = 1;
 	mutex_init(&gnet_property->props[302].lock);
 
@@ -7201,6 +7508,7 @@ gnet_prop_init(void) {
     gnet_property->props[303].desc = _("Maximum number of hosts in the TLS node cache.");
     gnet_property->props[303].ev_changed = event_new("tls_cache_max_hosts_changed");
     gnet_property->props[303].save = TRUE;
+    gnet_property->props[303].internal = FALSE;
     gnet_property->props[303].vector_size = 1;
 	mutex_init(&gnet_property->props[303].lock);
 
@@ -7222,6 +7530,7 @@ gnet_prop_init(void) {
     gnet_property->props[304].desc = _("Maximum time before removing hosts from the TLS cache.");
     gnet_property->props[304].ev_changed = event_new("tls_cache_max_time_changed");
     gnet_property->props[304].save = TRUE;
+    gnet_property->props[304].internal = FALSE;
     gnet_property->props[304].vector_size = 1;
 	mutex_init(&gnet_property->props[304].lock);
 
@@ -7243,6 +7552,7 @@ gnet_prop_init(void) {
     gnet_property->props[305].desc = _("If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. Otherwise, the TTH is only accepted if provided by the user, for example, by a magnet link.");
     gnet_property->props[305].ev_changed = event_new("tth_auto_discovery_changed");
     gnet_property->props[305].save = TRUE;
+    gnet_property->props[305].internal = FALSE;
     gnet_property->props[305].vector_size = 1;
 	mutex_init(&gnet_property->props[305].lock);
 
@@ -7261,6 +7571,7 @@ gnet_prop_init(void) {
     gnet_property->props[306].desc = _("If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, have to exist at all.  The aim is to improve the overall downloading experience.");
     gnet_property->props[306].ev_changed = event_new("enable_hackarounds_changed");
     gnet_property->props[306].save = TRUE;
+    gnet_property->props[306].internal = FALSE;
     gnet_property->props[306].vector_size = 1;
 	mutex_init(&gnet_property->props[306].lock);
 
@@ -7279,6 +7590,7 @@ gnet_prop_init(void) {
     gnet_property->props[307].desc = _("Maximum number of hosts in the G2 node cache.");
     gnet_property->props[307].ev_changed = event_new("g2_cache_max_hosts_changed");
     gnet_property->props[307].save = TRUE;
+    gnet_property->props[307].internal = FALSE;
     gnet_property->props[307].vector_size = 1;
 	mutex_init(&gnet_property->props[307].lock);
 
@@ -7300,6 +7612,7 @@ gnet_prop_init(void) {
     gnet_property->props[308].desc = _("Maximum time before removing hosts from the G2 cache.");
     gnet_property->props[308].ev_changed = event_new("g2_cache_max_time_changed");
     gnet_property->props[308].save = TRUE;
+    gnet_property->props[308].internal = FALSE;
     gnet_property->props[308].vector_size = 1;
 	mutex_init(&gnet_property->props[308].lock);
 
@@ -7321,6 +7634,7 @@ gnet_prop_init(void) {
     gnet_property->props[309].desc = _("Debug level for management of G2-only hosts.");
     gnet_property->props[309].ev_changed = event_new("g2_debug_changed");
     gnet_property->props[309].save = TRUE;
+    gnet_property->props[309].internal = FALSE;
     gnet_property->props[309].vector_size = 1;
 	mutex_init(&gnet_property->props[309].lock);
 
@@ -7342,6 +7656,7 @@ gnet_prop_init(void) {
     gnet_property->props[310].desc = _("Whether GTKG can switch among the several files waiting to be downloaded from a given server, when making a follow-up HTTP request.  Turn it off only if you witness problems with a particular servent you're downloading from.");
     gnet_property->props[310].ev_changed = event_new("dl_resource_switching_changed");
     gnet_property->props[310].save = TRUE;
+    gnet_property->props[310].internal = FALSE;
     gnet_property->props[310].vector_size = 1;
 	mutex_init(&gnet_property->props[310].lock);
 
@@ -7360,6 +7675,7 @@ gnet_prop_init(void) {
     gnet_property->props[311].desc = _("If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not disable unless you know what you are doing.");
     gnet_property->props[311].ev_changed = event_new("parq_enabled_changed");
     gnet_property->props[311].save = TRUE;
+    gnet_property->props[311].internal = FALSE;
     gnet_property->props[311].vector_size = 1;
 	mutex_init(&gnet_property->props[311].lock);
 
@@ -7378,6 +7694,7 @@ gnet_prop_init(void) {
     gnet_property->props[312].desc = _("When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this may make pre-viewing of the file impossible as some file formats make use of a trailer to hold meta-information or seeking indices. GTKG will attempt to download the specified amount of data at the tail of the file as soon as possible.  Set it to 0 to disable any tail-downloading preference.");
     gnet_property->props[312].ev_changed = event_new("pfsp_last_chunk_changed");
     gnet_property->props[312].save = TRUE;
+    gnet_property->props[312].internal = FALSE;
     gnet_property->props[312].vector_size = 1;
 	mutex_init(&gnet_property->props[312].lock);
 
@@ -7399,6 +7716,7 @@ gnet_prop_init(void) {
     gnet_property->props[313].desc = _("Whether GTKG should post-process filenames to remove consecutive '_' in the name, or extra '_' surrounding punctuation for instance, to make the name prettier.");
     gnet_property->props[313].ev_changed = event_new("beautify_filenames_changed");
     gnet_property->props[313].save = TRUE;
+    gnet_property->props[313].internal = FALSE;
     gnet_property->props[313].vector_size = 1;
 	mutex_init(&gnet_property->props[313].lock);
 
@@ -7417,6 +7735,7 @@ gnet_prop_init(void) {
     gnet_property->props[314].desc = _("Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows you to resolve magnet: URIs and to easily locate alternate locations for files and push-proxies for firewalled hosts. It requires UDP support.");
     gnet_property->props[314].ev_changed = event_new("enable_dht_changed");
     gnet_property->props[314].save = TRUE;
+    gnet_property->props[314].internal = FALSE;
     gnet_property->props[314].vector_size = 1;
 	mutex_init(&gnet_property->props[314].lock);
 
@@ -7435,6 +7754,7 @@ gnet_prop_init(void) {
     gnet_property->props[315].desc = _("Debug level for the callout queue.");
     gnet_property->props[315].ev_changed = event_new("cq_debug_changed");
     gnet_property->props[315].save = TRUE;
+    gnet_property->props[315].internal = FALSE;
     gnet_property->props[315].vector_size = 1;
 	mutex_init(&gnet_property->props[315].lock);
 
@@ -7456,6 +7776,7 @@ gnet_prop_init(void) {
     gnet_property->props[316].desc = _("Debug level for DHT node lookups.");
     gnet_property->props[316].ev_changed = event_new("dht_lookup_debug_changed");
     gnet_property->props[316].save = TRUE;
+    gnet_property->props[316].internal = FALSE;
     gnet_property->props[316].vector_size = 1;
 	mutex_init(&gnet_property->props[316].lock);
 
@@ -7477,6 +7798,7 @@ gnet_prop_init(void) {
     gnet_property->props[317].desc = _("Debug level for DHT key/value storage.");
     gnet_property->props[317].ev_changed = event_new("dht_storage_debug_changed");
     gnet_property->props[317].save = TRUE;
+    gnet_property->props[317].internal = FALSE;
     gnet_property->props[317].vector_size = 1;
 	mutex_init(&gnet_property->props[317].lock);
 
@@ -7498,6 +7820,7 @@ gnet_prop_init(void) {
     gnet_property->props[318].desc = _("Debug level for DHT key/value publishing.");
     gnet_property->props[318].ev_changed = event_new("dht_publish_debug_changed");
     gnet_property->props[318].save = TRUE;
+    gnet_property->props[318].internal = FALSE;
     gnet_property->props[318].vector_size = 1;
 	mutex_init(&gnet_property->props[318].lock);
 
@@ -7519,6 +7842,7 @@ gnet_prop_init(void) {
     gnet_property->props[319].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket. Output needs are lower than input (between 3 to 5 times less). The larger the numbers, the more values can be looked up concurrently, but the more bandwidth is used.");
     gnet_property->props[319].ev_changed = event_new("bw_dht_lookup_out_changed");
     gnet_property->props[319].save = TRUE;
+    gnet_property->props[319].internal = FALSE;
     gnet_property->props[319].vector_size = 1;
 	mutex_init(&gnet_property->props[319].lock);
 
@@ -7540,6 +7864,7 @@ gnet_prop_init(void) {
     gnet_property->props[320].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket and cannot therefore be truly controlled.  Input needs are much larger than output as far as lookups are concerned (between 3 to 5 times).  The larger the numbers the more values can be looked up concurrently, but the more bandwidth is used.");
     gnet_property->props[320].ev_changed = event_new("bw_dht_lookup_in_changed");
     gnet_property->props[320].save = TRUE;
+    gnet_property->props[320].internal = FALSE;
     gnet_property->props[320].vector_size = 1;
 	mutex_init(&gnet_property->props[320].lock);
 
@@ -7561,6 +7886,7 @@ gnet_prop_init(void) {
     gnet_property->props[321].desc = _("Whether the GUID should be kept accross sessions. A sticky GUID can be helpful if you are firewalled and share files because the downloaders will be able to contact you again more easily when you come back online.");
     gnet_property->props[321].ev_changed = event_new("sticky_guid_changed");
     gnet_property->props[321].save = TRUE;
+    gnet_property->props[321].internal = FALSE;
     gnet_property->props[321].vector_size = 1;
 	mutex_init(&gnet_property->props[321].lock);
 
@@ -7579,6 +7905,7 @@ gnet_prop_init(void) {
     gnet_property->props[322].desc = _("Whether the KUID should be kept accross sessions. A sticky KUID is helpful for the DHT because it promotes routing table stability and ensures that closest nodes will keep mutual knowledge about each other");
     gnet_property->props[322].ev_changed = event_new("sticky_kuid_changed");
     gnet_property->props[322].save = TRUE;
+    gnet_property->props[322].internal = FALSE;
     gnet_property->props[322].vector_size = 1;
 	mutex_init(&gnet_property->props[322].lock);
 
@@ -7597,6 +7924,7 @@ gnet_prop_init(void) {
     gnet_property->props[323].desc = _("Debug level for the DHT user lookup queue.");
     gnet_property->props[323].ev_changed = event_new("dht_ulq_debug_changed");
     gnet_property->props[323].save = TRUE;
+    gnet_property->props[323].internal = FALSE;
     gnet_property->props[323].vector_size = 1;
 	mutex_init(&gnet_property->props[323].lock);
 
@@ -7618,6 +7946,7 @@ gnet_prop_init(void) {
     gnet_property->props[324].desc = _("If TRUE, DHT storage uses memory instead of diskspace.");
     gnet_property->props[324].ev_changed = event_new("dht_storage_in_memory_changed");
     gnet_property->props[324].save = TRUE;
+    gnet_property->props[324].internal = FALSE;
     gnet_property->props[324].vector_size = 1;
 	mutex_init(&gnet_property->props[324].lock);
 
@@ -7636,6 +7965,7 @@ gnet_prop_init(void) {
     gnet_property->props[325].desc = _("Defines which download HTTP header exchanges should be traced.");
     gnet_property->props[325].ev_changed = event_new("download_trace_changed");
     gnet_property->props[325].save = TRUE;
+    gnet_property->props[325].internal = FALSE;
     gnet_property->props[325].vector_size = 1;
 	mutex_init(&gnet_property->props[325].lock);
 
@@ -7657,6 +7987,7 @@ gnet_prop_init(void) {
     gnet_property->props[326].desc = _("Defines which upload HTTP header exchanges should be traced.");
     gnet_property->props[326].ev_changed = event_new("upload_trace_changed");
     gnet_property->props[326].save = TRUE;
+    gnet_property->props[326].internal = FALSE;
     gnet_property->props[326].vector_size = 1;
 	mutex_init(&gnet_property->props[326].lock);
 
@@ -7678,6 +8009,7 @@ gnet_prop_init(void) {
     gnet_property->props[327].desc = _("Defines which Gnutella header exchanges should be traced.");
     gnet_property->props[327].ev_changed = event_new("gnet_trace_changed");
     gnet_property->props[327].save = TRUE;
+    gnet_property->props[327].internal = FALSE;
     gnet_property->props[327].vector_size = 1;
 	mutex_init(&gnet_property->props[327].lock);
 
@@ -7699,6 +8031,7 @@ gnet_prop_init(void) {
     gnet_property->props[328].desc = _("Defines which push-proxy HTTP header exchanges should be traced.");
     gnet_property->props[328].ev_changed = event_new("push_proxy_trace_changed");
     gnet_property->props[328].save = TRUE;
+    gnet_property->props[328].internal = FALSE;
     gnet_property->props[328].vector_size = 1;
 	mutex_init(&gnet_property->props[328].lock);
 
@@ -7720,6 +8053,7 @@ gnet_prop_init(void) {
     gnet_property->props[329].desc = _("Defines which HTTP header exchanges should be traced, other than downloads, uploads and push-proxy exchanges.");
     gnet_property->props[329].ev_changed = event_new("http_trace_changed");
     gnet_property->props[329].save = TRUE;
+    gnet_property->props[329].internal = FALSE;
     gnet_property->props[329].vector_size = 1;
 	mutex_init(&gnet_property->props[329].lock);
 
@@ -7741,6 +8075,7 @@ gnet_prop_init(void) {
     gnet_property->props[330].desc = _("Debug level for (generic) file verification code.");
     gnet_property->props[330].ev_changed = event_new("verify_debug_changed");
     gnet_property->props[330].save = TRUE;
+    gnet_property->props[330].internal = FALSE;
     gnet_property->props[330].vector_size = 1;
 	mutex_init(&gnet_property->props[330].lock);
 
@@ -7762,6 +8097,7 @@ gnet_prop_init(void) {
     gnet_property->props[331].desc = _("Maximum number of hosts in the local address cache, which remembers the recent IP:port combinations we had.");
     gnet_property->props[331].ev_changed = event_new("local_addr_cache_max_hosts_changed");
     gnet_property->props[331].save = TRUE;
+    gnet_property->props[331].internal = FALSE;
     gnet_property->props[331].vector_size = 1;
 	mutex_init(&gnet_property->props[331].lock);
 
@@ -7783,6 +8119,7 @@ gnet_prop_init(void) {
     gnet_property->props[332].desc = _("Maximum time before removing hosts from the local address cache, which remembers the recent IP:port combinations we had.");
     gnet_property->props[332].ev_changed = event_new("local_addr_cache_max_time_changed");
     gnet_property->props[332].save = TRUE;
+    gnet_property->props[332].internal = FALSE;
     gnet_property->props[332].vector_size = 1;
 	mutex_init(&gnet_property->props[332].lock);
 
@@ -7804,6 +8141,7 @@ gnet_prop_init(void) {
     gnet_property->props[333].desc = _("Debug level for management of local address cache.");
     gnet_property->props[333].ev_changed = event_new("local_addr_debug_changed");
     gnet_property->props[333].save = TRUE;
+    gnet_property->props[333].internal = FALSE;
     gnet_property->props[333].vector_size = 1;
 	mutex_init(&gnet_property->props[333].lock);
 
@@ -7825,6 +8163,7 @@ gnet_prop_init(void) {
     gnet_property->props[334].desc = _("If enabled, all packets enqueued for transmission are dumped to $GTK_GNUTELLA_DIR/packets_tx.dump.");
     gnet_property->props[334].ev_changed = event_new("dump_transmitted_gnutella_packets_changed");
     gnet_property->props[334].save = FALSE;
+    gnet_property->props[334].internal = FALSE;
     gnet_property->props[334].vector_size = 1;
 	mutex_init(&gnet_property->props[334].lock);
 
@@ -7843,6 +8182,7 @@ gnet_prop_init(void) {
     gnet_property->props[335].desc = _("Debug level the TCP message queues");
     gnet_property->props[335].ev_changed = event_new("mq_tcp_debug_changed");
     gnet_property->props[335].save = TRUE;
+    gnet_property->props[335].internal = FALSE;
     gnet_property->props[335].vector_size = 1;
 	mutex_init(&gnet_property->props[335].lock);
 
@@ -7864,6 +8204,7 @@ gnet_prop_init(void) {
     gnet_property->props[336].desc = _("Debug level for the UDP message queue.");
     gnet_property->props[336].ev_changed = event_new("mq_udp_debug_changed");
     gnet_property->props[336].save = TRUE;
+    gnet_property->props[336].internal = FALSE;
     gnet_property->props[336].vector_size = 1;
 	mutex_init(&gnet_property->props[336].lock);
 
@@ -7885,6 +8226,7 @@ gnet_prop_init(void) {
     gnet_property->props[337].desc = _("Maximum size of the UDP message queue (in bytes). Must be at least 150 percent of the maximum message size.");
     gnet_property->props[337].ev_changed = event_new("node_udp_sendqueue_size_changed");
     gnet_property->props[337].save = TRUE;
+    gnet_property->props[337].internal = FALSE;
     gnet_property->props[337].vector_size = 1;
 	mutex_init(&gnet_property->props[337].lock);
 
@@ -7906,6 +8248,7 @@ gnet_prop_init(void) {
     gnet_property->props[338].desc = _("Debug level for the management of the clock accuracy.");
     gnet_property->props[338].ev_changed = event_new("clock_debug_changed");
     gnet_property->props[338].save = TRUE;
+    gnet_property->props[338].internal = FALSE;
     gnet_property->props[338].vector_size = 1;
 	mutex_init(&gnet_property->props[338].lock);
 
@@ -7927,6 +8270,7 @@ gnet_prop_init(void) {
     gnet_property->props[339].desc = _("Debug level for the firewalled status management.");
     gnet_property->props[339].ev_changed = event_new("fw_debug_changed");
     gnet_property->props[339].save = TRUE;
+    gnet_property->props[339].internal = FALSE;
     gnet_property->props[339].vector_size = 1;
 	mutex_init(&gnet_property->props[339].lock);
 
@@ -7948,6 +8292,7 @@ gnet_prop_init(void) {
     gnet_property->props[340].desc = _("Debug level for host management.");
     gnet_property->props[340].ev_changed = event_new("host_debug_changed");
     gnet_property->props[340].save = TRUE;
+    gnet_property->props[340].internal = FALSE;
     gnet_property->props[340].vector_size = 1;
 	mutex_init(&gnet_property->props[340].lock);
 
@@ -7969,6 +8314,7 @@ gnet_prop_init(void) {
     gnet_property->props[341].desc = _("Debug level for DHT root node caching.");
     gnet_property->props[341].ev_changed = event_new("dht_roots_debug_changed");
     gnet_property->props[341].save = TRUE;
+    gnet_property->props[341].internal = FALSE;
     gnet_property->props[341].vector_size = 1;
 	mutex_init(&gnet_property->props[341].lock);
 
@@ -7990,6 +8336,7 @@ gnet_prop_init(void) {
     gnet_property->props[342].desc = _("Logged statistics level for code shared between GUI and core.");
     gnet_property->props[342].ev_changed = event_new("lib_stats_changed");
     gnet_property->props[342].save = TRUE;
+    gnet_property->props[342].internal = FALSE;
     gnet_property->props[342].vector_size = 1;
 	mutex_init(&gnet_property->props[342].lock);
 
@@ -8011,6 +8358,7 @@ gnet_prop_init(void) {
     gnet_property->props[343].desc = _("If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has a 90 percent hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf.");
     gnet_property->props[343].ev_changed = event_new("spam_lut_in_memory_changed");
     gnet_property->props[343].save = TRUE;
+    gnet_property->props[343].internal = FALSE;
     gnet_property->props[343].vector_size = 1;
 	mutex_init(&gnet_property->props[343].lock);
 
@@ -8029,6 +8377,7 @@ gnet_prop_init(void) {
     gnet_property->props[344].desc = _("Debug level for spam detection.");
     gnet_property->props[344].ev_changed = event_new("spam_debug_changed");
     gnet_property->props[344].save = TRUE;
+    gnet_property->props[344].internal = FALSE;
     gnet_property->props[344].vector_size = 1;
 	mutex_init(&gnet_property->props[344].lock);
 
@@ -8050,6 +8399,7 @@ gnet_prop_init(void) {
     gnet_property->props[345].desc = _("Debug level for lockfile management.");
     gnet_property->props[345].ev_changed = event_new("lockfile_debug_changed");
     gnet_property->props[345].save = TRUE;
+    gnet_property->props[345].internal = FALSE;
     gnet_property->props[345].vector_size = 1;
 	mutex_init(&gnet_property->props[345].lock);
 
@@ -8071,6 +8421,7 @@ gnet_prop_init(void) {
     gnet_property->props[346].desc = _("Debug level for the zone-based memory allocator.");
     gnet_property->props[346].ev_changed = event_new("zalloc_debug_changed");
     gnet_property->props[346].save = TRUE;
+    gnet_property->props[346].internal = FALSE;
     gnet_property->props[346].vector_size = 1;
 	mutex_init(&gnet_property->props[346].lock);
 
@@ -8092,6 +8443,7 @@ gnet_prop_init(void) {
     gnet_property->props[347].desc = _("Debug level for the pool-based memory allocator.");
     gnet_property->props[347].ev_changed = event_new("palloc_debug_changed");
     gnet_property->props[347].save = TRUE;
+    gnet_property->props[347].internal = FALSE;
     gnet_property->props[347].vector_size = 1;
 	mutex_init(&gnet_property->props[347].lock);
 
@@ -8113,6 +8465,7 @@ gnet_prop_init(void) {
     gnet_property->props[348].desc = _("Debug level for the RX buffer allocator.");
     gnet_property->props[348].ev_changed = event_new("rxbuf_debug_changed");
     gnet_property->props[348].save = TRUE;
+    gnet_property->props[348].internal = FALSE;
     gnet_property->props[348].vector_size = 1;
 	mutex_init(&gnet_property->props[348].lock);
 
@@ -8134,6 +8487,7 @@ gnet_prop_init(void) {
     gnet_property->props[349].desc = _("Whether the zone-based memory allocator should always keep the zones in garbage-collecting mode, thereby maximizing the chances of being able to quickly reclaim empty zones after an allocation burst. This causes a slight CPU overhead at block free time but the memory footprint will remain much lower. To further minimize the footprint, you can also set spam_lut_in_memory to FALSE.");
     gnet_property->props[349].ev_changed = event_new("zalloc_always_gc_changed");
     gnet_property->props[349].save = TRUE;
+    gnet_property->props[349].internal = FALSE;
     gnet_property->props[349].vector_size = 1;
 	mutex_init(&gnet_property->props[349].lock);
 
@@ -8152,6 +8506,7 @@ gnet_prop_init(void) {
     gnet_property->props[350].desc = _("Debug level for the virtual memory manager.");
     gnet_property->props[350].ev_changed = event_new("vmm_debug_changed");
     gnet_property->props[350].save = TRUE;
+    gnet_property->props[350].internal = FALSE;
     gnet_property->props[350].vector_size = 1;
 	mutex_init(&gnet_property->props[350].lock);
 
@@ -8173,6 +8528,7 @@ gnet_prop_init(void) {
     gnet_property->props[351].desc = _("Debug level for final shutdown.");
     gnet_property->props[351].ev_changed = event_new("shutdown_debug_changed");
     gnet_property->props[351].save = TRUE;
+    gnet_property->props[351].internal = FALSE;
     gnet_property->props[351].vector_size = 1;
 	mutex_init(&gnet_property->props[351].lock);
 
@@ -8194,6 +8550,7 @@ gnet_prop_init(void) {
     gnet_property->props[352].desc = _("Country preferences");
     gnet_property->props[352].ev_changed = event_new("country_limits_changed");
     gnet_property->props[352].save = TRUE;
+    gnet_property->props[352].internal = FALSE;
     gnet_property->props[352].vector_size = 1;
 	mutex_init(&gnet_property->props[352].lock);
 
@@ -8216,6 +8573,7 @@ gnet_prop_init(void) {
     gnet_property->props[353].desc = _("Debug level for country limits.");
     gnet_property->props[353].ev_changed = event_new("ctl_debug_changed");
     gnet_property->props[353].save = TRUE;
+    gnet_property->props[353].internal = FALSE;
     gnet_property->props[353].vector_size = 1;
 	mutex_init(&gnet_property->props[353].lock);
 
@@ -8237,6 +8595,7 @@ gnet_prop_init(void) {
     gnet_property->props[354].desc = _("Whether to log dropped Gnutella messages");
     gnet_property->props[354].ev_changed = event_new("log_dropped_gnutella_changed");
     gnet_property->props[354].save = TRUE;
+    gnet_property->props[354].internal = FALSE;
     gnet_property->props[354].vector_size = 1;
 	mutex_init(&gnet_property->props[354].lock);
 
@@ -8255,6 +8614,7 @@ gnet_prop_init(void) {
     gnet_property->props[355].desc = _("Debug level for whitelist management.");
     gnet_property->props[355].ev_changed = event_new("whitelist_debug_changed");
     gnet_property->props[355].save = TRUE;
+    gnet_property->props[355].internal = FALSE;
     gnet_property->props[355].vector_size = 1;
 	mutex_init(&gnet_property->props[355].lock);
 
@@ -8276,6 +8636,7 @@ gnet_prop_init(void) {
     gnet_property->props[356].desc = _("Debug level for DHT token caching.");
     gnet_property->props[356].ev_changed = event_new("dht_tcache_debug_changed");
     gnet_property->props[356].save = TRUE;
+    gnet_property->props[356].internal = FALSE;
     gnet_property->props[356].vector_size = 1;
 	mutex_init(&gnet_property->props[356].lock);
 
@@ -8297,6 +8658,7 @@ gnet_prop_init(void) {
     gnet_property->props[357].desc = _("Debug level for DHT publishing from Gnutella.");
     gnet_property->props[357].ev_changed = event_new("publisher_debug_changed");
     gnet_property->props[357].save = TRUE;
+    gnet_property->props[357].internal = FALSE;
     gnet_property->props[357].vector_size = 1;
 	mutex_init(&gnet_property->props[357].lock);
 
@@ -8318,6 +8680,7 @@ gnet_prop_init(void) {
     gnet_property->props[358].desc = _("Defines which DHT messages should be traced.");
     gnet_property->props[358].ev_changed = event_new("dht_trace_changed");
     gnet_property->props[358].save = TRUE;
+    gnet_property->props[358].internal = FALSE;
     gnet_property->props[358].vector_size = 1;
 	mutex_init(&gnet_property->props[358].lock);
 
@@ -8339,6 +8702,7 @@ gnet_prop_init(void) {
     gnet_property->props[359].desc = _("Enable bandwidth limitation for outgoing DHT traffic.");
     gnet_property->props[359].ev_changed = event_new("bw_dht_out_enabled_changed");
     gnet_property->props[359].save = TRUE;
+    gnet_property->props[359].internal = FALSE;
     gnet_property->props[359].vector_size = 1;
 	mutex_init(&gnet_property->props[359].lock);
 
@@ -8357,6 +8721,7 @@ gnet_prop_init(void) {
     gnet_property->props[360].desc = _("Bandwidth limit for outgoing DHT traffic in bytes/sec. It is always pooled with the Gnutella UDP queue, regardless of whether bandwidth stealing is enabled, so that UDP queues can flush more quickly.");
     gnet_property->props[360].ev_changed = event_new("bw_dht_out_changed");
     gnet_property->props[360].save = TRUE;
+    gnet_property->props[360].internal = FALSE;
     gnet_property->props[360].vector_size = 1;
 	mutex_init(&gnet_property->props[360].lock);
 
@@ -8378,6 +8743,7 @@ gnet_prop_init(void) {
     gnet_property->props[361].desc = _("Maximum size of the DHT message queue (in bytes).");
     gnet_property->props[361].ev_changed = event_new("node_dht_sendqueue_size_changed");
     gnet_property->props[361].save = TRUE;
+    gnet_property->props[361].internal = FALSE;
     gnet_property->props[361].vector_size = 1;
 	mutex_init(&gnet_property->props[361].lock);
 
@@ -8399,6 +8765,7 @@ gnet_prop_init(void) {
     gnet_property->props[362].desc = _("Debug level for bandwidth scheduler.");
     gnet_property->props[362].ev_changed = event_new("bsched_debug_changed");
     gnet_property->props[362].save = TRUE;
+    gnet_property->props[362].internal = FALSE;
     gnet_property->props[362].vector_size = 1;
 	mutex_init(&gnet_property->props[362].lock);
 
@@ -8420,6 +8787,7 @@ gnet_prop_init(void) {
     gnet_property->props[363].desc = _("Debug level for the DHT stable node recorder.");
     gnet_property->props[363].ev_changed = event_new("dht_stable_debug_changed");
     gnet_property->props[363].save = TRUE;
+    gnet_property->props[363].internal = FALSE;
     gnet_property->props[363].vector_size = 1;
 	mutex_init(&gnet_property->props[363].lock);
 
@@ -8441,6 +8809,7 @@ gnet_prop_init(void) {
     gnet_property->props[364].desc = _("Debug level for the file (re)loading, on change.");
     gnet_property->props[364].ev_changed = event_new("reload_debug_changed");
     gnet_property->props[364].save = TRUE;
+    gnet_property->props[364].internal = FALSE;
     gnet_property->props[364].vector_size = 1;
 	mutex_init(&gnet_property->props[364].lock);
 
@@ -8462,6 +8831,7 @@ gnet_prop_init(void) {
     gnet_property->props[365].desc = _("Debug level for the file moving, accross filesystems.");
     gnet_property->props[365].ev_changed = event_new("move_debug_changed");
     gnet_property->props[365].save = TRUE;
+    gnet_property->props[365].internal = FALSE;
     gnet_property->props[365].vector_size = 1;
 	mutex_init(&gnet_property->props[365].lock);
 
@@ -8483,6 +8853,7 @@ gnet_prop_init(void) {
     gnet_property->props[366].desc = _("Debug level for query hit message generation.");
     gnet_property->props[366].ev_changed = event_new("qhit_debug_changed");
     gnet_property->props[366].save = TRUE;
+    gnet_property->props[366].internal = FALSE;
     gnet_property->props[366].vector_size = 1;
 	mutex_init(&gnet_property->props[366].lock);
 
@@ -8504,6 +8875,7 @@ gnet_prop_init(void) {
     gnet_property->props[367].desc = _("Debug level for version management.");
     gnet_property->props[367].ev_changed = event_new("version_debug_changed");
     gnet_property->props[367].save = TRUE;
+    gnet_property->props[367].internal = FALSE;
     gnet_property->props[367].vector_size = 1;
 	mutex_init(&gnet_property->props[367].lock);
 
@@ -8525,6 +8897,7 @@ gnet_prop_init(void) {
     gnet_property->props[368].desc = _("Minimum CPU frequency, in Hz.");
     gnet_property->props[368].ev_changed = event_new("cpu_freq_min_changed");
     gnet_property->props[368].save = FALSE;
+    gnet_property->props[368].internal = TRUE;
     gnet_property->props[368].vector_size = 1;
 	mutex_init(&gnet_property->props[368].lock);
 
@@ -8546,6 +8919,7 @@ gnet_prop_init(void) {
     gnet_property->props[369].desc = _("Maximum CPU frequency, in Hz.");
     gnet_property->props[369].ev_changed = event_new("cpu_freq_max_changed");
     gnet_property->props[369].save = FALSE;
+    gnet_property->props[369].internal = TRUE;
     gnet_property->props[369].vector_size = 1;
 	mutex_init(&gnet_property->props[369].lock);
 
@@ -8567,6 +8941,7 @@ gnet_prop_init(void) {
     gnet_property->props[370].desc = _("DHT bootstrap status.");
     gnet_property->props[370].ev_changed = event_new("dht_boot_status_changed");
     gnet_property->props[370].save = FALSE;
+    gnet_property->props[370].internal = TRUE;
     gnet_property->props[370].vector_size = 1;
 	mutex_init(&gnet_property->props[370].lock);
 
@@ -8588,6 +8963,7 @@ gnet_prop_init(void) {
     gnet_property->props[371].desc = _("The DHT running mode. An active node will be able to store values and is a fully participating member of the Distributed Hash Table. A passive node can perform lookups and publish but will not store values and cannot be a member of the DHT structure. A firewalled node is necessarily passive, but you can force the passive mode even if you are not firewalled, although that is not recommended because the DHT requires far more active nodes that passive ones to be efficient.");
     gnet_property->props[371].ev_changed = event_new("dht_configured_mode_changed");
     gnet_property->props[371].save = TRUE;
+    gnet_property->props[371].internal = FALSE;
     gnet_property->props[371].vector_size = 1;
 	mutex_init(&gnet_property->props[371].lock);
 
@@ -8609,6 +8985,7 @@ gnet_prop_init(void) {
     gnet_property->props[372].desc = _("Current DHT running mode.");
     gnet_property->props[372].ev_changed = event_new("dht_current_mode_changed");
     gnet_property->props[372].save = FALSE;
+    gnet_property->props[372].internal = TRUE;
     gnet_property->props[372].vector_size = 1;
 	mutex_init(&gnet_property->props[372].lock);
 
@@ -8630,6 +9007,7 @@ gnet_prop_init(void) {
     gnet_property->props[373].desc = _("Debug level for the one-time memory allocator.");
     gnet_property->props[373].ev_changed = event_new("omalloc_debug_changed");
     gnet_property->props[373].save = TRUE;
+    gnet_property->props[373].internal = FALSE;
     gnet_property->props[373].vector_size = 1;
 	mutex_init(&gnet_property->props[373].lock);
 
@@ -8651,6 +9029,7 @@ gnet_prop_init(void) {
     gnet_property->props[374].desc = _("Debug level for the host cache.");
     gnet_property->props[374].ev_changed = event_new("hcache_debug_changed");
     gnet_property->props[374].save = TRUE;
+    gnet_property->props[374].internal = FALSE;
     gnet_property->props[374].vector_size = 1;
 	mutex_init(&gnet_property->props[374].lock);
 
@@ -8672,6 +9051,7 @@ gnet_prop_init(void) {
     gnet_property->props[375].desc = _("Random bits.");
     gnet_property->props[375].ev_changed = event_new("randomness_changed");
     gnet_property->props[375].save = TRUE;
+    gnet_property->props[375].internal = FALSE;
     gnet_property->props[375].vector_size = KUID_RAW_SIZE;
 	mutex_init(&gnet_property->props[375].lock);
 
@@ -8689,6 +9069,7 @@ gnet_prop_init(void) {
     gnet_property->props[376].desc = _("Average servent downtime.");
     gnet_property->props[376].ev_changed = event_new("average_servent_downtime_changed");
     gnet_property->props[376].save = TRUE;
+    gnet_property->props[376].internal = FALSE;
     gnet_property->props[376].vector_size = 1;
 	mutex_init(&gnet_property->props[376].lock);
 
@@ -8710,6 +9091,7 @@ gnet_prop_init(void) {
     gnet_property->props[377].desc = _("Time when last shutdown occurred.");
     gnet_property->props[377].ev_changed = event_new("shutdown_time_changed");
     gnet_property->props[377].save = TRUE;
+    gnet_property->props[377].internal = FALSE;
     gnet_property->props[377].vector_size = 1;
 	mutex_init(&gnet_property->props[377].lock);
 
@@ -8731,6 +9113,7 @@ gnet_prop_init(void) {
     gnet_property->props[378].desc = _("Debug level for alive pings.");
     gnet_property->props[378].ev_changed = event_new("alive_debug_changed");
     gnet_property->props[378].save = TRUE;
+    gnet_property->props[378].internal = FALSE;
     gnet_property->props[378].vector_size = 1;
 	mutex_init(&gnet_property->props[378].lock);
 
@@ -8752,6 +9135,7 @@ gnet_prop_init(void) {
     gnet_property->props[379].desc = _("Debug level for the versatile XML layer.");
     gnet_property->props[379].ev_changed = event_new("vxml_debug_changed");
     gnet_property->props[379].save = TRUE;
+    gnet_property->props[379].internal = FALSE;
     gnet_property->props[379].vector_size = 1;
 	mutex_init(&gnet_property->props[379].lock);
 
@@ -8773,6 +9157,7 @@ gnet_prop_init(void) {
     gnet_property->props[380].desc = _("Debug level for the UPnP layer.");
     gnet_property->props[380].ev_changed = event_new("upnp_debug_changed");
     gnet_property->props[380].save = TRUE;
+    gnet_property->props[380].internal = FALSE;
     gnet_property->props[380].vector_size = 1;
 	mutex_init(&gnet_property->props[380].lock);
 
@@ -8794,6 +9179,7 @@ gnet_prop_init(void) {
     gnet_property->props[381].desc = _("Debug level for the SOAP layer.");
     gnet_property->props[381].ev_changed = event_new("soap_debug_changed");
     gnet_property->props[381].save = TRUE;
+    gnet_property->props[381].internal = FALSE;
     gnet_property->props[381].vector_size = 1;
 	mutex_init(&gnet_property->props[381].lock);
 
@@ -8815,6 +9201,7 @@ gnet_prop_init(void) {
     gnet_property->props[382].desc = _("Defines SOAP exchanges tracing type.");
     gnet_property->props[382].ev_changed = event_new("soap_trace_changed");
     gnet_property->props[382].save = TRUE;
+    gnet_property->props[382].internal = FALSE;
     gnet_property->props[382].vector_size = 1;
 	mutex_init(&gnet_property->props[382].lock);
 
@@ -8836,6 +9223,7 @@ gnet_prop_init(void) {
     gnet_property->props[383].desc = _("For testing purposes, allow to run as an ultranode even if the node cannot accept incoming TCP connections.");
     gnet_property->props[383].ev_changed = event_new("allow_firewalled_ultra_changed");
     gnet_property->props[383].save = TRUE;
+    gnet_property->props[383].internal = FALSE;
     gnet_property->props[383].vector_size = 1;
 	mutex_init(&gnet_property->props[383].lock);
 
@@ -8854,6 +9242,7 @@ gnet_prop_init(void) {
     gnet_property->props[384].desc = _("Whether UPnP (Universal Plug and Play) should be enabled. Support for UPnP means gtk-gnutella will be able to discover your Internet Gateway Device (router) and request that the listening port be opened and redirected to your machine, thereby auto-configuring to make sure you are not firewalled.  By default you should leave it enabled unless you know how to configure your network equipment manually to prevent the firewalled condition for both TCP and UDP.");
     gnet_property->props[384].ev_changed = event_new("enable_upnp_changed");
     gnet_property->props[384].save = TRUE;
+    gnet_property->props[384].internal = FALSE;
     gnet_property->props[384].vector_size = 1;
 	mutex_init(&gnet_property->props[384].lock);
 
@@ -8872,6 +9261,7 @@ gnet_prop_init(void) {
     gnet_property->props[385].desc = _("Whether gtk-gnutella was able to locate an Internet Gateway Device to install port mappings, if required.");
     gnet_property->props[385].ev_changed = event_new("upnp_possible_changed");
     gnet_property->props[385].save = FALSE;
+    gnet_property->props[385].internal = TRUE;
     gnet_property->props[385].vector_size = 1;
 	mutex_init(&gnet_property->props[385].lock);
 
@@ -8890,6 +9280,7 @@ gnet_prop_init(void) {
     gnet_property->props[386].desc = _("Whether gtk-gnutella thinks it needs to install port mappings on your network router to avoid the firewalled condition.");
     gnet_property->props[386].ev_changed = event_new("port_mapping_required_changed");
     gnet_property->props[386].save = TRUE;
+    gnet_property->props[386].internal = TRUE;
     gnet_property->props[386].vector_size = 1;
 	mutex_init(&gnet_property->props[386].lock);
 
@@ -8908,6 +9299,7 @@ gnet_prop_init(void) {
     gnet_property->props[387].desc = _("Whether gtk-gnutella can install port mappings, if needed.");
     gnet_property->props[387].ev_changed = event_new("port_mapping_possible_changed");
     gnet_property->props[387].save = FALSE;
+    gnet_property->props[387].internal = TRUE;
     gnet_property->props[387].vector_size = 1;
 	mutex_init(&gnet_property->props[387].lock);
 
@@ -8926,6 +9318,7 @@ gnet_prop_init(void) {
     gnet_property->props[388].desc = _("Debug level for the NAT-PMP layer.");
     gnet_property->props[388].ev_changed = event_new("natpmp_debug_changed");
     gnet_property->props[388].save = TRUE;
+    gnet_property->props[388].internal = FALSE;
     gnet_property->props[388].vector_size = 1;
 	mutex_init(&gnet_property->props[388].lock);
 
@@ -8947,6 +9340,7 @@ gnet_prop_init(void) {
     gnet_property->props[389].desc = _("Whether NAT-PMP (NAT Port Mapping Protocol) should be enabled. Support for NAT-PMP means gtk-gnutella will be able to look whether your default gateway (router) supports the Port Mapping Protocol to allow transparent redirection of the external ports on the router to the local machine, thereby making sure you are not firewalled. By default you should leave it enabled unless you know how to configure your network equipment manually to prevent the firewalled condition for both TCP and UDP.");
     gnet_property->props[389].ev_changed = event_new("enable_natpmp_changed");
     gnet_property->props[389].save = TRUE;
+    gnet_property->props[389].internal = FALSE;
     gnet_property->props[389].vector_size = 1;
 	mutex_init(&gnet_property->props[389].lock);
 
@@ -8965,6 +9359,7 @@ gnet_prop_init(void) {
     gnet_property->props[390].desc = _("Whether gtk-gnutella was able to locate a NAT-PMP gateway to install port mappings, if required.");
     gnet_property->props[390].ev_changed = event_new("natpmp_possible_changed");
     gnet_property->props[390].save = FALSE;
+    gnet_property->props[390].internal = TRUE;
     gnet_property->props[390].vector_size = 1;
 	mutex_init(&gnet_property->props[390].lock);
 
@@ -8983,6 +9378,7 @@ gnet_prop_init(void) {
     gnet_property->props[391].desc = _("Debug level for the TX (transmit) network layer.");
     gnet_property->props[391].ev_changed = event_new("tx_debug_changed");
     gnet_property->props[391].save = TRUE;
+    gnet_property->props[391].internal = FALSE;
     gnet_property->props[391].vector_size = 1;
 	mutex_init(&gnet_property->props[391].lock);
 
@@ -9004,6 +9400,7 @@ gnet_prop_init(void) {
     gnet_property->props[392].desc = _("Debug level for the RX (receive) network layer.");
     gnet_property->props[392].ev_changed = event_new("rx_debug_changed");
     gnet_property->props[392].save = TRUE;
+    gnet_property->props[392].internal = FALSE;
     gnet_property->props[392].vector_size = 1;
 	mutex_init(&gnet_property->props[392].lock);
 
@@ -9025,6 +9422,7 @@ gnet_prop_init(void) {
     gnet_property->props[393].desc = _("Debug level for the I/O input event layer.");
     gnet_property->props[393].ev_changed = event_new("inputevt_debug_changed");
     gnet_property->props[393].save = TRUE;
+    gnet_property->props[393].internal = FALSE;
     gnet_property->props[393].vector_size = 1;
 	mutex_init(&gnet_property->props[393].lock);
 
@@ -9046,6 +9444,7 @@ gnet_prop_init(void) {
     gnet_property->props[394].desc = _("Debug level for the background task scheduler.");
     gnet_property->props[394].ev_changed = event_new("bg_debug_changed");
     gnet_property->props[394].save = TRUE;
+    gnet_property->props[394].internal = FALSE;
     gnet_property->props[394].vector_size = 1;
 	mutex_init(&gnet_property->props[394].lock);
 
@@ -9067,6 +9466,7 @@ gnet_prop_init(void) {
     gnet_property->props[395].desc = _("Whether gtk-gnutella was able to configure port mappings.");
     gnet_property->props[395].ev_changed = event_new("port_mapping_successful_changed");
     gnet_property->props[395].save = FALSE;
+    gnet_property->props[395].internal = TRUE;
     gnet_property->props[395].vector_size = 1;
 	mutex_init(&gnet_property->props[395].lock);
 
@@ -9085,6 +9485,7 @@ gnet_prop_init(void) {
     gnet_property->props[396].desc = _("Whether gtk-gnutella disabled HTTP bandwidth stealing.");
     gnet_property->props[396].ev_changed = event_new("uploads_bw_no_stealing_changed");
     gnet_property->props[396].save = FALSE;
+    gnet_property->props[396].internal = TRUE;
     gnet_property->props[396].vector_size = 1;
 	mutex_init(&gnet_property->props[396].lock);
 
@@ -9103,6 +9504,7 @@ gnet_prop_init(void) {
     gnet_property->props[397].desc = _("Whether gtk-gnutella ignores HTTP stolen bandwidth.");
     gnet_property->props[397].ev_changed = event_new("uploads_bw_ignore_stolen_changed");
     gnet_property->props[397].save = FALSE;
+    gnet_property->props[397].internal = TRUE;
     gnet_property->props[397].vector_size = 1;
 	mutex_init(&gnet_property->props[397].lock);
 
@@ -9121,6 +9523,7 @@ gnet_prop_init(void) {
     gnet_property->props[398].desc = _("Whether gtk-gnutella enforces uniform HTTP outgoing bandwidth.");
     gnet_property->props[398].ev_changed = event_new("uploads_bw_uniform_changed");
     gnet_property->props[398].save = FALSE;
+    gnet_property->props[398].internal = TRUE;
     gnet_property->props[398].vector_size = 1;
 	mutex_init(&gnet_property->props[398].lock);
 
@@ -9139,6 +9542,7 @@ gnet_prop_init(void) {
     gnet_property->props[399].desc = _("Whether gtk-gnutella should use HTTP request pipelining when possible, in order to decrease downloading latency.");
     gnet_property->props[399].ev_changed = event_new("enable_http_pipelining_changed");
     gnet_property->props[399].save = TRUE;
+    gnet_property->props[399].internal = FALSE;
     gnet_property->props[399].vector_size = 1;
 	mutex_init(&gnet_property->props[399].lock);
 
@@ -9157,6 +9561,7 @@ gnet_prop_init(void) {
     gnet_property->props[400].desc = _("Maximum chunk size when swarming with HTTP pipelining.");
     gnet_property->props[400].ev_changed = event_new("dl_pipeline_maxchunksize_changed");
     gnet_property->props[400].save = TRUE;
+    gnet_property->props[400].internal = FALSE;
     gnet_property->props[400].vector_size = 1;
 	mutex_init(&gnet_property->props[400].lock);
 
@@ -9178,6 +9583,7 @@ gnet_prop_init(void) {
     gnet_property->props[401].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) should be enabled.  With GUESS enabled, gtk-gnutella offers the network the ability to perform iterative Ultrapeer queries instead of just broadcasting, allowing searches to more places within the Gnutella network.  If you want gtk-gnutella to issue GUESS queries, you need to make sure the client-side is enabled as well as this setting only governs mostly the server-side of GUESS (required to allow the client-side).");
     gnet_property->props[401].ev_changed = event_new("enable_guess_changed");
     gnet_property->props[401].save = TRUE;
+    gnet_property->props[401].internal = FALSE;
     gnet_property->props[401].vector_size = 1;
 	mutex_init(&gnet_property->props[401].lock);
 
@@ -9196,6 +9602,7 @@ gnet_prop_init(void) {
     gnet_property->props[402].desc = _("Debug level for server-side GUESS (Gnutella UDP Extension for Scalable Searches).");
     gnet_property->props[402].ev_changed = event_new("guess_server_debug_changed");
     gnet_property->props[402].save = TRUE;
+    gnet_property->props[402].internal = FALSE;
     gnet_property->props[402].vector_size = 1;
 	mutex_init(&gnet_property->props[402].lock);
 
@@ -9217,6 +9624,7 @@ gnet_prop_init(void) {
     gnet_property->props[403].desc = _("Debug level for client-side GUESS (Gnutella UDP Extension for Scalable Searches).");
     gnet_property->props[403].ev_changed = event_new("guess_client_debug_changed");
     gnet_property->props[403].save = TRUE;
+    gnet_property->props[403].internal = FALSE;
     gnet_property->props[403].vector_size = 1;
 	mutex_init(&gnet_property->props[403].lock);
 
@@ -9238,6 +9646,7 @@ gnet_prop_init(void) {
     gnet_property->props[404].desc = _("Maximum number of IPv4 hosts in the regular GUESS cache.");
     gnet_property->props[404].ev_changed = event_new("max_guess_hosts_cached_changed");
     gnet_property->props[404].save = TRUE;
+    gnet_property->props[404].internal = FALSE;
     gnet_property->props[404].vector_size = 1;
 	mutex_init(&gnet_property->props[404].lock);
 
@@ -9259,6 +9668,7 @@ gnet_prop_init(void) {
     gnet_property->props[405].desc = _("Current number of IPv4 hosts in the regular GUESS cache.");
     gnet_property->props[405].ev_changed = event_new("hosts_in_guess_catcher_changed");
     gnet_property->props[405].save = FALSE;
+    gnet_property->props[405].internal = TRUE;
     gnet_property->props[405].vector_size = 1;
 	mutex_init(&gnet_property->props[405].lock);
 
@@ -9280,6 +9690,7 @@ gnet_prop_init(void) {
     gnet_property->props[406].desc = _("Maximum number of IPv4 hosts in the introduction GUESS cache.");
     gnet_property->props[406].ev_changed = event_new("max_guess_intro_hosts_cached_changed");
     gnet_property->props[406].save = TRUE;
+    gnet_property->props[406].internal = FALSE;
     gnet_property->props[406].vector_size = 1;
 	mutex_init(&gnet_property->props[406].lock);
 
@@ -9301,6 +9712,7 @@ gnet_prop_init(void) {
     gnet_property->props[407].desc = _("Current number of IPv4 hosts in the introduction GUESS cache.");
     gnet_property->props[407].ev_changed = event_new("hosts_in_guess_intro_catcher_changed");
     gnet_property->props[407].save = FALSE;
+    gnet_property->props[407].internal = TRUE;
     gnet_property->props[407].vector_size = 1;
 	mutex_init(&gnet_property->props[407].lock);
 
@@ -9322,6 +9734,7 @@ gnet_prop_init(void) {
     gnet_property->props[408].desc = _("Debug level for the DB disk/RAM storage layer.");
     gnet_property->props[408].ev_changed = event_new("dbstore_debug_changed");
     gnet_property->props[408].save = TRUE;
+    gnet_property->props[408].internal = FALSE;
     gnet_property->props[408].vector_size = 1;
 	mutex_init(&gnet_property->props[408].lock);
 
@@ -9343,6 +9756,7 @@ gnet_prop_init(void) {
     gnet_property->props[409].desc = _("The current Session ID.  This is a unique ID generated each time gtk-gnutella starts and it can be monitored from the shell interface to check whether gtk-gnutella has been restarted since the last check.");
     gnet_property->props[409].ev_changed = event_new("session_id_changed");
     gnet_property->props[409].save = FALSE;
+    gnet_property->props[409].internal = TRUE;
     gnet_property->props[409].vector_size = GUID_RAW_SIZE;
 	mutex_init(&gnet_property->props[409].lock);
 
@@ -9360,6 +9774,7 @@ gnet_prop_init(void) {
     gnet_property->props[410].desc = _("Whether gtk-gnutella should serve partial files which are rare on the network to increase their spreading rate.  It is good for the health of the network to always leave this enabled. This setting supersedes the disabling of global partial file sharing for rare files only.");
     gnet_property->props[410].ev_changed = event_new("pfsp_rare_server_changed");
     gnet_property->props[410].save = TRUE;
+    gnet_property->props[410].internal = FALSE;
     gnet_property->props[410].vector_size = 1;
 	mutex_init(&gnet_property->props[410].lock);
 
@@ -9378,6 +9793,7 @@ gnet_prop_init(void) {
     gnet_property->props[411].desc = _("Whether the Gnutella UDP Extension for Scalable Searches (GUESS) client side should be enabled, so that gtk-gnutella can indeed issue iterative Ultrapeer queries instead of just broadcasting them. If enabled, it requires general GUESS support enabled as well or it will simply be ignored.");
     gnet_property->props[411].ev_changed = event_new("enable_guess_client_changed");
     gnet_property->props[411].save = TRUE;
+    gnet_property->props[411].internal = FALSE;
     gnet_property->props[411].vector_size = 1;
 	mutex_init(&gnet_property->props[411].lock);
 
@@ -9396,6 +9812,7 @@ gnet_prop_init(void) {
     gnet_property->props[412].desc = _("Bandwidth hint for GUESS querying, in bytes/sec, limiting the amount of concurrency that can be used for GUESS.  Lower numbers mean slower querying overall");
     gnet_property->props[412].ev_changed = event_new("bw_guess_out_changed");
     gnet_property->props[412].save = TRUE;
+    gnet_property->props[412].internal = FALSE;
     gnet_property->props[412].vector_size = 1;
 	mutex_init(&gnet_property->props[412].lock);
 
@@ -9417,6 +9834,7 @@ gnet_prop_init(void) {
     gnet_property->props[413].desc = _("Debug level for the matching code.");
     gnet_property->props[413].ev_changed = event_new("matching_debug_changed");
     gnet_property->props[413].save = TRUE;
+    gnet_property->props[413].internal = FALSE;
     gnet_property->props[413].vector_size = 1;
 	mutex_init(&gnet_property->props[413].lock);
 
@@ -9438,6 +9856,7 @@ gnet_prop_init(void) {
     gnet_property->props[414].desc = _("Debug level for the time synchronization code.");
     gnet_property->props[414].ev_changed = event_new("tsync_debug_changed");
     gnet_property->props[414].save = TRUE;
+    gnet_property->props[414].internal = FALSE;
     gnet_property->props[414].vector_size = 1;
 	mutex_init(&gnet_property->props[414].lock);
 
@@ -9459,6 +9878,7 @@ gnet_prop_init(void) {
     gnet_property->props[415].desc = _("Whether queries can request partial results hits, i.e. files which are incompletely available on remote hosts.");
     gnet_property->props[415].ev_changed = event_new("query_request_partials_changed");
     gnet_property->props[415].save = TRUE;
+    gnet_property->props[415].internal = FALSE;
     gnet_property->props[415].vector_size = 1;
 	mutex_init(&gnet_property->props[415].lock);
 
@@ -9477,6 +9897,7 @@ gnet_prop_init(void) {
     gnet_property->props[416].desc = _("Whether queries for partial files should be answered to.When Partial File Sharing is disabled this setting is of course ignored and no partial results are returned.");
     gnet_property->props[416].ev_changed = event_new("query_answer_partials_changed");
     gnet_property->props[416].save = TRUE;
+    gnet_property->props[416].internal = FALSE;
     gnet_property->props[416].vector_size = 1;
 	mutex_init(&gnet_property->props[416].lock);
 
@@ -9495,6 +9916,7 @@ gnet_prop_init(void) {
     gnet_property->props[417].desc = _("Whether what's-new? queries should be answered to.");
     gnet_property->props[417].ev_changed = event_new("query_answer_whats_new_changed");
     gnet_property->props[417].save = TRUE;
+    gnet_property->props[417].internal = FALSE;
     gnet_property->props[417].vector_size = 1;
 	mutex_init(&gnet_property->props[417].lock);
 
@@ -9513,6 +9935,7 @@ gnet_prop_init(void) {
     gnet_property->props[418].desc = _("When set, gtk-gnutella will automatically stop opened searches from which all the requested downloads have been completed, regardless of the initially configured expiration time.");
     gnet_property->props[418].ev_changed = event_new("search_smart_stop_changed");
     gnet_property->props[418].save = TRUE;
+    gnet_property->props[418].internal = FALSE;
     gnet_property->props[418].vector_size = 1;
 	mutex_init(&gnet_property->props[418].lock);
 
@@ -9531,6 +9954,7 @@ gnet_prop_init(void) {
     gnet_property->props[419].desc = _("Maximum number of results to show in a What's New? request.");
     gnet_property->props[419].ev_changed = event_new("whats_new_search_max_results_changed");
     gnet_property->props[419].save = TRUE;
+    gnet_property->props[419].internal = FALSE;
     gnet_property->props[419].vector_size = 1;
 	mutex_init(&gnet_property->props[419].lock);
 
@@ -9552,6 +9976,7 @@ gnet_prop_init(void) {
     gnet_property->props[420].desc = _("Maximum number of results to show in a passive search request.");
     gnet_property->props[420].ev_changed = event_new("passive_search_max_results_changed");
     gnet_property->props[420].save = TRUE;
+    gnet_property->props[420].internal = FALSE;
     gnet_property->props[420].vector_size = 1;
 	mutex_init(&gnet_property->props[420].lock);
 
@@ -9573,6 +9998,7 @@ gnet_prop_init(void) {
     gnet_property->props[421].desc = _("Whether to log duplicate Gnutella messages from same node.");
     gnet_property->props[421].ev_changed = event_new("log_dup_gnutella_same_node_changed");
     gnet_property->props[421].save = TRUE;
+    gnet_property->props[421].internal = FALSE;
     gnet_property->props[421].vector_size = 1;
 	mutex_init(&gnet_property->props[421].lock);
 
@@ -9591,6 +10017,7 @@ gnet_prop_init(void) {
     gnet_property->props[422].desc = _("Whether to log duplicate Gnutella messages with a higher TTL.");
     gnet_property->props[422].ev_changed = event_new("log_dup_gnutella_higher_ttl_changed");
     gnet_property->props[422].save = TRUE;
+    gnet_property->props[422].internal = FALSE;
     gnet_property->props[422].vector_size = 1;
 	mutex_init(&gnet_property->props[422].lock);
 
@@ -9609,6 +10036,7 @@ gnet_prop_init(void) {
     gnet_property->props[423].desc = _("Whether to log duplicate Gnutella messages (not from same node).");
     gnet_property->props[423].ev_changed = event_new("log_dup_gnutella_other_node_changed");
     gnet_property->props[423].save = TRUE;
+    gnet_property->props[423].internal = FALSE;
     gnet_property->props[423].vector_size = 1;
 	mutex_init(&gnet_property->props[423].lock);
 
@@ -9627,6 +10055,7 @@ gnet_prop_init(void) {
     gnet_property->props[424].desc = _("Whether to log new Gnutella messages, never seen before.");
     gnet_property->props[424].ev_changed = event_new("log_new_gnutella_changed");
     gnet_property->props[424].save = TRUE;
+    gnet_property->props[424].internal = FALSE;
     gnet_property->props[424].vector_size = 1;
 	mutex_init(&gnet_property->props[424].lock);
 
@@ -9645,6 +10074,7 @@ gnet_prop_init(void) {
     gnet_property->props[425].desc = _("Whether to log Gnutella routing decisions.");
     gnet_property->props[425].ev_changed = event_new("log_gnutella_routing_changed");
     gnet_property->props[425].save = TRUE;
+    gnet_property->props[425].internal = FALSE;
     gnet_property->props[425].vector_size = 1;
 	mutex_init(&gnet_property->props[425].lock);
 
@@ -9663,6 +10093,7 @@ gnet_prop_init(void) {
     gnet_property->props[426].desc = _("Whether to log bad Gnutella messages, corrupted or unexpected.");
     gnet_property->props[426].ev_changed = event_new("log_bad_gnutella_changed");
     gnet_property->props[426].save = TRUE;
+    gnet_property->props[426].internal = FALSE;
     gnet_property->props[426].vector_size = 1;
 	mutex_init(&gnet_property->props[426].lock);
 
@@ -9681,6 +10112,7 @@ gnet_prop_init(void) {
     gnet_property->props[427].desc = _("Whether to log conditions triggering query hit spam flagging.");
     gnet_property->props[427].ev_changed = event_new("log_spam_query_hit_changed");
     gnet_property->props[427].save = TRUE;
+    gnet_property->props[427].internal = FALSE;
     gnet_property->props[427].vector_size = 1;
 	mutex_init(&gnet_property->props[427].lock);
 
@@ -9699,6 +10131,7 @@ gnet_prop_init(void) {
     gnet_property->props[428].desc = _("Maximum number of IPv6 hosts in the ultra node cache.");
     gnet_property->props[428].ev_changed = event_new("max_ultra6_hosts_cached_changed");
     gnet_property->props[428].save = TRUE;
+    gnet_property->props[428].internal = FALSE;
     gnet_property->props[428].vector_size = 1;
 	mutex_init(&gnet_property->props[428].lock);
 
@@ -9720,6 +10153,7 @@ gnet_prop_init(void) {
     gnet_property->props[429].desc = _("Current number of IPv6 hosts in ultra node caches.");
     gnet_property->props[429].ev_changed = event_new("hosts_in_ultra6_catcher_changed");
     gnet_property->props[429].save = FALSE;
+    gnet_property->props[429].internal = TRUE;
     gnet_property->props[429].vector_size = 1;
 	mutex_init(&gnet_property->props[429].lock);
 
@@ -9741,6 +10175,7 @@ gnet_prop_init(void) {
     gnet_property->props[430].desc = _("Current number of IPv6 hosts in the regular GUESS cache.");
     gnet_property->props[430].ev_changed = event_new("hosts_in_guess6_catcher_changed");
     gnet_property->props[430].save = FALSE;
+    gnet_property->props[430].internal = TRUE;
     gnet_property->props[430].vector_size = 1;
 	mutex_init(&gnet_property->props[430].lock);
 
@@ -9762,6 +10197,7 @@ gnet_prop_init(void) {
     gnet_property->props[431].desc = _("Current number of IPv6 hosts in the introduction GUESS cache.");
     gnet_property->props[431].ev_changed = event_new("hosts_in_guess6_intro_catcher_changed");
     gnet_property->props[431].save = FALSE;
+    gnet_property->props[431].internal = TRUE;
     gnet_property->props[431].vector_size = 1;
 	mutex_init(&gnet_property->props[431].lock);
 
@@ -9783,6 +10219,7 @@ gnet_prop_init(void) {
     gnet_property->props[432].desc = _("Maximum number of IPv6 hosts in the regular GUESS cache.");
     gnet_property->props[432].ev_changed = event_new("max_guess6_hosts_cached_changed");
     gnet_property->props[432].save = TRUE;
+    gnet_property->props[432].internal = FALSE;
     gnet_property->props[432].vector_size = 1;
 	mutex_init(&gnet_property->props[432].lock);
 
@@ -9804,6 +10241,7 @@ gnet_prop_init(void) {
     gnet_property->props[433].desc = _("Maximum number of IPv6 hosts in the introduction GUESS cache.");
     gnet_property->props[433].ev_changed = event_new("max_guess6_intro_hosts_cached_changed");
     gnet_property->props[433].save = TRUE;
+    gnet_property->props[433].internal = FALSE;
     gnet_property->props[433].vector_size = 1;
 	mutex_init(&gnet_property->props[433].lock);
 
@@ -9825,6 +10263,7 @@ gnet_prop_init(void) {
     gnet_property->props[434].desc = _("Debug level for the malloc() replacement allocator.");
     gnet_property->props[434].ev_changed = event_new("xmalloc_debug_changed");
     gnet_property->props[434].save = TRUE;
+    gnet_property->props[434].internal = FALSE;
     gnet_property->props[434].vector_size = 1;
 	mutex_init(&gnet_property->props[434].lock);
 
@@ -9846,6 +10285,7 @@ gnet_prop_init(void) {
     gnet_property->props[435].desc = _("Debug level for bad query hit messages.");
     gnet_property->props[435].ev_changed = event_new("qhit_bad_debug_changed");
     gnet_property->props[435].save = TRUE;
+    gnet_property->props[435].internal = FALSE;
     gnet_property->props[435].vector_size = 1;
 	mutex_init(&gnet_property->props[435].lock);
 
@@ -9867,6 +10307,7 @@ gnet_prop_init(void) {
     gnet_property->props[436].desc = _("Debug level for GUID management.");
     gnet_property->props[436].ev_changed = event_new("guid_debug_changed");
     gnet_property->props[436].save = TRUE;
+    gnet_property->props[436].internal = FALSE;
     gnet_property->props[436].vector_size = 1;
 	mutex_init(&gnet_property->props[436].lock);
 
@@ -9888,6 +10329,7 @@ gnet_prop_init(void) {
     gnet_property->props[437].desc = _("Debug level for the TX (transmit) deflating network layer.");
     gnet_property->props[437].ev_changed = event_new("tx_deflate_debug_changed");
     gnet_property->props[437].save = TRUE;
+    gnet_property->props[437].internal = FALSE;
     gnet_property->props[437].vector_size = 1;
 	mutex_init(&gnet_property->props[437].lock);
 
@@ -9909,6 +10351,7 @@ gnet_prop_init(void) {
     gnet_property->props[438].desc = _("Comma-separated list of TX debugging hosts (IP addresses only)");
     gnet_property->props[438].ev_changed = event_new("tx_debug_addrs_changed");
     gnet_property->props[438].save = TRUE;
+    gnet_property->props[438].internal = FALSE;
     gnet_property->props[438].vector_size = 1;
 	mutex_init(&gnet_property->props[438].lock);
 
@@ -9931,6 +10374,7 @@ gnet_prop_init(void) {
     gnet_property->props[439].desc = _("Comma-separated list of hosts for whom we want to dump RX traffic (IP addresses only)");
     gnet_property->props[439].ev_changed = event_new("dump_rx_addrs_changed");
     gnet_property->props[439].save = TRUE;
+    gnet_property->props[439].internal = FALSE;
     gnet_property->props[439].vector_size = 1;
 	mutex_init(&gnet_property->props[439].lock);
 
@@ -9953,6 +10397,7 @@ gnet_prop_init(void) {
     gnet_property->props[440].desc = _("Comma-separated list of hosts for whom we want to dump TX traffic  they emit (IP addresses only)");
     gnet_property->props[440].ev_changed = event_new("dump_tx_from_addrs_changed");
     gnet_property->props[440].save = TRUE;
+    gnet_property->props[440].internal = FALSE;
     gnet_property->props[440].vector_size = 1;
 	mutex_init(&gnet_property->props[440].lock);
 
@@ -9975,6 +10420,7 @@ gnet_prop_init(void) {
     gnet_property->props[441].desc = _("Comma-separated list of hosts for whom we want to dump TX traffic they receive (IP addresses only)");
     gnet_property->props[441].ev_changed = event_new("dump_tx_to_addrs_changed");
     gnet_property->props[441].save = TRUE;
+    gnet_property->props[441].internal = FALSE;
     gnet_property->props[441].vector_size = 1;
 	mutex_init(&gnet_property->props[441].lock);
 
@@ -9997,6 +10443,7 @@ gnet_prop_init(void) {
     gnet_property->props[442].desc = _("Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint will be used.  When running as a leaf this should be set to TRUE to make GUESS queries run faster.");
     gnet_property->props[442].ev_changed = event_new("guess_maximize_bw_changed");
     gnet_property->props[442].save = TRUE;
+    gnet_property->props[442].internal = FALSE;
     gnet_property->props[442].vector_size = 1;
 	mutex_init(&gnet_property->props[442].lock);
 
@@ -10015,6 +10462,7 @@ gnet_prop_init(void) {
     gnet_property->props[443].desc = _("Debug level for the UDP TX scheduler.");
     gnet_property->props[443].ev_changed = event_new("udp_sched_debug_changed");
     gnet_property->props[443].save = TRUE;
+    gnet_property->props[443].internal = FALSE;
     gnet_property->props[443].vector_size = 1;
 	mutex_init(&gnet_property->props[443].lock);
 
@@ -10036,6 +10484,7 @@ gnet_prop_init(void) {
     gnet_property->props[444].desc = _("Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: transmissions, 16: timeouts.");
     gnet_property->props[444].ev_changed = event_new("tx_ut_debug_flags_changed");
     gnet_property->props[444].save = TRUE;
+    gnet_property->props[444].internal = FALSE;
     gnet_property->props[444].vector_size = 1;
 	mutex_init(&gnet_property->props[444].lock);
 
@@ -10057,6 +10506,7 @@ gnet_prop_init(void) {
     gnet_property->props[445].desc = _("Comma-separated list of RX debugging hosts (IP addresses only)");
     gnet_property->props[445].ev_changed = event_new("rx_debug_addrs_changed");
     gnet_property->props[445].save = TRUE;
+    gnet_property->props[445].internal = FALSE;
     gnet_property->props[445].vector_size = 1;
 	mutex_init(&gnet_property->props[445].lock);
 
@@ -10079,6 +10529,7 @@ gnet_prop_init(void) {
     gnet_property->props[446].desc = _("Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: receptions, 16: timeouts.");
     gnet_property->props[446].ev_changed = event_new("rx_ut_debug_flags_changed");
     gnet_property->props[446].save = TRUE;
+    gnet_property->props[446].internal = FALSE;
     gnet_property->props[446].vector_size = 1;
 	mutex_init(&gnet_property->props[446].lock);
 
@@ -10100,6 +10551,7 @@ gnet_prop_init(void) {
     gnet_property->props[447].desc = _("Whether to log sent semi-reliable UDP messages.");
     gnet_property->props[447].ev_changed = event_new("log_sr_udp_tx_changed");
     gnet_property->props[447].save = TRUE;
+    gnet_property->props[447].internal = FALSE;
     gnet_property->props[447].vector_size = 1;
 	mutex_init(&gnet_property->props[447].lock);
 
@@ -10118,6 +10570,7 @@ gnet_prop_init(void) {
     gnet_property->props[448].desc = _("Whether to log received semi-reliable UDP messages.");
     gnet_property->props[448].ev_changed = event_new("log_sr_udp_rx_changed");
     gnet_property->props[448].save = TRUE;
+    gnet_property->props[448].internal = FALSE;
     gnet_property->props[448].vector_size = 1;
 	mutex_init(&gnet_property->props[448].lock);
 
@@ -10136,6 +10589,7 @@ gnet_prop_init(void) {
     gnet_property->props[449].desc = _("Debug level for the secured OOB query hit claiming.");
     gnet_property->props[449].ev_changed = event_new("secure_oob_debug_changed");
     gnet_property->props[449].save = TRUE;
+    gnet_property->props[449].internal = FALSE;
     gnet_property->props[449].vector_size = 1;
 	mutex_init(&gnet_property->props[449].lock);
 
@@ -10157,6 +10611,7 @@ gnet_prop_init(void) {
     gnet_property->props[450].desc = _("Whether to log sent vendor messages.");
     gnet_property->props[450].ev_changed = event_new("log_vmsg_tx_changed");
     gnet_property->props[450].save = TRUE;
+    gnet_property->props[450].internal = FALSE;
     gnet_property->props[450].vector_size = 1;
 	mutex_init(&gnet_property->props[450].lock);
 
@@ -10175,6 +10630,7 @@ gnet_prop_init(void) {
     gnet_property->props[451].desc = _("Whether to log received vendor messages.");
     gnet_property->props[451].ev_changed = event_new("log_vmsg_rx_changed");
     gnet_property->props[451].save = TRUE;
+    gnet_property->props[451].internal = FALSE;
     gnet_property->props[451].vector_size = 1;
 	mutex_init(&gnet_property->props[451].lock);
 
@@ -10193,6 +10649,7 @@ gnet_prop_init(void) {
     gnet_property->props[452].desc = _("Debugging flags for the DHT token cache (developers only).");
     gnet_property->props[452].ev_changed = event_new("dht_tcache_debug_flags_changed");
     gnet_property->props[452].save = TRUE;
+    gnet_property->props[452].internal = FALSE;
     gnet_property->props[452].vector_size = 1;
 	mutex_init(&gnet_property->props[452].lock);
 
@@ -10214,6 +10671,7 @@ gnet_prop_init(void) {
     gnet_property->props[453].desc = _("Whether to log weird DHT message headers when debugging.");
     gnet_property->props[453].ev_changed = event_new("log_weird_dht_headers_changed");
     gnet_property->props[453].save = TRUE;
+    gnet_property->props[453].internal = FALSE;
     gnet_property->props[453].vector_size = 1;
 	mutex_init(&gnet_property->props[453].lock);
 
@@ -10232,6 +10690,7 @@ gnet_prop_init(void) {
     gnet_property->props[454].desc = _("Debug level for the DHT Remote Procedure Call (RPC) code.");
     gnet_property->props[454].ev_changed = event_new("dht_rpc_debug_changed");
     gnet_property->props[454].save = TRUE;
+    gnet_property->props[454].internal = FALSE;
     gnet_property->props[454].vector_size = 1;
 	mutex_init(&gnet_property->props[454].lock);
 
@@ -10253,6 +10712,7 @@ gnet_prop_init(void) {
     gnet_property->props[455].desc = _("Whether to log UHC pings we receive.");
     gnet_property->props[455].ev_changed = event_new("log_uhc_pings_rx_changed");
     gnet_property->props[455].save = TRUE;
+    gnet_property->props[455].internal = FALSE;
     gnet_property->props[455].vector_size = 1;
 	mutex_init(&gnet_property->props[455].lock);
 
@@ -10271,6 +10731,7 @@ gnet_prop_init(void) {
     gnet_property->props[456].desc = _("Whether to log UHC pings we emit.");
     gnet_property->props[456].ev_changed = event_new("log_uhc_pings_tx_changed");
     gnet_property->props[456].save = TRUE;
+    gnet_property->props[456].internal = FALSE;
     gnet_property->props[456].vector_size = 1;
 	mutex_init(&gnet_property->props[456].lock);
 
@@ -10289,6 +10750,7 @@ gnet_prop_init(void) {
     gnet_property->props[457].desc = _("Whether the program was properly shutdown.");
     gnet_property->props[457].ev_changed = event_new("clean_shutdown_changed");
     gnet_property->props[457].save = TRUE;
+    gnet_property->props[457].internal = TRUE;
     gnet_property->props[457].vector_size = 1;
 	mutex_init(&gnet_property->props[457].lock);
 
@@ -10307,6 +10769,7 @@ gnet_prop_init(void) {
     gnet_property->props[458].desc = _("Whether the program restarted after a clean shutdown.");
     gnet_property->props[458].ev_changed = event_new("clean_restart_changed");
     gnet_property->props[458].save = FALSE;
+    gnet_property->props[458].internal = TRUE;
     gnet_property->props[458].vector_size = 1;
 	mutex_init(&gnet_property->props[458].lock);
 
@@ -10325,6 +10788,7 @@ gnet_prop_init(void) {
     gnet_property->props[459].desc = _("Debug level for DHT key management.");
     gnet_property->props[459].ev_changed = event_new("dht_keys_debug_changed");
     gnet_property->props[459].save = TRUE;
+    gnet_property->props[459].internal = FALSE;
     gnet_property->props[459].vector_size = 1;
 	mutex_init(&gnet_property->props[459].lock);
 
@@ -10346,6 +10810,7 @@ gnet_prop_init(void) {
     gnet_property->props[460].desc = _("Debug level for DHT value management.");
     gnet_property->props[460].ev_changed = event_new("dht_values_debug_changed");
     gnet_property->props[460].save = TRUE;
+    gnet_property->props[460].internal = FALSE;
     gnet_property->props[460].vector_size = 1;
 	mutex_init(&gnet_property->props[460].lock);
 
@@ -10367,6 +10832,7 @@ gnet_prop_init(void) {
     gnet_property->props[461].desc = _("ID of the current process.");
     gnet_property->props[461].ev_changed = event_new("pid_changed");
     gnet_property->props[461].save = TRUE;
+    gnet_property->props[461].internal = TRUE;
     gnet_property->props[461].vector_size = 1;
 	mutex_init(&gnet_property->props[461].lock);
 
@@ -10388,6 +10854,7 @@ gnet_prop_init(void) {
     gnet_property->props[462].desc = _("Debug level for HTTP range parsing / handling.");
     gnet_property->props[462].ev_changed = event_new("http_range_debug_changed");
     gnet_property->props[462].save = TRUE;
+    gnet_property->props[462].internal = FALSE;
     gnet_property->props[462].vector_size = 1;
 	mutex_init(&gnet_property->props[462].lock);
 
@@ -10409,6 +10876,7 @@ gnet_prop_init(void) {
     gnet_property->props[463].desc = _("Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A value of 0 requests permanent mappings.");
     gnet_property->props[463].ev_changed = event_new("upnp_mapping_lease_time_changed");
     gnet_property->props[463].save = TRUE;
+    gnet_property->props[463].internal = FALSE;
     gnet_property->props[463].vector_size = 1;
 	mutex_init(&gnet_property->props[463].lock);
 
@@ -10430,6 +10898,7 @@ gnet_prop_init(void) {
     gnet_property->props[464].desc = _("Whether the program is auto-restarting at the user's request.");
     gnet_property->props[464].ev_changed = event_new("user_auto_restart_changed");
     gnet_property->props[464].save = TRUE;
+    gnet_property->props[464].internal = TRUE;
     gnet_property->props[464].vector_size = 1;
 	mutex_init(&gnet_property->props[464].lock);
 
@@ -10448,6 +10917,7 @@ gnet_prop_init(void) {
     gnet_property->props[465].desc = _("Debug level for time management.");
     gnet_property->props[465].ev_changed = event_new("tm_debug_changed");
     gnet_property->props[465].save = TRUE;
+    gnet_property->props[465].internal = FALSE;
     gnet_property->props[465].vector_size = 1;
 	mutex_init(&gnet_property->props[465].lock);
 
@@ -10469,6 +10939,7 @@ gnet_prop_init(void) {
     gnet_property->props[466].desc = _("Debug level for the tmalloc() thread-magazine object distributor.");
     gnet_property->props[466].ev_changed = event_new("tmalloc_debug_changed");
     gnet_property->props[466].save = TRUE;
+    gnet_property->props[466].internal = FALSE;
     gnet_property->props[466].vector_size = 1;
 	mutex_init(&gnet_property->props[466].lock);
 
@@ -10490,6 +10961,7 @@ gnet_prop_init(void) {
     gnet_property->props[467].desc = _("Debug level for the event queue thread.");
     gnet_property->props[467].ev_changed = event_new("evq_debug_changed");
     gnet_property->props[467].save = TRUE;
+    gnet_property->props[467].internal = FALSE;
     gnet_property->props[467].vector_size = 1;
 	mutex_init(&gnet_property->props[467].lock);
 
@@ -10511,6 +10983,7 @@ gnet_prop_init(void) {
     gnet_property->props[468].desc = _("Maximum number of G2 hubs in the hub cache.");
     gnet_property->props[468].ev_changed = event_new("max_g2hub_hosts_cached_changed");
     gnet_property->props[468].save = TRUE;
+    gnet_property->props[468].internal = FALSE;
     gnet_property->props[468].vector_size = 1;
 	mutex_init(&gnet_property->props[468].lock);
 
@@ -10532,6 +11005,7 @@ gnet_prop_init(void) {
     gnet_property->props[469].desc = _("Current number of IPv4 hosts in the G2 hub caches.");
     gnet_property->props[469].ev_changed = event_new("hosts_in_g2hub_catcher_changed");
     gnet_property->props[469].save = FALSE;
+    gnet_property->props[469].internal = TRUE;
     gnet_property->props[469].vector_size = 1;
 	mutex_init(&gnet_property->props[469].lock);
 
@@ -10553,6 +11027,7 @@ gnet_prop_init(void) {
     gnet_property->props[470].desc = _("Whether the G2 protocol should be enabled.");
     gnet_property->props[470].ev_changed = event_new("enable_g2_changed");
     gnet_property->props[470].save = TRUE;
+    gnet_property->props[470].internal = FALSE;
     gnet_property->props[470].vector_size = 1;
 	mutex_init(&gnet_property->props[470].lock);
 
@@ -10571,6 +11046,7 @@ gnet_prop_init(void) {
     gnet_property->props[471].desc = _("Number of G2 nodes currently connected.");
     gnet_property->props[471].ev_changed = event_new("node_g2_count_changed");
     gnet_property->props[471].save = FALSE;
+    gnet_property->props[471].internal = TRUE;
     gnet_property->props[471].vector_size = 1;
 	mutex_init(&gnet_property->props[471].lock);
 
@@ -10592,6 +11068,7 @@ gnet_prop_init(void) {
     gnet_property->props[472].desc = _("Maximum amount of G2 hubs we should connect to as a leaf.");
     gnet_property->props[472].ev_changed = event_new("max_g2_hubs_changed");
     gnet_property->props[472].save = TRUE;
+    gnet_property->props[472].internal = FALSE;
     gnet_property->props[472].vector_size = 1;
 	mutex_init(&gnet_property->props[472].lock);
 
@@ -10613,6 +11090,7 @@ gnet_prop_init(void) {
     gnet_property->props[473].desc = _("Whether to log bad G2 messages, corrupted or unexpected.");
     gnet_property->props[473].ev_changed = event_new("log_bad_g2_changed");
     gnet_property->props[473].save = TRUE;
+    gnet_property->props[473].internal = FALSE;
     gnet_property->props[473].vector_size = 1;
 	mutex_init(&gnet_property->props[473].lock);
 
@@ -10631,6 +11109,7 @@ gnet_prop_init(void) {
     gnet_property->props[474].desc = _("Whether to log dropped G2 messages");
     gnet_property->props[474].ev_changed = event_new("log_dropped_g2_changed");
     gnet_property->props[474].save = TRUE;
+    gnet_property->props[474].internal = FALSE;
     gnet_property->props[474].vector_size = 1;
 	mutex_init(&gnet_property->props[474].lock);
 
@@ -10649,6 +11128,7 @@ gnet_prop_init(void) {
     gnet_property->props[475].desc = _("Debug level for the G2 RPC layer.");
     gnet_property->props[475].ev_changed = event_new("g2_rpc_debug_changed");
     gnet_property->props[475].save = TRUE;
+    gnet_property->props[475].internal = FALSE;
     gnet_property->props[475].vector_size = 1;
 	mutex_init(&gnet_property->props[475].lock);
 
@@ -10670,6 +11150,7 @@ gnet_prop_init(void) {
     gnet_property->props[476].desc = _("Whether to log summary of received query hits");
     gnet_property->props[476].ev_changed = event_new("log_query_hits_changed");
     gnet_property->props[476].save = TRUE;
+    gnet_property->props[476].internal = FALSE;
     gnet_property->props[476].vector_size = 1;
 	mutex_init(&gnet_property->props[476].lock);
 
@@ -10688,6 +11169,7 @@ gnet_prop_init(void) {
     gnet_property->props[477].desc = _("Whether to log summary of each record in received query hits");
     gnet_property->props[477].ev_changed = event_new("log_query_hit_records_changed");
     gnet_property->props[477].save = TRUE;
+    gnet_property->props[477].internal = FALSE;
     gnet_property->props[477].vector_size = 1;
 	mutex_init(&gnet_property->props[477].lock);
 
@@ -10706,6 +11188,7 @@ gnet_prop_init(void) {
     gnet_property->props[478].desc = _("Number of G2 browsing requests received in this session.");
     gnet_property->props[478].ev_changed = event_new("g2_browse_count_changed");
     gnet_property->props[478].save = FALSE;
+    gnet_property->props[478].internal = TRUE;
     gnet_property->props[478].vector_size = 1;
 	mutex_init(&gnet_property->props[478].lock);
 
@@ -10727,6 +11210,7 @@ gnet_prop_init(void) {
     gnet_property->props[479].desc = _("Number of G2 browsing requests fully served in this session.");
     gnet_property->props[479].ev_changed = event_new("g2_browse_served_changed");
     gnet_property->props[479].save = FALSE;
+    gnet_property->props[479].internal = TRUE;
     gnet_property->props[479].vector_size = 1;
 	mutex_init(&gnet_property->props[479].lock);
 
@@ -10748,6 +11232,7 @@ gnet_prop_init(void) {
     gnet_property->props[480].desc = _("Whether to log G2 messages we're attempting to send");
     gnet_property->props[480].ev_changed = event_new("log_sending_g2_changed");
     gnet_property->props[480].save = TRUE;
+    gnet_property->props[480].internal = FALSE;
     gnet_property->props[480].vector_size = 1;
 	mutex_init(&gnet_property->props[480].lock);
 
@@ -10755,6 +11240,47 @@ gnet_prop_init(void) {
     gnet_property->props[480].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[480].data.boolean.def   = (void *) &gnet_property_variable_log_sending_g2_default;
     gnet_property->props[480].data.boolean.value = (void *) &gnet_property_variable_log_sending_g2;
+
+
+    /*
+     * PROP_SESSION_START_STAMP:
+     *
+     * General data:
+     */
+    gnet_property->props[481].name = "session_start_stamp";
+    gnet_property->props[481].desc = _("Timestamp at which the current session was started.  This stamp remains unchanged when gtk-gnutella restarts after a crash or an explicit restart request.");
+    gnet_property->props[481].ev_changed = event_new("session_start_stamp_changed");
+    gnet_property->props[481].save = TRUE;
+    gnet_property->props[481].internal = TRUE;
+    gnet_property->props[481].vector_size = 1;
+	mutex_init(&gnet_property->props[481].lock);
+
+    /* Type specific data: */
+    gnet_property->props[481].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[481].data.timestamp.def   = (void *) &gnet_property_variable_session_start_stamp_default;
+    gnet_property->props[481].data.timestamp.value = (void *) &gnet_property_variable_session_start_stamp;
+    gnet_property->props[481].data.timestamp.choices = NULL;
+    gnet_property->props[481].data.timestamp.max   = (time_t) ((1U << 31) - 1);
+    gnet_property->props[481].data.timestamp.min   = 0x0000000000000000;
+
+
+    /*
+     * PROP_TCP_NO_LISTENING:
+     *
+     * General data:
+     */
+    gnet_property->props[482].name = "tcp_no_listening";
+    gnet_property->props[482].desc = _("No TCP listening socket bound to allow incoming connections.");
+    gnet_property->props[482].ev_changed = event_new("tcp_no_listening_changed");
+    gnet_property->props[482].save = FALSE;
+    gnet_property->props[482].internal = TRUE;
+    gnet_property->props[482].vector_size = 1;
+	mutex_init(&gnet_property->props[482].lock);
+
+    /* Type specific data: */
+    gnet_property->props[482].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[482].data.boolean.def   = (void *) &gnet_property_variable_tcp_no_listening_default;
+    gnet_property->props[482].data.boolean.value = (void *) &gnet_property_variable_tcp_no_listening;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
@@ -10984,6 +11510,12 @@ gboolean
 gnet_prop_is_saved(property_t p)
 {
     return prop_is_saved(gnet_property, p);
+}
+
+gboolean
+gnet_prop_is_internal(property_t p)
+{
+    return prop_is_internal(gnet_property, p);
 }
 
 property_t

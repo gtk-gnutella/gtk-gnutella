@@ -76,7 +76,10 @@
 #include "aje.h"
 #include "arc4random.h"
 #include "atomic.h"
+#include "cmwc.h"
+#include "dump_options.h"
 #include "endian.h"
+#include "entropy.h"
 #include "evq.h"
 #include "float.h"
 #include "listener.h"
@@ -88,7 +91,9 @@
 #include "pow2.h"
 #include "pslist.h"
 #include "sha1.h"
+#include "shuffle.h"
 #include "spinlock.h"
+#include "stringify.h"
 #include "teq.h"
 #include "thread.h"
 #include "tm.h"
@@ -99,6 +104,76 @@
 #include "override.h"			/* Must be the last header included */
 
 #define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
+#define RANDOM_PRNG_SELECT		2			/* # of PRNGs to feed entropy to */
+
+/**
+ * Pseudo Random Number Generators managed by this library and for which
+ * we periodically spread new entropy.
+ */
+enum random_prng {
+	RANDOM_AJE = 0,
+	RANDOM_ARC4,
+	RANDOM_CMWC,
+	RANDOM_WELL,
+
+	RANDOM_PRNG_COUNT
+};
+
+/**
+ * Statistics.
+ */
+static struct random_stats {
+	uint aje_threads;					/* Amount of threads using AJE */
+	uint arc4_threads;					/* Amount of threads using ARC4 */
+	uint cmwc_threads;					/* Amount of threads using CMWC */
+	uint well_threads;					/* Amount of threads using WELL */
+	uint aje_ignored_threads;			/* Threads using AJE with no TEQ */
+	uint arc4_ignored_threads;			/* Threads using ARC4 with no TEQ */
+	uint cmwc_ignored_threads;			/* Threads using CMWC with no TEQ */
+	uint well_ignored_threads;			/* Threads using WELL with no TEQ */
+	AU64(input_random_add);				/* Bytes input to random_add() */
+	AU64(input_random_add_pool);		/* Bytes input to random_add_pool() */
+	AU64(output_random_bytes);			/* Bytes emitted via random_bytes() */
+	AU64(output_random_bytes_with);		/* ... via random_bytes_with() */
+	AU64(output_random_strong_bytes);	/* ... via random_strong_bytes() */
+	AU64(random_entropy_distribution);	/* Entropy distribution to PRNGs */
+	AU64(aje_distributed);				/* # of distributions to global AJE */
+	AU64(aje_thread_distributed);		/* # of distributions to thread AJE */
+	AU64(arc4_distributed);				/* # of distributions to global ARC4 */
+	AU64(arc4_thread_distributed);		/* # of distributions to thread ARC4 */
+	AU64(cmwc_distributed);				/* # of distributions to global CMWC */
+	AU64(cmwc_thread_distributed);		/* # of distributions to thread CMWC */
+	AU64(well_distributed);				/* # of distributions to global WELL */
+	AU64(well_thread_distributed);		/* # of distributions to thread WELL */
+	AU64(random_cpu_noise);				/* Calls to routine */
+	AU64(random_collect);				/* Calls to routine */
+	AU64(random_entropy);				/* Calls to routine */
+	AU64(random_upto);					/* Calls to routine */
+	AU64(random_u32);					/* Calls to routine */
+	AU64(random_u64);					/* Calls to routine */
+	AU64(random_ulong);					/* Calls to routine */
+	AU64(random_value);					/* Calls to routine */
+	AU64(random_ulong_value);			/* Calls to routine */
+	AU64(random64_upto);				/* Calls to routine */
+	AU64(random64_value);				/* Calls to routine */
+	AU64(random_bytes);					/* Calls to routine */
+	AU64(random_bytes_with);			/* Calls to routine */
+	AU64(random_strong_bytes);			/* Calls to routine */
+	AU64(random_double);				/* Calls to routine */
+	AU64(random_double_generate);		/* Calls to routine */
+	AU64(random_add);					/* Calls to routine */
+	AU64(random_add_pool);				/* Calls to routine */
+	AU64(random_added_fire);			/* Calls to routine */
+	AU64(random_stats_digest);			/* Calls to routine */
+} random_stats;
+
+static spinlock_t random_stats_lock = SPINLOCK_INIT;
+
+#define RANDOM_STATS_LOCK			spinlock(&random_stats_lock)
+#define RANDOM_STATS_UNLOCK			spinunlock(&random_stats_lock)
+
+#define RANDOM_STATS_INC(name)		AU64_INC(&random_stats.name)
+#define RANDOM_STATS_ADD(name, val)	AU64_ADD(&random_stats.name, (val))
 
 /**
  * Randomness update listeners.
@@ -121,6 +196,8 @@ void random_added_listener_remove(random_added_listener_t l)
 static void
 random_added_fire(void)
 {
+	RANDOM_STATS_INC(random_added_fire);
+
 	LISTENER_EMIT(random_added, ());
 }
 
@@ -137,6 +214,8 @@ uint32
 random_upto(random_fn_t rf, uint32 max)
 {
 	uint32 range, min, value;
+
+	RANDOM_STATS_INC(random_upto);
 
 	if G_UNLIKELY(0 == max)
 		return 0;
@@ -238,6 +317,8 @@ random64_upto(random64_fn_t rf, uint64 max)
 {
 	uint64 range, min, value;
 
+	RANDOM_STATS_INC(random64_upto);
+
 	if G_UNLIKELY(0 == max)
 		return 0;
 
@@ -285,6 +366,8 @@ done:
 uint32
 random_u32(void)
 {
+	RANDOM_STATS_INC(random_u32);
+
 	return mt_thread_rand();
 }
 
@@ -294,6 +377,8 @@ random_u32(void)
 uint64
 random_u64(void)
 {
+	RANDOM_STATS_INC(random_u64);
+
 	return mt_thread_rand64();
 }
 
@@ -303,6 +388,8 @@ random_u64(void)
 ulong
 random_ulong(void)
 {
+	RANDOM_STATS_INC(random_ulong);
+
 #if LONGSIZE == 8
 	return mt_thread_rand64();
 #elif LONGSIZE == 4
@@ -318,6 +405,8 @@ random_ulong(void)
 uint32
 random_value(uint32 max)
 {
+	RANDOM_STATS_INC(random_value);
+
 	/*
 	 * This used to return:
 	 *
@@ -347,6 +436,8 @@ random_value(uint32 max)
 uint64
 random64_value(uint64 max)
 {
+	RANDOM_STATS_INC(random64_value);
+
 	return random64_upto(well_thread_rand64, max);
 }
 
@@ -356,6 +447,8 @@ random64_value(uint64 max)
 ulong
 random_ulong_value(ulong max)
 {
+	RANDOM_STATS_INC(random_ulong_value);
+
 #if LONGSIZE == 8
 	return random64_upto(well_thread_rand64, max);
 #elif LONGSIZE == 4
@@ -372,6 +465,9 @@ void
 random_bytes_with(random_fn_t rf, void *dst, size_t size)
 {
 	char *p = dst;
+
+	RANDOM_STATS_INC(random_bytes_with);
+	RANDOM_STATS_ADD(output_random_bytes_with, size);
 
 	while (size > 4) {
 		const uint32 value = (*rf)();
@@ -396,6 +492,9 @@ random_bytes_with(random_fn_t rf, void *dst, size_t size)
 void
 random_bytes(void *dst, size_t size)
 {
+	RANDOM_STATS_INC(random_bytes);
+	RANDOM_STATS_ADD(output_random_bytes, size);
+
 	/*
 	 * This routine must continue to use arc4random(), even though it is
 	 * slower than mt_rand(), because of random_add_pool(): periodic collection
@@ -457,6 +556,9 @@ random_strong(void)
 void
 random_strong_bytes(void *dst, size_t size)
 {
+	RANDOM_STATS_INC(random_strong_bytes);
+	RANDOM_STATS_ADD(output_random_strong_bytes, size);
+
 	random_bytes_with(random_strong, dst, size);
 }
 
@@ -470,6 +572,8 @@ random_cpu_noise(void)
 	struct sha1 digest;
 	SHA1_context ctx;
 	uint32 r, i;
+
+	RANDOM_STATS_INC(random_cpu_noise);
 
 	/* No need to make this routine thread-safe as we want noise anyway */
 
@@ -539,6 +643,8 @@ random_byte_arc4_add(void *p)
 
 	random_byte_data_check(rbd);
 
+	RANDOM_STATS_INC(arc4_thread_distributed);
+
 	arc4_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
 }
@@ -552,6 +658,8 @@ random_byte_well_add(void *p)
 	struct random_byte_data *rbd = p;
 
 	random_byte_data_check(rbd);
+
+	RANDOM_STATS_INC(well_thread_distributed);
 
 	well_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
@@ -567,10 +675,27 @@ random_byte_aje_add(void *p)
 
 	random_byte_data_check(rbd);
 
+	RANDOM_STATS_INC(aje_thread_distributed);
+
 	aje_thread_addrandom(rbd->data, rbd->len);
 	random_byte_data_free(rbd);
 }
 
+/**
+ * TEQ event delivered to a thread to add random bytes to the local CMWC stream.
+ */
+static void
+random_byte_cmwc_add(void *p)
+{
+	struct random_byte_data *rbd = p;
+
+	random_byte_data_check(rbd);
+
+	RANDOM_STATS_INC(cmwc_thread_distributed);
+
+	cmwc_thread_addrandom(rbd->data, rbd->len);
+	random_byte_data_free(rbd);
+}
 
 /**
  * Add collected random byte(s) to the random pool used by random_bytes(),
@@ -590,6 +715,9 @@ random_add_pool(void *buf, size_t len)
 	uchar *p;
 	size_t n;
 	bool flushed = FALSE;
+
+	RANDOM_STATS_INC(random_add_pool);
+	RANDOM_STATS_ADD(input_random_add_pool, len);
 
 	spinlock(&pool_slk);
 
@@ -637,6 +765,7 @@ random_collect(void)
 	uchar rbyte;
 
 	tm_now_exact(&now);
+	RANDOM_STATS_INC(random_collect);
 
 	spinlock(&collect_slk);
 
@@ -690,11 +819,12 @@ random_collect(void)
 }
 
 /**
- * This routine is meant to be called periodically and generates a little
+ * This routine is meant to be called periodically and collects a little
  * bit of random information. Once in a while, when enough randomness has
- * been collected, it feeds it to the random number generator.
+ * been collected, it feeds it to the AJE random number generator.
  *
- * This helps generating unique sequences via random_bytes().
+ * When the collected random pool has been flushed to AJE, we invoke any user
+ * callback registered to be called after fresh randomness was added.
  *
  * @param buf		buffer holding random data
  * @param len		length of random data
@@ -706,33 +836,77 @@ random_pool_append(void *buf, size_t len)
 	g_assert(size_is_positive(len));
 
 	if (random_add_pool(buf, len)) {
+		/*
+		 * The time at which the pool was flushed is in itself a random event.
+		 *
+		 * Calling entropy_harvest_time() will recurse back into this routine
+		 * but the chance of us having to flush the pool again are low, unless
+		 * much randomness was added by other threads.  Therefore, we will not
+		 * be stuck in an endless recursion.
+		 */
+
+		entropy_harvest_time();	/* More randomness */
 		random_added_fire();	/* Let them know new randomness is available */
 	}
 }
 
 /**
- * Dispatch randomly collected bytes to all the threads listed in ``users''
- * by sending them a TEQ message to invoke ``cb''.
+ * Dispatch randomly collected bytes to all the threads using a given random
+ * number algorithm by sending them a TEQ message.
  *
  * The callback argument is generated the first time we need it, and it is
  * stored in ``rbd_ptr''.  Each routine will get a reference-counted structure
  * and will need to call random_byte_data_free() to cleanup that structure.
  *
- * @param users		the list of thread ID (disposed of at the end)
- * @param cb		the callback to invoke in the thread
+ * @param prng		the random algorithm type
  * @param data		the random data we can give
  * @param len		the amount of bytes we can give
  * @param rbd_ptr	where the allocated callback argument is stored.
  */
 static void
-random_dispatch(pslist_t *users, notify_fn_t cb,
+random_thread_dispatch(enum random_prng prng,
 	const void *data, size_t len, struct random_byte_data **rbd_ptr)
 {
 	struct random_byte_data *rbd = *rbd_ptr;
-	pslist_t *sl;
+	pslist_t *users = NULL, *sl;
+	notify_fn_t cb = NULL;
+	uint threads = 0, ignored = 0, *tcount = NULL, *icount = NULL;
+
+	switch (prng) {
+	case RANDOM_AJE:
+		users = aje_users();
+		cb = random_byte_aje_add;
+		tcount = &random_stats.aje_threads;
+		icount = &random_stats.aje_ignored_threads;
+		break;
+	case RANDOM_ARC4:
+		users = arc4_users();
+		cb = random_byte_arc4_add;
+		tcount = &random_stats.arc4_threads;
+		icount = &random_stats.arc4_ignored_threads;
+		break;
+	case RANDOM_CMWC:
+		users = cmwc_users();
+		cb = random_byte_cmwc_add;
+		tcount = &random_stats.cmwc_threads;
+		icount = &random_stats.cmwc_ignored_threads;
+		break;
+	case RANDOM_WELL:
+		users = well_users();
+		cb = random_byte_well_add;
+		tcount = &random_stats.well_threads;
+		icount = &random_stats.well_ignored_threads;
+		break;
+	case RANDOM_PRNG_COUNT:
+		g_assert_not_reached();
+	}
+
+	g_assert(tcount != NULL);
+	g_assert(icount != NULL);
 
 	PSLIST_FOREACH(users, sl) {
 		uint id = pointer_to_uint(sl->data);	/* Thread ID */
+		threads++;
 		if (teq_is_supported(id)) {
 			if (NULL == rbd) {
 				rbd = random_byte_data_alloc(data, len);
@@ -740,9 +914,16 @@ random_dispatch(pslist_t *users, notify_fn_t cb,
 			}
 			atomic_int_inc(&rbd->refcnt);
 			teq_post(id, cb, rbd);
+		} else {
+			ignored++;
 		}
 	}
 	pslist_free(users);
+
+	RANDOM_STATS_LOCK;
+	*tcount = threads;
+	*icount = ignored;
+	RANDOM_STATS_UNLOCK;
 }
 
 static bool random_entropy_new;
@@ -757,11 +938,15 @@ static spinlock_t random_entropy_slk = SPINLOCK_INIT;
 static bool
 random_entropy(void *unused)
 {
+	static enum random_prng prngs[] =
+		{ RANDOM_AJE, RANDOM_ARC4, RANDOM_CMWC, RANDOM_WELL };
 	bool has_new;
 	struct random_byte_data *rbd = NULL;
 	uint8 entropy[256];
+	size_t i;
 
 	(void) unused;
+	RANDOM_STATS_INC(random_entropy);
 
 	RANDOM_ENTROPY_LOCK;
 
@@ -773,6 +958,8 @@ random_entropy(void *unused)
 	if (!has_new)
 		return TRUE;
 
+	RANDOM_STATS_INC(random_entropy_distribution);
+
 #define ELEN	(sizeof entropy)
 
 	/*
@@ -782,21 +969,52 @@ random_entropy(void *unused)
 	aje_random_bytes(entropy, ELEN);
 
 	/*
-	 * Now feed the random entropy to the generators.
+	 * Now feed the random entropy to RANDOM_PRNG_SELECT randomly selected
+	 * generators.
+	 *
+	 * NOTE: we do not need to lock the global prngs[] array here since we
+	 * know this routine is periodically dispatched from the event queue
+	 * and therefore it cannot be concurrently executed.
 	 */
 
-	arc4random_addrandom(entropy, (int) ELEN);
-	well_addrandom(entropy, ELEN);
+	SHUFFLE_ARRAY(prngs);
+
+	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
+		switch (prngs[i]) {
+		case RANDOM_AJE:
+			RANDOM_STATS_INC(aje_distributed);
+			aje_addrandom(entropy, ELEN);
+			break;
+		case RANDOM_ARC4:
+			RANDOM_STATS_INC(arc4_distributed);
+			arc4random_addrandom(entropy, (int) ELEN);
+			break;
+		case RANDOM_CMWC:
+			RANDOM_STATS_INC(cmwc_distributed);
+			cmwc_addrandom(entropy, ELEN);
+			break;
+		case RANDOM_WELL:
+			RANDOM_STATS_INC(well_distributed);
+			well_addrandom(entropy, ELEN);
+			break;
+		case RANDOM_PRNG_COUNT:
+			g_assert_not_reached();
+		}
+	}
 
 	/*
-	 * Propagate the random bytes to all the threads using a
-	 * local ARC4, AJE or WELL stream, provided the target threads
-	 * have created a Thread Event Queue (TEQ).
+	 * Propagate other random bytes to RANDOM_PRNG_SELECT randomly selected
+	 * threads using a local PRNG stream, provided the target threads have
+	 * created a Thread Event Queue (TEQ).
 	 */
 
-	random_dispatch(arc4_users(), random_byte_arc4_add, entropy, ELEN, &rbd);
-	random_dispatch(well_users(), random_byte_well_add, entropy, ELEN, &rbd);
-	random_dispatch(aje_users(),  random_byte_aje_add,  entropy, ELEN, &rbd);
+	aje_random_bytes(entropy, ELEN);	/* New random bytes */
+
+	SHUFFLE_ARRAY(prngs);
+
+	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
+		random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
+	}
 
 	if (rbd != NULL)
 		random_byte_data_free(rbd);
@@ -838,9 +1056,12 @@ random_add(const void *data, size_t datalen)
 
 	random_entropy_install_once();
 
+	RANDOM_STATS_INC(random_add);
+	RANDOM_STATS_ADD(input_random_add, datalen);
+
 	/*
 	 * The collected data is given to AJE (the global instance), and we then
-	 * extract random data out of AJE to feed to the other generators.
+	 * extract random data out of AJE to feed it to the other generators.
 	 */
 
 	aje_addrandom(data, datalen);
@@ -872,6 +1093,8 @@ random_double_generate(random_fn_t rf)
 	union double_decomposition dc;
 	uint32 high, low;
 	int lzeroes, exponent;
+
+	RANDOM_STATS_INC(random_double_generate);
 
 	/*
 	 * Floating points in IEEE754 double format have a mantissa of 52 bits,
@@ -935,6 +1158,8 @@ random_double_generate(random_fn_t rf)
 double
 random_double(void)
 {
+	RANDOM_STATS_INC(random_double);
+
 	return random_double_generate(mt_thread_rand);
 }
 
@@ -947,6 +1172,97 @@ random_init(void)
 	arc4random_stir_once();
 	mt_init();
 	random_entropy_install_once();
+}
+
+/**
+ * Generate a SHA1 digest of the current random statistics.
+ *
+ * This is meant for dynamic entropy collection.
+ */
+void
+random_stats_digest(sha1_t *digest)
+{
+	RANDOM_STATS_INC(random_stats_digest);
+
+	SHA1_COMPUTE(random_stats, digest);
+}
+
+/**
+ * Dump random statistics to specified logagent.
+ */
+void G_GNUC_COLD
+random_dump_stats_log(logagent_t *la, unsigned options)
+{
+	struct random_stats r;
+
+	atomic_mb();
+	r = random_stats;		/* Struct copy */
+
+#define DUMP(x)	log_info(la, "RANDOM %s = %s", #x,	\
+	(options & DUMP_OPT_PRETTY) ?					\
+		uint_to_gstring(r.x) : uint_to_string(r.x))
+
+#define DUMP64(x) G_STMT_START {							\
+	uint64 v = AU64_VALUE(&r.x);							\
+	log_info(la, "RANDOM %s = %s", #x,						\
+		(options & DUMP_OPT_PRETTY) ?						\
+			uint64_to_gstring(v) : uint64_to_string(v));	\
+} G_STMT_END
+
+	DUMP64(input_random_add);
+	DUMP64(input_random_add_pool);
+	DUMP64(output_random_bytes);
+	DUMP64(output_random_bytes_with);
+	DUMP64(output_random_strong_bytes);
+	DUMP64(random_entropy_distribution);
+	DUMP64(aje_distributed);
+	DUMP64(aje_thread_distributed);
+	DUMP(aje_threads);
+	DUMP(aje_ignored_threads);
+	DUMP64(arc4_distributed);
+	DUMP64(arc4_thread_distributed);
+	DUMP(arc4_threads);
+	DUMP(arc4_ignored_threads);
+	DUMP64(cmwc_distributed);
+	DUMP64(cmwc_thread_distributed);
+	DUMP(cmwc_threads);
+	DUMP(cmwc_ignored_threads);
+	DUMP64(well_distributed);
+	DUMP64(well_thread_distributed);
+	DUMP(well_threads);
+	DUMP(well_ignored_threads);
+	DUMP64(random_cpu_noise);
+	DUMP64(random_collect);
+	DUMP64(random_entropy);
+	DUMP64(random_upto);
+	DUMP64(random_u32);
+	DUMP64(random_u64);
+	DUMP64(random_ulong);
+	DUMP64(random_value);
+	DUMP64(random_ulong_value);
+	DUMP64(random64_upto);
+	DUMP64(random64_value);
+	DUMP64(random_bytes);
+	DUMP64(random_bytes_with);
+	DUMP64(random_strong_bytes);
+	DUMP64(random_double);
+	DUMP64(random_double_generate);
+	DUMP64(random_add);
+	DUMP64(random_add_pool);
+	DUMP64(random_added_fire);
+	DUMP64(random_stats_digest);
+
+#undef DUMP64
+}
+
+/**
+ * Dump random statistics to stderr.
+ */
+void G_GNUC_COLD
+random_dump_stats(void)
+{
+	s_info("RANDOM running statistics:");
+	random_dump_stats_log(log_agent_stderr_get(), 0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

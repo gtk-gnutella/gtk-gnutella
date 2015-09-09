@@ -368,8 +368,11 @@ static unsigned
 stats_hash(const void *key)
 {
 	const struct stats *s = key;
+	unsigned h;
 
-	return string_mix_hash(s->file) ^ integer_hash(s->line);
+	h = string_mix_hash(s->file) ^ integer_hash_fast(s->line);
+
+	return hashing_mix32(h);
 }
 
 /**

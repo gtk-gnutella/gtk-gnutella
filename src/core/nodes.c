@@ -10395,11 +10395,19 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 
 		/*
 		 * We need 4 bytes at most to completely determine the size of the
-		 * whole G2 frame.
+		 * whole G2 frame (G2 framing allows 3 bytes at most to specify the
+		 * length of the data).
+		 *
+		 * However, most packets will be less than 65536 bytes in practice,
+		 * since this is way too large already anyway, hence we can read only
+		 * 3 bytes for our first probe.
 		 */
 
+#define NODE_G2_MINLEN		4
+#define NODE_G2_PROBELEN	(NODE_G2_MINLEN - 1)
+
 		if (0 == n->pos) {
-			r = pmsg_read(mb, w, 4);
+			r = pmsg_read(mb, w, NODE_G2_PROBELEN);
 			if G_UNLIKELY(0 == r)
 				return FALSE;		/* Reached end of buffer */
 			n->pos += r;
@@ -10409,7 +10417,8 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 				return FALSE;		/* Not read enough to compute length */
 		} else {
 			for (;;) {
-				g_assert(n->pos < sizeof n->header);
+				g_assert(n->pos < NODE_G2_MINLEN);
+				g_assert(n->allocated >= NODE_G2_MINLEN);
 
 				r = pmsg_read(mb, &w[n->pos], 1);
 				n->pos += r;
@@ -10419,12 +10428,21 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 					break;
 				if (0 == r)
 					return FALSE;	/* Reached end of buffer */
-				if (n->pos >= sizeof n->header) {
+				if (n->pos >= NODE_G2_MINLEN) {
 					node_bye(n, 400, "Garbled input stream");
 					return FALSE;
 				}
 			}
 		}
+
+#undef NODE_G2_MINLEN
+
+		/*
+		 * Since we have correctly determined the frame length above,
+		 * we cannot have read more bytes than the frame holds!
+		 */
+
+		g_assert(len >= n->pos);
 
 		/*
 		 * If the length is 1, we reached an "end of stream" byte.
@@ -10450,7 +10468,7 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 		 * OK, we are going to read the whole frame, allocate data space.
 		 */
 
-		if (n->allocated < len) {
+		if G_UNLIKELY(n->allocated < len) {
 			n->data = hrealloc(n->data, len);
 			n->allocated = len;
 		}
@@ -12791,7 +12809,7 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 	/* ``i'' is the amount of ultranodes we put in the array */
 
 	if (ultras != NULL)
-		shuffle(ultras, i, sizeof ultras[0]);
+		SHUFFLE_ARRAY_N(ultras, i);
 
 	/*
 	 * Start by filling hosts from the cache, so that we can remove duplicates.

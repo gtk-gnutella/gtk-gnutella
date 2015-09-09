@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2013 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2015 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -39,7 +39,7 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2013
+ * @date 1996-2000, 2007, 2010-2015
  */
 
 #include "common.h"
@@ -506,6 +506,19 @@ str_free(str_t *str)
 }
 
 /**
+ * Discard the str_t structure, freeing string data and making object invalid.
+ *
+ * This is to be used on static str_t structures, when we want to free the
+ * allocated memory and prevent any further usage of the structure.
+ */
+void
+str_discard(str_t *str)
+{
+	str_free(str);
+	str->s_magic = 0;
+}
+
+/**
  * Destroy string held within the str_t structure, then the structure.
  */
 void
@@ -516,8 +529,7 @@ str_destroy(str_t *str)
 	g_assert_log(str->s_flags & STR_OBJECT,
 		"%s(): called on \"static\" string object", G_STRFUNC);
 
-	str_free(str);
-	str->s_magic = 0;
+	str_discard(str);
 	WFREE(str);
 }
 
@@ -1415,6 +1427,217 @@ str_escape(str_t *str, char c, char e)
 		idx++;							/* Skip escaped char */
 		len++;							/* One more char in string */
 	}
+}
+
+/**
+ * Translate algebric offset into physical offset, with specific off-limit
+ * indication.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * When the physical offset falls before the start of the string, -1 is
+ * returned.  If it falls beyond the end of the string, length is returned
+ * (i.e. one character beyond the actual end).
+ */
+static ssize_t
+str_offset(const str_t *s, ssize_t offset)
+{
+	ssize_t i;
+
+	i = offset >= 0 ? offset : (ssize_t) s->s_len + offset;
+	if (i < 0)
+		i = -1;
+	else if (UNSIGNED(i) > s->s_len)
+		i = s->s_len;
+
+	return i;
+}
+
+/**
+ * Translate algebric offset into physical offset within string.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * The offset is always adjusted to fall within the string, rounding it up
+ * to 0 when it is negative and points before the start, or down to the last
+ * character in the string when it is positive and points beyond the end.
+ *
+ * @return a safe offset, between 0 (inclusive) and length (exclusive).
+ */
+static size_t
+str_offset_safe(const str_t *s, ssize_t offset)
+{
+	size_t i;
+
+	if (offset >= 0) {
+		size_t pos = offset;
+		i = pos >= s->s_len ? (0 == s->s_len ? 0 : s->s_len - 1) : pos;
+	} else {
+		size_t pos = s->s_len + offset;
+		i = pos >= s->s_len ? 0 : pos;
+	}
+
+	return i;
+}
+
+/**
+ * Look for character ``c'' in string, starting at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_chr_at(const str_t *s, int c, ssize_t offset)
+{
+	size_t len, i;
+	ssize_t pos;
+	const char *p;
+
+	str_check(s);
+
+	len = s->s_len;
+	i = pos = str_offset(s, offset);
+	if (pos < 0)
+		i = 0;
+	else if (UNSIGNED(pos) >= len)
+		return -1;
+
+	for (p = s->s_data + i; i < len; i++) {
+		if G_UNLIKELY(*p++ == c)
+			return i;
+	}
+
+	return -1;
+}
+
+/**
+ * Look for character ``c'' in string, starting at position 0.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_chr(const str_t *s, int c)
+{
+	return str_chr_at(s, c, 0);
+}
+
+/**
+ * Backward look for character ``c'' in string, starting at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_rchr_at(const str_t *s, int c, ssize_t offset)
+{
+	size_t len, i;
+	ssize_t pos;
+	const char *p;
+
+	str_check(s);
+
+	len = s->s_len;
+	i = pos = str_offset(s, offset);
+	if (pos < 0)
+		return -1;
+	else if (UNSIGNED(pos) >= len)
+		i = len - 1;
+
+	for (p = s->s_data + i++; i != 0; i--) {
+		if G_UNLIKELY(*p-- == c)
+			return i - 1;
+	}
+
+	return -1;
+}
+
+/**
+ * Backward look for character ``c'' in string, starting at end of string.
+ *
+ * @return the offset from the start of the string where character is found,
+ * or -1 if not found.
+ */
+ssize_t
+str_rchr(const str_t *s, int c)
+{
+	return str_rchr_at(s, c, -1);
+}
+
+/**
+ * Generate a new string from the characters within the specified range
+ * in the given string.  Range is inclusive on both sides.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @return a new string object
+ */
+str_t *
+str_slice(const str_t *s, ssize_t from, ssize_t to)
+{
+	str_t *n;
+	size_t len, start, end;
+
+	str_check(s);
+
+	start = str_offset_safe(s, from);
+	end   = str_offset_safe(s, to);
+
+	len = start <= end ? end - start + 1 : 0;
+	if (0 == s->s_len)
+		len = 0;
+	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
+	n->s_len = len;
+	memcpy(n->s_data, s->s_data + start, len);
+
+	return n;
+}
+
+/**
+ * Generate a new string that is a substring of characters from given
+ * string, starting at a given offset and of specified length.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * When the length specified would include characters beyond the end of
+ * the string, the length is truncated to the actual string length.
+ *
+ * @return a new string object
+ */
+str_t *
+str_substr(const str_t *s, ssize_t from, size_t length)
+{
+	str_t *n;
+	size_t len, start;
+
+	str_check(s);
+	g_assert(size_is_non_negative(length));
+
+	start = str_offset_safe(s, from);
+	if (0 == s->s_len) {
+		len = 0;
+	} else {
+		size_t end = start + length;	/* One char beyond */
+		if (end > s->s_len)
+			end = s->s_len;
+		len = start <= end ? end - start : 0;
+	}
+
+	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
+	n->s_len = len;
+	memcpy(n->s_data, s->s_data + start, len);
+
+	return n;
 }
 
 /**

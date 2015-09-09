@@ -584,9 +584,8 @@ adns_helper_init(void)
 	args->requests = adns_req;
 	args->answers = adns_ans;
 
-	r = thread_create(adns_helper, args, THREAD_F_NO_POOL, ADNS_HELPER_STACK);
-	if (-1 == r)
-		g_error("cannot launch ADNS thread: %m");
+	r = thread_create(adns_helper, args,
+			THREAD_F_NO_POOL | THREAD_F_PANIC, ADNS_HELPER_STACK);
 
 	adns_id = r;
 }

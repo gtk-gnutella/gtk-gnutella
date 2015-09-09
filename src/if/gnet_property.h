@@ -517,6 +517,8 @@ typedef enum {
     PROP_G2_BROWSE_COUNT,
     PROP_G2_BROWSE_SERVED,
     PROP_LOG_SENDING_G2,
+    PROP_SESSION_START_STAMP,
+    PROP_TCP_NO_LISTENING,
     GNET_PROPERTY_END
 } gnet_property_t;
 
@@ -537,6 +539,7 @@ const char *gnet_prop_to_string(property_t prop);
 const char *gnet_prop_default_to_string(property_t);
 const char *gnet_prop_description(property_t);
 gboolean gnet_prop_is_saved(property_t);
+gboolean gnet_prop_is_internal(property_t);
 prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
 

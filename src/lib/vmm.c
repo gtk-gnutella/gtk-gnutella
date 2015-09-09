@@ -126,6 +126,7 @@
 #include "rwlock.h"
 #include "sha1.h"
 #include "spinlock.h"
+#include "stacktrace.h"
 #include "str.h"			/* For str_bprintf() */
 #include "stringify.h"
 #include "thread.h"			/* For thread_small_id() */
@@ -137,7 +138,6 @@
 
 #ifdef TRACK_VMM
 #include "hashtable.h"
-#include "stacktrace.h"
 #endif
 
 #ifdef MINGW32
@@ -182,11 +182,12 @@ static bool vmm_crashing;
 
 #define VMM_CACHE_SIZE		256	/**< Amount of entries per cache line */
 #define VMM_CACHE_LINES		32	/**< Amount of cache lines */
-#define VMM_CACHE_LIFE		60	/**< At most 1 minute if not fragmenting */
-#define VMM_CACHE_MAXLIFE	180	/**< At most 3 minutes if fragmenting */
+#define VMM_CACHE_LIFE		60	/**< At most 1 minute on short-term strategy */
+#define VMM_CACHE_MAXLIFE	900	/**< At most 15 minutes on long-term strategy */
 #define VMM_STACK_MINSIZE	(64 * 1024)		/**< Minimum stack size */
 #define VMM_FOREIGN_LIFE	(60 * 60)		/**< 60 minutes */
 #define VMM_FOREIGN_MAXLEN	(512 * 1024)	/**< 512 KiB */
+#define VMM_WARN_THRESH		512	/**< Pages, 2 MiB with 4K pages */
 
 struct page_info {
 	void *base;		/**< base address */
@@ -311,6 +312,8 @@ static struct vmm_stats {
 	/* Tracking core blocks doesn't make sense: "core" can be fragmented */
 	memusage_t *user_mem;			/**< User memory usage statistics */
 	memusage_t *core_mem;			/**< Core usage statistics */
+	/* Counter to prevent digest from being the same twice in a row */
+	AU64(vmm_stats_digest);
 } vmm_stats;
 static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
 
@@ -442,7 +445,7 @@ static void pmap_overrule(struct pmap *pm,
 static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
-static void *page_cache_find_pages(size_t n, bool emergency);
+static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static void page_cache_free_all(bool locked);
 
 /**
@@ -551,6 +554,22 @@ size_t
 vmm_page_count(size_t size)
 {
 	return pagecount_fast(size);
+}
+
+/**
+ * Loudly warn with a possible stack trace.
+ */
+static void G_GNUC_PRINTF(1, 2)
+vmm_warn_once(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_WARNING, TRUE, format, args);
+	va_end(args);
+
+	if (!stacktrace_caller_known(2))		/* Caller of our caller */
+		s_stacktrace(TRUE, 2);
 }
 
 /**
@@ -707,15 +726,17 @@ G_GNUC_COLD void
 vmm_dump_pmap_log(logagent_t *la)
 {
 	struct pmap *pm = vmm_pmap();
-	size_t i;
+	size_t i, count, size, length;
 	time_t now = tm_time();
+	struct vm_fragment *array;
 
 	/*
 	 * We use a write-lock and not a read-lock here, which can seem surprising
 	 * at first since we're in essence reading the pmap.  However, we are
-	 * using external routines that can allocate memory and recurse back to
-	 * the VMM layer, attempting to then grab the write-lock.  And it is not
-	 * allowed to request a write-lock when the read-lock is already owned.
+	 * allocating memory and re-enter the VMM layer, attempting to then grab
+	 * the write-lock.  It is not allowed to request a write-lock when the
+	 * read-lock is already owned (one needs to upgrade it or release the read
+	 * lock and request the write lock).
 	 *
 	 * Therefore we need to take the write-lock to be fully protected, since
 	 * we can then take it again or request read-locks whilst we own the
@@ -724,15 +745,27 @@ vmm_dump_pmap_log(logagent_t *la)
 
 	rwlock_wlock(&pm->lock);
 
-	log_debug(la, "VMM local pmap (%zu/%zu region%s):",
-		pm->count, pm->size, plural(pm->count));
+	count = pm->count;
+	size = pm->size;
+	length = count * sizeof array[0];
+	array = vmm_alloc(length);			/* Why we need a write-lock on pmap */
+	memcpy(array, pm->array, length);
 
-	for (i = 0; i < pm->count; i++) {
-		struct vm_fragment *vmf = &pm->array[i];
+	rwlock_wunlock(&pm->lock);
+
+	/*
+	 * Remaining code running without any lock, using the data we just copied.
+	 */
+
+	log_debug(la, "VMM local pmap (%zu/%zu region%s):",
+		count, size, plural(count));
+
+	for (i = 0; i < count; i++) {
+		struct vm_fragment *vmf = &array[i];
 		size_t hole = 0;
 
-		if (i < pm->count - 1) {
-			const void *next = pm->array[i+1].start;
+		if (i < count - 1) {
+			const void *next = array[i+1].start;
 			hole = ptr_diff(next, vmf->end);
 		}
 
@@ -755,7 +788,7 @@ vmm_dump_pmap_log(logagent_t *la)
 			size_is_non_negative(hole) ? "" : " *UNSORTED*");
 	}
 
-	rwlock_wunlock(&pm->lock);
+	vmm_free(array, length);
 }
 
 /**
@@ -1633,9 +1666,12 @@ alloc_pages(size_t size, bool update_pmap)
 		 * one: all we have to do is be able to allocate from the page cache,
 		 * even though this would not be an optimal allocation.
 		 *		--RAM, 2015-04-02
+		 *
+		 * We request "user memory" from the page cache to ensure we're going
+		 * to be served if there is memory available there.
 		 */
 
-		p = page_cache_find_pages(n, TRUE);
+		p = page_cache_find_pages(n, TRUE, TRUE);
 		if (p != NULL) {
 			vmm_validate_pages(p, size);
 			memset(p, 0, size);				/* Kernel memory always zeroed */
@@ -3297,13 +3333,14 @@ not_found:
  * Find "n" consecutive pages in the page cache, and remove them if found.
  *
  * @param n			number of pages we want
+ * @param user_mem	whether we're allocating user memory (as opposed to core)
  * @param emergency	whether we need to find pages from the cache at all costs
  *
  * @return a pointer to the start of the memory region, NULL if we were
  * unable to find that amount of contiguous memory.
  */
 static void *
-page_cache_find_pages(size_t n, bool emergency)
+page_cache_find_pages(size_t n, bool user_mem, bool emergency)
 {
 	void *p;
 	size_t len;
@@ -3327,9 +3364,16 @@ page_cache_find_pages(size_t n, bool emergency)
 	/*
 	 * When allocating with a short-term strategy, we attempt to reuse the
 	 * cached memory as much as possible.
+	 *
+	 * Likewise for user memory: as opposed to core memory which will likely
+	 * be further fragmented into smaller pieces and therefore less prone to
+	 * ever beeing freed soon, user memory is typically allocated, used and
+	 * freed as a whole.  So it's more important to be careful when allocating
+	 * core memory under a long-term strategy: it will most probably be a
+	 * memory region we will not free before a long time, if ever.
 	 */
 
-	if (VMM_STRATEGY_SHORT_TERM == strategy)
+	if (user_mem || VMM_STRATEGY_SHORT_TERM == strategy)
 		goto short_term_strategy;
 
 	/*
@@ -3405,6 +3449,8 @@ short_term_strategy:
 			s_minidbg("VMM lookup for large area (%zu pages) returned %p", n, p);
 		}
 	} else {
+		bool single_page = user_mem || VMM_STRATEGY_SHORT_TERM == strategy;
+
 		/*
 		 * Start looking for a suitable page in the page cache matching
 		 * the size we want.
@@ -3416,7 +3462,7 @@ short_term_strategy:
 		/*
 		 * Visit higher-order cache lines if we found nothing in the cache.
 		 *
-		 * Short-term strategy:
+		 * Short-term strategy or user memory:
 		 * If we have data in our cache, reuse it, even for a single page.
 		 *
 		 * Long-term strategy:
@@ -3426,7 +3472,7 @@ short_term_strategy:
 		 * achieved so far in higher-order caches.
 		 */
 
-		if (NULL == p && (VMM_STRATEGY_SHORT_TERM == strategy || n > 1)) {
+		if (NULL == p && (single_page || n > 1)) {
 			size_t i;
 			bool aggressive = FALSE;
 
@@ -3925,7 +3971,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n, FALSE);
+	p = page_cache_find_pages(n, user_mem, FALSE);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		if G_UNLIKELY(zero_mem)
@@ -3938,6 +3984,21 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 		vmm_stats.alloc_from_cache_pages += n;
 		goto update_stats;
 	}
+
+	/*
+	 * When debugging, spot areas of the code that perform large allocations.
+	 * Each spot is only traced once, the first time we go over the allocation
+	 * threshold.
+	 */
+
+	if (n > VMM_WARN_THRESH && vmm_debugging(1)) {
+		vmm_warn_once("%s(): large allocation of %'zu bytes",
+			G_STRFUNC, size);
+	}
+
+	/*
+	 * Could not find suitable page in cache, need to allocate more memory.
+	 */
 
 	p = alloc_pages(size, TRUE);
 	if (NULL == p) {
@@ -4205,6 +4266,33 @@ vmm_get_magazine(size_t npages)
 }
 
 /**
+ *  Allocate pages through magazine, if possible.
+ *
+ * @param npages		amount of pages to allocate
+ * @param zero			whether to zero the allocated region
+ *
+ * @return pointer to start of allocated region, NULL if we did not allocate.
+ */
+static void *
+vmm_magazine_alloc(size_t npages, bool zero)
+{
+	tmalloc_t *depot = vmm_get_magazine(npages);
+
+	if G_UNLIKELY(NULL == depot)
+		return NULL;
+
+	VMM_STATS_LOCK;
+	vmm_stats.allocations++;
+	vmm_stats.allocations_user++;
+	vmm_stats.magazine_allocations++;
+	if (zero)
+		vmm_stats.allocations_zeroed++;
+	VMM_STATS_UNLOCK;
+
+	return zero ? tmalloc0(depot) : tmalloc(depot);
+}
+
+/**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
  * and only allocating a new region when necessary.
  *
@@ -4216,17 +4304,10 @@ vmm_alloc(size_t size)
 	size_t npages = pagecount_fast(size);
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		tmalloc_t *depot = vmm_get_magazine(npages);
+		void *p = vmm_magazine_alloc(npages, FALSE);
 
-		if G_LIKELY(depot != NULL) {
-			VMM_STATS_LOCK;
-			vmm_stats.allocations++;
-			vmm_stats.allocations_user++;
-			vmm_stats.magazine_allocations++;
-			VMM_STATS_UNLOCK;
-
-			return tmalloc(depot);
-		}
+		if G_LIKELY(p != NULL)
+			return p;
 	}
 
 	return vmm_alloc_internal(size, TRUE, FALSE);
@@ -4241,18 +4322,10 @@ vmm_alloc0(size_t size)
 	size_t npages = pagecount_fast(size);
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		tmalloc_t *depot = vmm_get_magazine(npages);
+		void *p = vmm_magazine_alloc(npages, TRUE);
 
-		if G_LIKELY(depot != NULL) {
-			VMM_STATS_LOCK;
-			vmm_stats.allocations++;
-			vmm_stats.allocations_zeroed++;
-			vmm_stats.allocations_user++;
-			vmm_stats.magazine_allocations++;
-			VMM_STATS_UNLOCK;
-
-			return tmalloc0(depot);
-		}
+		if G_LIKELY(p != NULL)
+			return p;
 	}
 
 	return vmm_alloc_internal(size, TRUE, TRUE);
@@ -4850,6 +4923,7 @@ vmm_stats_digest(sha1_t *digest)
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
+	VMM_STATS_INCX(vmm_stats_digest);
 	SHA1_COMPUTE(vmm_stats, digest);
 }
 
@@ -5024,7 +5098,6 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(core_pages);
 
 #undef DUMP
-#undef DUMP64
 
 	/*
 	 * Compute amount of cached pages.
@@ -5073,6 +5146,9 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP("computed_native_pages",
 		cached_pages + stats.user_pages + stats.core_pages + local_pmap.pages);
 
+	DUMP64(vmm_stats_digest);
+
+#undef DUMP64
 #undef DUMP
 }
 

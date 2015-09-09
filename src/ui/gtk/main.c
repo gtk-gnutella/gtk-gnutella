@@ -69,6 +69,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/crash.h"
+#include "lib/entropy.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/omalloc.h"
@@ -196,6 +197,8 @@ on_main_gui_map_event(GtkWidget *unused_widget,
 	(void) unused_widget;
 	(void) unused_udata;
 
+	entropy_harvest_single(PTRLEN(event));
+
 	switch (event->type) {
 	case GDK_MAP:
 		main_window_is_visible = TRUE;
@@ -246,6 +249,8 @@ on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 	(void) unused_udata;
 
 	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+
+	entropy_harvest_single(VARLEN(page_num));
 
 	old_page = notebook_main_current_page;
 	notebook_main_current_page = page_num;
@@ -307,6 +312,9 @@ void
 main_gui_notebook_set_page(int page_num)
 {
 	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+
+	entropy_harvest_single(VARLEN(page_num));
+
 	gtk_notebook_set_current_page(
 		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 		page_num);

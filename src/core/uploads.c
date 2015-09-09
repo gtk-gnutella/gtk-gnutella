@@ -1702,11 +1702,6 @@ upload_gnutella_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 	 * made a request via the N2R resolver.  This will leave more room
 	 * for the mesh information.
 	 * NB: we use HTTP_CBF_BW_SATURATED, not HTTP_CBF_SMALL_REPLY on purpose.
-	 *
-	 * Also, if we sent mesh information for THIS upload, it means we're
-	 * facing a follow-up request and we don't need to send them the SHA1
-	 * again.
-	 *		--RAM, 18/10/2003
 	 */
 
 	if ((flags & HTTP_CBF_BW_SATURATED) && u->n2r)
@@ -1786,6 +1781,8 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
 	time_t last_sent;
+	bool need_content_urn;
+	uint32 urn_flags = flags;
 
 	upload_check(u);
 
@@ -1805,10 +1802,47 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 	if (u->last_dmesh) {
 		last_sent = u->last_dmesh;
 	} else {
-		rw += upload_gnutella_content_urn_add(&buf[rw], size - rw, arg, flags);
-		rw += upload_thex_uri_add(&buf[rw], size - rw, arg, flags);
 		last_sent = mi_get_stamp(u->socket->addr, sha1, tm_time());
 	} 
+
+	/*
+	 * If we sent mesh information for THIS upload, it means we're facing
+	 * a follow-up request and we don't need to send them the SHA1
+	 * again.
+	 *		--RAM, 18/10/2003
+	 *
+	 * However, legacy Phex servents (don't know exactly up to which version)
+	 * do expect to see the X-Gnutella-Content-URN line regardless of whether
+	 * it's a follow-up request.  Failing that, they will close the connection.
+	 * This create a loose-loose situation: they can wait up in the PARQ queue
+	 * and then when it's their turn, they cannot benefit. And we reserved
+	 * the slot for them, denying it to another servent for nothing.  Given
+	 * that Phex is no longer maintained, we have to work-around this here.
+	 *		--RAM, 2015-08-18
+	 */
+
+	need_content_urn = !u->is_followup;		/* TRUE on first request */
+
+	if (
+		!need_content_urn &&
+		u->user_agent != NULL &&
+		is_strprefix(u->user_agent, "Phex ")
+	) {
+		need_content_urn = TRUE;				/* Workaround for Phex */
+		urn_flags &= ~HTTP_CBF_BW_SATURATED;	/* Force generation of header */
+	}
+
+	if (need_content_urn) {
+		rw += upload_gnutella_content_urn_add(&buf[rw], size - rw,
+				arg, urn_flags);	/* urn_flags, not flags, for Phex */
+	}
+
+	/*
+	 * The X-Thex-URI line is never sent on follow-up requests.
+	 */
+
+	if (!u->is_followup)
+		rw += upload_thex_uri_add(&buf[rw], size - rw, arg, flags);
 
 	/*
 	 * Ranges are only emitted for partial files, so no pre-estimation of

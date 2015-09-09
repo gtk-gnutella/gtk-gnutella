@@ -34,9 +34,12 @@
 #include "common.h"
 
 #include "pmsg.h"
+
 #include "halloc.h"
 #include "mempcpy.h"
+#include "unsigned.h"			/* For size_is_non_negative() */
 #include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 #define implies(a,b)	(!(a) || (b))
@@ -508,6 +511,7 @@ pmsg_write(pmsg_t *mb, const void *data, int len)
 	int available, written;
 
 	pmsg_check_consistency(mb);
+	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 
 	arena = mb->m_data;
@@ -530,6 +534,7 @@ pmsg_read(pmsg_t *mb, void *data, int len)
 	int available, readable;
 
 	pmsg_check_consistency(mb);
+	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
@@ -551,6 +556,7 @@ pmsg_discard(pmsg_t *mb, int len)
 	int available, n;
 
 	pmsg_check_consistency(mb);
+	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
@@ -574,6 +580,7 @@ pmsg_discard_trailing(pmsg_t *mb, int len)
 	int available, n;
 
 	pmsg_check_consistency(mb);
+	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
@@ -602,6 +609,7 @@ pmsg_copy(pmsg_t *dest, pmsg_t *src, int len)
 
 	pmsg_check_consistency(dest);
 	pmsg_check_consistency(src);
+	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 	g_assert(pmsg_is_writable(dest));	/* Not shared, or would corrupt data */
 
 	copied = src->m_wptr - src->m_rptr;	/* Available data in source */
@@ -936,6 +944,8 @@ pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes)
 	pmsg_t *mb;
 
 	g_assert(slist);
+	g_assert_log(size_is_non_negative(n_bytes),
+		"%s(): n_bytes=%zd", G_STRFUNC, n_bytes);
 
 	if (0 == n_bytes)
 		return;
@@ -999,6 +1009,7 @@ pmsg_slist_read(slist_t *slist, void *buf, size_t len)
 	void *p;
 
 	g_assert(slist != NULL);
+	g_assert_log(size_is_non_negative(len), "%s(): len=%zd", G_STRFUNC, len);
 
 	iter = slist_iter_removable_on_head(slist);
 	p = buf;
@@ -1105,6 +1116,7 @@ pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n)
 
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(UNSIGNED(pmsg_available(mb)) >= n + 10);	/* Need ule64 length */
+	g_assert_log(size_is_non_negative(n), "%s(): n=%zd", G_STRFUNC, n);
 
 	len = strlen(str);
 	len = MIN(n, len);
@@ -1130,6 +1142,8 @@ pmsg_write_string(pmsg_t *mb, const char *str, size_t length)
 	size_t len;
 
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert_log(size_is_non_negative(length) || (size_t) -1 == length,
+		"%s(): length=%zd", G_STRFUNC, length);
 
 	len = (size_t) -1 == length ? strlen(str) : length;
 

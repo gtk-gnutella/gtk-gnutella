@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2011 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Dynamic string handling.
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2011
+ * @date 1996-2000, 2007, 2010-2015
  */
 
 #ifndef _str_h_
@@ -91,6 +91,7 @@ str_t *str_make(char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
 void str_new_buffer(str_t *str, char *ptr, size_t len, size_t size);
 void str_free(str_t *str);
+void str_discard(str_t *str);
 void str_destroy(str_t *str);
 void str_destroy_null(str_t **s_ptr);
 char *str_2c(str_t *str);
@@ -124,6 +125,12 @@ size_t str_reverse_copyout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
 char str_at(str_t *s, ssize_t offset);
+ssize_t str_chr(const str_t *s, int c);
+ssize_t str_chr_at(const str_t *s, int c, ssize_t offset);
+ssize_t str_rchr(const str_t *s, int c);
+ssize_t str_rchr_at(const str_t *s, int c, ssize_t offset);
+str_t *str_slice(const str_t *s, ssize_t from, ssize_t to);
+str_t *str_substr(const str_t *s, ssize_t from, size_t length);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);

@@ -3705,6 +3705,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	socket_fd_t fd;
 	int saved_errno, family;
 	int protocol;
+	bool reuse_addr = FALSE;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
@@ -3723,6 +3724,8 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	}
 
 	protocol = (SOCK_DGRAM == type) ? IPPROTO_UDP : IPPROTO_TCP;
+
+retry:
 	fd = socket(family, type, protocol);
 
 	if (!is_valid_fd(fd)) {
@@ -3736,11 +3739,16 @@ socket_create_and_bind(const host_addr_t bind_addr,
 			socket_set_ipv6only(fd, G_STRFUNC);
 
 		/* bind() the socket */
+
 		socket_failed = FALSE;
 		len = socket_addr_set(&addr, bind_addr, port);
+
+		if (reuse_addr)
+			socket_set_reuseaddr(fd, G_STRFUNC);
+
 		if (-1 == bind(fd, socket_addr_get_const_sockaddr(&addr), len)) {
 			saved_errno = errno;
-			if (EADDRINUSE == errno) {
+			if (EADDRINUSE == errno && !reuse_addr) {
 				g_warning("%s(): port %u already used by %s, attempting reuse",
 					G_STRFUNC, port, host_addr_to_string(bind_addr));
 				socket_set_reuseaddr(fd, G_STRFUNC);
@@ -3755,6 +3763,22 @@ socket_create_and_bind(const host_addr_t bind_addr,
 			}
 			s_close(fd);
 			fd = INVALID_SOCKET;
+
+			/*
+			 * On Linux, the SO_REUSEADDR flag must be set before the first
+			 * bind().  Settting it afterwards has no effect.  Therefore we
+			 * need to close the socket and retry if we were unable to bind()
+			 * with ``reuse_addr'' still being FALSE.
+			 */
+
+			if (EADDRINUSE == errno && !reuse_addr) {
+				g_warning("%s(): cannot reuse %s port %u on %s "
+					"after failed bind(), retrying...",
+					G_STRFUNC, SOCK_DGRAM == type ? "UDP" : "TCP",
+					port, host_addr_to_string(bind_addr));
+				reuse_addr = TRUE;
+				goto retry;
+			}
 		} else {
 			saved_errno = 0;
 		}
@@ -3781,15 +3805,15 @@ socket_bound:
 		const char *net_str = net_type_to_string(host_addr_net(bind_addr));
 
 		if (socket_failed) {
-			g_warning("unable to create the %s (%s) socket: %m",
-				type_str, net_str);
+			g_warning("%s(): unable to create the %s (%s) socket: %m",
+				G_STRFUNC, type_str, net_str);
 		} else {
 			char bind_addr_str[HOST_ADDR_PORT_BUFLEN];
 
 			host_addr_port_to_string_buf(bind_addr, port,
 				bind_addr_str, sizeof bind_addr_str);
-			g_warning("unable to bind() the %s (%s) socket to %s: %m",
-				type_str, net_str, bind_addr_str);
+			g_warning("%s(): unable to bind() the %s (%s) socket to %s: %m",
+				G_STRFUNC, type_str, net_str, bind_addr_str);
 		}
 	} else {
 		fd = get_non_stdio_fd(fd);

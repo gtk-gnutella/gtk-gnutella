@@ -115,6 +115,8 @@ void s_rawcrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawdebug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
+void s_stacktrace(bool no_stdio, unsigned offset);
+
 /*
  * These routines should not be called directly, use the macros below.
  */

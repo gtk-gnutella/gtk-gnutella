@@ -236,7 +236,7 @@ upnp_mapping_hash(const void *p)
 {
 	const struct upnp_mapping *um = p;
 
-	return integer_hash2(um->proto) ^ port_hash(um->port);
+	return integer_hash_fast(um->proto) ^ u16_hash2(um->port);
 }
 
 /**
@@ -247,7 +247,7 @@ upnp_mapping_hash2(const void *p)
 {
 	const struct upnp_mapping *um = p;
 
-	return integer_hash(um->proto) ^ port_hash2(um->port);
+	return integer_hash2(um->proto) ^ u16_hash(um->port);
 }
 
 /**
@@ -601,6 +601,9 @@ upnp_discover:
 	 * If there's no NAT-PMP available, or they do not want to publish
 	 * port mappings via NAT-PMP, see whether we can do UPnP.
 	 */
+
+	if G_UNLIKELY(NULL == upnp_mappings)
+		return;		/* Layer was shutdown, abort */
 
 	upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
 }

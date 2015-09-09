@@ -104,6 +104,10 @@ void shared_file_unref(shared_file_t **sf_ptr);
 void shared_file_fileinfo_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
 
+struct hset;
+struct hset *share_tthset_get(void);
+void share_tthset_free(struct hset *set);
+
 void parse_extensions(const char *);
 char *get_file_path(int);
 void shared_dirs_update_prop(void);

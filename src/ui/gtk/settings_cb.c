@@ -34,6 +34,10 @@
 
 #include "gui.h"
 
+#ifdef USE_GTK2
+#include "gtk2/column_sort.h"
+#endif
+
 #include "misc.h"
 #include "settings_cb.h"
 #include "settings.h"
@@ -363,6 +367,7 @@ on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 
 enum dbg_cols {
 	dbg_col_saved = 0,
+	dbg_col_internal,
 	dbg_col_type,
 	dbg_col_name,
 	dbg_col_value,
@@ -376,6 +381,7 @@ enum dbg_cols {
 
 #ifdef USE_GTK2
 static tree_view_motion_t *tvm_dbg_property;
+static struct sorting_context dbg_column_sort;
 
 static void
 update_tooltip(GtkTreeView *tv, GtkTreePath *path)
@@ -465,7 +471,8 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 	u = 0;
 	gtk_tree_model_get(model, &iter, dbg_col_property, &u, (-1));
 	prop = (property_t) u;
-	gnet_prop_set_from_string(prop,	text);
+	if (!gnet_prop_is_internal(prop))
+		gnet_prop_set_from_string(prop,	text);
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 		dbg_col_value, gnet_prop_to_string(prop),
 		(-1));
@@ -541,6 +548,36 @@ on_cursor_changed(GtkTreeView *unused_tv, gpointer unused_udata)
 }
 
 static void
+on_dbg_column_clicked(GtkTreeViewColumn *column, void *udata)
+{
+	(void) udata;
+
+	column_sort_tristate(column, &dbg_column_sort);
+}
+
+static inline const char *
+dbg_get_data(GtkTreeModel *model, GtkTreeIter *iter, gint column)
+{
+	GValue value;
+
+	ZERO(&value);
+	gtk_tree_model_get_value(model, iter, column, &value);
+	return g_value_get_string(&value);
+}
+
+static gint
+dbg_column_cmp(
+	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer col)
+{
+	const char *sa, *sb;
+	gint column = pointer_to_int(col);
+
+	sa = dbg_get_data(model, a, column);
+	sb = dbg_get_data(model, b, column);
+	return strcmp(sa, sb);
+}
+
+static void
 dbg_tree_init(void)
 {
 	static const struct {
@@ -550,6 +587,7 @@ dbg_tree_init(void)
 		const enum dbg_cols id;
 	} columns[] = {
 		{ N_("Saved"),	 	  0, FALSE, dbg_col_saved },
+		{ N_("Internal"), 	  0, FALSE, dbg_col_internal },
 		{ N_("Type"),		  0, FALSE, dbg_col_type },
 		{ N_("Property"),	  0, FALSE, dbg_col_name },
 		{ N_("Value"),		200, TRUE,  dbg_col_value  },
@@ -563,10 +601,11 @@ dbg_tree_init(void)
 	
 	tv = GTK_TREE_VIEW(gui_dlg_prefs_lookup("treeview_dbg_property"));
 	store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
+				G_TYPE_STRING,		/* Saved? */
+				G_TYPE_STRING,		/* Internal? */
 				G_TYPE_STRING,		/* Type */
 				G_TYPE_STRING,		/* Name */
 				G_TYPE_STRING,		/* Value */
-				G_TYPE_STRING,		/* Persistent */
 				G_TYPE_UINT));		/* property_t */
 
 	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
@@ -619,6 +658,12 @@ dbg_tree_init(void)
 
 		gtk_tree_view_column_set_sort_column_id(column, i);
 		gtk_tree_view_append_column(tv, column);
+
+		gtk_tree_sortable_set_sort_func(
+			GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)),
+			i, dbg_column_cmp, uint_to_pointer(i), NULL);
+
+		column_sort_tristate_register(column, on_dbg_column_clicked, NULL);
 	}
 
 	gui_signal_connect(tv, "enter-notify-event", on_enter_notify, tv);
@@ -669,11 +714,12 @@ dbg_property_show_list(const pslist_t *props)
 
 		gtk_list_store_append(store, &iter);
 		gtk_list_store_set(store, &iter,
-			dbg_col_saved,		gnet_prop_is_saved(prop) ? _("Yes") : _("No"),
-			dbg_col_type,		gnet_prop_type_to_string(prop),
-			dbg_col_name,		gnet_prop_name(prop),
-			dbg_col_value,		gnet_prop_to_string(prop),
-			dbg_col_property,	(guint) prop,
+			dbg_col_saved,     gnet_prop_is_saved(prop) ? _("Yes") : _("No"),
+			dbg_col_internal,  gnet_prop_is_internal(prop) ? _("Yes") : _("No"),
+			dbg_col_type,      gnet_prop_type_to_string(prop),
+			dbg_col_name,      gnet_prop_name(prop),
+			dbg_col_value,     gnet_prop_to_string(prop),
+			dbg_col_property,  (guint) prop,
 			(-1));
 	}
 }
@@ -734,6 +780,9 @@ dbg_property_set_row(GtkCList *clist, gint row, property_t prop)
 		case dbg_col_saved:
 			text = gnet_prop_is_saved(prop) ? _("Yes") : _("No");
 			break;
+		case dbg_col_internal:
+			text = gnet_prop_is_internal(prop) ? _("Yes") : _("No");
+			break;
 		case dbg_col_type:
 			text = gnet_prop_type_to_string(prop);
 			break;
@@ -763,7 +812,8 @@ dbg_property_show_list(const pslist_t *props)
 	gtk_clist_clear(clist);
 
 	PSLIST_FOREACH(props, sl) {
-		static const char * const titles[num_dbg_cols] = { "", "", "", "", };
+		static const char * const titles[num_dbg_cols] =
+			{ "", "", "", "", "", };
 		property_t prop = GPOINTER_TO_UINT(sl->data);
 		gint row;
 		
@@ -790,12 +840,15 @@ on_entry_dbg_property_value_activate(GtkEditable *editable,
 		property_t prop;
 		gint row;
 
-		text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 		row = GPOINTER_TO_INT(clist->selection->data);
 		prop = GPOINTER_TO_UINT(gtk_clist_get_row_data(clist, row));
-		gnet_prop_set_from_string(prop,	text);
-		dbg_property_set_row(clist, row, prop);
-		G_FREE_NULL(text);
+
+		if (!gnet_prop_is_internal(prop)) {
+			char *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+			gnet_prop_set_from_string(prop,	text);
+			dbg_property_set_row(clist, row, prop);
+			G_FREE_NULL(text);
+		}
 	}
 }
 

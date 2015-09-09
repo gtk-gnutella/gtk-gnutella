@@ -1,0 +1,85 @@
+launch(): starting traversal of "ftw-root"
+	calling sortpath(data)
+	flags FTW_O_DEPTH | FTW_O_ENTRY | FTW_O_MOUNT | FTW_O_PHYS | FTW_O_ALL
+launch(): traversal of "ftw-root" done, result=0
+sorted_tree(): tree has 20 items
+printpath(): level=2, fbase = a1 [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/a/a1 [13]
+	rpath = a/a1 [4]
+printpath(): level=2, fbase = a2 [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/a/a2 [13]
+	rpath = a/a2 [4]
+printpath(): level=2, fbase = a3 [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/a/a3 [13]
+	rpath = a/a3 [4]
+printpath(): level=2, fbase = bar [3]
+	flags = FTW_F_SYMLINK
+	fpath = ftw-root/a/bar [14]
+	rpath = a/bar [5]
+printpath(): level=2, fbase = d1 [2]
+	flags = FTW_F_SYMLINK
+	fpath = ftw-root/a/d1 [13]
+	rpath = a/d1 [4]
+printpath(): level=2, fbase = foo [3]
+	flags = FTW_F_OTHER
+	fpath = ftw-root/a/foo [14]
+	rpath = a/foo [5]
+printpath(): level=2, fbase = ls [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/a/ls [13]
+	rpath = a/ls [4]
+printpath(): level=1, fbase = a [1]
+	flags = FTW_F_DIR
+	fpath = ftw-root/a [10]
+	rpath = a [1]
+printpath(): level=1, fbase = b [1]
+	flags = FTW_F_DIR | FTW_F_NOREAD
+	fpath = ftw-root/b [10]
+	rpath = b [1]
+printpath(): level=2, fbase = c1 [2]
+	flags = FTW_F_FILE | FTW_F_NOSTAT
+	fpath = ftw-root/c/c1 [13]
+	rpath = c/c1 [4]
+printpath(): level=2, fbase = c2 [2]
+	flags = FTW_F_FILE | FTW_F_NOSTAT
+	fpath = ftw-root/c/c2 [13]
+	rpath = c/c2 [4]
+printpath(): level=2, fbase = c3 [2]
+	flags = FTW_F_FILE | FTW_F_NOSTAT
+	fpath = ftw-root/c/c3 [13]
+	rpath = c/c3 [4]
+printpath(): level=2, fbase = ls [2]
+	flags = FTW_F_FILE | FTW_F_NOSTAT
+	fpath = ftw-root/c/ls [13]
+	rpath = c/ls [4]
+printpath(): level=1, fbase = c [1]
+	flags = FTW_F_DIR
+	fpath = ftw-root/c [10]
+	rpath = c [1]
+printpath(): level=2, fbase = d1 [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/d/d1 [13]
+	rpath = d/d1 [4]
+printpath(): level=2, fbase = d2 [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/d/d2 [13]
+	rpath = d/d2 [4]
+printpath(): level=2, fbase = d3 [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/d/d3 [13]
+	rpath = d/d3 [4]
+printpath(): level=2, fbase = ls [2]
+	flags = FTW_F_FILE
+	fpath = ftw-root/d/ls [13]
+	rpath = d/ls [4]
+printpath(): level=1, fbase = d [1]
+	flags = FTW_F_DIR
+	fpath = ftw-root/d [10]
+	rpath = d [1]
+printpath(): level=0, fbase = ftw-root [8]
+	flags = FTW_F_DIR
+	fpath = ftw-root [8]
+	rpath =  [0]

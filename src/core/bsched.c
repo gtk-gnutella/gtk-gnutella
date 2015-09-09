@@ -41,6 +41,7 @@
 #include "if/core/wrap.h"		/* For wrapped_io_t */
 #include "if/gnet_property_priv.h"
 
+#include "lib/compat_sendfile.h"
 #include "lib/entropy.h"
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
@@ -2111,48 +2112,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 		}
 	}
 #else /* !USE_MMAP */
-#ifdef USE_BSD_SENDFILE
-	/*
-	 * The FreeBSD semantics for sendfile() differ from the Linux one:
-	 *
-	 * . FreeBSD sendfile() returns 0 on success, -1 on failure.
-	 * . FreeBSD sendfile() returns the amount of written bytes via a parameter
-	 *   when EAGAIN.
-	 * . FreeBSD sendfile() does not update the offset inplace.
-	 *
-	 * Emulate the Linux semantics: set `r' to the amount of bytes written,
-	 * and update the `offset' variable.
-	 */
-
-	{
-		fileoffset_t written = 0;
-
-		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, 0);
-		if ((ssize_t) -1 == r) {
-			if (is_temporary_error(errno))
-				r = written > 0 ? (ssize_t) written : (ssize_t) -1;
-		} else {
-			r = amount;			/* Everything written, but returns 0 if OK */
-		}
-		if (r > 0)
-			*offset = start + r;
-	}
-
-#else	/* !USE_BSD_SENDFILE */
-
-	r = sendfile(out_fd, in_fd, offset, amount);
-
-	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
-		g_warning("FIXED SENDFILE returned offset: "
-			"was set to %s instead of %s (%zu byte%s written)",
-			uint64_to_string(*offset), uint64_to_string2(start + r),
-			r, plural(r));
-		*offset = start + r;
-	} else if ((ssize_t) -1 == r) {
-		*offset = start;	/* Paranoid: in case sendfile() touched it */
-	}
-
-#endif	/* USE_BSD_SENDFILE */
+	r = compat_sendfile(out_fd, in_fd, offset, amount);
 #endif	/* USE_MMAP */
 
 	if (r > 0) {

@@ -652,10 +652,12 @@ cache_finish_traversal(void *key, void *value, void *data)
 	 */
 
 	if (fctx->removing) {
-		if ((*fctx->u.cbr)(key, &d, fctx->foreach))
+		if ((*fctx->u.cbr)(key, &d, fctx->foreach)) {
 			fctx->removed++;	/* Item removed in cache_free_removable() */
-		else
+			entry->removable = TRUE;
+		} else {
 			fctx->cached++;
+		}
 	} else {
 		(*fctx->u.cb)(key, &d, fctx->foreach);
 		fctx->cached++;

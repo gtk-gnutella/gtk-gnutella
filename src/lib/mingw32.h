@@ -138,7 +138,6 @@
 #define SIGTRAP	12		/* Simulated, unassigned signal number in MinGW32 */
 #endif
 
-#define getppid()		1
 #define fcntl mingw_fcntl
 #define ffs __builtin_ffs
 #define sleep mingw_sleep
@@ -198,6 +197,7 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #undef getdtablesize
 #define getdtablesize mingw_getdtablesize
 #define mkdir mingw_mkdir
+#define rmdir mingw_rmdir
 #define access mingw_access
 #define chdir mingw_chdir
 #define remove mingw_remove
@@ -241,19 +241,44 @@ struct passwd {
 };
 
 struct flock {
-    short int l_type;	/* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK.  */
-    short int l_whence;	/* Where `l_start' is relative to (like `lseek').  */
-    fileoffset_t l_start;		/* Offset where the lock begins.  */
-    fileoffset_t l_len;		/* Size of the locked area; zero means until EOF.  */
-    pid_t l_pid;		/* Process holding the lock.  */
+    short int l_type;		/* Type of lock: F_RDLCK, F_WRLCK, or F_UNLCK */
+    short int l_whence;		/* Where `l_start' is relative to (like `lseek') */
+    fileoffset_t l_start;	/* Offset where the lock begins */
+    fileoffset_t l_len;		/* Size of the locked area; zero means until EOF */
+    pid_t l_pid;			/* Process holding the lock  */
 };
 
-struct mingw_statvfs {
-	unsigned long f_csize;		/* Cluster size, in bytes */
-	unsigned long f_cavail;		/* Available clusters */
-	unsigned long f_clusters;	/* Total amount of clusters */
+/*
+ * statvfs() emulation.
+ */
 
+#ifndef HAS_STATVFS
+#define HAS_STATVFS				/* We emulate it */
+#endif
+
+typedef unsigned long fsblkcnt_t;
+typedef unsigned long fsfilcnt_t;
+
+#define statvfs mingw_statvfs	/* Aliases both struct and routine */
+
+#define ST_RDONLY	(1U << 0)	/* Read-only file system */
+#define ST_NOSUID	(1U << 1)	/* Setuid/setgid bits are ignored by exec() */
+
+struct statvfs {
+	unsigned long  f_bsize;		/* file system block size */
+	unsigned long  f_frsize;	/* fragment size */
+	fsblkcnt_t     f_blocks;	/* size of fs in f_frsize units */
+	fsblkcnt_t     f_bfree;		/* # free blocks */
+	fsblkcnt_t     f_bavail;	/* # free blocks for unprivileged users */
+	fsfilcnt_t     f_files;		/* # inodes */
+	fsfilcnt_t     f_ffree;		/* # free inodes */
+	fsfilcnt_t     f_favail;	/* # free inodes for unprivileged users */
+	unsigned long  f_fsid;		/* file system ID */
+	unsigned long  f_flag;		/* mount flags */
+	unsigned long  f_namemax;	/* maximum filename length */
 };
+
+int mingw_statvfs(const char *pathname, struct statvfs *buf);
 
 #ifndef HAS_GETLOGIN
 #define HAS_GETLOGIN			/* We emulate it */
@@ -332,6 +357,17 @@ int mingw_getrusage(int who, struct rusage *usage);
 
 int mingw_fsync(int fd);
 #endif	/* !HAS_FSYNC */
+
+/*
+ * getppid() emulation.
+ */
+#ifndef HAS_GETPPID
+#define HAS_GETPPID
+#define EMULATE_GETPPID
+#define getppid mingw_getppid
+
+pid_t mingw_getppid(void);
+#endif	/* !HAS_GETPPID */
 
 /*
  * uname() emulation.
@@ -426,6 +462,10 @@ const char *mingw_get_startup_path(void);
 const char *mingw_get_system_path(void);
 const char *mingw_get_windows_path(void);
 
+DIR *mingw_opendir(const char *pathname);
+struct dirent *mingw_readdir(DIR *);
+int mingw_closedir(DIR *);
+
 uint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
@@ -434,13 +474,11 @@ int mingw_fstat(int fd, filestat_t *buf);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_unlink(const char *pathname);
-void *mingw_opendir(const char *pathname);
-void *mingw_readdir(void *);
-int mingw_closedir(void *);
 fileoffset_t mingw_lseek(int fd, fileoffset_t offset, int whence);
 int mingw_rename(const char *oldpathname, const char *newpathname);
 int mingw_truncate(const char *pathname, fileoffset_t len);
 int mingw_mkdir(const char *pathname, mode_t mode);
+int mingw_rmdir(const char *pathname);
 int mingw_access(const char *pathname, int mode);
 int mingw_chdir(const char *pathname);
 int mingw_remove(const char *pathname);
@@ -622,7 +660,6 @@ int mingw_mprotect(void *addr, size_t len, int prot);
 int mingw_random_bytes(void *buf, size_t len);
 bool mingw_process_is_alive(pid_t pid);
 
-int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
 unsigned int mingw_sleep(unsigned int seconds);
 long mingw_cpu_count(void);
 uint64 mingw_cpufreq_min(void);
@@ -662,10 +699,11 @@ bool mingw_stdin_pending(bool fifo);
 bool mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
 const char *dir_entry_filename(const void *dirent);
-int mingw_getgateway(uint32 *ip);
+size_t dir_entry_namelen(const void *dirent);
 
+int mingw_getgateway(uint32 *ip);
 bool mingw_in_exception(void);
-void G_GNUC_NORETURN mingw_abort(void);
+void mingw_abort(void) G_GNUC_NORETURN;
 int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
 
 struct adns_request;

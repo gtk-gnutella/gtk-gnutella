@@ -37,8 +37,9 @@
 #include "common.h"
 
 #include "share.h"
-#include "extensions.h"
+
 #include "downloads.h"
+#include "extensions.h"
 #include "fileinfo.h"
 #include "ggep_type.h"
 #include "gmsg.h"
@@ -55,6 +56,7 @@
 #include "search.h"
 #include "settings.h"
 #include "spam.h"
+#include "tth_cache.h"
 #include "upload_stats.h"
 #include "uploads.h"
 
@@ -1373,6 +1375,60 @@ directory_is_unshareable(const char *dir)
 
 	return FALSE;	/* No objection */
 }
+/**
+ * Generate a set of TTH hashes belonging to shared files.
+ * This set can be disposed of by share_tthset_free().
+ *
+ * @return newly allocate set of shared TTH (atoms).
+ */
+hset_t *
+share_tthset_get(void)
+{
+	uint64 n;
+	shared_file_t **sfp;
+	hset_t *set;
+
+	set = hset_create(HASH_KEY_FIXED, TTH_RAW_SIZE);
+
+	SHARED_LIBFILE_LOCK;
+
+	n = shared_libfile.files_scanned;
+	sfp = shared_libfile.file_table;
+
+	while (n-- != 0) {
+		shared_file_t *sf = *sfp++;
+
+		shared_file_check(sf);
+
+		if (sf->tth != NULL && !hset_contains(set, sf->tth)) {
+			const struct tth *tth = atom_tth_get(sf->tth);
+			hset_insert(set, tth);
+		}
+	}
+
+	SHARED_LIBFILE_UNLOCK;
+
+	return set;
+}
+
+static void
+share_tthset_keyfree(const void *data, void *udata)
+{
+	const struct tth *tth = data;
+
+	(void) udata;
+	atom_tth_free(tth);
+}
+
+/**
+ * Free set created by share_tthset_get().
+ */
+void
+share_tthset_free(hset_t *set)
+{
+	hset_foreach(set, share_tthset_keyfree, NULL);
+	hset_free_null(&set);
+}
 
 enum recursive_scan_magic { RECURSIVE_SCAN_MAGIC = 0x16926d87U };
 
@@ -2434,6 +2490,25 @@ recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
 	return BGR_NEXT;
 }
 
+static bgret_t
+recursive_scan_step_tth_cache_cleanup(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	(void) bt;
+	(void) ticks;
+
+	/*
+	 * Now that we have the library of shared files all setup, see whether
+	 * there are entries in the TTH cache that are no longer required
+	 * because their TTH is no longer associated with a shared file.
+	 */
+
+	tth_cache_cleanup();
+	return BGR_NEXT;
+}
+
 /**
  * First step, intalling signal handler to trap task cancel.
  */
@@ -2752,9 +2827,10 @@ share_rescan_create_task(bgsched_t *bs)
 		recursive_scan_step_build_sorted_table,
 		recursive_scan_step_install_shared,
 		recursive_scan_step_request_sha1,
+		recursive_scan_step_tth_cache_cleanup,
 
 		/*
-		 * Remains steps identical to the ones listed in
+		 * The following group of steps is identical to the ones listed in
 		 * share_update_qrp_create_task().
 		 */
 
@@ -3027,11 +3103,9 @@ share_thread_create(void)
 	 */
 
 	r = thread_create(share_thread_main, barrier_refcnt_inc(b),
-			THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_NO_POOL,
+			THREAD_F_DETACH | THREAD_F_NO_CANCEL |
+				THREAD_F_NO_POOL | THREAD_F_PANIC,
 			THREAD_STACK_MIN);
-
-	if (-1 == r)
-		s_error("%s(): cannot create library thread: %m", G_STRFUNC);
 
 	barrier_wait(b);		/* Wait for thread to initialize */
 	barrier_free_null(&b);

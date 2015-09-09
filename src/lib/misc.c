@@ -1137,7 +1137,7 @@ base32_to_guid(const char *base32, guid_t *guid)
 	g_assert(base32 != NULL);
 	g_assert(guid != NULL);
 
-	ret = base32_decode(guid->v, sizeof guid->v, base32, GUID_BASE32_SIZE);
+	ret = base32_decode(guid, sizeof *guid, base32, GUID_BASE32_SIZE);
 	return (size_t) 0 + GUID_RAW_SIZE == ret ? guid : NULL;
 }
 
@@ -1341,7 +1341,7 @@ base32_sha1(const char *base32)
 
 	g_assert(base32 != NULL);
 
-	len = base32_decode(s->data, sizeof s->data, base32, SHA1_BASE32_SIZE);
+	len = base32_decode(s, sizeof *s, base32, SHA1_BASE32_SIZE);
 	return SHA1_RAW_SIZE == len ? s : NULL;
 }
 
@@ -1382,7 +1382,7 @@ base32_tth(const char *base32)
 
 	g_assert(base32 != NULL);
 
-	len = base32_decode(t->data, sizeof t->data, base32, TTH_BASE32_SIZE);
+	len = base32_decode(t, sizeof *t, base32, TTH_BASE32_SIZE);
 	return TTH_RAW_SIZE == len ? t : NULL;
 }
 

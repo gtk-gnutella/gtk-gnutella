@@ -935,7 +935,7 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
  * @param no_stdio		whether we must avoid stdio
  * @param offset		stack offset to apply to remove overhead from stack
  */
-static void NO_INLINE
+void NO_INLINE
 s_stacktrace(bool no_stdio, unsigned offset)
 {
 	static bool tracing[THREAD_MAX];

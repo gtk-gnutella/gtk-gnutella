@@ -216,6 +216,7 @@ pixmaps/magnet.32x32.png
 pixmaps/magnet.64x64.png
 pixmaps/natpmp.xpm
 pixmaps/no_firewall.xpm
+pixmaps/no_listening.xpm
 pixmaps/offline.xpm
 pixmaps/online.xpm
 pixmaps/pause.xpm
@@ -679,8 +680,12 @@ src/lib/compat_pio.c
 src/lib/compat_pio.h
 src/lib/compat_poll.c
 src/lib/compat_poll.h
+src/lib/compat_sendfile.c
+src/lib/compat_sendfile.h
 src/lib/compat_sleep_ms.c
 src/lib/compat_sleep_ms.h
+src/lib/compat_statvfs.c
+src/lib/compat_statvfs.h
 src/lib/compat_un.c
 src/lib/compat_un.h
 src/lib/compat_usleep.c
@@ -760,6 +765,11 @@ src/lib/frand.c
 src/lib/frand.h
 src/lib/fs_free_space.c
 src/lib/fs_free_space.h
+src/lib/ftw-mktree
+src/lib/ftw-root.out
+src/lib/ftw-test.c
+src/lib/ftw.c
+src/lib/ftw.h
 src/lib/gentime.c
 src/lib/gentime.h
 src/lib/getcpucount.c
@@ -866,6 +876,7 @@ src/lib/options.h
 src/lib/ostream.c
 src/lib/ostream.h
 src/lib/override.h
+src/lib/owlist-gen.c
 src/lib/pagetable.c
 src/lib/pagetable.h
 src/lib/palloc.c
@@ -996,6 +1007,8 @@ src/lib/wq.c
 src/lib/wq.h
 src/lib/xmalloc.c
 src/lib/xmalloc.h
+src/lib/xslist.c
+src/lib/xslist.h
 src/lib/xsort-gen.c
 src/lib/xsort.c
 src/lib/xsort.h

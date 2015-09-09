@@ -66,7 +66,7 @@
  * If the state is not initialized with random values (either one created via
  * mt_state_new() or for the built-in default state), it will be intialized
  * as needed the first time it is used by generating random values with the
- * arc4random() routine.
+ * aje_rand() routine.
  *
  * When using user-supplied states, no lock protection occurs unless
  * mts_lock_xxx() routines are used.  This allows faster execution paths
@@ -98,7 +98,8 @@
 #include "common.h"
 
 #include "mtwist.h"
-#include "arc4random.h"
+
+#include "aje.h"
 #include "omalloc.h"
 #include "once.h"
 #include "random.h"
@@ -264,14 +265,10 @@ mts_refresh(register mt_state_t *mts)
 
 	/*
 	 * Start by making sure a random seed has been set.  If not, set one.
-	 *
-	 * Note from RAM: we use arc4random() to initialize the state because it
-	 * is the fastest way and the strongest PRNG we have available besides
-	 * Mersenne Twister.
 	 */
 
 	if G_UNLIKELY(!mts->initialized) {
-		mts_seed_with(arc4random, mts);
+		mts_seed_with(aje_rand, mts);
 		g_assert(mts->initialized);		/* No recursion via mts_discard()! */
 		mts_discard(mts);
 	}
@@ -811,7 +808,7 @@ static void
 mt_init_once(void)
 {
 	MTWIST_LOCK;
-	mts_seed_with(arc4random, &mt_default);
+	mts_seed_with(aje_rand, &mt_default);
 	mts_discard(&mt_default);
 	MTWIST_UNLOCK;
 }

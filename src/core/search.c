@@ -628,24 +628,6 @@ search_status_changed(gnet_search_t search_handle)
  *** Management of the "sent_nodes" hash table.
  ***/
 
-static uint
-sent_node_hash_func(const void *key)
-{
-	const gnet_host_t *sd = key;
-
-	return host_addr_hash(gnet_host_get_addr(sd)) ^
-			port_hash(gnet_host_get_port(sd));
-}
-
-static int
-sent_node_compare(const void *a, const void *b)
-{
-	const gnet_host_t *sa = a, *sb = b;
-
-	return gnet_host_get_port(sa) == gnet_host_get_port(sb) &&
-		host_addr_equiv(gnet_host_get_addr(sa), gnet_host_get_addr(sb));
-}
-
 static void
 search_free_sent_node(const void *key, void *unused_udata)
 {
@@ -6721,7 +6703,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 		}
 
 		sch->sent_nodes =
-			hset_create_any(sent_node_hash_func, NULL, sent_node_compare);
+			hset_create_any(gnet_host_hash, NULL, gnet_host_equiv);
 		sch->sent_node_ids = hset_create_any(nid_hash, nid_hash2, nid_equal);
 	}
 

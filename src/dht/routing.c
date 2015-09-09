@@ -5419,7 +5419,7 @@ dht_route_parse(FILE *f)
 		case DHT_ROUTE_TAG_KUID:
 			if (
 				KUID_RAW_SIZE * 2 != strlen(value) ||
-				KUID_RAW_SIZE != base16_decode((char *) kuid.v, sizeof kuid.v,
+				KUID_RAW_SIZE != base16_decode(&kuid, sizeof kuid,
 					value, KUID_RAW_SIZE * 2)
 			)
 				goto damaged;

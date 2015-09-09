@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-180]
-: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
+: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  random-test.c  sort-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  random-test.o  sort-test.o  thread-test.o
+SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  random-test.c  sort-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  random-test.o  sort-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -75,7 +75,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 174 2014-04-05 08:19:48Z rmanfredi $
+# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -154,7 +154,9 @@ LSRC = \
 	compat_pause.c \
 	compat_pio.c \
 	compat_poll.c \
+	compat_sendfile.c \
 	compat_sleep_ms.c \
+	compat_statvfs.c \
 	compat_un.c \
 	compat_usleep.c \
 	concat.c \
@@ -191,6 +193,7 @@ LSRC = \
 	fragcheck.c \
 	frand.c \
 	fs_free_space.c \
+	ftw.c \
 	gen-iprange.c \
 	gentime.c \
 	getcpucount.c \
@@ -304,6 +307,7 @@ LSRC = \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
+	xslist.c \
 	xsort.c \
 	xsort_data.c \
 	xxtea.c \
@@ -337,7 +341,9 @@ LOBJ = \
 	compat_pause.o \
 	compat_pio.o \
 	compat_poll.o \
+	compat_sendfile.o \
 	compat_sleep_ms.o \
+	compat_statvfs.o \
 	compat_un.o \
 	compat_usleep.o \
 	concat.o \
@@ -374,6 +380,7 @@ LOBJ = \
 	fragcheck.o \
 	frand.o \
 	fs_free_space.o \
+	ftw.o \
 	gen-iprange.o \
 	gentime.o \
 	getcpucount.o \
@@ -487,6 +494,7 @@ LOBJ = \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \
+	xslist.o \
 	xsort.o \
 	xsort_data.o \
 	xxtea.o \
@@ -570,8 +578,13 @@ float-times: float-test floats
 	echo -n "free:    " >>$@
 	sh -c "time ./float-test floats dragon > /dev/null" >>$@ 2>&1
 
+ftw-check: ftw-test
+	./ftw-mktree
+	./ftw-test -s ftw-root | diff -u - ftw-root.out >$@
+
 local_clean::
-	$(RM) floats float-dragon.out bad-fixed float-times
+	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
+	./ftw-mktree -r
 
 all:: float-test
 
@@ -583,6 +596,17 @@ float-test:  float-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  float-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: ftw-test
+
+local_realclean::
+	$(RM) ftw-test$(_EXE)
+
+ftw-test:  ftw-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  ftw-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: random-test
 
@@ -647,6 +671,9 @@ local_clobber:: local_realclean
 install:: local_install
 	@exit 0
 
+install-strip:: local_install-strip
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man
@@ -684,6 +711,9 @@ depend::
 
 local_install::
 	@echo "install in $(CURRENT) done."
+
+local_install-strip::
+	@echo "install (strip) in $(CURRENT) done."
 
 local_deinstall::
 	@echo "deinstall in $(CURRENT) done."

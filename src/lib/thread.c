@@ -97,6 +97,7 @@
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
+#include "log.h"
 #include "mem.h"
 #include "mutex.h"
 #include "omalloc.h"
@@ -413,6 +414,7 @@ static struct thread_stats {
 	AU64(thread_self_calls);		/* Amount of thread_self() calls made */
 	AU64(thread_forks);				/* Amount of thread_fork() calls made */
 	AU64(thread_yields);			/* Amount of thread_yield() calls made */
+	AU64(thread_stats_digest);		/* Amount of calls to compute SHA1 digest */
 } thread_stats;
 
 #define THREAD_STATS_INCX(name) AU64_INC(&thread_stats.name)
@@ -7373,12 +7375,12 @@ thread_sp(void)
 	int sp;
 
 	/*
-	 * The cast_to_pointer() is of course unnecessary but is there to
-	 * prevent the "function returns address of local variable" warning
-	 * from gcc.
+	 * The useless masking computation below is there to avoid gcc 5.x from
+	 * (wrongly) optimizing this routine to return NULL.
+	 *		--RAM, 2015-07-20
 	 */
 
-	return cast_to_pointer(&sp);
+	return ulong_to_pointer(pointer_to_ulong(&sp) & ~(MEM_ALIGNBYTES - 1));
 }
 
 /**
@@ -7645,6 +7647,7 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 	thread_exit_t exited, void *earg)
 {
 	struct thread_element *te;
+	int ret;
 
 	g_assert(routine != NULL);
 	g_assert(size_is_non_negative(stack));
@@ -7668,7 +7671,7 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 
 	if (NULL == te) {
 		errno = EAGAIN;		/* Not enough resources to create new thread */
-		return -1;
+		goto error;
 	}
 
 	/*
@@ -7687,7 +7690,23 @@ thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
 		eslist_prepend(&te->exit_list, e);
 	}
 
-	return thread_launch(te, routine, arg, flags, stack);
+	ret = thread_launch(te, routine, arg, flags, stack);
+
+	if G_LIKELY(ret >= 0)
+		return ret;
+
+	/* FALL THROUGH */
+
+error:
+	if (THREAD_F_WARN & flags) {
+		s_carp("%s(): cannot create thread for %s(%p): %m",
+			G_STRFUNC, stacktrace_function_name(routine), arg);
+	} else if (THREAD_F_PANIC & flags) {
+		s_error("%s(): cannot create thread for %s(%p): %m",
+			G_STRFUNC, stacktrace_function_name(routine), arg);
+	}
+
+	return -1;
 }
 
 struct thread_exit_context {
@@ -9461,6 +9480,8 @@ thread_stats_digest(sha1_t *digest)
 {
 	struct thread_stats t;
 
+	THREAD_STATS_INCX(thread_stats_digest);
+
 	atomic_mb();
 	t = thread_stats;			/* Struct copy */
 
@@ -9493,7 +9514,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 		uint_to_gstring(t.x) : uint_to_string(t.x))
 
 #define DUMP64(x) G_STMT_START {							\
-	uint64 v = AU64_VALUE(&thread_stats.x);					\
+	uint64 v = AU64_VALUE(&t.x);							\
 	log_info(la, "THREAD %s = %s", #x,						\
 		(options & DUMP_OPT_PRETTY) ?						\
 			uint64_to_gstring(v) : uint64_to_string(v));	\
@@ -9547,6 +9568,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(thread_self_calls);
 	DUMP64(thread_forks);
 	DUMP64(thread_yields);
+	DUMP64(thread_stats_digest);
 
 	{
 		size_t rsc_semaphore_used;

@@ -216,8 +216,8 @@ rudp_con_hash(const void *key)
 {
 	const struct rudp_con *c = key;
 
-	return host_addr_hash(c->addr) ^ port_hash(c->port) ^
-		integer_hash(c->conn_id);
+	return host_addr_port_hash(c->addr, c->port) ^
+		integer_hash_fast(c->conn_id);
 }
 
 /**

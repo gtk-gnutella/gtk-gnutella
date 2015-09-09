@@ -676,7 +676,7 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
  *
  * This is the preferred way of zeroing a reference to the event because it
  * checks that this is indeed the event being dispatched.  It can only be
- * called from a callout callback, where the queue is already locked.
+ * called from a callout callback.
  *
  * It can be used on normal or extended events (registrations from a foreign
  * thread).  It must only be called once per event, but client code should not
@@ -2026,11 +2026,8 @@ cq_global_init(void)
 	if (thread_main_is_blockable()) {
 		callout_thread = TRUE;
 		callout_queue->cq_stid = thread_create(cq_thread_main, NULL,
-			THREAD_F_DETACH | THREAD_F_NO_POOL, CALLOUT_THREAD_STACK);
-		if (-1U == callout_queue->cq_stid) {
-			s_minierror("%s(): cannot launch callout queue thread: %m",
-				G_STRFUNC);
-		}
+			THREAD_F_DETACH | THREAD_F_NO_POOL | THREAD_F_PANIC,
+			CALLOUT_THREAD_STACK);
 	} else {
 		callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
 			cq_heartbeat_trampoline, callout_queue);

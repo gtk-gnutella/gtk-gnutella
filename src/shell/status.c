@@ -107,6 +107,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		 * NMP          port mapping configured via NAT-PMP
 		 * pmp          port mapping available (UPnP or NAT-PMP), un-configured
 		 * CLK          clock, GTKG expired
+		 * !TL          no TCP listening socket
 		 * !IP          kernel network buffer shortage
 		 * !FD or FD    red or yellow bombs for fd shortage
 		 * STL          upload stalls
@@ -178,10 +179,11 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 
 		str_bprintf(flags, sizeof flags,
-			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
+			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
 			pmp,
 			GNET_PROPERTY(download_queue_frozen) ? "DFZ " : empty,
 			GNET_PROPERTY(ancient_version) ? "CLK " : empty,
+			GNET_PROPERTY(tcp_no_listening) ? "!TL " : empty,
 			GNET_PROPERTY(net_buffer_shortage) ? "!IP " : empty,
 			fd,
 			GNET_PROPERTY(uploads_stalling) ? "STL " : empty,

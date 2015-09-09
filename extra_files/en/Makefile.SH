@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
-: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
+: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -50,18 +50,18 @@ RM = $rm -f
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
+# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 10280 2005-11-22 19:07:19Z rmanfredi $
+# $X-Id$
 
 all::
 
 FAQDIR = $(PRIVLIB)/en
 
-local_install:: FAQ
+local_install local_install-strip:: FAQ
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(FAQDIR) || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(FAQDIR)); \
@@ -89,6 +89,11 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install
+	@exit 0
+
+install-strip:: local_install-strip
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man
@@ -119,11 +124,16 @@ tags::
 local_clobber::
 	$(RM) tags
 
+depend::
+
 ########################################################################
 # Empty rules for directories with no sub-directories -- do not edit
 
 local_install::
 	@echo "install in $(CURRENT) done."
+
+local_install-strip::
+	@echo "install (strip) in $(CURRENT) done."
 
 local_deinstall::
 	@echo "deinstall in $(CURRENT) done."

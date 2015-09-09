@@ -1493,6 +1493,8 @@ create_main_window (void)
   GtkWidget *image_chip;
   GtkWidget *eventbox_net_buffer_shortage;
   GtkWidget *image_net_buffer_shortage;
+  GtkWidget *eventbox_tcp_no_listening;
+  GtkWidget *image_tcp_no_listening;
   GtkWidget *eventbox_image_warning;
   GtkWidget *image_warning;
   GtkWidget *hbox9345;
@@ -2429,6 +2431,18 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_net_buffer_shortage), image_net_buffer_shortage);
   gtk_misc_set_padding (GTK_MISC (image_net_buffer_shortage), 1, 0);
 
+  eventbox_tcp_no_listening = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_tcp_no_listening, "eventbox_tcp_no_listening");
+  gtk_widget_show (eventbox_tcp_no_listening);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_tcp_no_listening, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_tcp_no_listening, _("Download queue is frozen."), NULL);
+
+  image_tcp_no_listening = create_pixmap (main_window, "no_listening.xpm");
+  gtk_widget_set_name (image_tcp_no_listening, "image_tcp_no_listening");
+  gtk_widget_show (image_tcp_no_listening);
+  gtk_container_add (GTK_CONTAINER (eventbox_tcp_no_listening), image_tcp_no_listening);
+  gtk_misc_set_padding (GTK_MISC (image_tcp_no_listening), 1, 0);
+
   eventbox_image_warning = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_warning, "eventbox_image_warning");
   gtk_widget_show (eventbox_image_warning);
@@ -3031,6 +3045,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_chip, "image_chip");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_net_buffer_shortage, "eventbox_net_buffer_shortage");
   GLADE_HOOKUP_OBJECT (main_window, image_net_buffer_shortage, "image_net_buffer_shortage");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_tcp_no_listening, "eventbox_tcp_no_listening");
+  GLADE_HOOKUP_OBJECT (main_window, image_tcp_no_listening, "image_tcp_no_listening");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_warning, "eventbox_image_warning");
   GLADE_HOOKUP_OBJECT (main_window, image_warning, "image_warning");
   GLADE_HOOKUP_OBJECT (main_window, hbox9345, "hbox9345");

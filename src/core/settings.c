@@ -626,8 +626,8 @@ settings_init_session_id(void)
 	 * sufficiently random to be used as-is.
 	 */
 
-	random_bytes(id.v, sizeof id.v);
-	gnet_prop_set_storage(PROP_SESSION_ID, id.v, sizeof id.v);
+	random_bytes(&id, sizeof id);
+	gnet_prop_set_storage(PROP_SESSION_ID, &id, sizeof id);
 }
 
 /**
@@ -770,6 +770,7 @@ settings_init(void)
 	uint64 amount = memory / 1024;
 	long cpus = getcpucount();
 	uint max_fd;
+	time_t session_start = 0;
 
 	settings_init_running = TRUE;
 
@@ -840,18 +841,35 @@ settings_init(void)
 		 *		--RAM, 2012-12-28
 		 */
 		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, !auto_restart);
-		if (auto_restart)
+		if (auto_restart) {
 			g_info("restarting session as requested");
+			session_start = GNET_PROPERTY(session_start_stamp);
+		}
 	} else {
 		uint32 pid = GNET_PROPERTY(pid);
 		g_warning("restarting after abnormal termination (pid was %u)", pid);
 		crash_exited(pid);
 		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
 	gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, FALSE);
 	gnet_prop_set_guint32_val(PROP_PID, (uint32) getpid());
+
+	/*
+	 * On explicit auto-restart, or restart after a crash, we have propagated
+	 * the persisted session start timestamp into ``session_start''.
+	 * Otherwise, the value will still be zero and we're starting a new session.
+	 *
+	 * The session start timestamp is used to track the first time gtk-gnutella
+	 * was started in a conscious way, so to speak.
+	 *		--RAM, 2015-04-23
+	 */
+
+	if (0 == session_start)
+		session_start = tm_time();
+	gnet_prop_set_timestamp_val(PROP_SESSION_START_STAMP, session_start);
 
 	/*
 	 * Emit configuration / system information, but only if debugging.
@@ -2080,7 +2098,7 @@ request_new_sockets(uint16 port, bool check_firewalled)
 	 */
 
 	if (0 == port)
-		return;
+		goto done;
 
 	/*
 	 * If UDP is enabled, also listen on the same UDP port.
@@ -2091,7 +2109,7 @@ request_new_sockets(uint16 port, bool check_firewalled)
 
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
 
-		if (GNET_PROPERTY(enable_udp)) {
+		if (GNET_PROPERTY(enable_udp) && s_tcp_listen != NULL) {
 			g_assert(NULL == s_udp_listen);
 
 			s_udp_listen = socket_udp_listen(bind_addr, port, udp_received);
@@ -2105,7 +2123,7 @@ request_new_sockets(uint16 port, bool check_firewalled)
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV6);
 
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
-		if (GNET_PROPERTY(enable_udp)) {
+		if (GNET_PROPERTY(enable_udp) && s_tcp_listen6 != NULL) {
 			g_assert(NULL == s_udp_listen6);
 
 			s_udp_listen6 = socket_udp_listen(bind_addr, port, udp_received);
@@ -2124,6 +2142,14 @@ request_new_sockets(uint16 port, bool check_firewalled)
 		inet_firewalled();
 		inet_udp_firewalled(TRUE);
 	}
+
+done:
+	/*
+	 * Let them know when they have no listening socket established.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_TCP_NO_LISTENING,
+		NULL == s_tcp_listen && NULL == s_tcp_listen6);
 }
 
 static bool
@@ -2170,10 +2196,12 @@ listen_port_changed(property_t prop)
 		bit_array_set_range(tried, 0, 1023);
 		bit_array_clear_range(tried, 1024, 65535);
 
+#define PORT_RANGE	(65535 - 1024)
+
 		do {
 			uint32 i;
 
-			i = random_value(65535 - 1024) + 1024;
+			i = random_value(PORT_RANGE) + 1024;
 			port = i;
 
 			/* Check whether this port was tried before */
@@ -2191,7 +2219,9 @@ listen_port_changed(property_t prop)
 			if (s_tcp_listen || s_tcp_listen6)
 				break;
 
-		} while (++num_tried < 65535 - 1024);
+		} while (++num_tried < PORT_RANGE);
+
+#undef PORT_RANGE
 
 		old_port = port;
 		gnet_prop_set_guint32_val(prop, port);
@@ -2206,7 +2236,7 @@ listen_port_changed(property_t prop)
 		upnp_map_tcp(old_port);
 
 	if (s_udp_listen != NULL)
-			upnp_map_udp(old_port);
+		upnp_map_udp(old_port);
 
 	if (!settings_init_running) {
 		inet_firewalled();
@@ -2219,7 +2249,6 @@ listen_port_changed(property_t prop)
      */
 
     if (s_tcp_listen == NULL && GNET_PROPERTY(listen_port) != 0) {
-		gcu_statusbar_warning(_("Failed to create listening sockets"));
 		old_port = (uint32) -1;
         return TRUE;
     } else {
@@ -2229,6 +2258,24 @@ listen_port_changed(property_t prop)
 	}
 
     return FALSE;
+}
+
+/**
+ * Re-attempt creation of listening sockets.
+ *
+ * At startup, it is possible that we may not be allowed to bind to the proper
+ * listining port, despite SO_REUSEADDR being set before bind(): on Linux
+ * this is not always working --RAM, 2015-05-17
+ */
+void
+settings_create_listening_sockets(void)
+{
+	(void) listen_port_changed(PROP_LISTEN_PORT);
+
+	if (!GNET_PROPERTY(tcp_no_listening)) {
+		g_message("%s(): established TCP listening socket on port %u",
+			G_STRFUNC, GNET_PROPERTY(listen_port));
+	}
 }
 
 static bool

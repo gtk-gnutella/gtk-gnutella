@@ -366,7 +366,7 @@ route_udp_node_hash(const void *key)
 {
 	const struct routing_udp_node *un = key;
 
-	return host_addr_hash(un->addr) ^ port_hash(un->port);
+	return host_addr_port_hash(un->addr, un->port);
 }
 
 /**
@@ -1443,7 +1443,7 @@ message_hash_func(const void *key)
 {
 	const struct message *msg = key;
 
-	return integer_hash(msg->function) ^
+	return integer_hash_fast(msg->function) ^
 		universal_hash(&msg->muid, GUID_RAW_SIZE);
 }
 

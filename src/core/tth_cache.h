@@ -36,5 +36,8 @@ size_t tth_cache_get_tree(const struct tth *tth, filesize_t filesize,
 void tth_cache_remove(const struct tth *tth);
 void tth_cache_close(void);
 
+void tth_cache_cleanup(void);
+
 #endif /* _tth_cache_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

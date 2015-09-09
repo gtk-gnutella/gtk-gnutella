@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Raphael Manfredi
+ * Copyright (c) 2012-2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Embedded one-way list (within another data structure).
  *
  * @author Raphael Manfredi
- * @date 2012-2013
+ * @date 2012-2015
  */
 
 #ifndef _eslist_h_
@@ -233,6 +233,7 @@ void eslist_init(eslist_t *list, size_t offset);
 void eslist_discard(eslist_t *list);
 void eslist_clear(eslist_t *list);
 void eslist_wfree(eslist_t *list, size_t size);
+size_t eslist_load(eslist_t *list, void *head, size_t offset);
 
 void eslist_foreach(const eslist_t *list, data_fn_t cb, void *data);
 size_t eslist_foreach_remove(eslist_t *list, data_rm_fn_t cbr, void *data);

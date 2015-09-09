@@ -176,9 +176,8 @@ urlinfo_hash(const void *key)
 	const dmesh_urlinfo_t *info = key;
 	uint hash;
 
-	hash = host_addr_hash(info->addr);
-	hash ^= port_hash(info->port);
-	hash ^= integer_hash(info->idx);
+	hash = host_addr_port_hash(info->addr, info->port);
+	hash += integer_hash_fast(info->idx);
 	hash ^= string_mix_hash(info->name);
 
 	return hash;
@@ -1854,7 +1853,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 	 * the first `hcnt' entries.
 	 */
 
-	shuffle(selected, nselected, sizeof selected[0]);
+	SHUFFLE_ARRAY_N(selected, nselected);
 
 	for (i = j = 0; i < nselected && j < hcnt; i++, j++) {
 		struct dmesh_entry *dme;
@@ -2217,7 +2216,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * Second pass.
 	 */
 
-	shuffle(selected, nselected, sizeof selected[0]);
+	SHUFFLE_ARRAY_N(selected, nselected);
 
 	for (i = 0; i < nselected; i++) {
 		struct dmesh_entry *dme = selected[i];
@@ -3408,7 +3407,7 @@ dmesh_retrieve(void)
 		} else {
 			if (
 				strlen(tmp) < SHA1_BASE32_SIZE ||
-				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
+				SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
 									tmp, SHA1_BASE32_SIZE)
 			) {
 				g_warning("%s: bad base32 SHA1 '%.32s' at line #%d, ignoring",

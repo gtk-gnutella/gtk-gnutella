@@ -1,5 +1,5 @@
 /*
- * Generated on Sat Oct  4 09:36:51 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed Jun 17 13:02:21 2015 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -319,6 +319,9 @@ static const char *stats_symbols[] = {
 	"dht_successful_push_proxy_lookups",
 	"dht_successful_node_push_entry_lookups",
 	"dht_seeding_of_orphan",
+	"stats_digest",
+	"stats_tcp_digest",
+	"stats_udp_digest",
 };
 
 /**
@@ -644,6 +647,9 @@ static const char *stats_text[] = {
 	N_("DHT successful push-proxy lookups"),
 	N_("DHT successful node push-entry lookups"),
 	N_("DHT re-seeding of orphan downloads"),
+	N_("Digests computed on general statistics"),
+	N_("Digests computed on TCP statistics"),
+	N_("Digests computed on UDP statistics"),
 };
 
 /**

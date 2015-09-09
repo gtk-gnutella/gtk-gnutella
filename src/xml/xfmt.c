@@ -877,11 +877,18 @@ xfmt_handle_pass2_enter(const void *node, void *data)
 		ostream_write(xp2->os, XFMT_GT, CONST_STRLEN(XFMT_GT));
 		xp2->last_was_nl = FALSE;
 
-	} else if (xnode_is_text(xn)) {
+	} else if (xnode_has_text(xn)) {
 		const char *text = xnode_text(xn);
 		size_t len;
 		size_t overhead;
 		bool amp;
+
+		g_assert(text != NULL);		/* Since we checked xnode_has_text() */
+
+		if (xnode_is_comment(xn)) {
+			g_carp_once("%s(): comment nodes ignored for now", G_STRFUNC);
+			goto ignore;
+		}
 
 		if (xp2->options & XFMT_O_SKIP_BLANKS) {
 			const char *start;
@@ -892,7 +899,11 @@ xfmt_handle_pass2_enter(const void *node, void *data)
 				goto ignore;
 
 			/* FIXME: handle blank collapsing */
-			(void) start;
+			if (xp2->options & XFMT_O_COLLAPSE_BLANKS) {
+				(void) start;
+				g_carp_once("%s(): XFMT_O_COLLAPSE_BLANKS not handled yet",
+					G_STRFUNC);
+			}
 		}
 
 		/*
@@ -1048,8 +1059,8 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 
 	if (options & XFMT_O_COLLAPSE_BLANKS) {
 		/* FIXME */
-		g_carp("XFMT_O_COLLAPSE_BLANKS not supported yet");
-		stacktrace_where_print(stderr);
+		g_carp_once("%s(): XFMT_O_COLLAPSE_BLANKS not supported yet",
+			G_STRFUNC);
 	}
 
 	if (options & XFMT_O_SINGLE_LINE)

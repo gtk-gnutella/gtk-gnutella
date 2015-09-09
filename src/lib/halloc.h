@@ -95,8 +95,10 @@ size_t halloc_chunks_allocated(void);
 void *h_private(const void *key, void *p);
 
 struct logagent;
+struct sha1;
 
 void halloc_dump_stats_log(struct logagent *la, unsigned options);
+void halloc_stats_digest(struct sha1 *digest);
 
 #ifdef TRACK_MALLOC
 

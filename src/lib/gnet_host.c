@@ -84,7 +84,7 @@ gnet_host_hash(const void *key)
 
 	addr = gnet_host_get_addr(host);
 	port = gnet_host_get_port(host);
-	return host_addr_hash(addr) ^ port_hash(port);
+	return host_addr_port_hash(addr, port);
 }
 
 /**
@@ -99,7 +99,7 @@ gnet_host_hash2(const void *key)
 
 	addr = gnet_host_get_addr(host);
 	port = gnet_host_get_port(host);
-	return host_addr_hash2(addr) ^ port_hash2(port);
+	return host_addr_port_hash2(addr, port);
 }
 
 /**
