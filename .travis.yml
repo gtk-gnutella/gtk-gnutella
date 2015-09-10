@@ -12,7 +12,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build ;fi
 
 script:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ./build.sh --target=osxbundle; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild run ./build.sh --target=osxbundle; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./build.sh; fi
   - src/lib/random-test
   - src/lib/sort-test

@@ -22,13 +22,14 @@
     <metamodule id="gtk-gnutella-deps">
 	<dependencies>
 		<dep package="meta-gtk-osx-core"/>
+		<dep package="gtk-mac-integration"/>
 	</dependencies>
 	<after>
 		<dep package="meta-gtk-osx-bootstrap"/>
 	</after>
 	<suggests>
 		<dep package="gnutls"/>
-		<dep package="gtk-osx-themes"/>
+		<dep package="meta-gtk-osx-themes"/>
 	</suggests>
   </metamodule>
   
