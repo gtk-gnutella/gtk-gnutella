@@ -3,11 +3,11 @@
 This release is mostly a bug-fixing release.
 
 One major bug (leading to crash) was found in the G2 frame parsing layer: a
-carefully crafter G2 packet sent to GTKG could crash it, leading to a Denial
+carefully crafted G2 packet sent to GTKG could crash it, leading to a Denial
 of Service.  For that reason, an upgrade to 1.1.4 is strongly recommended.
 
 The only major new feature is the added cleanups of the TTH cache and the
-crash log directory to make sure we do not keep useless files on the disk
+crash log directory, to make sure we do not keep useless files on the disk
 forever.
 
 Because the Phex servent is no longer maintained, there is now a workaround
