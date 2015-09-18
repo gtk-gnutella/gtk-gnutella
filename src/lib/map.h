@@ -71,6 +71,7 @@ bool map_contains(const map_t *m, const void *key);
 size_t map_count(const map_t *m);
 void *map_implementation(const map_t *m);
 void *map_release(map_t *m);
+void map_thread_safe(const map_t *m);
 void map_destroy(map_t *m);
 void map_destroy_null(map_t **m_ptr);
 

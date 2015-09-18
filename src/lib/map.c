@@ -414,6 +414,36 @@ map_lookup_extended(const map_t *m, const void *key, void **okey, void **oval)
 }
 
 /**
+ * Mark map as thread-safe.
+ *
+ * If the underlying implementation does not implement thread-safety, this
+ * causes a fatal error.
+ */
+void
+map_thread_safe(const map_t *m)
+{
+	const char *type = NULL;
+
+	map_check(m);
+
+	switch (m->type) {
+	case MAP_HASH:
+		htable_thread_safe(m->u.ht);
+		return;
+	case MAP_ORDERED_HASH:
+		type = "ordered hash";
+		break;
+	case MAP_PATRICIA:
+		type = "PATRICIA";
+		break;
+	case MAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	s_error("%s(): %s implementation is not thread-safe yet", G_STRFUNC, type);
+}
+
+/**
  * Structure used to handle foreach() trampoline for PATRICIA.
  */
 struct pat_foreach {
