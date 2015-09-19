@@ -57,14 +57,14 @@ static void validpage(DBM *, long);
 
 #define sdbm_synchronize(s) G_STMT_START {		\
 	if G_UNLIKELY((s)->lock != NULL) { 			\
-		DBM *ws = deconstify_pointer(s);	\
+		DBM *ws = deconstify_pointer(s);		\
 		qlock_lock(ws->lock);					\
 	}											\
 } G_STMT_END
 
 #define sdbm_unsynchronize(s) G_STMT_START {	\
 	if G_UNLIKELY((s)->lock != NULL) { 			\
-		DBM *ws = deconstify_pointer(s);	\
+		DBM *ws = deconstify_pointer(s);		\
 		qlock_unlock(ws->lock);					\
 	}											\
 } G_STMT_END
@@ -101,6 +101,7 @@ static void validpage(DBM *, long);
 #define sdbm_unsynchronize(s)
 #define sdbm_return(s, v)			return v
 #define sdbm_return_datum(s, v)		return v
+#define sdbm_return_idatum(s, v)	return v
 #define sdbm_return_void(s)			return
 #define assert_sdbm_locked(s)
 
@@ -291,23 +292,31 @@ sdbm_alloc(void)
 }
 
 static void
+sdbm_returns_free_null(struct dbm_returns **dr_ptr)
+{
+	struct dbm_returns *dr = *dr_ptr;
+
+	if (dr != NULL) {
+		int i;
+
+		for (i = 0; i < THREAD_MAX; i++) {
+			struct dbm_returns *r = &dr[i];
+
+			if (r->len != 0)
+				XFREE_NULL(r->value.dptr);	/* Free thread-private data copy */
+		}
+		xfree(dr);
+		*dr_ptr = NULL;
+	}
+}
+
+static void
 sdbm_free(DBM *db)
 {
 	sdbm_check(db);
 
 #ifdef THREADS
-	if (db->returned != NULL) {
-		int i;
-
-		for (i = 0; i < THREAD_MAX; i++) {
-			struct dbm_returns *r = &db->returned[i];
-
-			if (r->len != 0)
-				XFREE_NULL(r->value.dptr);	/* Free thread-private data copy */
-		}
-
-		XFREE_NULL(db->returned);
-	}
+	sdbm_returns_free_null(&db->returned);
 #endif
 
 	db->magic = 0;
@@ -575,29 +584,23 @@ sdbm_is_locked(const DBM *db)
 /**
  * Allocate a thread-private datum to be returned to the thread.
  *
- * Although the value returned is thread-private, its lifespan is limited to
- * the next call made to the SDBM API by the thread.
+ * @param db	the database object
+ * @param v		a pointer to the datum we need to create a copy for
+ * @param dr	array of datum per thread where we can save the datum copy
  *
- * A thread-private datum contains a copy of the data returned to the thread,
- * since we cannot point into the internal SDBM data structures like the LRU
- * page cache: any concurrent access could make the data stale.
- *
- * @param v		a pointer to the datum returned by the function
- *
- * @return a pointer to the thread-private datum with data from ``d'' copied.
  */
 static datum *
-sdbm_thread_datum(DBM *db, datum *v)
+sdbm_thread_datum_copy(DBM *db, datum *v, struct dbm_returns *dr)
 {
 	datum *d;
 	static datum zerosized;
 
 	sdbm_check(db);
-	g_assert(db->returned != NULL);
+	g_assert(dr != NULL);
 
 	if (v->dsize != 0) {
 		uint stid = thread_small_id();
-		struct dbm_returns *r = &db->returned[stid];
+		struct dbm_returns *r = &dr[stid];
 
 		g_assert(stid < THREAD_MAX);
 
@@ -640,6 +643,27 @@ sdbm_thread_datum(DBM *db, datum *v)
 	}
 
 	return d;
+}
+
+/**
+ * Allocate a thread-private datum to be returned to the thread.
+ *
+ * Although the value returned is thread-private, its lifespan is limited to
+ * the next call made to the SDBM API by the thread.
+ *
+ * A thread-private datum contains a copy of the data returned to the thread,
+ * since we cannot point into the internal SDBM data structures like the LRU
+ * page cache: any concurrent access could make the data stale.
+ *
+ * @param db	the database object
+ * @param v		a pointer to the datum returned by the function
+ *
+ * @return a pointer to the thread-private datum with data from ``d'' copied.
+ */
+static datum *
+sdbm_thread_datum(DBM *db, datum *v)
+{
+	return sdbm_thread_datum_copy(db, v, db->returned);
 }
 #endif	/* THREADS */
 
@@ -1630,6 +1654,14 @@ iteration_done(DBM *db, bool completed)
  * deletions aren't taken into account. (ndbm bug)
  */
 
+/**
+ * Start iterating over the database by fetching its first key.
+ *
+ * @attention
+ * In thread-safe mode, the database MUST be already locked!
+ *
+ * @return the first key in the database.
+ */
 datum
 sdbm_firstkey(DBM *db)
 {
@@ -1641,22 +1673,15 @@ sdbm_firstkey(DBM *db)
 	}
 	sdbm_check(db);
 
-	sdbm_synchronize(db);
-
-	if G_UNLIKELY(db->flags & DBM_BROKEN) {
-		errno = ESTALE;
-		value = nullitem;
-		goto done;
-	}
-
-	if G_UNLIKELY(db->flags & DBM_ITERATING) {
-		s_critical("recursive iteration on SDBM database \"%s\"",
-			sdbm_name(db));
-	}
-
 #ifdef THREADS
 	if G_UNLIKELY(db->lock != NULL) {
 		uint stid = thread_small_id();
+
+		/* We must own the lock! */
+		if G_UNLIKELY(!sdbm_is_locked(db)) {
+			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
+				G_STRFUNC, sdbm_name(db));
+		}
 
 		if G_UNLIKELY(db->iterid != THREAD_INVALID_ID && db->iterid != stid) {
 			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
@@ -1671,6 +1696,17 @@ sdbm_firstkey(DBM *db)
 		db->iterid = stid;
 	}
 #endif	/* THREADS */
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		value = nullitem;
+		goto done;
+	}
+
+	if G_UNLIKELY(db->flags & DBM_ITERATING) {
+		s_critical("%s(): recursive iteration on SDBM database \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+	}
 
 	db->flags |= DBM_ITERATING;
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
@@ -1720,8 +1756,10 @@ sdbm_firstkey(DBM *db)
 
 	value = getnext(db);
 
+	/* FALL THROUGH */
+
 done:
-	sdbm_return_datum(db, value);
+	return value;
 }
 
 /**
@@ -1750,37 +1788,45 @@ sdbm_firstkey_safe(DBM *db)
 	return sdbm_firstkey(db);
 }
 
+/**
+ * Continue iterating over the database by fetching its next key.
+ *
+ * @attention
+ * In thread-safe mode, the database MUST be already locked!
+ *
+ * @return the next key in the database.
+ */
 datum
 sdbm_nextkey(DBM *db)
 {
-	datum value;
-
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
-		return nullitem;
+		goto error;
 	}
 
 	sdbm_check(db);
 
-	sdbm_synchronize(db);
-
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		value = nullitem;
-		goto done;
+		goto error;
 	}
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
 		s_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 		errno = ENOENT;
-		value = nullitem;
-		goto done;
+		goto error;
 	}
 
 #ifdef THREADS
 	if G_UNLIKELY(db->lock != NULL) {
 		uint stid = thread_small_id();
+
+		/* We must own the lock! */
+		if G_UNLIKELY(!sdbm_is_locked(db)) {
+			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
+				G_STRFUNC, sdbm_name(db));
+		}
 
 		/* Since DBM_ITERATING is set... */
 		g_soft_assert(db->iterid != THREAD_INVALID_ID);
@@ -1791,16 +1837,15 @@ sdbm_nextkey(DBM *db)
 				G_STRFUNC, sdbm_name(db),
 				thread_id_name(db->iterid), thread_name());
 			errno = EPERM;
-			value = nullitem;
-			goto done;
+			goto error;
 		}
 	}
 #endif	/* THREADS */
 
-	value = getnext(db);
+	return getnext(db);
 
-done:
-	sdbm_return_datum(db, value);
+error:
+	return nullitem;
 }
 
 /**
@@ -2199,8 +2244,11 @@ no_entry:
 }
 
 /**
- * Return current value during key iteration.
+ * Fetch current value during key iteration.
  * Must not be called outside of a key iteration loop.
+ *
+ * @attention
+ * In thread-safe mode, the database MUST be already locked.
  */
 datum
 sdbm_value(DBM *db)
@@ -2213,8 +2261,6 @@ sdbm_value(DBM *db)
 	}
 
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
 
 	/*
 	 * Loudly warn if this is called outside of an iteration.
@@ -2229,6 +2275,12 @@ sdbm_value(DBM *db)
 #ifdef THREADS
 	if G_UNLIKELY(db->lock != NULL) {
 		uint stid = thread_small_id();
+
+		/* We must own the lock! */
+		if G_UNLIKELY(!sdbm_is_locked(db)) {
+			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
+				G_STRFUNC, sdbm_name(db));
+		}
 
 		/* Since DBM_ITERATING is set... */
 		g_soft_assert(db->iterid != THREAD_INVALID_ID);
@@ -2255,7 +2307,13 @@ sdbm_value(DBM *db)
 		goto no_entry;
 
 done:
-	sdbm_return_datum(db, val);
+	/*
+	 * Since it is unlikely that sdbm_value() will be used at all when
+	 * iterating over a thread-safe database, we do not need to make a
+	 * private copy of the datum.
+	 */
+
+	return val;
 
 no_entry:
 	errno = ENOENT;
@@ -2922,7 +2980,7 @@ sdbm_rebuild(DBM *db)
 	 */
 
 	for (key = sdbm_firstkey_safe(db); key.dptr; key = sdbm_nextkey(db)) {
-		datum value = sdbm_value(db);
+		const datum value = sdbm_value(db);
 
 		items++;
 
@@ -2966,11 +3024,13 @@ sdbm_rebuild(DBM *db)
 
 #ifdef THREADS
 	ndb->lock = db->lock;
+	ndb->returned = db->returned;
 #endif
 	sdbm_close_internal(db, TRUE, FALSE);		/* Keep object around */
 	*db = *ndb;									/* struct copy */
 #ifdef THREADS
 	ndb->lock = NULL;							/* was copied over */
+	ndb->returned = NULL;
 #endif
 	sdbm_free_null(&ndb);
 

@@ -233,3 +233,12 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 
 * Made SDBM API locks be queueing locks instead of mutexes.
 * Added sdbm_foreach() and sdbm_foreach_remove() convenience routines.
+
+Sat Sep 19 10:18:22 CEST 2015
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Changed sdbm_value(), sdbm_firstkey() and friends to not copy the datum even
+  in thread-safe mode.  Indeed, iterators cannot run concurrently and therefore
+  it is required to lock the database in thread-safe mode, making copying pure
+  overhead.

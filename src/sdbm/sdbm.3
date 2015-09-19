@@ -481,6 +481,14 @@ and set
 .B errno
 to
 .BR \s-1EPERM\s0 .
+.LP
+When iterating, it is required to take the DB lock during the whole operation.
+Iterating routines such as
+.BR sdbm_firstkey (\|)
+or
+.BR sdbm_value (\|)
+do not return a thread-private datum and enforce the requirement that the
+database be locked.
 .SH PAGE CACHING
 This
 .B sdbm
