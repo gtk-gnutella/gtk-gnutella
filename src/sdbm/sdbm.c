@@ -3128,6 +3128,8 @@ sdbm_set_volatile(DBM *db, bool yes)
 
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 #ifdef LRU
 	db->is_volatile = yes;
 	result = yes ? setwdelay(db, TRUE) : 0;
