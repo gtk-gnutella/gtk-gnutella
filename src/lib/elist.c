@@ -1246,4 +1246,24 @@ elist_shift(elist_t *list)
 	return item;
 }
 
+/**
+ * Remove tail of list, return pointer to item, NULL if list was empty.
+ */
+void *
+elist_pop(elist_t *list)
+{
+	void *item;
+
+	elist_check(list);
+
+	if (NULL == list->tail) {
+		item = NULL;
+	} else {
+		item = ptr_add_offset(list->tail, -list->offset);
+		elist_link_remove_internal(list, list->tail, TRUE);
+	}
+
+	return item;
+ }
+
 /* vi: set ts=4 sw=4 cindent: */
