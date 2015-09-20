@@ -30,6 +30,7 @@ struct DBM {
 #endif
 #ifdef THREADS
 	struct qlock *lock;	/* thread-safe lock at the API level */
+	int refcnt;			/* reference count */
 #endif
 	fileoffset_t pagtail;	/* end of page file descriptor, for iterating */
 	long maxbno;		/* size of dirfile in bits */

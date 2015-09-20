@@ -242,3 +242,6 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   in thread-safe mode.  Indeed, iterators cannot run concurrently and therefore
   it is required to lock the database in thread-safe mode, making copying pure
   overhead.
+* Added sdbm_ref() and sdbm_unref() to allow sharing of a DBM descriptor
+  among threads and prevent early disappearing of that descriptor.  Prefer
+  use of sdbm_unref() to sdbm_close() when sharing!

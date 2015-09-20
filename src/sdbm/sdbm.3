@@ -69,6 +69,8 @@ void sdbm_lock(\s-1DBM\s0 *db)
 void sdbm_unlock(\s-1DBM\s0 *db)
 bool sdbm_is_thread_safe(const \s-1DBM\s0 *db)
 bool sdbm_is_locked(const \s-1DBM\s0 *db)
+\s-1DBM\s0 *sdbm_ref(const \s-1DBM\s0 *db)
+void sdbm_unref(const \s-1DBM\s0 **db_ptr)
 .sp
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
@@ -489,6 +491,17 @@ or
 .BR sdbm_value (\|)
 do not return a thread-private datum and enforce the requirement that the
 database be locked.
+.LP
+When passing the database descriptor to other threads, be sure to use
+.BR sdbm_ref (\|)
+on the receiving side to properly account for the extra reference.  The
+.BR sdbm_close (\|)
+call will panic when attempting to close a descriptor that has more than one
+reference still.  Thus, when sharing descriptors, it is more suitable to call
+.BR sdbm_unref (\|)
+which will only close when the last reference is gone and which nullifies the
+pointer to the descriptor in the thread, preventing further access through
+that variable since the reference was dropped.
 .SH PAGE CACHING
 This
 .B sdbm

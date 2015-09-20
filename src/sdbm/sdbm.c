@@ -16,6 +16,7 @@
 #include "big.h"
 #include "private.h"
 
+#include "lib/atomic.h"
 #include "lib/compat_misc.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
@@ -286,7 +287,8 @@ sdbm_alloc(void)
 
 #ifdef THREADS
 	db->iterid = THREAD_INVALID_ID;
-#endif
+	db->refcnt = 1;
+#endif	/* THREADS */
 
 	return db;
 }
@@ -579,6 +581,48 @@ sdbm_is_locked(const DBM *db)
 	 */
 
 	return qlock_is_owned(db->lock);
+}
+
+/**
+ * Add one more reference to the database.
+ *
+ * When the DBM descriptor is shared among various threads, each referencing
+ * thread must call this routine to increase the reference count, preventing
+ * disappearing of the descriptor until the last reference is gone.
+ *
+ * @return its argument, for convenience.
+ */
+DBM *
+sdbm_ref(const DBM *db)
+{
+	DBM *wdb = deconstify_pointer(db);
+
+	sdbm_check(db);
+
+	atomic_int_inc(&wdb->refcnt);
+	return wdb;
+}
+
+/**
+ * Remove one reference to the database, closing it when there are no more
+ * references left.  The pointer itself is nullified, regardless.
+ */
+void
+sdbm_unref(DBM **db_ptr)
+{
+	DBM *db;
+
+	g_assert(db_ptr != NULL);
+
+	if (NULL != (db = *db_ptr)) {
+		sdbm_check(db);
+		g_assert(db->refcnt > 0);
+
+		if (atomic_int_dec_is_zero(&db->refcnt))
+			sdbm_close(db);
+
+		*db_ptr = NULL;
+	}
 }
 
 /**
@@ -898,18 +942,25 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	sdbm_check(db);
 	assert_sdbm_locked(db);
 
+#ifdef THREADS
+	g_assert(db->refcnt >=0 && db->refcnt <= 1);
+#endif
+
 #ifdef LRU
 	if (is_valid_fd(db->pagf))
 		lru_close(db);
 #else
 	WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
-#endif
+#endif	/* LRU */
+
 	WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
 	fd_forget_and_close(&db->dirf);
 	fd_forget_and_close(&db->pagf);
+
 #ifdef BIGDATA
 	big_free(db);
 #endif
+
 	if (common_stats) {
 		log_sdbmstats(db);
 	}
@@ -921,7 +972,7 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 #ifdef BIGDATA
 		if (db->datname != NULL && file_exists(db->datname))
 			sdbm_unlink_file(sdbm_name(db), db->datname);
-#endif
+#endif	/* BIGDATA */
 	}
 
 	HFREE_NULL(db->name);
@@ -970,11 +1021,18 @@ sdbm_close(DBM *db)
 
 	sdbm_synchronize(db);
 
+#ifdef THREADS
+	/* When coming from sdbm_unref(), refcnt will be 0 due to decrementing */
+	g_assert_log(0 == db->refcnt || 1 == db->refcnt,
+		"%s(): attempting to close SDBM \"%s\" which still has %d reference%s",
+		G_STRFUNC, sdbm_name(db), db->refcnt, plural(db->refcnt));
+#endif	/* THREADS */
+
 #ifdef LRU
 	clearfiles = db->is_volatile;
 #else
 	clearfiles = FALSE;
-#endif
+#endif	/* LRU */
 
 	/*
 	 * If we keep the files around, flush the database to ensure there
