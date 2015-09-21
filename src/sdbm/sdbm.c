@@ -1707,6 +1707,57 @@ iteration_done(DBM *db, bool completed)
 	return nullitem;
 }
 
+/**
+ * Assert that we must own the DB lock.
+ */
+static void
+sdbm_must_be_locked(const DBM *db, const char *caller)
+{
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		/* We must own the lock! */
+		if G_UNLIKELY(!sdbm_is_locked(db)) {
+			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
+				caller, sdbm_name(db));
+		}
+	}
+#else
+	(void) db;
+	(void) caller;
+#endif	/* THREADS */
+}
+
+/**
+ * Check whether we are facing concurrent iteration over the database.
+ *
+ * @return TRUE if there is a concurrent iteration in progress.
+ */
+static bool
+sdbm_in_concurrent_iteration(const DBM *db, const char *caller)
+{
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		uint stid = thread_small_id();
+
+		/* Since DBM_ITERATING must be set... */
+		g_soft_assert(db->iterid != THREAD_INVALID_ID);
+
+		if G_UNLIKELY(db->iterid != stid) {
+			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
+				"with %s from %s",
+				caller, sdbm_name(db),
+				thread_id_name(db->iterid), thread_name());
+			return TRUE;
+		}
+	}
+#else
+	(void) db;
+	(void) caller;
+#endif	/* THREADS */
+
+	return FALSE;
+}
+
 /*
  * the sdbm_firstkey() and sdbm_nextkey() routines will break if
  * deletions aren't taken into account. (ndbm bug)
@@ -1729,23 +1780,18 @@ sdbm_firstkey(DBM *db)
 		errno = EINVAL;
 		return nullitem;
 	}
+
 	sdbm_check(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 #ifdef THREADS
 	if G_UNLIKELY(db->lock != NULL) {
 		uint stid = thread_small_id();
 
-		/* We must own the lock! */
-		if G_UNLIKELY(!sdbm_is_locked(db)) {
-			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
-				G_STRFUNC, sdbm_name(db));
-		}
-
-		if G_UNLIKELY(db->iterid != THREAD_INVALID_ID && db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
+		if G_UNLIKELY(
+			db->iterid != THREAD_INVALID_ID &&
+			sdbm_in_concurrent_iteration(db, G_STRFUNC)
+		) {
 			errno = EPERM;
 			value = nullitem;
 			goto done;
@@ -1863,6 +1909,7 @@ sdbm_nextkey(DBM *db)
 	}
 
 	sdbm_check(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
@@ -1876,29 +1923,10 @@ sdbm_nextkey(DBM *db)
 		goto error;
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* We must own the lock! */
-		if G_UNLIKELY(!sdbm_is_locked(db)) {
-			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
-				G_STRFUNC, sdbm_name(db));
-		}
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			errno = EPERM;
-			goto error;
-		}
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC)) {
+		errno = EPERM;
+		goto error;
 	}
-#endif	/* THREADS */
 
 	return getnext(db);
 
@@ -1913,8 +1941,7 @@ void
 sdbm_endkey(DBM *db)
 {
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	/*
 	 * Loudly warn if this is called outside of an iteration.
@@ -1925,22 +1952,8 @@ sdbm_endkey(DBM *db)
 			G_STRFUNC, sdbm_name(db));
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			goto done;
-		}
-	}
-#endif	/* THREADS */
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC))
+		return;
 
 	/*
 	 * When starting an iteration with sdbm_firstkey_safe() and encountering
@@ -1949,9 +1962,6 @@ sdbm_endkey(DBM *db)
 	 */
 
 	(void) iteration_done(db, FALSE);		/* Iteration was interrupted */
-
-done:
-	sdbm_return_void(db);
 }
 
 /**
@@ -2230,8 +2240,7 @@ sdbm_deletekey(DBM *db)
 		return -1;
 	}
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
@@ -2256,23 +2265,10 @@ sdbm_deletekey(DBM *db)
 		goto no_entry;
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			errno = EPERM;
-			goto done;
-		}
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC)) {
+		errno = EPERM;
+		goto done;
 	}
-#endif	/* THREADS */
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
@@ -2293,12 +2289,14 @@ sdbm_deletekey(DBM *db)
 
 	status = 0;
 
+	/* FALL THROUGH */
+
 done:
-	sdbm_return(db, status);
+	return status;
 
 no_entry:
 	errno = ENOENT;
-	goto done;
+	return -1;
 }
 
 /**
@@ -2319,6 +2317,7 @@ sdbm_value(DBM *db)
 	}
 
 	sdbm_check(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	/*
 	 * Loudly warn if this is called outside of an iteration.
@@ -2330,30 +2329,11 @@ sdbm_value(DBM *db)
 		goto no_entry;
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* We must own the lock! */
-		if G_UNLIKELY(!sdbm_is_locked(db)) {
-			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
-				G_STRFUNC, sdbm_name(db));
-		}
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			errno = EPERM;
-			val = nullitem;
-			goto done;
-		}
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC)) {
+		errno = EPERM;
+		val = nullitem;
+		goto done;
 	}
-#endif	/* THREADS */
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
