@@ -105,15 +105,6 @@ sdbm_lru_cpage_check(const struct lru_cpage * const c)
 	g_assert(SDBM_LRU_CPAGE_MAGIC == c->magic);
 }
 
-#ifdef THREADS
-#define assert_sdbm_locked(s) G_STMT_START {	\
-	if G_UNLIKELY((s)->lock != NULL)			\
-		assert_qlock_is_owned((s)->lock);		\
-}  G_STMT_END
-#else	/* !THREADS */
-#define assert_sdbm_locked(s)
-#endif	/* THREADS */
-
 /**
  * Allocate a new cached page.
  *

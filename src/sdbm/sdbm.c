@@ -50,57 +50,6 @@ static datum getnext(DBM *);
 static bool makroom(DBM *, long, size_t);
 static void validpage(DBM *, long);
 
-/*
- * Thread-safety macros.
- */
-
-#ifdef THREADS
-
-#define sdbm_synchronize(s) G_STMT_START {		\
-	if G_UNLIKELY((s)->lock != NULL) { 			\
-		DBM *ws = deconstify_pointer(s);		\
-		qlock_lock(ws->lock);					\
-	}											\
-} G_STMT_END
-
-#define sdbm_unsynchronize(s) G_STMT_START {	\
-	if G_UNLIKELY((s)->lock != NULL) { 			\
-		DBM *ws = deconstify_pointer(s);		\
-		qlock_unlock(ws->lock);					\
-	}											\
-} G_STMT_END
-
-#define sdbm_return(s, v) G_STMT_START {		\
-	if G_UNLIKELY((s)->lock != NULL) 			\
-		qlock_unlock((s)->lock);				\
-	return v;									\
-} G_STMT_END
-
-#define sdbm_return_datum(s, v) G_STMT_START {	\
-	datum *rv = &(v);							\
-	if G_UNLIKELY((s)->lock != NULL) { 			\
-		rv = sdbm_thread_datum((s), &(v));		\
-		qlock_unlock((s)->lock);				\
-	}											\
-	return *rv;									\
-} G_STMT_END
-
-#define assert_sdbm_locked(s) G_STMT_START {	\
-	if G_UNLIKELY((s)->lock != NULL) 			\
-		assert_qlock_is_owned((s)->lock);		\
-} G_STMT_END
-
-#else	/* !THREADS */
-
-#define sdbm_synchronize(s)
-#define sdbm_unsynchronize(s)
-#define sdbm_return(s, v)			return v
-#define sdbm_return_datum(s, v)		return v
-#define sdbm_return_idatum(s, v)	return v
-#define assert_sdbm_locked(s)
-
-#endif	/* THREADS */
-
 static inline int
 bad(const datum item)
 {
