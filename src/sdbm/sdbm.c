@@ -85,12 +85,6 @@ static void validpage(DBM *, long);
 	return *rv;									\
 } G_STMT_END
 
-#define sdbm_return_void(s) G_STMT_START {		\
-	if G_UNLIKELY((s)->lock != NULL) 			\
-		qlock_unlock((s)->lock);				\
-	return;										\
-} G_STMT_END
-
 #define assert_sdbm_locked(s) G_STMT_START {	\
 	if G_UNLIKELY((s)->lock != NULL) 			\
 		assert_qlock_is_owned((s)->lock);		\
@@ -103,7 +97,6 @@ static void validpage(DBM *, long);
 #define sdbm_return(s, v)			return v
 #define sdbm_return_datum(s, v)		return v
 #define sdbm_return_idatum(s, v)	return v
-#define sdbm_return_void(s)			return
 #define assert_sdbm_locked(s)
 
 #endif	/* THREADS */
