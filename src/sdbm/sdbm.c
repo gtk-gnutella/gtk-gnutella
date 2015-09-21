@@ -785,8 +785,6 @@ fetch_pagbuf(DBM *db, long pagnum)
 	 */
 
 	if (pagnum != db->pagbno) {
-		ssize_t got;
-
 #ifdef LRU
 		{
 			bool loaded;
@@ -800,45 +798,21 @@ fetch_pagbuf(DBM *db, long pagnum)
 				db->pagbno = pagnum;
 				return TRUE;
 			}
+
+			/* FALL THROUGH -- new page in LRU cache, need to read it */
 		}
-#endif
+#endif	/* LRU */
 
-		/*
-		 * Note: here we assume a "hole" is read as 0s.
-		 *
-		 * On DOS / Windows machines, we explicitly write 0s at the end of
-		 * the file each time we extend it past the old tail, so there are
-		 * no holes on these systems.  See makroom().
-		 */
-
-		db->pagread++;
-		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
-		if G_UNLIKELY(got < 0) {
-			s_critical("sdbm: \"%s\": cannot read page #%ld: %m",
-				sdbm_name(db), pagnum);
-			ioerr(db, FALSE);
+		if (readpag(db, db->pagbuf, pagnum)) {
+			db->pagbno = pagnum;
+			return TRUE;
+		} else {
 			db->pagbno = -1;
 			return FALSE;
 		}
-		if G_UNLIKELY(got < DBM_PBLKSIZ) {
-			if (got > 0)
-				s_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
-					sdbm_name(db), (unsigned) got, pagnum);
-			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
-		}
-		if G_UNLIKELY(!sdbm_internal_chkpage(db->pagbuf)) {
-			s_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
-				sdbm_name(db), pagnum);
-			memset(db->pagbuf, 0, DBM_PBLKSIZ);
-			db->bad_pages++;
-		}
-		db->pagbno = pagnum;
-
-		debug(("pag read: %ld\n", pagnum));
-	} else {
-		db->pagbno_hit++;
 	}
 
+	db->pagbno_hit++;
 	return TRUE;
 }
 
@@ -1155,6 +1129,8 @@ sdbm_delete(DBM *db, datum key)
 		goto done;
 
 	status = 0;
+
+	/* FALL THROUGH */
 
 done:
 	sdbm_return(db, status);

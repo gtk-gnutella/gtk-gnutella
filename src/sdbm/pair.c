@@ -11,12 +11,27 @@
 #include "casts.h"
 
 #include "sdbm.h"
-#include "private.h"		/* We access DBM * for logging */
 #include "tune.h"
-#include "pair.h"
+
 #include "big.h"
+#include "lru.h"
+#include "pair.h"
+#include "private.h"		/* We access DBM * for logging */
 
 #include "lib/stringify.h"	/* For plural() */
+
+/*
+ * The MODIFY() macro is used to warn the LRU cache that a page is going to
+ * be modified, so that we can flag wired pages appropriately.  This is later
+ * perused by "loose" iterations on the database to detect that a page has been
+ * actually changed.
+ */
+
+#ifdef LRU
+#define MODIFY(d,p)		modifypag(d,p)
+#else	/* !LRU */
+#define MODIFY(d,p)
+#endif	/* LRU */
 
 /*
  * To accommodate larger key/values (that would otherwise not
@@ -151,6 +166,7 @@ replpair(DBM *db, char *pag, int i, datum val)
 
 	g_assert(UNSIGNED(i) + 1 <= ino[0]);
 
+	MODIFY(db, pag);
 	voff = offset(ino[i + 1]);
 
 #ifdef BIGDATA
@@ -203,6 +219,8 @@ putpair_ext(char *pag, datum key, bool bigkey, datum val, bool bigval)
 bool
 putpair(DBM *db, char *pag, datum key, datum val)
 {
+	MODIFY(db, pag);
+
 #ifdef BIGDATA
 	/*
 	 * Our strategy for using big values is the following: if the key+value
@@ -490,6 +508,8 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	if G_UNLIKELY(0 == n || i >= n || !(i & 0x1))
 		return FALSE;
 
+	MODIFY(db, pag);
+
 #ifdef BIGDATA
 	if (free_bigdata)
 		status = delipair_big(db, pag, i);
@@ -724,6 +744,8 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 	int off = DBM_PBLKSIZ;
 	const unsigned short *ino = (const unsigned short *) pag;
 	int removed = 0;
+
+	MODIFY(db, pagzero);		/* `pagone' does not exist yet in the DB */
 
 	memset(pagzero, 0, DBM_PBLKSIZ);
 	memset(pagone, 0, DBM_PBLKSIZ);

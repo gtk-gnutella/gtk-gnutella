@@ -87,6 +87,7 @@ struct lru_cpage {
 	uint wired:1;						/* Wired page, do not reuse */
 	uint was_cached:1;					/* Was in LRU list before being wired */
 	uint invalid:1;						/* Wired page was invalidated */
+	int wirecnt;						/* Amount of wiring done for page */
 	ulong mstamp;						/* Modification stamp (counter) */
 	long numpag;						/* Cache key: page number within DB */
 	DBM *db;							/* Associated DB */
@@ -161,6 +162,9 @@ sdbm_lru_cpage_get(const DBM *db, const char *pag, bool safe)
 {
 	const struct lru_cpage *cp;
 
+	if G_UNLIKELY(NULL == pag)
+		return NULL;
+
 	cp = const_ptr_add_offset(pag, -LRU_EMBEDDED_OFFSET);
 
 	/*
@@ -216,6 +220,8 @@ free_cache(struct lru_cache *cache)
 {
 	hevset_foreach(cache->pagnum, free_cached_page, NULL);
 	hevset_free_null(&cache->pagnum);
+	elist_discard(&cache->lru);
+	elist_discard(&cache->wired);
 	cache->pages = 0;
 	cache->magic = 0;
 	WFREE(cache);
@@ -586,16 +592,14 @@ lru_close(DBM *db)
 }
 
 /**
- * Signal that we are about to modify the current page (db->pagbuf).
+ * Signal that we are about to modify the specified page.
  */
 void
-modifypag(const DBM *db)
+modifypag(const DBM *db, const char *pag)
 {
-	const struct lru_cache *cache = db->cache;
-	struct lru_cpage *cp = sdbm_lru_cpage_get(db, db->pagbuf, FALSE);
+	struct lru_cpage *cp = sdbm_lru_cpage_get(db, pag, FALSE);
 
-	sdbm_lru_check(cache);
-	g_assert(cp != NULL);
+	g_assert(cp != NULL);		/* Page must be cached */
 	assert_sdbm_locked(db);
 
 	/*
@@ -605,6 +609,175 @@ modifypag(const DBM *db)
 
 	if G_UNLIKELY(cp->wired)
 		ATOMIC_INC(&cp->mstamp);
+}
+
+/**
+ * Wire a cache page.
+ *
+ * A wired page cannot be evicted from the cache and can be only released
+ * explicitly when it is unwired.
+ *
+ * Wired pages are used to track modifications from other threads.
+ *
+ * @param db		the database (locked)
+ * @param num		the page number to wire
+ * @param mstamp	if non-NULL, where initial modification stamp is written
+ *
+ * @return the base address of the wired page, NULL if we cannot read and
+ * therefore cannot wire the page.
+ */
+const char *
+lru_wire(DBM *db, long num, ulong *mstamp)
+{
+	struct lru_cache *cache = db->cache;
+	struct lru_cpage *cp;
+	bool allocated = FALSE;
+
+	sdbm_check(db);
+	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
+	g_assert(num >= 0);
+
+	cp = hevset_lookup(cache->pagnum, &num);
+
+	if G_LIKELY(NULL == cp) {
+		cp = sdbm_lru_cpage_alloc(db);
+		allocated = TRUE;
+	}
+
+	sdbm_lru_cpage_check(cp);
+
+	if (cp->wired) {
+		cp->wirecnt++;
+	} else {
+		cp->was_cached = !allocated;
+		cp->wired = TRUE;
+		cp->wirecnt = 1;
+		if (!allocated)
+			elist_remove(&cache->lru, cp);
+		elist_append(&cache->wired, cp);
+	}
+
+	if (allocated) {
+		if (!readpag(db, cp->page, num)) {
+			elist_remove(&cache->wired, cp);
+			sdbm_lru_cpage_free(cp);
+			return NULL;			/* Could not read the page from disk */
+		}
+		cp->numpag = num;
+		hevset_insert(cache->pagnum, cp);
+	}
+
+	g_assert(cp->wired);
+
+	/*
+	 * We own the lock on the DB, no need to issue a memory-barrier before
+	 * reading the modification stamp.
+	 */
+
+	if (mstamp != NULL)
+		*mstamp = cp->mstamp;
+
+	return cp->page;	/* Address will not change since page is wired */
+}
+
+/**
+ * Fetch the modification count of a wired cache page.
+ */
+ulong
+lru_wired_mstamp(DBM *db, const char *pag)
+{
+	const struct lru_cpage *cp = sdbm_lru_cpage_get(db, pag, FALSE);
+
+	g_assert_log(cp != NULL, "%s(): page %p is not cached", G_STRFUNC, pag);
+	g_assert_log(cp->wired,  "%s(): page %p is not wired",  G_STRFUNC, pag);
+
+	atomic_mb();
+	return cp->mstamp;
+}
+
+/**
+ * Unwire a wired cache page.
+ *
+ * If the page was previously held in the LRU cache and was not invalidated,
+ * we transfer it back to the LRU cache, possibly evicting another page.
+ */
+void
+lru_unwire(DBM *db, const char *pag)
+{
+	struct lru_cache *cache = db->cache;
+	struct lru_cpage *cp;
+
+	sdbm_check(db);
+	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
+
+	cp = sdbm_lru_cpage_get(db, pag, FALSE);
+
+	g_assert_log(cp != NULL, "%s(): page %p is not cached", G_STRFUNC, pag);
+	g_assert_log(cp->wired,  "%s(): page %p is not wired",  G_STRFUNC, pag);
+	g_assert(cp->wirecnt > 0);
+
+	if (0 != --cp->wirecnt)
+		return;
+
+	elist_remove(&cache->wired, cp);
+	cp->wired = FALSE;
+
+	if (0 == cache->pages)
+		goto freepage;
+
+	if (!cp->invalid && cp->was_cached) {
+		if (elist_count(&cache->lru) >= cache->pages) {
+			struct lru_cpage *old;
+
+			/*
+			 * We need to evict the least-recently used page from the cache
+			 * to make room for the unwired page.
+			 */
+
+			old = elist_tail(&cache->lru);
+
+			if (old->dirty && writebuf(old)) {
+				elist_remove(&cache->lru, old);
+				hevset_remove(cache->pagnum, &old->numpag);
+				sdbm_lru_cpage_free(old);
+			}
+		}
+		if (elist_count(&cache->lru) < cache->pages) {
+			elist_prepend(&cache->lru, cp);
+			/* Page was in the "wired" list, so already in cache->pagnum */
+		} else {
+			goto freepage;
+		}
+	} else {
+		goto freepage;
+	}
+
+	return;
+
+freepage:
+	/*
+	 * Unwired page not kept in the cache.
+	 */
+
+	if (cp->dirty)
+		writebuf(cp);
+
+	hevset_remove(cache->pagnum, &cp->numpag);
+	sdbm_lru_cpage_free(cp);
+
+	/*
+	 * If the cache was disabled and there are no more pages, free the cache.
+	 */
+
+	if (
+		0 == cache->pages &&
+		0 == elist_count(&cache->wired) + elist_count(&cache->lru)
+	) {
+		free_cache(cache);
+		db->cache = NULL;
+	}
 }
 
 /**
@@ -709,7 +882,7 @@ getcpage(DBM *db, long num)
 					db->flags &= ~DBM_IOERR_W;
 
 				s_warning("sdbm: \"%s\": "
-					"reusing cache slot used by clean page #%ld instead",
+					"reusing cache slot used by clean page #%ld",
 					sdbm_name(db), cp->numpag);
 			} else {
 				cp = elist_tail(&cache->lru);
@@ -737,6 +910,12 @@ getcpage(DBM *db, long num)
 	cp->numpag = num;
 	hevset_insert(cache->pagnum, cp);
 
+	g_assert_log(hevset_count(cache->pagnum) ==
+		elist_count(&cache->lru) + elist_count(&cache->wired),
+		"%s(): set_count=%zu, lru_count=%zu, wired_count=%zu",
+		G_STRFUNC, hevset_count(cache->pagnum),
+		elist_count(&cache->lru), elist_count(&cache->wired));
+
 	return cp;
 }
 
@@ -754,12 +933,13 @@ lru_cached_page(DBM *db, long num)
 	struct lru_cache *cache = db->cache;
 	struct lru_cpage *cp = NULL;
 
-	sdbm_lru_check(cache);
 	g_assert(num >= 0);
 	assert_sdbm_locked(db);
 
-	if (cache != NULL)
+	if (cache != NULL) {
+		sdbm_lru_check(cache);
 		cp = hevset_lookup(cache->pagnum, &num);
+	}
 
 	return NULL == cp ? NULL : cp->page;
 }
@@ -1069,8 +1249,55 @@ cachepag(DBM *db, char *pag, long num)
 #endif	/* LRU */
 
 /**
+ * Read page `num' from disk into `pag'.
+ * @return TRUE on success.
+ */
+bool
+readpag(DBM *db, char *pag, long num)
+{
+	ssize_t got;
+
+	sdbm_check(db);
+	assert_sdbm_locked(db);
+	g_assert(num >= 0);
+
+	/*
+	 * Note: here we assume a "hole" is read as 0s.
+	 *
+	 * On DOS / Windows machines, we explicitly write 0s at the end of
+	 * the file each time we extend it past the old tail, so there are
+	 * no holes on these systems.  See makroom().
+	 */
+
+	db->pagread++;
+	got = compat_pread(db->pagf, pag, DBM_PBLKSIZ, OFF_PAG(num));
+	if G_UNLIKELY(got < 0) {
+		s_critical("sdbm: \"%s\": cannot read page #%ld: %m",
+			sdbm_name(db), num);
+		ioerr(db, FALSE);
+		return FALSE;
+	}
+	if G_UNLIKELY(got < DBM_PBLKSIZ) {
+		if (got > 0)
+			s_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
+				sdbm_name(db), (unsigned) got, num);
+		memset(pag + got, 0, DBM_PBLKSIZ - got);
+	}
+	if G_UNLIKELY(!sdbm_internal_chkpage(pag)) {
+		s_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
+			sdbm_name(db), num);
+		memset(pag, 0, DBM_PBLKSIZ);
+		db->bad_pages++;
+	}
+
+	debug(("pag read: %ld\n", num));
+
+	return TRUE;
+}
+
+/**
  * Flush page to disk.
- * @return TRUE on success
+ * @return TRUE on success.
  */
 bool
 flushpag(DBM *db, char *pag, long num)
