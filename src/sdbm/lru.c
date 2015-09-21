@@ -18,12 +18,14 @@
 #include "lru.h"
 #include "private.h"
 
+#include "lib/atomic.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/elist.h"
 #include "lib/fd.h"
 #include "lib/hevset.h"
 #include "lib/log.h"
+#include "lib/qlock.h"
 #include "lib/stacktrace.h"
 #include "lib/stringify.h"		/* For plural() */
 #include "lib/vmm.h"
@@ -101,6 +103,15 @@ sdbm_lru_cpage_check(const struct lru_cpage * const c)
 	g_assert(c != NULL);
 	g_assert(SDBM_LRU_CPAGE_MAGIC == c->magic);
 }
+
+#ifdef THREADS
+#define assert_sdbm_locked(s) G_STMT_START {	\
+	if G_UNLIKELY((s)->lock != NULL)			\
+		assert_qlock_is_owned((s)->lock);		\
+}  G_STMT_END
+#else	/* !THREADS */
+#define assert_sdbm_locked(s)
+#endif	/* THREADS */
 
 /**
  * Allocate a new cached page.
@@ -268,6 +279,7 @@ static bool
 writebuf(struct lru_cpage *cp)
 {
 	sdbm_lru_cpage_check(cp);
+	assert_sdbm_locked(cp->db);
 
 	if (!flushpag(cp->db, cp->page, cp->numpag))
 		return FALSE;
@@ -310,6 +322,7 @@ flush_dirtypag(DBM *db)
 	int saved_errno = 0;
 
 	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
 
 	ELIST_FOREACH_DATA(&cache->lru, cp) {
 		if (!flush_cpage(cp, &amount, &saved_errno))
@@ -359,6 +372,7 @@ setcache(DBM *db, uint pages)
 	struct lru_cache *cache = db->cache;
 
 	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
 
 	if (pages <= 0) {
 		errno = EINVAL;
@@ -519,6 +533,7 @@ setwdelay(DBM *db, bool on)
 		return init_cache(db, LRU_PAGES, on);
 
 	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
 
 	if (on == cache->write_deferred)
 		return 0;
@@ -581,6 +596,7 @@ modifypag(const DBM *db)
 
 	sdbm_lru_check(cache);
 	g_assert(cp != NULL);
+	assert_sdbm_locked(db);
 
 	/*
 	 * If the page is wired, this is our hook to identify that it is about
@@ -605,6 +621,7 @@ dirtypag(DBM *db, bool force)
 
 	sdbm_lru_check(cache);
 	g_assert(cp != NULL);
+	assert_sdbm_locked(db);
 
 	if (cache->write_deferred && !force) {
 		if (cp->dirty)
@@ -645,7 +662,7 @@ getcpage(DBM *db, long num)
 	struct lru_cpage *cp;
 
 	g_assert(!hevset_contains(cache->pagnum, &num));
-
+	assert_sdbm_locked(db);
 
 	if (elist_count(&cache->lru) < cache->pages) {
 		/*
@@ -739,6 +756,7 @@ lru_cached_page(DBM *db, long num)
 
 	sdbm_lru_check(cache);
 	g_assert(num >= 0);
+	assert_sdbm_locked(db);
 
 	if (cache != NULL)
 		cp = hevset_lookup(cache->pagnum, &num);
@@ -796,6 +814,7 @@ lru_discard(DBM *db, long bno)
 	struct lru_cpage *cp;
 
 	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
 
 	elist_foreach_remove(&cache->lru, lru_discard_page, long_to_pointer(bno));
 
@@ -818,6 +837,7 @@ lru_invalidate(DBM *db, long bno)
 	struct lru_cpage *cp;
 
 	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
 
 	cp = hevset_lookup(cache->pagnum, &bno);
 
@@ -857,6 +877,7 @@ lru_tail_offset(const DBM *db)
 	long bno = -1;
 
 	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
 
 	ELIST_FOREACH_DATA(&cache->lru, cp) {
 		if (cp->dirty)
@@ -902,6 +923,7 @@ lru_reparent(const DBM *db, const DBM *pdb)
 	struct lru_reparent_args a;
 
 	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
 
 	a.db = db;
 	a.pdb = pdb;
@@ -927,6 +949,7 @@ readbuf(DBM *db, long num, bool *loaded)
 
 	sdbm_lru_check(cache);
 	g_assert(num >= 0);
+	assert_sdbm_locked(db);
 
 	cp = hevset_lookup(cache->pagnum, &num);
 
@@ -965,6 +988,7 @@ cachepag(DBM *db, char *pag, long num)
 
 	sdbm_lru_check(cache);
 	g_assert(num >= 0);
+	assert_sdbm_locked(db);
 
 	/*
 	 * Coming from makroom() where we allocated a new page, starting at "pag".
@@ -1054,6 +1078,7 @@ flushpag(DBM *db, char *pag, long num)
 	ssize_t w;
 
 	sdbm_check(db);
+	assert_sdbm_locked(db);
 	g_assert(num >= 0);
 
 	db->pagwrite++;
