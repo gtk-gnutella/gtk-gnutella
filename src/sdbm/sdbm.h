@@ -69,7 +69,7 @@ int sdbm_pagfno(DBM *);
 int sdbm_datfno(DBM *);
 bool sdbm_is_storable(size_t, size_t);
 void sdbm_set_name(DBM *, const char *);
-const char *sdbm_name(DBM *);
+const char *sdbm_name(const DBM *);
 ssize_t sdbm_sync(DBM *);
 int sdbm_set_cache(DBM *db, long pages);
 long sdbm_get_cache(const DBM *) G_GNUC_PURE;

@@ -340,7 +340,7 @@ sdbm_set_name(DBM *db, const char *name)
  * @return an empty string if not set.
  */
 const char *
-sdbm_name(DBM *db)
+sdbm_name(const DBM *db)
 {
 	sdbm_check(db);
 
