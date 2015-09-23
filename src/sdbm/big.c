@@ -1314,8 +1314,8 @@ bigkey_get(DBM *db, const char *bkey, size_t blen)
 	sdbm_big_check(dbg);
 
 	if (bigkey_length(len) != blen) {
-		s_critical("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
-			sdbm_name(db), G_STRFUNC, len);
+		s_critical("sdbm: \"%s\": %s(): bad key length %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, db->pagbno);
 		return NULL;
 	}
 
@@ -1343,8 +1343,8 @@ bigval_get(DBM *db, const char *bval, size_t blen)
 	sdbm_big_check(dbg);
 
 	if (bigval_length(len) != blen) {
-		s_critical("sdbm: \"%s\": %s(): inconsistent value length %zu in .pag",
-			sdbm_name(db), G_STRFUNC, len);
+		s_critical("sdbm: \"%s\": %s(): bad value length %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, db->pagbno);
 		return NULL;
 	}
 
@@ -1369,8 +1369,8 @@ bigkey_free(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		s_critical("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
-			sdbm_name(db), G_STRFUNC, len);
+		s_critical("sdbm: \"%s\": %s(): bad key length %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, db->pagbno);
 		return FALSE;
 	}
 
@@ -1393,8 +1393,8 @@ bigval_free(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		s_critical("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
-			sdbm_name(db), G_STRFUNC, len);
+		s_critical("sdbm: \"%s\": %s(): bad key length %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, db->pagbno);
 		return FALSE;
 	}
 
@@ -1431,14 +1431,14 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 
 		if (!big_block_is_allocated(db, bno)) {
 			s_warning("sdbm: \"%s\": "
-				"%s from .pag refers to unallocated block %zu in .dat",
-				sdbm_name(db), what, bno);
+				"%s from .pag #%ld refers to unallocated block %zu in .dat",
+				sdbm_name(db), what, db->pagbno, bno);
 			return FALSE;
 		}
 		if (prev_bno != 0 && bno <= prev_bno) {
 			s_warning("sdbm: \"%s\": "
-				"%s from .pag lists unordered block list (corrupted file?)",
-				sdbm_name(db), what);
+				"%s from .pag #%ld lists unordered block list (corrupted?)",
+				sdbm_name(db), what, db->pagbno);
 			return FALSE;
 		}
 		q = const_ptr_add_offset(q, sizeof(uint32));
@@ -1460,8 +1460,8 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 		map = ptr_add_offset(db->big->bitcheck, bmap * BIG_BLKSIZE);
 		if (bit_field_get(map, bit)) {
 			s_warning("sdbm: \"%s\": "
-				"%s from .pag refers to already seen block %zu in .dat",
-				sdbm_name(db), what, bno);
+				"%s from .pag #%ld refers to already seen block %zu in .dat",
+				sdbm_name(db), what, db->pagbno, bno);
 			return FALSE;
 		}
 	}
@@ -1485,8 +1485,8 @@ bigkey_check(DBM *db, const char *bkey, size_t blen)
 
 	if (bigkey_length(len) != blen) {
 		s_warning("sdbm: \"%s\": found inconsistent key length %zu, "
-			"would span %zu bytes in .pag instead of the %zu present",
-			sdbm_name(db), len, bigkey_length(len), blen);
+			"would span %zu bytes in .pag #%ld instead of the %zu present",
+			sdbm_name(db), len, bigkey_length(len), db->pagbno, blen);
 		return FALSE;
 	}
 
@@ -1509,8 +1509,8 @@ bigval_check(DBM *db, const char *bval, size_t blen)
 
 	if (bigval_length(len) != blen) {
 		s_warning("sdbm: \"%s\": found inconsistent value length %zu, "
-			"would span %zu bytes in .pag instead of the %zu present",
-			sdbm_name(db), len, bigkey_length(len), blen);
+			"would span %zu bytes in .pag #%ld instead of the %zu present",
+			sdbm_name(db), len, bigkey_length(len), db->pagbno, blen);
 		return FALSE;
 	}
 
@@ -1573,8 +1573,8 @@ bigkey_mark_used(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		s_carp("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
-			sdbm_name(db), G_STRFUNC, len);
+		s_carp("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, db->pagbno);
 		return;
 	}
 
@@ -1595,8 +1595,8 @@ bigval_mark_used(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		s_carp("sdbm: \"%s\": %s(): inconsistent value length %zu in .pag",
-			sdbm_name(db), G_STRFUNC, len);
+		s_carp("sdbm: \"%s\": %s(): inconsistent value length %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, db->pagbno);
 		return;
 	}
 
