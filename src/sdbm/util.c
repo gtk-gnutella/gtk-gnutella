@@ -11,7 +11,8 @@ oops(char *fmt, ...)
 
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
-	fprintf(stderr, " (%s)", strerror(errno));
+	if (errno != 0)
+		fprintf(stderr, " (%s)", strerror(errno));
 	fprintf(stderr, "\n");
 	exit(1);
 }
