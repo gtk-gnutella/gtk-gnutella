@@ -541,6 +541,11 @@ sdbm_ref(const DBM *db)
 
 	sdbm_check(db);
 
+	if G_UNLIKELY(NULL == db->lock) {
+		s_carp_once("%s(): sdbm \"%s\" is not thread-safe yet!",
+			G_STRFUNC, sdbm_name(db));
+	}
+
 	atomic_int_inc(&wdb->refcnt);
 	return wdb;
 }
