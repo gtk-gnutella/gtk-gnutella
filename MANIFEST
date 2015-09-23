@@ -1084,6 +1084,7 @@ src/sdbm/dbe.c
 src/sdbm/dbt.c
 src/sdbm/dbu.c
 src/sdbm/hash.c
+src/sdbm/loose.c
 src/sdbm/lru.c
 src/sdbm/lru.h
 src/sdbm/makefile.sdbm

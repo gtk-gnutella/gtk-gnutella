@@ -88,6 +88,7 @@ all:: .FORCE_DEPEND
 SRC = \
 	big.c \
 	hash.c \
+	loose.c \
 	lru.c \
 	pair.c \
 	sdbm.c
@@ -95,6 +96,7 @@ SRC = \
 OBJ = \
 	big.o \
 	hash.o \
+	loose.o \
 	lru.o \
 	pair.o \
 	sdbm.o 

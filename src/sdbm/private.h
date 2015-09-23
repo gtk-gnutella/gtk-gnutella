@@ -92,6 +92,13 @@ struct DBM {
 	}											\
 } G_STMT_END
 
+#define sdbm_synchronize_yield(s) G_STMT_START {\
+	if G_UNLIKELY((s)->lock != NULL) { 			\
+		DBM *ws = deconstify_pointer(s);		\
+		qlock_rotate(ws->lock);					\
+	}											\
+} G_STMT_END
+
 #define sdbm_unsynchronize(s) G_STMT_START {	\
 	if G_UNLIKELY((s)->lock != NULL) { 			\
 		DBM *ws = deconstify_pointer(s);		\
@@ -123,6 +130,7 @@ struct DBM {
 
 #define sdbm_synchronize(s)
 #define sdbm_unsynchronize(s)
+#define sdbm_synchronize_yield(s)
 #define sdbm_return(s, v)			return v
 #define sdbm_return_datum(s, v)		return v
 #define sdbm_return_idatum(s, v)	return v
@@ -160,5 +168,12 @@ ioerr(DBM *db, bool on_write)
 		db->read_errors++;
 	}
 }
+
+/*
+ * Internal routines, not meant to be user-visible.
+ */
+
+void sdbm_return_free(struct dbm_returns *r);
+datum *sdbm_datum_copy(datum *v, struct dbm_returns *r);
 
 /* vi: set ts=4 sw=4 cindent: */

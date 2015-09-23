@@ -244,10 +244,7 @@ sdbm_returns_free_null(struct dbm_returns **dr_ptr)
 		int i;
 
 		for (i = 0; i < THREAD_MAX; i++) {
-			struct dbm_returns *r = &dr[i];
-
-			if (r->len != 0)
-				XFREE_NULL(r->value.dptr);	/* Free thread-private data copy */
+			sdbm_return_free(&dr[i]);
 		}
 		xfree(dr);
 		*dr_ptr = NULL;
@@ -573,27 +570,37 @@ sdbm_unref(DBM **db_ptr)
 }
 
 /**
- * Allocate a thread-private datum to be returned to the thread.
- *
- * @param db	the database object
- * @param v		a pointer to the datum we need to create a copy for
- * @param dr	array of datum per thread where we can save the datum copy
- *
+ * Free memory used by a "dbm_returns" structure, if any.
  */
-static datum *
-sdbm_thread_datum_copy(DBM *db, datum *v, struct dbm_returns *dr)
+void
+sdbm_return_free(struct dbm_returns *r)
+{
+	g_assert(r != NULL);
+
+	if (r->len != 0)
+		xfree(r->value.dptr);	/* Free thread-private data copy */
+
+	ZERO(r);
+}
+
+/**
+ * Copy a datum into a "dbm_returns" structure, resizing its buffer as needed.
+ *
+ * When v->dsize is 0, `r' can be NULL since we're not using it!
+ *
+ * @param v		a pointer to the datum we need to create a copy for
+ * @param r		the "struct dbm_returns" keeping track of allocated memory
+ *
+ * @return a pointer to the copied datum.
+ */
+datum *
+sdbm_datum_copy(datum *v, struct dbm_returns *r)
 {
 	datum *d;
 	static datum zerosized;
 
-	sdbm_check(db);
-	g_assert(dr != NULL);
-
 	if (v->dsize != 0) {
-		uint stid = thread_small_id();
-		struct dbm_returns *r = &dr[stid];
-
-		g_assert(stid < THREAD_MAX);
+		g_assert(r != NULL);
 
 		/*
 		 * Until we reach XMALLOC_MAXSIZE, we keep growing the data buffer,
@@ -634,6 +641,32 @@ sdbm_thread_datum_copy(DBM *db, datum *v, struct dbm_returns *dr)
 	}
 
 	return d;
+}
+
+/**
+ * Allocate a thread-private datum to be returned to the thread.
+ *
+ * @param db	the database object
+ * @param v		a pointer to the datum we need to create a copy for
+ * @param dr	array of datum per thread where we can save the datum copy
+ *
+ * @return a pointer to a thread-private datum.
+ */
+static datum *
+sdbm_thread_datum_copy(DBM *db, datum *v, struct dbm_returns *dr)
+{
+	struct dbm_returns *r = NULL;
+
+	sdbm_check(db);
+	g_assert(dr != NULL);
+
+	if (v->dsize != 0) {
+		uint stid = thread_small_id();
+		g_assert(stid < THREAD_MAX);
+		r = &dr[stid];
+	}
+
+	return sdbm_datum_copy(v, r);
 }
 
 /**

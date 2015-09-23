@@ -30,6 +30,7 @@
 SRC = \
 	big.c \
 	hash.c \
+	loose.c \
 	lru.c \
 	pair.c \
 	sdbm.c

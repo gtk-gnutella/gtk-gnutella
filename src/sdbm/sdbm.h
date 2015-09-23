@@ -112,6 +112,36 @@ void sdbm_unref(DBM **db_ptr);
  */
 bool sdbm_internal_chkpage(const char *);
 
+/*
+ * Loose iteration support.
+ */
+
+struct sdbm_loose_stats {
+	size_t pages;			/* Pages seen in database */
+	size_t restarted;		/* Pages that required some restarting */
+	size_t aborted;			/* Pages whose traversal was aborted */
+	size_t avoided;			/* Avoided (duplicate) keys on restarts */
+	size_t traversals;		/* All traversals made (including all restarts) */
+	size_t empty;			/* Empty pages seen */
+	size_t deletions;		/* Requested item deletions */
+	size_t deletion_errors;	/* Deletion errors */
+	size_t deletion_refused;/* Deletions refused due to concurrent update */
+	size_t kept;			/* Kept items */
+	size_t items;			/* Callbacks invoked */
+	size_t big_keys;		/* Big keys seen */
+	size_t big_values;		/* Big values seen */
+};
+
+size_t sdbm_loose_foreach(DBM *, sdbm_cb_t, void *);
+size_t sdbm_loose_foreach_remove(DBM *, sdbm_cbr_t, void *);
+
+/* Undocumented calls (not listed in sdbm.3) -- RAM, 2015-09-23 */
+
+size_t sdbm_loose_foreach_stats(DBM *, sdbm_cb_t, void *,
+	struct sdbm_loose_stats *);
+size_t sdbm_loose_foreach_remove_stats(DBM *, sdbm_cbr_t, void *,
+	struct sdbm_loose_stats *);
+
 #endif /* _sdbm_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -245,3 +245,6 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added sdbm_ref() and sdbm_unref() to allow sharing of a DBM descriptor
   among threads and prevent early disappearing of that descriptor.  Prefer
   use of sdbm_unref() to sdbm_close() when sharing!
+* Added support for "loose iterations", which run over the database without
+  grabbing the lock for the whole duration of the traversal, at the price of
+  some missed keys or duplicate processing.

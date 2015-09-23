@@ -74,6 +74,9 @@ void sdbm_unref(const \s-1DBM\s0 **db_ptr)
 .sp
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
+.sp
+size_t sdbm_loose_foreach(\s-1DBM\s0 *db, sdbm_cb_t cb, void *arg);
+size_t sdbm_loose_foreach_remove(\s-1DBM\s0 *db, sdbm_cbr_t cb, void *arg);
 .ft R
 .fi
 .SH DESCRIPTION
@@ -502,6 +505,32 @@ reference still.  Thus, when sharing descriptors, it is more suitable to call
 which will only close when the last reference is gone and which nullifies the
 pointer to the descriptor in the thread, preventing further access through
 that variable since the reference was dropped.
+.LP
+Iterating over a large database can take a very long time, and locks the
+database for the whole duration of the iteration.  However, sometimes the
+application does not require such a
+.I strict
+iterating policy, but can very well cope with a
+.I loose
+iterating policy.  The
+.BR sdbm_loose_foreach (\|)
+and
+.BR sdbm_loose_foreach_remove (\|)
+routines do just that: they do not grab the lock for the entire duration
+of the iteration, allowing concurrent updates to be done by other threads.
+However, they do not guarantee that all the items will be traversed, that
+no item will not be traversed more than once, that the traversed items
+hold the latest value (in case of concurrent update), or even that the
+items still exist (in case of concurrent deletion).
+.LP
+However, the loose traversal guarantees that the keys and values passed
+to the callbacks are consistent, and especially that values are not
+containing parts of several concurrent updates.  Furthermore, the delete
+operation in
+.BR sdbm_loose_foreach_remove (\|)
+only takes place if no changes occurred on the page where the item lies
+since it was given to the callback, to avoid deleting a record for the
+wrong reasons.
 .SH PAGE CACHING
 This
 .B sdbm

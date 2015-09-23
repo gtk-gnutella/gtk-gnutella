@@ -18,7 +18,10 @@
 #include "pair.h"
 #include "private.h"		/* We access DBM * for logging */
 
+#include "lib/hashing.h"
 #include "lib/stringify.h"	/* For plural() */
+
+#include "lib/override.h"	/* Must be the last header included */
 
 /*
  * The MODIFY() macro is used to warn the LRU cache that a page is going to
@@ -379,7 +382,7 @@ getpair(DBM *db, char *pag, datum key)
  * Get value for the num-th key in the page.
  */
 datum
-getnval(DBM *db, char *pag, int num)
+getnval(DBM *db, const char *pag, int num)
 {
 	int i;
 	int n;
@@ -393,7 +396,7 @@ getnval(DBM *db, char *pag, int num)
 	if ((n = ino[0]) == 0 || i >= n)
 		return nullitem;
 
-	val.dptr = pag + offset(ino[i + 1]);
+	val.dptr = (char *) pag + offset(ino[i + 1]);
 	val.dsize = offset(ino[i]) - offset(ino[i + 1]);
 
 #ifdef BIGDATA
@@ -430,7 +433,7 @@ duppair(DBM *db, const char *pag, datum key)
 #endif
 
 datum
-getnkey(DBM *db, char *pag, int num)
+getnkey(DBM *db, const char *pag, int num)
 {
 	datum key;
 	int i;
@@ -445,7 +448,7 @@ getnkey(DBM *db, char *pag, int num)
 
 	off = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
 
-	key.dptr = pag + offset(ino[i]);
+	key.dptr = (char *) pag + offset(ino[i]);
 	key.dsize = off - offset(ino[i]);
 
 #ifdef BIGDATA
@@ -736,10 +739,23 @@ pagcount(const char *pag)
 	return ((unsigned short *) pag)[0];
 }
 
+/**
+ * @return amount of pairs on the page.
+ */
+int
+paircount(const char *pag)
+{
+	int n = pagcount(pag);
+
+	if (n & 0x1)
+		return 0;		/* Corrupted, that number must always be even! */
+
+	return n / 2;
+}
+
 void
 splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 {
-	datum key, val;
 	int n;
 	int off = DBM_PBLKSIZ;
 	const unsigned short *ino = (const unsigned short *) pag;
@@ -754,13 +770,16 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 	for (ino++; n > 0; ino += 2) {
 		unsigned short koff = offset(ino[0]);
 		unsigned short voff = offset(ino[1]);
-		key.dptr = (char *) pag + koff;
-		key.dsize = off - koff;
-		val.dptr = (char *) pag + voff;
-		val.dsize = koff - voff;
+		datum key, val;
 		bool bk = is_big(ino[0]);
 		bool failed;
-		long hash = exhash_big(db, key, bk, &failed);
+		long hash;
+
+		key.dptr = pag + koff;
+		key.dsize = off - koff;
+		val.dptr =  pag + voff;
+		val.dsize = koff - voff;
+		hash = exhash_big(db, key, bk, &failed);
 
 		/*
 		 * If we cannot hash a big key, then remove it from the page since
@@ -804,6 +823,43 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 }
 
 /**
+ * Parse the page, filling the supplied vector with key/value information.
+ *
+ * @param pag		the start of the page
+ * @param pv		base of the sdbm_pair vector to fill
+ * @param vcnt		amount of entries in the vector
+ *
+ * @return the amount of entries filled in the vector
+ */
+int
+readpairv(const char *pag, struct sdbm_pair *pv, int vcnt)
+{
+	const unsigned short *ino = (const unsigned short *) pag;
+	int off = DBM_PBLKSIZ;
+	int i, n;
+
+	g_assert(pag != NULL);
+
+	n = ino[0];
+
+	for (ino++, i = 0; n > 0 && i < vcnt; ino += 2, n -= 2, i++) {
+		struct sdbm_pair *v = &pv[i];
+
+		v->koff = offset(ino[0]);
+		v->klen = off - v->koff;
+		v->kbig = is_big(ino[0]);
+		v->voff = offset(ino[1]);
+		v->vlen = v->koff - v->voff;
+		v->vbig = is_big(ino[1]);
+		v->khash = binary_hash(pag + v->koff, v->klen);
+
+		off = v->voff;
+	}
+
+	return i;
+}
+
+/**
  * Check page sanity.
  */
 bool
@@ -823,8 +879,8 @@ sdbm_internal_chkpage(const char *pag)
 	STATIC_ASSERT(DBM_PBLKSIZ < 0x8000);
 
 	/*
-	 * number of entries should be something
-	 * reasonable, and all offsets in the index should be in order.
+	 * number of entries should be something reasonable,
+	 * and all offsets in the index should be in order.
 	 * this could be made more rigorous.
 	 */
 

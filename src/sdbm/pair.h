@@ -14,6 +14,21 @@
 #define infopair sdbm__infopair
 #define replpair sdbm__replpair
 #define replaceable sdbm__replaceable
+#define paircount sdbm__paircount
+#define readpairv sdbm__readpairv
+
+/**
+ * Description of an SDBM pair, filled by readpairv.
+ */
+struct sdbm_pair {
+	uint koff:16;		/* Key offset */
+	uint klen:15;		/* Key length in the page (not expanded if big key) */
+	uint kbig:1;		/* Whether key is a big key */
+	uint khash;			/* Hash of key bytes on the page */
+	uint voff:16;		/* Value offset */
+	uint vlen:15;		/* Value length (not expanded if big value) */
+	uint vbig:1;		/* Whether value is a big value */
+};
 
 extern bool fitpair(const char *, size_t);
 extern bool putpair(DBM *, char *, datum, datum);
@@ -24,11 +39,13 @@ extern bool delnpair(DBM *, char *, int);
 extern bool delipair(DBM *, char *, int, bool);
 extern bool chkipair(DBM *, char *, int);
 extern bool infopair(DBM *, char *, datum, size_t *, int *, bool *);
-extern datum getnkey(DBM *, char *, int);
-extern datum getnval(DBM *, char *, int);
+extern datum getnkey(DBM *, const char *, int);
+extern datum getnval(DBM *, const char *, int);
 extern void splpage(DBM *, char *, char *, char *, long);
 extern bool replaceable(size_t, size_t, bool);
 extern int replpair(DBM *, char *, int, datum);
+extern int paircount(const char *);
+extern int readpairv(const char *, struct sdbm_pair *, int);
 #ifdef SEEDUPS
 extern bool duppair(DBM *, const char *, datum);
 #endif

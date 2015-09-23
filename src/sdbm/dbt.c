@@ -32,13 +32,18 @@
 
 #include "common.h"
 
+#include "sdbm.h"
+
+#include "lib/atomic.h"
 #include "lib/progname.h"
 #include "lib/rand31.h"
+#include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"	/* For plural() */
+#include "lib/thread.h"
 #include "lib/tm.h"
 
-#include "sdbm.h"
+#include "lib/override.h"
 
 extern void oops(char *fmt, ...) G_PRINTF(1, 2);
 
@@ -58,13 +63,14 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiikprstvwBDEKSTUV] [-R seed] [-c pages] dbname count\n"
+		"Usage: %s [-bdeiklprstvwBDEKSTUV] [-R seed] [-c pages] dbname count\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
 		"  -d : perform delete test\n"
 		"  -e : perform existence test\n"
 		"  -i : perform iteration test\n"
 		"  -k : use large keys\n"
+		"  -l : perform loose iteration test (implies -T)\n"
 		"  -p : show test progress\n"
 		"  -r : perform a read test\n"
 		"  -s : perform safe iteration test\n"
@@ -378,6 +384,9 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 	printf("Starting %siteration test (%ld item%s), cache=%ld page%s...\n",
 		safe ? "safe " : "", count, plural(count), cpage, plural(cpage));
 
+	if (sdbm_is_thread_safe(db))
+		sdbm_lock(db);
+
 	key = safe ? sdbm_firstkey_safe(db) : sdbm_firstkey(db);
 
 	if (sdbm_error(db))
@@ -392,10 +401,122 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 			oops("error fetching next key");
 	}
 
-	if (i != count)
+	if (sdbm_is_thread_safe(db))
+		sdbm_unlock(db);
+
+	if (i != count) {
+		errno = 0;
 		oops("iterated over %ld item%s but requested %ld", i, plural(i), count);
+	}
 
 	show_done(done);
+
+	sdbm_close(db);
+}
+
+struct loose_iterator_args {
+	DBM *db;
+	struct sdbm_loose_stats *stats;
+};
+
+static void
+loose_cb(const datum key, const datum value, void *arg)
+{
+	(void) key;
+	(void) value;
+	(void) arg;
+}
+
+static void *
+loose_iterator(void *arg)
+{
+	struct loose_iterator_args *a = arg;
+
+	sdbm_loose_foreach_stats(a->db, loose_cb, NULL, a->stats);
+	sdbm_unref(&a->db);
+
+	return NULL;
+}
+
+static void
+loose_db(const char *name, long count, long cache, int safe, tm_t *done)
+{
+	DBM *db = open_db(name, TRUE, cache, 0);
+	long cpage = 0 == cache ? 64 : cache;
+	int t;
+	struct loose_iterator_args args;
+	struct sdbm_loose_stats stats;
+	char buf[1024];
+	ulong nop = 0;
+	datum key;
+
+	(void) safe;
+
+	printf("Starting loose iteration test (%ld item%s), cache=%ld page%s...\n",
+		count, plural(count), cpage, plural(cpage));
+
+	args.db = sdbm_ref(db);
+	args.stats = &stats;
+
+	ZERO(&stats);
+
+	t = thread_create(loose_iterator, &args, THREAD_F_PANIC, 0);
+
+	/*
+	 * Perturb the iterating thread by doing random NOP updates.
+	 */
+
+	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
+	key.dptr = buf;
+
+	for (;;) {
+		thread_info_t info;
+		long i;
+		datum val;
+
+		if (-1 == thread_get_info(t, &info)) {
+			if (ESRCH != errno)
+				oops("%s(): cannot get thread info", G_STRFUNC);
+		} else if (info.exited)
+			break;
+
+		i = random_value(count - 1);
+		fill_key(buf, sizeof buf, i);
+
+		val = sdbm_fetch(db, key);
+		if (NULL != val.dptr) {
+			if (-1 == sdbm_store(db, key, val, DBM_REPLACE))
+				oops("%s(): cannot rewrite key", G_STRFUNC);
+			nop++;
+		}
+
+		if (progress && 0 == nop % 50) {
+			atomic_mb();
+			show_progress(stats.items, count);
+		}
+	}
+
+	if (-1 == thread_join(t, NULL))
+		oops("%s(): cannot join with iterating thread", G_STRFUNC);
+
+	show_done(done);
+
+#define SHOW_LONG(f) printf("\t" #f " = %lu\n", (long) stats.f);
+
+	printf("Perturbed iteration by issuing %lu concurrent NOP update%s\n",
+		nop, plural(nop));
+	printf("Loose iterator statistics (extract):\n");
+	SHOW_LONG(pages);
+	SHOW_LONG(restarted);
+	SHOW_LONG(traversals);
+	SHOW_LONG(aborted);
+	SHOW_LONG(avoided);
+	SHOW_LONG(empty);
+	SHOW_LONG(items);
+	SHOW_LONG(big_keys);
+	SHOW_LONG(big_values);
+
+#undef SHOW_LONG
 
 	sdbm_close(db);
 }
@@ -428,7 +549,7 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	bool wflag = 0, rflag = 0, iflag = 0, tflag = 0, sflag = 0;
-	bool eflag = 0, dflag = 0, bflag = 0;
+	bool eflag = 0, dflag = 0, bflag = 0, lflag = 0;
 	int wflags = 0;
 	int c;
 	const char *name;
@@ -437,7 +558,7 @@ main(int argc, char **argv)
 
 	progstart(argc, argv);
 
-	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStTUvVw")) != EOF) {
+	while ((c = getopt(argc, argv, "bBc:dDeEiklKprR:sStTUvVw")) != EOF) {
 		switch (c) {
 		case 'B':			/* rebuild before testing */
 			rebuild++;
@@ -469,6 +590,10 @@ main(int argc, char **argv)
 		case 'K':			/* large keys with common head and tail */
 			large_keys++;
 			common_head_tail++;
+			break;
+		case 'l':			/* loose iteration (implies -T) */
+			lflag++;
+			thread_safe++;
 			break;
 		case 'p':			/* show test progress */
 			progress++;
@@ -556,6 +681,9 @@ main(int argc, char **argv)
 
 	if (iflag)
 		timeit(iter_db, name, count, cache, tflag, sflag, "iteration test");
+
+	if (lflag)
+		timeit(loose_db, name, count, cache, tflag, sflag, "loose test");
 
 	if (eflag)
 		timeit(exist_db, name, count, cache, tflag, 0, "existence test");
