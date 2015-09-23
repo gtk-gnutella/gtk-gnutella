@@ -2217,6 +2217,8 @@ no_entry:
 /**
  * Iterate on the whole database, applying supplied callback on each item.
  *
+ * If the callback is NULL, traversal is still done to count entries.
+ *
  * Flags can be any combination of:
  *
  * DBM_F_SAFE		activate keycheck during iteration
@@ -2248,7 +2250,8 @@ sdbm_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg)
 		const datum value = sdbm_value(db);
 
 		if (value.dptr != NULL || 0 == (flags & DBM_F_SKIP)) {
-			(*cb)(key, value, arg);
+			if (cb != NULL)
+				(*cb)(key, value, arg);
 			count++;
 		}
 	}
@@ -2282,6 +2285,7 @@ sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg)
 	size_t count = 0;
 
 	sdbm_check(db);
+	g_assert(cb != NULL);
 
 	sdbm_synchronize(db);
 

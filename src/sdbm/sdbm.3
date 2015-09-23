@@ -407,7 +407,12 @@ fetched from the data file.
 The
 .BR sdbm_foreach (\|)
 routine returns the number of items that were successfully iterated over,
-in other words, the amount of entries in the databse.
+in other words, the amount of entries in the databse.  It is possible to
+use a
+.B NULL
+argument for the callback parameter to have
+.BR sdbm_foreach (\|)
+simply iterate over the database to count the items.
 .LP
 Using
 .BR sdbm_foreach_remove (\|),
