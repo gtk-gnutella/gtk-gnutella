@@ -755,6 +755,11 @@ freepage:
 	if (cp->dirty)
 		writebuf(cp);
 
+	if (db->pagbno == cp->numpag) {
+		db->pagbuf = NULL;		/* Reference to cp->page becoming invalid */
+		db->pagbno = -1;
+	}
+
 	hevset_remove(cache->pagnum, &cp->numpag);
 	sdbm_lru_cpage_free(cp);
 
@@ -892,6 +897,9 @@ getcpage(DBM *db, long num)
 
 		elist_moveto_head(&cache->lru, cp);
 		hevset_remove(cache->pagnum, &cp->numpag);
+
+		if (db->pagbno == cp->numpag)
+			db->pagbno = -1;
 	}
 
 	/*
