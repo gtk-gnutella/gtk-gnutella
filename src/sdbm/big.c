@@ -19,6 +19,7 @@
 #include "private.h"
 
 #include "lib/bit_field.h"
+#include "lib/compat_misc.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/fd.h"
@@ -268,6 +269,7 @@ big_open(DBM *db)
 		return -1;
 
 	dbg->bitbuf = walloc(BIG_BLKSIZE);
+	compat_fadvise_random(dbg->fd, 0, 0);
 
 	if (-1 == fstat(dbg->fd, &buf)) {
 		buf.st_size = 0;

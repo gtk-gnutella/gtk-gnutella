@@ -16,6 +16,7 @@
 #include "big.h"
 #include "private.h"
 
+#include "lib/compat_misc.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/fd.h"
@@ -433,7 +434,7 @@ sdbm_prep(const char *dirname, const char *pagname,
 				 * unsplit data page: dirpage is all zeros.
 				 */
 
-				db->dirbno = (!dstat.st_size) ? 0 : -1;
+				db->dirbno = (0 == dstat.st_size) ? 0 : -1;
 				db->pagbno = -1;
 				db->maxbno = dstat.st_size * BYTESIZ;
 
@@ -473,6 +474,13 @@ success:
 	db->pagname = h_strdup(pagname);
 	db->openflags = flags;
 	db->openmode = mode;
+
+	/*
+	 * We expect a random access pattern on the files.
+	 */
+
+	compat_fadvise_random(db->pagf, 0, 0);
+	compat_fadvise_random(db->dirf, 0, 0);
 
 	return db;
 }
