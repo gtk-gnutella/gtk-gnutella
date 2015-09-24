@@ -1580,6 +1580,13 @@ iteration_done(DBM *db, bool completed)
 
 	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
 
+	/*
+	 * Restore "random" access mode on the .pag file now that the iteration
+	 * has been completed.
+	 */
+
+	compat_fadvise_random(db->pagf, 0, 0);
+
 	return nullitem;
 }
 
@@ -1654,6 +1661,13 @@ sdbm_firstkey(DBM *db)
 		value = iteration_done(db, FALSE);
 		goto done;
 	}
+
+	/*
+	 * During the iteration we're going to traverse the .pag file sequentially.
+	 * The normal "random" access mode will be restored in iteration_done().
+	 */
+
+	compat_fadvise_sequential(db->pagf, 0, 0);
 
 	/*
 	 * Start at page 0, skipping any page we can't read.
