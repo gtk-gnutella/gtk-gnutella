@@ -38,6 +38,8 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define SDBM_COUNT_PAGES	128	/* Amount of pages read by sdbm_count() */
+
 const datum nullitem = {0, 0};
 
 /*
@@ -2462,6 +2464,73 @@ sdbm_sync(DBM *db)
 
 done:
 	sdbm_return(db, npag);
+}
+
+/**
+ * Count how many entries (key/value pairs) are stored in the database.
+ *
+ * @return the amount of entries held, or -1 on I/O error.
+ */
+ssize_t
+sdbm_count(const DBM *db)
+{
+	ssize_t count = 0;
+	size_t len;
+	void *buf;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
+#ifdef LRU
+	if (-1 == flush_dirtypag(db)) {
+		count = (ssize_t) -1;
+		goto done;
+	}
+#endif
+
+	if (-1 == seek_to_filepos(db->pagf, 0)) {
+		count = (ssize_t) -1;
+		goto done;
+	}
+
+	len = SDBM_COUNT_PAGES * DBM_PBLKSIZ;
+	buf = vmm_alloc(len);
+	compat_fadvise_sequential(db->pagf, 0, 0);
+
+	for (;;) {
+		void *pag;
+		ssize_t r;
+		size_t n;
+		bool finished;
+
+		r = read(db->pagf, buf, len);
+
+		if G_UNLIKELY(-1 == r) {
+			count = (ssize_t) -1;
+			goto abort;
+		}
+
+		n = r / DBM_PBLKSIZ;		/* Amount of pages fully read */
+		finished = n != SDBM_COUNT_PAGES;
+
+		for (pag = buf; n != 0; n--, pag = ptr_add_offset(pag, DBM_PBLKSIZ)) {
+			if (sdbm_internal_chkpage(pag))
+				count += paircount(pag);
+		}
+
+		if G_UNLIKELY(finished)
+			break;
+	}
+
+abort:
+	vmm_free(buf, len);
+	compat_fadvise_random(db->pagf, 0, 0);
+
+	/* FALL THROUGH */
+
+done:
+	sdbm_return(db, count);
 }
 
 /**

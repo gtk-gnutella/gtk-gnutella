@@ -311,12 +311,15 @@ flush_cpage(struct lru_cpage *cp, ssize_t *amount, int *error)
  * were I/O errors (errno is set).
  */
 ssize_t
-flush_dirtypag(DBM *db)
+flush_dirtypag(const DBM *db)
 {
-	struct lru_cache *cache = db->cache;
+	const struct lru_cache *cache = db->cache;
 	struct lru_cpage *cp;
 	ssize_t amount = 0;
 	int saved_errno = 0;
+
+	if G_UNLIKELY(NULL == cache)
+		return 0;		/* No cache, nothing to flush */
 
 	sdbm_lru_check(cache);
 	assert_sdbm_locked(db);

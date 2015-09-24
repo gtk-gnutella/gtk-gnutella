@@ -64,7 +64,8 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiklprstvwyBDEKSTUV] [-R seed] [-c pages] dbname count\n"
+		"Usage: %s [-bdeiklprstvwyBCDEKSTUV] [-R seed] [-c pages]\n"
+		"       dbname [count]\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
 		"  -d : perform delete test\n"
@@ -80,6 +81,7 @@ usage(void)
 		"  -w : perform a write test\n"
 		"  -y : show runtime thread stats at the end\n"
 		"  -B : rebuild the database before testing\n"
+		"  -C : count database items\n"
 		"  -D : enable LRU cache write delay\n"
 		"  -E : empty existing database on write test\n"
 		"  -K : use large keys with common head/tail parts\n"
@@ -524,6 +526,24 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 }
 
 static void
+count_db(const char *name, long count, long cache, int safe, tm_t *done)
+{
+	DBM *db = open_db(name, FALSE, 0, 0);
+	long items;
+
+	(void) cache;
+	(void) count;
+	(void) safe;
+
+	printf("Counting items in \"%s\"...\n", name);
+	items = sdbm_count(db);
+	printf("...has %ld item%s\n", items, plural(items));
+
+	show_done(done);
+	sdbm_close(db);
+}
+
+static void
 timeit(void (*f)(const char *, long, long, int, tm_t *),
 	const char *name, long count,
 	long cache, bool chrono, int wflags, const char *what)
@@ -552,7 +572,7 @@ main(int argc, char **argv)
 	extern char *optarg;
 	bool wflag = 0, rflag = 0, iflag = 0, tflag = 0, sflag = 0;
 	bool eflag = 0, dflag = 0, bflag = 0, lflag = 0;
-	bool stats = 0;
+	bool stats = 0, count_items = 0;
 	int wflags = 0;
 	int c;
 	const char *name;
@@ -561,7 +581,7 @@ main(int argc, char **argv)
 
 	progstart(argc, argv);
 
-	while ((c = getopt(argc, argv, "bBc:dDeEiklKprR:sStTUvVwy")) != EOF) {
+	while ((c = getopt(argc, argv, "bBc:CdDeEiklKprR:sStTUvVwy")) != EOF) {
 		switch (c) {
 		case 'B':			/* rebuild before testing */
 			rebuild++;
@@ -571,6 +591,9 @@ main(int argc, char **argv)
 			break;
 		case 'c':			/* cache pages */
 			cache = atol(optarg);
+			break;
+		case 'C':			/* count items */
+			count_items++;
 			break;
 		case 'D':			/* enable write delay */
 			wflags |= WR_DELAY;
@@ -642,11 +665,26 @@ main(int argc, char **argv)
 		}
 	}
 
-	if ((argc -= optind) < 2)
+	if ((argc -= optind) < 1)
 		usage();
 
 	name = argv[optind];
-	count = atoi(argv[optind + 1]);
+
+	if (1 == argc) {
+		DBM *db = sdbm_open(name, O_RDONLY, 0);
+		if (NULL == db) {
+			printf("No count argument and can't open \"%s\": %s\n",
+				name, strerror(errno));
+			return 1;
+		} else {
+			printf("Counting items in \"%s\"...\n", name);
+			count = sdbm_count(db);
+			sdbm_close(db);
+			printf("(found %ld item%s)\n", count, plural(count));
+		}
+	} else {
+		count = atoi(argv[optind + 1]);
+	}
 
 	if (wflag && (wflags & WR_EMPTY))
 		printf("Database will be reset.\n");
@@ -675,6 +713,9 @@ main(int argc, char **argv)
 
 	if (count < 0)
 		oops("count must be positive (is %ld)", count);
+
+	if (count_items)
+		timeit(count_db, name, count, cache, tflag, 0, "count test");
 
 	if (bflag)
 		timeit(rebuild_db, name, count, cache, tflag, wflags, "rebuild test");

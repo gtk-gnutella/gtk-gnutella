@@ -37,6 +37,7 @@ void sdbm_endkey(\s-1DBM\s0 *db)
 long sdbm_hash(char *string, size_t len)
 .sp
 ssize_t sdbm_sync(\s-1DBM\s0 *db)
+ssize_t sdbm_count(const \s-1DBM\s0 *db)
 .sp
 int sdbm_set_cache(\s-1DBM\s0 *db, long pages)
 int sdbm_set_wdelay(\s-1DBM\s0 *db, bool on)
@@ -332,7 +333,9 @@ returns the file descriptor associated with the page file.
 .IP
 .BR sdbm_datfno (\|)
 returns the file descriptor associated with the data file (large keys and
-values), or -1 if the file was not opened yet because it was not needed so far.
+values), or
+.B -1
+if the file was not opened yet because it was not needed so far.
 .IP
 .BR sdbm_name (\|)
 returns the database name previously set using
@@ -351,9 +354,18 @@ space, after many value deletions for instance.  Returns
 .B FALSE
 on errors.
 .IP
+.BR sdbm_count (\|)
+quickly counts the amount of entries (key/value pairs) in the database by
+scanning the whole
+database file.  Returns
+.B -1
+on error.
+.IP
 .BR sdbm_clear (\|)
 erases all the data held in the database but keeps it opened.
-Returns -1 on errors.
+Returns
+.B -1
+on error.
 .IP
 .BR sdbm_rename (\|)
 renames the database files using the specified name base (without a
@@ -743,6 +755,8 @@ The following functions:
 .br
 .BR sdbm_is_storable (\|)
 .br
+.BR sdbm_count (\|)
+.br
 .BR sdbm_sync (\|)
 .br
 .BR sdbm_shrink (\|)
@@ -786,6 +800,10 @@ The following functions:
 .BR sdbm_foreach (\|)
 .br
 .BR sdbm_foreach_remove (\|)
+.br
+.BR sdbm_loose_foreach (\|)
+.br
+.BR sdbm_loose_foreach_remove (\|)
 .br
 .sp
 .in -5

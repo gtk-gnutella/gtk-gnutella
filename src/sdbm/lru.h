@@ -27,7 +27,7 @@ void modifypag(const DBM *, const char *);
 bool dirtypag(DBM *, bool);
 bool flushpag(DBM *, char *, long);
 bool readpag(DBM *, char *, long);
-ssize_t flush_dirtypag(DBM *);
+ssize_t flush_dirtypag(const DBM *);
 int setcache(DBM *, uint);
 uint getcache(const DBM *);
 int setwdelay(DBM *, bool);
