@@ -178,7 +178,6 @@ compat_memmem(const void *data, size_t data_size,
 	return deconstify_gchar(p);
 }
 
-#ifdef HAS_POSIX_FADVISE
 /**
  * See posix_fadvise(2).
  *
@@ -201,44 +200,48 @@ compat_fadvise(int fd, fileoffset_t offset, fileoffset_t size, int hint)
 		 */
 		size = OFF_T_MAX;
 	}
+#ifdef HAS_POSIX_FADVISE
 	posix_fadvise(fd, offset, size, hint);
+#endif
 }
+
+#ifndef HAS_POSIX_FADVISE
+#ifndef POSIX_FADV_SEQUENTIAL
+#define POSIX_FADV_SEQUENTIAL 0
+#endif
+#ifndef POSIX_FADV_RANDOM
+#define POSIX_FADV_RANDOM 0
+#endif
+#ifndef POSIX_FADV_NOREUSE
+#define POSIX_FADV_NOREUSE 0
+#endif
+#ifndef POSIX_FADV_DONTNEED
+#define POSIX_FADV_DONTNEED 0
+#endif
 #endif	/* HAS_POSIX_FADVISE */
 
 void
 compat_fadvise_sequential(int fd, fileoffset_t offset, fileoffset_t size)
 {
-#ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_SEQUENTIAL);
-#else
-	(void) fd;
-	(void) offset;
-	(void) size;
-#endif	/* HAS_POSIX_FADVISE */
+}
+
+void
+compat_fadvise_random(int fd, fileoffset_t offset, fileoffset_t size)
+{
+	compat_fadvise(fd, offset, size, POSIX_FADV_RANDOM);
 }
 
 void
 compat_fadvise_noreuse(int fd, fileoffset_t offset, fileoffset_t size)
 {
-#ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_NOREUSE);
-#else
-	(void) fd;
-	(void) offset;
-	(void) size;
-#endif	/* HAS_POSIX_FADVISE */
 }
 
 void
 compat_fadvise_dontneed(int fd, fileoffset_t offset, fileoffset_t size)
 {
-#ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_DONTNEED);
-#else
-	(void) fd;
-	(void) offset;
-	(void) size;
-#endif	/* HAS_POSIX_FADVISE */
 }
 
 /* vi: set ts=4 sw=4 cindent: */
