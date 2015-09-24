@@ -35,6 +35,7 @@
 #include "sdbm.h"
 
 #include "lib/atomic.h"
+#include "lib/log.h"
 #include "lib/progname.h"
 #include "lib/rand31.h"
 #include "lib/random.h"
@@ -63,7 +64,7 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiklprstvwBDEKSTUV] [-R seed] [-c pages] dbname count\n"
+		"Usage: %s [-bdeiklprstvwyBDEKSTUV] [-R seed] [-c pages] dbname count\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
 		"  -d : perform delete test\n"
@@ -77,6 +78,7 @@ usage(void)
 		"  -t : show timing results for each test\n"
 		"  -v : use large values\n"
 		"  -w : perform a write test\n"
+		"  -y : show runtime thread stats at the end\n"
 		"  -B : rebuild the database before testing\n"
 		"  -D : enable LRU cache write delay\n"
 		"  -E : empty existing database on write test\n"
@@ -550,6 +552,7 @@ main(int argc, char **argv)
 	extern char *optarg;
 	bool wflag = 0, rflag = 0, iflag = 0, tflag = 0, sflag = 0;
 	bool eflag = 0, dflag = 0, bflag = 0, lflag = 0;
+	bool stats = 0;
 	int wflags = 0;
 	int c;
 	const char *name;
@@ -558,7 +561,7 @@ main(int argc, char **argv)
 
 	progstart(argc, argv);
 
-	while ((c = getopt(argc, argv, "bBc:dDeEiklKprR:sStTUvVw")) != EOF) {
+	while ((c = getopt(argc, argv, "bBc:dDeEiklKprR:sStTUvVwy")) != EOF) {
 		switch (c) {
 		case 'B':			/* rebuild before testing */
 			rebuild++;
@@ -630,6 +633,9 @@ main(int argc, char **argv)
 		case 'w':			/* write test */
 			wflag++;
 			break;
+		case 'y':			/* show thread stats */
+			stats++;
+			break;
 		default:
 			usage();
 			break;
@@ -695,6 +701,9 @@ main(int argc, char **argv)
 		printf("Unlinking database\n");
 		unlink_database(name);
 	}
+
+	if (stats)
+		thread_dump_stats_log(log_agent_stdout_get(), 0);
 
 	return 0;
 }
