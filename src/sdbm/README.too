@@ -248,3 +248,5 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added support for "loose iterations", which run over the database without
   grabbing the lock for the whole duration of the traversal, at the price of
   some missed keys or duplicate processing.
+* Added sdbm_count(), sdbm_delta() and sdbm_delta_reset() to make it easy
+  for an application to track the actual count of items in the database.

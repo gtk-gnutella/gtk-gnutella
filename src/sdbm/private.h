@@ -39,6 +39,7 @@ struct DBM {
 	long blkptr;		/* current block for nextkey */
 	long pagbno;		/* current page in pagbuf */
 	long dirbno;		/* current block in dirbuf */
+	long delta;			/* algebraic count of pairs added (deleted if <0) */
 	int dirf;			/* directory file descriptor */
 	int pagf;			/* page file descriptor */
 	int flags;			/* status/error flags, see below */

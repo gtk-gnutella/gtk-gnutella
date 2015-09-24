@@ -88,6 +88,8 @@ int sdbm_set_volatile(DBM *db, bool yes);
 bool sdbm_is_volatile(const DBM *) G_PURE;
 bool sdbm_shrink(DBM *db);
 ssize_t sdbm_count(const DBM *db);
+ssize_t sdbm_delta(const DBM *db);
+void sdbm_delta_reset(DBM *db);
 int sdbm_clear(DBM *db);
 void sdbm_unlink(DBM *);
 int sdbm_rename(DBM *, const char *);

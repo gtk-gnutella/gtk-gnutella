@@ -1105,10 +1105,13 @@ sdbm_delete(DBM *db, datum key)
 		ioerr(db, FALSE);
 		goto done;
 	}
+
 	if (!delpair(db, db->pagbuf, key)) {
 		errno = 0;
 		goto done;
 	}
+
+	db->delta--;		/* Removing one key/pair */
 
 	/*
 	 * update the page file
@@ -1214,6 +1217,7 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 			} else {
 				if G_UNLIKELY(!delipair(db, db->pagbuf, idx, TRUE))
 					return -1;
+				db->delta--;		/* Removed one key/pair for now */
 			}
 		}
 	}
@@ -1243,6 +1247,8 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 
 	if G_UNLIKELY(!putpair(db, db->pagbuf, key, val))
 		result = -1;
+
+	db->delta++;		/* Added one key/pair */
 
 inserted:
 
@@ -2038,6 +2044,7 @@ validpage(DBM *db, long pagb)
 				"on page #%ld", sdbm_name(db),
 				corrupted, n / 2, plural_y(corrupted), pagb);
 		}
+		db->delta -= removed + corrupted;		/* Deleted entries */
 #ifdef LRU
 		(void) force_flush_pagbuf(db, !db->is_volatile);
 #else
@@ -2237,6 +2244,7 @@ sdbm_deletekey(DBM *db)
 		goto done;
 
 	db->keyptr--;
+	db->delta--;		/* Removing one key/pair */
 
 	/*
 	 * update the page file
@@ -2464,6 +2472,46 @@ sdbm_sync(DBM *db)
 
 done:
 	sdbm_return(db, npag);
+}
+
+/**
+ * Get algebraic count of added and deleted pairs since counter was last reset.
+ *
+ * Combined with an initial count of items, established through sdbm_count(),
+ * this lets the application determine exactly how many items are held in the
+ * database without having to re-count physically.
+ *
+ * The algebraic count is initially 0 after a sdbm_open() and can be reset to
+ * 0 at any time via sdbm_delta_reset().
+ *
+ * @return net value of "added - removed", where "added" is the amount of pairs
+ * added to the database and "removed" is the amount of deleted pairs.
+ */
+ssize_t
+sdbm_delta(const DBM *db)
+{
+	ssize_t delta;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+	delta = db->delta;
+	sdbm_unsynchronize(db);
+
+	return delta;
+}
+
+/**
+ * Reset the algebraic count of additions and deletions in the database to 0.
+ */
+void
+sdbm_delta_reset(DBM *db)
+{
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+	db->delta = 0;
+	sdbm_unsynchronize(db);
 }
 
 /**
@@ -3085,6 +3133,7 @@ sdbm_rebuild(DBM *db)
 	pagname = h_strdup(db->pagname);
 	datname = h_strdup(db->datname);
 
+	ndb->delta = db->delta;		/* Copy must be neutral (no changes) */
 #ifdef THREADS
 	ndb->lock = db->lock;
 	ndb->returned = db->returned;
@@ -3175,6 +3224,7 @@ sdbm_clear(DBM *db)
 		errno = ESTALE;
 		goto error;
 	}
+	db->delta = 0;
 	if G_UNLIKELY(-1 == ftruncate(db->pagf, 0))
 		goto error;
 	db->pagbno = -1;
