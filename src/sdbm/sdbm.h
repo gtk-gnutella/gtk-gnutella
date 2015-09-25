@@ -138,12 +138,17 @@ struct sdbm_loose_stats {
 size_t sdbm_loose_foreach(DBM *, sdbm_cb_t, void *);
 size_t sdbm_loose_foreach_remove(DBM *, sdbm_cbr_t, void *);
 
-/* Undocumented calls (not listed in sdbm.3) -- RAM, 2015-09-23 */
+/*
+ * Undocumented calls (not listed in sdbm.3) -- RAM, 2015-09-23
+ */
 
 size_t sdbm_loose_foreach_stats(DBM *, sdbm_cb_t, void *,
 	struct sdbm_loose_stats *);
 size_t sdbm_loose_foreach_remove_stats(DBM *, sdbm_cbr_t, void *,
 	struct sdbm_loose_stats *);
+
+void sdbm_free_null(DBM **);
+void sdbm_close_internal(DBM *, bool, bool);
 
 #endif /* _sdbm_h_ */
 

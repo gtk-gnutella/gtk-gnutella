@@ -1092,6 +1092,7 @@ src/sdbm/pair.c
 src/sdbm/pair.h
 src/sdbm/private.h
 src/sdbm/readme.ms
+src/sdbm/rebuild.c
 src/sdbm/sdbm.3
 src/sdbm/sdbm.c
 src/sdbm/sdbm.h

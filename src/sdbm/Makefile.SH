@@ -83,14 +83,13 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
-
 SRC = \
 	big.c \
 	hash.c \
 	loose.c \
 	lru.c \
 	pair.c \
+	rebuild.c \
 	sdbm.c
 
 OBJ = \
@@ -99,6 +98,7 @@ OBJ = \
 	loose.o \
 	lru.o \
 	pair.o \
+	rebuild.o \
 	sdbm.o 
 
 SDBM_FLAGS = -DSDBM -DDUFF

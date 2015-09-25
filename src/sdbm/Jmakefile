@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
- *
  * Copyright (c) 2008, Raphael Manfredi
  *
- * Jmakefile for the DHT part.
+ * Jmakefile for SDBM.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,14 +23,13 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
-
 SRC = \
 	big.c \
 	hash.c \
 	loose.c \
 	lru.c \
 	pair.c \
+	rebuild.c \
 	sdbm.c
 
 OBJ = \
