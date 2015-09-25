@@ -129,6 +129,7 @@ loose_process(struct loose_vars *v,
 	struct sdbm_pair *pv;
 	size_t kept = 0, restarted = 0, processed = 0;
 	int n;
+	bool locked = FALSE;
 
 	assert_sdbm_locked(v->db);
 	g_assert(pag != NULL);
@@ -161,15 +162,17 @@ restart:
 
 	/*
 	 * Avoid re-processing page that keeps getting modified too many times.
+	 *
+	 * If we have to restart too often, simply grab the lock to process
+	 * the page -- that will guarantee no concurrent modification can happen.
 	 */
 
 	if G_UNLIKELY(restarted++ > LOOSE_RESTART_MAX) {
-		s_warning_once_per(LOG_PERIOD_SECOND,
-			"%s(): sdbm \"%s\": skipping page #%ld after %zu/%d pair%s",
-			G_STRFUNC, sdbm_name(v->db), num,
-			processed, cnt, plural(processed));
-		v->stats->aborted++;
-		goto done;
+		g_assert(!locked);
+		sdbm_synchronize(v->db);
+		cur_mstamp = lru_wired_mstamp(v->db, pag);
+		v->stats->locked++;
+		locked = TRUE;
 	}
 
 	/*
@@ -380,9 +383,9 @@ restart:
 		}
 	}
 
-done:
 	WFREE_ARRAY(pv, cnt);
-	sdbm_synchronize(v->db);	/* Regrab lock we had on entry */
+	if (!locked)
+		sdbm_synchronize(v->db);	/* Regrab lock we had on entry */
 
 	return kept;
 }

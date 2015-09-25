@@ -513,7 +513,7 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 	SHOW_LONG(pages);
 	SHOW_LONG(restarted);
 	SHOW_LONG(traversals);
-	SHOW_LONG(aborted);
+	SHOW_LONG(locked);
 	SHOW_LONG(avoided);
 	SHOW_LONG(empty);
 	SHOW_LONG(items);

@@ -122,7 +122,7 @@ bool sdbm_internal_chkpage(const char *);
 struct sdbm_loose_stats {
 	size_t pages;			/* Pages seen in database */
 	size_t restarted;		/* Pages that required some restarting */
-	size_t aborted;			/* Pages whose traversal was aborted */
+	size_t locked;			/* Pages whose traversal was done with a lock */
 	size_t avoided;			/* Avoided (duplicate) keys on restarts */
 	size_t traversals;		/* All traversals made (including all restarts) */
 	size_t empty;			/* Empty pages seen */
