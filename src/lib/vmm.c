@@ -2656,8 +2656,40 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 		vmf->mtime = tm_time();
 
 		if (end != vend) {
-			/* Insert trailing part back as a region of the same type */
-			pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
+			/*
+			 * Insert trailing part back as a region of the same type.
+			 *
+			 * CAUTION:
+			 * We may be in a situation where we are extending the pmap
+			 * from pmap_extend() and, while allocating the new pages for
+			 * the new pmap, we have to call pmap_overrule(), and here we
+			 * come, attempting to remove a foreign maping, partially.
+			 *
+			 * If the pmap is being extended, it means it is full and we
+			 * do not want to insert a new region: we can't anyway.
+			 * When that region is a foreign mapping, we can simply drop it,
+			 * as this information is intuited and could be stale.
+			 *		--RAM, 2015-09-27
+			 */
+
+			if G_LIKELY(!pm->extending) {
+				/* Normal case */
+				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
+			} else if (vmf_is_foreign(vmf)) {
+				/* Exceptional: pamp is full, dropping foreign region */
+				if (vmm_debugging(0)) {
+					s_message("VMM forgetting %s: pmap is full and extending",
+						vmf_to_string(vmf));
+				}
+			} else {
+				/* Error case, MUST NOT happen, but if it does... */
+				s_warning("cannot remove from %s VM fragment while "
+					"pmap is extending (count=%zu, size=%zu)",
+					vmf_type_str(vmf->type), pm->count, pm->size);
+				s_error_from(_WHERE_, "extending pmap and attempting to "
+					"remove %zu bytes at %p from %s",
+					size, p, vmf_to_string(vmf));
+			}
 		}
 	}
 }
