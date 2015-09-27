@@ -39,6 +39,7 @@
 #include "compat_sleep_ms.h"
 #include "cond.h"
 #include "cq.h"
+#include "crash.h"
 #include "dam.h"
 #include "evq.h"
 #include "getcpucount.h"
@@ -2186,6 +2187,7 @@ main(int argc, char **argv)
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
+	crash_init(argv[0], progname, 0, NULL);
 	stacktrace_init(argv[0], FALSE);
 
 	misc_init();
