@@ -973,6 +973,21 @@ tmalloc_thread_layer_free(void *data)
 
 	tmt->tmt_magic = 0;
 	d->tma_free(tmt, sizeof *tmt);
+
+	/*
+	 * There is no need to remove the now destroyed "tmt" variable from
+	 * the "tmagazines" list: that list is only maintained to quickly
+	 * access all the "struct tmalloc_thread" objects created for a thread
+	 * when garbage-collecting the unused magazines.
+	 *
+	 * The embedded list descriptor itself is held in a thread-local variable
+	 * and will be cleared by tmalloc_thread_free_magazines().
+	 *
+	 * Al the "struct tmalloc_thread" objects pertaining to the dying thread
+	 * are therefore reclaimed not because they are part of the "tmagazines"
+	 * list, but because they are indexed via a specific thread-local variable:
+	 * the tma_key in the tmalloc_t object (the magazine depot).
+	 */
 }
 
 static void
