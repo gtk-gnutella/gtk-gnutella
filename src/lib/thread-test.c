@@ -33,6 +33,7 @@
 #include "common.h"
 
 #include "aq.h"
+#include "atio.h"
 #include "atomic.h"
 #include "barrier.h"
 #include "compat_poll.h"
@@ -154,12 +155,21 @@ static void
 emitv(bool nl, const char *fmt, va_list args)
 {
 	str_t *s = str_new(512);
+	iovec_t iov[2];
+	int cnt = 0;
 
 	str_vprintf(s, fmt, args);
-	fputs(str_2c(s), stdout);
+	iovec_set(&iov[cnt++], str_2c(s), str_len(s));
 	if (nl)
-		fputc('\n', stdout);
-	fflush(stdout);
+		iovec_set(&iov[cnt++], "\n", 1);
+
+	/*
+	 * Emit every message to stderr, since this is the same channel used
+	 * by s_debug() and friends.  That way, all the output goes to the
+	 * very same descriptor, atomically, avoiding garbled output.
+	 */
+
+	atio_writev(STDERR_FILENO, iov, cnt);
 
 	str_destroy_null(&s);
 }
