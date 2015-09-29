@@ -1991,7 +1991,7 @@ tmalloc_thread_create(tmalloc_t *tma)
 		 * first attempt at using any thread magazine alllocator will create
 		 * the magazine list, entering this "if" statement.
 		 *
-		 * Becasue we register that callback after tmalloc_thread_gc_install(),
+		 * Because we register that callback after tmalloc_thread_gc_install(),
 		 * we know that it will be run before any exiting callback used by
 		 * the event queue (execution order is LIFO).
 		 */
