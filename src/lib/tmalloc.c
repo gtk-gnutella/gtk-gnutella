@@ -953,7 +953,11 @@ tmalloc_thread_layer_free(void *data)
 	tmalloc_check(d);
 
 	if (tmalloc_debugging(10)) {
-		s_debug("%s(\"%s\"): %s is exiting",
+		/*
+		 * Use s_rawdebug() to avoid memory allocation on the thread exit path.
+		 */
+
+		s_rawdebug("%s(\"%s\"): %s is exiting",
 			G_STRFUNC, d->tma_name, thread_name());
 	}
 
