@@ -100,11 +100,16 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
-	{ "1.uhc.gtk-gnutella.nl:19104" },
-	{ "uhc.gtk-gnutella.nl:15749" },
+	/* Crabs */
 	{ "useast.gnutella.dyslexicfish.net:3558" },
 	{ "uswest.gnutella.dyslexicfish.net:3558" },
 	{ "uk.gnutella.dyslexicfish.net:3558" },
+	/* Peers */
+	{ "1.uhc.gtk-gnutella.nl:19104" },
+	{ "uhc.gtk-gnutella.nl:15749" },
+	{ "useast.gnutella.dyslexicfish.net:19814" },
+	{ "uswest.gnutella.dyslexicfish.net:26562" },
+	{ "uk.gnutella.dyslexicfish.net:55577" },
 #endif	/* USE_LOCAL_UHC */
 };
 
