@@ -74,7 +74,7 @@ void *hash_list_iter_remove(hash_list_iter_t *iter);
 
 bool hash_list_find(hash_list_t *, const void *key, const void **orig_key);
 bool hash_list_contains(hash_list_t *, const void *key);
-const void *hash_list_lookup(hash_list_t *hl, const void *key);
+void *hash_list_lookup(hash_list_t *hl, const void *key);
 void hash_list_foreach(const hash_list_t *, data_fn_t, void *);
 size_t hash_list_foreach_remove(hash_list_t *, data_rm_fn_t, void *);
 

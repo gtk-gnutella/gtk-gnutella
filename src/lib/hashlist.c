@@ -1284,7 +1284,7 @@ hash_list_find(hash_list_t *hl, const void *key,
  *
  * @return the item associated with the key if found, NULL otherwise.
  */
-const void *
+void *
 hash_list_lookup(hash_list_t *hl, const void *key)
 {
 	struct hash_list_item *item;
@@ -1295,7 +1295,7 @@ hash_list_lookup(hash_list_t *hl, const void *key)
 
 	item = hikset_lookup(hl->ht, key);
 
-	hash_list_return(hl, NULL == item ? NULL : item->key);
+	hash_list_return(hl, NULL == item ? NULL : deconstify_pointer(item->key));
 }
 
 /**
