@@ -126,6 +126,9 @@ buf_t *buf_new_embedded(size_t size);
 buf_t *buf_private(const void *key, size_t size);
 void buf_free_null(buf_t **b_ptr);
 
+buf_t *buf_resize(buf_t *b, size_t size);
+buf_t *buf_private_resize(const void *key, size_t size);
+
 void buf_setc(buf_t *b, size_t i, char c);
 char buf_getc(const buf_t *b, size_t i);
 size_t buf_copyin(buf_t *b, const void *src, size_t len);

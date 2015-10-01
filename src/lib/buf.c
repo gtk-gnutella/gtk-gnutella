@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Raphael Manfredi
+ * Copyright (c) 2013, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * via xmalloc() to benefit from the thread-private allocation pools.
  *
  * @author Raphael Manfredi
- * @date 2013
+ * @date 2013, 2015
  */
 
 #include "common.h"
@@ -41,6 +41,7 @@
 #include "misc.h"			/* For clamp_memcpy() */
 #include "str.h"
 #include "thread.h"
+#include "unsigned.h"		/* For size_is_positive() */
 #include "walloc.h"
 #include "xmalloc.h"
 
@@ -190,6 +191,110 @@ buf_private(const void *key, size_t size)
 	thread_private_add_extended(key, b, buf_private_reclaim, NULL);
 
 	return b;
+}
+
+/**
+ * Resize buffer to the specified size.
+ *
+ * When the new size is larger, the extra data in the buffer is zeroed.
+ *
+ * @param b		the buffer to resize
+ * @param size	the new desired buffer size
+ *
+ * @return the new buffer, since the address can change due to reallocation
+ * when the buffer is embedded.
+ */
+static buf_t *
+buf_resize_internal(buf_t *b, size_t size)
+{
+	size_t old_size = b->b_size;
+	char *p;
+
+	g_assert(size_is_positive(size));	/* Implies `size' cannot be 0 */
+
+	if (buf_is_embedded(b)) {
+		b = xrealloc(b, BUF_DATA_OFFSET + size);
+		p = (char *) b->b_u.bu_edata;
+	} else {
+		p = b->b_u.bu_data = xrealloc(b->b_u.bu_data, size);
+	}
+
+	b->b_size = size;
+	if (old_size < size)
+		memset(p + old_size, 0, size - old_size);
+
+	return b;
+}
+
+/**
+ * Resize buffer to the specified size.
+ *
+ * When the new size is larger, the extra data in the buffer is zeroed.
+ *
+ * @param b		the buffer to resize
+ * @param size	the new desired buffer size
+ *
+ * @return the new buffer, since the address can change due to reallocation
+ * when the buffer is embedded.
+ */
+buf_t *
+buf_resize(buf_t *b, size_t size)
+{
+	buf_check(b);
+	g_assert(BUF_MAGIC_PRIVATE != b->b_magic);
+
+	return buf_resize_internal(b, size);
+}
+
+/**
+ * Resize private buffer attached to given key to the specified size.
+ *
+ * When the new size is larger, the extra data in the buffer is zeroed.
+ *
+ * If the buffer was not already existing for that thread, it is allocated
+ * transparently to the proper size.
+ *
+ * @param key	the key to access the thread-private buffer
+ * @param size	the new desired buffer size
+ *
+ * @return the new buffer, since the address can change due to reallocation
+ * when the buffer is embedded.
+ */
+buf_t *
+buf_private_resize(const void *key, size_t size)
+{
+	buf_t *b, *nb;
+
+	b = thread_private_get(key);
+
+	if G_UNLIKELY(NULL == b)
+		return buf_private(key, size);
+
+	g_assert(BUF_MAGIC_PRIVATE == b->b_magic);
+
+	nb = buf_resize_internal(b, size);
+	if (nb != b) {
+		bool found;
+
+		/*
+		 * Since the address of the thread-private value changes, we need
+		 * to update the data structure.  We cannot simply remove the
+		 * value because the free routine would be invoked, and the address
+		 * just changed!
+		 *
+		 * We therefore remove the old free-routine we had installed, then
+		 * remove the value from the table, then re-install the new value
+		 * with the proper free routine.
+		 */
+
+		thread_private_set_extended(key, b, NULL, NULL);
+		found = thread_private_remove(key);
+		g_assert(found);
+
+		thread_private_add_extended(key, nb, buf_private_reclaim, NULL);
+	}
+
+	return nb;
 }
 
 /**
