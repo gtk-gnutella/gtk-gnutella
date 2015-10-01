@@ -34,7 +34,9 @@
 #include "common.h"
 
 #include "vendors.h"
+
 #include "ascii.h"
+#include "buf.h"
 #include "endian.h"
 #include "glib-missing.h"	/* For g_strlcpy() */
 #include "misc.h"
@@ -228,10 +230,11 @@ vendor_code_to_string_buf(uint32 code, char *buf, size_t size)
 const char *
 vendor_code_to_string(uint32 code)
 {
-	static char buf[5];
+	buf_t *b = buf_private(G_STRFUNC, 5);
+	char *p = buf_data(b);
 
-	vendor_code_to_string_buf(code, buf, sizeof buf);
-	return buf;
+	vendor_code_to_string_buf(code, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -249,19 +252,20 @@ vendor_code_get_name(uint32 code)
 	} else if (NULL != (name = find_vendor(code))) {
 		return name;
 	} else {
-		static char bytes[5];
+		buf_t *b = buf_private(G_STRFUNC, 5);
+		char *p = buf_data(b);
 		unsigned i;
 
-		STATIC_ASSERT(sizeof code == G_N_ELEMENTS(bytes) - 1);
-		poke_be32(&bytes, code);
+		g_assert(sizeof code == buf_size(b) - 1);
+		poke_be32(p, code);
 
 		/* Unknown type, look whether we have all printable ASCII */
-		for (i = 0; i < G_N_ELEMENTS(bytes) - 1; i++) {
-			if (!is_ascii_alnum(bytes[i]))
+		for (i = buf_size(b); i != 0; i--) {
+			if (!is_ascii_alnum(p[i - 1]))
 				return NULL;
 		}
-		bytes[i] = '\0';
-		return bytes;
+		buf_setc(b, 4, '\0');
+		return p;
 	}
 }
 
@@ -275,10 +279,11 @@ vendor_code_get_name(uint32 code)
 const char *
 vendor_to_string(const vendor_code_t vendor)
 {
-	static char buf[5];
+	buf_t *b = buf_private(G_STRFUNC, 5);
+	char *p = buf_data(b);
 
-	vendor_code_to_string_buf(vendor.u32, buf, sizeof buf);
-	return buf;
+	vendor_code_to_string_buf(vendor.u32, p, buf_size(b));
+	return p;
 }
 
 /**

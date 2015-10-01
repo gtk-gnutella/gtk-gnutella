@@ -37,6 +37,7 @@
 #include "cq.h"
 
 #include "atoms.h"
+#include "buf.h"
 #include "elist.h"
 #include "entropy.h"
 #include "hashing.h"		/* For integer_hash_fast() */
@@ -1935,10 +1936,11 @@ cq_main_coverage(int old_ticks)
 const char *
 cq_time_to_string(cq_time_t t)
 {
-	static char buf[UINT64_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	uint64_to_string_buf(t, buf, sizeof buf);
-	return buf;
+	uint64_to_string_buf(t, p, buf_size(b));
+	return p;
 }
 
 /***

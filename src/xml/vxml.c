@@ -40,6 +40,7 @@
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
+#include "lib/buf.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
@@ -460,7 +461,9 @@ vxml_debugging(uint32 level)
 static const char *
 vxml_parser_where(const vxml_parser_t *vp)
 {
-	static char buf[2048];
+	buf_t *b = buf_private(G_STRFUNC, 2048);
+	char *buf = buf_data(b);
+	size_t bufsz = buf_size(b);
 	size_t rw = 0;
 	plist_t *rpath, *rp;
 
@@ -477,7 +480,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 	}
 
 	if (NULL == rp) {
-		str_bprintf(buf, sizeof buf, "/");
+		buf_printf(b, "/");
 	} else {
 		while (rp != NULL) {
 			struct vxml_path_entry *pe = rp->data;
@@ -490,9 +493,9 @@ vxml_parser_where(const vxml_parser_t *vp)
 
 			rp = plist_next(rp);
 
-			rw += str_bprintf(&buf[rw], sizeof buf - rw, "/%s", element);
+			rw += str_bprintf(&buf[rw], bufsz - rw, "/%s", element);
 			if (children > ((NULL == rp) ? 0 : 1))
-				rw += str_bprintf(&buf[rw], sizeof buf - rw, "[%u]", children);
+				rw += str_bprintf(&buf[rw], bufsz - rw, "[%u]", children);
 		}
 	}
 
@@ -2856,7 +2859,7 @@ vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, bool inquote)
 
 	if (!inquote) {
 		struct vxml_buffer *vb;
-		static char vxc_sp_buf[] = " ";
+		buf_t *vxc_sp_buf = buf_private(G_STRFUNC, 1);
 
 		/*
 		 * Since it is an error if the entity is not recognized, we can safely
@@ -2865,8 +2868,10 @@ vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, bool inquote)
 		 * leading space, we'll forcefully "unread" a space.
 		 */
 
+		buf_setc(vxc_sp_buf, 0, ' ');
+
 		vb = vxml_buffer_alloc(vp->generation++,
-				vxc_sp_buf, CONST_STRLEN(vxc_sp_buf),
+				buf_data(vxc_sp_buf), buf_size(vxc_sp_buf),
 				FALSE, FALSE, utf8_decode_char_buffer);
 		vp->input = pslist_prepend(vp->input, vb);
 	}

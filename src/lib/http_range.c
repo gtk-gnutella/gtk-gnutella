@@ -48,6 +48,7 @@
 #include "http_range.h"
 
 #include "ascii.h"
+#include "buf.h"
 #include "erbtree.h"
 #include "eslist.h"
 #include "misc.h"
@@ -241,17 +242,17 @@ http_range_item_length(const struct http_range_item * const hri)
 static const char *
 http_range_item_to_string(const struct http_range_item * const hri)
 {
-	static char buf[FILESIZE_DEC_BUFLEN * 2 + 1];
+	buf_t *b = buf_private(G_STRFUNC, FILESIZE_DEC_BUFLEN * 2 + 1);
 
 	if (NULL == hri)
 		return "null";
 
 	http_range_item_check(hri);
 
-	str_bprintf(buf, sizeof buf, "%s-%s",
+	buf_printf(b, "%s-%s",
 		filesize_to_string(hri->start), filesize_to_string2(hri->end));
 
-	return buf;
+	return buf_data(b);
 }
 
 /**
@@ -260,17 +261,17 @@ http_range_item_to_string(const struct http_range_item * const hri)
 static const char *
 http_range_item_to_string2(const struct http_range_item * const hri)
 {
-	static char buf[FILESIZE_DEC_BUFLEN * 2 + 1];
+	buf_t *b = buf_private(G_STRFUNC, FILESIZE_DEC_BUFLEN * 2 + 1);
 
 	if (NULL == hri)
 		return "null";
 
 	http_range_item_check(hri);
 
-	str_bprintf(buf, sizeof buf, "%s-%s",
+	buf_printf(b, "%s-%s",
 		filesize_to_string(hri->start), filesize_to_string2(hri->end));
 
-	return buf;
+	return buf_data(b);
 }
 
 /**
@@ -1358,15 +1359,12 @@ final:
 const char *
 http_rangeset_to_string(const http_rangeset_t *hrs)
 {
-	static str_t *s;
+	str_t *s = str_private(G_STRFUNC, 80);
 	static const char comma[] = ", ";
 	slink_t *sl;
 
 	http_rangeset_check(hrs);
 	http_rangeset_invariant(hrs);
-
-	if G_UNLIKELY(NULL == s)
-		s = str_new_not_leaking(0);
 
 	str_reset(s);
 

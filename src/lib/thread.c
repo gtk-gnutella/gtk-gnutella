@@ -81,6 +81,7 @@
 
 #include "alloca.h"				/* For alloca_stack_direction() */
 #include "atomic.h"
+#include "buf.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
 #include "compat_usleep.h"
@@ -4494,8 +4495,9 @@ thread_private_update_extended(const void *key, const void *value,
 		data_free != NULL &&
 		data_free != THREAD_PRIVATE_KEEP
 	) {
-		s_carp("%s(): adding value freed by %s() in %s -- object will leak",
-			G_STRFUNC, stacktrace_function_name(data_free), thread_name());
+		s_carp("%s(): not adding value freed by %s() in %s -- %p will leak",
+			G_STRFUNC,
+			stacktrace_function_name(data_free), thread_name(), value);
 		return;
 	}
 
@@ -4992,17 +4994,18 @@ thread_foreach_local(thread_key_t key, uint flags, cdata_fn_t fn, void *data)
 }
 
 /**
- * Stringify the thread ID.
+ * Stringify the given thread ID.
  *
  * @return pointer to static string
  */
 const char *
 thread_to_string(const thread_t t)
 {
-	static char buf[ULONG_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, ULONG_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	ulong_to_string_buf(t, buf, sizeof buf);
-	return buf;
+	ulong_to_string_buf(t, p, buf_size(b));
+	return p;
 }
 
 /**

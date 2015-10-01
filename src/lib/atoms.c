@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "atoms.h"
+#include "buf.h"
 #include "constants.h"
 #include "endian.h"
 #include "hashing.h"
@@ -781,10 +782,11 @@ packed_host_addr_len(const void *v)
 static const char *
 uint64_str(const void *v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	uint64_to_string_buf(*(const uint64 *) v, buf, sizeof buf);
-	return buf;
+	uint64_to_string_buf(*(const uint64 *) v, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -845,10 +847,11 @@ uint64_mem_hash(const void *p)
 static const char *
 filesize_str(const void *v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	uint64_to_string_buf(*(const filesize_t *) v, buf, sizeof buf);
-	return buf;
+	uint64_to_string_buf(*(const filesize_t *) v, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -857,10 +860,11 @@ filesize_str(const void *v)
 static const char *
 gnet_host_str(const void *v)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
 
-	gnet_host_to_string_buf(v, buf, sizeof buf);
-	return buf;
+	gnet_host_to_string_buf(v, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -870,13 +874,14 @@ gnet_host_str(const void *v)
 static const char *
 packed_host_addr_str(const void *v)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
 	host_addr_t addr;
 
 	addr = packed_host_addr_unpack_ptr(v);
-	host_addr_to_string_buf(addr, buf, sizeof buf);
+	host_addr_to_string_buf(addr, p, buf_size(b));
 
-	return buf;
+	return p;
 }
 
 /**
@@ -931,10 +936,11 @@ uint32_hash(const void *p)
 static const char *
 uint32_str(const void *v)
 {
-	static char buf[UINT32_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, UINT32_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	uint32_to_string_buf(*(const uint32 *) v, buf, sizeof buf);
-	return buf;
+	uint32_to_string_buf(*(const uint32 *) v, p, buf_size(b));
+	return p;
 }
 
 /**

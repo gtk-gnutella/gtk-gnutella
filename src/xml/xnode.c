@@ -37,6 +37,7 @@
 #include "xattr.h"
 
 #include "lib/atoms.h"
+#include "lib/buf.h"
 #include "lib/etree.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
@@ -155,10 +156,11 @@ xnode_to_string_buf(const xnode_t *xn, char *buf, size_t len)
 const char *
 xnode_to_string(const xnode_t *xn)
 {
-	static char buf[256];
+	buf_t *b = buf_private(G_STRFUNC, 256);
+	char *p = buf_data(b);
 
-	xnode_to_string_buf(xn, buf, sizeof buf);
-	return buf;
+	xnode_to_string_buf(xn, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -167,10 +169,11 @@ xnode_to_string(const xnode_t *xn)
 const char *
 xnode_to_string2(const xnode_t *xn)
 {
-	static char buf[256];
+	buf_t *b = buf_private(G_STRFUNC, 256);
+	char *p = buf_data(b);
 
-	xnode_to_string_buf(xn, buf, sizeof buf);
-	return buf;
+	xnode_to_string_buf(xn, p, buf_size(b));
+	return p;
 }
 
 /**

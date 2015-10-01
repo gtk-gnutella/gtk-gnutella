@@ -34,8 +34,10 @@
 #include "common.h"
 
 #include "header.h"
+
 #include "ascii.h"
 #include "atoms.h"
+#include "buf.h"
 #include "getline.h"		/* For MAX_LINE_SIZE */
 #include "halloc.h"
 #include "htable.h"
@@ -1034,16 +1036,18 @@ header_fmt_string(const header_fmt_t *hf)
 const char *
 header_fmt_to_string(const header_fmt_t *hf)
 {
-	static char line[HEADER_FMT_MAX_SIZE + 1];
+	buf_t *b = buf_private(G_STRFUNC, HEADER_FMT_MAX_SIZE + 1);
+	char *p = buf_data(b);
+	size_t n = buf_size(b);
 
 	header_fmt_check(hf);
 
-	if (str_len(hf->header) >= sizeof line) {
+	if (str_len(hf->header) >= n) {
 		g_warning("trying to format too long an HTTP line (%zu bytes)",
 			str_len(hf->header));
 	}
-	clamp_strncpy(line, sizeof line, str_2c(hf->header), str_len(hf->header));
-	return line;
+	clamp_strncpy(p, n, str_2c(hf->header), str_len(hf->header));
+	return p;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

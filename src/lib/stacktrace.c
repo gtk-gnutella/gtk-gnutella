@@ -39,6 +39,7 @@
 #include "atomic.h"
 #include "bfd_util.h"
 #include "concat.h"
+#include "constants.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
 #include "dl_util.h"
 #include "eslist.h"
@@ -552,10 +553,10 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 
 	symbols_load_from(symbols, path, lpath != NULL ? lpath : path);
 
-	spinunlock(&sym_get_slk);
-
 	if (stale)
 		symbols_mark_stale(symbols);
+
+	spinunlock(&sym_get_slk);
 }
 
 /**
@@ -858,9 +859,21 @@ stack_reached_main(const char *where)
 static void
 stack_print(FILE *f, void * const *stack, size_t count)
 {
+	static spinlock_t print_slk = SPINLOCK_INIT;
 	size_t i;
 
 	stacktrace_load_symbols();
+
+	/*
+	 * Since symbols_name() returns pointer to static data, we need to protect
+	 * against concurrent calls.
+	 *
+	 * As a side effect, this prevents two stacks from two threads from being
+	 * inter-mixed in the output.
+	 *		--RAM, 2015-10-01
+	 */
+
+	spinlock_hidden(&print_slk);
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -872,6 +885,8 @@ stack_print(FILE *f, void * const *stack, size_t count)
 		if (stack_reached_main(where))
 			break;
 	}
+
+	spinunlock_hidden(&print_slk);
 }
 
 /**
@@ -884,9 +899,21 @@ stack_print(FILE *f, void * const *stack, size_t count)
 static void
 stack_log(logagent_t *la, void * const *stack, size_t count)
 {
+	static spinlock_t print_slk = SPINLOCK_INIT;
 	size_t i;
 
 	stacktrace_load_symbols();
+
+	/*
+	 * Since symbols_name() returns pointer to static data, we need to protect
+	 * against concurrent calls.
+	 *
+	 * As a side effect, this prevents two stacks from two threads from being
+	 * inter-mixed in the output.
+	 *		--RAM, 2015-10-01
+	 */
+
+	spinlock_hidden(&print_slk);
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -898,6 +925,8 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 		if (stack_reached_main(where))
 			break;
 	}
+
+	spinunlock_hidden(&print_slk);
 }
 
 /**
@@ -910,7 +939,19 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 static void
 stack_safe_print(int fd, void * const *stack, size_t count)
 {
+	static spinlock_t print_slk = SPINLOCK_INIT;
 	size_t i;
+
+	/*
+	 * Since symbols_name() returns pointer to static data, we need to protect
+	 * against concurrent calls.
+	 *
+	 * As a side effect, this prevents two stacks from two threads from being
+	 * inter-mixed in the output.
+	 *		--RAM, 2015-10-01
+	 */
+
+	spinlock_hidden(&print_slk);
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -927,6 +968,8 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 		if (stack_reached_main(where))
 			break;
 	}
+
+	spinunlock_hidden(&print_slk);
 }
 
 /**
@@ -1059,6 +1102,28 @@ stack_print_decorated_to(struct sxfile *xf,
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
 	int saved_errno = errno;
+	static spinlock_t stack_print_slk = SPINLOCK_INIT;
+
+	/*
+	 * We're using global variables, and we need to avoid concurrent updates
+	 * if we want to have something that makes sense in the output.
+	 *
+	 * If we are not crashing, locks are still enabled so we can create
+	 * a critical section here to avoid garbling output.
+	 *
+	 * If we are crashing, and other threads reach this point, they are
+	 * going to be suspended if not already done when they attempt to grab
+	 * the lock: only the crashing thread will get a lock pass-through.
+	 *
+	 * FIXME:
+	 * This critical section alone now ensures that we never mix the outputs
+	 * of two threads attempting to dump a stack at the same time.  Hence the
+	 * code could be simplified to avoid any buffering in the `trace' string
+	 * and the stacktrace buffer management.
+	 *		--RAM, 2015-10-01
+	 */
+
+	spinlock_hidden(&stack_print_slk);
 
 	/*
 	 * The BFD environment is only opened once.
@@ -1365,6 +1430,8 @@ stack_print_decorated_to(struct sxfile *xf,
 	 */
 
 	errno = saved_errno;
+
+	spinunlock_hidden(&stack_print_slk);
 }
 
 /**
@@ -1473,8 +1540,11 @@ stacktrace_caller(size_t n)
 const char *
 stacktrace_caller_name(size_t n)
 {
+	static spinlock_t sym_cname_slk = SPINLOCK_INIT;
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
+	bool in_sigh = signal_in_handler();
+	const char *name;
 
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
@@ -1483,10 +1553,27 @@ stacktrace_caller_name(size_t n)
 	if (n >= count)
 		return "";
 
-	if (!signal_in_handler())
+	if (!in_sigh)
 		stacktrace_load_symbols();
 
-	return NULL == symbols ? "??" : symbols_name(symbols, stack[n], FALSE);
+	if (NULL == symbols)
+		return "??";
+
+	spinlock_hidden(&sym_cname_slk);
+
+	name = symbols_name(symbols, stack[n], FALSE);
+
+	/*
+	 * Avoid all memory allocation if we are in a signal handler or
+	 * crashing (where normally we are supposed to be running mono-threaded).
+	 */
+
+	if (!in_sigh && !thread_in_crash_mode())
+		name = constant_str(name);
+
+	spinunlock_hidden(&sym_cname_slk);
+
+	return name;
 }
 
 /**
@@ -1502,10 +1589,14 @@ stacktrace_caller_name(size_t n)
 const char *
 stacktrace_routine_name(const void *pc, bool offset)
 {
+	static spinlock_t sym_rname_slk = SPINLOCK_INIT;
 	const char *name;
+	bool in_sigh = signal_in_handler();
 
-	if (!signal_in_handler())
+	if (!in_sigh)
 		stacktrace_load_symbols();
+
+	spinlock_hidden(&sym_rname_slk);
 
 	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
 
@@ -1525,8 +1616,10 @@ stacktrace_routine_name(const void *pc, bool offset)
 	if (NULL == name) {
 		static char buf[POINTER_BUFLEN + CONST_STRLEN("0x")];
 		str_bprintf(buf, sizeof buf, "%p", pc);
-		name = buf;
+		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
 	}
+
+	spinunlock_hidden(&sym_rname_slk);
 
 	return name;
 }

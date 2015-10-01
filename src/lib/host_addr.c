@@ -49,6 +49,7 @@
 #include "host_addr.h"
 
 #include "ascii.h"
+#include "buf.h"
 #include "concat.h"
 #include "endian.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
@@ -621,12 +622,13 @@ host_addr_to_string_buf(const host_addr_t ha, char *dst, size_t size)
 const char *
 host_addr_to_string(const host_addr_t ha)
 {
-	static char buf[HOST_ADDR_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_BUFLEN);
+	char *p = buf_data(b);
+	size_t len, n = buf_size(b);
 
-	n = host_addr_to_string_buf(ha, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
+	len = host_addr_to_string_buf(ha, p, n);
+	g_assert(len < n);
+	return p;
 }
 
 /**
@@ -635,12 +637,13 @@ host_addr_to_string(const host_addr_t ha)
 const char *
 host_addr_to_string2(const host_addr_t ha)
 {
-	static char buf[HOST_ADDR_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_BUFLEN);
+	char *p = buf_data(b);
+	size_t len, n = buf_size(b);
 
-	n = host_addr_to_string_buf(ha, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
+	len = host_addr_to_string_buf(ha, p, n);
+	g_assert(len < n);
+	return p;
 }
 
 /**
@@ -693,23 +696,25 @@ host_addr_port_to_string_buf(const host_addr_t ha, uint16 port,
 const char *
 host_addr_port_to_string(const host_addr_t ha, uint16 port)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
+	size_t len, n = buf_size(b);
 
-	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
+	len = host_addr_port_to_string_buf(ha, port, p, n);
+	g_assert(len < n);
+	return p;
 }
 
 const char *
 host_addr_port_to_string2(const host_addr_t ha, uint16 port)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
+	size_t len, n = buf_size(b);
 
-	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
+	len = host_addr_port_to_string_buf(ha, port, p, n);
+	g_assert(len < n);
+	return p;
 }
 
 /**
@@ -762,28 +767,30 @@ host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 const char *
 port_host_addr_to_string(uint16 port, const host_addr_t ha)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
-	size_t n;
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
+	size_t len, n = buf_size(b);
 
-	n = host_port_addr_to_string_buf(port, ha, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
+	len = host_port_addr_to_string_buf(port, ha, p, n);
+	g_assert(len < n);
+	return p;
 }
 
 const char *
 host_port_to_string(const char *hostname, host_addr_t addr, uint16 port)
 {
-	static char buf[MAX_HOSTLEN + 32];
+	buf_t *b = buf_private(G_STRFUNC, MAX_HOSTLEN + HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
 
-	if (hostname) {
+	if (hostname != NULL) {
 		char port_buf[UINT32_DEC_BUFLEN];
 
 		uint32_to_string_buf(port, port_buf, sizeof port_buf);
-		concat_strings(buf, sizeof buf, hostname, ":", port_buf, (void *) 0);
+		concat_strings(p, buf_size(b), hostname, ":", port_buf, (void *) 0);
 	} else {
-		host_addr_port_to_string_buf(addr, port, buf, sizeof buf);
+		host_addr_port_to_string_buf(addr, port, p, buf_size(b));
 	}
-	return buf;
+	return p;
 }
 
 /**
