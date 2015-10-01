@@ -2026,7 +2026,6 @@ crash_mode(void)
 	 * situation.
 	 */
 
-	thread_suspend_others(FALSE);
 	thread_crash_mode();
 
 	/*
