@@ -956,6 +956,25 @@ hash_list_length(const hash_list_t *hl)
 }
 
 /**
+ * @returns the length of the list.
+ *
+ * NOTE: same as hash_list_length() but returns a size_t and consistent
+ * with our other data structures where "count" returns the amount of
+ * data held in the container.
+ */
+size_t
+hash_list_count(const hash_list_t *hl)
+{
+	size_t count;
+
+	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+	count = elist_count(&hl->list);
+	hash_list_return(hl, count);
+}
+
+/**
  * Extract the list of items so that the caller can iterate at will over
  * it as sort it.  The caller must dispose of that list via plist_free().
  * The underlying data is not copied so it must NOT be freed.
