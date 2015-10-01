@@ -4940,7 +4940,7 @@ xfree(void *p)
  * return a new pointer.
  * If the new size is 0, act as if xfree() had been called and return NULL.
  * Otherwise return a pointer to the reallocated block, which may be different
- * than the original pointer.
+ * from the original pointer.
  */
 static void *
 xreallocate(void *p, size_t size)
@@ -5498,7 +5498,7 @@ realloc_from_thread:
  * return a new pointer.
  * If the new size is 0, act as if xfree() had been called and return NULL.
  * Otherwise return a pointer to the reallocated block, which may be different
- * than the original pointer.
+ * from the original pointer.
  */
 void *
 xrealloc(void *p, size_t size)
@@ -5517,7 +5517,7 @@ xrealloc(void *p, size_t size)
  * return a new pointer.
  * If the new size is 0, act as if xfree() had been called and return NULL.
  * Otherwise return a pointer to the reallocated block, which may be different
- * than the original pointer.
+ * from the original pointer.
  */
 void *
 xprealloc(void *p, size_t size)

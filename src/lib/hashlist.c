@@ -807,7 +807,7 @@ hash_list_shift(hash_list_t *hl)
 }
 
 /**
- * Select a random elemen in the list.
+ * Select a random element in the list.
  *
  * @return the randomly selected item, NULL if there is none.
  */
