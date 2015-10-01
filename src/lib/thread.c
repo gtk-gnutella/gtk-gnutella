@@ -219,6 +219,12 @@ struct thread_lkey {
 #define THREAD_PRIVATE_KEEP		((free_data_fn_t) 1)
 
 /**
+ * Special free routine argument for thread_private_update_extended to
+ * indicate that the free routine must be removed.
+ */
+#define THREAD_PRIVATE_NOFREE	((free_data_fn_t) 3)
+
+/**
  * Thread local storage is organized as a sparse array with 1 level of
  * indirection, so as to not waste memory when only a fraction of the
  * whole key space is used.
@@ -4421,10 +4427,24 @@ thread_private_update_extended(const void *key, const void *value,
 	struct thread_element *te = thread_get_element();
 	hash_table_t *pht;
 	struct thread_pvalue *pv;
+	free_data_fn_t data_free = p_free;
 	void *v;
 	bool ok;
 
 	thread_pvzone_init();
+
+	/*
+	 * The THREAD_PRIVATE_NOFREE special value means we need to set a NULL
+	 * free routine -- the object does not need to be collected specially
+	 * and removing it from the hash is sufficient to make it go.
+	 *
+	 * This special argument value is required because a NULL p_free argument
+	 * means "no change" to the existing free routine when the value exists
+	 * already for that key and matches the argument given.
+	 */
+
+	if G_UNLIKELY(THREAD_PRIVATE_NOFREE == p_free)
+		data_free = NULL;
 
 	pht = thread_get_private_hash(te);
 	if (hash_table_lookup_extended(pht, key, NULL, &v)) {
@@ -4438,7 +4458,7 @@ thread_private_update_extended(const void *key, const void *value,
 		} else {
 			/* Free routine and argument could have changed, if non-NULL */
 			if (p_free != NULL) {
-				opv->p_free = p_free;
+				opv->p_free = data_free;
 				opv->p_arg = p_arg;
 			}
 			return;				/* Key was already present with same value */
@@ -4471,18 +4491,18 @@ thread_private_update_extended(const void *key, const void *value,
 
 	if G_UNLIKELY(
 		te->exit_started &&
-		p_free != NULL &&
-		p_free != THREAD_PRIVATE_KEEP
+		data_free != NULL &&
+		data_free != THREAD_PRIVATE_KEEP
 	) {
 		s_carp("%s(): adding value freed by %s() in %s -- object will leak",
-			G_STRFUNC, stacktrace_function_name(p_free), thread_name());
+			G_STRFUNC, stacktrace_function_name(data_free), thread_name());
 		return;
 	}
 
 	pv = zalloc(pvzone);
 	ZERO(pv);
 	pv->value = deconstify_pointer(value);
-	pv->p_free = p_free;
+	pv->p_free = data_free;
 	pv->p_arg = p_arg;
 
 	ok = hash_table_insert(pht, key, pv);
@@ -4532,6 +4552,7 @@ thread_private_add_permanent(const void *key, const void *value)
  *
  * Any previously existing data for this key is replaced provided the value
  * is different.  Otherwise, the free routine and its argument are updated.
+ * A NULL free routine simply cancels any other free routine that was installed.
  *
  * @param key		the key for the private data
  * @param value		private value to store
@@ -4542,7 +4563,17 @@ void
 thread_private_set_extended(const void *key, const void *value,
 	free_data_fn_t p_free, void *p_arg)
 {
-	thread_private_update_extended(key, value, p_free, p_arg, TRUE);
+	free_data_fn_t p_freev = p_free;
+
+	/*
+	 * A NULL free routine argument means "no change", so we need to transform
+	 * it into THREAD_PRIVATE_NOFREE to ask for a removal of the free routine.
+	 */
+
+	if (NULL == p_free)
+		p_freev = THREAD_PRIVATE_NOFREE;
+
+	thread_private_update_extended(key, value, p_freev, p_arg, TRUE);
 }
 
 /**
