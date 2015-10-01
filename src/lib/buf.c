@@ -57,6 +57,8 @@ buf_new(size_t size)
 {
 	buf_t *b;
 
+	g_assert(size_is_positive(size));	/* Size cannot be 0 either */
+
 	WALLOC0(b);
 	b->b_magic = BUF_MAGIC;
 	b->b_size = size;
@@ -73,6 +75,8 @@ buf_t *
 buf_new_embedded(size_t size)
 {
 	buf_t *b;
+
+	g_assert(size_is_positive(size));	/* Size cannot be 0 either */
 
 	b = xmalloc0(BUF_DATA_OFFSET + size);
 	b->b_magic = BUF_MAGIC_EMBEDDED;
