@@ -34,6 +34,8 @@
 #ifndef _buf_h_
 #define _buf_h_
 
+#include "unsigned.h"		/* For size_is_positive()) */
+
 /*
  * The buffer structure is public to allow static buffer objects.
  */
@@ -84,6 +86,8 @@ buf_check(const struct buf * const b)
 static inline void
 buf_init(buf_t *b, void *arena, size_t size)
 {
+	g_assert(arena != NULL);
+	g_assert(size_is_positive(size));
 	b->b_magic = BUF_MAGIC_STATIC;
 	b->b_size = size;
 	b->b_u.bu_data = arena;
