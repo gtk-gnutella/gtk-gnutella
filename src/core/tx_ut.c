@@ -1127,10 +1127,19 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 	} else {
 		/*
 		 * Fragment was dropped by lower layer (expired, probably).
-		 * Immediately requeue it.
+		 *
+		 * Don't requeue it synchronously because the fragment could have
+		 * been dropped whilst being enqueued, for instance if the remote
+		 * network is deemed unreacheable by TCP/IP (e.g. the network link
+		 * is currently down).
+		 *
+		 * To avoid deadly recursions into here, wait a little bit and then
+		 * retry, whether the message is reliable or not.
+		 *		--RAM, 2015-10-02
 		 */
 
-		ut_frag_send(uf);
+		g_assert(NULL == uf->resend_ev);
+		uf->resend_ev = cq_main_insert(ut_frag_delay(uf), ut_frag_resend, uf);
 	}
 
 	/* FALL THROUGH */
