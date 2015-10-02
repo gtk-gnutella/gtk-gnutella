@@ -95,6 +95,9 @@ buf_free(buf_t *b)
 	g_assert_log(b->b_magic != BUF_MAGIC_PRIVATE,
 		"%s(): attempting to free thread-private buffer %p",
 		G_STRFUNC, b);
+	g_assert_log(b->b_magic != BUF_MAGIC_STATIC,
+		"%s(): attempting to free buffer %p wrapping arena %p",
+		G_STRFUNC, b, buf_data(b));
 
 	if (buf_is_embedded(b)) {
 		b->b_magic = 0;

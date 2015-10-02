@@ -46,6 +46,7 @@
 
 enum buf_magic {
 	BUF_MAGIC          = BUF_MAGIC_VAL + 0xc4,
+	BUF_MAGIC_STATIC   = BUF_MAGIC_VAL + 0xf1,
 	BUF_MAGIC_EMBEDDED = BUF_MAGIC_VAL + 0x6b,
 	BUF_MAGIC_PRIVATE  = BUF_MAGIC_VAL + 0x68
 };
@@ -83,7 +84,7 @@ buf_check(const struct buf * const b)
 static inline void
 buf_init(buf_t *b, void *arena, size_t size)
 {
-	b->b_magic = BUF_MAGIC;
+	b->b_magic = BUF_MAGIC_STATIC;
 	b->b_size = size;
 	b->b_u.bu_data = arena;
 }
