@@ -94,6 +94,7 @@ static symbols_t *symbols;
 static bool stacktrace_inited;
 
 static mutex_t stacktrace_atom_mtx = MUTEX_INIT;
+static mutex_t stacktrace_sym_mtx  = MUTEX_INIT;
 static once_flag_t stacktrace_atom_inited;
 
 #define STACKTRACE_ATOM_LOCK	mutex_lock(&stacktrace_atom_mtx)
@@ -102,27 +103,8 @@ static once_flag_t stacktrace_atom_inited;
 #define assert_stacktrace_atom_locked() \
 	assert_mutex_is_owned(&stacktrace_atom_mtx)
 
-/**
- * The buffers are allocated to construct the stack trace atomically to make
- * sure it can be logged as a whole.
- */
-struct stackbuf {
-	str_t *s;				/**< String buffer, allocated once */
-	slink_t lnk;			/**< List of buffers */
-};
-
-static struct {
-	spinlock_t lock;		/**< Thread-safe lock */
-	eslist_t buffers;		/**< List of allocated string buffers */
-	int init_count;			/**< Whether it was inited */
-} stacktrace_buffer = {
-	SPINLOCK_INIT,									/* lock */
-	ESLIST_INIT(offsetof(struct stackbuf, lnk)),	/* buffers */
-	0,												/* init_count */
-};
-
-#define STACKTRACE_BUFFER_LOCK		spinlock_hidden(&stacktrace_buffer.lock)
-#define STACKTRACE_BUFFER_UNLOCK	spinunlock_hidden(&stacktrace_buffer.lock)
+#define STACKTRACE_SYM_LOCK		mutex_lock(&stacktrace_sym_mtx)
+#define STACKTRACE_SYM_UNLOCK	mutex_unlock(&stacktrace_sym_mtx)
 
 /**
  * Auto-tuning stack trace offset.
@@ -539,14 +521,12 @@ stacktrace_auto_tune(void)
 static void G_GNUC_COLD
 stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 {
-	static spinlock_t sym_get_slk = SPINLOCK_INIT;
-
 	/*
 	 * In case we're crashing so early that stacktrace_init() has not been
 	 * called, initialize properly.
 	 */
 
-	spinlock(&sym_get_slk);
+	STACKTRACE_SYM_LOCK;
 
 	if (NULL == symbols)
 		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
@@ -556,75 +536,7 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 	if (stale)
 		symbols_mark_stale(symbols);
 
-	spinunlock(&sym_get_slk);
-}
-
-/**
- * Initialize the buffer used to atomically construct a stack trace.
- */
-static G_GNUC_COLD void
-stacktrace_buffer_init(void)
-{
-	int i;
-
-	if G_LIKELY(0 != stacktrace_buffer.init_count)
-		return;		/* Already initialized */
-
-	if G_UNLIKELY(0 != atomic_int_inc(&stacktrace_buffer.init_count))
-		return;		/* Race condition, someone else is initializing */
-
-	if (spinlock_in_crash_mode())
-		return;		/* Too late, risking fatal race during eslist setup */
-
-	/*
-	 * Populate some stacktrace buffer strings.
-	 */
-
-	for (i = 0; i < STACKTRACE_BUFFER_COUNT; i++) {
-		struct stackbuf *sb = vmm_alloc_not_leaking(STACKTRACE_BUFFER_SIZE);
-
-		/*
-		 * The stackbuf structure is at the top of the buffer, followed by
-		 * the str_t object, followed by the string arena.
-		 */
-
-		sb->s = str_new_in_buffer(&sb[1],
-			STACKTRACE_BUFFER_SIZE - ptr_diff(&sb[1], sb));
-
-		STACKTRACE_BUFFER_LOCK;
-		eslist_append(&stacktrace_buffer.buffers, sb);
-		STACKTRACE_BUFFER_UNLOCK;
-	}
-}
-
-/**
- * Attempt to get a free stacktrace buffer string.
- *
- * @return a new stacktrace buffer string, NULL if none is available.
- */
-static struct stackbuf *
-stacktrace_buffer_get(void)
-{
-	struct stackbuf *sb;
-
-	stacktrace_buffer_init();
-
-	STACKTRACE_BUFFER_LOCK;
-	sb = eslist_shift(&stacktrace_buffer.buffers);
-	STACKTRACE_BUFFER_UNLOCK;
-
-	return sb;
-}
-
-/**
- * Put stacktrace buffer string back to the pool.
- */
-static void
-stacktrace_buffer_release(struct stackbuf *sb)
-{
-	STACKTRACE_BUFFER_LOCK;
-	eslist_append(&stacktrace_buffer.buffers, sb);
-	STACKTRACE_BUFFER_UNLOCK;
+	STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -651,7 +563,6 @@ stacktrace_init(const char *argv0, bool deferred)
 	path = program_path_allocate(argv0);
 	if (NULL == symbols)
 		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
-	stacktrace_buffer_init();
 
 	if (NULL == path)
 		goto done;
@@ -859,7 +770,6 @@ stack_reached_main(const char *where)
 static void
 stack_print(FILE *f, void * const *stack, size_t count)
 {
-	static spinlock_t print_slk = SPINLOCK_INIT;
 	size_t i;
 
 	stacktrace_load_symbols();
@@ -873,7 +783,7 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	 *		--RAM, 2015-10-01
 	 */
 
-	spinlock_hidden(&print_slk);
+	STACKTRACE_SYM_LOCK;
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -886,7 +796,7 @@ stack_print(FILE *f, void * const *stack, size_t count)
 			break;
 	}
 
-	spinunlock_hidden(&print_slk);
+	STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -899,7 +809,6 @@ stack_print(FILE *f, void * const *stack, size_t count)
 static void
 stack_log(logagent_t *la, void * const *stack, size_t count)
 {
-	static spinlock_t print_slk = SPINLOCK_INIT;
 	size_t i;
 
 	stacktrace_load_symbols();
@@ -913,7 +822,7 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 	 *		--RAM, 2015-10-01
 	 */
 
-	spinlock_hidden(&print_slk);
+	STACKTRACE_SYM_LOCK;
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -926,7 +835,7 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 			break;
 	}
 
-	spinunlock_hidden(&print_slk);
+	STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -939,7 +848,6 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 static void
 stack_safe_print(int fd, void * const *stack, size_t count)
 {
-	static spinlock_t print_slk = SPINLOCK_INIT;
 	size_t i;
 
 	/*
@@ -951,7 +859,7 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 	 *		--RAM, 2015-10-01
 	 */
 
-	spinlock_hidden(&print_slk);
+	STACKTRACE_SYM_LOCK;
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -969,7 +877,7 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 			break;
 	}
 
-	spinunlock_hidden(&print_slk);
+	STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -1097,12 +1005,10 @@ stack_print_decorated_to(struct sxfile *xf,
 	static char buf[512];
 	static char name[256];
 	static char tid[32];
-	str_t s, *trace = NULL;
-	struct stackbuf *sb = NULL;
+	str_t s;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
 	int saved_errno = errno;
-	static spinlock_t stack_print_slk = SPINLOCK_INIT;
 
 	/*
 	 * We're using global variables, and we need to avoid concurrent updates
@@ -1115,15 +1021,12 @@ stack_print_decorated_to(struct sxfile *xf,
 	 * going to be suspended if not already done when they attempt to grab
 	 * the lock: only the crashing thread will get a lock pass-through.
 	 *
-	 * FIXME:
-	 * This critical section alone now ensures that we never mix the outputs
-	 * of two threads attempting to dump a stack at the same time.  Hence the
-	 * code could be simplified to avoid any buffering in the `trace' string
-	 * and the stacktrace buffer management.
+	 * This critical section alone also ensures that we never mix the outputs
+	 * of two threads attempting to dump a stack at the same time.
 	 *		--RAM, 2015-10-01
 	 */
 
-	spinlock_hidden(&stack_print_slk);
+	STACKTRACE_SYM_LOCK;
 
 	/*
 	 * The BFD environment is only opened once.
@@ -1134,20 +1037,6 @@ stack_print_decorated_to(struct sxfile *xf,
 		be = bfd_util_init();
 
 	str_new_buffer(&s, buf, 0, sizeof buf);
-
-	/*
-	 * If we can grab a pre-allocated buffer, use it to construct the stack
-	 * trace so that we can atomically emit it in the logs without possible
-	 * output from other threads being intermixed.
-	 */
-
-	sb = stacktrace_buffer_get();
-
-	if (NULL != sb) {
-		trace = sb->s;
-		g_assert(trace != NULL);
-		str_reset(trace);
-	}
 
 	/*
 	 * Compute leading thread ID, shown only when not in the main thread.
@@ -1378,36 +1267,14 @@ stack_print_decorated_to(struct sxfile *xf,
 
 		str_putc(&s, '\n');
 
-		if (NULL == trace) {
-			switch (xf->type) {
-			case SXFILE_STDIO:
-				atio_fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
-				break;
-			case SXFILE_FD:
-				atio_write(xf->u.fd, str_2c(&s), str_len(&s));
-				break;
-			}
-		} else {
-			/* This will silently truncate output if buffer is too small */
-			str_ncat_safe(trace, str_2c(&s), str_len(&s));
-		}
-	}
-
-	/*
-	 * Emit the constructed trace if we were holding output.
-	 */
-
-	if (trace != NULL) {
 		switch (xf->type) {
 		case SXFILE_STDIO:
-			atio_fwrite(str_2c(trace), str_len(trace), 1, xf->u.f);
+			atio_fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
 			break;
 		case SXFILE_FD:
-			atio_write(xf->u.fd, str_2c(trace), str_len(trace));
+			atio_write(xf->u.fd, str_2c(&s), str_len(&s));
 			break;
 		}
-		g_assert(sb != NULL);
-		stacktrace_buffer_release(sb);
 	}
 
 	/*
@@ -1431,7 +1298,7 @@ stack_print_decorated_to(struct sxfile *xf,
 
 	errno = saved_errno;
 
-	spinunlock_hidden(&stack_print_slk);
+	STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -1540,7 +1407,6 @@ stacktrace_caller(size_t n)
 const char *
 stacktrace_caller_name(size_t n)
 {
-	static spinlock_t sym_cname_slk = SPINLOCK_INIT;
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 	bool in_sigh = signal_in_handler();
@@ -1559,7 +1425,7 @@ stacktrace_caller_name(size_t n)
 	if (NULL == symbols)
 		return "??";
 
-	spinlock_hidden(&sym_cname_slk);
+	STACKTRACE_SYM_LOCK;
 
 	name = symbols_name(symbols, stack[n], FALSE);
 
@@ -1571,7 +1437,7 @@ stacktrace_caller_name(size_t n)
 	if (!in_sigh && !thread_in_crash_mode())
 		name = constant_str(name);
 
-	spinunlock_hidden(&sym_cname_slk);
+	STACKTRACE_SYM_UNLOCK;
 
 	return name;
 }
@@ -1589,14 +1455,13 @@ stacktrace_caller_name(size_t n)
 const char *
 stacktrace_routine_name(const void *pc, bool offset)
 {
-	static spinlock_t sym_rname_slk = SPINLOCK_INIT;
 	const char *name;
 	bool in_sigh = signal_in_handler();
 
 	if (!in_sigh)
 		stacktrace_load_symbols();
 
-	spinlock_hidden(&sym_rname_slk);
+	STACKTRACE_SYM_LOCK;
 
 	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
 
@@ -1619,7 +1484,7 @@ stacktrace_routine_name(const void *pc, bool offset)
 		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
 	}
 
-	spinunlock_hidden(&sym_rname_slk);
+	STACKTRACE_SYM_UNLOCK;
 
 	return name;
 }
