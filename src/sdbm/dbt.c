@@ -55,6 +55,7 @@ static unsigned rseed;
 static bool unlink_db;
 static bool all_keys;
 static bool large_keys, large_values, common_head_tail;
+static bool loose_delete;
 
 #define WR_DELAY	(1 << 0)
 #define WR_VOLATILE	(1 << 1)
@@ -65,7 +66,7 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiklprstvwyABCDEKSTUV] [-R seed] [-c pages]\n"
+		"Usage: %s [-bdeiklprstvwyABCDEKSTUVX] [-R seed] [-c pages]\n"
 		"       dbname [count]\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
@@ -91,7 +92,8 @@ usage(void)
 		"  -S : shrink database before testing\n"
 		"  -T : make database handle thread-safe\n"
 		"  -U : unlink database at the end\n"
-		"  -V : consider database as volatile\n",
+		"  -V : consider database as volatile\n"
+		"  -X : delete first \"count\" keys during -l test\n",
 		getprogname());
 	exit(EXIT_FAILURE);
 }
@@ -423,6 +425,7 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 struct loose_iterator_args {
 	DBM *db;
 	struct sdbm_loose_stats *stats;
+	long count;
 };
 
 static void
@@ -431,6 +434,26 @@ loose_cb(const datum key, const datum value, void *arg)
 	(void) key;
 	(void) value;
 	(void) arg;
+}
+
+struct loose_cbr_args {
+	long count;		/* Amount of items remaining to delete */
+};
+
+static bool
+loose_cbr(const datum key, const datum value, void *arg)
+{
+	struct loose_cbr_args *v = arg;
+
+	(void) key;
+	(void) value;
+
+	if (v->count != 0) {
+		v->count--;
+		return TRUE;	/* Delete key/value pair */
+	}
+
+	return FALSE;
 }
 
 static void *
@@ -442,7 +465,13 @@ loose_iterator(void *arg)
 	if (all_keys)
 		flags |= DBM_F_ALLKEYS;
 
-	sdbm_loose_foreach_stats(a->db, 0, loose_cb, NULL, a->stats);
+	if (loose_delete) {
+		struct loose_cbr_args v;
+		v.count = a->count;
+		sdbm_loose_foreach_remove_stats(a->db, 0, loose_cbr, &v, a->stats);
+	} else {
+		sdbm_loose_foreach_stats(a->db, 0, loose_cb, NULL, a->stats);
+	}
 	sdbm_unref(&a->db);
 
 	return NULL;
@@ -462,11 +491,14 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 
 	(void) safe;
 
-	printf("Starting loose iteration test (%ld item%s), cache=%ld page%s...\n",
+	printf("Starting loose %siteration test (%ld item%s), "
+		"cache=%ld page%s...\n",
+		loose_delete ? "delete " : "",
 		count, plural(count), cpage, plural(cpage));
 
 	args.db = sdbm_ref(db);
 	args.stats = &stats;
+	args.count = count;
 
 	ZERO(&stats);
 
@@ -493,12 +525,22 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 		i = random_value(count - 1);
 		fill_key(buf, sizeof buf, i);
 
+		/*
+		 * fetch + store back must be atomic if we're deleting items.
+		 */
+
+		if (loose_delete)
+			sdbm_lock(db);
+
 		val = sdbm_fetch(db, key);
 		if (NULL != val.dptr) {
 			if (-1 == sdbm_store(db, key, val, DBM_REPLACE))
 				oops("%s(): cannot rewrite key", G_STRFUNC);
 			nop++;
 		}
+
+		if (loose_delete)
+			sdbm_unlock(db);
 
 		if (progress && 0 == nop % 50) {
 			atomic_mb();
@@ -525,6 +567,13 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 	SHOW_LONG(items);
 	SHOW_LONG(big_keys);
 	SHOW_LONG(big_values);
+
+	if (loose_delete) {
+		SHOW_LONG(kept);
+		SHOW_LONG(deletions);
+		SHOW_LONG(deletion_errors);
+		SHOW_LONG(deletion_refused);
+	}
 
 #undef SHOW_LONG
 
@@ -587,7 +636,7 @@ main(int argc, char **argv)
 
 	progstart(argc, argv);
 
-	while ((c = getopt(argc, argv, "AbBc:CdDeEiklKprR:sStTUvVwy")) != EOF) {
+	while ((c = getopt(argc, argv, "AbBc:CdDeEiklKprR:sStTUvVwXy")) != EOF) {
 		switch (c) {
 		case 'A':			/* traverse all keys when loosely iterating */
 			all_keys++;
@@ -664,6 +713,9 @@ main(int argc, char **argv)
 			break;
 		case 'w':			/* write test */
 			wflag++;
+			break;
+		case 'X':			/* loose deletion requested */
+			loose_delete++;
 			break;
 		case 'y':			/* show thread stats */
 			stats++;
