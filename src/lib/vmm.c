@@ -300,6 +300,7 @@ static struct vmm_stats {
 	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
 	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
 	AU64(pmap_overruled);			/**< Regions overruled by kernel */
+	AU64(pmap_dropped);				/**< Dropped regions while extending pmap */
 	uint64 hole_reused;				/**< Amount of times we use cached hole */
 	uint64 hole_invalidated;		/**< Times we invalidate cached hole */
 	uint64 hole_updated;			/**< Times we updated the cached hole */
@@ -2681,6 +2682,7 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 					s_message("VMM forgetting %s: pmap is full and extending",
 						vmf_to_string(vmf));
 				}
+				VMM_STATS_INCX(pmap_dropped);
 			} else {
 				/* Error case, MUST NOT happen, but if it does... */
 				s_warning("cannot remove from %s VM fragment while "
@@ -5076,6 +5078,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(pmap_foreign_discards);
 	DUMP(pmap_foreign_discarded_pages);
 	DUMP64(pmap_overruled);
+	DUMP64(pmap_dropped);
 
 	/*
 	 * These variables are not updated with the VMM stats lock but whith
