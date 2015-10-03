@@ -209,6 +209,7 @@
 #define TX_UT_ACK_DELAY		100		/* ms: delay before ACK re-queuing */
 #define TX_UT_BAN_FREQ		300		/* 5-minute ban if cannot reach host */
 #define TX_UT_GOOD_FREQ		900		/* Remember good hosts for 15 minutes */
+#define TX_UT_REQUEUE_DELAY	5000	/* Time to requeue message after drop */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
@@ -1139,7 +1140,7 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		 */
 
 		g_assert(NULL == uf->resend_ev);
-		uf->resend_ev = cq_main_insert(ut_frag_delay(uf), ut_frag_resend, uf);
+		uf->resend_ev = cq_main_insert(TX_UT_REQUEUE_DELAY, ut_frag_resend, uf);
 	}
 
 	/* FALL THROUGH */
