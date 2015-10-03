@@ -5735,6 +5735,29 @@ vmm_close(void)
  ***/
 
 /**
+ * Record memory-mapped region in the pmap.
+ */
+static void
+pmap_mmap(struct pmap *pm, void *p, size_t size)
+{
+	/*
+	 * The mapped memory region is "foreign" memory as far as we are
+	 * concerned and may overlap with previously allocated "foreign"
+	 * chunks in whole or in part.
+	 *
+	 * Invoke pmap_overrule() before pmap_insert_mapped() to make
+	 * sure we clean up our memory map before attempting to insert
+	 * a new chunk since the insertion code is not prepared to handle
+	 * all the overlapping cases we can encounter.
+	 */
+
+	rwlock_wlock(&pm->lock);
+	pmap_overrule(pm, p, size, VMF_MAPPED);
+	pmap_insert_mapped(pm, p, size);
+	rwlock_wunlock(&pm->lock);
+}
+
+/**
  * Wrapper of the mmap() system call.
  */
 void *
@@ -5745,26 +5768,8 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 	void *p = mmap(addr, length, prot, flags, fd, offset);
 
 	if G_LIKELY(p != MAP_FAILED) {
-		size_t size = round_pagesize_fast(length);
-		struct pmap *pm = vmm_pmap();
-
 		VMM_STATS_INCX(mmaps);
-
-		/*
-		 * The mapped memory region is "foreign" memory as far as we are
-		 * concerned and may overlap with previously allocated "foreign"
-		 * chunks in whole or in part.
-		 *
-		 * Invoke pmap_overrule() before pmap_insert_mapped() to make
-		 * sure we clean up our memory map before attempting to insert
-		 * a new chunk since the insertion code is not prepared to handle
-		 * all the overlapping cases we can encounter.
-		 */
-
-		rwlock_wlock(&pm->lock);
-		pmap_overrule(pm, p, size, VMF_MAPPED);
-		pmap_insert_mapped(pm, p, size);
-		rwlock_wunlock(&pm->lock);
+		pmap_mmap(vmm_pmap(), p, round_pagesize_fast(length));
 
 		assert_vmm_is_allocated(p, length, VMF_MAPPED, FALSE);
 
@@ -5799,25 +5804,48 @@ vmm_munmap(void *addr, size_t length)
 {
 #if defined(HAS_MMAP)
 	int ret;
+	struct pmap *pm = vmm_pmap();
 
 	assert_vmm_is_allocated(addr, length, VMF_MAPPED, FALSE);
+
+	/*
+	 * We need to clear the region in the pmap BEFORE attempting to
+	 * unmap the region.  Failure to do that would mean we can have
+	 * another thread map to the cleared region whilst our pmap says
+	 * the region is already busy, leading to pmap_overrule() assertion
+	 * failures later, possibly.
+	 *
+	 * Of course, this means re-establishing the mapping later on if
+	 * the munmap() call fails.  But given the assert above, we know
+	 * our pmap correctly accounts that region as mapped, so the system
+	 * call should not fail!
+	 *
+	 *		--RAM, 2015-10-03
+	 */
+
+	rwlock_wlock(&pm->lock);
+	pmap_remove(pm, addr, round_pagesize_fast(length));
+	rwlock_wunlock(&pm->lock);
+
+	VMM_STATS_INCX(munmaps);
 
 	ret = munmap(addr, length);
 
 	if G_LIKELY(0 == ret) {
-		struct pmap *pm = vmm_pmap();
-
-		rwlock_wlock(&pm->lock);
-		pmap_remove(pm, addr, round_pagesize_fast(length));
-		rwlock_wunlock(&pm->lock);
-
-		VMM_STATS_INCX(munmaps);
-
 		if (vmm_debugging(5)) {
 			s_minidbg("VMM unmapped %zuKiB region at %p", length / 1024, addr);
 		}
 	} else {
-		s_warning("munmap() failed: %m");
+		/*
+		 * This is so unexpected that it deserves a loud warning with a full
+		 * stacktrace so that we can later assess the damage if we get a
+		 * weird behaviour.
+		 */
+
+		s_carp("munmap(%p, %zu) failed: %m", addr, length);
+
+		/* Re-establish mapping in pmap since we could not unmap the region */
+		pmap_mmap(pm, addr, round_pagesize_fast(length));
 	}
 
 	return ret;
