@@ -3420,14 +3420,14 @@ mingw_filename_nearby(const char *filename)
 	buf_t *b = buf_private(G_STRFUNC, MAX_PATH_LEN);
 	char *pathname = buf_data(b);
 	static size_t offset;
+	static spinlock_t nearby_slk = SPINLOCK_INIT;
+
+	spinlock_hidden(&nearby_slk);	/* Protect access to static vars */
 
 	if ('\0' == pathname[0]) {
-		static spinlock_t nearby_slk = SPINLOCK_INIT;
 		static wchar_t wpathname[MAX_PATH_LEN];
 		bool error = FALSE;
 		size_t pathsz = buf_size(b);
-
-		spinlock_hidden(&nearby_slk);	/* Protect access to static vars */
 
 		if (0 == GetModuleFileNameW(NULL, wpathname, sizeof wpathname)) {
 			error = TRUE;
@@ -3445,11 +3445,11 @@ mingw_filename_nearby(const char *filename)
 			g_strlcpy(pathname, G_DIR_SEPARATOR_S, buf_size(b));
 
 		offset = filepath_basename(pathname) - pathname;
-
-		spinunlock_hidden(&nearby_slk);
 	}
 
 	clamp_strcpy(&pathname[offset], buf_size(b) - offset, filename);
+
+	spinunlock_hidden(&nearby_slk);
 
 	return pathname;
 }
