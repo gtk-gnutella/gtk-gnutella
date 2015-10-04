@@ -414,6 +414,7 @@ uhc_send_ping(void)
 	} else {
 		g_warning("BOOT failed to send UDP SCP to %s",
 			host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port));
+		uhc_try_next();
 	}
 }
 
