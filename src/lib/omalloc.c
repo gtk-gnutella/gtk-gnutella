@@ -164,6 +164,15 @@ static spinlock_t ostats_slk = SPINLOCK_INIT;
 #define OSTATS_UNLOCK		spinunlock_hidden(&ostats_slk)
 
 /**
+ * First byte beyond a chunk page (following trailing chunk header).
+ */
+static inline const void * G_GNUC_CONST
+omalloc_chunk_end(const struct ochunk *ck)
+{
+	return const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE);
+}
+
+/**
  * Remaining free space in the chunk (including header).
  */
 static inline size_t G_GNUC_PURE
@@ -172,7 +181,7 @@ omalloc_chunk_size(const struct ochunk *ck)
 	g_assert(ck != NULL);
 	g_assert(ptr_cmp(ck->first, ck) <= 0);
 
-	return ptr_diff(const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE), ck->first);
+	return ptr_diff(omalloc_chunk_end(ck), ck->first);
 }
 
 /**
@@ -202,7 +211,7 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
 	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
 
-	return ptr_diff(const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
+	return ptr_diff(omalloc_chunk_end(ck), first);
 }
 
 /**
@@ -579,7 +588,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 		 */
 
 		omalloc_chunk_unlink(ck, mode);
-		used = ptr_diff(ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
+		used = ptr_diff(omalloc_chunk_end(ck), first);
 
 		OSTATS_LOCK;
 		if (OMALLOC_RW == mode) {
