@@ -426,6 +426,14 @@ omalloc_chunk_link(struct ochunk *ck, enum omalloc_mode mode)
 	size_t i;
 
 	g_assert(ck != NULL);
+	g_assert(ptr_cmp(ck->first, ck) <= 0);	/* Or page would be exhausted */
+
+	/*
+	 * Contrary to omalloc_chunk_unlink(), the chunk structure is up-to-date
+	 * and ck->first really points to the next free location.  As such, we
+	 * can use omalloc_chunk_index() which will compute the size of the chunk
+	 * by itself.
+	 */
 
 	i = omalloc_chunk_index(ck);
 	chunks = omalloc_chunk_array(mode);
@@ -457,7 +465,7 @@ omalloc_chunk_link(struct ochunk *ck, enum omalloc_mode mode)
  * Unlink chunk from the proper chunks[] array.
  */
 static void
-omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode)
+omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode, size_t size)
 {
 	struct ochunk **chunks;
 
@@ -465,9 +473,16 @@ omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode)
 
 	chunks = omalloc_chunk_array(mode);
 
+	/*
+	 * The chunk size is given as argument and cannot be computed through
+	 * omalloc_chunk_size() at this point because the allocation routine
+	 * may have already adjusted ck->first for alignment purposes.
+	 *		--RAM, 2015-10-06
+	 */
+
 	if (NULL == ck->prev) {
 		/* Was head of list */
-		size_t i = omalloc_chunk_index(ck);
+		size_t i = omalloc_size_index(size);
 
 		g_assert(i < OMALLOC_CHUNK_COUNT);
 		g_assert(chunks[i] == ck);
@@ -502,8 +517,7 @@ static void *
 omalloc_chunk_allocate_from(struct ochunk *ck,
 	size_t size, size_t align, enum omalloc_mode mode)
 {
-	size_t used;
-	size_t csize;
+	size_t used, osize, csize;
 	void *first = ck->first;
 	void *p;
 
@@ -519,6 +533,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 	g_assert(size_is_positive(size));
 	g_assert(omalloc_chunk_size(ck) >= size);
 
+	osize = omalloc_chunk_size(ck);				/* Before possible alignment */
 	omalloc_chunk_unprotect(ck, mode);			/* Chunk now read-write */
 	omalloc_chunk_align(ck, align, mode);
 	csize = omalloc_chunk_size(ck);
@@ -537,15 +552,14 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 
 	if (csize - size >= OMALLOC_HEADER_SIZE) {
 		struct ochunk **chunks;
-		size_t i;
-		size_t j;
+		size_t i, j;
 
 		/*
 		 * We have enough space in the chunk to allocate more memory.
 		 * Move the chunk free pointer ahead and relink with any next/prev.
 		 */
 
-		i = omalloc_chunk_index(ck);	/* Old chunk index */
+		i = omalloc_size_index(osize);	/* Old chunk index, before alignment */
 		ck->first = ptr_add_offset(ck->first, size);
 		used = ptr_diff(ck->first, first);
 
@@ -587,7 +601,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 		 * Once we return, this chunk will no longer be listed in chunks[].
 		 */
 
-		omalloc_chunk_unlink(ck, mode);
+		omalloc_chunk_unlink(ck, mode, osize);
 		used = ptr_diff(omalloc_chunk_end(ck), first);
 
 		OSTATS_LOCK;
