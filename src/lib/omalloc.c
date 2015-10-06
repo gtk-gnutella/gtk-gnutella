@@ -217,6 +217,24 @@ omalloc_chunk_index(const struct ochunk *ck)
 }
 
 /**
+ * Ensure the chunk structure is completely held within the page and is
+ * consistent with the page boundaries.
+ */
+static void
+assert_ochunk_valid(const struct ochunk *ck, const void *page,
+	const char *caller)
+{
+	const void *end = const_ptr_add_offset(page, omalloc_pagesize);
+
+	g_assert_log(0 == ptr_cmp(&ck[1], end),
+		"%s(): chunk at %p (%zu bytes) not at the tail of page [%p, %p[",
+		caller, ck, sizeof *ck, page, end);
+	g_assert_log(ptr_cmp(ck->first, page) >= 0 && ptr_cmp(ck->first, end) < 0,
+		"%s(): chunk at %p lists first free byte at %p, not on page [%p, %p[",
+		caller, ck, ck->first, page, end);
+}
+
+/**
  * Make read-only chunk read-write.
  */
 static void
@@ -224,6 +242,8 @@ omalloc_chunk_unprotect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
 		void *start = deconstify_pointer(vmm_page_start(p));
+
+		assert_ochunk_valid(p, start, G_STRFUNC);
 
 		if (-1 == mprotect(start, omalloc_pagesize, PROT_READ | PROT_WRITE)) {
 			s_error("mprotect(%p, %zu, PROT_READ | PROT_WRITE) failed: %m",
@@ -240,6 +260,8 @@ omalloc_chunk_protect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
 		void *start = deconstify_pointer(vmm_page_start(p));
+
+		assert_ochunk_valid(p, start, G_STRFUNC);
 
 		if (-1 == mprotect(start, omalloc_pagesize, PROT_READ)) {
 			s_error("mprotect(%p, %zu, PROT_READ) failed: %m",
