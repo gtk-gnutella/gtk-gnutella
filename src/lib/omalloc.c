@@ -116,7 +116,7 @@
 struct ochunk {
 	struct ochunk *next;	/* Linking in chunk "free list" */
 	struct ochunk *prev;
-	void *first;			/* First free location */
+	void *first;			/* First free location (up to struct's address) */
 };
 
 #define OMALLOC_HEADER_SIZE	(sizeof(struct ochunk))
@@ -170,6 +170,8 @@ static inline size_t G_GNUC_PURE
 omalloc_chunk_size(const struct ochunk *ck)
 {
 	g_assert(ck != NULL);
+	g_assert(ptr_cmp(ck->first, ck) <= 0);
+
 	return ptr_diff(const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE), ck->first);
 }
 
@@ -184,7 +186,18 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 	size_t mask;
 
 	g_assert(ck != NULL);
+	g_assert(ptr_cmp(ck->first, ck) <= 0);
 	g_assert(is_pow2(align));
+
+	/*
+	 * The system's alignment constraints must be at most as large as the
+	 * size of the chunk header we're putting at the end of the page.
+	 *
+	 * Otherwise, when computing the aligned address at which we need to
+	 * allocate, we would run the risk of going beyond the page itself.
+	 */
+
+	STATIC_ASSERT(OMALLOC_ALIGNBYTES <= OMALLOC_HEADER_SIZE);
 
 	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
 	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
@@ -501,6 +514,12 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 	omalloc_chunk_align(ck, align, mode);
 	csize = omalloc_chunk_size(ck);
 	p = ck->first;
+
+	/*
+	 * This has to hold or we would not have selected that chunk for allocation.
+	 */
+
+	g_assert(csize >= size);	/* After possible alignment */
 
 	/*
 	 * See whether this is going to be the last block allocated from
