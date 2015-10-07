@@ -116,6 +116,7 @@
 #include "lib/crc.h"
 #include "lib/dbus_util.h"
 #include "lib/debug.h"
+#include "lib/entropy.h"
 #include "lib/eval.h"
 #include "lib/evq.h"
 #include "lib/exit.h"
@@ -1538,6 +1539,7 @@ static digest_collector_cb_t random_source[] = {
 	tmalloc_stats_digest,
 	xmalloc_stats_digest,
 	zalloc_stats_digest,
+	entropy_minimal_collect,
 };
 
 /**
