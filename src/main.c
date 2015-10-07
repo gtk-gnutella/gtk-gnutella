@@ -551,6 +551,7 @@ gtk_gnutella_exit(int exit_code)
 	fn(arg);								\
 } while (0)
 
+	DO(socket_shutdowning);			/* We're about to shutdown for good */
 	DO(shell_close);
 	DO(file_info_store_if_dirty);	/* For safety, will run again below */
 	DO(file_info_close_pre);

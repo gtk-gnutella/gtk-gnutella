@@ -294,6 +294,7 @@ bool socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
 bool socket_udp_is_old(const struct gnutella_socket *s);
 
 void socket_timer(time_t now);
+void socket_shutdowning(void);
 void socket_shutdown(void);
 void socket_closedown(void);
 
