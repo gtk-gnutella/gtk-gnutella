@@ -1548,16 +1548,17 @@ static digest_collector_cb_t random_source[] = {
 static bool
 callout_queue_idle(void *unused_data)
 {
-	bool overloaded = GNET_PROPERTY(overloaded_cpu);
 	sha1_t digest;
 	static uint ridx = 0;
 	static size_t counter = 0;
 
 	(void) unused_data;
 
-	if (GNET_PROPERTY(cq_debug) > 1)
+	if (GNET_PROPERTY(cq_debug) > 1) {
+		bool overloaded = GNET_PROPERTY(overloaded_cpu);
 		g_debug("CQ: callout queue is idle (CPU %s)",
 			overloaded ? "OVERLOADED" : "available");
+	}
 
 	/* Idle tasks always scheduled */
 	random_collect();
