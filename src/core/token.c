@@ -39,14 +39,16 @@
 
 #include "if/gnet_property_priv.h"
 
-#include "lib/misc.h"
-#include "lib/sha1.h"
 #include "lib/base64.h"
-#include "lib/glib-missing.h"
 #include "lib/crc.h"
+#include "lib/glib-missing.h"
+#include "lib/halloc.h"
+#include "lib/misc.h"
 #include "lib/random.h"
+#include "lib/sha1.h"
 #include "lib/stacktrace.h"
 #include "lib/tm.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define TOKEN_CLOCK_SKEW	3600		/**< +/- 1 hour */
@@ -842,7 +844,7 @@ tok_generate(time_t now, const char *version)
 	ZERO(&lvlbase64);
 	base64_encode_into(lvldigest, 2 * lvlsize, lvlbase64, LEVEL_BASE64_SIZE);
 
-	return g_strconcat(token, "; ", lvlbase64, (void *) 0);
+	return h_strconcat(token, "; ", lvlbase64, (void *) 0);
 }
 
 /**
@@ -876,7 +878,7 @@ tok_version(void)
 
 	last_generated = now;
 
-	G_FREE_NULL(toklevel);
+	HFREE_NULL(toklevel);
 	toklevel = tok_generate(now, version_string);
 
 	return NOT_LEAKING(toklevel);
@@ -907,7 +909,7 @@ tok_short_version(void)
 
 	last_generated = now;
 
-	G_FREE_NULL(toklevel);
+	HFREE_NULL(toklevel);
 	toklevel = tok_generate(now, version_short_string);
 
 	return NOT_LEAKING(toklevel);
