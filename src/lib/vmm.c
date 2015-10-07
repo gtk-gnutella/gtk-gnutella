@@ -5737,6 +5737,7 @@ vmm_close(void)
  *** can keep an accurate view of the process's virtual memory map.
  ***/
 
+#ifdef HAS_MMAP
 /**
  * Record memory-mapped region in the pmap.
  */
@@ -5759,6 +5760,7 @@ pmap_mmap(struct pmap *pm, void *p, size_t size)
 	pmap_insert_mapped(pm, p, size);
 	rwlock_wunlock(&pm->lock);
 }
+#endif	/* HAS_MMAP */
 
 /**
  * Wrapper of the mmap() system call.
