@@ -3168,7 +3168,10 @@ socket_set_keepalive(socket_fd_t fd, const char *caller)
 }
 
 /**
+ * Make socket file descriptor able to reuse address (and port) when bound.
+ *
  * Set SO_REUSEADDR on the socket file descriptor.
+ * If SO_REUSEPORT is defined on that system (linux), set it as well.
  */
 static void
 socket_set_reuseaddr(socket_fd_t fd, const char *caller)
@@ -3182,6 +3185,14 @@ socket_set_reuseaddr(socket_fd_t fd, const char *caller)
 		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
 			caller, (int) fd);
 	}
+
+	/* On Linux 3.9 and above, SO_REUSEPORT is also required. */
+#ifdef SO_REUSEPORT
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof on)) {
+		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEPORT) failed: %m",
+			caller, (int) fd);
+	}
+#endif	/* SO_REUSEPORT */
 }
 
 /**
