@@ -41,6 +41,7 @@
 #include "xml/xnode.h"
 
 #include "lib/atoms.h"
+#include "lib/buf.h"
 #include "lib/halloc.h"
 #include "lib/nv.h"
 #include "lib/once.h"
@@ -193,14 +194,14 @@ upnp_service_type_to_string(enum upnp_service_type type)
 const char *
 upnp_service_to_string(const upnp_service_t *usd)
 {
-	static char buf[128];
+	buf_t *b = buf_private(G_STRFUNC, 128);
 
 	upnp_service_check(usd);
 
-	str_bprintf(buf, sizeof buf, "\"%s\" v%u at %s",
+	buf_printf(b, "\"%s\" v%u at %s",
 		upnp_service_type_to_string(usd->type), usd->version, usd->control_url);
 
-	return buf;
+	return buf_data(b);
 }
 
 /**

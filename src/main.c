@@ -116,6 +116,7 @@
 #include "lib/crc.h"
 #include "lib/dbus_util.h"
 #include "lib/debug.h"
+#include "lib/entropy.h"
 #include "lib/eval.h"
 #include "lib/evq.h"
 #include "lib/exit.h"
@@ -550,6 +551,7 @@ gtk_gnutella_exit(int exit_code)
 	fn(arg);								\
 } while (0)
 
+	DO(socket_shutdowning);			/* We're about to shutdown for good */
 	DO(shell_close);
 	DO(file_info_store_if_dirty);	/* For safety, will run again below */
 	DO(file_info_close_pre);
@@ -1538,6 +1540,7 @@ static digest_collector_cb_t random_source[] = {
 	tmalloc_stats_digest,
 	xmalloc_stats_digest,
 	zalloc_stats_digest,
+	entropy_minimal_collect,
 };
 
 /**
@@ -1546,16 +1549,17 @@ static digest_collector_cb_t random_source[] = {
 static bool
 callout_queue_idle(void *unused_data)
 {
-	bool overloaded = GNET_PROPERTY(overloaded_cpu);
 	sha1_t digest;
 	static uint ridx = 0;
 	static size_t counter = 0;
 
 	(void) unused_data;
 
-	if (GNET_PROPERTY(cq_debug) > 1)
+	if (GNET_PROPERTY(cq_debug) > 1) {
+		bool overloaded = GNET_PROPERTY(overloaded_cpu);
 		g_debug("CQ: callout queue is idle (CPU %s)",
 			overloaded ? "OVERLOADED" : "available");
+	}
 
 	/* Idle tasks always scheduled */
 	random_collect();

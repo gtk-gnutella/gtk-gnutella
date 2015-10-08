@@ -209,6 +209,7 @@
 #define TX_UT_ACK_DELAY		100		/* ms: delay before ACK re-queuing */
 #define TX_UT_BAN_FREQ		300		/* 5-minute ban if cannot reach host */
 #define TX_UT_GOOD_FREQ		900		/* Remember good hosts for 15 minutes */
+#define TX_UT_REQUEUE_DELAY	5000	/* Time to requeue message after drop */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
@@ -1127,10 +1128,19 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 	} else {
 		/*
 		 * Fragment was dropped by lower layer (expired, probably).
-		 * Immediately requeue it.
+		 *
+		 * Don't requeue it synchronously because the fragment could have
+		 * been dropped whilst being enqueued, for instance if the remote
+		 * network is deemed unreacheable by TCP/IP (e.g. the network link
+		 * is currently down).
+		 *
+		 * To avoid deadly recursions into here, wait a little bit and then
+		 * retry, whether the message is reliable or not.
+		 *		--RAM, 2015-10-02
 		 */
 
-		ut_frag_send(uf);
+		g_assert(NULL == uf->resend_ev);
+		uf->resend_ev = cq_main_insert(TX_UT_REQUEUE_DELAY, ut_frag_resend, uf);
 	}
 
 	/* FALL THROUGH */

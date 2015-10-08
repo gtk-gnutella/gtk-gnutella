@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * UDP Host Cache.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2015
  */
 
 #include "common.h"
@@ -53,8 +53,8 @@
 #include "lib/hashlist.h"
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
-#include "lib/random.h"
 #include "lib/str.h"
+#include "lib/shuffle.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -66,7 +66,7 @@
 
 #define UHC_MAX_ATTEMPTS 3		/**< Maximum connection / resolution attempts */
 #define UHC_TIMEOUT		 20000	/**< Host cache timeout, milliseconds */
-#define UHC_RETRY_AFTER	 3600	/**< Frequency of contacts for an UHC (secs) */
+#define UHC_RETRY_AFTER	 180	/**< Frequency of contacts for an UHC (secs) */
 
 /**
  * Request context, used when we decide to get hosts via the UDP host caches.
@@ -100,11 +100,16 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
-	{ "1.uhc.gtk-gnutella.nl:19104" },
-	{ "uhc.gtk-gnutella.nl:15749" },
+	/* Crabs */
 	{ "useast.gnutella.dyslexicfish.net:3558" },
 	{ "uswest.gnutella.dyslexicfish.net:3558" },
 	{ "uk.gnutella.dyslexicfish.net:3558" },
+	/* Peers */
+	{ "1.uhc.gtk-gnutella.nl:19104" },
+	{ "uhc.gtk-gnutella.nl:15749" },
+	{ "useast.gnutella.dyslexicfish.net:19814" },
+	{ "uswest.gnutella.dyslexicfish.net:26562" },
+	{ "uk.gnutella.dyslexicfish.net:55577" },
 #endif	/* USE_LOCAL_UHC */
 };
 
@@ -203,7 +208,7 @@ uhc_equal(const void *p, const void *q)
 
 
 static void
-uhc_list_add(const char *host)
+uhc_list_append(const char *host)
 {
 	struct uhc *uhc;
 
@@ -219,11 +224,7 @@ uhc_list_add(const char *host)
 	if (GNET_PROPERTY(bootstrap_debug) > 1)
 		g_debug("adding UHC %s", host);
 			
-	if (random_value(100) < 50) {
-		hash_list_append(uhc_list, uhc);
-	} else {
-		hash_list_prepend(uhc_list, uhc);
-	}
+	hash_list_append(uhc_list, uhc);
 }
 
 /**
@@ -235,12 +236,14 @@ uhc_get_next(void)
 	struct uhc *uhc;
 	char *host;
 	time_t now;
+	size_t n;
 
 	g_return_val_if_fail(uhc_list, NULL);
 	
 	now = tm_time();
-	uhc = hash_list_head(uhc_list);
-	if (NULL == uhc)
+
+	n = hash_list_count(uhc_list);
+	if (0 == n)
 		return NULL;
 
 	/*
@@ -250,9 +253,21 @@ uhc_get_next(void)
 	 * If we come here, it's because we're lacking hosts for establishing
 	 * a Gnutella connection, after we exhausted our caches.
 	 */
-	if (uhc->stamp && delta_time(now, uhc->stamp) < UHC_RETRY_AFTER)
-		return NULL;
 
+	while (n-- != 0) {
+		uhc = hash_list_head(uhc_list);
+
+		g_assert(uhc != NULL);	/* We computed count on entry */
+
+		if (delta_time(now, uhc->stamp) >= UHC_RETRY_AFTER)
+			goto found;
+
+		hash_list_moveto_tail(uhc_list, uhc);
+	}
+
+	return NULL;
+
+found:
 	uhc->stamp = now;
 	host = h_strdup(uhc->host);
 
@@ -308,10 +323,10 @@ finish:
 }
 
 /**
- * Try a random host cache.
+ * Try with next host in the (already shuffled) list.
  */
 static void
-uhc_try_random(void)
+uhc_try_next(void)
 {
 	host_addr_t addr;
 
@@ -355,7 +370,7 @@ uhc_ping_timeout(cqueue_t *cq, void *unused_obj)
 			uhc_ctx.host, uhc_ctx.port);
 
 	cq_zero(cq, &uhc_ctx.timeout_ev);
-	uhc_try_random();
+	uhc_try_next();
 }
 
 /**
@@ -399,6 +414,7 @@ uhc_send_ping(void)
 	} else {
 		g_warning("BOOT failed to send UDP SCP to %s",
 			host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port));
+		uhc_try_next();
 	}
 }
 
@@ -420,41 +436,64 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 			g_warning("could not resolve UDP host cache \"%s\"",
 				uhc_ctx.host);
 
-		uhc_try_random();
+		uhc_try_next();
 		return;
 	}
 
-	if (n > 1)
-	{
+	if (n > 1) {
 		size_t i;
-		/* Current uhc was moved to tail by uhc_get_next */
+		host_addr_t *hav;
+		/* Current UHC was moved to tail by uhc_get_next() */
 		struct uhc *uhc = hash_list_tail(uhc_list);
 		
 		/*
 		 * UHC resolved to multiple endpoints. Could be roundrobbin or
-		 * IPv4 and IPv6 address. Adding them as seperate entries if the IPv6 is
-		 * unreachable we might be retrying the IPv6 over and over again, there
-		 * is no garantee that the random_u32() above will eventually pick
-		 * the IPv4 address.
-		 * 	-- JA 24/7/2011
+		 * IPv4 and IPv6 addresss. Adding them as seperate entries: if the
+		 * IPv6 is unreachable we have an opportunity to skip it.
+		 * 		-- JA 24/7/2011
+		 *
+		 * Shuffle the address array before appending them to the UHC list.
+		 *		--RAM, 2015-10-01
 		 */
-		for(i = 0; i < n; i++) {	
-			const char *host = host_addr_port_to_string(addrs[i], uhc_ctx.port);
-			g_debug("BOOT UDP host cache \"%s\" resolved to %s",
-				uhc_ctx.host, host);
+
+		hav = HCOPY_ARRAY(addrs, n);
+		SHUFFLE_ARRAY_N(hav, n);
+
+		for (i = 0; i < n; i++) {
+			const char *host = host_addr_port_to_string(hav[i], uhc_ctx.port);
+			g_debug("BOOT UDP host cache \"%s\" resolved to %s (#%zu)",
+				uhc_ctx.host, host, i + 1);
 			
-			uhc_list_add(host);
+			uhc_list_append(host);
 		}
 		
-		hash_list_remove(uhc_list, uhc);
-		uhc_try_random();
-		
-		return;
-	}
-	
-	uhc_ctx.addr = addrs[0];
+		hash_list_remove(uhc_list, uhc);	/* Replaced by IP address list */
+		uhc_free(&uhc);
 
-	
+		/*
+		 * We're going to continue and process the first address (in our
+		 * shuffled array).  Make sure it is put at the end of the list
+		 * and marked as being used, mimicing what uhc_get_next() would do.
+		 *		--RAM, 2015-10-01
+		 */
+
+		{
+			struct uhc key;
+
+			key.host = host_addr_port_to_string(hav[0], uhc_ctx.port);
+			uhc = hash_list_lookup(uhc_list, &key);
+			g_assert(uhc != NULL);	/* We added the entry above! */
+			uhc->stamp = tm_time();
+			uhc->used++;
+			hash_list_moveto_tail(uhc_list, uhc);
+		}
+
+		uhc_ctx.addr = hav[0];		/* Struct copy */
+		HFREE_NULL(hav);
+	} else {
+		uhc_ctx.addr = addrs[0];
+	}
+
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("BOOT UDP host cache \"%s\" resolved to %s",
 			uhc_ctx.host, host_addr_to_string(uhc_ctx.addr));
@@ -508,10 +547,10 @@ uhc_get_hosts(void)
 	g_assert(uhc_ctx.timeout_ev == NULL);
 
 	/*
-	 * Pick a random host.
+	 * Pick next host.
 	 */
 
-	uhc_try_random();
+	uhc_try_next();
 }
 
 /**
@@ -583,7 +622,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 		gcu_statusbar_message(msg);
 	} else {
-		uhc_try_random();
+		uhc_try_next();
 	}
 }
 
@@ -613,8 +652,10 @@ uhc_init(void)
 		g_assert(NULL != ep);
 		g_assert(':' == ep[0]);
 
-		uhc_list_add(uhc);
+		uhc_list_append(uhc);
 	}
+
+	hash_list_shuffle(uhc_list);
 }
 
 /**

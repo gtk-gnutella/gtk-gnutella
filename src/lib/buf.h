@@ -34,6 +34,8 @@
 #ifndef _buf_h_
 #define _buf_h_
 
+#include "unsigned.h"		/* For size_is_positive()) */
+
 /*
  * The buffer structure is public to allow static buffer objects.
  */
@@ -46,6 +48,7 @@
 
 enum buf_magic {
 	BUF_MAGIC          = BUF_MAGIC_VAL + 0xc4,
+	BUF_MAGIC_STATIC   = BUF_MAGIC_VAL + 0xf1,
 	BUF_MAGIC_EMBEDDED = BUF_MAGIC_VAL + 0x6b,
 	BUF_MAGIC_PRIVATE  = BUF_MAGIC_VAL + 0x68
 };
@@ -83,7 +86,9 @@ buf_check(const struct buf * const b)
 static inline void
 buf_init(buf_t *b, void *arena, size_t size)
 {
-	b->b_magic = BUF_MAGIC;
+	g_assert(arena != NULL);
+	g_assert(size_is_positive(size));
+	b->b_magic = BUF_MAGIC_STATIC;
 	b->b_size = size;
 	b->b_u.bu_data = arena;
 }
@@ -125,6 +130,9 @@ buf_t *buf_new(size_t size);
 buf_t *buf_new_embedded(size_t size);
 buf_t *buf_private(const void *key, size_t size);
 void buf_free_null(buf_t **b_ptr);
+
+buf_t *buf_resize(buf_t *b, size_t size);
+buf_t *buf_private_resize(const void *key, size_t size);
 
 void buf_setc(buf_t *b, size_t i, char c);
 char buf_getc(const buf_t *b, size_t i);

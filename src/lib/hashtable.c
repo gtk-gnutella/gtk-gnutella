@@ -68,12 +68,12 @@
 #include "hashtable.h"
 
 #include "atomic.h"
-#include "entropy.h"
 #include "hashing.h"
 #include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
 #include "pow2.h"
+#include "rand31.h"
 #include "spinlock.h"
 #include "vmm.h"
 #include "xmalloc.h"
@@ -162,8 +162,13 @@ static once_flag_t hash_min_bins_computed;
 static G_GNUC_COLD void
 hash_offset_init_once(void)
 {
-	/* Don't allocate any memory, hence can't call arc4random() */
-	hash_offset[0] = entropy_minirand();
+	/*
+	 * Don't allocate any memory, hence can't call arc4random().
+	 * Also, on Windows, we cannot enter the POSIX layer by trying
+	 * to open files, hence cannot use entropy_minirand() either.
+	 */
+
+	hash_offset[0] = rand31_u32();
 
 	/*
 	 * Note that we leave hash_offset[1] set to 0: hash offsetting is not

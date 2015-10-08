@@ -803,7 +803,14 @@ signal_trampoline(int signo)
 
 	handler = signal_handler[signo];
 
-	g_assert(handler != SIG_DFL && handler != SIG_IGN);
+	g_soft_assert_log(handler != SIG_DFL && handler != SIG_IGN,
+		"%s(): signo=%d (%s), handler=%s",
+		G_STRFUNC, signo, signal_name(signo),
+		SIG_DFL == handler ? "SIG_DFL" :
+		SIG_IGN == handler ? "SIG_IGN" : "<BUG>");
+
+	if G_UNLIKELY(SIG_DFL == handler || SIG_IGN == handler)
+		return;
 
 	/*
 	 * Wrapping the signal handler allows us to know whether we are in

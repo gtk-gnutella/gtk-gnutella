@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "atoms.h"
+#include "buf.h"
 #include "constants.h"
 #include "endian.h"
 #include "hashing.h"
@@ -217,10 +218,19 @@ atom_check(const atom_t *a)
 static once_flag_t atoms_inited;
 
 #ifdef TRACK_ATOMS
+static spinlock_t atom_track_slk = SPINLOCK_INIT;
+
+static inline void
+ATOM_TRACK_IS_LOCKED(void)
+{
+	g_assert(spinlock_is_held(&atom_track_slk));
+}
+
 static inline void
 ATOM_ZERO(atom_t *a)
 {
 	a->get = a->free = NULL;
+	a->trackcnt = 1;
 	ZERO(&a->lock);
 }
 
@@ -244,6 +254,7 @@ ATOM_TRACK_REFCNT(const void *key, int delta, size_t refcnt)
 		"refcnt=%zu, a->trackcnt=%zu", refcnt, a->trackcnt);
 }
 #else	/* !TRACK_ATOMS */
+#define ATOM_TRACK_IS_LOCKED()
 #define ATOM_ZERO(a)
 #define ATOM_TRACK_REFCNT(k,d,r)	(void) r
 #endif	/* TRACK_ATOMS */
@@ -781,10 +792,11 @@ packed_host_addr_len(const void *v)
 static const char *
 uint64_str(const void *v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	uint64_to_string_buf(*(const uint64 *) v, buf, sizeof buf);
-	return buf;
+	uint64_to_string_buf(*(const uint64 *) v, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -845,10 +857,11 @@ uint64_mem_hash(const void *p)
 static const char *
 filesize_str(const void *v)
 {
-	static char buf[UINT64_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	uint64_to_string_buf(*(const filesize_t *) v, buf, sizeof buf);
-	return buf;
+	uint64_to_string_buf(*(const filesize_t *) v, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -857,10 +870,11 @@ filesize_str(const void *v)
 static const char *
 gnet_host_str(const void *v)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
 
-	gnet_host_to_string_buf(v, buf, sizeof buf);
-	return buf;
+	gnet_host_to_string_buf(v, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -870,13 +884,14 @@ gnet_host_str(const void *v)
 static const char *
 packed_host_addr_str(const void *v)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
 	host_addr_t addr;
 
 	addr = packed_host_addr_unpack_ptr(v);
-	host_addr_to_string_buf(addr, buf, sizeof buf);
+	host_addr_to_string_buf(addr, p, buf_size(b));
 
-	return buf;
+	return p;
 }
 
 /**
@@ -931,10 +946,11 @@ uint32_hash(const void *p)
 static const char *
 uint32_str(const void *v)
 {
-	static char buf[UINT32_DEC_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, UINT32_DEC_BUFLEN);
+	char *p = buf_data(b);
 
-	uint32_to_string_buf(*(const uint32 *) v, buf, sizeof buf);
-	return buf;
+	uint32_to_string_buf(*(const uint32 *) v, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -1086,6 +1102,7 @@ atom_get(enum atom_type type, const void *key)
 	
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+	ATOM_TRACK_IS_LOCKED();
 
 	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
 		atoms_init();
@@ -1141,11 +1158,12 @@ atom_get(enum atom_type type, const void *key)
 			ai->refcnt = 1;
 			htable_insert(ad->table, atom_arena(a), ai);
 		} else {
-			ulong v = ATOM_INFO(size) + 1;
+			ulong v = ATOM_INFO(size) + 1;	/* +1 means refcnt is 1 */
 			htable_insert(ad->table, atom_arena(a), ulong_to_pointer(v));
 		}
 
 		ATOM_TABLE_UNLOCK(ad);
+
 		return atom_arena(a);
 	}
 }
@@ -1167,6 +1185,7 @@ atom_free(enum atom_type type, const void *key)
 
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+	ATOM_TRACK_IS_LOCKED();
 
 	ad = &atoms[type];		/* Where atoms of this type are held */
 	ATOM_TABLE_LOCK(ad);
@@ -1215,8 +1234,6 @@ struct spot {
 	int count;			/**< Amount of allocation/free performed at spot */
 };
 
-static spinlock_t atom_track_slk = SPINLOCK_INIT;
-
 #define ATOM_TRACK_LOCK		spinlock_hidden(&atom_track_slk)
 #define ATOM_TRACK_UNLOCK	spinunlock_hidden(&atom_track_slk)
 
@@ -1234,7 +1251,6 @@ atom_get_track(enum atom_type type, const void *key, const char *file, int line)
 	const void *k;
 	void *v;
 	struct spot *sp;
-	bool init;
 
 	ATOM_TRACK_LOCK;
 
@@ -1245,19 +1261,19 @@ atom_get_track(enum atom_type type, const void *key, const char *file, int line)
 	 * Initialize tracking tables on first allocation.
 	 */
 
-	init = NULL == a->get;
-
-	if G_UNLIKELY(init)
+	if G_UNLIKELY(NULL == a->get) {
+		/* Initialized by ATOM_ZERO() */
+		g_assert_log(1 == a->trackcnt,
+			"%s(): a->trackcnt=%zu", G_STRFUNC, a->trackcnt);
 		spinlock_init(&a->lock);
+	}
 
 	spinlock(&a->lock);
-
 	ATOM_TRACK_UNLOCK;
 
-	if G_UNLIKELY(init) {
+	if G_UNLIKELY(NULL == a->get) {
 		a->get = htable_create(HASH_KEY_STRING, 0);
 		a->free = htable_create(HASH_KEY_STRING, 0);
-		a->trackcnt = 1;
 	}
 
 	str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
@@ -1291,13 +1307,17 @@ tracking_free_kv(const void *unused_key, void *value, void *unused_data)
 }
 
 /**
- * Get rid of the tracking hash table.
+ * Get rid of the tracking hash table and nullify its pointer.
  */
 static void
-destroy_tracking_table(htable_t *h)
+destroy_tracking_table(htable_t **h_ptr)
 {
-	htable_foreach(h, tracking_free_kv, NULL);
-	htable_free_null(&h);
+	htable_t *h = *h_ptr;
+
+	if (h != NULL) {
+		htable_foreach(h, tracking_free_kv, NULL);
+		htable_free_null(h_ptr);
+	}
 }
 
 /**
@@ -1310,11 +1330,13 @@ atom_free_track(enum atom_type type, const void *key,
 	const char *file, int line)
 {
 	atom_t *a;
-	char buf[512];
 	void *v;
 	struct spot *sp;
+	bool freed = FALSE;
 
 	a = atom_from_arena(key);
+
+	ATOM_TRACK_LOCK;
 
 	/*
 	 * If we're going to free the atom, dispose of the tracking tables.
@@ -1323,10 +1345,24 @@ atom_free_track(enum atom_type type, const void *key,
 	spinlock(&a->lock);
 
 	if (1 == a->trackcnt) {
-		destroy_tracking_table(a->get);
-		destroy_tracking_table(a->free);
+		destroy_tracking_table(&a->get);
+		destroy_tracking_table(&a->free);
 		spinlock_destroy(&a->lock);
+		freed = TRUE;
 	} else {
+		spinunlock(&a->lock);
+	}
+
+	atom_free(type, key);
+
+	if (!freed)
+		spinlock(&a->lock);
+
+	ATOM_TRACK_UNLOCK;
+
+	if (!freed) {
+		char buf[512];
+
 		str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
 		if (htable_lookup_extended(a->free, buf, NULL, &v)) {
@@ -1339,8 +1375,6 @@ atom_free_track(enum atom_type type, const void *key,
 		}
 		spinunlock(&a->lock);
 	}
-
-	atom_free(type, key);
 }
 
 /**
@@ -1414,8 +1448,8 @@ atom_warn_free(const void *key, void *value, void *udata)
 	spinlock(&a->lock);
 	dump_tracking_table(key, a->get, "get");
 	dump_tracking_table(key, a->free, "free");
-	destroy_tracking_table(a->get);
-	destroy_tracking_table(a->free);
+	destroy_tracking_table(&a->get);
+	destroy_tracking_table(&a->free);
 	spinlock_destroy(&a->lock);
 #else
 	(void) a;

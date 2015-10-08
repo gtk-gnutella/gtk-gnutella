@@ -34,8 +34,9 @@
 #include "common.h"
 
 #include "debug.h"
+
+#include "buf.h"
 #include "misc.h"
-#include "str.h"
 #include "stringify.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -72,11 +73,10 @@ set_library_stats(uint32 level)
 const char *
 dbg_ds_name(const dbg_config_t *dc, const void *o)
 {
-	static char buf[POINTER_BUFLEN + CONST_STRLEN("0x")];
-
 	if (NULL == dc->o2str) {
-		str_bprintf(buf, sizeof buf, "%p", o);
-		return buf;
+		buf_t *b = buf_private(G_STRFUNC, POINTER_BUFLEN + CONST_STRLEN("0x"));
+		buf_printf(b, "%p", o);
+		return buf_data(b);
 	} else {
 		return (*dc->o2str)(o);
 	}
@@ -94,24 +94,24 @@ dbg_ds_name(const dbg_config_t *dc, const void *o)
 const char *
 dbg_ds_keystr(const dbg_config_t *dc, const void *key, size_t len)
 {
-	static char buf[
-		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<key@0x,len=>")];
+	buf_t *b = buf_private(G_STRFUNC,
+		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<key@0x,len=>"));
 
 	if (NULL == key)
 		return "<null key>";
 
 	if ((size_t) -1 == len) {
 		if (NULL == dc->k2str) {
-			str_bprintf(buf, sizeof buf, "<key@%p>", key);
-			return buf;
+			buf_printf(b, "<key@%p>", key);
+			return buf_data(b);
 		} else {
 			return (*dc->k2str)(key);
 		}
 	} else {
 		if (NULL == dc->klen2str) {
 			if (NULL == dc->k2str) {
-				str_bprintf(buf, sizeof buf, "<key@%p,len=%zu>", key, len);
-				return buf;
+				buf_printf(b, "<key@%p,len=%zu>", key, len);
+				return buf_data(b);
 			} else {
 				return (*dc->k2str)(key);
 			}
@@ -133,24 +133,24 @@ dbg_ds_keystr(const dbg_config_t *dc, const void *key, size_t len)
 const char *
 dbg_ds_valstr(const dbg_config_t *dc, const void *value, size_t len)
 {
-	static char buf[
-		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<value@0x,len=>")];
+	buf_t *b = buf_private(G_STRFUNC,
+		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<value@0x,len=>"));
 
 	if (NULL == value)
 		return "<null value>";
 
 	if ((size_t) -1 == len) {
 		if (NULL == dc->v2str) {
-			str_bprintf(buf, sizeof buf, "<value@%p>", value);
-			return buf;
+			buf_printf(b, "<value@%p>", value);
+			return buf_data(b);
 		} else {
 			return (*dc->v2str)(value);
 		}
 	} else {
 		if (NULL == dc->vlen2str) {
 			if (NULL == dc->v2str) {
-				str_bprintf(buf, sizeof buf, "<value@%p,len=%zu>", value, len);
-				return buf;
+				buf_printf(b, "<value@%p,len=%zu>", value, len);
+				return buf_data(b);
 			} else {
 				return (*dc->v2str)(value);
 			}
@@ -172,13 +172,13 @@ void
 dbg_ds_logv(const dbg_config_t *dc, const void *o,
 	const char *fmt, va_list args)
 {
-	static char buf[512];
+	buf_t *b = buf_private(G_STRFUNC, 512);
 	size_t len;
 
-	len = str_vbprintf(buf, sizeof buf, fmt, args);
+	len = buf_vprintf(b, fmt, args);
 	g_debug("%s%s \"%s\" %s%s",
-		dc->prefix, dc->type, dbg_ds_name(dc, o), buf,
-		len == sizeof buf - 1 ? "...more..." : "");
+		dc->prefix, dc->type, dbg_ds_name(dc, o), buf_data(b),
+		len == buf_size(b) - 1 ? "...more..." : "");
 }
 
 /**

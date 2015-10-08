@@ -77,7 +77,7 @@ static aging_table_t *node_connects;
 
 /*
  * Avoid nodes being stuck helplessly due to completely stale caches.
- * @return TRUE if an UHC may be contact, FALSE if it's not permissable.
+ * @return TRUE if an UHC may be contacted, FALSE if it's not permissable.
  */
 static bool
 host_cache_allow_bypass(int which)

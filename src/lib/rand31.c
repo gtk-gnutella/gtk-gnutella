@@ -59,7 +59,6 @@
 #include "hashing.h"
 #include "log.h"
 #include "mempcpy.h"
-#include "pow2.h"
 #include "random.h"
 #include "spinlock.h"
 #include "stacktrace.h"
@@ -152,7 +151,9 @@ rand31_random_seed(void)
 	entropy_delay();
 	tm_precise_time(&now);
 	seed += integer_hash2(now.tv_sec + now.tv_nsec);
-	seed = UINT32_ROTL(seed, popcount(nsecs + now.tv_nsec));
+	nsecs += now.tv_nsec;
+	nsecs %= 31;
+	seed = UINT32_ROTL(seed, nsecs);
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
 	}

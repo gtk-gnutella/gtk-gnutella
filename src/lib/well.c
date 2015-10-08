@@ -266,7 +266,7 @@ well_state_discard(well_state_t *ws)
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(ws->state); i++) {
-		if G_LIKELY(ws->state != 0)
+		if G_LIKELY(ws->state[i] != 0)
 			goto good;
 	}
 

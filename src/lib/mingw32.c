@@ -67,6 +67,7 @@
 
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "atomic.h"
+#include "buf.h"
 #include "compat_sleep_ms.h"
 #include "constants.h"
 #include "cq.h"
@@ -253,7 +254,9 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 static const char *
 get_native_path(const char *pathname, int *error)
 {
-	static char pathname_buf[MAX_PATH_LEN];
+	buf_t *b = buf_private(G_STRFUNC, MAX_PATH_LEN);
+	char *pathbuf = buf_data(b);
+	size_t pathsz = buf_size(b);
 	const char *npath = pathname;
 	char *p;
 
@@ -291,15 +294,15 @@ get_native_path(const char *pathname, int *error)
 	) {
 		size_t plen = strlen(npath);
 
-		if (sizeof pathname_buf <= plen) {
+		if (pathsz <= plen) {
 			*error = ENAMETOOLONG;
 			return NULL;
 		}
 
-		clamp_strncpy(pathname_buf, sizeof pathname_buf, npath, plen);
-		pathname_buf[0] = npath[1]; /* Replace with correct drive letter */
-		pathname_buf[1] = ':';
-		npath = pathname_buf;
+		clamp_strncpy(pathbuf, pathsz, npath, plen);
+		pathbuf[0] = npath[1];	 /* Replace with correct drive letter */
+		pathbuf[1] = ':';
+		npath = pathbuf;
 	}
 
 	return npath;
@@ -527,14 +530,16 @@ mingw_win2posix(int error)
 			static spinlock_t warned_slk = SPINLOCK_INIT;
 
 			spinlock(&warned_slk);
-			if (NULL == warned)
+			if (NULL == warned) {
 				warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
+				hset_thread_safe(warned);
+			}
 			spinunlock(&warned_slk);
 		}
 		if (warned != NULL && !hset_contains(warned, int_to_pointer(error))) {
+			hset_insert(warned, int_to_pointer(error));
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
-			hset_insert(warned, int_to_pointer(error));
 		}
 	}
 
@@ -1041,9 +1046,13 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 static const char *
 get_special(int which, char *what)
 {
+	static spinlock_t special_slk = SPINLOCK_INIT;
 	static wchar_t pathname[MAX_PATH];
 	static char utf8_path[MAX_PATH];
 	int ret;
+	const char *result;
+
+	spinlock_hidden(&special_slk);		/* Protect access to static vars */
 
 	ret = SHGetFolderPathW(NULL, which, NULL, 0, pathname);
 
@@ -1061,7 +1070,11 @@ get_special(int which, char *what)
 		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
 	}
 
-	return ONCE_DONE(mingw_inited) ? constant_str(utf8_path) : utf8_path;
+	result = constant_str(utf8_path);
+
+	spinunlock_hidden(&special_slk);
+
+	return result;
 }
 
 const char *
@@ -2804,7 +2817,8 @@ const char *
 mingw_strerror(int errnum)
 {
 	const char *msg;
-	static char strerrbuf[1024];
+	buf_t *b;
+	char *p;
 
 	/*
 	 * We have one global "errno" but conflicting ranges for errors: the
@@ -2820,15 +2834,17 @@ mingw_strerror(int errnum)
 	if (msg != NULL)
 		return msg;
 
+	b = buf_private(G_STRFUNC, 1024);
+	p = buf_data(b);
+
 	FormatMessage(
         FORMAT_MESSAGE_FROM_SYSTEM,
         NULL, errnum,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR) strerrbuf,
-        sizeof strerrbuf, NULL );
+        (LPTSTR) p, buf_size(b), NULL);
 
-	strchomp(strerrbuf, 0);		/* Remove final "\r\n" */
-	return strerrbuf;
+	strchomp(p, 0);		/* Remove final "\r\n" */
+	return p;
 }
 
 int
@@ -3401,32 +3417,39 @@ done:
 const char *
 mingw_filename_nearby(const char *filename)
 {
-	static char pathname[MAX_PATH_LEN];
-	static wchar_t wpathname[MAX_PATH_LEN];
+	buf_t *b = buf_private(G_STRFUNC, MAX_PATH_LEN);
+	char *pathname = buf_data(b);
 	static size_t offset;
+	static spinlock_t nearby_slk = SPINLOCK_INIT;
+
+	spinlock_hidden(&nearby_slk);	/* Protect access to static vars */
 
 	if ('\0' == pathname[0]) {
+		static wchar_t wpathname[MAX_PATH_LEN];
 		bool error = FALSE;
+		size_t pathsz = buf_size(b);
 
 		if (0 == GetModuleFileNameW(NULL, wpathname, sizeof wpathname)) {
 			error = TRUE;
 			errno = mingw_last_error();
 			s_warning("cannot locate my executable: %m");
 		} else {
-			size_t conv = utf16_to_utf8(wpathname, pathname, sizeof pathname);
-			if (conv > sizeof pathname) {
+			size_t conv = utf16_to_utf8(wpathname, pathname, pathsz);
+			if (conv > pathsz) {
 				error = TRUE;
 				s_carp("%s: cannot convert UTF-16 path into UTF-8", G_STRFUNC);
 			}
 		}
 
 		if (error)
-			g_strlcpy(pathname, G_DIR_SEPARATOR_S, sizeof pathname);
+			g_strlcpy(pathname, G_DIR_SEPARATOR_S, buf_size(b));
 
 		offset = filepath_basename(pathname) - pathname;
-
 	}
-	clamp_strcpy(&pathname[offset], sizeof pathname - offset, filename);
+
+	clamp_strcpy(&pathname[offset], buf_size(b) - offset, filename);
+
+	spinunlock_hidden(&nearby_slk);
 
 	return pathname;
 }
@@ -5106,10 +5129,14 @@ int
 mingw_dladdr(void *addr, Dl_info *info)
 {
 	static time_t last_init;
-	static char path[MAX_PATH_LEN];
 	static wchar_t wpath[MAX_PATH_LEN];
 	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
 	static mutex_t dladdr_lk = MUTEX_INIT;
+	static spinlock_t dladdr_slk = SPINLOCK_INIT;
+	buf_t *b = buf_private(G_STRFUNC, MAX_PATH_LEN);
+	char *path = buf_data(b);
+	size_t pathsz = buf_size(b);
+	buf_t *name = buf_private("mingw_dladdr:name", 255);
 	time_t now;
 	HANDLE process = NULL;
 	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
@@ -5181,19 +5208,40 @@ skip_init:
 		return 0;		/* Unknown, error */
 	}
 
+	/*
+	 * A spinlock is OK to protect the critical section below because we're
+	 * not expecting any recursion: the routines we call out should not
+	 * allocate memory nor create assertion failures (which would definitely
+	 * create recursion to dump the stack!).
+	 *
+	 * Note that path or symbol name information are returned in a private
+	 * buffer so that two threads can concurrently request dladdr() and yet
+	 * be able to get their own results back.
+	 */
+
+	spinlock_hidden(&dladdr_slk);	/* Protect access to static vars */
+
 	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, wpath, sizeof wpath)) {
-		size_t conv = utf16_to_utf8(wpath, path, sizeof path);
-		if (conv <= sizeof path)
-			info->dli_fname = path;
+		size_t conv = utf16_to_utf8(wpath, path, pathsz);
+		if (conv <= pathsz)
+			info->dli_fname = path;		/* Thread-private buffer */
 	}
 
 	symbol->SizeOfStruct = sizeof buffer;
-	symbol->MaxNameLength = 255;
+	symbol->MaxNameLength = buf_size(name);
+
+	/*
+	 * The SymGetSymFromAddr() is mono-threaded, as explained on MSDN,
+	 * but we're running under spinlock protection.
+	 */
 
 	if (SymGetSymFromAddr(process, pointer_to_ulong(addr), &disp, symbol)) {
-		info->dli_sname = symbol->Name;
+		g_strlcpy(buf_data(name), symbol->Name, buf_size(name));
+		info->dli_sname = buf_data(name);	/* Thread-private buffer */
 		info->dli_saddr = ptr_add_offset(addr, -disp);
 	}
+
+	spinunlock_hidden(&dladdr_slk);	/* Protect access to static vars */
 
 	/*
 	 * Windows offsets the actual loading of the text by MINGW_TEXT_OFFSET

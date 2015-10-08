@@ -422,7 +422,7 @@ evq_event_discard(void *data, void *udata)
 
 	s_warning("%s(): discarding %s event %s(%p) for %s",
 		G_STRFUNC, what, stacktrace_function_name(eve->cb), eve->arg,
-		thread_name());
+		thread_id_name(eve->stid));
 
 	evq_event_free(eve);
 }

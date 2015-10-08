@@ -34,7 +34,9 @@
 #include "common.h"
 
 #include "nid.h"
+
 #include "atoms.h"
+#include "buf.h"
 #include "hashing.h"
 #include "stringify.h"
 
@@ -90,9 +92,11 @@ nid_equal(const void *p, const void *q)
 const char *
 nid_to_string(const struct nid *nid)
 {
-	static char buf[UINT64_DEC_BUFLEN];
-	uint64_to_string_buf(nid_value(nid), buf, sizeof buf);
-	return buf;
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
+
+	uint64_to_string_buf(nid_value(nid), p, buf_size(b));
+	return p;
 }
 
 /**
@@ -101,9 +105,11 @@ nid_to_string(const struct nid *nid)
 const char *
 nid_to_string2(const struct nid *nid)
 {
-	static char buf[UINT64_DEC_BUFLEN];
-	uint64_to_string_buf(nid_value(nid), buf, sizeof buf);
-	return buf;
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
+	char *p = buf_data(b);
+
+	uint64_to_string_buf(nid_value(nid), p, buf_size(b));
+	return p;
 }
 
 /**

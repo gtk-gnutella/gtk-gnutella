@@ -4016,7 +4016,22 @@ xmalloc_thread_free_deferred(unsigned stid, bool local)
 	g_assert(stid < G_N_ELEMENTS(xcross));
 
 	xcr = &xcross[stid];
-	spinlock(&xcr->lock);
+
+	/*
+	 * We need to prevent recursive calls to that routine, which can happen
+	 * in some auto-initialization configurations, due to the need to allocate
+	 * pools on the free path (but we can be on the allocation path presently).
+	 *
+	 * Since we can delay the freeing of the deferred blocks for some time,
+	 * we do nothing if we cannot grab the spinlock: given it's a lock used by
+	 * one thread, not being able to grab it means we're already freeing
+	 * deferred blocks (and implies we're on the allocation path, initializing
+	 * the memory pool to cache the freed thread chunks).
+	 *		--RAM, 2015-09-27
+	 */
+
+	if (!spinlock_try(&xcr->lock))
+		return;
 
 	if G_LIKELY(0 == xcr->count) {
 		spinunlock(&xcr->lock);
@@ -4925,7 +4940,7 @@ xfree(void *p)
  * return a new pointer.
  * If the new size is 0, act as if xfree() had been called and return NULL.
  * Otherwise return a pointer to the reallocated block, which may be different
- * than the original pointer.
+ * from the original pointer.
  */
 static void *
 xreallocate(void *p, size_t size)
@@ -5483,7 +5498,7 @@ realloc_from_thread:
  * return a new pointer.
  * If the new size is 0, act as if xfree() had been called and return NULL.
  * Otherwise return a pointer to the reallocated block, which may be different
- * than the original pointer.
+ * from the original pointer.
  */
 void *
 xrealloc(void *p, size_t size)
@@ -5502,7 +5517,7 @@ xrealloc(void *p, size_t size)
  * return a new pointer.
  * If the new size is 0, act as if xfree() had been called and return NULL.
  * Otherwise return a pointer to the reallocated block, which may be different
- * than the original pointer.
+ * from the original pointer.
  */
 void *
 xprealloc(void *p, size_t size)

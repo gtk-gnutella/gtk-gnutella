@@ -1009,31 +1009,42 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
 const char *
 lazy_string_to_printf_escape(const char *src)
 {
+	char *prev;
+	buf_t *b = buf_private(G_STRFUNC, sizeof prev);
+	void *bd = buf_data(b);
 	static const char safe_chars[] = ".-_";
-	static char *prev;
 	const char *s;
 	char *p;
 	uchar c;
 	size_t n;
 
+	/*
+	 * The "prev" variable holds the address of the previous allocated string.
+	 * Its value is stored in a thread-private buffer, so the lazy pointer is
+	 * managed on a pre-thread basis.
+	 */
+
+	memcpy(&prev, bd, sizeof prev);		/* Previous value, NULL initially */
+
 	g_assert(src);
 	g_assert(src != prev);
 
 	HFREE_NULL(prev);
-	
+
 	for (s = src, n = 0; '\0' != (c = *s); s++)
 		n += char_to_printf_escape(c, NULL, safe_chars);
 
 	if (n == (size_t) (s - src))
 		return src;
-	
+
 	prev = halloc(n + 1);
 	for (s = src, p = prev; '\0' != (c = *s); s++) {
 		uint len = char_to_printf_escape(c, p, safe_chars);
 		p += len;
 	}
 	*p = '\0';
-	
+
+	memcpy(bd, &prev, sizeof prev);
 	return NOT_LEAKING(prev);	
 }
 

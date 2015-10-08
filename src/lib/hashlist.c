@@ -807,7 +807,7 @@ hash_list_shift(hash_list_t *hl)
 }
 
 /**
- * Select a random elemen in the list.
+ * Select a random element in the list.
  *
  * @return the randomly selected item, NULL if there is none.
  */
@@ -947,6 +947,25 @@ unsigned
 hash_list_length(const hash_list_t *hl)
 {
 	unsigned count;
+
+	hash_list_check(hl);
+
+	hash_list_synchronize(hl);
+	count = elist_count(&hl->list);
+	hash_list_return(hl, count);
+}
+
+/**
+ * @returns the length of the list.
+ *
+ * NOTE: same as hash_list_length() but returns a size_t and consistent
+ * with our other data structures where "count" returns the amount of
+ * data held in the container.
+ */
+size_t
+hash_list_count(const hash_list_t *hl)
+{
+	size_t count;
 
 	hash_list_check(hl);
 
@@ -1284,7 +1303,7 @@ hash_list_find(hash_list_t *hl, const void *key,
  *
  * @return the item associated with the key if found, NULL otherwise.
  */
-const void *
+void *
 hash_list_lookup(hash_list_t *hl, const void *key)
 {
 	struct hash_list_item *item;
@@ -1295,7 +1314,7 @@ hash_list_lookup(hash_list_t *hl, const void *key)
 
 	item = hikset_lookup(hl->ht, key);
 
-	hash_list_return(hl, NULL == item ? NULL : item->key);
+	hash_list_return(hl, NULL == item ? NULL : deconstify_pointer(item->key));
 }
 
 /**

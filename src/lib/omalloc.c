@@ -116,7 +116,7 @@
 struct ochunk {
 	struct ochunk *next;	/* Linking in chunk "free list" */
 	struct ochunk *prev;
-	void *first;			/* First free location */
+	void *first;			/* First free location (up to struct's address) */
 };
 
 #define OMALLOC_HEADER_SIZE	(sizeof(struct ochunk))
@@ -164,13 +164,24 @@ static spinlock_t ostats_slk = SPINLOCK_INIT;
 #define OSTATS_UNLOCK		spinunlock_hidden(&ostats_slk)
 
 /**
+ * First byte beyond a chunk page (following trailing chunk header).
+ */
+static inline const void * G_GNUC_CONST
+omalloc_chunk_end(const struct ochunk *ck)
+{
+	return const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE);
+}
+
+/**
  * Remaining free space in the chunk (including header).
  */
 static inline size_t G_GNUC_PURE
 omalloc_chunk_size(const struct ochunk *ck)
 {
 	g_assert(ck != NULL);
-	return ptr_diff(const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE), ck->first);
+	g_assert(ptr_cmp(ck->first, ck) <= 0);
+
+	return ptr_diff(omalloc_chunk_end(ck), ck->first);
 }
 
 /**
@@ -184,12 +195,23 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 	size_t mask;
 
 	g_assert(ck != NULL);
+	g_assert(ptr_cmp(ck->first, ck) <= 0);
 	g_assert(is_pow2(align));
+
+	/*
+	 * The system's alignment constraints must be at most as large as the
+	 * size of the chunk header we're putting at the end of the page.
+	 *
+	 * Otherwise, when computing the aligned address at which we need to
+	 * allocate, we would run the risk of going beyond the page itself.
+	 */
+
+	STATIC_ASSERT(OMALLOC_ALIGNBYTES <= OMALLOC_HEADER_SIZE);
 
 	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
 	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
 
-	return ptr_diff(const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
+	return ptr_diff(omalloc_chunk_end(ck), first);
 }
 
 /**
@@ -217,6 +239,24 @@ omalloc_chunk_index(const struct ochunk *ck)
 }
 
 /**
+ * Ensure the chunk structure is completely held within the page and is
+ * consistent with the page boundaries.
+ */
+static void
+assert_ochunk_valid(const struct ochunk *ck, const void *page,
+	const char *caller)
+{
+	const void *end = const_ptr_add_offset(page, omalloc_pagesize);
+
+	g_assert_log(0 == ptr_cmp(&ck[1], end),
+		"%s(): chunk at %p (%zu bytes) not at the tail of page [%p, %p[",
+		caller, ck, sizeof *ck, page, end);
+	g_assert_log(ptr_cmp(ck->first, page) >= 0 && ptr_cmp(ck->first, end) < 0,
+		"%s(): chunk at %p lists first free byte at %p, not on page [%p, %p[",
+		caller, ck, ck->first, page, end);
+}
+
+/**
  * Make read-only chunk read-write.
  */
 static void
@@ -224,6 +264,8 @@ omalloc_chunk_unprotect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
 		void *start = deconstify_pointer(vmm_page_start(p));
+
+		assert_ochunk_valid(p, start, G_STRFUNC);
 
 		if (-1 == mprotect(start, omalloc_pagesize, PROT_READ | PROT_WRITE)) {
 			s_error("mprotect(%p, %zu, PROT_READ | PROT_WRITE) failed: %m",
@@ -240,6 +282,8 @@ omalloc_chunk_protect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
 		void *start = deconstify_pointer(vmm_page_start(p));
+
+		assert_ochunk_valid(p, start, G_STRFUNC);
 
 		if (-1 == mprotect(start, omalloc_pagesize, PROT_READ)) {
 			s_error("mprotect(%p, %zu, PROT_READ) failed: %m",
@@ -382,6 +426,14 @@ omalloc_chunk_link(struct ochunk *ck, enum omalloc_mode mode)
 	size_t i;
 
 	g_assert(ck != NULL);
+	g_assert(ptr_cmp(ck->first, ck) <= 0);	/* Or page would be exhausted */
+
+	/*
+	 * Contrary to omalloc_chunk_unlink(), the chunk structure is up-to-date
+	 * and ck->first really points to the next free location.  As such, we
+	 * can use omalloc_chunk_index() which will compute the size of the chunk
+	 * by itself.
+	 */
 
 	i = omalloc_chunk_index(ck);
 	chunks = omalloc_chunk_array(mode);
@@ -413,7 +465,7 @@ omalloc_chunk_link(struct ochunk *ck, enum omalloc_mode mode)
  * Unlink chunk from the proper chunks[] array.
  */
 static void
-omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode)
+omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode, size_t size)
 {
 	struct ochunk **chunks;
 
@@ -421,9 +473,16 @@ omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode)
 
 	chunks = omalloc_chunk_array(mode);
 
+	/*
+	 * The chunk size is given as argument and cannot be computed through
+	 * omalloc_chunk_size() at this point because the allocation routine
+	 * may have already adjusted ck->first for alignment purposes.
+	 *		--RAM, 2015-10-06
+	 */
+
 	if (NULL == ck->prev) {
 		/* Was head of list */
-		size_t i = omalloc_chunk_index(ck);
+		size_t i = omalloc_size_index(size);
 
 		g_assert(i < OMALLOC_CHUNK_COUNT);
 		g_assert(chunks[i] == ck);
@@ -458,8 +517,7 @@ static void *
 omalloc_chunk_allocate_from(struct ochunk *ck,
 	size_t size, size_t align, enum omalloc_mode mode)
 {
-	size_t used;
-	size_t csize;
+	size_t used, osize, csize;
 	void *first = ck->first;
 	void *p;
 
@@ -475,10 +533,17 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 	g_assert(size_is_positive(size));
 	g_assert(omalloc_chunk_size(ck) >= size);
 
+	osize = omalloc_chunk_size(ck);				/* Before possible alignment */
 	omalloc_chunk_unprotect(ck, mode);			/* Chunk now read-write */
 	omalloc_chunk_align(ck, align, mode);
 	csize = omalloc_chunk_size(ck);
 	p = ck->first;
+
+	/*
+	 * This has to hold or we would not have selected that chunk for allocation.
+	 */
+
+	g_assert(csize >= size);	/* After possible alignment */
 
 	/*
 	 * See whether this is going to be the last block allocated from
@@ -487,15 +552,14 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 
 	if (csize - size >= OMALLOC_HEADER_SIZE) {
 		struct ochunk **chunks;
-		size_t i;
-		size_t j;
+		size_t i, j;
 
 		/*
 		 * We have enough space in the chunk to allocate more memory.
 		 * Move the chunk free pointer ahead and relink with any next/prev.
 		 */
 
-		i = omalloc_chunk_index(ck);	/* Old chunk index */
+		i = omalloc_size_index(osize);	/* Old chunk index, before alignment */
 		ck->first = ptr_add_offset(ck->first, size);
 		used = ptr_diff(ck->first, first);
 
@@ -537,8 +601,8 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 		 * Once we return, this chunk will no longer be listed in chunks[].
 		 */
 
-		omalloc_chunk_unlink(ck, mode);
-		used = ptr_diff(ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
+		omalloc_chunk_unlink(ck, mode, osize);
+		used = ptr_diff(omalloc_chunk_end(ck), first);
 
 		OSTATS_LOCK;
 		if (OMALLOC_RW == mode) {

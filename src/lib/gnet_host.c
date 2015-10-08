@@ -58,7 +58,9 @@
 #include "common.h"
 
 #include "gnet_host.h"
+
 #include "atoms.h"
+#include "buf.h"
 #include "hashing.h"
 #include "mempcpy.h"
 #include "sequence.h"
@@ -259,10 +261,11 @@ gnet_host_to_string_buf(const gnet_host_t *h, void *buf, size_t len)
 const char *
 gnet_host_to_string(const gnet_host_t *h)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
 
-	gnet_host_to_string_buf(h, buf, sizeof buf);
-	return buf;
+	gnet_host_to_string_buf(h, p, buf_size(b));
+	return p;
 }
 
 /**
@@ -271,10 +274,11 @@ gnet_host_to_string(const gnet_host_t *h)
 const char *
 gnet_host_to_string2(const gnet_host_t *h)
 {
-	static char buf[HOST_ADDR_PORT_BUFLEN];
+	buf_t *b = buf_private(G_STRFUNC, HOST_ADDR_PORT_BUFLEN);
+	char *p = buf_data(b);
 
-	gnet_host_to_string_buf(h, buf, sizeof buf);
-	return buf;
+	gnet_host_to_string_buf(h, p, buf_size(b));
+	return p;
 }
 
 /**

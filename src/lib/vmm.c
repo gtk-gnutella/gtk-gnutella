@@ -300,6 +300,7 @@ static struct vmm_stats {
 	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
 	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
 	AU64(pmap_overruled);			/**< Regions overruled by kernel */
+	AU64(pmap_dropped);				/**< Dropped regions while extending pmap */
 	uint64 hole_reused;				/**< Amount of times we use cached hole */
 	uint64 hole_invalidated;		/**< Times we invalidate cached hole */
 	uint64 hole_updated;			/**< Times we updated the cached hole */
@@ -2656,8 +2657,41 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 		vmf->mtime = tm_time();
 
 		if (end != vend) {
-			/* Insert trailing part back as a region of the same type */
-			pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
+			/*
+			 * Insert trailing part back as a region of the same type.
+			 *
+			 * CAUTION:
+			 * We may be in a situation where we are extending the pmap
+			 * from pmap_extend() and, while allocating the new pages for
+			 * the new pmap, we have to call pmap_overrule(), and here we
+			 * come, attempting to remove a foreign maping, partially.
+			 *
+			 * If the pmap is being extended, it means it is full and we
+			 * do not want to insert a new region: we can't anyway.
+			 * When that region is a foreign mapping, we can simply drop it,
+			 * as this information is intuited and could be stale.
+			 *		--RAM, 2015-09-27
+			 */
+
+			if G_LIKELY(!pm->extending) {
+				/* Normal case */
+				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
+			} else if (vmf_is_foreign(vmf)) {
+				/* Exceptional: pamp is full, dropping foreign region */
+				if (vmm_debugging(0)) {
+					s_message("VMM forgetting %s: pmap is full and extending",
+						vmf_to_string(vmf));
+				}
+				VMM_STATS_INCX(pmap_dropped);
+			} else {
+				/* Error case, MUST NOT happen, but if it does... */
+				s_warning("cannot remove from %s VM fragment while "
+					"pmap is extending (count=%zu, size=%zu)",
+					vmf_type_str(vmf->type), pm->count, pm->size);
+				s_error_from(_WHERE_, "extending pmap and attempting to "
+					"remove %zu bytes at %p from %s",
+					size, p, vmf_to_string(vmf));
+			}
 		}
 	}
 }
@@ -5044,6 +5078,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(pmap_foreign_discards);
 	DUMP(pmap_foreign_discarded_pages);
 	DUMP64(pmap_overruled);
+	DUMP64(pmap_dropped);
 
 	/*
 	 * These variables are not updated with the VMM stats lock but whith
@@ -5702,6 +5737,31 @@ vmm_close(void)
  *** can keep an accurate view of the process's virtual memory map.
  ***/
 
+#ifdef HAS_MMAP
+/**
+ * Record memory-mapped region in the pmap.
+ */
+static void
+pmap_mmap(struct pmap *pm, void *p, size_t size)
+{
+	/*
+	 * The mapped memory region is "foreign" memory as far as we are
+	 * concerned and may overlap with previously allocated "foreign"
+	 * chunks in whole or in part.
+	 *
+	 * Invoke pmap_overrule() before pmap_insert_mapped() to make
+	 * sure we clean up our memory map before attempting to insert
+	 * a new chunk since the insertion code is not prepared to handle
+	 * all the overlapping cases we can encounter.
+	 */
+
+	rwlock_wlock(&pm->lock);
+	pmap_overrule(pm, p, size, VMF_MAPPED);
+	pmap_insert_mapped(pm, p, size);
+	rwlock_wunlock(&pm->lock);
+}
+#endif	/* HAS_MMAP */
+
 /**
  * Wrapper of the mmap() system call.
  */
@@ -5713,26 +5773,8 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 	void *p = mmap(addr, length, prot, flags, fd, offset);
 
 	if G_LIKELY(p != MAP_FAILED) {
-		size_t size = round_pagesize_fast(length);
-		struct pmap *pm = vmm_pmap();
-
 		VMM_STATS_INCX(mmaps);
-
-		/*
-		 * The mapped memory region is "foreign" memory as far as we are
-		 * concerned and may overlap with previously allocated "foreign"
-		 * chunks in whole or in part.
-		 *
-		 * Invoke pmap_overrule() before pmap_insert_mapped() to make
-		 * sure we clean up our memory map before attempting to insert
-		 * a new chunk since the insertion code is not prepared to handle
-		 * all the overlapping cases we can encounter.
-		 */
-
-		rwlock_wlock(&pm->lock);
-		pmap_overrule(pm, p, size, VMF_MAPPED);
-		pmap_insert_mapped(pm, p, size);
-		rwlock_wunlock(&pm->lock);
+		pmap_mmap(vmm_pmap(), p, round_pagesize_fast(length));
 
 		assert_vmm_is_allocated(p, length, VMF_MAPPED, FALSE);
 
@@ -5767,25 +5809,48 @@ vmm_munmap(void *addr, size_t length)
 {
 #if defined(HAS_MMAP)
 	int ret;
+	struct pmap *pm = vmm_pmap();
 
 	assert_vmm_is_allocated(addr, length, VMF_MAPPED, FALSE);
+
+	/*
+	 * We need to clear the region in the pmap BEFORE attempting to
+	 * unmap the region.  Failure to do that would mean we can have
+	 * another thread map to the cleared region whilst our pmap says
+	 * the region is already busy, leading to pmap_overrule() assertion
+	 * failures later, possibly.
+	 *
+	 * Of course, this means re-establishing the mapping later on if
+	 * the munmap() call fails.  But given the assert above, we know
+	 * our pmap correctly accounts that region as mapped, so the system
+	 * call should not fail!
+	 *
+	 *		--RAM, 2015-10-03
+	 */
+
+	rwlock_wlock(&pm->lock);
+	pmap_remove(pm, addr, round_pagesize_fast(length));
+	rwlock_wunlock(&pm->lock);
+
+	VMM_STATS_INCX(munmaps);
 
 	ret = munmap(addr, length);
 
 	if G_LIKELY(0 == ret) {
-		struct pmap *pm = vmm_pmap();
-
-		rwlock_wlock(&pm->lock);
-		pmap_remove(pm, addr, round_pagesize_fast(length));
-		rwlock_wunlock(&pm->lock);
-
-		VMM_STATS_INCX(munmaps);
-
 		if (vmm_debugging(5)) {
 			s_minidbg("VMM unmapped %zuKiB region at %p", length / 1024, addr);
 		}
 	} else {
-		s_warning("munmap() failed: %m");
+		/*
+		 * This is so unexpected that it deserves a loud warning with a full
+		 * stacktrace so that we can later assess the damage if we get a
+		 * weird behaviour.
+		 */
+
+		s_carp("munmap(%p, %zu) failed: %m", addr, length);
+
+		/* Re-establish mapping in pmap since we could not unmap the region */
+		pmap_mmap(pm, addr, round_pagesize_fast(length));
 	}
 
 	return ret;

@@ -860,7 +860,8 @@ struct qrt_compress_context {
 	bgdone_cb_t usr_done;			/**< User-defined callback */
 	void *usr_arg;					/**< Arg for user-defined callback */
 	uint allocated:1;				/**< Whether context was allocated */
-	uint done:1;					/**< Flag set to TRUE when task completed */
+	uint done:1;					/**< Set when context free routine called */
+	uint finished:1;				/**< Task is finished */
 };
 
 /**
@@ -970,6 +971,8 @@ qrt_patch_compress_done(struct bgtask *h, void *u, bgstatus_t status, void *arg)
 	bgtask_t *bt = arg;
 
 	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
+
+	ctx->finished = TRUE;		/* Signal we've completed our task */
 
 	/*
 	 * If there is a non-NULL task, wake it up now that patch compression
@@ -2224,6 +2227,7 @@ qrp_step_create_patches(bgtask_t *bt, void *u, int unused_ticks)
 		struct routing_patch *crp;
 
 		g_assert(comp_ctx->done);
+		g_assert(comp_ctx->finished);
 
 		/*
 		 * This is the routing patch we supplied initially and which may have
@@ -2564,10 +2568,10 @@ qrp_comp_done(bgtask_t *bt, void *p, bgstatus_t u_status, void *u_arg)
 	if (NULL != ctx->compress_bt) {
 		struct qrt_compress_context *comp_ctx = &ctx->compress_ctx;
 
-		if (!comp_ctx->done)
+		if (!comp_ctx->finished)
 			bg_task_cancel(ctx->compress_bt);
 
-		g_assert(comp_ctx->done);	/* Cancellation happened synchronously */
+		g_assert(comp_ctx->finished);	/* Cancellation was synchronous */
 	}
 
 	QRP_TASK_LOCK;

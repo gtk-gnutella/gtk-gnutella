@@ -33,12 +33,14 @@
 #include "common.h"
 
 #include "aq.h"
+#include "atio.h"
 #include "atomic.h"
 #include "barrier.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
 #include "cond.h"
 #include "cq.h"
+#include "crash.h"
 #include "dam.h"
 #include "evq.h"
 #include "getcpucount.h"
@@ -153,12 +155,21 @@ static void
 emitv(bool nl, const char *fmt, va_list args)
 {
 	str_t *s = str_new(512);
+	iovec_t iov[2];
+	int cnt = 0;
 
 	str_vprintf(s, fmt, args);
-	fputs(str_2c(s), stdout);
+	iovec_set(&iov[cnt++], str_2c(s), str_len(s));
 	if (nl)
-		fputc('\n', stdout);
-	fflush(stdout);
+		iovec_set(&iov[cnt++], "\n", 1);
+
+	/*
+	 * Emit every message to stderr, since this is the same channel used
+	 * by s_debug() and friends.  That way, all the output goes to the
+	 * very same descriptor, atomically, avoiding garbled output.
+	 */
+
+	atio_writev(STDERR_FILENO, iov, cnt);
 
 	str_destroy_null(&s);
 }
@@ -187,6 +198,7 @@ emit_zap(const char *caller, const char *fmt, ...)
 }
 
 #define emitz(fmt, ...) emit_zap(G_STRFUNC, (fmt), __VA_ARGS__)
+#define TESTING(func)	emit("----------- %s() -----------", (func));
 
 static char *names[] = { "one", "two", "three", "four", "five" };
 
@@ -413,6 +425,8 @@ test_create(unsigned repeat, bool join, bool posix)
 {
 	unsigned i;
 
+	TESTING(G_STRFUNC);
+
 	if (posix) {
 		pthread_t foreign;
 
@@ -525,6 +539,8 @@ test_cancel(unsigned repeat, bool join)
 {
 	unsigned i;
 
+	TESTING(G_STRFUNC);
+
 	for (i = 0; i < repeat; i++) {
 		test_cancel_one(repeat > 1, join);
 	}
@@ -549,6 +565,8 @@ test_inter(void)
 {
 	waiter_t *mw, *w;
 	bool refed;
+
+	TESTING(G_STRFUNC);
 
 	mw = waiter_make(NULL);
 	w = waiter_spawn(mw, int_to_pointer(31416));
@@ -624,6 +642,8 @@ test_semaphore(bool emulated)
 	tm_t timeout;
 	int i;
 	int r[3];
+
+	TESTING(G_STRFUNC);
 
 	s = semaphore_create_full(0, emulated);
 	if (semaphore_acquire_try(s, 1))
@@ -788,6 +808,8 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	game_state = START_GAME;
 	waiter_t *w;
 	uint notifications = 0;
+
+	TESTING(G_STRFUNC);
 
 	g_assert(0 == cond_waiting_count(&game_state_change));
 
@@ -976,6 +998,8 @@ test_fork(bool safe)
 	int l1, l2, fk, r;
 	unsigned running;
 
+	TESTING(G_STRFUNC);
+
 	emit("--- testing thread_fork(%s)", safe ? "TRUE" : "FALSE");
 
 	running = thread_count();
@@ -1038,6 +1062,8 @@ test_overflow(void)
 {
 	int t, r;
 
+	TESTING(G_STRFUNC);
+
 	t = thread_create(overflow_thread, int_to_pointer(0), THREAD_F_PANIC, 8192);
 	r = thread_join(t, NULL);
 	if (-1 == r)
@@ -1084,6 +1110,8 @@ test_aqueue(bool emulated)
 	struct aqt_arg arg;
 	int t;
 	uint i;
+
+	TESTING(G_STRFUNC);
 
 	emit("%s() starting...", G_STRFUNC);
 
@@ -1163,6 +1191,8 @@ test_rwlock(void)
 	int t[9];
 	rwlock_t rw = RWLOCK_INIT;
 	unsigned i;
+
+	TESTING(G_STRFUNC);
 
 	s_info("%s starting, will be launching %s()", thread_name(),
 		stacktrace_function_name(test_rwthreads));
@@ -1356,6 +1386,8 @@ test_signals(void)
 	barrier_t *b;
 	int r, i;
 
+	TESTING(G_STRFUNC);
+
 	/* 60 is random constant, large enough to avoid it being already used */
 
 	if (-1 != thread_kill(60, TSIG_0))
@@ -1514,6 +1546,8 @@ test_barrier(unsigned repeat, bool emulated)
 {
 	unsigned i;
 
+	TESTING(G_STRFUNC);
+
 	for (i = 0; i < repeat; i++) {
 		test_barrier_one(emulated);
 	}
@@ -1603,6 +1637,8 @@ static void
 test_dam(unsigned repeat, bool emulated)
 {
 	unsigned i;
+
+	TESTING(G_STRFUNC);
 
 	for (i = 0; i < repeat; i++) {
 		test_dam_one(emulated);
@@ -1915,6 +1951,8 @@ test_memory(unsigned repeat, bool posix, int percentage)
 	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	unsigned i;
 
+	TESTING(G_STRFUNC);
+
 	emit("%s() detected %ld CPU%s%s", G_STRFUNC, cpus, plural(cpus),
 		0 == cpu_count ? "" : " (forced by -c)");
 
@@ -2062,6 +2100,8 @@ teq_sender(void *arg)
 static void
 test_teq(unsigned repeat)
 {
+	TESTING(G_STRFUNC);
+
 	while (repeat--) {
 		int s, r;
 		barrier_t *b;
@@ -2142,6 +2182,8 @@ evq_two(void *unused_arg)
 static void
 test_evq(unsigned repeat)
 {
+	TESTING(G_STRFUNC);
+
 	while (repeat--) {
 		int s, r;
 
@@ -2186,6 +2228,7 @@ main(int argc, char **argv)
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
+	crash_init(argv[0], progname, 0, NULL);
 	stacktrace_init(argv[0], FALSE);
 
 	misc_init();

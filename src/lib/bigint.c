@@ -36,6 +36,7 @@
 #include <math.h>
 
 #include "bigint.h"
+#include "buf.h"
 #include "endian.h"
 #include "misc.h"
 #include "unsigned.h"
@@ -681,20 +682,20 @@ bigint_to_uint64(const bigint_t *bi)
 const char *
 bigint_to_hex_string(const bigint_t *bi)
 {
-	static char *buf;
-	static size_t buflen;
+	buf_t *bp = buf_private(G_STRFUNC, 64);
+	size_t buflen;
 	const struct bigint *b = BIGINT(bi);
 	const char *p;
 
 	bigint_check(b);
 
-	if G_UNLIKELY(buflen < b->len * 2 + 1) {
-		buflen = b->len * 2 + 1;
-		buf = xrealloc(buf, buflen);
-	}
+	buflen = b->len * 2 + 1;	/* Output space we need, with trailing NUL */
 
-	bin_to_hex_buf(b->v, b->len, buf, buflen);
-	p = buf;
+	if G_UNLIKELY(buf_size(bp) < buflen)
+		bp = buf_private_resize(G_STRFUNC, buflen);
+
+	bin_to_hex_buf(b->v, b->len, buf_data(bp), buf_size(bp));
+	p = buf_data(bp);
 
 	while ('0' == *p)
 		p++;

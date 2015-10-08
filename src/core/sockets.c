@@ -130,6 +130,7 @@ struct gnutella_socket *s_local_listen = NULL;
 static aging_table_t *tls_ban;
 static once_flag_t tls_ban_inited;
 
+static bool socket_is_shutdowning;	/**< Layer shutdown has started */
 static bool socket_shutdowned;		/**< Set when layer has been shutdowned */
 
 static void socket_accept(void *data, int, inputevt_cond_t cond);
@@ -552,6 +553,68 @@ socket_tos_default(const struct gnutella_socket *s)
 	case SOCK_TYPE_PPROXY:
 	default:
 		socket_tos_normal(s);
+	}
+}
+
+/**
+ * Set lifetime of orphaned FIN_WAIT2 state socket to specified time.
+ *
+ * This is probably Linux-specific and is used to quickly discard connections
+ * when we are shutdowning.
+ *
+ * Silently does nothing if TCP_LINGER2 is not available or if the socket
+ * is not a TCP one.
+ */
+static void
+socket_tcp_linger2(struct gnutella_socket *s, int secs, const char *caller)
+{
+	socket_check(s);
+
+	if G_UNLIKELY(0 == (s->flags & SOCK_F_TCP))
+		return;
+
+#ifdef TCP_LINGER2
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_LINGER2, &secs, sizeof secs)) {
+		if (ECONNRESET != errno) {
+			g_warning("%s(): cannot set TCP_LINGER2 to %d sec%s on fd#%d: %m",
+				caller, secs, plural(secs), s->file_desc);
+		}
+	}
+#else	/* !TCP_LINGER2 */
+	(void) secs;
+	(void) caller;
+#endif /* TCP_LINGER2 */
+}
+
+/**
+ * Set socket linger time on close() or shutdown() to 0 seconds, so that
+ * we do not have to wait for the messages to be sent before returning from
+ * the system call.
+ */
+static void
+socket_no_linger(socket_fd_t fd, const char *caller)
+{
+	struct linger lb;
+
+	g_assert(is_valid_fd(fd));
+
+	if (!socket_is_shutdowning && !GNET_PROPERTY(use_so_linger))
+		return;
+
+	ZERO(&lb);
+	lb.l_onoff = 1;
+	lb.l_linger = 0;	/* closes connections with RST */
+
+	if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb)) {
+		switch (errno) {
+		case ENOPROTOOPT:		/* On Windows, for SO_LINGER */
+		case EOPNOTSUPP:		/* POSIX way for op not supported on socket */
+			break;
+		default:
+			g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_LINGER) failed: %m",
+				caller, (int) fd);
+			break;
+		}
 	}
 }
 
@@ -1299,6 +1362,18 @@ socket_disable(struct gnutella_socket *s)
 }
 
 /**
+ * Tell the socket layer that we are about to shutdown.
+ *
+ * This accelerates closing of sockets and tries to avoid too many lingering
+ * in the TCP FIN_WAIT2 state.
+ */
+void
+socket_shutdowning(void)
+{
+	socket_is_shutdowning = TRUE;
+}
+
+/**
  * Cleanup data structures on shutdown.
  */
 void
@@ -1509,6 +1584,16 @@ socket_free(struct gnutella_socket *s)
 	socket_evt_clear(s);
 
 	if (is_valid_fd(s->file_desc)) {
+		/*
+		 * If we're shutdowning, clear all lingering: at the socket and
+		 * at the TCP level (if supported).
+		 */
+
+		if G_UNLIKELY(socket_is_shutdowning) {
+			socket_no_linger(s->file_desc, G_STRFUNC);
+			socket_tcp_linger2(s, 5, G_STRFUNC);	/* 5 secs in FIN_WAIT2 */
+		}
+
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
 
@@ -2975,39 +3060,6 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 	}
 }
 
-static inline void
-socket_set_linger(socket_fd_t fd, const char *caller)
-{
-	g_assert(is_valid_fd(fd));
-
-	if (!GNET_PROPERTY(use_so_linger))
-		return;
-
-#ifdef TCP_LINGER2
-	{
-		int timeout = 20;	/* timeout in seconds for FIN_WAIT_2 */
-
-		if (setsockopt(fd, sol_tcp(), TCP_LINGER2, &timeout, sizeof timeout)) {
-			g_warning("%s(): setsockopt(%d, SOL_TCP, TCP_LINGER2) failed: %m",
-				caller, (int) fd);
-		}
-	}
-#else
-	{
-		static const struct linger zero_linger;
-		struct linger lb;
-
-		lb = zero_linger;
-		lb.l_onoff = 1;
-		lb.l_linger = 0;	/* closes connections with RST */
-		if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb)) {
-			g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_LINGER) failed: %m",
-				caller, (int) fd);
-		}
-	}
-#endif /* TCP_LINGER */
-}
-
 static void
 socket_set_accept_filters(struct gnutella_socket *s)
 {
@@ -3318,7 +3370,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	socket_set_keepalive(s->file_desc, G_STRFUNC);
 	fd_set_nonblocking(s->file_desc);
 	set_close_on_exec(s->file_desc);
-	socket_set_linger(s->file_desc, G_STRFUNC);
+	socket_no_linger(s->file_desc, G_STRFUNC);
 	socket_tos_normal(s);
 
 	/*
@@ -3969,7 +4021,7 @@ socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 	socket_wio_link(s);				/* Link to the I/O functions */
 
 	socket_set_keepalive(fd, G_STRFUNC);
-	socket_set_linger(fd, G_STRFUNC);
+	socket_no_linger(fd, G_STRFUNC);
 
 	/* listen() the socket */
 
