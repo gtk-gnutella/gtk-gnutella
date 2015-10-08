@@ -719,8 +719,10 @@ static void
 verify_next_file(struct verify *ctx)
 {
 	struct verify_file *item;
+	bool skipped = FALSE;
 
 	verify_check(ctx);
+	g_assert(NULL == ctx->file);
 
 	item = hash_list_shift(ctx->files_to_hash);
 	if (item != NULL) {
@@ -743,12 +745,13 @@ verify_next_file(struct verify *ctx)
 				g_debug("discarding request of %s digest for %s",
 					verify_hash_name(ctx), item->pathname);
 			}
+			skipped = TRUE;
 		}
+
 		verify_file_free(&item);
 
-		if (NULL == ctx->file) {
-			goto error;
-		}
+		if (NULL == ctx->file)
+			goto done;
 	}
 
 	if (ctx->file) {
@@ -762,8 +765,12 @@ verify_next_file(struct verify *ctx)
 	}
 	return;
 
-error:
-	verify_failure(ctx);
+done:
+	if (skipped)
+		verify_shutdown(ctx);
+	else
+		verify_failure(ctx);
+
 	file_object_release(&ctx->file);
 }
 
