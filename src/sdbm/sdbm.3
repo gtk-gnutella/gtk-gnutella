@@ -74,6 +74,7 @@ bool sdbm_is_thread_safe(const \s-1DBM\s0 *db)
 bool sdbm_is_locked(const \s-1DBM\s0 *db)
 \s-1DBM\s0 *sdbm_ref(const \s-1DBM\s0 *db)
 void sdbm_unref(const \s-1DBM\s0 **db_ptr)
+int sdbm_refcnt(const \s-1DBM\s0 *db)
 .sp
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
@@ -834,6 +835,12 @@ The following functions:
 .BR sdbm_unlock (\|)
 .br
 .BR sdbm_is_locked (\|)
+.br
+.BR sdbm_ref (\|)
+.br
+.BR sdbm_unref (\|)
+.br
+.BR sdbm_refcnt (\|)
 .br
 .BR sdbm_foreach (\|)
 .br

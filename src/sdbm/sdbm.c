@@ -573,6 +573,17 @@ sdbm_unref(DBM **db_ptr)
 }
 
 /**
+ * @return amount of references made to the database.
+ */
+int
+sdbm_refcnt(const DBM *db)
+{
+	sdbm_check(db);
+
+	return atomic_int_get(&db->refcnt);
+}
+
+/**
  * Free memory used by a "dbm_returns" structure, if any.
  */
 void

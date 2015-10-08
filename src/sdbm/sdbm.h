@@ -113,6 +113,7 @@ bool sdbm_is_thread_safe(const DBM *db);
 bool sdbm_is_locked(const DBM *db);
 DBM *sdbm_ref(const DBM *db);
 void sdbm_unref(DBM **db_ptr);
+int sdbm_refcnt(const DBM *db);
 
 /*
  * Internal routines with clean semantics that can be used by user code.
