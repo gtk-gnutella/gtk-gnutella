@@ -424,13 +424,14 @@ restart:
  * @param arg		additional callback argument
  * @param flags		operating flags, see above
  * @param stats		statistics to collect
+ * @param caller	calling routine, for warnings
  *
  * @return the amount of callabacks invoked, and which did not return TRUE
  * in the deleting version.
  */
 static size_t
 loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
-	struct sdbm_loose_stats *stats)
+	struct sdbm_loose_stats *stats, const char *caller)
 {
 	fileoffset_t pagtail, lrutail;
 	long b;
@@ -457,6 +458,23 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
 	v.stats = stats;
 
 	sdbm_synchronize(db);
+
+	/*
+	 * Performing a loose iteration on a database that is not thread-safe
+	 * is weird, but not fatal.  Loudly warn, as this is probably a mistake!
+	 *
+	 * If the database is thread-safe but has only a single reference, this
+	 * is also not what they intended: either they forgot to call sdbm_ref()
+	 * or they forgot to create a separate thread.
+	 */
+
+	if (!sdbm_is_thread_safe(db)) {
+		s_carp("%s(): loosely iterating over thread-unsafe SDBM \"%s\"",
+			caller, sdbm_name(db));
+	} else if (1 == sdbm_refcnt(db)) {
+		s_carp("%s(): loosely iterating over single-referenced SDBM \"%s\"",
+			caller, sdbm_name(db));
+	}
 
 	/*
 	 * Find out the true database end, accounting for possibly cached pages
@@ -562,7 +580,7 @@ sdbm_loose_foreach_stats(DBM *db, int flags, sdbm_cb_t cb, void *arg,
 	type.deleting = FALSE;
 	type.u.cb = cb;
 
-	return loose_iterate(db, &type, arg, flags, stats);
+	return loose_iterate(db, &type, arg, flags, stats, G_STRFUNC);
 }
 
 /**
@@ -618,7 +636,7 @@ sdbm_loose_foreach_remove_stats(DBM *db, int flags, sdbm_cbr_t cb, void *arg,
 	type.deleting = TRUE;
 	type.u.cbr = cb;
 
-	return loose_iterate(db, &type, arg, flags, stats);
+	return loose_iterate(db, &type, arg, flags, stats, G_STRFUNC);
 }
 
 /**
