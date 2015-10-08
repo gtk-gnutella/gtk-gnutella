@@ -1,3 +1,46 @@
+# v 1.1.5   2015-10-08  [stable]
+
+This is a bug-fixing release.
+
+Most of these bugs were discovered by investigating why gtk-gnutella was
+frequently crashing on OS/X platforms.  Why other platforms were not having
+the same problems remains a mystery, since all these bugs were not specific
+to OS/X, apart from the vmm_munmap() bug -- since mmap() is only used on
+OS/X due to its lack of the sendfile() system call.
+
+One of the fixed bugs could lead to a crash when the network connection was
+broken (e.g. a cable unplugged or a WiFi connection terminated).
+
+Improvements:
+- UHC: re-engineered the random choice of UHCs in the pre-established list.
+
+Bug Fixes:
+- qrt_patch_compress_done(): fixed race with qrp_comp_done().
+- xmalloc: prevent deadlock when freeing deferred blocks on the allocation path.
+- pmap_remove_from(): protect from exceptional corner case to avoid crash.
+- ut_frag_pmsg_free(): don't requeue an unsent message synchronously.
+- VMM: fixed race condition in vmm_munmap() that could lead to failures.
+- omalloc: fixed chunk management when memory alignment is required.
+
+Under the Hood:
+- well_state_discard(): fixed missing indexing of array pointer.
+- thread-test: avoid mixed output by using atomic I/Os to stderr for messages.
+- thread-test: main testing entry points now clearly flagged in output.
+- signal_trampoline(): be verbose and lenient when our pre-condition fails.
+- evq_event_discard(): fixed message to log the name of the registering thread.
+- hash_list_lookup(): was mistakenly returning a const value.
+- thread_private_set_extended(): ensure a NULL free routine clears any old one.
+- crash_mode(): removed redundant call to thread_suspend_others().
+- rand31_random_seed(): avoid popcount(), prefer modulo with a prime number.
+- hash_offset_init_once(): avoid entropy_minirand(), causes dealocks on Windows.
+- uhc_send_ping(): if we cannot contact selected UHC, try with another one.
+- omalloc_chunk_*protect(): ensure chunk is consistent with page boundaries.
+- More assertions in omalloc() to ensure we're not corrupting memory.
+- Use global mutex to protect symbols_xxx() calls, simplified stacktrace code.
+- Reduced UHC retry time from 1 hour down to 3 minutes.
+- Revised UHC list.
+- More thread-safe refactoring for other stringification routines.
+
 # v 1.1.4   2015-09-09  [stable]
 
 This release is mostly a bug-fixing release.
