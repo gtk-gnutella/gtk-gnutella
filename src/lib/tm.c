@@ -41,11 +41,13 @@
 #endif
 
 #include "tm.h"
+
 #include "atomic.h"
 #include "compat_sleep_ms.h"
 #include "gentime.h"
 #include "listener.h"
 #include "offtime.h"
+#include "once.h"
 #include "spinlock.h"
 #include "thread.h"
 #include "timestamp.h"		/* For timestamp_to_string() */
@@ -67,6 +69,7 @@ static struct {
 	time_t computed;		/* Last computed time for the GMT offset */
 	gentime_t updated;		/* Last computed GMT offset */
 	int dst;				/* < 0 means unknown */
+	once_flag_t inited;		/* First GMT offset computed */
 } tm_gmt;
 
 static bool tm_thread_started;
@@ -228,6 +231,16 @@ tm_precise_granularity(tm_nano_t *tn)
 #else
 	return tm_precise_granularity_fallback(tn);
 #endif	/* HAS_CLOCK_GETRES */
+}
+
+/**
+ * Once routine used to initialize the GMT offset the first time we need it,
+ * before the time thread is launched.
+ */
+static void
+tm_init_gmt_offset(void)
+{
+	tm_gmt.offset = timestamp_gmt_offset(time(NULL), NULL);
 }
 
 /*
@@ -456,6 +469,14 @@ tm_thread_main(void *unused_arg)
 static void
 tm_thread_start(void)
 {
+	/*
+	 * Before launching the time thread, initialize the first GMT offset.
+	 * Indeed, when that thread runs, it will gain exclusive write access
+	 * to the `tm_gmt' variable.
+	 */
+
+	ONCE_FLAG_RUN(tm_gmt.inited, tm_init_gmt_offset);
+
 	thread_create(tm_thread_main, NULL,
 		THREAD_F_DETACH | THREAD_F_NO_POOL | THREAD_F_PANIC, TM_THREAD_STACK);
 }
@@ -689,6 +710,8 @@ tm_time_exact(void)
 time_t
 tm_localtime(void)
 {
+	ONCE_FLAG_RUN(tm_gmt.inited, tm_init_gmt_offset);
+
 	G_PREFETCH_HI_R(&tm_cached_now);
 	G_PREFETCH_HI_R(&tm_gmt.offset);
 
@@ -705,6 +728,8 @@ tm_localtime(void)
 time_t
 tm_localtime_exact(void)
 {
+	ONCE_FLAG_RUN(tm_gmt.inited, tm_init_gmt_offset);
+
 	tm_now_exact(NULL);
 	return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
 }
