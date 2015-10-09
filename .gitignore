@@ -44,6 +44,9 @@ src/lib/random-test
 # Thread tests
 src/lib/thread-test
 
+# File Tree Walker tests
+src/lib/ftw-test
+
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
 
