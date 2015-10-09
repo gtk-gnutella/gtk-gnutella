@@ -593,7 +593,7 @@ publisher_handle(struct publisher_entry *pe)
 	 * Wait when rebuilding the library.
 	 */
 
-	if (sf == SHARE_REBUILDING) {
+	if (SHARE_REBUILDING == sf) {
 		publisher_retry(pe, PUBLISH_BUSY, "library being rebuilt");
 		return;
 	}
@@ -609,8 +609,7 @@ publisher_handle(struct publisher_entry *pe)
 		(!sha1_hash_available(sf) || !sha1_hash_is_uptodate(sf))
 	) {
 		publisher_retry(pe, PUBLISH_BUSY, "SHA-1 of file unknown yet");
-		shared_file_unref(&sf);
-		return;
+		goto done;
 	}
 
 	/*
@@ -636,8 +635,7 @@ publisher_handle(struct publisher_entry *pe)
 
 		delay = MAX(delay, PUBLISH_BUSY);
 		publisher_retry(pe, delay, "minimum average uptime not reached yet");
-		shared_file_unref(&sf);
-		return;
+		goto done;
 	}
 
 	/*
@@ -661,8 +659,7 @@ publisher_handle(struct publisher_entry *pe)
 				alt_locs, plural_y(alt_locs));
 		}
 		publisher_hold(pe, PUBLISH_POPULAR, "popular file");
-		shared_file_unref(&sf);
-		return;
+		goto done;
 	}
 
 	/*
@@ -671,8 +668,7 @@ publisher_handle(struct publisher_entry *pe)
 
 	if (!dht_enabled()) {
 		publisher_hold(pe, PUBLISH_BUSY, "DHT  disabled");
-		shared_file_unref(&sf);
-		return;
+		goto done;
 	}
 
 	/*
@@ -688,8 +684,7 @@ publisher_handle(struct publisher_entry *pe)
 			fi->done < GNET_PROPERTY(pfsp_minimum_filesize)
 		) {
 			publisher_hold(pe, PUBLISH_BUSY, "PFSP minima not reached");
-			shared_file_unref(&sf);
-			return;
+			goto done;
 		}
 	}
 
@@ -716,9 +711,8 @@ publisher_handle(struct publisher_entry *pe)
 						sha1_to_string(pe->sha1), compact_time(enqueue));
 				}
 
-				shared_file_unref(&sf);
 				publisher_retry(pe, delay, "first-time delay");
-				return;
+				goto done;
 			}
 		}
 	}
@@ -746,6 +740,10 @@ publisher_handle(struct publisher_entry *pe)
 
 	pe->last_enqueued = tm_time();
 	pdht_publish_file(sf, publisher_done, pe);
+
+	/* FALL THROUGH */
+
+done:
 	shared_file_unref(&sf);
 }
 
