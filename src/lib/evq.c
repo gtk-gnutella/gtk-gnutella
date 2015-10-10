@@ -390,9 +390,10 @@ evq_event_free(struct evq_event *eve)
 	evq_event_check(eve);
 
 	if (evq_debugging(2)) {
-		s_debug("%s(): freeing %s(%p), refcnt=%d",
-			G_STRFUNC, stacktrace_function_name(eve->cb),
-			eve->arg, eve->refcnt);
+		s_debug("%s(): freeing %s%s(%p), refcnt=%d",
+			G_STRFUNC, eve->cancelable ? "cancelable " : "",
+			stacktrace_function_name(eve->cb), eve->arg,
+			atomic_int_get(&eve->refcnt));
 	}
 
 	/*
@@ -427,12 +428,14 @@ evq_event_discard(void *data, void *udata)
 	 */
 
 	if (eve->stid != evq_thread_id) {
-		s_warning("%s(): discarding %s event %s(%p) for %s",
-			G_STRFUNC, what, stacktrace_function_name(eve->cb), eve->arg,
+		s_warning("%s(): discarding %s %sevent %s(%p) for %s",
+			G_STRFUNC, what, eve->cancelable ? "cancelable " : "",
+			stacktrace_function_name(eve->cb), eve->arg,
 			thread_id_name(eve->stid));
 	}
 
-	evq_event_free(eve);
+	if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
+		evq_event_free(eve);
 }
 
 /**
@@ -648,9 +651,28 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	q = evq_get(id);
 
 	if G_UNLIKELY(NULL == q) {
-		s_critical_once_per(LOG_PERIOD_SECOND,
-			"%s(): local queue missing for %s, cannot dispatch events",
-			G_STRFUNC, thread_id_name(eve->stid));
+		const char *tname = thread_id_name(eve->stid);
+
+		/*
+		 * Since thread_id_name() uses stacktrace_function_name() which
+		 * returns a pointer to static data, we need to call the former
+		 * first, which will copy the output of stacktrace_function_name()
+		 * to a thread-private buffer.
+		 *
+		 * We cannot call both routines as part of the argument list for
+		 * s_critical_once_per() since we cannot know the evaluation order
+		 * chosen by the compiler.  We force that order by doing an explicit
+		 * computation in the order we want for results to be correct.
+		 */
+
+		s_warning("%s(): queue gone in %s, cannot dispatch %s(%p)",
+			G_STRFUNC, tname, stacktrace_function_name(eve->cb), eve->arg);
+
+		evq_event_check(eve);	/* Since no queue locked, ensure still valid */
+
+		if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
+			evq_event_free(eve);
+
 		return;
 	}
 
