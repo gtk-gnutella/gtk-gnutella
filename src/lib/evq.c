@@ -420,9 +420,17 @@ evq_event_discard(void *data, void *udata)
 
 	evq_event_check(eve);
 
-	s_warning("%s(): discarding %s event %s(%p) for %s",
-		G_STRFUNC, what, stacktrace_function_name(eve->cb), eve->arg,
-		thread_id_name(eve->stid));
+	/*
+	 * Do not warn when we're clearing an event in the event queue thread
+	 * itself, since the event queue thread can only disappear when we're
+	 * actually shutdowning the process.
+	 */
+
+	if (eve->stid != evq_thread_id) {
+		s_warning("%s(): discarding %s event %s(%p) for %s",
+			G_STRFUNC, what, stacktrace_function_name(eve->cb), eve->arg,
+			thread_id_name(eve->stid));
+	}
 
 	evq_event_free(eve);
 }
