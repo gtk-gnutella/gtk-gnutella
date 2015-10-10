@@ -66,6 +66,7 @@
 
 #define CHECK(l)			xslist_check(l)
 #define INVARIANT(l)		xslist_invariant(l)
+#define CONTAINS(l,v)		xslist_contains(l,v)
 #define PREFIX				xslist_
 #define OWLIST_T			xslist_t
 #define OWLINK_T			xslink_t

@@ -229,6 +229,33 @@ eslist_next_data(const eslist_t *list, const void *p)
 		deconstify_pointer(const_ptr_add_offset(lk->next, -list->offset));
 }
 
+/**
+ * For assertions, check whether item is a member of the list.
+ *
+ * @attention
+ * This is very inefficient, as it needs to traverse the whole list, possibly.
+ * It only needs to be called when debugging.
+ */
+static inline bool
+eslist_contains(const eslist_t *list, const void *p)
+{
+	const slink_t *l, *lk;
+
+	eslist_check(list);
+	g_assert(p != NULL);
+
+	lk = const_ptr_add_offset(p, list->offset);
+	l = list->head;
+
+	while (l != NULL) {
+		if G_UNLIKELY(l == lk)
+			return TRUE;
+		l = l->next;
+	}
+
+	return FALSE;
+}
+
 void eslist_init(eslist_t *list, size_t offset);
 void eslist_discard(eslist_t *list);
 void eslist_clear(eslist_t *list);

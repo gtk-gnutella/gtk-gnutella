@@ -425,6 +425,7 @@ elist_remove(elist_t *list, void *data)
 
 	elist_check(list);
 	g_assert(data != NULL);
+	safety_assert(elist_contains(list, data));
 
 	lk = ptr_add_offset(data, list->offset);
 	elist_link_remove_internal(list, lk, TRUE);

@@ -475,6 +475,7 @@ OWLIST_remove(OWLIST_T *list, void *data)
 
 	CHECK(list);
 	g_assert(data != NULL);
+	safety_assert(CONTAINS(list, data));
 
 	datalk = ptr_add_offset(data, list->offset);
 	prevlk = NULL;
