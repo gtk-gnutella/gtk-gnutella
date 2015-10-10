@@ -432,9 +432,47 @@ evq_event_discard(void *data, void *udata)
 			G_STRFUNC, what, eve->cancelable ? "cancelable " : "",
 			stacktrace_function_name(eve->cb), eve->arg,
 			thread_id_name(eve->stid));
+
+		/*
+		 * If the event is cancelable and has not fired yet, it won't be
+		 * able to be cancelled by the thread, since that thread is exiting!
+		 */
+
+		if (eve->cancelable) {
+			g_assert_log(thread_small_id() == eve->stid,
+				"%s(): in %s, but event recorded by %s",
+				G_STRFUNC, thread_name(), thread_id_name(eve->stid));
+
+			if (ev_queue != NULL)
+				cq_cancel(&eve->ev);
+
+			/*
+			 * An extra reference was taken for the cancelable event.
+			 *
+			 * Because we've dropped the event queue from the thread, a
+			 * concurrent evq_trampoline() call will not enter its main
+			 * processing part and will simply decrement the reference
+			 * count, freeing the event when it drops to 0.
+			 *
+			 * As such, there is no need to flag the event as "cancelled",
+			 * but we have to remove the extra reference to be able to
+			 * free the event, either here or in evq_trampoline().
+			 */
+
+			atomic_int_dec(&eve->refcnt);
+		}
 	}
 
-	if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
+	/*
+	 * When closing down the event queue thread, there is no risk of any
+	 * concurrent scheduling of the event, so we can free the event regardless
+	 * of its reference count.
+	 */
+
+	if G_LIKELY(
+		atomic_int_dec_is_zero(&eve->refcnt) ||
+		eve->stid == evq_thread_id	/* Shutting down, event cannot trigger */
+	)
 		evq_event_free(eve);
 }
 
