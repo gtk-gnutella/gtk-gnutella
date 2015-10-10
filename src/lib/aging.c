@@ -62,12 +62,12 @@ enum aging_magic {
  */
 struct aging {
 	enum aging_magic magic;		/**< Magic number */
+	int delay;					/**< Initial aging delay, in seconds */
 	hikset_t *table;			/**< The table holding values */
 	cperiodic_t *gc_ev;			/**< Periodic garbage collecting event */
 	mutex_t *lock;				/**< Optional thread-safe lock */
 	free_keyval_fn_t kvfree;	/**< Freeing callback for key/value pairs */
 	elist_t list;				/**< List of items in table, oldest first */
-	int delay;					/**< Initial aging delay, in seconds */
 };
 
 static void
