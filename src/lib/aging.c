@@ -406,7 +406,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 	if (found) {
 		aval = ovalue;
 
-		if (aval->key != key && ag->kvfree != NULL) {
+		if (ag->kvfree != NULL) {
 			/*
 			 * We discard the new and keep the old key instead.
 			 * That way, we don't have to update the hash table.
