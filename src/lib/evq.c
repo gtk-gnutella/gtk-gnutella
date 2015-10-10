@@ -769,7 +769,7 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	if (-1 == thread_kill(id, TSIG_EVQ)) {
 		s_critical_once_per(LOG_PERIOD_SECOND,
 			"%s(): cannot send TSIG_EVQ to %s: %m",
-			G_STRFUNC, thread_id_name(eve->stid));
+			G_STRFUNC, thread_id_name(id));
 	}
 
 done:
