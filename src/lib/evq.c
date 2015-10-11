@@ -681,6 +681,14 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	cq_zero(cq, &eve->ev);			/* Callback fired */
 
 	/*
+	 * We need the cq_cancel() on top of cq_zero() above because that
+	 * callout queue event is an extended one (created by a thread other
+	 * than the one running the callout queue).
+	 */
+
+	cq_cancel(&eve->ev);			/* Clear event */
+
+	/*
 	 * Now that the callback fired, it can no longer be cancelled by
 	 * the issuer.  However, we need to dispatch it to the proper thread.
 	 */
@@ -725,6 +733,8 @@ evq_trampoline(cqueue_t *cq, void *obj)
 
 	mutex_lock(&q->lock);
 
+	elist_remove(&q->events, eve);		/* Event triggered */
+
 	/*
 	 * An event could be concurrently cancelled by the registering thread
 	 * and at the same time dispatched by the callout queue.  In that case,
@@ -732,22 +742,15 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	 */
 
 	if G_UNLIKELY(2 == atomic_int_dec(&eve->refcnt) && eve->cancelable) {
-		elist_remove(&q->events, eve);
 		mutex_unlock(&q->lock);
 		evq_event_free(eve);
 		goto done;
 	}
 
 	/*
-	 * If the user keeps a pointer to the event, clear it as we can no longer
-	 * cancel this event now that it has fired.
-	 *
-	 * If the user chose to not keep a pointer to the event, it cannot cancel
-	 * it anyway and has no reference to that structure.
+	 * Event will be handled by the signal handler.
 	 */
 
-	cq_cancel(&eve->ev);				/* Clear event */
-	elist_remove(&q->events, eve);
 	elist_append(&q->triggered, eve);
 
 	/*
