@@ -88,6 +88,7 @@ struct evq_event {
 	uint cancelable:1;			/**< Whether event will be evq_cancel()ed */
 	uint cancelled:1;			/**< Whether they called evq_cancel() */
 	link_t lk;					/**< Links all events for given thread */
+	uint64 qid;					/**< Queue ID where event was put */
 };
 
 static inline void
@@ -106,6 +107,7 @@ struct evq {
 	enum evq_magic magic;		/**< Magic number */
 	uint stid;					/**< Thread where event queue runs */
 	int refcnt;					/**< Reference count */
+	uint64 qid;					/**< Queue ID */
 	elist_t events;				/**< Events registered for this thread */
 	elist_t triggered;			/**< Events triggered for this thread */
 	mutex_t lock;				/**< Thread-safety for queue changes */
@@ -130,6 +132,7 @@ static tm_t evq_sleep_end;				/**< Expected wake-up time */
 static bool evq_run;					/**< Whether evq thread should run */
 static bool evq_fully_inited;			/**< Set when init fully done */
 static bool evq_running;				/**< Set when evq thread running */
+static uint64 evq_queue_id;				/**< Unique queue ID generator */
 
 #define EVQ_GLOBAL_LOCK		spinlock(&evq_global_slk)
 #define EVQ_GLOBAL_UNLOCK	spinunlock(&evq_global_slk)
@@ -633,11 +636,17 @@ evq_local_init(uint id)
 
 	/*
 	 * Create the queue and register cleanup, when the thread exits.
+	 *
+	 * We associate a unique queue ID to each queue in order to verify,
+	 * when the event triggers and is processed, that it really belongs
+	 * to the current queue for the thread and not to a previous queue
+	 * installed for the same thread ID.
 	 */
 
 	q = evq_alloc(id);
 
 	EVQ_ARRAY_LOCK;
+	q->qid = evq_queue_id++;		/* Updated under lock protection */
 	g_assert(NULL == evqs[id]);
 	evqs[id] = q;
 	EVQ_ARRAY_UNLOCK;
@@ -719,6 +728,20 @@ evq_trampoline(cqueue_t *cq, void *obj)
 		if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
 			evq_event_free(eve);
 
+		return;
+	}
+
+	/*
+	 * If the event queue ID does not match that of the queue installed for
+	 * the thread, it means we hit a race condition and are processing an
+	 * old obsolete event -- the old queue is gone so we can blindly free
+	 * that event that nobody can refer now.
+	 */
+
+	if G_UNLIKELY(eve->qid != q->qid) {
+		s_warning("%s(): ignoring obsolete %s(%p) event",
+			G_STRFUNC, stacktrace_function_name(eve->cb), eve->arg);
+		evq_event_free(eve);
 		return;
 	}
 
@@ -861,10 +884,17 @@ evq_add(int delay, notify_fn_t fn, const void *arg, bool cancelable)
 	 *
 	 * The registered callout queue event will trigger the event through
 	 * the trampoline to redirect the call to the proper thread.
+	 *
+	 * The event is associated with the current queue ID of the targeted
+	 * thread to avoid any race condition later on: the thread processing
+	 * the callout queue could decide to trigger the event, and at the same
+	 * time the old thread could disappear and a new thread replace it with
+	 * another queue!
 	 */
 
 	eve = evq_event_alloc(id, fn, arg);
 	eve->cancelable = booleanize(cancelable);
+	eve->qid = q->qid;
 
 	eve->refcnt++;		/* Now about to be referenced by callout queue */
 
