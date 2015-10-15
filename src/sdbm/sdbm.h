@@ -100,6 +100,7 @@ void sdbm_unlink(DBM *);
 int sdbm_rename(DBM *, const char *);
 int sdbm_rename_files(DBM *, const char *, const char *, const char *);
 int sdbm_rebuild(DBM *);
+int sdbm_rebuild_async(DBM *);
 size_t sdbm_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg);
 
@@ -120,6 +121,7 @@ int sdbm_refcnt(const DBM *db);
  * These are not documented.
  */
 bool sdbm_internal_chkpage(const char *);
+void sdbm_warn_if_not_separate(const DBM *db, const char *caller);
 
 /*
  * Loose iteration support.

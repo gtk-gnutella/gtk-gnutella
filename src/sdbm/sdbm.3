@@ -75,6 +75,7 @@ bool sdbm_is_locked(const \s-1DBM\s0 *db)
 \s-1DBM\s0 *sdbm_ref(const \s-1DBM\s0 *db)
 void sdbm_unref(const \s-1DBM\s0 **db_ptr)
 int sdbm_refcnt(const \s-1DBM\s0 *db)
+int sdbm_rebuild_async(\s-1DBM\s0 *db)
 .sp
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
@@ -409,7 +410,11 @@ but with the new filenames explicitly given.
 .IP
 .BR sdbm_rebuild (\|)
 rebuilds the database, hopefully leading to a more compact on-disk
-representation. It returns -1 on failure.
+representation. It returns -1 on failure.  It is also possible to rebuild
+the database asynchronously, from a separate thread by using
+.BR sdbm_rebuild_async (\|)
+instead: concurrent usage from other threads is possible during that
+asynchronous rebuild.
 .SH ITERATING
 It is possible to use high-level iterators on the database to process all the
 items (key / value pairs) via a common routine.  That processing callback
@@ -695,6 +700,9 @@ routine is called from within an iteration loop, it will fail and set
 .B errno
 to
 .BR \s-1EBUSY\s0 .
+That same error is also returned when
+.BR sdbm_rebuild_async (\|)
+is called whilst another asynchronous rebuilding is in progress.
 .LP
 Conversely, if
 .BR sdbm_nextkey (\|) ,
@@ -809,6 +817,8 @@ The following functions:
 .BR sdbm_rename_files (\|)
 .br
 .BR sdbm_rebuild (\|)
+.br
+.BR sdbm_rebuild_async (\|)
 .br
 .BR sdbm_get_cache (\|)
 .br

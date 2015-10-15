@@ -457,8 +457,6 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
 	v.allkeys = booleanize(flags & DBM_F_ALLKEYS);
 	v.stats = stats;
 
-	sdbm_synchronize(db);
-
 	/*
 	 * Performing a loose iteration on a database that is not thread-safe
 	 * is weird, but not fatal.  Loudly warn, as this is probably a mistake!
@@ -468,13 +466,9 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
 	 * or they forgot to create a separate thread.
 	 */
 
-	if (!sdbm_is_thread_safe(db)) {
-		s_carp("%s(): loosely iterating over thread-unsafe SDBM \"%s\"",
-			caller, sdbm_name(db));
-	} else if (1 == sdbm_refcnt(db)) {
-		s_carp("%s(): loosely iterating over single-referenced SDBM \"%s\"",
-			caller, sdbm_name(db));
-	}
+	sdbm_warn_if_not_separate(db, caller);
+
+	sdbm_synchronize(db);
 
 	/*
 	 * Find out the true database end, accounting for possibly cached pages

@@ -4,7 +4,6 @@
 #define lru_cached_page sdbm__lru_cached_page
 #define lru_discard sdbm__lru_discard
 #define lru_invalidate sdbm__lru_invalidate
-#define lru_reparent sdbm__lru_reparent
 #define lru_tail_offset sdbm__lru_tail_offset
 #define lru_wire sdbm__lru_wire
 #define lru_unwire sdbm__lru_unwire
@@ -36,7 +35,6 @@ bool cachepag(DBM *, char *, long);
 char *lru_cached_page(DBM *, long);
 void lru_discard(DBM *, long);
 void lru_invalidate(DBM *, long);
-void lru_reparent(const DBM *, const DBM *);
 fileoffset_t lru_tail_offset(const DBM *);
 const char *lru_wire(DBM *, long, ulong *);
 ulong lru_wired_mstamp(DBM *, const char *);

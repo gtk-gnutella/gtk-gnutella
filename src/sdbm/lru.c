@@ -1074,44 +1074,6 @@ lru_tail_offset(const DBM *db)
 	return OFF_PAG(bno + 1);
 }
 
-struct lru_reparent_args {
-	const DBM *db;
-	const DBM *pdb;
-};
-
-static void
-reparent_cpage(void *data, void *udata)
-{
-	struct lru_cpage *cp = data;
-	const struct lru_reparent_args *a = udata;
-
-	sdbm_lru_cpage_check(cp);
-	g_assert(cp->db == a->pdb);		/* Page belongs to previous DB descriptor */
-
-	cp->db = deconstify_pointer(a->db);
-}
-
-/**
- * Transfer ownership of all the cached pages present in `db' and which refer
- * to `pdb' back to `db'.
- *
- * @param db	the database descriptor
- * @param pdb	the previoud DB descriptor to which cached pages belong
- */
-void
-lru_reparent(const DBM *db, const DBM *pdb)
-{
-	const struct lru_cache *cache = db->cache;
-	struct lru_reparent_args a;
-
-	sdbm_lru_check(cache);
-	assert_sdbm_locked(db);
-
-	a.db = db;
-	a.pdb = pdb;
-	hevset_foreach(cache->pagnum, reparent_cpage, &a);
-}
-
 /**
  * Get a suitable buffer in the cache to read a page and set db->pagbuf
  * accordingly.

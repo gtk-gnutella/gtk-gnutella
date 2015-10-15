@@ -32,6 +32,7 @@ struct DBM {
 	struct qlock *lock;	/* thread-safe lock at the API level */
 	int refcnt;			/* reference count */
 #endif
+	struct DBM *rdb;	/* if non-NULL, concurrent DB rebuild in progress */
 	fileoffset_t pagtail;	/* end of page file descriptor, for iterating */
 	long maxbno;		/* size of dirfile in bits */
 	long curbit;		/* current bit number */

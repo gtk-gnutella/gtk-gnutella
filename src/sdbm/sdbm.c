@@ -1126,6 +1126,15 @@ sdbm_delete(DBM *db, datum key)
 	db->delta--;		/* Removing one key/pair */
 
 	/*
+	 * If concurrently rebuilding, make sure we replicate the deletion
+	 * to the database being rebuilt.  We may not have the key there yet
+	 * though, so we do not choke on errors.
+	 */
+
+	if G_UNLIKELY(db->rdb != NULL)
+		sdbm_delete(db->rdb, key);
+
+	/*
 	 * update the page file
 	 */
 
@@ -1263,6 +1272,15 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 	db->delta++;		/* Added one key/pair */
 
 inserted:
+	/*
+	 * If concurrently rebuilding, make sure we replicate the insertion
+	 * to the database being rebuilt.  We need to force DBM_REPLACE because
+	 * we do not know whether the key already exists in the copy and the
+	 * rebuilt database needs to hold the freshest copy of the data.
+	 */
+
+	if G_UNLIKELY(db->rdb != NULL)
+		storepair(db->rdb, key, val, DBM_REPLACE, NULL);
 
 	/*
 	 * After a split, we force a physical flush of the page even if they
@@ -2252,6 +2270,21 @@ sdbm_deletekey(DBM *db)
 	if G_UNLIKELY(0 == db->keyptr)
 		goto no_entry;
 
+	/*
+	 * If concurrently rebuilding, make sure we replicate the deletion
+	 * to the database being rebuilt.  We may not have the key there yet
+	 * though, so we do not choke on errors.
+	 */
+
+	if G_UNLIKELY(db->rdb != NULL) {
+		datum key = getnkey(db, db->pagbuf, db->keyptr);
+		sdbm_delete(db->rdb, key);
+	}
+
+	/*
+	 * Delete key number ``db->keyptr'' on the current page.
+	 */
+
 	if G_UNLIKELY(!delnpair(db, db->pagbuf, db->keyptr))
 		goto done;
 
@@ -3060,6 +3093,8 @@ sdbm_clear(DBM *db)
 		errno = ESTALE;
 		goto error;
 	}
+	if G_UNLIKELY(db->rdb != NULL)
+		sdbm_clear(db->rdb);		/* Also clear rebuilt DB */
 	db->delta = 0;
 	if G_UNLIKELY(-1 == ftruncate(db->pagf, 0))
 		goto error;
@@ -3315,6 +3350,41 @@ sdbm_datfno(DBM *db)
 #endif
 
 	sdbm_return(db, fno);
+}
+
+/*
+ * Warn if caller is not in a "separate thread".
+ *
+ * We are in a separate thread if the database is thread-safe and is
+ * referenced by more than one thread.
+ *
+ * Since the purpose of running in a separate thread is to avoid locking
+ * the database for a long period of time, we also loudly warn if the
+ * database is already locked.
+ *
+ * @param db		the database we want to check
+ * @param caller	calling routine, for logging
+ */
+void
+sdbm_warn_if_not_separate(const DBM *db, const char *caller)
+{
+	sdbm_check(db);
+
+	if G_UNLIKELY(!sdbm_is_thread_safe(db)) {
+		s_carp("%s(): processing thread-unsafe SDBM \"%s\"",
+			caller, sdbm_name(db));
+		return;
+	}
+
+	if G_UNLIKELY(1 == sdbm_refcnt(db)) {
+		s_carp("%s(): processing a single-referenced SDBM \"%s\"",
+			caller, sdbm_name(db));
+	}
+
+	if G_UNLIKELY(sdbm_is_locked(db)) {
+		s_carp("%s(): processing already locked SDBM \"%s\" (depth=%zu)",
+			caller, sdbm_name(db), qlock_depth(db->lock));
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
