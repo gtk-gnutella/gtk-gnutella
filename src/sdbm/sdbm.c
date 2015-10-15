@@ -3029,7 +3029,7 @@ sdbm_set_volatile(DBM *db, bool yes)
 }
 
 bool
-sdbm_rdonly(DBM *db)
+sdbm_rdonly(const DBM *db)
 {
 	bool rdonly;
 
@@ -3041,7 +3041,7 @@ sdbm_rdonly(DBM *db)
 }
 
 bool
-sdbm_error(DBM *db)
+sdbm_error(const DBM *db)
 {
 	bool error;
 

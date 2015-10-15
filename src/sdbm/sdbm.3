@@ -53,8 +53,8 @@ int sdbm_rename(\s-1DBM\s0 *db, char *base)
 int sdbm_rename_files(\s-1DBM\s0 *db,
 	char *dirname, char *pagname, char *datname)
 .sp
-bool sdbm_rdonly(\s-1DBM\s0 *db)
-bool sdbm_error(\s-1DBM\s0 *db)
+bool sdbm_rdonly(const \s-1DBM\s0 *db)
+bool sdbm_error(const \s-1DBM\s0 *db)
 bool sdbm_shrink(\s-1DBM\s0 *db)
 bool sdbm_clear(\s-1DBM\s0 *db)
 void sdbm_clearerr(\s-1DBM\s0 *db)

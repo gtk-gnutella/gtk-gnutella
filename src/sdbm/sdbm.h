@@ -61,8 +61,8 @@ int sdbm_exists(DBM *, datum);
  */
 DBM *sdbm_prep(const char *, const char *, const char *, int, int);
 long sdbm_hash(const char *, size_t) G_GNUC_PURE;
-bool sdbm_rdonly(DBM *);
-bool sdbm_error(DBM *);
+bool sdbm_rdonly(const DBM *);
+bool sdbm_error(const DBM *);
 void sdbm_clearerr(DBM *);
 int sdbm_dirfno(DBM *);
 int sdbm_pagfno(DBM *);
