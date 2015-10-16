@@ -2996,6 +2996,11 @@ malloc_init_vtable(void)
 	if (is_running_on_mingw() && xmalloc_is_malloc()) {
 		static GMemVTable vtable;
 
+#if GLIB_CHECK_VERSION(2,0,0)
+		static char variable[] = "G_SLICE=always-malloc";
+		putenv(variable);
+#endif	/* GLib >= 2.0.0 */
+
 		vtable.malloc = malloc;
 		vtable.realloc = realloc;
 		vtable.free = free;
