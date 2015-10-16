@@ -2473,10 +2473,9 @@ mingw_valloc(void *hint, size_t size)
 	if G_LIKELY(mingw_vmm_inited) {
 		size_t committed = mingw_mem_committed();
 		size_t allocated = size_saturate_sub(committed, mingw_vmm.baseline);
+		size_t unreserved = size_saturate_sub(allocated, mingw_vmm.allocated);
 
-		if G_UNLIKELY(
-			size_saturate_sub(allocated, mingw_vmm.size) > mingw_vmm.threshold
-		) {
+		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
 			/* We don't want a stacktrace, use s_minilog() directly */
 			s_minilog(G_LOG_LEVEL_CRITICAL,
 				"%s(): allocating %'zu bytes when %'zu are already used "
@@ -2485,8 +2484,7 @@ mingw_valloc(void *hint, size_t size)
 					"threshold was set to %'zu)",
 				G_STRFUNC, size, committed,
 				mingw_vmm.allocated, allocated,
-				size_saturate_sub(allocated, mingw_vmm.size),
-				mingw_vmm.threshold);
+				unreserved, mingw_vmm.threshold);
 
 			crash_restart("%s(): nearing out of memory condition", G_STRFUNC);
 			/* Continue nonetheless, restart may be asynchronous */
