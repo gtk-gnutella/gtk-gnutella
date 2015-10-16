@@ -3043,6 +3043,19 @@ mingw_getrlimit(int resource, struct rlimit *rlim)
 		ZERO(rlim);
 		break;
 	case RLIMIT_DATA:
+		if G_LIKELY(mingw_vmm_inited) {
+			/*
+			 * Assume the data segment (heap) will grow up to the start
+			 * of the reserved region we have, since now that region is
+			 * put at the lowest possible address.  This only approximates
+			 * the truth.
+			 *		--RAM, 2015-10-16
+			 */
+			rlim->rlim_max = rlim->rlim_cur =
+				ptr_diff(mingw_vmm.reserved, mingw_vmm.heap_break);
+			break;
+		}
+		/* FALL THROUGH */
 	case RLIMIT_AS:
 		{
 			SYSTEM_INFO system_info;
