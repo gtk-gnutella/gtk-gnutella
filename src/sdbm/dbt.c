@@ -56,6 +56,8 @@ static bool unlink_db;
 static bool all_keys;
 static bool large_keys, large_values, common_head_tail;
 static bool loose_delete;
+static bool async_rebuild;
+static int async_thread = -1;
 
 #define WR_DELAY	(1 << 0)
 #define WR_VOLATILE	(1 << 1)
@@ -66,8 +68,9 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiklprstvwyABCDEKSTUVX] [-R seed] [-c pages]\n"
+		"Usage: %s [-abdeiklprstvwyABCDEKSTUVX] [-R seed] [-c pages]\n"
 		"       dbname [count]\n"
+		"  -a : rebuild the database asynchronously whilst testing\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
 		"  -d : perform delete test\n"
@@ -96,6 +99,17 @@ usage(void)
 		"  -X : delete first \"count\" keys during -l test\n",
 		getprogname());
 	exit(EXIT_FAILURE);
+}
+
+static void *
+rebuild_db_async(void *arg)
+{
+	DBM *db = arg;
+
+	if (-1 == sdbm_rebuild_async(db))
+		oops("sdbm_rebuild_async() failed");
+
+	return db;
 }
 
 static DBM *
@@ -134,6 +148,13 @@ open_db(const char *name, bool writeable, long cache, int wflags)
 	}
 	if (shrink)
 		sdbm_shrink(db);
+
+	if (async_rebuild) {
+		printf("Launching asynchronous database rebuild.\n");
+		sdbm_ref(db);
+		async_thread = thread_create(rebuild_db_async, db, THREAD_F_PANIC, 0);
+	}
+
 	if (rebuild) {
 		tm_t start, end;
 		printf("Rebuilding database...\n");
@@ -633,13 +654,18 @@ main(int argc, char **argv)
 	const char *name;
 	long count;
 	long cache = 0;
+	const char options[] = "aAbBc:CdDeEiklKprR:sStTUvVwXy";
 
 	progstart(argc, argv);
 
-	while ((c = getopt(argc, argv, "AbBc:CdDeEiklKprR:sStTUvVwXy")) != EOF) {
+	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case 'A':			/* traverse all keys when loosely iterating */
 			all_keys++;
+			break;
+		case 'a':			/* asynchronously rebuild database (implies -T) */
+			async_rebuild++;
+			thread_safe++;
 			break;
 		case 'B':			/* rebuild before testing */
 			rebuild++;
@@ -798,6 +824,19 @@ main(int argc, char **argv)
 
 	if (dflag)
 		timeit(delete_db, name, count, cache, tflag, wflags, "delete test");
+
+	if (-1 != async_thread) {
+		void *result;
+		DBM *db;
+
+		printf("Waiting for asynchronous rebuild to finish...\n");
+		if (-1 == thread_join(async_thread, &result))
+			oops("thread_join() failed");
+
+		db = result;
+		printf("Done rebuilding SDBM \"%s\"\n", sdbm_name(db));
+		sdbm_unref(&db);
+	}
 
 	if (unlink_db) {
 		printf("Unlinking database\n");
