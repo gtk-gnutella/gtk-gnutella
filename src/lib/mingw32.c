@@ -3022,6 +3022,7 @@ mingw_getrlimit(int resource, struct rlimit *rlim)
 		ZERO(rlim);
 		break;
 	case RLIMIT_DATA:
+	case RLIMIT_AS:
 		{
 			SYSTEM_INFO system_info;
 

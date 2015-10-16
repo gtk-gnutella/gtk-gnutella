@@ -291,8 +291,9 @@ int mingw_statvfs(const char *pathname, struct statvfs *buf);
 #define HAS_GETRLIMIT			/* We emulate it */
 #define EMULATE_GETRLIMIT
 
-#define RLIMIT_CORE 1
-#define RLIMIT_DATA 2
+#define RLIMIT_CORE 1			/* Maximum size of core file */
+#define RLIMIT_DATA 2			/* Maximum data segment size */
+#define RLIMIT_AS 	3			/* Available Space (VM address space) */
 
 typedef unsigned long rlim_t;
 
