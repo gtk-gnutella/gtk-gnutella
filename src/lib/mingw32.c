@@ -5643,14 +5643,14 @@ mingw_get_break(void)
 {
 	void *p;
 
-	p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, 1);
+	p = HeapAlloc(GetProcessHeap(), 0, 1);
 
 	if (NULL == p) {
 		errno = ENOMEM;
 		return (void *) -1;
 	}
 
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, p);
+	HeapFree(GetProcessHeap(), 0, p);
 	return p;
 }
 
@@ -5674,7 +5674,7 @@ mingw_sbrk(long incr)
 			current_break = p;
 		return p;
 	} else if (incr > 0) {
-		p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, incr);
+		p = HeapAlloc(GetProcessHeap(), 0, incr);
 
 		if (NULL == p) {
 			errno = ENOMEM;
