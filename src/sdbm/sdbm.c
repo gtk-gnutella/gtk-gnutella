@@ -911,7 +911,9 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	assert_sdbm_locked(db);
 
 #ifdef THREADS
-	g_assert(db->refcnt >=0 && db->refcnt <= 1);
+	g_assert_log(db->refcnt >= 0 && (!destroy || db->refcnt <= 1),
+		"%s(): db->refcnt=%d, destroy=%c",
+		G_STRFUNC, db->refcnt, destroy ? 'y' : 'n');
 #endif
 
 #ifdef LRU
@@ -989,11 +991,32 @@ sdbm_close(DBM *db)
 
 	sdbm_synchronize(db);
 
+	/*
+	 * When there are more than 1 reference to the DB, simply remove one
+	 * reference but defer freeing of the object, after loudly complaining!
+	 *
+	 * Indeed, the proper way to address multiple references is to use
+	 * sdbm_ref() when taking them and sdbm_unref() when removing them,
+	 * with sdbm_close() being implicitly called when the last reference
+	 * is gone.
+	 *
+	 * This leniance of sdbm_close() will ease the transition from a singly
+	 * to a multiply referenced database in older code, whilst properly
+	 * flagging the culprit with a loud warning and a stack trace.
+	 *		--RAM, 2015-10-18
+	 */
+
 #ifdef THREADS
 	/* When coming from sdbm_unref(), refcnt will be 0 due to decrementing */
-	g_assert_log(0 == db->refcnt || 1 == db->refcnt,
-		"%s(): attempting to close SDBM \"%s\" which still has %d reference%s",
-		G_STRFUNC, sdbm_name(db), db->refcnt, plural(db->refcnt));
+	g_assert(db->refcnt >= 0);
+	if (db->refcnt >= 2) {
+		s_carp("%s(): attempting to close SDBM \"%s\" (still has %d ref%s)",
+			G_STRFUNC, sdbm_name(db), db->refcnt, plural(db->refcnt));
+		atomic_int_dec(&db->refcnt);
+		g_assert(db->refcnt >= 0);
+		sdbm_unsynchronize(db);
+		return;
+	}
 #endif	/* THREADS */
 
 #ifdef LRU
