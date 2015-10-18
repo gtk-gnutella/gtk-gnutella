@@ -5690,15 +5690,25 @@ static void *
 mingw_get_break(void)
 {
 	void *p;
+	HANDLE h = GetProcessHeap();
 
-	p = HeapAlloc(GetProcessHeap(), 0, 1);
+	/*
+	 * We try to allocate a large amount of memory (1 MiB) to avoid the call
+	 * from returning a "fragment" in the heap, and force the allocator to
+	 * get more core, thereby knowing the upper limit.
+	 */
+
+	p = HeapAlloc(h, 0, 1024 * 1024);
+
+	if G_UNLIKELY(NULL == p)
+		p = HeapAlloc(h, 0, 4096);		/* A page, at least */
 
 	if (NULL == p) {
 		errno = ENOMEM;
 		return (void *) -1;
 	}
 
-	HeapFree(GetProcessHeap(), 0, p);
+	HeapFree(h, 0, p);
 	return p;
 }
 
@@ -5718,9 +5728,9 @@ mingw_sbrk(long incr)
 
 	if (0 == incr) {
 		p = mingw_get_break();
-		if G_UNLIKELY(NULL == current_break)
+		if G_UNLIKELY(p != (void *) -1)
 			current_break = p;
-		return p;
+		return current_break;
 	} else if (incr > 0) {
 		p = HeapAlloc(GetProcessHeap(), 0, incr);
 
@@ -5730,9 +5740,6 @@ mingw_sbrk(long incr)
 		}
 
 		end = ptr_add_offset(p, incr);
-
-		if G_UNLIKELY(NULL == current_break)
-			current_break = p;
 
 		if (ptr_cmp(end, current_break) > 0)
 			current_break = end;
