@@ -44,7 +44,9 @@
 #endif
 
 #include "getgateway.h"
+
 #include "ascii.h"
+#include "compat_usleep.h"
 #include "fd.h"
 #include "host_addr.h"
 #include "mempcpy.h"
@@ -203,13 +205,25 @@ getgateway(host_addr_t *addrp)
 	for (done = FALSE; !done; /* empty */) {
 		unsigned nlen;
 		struct nlmsghdr *nl;
+		int i;
 
-		rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
-		if ((ssize_t) -1 == rw) {
-			g_warning("%s(): recv() failed: %m", G_STRFUNC);
-			goto error;
+		for (i = 0; i < 1000; i++) {
+			rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
+			if ((ssize_t) -1 == rw) {
+				if (EAGAIN == errno || EWOULDBLOCK == errno) {
+					compat_usleep(1000);	/* 1 ms */
+					continue;
+				}
+				break;
+			} else {
+				goto answered;
+			}
 		}
 
+		g_warning("%s(): recv() failed: %m", G_STRFUNC);
+		goto error;
+
+	answered:
 		nl = &nlm.hdr;
 
 		if (0 == NLMSG_OK(nl, UNSIGNED(rw)) || NLMSG_ERROR == nl->nlmsg_type)
