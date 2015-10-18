@@ -780,7 +780,7 @@ settings_init(void)
 		struct rlimit lim;
 	
 		if (-1 != getrlimit(RLIMIT_AS, &lim)) {
-			maxvm = lim.rlim_cur / 1024;
+			maxvm = lim.rlim_max / 1024;
 			amount = MIN(amount, maxvm);		/* For our purposes */
 		}
 	}
