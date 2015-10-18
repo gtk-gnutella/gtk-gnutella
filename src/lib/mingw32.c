@@ -2497,6 +2497,20 @@ mingw_valloc(void *hint, size_t size)
 		size_t committed = mingw_mem_committed();
 		size_t allocated = size_saturate_sub(committed, mingw_vmm.baseline);
 		size_t unreserved = size_saturate_sub(allocated, mingw_vmm.allocated);
+		size_t data = 0;
+
+		/*
+		 * If we reached the threshold, compute the current break to see
+		 * how much of the data segment we're counting in the unreserved
+		 * space, and deduce it appropriately.
+		 */
+
+		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
+			void *cur_brk = mingw_sbrk(0);
+
+			data = ptr_diff(cur_brk, mingw_vmm.heap_break);
+			unreserved = size_saturate_sub(unreserved, data);
+		}
 
 		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
 			/* We don't want a stacktrace, use s_minilog() directly */
@@ -2504,10 +2518,10 @@ mingw_valloc(void *hint, size_t size)
 				"%s(): allocating %'zu bytes when %'zu are already used "
 					"with %'zu allocated here and %'zu allocated overall "
 					"since startup (%'zu in unreserved region, upper "
-					"threshold was set to %'zu)",
+					"threshold was set to %'zu, %'zu in data segment)",
 				G_STRFUNC, size, committed,
 				mingw_vmm.allocated, allocated,
-				unreserved, mingw_vmm.threshold);
+				unreserved, mingw_vmm.threshold, data);
 
 			crash_restart("%s(): nearing out of memory condition", G_STRFUNC);
 			/* Continue nonetheless, restart may be asynchronous */
