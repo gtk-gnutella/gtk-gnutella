@@ -325,9 +325,11 @@ returns the file descriptor associated with the data file (large keys and
 values), or -1 if the file was not opened yet because it was not needed so far.
 .IP
 .BR sdbm_name (\|)
-returns the database name previous set using
+returns the database name previously set using
 .BR sdbm_set_name (\|)
-or the empty string if none was set.
+or a string starting with "file " and followed by the pathname of the
+.B .pag
+file if no name was set yet.
 .IP
 .BR sdbm_is_storable (\|)
 indicates whether a combination of key and value sizes can fit within the size

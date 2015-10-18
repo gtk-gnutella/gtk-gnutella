@@ -337,14 +337,25 @@ sdbm_set_name(DBM *db, const char *name)
 
 /**
  * Get the database name
- * @return an empty string if not set.
+ *
+ * @return recorded name, or the path to the .pag file if no name was set.
  */
 const char *
 sdbm_name(const DBM *db)
 {
 	sdbm_check(db);
 
-	return db->name ? db->name : "";
+	if G_LIKELY(db->name != NULL)
+		return db->name;
+
+	sdbm_synchronize(db);
+	if (NULL == db->name) {
+		DBM *wdb = deconstify_pointer(db);
+		wdb->name = h_strconcat("file ", db->pagname, NULL);
+	}
+	sdbm_unsynchronize(db);
+
+	return db->name;
 }
 
 /**
