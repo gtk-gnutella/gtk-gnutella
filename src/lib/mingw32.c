@@ -3051,8 +3051,8 @@ mingw_getrlimit(int resource, struct rlimit *rlim)
 			 * the truth.
 			 *		--RAM, 2015-10-16
 			 */
-			rlim->rlim_max = rlim->rlim_cur =
-				ptr_diff(mingw_vmm.reserved, mingw_vmm.heap_break);
+			rlim->rlim_max = ptr_diff(mingw_vmm.reserved, mingw_vmm.heap_break);
+			rlim->rlim_cur = ptr_diff(mingw_vmm.reserved, mingw_sbrk(0));
 			break;
 		}
 		/* FALL THROUGH */
@@ -3061,10 +3061,12 @@ mingw_getrlimit(int resource, struct rlimit *rlim)
 			SYSTEM_INFO system_info;
 
 			GetSystemInfo(&system_info);
-			rlim->rlim_max = rlim->rlim_cur =
+			rlim->rlim_max =
 				system_info.lpMaximumApplicationAddress
 				-
 				system_info.lpMinimumApplicationAddress;
+			rlim->rlim_cur = rlim->rlim_max -
+				size_saturate_sub(mingw_mem_committed(), mingw_vmm.baseline);
 		}
 		break;
 	default:
