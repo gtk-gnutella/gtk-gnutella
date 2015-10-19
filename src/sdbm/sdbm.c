@@ -931,6 +931,11 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	big_free(db);
 #endif
 
+	if (db->rdb != NULL) {
+		sdbm_unlink(db->rdb);
+		db->rdb = NULL;
+	}
+
 	if (common_stats) {
 		log_sdbmstats(db);
 	}

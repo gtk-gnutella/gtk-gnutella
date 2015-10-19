@@ -127,6 +127,7 @@ sdbm_replace_descriptor(DBM *db, DBM *ndb)
 
 	g_assert(NULL == ndb->rdb);
 	ndb->rdb = db->rdb;			/* In case was also asynchronously rebuilt */
+	db->rdb = NULL;
 
 	if (db->flags & DBM_RDONLY)
 		ndb->flags |= DBM_RDONLY;	/* New DB was opened read/write */
@@ -153,7 +154,6 @@ sdbm_replace_descriptor(DBM *db, DBM *ndb)
 	ndb->lock = NULL;							/* was copied over */
 	ndb->returned = NULL;
 #endif
-	sdbm_free_null(&ndb);
 
 	/*
 	 * The original object is now the new database, we only need to rename
@@ -166,6 +166,7 @@ sdbm_replace_descriptor(DBM *db, DBM *ndb)
 	HFREE_NULL(dirname);
 	HFREE_NULL(pagname);
 	HFREE_NULL(datname);
+	sdbm_free_null(&ndb);
 
 	return error;
 }
