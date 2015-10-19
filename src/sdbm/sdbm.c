@@ -2962,10 +2962,12 @@ sdbm_rename_files(DBM *db,
 		goto emergency_restore;
 	}
 
-	if (NULL == datname || !dat_opened)
+	if (NULL == datname)
 		goto rename_ok;
 
 	if (-1 == rename(db->datname, datname)) {
+		if (!dat_opened && ENOENT == errno)
+			goto rename_ok;		/* No .dat file present */
 		error = errno;
 		s_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
 			sdbm_name(db), db->datname, datname);
