@@ -103,13 +103,19 @@ sdbm_attr_propagate(DBM *ndb, const DBM *db)
  *
  * @return 0 if OK, the errno value otherwise.
  */
-static
-int sdbm_replace_descriptor(DBM *db, DBM *ndb)
+static int
+sdbm_replace_descriptor(DBM *db, DBM *ndb)
 {
 	char *dirname, *pagname, *datname;
 	int error = 0;
 
 	assert_sdbm_locked(db);
+
+	if ((ssize_t) -1 == sdbm_sync(ndb)) {
+		error = errno;
+		sdbm_unlink(ndb);
+		return error;			/* Could not flush, rebuild failed! */
+	}
 
 	dirname = h_strdup(db->dirname);
 	pagname = h_strdup(db->pagname);
