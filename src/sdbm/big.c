@@ -1453,14 +1453,16 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 
 		if (!big_block_is_allocated(db, bno)) {
 			s_warning("sdbm: \"%s\": "
-				"%s from .pag #%ld refers to unallocated block %zu in .dat",
-				sdbm_name(db), what, db->pagbno, bno);
+				"block %d/%d in %s from .pag #%ld "
+				"refers to unallocated block %zu in .dat",
+				sdbm_name(db), bcnt - n + 1, bcnt, what, db->pagbno, bno);
 			return FALSE;
 		}
 		if (prev_bno != 0 && bno <= prev_bno) {
 			s_warning("sdbm: \"%s\": "
-				"%s from .pag #%ld lists unordered block list (corrupted?)",
-				sdbm_name(db), what, db->pagbno);
+				"block %d/%d in %s from .pag #%ld "
+				"not in ordered list (corrupted?)",
+				sdbm_name(db), bcnt - n + 1, bcnt, what, db->pagbno);
 			return FALSE;
 		}
 		q = const_ptr_add_offset(q, sizeof(uint32));
@@ -1482,8 +1484,9 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 		map = ptr_add_offset(db->big->bitcheck, bmap * BIG_BLKSIZE);
 		if (bit_field_get(map, bit)) {
 			s_warning("sdbm: \"%s\": "
-				"%s from .pag #%ld refers to already seen block %zu in .dat",
-				sdbm_name(db), what, db->pagbno, bno);
+				"block %d/%d in %s from .pag #%ld "
+				"refers to already seen block %zu in .dat",
+				sdbm_name(db), bcnt - n + 1, bcnt, what, db->pagbno, bno);
 			return FALSE;
 		}
 	}
