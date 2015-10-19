@@ -208,6 +208,44 @@ big_close(DBM *db)
 }
 
 /**
+ * Prepare the bitmap cache.
+ */
+static void
+big_bitmap_setup(DBMBIG *dbg)
+{
+	filestat_t buf;
+
+	g_assert(is_valid_fd(dbg->fd));		/* .dat file already opened */
+	g_assert(dbg->bitbuf != NULL);
+
+	if (-1 == fstat(dbg->fd, &buf)) {
+		buf.st_size = 0;
+	} else {
+		if (buf.st_size < BIG_BLKSIZE) {
+			buf.st_size = 0;
+		} else {
+			dbg->bitmaps = 1 +
+				(buf.st_size - BIG_BLKSIZE) / (BIG_BITCOUNT * BIG_BLKSIZE);
+		}
+	}
+
+	dbg->bitbuf_dirty = FALSE;
+	dbg->bitbno = -1;
+
+	/*
+	 * Create a first bitmap if the file is empty.
+	 * No need to flush it to disk, this will happen at the first allocation.
+	 */
+
+	if (0 == buf.st_size) {
+		memset(dbg->bitbuf, 0, BIG_BLKSIZE);
+		bit_field_set(dbg->bitbuf, 0);	/* First page is the bitmap itself */
+		dbg->bitbno = 0;
+		dbg->bitmaps = 1;
+	}
+}
+
+/**
  * Re-open the .dat file.
  *
  * @return 0 if OK, -1 on error with errno set.
@@ -223,7 +261,13 @@ big_reopen(DBM *db)
 	dbg->fd = file_open(db->datname,
 		db->openflags & ~(O_CREAT | O_TRUNC | O_EXCL), 0);
 
-	return -1 == dbg->fd ? -1 : 0;
+	if (-1 == dbg->fd)
+		return -1;
+
+	compat_fadvise_random(dbg->fd, 0, 0);
+	big_bitmap_setup(dbg);
+
+	return 0;
 }
 
 /**
@@ -259,7 +303,6 @@ static int
 big_open(DBM *db)
 {
 	DBMBIG *dbg = db->big;
-	filestat_t buf;
 
 	g_assert(-1 == dbg->fd);
 	g_assert(db->datname != NULL);
@@ -272,28 +315,7 @@ big_open(DBM *db)
 	dbg->bitbuf = walloc(BIG_BLKSIZE);
 	compat_fadvise_random(dbg->fd, 0, 0);
 
-	if (-1 == fstat(dbg->fd, &buf)) {
-		buf.st_size = 0;
-	} else {
-		if (buf.st_size < BIG_BLKSIZE) {
-			buf.st_size = 0;
-		} else {
-			dbg->bitmaps = 1 +
-				(buf.st_size - BIG_BLKSIZE) / (BIG_BITCOUNT * BIG_BLKSIZE);
-		}
-	}
-
-	/*
-	 * Create a first bitmap if the file is empty.
-	 * No need to flush it to disk, this will happen at the first allocation.
-	 */
-
-	if (0 == buf.st_size) {
-		memset(dbg->bitbuf, 0, BIG_BLKSIZE);
-		bit_field_set(dbg->bitbuf, 0);	/* First page is the bitmap itself */
-		dbg->bitbno = 0;
-		dbg->bitmaps = 1;
-	}
+	big_bitmap_setup(dbg);
 
 	errno = 0;
 	return 0;

@@ -16,6 +16,7 @@
 #include "sdbm.h"
 #include "tune.h"
 #include "private.h"
+#include "big.h"
 #include "lru.h"
 
 #include "lib/halloc.h"
@@ -138,9 +139,15 @@ sdbm_replace_descriptor(DBM *db, DBM *ndb)
 	ndb->openflags = db->openflags;
 	ndb->delta = db->delta;		/* Copy must be neutral (no changes) */
 #ifdef THREADS
+	g_assert(NULL == ndb->lock);		/* Since `ndb' was not thread-safe */
+	g_assert(NULL == ndb->returned);
 	ndb->lock = db->lock;
 	ndb->returned = db->returned;
 	ndb->refcnt = db->refcnt;
+#endif
+#ifdef BIGDATA
+	big_free(ndb);
+	ndb->big = db->big;			/* We're going to keep this db->big object */
 #endif
 #ifdef LRU
 	lru_close(ndb);				/* We only keep the current LRU cache */
