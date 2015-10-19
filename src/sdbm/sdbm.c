@@ -928,7 +928,10 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	fd_forget_and_close(&db->pagf);
 
 #ifdef BIGDATA
-	big_free(db);
+	if (destroy)
+		big_free(db);
+	else
+		big_close(db);
 #endif
 
 	if (db->rdb != NULL) {
