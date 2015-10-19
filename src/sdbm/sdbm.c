@@ -962,34 +962,16 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 }
 
 /**
- * Close the database and unlink its files.
- */
-void
-sdbm_unlink(DBM *db)
-{
-	if G_UNLIKELY(db == NULL)
-		return;
-
-	sdbm_synchronize(db);
-	sdbm_close_internal(db, TRUE, TRUE);
-}
-
-/**
- * Close the database.
+ * Make sure we're not releasing resources that are still being referenced.
+ * Must be called with the database locked.
  *
- * If it was marked volatile, then its files are unlinked as well.
+ * @return TRUE if the object can be reclaimed, FALSE if there are still
+ * references on it (but with the reference count already decreased by one).
  */
-void
-sdbm_close(DBM *db)
+static bool
+sdbm_can_release(DBM *db, const char *caller, const char *what)
 {
-	bool clearfiles;
-
-	if G_UNLIKELY(db == NULL)
-		return;
-
-	sdbm_check(db);
-
-	sdbm_synchronize(db);
+	assert_sdbm_locked(db);
 
 	/*
 	 * When there are more than 1 reference to the DB, simply remove one
@@ -1010,14 +992,61 @@ sdbm_close(DBM *db)
 	/* When coming from sdbm_unref(), refcnt will be 0 due to decrementing */
 	g_assert(db->refcnt >= 0);
 	if (db->refcnt >= 2) {
-		s_carp("%s(): attempting to close SDBM \"%s\" (still has %d ref%s)",
-			G_STRFUNC, sdbm_name(db), db->refcnt, plural(db->refcnt));
+		s_carp("%s(): attempting to %s SDBM \"%s\" (still has %d ref%s)",
+			caller, what, sdbm_name(db), db->refcnt, plural(db->refcnt));
 		atomic_int_dec(&db->refcnt);
 		g_assert(db->refcnt >= 0);
+		return FALSE;
+	}
+#else	/* !THREADS */
+	(void) caller;
+	(void) what;
+#endif	/* THREADS */
+
+	return TRUE;
+
+}
+
+/**
+ * Close the database and unlink its files.
+ */
+void
+sdbm_unlink(DBM *db)
+{
+	if G_UNLIKELY(db == NULL)
+		return;
+
+	sdbm_synchronize(db);
+
+	if (!sdbm_can_release(db, G_STRFUNC, "unlink")) {
 		sdbm_unsynchronize(db);
 		return;
 	}
-#endif	/* THREADS */
+
+	sdbm_close_internal(db, TRUE, TRUE);
+}
+
+/**
+ * Close the database.
+ *
+ * If it was marked volatile, then its files are unlinked as well.
+ */
+void
+sdbm_close(DBM *db)
+{
+	bool clearfiles;
+
+	if G_UNLIKELY(db == NULL)
+		return;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
+	if (!sdbm_can_release(db, G_STRFUNC, "close")) {
+		sdbm_unsynchronize(db);
+		return;
+	}
 
 #ifdef LRU
 	clearfiles = db->is_volatile;
