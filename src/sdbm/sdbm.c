@@ -881,6 +881,16 @@ sdbm_close(DBM *db)
 	clearfiles = FALSE;
 #endif
 
+	/*
+	 * If we keep the files around, flush the database to ensure there
+	 * are no dirty pending data in the caches (with deferred writes).
+	 */
+
+	if (!clearfiles && (ssize_t) -1 == sdbm_sync(db)) {
+		s_warning("%s(): could not sync SDBM \"%s\": %m",
+			G_STRFUNC, sdbm_name(db));
+	}
+
 	sdbm_close_internal(db, clearfiles, TRUE);
 }
 
