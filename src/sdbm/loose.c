@@ -420,6 +420,11 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
 		"%s(): LRU cache is disabled for SDBM \"%s\" but needed for traversal",
 		G_STRFUNC, sdbm_name(db));
 
+	if G_UNLIKELY(sdbm_is_locked(db)) {
+		s_carp("%s(): SDBM \"%s\" is already locked, why loosely iterating?",
+			G_STRFUNC, sdbm_name(db));
+	}
+
 	ZERO(stats);
 	ZERO(&v);
 	v.db = db;
