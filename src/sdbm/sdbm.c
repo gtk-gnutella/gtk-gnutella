@@ -819,10 +819,6 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	assert_sdbm_locked(db);
 
 #ifdef LRU
-	if (!clearfiles && db->dirbuf_dirty && !(db->flags & DBM_BROKEN)) {
-		if (is_valid_fd(db->dirf))
-			(void) flush_dirbuf(db);
-	}
 	if (is_valid_fd(db->pagf))
 		lru_close(db);
 #else
