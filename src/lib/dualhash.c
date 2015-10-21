@@ -37,8 +37,10 @@
 #include "common.h"
 
 #include "dualhash.h"
+
 #include "hashing.h"
 #include "htable.h"
+#include "mutex.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -54,6 +56,7 @@ struct dualhash {
 	htable_t *vht;			/**< Hash table from the values' viewpoint */
 	eq_fn_t key_eq_func;
 	eq_fn_t val_eq_func;
+	mutex_t *lock;			/**< Thread-safe lock (optional) */
 };
 
 static inline void
@@ -64,6 +67,16 @@ dualhash_check(const struct dualhash * const dh)
 	g_assert(dh->kht != NULL);
 	g_assert(dh->vht != NULL);
 }
+
+#define dualhash_synchronize(d) G_STMT_START {		\
+	if G_UNLIKELY((d)->lock != NULL)				\
+		mutex_lock((d)->lock);						\
+} G_STMT_END
+
+#define dualhash_unsynchronize(d) G_STMT_START {	\
+	if G_UNLIKELY((d)->lock != NULL)				\
+		mutex_unlock((d)->lock);					\
+} G_STMT_END
 
 /**
  * Create a new dual hash table.
@@ -86,7 +99,7 @@ dualhash_new(hash_fn_t khash, eq_fn_t keq, hash_fn_t vhash, eq_fn_t veq)
 	if (NULL == vhash)
 		vhash = pointer_hash;
 
-	WALLOC(dh);
+	WALLOC0(dh);
 	dh->magic = DUALHASH_MAGIC;
 	dh->kht = htable_create_any(khash, NULL, keq);
 	dh->vht = htable_create_any(vhash, NULL, veq);
@@ -104,8 +117,16 @@ dualhash_destroy(dualhash_t *dh)
 {
 	dualhash_check(dh);
 
+	dualhash_synchronize(dh);
+
 	htable_free_null(&dh->kht);
 	htable_free_null(&dh->vht);
+
+	if (dh->lock != NULL) {
+		mutex_destroy(dh->lock);		/* Releases lock */
+		WFREE(dh->lock);
+	}
+
 	dh->magic = 0;
 	WFREE(dh);
 }
@@ -125,6 +146,50 @@ dualhash_destroy_null(dualhash_t **dh_ptr)
 }
 
 /**
+ * Mark dualhash thread-safe.
+ */
+void
+dualhash_thread_safe(dualhash_t *dh)
+{
+	dualhash_check(dh);
+	g_assert(NULL == dh->lock);
+
+	WALLOC0(dh->lock);
+	mutex_init(dh->lock);
+}
+
+/**
+ * Lock dualhash.
+ *
+ * The hash must have been marked thread-safe already.
+ */
+void
+dualhash_lock(dualhash_t *dh)
+{
+	dualhash_check(dh);
+	g_assert_log(dh->lock != NULL,
+		"%s(): dualhash %p not marked thread-safe", G_STRFUNC, dh);
+
+	mutex_lock(dh->lock);
+}
+
+/**
+ * Unlock dualhash.
+ *
+ * The hash must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+dualhash_unlock(dualhash_t *dh)
+{
+	dualhash_check(dh);
+	g_assert_log(dh->lock != NULL,
+		"%s(): dualhash %p not marked thread-safe", G_STRFUNC, dh);
+
+	mutex_unlock(dh->lock);
+}
+
+/**
  * Insert a key/value pair in the table.
  */
 void
@@ -134,11 +199,14 @@ dualhash_insert_key(dualhash_t *dh, const void *key, const void *value)
 	void *held_value;
 
 	dualhash_check(dh);
+
+	dualhash_synchronize(dh);
+
 	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
 	if (htable_lookup_extended(dh->kht, key, NULL, &held_value)) {
 		if ((*dh->val_eq_func)(held_value, value)) {
-			return;		/* Key/value tuple already present in the table */
+			goto done;		/* Key/value tuple already present in the table */
 		} else {
 			htable_remove(dh->vht, held_value);
 		}
@@ -153,6 +221,9 @@ dualhash_insert_key(dualhash_t *dh, const void *key, const void *value)
 	htable_insert_const(dh->vht, value, key);
 
 	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
+
+done:
+	dualhash_unsynchronize(dh);
 }
 
 /**
@@ -178,6 +249,9 @@ dualhash_remove_key(dualhash_t *dh, const void *key)
 	bool existed = FALSE;
 
 	dualhash_check(dh);
+
+	dualhash_synchronize(dh);
+
 	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
 	if (htable_lookup_extended(dh->kht, key, NULL, &held_value)) {
@@ -187,6 +261,8 @@ dualhash_remove_key(dualhash_t *dh, const void *key)
 	}
 
 	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
+
+	dualhash_unsynchronize(dh);
 
 	return existed;
 }
@@ -203,6 +279,9 @@ dualhash_remove_value(dualhash_t *dh, const void *value)
 	bool existed = FALSE;
 
 	dualhash_check(dh);
+
+	dualhash_synchronize(dh);
+
 	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
 	if (htable_lookup_extended(dh->vht, value, NULL, &held_key)) {
@@ -213,6 +292,8 @@ dualhash_remove_value(dualhash_t *dh, const void *value)
 
 	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
+	dualhash_unsynchronize(dh);
+
 	return existed;
 }
 
@@ -222,9 +303,15 @@ dualhash_remove_value(dualhash_t *dh, const void *value)
 bool
 dualhash_contains_key(const dualhash_t *dh, const void *key)
 {
+	bool res;
+
 	dualhash_check(dh);
 
-	return htable_contains(dh->kht, key);
+	dualhash_synchronize(dh);
+	res = htable_contains(dh->kht, key);
+	dualhash_unsynchronize(dh);
+
+	return res;
 }
 
 /**
@@ -233,9 +320,15 @@ dualhash_contains_key(const dualhash_t *dh, const void *key)
 bool
 dualhash_contains_value(const dualhash_t *dh, const void *value)
 {
+	bool res;
+
 	dualhash_check(dh);
 
-	return htable_contains(dh->vht, value);
+	dualhash_synchronize(dh);
+	res = htable_contains(dh->vht, value);
+	dualhash_unsynchronize(dh);
+
+	return res;
 }
 
 /**
@@ -244,9 +337,15 @@ dualhash_contains_value(const dualhash_t *dh, const void *value)
 void *
 dualhash_lookup_key(const dualhash_t *dh, const void *key)
 {
+	void *res;
+
 	dualhash_check(dh);
 
-	return htable_lookup(dh->kht, key);
+	dualhash_synchronize(dh);
+	res = htable_lookup(dh->kht, key);
+	dualhash_unsynchronize(dh);
+
+	return res;
 }
 
 /**
@@ -255,9 +354,15 @@ dualhash_lookup_key(const dualhash_t *dh, const void *key)
 void *
 dualhash_lookup_value(const dualhash_t *dh, const void *value)
 {
+	void *res;
+
 	dualhash_check(dh);
 
-	return htable_lookup(dh->vht, value);
+	dualhash_synchronize(dh);
+	res = htable_lookup(dh->vht, value);
+	dualhash_unsynchronize(dh);
+
+	return res;
 }
 
 /**
@@ -267,9 +372,15 @@ bool
 dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
 	void **okey, void **oval)
 {
+	bool res;
+
 	dualhash_check(dh);
 
-	return htable_lookup_extended(dh->kht, key, (const void **) okey, oval);
+	dualhash_synchronize(dh);
+	res = htable_lookup_extended(dh->kht, key, (const void **) okey, oval);
+	dualhash_unsynchronize(dh);
+
+	return res;
 }
 
 /**
@@ -279,9 +390,15 @@ bool
 dualhash_lookup_value_extended(const dualhash_t *dh, const void *value,
 	void **okey, void **oval)
 {
+	bool res;
+
 	dualhash_check(dh);
 
-	return htable_lookup_extended(dh->vht, value, (const void **) oval, okey);
+	dualhash_synchronize(dh);
+	res = htable_lookup_extended(dh->vht, value, (const void **) oval, okey);
+	dualhash_unsynchronize(dh);
+
+	return res;
 }
 
 /**
@@ -294,9 +411,12 @@ dualhash_count(const dualhash_t *dh)
 
 	dualhash_check(dh);
 
-	count = htable_count(dh->kht);
+	dualhash_synchronize(dh);
 
+	count = htable_count(dh->kht);
 	g_assert(htable_count(dh->vht) == count);
+
+	dualhash_unsynchronize(dh);
 
 	return count;
 }
