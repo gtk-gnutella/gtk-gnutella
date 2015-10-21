@@ -121,6 +121,7 @@ LSRC = \
 	file.c \
 	file_object.c \
 	filehead.c \
+	filelock.c \
 	filename.c \
 	float.c \
 	fragcheck.c \

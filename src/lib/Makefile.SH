@@ -190,6 +190,7 @@ LSRC = \
 	file.c \
 	file_object.c \
 	filehead.c \
+	filelock.c \
 	filename.c \
 	float.c \
 	fragcheck.c \
@@ -381,6 +382,7 @@ LOBJ = \
 	file.o \
 	file_object.o \
 	filehead.o \
+	filelock.o \
 	filename.o \
 	float.o \
 	fragcheck.o \

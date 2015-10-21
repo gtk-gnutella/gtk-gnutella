@@ -756,6 +756,8 @@ src/lib/file_object.c
 src/lib/file_object.h
 src/lib/filehead.c
 src/lib/filehead.h
+src/lib/filelock.c
+src/lib/filelock.h
 src/lib/filename.c
 src/lib/filename.h
 src/lib/float-dragon_out.bz2
