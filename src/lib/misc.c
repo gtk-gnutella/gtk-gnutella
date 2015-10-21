@@ -159,6 +159,48 @@ is_strsuffix(const char *str, size_t len, const char *suffix)
 }
 
 /**
+ * Check whether ``suffix'' is the end of ``str'', using an ASCII
+ * case-insensitive comparison.
+ *
+ * @param str		a NUL-terminated string or array of "len" bytes.
+ * @param len		length of ``str'', (size_t)-1 means compute it
+ * @param suffix	the suffix to look for (NUL-terminated string)
+ */
+bool
+is_strcasesuffix(const char *str, size_t len, const char *suffix)
+{
+	size_t suffix_len;
+
+	g_assert(NULL != str);
+	g_assert(NULL != suffix);
+
+	len = (size_t)-1 == len ? strlen(str) : len;
+	suffix_len = strlen(suffix);
+
+	if (suffix_len > len) {
+		return FALSE;
+	} else {
+		const char *p = &str[len - suffix_len];
+		const char *q = suffix;
+		size_t i;
+
+		for (i = 0; i < suffix_len; i++) {
+			int a = *p++, b = *q++;
+
+			/*
+			 * Optimize a bit: if case matches, or we're dealing with a
+			 * non-letter character, there's no need to invoke acscii_tolower().
+			 */
+
+			if (a != b && ascii_tolower(a) != ascii_tolower(b))
+				return FALSE;
+		}
+
+		return TRUE;
+	}
+}
+
+/**
  * Checks whether ``prefix'' is a prefix of ``buf'' which may not be
  * NUL-terminated but whose size is known.
  *
