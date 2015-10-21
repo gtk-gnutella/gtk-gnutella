@@ -81,6 +81,9 @@ dualhash_check(const struct dualhash * const dh)
 /**
  * Create a new dual hash table.
  *
+ * If a NULL hash function is provided, pointer_hash() will be used.
+ * If a NULL equality is provided, '==' will be used to compare items.
+ *
  * @param khash		the hash function for keys
  * @param keq		the key comparison function
  * @param vhash		the hash function for values
@@ -93,16 +96,19 @@ dualhash_new(hash_fn_t khash, eq_fn_t keq, hash_fn_t vhash, eq_fn_t veq)
 {
 	dualhash_t *dh;
 
-	if (NULL == khash)
-		khash = pointer_hash;
-
-	if (NULL == vhash)
-		vhash = pointer_hash;
-
 	WALLOC0(dh);
 	dh->magic = DUALHASH_MAGIC;
-	dh->kht = htable_create_any(khash, NULL, keq);
-	dh->vht = htable_create_any(vhash, NULL, veq);
+
+	if (NULL == khash || pointer_hash == khash)
+		dh->kht = htable_create_any(pointer_hash, pointer_hash2, keq);
+	else
+		dh->kht = htable_create_any(khash, NULL, keq);
+
+	if (NULL == vhash || pointer_hash == vhash)
+		dh->vht = htable_create_any(pointer_hash, pointer_hash2, veq);
+	else
+		dh->vht = htable_create_any(vhash, NULL, veq);
+
 	dh->key_eq_func = keq;
 	dh->val_eq_func = veq;
 
