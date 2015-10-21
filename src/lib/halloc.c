@@ -724,7 +724,7 @@ h_strndup(const char *str, size_t n)
  * with the separator between them.
  */
 char *
-h_strjoinv(const char *separator, char **str_array)
+h_strjoinv(const char *separator, char * const *str_array)
 {
 	const char *sep = separator;
 	char *result;
