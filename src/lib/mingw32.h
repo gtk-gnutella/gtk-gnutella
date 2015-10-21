@@ -205,7 +205,9 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #define remove mingw_remove
 #define pipe mingw_pipe
 #define getrlimit mingw_getrlimit
+
 #define execve mingw_execve
+#define launchve mingw_launchve
 
 #define abort() mingw_abort()
 
@@ -716,6 +718,7 @@ int mingw_getgateway(uint32 *ip);
 bool mingw_in_exception(void);
 void mingw_abort(void) G_GNUC_NORETURN;
 int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
+pid_t mingw_launchve(const char *path, char *const argv[], char *const envp[]);
 
 struct adns_request;
 

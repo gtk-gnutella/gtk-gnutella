@@ -74,6 +74,7 @@
 #include "crash.h"
 #include "debug.h"
 #include "dl_util.h"
+#include "dualhash.h"
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
@@ -99,6 +100,7 @@
 #include "unsigned.h"
 #include "utf8.h"
 #include "vmm.h"				/* For vmm_page_start() */
+#include "vsort.h"
 #include "walloc.h"
 #include "xmalloc.h"
 
@@ -934,8 +936,36 @@ mingw_getppid(void)
 #endif	/* EMULATE_GETPPID */
 
 /**
+ * Count amount of backslashes that lead to a double quote '"' or to the end
+ * of the string.
+ *
+ * @return the amount of backslashes to escape.
+ */
+static size_t
+mingw_backslashes_to_quote_or_end(const char *str)
+{
+	const char *p = str;
+	char c;
+	size_t backslashes = 0;
+
+	g_assert(*str == '\\');
+
+	while ('\0' != (c = *p++)) {
+		if ('\\' == c)
+			backslashes++;
+		else if ('"' == c)
+			break;
+		else
+			return 0;	/* No need to escape all these backslashes */
+	}
+
+	return backslashes;
+}
+
+/**
  * Computes the memory necessary to include the string into quotes and escape
- * embedded quotes, provided there are embedded spaces.
+ * embedded quotes, provided there are embedded spaces or backslashes leading
+ * to a quote or at the end of the string.
  *
  * @param str		the string where we want to protect embedded spaces / quotes
  *
@@ -948,7 +978,7 @@ mingw_quotedlen(const char *str)
 {
 	const char *p = str;
 	char c;
-	size_t spaces = 0, quotes = 0;
+	size_t spaces = 0, quotes = 0, backslashes = 0;
 
 	g_assert(str != NULL);
 
@@ -957,24 +987,33 @@ mingw_quotedlen(const char *str)
 			spaces++;
 		else if ('"' == c)
 			quotes++;
+		else if ('\\' == c) {
+			size_t e = mingw_backslashes_to_quote_or_end(p - 1);
+
+			if (e != 0) {
+				backslashes += e;
+				p += e - 1;
+			}
+		}
 	}
 
 	/*
 	 * If there are spaces, we need 2 surrounding quotes, plus 1 extra
-	 * character per quote present (to escape them with a preceding "\").
+	 * character per quote present (to escape them with a preceding "\")
+	 * and similarily for any backslash present before a quote.
 	 *
-	 * Any quote present needs also to be preserved.
+	 * Any quote or backslash present needs also to be preserved.
 	 */
 
-	if (0 == spaces && 0 == quotes)
+	if (0 == spaces && 0 == quotes && 0 == backslashes)
 		return 0;		/* No escaping required */
 
-	return 2 + quotes + ptr_diff(p, str);
+	return 2 + quotes + backslashes + ptr_diff(p, str);
 }
 
 /**
  * Escape string into supplied buffer: two surrounding quotes are added, and
- * each embedded quote is escaped.
+ * each embedded quote or backslash is escaped.
  *
  * @param str		the string to escape
  * @param dest		destination buffer
@@ -1000,10 +1039,27 @@ mingw_quotestr(const char *str, char *dest, size_t len)
 		char c = *p++;
 
 		if ('"' == c) {
-			*q++ = '\\';	/* Escape following quote */
+			*q++ = '\\';	/* Escape following quote or backslash */
 			if (q >= end)
 				break;
 			*q++ = c;
+		} else if ('\\' == c) {
+			size_t e = mingw_backslashes_to_quote_or_end(p - 1);
+
+			if (0 == e) {
+				*q++ = c;	/* No need to escape that backslash */
+			} else {
+				p += e - 1;	/* Skip all remaining backslashes in input */
+				/* Escape all the backslashes we've seen */
+				do {
+					*q++ = '\\';
+					if (q >= end)
+						break;
+					*q++ = '\\';
+					if (q >= end)
+						break;
+				} while (--e);
+			}
 		} else if ('\0' == c) {
 			*q++ = '"';		/* Close opening quote */
 			if (q >= end)
@@ -1115,6 +1171,416 @@ mingw_execve(const char *filename, char *const argv[], char *const envp[])
 		_exit(0);	/* We don't want any atexit() cleanup */
 
 	return -1;		/* Failed to launch process, errno is set */
+}
+
+/**
+ * Convert known valid UTF-8 string to UTF-16.
+ *
+ * @return newly allocated string via halloc().
+ */
+static wchar_t *
+wchar_utf16_convert(const char *s)
+{
+	size_t len;
+	wchar_t *ws;
+
+	len = 1 + utf8_to_utf16(s, NULL, 0);	/* +1 for final NULL */
+	ws = halloc(len * 2);					/* Each character is 2 bytes */
+	utf8_to_utf16(s, ws, len);
+
+	return ws;
+}
+
+/**
+ * Convert multi-byte string to wide-char string.
+ *
+ * @return newly allocated string via halloc(), NULL on error with errno set.
+ */
+static wchar_t *
+wchar_mbs_convert(const char *s)
+{
+	size_t len;
+	wchar_t *ws;
+
+	len = 1 + mbstowcs(NULL, s, 0);			/* +1 for final 0x00 */
+	if ((size_t) -1 == len) {
+		errno = EILSEQ;
+		return NULL;
+	}
+	ws = halloc(len * 2);
+	mbstowcs(ws, s, len);
+
+	return ws;
+}
+
+/**
+ * Convert string to a wchar version.
+ *
+ * If the input string is UTF-8, it is converted into UTF-16.
+ * If the input string is not UTF-8, it is interpreted as a local string
+ * and converted to a wide-char string.
+ *
+ * @param s		the string to convert
+ * @param uc	if non-NULL, filled with TRUE if output is Unicode in UTF-16
+ *
+ * @return newly allocated string via halloc(), NULL if we cannot convert it.
+ */
+static wchar_t *
+wchar_convert(const char *s, bool *uc)
+{
+	wchar_t *ws;
+
+	if (utf8_is_valid_string(s)) {
+		ws = wchar_utf16_convert(s);
+		if (uc != NULL)
+			*uc = TRUE;
+	} else {
+		ws = wchar_mbs_convert(s);
+		if (uc != NULL)
+			*uc = FALSE;
+	}
+
+	return ws;
+}
+
+/**
+ * Compare two items in a string vector.
+ */
+static int
+strptr_cmp(const void *a, const void *b)
+{
+	const char * const *pa = a, * const *pb = b;
+
+	return strcmp(*pa, *pb);
+}
+
+/**
+ * The mingw_launched table is a dual-hash containing Windows process handles
+ * as keys and PID as values, for all the processes created via launchve().
+ */
+static dualhash_t *mingw_launched;		/* Launched processes */
+static once_flag_t mingw_launch_inited;
+
+/**
+ * Initialize the launched process table, once.
+ */
+static void
+mingw_launch_init_once(void)
+{
+	mingw_launched = dualhash_new(NULL, pointer_eq, NULL, pointer_eq);
+	dualhash_thread_safe(mingw_launched);
+}
+
+/**
+ * The Windows version of our launchve() routine.
+ * On UNIX, this is a simple matter of vfork() + execve()...
+ *
+ * The created child handle is stored along with the PID of the process
+ * in a dualhash, so that we can implement wait() later on.
+ *
+ * @return -1 on failure, the PID of the child process otherwise.
+ */
+pid_t
+mingw_launchve(const char *path, char *const argv[], char *const envp[])
+{
+	PROCESS_INFORMATION pi;
+	STARTUPINFOW si;
+	pncs_t pncs;
+	int res, error = 0;
+	char *file, *cmd, *env = NULL;
+	wchar_t *cmd_utf16 = NULL;
+	const char exe[] = ".exe";
+	int32 flags = 0;
+	pid_t pid = -1;
+
+	g_assert(path != NULL);
+	g_assert(argv != NULL);
+
+	once_flag_run(&mingw_launch_inited, mingw_launch_init_once);
+
+	ZERO(&pi);
+	ZERO(&si);
+	si.cb = sizeof si;
+
+	/*
+	 * Add trailing ".exe" extension to the path if missing.
+	 */
+
+	if (is_strcasesuffix(path, (size_t) -1, exe))
+		file = deconstify_pointer(path);
+	else
+		file = h_strconcat(path, exe, NULL_PTR);
+
+	/*
+	 * Just like mingw_execve(), we need to properly enclose in double-quotes
+	 * all the arguments with embedded spaces or the constructed argv[] array
+	 * will not be correct.  Fortunately, we're not in an emergency situation
+	 * here so we can freely allocate memory.
+	 *
+	 * The reason we have to do all this work is that the underlying interface
+	 * that creates a new process, the CreateProcess() system call,  takes
+	 * a single command-line string that it must then parse to reconstruct
+	 * the argv[] array.  Whereas on UNIX systems, execve() already takes the
+	 * argv[] array and does not need to do any parsing!
+	 */
+
+	{
+		char **a;
+		size_t i, n;
+
+		for (i = 0; NULL != argv[i]; i++)
+			/* empty */;
+
+		n = i + 1;		/* Amount of entries in argv[] array + final NULL */
+		HALLOC0_ARRAY(a, n);
+
+		/*
+		 * We're going to only allocate the strings we need to quote, reusing
+		 * the ones given on entry otherwise.  This slightly complicates the
+		 * freeing logic later on.
+		 */
+
+		for (i = 0; NULL != argv[i]; i++) {
+			size_t qlen = mingw_quotedlen(argv[i]);
+
+			if (0 == qlen) {
+				a[i] = argv[i];		/* Reuse original string */
+			} else {
+				a[i] = halloc(qlen);
+				mingw_quotestr(argv[i], a[i], qlen);
+			}
+		}
+
+		g_assert(i == n - 1);
+
+		a[i] = NULL;
+
+		/*
+		 * Build the command line string using the quoted arguments, then
+		 * free all the strings we had to quote and our temporary vector.
+		 */
+
+		cmd = h_strjoinv(" ", a);
+
+		for (i = 0; NULL != argv[i]; i++) {
+			if (argv[i] != a[i])
+				hfree(a[i]);
+		}
+
+		HFREE_NULL(a);
+	}
+
+	/*
+	 * Convert the command line string into a big happy UTF-16 string.
+	 */
+
+	if (NULL == (cmd_utf16 = wchar_convert(cmd, NULL))) {
+		error = EILSEQ;
+		goto done;
+	}
+
+	HFREE_NULL(cmd);
+
+	/*
+	 * Build the environment buffer.
+	 *
+	 * Even when there is no supplied environment, we need to parse the
+	 * process environment to be able to determine whether it uses wide chars.
+	 */
+
+	if (envp != NULL) {
+		size_t i, cnt, acnt = 0;
+		const char *mandatory[] = { "PATH", "SYSTEMROOT" };
+		bool has_mandatory[G_N_ELEMENTS(mandatory)];
+		char *added[G_N_ELEMENTS(mandatory)];
+		char **e;
+
+		/*
+		 * Compute size of user-supplied environment.
+		 *
+		 * The Windows runtime also requires that at least two environment
+		 * variables be positionned or the child process will not startup
+		 * properly.  These are PATH and SYSTEMROOT, which we are going to
+		 * propagate from the process environment, unless superseded.
+		 */
+
+		ZERO(&has_mandatory);
+
+		for (i = 0; NULL != envp[i]; i++) {
+			size_t j;
+
+			for (j = 0; j < G_N_ELEMENTS(mandatory); j++) {
+				const char *p;
+
+				if (has_mandatory[j])
+					continue;				/* Variable already set */
+
+				p = is_strprefix(envp[i], mandatory[j]);
+				if (p != NULL && '=' == *p) {
+					has_mandatory[j] = TRUE;
+					break;
+				}
+			}
+		}
+
+		cnt = i;	/* Amount of variables in envp[] vector */
+
+		/*
+		 * If user-supplied environment does not list a mandatory variable,
+		 * then propagate it from the environment of the current process.
+		 */
+
+		for (i = 0; i < G_N_ELEMENTS(mandatory); i++) {
+			if (!has_mandatory[i]) {
+				const char *v = getenv(mandatory[i]);
+
+				if (NULL == v) {
+					s_minicarp("%s(): missing mandatory \"%s\" in environment",
+						G_STRFUNC, mandatory[i]);
+				} else {
+					added[acnt++] = h_strconcat(mandatory[i], "=", v, NULL_PTR);
+				}
+			}
+		}
+
+		g_assert(acnt <= G_N_ELEMENTS(added));
+
+		/*
+		 * Windows requires that environment variables be sorted.
+		 *
+		 * Moreover, unlike UNIX, the environment variables are
+		 * case-insensitive.
+		 */
+
+		HALLOC_ARRAY(e, acnt + cnt + 2);	/* +2 for final "" and NULL */
+
+		for (i = 0; i < cnt; i++) {
+			e[i] = envp[i];
+		}
+		for (i = 0; i < acnt; i++) {
+			e[cnt + i] = added[i];
+		}
+
+		vsort(e, cnt + acnt, sizeof e[0], strptr_cmp);
+		e[cnt + acnt] = "";				/* Ensures final NUL emitted in env */
+		e[cnt + acnt + 1] = NULL;		/* End of array for h_strjoinv() */
+
+		env = h_strnjoinv("\0", 1, e);
+
+		HFREE_NULL(e);
+		for (i = 0; i < acnt; i++) {
+			HFREE_NULL(added[i]);
+		}
+	} else {
+		extern char **environ;
+		bool uc = FALSE;
+
+		/* Need to check the process environment to position Unicode flag */
+
+		if (environ[0] != NULL) {
+			char *p = environ[0];
+			char *q = strstr(p, "=");
+
+			/*
+			 * If there is a NUL byte before '=' or the '=' sign is indeed
+			 * followed by a NUL, then we can safely assume this is UTF-16
+			 * since and ANSI version would have bytes and no NUL before the
+			 * end of the string.
+			 */
+
+			if (NULL == q || '\0' == q[1])
+				uc = TRUE;		/* Little-endian UTF-16 for '=' */
+		}
+
+		if (uc)
+			flags |= CREATE_UNICODE_ENVIRONMENT;
+	}
+
+	/*
+	 * Transform path to UTF-16.
+	 * We use pncs_convert() to benefit from its path normalization.
+	 */
+
+	if (pncs_convert(&pncs, file)) {
+		error = errno;
+		goto done;
+	}
+
+	/*
+	 * Now create the process!
+	 */
+
+	res = CreateProcessW(
+		pncs.utf16,			/* lpApplicationName */
+		cmd_utf16,			/* lpCommandLine */
+		NULL,				/* lpProcessAttributes */
+		NULL,				/* lpThreadAttributes */
+		FALSE,				/* bInheritHandles */
+		flags,				/* dwCreationFlags */
+		env,				/* lpEnvironment */
+		NULL,				/* lpCurrentDirectory */
+		&si,				/* lpStartupInfo */
+		&pi					/* lpProcessInformation */
+	);
+
+	if (0 == res) {
+		error = mingw_last_error();
+		goto done;
+	}
+
+	/*
+	 * Good, process was created.
+	 *
+	 * We're going to record the handle of the process and its pid, making
+	 * sure we do not close the process handle to be able to wait on the
+	 * child process!
+	 *
+	 * The main thread handle we can close as we don't need it.
+	 */
+
+	CloseHandle(pi.hThread);
+	pid = pi.dwProcessId;
+
+	{
+		HANDLE old;
+		dualhash_t *dh = mingw_launched;
+
+		dualhash_lock(dh);
+
+		old = dualhash_lookup_value(dh, uint_to_pointer(pid));
+
+		if (old != NULL) {
+			s_warning("%s(): had already an unwaited-for child bearing PID=%lu",
+				G_STRFUNC, (ulong) pid);
+			CloseHandle(old);
+			dualhash_remove_value(dh, uint_to_pointer(pid));
+		}
+
+		/* Paranoid! */
+
+		if (dualhash_contains_key(dh, pi.hProcess)) {
+			pid_t opid = pointer_to_ulong(dualhash_lookup_key(dh, pi.hProcess));
+			s_warning("%s(): duplicate handle %p, was for child PID %lu",
+				G_STRFUNC, pi.hProcess, (ulong) opid);
+			dualhash_remove_key(dh, pi.hProcess);
+		}
+
+		dualhash_insert_key(dh, pi.hProcess, uint_to_pointer(pid));
+
+		dualhash_unlock(dh);
+	}
+
+done:
+	HFREE_NULL(cmd);
+	HFREE_NULL(cmd_utf16);
+	HFREE_NULL(env);
+	if (file != path)
+		HFREE_NULL(file);
+
+	if (error != 0)
+		errno = error;
+
+	return pid;
 }
 
 /**
@@ -6122,6 +6588,15 @@ mingw_close(void)
 		
 		libws2_32 = NULL;
 		WSAPoll = NULL;
+	}
+
+	if (mingw_launched != NULL) {
+		size_t cnt = dualhash_count(mingw_launched);
+
+		if (0 != cnt) {
+			s_warning("%s(): still has %zu child process%s unwaited for",
+				G_STRFUNC, cnt, plural_es(cnt));
+		}
 	}
 }
 
