@@ -842,6 +842,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_usleep HAS_USLEEP		/**/
 
+/* HAS_VFORK:
+ *	This symbol, if defined, indicates that vfork() exists.
+ */
+#$d_vfork HAS_VFORK	/**/
+
 /* HASVOLATILE:
  *	This symbol, if defined, indicates that this C compiler knows about
  *	the volatile declaration.
@@ -1158,6 +1163,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	statfs() system call.
  */
 #$i_sysvfs I_SYS_VFS		/**/
+
+/* I_SYS_WAIT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/wait.h>.
+ */
+#$i_syswait I_SYS_WAIT	/**/
 
 /* I_TIME:
  *	This symbol, if defined, indicates to the C program that it should

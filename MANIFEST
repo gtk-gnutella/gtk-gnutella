@@ -756,6 +756,7 @@ src/lib/file_object.c
 src/lib/file_object.h
 src/lib/filehead.c
 src/lib/filehead.h
+src/lib/filelock-test.c
 src/lib/filelock.c
 src/lib/filelock.h
 src/lib/filename.c

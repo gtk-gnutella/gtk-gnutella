@@ -334,6 +334,7 @@ local_clean::
 #define NormalTestTarget(base)	@!\
 NormalProgramLibTarget(base-test, base-test.c, base-test.o, libshared.a)
 
+NormalTestTarget(filelock)
 NormalTestTarget(float)
 NormalTestTarget(ftw)
 NormalTestTarget(launch)

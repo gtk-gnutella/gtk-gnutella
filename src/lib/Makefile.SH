@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  thread-test.o
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -595,6 +595,17 @@ ftw-check: ftw-test
 local_clean::
 	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
 	./ftw-mktree -r
+
+all:: filelock-test
+
+local_realclean::
+	$(RM) filelock-test$(_EXE)
+
+filelock-test:  filelock-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  filelock-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: float-test
 
