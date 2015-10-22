@@ -2075,6 +2075,33 @@ strconcat_track(const char *file, int line, const char *s, ...)
 }
 
 /**
+ * Perform string concatenation, returning newly allocated string.
+ */
+char *
+strconcat_v_track(const char *file, int line, const char *s, va_list ap)
+{
+	char *o;
+
+	o = m_strconcatv(s, ap);
+
+	/*
+	 * FIXME:
+	 *
+	 * m_strconcatv() uses real_malloc(), but we cannot mark we own this
+	 * block as there is no malloc_header structure put in case we're
+	 * compiled with MALLOC_SAFE_HEAD.
+	 *
+	 * To be able to do that, we need to have more flags in the block
+	 * and be able to pass them on to malloc_record (i.e. it must not just
+	 * take TRUE/FALSE but a set of flags) so that we can tell the lower
+	 * layers whether a block allocated through real_malloc() has an
+	 * additional malloc_header in front of the data.
+	 */
+
+	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+}
+
+/**
  * Perform printf into newly allocated string.
  */
 char *

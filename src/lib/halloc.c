@@ -785,6 +785,29 @@ h_strfreev(char **str_array)
 }
 
 /**
+ * The vectorized version of h_strconcat().
+ */
+char *
+h_strconcat_v(const char *first, va_list ap)
+{
+	va_list ap2;
+	size_t len, ret;
+	char *dst;
+
+	VA_COPY(ap2, ap);
+	len = concat_strings_v(NULL, 0, first, ap2);
+	va_end(ap2);
+
+	len = size_saturate_add(len, 1);
+	dst = halloc(len);
+	ret = concat_strings_v(dst, len, first, ap);
+
+	g_assert(ret == len - 1);		/* Do not count the trailing NUL */
+
+	return dst;
+}
+
+/**
  * A clone of g_strconcat() using halloc().
  * The resulting string must be freed via hfree().
  *
@@ -797,22 +820,13 @@ char *
 h_strconcat(const char *first, ...)
 {
 	va_list ap;
-	size_t len, ret;
-	char *dst;
+	char *result;
 
 	va_start(ap, first);
-	len = concat_strings_v(NULL, 0, first, ap);
+	result = h_strconcat_v(first, ap);
 	va_end(ap);
 
-	len = size_saturate_add(len, 1);
-	dst = halloc(len);
-	va_start(ap, first);
-	ret = concat_strings_v(dst, len, first, ap);
-	va_end(ap);
-
-	g_assert(ret == len - 1);		/* Do not count the trailing NUL */
-
-	return dst;
+	return result;
 }
 
 /**
