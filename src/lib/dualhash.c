@@ -427,4 +427,20 @@ dualhash_count(const dualhash_t *dh)
 	return count;
 }
 
+/**
+ * Iterate over the held items in table, traversing (key, value) tuples.
+ */
+void
+dualhash_foreach(const dualhash_t *dh, ckeyval_fn_t fn, void *data)
+{
+	dualhash_check(dh);
+
+	dualhash_synchronize(dh);
+
+	g_assert(htable_count(dh->vht) == htable_count(dh->kht));
+	htable_foreach(dh->kht, fn, data);
+
+	dualhash_unsynchronize(dh);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
