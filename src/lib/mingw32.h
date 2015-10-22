@@ -417,6 +417,31 @@ struct timespec {
 int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 #endif	/* !HAS_NANOSLEEP */
 
+/*
+ * waitpid() emulation.
+ */
+#ifndef HAS_WAITPID
+#define HAS_WAITPID
+#define EMULATE_WAITPID
+#define waitpid mingw_waitpid
+#define wait mingw_wait
+
+/* waitpid() supported options */
+#define WNOHANG		(1U << 0)	/* don't wait */
+
+/* status queries -- Windows does not support signals nor core dumps */
+#define WIFEXITED(s)		TRUE		/* can't know termination was forced */
+#define WEXITSTATUS(s)		(s)
+#define WIFSIGNALED(s)		FALSE
+#define WTERMSIG(s)			0
+#define WCOREDUMP(s)		FALSE
+#define WIFSTOPPED(s)		FALSE
+#define WIFCONTINUED(s)		FALSE
+
+pid_t mingw_wait(int *status);
+pid_t mingw_waitpid(pid_t pid, int *status, int options);
+#endif	/* !HAS_WAITPID */
+
 static inline void *
 iovec_base(const iovec_t* iovec)
 {

@@ -1583,6 +1583,142 @@ done:
 	return pid;
 }
 
+#ifdef EMULATE_WAITPID
+pid_t
+mingw_wait(int *status)
+{
+	return mingw_waitpid(-1, status, 0);
+}
+
+struct mingw_child_args {
+	HANDLE *hv;			/* Handle vector */
+	size_t count;		/* Amount of items in vector */
+	size_t pos;			/* Next position to fill in vector */
+};
+
+static void
+mingw_child_add(const void *key, void *value, void *data)
+{
+	struct mingw_child_args *arg = data;
+	HANDLE *h = deconstify_pointer(key);
+
+	g_assert(arg->pos < arg->count);
+	(void) value;
+
+	arg->hv[arg->pos++] = h;
+}
+
+pid_t
+mingw_waitpid(pid_t pid, int *status, int options)
+{
+	dualhash_t *dh = mingw_launched;
+	int ms, res;
+	HANDLE proc = NULL;
+	pid_t exiting_pid;
+
+	if (NULL == dh || 0 == dualhash_count(dh))
+		goto no_child;
+
+	ms = (options & WNOHANG) ? 0 : INFINITE;
+
+	if (pid > 0) {
+		HANDLE h = dualhash_lookup_value(dh, ulong_to_pointer(pid));
+
+		if (NULL == h)
+			goto no_child;
+
+		switch (WaitForSingleObject(h, ms)) {
+		case WAIT_TIMEOUT:
+			return 0;
+		case WAIT_ABANDONED:
+			s_warning("%s(): got WAIT_ABANDONED while waiting for PID %lu?",
+				G_STRFUNC, (ulong) pid);
+			errno = EINTR;	/* Such a weird state: handle is for a process! */
+			return -1;
+		case WAIT_OBJECT_0:
+			proc = h;		/* This process has exited */
+			break;
+		case WAIT_FAILED:
+		default:
+			errno = mingw_last_error();
+			return -1;
+		}
+	} else {
+		HANDLE *hv;
+		size_t count;
+		struct mingw_child_args arg;
+
+		dualhash_lock(dh);
+
+		count = dualhash_count(dh);
+		HALLOC0_ARRAY(hv, count);
+
+		arg.hv = hv;
+		arg.count = count;
+		arg.pos = 0;
+
+		dualhash_foreach(dh, mingw_child_add, &arg);
+		dualhash_unlock(dh);
+
+		res = WaitForMultipleObjects(count, hv, FALSE, ms);
+
+		if (res >= WAIT_OBJECT_0 && res < WAIT_ABANDONED_0)
+			proc = hv[res - WAIT_OBJECT_0];		/* This process has exited */
+
+		HFREE_NULL(hv);
+
+		if (proc != NULL) {
+			goto child_exited;
+		} else if (WAIT_TIMEOUT == res) {
+			return 0;
+		} else {
+			if (WAIT_FAILED == UNSIGNED(res)) {
+				errno = mingw_last_error();
+			} else {
+				s_warning("%s(): got WAIT_ABANDONED while waiting for children",
+					G_STRFUNC);
+				errno = EINTR;
+			}
+			return -1;
+		}
+	}
+
+child_exited:
+
+	g_assert(proc != NULL);		/* This process has exited */
+
+	dualhash_lock(dh);
+
+	exiting_pid = pointer_to_ulong(dualhash_lookup_key(dh, proc));
+	dualhash_remove_key(dh, proc);
+
+	dualhash_unlock(dh);
+
+	g_soft_assert_log(0 != exiting_pid,
+		"%s(): handle %p is no longer associated to any PID?",
+		G_STRFUNC, proc);
+
+	if (status != NULL) {
+		DWORD code;
+		if (!GetExitCodeProcess(proc, &code)) {
+			errno = mingw_last_error();
+			s_warning("%s(): could not get exit status of PID %lu: %m",
+				G_STRFUNC, (ulong) exiting_pid);
+			*status = 0;
+		} else {
+			*status = code;
+		}
+	}
+
+	CloseHandle(proc);
+	return exiting_pid;
+
+no_child:
+	errno = ECHILD;
+	return -1;
+}
+#endif	/* EMULATE_WAITPID */
+
 /**
  * Is WSAPoll() supported?
  */
