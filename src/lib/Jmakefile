@@ -154,6 +154,7 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	launch.c \
 	leak.c \
 	list.c \
 	listener.c \
