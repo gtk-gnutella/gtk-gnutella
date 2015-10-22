@@ -65,6 +65,7 @@ LSRC = \
 	alloca.c \
 	aq.c \
 	arc4random.c \
+	argv.c \
 	ascii.c \
 	atio.c \
 	atoms.c \

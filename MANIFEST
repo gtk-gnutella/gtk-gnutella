@@ -634,6 +634,8 @@ src/lib/aq.c
 src/lib/aq.h
 src/lib/arc4random.c
 src/lib/arc4random.h
+src/lib/argv.c
+src/lib/argv.h
 src/lib/array.h
 src/lib/array_util.h
 src/lib/ascii.c

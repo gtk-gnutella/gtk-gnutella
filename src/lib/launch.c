@@ -58,6 +58,8 @@
 
 #include "launch.h"
 
+#include "argv.h"
+
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -101,5 +103,91 @@ launchve(const char *path, char *const argv[], char *const envp[])
 }
 
 #endif	/* !MINGW32 */
+
+/**
+ * Vectorized version of launchl() or launchle().
+ *
+ * It is a wrapper over launchve() to construct the argv[] array from
+ * an argument list.
+ */
+pid_t
+launchle_v(const char *path, const char *arg, va_list ap, char *const envp[])
+{
+	pid_t pid;
+	char **argv;
+
+	argv = argv_create(arg, ap);
+	pid = launchve(path, argv, envp);
+	argv_free_null(&argv);
+
+	return pid;
+}
+
+/**
+ * Vectorized version of launchl().
+ *
+ * It is a wrapper over launchve() to construct the argv[] array from
+ * an argument list.
+ */
+pid_t
+launchl_v(const char *path, const char *arg, va_list ap)
+{
+	return launchle_v(path, arg, ap, NULL);
+}
+
+/**
+ * Launch `path', supplying it with arguments starting with `arg' and
+ * followed by the listed additional argument strings, up to the trailing
+ * NULL sentinel.
+ *
+ * @param path		the executable to launch
+ * @param arg		what will be given as argv[0] to the new process
+ *
+ * @return -1 on failure, the PID of the child process otherwise.
+ */
+pid_t
+launchl(const char *path, const char *arg, ...)
+{
+	pid_t pid;
+	va_list ap;
+
+	va_start(ap, arg);
+	pid = launchl_v(path, arg, ap);
+	va_end(ap);
+
+	return pid;
+}
+
+/**
+ * Launch `path', supplying it with arguments starting with `arg' and
+ * followed by the listed additional argument strings, up to the trailing
+ * NULL sentinel, followed by a last argument being the new environment.
+ *
+ * @param path		the executable to launch
+ * @param arg		what will be given as argv[0] to the new process
+ * @param ...		argument list, NULL-terminated
+ * @param envp		the environment strings to setup for the new process
+ *
+ * @return -1 on failure, the PID of the child process otherwise.
+ */
+pid_t
+launchle(const char *path, const char *arg, ...)
+{
+	pid_t pid;
+	va_list ap;
+	char **envp;
+
+	va_start(ap, arg);
+	while (NULL != va_arg(ap, char *))
+		/* empty */;
+	envp = va_arg(ap, char **);
+	va_end(ap);
+
+	va_start(ap, arg);
+	pid = launchle_v(path, arg, ap, envp);
+	va_end(ap);
+
+	return pid;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -25,28 +25,22 @@
  * @ingroup lib
  * @file
  *
- * Process launcher.
+ * Argument vector utilities.
  *
  * @author Raphael Manfredi
  * @date 2015
  */
 
-#ifndef _launch_h_
-#define _launch_h_
+#ifndef _argv_h_
+#define _argv_h_
 
 /*
  * Public interface.
  */
 
-pid_t launchve(const char *path, char *const argv[], char *const envp[]);
+char **argv_create(const char *arg, va_list ap);
+void argv_free_null(char ***argv_ptr);
 
-pid_t launchl(const char *path, const char *arg, ...) G_GNUC_NULL_TERMINATED;
-pid_t launchle(const char *path, const char *arg, ...);
-
-pid_t launchl_v(const char *path, const char *arg, va_list ap);
-pid_t launchle_v(const char *path,
-	const char *arg, va_list ap, char *const envp[]);
-
-#endif	/* _launch_h_ */
+#endif	/* _argv_h_ */
 
 /* vi: set ts=4: */

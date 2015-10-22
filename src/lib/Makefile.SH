@@ -134,6 +134,7 @@ LSRC = \
 	alloca.c \
 	aq.c \
 	arc4random.c \
+	argv.c \
 	ascii.c \
 	atio.c \
 	atoms.c \
@@ -322,6 +323,7 @@ LOBJ = \
 	alloca.o \
 	aq.o \
 	arc4random.o \
+	argv.o \
 	ascii.o \
 	atio.o \
 	atoms.o \
