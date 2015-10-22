@@ -759,7 +759,7 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 			concat_strings(buf, sizeof buf,
 				uint64_to_string(d->data.guint64.min), "/",
 				uint64_to_string2(d->data.guint64.max),
-				(void *) 0);
+				NULL_PTR);
 
 			g_carp("%s(): [%s] new value out of bounds "
 				"(%s): %s (adjusting to %s)", G_STRFUNC, d->name, buf,
@@ -997,7 +997,7 @@ prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
 			concat_strings(buf, sizeof buf,
 				timestamp_to_string(d->data.timestamp.min), "/",
 				timestamp_to_string2(d->data.timestamp.max),
-				(void *) 0);
+				NULL_PTR);
 
 			g_carp("%s(): [%s] new value out of bounds "
 				"(%s): %s (adjusting to %s)", G_STRFUNC, d->name, buf,
@@ -1737,7 +1737,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		 */
 
 		if (ps->mtime && delta_time(sb.st_mtime, ps->mtime) > 0) {
-			char *old = h_strconcat(pathname, ".old", (void *) 0);
+			char *old = h_strconcat(pathname, ".old", NULL_PTR);
 			s_warning("%s(): config file \"%s\" changed whilst I was running",
 				G_STRFUNC, pathname);
 			if (-1 == rename(pathname, old))
@@ -1754,7 +1754,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	 * clobber a good configuration file should we fail abruptly.
 	 */
 
-	newfile = h_strconcat(pathname, ".new", (void *) 0);
+	newfile = h_strconcat(pathname, ".new", NULL_PTR);
 	config = file_fopen(newfile, "w");
 
 	if (config == NULL)

@@ -309,7 +309,7 @@ uploads_gui_host_string(const gnet_upload_info_t *u)
 		peer ? " <" : "",
 		peer ? peer : "",
 		peer ? ">"  : "",
-		(void *) 0);
+		NULL_PTR);
 
 	return buf;
 }

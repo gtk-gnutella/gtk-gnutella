@@ -2267,7 +2267,7 @@ parq_upload_find(const struct upload *u)
 	} else if (u->name) {
 		concat_strings(buf, sizeof buf,
 			host_addr_to_string(u->addr), " ", u->name,
-			(void *) 0);
+			NULL_PTR);
 		return hikset_lookup(ul_all_parq_by_addr_and_name, buf);
 	} else {
 		return NULL;
@@ -4376,7 +4376,7 @@ parq_upload_add_retry_after_header(char *buf, size_t size, uint d)
 
 	len = concat_strings(buf, size,
 			"Retry-After: ", uint32_to_string(d), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 	return len < size ? len : 0;
 }
 
@@ -4422,7 +4422,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 	len = concat_strings(&buf[rw], size,
 			"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
 			/* No CRLF yet, we're still appending to this header */
-			(void *) 0);
+			NULL_PTR);
 
 	if (len < size) {
 		rw += len;
@@ -4432,7 +4432,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 
 		len = concat_strings(&buf[rw], size,
 			"; position=", uint32_to_string(puq->relative_position),
-			(void *) 0);
+			NULL_PTR);
 
 		if (len < size) {
 			rw += len;
@@ -4441,20 +4441,20 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 			if (!small_reply) {
 				len = concat_strings(&buf[rw], size,
 					"; lifetime=", uint32_to_string(max_poll),
-					(void *) 0);
+					NULL_PTR);
 				if (len < size) {
 					rw += len;
 					size -= len;
 					len = concat_strings(&buf[rw], size,
 						"; length=",
 						uint32_to_string(puq->queue->by_position_length),
-						(void *) 0);
+						NULL_PTR);
 					if (len < size) {
 						rw += len;
 						size -= len;
 						len = concat_strings(&buf[rw], size,
 							"; ETA=", uint32_to_string(puq->eta),
-							(void *) 0);
+							NULL_PTR);
 						if (len < size) {
 							rw += len;
 							size -= len;
@@ -4466,7 +4466,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 
 		len = concat_strings(&buf[rw], sizeof "\r\n",
 				"\r\n",
-				(void *) 0);
+				NULL_PTR);
 		rw += len;
 	}
 	return rw;
@@ -4583,7 +4583,7 @@ parq_upload_add_header_id(char *buf, size_t size, void *arg,
 		len = concat_strings(&buf[rw], size,
 				"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
 				"\r\n",
-				(void *) 0);
+				NULL_PTR);
 
 		if (len >= size)
 			goto finish;

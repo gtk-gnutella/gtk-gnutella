@@ -82,7 +82,7 @@ make_pathname(const char *dir, const char *file)
 	else
 		sep = "/";
 
-	return h_strconcat(dir, sep, file, (void *) 0);
+	return h_strconcat(dir, sep, file, NULL_PTR);
 }
 
 /**
@@ -261,7 +261,7 @@ get_folder_basepath(enum special_folder which_folder)
 						pathname = omalloc(MAX_PATH_LEN);
 						concat_strings(pathname, MAX_PATH_LEN,
 							special_path, G_DIR_SEPARATOR_S, PACKAGE,
-							(void *) 0);
+							NULL_PTR);
 					} else {
 						s_warning("ignoring environment XDG_DATA_DIRS: "
 							"holds non-absolute path \"%s\"", special_path);

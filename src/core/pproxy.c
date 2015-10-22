@@ -1257,7 +1257,7 @@ cproxy_build_request(const struct http_async *ha,
 			"X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
-			(void *) 0);
+			NULL_PTR);
 	}
 
 	addr = listen_addr6();
@@ -1271,7 +1271,7 @@ cproxy_build_request(const struct http_async *ha,
 			has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
-			(void *) 0);
+			NULL_PTR);
 	}
 	
 	return str_bprintf(buf, len,
@@ -1446,7 +1446,7 @@ cproxy_http_request(struct cproxy *cp)
 	concat_strings(path, sizeof path,
 		"/gnutella/push-proxy?ServerId=", guid_base32_str(cp->guid),
 		tls_enabled() ? "&tls=true" : "",
-		(void *) 0);
+		NULL_PTR);
 
 	/*
 	 * Try to connect immediately: if we can't connect, no need to continue.

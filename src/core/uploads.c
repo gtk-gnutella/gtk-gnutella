@@ -474,7 +474,7 @@ upload_host_info(const struct upload *u)
 	host_addr_to_string_buf(u->addr, host, sizeof host);
 	concat_strings(info, sizeof info,
 		"<", host, " \'", upload_vendor_str(u), "\'>",
-		(void *) 0);
+		NULL_PTR);
 	return info;
 }
 
@@ -1581,7 +1581,7 @@ upload_http_xhost_add(char *buf, size_t size,
 	if (host_is_valid(addr, port)) {
 		len = concat_strings(buf, size,
 				"X-Host: ", host_addr_port_to_string(addr, port), "\r\n",
-				(void *) 0);
+				NULL_PTR);
 	} else {
 		len = 0;
 	}
@@ -1661,7 +1661,7 @@ upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	rw = concat_strings(buf, size,
 			"X-GUID: ", guid_hex_str(&guid), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 
 	if (rw >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-GUID header back: only %u byte%s left",
@@ -1709,7 +1709,7 @@ upload_gnutella_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	len = concat_strings(buf, size,
 			"X-Gnutella-Content-URN: ", sha1_to_urn_string(sha1), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Gnutella-Content-URN header back: "
@@ -1758,7 +1758,7 @@ upload_thex_uri_add(char *buf, size_t size, void *arg, uint32 flags)
 			"X-Thex-URI: /uri-res/N2X?", sha1_to_urn_string(sha1),
 			";", tth_base32(tth),
 			"\r\n",
-			(void *) 0);
+			NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Thex-URI header back: only %u byte%s left",
@@ -1954,7 +1954,7 @@ upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 
 	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
 	len = concat_strings(buf, size,
-			"Content-Range: bytes */", fsize, (void *) 0);
+			"Content-Range: bytes */", fsize, NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
@@ -1979,7 +1979,7 @@ upload_http_content_length_add(char *buf, size_t size,
 
 	len = concat_strings(buf, size,
 			"Content-Length: ", uint64_to_string(u->end - u->skip + 1), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Length header back: "
@@ -2007,7 +2007,7 @@ upload_http_content_type_add(char *buf, size_t size,
 	shared_file_check(u->sf);
 	len = concat_strings(buf, size,
 			"Content-Type: ", shared_file_mime_type(u->sf), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Type header back: "
@@ -2029,7 +2029,7 @@ upload_http_last_modified_add(char *buf, size_t size,
 
 	len = concat_strings(buf, size,
 			"Last-Modified: ", timestamp_rfc1123_to_string(a->mtime), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Last-Modified header back: "
@@ -2057,7 +2057,7 @@ upload_http_content_range_add(char *buf, size_t size,
 				uint64_to_string(u->skip), "-", uint64_to_string2(u->end),
 				"/", filesize_to_string(u->file_size),
 				"\r\n",
-				(void *) 0);
+				NULL_PTR);
 	} else {
 		len = 0;
 	}
@@ -2751,7 +2751,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		if (faked) {
 			char name[1024];
 
-			concat_strings(name, sizeof name, "!", user_agent, (void *) 0);
+			concat_strings(name, sizeof name, "!", user_agent, NULL_PTR);
 			u->user_agent = atom_str_get(name);
 		} else
 			u->user_agent = atom_str_get(user_agent);

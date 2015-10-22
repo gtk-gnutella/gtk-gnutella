@@ -323,11 +323,11 @@ search_gui_option_menu_searches_update(void)
 		}
 		query = search_gui_query(search);
 		if (search_gui_is_browse(search)) {
-			name = g_strconcat("browse:", query, (void *) 0);
+			name = g_strconcat("browse:", query, NULL_PTR);
 		} else if (search_gui_is_passive(search)) {
-			name = g_strconcat("passive:", query, (void *) 0);
+			name = g_strconcat("passive:", query, NULL_PTR);
 		} else if (search_gui_is_local(search)) {
-			name = g_strconcat("local:", query, (void *) 0);
+			name = g_strconcat("local:", query, NULL_PTR);
 		} else {
 			name = g_strdup(query);
 		}
@@ -412,7 +412,7 @@ search_gui_update_tab_label(const struct search *search)
 		search->unseen_items > 0 ? ", " : "",
 		search->unseen_items > 0 ? uint32_to_string(search->unseen_items) : "",
 		")",
-		(void *) 0);
+		NULL_PTR);
 
 	gtk_notebook_set_tab_label_text(notebook_search_results,
 		search->scrolled_window, label);
@@ -2893,7 +2893,7 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 		static const gchar prefix[] = "urn:sha1:";
 		gchar urn[SHA1_BASE32_SIZE + sizeof prefix];
 
-		concat_strings(urn, sizeof urn, prefix, sha1_base32(&sha1), (void *) 0);
+		concat_strings(urn, sizeof urn, prefix, sha1_base32(&sha1), NULL_PTR);
 		return search_gui_handle_urn(urn, error_str);
 	}
 }
@@ -3905,8 +3905,7 @@ search_gui_get_vendor(const struct results_set *rs)
 		if (rs->version) {
 			static gchar buf[128];
 
-			concat_strings(buf, sizeof buf, vendor, "/", rs->version,
-				(void *) 0);
+			concat_strings(buf, sizeof buf, vendor, "/", rs->version, NULL_PTR);
 			vendor = buf;
 		}
 	} else {
@@ -4151,7 +4150,7 @@ search_gui_set_details(const record_t *rc)
 			url = g_strconcat("http://",
 					host_addr_port_to_string(rs->addr, rs->port),
 					"/uri-res/N2R?", bitprint_to_urn_string(rc->sha1, rc->tth),
-					(void *)0);
+					NULL_PTR);
 			search_gui_append_detail(_("N2R URI"), url);
 			G_FREE_NULL(url);
 		}
@@ -4190,7 +4189,7 @@ search_gui_set_details(const record_t *rc)
 			url = h_strconcat("http://",
 					host_addr_port_to_string(rs->addr, rs->port),
 					"/get/", uint32_to_string(rc->file_index), "/", escaped,
-					(void *)0);
+					NULL_PTR);
 			search_gui_append_detail(_("Classic URL"), url);
 			if (filename != escaped) {
 				HFREE_NULL(escaped);

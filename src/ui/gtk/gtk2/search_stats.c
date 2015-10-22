@@ -198,7 +198,7 @@ search_stats_notify_whole(query_type_t type, const char *search,
 		type == QUERY_SHA1 ? "urn:sha1:" : "[",
 		search,
 		type == QUERY_SHA1 ? "" : "]",
-        (void *) 0);
+        NULL_PTR);
 
 	wovec.word = buf;
     wovec.len = strlen(wovec.word);
@@ -403,10 +403,10 @@ add_column(GtkTreeView *treeview, int id, float xalign,
     g_object_set(renderer,
         "xalign", xalign,
         "ypad", GUI_CELL_RENDERER_YPAD,
-        (void *) 0);
+        NULL_PTR);
 
     column = gtk_tree_view_column_new_with_attributes(
-                label, renderer, "text", id, (void *) 0);
+                label, renderer, "text", id, NULL_PTR);
 
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 1,
@@ -415,7 +415,7 @@ add_column(GtkTreeView *treeview, int id, float xalign,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		"visible", TRUE,
-		(void *) 0);
+		NULL_PTR);
 
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_column_set_sort_column_id(column, id);

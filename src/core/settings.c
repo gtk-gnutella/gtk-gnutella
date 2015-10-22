@@ -2425,7 +2425,7 @@ tilda_expand(property_t prop)
 
 		expanded = h_strconcat(home,
 			'/' == pathname[1] ? "/" : G_DIR_SEPARATOR_S,
-			&pathname[2], (void *) 0);
+			&pathname[2], NULL_PTR);
 
 		gnet_prop_set_string(prop, expanded);
 		HFREE_NULL(expanded);

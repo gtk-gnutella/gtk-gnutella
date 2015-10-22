@@ -445,19 +445,19 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 			GTK_CELL_RENDERER_TEXT(renderer), 1);
 		g_object_set(renderer,
 			"foreground-set", TRUE,
-			(void *) 0);
+			NULL_PTR);
 		column = gtk_tree_view_column_new_with_attributes(
 					_(column_titles[column_id]), renderer,
 					"foreground-gdk", c_ul_fg,
 					"text", column_id,
-					(void *) 0);
+					NULL_PTR);
 	}
 
 	g_object_set(renderer,
 		"xalign", (gfloat) 0.0,
 		"xpad", xpad,
 		"ypad", GUI_CELL_RENDERER_YPAD,
-		(void *) 0);
+		NULL_PTR);
 
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 1,
@@ -465,7 +465,7 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		(void *) 0);
+		NULL_PTR);
 
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
 	gtk_tree_view_append_column(treeview_uploads, column);

@@ -846,7 +846,7 @@ tls_version_string(void)
 			differ ? " (compiled against " : "",
 			differ ? LIBGNUTLS_VERSION : "",
 			differ ? ")" : "",
-			(void *) 0);
+			NULL_PTR);
 	}
 	return buf;
 }
@@ -944,7 +944,7 @@ svn_release_notification_verify(uint32 revision, time_t date,
 	input.size = concat_strings(data, sizeof data,
 					"r", rev,
 					"@", uint32_to_string(date),
-					(void *) 0);
+					NULL_PTR);
 
 	return verify_signature(svn_release_notify_certificate(),
 				&input, signature);

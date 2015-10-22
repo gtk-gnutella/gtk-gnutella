@@ -419,20 +419,20 @@ get_shared_dirs_model(void)
 		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 		renderer = gtk_cell_renderer_text_new();
 		column = gtk_tree_view_column_new_with_attributes(NULL, renderer,
-					"text", 1, (void *) 0);
+					"text", 1, NULL_PTR);
 
 		g_object_set(renderer,
 			"xalign", 0.0,
 			"xpad", GUI_CELL_RENDERER_XPAD,
 			"ypad", GUI_CELL_RENDERER_YPAD,
-			(void *) 0);
+			NULL_PTR);
 		g_object_set(column,
 			"fixed-width", 200,
 			"min-width", 1,
 			"resizable", TRUE,
 			"reorderable", FALSE,
 			"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-			(void *) 0);
+			NULL_PTR);
 
    		gtk_tree_view_append_column(tv, column);
 	}
@@ -2157,7 +2157,7 @@ update_address_information(void)
 		concat_strings(buf, sizeof buf,
 			addr_buf,
 			'\0' != addr_buf[0] && '\0' != addr_v6_buf[0] ? ", " : "",
-			addr_v6_buf, (void *) 0);
+			addr_v6_buf, NULL_PTR);
 		
         old_address = addr;
         old_v6_address = addr_v6;
@@ -2352,7 +2352,7 @@ guid_changed(property_t prop)
 
 	   	label = GTK_LABEL(gui_main_window_lookup("label_nodes_guid"));
 		concat_strings(buf, sizeof buf,
-			"<tt>", guid_hex_str(&guid_buf), "</tt>", (void *) 0);
+			"<tt>", guid_hex_str(&guid_buf), "</tt>", NULL_PTR);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}
@@ -2379,7 +2379,7 @@ kuid_changed(property_t prop)
 
 	   	label = GTK_LABEL(gui_main_window_lookup("label_nodes_kuid"));
 		concat_strings(buf, sizeof buf,
-			"<tt>", kuid_to_hex_string(&kuid_buf), "</tt>", (void *) 0);
+			"<tt>", kuid_to_hex_string(&kuid_buf), "</tt>", NULL_PTR);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}

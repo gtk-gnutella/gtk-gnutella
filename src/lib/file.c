@@ -133,7 +133,7 @@ file_locate_from_path(const char *argv0)
 		if ('\0' == *dir)
 			dir = ".";
 		concat_strings(filepath, sizeof filepath,
-			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL);
+			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL_PTR);
 
 		if (-1 != stat(filepath, &buf)) {
 			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
@@ -361,8 +361,9 @@ file_config_open(const char *what, const file_path_t *fv)
 	FILE *out = NULL;
 	char *path;
 
-	path = h_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name, ".",
-				new_ext, (void *) 0);
+	path = h_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name,
+				".", new_ext, NULL_PTR);
+
 	g_return_val_if_fail(NULL != path, NULL);
 
 	if (is_absolute_path(path)) {

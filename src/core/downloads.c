@@ -397,14 +397,14 @@ server_host_info(const struct dl_server *server)
 	if (server->hostname) {
 		concat_strings(name, sizeof name,
 			" (", server->hostname, ") ",
-			NULL);
+			NULL_PTR);
 	}
 
 	concat_strings(info, sizeof info,
 		"<",
 		(server->attrs & DLS_A_G2_ONLY) ? "G2 " : "",
 		host, name, " \'", server->vendor ? server->vendor : "", "\'>",
-		NULL);
+		NULL_PTR);
 
 	return info;
 }
@@ -8705,7 +8705,7 @@ download_get_server_name(struct download *d, header_t *header)
 		if (server->vendor == NULL) {
 			got_new_server = TRUE;
 			if (faked)
-				size = w_concat_strings(&wbuf, "!", user_agent, (void *) 0);
+				size = w_concat_strings(&wbuf, "!", user_agent, NULL_PTR);
 			vendor = wbuf ? wbuf : user_agent;
 		} else if (!faked && 0 != strcmp(server->vendor, user_agent)) {
 			/* Name changed? */
@@ -15938,7 +15938,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 		sequence_release(&seq);
 		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 		concat_strings(prefix_buf, sizeof prefix_buf,
-			"push://", guid_buf, (void *) 0);
+			"push://", guid_buf, NULL_PTR);
 		prefix = prefix_buf;
 	} else if (0 != port && is_host_addr(addr)) {
 		host = host_port_to_string(download_hostname(d), addr, port);
@@ -15950,7 +15950,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 	if ('/' == uri[0])
 		uri++;
 
-	result = g_strconcat(prefix, host, "/", uri, (void *) 0);
+	result = g_strconcat(prefix, host, "/", uri, NULL_PTR);
 
 	HFREE_NULL(hostp);
 
@@ -15982,7 +15982,7 @@ download_build_url(const struct download *d)
 		concat_strings(uri, sizeof uri,
 			"/uri-res/N2R?",
 			bitprint_to_urn_string(download_get_sha1(d), download_get_tth(d)),
-			(void *) 0);
+			NULL_PTR);
 		url = download_url_for_uri(d, uri);
 	} else {
 		char *escaped, *uri;
@@ -16040,7 +16040,7 @@ download_get_hostname(const struct download *d)
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",
 		d->server->hostname ? ")" : "",
-		(void *) 0);
+		NULL_PTR);
 	
 	return buf;
 }
@@ -16527,7 +16527,7 @@ download_handle_magnet(const char *url)
 		if (!filename) {
 			if (res->sha1) {
 				filename = h_strconcat("urn:sha1:",
-								sha1_base32(res->sha1), (void *) 0);
+								sha1_base32(res->sha1), NULL_PTR);
 			} else {
 				filename = h_strdup("magnet-download");
 			}

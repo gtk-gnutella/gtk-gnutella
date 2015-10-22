@@ -1380,7 +1380,7 @@ mingw_patch_personal_path(const char *pathname)
 			 */
 
 			patched = h_strconcat(mingw_get_personal_path(),
-				G_DIR_SEPARATOR_S, product_get_name(), p, (void *) 0);
+				G_DIR_SEPARATOR_S, product_get_name(), p, NULL_PTR);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
 		return patched;

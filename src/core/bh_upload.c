@@ -229,7 +229,7 @@ browse_host_read_html(struct special_upload *ctx,
 					short_kb_size(shared_kbytes_scanned(),
 						GNET_PROPERTY(display_metric_units)),
 					" total</h3>\r\n"
-					"<ul>\r\n", (void *) 0);
+					"<ul>\r\n", NULL_PTR);
 				bh->b_data = bh->w_buf;
 				bh->b_size = bh->w_buf_size - 1; /* minus trailing NUL */
 				bh->b_offset = 0;
@@ -281,7 +281,7 @@ browse_host_read_html(struct special_upload *ctx,
 						
 						dir = shared_file_relative_path(sf);
 						if (dir) {
-							name = h_strconcat(dir, "/", name_nfc, (void *) 0);
+							name = h_strconcat(dir, "/", name_nfc, NULL_PTR);
 						} else {
 							name = deconstify_char(name_nfc);
 						}
@@ -304,7 +304,7 @@ browse_host_read_html(struct special_upload *ctx,
 							short_html_size(file_size,
 								GNET_PROPERTY(display_metric_units)),
 							"]</li>\r\n",
-							(void *) 0);
+							NULL_PTR);
 					} else {
 						char *escaped;
 
@@ -316,7 +316,7 @@ browse_host_read_html(struct special_upload *ctx,
 							"&nbsp;[",
 							short_html_size(file_size,
 								GNET_PROPERTY(display_metric_units)),
-							"]</li>\r\n", (void *) 0);
+							"]</li>\r\n", NULL_PTR);
 
 						if (escaped != name_nfc) {
 							HFREE_NULL(escaped);

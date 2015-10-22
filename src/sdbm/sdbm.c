@@ -240,19 +240,19 @@ sdbm_open(const char *file, int flags, int mode)
 		errno = EINVAL;
 		goto error;
 	}
-	dirname = h_strconcat(file, DBM_DIRFEXT, (void *) 0);
+	dirname = h_strconcat(file, DBM_DIRFEXT, NULL_PTR);
 	if (NULL == dirname) {
 		errno = ENOMEM;
 		goto error;
 	}
-	pagname = h_strconcat(file, DBM_PAGFEXT, (void *) 0);
+	pagname = h_strconcat(file, DBM_PAGFEXT, NULL_PTR);
 	if (NULL == pagname) {
 		errno = ENOMEM;
 		goto error;
 	}
 
 #ifdef BIGDATA
-	datname = h_strconcat(file, DBM_DATFEXT, (void *) 0);
+	datname = h_strconcat(file, DBM_DATFEXT, NULL_PTR);
 	if (NULL == datname) {
 		errno = ENOMEM;
 		goto error;
@@ -351,7 +351,7 @@ sdbm_name(const DBM *db)
 	sdbm_synchronize(db);
 	if (NULL == db->name) {
 		DBM *wdb = deconstify_pointer(db);
-		wdb->name = h_strconcat("file ", db->pagname, NULL);
+		wdb->name = h_strconcat("file ", db->pagname, NULL_PTR);
 	}
 	sdbm_unsynchronize(db);
 
@@ -2638,7 +2638,7 @@ sdbm_rename(DBM *db, const char *base)
 
 #ifdef BIGDATA
 	if (db->datname != NULL) {
-		datname = h_strconcat(base, DBM_DATFEXT, (void *) 0);
+		datname = h_strconcat(base, DBM_DATFEXT, NULL_PTR);
 		if (NULL == pagname) {
 			errno = ENOMEM;
 			goto error;
@@ -2646,12 +2646,12 @@ sdbm_rename(DBM *db, const char *base)
 	}
 #endif
 
-	dirname = h_strconcat(base, DBM_DIRFEXT, (void *) 0);
+	dirname = h_strconcat(base, DBM_DIRFEXT, NULL_PTR);
 	if (NULL == dirname) {
 		errno = ENOMEM;
 		goto error;
 	}
-	pagname = h_strconcat(base, DBM_PAGFEXT, (void *) 0);
+	pagname = h_strconcat(base, DBM_PAGFEXT, NULL_PTR);
 	if (NULL == pagname) {
 		errno = ENOMEM;
 		goto error;

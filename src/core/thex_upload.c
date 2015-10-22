@@ -135,7 +135,7 @@ thex_upload_prepare_xml(char **data_ptr, const struct tth *tth,
 			" type=\""			THEX_TREE_TYPE "\""
 			" uri=\"",			thex_upload_uuid(tth), "\"/>\r\n"
 		"</hashtree>\r\n",
-		(void *) 0);
+		NULL_PTR);
 
 	dime = dime_record_alloc();
 	dime_record_set_data(dime, buf, len);

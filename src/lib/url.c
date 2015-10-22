@@ -226,7 +226,7 @@ url_from_absolute_path(const char *path)
 	
 	g_return_val_if_fail(is_absolute_path(path), NULL);
 	escaped = url_escape_mask(path, SHELL_MASK);
-	url = g_strconcat("file://", escaped, (void *) 0);
+	url = g_strconcat("file://", escaped, NULL_PTR);
 	if (escaped != path) {
 		HFREE_NULL(escaped);
 	}
@@ -821,13 +821,13 @@ url_absolute_within(const char *base, const char *relative)
 
 	if (is_strprefix(relative, "//"))
 		/* Was missing the scheme */
-		return h_strconcat("http:", relative, NULL);
+		return h_strconcat("http:", relative, NULL_PTR);
 
 	if (is_strprefix(relative, "#")) {
 		char *p;
 
 		if (NULL == (p = strchr(base, '#'))) {
-			return h_strconcat(base, relative, NULL);
+			return h_strconcat(base, relative, NULL_PTR);
 		} else {
 			/* Replace the fragment */
 			dbase = h_strdup(base);
@@ -849,7 +849,7 @@ url_absolute_within(const char *base, const char *relative)
 		if (NULL == p) {
 			/* base was "http://host" with no trailing path */
 			hfree(dbase);
-			return h_strconcat(base, relative, NULL);
+			return h_strconcat(base, relative, NULL_PTR);
 		} else {
 			/* replace relative path in the base */
 			*p = '\0';
@@ -876,7 +876,7 @@ concatenate:
 
 		g_assert(dbase != NULL);
 
-		result = h_strconcat(dbase, relative, NULL);
+		result = h_strconcat(dbase, relative, NULL_PTR);
 		hfree(dbase);
 		return result;
 	}

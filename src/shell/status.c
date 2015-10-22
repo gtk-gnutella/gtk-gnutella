@@ -368,7 +368,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			" ",
 			short_kb_size(shared_kbytes_scanned(), metric),
 			" total",
-			(void *) 0);
+			NULL_PTR);
 		str_bprintf(buf, sizeof buf,
 			"| %-35s Up: %-11s Down: %-11s |\n",
 			line,

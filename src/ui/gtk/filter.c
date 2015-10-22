@@ -104,10 +104,10 @@ add_column(GtkTreeView *tv, const gchar *name, gint id)
 		"mode",		GTK_CELL_RENDERER_MODE_INERT,
 		"xalign",	0.0,
 		"ypad",		(guint) GUI_CELL_RENDERER_YPAD,
-		(void *) 0);
+		NULL_PTR);
 	column = gtk_tree_view_column_new_with_attributes(name, renderer,
 				"text", id,
-				(void *) 0);
+				NULL_PTR);
 
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 200,
@@ -115,7 +115,7 @@ add_column(GtkTreeView *tv, const gchar *name, gint id)
 		"reorderable", FALSE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
-		(void *) 0);
+		NULL_PTR);
 	
     gtk_tree_view_append_column(tv, column);
 

@@ -7310,7 +7310,7 @@ node_pseudo_create(enum net_type net, node_peer_t mode, const char *name)
 		concat_strings(buf, sizeof buf,
 			name,
 			" (", net_type_to_string(host_addr_net(n->addr)), ")",
-			(void *) 0);
+			NULL_PTR);
 		n->vendor = atom_str_get(buf);
 	}
 	n->status = GTA_NODE_CONNECTED;
@@ -11608,7 +11608,7 @@ node_set_vendor(gnutella_node_t *n, const char *vendor)
 	size_t size = 0;
 
 	if (n->flags & NODE_F_FAKE_NAME) {
-		size = w_concat_strings(&wbuf, "!", vendor, (void *) 0);
+		size = w_concat_strings(&wbuf, "!", vendor, NULL_PTR);
 	} else {
 		static const char full[] = "Morpheus";
 		bool fix;
@@ -11623,7 +11623,7 @@ node_set_vendor(gnutella_node_t *n, const char *vendor)
 		fix = is_strcaseprefix(vendor, "morph") &&
 				0 != ascii_strcmp_delimit(vendor, full, " /");
 		if (fix)
-			size = w_concat_strings(&wbuf, full, " (", vendor, ")", (void *) 0);
+			size = w_concat_strings(&wbuf, full, " (", vendor, ")", NULL_PTR);
 	}
 
 	atom_str_change(&n->vendor, lazy_iso8859_1_to_utf8(wbuf ? wbuf : vendor));

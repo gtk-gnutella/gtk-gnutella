@@ -908,7 +908,7 @@ tok_generate(time_t now, const char *version)
 	ZERO(&lvlbase64);
 	base64_encode_into(lvldigest, 2 * lvlsize, lvlbase64, LEVEL_BASE64_SIZE);
 
-	return h_strconcat(token, "; ", lvlbase64, (void *) 0);
+	return h_strconcat(token, "; ", lvlbase64, NULL_PTR);
 }
 
 /**

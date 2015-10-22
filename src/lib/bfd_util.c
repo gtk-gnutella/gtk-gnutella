@@ -334,12 +334,12 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 		const char *base = filepath_basename(path);
 
 		concat_strings(debugpath, sizeof debugpath,
-			"/usr/lib/debug/", base, NULL);
+			"/usr/lib/debug/", base, NULL_PTR);
 
 		fd = open(debugpath, O_RDONLY);
 		if (-1 == fd) {
 			concat_strings(debugpath, sizeof debugpath,
-				"/usr/lib/debug", path, NULL);
+				"/usr/lib/debug", path, NULL_PTR);
 			fd = open(debugpath, O_RDONLY);
 		}
 		if (-1 != fd)

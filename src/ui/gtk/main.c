@@ -583,16 +583,16 @@ main_gui_gtkrc_init(void)
 	HFREE_NULL(userrc);
 
 	userrc = h_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
+		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", NULL_PTR);
 	gtk_rc_parse(userrc);
 	HFREE_NULL(userrc);
 
 #ifdef USE_GTK2
 	userrc = h_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
+		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", NULL_PTR);
 #else
 	userrc = h_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
+		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", NULL_PTR);
 #endif
 	gtk_rc_parse(userrc);
 	HFREE_NULL(userrc);

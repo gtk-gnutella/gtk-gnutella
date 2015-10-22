@@ -163,7 +163,7 @@ cell_renderer_func(GtkTreeViewColumn *column,
 	case c_us_num:
 		g_assert_not_reached();
 	}
-	g_object_set(cell, "text", text, (void *) 0);
+	g_object_set(cell, "text", text, NULL_PTR);
 }
 
 /**
@@ -198,8 +198,8 @@ add_column(
 	g_assert(tv);
 
 	renderer = gtk_cell_renderer_text_new();
-   	column = gtk_tree_view_column_new_with_attributes(title, renderer,
-				(void *) 0);
+   	column =
+		gtk_tree_view_column_new_with_attributes(title, renderer, NULL_PTR);
 	gtk_tree_view_column_set_cell_data_func(column, renderer,
 			cell_data_func, GINT_TO_POINTER(column_id), NULL);
 
@@ -207,14 +207,14 @@ add_column(
 		"xalign", xalign,
 		"xpad", GUI_CELL_RENDERER_XPAD,
 		"ypad", GUI_CELL_RENDERER_YPAD,
-		(void *) 0);
+		NULL_PTR);
 	g_object_set(column,
 		"fixed-width", 1,
 		"min-width", 1,
 		"resizable", TRUE,
 		"reorderable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		(void *) 0);
+		NULL_PTR);
    	gtk_tree_view_column_set_sort_column_id(column, column_id);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tv), column);
 	gtk_tree_sortable_set_sort_func(

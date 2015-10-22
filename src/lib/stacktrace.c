@@ -456,7 +456,7 @@ program_path_allocate(const char *argv0)
 	char filepath[MAX_PATH_LEN + 1];
 
 	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
-		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL);
+		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL_PTR);
 	} else {
 		clamp_strcpy(filepath, sizeof filepath, argv0);
 	}

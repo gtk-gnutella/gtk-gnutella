@@ -124,10 +124,10 @@ add_column(GtkTreeView *tree, const gchar *title,
 	g_object_set(G_OBJECT(renderer),
 	     "xpad", GUI_CELL_RENDERER_XPAD,
 	     "ypad", GUI_CELL_RENDERER_YPAD,
-	     (void *) 0);
+	     NULL_PTR);
 
-   	column = gtk_tree_view_column_new_with_attributes(title, renderer,
-				(void *) 0);
+   	column =
+		gtk_tree_view_column_new_with_attributes(title, renderer, NULL_PTR);
 	g_object_set(G_OBJECT(column),
 		"title", title,
 		"fixed-width", 1,
@@ -135,7 +135,7 @@ add_column(GtkTreeView *tree, const gchar *title,
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		(void *) 0);
+		NULL_PTR);
 	
 	if (cell_data_func != NULL)
 		gtk_tree_view_column_set_cell_data_func(column, renderer,
@@ -251,9 +251,9 @@ cell_renderer_func(GtkTreeViewColumn *column,
 			attr, s,
 			"foreground-gdk", data->fg,
 			"foreground-set", TRUE,
-			(void *) 0);
+			NULL_PTR);
 	} else {
-		g_object_set(cell, attr, s, (void *) 0);
+		g_object_set(cell, attr, s, NULL_PTR);
 	}
 }
 
@@ -362,7 +362,7 @@ nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 	g_assert(NULL != data);
 
 	concat_strings(data->flags, sizeof data->flags,
-		"<tt>", guc_node_flags_to_string(flags), "</tt>", (void *) 0);
+		"<tt>", guc_node_flags_to_string(flags), "</tt>", NULL_PTR);
 
 	ultra = NODE_P_ULTRA == flags->peermode || NODE_P_G2HUB == flags->peermode;
     data->fg = &(gtk_widget_get_style(GTK_WIDGET(treeview_nodes))
@@ -485,7 +485,7 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 		data->host_size = w_concat_strings(&data->host,
 							host, " (",
 							host_addr_port_to_string(addr, port), ")",
-							(void *) 0);
+							NULL_PTR);
 
 		G_FREE_NULL(to_free);
 	} else {
@@ -493,7 +493,7 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 			_("Reverse lookup for %s failed"), host_addr_to_string(addr));
 		data->host_size = w_concat_strings(&data->host,
 							host_addr_port_to_string(addr, port),
-							(void *) 0);
+							NULL_PTR);
 	}
 
 finish:
@@ -646,7 +646,7 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	data->country = info->country;
 	data->host_size = w_concat_strings(&data->host,
 						host_addr_port_to_string(info->addr, info->port),
-						(void *) 0);
+						NULL_PTR);
 	str_bprintf(data->version, sizeof data->version, "%u.%u",
 		info->proto_major, info->proto_minor);
 
@@ -849,7 +849,7 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 		data->host_size = w_concat_strings(&data->host,
 				_("Reverse lookup in progress..."),
 				" (", host_addr_port_to_string(info.addr, info.port), ")",
-				(void *) 0);
+				NULL_PTR);
 
 		hset_insert(ht_pending_lookups, key);
 		adns_reverse_lookup(info.addr, host_lookup_callback,
