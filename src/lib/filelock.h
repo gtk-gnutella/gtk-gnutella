@@ -44,6 +44,7 @@ typedef struct filelock_params {
 	bool noclean;		/**< Do not register lock for autoclean at exit() */
 	bool pid_only;		/**< Don't attempt fcntl() locking, use a PID file */
 	bool check_only;	/**< Check whether lock is taken (EEXIST / ESTALE) */
+	bool fd_unlock;		/**< Whether to fcntl(F_UNLCK) lock file once taken */
 } filelock_params_t;
 
 /*

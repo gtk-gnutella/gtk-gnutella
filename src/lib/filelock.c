@@ -35,14 +35,27 @@
  *
  * To release a lock explicitly, use filelock_free_null().
  *
- * If the kernel and the targeted filesystem supports fcntl() locking, then
- * this is the preferred way of obtaining the lock.  Users can request that
- * locking be done via a PID file only, but this is not recommended as this
- * is full of race conditions that we attempt to fight as best as we can, but
- * this only reduces the opportunities for misbehaviour.
- *
  * Note that these locks are advisory locks only and require that all the
  * contendents be requesting permission via filelock_create() on the same path.
+ *
+ * Although filelock_create() takes paramters, applications establishing a
+ * locking protocol on a given file must consistently use the same parameters
+ * to grab the lock.  Key parameters are "pid_only" and "fd_unlock".
+ *
+ * Implementation notes:
+ *
+ * If the kernel and the targeted filesystem support fcntl() locking, then
+ * fcntl() is the preferred way of obtaining the lock.  Users can request that
+ * locking be done via a PID file only, but this is not recommended as this
+ * is full of race conditions that we attempt to fight as best as we can, but
+ * we can only reduce the opportunities for misbehaviour, not close all the
+ * loopholes.
+ *
+ * On Windows systems, fcntl() locks are mandatory locks, not advisory ones.
+ * As such, the file is only locked during the critical section where we read
+ * the existing PID and write our PID.  This is different (and stronger) than
+ * just requesting a "pid_only" locking mode.  So "fd_unlock" is implied and
+ * cannot be turned off.
  *
  * @author Raphael Manfredi
  * @date 2015
@@ -355,6 +368,28 @@ filelock_write_pid(int fd, pid_t ourpid)
 }
 
 /**
+ * Do they want to close the fd of the lock file after writing a PID into it,
+ * in effect unlocking the lock file?
+ */
+static inline bool
+filelock_is_fd_unlock(const filelock_params_t *p)
+{
+	/*
+	 * On Windows, since our fcntl(F_WRLCK) implementation relies on native
+	 * locks which are mandatory, we do not want to keep the lock file
+	 * locked because that prevents other processes from reading it and
+	 * seeing which PID locked the file -- there is no fcntl(F_GETLK) possible.
+	 *		--RAM, 2015-10-23
+	 */
+
+	if (is_running_on_mingw()) {
+		return TRUE;		/* Always TRUE */
+	} else {
+		return p != NULL && p->fd_unlock;
+	}
+}
+
+/**
  * Do they want to avoid auto-cleaning for the taken lock?
  */
 static inline bool
@@ -418,6 +453,7 @@ filelock_usleep(const filelock_params_t *p, const char *caller)
  *   p->noclean     lock will not be auto-cleaned at process exit time
  *   p->pid_only    request that we only use weaker PID-file locking logic
  *   p->check_only  check whether we could take the lock, errno=ESTALE if OK
+ *   p->fd_unlock   unlock lockfile after writing PID, by closing it
  *
  * @param path	the path to the lockfile (copied)
  * @param p		(optional) custom locking parameters
@@ -564,9 +600,13 @@ opened:
 	/*
 	 * Maybe F_SETLK is not supported by the OS or filesystem?
 	 * Fall back to weaker PID locking
+	 *
+	 * When we release the lock after writing the PID, we cannot assume
+	 * we got the lock -- we just got exclusive access to the file to
+	 * be able to write our PID without races!
 	 */
 
-	if (!locked) {
+	if (!locked || filelock_is_fd_unlock(p)) {
 		pid_t pid;
 		filestat_t buf_fd, buf_path;
 
@@ -613,6 +653,16 @@ opened:
 			} else if (filelock_is_debug(p)) {
 				s_debug("%s(): PID %lu is dead", G_STRFUNC, (ulong) pid);
 			}
+		}
+
+		/* If the pidfile is locked, we got our lock anyway */
+
+		if (locked) {
+			if (filelock_is_debug(p)) {
+				s_debug("%s(): got right to lock since we fcntl()-locked file",
+					G_STRFUNC);
+			}
+			goto locked;			/* We'll write our PID in the lockfile */
 		}
 
 		/*
@@ -774,7 +824,7 @@ locked:
 
 	once_flag_run(&filelock_inited, filelock_init_once);
 
-	if (filelock_is_pid_only(p))
+	if (filelock_is_pid_only(p) || filelock_is_fd_unlock(p))
 		fd_forget_and_close(&fd);
 
 	XMALLOC0(f);
