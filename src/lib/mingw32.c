@@ -621,6 +621,12 @@ mingw_signal(int signo, signal_handler_t handler)
 	return res;
 }
 
+#define FLUSH_ERR_STR()	G_STMT_START {	\
+	flush_err_str();					\
+	if (log_stdout_is_distinct())		\
+		flush_str(STDOUT_FILENO);		\
+} G_STMT_END
+
 /**
  * Synthesize a fatal signal as the kernel would on an exception.
  */
@@ -638,9 +644,7 @@ mingw_sigraise(int signo)
 		print_str("Got uncaught ");			/* 0 */
 		print_str(signal_name(signo));		/* 1 */
 		print_str(" -- crashing.\n");		/* 2 */
-		flush_err_str();
-		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+		FLUSH_ERR_STR();
 
 		if (!done) {
 			done = TRUE;
@@ -5390,10 +5394,32 @@ mingw_exception_to_string(int code)
 	}
 }
 
+/*
+ * Format an error message to propagate into the crash log.
+ */
+static void G_GNUC_COLD
+mingw_crash_record(int code, const void *pc,
+	const char *routine, const char *file)
+{
+	char data[256];
+	str_t s;
+
+	str_new_buffer(&s, data, 0, sizeof data);
+	str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
+
+	if (routine != NULL)
+		str_catf(&s, " (%s)", routine);
+
+	if (file != NULL)
+		str_catf(&s, " from %s", file);
+
+	crash_set_error(str_2c(&s));
+}
+
 /**
  * Log reported exception.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 mingw_exception_log(int code, const void *pc)
 {
 	DECLARE_STR(11);
@@ -5425,29 +5451,10 @@ mingw_exception_log(int code, const void *pc)
 	print_str(mingw_exception_to_string(code));					/* 9 */
 	print_str("\n");											/* 10 */
 
-	flush_err_str();
-	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+	FLUSH_ERR_STR();
 
-	/*
-	 * Format an error message to propagate into the crash log.
-	 */
-
-	{
-		char data[256];
-		str_t s;
-
-		str_new_buffer(&s, data, 0, sizeof data);
-		str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
-
-		if (name != NULL)
-			str_catf(&s, " (%s)", name);
-
-		if (file != NULL)
-			str_catf(&s, " from %s", file);
-
-		crash_set_error(str_2c(&s));
-	}
+	if (EXCEPTION_STACK_OVERFLOW != UNSIGNED(code))
+		mingw_crash_record(code, pc, name, file);
 }
 
 /**
@@ -5479,9 +5486,7 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	print_str(pointer_to_string(va));				/* 4 */
 	print_str("\n");								/* 5 */
 
-	flush_err_str();
-	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+	FLUSH_ERR_STR();
 
 	/*
 	 * Format an additional error message to propagate into the crash log.
@@ -5557,9 +5562,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			 */
 
 			print_str("Got stack overflow -- crashing.\n");
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 
 			stid = thread_safe_small_id();
 			if (stid < 0)
@@ -5573,9 +5576,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			pointer_to_string_buf(er->ExceptionAddress, ptr, sizeof ptr);
 			print_str(ptr);								/* 3 */
 			print_str("\n");							/* 4 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 
 			locks = thread_id_lock_count(stid);
 			if (locks != 0) {
@@ -5585,28 +5586,30 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 				print_str(s);								/* 1 */
 				print_str(1 == locks ? " lock" : " locks");	/* 2 */
 				print_str("\n");							/* 3 */
-				flush_err_str();
-				if (log_stdout_is_distinct())
-					flush_str(STDOUT_FILENO);
+				FLUSH_ERR_STR();
 			}
 
 			s = PRINT_NUMBER(buf, thread_stack_used());
 			rewind_str(0);
-			print_str("thread stack is ");				/* 0 */
-			print_str(s);								/* 1 */
-			print_str(" bytes");						/* 2 */
+			print_str("thread used ");				/* 0 */
+			print_str(s);							/* 1 */
+			print_str(" bytes of stack");			/* 2 */
 			if (0 != stid) {
 				thread_info_t info;
 
 				thread_get_info(stid, &info);
 				can_terminate = !info.discovered;
 				if (can_terminate)
-					print_str(", killing it");				/* 3 */
+					print_str(", will be killing it");	/* 3 */
 			}
 			print_str("\n");							/* 4 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
+
+			rewind_str(0);
+			print_str("attempting exception logging\n");	/* 0 */
+			FLUSH_ERR_STR();
+
+			mingw_exception_log(er->ExceptionCode, er->ExceptionAddress);
 
 			/*
 			 * Forcefully killing the thread is the least we can do.
@@ -5616,6 +5619,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			 */
 
 			if (can_terminate) {
+				rewind_str(0);
+				print_str("exiting from current thread\n");	/* 0 */
+				FLUSH_ERR_STR();
+
 				thread_exit(NULL);
 			}
 		}
@@ -5652,9 +5659,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			DECLARE_STR(1);
 
 			print_str("Got fatal exception -- crashing.\n");
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 		}
 		break;
 	default:
@@ -5667,9 +5672,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			print_str("Got unknown exception #");		/* 0 */
 			print_str(s);								/* 1 */
 			print_str(" -- crashing.\n");				/* 2 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 		}
 		break;
 	}
@@ -5710,9 +5713,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		DECLARE_STR(1);
 
 		print_str("Too many exceptions in a row -- raising SIGBART.\n");
-		flush_err_str();
-		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+		FLUSH_ERR_STR();
 		signo = SIGABRT;
 	}
 
