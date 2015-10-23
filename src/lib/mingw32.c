@@ -783,7 +783,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 		}
 		default:
 			res = -1;
-			errno = EINVAL;
+			errno = ENOSYS;
 			break;
 	}
 
