@@ -136,10 +136,12 @@ spinlock_crash_mode(void)
 
 	if (0 == atomic_int_inc(&spinlock_pass_through)) {
 		unsigned count = thread_count();
+		pid_t pid = getpid();
 
 		if (count != 1) {
 			s_rawwarn("disabling locks, "
-				"now in thread-unsafe mode (%u threads)", count);
+				"PID %lu now in thread-unsafe mode (%u threads)",
+				(ulong) pid, count);
 		}
 	}
 }
