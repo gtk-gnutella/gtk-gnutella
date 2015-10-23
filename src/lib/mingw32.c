@@ -723,6 +723,19 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 					errno = mingw_last_error();
 				else
 					res = 0;
+			} else if (arg->l_type == F_RDLCK) {
+				OVERLAPPED ov;
+
+				ZERO(&ov);
+				ov.Offset = start_low;
+				ov.OffsetHigh = start_high;
+				if (
+					!LockFileEx(file, LOCKFILE_FAIL_IMMEDIATELY, 0,
+						len_low, len_high, &ov)
+				) {
+					errno = mingw_last_error();
+				} else
+					res = 0;
 			} else if (arg->l_type == F_UNLCK) {
 				if (!UnlockFile(file, start_low, start_high, len_low, len_high))
 					errno = mingw_last_error();
