@@ -115,7 +115,7 @@ buf_is_embedded(const buf_t *b)
 /**
  * @return the physical data buffer.
  */
-static inline char *
+static inline void *
 buf_data(const buf_t *b)
 {
 	buf_check(b);
