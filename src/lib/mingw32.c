@@ -314,6 +314,8 @@ get_native_path(const char *pathname, int *error)
 		size_t plen = strlen(npath);
 
 		if (pathsz <= plen) {
+			s_rawwarn("%s(): path is %zu-byte long", G_STRFUNC, plen);
+			s_debug("%s(): given path was \"%s\"", G_STRFUNC, pathname);
 			*error = ENAMETOOLONG;
 			return NULL;
 		}
