@@ -195,6 +195,8 @@ extern bool vmm_is_debugging(uint32 level);
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
 
+enum pncs_magic { PNCS_MAGIC = 0x7c0e73af };
+
 /**
  * Path Name Conversion Structure.
  *
@@ -203,9 +205,17 @@ WSAPoll_func_t WSAPoll = NULL;
  * 256 characters.
  */
 typedef struct pncs {
-	wchar_t *utf16;
-	wchar_t buf[MAX_PATH_LEN];
+	enum pncs_magic magic;	/* To protect pncs_dup() */
+	wchar_t *utf16;			/* Thread-private allocated buffer */
+	size_t len;				/* Path length, in wide-chars, for pncs_dup() */
 } pncs_t;
+
+static inline void
+pncs_check(const pncs_t * const p)
+{
+	g_assert(p != NULL);
+	g_assert(PNCS_MAGIC == p->magic);
+}
 
 /**
  * Converts a NUL-terminated MBCS string to an UTF-16 string.
@@ -215,9 +225,9 @@ typedef struct pncs {
  * @param dest The destination buffer.
  * @param dest_size The size of the destination buffer in number of elements.
  *
- * @return NULL on failure with errno set, dest on success.
+ * @return -1 on failure with errno set, wide-char string length otherwize.
  */
-static wchar_t *
+static size_t
 locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 {
 	size_t n;
@@ -226,7 +236,7 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 	if ((size_t) -1 == n) {
 		s_rawwarn("%s(): illegal character sequence found in path", G_STRFUNC);
 		errno = EILSEQ;
-		return NULL;
+		return (size_t) -1;
 	}
 
 	if (n < dest_size) {
@@ -234,10 +244,11 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 	} else {
 		s_rawwarn("%s(): wide-char path would be %zu-character long, max=%zu",
 			G_STRFUNC, n, dest_size);
-		dest = NULL;
 		errno = ENAMETOOLONG;
+		return (size_t) -1;
 	}
-	return dest;
+
+	return n;
 }
 
 /*
@@ -332,10 +343,30 @@ mingw_native_path(const char *pathname)
 }
 
 /**
+ * Duplicate wide-char string held in the pncs_t structure.
+ *
+ * @return new wide-char string that must be freed via hfree().
+ */
+static wchar_t *
+pncs_dup(const pncs_t *pncs)
+{
+	pncs_check(pncs);
+	g_assert(size_is_positive(pncs->len));
+
+	return hcopy(pncs->utf16, pncs->len * sizeof(wchar_t));
+}
+
+/**
  * Convert pathname to a UTF-16 representation.
  *
  * On success, the member utf16 points to the converted pathname that can be
  * used in Unicode-aware Windows calls.
+ *
+ * @attention
+ * The converted pathname lies in a thread-private buffer, therefore it needs
+ * to be perused immediately and saved away if another routine that could use
+ * pncs_convert() is called.  Use pncs_dup() to return a new dynamically
+ * allocated pathname.
  *
  * @return 0 on success, -1 on error with errno set.
  */
@@ -344,9 +375,16 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 {
 	const char *npath;		/* Native path */
 	int error;
+	size_t buflen = MAX_PATH_LEN;
+	buf_t *b = buf_private(G_STRFUNC, buflen * sizeof(wchar_t));
+	wchar_t *pathbuf = buf_data(b);
+	size_t ret;
 
 	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
 	STATIC_ASSERT(sizeof(uint16) == sizeof(wchar_t));
+
+	ZERO(pncs);
+	pncs->magic = PNCS_MAGIC;	/* In case they call pncs_dup() */
 
 	if (NULL == (npath = get_native_path(pathname, &error))) {
 		errno = error;
@@ -354,24 +392,26 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	}
 
 	if (utf8_is_valid_string(npath)) {
-		size_t ret;
-
-		ret = utf8_to_utf16(npath, pncs->buf, G_N_ELEMENTS(pncs->buf));
-		if (ret < G_N_ELEMENTS(pncs->buf)) {
-			pncs->utf16 = pncs->buf;
+		ret = utf8_to_utf16(npath, pathbuf, buflen);
+		if (ret < buflen) {
+			pncs->utf16 = pathbuf;
 		} else {
 			s_rawwarn("%s(): UFT-16 path would be %zu-character long, max=%zu",
-				G_STRFUNC, ret, G_N_ELEMENTS(pncs->buf));
+				G_STRFUNC, ret, buflen);
 			errno = ENAMETOOLONG;
 			pncs->utf16 = NULL;
 		}
 	} else {
-		pncs->utf16 =
-			locale_to_wchar(npath, pncs->buf, G_N_ELEMENTS(pncs->buf));
+		ret = locale_to_wchar(npath, pathbuf, buflen);
+		if ((size_t) -1 == ret)
+			pncs->utf16 = NULL;		/* errno set by locale_to_wchar() */
 	}
 
-	if G_UNLIKELY(NULL == pncs->utf16)
+	if G_UNLIKELY(NULL == pncs->utf16) {
 		s_debug("%s(): given path was \"%s\"", G_STRFUNC, pathname);
+	} else {
+		pncs->len = ret + 1;		/* +1 for trailing NUL */
+	}
 
 	return NULL != pncs->utf16 ? 0 : -1;
 }
@@ -2963,27 +3003,34 @@ mingw_strerror(int errnum)
 int
 mingw_rename(const char *oldpathname, const char *newpathname)
 {
-	pncs_t old, new;
+	pncs_t pncs;
 	int res;
+	wchar_t *old_utf16;
 
-	if (pncs_convert(&old, oldpathname))
+	if (pncs_convert(&pncs, oldpathname))
 		return -1;
 
-	if (pncs_convert(&new, newpathname))
-		return -1;
+	old_utf16 = pncs_dup(&pncs);	/* pncs_convert() returns static data */
+
+	if (pncs_convert(&pncs, newpathname)) {
+		res = -1;
+		goto done;		/* errno already set */
+	}
 
 	/*
 	 * FIXME: Try to rename a file with SetFileInformationByHandle
 	 * and FILE_INFO_BY_HANDLE_CLASS
 	 */
 
-	if (MoveFileExW(old.utf16, new.utf16, MOVEFILE_REPLACE_EXISTING)) {
+	if (MoveFileExW(old_utf16, pncs.utf16, MOVEFILE_REPLACE_EXISTING)) {
 		res = 0;
 	} else {
 		errno = mingw_last_error();
 		res = -1;
 	}
 
+done:
+	hfree(old_utf16);
 	return res;
 }
 
