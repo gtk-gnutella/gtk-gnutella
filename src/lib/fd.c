@@ -266,7 +266,7 @@ need_get_non_stdio_fd(void)
  *			descriptor is returned.
  */
 int
-get_non_stdio_fd(int fd)
+fd_get_non_stdio(int fd)
 {
 	if (need_get_non_stdio_fd() && fd > 2 && fd < 256) {
 		int nfd, saved_errno;

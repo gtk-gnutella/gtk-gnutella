@@ -1147,7 +1147,7 @@ vmm_valloc(void *hint, size_t size)
 #else
 	flags = MAP_PRIVATE;
 	if (-1 == fd) {
-		fd = get_non_stdio_fd(open("/dev/zero", O_RDWR, 0));
+		fd = fd_get_non_stdio(open("/dev/zero", O_RDWR, 0));
 		return_value_unless(fd >= 0, NULL);
 		fd_set_close_on_exec(fd);
 	}

@@ -1376,7 +1376,7 @@ static int
 init_with_devpoll(struct poll_ctx *ctx)
 #ifdef HAS_DEV_POLL
 {
-	const int fd = get_non_stdio_fd(open("/dev/poll", O_RDWR));
+	const int fd = fd_get_non_stdio(open("/dev/poll", O_RDWR));
 
 	if (!is_valid_fd(fd)) {
 		g_warning("%s(): open(\"/dev/poll\", O_RDWR) failed: %m", G_STRFUNC);
