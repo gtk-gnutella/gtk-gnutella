@@ -178,7 +178,7 @@
 #endif
 
 static HINSTANCE libws2_32;
-static once_flag_t mingw_inited;
+static once_flag_t mingw_socket_inited;
 static bool mingw_vmm_inited;
 
 typedef struct processor_power_information {
@@ -416,6 +416,20 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	}
 
 	return NULL != pncs->utf16 ? 0 : -1;
+}
+
+static void
+mingw_socket_init(void)
+{
+	WSADATA wsaData;
+
+	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+		s_error("WSAStartup() failed");
+
+	libws2_32 = LoadLibrary(WS2_LIBRARY);
+    if (libws2_32 != NULL) {
+        WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
+    }
 }
 
 static inline bool
@@ -1920,9 +1934,7 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 {
 	int res;
 
-	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = select(nfds, readfds, writefds, exceptfds, timeout);
 	
@@ -1938,8 +1950,7 @@ mingw_gethostname(char *name, size_t len)
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	result = gethostname(name, len);
 
@@ -1955,8 +1966,7 @@ mingw_getaddrinfo(const char *node, const char *service,
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	result = getaddrinfo(node, service, hints, res);
 
@@ -1977,8 +1987,7 @@ mingw_socket(int domain, int type, int protocol)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	/*
 	 * Use WSASocket() to avoid creating "overlapped" sockets (i.e. sockets
@@ -2003,8 +2012,7 @@ mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = bind(sockfd, addr, addrlen);
 	if (-1 == res)
@@ -2019,8 +2027,7 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = connect(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res) {
@@ -2048,8 +2055,7 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = listen(sockfd, backlog);
 	if (-1 == res)
@@ -2063,8 +2069,7 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = accept(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
@@ -2078,8 +2083,7 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = shutdown(sockfd, how);
 	if (-1 == res)
@@ -2199,8 +2203,7 @@ mingw_socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = socketpair(domain, type, protocol, sv);
 #ifndef EMULATE_SOCKETPAIR
@@ -2217,8 +2220,7 @@ mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = getsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
@@ -2233,8 +2235,7 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	int res;
 	
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = setsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
@@ -4316,24 +4317,10 @@ void mingw_vmm_post_init(void)
 		ptr_diff(cur_break, mingw_vmm.heap_break));
 }
 
-static void
-mingw_init_once(void)
-{
-	WSADATA wsaData;
-
-	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-		s_error("WSAStartup() failed");
-		
-	libws2_32 = LoadLibrary(WS2_LIBRARY);
-    if (libws2_32 != NULL) {
-        WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
-    }
-}
-
 void
 mingw_init(void)
 {
-	ONCE_FLAG_RUN(mingw_inited, mingw_init_once);
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 }
 
 #ifdef MINGW_BACKTRACE_DEBUG
