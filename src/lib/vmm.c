@@ -1149,7 +1149,7 @@ vmm_valloc(void *hint, size_t size)
 	if (-1 == fd) {
 		fd = get_non_stdio_fd(open("/dev/zero", O_RDWR, 0));
 		return_value_unless(fd >= 0, NULL);
-		set_close_on_exec(fd);
+		fd_set_close_on_exec(fd);
 	}
 #endif	/* MAP_ANON */
 

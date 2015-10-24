@@ -537,7 +537,7 @@ do_open(const char *path, int flags, int mode,
 
 	if (fd >= 0) {
 		fd = get_non_stdio_fd(fd);
-		set_close_on_exec(fd);	/* Just in case */
+		fd_set_close_on_exec(fd);	/* Just in case */
 		return fd;
 	}
 

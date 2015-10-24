@@ -2376,7 +2376,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	 * Create a new struct socket for this incoming connection
 	 */
 
-	set_close_on_exec(fd);
+	fd_set_close_on_exec(fd);
 	fd_set_nonblocking(fd);
 
 	t = socket_alloc();
@@ -3380,7 +3380,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	socket_set_keepalive(s->file_desc, G_STRFUNC);
 	fd_set_nonblocking(s->file_desc);
-	set_close_on_exec(s->file_desc);
+	fd_set_close_on_exec(s->file_desc);
 	socket_no_linger(s->file_desc, G_STRFUNC);
 	socket_tos_normal(s);
 
@@ -3894,7 +3894,7 @@ socket_bound:
 		}
 	} else {
 		fd = get_non_stdio_fd(fd);
-		set_close_on_exec(fd);
+		fd_set_close_on_exec(fd);
 		fd_set_nonblocking(fd);
 	}
 
@@ -3999,7 +3999,7 @@ socket_local_listen(const char *pathname)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	set_close_on_exec(fd);
+	fd_set_close_on_exec(fd);
 	fd_set_nonblocking(fd);
 
 	s->net = NET_TYPE_NONE;

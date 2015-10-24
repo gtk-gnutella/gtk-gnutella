@@ -40,7 +40,7 @@
 void fd_close_from(const int first_fd);
 int fd_first_available(void);
 int reserve_standard_file_descriptors(void);
-void set_close_on_exec(int fd);
+void fd_set_close_on_exec(int fd);
 void fd_set_nonblocking(int fd);
 int fd_fsync(int fd);
 int fd_fdatasync(int fd);

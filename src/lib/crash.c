@@ -1561,8 +1561,8 @@ retry_child:
 						goto child_failure;
 				}
 
-				set_close_on_exec(PARENT_STDERR_FILENO);
-				set_close_on_exec(PARENT_STDOUT_FILENO);
+				fd_set_close_on_exec(PARENT_STDERR_FILENO);
+				fd_set_close_on_exec(PARENT_STDOUT_FILENO);
 			}
 
 			if (could_fork) {

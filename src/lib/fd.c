@@ -49,7 +49,7 @@
 static hset_t *fd_sockets;
 
 void
-set_close_on_exec(int fd)
+fd_set_close_on_exec(int fd)
 {
 #ifdef FD_CLOEXEC
 	int flags;
@@ -148,7 +148,7 @@ fd_close_from(const int first_fd)
 		 * fifo's
 		 *	-- JA 2011-11-28 */
 		if (is_a_fifo(fd))
-			set_close_on_exec(fd);
+			fd_set_close_on_exec(fd);
 		else
 #endif
 		/* OS X frowns upon random fds being closed --RAM 2011-11-13  */

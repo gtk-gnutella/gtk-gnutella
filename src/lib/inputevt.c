@@ -1508,7 +1508,7 @@ inputevt_init(int use_poll)
 	if (is_valid_fd(ctx->master_fd)) {
 		GIOChannel *ch;
 
-		set_close_on_exec(ctx->master_fd);	/* Just in case */
+		fd_set_close_on_exec(ctx->master_fd);	/* Just in case */
 
 		ch = g_io_channel_unix_new(ctx->master_fd);
 
