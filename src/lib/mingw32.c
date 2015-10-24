@@ -635,6 +635,8 @@ mingw_sigraise(int signo)
 {
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
+	s_rawwarn("%s(): raising %s", G_STRFUNC, signal_name(signo));
+
 	if (SIG_IGN == mingw_sighandler[signo]) {
 		/* Nothing */
 	} else if (SIG_DFL == mingw_sighandler[signo]) {
