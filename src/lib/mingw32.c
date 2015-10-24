@@ -223,12 +223,17 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 	size_t n;
 
 	n = mbstowcs(NULL, src, 0);
-	if ((size_t) -1 == n)
+	if ((size_t) -1 == n) {
+		s_rawwarn("%s(): illegal character sequence found in path", G_STRFUNC);
+		errno = EILSEQ;
 		return NULL;
+	}
 
 	if (n < dest_size) {
 		(void) mbstowcs(dest, src, dest_size);
 	} else {
+		s_rawwarn("%s(): wide-char path would be %zu-character long, max=%zu",
+			G_STRFUNC, n, dest_size);
 		dest = NULL;
 		errno = ENAMETOOLONG;
 	}
@@ -355,6 +360,8 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 		if (ret < G_N_ELEMENTS(pncs->buf)) {
 			pncs->utf16 = pncs->buf;
 		} else {
+			s_rawwarn("%s(): UFT-16 path would be %zu-character long, max=%zu",
+				G_STRFUNC, ret, G_N_ELEMENTS(pncs->buf));
 			errno = ENAMETOOLONG;
 			pncs->utf16 = NULL;
 		}
@@ -362,6 +369,9 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 		pncs->utf16 =
 			locale_to_wchar(npath, pncs->buf, G_N_ELEMENTS(pncs->buf));
 	}
+
+	if G_UNLIKELY(NULL == pncs->utf16)
+		s_debug("%s(): given path was \"%s\"", G_STRFUNC, pathname);
 
 	return NULL != pncs->utf16 ? 0 : -1;
 }
