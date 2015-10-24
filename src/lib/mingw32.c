@@ -2582,9 +2582,12 @@ mingw_valloc(void *hint, size_t size)
 			 * at which point we don't want to warn about non-hinted memory
 			 * allocations since we're shutting down!
 			 *		--RAM, 2015-04-07
+			 *
+			 * During crashes, the VMM layer always requests NULL hints.
+			 *		--RAM, 2015-10-24
 			 */
 
-			if (!mingw_vmm.stop_vfree) {
+			if (!mingw_vmm.stop_vfree && !vmm_is_crashing()) {
 				s_carp("%s(): non-hinted allocation of %'zu bytes at %p",
 					G_STRFUNC, size, p);
 			}
