@@ -224,7 +224,7 @@ reserve_standard_file_descriptors(void)
 }
 
 G_GNUC_COLD bool
-need_get_non_stdio_fd(void)
+fd_need_non_stdio(void)
 {
 	static int needed = -1;
 
@@ -268,7 +268,7 @@ need_get_non_stdio_fd(void)
 int
 fd_get_non_stdio(int fd)
 {
-	if (need_get_non_stdio_fd() && fd > 2 && fd < 256) {
+	if (fd_need_non_stdio() && fd > 2 && fd < 256) {
 		int nfd, saved_errno;
 
 		saved_errno = errno;
