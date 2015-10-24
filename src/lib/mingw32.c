@@ -5692,7 +5692,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 * exception: recursive calls are not interesting.
 	 */
 
-	if (1 == ATOMIC_GET(&in_exception_handler)) {
+	if (
+		EXCEPTION_STACK_OVERFLOW != er->ExceptionCode &&
+		1 == ATOMIC_GET(&in_exception_handler)
+	) {
 		int count;
 		
 		count = mingw_stack_unwind(
