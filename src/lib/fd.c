@@ -128,7 +128,7 @@ fd_socket_close(const void *data, void *udata)
  * Closes all file descriptors greater or equal to ``first_fd''.
  */
 void
-close_file_descriptors(const int first_fd)
+fd_close_from(const int first_fd)
 {
 	int fd;
 

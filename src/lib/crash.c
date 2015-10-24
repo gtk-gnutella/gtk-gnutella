@@ -1411,7 +1411,7 @@ retry_child:
 #endif
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
-	close_file_descriptors(3);
+	fd_close_from(3);
 
 	if (has_fork()) {
 		/* In case fork() fails, make sure we leave stdout open */
@@ -2141,7 +2141,7 @@ crash_try_reexec(void)
 #endif
 
 	signal_perform_cleanup();
-	close_file_descriptors(3);
+	fd_close_from(3);
 	crash_reset_signals();
 	execve(vars->argv0, (const void *) vars->argv, (const void *) vars->envp);
 
