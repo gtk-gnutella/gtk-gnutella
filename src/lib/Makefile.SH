@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  random-test.c  sort-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  random-test.o  sort-test.o  thread-test.o
+SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -611,6 +611,17 @@ ftw-test:  ftw-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  ftw-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: launch-test
+
+local_realclean::
+	$(RM) launch-test$(_EXE)
+
+launch-test:  launch-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  launch-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: random-test
 

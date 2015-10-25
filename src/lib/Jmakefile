@@ -333,6 +333,7 @@ NormalProgramLibTarget(base-test, base-test.c, base-test.o, libshared.a)
 
 NormalTestTarget(float)
 NormalTestTarget(ftw)
+NormalTestTarget(launch)
 NormalTestTarget(random)
 NormalTestTarget(sort)
 NormalTestTarget(thread)
