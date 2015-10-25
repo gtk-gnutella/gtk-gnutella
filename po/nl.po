@@ -3,16 +3,17 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Jeroen Asselman <jeroen@asselman.com>, 2013-2014
+# Jeroen Asselman <jeroen@asselman.com>, 2013-2015
 # Jeroen Asselman <jeroen@asselman.com>, 2013
+# richard koppenaal <buildid@gmail.com>, 2015
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2015-04-05 19:55+0200\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
-"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
-"Language-Team: Dutch (http://www.transifex.com/projects/p/gtk-gnutella/language/nl/)\n"
+"PO-Revision-Date: 2015-10-19 10:20+0000\n"
+"Last-Translator: richard koppenaal <buildid@gmail.com>\n"
+"Language-Team: Dutch (http://www.transifex.com/gtk-gnutella/gtk-gnutella/language/nl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -20,13 +21,13 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgid "Harmful version banned, upgrade required"
-msgstr ""
+msgstr "verbande verouderde versie , upgrade vereist"
 
 msgid "Connection refused"
-msgstr ""
+msgstr "Verbinding geweigerd"
 
 msgid "Use an open Gnutella or G2 servent"
-msgstr ""
+msgstr "gebruik een open Gnutella of G2 servent  "
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -86,7 +87,7 @@ msgid "Download queue is frozen"
 msgstr "Download wachtrij bevroren"
 
 msgid "Network buffer shortage"
-msgstr ""
+msgstr "te weinig netwerk buffer geheugen"
 
 msgid "No download slot (start)"
 msgstr "Geen download slot (start)"
@@ -762,7 +763,7 @@ msgid "TLS handshake failed"
 msgstr "TLS handshake mislukt"
 
 msgid "Connection locally failed"
-msgstr ""
+msgstr "lokale verbinding mislukt"
 
 msgid "Write failed (Input Exception)"
 msgstr "Schrijf fout (Invoer fout)"
@@ -1147,10 +1148,10 @@ msgid "GUESS G2 nodes sending back an acknowledgment"
 msgstr "GUESS g2 nodes welke een bevesting terugsturen"
 
 msgid "Throttled local push messages"
-msgstr ""
+msgstr "lokale push boodschappen worden gelimiteerd"
 
 msgid "Throttled received push messages"
-msgstr ""
+msgstr "ontvangen push boodschappen worden gelimiteerd "
 
 msgid "Broadcasted push messages"
 msgstr "Broadcast \"push\" berichten"
@@ -1270,7 +1271,7 @@ msgid "UDP messages with bogus source IP"
 msgstr "UDP berichten met ongeldig bron IP"
 
 msgid "UDP messages from shunned IP (discarded)"
-msgstr ""
+msgstr "UDP  bericht van een genegeerd IP , weggegooid "
 
 msgid "UDP truncated incoming messages"
 msgstr "UDP afgeknotte inkomende berichten"
@@ -1288,7 +1289,7 @@ msgid "Compressed UDP messages received"
 msgstr "Gecomprimeerde UDP berichten ontvangen"
 
 msgid "Candidates for UDP message compression"
-msgstr ""
+msgstr "Kandidaten voor gecomprimeerd UDP verkeer"
 
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "UDP bericht gedecomprimeerd aangezien dit geen winst opleverde"
@@ -2609,7 +2610,7 @@ msgid ""
 msgstr "Verban the client als de Retry-After interval te vaak schendt. Stel dit op 0 in om verbannen uit te schakelen. De upload wordt hoe dan ook van de wachtrij verwijderd. De standaard waarde is 10, dat wil zeggen dat de client wordt verbannen als het 10 keer te vroeg opnieuw probeerd, dit is een goede balans tussen misbruik en legacy client ondersteuning."
 
 msgid "Indicates a kernel network buffer shortage."
-msgstr ""
+msgstr "zeer waarschijnlijk heeft de kernel te weinig buffer geheugen "
 
 msgid "For development use: don't add new hosts to the host cache."
 msgstr "Voor ontwikkeling: voeg geen nieuwe hosts toe aan de host cache."
@@ -8801,7 +8802,7 @@ msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
 msgstr "*** CPU OVERBELAST --- ER WORDT GEPOOGD KRACHT TE BESPAREN ***"
 
 msgid "*** KERNEL BUFFER SHORTAGE -- LIMITING TCP CONNECTIONS ***"
-msgstr ""
+msgstr "te kort aan kernel buffer geheugen  - limiteer TCP verbindingen "
 
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** UPLOADS BLIJVEN HANGEN, TE KORT AAN BANDBREEDTE? ***"
