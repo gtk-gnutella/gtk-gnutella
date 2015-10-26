@@ -2588,7 +2588,7 @@ mingw_valloc(void *hint, size_t size)
 			 */
 
 			if (!mingw_vmm.stop_vfree && !vmm_is_crashing()) {
-				s_carp("%s(): non-hinted allocation of %'zu bytes at %p",
+				s_minicarp("%s(): non-hinted allocation of %'zu bytes at %p",
 					G_STRFUNC, size, p);
 			}
 
