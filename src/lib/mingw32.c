@@ -599,15 +599,15 @@ mingw_signal(int signo, signal_handler_t handler)
 	case SIGBUS:
 	case SIGTRAP:
 		res = mingw_sighandler[signo];
-		mingw_sighandler[signo] = handler;
 		break;
 	default:
 		res = signal(signo, handler);
-		if (SIG_ERR != res) {
-			mingw_sighandler[signo] = handler;
-		}
+		if (SIG_ERR == res)
+			res = mingw_sighandler[signo];
 		break;
 	}
+
+	mingw_sighandler[signo] = handler;
 
 	return res;
 }
