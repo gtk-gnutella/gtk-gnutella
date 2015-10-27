@@ -911,9 +911,10 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	sdbm_big_check(dbg);
 
 	if G_UNLIKELY(bigkey_length(len) != blen) {
-		s_carp("sdbm: \"%s\": found %zu-byte corrupted key "
-			"(%zu byte%s on page instead of %zu)",
-			sdbm_name(db), len, blen, plural(blen), bigkey_length(len));
+		s_critical("sdbm: \"%s\": found %zu-byte corrupted key "
+			"(%zu storage byte%s instead of %zu) on page #%lu",
+			sdbm_name(db), len, blen, plural(blen), bigkey_length(len),
+			db->pagbno);
 		return FALSE;
 	}
 
@@ -1003,9 +1004,9 @@ bigkey_hash(DBM *db, const char *bkey, size_t blen, bool *failed)
 
 	if G_UNLIKELY(bigkey_length(len) != blen) {
 		s_critical("sdbm: \"%s\": found %zu-byte corrupted key "
-			"(%zu byte%s on page instead of %zu) on page #%lu",
-			sdbm_name(db), len, blen, plural(blen),
-			bigkey_length(len), db->pagbno);
+			"(%zu storage byte%s instead of %zu) on page #%lu",
+			sdbm_name(db), len, blen, plural(blen), bigkey_length(len),
+			db->pagbno);
 		goto corrupted;
 	}
 
