@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2015-04-05 19:55+0200\n"
-"PO-Revision-Date: 2015-10-25 14:33+0000\n"
+"PO-Revision-Date: 2015-10-26 20:05+0000\n"
 "Last-Translator: Lucio Marinelli\n"
 "Language-Team: Italian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/language/it/)\n"
 "MIME-Version: 1.0\n"
@@ -528,7 +528,7 @@ msgstr "Strano HELLO %s"
 
 #, c-format
 msgid "HELLO %s error %d (%s)"
-msgstr "Errore %d di HELLO %s (%s)"
+msgstr "HELLO %s errore %d (%s)"
 
 msgid "Shielded node"
 msgstr "Nodo protetto"
@@ -640,7 +640,7 @@ msgid "Failed (EOF)"
 msgstr "Fallito (EOF)"
 
 msgid "Failed (Extra HELLO data)"
-msgstr "Fallito (dati extra SALUTO)"
+msgstr "Fallito (dati extra HELLO)"
 
 msgid "Pseudo UDP node"
 msgstr "Nodo pseudo-UDP"
@@ -665,10 +665,10 @@ msgstr "Errore di scrittura durante HELLO"
 
 #, c-format
 msgid "Write error during HELLO: %s"
-msgstr "Errore di scrittura durante il SALUTO: %s"
+msgstr "Errore di scrittura durante HELLO: %s"
 
 msgid "Connection reset during HELLO"
-msgstr "Connessione azzerata durante il SALUTO"
+msgstr "Connessione azzerata durante HELLO"
 
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
@@ -1060,19 +1060,19 @@ msgid "OOB hits received for OOB-proxied queries"
 msgstr "Risultati ricevuti per ricerche vicariate OOB"
 
 msgid "OOB hits bearing alien IP address"
-msgstr ""
+msgstr "Risultati OOB con indirizzo IP non corrispondente"
 
 msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
+msgstr "Risultato OOB ignorato per indirizzo identificato come spammer"
 
 msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
+msgstr "Risultato OOB ignorato per promessa insicura da host sicuro conosciuto"
 
 msgid "Unclaimed locally-generated OOB hits"
-msgstr ""
+msgstr "RIsultato OOB generato localmente e non richiesto"
 
 msgid "Partially claimed locally-generated OOB hits"
-msgstr ""
+msgstr "Risultato OOB generato localmente e parzialmente richiesto"
 
 msgid "Spurious OOB hit claiming received"
 msgstr ""
