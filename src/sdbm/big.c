@@ -17,6 +17,7 @@
 #include "tune.h"
 #include "big.h"
 #include "private.h"
+#include "pair.h"				/* For sdbm_page_dump() */
 
 #include "lib/bit_field.h"
 #include "lib/compat_misc.h"
@@ -911,10 +912,12 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	sdbm_big_check(dbg);
 
 	if G_UNLIKELY(bigkey_length(len) != blen) {
-		s_critical("sdbm: \"%s\": found %zu-byte corrupted key "
+		s_critical("sdbm: \"%s\": found %zu-byte corrupted key at offset %zu "
 			"(%zu storage byte%s instead of %zu) on page #%lu",
-			sdbm_name(db), len, blen, plural(blen), bigkey_length(len),
+			sdbm_name(db), len, ptr_diff(bkey, db->pagbuf),
+			blen, plural(blen), bigkey_length(len),
 			db->pagbno);
+		sdbm_page_dump(db, db->pagbuf, db->pagbno);
 		return FALSE;
 	}
 
@@ -1003,10 +1006,12 @@ bigkey_hash(DBM *db, const char *bkey, size_t blen, bool *failed)
 	size_t len = big_length(bkey);
 
 	if G_UNLIKELY(bigkey_length(len) != blen) {
-		s_critical("sdbm: \"%s\": found %zu-byte corrupted key "
+		s_critical("sdbm: \"%s\": found %zu-byte corrupted key at offset %zu "
 			"(%zu storage byte%s instead of %zu) on page #%lu",
-			sdbm_name(db), len, blen, plural(blen), bigkey_length(len),
+			sdbm_name(db), len, ptr_diff(bkey, db->pagbuf),
+			blen, plural(blen), bigkey_length(len),
 			db->pagbno);
+		sdbm_page_dump(db, db->pagbuf, db->pagbno);
 		goto corrupted;
 	}
 
