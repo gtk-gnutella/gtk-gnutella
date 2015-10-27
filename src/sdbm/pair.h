@@ -50,4 +50,6 @@ extern int readpairv(const char *, struct sdbm_pair *, int, bool);
 extern bool duppair(DBM *, const char *, datum);
 #endif
 
+void sdbm_page_dump(const DBM *db, const char *pag, long num);
+
 /* vi: set ts=4 sw=4 cindent: */

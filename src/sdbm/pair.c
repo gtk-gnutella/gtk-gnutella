@@ -19,6 +19,7 @@
 #include "private.h"		/* We access DBM * for logging */
 
 #include "lib/hashing.h"
+#include "lib/log.h"
 #include "lib/stringify.h"	/* For plural() */
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -906,6 +907,68 @@ sdbm_internal_chkpage(const char *pag)
 		}
 	}
 	return TRUE;
+}
+
+/**
+ * Dump page information to specified log agent.
+ */
+static void
+sdbm_page_dump_log(logagent_t *la, const DBM *db, const char *pag, long num)
+{
+	const unsigned short *ino = (const unsigned short *) pag;
+	unsigned n;
+
+	log_debug(la, "---- %s SDBM page #%lu for \"%s\" ----",
+		"Begin", num, sdbm_name(db));
+
+	if G_UNLIKELY(
+		(n = ino[0]) > DBM_PBLKSIZ / sizeof(unsigned short) ||
+		(n & 0x1)
+	) {
+		log_warning(la, "INVALID entry count: %u", n);
+	} else {
+		unsigned ino_end = (n + 1) * sizeof(unsigned short);
+		unsigned off = DBM_PBLKSIZ;
+		unsigned p;
+
+		log_debug(la, "entry count: %u (%u pair%s)", n, n / 2, plural(n / 2));
+
+		for (ino++, p = 1; n != 0; ino += 2, p++) {
+			bool valid_koff = TRUE, valid_voff = TRUE;
+			unsigned short koff = offset(ino[0]);
+			unsigned short voff = offset(ino[1]);
+			bool is_big_key = is_big(ino[0]);
+			bool is_big_val = is_big(ino[1]);
+
+			if G_UNLIKELY(koff > off || voff > off || voff > koff)
+				valid_koff = FALSE;
+			if G_UNLIKELY(koff < ino_end || voff < ino_end)
+				valid_voff = FALSE;
+
+			log_debug(la, "pair #%u: %skey-offset=%u%s, %sval-offset=%u%s",
+				p,
+				is_big_key ? "big" : "", koff, valid_koff ? "" : " (INVALID)",
+				is_big_val ? "big" : "", voff, valid_voff ? "" : " (INVALID)");
+
+			off = voff;
+			n -= 2;
+
+			if (!valid_koff || !valid_voff)
+				break;
+		}
+	}
+
+	log_debug(la, "---- %s SDBM page #%lu for \"%s\" ----",
+		"End", num, sdbm_name(db));
+}
+
+/**
+ * Dump page information to stderr.
+ */
+void
+sdbm_page_dump(const DBM *db, const char *pag, long num)
+{
+	sdbm_page_dump_log(log_agent_stderr_get(), db, pag, num);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

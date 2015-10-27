@@ -16,6 +16,7 @@
 #include "sdbm.h"
 #include "tune.h"
 #include "lru.h"
+#include "pair.h"				/* For sdbm_page_dump() */
 #include "private.h"
 
 #include "lib/atomic.h"
@@ -1213,6 +1214,25 @@ cachepag(DBM *db, char *pag, long num)
 #endif	/* LRU */
 
 /**
+ * Check that page is valid.
+ *
+ * @return TRUE if page is valid, FALSE if page was corrupted and zeroed.
+ */
+static bool
+lru_chkpage(DBM *db, char *pag, long num)
+{
+	if G_UNLIKELY(!sdbm_internal_chkpage(pag)) {
+		s_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
+			sdbm_name(db), num);
+		memset(pag, 0, DBM_PBLKSIZ);
+		db->bad_pages++;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Read page `num' from disk into `pag'.
  * @return TRUE on success.
  */
@@ -1247,12 +1267,8 @@ readpag(DBM *db, char *pag, long num)
 				sdbm_name(db), (unsigned) got, num);
 		memset(pag + got, 0, DBM_PBLKSIZ - got);
 	}
-	if G_UNLIKELY(!sdbm_internal_chkpage(pag)) {
-		s_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
-			sdbm_name(db), num);
-		memset(pag, 0, DBM_PBLKSIZ);
-		db->bad_pages++;
-	}
+
+	(void) lru_chkpage(db, pag, num);
 
 	debug(("pag read: %ld\n", num));
 
@@ -1271,6 +1287,18 @@ flushpag(DBM *db, char *pag, long num)
 	sdbm_check(db);
 	assert_sdbm_locked(db);
 	g_assert(num >= 0);
+
+	/*
+	 * We cannot write back a corrupted page: if we do, it means something
+	 * went wrong in the SDBM internal processing and it needs to be fixed!
+	 */
+
+	if G_UNLIKELY(!lru_chkpage(db, pag, num)) {
+		sdbm_page_dump(db, pag, num);
+		s_error("SDBM internal page corruption for %s\"%s\" (refcnt=%d)",
+			sdbm_is_thread_safe(db) ? "thread-safe " :"", sdbm_name(db),
+			sdbm_refcnt(db));
+	}
 
 	db->pagwrite++;
 	w = compat_pwrite(db->pagf, pag, DBM_PBLKSIZ, OFF_PAG(num));
