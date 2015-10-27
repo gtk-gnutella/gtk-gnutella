@@ -1599,8 +1599,10 @@ bigkey_mark_used(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		s_carp("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag #%ld",
-			sdbm_name(db), G_STRFUNC, len, db->pagbno);
+		s_carp("sdbm: \"%s\": %s(): inconsistent key length %zu: "
+			"uses %zu storage byte%s but would need %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, blen, plural(blen),
+			bigkey_length(len), db->pagbno);
 		return;
 	}
 
@@ -1621,8 +1623,10 @@ bigval_mark_used(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		s_carp("sdbm: \"%s\": %s(): inconsistent value length %zu in .pag #%ld",
-			sdbm_name(db), G_STRFUNC, len, db->pagbno);
+		s_carp("sdbm: \"%s\": %s(): inconsistent value length %zu: "
+			"uses %zu storage byte%s but would need %zu in .pag #%ld",
+			sdbm_name(db), G_STRFUNC, len, blen, plural(blen),
+			bigval_length(len), db->pagbno);
 		return;
 	}
 
