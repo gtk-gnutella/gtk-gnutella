@@ -6,6 +6,7 @@
 
 struct DBMBIG;
 struct qlock;			/* Avoid including "qlock.h" here */
+struct lru_cache;
 
 enum sdbm_magic { SDBM_MAGIC = 0x1dac340e };
 
@@ -26,7 +27,7 @@ struct DBM {
 	char *pagbuf;		/* page file block buffer (size: DBM_PBLKSIZ) */
 	char *dirbuf;		/* directory file block buffer (size: DBM_DBLKSIZ) */
 #ifdef LRU
-	void *cache;		/* LRU page cache */
+	struct lru_cache *cache;	/* LRU page cache */
 #endif
 #ifdef THREADS
 	struct qlock *lock;	/* thread-safe lock at the API level */
