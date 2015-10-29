@@ -482,15 +482,16 @@ setcache(DBM *db, uint pages)
 	 * it at the head of the LRU list (which avoids resetting db->pagbuf)
 	 * provided it is not already wired..
 	 *
-	 * Note that db->pagbuf MUST be a cached page since caching was on.
+	 * Note that db->pagbuf MUST be a cached page since caching was on,
+	 * provided that db->pagbno is valid.
 	 */
 
-	{
+	if (db->pagbno != -1) {
 		struct lru_cpage *cp = sdbm_lru_cpage_get(db, db->pagbuf, TRUE);
 
 		g_assert_log(cp != NULL,
-			"%s(): db->pagbuf=%p is not a cached page pointer",
-			G_STRFUNC, db->pagbuf);
+			"%s(): db->pagbuf=%p is not a cached page pointer (for page #%ld)",
+			G_STRFUNC, db->pagbuf, db->pagbno);
 
 		if (!cp->wired)
 			elist_moveto_head(&cache->lru, cp);
@@ -734,6 +735,8 @@ lru_unwire(DBM *db, const char *pag)
 			old = elist_tail(&cache->lru);
 
 			if (old->dirty && writebuf(old)) {
+				if (db->pagbno == old->numpag)
+					db->pagbno = -1;
 				elist_remove(&cache->lru, old);
 				hevset_remove(cache->pagnum, &old->numpag);
 				sdbm_lru_cpage_free(old);
@@ -1004,6 +1007,9 @@ lru_discard(DBM *db, long bno)
 	ELIST_FOREACH_DATA(&cache->wired, cp) {
 		lru_discard_wired_page(cp, bno);
 	}
+
+	if (db->pagbno >= bno)
+		db->pagbno = -1;		/* We discarded that old page */
 }
 
 /**
@@ -1044,6 +1050,9 @@ lru_invalidate(DBM *db, long bno)
 			hevset_remove(cache->pagnum, &bno);
 			sdbm_lru_cpage_free(cp);
 		}
+
+		if (db->pagbno == bno)
+			db->pagbno = -1;
 	}
 }
 
