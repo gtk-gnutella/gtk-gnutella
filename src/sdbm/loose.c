@@ -146,7 +146,7 @@ loose_process(struct loose_vars *v,
 	 */
 
 	WALLOC_ARRAY(pv, cnt);
-	cur_cnt = readpairv(pag, pv, cnt, !v->allkeys);
+	cur_cnt = readpairv(v->db, pag, pv, cnt, !v->allkeys);
 
 	g_assert(cur_cnt == cnt);	/* Since we still hold the lock on the DB */
 
@@ -359,7 +359,7 @@ restart:
 			 * processing.  It's a loose iteration anyway.
 			 */
 
-			cur_cnt = readpairv(pag, pv, cnt, TRUE);
+			cur_cnt = readpairv(v->db, pag, pv, cnt, TRUE);
 			cur_mstamp = lru_wired_mstamp(v->db, pag);
 
 			if (1 == restarted)

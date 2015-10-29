@@ -7,6 +7,7 @@
 #define lru_tail_offset sdbm__lru_tail_offset
 #define lru_wire sdbm__lru_wire
 #define lru_unwire sdbm__lru_unwire
+#define lru_page_log sdbm__lru_page_log
 #define readbuf sdbm__readbuf
 #define flushpag sdbm__flushpag
 #define modifypag sdbm__modifypag
@@ -39,5 +40,6 @@ fileoffset_t lru_tail_offset(const DBM *);
 const char *lru_wire(DBM *, long, ulong *);
 ulong lru_wired_mstamp(DBM *, const char *);
 void lru_unwire(DBM *, const char *);
+void lru_page_log(const DBM *, const char *);
 
 /* vi: set ts=4 sw=4 cindent: */

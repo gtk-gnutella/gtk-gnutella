@@ -1313,7 +1313,7 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 	 * if we do not have enough room, we have to split.
 	 */
 
-	need_split = !fitpair(db->pagbuf, need);
+	need_split = !fitpair(db, db->pagbuf, need);
 
 	if G_UNLIKELY(need_split && !makroom(db, hash, need))
 		return -1;
@@ -1581,7 +1581,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * see if we have enough room now
 		 */
 
-		fits = fitpair(pag, need);
+		fits = fitpair(db, pag, need);
 
 		/*
 		 * If the incoming pair still does not fit in the current page,

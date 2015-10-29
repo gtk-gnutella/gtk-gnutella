@@ -270,6 +270,38 @@ log_lrustats(DBM *db)
 }
 
 /**
+ * Log known LRU page information.
+ */
+void
+lru_page_log(const DBM *db, const char *pag)
+{
+	struct lru_cache *cache = db->cache;
+	struct lru_cpage *cp;
+
+	sdbm_check(db);
+
+	if G_UNLIKELY(NULL == cache) {
+		s_info("sdbm: \"%s\": no LRU cache", sdbm_name(db));
+		return;
+	}
+
+	sdbm_lru_check(cache);
+	assert_sdbm_locked(db);
+
+	cp = sdbm_lru_cpage_get(db, pag, TRUE);
+
+	if (NULL == cp) {
+		s_info("sdbm: \"%s\": %p is not in LRU cache", sdbm_name(db), pag);
+	} else {
+		s_info("sdbm: \"%s\": %p is LRU-cached: page #%ld%s%s%s",
+			sdbm_name(db), pag, cp->numpag,
+			cp->dirty   ? ", dirty"   : "",
+			cp->wired   ? ", wired"   : "",
+			cp->invalid ? ", invalid" : "");
+	}
+}
+
+/**
  * Write back cached page to disk.
  * @return TRUE on success.
  */
@@ -326,12 +358,14 @@ flush_dirtypag(const DBM *db)
 	assert_sdbm_locked(db);
 
 	ELIST_FOREACH_DATA(&cache->lru, cp) {
+		g_assert(db == cp->db);
 		if (!flush_cpage(cp, &amount, &saved_errno))
 			break;
 	}
 
 	if (saved_errno != 0) {
 		ELIST_FOREACH_DATA(&cache->wired, cp) {
+			g_assert(db == cp->db);
 			if (!flush_cpage(cp, &amount, &saved_errno))
 				break;
 		}
@@ -595,7 +629,10 @@ modifypag(const DBM *db, const char *pag)
 {
 	struct lru_cpage *cp = sdbm_lru_cpage_get(db, pag, FALSE);
 
-	g_assert(cp != NULL);		/* Page must be cached */
+	g_assert_log(cp != NULL,		/* Page must be cached */
+		"%s(): sdbm \"%s\": %p not in LRU cache (pagbuf=%p, pabgno=%ld)",
+		G_STRFUNC, sdbm_name(db), pag, db->pagbuf, db->pagbno);
+
 	assert_sdbm_locked(db);
 
 	/*
@@ -795,8 +832,11 @@ dirtypag(DBM *db, bool force)
 	struct lru_cache *cache = db->cache;
 	struct lru_cpage *cp = sdbm_lru_cpage_get(db, db->pagbuf, FALSE);
 
+	g_assert_log(cp != NULL,		/* Page must be cached */
+		"%s(): sdbm \"%s\": %p not in LRU cache (pabgno=%ld)",
+		G_STRFUNC, sdbm_name(db), db->pagbuf, db->pagbno);
+
 	sdbm_lru_check(cache);
-	g_assert(cp != NULL);
 	assert_sdbm_locked(db);
 
 	if (cache->write_deferred && !force) {
@@ -901,6 +941,7 @@ getcpage(DBM *db, long num)
 		 */
 
 		g_assert(!cp->dirty);
+		g_assert(db == cp->db);
 
 		elist_moveto_head(&cache->lru, cp);
 		hevset_remove(cache->pagnum, &cp->numpag);
@@ -1031,6 +1072,8 @@ lru_invalidate(DBM *db, long bno)
 	cp = hevset_lookup(cache->pagnum, &bno);
 
 	if (cp != NULL) {
+		g_assert(db == cp->db);
+
 		/*
 		 * One should never be invalidating a dirty page, unless something
 		 * went wrong during a split and we're trying to undo things.
@@ -1072,11 +1115,13 @@ lru_tail_offset(const DBM *db)
 	assert_sdbm_locked(db);
 
 	ELIST_FOREACH_DATA(&cache->lru, cp) {
+		g_assert(db == cp->db);
 		if (cp->dirty)
 			bno = MAX(bno, cp->numpag);
 	}
 
 	ELIST_FOREACH_DATA(&cache->wired, cp) {
+		g_assert(db == cp->db);
 		if (cp->dirty)
 			bno = MAX(bno, cp->numpag);
 	}
@@ -1109,6 +1154,7 @@ readbuf(DBM *db, long num, bool *loaded)
 
 	if (cp != NULL) {
 		sdbm_lru_cpage_check(cp);
+		g_assert(db == cp->db);
 
 		if (!cp->wired)
 			elist_moveto_head(&cache->lru, cp);
@@ -1126,6 +1172,8 @@ readbuf(DBM *db, long num, bool *loaded)
 	db->pagbuf = cp->page;
 	if (loaded != NULL)
 		*loaded = cached;
+
+	g_assert(db == cp->db);
 
 	return TRUE;
 }
@@ -1164,6 +1212,7 @@ cachepag(DBM *db, char *pag, long num)
 		char *cpag;
 
 		sdbm_lru_cpage_check(cp);
+		g_assert(db == cp->db);
 
 		/*
 		 * Do not move the page to the head of the cache list.

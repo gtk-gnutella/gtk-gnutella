@@ -20,9 +20,30 @@
 
 #include "lib/hashing.h"
 #include "lib/log.h"
+#include "lib/qlock.h"		/* For assert_qlock_is_owned() */
 #include "lib/stringify.h"	/* For plural() */
 
 #include "lib/override.h"	/* Must be the last header included */
+
+/*
+ * page format:
+ *      +------------------------------+
+ * ino  | n | keyoff | datoff | keyoff |
+ *      +------------+--------+--------+
+ *      | datoff | - - - ---->         |
+ *      +--------+---------------------+
+ *      |       F R E E  A R E A       |
+ *      +--------------+---------------+
+ *      |  <---- - - - | data          |
+ *      +--------+-----+----+----------+
+ *      |  key   | data     | key      |
+ *      +--------+----------+----------+
+ *
+ * Calculating the offsets for free area:  if the number
+ * of entries (ino[0]) is zero, the offset to the END of
+ * the free area is the block size. Otherwise, it is the
+ * nth (ino[ino[0]]) entry's offset.
+ */
 
 /*
  * The MODIFY() macro is used to warn the LRU cache that a page is going to
@@ -37,6 +58,9 @@
 #define MODIFY(d,p)
 #endif	/* LRU */
 
+#define INO(p)		((unsigned short *) (p))
+#define INO_MAX		(DBM_PBLKSIZ / sizeof(unsigned short) - 1)
+
 /*
  * To accommodate larger key/values (that would otherwise not
  * fit within a page), the leading bit of each offset is set
@@ -48,6 +72,11 @@
  * can only be done through the DBMBIG descriptor stored in the DBM
  * structure, routines in this file need to take an extra DBM parameter
  * whereas originally they were only taking page addresses.
+ *
+ * Later, the extra DBM parameter was systematically added so that we can
+ * always check that we are operating on consistent data structures, to
+ * detect bugs as early as possible.
+ *		--RAM, 2015-10-29
  */
 
 #define BIG_FLAG	(1 << 15)
@@ -102,32 +131,257 @@ exhash_big(DBM *db, const datum item, bool big, bool *failed)
 static int seepair(DBM *db, const char *, unsigned, const char *, size_t);
 
 /*
- * page format:
- *      +------------------------------+
- * ino  | n | keyoff | datoff | keyoff |
- *      +------------+--------+--------+
- *      | datoff | - - - ---->         |
- *      +--------+---------------------+
- *      |       F R E E  A R E A       |
- *      +--------------+---------------+
- *      |  <---- - - - | data          |
- *      +--------+-----+----+----------+
- *      |  key   | data     | key      |
- *      +--------+----------+----------+
+ * consistency checks.
+ */
+
+#ifdef LRU
+#define LRU_PAGE_LOG(d,p)		lru_page_log(d,p)
+#else	/* !LRU */
+#define LRU_PAGE_LOG(d,p)
+#endif	/* LRU */
+
+const char VALKEY_INCONSISTENT[] = "value offset greater than key offset";
+
+/**
+ * Called to log information when facing an invalid count on a page.
+ */
+static void
+pair_count_invalid(const DBM *db, const char *pag)
+{
+	unsigned short n = INO(pag)[0];
+
+	assert_sdbm_locked(db);
+
+	if (db->pagbuf == pag) {
+		s_warning("sdbm: \"%s\": bad key & value count %u at %p in page #%ld",
+			sdbm_name(db), n, pag, db->pagbno);
+	} else {
+		unsigned short m = INO(db->pagbuf)[0];
+		s_warning("sdbm: \"%s\": bad key & value count %u at %p, "
+			"current page is #%ld at %p (key & value count = %u)",
+			sdbm_name(db), n, pag, db->pagbno, db->pagbuf, m);
+	}
+
+	LRU_PAGE_LOG(db, pag);
+}
+
+/**
+ * Called to log information when facing an invalid offset on a page.
+ */
+static void
+pair_offset_invalid(const DBM *db, const char *pag, unsigned short off)
+{
+	unsigned short n = INO(pag)[0];
+
+	assert_sdbm_locked(db);
+
+	if (db->pagbuf == pag) {
+		s_warning("sdbm: \"%s\": bad offset %u at %p (%d item%s), page #%ld",
+			sdbm_name(db), off, pag, n / 2, plural(n / 2), db->pagbno);
+	} else {
+		unsigned short m = INO(db->pagbuf)[0];
+
+		s_warning("sdbm: \"%s\": bad offset %u at %p (%d item%s), "
+			"current page is #%ld at %p (%d item%s)",
+			sdbm_name(db), off, pag, n / 2, plural(n /2),
+			db->pagbno, db->pagbuf, m / 2, plural(m / 2));
+	}
+
+	LRU_PAGE_LOG(db, pag);
+	sdbm_page_dump(db, db->pagbuf, db->pagbno);
+}
+
+/**
+ * Called to log information when facing an invalid index on a page.
+ */
+static void
+pair_index_invalid(const DBM *db, const char *pag, int i)
+{
+	unsigned short n = INO(pag)[0];
+
+	assert_sdbm_locked(db);
+
+	if (db->pagbuf == pag) {
+		s_warning("sdbm: \"%s\": bad key index %d (%d item%s on %p) page #%ld",
+			sdbm_name(db), i, n / 2, plural(n / 2), pag, db->pagbno);
+	} else {
+		s_warning("sdbm: \"%s\": bad key index %d (%d item%s on %p), "
+			"current page is #%ld at %p",
+			sdbm_name(db), n, n / 2, plural(n / 2), pag,
+			db->pagbno, db->pagbuf);
+	}
+
+	LRU_PAGE_LOG(db, pag);
+	sdbm_page_dump(db, db->pagbuf, db->pagbno);
+}
+
+static void
+pair_kv_invalid(const DBM *db, const char *pag, int i, const char *reason)
+{
+	const unsigned short *ino = INO(pag);
+	unsigned short n = ino[0];
+
+	assert_sdbm_locked(db);
+	g_assert(1 == (i & 0x1));		/* Key index, must be odd */
+
+	if (db->pagbuf == pag) {
+		s_warning("sdbm: \"%s\": bad pair #%d (%d item%s on %p) in page #%ld"
+			": %s",
+			sdbm_name(db), i, n / 2, plural(n / 2), pag, db->pagbno, reason);
+	} else {
+		s_warning("sdbm: \"%s\": bad pair #%d (%d item%s on %p), "
+			"current page is #%ld at %p: %s",
+			sdbm_name(db), n, n / 2, plural(n / 2), pag,
+			db->pagbno, db->pagbuf, reason);
+	}
+
+	if (i >= 1 && UNSIGNED(i) < MIN(n, (INO_MAX - 1))) {
+		s_debug("sdbm: \"%s\": pair #%d: %skey-offset=%u, %sval-offset=%u",
+			sdbm_name(db), i,
+			is_big(ino[i+0]) ? "big" : "", offset(ino[i+0]),
+			is_big(ino[i+1]) ? "big" : "", offset(ino[i+1]));
+	}
+
+	LRU_PAGE_LOG(db, pag);
+	sdbm_page_dump(db, db->pagbuf, db->pagbno);
+}
+
+/**
+ * Make sure the ino[0] field on the page falls within boundaries.
  *
- * Calculating the offsets for free area:  if the number
- * of entries (ino[0]) is zero, the offset to the END of
- * the free area is the block size. Otherwise, it is the
- * nth (ino[ino[0]]) entry's offset.
+ * If not, try to log as much information as possible to help diagnose how
+ * this is possible, but do not panic.
+ *
+ * @return TRUE if count is consistent, FALSE otherwise with errno set.
+ */
+static bool
+pair_count_check(const DBM *db, const char *pag)
+{
+	unsigned short n = INO(pag)[0];
+
+	sdbm_check(db);
+	g_assert(pag != NULL);
+
+	if G_UNLIKELY(n > INO_MAX || (n & 0x1)) {
+		pair_count_invalid(db, pag);
+		errno = EIO;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static inline bool
+pair_offset_is_valid(unsigned short off, unsigned short count)
+{
+	if G_UNLIKELY(off > DBM_PBLKSIZ)
+		return FALSE;
+
+	if G_UNLIKELY(off < (count + 1) * sizeof off)
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Make sure the offset on the page falls within boundaries.
+ *
+ * If not, try to log as much information as possible to help diagnose how
+ * this is possible, but do not panic.
+ *
+ * @return TRUE if offset is consistent, FALSE otherwise with errno set.
+ */
+static bool
+pair_offset_check(const DBM *db, const char *pag, unsigned short off)
+{
+	sdbm_check(db);
+	g_assert(pag != NULL);
+
+	if G_LIKELY(pair_offset_is_valid(off, INO(pag)[0]))
+		return TRUE;
+
+	pair_offset_invalid(db, pag, off);
+	errno = EIO;
+	return FALSE;
+}
+
+/**
+ * Make sure index #i is valid in the page and points to a valid key/value pair,
+ * with #i referring to the key and odd, and #(i+1) referring to the value and
+ * being even.
+ *
+ * If not, try to log as much information as possible to help diagnose how
+ * this is possible, but do not panic.
+ *
+ * @return TRUE if key index is consistent, FALSE otherwise with errno set.
+ */
+static bool
+pair_key_index_check(const DBM *db, const char *pag, int i)
+{
+	const unsigned short *ino = INO(pag);
+	unsigned short n = ino[0];
+	unsigned short koff, voff;
+	const char *what = NULL;
+
+	sdbm_check(db);
+	g_assert(pag != NULL);
+
+	if G_UNLIKELY(n > INO_MAX || (n & 0x1)) {
+		pair_count_invalid(db, pag);
+		errno = EIO;
+		return FALSE;
+	}
+
+	if G_UNLIKELY(i <= 0 || UNSIGNED(i) > n || 0 == (i & 0x1))
+		goto bad_index;
+
+	koff = offset(ino[i]);
+
+	if G_UNLIKELY(!pair_offset_is_valid(koff, n)) {
+		what = "key offset out of range";
+		goto bad_offset;
+	}
+
+	voff = offset(ino[i+1]);
+
+	if G_UNLIKELY(voff > koff) {
+		what = VALKEY_INCONSISTENT;
+		goto bad_offset;
+	}
+
+	if G_UNLIKELY(!pair_offset_is_valid(voff, n)) {
+		what = "value offset out of range";
+		goto bad_offset;
+	}
+
+	return TRUE;
+
+bad_offset:
+	pair_kv_invalid(db, pag, i, what);
+	goto bad;
+
+bad_index:
+	pair_index_invalid(db, pag, i);
+	/* FALL THROUGH */
+
+bad:
+	errno = EIO;
+	return FALSE;
+}
+
+/*
+ * (key, value) pair management.
  */
 
 bool
-fitpair(const char *pag, size_t need)
+fitpair(const DBM *db, const char *pag, size_t need)
 {
 	unsigned n;
 	unsigned off;
 	size_t nfree;
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
+
+	g_return_val_unless(pair_count_check(db, pag), FALSE);
 
 	off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
 	nfree = off - (n + 1) * sizeof(short);
@@ -166,12 +420,18 @@ replpair(DBM *db, char *pag, int i, datum val)
 {
 	unsigned koff;
 	unsigned voff;
-	unsigned short *ino = (unsigned short *) pag;
+	unsigned short *ino = INO(pag);
 
-	g_assert(UNSIGNED(i) + 1 <= ino[0]);
+	g_return_val_unless(pair_count_check(db, pag), -1);
+
+	g_assert_log(UNSIGNED(i) + 1 <= ino[0],
+		"%s(): i=%d, ino[0]=%u, SDBM \"%s\"",
+		G_STRFUNC, i, ino[0], sdbm_name(db));
 
 	MODIFY(db, pag);
 	voff = offset(ino[i + 1]);
+
+	g_return_val_unless(pair_offset_check(db, pag, voff), -1);
 
 #ifdef BIGDATA
 	if (is_big(ino[i + 1]))
@@ -182,6 +442,7 @@ replpair(DBM *db, char *pag, int i, datum val)
 
 	koff = offset(ino[i]);
 
+	g_return_val_unless(pair_offset_check(db, pag, koff), -1);
 	g_assert(koff - voff == val.dsize);
 
 	memcpy(pag + voff, val.dptr, val.dsize);
@@ -189,11 +450,12 @@ replpair(DBM *db, char *pag, int i, datum val)
 }
 
 static void
-putpair_ext(char *pag, datum key, bool bigkey, datum val, bool bigval)
+putpair_ext(const DBM *db, char *pag,
+	datum key, bool bigkey, datum val, bool bigval)
 {
 	unsigned n;
 	unsigned off;
-	unsigned short *ino = (unsigned short *) pag;
+	unsigned short *ino = INO(pag);
 
 	off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
 
@@ -202,6 +464,7 @@ putpair_ext(char *pag, datum key, bool bigkey, datum val, bool bigval)
 	 */
 
 	off -= key.dsize;
+	g_return_unless(pair_offset_check(db, pag, off));
 	memcpy(pag + off, key.dptr, key.dsize);
 	ino[n + 1] = bigkey ? (off | BIG_FLAG) : off;
 
@@ -210,6 +473,7 @@ putpair_ext(char *pag, datum key, bool bigkey, datum val, bool bigval)
 	 */
 
 	off -= val.dsize;
+	g_return_unless(pair_offset_check(db, pag, off));
 	memcpy(pag + off, val.dptr, val.dsize);
 	ino[n + 2] = bigval ? (off | BIG_FLAG) : off;
 
@@ -223,6 +487,8 @@ putpair_ext(char *pag, datum key, bool bigkey, datum val, bool bigval)
 bool
 putpair(DBM *db, char *pag, datum key, datum val)
 {
+	g_return_val_unless(pair_count_check(db, pag), FALSE);
+
 	MODIFY(db, pag);
 
 #ifdef BIGDATA
@@ -248,11 +514,11 @@ putpair(DBM *db, char *pag, datum key, datum val)
 		)
 	) {
 		/* Expand both the key and the value in the page */
-		putpair_ext(pag, key, FALSE, val, FALSE);
+		putpair_ext(db, pag, key, FALSE, val, FALSE);
 	} else {
 		unsigned n;
 		unsigned off;
-		unsigned short *ino = (unsigned short *) pag;
+		unsigned short *ino = INO(pag);
 		size_t vl;
 		bool largeval;
 
@@ -274,6 +540,7 @@ putpair(DBM *db, char *pag, datum key, datum val)
 			size_t kl = bigkey_length(key.dsize);
 			/* Large key (and could use a large value as well) */
 			off -= kl;
+			g_return_val_unless(pair_offset_check(db, pag, off), FALSE);
 			if (!bigkey_put(db, pag + off, kl, key.dptr, key.dsize))
 				return FALSE;
 			ino[n + 1] = off | BIG_FLAG;
@@ -282,6 +549,7 @@ putpair(DBM *db, char *pag, datum key, datum val)
 		} else {
 			/* Regular inlined key, only the value will be held in .dat */
 			off -= key.dsize;
+			g_return_val_unless(pair_offset_check(db, pag, off), FALSE);
 			memcpy(pag + off, key.dptr, key.dsize);
 			ino[n + 1] = off;
 			largeval = TRUE;
@@ -293,11 +561,13 @@ putpair(DBM *db, char *pag, datum key, datum val)
 
 		if (largeval) {
 			off -= vl;
+			g_return_val_unless(pair_offset_check(db, pag, off), FALSE);
 			if (!bigval_put(db, pag + off, vl, val.dptr, val.dsize))
 				return FALSE;
 			ino[n + 2] = off | BIG_FLAG;
 		} else {
 			off -= val.dsize;
+			g_return_val_unless(pair_offset_check(db, pag, off), FALSE);
 			memcpy(pag + off, val.dptr, val.dsize);
 			ino[n + 2] = off;
 		}
@@ -306,7 +576,7 @@ putpair(DBM *db, char *pag, datum key, datum val)
 	}
 #else
 	(void) db;
-	putpair_ext(pag, key, FALSE, val, FALSE);
+	putpair_ext(db, pag, key, FALSE, val, FALSE);
 #endif	/* BIGDATA */
 
 	return TRUE;
@@ -324,13 +594,15 @@ infopair(DBM *db, char *pag, datum key, size_t *length, int *idx, bool *big)
 	int i;
 	unsigned n;
 	size_t dsize;
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 
 	if ((n = ino[0]) == 0)
 		return FALSE;
 
 	if ((i = seepair(db, pag, n, key.dptr, key.dsize)) == 0)
 		return FALSE;
+
+	g_return_val_unless(pair_key_index_check(db, pag, i), FALSE);
 
 	dsize = offset(ino[i]) - offset(ino[i + 1]);
 
@@ -365,6 +637,8 @@ getpair(DBM *db, char *pag, datum key)
 	if ((i = seepair(db, pag, n, key.dptr, key.dsize)) == 0)
 		return nullitem;
 
+	g_return_val_unless(pair_key_index_check(db, pag, i), nullitem);
+
 	val.dptr = pag + offset(ino[i + 1]);
 	val.dsize = offset(ino[i]) - offset(ino[i + 1]);
 
@@ -388,7 +662,7 @@ getnval(DBM *db, const char *pag, int num)
 	int i;
 	int n;
 	datum val;
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 
 	g_assert(num > 0);
 
@@ -396,6 +670,8 @@ getnval(DBM *db, const char *pag, int num)
 
 	if ((n = ino[0]) == 0 || i >= n)
 		return nullitem;
+
+	g_return_val_unless(pair_key_index_check(db, pag, i), nullitem);
 
 	val.dptr = (char *) pag + offset(ino[i + 1]);
 	val.dsize = offset(ino[i]) - offset(ino[i + 1]);
@@ -416,7 +692,7 @@ getnval(DBM *db, const char *pag, int num)
 bool
 exipair(DBM *db, const char *pag, datum key)
 {
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 
 	if (ino[0] == 0)
 		return FALSE;
@@ -428,7 +704,7 @@ exipair(DBM *db, const char *pag, datum key)
 bool
 duppair(DBM *db, const char *pag, datum key)
 {
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 	return ino[0] > 0 && seepair(db, pag, ino[0], key.dptr, key.dsize) > 0;
 }
 #endif
@@ -439,13 +715,15 @@ getnkey(DBM *db, const char *pag, int num)
 	datum key;
 	int i;
 	int off;
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 
 	g_assert(num > 0);
 
 	i = num * 2 - 1;
 	if (ino[0] == 0 || i > ino[0])
 		return nullitem;
+
+	g_return_val_unless(pair_key_index_check(db, pag, i), nullitem);
 
 	off = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
 
@@ -474,7 +752,7 @@ getnkey(DBM *db, const char *pag, int num)
 static bool
 delipair_big(DBM *db, char *pag, int i)
 {
-	unsigned short *ino = (unsigned short *) pag;
+	unsigned short *ino = INO(pag);
 	unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
 	unsigned koff = offset(ino[i]);
 	unsigned voff = offset(ino[i+1]);
@@ -491,6 +769,8 @@ delipair_big(DBM *db, char *pag, int i)
 
 	return status;
 }
+#else
+#define delipair_big(d,p,i)		TRUE
 #endif	/* BIGDATA */
 
 /**
@@ -502,7 +782,7 @@ bool
 delipair(DBM *db, char *pag, int i, bool free_bigdata)
 {
 	int n;
-	unsigned short *ino = (unsigned short *) pag;
+	unsigned short *ino = INO(pag);
 	bool status = TRUE;
 
 	n = ino[0];
@@ -512,14 +792,12 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	if G_UNLIKELY(0 == n || i >= n || !(i & 0x1))
 		return FALSE;
 
+	g_return_val_unless(pair_key_index_check(db, pag, i), FALSE);
+
 	MODIFY(db, pag);
 
-#ifdef BIGDATA
 	if (free_bigdata)
 		status = delipair_big(db, pag, i);
-#else
-	(void) db;		/* Unused parameter unless BIGDATA */
-#endif
 
 	/*
 	 * found the key. if it is the last entry
@@ -591,7 +869,7 @@ bool
 delnpair(DBM *db, char *pag, int num)
 {
 	int i;
-	unsigned short *ino = (unsigned short *) pag;
+	unsigned short *ino = INO(pag);
 
 	i = num * 2 - 1;
 
@@ -606,7 +884,7 @@ delpair(DBM *db, char *pag, datum key)
 {
 	int n;
 	int i;
-	unsigned short *ino = (unsigned short *) pag;
+	unsigned short *ino = INO(pag);
 
 	if ((n = ino[0]) == 0)
 		return FALSE;
@@ -627,7 +905,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 {
 	unsigned i;
 	size_t off = DBM_PBLKSIZ;
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 #if 1
 	/* Slightly optimized version */
 	char b, e;
@@ -638,6 +916,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 		/* The original version is optimum for low n or zero-length keys */
 		for (i = 1; i < n; i += 2) {
 			unsigned short koff = offset(ino[i]);
+			g_return_val_unless(pair_offset_check(db, pag, koff), 0);
 #ifdef BIGDATA
 			if (is_big(ino[i])) {
 				if (bigkey_eq(db, pag + koff, off - koff, key, siz))
@@ -647,6 +926,11 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 			if (siz == off - koff && 0 == memcmp(key, pag + koff, siz))
 				return i;
 			off = offset(ino[i + 1]);
+			g_return_val_unless(pair_offset_check(db, pag, off), 0);
+			if G_UNLIKELY(off > koff) {
+				pair_kv_invalid(db, pag, i, VALKEY_INCONSISTENT);
+				return 0;		/* Page is corrupted */
+			}
 		}
 		return 0;
 	}
@@ -658,6 +942,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 
 	for (i = 1; i < n; i += 2) {
 		unsigned short koff = offset(ino[i]);
+		g_return_val_unless(pair_offset_check(db, pag, koff), 0);
 #ifdef BIGDATA
 		if (is_big(ino[i])) {
 			if (bigkey_eq(db, pag + koff, off - koff, key, siz))
@@ -678,6 +963,11 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 			}
 		}
 		off = offset(ino[i + 1]);
+		g_return_val_unless(pair_offset_check(db, pag, off), 0);
+		if G_UNLIKELY(off > koff) {
+			pair_kv_invalid(db, pag, i, "value offset > key offset");
+			return 0;		/* Page is corrupted */
+		}
 	}
 	return 0;
 #else
@@ -702,7 +992,7 @@ bool
 chkipair(DBM *db, char *pag, int i)
 {
 	int n;
-	unsigned short *ino = (unsigned short *) pag;
+	unsigned short *ino = INO(pag);
 
 	n = ino[0];
 
@@ -729,6 +1019,11 @@ chkipair(DBM *db, char *pag, int i)
 		if (is_big(v))
 			bigval_mark_used(db, pag + voff, koff - voff);
 	}
+#else
+	{
+		if G_UNLIKELY(offset(ino[i+1]) > offset(ino[i]))
+			return FALSE;
+	}
 #endif
 
 	return TRUE;
@@ -737,7 +1032,7 @@ chkipair(DBM *db, char *pag, int i)
 static inline int
 pagcount(const char *pag)
 {
-	return ((unsigned short *) pag)[0];
+	return INO(pag)[0];
 }
 
 /**
@@ -759,15 +1054,18 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 {
 	int n;
 	int off = DBM_PBLKSIZ;
-	const unsigned short *ino = (const unsigned short *) pag;
-	int removed = 0;
+	const unsigned short *ino = INO(pag);
+	int removed = 0, dropped = 0;
 
 	MODIFY(db, pagzero);		/* `pagone' does not exist yet in the DB */
 
 	memset(pagzero, 0, DBM_PBLKSIZ);
 	memset(pagone, 0, DBM_PBLKSIZ);
 
+	g_return_unless(pair_count_check(db, pag));
+
 	n = ino[0];
+
 	for (ino++; n > 0; ino += 2) {
 		unsigned short koff = offset(ino[0]);
 		unsigned short voff = offset(ino[1]);
@@ -775,6 +1073,14 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 		bool bk = is_big(ino[0]);
 		bool failed;
 		long hash;
+
+		if G_UNLIKELY(voff > koff) {
+			pair_kv_invalid(db, pag, ino - INO(pag), VALKEY_INCONSISTENT);
+
+			/* Inconsistency detected , drop all remaining entries */
+			dropped += ino[0] / 2 - (ino - INO(pag)) + 1;
+			break;
+		}
 
 		key.dptr = pag + koff;
 		key.dsize = off - koff;
@@ -788,7 +1094,7 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 		 */
 
 		if (bk && failed) {
-			delipair_big(db, pag, ino - (unsigned short *) pag);
+			(void) delipair_big(db, pag, ino - INO(pag));
 			removed++;
 			goto next;
 		}
@@ -801,7 +1107,7 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 		 * Select the page pointer (by looking at sbit) and insert
 		 */
 
-		putpair_ext((hash & sbit) ? pagone : pagzero,
+		putpair_ext(db, (hash & sbit) ? pagone : pagzero,
 			key, bk, val, is_big(ino[1]));
 
 	next:
@@ -809,7 +1115,15 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 		n -= 2;
 	}
 
-	g_assert(pagcount(pag) == pagcount(pagzero) + pagcount(pagone) + removed);
+	g_assert(pagcount(pag) ==
+		pagcount(pagzero) + pagcount(pagone) + removed + dropped);
+
+	if G_UNLIKELY(dropped != 0) {
+		db->removed_keys += dropped;
+		s_warning("sdbm: \"%s\": dropped %d/%d key%s (page inconsistency) "
+			"on page #%ld", sdbm_name(db),
+			dropped, pagcount(pag) / 2, plural(dropped), db->pagbno);
+	}
 
 	if G_UNLIKELY(removed != 0) {
 		db->removed_keys += removed;
@@ -818,9 +1132,9 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 			removed, pagcount(pag) / 2, plural(removed), db->pagbno);
 	}
 
-	debug(("%d split %d/%d\n", ((unsigned short *) pag)[0] / 2,
-	       ((unsigned short *) pagone)[0] / 2,
-	       ((unsigned short *) pagzero)[0] / 2));
+	debug(("%d split %d/%d\n", INO(pag)[0] / 2,
+	       INO(pagone)[0] / 2,
+	       INO(pagzero)[0] / 2));
 }
 
 /**
@@ -834,13 +1148,15 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
  * @return the amount of entries filled in the vector
  */
 int
-readpairv(const char *pag, struct sdbm_pair *pv, int vcnt, bool hkeys)
+readpairv(const DBM *db, const char *pag,
+	struct sdbm_pair *pv, int vcnt, bool hkeys)
 {
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 	int off = DBM_PBLKSIZ;
 	int i, n;
 
 	g_assert(pag != NULL);
+	g_return_val_unless(pair_count_check(db, pag), 0);
 
 	n = ino[0];
 
@@ -853,6 +1169,12 @@ readpairv(const char *pag, struct sdbm_pair *pv, int vcnt, bool hkeys)
 		v->voff = offset(ino[1]);
 		v->vlen = v->koff - v->voff;
 		v->vbig = is_big(ino[1]);
+
+		if G_UNLIKELY(v->voff > v->koff) {
+			pair_kv_invalid(db, pag, ino - INO(pag), VALKEY_INCONSISTENT);
+			break;		/* Inconsistency, abort reading of page */
+		}
+
 		v->khash = hkeys ? binary_hash(pag + v->koff, v->klen) : 0;
 
 		off = v->voff;
@@ -869,7 +1191,7 @@ sdbm_internal_chkpage(const char *pag)
 {
 	unsigned n;
 	unsigned off;
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 
 	/*
 	 * This static assertion makes sure that the leading bit of the shorts
@@ -886,7 +1208,7 @@ sdbm_internal_chkpage(const char *pag)
 	 * this could be made more rigorous.
 	 */
 
-	if G_UNLIKELY((n = ino[0]) > DBM_PBLKSIZ / sizeof(unsigned short))
+	if G_UNLIKELY((n = ino[0]) > INO_MAX)
 		return FALSE;
 
 	if G_UNLIKELY(n & 0x1)
@@ -915,16 +1237,13 @@ sdbm_internal_chkpage(const char *pag)
 static void
 sdbm_page_dump_log(logagent_t *la, const DBM *db, const char *pag, long num)
 {
-	const unsigned short *ino = (const unsigned short *) pag;
+	const unsigned short *ino = INO(pag);
 	unsigned n;
 
 	log_debug(la, "---- %s SDBM page #%lu for \"%s\" ----",
 		"Begin", num, sdbm_name(db));
 
-	if G_UNLIKELY(
-		(n = ino[0]) > DBM_PBLKSIZ / sizeof(unsigned short) ||
-		(n & 0x1)
-	) {
+	if G_UNLIKELY((n = ino[0]) > INO_MAX || (n & 0x1)) {
 		log_warning(la, "INVALID entry count: %u", n);
 	} else {
 		unsigned ino_end = (n + 1) * sizeof(unsigned short);

@@ -30,7 +30,7 @@ struct sdbm_pair {
 	uint vbig:1;		/* Whether value is a big value */
 };
 
-extern bool fitpair(const char *, size_t);
+extern bool fitpair(const DBM *, const char *, size_t);
 extern bool putpair(DBM *, char *, datum, datum);
 extern datum getpair(DBM *, char *, datum);
 extern bool exipair(DBM *, const char *, datum);
@@ -45,7 +45,7 @@ extern void splpage(DBM *, char *, char *, char *, long);
 extern bool replaceable(size_t, size_t, bool);
 extern int replpair(DBM *, char *, int, datum);
 extern int paircount(const char *);
-extern int readpairv(const char *, struct sdbm_pair *, int, bool);
+extern int readpairv(const DBM *, const char *, struct sdbm_pair *, int, bool);
 #ifdef SEEDUPS
 extern bool duppair(DBM *, const char *, datum);
 #endif
