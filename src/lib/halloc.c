@@ -711,31 +711,26 @@ h_strndup(const char *str, size_t n)
 }
 
 /**
- * A clone of g_strjoinv() which uses halloc().
- * The resulting string must be freed via hfree().
+ * Like h_strjoinv() but the length of the separator is given, meaning it can
+ * contain embedded NUL characters and does not require to be NUL-terminated.
  *
- * Joins a number of strings together to form one long string, with the
- * optional separator inserted between each of them.
- *
- * @param separator		string to insert between each strings, or NULL
+ * @param separator		string to insert between each strings
+ * @param seplen		amount of bytes in the separator string
  * @param str_array		a NULL-terminated array of strings to join
  *
  * @return a newly allocated string joining all the strings from the array,
  * with the separator between them.
  */
 char *
-h_strjoinv(const char *separator, char * const *str_array)
+h_strnjoinv(const char *separator, size_t seplen, char * const *str_array)
 {
 	const char *sep = separator;
 	char *result;
 
 	g_assert(str_array != NULL);
-
-	if (NULL == sep)
-		sep = "";
+	g_assert(separator != NULL || 0 == seplen);
 
 	if (str_array[0] != NULL) {
-		size_t seplen = strlen(sep);
 		size_t i, len, pos;
 
 		len = size_saturate_add(1, strlen(str_array[0]));
@@ -752,7 +747,8 @@ h_strjoinv(const char *separator, char * const *str_array)
 		/* We can freely add to pos, we know it cannot saturate now */
 
 		for (i = 1; str_array[i] != NULL; i++) {
-			pos += strcpy_len(&result[pos], sep);
+			memcpy(&result[pos], sep, seplen);
+			pos += seplen;
 			pos += strcpy_len(&result[pos], str_array[i]);
 		}
 
@@ -762,6 +758,30 @@ h_strjoinv(const char *separator, char * const *str_array)
 	}
 
 	return result;
+}
+
+/**
+ * A clone of g_strjoinv() which uses halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * Joins a number of strings together to form one long string, with the
+ * optional separator inserted between each of them.
+ *
+ * If separator is NULL, strings in the array are simply concatenated together.
+ *
+ * @param separator		string to insert between each strings, or NULL
+ * @param str_array		a NULL-terminated array of strings to join
+ *
+ * @return a newly allocated string joining all the strings from the array,
+ * with the separator between them.
+ */
+char *
+h_strjoinv(const char *separator, char * const *str_array)
+{
+	if G_UNLIKELY(NULL == separator)
+		return h_strnjoinv(NULL, 0, str_array);
+
+	return h_strnjoinv(separator, strlen(separator), str_array);
 }
 
 /**
