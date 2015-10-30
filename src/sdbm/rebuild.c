@@ -156,6 +156,7 @@ sdbm_replace_descriptor(DBM *db, DBM *ndb)
 #endif
 	sdbm_close_internal(db, TRUE, FALSE);		/* Keep object around */
 	*db = *ndb;									/* struct copy */
+	db->pagbno = -1;							/* Restarting, no cached data */
 #ifdef THREADS
 	ndb->lock = NULL;							/* was copied over */
 	ndb->returned = NULL;
