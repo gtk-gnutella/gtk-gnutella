@@ -59,6 +59,14 @@ struct lru_cache {
 	unsigned long rmisses;		/* Stats: amount of cache misses on reads */
 	unsigned long whits;		/* Stats: amount of cache hits on writes */
 	unsigned long wmisses;		/* Stats: amount of cache misses on writes */
+	unsigned long cp_created;	/* Stats: cached pages created */
+	unsigned long cp_freed;		/* Stats: cached pages freed */
+	unsigned long cp_reused;	/* Stats: cached pages reused */
+	unsigned long cp_discarded;	/* Stats: cached pages discarded */
+	unsigned long cp_wired;		/* Stats: cached pages wired */
+	unsigned long cp_mod_wired;	/* Stats: cached pages modified whilst wired */
+	unsigned long cp_dirtied;	/* Stats: cached pages marked dirty */
+	unsigned long cp_flushed;	/* Stats: cached pages flushed */
 };
 
 static inline void
@@ -118,10 +126,16 @@ sdbm_lru_cpage_alloc(DBM *db)
 {
 	struct lru_cpage *cp;
 
+	sdbm_check(db);
+
 	cp = walloc(LRU_CPAGE_LEN);
 	ZERO(cp);
 	cp->magic = SDBM_LRU_CPAGE_MAGIC;
 	cp->db = db;
+
+	sdbm_lru_check(db->cache);
+
+	db->cache->cp_created++;
 
 	return cp;
 }
@@ -135,6 +149,15 @@ static void
 sdbm_lru_cpage_free(struct lru_cpage *cp)
 {
 	sdbm_lru_cpage_check(cp);
+
+	{
+		DBM *db = cp->db;
+
+		sdbm_check(db);
+		sdbm_lru_check(db->cache);
+
+		db->cache->cp_freed++;
+	}
 
 	ZERO(cp);
 	wfree(cp, LRU_CPAGE_LEN);
@@ -267,6 +290,15 @@ log_lrustats(DBM *db)
 	s_info("sdbm: \"%s\" LRU write cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->whits * 100.0 / MAX(waccesses, 1), waccesses,
 		plural(waccesses));
+
+	s_info("sdbm: \"%s\" LRU pages "
+		"created = %lu, freed = %lu, reused = %lu, discarded = %lu",
+		sdbm_name(db), cache->cp_created, cache->cp_freed, cache->cp_reused,
+		cache->cp_discarded);
+	s_info("sdbm: \"%s\" LRU pages wired = %lu, modified-whilst-wired = %lu",
+		sdbm_name(db), cache->cp_wired, cache->cp_mod_wired);
+	s_info("sdbm: \"%s\" LRU pages dirtied = %lu, flushed = %lu",
+		sdbm_name(db), cache->cp_dirtied, cache->cp_flushed);
 }
 
 /**
@@ -313,6 +345,13 @@ writebuf(struct lru_cpage *cp)
 
 	if (!flushpag(cp->db, cp->page, cp->numpag))
 		return FALSE;
+
+	{
+		struct lru_cache *cache = cp->db->cache;
+
+		sdbm_lru_check(cache);
+		cache->cp_flushed++;
+	}
 
 	cp->dirty = FALSE;
 	return TRUE;
@@ -640,8 +679,12 @@ modifypag(const DBM *db, const char *pag)
 	 * to be modified by the application.
 	 */
 
-	if G_UNLIKELY(cp->wired)
+	if G_UNLIKELY(cp->wired) {
 		ATOMIC_INC(&cp->mstamp);
+
+		sdbm_lru_check(db->cache);
+		db->cache->cp_mod_wired++;
+	}
 }
 
 /**
@@ -670,6 +713,8 @@ lru_wire(DBM *db, long num, ulong *mstamp)
 	sdbm_lru_check(cache);
 	assert_sdbm_locked(db);
 	g_assert(num >= 0);
+
+	cache->cp_wired++;
 
 	cp = hevset_lookup(cache->pagnum, &num);
 
@@ -839,6 +884,8 @@ dirtypag(DBM *db, bool force)
 	sdbm_lru_check(cache);
 	assert_sdbm_locked(db);
 
+	cache->cp_dirtied++;
+
 	if (cache->write_deferred && !force) {
 		if (cp->dirty)
 			cache->whits++;		/* Was already dirty -> write cache hit */
@@ -948,6 +995,8 @@ getcpage(DBM *db, long num)
 
 		if (db->pagbno == cp->numpag)
 			db->pagbno = -1;
+
+		cache->cp_reused++;
 	}
 
 	/*
@@ -1005,11 +1054,12 @@ lru_discard_page(void *data, void *udata)
 		struct lru_cache *cache;
 
 		sdbm_check(db);
-		cache  = db->cache;
+		cache = db->cache;
 		sdbm_lru_check(cache);
 
 		hevset_remove(cache->pagnum, &cp->numpag);
 		sdbm_lru_cpage_free(cp);
+		cache->cp_discarded++;
 		return TRUE;
 	}
 
@@ -1027,6 +1077,9 @@ lru_discard_wired_page(struct lru_cpage *cp, long bno)
 		cp->dirty = FALSE;
 		cp->invalid = TRUE;
 		memset(cp->page, 0, DBM_PBLKSIZ);
+
+		sdbm_lru_check(cp->db->cache);
+		cp->db->cache->cp_discarded++;
 	}
 }
 
@@ -1046,6 +1099,7 @@ lru_discard(DBM *db, long bno)
 	elist_foreach_remove(&cache->lru, lru_discard_page, long_to_pointer(bno));
 
 	ELIST_FOREACH_DATA(&cache->wired, cp) {
+		g_assert(cp->db == db);
 		lru_discard_wired_page(cp, bno);
 	}
 
