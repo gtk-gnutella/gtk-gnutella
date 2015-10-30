@@ -84,6 +84,7 @@ usage(void)
 		"  -t : show timing results for each test\n"
 		"  -v : use large values\n"
 		"  -w : perform a write test\n"
+		"  -x : exit with 0 (OK) status if DB has specified amount of keys\n"
 		"  -y : show runtime thread stats at the end\n"
 		"  -A : traverse all keys when loosely iterating\n"
 		"  -B : rebuild the database before testing\n"
@@ -648,14 +649,14 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	bool wflag = 0, rflag = 0, iflag = 0, tflag = 0, sflag = 0;
-	bool eflag = 0, dflag = 0, bflag = 0, lflag = 0;
+	bool eflag = 0, dflag = 0, bflag = 0, lflag = 0, xflag = 0;
 	bool stats = 0, count_items = 0;
 	int wflags = 0;
 	int c;
 	const char *name;
 	long count;
 	long cache = 0;
-	const char options[] = "aAbBc:CdDeEiklKprR:sStTUvVwXy";
+	const char options[] = "aAbBc:CdDeEiklKprR:sStTUvVwxXy";
 
 	progstart(argc, argv);
 
@@ -741,6 +742,9 @@ main(int argc, char **argv)
 		case 'w':			/* write test */
 			wflag++;
 			break;
+		case 'x':			/* count items, report if matching user value */
+			xflag++;
+			break;
 		case 'X':			/* loose deletion requested */
 			loose_delete++;
 			break;
@@ -758,6 +762,11 @@ main(int argc, char **argv)
 
 	name = argv[optind];
 
+	if (xflag && 1 == argc) {
+		printf("Need explicit count for checking when -x\n");
+		return 1;
+	}
+
 	if (1 == argc) {
 		DBM *db = sdbm_open(name, O_RDONLY, 0);
 		if (NULL == db) {
@@ -772,6 +781,22 @@ main(int argc, char **argv)
 		}
 	} else {
 		count = atoi(argv[optind + 1]);
+	}
+
+	if (xflag) {
+		DBM *db = sdbm_open(name, O_RDONLY, 0);
+		if (NULL == db) {
+			oops("Can't open \"%s\"", name);
+			return 1;
+		} else {
+			ssize_t items = sdbm_count(db);
+			sdbm_close(db);
+			if (items == count)
+				return 0;
+			printf("Found %ld item%s in \"%s\", expected %ld\n",
+				(long) items, plural(items), name, count);
+			return 1;
+		}
 	}
 
 	if (wflag && (wflags & WR_EMPTY))
