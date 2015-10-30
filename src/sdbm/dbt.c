@@ -56,7 +56,7 @@ static bool unlink_db;
 static bool all_keys;
 static bool large_keys, large_values, common_head_tail;
 static bool loose_delete;
-static bool async_rebuild;
+static bool async_rebuild, async_rebuild_launched;
 static int async_thread = -1;
 
 #define WR_DELAY	(1 << 0)
@@ -149,9 +149,10 @@ open_db(const char *name, bool writeable, long cache, int wflags)
 	if (shrink)
 		sdbm_shrink(db);
 
-	if (async_rebuild) {
+	if (async_rebuild && !async_rebuild_launched) {
 		printf("Launching asynchronous database rebuild.\n");
 		sdbm_ref(db);
+		async_rebuild_launched = TRUE;
 		async_thread = thread_create(rebuild_db_async, db, THREAD_F_PANIC, 0);
 	}
 
