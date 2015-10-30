@@ -123,8 +123,7 @@ sdbm_replace_descriptor(DBM *db, DBM *ndb)
 	datname = h_strdup(db->datname);
 
 	HFREE_NULL(ndb->name);		/* Name could be different on async rebuild */
-	ndb->name = db->name;		/* So keep the old name pointer */
-	db->name = NULL;			/* And prevent its freeing below */
+	ndb->name = h_strdup(db->name);
 
 	g_assert(NULL == ndb->rdb);
 	ndb->rdb = db->rdb;			/* In case was also asynchronously rebuilt */
