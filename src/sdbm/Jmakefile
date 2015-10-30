@@ -100,3 +100,12 @@ NormalProgramTarget(dba, $(DBA_SRC), $(DBA_OBJ))
 NormalProgramTarget(dbu, $(DBU_SRC), $(DBU_OBJ))
 NormalProgramTarget(dbe, $(DBE_SRC), $(DBE_OBJ))
 NormalProgramTarget(dbt, $(DBT_SRC), $(DBT_OBJ))
+
+;#
+;# Tests
+;#
+
+sdbm-test: dbt
+
+test: sdbm-test
+	time ./sdbm-test

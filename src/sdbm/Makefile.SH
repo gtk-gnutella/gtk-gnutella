@@ -226,6 +226,15 @@ dbt:  $(DBT_OBJ)
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  $(DBT_OBJ) $(JLDFLAGS) $(LIBS)
 
+#
+# Tests
+#
+
+sdbm-test: dbt
+
+test: sdbm-test
+	time ./sdbm-test
+
 ########################################################################
 # Common rules for all Makefiles -- do not edit
 
