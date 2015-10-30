@@ -118,7 +118,7 @@ open_db(const char *name, bool writeable, long cache, int wflags)
 	DBM *db;
 	int flags = writeable ? (O_CREAT|O_RDWR) : O_RDONLY;
 
-	if ((shrink || rebuild) && !writeable)
+	if ((shrink || rebuild || async_rebuild) && !writeable)
 		flags = O_RDWR;
 
 	if (WR_EMPTY == (wflags & (WR_EMPTY|WR_DELETING)))
