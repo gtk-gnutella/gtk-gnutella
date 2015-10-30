@@ -1713,6 +1713,9 @@ big_sync(DBM *db)
 {
 	DBMBIG *dbg = db->big;
 
+	if (NULL == dbg)
+		return TRUE;		/* No .dat file to sync */
+
 	sdbm_big_check(dbg);
 
 	if (-1 == dbg->fd)
