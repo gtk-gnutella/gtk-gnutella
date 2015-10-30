@@ -1396,10 +1396,28 @@ readpag(DBM *db, char *pag, long num)
 		return FALSE;
 	}
 	if G_UNLIKELY(got < DBM_PBLKSIZ) {
-		if (got > 0)
+		if (got > 0) {
 			s_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
 				sdbm_name(db), (unsigned) got, num);
-		memset(pag + got, 0, DBM_PBLKSIZ - got);
+		}
+
+		/*
+		 * We need to clear the whole page, not just the end we did not read
+		 * because pairs start at the end of page.  Therefore, the leading
+		 * offsets on the page, which we could have read correctly, would be
+		 * referring to zeroed keys and values, which is incorrect and which
+		 * could very well be misplaced in the database!
+		 *		--RAM, 2015-10-30
+		 */
+
+		if (got >= 2) {
+			int n = paircount(pag);
+
+			s_warning("sdbm: \"%s\": clearing page #%ld, dropping %d pair%s",
+				sdbm_name(db), num, n, plural(n));
+		}
+
+		memset(pag, 0, DBM_PBLKSIZ);
 	}
 
 	(void) lru_chkpage(db, pag, num);
