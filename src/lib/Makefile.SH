@@ -184,6 +184,7 @@ LSRC = \
 	event.c \
 	evq.c \
 	exit.c \
+	exit2str.c \
 	fast_assert.c \
 	fd.c \
 	file.c \
@@ -373,6 +374,7 @@ LOBJ = \
 	event.o \
 	evq.o \
 	exit.o \
+	exit2str.o \
 	fast_assert.o \
 	fd.o \
 	file.o \

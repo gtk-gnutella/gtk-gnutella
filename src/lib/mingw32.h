@@ -437,6 +437,7 @@ int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 #define WCOREDUMP(s)		FALSE
 #define WIFSTOPPED(s)		FALSE
 #define WIFCONTINUED(s)		FALSE
+#define WSTOPSIG(s)			0
 
 pid_t mingw_wait(int *status);
 pid_t mingw_waitpid(pid_t pid, int *status, int options);

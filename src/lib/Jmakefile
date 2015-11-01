@@ -115,6 +115,7 @@ LSRC = \
 	event.c \
 	evq.c \
 	exit.c \
+	exit2str.c \
 	fast_assert.c \
 	fd.c \
 	file.c \

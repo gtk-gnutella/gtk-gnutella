@@ -743,6 +743,8 @@ src/lib/evq.c
 src/lib/evq.h
 src/lib/exit.c
 src/lib/exit.h
+src/lib/exit2str.c
+src/lib/exit2str.h
 src/lib/fast_assert.c
 src/lib/fast_assert.h
 src/lib/fd.c
