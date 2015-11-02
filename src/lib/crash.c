@@ -101,6 +101,7 @@
 #include "path.h"
 #include "signal.h"
 #include "spinlock.h"			/* For spinlock_crash_mode() */
+#include "spopen.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
@@ -1405,6 +1406,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	bool could_fork = has_fork();
 	int fork_errno = 0;
 	int parent_stdout = STDOUT_FILENO;
+	int spfd = -1;		/* set if we use spopenlp(), on Windows only */
 
 	pid_str = PRINT_NUMBER(pid_buf, getpid());
 
@@ -1517,7 +1519,7 @@ retry_child:
 				argv[1] = vars->argv0;
 				argv[2] = pid_str;
 				argv[3] = NULL;
-			} else {
+			} else if (has_fork()) {
 				const char quote_ch = '\'';
 				size_t max_argv0;
 
@@ -1596,6 +1598,56 @@ retry_child:
 			crash_log_write_header(clf, signo, filename);
 
 			/*
+			 * If we don't have fork() on this platform (Windows...), and
+			 * they have not specified a program to exec(), we're going
+			 * to attempt to launch gdb via spopenlp(), which will work when
+			 * running under a MinGW shell or with Cygwin installed, provided
+			 * gdb is anywhere in the PATH.
+			 *		--RAM, 2015-11-02
+			 */
+
+			if (!has_fork() && NULL == vars->exec_path) {
+				int dup_clf;
+
+				rewind_str(0);
+				print_str("Will try to launch gdb from Cygwin or MinGW...\n");
+				flush_str(clf);
+				thread_lock_dump_all(clf);
+
+				/*
+				 * We don't care if the dup() below fails because -1 is a
+				 * valid value for fd[0]: it means SPOPEN_ASIS, which will let
+				 * the child use the parent's stdout, so we'll see the output
+				 * somewhere in the logs.
+				 */
+
+				dup_clf = dup(clf);	/* Will be closed by spopenlp() */
+
+				fd[0] = dup_clf;	/* Child's stdout, -1 works as well! */
+				fd[1] = SPOPEN_CHILD_STDOUT;
+
+				spfd = spopenlp("gdb", "w", fd,
+						"gdb", "-q", "-n", "-p", pid_str, NULL_PTR);
+
+				if (-1 == spfd) {
+					rewind_str(0);
+					print_str("spopen() failed: ");
+					print_str(symbolic_errno(errno));
+					print_str(" (");
+					print_str(g_strerror(errno));
+					print_str(")\n");
+					flush_str(clf);
+					crash_stack_print_decorated(clf, 2, FALSE);
+				} else {
+					/* We'll wait for child and close the pipe ourselves */
+					pid = sppid(spfd, TRUE);
+				}
+
+				crash_fd_close(clf);
+				goto parent_process;
+			}
+
+			/*
 			 * If we don't have fork() on this platform (or could not fork)
 			 * we've now logged the essential stuff: we can execute what is
 			 * normally done by the parent process.
@@ -1603,9 +1655,7 @@ retry_child:
 
 			if (!could_fork) {
 				rewind_str(0);
-				if (!has_fork()) {
-					print_str("No fork() on this platform.\n");
-				} else {
+				if (has_fork()) {
 					print_str("fork() failed: ");
 					print_str(symbolic_errno(fork_errno));
 					print_str(" (");
@@ -1703,6 +1753,8 @@ retry_child:
 
 			crash_stack_print_decorated(STDOUT_FILENO, 2, FALSE);
 
+			/* FALL THROUGH */
+
 		child_failure:
 			_exit(EXIT_FAILURE);
 		}	
@@ -1711,6 +1763,8 @@ retry_child:
 	default:	/* executed by parent */
 		break;
 	}
+
+	/* FALL THROUGH */
 
 	/*
 	 * The following is only executed by the parent process.
@@ -1734,13 +1788,14 @@ parent_process:
 		 * succeed or get EPIPE if the child dies and closes its end.
 		 */
 
-		if (could_fork) {
+		if (could_fork || is_valid_fd(spfd)) {
 			static const char commands[] =
 				"thread\nbt\nbt full\nthread apply all bt\nquit\n";
 			const size_t n = CONST_STRLEN(commands);
 			ssize_t ret;
+			int cfd = is_valid_fd(spfd) ? spfd : STDOUT_FILENO;
 
-			ret = write(STDOUT_FILENO, commands, n);
+			ret = write(cfd, commands, n);
 			if (n != UNSIGNED(ret)) {
 				/*
 				 * EPIPE is acceptable if the child's immediate action
@@ -1771,7 +1826,7 @@ parent_process:
 		print_str(") ");					/* 3 */
 		iov_prolog = getpos_str();
 
-		if (!could_fork) {
+		if (!could_fork && !is_valid_fd(spfd)) {
 			child_ok = TRUE;
 			goto no_fork;
 		}
@@ -1830,9 +1885,19 @@ parent_process:
 				goto retry_child;
 			}
 		}
+
+		/*
+		 * Since gdb frowns upon its stdin being closed before it quits,
+		 * we close the pipe only after the child is gone (since we send
+		 * it a "quit" command, we know it will exit).
+		 */
+
+		fd_close(&spfd);	/* Only if we spopen()ed a gdb command */
 #else
 		(void) status;
 #endif	/* HAS_WAITPID */
+
+		/* FALL THROUGH */
 
 		/*
 		 * Let them know where the trace is.
