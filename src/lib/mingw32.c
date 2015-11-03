@@ -529,6 +529,8 @@ mingw_win2posix(int error)
 		return EBADF;
 	case ERROR_BAD_EXE_FORMAT:
 		return ENOEXEC;
+	case ERROR_NETNAME_DELETED:
+		return EHOSTUNREACH;
 	default:
 		/* Only allocate once VMM layer has been initialized */
 		if (NULL == warned && mingw_vmm_inited) {
