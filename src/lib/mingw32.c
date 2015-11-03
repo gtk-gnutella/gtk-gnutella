@@ -90,6 +90,7 @@
 #include "once.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -724,7 +725,8 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 		{
 			va_list args;
 			int min, max;
-			int i;
+			pslist_t *opened = NULL, *l;
+			int error = 0;
 
 			va_start(args, cmd);
 			min = va_arg(args, int);
@@ -737,12 +739,36 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				return -1;
 			}
 
-			for (i = min; i < max; i++) {
-				if (mingw_fd_is_opened(i))
-					continue;
-				return mingw_dup2(fd, i);
+			/*
+			 * Since we are multi-threaded, we cannot use dup2() because we
+			 * cannot atomically select the new file descriptor, even if
+			 * mingw_fd_is_opened() reports that the fd is currently available.
+			 * So we need to call mingw_dup(), keeping file descriptors opened
+			 * until we reach one above the minimum we can use.
+			 *		--RAM, 2015-11-03
+			 */
+
+			for (;;) {
+				res = mingw_dup(fd);
+				if (-1 == res) {
+					error = errno;
+					break;
+				}
+				if (res >= min)
+					break;
+				opened = pslist_prepend(opened, int_to_pointer(res));
 			}
-			errno = EMFILE;
+
+			PSLIST_FOREACH(opened, l) {
+				int d = pointer_to_int(l->data);
+				close(d);
+			}
+			pslist_free_null(&opened);
+
+			if (0 == error)
+				return res;
+
+			errno = error;
 			break;
 		}
 		default:
