@@ -531,6 +531,8 @@ mingw_win2posix(int error)
 		return ENOEXEC;
 	case ERROR_NETNAME_DELETED:
 		return EHOSTUNREACH;
+	case 0:					/* Always indicates success */
+		return 0;
 	default:
 		/* Only allocate once VMM layer has been initialized */
 		if (NULL == warned && mingw_vmm_inited) {
