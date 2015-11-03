@@ -627,8 +627,6 @@ typedef int key_t;
 
 #define SEMMSL			64		/* Maximum amount of semaphores per set */
 
-#define EIDRM			(INT_MAX - 100)	/* Identifier removed */
-
 struct sembuf {
 	ushort sem_num;				/* semaphore number in the set */
 	short sem_op;				/* semaphore operation */
@@ -646,6 +644,12 @@ int mingw_semctl(int semid, int semnum, int cmd, ...);
 int mingw_semop(int semid, struct sembuf *sops, unsigned nsops);
 int mingw_semtimedop(int semid, struct sembuf *sops, unsigned nsops,
 	struct timespec *timeout);
+
+/*
+ * Additional error codes we want to map.
+ */
+
+#define EIDRM			(INT_MAX - 100)	/* Identifier removed */
 
 /*
  * Miscellaneous.
