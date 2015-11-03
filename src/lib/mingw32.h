@@ -168,7 +168,7 @@
 #undef fstat
 #define stat(path, buf) mingw_stat((path), (buf))
 #define fstat(fd, buf) mingw_fstat((fd), (buf))
-#define unlink(path) mingw_unlink((path))
+#define unlink(path) mingw_unlink(path)
 #define open mingw_open
 #define fopen mingw_fopen
 #define freopen mingw_freopen
