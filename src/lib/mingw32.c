@@ -545,7 +545,7 @@ mingw_win2posix(int error)
 		}
 		if (warned != NULL && !hset_contains(warned, int_to_pointer(error))) {
 			hset_insert(warned, int_to_pointer(error));
-			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
+			s_minicarp("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
 		}
 	}
