@@ -176,6 +176,7 @@
 #define readdir mingw_readdir
 #define closedir mingw_closedir
 #define dup2 mingw_dup2
+#define dup(f) mingw_dup(f)
 #define lseek mingw_lseek
 #define read mingw_read
 #define readv mingw_readv
@@ -472,6 +473,7 @@ int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
 int mingw_stat(const char *pathname, filestat_t *buf);
 int mingw_fstat(int fd, filestat_t *buf);
+int mingw_dup(int fd);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_unlink(const char *pathname);

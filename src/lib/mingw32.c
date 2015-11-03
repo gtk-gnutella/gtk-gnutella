@@ -128,6 +128,7 @@
 #undef chdir
 #undef remove
 #undef lseek
+#undef dup
 #undef dup2
 #undef fsync
 #undef unlink
@@ -1533,6 +1534,15 @@ mingw_unlink(const char *pathname)
 	if (-1 == res)
 		errno = mingw_last_error();
 
+	return res;
+}
+
+int
+mingw_dup(int fd)
+{
+	int res = _dup(fd);
+	if (-1 == res)
+		errno = mingw_last_error();
 	return res;
 }
 
