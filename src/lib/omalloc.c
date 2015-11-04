@@ -813,9 +813,6 @@ done:
 	if (init != NULL)
 		memcpy(p, init, size);
 
-	if (OMALLOC_RO == mode)
-		spinunlock(&omalloc_slk);
-
 	/*
 	 * The following protects back to read-only the whole chunk in which the
 	 * pointer was taken from, or the whole region allocated above if the
@@ -823,6 +820,9 @@ done:
 	 */
 
 	omalloc_range_protect(p, mode, size);
+
+	if (OMALLOC_RO == mode)
+		spinunlock(&omalloc_slk);
 
 	return p;
 }
