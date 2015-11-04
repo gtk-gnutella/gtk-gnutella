@@ -157,6 +157,7 @@
 #undef statvfs
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
+#define VMM_GRANULARITY	(1024*1024*4)	/* 4 MiB during initalization */
 #define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
 #define WS2_LIBRARY		"ws2_32.dll"
 
@@ -2348,6 +2349,7 @@ mingw_vmm_init(void)
 	GetSystemInfo(&system_info);
 
 	granularity = round_pagesize(system_info.dwAllocationGranularity);
+	granularity = MAX(granularity, VMM_GRANULARITY);	/* Speed up init */
 
 	mingw_vmm.size =
 		system_info.lpMaximumApplicationAddress
@@ -2359,76 +2361,71 @@ mingw_vmm_init(void)
 
 	/*
 	 * Declare some space for future allocations without hinting.
-	 * We initially reserve about 40% of the virtual address space,
+	 * We initially reserve about 34% of the virtual address space,
 	 * with VMM_MINSIZE at least but we make sure we have also room
 	 * available for non-VMM allocations.
-	 *
-	 * We'll iterate, dividing the amount of memory we keep for later
-	 * allocations by half at each loop until we can reserve at least
-	 * 40% of the available memory or VMM_MINSIZE for the VMM layer.
 	 */
 
 	mem_size = mingw_vmm.size;		/* For the VMM space, theoretical max */
 	mem_latersize = mem_size;		/* For non-hinted allocation */
 
-	do {
-		if (mingw_vmm.reserved != NULL) {
-			VirtualFree(mingw_vmm.reserved, 0, MEM_RELEASE);
-			mingw_vmm.reserved = NULL;
+reserve_less:
+	mem_latersize *= 0.9;
+	mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
+	mingw_vmm.later = mem_latersize;
+	mem_later = VirtualAlloc(NULL,
+		mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
+
+	if (NULL == mem_later) {
+		if (VMM_MINSIZE == mem_latersize) {
+			errno = mingw_last_error();
+			s_error("could not reserve %s of memory: %m",
+				compact_size(mem_latersize, FALSE));
+		} else {
+			goto reserve_less;
 		}
-
-	reserve_less:
-		mem_latersize *= 0.9;
-		mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
-		mingw_vmm.later = mem_latersize;
-		mem_later = VirtualAlloc(NULL,
-			mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
-
-		if (NULL == mem_later) {
-			if (VMM_MINSIZE == mem_latersize) {
-				errno = mingw_last_error();
-				s_error("could not reserve %s of memory: %m",
-					compact_size(mem_latersize, FALSE));
-			} else {
-				goto reserve_less;
-			}
-		}
-
-		/*
-		 * Try to reserve the remaining virtual space, asking for as
-		 * much as we can and reducing the requested size by the
-		 * system's granularity until we get a success status.
-		 */
-
-		mingw_vmm.size = round_pagesize(mem_size - mem_latersize);
-
-		while (
-			NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
-		) {
-			mingw_vmm.reserved = VirtualAlloc(
-				NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
-
-			if (NULL == mingw_vmm.reserved)
-				mingw_vmm.size -= granularity;
-		}
-
-		VirtualFree(mem_later, 0, MEM_RELEASE);
-
-		mem_available = mem_latersize + mingw_vmm.size;
-		if (mem_available > mingw_vmm.available)
-			mingw_vmm.available = mem_available;
-	} while (
-		mem_available >= VMM_MINSIZE && (
-			mingw_vmm.size < VMM_MINSIZE ||
-			mingw_vmm.size < mingw_vmm.available / 10 * 4)
-	);
-
-	if (NULL == mingw_vmm.reserved) {
-		s_error("could not reserve additional %s of memory "
-			"on top of the %s put aside",
-			compact_size(mingw_vmm.size, FALSE),
-			compact_size2(mem_latersize, FALSE));
 	}
+
+	/*
+	 * Try to reserve the remaining virtual space, asking for as
+	 * much as we can and reducing the requested size by the
+	 * system's granularity until we get a success status.
+	 */
+
+	mingw_vmm.size = round_pagesize(mem_size - mem_latersize);
+
+	while (
+		NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
+	) {
+		mingw_vmm.reserved = VirtualAlloc(
+			NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
+
+		if (NULL == mingw_vmm.reserved)
+			mingw_vmm.size -= granularity;
+	}
+
+	VirtualFree(mem_later, 0, MEM_RELEASE);
+
+	mem_available = mem_latersize + mingw_vmm.size;
+	mingw_vmm.available = mem_available;
+
+	/*
+	 * We are trying to balance reserved space within the total available space,
+	 * and we can directly compute the value X of the "mem_latersize" we want,
+	 * satisfying:
+	 *
+	 *		available = X + size
+	 *		size = 34% * available
+	 *
+	 * This trivially solves to: X = 66% * available.  The assumption
+	 * made here is that the total memory size we computed above as
+	 * "mem_available" is going to be constant.
+	 *		--RAM, 2015-11-04
+	 */
+
+	mem_latersize = 0.66 * mem_available;
+	mingw_vmm.later = mem_latersize;
+	mingw_vmm.size = mem_available - mem_latersize;
 
 	/*
 	 * Now that we know how much we can reserve for the VMM layer,
@@ -2444,7 +2441,7 @@ mingw_vmm_init(void)
 		NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
 
 	if (NULL == mingw_vmm.reserved) {
-		s_error("could not reserve %s of memory again: %m",
+		s_error("could not reserve %s of memory: %m",
 				compact_size(mingw_vmm.size, FALSE));
 	}
 
