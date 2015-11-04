@@ -3977,16 +3977,13 @@ thread_suspend_others(bool lockwait)
 	mutex_lock(&thread_suspend_mtx);
 
 	/*
-	 * If we were concurrently asked to suspend ourselves, warn loudly
-	 * and then forcefully suspend it.
+	 * If we were concurrently asked to suspend ourselves, get on with it!
 	 */
 
 	if G_UNLIKELY(te->suspend) {
 		mutex_unlock(&thread_suspend_mtx);
-		s_carp("%s(): suspending %s was supposed to be already suspended",
-			G_STRFUNC, thread_element_name(te));
 		thread_suspend_loop(te);
-		return 0;
+		goto done;
 	}
 
 	for (i = 0; i < thread_next_stid; i++) {
@@ -4043,6 +4040,9 @@ thread_suspend_others(bool lockwait)
 		thread_wait_others(te);
 	}
 
+	/* FALL THROUGH */
+
+done:
 	suspending[te->stid] = FALSE;
 
 	return n;
