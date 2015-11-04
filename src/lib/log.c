@@ -70,6 +70,7 @@
 #include "halloc.h"
 #include "hashing.h"		/* For string_mix_hash() and string_eq() */
 #include "hashtable.h"
+#include "misc.h"			/* For CONST_STRLEN() */
 #include "offtime.h"
 #include "once.h"
 #include "signal.h"
@@ -107,6 +108,19 @@ static thread_key_t log_okey = THREAD_KEY_INIT;
 static once_flag_t log_okey_inited;
 static thread_key_t log_strkey = THREAD_KEY_INIT;
 static once_flag_t log_strkey_inited;
+
+/**
+ * How large is the string holding the optional PID to log (e.g " [12345]").
+ */
+#define LOG_PIDLEN		(ULONG_DEC_BUFLEN + CONST_STRLEN(" []"))
+
+/**
+ * Length of a buffer able to hold the formatted time plus optionally
+ * the PID of the process.
+ */
+#define LOG_TIME_BUFLEN	(CRASH_TIME_BUFLEN + LOG_PIDLEN)
+
+static char logpid[LOG_PIDLEN];	/**< If non-empty, also log process PID */
 
 /**
  * A Log file we manage.
@@ -647,7 +661,7 @@ log_fprint(enum log_file which, const struct tm *ct, long usec,
 	str_t *ls;
 	ssize_t w;
 
-#define FORMAT_STR	"%02d-%02d-%02d %.02d:%.02d:%.02d.%03ld (%s)%s%s: %s\n"
+#define FORMAT_STR	"%02d-%02d-%02d %.02d:%.02d:%.02d.%03ld%s (%s)%s%s: %s\n"
 
 	log_file_check(which);
 
@@ -677,7 +691,7 @@ log_fprint(enum log_file which, const struct tm *ct, long usec,
 	str_printf(ls, FORMAT_STR,
 		(TM_YEAR_ORIGIN + ct->tm_year) % 100,
 		ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, usec / 1000, tprefix,
+		ct->tm_hour, ct->tm_min, ct->tm_sec, usec / 1000, logpid, tprefix,
 		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
 		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
 		msg);
@@ -735,6 +749,35 @@ log_prefix(GLogLevelFlags level)
 }
 
 /**
+ * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
+ * and optionally the process PID, if configured to do so.
+ *
+ * The buffer should be at least LOG_TIME_BUFLEN bytes.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ */
+static void
+log_time(char *buf, size_t size)
+{
+	crash_time(buf, size);
+	clamp_strcat(buf, size, logpid);
+}
+
+/**
+ * Same as log_time() but uses cached time, and therefore does not take locks.
+ *
+ * @param buf		buffer where current time is formatted
+ * @param size		length of buffer
+ */
+static void
+log_time_cached(char *buf, size_t size)
+{
+	crash_time_cached(buf, size);
+	clamp_strcat(buf, size, logpid);
+}
+
+/**
  * Abort and make sure we never return.
  */
 void
@@ -772,10 +815,10 @@ log_abort(void)
 
 	{
 		DECLARE_STR(3);
-		char time_buf[CRASH_TIME_BUFLEN];
+		char time_buf[LOG_TIME_BUFLEN];
 
-		crash_time(time_buf, sizeof time_buf);
-		print_str(time_buf);	/* 0 */
+		log_time(time_buf, sizeof time_buf);
+		print_str(time_buf);								/* 0 */
 		print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
 		print_str(" -- invoking crash_handler()\n");		/* 2 */
 		log_flush_err_atomic();
@@ -791,8 +834,8 @@ log_abort(void)
 		 */
 
 		rewind_str(0);
-		crash_time(time_buf, sizeof time_buf);
-		print_str(time_buf);	/* 0 */
+		log_time(time_buf, sizeof time_buf);
+		print_str(time_buf);			/* 0 */
 		print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
 		print_str(" -- exiting\n");		/* 2 */
 		log_flush_err_atomic();
@@ -831,7 +874,7 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 {
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(11);
-	char time_buf[CRASH_TIME_BUFLEN];
+	char time_buf[LOG_TIME_BUFLEN];
 	const char *prefix;
 	unsigned stid;
 
@@ -863,10 +906,10 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 		stid = thread_safe_small_id();
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = 0;
-		crash_time_cached(time_buf, sizeof time_buf);	/* Raw, no locks! */
+		log_time_cached(time_buf, sizeof time_buf);	/* Raw, no locks! */
 	} else {
 		stid = thread_small_id();
-		crash_time(time_buf, sizeof time_buf);
+		log_time(time_buf, sizeof time_buf);
 	}
 
 	/*
@@ -1028,14 +1071,14 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if G_UNLIKELY(recursing) {
 		DECLARE_STR(9);
-		char time_buf[CRASH_TIME_BUFLEN];
+		char time_buf[LOG_TIME_BUFLEN];
 		const char *caller;
 		bool copy;
 
 		stid = NULL == lt ? thread_small_id() : lt->stid;
 		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
 
-		crash_time(time_buf, sizeof time_buf);
+		log_time(time_buf, sizeof time_buf);
 		print_str(time_buf);		/* 0 */
 		print_str(" (CRITICAL");	/* 1 */
 		if (0 != stid) {
@@ -1095,9 +1138,9 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if G_UNLIKELY(NULL == msg) {
 		DECLARE_STR(6);
-		char time_buf[CRASH_TIME_BUFLEN];
+		char time_buf[LOG_TIME_BUFLEN];
 
-		crash_time(time_buf, sizeof time_buf);
+		log_time(time_buf, sizeof time_buf);
 		print_str(time_buf);	/* 0 */
 		print_str(" (CRITICAL): no memory to format string \""); /* 1 */
 		print_str(format);		/* 2 */
@@ -1126,9 +1169,9 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	{
 		DECLARE_STR(11);
-		char time_buf[CRASH_TIME_BUFLEN];
+		char time_buf[LOG_TIME_BUFLEN];
 
-		crash_time(time_buf, sizeof time_buf);
+		log_time(time_buf, sizeof time_buf);
 		print_str(time_buf);	/* 0 */
 		print_str(" (");		/* 1 */
 		print_str(prefix);		/* 2 */
@@ -1534,7 +1577,7 @@ s_minierror(const char *format, ...)
 	static int recursion;
 	va_list args;
 	char data[LOG_MSG_MAXLEN];
-	char time_buf[CRASH_TIME_BUFLEN];
+	char time_buf[LOG_TIME_BUFLEN];
 	DECLARE_STR(6);
 	bool recursing;
 
@@ -1544,7 +1587,7 @@ s_minierror(const char *format, ...)
 	str_vbprintf(data, sizeof data, format, args);
 	va_end(args);
 
-	crash_time(time_buf, sizeof time_buf);
+	log_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" (ERROR)");					/* 1 */
 	if (recursing)
@@ -2100,9 +2143,9 @@ log_reopen(enum log_file which)
 			s_critical("freopen(\"%s\", \"a\", ...) failed: %m", lf->path);
 		} else if (is_valid_fd(fd)) {
 			DECLARE_STR(8);
-			char time_buf[CRASH_TIME_BUFLEN];
+			char time_buf[LOG_TIME_BUFLEN];
 
-			crash_time(time_buf, sizeof time_buf);
+			log_time(time_buf, sizeof time_buf);
 			print_str(time_buf);	/* 0 */
 			print_str(" (CRITICAL): cannot freopen() stderr to "); /* 1 */
 			print_str(lf->path);	/* 2 */
@@ -2219,6 +2262,19 @@ log_set_disabled(enum log_file which, bool disabled)
 	log_file_check(which);
 
 	logfile[which].disabled = disabled;
+}
+
+/**
+ * Enable or disable PID logging.
+ */
+void
+log_show_pid(bool enabled)
+{
+	if (enabled) {
+		str_bprintf(logpid, sizeof logpid, " [%lu]", (ulong) getpid());
+	} else {
+		logpid[0] = '\0';	/* Empty string, shows nothing */
+	}
 }
 
 /**

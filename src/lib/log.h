@@ -68,6 +68,7 @@ void log_init(void);
 void log_crashing(struct str *str);
 void log_atoms_inited(void);
 void log_close(void);
+void log_show_pid(bool enabled);
 void log_set_disabled(enum log_file which, bool disabled);
 void log_set(enum log_file which, const char *path);
 bool log_reopen(enum log_file which);
