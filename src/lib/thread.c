@@ -7533,6 +7533,7 @@ thread_launch(struct thread_element *te,
 	te->stack_size = stacksize;
 	te->argument = arg;
 	te->entry = (func_ptr_t) routine;
+	te->suspend = 0;				/* New thread cannot be suspended already */
 
 	/*
 	 * On Windows, stack allocation does not work with the current
