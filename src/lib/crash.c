@@ -1377,8 +1377,8 @@ crash_generate_crashlog(int signo)
 		return;
 	}
 	crash_log_write_header(clf, signo, filename);
-	crash_stack_print_decorated(clf, 2, FALSE);
 	thread_lock_dump_all(clf);
+	crash_stack_print_decorated(clf, 2, FALSE);
 	crash_run_hooks(NULL, clf);
 	close(clf);
 	s_minimsg("trace left in %s", crashlog);
