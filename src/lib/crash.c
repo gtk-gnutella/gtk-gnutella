@@ -1609,10 +1609,16 @@ retry_child:
 			if (!has_fork() && NULL == vars->exec_path) {
 				int dup_clf;
 
+				thread_lock_dump_all(clf);
 				rewind_str(0);
+				print_str("\n");
+				flush_str(clf);
+				crash_stack_print_decorated(clf, 2, FALSE);
+
+				rewind_str(0);
+				print_str("\n");
 				print_str("Will try to launch gdb from Cygwin or MinGW...\n");
 				flush_str(clf);
-				thread_lock_dump_all(clf);
 
 				/*
 				 * We don't care if the dup() below fails because -1 is a
