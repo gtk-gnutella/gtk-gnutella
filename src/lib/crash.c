@@ -1402,7 +1402,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	pid_t pid;
 	int fd[2];
 	const char *stage = NULL;
-	bool retried_child = FALSE;
+	bool retried_child = FALSE, child_signal;
 	bool could_fork = has_fork();
 	int fork_errno = 0;
 	int parent_stdout = STDOUT_FILENO;
@@ -1413,6 +1413,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 #ifdef HAS_WAITPID
 retry_child:
 #endif
+	child_signal = FALSE;	/* set if fork()ed child dies via a signal */
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	fd_close_from(3);
@@ -1877,6 +1878,7 @@ parent_process:
 				if (!retried_child && NULL != crash_get_hook()) {
 					may_retry = TRUE;
 				}
+				child_signal = TRUE;
 			} else {
 				print_str("child exited abnormally");	/* 4 */
 			}
@@ -1953,11 +1955,16 @@ no_fork:
 				flush_str(parent_stdout);
 
 			/*
-			 * If we could fork but the child failed, append a decorated
-			 * stack trace to the crashlog.
+			 * If we could fork but the child failed with a signal (assertion
+			 * failure, segmentation fault), append a decorated stack trace
+			 * to the crashlog.
+			 *
+			 * We don't do it on "normal" child failure, which could happen
+			 * if the program does not launch, fails, etc... because we
+			 * append such a stack trace normally before exec().
 			 */
 
-			if (could_fork && !child_ok) {
+			if (could_fork && child_signal) {
 				bool success;
 
 				rewind_str(iov_prolog);
