@@ -80,7 +80,6 @@
 #include "atomic.h"
 #include "ckalloc.h"
 #include "compat_pause.h"
-#include "compat_sleep_ms.h"
 #include "cq.h"
 #include "eslist.h"
 #include "evq.h"
@@ -802,7 +801,7 @@ crash_end_of_line(bool forced)
 /**
  * Construct name of GTKG crash log.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 crash_logname(char *buf, size_t len, const char *pidstr)
 {
 	clamp_strcpy(buf, len, EMPTY_STRING(vars->progname));
@@ -861,6 +860,26 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	clamp_strcat(buf, len, ".");
 	clamp_strcat(buf, len, pidstr);
 	clamp_strcat(buf, len, ".log");
+}
+
+/**
+ * Fill specified buffer with the full path of the crashlog file.
+ */
+static void G_GNUC_COLD
+crash_logpath(char *buf, size_t len)
+{
+	const char *pid_str;
+	char pid_buf[ULONG_DEC_BUFLEN];
+	char filename[80];
+
+	pid_str = PRINT_NUMBER(pid_buf, getpid());
+	crash_logname(filename, sizeof filename, pid_str);
+	if (vars != NULL && vars->crashdir != NULL) {
+		str_bprintf(buf, len,
+			"%s%c%s", vars->crashdir, G_DIR_SEPARATOR, filename);
+	} else {
+		str_bprintf(buf, len, "%s", filename);
+	}
 }
 
 /**
@@ -1350,25 +1369,15 @@ crash_fd_close(int fd)
  *
  * This is used when there is no inspector run, to leave a trace of the crash.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 crash_generate_crashlog(int signo)
 {
 	static char crashlog[MAX_PATH_LEN];
-   	const char *pid_str;
-	char pid_buf[ULONG_DEC_BUFLEN];
-	char filename[80];
 	int clf;
 	const mode_t mode = S_IRUSR | S_IWUSR;
-	int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
+	const int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
 
-	pid_str = PRINT_NUMBER(pid_buf, getpid());
-	crash_logname(filename, sizeof filename, pid_str);
-	if (vars != NULL && vars->crashdir != NULL) {
-		str_bprintf(crashlog, sizeof crashlog,
-			"%s%c%s", vars->crashdir, G_DIR_SEPARATOR, filename);
-	} else {
-		str_bprintf(crashlog, sizeof crashlog, "%s", filename);
-	}
+	crash_logpath(crashlog, sizeof crashlog);
 	clf = open(crashlog, flags, mode);
 	if (-1 == clf) {
 		char buf[256];
@@ -1376,7 +1385,7 @@ crash_generate_crashlog(int signo)
 		s_miniwarn("%s", buf);
 		return;
 	}
-	crash_log_write_header(clf, signo, filename);
+	crash_log_write_header(clf, signo, filepath_basename(crashlog));
 	thread_lock_dump_all(clf);
 	crash_stack_print_decorated(clf, 2, FALSE);
 	crash_run_hooks(NULL, clf);
@@ -1394,7 +1403,7 @@ crash_generate_crashlog(int signo)
  *
  * @return TRUE if we were able to invoke the crash hooks.
  */
-static G_GNUC_COLD bool
+static bool G_GNUC_COLD
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
@@ -2062,6 +2071,94 @@ parent_failure:
 	return FALSE;
 }
 
+struct crash_inspect_args {
+	int signo;
+	const char *cwd;
+	int *done;
+};
+
+static void *
+crash_inspect_thread(void *args)
+{
+	struct crash_inspect_args *v = args;
+	bool hooks;
+
+	hooks = crash_invoke_inspector(v->signo, v->cwd);
+
+	/*
+	 * Propagate back to crash_invoke_threaded_inspector() that we are
+	 * done (since we're running detached) and whether we run the crash
+	 * hooks at all.
+	 */
+
+	atomic_int_set(v->done, hooks ? 2 : 1);
+
+	return NULL;
+}
+
+/**
+ * The threaded version of crash_invoke_inspector(), for Windows.
+ */
+static bool G_GNUC_COLD
+crash_invoke_threaded_inspector(int signo, const char *cwd)
+{
+	struct crash_inspect_args v;
+	int done = 0;
+	uint flags = THREAD_F_DETACH | THREAD_F_NO_CANCEL;
+
+	/*
+	 * Generate a first crashlog, as if there was no inspector being run,
+	 * in case we fail miserably when attempting to create the thread below.
+	 */
+
+	crash_generate_crashlog(signo);
+
+	v.signo = signo;
+	v.cwd = cwd;
+	v.done = &done;		/* Communication channel with thread */
+
+	if (-1 == thread_create(crash_inspect_thread, &v, flags, 0))
+		return FALSE;
+
+	/*
+	 * Yes, this is an ACTIVE waiting loop but there is no other way: we
+	 * MUST NOT be in Windows.dll otherwise gdb will not be able to trace
+	 * back this thread, which is the crashing thread so precisely the one
+	 * we want to backtrace!
+	 */
+
+	while (0 == atomic_int_get(&done))
+		/* empty */;
+
+	return done > 1;
+}
+
+/**
+ * Wrapper to invoke the inspecting process.
+ *
+ * @return TRUE if we were able to invoke the crash hooks.
+ */
+static bool G_GNUC_COLD
+crash_inspect(int signo, const char *cwd)
+{
+	/*
+	 * We need to pay attention to Windows because when gdb attaches
+	 * to the running process, it messes up the stack backtracing of
+	 * the running thread.
+	 *
+	 * So we create a thread and actively wait for its termination before
+	 * resuming, propagating the results back.  Hopefully the crash will
+	 * not prevent the memory operations necessary to create a new thread.
+	 *		--RAM, 2015-11-06
+	 */
+
+	if (is_running_on_mingw() && NULL == vars->exec_path) {
+		return crash_invoke_threaded_inspector(signo, cwd);
+	} else {
+		return crash_invoke_inspector(signo, cwd);
+	}
+}
+
 /**
  * Record failing thread information.
  */
@@ -2589,7 +2686,7 @@ crash_handler(int signo)
 		if (0 == vars->stackcnt)
 			crash_save_current_stackframe(0);
 
-		hooks = crash_invoke_inspector(signo, cwd);
+		hooks = crash_inspect(signo, cwd);
 		if (!hooks) {
 			uint8 f = FALSE;
 			crash_run_hooks(NULL, -1);
