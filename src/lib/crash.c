@@ -1669,8 +1669,11 @@ retry_child:
 					print_str(")\n");
 				}
 				flush_str(clf);
-				crash_stack_print_decorated(clf, 2, FALSE);
 				thread_lock_dump_all(clf);
+				rewind_str(0);
+				print_str("\n");
+				flush_str(clf);
+				crash_stack_print_decorated(clf, 2, FALSE);
 				crash_fd_close(clf);
 				goto parent_process;
 			}
@@ -1690,8 +1693,25 @@ retry_child:
 			if (!retried_child) {
 				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
 				log_set_disabled(LOG_STDOUT, TRUE);
+
 				thread_lock_dump_all(STDOUT_FILENO);
+				rewind_str(0);
+				print_str("\n");
+				flush_str(STDOUT_FILENO);
+
 				crash_run_hooks(NULL, STDOUT_FILENO);
+				rewind_str(0);
+				print_str("\n");
+				flush_str(STDOUT_FILENO);
+
+				/*
+				 * Even though we're in the child process, say FALSE because
+				 * we want the original stack frame from the parent if it was
+				 * saved, not the current one.
+				 */
+
+				crash_stack_print_decorated(STDOUT_FILENO, 2, FALSE);
+
 				log_set_disabled(LOG_STDOUT, FALSE);
 			}
 
@@ -1748,16 +1768,6 @@ retry_child:
 			flush_str(STDOUT_FILENO);			/* into crash file as well */
 			if (log_stdout_is_distinct())
 				flush_str(parent_stdout);
-
-			/*
-			 * Emit a decorated stack since we could not exec the script.
-			 *
-			 * Even though we're in the child process, say FALSE because
-			 * we want the original stack frame from the parent if it was
-			 * saved, not the current one.
-			 */
-
-			crash_stack_print_decorated(STDOUT_FILENO, 2, FALSE);
 
 			/* FALL THROUGH */
 
