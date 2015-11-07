@@ -80,15 +80,6 @@ compat_process_exists(pid_t pid)
 }
 
 /**
- * Check whether a process that we can access to is alive.
- */
-bool
-compat_process_is_alive(pid_t pid)
-{
-	return -1 != compat_kill_zero(pid);
-}
-
-/**
  * Daemonizes the current process.
  *
  * @param directory We will chdir() to this directory. A value of NULL

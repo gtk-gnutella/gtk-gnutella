@@ -638,7 +638,7 @@ opened:
 				s_debug("%s(): checking whether PID %lu is alive",
 					G_STRFUNC, (ulong) pid);
 			}
-			if (compat_process_is_alive(pid)) {
+			if (compat_process_exists(pid)) {
 				if (ourpid == pid) {
 					if (filelock_is_debug(p)) {
 						s_debug("%s(): it is our PID!", G_STRFUNC);

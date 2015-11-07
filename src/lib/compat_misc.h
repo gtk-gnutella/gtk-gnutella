@@ -41,7 +41,6 @@ bool compat_is_superuser(void);
 int compat_daemonize(const char *directory);
 int compat_kill_zero(pid_t pid);
 bool compat_process_exists(pid_t pid);
-bool compat_process_is_alive(pid_t pid);
 
 void compat_fadvise_sequential(int fd, fileoffset_t offset, fileoffset_t size);
 void compat_fadvise_random(int fd, fileoffset_t offset, fileoffset_t size);
