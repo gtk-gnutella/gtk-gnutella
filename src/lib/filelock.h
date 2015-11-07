@@ -41,6 +41,7 @@ typedef struct filelock filelock_t;
  */
 typedef struct filelock_params {
 	bool debug;			/**< Whether to trace decisions, for debugging */
+	bool system;		/**< Competing with system-wide processes */
 	bool noclean;		/**< Do not register lock for autoclean at exit() */
 	bool pid_only;		/**< Don't attempt fcntl() locking, use a PID file */
 	bool check_only;	/**< Check whether lock is taken (EEXIST / ESTALE) */

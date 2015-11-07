@@ -399,6 +399,15 @@ filelock_is_noclean(const filelock_params_t *p)
 }
 
 /**
+ * Can other processes compete, or is it just processes launched by user?
+ */
+static inline bool
+filelock_is_system(const filelock_params_t *p)
+{
+	return p != NULL && p->system;
+}
+
+/**
  * Do they want "PID-only" locking?
  */
 static inline bool
@@ -450,6 +459,7 @@ filelock_usleep(const filelock_params_t *p, const char *caller)
  * The optional ``p'' argument (can be NULL) is used to customize the logic:
  *
  *   p->debug       decisions taken by the locking algorithm are traced.
+ *   p->system      processes not owned by current user can compete with lock
  *   p->noclean     lock will not be auto-cleaned at process exit time
  *   p->pid_only    request that we only use weaker PID-file locking logic
  *   p->check_only  check whether we could take the lock, errno=ESTALE if OK
@@ -634,11 +644,18 @@ opened:
 		/* If the pidfile seems to be corrupted, ignore it */
 
 		if (pid != 0) {
+			bool valid_owner;
+
 			if (filelock_is_debug(p)) {
-				s_debug("%s(): checking whether PID %lu is alive",
-					G_STRFUNC, (ulong) pid);
+				s_debug("%s(): checking whether PID %lu is %s",
+					G_STRFUNC, (ulong) pid,
+					filelock_is_system(p) ? "alive" : "from current user");
 			}
-			if (compat_process_exists(pid)) {
+
+			valid_owner = filelock_is_system(p) ?
+				compat_process_exists(pid) : (0 == compat_kill_zero(pid));
+
+			if (valid_owner) {
 				if (ourpid == pid) {
 					if (filelock_is_debug(p)) {
 						s_debug("%s(): it is our PID!", G_STRFUNC);
@@ -651,7 +668,8 @@ opened:
 				}
 				goto failed;
 			} else if (filelock_is_debug(p)) {
-				s_debug("%s(): PID %lu is dead", G_STRFUNC, (ulong) pid);
+				s_debug("%s(): PID %lu is %s", G_STRFUNC, (ulong) pid,
+					filelock_is_system(p) ? "dead" : "not from current user");
 			}
 		}
 
