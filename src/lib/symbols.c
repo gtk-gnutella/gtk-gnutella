@@ -44,6 +44,7 @@
 #include "base16.h"
 #include "bfd_util.h"
 #include "constants.h"
+#include "eslist.h"
 #include "file.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "halloc.h"
@@ -53,9 +54,11 @@
 #include "parse.h"
 #include "path.h"
 #include "sha1.h"
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "xmalloc.h"
@@ -92,8 +95,139 @@ symbols_check(const struct symbols * const s)
 	g_assert(SYMBOLS_MAGIC == s->magic);
 }
 
+enum symbols_loadinfo_magic { SYMBOLS_LOADINFO_MAGIC = 0x4e1edc1d };
+
+/**
+ * This structure captures the symbol loading information if it happens early
+ * and before symbols_set_verbose() is called.  It allows us to log what
+ * happened after the fact.
+ *
+ * These structures are linked together to form a single list that will be
+ * flushed as soon as symbols_set_verbose() is called.
+ */
+struct symbols_loadinfo {
+	enum symbols_loadinfo_magic magic;
+	size_t count;
+	size_t stripped;
+	size_t offset;
+	char *path;
+	const char *method;
+	uint garbage:1;
+	uint mismatch:1;
+	double secs;
+	tm_t when;
+	slink_t list;				/* Embedded list */
+};
+
+static inline void
+symbols_loadinfo_check(const struct symbols_loadinfo * const sli)
+{
+	g_assert(sli != NULL);
+	g_assert(SYMBOLS_LOADINFO_MAGIC == sli->magic);
+}
+
 static const char NM_FILE[] = "gtk-gnutella.nm";
-static bool symbols_verbose;
+static bool symbols_verbose, symbols_verbose_set;
+static eslist_t symbols_loaded =
+	ESLIST_INIT(offsetof(struct symbols_loadinfo, list));
+static spinlock_t symbols_loaded_slk = SPINLOCK_INIT;
+
+#define SYMBOLS_LOADED_LOCK		spinlock(&symbols_loaded_slk)
+#define SYMBOLS_LOADED_UNLOCK	spinunlock(&symbols_loaded_slk)
+
+/**
+ * Log symbol loading if requested.
+ */
+static void
+symbols_log_loaded(const char *path,
+	const char *method, size_t count, size_t stripped,
+	size_t offset, bool garbage, bool mismatch, double secs, double ago)
+{
+	if (symbols_verbose) {
+		char buf[20];
+
+		buf[0] = '\0';
+		if (ago != 0.0)
+			str_bprintf(buf, sizeof buf, " %.3f secs ago", ago);
+
+		s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
+			count, plural(count), path, method, secs, buf);
+
+		if (stripped != 0) {
+			s_message("stripped %zu duplicate symbol%s",
+				stripped, plural(stripped));
+		}
+		if (offset != 0) {
+			s_message("will be offsetting symbol addresses by 0x%lx (%ld)",
+				(unsigned long) offset, (long) offset);
+		}
+		if (garbage) {
+			s_warning("loaded symbols are pure garbage");
+		} else if (mismatch) {
+			s_warning("loaded symbols are partially inaccurate");
+		}
+	}
+}
+
+/**
+ * Record loading of symbols unless symbols_set_verbose() was called already,
+ * otherwise just log the information.
+ */
+static void
+symbols_notify_loaded(const char *path,
+	const char *method, size_t count, size_t stripped, size_t offset,
+	bool garbage, bool mismatch, double secs)
+{
+	SYMBOLS_LOADED_LOCK;
+
+	if (!symbols_verbose_set) {
+		struct symbols_loadinfo *sli;
+
+		XMALLOC0(sli);
+		sli->magic = SYMBOLS_LOADINFO_MAGIC;
+		sli->path = xstrdup(path);
+		sli->method = method;
+		sli->count = count;
+		sli->stripped = stripped;
+		sli->offset = offset;
+		sli->garbage = booleanize(garbage);
+		sli->mismatch = booleanize(mismatch);
+		sli->secs = secs;
+		tm_now_exact(&sli->when);
+
+		eslist_append(&symbols_loaded, sli);
+
+		SYMBOLS_LOADED_UNLOCK;
+		return;
+	}
+
+	SYMBOLS_LOADED_UNLOCK;
+
+	symbols_log_loaded(path, method, count, stripped,
+		offset, garbage, mismatch, secs, 0.0);
+}
+
+/**
+ * eslist foreach callback to log and dispose of structure.
+ */
+static void
+symbols_loaded_process(void *data, void *udata)
+{
+	struct symbols_loadinfo *sli = data;
+	tm_t now;
+
+	symbols_loadinfo_check(sli);
+	(void) udata;
+
+	tm_now_exact(&now);
+	symbols_log_loaded(sli->path, sli->method, sli->count,
+		sli->stripped, sli->offset, sli->garbage, sli->mismatch, sli->secs,
+		tm_elapsed_f(&now, &sli->when));
+
+	XFREE_NULL(sli->path);
+	sli->magic = 0;
+	xfree(sli);
+}
 
 /**
  * Should symbol loading be verbosely notified?
@@ -102,6 +236,16 @@ void
 symbols_set_verbose(bool verbose)
 {
 	symbols_verbose = verbose;
+
+	SYMBOLS_LOADED_LOCK;
+
+	if (!symbols_verbose_set) {
+		eslist_foreach(&symbols_loaded, symbols_loaded_process, NULL);
+		eslist_clear(&symbols_loaded);
+		symbols_verbose_set = TRUE;
+	}
+
+	SYMBOLS_LOADED_UNLOCK;
 }
 
 /**
@@ -685,6 +829,7 @@ symbols_check_consistency(symbols_t *st)
 	size_t offset = 0;
 	htable_t *sym_pc;
 	const void *main_pc;
+	const char routine[] = "symbols_load_from";
 
 	/*
 	 * Reset the values we're computing since we can be called multiple
@@ -714,10 +859,10 @@ symbols_check_consistency(symbols_t *st)
 	 * Compute the initial offset for symbols_load_from().
 	 */
 
-	main_pc = htable_lookup(sym_pc, "symbols_load_from");
+	main_pc = htable_lookup(sym_pc, routine);
 
 	if (NULL == main_pc) {
-		s_warning("cannot find symbols_load_from() in the loaded symbols");
+		s_warning("cannot find %s() in the loaded symbols", routine);
 		st->garbage = TRUE;
 		goto done;
 	}
@@ -749,11 +894,7 @@ symbols_check_consistency(symbols_t *st)
 		}
 	}
 
-	if (offset != 0) {
-		s_warning("will be offsetting symbol addresses by 0x%lx (%ld)",
-			(unsigned long) offset, (long) offset);
-		st->offset = offset;
-	}
+	st->offset = offset;
 
 	/*
 	 * Now verify whether we can match symbols.
@@ -780,12 +921,8 @@ symbols_check_consistency(symbols_t *st)
 	if (mismatches != 0) {
 		if (mismatches >= G_N_ELEMENTS(symbols_known) / 2) {
 			st->garbage = TRUE;
-			s_warning("loaded symbols are %s",
-				G_N_ELEMENTS(symbols_known) == mismatches ?
-					"pure garbage" : "highly unreliable");
 		} else {
 			st->mismatch = TRUE;
-			s_warning("loaded symbols are partially inaccurate");
 		}
 	}
 
@@ -1101,6 +1238,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 	bool has_bfd = FALSE;
 	size_t stripped;
 	const char *method = "nothing";
+	tm_t start, end;
 
 	/*
 	 * We're going to need some of the parsing routines like alnum2int(),
@@ -1109,6 +1247,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 	 */
 
 	misc_init();
+	tm_now_exact(&start);
 
 	/*
 	 * If we are compiled with the BFD library, try to load symbols directly
@@ -1233,19 +1372,14 @@ use_pre_computed:
 	}
 
 done:
-	if (symbols_verbose) {
-		s_info("loaded %zu symbols for \"%s\" via %s",
-			st->count, lpath, method);
-	}
-
 	stripped = symbols_sort(st);
-
-	if (stripped != 0 && symbols_verbose) {
-		s_warning("stripped %zu duplicate symbol%s",
-			stripped, plural(stripped));
-	}
+	tm_now_exact(&end);
 
 	symbols_check_consistency(st);
+
+	symbols_notify_loaded(lpath, method, st->count, stripped,
+		st->offset, st->garbage, st->mismatch,
+		tm_elapsed_f(&end, &start));
 
 	/*
 	 * If symbols are garbage, retry with pre-computed symbol file.

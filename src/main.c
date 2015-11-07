@@ -1917,7 +1917,6 @@ main(int argc, char **argv)
 	}	
 	handle_arguments_asap();
 
-	symbols_set_verbose(TRUE);
 	mingw_init();
 	atoms_init();
 	settings_early_init();
@@ -1972,6 +1971,8 @@ main(int argc, char **argv)
 		g_info("running %s", cmd);
 		HFREE_NULL(cmd);
 	}
+
+	symbols_set_verbose(TRUE);
 
 	/*
 	 * If one of the two below fails, the GLib installation is broken.
