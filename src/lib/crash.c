@@ -1398,6 +1398,42 @@ crash_generate_crashlog(int signo)
 }
 
 /**
+ * Log system call error.
+ *
+ * Messsage is not duplicated to fd2 or out if they are identical to fd.
+ *
+ * @param what		what failed exactly
+ * @param pid_str	parent's PID string
+ * @param fd		main fd to which we log
+ * @param fd2		second fd to which we log (can be -1)
+ * @param out		if stdout is not stderr, additional fd to log to, if not -1
+ */
+static void
+crash_logerr(const char *what, const char *pid_str, int fd, int fd2, int out)
+{
+	char tbuf[CRASH_TIME_BUFLEN];
+	DECLARE_STR(10);
+
+	crash_time(tbuf, sizeof tbuf);
+	rewind_str(0);
+	print_str(tbuf);					/* 0 */
+	print_str(" CRASH (pid=");			/* 1 */
+	print_str(pid_str);					/* 2 (parent's PID) */
+	print_str(") ");					/* 3 */
+	print_str(what);					/* 4 */
+	print_str(": ");					/* 5 */
+	print_str(symbolic_errno(errno));	/* 6 */
+	print_str(" (");					/* 7 */
+	print_str(g_strerror(errno));		/* 8 */
+	print_str(")\n");					/* 9 */
+	flush_str(fd);
+	if (fd2 != fd)
+		flush_str(fd2);
+	if (fd2 != out && fd2 != fd && log_stdout_is_distinct())
+		flush_str(out);
+}
+
+/**
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
  *
@@ -1499,10 +1535,10 @@ retry_child:
 			const mode_t mode = S_IRUSR | S_IWUSR;
 			char const *argv[8];
 			char filename[80];
-			char tbuf[CRASH_TIME_BUFLEN];
 			char cmd[MAX_PATH_LEN];
 			int clf = STDOUT_FILENO;	/* crash log file fd */
-			DECLARE_STR(10);
+			bool file_existed = FALSE;
+			const char *what = "something failed";
 
 			/*
 			 * Immediately unplug the crash handler in case we do something
@@ -1516,9 +1552,16 @@ retry_child:
 			/*
 			 * If we are retrying the child, don't discard what we can
 			 * have already from a previous run.
+			 *
+			 * Likewise, if the crashlog file already exists, we do not
+			 * want to lose any information already present there.
 			 */
 
-			if (retried_child) {
+			crash_logname(filename, sizeof filename, pid_str);
+
+			file_existed = retried_child || file_exists(filename);
+
+			if (file_existed) {
 				flags = O_WRONLY | O_APPEND;
 			} else {
 				flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
@@ -1563,7 +1606,6 @@ retry_child:
 				argv[2] = cmd;
 				argv[3] = NULL;
 			}
-			crash_logname(filename, sizeof filename, pid_str);
 
 			if (could_fork) {
 				/* STDIN must be kept open when piping to gdb */
@@ -1571,8 +1613,10 @@ retry_child:
 					if (
 						crash_fd_close(STDIN_FILENO) ||
 						STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
-					)
+					) {
+						what = "stdin redirection";
 						goto child_failure;
+					}
 				}
 
 				fd_set_close_on_exec(PARENT_STDERR_FILENO);
@@ -1585,20 +1629,31 @@ retry_child:
 					crash_fd_close(STDERR_FILENO) ||
 					STDOUT_FILENO != open(filename, flags, mode) ||
 					STDERR_FILENO != dup(STDOUT_FILENO)
-				)
+				) {
+					what = "stdout/stderr redirection";
 					goto child_failure;
+				}
 			} else {
 				clf = open(filename, flags, mode);
+				if (-1 == clf) {
+					crash_logerr("cannot open crashlog file", pid_str,
+						STDERR_FILENO, -1, STDOUT_FILENO);
+				}
+				/* Don't mind if clf is -1 from now on */
 			}
 
 			/*
-			 * When retrying, issue a blank line, and mark retrying attempt.
+			 * When the file was already existing and we're going to append
+			 * to it, issue a blank line, flag the new starting point.
 			 */
 
-			if (retried_child) {
-				print_str("\n---- Retrying:\n\n");	/* 0 */
+			if (file_existed) {
+				DECLARE_STR(1);
+				if (retried_child)
+					print_str("\n---- Retrying:\n\n");	/* 0 */
+				else
+					print_str("\n---- Appending:\n\n");	/* 0 */
 				flush_str(clf);
-				rewind_str(0);
 			}
 
 			/*
@@ -1618,14 +1673,12 @@ retry_child:
 
 			if (!has_fork() && NULL == vars->exec_path) {
 				int dup_clf;
+				DECLARE_STR(2);
 
 				thread_lock_dump_all(clf);
-				rewind_str(0);
-				print_str("\n");
-				flush_str(clf);
+				IGNORE_RESULT(write(clf, "\n", 1));
 				crash_stack_print_decorated(clf, 2, FALSE);
 
-				rewind_str(0);
 				print_str("\n");
 				print_str("Will try to launch gdb from Cygwin or MinGW...\n");
 				flush_str(clf);
@@ -1646,13 +1699,8 @@ retry_child:
 						"gdb", "-q", "-n", "-p", pid_str, NULL_PTR);
 
 				if (-1 == spfd) {
-					rewind_str(0);
-					print_str("spopen() failed: ");
-					print_str(symbolic_errno(errno));
-					print_str(" (");
-					print_str(g_strerror(errno));
-					print_str(")\n");
-					flush_str(clf);
+					crash_logerr("spopen() failed", pid_str,
+						STDERR_FILENO, clf, STDOUT_FILENO);
 					crash_stack_print_decorated(clf, 2, FALSE);
 				} else {
 					/* We'll wait for child and close the pipe ourselves */
@@ -1670,19 +1718,13 @@ retry_child:
 			 */
 
 			if (!could_fork) {
-				rewind_str(0);
 				if (has_fork()) {
-					print_str("fork() failed: ");
-					print_str(symbolic_errno(fork_errno));
-					print_str(" (");
-					print_str(g_strerror(fork_errno));
-					print_str(")\n");
+					/* Was already logged above to stderr/stdout */
+					errno = fork_errno;
+					crash_logerr("fork() failed", pid_str, clf, -1, -1);
 				}
-				flush_str(clf);
 				thread_lock_dump_all(clf);
-				rewind_str(0);
-				print_str("\n");
-				flush_str(clf);
+				IGNORE_RESULT(write(clf, "\n", 1));
 				crash_stack_print_decorated(clf, 2, FALSE);
 				crash_fd_close(clf);
 				goto parent_process;
@@ -1705,14 +1747,10 @@ retry_child:
 				log_set_disabled(LOG_STDOUT, TRUE);
 
 				thread_lock_dump_all(STDOUT_FILENO);
-				rewind_str(0);
-				print_str("\n");
-				flush_str(STDOUT_FILENO);
+				IGNORE_RESULT(write(STDOUT_FILENO, "\n", 1));
 
 				crash_run_hooks(NULL, STDOUT_FILENO);
-				rewind_str(0);
-				print_str("\n");
-				flush_str(STDOUT_FILENO);
+				IGNORE_RESULT(write(STDOUT_FILENO, "\n", 1));
 
 				/*
 				 * Even though we're in the child process, say FALSE because
@@ -1762,26 +1800,17 @@ retry_child:
 				execve(argv[0], (const void *) argv, NULL);
 			}
 
-			/* Log exec failure */
-			crash_time(tbuf, sizeof tbuf);
-			rewind_str(0);
-			print_str(tbuf);					/* 0 */
-			print_str(" CRASH (pid=");			/* 1 */
-			print_str(pid_str);					/* 2 (parent's PID) */
-			print_str(") ");					/* 3 */
-			print_str("exec() error: ");		/* 4 */
-			print_str(symbolic_errno(errno));	/* 5 */
-			print_str(" (");					/* 6 */
-			print_str(g_strerror(errno));		/* 7 */
-			print_str(")\n");					/* 8 */
-			flush_str(PARENT_STDERR_FILENO);
-			flush_str(STDOUT_FILENO);			/* into crash file as well */
-			if (log_stdout_is_distinct())
-				flush_str(parent_stdout);
+			what = "exec() error";
 
 			/* FALL THROUGH */
 
 		child_failure:
+
+			/* Log child failure */
+
+			crash_logerr(what, pid_str,
+				PARENT_STDERR_FILENO, STDOUT_FILENO, parent_stdout);
+
 			_exit(EXIT_FAILURE);
 		}	
 		break;
