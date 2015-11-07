@@ -192,7 +192,7 @@ static inline size_t G_GNUC_PURE
 omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 {
 	void *first;
-	size_t mask;
+	size_t mask, size;
 
 	g_assert(ck != NULL);
 	g_assert(ptr_cmp(ck->first, ck) <= 0);
@@ -211,7 +211,13 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
 	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
 
-	return ptr_diff(omalloc_chunk_end(ck), first);
+	size = ptr_diff(omalloc_chunk_end(ck), first);
+
+	g_assert_log(size_is_non_negative(size),
+		"%s(): size=%'zu, ck->first=%p, mask=0x%x, first=%p, end(ck)=%p",
+		G_STRFUNC, size, ck->first, mask, first, omalloc_chunk_end(ck));
+
+	return size;
 }
 
 /**
@@ -346,8 +352,10 @@ omalloc_chunk_array(enum omalloc_mode mode)
 /**
  * Adjust starting address to make sure we can satisfy the alignment
  * requirements.
+ *
+ * @return the new chunk size.
  */
-static void
+static size_t
 omalloc_chunk_align(struct ochunk *ck, size_t align, enum omalloc_mode mode)
 {
 	void *first;
@@ -368,6 +376,14 @@ omalloc_chunk_align(struct ochunk *ck, size_t align, enum omalloc_mode mode)
 		OSTATS_UNLOCK;
 		ck->first = first;
 	}
+
+	/*
+	 * Caller can no longer call omalloc_chunk_size() because ck->first
+	 * could be gone past the value of `ck' due to the above possible
+	 * adjustment.  Hence we return the new chunk size as a convenience.
+	 */
+
+	return ptr_diff(omalloc_chunk_end(ck), ck->first);
 }
 
 /**
@@ -535,8 +551,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 
 	osize = omalloc_chunk_size(ck);				/* Before possible alignment */
 	omalloc_chunk_unprotect(ck, mode);			/* Chunk now read-write */
-	omalloc_chunk_align(ck, align, mode);
-	csize = omalloc_chunk_size(ck);
+	csize = omalloc_chunk_align(ck, align, mode);
 	p = ck->first;
 
 	/*
@@ -563,6 +578,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 		ck->first = ptr_add_offset(ck->first, size);
 		used = ptr_diff(ck->first, first);
 
+		g_assert(ptr_cmp(ck->first, ck) <= 0);
 		g_assert(omalloc_chunk_size(ck) >= OMALLOC_HEADER_SIZE);
 
 		j = omalloc_chunk_index(ck);	/* New chunk index */
@@ -722,13 +738,6 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 			plural(count));
 	}
 
-	/*
-	 * Now that we need to possibly manipulate omalloc() internal chunk list,
-	 * re-grab the lock.
-	 */
-
-	spinlock(&omalloc_slk);
-
 	OSTATS_LOCK;
 	if (OMALLOC_RW == mode) {
 		ostats.pages_rw += allocated / omalloc_pagesize;
@@ -736,6 +745,13 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		ostats.pages_ro += allocated / omalloc_pagesize;
 	}
 	OSTATS_UNLOCK;
+
+	/*
+	 * Now that we need to possibly manipulate omalloc() internal chunk list,
+	 * re-grab the lock.
+	 */
+
+	spinlock(&omalloc_slk);
 
 	/*
 	 * If we have enough memory at the tail to create a new chunk, do so.
