@@ -57,14 +57,35 @@ compat_is_superuser(void)
 	return ret;
 }
 
+/**
+ * Performs a kill(pid, 0), portably between UNIX and Windows.
+ */
+int
+compat_kill_zero(pid_t pid)
+{
+#ifdef MINGW32
+	return mingw_process_access_check(pid);
+#else
+	return kill(pid, 0);
+#endif
+}
+
+/**
+ * Check whether process exists.
+ */
+bool
+compat_process_exists(pid_t pid)
+{
+	return -1 != compat_kill_zero(pid) || EPERM == errno;
+}
+
+/**
+ * Check whether a process that we can access to is alive.
+ */
 bool
 compat_process_is_alive(pid_t pid)
 {
-#ifdef MINGW32
-	return mingw_process_is_alive(pid);
-#else
-	return -1 != kill(pid, 0);
-#endif
+	return -1 != compat_kill_zero(pid);
 }
 
 /**

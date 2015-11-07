@@ -4558,29 +4558,54 @@ found:
 }
 #endif
 
-bool
-mingw_process_is_alive(pid_t pid)
+/*
+ * Check whether a given PID could be sent a signal with kill(pid, 0), would
+ * Windows support such a system call.
+
+ * @return 0 on success, -1 on failure.
+ *
+ * If it returns -1, errno is set to indicate why process PID cannot be
+ * queried: ESRCH when process does not exist, EPERM when it exists but cannot
+ * be accessed by the user.
+ */
+int
+mingw_process_access_check(pid_t pid)
 {
-	char our_process_name[1024];
-	char process_name[1024];
 	HANDLE p;
-	BOOL res = FALSE;
-	pid_t our_pid = GetCurrentProcessId();
+	int res = -1;
 
-	/* PID might be reused */
-	if (our_pid == pid)
-		return FALSE;
+	p = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+	if (NULL == p) {
+		errno = mingw_last_error();
+		/*
+		 * Remap our POSIX error codes to that of what kill(pid, 0)
+		 * would return on UNIX.  We skip EINVAL, since that is only
+		 * used by kill() when an invalid signal is passed, which is
+		 * irrelevant here!
+		 */
+		if (EINVAL == errno)		/* When PID does not exist */
+			errno = ESRCH;			/* we want ESRCH to be returned */
+		else if (EACCES == errno)	/* When process cannot be queried */
+			errno = EPERM;			/* we want EPERM to be returned */
+		else {
+			s_carp_once("%s(): unexpected error: %m", G_STRFUNC);
+			errno = EPERM;			/* Assume process exists */
+		}
+	} else {
+		/*
+		 * Make sure Windows returns a handle to the PID we asked -- it has
+		 * a tendency to sometimes open a process that bear a PID that is
+		 * slightly less to the one requested when the requested PID does
+		 * not exist!
+		 */
 
-	p = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+		if (GetProcessId(p) == UNSIGNED(pid))
+			res = 0;
+		else
+			errno = ESRCH;
 
-	if (NULL != p) {
-		GetModuleBaseName(p, NULL, process_name, sizeof process_name);
-		GetModuleBaseName(GetCurrentProcess(),
-			NULL, our_process_name, sizeof our_process_name);
-
-		res = g_strcmp0(process_name, our_process_name) == 0;
 		CloseHandle(p);
-    }
+	}
 
 	return res;
 }
