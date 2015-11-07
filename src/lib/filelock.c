@@ -243,10 +243,23 @@ filelock_clean(void *data, void *udata)
 	return TRUE;			/* Remove from list */
 }
 
+#ifdef MINGW32
+#define STATIC
+#else
+#define STATIC static
+#endif
+
 /**
  * Auto-cleaning routine invoked at exit() time.
+ *
+ * @attention
+ * This routine is made visible on Windows because the execve() emulation
+ * will create a new process with a new PID -- all the locks that were held
+ * by the process must be released or the new process will not be able to
+ * grab them if it wakes up before the exec()ing parent process goes away:
+ * the parent PID will still be alive and appear to be the legitimate locker.
  */
-static void
+STATIC void
 filelock_autoclean(void)
 {
 	pid_t pid = getpid();
