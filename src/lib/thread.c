@@ -952,7 +952,7 @@ thread_element_stack_check(struct thread_element *te)
 		!te->main_thread &&
 		!te->stack_overflow &&
 		ptr_diff(te->stack_base, &te) > te->stack_size &&
-		!mingw_in_exception()
+		0 == signal_in_exception()
 	) {
 		te->stack_overflow = TRUE;		/* Prevent deadly recursions */
 

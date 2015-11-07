@@ -742,7 +742,6 @@ const char *dir_entry_filename(const void *dirent);
 size_t dir_entry_namelen(const void *dirent);
 
 int mingw_getgateway(uint32 *ip);
-bool mingw_in_exception(void);
 void mingw_abort(void) G_GNUC_NORETURN;
 int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
 pid_t mingw_launchve(const char *path, char *const argv[], char *const envp[]);
@@ -782,8 +781,6 @@ const char *mingw_native_path(const char *pathname);
 #define mingw_get_startup_path()		"/"
 #define mingw_get_system_path()			"/"
 #define mingw_get_windows_path()		"/"
-
-#define mingw_in_exception()		0
 
 #endif	/* MINGW32 */
 #endif /* _mingw32_h_ */

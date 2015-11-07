@@ -6642,14 +6642,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 	}
 }
 
-static volatile sig_atomic_t in_exception_handler;
 static void *mingw_stack[STACKTRACE_DEPTH_MAX];
-
-bool
-mingw_in_exception(void)
-{
-	return ATOMIC_GET(&in_exception_handler);
-}
 
 /**
  * Our default exception handler.
@@ -6661,7 +6654,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	int stid, signo = 0;
 	const void *sp;
 
-	ATOMIC_INC(&in_exception_handler);
+	signal_crashing();
 
 	er = ei->ExceptionRecord;
 	sp = ulong_to_pointer(ei->ContextRecord->Esp);
@@ -6681,9 +6674,9 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		break;
 	case EXCEPTION_GUARD_PAGE:
 	case EXCEPTION_STACK_OVERFLOW:
-		ATOMIC_DEC(&in_exception_handler);	/* In case we thread_exit() */
+		signal_uncrashing();				/* In case we thread_exit() */
 		thread_stack_check_overflow(sp);
-		ATOMIC_INC(&in_exception_handler);
+		signal_crashing();
 		signo = SIGSEGV;
 		break;
 	case EXCEPTION_ACCESS_VIOLATION:
@@ -6740,7 +6733,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 
 	if (
 		EXCEPTION_STACK_OVERFLOW != er->ExceptionCode &&
-		1 == ATOMIC_GET(&in_exception_handler)
+		1 == signal_in_exception()
 	) {
 		int count;
 		
@@ -6752,7 +6745,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
 
 		crash_save_stackframe(mingw_stack, count);
-	} else if (ATOMIC_GET(&in_exception_handler) > 5) {
+	} else if (signal_in_exception() > 5) {
 		DECLARE_STR(1);
 
 		print_str("Too many exceptions in a row -- raising SIGBART.\n");
@@ -6767,7 +6760,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	if (signo != 0)
 		mingw_sigraise(signo);
 
-	ATOMIC_DEC(&in_exception_handler);
+	signal_uncrashing();
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }

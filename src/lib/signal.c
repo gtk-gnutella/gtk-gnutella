@@ -564,7 +564,7 @@ signal_in_handler(void)
 	if (ATOMIC_GET(&in_signal_abort) && 1 == ATOMIC_GET(&in_signal_handler))
 		return FALSE;		/* Handle signal_abort() specially */
 
-	return 0 != ATOMIC_GET(&in_signal_handler) && !mingw_in_exception();
+	return 0 != ATOMIC_GET(&in_signal_handler) && !signal_in_exception();
 }
 
 /**
@@ -1349,6 +1349,39 @@ signal_unblock(int signo)
 }
 
 static volatile sig_atomic_t in_critical_section;
+static volatile sig_atomic_t in_exception_handler;
+
+/**
+ * Are we in an exception?
+ *
+ * @return amount of times signal_crashing() was called.
+ */
+int
+signal_in_exception(void)
+{
+	return ATOMIC_GET(&in_exception_handler);
+}
+
+/**
+ * Mark that we are entering a fatal exception.
+ */
+void
+signal_crashing(void)
+{
+	ATOMIC_INC(&in_exception_handler);
+}
+
+/**
+ * Mark that we are leaving a fatal exception handler.
+ */
+void
+signal_uncrashing(void)
+{
+	sig_atomic_t old = ATOMIC_DEC(&in_exception_handler);
+
+	g_assert_log(size_is_non_negative(old),
+		"%s(): old=%zu", G_STRFUNC, (size_t) old);
+}
 
 /**
  * Block all signals, for entering a critical section.

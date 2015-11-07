@@ -2233,6 +2233,15 @@ crash_mode(void)
 	walloc_crash_mode();
 
 	/*
+	 * Make sure critical routines will avoid memory allocationn -- all those
+	 * checking for signal_in_exception() -- when we are actually crashing,
+	 * in order to limit potentially risky behaviours whilst we are gathering
+	 * crashing information.
+	 */
+
+	signal_crashing();
+
+	/*
 	 * Suspend the other threads if possible, to avoid a cascade of errors
 	 * and other assertion failures.  If a thread is crashing, something is
 	 * wrong in the aplication global state.
