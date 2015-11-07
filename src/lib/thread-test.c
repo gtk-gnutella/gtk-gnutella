@@ -2230,7 +2230,6 @@ main(int argc, char **argv)
 	progname = filepath_basename(argv[0]);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	crash_init(argv[0], progname, 0, NULL);
-	stacktrace_init(argv[0], FALSE);
 
 	misc_init();
 

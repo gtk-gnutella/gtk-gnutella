@@ -2892,24 +2892,18 @@ crash_init(const char *argv0, const char *progname,
 	struct crash_vars iv;
 	unsigned i;
 	char dir[MAX_PATH_LEN];
-	char *executable = NULL;
+	char *executable;
+
+	if (NULL == argv0)
+		s_minierror("%s(): called with NULL argv0!", G_STRFUNC);
 
 	ZERO(&iv);
 
 	vars = &iv;
 
 	if (NULL == getcwd(dir, sizeof dir)) {
-		char time_buf[CRASH_TIME_BUFLEN];
-		DECLARE_STR(4);
-
-		crash_time(time_buf, sizeof time_buf);
-
 		dir[0] = '\0';
-		print_str(time_buf);
-		print_str(" (WARNING): cannot get current working directory: ");
-		print_str(g_strerror(errno));
-		print_str("\n");
-		flush_err_str();
+		s_miniwarn("%s(): cannot get current working directory: %m", G_STRFUNC);
 	}
 
 	if (NULL != exec_path) {
@@ -2920,17 +2914,8 @@ crash_init(const char *argv0, const char *progname,
 			!S_ISREG(buf.st_mode) || 
 			-1 == access(exec_path, X_OK)
 		) {
-			char time_buf[18];
-			DECLARE_STR(4);
-
-			crash_time(time_buf, sizeof time_buf);
-
-			print_str(time_buf);
-			print_str(" (ERROR): unusable program \"");
-			print_str(exec_path);
-			print_str("\"\n");
-			flush_err_str();
-			exit(EXIT_FAILURE);
+			s_fatal_exit(EXIT_FAILURE, "%s(): unusable program \"%s\"",
+				G_STRFUNC, exec_path);
 		}
 	}
 
@@ -2941,10 +2926,9 @@ crash_init(const char *argv0, const char *progname,
 	 * be restored on crash if the executable path ends up being relative).
 	 */
 
-	if (argv0 != NULL && !file_exists(argv0))
+	if (!file_exists(argv0))
 		executable = file_locate_from_path(argv0);
-
-	if (NULL == executable)
+	else
 		executable = deconstify_char(argv0);
 
 	iv.mem = ck_init_not_leaking(sizeof iv, 0);
@@ -2955,7 +2939,7 @@ crash_init(const char *argv0, const char *progname,
 	}
 
 	iv.argv0 = ostrdup_readonly(executable);
-	g_assert(NULL == executable || NULL != iv.argv0);
+	g_assert(NULL != iv.argv0);
 
 	iv.progname = ostrdup_readonly(progname);
 	g_assert(NULL == progname || NULL != iv.progname);
@@ -2976,9 +2960,6 @@ crash_init(const char *argv0, const char *progname,
 
 	vars = ck_copy(iv.mem, &iv, sizeof iv);
 	ck_readonly(vars->mem);
-
-	if (executable != argv0)
-		HFREE_NULL(executable);
 
 	/*
 	 * This chunk is used to save error messages and to hold a string object
@@ -3044,6 +3025,18 @@ crash_init(const char *argv0, const char *progname,
 		eslist_foreach(&crash_hooks, crash_hook_install, NULL);
 		eslist_wfree(&crash_hooks, sizeof(crash_hook_item_t));
 	}
+
+	/*
+	 * Since we install a crash handler, we can load program symbols
+	 * immediately!  Indeed, we could fail to do so later on when we
+	 * actully would desperately need symbols...
+	 *		--RAM, 2015-11-07
+	 */
+
+	stacktrace_init(executable, FALSE);
+
+	if (executable != argv0)
+		HFREE_NULL(executable);
 }
 
 /**

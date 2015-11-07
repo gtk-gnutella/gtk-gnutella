@@ -1915,7 +1915,6 @@ main(int argc, char **argv)
 		crash_setmain(main_argc, main_argv, main_env);
 		crash_set_restart(gtk_gnutella_request_restart);
 	}	
-	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();
 
 	symbols_set_verbose(TRUE);
