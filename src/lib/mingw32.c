@@ -92,6 +92,7 @@
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
 #include "pslist.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "spopen.h"
 #include "stacktrace.h"
@@ -380,9 +381,9 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 {
 	const char *npath;		/* Native path */
 	int error;
-	size_t buflen = MAX_PATH_LEN;
-	buf_t *b = buf_private(G_STRFUNC, buflen * sizeof(wchar_t));
-	wchar_t *pathbuf = buf_data(b);
+	const size_t buflen = MAX_PATH_LEN;
+	buf_t *b, bs;
+	wchar_t *pathbuf;
 	size_t ret;
 
 	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
@@ -390,6 +391,19 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 
 	ZERO(pncs);
 	pncs->magic = PNCS_MAGIC;	/* In case they call pncs_dup() */
+
+	/*
+	 * In a signal handler, don't allocate memory.
+	 */
+
+	if (signal_in_handler()) {
+		static char buf[MAX_PATH_LEN * sizeof(wchar_t)];
+		b = buf_init(&bs, buf, sizeof buf);
+	} else {
+		b = buf_private(G_STRFUNC, MAX_PATH_LEN * sizeof(wchar_t));
+	}
+
+	pathbuf = buf_data(b);
 
 	if (NULL == (npath = get_native_path(pathname, &error))) {
 		errno = error;
