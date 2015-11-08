@@ -1,3 +1,73 @@
+# v 1.1.6   2015-11-08  [stable]
+
+This is a bug-fixing release.
+
+This time it focues on Windows, which apparently exercised some bugs in
+common code with other platforms -- so some fixes are going to benefit to
+everyone even though the bugs did not manifest themselves as often.
+
+Improvements:
+- Increased default and max for "max_leaves" to account for modern systems.
+- Pulled latest translations from transifex.
+- Updated GeoIP databases.
+
+Bug Fixes:
+- Fixed memory leak on the error path of OOB / G2 query hit sending.
+- Fixed memory leak on the file upload path.
+- aging_insert(): was not properly handling freeing of keys, causing leaks.
+- Fixed property description message for "max_leaves".
+- Windows: no HEAP_NO_SERIALIZE flag on HeapAlloc() since we're multi-threaded.
+- mingw_valloc(): fixed monitoring of unreserved VM space.
+- Windows: optimized the inital VM space reservation.
+- rpc_delay(): avoid int overflowing, which would make delay negative!
+- node_udp_sr_data_ind(): do not crash if UDP was disabled or port was 0.
+- Fixed crashes in the omalloc() layer.
+
+Under the Hood:
+- Make sure an initial GMT offset is computed before the time thread starts.
+- Compact the aging structure on 64-bit platforms.
+- Fixed possible race between evq_trampoline() and evq_event_discard().
+- Added safety assertions: a removed item must belong to the list.
+- Fixed typos in safety assertions.
+- EVQ: closed race condition betweeen queues recreated in same thread ID.
+- Use getrlimit(RLIMIT_AS) to get the available space, not RLIMIT_DATA.
+- Windows: try harder to compute a relevant break value with sbrk(0).
+- Windows: added cpp trap for dup().
+- Windows: fixed fcntl(F_DUPFD) implementation which was not thread-safe.
+- Windows: dump symbolic PC on stack overflows, after basic information.
+- elist_remove(): assert that removed item must be part of some list.
+- evq_event_discard(): be quiet when removing event for the event queue thread.
+- evq_event_discard(): correctly handle cancelable events.
+- evq_trampoline(): factorize removal of triggered item from queue list.
+- evq_trampoline(): fixed logging message to use copied value.
+- getgateway(): on Linux, cache previously computed value in case netlink fails.
+- getgateway(): on Linux, the netlink socket can return EAGAIN on recv().
+- main_command_line(): optimized and simplified!
+- malloc_init_vtable(): be sure to set G_SLICE=always-malloc on Windows.
+- mingw_exception(): skip printing of stacktrace if we got a stack overflow.
+- mingw_getrlimit(): implement a better RLIMIT_DATA query.
+- mingw_getrlimit(): return different max / current values to account for usage.
+- mingw_signal(): always record signal handler in our internal list of handlers.
+- mingw_valloc(): don't complain about non-hinted allocations when crashing!
+- mingw_valloc(): use s_minicarp() to limit resource consumption.
+- mingw_valloc(): when nearing out-of-memory, take data segment into account.
+- mingw_vmm_init(): accelerate initialization, reducing amount of system calls.
+- mingw_win2posix(): handle 0 to avoid warnings when called with no error.
+- mingw_win2posix(): mapped ERROR_BAD_EXE_FORMAT to ENOEXEC.
+- mingw_win2posix(): mapped ERROR_NETNAME_DELETED to EHOSTUNREACH.
+- mingw_win2posix(): use s_minicarp() instead of s_warning() to see "culprit".
+- omalloc_allocate(): was releasing spinlock too soon in read-only mode.
+- omalloc_chunk_allocate_from(): fixed bug when header dissolution was required.
+- publisher_handle(): simplified code by factorizing shared_file_unref() call.
+- s_minicarp() and s_minicrit(): carefully avoid stdio when dumping stack.
+- sdbm_close(): ensure we sync pending dirty data when database is not volatile.
+- sdbm_name(): return path to the .pag file if no name was explicitly given.
+- settings_init(): when computing max VM space, use max from RLIMIT_AS, not cur.
+- socket_create_and_bind(): on Linux systems, force SO_REUSEADDR before bind().
+- sort-test: reduce verbosity by default.
+- thread_suspend_others(): silently suspends itself if concurrently asked to.
+- udp_sched_write_error(): don't dump a stack trace on send errors we expect.
+
 # v 1.1.5   2015-10-08  [stable]
 
 This is a bug-fixing release.
