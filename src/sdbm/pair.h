@@ -45,7 +45,7 @@ extern void splpage(DBM *, char *, char *, char *, long);
 extern bool replaceable(size_t, size_t, bool);
 extern int replpair(DBM *, char *, int, datum);
 extern int paircount(const char *);
-extern int readpairv(const char *, struct sdbm_pair *, int);
+extern int readpairv(const char *, struct sdbm_pair *, int, bool);
 #ifdef SEEDUPS
 extern bool duppair(DBM *, const char *, datum);
 #endif

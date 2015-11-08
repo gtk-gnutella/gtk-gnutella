@@ -45,6 +45,11 @@ extern const datum nullitem;
 #define DBM_F_SAFE		(1 << 1)	/* activate keycheck during iteration */
 #define DBM_F_SKIP		(1 << 2)	/* skip unreadable keys/values */
 
+/*
+ * flags to sdbm_loose_foreach*() routines.
+ */
+#define DBM_F_ALLKEYS	(1 << 3)	/* ensure we iterate on all keys */
+
 typedef void (*sdbm_cb_t)(const datum key, const datum value, void *arg);
 typedef bool (*sdbm_cbr_t)(const datum key, const datum value, void *arg);
 
@@ -135,16 +140,16 @@ struct sdbm_loose_stats {
 	size_t big_values;		/* Big values seen */
 };
 
-size_t sdbm_loose_foreach(DBM *, sdbm_cb_t, void *);
-size_t sdbm_loose_foreach_remove(DBM *, sdbm_cbr_t, void *);
+size_t sdbm_loose_foreach(DBM *, int, sdbm_cb_t, void *);
+size_t sdbm_loose_foreach_remove(DBM *, int, sdbm_cbr_t, void *);
 
 /*
  * Undocumented calls (not listed in sdbm.3) -- RAM, 2015-09-23
  */
 
-size_t sdbm_loose_foreach_stats(DBM *, sdbm_cb_t, void *,
+size_t sdbm_loose_foreach_stats(DBM *, int, sdbm_cb_t, void *,
 	struct sdbm_loose_stats *);
-size_t sdbm_loose_foreach_remove_stats(DBM *, sdbm_cbr_t, void *,
+size_t sdbm_loose_foreach_remove_stats(DBM *, int, sdbm_cbr_t, void *,
 	struct sdbm_loose_stats *);
 
 void sdbm_free_null(DBM **);

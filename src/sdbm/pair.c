@@ -828,11 +828,12 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
  * @param pag		the start of the page
  * @param pv		base of the sdbm_pair vector to fill
  * @param vcnt		amount of entries in the vector
+ * @param hkeys		whether to hash keys to avoid duplicate processing
  *
  * @return the amount of entries filled in the vector
  */
 int
-readpairv(const char *pag, struct sdbm_pair *pv, int vcnt)
+readpairv(const char *pag, struct sdbm_pair *pv, int vcnt, bool hkeys)
 {
 	const unsigned short *ino = (const unsigned short *) pag;
 	int off = DBM_PBLKSIZ;
@@ -851,7 +852,7 @@ readpairv(const char *pag, struct sdbm_pair *pv, int vcnt)
 		v->voff = offset(ino[1]);
 		v->vlen = v->koff - v->voff;
 		v->vbig = is_big(ino[1]);
-		v->khash = binary_hash(pag + v->koff, v->klen);
+		v->khash = hkeys ? binary_hash(pag + v->koff, v->klen) : 0;
 
 		off = v->voff;
 	}

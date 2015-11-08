@@ -59,6 +59,7 @@ struct loose_vars {
 	hset_t *seen;					/* Set used to track processed keys */
 	struct loose_type *type;		/* Callback information */
 	void *arg;						/* Additional callback argument */
+	bool allkeys;					/* Make sure we do not skip any key */
 	struct sdbm_loose_stats *stats;	/* Collected statistics */
 	struct dbm_returns key;			/* Copied key */
 	struct dbm_returns value;		/* Copied value */
@@ -129,7 +130,7 @@ loose_process(struct loose_vars *v,
 	struct sdbm_pair *pv;
 	size_t kept = 0, restarted = 0, processed = 0;
 	int n;
-	bool locked = FALSE;
+	bool locked;
 
 	assert_sdbm_locked(v->db);
 	g_assert(pag != NULL);
@@ -145,18 +146,30 @@ loose_process(struct loose_vars *v,
 	 */
 
 	WALLOC_ARRAY(pv, cnt);
-	cur_cnt = readpairv(pag, pv, cnt);
+	cur_cnt = readpairv(pag, pv, cnt, !v->allkeys);
 
 	g_assert(cur_cnt == cnt);	/* Since we still hold the lock on the DB */
 
-	/*
-	 * From now on, we're going to relinquish the lock.  We only need to
-	 * take the lock back when the page we're iterating over is modified
-	 * (as identified by its modification stamp) or when we need to read
-	 * a big key or big value.
-	 */
+	if (v->allkeys) {
+		/*
+		 * Since they want all the keys, we need to keep the page locked to
+		 * prevent concurrent updates whilst we process the page and avoid
+		 * a key being processed twice.
+		 */
 
-	sdbm_unsynchronize(v->db);
+		locked = TRUE;
+		v->stats->locked++;
+	} else {
+		/*
+		 * From now on, we're going to relinquish the lock.  We only need to
+		 * take the lock back when the page we're iterating over is modified
+		 * (as identified by its modification stamp) or when we need to read
+		 * a big key or big value.
+		 */
+
+		sdbm_unsynchronize(v->db);
+		locked = FALSE;
+	}
 
 restart:
 
@@ -280,6 +293,8 @@ restart:
 		 */
 
 		if G_UNLIKELY(restart) {
+			g_assert(!v->allkeys);	/* Otherwise we lock the page! */
+
 			/*
 			 * Record all the processed keys so far to ensure we do not
 			 * reprocess the same keys over and over.
@@ -301,7 +316,7 @@ restart:
 			 */
 
 			sdbm_synchronize(v->db);
-			cur_cnt = readpairv(pag, pv, cnt);
+			cur_cnt = readpairv(pag, pv, cnt, TRUE);
 			cur_mstamp = lru_wired_mstamp(v->db, pag);
 			sdbm_unsynchronize(v->db);
 
@@ -384,8 +399,10 @@ restart:
 	}
 
 	WFREE_ARRAY(pv, cnt);
-	if (!locked)
-		sdbm_synchronize(v->db);	/* Regrab lock we had on entry */
+	if (locked)
+		sdbm_synchronize_yield(v->db);	/* Let other threads breathe */
+	else
+		sdbm_synchronize(v->db);		/* Regrab lock we had on entry */
 
 	return kept;
 }
@@ -394,16 +411,25 @@ restart:
  * Perform loose iteration on the whole database, applying the callback
  * and optionally removing items when given a deleting callback.
  *
+ * Flags can be any combination of:
+ *
+ * DBM_F_ALLKEYS	iterate on all keys, ensure we never miss one
+ *
+ * When DBM_F_ALLKEYS is set, the iteration will proceed with every page
+ * locked, to prevent any concurrent updates.  This reduces concurrency
+ * of course, but the lock is rotated after each page was processed.
+ *
  * @param db		the database
  * @param type		callaback to invoke and its type (deleting or plain)
  * @param arg		additional callback argument
+ * @param flags		operating flags, see above
  * @param stats		statistics to collect
  *
  * @return the amount of callabacks invoked, and which did not return TRUE
  * in the deleting version.
  */
 static size_t
-loose_iterate(DBM *db, struct loose_type *type, void *arg,
+loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
 	struct sdbm_loose_stats *stats)
 {
 	fileoffset_t pagtail, lrutail;
@@ -411,6 +437,11 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg,
 	size_t n = 0;
 	struct loose_vars v;
 	int zero = 0;
+	int supported = DBM_F_ALLKEYS;
+
+	g_assert_log(0 == (flags & ~supported),
+		"%s(): unsupported flags given: 0x%x (only supports 0x%x)",
+		G_STRFUNC, flags, supported);
 
 	g_assert_log(db->cache != NULL,
 		"%s(): LRU cache is disabled for SDBM \"%s\" but needed for traversal",
@@ -422,6 +453,7 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg,
 	v.seen = hset_create(HASH_KEY_SELF, 0);
 	v.type = type;
 	v.arg = arg;
+	v.allkeys = booleanize(flags & DBM_F_ALLKEYS);
 	v.stats = stats;
 
 	sdbm_synchronize(db);
@@ -506,7 +538,12 @@ static struct sdbm_loose_stats loose_dummy_stats;
  *
  * If the callback is NULL, the database is still traversed to count items.
  *
+ * Flags can be any combination of:
+ *
+ * DBM_F_ALLKEYS	iterate on all keys, ensure we never miss one
+ *
  * @param db	the database on which we're iterating
+ * @param flags	operating flags, see above
  * @param cb	the callback to invoke on each DB entry
  * @param arg	additional opaque argument passed to the callback
  * @param stats	collect statistics on the loose traversal
@@ -514,7 +551,7 @@ static struct sdbm_loose_stats loose_dummy_stats;
  * @return the amount of entries seen in the database.
  */
 size_t
-sdbm_loose_foreach_stats(DBM *db, sdbm_cb_t cb, void *arg,
+sdbm_loose_foreach_stats(DBM *db, int flags, sdbm_cb_t cb, void *arg,
 	struct sdbm_loose_stats *stats)
 {
 	struct loose_type type;
@@ -525,7 +562,7 @@ sdbm_loose_foreach_stats(DBM *db, sdbm_cb_t cb, void *arg,
 	type.deleting = FALSE;
 	type.u.cb = cb;
 
-	return loose_iterate(db, &type, arg, stats);
+	return loose_iterate(db, &type, arg, flags, stats);
 }
 
 /**
@@ -533,16 +570,21 @@ sdbm_loose_foreach_stats(DBM *db, sdbm_cb_t cb, void *arg,
  *
  * If the callback is NULL, the database is still traversed to count items.
  *
+ * Flags can be any combination of:
+ *
+ * DBM_F_ALLKEYS	iterate on all keys, ensure we never miss one
+ *
  * @param db	the database on which we're iterating
+ * @param flags	operating flags, see above
  * @param cb	the callback to invoke on each DB entry
  * @param arg	additional opaque argument passed to the callback
  *
  * @return the amount of callback invocations made
  */
 size_t
-sdbm_loose_foreach(DBM *db, sdbm_cb_t cb, void *arg)
+sdbm_loose_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg)
 {
-	return sdbm_loose_foreach_stats(db, cb, arg, &loose_dummy_stats);
+	return sdbm_loose_foreach_stats(db, flags, cb, arg, &loose_dummy_stats);
 }
 
 /**
@@ -550,7 +592,12 @@ sdbm_loose_foreach(DBM *db, sdbm_cb_t cb, void *arg)
  * removing each entry where the callback returns TRUE, and reporting
  * statistics on the traversal.
  *
+ * Flags can be any combination of:
+ *
+ * DBM_F_ALLKEYS	iterate on all keys, ensure we never miss one
+ *
  * @param db	the database on which we're iterating
+ * @param flags	operating flags, see above
  * @param cb	the callback to invoke on each DB entry
  * @param arg	additional opaque argument passed to the callback
  * @param stats	collect statistics on the loose traversal
@@ -559,7 +606,7 @@ sdbm_loose_foreach(DBM *db, sdbm_cb_t cb, void *arg)
  * return TRUE.
  */
 size_t
-sdbm_loose_foreach_remove_stats(DBM *db, sdbm_cbr_t cb, void *arg,
+sdbm_loose_foreach_remove_stats(DBM *db, int flags, sdbm_cbr_t cb, void *arg,
 	struct sdbm_loose_stats *stats)
 {
 	struct loose_type type;
@@ -571,14 +618,19 @@ sdbm_loose_foreach_remove_stats(DBM *db, sdbm_cbr_t cb, void *arg,
 	type.deleting = TRUE;
 	type.u.cbr = cb;
 
-	return loose_iterate(db, &type, arg, stats);
+	return loose_iterate(db, &type, arg, flags, stats);
 }
 
 /**
  * Loosely iterate on the whole database, applying callback on each item,
  * removing each entry where the callback returns TRUE.
  *
+ * Flags can be any combination of:
+ *
+ * DBM_F_ALLKEYS	iterate on all keys, ensure we never miss one
+ *
  * @param db	the database on which we're iterating
+ * @param flags	operating flags, see above
  * @param cb	the callback to invoke on each DB entry
  * @param arg	additional opaque argument passed to the callback
  *
@@ -586,9 +638,10 @@ sdbm_loose_foreach_remove_stats(DBM *db, sdbm_cbr_t cb, void *arg,
  * return TRUE.
  */
 size_t
-sdbm_loose_foreach_remove(DBM *db, sdbm_cbr_t cb, void *arg)
+sdbm_loose_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg)
 {
-	return sdbm_loose_foreach_remove_stats(db, cb, arg, &loose_dummy_stats);
+	return sdbm_loose_foreach_remove_stats(db, flags, cb, arg,
+		&loose_dummy_stats);
 }
 
 #else	/* !LRU */
@@ -598,33 +651,37 @@ sdbm_loose_foreach_remove(DBM *db, sdbm_cbr_t cb, void *arg)
  */
 
 size_t
-sdbm_loose_foreach_stats(DBM *db, sdbm_cb_t cb, void *arg,
+sdbm_loose_foreach_stats(DBM *db, int flags, sdbm_cb_t cb, void *arg,
 	struct sdbm_loose_stats *stats)
 {
+	(void) flags;
 	ZERO(stats);
 	s_carp_once("%s(): no LRU cache support, using strict iterator", G_STRFUNC);
 	return sdbm_foreach(db, DBM_F_SKIP, cb, arg);
 }
 
 size_t
-sdbm_loose_foreach(DBM *db, sdbm_cb_t cb, void *arg)
+sdbm_loose_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg)
 {
+	(void) flags;
 	s_carp_once("%s(): no LRU cache support, using strict iterator", G_STRFUNC);
 	return sdbm_foreach(db, DBM_F_SKIP, cb, arg);
 }
 
 size_t
-sdbm_loose_foreach_remove_stats(DBM *db, sdbm_cbr_t cb, void *arg,
+sdbm_loose_foreach_remove_stats(DBM *db, int flags, sdbm_cbr_t cb, void *arg,
 	struct sdbm_loose_stats *stats)
 {
+	(void) flags;
 	ZERO(stats);
 	s_carp_once("%s(): no LRU cache support, using strict iterator", G_STRFUNC);
 	return sdbm_foreach_remove(db, DBM_F_SKIP, cb, arg);
 }
 
 size_t
-sdbm_loose_foreach_remove(DBM *db, sdbm_cbr_t cb, void *arg)
+sdbm_loose_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg)
 {
+	(void) flags;
 	s_carp_once("%s(): no LRU cache support, using strict iterator", G_STRFUNC);
 	return sdbm_foreach_remove(db, DBM_F_SKIP, cb, arg);
 }

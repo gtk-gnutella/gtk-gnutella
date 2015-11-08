@@ -53,6 +53,7 @@ static bool shrink, rebuild, thread_safe;
 static bool randomize;
 static unsigned rseed;
 static bool unlink_db;
+static bool all_keys;
 static bool large_keys, large_values, common_head_tail;
 
 #define WR_DELAY	(1 << 0)
@@ -64,7 +65,7 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiklprstvwyBCDEKSTUV] [-R seed] [-c pages]\n"
+		"Usage: %s [-bdeiklprstvwyABCDEKSTUV] [-R seed] [-c pages]\n"
 		"       dbname [count]\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
@@ -80,6 +81,7 @@ usage(void)
 		"  -v : use large values\n"
 		"  -w : perform a write test\n"
 		"  -y : show runtime thread stats at the end\n"
+		"  -A : traverse all keys when loosely iterating\n"
 		"  -B : rebuild the database before testing\n"
 		"  -C : count database items\n"
 		"  -D : enable LRU cache write delay\n"
@@ -435,8 +437,12 @@ static void *
 loose_iterator(void *arg)
 {
 	struct loose_iterator_args *a = arg;
+	int flags = 0;
 
-	sdbm_loose_foreach_stats(a->db, loose_cb, NULL, a->stats);
+	if (all_keys)
+		flags |= DBM_F_ALLKEYS;
+
+	sdbm_loose_foreach_stats(a->db, 0, loose_cb, NULL, a->stats);
 	sdbm_unref(&a->db);
 
 	return NULL;
@@ -581,8 +587,11 @@ main(int argc, char **argv)
 
 	progstart(argc, argv);
 
-	while ((c = getopt(argc, argv, "bBc:CdDeEiklKprR:sStTUvVwy")) != EOF) {
+	while ((c = getopt(argc, argv, "AbBc:CdDeEiklKprR:sStTUvVwy")) != EOF) {
 		switch (c) {
+		case 'A':			/* traverse all keys when loosely iterating */
+			all_keys++;
+			break;
 		case 'B':			/* rebuild before testing */
 			rebuild++;
 			break;

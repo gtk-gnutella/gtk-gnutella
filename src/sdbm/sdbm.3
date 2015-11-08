@@ -78,8 +78,9 @@ void sdbm_unref(const \s-1DBM\s0 **db_ptr)
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
 .sp
-size_t sdbm_loose_foreach(\s-1DBM\s0 *db, sdbm_cb_t cb, void *arg);
-size_t sdbm_loose_foreach_remove(\s-1DBM\s0 *db, sdbm_cbr_t cb, void *arg);
+size_t sdbm_loose_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
+size_t sdbm_loose_foreach_remove(\s-1DBM\s0 *db,
+        int flags, sdbm_cbr_t cb, void *arg);
 .ft R
 .fi
 .SH DESCRIPTION
@@ -568,6 +569,14 @@ operation in
 only takes place if no changes occurred on the page where the item lies
 since it was given to the callback, to avoid deleting a record for the
 wrong reasons.
+.LP
+By passing the
+.B \s-1DBM_F_ALLKEYS\s0
+flag to the loosely iterating routines, the database is locked as pages are
+processed, meaning all the keys are guaranteed to be traversed and all
+deletions will succeed.  However, callbacks are invoked with
+the database locked and that reduces opportunities for more concurrency.
+The lock is yield back after each processed page.
 .SH PAGE CACHING
 This
 .B sdbm
