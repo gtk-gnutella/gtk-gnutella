@@ -18,7 +18,7 @@
 
 # $Id: Head.U 167 2013-05-08 17:58:00Z rmanfredi $
 #
-# Generated on Fri Apr 24 18:02:50 CEST 2015 [metaconfig 3.5-194]
+# Generated on Sun Nov  1 15:30:51 CET 2015 [metaconfig 3.5-195]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -390,6 +390,7 @@ d_nls=''
 d_open3=''
 d_openat=''
 d_pause=''
+d_pipe2=''
 d_poll=''
 d_popen=''
 d_portable=''
@@ -7244,6 +7245,52 @@ cyn=pause
 set d_pause
 eval $trylink
 
+: see if this is a sys/file.h system
+val=''
+set sys/file.h val
+eval $inhdr
+
+: do we need to include sys/file.h ?
+case "$val" in
+"$define")
+	echo " "
+	if $h_sysfile; then
+		val="$define"
+		echo "We'll be including <sys/file.h>." >&4
+	else
+		val="$undef"
+		echo "We won't be including <sys/file.h>." >&4
+	fi
+	;;
+*)
+	h_sysfile=false
+	;;
+esac
+set i_sysfile
+eval $setvar
+
+: see if pipe2 exists
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#$i_sysfile I_SYS_FILE
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+#ifdef I_SYS_FILE
+#include <sys/file.h>	/* For O_* constants */
+#endif
+#include <fcntl.h>		/* For O_* constants */
+int main(void)
+{
+	static int fds[2], ret;
+	ret |= pipe2(fds, O_CLOEXEC | O_NONBLOCK);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=pipe2
+set d_pipe2
+eval $trylink
+
 : see if there is a poll.h file
 set poll.h i_poll
 eval $inhdr
@@ -10491,30 +10538,6 @@ EOC
 set i_alloca
 eval $trylink
 
-: see if this is a sys/file.h system
-val=''
-set sys/file.h val
-eval $inhdr
-
-: do we need to include sys/file.h ?
-case "$val" in
-"$define")
-	echo " "
-	if $h_sysfile; then
-		val="$define"
-		echo "We'll be including <sys/file.h>." >&4
-	else
-		val="$undef"
-		echo "We won't be including <sys/file.h>." >&4
-	fi
-	;;
-*)
-	h_sysfile=false
-	;;
-esac
-set i_sysfile
-eval $setvar
-
 : see if fcntl.h is there
 val=''
 set fcntl.h val
@@ -11305,6 +11328,7 @@ d_openat='$d_openat'
 d_os2='$d_os2'
 d_pause='$d_pause'
 d_phostname='$d_phostname'
+d_pipe2='$d_pipe2'
 d_poll='$d_poll'
 d_popen='$d_popen'
 d_portable='$d_portable'

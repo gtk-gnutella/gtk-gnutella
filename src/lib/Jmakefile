@@ -208,6 +208,7 @@ LSRC = \
 	smsort.c \
 	sorted_array.c \
 	spinlock.c \
+	spopen.c \
 	stacktrace.c \
 	stats.c \
 	str.c \
@@ -337,6 +338,7 @@ NormalTestTarget(ftw)
 NormalTestTarget(launch)
 NormalTestTarget(random)
 NormalTestTarget(sort)
+NormalTestTarget(spopen)
 NormalTestTarget(thread)
 
 #define LinkGenInterface(file)	@!\

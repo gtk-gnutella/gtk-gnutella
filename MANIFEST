@@ -946,6 +946,9 @@ src/lib/sorted_array.c
 src/lib/sorted_array.h
 src/lib/spinlock.c
 src/lib/spinlock.h
+src/lib/spopen-test.c
+src/lib/spopen.c
+src/lib/spopen.h
 src/lib/stacktrace.c
 src/lib/stacktrace.h
 src/lib/stats.c

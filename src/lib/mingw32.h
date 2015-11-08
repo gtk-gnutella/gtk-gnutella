@@ -208,6 +208,7 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 
 #define execve mingw_execve
 #define launchve mingw_launchve
+#define spopenve mingw_spopenve
 
 #define abort() mingw_abort()
 
@@ -745,6 +746,8 @@ bool mingw_in_exception(void);
 void mingw_abort(void) G_GNUC_NORETURN;
 int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
 pid_t mingw_launchve(const char *path, char *const argv[], char *const envp[]);
+int mingw_spopenve(const char *path, const char *mode, int fd[2],
+		char *const argv[], char *const envp[]);
 
 struct adns_request;
 

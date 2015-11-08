@@ -93,6 +93,7 @@
 #include "product.h"
 #include "pslist.h"
 #include "spinlock.h"
+#include "spopen.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
@@ -1271,129 +1272,96 @@ mingw_launch_init_once(void)
 	dualhash_thread_safe(mingw_launched);
 }
 
-/**
- * The Windows version of our launchve() routine.
- * On UNIX, this is a simple matter of vfork() + execve()...
+/*
+ * Create escpaed command-line string from argv[].
  *
- * The created child handle is stored along with the PID of the process
- * in a dualhash, so that we can implement wait() later on.
+ * Just like mingw_execve(), we need to properly enclose in double-quotes
+ * all the arguments with embedded spaces or the constructed argv[] array
+ * will not be correct.  Fortunately, we're not in an emergency situation
+ * here so we can freely allocate memory.
  *
- * @return -1 on failure, the PID of the child process otherwise.
+ * The reason we have to do all this work is that the underlying interface
+ * that creates a new process, the CreateProcess() system call,  takes
+ * a single command-line string that it must then parse to reconstruct
+ * the argv[] array.  Whereas on UNIX systems, execve() already takes the
+ * argv[] array and does not need to do any parsing!
+ *
+ * @param argv		the user-supplied argument vector for command
+ *
+ * @return allocated command string with proper argument quoting / escaping.
  */
-pid_t
-mingw_launchve(const char *path, char *const argv[], char *const envp[])
+static char *
+mingw_command_line(char * const argv[])
 {
-	PROCESS_INFORMATION pi;
-	STARTUPINFOW si;
-	pncs_t pncs;
-	int res, error = 0;
-	char *file, *cmd, *env = NULL;
-	wchar_t *cmd_utf16 = NULL;
-	const char exe[] = ".exe";
-	int32 flags = 0;
-	pid_t pid = -1;
+	char **a;
+	size_t i, n;
+	char *cmd;
 
-	g_assert(path != NULL);
-	g_assert(argv != NULL);
+	for (i = 0; NULL != argv[i]; i++)
+		/* empty */;
 
-	once_flag_run(&mingw_launch_inited, mingw_launch_init_once);
-
-	ZERO(&pi);
-	ZERO(&si);
-	si.cb = sizeof si;
+	n = i + 1;		/* Amount of entries in argv[] array + final NULL */
+	HALLOC0_ARRAY(a, n);
 
 	/*
-	 * Add trailing ".exe" extension to the path if missing.
+	 * We're going to only allocate the strings we need to quote, reusing
+	 * the ones given on entry otherwise.  This slightly complicates the
+	 * freeing logic later on.
 	 */
 
-	if (is_strcasesuffix(path, (size_t) -1, exe))
-		file = deconstify_pointer(path);
-	else
-		file = h_strconcat(path, exe, NULL_PTR);
+	for (i = 0; NULL != argv[i]; i++) {
+		size_t qlen = mingw_quotedlen(argv[i]);
 
-	/*
-	 * Just like mingw_execve(), we need to properly enclose in double-quotes
-	 * all the arguments with embedded spaces or the constructed argv[] array
-	 * will not be correct.  Fortunately, we're not in an emergency situation
-	 * here so we can freely allocate memory.
-	 *
-	 * The reason we have to do all this work is that the underlying interface
-	 * that creates a new process, the CreateProcess() system call,  takes
-	 * a single command-line string that it must then parse to reconstruct
-	 * the argv[] array.  Whereas on UNIX systems, execve() already takes the
-	 * argv[] array and does not need to do any parsing!
-	 */
-
-	{
-		char **a;
-		size_t i, n;
-
-		for (i = 0; NULL != argv[i]; i++)
-			/* empty */;
-
-		n = i + 1;		/* Amount of entries in argv[] array + final NULL */
-		HALLOC0_ARRAY(a, n);
-
-		/*
-		 * We're going to only allocate the strings we need to quote, reusing
-		 * the ones given on entry otherwise.  This slightly complicates the
-		 * freeing logic later on.
-		 */
-
-		for (i = 0; NULL != argv[i]; i++) {
-			size_t qlen = mingw_quotedlen(argv[i]);
-
-			if (0 == qlen) {
-				a[i] = argv[i];		/* Reuse original string */
-			} else {
-				a[i] = halloc(qlen);
-				mingw_quotestr(argv[i], a[i], qlen);
-			}
+		if (0 == qlen) {
+			a[i] = argv[i];		/* Reuse original string */
+		} else {
+			a[i] = halloc(qlen);
+			mingw_quotestr(argv[i], a[i], qlen);
 		}
-
-		g_assert(i == n - 1);
-
-		a[i] = NULL;
-
-		/*
-		 * Build the command line string using the quoted arguments, then
-		 * free all the strings we had to quote and our temporary vector.
-		 */
-
-		cmd = h_strjoinv(" ", a);
-
-		for (i = 0; NULL != argv[i]; i++) {
-			if (argv[i] != a[i])
-				hfree(a[i]);
-		}
-
-		HFREE_NULL(a);
 	}
 
+	g_assert(i == n - 1);
+
+	a[i] = NULL;
+
 	/*
-	 * Convert the command line string into a big happy UTF-16 string.
+	 * Build the command line string using the quoted arguments, then
+	 * free all the strings we had to quote and our temporary vector.
 	 */
 
-	if (NULL == (cmd_utf16 = wchar_convert(cmd, NULL))) {
-		error = EILSEQ;
-		goto done;
+	cmd = h_strjoinv(" ", a);
+
+	for (i = 0; NULL != argv[i]; i++) {
+		if (argv[i] != a[i])
+			hfree(a[i]);
 	}
 
-	HFREE_NULL(cmd);
+	HFREE_NULL(a);
 
-	/*
-	 * Build the environment buffer.
-	 *
-	 * Even when there is no supplied environment, we need to parse the
-	 * process environment to be able to determine whether it uses wide chars.
-	 */
+	return cmd;
+}
 
+/*
+ * Build the environment buffer.
+ *
+ * Even when there is no supplied environment, we need to parse the
+ * process environment to be able to determine whether it uses wide chars.
+ *
+ * @param envp		the optional user-supplied environment
+ * @param flags		CreateProcess() flags updated for UTF-16 environment
+ *
+ * @return allocated environment buffer, NULL if given NULL initially.
+ */
+static char *
+mingw_environment_block(char * const envp[], int *flags)
+{
 	if (envp != NULL) {
 		size_t i, cnt, acnt = 0;
 		const char *mandatory[] = { "PATH", "SYSTEMROOT" };
 		bool has_mandatory[G_N_ELEMENTS(mandatory)];
 		char *added[G_N_ELEMENTS(mandatory)];
 		char **e;
+		char *env;
 
 		/*
 		 * Compute size of user-supplied environment.
@@ -1471,6 +1439,8 @@ mingw_launchve(const char *path, char *const argv[], char *const envp[])
 		for (i = 0; i < acnt; i++) {
 			HFREE_NULL(added[i]);
 		}
+
+		return env;
 	} else {
 		extern char **environ;
 		bool uc = FALSE;
@@ -1493,8 +1463,114 @@ mingw_launchve(const char *path, char *const argv[], char *const envp[])
 		}
 
 		if (uc)
-			flags |= CREATE_UNICODE_ENVIRONMENT;
+			*flags |= CREATE_UNICODE_ENVIRONMENT;
+
+		return NULL;
 	}
+}
+
+/*
+ * Record the handle of the child process and its pid, making sure we do not
+ * close the process handle to be able to wait on the child later.
+ *
+ * @return the PID of the child process.
+ */
+static pid_t
+mingw_record_child(PROCESS_INFORMATION *pi)
+{
+	HANDLE old;
+	dualhash_t *dh;
+	pid_t pid = pi->dwProcessId;
+
+	once_flag_run(&mingw_launch_inited, mingw_launch_init_once);
+
+	/* The main thread handle we can close as we don't need it */
+	CloseHandle(pi->hThread);
+
+	dh = mingw_launched;
+
+	dualhash_lock(dh);
+
+	old = dualhash_lookup_value(dh, uint_to_pointer(pid));
+
+	if (old != NULL) {
+		s_warning("%s(): had already an unwaited-for child bearing PID=%lu",
+			G_STRFUNC, (ulong) pid);
+		CloseHandle(old);
+		dualhash_remove_value(dh, uint_to_pointer(pid));
+	}
+
+	/* Paranoid! */
+
+	if (dualhash_contains_key(dh, pi->hProcess)) {
+		pid_t opid = pointer_to_ulong(dualhash_lookup_key(dh, pi->hProcess));
+		s_warning("%s(): duplicate handle %p, was for child PID %lu",
+			G_STRFUNC, pi->hProcess, (ulong) opid);
+		dualhash_remove_key(dh, pi->hProcess);
+	}
+
+	dualhash_insert_key(dh, pi->hProcess, uint_to_pointer(pid));
+
+	dualhash_unlock(dh);
+
+	return pid;
+}
+
+/**
+ * The Windows version of our launchve() routine.
+ * On UNIX, this is a simple matter of vfork() + execve()...
+ *
+ * The created child handle is stored along with the PID of the process
+ * in a dualhash, so that we can implement wait() later on.
+ *
+ * @return -1 on failure, the PID of the child process otherwise.
+ */
+pid_t
+mingw_launchve(const char *path, char *const argv[], char *const envp[])
+{
+	PROCESS_INFORMATION pi;
+	STARTUPINFOW si;
+	pncs_t pncs;
+	int res, error = 0;
+	char *file = deconstify_pointer(path), *cmd, *env = NULL;
+	wchar_t *cmd_utf16 = NULL;
+	const char exe[] = ".exe";
+	int32 flags = 0;
+	pid_t pid = -1;
+
+	g_assert(path != NULL);
+	g_assert(argv != NULL);
+
+	ZERO(&pi);
+	ZERO(&si);
+	si.cb = sizeof si;
+
+	/*
+	 * Add trailing ".exe" extension to the path if missing.
+	 */
+
+	if (!is_strcasesuffix(path, (size_t) -1, exe))
+		file = h_strconcat(path, exe, NULL_PTR);
+
+	/*
+	 * Convert the command line string into a big happy UTF-16 string.
+	 */
+
+	cmd = mingw_command_line(argv);
+
+	if (NULL == (cmd_utf16 = wchar_convert(cmd, NULL))) {
+		error = EILSEQ;
+		goto done;
+	}
+
+	HFREE_NULL(cmd);
+
+	/*
+	 * Create environment block or check current process for UTF-16,
+	 * updating flags as necessary.
+	 */
+
+	env = mingw_environment_block(envp, &flags);
 
 	/*
 	 * Transform path to UTF-16.
@@ -1530,45 +1606,11 @@ mingw_launchve(const char *path, char *const argv[], char *const envp[])
 
 	/*
 	 * Good, process was created.
-	 *
-	 * We're going to record the handle of the process and its pid, making
-	 * sure we do not close the process handle to be able to wait on the
-	 * child process!
-	 *
-	 * The main thread handle we can close as we don't need it.
 	 */
 
-	CloseHandle(pi.hThread);
-	pid = pi.dwProcessId;
+	pid = mingw_record_child(&pi);
 
-	{
-		HANDLE old;
-		dualhash_t *dh = mingw_launched;
-
-		dualhash_lock(dh);
-
-		old = dualhash_lookup_value(dh, uint_to_pointer(pid));
-
-		if (old != NULL) {
-			s_warning("%s(): had already an unwaited-for child bearing PID=%lu",
-				G_STRFUNC, (ulong) pid);
-			CloseHandle(old);
-			dualhash_remove_value(dh, uint_to_pointer(pid));
-		}
-
-		/* Paranoid! */
-
-		if (dualhash_contains_key(dh, pi.hProcess)) {
-			pid_t opid = pointer_to_ulong(dualhash_lookup_key(dh, pi.hProcess));
-			s_warning("%s(): duplicate handle %p, was for child PID %lu",
-				G_STRFUNC, pi.hProcess, (ulong) opid);
-			dualhash_remove_key(dh, pi.hProcess);
-		}
-
-		dualhash_insert_key(dh, pi.hProcess, uint_to_pointer(pid));
-
-		dualhash_unlock(dh);
-	}
+	/* FALL THROUGH */
 
 done:
 	HFREE_NULL(cmd);
@@ -1581,6 +1623,329 @@ done:
 		errno = error;
 
 	return pid;
+}
+
+/**
+ * Create an inheritable duplicate handle given file descriptor, closing
+ * and resetting the given fd if `closing' is TRUE.
+ */
+static HANDLE
+mingw_inheritable_handle(int *fd_ptr, bool closing)
+{
+	int fd = *fd_ptr;
+	HANDLE h, i, p;
+	bool ok;
+
+	g_assert(is_valid_fd(fd));
+
+	/*
+	 * DuplicateHandle() cannot be used with Winsock handles!
+	 *
+	 * See: https://msdn.microsoft.com/en-us/
+	 *			library/windows/desktop/ms740522(v=vs.85).aspx
+	 */
+
+	g_return_val_unless(!is_a_socket(fd), (HANDLE) 0);
+
+	p = GetCurrentProcess();
+	h = (HANDLE) _get_osfhandle(fd);
+	ok = DuplicateHandle(p, h, p, &i, 0, TRUE, DUPLICATE_SAME_ACCESS);
+	if (closing)
+		fd_close(fd_ptr);
+
+	if (!ok) {
+		errno = mingw_last_error();
+		s_carp("%s(): cannot make fd #%d inheritable: %m", G_STRFUNC, fd);
+		return (HANDLE) 0;
+	}
+
+	return i;
+}
+
+/**
+ * The Windows version of our spopenve() routine.
+ *
+ * @return -1 on failure, the parent's pipe end to the child process otherwise.
+ */
+int
+mingw_spopenve(const char *path, const char *mode, int fd[2],
+	char *const argv[], char *const envp[])
+{
+	PROCESS_INFORMATION pi;
+	STARTUPINFOW si;
+	pncs_t pncs;
+	int res, pfd = -1, error = 0;
+	char *file = deconstify_pointer(path), *cmd = NULL, *env = NULL;
+	wchar_t *cmd_utf16 = NULL;
+	const char exe[] = ".exe";
+	int32 flags = 0;
+	bool p_read = FALSE, p_write = FALSE, p_cloexec = FALSE;
+	pid_t pid;
+	int pipefd[2];
+	int pc[2];		/* pc[0] = parent's fd, pc[1] = child's fd */
+	const char *p = mode;
+	int c, r;
+	HANDLE child_end = (HANDLE) 0;
+	int dfd[2];
+
+	g_assert(path != NULL);
+	g_assert(mode != NULL);
+	g_assert(argv != NULL);
+
+	ZERO(&pi);
+	ZERO(&si);
+	si.cb = sizeof si;
+
+	/* -- much of this leading code is identical to the UNIX version -- */
+
+	if (NULL == fd) {
+		fd = dfd;
+		fd[0] = fd[1] = SPOPEN_ASIS;
+	}
+
+	pc[0] = pc[1] = -1;
+
+	while ((c = *p++) != '\0') {
+		switch (c) {
+		case 'r': p_read    = TRUE; break;
+		case 'w': p_write   = TRUE; break;
+		case 'e': p_cloexec = TRUE; break;
+		default: goto bad_arg;
+		}
+	}
+
+	if (0 == (p_read ^ p_write)) {
+		s_carp("%s(): cannot specify both \"r\" and \"w\", mode was \"%s\"",
+			G_STRFUNC, mode);
+		goto bad_arg;
+	}
+
+	if (SPOPEN_PARENT_STDOUT == fd[0] || SPOPEN_CHILD_STDOUT == fd[0]) {
+		s_carp("%s(): cannot specify %d in fd[0], only meaningful for fd[1]",
+			G_STRFUNC, fd[0]);
+		goto bad_arg;
+	}
+
+	if (p_cloexec) {
+		s_carp_once("%s(): ignoring \"e\" since no close-on-exec support",
+			G_STRFUNC);
+	}
+
+	if (-1 == mingw_pipe(pipefd))
+		goto pipe_failed;
+
+	if (p_read) {
+		pc[0] = pipefd[0];
+		pc[1] = pipefd[1];
+	} else {
+		pc[0] = pipefd[1];
+		pc[1] = pipefd[0];
+	}
+
+	/* -- now for the Windows specific part, similar to mingw_launchve() -- */
+
+	/*
+	 * Add trailing ".exe" extension to the path if missing.
+	 */
+
+	if (!is_strcasesuffix(path, (size_t) -1, exe))
+		file = h_strconcat(path, exe, NULL_PTR);
+
+	/*
+	 * Convert the command line string into a big happy UTF-16 string.
+	 */
+
+	cmd = mingw_command_line(argv);
+
+	if (NULL == (cmd_utf16 = wchar_convert(cmd, NULL))) {
+		error = EILSEQ;
+		goto done;
+	}
+
+	HFREE_NULL(cmd);
+
+	/*
+	 * Create environment block or check current process for UTF-16,
+	 * updating flags as necessary.
+	 */
+
+	env = mingw_environment_block(envp, &flags);
+
+	/*
+	 * Setup appropriate child handles for stdin, stdout, stderr.
+	 */
+
+	child_end = mingw_inheritable_handle(&pc[1], TRUE);
+	if ((HANDLE) 0 == child_end)
+		goto pipe_failed;
+
+	si.dwFlags |= STARTF_USESTDHANDLES;
+
+	if (p_read) {
+		si.hStdOutput = child_end;
+	} else {
+		si.hStdInput = child_end;
+	}
+
+	child_end = (HANDLE) 0;		/* copied to `si' now */
+
+	/* Handle child's standard fd not contected to the pipe */
+
+	switch (fd[0]) {
+	case SPOPEN_ASIS:
+		r = p_read ? STDIN_FILENO : STDOUT_FILENO;
+	case SPOPEN_DEV_NULL:
+		r = mingw_open("/dev/null", p_read ? O_RDONLY : O_WRONLY);
+		if (-1 == r)
+			goto pipe_failed;
+		break;
+	default:
+		r = fd[0];
+		break;
+	}
+
+	/* Redirect stdout / stdin for the child process */
+
+	{
+		HANDLE h = mingw_inheritable_handle(&r, FALSE);
+
+		/*
+		 * We only have to close(r) if fd[0] was a special negative SPOPEN_*
+		 * value: otherwise, the trailing cleanup code closes all the valid
+		 * descriptors in fd[].
+		 */
+
+		if (SPOPEN_DEV_NULL == fd[0])
+			close(r);
+
+		if ((HANDLE) 0 == h)
+			goto pipe_failed;
+
+		if (p_read) {
+			si.hStdInput = h;
+		} else {
+			si.hStdOutput = h;
+		}
+	}
+
+	/* Handle stderr redirections */
+
+	switch (fd[1]) {
+	case SPOPEN_ASIS:
+		r = STDERR_FILENO;
+		break;
+	case SPOPEN_PARENT_STDOUT:
+		r = STDOUT_FILENO;
+		break;
+	case SPOPEN_DEV_NULL:
+		r = mingw_open("/dev/null", p_read ? O_RDONLY : O_WRONLY);
+		if (-1 == r)
+			goto pipe_failed;
+		break;
+	case SPOPEN_CHILD_STDOUT:
+		{
+			HANDLE h, i, t;
+			bool ok;
+
+			t = GetCurrentProcess();
+			h = si.hStdOutput;
+			ok = DuplicateHandle(t, h, t, &i, 0, TRUE, DUPLICATE_SAME_ACCESS);
+
+			if (!ok) {
+				error = mingw_last_error();
+				s_carp("%s(): cannot duplicate stdout handle: %m", G_STRFUNC);
+				goto pipe_failed;
+			}
+
+			si.hStdError = i;
+			r = -1;		/* Nothing to do below, we already dup()ed stdout */
+		}
+		break;
+	default:
+		r = fd[1];
+		break;
+	}
+
+	if (is_valid_fd(r)) {
+		si.hStdError = mingw_inheritable_handle(&r, FALSE);
+		if (SPOPEN_DEV_NULL == fd[1])
+			close(r);
+		if ((HANDLE) 0 == si.hStdError)
+			goto pipe_failed;
+	}
+
+	/*
+	 * Transform path to UTF-16.
+	 * We use pncs_convert() to benefit from its path normalization.
+	 */
+
+	if (pncs_convert(&pncs, file)) {
+		error = errno;
+		goto done;
+	}
+
+	/*
+	 * Now create the process, inheriting standard handles we just configured.
+	 */
+
+	res = CreateProcessW(
+		pncs.utf16,			/* lpApplicationName */
+		cmd_utf16,			/* lpCommandLine */
+		NULL,				/* lpProcessAttributes */
+		NULL,				/* lpThreadAttributes */
+		TRUE,				/* bInheritHandles */
+		flags,				/* dwCreationFlags */
+		env,				/* lpEnvironment */
+		NULL,				/* lpCurrentDirectory */
+		&si,				/* lpStartupInfo */
+		&pi					/* lpProcessInformation */
+	);
+
+	if (0 == res) {
+		error = mingw_last_error();
+		goto done;
+	}
+
+	/*
+	 * Good, process was created.
+	 */
+
+	pid = mingw_record_child(&pi);	/* So they can waitpid() on child */
+	pfd = pc[0];
+	spopen_fd_map(pfd, pid);		/* So they can spclose() on pfd */
+
+	goto done;
+
+bad_arg:
+	error = EINVAL;
+	goto done;
+
+pipe_failed:
+	error = errno;
+	/* FALL THROUGH */
+
+done:
+	HFREE_NULL(cmd);
+	HFREE_NULL(cmd_utf16);
+	HFREE_NULL(env);
+	if (file != path)
+		HFREE_NULL(file);
+
+	for (c = 0; c < 2; c++) {
+		if (is_valid_fd(fd[c]))
+			close(fd[c]);
+	}
+	if (is_valid_fd(pc[1]))				close(pc[1]);
+	if ((HANDLE) 0 != si.hStdInput)		CloseHandle(si.hStdInput);
+	if ((HANDLE) 0 != si.hStdOutput)	CloseHandle(si.hStdOutput);
+	if ((HANDLE) 0 != si.hStdError)		CloseHandle(si.hStdError);
+
+	if (error != 0) {
+		if (is_valid_fd(pc[0]))
+			close(pc[0]);
+		errno = error;
+	}
+	return pfd;
 }
 
 #ifdef EMULATE_WAITPID
@@ -2177,8 +2542,26 @@ mingw_remove(const char *pathname)
 int
 mingw_pipe(int fd[2])
 {
+	int res;
+
+	/*
+	 * We force O_NOINHERIT on the pipe handles because if a pipe is created
+	 * and passed to children processes, the side of the pipe that remains
+	 * in the parent process must not be seen by the child.
+	 *
+	 * Failure to specify this flag causes spopen() to mis-behave on Windows
+	 * when fd[0] is given a pipe end, for instance.  So the policy must be
+	 * that hanldes cannot be inherited and those that we want to pass to
+	 * a child process are explicly duplicated via mingw_inheritable_handle().
+	 *		--RAM, 2015-11-04.
+	 */
+
 	/* Buffer size of 8192 is arbitrary */
-	return _pipe(fd, 8192, _O_BINARY);
+	res = _pipe(fd, 8192, O_BINARY | O_NOINHERIT);
+	if (-1 == res)
+		errno = mingw_last_error();
+
+	return res;
 }
 
 int

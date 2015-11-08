@@ -543,6 +543,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_pause HAS_PAUSE		/**/
 
+/* HAS_PIPE2:
+ *	This symbol, if defined, indicates that the pipe routine is
+ *	available to create an inter-process channel with O_CLOEXEC or
+ *	O_NONBLOCK flags.
+ */
+#$d_pipe2 HAS_PIPE2		/**/
+
 /* HAS_POLL:
  *	This symbol, if defined, indicates that the poll routine is
  *	available to poll active file descriptors.  Please check I_POLL and

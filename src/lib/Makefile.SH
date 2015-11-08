@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  thread-test.o
+SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -277,6 +277,7 @@ LSRC = \
 	smsort.c \
 	sorted_array.c \
 	spinlock.c \
+	spopen.c \
 	stacktrace.c \
 	stats.c \
 	str.c \
@@ -467,6 +468,7 @@ LOBJ = \
 	smsort.o \
 	sorted_array.o \
 	spinlock.o \
+	spopen.o \
 	stacktrace.o \
 	stats.o \
 	str.o \
@@ -646,6 +648,17 @@ sort-test:  sort-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  sort-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: spopen-test
+
+local_realclean::
+	$(RM) spopen-test$(_EXE)
+
+spopen-test:  spopen-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  spopen-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: thread-test
 
