@@ -2628,9 +2628,16 @@ mingw_valloc(void *hint, size_t size)
 			 *
 			 * During crashes, the VMM layer always requests NULL hints.
 			 *		--RAM, 2015-10-24
+			 *
+			 * During pmap extensions, the VMM layer also requests NULL hints.
+			 *		--RAM, 2015-11-08
 			 */
 
-			if (!mingw_vmm.stop_vfree && !vmm_is_crashing()) {
+			if (
+				!mingw_vmm.stop_vfree &&
+				!vmm_is_extending() &&
+				!vmm_is_crashing()
+			) {
 				s_minicarp("%s(): non-hinted allocation of %'zu bytes at %p",
 					G_STRFUNC, size, p);
 			}

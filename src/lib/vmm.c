@@ -459,6 +459,15 @@ vmm_is_crashing(void)
 }
 
 /**
+ * @return whether VMM is extending its pmap.
+ */
+bool
+vmm_is_extending(void)
+{
+	return vmm_pmap()->extending;
+}
+
+/**
  * Put the VMM layer in crashing mode.
  *
  * This is activated on assertion failures and other fatal conditions, and
