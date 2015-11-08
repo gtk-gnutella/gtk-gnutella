@@ -215,7 +215,7 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 
 	g_assert_log(size_is_non_negative(size),
 		"%s(): size=%'zu, ck->first=%p, mask=0x%x, first=%p, end(ck)=%p",
-		G_STRFUNC, size, ck->first, mask, first, omalloc_chunk_end(ck));
+		G_STRFUNC, size, ck->first, (uint) mask, first, omalloc_chunk_end(ck));
 
 	return size;
 }
