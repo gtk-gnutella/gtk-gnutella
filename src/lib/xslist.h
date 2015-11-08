@@ -249,6 +249,33 @@ xslist_next_data(const xslist_t *list, const void *p)
 		deconstify_pointer(const_ptr_add_offset(lk, -list->offset));
 }
 
+/**
+ * For assertions, check whether item is a member of the list.
+ *
+ * @attention
+ * This is very inefficient, as it needs to traverse the whole list, possibly.
+ * It only needs to be called when debugging.
+ */
+static inline bool
+xslist_contains(const xslist_t *list, const void *p)
+{
+	const xslink_t *l, *lk;
+
+	xslist_check(list);
+	g_assert(p != NULL);
+
+	lk = const_ptr_add_offset(p, list->offset);
+	l = list->head;
+
+	while (l != NULL) {
+		if G_UNLIKELY(l == lk)
+			return TRUE;
+		l = xslist_next(list, l);
+	}
+
+	return FALSE;
+}
+
 void xslist_init(xslist_t *list, size_t offset, size_t link_offset);
 void xslist_discard(xslist_t *list);
 void xslist_clear(xslist_t *list);

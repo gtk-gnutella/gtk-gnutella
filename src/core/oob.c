@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "oob.h"
+
 #include "ban.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
@@ -137,7 +138,7 @@ struct gservent {
 
 static void results_destroy(cqueue_t *cq, void *obj);
 static void servent_free(struct gservent *s);
-static void oob_send_reply_ind(struct oob_results *r);
+static bool oob_send_reply_ind(struct oob_results *r);
 static void servent_service(struct gservent *s, cqueue_t *cq);
 
 static int num_oob_records;	/**< Leak and duplicate free detector */
@@ -208,8 +209,6 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 static void
 results_free_remove(struct oob_results *r)
 {
-	pslist_t *sl;
-
 	oob_results_check(r);
 	
 	if (r->ev_expire) {
@@ -230,17 +229,12 @@ results_free_remove(struct oob_results *r)
 			hikset_remove(results_by_muid, r->muid);
 		}
 		atom_guid_free_null(&r->muid);
-
-		PSLIST_FOREACH(r->files, sl) {
-			shared_file_t *sf = sl->data;
-			shared_file_unref(&sf);
-		}
-		pslist_free_null(&r->files);
+		shared_file_slist_free_null(&r->files);
 
 		g_assert(num_oob_records > 0);
 		num_oob_records--;
 		if (GNET_PROPERTY(query_debug) > 2)
-			g_debug("results_free: num_oob_records=%d", num_oob_records);
+			g_debug("%s(): num_oob_records=%d", G_STRFUNC, num_oob_records);
 
 		r->magic = 0;
 		WFREE(r);
@@ -673,17 +667,21 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 				r->reliable ? "unsent" : "dropped");
 		}
 
-		if (!r->reliable && ++r->notify_requeued < OOB_MAX_RETRY)
-			oob_send_reply_ind(r);
-		else
+		if (
+			r->reliable ||
+			++r->notify_requeued >= OOB_MAX_RETRY ||
+			!oob_send_reply_ind(r)
+		)
 			results_free_remove(r);
 	}
 }
 
 /**
  * Send them a LIME/12v2, monitoring progress in queue via a callback.
+ *
+ * @return TRUE if OK
  */
-static void
+static bool
 oob_send_reply_ind(struct oob_results *r)
 {
 	mqueue_t *q;
@@ -695,8 +693,8 @@ oob_send_reply_ind(struct oob_results *r)
 
 	nt = host_addr_net(gnet_host_get_addr(&r->dest));
 	q = r->reliable ? node_udp_sr_get_outq(nt) : node_udp_get_outq(nt);
-	if (q == NULL)
-		return;
+	if (NULL == q)
+		return FALSE;
 
 	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255), r->secure);
 	emb = pmsg_clone_extend(mb, oob_pmsg_free, r);
@@ -705,13 +703,16 @@ oob_send_reply_ind(struct oob_results *r)
 	r->refcount++;
 	pmsg_free(mb);
 
-	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
+	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
 		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d",
 			guid_hex_str(r->muid), r->reliable ? "reliably " : "",
 			gnet_host_to_string(&r->dest),
 			r->count, plural(r->count), r->notify_requeued);
+	}
 
 	mq_udp_putq(q, emb, &r->dest);
+
+	return TRUE;
 }
 
 /**
@@ -743,12 +744,15 @@ oob_got_results(gnutella_node_t *n, pslist_t *files,
 	muid = gnutella_header_get_muid(&n->header);
 	r = results_make(muid, files, count, &to, secure, reliable, flags);
 	if (r != NULL) {
-		oob_send_reply_ind(r);
+		if (!oob_send_reply_ind(r))
+			results_free_remove(r);
 	} else {
 		g_warning("%s(): ignoring duplicate %s%sOOB query %s from %s via %s",
 			G_STRFUNC, secure ? "secure " : "", reliable ? "reliable " : "",
 			guid_to_string(muid),
 			gnet_host_to_string(&to), node_infostr(n));
+
+		shared_file_slist_free_null(&files);
 	}
 }
 

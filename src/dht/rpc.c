@@ -54,6 +54,7 @@
 #include "lib/stacktrace.h"		/* For stacktrace_function_name() */
 #include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"		/* For uint32_saturate_add() */
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -303,7 +304,7 @@ rpc_cb_free(struct rpc_cb *rcb, bool in_shutdown)
 static int
 rpc_delay(const knode_t *kn)
 {
-	int timeout = DHT_RPC_MINDELAY;
+	uint32 timeout = DHT_RPC_MINDELAY;
 
 	knode_check(kn);
 
@@ -322,7 +323,7 @@ rpc_delay(const knode_t *kn)
 		timeout = 1 << (MIN(kn->rpc_timeouts, 10) + 8);
 
 	if (kn->rtt)
-		timeout += 3 * kn->rtt;
+		timeout = uint32_saturate_add(timeout, 3 * kn->rtt);
 	else
 		timeout = DHT_RPC_FIRSTDELAY;
 

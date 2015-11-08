@@ -3168,7 +3168,10 @@ socket_set_keepalive(socket_fd_t fd, const char *caller)
 }
 
 /**
+ * Make socket file descriptor able to reuse address (and port) when bound.
+ *
  * Set SO_REUSEADDR on the socket file descriptor.
+ * If SO_REUSEPORT is defined on that system (linux), set it as well.
  */
 static void
 socket_set_reuseaddr(socket_fd_t fd, const char *caller)
@@ -3182,6 +3185,14 @@ socket_set_reuseaddr(socket_fd_t fd, const char *caller)
 		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
 			caller, (int) fd);
 	}
+
+	/* On Linux 3.9 and above, SO_REUSEPORT is also required. */
+#ifdef SO_REUSEPORT
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof on)) {
+		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEPORT) failed: %m",
+			caller, (int) fd);
+	}
+#endif	/* SO_REUSEPORT */
 }
 
 /**
@@ -3733,6 +3744,20 @@ socket_connect_by_name(const char *host, uint16 port,
 	return s;
 }
 
+/*
+ * Under Linux, it is imperative to at least specify SO_REUSEADDR before
+ * doing a bind() or, should the process die and be restarted, it may not
+ * be possible to re-bind the new socket, even with SO_REUSEPORT, as long
+ * as there are remaining connections on the port (including TIME_WAIT and
+ * FIN_WAIT{1,2} ones).
+ *		--RAM, 2015-10-15
+ */
+#ifdef LINUX_SYSTEM
+#define SOCKETS_FORCE_REUSE		TRUE
+#else
+#define SOCKETS_FORCE_REUSE		FALSE
+#endif	/* LINUX_SYSTEM */
+
 /**
  * Creates a listening socket and binds it to `bind_addr' unless it is
  * an unspecified address in which case the kernel will pick an address.
@@ -3757,7 +3782,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 	socket_fd_t fd;
 	int saved_errno, family;
 	int protocol;
-	bool reuse_addr = FALSE;
+	bool reuse_addr = FALSE, force_reuse = SOCKETS_FORCE_REUSE;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
@@ -3795,7 +3820,7 @@ retry:
 		socket_failed = FALSE;
 		len = socket_addr_set(&addr, bind_addr, port);
 
-		if (reuse_addr)
+		if (reuse_addr || force_reuse)
 			socket_set_reuseaddr(fd, G_STRFUNC);
 
 		if (-1 == bind(fd, socket_addr_get_const_sockaddr(&addr), len)) {

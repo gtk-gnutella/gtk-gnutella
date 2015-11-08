@@ -47,14 +47,14 @@ bool sdbm_get_wdelay(const \s-1DBM\s0 *db)
 bool sdbm_is_volatile(const \s-1DBM\s0 *db)
 .sp
 void sdbm_set_name(\s-1DBM\s0 *db, const char *string)
-const char *sdbm_name(\s-1DBM\s0 *db)
+const char *sdbm_name(const \s-1DBM\s0 *db)
 .sp
 int sdbm_rename(\s-1DBM\s0 *db, char *base)
 int sdbm_rename_files(\s-1DBM\s0 *db,
 	char *dirname, char *pagname, char *datname)
 .sp
-bool sdbm_rdonly(\s-1DBM\s0 *db)
-bool sdbm_error(\s-1DBM\s0 *db)
+bool sdbm_rdonly(const \s-1DBM\s0 *db)
+bool sdbm_error(const \s-1DBM\s0 *db)
 bool sdbm_shrink(\s-1DBM\s0 *db)
 bool sdbm_clear(\s-1DBM\s0 *db)
 void sdbm_clearerr(\s-1DBM\s0 *db)
@@ -325,9 +325,11 @@ returns the file descriptor associated with the data file (large keys and
 values), or -1 if the file was not opened yet because it was not needed so far.
 .IP
 .BR sdbm_name (\|)
-returns the database name previous set using
+returns the database name previously set using
 .BR sdbm_set_name (\|)
-or the empty string if none was set.
+or a string starting with "file " and followed by the pathname of the
+.B .pag
+file if no name was set yet.
 .IP
 .BR sdbm_is_storable (\|)
 indicates whether a combination of key and value sizes can fit within the size

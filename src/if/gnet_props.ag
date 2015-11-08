@@ -2148,12 +2148,12 @@ prop = {
 prop = {
     name = "max_leaves";
     desc = "Maximum amount of leaves we can accept.  To be promoted Ultra, "
-		"you should reserve 32 bytes of bandwidth per leaf.";
+		"you should reserve 32 bytes/sec of bandwidth per leaf.";
     type = guint32;
     data = {
-        default = 150;
+        default = 300;
         min = 25;
-        max = 1000;
+        max = 5000;
     };
 };
 

@@ -55,7 +55,7 @@ const char *progname;
 static size_t item_size;
 static bool qsort_only;
 static bool degenerative;
-static bool silent_mode;
+static bool silent_mode, verbose_mode;
 static unsigned initial_seed;
 static const char *current_test;
 static const char *current_algorithm;
@@ -66,7 +66,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-htDQS] [-c items] [-n loops] [-s item_size]\n"
+		"Usage: %s [-htDQSV] [-c items] [-n loops] [-s item_size]\n"
 		"       [-N main-loops] [-R seed]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
@@ -78,6 +78,7 @@ usage(void)
 		"  -Q : only test our xqsort() versus libc's qsort()\n"
 		"  -R : seed for repeatable random key sequence\n"
 		"  -S : silent mode -- do not print anything for successful tests\n"
+		"  -V : verbose mode -- print status after each successful test\n"
 		, progname);
 	exit(EXIT_FAILURE);
 }
@@ -600,7 +601,7 @@ timeit(void (*f)(void *, void *, size_t, size_t, size_t),
 		double cpu = uend - ustart;
 		printf("%7s - %s - [%lu] time=%.3gs, CPU=%.3gs\n", algorithm, what,
 			(ulong) loops, elapsed, cpu);
-	} else if (!silent_mode) {
+	} else if (verbose_mode) {
 		printf("%7s - %s - OK\n", algorithm, what);
 	}
 	fflush(stdout);
@@ -836,11 +837,12 @@ main(int argc, char **argv)
 	int c;
 	size_t i;
 	unsigned rseed = 0;
+	const char options[] = "c:hn:s:tDN:QR:SV";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
 
-	while ((c = getopt(argc, argv, "c:hn:s:tDN:QR:S")) != EOF) {
+	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case 'c':			/* amount of items to use in array */
 			count = atol(optarg);
@@ -868,6 +870,9 @@ main(int argc, char **argv)
 			break;
 		case 'S':			/* silent mode */
 			silent_mode = TRUE;
+			break;
+		case 'V':			/* verbose mode */
+			verbose_mode = TRUE;
 			break;
 		case 'h':			/* show help */
 		default:
@@ -900,6 +905,9 @@ main(int argc, char **argv)
 			bool is_last = count != 0;
 			size_t cnt = count != 0 ? count : 1U << i;
 			size_t j;
+
+			if (!silent_mode && !verbose_mode)
+				printf("Testing with %zu items...\n", cnt);
 
 			for (j = 0; j < TEST_WORDS; j++) {
 				bool is_last_size = isize != 0;

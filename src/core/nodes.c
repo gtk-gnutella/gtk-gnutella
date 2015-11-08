@@ -7866,7 +7866,7 @@ node_pseudo_setup(gnutella_node_t *n, void *data, size_t len)
  * Setup pseudo node after receiving data from an RX layer, for semi-reliable
  * UDP traffic, which is necessarily Gnutella traffic, not DHT.
  *
- * @return setup node
+ * @return setup node, NULL if we cannot get a valid node
  */
 static gnutella_node_t *
 node_pseudo_get_from_mb(pmsg_t *mb, const gnet_host_t *from)
@@ -7875,6 +7875,9 @@ node_pseudo_get_from_mb(pmsg_t *mb, const gnet_host_t *from)
 
 	n = node_udp_sr_get_addr_port(
 			gnet_host_get_addr(from), gnet_host_get_port(from));
+
+	if G_UNLIKELY(NULL == n)
+		return NULL;
 
 	node_check(n);
 
@@ -9514,6 +9517,16 @@ node_udp_sr_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 
 	length = pmsg_size(mb);
 	n = node_pseudo_get_from_mb(mb, from);
+
+	/*
+	 * We get back a NULL node if UDP was disbabled or if the port is invalid.
+	 */
+
+	if G_UNLIKELY(NULL == n) {
+		g_warning("UDP-SR %s() cannot process %d-byte message from %s",
+			G_STRFUNC, pmsg_size(mb), gnet_host_to_string(from));
+		goto done;
+	}
 
 	/*
 	 * The message was received through the semi-reliable UDP layer, hence

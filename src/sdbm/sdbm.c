@@ -337,14 +337,25 @@ sdbm_set_name(DBM *db, const char *name)
 
 /**
  * Get the database name
- * @return an empty string if not set.
+ *
+ * @return recorded name, or the path to the .pag file if no name was set.
  */
 const char *
-sdbm_name(DBM *db)
+sdbm_name(const DBM *db)
 {
 	sdbm_check(db);
 
-	return db->name ? db->name : "";
+	if G_LIKELY(db->name != NULL)
+		return db->name;
+
+	sdbm_synchronize(db);
+	if (NULL == db->name) {
+		DBM *wdb = deconstify_pointer(db);
+		wdb->name = h_strconcat("file ", db->pagname, NULL);
+	}
+	sdbm_unsynchronize(db);
+
+	return db->name;
 }
 
 /**
@@ -880,6 +891,16 @@ sdbm_close(DBM *db)
 #else
 	clearfiles = FALSE;
 #endif
+
+	/*
+	 * If we keep the files around, flush the database to ensure there
+	 * are no dirty pending data in the caches (with deferred writes).
+	 */
+
+	if (!clearfiles && (ssize_t) -1 == sdbm_sync(db)) {
+		s_warning("%s(): could not sync SDBM \"%s\": %m",
+			G_STRFUNC, sdbm_name(db));
+	}
 
 	sdbm_close_internal(db, clearfiles, TRUE);
 }
@@ -3019,7 +3040,7 @@ sdbm_set_volatile(DBM *db, bool yes)
 }
 
 bool
-sdbm_rdonly(DBM *db)
+sdbm_rdonly(const DBM *db)
 {
 	bool rdonly;
 
@@ -3031,7 +3052,7 @@ sdbm_rdonly(DBM *db)
 }
 
 bool
-sdbm_error(DBM *db)
+sdbm_error(const DBM *db)
 {
 	bool error;
 

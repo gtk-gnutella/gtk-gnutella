@@ -137,6 +137,7 @@ bool vmm_grows_upwards(void) G_GNUC_PURE;
 void set_vmm_debug(uint32 level);
 bool vmm_is_debugging(uint32 level) G_GNUC_PURE;
 void vmm_crash_mode(void);
+bool vmm_is_crashing(void);
 void vmm_init(void);
 bool vmm_is_inited(void);
 void vmm_memusage_init(void);

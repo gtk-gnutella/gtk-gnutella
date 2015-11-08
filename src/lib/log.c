@@ -1475,7 +1475,6 @@ s_carp_once(const char *format, ...)
 void
 s_minicarp(const char *format, ...)
 {
-	bool in_signal_handler = signal_in_handler();
 	va_list args;
 
 	/*
@@ -1497,7 +1496,7 @@ s_minicarp(const char *format, ...)
 	s_minilogv(G_LOG_LEVEL_WARNING, TRUE, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);		/* Copied to stdout if different */
+	s_stacktrace(TRUE, 1);		/* Copied to stdout if different */
 }
 
 /**
@@ -1632,14 +1631,13 @@ s_rawdebug(const char *format, ...)
 void
 s_minicrit(const char *format, ...)
 {
-	bool in_signal_handler = signal_in_handler();
 	va_list args;
 
 	va_start(args, format);
 	s_minilogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);		/* Copied to stdout if different */
+	s_stacktrace(TRUE, 1);		/* Copied to stdout if different */
 }
 
 /**

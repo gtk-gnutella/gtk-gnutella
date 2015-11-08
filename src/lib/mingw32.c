@@ -90,6 +90,7 @@
 #include "once.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
+#include "pslist.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -128,6 +129,7 @@
 #undef chdir
 #undef remove
 #undef lseek
+#undef dup
 #undef dup2
 #undef fsync
 #undef unlink
@@ -157,6 +159,7 @@
 #undef statvfs
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
+#define VMM_GRANULARITY	(1024*1024*4)	/* 4 MiB during initalization */
 #define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
 #define WS2_LIBRARY		"ws2_32.dll"
 
@@ -524,6 +527,12 @@ mingw_win2posix(int error)
 	case ERROR_ENVVAR_NOT_FOUND:
 		/* Got this error writing to a closed stdio fd, opened via pipe() */
 		return EBADF;
+	case ERROR_BAD_EXE_FORMAT:
+		return ENOEXEC;
+	case ERROR_NETNAME_DELETED:
+		return EHOSTUNREACH;
+	case 0:					/* Always indicates success */
+		return 0;
 	default:
 		/* Only allocate once VMM layer has been initialized */
 		if (NULL == warned && mingw_vmm_inited) {
@@ -538,7 +547,7 @@ mingw_win2posix(int error)
 		}
 		if (warned != NULL && !hset_contains(warned, int_to_pointer(error))) {
 			hset_insert(warned, int_to_pointer(error));
-			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
+			s_minicarp("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
 		}
 	}
@@ -599,18 +608,24 @@ mingw_signal(int signo, signal_handler_t handler)
 	case SIGBUS:
 	case SIGTRAP:
 		res = mingw_sighandler[signo];
-		mingw_sighandler[signo] = handler;
 		break;
 	default:
 		res = signal(signo, handler);
-		if (SIG_ERR != res) {
-			mingw_sighandler[signo] = handler;
-		}
+		if (SIG_ERR == res)
+			res = mingw_sighandler[signo];
 		break;
 	}
 
+	mingw_sighandler[signo] = handler;
+
 	return res;
 }
+
+#define FLUSH_ERR_STR()	G_STMT_START {	\
+	flush_err_str();					\
+	if (log_stdout_is_distinct())		\
+		flush_str(STDOUT_FILENO);		\
+} G_STMT_END
 
 /**
  * Synthesize a fatal signal as the kernel would on an exception.
@@ -629,9 +644,7 @@ mingw_sigraise(int signo)
 		print_str("Got uncaught ");			/* 0 */
 		print_str(signal_name(signo));		/* 1 */
 		print_str(" -- crashing.\n");		/* 2 */
-		flush_err_str();
-		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+		FLUSH_ERR_STR();
 
 		if (!done) {
 			done = TRUE;
@@ -722,7 +735,8 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 		{
 			va_list args;
 			int min, max;
-			int i;
+			pslist_t *opened = NULL, *l;
+			int error = 0;
 
 			va_start(args, cmd);
 			min = va_arg(args, int);
@@ -735,12 +749,36 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 				return -1;
 			}
 
-			for (i = min; i < max; i++) {
-				if (mingw_fd_is_opened(i))
-					continue;
-				return mingw_dup2(fd, i);
+			/*
+			 * Since we are multi-threaded, we cannot use dup2() because we
+			 * cannot atomically select the new file descriptor, even if
+			 * mingw_fd_is_opened() reports that the fd is currently available.
+			 * So we need to call mingw_dup(), keeping file descriptors opened
+			 * until we reach one above the minimum we can use.
+			 *		--RAM, 2015-11-03
+			 */
+
+			for (;;) {
+				res = mingw_dup(fd);
+				if (-1 == res) {
+					error = errno;
+					break;
+				}
+				if (res >= min)
+					break;
+				opened = pslist_prepend(opened, int_to_pointer(res));
 			}
-			errno = EMFILE;
+
+			PSLIST_FOREACH(opened, l) {
+				int d = pointer_to_int(l->data);
+				close(d);
+			}
+			pslist_free_null(&opened);
+
+			if (0 == error)
+				return res;
+
+			errno = error;
 			break;
 		}
 		default:
@@ -1536,6 +1574,15 @@ mingw_unlink(const char *pathname)
 }
 
 int
+mingw_dup(int fd)
+{
+	int res = _dup(fd);
+	if (-1 == res)
+		errno = mingw_last_error();
+	return res;
+}
+
+int
 mingw_dup2(int oldfd, int newfd)
 {
 	int res;
@@ -2277,9 +2324,11 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 static struct {
 	void *reserved;			/* Reserved memory */
 	void *base;				/* Next available base for reserved memory */
+	const void *heap_break;	/* Initial heap break */
 	size_t consumed;		/* Consumed space in reserved memory */
 	size_t size;			/* Size for hinted allocation */
 	size_t later;			/* Size of "later" memory we did not reserve */
+	size_t physical;		/* Physical RAM available */
 	size_t available;		/* Virtual memory initially available */
 	size_t allocated;		/* Memory we allocated */
 	size_t threshold;		/* High-memory usage threshold */
@@ -2331,6 +2380,7 @@ mingw_vmm_init(void)
 	size_t mem_latersize;
 	size_t mem_size;
 	size_t mem_available;
+	size_t granularity;
 
 	mingw_vmm.baseline = mingw_mem_committed();
 
@@ -2344,85 +2394,101 @@ mingw_vmm_init(void)
 
 	GetSystemInfo(&system_info);
 
+	granularity = round_pagesize(system_info.dwAllocationGranularity);
+	granularity = MAX(granularity, VMM_GRANULARITY);	/* Speed up init */
+
 	mingw_vmm.size =
 		system_info.lpMaximumApplicationAddress
 		-
 		system_info.lpMinimumApplicationAddress;
 
-	mem_size = getphysmemsize();
-	mingw_vmm.size = MIN(mingw_vmm.size, mem_size);
+	mingw_vmm.physical = getphysmemsize();
+	mingw_vmm.heap_break = vmm_page_start(mingw_sbrk(0));
 
 	/*
 	 * Declare some space for future allocations without hinting.
-	 * We initially reserve 1/2 of the virtual address space,
+	 * We initially reserve about 34% of the virtual address space,
 	 * with VMM_MINSIZE at least but we make sure we have also room
 	 * available for non-VMM allocations.
-	 *
-	 * We'll iterate, dividing the amount of memory we keep for later
-	 * allocations by half at each loop until we can reserve at least
-	 * 40% of the available memory or VMM_MINSIZE for the VMM layer.
 	 */
 
-	mem_size = mingw_vmm.size;		/* For the VMM layer */
+	mem_size = mingw_vmm.size;		/* For the VMM space, theoretical max */
 	mem_latersize = mem_size;		/* For non-hinted allocation */
 
-	do {
-		if (mingw_vmm.reserved != NULL) {
-			VirtualFree(mingw_vmm.reserved, 0, MEM_RELEASE);
-			mingw_vmm.reserved = NULL;
+reserve_less:
+	mem_latersize *= 0.9;
+	mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
+	mingw_vmm.later = mem_latersize;
+	mem_later = VirtualAlloc(NULL,
+		mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
+
+	if (NULL == mem_later) {
+		if (VMM_MINSIZE == mem_latersize) {
+			errno = mingw_last_error();
+			s_error("could not reserve %s of memory: %m",
+				compact_size(mem_latersize, FALSE));
+		} else {
+			goto reserve_less;
 		}
+	}
 
-	reserve_less:
-		mem_latersize *= 0.9;
-		mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
-		mingw_vmm.later = mem_latersize;
-		mem_later = VirtualAlloc(NULL,
-			mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
+	/*
+	 * Try to reserve the remaining virtual space, asking for as
+	 * much as we can and reducing the requested size by the
+	 * system's granularity until we get a success status.
+	 */
 
-		if (NULL == mem_later) {
-			if (VMM_MINSIZE == mem_latersize) {
-				errno = mingw_last_error();
-				s_error("could not reserve %s of memory: %m",
-					compact_size(mem_latersize, FALSE));
-			} else {
-				goto reserve_less;
-			}
-		}
+	mingw_vmm.size = round_pagesize(mem_size - mem_latersize);
 
-		/*
-		 * Try to reserve the remaining virtual space, asking for as
-		 * much as we can and reducing the requested size by the
-		 * system's granularity until we get a success status.
-		 */
+	while (
+		NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
+	) {
+		mingw_vmm.reserved = VirtualAlloc(
+			NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
 
-		mingw_vmm.size = mem_size - mem_latersize;
+		if (NULL == mingw_vmm.reserved)
+			mingw_vmm.size -= granularity;
+	}
 
-		while (
-			NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
-		) {
-			mingw_vmm.reserved = VirtualAlloc(
-				NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
+	VirtualFree(mem_later, 0, MEM_RELEASE);
 
-			if (NULL == mingw_vmm.reserved)
-				mingw_vmm.size -= system_info.dwAllocationGranularity;
-		}
+	mem_available = mem_latersize + mingw_vmm.size;
+	mingw_vmm.available = mem_available;
 
-		VirtualFree(mem_later, 0, MEM_RELEASE);
+	/*
+	 * We are trying to balance reserved space within the total available space,
+	 * and we can directly compute the value X of the "mem_latersize" we want,
+	 * satisfying:
+	 *
+	 *		available = X + size
+	 *		size = 34% * available
+	 *
+	 * This trivially solves to: X = 66% * available.  The assumption
+	 * made here is that the total memory size we computed above as
+	 * "mem_available" is going to be constant.
+	 *		--RAM, 2015-11-04
+	 */
 
-		mem_available = mem_latersize + mingw_vmm.size;
-		if (mem_available > mingw_vmm.available)
-			mingw_vmm.available = mem_available;
-	} while (
-		mem_available >= VMM_MINSIZE && (
-			mingw_vmm.size < VMM_MINSIZE ||
-			mingw_vmm.size < mingw_vmm.available / 10 * 4)
-	);
+	mem_latersize = 0.66 * mem_available;
+	mingw_vmm.later = mem_latersize;
+	mingw_vmm.size = mem_available - mem_latersize;
+
+	/*
+	 * Now that we know how much we can reserve for the VMM layer,
+	 * free everything and redo the VMM reservation so that we let
+	 * the kernel pick the highest possible address space, so as to
+	 * leave optimal growing space for the other allocators.
+	 *		--RAM, 2015-10-16
+	 */
+
+	VirtualFree(mingw_vmm.reserved, 0, MEM_RELEASE);
+
+	mingw_vmm.reserved = VirtualAlloc(
+		NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
 
 	if (NULL == mingw_vmm.reserved) {
-		s_error("could not reserve additional %s of memory "
-			"on top of the %s put aside",
-			compact_size(mingw_vmm.size, FALSE),
-			compact_size2(mem_latersize, FALSE));
+		s_error("could not reserve %s of memory: %m",
+				compact_size(mingw_vmm.size, FALSE));
 	}
 
 	mingw_vmm.base = mingw_vmm.reserved;
@@ -2473,20 +2539,32 @@ mingw_valloc(void *hint, size_t size)
 	if G_LIKELY(mingw_vmm_inited) {
 		size_t committed = mingw_mem_committed();
 		size_t allocated = size_saturate_sub(committed, mingw_vmm.baseline);
+		size_t unreserved = size_saturate_sub(allocated, mingw_vmm.allocated);
+		size_t data = 0;
 
-		if G_UNLIKELY(
-			size_saturate_sub(allocated, mingw_vmm.size) > mingw_vmm.threshold
-		) {
+		/*
+		 * If we reached the threshold, compute the current break to see
+		 * how much of the data segment we're counting in the unreserved
+		 * space, and deduce it appropriately.
+		 */
+
+		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
+			void *cur_brk = mingw_sbrk(0);
+
+			data = ptr_diff(cur_brk, mingw_vmm.heap_break);
+			unreserved = size_saturate_sub(unreserved, data);
+		}
+
+		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
 			/* We don't want a stacktrace, use s_minilog() directly */
 			s_minilog(G_LOG_LEVEL_CRITICAL,
 				"%s(): allocating %'zu bytes when %'zu are already used "
 					"with %'zu allocated here and %'zu allocated overall "
 					"since startup (%'zu in unreserved region, upper "
-					"threshold was set to %'zu)",
+					"threshold was set to %'zu, %'zu in data segment)",
 				G_STRFUNC, size, committed,
 				mingw_vmm.allocated, allocated,
-				size_saturate_sub(allocated, mingw_vmm.size),
-				mingw_vmm.threshold);
+				unreserved, mingw_vmm.threshold, data);
 
 			crash_restart("%s(): nearing out of memory condition", G_STRFUNC);
 			/* Continue nonetheless, restart may be asynchronous */
@@ -2547,10 +2625,13 @@ mingw_valloc(void *hint, size_t size)
 			 * at which point we don't want to warn about non-hinted memory
 			 * allocations since we're shutting down!
 			 *		--RAM, 2015-04-07
+			 *
+			 * During crashes, the VMM layer always requests NULL hints.
+			 *		--RAM, 2015-10-24
 			 */
 
-			if (!mingw_vmm.stop_vfree) {
-				s_carp("%s(): non-hinted allocation of %'zu bytes at %p",
+			if (!mingw_vmm.stop_vfree && !vmm_is_crashing()) {
+				s_minicarp("%s(): non-hinted allocation of %'zu bytes at %p",
 					G_STRFUNC, size, p);
 			}
 
@@ -3022,14 +3103,30 @@ mingw_getrlimit(int resource, struct rlimit *rlim)
 		ZERO(rlim);
 		break;
 	case RLIMIT_DATA:
+		if G_LIKELY(mingw_vmm_inited) {
+			/*
+			 * Assume the data segment (heap) will grow up to the start
+			 * of the reserved region we have, since now that region is
+			 * put at the lowest possible address.  This only approximates
+			 * the truth.
+			 *		--RAM, 2015-10-16
+			 */
+			rlim->rlim_max = ptr_diff(mingw_vmm.reserved, mingw_vmm.heap_break);
+			rlim->rlim_cur = ptr_diff(mingw_vmm.reserved, mingw_sbrk(0));
+			break;
+		}
+		/* FALL THROUGH */
+	case RLIMIT_AS:
 		{
 			SYSTEM_INFO system_info;
 
 			GetSystemInfo(&system_info);
-			rlim->rlim_max = rlim->rlim_cur =
+			rlim->rlim_max =
 				system_info.lpMaximumApplicationAddress
 				-
 				system_info.lpMinimumApplicationAddress;
+			rlim->rlim_cur = rlim->rlim_max -
+				size_saturate_sub(mingw_mem_committed(), mingw_vmm.baseline);
 		}
 		break;
 	default:
@@ -4109,9 +4206,11 @@ done:
 
 void mingw_vmm_post_init(void)
 {
+	void *cur_break = mingw_sbrk(0);
+
 	s_info("VMM process has %s of virtual space",
 		compact_size(mingw_vmm.available, FALSE));
-	s_info("VMM reserved %s of virtual space at [%p, %p]",
+	s_info("VMM reserved %s of virtual space at [%p, %p[",
 		compact_size(mingw_vmm.size, FALSE),
 		mingw_vmm.reserved,
 		ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size));
@@ -4124,6 +4223,16 @@ void mingw_vmm_post_init(void)
 	s_info("VMM will be using %s of VM space at most",
 		compact_size(
 			mingw_vmm.size + mingw_vmm.threshold + mingw_vmm.baseline, FALSE));
+
+	/*
+	 * On Windows, VM address space grows up, but starts far enough from
+	 * the default process heap.  So vmm_reserved > heap_break.
+	 */
+
+	s_info("VMM initial break at %p, leaving %s for the heap (%'zu bytes used)",
+		mingw_vmm.heap_break,
+		compact_size(ptr_diff(mingw_vmm.reserved, mingw_vmm.heap_break), FALSE),
+		ptr_diff(cur_break, mingw_vmm.heap_break));
 }
 
 static void
@@ -5285,10 +5394,32 @@ mingw_exception_to_string(int code)
 	}
 }
 
+/*
+ * Format an error message to propagate into the crash log.
+ */
+static void G_GNUC_COLD
+mingw_crash_record(int code, const void *pc,
+	const char *routine, const char *file)
+{
+	char data[256];
+	str_t s;
+
+	str_new_buffer(&s, data, 0, sizeof data);
+	str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
+
+	if (routine != NULL)
+		str_catf(&s, " (%s)", routine);
+
+	if (file != NULL)
+		str_catf(&s, " from %s", file);
+
+	crash_set_error(str_2c(&s));
+}
+
 /**
  * Log reported exception.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 mingw_exception_log(int code, const void *pc)
 {
 	DECLARE_STR(11);
@@ -5320,29 +5451,10 @@ mingw_exception_log(int code, const void *pc)
 	print_str(mingw_exception_to_string(code));					/* 9 */
 	print_str("\n");											/* 10 */
 
-	flush_err_str();
-	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+	FLUSH_ERR_STR();
 
-	/*
-	 * Format an error message to propagate into the crash log.
-	 */
-
-	{
-		char data[256];
-		str_t s;
-
-		str_new_buffer(&s, data, 0, sizeof data);
-		str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
-
-		if (name != NULL)
-			str_catf(&s, " (%s)", name);
-
-		if (file != NULL)
-			str_catf(&s, " from %s", file);
-
-		crash_set_error(str_2c(&s));
-	}
+	if (EXCEPTION_STACK_OVERFLOW != UNSIGNED(code))
+		mingw_crash_record(code, pc, name, file);
 }
 
 /**
@@ -5374,9 +5486,7 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	print_str(pointer_to_string(va));				/* 4 */
 	print_str("\n");								/* 5 */
 
-	flush_err_str();
-	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+	FLUSH_ERR_STR();
 
 	/*
 	 * Format an additional error message to propagate into the crash log.
@@ -5452,9 +5562,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			 */
 
 			print_str("Got stack overflow -- crashing.\n");
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 
 			stid = thread_safe_small_id();
 			if (stid < 0)
@@ -5468,9 +5576,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			pointer_to_string_buf(er->ExceptionAddress, ptr, sizeof ptr);
 			print_str(ptr);								/* 3 */
 			print_str("\n");							/* 4 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 
 			locks = thread_id_lock_count(stid);
 			if (locks != 0) {
@@ -5480,28 +5586,30 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 				print_str(s);								/* 1 */
 				print_str(1 == locks ? " lock" : " locks");	/* 2 */
 				print_str("\n");							/* 3 */
-				flush_err_str();
-				if (log_stdout_is_distinct())
-					flush_str(STDOUT_FILENO);
+				FLUSH_ERR_STR();
 			}
 
 			s = PRINT_NUMBER(buf, thread_stack_used());
 			rewind_str(0);
-			print_str("thread stack is ");				/* 0 */
-			print_str(s);								/* 1 */
-			print_str(" bytes");						/* 2 */
+			print_str("thread used ");				/* 0 */
+			print_str(s);							/* 1 */
+			print_str(" bytes of stack");			/* 2 */
 			if (0 != stid) {
 				thread_info_t info;
 
 				thread_get_info(stid, &info);
 				can_terminate = !info.discovered;
 				if (can_terminate)
-					print_str(", killing it");				/* 3 */
+					print_str(", will be killing it");	/* 3 */
 			}
 			print_str("\n");							/* 4 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
+
+			rewind_str(0);
+			print_str("attempting exception logging\n");	/* 0 */
+			FLUSH_ERR_STR();
+
+			mingw_exception_log(er->ExceptionCode, er->ExceptionAddress);
 
 			/*
 			 * Forcefully killing the thread is the least we can do.
@@ -5511,6 +5619,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			 */
 
 			if (can_terminate) {
+				rewind_str(0);
+				print_str("exiting from current thread\n");	/* 0 */
+				FLUSH_ERR_STR();
+
 				thread_exit(NULL);
 			}
 		}
@@ -5547,9 +5659,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			DECLARE_STR(1);
 
 			print_str("Got fatal exception -- crashing.\n");
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 		}
 		break;
 	default:
@@ -5562,9 +5672,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			print_str("Got unknown exception #");		/* 0 */
 			print_str(s);								/* 1 */
 			print_str(" -- crashing.\n");				/* 2 */
-			flush_err_str();
-			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+			FLUSH_ERR_STR();
 		}
 		break;
 	}
@@ -5587,7 +5695,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 * exception: recursive calls are not interesting.
 	 */
 
-	if (1 == ATOMIC_GET(&in_exception_handler)) {
+	if (
+		EXCEPTION_STACK_OVERFLOW != er->ExceptionCode &&
+		1 == ATOMIC_GET(&in_exception_handler)
+	) {
 		int count;
 		
 		count = mingw_stack_unwind(
@@ -5602,9 +5713,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		DECLARE_STR(1);
 
 		print_str("Too many exceptions in a row -- raising SIGBART.\n");
-		flush_err_str();
-		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+		FLUSH_ERR_STR();
 		signo = SIGABRT;
 	}
 
@@ -5641,15 +5750,25 @@ static void *
 mingw_get_break(void)
 {
 	void *p;
+	HANDLE h = GetProcessHeap();
 
-	p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, 1);
+	/*
+	 * We try to allocate a large amount of memory (1 MiB) to avoid the call
+	 * from returning a "fragment" in the heap, and force the allocator to
+	 * get more core, thereby knowing the upper limit.
+	 */
+
+	p = HeapAlloc(h, 0, 1024 * 1024);
+
+	if G_UNLIKELY(NULL == p)
+		p = HeapAlloc(h, 0, 4096);		/* A page, at least */
 
 	if (NULL == p) {
 		errno = ENOMEM;
 		return (void *) -1;
 	}
 
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, p);
+	HeapFree(h, 0, p);
 	return p;
 }
 
@@ -5669,11 +5788,11 @@ mingw_sbrk(long incr)
 
 	if (0 == incr) {
 		p = mingw_get_break();
-		if G_UNLIKELY(NULL == current_break)
+		if G_UNLIKELY(p != (void *) -1)
 			current_break = p;
-		return p;
+		return current_break;
 	} else if (incr > 0) {
-		p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, incr);
+		p = HeapAlloc(GetProcessHeap(), 0, incr);
 
 		if (NULL == p) {
 			errno = ENOMEM;
@@ -5681,9 +5800,6 @@ mingw_sbrk(long incr)
 		}
 
 		end = ptr_add_offset(p, incr);
-
-		if G_UNLIKELY(NULL == current_break)
-			current_break = p;
 
 		if (ptr_cmp(end, current_break) > 0)
 			current_break = end;

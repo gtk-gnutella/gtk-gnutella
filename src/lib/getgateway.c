@@ -44,12 +44,17 @@
 #endif
 
 #include "getgateway.h"
+
 #include "ascii.h"
+#include "compat_usleep.h"
 #include "fd.h"
 #include "host_addr.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "parse.h"
+#include "spinlock.h"
+#include "timestamp.h"
+#include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -177,6 +182,9 @@ getgateway(host_addr_t *addrp)
 		struct rtmsg rtm;
 		unsigned char space[1024];	/* Unexplained magic buffer size */
 	} nlm;
+	static host_addr_t gw;			/* Previously computed gateway */
+	static time_t gw_time;			/* When it was computed */
+	static spinlock_t gw_slk = SPINLOCK_INIT;
 
 	/*
 	 * This implementation uses the linux netlink interface.
@@ -203,13 +211,33 @@ getgateway(host_addr_t *addrp)
 	for (done = FALSE; !done; /* empty */) {
 		unsigned nlen;
 		struct nlmsghdr *nl;
+		int i;
 
-		rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
-		if ((ssize_t) -1 == rw) {
-			g_warning("%s(): recv() failed: %m", G_STRFUNC);
-			goto error;
+		/*
+		 * Unfortunately, the recv() call is non-blocking and can sometimes
+		 * return EAGAIN, multiple times.  Hence the loop and the usleep().
+		 */
+
+		for (i = 0; i < 1000; i++) {
+			rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
+			if ((ssize_t) -1 == rw) {
+				if (EAGAIN == errno || EWOULDBLOCK == errno) {
+					compat_usleep(1000);	/* 1 ms */
+					continue;
+				}
+				break;
+			} else {
+				goto answered;
+			}
 		}
 
+		if (EAGAIN == errno || EWOULDBLOCK == errno)
+			goto try_cached;
+
+		g_warning("%s(): recv() failed: %m", G_STRFUNC);
+		goto error;
+
+	answered:
 		nl = &nlm.hdr;
 
 		if (0 == NLMSG_OK(nl, UNSIGNED(rw)) || NLMSG_ERROR == nl->nlmsg_type)
@@ -277,7 +305,34 @@ error:
 found:
 	fd_close(&fd);
 	*addrp = gateway;
+
+	/*
+	 * Save compute gateway in case we cannot compute it next time we are
+	 * called due to the kernel being busy.
+	 */
+
+	spinlock(&gw_slk);
+	gw = gateway;
+	gw_time = tm_time();
+	spinunlock(&gw_slk);
+
 	return 0;
+
+try_cached:
+	/*
+	 * Could not get a reply, see if we can return previously computed
+	 * information if it is not too ancient (less than 60 secs ago).
+	 */
+
+	spinlock(&gw_slk);
+	if (is_host_addr(gw) && delta_time(tm_time(), gw_time) < 60) {
+		gateway = gw;
+		spinunlock(&gw_slk);
+		goto found;
+	}
+
+	spinunlock(&gw_slk);
+	goto error;
 }
 #elif defined(I_NET_ROUTE) && defined(PF_ROUTE) && defined(RTM_GET)
 {

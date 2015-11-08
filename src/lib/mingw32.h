@@ -168,7 +168,7 @@
 #undef fstat
 #define stat(path, buf) mingw_stat((path), (buf))
 #define fstat(fd, buf) mingw_fstat((fd), (buf))
-#define unlink(path) mingw_unlink((path))
+#define unlink(path) mingw_unlink(path)
 #define open mingw_open
 #define fopen mingw_fopen
 #define freopen mingw_freopen
@@ -176,6 +176,7 @@
 #define readdir mingw_readdir
 #define closedir mingw_closedir
 #define dup2 mingw_dup2
+#define dup(f) mingw_dup(f)
 #define lseek mingw_lseek
 #define read mingw_read
 #define readv mingw_readv
@@ -291,8 +292,9 @@ int mingw_statvfs(const char *pathname, struct statvfs *buf);
 #define HAS_GETRLIMIT			/* We emulate it */
 #define EMULATE_GETRLIMIT
 
-#define RLIMIT_CORE 1
-#define RLIMIT_DATA 2
+#define RLIMIT_CORE 1			/* Maximum size of core file */
+#define RLIMIT_DATA 2			/* Maximum data segment size */
+#define RLIMIT_AS 	3			/* Available Space (VM address space) */
 
 typedef unsigned long rlim_t;
 
@@ -471,6 +473,7 @@ int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
 int mingw_stat(const char *pathname, filestat_t *buf);
 int mingw_fstat(int fd, filestat_t *buf);
+int mingw_dup(int fd);
 int mingw_dup2(int oldfd, int newfd);
 int mingw_open(const char *pathname, int flags, ...);
 int mingw_unlink(const char *pathname);
@@ -624,8 +627,6 @@ typedef int key_t;
 
 #define SEMMSL			64		/* Maximum amount of semaphores per set */
 
-#define EIDRM			(INT_MAX - 100)	/* Identifier removed */
-
 struct sembuf {
 	ushort sem_num;				/* semaphore number in the set */
 	short sem_op;				/* semaphore operation */
@@ -643,6 +644,12 @@ int mingw_semctl(int semid, int semnum, int cmd, ...);
 int mingw_semop(int semid, struct sembuf *sops, unsigned nsops);
 int mingw_semtimedop(int semid, struct sembuf *sops, unsigned nsops,
 	struct timespec *timeout);
+
+/*
+ * Additional error codes we want to map.
+ */
+
+#define EIDRM			(INT_MAX - 100)	/* Identifier removed */
 
 /*
  * Miscellaneous.

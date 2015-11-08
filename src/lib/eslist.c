@@ -82,6 +82,7 @@
 
 #define CHECK(l)			eslist_check(l)
 #define INVARIANT(l)		eslist_invariant(l)
+#define CONTAINS(l,v)		eslist_contains(l,v)
 #define PREFIX				eslist_
 #define OWLIST_T			eslist_t
 #define OWLINK_T			slink_t

@@ -450,6 +450,15 @@ static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static void page_cache_free_all(bool locked);
 
 /**
+ * @return whether VMM is in crash mode.
+ */
+bool
+vmm_is_crashing(void)
+{
+	return vmm_crashing;
+}
+
+/**
  * Put the VMM layer in crashing mode.
  *
  * This is activated on assertion failures and other fatal conditions, and

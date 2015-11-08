@@ -562,6 +562,25 @@ shared_file_free(shared_file_t **sf_ptr)
 }
 
 /**
+ * Free list of (referenced) shared files and nullify list pointer.
+ */
+void
+shared_file_slist_free_null(pslist_t **l_ptr)
+{
+	pslist_t *list = *l_ptr;
+
+	if (list != NULL) {
+		pslist_t *sl;
+
+		PSLIST_FOREACH(list, sl) {
+			shared_file_t *sf = sl->data;
+			shared_file_unref(&sf);
+		}
+		pslist_free_null(l_ptr);
+	}
+}
+
+/**
  * Set canonic, NFC and NFKC normalized names.
  *
  * @return whether an error occurred
@@ -1547,7 +1566,6 @@ scan_base_dir_free(void *data)
 static void
 recursive_scan_context_free(void *data)
 {
-	pslist_t *sl;
 	struct recursive_scan *ctx = data;
 
 	recursive_scan_check(ctx);
@@ -1579,34 +1597,11 @@ recursive_scan_context_free(void *data)
 		XFREE_NULL(ctx->ftable);
 	}
 
-	PSLIST_FOREACH(ctx->shared, sl) {
-		shared_file_t *sf = sl->data;
-
-		shared_file_check(sf);
-		shared_file_unref(&sf);
-	}
-	pslist_free_null(&ctx->shared);
+	shared_file_slist_free_null(&ctx->shared);
 
 	ctx->task = NULL;
 	ctx->magic = 0;
 	WFREE(ctx);
-}
-
-/**
- * Free list of shared files and nullify its pointer.
- */
-static void
-share_list_free_null(pslist_t **slist)
-{
-	pslist_t *sl;
-
-	PSLIST_FOREACH(*slist, sl) {
-		shared_file_t *sf = sl->data;
-
-		shared_file_check(sf);
-		shared_file_unref(&sf);
-	}
-	pslist_free_null(slist);
 }
 
 /**
@@ -1617,7 +1612,7 @@ share_free(void)
 {
 	st_free(&shared_libfile.search_table);
 	htable_free_null(&shared_libfile.file_basenames);
-	share_list_free_null(&shared_libfile.shared_files);
+	shared_file_slist_free_null(&shared_libfile.shared_files);
 	HFREE_NULL(shared_libfile.file_table);
 	HFREE_NULL(shared_libfile.sorted_file_table);
 }
@@ -2371,7 +2366,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 
 	SHARED_LIBFILE_UNLOCK;
 
-	share_list_free_null(&files);
+	shared_file_slist_free_null(&files);
 
 	/*
 	 * If we're not running in the main thread, we need to funnel this

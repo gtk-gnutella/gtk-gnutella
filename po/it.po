@@ -4,14 +4,15 @@
 # 
 # Translators:
 # Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>, 2006
+# Lucio Marinelli, 2015
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2015-04-05 19:55+0200\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
-"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
-"Language-Team: Italian (http://www.transifex.com/projects/p/gtk-gnutella/language/it/)\n"
+"PO-Revision-Date: 2015-10-26 20:05+0000\n"
+"Last-Translator: Lucio Marinelli\n"
+"Language-Team: Italian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/language/it/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,17 +20,17 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgid "Harmful version banned, upgrade required"
-msgstr ""
+msgstr "Versione pericolosa, aggiornare"
 
 msgid "Connection refused"
-msgstr ""
+msgstr "Connessione rifiutata"
 
 msgid "Use an open Gnutella or G2 servent"
-msgstr ""
+msgstr "Usa un server/client Gnutella o G2 aperto"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
-msgstr ""
+msgstr "Interrotto, riproverò con TLS (%s)"
 
 #, c-format
 msgid "Stopped (%s)"
@@ -40,52 +41,52 @@ msgid "Too many attempts (%u times)"
 msgstr "Troppi tentativi (%u volte)"
 
 msgid "Requeued due to no push-proxy"
-msgstr ""
+msgstr "Riaccodato per mancanza del push-proxy"
 
 msgid "Requeued due to file removal"
-msgstr ""
+msgstr "Riaccodato per file rimosso"
 
 msgid "Requeued by file info change"
 msgstr "Riaccodato in seguito a cambiamento delle informazioni"
 
 msgid "Duplicate download"
-msgstr ""
+msgstr "Download duplicato"
 
 msgid "Nothing else to switch to"
-msgstr ""
+msgstr "Nient'altro a cui passare"
 
 #, c-format
 msgid "Switching (after error) to \"%s\""
-msgstr ""
+msgstr "Passo a \"%s\" causa errore"
 
 #, c-format
 msgid " at %s"
-msgstr ""
+msgstr "a %s"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "Sospeso (verifica SHA1)"
 
 #, c-format
 msgid "Ignoring requested (%s)"
-msgstr ""
+msgstr "Ignoro richiesta (%s)"
 
 msgid "Paused"
-msgstr ""
+msgstr "In pausa"
 
 msgid "Nothing more to get"
-msgstr ""
+msgstr "Nient'altro da recuperare"
 
 msgid "Waiting for a free chunk"
-msgstr "In attesa di un posto libero"
+msgstr "In attesa di un pezzo libero"
 
 msgid "No more gaps to fill"
-msgstr ""
+msgstr "Niente più buchi da riempire"
 
 msgid "Download queue is frozen"
-msgstr ""
+msgstr "La coda di download è congelata"
 
 msgid "Network buffer shortage"
-msgstr ""
+msgstr "Carenza di network buffer"
 
 msgid "No download slot (start)"
 msgstr "Nessun posto di scaricamento (avvia)"
@@ -100,16 +101,16 @@ msgid "SHA1 mismatch detected"
 msgstr "Rilevato errore SHA1"
 
 msgid "Waiting for server PROX publishing"
-msgstr ""
+msgstr "Attendo che il server pubblichi PROX"
 
 msgid "Waiting for push route"
-msgstr ""
+msgstr "In attesa di instradamento"
 
 msgid "Push route lost"
-msgstr ""
+msgstr "Instradamento perso"
 
 msgid "Ignoring Push flag"
-msgstr "Ignoro flag spinta"
+msgstr "Ignoro flag Push"
 
 #, c-format
 msgid "No direct connection yet (%u retry)"
@@ -133,16 +134,16 @@ msgid "Dup SHA1 during creation"
 msgstr "Duplica SHA1 alla creazione"
 
 msgid "Max. number of downloads reached"
-msgstr ""
+msgstr "Raggiunto il numero massimo di download"
 
 msgid "Max. number of downloads for this host reached"
-msgstr ""
+msgstr "Raggiunto il numero massimo di connessioni per questo host"
 
 msgid "Has already enough active sources"
-msgstr ""
+msgstr "Già presenti abbastanza sorgenti attive"
 
 msgid "download_start() failed"
-msgstr ""
+msgstr "download_start() fallito"
 
 msgid "Stopped (Index changed)"
 msgstr "Fermato (indice cambiato)"
@@ -151,7 +152,7 @@ msgid "Explicitly requeued"
 msgstr "Riaccodato esplicitamente"
 
 msgid "Failed (Header line too large)"
-msgstr ""
+msgstr "Fallito (riga Header troppo lunga)"
 
 #, c-format
 msgid "Failed (%s)"
@@ -164,36 +165,36 @@ msgid "Connection not kept-alive (EOF)"
 msgstr "Connessione non mantenuta attiva (EOF)"
 
 msgid "Stopped (EOF) <err_header_read_eof>"
-msgstr ""
+msgstr "Interrotto (EOF) <err_header_read_eof>"
 
 #, c-format
 msgid "Can't check resume data: %s"
-msgstr ""
+msgstr "Non posso riprendere i dati: %s"
 
 #, c-format
 msgid "Can't stat opened file: %s"
-msgstr ""
+msgstr "Non posso analizzare un file aperto: %s"
 
 msgid "Stopped (Output file size changed)"
 msgstr "Fermato (dimensione del file di output cambiata)"
 
 #, c-format
 msgid "Can't read resume data: %s"
-msgstr ""
+msgstr "Non posso leggere i dati ripresi: %s"
 
 msgid "Short read on resume data"
-msgstr ""
+msgstr "Lettura breve sui dati ripresi"
 
 #, c-format
 msgid "Resuming data mismatch @ %s"
-msgstr ""
+msgstr "Sto riprendendo dati discordanti @ %s"
 
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Non posso salvare i dati: %s"
 
 msgid "Partial write to file"
-msgstr ""
+msgstr "Scrittura parziale sul file"
 
 msgid "Requeued after trimmed data"
 msgstr "Riaccodato dopo regolazione dei dati"
@@ -203,22 +204,22 @@ msgstr "Pezzo fatto, connessione chiusa"
 
 #, c-format
 msgid "Switching to \"%s\""
-msgstr ""
+msgstr "Passo a \"%s\""
 
 msgid "Requeued by competing download"
 msgstr "Riaccodato per scaricamento concorrente"
 
 msgid "Weird HTTP status"
-msgstr ""
+msgstr "Stato HTTP strano"
 
 msgid "Download was a duplicate"
-msgstr ""
+msgstr "Il download era un duplicato"
 
 msgid "Filesize mismatch"
-msgstr ""
+msgstr "Dimensione file discordante"
 
 msgid "No URN on server (required)"
-msgstr ""
+msgstr "Nessun URN sul server (richiesto)"
 
 msgid "No URN on server, waiting for overlap"
 msgstr "Nessun URN sul server, attesa di sovrascrittura"
@@ -227,10 +228,10 @@ msgid "No URN on server to validate"
 msgstr "Nessun URN sul server da convalidare"
 
 msgid "TTH mismatch detected"
-msgstr ""
+msgstr "Rilevata discordanza TTH"
 
 msgid "SHA-1 mismatch detected"
-msgstr ""
+msgstr "Rilevata discordanza SHA-1"
 
 msgid "URN fileinfo mismatch"
 msgstr "Errore nelle informazioni del file dell'URN"
@@ -239,48 +240,48 @@ msgid "Discovered dup SHA1"
 msgstr "Riscontrata duplicazione SHA1"
 
 msgid "More data to sink than expected"
-msgstr ""
+msgstr "Più dati di quanto atteso nel sink"
 
 msgid "Stopped data (EOF)"
-msgstr ""
+msgstr "Dati terminati (EOF)"
 
 #, c-format
 msgid "Stopped data (%s)"
-msgstr ""
+msgstr "Dati terminati (%s)"
 
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Fallito (Errore lettura: %s)"
 
 msgid "Timeout reading HTTP status"
-msgstr ""
+msgstr "Tempo scaduto leggendo lo stato HTTP"
 
 msgid "Timeout reading headers"
-msgstr ""
+msgstr "Tempo scaduto leggendo gli header"
 
 #, c-format
 msgid "No support for Content-Encoding (%s)"
-msgstr ""
+msgstr "Nessun supporto per Content-Encoding (%s)"
 
 msgid "Spammer detected"
 msgstr "Rilevato spammer"
 
 msgid "Partial file, bad HTTP keep-alive support"
-msgstr ""
+msgstr "File parziale, cattivo supporto keep-alive"
 
 #, c-format
 msgid "Partial file, too much data to sink (%s bytes)"
-msgstr ""
+msgstr "File parziale, troppi dati verso il sink (%s bytes)"
 
 msgid "Partial file, no suitable range found yet"
-msgstr ""
+msgstr "File parziale, range adatto non ancora trovato"
 
 msgid "Partial file on server, waiting"
 msgstr "File parziale sul server, attesa"
 
 #, c-format
 msgid "%sRequested range unavailable yet"
-msgstr ""
+msgstr "Range richiesto %s non ancora disponibile"
 
 msgid "Queued"
 msgstr "Accodati"
@@ -291,167 +292,167 @@ msgstr " (posizione %d"
 
 #, c-format
 msgid ", ETA: %s"
-msgstr ""
+msgstr ", ETA: %s"
 
 msgid "Server did not supply identification"
-msgstr ""
+msgstr "Il server non ha fornito l'identificativo"
 
 msgid "Unparseable Content-Length"
-msgstr ""
+msgstr "Contenuto-Lunghezza inutilizzabile"
 
 msgid "Total/served sizes mismatch"
-msgstr ""
+msgstr "Discrepanza dimensioni totale/servita"
 
 msgid "Range start mismatch"
-msgstr ""
+msgstr "Discrepanza range d'inizio"
 
 msgid "Range end too large"
-msgstr ""
+msgstr "Range finale troppo grande"
 
 msgid "Range mismatch"
-msgstr ""
+msgstr "Discrepanza di range"
 
 msgid "Weird server-side chunk shrinking"
-msgstr ""
+msgstr "Strano compattamento dei pezzi lato server"
 
 msgid "Content-Length mismatch"
-msgstr ""
+msgstr "Discrepanza contenuto-lunghezza"
 
 msgid "No Content-Length header"
-msgstr ""
+msgstr "Nessuno header contenuto-lunghezza"
 
 msgid "Unexpected Content-Type"
-msgstr ""
+msgstr "Tipo di contenuto inatteso"
 
 msgid "No Content-Type"
-msgstr ""
+msgstr "Nessuna tipologia di contenuto"
 
 msgid "Search already closed"
-msgstr ""
+msgstr "Ricerca già chiusa"
 
 msgid "THEX download aborted"
-msgstr ""
+msgstr "Download THEX interrotto"
 
 msgid "Pipeline flow stopped"
-msgstr ""
+msgstr "Flusso della pipeline interrotto"
 
 #, c-format
 msgid "Cannot open %s: %s"
-msgstr ""
+msgstr "Non posso aprire %s: %s"
 
 msgid "Cannot resume: file gone"
-msgstr ""
+msgstr "Non posso riprendere: il file è sparito"
 
 #, c-format
 msgid "Cannot write into file: %s"
-msgstr ""
+msgstr "Non posso scrivere nel file %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "Arrestato (contenitore lettura pieno)"
 
 msgid "Failed (Completed?)"
-msgstr ""
+msgstr "Fallito (completato?)"
 
 msgid "Could not send whole HTTP request"
-msgstr ""
+msgstr "Non posso inviare la richiesta HTTP completa"
 
 #, c-format
 msgid "Write failed: %s"
 msgstr "Scrittura fallita : %s"
 
 msgid "Malformed push reply"
-msgstr ""
+msgstr "Risposta push malformata"
 
 msgid ", inbound"
-msgstr ""
+msgstr ", in ingresso"
 
 msgid ", outbound"
-msgstr ""
+msgstr ", in uscita"
 
 msgid ", no-pipeline"
-msgstr ""
+msgstr ", nessuna pipeline"
 
 msgid ", banning"
-msgstr ""
+msgstr ", in espulsione"
 
 msgid ", g2"
-msgstr ""
+msgstr ", g2"
 
 msgid ", fake-g2"
-msgstr ""
+msgstr ", falso-g2"
 
 msgid ", vendor?"
-msgstr ""
+msgstr ", produttore?"
 
 #, c-format
 msgid "<Browse G2 Host %s>"
-msgstr ""
+msgstr "<Consulta host G2 %s>"
 
 #, c-format
 msgid "<Browse Host %s>"
-msgstr "<Sfoglia host %s>"
+msgstr "<Consulta host %s>"
 
 #, c-format
 msgid "<THEX data for %s>"
-msgstr ""
+msgstr "<dati THEX per %s>"
 
 msgid "Browse search closed"
-msgstr ""
+msgstr "Consultazione interrotta"
 
 msgid "Stopped data (EOF) <download_got_eof>"
-msgstr ""
+msgstr "Dati terminati (EOF) <download_got_eof>"
 
 msgid "No longer connected"
 msgstr "Disconnesso"
 
 msgid "Too many data timeouts"
-msgstr ""
+msgstr "Troppi tentativi"
 
 msgid "Timeout"
-msgstr ""
+msgstr "Tempo scaduto"
 
 msgid "Requeued due to timeout"
 msgstr "Riaccodato per timeout"
 
 msgid "Partial file removed"
-msgstr ""
+msgstr "File parziale rimosso"
 
 msgid "File info being reset"
-msgstr ""
+msgstr "Le informazioni del file vengono resettate"
 
 #, c-format
 msgid "Downloading (TR: %s)"
-msgstr ""
+msgstr "Sto scaricando (TR: %s)"
 
 msgid "Seeding"
-msgstr ""
+msgstr "Sto diffondendo (seeding)"
 
 msgid "Computing TTH"
-msgstr ""
+msgstr "Calcolo TTH"
 
 msgid "Computing SHA1"
 msgstr "Calcolo SHA1"
 
 msgid "Waiting for TTH check"
-msgstr ""
+msgstr "In attesa del controllo TTH"
 
 msgid "Waiting for SHA1 check"
 msgstr "In attesa del controllo SHA1"
 
 msgid "SHA1"
-msgstr ""
+msgstr "SHA1"
 
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 msgid "failed"
 msgstr "fallito"
 
 msgid "not computed yet"
-msgstr ""
+msgstr "Non ancora calcolato"
 
 msgid "Waiting for moving..."
-msgstr ""
+msgstr "In attesa per lo spostamento..."
 
 msgid "Moving"
 msgstr "Spostamento"
@@ -464,42 +465,42 @@ msgstr "Nessuna sorgente"
 
 #, c-format
 msgid "Queued (%u active, %u passive)"
-msgstr ""
+msgstr "Accodati (%u attivi, %u passivi)"
 
 msgid "Waiting"
 msgstr "In attesa"
 
 msgid "Querying DHT"
-msgstr ""
+msgstr "Accodando DHT"
 
 msgid "Pending DHT query"
-msgstr ""
+msgstr "Query DHT in sospeso"
 
 #, c-format
 msgid "%u/%u successful DHT lookup"
 msgid_plural "%u/%u successful DHT lookups"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%u/%u controllo DHT riuscito"
+msgstr[1] "%u/%u controlli DHT riusciti"
 
 #, c-format
 msgid "%u DHT lookup"
 msgid_plural "%u DHT lookups"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%u controllo DHT"
+msgstr[1] "%u controlli DHT"
 
 #, c-format
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ricevuto %d host da %s"
+msgstr[1] "Ricevuti %d host da %s"
 
 #, c-format
 msgid "Connecting to web cache %s"
-msgstr ""
+msgstr "In connessione alla cache web %s"
 
 #, c-format
 msgid "Bootstrapping from %s"
-msgstr ""
+msgstr "Inizializzazione da %s in corso"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -512,10 +513,10 @@ msgstr[0] "Ottieni %d pong della connessione"
 msgstr[1] "Ottieni %d pong della connessione"
 
 msgid "Sent crawling info"
-msgstr ""
+msgstr "Invio informazioni di crawling"
 
 msgid "Cannot setup compressing TX stack"
-msgstr ""
+msgstr "Impossibile impostare la compressione del flusso in trasmissione"
 
 #, c-format
 msgid "Got BYE %d %.*s"
@@ -523,11 +524,11 @@ msgstr "Arrivederci %d %.*s"
 
 #, c-format
 msgid "Weird HELLO %s"
-msgstr ""
+msgstr "Strano HELLO %s"
 
 #, c-format
 msgid "HELLO %s error %d (%s)"
-msgstr ""
+msgstr "HELLO %s errore %d (%s)"
 
 msgid "Shielded node"
 msgstr "Nodo protetto"
@@ -540,7 +541,7 @@ msgstr "Connessione non compressa"
 
 #, c-format
 msgid "Too many G2 hubs (%u max)"
-msgstr ""
+msgstr "Troppi hub G2 (massimo %u)"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -577,11 +578,11 @@ msgid "Servent version appears unstable"
 msgstr "La versione del server sembra instabile"
 
 msgid "No vendor string supplied"
-msgstr "Non viene fornita alcuna stringa dell'offerente"
+msgstr "Non viene fornita alcuna stringa del produttore"
 
 #, c-format
 msgid "Not connecting: %s"
-msgstr "No connessione: %s"
+msgstr "Nessuna connessione: %s"
 
 msgid "Protocol not acceptable"
 msgstr "Protocollo non accettabile"
@@ -590,16 +591,16 @@ msgid "Servent Shutdown"
 msgstr "Spegnimento server"
 
 msgid "Not a network member"
-msgstr ""
+msgstr "Non un membro del network"
 
 msgid "Need a G2 Hub"
-msgstr ""
+msgstr "Serve uno hub G2"
 
 msgid "Too frequent crawling"
-msgstr ""
+msgstr "Crawling troppo frequente"
 
 msgid "Already connected to this GUID"
-msgstr ""
+msgstr "Già connesso a questo GUID"
 
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
@@ -639,35 +640,35 @@ msgid "Failed (EOF)"
 msgstr "Fallito (EOF)"
 
 msgid "Failed (Extra HELLO data)"
-msgstr "Fallito (dati extra SALUTO)"
+msgstr "Fallito (dati extra HELLO)"
 
 msgid "Pseudo UDP node"
 msgstr "Nodo pseudo-UDP"
 
 msgid "Pseudo semi-reliable UDP node"
-msgstr ""
+msgstr "Nodo UDP pseudo semi-affidabile"
 
 msgid "Pseudo G2 UDP node"
-msgstr ""
+msgstr "Nodo UDP pseudo G2"
 
 msgid "Pseudo DHT node"
-msgstr ""
+msgstr "Nodo pseudo DHT"
 
 msgid "Already connected"
 msgstr "Già connesso"
 
 msgid "Limited connection"
-msgstr ""
+msgstr "Connessione limitata"
 
 msgid "Write error during HELLO"
-msgstr ""
+msgstr "Errore di scrittura durante HELLO"
 
 #, c-format
 msgid "Write error during HELLO: %s"
-msgstr "Errore di scrittura durante il SALUTO: %s"
+msgstr "Errore di scrittura durante HELLO: %s"
 
 msgid "Connection reset during HELLO"
-msgstr "Connessione azzerata durante il SALUTO"
+msgstr "Connessione azzerata durante HELLO"
 
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
@@ -675,28 +676,28 @@ msgstr "Sbarrati: %s messaggi troppo grandi (%d byte)"
 
 #, c-format
 msgid "Kicked: %s message too big (>= 64KiB limit)"
-msgstr ""
+msgstr "Rifiutato: messaggio %s troppo grande (>=64KiB)"
 
 msgid "Leaf"
 msgstr "Foglia"
 
 msgid "Ultrapeer"
-msgstr ""
+msgstr "Ultrapeer"
 
 msgid "Legacy"
-msgstr "Eredità"
+msgstr "Tradizionale"
 
 msgid "Crawler"
 msgstr "Robot"
 
 msgid "UDP"
-msgstr ""
+msgstr "UDP"
 
 msgid "DHT"
-msgstr ""
+msgstr "DHT"
 
 msgid "G2 hub"
-msgstr ""
+msgstr "Hub G2"
 
 msgid "Unknown"
 msgstr "Sconosciuto"
@@ -710,17 +711,17 @@ msgstr "Errore lettura: %s"
 
 #, c-format
 msgid "Must wait %u more seconds before resending \"What's New\""
-msgstr ""
+msgstr "Devi aspettare altri %u secondi prima di rimandare il \"Cosa c'è di nuovo?\""
 
 #, c-format
 msgid "mkdir(\"%s\") failed: %m"
-msgstr ""
+msgstr "mkdir(\"%s\") fallito: %m"
 
 msgid "Can't find your home directory!"
 msgstr "Non riesco a trovare la tua cartella personale!"
 
 msgid "$GTK_GNUTELLA_DIR must point to an absolute path!"
-msgstr ""
+msgstr "$GTK_GNUTELLA_DIR deve contenere un path assoluto!"
 
 #, c-format
 msgid "creating configuration directory \"%s\""
@@ -728,25 +729,25 @@ msgstr "creazione della cartella di configurazione \"%s\""
 
 #, c-format
 msgid "creating directory \"%s\" for %s"
-msgstr ""
+msgstr "Creazione directory \"%s\" per %s"
 
 msgid "You seem to have left another gtk-gnutella running"
-msgstr ""
+msgstr "Sembra ci sia un altro gtk-gnutella in funzione"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Non posso procedere senza una cartella di configurazione valida"
 
 msgid "Failed to create IPv4 UDP socket"
-msgstr ""
+msgstr "Impossibile creare un socket IPv4 UDP"
 
 msgid "Failed to create IPv6 UDP socket"
-msgstr ""
+msgstr "Impossibile creare un socket IPv6 UDP"
 
 msgid "Failed to create local socket"
-msgstr ""
+msgstr "Impossibile creare un socket locale"
 
 msgid "Failed to create listening sockets"
-msgstr ""
+msgstr "Impossibile creare socket in ascolto"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "È possibile il solo funzionamento come foglia quando si è dietro un firewall TCP"
@@ -755,13 +756,13 @@ msgid "Read error"
 msgstr "Errore di lettura"
 
 msgid "Got EOF"
-msgstr ""
+msgstr "EOF ricevuto"
 
 msgid "TLS handshake failed"
-msgstr ""
+msgstr "Handshake TLS fallito"
 
 msgid "Connection locally failed"
-msgstr ""
+msgstr "Connessione fallita localmente"
 
 msgid "Write failed (Input Exception)"
 msgstr "Scrittura fallita (eccezione in ingresso)"
@@ -777,116 +778,116 @@ msgstr "Inviato ping alla cache dell'host UDP %s:%u"
 #, c-format
 msgid "Got %d host from UDP host cache %s"
 msgid_plural "Got %d hosts from UDP host cache %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ricevuto %d host dalla cache dell'host UDP %s"
+msgstr[1] "Ricevuti %d host dalla cache dell'host UDP %s"
 
 msgid "Connect back timeout"
-msgstr "Tempo massimo riconnessione"
+msgstr "Tempo di riconnessione scaduto"
 
 msgid "Request timeout"
-msgstr ""
+msgstr "Richiesta scaduta"
 
 msgid "Timeout waiting for follow-up"
-msgstr ""
+msgstr "Attesa per il follow-up terminata"
 
 msgid "Lifetime expired"
-msgstr "Tempo di vita spirato"
+msgstr "Tempo di vita terminato"
 
 msgid "Unauthorized"
-msgstr ""
+msgstr "Non autorizzato"
 
 #, c-format
 msgid "Limiting connections from %s"
-msgstr ""
+msgstr "Connessioni da %s in limitazione"
 
 msgid "No reason given"
-msgstr ""
+msgstr "Nessuna spiegazione fornita"
 
 msgid "Bad Request"
-msgstr ""
+msgstr "Richiesta sbagliata"
 
 msgid "Header too large"
-msgstr ""
+msgstr "Header troppo grande"
 
 msgid "Input buffer full"
-msgstr ""
+msgstr "Buffer in ingresso pieno"
 
 msgid "Extra data after HTTP header"
-msgstr ""
+msgstr "Dati aggiuntivi dopo l'header HTTP"
 
 msgid "Unable to send GIV"
 msgstr "Non posso inviare GIV"
 
 msgid "Not Found"
-msgstr ""
+msgstr "Non trovato"
 
 msgid "File was modified"
-msgstr ""
+msgstr "Il file è stato modificato"
 
 msgid "Moved Permanently"
-msgstr ""
+msgstr "Spostato permanentemente"
 
 msgid "File index/name mismatch"
-msgstr ""
+msgstr "Incongruenza indice/nome del file"
 
 msgid "URN Not Found (urn:sha1)"
-msgstr ""
+msgstr "URN non trovato (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
-msgstr ""
+msgstr "SHA1 in ricalcolo"
 
 msgid "Library being rebuilt"
-msgstr ""
+msgstr "Biblioteca in ricostruzione"
 
 msgid "Malformed URN in /uri-res/N2R request"
-msgstr ""
+msgstr "URN malformato nella richiesta /uri-res/N2R"
 
 msgid "Malformed URN in /uri-res/N2X request"
-msgstr ""
+msgstr "URN malformato nella richiesta /uri-res/N2X"
 
 msgid "TTH is being computed"
-msgstr ""
+msgstr "TTH in ricalcolo"
 
 msgid "<Browse Host Request>"
 msgstr "<Richiesta consultazione host>"
 
 msgid "Browse Host Disabled"
-msgstr ""
+msgstr "Consultazione host disabilitata"
 
 #, c-format
 msgid "Redirected to %s:%u"
-msgstr ""
+msgstr "Reindirizzato verso %s:%u"
 
 msgid "Not Modified"
-msgstr ""
+msgstr "Non modificato"
 
 msgid "Stalling upload replaced"
 msgstr "Rimpiazzato il caricamento fermato"
 
 msgid "Already downloading this file"
-msgstr ""
+msgstr "File già in download"
 
 msgid "Malformed Range request"
-msgstr ""
+msgstr "Richiesta di range malformata"
 
 msgid "Requested range not satisfiable"
-msgstr ""
+msgstr "Range richiesto non soddisfabile"
 
 msgid "Requested range not available yet"
-msgstr ""
+msgstr "Range richiesto non ancora disponibile"
 
 msgid "Queue full"
-msgstr ""
+msgstr "Coda piena"
 
 msgid "Another connection is still active"
-msgstr ""
+msgstr "Un'altra connessione è ancora attiva"
 
 #, c-format
 msgid "%s not honoured; removed from PARQ queue"
-msgstr ""
+msgstr "%s non soddisfatto; rimosso dalla coda PARQ"
 
 msgid "Minimum retry delay"
-msgstr ""
+msgstr "Ritardo minimo di ripetizione"
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
@@ -896,47 +897,47 @@ msgid "Cannot send whole HTTP status"
 msgstr "Non posso inviare lo stato HTTP completo"
 
 msgid "Not Acceptable"
-msgstr ""
+msgstr "Non accettabile"
 
 #, c-format
 msgid "<Browse Host %sRequest> [%s%s%s]"
-msgstr ""
+msgstr "<Consulta Host %sRichiesta> [%s%s%s]"
 
 msgid "query hits"
-msgstr "tentativi query"
+msgstr "risultati della query"
 
 msgid ", deflate"
-msgstr ""
+msgstr ", scompatta"
 
 msgid ", gzip"
-msgstr ""
+msgstr ", gzip"
 
 msgid ", chunked"
-msgstr ""
+msgstr ", a pezzetti"
 
 msgid "THEX failure"
-msgstr ""
+msgstr "fallimento TEX"
 
 msgid "Unknown/Missing Protocol Tag"
-msgstr ""
+msgstr "Etichetta protocollo sconosciuta o mancante"
 
 msgid "Not Implemented"
-msgstr ""
+msgstr "Non implementato"
 
 msgid "No Content Allowed"
-msgstr ""
+msgstr "Nessun contenuto permesso"
 
 msgid "Bad URI"
-msgstr ""
+msgstr "URI errato"
 
 msgid "Bad Path"
-msgstr ""
+msgstr "Percorso errato"
 
 msgid "Missing Host Header"
-msgstr ""
+msgstr "Header dell'host mancante"
 
 msgid "Sharing currently disabled"
-msgstr ""
+msgstr "Condivisione al momento disabilitata"
 
 msgid "Write exception"
 msgstr "Eccezione in scrittura"
@@ -967,7 +968,7 @@ msgstr "IP che rifiuta caricamenti"
 
 #, c-format
 msgid " - Newer versions available: release %s / from git %s"
-msgstr ""
+msgstr "- Nuove versioni disponibili: rilascio %s / da git %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
@@ -975,103 +976,103 @@ msgstr " - Versione più recente disponibile: rilascio %s"
 
 #, c-format
 msgid " - Newer version available: from git %s"
-msgstr ""
+msgstr "- Nuova versione disponibile: da git %s"
 
 msgid "Routing errors"
 msgstr "Errore instradamento"
 
 msgid "Routing table chunks"
-msgstr ""
+msgstr "Pezzo della tabella di instadamento"
 
 msgid "Routing table message capacity"
-msgstr ""
+msgstr "Capacità di messaggi della tabella di instradamento"
 
 msgid "Routing table message count"
-msgstr ""
+msgstr "Conteggio messaggi della tabella di instradamento"
 
 msgid "Routing through transient node avoided"
-msgstr ""
+msgstr "Evitato l'instradamento attraverso un nodo transitorio"
 
 msgid "Duplicates with higher TTL"
-msgstr ""
+msgstr "Duplicati con TTL più alto"
 
 msgid "SPAM SHA1 database hits"
-msgstr ""
+msgstr "Risultati del database per SHA1 SPAM"
 
 msgid "SPAM filename and size hits"
-msgstr ""
+msgstr "Risultati di nome file e dimensione SPAM"
 
 msgid "SPAM fake hits"
-msgstr ""
+msgstr "Risultati fasulli SPAM"
 
 msgid "SPAM duplicate hits"
-msgstr ""
+msgstr "Risultati duplicati SPAM"
 
 msgid "SPAM dynamically caught hostile IP addresses"
-msgstr ""
+msgstr "Indirizzi IP ostili catturati dinamicamente SPAM"
 
 msgid "SPAM dynamically caught hostile IP held"
-msgstr ""
+msgstr "Indirizzi IP ostili catturati dinamicamente e mantenuti SPAM"
 
 msgid "SPAM spotted spamming IP addresses held"
-msgstr ""
+msgstr "Indirizzi IP spammer identificati e mantenuti"
 
 msgid "Searches to local DB"
 msgstr "Ricerche nel DB locale"
 
 msgid "Hits on local DB"
-msgstr "Tentativi nel DB locale"
+msgstr "Risultati sul DB locale"
 
 msgid "Hits on local partial files"
-msgstr ""
+msgstr "Risultati sui file parziali locali"
 
 msgid "Hits on \"what's new?\" queries"
-msgstr ""
+msgstr "Risultati delle ricerche \"cosa c'è di nuovo?\""
 
 msgid "Query hits received for local queries"
 msgstr "Tentativi di query ricevuti da query locali"
 
 msgid "G2 searches to local DB"
-msgstr ""
+msgstr "Ricerche G2 verso il database locale"
 
 msgid "G2 hits on local DB"
-msgstr ""
+msgstr "Ricerche G2 sul database locale"
 
 msgid "G2 hits on local partial files"
-msgstr ""
+msgstr "Risultati G2 su file parziali locali"
 
 msgid "Query hits received for OOB-proxied queries"
-msgstr ""
+msgstr "Risultati ricevuti per ricerche vicariate OOB"
 
 msgid "Queries requesting OOB hit delivery"
-msgstr ""
+msgstr "Ricerche che necessitano di consegna OOB"
 
 msgid "Stripped OOB flag on queries"
-msgstr ""
+msgstr "Flag OOB rimosso dalle ricerche"
 
 msgid "Ignored OOB queries due to unclaimed hits"
-msgstr ""
+msgstr "Ricerche OOB ignorare per risultati non richiesti"
 
 msgid "Duplicate OOB-proxied queries"
-msgstr ""
+msgstr "Ricerche vicariate OOB duplicate"
 
 msgid "OOB hits received for OOB-proxied queries"
-msgstr ""
+msgstr "Risultati ricevuti per ricerche vicariate OOB"
 
 msgid "OOB hits bearing alien IP address"
-msgstr ""
+msgstr "Risultati OOB con indirizzo IP non corrispondente"
 
 msgid "OOB hits ignored due to identified spamming address"
-msgstr ""
+msgstr "Risultato OOB ignorato per indirizzo identificato come spammer"
 
 msgid "OOB hits ignored due to unsecure promise from known secure host"
-msgstr ""
+msgstr "Risultato OOB ignorato per promessa insicura da host sicuro conosciuto"
 
 msgid "Unclaimed locally-generated OOB hits"
-msgstr ""
+msgstr "RIsultato OOB generato localmente e non richiesto"
 
 msgid "Partially claimed locally-generated OOB hits"
-msgstr ""
+msgstr "Risultato OOB generato localmente e parzialmente richiesto"
 
 msgid "Spurious OOB hit claiming received"
 msgstr ""
@@ -1527,10 +1528,10 @@ msgid "PARQ client resource switching in slots (SHA-1 based)"
 msgstr ""
 
 msgid "PARQ client retry-after violation"
-msgstr ""
+msgstr "Violazione di riprova-dopo del client PARQ"
 
 msgid "PARQ client kicked out after too many retry-after violations"
-msgstr ""
+msgstr "Client PARQ respinto dopo eccesso di violazioni riprova-dopo"
 
 msgid "PARQ upload slot limit overrides"
 msgstr ""
@@ -2040,7 +2041,7 @@ msgid "Message matched limits"
 msgstr ""
 
 msgid "Transient node"
-msgstr ""
+msgstr "Noto transitorio"
 
 msgid "Unusable Pong"
 msgstr "Pong inusabile"
@@ -2073,7 +2074,7 @@ msgid "Node shutting down"
 msgstr "Nodo in spegnimento"
 
 msgid "TX flow control"
-msgstr "Controllo flusso TX"
+msgstr "Controllo flusso in trasmissione"
 
 msgid "Query text had no trailing NUL"
 msgstr "Il testo della query non ha NUL ripetuti"
@@ -3156,7 +3157,7 @@ msgid ""
 msgstr "Dimensione del contenitore (buffer) di ricezione RX da usare per i nodi, in kbyte. Più il valore è piccolo più il corrispondente remoto controllerà il flusso a livello TCP/IP quando non si legge abbastanza velocemente, che è quello che si verifica limitando la banda in ingresso."
 
 msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
-msgstr ""
+msgstr "Dimensione del buffer del socket di trasmissione da usare per gli upload, in kibibytes"
 
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
@@ -6309,7 +6310,7 @@ msgid "Browse Host"
 msgstr "Sfoglia l'host"
 
 msgid "Browse host"
-msgstr ""
+msgstr "Sfoglia l'host"
 
 msgid "Busy"
 msgstr "Occupato"
@@ -7110,7 +7111,7 @@ msgid "Project leader:"
 msgstr "Leader del progetto:"
 
 msgid "Property browser"
-msgstr "Proprietà browser"
+msgstr "Elenco delle proprietà"
 
 msgid "Property pattern:"
 msgstr "Modello proprietà:"
@@ -7679,7 +7680,7 @@ msgid "_Add directory"
 msgstr "_Aggiungi cartella"
 
 msgid "_Browse"
-msgstr "_Sfoglia"
+msgstr "_Consulta"
 
 msgid "_Cancel"
 msgstr ""

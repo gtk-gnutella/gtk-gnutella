@@ -475,6 +475,7 @@ OWLIST_remove(OWLIST_T *list, void *data)
 
 	CHECK(list);
 	g_assert(data != NULL);
+	safety_assert(CONTAINS(list, data));
 
 	datalk = ptr_add_offset(data, list->offset);
 	prevlk = NULL;
@@ -596,7 +597,7 @@ OWLIST_foreach(const OWLIST_T *list, data_fn_t cb, void *data)
 	CHECK(list);
 	INVARIANT(list);
 	g_return_unless(cb != NULL);
-	safety_assert(LENGTH(lisst, list->head) == list->count);
+	safety_assert(LENGTH(list, list->head) == list->count);
 
 	for (lk = list->head; lk != NULL; lk = next) {
 		void *item = ptr_add_offset(lk, -list->offset);
@@ -628,7 +629,7 @@ OWLIST_foreach_remove(OWLIST_T *list, data_rm_fn_t cbr, void *data)
 	CHECK(list);
 	INVARIANT(list);
 	g_return_val_unless(cbr != NULL, 0);
-	safety_assert(LENGTH(list->head) == list->count);
+	safety_assert(LENGTH(list, list->head) == list->count);
 
 	for (lk = list->head, prev = NULL; lk != NULL; lk = next) {
 		void *item = ptr_add_offset(lk, -list->offset);

@@ -1191,8 +1191,10 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 
 	ZERO(&ctx);
 
-	if (NULL == n)
+	if (NULL == n) {
+		shared_file_slist_free_null(&files);
 		goto done;		/* G2 support was disabled whilst processing */
+	}
 
 	clamp_memcpy(&ctx.payload[1], sizeof ctx.payload - 1, muid, GUID_RAW_SIZE);
 	ctx.muid = muid;
@@ -1222,10 +1224,11 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 	}
 
 	sent = g2_build_qh2_process(files, &ctx);
-
-done:
 	pslist_free(files);
 
+	/* FALL THROUGH */
+
+done:
 	if (GNET_PROPERTY(g2_debug) > 3) {
 		g_debug("%s(): sent %d/%d hit%s in %d message%s to %s",
 			G_STRFUNC, sent, count, plural(sent),

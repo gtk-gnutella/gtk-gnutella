@@ -146,6 +146,10 @@ void shared_file_from_fileinfo(fileinfo_t *fi);
 bool shared_file_has_media_type(const shared_file_t *sf, unsigned m)
 	G_GNUC_PURE;
 
+struct pslist;
+
+void shared_file_slist_free_null(struct pslist **l_ptr);
+
 void share_add_partial(const shared_file_t *sf);
 void share_remove_partial(const shared_file_t *sf);
 void share_update_matching_information(void);

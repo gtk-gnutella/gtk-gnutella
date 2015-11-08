@@ -425,8 +425,8 @@ guint32  gnet_property_variable_max_ultrapeers     = 4;
 static const guint32  gnet_property_variable_max_ultrapeers_default = 4;
 guint32  gnet_property_variable_quick_connect_pool_size     = 40;
 static const guint32  gnet_property_variable_quick_connect_pool_size_default = 40;
-guint32  gnet_property_variable_max_leaves     = 150;
-static const guint32  gnet_property_variable_max_leaves_default = 150;
+guint32  gnet_property_variable_max_leaves     = 300;
+static const guint32  gnet_property_variable_max_leaves_default = 300;
 guint32  gnet_property_variable_search_handle_ignored_files     = 0;
 static const guint32  gnet_property_variable_search_handle_ignored_files_default = 0;
 prop_def_choice_t gnet_property_variable_search_handle_ignored_files_choices[] = { 
@@ -4986,7 +4986,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[183].name = "max_leaves";
-    gnet_property->props[183].desc = _("Maximum amount of leaves we can accept.  To be promoted Ultra, you should reserve 32 bytes of bandwidth per leaf.");
+    gnet_property->props[183].desc = _("Maximum amount of leaves we can accept.  To be promoted Ultra, you should reserve 32 bytes/sec of bandwidth per leaf.");
     gnet_property->props[183].ev_changed = event_new("max_leaves_changed");
     gnet_property->props[183].save = TRUE;
     gnet_property->props[183].internal = FALSE;
@@ -4998,7 +4998,7 @@ gnet_prop_init(void) {
     gnet_property->props[183].data.guint32.def   = (void *) &gnet_property_variable_max_leaves_default;
     gnet_property->props[183].data.guint32.value = (void *) &gnet_property_variable_max_leaves;
     gnet_property->props[183].data.guint32.choices = NULL;
-    gnet_property->props[183].data.guint32.max   = 1000;
+    gnet_property->props[183].data.guint32.max   = 5000;
     gnet_property->props[183].data.guint32.min   = 25;
 
 

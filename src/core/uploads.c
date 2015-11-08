@@ -3238,6 +3238,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		shared_file_t *sfn;
 		
 		if (spam_sha1_check(&sha1)) {
+			shared_file_unref(&sf);
 			goto not_found;
 		}
 
@@ -3286,8 +3287,10 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		 *		--RAM, 2012-11-12
 		 */
 
-		if (SHARE_REBUILDING == sfn)
+		if (SHARE_REBUILDING == sfn) {
+			shared_file_unref(&sf);
 			goto library_rebuilt;
+		}
 
 		if (sfn && sf != sfn) {
 			char location[1024];
@@ -3323,7 +3326,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 			}
 
 			/*
-			 * Be nice for PFSP as well.  They must have learned about
+			 * Be nice for PFSP as well.  They must have learnt about
 			 * this from an alt-loc, and alt-locs we emit for those partially
 			 * shared files are URNs.  Why did they request it by name?
 			 *		--RAM, 12/10/2003
@@ -3349,6 +3352,12 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 			if (escaped != shared_file_name_nfc(sfn)) {
 				HFREE_NULL(escaped);
 			}
+
+			/*
+			 * By setting u->sf to the new location, we allow the HTTP
+			 * reply to include the SHA1 of the file as well as some
+			 * alternate locations. See send_upload_error_v().
+			 */
 
 			shared_file_unref(&sf);
 			u->sf = sfn;

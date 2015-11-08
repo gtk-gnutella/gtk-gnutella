@@ -425,8 +425,19 @@ elist_remove(elist_t *list, void *data)
 
 	elist_check(list);
 	g_assert(data != NULL);
+	safety_assert(elist_contains(list, data));
 
 	lk = ptr_add_offset(data, list->offset);
+
+	/*
+	 * Low-cost version of elist_contains(): since we're removing an item,
+	 * it has to be part of some list, hence either "prev" is not NULL or
+	 * the item is the head of the list.  Same reasonning for "next".
+	 */
+
+	g_assert(lk->prev != NULL || list->head == lk);
+	g_assert(lk->next != NULL || list->tail == lk);
+
 	elist_link_remove_internal(list, lk, TRUE);
 }
 

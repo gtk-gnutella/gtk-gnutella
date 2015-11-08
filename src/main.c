@@ -1753,20 +1753,9 @@ static const char **main_env;
 char *
 main_command_line(void)
 {
-	str_t *s;
-	int i;
-
 	g_assert(main_argv != NULL);		/* gm_dupmain() called */
 
-	s = str_new(1024);
-
-	for (i = 0; i < main_argc; i++) {
-		if (i != 0)
-			str_putc(s, ' ');
-		str_cat(s, main_argv[i]);
-	}
-
-	return str_s2c_null(&s);
+	return h_strjoinv(" ", (char **) main_argv);
 }
 
 #ifndef GTA_PATCHLEVEL

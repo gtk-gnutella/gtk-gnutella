@@ -284,6 +284,33 @@ elist_prev_data(const elist_t *list, const void *p)
 		deconstify_pointer(const_ptr_add_offset(lk->prev, -list->offset));
 }
 
+/**
+ * For assertions, check whether item is a member of the list.
+ *
+ * @attention
+ * This is very inefficient, as it needs to traverse the whole list, possibly.
+ * It only needs to be called when debugging.
+ */
+static inline bool
+elist_contains(const elist_t *list, const void *p)
+{
+	const link_t *l, *lk;
+
+	elist_check(list);
+	g_assert(p != NULL);
+
+	lk = const_ptr_add_offset(p, list->offset);
+	l = list->head;
+
+	while (l != NULL) {
+		if G_UNLIKELY(l == lk)
+			return TRUE;
+		l = l->next;
+	}
+
+	return FALSE;
+}
+
 void elist_init(elist_t *list, size_t offset);
 void elist_discard(elist_t *list);
 void elist_clear(elist_t *list);

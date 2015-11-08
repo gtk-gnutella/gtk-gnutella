@@ -88,6 +88,7 @@ struct evq_event {
 	uint cancelable:1;			/**< Whether event will be evq_cancel()ed */
 	uint cancelled:1;			/**< Whether they called evq_cancel() */
 	link_t lk;					/**< Links all events for given thread */
+	uint64 qid;					/**< Queue ID where event was put */
 };
 
 static inline void
@@ -106,6 +107,7 @@ struct evq {
 	enum evq_magic magic;		/**< Magic number */
 	uint stid;					/**< Thread where event queue runs */
 	int refcnt;					/**< Reference count */
+	uint64 qid;					/**< Queue ID */
 	elist_t events;				/**< Events registered for this thread */
 	elist_t triggered;			/**< Events triggered for this thread */
 	mutex_t lock;				/**< Thread-safety for queue changes */
@@ -130,6 +132,7 @@ static tm_t evq_sleep_end;				/**< Expected wake-up time */
 static bool evq_run;					/**< Whether evq thread should run */
 static bool evq_fully_inited;			/**< Set when init fully done */
 static bool evq_running;				/**< Set when evq thread running */
+static uint64 evq_queue_id;				/**< Unique queue ID generator */
 
 #define EVQ_GLOBAL_LOCK		spinlock(&evq_global_slk)
 #define EVQ_GLOBAL_UNLOCK	spinunlock(&evq_global_slk)
@@ -390,9 +393,10 @@ evq_event_free(struct evq_event *eve)
 	evq_event_check(eve);
 
 	if (evq_debugging(2)) {
-		s_debug("%s(): freeing %s(%p), refcnt=%d",
-			G_STRFUNC, stacktrace_function_name(eve->cb),
-			eve->arg, eve->refcnt);
+		s_debug("%s(): freeing %s%s(%p), refcnt=%d",
+			G_STRFUNC, eve->cancelable ? "cancelable " : "",
+			stacktrace_function_name(eve->cb), eve->arg,
+			atomic_int_get(&eve->refcnt));
 	}
 
 	/*
@@ -420,11 +424,59 @@ evq_event_discard(void *data, void *udata)
 
 	evq_event_check(eve);
 
-	s_warning("%s(): discarding %s event %s(%p) for %s",
-		G_STRFUNC, what, stacktrace_function_name(eve->cb), eve->arg,
-		thread_id_name(eve->stid));
+	/*
+	 * Do not warn when we're clearing an event in the event queue thread
+	 * itself, since the event queue thread can only disappear when we're
+	 * actually shutdowning the process.
+	 */
 
-	evq_event_free(eve);
+	if (eve->stid != evq_thread_id) {
+		s_warning("%s(): discarding %s %sevent %s(%p) for %s",
+			G_STRFUNC, what, eve->cancelable ? "cancelable " : "",
+			stacktrace_function_name(eve->cb), eve->arg,
+			thread_id_name(eve->stid));
+
+		/*
+		 * If the event is cancelable and has not fired yet, it won't be
+		 * able to be cancelled by the thread, since that thread is exiting!
+		 */
+
+		if (eve->cancelable) {
+			g_assert_log(thread_small_id() == eve->stid,
+				"%s(): in %s, but event recorded by %s",
+				G_STRFUNC, thread_name(), thread_id_name(eve->stid));
+
+			if (ev_queue != NULL)
+				cq_cancel(&eve->ev);
+
+			/*
+			 * An extra reference was taken for the cancelable event.
+			 *
+			 * Because we've dropped the event queue from the thread, a
+			 * concurrent evq_trampoline() call will not enter its main
+			 * processing part and will simply decrement the reference
+			 * count, freeing the event when it drops to 0.
+			 *
+			 * As such, there is no need to flag the event as "cancelled",
+			 * but we have to remove the extra reference to be able to
+			 * free the event, either here or in evq_trampoline().
+			 */
+
+			atomic_int_dec(&eve->refcnt);
+		}
+	}
+
+	/*
+	 * When closing down the event queue thread, there is no risk of any
+	 * concurrent scheduling of the event, so we can free the event regardless
+	 * of its reference count.
+	 */
+
+	if G_LIKELY(
+		atomic_int_dec_is_zero(&eve->refcnt) ||
+		eve->stid == evq_thread_id	/* Shutting down, event cannot trigger */
+	)
+		evq_event_free(eve);
 }
 
 /**
@@ -584,11 +636,17 @@ evq_local_init(uint id)
 
 	/*
 	 * Create the queue and register cleanup, when the thread exits.
+	 *
+	 * We associate a unique queue ID to each queue in order to verify,
+	 * when the event triggers and is processed, that it really belongs
+	 * to the current queue for the thread and not to a previous queue
+	 * installed for the same thread ID.
 	 */
 
 	q = evq_alloc(id);
 
 	EVQ_ARRAY_LOCK;
+	q->qid = evq_queue_id++;		/* Updated under lock protection */
 	g_assert(NULL == evqs[id]);
 	evqs[id] = q;
 	EVQ_ARRAY_UNLOCK;
@@ -632,6 +690,14 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	cq_zero(cq, &eve->ev);			/* Callback fired */
 
 	/*
+	 * We need the cq_cancel() on top of cq_zero() above because that
+	 * callout queue event is an extended one (created by a thread other
+	 * than the one running the callout queue).
+	 */
+
+	cq_cancel(&eve->ev);			/* Clear event */
+
+	/*
 	 * Now that the callback fired, it can no longer be cancelled by
 	 * the issuer.  However, we need to dispatch it to the proper thread.
 	 */
@@ -640,9 +706,42 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	q = evq_get(id);
 
 	if G_UNLIKELY(NULL == q) {
-		s_critical_once_per(LOG_PERIOD_SECOND,
-			"%s(): local queue missing for %s, cannot dispatch events",
-			G_STRFUNC, thread_id_name(eve->stid));
+		const char *tname = thread_id_name(eve->stid);
+
+		/*
+		 * Since thread_id_name() uses stacktrace_function_name() which
+		 * returns a pointer to static data, we need to call the former
+		 * first, which will copy the output of stacktrace_function_name()
+		 * to a thread-private buffer.
+		 *
+		 * We cannot call both routines as part of the argument list for
+		 * s_critical_once_per() since we cannot know the evaluation order
+		 * chosen by the compiler.  We force that order by doing an explicit
+		 * computation in the order we want for results to be correct.
+		 */
+
+		s_warning("%s(): queue gone in %s, cannot dispatch %s(%p)",
+			G_STRFUNC, tname, stacktrace_function_name(eve->cb), eve->arg);
+
+		evq_event_check(eve);	/* Since no queue locked, ensure still valid */
+
+		if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
+			evq_event_free(eve);
+
+		return;
+	}
+
+	/*
+	 * If the event queue ID does not match that of the queue installed for
+	 * the thread, it means we hit a race condition and are processing an
+	 * old obsolete event -- the old queue is gone so we can blindly free
+	 * that event that nobody can refer now.
+	 */
+
+	if G_UNLIKELY(eve->qid != q->qid) {
+		s_warning("%s(): ignoring obsolete %s(%p) event",
+			G_STRFUNC, stacktrace_function_name(eve->cb), eve->arg);
+		evq_event_free(eve);
 		return;
 	}
 
@@ -657,6 +756,8 @@ evq_trampoline(cqueue_t *cq, void *obj)
 
 	mutex_lock(&q->lock);
 
+	elist_remove(&q->events, eve);		/* Event triggered */
+
 	/*
 	 * An event could be concurrently cancelled by the registering thread
 	 * and at the same time dispatched by the callout queue.  In that case,
@@ -664,22 +765,15 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	 */
 
 	if G_UNLIKELY(2 == atomic_int_dec(&eve->refcnt) && eve->cancelable) {
-		elist_remove(&q->events, eve);
 		mutex_unlock(&q->lock);
 		evq_event_free(eve);
 		goto done;
 	}
 
 	/*
-	 * If the user keeps a pointer to the event, clear it as we can no longer
-	 * cancel this event now that it has fired.
-	 *
-	 * If the user chose to not keep a pointer to the event, it cannot cancel
-	 * it anyway and has no reference to that structure.
+	 * Event will be handled by the signal handler.
 	 */
 
-	cq_cancel(&eve->ev);				/* Clear event */
-	elist_remove(&q->events, eve);
 	elist_append(&q->triggered, eve);
 
 	/*
@@ -701,7 +795,7 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	if (-1 == thread_kill(id, TSIG_EVQ)) {
 		s_critical_once_per(LOG_PERIOD_SECOND,
 			"%s(): cannot send TSIG_EVQ to %s: %m",
-			G_STRFUNC, thread_id_name(eve->stid));
+			G_STRFUNC, thread_id_name(id));
 	}
 
 done:
@@ -790,10 +884,17 @@ evq_add(int delay, notify_fn_t fn, const void *arg, bool cancelable)
 	 *
 	 * The registered callout queue event will trigger the event through
 	 * the trampoline to redirect the call to the proper thread.
+	 *
+	 * The event is associated with the current queue ID of the targeted
+	 * thread to avoid any race condition later on: the thread processing
+	 * the callout queue could decide to trigger the event, and at the same
+	 * time the old thread could disappear and a new thread replace it with
+	 * another queue!
 	 */
 
 	eve = evq_event_alloc(id, fn, arg);
 	eve->cancelable = booleanize(cancelable);
+	eve->qid = q->qid;
 
 	eve->refcnt++;		/* Now about to be referenced by callout queue */
 

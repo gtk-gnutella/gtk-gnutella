@@ -768,19 +768,20 @@ settings_init(void)
 {
 	uint64 memory = getphysmemsize();
 	uint64 amount = memory / 1024;
+	uint64 maxvm = amount;
 	long cpus = getcpucount();
 	uint max_fd;
 	time_t session_start = 0;
 
 	settings_init_running = TRUE;
 
-#if defined(HAS_GETRLIMIT) && defined(RLIMIT_DATA)
+#if defined(HAS_GETRLIMIT) && defined(RLIMIT_AS)
 	{
 		struct rlimit lim;
 	
-		if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
-			uint32 maxdata = lim.rlim_cur / 1024;
-			amount = MIN(amount, maxdata);		/* For our purposes */
+		if (-1 != getrlimit(RLIMIT_AS, &lim)) {
+			maxvm = lim.rlim_max / 1024;
+			amount = MIN(amount, maxvm);		/* For our purposes */
 		}
 	}
 #endif /* HAS_GETRLIIT && RLIMIT_DATA */
@@ -882,7 +883,7 @@ settings_init(void)
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",
-			short_kb_size(amount, GNET_PROPERTY(display_metric_units)));
+			short_kb_size(maxvm, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use %u file descriptors", max_fd);
 		g_info("max I/O vector size is %d items", MAX_IOV_COUNT);
 		g_info("virtual memory page size is %zu bytes", compat_pagesize());
