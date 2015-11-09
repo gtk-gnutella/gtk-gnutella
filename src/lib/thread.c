@@ -7629,8 +7629,20 @@ thread_launch(struct thread_element *te,
 		}
 	}
 
-	if (thread_stack_noinit)
-		pthread_attr_setstacksize(&attr, stacksize + thread_pagesize);
+	if (thread_stack_noinit) {
+		error = pthread_attr_setstacksize(&attr, stacksize + thread_pagesize);
+		if (error != 0) {
+			static bool warned;
+
+			if (ENOSYS == (errno = error) && !warned) {
+				warned = TRUE;
+				s_rawwarn("%s(): pthread_attr_setstacksize(): %m", G_STRFUNC);
+			} else {
+				s_error("%s(): cannot set thread stack to %'zu bytes: %m",
+					G_STRFUNC, stacksize + thread_pagesize);
+			}
+		}
+	}
 
 	/*
 	 * We always create joinable threads to be able to cleanup the allocated
