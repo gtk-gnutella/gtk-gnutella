@@ -3165,19 +3165,42 @@ thread_get_private_hash(struct thread_element *te)
 }
 
 /**
+ * Conpute stack usage for given thread.
+ *
+ * @param stid		the thread for which we want to compute usage
+ * @param sp		a stack pointer that ought to belong to the thread stack
+ *
+ * @return thread stack usage given thread ID, 0 if stid is invalid.
+ */
+size_t
+thread_id_stack_used(uint stid,  const void *sp)
+{
+	struct thread_element *te;
+	static void *base;
+
+	if (stid >= THREAD_MAX)
+		return 0;
+
+	te = threads[stid];
+	if (NULL == te || !te->valid)
+		return 0;
+
+	base = ulong_to_pointer(te->low_qid << thread_pageshift);
+	if (thread_sp_direction < 0)
+		base = ptr_add_offset(base, (1 << thread_pageshift));
+
+	return thread_stack_ptr_offset(base, sp);
+}
+
+/**
  * @return current thread stack usage.
  */
 size_t
 thread_stack_used(void)
 {
 	struct thread_element *te = thread_get_element();
-	static void *base;
 
-	base = ulong_to_pointer(te->low_qid << thread_pageshift);
-	if (thread_sp_direction < 0)
-		base = ptr_add_offset(base, (1 << thread_pageshift));
-
-	return thread_stack_ptr_offset(base, &te);
+	return thread_id_stack_used(te->stid, &te);
 }
 
 /**

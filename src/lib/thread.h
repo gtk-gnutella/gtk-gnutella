@@ -193,6 +193,7 @@ void thread_crash_mode(void);
 bool thread_is_crashing(void);
 bool thread_in_crash_mode(void);
 size_t thread_stack_used(void);
+size_t thread_id_stack_used(uint stid, const void *sp);
 void thread_stack_check_overflow(const void *va);
 
 size_t thread_suspend_others(bool lockwait);
