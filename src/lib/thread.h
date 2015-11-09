@@ -175,6 +175,7 @@ thread_t thread_current_element(const void **element);
 thread_qid_t thread_quasi_id(void);
 unsigned thread_small_id(void);
 unsigned thread_safe_small_id(void);
+unsigned thread_safe_small_id_sp(const void *sp);
 int thread_stid_from_thread(const thread_t t);
 const char *thread_to_string(const thread_t t);
 void thread_set_name(const char *name);

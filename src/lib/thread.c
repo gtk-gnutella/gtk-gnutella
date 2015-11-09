@@ -3351,6 +3351,50 @@ thread_qid_lookup(const void *sp)
 }
 
 /**
+ * Safely (but slowly) get the thread small ID from a stack pointer.
+ *
+ * This routine is intended to be used only by low-level debugging code
+ * since it can fail to locate a discovered thread.
+ *
+ * @param sp	the stack pointer of the thread for which we want the ID
+ *
+ * @return found thread ID, -2 on error (leaving -1 to mean "invalid").
+ */
+unsigned
+thread_safe_small_id_sp(const void *sp)
+{
+	struct thread_element *te;
+	thread_qid_t qid;
+
+	if G_UNLIKELY(thread_eq(THREAD_NONE, tstid[0]))
+		return 0;
+
+	/*
+	 * Look in the QID cache for a match.
+	 */
+
+	te = thread_qid_lookup(sp);
+	if G_LIKELY(NULL != te)
+		return te->stid;
+
+	/*
+	 * A light version of thread_find_via_qid() which does not update the QID
+	 * cache to avoid taking locks, since this code is invoked from spinlock().
+	 */
+
+	qid = thread_quasi_id_fast(sp);
+	te = thread_find_qid(qid);
+
+	if G_UNLIKELY(te != NULL && te->discovered && !te->main_thread)
+		te = NULL;		/* For discovered threads, this could be wrong */
+
+	if G_LIKELY(NULL != te)
+		return te->stid;
+
+	return THREAD_UNKNOWN_ID;	/* Error, cannot determine small thread ID */
+}
+
+/**
  * Safely (but slowly) get the thread small ID.
  *
  * This routine is intended to be used only by low-level debugging code
