@@ -2904,6 +2904,33 @@ mingw_log_meminfo(const void *p)
 	}
 }
 
+/**
+ * Compute the allocation start of a memory region.
+ *
+ * @param p		a pointer in the region for which we want the start
+ *
+ * @return the start of the allocated region, NULL if we cannot figure it out.
+ */
+void *
+mingw_memstart(const void *p)
+{
+	MEMORY_BASIC_INFORMATION mbi;
+	size_t res;
+	void *base = NULL;
+
+	ZERO(&mbi);
+
+	res = VirtualQuery(p, &mbi, sizeof mbi);
+	if (0 == res) {
+		errno = mingw_last_error();
+		s_rawwarn("%s(): VirtualQuery() failed for %p: %m", G_STRFUNC, p);
+	} else {
+		base = mbi.AllocationBase;
+	}
+
+	return base;
+}
+
 /***
  *** Random numbers.
  ***/
