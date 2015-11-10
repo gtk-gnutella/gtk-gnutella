@@ -109,6 +109,7 @@
 #define PROT_NONE	0x0
 #define PROT_READ	0x1
 #define PROT_WRITE	0x2
+#define PROT_GUARD	0x4		/* Windows-specific, see mingw_mprotect() */
 
 #define O_NONBLOCK 0
 
@@ -726,6 +727,8 @@ char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
 
 #else	/* !MINGW32 */
+
+#define PROT_GUARD		PROT_NONE		/* Guard pages are Windows-specific */
 
 #define mingw_early_init();
 #define mingw_vmm_post_init()

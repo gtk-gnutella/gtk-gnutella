@@ -2847,6 +2847,19 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	DWORD newProtect;
 	BOOL res;
 
+	/*
+	 * The PROT_GUARD is specific to Windows and is convenient to create
+	 * red-pages in stacks to detect overflows: given Windows does not
+	 * support an alternate signal stack, there is no way we could easily
+	 * detect a stack overflow without it and still be able to process it.
+	 *
+	 * A guard page will simply be protected as PROT_NONE but read-write
+	 * access will be restored after the first fault on it, which generates
+	 * an exception of type EXCEPTION_GUARD_PAGE.
+	 *
+	 *		--RAM, 2015-11-09
+	 */
+
 	switch (prot) {
 	case PROT_NONE:
 		newProtect = PAGE_NOACCESS;
@@ -2857,8 +2870,11 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	case PROT_READ | PROT_WRITE:
 		newProtect = PAGE_READWRITE;
 		break;
+	case PROT_GUARD:
+		newProtect = PAGE_READWRITE | PAGE_GUARD;
+		break;
 	default:
-		g_critical("mingw_mprotect(): unsupported protection flags 0x%x", prot);
+		s_critical("%s(): unsupported protection flags 0x%x", G_STRFUNC, prot);
 		res = EINVAL;
 		return -1;
 	}
@@ -5514,6 +5530,7 @@ mingw_exception_to_string(int code)
 	case EXCEPTION_PRIV_INSTRUCTION:		return "Privileged instruction";
 	case EXCEPTION_NONCONTINUABLE_EXCEPTION:return "Continued after exception";
 	case EXCEPTION_INVALID_DISPOSITION:		return "Invalid disposition";
+	case EXCEPTION_GUARD_PAGE:				return "Guard page hit";
 	default:								return "Unknown exception";
 	}
 }
