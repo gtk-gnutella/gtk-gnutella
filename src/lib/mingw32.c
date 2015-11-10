@@ -5561,12 +5561,12 @@ mingw_crash_record(int code, const void *pc,
  * Log reported exception.
  */
 static void G_GNUC_COLD
-mingw_exception_log(int code, const void *pc)
+mingw_exception_log(int stid, int code, const void *pc)
 {
-	DECLARE_STR(11);
+	DECLARE_STR(13);
 	char time_buf[CRASH_TIME_BUFLEN];
-	const char *name;
-	const char *file = NULL;
+	char buf[ULONG_DEC_BUFLEN];
+	const char *s, *name, *file = NULL;
 
 	crash_time(time_buf, sizeof time_buf);
 	name = stacktrace_routine_name(pc, TRUE);
@@ -5576,37 +5576,48 @@ mingw_exception_log(int code, const void *pc)
 	if (!stacktrace_pc_within_our_text(pc))
 		file = dl_util_get_path(pc);
 
-	print_str(time_buf);										/* 0 */
-	print_str(" (CRITICAL): received exception at PC=0x");		/* 1 */
-	print_str(pointer_to_string(pc));							/* 2 */
+	print_str(time_buf);								/* 0 */
+	print_str(" (CRITICAL-");							/* 1 */
+	if (stid < 0)
+		stid += 256;
+	s = PRINT_NUMBER(buf, stid);
+	print_str(s);										/* 2 */
+	print_str("): received exception at PC=0x");		/* 3 */
+	print_str(pointer_to_string(pc));					/* 4 */
 	if (name != NULL) {
-		print_str(" (");										/* 3 */
-		print_str(name);										/* 4 */
-		print_str(")");											/* 5 */
+		print_str(" (");								/* 5 */
+		print_str(name);								/* 6 */
+		print_str(")");									/* 7 */
 	}
 	if (file != NULL) {
-		print_str(" from ");									/* 6 */
-		print_str(file);										/* 7 */
+		print_str(" from ");							/* 8 */
+		print_str(file);								/* 9 */
 	}
-	print_str(": ");											/* 8 */
-	print_str(mingw_exception_to_string(code));					/* 9 */
-	print_str("\n");											/* 10 */
+	print_str(": ");									/* 10 */
+	print_str(mingw_exception_to_string(code));			/* 11 */
+	print_str("\n");									/* 12 */
 
 	FLUSH_ERR_STR();
 
-	if (EXCEPTION_STACK_OVERFLOW != UNSIGNED(code))
+	switch (code) {
+	case EXCEPTION_STACK_OVERFLOW:
+	case EXCEPTION_GUARD_PAGE:
+		break;
+	default:
 		mingw_crash_record(code, pc, name, file);
+	}
 }
 
 /**
  * Log extra information on memory faults.
  */
 static G_GNUC_COLD void
-mingw_memory_fault_log(const EXCEPTION_RECORD *er)
+mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 {
-	DECLARE_STR(6);
+	DECLARE_STR(8);
 	char time_buf[CRASH_TIME_BUFLEN];
-	const char *prot = "unknown";
+	char buf[ULONG_DEC_BUFLEN];
+	const char *s, *prot = "unknown";
 	const void *va = NULL;
 
 	if (er->NumberParameters >= 2) {
@@ -5620,12 +5631,17 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 
 	crash_time(time_buf, sizeof time_buf);
 
-	print_str(time_buf);							/* 0 */
-	print_str(" (CRITICAL): memory fault (");		/* 1 */
-	print_str(prot);								/* 2 */
-	print_str(") at VA=0x");						/* 3 */
-	print_str(pointer_to_string(va));				/* 4 */
-	print_str("\n");								/* 5 */
+	print_str(time_buf);				/* 0 */
+	print_str(" (CRITICAL-");			/* 1 */
+	if (stid < 0)
+		stid += 256;
+	s = PRINT_NUMBER(buf, stid);
+	print_str(s);						/* 2 */
+	print_str("): memory fault (");		/* 3 */
+	print_str(prot);					/* 4 */
+	print_str(") at VA=0x");			/* 5 */
+	print_str(pointer_to_string(va));	/* 6 */
+	print_str("\n");					/* 7 */
 
 	FLUSH_ERR_STR();
 
@@ -5657,121 +5673,37 @@ static G_GNUC_COLD LONG WINAPI
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
 	EXCEPTION_RECORD *er;
-	int signo = 0;
+	int stid, signo = 0;
+	const void *sp;
 
-	ATOMIC_INC(&in_exception_handler);	/* Never reset, we're crashing */
+	ATOMIC_INC(&in_exception_handler);
+
 	er = ei->ExceptionRecord;
+	sp = ulong_to_pointer(ei->ContextRecord->Esp);
 
-	/*
-	 * Don't use too much stack if we're facing a stack overflow.
-	 * We'll emit a short message below in that case.
-	 *
-	 * However, apparently the exceptions are delivered on a distinct stack.
-	 * It may be very samll, for all we know, so still be cautious.
-	 */
+	stid = thread_safe_small_id_sp(sp);		/* Should be safe to execute */
 
-	if (EXCEPTION_STACK_OVERFLOW != er->ExceptionCode)
-		mingw_exception_log(er->ExceptionCode, er->ExceptionAddress);
+	s_rawwarn("%s in thread #%d at pc=%p, sp=%p, current sp=%p",
+		mingw_exception_to_string(er->ExceptionCode),
+		stid, er->ExceptionAddress, sp, thread_sp());
+
+	mingw_exception_log(stid, er->ExceptionCode, er->ExceptionAddress);
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
 	case EXCEPTION_SINGLE_STEP:
 		signo = SIGTRAP;
 		break;
+	case EXCEPTION_GUARD_PAGE:
 	case EXCEPTION_STACK_OVERFLOW:
-		/*
-		 * With a stack overflow, we may not be able to continue very
-		 * far, so log the fact as soon as possible.
-		 */
-		{
-			char buf[ULONG_DEC_BUFLEN];
-			char ptr[POINTER_BUFLEN];
-			const char *s;
-			int stid;
-			size_t locks;
-			bool can_terminate = FALSE;
-			DECLARE_STR(5);
-
-			/*
-			 * Windows detects stack overflows by using a guard page at the
-			 * end of each thread stack.  Before invoking the exception handler,
-			 * it resets the guard page as read-write to give room to the thread
-			 * to process it.  However, if we overflow that page, we have no
-			 * protection and will overwrite memory belonging to... someone!
-			 *
-			 * This gives us enough room for our basic processing below.
-			 */
-
-			print_str("Got stack overflow -- crashing.\n");
-			FLUSH_ERR_STR();
-
-			stid = thread_safe_small_id();
-			if (stid < 0)
-				stid += 256;
-			s = PRINT_NUMBER(buf, stid);
-
-			rewind_str(0);
-			print_str("overflow in thread #");			/* 0 */
-			print_str(s);								/* 1 */
-			print_str(" at PC=0x");						/* 2 */
-			pointer_to_string_buf(er->ExceptionAddress, ptr, sizeof ptr);
-			print_str(ptr);								/* 3 */
-			print_str("\n");							/* 4 */
-			FLUSH_ERR_STR();
-
-			locks = thread_id_lock_count(stid);
-			if (locks != 0) {
-				s = PRINT_NUMBER(buf, locks);
-				rewind_str(0);
-				print_str("thread holds ");					/* 0 */
-				print_str(s);								/* 1 */
-				print_str(1 == locks ? " lock" : " locks");	/* 2 */
-				print_str("\n");							/* 3 */
-				FLUSH_ERR_STR();
-			}
-
-			s = PRINT_NUMBER(buf, thread_stack_used());
-			rewind_str(0);
-			print_str("thread used ");				/* 0 */
-			print_str(s);							/* 1 */
-			print_str(" bytes of stack");			/* 2 */
-			if (0 != stid) {
-				thread_info_t info;
-
-				thread_get_info(stid, &info);
-				can_terminate = !info.discovered;
-				if (can_terminate)
-					print_str(", will be killing it");	/* 3 */
-			}
-			print_str("\n");							/* 4 */
-			FLUSH_ERR_STR();
-
-			rewind_str(0);
-			print_str("attempting exception logging\n");	/* 0 */
-			FLUSH_ERR_STR();
-
-			mingw_exception_log(er->ExceptionCode, er->ExceptionAddress);
-
-			/*
-			 * Forcefully killing the thread is the least we can do.
-			 *
-			 * If it is holding locks, deadlocks are likely to occur
-			 * afterwards, but this is panic...
-			 */
-
-			if (can_terminate) {
-				rewind_str(0);
-				print_str("exiting from current thread\n");	/* 0 */
-				FLUSH_ERR_STR();
-
-				thread_exit(NULL);
-			}
-		}
+		ATOMIC_DEC(&in_exception_handler);	/* In case we thread_exit() */
+		thread_stack_check_overflow(sp);
+		ATOMIC_INC(&in_exception_handler);
 		signo = SIGSEGV;
 		break;
 	case EXCEPTION_ACCESS_VIOLATION:
 	case EXCEPTION_IN_PAGE_ERROR:
-		mingw_memory_fault_log(er);
+		mingw_memory_fault_log(stid, er);
 		/* FALL THROUGH */
 	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
 		signo = SIGSEGV;
@@ -5796,25 +5728,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		break;
 	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
 	case EXCEPTION_INVALID_DISPOSITION:
-		{
-			DECLARE_STR(1);
-
-			print_str("Got fatal exception -- crashing.\n");
-			FLUSH_ERR_STR();
-		}
+		s_rawwarn("got fatal exception -- crashing.");
 		break;
 	default:
-		{
-			char buf[ULONG_DEC_BUFLEN];
-			const char *s;
-			DECLARE_STR(3);
-
-			s = PRINT_NUMBER(buf, er->ExceptionCode);
-			print_str("Got unknown exception #");		/* 0 */
-			print_str(s);								/* 1 */
-			print_str(" -- crashing.\n");				/* 2 */
-			FLUSH_ERR_STR();
-		}
+		s_rawwarn("got unknown exception #%lu -- crashing.", er->ExceptionCode);
 		break;
 	}
 
@@ -5864,6 +5781,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 
 	if (signo != 0)
 		mingw_sigraise(signo);
+
+	ATOMIC_DEC(&in_exception_handler);
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
