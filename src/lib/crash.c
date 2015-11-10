@@ -368,6 +368,8 @@ crash_time_internal(char *buf, size_t size, bool cached)
 
 	if G_UNLIKELY(cached) {
 		tm_now_raw(&tv);
+		if (0 == tv.tv_sec)				/* Too soon to have cached copy? */
+			tm_current_time(&tv);		/* Get system value, no caching! */
 		loc = tm_localtime_raw();
 	} else {
 		tm_now_exact(&tv);
