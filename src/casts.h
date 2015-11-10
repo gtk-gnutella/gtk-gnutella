@@ -264,6 +264,17 @@ const_ptr_add_offset(const void *p, size_t offset)
 	return (const void *) ((size_t) p + offset);
 }
 
+/*
+ * Deconstify resulting pointer.
+ */
+static inline void * G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
+ptr_add_offset_const(const void *p, size_t offset)
+{
+	/* Using size_t instead of 'char *' because pointers don't wrap. */
+	return (void *) ((size_t) p + offset);
+}
+
+
 /**
  * Compare two generic pointers.
  */
