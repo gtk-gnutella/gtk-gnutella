@@ -1053,6 +1053,7 @@ static void *
 overflow_thread(void *arg)
 {
 	thread_signal(TSIG_OVFLOW, overflow_handler);
+	thread_set_name("overflow");
 
 	return int_to_pointer(overflow_routine(arg));
 }
