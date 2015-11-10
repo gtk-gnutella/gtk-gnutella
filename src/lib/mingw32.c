@@ -2875,6 +2875,35 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	return 0;	/* OK */
 }
 
+/**
+ * Log memory information about the memory region to which an address belongs.
+ *
+ * This is only useful when debugging problems on Windows at the lowest
+ * possible level.
+ *
+ * @param p		the address for which we want information
+ */
+void
+mingw_log_meminfo(const void *p)
+{
+	MEMORY_BASIC_INFORMATION mbi;
+	size_t res;
+
+	ZERO(&mbi);
+
+	res = VirtualQuery(p, &mbi, sizeof mbi);
+	if (0 == res) {
+		errno = mingw_last_error();
+		s_rawwarn("VirtualQuery() failed for %p: %m", p);
+	} else {
+		s_rawdebug("VirtualQuery(%p):", p);
+		s_rawdebug("\tBaseAddress: %p", mbi.BaseAddress);
+		s_rawdebug("\tAllocationBase: %p", mbi.AllocationBase);
+		s_rawdebug("\tRegionSize: %'lu", mbi.RegionSize);
+		s_rawdebug("\tAllocationProtect: 0x%lx", mbi.AllocationProtect);
+	}
+}
+
 /***
  *** Random numbers.
  ***/
