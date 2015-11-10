@@ -7448,6 +7448,8 @@ thread_launch_register(struct thread_element *te)
 	 */
 
 	if (NULL == stack) {
+		void *red;
+
 		stack = vmm_page_start(&t);
 
 		/*
@@ -7469,9 +7471,25 @@ thread_launch_register(struct thread_element *te)
 			/* Top address */
 			te->stack_base = deconstify_pointer(vmm_page_next(stack));
 			stack = const_ptr_add_offset(stack, -te->stack_size);
+			red = deconstify_pointer(stack);
 		} else {
 			/* Bottom address */
 			te->stack_base = deconstify_pointer(stack);
+			red = ptr_add_offset_const(stack, te->stack_size);
+		}
+
+		/*
+		 * Finally, protect the red page we're adding at the "top" of the stack
+		 * to detect stack overflows.  The PROT_GUARD constant is special:
+		 * it maps to PROT_NONE on UNIX systems, but requests the creation of
+		 * a guard page on Windows, which is convenient since Windows lacks
+		 * support for a signal alternate stack!
+		 *		--RAM, 2015-11-09
+		 */
+
+		if (-1 == mprotect(red, thread_pagesize, PROT_GUARD)) {
+			s_rawwarn("%s(): mprotect() red-zone page at %p for thread #%u: %m",
+				G_STRFUNC, red, te->stid);
 		}
 	}
 
