@@ -552,6 +552,7 @@ main(int argc, char **argv)
 	progpath = argv[0];
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	stacktrace_init(argv[0], FALSE);
+	log_show_pid(TRUE);
 
 	misc_init();
 
