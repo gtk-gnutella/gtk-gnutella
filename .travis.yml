@@ -33,6 +33,9 @@ script:
   # Not critical since gtk-gnutella is not using thread_fork() currently.
   #		--RAM, 2015-02-22
   - src/lib/thread-test -ABCDEIKMNOPQRSVWX -T1 -c2 -z player,test_signals
+  - src/lib/launch-test
+  - src/lib/spopen-test
+  - src/lib/spopen-test -r foo
 
 after_script:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then for f in ~/Desktop/*dmg; do curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T $f ;done ;fi
