@@ -70,14 +70,13 @@ frand_save(const char *path, randfill_fn_t rfn, size_t len)
 		(*rfn)(buf, n);
 		w = write(fd, buf, n);
 		if (-1 == w)
-			goto done;
+			break;
 		written += w;
 		if (UNSIGNED(w) != n)
-			goto done;
+			break;
 		len -= n;
 	}
 
-done:
 	ZERO(buf);		/* Leave no memory trail */
 	close(fd);
 	return written;
@@ -111,15 +110,14 @@ frand_restore(const char *path, feed_fn_t rfd, size_t len)
 
 		r = read(fd, buf, n);
 		if (-1 == r)
-			goto done;
+			break;
 		bytes_read += r;
 		(*rfd)(buf, r);
 		if (UNSIGNED(r) != n)
-			goto done;
+			break;
 		len -= n;
 	}
 
-done:
 	ZERO(buf);		/* Leave no memory trail */
 	close(fd);
 	return bytes_read;
