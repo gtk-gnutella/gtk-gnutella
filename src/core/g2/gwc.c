@@ -603,7 +603,7 @@ gwc_parse_context_set(void *handle, int maxlines)
  */
 static void
 gwc_parse_dispatch_lines(void *handle, const char *buf, size_t len,
-		gwc_parse_dispatch_t cb, gwc_parse_eof_t eof)
+		gwc_parse_dispatch_t cb, gwc_parse_eof_t eof_cb)
 {
 	struct gwc_parse_context *ctx;
 	const char *p = buf;
@@ -619,8 +619,8 @@ gwc_parse_dispatch_lines(void *handle, const char *buf, size_t len,
 	g_assert(ctx->handle == handle);	/* Make sure it's the right context */
 
 	if (len == 0) {						/* Nothing to parse, got EOF */
-		if (eof)
-			(*eof)(ctx);
+		if (eof_cb != NULL)
+			(*eof_cb)(ctx);
 		return;
 	}
 
