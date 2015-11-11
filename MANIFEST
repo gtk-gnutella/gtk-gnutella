@@ -834,8 +834,6 @@ src/lib/ipset.c
 src/lib/ipset.h
 src/lib/iso3166.c
 src/lib/iso3166.h
-src/lib/jq.c
-src/lib/jq.h
 src/lib/launch-test.c
 src/lib/launch.c
 src/lib/launch.h
