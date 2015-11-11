@@ -38,6 +38,7 @@
 #include "frand.h"
 
 #include "file.h"
+#include "random.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -75,6 +76,60 @@ frand_save(const char *path, randfill_fn_t rfn, size_t len)
 		if (UNSIGNED(w) != n)
 			break;
 		len -= n;
+	}
+
+	ZERO(buf);		/* Leave no memory trail */
+	close(fd);
+	return written;
+}
+
+/**
+ * Use specified random filler to merge randomness into existing file content.
+ *
+ * @param path		pathname where random data should be merged
+ * @param rfn		random number buffer-filling routine to use
+ * @param len		amount of random bytes to generate
+ *
+ * @return the amount of bytes generated if OK, a short count or -1 on error,
+ * with errno set.
+ */
+ssize_t
+frand_merge(const char *path, randfill_fn_t rfn, size_t len)
+{
+	char buf[256], data[256];
+	int fd;
+	ssize_t written = 0;
+	fileoffset_t pos = 0;
+
+	fd = file_create(path, O_RDWR, S_IRUSR | S_IWUSR);
+
+	if (-1 == fd)
+		return -1;
+
+	STATIC_ASSERT(G_N_ELEMENTS(buf) == G_N_ELEMENTS(data));
+	STATIC_ASSERT(G_N_ELEMENTS(buf) == sizeof buf);
+
+	while (len != 0) {
+		size_t i, n = MIN(len, sizeof buf);
+		ssize_t r, w;
+
+		(*rfn)(buf, n);
+		r = read(fd, data, n);
+		if (-1 == r)
+			break;
+		for (i = 0; i < n; i++)
+			buf[i] ^= data[i];
+		r = lseek(fd, pos, SEEK_SET);
+		if (-1 == r)
+			break;
+		w = write(fd, buf, n);
+		if (-1 == w)
+			break;
+		written += w;
+		if (UNSIGNED(w) != n)
+			break;
+		len -= n;
+		pos += n;
 	}
 
 	ZERO(buf);		/* Leave no memory trail */
@@ -124,15 +179,6 @@ frand_restore(const char *path, feed_fn_t rfd, size_t len)
 }
 
 /**
- * Zeroes specified buffer.
- */
-static void
-frand_zeroes(void *p, size_t len)
-{
-	memset(p, 0, len);
-}
-
-/**
  * Clear the leading bytes of specified file.
  *
  * @param path		pathname where random data are stored
@@ -144,7 +190,7 @@ frand_zeroes(void *p, size_t len)
 ssize_t
 frand_clear(const char *path, size_t len)
 {
-	return frand_save(path, frand_zeroes, len);
+	return frand_save(path, random_strong_bytes, len);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
