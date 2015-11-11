@@ -563,10 +563,13 @@ settings_random_save(bool verbose)
 	ssize_t saved;
 
 	file = make_pathname(config_dir, randseed);
-	saved = frand_save(file, aje_random_bytes, SETTINGS_RANDOM_SEED);
+	saved = frand_merge(file, aje_random_bytes, SETTINGS_RANDOM_SEED);
 
 	if (-1 == saved) {
 		g_warning("could not save random data into %s: %m", file);
+	} else if (saved != SETTINGS_RANDOM_SEED) {
+		g_warning("saved only %zd random byte%s into %s, expected %d: %m",
+			saved, plural(saved), file, SETTINGS_RANDOM_SEED);
 	} else if (verbose) {
 		g_info("saved %zd random byte%s into %s", saved, plural(saved), file);
 	}
