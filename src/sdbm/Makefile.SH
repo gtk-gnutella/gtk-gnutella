@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-196]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -85,6 +85,7 @@ all:: .FORCE_DEPEND
 
 SRC = \
 	big.c \
+	chkpage.c \
 	hash.c \
 	loose.c \
 	lru.c \
@@ -94,6 +95,7 @@ SRC = \
 
 OBJ = \
 	big.o \
+	chkpage.o \
 	hash.o \
 	loose.o \
 	lru.o \
@@ -178,11 +180,7 @@ dbu dbe dbt: libsdbm.a
 	cd ../lib; $(MAKE) libshared.a
 	@echo "Continuing in $(CURRENT)..."
 
-dbu:  ../lib/libshared.a
-
-dbe:  ../lib/libshared.a
-
-dbt:  ../lib/libshared.a
+dba dbu dbe dbt:  ../lib/libshared.a
 
 all:: dba
 

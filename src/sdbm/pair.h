@@ -17,6 +17,39 @@
 #define paircount sdbm__paircount
 #define readpairv sdbm__readpairv
 
+#define INO(p)		((unsigned short *) (p))
+#define INO_MAX		(DBM_PBLKSIZ / sizeof(unsigned short) - 1)
+
+#define BIG_FLAG	(1 << 15)
+#define BIG_MASK	(BIG_FLAG - 1)
+
+#ifdef BIGDATA
+static inline ALWAYS_INLINE unsigned short
+poffset(unsigned short off)
+{
+	return off & BIG_MASK;
+}
+
+static inline ALWAYS_INLINE bool
+is_big(unsigned short off)
+{
+	return booleanize(off & BIG_FLAG);
+}
+#else	/* !BIGDATA */
+static inline ALWAYS_INLINE unsigned short
+poffset(unsigned short off)
+{
+	return off;
+}
+
+static inline ALWAYS_INLINE bool
+is_big(unsigned short off)
+{
+	(void) off;
+	return FALSE;
+}
+#endif	/* BIGDATA */
+
 /**
  * Description of an SDBM pair, filled by readpairv.
  */

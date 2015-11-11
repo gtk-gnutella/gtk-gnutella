@@ -25,6 +25,7 @@
 
 SRC = \
 	big.c \
+	chkpage.c \
 	hash.c \
 	loose.c \
 	lru.c \
@@ -93,9 +94,7 @@ LDFLAGS =
 LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
 dbu dbe dbt: libsdbm.a
-RemoteTargetDependency(dbu, ../lib, libshared.a)
-RemoteTargetDependency(dbe, ../lib, libshared.a)
-RemoteTargetDependency(dbt, ../lib, libshared.a)
+RemoteTargetDependency(dba dbu dbe dbt, ../lib, libshared.a)
 
 NormalProgramTarget(dba, $(DBA_SRC), $(DBA_OBJ))
 NormalProgramTarget(dbu, $(DBU_SRC), $(DBU_OBJ))

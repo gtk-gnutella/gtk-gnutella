@@ -120,7 +120,7 @@ int sdbm_refcnt(const DBM *db);
  * Internal routines with clean semantics that can be used by user code.
  * These are not documented.
  */
-bool sdbm_internal_chkpage(const char *);
+bool sdbm_chkpage(const char *);
 void sdbm_warn_if_not_separate(const DBM *db, const char *caller);
 
 /*

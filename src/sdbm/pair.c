@@ -58,9 +58,6 @@
 #define MODIFY(d,p)
 #endif	/* LRU */
 
-#define INO(p)		((unsigned short *) (p))
-#define INO_MAX		(DBM_PBLKSIZ / sizeof(unsigned short) - 1)
-
 /*
  * To accommodate larger key/values (that would otherwise not
  * fit within a page), the leading bit of each offset is set
@@ -79,21 +76,7 @@
  *		--RAM, 2015-10-29
  */
 
-#define BIG_FLAG	(1 << 15)
-#define BIG_MASK	(BIG_FLAG - 1)
-
 #ifdef BIGDATA
-static inline ALWAYS_INLINE unsigned short
-offset(unsigned short off)
-{
-	return off & BIG_MASK;
-}
-
-static inline ALWAYS_INLINE bool
-is_big(unsigned short off)
-{
-	return booleanize(off & BIG_FLAG);
-}
 static inline ALWAYS_INLINE long
 exhash_big(DBM *db, const datum item, bool big, bool *failed)
 {
@@ -103,18 +86,6 @@ exhash_big(DBM *db, const datum item, bool big, bool *failed)
 	return sdbm_hash(item.dptr, item.dsize);
 }
 #else	/* !BIGDATA */
-static inline ALWAYS_INLINE unsigned short
-offset(unsigned short off)
-{
-	return off;
-}
-
-static inline ALWAYS_INLINE bool
-is_big(unsigned short off)
-{
-	(void) off;
-	return FALSE;
-}
 static inline ALWAYS_INLINE long
 exhash_big(DBM *db, const datum item, bool big, bool *failed)
 {
@@ -238,8 +209,8 @@ pair_kv_invalid(const DBM *db, const char *pag, int i, const char *reason)
 	if (i >= 1 && UNSIGNED(i) < MIN(n, (INO_MAX - 1))) {
 		s_debug("sdbm: \"%s\": pair #%d: %skey-offset=%u, %sval-offset=%u",
 			sdbm_name(db), i,
-			is_big(ino[i+0]) ? "big" : "", offset(ino[i+0]),
-			is_big(ino[i+1]) ? "big" : "", offset(ino[i+1]));
+			is_big(ino[i+0]) ? "big" : "", poffset(ino[i+0]),
+			is_big(ino[i+1]) ? "big" : "", poffset(ino[i+1]));
 	}
 
 	LRU_PAGE_LOG(db, pag);
@@ -335,14 +306,14 @@ pair_key_index_check(const DBM *db, const char *pag, int i)
 	if G_UNLIKELY(i <= 0 || UNSIGNED(i) > n || 0 == (i & 0x1))
 		goto bad_index;
 
-	koff = offset(ino[i]);
+	koff = poffset(ino[i]);
 
 	if G_UNLIKELY(!pair_offset_is_valid(koff, n)) {
 		what = "key offset out of range";
 		goto bad_offset;
 	}
 
-	voff = offset(ino[i+1]);
+	voff = poffset(ino[i+1]);
 
 	if G_UNLIKELY(voff > koff) {
 		what = VALKEY_INCONSISTENT;
@@ -383,7 +354,7 @@ fitpair(const DBM *db, const char *pag, size_t need)
 
 	g_return_val_unless(pair_count_check(db, pag), FALSE);
 
-	off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
+	off = ((n = ino[0]) > 0) ? poffset(ino[n]) : DBM_PBLKSIZ;
 	nfree = off - (n + 1) * sizeof(short);
 	need += 2 * sizeof(unsigned short);
 
@@ -429,7 +400,7 @@ replpair(DBM *db, char *pag, int i, datum val)
 		G_STRFUNC, i, ino[0], sdbm_name(db));
 
 	MODIFY(db, pag);
-	voff = offset(ino[i + 1]);
+	voff = poffset(ino[i + 1]);
 
 	g_return_val_unless(pair_offset_check(db, pag, voff), -1);
 
@@ -440,7 +411,7 @@ replpair(DBM *db, char *pag, int i, datum val)
 	(void) db;		/* Parameter unused if no BIGDATA */
 #endif
 
-	koff = offset(ino[i]);
+	koff = poffset(ino[i]);
 
 	g_return_val_unless(pair_offset_check(db, pag, koff), -1);
 	g_assert(koff - voff == val.dsize);
@@ -457,7 +428,7 @@ putpair_ext(const DBM *db, char *pag,
 	unsigned off;
 	unsigned short *ino = INO(pag);
 
-	off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
+	off = ((n = ino[0]) > 0) ? poffset(ino[n]) : DBM_PBLKSIZ;
 
 	/*
 	 * enter the key first
@@ -522,7 +493,7 @@ putpair(DBM *db, char *pag, datum key, datum val)
 		size_t vl;
 		bool largeval;
 
-		off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
+		off = ((n = ino[0]) > 0) ? poffset(ino[n]) : DBM_PBLKSIZ;
 
 		/*
 		 * Avoid large keys if possible since comparisons involve extra I/Os.
@@ -604,12 +575,12 @@ infopair(DBM *db, char *pag, datum key, size_t *length, int *idx, bool *big)
 
 	g_return_val_unless(pair_key_index_check(db, pag, i), FALSE);
 
-	dsize = offset(ino[i]) - offset(ino[i + 1]);
+	dsize = poffset(ino[i]) - poffset(ino[i + 1]);
 
 #ifdef BIGDATA
 	if (is_big(ino[i + 1])) {
 		g_assert(dsize >= sizeof(uint32));
-		dsize = big_length(pag + offset(ino[i + 1]));
+		dsize = big_length(pag + poffset(ino[i + 1]));
 	}
 #endif
 
@@ -639,8 +610,8 @@ getpair(DBM *db, char *pag, datum key)
 
 	g_return_val_unless(pair_key_index_check(db, pag, i), nullitem);
 
-	val.dptr = pag + offset(ino[i + 1]);
-	val.dsize = offset(ino[i]) - offset(ino[i + 1]);
+	val.dptr = pag + poffset(ino[i + 1]);
+	val.dsize = poffset(ino[i]) - poffset(ino[i + 1]);
 
 #ifdef BIGDATA
 	if (is_big(ino[i + 1])) {
@@ -673,8 +644,8 @@ getnval(DBM *db, const char *pag, int num)
 
 	g_return_val_unless(pair_key_index_check(db, pag, i), nullitem);
 
-	val.dptr = (char *) pag + offset(ino[i + 1]);
-	val.dsize = offset(ino[i]) - offset(ino[i + 1]);
+	val.dptr = (char *) pag + poffset(ino[i + 1]);
+	val.dsize = poffset(ino[i]) - poffset(ino[i + 1]);
 
 #ifdef BIGDATA
 	if (is_big(ino[i + 1])) {
@@ -725,10 +696,10 @@ getnkey(DBM *db, const char *pag, int num)
 
 	g_return_val_unless(pair_key_index_check(db, pag, i), nullitem);
 
-	off = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
+	off = (i > 1) ? poffset(ino[i - 1]) : DBM_PBLKSIZ;
 
-	key.dptr = (char *) pag + offset(ino[i]);
-	key.dsize = off - offset(ino[i]);
+	key.dptr = (char *) pag + poffset(ino[i]);
+	key.dsize = off - poffset(ino[i]);
 
 #ifdef BIGDATA
 	if (is_big(ino[i])) {
@@ -753,9 +724,9 @@ static bool
 delipair_big(DBM *db, char *pag, int i)
 {
 	unsigned short *ino = INO(pag);
-	unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
-	unsigned koff = offset(ino[i]);
-	unsigned voff = offset(ino[i+1]);
+	unsigned end = (i > 1) ? poffset(ino[i - 1]) : DBM_PBLKSIZ;
+	unsigned koff = poffset(ino[i]);
+	unsigned voff = poffset(ino[i+1]);
 	bool status = TRUE;
 
 	g_assert(0x1 == (i & 0x1));		/* Odd position in page */
@@ -809,8 +780,8 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 
 	if (i < n - 1) {
 		int m;
-		char *dst = pag + (i == 1 ? DBM_PBLKSIZ : offset(ino[i - 1]));
-		char *src = pag + offset(ino[i + 1]);
+		char *dst = pag + (i == 1 ? DBM_PBLKSIZ : poffset(ino[i - 1]));
+		char *src = pag + poffset(ino[i + 1]);
 		int   zoo = dst - src;
 
 		debug(("free-up %d ", zoo));
@@ -819,7 +790,7 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 		 * shift data/keys down
 		 */
 
-		m = offset(ino[i + 1]) - offset(ino[n]);
+		m = poffset(ino[i + 1]) - poffset(ino[n]);
 #ifdef DUFF
 #define MOVB 	*--dst = *--src
 
@@ -915,7 +886,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 	if (n <= 5 || 0 == siz) {
 		/* The original version is optimum for low n or zero-length keys */
 		for (i = 1; i < n; i += 2) {
-			unsigned short koff = offset(ino[i]);
+			unsigned short koff = poffset(ino[i]);
 			g_return_val_unless(pair_offset_check(db, pag, koff), 0);
 #ifdef BIGDATA
 			if (is_big(ino[i])) {
@@ -925,7 +896,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 #endif
 			if (siz == off - koff && 0 == memcmp(key, pag + koff, siz))
 				return i;
-			off = offset(ino[i + 1]);
+			off = poffset(ino[i + 1]);
 			g_return_val_unless(pair_offset_check(db, pag, off), 0);
 			if G_UNLIKELY(off > koff) {
 				pair_kv_invalid(db, pag, i, VALKEY_INCONSISTENT);
@@ -941,7 +912,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 	e = key[siz - 1];
 
 	for (i = 1; i < n; i += 2) {
-		unsigned short koff = offset(ino[i]);
+		unsigned short koff = poffset(ino[i]);
 		g_return_val_unless(pair_offset_check(db, pag, koff), 0);
 #ifdef BIGDATA
 		if (is_big(ino[i])) {
@@ -962,7 +933,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
 				}
 			}
 		}
-		off = offset(ino[i + 1]);
+		off = poffset(ino[i + 1]);
 		g_return_val_unless(pair_offset_check(db, pag, off), 0);
 		if G_UNLIKELY(off > koff) {
 			pair_kv_invalid(db, pag, i, "value offset > key offset");
@@ -1001,11 +972,11 @@ chkipair(DBM *db, char *pag, int i)
 
 #ifdef BIGDATA
 	{
-		unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
+		unsigned end = (i > 1) ? poffset(ino[i - 1]) : DBM_PBLKSIZ;
 		unsigned k = ino[i];
 		unsigned v = ino[i+1];
-		unsigned koff = offset(k);
-		unsigned voff = offset(v);
+		unsigned koff = poffset(k);
+		unsigned voff = poffset(v);
 
 		/* Check blocks used by large keys and values */
 
@@ -1021,7 +992,7 @@ chkipair(DBM *db, char *pag, int i)
 	}
 #else
 	{
-		if G_UNLIKELY(offset(ino[i+1]) > offset(ino[i]))
+		if G_UNLIKELY(poffset(ino[i+1]) > poffset(ino[i]))
 			return FALSE;
 	}
 #endif
@@ -1067,8 +1038,8 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 	n = ino[0];
 
 	for (ino++; n > 0; ino += 2) {
-		unsigned short koff = offset(ino[0]);
-		unsigned short voff = offset(ino[1]);
+		unsigned short koff = poffset(ino[0]);
+		unsigned short voff = poffset(ino[1]);
 		datum key, val;
 		bool bk = is_big(ino[0]);
 		bool failed;
@@ -1163,10 +1134,10 @@ readpairv(const DBM *db, const char *pag,
 	for (ino++, i = 0; n > 0 && i < vcnt; ino += 2, n -= 2, i++) {
 		struct sdbm_pair *v = &pv[i];
 
-		v->koff = offset(ino[0]);
+		v->koff = poffset(ino[0]);
 		v->klen = off - v->koff;
 		v->kbig = is_big(ino[0]);
-		v->voff = offset(ino[1]);
+		v->voff = poffset(ino[1]);
 		v->vlen = v->koff - v->voff;
 		v->vbig = is_big(ino[1]);
 
@@ -1181,54 +1152,6 @@ readpairv(const DBM *db, const char *pag,
 	}
 
 	return i;
-}
-
-/**
- * Check page sanity.
- */
-bool
-sdbm_internal_chkpage(const char *pag)
-{
-	unsigned n;
-	unsigned off;
-	const unsigned short *ino = INO(pag);
-
-	/*
-	 * This static assertion makes sure that the leading bit of the shorts
-	 * used for storing offsets will always remain clear with the current
-	 * DBM page size, so that it can safely be used as a marker to flag
-	 * big keys/values.
-	 */
-
-	STATIC_ASSERT(DBM_PBLKSIZ < 0x8000);
-
-	/*
-	 * number of entries should be something reasonable,
-	 * and all offsets in the index should be in order.
-	 * this could be made more rigorous.
-	 */
-
-	if G_UNLIKELY((n = ino[0]) > INO_MAX)
-		return FALSE;
-
-	if G_UNLIKELY(n & 0x1)
-		return FALSE;		/* Always a multiple of 2 */
-
-	if (n > 0) {
-		unsigned ino_end = (n + 1) * sizeof(unsigned short);
-		off = DBM_PBLKSIZ;
-		for (ino++; n > 0; ino += 2) {
-			unsigned short koff = offset(ino[0]);
-			unsigned short voff = offset(ino[1]);
-			if G_UNLIKELY(koff > off || voff > off || voff > koff)
-				return FALSE;
-			if G_UNLIKELY(koff < ino_end || voff < ino_end)
-				return FALSE;
-			off = voff;
-			n -= 2;
-		}
-	}
-	return TRUE;
 }
 
 /**
@@ -1254,8 +1177,8 @@ sdbm_page_dump_log(logagent_t *la, const DBM *db, const char *pag, long num)
 
 		for (ino++, p = 1; n != 0; ino += 2, p++) {
 			bool valid_koff = TRUE, valid_voff = TRUE;
-			unsigned short koff = offset(ino[0]);
-			unsigned short voff = offset(ino[1]);
+			unsigned short koff = poffset(ino[0]);
+			unsigned short voff = poffset(ino[1]);
 			bool is_big_key = is_big(ino[0]);
 			bool is_big_val = is_big(ino[1]);
 

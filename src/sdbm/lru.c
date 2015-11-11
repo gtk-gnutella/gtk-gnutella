@@ -1279,7 +1279,7 @@ cachepag(DBM *db, char *pag, long num)
 static bool
 lru_chkpage(DBM *db, char *pag, long num)
 {
-	if G_UNLIKELY(!sdbm_internal_chkpage(pag)) {
+	if G_UNLIKELY(!sdbm_chkpage(pag)) {
 		s_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
 			sdbm_name(db), num);
 		memset(pag, 0, DBM_PBLKSIZ);

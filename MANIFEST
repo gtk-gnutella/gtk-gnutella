@@ -1077,6 +1077,7 @@ src/sdbm/README.too
 src/sdbm/biblio
 src/sdbm/big.c
 src/sdbm/big.h
+src/sdbm/chkpage.c
 src/sdbm/dba.c
 src/sdbm/dbd.c
 src/sdbm/dbe.1

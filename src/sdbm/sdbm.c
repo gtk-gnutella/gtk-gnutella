@@ -2668,7 +2668,7 @@ sdbm_count(const DBM *db)
 		finished = n != SDBM_COUNT_PAGES;
 
 		for (pag = buf; n != 0; n--, pag = ptr_add_offset(pag, DBM_PBLKSIZ)) {
-			if (sdbm_internal_chkpage(pag))
+			if (sdbm_chkpage(pag))
 				count += paircount(pag);
 		}
 

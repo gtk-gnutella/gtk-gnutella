@@ -196,7 +196,7 @@ sdump(int pagf, long npag)
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		int lk, lv;
 		unsigned ks, vs;
-		bool is_bad = !sdbm_internal_chkpage(pag);
+		bool is_bad = !sdbm_chkpage(pag);
 		bool is_empty = page_is_empty(pag);
 
 		if (summary_only && 0 == n % 1000) show_progress(n, npag);
