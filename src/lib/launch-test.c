@@ -48,6 +48,7 @@
 #include "path.h"
 #include "stacktrace.h"
 #include "str.h"
+#include "stringify.h"
 #include "strtok.h"
 #include "thread.h"
 #include "walloc.h"
@@ -234,7 +235,9 @@ test_launchve(void)
 {
 	pid_t p;
 	char buf[128];
+	char pid_str[ULONG_DEC_BUFLEN];
 	const char *test = "t=plain,";
+	const char *ppid = ",ppid=";
 	const char *verb = verbose ? ",verb" : "";
 	char *envp[] = {
 		"a1=a1",
@@ -243,7 +246,10 @@ test_launchve(void)
 		NULL
 	};
 
-	concat_strings(buf, sizeof buf, test, "x.plain", verb, NULL_PTR);
+	str_bprintf(pid_str, sizeof pid_str, "%lu", (ulong) getpid());
+
+	concat_strings(buf, sizeof buf, test, "x.plain",
+		verb, ppid, pid_str, NULL_PTR);
 	p = verbose_launch(NULL, progpath, "-X", buf, NULL_PTR);
 	test_child_expect(p, TRUE);
 
@@ -320,8 +326,18 @@ static void
 x_launchve_plain(const htable_t *xv)
 {
 	if (x_wants(xv, "x.plain")) {
+		const char *p = htable_lookup(xv, "ppid");
+		pid_t ppid;
+
+		x_check(p != NULL);		/* Must have a ppid= argument */
 		x_check_log(3 == main_argc, "main_argc=%d", main_argc);
 		x_check(0 == strcmp(main_argv[1], "-X"));
+		ppid = (pid_t) atol(p);
+		x_check_log(getppid() == ppid,
+			"getppid()=%lu, ppid=%lu", (ulong) getppid(), (ulong) ppid);
+		/* Ensure idempotent on Windows */
+		x_check_log(getppid() == ppid,
+			"getppid()=%lu, ppid=%lu", (ulong) getppid(), (ulong) ppid);
 	} else if (x_wants(xv, "x.quoted")) {
 		size_t i;
 
