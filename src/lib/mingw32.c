@@ -92,6 +92,7 @@
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
 #include "pslist.h"
+#include "sha1.h"
 #include "signal.h"
 #include "spinlock.h"
 #include "spopen.h"
@@ -917,39 +918,157 @@ mingw_fsync(int fd)
 
 #ifdef EMULATE_GETPPID
 /**
- * Get the ID of the parent process.
- *
- * @note
- * This is unreliable, prone to race conditions, as the kernel could immediately
- * reuse the ID of a dead process and does not actively maintain a process tree
- * as on UNIX.
- *
- * @return the ID of the parent process.
+ * @return byte length of UTF-16 string, not counting trailing NUL.
  */
-pid_t
-mingw_getppid(void)
+static size_t
+wchar_bytelen(const wchar_t *s)
 {
-	pid_t our_pid = GetCurrentProcessId();
-	pid_t parent_pid = 1;
-	HANDLE h;
-	PROCESSENTRY32 pe;
-	BOOL ok;
+	uint16 *p = (uint16 *) s;
 
-	ZERO(&pe);
-	pe.dwSize = sizeof(PROCESSENTRY32);
+	while (*p != 0)
+		p++;
+
+	return ptr_diff(p, s);
+}
+
+/**
+ * Find process entry matching the given PID.
+ *
+ * @param pid	the PID we're looking for
+ * @param pe	the process entry we can fill-in
+ *
+ * @return TRUE if found, FALSE if not found.
+ */
+static bool
+mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe)
+{
+	HANDLE h;
+	bool ok, found = FALSE;
+
+	ZERO(pe);
+	pe->dwSize = sizeof(*pe);
 
 	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
-	for (ok = Process32First(h, &pe); ok; ok = Process32Next(h, &pe)) {
-		if ((pid_t) pe.th32ProcessID == our_pid) {
-			parent_pid = pe.th32ParentProcessID;
+	for (ok = Process32FirstW(h, pe); ok; ok = Process32NextW(h, pe)) {
+		if ((pid_t) pe->th32ProcessID == pid) {
+			found = TRUE;
 			break;
 		}
 	}
 
 	CloseHandle(h);
 
-	return parent_pid;
+	return found;
+}
+
+/**
+ * Compute SHA1 digest of given process entry.
+ */
+static void
+mingw_sha1_process_entry(PROCESSENTRY32W *pe, sha1_t *digest)
+{
+	SHA1_context c;
+
+	SHA1_reset(&c);
+	SHA1_INPUT(&c, pe->th32ProcessID);
+	SHA1_INPUT(&c, pe->th32ParentProcessID);
+	SHA1_input(&c, pe->szExeFile, wchar_bytelen(pe->szExeFile));
+	SHA1_result(&c, digest);
+}
+
+/**
+ * Get the ID of the parent process.
+ *
+ * @note
+ * This is unreliable, prone to race conditions, as the kernel could immediately
+ * reuse the ID of a dead process and does not actively maintain a process tree
+ * as on UNIX.  The only way to make it more reliable is to compute our parent
+ * PID very early at startup, hoping the PID we find is the same process that
+ * launched us and not another process which took its place (very unlikely).
+ *
+ * @return the ID of the parent process, 1 meaning our parent died already.
+ */
+pid_t
+mingw_getppid(void)
+{
+	static pid_t parent_pid = (pid_t) -1;
+	static sha1_t parent_digest;
+	static spinlock_t mingw_getppid_slk = SPINLOCK_INIT;
+	sha1_t digest;
+	pid_t ppid;
+	PROCESSENTRY32W pe;
+
+	if ((pid_t) 1 == parent_pid)
+		return 1;					/* Known to be orphan */
+
+	ppid = parent_pid;
+
+	if ((pid_t) -1 == ppid && mingw_find_process_entry(getpid(), &pe))
+		ppid = pe.th32ParentProcessID;
+
+	if ((pid_t) -1 == ppid)
+		return 1;					/* Can't find ourselves, assume orphaned */
+
+	/*
+	 * The first time we find a parent PID, make sure it exists and if it
+	 * does, compute the SHA1 of its process information.  We will use this
+	 * on further invocations to ensure we still have the same parent, in case
+	 * the PID of our parent was reused.
+	 */
+
+	if ((pid_t) -1 == parent_pid) {
+		if (-1 == mingw_process_access_check(ppid)) {
+			ppid = 1;				/* Parent died or runs under another UID */
+		} else {
+			if (mingw_find_process_entry(ppid, &pe)) {
+				mingw_sha1_process_entry(&pe, &digest);
+			} else {
+				ppid = 1;			/* Parent cannot be found */
+			}
+		}
+
+		/*
+		 * Record initial information, return parent PID.
+		 */
+
+		spinlock_hidden(&mingw_getppid_slk);
+
+		if ((pid_t) -1 == parent_pid) {
+			parent_pid = ppid;
+			if (ppid != (pid_t) 1)
+				parent_digest = digest;		/* struct copy */
+		}
+
+		spinunlock_hidden(&mingw_getppid_slk);
+
+		return ppid;
+	}
+
+	/*
+	 * Not the first time, verify that the known parent PID is still
+	 * referring to the same process.
+	 */
+
+	g_assert(ppid != (pid_t) 1);
+
+	if (mingw_find_process_entry(ppid, &pe)) {
+		mingw_sha1_process_entry(&pe, &digest);
+	} else {
+		ppid = 1;			/* Parent cannot be found */
+	}
+
+	spinlock(&mingw_getppid_slk);
+
+	if (
+		parent_pid != ppid ||
+		0 != memcmp(&parent_digest, &digest, SHA1_RAW_SIZE)
+	)
+		parent_pid = ppid = 1;
+
+	spinunlock(&mingw_getppid_slk);
+
+	return ppid;
 }
 #endif	/* EMULATE_GETPPID */
 
@@ -7138,6 +7257,15 @@ mingw_early_init(void)
 			break;
 		}
 	}
+
+	/*
+	 * Compute our parent PID immediately to avoid races later on, should
+	 * its PID slot be reused at the time they call getppid().
+	 */
+
+#ifdef EMULATE_GETPPID
+	(void) mingw_getppid();
+#endif	/* EMULATE_GETPPID */
 
 	if (lf != NULL)
 		fclose(lf);
