@@ -77,7 +77,6 @@
 #include "dualhash.h"
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
-#include "filelock.h"			/* For filelock_autoclean() */
 #include "getphysmemsize.h"
 #include "halloc.h"
 #include "hashing.h"			/* For string_mix_hash() */
@@ -1172,14 +1171,6 @@ mingw_execve(const char *filename, char *const argv[], char *const envp[])
 			}
 		}
 	}
-
-	/*
-	 * We're going to create a new process with a new PID, we need to
-	 * release all the locks we have since the parent process is going
-	 * to _exit() below.  This must happen before we launch the child.
-	 */
-
-	filelock_autoclean();
 
 	/*
 	 * Now perform the execve(), which we emulate through an asynchronous

@@ -56,10 +56,6 @@ filelock_t *filelock_create(const char *path, const filelock_params_t *p);
 void filelock_free_null(filelock_t **fl_ptr);
 pid_t filelock_pid(const char *path);
 
-#ifdef MINGW32
-void filelock_autoclean(void);
-#endif
-
 #endif	/* _filelock_h_ */
 
 /* vi: set ts=4: */

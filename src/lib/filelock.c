@@ -75,6 +75,7 @@
 #include "once.h"
 #include "parse.h"
 #include "random.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "str.h"
 #include "stringify.h"
@@ -173,23 +174,16 @@ filelock_unlock(filelock_t *fl)
  * Free lock, unlinking the file and destroying the object.
  *
  * @param fl			the filelock to destroy
- * @param autoclean		if TRUE, autocleaning is in progress
  */
 static void
-filelock_free(filelock_t *fl, bool autoclean)
+filelock_free(filelock_t *fl)
 {
 	filelock_check(fl);
-
-	/*
-	 * Because this routine can be called at exit time, very late, we make
-	 * sure all memory allocation is done via xmalloc() and the cleanup
-	 * handler makes sure memory freeing is disabled to avoid problems.
-	 */
 
 	filelock_unlock(fl);
 	xfree(fl->path);
 
-	if (!autoclean && !fl->noclean)
+	if (!fl->noclean)
 		filelock_vars_remove(fl);
 
 	fl->magic = 0;
@@ -207,7 +201,7 @@ filelock_free_null(filelock_t **fl_ptr)
 	filelock_t *fl = *fl_ptr;
 
 	if (fl != NULL) {
-		filelock_free(fl, FALSE);
+		filelock_free(fl);
 		*fl_ptr = NULL;
 	}
 }
@@ -239,32 +233,29 @@ filelock_clean(void *data, void *udata)
 
 	s_miniwarn("%s(): unlocking %s", G_STRFUNC, fl->path);
 
-	filelock_free(fl, TRUE);
+	/*
+	 * Because this routine can be called at exit time, very late, we make
+	 * sure all memory allocation is done via xmalloc(), an allocator we
+	 * know will not attempt to invalidate allocated pages during application
+	 * shutdown.
+	 */
+
+	filelock_unlock(fl);	/* Don't even attempt to free object */
 	return TRUE;			/* Remove from list */
 }
 
-#ifdef MINGW32
-#define STATIC
-#else
-#define STATIC static
-#endif
-
 /**
- * Auto-cleaning routine invoked at exit() time.
+ * Auto-cleaning routine invoked at exit() time or before emergency restarts.
  *
- * @attention
- * This routine is made visible on Windows because the execve() emulation
- * will create a new process with a new PID -- all the locks that were held
- * by the process must be released or the new process will not be able to
- * grab them if it wakes up before the exec()ing parent process goes away:
- * the parent PID will still be alive and appear to be the legitimate locker.
+ * On Windows, it is critical to cleanup existing locks before we execve()
+ * ourselves again because the PID will change and the parent process will
+ * still be present for a while, causing denied locking to the child process.
+ * This is taken care of by crash_try_reexec().
  */
-STATIC void
+static void
 filelock_autoclean(void)
 {
 	pid_t pid = getpid();
-
-	xmalloc_stop_freeing();		/* Avoid freeing the locks physically */
 
 	FILELOCK_VARS_LOCK;
 	elist_foreach_remove(&filelock_vars, filelock_clean, ulong_to_pointer(pid));
@@ -277,7 +268,7 @@ filelock_autoclean(void)
 static void
 filelock_init_once(void)
 {
-	atexit(filelock_autoclean);
+	signal_cleanup_add(filelock_autoclean);
 }
 
 /**
