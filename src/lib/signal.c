@@ -357,6 +357,9 @@ static Sigjmp_buf sig_cleanup_env;
 static void
 signal_cleanup_got_signal(int signo)
 {
+	s_rawwarn("%s(): %s received, continuing...",
+		G_STRFUNC, signal_name(signo));
+
 	Siglongjmp(sig_cleanup_env, signo);
 }
 
@@ -383,6 +386,8 @@ signal_perform_cleanup(void)
 		return;
 	}
 
+	signal_crashing();		/* Avoid memory allocations in some places */
+
 	old_sigsegv = signal_catch(SIGSEGV, signal_cleanup_got_signal);
 #ifdef SIGBUS
 	old_sigbus = signal_catch(SIGBUS, signal_cleanup_got_signal);
@@ -394,8 +399,11 @@ signal_perform_cleanup(void)
 		s_miniwarn("%s(): running without lock protection", G_STRFUNC);
 
 	while (sig_cleanup_count != 0) {
-		if (Sigsetjmp(sig_cleanup_env, TRUE))
+		if (Sigsetjmp(sig_cleanup_env, TRUE)) {
+			s_rawwarn("%s(): handler #%u did not complete",
+				G_STRFUNC, sig_cleanup_count + 1);
 			continue;
+		}
 		(*sig_cleanup[--sig_cleanup_count])();
 	}
 
@@ -407,6 +415,7 @@ signal_perform_cleanup(void)
 	signal_set(SIGBUS, old_sigbus);
 #endif
 
+	signal_uncrashing();
 	spinunlock_hidden(&cleanup_slk);
 }
 
