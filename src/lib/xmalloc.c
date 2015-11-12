@@ -397,7 +397,7 @@ xchunk_check(const struct xchunk * const xck)
 struct xdefer {
 	spinlock_t lock;		/**< Thread-safe lock */
 	size_t count;			/**< Amount of blocks chained */
-	void *head;				/**< Head of block list to return to bucker */
+	void *head;				/**< Head of block list to return to bucket */
 };
 
 /**
