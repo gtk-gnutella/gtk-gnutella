@@ -6691,6 +6691,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 }
 
 static void *mingw_stack[STACKTRACE_DEPTH_MAX];
+static uint8 mingw_excpt[THREAD_MAX];
 
 /**
  * Our default exception handler.
@@ -6708,10 +6709,15 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	sp = ulong_to_pointer(ei->ContextRecord->Esp);
 
 	stid = thread_safe_small_id_sp(sp);		/* Should be safe to execute */
+	if (stid >= 0 && stid < THREAD_MAX)
+		mingw_excpt[stid]++;
 
-	s_rawwarn("%s in thread #%d at pc=%p, sp=%p, current sp=%p",
+	s_rawwarn("%s in thread #%d at pc=%p, sp=%p, current sp=%p "
+		"[depth=%u, count=%d]",
 		mingw_exception_to_string(er->ExceptionCode),
-		stid, er->ExceptionAddress, sp, thread_sp());
+		stid, er->ExceptionAddress, sp, thread_sp(),
+		(stid >= 0 && stid < THREAD_MAX) ? mingw_excpt[stid] : 0,
+		signal_in_exception());
 
 	mingw_exception_log(stid, er->ExceptionCode, er->ExceptionAddress);
 
@@ -6781,7 +6787,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 
 	if (
 		EXCEPTION_STACK_OVERFLOW != er->ExceptionCode &&
-		1 == signal_in_exception()
+		(
+			(stid >= 0 && stid < THREAD_MAX && 1 == mingw_excpt[stid]) ||
+			1 == signal_in_exception()
+		)
 	) {
 		int count;
 		
@@ -6809,6 +6818,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		mingw_sigraise(signo);
 
 	signal_uncrashing();
+	if (stid >= 0 && stid < THREAD_MAX)
+		mingw_excpt[stid]--;
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
