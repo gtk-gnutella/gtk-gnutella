@@ -399,7 +399,7 @@ test_lock_concurrency(const char *lock)
 			emitz("spent %.3f secs creating children, not waiting", elapsed);
 		} else {
 			double s = total_delay - elapsed;;
-			emitz("paret waiting %.3f secs", s);
+			emitz("parent waiting %.3f secs", s);
 			thread_sleep_ms(1000 * s);
 		}
 	}
