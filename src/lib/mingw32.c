@@ -673,7 +673,8 @@ static signal_handler_t mingw_sighandler[SIGNAL_COUNT];
 signal_handler_t
 mingw_signal(int signo, signal_handler_t handler)
 {
-	signal_handler_t res;
+	signal_handler_t old;
+	static spinlock_t mingw_signal_slk = SPINLOCK_INIT;
 
 	g_assert(handler != SIG_ERR);
 
@@ -681,6 +682,13 @@ mingw_signal(int signo, signal_handler_t handler)
 		errno = EINVAL;
 		return SIG_ERR;
 	}
+
+	spinlock_hidden(&mingw_signal_slk);
+
+	old = mingw_sighandler[signo];
+	mingw_sighandler[signo] = handler;
+
+	spinunlock_hidden(&mingw_signal_slk);
 
 	/*
 	 * Don't call signal() with SIGBUS or SIGTRAP: since we're faking them,
@@ -690,18 +698,13 @@ mingw_signal(int signo, signal_handler_t handler)
 	switch (signo) {
 	case SIGBUS:
 	case SIGTRAP:
-		res = mingw_sighandler[signo];
 		break;
 	default:
-		res = signal(signo, handler);
-		if (SIG_ERR == res)
-			res = mingw_sighandler[signo];
+		signal(signo, handler);
 		break;
 	}
 
-	mingw_sighandler[signo] = handler;
-
-	return res;
+	return old;
 }
 
 #define FLUSH_ERR_STR()	G_STMT_START {	\
