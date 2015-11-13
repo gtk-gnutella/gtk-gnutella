@@ -47,6 +47,7 @@
 #include "log.h"
 #include "misc.h"
 #include "path.h"
+#include "signal.h"
 #include "spopen.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -56,7 +57,7 @@
 
 const char *progname;
 const char *progpath;
-static bool verbose = FALSE;
+static bool verbose, sigpipe;
 const char *redirect_child;
 
 static const mode_t TEST_MODE = S_IRUSR | S_IWUSR;	/* 0600 */
@@ -70,11 +71,12 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hv]\n"
+		"Usage: %s [-hpv]\n"
 		"       [-r file]\n"
 		"       [-z fn1,fn2...]\n"
 		"       [-X k1=v1,k2=v2]\n"
 		"  -h : prints this help message\n"
+		"  -p : test SIGPIPE / EPIPE\n"
 		"  -r : redirect child's input/output to file\n"
 		"  -v : ask for details about what is happening\n"
 		"  -z : zap (suppress) messages from listed routines\n"
@@ -288,10 +290,22 @@ test_file_closed(int fd, const char *what)
 	}
 }
 
+static Sigjmp_buf jmpbuf;
+static bool got_sigpipe;
+
+static void
+caught_sigpipe(int signo)
+{
+	s_info("got %s", signal_name(signo));
+	if (SIGPIPE == signo)
+		ATOMIC_INC(&got_sigpipe);
+	Siglongjmp(jmpbuf, signo);
+}
+
 static void
 test_spopenve(void)
 {
-	int pfd;
+	volatile sig_atomic_t pfd;
 	char buf[128];
 	const char *test = "t=plain,";
 	const char *verb = verbose ? ",verb" : "";
@@ -361,6 +375,68 @@ test_spopenve(void)
 			s_warning("%s(): could not unlink %s: %m",
 				G_STRFUNC, redirect_child);
 		}
+	}
+
+	if (sigpipe) {
+		int i;
+
+		emitz("testing SIGPIPE / EPIPE in parent PID %lu", (ulong) getpid());
+
+		test = "t=epipe,";
+
+		concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+		pfd = verbose_spopen(NULL, progpath, "w", NULL, "-X", buf, NULL_PTR);
+
+		signal_catch(SIGPIPE, caught_sigpipe);
+
+		for (i = 0; i < 10; i++) {
+			if (Sigsetjmp(jmpbuf, TRUE)) {
+				g_assert(got_sigpipe);
+				goto good;
+			}
+			if (-1 == write(pfd, &i, 1))
+				goto failed;
+			emitz("write #%i to fd #%d was OK, sleeping 500 msecs", i+1, pfd);
+			thread_sleep_ms(500);
+		}
+
+		s_fatal_exit(EXIT_FAILURE, "did not get any SIGPIPE signal");
+
+	failed:
+		s_error("BAD, write() to child %lu failed: %m", (ulong) sppidof(pfd));
+
+	good:
+		emitz("good, write() to child %lu caused a SIGPIPE",
+			(ulong) sppidof(pfd));
+		spclose(pfd);
+
+		concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+		pfd = verbose_spopen(NULL, progpath, "w", NULL, "-X", buf, NULL_PTR);
+
+		signal_catch(SIGPIPE, SIG_IGN);
+
+
+		for (i = 0; i < 10; i++) {
+			if (Sigsetjmp(jmpbuf, TRUE)) {
+				g_assert(got_sigpipe);
+				goto unexpected_signal;
+			}
+			if (-1 == write(pfd, &i, 1))
+				goto cannot_write;
+			emitz("write #%i to fd #%d was OK, sleeping 500 msecs", i+1, pfd);
+			thread_sleep_ms(500);
+		}
+
+		s_fatal_exit(EXIT_FAILURE, "did not get any EPIPE error");
+
+	unexpected_signal:
+		s_error("BAD, write() to child %lu caused a SIGPIPE",
+			(ulong) sppidof(pfd));
+
+	cannot_write:
+		emitz("good, write() to child %lu failed: %m", (ulong) sppidof(pfd));
+		g_assert(EPIPE == errno);
+		spclose(pfd);
 	}
 }
 
@@ -462,6 +538,14 @@ x_spopenve_file(const htable_t *xv)
 	}
 }
 
+static void
+x_spopenve_epipe(const htable_t *xv)
+{
+	(void) xv;
+
+	/* Do nothing, just return */
+}
+
 static htable_t *xv, *tv;
 
 static void
@@ -499,6 +583,7 @@ static struct {
 	{ "plain",	x_spopenve_plain },
 	{ "env",	x_spopenve_env },
 	{ "file",	x_spopenve_file },
+	{ "epipe",	x_spopenve_epipe },
 };
 
 static void
@@ -535,13 +620,19 @@ spopenve_tests_lookup(void)
 	return cb;
 }
 
+static void
+log_sigpipe(int signo)
+{
+	s_fatal_exit(EXIT_FAILURE, "trapped %s", signal_name(signo));
+}
+
 int
 main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
 	extern char **environ;
-	const char options[] = "hvr:z:X:";
+	const char options[] = "hvpr:z:X:";
 	int c;
 
 	mingw_early_init();
@@ -555,9 +646,13 @@ main(int argc, char **argv)
 	log_show_pid(TRUE);
 
 	misc_init();
+	signal_catch(SIGPIPE, log_sigpipe);
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
+		case 'p':			/* test SIGPIPE / EPIPE */
+			sigpipe++;
+			break;
 		case 'r':			/* redirect */
 			redirect_child = optarg;
 			break;

@@ -103,6 +103,7 @@ static const struct {
 #endif
 	D(SIGABRT),
 	D(SIGFPE),
+	D(SIGPIPE),
 	D(SIGILL),
 	D(SIGSEGV)
 #undef D

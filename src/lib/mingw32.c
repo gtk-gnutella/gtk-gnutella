@@ -692,13 +692,14 @@ mingw_signal(int signo, signal_handler_t handler)
 	spinunlock_hidden(&mingw_signal_slk);
 
 	/*
-	 * Don't call signal() with SIGBUS or SIGTRAP: since we're faking them,
-	 * we'll get an error back as "unrecognized argument value".
+	 * Don't call signal() with fake SIGBUS, SIGTRAP, SIGPIPE.
+	 * We would get an error back as "unrecognized argument value".
 	 */
 
 	switch (signo) {
 	case SIGBUS:
 	case SIGTRAP:
+	case SIGPIPE:
 		break;
 	default:
 		signal(signo, handler);
@@ -2964,8 +2965,26 @@ ssize_t
 mingw_write(int fd, const void *buf, size_t count)
 {
 	ssize_t res = write(fd, buf, MIN(count, UINT_MAX));
-	if (-1 == res)
+	if (-1 == res) {
 		errno = mingw_last_error();
+
+		/*
+		 * If we get EPIPE back, see whether there is a signal handler
+		 * installed for SIGPIPE and raise the signal if there is.
+		 * When there is no signal handler (still set to SIG_DFL),
+		 * SIGPIPE is fatal -- this is done to mimic UNIX semantics.
+		 *		--RAM, 2015-11-13
+		 */
+
+		if G_UNLIKELY(EPIPE == errno) {
+			if (SIG_DFL == mingw_sighandler[SIGPIPE]) {
+				s_error("%s(): write to fd #%d caused SIGPIPE",
+					G_STRFUNC, fd);
+			} else if (SIG_IGN != mingw_sighandler[SIGPIPE]) {
+				mingw_sigraise(SIGPIPE);
+			}
+		}
+	}
 	return res;
 }
 

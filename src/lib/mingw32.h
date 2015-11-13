@@ -139,6 +139,10 @@
 #define SIGTRAP	12		/* Simulated, unassigned signal number in MinGW32 */
 #endif
 
+#ifndef SIGPIPE
+#define SIGPIPE	13		/* Simulated, unassigned signal number in MinGW32 */
+#endif
+
 #define fcntl mingw_fcntl
 #define ffs __builtin_ffs
 #define sleep mingw_sleep
