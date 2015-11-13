@@ -55,7 +55,7 @@
 
 const char *progname;
 const char *progpath;
-static bool verbose = FALSE;
+static bool verbose, reparenting;
 
 /* Duplicated main() arguments, in read-only memory */
 static int main_argc;
@@ -70,6 +70,7 @@ usage(void)
 		"       [-z fn1,fn2...]\n"
 		"       [-X k1=v1,k2=v2]\n"
 		"  -h : prints this help message\n"
+		"  -i : also test that getppid() returns 1 for orphans on Windows\n"
 		"  -v : ask for details about what is happening\n"
 		"  -z : zap (suppress) messages from listed routines\n"
 		"  -X : key/value tuples to execute tests (in children process)\n"
@@ -268,6 +269,14 @@ test_launchve(void)
 	concat_strings(buf, sizeof buf, test, "x.vars", verb, ",envp", NULL_PTR);
 	p = verbose_launch(envp, progpath, "-X", buf, NULL_PTR);
 	test_child_expect(p, TRUE);
+
+	if (reparenting) {
+		test = "t=parent,";
+
+		concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+		p = verbose_launch(NULL, progpath, "-X", buf, NULL_PTR);
+		test_child_expect(p, TRUE);
+	}
 }
 
 static bool
@@ -388,6 +397,45 @@ x_launchve_env(const htable_t *xv)
 	}
 }
 
+static void
+x_launchve_parent(const htable_t *xv)
+{
+	pid_t pid;
+	char buf[128];
+	const char *test = "t=ppid,";
+	const char *verb = verbose ? ",verb" : "";
+	int delay = 2;
+
+	(void) xv;
+
+	concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+	pid = verbose_launch(NULL, progpath, "-X", buf, NULL_PTR);
+	emitz("sleeping %d secs", delay);
+	thread_sleep_ms(1000 * delay);
+	emitz("will now exit, child PID %lu will check getppid()", (ulong) pid);
+}
+
+static void
+x_launchve_ppid(const htable_t *xv)
+{
+	int i;
+
+	(void) xv;
+
+	for (i = 0; i < 20; i++) {
+		pid_t ppid = getppid();
+
+		emitz("try #%d, parent PID is %lu", i+1, (ulong) getppid());
+		if (1 == ppid)
+			return;
+		emitz("sleeping for %d msec", 500);
+		thread_sleep_ms(500);
+	}
+
+	s_fatal_exit(EXIT_FAILURE, "parent pid still %lu, was expecting 1",
+		(ulong) getppid());
+}
+
 static htable_t *xv, *tv;
 
 static void
@@ -424,6 +472,8 @@ static struct {
 } launchve_tests[] = {
 	{ "plain",	x_launchve_plain },
 	{ "env",	x_launchve_env },
+	{ "parent",	x_launchve_parent },
+	{ "ppid",	x_launchve_ppid },
 };
 
 static void
@@ -466,7 +516,7 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	extern char **environ;
-	const char options[] = "hvz:X:";
+	const char options[] = "hivz:X:";
 	int c;
 
 	mingw_early_init();
@@ -483,6 +533,9 @@ main(int argc, char **argv)
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
+		case 'i':			/* test getppid() -- useful only on Windows */
+			reparenting++;
+			break;
 		case 'v':			/* verbose */
 			verbose++;
 			break;
