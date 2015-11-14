@@ -2150,8 +2150,8 @@ crash_invoke_threaded_inspector(int signo, const char *cwd)
 		return FALSE;
 
 	/*
-	 * Yes, this is an ACTIVE waiting loop but there is no other way: we
-	 * MUST NOT be in Windows.dll otherwise gdb will not be able to trace
+	 * Yes, this is an *active* waiting loop but there is no other way: we
+	 * MUST NOT be in any Windows DLL otherwise gdb will not be able to trace
 	 * back this thread, which is the crashing thread so precisely the one
 	 * we want to backtrace!
 	 */
