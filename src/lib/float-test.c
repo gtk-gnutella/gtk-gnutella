@@ -42,6 +42,7 @@
 #include "common.h"
 
 #include "float.h"
+#include "progname.h"
 
 /* locally defined functions */
 static void read_floats(FILE *f);
@@ -201,7 +202,7 @@ static int convert(char *s, char *buf, int prec) {
 int main (int argc, char **argv) {
   FILE *f;
 
-  mingw_early_init();
+  progstart(argc, argv);
 
   if (argc != 3) USAGE_ERROR;
 

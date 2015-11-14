@@ -1,6 +1,7 @@
 #include "common.h"
 #include "sdbm.h"
 #include "lib/base16.h"
+#include "lib/progname.h"
 
 extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
@@ -57,7 +58,6 @@ my_getopt(int argc, char **argv, char *optstring)
 	static int my_optind = 0;
 	static char *scan = NULL;
 
-	mingw_early_init();
 	my_optarg = NULL;
 
 	if (scan == NULL || *scan == '\0') {
@@ -296,14 +296,12 @@ log_keyerr(datum key, int key_hexa, const char *what)
 	fprintf(stderr, ": %s\n", g_strerror(saved));
 }
 
-char *progname;
-
 static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
 		"Usage: %s -a|-c|-d|-f|-F|-s database "
-		"[-m r|w|rw] [-bikortxXy] [key [content]]\n", progname);
+		"[-m r|w|rw] [-bikortxXy] [key [content]]\n", getprogname());
 	fprintf(stderr,
 		"  -a : list all entries (as \"key: value\") in the database.\n"
 		"  -b : content given / output as binary.\n"
@@ -353,7 +351,7 @@ main(int argc, char **argv)
 	char *mode = NULL;
 	FILE *f = stdout;
 
-	progname = argv[0];
+	progstart(argc, argv);
 	flags = O_RDWR;
 	argn = 0;
 

@@ -47,7 +47,7 @@
 #include "launch.h"
 #include "log.h"
 #include "misc.h"
-#include "path.h"
+#include "progname.h"
 #include "spopen.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -56,7 +56,6 @@
 #include "tm.h"
 #include "walloc.h"
 
-const char *progname;
 const char *progpath;
 static bool debugging, pid_only;
 
@@ -74,7 +73,7 @@ usage(void)
 		"  -p : force PID-only locking\n"
 		"  -z : zap (suppress) messages from listed routines\n"
 		"  -X : key/value tuples to execute tests (in children process)\n"
-		, progname);
+		, getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -680,7 +679,7 @@ filelock_tests_lookup(void)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
 	extern int optind;
 	extern char *optarg;
@@ -689,8 +688,7 @@ main(int argc, char **argv)
 	int c;
 	const char *lock;
 
-	mingw_early_init();
-	progname = filepath_basename(argv[0]);
+	progstart(argc, argv);
 	progpath = argv[0];
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	log_show_pid(TRUE);			/* Since we're launching other processes */

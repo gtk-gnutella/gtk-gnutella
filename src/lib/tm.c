@@ -46,6 +46,7 @@
 #include "compat_sleep_ms.h"
 #include "gentime.h"
 #include "listener.h"
+#include "progname.h"		/* For progstart_time() */
 #include "offtime.h"
 #include "once.h"
 #include "spinlock.h"
@@ -896,18 +897,26 @@ tm_cputime(double *user, double *sys)
 	return u + s;
 }
 
-static tm_t start_time;
+/**
+ * Returns the current time relative to the startup time (cached).
+ *
+ * @note For convenience unsigned long is used, so that we can
+ *		 always cast them to pointers and back again. The guaranteed
+ *		 width of 32-bit should be sufficient for session duration.
+ *		 Where this is unsufficient, stick to time_t.
+ */
+time_t
+tm_relative_time(void)
+{
+	return delta_time(tm_time(), progstart_time().tv_sec);
+}
 
 void
 tm_init(void)
 {
-	tm_now_exact(&start_time);
-}
+	tm_t now;
 
-tm_t
-tm_start_time(void)
-{
-	return start_time;
+	tm_now_exact(&now);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

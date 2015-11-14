@@ -765,7 +765,6 @@ const char *mingw_native_path(const char *pathname);
 
 #define PROT_GUARD		PROT_NONE		/* Guard pages are Windows-specific */
 
-#define mingw_early_init();
 #define mingw_vmm_post_init()
 #define mingw_init()
 #define mingw_close()

@@ -98,6 +98,7 @@
 #include "offtime.h"
 #include "omalloc.h"
 #include "path.h"
+#include "progname.h"			/* For progstart_dup() */
 #include "signal.h"
 #include "spinlock.h"			/* For spinlock_crash_mode() */
 #include "spopen.h"
@@ -3192,16 +3193,15 @@ crash_setbuild(unsigned build)
 
 /**
  * Save original argc/argv and environment.
- *
- * These should not be the original argv[] and environ pointer but rather
- * copies that point to read-only memory to prevent tampering.
- *
- * The gm_dupmain() routine handles this duplication into a read-only memory
- * region and it should ideally be called before calling this routine.
  */
 void
-crash_setmain(int argc, const char **argv, const char **env)
+crash_setmain(void)
 {
+	const char **argv;
+	const char **env;
+	int argc;
+
+	argc = progstart_dup(&argv, &env);
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
 	crash_set_var(envp, env);

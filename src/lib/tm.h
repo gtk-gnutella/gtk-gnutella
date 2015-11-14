@@ -281,26 +281,11 @@ tm_time_raw(void)
 	return (time_t) tm_cached_now.tv_sec;
 }
 
-tm_t tm_start_time(void);
-
-tm_t tm_start_time(void);
 time_t tm_localtime(void);
 time_t tm_localtime_exact(void);
 time_t tm_localtime_raw(void);
 
-/**
- * Returns the current time relative to the startup time (cached).
- *
- * @note For convenience unsigned long is used, so that we can
- *		 always cast them to pointers and back again. The guaranteed
- *		 width of 32-bit should be sufficient for session duration.
- *		 Where this is unsufficient, stick to time_t.
- */
-static inline unsigned long
-tm_relative_time(void)
-{
-	return delta_time(tm_time(), tm_start_time().tv_sec);
-}
+time_t tm_relative_time(void);
 
 /**
  * Fill supplied tm_t structure with specified amount of milliseconds.

@@ -140,6 +140,7 @@
 #include "lib/pattern.h"
 #include "lib/pow2.h"
 #include "lib/product.h"
+#include "lib/progname.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/signal.h"
@@ -668,7 +669,7 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	if (debugging(0)) {
-		tm_t since = tm_start_time();
+		tm_t since = progstart_time();
 		log_cpu_usage(&since, NULL, NULL);
 	}
 
@@ -1275,7 +1276,7 @@ slow_main_timer(time_t now)
 		static double sys = 0.0;
 
 		if (since.tv_sec == 0)
-			since = tm_start_time();
+			since = progstart_time();
 
 		log_cpu_usage(&since, &user, &sys);
 	}
@@ -1753,7 +1754,7 @@ static const char **main_env;
 char *
 main_command_line(void)
 {
-	g_assert(main_argv != NULL);		/* gm_dupmain() called */
+	g_assert(main_argv != NULL);		/* progstart_dup() called */
 
 	return h_strjoinv(" ", (char **) main_argv);
 }
@@ -1776,9 +1777,15 @@ main(int argc, char **argv)
 	product_set_website(GTA_WEBSITE);
 	product_set_interface(GTA_INTERFACE);
 
-	mingw_early_init();
+	/*
+	 * On Windows, the code path used for a GUI-launched application requires
+	 * that the product information be filled, to be able to derive proper
+	 * destination for log paths, since there is no console attached.
+	 */
+
+	progstart(argc, argv);
+
 	thread_set_main(FALSE);				/* Main thread cannot block! */
-	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 	tm_init();
 
 	if (compat_is_superuser()) {
@@ -1869,7 +1876,7 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	log_init();
-	main_argc = gm_dupmain(&main_argv, &main_env);
+	main_argc = progstart_dup(&main_argv, &main_env);
 	str_discrepancies = str_test(FALSE);
 	parse_arguments(argc, argv);
 	validate_arguments();
@@ -1912,7 +1919,7 @@ main(int argc, char **argv)
 		crash_setnumbers(product_get_major(), product_get_minor(),
 			product_get_patchlevel());
 		crash_setbuild(product_get_build());
-		crash_setmain(main_argc, main_argv, main_env);
+		crash_setmain();
 		crash_set_restart(gtk_gnutella_request_restart);
 	}	
 	handle_arguments_asap();

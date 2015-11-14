@@ -907,6 +907,8 @@ src/lib/pow2.c
 src/lib/pow2.h
 src/lib/product.c
 src/lib/product.h
+src/lib/progname.c
+src/lib/progname.h
 src/lib/prop.c
 src/lib/prop.h
 src/lib/pslist.c
@@ -932,6 +934,8 @@ src/lib/semaphore.c
 src/lib/semaphore.h
 src/lib/sequence.c
 src/lib/sequence.h
+src/lib/setproctitle.c
+src/lib/setproctitle.h
 src/lib/sha1.c
 src/lib/sha1.h
 src/lib/shuffle.c
@@ -960,6 +964,8 @@ src/lib/stringify.c
 src/lib/stringify.h
 src/lib/strtok.c
 src/lib/strtok.h
+src/lib/strvec.c
+src/lib/strvec.h
 src/lib/symbols.c
 src/lib/symbols.h
 src/lib/symtab.c

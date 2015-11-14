@@ -32,6 +32,7 @@
 
 #include "common.h"
 
+#include "lib/progname.h"
 #include "lib/rand31.h"
 #include "lib/str.h"
 #include "lib/stringify.h"	/* For plural() */
@@ -41,7 +42,6 @@
 
 extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
-char *progname;
 static bool progress;
 static bool shrink, rebuild, thread_safe;
 static bool randomize;
@@ -80,7 +80,7 @@ usage(void)
 		"  -T : make database handle thread-safe\n"
 		"  -U : unlink database at the end\n"
 		"  -V : consider database as volatile\n",
-		progname);
+		getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -435,8 +435,7 @@ main(int argc, char **argv)
 	long count;
 	long cache = 0;
 
-	mingw_early_init();
-	progname = argv[0];
+	progstart(argc, argv);
 
 	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStTUvVw")) != EOF) {
 		switch (c) {

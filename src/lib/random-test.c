@@ -40,8 +40,8 @@
 #include "lib/misc.h"
 #include "lib/mtwist.h"
 #include "lib/parse.h"
-#include "lib/path.h"
 #include "lib/pow2.h"
+#include "lib/progname.h"
 #include "lib/rand31.h"
 #include "lib/random.h"
 #include "lib/shuffle.h"
@@ -57,8 +57,6 @@
 #define VALUES_REMEMBERED	128
 #define MIN_PERIOD			4
 
-const char *progname;
-
 static void G_GNUC_PRINTF(1, 2)
 warning(const char *msg, ...)
 {
@@ -69,7 +67,7 @@ warning(const char *msg, ...)
 	str_vbprintf(buf, sizeof buf, msg, args);
 	va_end(args);
 
-	fprintf(stderr, "%s: WARNING: %s\n", progname, buf);
+	fprintf(stderr, "%s: WARNING: %s\n", getprogname(), buf);
 }
 
 static void G_GNUC_NORETURN
@@ -110,7 +108,7 @@ usage(void)
 		"  -X : perform chi-squared test of uniform random numbers\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		"Use -T as in: %s -4l -T | dieharder -g 200 -a\n"
-		, progname, progname);
+		, getprogname(), getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -497,7 +495,7 @@ get_number(const char *arg, int opt)
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
-			progname, opt, arg, g_strerror(error));
+			getprogname(), opt, arg, g_strerror(error));
 		exit(EXIT_FAILURE);
 	}
 
@@ -584,8 +582,7 @@ G_STMT_START {			\
 	fnname = #x;		\
 } G_STMT_END
 
-	mingw_early_init();
-	progname = filepath_basename(argv[0]);
+	progstart(argc, argv);
 	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {

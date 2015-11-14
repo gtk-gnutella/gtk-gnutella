@@ -204,6 +204,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bzero HAS_BZERO	/**/
 
+/* HAS_CLEARENV:
+ *	This symbol is defined when clearenv() is there to clear the
+ *	environment.
+ */
+#$d_clearenv HAS_CLEARENV
+
 /* HAS_CLOCK_GETRES:
  *	This symbol, if defined, indicates that the clock_getres() system call is
  *	available to fetch the granularity of available clock (CLOCK_REALTIME is
@@ -392,6 +398,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available to get the parent process ID.
  */
 #$d_getppid HAS_GETPPID		/**/
+
+/* HAS_GETPROGNAME:
+ *	This symbol is defined when getprogname() is there to get the
+ *	program name.
+ */
+#$d_getprogname HAS_GETPROGNAME
 
 /* HAS_GETRLIMIT:
  *	This symbol, if defined, indicates that the getrlimit() routine is
@@ -586,6 +598,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_preadv HAS_PREADV		/**/
 
+/* HAS_PROGRAM_INVOCATION_NAME:
+ *	This symbol is defined when the C startup sets the two variables
+ *	program_invocation_name and program_invocation_short_name.  To get
+ *	these definitions, <errno.h> must be included with __USE_GNU defined.
+ */
+#$d_proginvocname HAS_PROGRAM_INVOCATION_NAME
+
 /* HAS_PTHREAD_ATTR_SETSTACK:
  *	This symbol is defined when pthread_attr_setstack() can be used to set
  *	the thread stack.  Otherwise, use obsoleted pthread_attr_setstackaddr().
@@ -680,11 +699,23 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sendfile HAS_SENDFILE		/**/
 
+/* HAS_SETENV:
+ *	This symbol is defined when setenv() is available to change or
+ *	add an environment variable.
+ */
+#$d_setenv HAS_SETENV
+
 /* HAS_SETPROCTITLE:
  *	This symbol is defined when setproctitle() can be used and takes a
  *	format string.
  */
 #$d_setproctitle HAS_SETPROCTITLE
+
+/* HAS_SETPROGNAME:
+ *	This symbol is defined when setprogname() is there to set the
+ *	program name.
+ */
+#$d_setprogname HAS_SETPROGNAME
 
 /* HAS_SETSID:
  *	This symbol, if defined, indicates that the setsid routine is
