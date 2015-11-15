@@ -744,7 +744,27 @@ tm_localtime_exact(void)
 time_t
 tm_localtime_raw(void)
 {
-	return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
+	static time_delta_t gmt_offset;
+	static bool done;
+	time_delta_t offset = tm_gmt.offset;
+	tm_t now = tm_cached_now;
+
+	/*
+	 * In case this routine is called very early, perform some local
+	 * initializations to be able to return meaningful information.
+	 *		--RAM, 2015-11-15
+	 */
+
+	if G_UNLIKELY(0 == now.tv_sec) {
+		tm_current_time(&now);
+		if (!done) {
+			gmt_offset = timestamp_gmt_offset(time(NULL), NULL);
+			done = TRUE;
+		}
+		offset = gmt_offset;
+	}
+
+	return (time_t) now.tv_sec + offset;
 }
 
 /**
