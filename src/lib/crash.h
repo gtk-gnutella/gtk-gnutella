@@ -194,9 +194,10 @@ print_hex(char *dst, size_t size, unsigned long value)
  * Public interface.
  */
 
-#define CRASH_F_PAUSE	(1 << 0)
-#define CRASH_F_GDB		(1 << 1)
-#define CRASH_F_RESTART	(1 << 2)
+#define CRASH_F_PAUSE		(1 << 0)
+#define CRASH_F_GDB			(1 << 1)
+#define CRASH_F_RESTART		(1 << 2)
+#define CRASH_F_SUPERVISED	(1 << 3)
 
 enum crash_alter_mode {
 	CRASH_FLAG_SET,
