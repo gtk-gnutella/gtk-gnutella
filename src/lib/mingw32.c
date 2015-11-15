@@ -4745,6 +4745,20 @@ mingw_process_access_check(pid_t pid)
 		else
 			errno = ESRCH;
 
+		/*
+		 * Also make sure the process is still running and is not in a
+		 * zombie state.
+		 */
+
+		if (0 == res) {
+			DWORD code;
+
+			if (GetExitCodeProcess(p, &code) && STILL_ACTIVE != code) {
+				res = -1;
+				errno = ESRCH;		/* Process is a zombie */
+			}
+		}
+
 		CloseHandle(p);
 	}
 
