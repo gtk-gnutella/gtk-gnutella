@@ -86,6 +86,7 @@ pid_t
 launchve(const char *path, char *const argv[], char *const envp[])
 {
 	pid_t c;
+	extern char **environ;
 
 	g_assert(path != NULL);
 
@@ -93,7 +94,7 @@ launchve(const char *path, char *const argv[], char *const envp[])
 	case -1:
 		return -1;
 	case 0:				/* Child process */
-		execve(path, argv, envp);
+		execve(path, argv, NULL == envp ? environ : envp);
 		_exit(EXIT_FAILURE);
 	default:			/* Parent process */
 		break;
