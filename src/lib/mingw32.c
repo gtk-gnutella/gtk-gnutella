@@ -2200,16 +2200,20 @@ child_exited:
 		"%s(): handle %p is no longer associated to any PID?",
 		G_STRFUNC, proc);
 
-	if (status != NULL) {
+	/*
+	 * Grab the exit status, regardless of whether our caller wants it.
+	 */
+
+	{
 		DWORD code;
 		if (!GetExitCodeProcess(proc, &code)) {
 			errno = mingw_last_error();
 			s_warning("%s(): could not get exit status of PID %lu: %m",
 				G_STRFUNC, (ulong) exiting_pid);
-			*status = 0;
-		} else {
-			*status = code;
+			code = 0;
 		}
+		if (status != NULL)
+			*status = code;
 	}
 
 	CloseHandle(proc);
