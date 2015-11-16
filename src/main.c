@@ -2059,10 +2059,10 @@ main(int argc, char **argv)
 
 		flags |= (!OPT(no_supervise) && OPT(child)) ? CRASH_F_SUPERVISED : 0;
 
-		crash_init(argv[0], product_get_name(), flags, OPTARG(exec_on_crash));
-		crash_setnumbers(product_get_major(), product_get_minor(),
-			product_get_patchlevel());
-		crash_setbuild(product_get_build());
+		crash_init(argv[0], product_name(), flags, OPTARG(exec_on_crash));
+		crash_setnumbers(
+			product_major(), product_minor(), product_patchlevel());
+		crash_setbuild(product_build());
 		crash_setmain();
 		crash_set_restart(gtk_gnutella_request_restart);
 	}	

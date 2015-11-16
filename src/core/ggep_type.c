@@ -68,7 +68,7 @@ static time_t release_date;
 static void
 ggept_release_date_init(void)
 {
-	release_date = date2time(product_get_date(), tm_time());
+	release_date = date2time(product_date(), tm_time());
 }
 
 /**
@@ -365,10 +365,10 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 size_t
 ggept_gtkgv_build(void *buf, size_t len)
 {
-	uint8 major = product_get_major();
-	uint8 minor = product_get_minor();
-	uint8 revchar = product_get_revchar();
-	uint8 patch = product_get_patchlevel();
+	uint8 major = product_major();
+	uint8 minor = product_minor();
+	uint8 revchar = product_revchar();
+	uint8 patch = product_patchlevel();
 	uint32 release;
 	uint32 date;
 	uint32 build;
@@ -397,7 +397,7 @@ ggept_gtkgv_build(void *buf, size_t len)
 
 	date = release_date;
 	poke_be32(&release, date);
-	poke_be32(&build, product_get_build());
+	poke_be32(&build, product_build());
 
 	commit = version_get_commit(&commit_len);
 	commit_bytes = (1 + commit_len) / 2;

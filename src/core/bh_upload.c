@@ -219,7 +219,7 @@ browse_host_read_html(struct special_upload *ctx,
 		case BH_STATE_LIBRARY_INFO:
 			if (!bh->b_data) {
 				bh->w_buf_size = w_concat_strings(&bh->w_buf,
-					"<h1>", product_get_name(), "</h1>\r\n"
+					"<h1>", product_name(), "</h1>\r\n"
 					"<h3>", version_get_string(),
 				   	" sharing ",
 					uint64_to_string(shared_files_scanned()),

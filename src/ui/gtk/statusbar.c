@@ -206,7 +206,7 @@ statusbar_gui_set_default(const char *format, ...)
         str_vbprintf(buf, sizeof(buf), format, args);
         statbar_botstr_new = h_strdup(buf);
     } else {
-        statbar_botstr_new = h_strdup(product_get_website());
+        statbar_botstr_new = h_strdup(product_website());
     }
 
     va_end(args);
@@ -325,7 +325,7 @@ statusbar_gui_init(void)
 	 *		--RAM, 27/06/2002
 	 */
 
-	statbar_botstr = h_strdup(product_get_website());
+	statbar_botstr = h_strdup(product_website());
 	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
 
 	main_gui_add_timer(statusbar_gui_clear_timeouts);

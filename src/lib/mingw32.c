@@ -2537,7 +2537,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 		goto fallback;
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
-	clamp_strcat(dest, size, product_get_name());
+	clamp_strcat(dest, size, product_name());
 
 	STARTUP_DEBUG("%s(): #2 dest=%s", G_STRFUNC, dest);
 
@@ -2622,7 +2622,7 @@ mingw_patch_personal_path(const char *pathname)
 			 */
 
 			patched = h_strconcat(mingw_get_personal_path(),
-				G_DIR_SEPARATOR_S, product_get_name(), p, NULL_PTR);
+				G_DIR_SEPARATOR_S, product_name(), p, NULL_PTR);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
 		return patched;
