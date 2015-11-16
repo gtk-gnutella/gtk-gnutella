@@ -256,6 +256,7 @@ bool thread_timed_block_self(unsigned events, const struct tmval *timeout);
 int thread_unblock(unsigned id);
 
 void thread_set_main(bool can_block);
+bool thread_set_main_was_called(void);
 unsigned thread_get_main(void);
 bool thread_main_is_blockable(void);
 
