@@ -44,6 +44,7 @@
 #include "iovec.h"
 #include "malloc.h"				/* For real_malloc() */
 #include "once.h"
+#include "misc.h"				/* For is_strcasesuffix() */
 #include "path.h"
 #include "strvec.h"
 #include "tm.h"
@@ -91,12 +92,27 @@ progstart(int argc, char * const *argv)
 	progname_info.name = filepath_basename(argv[0]);
 	tm_current_time(&progname_info.start);
 
-#ifdef HAS_SETPROGNAME
-	setprogname(progname_name);
-#endif
-
 #ifdef MINGW32
 	mingw_early_init();
+#endif
+
+	if (is_running_on_mingw()) {
+		const char *name = progname_info.name;
+		const char *exe = is_strcasesuffix(name, (size_t) -1, ".exe");
+
+		/*
+		 * No need to take locks at this time, we're mono-threaded since
+		 * progstart() needs to be one of the first application calls.
+		 */
+
+		if (exe != NULL) {
+			progname_info.name = xstrndup(name, ptr_diff(exe, name));
+			progname_info.allocated = TRUE;
+		}
+	}
+
+#ifdef HAS_SETPROGNAME
+	setprogname(progname_name);
 #endif
 }
 
@@ -237,9 +253,22 @@ setprogname(const char *name)
 
 	if (progname_info.allocated)
 		xfree(deconstify_char(progname_info.name));
+	else
+		progname_info.allocated = TRUE;
+
+	/*
+	 * Avoid any trailing ".exe" at the end of the name on Windows.
+	 */
+
+	if (is_running_on_mingw()) {
+		const char *exe = is_strcasesuffix(name, (size_t) -1, ".exe");
+		if (exe != NULL) {
+			progname_info.name = xstrndup(name, ptr_diff(exe, name));
+			return;
+		}
+	}
 
 	progname_info.name = xstrdup(name);
-	progname_info.allocated = TRUE;
 }
 #endif	/* !HAS_SETPROGNAME */
 
