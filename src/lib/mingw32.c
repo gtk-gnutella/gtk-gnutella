@@ -200,6 +200,42 @@ extern bool vmm_is_debugging(uint32 level);
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
 
+#ifdef MINGW_STARTUP_DEBUG
+static FILE *mingw_debug_lf;
+
+static void
+getlog(bool initial)
+{
+	mingw_debug_lf = fopen("C:/cygwin/tmp/gtkg-log.txt", initial ? "wb" : "ab");
+}
+
+static void
+closelog(void)
+{
+	if (mingw_debug_lf != NULL)
+		fclose(mingw_debug_lf);
+	mingw_debug_lf = NULL;
+}
+
+#define STARTUP_DEBUG(...)	G_STMT_START {	\
+	if (mingw_debug_lf != NULL) {			\
+		FILE *lf = mingw_debug_lf;			\
+		char tb[CRASH_TIME_BUFLEN];			\
+		crash_time_cached(tb, sizeof tb);	\
+		fputs(tb, lf);						\
+		fputc(' ', lf);						\
+		fprintf(lf, __VA_ARGS__);			\
+		fputc('\n', lf);					\
+		fflush(lf);							\
+	}										\
+} G_STMT_END
+
+#else	/* !MINGW_STARTUP_DEBUG */
+#define getlog(x)
+#define closelog()
+#define STARTUP_DEBUG(...)	{}
+#endif	/* MINGW_STARTUP_DEBUG */
+
 enum pncs_magic { PNCS_MAGIC = 0x7c0e73af };
 
 /**
@@ -278,11 +314,26 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 static const char *
 get_native_path(const char *pathname, int *error)
 {
-	buf_t *b = buf_private(G_STRFUNC, MAX_PATH_LEN);
-	char *pathbuf = buf_data(b);
-	size_t pathsz = buf_size(b);
+	buf_t *b, bs;
+	char *p, *pathbuf;
+	size_t pathsz;
 	const char *npath = pathname;
-	char *p;
+
+	STARTUP_DEBUG("%s(): pathname=%s", G_STRFUNC, pathname);
+
+	/*
+	 * In a signal handler, don't allocate memory.
+	 */
+
+	if (signal_in_handler()) {
+		static char buf[MAX_PATH_LEN];
+		b = buf_init(&bs, buf, sizeof buf);
+	} else {
+		b = buf_private(G_STRFUNC, MAX_PATH_LEN);
+	}
+
+	pathbuf = buf_data(b);
+	pathsz = buf_size(b);
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
@@ -392,6 +443,8 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 
 	ZERO(pncs);
 	pncs->magic = PNCS_MAGIC;	/* In case they call pncs_dup() */
+
+	STARTUP_DEBUG("%s(): pathname=%s", G_STRFUNC, pathname);
 
 	/*
 	 * In a signal handler, don't allocate memory.
@@ -618,8 +671,7 @@ mingw_win2posix(int error)
 	case 0:					/* Always indicates success */
 		return 0;
 	default:
-		/* Only allocate once VMM layer has been initialized */
-		if (NULL == warned && mingw_vmm_inited) {
+		if (NULL == warned) {
 			static spinlock_t warned_slk = SPINLOCK_INIT;
 
 			spinlock(&warned_slk);
@@ -2475,21 +2527,19 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 {
 	const char *personal;
 
-	/*
-	 * So early in the startup process, we cannot allocate memory via the VMM
-	 * layer, hence we cannot use mingw_get_personal_path() because that
-	 * would cache the address of a global variable.
-	 */
-
-	personal = get_special(CSIDL_PERSONAL, "My Documents");
+	personal = mingw_get_personal_path();
 
 	g_strlcpy(dest, personal, size);
+
+	STARTUP_DEBUG("%s(): #1 dest=%s", G_STRFUNC, dest);
 
 	if (path_does_not_exist(personal))
 		goto fallback;
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, product_get_name());
+
+	STARTUP_DEBUG("%s(): #2 dest=%s", G_STRFUNC, dest);
 
 	if (path_does_not_exist(dest))
 		mingw_mkdir(dest, S_IRUSR | S_IWUSR | S_IXUSR);
@@ -2500,11 +2550,14 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	if (0 != strcmp(filepath_basename(dest), file))
 		goto fallback;
 
+	STARTUP_DEBUG("%s(): returning dest=%s", G_STRFUNC, dest);
+
 	return dest;
 
 fallback:
 	g_strlcpy(dest, G_DIR_SEPARATOR_S, size);
 	clamp_strcat(dest, size, file);
+	STARTUP_DEBUG("%s(): returning fallback dest=%s", G_STRFUNC, dest);
 	return dest;
 }
 
@@ -2728,7 +2781,6 @@ mingw_stat(const char *pathname, filestat_t *buf)
 
 		if (ENOENT == errno) {
 			size_t len = strlen(pathname);
-			char *fixed;
 			const char *p = &pathname[len - 1];
 
 			if (len <= 1)
@@ -2741,10 +2793,24 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			else
 				goto nofix;
 
-			fixed = h_strndup(pathname, len);
-			if (0 == pncs_convert(&pncs, fixed))
-				res = _wstati64(pncs.utf16, buf);
-			hfree(fixed);
+			/*
+			 * In a signal handler, don't allocate memory.
+			 */
+
+			if (signal_in_handler()) {
+				static char path[MAX_PATH_LEN];
+
+				clamp_strncpy(path, sizeof path, pathname, len);
+				if (0 == pncs_convert(&pncs, path))
+					res = _wstati64(pncs.utf16, buf);
+			} else {
+				char *fixed;
+
+				fixed = h_strndup(pathname, len);
+				if (0 == pncs_convert(&pncs, fixed))
+					res = _wstati64(pncs.utf16, buf);
+				hfree(fixed);
+			}
 		}
 	}
 
@@ -3570,12 +3636,10 @@ mingw_mem_committed(void)
 	if (GetProcessMemoryInfo(GetCurrentProcess(), &c, sizeof c))
 		return c.PagefileUsage;
 
-	if (mingw_vmm_inited) {
-		errno = mingw_last_error();
+	errno = mingw_last_error();
 
-		s_warning_once_per(LOG_PERIOD_MINUTE,
-			"%s(): cannot compute process memory usage: %m", G_STRFUNC);
-	}
+	s_warning_once_per(LOG_PERIOD_MINUTE,
+		"%s(): cannot compute process memory usage: %m", G_STRFUNC);
 
 	/* At least that is known */
 	return mingw_vmm.allocated + mingw_vmm.baseline;
@@ -7077,33 +7141,11 @@ mingw_sbrk(long incr)
 }
 #endif 	/* EMULATE_SBRK */
 
-#ifdef MINGW_STARTUP_DEBUG
-static FILE *
-getlog(bool initial)
-{
-	return fopen("gtkg-log.txt", initial ? "wb" : "ab");
-}
-
-#define STARTUP_DEBUG(...)	G_STMT_START {	\
-	if (lf != NULL) {						\
-		fprintf(lf, __VA_ARGS__);			\
-		fputc('\n', lf);					\
-		fflush(lf);							\
-	}										\
-} G_STMT_END
-
-#else	/* !MINGW_STARTUP_DEBUG */
-#define getlog(x)	NULL
-#define STARTUP_DEBUG(...)	{}
-#endif	/* MINGW_STARTUP_DEBUG */
-
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
 
 static G_GNUC_COLD void
-mingw_stdio_reset(FILE *lf, bool console)
+mingw_stdio_reset(bool console)
 {
-	(void) lf;			/* In case no MINGW_STARTUP_DEBUG */
-
 	/*
 	 * A note on setvbuf():
 	 *
@@ -7166,6 +7208,15 @@ mingw_stdio_reset(FILE *lf, bool console)
 		close(STDOUT_FILENO);
 		close(STDERR_FILENO);
 		STARTUP_DEBUG("stdio fully reset");
+
+		freopen("NUL", "rb", stdin);
+		STARTUP_DEBUG("stdin reopened from NUL");
+
+		freopen("NUL", "wb", stdout);
+		STARTUP_DEBUG("stdout reopened to NUL");
+
+		freopen("NUL", "wb", stderr);
+		STARTUP_DEBUG("stderr reopened to NUL");
 	}
 }
 
@@ -7174,12 +7225,10 @@ mingw_stdio_reset(FILE *lf, bool console)
  * extension, etc..., up to the maximum specified.
  */
 static G_GNUC_COLD void
-mingw_file_rotate(FILE *lf, const char *pathname, int keep)
+mingw_file_rotate(const char *pathname, int keep)
 {
 	static char npath[MAX_PATH_LEN];
 	int i;
-
-	(void) lf;
 
 	if (keep > 0) {
 		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
@@ -7205,10 +7254,11 @@ G_GNUC_COLD void
 mingw_early_init(void)
 {
 	int console_err;
-	FILE *lf = getlog(TRUE);
+
+	getlog(TRUE);
 
 	STARTUP_DEBUG("starting PID %d", getpid());
-	STARTUP_DEBUG("logging on fd=%d", fileno(lf));
+	STARTUP_DEBUG("logging on fd=%d", fileno(mingw_debug_lf));
 
 #if __MSVCRT_VERSION__ >= 0x800
 	STARTUP_DEBUG("configured invalid parameter handler");
@@ -7224,20 +7274,18 @@ mingw_early_init(void)
 	SetUnhandledExceptionFilter(mingw_exception);
 	STARTUP_DEBUG("configured exception handler");
 
+	STARTUP_DEBUG("initializing virtual memory...");
+	mingw_vmm_init();
+	STARTUP_DEBUG("done!");
+
 	_fcloseall();
-	lf = getlog(FALSE);
-	if (NULL == lf) {
-		lf = getlog(TRUE);
-		STARTUP_DEBUG("had to recreate this logfile for PID %d", getpid());
-	} else {
-		STARTUP_DEBUG("reopening of this logfile successful");
-	}
+	getlog(FALSE);
 
 	STARTUP_DEBUG("attempting AttachConsole()...");
 
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
 		STARTUP_DEBUG("AttachConsole() succeeded");
-		mingw_stdio_reset(lf, TRUE);
+		mingw_stdio_reset(TRUE);
 	} else {
 		console_err = GetLastError();
 
@@ -7247,9 +7295,7 @@ mingw_early_init(void)
 		case ERROR_INVALID_HANDLE:
 		case ERROR_GEN_FAILURE:
 			/* We had no console, and we got no console. */
-			mingw_stdio_reset(lf, FALSE);
-			freopen("NUL", "rb", stdin);
-			STARTUP_DEBUG("stdin reopened from NUL");
+			mingw_stdio_reset(FALSE);
 			{
 				const char *pathname;
 
@@ -7265,8 +7311,9 @@ mingw_early_init(void)
 				 */
 
 				pathname = mingw_getstdout_path();
-				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stdout file will be %s", pathname);
+				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
+				STARTUP_DEBUG("stdout files rotated");
 				if (NULL != freopen(pathname, "ab", stdout)) {
 					log_set(LOG_STDOUT, pathname);
 					STARTUP_DEBUG("stdout (unbuffered) reopened");
@@ -7275,8 +7322,9 @@ mingw_early_init(void)
 				}
 
 				pathname = mingw_getstderr_path();
-				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stderr file will be %s", pathname);
+				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
+				STARTUP_DEBUG("stderr files rotated");
 				if (NULL != freopen(pathname, "ab", stderr)) {
 					log_set(LOG_STDERR, pathname);
 					STARTUP_DEBUG("stderr (unbuffered) reopened");
@@ -7304,10 +7352,9 @@ mingw_early_init(void)
 	(void) mingw_getppid();
 #endif	/* EMULATE_GETPPID */
 
-	if (lf != NULL)
-		fclose(lf);
-
 	set_folder_basepath_func(mingw_get_folder_basepath);
+
+	closelog();
 }
 
 void 
