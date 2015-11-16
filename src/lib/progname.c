@@ -43,8 +43,9 @@
 
 #include "iovec.h"
 #include "malloc.h"				/* For real_malloc() */
-#include "once.h"
 #include "misc.h"				/* For is_strcasesuffix() */
+#include "mutex.h"
+#include "once.h"
 #include "path.h"
 #include "strvec.h"
 #include "tm.h"
@@ -223,6 +224,21 @@ progstart_arg(int n)
 	return progname_info.argv[n];
 }
 
+#if !defined(HAS_GETPROGNAME) || !defined(HAS_SETPROGNAME)
+static mutex_t progname_mtx = MUTEX_INIT;
+
+/*
+ * Use "fast" locks since these can be used very early in the process.
+ *
+ * We use mutexes and not simple locks in case there is some re-entrance
+ * due to the fact that setprogname() calls some other routines that could
+ * in turn need to call getprogname() for instance.
+ */
+
+#define PROGNAME_LOCK		mutex_lock_fast(&progname_mtx)
+#define PROGNAME_UNLOCK		mutex_unlock_fast(&progname_mtx)
+#endif
+
 #ifndef HAS_GETPROGNAME
 /**
  * @return the program name (last path component if invoked with full path).
@@ -230,9 +246,19 @@ progstart_arg(int n)
 const char *
 getprogname(void)
 {
+	const char *name;
+
 	progstart_called(G_STRFUNC);
 
-	return progname_info.name;
+	/*
+	 * Need to take a lock since setprogname() is not atomic.
+	 */
+
+	PROGNAME_LOCK;
+	name = progname_info.name;
+	PROGNAME_UNLOCK;
+
+	return name;
 }
 #endif	/* !HAS_GETPROGNAME */
 
@@ -248,13 +274,29 @@ getprogname(void)
 void
 setprogname(const char *name)
 {
+	char *oldname;
+
 	progstart_called(G_STRFUNC);
 	g_assert(name != NULL);
 
+	PROGNAME_LOCK;
+
+	/*
+	 * We protect ourselves against re-entrance from the same thread into
+	 * the critical section in getprogname(): since we call an allocation
+	 * routine, we do not know what could happen.
+	 *
+	 * Therefore we don't immediately free the old name, if it was allocated.
+	 * We first install the new allocated name, then we free-up the old one,
+	 * outside of the critical section.
+	 */
+
 	if (progname_info.allocated)
-		xfree(deconstify_char(progname_info.name));
+		oldname = deconstify_char(progname_info.name);
 	else
-		progname_info.allocated = TRUE;
+		oldname = NULL;
+
+	progname_info.allocated = TRUE;
 
 	/*
 	 * Avoid any trailing ".exe" at the end of the name on Windows.
@@ -264,11 +306,17 @@ setprogname(const char *name)
 		const char *exe = is_strcasesuffix(name, (size_t) -1, ".exe");
 		if (exe != NULL) {
 			progname_info.name = xstrndup(name, ptr_diff(exe, name));
-			return;
+			goto done;
 		}
 	}
 
 	progname_info.name = xstrdup(name);
+
+done:
+	PROGNAME_UNLOCK;
+
+	if (oldname != NULL)
+		xfree(oldname);
 }
 #endif	/* !HAS_SETPROGNAME */
 
