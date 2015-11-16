@@ -1909,6 +1909,7 @@ main(int argc, char **argv)
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
 		GTA_RELEASE, GTA_VERSION_NUMBER, GTA_REVISION, GTA_BUILD);
+	product_set_nickname(GTA_PRODUCT_NICK);
 	product_set_website(GTA_WEBSITE);
 	product_set_interface(GTA_INTERFACE);
 
