@@ -695,6 +695,8 @@ h_strdup(const char *str)
 char *
 h_strndup(const char *str, size_t n)
 {
+	g_assert(size_is_non_negative(n));
+
 	if (str != NULL) {
 		size_t len = clamp_strlen(str, n);
 		char *result = halloc(len + 1);

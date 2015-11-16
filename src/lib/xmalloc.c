@@ -4782,6 +4782,8 @@ xstrndup(const char *str, size_t n)
 	size_t len;
 	char *res, *p;
 
+	g_assert(size_is_non_negative(n));
+
 	if G_UNLIKELY(NULL == str)
 		return NULL;
 
