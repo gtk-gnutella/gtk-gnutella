@@ -138,8 +138,10 @@ is_strcaseprefix(const char *str, const char *prefix)
  * @param str		a NUL-terminated string or array of "len" bytes.
  * @param len		length of ``str'', (size_t)-1 means compute it
  * @param suffix	the suffix to look for (NUL-terminated string)
+ *
+ * @return NULL if suffix is not found, a pointer to the start of it otherwise.
  */
-bool
+char *
 is_strsuffix(const char *str, size_t len, const char *suffix)
 {
 	size_t suffix_len;
@@ -150,12 +152,13 @@ is_strsuffix(const char *str, size_t len, const char *suffix)
 	len = (size_t)-1 == len ? strlen(str) : len;
 	suffix_len = strlen(suffix);
 
-	if (suffix_len > len) {
-		return FALSE;
-	} else {
+	if (suffix_len <= len) {
 		const char *p = &str[len - suffix_len];
-		return 0 == memcmp(p, suffix, suffix_len);
+		if (0 == memcmp(p, suffix, suffix_len))
+			return deconstify_char(p);
 	}
+
+	return NULL;
 }
 
 /**
@@ -165,8 +168,10 @@ is_strsuffix(const char *str, size_t len, const char *suffix)
  * @param str		a NUL-terminated string or array of "len" bytes.
  * @param len		length of ``str'', (size_t)-1 means compute it
  * @param suffix	the suffix to look for (NUL-terminated string)
+ *
+ * @return NULL if suffix is not found, a pointer to the start of it otherwise.
  */
-bool
+char *
 is_strcasesuffix(const char *str, size_t len, const char *suffix)
 {
 	size_t suffix_len;
@@ -177,9 +182,7 @@ is_strcasesuffix(const char *str, size_t len, const char *suffix)
 	len = (size_t)-1 == len ? strlen(str) : len;
 	suffix_len = strlen(suffix);
 
-	if (suffix_len > len) {
-		return FALSE;
-	} else {
+	if (suffix_len <= len) {
 		const char *p = &str[len - suffix_len];
 		const char *q = suffix;
 		size_t i;
@@ -193,11 +196,13 @@ is_strcasesuffix(const char *str, size_t len, const char *suffix)
 			 */
 
 			if (a != b && ascii_tolower(a) != ascii_tolower(b))
-				return FALSE;
+				return NULL;
 		}
 
-		return TRUE;
+		return deconstify_char(&str[len - suffix_len]);
 	}
+
+	return NULL;
 }
 
 /**

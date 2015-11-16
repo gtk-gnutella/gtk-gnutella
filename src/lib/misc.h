@@ -300,8 +300,8 @@ int create_directory(const char *dir, mode_t mode);
 
 char *is_strprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 char *is_strcaseprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
-bool is_strsuffix(const char *str, size_t len, const char *suffix);
-bool is_strcasesuffix(const char *str, size_t len, const char *suffix);
+char *is_strsuffix(const char *str, size_t len, const char *suffix);
+char *is_strcasesuffix(const char *str, size_t len, const char *suffix);
 char *is_bufprefix(const char *str, size_t len, const char *prefix);
 char *is_bufcaseprefix(const char *str, size_t len, const char *prefix);
 size_t html_escape(const char *src, char *dst, size_t dst_size);
