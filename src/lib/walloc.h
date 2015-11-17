@@ -170,6 +170,8 @@ void *wrealloc_track(void *old, size_t old_size, size_t new_size,
 
 void walloc_init(void);
 void walloc_crash_mode(void);
+size_t walloc_active_limit(void);
+size_t walloc_size_threshold(void);
 void wdestroy(void);
 
 size_t walloc_maxsize(void) G_GNUC_CONST;
