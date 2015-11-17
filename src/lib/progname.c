@@ -359,7 +359,7 @@ progname_args_copy_environ(void)
 
 	progname_args_clearenv();
 
-	for (i = 0; env[i] != NULL; i++)
+	for (i = 0; env[i] != NULL; i++) {
 		char *eq = strchr(env[i], '=');
 		int r;
 
