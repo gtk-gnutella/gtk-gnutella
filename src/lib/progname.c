@@ -113,7 +113,7 @@ progstart(int argc, char * const *argv)
 	}
 
 #ifdef HAS_SETPROGNAME
-	setprogname(progname_name);
+	setprogname(progname_info.name);
 #endif
 }
 
