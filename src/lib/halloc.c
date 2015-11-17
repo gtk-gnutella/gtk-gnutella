@@ -61,6 +61,7 @@
 #include "vmm.h"
 #include "walloc.h"
 #include "zalloc.h"			/* For zalloc_shift_pointer() */
+#include "xmalloc.h"		/* In case halloc() is disabled at runtime */
 
 #include "override.h"		/* Must be the last header included */
 
@@ -81,17 +82,20 @@ static struct hstats {
 	uint64 allocations;					/**< Total # of allocations */
 	AU64(allocations_zeroed);			/**< Total # of zeroed allocations */
 	uint64 alloc_via_walloc;			/**< Allocations from walloc() */
+	uint64 alloc_via_xpmalloc;			/**< Allocations from xpmalloc() */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 freeings;					/**< Total # of freeings */
 	AU64(reallocs);						/**< Total # of reallocs */
 	AU64(realloc_noop);					/**< Nothing to do */
 	uint64 realloc_via_wrealloc;		/**< Reallocs handled by wrealloc() */
-	AU64(realloc_via_vmm);				/**< Reallocs handled by VMM */
+	uint64 realloc_via_xprealloc;		/**< Reallocs handled by xprealloc() */
+	AU64(realloc_via_copy);				/**< Reallocs handled by copy */
 	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
 	AU64(realloc_noop_same_vmm);		/**< Same VMM size */
 	AU64(realloc_relocatable);			/**< Forced relocation for VMM */
 	uint64 wasted_cumulative;			/**< Cumulated allocation waste */
 	uint64 wasted_cumulative_walloc;	/**< Cumulated waste for walloc */
+	uint64 wasted_cumulative_xpmalloc;	/**< Cumulated waste for xpmalloc */
 	uint64 wasted_cumulative_vmm;		/**< Cumulated waste for VMM allocs */
 	size_t memory;						/**< Amount of bytes allocated */
 	size_t blocks;						/**< Amount of blocks allocated */
@@ -107,7 +111,8 @@ static spinlock_t hstats_slk = SPINLOCK_INIT;
 
 enum halloc_type {
 	HALLOC_WALLOC,
-	HALLOC_VMM
+	HALLOC_VMM,
+	HALLOC_XPMALLOC
 };
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
@@ -116,9 +121,11 @@ static int use_page_table;
 static page_table_t *pt_pages;
 static hash_table_t *ht_pages;
 static size_t walloc_threshold;		/* walloc() size upper limit */
+static size_t xpmalloc_threshold;	/* xpmalloc() size upper limit */
 static size_t halloc_pagesize;
+static bool halloc_disabled;
 
-union align {
+union halign {
   size_t	size;
   char		bytes[MEM_ALIGNBYTES];
 };
@@ -234,13 +241,27 @@ halloc_get_size(const void *p, enum halloc_type *type)
 		g_assert(size >= walloc_threshold);
 		*type = HALLOC_VMM;
 	} else {
-		const union align *head = p;
+		const union halign *head = p;
+
+		/*
+		 * xmalloc() and halloc() use similar headers, so regardless of
+		 * whether this is a halloc()'ed block through walloc() or an
+		 * xmalloc()'ed block, we get the same blocksize information
+		 * at the same place.  To ensure the presence of such a header,
+		 * we use xpmalloc().
+		 *		--RAM, 2015-11-17
+		 */
 
 		head--;
 		g_assert(size_is_positive(head->size));
-		g_assert(head->size < walloc_threshold);
 		size = head->size + sizeof *head;
-		*type = HALLOC_WALLOC;
+
+		if (size < walloc_threshold) {
+			*type = HALLOC_WALLOC;
+		} else {
+			size = xpallocated(p);
+			*type = HALLOC_XPMALLOC;
+		}
 	}
 	return size;
 }
@@ -264,11 +285,14 @@ halloc(size_t size)
 	if (0 == size)
 		return NULL;
 
-	if G_UNLIKELY(0 == walloc_threshold)
+	if G_UNLIKELY(0 == walloc_threshold) {
+		if (halloc_disabled)
+			return xmalloc(size);
 		halloc_init(TRUE);
+	}
 
 	if G_LIKELY(size < walloc_threshold) {
-		union align *head;
+		union halign *head;
 
 		allocated = size + sizeof head[0];
 #ifdef TRACK_ZALLOC
@@ -284,6 +308,12 @@ halloc(size_t size)
 		HSTATS_LOCK;
 		hstats.alloc_via_walloc++;
 		hstats.wasted_cumulative_walloc += sizeof head[0];
+	} else if (size < xpmalloc_threshold) {
+		p = xpmalloc(size);
+		allocated = xpallocated(p);
+		HSTATS_LOCK;
+		hstats.alloc_via_xpmalloc++;
+		hstats.wasted_cumulative_xpmalloc += allocated - size;
 	} else {
 		int inserted;
 
@@ -347,14 +377,21 @@ hfree(void *p)
 	if G_UNLIKELY(NULL == p)
 		return;
 
+	if G_UNLIKELY(halloc_disabled) {
+		xfree(p);
+		return;
+	}
+
 	allocated = halloc_get_size(p, &type);
 	g_assert(size_is_positive(allocated));
 
 	if (HALLOC_WALLOC == type) {
-		union align *head = p;
+		union halign *head = p;
 
 		head--;
 		wfree(head, allocated);
+	} else if (HALLOC_XPMALLOC == type) {
+		xfree(p);
 	} else {
 		page_remove(p);
 		vmm_free(p, allocated);
@@ -386,6 +423,9 @@ hrealloc(void *old, size_t new_size)
 		hfree(old);
 		return NULL;
 	}
+
+	if G_UNLIKELY(halloc_disabled)
+		return xrealloc(old, new_size);
 
 	allocated = halloc_get_size(old, &type);
 	g_assert(size_is_positive(allocated));
@@ -423,13 +463,30 @@ hrealloc(void *old, size_t new_size)
 				return old;
 			}
 		}
+	} else if (HALLOC_XPMALLOC == type) {
+		size_t new_allocated;
+
+		old_size = allocated;
+
+		if (new_size < walloc_threshold || new_size >= xpmalloc_threshold)
+			goto relocate;		/* Will change allocation type */
+
+		p = xprealloc(old, new_size);
+		new_allocated = xpallocated(p);
+
+		HSTATS_LOCK;
+		hstats.realloc_via_xprealloc++;
+		hstats.memory += new_allocated - allocated;
+		HSTATS_UNLOCK;
+
+		return p;
 	} else {
-		union align *old_head;
+		union halign *old_head;
 
 		old_size = allocated - sizeof *old_head;		/* User size */
 
 		if (new_size < walloc_threshold) {
-			union align *new_head;
+			union halign *new_head;
 			size_t new_allocated = new_size + sizeof *new_head;
 
 			old_head = old;
@@ -457,8 +514,49 @@ relocate:
 
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
-	HSTATS_INCX(realloc_via_vmm);
+	HSTATS_INCX(realloc_via_copy);
 	return p;
+}
+
+/**
+ * Attempt to disable halloc(), remapping it to xmalloc() dynamically.
+ *
+ * This is only possible before any halloc() has been performed, otherwise
+ * we would not be able to correctly hfree() blocks allocated before disabling
+ * the allocator.
+ *
+ * @return TRUE if we managed to disable halloc().
+ */
+bool
+halloc_disable(void)
+{
+	bool result = FALSE;
+
+	thread_suspend_others(TRUE);
+
+	if (0 == walloc_threshold) {
+		result = TRUE;			/* No halloc_init() yet */
+	} else if (hstats.allocations == hstats.freeings) {
+		hdestroy();
+		walloc_threshold = 0;
+		result = TRUE;
+	}
+
+	if (result)
+		halloc_disabled = TRUE;
+
+	thread_unsuspend_others();
+
+	return result;
+}
+
+/**
+ * @return whether halloc() was disabled.
+ */
+bool
+halloc_is_disabled(void)
+{
+	return halloc_disabled;
 }
 
 /**
@@ -468,6 +566,7 @@ void
 hdestroy(void)
 {
 	page_destroy();
+	halloc_disabled = TRUE;
 }
 
 #else	/* REMAP_ZALLOC || TRACK_MALLOC */
@@ -501,6 +600,18 @@ void *
 hrealloc(void *old, size_t size)
 {
 	return g_realloc(old, size);
+}
+
+bool
+halloc_disable(void)
+{
+	return TRUE;
+}
+
+bool
+halloc_is_disabled(void)
+{
+	return TRUE;
 }
 #endif	/* REMAP_ZALLOC */
 
@@ -587,6 +698,15 @@ halloc_init_vtable(void)
 
 #endif	/* USE_HALLOC */
 
+/**
+ * Is halloc() possible given current walloc() limits?
+ */
+bool
+halloc_is_possible(void)
+{
+	return walloc_maxsize() > sizeof(union halign);
+}
+
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 static bool replacing_malloc;
 static bool halloc_is_compiled = TRUE;
@@ -597,8 +717,19 @@ halloc_init_once(void)
 	vmm_init();		/* Just in case, since we're built on top of VMM */
 
 	halloc_pagesize = compat_pagesize();
+
+	if (halloc_disabled || !halloc_is_possible()) {
+		g_assert(0 == walloc_threshold);
+		halloc_disabled = TRUE;
+		return;
+	}
+
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == halloc_pagesize;
-	walloc_threshold = walloc_maxsize() - sizeof(union align) + 1;
+	walloc_threshold = walloc_maxsize() - sizeof(union halign) + 1;
+	xpmalloc_threshold = 2 * halloc_pagesize - sizeof(union halign) + 1;
+
+	g_assert(size_is_positive(walloc_threshold));
+	g_assert(size_is_positive(xpmalloc_threshold));
 
 	HPAGE_LOCK;
 	if (use_page_table) {
@@ -616,6 +747,10 @@ halloc_init(bool replace_malloc)
 	static once_flag_t vtable_inited;
 
 	once_flag_run(&initialized, halloc_init_once);
+
+	if G_UNLIKELY(halloc_disabled)
+		return;
+
 	replacing_malloc = replace_malloc;
 
 	if (replace_malloc)
@@ -1075,6 +1210,7 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct hstats stats;
 	uint64 wasted_average, wasted_average_walloc, wasted_average_vmm;
+	uint64 wasted_average_xpmalloc;
 
 	HSTATS_LOCK;
 	stats = hstats;			/* struct copy under lock protection */
@@ -1103,26 +1239,31 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 		(0 == stats.allocations ? 1 : stats.allocations);
 	wasted_average_walloc = stats.wasted_cumulative_walloc /
 		(0 == stats.alloc_via_walloc ?  1 : stats.alloc_via_walloc);
+	wasted_average_xpmalloc = stats.wasted_cumulative_xpmalloc /
+		(0 == stats.alloc_via_xpmalloc ?  1 : stats.alloc_via_xpmalloc);
 	wasted_average_vmm = stats.wasted_cumulative_vmm /
 		(0 == stats.alloc_via_vmm ?  1 : stats.alloc_via_vmm);
 
 	DUMP(allocations);
 	DUMP64(allocations_zeroed);
 	DUMP(alloc_via_walloc);
+	DUMP(alloc_via_xpmalloc);
 	DUMP(alloc_via_vmm);
 	DUMP(freeings);
 	DUMP64(reallocs);
 	DUMP64(realloc_noop);
 	DUMP64(realloc_noop_same_vmm);
 	DUMP(realloc_via_wrealloc);
-	DUMP64(realloc_via_vmm);
+	DUMP64(realloc_via_copy);
 	DUMP(realloc_via_vmm_shrink);
 	DUMP64(realloc_relocatable);
 	DUMP(wasted_cumulative);
 	DUMP(wasted_cumulative_walloc);
+	DUMP(wasted_cumulative_xpmalloc);
 	DUMP(wasted_cumulative_vmm);
 	DUMV(wasted_average);
 	DUMV(wasted_average_walloc);
+	DUMV(wasted_average_xpmalloc);
 	DUMV(wasted_average_vmm);
 	DUMS(memory);
 	DUMS(blocks);
