@@ -1922,7 +1922,6 @@ main(int argc, char **argv)
 	progstart(argc, argv);
 
 	thread_set_main(FALSE);				/* Main thread cannot block! */
-	tm_init();
 
 	if (compat_is_superuser()) {
 		fprintf(stderr,
@@ -1991,6 +1990,8 @@ main(int argc, char **argv)
 	walloc_init();
 
 	/* At this point, vmm_alloc(), halloc() and zalloc() are up */
+
+	tm_init(TRUE);
 
 	signal_set(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 #ifdef SIGHUP

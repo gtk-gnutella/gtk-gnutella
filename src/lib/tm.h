@@ -171,7 +171,7 @@ tmn2f(const tm_nano_t * const t)
 	return (double) t->tv_sec + t->tv_nsec / 1000000000.0;
 }
 
-void tm_init(void);
+void tm_init(bool time_thread);
 void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);

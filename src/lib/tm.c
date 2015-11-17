@@ -73,7 +73,6 @@ static struct {
 	once_flag_t inited;		/* First GMT offset computed */
 } tm_gmt;
 
-static bool tm_thread_started;
 static uint32 tm_debug;
 
 #define TM_LOCK			spinlock_raw(&tm_slk)
@@ -659,22 +658,8 @@ tm_now_exact_raw(tm_t *tm)
 void
 tm_now_exact(tm_t *tm)
 {
-	G_PREFETCH_HI_W(&tm_cached_now);
 	G_PREFETCH_HI_W(&tm_slk);
-
-	/*
-	 * This routine is too low-level to be able to use once_run_flag().
-	 */
-
-	if G_UNLIKELY(!tm_thread_started) {
-		bool start = FALSE;
-		TM_LOCK;
-		if (!tm_thread_started)
-			start = tm_thread_started = TRUE;
-		TM_UNLOCK;
-		if (start)
-			tm_thread_start();
-	}
+	G_PREFETCH_HI_W(&tm_cached_now);
 
 	thread_check_suspended();
 	tm_now_exact_raw(tm);
@@ -911,10 +896,16 @@ tm_relative_time(void)
 	return delta_time(tm_time(), progstart_time().tv_sec);
 }
 
+/**
+ * Initialize the cached time, and optionally start the time thread.
+ */
 void
-tm_init(void)
+tm_init(bool time_thread)
 {
 	tm_t now;
+
+	if (time_thread)
+		tm_thread_start();
 
 	tm_now_exact(&now);
 }
