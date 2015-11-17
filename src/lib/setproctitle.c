@@ -31,9 +31,9 @@
  * @date 2003, 2015
  */
 
-#ifndef HAS_SETPROCTITLE
-
 #include "common.h"
+
+#ifndef HAS_SETPROCTITLE
 
 #include "setproctitle.h"
 
