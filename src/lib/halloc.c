@@ -254,9 +254,9 @@ halloc_get_size(const void *p, enum halloc_type *type)
 
 		head--;
 		g_assert(size_is_positive(head->size));
-		size = head->size + sizeof *head;
 
-		if (size < walloc_threshold) {
+		if (head->size < walloc_threshold) {
+			size = head->size + sizeof *head;
 			*type = HALLOC_WALLOC;
 		} else {
 			size = xpallocated(p);
