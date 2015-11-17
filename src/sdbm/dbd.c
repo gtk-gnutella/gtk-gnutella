@@ -4,11 +4,14 @@
 
 #include <stdio.h>
 #include <sys/file.h>
+
+#include "common.h"
+
 #include "sdbm.h"
 
-char *progname;
-extern void oops();
+#include "lib/progname.h"
 
+extern void oops();
 
 #define empty(page)	(((short *) page)[0] == 0)
 
@@ -20,7 +23,7 @@ main(int argc, char **argv)
 	char *name;
 	int pagf;
 
-	progname = argv[0];
+	progstart(argc, argv);
 
 	if (p = argv[1]) {
 		name = (char *) malloc((n = strlen(p)) + 5);
@@ -36,7 +39,7 @@ main(int argc, char **argv)
 		sdump(pagf);
 	}
 	else
-		oops("usage: %s dbname", progname);
+		oops("usage: %s dbname", getprogname());
 	return 0;
 }
 
@@ -46,9 +49,9 @@ sdump(int pagf)
 	register r;
 	register n = 0;
 	register o = 0;
-	char pag[PBLKSIZ];
+	char pag[DBM_PBLKSIZ];
 
-	while ((r = read(pagf, pag, PBLKSIZ)) > 0) {
+	while ((r = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		if (!sdbm_internal_chkpage(pag))
 			fprintf(stderr, "%d: bad page.\n", n);
 		else if (empty(pag))
@@ -95,7 +98,7 @@ dispage(char *pag)
 	register off;
 	register short *ino = (short *) pag;
 
-	off = PBLKSIZ;
+	off = DBM_PBLKSIZ;
 	for (i = 1; i < ino[0]; i += 2) {
 		for (n = ino[i]; n < off; n++)
 			if (pag[n] != 0)

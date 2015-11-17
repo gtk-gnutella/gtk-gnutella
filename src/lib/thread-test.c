@@ -51,7 +51,7 @@
 #include "mutex.h"
 #include "once.h"
 #include "parse.h"
-#include "path.h"
+#include "progname.h"
 #include "random.h"
 #include "rwlock.h"
 #include "semaphore.h"
@@ -72,8 +72,6 @@
 #include "zalloc.h"
 
 #define STACK_SIZE		16384
-
-const char *progname;
 
 static char allocator = 'r';		/* For -X tests, random mix by default */
 static size_t allocator_bsize;		/* Block size to use (0 = random) */
@@ -129,7 +127,7 @@ usage(void)
 		"  -X : exercise concurrent memory allocation\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		"Allocators: r=random mix, h=halloc, v=vmm_alloc, w=walloc, x=xmalloc\n"
-		, progname);
+		, getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -2205,7 +2203,7 @@ get_number(const char *arg, int opt)
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
-			progname, opt, arg, g_strerror(error));
+			getprogname(), opt, arg, g_strerror(error));
 		exit(EXIT_FAILURE);
 	}
 
@@ -2226,10 +2224,9 @@ main(int argc, char **argv)
 	unsigned repeat = 1, play_time = 0;
 	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFIKMNOPQRST:VWX";
 
-	mingw_early_init();
-	progname = filepath_basename(argv[0]);
+	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
-	crash_init(argv[0], progname, 0, NULL);
+	crash_init(argv[0], getprogname(), 0, NULL);
 
 	misc_init();
 

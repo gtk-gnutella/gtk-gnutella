@@ -88,6 +88,9 @@ char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
 #endif	/* !TRACK_MALLOC */
 
 void halloc_init(bool replace_malloc);
+bool halloc_disable(void);
+bool halloc_is_disabled(void);
+bool halloc_is_possible(void);
 void hdestroy(void);
 bool halloc_replaces_malloc(void);
 bool halloc_is_available(void);

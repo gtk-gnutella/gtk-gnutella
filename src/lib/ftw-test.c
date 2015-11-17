@@ -37,14 +37,12 @@
 #include "halloc.h"
 #include "hset.h"
 #include "misc.h"
-#include "path.h"
+#include "progname.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
 #include "strtok.h"
 #include "walloc.h"
-
-const char *progname;
 
 static void G_GNUC_NORETURN
 usage(void)
@@ -56,7 +54,7 @@ usage(void)
 		"  -l : show file length (size)\n"
 		"  -s : dumps sorted file tree\n"
 		"  -z : zap (suppress) messages from listed routines\n"
-		, progname);
+		, getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -352,8 +350,7 @@ main(int argc, char **argv)
 	const uint32 ftw_flags =
 			FTW_O_PHYS | FTW_O_ALL | FTW_O_MOUNT | FTW_O_DEPTH | FTW_O_ENTRY;
 
-	mingw_early_init();
-	progname = filepath_basename(argv[0]);
+	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	stacktrace_init(argv[0], FALSE);
 

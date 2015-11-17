@@ -381,7 +381,7 @@ search_store_xml(void)
 
     root = xnode_new_element(NULL, NULL, NODE_SEARCHES);
     xnode_prop_printf(root, "Time", "%s", timestamp_to_string(now));
-    xnode_prop_printf(root, "Version", "%s", product_get_version());
+    xnode_prop_printf(root, "Version", "%s", product_version());
 
     /*
      * Store UIDs for the builtin targets

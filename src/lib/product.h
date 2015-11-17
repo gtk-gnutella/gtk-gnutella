@@ -43,20 +43,23 @@ void product_init(const char *name,
 	const char *date, const char *version, const char *revision,
 	const char *build);
 
-const char *product_get_name(void) G_GNUC_PURE;
-const char *product_get_date(void) G_GNUC_PURE;
-const char *product_get_version(void) G_GNUC_PURE;
-uint8 product_get_major(void) G_GNUC_PURE;
-uint8 product_get_minor(void) G_GNUC_PURE;
-uint8 product_get_revchar(void) G_GNUC_PURE;
-const char *product_get_revision(void) G_GNUC_PURE;
-uint8 product_get_patchlevel(void) G_GNUC_PURE;
-uint32 product_get_build(void);
-const char *product_get_build_full(void);
+const char *product_name(void) G_GNUC_PURE;
+const char *product_nickname(void) G_GNUC_PURE;
+const char *product_date(void) G_GNUC_PURE;
+const char *product_version(void) G_GNUC_PURE;
+uint8 product_major(void) G_GNUC_PURE;
+uint8 product_minor(void) G_GNUC_PURE;
+uint8 product_revchar(void) G_GNUC_PURE;
+const char *product_revision(void) G_GNUC_PURE;
+uint8 product_patchlevel(void) G_GNUC_PURE;
+const char *product_build_full(void);
+const char *product_interface(void);
+const char *product_website(void);
+uint32 product_build(void);
+
+void product_set_nickname(const char *nickname);
 void product_set_interface(const char *iface);
-const char *product_get_interface(void);
 void product_set_website(const char *web);
-const char *product_get_website(void);
 
 #endif /* _product_h_ */
 

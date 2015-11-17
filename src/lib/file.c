@@ -152,6 +152,41 @@ done:
 }
 
 /**
+ * Get the full program path.
+ *
+ * @return a newly allocated string (through halloc()) that points to the
+ * path of the program being run, NULL if we can't compute a suitable path.
+ */
+char *
+file_program_path(const char *argv0)
+{
+	filestat_t buf;
+	char *file = deconstify_char(argv0);
+	char filepath[MAX_PATH_LEN + 1];
+
+	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
+		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL_PTR);
+	} else {
+		clamp_strcpy(filepath, sizeof filepath, argv0);
+	}
+
+	if (-1 == stat(filepath, &buf)) {
+		int saved_errno = errno;
+		file = file_locate_from_path(argv0);
+		if (NULL == file) {
+			errno = saved_errno;
+			s_warning("%s(): could not stat() \"%s\": %m", G_STRFUNC, filepath);
+			return NULL;
+		}
+	}
+
+	if (file != NULL && file != argv0)
+		return file;		/* Allocated by file_locate_from_path() */
+
+	return h_strdup(filepath);
+}
+
+/**
  * Open configuration file, renaming it as ".orig" when `renaming' is TRUE.
  * If configuration file cannot be found, try opening the ".orig" variant
  * if already present and `renaming' is TRUE.

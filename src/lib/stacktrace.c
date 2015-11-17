@@ -443,42 +443,6 @@ stacktrace_quality_string(const enum stacktrace_sym_quality sq)
 }
 
 /**
- * Get the full program path.
- *
- * @return a newly allocated string (through halloc()) that points to the
- * path of the program being run, NULL if we can't compute a suitable path.
- */
-static G_GNUC_COLD char *
-program_path_allocate(const char *argv0)
-{
-	filestat_t buf;
-	char *file = deconstify_char(argv0);
-	char filepath[MAX_PATH_LEN + 1];
-
-	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
-		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL_PTR);
-	} else {
-		clamp_strcpy(filepath, sizeof filepath, argv0);
-	}
-
-	if (-1 == stat(filepath, &buf)) {
-		int saved_errno = errno;
-		file = file_locate_from_path(argv0);
-		if (NULL == file) {
-			errno = saved_errno;
-			s_warning("could not stat() \"%s\": %m", filepath);
-			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
-			return NULL;
-		}
-	}
-
-	if (file != NULL && file != argv0)
-		return file;
-
-	return h_strdup(filepath);
-}
-
-/**
  * Tune the level of offsetting we have to do to get the current caller.
  */
 static G_GNUC_COLD NO_INLINE void
@@ -560,12 +524,14 @@ stacktrace_init(const char *argv0, bool deferred)
 		return;
 
 	stacktrace_inited = TRUE;
-	path = program_path_allocate(argv0);
+	path = file_program_path(argv0);
 	if (NULL == symbols)
 		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
-	if (NULL == path)
+	if (NULL == path) {
+		s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 		goto done;
+	}
 
 	if (-1 == stat(path, &buf)) {
 		s_warning("%s(): cannot stat \"%s\": %m", G_STRFUNC, path);

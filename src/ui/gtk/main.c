@@ -145,14 +145,14 @@ static void
 gui_init_window_title(void)
 {
 	gchar title[256];
-	const char *revision = product_get_revision();
+	const char *revision = product_revision();
 
 	if (revision[0] != '\0') {
 		str_bprintf(title, sizeof(title), "gtk-gnutella %s %s",
-			product_get_version(), revision);
+			product_version(), revision);
 	} else {
 		str_bprintf(title, sizeof(title), "gtk-gnutella %s",
-			product_get_version());
+			product_version());
 	}
 
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);

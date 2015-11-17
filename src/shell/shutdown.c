@@ -129,7 +129,7 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_shutdown(void)
 {
-	return str_smsg("Terminate %s", product_get_name());
+	return str_smsg("Terminate %s", product_name());
 }
 
 const char *
@@ -149,7 +149,7 @@ shell_help_shutdown(int argc, const char *argv[])
 		"-e: finish with forced error\n"
 		"-m: finish with memory error\n"
 		"-s: finish with harmful signal\n",
-		product_get_name());
+		product_name());
 }
 
 /* vi: set ts=4 sw=4 cindent: */

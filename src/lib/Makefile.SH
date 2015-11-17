@@ -260,6 +260,7 @@ LSRC = \
 	pmsg.c \
 	pow2.c \
 	product.c \
+	progname.c \
 	prop.c \
 	pslist.c \
 	rand31.c \
@@ -271,6 +272,7 @@ LSRC = \
 	sectoken.c \
 	semaphore.c \
 	sequence.c \
+	setproctitle.c \
 	sha1.c \
 	shuffle.c \
 	signal.c \
@@ -284,6 +286,7 @@ LSRC = \
 	str.c \
 	stringify.c \
 	strtok.c \
+	strvec.c \
 	symbols.c \
 	symtab.c \
 	tea.c \
@@ -452,6 +455,7 @@ LOBJ = \
 	pmsg.o \
 	pow2.o \
 	product.o \
+	progname.o \
 	prop.o \
 	pslist.o \
 	rand31.o \
@@ -463,6 +467,7 @@ LOBJ = \
 	sectoken.o \
 	semaphore.o \
 	sequence.o \
+	setproctitle.o \
 	sha1.o \
 	shuffle.o \
 	signal.o \
@@ -476,6 +481,7 @@ LOBJ = \
 	str.o \
 	stringify.o \
 	strtok.o \
+	strvec.o \
 	symbols.o \
 	symtab.o \
 	tea.o \

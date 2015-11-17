@@ -173,11 +173,6 @@ size_t gm_snprintf(char *str, size_t n,
 size_t gm_snprintf_unchecked(char *dst, size_t size,
 	const char *fmt, ...); /* No G_GNUC_PRINTF here, on purpose! */
 
-void gm_savemain(int argc, char **argv, char **env);
-int gm_dupmain(const char ***argv_ptr, const char ***env_ptr);
-const char *gm_getproctitle(void);
-void gm_setproctitle(const char *title);
-
 struct pslist *gm_slist_to_pslist(const GSList *sl);
 GSList *gm_pslist_to_slist(const struct pslist *sl);
 

@@ -1688,7 +1688,7 @@ new_version_str_changed(property_t prop)
 	g_return_val_if_fail(PROP_NEW_VERSION_STR == prop, FALSE);
 
     str = gnet_prop_get_string(prop, NULL, 0);
-   	statusbar_gui_set_default("%s%s", product_get_website(), str ? str : "");
+   	statusbar_gui_set_default("%s%s", product_website(), str ? str : "");
 	G_FREE_NULL(str);
 
     return FALSE;

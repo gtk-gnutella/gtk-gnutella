@@ -35,7 +35,7 @@
 #include "lib/base16.h"
 #include "lib/htable.h"
 #include "lib/misc.h"
-#include "lib/path.h"
+#include "lib/progname.h"
 #include "lib/rand31.h"
 #include "lib/sha1.h"
 #include "lib/smsort.h"
@@ -51,7 +51,6 @@
 
 #define DUMP_BYTES	16
 
-const char *progname;
 static size_t item_size;
 static bool qsort_only;
 static bool degenerative;
@@ -79,7 +78,7 @@ usage(void)
 		"  -R : seed for repeatable random key sequence\n"
 		"  -S : silent mode -- do not print anything for successful tests\n"
 		"  -V : verbose mode -- print status after each successful test\n"
-		, progname);
+		, getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -839,8 +838,7 @@ main(int argc, char **argv)
 	unsigned rseed = 0;
 	const char options[] = "c:hn:s:tDN:QR:SV";
 
-	mingw_early_init();
-	progname = filepath_basename(argv[0]);
+	progstart(argc, argv);
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
@@ -886,7 +884,7 @@ main(int argc, char **argv)
 
 	if (silent_mode && tflag) {
 		fprintf(stderr, "%s: -S has little effect when -t is present\n",
-			progname);
+			getprogname());
 	}
 
 	rand31_set_seed(rseed);

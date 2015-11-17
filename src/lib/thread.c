@@ -529,6 +529,7 @@ static bool thread_panic_mode;			/* STID overflow, most probably */
 static size_t thread_reused;			/* Counts reused thread elements */
 static uint thread_main_stid = -1U;		/* STID of the main thread */
 static bool thread_main_can_block;		/* Can the main thread block? */
+static bool thread_set_main_called;		/* Was thread_set_main() called? */
 static uint thread_pending_reuse;		/* Threads waiting to be reused */
 static uint thread_running;				/* Created threads running */
 static uint thread_discovered;			/* Amount of discovered threads */
@@ -4330,12 +4331,17 @@ thread_unsuspend_others(void)
  * This routine must only be called by the main thread of course, which is
  * the thread that handles the callout queue, the I/O dispatching, etc...
  *
+ * It needs to be called after all the early initializations were done, and
+ * is the signal for walloc() to start using thread magazines.
+ *
  * @param can_block		TRUE if the main thread can block without concern
  */
 void
 thread_set_main(bool can_block)
 {
 	struct thread_element *te;
+
+	thread_set_main_called = TRUE;
 
 	/*
 	 * Must set the blocking status of the main thread immediately because
@@ -4369,6 +4375,18 @@ bool
 thread_main_is_blockable(void)
 {
 	return thread_main_can_block;
+}
+
+/**
+ * Check whether thread_set_main() was called.
+ *
+ * This indicates whether the main thread has finished its initializations
+ * and is good to go.
+ */
+bool
+thread_set_main_was_called(void)
+{
+	return thread_set_main_called;
 }
 
 /**

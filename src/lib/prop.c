@@ -1761,13 +1761,13 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		goto end;
 
 	{
-		const char *revision = product_get_revision();
+		const char *revision = product_revision();
 
 		fprintf(config,
 			"#\n# gtk-gnutella %s%s%s (%s) by Olrick & Co.\n# %s\n#\n",
-			product_get_version(),
+			product_version(),
 			*revision != '\0' ? " " : "", revision,
-			product_get_date(), product_get_website());
+			product_date(), product_website());
 	}
 	{
 		char *comment = config_comment(ps->desc);

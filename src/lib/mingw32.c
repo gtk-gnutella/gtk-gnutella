@@ -114,6 +114,7 @@
 #endif
 #if 0
 #define MINGW_STARTUP_DEBUG		/**< Trace early startup stages */
+#define MINGW_STARTUP_LOGDIR	"C:/cygwin/tmp"
 #endif
 #if 0
 #define MINGW_BACKTRACE_DEBUG	/**< Trace our own backtracing */
@@ -206,7 +207,12 @@ static FILE *mingw_debug_lf;
 static void
 getlog(bool initial)
 {
-	mingw_debug_lf = fopen("C:/cygwin/tmp/gtkg-log.txt", initial ? "wb" : "ab");
+	char buf[128];
+
+	str_bprintf(buf, sizeof buf,
+		"%s/%s-log.txt", MINGW_STARTUP_LOGDIR, product_nickname());
+
+	mingw_debug_lf = fopen(buf, initial ? "wb" : "ab");
 }
 
 static void
@@ -2537,7 +2543,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 		goto fallback;
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
-	clamp_strcat(dest, size, product_get_name());
+	clamp_strcat(dest, size, product_name());
 
 	STARTUP_DEBUG("%s(): #2 dest=%s", G_STRFUNC, dest);
 
@@ -2570,8 +2576,11 @@ static const char *
 mingw_getstdout_path(void)
 {
 	static char pathname[MAX_PATH];
+	char buf[128];
 
-	return mingw_build_personal_path("gtkg.stdout", pathname, sizeof pathname);
+	str_bprintf(buf, sizeof buf, "%s.stdout", product_nickname());
+
+	return mingw_build_personal_path(buf, pathname, sizeof pathname);
 }
 
 /**
@@ -2583,8 +2592,11 @@ static const char *
 mingw_getstderr_path(void)
 {
 	static char pathname[MAX_PATH];
+	char buf[128];
 
-	return mingw_build_personal_path("gtkg.stderr", pathname, sizeof pathname);
+	str_bprintf(buf, sizeof buf, "%s.stderr", product_nickname());
+
+	return mingw_build_personal_path(buf, pathname, sizeof pathname);
 }
 
 /**
@@ -2622,7 +2634,7 @@ mingw_patch_personal_path(const char *pathname)
 			 */
 
 			patched = h_strconcat(mingw_get_personal_path(),
-				G_DIR_SEPARATOR_S, product_get_name(), p, NULL_PTR);
+				G_DIR_SEPARATOR_S, product_name(), p, NULL_PTR);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
 		return patched;

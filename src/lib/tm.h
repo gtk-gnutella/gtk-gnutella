@@ -171,7 +171,7 @@ tmn2f(const tm_nano_t * const t)
 	return (double) t->tv_sec + t->tv_nsec / 1000000000.0;
 }
 
-void tm_init(void);
+void tm_init(bool time_thread);
 void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);
@@ -281,26 +281,11 @@ tm_time_raw(void)
 	return (time_t) tm_cached_now.tv_sec;
 }
 
-tm_t tm_start_time(void);
-
-tm_t tm_start_time(void);
 time_t tm_localtime(void);
 time_t tm_localtime_exact(void);
 time_t tm_localtime_raw(void);
 
-/**
- * Returns the current time relative to the startup time (cached).
- *
- * @note For convenience unsigned long is used, so that we can
- *		 always cast them to pointers and back again. The guaranteed
- *		 width of 32-bit should be sufficient for session duration.
- *		 Where this is unsufficient, stick to time_t.
- */
-static inline unsigned long
-tm_relative_time(void)
-{
-	return delta_time(tm_time(), tm_start_time().tv_sec);
-}
+time_t tm_relative_time(void);
 
 /**
  * Fill supplied tm_t structure with specified amount of milliseconds.

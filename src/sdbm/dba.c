@@ -5,12 +5,12 @@
 #include "common.h"
 #include "casts.h"
 
+#include "lib/progname.h"
 #include "lib/pow2.h"		/* For bits_set() */
 #include "lib/stringify.h"	/* For plural() */
 
 #include "sdbm.h"
 
-char *progname;
 extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 void sdump(int, long);
 void bdump(int);
@@ -26,7 +26,7 @@ usage(void)
 		"Usage: %s [-fs] dbname\n"
 		"  -f : only print filled pages, skip empty ones\n"
 		"  -s : display summary info only\n"
-		, progname
+		, getprogname()
 	);
 	exit(EXIT_FAILURE);
 }
@@ -49,9 +49,7 @@ main(int argc, char **argv)
 	char *p;
 	int c;
 
-	mingw_early_init();
-	progname = argv[0];
-	(void) argc;
+	progstart(argc, argv);
 
 	on_tty = isatty(STDOUT_FILENO);
 

@@ -191,6 +191,7 @@ LSRC = \
 	pmsg.c \
 	pow2.c \
 	product.c \
+	progname.c \
 	prop.c \
 	pslist.c \
 	rand31.c \
@@ -202,6 +203,7 @@ LSRC = \
 	sectoken.c \
 	semaphore.c \
 	sequence.c \
+	setproctitle.c \
 	sha1.c \
 	shuffle.c \
 	signal.c \
@@ -215,6 +217,7 @@ LSRC = \
 	str.c \
 	stringify.c \
 	strtok.c \
+	strvec.c \
 	symbols.c \
 	symtab.c \
 	tea.c \

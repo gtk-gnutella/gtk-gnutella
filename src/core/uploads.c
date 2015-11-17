@@ -2310,7 +2310,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				"</html>"
 					"\r\n",
 					retry, '\0' != href[0] ? index_href : "", href,
-					retry, product_get_name(), retry);
+					retry, product_name(), retry);
 			upload_http_extra_line_add(u,
 				"Content-Type: text/html; charset=utf-8\r\n");
 			upload_http_extra_body_add(u, buf);

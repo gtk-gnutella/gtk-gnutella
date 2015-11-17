@@ -194,9 +194,10 @@ print_hex(char *dst, size_t size, unsigned long value)
  * Public interface.
  */
 
-#define CRASH_F_PAUSE	(1 << 0)
-#define CRASH_F_GDB		(1 << 1)
-#define CRASH_F_RESTART	(1 << 2)
+#define CRASH_F_PAUSE		(1 << 0)
+#define CRASH_F_GDB			(1 << 1)
+#define CRASH_F_RESTART		(1 << 2)
+#define CRASH_F_SUPERVISED	(1 << 3)
 
 enum crash_alter_mode {
 	CRASH_FLAG_SET,
@@ -225,7 +226,7 @@ void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setnumbers(uint8 major, uint8 minor, uint8 patchlevel);
 void crash_setbuild(unsigned build);
-void crash_setmain(int argc, const char **argv, const char **env);
+void crash_setmain(void);
 void crash_oom(const char *format, ...) G_GNUC_NORETURN;
 void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);

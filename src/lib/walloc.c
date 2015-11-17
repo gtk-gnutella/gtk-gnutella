@@ -82,6 +82,15 @@ static tmalloc_t *wmagazine[WZONE_SIZE];
 static struct zone *wzone[WZONE_SIZE];
 static once_flag_t walloc_inited;
 static bool walloc_stopped;
+static size_t walloc_max = WALLOC_MAX;
+
+/**
+ * Lock protecting wzone[] updates.
+ */
+static spinlock_t walloc_slk = SPINLOCK_INIT;
+
+#define WALLOC_LOCK		spinlock(&walloc_slk)
+#define WALLOC_UNLOCK	spinunlock(&walloc_slk)
 
 /**
  * @return maximum user block size for walloc().
@@ -89,7 +98,7 @@ static bool walloc_stopped;
 size_t
 walloc_maxsize(void)
 {
-	return WALLOC_MAX - zalloc_overhead();
+	return walloc_max - zalloc_overhead();
 }
 
 /**
@@ -204,16 +213,16 @@ walloc_get_zone(size_t rounded, bool allocate)
 	idx = wzone_index(rounded);
 
 	if G_UNLIKELY(NULL == (zone = wzone[idx])) {
-		static spinlock_t walloc_slk = SPINLOCK_INIT;
+		WALLOC_LOCK;
 
-		spinlock(&walloc_slk);
+		if (NULL == (zone = wzone[idx])) {
+			if (!allocate)
+				s_error("missing %zu-byte zone", rounded);
 
-		if (!allocate)
-			s_error("missing %zu-byte zone", rounded);
+			zone = wzone[idx] = wzone_get(rounded);
+		}
 
-		zone = wzone[idx] = wzone_get(rounded);
-
-		spinunlock(&walloc_slk);
+		WALLOC_UNLOCK;
 	}
 
 	return zone;
@@ -240,7 +249,7 @@ walloc_raw(size_t size)
 	if G_UNLIKELY(walloc_stopped)
 		return xmalloc(size);
 
-	if G_UNLIKELY(rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > walloc_max) {
 		/* Too big for efficient zalloc() */
 		return xmalloc(size);
 	}
@@ -268,7 +277,7 @@ wfree_raw(void *ptr, size_t size)
 	if G_UNLIKELY(walloc_stopped)
 		return;
 
-	if G_UNLIKELY(rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > walloc_max) {
 		xfree(ptr);
 		return;
 	}
@@ -293,6 +302,12 @@ walloc_get_magazine(size_t rounded)
 
 	idx = wzone_index(rounded);
 
+	/*
+	 * At runtime, after sufficient allocations have been done, all the
+	 * necessary depots will have been created and we will no longer enter
+	 * the if() block below.
+	 */
+
 	if G_UNLIKELY(NULL == (depot = wmagazine[idx])) {
 		static mutex_t walloc_mtx = MUTEX_INIT;
 		static uint8 maginit[WZONE_SIZE];
@@ -307,7 +322,17 @@ walloc_get_magazine(size_t rounded)
 			return NULL;			/* Too soon */
 
 		if G_UNLIKELY(walloc_stopped)
-			return NULL;			/* In crash mode, or exiting */
+			return NULL;			/* In crash mode or exiting */
+
+		/*
+		 * Until thread_set_main() has been called, do not create magazines.
+		 * If they call walloc_limit() to limit walloc() to a small subset
+		 * of already created zones, we do not want a large magazine depot
+		 * container to have already been created (these can be around 2 KiB).
+		 */
+
+		if (!thread_set_main_was_called())
+			return NULL;			/* Too soon */
 
 		/*
 		 * We need a mutex and the maginit[] protection to cut down
@@ -375,7 +400,7 @@ walloc(size_t size)
 
 	g_assert(size_is_positive(size));
 
-	if G_UNLIKELY(rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > walloc_max) {
 		/* Too big for efficient zalloc() */
 		return xmalloc(size);
 	}
@@ -416,7 +441,7 @@ wfree(void *ptr, size_t size)
 	g_assert(ptr != NULL);
 	g_assert(size_is_positive(size));
 
-	if G_UNLIKELY(rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > walloc_max) {
 		xfree(ptr);
 		return;
 	}
@@ -477,7 +502,7 @@ wfree_pslist(pslist_t *pl, size_t size)
 	 * free objects to possibly different zones or magazines.
 	 */
 
-	if G_UNLIKELY(rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > walloc_max) {
 		pslist_t *next, *l;
 
 		for (l = pl; l != NULL; l = next) {
@@ -524,7 +549,7 @@ wfree_eslist(eslist_t *el, size_t size)
 	 * quickly.
 	 */
 
-	if G_UNLIKELY(rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > walloc_max) {
 		void *next, *p;
 
 		for (p = eslist_head(el); p != NULL; p = next) {
@@ -593,7 +618,7 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 	if (old_rounded == new_rounded)
 		return old;
 
-	if G_UNLIKELY(new_rounded > WALLOC_MAX || old_rounded > WALLOC_MAX)
+	if G_UNLIKELY(new_rounded > walloc_max || old_rounded > walloc_max)
 		goto resize_block;
 
 	if G_UNLIKELY(walloc_stopped)
@@ -645,7 +670,7 @@ walloc_track(size_t size, const char *file, int line)
 
 	g_assert(size_is_positive(size));
 
-	if G_UNLIKELY(rounded > WALLOC_MAX) {
+	if G_UNLIKELY(rounded > walloc_max) {
 		/* Too big for efficient zalloc() */
 		void *p = 
 #ifdef TRACK_MALLOC
@@ -724,6 +749,10 @@ wdestroy(void)
 {
 	size_t i;
 
+	/*
+	 * Reset all the thread magazines.
+	 */
+
 	for (i = 0; i < WZONE_SIZE; i++) {
 		tmalloc_t *d = wmagazine[i];
 		if (d != NULL) {
@@ -735,6 +764,10 @@ wdestroy(void)
 	}
 
 	walloc_stopped = TRUE;
+
+	/*
+	 * Physically destroy the zones.
+	 */
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {
@@ -751,6 +784,54 @@ G_GNUC_COLD void
 walloc_init(void)
 {
 	walloc_init_if_needed();
+}
+
+/**
+ * Limit walloc() usage at runtime.
+ *
+ * This restricts further walloc() usage to that of the currently highest
+ * used zone: requests larger than that will be re-routed to xmalloc().
+ *
+ * @return the new size of the walloc() threshold.
+ */
+size_t
+walloc_active_limit(void)
+{
+	size_t i, largest = 0;
+
+	thread_suspend_others(TRUE);
+
+	WALLOC_LOCK;
+
+	for (i = 0; i < G_N_ELEMENTS(wzone); i++) {
+		zone_t *z = wzone[i];
+
+		if (z != NULL) {
+			if (zdestroy_if_empty(z)) {
+				wzone[i] = NULL;
+			} else {
+				largest = zone_size(z);
+			}
+		}
+	}
+
+	g_assert(largest <= walloc_max);	/* Cannot grow! */
+
+	walloc_max = largest;
+	WALLOC_UNLOCK;
+
+	thread_unsuspend_others();
+
+	return largest;
+}
+
+/**
+ * @return current walloc() size threshold.
+ */
+size_t
+walloc_size_threshold(void)
+{
+	return walloc_max;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -46,7 +46,7 @@
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
-#include "path.h"
+#include "progname.h"
 #include "signal.h"
 #include "spopen.h"
 #include "stacktrace.h"
@@ -55,7 +55,6 @@
 #include "thread.h"
 #include "walloc.h"
 
-const char *progname;
 const char *progpath;
 static bool verbose, sigpipe;
 const char *redirect_child;
@@ -81,7 +80,7 @@ usage(void)
 		"  -v : ask for details about what is happening\n"
 		"  -z : zap (suppress) messages from listed routines\n"
 		"  -X : key/value tuples to execute tests (in children process)\n"
-		, progname);
+		, getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -635,11 +634,9 @@ main(int argc, char **argv)
 	const char options[] = "hvpr:z:X:";
 	int c;
 
-	mingw_early_init();
-	gm_savemain(argc, argv, environ);
-	main_argc = gm_dupmain(&main_argv, &main_env);
+	progstart(argc, argv);
+	main_argc = progstart_dup(&main_argv, &main_env);
 
-	progname = filepath_basename(argv[0]);
 	progpath = argv[0];
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	stacktrace_init(argv[0], FALSE);

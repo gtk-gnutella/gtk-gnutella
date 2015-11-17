@@ -107,6 +107,7 @@
 #include "core/whitelist.h"
 #include "if/dht/dht.h"
 #include "lib/adns.h"
+#include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
@@ -120,6 +121,7 @@
 #include "lib/eval.h"
 #include "lib/evq.h"
 #include "lib/exit.h"
+#include "lib/exit2str.h"
 #include "lib/fd.h"
 #include "lib/file_object.h"
 #include "lib/gentime.h"
@@ -128,6 +130,7 @@
 #include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
+#include "lib/launch.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -140,7 +143,9 @@
 #include "lib/pattern.h"
 #include "lib/pow2.h"
 #include "lib/product.h"
+#include "lib/progname.h"
 #include "lib/random.h"
+#include "lib/setproctitle.h"
 #include "lib/sha1.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
@@ -668,7 +673,7 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	if (debugging(0)) {
-		tm_t since = tm_start_time();
+		tm_t since = progstart_time();
 		log_cpu_usage(&since, NULL, NULL);
 	}
 
@@ -928,6 +933,7 @@ sig_terminate(int n)
 extern char **environ;
 
 enum main_arg {
+	main_arg_child,
 	main_arg_compile_info,
 	main_arg_daemonize,
 	main_arg_exec_on_crash,
@@ -936,10 +942,12 @@ enum main_arg {
 	main_arg_help,
 	main_arg_log_stderr,
 	main_arg_log_stdout,
+	main_arg_log_supervise,
 	main_arg_minimized,
 	main_arg_no_dbus,
 	main_arg_no_halloc,
 	main_arg_no_restart,
+	main_arg_no_supervise,
 	main_arg_no_xshm,
 	main_arg_pause_on_crash,
 	main_arg_ping,
@@ -979,6 +987,7 @@ static struct {
 #define OPTION(name, type, summary) \
 	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
 
+	OPTION(child,			NONE, NULL),	/* hidden option */
 	OPTION(compile_info,	NONE, "Display compile-time information."),
 	OPTION(daemonize, 		NONE, "Daemonize the process."),
 #ifdef HAS_FORK
@@ -992,6 +1001,7 @@ static struct {
 	OPTION(help, 			NONE, "Print this message."),
 	OPTION(log_stderr,		PATH, "Log standard output to a file."),
 	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
+	OPTION(log_supervise,	PATH, "Log for the supervisor process."),
 #ifdef USE_TOPLESS
 	OPTION(minimized,		NONE, NULL),	/* accept but hide */
 #else
@@ -1004,6 +1014,7 @@ static struct {
 	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
 #endif	/* USE_HALLOC */
 	OPTION(no_restart,		NONE, "Disable auto-restarts on crash."),
+	OPTION(no_supervise,	NONE, "Disable supervision by a parent process."),
 	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
@@ -1088,7 +1099,7 @@ usage(int exit_code)
 	unsigned i;
 
 	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
-	fprintf(f, "Usage: gtk-gnutella [ options ... ]\n");
+	fprintf(f, "Usage: %s [ options ... ]\n", getprogname());
 	
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
 	for (i = 0; i < G_N_ELEMENTS(options); i++) {
@@ -1126,11 +1137,18 @@ usage(int exit_code)
 	exit(exit_code);
 }
 
+#define OPT(x)		options[main_arg_ ## x].used
+#define OPTARG(x)	options[main_arg_ ## x].arg
+
 /* NOTE: This function must not allocate any memory. */
 static void
 prehandle_arguments(char **argv)
 {
 	argv++;
+
+#ifdef USE_TOPLESS
+	OPT(topless) = TRUE;
+#endif	/* USE_TOPLESS */
 
 	while (argv[0]) {
 		const char *s;
@@ -1149,8 +1167,13 @@ prehandle_arguments(char **argv)
 		if (G_N_ELEMENTS(options) == i)
 			return;
 
-		if (main_arg_no_halloc == i) {
+		switch (i) {
+		case main_arg_no_halloc:
+		case main_arg_child:
+		case main_arg_no_supervise:
+		case main_arg_topless:
 			options[i].used = TRUE;
+			break;
 		}
 
 		switch (options[i].type) {
@@ -1168,6 +1191,23 @@ prehandle_arguments(char **argv)
 }
 
 /**
+ * Log error, prefixing string with program name, then show usage and exit.
+ */
+static void G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN
+main_error(const char *fmt, ...)
+{
+	va_list args;
+
+	fprintf(stderr, "%s: ", getprogname());
+
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+
+	usage(EXIT_FAILURE);
+}
+
+/**
  * Parse arguments, but do not take any action (excepted re-opening log files).
  */
 static void
@@ -1180,10 +1220,6 @@ parse_arguments(int argc, char **argv)
 		g_assert(options[i].id == i);
 	}
 
-#ifdef USE_TOPLESS
-	options[main_arg_topless].used = TRUE;
-#endif	/* USE_TOPLESS */
-
 	argv++;		/* Skip argv[0] */
 	argc--;
 
@@ -1191,10 +1227,8 @@ parse_arguments(int argc, char **argv)
 		const char *s;
 
 		s = is_strprefix(argv[0], "--");
-		if (NULL == s) {
-			fprintf(stderr, "Unexpected argument \"%s\"\n", argv[0]);
-			usage(EXIT_FAILURE);
-		}
+		if (NULL == s)
+			main_error("unexpected argument \"%s\"\n", argv[0]);
 		if ('\0' == s[0])
 			break;
 
@@ -1205,10 +1239,8 @@ parse_arguments(int argc, char **argv)
 			if (option_match(options[i].name, s))
 				break;
 		}
-		if (G_N_ELEMENTS(options) == i) {
-			fprintf(stderr, "Unknown option \"--%s\"\n", s);
-			usage(EXIT_FAILURE);
-		}
+		if (G_N_ELEMENTS(options) == i)
+			main_error("unknown option \"--%s\"\n", s);
 
 		options[i].used = TRUE;
 		switch (options[i].type) {
@@ -1216,10 +1248,9 @@ parse_arguments(int argc, char **argv)
 			break;
 		case ARG_TYPE_TEXT:
 		case ARG_TYPE_PATH:
-			if (argc < 0 || NULL == argv[0] || '-' == argv[0][0]) {
-				fprintf(stderr, "Missing argument for \"--%s\"\n", s);
-				usage(EXIT_FAILURE);
-			}
+			if (argc < 0 || NULL == argv[0] || '-' == argv[0][0])
+				main_error("missing argument for \"--%s\"\n", s);
+
 			switch (options[i].type) {
 			case ARG_TYPE_TEXT:
 				options[i].arg = NOT_LEAKING(h_strdup(argv[0]));
@@ -1227,9 +1258,8 @@ parse_arguments(int argc, char **argv)
 			case ARG_TYPE_PATH:
 				options[i].arg = NOT_LEAKING(absolute_pathname(argv[0]));
 				if (NULL == options[i].arg) {
-					fprintf(stderr,
-						"Could not determine absolute path for \"--%s\"\n", s);
-					usage(EXIT_FAILURE);
+					main_error(
+						"could not determine absolute path for \"--%s\"\n", s);
 				}
 				break;
 			case ARG_TYPE_NONE:
@@ -1248,17 +1278,13 @@ parse_arguments(int argc, char **argv)
 static void
 validate_arguments(void)
 {
-	if (
-		options[main_arg_no_restart].used &&
-		options[main_arg_restart_on_crash].used)
-	{
-		fputs("Say either --restart-on-crash or --no-restart\n", stderr);
+	if (OPT(no_restart) && OPT(restart_on_crash)) {
+		fprintf(stderr, "%s: say either --restart-on-crash or --no-restart\n",
+			getprogname());
 		exit(EXIT_FAILURE);
 	}
 #ifndef HAS_FORK
-	if (
-		options[main_arg_restart_on_crash].used && !crash_coredumps_disabled()
-	) {
+	if (OPT(restart_on_crash) && !crash_coredumps_disabled()) {
 		fputs("--restart-on-crash has no effect on this platform\n", stderr);
 	}
 #endif	/* !HAS_FORK */
@@ -1275,7 +1301,7 @@ slow_main_timer(time_t now)
 		static double sys = 0.0;
 
 		if (since.tv_sec == 0)
-			since = tm_start_time();
+			since = progstart_time();
 
 		log_cpu_usage(&since, &user, &sys);
 	}
@@ -1487,7 +1513,7 @@ main_timer(void *unused_data)
 
 	if (sig_hup_received) {
 		sig_hup_received = 0;
-		log_reopen_all(options[main_arg_daemonize].used);
+		log_reopen_all(OPT(daemonize));
 	}
 
 	bsched_timer();					/* Scheduling update */
@@ -1605,13 +1631,13 @@ scan_files_once(cqueue_t *unused_cq, void *unused_data)
 static void
 initialize_logfiles(void)
 {
-	if (options[main_arg_log_stdout].used)
-		log_set(LOG_STDOUT, options[main_arg_log_stdout].arg);
+	if (OPT(log_stdout))
+		log_set(LOG_STDOUT, OPTARG(log_stdout));
 
-	if (options[main_arg_log_stderr].used)
-		log_set(LOG_STDERR, options[main_arg_log_stderr].arg);
+	if (OPT(log_stderr))
+		log_set(LOG_STDERR, OPTARG(log_stderr));
 
-	if (!log_reopen_all(options[main_arg_daemonize].used)) {
+	if (!log_reopen_all(OPT(daemonize))) {
 		exit(EXIT_FAILURE);
 	}
 }
@@ -1689,23 +1715,21 @@ handle_compile_info_argument(void)
 static void
 handle_arguments_asap(void)
 {
-	if (options[main_arg_help].used) {
+	if (OPT(help))
 		usage(EXIT_SUCCESS);
-	}
 
 #ifndef USE_TOPLESS
-	if (options[main_arg_topless].used) {
+	if (OPT(topless))
 		running_topless = TRUE;
-	}
 #endif	/* USE_TOPLESS */
 
-	if (options[main_arg_version].used) {
+	if (OPT(version))
 		handle_version_argument();
-	}
-	if (options[main_arg_compile_info].used) {
+
+	if (OPT(compile_info))
 		handle_compile_info_argument();
-	}
-	if (options[main_arg_daemonize].used) {
+
+	if (OPT(daemonize)) {
 		if (0 != compat_daemonize(NULL)) {
 			exit(EXIT_FAILURE);
 		}
@@ -1722,11 +1746,11 @@ handle_arguments_asap(void)
 static void
 handle_arguments(void)
 {
-	if (options[main_arg_shell].used) {
+	if (OPT(shell)) {
 		local_shell(settings_local_socket_path());
 		exit(EXIT_SUCCESS);
 	}
-	if (options[main_arg_ping].used) {
+	if (OPT(ping)) {
 		if (settings_is_unique_instance()) {
 			/* gtk-gnutella was running. */
 			exit(EXIT_SUCCESS);
@@ -1745,6 +1769,129 @@ static int main_argc;
 static const char **main_argv;
 static const char **main_env;
 
+#define MAIN_SUPERVISE_DELAY	3600	/* Monitor children launched per hour */
+#define MAIN_SUPERVISE_CHILDREN	5		/* At most 5 launches per hour */
+
+/**
+ * Run as a supervisor.
+ *
+ * We're going to launch a child and monitor its exit status.
+ * Each time the child exits abnormally, restart it with the same arguments
+ * until we get more crashes per hour than we can withstand.
+ * 
+ */
+static void G_GNUC_NORETURN
+main_supervise(void)
+{
+	uint32 dbg = 0;			/* Debugging level for callout queue */
+	aging_table_t *ag;		/* Used to monitor how often children die */
+	ulong children = 0;		/* Amount of children launched */
+	size_t child_argc;
+	const char **child_argv;
+	char *cmd, *path;
+	int i;
+
+	g_assert(!OPT(child));
+
+	setproctitle("supervisor");
+	settings_unique_instance(TRUE);		/* Supervisor process */
+
+	if (OPT(log_supervise)) {
+		log_set(LOG_STDOUT, OPTARG(log_supervise));
+		log_set(LOG_STDERR, OPTARG(log_supervise));
+		log_reopen_all(OPT(daemonize));
+	} else {
+		if (OPT(log_stdout))
+			log_set(LOG_STDERR, OPTARG(log_stdout));
+		else if (OPT(log_stderr))
+			log_set(LOG_STDOUT, OPTARG(log_stderr));
+
+		log_reopen_all(OPT(daemonize));
+		log_show_pid(TRUE);
+		s_warning("turning PID logging for supervisor process");
+		s_message("use --log-supervise to redirect supervisor logs");
+	}
+
+	s_message("walloc() size limit set to %zu", walloc_size_threshold());
+
+	if (!halloc_is_disabled())
+		s_warning("halloc() could not be disabled");
+
+	cq_init(NULL, &dbg);
+	ag = aging_make(MAIN_SUPERVISE_DELAY, NULL, NULL, NULL);
+
+	s_info("supervisor starting");
+
+	path = file_program_path(main_argv[0]);
+
+	if (NULL == path) {
+		s_warning("cannot locate \"%s\" in PATH", main_argv[0]);
+		goto done;
+	}
+
+	s_info("program path is %s", path);
+
+	/*
+	 * Add --child as the first argument to make sure the child process
+	 * is not going to recurse into being a supervisor, which would eat up
+	 * all the system resources very quickly -- the infamous fork() bomb!
+	 */
+
+	child_argc = main_argc + 1;
+	XMALLOC_ARRAY(child_argv, child_argc + 1);	/* +1 for trailing NULL */
+	
+	child_argv[0] = main_argv[0];
+	child_argv[1] = "--child";
+	for (i = 1; i <= main_argc; i++)
+		child_argv[i+1] = main_argv[i];
+
+	cmd = h_strjoinv(" ", (char **) child_argv);
+	s_info("will be launching: %s", cmd);
+	HFREE_NULL(cmd);
+
+	while (aging_count(ag) < MAIN_SUPERVISE_CHILDREN) {
+		pid_t pid;
+		int status;
+
+		pid = launchve(path, (char **) child_argv, NULL);
+		if ((pid_t) -1 == pid) {
+			s_warning("cannot launch child #%lu: %m", children + 1);
+			goto done;
+		}
+
+		children++;
+		aging_insert(ag, ulong_to_pointer(children), NULL);
+		setproctitle("supervisor, %lu child%s launched",
+			children, 1 == children ? "" : "ren");
+
+		s_info("launched child #%lu as PID %lu", children, (ulong) pid);
+
+		if ((pid_t) -1 == waitpid(pid, &status, 0)) {
+			s_warning("cannot wait for child PID %lu: %m", (ulong) pid);
+			goto done;
+		}
+
+		if (0 == status) {
+			s_info("child #%lu exited normally, supervisor exiting", children);
+			exit(EXIT_SUCCESS);
+		}
+
+		s_message("child #%lu (PID %lu) %s",
+			children, (ulong) pid, exit2str(status));
+	}
+
+	s_warning("%zu children were launched during last hour, supervisor exiting",
+		aging_count(ag));
+
+	/* FALL THROUGH */
+
+done:
+	s_info("supervisor exiting on failure, launched %lu child%s",
+		children, 1 == children ? "" : "ren");
+
+	exit(EXIT_FAILURE);
+}
+
 /**
  * Allocate new string containing the original command line that launched us.
  *
@@ -1753,7 +1900,7 @@ static const char **main_env;
 char *
 main_command_line(void)
 {
-	g_assert(main_argv != NULL);		/* gm_dupmain() called */
+	g_assert(main_argv != NULL);		/* progstart_dup() called */
 
 	return h_strjoinv(" ", (char **) main_argv);
 }
@@ -1773,20 +1920,36 @@ main(int argc, char **argv)
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
 		GTA_RELEASE, GTA_VERSION_NUMBER, GTA_REVISION, GTA_BUILD);
+	product_set_nickname(GTA_PRODUCT_NICK);
 	product_set_website(GTA_WEBSITE);
-	product_set_interface(GTA_INTERFACE);
 
-	mingw_early_init();
-	thread_set_main(FALSE);				/* Main thread cannot block! */
-	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
-	tm_init();
+	/*
+	 * On Windows, the code path used for a GUI-launched application requires
+	 * that the product information be filled, to be able to derive proper
+	 * destination for log paths, since there is no console attached.
+	 */
+
+	progstart(argc, argv);
+	prehandle_arguments(argv);
+	product_set_interface(OPT(topless) ? "Topless" : GTA_INTERFACE);
 
 	if (compat_is_superuser()) {
-		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
-		fprintf(stderr, "    su - username -c 'gtk-gnutella --daemonize'\n\n");
+		fprintf(stderr,
+			"Never ever run %s as root! You may use:\n\n", getprogname());
+		fprintf(stderr,
+			"    su - username -c '%s --daemonize'\n\n", getprogname());
 		fprintf(stderr, "where 'username' stands for a regular user name.\n");
 		exit(EXIT_FAILURE);
 	}
+
+	/* Disable walloc() and halloc() if we're going to supervise */
+
+	if (!OPT(no_supervise) && !OPT(child)) {
+		(void) walloc_active_limit();
+		(void) halloc_disable();
+	}
+
+	thread_set_main(FALSE);				/* Main thread cannot block! */
 
 	/*
 	 * We can no longer do this: as soon as threads are created, they can
@@ -1825,26 +1988,28 @@ main(int argc, char **argv)
 #endif
 
 	if (reserve_standard_file_descriptors()) {
-		fprintf(stderr, "unable to reserve standard file descriptors\n");
+		fprintf(stderr, "%s: unable to reserve standard file descriptors\n",
+			getprogname());
 		exit(EXIT_FAILURE);
 	}
 
 	/* First inits -- no memory allocated */
 
 	misc_init();
-	prehandle_arguments(argv);
 
 	/* Initialize memory allocators -- order is important */
 
 	vmm_init();
 	signal_init();
-	halloc_init(!options[main_arg_no_halloc].used);
+	halloc_init(!OPT(no_halloc));
 	malloc_init_vtable();
 	vmm_malloc_inited();
 	zinit();
 	walloc_init();
 
 	/* At this point, vmm_alloc(), halloc() and zalloc() are up */
+
+	tm_init(TRUE);
 
 	signal_set(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 #ifdef SIGHUP
@@ -1869,7 +2034,7 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	log_init();
-	main_argc = gm_dupmain(&main_argv, &main_env);
+	main_argc = progstart_dup(&main_argv, &main_env);
 	str_discrepancies = str_test(FALSE);
 	parse_arguments(argc, argv);
 	validate_arguments();
@@ -1877,8 +2042,8 @@ main(int argc, char **argv)
 	{
 		int flags = 0;
 
-		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
-		flags |= options[main_arg_gdb_on_crash].used ? CRASH_F_GDB : 0;
+		flags |= OPT(pause_on_crash) ? CRASH_F_PAUSE : 0;
+		flags |= OPT(gdb_on_crash) ? CRASH_F_GDB : 0;
 
 		/*
 		 * With no core dumps, we want to auto-restart by default, unless
@@ -1893,10 +2058,9 @@ main(int argc, char **argv)
 		 */
 
 		if (crash_coredumps_disabled()) {
-			flags |= options[main_arg_no_restart].used ? 0 : CRASH_F_RESTART;
+			flags |= OPT(no_restart) ? 0 : CRASH_F_RESTART;
 		} else {
-			flags |=
-				options[main_arg_restart_on_crash].used ? CRASH_F_RESTART : 0;
+			flags |= OPT(restart_on_crash) ? CRASH_F_RESTART : 0;
 		}
 
 		/*
@@ -1907,19 +2071,23 @@ main(int argc, char **argv)
 
 		flags |= crash_coredumps_disabled() ? CRASH_F_GDB : 0;
 
-		crash_init(argv[0], product_get_name(),
-			flags, options[main_arg_exec_on_crash].arg);
-		crash_setnumbers(product_get_major(), product_get_minor(),
-			product_get_patchlevel());
-		crash_setbuild(product_get_build());
-		crash_setmain(main_argc, main_argv, main_env);
+		/*
+		 * If we're not running with --no-supervise, then we do supervise.
+		 * However, only the child process (the one running with --child)
+		 * is really supervised.
+		 */
+
+		flags |= (!OPT(no_supervise) && OPT(child)) ? CRASH_F_SUPERVISED : 0;
+
+		crash_init(argv[0], product_name(), flags, OPTARG(exec_on_crash));
+		crash_setnumbers(
+			product_major(), product_minor(), product_patchlevel());
+		crash_setbuild(product_build());
+		crash_setmain();
 		crash_set_restart(gtk_gnutella_request_restart);
 	}	
-	handle_arguments_asap();
 
-	mingw_init();
-	atoms_init();
-	settings_early_init();
+	handle_arguments_asap();
 
 	/*
 	 * This MUST be called after handle_arguments_asap() in case the
@@ -1928,10 +2096,20 @@ main(int argc, char **argv)
 	 * It can only be called after settings_early_init() since this
 	 * is where the crash directory is initialized.
 	 */
-	crash_setdir(settings_crash_dir());
 
+	settings_early_init();
+	crash_setdir(settings_crash_dir());
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
+
+	/*
+	 * If we are the supervisor process, go supervise and never return here.
+	 */
+
+	if (!OPT(no_supervise) && !OPT(child)) {
+		main_supervise();
+		g_assert_not_reached();
+	}
 
 	/*
 	 * Before using glib-1.2 routines, we absolutely need to tell the library
@@ -1947,7 +2125,8 @@ main(int argc, char **argv)
 	 * Continue with initializations.
 	 */
 
-	product_set_interface(running_topless ? "Topless" : GTA_INTERFACE);
+	mingw_init();
+	atoms_init();
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	vmm_memusage_init();	/* After callouut queue is up */
 	zalloc_memusage_init();
@@ -1991,7 +2170,7 @@ main(int argc, char **argv)
 	vsort_init(1);
 	htable_test();
 	wq_init();
-	inputevt_init(options[main_arg_use_poll].used);
+	inputevt_init(OPT(use_poll));
 	teq_io_create();
 	teq_set_throttle(70, 50);	/* 70 ms max for TEQ events, every 50 ms */
 	tiger_check();
@@ -2006,12 +2185,12 @@ main(int argc, char **argv)
 	socket_init();
 	gnet_stats_init();
 	iso3166_init();
-	dbus_util_init(options[main_arg_no_dbus].used);
+	dbus_util_init(OPT(no_dbus));
 	vendor_init();
 	mime_type_init();
 
 	if (!running_topless) {
-		main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);
+		main_gui_early_init(argc, argv, OPT(no_xshm));
 	}
 
 	bg_init();
@@ -2140,8 +2319,7 @@ main(int argc, char **argv)
 	if (running_topless) {
 		topless_main_run();
 	} else {
-		main_gui_run(options[main_arg_geometry].arg,
-			options[main_arg_minimized].used);
+		main_gui_run(OPTARG(geometry), OPT(minimized));
 	}
 
 	return 0;

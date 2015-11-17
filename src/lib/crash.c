@@ -98,6 +98,7 @@
 #include "offtime.h"
 #include "omalloc.h"
 #include "path.h"
+#include "progname.h"			/* For progstart_dup() */
 #include "signal.h"
 #include "spinlock.h"			/* For spinlock_crash_mode() */
 #include "spopen.h"
@@ -172,6 +173,7 @@ struct crash_vars {
 	uint8 pause_process;
 	uint8 dumps_core;
 	uint8 may_restart;
+	uint8 supervised;
 	uint8 hooks_run;		/**< True when hooks have been run */
 };
 
@@ -1312,8 +1314,17 @@ crash_log_write_header(int clf, int signo, const char *filename)
 
 	rewind_str(0);
 	print_str("Auto-Restart: ");		/* 0 */
-	print_str(vars->may_restart ? "enabled" : "disabled"); /* 1 */
-	if (t <= CRASH_MIN_ALIVE) {
+	print_str(vars->supervised ? "supervised" :
+		vars->may_restart ? "enabled" : "disabled"); /* 1 */
+	if (vars->supervised) {
+		if (1 == getppid()) {
+			print_str("; parent is gone though");	/* 2 */
+			if (vars->may_restart)
+				print_str(", will auto-restart");	/* 3 */
+		} else {
+			print_str("; parent still there");		/* 2 */
+		}
+	} else if (t <= CRASH_MIN_ALIVE) {
 		char rtbuf[ULONG_DEC_BUFLEN];
 		print_str("; run time threshold of ");	/* 2 */
 		print_str(PRINT_NUMBER(rtbuf, CRASH_MIN_ALIVE));
@@ -2415,6 +2426,41 @@ static void G_GNUC_COLD
 crash_auto_restart(void)
 {
 	/*
+	 * If process is supervised and the parent is still here, then abort,
+	 * which will report failure in parent.
+	 */
+
+	if (vars->supervised) {
+		pid_t parent;
+		char time_buf[CRASH_TIME_BUFLEN];
+		char pid_buf[ULONG_DEC_BUFLEN];
+		DECLARE_STR(6);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);								/* 0 */
+		parent = getppid();
+
+		if (1 != parent) {
+			print_str(" (WARNING) not auto-restarting: ");	/* 1 */
+			print_str("supervising parent PID=");			/* 2 */
+			print_str(PRINT_NUMBER(pid_buf, parent));		/* 3 */
+			print_str("still present");						/* 4 */
+		} else {
+			print_str(" (WARNING) supervising parent ");	/* 1 */
+			print_str("is gone!");							/* 2 */
+		}
+		print_str("\n");									/* 5 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		if (1 != parent)
+			crash_abort();
+
+		/* FALL THROUGH -- parent is gone */
+	}
+
+	/*
 	 * When the process has been alive for some time (CRASH_MIN_ALIVE secs,
 	 * to avoid repetitive frequent failures), we can consider auto-restarts
 	 * if CRASH_F_RESTART was given.
@@ -2773,6 +2819,9 @@ crash_ctl(enum crash_alter_mode mode, int flags)
 
 	if (CRASH_F_RESTART & flags)
 		crash_set_var(may_restart, value);
+
+	if (CRASH_F_SUPERVISED & flags)
+		crash_set_var(supervised, value);
 }
 
 /**
@@ -2879,6 +2928,16 @@ crash_hook_install(void *data, void *udata)
 
 /**
  * Installs a simple crash handler.
+ *
+ * Supported flags are:
+ *
+ * CRASH_F_GDB			run gdb to inspect and bactkrace all threads
+ * CRASH_F_PAUSE		pause the process, waiting for debugger to attach
+ * CRASH_F_RESTART		restart by exec()ing yourself on crash
+ * CRASH_F_SUPERVISED	parent supervises child and will restart on failure
+ *
+ * Of course, when CRASH_F_SUPERVISED is given, the process will not honor the
+ * CRASH_F_RESTART flag, unless the supervising parent is gone.
  * 
  * @param argv0		the original argv[0] from main().
  * @param progname	the program name, to generate the proper crash file
@@ -2950,6 +3009,7 @@ crash_init(const char *argv0, const char *progname,
 	iv.pause_process = booleanize(CRASH_F_PAUSE & flags);
 	iv.invoke_inspector = booleanize(CRASH_F_GDB & flags) || NULL != exec_path;
 	iv.may_restart = booleanize(CRASH_F_RESTART & flags);
+	iv.supervised = booleanize(CRASH_F_SUPERVISED & flags);
 	iv.dumps_core = booleanize(!crash_coredumps_disabled());
 	iv.start_time = time(NULL);
 	iv.pid = getpid();
@@ -3192,16 +3252,15 @@ crash_setbuild(unsigned build)
 
 /**
  * Save original argc/argv and environment.
- *
- * These should not be the original argv[] and environ pointer but rather
- * copies that point to read-only memory to prevent tampering.
- *
- * The gm_dupmain() routine handles this duplication into a read-only memory
- * region and it should ideally be called before calling this routine.
  */
 void
-crash_setmain(int argc, const char **argv, const char **env)
+crash_setmain(void)
 {
+	const char **argv;
+	const char **env;
+	int argc;
+
+	argc = progstart_dup(&argv, &env);
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
 	crash_set_var(envp, env);
