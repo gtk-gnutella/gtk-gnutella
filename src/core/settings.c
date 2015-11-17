@@ -143,9 +143,10 @@ static prop_set_t *properties = NULL;
  * progressbar_bps_out_avg     0.90u 15/05/2002 progressbar_bws_out_avg
  */
 
-static const char pidfile[] = "gtk-gnutella.pid";
-static const char dirlockfile[] = ".gtk-gnutella.lock";
-static const char randseed[] = "randseed";
+static const char super_pidfile[] = "gtk-gnutella-super.pid";
+static const char pidfile[]       = "gtk-gnutella.pid";
+static const char dirlockfile[]   = ".gtk-gnutella.lock";
+static const char randseed[]      = "randseed";
 
 static bool settings_init_running;
 
@@ -412,17 +413,19 @@ settings_unique_usage(const char *path, const char *lockfile,
  * Tries to ensure that the current process is the only running instance
  * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
  *
+ * @param lockfile		the file to use as the PID file
+ *
  * @returns On success zero is returned, otherwise the PID of the running
  * process is returned and errno is set.
  */
 static pid_t
-settings_ensure_unicity(void)
+settings_ensure_unicity(const char *lockfile)
 {
 	pid_t pid;
 
 	g_assert(config_dir);
 
-	pidfile_lock = settings_unique_usage(config_dir, pidfile, FALSE, &pid);
+	pidfile_lock = settings_unique_usage(config_dir, lockfile, FALSE, &pid);
 
 	return NULL == pidfile_lock ? pid : 0;
 }
@@ -587,7 +590,27 @@ settings_handle_upgrades(void)
 	dbstore_unlink(settings_gnet_db_dir(), "bitzi_tickets");
 }
 
-G_GNUC_COLD void
+/**
+ * Make sure that we are the sole running process.
+ *
+ * @param is_supervisor		TRUE if dealing with the supervisor process
+ */
+void G_GNUC_COLD
+settings_unique_instance(bool is_supervisor)
+{
+	pid_t lpid;
+	const char *lock = is_supervisor ? super_pidfile : pidfile;
+
+	if (0 != (lpid = settings_ensure_unicity(lock))) {
+		g_warning(is_supervisor ?
+			_("Another gtk-gnutella supervisor is running as PID %lu") :
+			_("Another gtk-gnutella is running as PID %lu"),
+			(ulong) lpid);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void G_GNUC_COLD
 settings_init(void)
 {
 	uint64 memory = getphysmemsize();
@@ -596,7 +619,6 @@ settings_init(void)
 	long cpus = getcpucount();
 	uint max_fd;
 	time_t session_start = 0;
-	pid_t lpid;
 
 	settings_init_running = TRUE;
 
@@ -647,11 +669,7 @@ settings_init(void)
 	 * the "lockfile_debug" property.
 	 */
 
-	if (0 != (lpid = settings_ensure_unicity())) {
-		g_warning(_("Another gtk-gnutella is running as PID %lu"),
-			(ulong) lpid);
-		exit(EXIT_FAILURE);
-	}
+	settings_unique_instance(FALSE);	/* Child process */
 
 	/*
 	 * Detect whether we're restarting after a clean shutdown or whether

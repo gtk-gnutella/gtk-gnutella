@@ -55,6 +55,7 @@ bool is_my_address(const host_addr_t addr);
 bool is_my_address_and_port(const host_addr_t addr, uint16 port);
 
 void settings_early_init(void);
+void settings_unique_instance(bool is_supervisor);
 bool settings_is_unique_instance(void);
 void settings_init(void);
 void settings_save_if_dirty(void);

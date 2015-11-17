@@ -1794,6 +1794,7 @@ main_supervise(void)
 	g_assert(!OPT(child));
 
 	setproctitle("supervisor");
+	settings_unique_instance(TRUE);		/* Supervisor process */
 
 	if (OPT(log_supervise)) {
 		log_set(LOG_STDOUT, OPTARG(log_supervise));
