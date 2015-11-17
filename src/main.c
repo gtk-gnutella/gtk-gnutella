@@ -1137,11 +1137,18 @@ usage(int exit_code)
 	exit(exit_code);
 }
 
+#define OPT(x)		options[main_arg_ ## x].used
+#define OPTARG(x)	options[main_arg_ ## x].arg
+
 /* NOTE: This function must not allocate any memory. */
 static void
 prehandle_arguments(char **argv)
 {
 	argv++;
+
+#ifdef USE_TOPLESS
+	OPT(topless) = TRUE;
+#endif	/* USE_TOPLESS */
 
 	while (argv[0]) {
 		const char *s;
@@ -1160,8 +1167,13 @@ prehandle_arguments(char **argv)
 		if (G_N_ELEMENTS(options) == i)
 			return;
 
-		if (main_arg_no_halloc == i) {
+		switch (i) {
+		case main_arg_no_halloc:
+		case main_arg_child:
+		case main_arg_no_supervise:
+		case main_arg_topless:
 			options[i].used = TRUE;
+			break;
 		}
 
 		switch (options[i].type) {
@@ -1177,9 +1189,6 @@ prehandle_arguments(char **argv)
 		}
 	}
 }
-
-#define OPT(x)		options[main_arg_ ## x].used
-#define OPTARG(x)	options[main_arg_ ## x].arg
 
 /**
  * Log error, prefixing string with program name, then show usage and exit.
@@ -1210,10 +1219,6 @@ parse_arguments(int argc, char **argv)
 	for (i = 0; i < G_N_ELEMENTS(options); i++) {
 		g_assert(options[i].id == i);
 	}
-
-#ifdef USE_TOPLESS
-	OPT(topless) = TRUE;
-#endif	/* USE_TOPLESS */
 
 	argv++;		/* Skip argv[0] */
 	argc--;
@@ -1806,6 +1811,11 @@ main_supervise(void)
 		s_message("use --log-supervise to redirect supervisor logs");
 	}
 
+	s_message("walloc() size limit set to %zu", walloc_size_threshold());
+
+	if (!halloc_is_disabled())
+		s_warning("halloc() could not be disabled");
+
 	cq_init(NULL, &dbg);
 	ag = aging_make(MAIN_SUPERVISE_DELAY, NULL, NULL, NULL);
 
@@ -1911,7 +1921,6 @@ main(int argc, char **argv)
 		GTA_RELEASE, GTA_VERSION_NUMBER, GTA_REVISION, GTA_BUILD);
 	product_set_nickname(GTA_PRODUCT_NICK);
 	product_set_website(GTA_WEBSITE);
-	product_set_interface(GTA_INTERFACE);
 
 	/*
 	 * On Windows, the code path used for a GUI-launched application requires
@@ -1920,8 +1929,8 @@ main(int argc, char **argv)
 	 */
 
 	progstart(argc, argv);
-
-	thread_set_main(FALSE);				/* Main thread cannot block! */
+	prehandle_arguments(argv);
+	product_set_interface(OPT(topless) ? "Topless" : GTA_INTERFACE);
 
 	if (compat_is_superuser()) {
 		fprintf(stderr,
@@ -1931,6 +1940,15 @@ main(int argc, char **argv)
 		fprintf(stderr, "where 'username' stands for a regular user name.\n");
 		exit(EXIT_FAILURE);
 	}
+
+	/* Disable walloc() and halloc() if we're going to supervise */
+
+	if (!OPT(no_supervise) && !OPT(child)) {
+		(void) walloc_active_limit();
+		(void) halloc_disable();
+	}
+
+	thread_set_main(FALSE);				/* Main thread cannot block! */
 
 	/*
 	 * We can no longer do this: as soon as threads are created, they can
@@ -1977,7 +1995,6 @@ main(int argc, char **argv)
 	/* First inits -- no memory allocated */
 
 	misc_init();
-	prehandle_arguments(argv);
 
 	/* Initialize memory allocators -- order is important */
 
@@ -2068,11 +2085,8 @@ main(int argc, char **argv)
 		crash_setmain();
 		crash_set_restart(gtk_gnutella_request_restart);
 	}	
-	handle_arguments_asap();
 
-	mingw_init();
-	atoms_init();
-	settings_early_init();
+	handle_arguments_asap();
 
 	/*
 	 * This MUST be called after handle_arguments_asap() in case the
@@ -2081,10 +2095,20 @@ main(int argc, char **argv)
 	 * It can only be called after settings_early_init() since this
 	 * is where the crash directory is initialized.
 	 */
-	crash_setdir(settings_crash_dir());
 
+	settings_early_init();
+	crash_setdir(settings_crash_dir());
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
+
+	/*
+	 * If we are the supervisor process, go supervise and never return here.
+	 */
+
+	if (!OPT(no_supervise) && !OPT(child)) {
+		main_supervise();
+		g_assert_not_reached();
+	}
 
 	/*
 	 * Before using glib-1.2 routines, we absolutely need to tell the library
@@ -2100,7 +2124,8 @@ main(int argc, char **argv)
 	 * Continue with initializations.
 	 */
 
-	product_set_interface(running_topless ? "Topless" : GTA_INTERFACE);
+	mingw_init();
+	atoms_init();
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	vmm_memusage_init();	/* After callouut queue is up */
 	zalloc_memusage_init();
@@ -2139,15 +2164,6 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(LONG_MIN) > 0);
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
-
-	/*
-	 * If we are the supervisor process, go supervise and never return here.
-	 */
-
-	if (!OPT(no_supervise) && !OPT(child)) {
-		main_supervise();
-		g_assert_not_reached();
-	}
 
 	random_init();
 	vsort_init(1);
