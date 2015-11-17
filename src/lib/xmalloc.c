@@ -476,6 +476,7 @@ static struct xstats {
 	AU64(allocations_zeroed);			/**< Total # of zeroing allocations */
 	uint64 allocations_aligned;			/**< Total # of aligned allocations */
 	AU64(allocations_heap);				/**< Total # of xhmalloc() calls */
+	AU64(allocations_physical);			/**< Total # of xpmalloc() calls */
 	uint64 alloc_via_freelist;			/**< Allocations from freelist */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
@@ -4501,11 +4502,12 @@ static size_t xalign_allocated(const void *p);
  *
  * @param size			minimal size of block to allocate (user space)
  * @param can_vmm		whether we can allocate core via the VMM layer
+ * @param can_thread	whether we can allocate from a thread-private pool
  *
  * @return allocated pointer (never NULL).
  */
 static void *
-xallocate(size_t size, bool can_vmm)
+xallocate(size_t size, bool can_vmm, bool can_thread)
 {
 	size_t len;
 	void *p;
@@ -4546,7 +4548,7 @@ xallocate(size_t size, bool can_vmm)
 	 * avoid any locking and also limit the block overhead.
 	 */
 
-	if (size <= XM_THREAD_MAXSIZE) {
+	if (size <= XM_THREAD_MAXSIZE && can_thread) {
 		size_t allocated;
 
 		/*
@@ -4691,7 +4693,28 @@ skip_pool:
 void *
 xmalloc(size_t size)
 {
-	return xallocate(size, TRUE);
+	return xallocate(size, TRUE, TRUE);
+}
+
+/**
+ * Allocate a memory chunk capable of holding ``size'' bytes.
+ *
+ * If no memory is available, crash with a fatal error message.
+ *
+ * This is a "physical" allocation that skips thread pools.  Such a block
+ * should be reallocated using xprealloc() to ensure it stays out of thread
+ * pools.
+ *
+ * One reason to use this call is to be able to ensure that there will be
+ * a header before the allocated block to provide the block size.
+ *
+ * @return allocated pointer (never NULL).
+ */
+void *
+xpmalloc(size_t size)
+{
+	XSTATS_INCX(allocations_physical);
+	return xallocate(size, TRUE, FALSE);
 }
 
 /**
@@ -4714,7 +4737,7 @@ xhmalloc(size_t size)
 	 */
 
 	XSTATS_INCX(allocations_heap);
-	return xallocate(size, FALSE);
+	return xallocate(size, FALSE, FALSE);
 }
 
 /**
@@ -4852,6 +4875,35 @@ xallocated(const void *p)
 }
 
 /**
+ * Computes user size of allocated block via xpmalloc().
+ */
+size_t
+xpallocated(const void *p)
+{
+	const struct xheader *xh;
+
+	if G_UNLIKELY(NULL == p)
+		return 0;
+
+#ifdef XMALLOC_PTR_SAFETY
+	if (!xmalloc_is_valid_pointer(p, FALSE)) {
+		s_error_from(_WHERE_, "%s() given an invalid pointer %p: %s",
+			G_STRFUNC, p, xmalloc_invalid_ptrstr(p));
+	}
+#endif
+
+	xh = const_ptr_add_offset(p, -XHEADER_SIZE);
+
+	if (!xmalloc_is_valid_length(xh, xh->length)) {
+		s_error_from(_WHERE_,
+			"corrupted malloc header for pointer %p: bad lengh %zu",
+			p, xh->length);
+	}
+
+	return xh->length - XHEADER_SIZE;	/* User size, substract overhead */
+}
+
+/**
  * Free memory block allocated via xmalloc() or xrealloc().
  */
 void
@@ -4935,6 +4987,7 @@ xfree(void *p)
  *
  * @param p				original user pointer
  * @param size			new user-size
+ * @param can_thread	whether thread memory pools can be used
  *
  * @return
  * If a NULL pointer is given, act as if xmalloc() had been called and
@@ -4944,7 +4997,7 @@ xfree(void *p)
  * from the original pointer.
  */
 static void *
-xreallocate(void *p, size_t size)
+xreallocate(void *p, size_t size, bool can_thread)
 {
 	struct xheader *xh = ptr_add_offset(p, -XHEADER_SIZE);
 	size_t newlen;
@@ -4953,7 +5006,7 @@ xreallocate(void *p, size_t size)
 	struct xchunk *xck;
 
 	if (NULL == p)
-		return xallocate(size, TRUE);
+		return xallocate(size, TRUE, can_thread);
 
 	if (0 == size) {
 		xfree(p);
@@ -4970,7 +5023,7 @@ xreallocate(void *p, size_t size)
 	xck = xmalloc_thread_get_chunk(p, stid, TRUE);
 
 	if (xck != NULL) {
-		if G_UNLIKELY(xmalloc_no_freeing)
+		if G_UNLIKELY(xmalloc_no_freeing || !can_thread)
 			goto realloc_from_thread;
 
 		XSTATS_INCX(reallocs);
@@ -5419,7 +5472,7 @@ skip_coalescing:
 	 * Regular case: allocate a new block, move data around, free old block.
 	 */
 
-	np = xallocate(size, TRUE);
+	np = xallocate(size, TRUE, can_thread);
 
 	XSTATS_INCX(realloc_regular_strategy);
 
@@ -5476,7 +5529,7 @@ realloc_from_thread:
 	{
 		size_t old_size = xck->xc_size;
 
-		np = xallocate(size, TRUE);
+		np = xallocate(size, TRUE, can_thread);
 
 		XSTATS_INCX(realloc_from_thread_pool);
 		XSTATS_INCX(realloc_regular_strategy);
@@ -5504,7 +5557,7 @@ realloc_from_thread:
 void *
 xrealloc(void *p, size_t size)
 {
-	return xreallocate(p, size);
+	return xreallocate(p, size, TRUE);
 }
 
 /**
@@ -5523,7 +5576,7 @@ xrealloc(void *p, size_t size)
 void *
 xprealloc(void *p, size_t size)
 {
-	return xreallocate(p, size);
+	return xreallocate(p, size, FALSE);
 }
 
 /**
@@ -6564,6 +6617,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(allocations_zeroed);
 	DUMP(allocations_aligned);
 	DUMP64(allocations_heap);
+	DUMP64(allocations_physical);
 	DUMP(alloc_via_freelist);
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);

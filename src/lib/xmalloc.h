@@ -92,13 +92,16 @@ void xgc(void);
 void *xmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xhmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *xpmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xcalloc(size_t nmemb, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xrealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
+void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void xfree(void *ptr);
 char *xstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *xstrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void xstrfreev(char **str);
 size_t xallocated(const void *p);
+size_t xpallocated(const void *p);
 
 static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
 xcopy(const void *p, size_t size)
