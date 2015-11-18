@@ -32,6 +32,7 @@
 
 #ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>
+#include <gnutls/crypto.h>
 #include <gnutls/x509.h>
 
 #ifdef GNUTLS_VERSION_MAJOR
@@ -57,6 +58,7 @@
 #include "if/gnet_property_priv.h"
 #include "if/core/settings.h"
 
+#include "lib/aje.h"
 #include "lib/array.h"
 #include "lib/concat.h"
 #include "lib/fd.h"
@@ -64,12 +66,16 @@
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/path.h"
+#include "lib/random.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef HAS_GNUTLS
+
+static const char tls_keyfile[]  = "key.pem";
+static const char tls_certfile[] = "cert.pem";
 
 #define USE_TLS_CUSTOM_IO
 #define TLS_DH_BITS 768
@@ -82,6 +88,52 @@ struct tls_context {
 };
 
 static gnutls_certificate_credentials cert_cred;
+
+/**
+ * Fill ``len'' random byte starting at ``data''.
+ *
+ * @attention
+ * This supersedes the version from the gnutls library!
+ *
+ * @param level		the random level GNUTLS_RND_NONCE, etc...
+ * @param data		where to write the random data
+ * @param len		amount of random data to generate
+ *
+ * @return 0 if OK
+ */
+int
+gnutls_rnd(gnutls_rnd_level_t level, void *data, size_t len)
+{
+	/*
+	 * The GNUTLS_RND_KEY is the strongest level for TLS: if the random
+	 * generator is broken, many TLS sessions become insecure.
+	 *
+	 * The GNUTLS_RND_RANDOM is a medium level, which compromises
+	 * the current session if broken.
+	 *
+	 * The GNUTLS_RND_NONCE is for non-predictable random numbers, which
+	 * must resist statistical analysis.  If broken, parts of the TLS
+	 * session are compromised.
+	 */
+
+	if (GNUTLS_RND_KEY == level)
+		random_key_bytes(data, len);
+	else if (GNUTLS_RND_NONCE == level)
+		random_bytes_with(aje_rand, data, len);
+	else
+		random_strong_bytes(data, len);
+
+	if (GNET_PROPERTY(tls_debug) > 9) {
+		g_debug("%s(): generated %zu %s byte%s",
+			G_STRFUNC, len,
+			GNUTLS_RND_KEY == level ? "key" :
+			GNUTLS_RND_NONCE == level ? "nonce" :
+			GNUTLS_RND_RANDOM == level ? "random" : "unknown",
+			plural(len));
+	}
+
+	return 0;
+}
 
 static inline gnutls_session
 tls_socket_get_session(struct gnutella_socket *s)
@@ -363,9 +415,13 @@ tls_init(struct gnutella_socket *s)
 	 * DEFLATE is disabled because it seems to cause crashes.
 	 * ARCFOUR-40 is disabled because it is deprecated.
 	 */
-	static const char prio_want[] = "NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
+	static const char prio_want[] =
+		"NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
+
 	/* "-COMP-DEFLATE" is causing an error on MinGW with GnuTLS 2.10.2 */
-	static const char prio_must[] = "NORMAL:+ANON-DH:-ARCFOUR-40";
+	static const char prio_must[] =
+		"NORMAL:+ANON-DH:-ARCFOUR-40";
+
 	const bool server = SOCK_CONN_INCOMING == s->direction;
 	struct tls_context *ctx;
 	const char *fn;
@@ -511,8 +567,8 @@ tls_global_init(void)
 	get_dh_params();
 	gnutls_certificate_allocate_credentials(&cert_cred);
 
-	key_file = make_pathname(settings_config_dir(), "key.pem");
-	cert_file = make_pathname(settings_config_dir(), "cert.pem");
+	key_file = make_pathname(settings_config_dir(), tls_keyfile);
+	cert_file = make_pathname(settings_config_dir(), tls_certfile);
 
 	if (file_exists(key_file) && file_exists(cert_file)) {
 		int ret;
