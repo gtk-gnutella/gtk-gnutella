@@ -1853,8 +1853,11 @@ main_supervise(void)
 	while (aging_count(ag) < MAIN_SUPERVISE_CHILDREN) {
 		pid_t pid;
 		int status;
+		time_t start, end;
 
 		pid = launchve(path, (char **) child_argv, NULL);
+		start = tm_time_exact();
+
 		if ((pid_t) -1 == pid) {
 			s_warning("cannot launch child #%lu: %m", children + 1);
 			goto done;
@@ -1872,17 +1875,20 @@ main_supervise(void)
 			goto done;
 		}
 
+		end = tm_time_exact();
+
+		s_message("child #%lu (PID %lu) %s after %s",
+			children, (ulong) pid, exit2str(status),
+			short_time_ascii(delta_time(end, start)));
+
 		if (0 == status) {
-			s_info("child #%lu exited normally, supervisor exiting", children);
+			s_info("supervisor exiting, launched %lu child%s",
+				children, 1 == children ? "" : "ren");
 			exit(EXIT_SUCCESS);
 		}
-
-		s_message("child #%lu (PID %lu) %s",
-			children, (ulong) pid, exit2str(status));
 	}
 
-	s_warning("%zu children were launched during last hour, supervisor exiting",
-		aging_count(ag));
+	s_warning("%zu children were launched during last hour", aging_count(ag));
 
 	/* FALL THROUGH */
 
