@@ -2059,7 +2059,7 @@ cq_init(cq_invoke_t idle, const uint32 *debug)
 	 *		--RAM. 2015-11-18
 	 */
 
-	if G_UNLIKELY(callout_queue != NULL && callout_queue->cq_stid != 0) {
+	if G_UNLIKELY(callout_queue != NULL) {
 		s_minicarp("%s(): callout queue already setup and running in %s",
 			G_STRFUNC, thread_id_name(callout_queue->cq_stid));
 	}
