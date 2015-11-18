@@ -1884,7 +1884,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
             if (GNET_PROPERTY(socket_debug)) {
                 g_debug("rejecting connection from banned %s (%s still): %s",
                     host_addr_to_string(s->addr),
-					short_time(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
+					short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
             }
 
 			if (is_strprefix(first, GNUTELLA_HELLO)) {

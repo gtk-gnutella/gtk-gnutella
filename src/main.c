@@ -701,7 +701,7 @@ gtk_gnutella_exit(int exit_code)
 
 	if (debugging(0) || signal_received || shutdown_requested) {
 		g_info("waiting at most %s for BYE messages",
-			short_time(exit_grace));
+			short_time_ascii(exit_grace));
 	}
 
 	/*

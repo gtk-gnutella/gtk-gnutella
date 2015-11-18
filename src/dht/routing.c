@@ -2315,7 +2315,7 @@ promote_pending_node(struct kbucket *kb)
 		if (elapsed >= alive_period()) {
 			if (GNET_PROPERTY(dht_debug)) {
 				g_debug("DHT pinging promoted node (last seen %s)",
-					short_time(elapsed));
+					short_time_ascii(elapsed));
 			}
 			if (dht_lazy_rpc_ping(selected)) {
 				gnet_stats_inc_general(GNR_DHT_ROUTING_PINGED_PROMOTED_NODES);

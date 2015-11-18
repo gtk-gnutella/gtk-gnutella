@@ -1301,7 +1301,7 @@ malloc_log_block(const void *k, void *v, void *leaksort)
 
 #ifdef MALLOC_TIME
 	str_bprintf(ago, sizeof ago, " [%s]",
-		short_time(delta_time(tm_time(), b->ttime)));
+		short_time_ascii(delta_time(tm_time(), b->ttime)));
 #else
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */
@@ -1394,7 +1394,7 @@ malloc_log_real_block(const void *k, void *v, void *leaksort)
 
 #ifdef MALLOC_TIME
 	str_bprintf(ago, sizeof ago, " [%s]",
-		short_time(delta_time(tm_time(), rb->atime)));
+		short_time_ascii(delta_time(tm_time(), rb->atime)));
 #else
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */
@@ -2823,7 +2823,7 @@ alloc_dump(FILE *f, bool total)
 
 	now = tm_time();
 	fprintf(f, "--- distinct allocation spots found: %d at %s\n",
-		count, short_time(delta_time(now, init_time)));
+		count, short_time_ascii(delta_time(now, init_time)));
 
 	filler.stats = real_malloc(sizeof(struct stats *) * count);
 	filler.count = count;
@@ -2844,7 +2844,7 @@ alloc_dump(FILE *f, bool total)
 
 	fprintf(f, "--- summary by decreasing %s allocation size %s %s:\n",
 		total ? "total" : "incremental", total ? "at" : "after",
-		short_time(delta_time(now, total ? init_time : reset_time)));
+		short_time_ascii(delta_time(now, total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
 
 	/*
@@ -2859,7 +2859,7 @@ alloc_dump(FILE *f, bool total)
 
 	fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
 		total ? "total" : "incremental", total ? "at" : "after",
-		short_time(now - (total ? init_time : reset_time)));
+		short_time_ascii(now - (total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
 
 	/*
@@ -2875,11 +2875,11 @@ alloc_dump(FILE *f, bool total)
 			stats_total_residual_cmp);
 
 		fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
-			"total", "at", short_time(delta_time(now, init_time)));
+			"total", "at", short_time_ascii(delta_time(now, init_time)));
 		stats_array_dump(f, &filler);
 	}
 
-	fprintf(f, "--- end summary at %s\n", short_time(now - init_time));
+	fprintf(f, "--- end summary at %s\n", short_time_ascii(now - init_time));
 
 	real_free(filler.stats);
 }
@@ -2911,7 +2911,7 @@ alloc_reset(FILE *f, bool total)
 	hash_table_foreach(stats, stats_reset, NULL);
 
 	fprintf(f, "--- incremental allocation stats reset after %s.\n",
-		short_time(now - reset_time));
+		short_time_ascii(now - reset_time));
 
 	reset_time = now;
 }

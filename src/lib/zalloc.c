@@ -885,7 +885,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 	{
 		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
 		str_bprintf(ago, sizeof ago, " [%s]",
-			short_time(delta_time(tm_time(), *t)));
+			short_time_ascii(delta_time(tm_time(), *t)));
 	}
 #else
 	ago[0] = '\0';

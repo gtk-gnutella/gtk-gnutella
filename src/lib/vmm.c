@@ -6508,7 +6508,7 @@ vmm_log_pages(const void *k, void *v, void *leaksort)
 
 #ifdef MALLOC_TIME
 	str_bprintf(ago, sizeof ago, " [%s]",
-		short_time(delta_time(tm_time(), pt->atime)));
+		short_time_ascii(delta_time(tm_time(), pt->atime)));
 #else
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */

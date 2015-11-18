@@ -240,7 +240,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 				: "offline",
 			GNET_PROPERTY(node_last_ultra_leaf_switch)
 				? leaf_switch.str : "never", space,
-			short_time(delta_time(now, GNET_PROPERTY(start_stamp))),
+			short_time_ascii(delta_time(now, GNET_PROPERTY(start_stamp))),
 			GNET_PROPERTY(node_last_ultra_check)
 				? ultra_check.str : "never", space,
 			socket_listen_port(), blackout, space,
@@ -255,7 +255,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		str_bprintf(buf, sizeof buf,
 			"| IPv4: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr()),
-			short_time(delta_time(now, GNET_PROPERTY(current_ip_stamp))));
+			short_time_ascii(delta_time(now, GNET_PROPERTY(current_ip_stamp))));
 		shell_write(sh, buf);
 	}
 
@@ -269,7 +269,8 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		str_bprintf(buf, sizeof buf,
 			"| IPv6: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr6()),
-			short_time(delta_time(now, GNET_PROPERTY(current_ip6_stamp))));
+			short_time_ascii(
+				delta_time(now, GNET_PROPERTY(current_ip6_stamp))));
 		shell_write(sh, buf);
 	}
 

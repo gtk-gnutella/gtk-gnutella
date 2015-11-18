@@ -3452,7 +3452,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 				puq->position,
 				puq->relative_position,
 				puq->queue->by_position_length,
-				short_time(parq_upload_lookup_eta(u)),
+				short_time_ascii(parq_upload_lookup_eta(u)),
 				host_addr_to_string(puq->remote_addr),
 				puq->name, guid_hex_str(&puq->id));
 	}
@@ -3608,7 +3608,7 @@ parq_upload_abusing(
 		"host %s (%s) re-requested \"%s\" too soon (%s early, warn #%u)",
 		host_addr_port_to_string(u->socket->addr, u->socket->port),
 		upload_vendor_str(u),
-		u->name, short_time(delta_time(org_retry, now)),
+		u->name, short_time_ascii(delta_time(org_retry, now)),
 		puq->ban_countwait);
 
 	if (
@@ -3627,7 +3627,7 @@ parq_upload_abusing(
 			"punishing %s (%s) for re-requesting \"%s\" %s early [%s]",
 			host_addr_port_to_string(u->socket->addr, u->socket->port),
 			upload_vendor_str(u),
-			u->name, short_time(delta_time(org_retry, now)),
+			u->name, short_time_ascii(delta_time(org_retry, now)),
 			guid_hex_str(&puq->id));
 
 		parq_add_banned_source(u->addr, delta_time(puq->retry, now));
@@ -5390,7 +5390,7 @@ parq_upload_load_queue(void)
 					puq->position,
 				 	puq->relative_position,
 					puq->queue->by_position_length,
-					short_time(parq_upload_lookup_eta(fake_upload)),
+					short_time_ascii(parq_upload_lookup_eta(fake_upload)),
 					host_addr_to_string(puq->remote_addr),
 					puq->supports_parq ? " (PARQ)" : "",
 					puq->name);
