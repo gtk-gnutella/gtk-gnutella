@@ -197,6 +197,7 @@ LSRC = \
 	pagetable.c \
 	palloc.c \
 	parse.c \
+	parse_double.c \
 	path.c \
 	patricia.c \
 	pattern.c \

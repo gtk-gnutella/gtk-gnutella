@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-258]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-263]
 : $X-Id$
 
 case $CONFIG in
@@ -57,11 +57,11 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
-GLIB_CFLAGS =  $glibcflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c
 DBUS_CFLAGS =  $dbuscflags
+GLIB_CFLAGS =  $glibcflags
 GLIB_LDFLAGS =  $glibldflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
 COMMON_LIBS =  $libs
 
 ########################################################################
@@ -269,6 +269,7 @@ LSRC = \
 	pagetable.c \
 	palloc.c \
 	parse.c \
+	parse_double.c \
 	path.c \
 	patricia.c \
 	pattern.c \
@@ -478,6 +479,7 @@ LOBJ = \
 	pagetable.o \
 	palloc.o \
 	parse.o \
+	parse_double.o \
 	path.o \
 	patricia.o \
 	pattern.o \
@@ -549,7 +551,7 @@ LOBJ = \
 	xsort_data.o \
 	xxtea.o \
 	zalloc.o \
-	zlib_util.o 
+	zlib_util.o
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(DBUS_CFLAGS) -DCURDIR=$(CURRENT)
@@ -854,4 +856,3 @@ Makefiles.SH::
 !NO!SUBS!
 chmod 644 Makefile
 $eunicefix Makefile
-
