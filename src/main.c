@@ -1794,6 +1794,8 @@ main_supervise(void)
 	g_assert(!OPT(child));
 
 	setproctitle("supervisor");
+
+	thread_set_main(TRUE);				/* Main thread will block! */
 	settings_unique_instance(TRUE);		/* Supervisor process */
 
 	if (OPT(log_supervise)) {
@@ -1812,15 +1814,14 @@ main_supervise(void)
 		s_message("use --log-supervise to redirect supervisor logs");
 	}
 
-	s_message("walloc() size limit set to %zu", walloc_size_threshold());
+	s_info("supervisor starting");
 
+	s_message("walloc() size limit set to %zu", walloc_size_threshold());
 	if (!halloc_is_disabled())
 		s_warning("halloc() could not be disabled");
 
 	cq_init(NULL, &dbg);
 	ag = aging_make(MAIN_SUPERVISE_DELAY, NULL, NULL, NULL);
-
-	s_info("supervisor starting");
 
 	path = file_program_path(main_argv[0]);
 
@@ -1948,8 +1949,6 @@ main(int argc, char **argv)
 		(void) walloc_active_limit();
 		(void) halloc_disable();
 	}
-
-	thread_set_main(FALSE);				/* Main thread cannot block! */
 
 	/*
 	 * We can no longer do this: as soon as threads are created, they can
@@ -2124,6 +2123,8 @@ main(int argc, char **argv)
 	/*
 	 * Continue with initializations.
 	 */
+
+	thread_set_main(FALSE);				/* Main thread cannot block! */
 
 	mingw_init();
 	atoms_init();
