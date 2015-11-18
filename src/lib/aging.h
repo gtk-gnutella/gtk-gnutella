@@ -48,6 +48,7 @@ typedef struct aging aging_table_t;
 aging_table_t *aging_make(int delay,
 	hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kfree);
 
+void aging_thread_safe(aging_table_t *ag);
 void aging_destroy(aging_table_t **);
 
 time_delta_t aging_age(const aging_table_t *ag, const void *key);
