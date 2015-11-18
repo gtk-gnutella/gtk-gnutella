@@ -2444,7 +2444,7 @@ crash_auto_restart(void)
 			print_str(" (WARNING) not auto-restarting: ");	/* 1 */
 			print_str("supervising parent PID=");			/* 2 */
 			print_str(PRINT_NUMBER(pid_buf, parent));		/* 3 */
-			print_str("still present");						/* 4 */
+			print_str(" still present");					/* 4 */
 		} else {
 			print_str(" (WARNING) supervising parent ");	/* 1 */
 			print_str("is gone!");							/* 2 */
