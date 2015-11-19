@@ -667,13 +667,15 @@ tls_global_init(void)
 		"tls", 1, 0
 	};
 	char *cert_file, *key_file;
+	int e;
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC) && !defined(TRACK_ZALLOC)
 	gnutls_global_set_mem_functions(halloc, halloc, NULL, hrealloc, hfree);
 #endif
 
-	if (gnutls_global_init()) {
-		g_error("gnutls_global_init() failed");
+	if ((e = gnutls_global_init())) {
+		g_error("%s(): gnutls_global_init() failed: %s",
+			G_STRFUNC, gnutls_strerror(e));
 	}
 
 #ifdef USE_TLS_CUSTOM_IO
@@ -685,7 +687,7 @@ tls_global_init(void)
 	gnutls_global_set_audit_log_function(tls_log_audit);
 #endif	/* TLS >= 3.0 */
 
-	tls_dh_params();
+	(void) tls_dh_params();
 	gnutls_certificate_allocate_credentials(&cert_cred);
 
 	key_file = make_pathname(settings_config_dir(), tls_keyfile);
