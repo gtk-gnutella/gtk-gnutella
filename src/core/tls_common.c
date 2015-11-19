@@ -81,13 +81,13 @@ static const char tls_certfile[] = "cert.pem";
 #define TLS_DH_BITS 768
 
 struct tls_context {
-	gnutls_session session;
-	gnutls_anon_server_credentials server_cred;
-	gnutls_anon_client_credentials client_cred;
+	gnutls_session_t session;
+	gnutls_anon_server_credentials_t server_cred;
+	gnutls_anon_client_credentials_t client_cred;
 	const struct gnutella_socket *s;
 };
 
-static gnutls_certificate_credentials cert_cred;
+static gnutls_certificate_credentials_t cert_cred;
 
 /**
  * Fill ``len'' random byte starting at ``data''.
@@ -135,7 +135,7 @@ gnutls_rnd(gnutls_rnd_level_t level, void *data, size_t len)
 	return 0;
 }
 
-static inline gnutls_session
+static inline gnutls_session_t
 tls_socket_get_session(struct gnutella_socket *s)
 {
 	g_return_val_if_fail(s, NULL);
@@ -223,7 +223,7 @@ tls_set_errno(struct gnutella_socket *s, int errnum)
 }
 
 static inline ssize_t
-tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size) 
+tls_push(gnutls_transport_ptr_t ptr, const void *buf, size_t size)
 {
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
@@ -247,7 +247,7 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 }
 
 static inline ssize_t
-tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size) 
+tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
 {
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
@@ -272,10 +272,10 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	return ret;
 }
 
-static gnutls_dh_params
+static gnutls_dh_params_t
 get_dh_params(void)
 {
-	static gnutls_dh_params dh_params;
+	static gnutls_dh_params_t dh_params;
 	static bool initialized = FALSE;
 
 	if (!initialized) {
@@ -294,7 +294,7 @@ get_dh_params(void)
 
 static void
 tls_print_session_info(const host_addr_t addr, uint16 port,
-	gnutls_session session, bool incoming)
+	gnutls_session_t session, bool incoming)
 {
 	const char *proto, *cert, *kx, *ciph, *mac, *comp;
 
@@ -339,7 +339,7 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 enum tls_handshake_result
 tls_handshake(struct gnutella_socket *s)
 {
-	gnutls_session session;
+	gnutls_session_t session;
 	bool do_warn;
 	int ret;
 
@@ -932,7 +932,7 @@ svn_release_notify_certificate(void)
 	static gnutls_x509_crt cert;
 
 	if (!initialized) {
-		gnutls_datum cert_data;
+		gnutls_datum_t cert_data;
 		int error;
 
 		initialized = TRUE;
@@ -968,7 +968,7 @@ static bool
 verify_signature(gnutls_x509_crt cert,
 	const struct array *input, const struct array *signature)
 {
-	gnutls_datum data, sig;
+	gnutls_datum_t data, sig;
 
 	g_return_val_if_fail(cert, FALSE);
 	g_return_val_if_fail(input, FALSE);
