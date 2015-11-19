@@ -155,6 +155,73 @@ gnutls_rnd(gnutls_rnd_level_t level, void *data, size_t len)
 	return 0;
 }
 
+/**
+ * Generate an X.509 private key in PEM format.
+ *
+ * @param file		the path to the file where key needs to be stored.
+ */
+static void
+tls_generate_private_key(const char *file)
+{
+	gnutls_x509_privkey_t key = NULL;
+	size_t len;
+	uint bits;
+	void *data = NULL;
+	int e, fd = -1;
+	const char *fn;
+	const int key_type = GNUTLS_PK_RSA;
+	const int mode = S_IRUSR;	/* 0400 */
+
+#define TRY(function) (fn = (#function)), e = function
+
+	if (TRY(gnutls_x509_privkey_init)(&key))
+		goto failed;
+
+#if HAS_TLS(2, 12)
+	bits = gnutls_sec_param_to_pk_bits(key_type, GNUTLS_SEC_PARAM_HIGH);
+#else
+	bits = 3248;	/* output with 2.12 for the above call */
+#endif
+
+	g_info("TLS generating %d-bit %s private key...",
+		bits, gnutls_pk_algorithm_get_name(key_type));
+
+	if (TRY(gnutls_x509_privkey_generate)(key, key_type, bits, 0))
+		goto failed;
+
+	g_info("TLS saving %d-bit key into %s", bits, file);
+
+	fd = file_create(file, O_WRONLY, mode);
+	if (-1 == fd)
+		goto done;
+
+	len = bits;			/* Result should be shorter than that */
+	data = halloc(len);
+	if (TRY(gnutls_x509_privkey_export)(key, GNUTLS_X509_FMT_PEM, data, &len))
+		goto failed;
+
+	if (-1 == write(fd, data, len)) {
+		g_warning("%s(): write() failed: %m", G_STRFUNC);
+		goto error;
+	}
+
+	fd_close(&fd);
+	goto done;
+
+failed:
+	g_warning("%s(): %s() failed: %s", G_STRFUNC, fn, gnutls_strerror(e));
+	/* FALL THROUGH */
+error:
+	fd_close(&fd);			/* On Windows, needs to close before unlink() */
+	(void) unlink(file);
+	/* FALL THROUGH */
+done:
+	gnutls_x509_privkey_deinit(key);
+	HFREE_NULL(data);
+
+#undef TRY
+}
+
 static inline gnutls_session_t
 tls_socket_get_session(struct gnutella_socket *s)
 {
@@ -692,6 +759,9 @@ tls_global_init(void)
 
 	key_file = make_pathname(settings_config_dir(), tls_keyfile);
 	cert_file = make_pathname(settings_config_dir(), tls_certfile);
+
+	if (!file_exists(key_file))
+		tls_generate_private_key(key_file);
 
 	if (file_exists(key_file) && file_exists(cert_file)) {
 		e = gnutls_certificate_set_x509_key_file(cert_cred,
