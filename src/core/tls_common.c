@@ -65,6 +65,8 @@
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/htable.h"
+#include "lib/misc.h"			/* For strchomp() */
 #include "lib/path.h"
 #include "lib/random.h"
 #include "lib/stringify.h"
@@ -88,6 +90,13 @@ struct tls_context {
 };
 
 static gnutls_certificate_credentials_t cert_cred;
+
+/**
+ * Table mapping a gnutls_session_t (a pointer to a data structure) into
+ * the corresponding gnutella_socket_t structure.  This is required for
+ * gnutls callbacks that provide only a session.
+ */
+static htable_t *tls_sessions;
 
 /**
  * Fill ``len'' random byte starting at ``data''.
@@ -310,6 +319,7 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 
 	g_debug(
 		"TLS session info (%s):\n"
+		"    Session:      %p\n"
 		"    Host:         %s\n"
 		"    Protocol:     %s\n"
 		"    Certificate:  %s\n"
@@ -318,7 +328,7 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 		"    MAC:          %s\n"
 		"    Compression:  %s",
 		incoming ? "incoming" : "outgoing",
-		host_addr_port_to_string(addr, port),
+		session, host_addr_port_to_string(addr, port),
 		NULL_STRING(proto),
 		NULL_STRING(cert),
 		NULL_STRING(kx),
@@ -327,6 +337,33 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 		NULL_STRING(comp)
 	);
 }
+
+#if HAS_TLS(3, 0)
+static void
+tls_log_audit(gnutls_session_t session, const char *message)
+{
+	char *dupmsg;
+
+	if (GNET_PROPERTY(tls_debug) < 2)
+		return;
+
+	/* Remove trailing "\n" before logging */
+	dupmsg = h_strdup(message);
+	strchomp(dupmsg, 0);
+	g_warning("TLS ALERT for session=%p: %s", session, dupmsg);
+	HFREE_NULL(dupmsg);
+
+	if (session != NULL) {
+		gnutella_socket_t *s = htable_lookup(tls_sessions, session);
+		if (s != NULL) {
+			tls_print_session_info(s->addr, s->port, session,
+				SOCK_CONN_INCOMING == s->direction);
+		} else {
+			g_warning("TLS no socket attached to session=%p", session);
+		}
+	}
+}
+#endif	/* TLS >= 3.0 */
 
 /**
  * @return	TLS_HANDSHAKE_ERROR if the TLS handshake failed.
@@ -495,6 +532,9 @@ tls_init(struct gnutella_socket *s)
 			goto failure;
 	}
 
+	/* FALL THROUGH */
+
+	htable_insert(tls_sessions, ctx->session, s);
 	return 0;
 
 failure:
@@ -513,6 +553,7 @@ tls_free(struct gnutella_socket *s)
 	ctx = s->tls.ctx;
 	if (ctx) {
 		if (ctx->session) {
+			htable_remove(tls_sessions, ctx->session);
 			gnutls_deinit(ctx->session);
 		}
 		if (ctx->server_cred) {
@@ -564,6 +605,10 @@ tls_global_init(void)
 	gnutls_global_set_log_function(tls_log_function);
 #endif	/* USE_TLS_CUSTOM_IO */
 
+#if HAS_TLS(3, 0)
+	gnutls_global_set_audit_log_function(tls_log_audit);
+#endif	/* TLS >= 3.0 */
+
 	get_dh_params();
 	gnutls_certificate_allocate_credentials(&cert_cred);
 
@@ -589,6 +634,8 @@ tls_global_init(void)
 	header_features_add(FEATURES_G2_CONNECTIONS, f.name, f.major, f.minor);
 	header_features_add(FEATURES_DOWNLOADS, f.name, f.major, f.minor);
 	header_features_add(FEATURES_UPLOADS, f.name, f.major, f.minor);
+
+	tls_sessions = htable_create(HASH_KEY_SELF, 0);
 }
 
 void
@@ -598,6 +645,7 @@ tls_global_close(void)
 		gnutls_certificate_free_credentials(cert_cred);
 		cert_cred = NULL;
 	}
+	htable_free_null(&tls_sessions);
 	gnutls_global_deinit();
 }
 
