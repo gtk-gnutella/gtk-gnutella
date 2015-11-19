@@ -136,6 +136,7 @@ static struct random_stats {
 	AU64(output_random_bytes);			/* Bytes emitted via random_bytes() */
 	AU64(output_random_bytes_with);		/* ... via random_bytes_with() */
 	AU64(output_random_strong_bytes);	/* ... via random_strong_bytes() */
+	AU64(output_random_key_bytes);		/* ... via random_key_bytes() */
 	AU64(random_entropy_distribution);	/* Entropy distribution to PRNGs */
 	AU64(aje_distributed);				/* # of distributions to global AJE */
 	AU64(aje_thread_distributed);		/* # of distributions to thread AJE */
@@ -159,6 +160,7 @@ static struct random_stats {
 	AU64(random_bytes);					/* Calls to routine */
 	AU64(random_bytes_with);			/* Calls to routine */
 	AU64(random_strong_bytes);			/* Calls to routine */
+	AU64(random_key_bytes);				/* Calls to routine */
 	AU64(random_double);				/* Calls to routine */
 	AU64(random_double_generate);		/* Calls to routine */
 	AU64(random_add);					/* Calls to routine */
@@ -560,6 +562,44 @@ random_strong_bytes(void *dst, size_t size)
 	RANDOM_STATS_ADD(output_random_strong_bytes, size);
 
 	random_bytes_with(random_strong, dst, size);
+}
+
+/**
+ * Hyper-strong random routine to generate key-grade randomness.
+ */
+static uint32
+random_key(void)
+{
+	uint32 r1, r2;
+
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+	r2 = UINT32_ROTR(r1, 13);
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+	r2 += UINT32_ROTL(r1, 7);
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+
+	/*
+	 * It is NOT a mistake: we're using entropy_minirand() in the
+	 * UINT32_ROTR() macro, meaning it will be called twice.
+	 */
+
+	return r1 + r2 + UINT32_ROTR(entropy_minirand(), 17);
+}
+
+/**
+ * Fills buffer 'dst' with 'size' bytes of KEY-material random data.
+ *
+ * This should be the preferred method when generating a cryptographic key
+ * as it is slow and uses global random pools, which means taking and
+ * releasing about 14 locks for each 32-bit number we're generating.
+ */
+void
+random_key_bytes(void *dst, size_t size)
+{
+	RANDOM_STATS_INC(random_key_bytes);
+	RANDOM_STATS_ADD(output_random_key_bytes, size);
+
+	random_bytes_with(random_key, dst, size);
 }
 
 /**
@@ -1214,6 +1254,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(output_random_bytes);
 	DUMP64(output_random_bytes_with);
 	DUMP64(output_random_strong_bytes);
+	DUMP64(output_random_key_bytes);
 	DUMP64(random_entropy_distribution);
 	DUMP64(aje_distributed);
 	DUMP64(aje_thread_distributed);
@@ -1245,6 +1286,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_bytes);
 	DUMP64(random_bytes_with);
 	DUMP64(random_strong_bytes);
+	DUMP64(random_key_bytes);
 	DUMP64(random_double);
 	DUMP64(random_double_generate);
 	DUMP64(random_add);
