@@ -339,23 +339,37 @@ tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
 }
 
 static gnutls_dh_params_t
-get_dh_params(void)
+tls_dh_params(void)
 {
 	static gnutls_dh_params_t dh_params;
 	static bool initialized = FALSE;
+	int e;
+	const char *fn;
+
+#define TRY(function) (fn = (#function)), e = function
 
 	if (!initialized) {
- 		if (gnutls_dh_params_init(&dh_params)) {
-			g_warning("%s(): gnutls_dh_params_init() failed", G_STRFUNC);
-			return NULL;
-		}
-    	if (gnutls_dh_params_generate2(dh_params, TLS_DH_BITS)) {
-			g_warning("%s(): gnutls_dh_params_generate2() failed", G_STRFUNC);
-			return NULL;
-		}
+		if (GNET_PROPERTY(tls_debug) > 0)
+			g_info("TLS initializing Diffie-Hellman parameters...");
+
+		if (TRY(gnutls_dh_params_init)(&dh_params))
+			goto failed;
+
+		if (TRY(gnutls_dh_params_generate2)(dh_params, TLS_DH_BITS))
+			goto failed;
+
 		initialized = TRUE;
+
+		if (GNET_PROPERTY(tls_debug) > 0)
+			g_info("TLS computed Diffie-Hellman parameters");
 	}
 	return dh_params;
+
+failed:
+	g_warning("%s(): %s() failed: %s", G_STRFUNC, fn, gnutls_strerror(e));
+	return NULL;
+
+#undef TRY
 }
 
 static void
@@ -579,7 +593,7 @@ tls_init(struct gnutella_socket *s)
 		if (TRY(gnutls_anon_allocate_server_credentials)(&ctx->server_cred))
 			goto failure;
 
-		gnutls_anon_set_server_dh_params(ctx->server_cred, get_dh_params());
+		gnutls_anon_set_server_dh_params(ctx->server_cred, tls_dh_params());
 
 		if (TRY(gnutls_credentials_set)(ctx->session,
 				GNUTLS_CRD_ANON, ctx->server_cred))
@@ -671,7 +685,7 @@ tls_global_init(void)
 	gnutls_global_set_audit_log_function(tls_log_audit);
 #endif	/* TLS >= 3.0 */
 
-	get_dh_params();
+	tls_dh_params();
 	gnutls_certificate_allocate_credentials(&cert_cred);
 
 	key_file = make_pathname(settings_config_dir(), tls_keyfile);
@@ -686,7 +700,7 @@ tls_global_init(void)
 			g_warning("gnutls_certificate_set_x509_key_file() failed: %s",
 					gnutls_strerror(ret));
 		} else {
-			gnutls_certificate_set_dh_params(cert_cred, get_dh_params());
+			gnutls_certificate_set_dh_params(cert_cred, tls_dh_params());
 		}
 	}
 	HFREE_NULL(key_file);
