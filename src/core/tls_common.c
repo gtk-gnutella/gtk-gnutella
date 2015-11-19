@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2015 Raphael Manfredi
+ * Copyright (c) 2006 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -51,7 +52,16 @@
 #include <gnutls/abstract.h>
 #endif
 
+#if HAS_TLS(2, 12) && !defined(MINGW32)
+/* Unfortunately, there is no support on Windows at the gnutls level */
+#define USE_TLS_PUSHV
+#elif HAS_TLS(3, 3)
+/* Works fine in Windows starting with 3.3 (and maybe earlier?) */
+#define USE_TLS_PUSHV
+#endif
+
 #include "tls_common.h"
+
 #include "features.h"
 #include "sockets.h"
 
@@ -66,6 +76,7 @@
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/htable.h"
+#include "lib/iovec.h"
 #include "lib/misc.h"			/* For strchomp() */
 #include "lib/path.h"
 #include "lib/random.h"
@@ -231,6 +242,51 @@ tls_set_errno(struct gnutella_socket *s, int errnum)
 	gnutls_transport_set_errno(tls_socket_get_session(s), errnum);
 }
 
+#ifdef USE_TLS_PUSHV
+static inline ssize_t
+tls_pushv(gnutls_transport_ptr_t ptr, const giovec_t *iov, int iovcnt)
+{
+	struct gnutella_socket *s = ptr;
+	ssize_t ret;
+	int saved_errno;
+	iovec_t *niov;
+
+	socket_check(s);
+	g_assert(is_valid_fd(s->file_desc));
+
+	/*
+	 * On Windows, we need to convert the giovec_t structure into our
+	 * emulated iovec_t, which are actually WSABUF structures, so that
+	 * we can pass them to s_writev().
+	 */
+
+	if (is_running_on_mingw()) {
+		int i;
+
+		HALLOC_ARRAY(niov, iovcnt);
+		for (i = 0; i < iovcnt; i++) {
+			iovec_set(&niov[i], iov[i].iov_base, iov[i].iov_len);
+		}
+	} else {
+		niov = (iovec_t *) iov;		/* Isomorphic structures */
+	}
+
+	ret = s_writev(s->file_desc, niov, iovcnt);
+	saved_errno = errno;
+	tls_signal_pending(s);
+	if ((ssize_t) -1 == ret) {
+		tls_set_errno(s, saved_errno);
+		if (ECONNRESET == saved_errno || EPIPE == saved_errno) {
+			socket_connection_reset(s);
+		}
+	}
+	tls_transport_debug("tls_pushv", s, iov_calculate_size(niov, iovcnt), ret);
+	if (is_running_on_mingw())
+		hfree(niov);
+	errno = saved_errno;
+	return ret;
+}
+#else	/* !USE_TLS_PUSHV */
 static inline ssize_t
 tls_push(gnutls_transport_ptr_t ptr, const void *buf, size_t size)
 {
@@ -254,6 +310,7 @@ tls_push(gnutls_transport_ptr_t ptr, const void *buf, size_t size)
 	errno = saved_errno;
 	return ret;
 }
+#endif	/* USE_TLS_PUSHV */
 
 static inline ssize_t
 tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
@@ -495,8 +552,13 @@ tls_init(struct gnutella_socket *s)
 
 #ifdef USE_TLS_CUSTOM_IO
 	gnutls_transport_set_ptr(ctx->session, s);
-	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
+#ifdef USE_TLS_PUSHV
+	gnutls_transport_set_vec_push_function(ctx->session, tls_pushv);
+#else
+	gnutls_transport_set_push_function(ctx->session, tls_push);
+#endif	/* USE_TLS_PUSHV */
+
 #if !HAS_TLS(2, 12)
 	/*
 	 * This routine has been removed starting TLS 3.0.  It was used to disable
@@ -507,7 +569,7 @@ tls_init(struct gnutella_socket *s)
 	 *		--RAM, 2011-12-15
 	 */
 	gnutls_transport_set_lowat(ctx->session, 0);
-#endif
+#endif	/* TLS < 2.12 */
 #else	/* !USE_TLS_CUSTOM_IO */
 	g_assert(is_valid_fd(s->file_desc));
 	gnutls_transport_set_ptr(ctx->session, int_to_pointer(s->file_desc));
