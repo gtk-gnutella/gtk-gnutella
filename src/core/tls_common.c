@@ -694,17 +694,17 @@ tls_global_init(void)
 	cert_file = make_pathname(settings_config_dir(), tls_certfile);
 
 	if (file_exists(key_file) && file_exists(cert_file)) {
-		int ret;
-
-		ret = gnutls_certificate_set_x509_key_file(cert_cred,
+		e = gnutls_certificate_set_x509_key_file(cert_cred,
 				cert_file, key_file, GNUTLS_X509_FMT_PEM);
-		if (ret < 0) {
-			g_warning("gnutls_certificate_set_x509_key_file() failed: %s",
-					gnutls_strerror(ret));
-		} else {
+		if (e) {
+			g_warning("%s(): gnutls_certificate_set_x509_key_file() failed: %s",
+				G_STRFUNC, gnutls_strerror(e));
 			gnutls_certificate_set_dh_params(cert_cred, tls_dh_params());
 		}
+	} else {
+		gnutls_certificate_set_dh_params(cert_cred, tls_dh_params());
 	}
+
 	HFREE_NULL(key_file);
 	HFREE_NULL(cert_file);
 
