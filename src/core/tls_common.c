@@ -838,12 +838,25 @@ tls_init(struct gnutella_socket *s)
 	 * DEFLATE is disabled because it seems to cause crashes.
 	 * ARCFOUR-40 is disabled because it is deprecated.
 	 */
-	static const char prio_want[] =
-		"NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
+
+	static const char prio_want[] = "NORMAL"
+#if HAS_TLS(3, 2)
+		":+ANON-ECDH"
+#endif
+		":+ANON-DH"
+#if !HAS_TLS(3, 0)
+		":-ARCFOUR-40:-COMP-DEFLATE"
+#endif
+		;
 
 	/* "-COMP-DEFLATE" is causing an error on MinGW with GnuTLS 2.10.2 */
-	static const char prio_must[] =
-		"NORMAL:+ANON-DH:-ARCFOUR-40";
+	/* "-ARCFOUR-40"   is causing an error on MinGW with GnuTLS 3.4.5 */
+	static const char prio_must[] = "NORMAL"
+#if HAS_TLS(3, 2)
+		":+ANON-ECDH"
+#endif
+		":+ANON-DH"
+		;
 
 	const bool server = SOCK_CONN_INCOMING == s->direction;
 	struct tls_context *ctx;
