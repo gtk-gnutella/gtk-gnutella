@@ -736,10 +736,6 @@ tls_global_init(void)
 	char *cert_file, *key_file;
 	int e;
 
-#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC) && !defined(TRACK_ZALLOC)
-	gnutls_global_set_mem_functions(halloc, halloc, NULL, hrealloc, hfree);
-#endif
-
 	if ((e = gnutls_global_init())) {
 		g_error("%s(): gnutls_global_init() failed: %s",
 			G_STRFUNC, gnutls_strerror(e));
