@@ -101,6 +101,7 @@ struct tls_context {
 };
 
 static gnutls_certificate_credentials_t cert_cred;
+static bool cert_cred_loaded;
 
 /**
  * Table mapping a gnutls_session_t (a pointer to a data structure) into
@@ -625,9 +626,11 @@ tls_init(struct gnutella_socket *s)
 		}
 	}
 
-	if (TRY(gnutls_credentials_set)(ctx->session,
-			GNUTLS_CRD_CERTIFICATE, cert_cred))
-		goto failure;
+	if (cert_cred_loaded) {
+		if (TRY(gnutls_credentials_set)(ctx->session,
+				GNUTLS_CRD_CERTIFICATE, cert_cred))
+			goto failure;
+	}
 
 	gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
@@ -657,6 +660,14 @@ tls_init(struct gnutella_socket *s)
 #endif	/* USE_TLS_CUSTOM_IO */
 
 	if (server) {
+		/*
+		 * There's no need to allocate an anonymous server credential
+		 * if we already laoded the certificate.
+		 */
+
+		if (cert_cred_loaded)
+			goto done;
+
 		if (TRY(gnutls_anon_allocate_server_credentials)(&ctx->server_cred))
 			goto failure;
 
@@ -677,6 +688,7 @@ tls_init(struct gnutella_socket *s)
 
 	/* FALL THROUGH */
 
+done:
 	htable_insert(tls_sessions, ctx->session, s);
 	return 0;
 
@@ -766,6 +778,9 @@ tls_global_init(void)
 			g_warning("%s(): gnutls_certificate_set_x509_key_file() failed: %s",
 				G_STRFUNC, gnutls_strerror(e));
 			gnutls_certificate_set_dh_params(cert_cred, tls_dh_params());
+		} else {
+			g_info("TLS loaded X.509 certificate");
+			cert_cred_loaded = TRUE;
 		}
 	} else {
 		gnutls_certificate_set_dh_params(cert_cred, tls_dh_params());
