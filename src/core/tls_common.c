@@ -94,7 +94,6 @@
 static const char tls_keyfile[]  = "key.pem";
 static const char tls_certfile[] = "cert.pem";
 
-#define USE_TLS_CUSTOM_IO
 #define TLS_DH_BITS			768
 #define TLS_FILE_MAXSIZE	(64 * 1024)
 
@@ -906,9 +905,9 @@ tls_init(struct gnutella_socket *s)
 
 	gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
-#ifdef USE_TLS_CUSTOM_IO
 	gnutls_transport_set_ptr(ctx->session, s);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
+
 #ifdef USE_TLS_PUSHV
 	gnutls_transport_set_vec_push_function(ctx->session, tls_pushv);
 #else
@@ -926,10 +925,6 @@ tls_init(struct gnutella_socket *s)
 	 */
 	gnutls_transport_set_lowat(ctx->session, 0);
 #endif	/* TLS < 2.12 */
-#else	/* !USE_TLS_CUSTOM_IO */
-	g_assert(is_valid_fd(s->file_desc));
-	gnutls_transport_set_ptr(ctx->session, int_to_pointer(s->file_desc));
-#endif	/* USE_TLS_CUSTOM_IO */
 
 	if (server) {
 		/*
@@ -1025,10 +1020,8 @@ tls_global_init(void)
 			G_STRFUNC, gnutls_strerror(e));
 	}
 
-#ifdef USE_TLS_CUSTOM_IO
 	gnutls_global_set_log_level(9);
 	gnutls_global_set_log_function(tls_log_function);
-#endif	/* USE_TLS_CUSTOM_IO */
 
 #if HAS_TLS(3, 0)
 	gnutls_global_set_audit_log_function(tls_log_audit);
