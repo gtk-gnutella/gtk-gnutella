@@ -1,0 +1,113 @@
+                   Gnutella TLS Connection Upgrade
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                        November, 21st 2015
+
+1. OVERVIEW
+
+This specification applies to a Gnutella connection being initiated over
+a plain TCP/IP connection, i.e. not over a TLS layer already.
+
+The purpose of this document is to explain how a Gnutella servent that
+supports TLS can advertise that it can switch to TLS if the other end
+supports such switching, and how the remote host can acknowledge the
+request or not.
+
+Indeed, intiating a TLS connection directly to a Gnutella host means
+that there is beforehand knowledge that the remote host will indeed support
+that protocol, or the connection would fail after being established, the
+other end reading TLS protocol handshaking data where it otherwise expects
+plain Gnutella handshaking.
+
+So, more often than not, two servents that support TLS will end-up
+performing the Gnutella handshake and remain communicating in "plain"
+(unencrypted) form.  Whereas they are both equipped to use TLS...
+
+This documents therefore specifies the additional Gnutella handshaking
+headers that be can used to negotiate switching to TLS.
+
+
+2. HANDSHAKING NEGOTIATION
+
+To negotiate TLS connection upgrades, we're leveraging the 3-way 
+handshaking. The idea is that even though the remote host supports TLS,
+it may not be equipped with the necessary logic to upgrade the connection.
+Both sides must therefore advertise their willingness to switch to TLS
+dynamically.
+
+Here is how it works:
+
+The connecting servent sends the following header when it wishes to
+dynamically upgrade the plain connection to TLS.  This header will be
+simply ignored if it is received over an already established TLS
+connection:
+
+   Upgrade: TLS/1.0<cr><lf>
+
+The servent which receives the handshake and is willing to upgrade will
+send back the following headers:
+
+   Upgrade: TLS/1.0<cr><lf>
+   Connection: Upgrade<cr><lf>
+
+Strictly speaking, the second header would not be necessary but it is
+there to acknowledge the upgrade request, whilst the first specifies
+to which protocol it will upgrade exactly.
+
+NOTE: the "Upgrade" string must be interpreted case-insensitively.
+
+At this point of the exchange (which happened in clear text), the
+receipient (i.e. the servent receiving the connection) is going to wait
+for the final handshake reply.  It does not switch to TLS yet.
+
+The first sevent (i.e. the one initiating the connection) needs to
+acknowledge that the protocol listed in the Upgrade header in the reply
+is satisfactory and that it will switch by sending back the following
+header:
+
+   Connection: Upgrade<cr><lf>
+
+At the end of its header reply, it will switch the protocol to TLS.
+
+Here is an example where both nodes support TLS connection upgrading,
+comments starting with "--", and ending <cr><lf> removed for clarity:
+
+   GNUTELLA CONNECT/0.6
+   Upgrade: TLS/1.0            -- If you can, I propose we switch to TLS
+
+       GNUTELLA/0.6 200 OK
+       Upgrade: TLS/1.0        -- I selected TLS/1.0 among your proposal
+       Connection: Upgrade     -- And I am ready to switch at your command
+
+   GNUTELLA/0.6 200 OK
+   Connection: Upgrade         -- OK, let's switch to TLS
+
+   <TLS handshaking data will follow>
+   <normal Gnutella messages will follow, on top of the TLS transport>
+
+If the TLS handshake cannot proceed correctly, both servents must close the
+connection.
+
+Here is an exmaple where the recipient does not support TLS upgrading:
+
+   GNUTELLA CONNECT/0.6
+   Upgrade: TLS/1.0            -- If you can, I propose we switch to TLS
+
+       GNUTELLA/0.6 200 OK
+                               -- I cannot upgrade or do not know Upgrade
+
+   GNUTELLA/0.6 200 OK
+                               -- OK, we'll stick to plain connection
+
+   <normal Gnutella messages will follow>
+
+Because the proposed TLS upgrade is at the initiative of the connecting
+servent, the servent being connected to will not send the
+
+   Upgrade: TLS/1.0<cr><lf>
+
+header line, even if it can perform a TLS upgrade, if it did not see
+that being offered in the initial handshaking request.
+
+Raphael

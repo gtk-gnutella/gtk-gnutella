@@ -254,6 +254,7 @@ void socket_init(void);
 void socket_register_fd_reclaimer(reclaim_fd_t callback);
 void socket_eof(struct gnutella_socket *s);
 void socket_connection_reset(struct gnutella_socket *s);
+void socket_free_buffer(struct gnutella_socket *s);
 void socket_free_null(struct gnutella_socket **s_ptr);
 struct gnutella_socket *socket_connect(const host_addr_t, uint16,
 		enum socket_type, uint32 flags);
@@ -292,6 +293,8 @@ int socket_evt_fd(struct gnutella_socket *s);
 bool socket_is_local(const struct gnutella_socket *s);
 bool socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
 bool socket_udp_is_old(const struct gnutella_socket *s);
+
+void socket_tls_upgrade(struct gnutella_socket *s, notify_fn_t cb, void *arg);
 
 void socket_timer(time_t now);
 void socket_shutdowning(void);

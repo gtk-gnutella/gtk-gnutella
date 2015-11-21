@@ -366,6 +366,9 @@ enum {
  * Second attributes.
  */
 enum {
+	NODE_A2_G2_HUB		= 1 << 10,	/**< Node is a G2 hub */
+	NODE_A2_SWITCH_TLS	= 1 << 9,	/**< Node will switch to TLS */
+	NODE_A2_UPGRADE_TLS	= 1 << 8,	/**< Node wants to upgrade to TLS */
 	NODE_A2_TALKS_G2	= 1 << 7,	/**< Node talking with the G2 protocol */
 	NODE_A2_CAN_QRP1	= 1 << 6,	/**< Node supports QRP 1-bit patches  */
 	NODE_A2_NOT_GENUINE	= 1 << 5,	/**< Vendor cannot be genuine */
