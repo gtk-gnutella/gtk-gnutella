@@ -395,7 +395,8 @@ test_spopenve(void)
 			}
 			if (-1 == write(pfd, &i, 1))
 				goto failed;
-			emitz("write #%i to fd #%d was OK, sleeping 500 msecs", i+1, pfd);
+			emitz("write #%i to fd #%d was OK, sleeping 500 msecs",
+				i+1, (int) pfd);
 			thread_sleep_ms(500);
 		}
 
@@ -422,7 +423,8 @@ test_spopenve(void)
 			}
 			if (-1 == write(pfd, &i, 1))
 				goto cannot_write;
-			emitz("write #%i to fd #%d was OK, sleeping 500 msecs", i+1, pfd);
+			emitz("write #%i to fd #%d was OK, sleeping 500 msecs",
+				i+1, (int) pfd);
 			thread_sleep_ms(500);
 		}
 
