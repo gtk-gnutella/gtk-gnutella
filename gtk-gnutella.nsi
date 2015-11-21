@@ -171,10 +171,13 @@ SectionIn 1 RO
 	File ${MINGW}\bin\libiconv-2.dll
 	File ${MINGW}\bin\pthreadGC2.dll
 
-	; Include gnutls
-	File ${DLLDIR_GNUTLS}\libgnutls-26.dll
-	File ${DLLDIR_GNUTLS}\libgcrypt-11.dll
-	File ${DLLDIR_GNUTLS}\libgpg-error-0.dll
+	; Include gnutls -- these are for gnutls-3.4.5
+	File ${DLLDIR_GNUTLS}\libgnutls-30.dll
+	File ${DLLDIR_GNUTLS}\libgcc_s_sjlj-1.dll
+	File ${DLLDIR_GNUTLS}\libgmp-10.dll
+	File ${DLLDIR_GNUTLS}\libhogweed-4-0.dll
+	File ${DLLDIR_GNUTLS}\libnettle-6-0.dll
+	File ${DLLDIR_GNUTLS}\libp11-kit-0.dll
 
 	SetOutPath $INSTDIR\share
 	File /r win32\bundle\share\*.*

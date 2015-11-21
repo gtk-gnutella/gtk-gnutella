@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2015 Raphael Manfredi
+ * Copyright (c) 2006 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -32,6 +33,7 @@
 
 #ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>
+#include <gnutls/crypto.h>
 #include <gnutls/x509.h>
 
 #ifdef GNUTLS_VERSION_MAJOR
@@ -50,20 +52,38 @@
 #include <gnutls/abstract.h>
 #endif
 
+#if HAS_TLS(2, 12) && !defined(MINGW32)
+/* Unfortunately, there is no support on Windows at the gnutls level */
+#define USE_TLS_PUSHV
+#elif HAS_TLS(3, 3)
+/* Works fine in Windows starting with 3.3 (and maybe earlier?) */
+#define USE_TLS_PUSHV
+#endif
+
 #include "tls_common.h"
+
 #include "features.h"
 #include "sockets.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/core/settings.h"
 
+#include "lib/aje.h"
 #include "lib/array.h"
 #include "lib/concat.h"
+#include "lib/endian.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/glog.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/htable.h"
+#include "lib/iovec.h"
+#include "lib/misc.h"			/* For strchomp() */
 #include "lib/path.h"
+#include "lib/product.h"
+#include "lib/random.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -71,19 +91,386 @@
 
 #ifdef HAS_GNUTLS
 
+static const char tls_keyfile[]  = "key.pem";
+static const char tls_certfile[] = "cert.pem";
+
 #define USE_TLS_CUSTOM_IO
-#define TLS_DH_BITS 768
+#define TLS_DH_BITS			768
+#define TLS_FILE_MAXSIZE	(64 * 1024)
 
 struct tls_context {
-	gnutls_session session;
-	gnutls_anon_server_credentials server_cred;
-	gnutls_anon_client_credentials client_cred;
+	gnutls_session_t session;
+	gnutls_anon_server_credentials_t server_cred;
+	gnutls_anon_client_credentials_t client_cred;
 	const struct gnutella_socket *s;
 };
 
-static gnutls_certificate_credentials cert_cred;
+static gnutls_certificate_credentials_t cert_cred;
+static bool cert_cred_loaded;
 
-static inline gnutls_session
+/**
+ * Table mapping a gnutls_session_t (a pointer to a data structure) into
+ * the corresponding gnutella_socket_t structure.  This is required for
+ * gnutls callbacks that provide only a session.
+ */
+static htable_t *tls_sessions;
+
+/**
+ * Fill ``len'' random byte starting at ``data''.
+ *
+ * @attention
+ * This supersedes the version from the gnutls library!
+ *
+ * @param level		the random level GNUTLS_RND_NONCE, etc...
+ * @param data		where to write the random data
+ * @param len		amount of random data to generate
+ *
+ * @return 0 if OK
+ */
+int
+gnutls_rnd(gnutls_rnd_level_t level, void *data, size_t len)
+{
+	/*
+	 * The GNUTLS_RND_KEY is the strongest level for TLS: if the random
+	 * generator is broken, many TLS sessions become insecure.
+	 *
+	 * The GNUTLS_RND_RANDOM is a medium level, which compromises
+	 * the current session if broken.
+	 *
+	 * The GNUTLS_RND_NONCE is for non-predictable random numbers, which
+	 * must resist statistical analysis.  If broken, parts of the TLS
+	 * session are compromised.
+	 */
+
+	if (GNUTLS_RND_KEY == level)
+		random_key_bytes(data, len);
+	else if (GNUTLS_RND_NONCE == level)
+		random_bytes_with(aje_rand, data, len);
+	else
+		random_strong_bytes(data, len);
+
+	if (GNET_PROPERTY(tls_debug) > 9) {
+		g_debug("%s(): generated %zu %s byte%s",
+			G_STRFUNC, len,
+			GNUTLS_RND_KEY == level ? "key" :
+			GNUTLS_RND_NONCE == level ? "nonce" :
+			GNUTLS_RND_RANDOM == level ? "random" : "unknown",
+			plural(len));
+	}
+
+	return 0;
+}
+
+/**
+ * Generate an X.509 private key in PEM format.
+ *
+ * @param file		the path to the file where key needs to be stored.
+ */
+static void
+tls_generate_private_key(const char *file)
+{
+	gnutls_x509_privkey_t key = NULL;
+	size_t len;
+	uint bits;
+	void *data = NULL;
+	int e, fd = -1;
+	const char *fn;
+	const int key_type = GNUTLS_PK_RSA;
+	const int mode = S_IRUSR;	/* 0400 */
+
+#define TRY(function) (fn = (#function)), e = function
+
+	if (TRY(gnutls_x509_privkey_init)(&key))
+		goto failed;
+
+#if HAS_TLS(2, 12)
+	bits = gnutls_sec_param_to_pk_bits(key_type, GNUTLS_SEC_PARAM_HIGH);
+#else
+	bits = 3248;	/* output with 2.12 for the above call */
+#endif
+
+	g_info("TLS generating %d-bit %s private key...",
+		bits, gnutls_pk_algorithm_get_name(key_type));
+
+	if (TRY(gnutls_x509_privkey_generate)(key, key_type, bits, 0))
+		goto failed;
+
+	g_info("TLS saving %d-bit key into %s", bits, file);
+
+	fd = file_create(file, O_WRONLY, mode);
+	if (-1 == fd)
+		goto done;
+
+	len = bits;			/* Result should be shorter than that */
+	data = halloc(len);
+	if (TRY(gnutls_x509_privkey_export)(key, GNUTLS_X509_FMT_PEM, data, &len))
+		goto failed;
+
+	if (-1 == write(fd, data, len)) {
+		g_warning("%s(): write() failed: %m", G_STRFUNC);
+		goto error;
+	}
+
+	fd_close(&fd);
+	goto done;
+
+failed:
+	g_warning("%s(): %s() failed: %s", G_STRFUNC, fn, gnutls_strerror(e));
+	/* FALL THROUGH */
+error:
+	fd_close(&fd);			/* On Windows, needs to close before unlink() */
+	(void) unlink(file);
+	/* FALL THROUGH */
+done:
+	gnutls_x509_privkey_deinit(key);
+	HFREE_NULL(data);
+
+#undef TRY
+}
+
+/**
+ * Log message.
+ */
+static void
+tls_logfmt(GLogLevelFlags level, const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	gl_logv(G_LOG_DOMAIN, level, fmt, args);
+	va_end(args);
+}
+
+/**
+ * Log TLS certificate.
+ */
+static void
+tls_cert_log(const char *fmt,
+	gnutls_x509_crt_t cert, gnutls_certificate_print_formats_t format)
+{
+	gnutls_datum_t out;
+	int e;
+
+	e = gnutls_x509_crt_print(cert, format, &out);
+	if (e) {
+		str_t *s = str_new(80);
+
+		str_printf(s, "error printing X.509 certificate: %s",
+			gnutls_strerror(e));
+		tls_logfmt(G_LOG_LEVEL_WARNING, fmt, str_2c(s));
+		str_destroy_null(&s);
+	} else {
+		tls_logfmt(G_LOG_LEVEL_INFO, fmt, out.data);
+		gnutls_free(out.data);
+	}
+}
+
+/**
+ * Get file data into a halloc()'ed buffer.
+ */
+static gnutls_datum_t
+tls_read_filedata(const char *file)
+{
+	int fd = -1;
+	filestat_t buf;
+	ssize_t r;
+	gnutls_datum_t d = { NULL, 0 };
+
+	if (-1 == stat(file, &buf)) {
+		g_warning("%s(): can't stat() %s: %m", G_STRFUNC, file);
+		return d;
+	}
+
+	if (buf.st_size > TLS_FILE_MAXSIZE) {
+		g_warning("%s(): file %s is too large (%'zu bytes, max set to %'d)",
+			G_STRFUNC, file, (size_t) buf.st_size, TLS_FILE_MAXSIZE);
+		return d;
+	}
+
+	d.data = halloc(buf.st_size);
+	fd = file_open(file, O_RDONLY, 0);
+	if (-1 == fd)
+		goto error;
+
+	r = read(fd, d.data, buf.st_size);
+	if (r < 0) {
+		g_warning("%s(): read() failed: %m", G_STRFUNC);
+		goto error;
+	}
+	if (r != buf.st_size) {
+		g_warning("%s(): partial read() of %'zd out of %'zu bytes from %s",
+			G_STRFUNC, r, (size_t) buf.st_size, file);
+		goto error;
+	}
+
+	fd_close(&fd);
+	d.size = r;
+
+	return d;
+
+error:
+	HFREE_NULL(d.data);
+	fd_close(&fd);
+
+	return d;
+}
+
+/**
+ * Generate an X.509 self-signed certificate in PEM format.
+ *
+ * @param file		the path to the file where certificate needs to be stored.
+ * @param keyfile	the path to the private key file
+ */
+static void
+tls_generate_self_signed_cert(const char *file, const char *keyfile)
+{
+	gnutls_x509_crt_t crt = NULL;
+	gnutls_x509_privkey_t key = NULL;
+	gnutls_privkey_t privkey = NULL;
+	gnutls_pubkey_t pubkey = NULL;
+	void *data = NULL;
+	size_t len;
+	int e, fd = -1;
+	const char *fn;
+	const int key_type = GNUTLS_PK_RSA;
+	const int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;		/* 0644 */
+	const gnutls_digest_algorithm_t digest = GNUTLS_DIG_SHA256;
+	gnutls_datum_t dkey;
+	time_t expire = 2145913200;		/* Fri Jan  1 00:00:00 2038 */
+	str_t *cn = NULL;
+
+	cn = str_new(80);
+	str_printf(cn, "%s/%s", product_name(), product_version());
+
+#define TRY(function) (fn = (#function)), e = function
+
+	if (TRY(gnutls_x509_privkey_init)(&key))
+		goto failed;
+
+	if (TRY(gnutls_x509_crt_init)(&crt))
+		goto failed;
+
+	if (TRY(gnutls_pubkey_init)(&pubkey))
+		goto failed;
+
+	if (TRY(gnutls_privkey_init)(&privkey))
+		goto failed;
+
+	dkey = tls_read_filedata(keyfile);
+
+	if (NULL == dkey.data)
+		goto error;
+
+	g_info("TLS generating self-signed certificate...");
+
+	if (TRY(gnutls_x509_privkey_import)(key, &dkey, key_type))
+		goto failed;
+
+	HFREE_NULL(data);
+
+	if (TRY(gnutls_privkey_import_x509)(privkey, key, 0))
+		goto failed;
+
+	if (TRY(gnutls_pubkey_import_privkey)(pubkey, privkey, 0, 0))
+		goto failed;
+
+	if (TRY(gnutls_x509_crt_set_pubkey)(crt, pubkey))
+		goto failed;
+
+	/* OID "2.5.4.3" is the "CN" -- Common Name */
+
+	if (
+		TRY(gnutls_x509_crt_set_dn_by_oid)
+			(crt, "2.5.4.3", 0, str_2c(cn), str_len(cn))
+	)
+		goto failed;
+
+	/*
+	 * No two certificates generated by the same CA can bear the same serial,
+	 * and we are our own CA (Certification Authority) here since we will
+	 * be self-signing.  Use the current time to make the serial unique.
+	 */
+
+	{
+		char serial[2 * sizeof(uint32)];
+		tm_t now;
+		char *p;
+
+		ZERO(&serial);
+		tm_now_exact(&now);
+
+		p = poke_le32(serial, now.tv_sec);
+		p = poke_be32(p, now.tv_usec);
+
+		if (TRY(gnutls_x509_crt_set_serial)(crt, serial, G_N_ELEMENTS(serial)))
+			goto failed;
+	}
+
+	/*
+	 * The subject and authority IDs are this servent's GUID.
+	 */
+
+	{
+		guid_t *guid = (guid_t *) GNET_PROPERTY_PTR(servent_guid);
+
+		if (TRY(gnutls_x509_crt_set_subject_key_id)(crt, guid, sizeof *guid))
+			goto failed;
+
+		if (TRY(gnutls_x509_crt_set_authority_key_id)(crt, guid, sizeof *guid))
+			goto failed;
+	}
+
+	if (TRY(gnutls_x509_crt_set_activation_time)(crt, time(NULL)))
+		goto failed;
+
+	if (TRY(gnutls_x509_crt_set_expiration_time)(crt, expire))
+		goto failed;
+
+	if (TRY(gnutls_x509_crt_set_version (crt, 3)))
+		goto failed;
+
+	if (TRY(gnutls_x509_crt_privkey_sign)(crt, crt, privkey, digest, 0))
+		goto failed;
+
+	tls_cert_log("TLS generated certificate:\n%s", crt, GNUTLS_CRT_PRINT_FULL);
+	g_info("TLS saving certificate into %s", file);
+
+	fd = file_create(file, O_WRONLY, mode);
+	if (-1 == fd)
+		goto done;
+
+	len = 64 * 1024;
+	data = halloc(len);
+
+	if (TRY(gnutls_x509_crt_export)(crt, GNUTLS_X509_FMT_PEM, data, &len))
+		goto failed;
+
+	if (-1 == write(fd, data, len)) {
+		g_warning("%s(): write() failed: %m", G_STRFUNC);
+		goto error;
+	}
+
+	fd_close(&fd);
+	goto done;
+
+failed:
+	g_warning("%s(): %s() failed: %s", G_STRFUNC, fn, gnutls_strerror(e));
+	/* FALL THROUGH */
+error:
+	fd_close(&fd);			/* On Windows, needs to close before unlink() */
+	(void) unlink(file);
+	/* FALL THROUGH */
+done:
+	gnutls_x509_privkey_deinit(key);
+	gnutls_x509_crt_deinit(crt);
+	gnutls_pubkey_deinit(pubkey);
+	gnutls_privkey_deinit(privkey);
+	HFREE_NULL(data);
+	str_destroy_null(&cn);
+#undef TRY
+}
+
+static inline gnutls_session_t
 tls_socket_get_session(struct gnutella_socket *s)
 {
 	g_return_val_if_fail(s, NULL);
@@ -170,8 +557,53 @@ tls_set_errno(struct gnutella_socket *s, int errnum)
 	gnutls_transport_set_errno(tls_socket_get_session(s), errnum);
 }
 
+#ifdef USE_TLS_PUSHV
 static inline ssize_t
-tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size) 
+tls_pushv(gnutls_transport_ptr_t ptr, const giovec_t *iov, int iovcnt)
+{
+	struct gnutella_socket *s = ptr;
+	ssize_t ret;
+	int saved_errno;
+	iovec_t *niov;
+
+	socket_check(s);
+	g_assert(is_valid_fd(s->file_desc));
+
+	/*
+	 * On Windows, we need to convert the giovec_t structure into our
+	 * emulated iovec_t, which are actually WSABUF structures, so that
+	 * we can pass them to s_writev().
+	 */
+
+	if (is_running_on_mingw()) {
+		int i;
+
+		HALLOC_ARRAY(niov, iovcnt);
+		for (i = 0; i < iovcnt; i++) {
+			iovec_set(&niov[i], iov[i].iov_base, iov[i].iov_len);
+		}
+	} else {
+		niov = (iovec_t *) iov;		/* Isomorphic structures */
+	}
+
+	ret = s_writev(s->file_desc, niov, iovcnt);
+	saved_errno = errno;
+	tls_signal_pending(s);
+	if ((ssize_t) -1 == ret) {
+		tls_set_errno(s, saved_errno);
+		if (ECONNRESET == saved_errno || EPIPE == saved_errno) {
+			socket_connection_reset(s);
+		}
+	}
+	tls_transport_debug("tls_pushv", s, iov_calculate_size(niov, iovcnt), ret);
+	if (is_running_on_mingw())
+		hfree(niov);
+	errno = saved_errno;
+	return ret;
+}
+#else	/* !USE_TLS_PUSHV */
+static inline ssize_t
+tls_push(gnutls_transport_ptr_t ptr, const void *buf, size_t size)
 {
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
@@ -193,9 +625,10 @@ tls_push(gnutls_transport_ptr ptr, const void *buf, size_t size)
 	errno = saved_errno;
 	return ret;
 }
+#endif	/* USE_TLS_PUSHV */
 
 static inline ssize_t
-tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size) 
+tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
 {
 	struct gnutella_socket *s = ptr;
 	ssize_t ret;
@@ -220,29 +653,55 @@ tls_pull(gnutls_transport_ptr ptr, void *buf, size_t size)
 	return ret;
 }
 
-static gnutls_dh_params
-get_dh_params(void)
+static gnutls_dh_params_t
+tls_dh_params(void)
 {
-	static gnutls_dh_params dh_params;
+	static gnutls_dh_params_t dh_params;
 	static bool initialized = FALSE;
+	int e;
+	const char *fn;
+
+#define TRY(function) (fn = (#function)), e = function
 
 	if (!initialized) {
- 		if (gnutls_dh_params_init(&dh_params)) {
-			g_warning("%s(): gnutls_dh_params_init() failed", G_STRFUNC);
-			return NULL;
-		}
-    	if (gnutls_dh_params_generate2(dh_params, TLS_DH_BITS)) {
-			g_warning("%s(): gnutls_dh_params_generate2() failed", G_STRFUNC);
-			return NULL;
-		}
+		uint bits = TLS_DH_BITS;
+
+		if (GNET_PROPERTY(tls_debug) > 0)
+			g_info("TLS initializing Diffie-Hellman parameters...");
+
+#if HAS_TLS(2, 12)
+		/*
+		 * GNUTLS_SEC_PARAM_NORMAL became GNUTLS_SEC_PARAM_MEDIUM later but
+		 * there is a compatibility remapping.  For the sake of portability,
+		 * we stick to GNUTLS_SEC_PARAM_NORMAL.
+		 */
+		bits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH,
+			GNUTLS_SEC_PARAM_NORMAL);
+#endif
+
+		if (TRY(gnutls_dh_params_init)(&dh_params))
+			goto failed;
+
+		if (TRY(gnutls_dh_params_generate2)(dh_params, bits))
+			goto failed;
+
 		initialized = TRUE;
+
+		if (GNET_PROPERTY(tls_debug) > 0)
+			g_info("TLS computed %u-bit Diffie-Hellman parameters", bits);
 	}
 	return dh_params;
+
+failed:
+	g_warning("%s(): %s() failed: %s", G_STRFUNC, fn, gnutls_strerror(e));
+	return NULL;
+
+#undef TRY
 }
 
 static void
 tls_print_session_info(const host_addr_t addr, uint16 port,
-	gnutls_session session, bool incoming)
+	gnutls_session_t session, bool incoming)
 {
 	const char *proto, *cert, *kx, *ciph, *mac, *comp;
 
@@ -258,6 +717,7 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 
 	g_debug(
 		"TLS session info (%s):\n"
+		"    Session:      %p\n"
 		"    Host:         %s\n"
 		"    Protocol:     %s\n"
 		"    Certificate:  %s\n"
@@ -266,7 +726,7 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 		"    MAC:          %s\n"
 		"    Compression:  %s",
 		incoming ? "incoming" : "outgoing",
-		host_addr_port_to_string(addr, port),
+		session, host_addr_port_to_string(addr, port),
 		NULL_STRING(proto),
 		NULL_STRING(cert),
 		NULL_STRING(kx),
@@ -275,6 +735,33 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 		NULL_STRING(comp)
 	);
 }
+
+#if HAS_TLS(3, 0)
+static void
+tls_log_audit(gnutls_session_t session, const char *message)
+{
+	char *dupmsg;
+
+	if (GNET_PROPERTY(tls_debug) < 2)
+		return;
+
+	/* Remove trailing "\n" before logging */
+	dupmsg = h_strdup(message);
+	strchomp(dupmsg, 0);
+	g_warning("TLS ALERT for session=%p: %s", session, dupmsg);
+	HFREE_NULL(dupmsg);
+
+	if (session != NULL) {
+		gnutella_socket_t *s = htable_lookup(tls_sessions, session);
+		if (s != NULL) {
+			tls_print_session_info(s->addr, s->port, session,
+				SOCK_CONN_INCOMING == s->direction);
+		} else {
+			g_warning("TLS no socket attached to session=%p", session);
+		}
+	}
+}
+#endif	/* TLS >= 3.0 */
 
 /**
  * @return	TLS_HANDSHAKE_ERROR if the TLS handshake failed.
@@ -287,7 +774,7 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 enum tls_handshake_result
 tls_handshake(struct gnutella_socket *s)
 {
-	gnutls_session session;
+	gnutls_session_t session;
 	bool do_warn;
 	int ret;
 
@@ -363,9 +850,26 @@ tls_init(struct gnutella_socket *s)
 	 * DEFLATE is disabled because it seems to cause crashes.
 	 * ARCFOUR-40 is disabled because it is deprecated.
 	 */
-	static const char prio_want[] = "NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
+
+	static const char prio_want[] = "NORMAL"
+#if HAS_TLS(3, 2)
+		":+ANON-ECDH"
+#endif
+		":+ANON-DH"
+#if !HAS_TLS(3, 0)
+		":-ARCFOUR-40:-COMP-DEFLATE"
+#endif
+		;
+
 	/* "-COMP-DEFLATE" is causing an error on MinGW with GnuTLS 2.10.2 */
-	static const char prio_must[] = "NORMAL:+ANON-DH:-ARCFOUR-40";
+	/* "-ARCFOUR-40"   is causing an error on MinGW with GnuTLS 3.4.5 */
+	static const char prio_must[] = "NORMAL"
+#if HAS_TLS(3, 2)
+		":+ANON-ECDH"
+#endif
+		":+ANON-DH"
+		;
+
 	const bool server = SOCK_CONN_INCOMING == s->direction;
 	struct tls_context *ctx;
 	const char *fn;
@@ -394,16 +898,23 @@ tls_init(struct gnutella_socket *s)
 		}
 	}
 
-	if (TRY(gnutls_credentials_set)(ctx->session,
-			GNUTLS_CRD_CERTIFICATE, cert_cred))
-		goto failure;
+	if (cert_cred_loaded) {
+		if (TRY(gnutls_credentials_set)(ctx->session,
+				GNUTLS_CRD_CERTIFICATE, cert_cred))
+			goto failure;
+	}
 
 	gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
 #ifdef USE_TLS_CUSTOM_IO
 	gnutls_transport_set_ptr(ctx->session, s);
-	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
+#ifdef USE_TLS_PUSHV
+	gnutls_transport_set_vec_push_function(ctx->session, tls_pushv);
+#else
+	gnutls_transport_set_push_function(ctx->session, tls_push);
+#endif	/* USE_TLS_PUSHV */
+
 #if !HAS_TLS(2, 12)
 	/*
 	 * This routine has been removed starting TLS 3.0.  It was used to disable
@@ -414,17 +925,25 @@ tls_init(struct gnutella_socket *s)
 	 *		--RAM, 2011-12-15
 	 */
 	gnutls_transport_set_lowat(ctx->session, 0);
-#endif
+#endif	/* TLS < 2.12 */
 #else	/* !USE_TLS_CUSTOM_IO */
 	g_assert(is_valid_fd(s->file_desc));
 	gnutls_transport_set_ptr(ctx->session, int_to_pointer(s->file_desc));
 #endif	/* USE_TLS_CUSTOM_IO */
 
 	if (server) {
+		/*
+		 * There's no need to allocate an anonymous server credential
+		 * if we already laoded the certificate.
+		 */
+
+		if (cert_cred_loaded)
+			goto done;
+
 		if (TRY(gnutls_anon_allocate_server_credentials)(&ctx->server_cred))
 			goto failure;
 
-		gnutls_anon_set_server_dh_params(ctx->server_cred, get_dh_params());
+		gnutls_anon_set_server_dh_params(ctx->server_cred, tls_dh_params());
 
 		if (TRY(gnutls_credentials_set)(ctx->session,
 				GNUTLS_CRD_ANON, ctx->server_cred))
@@ -439,6 +958,10 @@ tls_init(struct gnutella_socket *s)
 			goto failure;
 	}
 
+	/* FALL THROUGH */
+
+done:
+	htable_insert(tls_sessions, ctx->session, s);
 	return 0;
 
 failure:
@@ -457,6 +980,7 @@ tls_free(struct gnutella_socket *s)
 	ctx = s->tls.ctx;
 	if (ctx) {
 		if (ctx->session) {
+			htable_remove(tls_sessions, ctx->session);
 			gnutls_deinit(ctx->session);
 		}
 		if (ctx->server_cred) {
@@ -494,13 +1018,11 @@ tls_global_init(void)
 		"tls", 1, 0
 	};
 	char *cert_file, *key_file;
+	int e;
 
-#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC) && !defined(TRACK_ZALLOC)
-	gnutls_global_set_mem_functions(halloc, halloc, NULL, hrealloc, hfree);
-#endif
-
-	if (gnutls_global_init()) {
-		g_error("gnutls_global_init() failed");
+	if ((e = gnutls_global_init())) {
+		g_error("%s(): gnutls_global_init() failed: %s",
+			G_STRFUNC, gnutls_strerror(e));
 	}
 
 #ifdef USE_TLS_CUSTOM_IO
@@ -508,24 +1030,47 @@ tls_global_init(void)
 	gnutls_global_set_log_function(tls_log_function);
 #endif	/* USE_TLS_CUSTOM_IO */
 
-	get_dh_params();
+#if HAS_TLS(3, 0)
+	gnutls_global_set_audit_log_function(tls_log_audit);
+#endif	/* TLS >= 3.0 */
+
+	(void) tls_dh_params();
 	gnutls_certificate_allocate_credentials(&cert_cred);
 
-	key_file = make_pathname(settings_config_dir(), "key.pem");
-	cert_file = make_pathname(settings_config_dir(), "cert.pem");
+	key_file = make_pathname(settings_config_dir(), tls_keyfile);
+	cert_file = make_pathname(settings_config_dir(), tls_certfile);
+
+	if (!file_exists(key_file))
+		tls_generate_private_key(key_file);
+
+	if (!file_exists(cert_file) && file_exists(key_file))
+		tls_generate_self_signed_cert(cert_file, key_file);
 
 	if (file_exists(key_file) && file_exists(cert_file)) {
-		int ret;
-
-		ret = gnutls_certificate_set_x509_key_file(cert_cred,
+		e = gnutls_certificate_set_x509_key_file(cert_cred,
 				cert_file, key_file, GNUTLS_X509_FMT_PEM);
-		if (ret < 0) {
-			g_warning("gnutls_certificate_set_x509_key_file() failed: %s",
-					gnutls_strerror(ret));
+		if (e) {
+			g_warning("%s(): gnutls_certificate_set_x509_key_file() failed: %s",
+				G_STRFUNC, gnutls_strerror(e));
+			gnutls_certificate_set_dh_params(cert_cred, tls_dh_params());
 		} else {
-			gnutls_certificate_set_dh_params(cert_cred, get_dh_params());
+			gnutls_datum_t data = tls_read_filedata(cert_file);
+			gnutls_x509_crt_t crt;
+
+			if (
+				0 == gnutls_x509_crt_init(&crt) &&
+				0 == gnutls_x509_crt_import(crt, &data, GNUTLS_X509_FMT_PEM)
+			) {
+				tls_cert_log("TLS loaded X.509 certificate: %s",
+					crt, GNUTLS_CRT_PRINT_ONELINE);
+			}
+			gnutls_x509_crt_deinit(crt);
+			cert_cred_loaded = TRUE;
 		}
+	} else {
+		gnutls_certificate_set_dh_params(cert_cred, tls_dh_params());
 	}
+
 	HFREE_NULL(key_file);
 	HFREE_NULL(cert_file);
 
@@ -533,6 +1078,8 @@ tls_global_init(void)
 	header_features_add(FEATURES_G2_CONNECTIONS, f.name, f.major, f.minor);
 	header_features_add(FEATURES_DOWNLOADS, f.name, f.major, f.minor);
 	header_features_add(FEATURES_UPLOADS, f.name, f.major, f.minor);
+
+	tls_sessions = htable_create(HASH_KEY_SELF, 0);
 }
 
 void
@@ -542,6 +1089,7 @@ tls_global_close(void)
 		gnutls_certificate_free_credentials(cert_cred);
 		cert_cred = NULL;
 	}
+	htable_free_null(&tls_sessions);
 	gnutls_global_deinit();
 }
 
@@ -876,7 +1424,7 @@ svn_release_notify_certificate(void)
 	static gnutls_x509_crt cert;
 
 	if (!initialized) {
-		gnutls_datum cert_data;
+		gnutls_datum_t cert_data;
 		int error;
 
 		initialized = TRUE;
@@ -912,7 +1460,7 @@ static bool
 verify_signature(gnutls_x509_crt cert,
 	const struct array *input, const struct array *signature)
 {
-	gnutls_datum data, sig;
+	gnutls_datum_t data, sig;
 
 	g_return_val_if_fail(cert, FALSE);
 	g_return_val_if_fail(input, FALSE);

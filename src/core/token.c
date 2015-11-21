@@ -804,7 +804,7 @@ find_latest(const version_t *rver)
  * and the token key structure used in `tkused'.
  */
 static const char *
-random_key(time_t now, uint *idx, const struct tokkey **tkused)
+token_random_key(time_t now, uint *idx, const struct tokkey **tkused)
 {
 	static bool warned = FALSE;
 	uint random_idx;
@@ -871,7 +871,7 @@ tok_generate(time_t now, const char *version)
 	 * Compute token.
 	 */
 
-	key = random_key(now, &idx, &tk);
+	key = token_random_key(now, &idx, &tk);
 	now = clock_loc2gmt(now);				/* As close to GMT as possible */
 
 	poke_be32(&digest[0], now);
