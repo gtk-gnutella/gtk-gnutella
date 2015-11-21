@@ -2473,8 +2473,19 @@ crash_auto_restart(void)
 		if (log_stdout_is_distinct())
 			flush_str(STDOUT_FILENO);
 
-		if (1 != parent)
-			crash_abort();
+		if (1 != parent) {
+			/*
+			 * Still superviseed, but if we can dump a core, it would
+			 * be nice to have one for post-mortem analysis.
+			 */
+
+			if (vars->dumps_core) {
+				signal(SIGABRT, SIG_DFL);	/* Not signal_catch() */
+				raise(SIGABRT);
+			}
+
+			exit(EXIT_FAILURE);		/* For our parent to catch */
+		}
 
 		/* FALL THROUGH -- parent is gone */
 	}
