@@ -2327,6 +2327,25 @@ crash_try_reexec(void)
 	}
 
 	/*
+	 * If process is supervised and the parent is still here, then exit
+	 * with a failure status to let our parent handle the restarting.
+	 */
+
+	if (vars->supervised) {
+		pid_t parent = getppid();
+
+		if (1 != parent) {
+			s_minimsg("%s(): letting our parent (PID=%lu) restart ourselves",
+				G_STRFUNC, (ulong) parent);
+			_exit(EXIT_FAILURE);
+		} else {
+			s_miniwarn("%s(): supervising parent is gone!", G_STRFUNC);
+		}
+
+		/* FALL THROUGH -- parent is gone */
+	}
+
+	/*
 	 * They may have specified a relative path for the program (argv0)
 	 * or for some of the arguments (--log-stderr file) so go back to the
 	 * initial working directory before launching the new process.
