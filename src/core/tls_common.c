@@ -664,19 +664,31 @@ tls_dh_params(void)
 #define TRY(function) (fn = (#function)), e = function
 
 	if (!initialized) {
+		uint bits = TLS_DH_BITS;
+
 		if (GNET_PROPERTY(tls_debug) > 0)
 			g_info("TLS initializing Diffie-Hellman parameters...");
+
+#if HAS_TLS(2, 12)
+		/*
+		 * GNUTLS_SEC_PARAM_NORMAL became GNUTLS_SEC_PARAM_MEDIUM later but
+		 * there is a compatibility remapping.  For the sake of portability,
+		 * we stick to GNUTLS_SEC_PARAM_NORMAL.
+		 */
+		bits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH,
+			GNUTLS_SEC_PARAM_NORMAL);
+#endif
 
 		if (TRY(gnutls_dh_params_init)(&dh_params))
 			goto failed;
 
-		if (TRY(gnutls_dh_params_generate2)(dh_params, TLS_DH_BITS))
+		if (TRY(gnutls_dh_params_generate2)(dh_params, bits))
 			goto failed;
 
 		initialized = TRUE;
 
 		if (GNET_PROPERTY(tls_debug) > 0)
-			g_info("TLS computed Diffie-Hellman parameters");
+			g_info("TLS computed %u-bit Diffie-Hellman parameters", bits);
 	}
 	return dh_params;
 
