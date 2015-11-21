@@ -34,8 +34,8 @@
 #ifndef _rand31_h_
 #define _rand31_h_
 
-#define RAND31_MASK	((1U << 31) - 1)	/**< Last 31 bits */
-#define RAND31_MAX	RAND31_MASK			/**< Maximum random number */
+#define RAND31_MOD	((1U << 31) - 1)	/**< 2^31 - 1, a prime number */
+#define RAND31_MAX	(RAND31_MOD - 1)	/**< Maximum random number */
 
 /**
  * Random number generating routine for use in rand31_upto().

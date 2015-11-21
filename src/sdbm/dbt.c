@@ -177,7 +177,7 @@ fill_key(char *buf, size_t len, long i)
 	}
 
 	if (randomize) {
-		int v = rand31();
+		int v = rand31_u32();
 		w = str_bprintf(&buf[offset], avail, "%06d%010ld", v, i);
 	} else {
 		w = str_bprintf(&buf[offset], avail, "%016ld", i);
