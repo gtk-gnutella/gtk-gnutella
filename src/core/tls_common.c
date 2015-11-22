@@ -99,8 +99,10 @@ static const char tls_certfile[] = "cert.pem";
 
 struct tls_context {
 	gnutls_session_t session;
-	gnutls_anon_server_credentials_t server_cred;
-	gnutls_anon_client_credentials_t client_cred;
+	union {
+		gnutls_anon_server_credentials_t server;
+		gnutls_anon_client_credentials_t client;
+	} cred;
 	const struct gnutella_socket *s;
 };
 
@@ -935,21 +937,21 @@ tls_init(struct gnutella_socket *s)
 		if (cert_cred_loaded)
 			goto done;
 
-		if (TRY(gnutls_anon_allocate_server_credentials)(&ctx->server_cred))
+		if (TRY(gnutls_anon_allocate_server_credentials)(&ctx->cred.server))
 			goto failure;
 
-		gnutls_anon_set_server_dh_params(ctx->server_cred, tls_dh_params());
+		gnutls_anon_set_server_dh_params(ctx->cred.server, tls_dh_params());
 
 		if (TRY(gnutls_credentials_set)(ctx->session,
-				GNUTLS_CRD_ANON, ctx->server_cred))
+				GNUTLS_CRD_ANON, ctx->cred.server))
 			goto failure;
 
 	} else {
-		if (TRY(gnutls_anon_allocate_client_credentials)(&ctx->client_cred))
+		if (TRY(gnutls_anon_allocate_client_credentials)(&ctx->cred.client))
 			goto failure;
 
 		if (TRY(gnutls_credentials_set)(ctx->session,
-				GNUTLS_CRD_ANON, ctx->client_cred))
+				GNUTLS_CRD_ANON, ctx->cred.client))
 			goto failure;
 	}
 
@@ -970,6 +972,7 @@ void
 tls_free(struct gnutella_socket *s)
 {
 	tls_context_t ctx;
+	const bool server = SOCK_CONN_INCOMING == s->direction;
 
 	socket_check(s);
 	ctx = s->tls.ctx;
@@ -978,13 +981,13 @@ tls_free(struct gnutella_socket *s)
 			htable_remove(tls_sessions, ctx->session);
 			gnutls_deinit(ctx->session);
 		}
-		if (ctx->server_cred) {
-			gnutls_anon_free_server_credentials(ctx->server_cred);
-			ctx->server_cred = NULL;
+		if (server && ctx->cred.server != NULL) {
+			gnutls_anon_free_server_credentials(ctx->cred.server);
+			ctx->cred.server = NULL;
 		}
-		if (ctx->client_cred) {
-			gnutls_anon_free_client_credentials(ctx->client_cred);
-			ctx->client_cred = NULL;
+		if (!server && ctx->cred.client != NULL) {
+			gnutls_anon_free_client_credentials(ctx->cred.client);
+			ctx->cred.client = NULL;
 		}
 		WFREE(ctx);
 		s->tls.ctx = NULL;
