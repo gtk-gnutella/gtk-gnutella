@@ -885,6 +885,7 @@ tls_init(struct gnutella_socket *s)
 #define TRY(function) (fn = (#function)), e = function
 
 	socket_check(s);
+	g_assert(NULL == s->tls.ctx);
 
 	WALLOC0(ctx);
 	ctx->s = s;
