@@ -306,15 +306,16 @@ socket_evt_set(struct gnutella_socket *s,
 	s->tls.cb_data = data;
 
 	if (GNET_PROPERTY(tls_debug) > 4) {
-		g_debug("socket_evt_set: fd=%d, cond=%s",
-			fd, inputevt_cond_to_string(cond));
+		g_debug("%s(): fd=%d, cond=%s, handler=%s()",
+			G_STRFUNC, fd, inputevt_cond_to_string(cond),
+			stacktrace_function_name(handler));
 	}
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
 	g_assert(0 != s->gdk_tag);
 
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("%s: flush error: %m", G_STRFUNC);
+			g_warning("%s(): flush error: %m", G_STRFUNC);
 		}
 	}
 }
@@ -330,8 +331,9 @@ socket_evt_clear(struct gnutella_socket *s)
 	if (s->gdk_tag) {
 		if (GNET_PROPERTY(tls_debug) > 4) {
 			int fd = socket_evt_fd(s);
-			g_debug("socket_evt_clear: fd=%d, cond=%s",
-				fd, inputevt_cond_to_string(s->tls.cb_cond));
+			g_debug("%s(): fd=%d, cond=%s, handler was %s()",
+				G_STRFUNC, fd, inputevt_cond_to_string(s->tls.cb_cond),
+				stacktrace_function_name(s->tls.cb_handler));
 		}
 
 		s->tls.cb_cond = 0;
@@ -1177,7 +1179,7 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 		if (GNET_PROPERTY(socket_debug)) {
-			g_debug("%s: step 5, bytes recv'd %zu", G_STRFUNC, ret);
+			g_debug("%s(): step 5, bytes recv'd %zu", G_STRFUNC, ret);
 		}
 		if ((size_t) ret != size) {
 			g_warning("short reply from SOCKS server");
@@ -1749,8 +1751,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				}
 
 				if (GNET_PROPERTY(tls_debug) > 2) {
-					g_debug("socket_read(): c=0x%02x%s",
-						(unsigned char) c, s->tls.enabled ? " [TLS]" : "");
+					g_debug("%s(): c=0x%02x%s",
+						G_STRFUNC, (uint8) c, s->tls.enabled ? " [TLS]" : "");
 				}
 			}
 		}
@@ -1882,8 +1884,9 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			const char *msg = ban_message(s->addr);
 
             if (GNET_PROPERTY(socket_debug)) {
-                g_debug("rejecting connection from banned %s (%s still): %s",
-                    host_addr_to_string(s->addr),
+                g_debug("%s(): rejecting connection from "
+					"banned %s (%s still): %s",
+                    G_STRFUNC, host_addr_to_string(s->addr),
 					short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
             }
 
@@ -2087,8 +2090,8 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 	if (0 != socket_tls_setup(s)) {
 		if (!is_temporary_error(errno)) {
 			if (GNET_PROPERTY(tls_debug)) {
-				g_debug("TLS handshake failed when connecting to %s, %s",
-					host_addr_port_to_string(s->addr, s->port),
+				g_debug("%s(): TLS handshake failed when connecting to %s, %s",
+					G_STRFUNC, host_addr_port_to_string(s->addr, s->port),
 					GNET_PROPERTY(tls_enforce) ? "aborting" : "retrying");
 			}
 
@@ -2419,8 +2422,8 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 		ctl_limit(t->addr, CTL_S_ANY_TCP | CTL_D_STEALTH)
 	) {
 		if (GNET_PROPERTY(ctl_debug) > 2) {
-			g_debug("CTL closing incoming TCP connection from %s [%s]",
-				host_addr_port_to_string(t->addr, t->port),
+			g_debug("%s(): CTL closing incoming TCP connection from %s [%s]",
+				G_STRFUNC, host_addr_port_to_string(t->addr, t->port),
 				gip_country_cc(t->addr));
 		}
 		socket_free_null(&t);
@@ -2433,8 +2436,8 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	t->tls.snarf = 0;
 
 	if (GNET_PROPERTY(tls_debug) > 2) {
-		g_debug("incoming connection from %s",
-			host_addr_port_to_string(t->addr, t->port));
+		g_debug("%s(): incoming connection from %s",
+			G_STRFUNC, host_addr_port_to_string(t->addr, t->port));
 	}
 
 	socket_wio_link(t);
@@ -2535,8 +2538,8 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		} else {
 			if (GNET_PROPERTY(socket_debug))
-				g_debug("socket_udp_extract_dst_addr(): "
-					"CMSG type=%u, level=%u, len=%u",
+				g_debug("%s(): CMSG type=%u, level=%u, len=%u",
+					G_STRFUNC,
 					(unsigned) p->cmsg_type,
 					(unsigned) p->cmsg_level,
 					(unsigned) p->cmsg_len);
@@ -2863,7 +2866,7 @@ socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime)
 
 	if (GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() processed %'u queued datagrams "
+		g_debug("%s(): processed %'u queued datagrams "
 			"(%'zu remain) in %'u usecs",
 			G_STRFUNC, i, eslist_count(&uctx->queue),
 			(unsigned) tm_elapsed_us(&end, &start));
@@ -3012,7 +3015,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 
 	if ((i > 16 || enqueue) && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() iterated %'u times, read %'zu bytes "
+		g_debug("%s(): iterated %'u times, read %'zu bytes "
 			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
 			"in %'u usecs",
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
@@ -4314,15 +4317,15 @@ socket_set_intern(int fd, int option, unsigned size,
 
 	if (!shrink && old_len >= size) {
 		if (GNET_PROPERTY(socket_debug) > 5)
-			g_debug(
-				"socket %s buffer on fd #%d NOT shrank to %u bytes (is %u)",
-				type, fd, size, old_len);
+			g_debug("%s(): socket %s buffer on fd #%d NOT shrunk "
+				"to %u bytes (is %u)",
+				G_STRFUNC, type, fd, size, old_len);
 		return old_len;
 	}
 
 	if (-1 == setsockopt(fd, SOL_SOCKET, option, &size, sizeof(size)))
-		g_warning("cannot set new %s buffer length to %u on fd #%d: %m",
-			type, size, fd);
+		g_warning("%s(): cannot set new %s buffer length to %u on fd #%d: %m",
+			G_STRFUNC, type, size, fd);
 
 	len = sizeof(new_len);
 	if (-1 == getsockopt(fd, SOL_SOCKET, option, &new_len, &len))
@@ -4333,8 +4336,8 @@ socket_set_intern(int fd, int option, unsigned size,
 #endif
 
 	if (GNET_PROPERTY(socket_debug) > 5)
-		g_debug("socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
-			type, fd, old_len, size, new_len,
+		g_debug("%s(): socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
+			G_STRFUNC, type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
 
 	return (new_len == size) ? new_len : old_len;
