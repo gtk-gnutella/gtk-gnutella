@@ -905,7 +905,20 @@ tls_init(struct gnutella_socket *s)
 			goto failure;
 	}
 
-	gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
+	/*
+	 * This is for the client to inform the handshaking logic about the
+	 * minimum amount of bits we expect for the prime number: if the server
+	 * sends a prime smaller than this, the TLS handshake will fail.
+	 *
+	 * This function was deprecated since 3.1.7, so we don't use it starting
+	 * with 3.2: the minimum number of bits is automatically derived by the
+	 * library using the priority string.
+	 */
+
+#if !HAS_TLS(3, 2)
+	if (!server)
+		gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
+#endif
 
 	gnutls_transport_set_ptr(ctx->session, s);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
