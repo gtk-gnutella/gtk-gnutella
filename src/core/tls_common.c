@@ -526,8 +526,8 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 
 		if (GNET_PROPERTY(tls_debug) > 1) {
 			int fd = socket_evt_fd(s);
-			g_debug("tls_socket_evt_change: fd=%d, cond=%s -> %s",
-				fd, inputevt_cond_to_string(s->tls.cb_cond),
+			g_debug("%s(): fd=%d, cond=%s -> %s",
+				G_STRFUNC, fd, inputevt_cond_to_string(s->tls.cb_cond),
 				inputevt_cond_to_string(cond));
 		}
 		inputevt_remove(&s->gdk_tag);
@@ -545,7 +545,7 @@ tls_signal_pending(struct gnutella_socket *s)
 		int saved_errno = errno;
 
 		if (GNET_PROPERTY(tls_debug) > 1) {
-			g_debug("%s: pending=%zu", G_STRFUNC, n);
+			g_debug("%s(): pending=%zu", G_STRFUNC, n);
 		}
 		inputevt_set_readable(s->file_desc);
 		errno = saved_errno;
@@ -798,7 +798,7 @@ tls_handshake(struct gnutella_socket *s)
 	switch (ret) {
 	case 0:
 		if (GNET_PROPERTY(tls_debug) > 3) {
-			g_debug("TLS handshake succeeded");
+			g_debug("%s(): TLS handshake succeeded", G_STRFUNC);
 		}
 		tls_socket_evt_change(s, SOCK_CONN_INCOMING == s->direction
 									? INPUT_EVENT_R : INPUT_EVENT_W);
@@ -813,7 +813,7 @@ tls_handshake(struct gnutella_socket *s)
 		tls_socket_evt_change(s, gnutls_record_get_direction(session)
 				? INPUT_EVENT_WX : INPUT_EVENT_RX);
 		if (GNET_PROPERTY(tls_debug) > 3) {
-			g_debug("TLS handshake proceeding...");
+			g_debug("%s(): TLS handshake proceeding...", G_STRFUNC);
 		}
 		tls_signal_pending(s);
 		return TLS_HANDSHAKE_RETRY;
@@ -829,8 +829,8 @@ tls_handshake(struct gnutella_socket *s)
 		/* FALLTHROUGH */
 	default:
 		if (do_warn && GNET_PROPERTY(tls_debug)) {
-			g_carp("gnutls_handshake() failed: host=%s (%s) error=\"%s\"",
-				host_addr_port_to_string(s->addr, s->port),
+			g_carp("%s(): handshake failed: host=%s (%s) error=\"%s\"",
+				G_STRFUNC, host_addr_port_to_string(s->addr, s->port),
 				SOCK_CONN_INCOMING == s->direction ? "incoming" : "outgoing",
 				gnutls_strerror(ret));
 		}
@@ -1121,8 +1121,9 @@ tls_write_intern(struct wrap_io *wio, const void *buf, size_t size)
 
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_carp("tls_write(): gnutls_record_send(fd=%d) failed: "
+				g_carp("%s(): gnutls_record_send(fd=%d) failed: "
 					"host=%s snarf=%zu error=\"%s\"",
+					G_STRFUNC,
 					s->file_desc, host_addr_port_to_string(s->addr, s->port),
 					s->tls.snarf, gnutls_strerror(ret));
 			}
@@ -1159,8 +1160,8 @@ tls_flush(struct wrap_io *wio)
 
 	if (s->tls.snarf) {
 		if (GNET_PROPERTY(tls_debug > 1)) {
-			g_debug("tls_flush: snarf=%zu host=%s fd=%d",
-					s->tls.snarf,
+			g_debug("%s(): snarf=%zu host=%s fd=%d",
+					G_STRFUNC, s->tls.snarf,
 					host_addr_port_to_string(s->addr, s->port), s->file_desc);
 		}
 		(void ) tls_write_intern(wio, NULL, 0);
@@ -1244,8 +1245,9 @@ tls_read(struct wrap_io *wio, void *buf, size_t size)
 			/* FALLTHROUGH */
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_carp("tls_read(): gnutls_record_recv(fd=%d) failed: "
+				g_carp("%s(): gnutls_record_recv(fd=%d) failed: "
 					"host=%s error=\"%s\"",
+					G_STRFUNC,
 					s->file_desc, host_addr_port_to_string(s->addr, s->port),
 					gnutls_strerror(ret));
 			}
@@ -1370,7 +1372,8 @@ tls_bye(struct gnutella_socket *s)
 			break;
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
-				g_carp("gnutls_bye() failed: host=%s error=%m",
+				g_carp("%s(): gnutls_bye() failed: host=%s error=%m",
+					G_STRFUNC,
 					host_addr_port_to_string(s->addr, s->port));
 			}
 		}
