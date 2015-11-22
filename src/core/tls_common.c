@@ -798,7 +798,10 @@ tls_handshake(struct gnutella_socket *s)
 	switch (ret) {
 	case 0:
 		if (GNET_PROPERTY(tls_debug) > 3) {
-			g_debug("%s(): TLS handshake succeeded", G_STRFUNC);
+			g_debug("%s(): TLS handshake succeeded with %s %s on fd=%d",
+				G_STRFUNC,
+				SOCK_CONN_INCOMING == s->direction ? "client" : "server",
+				host_addr_port_to_string(s->addr, s->port), s->file_desc);
 		}
 		tls_socket_evt_change(s, SOCK_CONN_INCOMING == s->direction
 									? INPUT_EVENT_R : INPUT_EVENT_W);
@@ -813,7 +816,10 @@ tls_handshake(struct gnutella_socket *s)
 		tls_socket_evt_change(s, gnutls_record_get_direction(session)
 				? INPUT_EVENT_WX : INPUT_EVENT_RX);
 		if (GNET_PROPERTY(tls_debug) > 3) {
-			g_debug("%s(): TLS handshake proceeding...", G_STRFUNC);
+			g_debug("%s(): TLS handshake still ongoing with %s %s on fd=%d",
+				G_STRFUNC,
+				SOCK_CONN_INCOMING == s->direction ? "client" : "server",
+				host_addr_port_to_string(s->addr, s->port), s->file_desc);
 		}
 		tls_signal_pending(s);
 		return TLS_HANDSHAKE_RETRY;
