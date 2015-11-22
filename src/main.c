@@ -1882,8 +1882,9 @@ main_supervise(void)
 			short_time_ascii(delta_time(end, start)));
 
 		if (0 == status) {
-			s_info("supervisor exiting, launched %lu child%s",
-				children, 1 == children ? "" : "ren");
+			s_info("supervisor exiting, launched %lu child%s over %s",
+				children, 1 == children ? "" : "ren",
+				short_time_ascii(delta_time(end, progstart_time().tv_sec)));
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -1893,8 +1894,9 @@ main_supervise(void)
 	/* FALL THROUGH */
 
 done:
-	s_info("supervisor exiting on failure, launched %lu child%s",
-		children, 1 == children ? "" : "ren");
+	s_info("supervisor exiting on failure, launched %lu child%s over %s",
+		children, 1 == children ? "" : "ren",
+		short_time_ascii(delta_time(tm_time_exact(), progstart_time().tv_sec)));
 
 	exit(EXIT_FAILURE);
 }
