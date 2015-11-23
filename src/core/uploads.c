@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2003, 2015 Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  *----------------------------------------------------------------------
@@ -129,6 +129,7 @@
 #define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
 #define PUSH_BAN_FREQ	500			/**< 5-minute ban if cannot reach host */
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
+#define UPLOAD_MAX_SINK (16 * 1024)	/**< Maximum length of data to sink */
 
 static pslist_t *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -140,6 +141,7 @@ static bool sendfile_failed = FALSE;
 static idtable_t *upload_handle_map;
 
 static const char no_reason[] = "<no reason>"; /* Don't translate this */
+static const char ALLOW[]     = "Allow: GET, HEAD\r\n";
 
 static inline struct upload *
 cast_to_upload(void *p)
@@ -2856,7 +2858,6 @@ call_upload_request(void *obj, header_t *header)
 	upload_request(u, header);
 }
 
-
 /**
  * Create a new upload request, and begin reading HTTP headers.
  */
@@ -4775,7 +4776,7 @@ remove_trailing_http_tag(char *request)
 }
 
 static uint64
-get_content_length(header_t *header)
+get_content_length(const header_t *header)
 {
 	const char *value;
 	uint64 length = 0;
@@ -4985,6 +4986,246 @@ upload_request_special(struct upload *u, const header_t *header)
 }
 
 /**
+ * Upgrade the upload socket to TLS, then invoke the specified callback with
+ * the upload to terminate the action that was being processed before the
+ * upgrade, in order to reply once the switch has been made.
+ *
+ * Note that the connection will be forcefully closed if the upgrade does
+ * not succeed, i.e. TLS cannot handshake with the remote client.
+ */
+static void
+upload_tls_upgrade(struct upload *u, notify_fn_t upgraded)
+{
+	gnutella_socket_t *s;
+	char buf[80];
+
+	upload_check(u);
+	socket_check(u->socket);
+
+	s = u->socket;
+
+	g_assert(!socket_uses_tls(s));
+	g_assert(0 == s->pos);			/* No unread data after request */
+
+	if (GNET_PROPERTY(upload_debug)) {
+		g_debug("UL request #%u from %s (%s): upgrading to TLS",
+			u->reqnum, host_addr_to_string(u->addr), upload_vendor_str(u));
+	}
+
+	/*
+	 * There is no Content-Length line to generate since this is a
+	 * continuation header: the client must continue to read after
+	 * upgrading the socket on its side.
+	 */
+
+	str_bprintf(buf, sizeof buf, "Upgrade: TLS/1.0, HTTP/%d.%d\r\n",
+		u->http_major, u->http_minor);
+
+	upload_http_extra_line_add(u, buf);
+	upload_http_extra_line_add(u, "Connection: Upgrade\r\n");
+	upload_send_http_status(u, TRUE, 101, "Switching Protocols");
+
+	socket_tls_upgrade(s, upgraded, u);
+	u->tls_upgraded = TRUE;		/* In progress, will succeed hopefully */
+}
+
+/*
+ * Perform necessary cleanup if we come from a TLS upgrade, since then we don't
+ * clone the upload.  This is necessary before re-entering upload_request().
+ */
+static void
+upload_request_cleanup(struct upload *u)
+{
+	HFREE_NULL(u->request);
+	u->hevcnt = 0;
+}
+
+/**
+ * Finish the OPTIONS request (possibly after switching the socket TLS).
+ */
+static void
+upload_options_finish(struct upload *u)
+{
+	upload_check(u);
+
+	upload_http_extra_line_add(u, "Content-Length: 0\r\n");
+	upload_send_http_status(u, u->keep_alive, 200, "OK");
+
+	if (u->keep_alive) {
+		upload_request_cleanup(u);
+		upload_wait_new_request(u);
+	} else {
+		upload_remove(u, no_reason);
+	}
+}
+
+/**
+ * Check whether upload wants to be upgraded to TLS.
+ *
+ * @return TRUE if remote host wants a TLS upgrade, and we can fullfil it.
+ */
+static bool
+upload_wants_tls_upgrade(const struct upload *u, const header_t *header)
+{
+	const char *field;
+
+	if (!tls_enabled() || socket_uses_tls(u->socket))
+		return FALSE;
+
+	field = header_get(header, "Upgrade");
+	if (NULL == field || !strtok_case_has(field, ",", "TLS/1.0"))
+		return FALSE;
+
+	field = header_get(header, "Connection");
+	if (NULL == field || 0 != ascii_strcasecmp(field, "upgrade"))
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Handle an OPTIONS request.
+ */
+static void
+upload_options_handle(struct upload *u, const header_t *header, const char *uri)
+{
+	upload_check(u);
+
+	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
+		/*
+		 * An "OPTIONS * HTTP/1.1" request is for requesting a mandatory
+		 * upgrade to TLS -- see RFC-2817.
+		 */
+
+		if (0 == strcmp(uri, "*")) {
+			if (!upload_wants_tls_upgrade(u, header))
+				goto done;
+
+			/*
+			 * We have all the necessary headers to update the socket to TLS!
+			 *
+			 * After the upgrade,we'll call upload_options_finish() to respond
+			 * to the original OPTIONS request, on top of TLS this time.
+			 */
+
+			g_assert(header == io_header(u->io_opaque));
+
+			upload_tls_upgrade(u, (notify_fn_t) upload_options_finish);
+			return;
+		} else {
+			goto ok;
+		}
+	} else {
+		goto ok;
+	}
+
+ok:
+	upload_http_extra_line_add(u, ALLOW);
+	/* FALL THROUGH */
+
+done:
+	upload_options_finish(u);
+}
+
+struct upload_sink_ctx {
+	struct upload *u;
+	const header_t *header;
+	const char *uri;
+	size_t amount;
+};
+
+/**
+ * Input callback to sink data.
+ */
+static void
+upload_sink_data(void *data, int unused_source, inputevt_cond_t cond)
+{
+	struct upload_sink_ctx *ctx = data;
+	struct upload *u = ctx->u;
+	char buf[512];
+	ssize_t r;
+
+	(void) unused_source;
+	g_assert(size_is_positive(ctx->amount));
+	upload_check(u);
+
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(u->socket);
+		upload_remove(u, _("EOF while sinking"));
+		return;
+	}
+
+	while (ctx->amount != 0) {
+		size_t n = MIN(ctx->amount, G_N_ELEMENTS(buf));
+		r = bws_read(BSCHED_BWS_IN, &u->socket->wio, buf, n);
+		if (-1 == r) {
+			upload_remove(u, _("Read error while sinking: %m"));
+			return;
+		}
+		ctx->amount -= r;
+		if (UNSIGNED(r) < n)
+			break;
+	}
+
+	if (0 == ctx->amount) {
+		/*
+		 * Done with input sink, now process the request.
+		 */
+
+		socket_evt_clear(u->socket);
+		upload_options_handle(u, ctx->header, ctx->uri);
+		WFREE(ctx);
+	}
+}
+
+/**
+ * Got an OPTIONS request.
+ */
+static void
+upload_options_request(struct upload *u,
+	const header_t *header, const char *uri)
+{
+	uint64 len = get_content_length(header);
+
+	if (len > UPLOAD_MAX_SINK) {
+		upload_send_error(u, 400, N_("Content Too Large"));
+		return;
+	}
+
+	/*
+	 * Sink (ignore) any content in the OPTIONS request.
+	 */
+
+	if (len != 0) {
+		struct upload_sink_ctx *ctx;
+
+		WALLOC0(ctx);
+		ctx->u = u;
+		ctx->header = header;
+		ctx->uri = uri;
+		ctx->amount = len;
+		socket_evt_set(u->socket, INPUT_EVENT_RX, upload_sink_data, ctx);
+		return;
+	}
+
+	upload_options_handle(u, header, uri);
+}
+
+/**
+ * Re-invoke upload_request() after a TLS connection upgrade.
+ */
+static void
+upload_request_restart(void *arg)
+{
+	struct upload *u = arg;
+
+	upload_check(u);
+
+	upload_request_cleanup(u);
+	upload_request(u, io_header(u->io_opaque));
+}
+
+/**
  * Called to initiate the upload once all the HTTP headers have been
  * read.  Validate the request, and begin processing it if all OK.
  * Otherwise cancel the upload.
@@ -4995,7 +5236,7 @@ upload_request(struct upload *u, header_t *header)
 	char *search, *uri;
 	time_t now = tm_time();
 	char host[1 + MAX_HOSTLEN];
-	bool first_request;
+	bool first_request, options_req = FALSE;
 
 	upload_check(u);
 
@@ -5118,36 +5359,6 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	upload_request_handle_user_agent(u, header);
-	extract_fw_node_info(u, header);
-	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr,
-		upload_vendor_str(u));
-	
-	if (u->push && header_get_feature("tls", header, NULL, NULL)) {
-		tls_cache_insert(u->addr, u->socket->port);
-	}
-
-	/*
-	 * Cache whether remote host supports / wants firewalled locations.
-	 */
-
-	u->fwalt |= header_get_feature("fwalt", header, NULL, NULL);
-
-	/*
-	 * IPv6-Ready: check remote support of IPv6.
-	 */
-
-	u->net = HOST_NET_IPV4;
-
-	{
-		unsigned major, minor;
-
-		if (header_get_feature("IP", header, &major, &minor)) {
-			if (INET_IP_V6READY == major) {
-				u->net = (INET_IP_NOV4 == minor) ?
-					HOST_NET_IPV6 : HOST_NET_BOTH;
-			}
-		}
-	}
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,
@@ -5183,6 +5394,23 @@ upload_request(struct upload *u, header_t *header)
 		}
 	}
 
+	/*
+	 * If HTTP/1.1 or above, check the Host header.
+	 *
+	 * We require it because HTTP does, but we don't really care for
+	 * now.  Moreover, we might not know our external IP correctly,
+	 * so we have little ways to check that the Host refers to us.
+	 *
+	 *		--RAM, 11/04/2002
+	 */
+
+	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
+		if (NULL == header_get(header, "Host")) {
+			upload_send_error(u, 400, N_("Missing Host Header"));
+			return;
+		}
+	}
+
 	/* Separate the HTTP method (like GET or HEAD) */
 	{
 		const char *endptr;
@@ -5196,6 +5424,8 @@ upload_request(struct upload *u, header_t *header)
 			u->head_only = TRUE;
 		} else if (NULL != (endptr = is_strprefix(u->request, "GET"))) {
 			u->head_only = FALSE;
+		} else if (NULL != (endptr = is_strprefix(u->request, "OPTIONS"))) {
+			options_req = TRUE;
 		}
 
 		if (endptr && is_ascii_blank(endptr[0])) {
@@ -5206,26 +5436,33 @@ upload_request(struct upload *u, header_t *header)
 		}
 	}
 
-	upload_determine_peer_address(u, header);
+	/*
+	 * The OPTIONS request must be dealt with specially.
+	 */
 
-	if (0 != get_content_length(header)) {
-		/*
-		 * Make sure there is no content sent along the request.
-		 * We could sink it, but no Gnutella servent should ever need to
-		 * send content along with GET/HEAD.
-		 *		--RAM, 2006-08-15
-		 */
-		upload_error_remove(u, 403, N_("No Content Allowed"));
+	if (options_req) {
+		upload_options_request(u, header, uri);
 		return;
 	}
 
-	search = strchr(uri, '?');
-	if (search) {
-		*search++ = '\0';
+	/*
+	 * Check whether they want to upgrade the connection to TLS.
+	 */
+
+	if (upload_wants_tls_upgrade(u, header)) {
 		/*
-		 * The search cannot be URL-decoded yet because that could
-		 * destroy the '&' boundaries.
+		 * We have all the necessary headers to update the socket to TLS!
+		 *
+		 * After the upgrade,we'll call upload_request() again to respond
+		 * to the original request, on top of TLS this time: this is why
+		 * we need to keep the header structure around (what the client
+		 * sent us) to be able to resume processing after the upgrade.
 		 */
+
+		g_assert(header == io_header(u->io_opaque));	/* Needed to resume */
+
+		upload_tls_upgrade(u, upload_request_restart);
+		return;
 	}
 
 	/* Extract the host and path from an absolute URI */
@@ -5245,20 +5482,63 @@ upload_request(struct upload *u, header_t *header)
 	}
 
 	/*
-	 * If HTTP/1.1 or above, check the Host header.
-	 *
-	 * We require it because HTTP does, but we don't really care for
-	 * now.  Moreover, we might not know our external IP correctly,
-	 * so we have little ways to check that the Host refers to us.
-	 *
-	 *		--RAM, 11/04/2002
+	 * We don't expect any content with GET or HEAD!
 	 */
 
-	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
-		if (NULL == header_get(header, "Host")) {
-			upload_send_error(u, 400, N_("Missing Host Header"));
-			return;
+	if (0 != get_content_length(header)) {
+		/*
+		 * Make sure there is no content sent along the request.
+		 * We could sink it, but no Gnutella servent should ever need to
+		 * send content along with GET/HEAD.
+		 *		--RAM, 2006-08-15
+		 */
+		upload_error_remove(u, 403, N_("No Content Allowed"));
+		return;
+	}
+
+	/*
+	 * Gnutella-specific HTTP header processing.
+	 */
+
+	upload_determine_peer_address(u, header);
+	extract_fw_node_info(u, header);
+	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr,
+		upload_vendor_str(u));
+
+	if (u->push && header_get_feature("tls", header, NULL, NULL)) {
+		tls_cache_insert(u->addr, u->socket->port);
+	}
+
+	/*
+	 * Cache whether remote host supports / wants firewalled locations.
+	 */
+
+	u->fwalt |= header_get_feature("fwalt", header, NULL, NULL);
+
+	/*
+	 * IPv6-Ready: check remote support of IPv6.
+	 */
+
+	u->net = HOST_NET_IPV4;
+
+	{
+		unsigned major, minor;
+
+		if (header_get_feature("IP", header, &major, &minor)) {
+			if (INET_IP_V6READY == major) {
+				u->net = (INET_IP_NOV4 == minor) ?
+					HOST_NET_IPV6 : HOST_NET_BOTH;
+			}
 		}
+	}
+
+	search = strchr(uri, '?');
+	if (search) {
+		*search++ = '\0';
+		/*
+		 * The search cannot be URL-decoded yet because that could
+		 * destroy the '&' boundaries.
+		 */
 	}
 
 	/*
@@ -5890,6 +6170,7 @@ upload_get_info(gnet_upload_t uh)
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
 	info->encrypted     = u->socket && socket_uses_tls(u->socket);
+	info->tls_upgraded  = u->tls_upgraded;
 	info->partial       = u->file_info != NULL;
 	info->gnet_addr     = u->gnet_addr;
 	info->gnet_port     = u->gnet_port;

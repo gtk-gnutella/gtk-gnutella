@@ -1954,7 +1954,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
 			is_strprefix(s->buf, "GET ") ||
-			is_strprefix(s->buf, "HEAD ")
+			is_strprefix(s->buf, "HEAD ") ||
+			is_strprefix(s->buf, "OPTIONS ")
 		) {
 			http_send_status(HTTP_UPLOAD, s, 414, FALSE, NULL, 0,
 				"Requested URL Too Large");
@@ -2137,6 +2138,10 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			pproxy_add(s);
 		else
 			upload_add(s);
+	} else if (
+		NULL != (endptr = is_strprefix(first, "OPTIONS "))
+	) {
+		upload_add(s);
 	} else if (
 		NULL != (endptr = is_strprefix(first, "HELO")) &&
 		(is_ascii_space(endptr[0]) || '\0' == endptr[0])
