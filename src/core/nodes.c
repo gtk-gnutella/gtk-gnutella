@@ -11432,6 +11432,9 @@ node_add_rxdrop(gnutella_node_t *n, int x)
 	n->rx_dropped += x;
 }
 
+/**
+ * @return the connected Gnutella (not G2) node bearing the given GUID.
+ */
 gnutella_node_t *
 node_by_guid(const struct guid *guid)
 {
@@ -11439,9 +11442,10 @@ node_by_guid(const struct guid *guid)
 
 	g_return_val_if_fail(guid, NULL);
 	n = hikset_lookup(nodes_by_guid, guid);
-	if (n) {
+	if (n != NULL) {
 		node_check(n);
 		g_assert(!NODE_USES_UDP(n));
+		g_assert(!NODE_TALKS_G2(n));	/* G2 nodes not inserted in table */
 	}
 	return n;
 }
@@ -11585,9 +11589,21 @@ node_set_guid(gnutella_node_t *n, const struct guid *guid, bool gnet)
 	}
 
 	entropy_harvest_many(VARLEN(n->addr), VARLEN(n->port), PTRLEN(guid), NULL);
-
 	n->guid = atom_guid_get(guid);
-	hikset_insert_key(nodes_by_guid, &n->guid);
+
+	/*
+	 * We do not record G2 nodes in here.  The node_by_guid() call is used
+	 * by the Gnutella routing table when routing PUSH messages, or by the
+	 * HTTP push-proxy code to find a matching Gnutella node.  We cannot have
+	 * it return a G2 node as the code expects a Gnutella node and that would
+	 * violate an assertion down the chain when we try to send the message
+	 * if the destination is a G2 node!
+	 *		--RAM, 2015-11-24
+	 */
+
+	if (!NODE_TALKS_G2(n))
+		hikset_insert_key(nodes_by_guid, &n->guid);
+
 	return FALSE;
 	
 error:
