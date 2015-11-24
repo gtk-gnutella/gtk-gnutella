@@ -944,8 +944,7 @@ connect_http(struct gnutella_socket *s)
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
+					getline_free_null(&s->getline);
 					return 0;
 				}
 				break;
@@ -973,8 +972,7 @@ connect_http(struct gnutella_socket *s)
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
+					getline_free_null(&s->getline);
 					return 0;
 				}
 				break;
@@ -1577,10 +1575,7 @@ socket_free(struct gnutella_socket *s)
 		s->type = SOCK_TYPE_DESTROYING;
 		return;
 	}
-	if (s->getline) {
-		getline_free(s->getline);
-		s->getline = NULL;
-	}
+	getline_free_null(&s->getline);
 
 	if (socket_with_tls(s)) {
 		if (is_valid_fd(s->file_desc) && socket_uses_tls(s)) {

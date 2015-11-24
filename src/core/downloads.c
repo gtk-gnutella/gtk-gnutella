@@ -3892,10 +3892,8 @@ download_clone(struct download *d)
 
 	/* The socket can be NULL if we're acting on a queued source */
 
-	if (s != NULL && s->getline != NULL) {
-		getline_free(s->getline);	/* No longer need this */
-		s->getline = NULL;
-	}
+	if (s != NULL)
+		getline_free_null(&s->getline);	/* No longer need this */
 
 	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
 		g_assert(NULL == d->buffers);
@@ -4477,10 +4475,7 @@ download_attach_socket(struct download *d, gnutella_socket_t *s)
 	 * the socket, so we no longer need its line parser
 	 */
 
-	if (s->getline != NULL) {
-		getline_free(s->getline);
-		s->getline = NULL;
-	}
+	getline_free_null(&s->getline);
 
 	d->socket = s;
 	socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, d);
@@ -11391,8 +11386,7 @@ download_io_header_free(struct download *d)
 	g_assert(s->getline != NULL);
 
 	io_free(d->io_opaque);
-	getline_free(s->getline);	/* No longer need this */
-	s->getline = NULL;
+	getline_free_null(&s->getline);
 
 	g_assert(NULL == d->io_opaque);
 }

@@ -2909,10 +2909,7 @@ expect_http_header(struct upload *u, upload_stage_t new_status)
 		io_free(u->io_opaque);
 		u->io_opaque = NULL;
 	}
-	if (s->getline) {
-		getline_free(s->getline);
-		s->getline = NULL;
-	}
+	getline_free_null(&s->getline);
 	if (u->sf) {
 		shared_file_check(u->sf);
 	}
@@ -5309,8 +5306,7 @@ upload_request(struct upload *u, header_t *header)
 	u->downloaded = extract_downloaded(u, header);
 	u->status = GTA_UL_SENDING;
 
-	getline_free(u->socket->getline);
-	u->socket->getline = NULL;
+	getline_free_null(&u->socket->getline);
 
 	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
 		g_debug("----%s HTTP Request%s #%u from %s%s%s:\n%s",

@@ -4898,10 +4898,7 @@ node_is_now_connected(gnutella_node_t *n)
 
 	if (n->io_opaque)				/* None for outgoing 0.4 connections */
 		io_free(n->io_opaque);
-	if (n->socket->getline) {
-		getline_free(n->socket->getline);
-		n->socket->getline = NULL;
-	}
+	getline_free_null(&n->socket->getline);
 
 	/*
 	 * Terminate crawler connection that goes through the whole 3-way
@@ -5994,8 +5991,7 @@ node_process_handshake_ack(gnutella_node_t *n, header_t *head)
 	 * Get rid of the acknowledgment status line.
 	 */
 
-	getline_free(s->getline);
-	s->getline = NULL;
+	getline_free_null(&s->getline);
 
 	/*
 	 * Content-Encoding -- compression accepted by the remote side
@@ -8490,8 +8486,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 	if (incoming) {
 		get_protocol_version(getline_str(s->getline), &major, &minor);
-		getline_free(s->getline);
-		s->getline = NULL;
+		getline_free_null(&s->getline);
 	}
 
 	/* Refuse to connect to legacy servents (not at least 0.6) */
