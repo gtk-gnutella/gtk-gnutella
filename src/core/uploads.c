@@ -5033,7 +5033,6 @@ upload_tls_upgrade(struct upload *u, notify_fn_t upgraded)
 static void
 upload_request_cleanup(struct upload *u)
 {
-	HFREE_NULL(u->request);
 	u->hevcnt = 0;
 }
 
@@ -5049,6 +5048,7 @@ upload_options_finish(struct upload *u)
 	upload_send_http_status(u, u->keep_alive, 200, "OK");
 
 	if (u->keep_alive) {
+		HFREE_NULL(u->request);
 		upload_request_cleanup(u);
 		upload_wait_new_request(u);
 	} else {
@@ -5217,6 +5217,8 @@ upload_request_restart(void *arg)
 	struct upload *u = arg;
 
 	upload_check(u);
+	socket_check(u->socket);
+	g_assert(NULL == u->socket->getline);
 
 	upload_request_cleanup(u);
 	upload_request(u, io_header(u->io_opaque));
@@ -5242,7 +5244,7 @@ upload_request(struct upload *u, header_t *header)
 	 * the following items are always released/cleared in advance.
 	 */
 
-	g_assert(NULL == u->request);
+	g_assert(NULL == u->request || NULL == u->socket->getline);
 	g_assert(0 == u->hevcnt);
 	g_assert(NULL == u->sf);
 	g_assert(NULL == u->name);
@@ -5252,6 +5254,15 @@ upload_request(struct upload *u, header_t *header)
 	g_assert(NULL == u->bio);
 
 	u->was_actively_queued = FALSE;
+
+	/*
+	 * Have to save this early -- we can come back here during TLS upgrades.
+	 */
+
+	if (NULL == u->request) {
+		u->request = h_strdup(getline_str(u->socket->getline));
+		getline_free_null(&u->socket->getline);
+	}
 
 	switch (u->status) {
 	case GTA_UL_WAITING:
@@ -5302,11 +5313,8 @@ upload_request(struct upload *u, header_t *header)
 	u->last_update = now;		/* Done reading headers */
 
 	u->from_browser = upload_likely_from_browser(header);
-	u->request = h_strdup(getline_str(u->socket->getline));
 	u->downloaded = extract_downloaded(u, header);
 	u->status = GTA_UL_SENDING;
-
-	getline_free_null(&u->socket->getline);
 
 	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
 		g_debug("----%s HTTP Request%s #%u from %s%s%s:\n%s",
