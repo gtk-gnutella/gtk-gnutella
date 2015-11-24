@@ -5111,8 +5111,8 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(addr, buf, sizeof buf);
-			g_message("peer %s reported different IP address: %s (%s)\n",
-				host_addr_to_string(peer), buf, ua);
+			g_message("%s(): peer %s (%s) reported new IP address: %s",
+				G_STRFUNC, host_addr_to_string(peer), ua, buf);
 		}
 	}
 
