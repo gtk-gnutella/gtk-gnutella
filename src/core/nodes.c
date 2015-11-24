@@ -5236,9 +5236,12 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 
 	/*
 	 * Deny cleanly if they deactivated "online mode".
+	 *
+	 * Note that we still allow connections from nearby nodes, as defined
+	 * by the "local_netmasks_string" property, to make local testing easier.
 	 */
 
-	if (handshaking && !allow_gnet_connections) {
+	if (handshaking && !allow_gnet_connections && !host_is_nearby(n->addr)) {
 		node_send_error(n, 403,
 			"Gnet connections currently disabled");
 		node_remove(n, _("Gnet connections disabled"));
