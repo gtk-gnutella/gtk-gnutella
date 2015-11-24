@@ -43,7 +43,7 @@
 #define GTA_PATCHLEVEL 		7			/**< patch level or teeny version */
 #define GTA_REVISION 		"unstable"	/**< unstable, beta, stable */
 #define GTA_REVCHAR			"u"			/**< (u)nstable, (b)eta, "" -> stable */
-#define GTA_RELEASE			"2015-11-11"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE			"2015-11-24"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE			"http://gtk-gnutella.sourceforge.net/"
 #define GTA_VENDOR_CODE		"GTKG"
 #define GTA_PRODUCT_NICK	"gtkg"
