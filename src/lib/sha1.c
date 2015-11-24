@@ -328,8 +328,11 @@ SHA1_process_message_block(SHA1_context *context, const void *mblock)
 	 *  Initialize the first 16 words in the array W
 	 */
 
-#define INIT(x) \
-	W[x] = UINT32_SWAP(*wp); wp++
+#ifdef IS_LITTLE_ENDIAN
+#define INIT(x)			W[x] = UINT32_SWAP(*wp); wp++
+#else
+#define INIT(x)			W[x] = *wp++
+#endif
 
 	wp = (uint32 *) mblock;
 
