@@ -100,8 +100,7 @@ io_free(void *opaque)
 	io_check(opaque);
 	*ih->io_opaque = NULL;
 
-	if (ih->header)
-		header_free(ih->header);
+	header_free_null(&ih->header);
 	getline_free_null(&ih->getline);
 	str_destroy_null(&ih->text);
 
