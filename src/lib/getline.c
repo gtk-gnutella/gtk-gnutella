@@ -110,6 +110,20 @@ getline_free(getline_t *o)
 }
 
 /**
+ * Destroy getline object and nullify its pointer.
+ */
+void
+getline_free_null(getline_t **o_ptr)
+{
+	getline_t *o = *o_ptr;
+
+	if (o != NULL) {
+		getline_free(o);
+		*o_ptr = NULL;
+	}
+}
+
+/**
  * Prepare getline object for a new read cycle by forgetting whatever it
  * currently holds.
  */

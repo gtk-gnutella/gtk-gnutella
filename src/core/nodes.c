@@ -236,6 +236,12 @@ static const char CONTENT_TYPE_GNUTELLA[] =
 static const char ACCEPT_GNUTELLA[] =
 	"Accept: application/x-gnutella-packets\r\n";
 
+static const char UPGRADE_TLS[] =
+	"Upgrade: TLS/1.0\r\n";
+
+static const char CONNECTION_UPGRADE[] =
+	"Connection: Upgrade\r\n";
+
 static const char CONTENT_ENCODING_DEFLATE[] =
 	"Content-Encoding: deflate\r\n";
 
@@ -4171,6 +4177,687 @@ node_g2_msg_zero(const void *a, const void *b)
 	return 0;		/* Treat all G2 messages as equally important */
 }
 
+/**
+ * Can node accept connection?
+ *
+ * If `handshaking' is true, we're still in the handshaking phase, otherwise
+ * we're already connected and can send a BYE.
+ *
+ * @return TRUE if we can accept the connection, FALSE otherwise, with
+ * the node being removed.
+ */
+static bool
+node_can_accept_connection(gnutella_node_t *n, bool handshaking)
+{
+	g_assert(handshaking || n->status == GTA_NODE_CONNECTED);
+	g_assert((n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA))
+		|| NODE_TALKS_G2(n));
+
+	/*
+	 * Deny cleanly if they deactivated "online mode".
+	 *
+	 * Note that we still allow connections from nearby nodes, as defined
+	 * by the "local_netmasks_string" property, to make local testing easier.
+	 */
+
+	if (handshaking && !allow_gnet_connections && !host_is_nearby(n->addr)) {
+		node_send_error(n, 403,
+			"Gnet connections currently disabled");
+		node_remove(n, _("Gnet connections disabled"));
+		return FALSE;
+	}
+
+	/*
+	 * Always accept crawler connections.
+	 */
+
+	if (n->flags & NODE_F_CRAWLER)
+		return TRUE;
+
+	/*
+	 * If we are handshaking, we have not incremented the node counts yet.
+	 * Hence we can do >= tests against the limits.
+	 */
+
+	/*
+	 * Check for G2 hosts, where we always act as a leaf node.
+	 */
+
+	if (NODE_TALKS_G2(n)) {
+		if (n->flags & NODE_F_FORCE)
+			return TRUE;
+
+		if (
+			GNET_PROPERTY(prefer_compressed_gnet) &&
+			GNET_PROPERTY(node_g2_count) != 0 &&
+			!(n->attrs & NODE_A_CAN_INFLATE)
+		) {
+			node_send_error(n, 403,
+				"Compressed connection preferred");
+			node_remove(n, _("Connection not compressed"));
+			return FALSE;
+		}
+
+		if (
+			handshaking &&
+			GNET_PROPERTY(node_g2_count) >= GNET_PROPERTY(max_g2_hubs)
+		) {
+			node_send_error(n, 503, "Too many G2 hub connections (%u max)",
+				GNET_PROPERTY(max_g2_hubs));
+			node_remove(n, _("Too many G2 hubs (%u max)"),
+				GNET_PROPERTY(max_g2_hubs));
+			return FALSE;
+		}
+
+		if (
+			!handshaking &&
+			GNET_PROPERTY(node_g2_count) > GNET_PROPERTY(max_g2_hubs)
+		) {
+			node_bye(n, 503, "Too many G2 hub connections (%u max)",
+				GNET_PROPERTY(max_g2_hubs));
+			return FALSE;
+		}
+
+		goto check_for_bad_nodes;
+	}
+
+	/*
+	 * Check for Gnutella hosts.
+	 */
+
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
+	case NODE_P_ULTRA:
+
+		if (n->flags & NODE_F_FORCE)
+			return TRUE;
+
+		/*
+		 * If we're an ultra node, we need to enforce leaf counts.
+		 *
+		 * We also enforce ultra node counts if we're issuing an outgoing
+		 * connection, but for incoming ones, we'll try to let the other
+		 * node become a leaf node, so don't enforce if we're still in the
+		 * handshaking phase.
+		 */
+
+		if (n->flags & NODE_F_LEAF) {
+			/*
+			 * Try to preference compressed leaf nodes too
+			 * 		-- JA, 08/06/2003
+			 */
+			if (
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				GNET_PROPERTY(up_connections) <=
+					GNET_PROPERTY(node_leaf_count) - compressed_leaf_cnt &&
+				!(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				node_send_error(n, 403,
+					"Compressed connection preferred");
+				node_remove(n, _("Connection not compressed"));
+				return FALSE;
+			}
+
+			/*
+			 * Remove leaves that do not allow queries when we are
+			 * running out of slots.
+			 */
+
+			if (GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves)) {
+				(void) node_remove_useless_leaf(NULL);
+
+				/*
+				 * It may happen than when we try to make up some room to
+				 * remove a useless node, we do remove this node!
+				 */
+
+				if (GTA_NODE_REMOVING == n->status)
+					return FALSE;
+			}
+
+			if (
+				handshaking &&
+				GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves)
+			) {
+				node_send_error(n, 503, "Too many leaf connections (%d max)",
+					GNET_PROPERTY(max_leaves));
+				node_remove(n, _("Too many leaves (%d max)"),
+					GNET_PROPERTY(max_leaves));
+				return FALSE;
+			}
+			if (
+				!handshaking &&
+				GNET_PROPERTY(node_leaf_count) > GNET_PROPERTY(max_leaves)
+			) {
+				node_bye(n, 503, "Too many leaf connections (%d max)",
+					GNET_PROPERTY(max_leaves));
+				return FALSE;
+			}
+		} else if (n->attrs & NODE_A_ULTRA) {
+			uint ultra_max;
+
+			/*
+			 * Try to give preference to compressed ultrapeer connections too.
+			 * 		-- JA, 08/06/2003
+			 */
+
+			if (
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				GNET_PROPERTY(up_connections) <=
+					GNET_PROPERTY(node_ultra_count) -
+						(compressed_node_cnt - compressed_leaf_cnt) &&
+				!(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				node_send_error(n, 403,
+					"Compressed connection preferred");
+				node_remove(n, _("Connection not compressed"));
+				return FALSE;
+			}
+
+			ultra_max = GNET_PROPERTY(max_connections) >
+				GNET_PROPERTY(normal_connections) ?
+				GNET_PROPERTY(max_connections) -
+					GNET_PROPERTY(normal_connections) :
+				0;
+
+			if (GNET_PROPERTY(node_ultra_count) >= ultra_max)
+				(void) node_remove_useless_ultra(NULL);
+
+			if (
+				GNET_PROPERTY(node_ultra_count) >= ultra_max &&
+				(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				(void) node_remove_uncompressed_ultra(NULL);
+			}
+
+			/*
+			 * It may happen than when we try to make up some room to
+			 * remove a useless node, we do remove this node!
+			 */
+
+			if (GTA_NODE_REMOVING == n->status)
+				return FALSE;
+
+			if (
+				handshaking &&
+				GNET_PROPERTY(node_ultra_count) >= ultra_max
+			) {
+				node_send_error(n, 503,
+					"Too many ultra connections (%d max)", ultra_max);
+				node_remove(n, _("Too many ultra nodes (%d max)"), ultra_max);
+				return FALSE;
+			}
+			if (!handshaking && GNET_PROPERTY(node_ultra_count) > ultra_max) {
+				node_bye(n, 503,
+					"Too many ultra connections (%d max)", ultra_max);
+				return FALSE;
+			}
+		}
+
+		/*
+		 * Enforce preference for compression only with non-leaf nodes.
+		 */
+
+		if (handshaking) {
+			uint connected;
+
+			connected = GNET_PROPERTY(node_normal_count)
+							+ GNET_PROPERTY(node_ultra_count);
+
+            if (
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				!(n->attrs & NODE_A_CAN_INFLATE) &&
+				(
+					((n->flags & NODE_F_INCOMING) &&
+					connected >= GNET_PROPERTY(up_connections) &&
+					connected > compressed_node_cnt)
+					||
+					(n->flags & NODE_F_LEAF)
+				)
+			) {
+				node_send_error(n, 403,
+					"Gnet connection not compressed");
+				node_remove(n, _("Connection not compressed"));
+				return FALSE;
+			}
+		}
+
+		/*
+		 * If we have already enough normal nodes, reject a normal node.
+		 */
+
+		if (
+			handshaking &&
+			(n->attrs & NODE_A_NO_ULTRA) &&
+			GNET_PROPERTY(node_normal_count)
+				>= GNET_PROPERTY(normal_connections)
+		) {
+			if (GNET_PROPERTY(normal_connections))
+				node_send_error(n, 503, "Too many normal nodes (%d max)",
+					GNET_PROPERTY(normal_connections));
+			else
+				node_send_error(n, 403, "Normal nodes refused");
+			node_remove(n, _("Rejected normal node (%d max)"),
+				GNET_PROPERTY(normal_connections));
+			return FALSE;
+		}
+
+		break;
+	case NODE_P_NORMAL:
+		if (n->flags & NODE_F_FORCE)
+			return TRUE;
+
+		if (handshaking) {
+			uint connected;
+
+			connected = GNET_PROPERTY(node_normal_count)
+							+ GNET_PROPERTY(node_ultra_count);
+			if (
+				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA
+			) {
+				node_send_error(n, 503, "Cannot accept leaf node");
+				node_remove(n, _("Rejected leaf node"));
+				return FALSE;
+			}
+			if (connected >= GNET_PROPERTY(max_connections)) {
+				node_send_error(n, 503, "Too many Gnet connections (%d max)",
+					GNET_PROPERTY(max_connections));
+				node_remove(n, _("Too many nodes (%d max)"),
+					GNET_PROPERTY(max_connections));
+				return FALSE;
+			}
+			if (
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				(n->flags & NODE_F_INCOMING) &&
+				!(n->attrs & NODE_A_CAN_INFLATE) &&
+				connected >= GNET_PROPERTY(up_connections) &&
+				connected > compressed_node_cnt
+			) {
+				node_send_error(n, 403,
+					"Gnet connection not compressed");
+				node_remove(n, _("Connection not compressed"));
+				return FALSE;
+			}
+		} else if (
+			GNET_PROPERTY(node_normal_count) + GNET_PROPERTY(node_ultra_count)
+				> GNET_PROPERTY(max_connections)
+		) {
+			node_bye(n, 503, "Too many Gnet connections (%d max)",
+				GNET_PROPERTY(max_connections));
+			return FALSE;
+		}
+		break;
+	case NODE_P_LEAF:
+
+		/* Even forced connections are not acceptable unless
+		 * the remote node is an ultrapeer. Note: There is also
+		 * an assertion in node_process_handshake_header().
+		 */
+		if ((n->flags & NODE_F_FORCE) && (n->attrs & NODE_A_ULTRA))
+			return TRUE;
+
+		if (handshaking) {
+			/*
+			 * If we're a leaf node, we can only accept incoming connections
+			 * from an ultra node.
+			 *
+			 * The Ultrapeer specs say that two leaf nodes not finding
+			 * Ultrapeers could connect to each other like two normal nodes,
+			 * but I don't want to support that.  It's insane.
+			 *		--RAM, 11/01/2003
+			 */
+
+			if (!(n->attrs & NODE_A_ULTRA)) {
+				node_send_error(n, 204, "Shielded leaf node (%d peers max)",
+					GNET_PROPERTY(max_ultrapeers));
+				node_remove(n, _("Sent shielded indication"));
+				return FALSE;
+			}
+
+			if (!(n->attrs & NODE_A_ULTRA)) {
+				node_send_error(n, 503, "Looking for an ultra node");
+				node_remove(n, _("Not an ultra node"));
+				return FALSE;
+			}
+
+			if (
+				GNET_PROPERTY(node_ultra_count) >= GNET_PROPERTY(max_ultrapeers)
+			) {
+				node_send_error(n, 503, "Too many ultra connections (%d max)",
+					GNET_PROPERTY(max_ultrapeers));
+				node_remove(n, _("Too many ultra nodes (%d max)"),
+					GNET_PROPERTY(max_ultrapeers));
+				return FALSE;
+			}
+
+			/*
+			 * Honour the prefer compressed connection setting. Even when making
+			 * outgoing connections in leaf mode
+			 * 		-- JA 24/5/2003
+			 */
+			if (
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				GNET_PROPERTY(up_connections)
+					<= GNET_PROPERTY(node_ultra_count) - compressed_node_cnt &&
+				!(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				node_send_error(n, 403,
+					"Compressed connection preferred");
+				node_remove(n, _("Connection not compressed"));
+				return FALSE;
+			}
+		} else if (
+			GNET_PROPERTY(node_ultra_count) > GNET_PROPERTY(max_ultrapeers)
+		) {
+			node_bye(n, 503, "Too many ultra connections (%d max)",
+				GNET_PROPERTY(max_ultrapeers));
+			return FALSE;
+		}
+		break;
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_DHT:
+	case NODE_P_G2HUB:
+	case NODE_P_UNKNOWN:
+		g_assert_not_reached();
+		break;
+	}
+
+check_for_bad_nodes:
+
+	/*
+	 * If a specific client version has proven to be very unstable during this
+	 * version, don't connect to it.
+	 *		-- JA 17/7/200
+	 */
+
+	if ((n->attrs & NODE_A_ULTRA) || NODE_TALKS_G2(n)) {
+		const char *msg = N_("Unknown error");
+		enum node_bad bad = node_is_bad(n);
+
+		switch (bad) {
+		case NODE_BAD_OK:
+			break;
+		case NODE_BAD_IP:
+			msg = N_("Unstable IP address");
+			break;
+		case NODE_BAD_VENDOR:
+			msg = N_("Servent version appears unstable");
+			break;
+		case NODE_BAD_NO_VENDOR:
+			msg = N_("No vendor string supplied");
+			break;
+		}
+
+		if (NODE_BAD_OK != bad) {
+			node_send_error(n, 403, "%s", msg);
+			node_remove(n, _("Not connecting: %s"), _(msg));
+			return FALSE;
+		}
+	}
+
+	g_assert(n->status != GTA_NODE_REMOVING);
+
+	return TRUE;
+}
+
+/**
+ * Inject any pending data in the socket buffer into the RX stack.
+ *
+ * This is only required when we are the node processing the final handshake
+ * acknoledgment, because Gnutella traffic will start right away and could
+ * even have been received.
+ */
+static void
+node_inject_rx(gnutella_node_t *n)
+{
+	gnutella_socket_t *s = n->socket;
+
+	/*
+	 * If we already have data following the final acknowledgment, feed it
+	 * to to stack, from the bottom: we already read it into the socket's
+	 * buffer, but we need to inject it at the bottom of the RX stack.
+	 */
+
+	socket_buffer_check(s);
+
+	if (s->pos > 0) {
+		pdata_t *db;
+		pmsg_t *mb;
+
+		if (GNET_PROPERTY(node_debug) > 4) {
+			g_debug("%s(): read %d bytes from %s after handshake",
+				G_STRFUNC, (int) s->pos, node_infostr(n));
+		}
+
+		/*
+		 * Prepare data buffer out of the socket's buffer.
+		 */
+
+		db = pdata_allocb_ext(s->buf, s->pos, pdata_free_nop, NULL);
+		mb = pmsg_alloc(PMSG_P_DATA, db, 0, s->pos);
+
+		/*
+		 * The message is given to the RX stack, and it will be freed by
+		 * the last function consuming it.
+		 */
+
+		rx_recv(rx_bottom(n->rx), mb);
+
+		/*
+		 * During rx_recv the node could be marked for removal again. In which
+		 * case the socket is freed, so let's exit now.
+		 *		-- JA 14/04/04
+		 */
+
+		if (NODE_IS_REMOVING(n))
+			return;
+
+		g_assert(n->socket == s);
+		g_assert(s != NULL);
+
+		/*
+		 * We know that the message is synchronously delivered.  At this
+		 * point, all the data have been consumed, and the socket buffer
+		 * can be "emptied" my marking it holds zero data.
+		 */
+
+		s->pos = 0;
+	}
+}
+
+/**
+ * Finalize the 3-way handshake for an incoming connection.
+ *
+ * When this routine is called, we have processed the final handshake reply
+ * from the remote host (which is connecting to us), the TX and RX stack
+ * have been setup.
+ *
+ * We now need to verify that we can indeed converse with that node.
+ *
+ * @return TRUE if we maintain the connection, FALSE if we BYE-ed the node.
+ */
+static bool
+node_finalize_3way(gnutella_node_t *n)
+{
+	struct gnutella_socket *s = n->socket;
+
+	g_assert(n->rx != NULL);		/* Network stacks installed, for BYE */
+	socket_check(s);
+
+	/*
+	 * Now that the Gnutella stack is up, BYE the node if we don't really
+	 * support the right version for the necessary protocols.
+	 */
+
+	if (NODE_TALKS_G2(n)) {
+		if (0 == (n->attrs2 & NODE_A2_G2_HUB)) {
+			node_bye(n, 505, "Wanted a G2 hub");
+			return FALSE;
+		}
+	} else {
+		if (GNET_PROPERTY(current_peermode) != NODE_P_NORMAL) {
+			/*
+			 * BYE them if they finally declared to use a protocol we don't
+			 * support yet, despite their knowing that we only support the
+			 * 0.2 version, as advertised in our reply to their incoming
+			 * request: lack of final indication they want to level with us
+			 * means they can't level, therefore we cannot accept the
+			 * connection.
+			 *
+			 * This is new logic because prior to today, we were only BYE-ing
+			 * them when they mentionned a protocol in the last handshake
+			 * reply.  Now we assume that, since Gnutella is no longer actively
+			 * maintained (the specs, that is), there is no way we can grasp
+			 * what a higher protocol would mean, whether it is compatible
+			 * with an earlier version, etc...
+			 *		--RAM, 2015-11-22
+			 */
+
+			if (n->qrp_major > 0 || n->qrp_minor > 2) {
+				node_bye(n, 505, "Query Routing protocol %u.%u not supported",
+					(uint) n->qrp_major, (uint) n->qrp_minor);
+				return FALSE;
+			}
+		}
+	}
+
+	/*
+	 * This is legacy code -- at some point we want to remove that logic
+	 * since there is no reason why we would want to disable receiving
+	 * compressed data.
+	 *		--RAM, 2015-11-22
+	 */
+
+	if (
+		!GNET_PROPERTY(gnet_deflate_enabled) &&
+		(n->attrs & NODE_A_RX_INFLATE)
+	) {
+		g_warning("Content-Encoding \"deflate\" although disabled - from %s",
+			node_infostr(n));
+        node_bye(n, 400, "Refusing remote node compression");
+		return FALSE;
+	}
+
+	/*
+	 * Make sure we do not exceed our maximum amout of connections.
+	 * In particular, if the remote node did not obey our leaf guidance
+	 * and we still have enough ultra nodes, BYE them.
+	 */
+
+	if (!node_can_accept_connection(n, FALSE))
+		return FALSE;
+
+	/*
+	 * Since this is the third and final acknowledgement, the remote node
+	 * is ready to send Gnutella or G2 data (and so are we, now that we got
+	 * the final ack).  Mark the connection as fully established, which means
+	 * we'll be able to relay traffic to this node.
+	 */
+
+	n->flags |= NODE_F_ESTABLISHED;
+
+	return TRUE;		/* We can continue with this node */
+}
+
+/**
+ * Create the TX and RX network stacks.
+ *
+ * @return the TX stack, the RX stack being registered in n->rx.
+ */
+static txdrv_t *
+node_net_stack_create(gnutella_node_t *n)
+{
+	gnet_host_t host;
+	txdrv_t *tx;
+
+	g_assert(NULL == n->rx);
+
+	/*
+	 * Create the RX stack, and enable reception of data.
+	 */
+
+	gnet_host_set(&host, n->addr, n->port);
+
+	{
+		struct rx_link_args args;
+
+		args.cb = &node_rx_link_cb;
+		args.bws = n->peermode == NODE_P_LEAF
+				? BSCHED_BWS_GLIN : BSCHED_BWS_GIN;
+		args.wio = &n->socket->wio;
+
+		n->rx = rx_make(n, &host, rx_link_get_ops(), &args);
+	}
+
+	if (n->attrs & NODE_A_RX_INFLATE) {
+		struct rx_inflate_args args;
+
+		if (GNET_PROPERTY(node_debug) > 4)
+			g_debug("receiving compressed data from %s", node_infostr(n));
+
+		args.cb = &node_rx_inflate_cb;
+
+		n->rx = rx_make_above(n->rx, rx_inflate_get_ops(), &args);
+
+		if (n->flags & NODE_F_LEAF)
+			compressed_leaf_cnt++;
+        compressed_node_cnt++;
+	}
+
+	rx_set_data_ind(n->rx, NODE_TALKS_G2(n) ? node_g2_data_ind : node_data_ind);
+	rx_enable(n->rx);
+	n->flags |= NODE_F_READABLE;
+
+	/*
+	 * Create the TX stack, as we're going to transmit messages.
+	 */
+
+	{
+		struct tx_link_args args;
+
+		args.cb = &node_tx_link_cb;
+		args.bws = n->peermode == NODE_P_LEAF
+					? BSCHED_BWS_GLOUT : BSCHED_BWS_GOUT;
+		args.wio = &n->socket->wio;
+
+		tx = tx_make(n, &host, tx_link_get_ops(), &args);	/* Cannot fail */
+	}
+
+	/*
+	 * If we committed on compressing traffic, install layer.
+	 */
+
+	if (n->attrs & NODE_A_TX_DEFLATE) {
+		struct tx_deflate_args args;
+		txdrv_t *ctx;
+
+		if (GNET_PROPERTY(node_debug) > 4)
+			g_debug("sending compressed data to %s", node_infostr(n));
+
+		args.cq = cq_main();
+		args.cb = &node_tx_deflate_cb;
+		args.nagle = TRUE;
+		args.gzip = FALSE;
+		args.reduced = settings_is_ultra() && NODE_IS_LEAF(n);
+		args.buffer_size = NODE_TX_BUFSIZ;
+		args.buffer_flush = NODE_TX_FLUSH;
+
+		ctx = tx_make_above(tx, tx_deflate_get_ops(), &args);
+		if (ctx == NULL) {
+			tx_free(tx);
+			node_remove(n, _("Cannot setup compressing TX stack"));
+			return NULL;
+		}
+
+		tx = ctx;		/* Use compressing stack */
+	}
+
+	g_assert(tx != NULL);
+
+	return tx;
+}
+
 static struct mq_uops node_mq_cb = {
 	gmsg_cmp,					/* msg_cmp */
 	gmsg_headcmp,				/* msg_headcmp */
@@ -4199,7 +4886,6 @@ static void
 node_is_now_connected(gnutella_node_t *n)
 {
 	bool peermode_changed = FALSE;
-	gnet_host_t host;
 	txdrv_t *tx;
 	const struct mq_uops *uops;
 
@@ -4212,10 +4898,7 @@ node_is_now_connected(gnutella_node_t *n)
 
 	if (n->io_opaque)				/* None for outgoing 0.4 connections */
 		io_free(n->io_opaque);
-	if (n->socket->getline) {
-		getline_free(n->socket->getline);
-		n->socket->getline = NULL;
-	}
+	getline_free_null(&n->socket->getline);
 
 	/*
 	 * Terminate crawler connection that goes through the whole 3-way
@@ -4224,6 +4907,23 @@ node_is_now_connected(gnutella_node_t *n)
 
 	if (n->flags & NODE_F_CRAWLER) {
 		node_remove(n, _("Sent crawling info"));
+		return;
+	}
+
+	/*
+	 * If they want a TLS upgrade, and the socket is not yet TLS-capable,
+	 * then perform it.  Once done, we'll come back here, but if it fails
+	 * the socket will be closed!.
+	 *
+	 * Endless recursion is prevented by the check for TLS on the socket.
+	 */
+
+	if (!socket_uses_tls(n->socket) && (n->attrs2 & NODE_A2_SWITCH_TLS)) {
+		if (GNET_PROPERTY(node_debug)) {
+			g_debug("%s(): requesting TLS upgrade for %s",
+				G_STRFUNC, node_infostr(n));
+		}
+		socket_tls_upgrade(n->socket, (notify_fn_t) node_is_now_connected, n);
 		return;
 	}
 
@@ -4342,91 +5042,27 @@ node_is_now_connected(gnutella_node_t *n)
 	}
 
 	/*
-	 * Create the RX stack, and enable reception of data.
+	 * Create the TX / RX network stack and install the message queue
+	 * on top of the TX stack.
 	 */
 
-	gnet_host_set(&host, n->addr, n->port);
+	tx = node_net_stack_create(n);
 
-	{
-		struct rx_link_args args;
-
-		args.cb = &node_rx_link_cb;
-		args.bws = n->peermode == NODE_P_LEAF
-				? BSCHED_BWS_GLIN : BSCHED_BWS_GIN;
-		args.wio = &n->socket->wio;
-
-		n->rx = rx_make(n, &host, rx_link_get_ops(), &args);
-	}
-
-	if (n->attrs & NODE_A_RX_INFLATE) {
-		struct rx_inflate_args args;
-
-		if (GNET_PROPERTY(node_debug) > 4)
-			g_debug("receiving compressed data from %s", node_infostr(n));
-
-		args.cb = &node_rx_inflate_cb;
-
-		n->rx = rx_make_above(n->rx, rx_inflate_get_ops(), &args);
-
-		if (n->flags & NODE_F_LEAF)
-			compressed_leaf_cnt++;
-        compressed_node_cnt++;
-	}
-
-	rx_set_data_ind(n->rx, NODE_TALKS_G2(n) ? node_g2_data_ind : node_data_ind);
-	rx_enable(n->rx);
-	n->flags |= NODE_F_READABLE;
-
-	/*
-	 * Create the TX stack, as we're going to transmit messages.
-	 */
-
-	{
-		struct tx_link_args args;
-
-		args.cb = &node_tx_link_cb;
-		args.bws = n->peermode == NODE_P_LEAF
-					? BSCHED_BWS_GLOUT : BSCHED_BWS_GOUT;
-		args.wio = &n->socket->wio;
-
-		tx = tx_make(n, &host, tx_link_get_ops(), &args);	/* Cannot fail */
-	}
-
-	/*
-	 * If we committed on compressing traffic, install layer.
-	 */
-
-	if (n->attrs & NODE_A_TX_DEFLATE) {
-		struct tx_deflate_args args;
-		txdrv_t *ctx;
-
-		if (GNET_PROPERTY(node_debug) > 4)
-			g_debug("sending compressed data to %s", node_infostr(n));
-
-		args.cq = cq_main();
-		args.cb = &node_tx_deflate_cb;
-		args.nagle = TRUE;
-		args.gzip = FALSE;
-		args.reduced = settings_is_ultra() && NODE_IS_LEAF(n);
-		args.buffer_size = NODE_TX_BUFSIZ;
-		args.buffer_flush = NODE_TX_FLUSH;
-
-		ctx = tx_make_above(tx, tx_deflate_get_ops(), &args);
-		if (ctx == NULL) {
-			tx_free(tx);
-			node_remove(n, _("Cannot setup compressing TX stack"));
-			return;
-		}
-
-		tx = ctx;		/* Use compressing stack */
-	}
-
-	g_assert(tx);
+	if (NULL == tx)
+		return;			/* Node already removed by node_net_stack_create() */
 
 	uops = NODE_TALKS_G2(n) ? &node_g2_mq_cb : &node_mq_cb;
 
 	n->outq = mq_tcp_make(GNET_PROPERTY(node_sendqueue_size), n, tx, uops);
 	n->flags |= NODE_F_WRITABLE;
+
+	/*
+	 * If we have an incoming connection, check that we can talk to it.
+	 */
+
+	if ((n->flags & NODE_F_INCOMING) && !node_finalize_3way(n))
+		return;
+
 	n->alive_pings = alive_make(n, n->alive_period == ALIVE_PERIOD ?
 		ALIVE_MAX_PENDING : ALIVE_MAX_PENDING_LEAF);
 
@@ -4560,6 +5196,24 @@ node_is_now_connected(gnutella_node_t *n)
 	 */
 
 	wq_wakeup(func_to_pointer(node_add), n);
+
+
+	/*
+	 * If this is an incoming connection, we need to process data that
+	 * are possibly still pending in the socket buffer.
+	 *
+	 */
+
+	if (n->flags & NODE_F_INCOMING)
+		node_inject_rx(n);
+
+	/*
+	 * We don't need the socket buffer any more: all the data is now read
+	 * via the RX stack into allocated RX buffers.
+	 *		--RAM, 2015-11-22
+	 */
+
+	socket_free_buffer(n->socket);
 }
 
 /**
@@ -5219,429 +5873,6 @@ analyse_status(gnutella_node_t *n, int *code)
 }
 
 /**
- * Can node accept connection?
- *
- * If `handshaking' is true, we're still in the handshaking phase, otherwise
- * we're already connected and can send a BYE.
- *
- * @return TRUE if we can accept the connection, FALSE otherwise, with
- * the node being removed.
- */
-static bool
-node_can_accept_connection(gnutella_node_t *n, bool handshaking)
-{
-	g_assert(handshaking || n->status == GTA_NODE_CONNECTED);
-	g_assert((n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA))
-		|| NODE_TALKS_G2(n));
-
-	/*
-	 * Deny cleanly if they deactivated "online mode".
-	 *
-	 * Note that we still allow connections from nearby nodes, as defined
-	 * by the "local_netmasks_string" property, to make local testing easier.
-	 */
-
-	if (handshaking && !allow_gnet_connections && !host_is_nearby(n->addr)) {
-		node_send_error(n, 403,
-			"Gnet connections currently disabled");
-		node_remove(n, _("Gnet connections disabled"));
-		return FALSE;
-	}
-
-	/*
-	 * Always accept crawler connections.
-	 */
-
-	if (n->flags & NODE_F_CRAWLER)
-		return TRUE;
-
-	/*
-	 * If we are handshaking, we have not incremented the node counts yet.
-	 * Hence we can do >= tests against the limits.
-	 */
-
-	/*
-	 * Check for G2 hosts, where we always act as a leaf node.
-	 */
-
-	if (NODE_TALKS_G2(n)) {
-		if (n->flags & NODE_F_FORCE)
-			return TRUE;
-
-		if (
-			GNET_PROPERTY(prefer_compressed_gnet) &&
-			GNET_PROPERTY(node_g2_count) != 0 &&
-			!(n->attrs & NODE_A_CAN_INFLATE)
-		) {
-			node_send_error(n, 403,
-				"Compressed connection preferred");
-			node_remove(n, _("Connection not compressed"));
-			return FALSE;
-		}
-
-		if (
-			handshaking &&
-			GNET_PROPERTY(node_g2_count) >= GNET_PROPERTY(max_g2_hubs)
-		) {
-			node_send_error(n, 503, "Too many G2 hub connections (%u max)",
-				GNET_PROPERTY(max_g2_hubs));
-			node_remove(n, _("Too many G2 hubs (%u max)"),
-				GNET_PROPERTY(max_g2_hubs));
-			return FALSE;
-		}
-
-		if (
-			!handshaking &&
-			GNET_PROPERTY(node_g2_count) > GNET_PROPERTY(max_g2_hubs)
-		) {
-			node_bye(n, 503, "Too many G2 hub connections (%u max)",
-				GNET_PROPERTY(max_g2_hubs));
-			return FALSE;
-		}
-
-		goto check_for_bad_nodes;
-	}
-
-	/*
-	 * Check for Gnutella hosts.
-	 */
-
-	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
-	case NODE_P_ULTRA:
-
-		if (n->flags & NODE_F_FORCE)
-			return TRUE;
-
-		/*
-		 * If we're an ultra node, we need to enforce leaf counts.
-		 *
-		 * We also enforce ultra node counts if we're issuing an outgoing
-		 * connection, but for incoming ones, we'll try to let the other
-		 * node become a leaf node, so don't enforce if we're still in the
-		 * handshaking phase.
-		 */
-
-		if (n->flags & NODE_F_LEAF) {
-			/*
-			 * Try to preference compressed leaf nodes too
-			 * 		-- JA, 08/06/2003
-			 */
-			if (
-				GNET_PROPERTY(prefer_compressed_gnet) &&
-				GNET_PROPERTY(up_connections) <=
-					GNET_PROPERTY(node_leaf_count) - compressed_leaf_cnt &&
-				!(n->attrs & NODE_A_CAN_INFLATE)
-			) {
-				node_send_error(n, 403,
-					"Compressed connection preferred");
-				node_remove(n, _("Connection not compressed"));
-				return FALSE;
-			}
-
-			/*
-			 * Remove leaves that do not allow queries when we are
-			 * running out of slots.
-			 */
-
-			if (GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves)) {
-				(void) node_remove_useless_leaf(NULL);
-
-				/*
-				 * It may happen than when we try to make up some room to
-				 * remove a useless node, we do remove this node!
-				 */
-
-				if (GTA_NODE_REMOVING == n->status)
-					return FALSE;
-			}
-
-			if (
-				handshaking &&
-				GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves)
-			) {
-				node_send_error(n, 503, "Too many leaf connections (%d max)",
-					GNET_PROPERTY(max_leaves));
-				node_remove(n, _("Too many leaves (%d max)"),
-					GNET_PROPERTY(max_leaves));
-				return FALSE;
-			}
-			if (
-				!handshaking &&
-				GNET_PROPERTY(node_leaf_count) > GNET_PROPERTY(max_leaves)
-			) {
-				node_bye(n, 503, "Too many leaf connections (%d max)",
-					GNET_PROPERTY(max_leaves));
-				return FALSE;
-			}
-		} else if (n->attrs & NODE_A_ULTRA) {
-			uint ultra_max;
-
-			/*
-			 * Try to preference compressed ultrapeer connections too
-			 * 		-- JA, 08/06/2003
-			 */
-			if (
-				GNET_PROPERTY(prefer_compressed_gnet) &&
-				GNET_PROPERTY(up_connections) <=
-					GNET_PROPERTY(node_ultra_count) -
-						(compressed_node_cnt - compressed_leaf_cnt) &&
-				!(n->attrs & NODE_A_CAN_INFLATE)
-			) {
-				node_send_error(n, 403,
-					"Compressed connection preferred");
-				node_remove(n, _("Connection not compressed"));
-				return FALSE;
-			}
-
-			ultra_max = GNET_PROPERTY(max_connections) >
-				GNET_PROPERTY(normal_connections) ?
-				GNET_PROPERTY(max_connections) -
-					GNET_PROPERTY(normal_connections) :
-				0;
-
-			if (GNET_PROPERTY(node_ultra_count) >= ultra_max)
-				(void) node_remove_useless_ultra(NULL);
-
-			if (
-				GNET_PROPERTY(node_ultra_count) >= ultra_max &&
-				(n->attrs & NODE_A_CAN_INFLATE)
-			) {
-				(void) node_remove_uncompressed_ultra(NULL);
-			}
-
-			/*
-			 * It may happen than when we try to make up some room to
-			 * remove a useless node, we do remove this node!
-			 */
-
-			if (GTA_NODE_REMOVING == n->status)
-				return FALSE;
-
-			if (
-				handshaking &&
-				GNET_PROPERTY(node_ultra_count) >= ultra_max
-			) {
-				node_send_error(n, 503,
-					"Too many ultra connections (%d max)", ultra_max);
-				node_remove(n, _("Too many ultra nodes (%d max)"), ultra_max);
-				return FALSE;
-			}
-			if (!handshaking && GNET_PROPERTY(node_ultra_count) > ultra_max) {
-				node_bye(n, 503,
-					"Too many ultra connections (%d max)", ultra_max);
-				return FALSE;
-			}
-		}
-
-		/*
-		 * Enforce preference for compression only with non-leaf nodes.
-		 */
-
-		if (handshaking) {
-			uint connected;
-
-			connected = GNET_PROPERTY(node_normal_count)
-							+ GNET_PROPERTY(node_ultra_count);
-
-            if (
-				GNET_PROPERTY(prefer_compressed_gnet) &&
-				!(n->attrs & NODE_A_CAN_INFLATE) &&
-				(
-					((n->flags & NODE_F_INCOMING) &&
-					connected >= GNET_PROPERTY(up_connections) &&
-					connected > compressed_node_cnt)
-					||
-					(n->flags & NODE_F_LEAF)
-				)
-			) {
-				node_send_error(n, 403,
-					"Gnet connection not compressed");
-				node_remove(n, _("Connection not compressed"));
-				return FALSE;
-			}
-		}
-
-		/*
-		 * If we have already enough normal nodes, reject a normal node.
-		 */
-
-		if (
-			handshaking &&
-			(n->attrs & NODE_A_NO_ULTRA) &&
-			GNET_PROPERTY(node_normal_count)
-				>= GNET_PROPERTY(normal_connections)
-		) {
-			if (GNET_PROPERTY(normal_connections))
-				node_send_error(n, 503, "Too many normal nodes (%d max)",
-					GNET_PROPERTY(normal_connections));
-			else
-				node_send_error(n, 403, "Normal nodes refused");
-			node_remove(n, _("Rejected normal node (%d max)"),
-				GNET_PROPERTY(normal_connections));
-			return FALSE;
-		}
-
-		break;
-	case NODE_P_NORMAL:
-		if (n->flags & NODE_F_FORCE)
-			return TRUE;
-
-		if (handshaking) {
-			uint connected;
-
-			connected = GNET_PROPERTY(node_normal_count)
-							+ GNET_PROPERTY(node_ultra_count);
-			if (
-				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA
-			) {
-				node_send_error(n, 503, "Cannot accept leaf node");
-				node_remove(n, _("Rejected leaf node"));
-				return FALSE;
-			}
-			if (connected >= GNET_PROPERTY(max_connections)) {
-				node_send_error(n, 503, "Too many Gnet connections (%d max)",
-					GNET_PROPERTY(max_connections));
-				node_remove(n, _("Too many nodes (%d max)"),
-					GNET_PROPERTY(max_connections));
-				return FALSE;
-			}
-			if (
-				GNET_PROPERTY(prefer_compressed_gnet) &&
-				(n->flags & NODE_F_INCOMING) &&
-				!(n->attrs & NODE_A_CAN_INFLATE) &&
-				connected >= GNET_PROPERTY(up_connections) &&
-				connected > compressed_node_cnt
-			) {
-				node_send_error(n, 403,
-					"Gnet connection not compressed");
-				node_remove(n, _("Connection not compressed"));
-				return FALSE;
-			}
-		} else if (
-			GNET_PROPERTY(node_normal_count) + GNET_PROPERTY(node_ultra_count)
-				> GNET_PROPERTY(max_connections)
-		) {
-			node_bye(n, 503, "Too many Gnet connections (%d max)",
-				GNET_PROPERTY(max_connections));
-			return FALSE;
-		}
-		break;
-	case NODE_P_LEAF:
-
-		/* Even forced connections are not acceptable unless
-		 * the remote node is an ultrapeer. Note: There is also
-		 * an assertion in node_process_handshake_header().
-		 */
-		if ((n->flags & NODE_F_FORCE) && (n->attrs & NODE_A_ULTRA))
-			return TRUE;
-
-		if (handshaking) {
-			/*
-			 * If we're a leaf node, we can only accept incoming connections
-			 * from an ultra node.
-			 *
-			 * The Ultrapeer specs say that two leaf nodes not finding
-			 * Ultrapeers could connect to each other like two normal nodes,
-			 * but I don't want to support that.  It's insane.
-			 *		--RAM, 11/01/2003
-			 */
-
-			if (!(n->attrs & NODE_A_ULTRA)) {
-				node_send_error(n, 204, "Shielded leaf node (%d peers max)",
-					GNET_PROPERTY(max_ultrapeers));
-				node_remove(n, _("Sent shielded indication"));
-				return FALSE;
-			}
-
-			if (!(n->attrs & NODE_A_ULTRA)) {
-				node_send_error(n, 503, "Looking for an ultra node");
-				node_remove(n, _("Not an ultra node"));
-				return FALSE;
-			}
-
-			if (
-				GNET_PROPERTY(node_ultra_count) >= GNET_PROPERTY(max_ultrapeers)
-			) {
-				node_send_error(n, 503, "Too many ultra connections (%d max)",
-					GNET_PROPERTY(max_ultrapeers));
-				node_remove(n, _("Too many ultra nodes (%d max)"),
-					GNET_PROPERTY(max_ultrapeers));
-				return FALSE;
-			}
-
-			/*
-			 * Honour the prefer compressed connection setting. Even when making
-			 * outgoing connections in leaf mode
-			 * 		-- JA 24/5/2003
-			 */
-			if (
-				GNET_PROPERTY(prefer_compressed_gnet) &&
-				GNET_PROPERTY(up_connections)
-					<= GNET_PROPERTY(node_ultra_count) - compressed_node_cnt &&
-				!(n->attrs & NODE_A_CAN_INFLATE)
-			) {
-				node_send_error(n, 403,
-					"Compressed connection preferred");
-				node_remove(n, _("Connection not compressed"));
-				return FALSE;
-			}
-		} else if (
-			GNET_PROPERTY(node_ultra_count) > GNET_PROPERTY(max_ultrapeers)
-		) {
-			node_bye(n, 503, "Too many ultra connections (%d max)",
-				GNET_PROPERTY(max_ultrapeers));
-			return FALSE;
-		}
-		break;
-	case NODE_P_AUTO:
-	case NODE_P_CRAWLER:
-	case NODE_P_UDP:
-	case NODE_P_DHT:
-	case NODE_P_G2HUB:
-	case NODE_P_UNKNOWN:
-		g_assert_not_reached();
-		break;
-	}
-
-check_for_bad_nodes:
-
-	/*
-	 * If a specific client version has proven to be very unstable during this
-	 * version, don't connect to it.
-	 *		-- JA 17/7/200
-	 */
-
-	if ((n->attrs & NODE_A_ULTRA) || NODE_TALKS_G2(n)) {
-		const char *msg = N_("Unknown error");
-		enum node_bad bad = node_is_bad(n);
-
-		switch (bad) {
-		case NODE_BAD_OK:
-			break;
-		case NODE_BAD_IP:
-			msg = N_("Unstable IP address");
-			break;
-		case NODE_BAD_VENDOR:
-			msg = N_("Servent version appears unstable");
-			break;
-		case NODE_BAD_NO_VENDOR:
-			msg = N_("No vendor string supplied");
-			break;
-		}
-
-		if (NODE_BAD_OK != bad) {
-			node_send_error(n, 403, "%s", msg);
-			node_remove(n, _("Not connecting: %s"), _(msg));
-			return FALSE;
-		}
-	}
-
-	g_assert(n->status != GTA_NODE_REMOVING);
-
-	return TRUE;
-}
-
-/**
  * Send a "Protocol not acceptable" error to node, denying handshaking.
  */
 static void
@@ -5655,6 +5886,41 @@ node_send_protocol_not_acceptable(gnutella_node_t *n, const char *protocol)
 	}
 
 	node_send_error(n, 406, msg);
+	node_remove(n, _(msg));
+}
+
+/**
+ * Send a "Conflict" error to node, denying handshaking.
+ */
+static void
+node_send_conflict(gnutella_node_t *n, const char *reason)
+{
+	static const char msg[] = N_("Conflict");
+
+	if (GNET_PROPERTY(node_debug)) {
+		g_warning("rejecting conflicting request \"%s\" from %s",
+			NULL == reason ? "" : reason, node_infostr(n));
+	}
+
+	node_send_error(n, 409, msg);
+	node_remove(n, _(msg));
+}
+
+/**
+ * Send a "Upgrade Missing" error to node, denying handshaking.
+ */
+static void
+node_send_upgrade_missing(gnutella_node_t *n)
+{
+	static const char msg[] = N_("Upgrade Header Missing");
+
+	if (GNET_PROPERTY(node_debug)) {
+		g_warning("rejecting handshake from %s: "
+			"requesting connection upgrade, without an Upgrade header",
+			node_infostr(n));
+	}
+
+	node_send_error(n, 400, msg);
 	node_remove(n, _(msg));
 }
 
@@ -5695,9 +5961,9 @@ node_process_handshake_ack(gnutella_node_t *n, header_t *head)
 	struct gnutella_socket *s = n->socket;
 	bool ack_ok;
 	const char *field;
-	bool qrp_final_set = FALSE, g2_hub = TRUE;
 
 	socket_check(s);
+	g_assert(n->flags & NODE_F_INCOMING);
 
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
 		const char *status = getline_str(s->getline);
@@ -5725,8 +5991,7 @@ node_process_handshake_ack(gnutella_node_t *n, header_t *head)
 	 * Get rid of the acknowledgment status line.
 	 */
 
-	getline_free(s->getline);
-	s->getline = NULL;
+	getline_free_null(&s->getline);
 
 	/*
 	 * Content-Encoding -- compression accepted by the remote side
@@ -5737,22 +6002,26 @@ node_process_handshake_ack(gnutella_node_t *n, header_t *head)
 		n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 	}
 
-	if (
-		!GNET_PROPERTY(gnet_deflate_enabled) &&
-		(n->attrs & NODE_A_RX_INFLATE)
-	) {
-		g_warning("Content-Encoding \"deflate\" although disabled - from %s",
-			node_infostr(n));
-        node_bye(n, 400, "Refusing remote node compression");
-		return;
+	/*
+	 * Connection -- are we going to upgrade to TLS?
+	 *
+	 * This only makes sense when the node has proposed to upgrade to TLS.
+	 */
+
+	if (!socket_uses_tls(n->socket)) {
+		field = header_get(head, "Connection");
+		if (field != NULL && 0 == ascii_strcasecmp(field, "upgrade")) {
+			if (n->attrs2 & NODE_A2_UPGRADE_TLS)
+				n->attrs2 |= NODE_A2_SWITCH_TLS;	/* We can switch to TLS! */
+		}
 	}
 
 	if (NODE_TALKS_G2(n)) {
 		/* X-Hub -- support for G2 hub mode */
 
 		field = header_get(head, "X-Hub");
-		if (field && 0 == ascii_strcasecmp(field, "false"))
-			g2_hub = FALSE;
+		if (NULL == field || 0 != ascii_strcasecmp(field, "false"))
+			n->attrs2 |= NODE_A2_G2_HUB;
 	} else {
 		/* X-Ultrapeer -- support for ultra peer mode */
 
@@ -5784,15 +6053,15 @@ node_process_handshake_ack(gnutella_node_t *n, header_t *head)
 			uint major, minor;
 
 			parse_major_minor(field, NULL, &major, &minor);
-			if (major >= n->qrp_major || minor >= n->qrp_minor)
+			if (major >= n->qrp_major || minor >= n->qrp_minor) {
 				if (GNET_PROPERTY(node_debug)) g_warning(
 					"%s now claims QRP version %u.%u, "
 					"but advertised %u.%u earlier",
 					node_infostr(n), major, minor,
 					(uint) n->qrp_major, (uint) n->qrp_minor);
+			}
 			n->qrp_major = (uint8) major;
 			n->qrp_minor = (uint8) minor;
-			qrp_final_set = TRUE;
 		}
 	}
 
@@ -5803,104 +6072,6 @@ node_process_handshake_ack(gnutella_node_t *n, header_t *head)
 	g_assert(s->gdk_tag == 0);		/* Removed before callback called */
 
 	node_is_now_connected(n);
-
-	if (n->status != GTA_NODE_CONNECTED)	/* Something went wrong */
-		return;
-
-	/*
-	 * Now that the Gnutella stack is up, BYE the node if we don't really
-	 * support the right version for the necessary protocols.
-	 */
-
-	if (NODE_TALKS_G2(n)) {
-		if (!g2_hub) {
-			node_bye(n, 505, "Wanted a G2 hub");
-			return;
-		}
-	} else {
-		if (GNET_PROPERTY(current_peermode) != NODE_P_NORMAL) {
-			/*
-			 * Only BYE them if they finally declared to use a protocol we
-			 * don't support yet, despite their knowing that we only support
-			 * the 0.2 version.
-			 */
-
-			if (qrp_final_set && (n->qrp_major > 0 || n->qrp_minor > 2)) {
-				node_bye(n, 505, "Query Routing protocol %u.%u not supported",
-					(uint) n->qrp_major, (uint) n->qrp_minor);
-				return;
-			}
-		}
-	}
-
-	/*
-	 * Make sure we do not exceed our maximum amout of connections.
-	 * In particular, if the remote node did not obey our leaf guidance
-	 * and we still have enough ultra nodes, BYE them.
-	 */
-
-	if (!node_can_accept_connection(n, FALSE))
-		return;
-
-	/*
-	 * Since this is the third and final acknowledgement, the remote node
-	 * is ready to send Gnutella or G2 data (and so are we, now that we got
-	 * the final ack).  Mark the connection as fully established, which means
-	 * we'll be able to relay traffic to this node.
-	 */
-
-	n->flags |= NODE_F_ESTABLISHED;
-
-	/*
-	 * If we already have data following the final acknowledgment, feed it
-	 * to to stack, from the bottom: we already read it into the socket's
-	 * buffer, but we need to inject it at the bottom of the RX stack.
-	 */
-
-	socket_buffer_check(s);
-
-	if (s->pos > 0) {
-		pdata_t *db;
-		pmsg_t *mb;
-
-		if (GNET_PROPERTY(node_debug) > 4) {
-			g_debug("%s(): read %d bytes from %s after handshake",
-				G_STRFUNC, (int) s->pos, node_infostr(n));
-		}
-
-		/*
-		 * Prepare data buffer out of the socket's buffer.
-		 */
-
-		db = pdata_allocb_ext(s->buf, s->pos, pdata_free_nop, NULL);
-		mb = pmsg_alloc(PMSG_P_DATA, db, 0, s->pos);
-
-		/*
-		 * The message is given to the RX stack, and it will be freed by
-		 * the last function consuming it.
-		 */
-
-		rx_recv(rx_bottom(n->rx), mb);
-
-		/* During rx_recv the node could be marked for removal again. In which
-		 * case the socket is freed, so lets exit now.
-		 *		-- JA 14/04/04
-		 */
-		if (NODE_IS_REMOVING(n))
-			return;
-
-		g_assert(n->socket == s);
-		g_assert(s != NULL);
-
-		/*
-		 * We know that the message is synchronously delivered.  At this
-		 * point, all the data have been consumed, and the socket buffer
-		 * can be "emptied" my marking it holds zero data.
-		 */
-
-		s->pos = 0;
-
-	}
 }
 
 /**
@@ -6111,6 +6282,68 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 				node_send_protocol_not_acceptable(n, field);
 				return;
 			}
+		}
+	}
+
+	/*
+	 * Upgrade -- does remote host want to upgrade to TLS?
+	 *
+	 * This header only makes senses when the connection is not already
+	 * using TLS, of course.
+	 */
+
+	if (!socket_uses_tls(n->socket)) {
+		field = header_get(head, "Upgrade");
+		if (
+			field != NULL &&
+			tls_enabled() &&
+			strtok_case_has(field, ",", "TLS/1.0")
+		) {
+			n->attrs2 |= NODE_A2_UPGRADE_TLS;
+		}
+	}
+
+	/*
+	 * Connection -- are we going to upgrade to TLS?
+	 *
+	 * This header can only be present for outgoing connction, and only
+	 * makes sense when the node has proposed to upgrade to TLS.
+	 */
+
+	if (!incoming && !socket_uses_tls(n->socket)) {
+		field = header_get(head, "Connection");
+		if (field != NULL && 0 == ascii_strcasecmp(field, "upgrade")) {
+			/*
+			 * We're parsing a reply to our handshake.  If there is just
+			 * a "Connection: Upgrade" and no "Upgrade" header, the
+			 * client is buggy: it does not tell us what part of our
+			 * upgrade request is accepted.
+			 *
+			 * If we don't support TLS, there's nothing to upgrade to.
+			 */
+
+			if (!tls_enabled()) {
+				node_send_conflict(n, "upgrade to TLS");
+				return;
+			}
+
+			if (0 == (n->attrs2 & NODE_A2_UPGRADE_TLS)) {
+				node_send_upgrade_missing(n);
+				return;
+			}
+
+			/*
+			 * We saw the following in the handshake reply:
+			 *
+			 *     Upgrade: TLS/1.0
+			 *     Connection: Upgrade
+			 *
+			 * It means the remote server accepts to upgrade to TLS
+			 * after completing the 3-way handshake (i.e. after getting
+			 * our final reply).
+			 */
+
+			n->attrs2 |= NODE_A2_SWITCH_TLS;	/* We can switch to TLS! */
 		}
 	}
 
@@ -6853,10 +7086,12 @@ check_protocol:
 		} else {
 			rw = str_bprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
+				"%s"			/* Connection (if needed for upgrade) */
 				"%s"			/* Content-Type (if needed) */
 				"%s"			/* Content-Encoding */
 				"%s"			/* X-Ultrapeer */
 				"%s",			/* X-Query-Routing (tells version we'll use) */
+				(n->attrs2 & NODE_A2_SWITCH_TLS) ? CONNECTION_UPGRADE : "",
 				need_content_type ? CONTENT_TYPE_GNUTELLA : "",
 				GNET_PROPERTY(gnet_deflate_enabled) &&
 					(n->attrs & NODE_A_TX_DEFLATE) ?
@@ -6979,6 +7214,8 @@ check_protocol:
 				"Remote-IP: %s\r\n"
 				"X-Ultrapeer: %s\r\n"
 	 			"X-Requeries: False\r\n"
+				"%s"		/* Upgrade (if needed) */
+				"%s"		/* Connection (if needed) */
 				"%s"		/* Accept (if needed) */
 				"%s"		/* Content-Type (if needed) */
 				"%s"		/* Accept-Encoding */
@@ -6996,6 +7233,8 @@ check_protocol:
 				guid_hex_str(&guid),
 				host_addr_to_string(n->socket->addr),
 				settings_is_leaf() ? "False" : "True",
+				(n->attrs2 & NODE_A2_UPGRADE_TLS) ? UPGRADE_TLS : "",
+				(n->attrs2 & NODE_A2_UPGRADE_TLS) ? CONNECTION_UPGRADE : "",
 				need_content_type ? ACCEPT_GNUTELLA : "",
 				need_content_type ? CONTENT_TYPE_GNUTELLA : "",
 				GNET_PROPERTY(gnet_deflate_enabled)
@@ -8247,8 +8486,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 	if (incoming) {
 		get_protocol_version(getline_str(s->getline), &major, &minor);
-		getline_free(s->getline);
-		s->getline = NULL;
+		getline_free_null(&s->getline);
 	}
 
 	/* Refuse to connect to legacy servents (not at least 0.6) */
@@ -9784,7 +10022,8 @@ node_init_outgoing(gnutella_node_t *n)
 				"Vendor-Message: 0.2\r\n"
 				"X-Query-Routing: 0.2\r\n"
 				"X-Requeries: False\r\n"
-				"%s"		/* "Accept-Encoding: deflate */
+				"%s"		/* Upgrade: TLS/1.0 */
+				"%s"		/* Accept-Encoding: deflate */
 				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n"
 				"X-Ultrapeer: %s\r\n"
@@ -9798,8 +10037,10 @@ node_init_outgoing(gnutella_node_t *n)
 				host_addr_to_string(n->addr),
 				version_string,
 				guid_hex_str(&guid),
-				GNET_PROPERTY(gnet_deflate_enabled)
-					? ACCEPT_ENCODING_DEFLATE : "",
+				tls_enabled() && !socket_uses_tls(n->socket) ?
+					UPGRADE_TLS : "",
+				GNET_PROPERTY(gnet_deflate_enabled) ?
+					ACCEPT_ENCODING_DEFLATE : "",
 				tok_version(),
 				start_rfc822_date,
 				settings_is_leaf() ? "False" : "True",
@@ -11858,6 +12099,7 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 	flags->is_push_proxied = booleanize(node->flags & NODE_F_PROXIED);
 	flags->is_proxying = is_host_addr(node->proxy_addr);
 	flags->tls = booleanize(node->attrs2 & NODE_A2_TLS);
+	flags->tls_upgraded = booleanize(node->attrs2 & NODE_A2_SWITCH_TLS);
 
 	flags->qrt_state = QRT_S_NONE;
 	flags->uqrt_state = QRT_S_NONE;
@@ -13423,7 +13665,7 @@ node_update_g2(bool enabled)
  *  - 012345678AB (offset)
  *  - NIrwqxZPFhE
  *  - ^^^^^^^^^^^
- *  - ||||||||||+ E indicates a TLS encrypted connection
+ *  - ||||||||||+ (E) or (e) indicate a TLS encrypted connection
  *  - |||||||||+  hops flow triggerd (h), or total query flow control (f)
  *  - ||||||||+   flow control (F), or pending data in queue (d)
  *  - |||||||+    indicates whether we're a push proxy (P) / node is proxy (p)
@@ -13496,7 +13738,11 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 	else
 		status[9] = '-';
 
-	status[10] = flags->tls ? 'E' : '-';
+	/* 'E' is for initiated TLS, 'e' is for upgraded to TLS */
+
+	status[10] =
+		flags->tls_upgraded ? 'e' :
+		flags->tls ? 'E' : '-';
 
 	status[sizeof(status) - 1] = '\0';
 	return status;

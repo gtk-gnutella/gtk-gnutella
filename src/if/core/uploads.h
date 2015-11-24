@@ -85,6 +85,7 @@ typedef struct gnet_upload_info {
 	bool push;				/**< Whether we're pushing or not */
 	bool partial;			/**< Whether it's a partial file */
 	bool encrypted; 		/**< Whether the connection is (TLS) encrypted */
+	bool tls_upgraded; 		/**< Whether a TLS upgrade was requested */
 	
 	uint16 gnet_port;		/**< Advertised Gnutella listening port */
 	uint16 country;  		/**< Contry of origin */

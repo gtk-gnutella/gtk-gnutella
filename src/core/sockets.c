@@ -179,12 +179,19 @@ socket_alloc_buffer(struct gnutella_socket *s)
 	}
 }
 
-static void
+/**
+ * Free socket buffer if not already done.
+ */
+void
 socket_free_buffer(struct gnutella_socket *s)
 {
 	socket_buffer_check(s);
 
 	if (NULL != s->buf) {
+		if G_UNLIKELY(s->pos != 0) {
+			s_carp("%s(): buffer still holding %'zu unread byte%s",
+				G_STRFUNC, s->pos, plural(s->pos));
+		}
 		s->buf_size = 0;
 		HFREE_NULL(s->buf);
 		s->pos = 0;
@@ -312,6 +319,9 @@ socket_evt_set(struct gnutella_socket *s,
 	}
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
 	g_assert(0 != s->gdk_tag);
+
+	if ((INPUT_EVENT_R & cond) && s->pos != 0)
+		inputevt_set_readable(fd);
 
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
@@ -934,8 +944,7 @@ connect_http(struct gnutella_socket *s)
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
+					getline_free_null(&s->getline);
 					return 0;
 				}
 				break;
@@ -963,8 +972,7 @@ connect_http(struct gnutella_socket *s)
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
+					getline_free_null(&s->getline);
 					return 0;
 				}
 				break;
@@ -1567,10 +1575,7 @@ socket_free(struct gnutella_socket *s)
 		s->type = SOCK_TYPE_DESTROYING;
 		return;
 	}
-	if (s->getline) {
-		getline_free(s->getline);
-		s->getline = NULL;
-	}
+	getline_free_null(&s->getline);
 
 	if (socket_with_tls(s)) {
 		if (is_valid_fd(s->file_desc) && socket_uses_tls(s)) {
@@ -1612,6 +1617,7 @@ socket_free(struct gnutella_socket *s)
 		}
 		s->file_desc = INVALID_SOCKET;
 	}
+	s->pos = 0;				/* Ensure no complain from socket_free_buffer() */
 	socket_free_buffer(s);
 	socket_dealloc(&s);
 }
@@ -1672,6 +1678,130 @@ socket_tls_setup(struct gnutella_socket *s)
 destroy:
 	errno = EIO;
 	return -1;
+}
+
+struct socket_tls_upgrade_ctx {
+	gnutella_socket_t *s;		/* Socket being upgraded */
+	notify_fn_t cb;				/* Notification routine to call when done */
+	void *arg;					/* Notification routine argument */
+};
+
+/**
+ * Destroy socket upon TLS upgrade failure.
+ */
+static void
+socket_tls_upgrade_failed(gnutella_socket_t *s, const char *caller)
+{
+	if (GNET_PROPERTY(tls_debug)) {
+		g_debug("%s(): upgrading fd=%d to TLS with %s %s failed: %m",
+			caller, s->file_desc,
+			SOCK_CONN_INCOMING == s->direction ? "client" : "server",
+			host_addr_port_to_string(s->addr, s->port));
+	}
+	socket_destroy(s, "TLS upgrade failed");
+}
+
+/**
+ * I/O event callback used for TLS upgrades.
+ */
+static void
+socket_tls_upgrade_cond(void *data, int source, inputevt_cond_t cond)
+{
+	struct socket_tls_upgrade_ctx *stu = data;
+	struct gnutella_socket *s = stu->s;
+
+	socket_check(s);
+	(void) source;
+
+	if G_UNLIKELY(socket_shutdowned) {
+		socket_destroy(s, "Servent shutdown");
+		return;
+	}
+
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
+		socket_destroy(s, "Input exception during TLS upgrade");
+		return;
+	}
+
+	if (0 == socket_tls_setup(s)) {
+		socket_evt_clear(s);
+		(*stu->cb)(stu->arg);		/* Socket must be referred to by "arg" */
+		goto cleanup;
+	}
+
+	if (is_temporary_error(errno))
+		return;
+
+	socket_tls_upgrade_failed(s, G_STRFUNC);
+	/* FALL THROUGH */
+
+cleanup:
+	WFREE(stu);
+}
+
+/**
+ * Request that a connected socket be upgraded to TLS.
+ *
+ * Upon success, the nofification callback is invoked, asynchronously.
+ * Upon failure, the connection is closed and the callback is NOT invoked.
+ *
+ * The callaback argument must either refer to the socket, or be the socket.
+ *
+ * If the socket is referred-to, then the structure must be properly identified
+ * as the onwer of the socket via a call to socket_attach_ops(), in order to
+ * properly be notified should the socket be destroyed because the TLS upgrade
+ * failed.
+ *
+ * @param s		the socket to upgrade
+ * @param cb	callback to invoke when TLS has handshaked
+ * @param arg	callback argument
+ */
+void
+socket_tls_upgrade(gnutella_socket_t *s, notify_fn_t cb, void *arg)
+{
+	struct socket_tls_upgrade_ctx *stu;
+
+	socket_check(s);
+	g_assert(!socket_with_tls(s));
+	g_assert(!(s->flags & SOCK_F_UDP));
+
+	if (GNET_PROPERTY(tls_debug) > 1) {
+		g_debug("%s(): upgrading fd=%d to TLS with %s %s, then calling %s(%p)",
+			G_STRFUNC, s->file_desc,
+			SOCK_CONN_INCOMING == s->direction ? "client" : "server",
+			host_addr_port_to_string(s->addr, s->port),
+			stacktrace_function_name(cb), arg);
+	}
+
+	if (!tls_enabled()) {
+		errno = EPROTONOSUPPORT;
+		goto failure;
+	}
+
+	s->tls.enabled = TRUE;
+	socket_evt_clear(s);
+
+	/*
+	 * Due to the nature of the TLS handshake, it is not possible
+	 * to terminate the handshaking synchronously!
+	 */
+
+	if (0 == socket_tls_setup(s))
+		g_error("%s(): synchronous TLS upgrade deemed impossible", G_STRFUNC);
+
+	if (!is_temporary_error(errno))
+		goto failure;
+
+	WALLOC0(stu);
+	stu->s = s;
+	stu->cb = cb;
+	stu->arg = arg;
+
+	socket_evt_set(s, INPUT_EVENT_RX, socket_tls_upgrade_cond, stu);
+	return;
+
+failure:
+	socket_tls_upgrade_failed(s, G_STRFUNC);
 }
 
 /**
@@ -1819,7 +1949,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
 			is_strprefix(s->buf, "GET ") ||
-			is_strprefix(s->buf, "HEAD ")
+			is_strprefix(s->buf, "HEAD ") ||
+			is_strprefix(s->buf, "OPTIONS ")
 		) {
 			http_send_status(HTTP_UPLOAD, s, 414, FALSE, NULL, 0,
 				"Requested URL Too Large");
@@ -2002,6 +2133,10 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			pproxy_add(s);
 		else
 			upload_add(s);
+	} else if (
+		NULL != (endptr = is_strprefix(first, "OPTIONS "))
+	) {
+		upload_add(s);
 	} else if (
 		NULL != (endptr = is_strprefix(first, "HELO")) &&
 		(is_ascii_space(endptr[0]) || '\0' == endptr[0])

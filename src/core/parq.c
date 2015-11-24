@@ -726,10 +726,7 @@ parq_download_retry_active_queued(struct download *d)
 		}
 
 		/* s->getline could be NULL if we switched downloads above */
-		if (s->getline != NULL) {
-			getline_free(s->getline);		/* No longer need this */
-			s->getline = NULL;
-		}
+		getline_free_null(&s->getline);
 
 		/* Resend request for download */
 		download_send_request(d);

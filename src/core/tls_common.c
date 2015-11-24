@@ -541,11 +541,16 @@ tls_signal_pending(struct gnutella_socket *s)
 {
 	size_t n = gnutls_record_check_pending(tls_socket_get_session(s));
 
-	if (n > 0) {
+	/*
+	 * There can be data in the GnuTLS layer, or in the socket input buffer.
+	 */
+
+	if (n > 0 || 0 != (n = s->pos)) {
 		int saved_errno = errno;
 
 		if (GNET_PROPERTY(tls_debug) > 1) {
-			g_debug("%s(): pending=%zu", G_STRFUNC, n);
+			g_debug("%s(): pending=%zu%s",
+				G_STRFUNC, n, s->pos != 0 ? " (socket)" : "");
 		}
 		inputevt_set_readable(s->file_desc);
 		errno = saved_errno;
@@ -596,7 +601,7 @@ tls_pushv(gnutls_transport_ptr_t ptr, const giovec_t *iov, int iovcnt)
 			socket_connection_reset(s);
 		}
 	}
-	tls_transport_debug("tls_pushv", s, iov_calculate_size(niov, iovcnt), ret);
+	tls_transport_debug(G_STRFUNC, s, iov_calculate_size(niov, iovcnt), ret);
 	if (is_running_on_mingw())
 		hfree(niov);
 	errno = saved_errno;
@@ -622,7 +627,7 @@ tls_push(gnutls_transport_ptr_t ptr, const void *buf, size_t size)
 			socket_connection_reset(s);
 		}
 	}
-	tls_transport_debug("tls_push", s, size, ret);
+	tls_transport_debug(G_STRFUNC, s, size, ret);
 	errno = saved_errno;
 	return ret;
 }
@@ -638,6 +643,43 @@ tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
 	socket_check(s);
 	g_assert(is_valid_fd(s->file_desc));
 
+	/*
+	 * If there are still pending data in the socket buffer, consume them.
+	 *
+	 * This can happen after we upgrade a normal connection into a TLS one,
+	 * and the TLS handshake data was already read as part of the normal
+	 * connection into the socket buffer.
+	 *		--RAM, 2015-11-22
+	 */
+
+	if G_UNLIKELY(s->pos != 0) {
+		size_t avail = s->pos;
+
+		if (GNET_PROPERTY(tls_debug) > 1) {
+			g_debug("%s(): host=%s still has %zu buffered byte%s",
+				G_STRFUNC, host_addr_port_to_string(s->addr, s->port),
+				s->pos, plural(s->pos));
+		}
+
+		avail = MIN(avail, size);	/* Can't read more than they request */
+		memcpy(buf, s->buf, avail);
+		if (avail != s->pos)
+			memmove(s->buf, &s->buf[avail], s->pos - avail);
+		s->pos -= avail;
+		tls_transport_debug(G_STRFUNC, s, size, avail);
+
+		/*
+		 * If there is more buffered data to read, mark the source as
+		 * readable because poll() or select() do not know about these
+		 * extra bytes that are available.
+		 */
+
+		if (s->pos != 0)
+			inputevt_set_readable(s->file_desc);
+
+		return avail;
+	}
+
 	ret = s_read(s->file_desc, buf, size);
 	saved_errno = errno;
 	tls_signal_pending(s);
@@ -649,7 +691,7 @@ tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
 	} else if (0 == ret) {
 		socket_eof(s);
 	}
-	tls_transport_debug("tls_pull", s, size, ret);
+	tls_transport_debug(G_STRFUNC, s, size, ret);
 	errno = saved_errno;
 	return ret;
 }

@@ -3309,8 +3309,7 @@ nextline:
 	 */
 
 failed:
-	if (h != NULL)
-		header_free(h);
+	header_free_null(&h);
 	getline_free(gl);
 	if (msg != NULL && ack_msg != NULL) {
 		hfree(*msg);

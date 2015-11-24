@@ -305,7 +305,7 @@ uploads_gui_host_string(const gnet_upload_info_t *u)
 
 	concat_strings(buf, sizeof buf,
 		host_addr_to_string(u->addr),
-		u->encrypted ? " (E) " : " ",
+		u->encrypted ? (u->tls_upgraded ? " (e) " : " (E) ") : " ",
 		peer ? " <" : "",
 		peer ? peer : "",
 		peer ? ">"  : "",

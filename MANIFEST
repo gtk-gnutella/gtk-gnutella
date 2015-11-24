@@ -72,6 +72,7 @@ doc/gnutella/compression
 doc/gnutella/crawler
 doc/gnutella/deflated_udp
 doc/gnutella/dynamic_query
+doc/gnutella/gnet-TLS-upgrade
 doc/gnutella/gwcache
 doc/gnutella/handshaking_0.6
 doc/gnutella/hostname

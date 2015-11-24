@@ -57,6 +57,7 @@ typedef struct getline getline_t;
 
 getline_t *getline_make(size_t maxsize);
 void getline_free(getline_t *);
+void getline_free_null(getline_t **);
 void getline_reset(getline_t *);
 getline_result_t getline_read(getline_t *,
 					const char *data, size_t len, size_t *used);
