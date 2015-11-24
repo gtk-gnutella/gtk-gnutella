@@ -5367,17 +5367,9 @@ upload_request(struct upload *u, header_t *header)
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,
 	 * thereby ruling out the HTTP/0.9 requests.
-	 *
-	 * This has to be done early, and before calling get_file_to_upload()
-	 * or the getline_length() call will no longer represent the length of
-	 * the string, since URL-unescaping happens inplace and can "shrink"
-	 * the request.
 	 */
 
-	if (upload_http_version(u, u->request, strlen(u->request))) {
-		/* Get rid of the trailing HTTP/<whatever> */
-		remove_trailing_http_tag(u->request);
-	} else {
+	if (!upload_http_version(u, u->request, strlen(u->request))) {
 		upload_error_remove(u, 500, N_("Unknown/Missing Protocol Tag"));
 		return;
 	}
@@ -5445,6 +5437,9 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if (options_req) {
+		/* Get rid of the trailing HTTP/<whatever> at the end of the request */
+		remove_trailing_http_tag(uri);
+
 		upload_options_request(u, header, uri);
 		return;
 	}
@@ -5469,7 +5464,18 @@ upload_request(struct upload *u, header_t *header)
 		return;
 	}
 
+	/*
+	 * Get rid of the trailing HTTP/<whatever> at the end of the request
+	 *
+	 * This must come after the TLS upgrade checks, because when we re-enter
+	 * the routine, we still need to find the protocol tags at the end of
+	 * the request line.
+	 */
+
+	remove_trailing_http_tag(uri);
+
 	/* Extract the host and path from an absolute URI */
+
 	uri = upload_parse_uri(header, uri, host, sizeof host);
 	if (NULL == uri) {
 		upload_send_error(u, 400, N_("Bad URI"));
