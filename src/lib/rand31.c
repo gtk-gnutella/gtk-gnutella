@@ -179,9 +179,7 @@ rand31_random_seed(void)
 	tm_precise_time(&now);
 	nsecs += now.tv_nsec;
 	seed += integer_hash_fast(getpid());
-#ifdef HAS_GETPPID
 	seed += integer_hash_fast(getppid());
-#endif
 	seed += binary_hash(&now, sizeof now);
 	seed += binary_hash(&cpu, sizeof cpu);
 	seed += pointer_hash_fast(&now);

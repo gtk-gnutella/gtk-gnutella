@@ -578,11 +578,7 @@ entropy_collect_process_id(SHA1_context *ctx)
 {
 	unsigned long id[2];
 
-#ifdef HAS_GETPPID
 	id[0] = getppid();
-#else
-	id[0] = entropy_minirand();
-#endif	/* HAS_GETPPID */
 	id[1] = getpid();
 
 	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
@@ -1241,12 +1237,6 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;										\
 } G_STMT_END
 
-#ifdef HAS_GETPPID
-#define ENTROPY_PPID	getppid()
-#else
-#define ENTROPY_PPID	rand31_u32()
-#endif
-
 	SHA1_reset(&ctx);
 
 	tm_precise_time(&now);		/* Do not use tm_now_exact(), it's too soon */
@@ -1258,7 +1248,7 @@ entropy_seed(struct entropy_minictx *c)
 	}
 
 	{
-		ulong along[4] = { time(NULL), getpid(), ENTROPY_PPID, now.tv_nsec };
+		ulong along[4] = { time(NULL), getpid(), getppid(), now.tv_nsec };
 		ENTROPY_SHUFFLE_FEED(along, sha1_feed_ulong);
 	}
 
