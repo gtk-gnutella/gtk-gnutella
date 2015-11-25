@@ -11318,16 +11318,26 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 static void
 download_detect_tls_support(struct download *d, header_t *header)
 {
+	bool advertises_tls;
+
 	download_check(d);
 	g_assert(dl_server_valid(d->server));
 
 	if (d->got_giv)
 		return;
 
-	if (
-		header_get_feature("tls", header, NULL, NULL) ||
-		xalt_detect_tls_support(d, header)
-	) {
+	/*
+	 * If the node does not advertise TLS in its features, it will not
+	 * support TLS upgrades at all, so don't even bother advertising
+	 * that we can upgrade.
+	 */
+
+	advertises_tls = header_get_feature("tls", header, NULL, NULL);
+
+	if (!advertises_tls)
+		d->server->attrs |= DLS_A_NO_TLS_UPGRD;
+
+	if (advertises_tls || xalt_detect_tls_support(d, header)) {
 		tls_cache_insert(download_addr(d), download_port(d));
 		d->server->attrs |= DLS_A_TLS;
 	}
@@ -13536,6 +13546,11 @@ picked:
 	 * If we support TLS and the socket was not established on top of TLS,
 	 * we can propose a TLS upgrade if this is the first request sent to
 	 * the server.  See RFC-2817 for the upgrade protocol details.
+	 *
+	 * The check for DLS_A_NO_TLS_UPGRD is to avoid us proposing an upgrade
+	 * if we already know that server is not supporting TLS (it does not
+	 * advertise the feature in its X-Features) or if a previous upgrade
+	 * attempt failed in this session.
 	 */
 
 	if (
