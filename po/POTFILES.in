@@ -1,5 +1,5 @@
 # List of source files containing translatable strings.
-# Regenerated on Mon Mar  2 23:04:33 CET 2015
+# Regenerated on Wed Nov 25 23:07:28 CET 2015
 
 src/core/ban.c
 src/core/downloads.c
