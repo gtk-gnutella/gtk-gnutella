@@ -5211,9 +5211,17 @@ node_is_now_connected(gnutella_node_t *n)
 	 * We don't need the socket buffer any more: all the data is now read
 	 * via the RX stack into allocated RX buffers.
 	 *		--RAM, 2015-11-22
+	 *
+	 * However, the node can have been removed during the processing of
+	 * the injected data above, so be careful: its socket will have been
+	 * nullified in that case.
+	 *		--RAM, 2015-11-25
 	 */
 
-	socket_free_buffer(n->socket);
+	node_check(n);
+
+	if (n->socket != NULL)
+		socket_free_buffer(n->socket);
 }
 
 /**
