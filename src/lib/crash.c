@@ -151,6 +151,7 @@ struct crash_vars {
 	const char *fail_name;	/**< Name of thread triggering assertion failure */
 	unsigned fail_stid;		/**< ID of thread triggering assertion failure */
 	pid_t pid;				/**< Initial process ID */
+	pid_t ppid;				/**< Parent PID, when supervising */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
 	str_t *logstr;			/**< String to build and hold error message */
@@ -2335,11 +2336,17 @@ crash_try_reexec(void)
 		pid_t parent = getppid();
 
 		if (1 != parent) {
+			/* Watch out on Windows: make sure our getppid() is reliable */
+			if (parent != vars->ppid) {
+				s_miniwarn("%s(): changed parent? (was PID=%lu, now %lu)",
+					G_STRFUNC, (ulong) vars->ppid, (ulong) parent);
+			}
 			s_minimsg("%s(): letting our parent (PID=%lu) restart ourselves",
 				G_STRFUNC, (ulong) parent);
 			_exit(EXIT_FAILURE);
 		} else {
-			s_miniwarn("%s(): supervising parent is gone!", G_STRFUNC);
+			s_miniwarn("%s(): supervising parent (PID=%lu) is gone!",
+				G_STRFUNC, (ulong) vars->ppid);
 		}
 
 		/* FALL THROUGH -- parent is gone */
@@ -2465,8 +2472,9 @@ crash_auto_restart(void)
 			print_str(PRINT_NUMBER(pid_buf, parent));		/* 3 */
 			print_str(" still present");					/* 4 */
 		} else {
-			print_str(" (WARNING) supervising parent ");	/* 1 */
-			print_str("is gone!");							/* 2 */
+			print_str(" (WARNING) supervising parent PID=");/* 1 */
+			print_str(PRINT_NUMBER(pid_buf, vars->ppid));	/* 2 */
+			print_str(" is gone!");							/* 3 */
 		}
 		print_str("\n");									/* 5 */
 		flush_err_str();
@@ -3043,6 +3051,7 @@ crash_init(const char *argv0, const char *progname,
 	iv.dumps_core = booleanize(!crash_coredumps_disabled());
 	iv.start_time = time(NULL);
 	iv.pid = getpid();
+	iv.ppid = getppid();
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);
