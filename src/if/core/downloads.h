@@ -300,7 +300,7 @@ enum {
 	DL_F_FAKE_G2		= 1 << 23,	/**< Trying to fake G2, intuition only */
 	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
 	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
-	DL_F_UNUSED_1		= 1 << 20,	/**< UNUSED */
+	DL_F_TLS_PROPOSED	= 1 << 20,	/**< Proposed a TLS upgrade */
 	DL_F_FETCH_TTH		= 1 << 19,	/**< Tigertree data is being fetched */
 	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
 	DL_F_THEX			= 1 << 17,	/**< THEX download */

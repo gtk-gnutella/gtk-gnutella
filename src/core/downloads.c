@@ -4392,7 +4392,7 @@ download_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
 	if (d->flags & DL_F_TLS_UPGRADING) {
 		g_assert(dl_server_valid(d->server));
 		d->server->attrs |= DLS_A_NO_TLS_UPGRD;
-		d->flags &= ~DL_F_TLS_UPGRADING;
+		d->flags &= ~DL_F_TLS_UPGRADING | DL_F_TLS_PROPOSED;
 
 		if (GNET_PROPERTY(download_debug)) {
 			g_warning("%s(): TLS upgrade failed for \"%s\" on %s",
@@ -4774,7 +4774,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 	download_pipeline_free_null(&d->pipeline);
 	file_info_changed(d->file_info);
 	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED | DL_F_REPLIED |
-		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_NO_PIPELINE);
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_NO_PIPELINE |
+		DL_F_TLS_PROPOSED | DL_F_TLS_UPGRADING);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
@@ -11482,6 +11483,7 @@ download_switch_protocols(struct download *d, const header_t *header)
 	 */
 
 	d->flags |= DL_F_TLS_UPGRADING;
+	d->flags &= ~DL_F_TLS_PROPOSED;
 
 	if (GNET_PROPERTY(download_debug) > 1) {
 		g_debug("%s(): attempting TLS upgrade with %s",
@@ -11828,6 +11830,22 @@ http_version_nofix:
 				_("Incomplete headers during TLS upgrade"));
 		}
 		return;
+	}
+
+	/*
+	 * If we proposed a TLS upgrade but we're not using TLS yet, mark
+	 * the server as not understanding TLS upgrades so that we're not
+	 * constantly proposing them when initiating requests.
+	 */
+
+	if ((d->flags & DL_F_TLS_PROPOSED) && !socket_uses_tls(d->socket)) {
+		d->flags &= ~DL_F_TLS_PROPOSED;
+		d->server->attrs |= DLS_A_NO_TLS_UPGRD;
+
+		if (GNET_PROPERTY(download_debug) > 1) {
+			g_message("server %s does not support TLS upgrades",
+				download_host_info(d));
+		}
 	}
 
 	if (is_dumb_spammer(download_vendor_str(d))) {	
@@ -13561,6 +13579,8 @@ picked:
 	) {
 		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 				"Upgrade: TLS/1.0\r\nConnection: Upgrade\r\n");
+
+		d->flags |= DL_F_TLS_PROPOSED;
 	}
 
 	/*
