@@ -6653,11 +6653,21 @@ mingw_dladdr(void *addr, Dl_info *info)
 	/*
 	 * Do not issue a SymInitialize() too often, yet let us do one from time
 	 * to time in case we loaded a new DLL since last time.
+	 *
+	 * Unfortunately, MinGW does not provide SymRefreshModuleList() to
+	 * refresh the module list, so we have to SymCleanup() and SymInitialize()
+	 * periodically.
+	 *
+	 * When called during a crash, do not attempt to refresh the symbols via
+	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
 	 */
 
 	now = tm_time();
 
-	if (0 == last_init || delta_time(now, last_init) > 5) {
+	if (
+		0 == last_init ||
+		(delta_time(now, last_init) > 60 && !signal_in_exception())
+	) {
 		static bool initialized;
 		static bool first_init;
 		static spinlock_t dladdr_first_slk = SPINLOCK_INIT;
@@ -6682,8 +6692,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 		if (initialized)
 			SymCleanup(process);
 
-		if (!SymInitialize(process, 0, TRUE)) {
-			initialized = FALSE;
+		if (!SymInitialize(process, NULL, TRUE)) {
 			mingw_dl_error = GetLastError();
 			s_warning("SymInitialize() failed: error = %d (%s)",
 				mingw_dl_error, mingw_dlerror());

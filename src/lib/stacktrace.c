@@ -551,6 +551,17 @@ stacktrace_init(const char *argv0, bool deferred)
 
 	stacktrace_get_symbols(path, path, FALSE);
 
+	/*
+	 * If running on Windows, call dl_util_get_base() to indirectly call
+	 * dladdr(), which will trigger the mingw_dladdr() code and cause
+	 * initialization of the Windows symbols: when crashing it may be hard
+	 * to have symbols properly loaded.
+	 *		--RAM, 2015-11-26
+	 */
+
+	if (is_running_on_mingw())
+		(void) dl_util_get_base(stacktrace_init);
+
 	/* FALL THROUGH */
 
 done:
