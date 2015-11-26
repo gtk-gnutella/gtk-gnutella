@@ -1564,6 +1564,19 @@ stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 	if (!signal_in_handler()) {
 		stacktrace_load_symbols();
 		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+	} else if (signal_in_exception() && crash_is_supervised()) {
+		/*
+		 * We're crashing in supervised mode, so even if we get a fatal error
+		 * our parent will be able to relaunch us.  We may not be able to
+		 * get a core dumped correctly, so gather as much information as
+		 * possible.
+		 *
+		 * There's no need to load the symbols because, since we're marked as
+		 * supervised, it means we went through crash_init() and therefore
+		 * the symbols were already loaded.
+		 */
+
+		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
 	} else {
 		stack_safe_print(fd, stack, count);
 	}

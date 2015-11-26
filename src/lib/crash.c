@@ -3428,6 +3428,20 @@ crash_is_pausing(void)
 }
 
 /**
+ * Are we running supervised?
+ *
+ * @return TRUE if we are supervised and our parent process is still there.
+ */
+bool
+crash_is_supervised(void)
+{
+	if (NULL == vars)
+		return FALSE;
+
+	return vars->supervised && 1 != getppid();
+}
+
+/**
  * Abort execution, synchronously.
  */
 void
