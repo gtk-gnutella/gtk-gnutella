@@ -8724,6 +8724,10 @@ download_get_server_name(struct download *d, header_t *header)
 			got_new_server = TRUE;
 			atom_str_free_null(&server->vendor);
 			vendor = user_agent;
+
+			/* Maybe the server was upgraded to a newer version? */
+			server->attrs &= ~(DLS_A_NO_TLS_UPGRD | DLS_A_PIPELINING |
+				DLS_A_NO_PIPELINE | DLS_A_TLS | DLS_A_NO_HTTP_1_1);
 		} else {
 			vendor = NULL;
 		}
