@@ -5022,6 +5022,12 @@ upload_tls_upgrade(struct upload *u, notify_fn_t upgraded)
 	upload_http_extra_line_add(u, "Connection: Upgrade\r\n");
 	upload_send_http_status(u, TRUE, 101, "Switching Protocols");
 
+	/*
+	 * Because socket_tls_upgrade() guarantees that the socket will not be
+	 * destroyed synchronously on error, we can access the upload structure
+	 * upon return.
+	 */
+
 	socket_tls_upgrade(s, upgraded, u);
 	u->tls_upgraded = TRUE;		/* In progress, will succeed hopefully */
 }

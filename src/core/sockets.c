@@ -1687,10 +1687,27 @@ struct socket_tls_upgrade_ctx {
 };
 
 /**
- * Destroy socket upon TLS upgrade failure.
+ * Callout queue callback to asynchronously destroy a socket when the TLS
+ * upgrade attempt failed.
  */
 static void
-socket_tls_upgrade_failed(gnutella_socket_t *s, const char *caller)
+socket_tls_upgrade_failed_event(cqueue_t *unused_cq, void *udata)
+{
+	gnutella_socket_t *s = udata;
+
+	(void) unused_cq;
+	socket_destroy(s, "TLS upgrade failed");
+}
+
+/**
+ * Destroy socket upon TLS upgrade failure, possibly asynchronously.
+ *
+ * @param s			the socket to destroy
+ * @param caller	calling routine, for logging purposes
+ * @param async		whether destruction must happen asynchronously
+ */
+static void
+socket_tls_upgrade_failed(gnutella_socket_t *s, const char *caller, bool async)
 {
 	if (GNET_PROPERTY(tls_debug)) {
 		g_debug("%s(): upgrading fd=%d to TLS with %s %s failed: %m",
@@ -1698,7 +1715,11 @@ socket_tls_upgrade_failed(gnutella_socket_t *s, const char *caller)
 			SOCK_CONN_INCOMING == s->direction ? "client" : "server",
 			host_addr_port_to_string(s->addr, s->port));
 	}
-	socket_destroy(s, "TLS upgrade failed");
+
+	if (async)
+		cq_main_insert(1, socket_tls_upgrade_failed_event, s);
+	else
+		socket_tls_upgrade_failed_event(NULL, s);
 }
 
 /**
@@ -1732,7 +1753,7 @@ socket_tls_upgrade_cond(void *data, int source, inputevt_cond_t cond)
 	if (is_temporary_error(errno))
 		return;
 
-	socket_tls_upgrade_failed(s, G_STRFUNC);
+	socket_tls_upgrade_failed(s, G_STRFUNC, FALSE);
 	/* FALL THROUGH */
 
 cleanup:
@@ -1751,6 +1772,11 @@ cleanup:
  * as the onwer of the socket via a call to socket_attach_ops(), in order to
  * properly be notified should the socket be destroyed because the TLS upgrade
  * failed.
+ *
+ * It is guaranteed that the callback routine will be triggered asynchronously,
+ * i.e. will not have happened when we return from this call.  Likewise, the
+ * socket will not be closed synchronously, meaning the resource attached
+ * to the socket will not be reclaimed when we return.
  *
  * @param s		the socket to upgrade
  * @param cb	callback to invoke when TLS has handshaked
@@ -1801,7 +1827,7 @@ socket_tls_upgrade(gnutella_socket_t *s, notify_fn_t cb, void *arg)
 	return;
 
 failure:
-	socket_tls_upgrade_failed(s, G_STRFUNC);
+	socket_tls_upgrade_failed(s, G_STRFUNC, TRUE);
 }
 
 /**
