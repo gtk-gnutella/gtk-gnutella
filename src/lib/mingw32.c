@@ -977,15 +977,25 @@ mingw_fsync(int fd)
 
 #ifdef EMULATE_GETPPID
 /**
- * @return byte length of UTF-16 string, not counting trailing NUL.
+ * Compute byte length of UTF-16 string, scanning up to specified max amount
+ * of characters (ignoring surrogates, i.e. they are counted as two chars since
+ * they use two 16-bit slots).
+ *
+ * @param s			start of UTF-16 string
+ * @param maxchars	maximum amout of UTF-16 entries
+ *
+ * @return byte length of string, not counting trailing NUL.
  */
 static size_t
-wchar_bytelen(const wchar_t *s)
+wchar_clamp_bytelen(const wchar_t *s, size_t maxchars)
 {
 	uint16 *p = (uint16 *) s;
+	size_t c = 0;
 
-	while (*p != 0)
+	while (*p != 0 && c < maxchars) {
 		p++;
+		c++;
+	}
 
 	return ptr_diff(p, s);
 }
@@ -1027,12 +1037,13 @@ mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe)
 static void
 mingw_sha1_process_entry(PROCESSENTRY32W *pe, sha1_t *digest)
 {
+	size_t n = G_N_ELEMENTS(pe->szExeFile);
 	SHA1_context c;
 
 	SHA1_reset(&c);
 	SHA1_INPUT(&c, pe->th32ProcessID);
 	SHA1_INPUT(&c, pe->th32ParentProcessID);
-	SHA1_input(&c, pe->szExeFile, wchar_bytelen(pe->szExeFile));
+	SHA1_input(&c, pe->szExeFile, wchar_clamp_bytelen(pe->szExeFile, n));
 	SHA1_result(&c, digest);
 }
 
