@@ -81,7 +81,7 @@ gethomedir(void)
 		dir = NULL;
 	}
 
-#if defined(HAS_GETLOGIN)
+#ifdef HAS_GETPWNAM
 	if (!dir) {
 		const char *name;
 		
@@ -94,9 +94,9 @@ gethomedir(void)
 				dir = pp->pw_dir;
 		}
 	}
-#endif
+#endif	/* HAS_GETPWNAM */
 
-#if defined(HAS_GETUID)
+#ifdef HAS_GETPWUID
 	if (!dir) {
 		const struct passwd *pp;
 		
@@ -104,7 +104,7 @@ gethomedir(void)
 		if (pp)
 			dir = pp->pw_dir;
 	}
-#endif /* HAS_GETUID */
+#endif /* HAS_GETPWUID */
 
 	if (NULL == dir) {
 		g_warning("could not determine home directory");

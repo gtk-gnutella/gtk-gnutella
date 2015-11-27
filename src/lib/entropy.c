@@ -655,7 +655,7 @@ entropy_collect_login(SHA1_context *ctx)
 static void
 entropy_collect_pw(SHA1_context *ctx)
 {
-#ifdef HAS_GETUID
+#ifdef HAS_GETPWUID
 	{
 		const struct passwd *pp = getpwuid(getuid());
 
@@ -668,7 +668,7 @@ entropy_collect_pw(SHA1_context *ctx)
 	}
 #else
 	sha1_feed_uint(ctx, entropy_minirand());
-#endif	/* HAS_GETUID */
+#endif	/* HAS_GETPWUID */
 }
 
 /**

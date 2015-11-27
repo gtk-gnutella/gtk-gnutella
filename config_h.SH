@@ -405,6 +405,20 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_getprogname HAS_GETPROGNAME
 
+/* HAS_GETPWNAM:
+ *	This symbol, if defined, indicates that the getpwnam() routine
+ *	is available to get the /etc/passwd structure entries for given
+ *	user name.
+ */
+#$d_getpwnam HAS_GETPWNAM	/**/
+
+/* HAS_GETPWUID:
+ *	This symbol, if defined, indicates that the getpwuid() routine
+ *	is available to get the /etc/passwd structure entries for given
+ *	user ID.
+ */
+#$d_getpwuid HAS_GETPWUID	/**/
+
 /* HAS_GETRLIMIT:
  *	This symbol, if defined, indicates that the getrlimit() routine is
  *	available to get process resource limits.
