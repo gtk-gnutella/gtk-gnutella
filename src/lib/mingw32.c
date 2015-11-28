@@ -4626,7 +4626,7 @@ mingw_getlogin(void)
 /**
  * Extract SID (Security IDentifier) from the specified token.
  *
- * The extracted SID is stored in ``sid_ptr'' and must be hfree()'ed
+ * The extracted SID is stored in ``sid_ptr'' and must be xfree()'ed
  * by the caller when it is done with it.
  *
  * @param token		the token handle
@@ -4650,7 +4650,7 @@ mingw_token_sid(HANDLE token, TOKEN_INFORMATION_CLASS which, SID **sid_ptr)
 		return FALSE;
 
 	len = needed;
-	data = halloc0(len);
+	data = xmalloc0(len);
 
 	if (!GetTokenInformation(token, which, data, len, &needed) || needed > len)
 		goto failed;
@@ -4674,18 +4674,18 @@ mingw_token_sid(HANDLE token, TOKEN_INFORMATION_CLASS which, SID **sid_ptr)
 	}
 
 	len = GetLengthSid(tsid);
-	sid = halloc(len);
+	sid = xmalloc(len);
 	if (!CopySid(len, sid, tsid) || !IsValidSid(sid))
 		goto failed;
 
-	hfree(data);
+	xfree(data);
 	*sid_ptr = sid;		/* Caller will need to hfree() this once done */
 
 	return TRUE;
 
 failed:
-	HFREE_NULL(sid);
-	HFREE_NULL(data);
+	XFREE_NULL(sid);
+	XFREE_NULL(data);
 	return FALSE;
 }
 
@@ -4728,7 +4728,7 @@ mingw_token_sid_last_rid_free(SID *sid)
 	n = *np;
 	rp = GetSidSubAuthority(sid, n - 1);
 	rid = *rp;
-	hfree(sid);
+	xfree(sid);
 
 	return rid;
 }
