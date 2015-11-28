@@ -1248,7 +1248,8 @@ entropy_seed(struct entropy_minictx *c)
 	}
 
 	{
-		ulong along[4] = { time(NULL), getpid(), getppid(), now.tv_nsec };
+		ulong along[] = { now.tv_sec, now.tv_nsec,
+			getpid(), getppid(), getuid(), getgid() };
 		ENTROPY_SHUFFLE_FEED(along, sha1_feed_ulong);
 	}
 
