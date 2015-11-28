@@ -180,6 +180,8 @@ rand31_random_seed(void)
 	nsecs += now.tv_nsec;
 	seed += integer_hash_fast(getpid());
 	seed += integer_hash_fast(getppid());
+	seed += integer_hash_fast(getuid());
+	seed += integer_hash_fast(getgid());
 	seed += binary_hash(&now, sizeof now);
 	seed += binary_hash(&cpu, sizeof cpu);
 	seed += pointer_hash_fast(&now);
