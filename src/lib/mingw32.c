@@ -610,6 +610,7 @@ mingw_win2posix(int error)
 	case ERROR_NO_MORE_FILES:
 		return ENFILE;
 	case ERROR_WRITE_PROTECT:
+	case ERROR_CANT_OPEN_ANONYMOUS:		/* Can't open anonymous token */
 		return EPERM;
 	case ERROR_NOT_SUPPORTED:
 		return ENOSYS;
@@ -674,6 +675,8 @@ mingw_win2posix(int error)
 		return ENOEXEC;
 	case ERROR_NETNAME_DELETED:
 		return EHOSTUNREACH;
+	case ERROR_NO_TOKEN:
+		return ESRCH;
 	case 0:					/* Always indicates success */
 		return 0;
 	default:
@@ -4618,6 +4621,259 @@ mingw_getlogin(void)
 
 	inited = TRUE;
 	return result;
+}
+
+/**
+ * Extract SID (Security IDentifier) from the specified token.
+ *
+ * The extracted SID is stored in ``sid_ptr'' and must be hfree()'ed
+ * by the caller when it is done with it.
+ *
+ * @param token		the token handle
+ * @param which		the information class we want from the token
+ * @param sid_ptr	where allocated SID will be stored
+ *
+ * @return TRUE if ok and we allocated a new SID, FALSE otherwise.
+ */
+static bool
+mingw_token_sid(HANDLE token, TOKEN_INFORMATION_CLASS which, SID **sid_ptr)
+{
+	DWORD len, needed = 0;
+	void *data = NULL;
+	SID *tsid, *sid = NULL;
+
+	if (NULL == token || INVALID_HANDLE_VALUE == token)
+		return FALSE;
+
+	GetTokenInformation(token, which, NULL, 0, &needed);
+	if (0 == needed)
+		return FALSE;
+
+	len = needed;
+	data = halloc0(len);
+
+	if (!GetTokenInformation(token, which, data, len, &needed) || needed > len)
+		goto failed;
+
+	switch (which) {
+	case TokenUser:
+		{
+			TOKEN_USER *u = data;
+			tsid = u->User.Sid;
+		}
+		break;
+	case TokenPrimaryGroup:
+		{
+			TOKEN_PRIMARY_GROUP *g = data;
+			tsid = g->PrimaryGroup;
+		}
+		break;
+	default:
+		s_rawwarn("%s(): unexpected token class %d", G_STRFUNC, which);
+		goto failed;
+	}
+
+	len = GetLengthSid(tsid);
+	sid = halloc(len);
+	if (!CopySid(len, sid, tsid) || !IsValidSid(sid))
+		goto failed;
+
+	hfree(data);
+	*sid_ptr = sid;		/* Caller will need to hfree() this once done */
+
+	return TRUE;
+
+failed:
+	HFREE_NULL(sid);
+	HFREE_NULL(data);
+	return FALSE;
+}
+
+/**
+ * Extract the last relative identifier (RID) authority from a SID and free
+ * that SID.
+ */
+static ulong
+mingw_token_sid_last_rid_free(SID *sid)
+{
+	ulong rid, *rp;
+	uint8 n, *np;
+
+	g_assert(IsValidSid(sid));
+
+	/*
+	 * From MSDN:
+	 *
+	 * Standardized string notation for SIDs, making it simpler to visualize
+	 * their components:
+	 *
+	 *     S-R-I-X#
+	 *
+	 * In this notation, the literal character "S" identifies the following
+	 * series of digits as a SID, R is the revision level, I is the
+	 * identifier-authority value, and X# is one or more subauthority values.
+	 *
+	 * For instance, a SID string could be: "S-1-5-32-544", meaning:
+	 *
+	 * - A revision level of 1
+	 * - An identifier-authority value of 5 (SECURITY_NT_AUTHORITY)
+	 * - A first subauthority value of 32 (SECURITY_BUILTIN_DOMAIN_RID)
+	 * - A second subauthority value of 544 (DOMAIN_ALIAS_RID_ADMINS)
+	 *
+	 * A SID must contain a top-level authority and at least one relative
+	 * identifier (RID) value.
+	 */
+
+	np = GetSidSubAuthorityCount(sid);
+	n = *np;
+	rp = GetSidSubAuthority(sid, n - 1);
+	rid = *rp;
+	hfree(sid);
+
+	return rid;
+}
+
+static uid_t
+mingw_token_uid(HANDLE token)
+{
+	SID *sid = NULL;
+	bool ok;
+
+	ok = mingw_token_sid(token, TokenUser, &sid);
+	if (!ok)
+		return UID_NOBODY;
+
+	return (uid_t) mingw_token_sid_last_rid_free(sid);
+}
+
+static gid_t
+mingw_token_gid(HANDLE token)
+{
+	SID *sid = NULL;
+	bool ok;
+
+	ok = mingw_token_sid(token, TokenPrimaryGroup, &sid);
+	if (!ok)
+		return GID_NOBODY;
+
+	return (gid_t) mingw_token_sid_last_rid_free(sid);
+}
+
+/**
+ * Get the effective security token, which must get closed by caller when done.
+ */
+static HANDLE
+mingw_get_effective_token(void)
+{
+	HANDLE t = GetCurrentThread();
+	HANDLE token = NULL;
+	const int flags = TOKEN_READ | TOKEN_QUERY_SOURCE;
+	bool ok;
+
+	ok = OpenThreadToken(t, flags, FALSE, &token);
+	if (!ok) {
+		if (ERROR_NO_TOKEN != GetLastError())
+			goto failed;
+		ok = OpenThreadToken(t, flags, TRUE, &token);
+	}
+	if (!ok) {
+		if (ERROR_NO_TOKEN != GetLastError())
+			goto failed;
+		ok = OpenProcessToken(GetCurrentProcess(), flags, &token);
+	}
+	if (!ok)
+		goto failed;
+
+	return token;
+
+failed:
+	errno = mingw_last_error();
+	s_rawwarn("%s(): can't open thread/process token:  %m", G_STRFUNC);
+	return NULL;
+}
+
+/**
+ * Get the process security token, which must get closed by caller when done.
+ */
+static HANDLE
+mingw_get_token(void)
+{
+	HANDLE p = GetCurrentProcess();
+	HANDLE token = NULL;
+	bool ok;
+
+	ok = OpenProcessToken(p, TOKEN_READ | TOKEN_QUERY_SOURCE, &token);
+	if (!ok) {
+		errno = mingw_last_error();
+		s_rawwarn("%s(): can't open process token: %m", G_STRFUNC);
+		return NULL;
+	}
+
+	return token;
+}
+
+uid_t
+mingw_getuid(void)
+{
+	HANDLE token;
+	uid_t id;
+
+	token = mingw_get_token();
+	if (NULL == token)
+		return UID_NOBODY;
+
+	id = mingw_token_uid(token);
+	CloseHandle(token);
+
+	return id;
+}
+
+uid_t
+mingw_geteuid(void)
+{
+	HANDLE token;
+	uid_t id;
+
+	token = mingw_get_effective_token();
+	if (NULL == token)
+		return UID_NOBODY;
+
+	id = mingw_token_uid(token);
+	CloseHandle(token);
+
+	return id;
+}
+
+gid_t
+mingw_getgid(void)
+{
+	HANDLE token;
+	gid_t id;
+
+	token = mingw_get_token();
+	if (NULL == token)
+		return GID_NOBODY;
+
+	id = mingw_token_gid(token);
+	CloseHandle(token);
+
+	return id;
+}
+
+gid_t
+mingw_getegid(void)
+{
+	HANDLE token;
+	uid_t id;
+
+	token = mingw_get_effective_token();
+	if (NULL == token)
+		return GID_NOBODY;
+
+	id = mingw_token_gid(token);
+	CloseHandle(token);
+
+	return id;
 }
 
 int

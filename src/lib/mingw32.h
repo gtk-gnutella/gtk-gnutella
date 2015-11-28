@@ -294,6 +294,30 @@ int mingw_statvfs(const char *pathname, struct statvfs *buf);
 #endif
 
 /*
+ * getuid(), geteuid(), etc... emulation.
+ */
+#define HAS_GETUID
+#define HAS_GETEUID
+
+typedef unsigned long uid_t;
+uid_t mingw_getuid(void);
+uid_t mingw_geteuid(void);
+
+#define getuid() mingw_getuid()
+#define geteuid() mingw_geteuid()
+
+#define UID_NOBODY	((uid_t) -2)
+
+typedef unsigned long gid_t;
+gid_t mingw_getgid(void);
+gid_t mingw_getegid(void);
+
+#define getgid() mingw_getgid()
+#define getegid() mingw_getegid()
+
+#define GID_NOBODY	((gid_t) -2)
+
+/*
  * getrlimit() emulation.
  */
 #ifndef HAS_GETRLIMIT
