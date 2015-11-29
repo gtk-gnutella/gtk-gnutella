@@ -73,7 +73,7 @@ enum thex_state {
 };
 
 struct thex_upload {
-	struct special_upload special_upload;	/**< vtable, MUST be first field */
+	struct special_upload special;	/**< vtable, MUST be first field */
 
 	txdrv_t *tx;			/**< The transmission stack */
 	special_upload_closed_t cb;	/**< Callback to invoke when TX fully flushed */
@@ -92,6 +92,7 @@ struct thex_upload {
 static struct thex_upload *
 cast_to_thex_upload(struct special_upload *p)
 {
+	special_upload_thex_check(p);
 	return (void *) p;
 }
 
@@ -234,10 +235,10 @@ thex_upload_get_content_length(const shared_file_t *sf)
  *         is returned.
  */
 static ssize_t
-thex_upload_read(struct special_upload *special_upload,
+thex_upload_read(struct special_upload *special,
 	void * const dest, size_t size)
 {
-	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
+	struct thex_upload *ctx = cast_to_thex_upload(special);
 	char *p = dest;
 
 	g_assert(ctx);
@@ -306,10 +307,9 @@ error:
  * Write data to the TX stack.
  */
 static ssize_t
-thex_upload_write(struct special_upload *special_upload,
-	const void *data, size_t size)
+thex_upload_write(struct special_upload *special, const void *data, size_t size)
 {
-	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
+	struct thex_upload *ctx = cast_to_thex_upload(special);
 
 	g_assert(ctx->tx);
 
@@ -325,6 +325,7 @@ thex_upload_tx_flushed(txdrv_t *unused_tx, void *arg)
 	struct thex_upload *ctx = cast_to_thex_upload(arg);
 
 	(void) unused_tx;
+	special_upload_thex_check(arg);
 
 	/*
 	 * Bounce them to the callback they registered.
@@ -337,10 +338,10 @@ thex_upload_tx_flushed(txdrv_t *unused_tx, void *arg)
  * Flush the TX stack, invoking callback when it's done.
  */
 static void
-thex_upload_flush(struct special_upload *special_upload,
+thex_upload_flush(struct special_upload *special,
 	special_upload_closed_t cb, void *arg)
 {
-	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
+	struct thex_upload *ctx = cast_to_thex_upload(special);
 
 	g_assert(ctx->tx);
 
@@ -361,9 +362,9 @@ thex_upload_flush(struct special_upload *special_upload,
  * @return An initialized THEX upload context.
  */
 static void
-thex_upload_close(struct special_upload *special_upload, bool fully_served)
+thex_upload_close(struct special_upload *special, bool fully_served)
 {
-	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
+	struct thex_upload *ctx = cast_to_thex_upload(special);
 
 	g_assert(ctx);
 
@@ -378,6 +379,7 @@ thex_upload_close(struct special_upload *special_upload, bool fully_served)
 	tx_free(ctx->tx);
 	thex_upload_free_data(ctx);
 	atom_tth_free_null(&ctx->tth);
+	ctx->special.magic = 0;
 	WFREE(ctx);
 }
 
@@ -407,10 +409,11 @@ thex_upload_open(
 	struct thex_upload *ctx;
 
 	WALLOC(ctx);
-	ctx->special_upload.read =  thex_upload_read;
-	ctx->special_upload.write = thex_upload_write;
-	ctx->special_upload.flush = thex_upload_flush;
-	ctx->special_upload.close = thex_upload_close;
+	ctx->special.magic = SPECIAL_UPLOAD_THEX_MAGIC;
+	ctx->special.read  = thex_upload_read;
+	ctx->special.write = thex_upload_write;
+	ctx->special.flush = thex_upload_flush;
+	ctx->special.close = thex_upload_close;
 
 	ctx->tth = atom_tth_get(shared_file_tth(sf));
 	ctx->filesize = shared_file_size(sf);
@@ -450,7 +453,7 @@ thex_upload_open(
 	 */
 
 	gnet_prop_incr_guint32(PROP_THEX_FILES_REQUESTED);
-	return &ctx->special_upload;
+	return &ctx->special;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
