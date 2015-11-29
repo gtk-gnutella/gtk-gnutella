@@ -1380,6 +1380,18 @@ entropy_seed(struct entropy_minictx *c)
 		p = peek_be32_advance(p, &c->z);
 		p = peek_be32_advance(p, &v);
 		c->c = (v ^ peek_be32(p)) % ENTROPY_KISS_MULT;
+
+		/*
+		 * The `y' context variable must not be seeded with zero, or it
+		 * will only produce zeroes.  Find another random value.
+		 */
+
+		for (v = 0; v < 100 && 0 == c->y; v++) {
+			c->y = rand31_u32();
+		}
+
+		if (0 == c->y)
+			s_error("%s(): no luck with rand31_u32()", G_STRFUNC);
 	}
 }
 
