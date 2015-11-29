@@ -236,6 +236,9 @@ rand31_random_seed(void)
 static void
 rand31_do_seed(unsigned seed)
 {
+	while (seed >= RAND31_MOD)
+		seed -= RAND31_MOD;
+
 	rand31_first_seed = rand31_seed =
 		rand31_is_zero(seed) ? rand31_random_seed() : seed;
 
