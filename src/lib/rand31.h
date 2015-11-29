@@ -54,6 +54,7 @@ int rand31_value(unsigned max);
 uint32 rand31_u32(void);
 double rand31_double(void);
 void rand31_bytes(void *dst, size_t size);
+void rand31_addrandom(const void *data, size_t len);
 
 #endif /* _rand31_h_ */
 
