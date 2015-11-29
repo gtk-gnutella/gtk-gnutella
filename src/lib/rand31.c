@@ -139,6 +139,8 @@ rand31_prng_next(unsigned seed)
 	if (lo > RAND31_MOD)
 		lo -= RAND31_MOD;
 
+	g_assert(lo < RAND31_MOD && lo != 0);
+
 	return lo;
 }
 
