@@ -344,6 +344,15 @@ static void
 gtk_gnutella_atexit(void)
 {
 	/*
+	 * If we're in an exception, it means we're already crashing and
+	 * we are now exiting, probably because we have a supervising parent
+	 * process and do not need to re-exec() ourselves.
+	 */
+
+	if (signal_in_exception())
+		return;
+
+	/*
 	 * There's no way the gtk_gnutella_exit() routine can have its signature
 	 * changed, so we use the `from_atexit' global to indicate that we're
 	 * coming from the atexit() callback, mainly to suppress the final
