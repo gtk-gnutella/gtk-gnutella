@@ -579,7 +579,6 @@ well_rand64(void)
 /**
  * Add randomness to the default (shared) WELL state.
  *
- * @param ws		the WELL state to which we add randomness
  * @param data		the start of the random data buffer
  * @param len		the amount of random bytes to process in the buffer
  */

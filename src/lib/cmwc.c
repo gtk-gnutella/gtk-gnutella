@@ -441,7 +441,6 @@ cmwc_rand64(void)
 /**
  * Add randomness to the default (shared) CMWC state.
  *
- * @param cs		the CMWC state to which we add randomness
  * @param data		the start of the random data buffer
  * @param len		the amount of random bytes to process in the buffer
  */
