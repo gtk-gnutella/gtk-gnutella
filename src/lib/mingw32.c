@@ -169,8 +169,6 @@
 #define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
 #define WS2_LIBRARY		"ws2_32.dll"
 
-#define MINGW_TRACEFILE_KEEP	3		/* Keep traces for that many runs */
-
 #define TM_MILLION		1000000L
 #define TM_BILLION		1000000000L
 
@@ -2584,7 +2582,6 @@ fallback:
 /**
  * Return default stdout logfile when launched from the GUI.
  * Directories leading to the dirname of the result are created as needed.
- * This routine does not allocate any memory.
  */
 static const char *
 mingw_getstdout_path(void)
@@ -2600,7 +2597,6 @@ mingw_getstdout_path(void)
 /**
  * Return default stderr logfile when launched from the GUI.
  * Directories leading to the dirname of the result are created as needed.
- * This routine does not allocate any memory.
  */
 static const char *
 mingw_getstderr_path(void)
@@ -2609,6 +2605,21 @@ mingw_getstderr_path(void)
 	char buf[128];
 
 	str_bprintf(buf, sizeof buf, "%s.stderr", product_nickname());
+
+	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+}
+
+/**
+ * Return default supervisor logfile when launched from the GUI.
+ * Directories leading to the dirname of the result are created as needed.
+ */
+const char *
+mingw_get_supervisor_log_path(void)
+{
+	static char pathname[MAX_PATH];
+	char buf[128];
+
+	str_bprintf(buf, sizeof buf, "%s.super", product_nickname());
 
 	return mingw_build_personal_path(buf, pathname, sizeof pathname);
 }
@@ -7512,7 +7523,7 @@ mingw_stdio_reset(bool console)
  * Rotate pathname at startup time, renaming existing paths with a .0, .1, .2
  * extension, etc..., up to the maximum specified.
  */
-static G_GNUC_COLD void
+void G_GNUC_COLD
 mingw_file_rotate(const char *pathname, int keep)
 {
 	static char npath[MAX_PATH_LEN];

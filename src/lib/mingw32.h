@@ -37,7 +37,8 @@
 
 #ifdef MINGW32
 
-#define FD_SETSIZE      4096
+#define MINGW_TRACEFILE_KEEP	3		/* Keep logs for that many past runs */
+#define FD_SETSIZE      		4096	/* Max # of descriptors for select() */
 
 #include <ws2tcpip.h>
 
@@ -784,6 +785,8 @@ bool mingw_adns_send_request(const struct adns_request *req);
 
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
+const char *mingw_get_supervisor_log_path(void);
+void mingw_file_rotate(const char *pathname, int keep);
 
 #else	/* !MINGW32 */
 

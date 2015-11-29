@@ -1798,6 +1798,24 @@ main_supervise(void)
 	thread_set_main(TRUE);				/* Main thread will block! */
 	settings_unique_instance(TRUE);		/* Supervisor process */
 
+	/*
+	 * On Windows, when they launch us via the GUI (99% of the use cases)
+	 * there is no opportunity to give a --log-supervise option unless
+	 * they create a shortcut and add them on the command line.
+	 *
+	 * Therefore, if there is no --log-supervise set, force it for them
+	 * so that supervisor logs get separated from regular logs used by the
+	 * children.
+	 */
+
+#ifdef MINGW32
+	if (!OPT(log_supervise)) {
+		OPT(log_supervise) = TRUE;
+		OPTARG(log_supervise) = mingw_get_supervisor_log_path();
+		mingw_file_rotate(OPTARG(log_supervise), MINGW_TRACEFILE_KEEP);
+	}
+#endif	/* MINGW32 */
+
 	if (OPT(log_supervise)) {
 		log_set(LOG_STDOUT, OPTARG(log_supervise));
 		log_set(LOG_STDERR, OPTARG(log_supervise));
