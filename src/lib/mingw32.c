@@ -4690,7 +4690,7 @@ mingw_token_sid(HANDLE token, TOKEN_INFORMATION_CLASS which, SID **sid_ptr)
 		goto failed;
 
 	xfree(data);
-	*sid_ptr = sid;		/* Caller will need to hfree() this once done */
+	*sid_ptr = sid;		/* Caller will need to xfree() this once done */
 
 	return TRUE;
 
