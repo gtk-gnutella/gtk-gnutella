@@ -1832,7 +1832,7 @@ main_supervise(void)
 		s_message("use --log-supervise to redirect supervisor logs");
 	}
 
-	s_info("supervisor starting");
+	s_info("supervisor starting as PID %lu", (ulong) getpid());
 
 	s_message("walloc() size limit set to %zu", walloc_size_threshold());
 	if (!halloc_is_disabled())
