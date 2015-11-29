@@ -1298,7 +1298,7 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;
 
 	{
-		void *aptr[2] = { environ, &now };
+		void *aptr[] = { environ, &now, sbrk(0), entropy_seed };
 		ENTROPY_SHUFFLE_FEED(aptr, sha1_feed_pointer);
 	}
 
