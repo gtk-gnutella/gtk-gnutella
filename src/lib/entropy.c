@@ -1091,8 +1091,12 @@ entropy_self_feed(SHA1_context *ctx)
 	 */
 
 	memcpy(cbytes, ctx, sizeof cbytes);
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < 7; i++) {
+		tm_nano_t now;
+		tm_precise_time(&now);
+		rand31_addrandom(&now, sizeof now);
 		SHUFFLE_ARRAY_WITH(rand31_u32, cbytes);
+	}
 	SHA1_INPUT(ctx, cbytes);
 }
 
