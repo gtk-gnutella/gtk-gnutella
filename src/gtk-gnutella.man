@@ -30,6 +30,8 @@ Great care has been devoted into making
 .I gtk\-gnutella
 powerful, efficient and reliable.
 .SH OPTIONS
+All the options can be abbreviated as long as the supplied name is not
+ambiguous.
 .TP
 .B "\-\-compile-info"
 Tell

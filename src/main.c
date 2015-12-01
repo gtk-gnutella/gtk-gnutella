@@ -110,6 +110,7 @@
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
+#include "lib/bsearch.h"
 #include "lib/compat_misc.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
@@ -169,6 +170,7 @@
 #include "lib/wordvec.h"
 #include "lib/wq.h"
 #include "lib/xmalloc.h"
+#include "lib/xsort.h"
 #include "lib/xxtea.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
@@ -985,7 +987,7 @@ enum arg_type {
 	ARG_TYPE_PATH
 };
 
-static struct {
+static struct option {
 	const enum main_arg id;
 	const char * const name;
 	const char * const summary;
@@ -1056,24 +1058,47 @@ underscore_to_hyphen(char c)
 }
 
 /**
- * Checks whether two strings qualify as equivalent, the ASCII underscore
- * character and the ASCII hyphen character are considered equivalent.
+ * Compare two strings, the ASCII underscore character and the ASCII hyphen
+ * character being considered equivalent.
  *
- * @return whether the two strings qualify as equivalent or not.
+ * @return 0 if strings are equal, the sign of the comparison otherwise.
  */
-static bool
-option_match(const char *a, const char *b)
+static int
+option_strcmp(const char *a, const char *b)
 {
 	g_assert(a);
 	g_assert(b);
 
 	for (;;) {	
 		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b))
-			return FALSE;
-		if ('\0' == *a)
-			break;
+			return CMP(*a, *b);
+		if ('\0' == *a) {
+			if ('\0' == *b)
+				return 0;
+			return -1;
+		} else if ('\0' == *b) {
+			return +1;
+		}
 		a++;
 		b++;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Check whether ``prefix'' is a prefix of ``str'', considering "-" and "_"
+ * as identical characters.
+ */
+static bool
+option_strprefix(const char *str, const char *prefix)
+{
+	const char *s, *p;
+	int c;
+
+	for (s = str, p = prefix; '\0' != (c = *p); p++) {
+		if (underscore_to_hyphen(c) != underscore_to_hyphen(*s++))
+			return FALSE;
 	}
 
 	return TRUE;
@@ -1101,6 +1126,147 @@ option_pretty_name(const char *name)
 	return buf;
 }
 
+/**
+ * Pretty print option.
+ *
+ * @param f			where to print the formatted option name
+ * @param o			the option to print
+ */
+static void
+option_pretty_print(FILE *f, const struct option *o)
+{
+	const char *arg, *name;
+	size_t pad;
+
+	arg = "";
+	name = option_pretty_name(o->name);
+	switch (o->type) {
+	case ARG_TYPE_NONE:
+		break;
+	case ARG_TYPE_TEXT:
+		arg = " <argument>";
+		break;
+	case ARG_TYPE_PATH:
+		arg = " <path>";
+		break;
+	}
+
+	pad = strlen(name) + strlen(arg);
+	if (pad < 24) {
+		pad = 24 - pad;
+	} else {
+		pad = 0;
+	}
+
+	if (o->summary != NULL) {
+		fprintf(f, "  --%s%s%-*s%s\n",
+			name, arg, (int) MIN(pad, INT_MAX), "", o->summary);
+	} else {
+		fprintf(f, "  --%s%s\n", name, arg);
+	}
+}
+
+static int
+option_id_cmp(const void *a, const void *b)
+{
+	const struct option *oa = a, *ob = b;
+
+	return CMP(oa->id, ob->id);
+}
+
+static int
+option_name_cmp(const void *a, const void *b)
+{
+	const struct option *oa = a, *ob = b;
+
+	return option_strcmp(oa->name, ob->name);
+}
+
+static int
+option_name_prefix(const void *key, const void *item)
+{
+	const char *name = key;
+	const struct option *oi = item;
+
+	if (option_strprefix(oi->name, name))
+		return 0;
+
+	return option_strcmp(name, oi->name);
+}
+
+static void G_GNUC_NORETURN
+option_ambiguous(const char *name, struct option *item)
+{
+	struct option *min = item, *max = item, *o;
+	struct option *end = &options[G_N_ELEMENTS(options)];
+
+	fprintf(stderr, "%s: ambiguous option --%s\n", getprogname(), name);
+	fprintf(stderr, "Could mean either of:\n");
+
+	for (o = item - 1; ptr_cmp(o, options) >= 0; o--) {
+		if (option_strprefix(o->name, name))
+			min = o;
+		else
+			break;
+	}
+
+	for (o = item + 1; ptr_cmp(o, end) < 0; o++) {
+		if (option_strprefix(o->name, name))
+			max = o;
+		else
+			break;
+	}
+
+	for (o = min; ptr_cmp(o, max) <= 0; o++) {
+		option_pretty_print(stderr, o);
+	}
+
+	exit(EXIT_FAILURE);
+}
+
+/**
+ * Lookup for option whose name starts with supplied name and which is
+ * non-ambiguous
+ *
+ * @attention
+ * The options[] array must be sorted by name, not by ID, at the time
+ * this call is made.
+ *
+ * @param name		the option we're looking for
+ * @param fatal		whether an ambiguous option means fatal error
+ *
+ * @return pointer within the options[] array if found and unique, or NULL.
+ */
+static struct option *
+option_find(const char *name, bool fatal)
+{
+	struct option *item;
+
+	item = bsearch(name,
+		options, G_N_ELEMENTS(options), sizeof options[0], option_name_prefix);
+
+	if (NULL == item)
+		return NULL;
+
+	if (ptr_cmp(item, options) > 0) {
+		if (option_strprefix((item - 1)->name, name))
+			goto ambiguous;
+	}
+
+	if (ptr_cmp(item, options + G_N_ELEMENTS(options) - 1) < 0) {
+		if (option_strprefix((item + 1)->name, name))
+			goto ambiguous;
+	}
+
+	return item;		/* Must be unique match since array is sorted */
+
+ambiguous:
+	if (!fatal)
+		return NULL;
+
+	option_ambiguous(name, item);
+}
+
 static void G_GNUC_NORETURN
 usage(int exit_code)
 {
@@ -1109,37 +1275,15 @@ usage(int exit_code)
 
 	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
 	fprintf(f, "Usage: %s [ options ... ]\n", getprogname());
-	
+
+	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
 	for (i = 0; i < G_N_ELEMENTS(options); i++) {
 		g_assert(options[i].id == i);
 
 		if (options[i].summary) {
-			const char *arg, *name;
-			size_t pad;
-
-			arg = "";
-			name = option_pretty_name(options[i].name);
-			switch (options[i].type) {
-			case ARG_TYPE_NONE:
-				break;
-			case ARG_TYPE_TEXT:
-				arg = " <argument>";
-				break;
-			case ARG_TYPE_PATH:
-				arg = " <path>";
-				break;
-			}
-			
-			pad = strlen(name) + strlen(arg);
-			if (pad < 24) {
-				pad = 24 - pad;
-			} else {
-				pad = 0;
-			}
-
-			fprintf(f, "  --%s%s%-*s%s\n",
-				name, arg, (int) MIN(pad, INT_MAX), "", options[i].summary);
+			option_pretty_print(f, &options[i]);
 		}
 	}
 	
@@ -1153,15 +1297,19 @@ usage(int exit_code)
 static void
 prehandle_arguments(char **argv)
 {
+	unsigned i;
+
 	argv++;
 
 #ifdef USE_TOPLESS
 	OPT(topless) = TRUE;
 #endif	/* USE_TOPLESS */
 
+	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_name_cmp);
+
 	while (argv[0]) {
 		const char *s;
-		unsigned i;
+		struct option *o;
 
 		s = is_strprefix(argv[0], "--");
 		if (NULL == s || '\0' == s[0])
@@ -1169,33 +1317,39 @@ prehandle_arguments(char **argv)
 
 		argv++;
 
-		for (i = 0; i < G_N_ELEMENTS(options); i++) {
-			if (option_match(options[i].name, s))
-				break;
-		}
-		if (G_N_ELEMENTS(options) == i)
-			return;
+		o = option_find(s, FALSE);
+		if (NULL == o)
+			goto done;
 
-		switch (i) {
+		switch (o->id) {
 		case main_arg_no_halloc:
 		case main_arg_child:
 		case main_arg_no_supervise:
 		case main_arg_topless:
-			options[i].used = TRUE;
+			o->used = TRUE;
+			break;
+		default:
 			break;
 		}
 
-		switch (options[i].type) {
+		switch (o->type) {
 		case ARG_TYPE_NONE:
 			break;
 		case ARG_TYPE_TEXT:
 		case ARG_TYPE_PATH:
 			if (NULL == argv[0] || '-' == argv[0][0])
-				return;
+				goto done;
 
 			argv++;
 			break;
 		}
+	}
+
+done:
+	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+
+	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+		g_assert(options[i].id == i);
 	}
 }
 
@@ -1229,11 +1383,14 @@ parse_arguments(int argc, char **argv)
 		g_assert(options[i].id == i);
 	}
 
+	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_name_cmp);
+
 	argv++;		/* Skip argv[0] */
 	argc--;
 
 	while (argc > 0) {
 		const char *s;
+		struct option *o;
 
 		s = is_strprefix(argv[0], "--");
 		if (NULL == s)
@@ -1244,15 +1401,12 @@ parse_arguments(int argc, char **argv)
 		argv++;
 		argc--;
 
-		for (i = 0; i < G_N_ELEMENTS(options); i++) {
-			if (option_match(options[i].name, s))
-				break;
-		}
-		if (G_N_ELEMENTS(options) == i)
+		o = option_find(s, TRUE);
+		if (NULL == o)
 			main_error("unknown option \"--%s\"\n", s);
 
-		options[i].used = TRUE;
-		switch (options[i].type) {
+		o->used = TRUE;
+		switch (o->type) {
 		case ARG_TYPE_NONE:
 			break;
 		case ARG_TYPE_TEXT:
@@ -1260,13 +1414,13 @@ parse_arguments(int argc, char **argv)
 			if (argc < 0 || NULL == argv[0] || '-' == argv[0][0])
 				main_error("missing argument for \"--%s\"\n", s);
 
-			switch (options[i].type) {
+			switch (o->type) {
 			case ARG_TYPE_TEXT:
-				options[i].arg = NOT_LEAKING(h_strdup(argv[0]));
+				o->arg = NOT_LEAKING(h_strdup(argv[0]));
 				break;
 			case ARG_TYPE_PATH:
-				options[i].arg = NOT_LEAKING(absolute_pathname(argv[0]));
-				if (NULL == options[i].arg) {
+				o->arg = NOT_LEAKING(absolute_pathname(argv[0]));
+				if (NULL == o->arg) {
 					main_error(
 						"could not determine absolute path for \"--%s\"\n", s);
 				}
@@ -1278,6 +1432,12 @@ parse_arguments(int argc, char **argv)
 			argc--;
 			break;
 		}
+	}
+
+	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+
+	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+		g_assert(options[i].id == i);
 	}
 }
 
