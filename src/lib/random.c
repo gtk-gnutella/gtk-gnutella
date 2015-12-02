@@ -980,7 +980,13 @@ static bool
 random_entropy(void *unused)
 {
 	static enum random_prng prngs[] =
-		{ RANDOM_AJE, RANDOM_ARC4, RANDOM_CMWC, RANDOM_WELL };
+		/* Priority to ARC4, then AJE -- see detailed comment below */
+		{
+			RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4,
+			RANDOM_AJE, RANDOM_AJE, RANDOM_AJE,
+			RANDOM_CMWC,
+			RANDOM_WELL
+		};
 	bool has_new;
 	struct random_byte_data *rbd = NULL;
 	uint8 entropy[256];
@@ -1012,6 +1018,18 @@ random_entropy(void *unused)
 	/*
 	 * Now feed the random entropy to RANDOM_PRNG_SELECT randomly selected
 	 * generators.
+	 *
+	 * The items in the prngs[] array are not uniformly distributed: we give
+	 * a higher chance to ARC4 because there are immediate effects on the
+	 * output.  Then to AJE because this spreads randomness in the AJE pools
+	 * and safeguards the long-term unpredictability of AJE outputs.
+	 *
+	 * Both WELL and CMWC contexts are less likely to be given new randomness
+	 * because they are not cryptographically strong algorithms and are more
+	 * designed for the long-term statistical properties of their numbers.
+	 *
+	 * This preference is given by having a larger proportion of ARC4, then
+	 * AJE, and only a marginal presence for WELL and CMWC.
 	 *
 	 * NOTE: we do not need to lock the global prngs[] array here since we
 	 * know this routine is periodically dispatched from the event queue
@@ -1102,13 +1120,14 @@ random_add(const void *data, size_t datalen)
 
 	/*
 	 * The collected data is given to AJE (the global instance), and we then
-	 * extract random data out of AJE to feed it to the other generators.
+	 * extract random data out of AJE to feed it to the other generators in
+	 * the periodically scheduled random_entropy() call.
 	 */
 
 	aje_addrandom(data, datalen);
 
 	/*
-	 * Signal that we have fresh entropy to dispatch.
+	 * Signal to random_entropy() that we have fresh entropy to dispatch.
 	 */
 
 	RANDOM_ENTROPY_LOCK;
