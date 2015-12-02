@@ -273,18 +273,14 @@ charcmp(char a, char b)
 static unsigned
 ctl_get_flags(char opt)
 {
-#define GET_KEY(i) (ctl_options[(i)].c)
-#define FOUND(i) G_STMT_START { \
-	return ctl_options[(i)].flag; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET(i)		(ctl_options[(i)].c)
+#define FOUND(i)	return ctl_options[(i)].flag
 
 	/* Perform a binary search to find ``opt'' */
-	BINARY_SEARCH(char, opt, G_N_ELEMENTS(ctl_options), charcmp,
-		GET_KEY, FOUND);
+	BINARY_SEARCH(char, opt, G_N_ELEMENTS(ctl_options), charcmp, GET, FOUND);
 
 #undef FOUND
-#undef GET_KEY
+#undef GET
 
 	return 0;		/* Not found */
 }

@@ -375,10 +375,7 @@ lookup_secondary_idx(const struct keydata *kd, const kuid_t *skey)
 	g_assert(skey);
 
 #define GET_ITEM(i)		&kd->creators[i]
-#define FOUND(i) G_STMT_START {		\
-	return i;						\
-	/* NOTREACHED */				\
-} G_STMT_END
+#define FOUND(i)		return i
 
 	/* Perform a binary search to find the index where "skey" lies */
 	BINARY_SEARCH(const kuid_t *, skey, kd->values, kuid_cmp, GET_ITEM, FOUND);
@@ -404,10 +401,7 @@ lookup_secondary(const struct keydata *kd, const kuid_t *skey)
 	g_assert(skey);
 
 #define GET_ITEM(i)		&kd->creators[i]
-#define FOUND(i) G_STMT_START {		\
-	return kd->dbkeys[i];			\
-	/* NOTREACHED */				\
-} G_STMT_END
+#define FOUND(i)		return kd->dbkeys[i]
 
 	/* Perform a binary search to find the 64-bit DB key */
 	BINARY_SEARCH(const kuid_t *, skey, kd->values, kuid_cmp, GET_ITEM, FOUND);
