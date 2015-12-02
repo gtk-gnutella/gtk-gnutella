@@ -797,7 +797,7 @@ random_collect(void)
 	static tm_t last;
 	static time_delta_t prev;
 	static time_delta_t running;
-	static unsigned sum;
+	static uint32 sum;
 	static spinlock_t collect_slk = SPINLOCK_INIT;
 	tm_t now;
 	time_delta_t d;
@@ -852,6 +852,7 @@ random_collect(void)
 
 	sum += r;
 	rbyte = sum & 0xff;
+	sum = UINT32_ROTL(sum, 7);
 
 	spinunlock(&collect_slk);
 
