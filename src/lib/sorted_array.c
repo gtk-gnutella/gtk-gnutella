@@ -241,8 +241,11 @@ sorted_array_sync(struct sorted_array *tab,
 	}
 }
 
+/**
+ * @return amount of items held in array.
+ */
 size_t
-sorted_array_size(const struct sorted_array *tab)
+sorted_array_count(const struct sorted_array *tab)
 {
 	sorted_array_check(tab);
 	return tab->num_items;
