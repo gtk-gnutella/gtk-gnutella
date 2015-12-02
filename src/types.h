@@ -161,6 +161,10 @@ typedef void (*notify_data_fn_t)(void *data, void *user_data);
 typedef void (*callback_fn_t)(void);
 typedef int (*action_fn_t)(void);
 
+/* Generic object field extraction routine */
+
+typedef void *(*get_fn_t)(const void *obj);
+
 /* Generic processing routine */
 
 typedef void *(*process_fn_t)(void *);
