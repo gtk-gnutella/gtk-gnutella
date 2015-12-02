@@ -104,7 +104,7 @@
 #include "override.h"			/* Must be the last header included */
 
 #define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
-#define RANDOM_PRNG_SELECT		2			/* # of PRNGs to feed entropy to */
+#define RANDOM_PRNG_SELECT		1			/* # of PRNGs to feed entropy to */
 
 /**
  * Pseudo Random Number Generators managed by this library and for which
