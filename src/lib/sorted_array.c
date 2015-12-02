@@ -47,11 +47,11 @@ enum sorted_array_magic { SORTED_ARRAY_MAGIC = 0x054eca44 };
 struct sorted_array {
 	enum sorted_array_magic magic;
 	void *items;		/**< The actual array data */
-	size_t num_items;	/**< Number of valid items */
-	size_t num_size;	/**< Number of allocated items */
-	size_t num_added;	/**< Number of items added */
-	size_t item_size;	/**< The size of an array item (in bytes) */
-	int (*cmp_func)(const void *a, const void *b); /**< Defines the order */
+	size_t count;		/**< Number of valid items (sorted so far) */
+	size_t capacity;	/**< Number of allocated items */
+	size_t added;		/**< Number of items added */
+	size_t isize;		/**< The size of an array item (in bytes) */
+	int (*cmp)(const void *a, const void *b); /**< Defines the order */
 };
 
 static inline void
@@ -64,24 +64,24 @@ sorted_array_check(const struct sorted_array * const sa)
 /**
  * Create new sorted array.
  *
- * @param item_size		size of each (expanded) item
- * @param cmp_func		item comparison function
+ * @param isize		size of each (expanded) item
+ * @param cmp		item comparison function
  *
  * @return created array.
  */
 struct sorted_array *
-sorted_array_new(size_t item_size,
-	int (*cmp_func)(const void *a, const void *b))
+sorted_array_new(size_t isize,
+	int (*cmp)(const void *a, const void *b))
 {
 	struct sorted_array *tab;
 
-	g_return_val_if_fail(item_size > 0, NULL);
-	g_return_val_if_fail(cmp_func, NULL);
+	g_return_val_if_fail(isize > 0, NULL);
+	g_return_val_if_fail(cmp, NULL);
 
 	WALLOC0(tab);
 	tab->magic = SORTED_ARRAY_MAGIC;
-	tab->item_size = item_size;
-	tab->cmp_func = cmp_func;
+	tab->isize = isize;
+	tab->cmp = cmp;
 	return tab;
 }
 
@@ -107,7 +107,7 @@ static inline ALWAYS_INLINE void *
 sorted_array_item_intern(const struct sorted_array *tab, size_t i)
 {
 	char *base = tab->items;
-	return &base[tab->item_size * i];
+	return &base[tab->isize * i];
 }
 
 /**
@@ -119,7 +119,7 @@ void *
 sorted_array_item(const struct sorted_array *tab, size_t i)
 {
 	sorted_array_check(tab);
-	g_assert(i < tab->num_items);
+	g_assert(i < tab->count);
 
 	return sorted_array_item_intern(tab, i);
 }
@@ -141,7 +141,7 @@ sorted_array_lookup(struct sorted_array *tab, const void *key)
 } G_STMT_END
 	
 	BINARY_SEARCH(const void *, key,
-		tab->num_items, tab->cmp_func, GET_ITEM, FOUND);
+		tab->count, tab->cmp, GET_ITEM, FOUND);
 
 #undef GET_ITEM
 #undef FOUND
@@ -162,14 +162,14 @@ sorted_array_add(struct sorted_array *tab, const void *item)
 	
 	sorted_array_check(tab);
 
-	if (tab->num_added >= tab->num_size) {
-		tab->num_size = tab->num_size ? (tab->num_size * 2) : 8;
-		tab->items = hrealloc(tab->items, tab->num_size * tab->item_size);
+	if (tab->added >= tab->capacity) {
+		tab->capacity = tab->capacity ? (tab->capacity * 2) : 8;
+		tab->items = hrealloc(tab->items, tab->capacity * tab->isize);
 	}
 
-	dst = sorted_array_item_intern(tab, tab->num_added);
-	memmove(dst, item, tab->item_size);
-	tab->num_added++;
+	dst = sorted_array_item_intern(tab, tab->added);
+	memmove(dst, item, tab->isize);
+	tab->added++;
 }
 
 /**
@@ -189,7 +189,7 @@ sorted_array_sync(struct sorted_array *tab,
 
 	sorted_array_check(tab);
 
-	vsort(tab->items, tab->num_added, tab->item_size, tab->cmp_func);
+	vsort(tab->items, tab->added, tab->isize, tab->cmp);
 
 	/*
 	 * Remove duplicates and overlapping ranges. Wider ranges override
@@ -200,12 +200,12 @@ sorted_array_sync(struct sorted_array *tab,
 		size_t removed;
 
 		removed = 0;
-		for (i = 1; i < tab->num_added; i++) {
+		for (i = 1; i < tab->added; i++) {
 			void *a, *b;
 
 			a = sorted_array_item_intern(tab, i - 1);
 			b = sorted_array_item_intern(tab, i);
-			if (0 == tab->cmp_func(a, b)) {
+			if (0 == tab->cmp(a, b)) {
 				void *dst;
 				int ret;
 
@@ -215,29 +215,26 @@ sorted_array_sync(struct sorted_array *tab,
 					
 					removed++;
 					/* Overwrite the current item with last listed item. */
-					last = sorted_array_item_intern(tab,
-								tab->num_added - removed);
+					last = sorted_array_item_intern(tab, tab->added - removed);
 					dst = ret < 0 ? a : b;
-					memcpy(dst, last, tab->item_size);
+					memcpy(dst, last, tab->isize);
 				}
-
 			}
 		}
 
 		if (removed > 0) {
 			/* Finally, correct order and item count. */
-			tab->num_added -= removed;
-			vsort_almost(tab->items, tab->num_added, tab->item_size,
-				tab->cmp_func);
+			tab->added -= removed;
+			vsort_almost(tab->items, tab->added, tab->isize, tab->cmp);
 		}
 	}
 
-	tab->num_items = tab->num_added;
+	tab->count = tab->added;
 	
 	/* Compact the array if possible to save some memory. */
-	if (tab->num_size > tab->num_items) {
-		tab->num_size = tab->num_items;
-		tab->items = hrealloc(tab->items, tab->num_size * tab->item_size);
+	if (tab->capacity > tab->count) {
+		tab->capacity = tab->count;
+		tab->items = hrealloc(tab->items, tab->capacity * tab->isize);
 	}
 }
 
@@ -248,7 +245,7 @@ size_t
 sorted_array_count(const struct sorted_array *tab)
 {
 	sorted_array_check(tab);
-	return tab->num_items;
+	return tab->count;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
