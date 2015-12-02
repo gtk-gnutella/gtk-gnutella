@@ -88,6 +88,7 @@ size_t xmalloc_freelist_check(struct logagent *la, unsigned flags);
 void xmalloc_stats_digest(struct sha1 *digest);
 
 void xgc(void);
+void xmalloc_long_term(void);
 
 void *xmalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *xmalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;

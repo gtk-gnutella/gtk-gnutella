@@ -737,7 +737,7 @@ xmalloc_vmm_setup(void)
 /**
  * Called when the VMM layer has been initialized.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 xmalloc_vmm_inited(void)
 {
 	STATIC_ASSERT(sizeof(struct xheader) == sizeof(size_t));
@@ -759,12 +759,27 @@ xmalloc_vmm_inited(void)
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
 #endif
+}
 
+/**
+ * Tells the xmalloc() layer that it runs in long-term process.
+ *
+ * A short-term process is not going to require aggressive strategies to
+ * compact unused memory, hence it will not require that we install xgc().
+ */
+void G_GNUC_COLD
+xmalloc_long_term(void)
+{
 	/*
 	 * We wait for the VMM layer to be up before we install the xgc() idle
 	 * thread in an attempt to tweak the self-bootstrapping path of this
 	 * library and avoid creating some objects too early: we wish to avoid
 	 * sbrk() allocation if possible.
+	 *
+	 * The GC is now only installed then vmm_set_strategy() is called to
+	 * install a long-term allocation strategy.  Hence we know that the VMM
+	 * layer is up.
+	 *		--RAM, 2015-12-02
 	 */
 
 	once_flag_run(&xmalloc_xgc_installed, xmalloc_xgc_install);

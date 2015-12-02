@@ -5004,6 +5004,8 @@ vmm_set_strategy(enum vmm_strategy strategy)
 {
 	VMM_STRATEGY_LOCK;
 
+	vmm_init();		/* For the improbable case where it would not be done! */
+
 	switch (strategy) {
 	case VMM_STRATEGY_SHORT_TERM:
 		cq_periodic_remove(&vmm_periodic);
@@ -5011,6 +5013,8 @@ vmm_set_strategy(enum vmm_strategy strategy)
 	case VMM_STRATEGY_LONG_TERM:
 		if (NULL == vmm_periodic)
 			vmm_periodic = evq_raw_periodic_add(1000, page_cache_timer, NULL);
+		xmalloc_long_term();
+		zalloc_long_term();
 		break;
 	}
 
@@ -5618,7 +5622,6 @@ vmm_init_once(void)
 	 */
 
 	xmalloc_vmm_inited();
-	zalloc_vmm_inited();
 
 	atomic_bool_set(&vmm_fully_inited, TRUE);
 }

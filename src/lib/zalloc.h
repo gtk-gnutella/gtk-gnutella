@@ -85,6 +85,7 @@ void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
 void zfree_pslist(zone_t *, struct pslist *);
 void zfree_eslist(zone_t *zone, struct eslist *el);
 void zgc(bool overloaded);
+void zalloc_long_term(void);
 
 void zalloc_stats_digest(struct sha1 *digest);
 

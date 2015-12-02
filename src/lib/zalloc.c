@@ -3197,13 +3197,18 @@ zalloc_zgc_install(void)
  * Called when the VMM layer has been initialized.
  */
 G_GNUC_COLD void
-zalloc_vmm_inited(void)
+zalloc_long_term(void)
 {
 	static once_flag_t zalloc_zgc_installed;
 
 	/*
 	 * We wait for the VMM layer to be up before we install the zgc() idle
 	 * callback in an attempt to tweak the self-bootstrapping path.
+	 *
+	 * The GC is now only installed then vmm_set_strategy() is called to
+	 * install a long-term allocation strategy.  Hence we know that the VMM
+	 * layer is up.
+	 *		--RAM, 2015-12-02
 	 */
 
 	once_flag_run(&zalloc_zgc_installed, zalloc_zgc_install);
