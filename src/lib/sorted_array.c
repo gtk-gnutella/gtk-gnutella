@@ -42,7 +42,10 @@
 
 #include "override.h"		/* Must be the last header included */
 
+enum sorted_array_magic { SORTED_ARRAY_MAGIC = 0x054eca44 };
+
 struct sorted_array {
+	enum sorted_array_magic magic;
 	void *items;		/**< The actual array data */
 	size_t num_items;	/**< Number of valid items */
 	size_t num_size;	/**< Number of allocated items */
@@ -50,6 +53,13 @@ struct sorted_array {
 	size_t item_size;	/**< The size of an array item (in bytes) */
 	int (*cmp_func)(const void *a, const void *b); /**< Defines the order */
 };
+
+static inline void
+sorted_array_check(const struct sorted_array * const sa)
+{
+	g_assert(sa != NULL);
+	g_assert(SORTED_ARRAY_MAGIC == sa->magic);
+}
 
 /**
  * Create new sorted array.
@@ -63,14 +73,13 @@ struct sorted_array *
 sorted_array_new(size_t item_size,
 	int (*cmp_func)(const void *a, const void *b))
 {
-	static const struct sorted_array zero_tab;
 	struct sorted_array *tab;
 
 	g_return_val_if_fail(item_size > 0, NULL);
 	g_return_val_if_fail(cmp_func, NULL);
 
-	WALLOC(tab);
-	*tab = zero_tab;
+	WALLOC0(tab);
+	tab->magic = SORTED_ARRAY_MAGIC;
 	tab->item_size = item_size;
 	tab->cmp_func = cmp_func;
 	return tab;
@@ -86,7 +95,9 @@ sorted_array_free(struct sorted_array **tab_ptr)
 	
 	tab = *tab_ptr;
 	if (tab) {
+		sorted_array_check(tab);
 		HFREE_NULL(tab->items);
+		tab->magic = 0;
 		WFREE(tab);
 		*tab_ptr = NULL;
 	}
@@ -107,7 +118,7 @@ sorted_array_item_intern(const struct sorted_array *tab, size_t i)
 void *
 sorted_array_item(const struct sorted_array *tab, size_t i)
 {
-	g_assert(tab);
+	sorted_array_check(tab);
 	g_assert(i < tab->num_items);
 
 	return sorted_array_item_intern(tab, i);
@@ -121,7 +132,7 @@ sorted_array_item(const struct sorted_array *tab, size_t i)
 G_GNUC_HOT void *
 sorted_array_lookup(struct sorted_array *tab, const void *key)
 {
-	g_assert(tab);
+	sorted_array_check(tab);
 
 #define GET_ITEM(i) (sorted_array_item_intern(tab, (i)))
 #define FOUND(i) G_STMT_START { \
@@ -149,7 +160,7 @@ sorted_array_add(struct sorted_array *tab, const void *item)
 {
 	void *dst;
 	
-	g_assert(tab);
+	sorted_array_check(tab);
 
 	if (tab->num_added >= tab->num_size) {
 		tab->num_size = tab->num_size ? (tab->num_size * 2) : 8;
@@ -176,7 +187,7 @@ sorted_array_sync(struct sorted_array *tab,
 {
 	size_t i;
 
-	g_assert(tab);
+	sorted_array_check(tab);
 
 	vsort(tab->items, tab->num_added, tab->item_size, tab->cmp_func);
 
@@ -233,7 +244,7 @@ sorted_array_sync(struct sorted_array *tab,
 size_t
 sorted_array_size(const struct sorted_array *tab)
 {
-	g_assert(tab);
+	sorted_array_check(tab);
 	return tab->num_items;
 }
 
