@@ -995,6 +995,15 @@ random_entropy(void *unused)
 	(void) unused;
 	RANDOM_STATS_INC(random_entropy);
 
+	/*
+	 * This routine is regularily scheduled.  In case there is no other source
+	 * of entropy in the process, collect one random byte into the pool,
+	 * which eventually will get full, flushed, and will allow us to proceed
+	 * further and dispatch our collected randomness.
+	 */
+
+	random_collect();
+
 	RANDOM_ENTROPY_LOCK;
 
 	has_new = random_entropy_new;
