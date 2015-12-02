@@ -35,6 +35,7 @@
 
 #include "sorted_array.h"
 
+#include "bsearch.h"
 #include "halloc.h"
 #include "misc.h"
 #include "vsort.h"
@@ -134,18 +135,7 @@ sorted_array_lookup(struct sorted_array *tab, const void *key)
 {
 	sorted_array_check(tab);
 
-#define GET_ITEM(i) (sorted_array_item_intern(tab, (i)))
-#define FOUND(i) G_STMT_START { \
-	return sorted_array_item_intern(tab, (i)); \
-	/* NOTREACHED */ \
-} G_STMT_END
-	
-	BINARY_SEARCH(const void *, key,
-		tab->count, tab->cmp, GET_ITEM, FOUND);
-
-#undef GET_ITEM
-#undef FOUND
-	return NULL;
+	return bsearch(key, tab->items, tab->count, tab->isize, tab->cmp);
 }
 
 /**
