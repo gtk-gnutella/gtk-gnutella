@@ -527,7 +527,7 @@ static struct xstats {
 	AU64(realloc_from_thread_pool);			/**< Original was in thread pool */
 	AU64(freelist_insertions);				/**< Insertions in freelist */
 	AU64(freelist_insertions_no_coalescing);/**< Coalescing forbidden */
-	AU64(freelist_insertions_deferred);		/**< Deferred insertions */
+	uint64 freelist_insertions_deferred;	/**< Deferred insertions */
 	uint64 freelist_deferred_processed;		/**< Deferred blocks processed */
 	AU64(freelist_bursts);					/**< Burst detection events */
 	AU64(freelist_burst_insertions);		/**< Burst insertions in freelist */
@@ -553,6 +553,7 @@ static struct xstats {
 	AU64(xgc_runs);						/**< Amount of xgc() runs */
 	AU64(xgc_time_throttled);			/**< Throttled due to running time */
 	uint64 xgc_collected;				/**< Amount of xgc() calls collecting */
+	uint64 xgc_avoided;					/**< Avoided xgc() due to no change */
 	AU64(xgc_blocks_collected);			/**< Amount of blocks collected */
 	uint64 xgc_pages_collected;			/**< Amount of pages collected */
 	uint64 xgc_coalesced_blocks;		/**< Amount of blocks coalesced */
@@ -584,6 +585,7 @@ static size_t sbrk_alignment;		/**< Adjustments for sbrk() alignment */
 static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
 static bool xmalloc_crashing;		/**< Crashing mode, minimal servicing */
+static long xmalloc_freelist_stamp;	/**< Updated each time we add to freelist */
 
 static void *lowest_break;			/**< Lowest heap address we know */
 static void *current_break;			/**< Current known heap break */
@@ -2355,6 +2357,7 @@ plain_insert:
 	XSTATS_LOCK;
 	xstats.freelist_blocks++;
 	xstats.freelist_memory += fl->blocksize;
+	xmalloc_freelist_stamp++;		/* Let GC know it can run */
 	XSTATS_UNLOCK;
 
 	assert_xfl_sorted(fl, 0, fl->sorted, "after %ssorted %s xfl_insert @ %zu",
@@ -2498,7 +2501,10 @@ xfl_defer(struct xfreelist *fl, void *p)
 	xdf->count++;
 	spinunlock(&xdf->lock);
 
-	XSTATS_INCX(freelist_insertions_deferred);
+	XSTATS_LOCK;
+	xstats.freelist_insertions_deferred++;
+	xmalloc_freelist_stamp++;		/* Let GC know it can run */
+	XSTATS_UNLOCK;
 }
 
 /**
@@ -6138,6 +6144,7 @@ xgc(void)
 {
 	static time_t next_run;
 	static spinlock_t xgc_slk = SPINLOCK_INIT;
+	static long last_freelist_stamp;
 	time_t now;
 	unsigned i;
 	size_t blocks;
@@ -6152,6 +6159,18 @@ xgc(void)
 
 	if (!xmalloc_vmm_is_up)
 		return;
+
+	/*
+	 * If there has been no changes in the freelist (no insertions nor any
+	 * deferred block pending), we do not need to spend time here.
+	 */
+
+	XSTATS_LOCK;
+
+	if (last_freelist_stamp == xmalloc_freelist_stamp)
+		goto avoided;
+
+	XSTATS_UNLOCK;
 
 	if (!spinlock_try(&xgc_slk))
 		return;
@@ -6493,7 +6512,20 @@ unlock:
 	}
 
 done:
+	XSTATS_LOCK;
+	last_freelist_stamp = xmalloc_freelist_stamp;
+	XSTATS_UNLOCK;
+
 	spinunlock(&xgc_slk);
+	return;
+
+avoided:
+	if (xmalloc_debugging(0)) {
+		s_debug("XM GC call avoided (no freelist change)");
+	}
+
+	xstats.xgc_avoided++;
+	XSTATS_UNLOCK;
 }
 
 /**
@@ -6668,7 +6700,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(realloc_from_thread_pool);
 	DUMP64(freelist_insertions);
 	DUMP64(freelist_insertions_no_coalescing);
-	DUMP64(freelist_insertions_deferred);
+	DUMP(freelist_insertions_deferred);
 	DUMP(freelist_deferred_processed);
 	DUMP64(freelist_bursts);
 	DUMP64(freelist_burst_insertions);
@@ -6709,6 +6741,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(xgc_runs);
 	DUMP64(xgc_time_throttled);
 	DUMP(xgc_collected);
+	DUMP(xgc_avoided);
 	DUMP64(xgc_blocks_collected);
 	DUMP(xgc_pages_collected);
 	DUMP(xgc_coalesced_blocks);
