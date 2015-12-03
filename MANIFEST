@@ -1008,6 +1008,8 @@ src/lib/vector.c
 src/lib/vector.h
 src/lib/vendors.c
 src/lib/vendors.h
+src/lib/vmea.c
+src/lib/vmea.h
 src/lib/vmm.c
 src/lib/vmm.h
 src/lib/vsort.c

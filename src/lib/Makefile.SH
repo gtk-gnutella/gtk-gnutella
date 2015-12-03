@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-196]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-199]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -305,6 +305,7 @@ LSRC = \
 	utf8.c \
 	vector.c \
 	vendors.c \
+	vmea.c \
 	vmm.c \
 	vsort.c \
 	waiter.c \
@@ -500,6 +501,7 @@ LOBJ = \
 	utf8.o \
 	vector.o \
 	vendors.o \
+	vmea.o \
 	vmm.o \
 	vsort.o \
 	waiter.o \

@@ -236,6 +236,7 @@ LSRC = \
 	utf8.c \
 	vector.c \
 	vendors.c \
+	vmea.c \
 	vmm.c \
 	vsort.c \
 	waiter.c \
