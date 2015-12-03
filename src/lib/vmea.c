@@ -237,9 +237,17 @@ vmea_alloc(size_t size)
 		if ((size_t) -1 == first)
 			goto failed;
 
-		last = bit_array_first_set(vr->bitmap, first + 1, vr->pages - 1);
-		if ((size_t) -1 == last)
-			last = vr->pages;		/* First bit beyond the bitmap */
+		if (first + n > vr->pages)
+			goto failed;				/* No room within region */
+
+		if (first + n != vr->pages) {
+			g_assert(first + n < vr->pages);
+			last = bit_array_first_set(vr->bitmap, first + 1, first + n);
+			if ((size_t) -1 == last)
+				last = vr->pages;		/* First bit beyond the bitmap */
+		} else {
+			last = vr->pages;			/* First bit beyond the bitmap */
+		}
 
 		if (n <= last - first) {
 			bit_array_set_range(vr->bitmap, first, first + n - 1);
