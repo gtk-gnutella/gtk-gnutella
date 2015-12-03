@@ -163,6 +163,7 @@
 #include "lib/tmalloc.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
+#include "lib/vmea.h"
 #include "lib/vmm.h"
 #include "lib/vsort.h"
 #include "lib/walloc.h"
@@ -198,6 +199,8 @@
 
 #define LOAD_HIGH_WATERMARK		95	/**< % amount over which we're overloaded */
 #define LOAD_LOW_WATERMARK		80	/**< lower threshold to clear condition */
+
+#define VMEA_SIZE	(2 * 1024 * 1024)	/**< Emergency region size: 2 MiB */
 
 static unsigned main_slow_update;
 static volatile sig_atomic_t exiting;
@@ -901,6 +904,7 @@ gtk_gnutella_exit(int exit_code)
 	 */
 
 	gm_mem_set_safe_vtable();
+	DO(vmea_close);
 	DO(atoms_close);
 	DO(wdestroy);
 	DO(zclose);
@@ -2348,6 +2352,7 @@ main(int argc, char **argv)
 	}
 
 	symbols_set_verbose(TRUE);
+	vmea_reserve(VMEA_SIZE);
 
 	/*
 	 * If one of the two below fails, the GLib installation is broken.

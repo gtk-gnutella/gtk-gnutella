@@ -133,6 +133,7 @@
 #include "tm.h"
 #include "tmalloc.h"
 #include "unsigned.h"
+#include "vmea.h"
 #include "xmalloc.h"
 #include "zalloc.h"
 
@@ -1760,6 +1761,23 @@ alloc_pages(size_t size, bool update_pmap)
 
 			goto allocated;
 		}
+
+		/*
+		 * Last resort: use the VM emergency region if we have one.
+		 */
+
+		p = vmea_alloc(size);
+		if (p != NULL) {
+			/* We're going to crash and restart, don't update statistics */
+
+			crash_restart("%s(): allocation of %'zu bytes via emergency region"
+				", requesting restart",
+				G_STRFUNC, size);
+
+			/* Allocation from emergency region, already present in the pmap */
+		}
+
+		/* FALL THROUGH */
 
 	done:
 		if (update_pmap)
@@ -4044,16 +4062,23 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 
 	if G_UNLIKELY(vmm_crashing) {
 		p = vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
+
 		if G_UNLIKELY(NULL == p) {
 			/*
 			 * It's going to be fatal if we return NULL, probably causing
-			 * an immediate termination, so attempt the cache.
+			 * an immediate termination, so attempt the cache, then the
+			 * emergency VM region if we have one.
 			 */
 
 			vmm_oom_condition();
 			p = alloc_pages_emergency(size);
 			if (NULL == p)
+				p = vmea_alloc(size);
+			if (NULL == p)
 				goto failed;
+
+			if G_UNLIKELY(zero_mem)
+				memset(p, 0, size);
 		}
 		return p;
 	}
@@ -4220,8 +4245,24 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 	 *		--RAM, 2015-11-28
 	 */
 
-	if G_UNLIKELY(vmm_crashing && !vmm_oom_detected)
-		return;
+	if G_UNLIKELY(vmm_crashing) {
+		if (!vmm_oom_detected)
+			return;
+	}
+
+	/*
+	 * If we are under an OOM condition, it is possible that the memory
+	 * was actually allocated via the emergency region.  In that case,
+	 * return it to the emergency allocator instead of the page cache to
+	 * maximize our ability to use that emergency region if we get a large
+	 * allocation request.
+	 *		--RAM, 2015-12-03
+	 */
+
+	if G_UNLIKELY(vmm_oom_detected) {
+		if (vmea_free(p, size))
+			return;			/* Returned to emergency region */
+	}
 
 	if (p != NULL) {
 		size_t n;
