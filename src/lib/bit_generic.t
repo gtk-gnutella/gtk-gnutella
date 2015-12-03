@@ -145,7 +145,7 @@ bit_generic_get(const bit_generic_t *base, size_t i)
  *
  * @param base The base address of the bit <generic> which must be initialized.
  * @param from The first bit.
- * @param to The last bit, must be equal or above "from".
+ * @param to The last bit, must be equal to or above "from".
  * @return TRUE if the bit is set, FALSE otherwise.
  */
 static inline void 
@@ -179,7 +179,7 @@ bit_generic_clear_range(bit_generic_t *base, size_t from, size_t to)
  *
  * @param base The base address of the bit <generic> which must be initialized.
  * @param from The first bit.
- * @param to The last bit, must be equal or above "from".
+ * @param to The last bit, must be equal to or above "from".
  * @return TRUE if the bit is set, FALSE otherwise.
  */
 static inline void 
@@ -212,7 +212,7 @@ bit_generic_set_range(bit_generic_t *base, size_t from, size_t to)
  *
  * @param base The base address of the bit <generic> which must be initialized.
  * @param from The first bit.
- * @param to The last bit, must be equal or above "from".
+ * @param to The last bit, must be equal to or above "from".
  * @return (size_t) -1, if no unset bit was found. On success the
  *        index of the first unset bit is returned.
  */
@@ -253,11 +253,56 @@ bit_generic_first_clear(const bit_generic_t *base, size_t from, size_t to)
 }
 
 /**
+ * Peforms a linear scan for the first set bit of the given bit <generic>.
+ *
+ * @param base The base address of the bit <generic> which must be initialized.
+ * @param from The first bit.
+ * @param to The last bit, must be equal to or above "from".
+ * @return (size_t) -1, if no unset bit was found. On success the
+ *        index of the first set bit is returned.
+ */
+static inline size_t
+bit_generic_first_set(const bit_generic_t *base, size_t from, size_t to)
+{
+	size_t i;
+
+	g_assert(from <= to);
+
+	for (i = from; i <= to; /* NOTHING */) {
+		if (0 == (i & BIT_GENERIC_BITMASK)) {
+			size_t n = (to - i) >> BIT_GENERIC_BITSHIFT;
+
+			if (n != 0) {
+				size_t j = i >> BIT_GENERIC_BITSHIFT;
+
+				while (n-- > 0) {
+					if (base[j++] != 0) {
+						bit_generic_t value = base[j - 1];
+						while (0 == (value & 0x1)) {
+							value >>= 1;
+							i++;
+						}
+						return i;
+					}
+					i += BIT_GENERIC_BITSIZE;
+				}
+				continue;
+			}
+		}
+		if (bit_generic_get(base, i))
+			return i;
+		i++;
+	}
+
+	return (size_t) -1;
+}
+
+/**
  * Peforms a linear scan for the last set bit of the given bit <generic>.
  *
  * @param base The base address of the bit <generic> which must be initialized.
  * @param from The first bit.
- * @param to The last bit, must be equal or above "from".
+ * @param to The last bit, must be equal to or above "from".
  * @return (size_t) -1, if no set bit was found. On success the
  *        index of the last set bit is returned.
  */

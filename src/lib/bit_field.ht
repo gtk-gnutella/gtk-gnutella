@@ -29,7 +29,7 @@
  * @ingroup lib
  * @file
  *
- * Bit field (linear field of bits with fixed endiannes). 
+ * Bit field (linear field of bits with fixed endianness).
  *
  * Macros defined here are derived from those in <lib/bit_array.h> but
  * operate on a linear field of byte, with fixed endianness of bits
