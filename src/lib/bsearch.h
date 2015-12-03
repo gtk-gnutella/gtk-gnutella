@@ -36,6 +36,7 @@
 
 #include "unsigned.h"
 
+#ifndef HAS_BSEARCH
 /**
  * Perform a binary search over a sorted arary.
  *
@@ -89,6 +90,7 @@ bsearch(const void *key,
 
 	return NULL;
 }
+#endif	/* !HAS_BSEARCH */
 
 /**
  * Perform a binary search over a sorted arary, using homogeneous comparisons.

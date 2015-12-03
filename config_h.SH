@@ -168,6 +168,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_BSEARCH:
+ *	This symbol, if defined, indicates that the bsearch() routine
+ *	is available to perform a binary search on a sorted array.
+ */
+#$d_bsearch HAS_BSEARCH	/**/
+
 /* HAS_BUILTIN_BSWAP32:
  *	This symbol, if defined, indicates that __builtin_bswap32 routine is
  *	available to byte-swap a 32-bit value (little <-> big endian).
