@@ -38,9 +38,7 @@
 #include <math.h>
 
 #include "lib/atoms.h"
-#include "lib/bigint.h"
 #include "lib/endian.h"
-#include "lib/entropy.h"
 #include "lib/hashing.h"
 #include "lib/misc.h"			/* For bitcmp() */
 #include "lib/random.h"
@@ -52,35 +50,13 @@
 void
 kuid_random_fill(kuid_t *kuid)
 {
-	struct sha1 entropy;
-	bigint_t bk, be;
-
 	/*
-	 * Entropy collection is slow but we generate our KUID only at startup
-	 * and when none was present (nodes reuse their KUID from session to
-	 * session to reuse as much of their previous routing table as possible).
-	 *
 	 * The aim is to obtain the most random KUID to ensure that among all
 	 * the peers in the Kademlia network, KUIDs are unique and uniformly
 	 * distributed in the KUID space.
 	 */
 
-	entropy_collect(&entropy);				/* slow */
-	random_strong_bytes(kuid->v, KUID_RAW_SIZE);
-
-	/*
-	 * Combine the two random numbers by adding them.
-	 *
-	 * It's slightly better than XOR-ing the two since the propagation
-	 * of the carry bit diffuses the randomness (entropy remains the same).
-	 */
-
-	STATIC_ASSERT(sizeof kuid->v == sizeof entropy.data);
-
-	bigint_use(&bk, kuid->v, sizeof kuid->v);
-	bigint_use(&be, entropy.data, sizeof entropy.data);
-
-	(void) bigint_add(&bk, &be);
+	random_key_bytes(kuid, KUID_RAW_SIZE);
 }
 
 /**
