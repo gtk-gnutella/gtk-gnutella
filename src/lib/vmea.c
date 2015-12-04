@@ -124,6 +124,8 @@ vmea_reserve(size_t size)
 	vs->capacity = vr->pagesize / sizeof vs->page[0];
 	vs->enabled  = TRUE;
 
+	memset(vs->page, 0, vr->pagesize);
+
 	spinlock_init(&vr->lock);
 	spinlock_init(&vs->lock);
 }
