@@ -91,7 +91,6 @@
 #include "pow2.h"
 #include "pslist.h"
 #include "sha1.h"
-#include "shuffle.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "teq.h"
@@ -104,7 +103,6 @@
 #include "override.h"			/* Must be the last header included */
 
 #define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
-#define RANDOM_PRNG_SELECT		1			/* # of PRNGs to feed entropy to */
 
 /**
  * Pseudo Random Number Generators managed by this library and for which
@@ -1025,8 +1023,7 @@ random_entropy(void *unused)
 	aje_random_bytes(entropy, ELEN);
 
 	/*
-	 * Now feed the random entropy to RANDOM_PRNG_SELECT randomly selected
-	 * generators.
+	 * Now feed the random entropy to one randomly selected generator.
 	 *
 	 * The items in the prngs[] array are not uniformly distributed: we give
 	 * a higher chance to ARC4 because there are immediate effects on the
@@ -1039,50 +1036,42 @@ random_entropy(void *unused)
 	 *
 	 * This preference is given by having a larger proportion of ARC4, then
 	 * AJE, and only a marginal presence for WELL and CMWC.
-	 *
-	 * NOTE: we do not need to lock the global prngs[] array here since we
-	 * know this routine is periodically dispatched from the event queue
-	 * and therefore it cannot be concurrently executed.
 	 */
 
-	SHUFFLE_ARRAY(prngs);
+	i = random_value(G_N_ELEMENTS(prngs) - 1);
 
-	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
-		switch (prngs[i]) {
-		case RANDOM_AJE:
-			RANDOM_STATS_INC(aje_distributed);
-			aje_addrandom(entropy, ELEN);
-			break;
-		case RANDOM_ARC4:
-			RANDOM_STATS_INC(arc4_distributed);
-			arc4random_addrandom(entropy, (int) ELEN);
-			break;
-		case RANDOM_CMWC:
-			RANDOM_STATS_INC(cmwc_distributed);
-			cmwc_addrandom(entropy, ELEN);
-			break;
-		case RANDOM_WELL:
-			RANDOM_STATS_INC(well_distributed);
-			well_addrandom(entropy, ELEN);
-			break;
-		case RANDOM_PRNG_COUNT:
-			g_assert_not_reached();
-		}
+	switch (prngs[i]) {
+	case RANDOM_AJE:
+		RANDOM_STATS_INC(aje_distributed);
+		aje_addrandom(entropy, ELEN);
+		break;
+	case RANDOM_ARC4:
+		RANDOM_STATS_INC(arc4_distributed);
+		arc4random_addrandom(entropy, (int) ELEN);
+		break;
+	case RANDOM_CMWC:
+		RANDOM_STATS_INC(cmwc_distributed);
+		cmwc_addrandom(entropy, ELEN);
+		break;
+	case RANDOM_WELL:
+		RANDOM_STATS_INC(well_distributed);
+		well_addrandom(entropy, ELEN);
+		break;
+	case RANDOM_PRNG_COUNT:
+		g_assert_not_reached();
 	}
 
 	/*
-	 * Propagate other random bytes to RANDOM_PRNG_SELECT randomly selected
-	 * threads using a local PRNG stream, provided the target threads have
-	 * created a Thread Event Queue (TEQ).
+	 * Propagate other random bytes to one randomly selected PNRG type in all
+	 * the local thread streams, provided the targeted threads have created a
+	 * Thread Event Queue (TEQ).
 	 */
 
 	aje_random_bytes(entropy, ELEN);	/* New random bytes */
 
-	SHUFFLE_ARRAY(prngs);
+	i = random_value(G_N_ELEMENTS(prngs) - 1);
 
-	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
-		random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
-	}
+	random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
 
 	if (rbd != NULL)
 		random_byte_data_free(rbd);
