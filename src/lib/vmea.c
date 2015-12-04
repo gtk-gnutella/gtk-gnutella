@@ -352,4 +352,47 @@ vmea_free(void *p, size_t size)
 	return TRUE;	/* Emergency memory released */
 }
 
+/**
+ * Compute the largest amount of memory that we can allocate from the
+ * emergency reserve.
+ *
+ * @return largest allocation request we can fulfill
+ */
+size_t
+vmea_maxsize(void)
+{
+	struct vmea_region *vr = &vmea_region;
+	size_t max, first, last;
+
+	if G_UNLIKELY(NULL == vr->bitmap)
+		return 0;
+
+	spinlock(&vr->lock);
+
+	for (max = first = 0; first < vr->pages; first = last + 1) {
+		size_t n;
+
+		first = bit_array_first_clear(vr->bitmap, first, vr->pages - 1);
+		if ((size_t) -1 == first)
+			break;
+
+		if (first + 1 < vr->pages) {
+			last = bit_array_first_set(vr->bitmap, first + 1, vr->pages - 1);
+			if ((size_t) -1 == last)
+				last = vr->pages;		/* First bit beyond the bitmap */
+		} else {
+			last = vr->pages;			/* First bit beyond the bitmap */
+		}
+
+		n = last - first;
+		max = MAX(n, max);
+	}
+
+	max *= vr->pagesize;
+
+	spinunlock(&vr->lock);
+
+	return max;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
