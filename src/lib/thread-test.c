@@ -66,6 +66,7 @@
 #include "thread.h"
 #include "tm.h"
 #include "tsig.h"
+#include "vmea.h"
 #include "waiter.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -1645,10 +1646,11 @@ test_dam(unsigned repeat, bool emulated)
 }
 
 enum memory_alloc {
-	MEMORY_XMALLOC = 0,
-	MEMORY_HALLOC = 1,
-	MEMORY_WALLOC = 2,
-	MEMORY_VMM = 3,
+	MEMORY_XMALLOC	= 0,
+	MEMORY_HALLOC	= 1,
+	MEMORY_WALLOC	= 2,
+	MEMORY_VMM		= 3,
+	MEMORY_VMEA		= 4
 };
 
 struct memory {
@@ -1743,6 +1745,9 @@ exercise_alloc_memory(struct memory *m)
 	case MEMORY_VMM:
 		m->p = vmm_alloc(m->size);
 		break;
+	case MEMORY_VMEA:
+		m->p = vmea_alloc(m->size);
+		break;
 	default:
 		g_assert_not_reached();
 	}
@@ -1763,6 +1768,12 @@ exercise_free_memory(const struct memory *m)
 		break;
 	case MEMORY_VMM:
 		vmm_free(m->p, m->size);
+		break;
+	case MEMORY_VMEA:
+		if (!vmea_free(m->p, m->size)) {
+			s_error("%s(): cannot free %'zu-byte VMEA region at %p",
+				G_STRFUNC, m->size, m->p);
+		}
 		break;
 	default:
 		g_assert_not_reached();
@@ -1792,13 +1803,16 @@ exercise_memory(void *arg)
 		switch (allocator) {
 		case 'r':
 			if (random_value(99) < MEMORY_VMM_PROPORTION) {
-				m->type = MEMORY_VMM;
+				m->type = MEMORY_VMM + random_value(1);
 				m->size = MEMORY_VMM_MIN +
 					random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN);
 			} else {
 				m->type = random_value(2);
 				m->size = MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
 			}
+			break;
+		case 'e':
+			m->type = MEMORY_VMEA;
 			break;
 		case 'h':
 			m->type = MEMORY_HALLOC;
@@ -1817,7 +1831,7 @@ exercise_memory(void *arg)
 		}
 
 		m->size = 0 != allocator_bsize ? allocator_bsize :
-			MEMORY_VMM == m->type ?
+			m->type >= MEMORY_VMM ?
 				MEMORY_VMM_MIN + random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN) :
 				MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
 
@@ -1881,6 +1895,12 @@ test_memory_one(struct exercise_results *total, bool posix, int percentage)
 	WALLOC_ARRAY(t, n);
 	WALLOC_ARRAY(p, n);
 
+	if ('r' == allocator || 'e' == allocator) {
+		size_t fill = allocator_fill != 0 ? allocator_fill : MEMORY_ALLOCATIONS;
+		size_t max = fill * MEMORY_VMM_MAX * n;
+		vmea_reserve(max, FALSE);
+	}
+
 	for (i = 0; i < n; i++) {
 		t[i] = thread_create(exercise_memory, &ep,
 				THREAD_F_PANIC, THREAD_STACK_MIN);
@@ -1942,6 +1962,8 @@ test_memory_one(struct exercise_results *total, bool posix, int percentage)
 		while (exercise_list_remove(&m))
 			exercise_free_memory(&m);
 	}
+
+	vmea_close();
 }
 
 static void
@@ -2398,6 +2420,9 @@ main(int argc, char **argv)
 	if (memory) {
 		switch (allocator) {
 		case 'r':
+			break;
+		case 'e':
+			emit("Using vmea_alloc() for memory tests");
 			break;
 		case 'h':
 			emit("Using halloc() for memory tests");
