@@ -1774,6 +1774,8 @@ alloc_pages(size_t size, bool update_pmap)
 				", requesting restart",
 				G_STRFUNC, size);
 
+			memset(p, 0, size);			/* Kernel memory always zeroed */
+
 			/* Allocation from emergency region, already present in the pmap */
 		}
 

@@ -200,6 +200,9 @@ vmea_stacktrace(size_t size, bool success)
 /**
  * Attempt to allocate emergency memory.
  *
+ * The allocated memory is not zeroed, this must be handled by the caller
+ * when necessary.
+ *
  * @param size		the size of the region we want, in bytes
  *
  * @return pointer to allocated memory on success, NULL on failure.
