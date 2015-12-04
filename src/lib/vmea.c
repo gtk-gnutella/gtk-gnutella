@@ -148,7 +148,7 @@ vmea_close(void)
 	 */
 
 	while (count-- != 0) {
-		s_message("%s(): emergency allocation stack of %'zu bytes (%s):",
+		s_message("%s(): emergency allocation stack for %'zu bytes (%s):",
 			G_STRFUNC, st->requested, st->success ? "OK" : "FAILED");
 		stacktrace_stack_print_decorated(STDERR_FILENO,
 			st->stack, st->count, STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
@@ -159,8 +159,13 @@ vmea_close(void)
 		vmm_core_free(vs->page, vr->pagesize);
 
 	XFREE_NULL(vr->bitmap);
-	if (0 == vr->allocated && vr->memory != NULL)
+
+	if (0 == vr->allocated && vr->memory != NULL) {
 		vmm_core_free(vr->memory, vr->capacity);
+	} else if (vr->memory != NULL) {
+		s_message("%s(): %'zu-byte emergency region still uses %'zu bytes",
+			G_STRFUNC, vr->capacity, vr->allocated);
+	}
 }
 
 /**
