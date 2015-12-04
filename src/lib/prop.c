@@ -32,6 +32,7 @@
 #include "file.h"
 #include "getdate.h"
 #include "halloc.h"
+#include "misc.h"
 #include "mutex.h"
 #include "parse.h"
 #include "path.h"
@@ -1672,10 +1673,22 @@ unique_file_token(const filestat_t *st)
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 	SHA1_context ctx;
 	struct sha1 digest;
+	const char *hostname;
+
+	/*
+	 * We now include the hostname into the unique file ID to make sure
+	 * the internal ID changes even if the file is indirectly copied
+	 * through virtual machine cloning for instance (where the device and
+	 * inode number would stay the same).
+	 *		--RAM, 2015-12-04
+	 */
+
+	hostname = local_hostname();
 
 	SHA1_reset(&ctx);
 	SHA1_INPUT(&ctx, st->st_dev);
 	SHA1_INPUT(&ctx, st->st_ino);
+	SHA1_input(&ctx, hostname, strlen(hostname));
 	SHA1_result(&ctx, &digest);
 
 	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);
