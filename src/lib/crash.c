@@ -109,6 +109,7 @@
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
+#include "vmea.h"				/* For vmea_maxsize() */
 #include "vmm.h"				/* For vmm_crash_mode() */
 #include "walloc.h"				/* For walloc_crash_mode() */
 #include "xmalloc.h"
@@ -117,6 +118,7 @@
 
 #define PARENT_STDOUT_FILENO	3
 #define PARENT_STDERR_FILENO	4
+#define CRASH_VMEA_MIN			(512 * 1024)
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
@@ -3651,9 +3653,21 @@ crash_oom(const char *format, ...)
 
 	/*
 	 * Now attempt auto-restart if configured.
+	 *
+	 * If we are supervised, the parent is there and there is at least 512 KiB
+	 * available in the emergency memory region, then we can probably attempt
+	 * to call s_stacktrace() to see who caused the out-of-memory.
+	 *		--RAM, 2015-12-04
 	 */
 
 	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
+
+	if (
+		1 == recursive && vars != NULL &&
+		vars->supervised && 1 != getppid() &&
+		vmea_maxsize() >= CRASH_VMEA_MIN
+	)
+		s_stacktrace(TRUE, 1);
 
 	crash_mode();
 	crash_auto_restart();
