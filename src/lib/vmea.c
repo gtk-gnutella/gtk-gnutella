@@ -103,9 +103,10 @@ static struct vmea_region {
  * Once reserved, calls to vmea_alloc() and vmea_free() are possible.
  *
  * @param size		amount of bytes in the emergency region
+ * @param capture	whether to capture allocation stacks
  */
 void
-vmea_reserve(size_t size)
+vmea_reserve(size_t size, bool capture)
 {
 	struct vmea_region *vr = &vmea_region;
 	struct vmea_stack  *vs = &vmea_stacks;
@@ -120,14 +121,16 @@ vmea_reserve(size_t size)
 	vr->bitmap   = xmalloc0(BIT_ARRAY_BYTE_SIZE(vr->pages));
 	vr->pagesize = compat_pagesize();
 
-	vs->page     = vmm_core_alloc(vr->pagesize);
-	vs->capacity = vr->pagesize / sizeof vs->page[0];
-	vs->enabled  = TRUE;
-
-	memset(vs->page, 0, vr->pagesize);
-
 	spinlock_init(&vr->lock);
-	spinlock_init(&vs->lock);
+
+	if (capture) {
+		vs->page     = vmm_core_alloc(vr->pagesize);
+		vs->capacity = vr->pagesize / sizeof vs->page[0];
+		vs->enabled  = TRUE;
+
+		memset(vs->page, 0, vr->pagesize);
+		spinlock_init(&vs->lock);
+	}
 }
 
 /**

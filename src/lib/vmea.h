@@ -38,7 +38,7 @@
  * Public interface.
  */
 
-void vmea_reserve(size_t size);
+void vmea_reserve(size_t size, bool capture);
 void vmea_close(void);
 
 void *vmea_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;

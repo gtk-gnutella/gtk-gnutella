@@ -2352,7 +2352,7 @@ main(int argc, char **argv)
 	}
 
 	symbols_set_verbose(TRUE);
-	vmea_reserve(VMEA_SIZE);
+	vmea_reserve(VMEA_SIZE, TRUE);
 
 	/*
 	 * If one of the two below fails, the GLib installation is broken.
