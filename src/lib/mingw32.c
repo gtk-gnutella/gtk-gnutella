@@ -2155,11 +2155,40 @@ done:
 	return pfd;
 }
 
+static FILETIME mingw_child_kern_time, mingw_child_user_time;
+static spinlock_t mingw_child_time_slk = SPINLOCK_INIT;
+
 #ifdef EMULATE_WAITPID
 pid_t
 mingw_wait(int *status)
 {
 	return mingw_waitpid(-1, status, 0);
+}
+
+/**
+ * Add filetime from `item' into `sum'.
+ */
+static void
+mingw_filetime_add(FILETIME *sum, FILETIME *item)
+{
+	DWORD old = sum->dwLowDateTime;
+
+	sum->dwLowDateTime  += item->dwLowDateTime;
+	sum->dwHighDateTime += item->dwHighDateTime;
+
+	if (sum->dwLowDateTime < old)
+		sum->dwHighDateTime++;		/* Propagate carry bit */
+}
+
+static void
+mingw_child_account(FILETIME *kernel, FILETIME *user)
+{
+	spinlock(&mingw_child_time_slk);
+
+	mingw_filetime_add(&mingw_child_kern_time, kernel);
+	mingw_filetime_add(&mingw_child_user_time, user);
+
+	spinunlock(&mingw_child_time_slk);
 }
 
 struct mingw_child_args {
@@ -2284,6 +2313,25 @@ child_exited:
 		}
 		if (status != NULL)
 			*status = code;
+	}
+
+	/*
+	 * Get child resource usage, for getrusage(RUSAGE_CHILDREN) calls.
+	 */
+
+	{
+		FILETIME creation_time, exit_time, kernel_time, user_time;
+
+		if (
+			!GetProcessTimes(proc,
+				&creation_time, &exit_time, &kernel_time, &user_time)
+		) {
+			errno = mingw_last_error();
+			s_warning("%s(): could not get resource usage for PID %lu: %m",
+				G_STRFUNC, (ulong) exiting_pid);
+		} else {
+			mingw_child_account(&kernel_time, &user_time);
+		}
 	}
 
 	CloseHandle(proc);
@@ -4590,27 +4638,45 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 int
 mingw_getrusage(int who, struct rusage *usage)
 {
-	FILETIME creation_time, exit_time, kernel_time, user_time;
-
-	if (who != RUSAGE_SELF) {
-		errno = EINVAL;
-		return -1;
-	}
 	if (NULL == usage) {
 		errno = EACCES;
 		return -1;
 	}
 
-	if (
-		0 == GetProcessTimes(GetCurrentProcess(),
-			&creation_time, &exit_time, &kernel_time, &user_time)
-	) {
-		errno = mingw_last_error();
+	ZERO(usage);
+
+	switch (who) {
+	case RUSAGE_SELF:
+		{
+			FILETIME creation_time, exit_time, kernel_time, user_time;
+
+			if (
+				0 == GetProcessTimes(GetCurrentProcess(),
+					&creation_time, &exit_time, &kernel_time, &user_time)
+			) {
+				errno = mingw_last_error();
+				return -1;
+			}
+
+			mingw_filetime_to_timeval(&user_time, &usage->ru_utime, 0);
+			mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime, 0);
+		}
+		break;
+	case RUSAGE_CHILDREN:
+		spinlock(&mingw_child_time_slk);
+
+		mingw_filetime_to_timeval(&mingw_child_user_time, &usage->ru_utime, 0);
+		mingw_filetime_to_timeval(&mingw_child_kern_time, &usage->ru_stime, 0);
+
+		spinunlock(&mingw_child_time_slk);
+		break;
+	case RUSAGE_THREAD:
+		errno = ENOSYS;
+		return -1;
+	default:
+		errno = EINVAL;
 		return -1;
 	}
-
-	mingw_filetime_to_timeval(&user_time, &usage->ru_utime, 0);
-	mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime, 0);
 
 	return 0;
 }
