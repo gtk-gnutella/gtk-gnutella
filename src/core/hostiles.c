@@ -432,10 +432,10 @@ hostiles_retrieve(hostiles_t which)
 			file_path_t fp[3];
 			FILE *f;
 			int idx;
-			char *tmp;
+			const char *tmp;
 			unsigned int length = 0;
 
-			tmp = get_folder_path(PRIVLIB_PATH, NULL);
+			tmp = get_folder_path(PRIVLIB_PATH);
 			if (tmp != NULL)
 				file_path_set(&fp[length++], tmp, hostiles_file);
 
@@ -456,7 +456,6 @@ hostiles_retrieve(hostiles_t which)
 				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
 				fclose(f);
 			}
-			HFREE_NULL(tmp);
 		}
 		break;
 

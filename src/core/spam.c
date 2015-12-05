@@ -455,12 +455,12 @@ spam_retrieve(void)
 	file_path_t fp[4];
 	FILE *f;
 	int idx;
-	char *tmp;
+	const char *tmp;
 	unsigned length = 0;
 
 	file_path_set(&fp[length++], settings_config_dir(), spam_text_file);
 
-	tmp = get_folder_path(PRIVLIB_PATH, NULL);
+	tmp = get_folder_path(PRIVLIB_PATH);
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, spam_text_file);
 
@@ -477,8 +477,6 @@ spam_retrieve(void)
 		spam_retrieve_from_file(f, fp[idx].dir, fp[idx].name);
 		fclose(f);
 	}
-
-	HFREE_NULL(tmp);
 }
 
 /**

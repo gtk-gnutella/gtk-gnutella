@@ -5240,12 +5240,19 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 	return result;
 }
 
+/**
+ * Get special folder path.
+ *
+ * @note
+ * Our caller handles the caching so that it is guaranteed that we will be
+ * called just once per folder type.
+ */
 static const char *
-mingw_get_folder_basepath(enum special_folder which_folder)
+mingw_get_folder_basepath(enum special_folder folder)
 {
 	const char *special_path = NULL;
 
-	switch (which_folder) {
+	switch (folder) {
 	case PRIVLIB_PATH:
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S PACKAGE);
@@ -5254,10 +5261,11 @@ mingw_get_folder_basepath(enum special_folder which_folder)
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S "locale");
 		goto done;
+	case SPECIAL_FOLDER_COUNT:
+		g_assert_not_reached();
 	}
 
-	s_carp("%s() needs implementation for foldertype %d",
-		G_STRFUNC, which_folder);
+	s_carp("%s() needs implementation for foldertype %d", G_STRFUNC, folder);
 
 done:
 	return special_path;

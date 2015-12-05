@@ -45,12 +45,17 @@ bool filepath_exists(const char *dir, const char *file);
 const char *filepath_basename(const char *pathname);
 char *filepath_directory(const char *pathname);
 
-enum special_folder { PRIVLIB_PATH, NLS_PATH };
+enum special_folder {
+	PRIVLIB_PATH = 0,
+	NLS_PATH,
+
+	SPECIAL_FOLDER_COUNT
+};
 
 typedef const char *(*get_folder_basepath_func_t)(
 	enum special_folder which_folder);
 void set_folder_basepath_func(get_folder_basepath_func_t func);
-char *get_folder_path(enum special_folder which_folder, const char *path);
+const char *get_folder_path(enum special_folder folder);
 
 #endif /* _path_h_ */
 

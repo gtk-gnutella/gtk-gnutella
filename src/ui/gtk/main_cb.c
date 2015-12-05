@@ -66,10 +66,10 @@ load_faq(void)
 	if (initialized != 0) {
 		i = initialized;
 	} else {
-		char *tmp;
+		const char *tmp;
 		char *path;
 
-		tmp = get_folder_path(PRIVLIB_PATH, NULL);
+		tmp = get_folder_path(PRIVLIB_PATH);
 		
 		if (tmp != NULL) {
 			path = make_pathname(tmp, lang);
@@ -79,8 +79,6 @@ load_faq(void)
 			file_path_set(&fp[i++], ostrdup(path), faq_file);
 			HFREE_NULL(path);
 		}
-
-		HFREE_NULL(tmp);
 
 		path = make_pathname(PRIVLIB_EXP, lang);
 		file_path_set(&fp[i++], ostrdup(path), faq_file);

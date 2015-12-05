@@ -297,14 +297,14 @@ gwc_retrieve(void)
 {
 	file_path_t fp[4], *fpv;
 	uint len = 0, added;
-	char *path;
+	const char *path;
 	int line, idx;
 	FILE *in;
 	char tmp[1024];
 
 	file_path_set(&fp[len++], settings_config_dir(), gwc_file);
 
-	path = get_folder_path(PRIVLIB_PATH, NULL);
+	path = get_folder_path(PRIVLIB_PATH);
 	if (path != NULL)
 		file_path_set(&fp[len++], path, gwc_bootfile);
 
@@ -326,7 +326,7 @@ retry:
 		in = file_config_open_read_norename_chosen(gwc_what, fpv, len, &idx);
 
 	if (NULL == in)
-		goto done;
+		return;
 
 	/*
 	 * Retrieve each line, counting the amount of entries added.
@@ -370,9 +370,6 @@ retry:
 				G_STRFUNC, added, plural(added), fpv[idx].dir, fpv[idx].name);
 		}
 	}
-
-done:
-	HFREE_NULL(path);
 }
 
 /**

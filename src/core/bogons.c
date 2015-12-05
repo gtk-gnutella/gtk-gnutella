@@ -175,10 +175,10 @@ bogons_retrieve(void)
 	char *filename;
 	file_path_t fp[4];
 	unsigned length = 0;	
-	char *tmp;
+	const char *tmp;
 
 	file_path_set(&fp[length++], settings_config_dir(), bogons_file);
-	tmp = get_folder_path(PRIVLIB_PATH, NULL);
+	tmp = get_folder_path(PRIVLIB_PATH);
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, bogons_file);
 	
@@ -192,7 +192,7 @@ bogons_retrieve(void)
 	f = file_config_open_read_norename_chosen(bogons_what, fp, length, &idx);
 
 	if (NULL == f)
-	   goto done;
+	   return;
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, bogons_changed, NULL);
@@ -200,9 +200,6 @@ bogons_retrieve(void)
 
 	bogons_load(f);
 	fclose(f);
-
-done:
-	HFREE_NULL(tmp);
 }
 
 /**

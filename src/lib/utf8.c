@@ -1806,11 +1806,8 @@ textdomain_init(const char *codeset)
 {
 #ifdef ENABLE_NLS
 	{
-		char *nlspath;
-
-		nlspath = get_folder_path(NLS_PATH, NULL);
+		const char *nlspath = get_folder_path(NLS_PATH);
 		bindtextdomain(PACKAGE, nlspath);
-		HFREE_NULL(nlspath);
 	}
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET

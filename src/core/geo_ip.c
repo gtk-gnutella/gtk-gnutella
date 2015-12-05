@@ -411,11 +411,11 @@ gip_retrieve(unsigned n)
 	char *filename;
 	file_path_t fp[4];
 	unsigned length = 0;
-	char *tmp;
+	const char *tmp;
 	
 	file_path_set(&fp[length++], settings_config_dir(), gip_source[n].file);
 	
-	tmp = get_folder_path(PRIVLIB_PATH, NULL);
+	tmp = get_folder_path(PRIVLIB_PATH);
 	if (tmp != NULL)
 		file_path_set(&fp[length++], tmp, gip_source[n].file);
 	
@@ -430,7 +430,7 @@ gip_retrieve(unsigned n)
 			fp, length, &idx);
 
 	if (NULL == f)
-	   goto done;
+	   return;
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, gip_changed, uint_to_pointer(n));
@@ -438,9 +438,6 @@ gip_retrieve(unsigned n)
 
 	gip_load(f, n);
 	fclose(f);
-
-done:
-	HFREE_NULL(tmp);
 }
 
 /**

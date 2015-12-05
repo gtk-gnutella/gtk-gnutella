@@ -840,8 +840,8 @@ void main_gui_init_osx()
 void
 main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 {
-	char *tmp;
-	
+	static const char pixmaps[] = "pixmaps";
+
 	/* Glade inits */
 
 	gtk_set_locale();
@@ -855,18 +855,24 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 		gdk_set_use_xshm(FALSE);
 
 	add_pixmap_directory(native_path(PRIVLIB_EXP G_DIR_SEPARATOR_S "pixmaps"));
+
 #ifndef OFFICIAL_BUILD
 	add_pixmap_directory(
 		native_path(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps"));
 #endif
 
-	tmp = get_folder_path(PRIVLIB_PATH, "pixmaps");
-	if (tmp != NULL) {
-		add_pixmap_directory(native_path(tmp));
-		HFREE_NULL(tmp);
+	{
+		const char *path = get_folder_path(PRIVLIB_PATH);
+
+		if (path != NULL) {
+			char *tmp = h_strconcat(path, G_DIR_SEPARATOR_S, pixmaps, NULL_PTR);
+			add_pixmap_directory(native_path(tmp));
+			HFREE_NULL(tmp);
+		}
 	}
+
 #ifdef MINGW32
-	add_pixmap_directory(mingw_filename_nearby("pixmaps"));
+	add_pixmap_directory(mingw_filename_nearby(pixmaps));
 #endif
 
     gui_main_window_set(create_main_window());
