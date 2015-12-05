@@ -309,15 +309,16 @@ spam_sha1_retrieve(void)
 	unsigned length = 0;
 
 	file_path_set(&fp[length++], settings_config_dir(), spam_sha1_file);
+
+	tmp = get_folder_path(PRIVLIB_PATH, NULL);
+	if (tmp != NULL)
+		file_path_set(&fp[length++], tmp, spam_sha1_file);
+
 	file_path_set(&fp[length++], PRIVLIB_EXP, spam_sha1_file);
 
 #ifndef OFFICIAL_BUILD
 	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, spam_sha1_file);
 #endif	/* !OFFICIAL_BUILD */
-
-	tmp = get_folder_path(PRIVLIB_PATH, NULL);
-	if (tmp != NULL)
-		file_path_set(&fp[length++], tmp, spam_sha1_file);
 
 	g_assert(length <= G_N_ELEMENTS(fp));
 

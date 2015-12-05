@@ -434,16 +434,17 @@ hostiles_retrieve(hostiles_t which)
 			int idx;
 			char *tmp;
 			unsigned int length = 0;
-			
-#ifndef OFFICIAL_BUILD
-			file_path_set(&fp[length++],
-				PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
-#endif
-			file_path_set(&fp[length++], PRIVLIB_EXP, hostiles_file);
 
 			tmp = get_folder_path(PRIVLIB_PATH, NULL);
 			if (tmp != NULL)
 				file_path_set(&fp[length++], tmp, hostiles_file);
+
+			file_path_set(&fp[length++], PRIVLIB_EXP, hostiles_file);
+
+#ifndef OFFICIAL_BUILD
+			file_path_set(&fp[length++],
+				PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
+#endif
 
 			g_assert(length <= G_N_ELEMENTS(fp));
 

@@ -459,15 +459,16 @@ spam_retrieve(void)
 	unsigned length = 0;
 
 	file_path_set(&fp[length++], settings_config_dir(), spam_text_file);
+
+	tmp = get_folder_path(PRIVLIB_PATH, NULL);
+	if (tmp != NULL)
+		file_path_set(&fp[length++], tmp, spam_text_file);
+
 	file_path_set(&fp[length++], PRIVLIB_EXP, spam_text_file);
 
 #ifndef OFFICIAL_BUILD
 	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, spam_text_file);
 #endif	/* !OFFICIAL_BUILD */
-
-	tmp = get_folder_path(PRIVLIB_PATH, NULL);
-	if (tmp != NULL)
-		file_path_set(&fp[length++], tmp, spam_text_file);
 
 	g_assert(length <= G_N_ELEMENTS(fp));
 
