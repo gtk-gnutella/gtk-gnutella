@@ -98,6 +98,7 @@
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/path.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
@@ -1070,6 +1071,73 @@ settings_dns_net(void)
 	}
 	g_assert_not_reached();
 	return NET_TYPE_NONE;
+}
+
+/**
+ * Fill-in given file_path_t array to be able to load a given file.
+ *
+ * Several paths need to be looked-up, in order:
+ * - if OFFICIAL_BUILD is not set, the "extra_files" directory in the sources
+ * - the configuration directory (e.g. ~/.gtk-gnutella)
+ * - the dynamic private library path, as returned by get_folder_path()
+ * - the hardwired private library install path PRIVLIB_EXP
+ *
+ * Some flags can alter the default behaviour:
+ *
+ * SFP_NO_CONFIG	if set, do not include the configuration directory
+ * SFP_ALL			include all fallbacks, even if file present in config dir
+ *
+ * @param fp[]		a 4-item array (at least) that will be filled
+ * @param file		the file name to load
+ * @param flags		operating flags
+ *
+ * @return the amount of entries filled within fp[].
+ */
+uint
+settings_file_path_load(file_path_t fp[4], const char *file, uint flags)
+{
+	unsigned i = 0;
+	const char *config = settings_config_dir();
+	bool exists;
+
+	exists = filepath_exists(config, file);		/* Present in config dir? */
+
+#ifndef OFFICIAL_BUILD
+	/*
+	 * Only include the version from "extra_files" if the file is currently
+	 * not present in the configuration directory (to give priority to
+	 * the configuration directory but avoid error messages about the file
+	 * not being present there, if we were blindly putting the configuration
+	 * directory first!).
+	 */
+
+	if (!exists)
+		file_path_set(&fp[i++], PACKAGE_EXTRA_SOURCE_DIR, file);
+#endif	/* !OFFICIAL_BUILD */
+
+	/*
+	 * Same logic as above: we want to include the configuration directory
+	 * only if the file is present.  If it is not, it will have to be
+	 * loaded from installed defaults, but we do not wish to see a warning
+	 * saying that we cannot load the file from there.
+	 *
+	 * If the file is present, we want to load it from there anyway, so it
+	 * is not needed to fill-in the other path components which only hold
+	 * defaults.
+	 */
+
+	if (exists && !(flags & SFP_NO_CONFIG))
+		file_path_set(&fp[i++], config, file);
+
+	if (!exists || (flags & SFP_ALL) || 0 == i) {
+		const char *tmp = get_folder_path(PRIVLIB_PATH);
+		if (tmp != NULL)
+			file_path_set(&fp[i++], tmp, file);
+
+		file_path_set(&fp[i++], PRIVLIB_EXP, file);
+	}
+
+	return i;
 }
 
 static void

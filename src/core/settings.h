@@ -40,6 +40,7 @@
 
 #include "if/core/settings.h"
 #include "lib/host_addr.h"
+#include "lib/file.h"	/* For file_path_t */
 
 /**
  * Global Data.
@@ -84,6 +85,15 @@ bool settings_can_connect(const host_addr_t addr);
 
 host_addr_t listen_addr_primary(void);
 host_addr_t listen_addr_primary_net(host_net_t net);
+
+/**
+ * Flags for settings_file_path_load().
+ */
+#define SFP_DFLT		0			/**< Defaults */
+#define SFP_NO_CONFIG	(1U << 0)	/**< Don't include the config directory */
+#define SFP_ALL			(1U << 1)	/**< Include all fallbacks */
+
+uint settings_file_path_load(file_path_t fp[], const char *file, uint flags);
 
 #endif /* _core_settings_h_ */
 

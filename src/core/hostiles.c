@@ -432,19 +432,9 @@ hostiles_retrieve(hostiles_t which)
 			file_path_t fp[3];
 			FILE *f;
 			int idx;
-			const char *tmp;
-			unsigned int length = 0;
+			uint length;
 
-			tmp = get_folder_path(PRIVLIB_PATH);
-			if (tmp != NULL)
-				file_path_set(&fp[length++], tmp, hostiles_file);
-
-			file_path_set(&fp[length++], PRIVLIB_EXP, hostiles_file);
-
-#ifndef OFFICIAL_BUILD
-			file_path_set(&fp[length++],
-				PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
-#endif
+			length = settings_file_path_load(fp, hostiles_file, SFP_NO_CONFIG);
 
 			g_assert(length <= G_N_ELEMENTS(fp));
 

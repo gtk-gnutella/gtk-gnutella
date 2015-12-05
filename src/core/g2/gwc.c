@@ -296,22 +296,13 @@ static void
 gwc_retrieve(void)
 {
 	file_path_t fp[4], *fpv;
-	uint len = 0, added;
+	uint len, added;
 	const char *path;
 	int line, idx;
 	FILE *in;
 	char tmp[1024];
 
-	file_path_set(&fp[len++], settings_config_dir(), gwc_file);
-
-	path = get_folder_path(PRIVLIB_PATH);
-	if (path != NULL)
-		file_path_set(&fp[len++], path, gwc_bootfile);
-
-	file_path_set(&fp[len++], PRIVLIB_EXP, gwc_bootfile);
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[len++], PACKAGE_EXTRA_SOURCE_DIR, gwc_bootfile);
-#endif
+	len = settings_file_path_load(fp, gwc_file, SFP_ALL);
 
 	g_assert(len <= G_N_ELEMENTS(fp));
 

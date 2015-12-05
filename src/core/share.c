@@ -651,22 +651,11 @@ share_special_load(const struct special_file *sp)
 {
 	FILE *f;
 	int idx = 0;
-	const char *tmp;
 	shared_file_t *sf = NULL;
 	file_path_t fp[4];
-	unsigned length = 0;
+	unsigned length;
 
-	file_path_set(&fp[length++], settings_config_dir(), sp->file);
-
-	tmp = get_folder_path(PRIVLIB_PATH);
-	if (tmp != NULL)
-		file_path_set(&fp[length++], tmp, sp->file);
-
-	file_path_set(&fp[length++], PRIVLIB_EXP, sp->file);
-
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, sp->file);
-#endif
+	length = settings_file_path_load(fp, sp->file, SFP_DFLT);
 
 	g_assert(length <= G_N_ELEMENTS(fp));
 	

@@ -455,20 +455,9 @@ spam_retrieve(void)
 	file_path_t fp[4];
 	FILE *f;
 	int idx;
-	const char *tmp;
-	unsigned length = 0;
+	unsigned length;
 
-	file_path_set(&fp[length++], settings_config_dir(), spam_text_file);
-
-	tmp = get_folder_path(PRIVLIB_PATH);
-	if (tmp != NULL)
-		file_path_set(&fp[length++], tmp, spam_text_file);
-
-	file_path_set(&fp[length++], PRIVLIB_EXP, spam_text_file);
-
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, spam_text_file);
-#endif	/* !OFFICIAL_BUILD */
+	length = settings_file_path_load(fp, spam_text_file, SFP_DFLT);
 
 	g_assert(length <= G_N_ELEMENTS(fp));
 
