@@ -43,6 +43,10 @@ void vmea_close(void);
 
 void *vmea_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 bool vmea_free(void *p, size_t size);
+
+size_t vmea_capacity(void);
+size_t vmea_allocated(void);
+size_t vmea_allocations(void);
 size_t vmea_maxsize(void);
 
 #endif /* _vmea_h_ */

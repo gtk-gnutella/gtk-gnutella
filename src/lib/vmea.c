@@ -94,6 +94,7 @@ static struct vmea_region {
 	size_t allocated;					/* Total allocated amount */
 	size_t pages;						/* Amount of pages in region */
 	size_t pagesize;					/* System page size */
+	size_t allocations;					/* Amount of allocations made */
 	spinlock_t lock;					/* Multi-thread protection */
 } vmea_region;
 
@@ -281,6 +282,7 @@ failed:
 
 allocated:
 	vr->allocated += rounded;
+	vr->allocations++;
 	spinunlock(&vr->lock);
 	vmea_stacktrace(size, TRUE);
 	return p;
@@ -350,6 +352,42 @@ vmea_free(void *p, size_t size)
 	}
 
 	return TRUE;	/* Emergency memory released */
+}
+
+/**
+ * @return amount of memory currently reserved
+ */
+size_t
+vmea_capacity(void)
+{
+	struct vmea_region *vr = &vmea_region;
+
+	if G_UNLIKELY(NULL == vr->bitmap)
+		return 0;
+
+	return vr->capacity;
+}
+
+/**
+ * @return amount of memory currently allocated
+ */
+size_t
+vmea_allocated(void)
+{
+	struct vmea_region *vr = &vmea_region;
+
+	return vr->allocated;
+}
+
+/**
+ * @return amount of allocations we made from the emergency region.
+ */
+size_t
+vmea_allocations(void)
+{
+	struct vmea_region *vr = &vmea_region;
+
+	return vr->allocations;
 }
 
 /**

@@ -2315,6 +2315,38 @@ crash_mode(void)
 }
 
 /**
+ * Report on emergency memory usage, once, if needed at all.
+ */
+static void G_GNUC_COLD
+crash_vmea_usage(void)
+{
+	static bool done;
+	size_t reserved;
+
+	if (done)
+		return;
+
+	done = TRUE;
+	reserved = vmea_capacity();
+
+	/*
+	 * Logging the amount of emergency memory used lets us tailor the amount
+	 * we really need to reserve at startup to avoid wasting too much unused
+	 * memory, yet allow room for dire conditions.
+	 */
+
+	if (reserved != 0) {
+		size_t allocated = vmea_allocated();
+		size_t nb = vmea_allocations();
+
+		if (nb != 0) {
+			s_miniinfo("used %'zu bytes out of %'zu for %zu emergency "
+				"allocation%s", allocated, reserved, nb, plural(nb));
+		}
+	}
+}
+
+/**
  * Re-execute the same process with the same arguments.
  *
  * This function only returns when exec()ing fails.
@@ -2323,6 +2355,8 @@ static void G_GNUC_COLD
 crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
+
+	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
 
 	if (NULL == vars) {
 		s_minicrit("%s(): no crash_init() yet!", G_STRFUNC);
@@ -2453,6 +2487,8 @@ crash_try_reexec(void)
 static void G_GNUC_COLD
 crash_auto_restart(void)
 {
+	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
+
 	/*
 	 * If process is supervised and the parent is still here, then abort,
 	 * which will report failure in parent.
@@ -3661,6 +3697,8 @@ crash_oom(const char *format, ...)
 	 */
 
 	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
+
+	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
 
 	if (
 		1 == recursive && vars != NULL &&
