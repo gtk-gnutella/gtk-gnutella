@@ -3016,11 +3016,10 @@ malloc_init_vtable(void)
 	}
 #else	/* !MALLOC_VTABLE */
 	/*
-	 * On Windows, when xmalloc() is actually malloc(), redirect all glib
-	 * memory allocation to malloc() / free().
+	 * On Windows, redirect all glib memory allocation to xmalloc() / xfree().
 	 */
 
-	if (is_running_on_mingw() && xmalloc_is_malloc()) {
+	if (is_running_on_mingw()) {
 		static GMemVTable vtable;
 
 #if GLIB_CHECK_VERSION(2,0,0)
@@ -3028,9 +3027,9 @@ malloc_init_vtable(void)
 		putenv(variable);
 #endif	/* GLib >= 2.0.0 */
 
-		vtable.malloc = malloc;
-		vtable.realloc = realloc;
-		vtable.free = free;
+		vtable.malloc = xmalloc;
+		vtable.realloc = xrealloc;
+		vtable.free = xfree;
 
 		g_mem_set_vtable(&vtable);
 	}
