@@ -123,7 +123,32 @@ file_locate_from_path(const char *argv0)
 		goto done;
 	}
 
+	/*
+	 * On Windows, we need to implicitly add "." to the path if not already
+	 * present -- this is done by appending a separator and a dot, not by
+	 * checking whether "." is already part of the path.
+	 *
+	 * The reason is that "." is implied, and also because one may omit the
+	 * ".exe" extension when launching a program.  This means checks done
+	 * in crash_init() for instance to see whether the file listed in
+	 * argv[0] exists and which do not account for a missing ".exe" will
+	 * attempt to locate the program in the PATH to get a full name and will
+	 * fail if we do not add ".".
+	 *
+	 * On UNIX this cannot happen because there is no hidden extension and
+	 * the "." is never made part of the PATH implictly.
+	 *
+	 *		--RAM, 2015-12-06
+	 */
+
+	if (is_running_on_mingw())
+		path = h_strdup_printf("%s%c.", path, *G_SEARCHPATH_SEPARATOR_S);
+	else
+		path = h_strdup(path);
+
 	path = h_strdup(path);
+
+	/* FIXME: strtok() is not thread-safe --RAM, 2015-12-06 */
 
 	tok = strtok(path, G_SEARCHPATH_SEPARATOR_S);
 	while (NULL != tok) {
