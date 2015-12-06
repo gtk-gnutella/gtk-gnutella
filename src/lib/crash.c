@@ -2233,10 +2233,17 @@ crash_record_thread(void)
 
 /**
  * Entering crash mode.
+ *
+ * @return FALSE if we had already entered crash_mode(), TRUE the first time.
  */
-static G_GNUC_COLD void
+static G_GNUC_COLD bool
 crash_mode(void)
 {
+	static int crashing;
+
+	if (0 != atomic_int_inc(&crashing))
+		return FALSE;		/* Already done */
+
 	/*
 	 * Put our main allocators in crash mode, which will limit risks if we
 	 * are crashing due to a data structure corruption or an assertion failure.
@@ -2312,6 +2319,8 @@ crash_mode(void)
 			flush_err_str();
 		}
 	}
+
+	return TRUE;
 }
 
 /**
@@ -3723,10 +3732,14 @@ crash_oom(const char *format, ...)
 void G_GNUC_COLD
 crash_assert_failure(const struct assertion_data *a)
 {
-	crash_mode();
+	/*
+	 * Avoid endless recursions, record the failure the first time only.
+	 */
 
-	if (vars != NULL)
-		crash_set_var(failure, a);
+	if (crash_mode()) {
+		if (vars != NULL)
+			crash_set_var(failure, a);
+	}
 }
 
 /**
