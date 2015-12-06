@@ -1945,6 +1945,9 @@ free_pages(void *p, size_t size, bool update_pmap)
 		s_minidbg("VMM freeing %zuKiB region at %p", size / 1024, p);
 	}
 
+	if G_UNLIKELY(vmm_oom_detected && vmea_free(p, size))
+		return;
+
 	free_pages_intern(p, size, update_pmap);
 }
 
