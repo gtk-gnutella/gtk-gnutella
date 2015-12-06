@@ -3074,7 +3074,10 @@ crash_init(const char *argv0, const char *progname,
 	}
 
 	iv.argv0 = ostrdup_readonly(executable);
-	g_assert(NULL != iv.argv0);
+
+	g_assert_log(NULL != iv.argv0,
+		"%s(): executable=\"%s\", argv0=\"%s\"",
+		G_STRFUNC, executable, argv0);
 
 	iv.progname = ostrdup_readonly(progname);
 	g_assert(NULL == progname || NULL != iv.progname);
