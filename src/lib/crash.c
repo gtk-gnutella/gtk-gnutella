@@ -3435,11 +3435,13 @@ crash_post_init(void)
 void
 crash_close(void)
 {
-	crash_closed = TRUE;
+	if (!crash_closed) {
+		crash_closed = TRUE;
 
-	if (vars != NULL) {
-		uint8 t = TRUE;
-		crash_set_var(closed, t);
+		if (vars != NULL) {
+			uint8 t = TRUE;
+			crash_set_var(closed, t);
+		}
 	}
 }
 

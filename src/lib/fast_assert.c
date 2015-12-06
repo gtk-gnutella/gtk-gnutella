@@ -119,6 +119,7 @@ static G_GNUC_COLD G_GNUC_NORETURN void
 assertion_abort(void)
 {
 	static volatile sig_atomic_t seen_fatal;
+	sig_atomic_t depth;
 
 #define STACK_OFF	2		/* 2 extra calls: assertion_failure(), then here */
 
@@ -131,9 +132,7 @@ assertion_abort(void)
 	 * the failure.
 	 */
 
-	if (!ATOMIC_GET(&seen_fatal)) {
-		ATOMIC_SET(&seen_fatal, TRUE);
-
+	if (0 == (depth = ATOMIC_INC(&seen_fatal))) {
 		/*
 		 * If the thread holds any locks, dump them.
 		 */
@@ -158,6 +157,20 @@ assertion_abort(void)
 		 */
 
 		crash_save_current_stackframe(STACK_OFF);
+	}
+
+	/*
+	 * Allow at most two assertion failures in a row, but the third one
+	 * requires that we exit immediately because something is deeply wrong
+	 * on the exception path.
+	 */
+
+	if (depth > 1) {
+		s_rawcrit("%s(): too many assertion failures (%u) in a row, exiting",
+			G_STRFUNC, (uint) depth + 1);
+		if (depth > 2)
+			_exit(EXIT_FAILURE);	/* In case atexit() callbacks fail */
+		exit(EXIT_FAILURE);
 	}
 
 	/*
