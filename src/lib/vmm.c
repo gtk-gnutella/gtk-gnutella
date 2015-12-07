@@ -4038,6 +4038,42 @@ vmm_madvise_willneed(void *p, size_t size)
 }
 
 /**
+ * Perform memory allocation during crashes.
+ *
+ * @param size			the size of the region we want to allocate
+ * @param zero_mem		whether to zero the allocated memory
+ *
+ * @return the allocated region, NULL on error
+ */
+static void *
+vmm_crashing_alloc(size_t size, bool zero_mem)
+{
+	void *p;
+
+	p = vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
+
+	if G_UNLIKELY(MAP_FAILED == p) {
+		/*
+		 * It's going to be fatal if we return NULL, probably causing
+		 * an immediate termination, so attempt the cache, then the
+		 * emergency VM region if we have one.
+		 */
+
+		vmm_oom_condition();
+		p = alloc_pages_emergency(size);
+		if (NULL == p)
+			p = vmea_alloc(size);
+		if (NULL == p)
+			return NULL;
+
+		if G_UNLIKELY(zero_mem)
+			memset(p, 0, size);
+	}
+
+	return p;
+}
+
+/**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
  * and only allocating a new region when necessary.
  *
@@ -4065,28 +4101,8 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 
 	size = round_pagesize_fast(size);
 
-	if G_UNLIKELY(vmm_crashing) {
-		p = vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
-
-		if G_UNLIKELY(NULL == p) {
-			/*
-			 * It's going to be fatal if we return NULL, probably causing
-			 * an immediate termination, so attempt the cache, then the
-			 * emergency VM region if we have one.
-			 */
-
-			vmm_oom_condition();
-			p = alloc_pages_emergency(size);
-			if (NULL == p)
-				p = vmea_alloc(size);
-			if (NULL == p)
-				goto failed;
-
-			if G_UNLIKELY(zero_mem)
-				memset(p, 0, size);
-		}
-		return p;
-	}
+	if G_UNLIKELY(vmm_crashing)
+		return vmm_crashing_alloc(size, zero_mem);
 
 	n = pagecount_fast(size);
 
@@ -4705,7 +4721,7 @@ vmm_resize(void *p, size_t size, size_t new_size)
 	if G_UNLIKELY(vmm_crashing) {
 		if (anew < asize)
 			return p;
-		np = vmm_valloc(NULL, anew);
+		np = vmm_crashing_alloc(anew, FALSE);
 		memcpy(np, p, size);
 		return np;
 	}
