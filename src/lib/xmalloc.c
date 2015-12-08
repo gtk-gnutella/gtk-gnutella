@@ -4549,14 +4549,14 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 	if G_UNLIKELY(xmalloc_no_freeing ) {
 		/*
 		 * In crashing mode activate a simple direct path: anything smaller
-		 * than a page size is allocated via sbrk(), the rest is allocated
-		 * via the VMM layer.
+		 * than a page size is allocated via omalloc(), the rest is allocated
+		 * via the VMM layer.  Things will never get freed at this stage.
 		 */
 
 		if (xmalloc_crashing) {
 			len = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
 			if (len < xmalloc_pagesize) {
-				p = xmalloc_addcore_from_heap(len, FALSE);
+				p = omalloc(len);
 			} else {
 				p = vmm_core_alloc(round_pagesize(len));
 			}
