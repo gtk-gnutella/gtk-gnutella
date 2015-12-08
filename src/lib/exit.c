@@ -42,6 +42,8 @@
 #include "common.h"
 
 #include "exit.h"
+
+#include "atomic.h"
 #include "crash.h"
 #include "signal.h"
 #include "thread.h"
@@ -52,12 +54,23 @@
 #undef exit
 #undef _exit
 
+static int exit_cleanup_started;
+
 /**
  * Exit common cleanup.
  */
 G_GNUC_COLD void
 exit_cleanup(void)
 {
+	/*
+	 * Run this only once, to avoid endless loops should one of the cleanup
+	 * routines have to call a remapped exit(), re-entering do_exit() and here
+	 * endlessly until we run out of stack.
+	 */
+
+	if (0 != atomic_int_inc(&exit_cleanup_started))
+		return;
+
 	thread_exit_mode();
 	xmalloc_stop_freeing();
 	signal_perform_cleanup();
