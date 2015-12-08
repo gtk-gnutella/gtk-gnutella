@@ -191,6 +191,9 @@ static const struct crash_vars *vars; /**< read-only after crash_init()! */
 static bool crash_closed;
 static bool crash_pausing;
 
+static cevent_t *crash_restart_ev;		/* Async restart event */
+static int crash_exit_started;
+
 /**
  * An item in the crash_hooks list.
  */
@@ -2356,6 +2359,30 @@ crash_vmea_usage(void)
 }
 
 /**
+ * Called when we're about to re-exec() ourselves in some way to auto-restart.
+ */
+static void G_GNUC_COLD
+crash_restart_notify(const char *caller)
+{
+	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
+
+	if (NULL == vars) {
+		s_minicrit("%s(): no crash_init() yet!", caller);
+		_exit(EXIT_FAILURE);
+	}
+
+	/*
+	 * This covers situation where an assertion failure occurs on the
+	 * application exit path, after crash_restarting() has been called.
+	 */
+
+	if (atomic_int_get(&crash_exit_started)) {
+		s_miniwarn("%s(): already started exiting, forcing.", caller);
+		_exit(EXIT_SUCCESS);
+	}
+}
+
+/**
  * Re-execute the same process with the same arguments.
  *
  * This function only returns when exec()ing fails.
@@ -2365,12 +2392,7 @@ crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
 
-	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
-
-	if (NULL == vars) {
-		s_minicrit("%s(): no crash_init() yet!", G_STRFUNC);
-		_exit(EXIT_FAILURE);
-	}
+	crash_restart_notify(G_STRFUNC);
 
 	/*
 	 * If process is supervised and the parent is still here, then exit
@@ -2496,7 +2518,7 @@ crash_try_reexec(void)
 static void G_GNUC_COLD
 crash_auto_restart(void)
 {
-	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
+	crash_restart_notify(G_STRFUNC);
 
 	/*
 	 * If process is supervised and the parent is still here, then abort,
@@ -3517,9 +3539,6 @@ crash_reexec(void)
 	_exit(EXIT_FAILURE);
 }
 
-static cevent_t *crash_restart_ev;		/* Async restart event */
-static int crash_exit_started;
-
 /**
  * Callout queue event to force application restart.
  */
@@ -3650,7 +3669,8 @@ asynchronous:
  * which a forced and brutal shutdown will occur.
  *
  * It also avoids recursion on the application exit path, so that any call to
- * crash_restart() will be properly ignored.
+ * crash_restart() will be properly ignored, and crash_try_reexec() will
+ * properly exit().
  */
 void
 crash_restarting(void)
