@@ -254,32 +254,44 @@ open_read(
 
 	path_orig = h_strdup_printf("%s.%s", path, orig_ext);
 	in = fopen(path, "r");
-	if (in) {
-		if (is_running_on_mingw()) {
-			/* Windows can't rename an open file */
-			fclose(in);
-			in = NULL;
-		}
-		if (renaming && -1 == rename(path, path_orig)) {
-			s_warning("[%s] could not rename \"%s\" as \"%s\": %m",
-				what, path, path_orig);
-		}
-		if (NULL == in) {
-			in = fopen(path_orig, "r");
+
+	if (in != NULL) {
+		if (renaming) {
+			if (is_running_on_mingw()) {
+				/* Windows can't rename an opened file */
+				fclose(in);
+				in = NULL;
+			}
+			if (-1 == rename(path, path_orig)) {
+				s_warning("[%s] could not rename \"%s\" as \"%s\": %m",
+					what, path, path_orig);
+				if (is_running_on_mingw())
+					in = fopen(path, "r");
+			} else {
+				if (is_running_on_mingw())
+					in = fopen(path_orig, "r");
+			}
+			if (is_running_on_mingw() && NULL == in) {
+				s_warning("[%s] cannot reopen \"%s\": %m", what, path);
+				goto open_failed;
+			}
 		}
 		goto out;
-    } else {
-		if (ENOENT == errno) {
-			if (common_dbg > 0) {
-				g_debug("[%s] cannot load non-existent \"%s\"", what, path);
-			}
-		} else {
-			instead = instead_str;			/* Regular file was present */
-			s_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
-		}
-        if (fvcnt > 1 && common_dbg > 0)
-            g_debug("[%s] trying to load from alternate locations...", what);
     }
+
+	/* FALL THROUGH */
+
+open_failed:
+	if (ENOENT == errno) {
+		if (common_dbg > 0) {
+			s_debug("[%s] cannot load non-existent \"%s\"", what, path);
+		}
+	} else {
+		instead = instead_str;			/* Regular file was present */
+		s_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
+	}
+	if (fvcnt > 1 && common_dbg > 0)
+		s_debug("[%s] trying to load from alternate locations...", what);
 
 	/*
 	 * Maybe we crashed after having retrieved the file in a previous run
@@ -319,7 +331,7 @@ open_read(
 			if (NULL != path && NULL != (in = fopen(path, "r")))
 				break;
 			if (path != NULL && common_dbg > 0) {
-				g_debug("[%s] cannot load non-existent \"%s\" either",
+				s_debug("[%s] cannot load non-existent \"%s\" either",
 					what, path);
 			}
 		}
@@ -327,12 +339,12 @@ open_read(
 
 	if (common_dbg > 0) {
 		if (in) {
-			g_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
+			s_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
-			g_debug("[%s] unable to retrieve: tried %d alternate location%s",
+			s_debug("[%s] unable to retrieve: tried %d alternate location%s",
 				what, fvcnt, plural(fvcnt));
 		} else {
-			g_debug("[%s] unable to retrieve: no alternate locations known",
+			s_debug("[%s] unable to retrieve: no alternate locations known",
 				what);
 		}
 	}
