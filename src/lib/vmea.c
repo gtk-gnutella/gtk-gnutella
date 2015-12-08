@@ -35,8 +35,8 @@
  * be used to serve memory requests that are necessary during shutdown or
  * to be able to decompile stack traces into symbolic forms at crash time.
  *
- * To limit the need for dynamic structures here, all the require memory
- * is preallocated.  The memory region is handled via a bitmap, each set bit
+ * To limit the need for dynamic structures here, all the required memory
+ * is pre-allocated.  The memory region is handled via a bitmap, each set bit
  * in the bitmap representing an allocated page in the reserved memory region.
  *
  * To be able to determine the places that required emergency allocations,
@@ -102,6 +102,10 @@ static struct vmea_region {
  * Reserve the initial amount of emergency memory.
  *
  * Once reserved, calls to vmea_alloc() and vmea_free() are possible.
+ *
+ * This must be done only once: further attempts to reserve memory will lead
+ * to an assertion failure.  The intended use is that the process needing an
+ * emergency reserve will allocate the memory shortly after having started.
  *
  * @param size		amount of bytes in the emergency region
  * @param capture	whether to capture allocation stacks
