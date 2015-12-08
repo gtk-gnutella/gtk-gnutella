@@ -3705,6 +3705,7 @@ crash_oom(const char *format, ...)
 {
 	static int recursive;
 	unsigned flags = G_LOG_LEVEL_CRITICAL;
+	int level;
 	va_list args;
 
 	/*
@@ -3713,7 +3714,7 @@ crash_oom(const char *format, ...)
 
 	va_start(args, format);
 
-	if (0 != atomic_int_inc(&recursive)) {
+	if (0 != (level = atomic_int_inc(&recursive))) {
 		thread_check_suspended();
 		flags |= G_LOG_FLAG_RECURSION;
 	}
@@ -3732,6 +3733,19 @@ crash_oom(const char *format, ...)
 
 	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
 
+	/*
+	 * Watch out for endless crash_oom() calls.
+	 */
+
+	if (level != 0) {
+		if (level > 2)
+			_exit(EXIT_FAILURE);
+		else if (level > 1)
+			exit(EXIT_FAILURE);
+		else
+			goto restart;
+	}
+
 	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
 
 	if (
@@ -3741,6 +3755,7 @@ crash_oom(const char *format, ...)
 	)
 		s_stacktrace(TRUE, 1);
 
+restart:
 	crash_mode();
 	crash_auto_restart();
 	crash_abort();
