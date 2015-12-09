@@ -55,6 +55,7 @@
 #include "log.h"
 #include "spinlock.h"
 #include "stacktrace.h"
+#include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "xmalloc.h"
@@ -281,7 +282,10 @@ failed:
 	vmea_stacktrace(size, FALSE);
 	/* We don't want a stacktrace, use s_minilog() directly */
 	s_minilog(G_LOG_LEVEL_CRITICAL,
-		"%s(): cannot allocate %'zu bytes", G_STRFUNC, size);
+		"%s(): cannot allocate %'zu bytes "
+		"(used %'zu bytes out of %'zu in %zu allocation%s)",
+			G_STRFUNC, size, vr->allocated, vr->capacity,
+			vr->allocations, plural(vr->allocations));
 	return NULL;
 
 allocated:
