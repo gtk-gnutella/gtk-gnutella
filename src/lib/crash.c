@@ -97,6 +97,7 @@
 #include "mutex.h"				/* For mutex_crash_mode() */
 #include "offtime.h"
 #include "omalloc.h"
+#include "once.h"
 #include "path.h"
 #include "progname.h"			/* For progstart_dup() */
 #include "signal.h"
@@ -133,6 +134,21 @@
 #define has_fork() 0
 #endif
 
+/**
+ * Our defined crash levels.
+ *
+ * The higher the crash level, the less resources we can count on and the
+ * more careful we need to be if we want to continue collecting crash data.
+ */
+enum crash_level {
+	CRASH_LVL_NONE = 0,				/**< No crash yet */
+	CRASH_LVL_BASIC,				/**< Basic crash level */
+	CRASH_LVL_OOM,					/**< Out of memory */
+	CRASH_LVL_FAILURE,				/**< Assertion failure */
+	CRASH_LVL_EXCEPTION,			/**< Asynchronous signal */
+	CRASH_LVL_RECURSIVE,			/**< Crashing again during crash handling */
+};
+
 struct crash_vars {
 	void *stack[STACKTRACE_DEPTH_MAX];	/**< Stack frame on assert failure */
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
@@ -167,7 +183,7 @@ struct crash_vars {
 	uint8 major;			/**< Major version */
 	uint8 minor;			/**< Minor version */
 	uint8 patchlevel;		/**< Patchlevel version */
-	uint8 crash_mode;		/**< True when we enter crash mode */
+	uint8 crashing;			/**< True when we enter crash mode */
 	uint8 recursive;		/**< True when we are in a recursive crash */
 	uint8 closed;			/**< True when crash_close() was called */
 	uint8 invoke_inspector;
@@ -193,6 +209,7 @@ static bool crash_pausing;
 
 static cevent_t *crash_restart_ev;		/* Async restart event */
 static int crash_exit_started;
+static const struct assertion_data *crash_last_assertion_failure;
 
 /**
  * An item in the crash_hooks list.
@@ -2235,57 +2252,199 @@ crash_record_thread(void)
 }
 
 /**
- * Entering crash mode.
+ * Check whether last assertion failure seen indicates an error in the
+ * specified file, or whether the current thread is holding a lock
+ * originating from the specified file.
+ *
+ * This is used to detect panics from memory allocators for instance, to
+ * put them into a minimal and hopefully safe state when their code is
+ * the one triggering an error.
+ *
+ * @param file		the source file from which we are looking for an error
+ *
+ * @return TRUE if the last assertion failure occurred in the file or if
+ * we are currently holding a lock from that file.
+ */
+static bool G_GNUC_COLD
+crash_is_from(const char *file)
+{
+	if (
+		NULL != crash_last_assertion_failure &&
+		0 == strcmp(file, crash_last_assertion_failure->file)
+	)
+		return TRUE;
+
+	return thread_lock_holds_from(file);
+}
+
+/**
+ * Arena used by the fix-sized hash table that keeps track of things we
+ * have already disabled in crash_disable().
+ */
+static char crash_disable_buffer[1024];
+static hash_table_t *crash_disabled;
+static once_flag_t disable_inited;
+
+
+/**
+ * Initialize the fix-sized hash table for crash_disable_if_from().
+ */
+static void
+crash_disable_init(void)
+{
+	crash_disabled = hash_table_new_fixed(
+		crash_disable_buffer, sizeof crash_disable_buffer);
+}
+
+/**
+ * Forcefully disable a memory allocator.
+ *
+ * @param name		name of the memory allocator
+ * @param cb		disabling callback to invoke
+ */
+static void G_GNUC_COLD
+crash_disable(const char *name, callback_fn_t cb)
+{
+	once_flag_run(&disable_inited, crash_disable_init);
+
+	if (!hash_table_contains(crash_disabled, cb)) {
+		hash_table_insert(crash_disabled, cb, bool_to_pointer(TRUE));
+		s_miniwarn("enabling crash mode for %s", name);
+		(*cb)();
+	}
+}
+
+/**
+ * Disable a memory allocator if crash comes from the listed file.
+ *
+ * @param file		the file to look for a failure or a lock being held
+ * @param name		name of the memory allocator
+ * @param cb		disabling callback to invoke
+ */
+static void G_GNUC_COLD
+crash_disable_if_from(const char *file, const char *name, callback_fn_t cb)
+{
+	if (crash_is_from(file))
+		crash_disable(name, cb);
+}
+
+/**
+ * Entering crash mode, for a given level.
+ *
+ * @param level		the crash level, to determine what we need to disable
  *
  * @return FALSE if we had already entered crash_mode(), TRUE the first time.
  */
-static G_GNUC_COLD bool
-crash_mode(void)
+static bool G_GNUC_COLD
+crash_mode(enum crash_level level)
 {
-	static int crashing;
+	static enum crash_level current_crash_level;
+	static spinlock_t crash_mode_slk = SPINLOCK_INIT;
+	enum crash_level old_level, new_level;
 
-	if (0 != atomic_int_inc(&crashing))
-		return FALSE;		/* Already done */
+	g_assert(level != CRASH_LVL_NONE);
 
-	/*
-	 * Put our main allocators in crash mode, which will limit risks if we
-	 * are crashing due to a data structure corruption or an assertion failure.
-	 */
-
-	vmm_crash_mode();
-	xmalloc_crash_mode();
-	walloc_crash_mode();
+	spinlock_hidden(&crash_mode_slk);
 
 	/*
-	 * Make sure critical routines will avoid memory allocationn -- all those
-	 * checking for signal_in_exception() -- when we are actually crashing,
-	 * in order to limit potentially risky behaviours whilst we are gathering
-	 * crashing information.
+	 * Crash level can only increase.
 	 */
 
-	signal_crashing();
+	old_level = current_crash_level;
+	new_level = MAX(old_level, level);
 
 	/*
-	 * Suspend the other threads if possible, to avoid a cascade of errors
-	 * and other assertion failures.  If a thread is crashing, something is
-	 * wrong in the aplication global state.
-	 *
-	 * This is advisory suspension only, and we do not wait for all the other
-	 * threads to have released their locks since we are in a rather emergency
-	 * situation.
+	 * If called another time with something more critical than an OOM
+	 * condition, force a recursive level.
 	 */
 
-	thread_crash_mode();
+	if (level != CRASH_LVL_BASIC && old_level > CRASH_LVL_OOM)
+		new_level = CRASH_LVL_RECURSIVE;
 
+	current_crash_level = new_level;
+
+	spinunlock_hidden(&crash_mode_slk);
+
+	if (old_level == new_level)
+		return FALSE;		/* No change, still crashing */
+
+	switch (new_level) {
+	case CRASH_LVL_RECURSIVE:
+		/*
+		 * Since we are recursing into the crash handler, do not take risks
+		 * and make sure memory allocators are not adding an additional
+		 * failure cause.
+		 */
+
+		crash_disable("xmalloc", xmalloc_crash_mode);
+		crash_disable("VMM",     vmm_crash_mode);
+		crash_disable("walloc",  walloc_crash_mode);
+
+		/* FALL THROUGH */
+
+	case CRASH_LVL_EXCEPTION:
+		/*
+		 * Make sure critical routines will avoid memory allocationn -- all
+		 * those checking for signal_in_exception() -- when we are actually
+		 * crashing, in order to limit potentially risky behaviours whilst we
+		 * are gathering crashing information.
+		 */
+
+		signal_crashing();
+		log_crash_mode();
+
+		/* FALL THROUGH */
+
+	case CRASH_LVL_FAILURE:
+		/*
+		 * Put our main allocators in crash mode, which will limit risks if we
+		 * are crashing due to a data structure corruption or an assertion
+		 * failure.
+		 *
+		 * We only do this when the allocator is actually involved in the
+		 * crash, and disabling of a particular allocator is only done once,
+		 * based on the disabling routine.
+		 */
+
+		crash_disable_if_from("lib/xmalloc.c", "xmalloc", xmalloc_crash_mode);
+		crash_disable_if_from("lib/vmm.c",     "VMM",     vmm_crash_mode);
+		crash_disable_if_from("lib/walloc.c",  "walloc",  walloc_crash_mode);
+		crash_disable_if_from("lib/zalloc.c",  "walloc",  walloc_crash_mode);
+		crash_disable_if_from("lib/tmalloc.c", "walloc",  walloc_crash_mode);
+
+		/* FALL THROUGH */
+
+	case CRASH_LVL_OOM:
+	case CRASH_LVL_BASIC:
+		/*
+		 * Suspend the other threads if possible, to avoid a cascade of errors
+		 * and other assertion failures.  If a thread is crashing, something is
+		 * wrong in the application global state.
+		 *
+		 * This is advisory suspension only, and we do not wait for all the
+		 * other threads to have released their locks since we are in a rather
+		 * emergency situation.
+		 */
+
+		thread_crash_mode();
+		goto done;
+
+	case CRASH_LVL_NONE:
+		break;
+	}
+
+	g_assert_not_reached();
+
+done:
 	/*
 	 * Activate crash mode.
 	 */
 
 	if (vars != NULL) {
-		if (!vars->crash_mode) {
+		if (!vars->crashing) {
 			uint8 t = TRUE;
 
-			crash_set_var(crash_mode, t);
+			crash_set_var(crashing, t);
 			crash_record_thread();
 
 			/*
@@ -2297,7 +2456,7 @@ crash_mode(void)
 			 */
 
 			ck_writable(vars->fmtck);		/* Chunk holding vars->fmtstr */
-			log_crashing(vars->fmtstr);
+			log_crashing_str(vars->fmtstr);
 		}
 		if (ck_is_readonly(vars->fmtck)) {
 			char time_buf[CRASH_TIME_BUFLEN];
@@ -2788,7 +2947,14 @@ crash_handler(int signo)
 	 * Enter crash mode and configure safe logging parameters.
 	 */
 
-	crash_mode();
+	if (signal_in_exception())
+		crash_mode(CRASH_LVL_EXCEPTION);
+	else if (SIGABRT == signo && crash_last_assertion_failure != NULL)
+		crash_mode(CRASH_LVL_FAILURE);
+	else if (signal_in_handler())
+		crash_mode(CRASH_LVL_EXCEPTION);
+	else
+		crash_mode(CRASH_LVL_BASIC);
 
 	if (recursive) {
 		if (!vars->recursive) {
@@ -3533,7 +3699,7 @@ crash_abort(void)
 void G_GNUC_COLD
 crash_reexec(void)
 {
-	crash_mode();		/* Not really, but prevents any memory allocation */
+	crash_mode(CRASH_LVL_RECURSIVE);	/* Prevent any memory allocation */
 
 	crash_try_reexec();
 	_exit(EXIT_FAILURE);
@@ -3756,7 +3922,7 @@ crash_oom(const char *format, ...)
 		s_stacktrace(TRUE, 1);
 
 restart:
-	crash_mode();
+	crash_mode(CRASH_LVL_OOM);
 	crash_auto_restart();
 	crash_abort();
 }
@@ -3771,10 +3937,12 @@ crash_assert_failure(const struct assertion_data *a)
 	 * Avoid endless recursions, record the failure the first time only.
 	 */
 
-	if (crash_mode()) {
+	if (crash_mode(CRASH_LVL_FAILURE)) {
 		if (vars != NULL)
 			crash_set_var(failure, a);
 	}
+
+	crash_last_assertion_failure = a;
 }
 
 /**
@@ -3785,7 +3953,7 @@ crash_assert_failure(const struct assertion_data *a)
 const char * G_GNUC_COLD
 crash_assert_logv(const char * const fmt, va_list ap)
 {
-	crash_mode();
+	crash_mode(CRASH_LVL_FAILURE);
 
 	if (vars != NULL && vars->logstr != NULL) {
 		const char *msg;
@@ -3818,7 +3986,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
 void G_GNUC_COLD
 crash_set_filename(const char * const filename)
 {
-	crash_mode();
+	crash_mode(CRASH_LVL_FAILURE);
 
 	if (vars != NULL && vars->logck != NULL) {
 		const char *f = ck_strdup_readonly(vars->logck, filename);
@@ -3832,7 +4000,7 @@ crash_set_filename(const char * const filename)
 void G_GNUC_COLD
 crash_set_error(const char * const msg)
 {
-	crash_mode();
+	crash_mode(CRASH_LVL_BASIC);
 
 	if (vars != NULL && vars->logck != NULL) {
 		const char *m;
@@ -3859,7 +4027,7 @@ crash_set_error(const char * const msg)
 void G_GNUC_COLD
 crash_append_error(const char * const msg)
 {
-	crash_mode();
+	crash_mode(CRASH_LVL_BASIC);
 
 	if (vars != NULL && vars->logck != NULL) {
 		const char *m;
@@ -3885,7 +4053,7 @@ crash_append_error(const char * const msg)
 G_GNUC_COLD void
 crash_save_stackframe(void *stack[], size_t count)
 {
-	crash_mode();
+	crash_mode(CRASH_LVL_BASIC);
 
 	if (count > G_N_ELEMENTS(vars->stack))
 		count = G_N_ELEMENTS(vars->stack);
@@ -3907,7 +4075,7 @@ crash_save_stackframe(void *stack[], size_t count)
 G_GNUC_COLD void
 crash_save_current_stackframe(unsigned offset)
 {
-	crash_mode();
+	crash_mode(CRASH_LVL_BASIC);
 
 	if (vars != NULL && 0 == vars->stackcnt) {
 		void *stack[STACKTRACE_DEPTH_MAX];

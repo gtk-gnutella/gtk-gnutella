@@ -233,6 +233,7 @@ size_t thread_id_lock_count(unsigned id);
 bool thread_lock_holds(const volatile void *lock);
 bool thread_lock_holds_default(const volatile void *lock, bool dflt);
 size_t thread_lock_held_count(const void *lock);
+bool thread_lock_holds_from(const char *file);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
 void thread_lock_dump_self_if_any(int fd);

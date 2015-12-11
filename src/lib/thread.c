@@ -6393,6 +6393,48 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 }
 
 /**
+ * Check whether current thread holds any lock taken in a given file.
+ *
+ * This is used during crashes to determine whether we got a lock from a
+ * memory allocator, for instance, to be able to disable that allocator
+ * or put it into a minimal safe state (where it would allocate but no longer
+ * be able to free memory, for instance).
+ *
+ * @param file		the source file to check
+ */
+bool
+thread_lock_holds_from(const char *file)
+{
+	struct thread_element *te;
+	struct thread_lock_stack *tls;
+	unsigned i;
+
+	/*
+	 * For the same reasons as in thread_lock_add(), lazily grab the thread
+	 * element.  Note that we may be in a situation where we did not get a
+	 * thread element at lock time but are able to get one now.
+	 */
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return FALSE;
+
+	tls = &te->locks;
+
+	if (0 == tls->count)
+		return FALSE;
+
+	for (i = tls->count; i != 0; /**/) {
+		const struct thread_lock *l = &tls->arena[--i];
+
+		if (0 == strcmp(l->file, file))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Check whether current thread already holds a lock.
  *
  * If no locks were recorded yet in the thread, returns "default".
@@ -6535,6 +6577,42 @@ thread_lock_count(void)
 }
 
 /**
+ * Count locks held by other threads.
+ *
+ * Since by definition threads are concurrently running, this routine is
+ * not returning a reliable defined value unless thread_suspend_others(TRUE)
+ * was already called, since then we know any further attempt to grab a lock
+ * will suspend the other threads.
+ *
+ * When thread_suspend_others(FALSE) was called before, the only reliable
+ * result from this routine is 0.  Any other value is not reliable since a
+ * thread will not suspend itself until it has released all its locks.  Hence
+ * the amount of locks held by other threads could still change unless none
+ * of the other threads were holding any lock.
+ *
+ * @return amount of locks held by all the other threads but the current one.
+ */
+static size_t
+thread_others_lock_count(void)
+{
+	struct thread_element *te;
+	size_t count = 0, i;
+
+	te = thread_find(&te);		/* That's the current thread */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if G_UNLIKELY(xte == te)
+			continue;
+
+		count += xte->locks.count;
+	}
+
+	return count;
+}
+
+/**
  * @return amount of locks held by specified thread ID.
  */
 size_t
@@ -6659,17 +6737,27 @@ thread_crash_mode(void)
 	}
 
 	/*
-	 * Disable all locks: spinlocks and mutexes will be granted immediately,
-	 * preventing further deadlocks at the cost of a possible crash.  However,
-	 * this allows us to maybe collect information that we couldn't otherwise
-	 * get at, so it's worth the risk.
+	 * Now that other threads are disabled, check whether any of them have
+	 * any locks held.  If none of them have, there is no need to disable
+	 * locking, unless we have been called already, which means we're crashing
+	 * again during our crash handling.
 	 */
 
-	atomic_int_inc(&thread_locks_disabled);
+	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1) {
+		/*
+		 * Disable all locks: they will be granted immediately, preventing
+		 * further deadlocks at the cost of a possible crash.
+		 *
+		 * However, this allows us to maybe collect information that we
+		 * couldn't otherwise get at, so it's worth the risk.
+		 */
 
-	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
-	mutex_crash_mode();		/* Allow release of all mutexes */
-	rwlock_crash_mode();
+		if (0 == atomic_int_inc(&thread_locks_disabled)) {
+			spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
+			mutex_crash_mode();		/* Allow release of all mutexes */
+			rwlock_crash_mode();
+		}
+	}
 }
 
 /**

@@ -238,11 +238,26 @@ static struct logfile logfile[LOG_MAX_FILES];
 		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
 
 /**
- * This is used to detect recurstions.
+ * This is used to detect recursions.
  */
 static volatile sig_atomic_t in_safe_handler;	/* in s_logv() */
+static bool log_crashing;
 
 static const char DEV_NULL[] = "/dev/null";
+
+/**
+ * Make sure all logging routines are always using a raw log.
+ *
+ * Also a copy of all the logs is made to stdout automatically.
+ *
+ * This is used during emergency crashing conditions to ensure logging is
+ * always going to use a safe logging mode.
+ */
+void G_GNUC_COLD
+log_crash_mode(void)
+{
+	log_crashing = TRUE;
+}
 
 /**
  * @return pre-allocated chunk for allocating memory when no malloc() wanted.
@@ -966,9 +981,10 @@ void
 s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 {
 	int saved_errno;
+	bool crashing = log_crashing;
 
 	saved_errno = errno;
-	s_rawlogv(level, FALSE, copy, fmt, args);
+	s_rawlogv(level, crashing, copy || crashing, fmt, args);
 	errno = saved_errno;
 }
 
@@ -983,6 +999,13 @@ s_stacktrace(bool no_stdio, unsigned offset)
 {
 	static bool tracing[THREAD_MAX];
 	unsigned stid = thread_small_id();
+
+	/*
+	 * Disable logging of stack traces when crashing.
+	 */
+
+	if G_UNLIKELY(log_crashing)
+		return;
 
 	/*
 	 * Protect thread, in case any of the tracing causes a recursion.
@@ -1055,6 +1078,11 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
+
+	if G_UNLIKELY(log_crashing) {
+		s_rawlogv(level, TRUE, TRUE, format, args);
+		return;
+	}
 
 	/*
 	 * Detect recursion, but don't make it fatal.
@@ -1624,7 +1652,7 @@ s_rawcrit(const char *format, ...)
 	s_rawlogv(G_LOG_LEVEL_CRITICAL, TRUE, TRUE, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);		/* Copied to stdout if different */
+	s_stacktrace(in_signal_handler, 1);	/* Copied to stdout if different */
 }
 
 /**
@@ -2486,7 +2514,7 @@ log_atoms_inited(void)
  * Record formatting string to be used to format messages when crashing.
  */
 void
-log_crashing(struct str *str)
+log_crashing_str(struct str *str)
 {
 	g_assert(str != NULL);
 
