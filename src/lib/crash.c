@@ -119,7 +119,6 @@
 
 #define PARENT_STDOUT_FILENO	3
 #define PARENT_STDERR_FILENO	4
-#define CRASH_VMEA_MIN			(512 * 1024)
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
@@ -2437,6 +2436,15 @@ crash_mode(enum crash_level level)
 
 done:
 	/*
+	 * Specifically for OOM conditions, also put the logging layer in crash
+	 * mode so that we avoid stack traces if possible -- they require a lot
+	 * of memory.
+	 */
+
+	if (CRASH_LVL_OOM == new_level)
+		log_crash_mode();
+
+	/*
 	 * Activate crash mode.
 	 */
 
@@ -3890,38 +3898,21 @@ crash_oom(const char *format, ...)
 
 	/*
 	 * Now attempt auto-restart if configured.
-	 *
-	 * If we are supervised, the parent is there and there is at least 512 KiB
-	 * available in the emergency memory region, then we can probably attempt
-	 * to call s_stacktrace() to see who caused the out-of-memory.
-	 *		--RAM, 2015-12-04
 	 */
 
 	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
+
+	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
 
 	/*
 	 * Watch out for endless crash_oom() calls.
 	 */
 
-	if (level != 0) {
-		if (level > 2)
-			_exit(EXIT_FAILURE);
-		else if (level > 1)
-			exit(EXIT_FAILURE);
-		else
-			goto restart;
-	}
+	if (level > 1)
+		_exit(EXIT_FAILURE);
+	else
+		exit(EXIT_FAILURE);
 
-	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
-
-	if (
-		1 == recursive && vars != NULL &&
-		vars->supervised && 1 != getppid() &&
-		vmea_maxsize() >= CRASH_VMEA_MIN
-	)
-		s_stacktrace(TRUE, 1);
-
-restart:
 	crash_mode(CRASH_LVL_OOM);
 	crash_auto_restart();
 	crash_abort();
