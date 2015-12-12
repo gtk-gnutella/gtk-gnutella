@@ -2549,6 +2549,16 @@ crash_restart_notify(const char *caller)
 		s_miniwarn("%s(): already started exiting, forcing.", caller);
 		_exit(EXIT_SUCCESS);
 	}
+
+	/*
+	 * We cannot restart if we have not saved the original argv[] in order
+	 * to build the proper exec() arguments.
+	 */
+
+	if (0 == vars->argc) {
+		s_minicrit("%s(): no crash_setmain() yet!", caller);
+		_exit(EXIT_FAILURE);
+	}
 }
 
 /**
@@ -3548,6 +3558,9 @@ crash_setmain(void)
 	int argc;
 
 	argc = progstart_dup(&argv, &env);
+
+	g_assert_log(argc > 0, "%s(): argc=%d", G_STRFUNC, argc);
+
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
 	crash_set_var(envp, env);
@@ -3776,6 +3789,17 @@ crash_restart(const char *format, ...)
 
 	if (0 != atomic_int_inc(&registered))
 		return;
+
+	/*
+	 * If they did not have time to call crash_setmain(), we do not know
+	 * what to restart.
+	 */
+
+	if G_UNLIKELY(0 == vars->argc) {
+		s_miniwarn("%s(): need to call crash_setmain() to allow restarts",
+			G_STRFUNC);
+		return;
+	}
 
 	/*
 	 * First log the condition, without allocating any memory, bypassing stdio.
