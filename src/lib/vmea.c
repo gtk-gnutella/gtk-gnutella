@@ -96,6 +96,7 @@ static struct vmea_region {
 	size_t pages;						/* Amount of pages in region */
 	size_t pagesize;					/* System page size */
 	size_t allocations;					/* Amount of allocations made */
+	size_t freeings;					/* Amount of freeings made */
 	spinlock_t lock;					/* Multi-thread protection */
 } vmea_region;
 
@@ -282,10 +283,11 @@ failed:
 	vmea_stacktrace(size, FALSE);
 	/* We don't want a stacktrace, use s_minilog() directly */
 	s_minilog(G_LOG_LEVEL_CRITICAL,
-		"%s(): cannot allocate %'zu bytes "
-		"(used %'zu bytes out of %'zu in %zu allocation%s)",
+		"%s(): cannot allocate %'zu bytes (used %'zu bytes out of %'zu reserved"
+			" with %zu allocation%s and %zu freeing%s)",
 			G_STRFUNC, size, vr->allocated, vr->capacity,
-			vr->allocations, plural(vr->allocations));
+			vr->allocations, plural(vr->allocations),
+			vr->freeings, plural(vr->freeings));
 	return NULL;
 
 allocated:
@@ -355,6 +357,7 @@ vmea_free(void *p, size_t size)
 
 		bit_array_clear_range(vr->bitmap, first, first + n - 1);
 		vr->allocated -= round_pagesize(size);
+		vr->freeings++;
 
 		spinunlock(&vr->lock);
 	}
@@ -397,6 +400,18 @@ vmea_allocations(void)
 
 	return vr->allocations;
 }
+
+/**
+ * @return amount of freeings we made from the emergency region.
+ */
+size_t
+vmea_freeings(void)
+{
+	struct vmea_region *vr = &vmea_region;
+
+	return vr->freeings;
+}
+
 
 /**
  * Compute the largest amount of memory that we can allocate from the

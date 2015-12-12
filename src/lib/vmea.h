@@ -47,6 +47,7 @@ bool vmea_free(void *p, size_t size);
 size_t vmea_capacity(void);
 size_t vmea_allocated(void);
 size_t vmea_allocations(void);
+size_t vmea_freeings(void);
 size_t vmea_maxsize(void);
 
 #endif /* _vmea_h_ */

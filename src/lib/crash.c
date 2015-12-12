@@ -2529,12 +2529,15 @@ crash_vmea_usage(void)
 	 */
 
 	if (reserved != 0) {
-		size_t allocated = vmea_allocated();
-		size_t nb = vmea_allocations();
+		size_t nba = vmea_allocations();
 
-		if (nb != 0) {
-			s_miniinfo("used %'zu bytes out of %'zu for %zu emergency "
-				"allocation%s", allocated, reserved, nb, plural(nb));
+		if (nba != 0) {
+			size_t nbf = vmea_freeings();
+			size_t allocated = vmea_allocated();
+
+			s_miniinfo("still using %'zu bytes out of the %'zu reserved, "
+				"after %zu emergency allocation%s and %zu freeing%s",
+				allocated, reserved, nba, plural(nba), nbf, plural(nbf));
 		}
 	}
 }
