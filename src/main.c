@@ -200,7 +200,18 @@
 #define LOAD_HIGH_WATERMARK		95	/**< % amount over which we're overloaded */
 #define LOAD_LOW_WATERMARK		80	/**< lower threshold to clear condition */
 
-#define VMEA_SIZE	(2 * 1024 * 1024)	/**< Emergency region size: 2 MiB */
+/**
+ * The emergency memory region is allocated at the beginning and not otherwise
+ * used by the process until it runs out of memory.  We don't want to waste
+ * too much from the virtual address space, but this memory will be swapped
+ * out by the kernel as it remains totally unused.
+ *
+ * A size of 8 MiB does not waste too much of the total virtual memory a modern
+ * system has (swap + RAM) given that we now reason in gigabytes.  This should
+ * be less than 0.1% of the total virtual memory and therefore is reasonable.
+ *		--RAM, 2015-12-12
+ */
+#define VMEA_SIZE	(8 * 1024 * 1024)	/**< Emergency region size: 8 MiB */
 
 static unsigned main_slow_update;
 static volatile sig_atomic_t exiting;
