@@ -494,7 +494,8 @@ vmm_crash_mode(void)
 static void G_GNUC_COLD
 vmm_oom_condition(void)
 {
-	atomic_int_inc(&vmm_oom_detected);
+	if (0 == atomic_int_inc(&vmm_oom_detected))
+		crash_oom_condition();
 }
 
 /**

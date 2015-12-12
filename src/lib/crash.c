@@ -2251,6 +2251,20 @@ crash_record_thread(void)
 }
 
 /**
+ * Invoked when we've detected a memory shortage condition,
+ *
+ * Enble safety precaution since this is a prelude to a fatal out-of-memory.
+ * We are running on thin memory, burning our reserves so limit consumption
+ * of memory when logging or dumping stacks.
+ */
+void G_GNUC_COLD
+crash_oom_condition(void)
+{
+	log_crash_mode();
+	stacktrace_crash_mode();
+}
+
+/**
  * Check whether last assertion failure seen indicates an error in the
  * specified file, or whether the current thread is holding a lock
  * originating from the specified file.
@@ -2441,10 +2455,8 @@ done:
 	 * mode so that we avoid fancy stack traces -- they require a lot of memory.
 	 */
 
-	if (CRASH_LVL_OOM == level) {
-		log_crash_mode();
-		stacktrace_crash_mode();
-	}
+	if (CRASH_LVL_OOM == level)
+		crash_oom_condition();
 
 	/*
 	 * Activate crash mode.
