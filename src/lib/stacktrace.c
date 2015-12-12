@@ -1098,6 +1098,17 @@ stack_print_decorated_to(struct sxfile *xf,
 		bool has_parens = FALSE;
 
 		/*
+		 * If we run out of memory during the stack tracing, switch to a
+		 * lighter version.
+		 */
+
+		if G_UNLIKELY(stacktrace_crashing) {
+			STACKTRACE_SYM_UNLOCK;
+			stack_safe_print_to(xf, &stack[i], count - i);
+			return;
+		}
+
+		/*
 		 * Locate where the PC is located: in our own executable (statically
 		 * linked) or within a dynamically mapped shared library.
 		 */
