@@ -89,6 +89,7 @@
 static const char *local_path;		/**< Path before a chdir() (ro string) */
 static const char *program_path;	/**< Absolute program path (ro string) */
 static time_t program_mtime;		/**< Last modification time of executable */
+static bool stacktrace_crashing;	/**< Use simple stack traces if set */
 static bool symbols_loaded;
 static symbols_t *symbols;
 static bool stacktrace_inited;
@@ -121,6 +122,16 @@ static hash_table_t *stack_atoms;
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
 #endif
+
+/**
+ * Limit stacktraces to simple stacks, avoiding the BFD library or the
+ * dynamic linker to resolve symbols.
+ */
+void
+stacktrace_crash_mode(void)
+{
+	stacktrace_crashing = TRUE;
+}
 
 /**
  * Is PC a valid routine address?
@@ -933,6 +944,34 @@ struct sxfile {
 };
 
 /**
+ * Print a simple stack trace.
+ *
+ * @param xf		where to print the stack
+ * @param stack		array of Program Counters making up the stack
+ * @param count		number of items in stack[] to print, at most.
+ */
+static void
+stack_safe_print_to(struct sxfile *xf, void * const *stack, size_t count)
+{
+	static int stack_plain;
+
+	if (0 == atomic_int_inc(&stack_plain))
+		s_rawwarn("disabled fancy symbolic stack traces");
+
+	switch (xf->type) {
+	case SXFILE_STDIO:
+		fflush(xf->u.f);
+		stack_safe_print(fileno(xf->u.f), stack, count);
+		return;
+	case SXFILE_FD:
+		stack_safe_print(xf->u.fd, stack, count);
+		return;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
  * Print a decorated stack trace.
  *
  * @param xf		where to print the stack
@@ -986,6 +1025,18 @@ stack_print_decorated_to(struct sxfile *xf,
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
 	int saved_errno = errno;
+
+	/*
+	 * When crashing severely, either after a recursive crash or because
+	 * we are out of memory, disable fancy symbolic stack traces, use the
+	 * simplest form.
+	 *		--RAM, 2015-12-12
+	 */
+
+	if G_UNLIKELY(stacktrace_crashing) {
+		stack_safe_print_to(xf, stack, count);
+		return;
+	}
 
 	/*
 	 * We're using global variables, and we need to avoid concurrent updates

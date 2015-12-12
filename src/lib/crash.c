@@ -2378,6 +2378,7 @@ crash_mode(enum crash_level level)
 		crash_disable("xmalloc", xmalloc_crash_mode);
 		crash_disable("VMM",     vmm_crash_mode);
 		crash_disable("walloc",  walloc_crash_mode);
+		stacktrace_crash_mode();
 
 		/* FALL THROUGH */
 
@@ -2437,12 +2438,13 @@ crash_mode(enum crash_level level)
 done:
 	/*
 	 * Specifically for OOM conditions, also put the logging layer in crash
-	 * mode so that we avoid stack traces if possible -- they require a lot
-	 * of memory.
+	 * mode so that we avoid fancy stack traces -- they require a lot of memory.
 	 */
 
-	if (CRASH_LVL_OOM == new_level)
+	if (CRASH_LVL_OOM == level) {
 		log_crash_mode();
+		stacktrace_crash_mode();
+	}
 
 	/*
 	 * Activate crash mode.
@@ -3977,7 +3979,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
 void G_GNUC_COLD
 crash_set_filename(const char * const filename)
 {
-	crash_mode(CRASH_LVL_FAILURE);
+	crash_mode(CRASH_LVL_BASIC);
 
 	if (vars != NULL && vars->logck != NULL) {
 		const char *f = ck_strdup_readonly(vars->logck, filename);

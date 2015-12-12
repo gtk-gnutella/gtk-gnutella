@@ -1001,13 +1001,6 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	unsigned stid = thread_small_id();
 
 	/*
-	 * Disable logging of stack traces when crashing.
-	 */
-
-	if G_UNLIKELY(log_crashing)
-		return;
-
-	/*
 	 * Protect thread, in case any of the tracing causes a recursion.
 	 * Indeed, recursion would probably be fatal (endless) and would prevent
 	 * further important debugging messages to be emitted by the thread.
