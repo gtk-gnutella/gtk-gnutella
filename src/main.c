@@ -1922,6 +1922,16 @@ handle_arguments_asap(void)
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	/*
+	 * Don't launch GDB, pause the process, nor restart it when we are going
+	 * to be running only for a short period of time.
+	 */
+
+	if (OPT(shell) || OPT(ping)) {
+		crash_ctl(CRASH_FLAG_CLEAR,
+			CRASH_F_RESTART | CRASH_F_PAUSE | CRASH_F_GDB);
+	}
 }
 
 /**
