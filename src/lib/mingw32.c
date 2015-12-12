@@ -1004,21 +1004,33 @@ wchar_clamp_bytelen(const wchar_t *s, size_t maxchars)
 /**
  * Find process entry matching the given PID.
  *
+ * If we cannot find the PID, `error' is filled with the an error code if
+ * it is not NULL.
+ *
  * @param pid	the PID we're looking for
  * @param pe	the process entry we can fill-in
+ * @param error	if not NULL, set with value of errno if we can't find the PID
  *
- * @return TRUE if found, FALSE if not found.
+ * @return TRUE if found, FALSE if not found with error filled-in.
  */
 static bool
-mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe)
+mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe, int *error)
 {
 	HANDLE h;
 	bool ok, found = FALSE;
 
 	ZERO(pe);
 	pe->dwSize = sizeof(*pe);
+	if (error != NULL)
+		*error = 0;
 
 	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	if (INVALID_HANDLE_VALUE == h) {
+		if (error != NULL)
+			*error = mingw_last_error();
+		return FALSE;
+	}
 
 	for (ok = Process32FirstW(h, pe); ok; ok = Process32NextW(h, pe)) {
 		if ((pid_t) pe->th32ProcessID == pid) {
@@ -1026,6 +1038,9 @@ mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe)
 			break;
 		}
 	}
+
+	if (!found && error != NULL)
+		*error = mingw_last_error();
 
 	CloseHandle(h);
 
@@ -1075,7 +1090,7 @@ mingw_getppid(void)
 
 	ppid = parent_pid;
 
-	if ((pid_t) -1 == ppid && mingw_find_process_entry(getpid(), &pe))
+	if ((pid_t) -1 == ppid && mingw_find_process_entry(getpid(), &pe, NULL))
 		ppid = pe.th32ParentProcessID;
 
 	if ((pid_t) -1 == ppid)
@@ -1092,7 +1107,7 @@ mingw_getppid(void)
 		if (-1 == mingw_process_access_check(ppid)) {
 			ppid = 1;				/* Parent died or runs under another UID */
 		} else {
-			if (mingw_find_process_entry(ppid, &pe)) {
+			if (mingw_find_process_entry(ppid, &pe, NULL)) {
 				mingw_sha1_process_entry(&pe, &digest);
 			} else {
 				ppid = 1;			/* Parent cannot be found */
@@ -1123,9 +1138,19 @@ mingw_getppid(void)
 
 	g_assert(ppid != (pid_t) 1);
 
-	if (mingw_find_process_entry(ppid, &pe)) {
+	if (mingw_find_process_entry(ppid, &pe, NULL)) {
 		mingw_sha1_process_entry(&pe, &digest);
 	} else {
+		if (0 == mingw_process_access_check(ppid)) {
+			static bool warned;
+
+			if (!warned) {
+				warned = TRUE;
+				s_miniwarn("%s(): assuming PID=%lu is still our parent",
+					G_STRFUNC, (ulong) ppid);
+			}
+			return ppid;
+		}
 		ppid = 1;			/* Parent cannot be found */
 	}
 
