@@ -37,11 +37,6 @@
 #include "tsig.h"		/* For tsigset_t */
 
 /**
- * Main entry point for thread_create().
- */
-typedef void *(*thread_main_t)(void *arg);
-
-/**
  * Thread exiting callback, which will be invoked asynchronously in the
  * context of the main thread, NOT the thread which created that exiting thread.
  */
@@ -180,9 +175,11 @@ thread_t thread_current_element(const void **element);
 thread_qid_t thread_quasi_id(void);
 unsigned thread_small_id(void);
 unsigned thread_safe_small_id(void);
+unsigned thread_safe_small_id_sp(const void *sp);
 int thread_stid_from_thread(const thread_t t);
 const char *thread_to_string(const thread_t t);
 void thread_set_name(const char *name);
+void thread_set_name_atom(const char *name);
 const char *thread_name(void);
 const char *thread_id_name(unsigned id);
 unsigned thread_by_name(const char *name);
@@ -196,6 +193,7 @@ void thread_crash_mode(void);
 bool thread_is_crashing(void);
 bool thread_in_crash_mode(void);
 size_t thread_stack_used(void);
+size_t thread_id_stack_used(uint stid, const void *sp);
 void thread_stack_check_overflow(const void *va);
 
 size_t thread_suspend_others(bool lockwait);
@@ -235,6 +233,7 @@ size_t thread_id_lock_count(unsigned id);
 bool thread_lock_holds(const volatile void *lock);
 bool thread_lock_holds_default(const volatile void *lock, bool dflt);
 size_t thread_lock_held_count(const void *lock);
+bool thread_lock_holds_from(const char *file);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
 void thread_lock_dump_self_if_any(int fd);
@@ -258,11 +257,12 @@ bool thread_timed_block_self(unsigned events, const struct tmval *timeout);
 int thread_unblock(unsigned id);
 
 void thread_set_main(bool can_block);
+bool thread_set_main_was_called(void);
 unsigned thread_get_main(void);
 bool thread_main_is_blockable(void);
 
-int thread_create(thread_main_t routine, void *arg, uint flags, size_t stack);
-int thread_create_full(thread_main_t routine, void *arg, uint flags,
+int thread_create(process_fn_t routine, void *arg, uint flags, size_t stack);
+int thread_create_full(process_fn_t routine, void *arg, uint flags,
 	size_t stack, thread_exit_t exited, void *earg);
 void thread_exit(void *value) G_GNUC_NORETURN;
 void thread_atexit(thread_exit_t exit_cb, void *exit_arg);

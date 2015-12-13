@@ -27,6 +27,15 @@ Release steps
 	cd extra_files
 	make update			# updates geo-ip.txt
 
+	cd "top directory"
+	tx pull				# Pull translations from Transifex
+
+	# If the above "tx pull" did not work, then do:
+
+	tx pull -f
+	cd po
+	make update
+
 1. Write user summary of changes since last release in ChangeLog.
 
 2. Mark toplevel entry in ChangeLog as being the release:

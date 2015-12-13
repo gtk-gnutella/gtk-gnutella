@@ -70,7 +70,7 @@ sub format {
 	$text =~ s/</&lt;/g;
 	$text =~ s/>/&gt;/g;
 	# Routine highlight
-	$text =~ s|(\w+\(\))|<tt>$1</tt>|g;
+	$text =~ s|(\w+\(\))|<code>$1</code>|g;
 	$xml_start = "<$tag>" if $tag ne '';
 	$xml_end = "</$tag>" if $tag ne '';
 	my $xml_len = length($xml_start) + length($xml_end);

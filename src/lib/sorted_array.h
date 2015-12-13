@@ -43,6 +43,6 @@ void *sorted_array_lookup(struct sorted_array *tab, const void *key);
 void sorted_array_add(struct sorted_array *tab, const void *item);
 void sorted_array_sync(struct sorted_array *tab,
 						int (*collision_func)(const void *a, const void *b));
-size_t sorted_array_size(const struct sorted_array *tab);
+size_t sorted_array_count(const struct sorted_array *tab);
 
 /* vi: set ts=4 sw=4 cindent: */

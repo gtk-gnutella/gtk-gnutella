@@ -61,6 +61,12 @@ bool dualhash_lookup_value_extended(const dualhash_t *dh, const void *value,
 	void **okey, void **oval);
 size_t dualhash_count(const dualhash_t *dh);
 
+void dualhash_thread_safe(dualhash_t *dh);
+void dualhash_lock(dualhash_t *dh);
+void dualhash_unlock(dualhash_t *dh);
+
+void dualhash_foreach(const dualhash_t *dh, ckeyval_fn_t fn, void *data);
+
 #endif	/* _dualhash_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

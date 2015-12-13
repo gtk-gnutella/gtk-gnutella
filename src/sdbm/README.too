@@ -227,3 +227,9 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Explicitly forbid concurrent iterators to run on a thread-safe handle since
   the database does not remain locked between iterator calls.
 
+Thu Sep 11 22:00:38 CEST 2014
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Made SDBM API locks be queueing locks instead of mutexes.
+* Added sdbm_foreach() and sdbm_foreach_remove() convenience routines.

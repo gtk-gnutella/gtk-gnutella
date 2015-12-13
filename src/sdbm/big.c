@@ -19,6 +19,7 @@
 #include "private.h"
 
 #include "lib/bit_field.h"
+#include "lib/compat_misc.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/fd.h"
@@ -268,6 +269,7 @@ big_open(DBM *db)
 		return -1;
 
 	dbg->bitbuf = walloc(BIG_BLKSIZE);
+	compat_fadvise_random(dbg->fd, 0, 0);
 
 	if (-1 == fstat(dbg->fd, &buf)) {
 		buf.st_size = 0;
@@ -1311,9 +1313,8 @@ bigkey_get(DBM *db, const char *bkey, size_t blen)
 	sdbm_big_check(dbg);
 
 	if (bigkey_length(len) != blen) {
-		s_critical("sdbm: \"%s\": "
-			"bigkey_get: inconsistent key length %zu in .pag",
-			sdbm_name(db), len);
+		s_critical("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
+			sdbm_name(db), G_STRFUNC, len);
 		return NULL;
 	}
 
@@ -1341,9 +1342,8 @@ bigval_get(DBM *db, const char *bval, size_t blen)
 	sdbm_big_check(dbg);
 
 	if (bigval_length(len) != blen) {
-		s_critical("sdbm: \"%s\": "
-			"bigval_get: inconsistent value length %zu in .pag",
-			sdbm_name(db), len);
+		s_critical("sdbm: \"%s\": %s(): inconsistent value length %zu in .pag",
+			sdbm_name(db), G_STRFUNC, len);
 		return NULL;
 	}
 
@@ -1368,9 +1368,8 @@ bigkey_free(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		s_critical("sdbm: \"%s\": "
-			"bigkey_free: inconsistent key length %zu in .pag",
-			sdbm_name(db), len);
+		s_critical("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
+			sdbm_name(db), G_STRFUNC, len);
 		return FALSE;
 	}
 
@@ -1393,9 +1392,8 @@ bigval_free(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		s_critical("sdbm: \"%s\": "
-			"bigval_free: inconsistent key length %zu in .pag",
-			sdbm_name(db), len);
+		s_critical("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
+			sdbm_name(db), G_STRFUNC, len);
 		return FALSE;
 	}
 
@@ -1574,7 +1572,7 @@ bigkey_mark_used(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		s_carp("sdbm: \"%s\": %s: inconsistent key length %zu in .pag",
+		s_carp("sdbm: \"%s\": %s(): inconsistent key length %zu in .pag",
 			sdbm_name(db), G_STRFUNC, len);
 		return;
 	}
@@ -1596,7 +1594,7 @@ bigval_mark_used(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		s_carp("sdbm: \"%s\": %s: inconsistent value length %zu in .pag",
+		s_carp("sdbm: \"%s\": %s(): inconsistent value length %zu in .pag",
 			sdbm_name(db), G_STRFUNC, len);
 		return;
 	}
@@ -1710,6 +1708,9 @@ bool
 big_sync(DBM *db)
 {
 	DBMBIG *dbg = db->big;
+
+	if (NULL == dbg)
+		return TRUE;		/* No .dat file to sync */
 
 	sdbm_big_check(dbg);
 

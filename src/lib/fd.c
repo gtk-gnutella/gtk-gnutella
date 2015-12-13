@@ -49,7 +49,7 @@
 static hset_t *fd_sockets;
 
 void
-set_close_on_exec(int fd)
+fd_set_close_on_exec(int fd)
 {
 #ifdef FD_CLOEXEC
 	int flags;
@@ -128,7 +128,7 @@ fd_socket_close(const void *data, void *udata)
  * Closes all file descriptors greater or equal to ``first_fd''.
  */
 void
-close_file_descriptors(const int first_fd)
+fd_close_from(const int first_fd)
 {
 	int fd;
 
@@ -148,7 +148,7 @@ close_file_descriptors(const int first_fd)
 		 * fifo's
 		 *	-- JA 2011-11-28 */
 		if (is_a_fifo(fd))
-			set_close_on_exec(fd);
+			fd_set_close_on_exec(fd);
 		else
 #endif
 		/* OS X frowns upon random fds being closed --RAM 2011-11-13  */
@@ -224,7 +224,7 @@ reserve_standard_file_descriptors(void)
 }
 
 G_GNUC_COLD bool
-need_get_non_stdio_fd(void)
+fd_need_non_stdio(void)
 {
 	static int needed = -1;
 
@@ -266,9 +266,9 @@ need_get_non_stdio_fd(void)
  *			descriptor is returned.
  */
 int
-get_non_stdio_fd(int fd)
+fd_get_non_stdio(int fd)
 {
-	if (need_get_non_stdio_fd() && fd > 2 && fd < 256) {
+	if (fd_need_non_stdio() && fd > 2 && fd < 256) {
 		int nfd, saved_errno;
 
 		saved_errno = errno;

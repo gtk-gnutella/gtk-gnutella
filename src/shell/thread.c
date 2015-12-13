@@ -82,7 +82,8 @@ shell_exec_thread_list(struct gnutella_shell *sh,
 		if (-1 == thread_get_info(i, &info))
 			continue;
 
-		stack = (info.high_qid - info.low_qid + 1) * compat_pagesize();
+		if (0 == (stack = info.stack_size))
+			stack = (info.high_qid - info.low_qid + 1) * compat_pagesize();
 		if (info.stack_addr_growing) {
 			used = ptr_diff(info.last_sp, info.bottom_sp);
 			top = ptr_diff(info.top_sp, info.bottom_sp);

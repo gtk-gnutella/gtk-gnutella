@@ -103,6 +103,7 @@ static const struct {
 #endif
 	D(SIGABRT),
 	D(SIGFPE),
+	D(SIGPIPE),
 	D(SIGILL),
 	D(SIGSEGV)
 #undef D
@@ -159,9 +160,6 @@ static mutex_t signal_lock = MUTEX_INIT;
  * If the value is negative, the PC register number is unknown.
  */
 static volatile sig_atomic_t sig_pc_regnum = SIG_PC_UNKNOWN;
-
-static const char SIGNAL_NUM[] = "signal #";
-static const char SIG_PREFIX[] = "SIG";
 
 static volatile sig_atomic_t in_signal_handler;
 static once_flag_t signal_inited;
@@ -270,10 +268,8 @@ signal_is_fatal(int signo)
 const char *
 signal_name(int signo)
 {
-	static char sig_buf[32];
+	buf_t *b, bs;
 	unsigned i;
-	char *start;
-	size_t offset;
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		if (signals[i].signo == signo)
@@ -285,39 +281,20 @@ signal_name(int signo)
 	 * There is no "SIG" prefix in names from this array.
 	 */
 
-	if (signo < SIG_COUNT && !is_strprefix(signal_names[signo], "NUM")) {
-		g_strlcpy(sig_buf, SIG_PREFIX, sizeof sig_buf);
-
-		start = &sig_buf[CONST_STRLEN(SIG_PREFIX)];
-		offset = start - sig_buf;
-
-		g_assert(size_is_positive(offset));
-		g_assert(CONST_STRLEN(SIG_PREFIX) == offset);
-
-		g_strlcpy(start, signal_names[signo], sizeof sig_buf - offset);
-		return sig_buf;
+	if (signal_in_handler()) {
+		static char sig_buf[32];	/* Do not allocate memory in handler */
+		b = buf_init(&bs, sig_buf, sizeof sig_buf);
+	} else {
+		b = buf_private(G_STRFUNC, 32);
 	}
 
-	/*
-	 * print_number() works backwards within the supplied buffer, so we
-	 * need to construct the final string accordingly.
-	 */
+	if (signo < SIG_COUNT && !is_strprefix(signal_names[signo], "NUM")) {
+		buf_printf(b, "SIG%s", signal_names[signo]);
+	} else {
+		buf_printf(b, "signal #%d", signo);
+	}
 
-	start = deconstify_char(PRINT_NUMBER(sig_buf, signo));
-	offset = start - sig_buf;
-
-	g_assert(size_is_positive(offset));
-	g_assert(offset > CONST_STRLEN(SIGNAL_NUM));
-
-	/*
-	 * Prepend constant SIGNAL_NUM string right before the number, without
-	 * the trailing NUL (hence the use of memcpy).
-	 */
-
-	memcpy(start - CONST_STRLEN(SIGNAL_NUM),
-		SIGNAL_NUM, CONST_STRLEN(SIGNAL_NUM));
-
-	return start - CONST_STRLEN(SIGNAL_NUM);
+	return buf_data(b);
 }
 
 /**
@@ -381,6 +358,9 @@ static Sigjmp_buf sig_cleanup_env;
 static void
 signal_cleanup_got_signal(int signo)
 {
+	s_rawwarn("%s(): %s received, continuing...",
+		G_STRFUNC, signal_name(signo));
+
 	Siglongjmp(sig_cleanup_env, signo);
 }
 
@@ -407,6 +387,8 @@ signal_perform_cleanup(void)
 		return;
 	}
 
+	signal_crashing();		/* Avoid memory allocations in some places */
+
 	old_sigsegv = signal_catch(SIGSEGV, signal_cleanup_got_signal);
 #ifdef SIGBUS
 	old_sigbus = signal_catch(SIGBUS, signal_cleanup_got_signal);
@@ -418,8 +400,11 @@ signal_perform_cleanup(void)
 		s_miniwarn("%s(): running without lock protection", G_STRFUNC);
 
 	while (sig_cleanup_count != 0) {
-		if (Sigsetjmp(sig_cleanup_env, TRUE))
+		if (Sigsetjmp(sig_cleanup_env, TRUE)) {
+			s_rawwarn("%s(): handler #%u did not complete",
+				G_STRFUNC, sig_cleanup_count + 1);
 			continue;
+		}
 		(*sig_cleanup[--sig_cleanup_count])();
 	}
 
@@ -431,6 +416,7 @@ signal_perform_cleanup(void)
 	signal_set(SIGBUS, old_sigbus);
 #endif
 
+	signal_uncrashing();
 	spinunlock_hidden(&cleanup_slk);
 }
 
@@ -588,7 +574,7 @@ signal_in_handler(void)
 	if (ATOMIC_GET(&in_signal_abort) && 1 == ATOMIC_GET(&in_signal_handler))
 		return FALSE;		/* Handle signal_abort() specially */
 
-	return 0 != ATOMIC_GET(&in_signal_handler) && !mingw_in_exception();
+	return 0 != ATOMIC_GET(&in_signal_handler) && !signal_in_exception();
 }
 
 /**
@@ -1373,6 +1359,39 @@ signal_unblock(int signo)
 }
 
 static volatile sig_atomic_t in_critical_section;
+static volatile sig_atomic_t in_exception_handler;
+
+/**
+ * Are we in an exception?
+ *
+ * @return amount of times signal_crashing() was called.
+ */
+int
+signal_in_exception(void)
+{
+	return ATOMIC_GET(&in_exception_handler);
+}
+
+/**
+ * Mark that we are entering a fatal exception.
+ */
+void
+signal_crashing(void)
+{
+	ATOMIC_INC(&in_exception_handler);
+}
+
+/**
+ * Mark that we are leaving a fatal exception handler.
+ */
+void
+signal_uncrashing(void)
+{
+	sig_atomic_t old = ATOMIC_DEC(&in_exception_handler);
+
+	g_assert_log(size_is_non_negative(old),
+		"%s(): old=%zu", G_STRFUNC, (size_t) old);
+}
 
 /**
  * Block all signals, for entering a critical section.

@@ -133,6 +133,7 @@
 #include "tm.h"
 #include "tmalloc.h"
 #include "unsigned.h"
+#include "vmea.h"
 #include "xmalloc.h"
 #include "zalloc.h"
 
@@ -179,6 +180,7 @@ static once_flag_t vmm_early_inited;
 static once_flag_t vmm_inited;
 static bool vmm_fully_inited;
 static bool vmm_crashing;
+static int vmm_oom_detected;
 
 #define VMM_CACHE_SIZE		256	/**< Amount of entries per cache line */
 #define VMM_CACHE_LINES		32	/**< Amount of cache lines */
@@ -459,6 +461,15 @@ vmm_is_crashing(void)
 }
 
 /**
+ * @return whether VMM is extending its pmap.
+ */
+bool
+vmm_is_extending(void)
+{
+	return vmm_pmap()->extending;
+}
+
+/**
  * Put the VMM layer in crashing mode.
  *
  * This is activated on assertion failures and other fatal conditions, and
@@ -469,7 +480,7 @@ vmm_is_crashing(void)
  * In crashing mode, allocations are done without any pmap updating and
  * no shrinking nor freeing occurs.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 vmm_crash_mode(void)
 {
 	vmm_crashing = TRUE;
@@ -478,9 +489,19 @@ vmm_crash_mode(void)
 }
 
 /**
+ * Signal out-of-memory condition.
+ */
+static void G_GNUC_COLD
+vmm_oom_condition(void)
+{
+	if (0 == atomic_int_inc(&vmm_oom_detected))
+		crash_oom_condition();
+}
+
+/**
  * Initialize constants for the computation of kernel page roundings.
  */
-static G_GNUC_COLD void
+static void G_GNUC_COLD
 init_kernel_pagesize(void)
 {
 	kernel_pagesize = compat_pagesize();
@@ -1138,9 +1159,9 @@ vmm_valloc(void *hint, size_t size)
 #else
 	flags = MAP_PRIVATE;
 	if (-1 == fd) {
-		fd = get_non_stdio_fd(open("/dev/zero", O_RDWR, 0));
+		fd = fd_get_non_stdio(open("/dev/zero", O_RDWR, 0));
 		return_value_unless(fd >= 0, NULL);
-		set_close_on_exec(fd);
+		fd_set_close_on_exec(fd);
 	}
 #endif	/* MAP_ANON */
 
@@ -1632,6 +1653,31 @@ pmap_insert(struct pmap *pm, const void *start, size_t size)
 }
 
 /**
+ * Allocate pages from the page cache at all cost.
+ *
+ * @return allocated region, NULL if no memory is available.
+ */
+static void *
+alloc_pages_emergency(size_t size)
+{
+	size_t n = pagecount_fast(size);
+	void *p;
+
+	/*
+	 * We request "user memory" from the page cache to ensure we're going
+	 * to be served if there is memory available there.
+	 */
+
+	p = page_cache_find_pages(n, TRUE, TRUE);
+	if (p != NULL) {
+		vmm_validate_pages(p, size);
+		memset(p, 0, size);				/* Kernel memory always zeroed */
+	}
+
+	return p;
+}
+
+/**
  * Allocates a page-aligned chunk of memory.
  *
  * @param size			the amount of bytes to allocate.
@@ -1667,8 +1713,6 @@ alloc_pages(size_t size, bool update_pmap)
 	p = vmm_mmap_anonymous(size, hole);
 
 	if G_UNLIKELY(NULL == p) {
-		size_t n = pagecount_fast(size);
-
 		/*
 		 * Emergency situation: we're out of memory, we're going to request
 		 * that this process be restarted.  If we return NULL from here, this
@@ -1676,21 +1720,16 @@ alloc_pages(size_t size, bool update_pmap)
 		 * one: all we have to do is be able to allocate from the page cache,
 		 * even though this would not be an optimal allocation.
 		 *		--RAM, 2015-04-02
-		 *
-		 * We request "user memory" from the page cache to ensure we're going
-		 * to be served if there is memory available there.
 		 */
 
-		p = page_cache_find_pages(n, TRUE, TRUE);
-		if (p != NULL) {
-			vmm_validate_pages(p, size);
-			memset(p, 0, size);				/* Kernel memory always zeroed */
+		vmm_oom_condition();
 
+		p = alloc_pages_emergency(size);
+		if (p != NULL) {
 			/* We're going to crash and restart, don't update statistics */
 
 			crash_restart("%s(): emergency allocation of %'zu bytes from "
-				"the page cache, requesting restart",
-				G_STRFUNC, size);
+				"the page cache", G_STRFUNC, size);
 
 			/* Allocation from page cache: region is already in the pmap */
 			goto done;
@@ -1717,11 +1756,28 @@ alloc_pages(size_t size, bool update_pmap)
 			/* We're going to crash and restart, don't update statistics */
 
 			crash_restart("%s(): emergency allocation of %'zu bytes after "
-				"clearing the page cache, requesting restart",
-				G_STRFUNC, size);
+				"clearing the page cache", G_STRFUNC, size);
 
 			goto allocated;
 		}
+
+		/*
+		 * Last resort: use the VM emergency region if we have one.
+		 */
+
+		p = vmea_alloc(size);
+		if (p != NULL) {
+			/* We're going to crash and restart, don't update statistics */
+
+			crash_restart("%s(): allocation of %'zu bytes via emergency region",
+				G_STRFUNC, size);
+
+			memset(p, 0, size);			/* Kernel memory always zeroed */
+
+			/* Allocation from emergency region, already present in the pmap */
+		}
+
+		/* FALL THROUGH */
 
 	done:
 		if (update_pmap)
@@ -1886,6 +1942,9 @@ free_pages(void *p, size_t size, bool update_pmap)
 	if (vmm_debugging(5)) {
 		s_minidbg("VMM freeing %zuKiB region at %p", size / 1024, p);
 	}
+
+	if G_UNLIKELY(vmm_oom_detected && vmea_free(p, size))
+		return;
 
 	free_pages_intern(p, size, update_pmap);
 }
@@ -3977,6 +4036,42 @@ vmm_madvise_willneed(void *p, size_t size)
 }
 
 /**
+ * Perform memory allocation during crashes.
+ *
+ * @param size			the size of the region we want to allocate
+ * @param zero_mem		whether to zero the allocated memory
+ *
+ * @return the allocated region, NULL on error
+ */
+static void *
+vmm_crashing_alloc(size_t size, bool zero_mem)
+{
+	void *p;
+
+	p = vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
+
+	if G_UNLIKELY(MAP_FAILED == p) {
+		/*
+		 * It's going to be fatal if we return NULL, probably causing
+		 * an immediate termination, so attempt the cache, then the
+		 * emergency VM region if we have one.
+		 */
+
+		vmm_oom_condition();
+		p = alloc_pages_emergency(size);
+		if (NULL == p)
+			p = vmea_alloc(size);
+		if (NULL == p)
+			return NULL;
+
+		if G_UNLIKELY(zero_mem)
+			memset(p, 0, size);
+	}
+
+	return p;
+}
+
+/**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
  * and only allocating a new region when necessary.
  *
@@ -4005,7 +4100,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	size = round_pagesize_fast(size);
 
 	if G_UNLIKELY(vmm_crashing)
-		return vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
+		return vmm_crashing_alloc(size, zero_mem);
 
 	n = pagecount_fast(size);
 
@@ -4044,10 +4139,9 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	 */
 
 	p = alloc_pages(size, TRUE);
-	if (NULL == p) {
-		crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
-			G_STRFUNC, size);
-	}
+
+	if (NULL == p)
+		goto failed;
 
 	/* Memory allocated by the kernel is already zero-ed */
 
@@ -4078,6 +4172,10 @@ update_stats:
 	VMM_STATS_UNLOCK;
 
 	return p;
+
+failed:
+	crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
+		G_STRFUNC, size);
 }
 
 /**
@@ -4106,6 +4204,13 @@ vmm_should_cache(const void *p, size_t n)
 	} else {
 		size_t len;
 		const void *hole;
+
+		/*
+		 * In OOM condition, we attempt to cache every page.
+		 */
+
+		if G_UNLIKELY(vmm_oom_detected)
+			return TRUE;
 
 		/*
 		 * In long-term strategy, attempt to cache memory that lies before
@@ -4145,8 +4250,38 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 	g_assert(0 == size || p);
 	g_assert(size_is_non_negative(size));
 
-	if G_UNLIKELY(vmm_crashing)
-		return;
+	/*
+	 * If we're crashing and we detected an OOM conditions, the likelyhood
+	 * that we are crashing due to that OOM condition is very high. Since
+	 * we're lacking memory, if we can cache the memory we're freeing and
+	 * that allows us to allocate later, then it's a win!
+	 *
+	 * Under an OOM condition, we make sure vmm_should_cache() always returns
+	 * TRUE, which also means we're going to avoid pmap updates as a side
+	 * effect since caching a region does not cause a pmap change: the memory
+	 * remains allocated to the process.
+	 *
+	 *		--RAM, 2015-11-28
+	 */
+
+	if G_UNLIKELY(vmm_crashing) {
+		if (!vmm_oom_detected)
+			return;
+	}
+
+	/*
+	 * If we are under an OOM condition, it is possible that the memory
+	 * was actually allocated via the emergency region.  In that case,
+	 * return it to the emergency allocator instead of the page cache to
+	 * maximize our ability to use that emergency region if we get a large
+	 * allocation request.
+	 *		--RAM, 2015-12-03
+	 */
+
+	if G_UNLIKELY(vmm_oom_detected) {
+		if (vmea_free(p, size))
+			return;			/* Returned to emergency region */
+	}
 
 	if (p != NULL) {
 		size_t n;
@@ -4282,7 +4417,7 @@ vmm_get_magazine(size_t npages)
 		if (!evq_is_inited())
 			return NULL;			/* Too soon */
 
-		if G_UNLIKELY(vmm_crashing)
+		if G_UNLIKELY(vmm_crashing && !vmm_oom_detected)
 			return NULL;			/* In crash mode, don't use magazines */
 
 		/*
@@ -4467,7 +4602,7 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 	g_assert(new_size <= size);
 	g_assert(page_start(p) == p);
 
-	if G_UNLIKELY(vmm_crashing)
+	if G_UNLIKELY(vmm_crashing && !vmm_oom_detected)
 		return;
 
 	if (0 == new_size) {
@@ -4584,7 +4719,7 @@ vmm_resize(void *p, size_t size, size_t new_size)
 	if G_UNLIKELY(vmm_crashing) {
 		if (anew < asize)
 			return p;
-		np = vmm_valloc(NULL, anew);
+		np = vmm_crashing_alloc(anew, FALSE);
 		memcpy(np, p, size);
 		return np;
 	}
@@ -4636,6 +4771,9 @@ page_cache_timer(void *unused_udata)
 	bool looped, populated;
 
 	(void) unused_udata;
+
+	if G_UNLIKELY(vmm_oom_detected)
+		return FALSE;	/* Stop expire if we are in OOM condition already */
 
 	pc = &page_cache[page_cache_line];
 
@@ -4926,6 +5064,8 @@ vmm_set_strategy(enum vmm_strategy strategy)
 {
 	VMM_STRATEGY_LOCK;
 
+	vmm_init();		/* For the improbable case where it would not be done! */
+
 	switch (strategy) {
 	case VMM_STRATEGY_SHORT_TERM:
 		cq_periodic_remove(&vmm_periodic);
@@ -4933,6 +5073,8 @@ vmm_set_strategy(enum vmm_strategy strategy)
 	case VMM_STRATEGY_LONG_TERM:
 		if (NULL == vmm_periodic)
 			vmm_periodic = evq_raw_periodic_add(1000, page_cache_timer, NULL);
+		xmalloc_long_term();
+		zalloc_long_term();
 		break;
 	}
 
@@ -5540,7 +5682,6 @@ vmm_init_once(void)
 	 */
 
 	xmalloc_vmm_inited();
-	zalloc_vmm_inited();
 
 	atomic_bool_set(&vmm_fully_inited, TRUE);
 }
@@ -6499,7 +6640,7 @@ vmm_log_pages(const void *k, void *v, void *leaksort)
 
 #ifdef MALLOC_TIME
 	str_bprintf(ago, sizeof ago, " [%s]",
-		short_time(delta_time(tm_time(), pt->atime)));
+		short_time_ascii(delta_time(tm_time(), pt->atime)));
 #else
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */

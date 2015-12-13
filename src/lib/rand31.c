@@ -76,18 +76,78 @@ static spinlock_t rand31_lck = SPINLOCK_INIT;
 #define RAND31_UNLOCK	spinunlock_hidden(&rand31_lck)
 
 /**
+ * @return whether seed is 0 modulo RAND31_MOD
+ */
+static inline bool
+rand31_is_zero(unsigned seed)
+{
+	return 0 == seed % RAND31_MOD;
+}
+
+/**
  * @return next random number following given seed.
  */
 static inline unsigned
 rand31_prng_next(unsigned seed)
 {
-	return (seed * 1103515245 + 12345) & RAND31_MASK;
+	uint32 hi, lo;
+
+	/*
+	 * The computation used to be the very weak:
+	 *
+	 *     seed * 1103515245 + 12345
+	 *
+	 * which is less than optimal and does not vary much with
+	 * the original seed.  On 2015-11-21, we've switched to a
+	 * better algorithm:
+	 *
+	 *     seed * 7^5 mod 2^31-1
+	 *
+	 * Because p=2^31-1 is a prime number, Z/pZ is a field, so
+	 * we're guaranteed to loop over all the numbers, once, as
+	 * long as the initial seed is not zero!
+	 *
+	 * This algorithm was first described in:
+	 *
+	 * "Random number generators: good ones are hard to find",
+	 * by Park and Miller, Communications of the ACM, vol. 31,
+	 * no. 10, p. 1195, October 1988.
+	 *
+	 * To perform the computation witout overflowing the 31 bits,
+	 * and to avoid performing any division to take the modulo,
+	 * we are using Robin Whittle's implementation, which is derived
+	 * from the following article:
+	 *
+	 * "Two Fast Implementations of the 'Minimal Standard' Random
+	 * Number Generator", by David G. Carta, Communications of the
+	 * ACM, vol. 33, no. 1, p. 87-88, January 1990.
+	 *
+	 * This rand31() remains a weak generator from a statistical
+	 * perspective, but it makes our rand31_u32() a decent one.
+	 *
+	 * Note that the generated numbers fall between 1 and 2^31 - 2,
+	 * since 0 is avoided and 2^31 - 1 is the modulo, hence attempting
+	 * uniform distribution via random_upto() will yield biased results.
+	 *		--RAM, 2015-11-21
+	 */
+
+	lo = 16807 * (seed & 0xffff);
+	hi = 16807 * (seed >> 16);
+	lo += (hi & 0x7fff) << 16;
+	lo += hi >> 15;
+
+	if (lo > RAND31_MOD)
+		lo -= RAND31_MOD;
+
+	g_assert(lo < RAND31_MOD && lo != 0);
+
+	return lo;
 }
 
 /**
  * Computes a random seed to initialize the PRNG engine.
  *
- * @return initial random seed.
+ * @return initial random seed, guaranteed to not be zero.
  */
 static unsigned
 rand31_random_seed(void)
@@ -121,9 +181,9 @@ rand31_random_seed(void)
 	tm_precise_time(&now);
 	nsecs += now.tv_nsec;
 	seed += integer_hash_fast(getpid());
-#ifdef HAS_GETPPID
 	seed += integer_hash_fast(getppid());
-#endif
+	seed += integer_hash_fast(getuid());
+	seed += integer_hash_fast(getgid());
 	seed += binary_hash(&now, sizeof now);
 	seed += binary_hash(&cpu, sizeof cpu);
 	seed += pointer_hash_fast(&now);
@@ -154,9 +214,14 @@ rand31_random_seed(void)
 	nsecs += now.tv_nsec;
 	nsecs %= 31;
 	seed = UINT32_ROTL(seed, nsecs);
+	if (rand31_is_zero(seed))
+		seed = now.tv_sec;		/* cannot be zero (modulo RAND31_MOD) */
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
 	}
+
+	g_assert(!rand31_is_zero(seed));
+	g_assert(0 != seed % RAND31_MOD);
 
 	return seed;
 }
@@ -171,7 +236,12 @@ rand31_random_seed(void)
 static void
 rand31_do_seed(unsigned seed)
 {
-	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
+	while (seed >= RAND31_MOD)
+		seed -= RAND31_MOD;
+
+	rand31_first_seed = rand31_seed =
+		rand31_is_zero(seed) ? rand31_random_seed() : seed;
+
 	atomic_mb();
 	atomic_int_inc(&rand31_seeded);
 }
@@ -202,30 +272,49 @@ rand31_prng(void)
 }
 
 /**
- * Internal 31-bit random number generator.
+ * Add randomness to the rand31 PRNG state.
  *
- * @return a 31-bit (positive) random number.
+ * @param data		the start of the random data buffer
+ * @param len		the amount of random bytes to process in the buffer
  */
-static int
-rand31_gen(void)
+void
+rand31_addrandom(const void *data, size_t len)
 {
-	unsigned rx;
+	int rn;
+	const void *p = data;
+	uint32 v;
 
-	/*
-	 * The low-order bits of the PRNG are less random than the upper ones,
-	 * and they have a smaller period.
-	 *
-	 * Discarding some of the bits produced by the random generator is bad
-	 * however because this can unexpectedly reduce the PRNG period or alter
-	 * the distribution of returned numbers.
-	 *
-	 * Therefore, we're mixing bits from the random number with itself in a
-	 * way that will preserve the period (2147476016, a little less 2**31).
-	 */
+	rand31_check_seeded();
 
-	rx = rand31_prng();
+	RAND31_LOCK;
 
-	return (UINT32_SWAP(rx) + UINT32_ROTL(rx, 11)) & RAND31_MASK;
+	rn = rand31_prng();		/* In case we end-up with a zero seed */
+
+	while (len >= 4) {
+		p = peek_be32_advance(p, &v);
+		len -= 4;
+		rand31_seed ^= v;
+	}
+
+	if (len != 0) {
+		g_assert(len < 4);
+
+		v = 0;
+		while (len-- != 0) {
+			v <<= 8;
+			v |= peek_u8(p);
+			p = const_ptr_add_offset(p, 1);
+		}
+		rand31_seed ^= v;
+	}
+
+	while (rand31_seed >= RAND31_MOD)
+		rand31_seed -= RAND31_MOD;
+
+	if G_UNLIKELY(rand31_is_zero(rand31_seed))
+		rand31_seed = rn;
+
+	RAND31_UNLOCK;
 }
 
 /**
@@ -241,7 +330,7 @@ rand31(void)
 	rand31_check_seeded();
 
 	RAND31_LOCK;
-	rn = rand31_gen();
+	rn = rand31_prng();
 	RAND31_UNLOCK;
 
 	return rn;
@@ -257,7 +346,7 @@ rand31_set_seed(unsigned seed)
 {
 	unsigned s;
 
-	s = 0 == seed ? rand31_random_seed() : seed;
+	s = rand31_is_zero(seed) ? rand31_random_seed() : seed;
 
 	RAND31_LOCK;
 	rand31_do_seed(s);
@@ -307,7 +396,7 @@ rand31_current_seed(void)
 int
 rand31_value(unsigned max)
 {
-	g_assert(0 == (max & (1U << 31)));	/* bit 31 is zero */
+	g_assert(max <= RAND31_MAX);
 
 	STATIC_ASSERT(sizeof(int) == sizeof(unsigned));	/* Hence safe cast below */
 
@@ -326,18 +415,19 @@ rand31_u32(void)
 
 	/*
 	 * Our algorithm below draws 3 consecutive numbers from the sequence.
-	 * The resulting period of the generator is 2147481104, which is a little
-	 * less than 2**31.
+	 * The resulting period of the generator is larger than 2**32.
 	 *
-	 * Although this remains a weak PRNG, its behaviour is much better than
-	 * rand31(), in term of statistical dispersion of numbers.
+	 * Its behaviour is much better than rand31(), in term of statistical
+	 * dispersion of numbers, based on the results of dieharder tests:
+	 *
+	 *		./random-test -u -T | dieharder -g 200 -a
 	 */
 
 	RAND31_LOCK;
 	rx = rand31_prng();
 	rn = UINT32_ROTR(rx, 11);
 	rx = rand31_prng();
-	rn += UINT32_ROTR(rx, 16);
+	rn += UINT32_ROTR(rx, 17);
 	rx = rand31_prng();
 	rn += UINT32_ROTL(rx, 5);
 	RAND31_UNLOCK;
@@ -360,6 +450,9 @@ rand31_double(void)
 
 /**
  * Fills buffer 'dst' with 'size' bytes of random data.
+ *
+ * @note
+ * Randomness is generated using rand31_u32().
  */
 void
 rand31_bytes(void *dst, size_t size)

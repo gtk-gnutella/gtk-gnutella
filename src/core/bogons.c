@@ -174,25 +174,16 @@ bogons_retrieve(void)
 	int idx;
 	char *filename;
 	file_path_t fp[4];
-	unsigned length = 0;	
-	char *tmp;
+	unsigned length;
 
-	file_path_set(&fp[length++], settings_config_dir(), bogons_file);
-	tmp = get_folder_path(PRIVLIB_PATH, NULL);
-	if (tmp != NULL)
-		file_path_set(&fp[length++], tmp, bogons_file);
-	
-	file_path_set(&fp[length++], PRIVLIB_EXP, bogons_file);
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, bogons_file);
-#endif
+	length = settings_file_path_load(fp, bogons_file, SFP_DFLT);
 
 	g_assert(length <= G_N_ELEMENTS(fp));
 
 	f = file_config_open_read_norename_chosen(bogons_what, fp, length, &idx);
 
 	if (NULL == f)
-	   goto done;
+	   return;
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, bogons_changed, NULL);
@@ -200,9 +191,6 @@ bogons_retrieve(void)
 
 	bogons_load(f);
 	fclose(f);
-
-done:
-	HFREE_NULL(tmp);
 }
 
 /**

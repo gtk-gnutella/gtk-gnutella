@@ -41,7 +41,16 @@
 typedef void (*special_upload_closed_t)(void *arg);
 typedef void (*special_upload_writable_t)(void *arg);
 
+#define SPECIAL_UPLOAD_MAGIC_VAL 	0x137b14e0
+#define SPECIAL_UPLOAD_MAGIC_MASK 	0xfffffff0	/* Leading 28 bits set */
+
+enum special_upload_magic {
+	SPECIAL_UPLOAD_THEX_MAGIC   = SPECIAL_UPLOAD_MAGIC_VAL + 0x1,
+	SPECIAL_UPLOAD_BROWSE_MAGIC = SPECIAL_UPLOAD_MAGIC_VAL + 0xc,
+};
+
 struct special_upload {
+	enum special_upload_magic magic;
 	struct txdriver *tx;
 	ssize_t (*read)(struct special_upload *, void *dest, size_t size);
 	ssize_t (*write)(struct special_upload *, const void *data, size_t size);
@@ -49,6 +58,28 @@ struct special_upload {
 					special_upload_closed_t cb, void *arg);
 	void (*close)(struct special_upload *, bool fully_served);
 };
+
+static inline void
+special_upload_check(const struct special_upload * const su)
+{
+	g_assert(su != NULL);
+	g_assert(SPECIAL_UPLOAD_MAGIC_VAL ==
+		(su->magic & SPECIAL_UPLOAD_MAGIC_MASK));
+}
+
+static inline void
+special_upload_thex_check(const struct special_upload * const su)
+{
+	g_assert(su != NULL);
+	g_assert(SPECIAL_UPLOAD_THEX_MAGIC == su->magic);
+}
+
+static inline void
+special_upload_browse_check(const struct special_upload * const su)
+{
+	g_assert(su != NULL);
+	g_assert(SPECIAL_UPLOAD_BROWSE_MAGIC == su->magic);
+}
 
 #endif /* _core_special_upload_h_ */
 

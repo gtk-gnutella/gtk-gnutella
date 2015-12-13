@@ -145,14 +145,14 @@ static void
 gui_init_window_title(void)
 {
 	gchar title[256];
-	const char *revision = product_get_revision();
+	const char *revision = product_revision();
 
 	if (revision[0] != '\0') {
 		str_bprintf(title, sizeof(title), "gtk-gnutella %s %s",
-			product_get_version(), revision);
+			product_version(), revision);
 	} else {
 		str_bprintf(title, sizeof(title), "gtk-gnutella %s",
-			product_get_version());
+			product_version());
 	}
 
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
@@ -583,16 +583,16 @@ main_gui_gtkrc_init(void)
 	HFREE_NULL(userrc);
 
 	userrc = h_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
+		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", NULL_PTR);
 	gtk_rc_parse(userrc);
 	HFREE_NULL(userrc);
 
 #ifdef USE_GTK2
 	userrc = h_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
+		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", NULL_PTR);
 #else
 	userrc = h_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
+		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", NULL_PTR);
 #endif
 	gtk_rc_parse(userrc);
 	HFREE_NULL(userrc);
@@ -840,8 +840,8 @@ void main_gui_init_osx()
 void
 main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 {
-	char *tmp;
-	
+	static const char pixmaps[] = "pixmaps";
+
 	/* Glade inits */
 
 	gtk_set_locale();
@@ -855,18 +855,24 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 		gdk_set_use_xshm(FALSE);
 
 	add_pixmap_directory(native_path(PRIVLIB_EXP G_DIR_SEPARATOR_S "pixmaps"));
+
 #ifndef OFFICIAL_BUILD
 	add_pixmap_directory(
 		native_path(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps"));
 #endif
 
-	tmp = get_folder_path(PRIVLIB_PATH, "pixmaps");
-	if (tmp != NULL) {
-		add_pixmap_directory(native_path(tmp));
-		HFREE_NULL(tmp);
+	{
+		const char *path = get_folder_path(PRIVLIB_PATH);
+
+		if (path != NULL) {
+			char *tmp = h_strconcat(path, G_DIR_SEPARATOR_S, pixmaps, NULL_PTR);
+			add_pixmap_directory(native_path(tmp));
+			HFREE_NULL(tmp);
+		}
 	}
+
 #ifdef MINGW32
-	add_pixmap_directory(mingw_filename_nearby("pixmaps"));
+	add_pixmap_directory(mingw_filename_nearby(pixmaps));
 #endif
 
     gui_main_window_set(create_main_window());

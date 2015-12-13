@@ -39,6 +39,7 @@
  */
 
 ssize_t frand_save(const char *path, randfill_fn_t rfn, size_t len);
+ssize_t frand_merge(const char *path, randfill_fn_t rfn, size_t len);
 ssize_t frand_restore(const char *path, feed_fn_t rfd, size_t len);
 ssize_t frand_clear(const char *path, size_t len);
 

@@ -46,6 +46,7 @@
 #include "compat_sleep_ms.h"
 #include "gentime.h"
 #include "listener.h"
+#include "progname.h"		/* For progstart_time() */
 #include "offtime.h"
 #include "once.h"
 #include "spinlock.h"
@@ -72,7 +73,6 @@ static struct {
 	once_flag_t inited;		/* First GMT offset computed */
 } tm_gmt;
 
-static bool tm_thread_started;
 static uint32 tm_debug;
 
 #define TM_LOCK			spinlock_raw(&tm_slk)
@@ -658,22 +658,8 @@ tm_now_exact_raw(tm_t *tm)
 void
 tm_now_exact(tm_t *tm)
 {
-	G_PREFETCH_HI_W(&tm_cached_now);
 	G_PREFETCH_HI_W(&tm_slk);
-
-	/*
-	 * This routine is too low-level to be able to use once_run_flag().
-	 */
-
-	if G_UNLIKELY(!tm_thread_started) {
-		bool start = FALSE;
-		TM_LOCK;
-		if (!tm_thread_started)
-			start = tm_thread_started = TRUE;
-		TM_UNLOCK;
-		if (start)
-			tm_thread_start();
-	}
+	G_PREFETCH_HI_W(&tm_cached_now);
 
 	thread_check_suspended();
 	tm_now_exact_raw(tm);
@@ -744,7 +730,27 @@ tm_localtime_exact(void)
 time_t
 tm_localtime_raw(void)
 {
-	return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
+	static time_delta_t gmt_offset;
+	static bool done;
+	time_delta_t offset = tm_gmt.offset;
+	tm_t now = tm_cached_now;
+
+	/*
+	 * In case this routine is called very early, perform some local
+	 * initializations to be able to return meaningful information.
+	 *		--RAM, 2015-11-15
+	 */
+
+	if G_UNLIKELY(0 == now.tv_sec) {
+		tm_current_time(&now);
+		if (!done) {
+			gmt_offset = timestamp_gmt_offset(time(NULL), NULL);
+			done = TRUE;
+		}
+		offset = gmt_offset;
+	}
+
+	return (time_t) now.tv_sec + offset;
 }
 
 /**
@@ -876,18 +882,32 @@ tm_cputime(double *user, double *sys)
 	return u + s;
 }
 
-static tm_t start_time;
-
-void
-tm_init(void)
+/**
+ * Returns the current time relative to the startup time (cached).
+ *
+ * @note For convenience unsigned long is used, so that we can
+ *		 always cast them to pointers and back again. The guaranteed
+ *		 width of 32-bit should be sufficient for session duration.
+ *		 Where this is unsufficient, stick to time_t.
+ */
+time_t
+tm_relative_time(void)
 {
-	tm_now_exact(&start_time);
+	return delta_time(tm_time(), progstart_time().tv_sec);
 }
 
-tm_t
-tm_start_time(void)
+/**
+ * Initialize the cached time, and optionally start the time thread.
+ */
+void
+tm_init(bool time_thread)
 {
-	return start_time;
+	tm_t now;
+
+	if (time_thread)
+		tm_thread_start();
+
+	tm_now_exact(&now);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

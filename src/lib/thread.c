@@ -81,6 +81,7 @@
 
 #include "alloca.h"				/* For alloca_stack_direction() */
 #include "atomic.h"
+#include "atoms.h"
 #include "buf.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
@@ -345,6 +346,8 @@ struct thread_element {
 	uint gone:1;					/**< Discovered thread is gone */
 	uint gone_seen:1;				/**< Flagged activity from gone thread */
 	uint add_monitoring:1;			/**< Must reinstall thread monitoring */
+	uint atomic_name:1;				/**< Whether name is an atomic string */
+	uint stack_overflow:1;			/**< Stack overflow was detected */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
@@ -526,6 +529,7 @@ static bool thread_panic_mode;			/* STID overflow, most probably */
 static size_t thread_reused;			/* Counts reused thread elements */
 static uint thread_main_stid = -1U;		/* STID of the main thread */
 static bool thread_main_can_block;		/* Can the main thread block? */
+static bool thread_set_main_called;		/* Was thread_set_main() called? */
 static uint thread_pending_reuse;		/* Threads waiting to be reused */
 static uint thread_running;				/* Created threads running */
 static uint thread_discovered;			/* Amount of discovered threads */
@@ -541,6 +545,7 @@ static void thread_lock_dump(const struct thread_element *te);
 static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
 static void thread_will_exit(void *arg);
 static void thread_crash_hook(void);
+static void thread_stack_overflow(struct thread_element *te) G_GNUC_NORETURN;
 
 /**
  * Low-level unique thread ID.
@@ -920,6 +925,48 @@ thread_element_mark_gone_seen(struct thread_element *te)
 		te->add_monitoring = TRUE;	/* Still active, must monitor exit again! */
 	}
 	THREAD_UNLOCK(te);
+}
+
+/**
+ * On Windows, since the system allocates much more stack than we request
+ * usually, monitor the stack to ensure there is no logical overflow going on.
+ *
+ * This needs to be checked at strategic spots, but not at places where we
+ * can compute the current thread via a QID cache lookup: if the QID cache
+ * matches, then we already checked that there was not overflow in that stack
+ * page...
+ *
+ * Since in practice more than 99.5% of the QID cache lookups succeed for
+ * locating a thread, the additional checks we're doing here are not going
+ * to be impacting performance much!
+ */
+static inline void
+thread_element_stack_check(struct thread_element *te)
+{
+#ifdef MINGW32
+	/*
+	 * We know that the stack grows backwards there.
+	 */
+
+	if G_UNLIKELY(
+		te->stack_size != 0 &&
+		!te->main_thread &&
+		!te->stack_overflow &&
+		ptr_diff(te->stack_base, &te) > te->stack_size &&
+		0 == signal_in_exception()
+	) {
+		te->stack_overflow = TRUE;		/* Prevent deadly recursions */
+
+		s_rawcrit("stack (%'zu bytes) overflowing for %s (used %'zu bytes)",
+			te->stack_size, thread_id_name(te->stid),
+			ptr_diff(te->stack_base, &te));
+
+		thread_stack_overflow(te);
+	}
+#else
+	/* Unnecessary on UNIX platforms: pthreads correctly creates the stack */
+	(void) te;
+#endif	/* MINGW32 */
 }
 
 /**
@@ -1677,6 +1724,18 @@ thread_exiting(struct thread_element *te)
 }
 
 /**
+ * Clear the atomic name in the thread element.
+ */
+static void
+thread_element_clear_name(struct thread_element *te)
+{
+	if (te->atomic_name) {
+		atom_str_free_null(&te->name);
+		te->atomic_name = FALSE;
+	}
+}
+
+/**
  * Reset important fields from a reused thread element.
  */
 static void
@@ -1693,6 +1752,7 @@ thread_element_reset(struct thread_element *te)
 
 	te->locks.count = 0;
 	ZERO(&te->waiting);
+	thread_element_clear_name(te);
 
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
@@ -1727,6 +1787,7 @@ thread_element_reset(struct thread_element *te)
 	te->gone = FALSE;
 	te->gone_seen = FALSE;
 	te->add_monitoring = FALSE;
+	te->stack_overflow = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
@@ -1853,6 +1914,36 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 		== te->stack_size);
 
 	te->top_sp = &te;
+
+	/*
+	 * On Windows unforturnately two things happpen:
+	 *
+	 * - the pthread layer does not honour the configured stack size
+	 * - the system automatically grows the stack up to some unknown limit
+	 *
+	 * Fortunately, it appears the system also reserves the memory region
+	 * and we can compute its allocation start, thereby we can patch-up
+	 * the te->low_qid value to be the start of that region.
+	 *
+	 * We do not change the configured te->stack_size though, as it will
+	 * allow us to detect "overflows" before the kernel can signal them, due
+	 * to the bottom guard page being hit.
+	 *
+	 *		--RAM, 2015-11-10
+	 */
+
+#ifdef MINGW32
+	{
+		void *bottom = mingw_memstart(&qid);
+
+		if (NULL == bottom) {
+			s_rawwarn("%s(): cannot compute real stack bottom for thread #%u",
+				G_STRFUNC, te->stid);
+		} else {
+			te->low_qid = thread_quasi_id_fast(bottom);
+		}
+	}
+#endif	/* MINGW32 */
 
 	/*
 	 * Once the TID and the QID ranges have been set for the thread we're
@@ -2956,8 +3047,10 @@ thread_get_element(void)
 	 */
 
 	te = thread_find_via_qid(qid);
-	if G_LIKELY(te != NULL)
+	if G_LIKELY(te != NULL) {
+		thread_element_stack_check(te);		/* For Windows only */
 		return te;
+	}
 
 	/*
 	 * Reserve STID=0 for the main thread if we can, since this is
@@ -3117,6 +3210,7 @@ found:
 	 */
 
 	thread_element_update_qid_range(te, qid);
+	thread_element_stack_check(te);				/* For Windows only */
 
 	/*
 	 * Cache result to speed-up things next time if we come back for the
@@ -3150,19 +3244,42 @@ thread_get_private_hash(struct thread_element *te)
 }
 
 /**
+ * Conpute stack usage for given thread.
+ *
+ * @param stid		the thread for which we want to compute usage
+ * @param sp		a stack pointer that ought to belong to the thread stack
+ *
+ * @return thread stack usage given thread ID, 0 if stid is invalid.
+ */
+size_t
+thread_id_stack_used(uint stid,  const void *sp)
+{
+	struct thread_element *te;
+	static void *base;
+
+	if (stid >= THREAD_MAX)
+		return 0;
+
+	te = threads[stid];
+	if (NULL == te || !te->valid)
+		return 0;
+
+	base = ulong_to_pointer(te->low_qid << thread_pageshift);
+	if (thread_sp_direction < 0)
+		base = ptr_add_offset(base, (1 << thread_pageshift));
+
+	return thread_stack_ptr_offset(base, sp);
+}
+
+/**
  * @return current thread stack usage.
  */
 size_t
 thread_stack_used(void)
 {
 	struct thread_element *te = thread_get_element();
-	static void *base;
 
-	base = ulong_to_pointer(te->low_qid << thread_pageshift);
-	if (thread_sp_direction < 0)
-		base = ptr_add_offset(base, (1 << thread_pageshift));
-
-	return thread_stack_ptr_offset(base, &te);
+	return thread_id_stack_used(te->stid, &te);
 }
 
 /**
@@ -3195,97 +3312,17 @@ thread_signal_handle(struct thread_element *te, int sig, tsighandler_t handler)
 }
 
 /**
- * Check whether current thread is overflowing its stack by hitting the
- * red-zone guard page at the end of its allocated stack.
- * When it does, we panic immediately.
+ * Report stack overflow for thread identified by its thread element.
  *
- * This routine is meant to be called when we receive a SEGV signal to do the
- * actual stack overflowing check.
+ * If there is a TSIG_OVFLOW signal handler registered, invoke it before
+ * exiting from the thread.
  *
- * @param va		virtual address where the fault occured (NULL if unknown)
+ * Otherwise, this is an application crash.
  */
-void
-thread_stack_check_overflow(const void *va)
+static void
+thread_stack_overflow(struct thread_element *te)
 {
-	static const char overflow[] = "thread stack overflow\n";
-	struct thread_element *te = thread_get_element();
-	thread_qid_t qva;
-	bool extra_stack = FALSE;
 	tsighandler_t handler;
-
-	/*
-	 * If we do not have a signal stack we cannot really process a stack
-	 * overflow anyway.
-	 *
-	 * Moreover, without a known faulting virtual address, we will not be able
-	 * to detect that the fault happened in the red-zone page.
-	 */
-
-	if (NULL == te->sig_stack || NULL == va)
-		return;
-
-	/*
-	 * Check whether we're nearing the top of the stack: if the QID lies in the
-	 * last page of the stack, assume we're overflowing or about to.
-	 */
-
-	qva = thread_quasi_id_fast(va);
-
-	if (thread_sp_direction < 0) {
-		/* Stack growing down, base is high_qid */
-		if (qva + 1 != te->low_qid)
-			return;		/* Not faulting in the red-zone page */
-	} else {
-		/* Stack growing up, base is low_qid */
-		if (qva - 1 != te->high_qid)
-			return;		/* Not faulting in the red-zone page */
-	}
-
-	/*
-	 * Check whether we're running on the signal stack.  If we do, we have
-	 * extra stack space because we know SIGSEGV will always be delivered
-	 * on the signal stack.
-	 */
-
-	if (te->sig_stack != NULL) {
-		thread_qid_t qid = thread_quasi_id();
-
-		if (qid >= te->low_sig_qid && qid <= te->high_sig_qid)
-			extra_stack = TRUE;
-	}
-
-	/*
-	 * If we allocated the stack through thread_stack_allocate(), undo the
-	 * red-zone protection to let us use the extra page as stack space.
-	 *
-	 * This is only necessary when we're detecting that we are not running
-	 * on the signal stack.  This is possible on systems with no support for
-	 * alternate signal stacks and for which we managed to get this far after
-	 * a fault in the red-zone page (highly unlikely, but one day we may enter
-	 * this routine outside of SIGSEGV handling).
-	 */
-
-	if (te->stack != NULL && !extra_stack) {
-		if (thread_sp_direction < 0) {
-			mprotect(te->stack, thread_pagesize, PROT_READ | PROT_WRITE);
-		} else {
-			mprotect(ptr_add_offset(te->stack, te->stack_size),
-				thread_pagesize, PROT_READ | PROT_WRITE);
-		}
-		extra_stack = TRUE;
-	}
-
-	/*
-	 * If we have extra stack space, emit a detailed message about what is
-	 * happening, otherwise emit a minimal panic message.
-	 */
-
-	if (extra_stack) {
-		s_rawcrit("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_id_name(te->stid));
-	} else {
-		IGNORE_RESULT(write(STDERR_FILENO, overflow, CONST_STRLEN(overflow)));
-	}
 
 	/*
 	 * If there is a signal handler installed for TSIG_OVFLOW, run it and
@@ -3308,7 +3345,123 @@ thread_stack_check_overflow(const void *va)
 		/* NOTREACHED */
 	}
 
+	s_rawwarn("no TSIG_OVFLOW handler installed for %s, crashing...",
+		thread_id_name(te->stid));
+
 	crash_abort();
+}
+
+/**
+ * Check whether current thread is overflowing its stack by hitting the
+ * red-zone guard page at the end of its allocated stack.
+ * When it does, we panic immediately.
+ *
+ * This routine is meant to be called when we receive a SEGV signal to do the
+ * actual stack overflowing check.
+ *
+ * @param va		virtual address where the fault occured (NULL if unknown)
+ */
+void
+thread_stack_check_overflow(const void *va)
+{
+	struct thread_element *te = thread_get_element();
+	thread_qid_t qva;
+	bool extra_stack = FALSE;
+	size_t redzone = 1;
+
+	/*
+	 * If we do not have a signal stack we cannot really process a stack
+	 * overflow anyway.
+	 *
+	 * This is not true on Windows, which lacks sigaltstack() support but
+	 * has PROT_GUARD, so it allows stack overflow processing, and seems
+	 * to leave 3 pages at the bottom of the stack.
+	 */
+
+#ifdef MINGW32
+	redzone = 3;			/* Windows faults within 3 pages of stack limit */
+#else	/* !MINGW32 */
+	if (NULL == te->sig_stack)
+		return;
+#endif	/* MINGW32 */
+
+	/*
+	 * Moreover, without a known faulting virtual address, we will not be able
+	 * to detect that the fault happened in the red-zone page.
+	 */
+
+	if (NULL == va)
+		return;
+
+	/*
+	 * Check whether we're nearing the top of the stack: if the QID lies in the
+	 * last page of the stack, assume we're overflowing or about to.
+	 */
+
+	qva = thread_quasi_id_fast(va);
+
+	if (thread_sp_direction < 0) {
+		/* Stack growing down, base is high_qid */
+		if (qva > te->low_qid + redzone)
+			return;		/* Not faulting in the red-zone page */
+	} else {
+		/* Stack growing up, base is low_qid */
+		if (qva < te->high_qid - redzone)
+			return;		/* Not faulting in the red-zone page */
+	}
+
+	te->stack_overflow = TRUE;		/* Prevent deadly recursions */
+
+	/*
+	 * Check whether we're running on the signal stack.  If we do, we have
+	 * extra stack space because we know SIGSEGV will always be delivered
+	 * on the signal stack.
+	 */
+
+	if (te->sig_stack != NULL) {
+		thread_qid_t qid = thread_quasi_id();
+
+		if (qid >= te->low_sig_qid && qid <= te->high_sig_qid)
+			extra_stack = TRUE;
+
+	}
+
+	/*
+	 * If we allocated the stack through thread_stack_allocate(), undo the
+	 * red-zone protection to let us use the extra page as stack space.
+	 *
+	 * This is only necessary when we're detecting that we are not running
+	 * on the signal stack.  This is possible on systems with no support for
+	 * alternate signal stacks and for which we managed to get this far after
+	 * a fault in the red-zone page (highly unlikely, but one day we may enter
+	 * this routine outside of SIGSEGV handling).
+	 */
+
+	if (te->stack != NULL && !extra_stack) {
+		if (thread_sp_direction < 0) {
+			mprotect(te->stack, thread_pagesize, PROT_READ | PROT_WRITE);
+		} else {
+			mprotect(ptr_add_offset(te->stack, te->stack_size),
+				thread_pagesize, PROT_READ | PROT_WRITE);
+		}
+	}
+
+	/*
+	 * If we have extra stack space, emit a detailed message about what is
+	 * happening, otherwise emit a minimal panic message.
+	 */
+
+	if (extra_stack) {
+		s_rawcrit("stack (%zu bytes) overflowing for %s",
+			te->stack_size, thread_id_name(te->stid));
+	} else {
+		/* Don't attempt to unwind the stack, that costs stack space! */
+		s_rawwarn("stack (%zu bytes) overflowing for %s",
+			te->stack_size, thread_id_name(te->stid));
+	}
+
+	thread_stack_overflow(te);
+	g_assert_not_reached();
 }
 
 /**
@@ -3333,6 +3486,60 @@ thread_qid_lookup(const void *sp)
 		return te;
 
 	return NULL;
+}
+
+/**
+ * Safely (but slowly) get the thread small ID from a stack pointer.
+ *
+ * This routine is only used during exception processing.
+ *
+ * This routine is intended to be used only by low-level debugging code
+ * since it can fail to locate a discovered thread.
+ *
+ * @param sp	the stack pointer of the thread for which we want the ID
+ *
+ * @return found thread ID, -1 on error.
+ */
+unsigned
+thread_safe_small_id_sp(const void *sp)
+{
+	struct thread_element *te;
+	thread_qid_t qid;
+
+	if G_UNLIKELY(thread_eq(THREAD_NONE, tstid[0]))
+		return 0;
+
+	/*
+	 * Look in the QID cache for a match.
+	 */
+
+	te = thread_qid_lookup(sp);
+	if G_LIKELY(NULL != te)
+		return te->stid;
+
+	/*
+	 * A light version of thread_find_via_qid() which does not update the QID
+	 * cache to avoid taking locks, since this code is invoked from spinlock().
+	 */
+
+	qid = thread_quasi_id_fast(sp);
+	te = thread_find_qid(qid);
+
+	if G_UNLIKELY(te != NULL && te->discovered && !te->main_thread) {
+		thread_t t = thread_self();
+		if (!thread_eq(te->tid, t)) {
+			te = thread_find_tid(t);		/* Find proper TID instead */
+		}
+	}
+
+	if G_LIKELY(NULL != te)
+		return te->stid;
+
+	/*
+	 * Will return -1 on error, not -2 as in thread_safe_small_id().
+	 */
+
+	return thread_stid_from_thread(thread_self());
 }
 
 /**
@@ -3376,8 +3583,10 @@ thread_safe_small_id(void)
 		}
 	}
 
-	if G_LIKELY(NULL != te)
+	if G_LIKELY(NULL != te) {
+		thread_element_stack_check(te);		/* For Windows only */
 		return te->stid;
+	}
 
 	stid = thread_stid_from_thread(thread_self());
 	if G_LIKELY(-1 != stid)
@@ -3488,13 +3697,34 @@ thread_stid_from_thread(const thread_t t)
 
 /**
  * Set the name of the current thread.
+ *
+ * @param name		the name of the current thread (copied as-is)
  */
 void
 thread_set_name(const char *name)
 {
 	struct thread_element *te = thread_get_element();
 
+	thread_element_clear_name(te);
 	te->name = name;
+}
+
+/**
+ * Set the name of the current thread, allocating an atomic string for it.
+ *
+ * @param name		the name of the current thread (atomized)
+ */
+void
+thread_set_name_atom(const char *name)
+{
+	struct thread_element *te = thread_get_element();
+
+	if (!te->atomic_name) {
+		te->name = NULL;
+		te->atomic_name = TRUE;
+	}
+
+	atom_str_change(&te->name, name);
 }
 
 /**
@@ -4101,12 +4331,17 @@ thread_unsuspend_others(void)
  * This routine must only be called by the main thread of course, which is
  * the thread that handles the callout queue, the I/O dispatching, etc...
  *
+ * It needs to be called after all the early initializations were done, and
+ * is the signal for walloc() to start using thread magazines.
+ *
  * @param can_block		TRUE if the main thread can block without concern
  */
 void
 thread_set_main(bool can_block)
 {
 	struct thread_element *te;
+
+	thread_set_main_called = TRUE;
 
 	/*
 	 * Must set the blocking status of the main thread immediately because
@@ -4140,6 +4375,18 @@ bool
 thread_main_is_blockable(void)
 {
 	return thread_main_can_block;
+}
+
+/**
+ * Check whether thread_set_main() was called.
+ *
+ * This indicates whether the main thread has finished its initializations
+ * and is good to go.
+ */
+bool
+thread_set_main_was_called(void)
+{
+	return thread_set_main_called;
 }
 
 /**
@@ -6146,6 +6393,48 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 }
 
 /**
+ * Check whether current thread holds any lock taken in a given file.
+ *
+ * This is used during crashes to determine whether we got a lock from a
+ * memory allocator, for instance, to be able to disable that allocator
+ * or put it into a minimal safe state (where it would allocate but no longer
+ * be able to free memory, for instance).
+ *
+ * @param file		the source file to check
+ */
+bool
+thread_lock_holds_from(const char *file)
+{
+	struct thread_element *te;
+	struct thread_lock_stack *tls;
+	unsigned i;
+
+	/*
+	 * For the same reasons as in thread_lock_add(), lazily grab the thread
+	 * element.  Note that we may be in a situation where we did not get a
+	 * thread element at lock time but are able to get one now.
+	 */
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return FALSE;
+
+	tls = &te->locks;
+
+	if (0 == tls->count)
+		return FALSE;
+
+	for (i = tls->count; i != 0; /**/) {
+		const struct thread_lock *l = &tls->arena[--i];
+
+		if (0 == strcmp(l->file, file))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Check whether current thread already holds a lock.
  *
  * If no locks were recorded yet in the thread, returns "default".
@@ -6288,6 +6577,42 @@ thread_lock_count(void)
 }
 
 /**
+ * Count locks held by other threads.
+ *
+ * Since by definition threads are concurrently running, this routine is
+ * not returning a reliable defined value unless thread_suspend_others(TRUE)
+ * was already called, since then we know any further attempt to grab a lock
+ * will suspend the other threads.
+ *
+ * When thread_suspend_others(FALSE) was called before, the only reliable
+ * result from this routine is 0.  Any other value is not reliable since a
+ * thread will not suspend itself until it has released all its locks.  Hence
+ * the amount of locks held by other threads could still change unless none
+ * of the other threads were holding any lock.
+ *
+ * @return amount of locks held by all the other threads but the current one.
+ */
+static size_t
+thread_others_lock_count(void)
+{
+	struct thread_element *te;
+	size_t count = 0, i;
+
+	te = thread_find(&te);		/* That's the current thread */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if G_UNLIKELY(xte == te)
+			continue;
+
+		count += xte->locks.count;
+	}
+
+	return count;
+}
+
+/**
  * @return amount of locks held by specified thread ID.
  */
 size_t
@@ -6412,17 +6737,27 @@ thread_crash_mode(void)
 	}
 
 	/*
-	 * Disable all locks: spinlocks and mutexes will be granted immediately,
-	 * preventing further deadlocks at the cost of a possible crash.  However,
-	 * this allows us to maybe collect information that we couldn't otherwise
-	 * get at, so it's worth the risk.
+	 * Now that other threads are disabled, check whether any of them have
+	 * any locks held.  If none of them have, there is no need to disable
+	 * locking, unless we have been called already, which means we're crashing
+	 * again during our crash handling.
 	 */
 
-	atomic_int_inc(&thread_locks_disabled);
+	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1) {
+		/*
+		 * Disable all locks: they will be granted immediately, preventing
+		 * further deadlocks at the cost of a possible crash.
+		 *
+		 * However, this allows us to maybe collect information that we
+		 * couldn't otherwise get at, so it's worth the risk.
+		 */
 
-	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
-	mutex_crash_mode();		/* Allow release of all mutexes */
-	rwlock_crash_mode();
+		if (0 == atomic_int_inc(&thread_locks_disabled)) {
+			spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
+			mutex_crash_mode();		/* Allow release of all mutexes */
+			rwlock_crash_mode();
+		}
+	}
 }
 
 /**
@@ -7285,7 +7620,7 @@ thread_unblock(unsigned id)
 
 struct thread_launch_context {
 	struct thread_element *te;
-	thread_main_t routine;
+	process_fn_t routine;
 	void *arg;
 	tsigset_t sig_mask;
 };
@@ -7345,6 +7680,8 @@ thread_launch_register(struct thread_element *te)
 	 */
 
 	if (NULL == stack) {
+		void *red;
+
 		stack = vmm_page_start(&t);
 
 		/*
@@ -7366,9 +7703,25 @@ thread_launch_register(struct thread_element *te)
 			/* Top address */
 			te->stack_base = deconstify_pointer(vmm_page_next(stack));
 			stack = const_ptr_add_offset(stack, -te->stack_size);
+			red = deconstify_pointer(stack);
 		} else {
 			/* Bottom address */
 			te->stack_base = deconstify_pointer(stack);
+			red = ptr_add_offset_const(stack, te->stack_size);
+		}
+
+		/*
+		 * Finally, protect the red page we're adding at the "top" of the stack
+		 * to detect stack overflows.  The PROT_GUARD constant is special:
+		 * it maps to PROT_NONE on UNIX systems, but requests the creation of
+		 * a guard page on Windows, which is convenient since Windows lacks
+		 * support for a signal alternate stack!
+		 *		--RAM, 2015-11-09
+		 */
+
+		if (-1 == mprotect(red, thread_pagesize, PROT_GUARD)) {
+			s_rawwarn("%s(): mprotect() red-zone page at %p for thread #%u: %m",
+				G_STRFUNC, red, te->stid);
 		}
 	}
 
@@ -7428,7 +7781,7 @@ thread_launch_trampoline(void *arg)
 		void *result;
 		void *argument;
 	} u;
-	thread_main_t routine;
+	process_fn_t routine;
 
 	/*
 	 * This routine is run in the context of the new thread.
@@ -7499,7 +7852,7 @@ thread_launch_trampoline(void *arg)
  */
 static int
 thread_launch(struct thread_element *te,
-	thread_main_t routine, void *arg, uint flags, size_t stack)
+	process_fn_t routine, void *arg, uint flags, size_t stack)
 {
 	int error;
 	pthread_attr_t attr;
@@ -7533,6 +7886,7 @@ thread_launch(struct thread_element *te,
 	te->stack_size = stacksize;
 	te->argument = arg;
 	te->entry = (func_ptr_t) routine;
+	te->suspend = 0;				/* New thread cannot be suspended already */
 
 	/*
 	 * On Windows, stack allocation does not work with the current
@@ -7592,8 +7946,20 @@ thread_launch(struct thread_element *te,
 		}
 	}
 
-	if (thread_stack_noinit)
-		pthread_attr_setstacksize(&attr, stacksize + thread_pagesize);
+	if (thread_stack_noinit) {
+		error = pthread_attr_setstacksize(&attr, stacksize + thread_pagesize);
+		if (error != 0) {
+			static bool warned;
+
+			if (ENOSYS == (errno = error) && !warned) {
+				warned = TRUE;
+				s_rawwarn("%s(): pthread_attr_setstacksize(): %m", G_STRFUNC);
+			} else {
+				s_error("%s(): cannot set thread stack to %'zu bytes: %m",
+					G_STRFUNC, stacksize + thread_pagesize);
+			}
+		}
+	}
 
 	/*
 	 * We always create joinable threads to be able to cleanup the allocated
@@ -7648,7 +8014,7 @@ thread_launch(struct thread_element *te,
  * @return the new thread small ID, -1 on error with errno set.
  */
 int
-thread_create(thread_main_t routine, void *arg, uint flags, size_t stack)
+thread_create(process_fn_t routine, void *arg, uint flags, size_t stack)
 {
 	return thread_create_full(routine, arg, flags, stack, NULL, NULL);
 }
@@ -7677,7 +8043,7 @@ thread_create(thread_main_t routine, void *arg, uint flags, size_t stack)
  * @return the new thread small ID, -1 on error with errno set.
  */
 int
-thread_create_full(thread_main_t routine, void *arg, uint flags, size_t stack,
+thread_create_full(process_fn_t routine, void *arg, uint flags, size_t stack,
 	thread_exit_t exited, void *earg)
 {
 	struct thread_element *te;

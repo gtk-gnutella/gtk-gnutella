@@ -741,7 +741,7 @@ tree_view_set_fixed_height_mode(GtkTreeView *tv, gboolean fixed)
 	g_return_if_fail(tv);
 	
 #if GTK_CHECK_VERSION(2, 4, 0)
-    g_object_set(GTK_TREE_VIEW(tv), "fixed_height_mode", fixed, (void *) 0);
+    g_object_set(GTK_TREE_VIEW(tv), "fixed_height_mode", fixed, NULL_PTR);
 #endif /* GTK+ >= 2.4.0 */
 }
 

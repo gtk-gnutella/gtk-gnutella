@@ -432,18 +432,9 @@ hostiles_retrieve(hostiles_t which)
 			file_path_t fp[3];
 			FILE *f;
 			int idx;
-			char *tmp;
-			unsigned int length = 0;
-			
-#ifndef OFFICIAL_BUILD
-			file_path_set(&fp[length++],
-				PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
-#endif
-			file_path_set(&fp[length++], PRIVLIB_EXP, hostiles_file);
+			uint length;
 
-			tmp = get_folder_path(PRIVLIB_PATH, NULL);
-			if (tmp != NULL)
-				file_path_set(&fp[length++], tmp, hostiles_file);
+			length = settings_file_path_load(fp, hostiles_file, SFP_NO_CONFIG);
 
 			g_assert(length <= G_N_ELEMENTS(fp));
 
@@ -455,7 +446,6 @@ hostiles_retrieve(hostiles_t which)
 				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
 				fclose(f);
 			}
-			HFREE_NULL(tmp);
 		}
 		break;
 

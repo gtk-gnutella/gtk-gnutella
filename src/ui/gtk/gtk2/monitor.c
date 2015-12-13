@@ -99,11 +99,11 @@ monitor_gui_add(query_type_t type, const gchar *item,
 		/* If the query is empty and we have a SHA1 extension,
 	 	 * we print a urn:sha1-query instead. */
 		concat_strings(buf, sizeof buf,
-			QUERY_SHA1 == type ? "urn:sha1:" : "", item, (void *) 0);
+			QUERY_SHA1 == type ? "urn:sha1:" : "", item, NULL_PTR);
 
 		s = lazy_unknown_to_utf8_normalized(buf, UNI_NORM_GUI, &charset_ptr);
 		if (s != buf) {
-			dbuf = g_strconcat("<", charset_ptr, "> ", s, (void *) 0);
+			dbuf = g_strconcat("<", charset_ptr, "> ", s, NULL_PTR);
 			s = dbuf;
 		} else {
 			dbuf = NULL;
@@ -161,16 +161,16 @@ monitor_gui_init(void)
     /* Create a column, associating the "text" attribute of the
      * cell_renderer to the first column of the model */
     renderer = gtk_cell_renderer_text_new();
-	g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, (void *) 0);
+	g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL_PTR);
     column = gtk_tree_view_column_new_with_attributes
-        (_("Query"), renderer, "text", QUERY_COLUMN, (void *) 0);
+        (_("Query"), renderer, "text", QUERY_COLUMN, NULL_PTR);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 
     /* Add the column to the view. */
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	gui_signal_connect(tree,
-		"button_press_event", on_treeview_monitor_button_press_event, NULL);
+		"button_press_event", on_treeview_monitor_button_press_event, NULL_PTR);
 
 	drag_attach_text(GTK_WIDGET(tree), monitor_gui_get_text);
 }

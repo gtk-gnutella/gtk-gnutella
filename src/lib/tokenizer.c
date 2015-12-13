@@ -55,11 +55,8 @@ unsigned
 tokenizer_lookup_with(const char *s, strcmp_fn_t cmp,
 	const tokenizer_t *tvec, size_t tcnt)
 {
-#define GET_KEY(i) (tvec[(i)].token)
-#define FOUND(i) G_STMT_START { \
-	return tvec[(i)].value; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_KEY(i)	(tvec[(i)].token)
+#define FOUND(i)	return tvec[(i)].value
 
 	/* Perform a binary search to find ``s'' in tvec[] */
 	BINARY_SEARCH(const char *, s, tcnt, (*cmp), GET_KEY, FOUND);

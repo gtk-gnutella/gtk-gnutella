@@ -148,17 +148,15 @@ static const struct vendor {
 static G_GNUC_HOT const char *
 find_vendor(uint32 code)
 {
-#define GET_KEY(i) (vendor_map[(i)].code)
-#define FOUND(i) G_STMT_START { \
-	return vendor_map[(i)].name; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_KEY(i)	(vendor_map[(i)].code)
+#define FOUND(i)	return vendor_map[(i)].name
 
 	BINARY_SEARCH(uint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
 		GET_KEY, FOUND);
 
 #undef FOUND
 #undef GET_KEY
+
 	return NULL; /* not found */
 }
 

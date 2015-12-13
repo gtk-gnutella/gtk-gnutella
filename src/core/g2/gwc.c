@@ -54,7 +54,6 @@
 #include "lib/hset.h"
 #include "lib/log.h"			/* For log_printable() */
 #include "lib/misc.h"
-#include "lib/path.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -105,7 +104,6 @@ static int gwc_current_reused = 0;			/**< Amount of times we reused it */
 #define CLIENT_INFO "client=" GTA_VENDOR_CODE GTA_VERSION_NUMBER
 
 static const char gwc_file[] = "gwcache";
-static const char gwc_bootfile[] = "gwcache.boot";
 static const char gwc_what[] = "web cache URLs";
 
 static bool gwc_file_dirty;
@@ -296,22 +294,12 @@ static void
 gwc_retrieve(void)
 {
 	file_path_t fp[4], *fpv;
-	uint len = 0, added;
-	char *path;
+	uint len, added;
 	int line, idx;
 	FILE *in;
 	char tmp[1024];
 
-	file_path_set(&fp[len++], settings_config_dir(), gwc_file);
-
-	path = get_folder_path(PRIVLIB_PATH, NULL);
-	if (path != NULL)
-		file_path_set(&fp[len++], path, gwc_bootfile);
-
-	file_path_set(&fp[len++], PRIVLIB_EXP, gwc_bootfile);
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[len++], PACKAGE_EXTRA_SOURCE_DIR, gwc_bootfile);
-#endif
+	len = settings_file_path_load(fp, gwc_file, SFP_ALL);
 
 	g_assert(len <= G_N_ELEMENTS(fp));
 
@@ -326,7 +314,7 @@ retry:
 		in = file_config_open_read_norename_chosen(gwc_what, fpv, len, &idx);
 
 	if (NULL == in)
-		goto done;
+		return;
 
 	/*
 	 * Retrieve each line, counting the amount of entries added.
@@ -370,9 +358,6 @@ retry:
 				G_STRFUNC, added, plural(added), fpv[idx].dir, fpv[idx].name);
 		}
 	}
-
-done:
-	HFREE_NULL(path);
 }
 
 /**
@@ -603,7 +588,7 @@ gwc_parse_context_set(void *handle, int maxlines)
  */
 static void
 gwc_parse_dispatch_lines(void *handle, const char *buf, size_t len,
-		gwc_parse_dispatch_t cb, gwc_parse_eof_t eof)
+		gwc_parse_dispatch_t cb, gwc_parse_eof_t eof_cb)
 {
 	struct gwc_parse_context *ctx;
 	const char *p = buf;
@@ -619,8 +604,8 @@ gwc_parse_dispatch_lines(void *handle, const char *buf, size_t len,
 	g_assert(ctx->handle == handle);	/* Make sure it's the right context */
 
 	if (len == 0) {						/* Nothing to parse, got EOF */
-		if (eof)
-			(*eof)(ctx);
+		if (eof_cb != NULL)
+			(*eof_cb)(ctx);
 		return;
 	}
 

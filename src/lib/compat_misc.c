@@ -57,14 +57,26 @@ compat_is_superuser(void)
 	return ret;
 }
 
-bool
-compat_process_is_alive(pid_t pid)
+/**
+ * Performs a kill(pid, 0), portably between UNIX and Windows.
+ */
+int
+compat_kill_zero(pid_t pid)
 {
 #ifdef MINGW32
-	return mingw_process_is_alive(pid);
+	return mingw_process_access_check(pid);
 #else
-	return -1 != kill(pid, 0);
+	return kill(pid, 0);
 #endif
+}
+
+/**
+ * Check whether process exists.
+ */
+bool
+compat_process_exists(pid_t pid)
+{
+	return -1 != compat_kill_zero(pid) || EPERM == errno;
 }
 
 /**
@@ -178,7 +190,6 @@ compat_memmem(const void *data, size_t data_size,
 	return deconstify_gchar(p);
 }
 
-#ifdef HAS_POSIX_FADVISE
 /**
  * See posix_fadvise(2).
  *
@@ -201,44 +212,48 @@ compat_fadvise(int fd, fileoffset_t offset, fileoffset_t size, int hint)
 		 */
 		size = OFF_T_MAX;
 	}
+#ifdef HAS_POSIX_FADVISE
 	posix_fadvise(fd, offset, size, hint);
+#endif
 }
+
+#ifndef HAS_POSIX_FADVISE
+#ifndef POSIX_FADV_SEQUENTIAL
+#define POSIX_FADV_SEQUENTIAL 0
+#endif
+#ifndef POSIX_FADV_RANDOM
+#define POSIX_FADV_RANDOM 0
+#endif
+#ifndef POSIX_FADV_NOREUSE
+#define POSIX_FADV_NOREUSE 0
+#endif
+#ifndef POSIX_FADV_DONTNEED
+#define POSIX_FADV_DONTNEED 0
+#endif
 #endif	/* HAS_POSIX_FADVISE */
 
 void
 compat_fadvise_sequential(int fd, fileoffset_t offset, fileoffset_t size)
 {
-#ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_SEQUENTIAL);
-#else
-	(void) fd;
-	(void) offset;
-	(void) size;
-#endif	/* HAS_POSIX_FADVISE */
+}
+
+void
+compat_fadvise_random(int fd, fileoffset_t offset, fileoffset_t size)
+{
+	compat_fadvise(fd, offset, size, POSIX_FADV_RANDOM);
 }
 
 void
 compat_fadvise_noreuse(int fd, fileoffset_t offset, fileoffset_t size)
 {
-#ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_NOREUSE);
-#else
-	(void) fd;
-	(void) offset;
-	(void) size;
-#endif	/* HAS_POSIX_FADVISE */
 }
 
 void
 compat_fadvise_dontneed(int fd, fileoffset_t offset, fileoffset_t size)
 {
-#ifdef HAS_POSIX_FADVISE
 	compat_fadvise(fd, offset, size, POSIX_FADV_DONTNEED);
-#else
-	(void) fd;
-	(void) offset;
-	(void) size;
-#endif	/* HAS_POSIX_FADVISE */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

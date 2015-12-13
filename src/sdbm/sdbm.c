@@ -16,6 +16,7 @@
 #include "big.h"
 #include "private.h"
 
+#include "lib/compat_misc.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/fd.h"
@@ -240,19 +241,19 @@ sdbm_open(const char *file, int flags, int mode)
 		errno = EINVAL;
 		goto error;
 	}
-	dirname = h_strconcat(file, DBM_DIRFEXT, (void *) 0);
+	dirname = h_strconcat(file, DBM_DIRFEXT, NULL_PTR);
 	if (NULL == dirname) {
 		errno = ENOMEM;
 		goto error;
 	}
-	pagname = h_strconcat(file, DBM_PAGFEXT, (void *) 0);
+	pagname = h_strconcat(file, DBM_PAGFEXT, NULL_PTR);
 	if (NULL == pagname) {
 		errno = ENOMEM;
 		goto error;
 	}
 
 #ifdef BIGDATA
-	datname = h_strconcat(file, DBM_DATFEXT, (void *) 0);
+	datname = h_strconcat(file, DBM_DATFEXT, NULL_PTR);
 	if (NULL == datname) {
 		errno = ENOMEM;
 		goto error;
@@ -298,10 +299,10 @@ sdbm_free(DBM *db)
 		int i;
 
 		for (i = 0; i < THREAD_MAX; i++) {
-			datum *r = &db->returned[i];
+			struct dbm_returns *r = &db->returned[i];
 
-			if (r->dsize != 0)
-				XFREE_NULL(r->dptr);	/* Free thread-private data copy */
+			if (r->len != 0)
+				XFREE_NULL(r->value.dptr);	/* Free thread-private data copy */
 		}
 
 		XFREE_NULL(db->returned);
@@ -351,7 +352,7 @@ sdbm_name(const DBM *db)
 	sdbm_synchronize(db);
 	if (NULL == db->name) {
 		DBM *wdb = deconstify_pointer(db);
-		wdb->name = h_strconcat("file ", db->pagname, NULL);
+		wdb->name = h_strconcat("file ", db->pagname, NULL_PTR);
 	}
 	sdbm_unsynchronize(db);
 
@@ -433,7 +434,7 @@ sdbm_prep(const char *dirname, const char *pagname,
 				 * unsplit data page: dirpage is all zeros.
 				 */
 
-				db->dirbno = (!dstat.st_size) ? 0 : -1;
+				db->dirbno = (0 == dstat.st_size) ? 0 : -1;
 				db->pagbno = -1;
 				db->maxbno = dstat.st_size * BYTESIZ;
 
@@ -473,6 +474,13 @@ success:
 	db->pagname = h_strdup(pagname);
 	db->openflags = flags;
 	db->openmode = mode;
+
+	/*
+	 * We expect a random access pattern on the files.
+	 */
+
+	compat_fadvise_random(db->pagf, 0, 0);
+	compat_fadvise_random(db->dirf, 0, 0);
 
 	return db;
 }
@@ -546,36 +554,57 @@ sdbm_unlock(DBM *db)
 static datum *
 sdbm_thread_datum(DBM *db, datum *v)
 {
-	datum *r;
-	uint stid = thread_small_id();
+	datum *d;
+	static datum zerosized;
 
 	sdbm_check(db);
-	g_assert(stid < THREAD_MAX);
 	g_assert(db->returned != NULL);
 
-	r = &db->returned[stid];
-
-	if (r->dsize != 0)
-		xfree(r->dptr);						/* Free old value */
-
 	if (v->dsize != 0) {
-		r->dptr = xcopy(v->dptr, v->dsize);	/* Copy value to be returned */
-		r->dsize = v->dsize;
+		uint stid = thread_small_id();
+		struct dbm_returns *r = &db->returned[stid];
+
+		g_assert(stid < THREAD_MAX);
+
+		/*
+		 * Until we reach XMALLOC_MAXSIZE, we keep growing the data buffer,
+		 * never shrinking it to limit the overhead.  Since most values are
+		 * going to fit in a DBM page and therefore be less than 1K, this
+		 * strategy is not going to waste much memory and remains efficient.
+		 */
+
+		d = &r->value;
+
+		if (r->len < v->dsize || r->len > XMALLOC_MAXSIZE) {
+			/*
+			 * We use xrealloc() amd a memcpy() instead of just xcopy() because
+			 * in general the values returned will be roughly similar in size,
+			 * and therefore we expect that xrealloc() ends-up being a no-op!
+			 */
+
+			d->dptr = xrealloc(d->dptr, v->dsize);
+			r->len = v->dsize;		/* Physical length of allocated buffer */
+		}
+		g_assert(r->len >= v->dsize);
+		memcpy(d->dptr, v->dptr, v->dsize);
+		d->dsize = v->dsize;
 	} else if (NULL == v->dptr) {
-		*r = nullitem;
+		d = deconstify_pointer(&nullitem);
 	} else {
 		/*
 		 * It's possible to have a zero-sized value stored, and if we come
 		 * here then v->dsize = 0 and v->dptr != NULL.
 		 *
-		 * To prevent any reference to the pointer, we use the VMM trap page.
+		 * To prevent any dereference of the pointer, we use the VMM trap page.
 		 */
 
-		r->dptr = deconstify_pointer(vmm_trap_page());
-		r->dsize = 0;
+		if G_UNLIKELY(NULL == zerosized.dptr)
+			zerosized.dptr = deconstify_pointer(vmm_trap_page());
+
+		d = &zerosized;
 	}
 
-	return r;
+	return d;
 }
 #endif	/* THREADS */
 
@@ -811,10 +840,6 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	assert_sdbm_locked(db);
 
 #ifdef LRU
-	if (!clearfiles && db->dirbuf_dirty && !(db->flags & DBM_BROKEN)) {
-		if (is_valid_fd(db->dirf))
-			(void) flush_dirbuf(db);
-	}
 	if (is_valid_fd(db->pagf))
 		lru_close(db);
 #else
@@ -1555,6 +1580,13 @@ iteration_done(DBM *db, bool completed)
 
 	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
 
+	/*
+	 * Restore "random" access mode on the .pag file now that the iteration
+	 * has been completed.
+	 */
+
+	compat_fadvise_random(db->pagf, 0, 0);
+
 	return nullitem;
 }
 
@@ -1629,6 +1661,13 @@ sdbm_firstkey(DBM *db)
 		value = iteration_done(db, FALSE);
 		goto done;
 	}
+
+	/*
+	 * During the iteration we're going to traverse the .pag file sequentially.
+	 * The normal "random" access mode will be restored in iteration_done().
+	 */
+
+	compat_fadvise_sequential(db->pagf, 0, 0);
 
 	/*
 	 * Start at page 0, skipping any page we can't read.
@@ -2190,6 +2229,106 @@ no_entry:
 }
 
 /**
+ * Iterate on the whole database, applying supplied callback on each item.
+ *
+ * If the callback is NULL, traversal is still done to count entries.
+ *
+ * Flags can be any combination of:
+ *
+ * DBM_F_SAFE		activate keycheck during iteration
+ * DBM_F_SKIP		skip unreadable keys/values (could happen on big entries)
+ *
+ * @param db		the database on which we're iterating
+ * @param flags		operating flags, see above
+ * @param cb		the callback to invoke on each DB entry
+ * @param arg		additional opaque argument passed to the callback
+ *
+ * @return the amount of callback invocations made, which can be viewed as the
+ * current count of the database.
+ */
+size_t
+sdbm_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg)
+{
+	datum key;
+	size_t count = 0;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
+	for (
+		key = (flags & DBM_F_SAFE) ? sdbm_firstkey_safe(db) : sdbm_firstkey(db);
+		key.dptr != NULL;
+		key = sdbm_nextkey(db)
+	) {
+		const datum value = sdbm_value(db);
+
+		if (value.dptr != NULL || 0 == (flags & DBM_F_SKIP)) {
+			if (cb != NULL)
+				(*cb)(key, value, arg);
+			count++;
+		}
+	}
+
+	sdbm_unsynchronize(db);
+
+	return count;
+}
+
+/**
+ * Iterate on the whole database, applying supplied callback on each item and
+ * removing each entry where the callback returns TRUE.
+ *
+ * Flags can be any combination of:
+ *
+ * DBM_F_SAFE		activate keycheck during iteration
+ * DBM_F_SKIP		skip unreadable keys/values (could happen on big entries)
+ *
+ * @param db		the database on which we're iterating
+ * @param flags		operating flags, see above
+ * @param cb		the callback to invoke on each DB entry
+ * @param arg		additional opaque argument passed to the callback
+ *
+ * @return the amount of callback invocations made where the callback did not
+ * return TRUE, which can be viewed as the remaining count of the database.
+ */
+size_t
+sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg)
+{
+	datum key;
+	size_t count = 0;
+
+	sdbm_check(db);
+	g_assert(cb != NULL);
+
+	sdbm_synchronize(db);
+
+	for (
+		key = (flags & DBM_F_SAFE) ? sdbm_firstkey_safe(db) : sdbm_firstkey(db);
+		key.dptr != NULL;
+		key = sdbm_nextkey(db)
+	) {
+		const datum value = sdbm_value(db);
+
+		if (value.dptr != NULL || 0 == (flags & DBM_F_SKIP)) {
+			if ((*cb)(key, value, arg)) {
+				if (0 != sdbm_deletekey(db)) {
+					s_critical_once_per(LOG_PERIOD_SECOND,
+						"%s(): sdbm \"%s\": key deletion error: %m",
+						G_STRFUNC, sdbm_name(db));
+				}
+			} else {
+				count++;
+			}
+		}
+	}
+
+	sdbm_unsynchronize(db);
+
+	return count;
+}
+
+/**
  * Synchronize cached data to disk.
  *
  * @return the amount of pages successfully flushed as a positive number
@@ -2638,7 +2777,7 @@ sdbm_rename(DBM *db, const char *base)
 
 #ifdef BIGDATA
 	if (db->datname != NULL) {
-		datname = h_strconcat(base, DBM_DATFEXT, (void *) 0);
+		datname = h_strconcat(base, DBM_DATFEXT, NULL_PTR);
 		if (NULL == pagname) {
 			errno = ENOMEM;
 			goto error;
@@ -2646,12 +2785,12 @@ sdbm_rename(DBM *db, const char *base)
 	}
 #endif
 
-	dirname = h_strconcat(base, DBM_DIRFEXT, (void *) 0);
+	dirname = h_strconcat(base, DBM_DIRFEXT, NULL_PTR);
 	if (NULL == dirname) {
 		errno = ENOMEM;
 		goto error;
 	}
-	pagname = h_strconcat(base, DBM_PAGFEXT, (void *) 0);
+	pagname = h_strconcat(base, DBM_PAGFEXT, NULL_PTR);
 	if (NULL == pagname) {
 		errno = ENOMEM;
 		goto error;
@@ -3027,6 +3166,8 @@ sdbm_set_volatile(DBM *db, bool yes)
 	int result;
 
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
 
 #ifdef LRU
 	db->is_volatile = yes;

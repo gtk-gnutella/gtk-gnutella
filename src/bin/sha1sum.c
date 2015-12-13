@@ -37,11 +37,10 @@
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/path.h"
+#include "lib/progname.h"
 #include "lib/sha1.h"
 
 #include "lib/override.h"
-
-static const char *progname;
 
 static void G_GNUC_NORETURN
 usage(void)
@@ -49,7 +48,7 @@ usage(void)
 	fprintf(stderr,
 		"Usage: %s [-h] filename\n"
 		"  -h : prints this help message\n"
-		, progname);
+		, getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -64,8 +63,7 @@ main(int argc, char **argv)
 	/* getopt() variables: */
 	extern int optind;
 
-	mingw_early_init();
-	progname = filepath_basename(argv[0]);
+	progstart(argc, argv);
 
 	while ((c = getopt(argc, argv, "h")) != EOF) {
 		switch (c) {

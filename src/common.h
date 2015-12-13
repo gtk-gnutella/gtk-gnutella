@@ -843,6 +843,18 @@ typedef int socket_fd_t;
 #define MAX_PATH_LEN	2048
 #endif
 
+/**
+ * A NULL pointer, to make sure it is sized as a pointer and not as an integer.
+ *
+ * This should be used as sentinel at the tail of variable argument lists
+ * that expect a NULL pointer to terminate the list, and not integer 0.
+ *
+ * Depending on how variable argument lists are handled, this can prevent
+ * bugs on 64-bit machines with 32-bit integers.
+ *		--RAM, 2015-10-22
+ */
+#define NULL_PTR	((void *) 0)
+
 /*
  * Forbidden glib calls.
  */

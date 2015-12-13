@@ -245,9 +245,11 @@ mime_type_from_extension(const char *extension)
 	if (extension) {
 #define GET_KEY(i)	mime_type_map[(i)].extension
 #define FOUND(i) 	return mime_type_map[(i)].type;
+
 		BINARY_SEARCH(const char *, extension,
 			G_N_ELEMENTS(mime_type_map),
 			ascii_strcasecmp, GET_KEY, FOUND);
+
 #undef FOUND
 #undef GET_KEY
 	}

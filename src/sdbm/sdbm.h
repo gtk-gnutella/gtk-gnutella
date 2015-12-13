@@ -40,6 +40,15 @@ extern const datum nullitem;
 #define DBM_REPLACE	1
 
 /*
+ * flags to sdbm_*foreach() and sdbm_*foreach_remove().
+ */
+#define DBM_F_SAFE		(1 << 1)	/* activate keycheck during iteration */
+#define DBM_F_SKIP		(1 << 2)	/* skip unreadable keys/values */
+
+typedef void (*sdbm_cb_t)(const datum key, const datum value, void *arg);
+typedef bool (*sdbm_cbr_t)(const datum key, const datum value, void *arg);
+
+/*
  * ndbm interface
  */
 DBM *sdbm_open(const char *, int, int);
@@ -83,6 +92,8 @@ void sdbm_unlink(DBM *);
 int sdbm_rename(DBM *, const char *);
 int sdbm_rename_files(DBM *, const char *, const char *, const char *);
 int sdbm_rebuild(DBM *);
+size_t sdbm_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg);
+size_t sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg);
 
 /*
  * only defined if compiled with THREADS set in "tune.h".

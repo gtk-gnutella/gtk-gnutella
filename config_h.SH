@@ -168,6 +168,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_BSEARCH:
+ *	This symbol, if defined, indicates that the bsearch() routine
+ *	is available to perform a binary search on a sorted array.
+ */
+#$d_bsearch HAS_BSEARCH	/**/
+
 /* HAS_BUILTIN_BSWAP32:
  *	This symbol, if defined, indicates that __builtin_bswap32 routine is
  *	available to byte-swap a 32-bit value (little <-> big endian).
@@ -203,6 +209,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	set a memory block to 0.
  */
 #$d_bzero HAS_BZERO	/**/
+
+/* HAS_CLEARENV:
+ *	This symbol is defined when clearenv() is there to clear the
+ *	environment.
+ */
+#$d_clearenv HAS_CLEARENV
 
 /* HAS_CLOCK_GETRES:
  *	This symbol, if defined, indicates that the clock_getres() system call is
@@ -393,6 +405,26 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_getppid HAS_GETPPID		/**/
 
+/* HAS_GETPROGNAME:
+ *	This symbol is defined when getprogname() is there to get the
+ *	program name.
+ */
+#$d_getprogname HAS_GETPROGNAME
+
+/* HAS_GETPWNAM:
+ *	This symbol, if defined, indicates that the getpwnam() routine
+ *	is available to get the /etc/passwd structure entries for given
+ *	user name.
+ */
+#$d_getpwnam HAS_GETPWNAM	/**/
+
+/* HAS_GETPWUID:
+ *	This symbol, if defined, indicates that the getpwuid() routine
+ *	is available to get the /etc/passwd structure entries for given
+ *	user ID.
+ */
+#$d_getpwuid HAS_GETPWUID	/**/
+
 /* HAS_GETRLIMIT:
  *	This symbol, if defined, indicates that the getrlimit() routine is
  *	available to get process resource limits.
@@ -543,6 +575,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_pause HAS_PAUSE		/**/
 
+/* HAS_PIPE2:
+ *	This symbol, if defined, indicates that the pipe routine is
+ *	available to create an inter-process channel with O_CLOEXEC or
+ *	O_NONBLOCK flags.
+ */
+#$d_pipe2 HAS_PIPE2		/**/
+
 /* HAS_POLL:
  *	This symbol, if defined, indicates that the poll routine is
  *	available to poll active file descriptors.  Please check I_POLL and
@@ -578,6 +617,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  * given offset.
  */
 #$d_preadv HAS_PREADV		/**/
+
+/* HAS_PROGRAM_INVOCATION_NAME:
+ *	This symbol is defined when the C startup sets the two variables
+ *	program_invocation_name and program_invocation_short_name.  To get
+ *	these definitions, <errno.h> must be included with __USE_GNU defined.
+ */
+#$d_proginvocname HAS_PROGRAM_INVOCATION_NAME
 
 /* HAS_PTHREAD_ATTR_SETSTACK:
  *	This symbol is defined when pthread_attr_setstack() can be used to set
@@ -673,11 +719,23 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sendfile HAS_SENDFILE		/**/
 
+/* HAS_SETENV:
+ *	This symbol is defined when setenv() is available to change or
+ *	add an environment variable.
+ */
+#$d_setenv HAS_SETENV
+
 /* HAS_SETPROCTITLE:
  *	This symbol is defined when setproctitle() can be used and takes a
  *	format string.
  */
 #$d_setproctitle HAS_SETPROCTITLE
+
+/* HAS_SETPROGNAME:
+ *	This symbol is defined when setprogname() is there to set the
+ *	program name.
+ */
+#$d_setprogname HAS_SETPROGNAME
 
 /* HAS_SETSID:
  *	This symbol, if defined, indicates that the setsid routine is
@@ -834,6 +892,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available to let the process sleep on a sub-second accuracy.
  */
 #$d_usleep HAS_USLEEP		/**/
+
+/* HAS_VFORK:
+ *	This symbol, if defined, indicates that vfork() exists.
+ */
+#$d_vfork HAS_VFORK	/**/
 
 /* HASVOLATILE:
  *	This symbol, if defined, indicates that this C compiler knows about
@@ -1151,6 +1214,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	statfs() system call.
  */
 #$i_sysvfs I_SYS_VFS		/**/
+
+/* I_SYS_WAIT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/wait.h>.
+ */
+#$i_syswait I_SYS_WAIT	/**/
 
 /* I_TIME:
  *	This symbol, if defined, indicates to the C program that it should

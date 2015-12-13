@@ -375,10 +375,7 @@ lookup_secondary_idx(const struct keydata *kd, const kuid_t *skey)
 	g_assert(skey);
 
 #define GET_ITEM(i)		&kd->creators[i]
-#define FOUND(i) G_STMT_START {		\
-	return i;						\
-	/* NOTREACHED */				\
-} G_STMT_END
+#define FOUND(i)		return i
 
 	/* Perform a binary search to find the index where "skey" lies */
 	BINARY_SEARCH(const kuid_t *, skey, kd->values, kuid_cmp, GET_ITEM, FOUND);
@@ -404,10 +401,7 @@ lookup_secondary(const struct keydata *kd, const kuid_t *skey)
 	g_assert(skey);
 
 #define GET_ITEM(i)		&kd->creators[i]
-#define FOUND(i) G_STMT_START {		\
-	return kd->dbkeys[i];			\
-	/* NOTREACHED */				\
-} G_STMT_END
+#define FOUND(i)		return kd->dbkeys[i]
 
 	/* Perform a binary search to find the 64-bit DB key */
 	BINARY_SEARCH(const kuid_t *, skey, kd->values, kuid_cmp, GET_ITEM, FOUND);
@@ -626,7 +620,8 @@ keys_has(const kuid_t *id, const kuid_t *cid, bool store)
 	if (kd == NULL)
 		return 0;
 
-	g_assert(ki->values == kd->values);
+	g_assert_log(ki->values == kd->values,
+		"ki->values=%u, kd->values=%u", ki->values, kd->values);
 
 	dbkey = lookup_secondary(kd, cid);
 
@@ -664,9 +659,10 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 	if (NULL == kd)
 		return;
 
-	g_assert(kd->values);
-	g_assert(kd->values == ki->values);
+	g_assert(kd->values != 0);
 	g_assert(kd->values <= MAX_VALUES);
+	g_assert_log(ki->values == kd->values,
+		"ki->values=%u, kd->values=%u", ki->values, kd->values);
 
 	idx = lookup_secondary_idx(kd, cid);
 
@@ -844,8 +840,9 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		if (NULL == kd)
 			return;
 
-		g_assert(kd->values == ki->values);
 		g_assert(kd->values < MAX_VALUES);
+		g_assert_log(ki->values == kd->values,
+			"ki->values=%u, kd->values=%u", ki->values, kd->values);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
 			g_debug("DHT STORE existing key %s (%u common bit%s) "
@@ -1243,7 +1240,8 @@ keys_periodic_load(void *unused_obj)
 	ctx.now = tm_time();
 	hikset_foreach_remove(keys, keys_update_load, &ctx);
 
-	g_assert(values_count() == ctx.values);
+	g_assert_log(values_count() == ctx.values,
+		"values_count()=%zu, ctx.values=%zu", values_count(), ctx.values);
 
 	if (GNET_PROPERTY(dht_storage_debug)) {
 		size_t keys_count = hikset_count(keys);

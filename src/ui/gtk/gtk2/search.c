@@ -279,7 +279,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		"text", text,
 		"foreground-gdk", gui_color_get(data->color),
 		"background-gdk", gui_color_get(GUI_COLOR_BACKGROUND),
-		(void *) 0);
+		NULL_PTR);
 }
 
 static GtkCellRenderer *
@@ -294,7 +294,7 @@ create_cell_renderer(gfloat xalign)
 		"mode",		GTK_CELL_RENDERER_MODE_INERT,
 		"xalign",	xalign,
 		"ypad",		(guint) GUI_CELL_RENDERER_YPAD,
-		(void *) 0);
+		NULL_PTR);
 
 	return renderer;
 }
@@ -316,16 +316,16 @@ add_column(
 	g_object_set(G_OBJECT(renderer),
 		"foreground-set",	TRUE,
 		"background-set",	TRUE,
-		(void *) 0);
+		NULL_PTR);
 
 	if (cell_data_func) {
-		column = gtk_tree_view_column_new_with_attributes(name, renderer,
-					(void *) 0);
+		column =
+			gtk_tree_view_column_new_with_attributes(name, renderer, NULL_PTR);
 		gtk_tree_view_column_set_cell_data_func(column, renderer,
 			cell_data_func, GUINT_TO_POINTER(id), NULL);
 	} else {
 		column = gtk_tree_view_column_new_with_attributes(name, renderer,
-					"text", id, (void *) 0);
+					"text", id, NULL_PTR);
 	}
 
 	if (fg_col >= 0)
@@ -341,7 +341,7 @@ add_column(
 		"reorderable", FALSE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		(void *) 0);
+		NULL_PTR);
 	
     gtk_tree_view_append_column(tv, column);
 
@@ -1075,16 +1075,16 @@ search_details_treeview_init(void)
 		renderer = create_cell_renderer(tab[i].xalign);
 		g_object_set(G_OBJECT(renderer),
 			"editable", tab[i].editable,
-			(void *) 0);
+			NULL_PTR);
 		column = gtk_tree_view_column_new_with_attributes(tab[i].title,
-					renderer, "text", i, (void *) 0);
+					renderer, "text", i, NULL_PTR);
 		g_object_set(column,
 			"min-width", 1,
 			"resizable", TRUE,
 			"sizing", (0 == i)
 						? GTK_TREE_VIEW_COLUMN_AUTOSIZE
 						: GTK_TREE_VIEW_COLUMN_FIXED,
-			(void *) 0);
+			NULL_PTR);
     	gtk_tree_view_append_column(tv, column);
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2011, Raphael Manfredi
+ * Copyright (c) 2001-2011, 2015 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -178,7 +178,7 @@ static bool download_send_push_request(
 	struct download *d, bool, bool);
 static bool download_read(struct download *d, pmsg_t *mb);
 static bool download_ignore_data(struct download *d, pmsg_t *mb);
-static void download_request(struct download *d, header_t *header, bool ok);
+static void download_reply(struct download *d, header_t *header, bool ok);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push(struct download *d, bool on_timeout);
 static void download_resume_bg_tasks(void);
@@ -397,14 +397,14 @@ server_host_info(const struct dl_server *server)
 	if (server->hostname) {
 		concat_strings(name, sizeof name,
 			" (", server->hostname, ") ",
-			NULL);
+			NULL_PTR);
 	}
 
 	concat_strings(info, sizeof info,
 		"<",
 		(server->attrs & DLS_A_G2_ONLY) ? "G2 " : "",
 		host, name, " \'", server->vendor ? server->vendor : "", "\'>",
-		NULL);
+		NULL_PTR);
 
 	return info;
 }
@@ -3892,10 +3892,8 @@ download_clone(struct download *d)
 
 	/* The socket can be NULL if we're acting on a queued source */
 
-	if (s != NULL && s->getline != NULL) {
-		getline_free(s->getline);	/* No longer need this */
-		s->getline = NULL;
-	}
+	if (s != NULL)
+		getline_free_null(&s->getline);	/* No longer need this */
 
 	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
 		g_assert(NULL == d->buffers);
@@ -4386,6 +4384,22 @@ download_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
 	download_check(d);
 	g_assert(s == d->socket);
 
+	/*
+	 * If we were TLS-upgrading, we got cut in the middle of the operation.
+	 * Flag the server as not supporting TLS upgrades correctly.
+	 */
+
+	if (d->flags & DL_F_TLS_UPGRADING) {
+		g_assert(dl_server_valid(d->server));
+		d->server->attrs |= DLS_A_NO_TLS_UPGRD;
+		d->flags &= ~DL_F_TLS_UPGRADING | DL_F_TLS_PROPOSED;
+
+		if (GNET_PROPERTY(download_debug)) {
+			g_warning("%s(): TLS upgrade failed for \"%s\" on %s",
+				G_STRFUNC, download_basename(d), download_host_info(d));
+		}
+	}
+
 	download_queue(d, "%s", reason);
 }
 
@@ -4461,10 +4475,7 @@ download_attach_socket(struct download *d, gnutella_socket_t *s)
 	 * the socket, so we no longer need its line parser
 	 */
 
-	if (s->getline != NULL) {
-		getline_free(s->getline);
-		s->getline = NULL;
-	}
+	getline_free_null(&s->getline);
 
 	d->socket = s;
 	socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, d);
@@ -4763,7 +4774,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 	download_pipeline_free_null(&d->pipeline);
 	file_info_changed(d->file_info);
 	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED | DL_F_REPLIED |
-		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_NO_PIPELINE);
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_NO_PIPELINE |
+		DL_F_TLS_PROPOSED | DL_F_TLS_UPGRADING);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
@@ -5735,7 +5747,7 @@ download_start_prepare(struct download *d)
 	 * we start issuing requests for a queued download, or after we cloned
 	 * a completed download.
 	 *
-	 * Since download_start_prepare_running() is called from download_request(),
+	 * Since download_start_prepare_running() is called from download_reply(),
 	 * we must reset DL_F_SUNK_DATA here, since we want to sink only ONCE
 	 * per session.
 	 */
@@ -8705,13 +8717,17 @@ download_get_server_name(struct download *d, header_t *header)
 		if (server->vendor == NULL) {
 			got_new_server = TRUE;
 			if (faked)
-				size = w_concat_strings(&wbuf, "!", user_agent, (void *) 0);
+				size = w_concat_strings(&wbuf, "!", user_agent, NULL_PTR);
 			vendor = wbuf ? wbuf : user_agent;
 		} else if (!faked && 0 != strcmp(server->vendor, user_agent)) {
 			/* Name changed? */
 			got_new_server = TRUE;
 			atom_str_free_null(&server->vendor);
 			vendor = user_agent;
+
+			/* Maybe the server was upgraded to a newer version? */
+			server->attrs &= ~(DLS_A_NO_TLS_UPGRD | DLS_A_PIPELINING |
+				DLS_A_NO_PIPELINE | DLS_A_TLS | DLS_A_NO_HTTP_1_1);
 		} else {
 			vendor = NULL;
 		}
@@ -8948,9 +8964,9 @@ download_start_reading(void *o)
 }
 
 static void
-call_download_request(void *o, header_t *header)
+call_download_reply(void *o, header_t *header)
 {
-	download_request(cast_to_download(o), header, TRUE);
+	download_reply(cast_to_download(o), header, TRUE);
 }
 
 static void
@@ -9436,7 +9452,7 @@ download_continue(struct download *d, bool trimmed)
 	cd->socket = NULL;
 
 	/*
-	 * NOTE: Resetting s->pos was missing in download_request() for THEX
+	 * NOTE: Resetting s->pos was missing in download_reply() for THEX
 	 *       and browse downloads causing a "Weird HTTP status". Keep this
 	 *       a warning instead of an assertion for now until it has seen
 	 *       some testing. 2007-09-12
@@ -11307,16 +11323,26 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 static void
 download_detect_tls_support(struct download *d, header_t *header)
 {
+	bool advertises_tls;
+
 	download_check(d);
 	g_assert(dl_server_valid(d->server));
 
 	if (d->got_giv)
 		return;
 
-	if (
-		header_get_feature("tls", header, NULL, NULL) ||
-		xalt_detect_tls_support(d, header)
-	) {
+	/*
+	 * If the node does not advertise TLS in its features, it will not
+	 * support TLS upgrades at all, so don't even bother advertising
+	 * that we can upgrade.
+	 */
+
+	advertises_tls = header_get_feature("tls", header, NULL, NULL);
+
+	if (!advertises_tls)
+		d->server->attrs |= DLS_A_NO_TLS_UPGRD;
+
+	if (advertises_tls || xalt_detect_tls_support(d, header)) {
 		tls_cache_insert(download_addr(d), download_port(d));
 		d->server->attrs |= DLS_A_TLS;
 	}
@@ -11359,6 +11385,131 @@ download_discovered_size(struct download *d, filesize_t size)
 }
 
 /**
+ * Discard HTTP header parsing / collecting structures.
+ */
+static void
+download_io_header_free(struct download *d)
+{
+	gnutella_socket_t *s;
+
+	download_check(d);
+	socket_check(d->socket);
+
+	s = d->socket;
+
+	g_assert(d->io_opaque != NULL);
+	g_assert(s->getline != NULL);
+
+	io_free(d->io_opaque);
+	getline_free_null(&s->getline);
+
+	g_assert(NULL == d->io_opaque);
+}
+
+/**
+ * Wait for HTTP reply from remote host.
+ */
+static void
+download_wait_reply(struct download *d)
+{
+	download_check(d);
+
+	g_assert(d->io_opaque == NULL);
+	socket_check(d->socket);
+
+	io_get_header(d, &d->io_opaque,
+		bsched_in_select_by_addr(d->socket->addr), d->socket, IO_SAVE_FIRST,
+		call_download_reply, download_start_reading, &download_io_error);
+}
+
+/**
+ * Invoked by the socket layer when the TLS upgrade was successful.
+ */
+static void
+download_tls_upgraded(void *arg)
+{
+	struct download *d = arg;
+
+	download_check(d);
+	socket_check(d->socket);
+	g_assert(socket_uses_tls(d->socket));
+
+	d->flags &= ~DL_F_TLS_UPGRADING;
+	d->tls_upgraded = TRUE;
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_debug("%s(): TLS upgrade successful for \"%s\" on %s",
+			G_STRFUNC, download_basename(d), download_host_info(d));
+	}
+
+	/*
+	 * Now that the upgrade to TLS was done, we need to wait for the header
+	 * reply from the server that will follow the "101 Switching Protocols"
+	 * continuation.
+	 */
+
+	download_wait_reply(d);
+}
+
+/**
+ * Got a "101 Switching Protocols" reply back.
+ *
+ * This is a continuation header, and the server is not done replying.
+ * Once processed, we will need to read following header again before
+ * going back to download_reply() to handle the server reply.
+ */
+static void
+download_switch_protocols(struct download *d, const header_t *header)
+{
+	const char *field;
+
+	/*
+	 * See whether server wants to upgrade to TLS.
+	 */
+
+	field = header_get(header, "Connection");
+	if (NULL == field || 0 != ascii_strcasecmp(field, "upgrade"))
+		goto no_tls_upgrade;
+
+	field = header_get(header, "Upgrade");
+	if (NULL == field || !is_strprefix(field, "TLS/1.0, HTTP/"))
+		goto no_tls_upgrade;
+
+	/*
+	 * The server is going to switch protocols before sending us the reply
+	 * to our request.  To read anything from now on, we need to use TLS.
+	 *
+	 * Note that if we cannot perform the TLS handshake, the connection will
+	 * be closed.  This is why we need to remember that we attempted an
+	 * upgrade so that, should the upgrade fail, we can mark the server as
+	 * not able to conduct the TLS upgrade properly, to avoid requesting it
+	 * the next time we connect.
+	 */
+
+	d->flags |= DL_F_TLS_UPGRADING;
+	d->flags &= ~DL_F_TLS_PROPOSED;
+
+	if (GNET_PROPERTY(download_debug) > 1) {
+		g_debug("%s(): attempting TLS upgrade with %s",
+			G_STRFUNC, download_host_info(d));
+	}
+
+	download_io_header_free(d);
+	socket_tls_upgrade(d->socket, download_tls_upgraded, d);
+
+	return;
+
+no_tls_upgrade:
+	if (GNET_PROPERTY(download_debug)) {
+		g_warning("%s(): strange, no opportunity for TLS upgrade with %s",
+			G_STRFUNC, download_host_info(d));
+	}
+
+	download_io_header_free(d);
+	download_wait_reply(d);
+}
+
+/**
  * Called to initiate the download once all the HTTP headers have been read.
  * If `ok' is false, we timed out reading the header, and have therefore
  * something incomplete.
@@ -11367,7 +11518,7 @@ download_discovered_size(struct download *d, filesize_t size)
  * Otherwise, stop the download.
  */
 static void
-download_request(struct download *d, header_t *header, bool ok)
+download_reply(struct download *d, header_t *header, bool ok)
 {
 	struct gnutella_socket *s;
 	const char *status;
@@ -11671,6 +11822,36 @@ http_version_nofix:
 		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
 	}
 
+	/*
+	 * Handle TLS upgrades early.
+	 */
+
+	if (101 == ack_code) {
+		if (ok) {
+			download_switch_protocols(d, header);
+		} else {
+			download_stop(d, GTA_DL_ERROR, "%s",
+				_("Incomplete headers during TLS upgrade"));
+		}
+		return;
+	}
+
+	/*
+	 * If we proposed a TLS upgrade but we're not using TLS yet, mark
+	 * the server as not understanding TLS upgrades so that we're not
+	 * constantly proposing them when initiating requests.
+	 */
+
+	if ((d->flags & DL_F_TLS_PROPOSED) && !socket_uses_tls(d->socket)) {
+		d->flags &= ~DL_F_TLS_PROPOSED;
+		d->server->attrs |= DLS_A_NO_TLS_UPGRD;
+
+		if (GNET_PROPERTY(download_debug) > 1) {
+			g_message("server %s does not support TLS upgrades",
+				download_host_info(d));
+		}
+	}
+
 	if (is_dumb_spammer(download_vendor_str(d))) {	
 		hostiles_dynamic_add(download_addr(d), "dumb spammer", HSTL_DUMB);
 		download_bad_source(d);
@@ -11866,9 +12047,7 @@ http_version_nofix:
 					return;
 				}
 
-				io_free(d->io_opaque);
-				getline_free(s->getline);	/* No longer need this */
-				s->getline = NULL;
+				download_io_header_free(d);
 
 				d->flags |= DL_F_CHUNK_CHOSEN;
 				d->flags |= DL_F_SUNK_DATA;		/* Sink only once per session */
@@ -12557,9 +12736,7 @@ http_version_nofix:
 	 * Cleanup header-reading data structures.
 	 */
 
-	io_free(d->io_opaque);
-	getline_free(s->getline);		/* No longer need this */
-	s->getline = NULL;
+	download_io_header_free(d);
 
 	if (d->flags & DL_F_PREFIX_HEAD) {
 		d->flags &= ~DL_F_PREFIX_HEAD;
@@ -12768,7 +12945,7 @@ download_incomplete_header(struct download *d)
 
 	download_check(d);
 	header = io_header(d->io_opaque);
-	download_request(d, header, FALSE);
+	download_reply(d, header, FALSE);
 }
 
 /**
@@ -12970,14 +13147,9 @@ download_request_sent(struct download *d)
 
 	/*
 	 * Now prepare to read the status line and the headers.
-	 * XXX separate this to swallow 100 continuations?
 	 */
 
-	g_assert(d->io_opaque == NULL);
-
-	io_get_header(d, &d->io_opaque,
-		bsched_in_select_by_addr(d->socket->addr), d->socket, IO_SAVE_FIRST,
-		call_download_request, download_start_reading, &download_io_error);
+	download_wait_reply(d);
 }
 
 /**
@@ -13391,6 +13563,29 @@ picked:
 
 	rw += str_bprintf(&request_buf[rw], maxsize - rw,
 			"Accept-Encoding: deflate\r\n");
+
+	/*
+	 * If we support TLS and the socket was not established on top of TLS,
+	 * we can propose a TLS upgrade if this is the first request sent to
+	 * the server.  See RFC-2817 for the upgrade protocol details.
+	 *
+	 * The check for DLS_A_NO_TLS_UPGRD is to avoid us proposing an upgrade
+	 * if we already know that server is not supporting TLS (it does not
+	 * advertise the feature in its X-Features) or if a previous upgrade
+	 * attempt failed in this session.
+	 */
+
+	if (
+		0 == (d->server->attrs & DLS_A_NO_TLS_UPGRD) &&
+		!d->keep_alive &&
+		tls_enabled() &&
+		!socket_uses_tls(d->socket)
+	) {
+		rw += str_bprintf(&request_buf[rw], maxsize - rw,
+				"Upgrade: TLS/1.0\r\nConnection: Upgrade\r\n");
+
+		d->flags |= DL_F_TLS_PROPOSED;
+	}
 
 	/*
 	 * Add X-Queue / X-Queued information into the header
@@ -14298,7 +14493,7 @@ download_push_ack(struct gnutella_socket *s)
 			giv, download_basename(d), download_host_info(d));
 
 	if (d->io_opaque) {
-		g_carp("d->io_opaque is already set!");
+		g_carp("%s(): d->io_opaque is already set!", G_STRFUNC);
 		goto discard;
 	}
 
@@ -14347,6 +14542,7 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	g_assert(NULL == d->io_opaque);
+
 	io_get_header(d, &d->io_opaque, bsched_in_select_by_addr(s->addr),
 		s, IO_SINGLE_LINE, call_download_push_ready, NULL, &download_io_error);
 
@@ -15938,7 +16134,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 		sequence_release(&seq);
 		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 		concat_strings(prefix_buf, sizeof prefix_buf,
-			"push://", guid_buf, (void *) 0);
+			"push://", guid_buf, NULL_PTR);
 		prefix = prefix_buf;
 	} else if (0 != port && is_host_addr(addr)) {
 		host = host_port_to_string(download_hostname(d), addr, port);
@@ -15950,7 +16146,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 	if ('/' == uri[0])
 		uri++;
 
-	result = g_strconcat(prefix, host, "/", uri, (void *) 0);
+	result = g_strconcat(prefix, host, "/", uri, NULL_PTR);
 
 	HFREE_NULL(hostp);
 
@@ -15982,7 +16178,7 @@ download_build_url(const struct download *d)
 		concat_strings(uri, sizeof uri,
 			"/uri-res/N2R?",
 			bitprint_to_urn_string(download_get_sha1(d), download_get_tth(d)),
-			(void *) 0);
+			NULL_PTR);
 		url = download_url_for_uri(d, uri);
 	} else {
 		char *escaped, *uri;
@@ -16030,7 +16226,7 @@ download_get_hostname(const struct download *d)
 		host_addr_port_to_string(addr, port),
 		inbound ? _(", inbound") : "",
 		outbound ? _(", outbound") : "",
-		encrypted ? ", TLS" : "",
+		encrypted ? (d->tls_upgraded ? ", +TLS" : ", TLS") : "",
 		(d->server->attrs & DLS_A_NO_PIPELINE) ? _(", no-pipeline") : "",
 		(d->server->attrs & DLS_A_BANNING) ? _(", banning") : "",
 		(d->server->attrs & (DLS_A_G2_ONLY | DLS_A_FAKE_G2)) == DLS_A_G2_ONLY ?
@@ -16040,7 +16236,7 @@ download_get_hostname(const struct download *d)
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",
 		d->server->hostname ? ")" : "",
-		(void *) 0);
+		NULL_PTR);
 	
 	return buf;
 }
@@ -16527,7 +16723,7 @@ download_handle_magnet(const char *url)
 		if (!filename) {
 			if (res->sha1) {
 				filename = h_strconcat("urn:sha1:",
-								sha1_base32(res->sha1), (void *) 0);
+								sha1_base32(res->sha1), NULL_PTR);
 			} else {
 				filename = h_strdup("magnet-download");
 			}

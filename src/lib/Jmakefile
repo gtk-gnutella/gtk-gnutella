@@ -65,6 +65,7 @@ LSRC = \
 	alloca.c \
 	aq.c \
 	arc4random.c \
+	argv.c \
 	ascii.c \
 	atio.c \
 	atoms.c \
@@ -114,11 +115,13 @@ LSRC = \
 	event.c \
 	evq.c \
 	exit.c \
+	exit2str.c \
 	fast_assert.c \
 	fd.c \
 	file.c \
 	file_object.c \
 	filehead.c \
+	filelock.c \
 	filename.c \
 	float.c \
 	fragcheck.c \
@@ -154,6 +157,7 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	launch.c \
 	leak.c \
 	list.c \
 	listener.c \
@@ -187,6 +191,7 @@ LSRC = \
 	pmsg.c \
 	pow2.c \
 	product.c \
+	progname.c \
 	prop.c \
 	pslist.c \
 	rand31.c \
@@ -198,6 +203,7 @@ LSRC = \
 	sectoken.c \
 	semaphore.c \
 	sequence.c \
+	setproctitle.c \
 	sha1.c \
 	shuffle.c \
 	signal.c \
@@ -205,11 +211,13 @@ LSRC = \
 	smsort.c \
 	sorted_array.c \
 	spinlock.c \
+	spopen.c \
 	stacktrace.c \
 	stats.c \
 	str.c \
 	stringify.c \
 	strtok.c \
+	strvec.c \
 	symbols.c \
 	symtab.c \
 	tea.c \
@@ -228,6 +236,7 @@ LSRC = \
 	utf8.c \
 	vector.c \
 	vendors.c \
+	vmea.c \
 	vmm.c \
 	vsort.c \
 	waiter.c \
@@ -329,10 +338,13 @@ local_clean::
 #define NormalTestTarget(base)	@!\
 NormalProgramLibTarget(base-test, base-test.c, base-test.o, libshared.a)
 
+NormalTestTarget(filelock)
 NormalTestTarget(float)
 NormalTestTarget(ftw)
+NormalTestTarget(launch)
 NormalTestTarget(random)
 NormalTestTarget(sort)
+NormalTestTarget(spopen)
 NormalTestTarget(thread)
 
 #define LinkGenInterface(file)	@!\

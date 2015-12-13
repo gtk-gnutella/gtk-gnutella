@@ -370,8 +370,8 @@ dbstore_compact(dbmw_t *dw)
 static void
 dbstore_move_file(const char *old_path, const char *new_path, const char *ext)
 {
-	char *old_file = h_strconcat(old_path, ext, NULL);
-	char *new_file = h_strconcat(new_path, ext, NULL);
+	char *old_file = h_strconcat(old_path, ext, NULL_PTR);
+	char *new_file = h_strconcat(new_path, ext, NULL_PTR);
 
 	if (file_exists(old_file)) {
 		if (-1 == rename(old_file, new_file)) {
@@ -411,7 +411,7 @@ dbstore_move(const char *src, const char *dst, const char *base)
 static void
 dbstore_unlink_file(const char *path, const char *ext)
 {
-	char *file = h_strconcat(path, ext, NULL);
+	char *file = h_strconcat(path, ext, NULL_PTR);
 
 	if (file_exists(file)) {
 		if (-1 == unlink(file)) {

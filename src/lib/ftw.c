@@ -395,6 +395,8 @@ ftw_opendir(struct ftw_ctx *fx, struct ftw_dir *dir, struct ftw_dir *pdir)
 
 		dir->fd = nfd;		/* Necessarily! */
 	}
+
+use_opendir:
 #endif	/* HAS_FDOPENDIR && HAS_OPENAT */
 
 	/*
@@ -403,7 +405,6 @@ ftw_opendir(struct ftw_ctx *fx, struct ftw_dir *dir, struct ftw_dir *pdir)
 	 * an opened parent directory.
 	 */
 
-use_opendir:
 	retried = FALSE;
 
 	/* FALL THROUGH */

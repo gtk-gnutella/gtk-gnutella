@@ -37,7 +37,8 @@
 
 #ifdef MINGW32
 
-#define FD_SETSIZE      4096
+#define MINGW_TRACEFILE_KEEP	3		/* Keep logs for that many past runs */
+#define FD_SETSIZE      		4096	/* Max # of descriptors for select() */
 
 #include <ws2tcpip.h>
 
@@ -109,6 +110,7 @@
 #define PROT_NONE	0x0
 #define PROT_READ	0x1
 #define PROT_WRITE	0x2
+#define PROT_GUARD	0x4		/* Windows-specific, see mingw_mprotect() */
 
 #define O_NONBLOCK 0
 
@@ -136,6 +138,10 @@
 
 #ifndef SIGTRAP
 #define SIGTRAP	12		/* Simulated, unassigned signal number in MinGW32 */
+#endif
+
+#ifndef SIGPIPE
+#define SIGPIPE	13		/* Simulated, unassigned signal number in MinGW32 */
 #endif
 
 #define fcntl mingw_fcntl
@@ -204,7 +210,10 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #define remove mingw_remove
 #define pipe mingw_pipe
 #define getrlimit mingw_getrlimit
+
 #define execve mingw_execve
+#define launchve mingw_launchve
+#define spopenve mingw_spopenve
 
 #define abort() mingw_abort()
 
@@ -286,6 +295,30 @@ int mingw_statvfs(const char *pathname, struct statvfs *buf);
 #endif
 
 /*
+ * getuid(), geteuid(), etc... emulation.
+ */
+#define HAS_GETUID
+#define HAS_GETEUID
+
+typedef unsigned long uid_t;
+uid_t mingw_getuid(void);
+uid_t mingw_geteuid(void);
+
+#define getuid() mingw_getuid()
+#define geteuid() mingw_geteuid()
+
+#define UID_NOBODY	((uid_t) -2)
+
+typedef unsigned long gid_t;
+gid_t mingw_getgid(void);
+gid_t mingw_getegid(void);
+
+#define getgid() mingw_getgid()
+#define getegid() mingw_getegid()
+
+#define GID_NOBODY	((gid_t) -2)
+
+/*
  * getrlimit() emulation.
  */
 #ifndef HAS_GETRLIMIT
@@ -338,7 +371,6 @@ int mingw_sched_yield(void);
 
 #define RUSAGE_SELF 0
 #define RUSAGE_CHILDREN (-1)
-#define RUSAGE_BOTH (-2)
 #define RUSAGE_THREAD 1
 
 struct rusage {
@@ -413,6 +445,32 @@ struct timespec {
 
 int mingw_nanosleep(const struct timespec *req, struct timespec *rem);
 #endif	/* !HAS_NANOSLEEP */
+
+/*
+ * waitpid() emulation.
+ */
+#ifndef HAS_WAITPID
+#define HAS_WAITPID
+#define EMULATE_WAITPID
+#define waitpid mingw_waitpid
+#define wait mingw_wait
+
+/* waitpid() supported options */
+#define WNOHANG		(1U << 0)	/* don't wait */
+
+/* status queries -- Windows does not support signals nor core dumps */
+#define WIFEXITED(s)		TRUE		/* can't know termination was forced */
+#define WEXITSTATUS(s)		(s)
+#define WIFSIGNALED(s)		FALSE
+#define WTERMSIG(s)			0
+#define WCOREDUMP(s)		FALSE
+#define WIFSTOPPED(s)		FALSE
+#define WIFCONTINUED(s)		FALSE
+#define WSTOPSIG(s)			0
+
+pid_t mingw_wait(int *status);
+pid_t mingw_waitpid(pid_t pid, int *status, int options);
+#endif	/* !HAS_WAITPID */
 
 static inline void *
 iovec_base(const iovec_t* iovec)
@@ -662,10 +720,13 @@ void *mingw_valloc(void *hint, size_t size);
 int mingw_vfree(void *addr, size_t size);
 int mingw_vfree_fragment(void *addr, size_t size);
 void mingw_set_stop_vfree(bool val);
+
 int mingw_mprotect(void *addr, size_t len, int prot);
+void *mingw_memstart(const void *p);
+void mingw_log_meminfo(const void *p);
 
 int mingw_random_bytes(void *buf, size_t len);
-bool mingw_process_is_alive(pid_t pid);
+int mingw_process_access_check(pid_t pid);
 
 unsigned int mingw_sleep(unsigned int seconds);
 long mingw_cpu_count(void);
@@ -709,9 +770,11 @@ const char *dir_entry_filename(const void *dirent);
 size_t dir_entry_namelen(const void *dirent);
 
 int mingw_getgateway(uint32 *ip);
-bool mingw_in_exception(void);
 void mingw_abort(void) G_GNUC_NORETURN;
 int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
+pid_t mingw_launchve(const char *path, char *const argv[], char *const envp[]);
+int mingw_spopenve(const char *path, const char *mode, int fd[2],
+		char *const argv[], char *const envp[]);
 
 struct adns_request;
 
@@ -721,10 +784,13 @@ bool mingw_adns_send_request(const struct adns_request *req);
 
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
+const char *mingw_get_supervisor_log_path(void);
+void mingw_file_rotate(const char *pathname, int keep);
 
 #else	/* !MINGW32 */
 
-#define mingw_early_init();
+#define PROT_GUARD		PROT_NONE		/* Guard pages are Windows-specific */
+
 #define mingw_vmm_post_init()
 #define mingw_init()
 #define mingw_close()
@@ -744,8 +810,6 @@ const char *mingw_native_path(const char *pathname);
 #define mingw_get_startup_path()		"/"
 #define mingw_get_system_path()			"/"
 #define mingw_get_windows_path()		"/"
-
-#define mingw_in_exception()		0
 
 #endif	/* MINGW32 */
 #endif /* _mingw32_h_ */

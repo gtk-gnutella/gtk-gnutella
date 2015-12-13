@@ -74,6 +74,7 @@
 #include "crash.h"
 #include "debug.h"
 #include "dl_util.h"
+#include "dualhash.h"
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
@@ -91,7 +92,10 @@
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
 #include "pslist.h"
+#include "sha1.h"
+#include "signal.h"
 #include "spinlock.h"
+#include "spopen.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
@@ -99,6 +103,7 @@
 #include "unsigned.h"
 #include "utf8.h"
 #include "vmm.h"				/* For vmm_page_start() */
+#include "vsort.h"
 #include "walloc.h"
 #include "xmalloc.h"
 
@@ -109,6 +114,7 @@
 #endif
 #if 0
 #define MINGW_STARTUP_DEBUG		/**< Trace early startup stages */
+#define MINGW_STARTUP_LOGDIR	"C:/cygwin/tmp"
 #endif
 #if 0
 #define MINGW_BACKTRACE_DEBUG	/**< Trace our own backtracing */
@@ -158,12 +164,12 @@
 #undef execve
 #undef statvfs
 
+#undef _exit		/* _exit() is the real one here */
+
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define VMM_GRANULARITY	(1024*1024*4)	/* 4 MiB during initalization */
 #define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
 #define WS2_LIBRARY		"ws2_32.dll"
-
-#define MINGW_TRACEFILE_KEEP	3		/* Keep traces for that many runs */
 
 #define TM_MILLION		1000000L
 #define TM_BILLION		1000000000L
@@ -178,8 +184,10 @@
 #endif
 
 static HINSTANCE libws2_32;
-static once_flag_t mingw_inited;
+static once_flag_t mingw_socket_inited;
 static bool mingw_vmm_inited;
+
+static void mingw_stdio_reset(bool console);
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -195,6 +203,49 @@ extern bool vmm_is_debugging(uint32 level);
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
 
+#ifdef MINGW_STARTUP_DEBUG
+static FILE *mingw_debug_lf;
+
+static void
+getlog(bool initial)
+{
+	char buf[128];
+
+	str_bprintf(buf, sizeof buf,
+		"%s/%s-log.txt", MINGW_STARTUP_LOGDIR, product_nickname());
+
+	mingw_debug_lf = fopen(buf, initial ? "wb" : "ab");
+}
+
+static void
+closelog(void)
+{
+	if (mingw_debug_lf != NULL)
+		fclose(mingw_debug_lf);
+	mingw_debug_lf = NULL;
+}
+
+#define STARTUP_DEBUG(...)	G_STMT_START {	\
+	if (mingw_debug_lf != NULL) {			\
+		FILE *lf = mingw_debug_lf;			\
+		char tb[CRASH_TIME_BUFLEN];			\
+		crash_time_cached(tb, sizeof tb);	\
+		fputs(tb, lf);						\
+		fputc(' ', lf);						\
+		fprintf(lf, __VA_ARGS__);			\
+		fputc('\n', lf);					\
+		fflush(lf);							\
+	}										\
+} G_STMT_END
+
+#else	/* !MINGW_STARTUP_DEBUG */
+#define getlog(x)
+#define closelog()
+#define STARTUP_DEBUG(...)	{}
+#endif	/* MINGW_STARTUP_DEBUG */
+
+enum pncs_magic { PNCS_MAGIC = 0x7c0e73af };
+
 /**
  * Path Name Conversion Structure.
  *
@@ -203,9 +254,17 @@ WSAPoll_func_t WSAPoll = NULL;
  * 256 characters.
  */
 typedef struct pncs {
-	wchar_t *utf16;
-	wchar_t buf[MAX_PATH_LEN];
+	enum pncs_magic magic;	/* To protect pncs_dup() */
+	wchar_t *utf16;			/* Thread-private allocated buffer */
+	size_t len;				/* Path length, in wide-chars, for pncs_dup() */
 } pncs_t;
+
+static inline void
+pncs_check(const pncs_t * const p)
+{
+	g_assert(p != NULL);
+	g_assert(PNCS_MAGIC == p->magic);
+}
 
 /**
  * Converts a NUL-terminated MBCS string to an UTF-16 string.
@@ -215,24 +274,30 @@ typedef struct pncs {
  * @param dest The destination buffer.
  * @param dest_size The size of the destination buffer in number of elements.
  *
- * @return NULL on failure with errno set, dest on success.
+ * @return -1 on failure with errno set, wide-char string length otherwize.
  */
-static wchar_t *
+static size_t
 locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 {
 	size_t n;
 
 	n = mbstowcs(NULL, src, 0);
-	if ((size_t) -1 == n)
-		return NULL;
+	if ((size_t) -1 == n) {
+		s_rawwarn("%s(): illegal character sequence found in path", G_STRFUNC);
+		errno = EILSEQ;
+		return (size_t) -1;
+	}
 
 	if (n < dest_size) {
 		(void) mbstowcs(dest, src, dest_size);
 	} else {
-		dest = NULL;
+		s_rawwarn("%s(): wide-char path would be %zu-character long, max=%zu",
+			G_STRFUNC, n, dest_size);
 		errno = ENAMETOOLONG;
+		return (size_t) -1;
 	}
-	return dest;
+
+	return n;
 }
 
 /*
@@ -257,11 +322,26 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 static const char *
 get_native_path(const char *pathname, int *error)
 {
-	buf_t *b = buf_private(G_STRFUNC, MAX_PATH_LEN);
-	char *pathbuf = buf_data(b);
-	size_t pathsz = buf_size(b);
+	buf_t *b, bs;
+	char *p, *pathbuf;
+	size_t pathsz;
 	const char *npath = pathname;
-	char *p;
+
+	STARTUP_DEBUG("%s(): pathname=%s", G_STRFUNC, pathname);
+
+	/*
+	 * In a signal handler, don't allocate memory.
+	 */
+
+	if (signal_in_handler()) {
+		static char buf[MAX_PATH_LEN];
+		b = buf_init(&bs, buf, sizeof buf);
+	} else {
+		b = buf_private(G_STRFUNC, MAX_PATH_LEN);
+	}
+
+	pathbuf = buf_data(b);
+	pathsz = buf_size(b);
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
@@ -298,6 +378,8 @@ get_native_path(const char *pathname, int *error)
 		size_t plen = strlen(npath);
 
 		if (pathsz <= plen) {
+			s_rawwarn("%s(): path is %zu-byte long", G_STRFUNC, plen);
+			s_debug("%s(): given path was \"%s\"", G_STRFUNC, pathname);
 			*error = ENAMETOOLONG;
 			return NULL;
 		}
@@ -327,10 +409,30 @@ mingw_native_path(const char *pathname)
 }
 
 /**
+ * Duplicate wide-char string held in the pncs_t structure.
+ *
+ * @return new wide-char string that must be freed via hfree().
+ */
+static wchar_t *
+pncs_dup(const pncs_t *pncs)
+{
+	pncs_check(pncs);
+	g_assert(size_is_positive(pncs->len));
+
+	return hcopy(pncs->utf16, pncs->len * sizeof(wchar_t));
+}
+
+/**
  * Convert pathname to a UTF-16 representation.
  *
  * On success, the member utf16 points to the converted pathname that can be
  * used in Unicode-aware Windows calls.
+ *
+ * @attention
+ * The converted pathname lies in a thread-private buffer, therefore it needs
+ * to be perused immediately and saved away if another routine that could use
+ * pncs_convert() is called.  Use pncs_dup() to return a new dynamically
+ * allocated pathname.
  *
  * @return 0 on success, -1 on error with errno set.
  */
@@ -339,9 +441,31 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 {
 	const char *npath;		/* Native path */
 	int error;
+	const size_t buflen = MAX_PATH_LEN;
+	buf_t *b, bs;
+	wchar_t *pathbuf;
+	size_t ret;
 
 	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
 	STATIC_ASSERT(sizeof(uint16) == sizeof(wchar_t));
+
+	ZERO(pncs);
+	pncs->magic = PNCS_MAGIC;	/* In case they call pncs_dup() */
+
+	STARTUP_DEBUG("%s(): pathname=%s", G_STRFUNC, pathname);
+
+	/*
+	 * In a signal handler, don't allocate memory.
+	 */
+
+	if (signal_in_handler()) {
+		static char buf[MAX_PATH_LEN * sizeof(wchar_t)];
+		b = buf_init(&bs, buf, sizeof buf);
+	} else {
+		b = buf_private(G_STRFUNC, MAX_PATH_LEN * sizeof(wchar_t));
+	}
+
+	pathbuf = buf_data(b);
 
 	if (NULL == (npath = get_native_path(pathname, &error))) {
 		errno = error;
@@ -349,21 +473,42 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	}
 
 	if (utf8_is_valid_string(npath)) {
-		size_t ret;
-
-		ret = utf8_to_utf16(npath, pncs->buf, G_N_ELEMENTS(pncs->buf));
-		if (ret < G_N_ELEMENTS(pncs->buf)) {
-			pncs->utf16 = pncs->buf;
+		ret = utf8_to_utf16(npath, pathbuf, buflen);
+		if (ret < buflen) {
+			pncs->utf16 = pathbuf;
 		} else {
+			s_rawwarn("%s(): UFT-16 path would be %zu-character long, max=%zu",
+				G_STRFUNC, ret, buflen);
 			errno = ENAMETOOLONG;
 			pncs->utf16 = NULL;
 		}
 	} else {
-		pncs->utf16 =
-			locale_to_wchar(npath, pncs->buf, G_N_ELEMENTS(pncs->buf));
+		ret = locale_to_wchar(npath, pathbuf, buflen);
+		if ((size_t) -1 == ret)
+			pncs->utf16 = NULL;		/* errno set by locale_to_wchar() */
+	}
+
+	if G_UNLIKELY(NULL == pncs->utf16) {
+		s_debug("%s(): given path was \"%s\"", G_STRFUNC, pathname);
+	} else {
+		pncs->len = ret + 1;		/* +1 for trailing NUL */
 	}
 
 	return NULL != pncs->utf16 ? 0 : -1;
+}
+
+static void
+mingw_socket_init(void)
+{
+	WSADATA wsaData;
+
+	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+		s_error("WSAStartup() failed");
+
+	libws2_32 = LoadLibrary(WS2_LIBRARY);
+    if (libws2_32 != NULL) {
+        WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
+    }
 }
 
 static inline bool
@@ -467,6 +612,7 @@ mingw_win2posix(int error)
 	case ERROR_NO_MORE_FILES:
 		return ENFILE;
 	case ERROR_WRITE_PROTECT:
+	case ERROR_CANT_OPEN_ANONYMOUS:		/* Can't open anonymous token */
 		return EPERM;
 	case ERROR_NOT_SUPPORTED:
 		return ENOSYS;
@@ -531,11 +677,12 @@ mingw_win2posix(int error)
 		return ENOEXEC;
 	case ERROR_NETNAME_DELETED:
 		return EHOSTUNREACH;
+	case ERROR_NO_TOKEN:
+		return ESRCH;
 	case 0:					/* Always indicates success */
 		return 0;
 	default:
-		/* Only allocate once VMM layer has been initialized */
-		if (NULL == warned && mingw_vmm_inited) {
+		if (NULL == warned) {
 			static spinlock_t warned_slk = SPINLOCK_INIT;
 
 			spinlock(&warned_slk);
@@ -590,7 +737,8 @@ static signal_handler_t mingw_sighandler[SIGNAL_COUNT];
 signal_handler_t
 mingw_signal(int signo, signal_handler_t handler)
 {
-	signal_handler_t res;
+	signal_handler_t old;
+	static spinlock_t mingw_signal_slk = SPINLOCK_INIT;
 
 	g_assert(handler != SIG_ERR);
 
@@ -599,26 +747,29 @@ mingw_signal(int signo, signal_handler_t handler)
 		return SIG_ERR;
 	}
 
+	spinlock_hidden(&mingw_signal_slk);
+
+	old = mingw_sighandler[signo];
+	mingw_sighandler[signo] = handler;
+
+	spinunlock_hidden(&mingw_signal_slk);
+
 	/*
-	 * Don't call signal() with SIGBUS or SIGTRAP: since we're faking them,
-	 * we'll get an error back as "unrecognized argument value".
+	 * Don't call signal() with fake SIGBUS, SIGTRAP, SIGPIPE.
+	 * We would get an error back as "unrecognized argument value".
 	 */
 
 	switch (signo) {
 	case SIGBUS:
 	case SIGTRAP:
-		res = mingw_sighandler[signo];
+	case SIGPIPE:
 		break;
 	default:
-		res = signal(signo, handler);
-		if (SIG_ERR == res)
-			res = mingw_sighandler[signo];
+		signal(signo, handler);
 		break;
 	}
 
-	mingw_sighandler[signo] = handler;
-
-	return res;
+	return old;
 }
 
 #define FLUSH_ERR_STR()	G_STMT_START {	\
@@ -634,6 +785,8 @@ static G_GNUC_COLD void
 mingw_sigraise(int signo)
 {
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
+
+	s_rawwarn("%s(): raising %s", G_STRFUNC, signal_name(signo));
 
 	if (SIG_IGN == mingw_sighandler[signo]) {
 		/* Nothing */
@@ -723,6 +876,19 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 					errno = mingw_last_error();
 				else
 					res = 0;
+			} else if (arg->l_type == F_RDLCK) {
+				OVERLAPPED ov;
+
+				ZERO(&ov);
+				ov.Offset = start_low;
+				ov.OffsetHigh = start_high;
+				if (
+					!LockFileEx(file, LOCKFILE_FAIL_IMMEDIATELY, 0,
+						len_low, len_high, &ov)
+				) {
+					errno = mingw_last_error();
+				} else
+					res = 0;
 			} else if (arg->l_type == F_UNLCK) {
 				if (!UnlockFile(file, start_low, start_high, len_low, len_high))
 					errno = mingw_last_error();
@@ -783,7 +949,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 		}
 		default:
 			res = -1;
-			errno = EINVAL;
+			errno = ENOSYS;
 			break;
 	}
 
@@ -816,45 +982,227 @@ mingw_fsync(int fd)
 
 #ifdef EMULATE_GETPPID
 /**
+ * Compute byte length of UTF-16 string, scanning up to specified max amount
+ * of characters (ignoring surrogates, i.e. they are counted as two chars since
+ * they use two 16-bit slots).
+ *
+ * @param s			start of UTF-16 string
+ * @param maxchars	maximum amout of UTF-16 entries
+ *
+ * @return byte length of string, not counting trailing NUL.
+ */
+static size_t
+wchar_clamp_bytelen(const wchar_t *s, size_t maxchars)
+{
+	uint16 *p = (uint16 *) s;
+	size_t c = 0;
+
+	while (*p != 0 && c < maxchars) {
+		p++;
+		c++;
+	}
+
+	return ptr_diff(p, s);
+}
+
+/**
+ * Find process entry matching the given PID.
+ *
+ * If we cannot find the PID, `error' is filled with the an error code if
+ * it is not NULL.
+ *
+ * @param pid	the PID we're looking for
+ * @param pe	the process entry we can fill-in
+ * @param error	if not NULL, set with value of errno if we can't find the PID
+ *
+ * @return TRUE if found, FALSE if not found with error filled-in.
+ */
+static bool
+mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe, int *error)
+{
+	HANDLE h;
+	bool ok, found = FALSE;
+
+	ZERO(pe);
+	pe->dwSize = sizeof(*pe);
+	if (error != NULL)
+		*error = 0;
+
+	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	if (INVALID_HANDLE_VALUE == h) {
+		if (error != NULL)
+			*error = mingw_last_error();
+		return FALSE;
+	}
+
+	for (ok = Process32FirstW(h, pe); ok; ok = Process32NextW(h, pe)) {
+		if ((pid_t) pe->th32ProcessID == pid) {
+			found = TRUE;
+			break;
+		}
+	}
+
+	if (!found && error != NULL)
+		*error = mingw_last_error();
+
+	CloseHandle(h);
+
+	return found;
+}
+
+/**
+ * Compute SHA1 digest of given process entry.
+ */
+static void
+mingw_sha1_process_entry(PROCESSENTRY32W *pe, sha1_t *digest)
+{
+	size_t n = G_N_ELEMENTS(pe->szExeFile);
+	SHA1_context c;
+
+	SHA1_reset(&c);
+	SHA1_INPUT(&c, pe->th32ProcessID);
+	SHA1_INPUT(&c, pe->th32ParentProcessID);
+	SHA1_input(&c, pe->szExeFile, wchar_clamp_bytelen(pe->szExeFile, n));
+	SHA1_result(&c, digest);
+}
+
+/**
  * Get the ID of the parent process.
  *
  * @note
  * This is unreliable, prone to race conditions, as the kernel could immediately
  * reuse the ID of a dead process and does not actively maintain a process tree
- * as on UNIX.
+ * as on UNIX.  The only way to make it more reliable is to compute our parent
+ * PID very early at startup, hoping the PID we find is the same process that
+ * launched us and not another process which took its place (very unlikely).
  *
- * @return the ID of the parent process.
+ * @return the ID of the parent process, 1 meaning our parent died already.
  */
 pid_t
 mingw_getppid(void)
 {
-	pid_t our_pid = GetCurrentProcessId();
-	pid_t parent_pid = 1;
-	HANDLE h;
-	PROCESSENTRY32 pe;
-	BOOL ok;
+	static pid_t parent_pid = (pid_t) -1;
+	static sha1_t parent_digest;
+	static spinlock_t mingw_getppid_slk = SPINLOCK_INIT;
+	sha1_t digest;
+	pid_t ppid;
+	PROCESSENTRY32W pe;
 
-	ZERO(&pe);
-	pe.dwSize = sizeof(PROCESSENTRY32);
+	if ((pid_t) 1 == parent_pid)
+		return 1;					/* Known to be orphan */
 
-	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	ppid = parent_pid;
 
-	for (ok = Process32First(h, &pe); ok; ok = Process32Next(h, &pe)) {
-		if ((pid_t) pe.th32ProcessID == our_pid) {
-			parent_pid = pe.th32ParentProcessID;
-			break;
+	if ((pid_t) -1 == ppid && mingw_find_process_entry(getpid(), &pe, NULL))
+		ppid = pe.th32ParentProcessID;
+
+	if ((pid_t) -1 == ppid)
+		return 1;					/* Can't find ourselves, assume orphaned */
+
+	/*
+	 * The first time we find a parent PID, make sure it exists and if it
+	 * does, compute the SHA1 of its process information.  We will use this
+	 * on further invocations to ensure we still have the same parent, in case
+	 * the PID of our parent was reused.
+	 */
+
+	if ((pid_t) -1 == parent_pid) {
+		if (-1 == mingw_process_access_check(ppid)) {
+			ppid = 1;				/* Parent died or runs under another UID */
+		} else {
+			if (mingw_find_process_entry(ppid, &pe, NULL)) {
+				mingw_sha1_process_entry(&pe, &digest);
+			} else {
+				ppid = 1;			/* Parent cannot be found */
+			}
 		}
+
+		/*
+		 * Record initial information, return parent PID.
+		 */
+
+		spinlock_hidden(&mingw_getppid_slk);
+
+		if ((pid_t) -1 == parent_pid) {
+			parent_pid = ppid;
+			if (ppid != (pid_t) 1)
+				parent_digest = digest;		/* struct copy */
+		}
+
+		spinunlock_hidden(&mingw_getppid_slk);
+
+		return ppid;
 	}
 
-	CloseHandle(h);
+	/*
+	 * Not the first time, verify that the known parent PID is still
+	 * referring to the same process.
+	 */
 
-	return parent_pid;
+	g_assert(ppid != (pid_t) 1);
+
+	if (mingw_find_process_entry(ppid, &pe, NULL)) {
+		mingw_sha1_process_entry(&pe, &digest);
+	} else {
+		if (0 == mingw_process_access_check(ppid)) {
+			static bool warned;
+
+			if (!warned) {
+				warned = TRUE;
+				s_miniwarn("%s(): assuming PID=%lu is still our parent",
+					G_STRFUNC, (ulong) ppid);
+			}
+			return ppid;
+		}
+		ppid = 1;			/* Parent cannot be found */
+	}
+
+	spinlock(&mingw_getppid_slk);
+
+	if (
+		parent_pid != ppid ||
+		0 != memcmp(&parent_digest, &digest, SHA1_RAW_SIZE)
+	)
+		parent_pid = ppid = 1;
+
+	spinunlock(&mingw_getppid_slk);
+
+	return ppid;
 }
 #endif	/* EMULATE_GETPPID */
 
 /**
+ * Count amount of backslashes that lead to a double quote '"' or to the end
+ * of the string.
+ *
+ * @return the amount of backslashes to escape.
+ */
+static size_t
+mingw_backslashes_to_quote_or_end(const char *str)
+{
+	const char *p = str;
+	char c;
+	size_t backslashes = 0;
+
+	g_assert(*str == '\\');
+
+	while ('\0' != (c = *p++)) {
+		if ('\\' == c)
+			backslashes++;
+		else if ('"' == c)
+			break;
+		else
+			return 0;	/* No need to escape all these backslashes */
+	}
+
+	return backslashes;
+}
+
+/**
  * Computes the memory necessary to include the string into quotes and escape
- * embedded quotes, provided there are embedded spaces.
+ * embedded quotes, provided there are embedded spaces or backslashes leading
+ * to a quote or at the end of the string.
  *
  * @param str		the string where we want to protect embedded spaces / quotes
  *
@@ -867,7 +1215,7 @@ mingw_quotedlen(const char *str)
 {
 	const char *p = str;
 	char c;
-	size_t spaces = 0, quotes = 0;
+	size_t spaces = 0, quotes = 0, backslashes = 0;
 
 	g_assert(str != NULL);
 
@@ -876,24 +1224,33 @@ mingw_quotedlen(const char *str)
 			spaces++;
 		else if ('"' == c)
 			quotes++;
+		else if ('\\' == c) {
+			size_t e = mingw_backslashes_to_quote_or_end(p - 1);
+
+			if (e != 0) {
+				backslashes += e;
+				p += e - 1;
+			}
+		}
 	}
 
 	/*
 	 * If there are spaces, we need 2 surrounding quotes, plus 1 extra
-	 * character per quote present (to escape them with a preceding "\").
+	 * character per quote present (to escape them with a preceding "\")
+	 * and similarily for any backslash present before a quote.
 	 *
-	 * Any quote present needs also to be preserved.
+	 * Any quote or backslash present needs also to be preserved.
 	 */
 
-	if (0 == spaces && 0 == quotes)
+	if (0 == spaces && 0 == quotes && 0 == backslashes)
 		return 0;		/* No escaping required */
 
-	return 2 + quotes + ptr_diff(p, str);
+	return 2 + quotes + backslashes + ptr_diff(p, str);
 }
 
 /**
  * Escape string into supplied buffer: two surrounding quotes are added, and
- * each embedded quote is escaped.
+ * each embedded quote or backslash is escaped.
  *
  * @param str		the string to escape
  * @param dest		destination buffer
@@ -919,10 +1276,27 @@ mingw_quotestr(const char *str, char *dest, size_t len)
 		char c = *p++;
 
 		if ('"' == c) {
-			*q++ = '\\';	/* Escape following quote */
+			*q++ = '\\';	/* Escape following quote or backslash */
 			if (q >= end)
 				break;
 			*q++ = c;
+		} else if ('\\' == c) {
+			size_t e = mingw_backslashes_to_quote_or_end(p - 1);
+
+			if (0 == e) {
+				*q++ = c;	/* No need to escape that backslash */
+			} else {
+				p += e - 1;	/* Skip all remaining backslashes in input */
+				/* Escape all the backslashes we've seen */
+				do {
+					*q++ = '\\';
+					if (q >= end)
+						break;
+					*q++ = '\\';
+					if (q >= end)
+						break;
+				} while (--e);
+			}
 		} else if ('\0' == c) {
 			*q++ = '"';		/* Close opening quote */
 			if (q >= end)
@@ -940,101 +1314,1037 @@ mingw_quotestr(const char *str, char *dest, size_t len)
 }
 
 /**
+ * Convert known valid UTF-8 string to UTF-16.
+ *
+ * @return newly allocated string via halloc().
+ */
+static wchar_t *
+wchar_utf16_convert(const char *s)
+{
+	size_t len;
+	wchar_t *ws;
+
+	len = 1 + utf8_to_utf16(s, NULL, 0);	/* +1 for final NULL */
+	ws = halloc(len * 2);					/* Each character is 2 bytes */
+	utf8_to_utf16(s, ws, len);
+
+	return ws;
+}
+
+/**
+ * Convert multi-byte string to wide-char string.
+ *
+ * @return newly allocated string via halloc(), NULL on error with errno set.
+ */
+static wchar_t *
+wchar_mbs_convert(const char *s)
+{
+	size_t len;
+	wchar_t *ws;
+
+	len = 1 + mbstowcs(NULL, s, 0);			/* +1 for final 0x00 */
+	if ((size_t) -1 == len) {
+		errno = EILSEQ;
+		return NULL;
+	}
+	ws = halloc(len * 2);
+	mbstowcs(ws, s, len);
+
+	return ws;
+}
+
+/**
+ * Convert string to a wchar version.
+ *
+ * If the input string is UTF-8, it is converted into UTF-16.
+ * If the input string is not UTF-8, it is interpreted as a local string
+ * and converted to a wide-char string.
+ *
+ * @param s		the string to convert
+ * @param uc	if non-NULL, filled with TRUE if output is Unicode in UTF-16
+ *
+ * @return newly allocated string via halloc(), NULL if we cannot convert it.
+ */
+static wchar_t *
+wchar_convert(const char *s, bool *uc)
+{
+	wchar_t *ws;
+
+	if (utf8_is_valid_string(s)) {
+		ws = wchar_utf16_convert(s);
+		if (uc != NULL)
+			*uc = TRUE;
+	} else {
+		ws = wchar_mbs_convert(s);
+		if (uc != NULL)
+			*uc = FALSE;
+	}
+
+	return ws;
+}
+
+/**
+ * Compare two items in a string vector.
+ */
+static int
+strptr_cmp(const void *a, const void *b)
+{
+	const char * const *pa = a, * const *pb = b;
+
+	return strcmp(*pa, *pb);
+}
+
+/**
+ * The mingw_launched table is a dual-hash containing Windows process handles
+ * as keys and PID as values, for all the processes created via launchve().
+ */
+static dualhash_t *mingw_launched;		/* Launched processes */
+static once_flag_t mingw_launch_inited;
+
+/**
+ * Initialize the launched process table, once.
+ */
+static void
+mingw_launch_init_once(void)
+{
+	mingw_launched = dualhash_new(NULL, pointer_eq, NULL, pointer_eq);
+	dualhash_thread_safe(mingw_launched);
+}
+
+/*
+ * Create escpaed command-line string from argv[].
+ *
+ * Just like mingw_execve(), we need to properly enclose in double-quotes
+ * all the arguments with embedded spaces or the constructed argv[] array
+ * will not be correct.  Fortunately, we're not in an emergency situation
+ * here so we can freely allocate memory.
+ *
+ * The reason we have to do all this work is that the underlying interface
+ * that creates a new process, the CreateProcess() system call,  takes
+ * a single command-line string that it must then parse to reconstruct
+ * the argv[] array.  Whereas on UNIX systems, execve() already takes the
+ * argv[] array and does not need to do any parsing!
+ *
+ * @param argv		the user-supplied argument vector for command
+ *
+ * @return allocated command string with proper argument quoting / escaping.
+ */
+static char *
+mingw_command_line(char * const argv[])
+{
+	char **a;
+	size_t i, n;
+	char *cmd;
+
+	for (i = 0; NULL != argv[i]; i++)
+		/* empty */;
+
+	n = i + 1;		/* Amount of entries in argv[] array + final NULL */
+	HALLOC0_ARRAY(a, n);
+
+	/*
+	 * We're going to only allocate the strings we need to quote, reusing
+	 * the ones given on entry otherwise.  This slightly complicates the
+	 * freeing logic later on.
+	 */
+
+	for (i = 0; NULL != argv[i]; i++) {
+		size_t qlen = mingw_quotedlen(argv[i]);
+
+		if (0 == qlen) {
+			a[i] = argv[i];		/* Reuse original string */
+		} else {
+			a[i] = halloc(qlen);
+			mingw_quotestr(argv[i], a[i], qlen);
+		}
+	}
+
+	g_assert(i == n - 1);
+
+	a[i] = NULL;
+
+	/*
+	 * Build the command line string using the quoted arguments, then
+	 * free all the strings we had to quote and our temporary vector.
+	 */
+
+	cmd = h_strjoinv(" ", a);
+
+	for (i = 0; NULL != argv[i]; i++) {
+		if (argv[i] != a[i])
+			hfree(a[i]);
+	}
+
+	HFREE_NULL(a);
+
+	return cmd;
+}
+
+/*
+ * Build the environment buffer.
+ *
+ * Even when there is no supplied environment, we need to parse the
+ * process environment to be able to determine whether it uses wide chars.
+ *
+ * @param envp		the optional user-supplied environment
+ * @param flags		CreateProcess() flags updated for UTF-16 environment
+ *
+ * @return allocated environment buffer, NULL if given NULL initially.
+ */
+static char *
+mingw_environment_block(char * const envp[], int *flags)
+{
+	if (envp != NULL) {
+		size_t i, cnt, acnt = 0;
+		const char *mandatory[] = { "PATH", "SYSTEMROOT" };
+		bool has_mandatory[G_N_ELEMENTS(mandatory)];
+		char *added[G_N_ELEMENTS(mandatory)];
+		char **e;
+		char *env;
+
+		/*
+		 * Compute size of user-supplied environment.
+		 *
+		 * The Windows runtime also requires that at least two environment
+		 * variables be positionned or the child process will not startup
+		 * properly.  These are PATH and SYSTEMROOT, which we are going to
+		 * propagate from the process environment, unless superseded.
+		 */
+
+		ZERO(&has_mandatory);
+
+		for (i = 0; NULL != envp[i]; i++) {
+			size_t j;
+
+			for (j = 0; j < G_N_ELEMENTS(mandatory); j++) {
+				const char *p;
+
+				if (has_mandatory[j])
+					continue;				/* Variable already set */
+
+				p = is_strprefix(envp[i], mandatory[j]);
+				if (p != NULL && '=' == *p) {
+					has_mandatory[j] = TRUE;
+					break;
+				}
+			}
+		}
+
+		cnt = i;	/* Amount of variables in envp[] vector */
+
+		/*
+		 * If user-supplied environment does not list a mandatory variable,
+		 * then propagate it from the environment of the current process.
+		 */
+
+		for (i = 0; i < G_N_ELEMENTS(mandatory); i++) {
+			if (!has_mandatory[i]) {
+				const char *v = getenv(mandatory[i]);
+
+				if (NULL == v) {
+					s_minicarp("%s(): missing mandatory \"%s\" in environment",
+						G_STRFUNC, mandatory[i]);
+				} else {
+					added[acnt++] = h_strconcat(mandatory[i], "=", v, NULL_PTR);
+				}
+			}
+		}
+
+		g_assert(acnt <= G_N_ELEMENTS(added));
+
+		/*
+		 * Windows requires that environment variables be sorted.
+		 *
+		 * Moreover, unlike UNIX, the environment variables are
+		 * case-insensitive.
+		 */
+
+		HALLOC_ARRAY(e, acnt + cnt + 2);	/* +2 for final "" and NULL */
+
+		for (i = 0; i < cnt; i++) {
+			e[i] = envp[i];
+		}
+		for (i = 0; i < acnt; i++) {
+			e[cnt + i] = added[i];
+		}
+
+		vsort(e, cnt + acnt, sizeof e[0], strptr_cmp);
+		e[cnt + acnt] = "";				/* Ensures final NUL emitted in env */
+		e[cnt + acnt + 1] = NULL;		/* End of array for h_strjoinv() */
+
+		env = h_strnjoinv("\0", 1, e);
+
+		HFREE_NULL(e);
+		for (i = 0; i < acnt; i++) {
+			HFREE_NULL(added[i]);
+		}
+
+		return env;
+	} else {
+		extern char **environ;
+		bool uc = FALSE;
+
+		/* Need to check the process environment to position Unicode flag */
+
+		if (environ[0] != NULL) {
+			char *p = environ[0];
+			char *q = strstr(p, "=");
+
+			/*
+			 * If there is a NUL byte before '=' or the '=' sign is indeed
+			 * followed by a NUL, then we can safely assume this is UTF-16
+			 * since and ANSI version would have bytes and no NUL before the
+			 * end of the string.
+			 */
+
+			if (NULL == q || '\0' == q[1])
+				uc = TRUE;		/* Little-endian UTF-16 for '=' */
+		}
+
+		if (uc)
+			*flags |= CREATE_UNICODE_ENVIRONMENT;
+
+		return NULL;
+	}
+}
+
+/*
+ * Record the handle of the child process and its pid, making sure we do not
+ * close the process handle to be able to wait on the child later.
+ *
+ * @return the PID of the child process.
+ */
+static pid_t
+mingw_record_child(PROCESS_INFORMATION *pi)
+{
+	HANDLE old;
+	dualhash_t *dh;
+	pid_t pid = pi->dwProcessId;
+
+	once_flag_run(&mingw_launch_inited, mingw_launch_init_once);
+
+	/* The main thread handle we can close as we don't need it */
+	CloseHandle(pi->hThread);
+
+	dh = mingw_launched;
+
+	dualhash_lock(dh);
+
+	old = dualhash_lookup_value(dh, uint_to_pointer(pid));
+
+	if (old != NULL) {
+		s_warning("%s(): had already an unwaited-for child bearing PID=%lu",
+			G_STRFUNC, (ulong) pid);
+		CloseHandle(old);
+		dualhash_remove_value(dh, uint_to_pointer(pid));
+	}
+
+	/* Paranoid! */
+
+	if (dualhash_contains_key(dh, pi->hProcess)) {
+		pid_t opid = pointer_to_ulong(dualhash_lookup_key(dh, pi->hProcess));
+		s_warning("%s(): duplicate handle %p, was for child PID %lu",
+			G_STRFUNC, pi->hProcess, (ulong) opid);
+		dualhash_remove_key(dh, pi->hProcess);
+	}
+
+	dualhash_insert_key(dh, pi->hProcess, uint_to_pointer(pid));
+
+	dualhash_unlock(dh);
+
+	return pid;
+}
+
+/**
+ * Create a new process.
+ *
+ * This is a low-level routine on which mingw_launchve() and mingw_execve()
+ * rely to perform their work.
+ *
+ * @param path		the path ot the command
+ * @param argv		the argument vector
+ * @param envp		the environment vector (can be NULL)
+ * @param pi		where the new process information will be stored
+ * @param suspended	whether to create the new process in a suspended state
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+static int
+mingw_create_process(const char *path, char *const argv[], char *const envp[],
+	PROCESS_INFORMATION *pi, bool suspended)
+{
+	STARTUPINFOW si;
+	pncs_t pncs;
+	int res, error = 0;
+	char *file = deconstify_pointer(path), *cmd, *env = NULL;
+	wchar_t *cmd_utf16 = NULL;
+	const char exe[] = ".exe";
+	int32 flags = 0;
+	int ret = -1;
+
+	g_assert(path != NULL);
+	g_assert(argv != NULL);
+
+	ZERO(pi);
+	ZERO(&si);
+	si.cb = sizeof si;
+
+	if (suspended)
+		flags |= CREATE_SUSPENDED;
+
+	/*
+	 * Add trailing ".exe" extension to the path if missing.
+	 */
+
+	if (!is_strcasesuffix(path, (size_t) -1, exe))
+		file = h_strconcat(path, exe, NULL_PTR);
+
+	/*
+	 * Convert the command line string into a big happy UTF-16 string.
+	 */
+
+	cmd = mingw_command_line(argv);
+
+	if (NULL == (cmd_utf16 = wchar_convert(cmd, NULL))) {
+		error = EILSEQ;
+		goto done;
+	}
+
+	HFREE_NULL(cmd);
+
+	/*
+	 * Create environment block or check current process for UTF-16,
+	 * updating flags as necessary.
+	 */
+
+	env = mingw_environment_block(envp, &flags);
+
+	/*
+	 * Transform path to UTF-16.
+	 * We use pncs_convert() to benefit from its path normalization.
+	 */
+
+	if (pncs_convert(&pncs, file)) {
+		error = errno;
+		goto done;
+	}
+
+	/*
+	 * Now create the process!
+	 */
+
+	res = CreateProcessW(
+		pncs.utf16,			/* lpApplicationName */
+		cmd_utf16,			/* lpCommandLine */
+		NULL,				/* lpProcessAttributes */
+		NULL,				/* lpThreadAttributes */
+		FALSE,				/* bInheritHandles */
+		flags,				/* dwCreationFlags */
+		env,				/* lpEnvironment */
+		NULL,				/* lpCurrentDirectory */
+		&si,				/* lpStartupInfo */
+		pi					/* lpProcessInformation */
+	);
+
+	if (0 == res)
+		error = mingw_last_error();
+	else
+		ret = 0;	/* Success! */
+
+	/* FALL THROUGH */
+
+done:
+	HFREE_NULL(cmd);
+	HFREE_NULL(cmd_utf16);
+	HFREE_NULL(env);
+	if (file != path)
+		HFREE_NULL(file);
+
+	if (error != 0)
+		errno = error;
+
+	return ret;
+}
+
+/**
  * Wrapper for execve().
  */
 int
 mingw_execve(const char *filename, char *const argv[], char *const envp[])
 {
-	static char buf[4096];		/* Better avoid the stack during crashes */
-	const char *p;
-	size_t needed = 0;			/* Space needed in buf[] for escaping */
-	char * const *ap;
+	PROCESS_INFORMATION pi;
 
-	/*
-	 * Unfortunately, the C runtime on Windows is not parsing the argv[0]
-	 * argument correctly after calling execve(), when there are embedded
-	 * spaces in the string.
-	 *
-	 * If we have initially:
-	 *
-	 *		argv[0] = 'C:\Program Files (x86)\gtk-gnutella\gtk-gnutella.exe'
-	 *
-	 * then the launched program will see:
-	 *
-	 *		argv[0] = 'C:\Program'
-	 *		argv[1] = 'Files'
-	 *		argv[2] = '(x86)\gtk-gnutella\gtk-gnutella.exe'
-	 *
-	 * which of course is completely wrong.
-	 *
-	 * So, as a workaround, we surround each argv[i] into quotes before
-	 * invoking execve(), well spawnve() actually.
-	 *
-	 * Complications arise because we are called from the crash handler most
-	 * probably and therefore we cannot allocate memory.  Furthermore, the
-	 * argv[] array can be held within read-only memory.
-	 */
+	g_assert(filename != NULL);
+	g_assert(argv != NULL);
 
-	ap = argv;
-	while (NULL != (p = *ap++)) {
-		needed += mingw_quotedlen(p);
-	}
-
-	if (needed != 0) {
-		char *q = &buf[0], *end = &buf[sizeof buf];
-		const void *argvnext, *argvpage = vmm_page_start(argv);
-		size_t span;
-		char **argpv;
-		unsigned i;
-
-		if (needed > sizeof buf) {
-			s_miniwarn("%s(): would need %zu bytes to escape all arguments, "
-				"has only %zu available", G_STRFUNC, needed, sizeof buf);
-		}
-
-		argvnext = vmm_page_next(ap - 1);
-		span = ptr_diff(argvnext, argvpage);
-
-		if (-1 == mprotect((void *) argvpage, span, PROT_READ | PROT_WRITE))
-			s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
-
-		for (argpv = (char **) argv, i = 0; *argpv != NULL; argpv++, i++) {
-			char *str = *argpv;
-			size_t len = mingw_quotedlen(str);
-
-			/*
-			 * Only escape arguments that need protection and that we can
-			 * properly escape.
-			 */
-
-			if (len != 0) {
-				if (len <= ptr_diff(end, q)) {
-					*argpv = q;
-					q = mingw_quotestr(str, q, ptr_diff(end, q));
-				} else {
-					s_miniwarn("%s(): not escaping argv[%u] "
-						"(need %zu bytes, only has %zu left)",
-						G_STRFUNC, i, len, ptr_diff(end, q));
-				}
-			}
-		}
-	}
-
-	/*
-	 * Now perform the execve(), which we emulate through an asynchronous
-	 * spawnve() call since we do not want to wait for the "child" process
-	 * to terminate before returning.
-	 */
-
-	errno = 0;
 	_flushall();
-	spawnve(P_NOWAIT, filename, (const void *) argv, (const void *) envp);
 
-	if (0 == errno)
-		_exit(0);	/* We don't want any atexit() cleanup */
+	/*
+	 * We create the child in a suspended state so that we may close our
+	 * stdout and stderr properly before the child starts its execution.
+	 */
 
-	return -1;		/* Failed to launch process, errno is set */
+	if (-1 == mingw_create_process(filename, argv, envp, &pi, TRUE))
+		return (pid_t) -1;		/* errno is already set */
+
+	/*
+	 * Before exiting, cleanup our resources as we would in do__exit().
+	 */
+
+	signal_perform_cleanup();
+	mingw_stdio_reset(FALSE);
+
+	/*
+	 * We have cleaned-up, there are no more resources we hold that could
+	 * prevent the new process from running, so resume it.
+	 */
+
+	ResumeThread(pi.hThread);		/* Pray it works... */
+
+	/*
+	 * We have to use _exit() to skip all the atexit() cleanups.
+	 */
+
+	_exit(0);		/* This is the real one, not the do__exit() call */
 }
+
+/**
+ * The Windows version of our launchve() routine.
+ * On UNIX, this is a simple matter of vfork() + execve()...
+ *
+ * The created child handle is stored along with the PID of the process
+ * in a dualhash, so that we can implement wait() later on.
+ *
+ * @return -1 on failure, the PID of the child process otherwise.
+ */
+pid_t
+mingw_launchve(const char *path, char *const argv[], char *const envp[])
+{
+	PROCESS_INFORMATION pi;
+
+	g_assert(path != NULL);
+	g_assert(argv != NULL);
+
+	if (-1 == mingw_create_process(path, argv, envp, &pi, FALSE))
+		return (pid_t) -1;		/* errno is already set */
+
+	/*
+	 * Good, process was created.
+	 */
+
+	return mingw_record_child(&pi);
+}
+
+/**
+ * Create an inheritable duplicate handle given file descriptor, closing
+ * and resetting the given fd if `closing' is TRUE.
+ */
+static HANDLE
+mingw_inheritable_handle(int *fd_ptr, bool closing)
+{
+	int fd = *fd_ptr;
+	HANDLE h, i, p;
+	bool ok;
+
+	g_assert(is_valid_fd(fd));
+
+	/*
+	 * DuplicateHandle() cannot be used with Winsock handles!
+	 *
+	 * See: https://msdn.microsoft.com/en-us/
+	 *			library/windows/desktop/ms740522(v=vs.85).aspx
+	 */
+
+	g_return_val_unless(!is_a_socket(fd), (HANDLE) 0);
+
+	p = GetCurrentProcess();
+	h = (HANDLE) _get_osfhandle(fd);
+	ok = DuplicateHandle(p, h, p, &i, 0, TRUE, DUPLICATE_SAME_ACCESS);
+	if (closing)
+		fd_close(fd_ptr);
+
+	if (!ok) {
+		errno = mingw_last_error();
+		s_carp("%s(): cannot make fd #%d inheritable: %m", G_STRFUNC, fd);
+		return (HANDLE) 0;
+	}
+
+	return i;
+}
+
+/**
+ * The Windows version of our spopenve() routine.
+ *
+ * @return -1 on failure, the parent's pipe end to the child process otherwise.
+ */
+int
+mingw_spopenve(const char *path, const char *mode, int fd[2],
+	char *const argv[], char *const envp[])
+{
+	PROCESS_INFORMATION pi;
+	STARTUPINFOW si;
+	pncs_t pncs;
+	int res, pfd = -1, error = 0;
+	char *file = deconstify_pointer(path), *cmd = NULL, *env = NULL;
+	wchar_t *cmd_utf16 = NULL;
+	const char exe[] = ".exe";
+	int32 flags = 0;
+	bool p_read = FALSE, p_write = FALSE, p_cloexec = FALSE;
+	pid_t pid;
+	int pipefd[2];
+	int pc[2];		/* pc[0] = parent's fd, pc[1] = child's fd */
+	const char *p = mode;
+	int c, r;
+	HANDLE child_end = (HANDLE) 0;
+	int dfd[2];
+
+	g_assert(path != NULL);
+	g_assert(mode != NULL);
+	g_assert(argv != NULL);
+
+	ZERO(&pi);
+	ZERO(&si);
+	si.cb = sizeof si;
+
+	/* -- much of this leading code is identical to the UNIX version -- */
+
+	if (NULL == fd) {
+		fd = dfd;
+		fd[0] = fd[1] = SPOPEN_ASIS;
+	}
+
+	pc[0] = pc[1] = -1;
+
+	while ((c = *p++) != '\0') {
+		switch (c) {
+		case 'r': p_read    = TRUE; break;
+		case 'w': p_write   = TRUE; break;
+		case 'e': p_cloexec = TRUE; break;
+		default: goto bad_arg;
+		}
+	}
+
+	if (0 == (p_read ^ p_write)) {
+		s_carp("%s(): cannot specify both \"r\" and \"w\", mode was \"%s\"",
+			G_STRFUNC, mode);
+		goto bad_arg;
+	}
+
+	if (SPOPEN_PARENT_STDOUT == fd[0] || SPOPEN_CHILD_STDOUT == fd[0]) {
+		s_carp("%s(): cannot specify %d in fd[0], only meaningful for fd[1]",
+			G_STRFUNC, fd[0]);
+		goto bad_arg;
+	}
+
+	if (p_cloexec) {
+		s_carp_once("%s(): ignoring \"e\" since no close-on-exec support",
+			G_STRFUNC);
+	}
+
+	if (-1 == mingw_pipe(pipefd))
+		goto pipe_failed;
+
+	if (p_read) {
+		pc[0] = pipefd[0];
+		pc[1] = pipefd[1];
+	} else {
+		pc[0] = pipefd[1];
+		pc[1] = pipefd[0];
+	}
+
+	/* -- now for the Windows specific part, similar to mingw_launchve() -- */
+
+	/*
+	 * Add trailing ".exe" extension to the path if missing.
+	 */
+
+	if (!is_strcasesuffix(path, (size_t) -1, exe))
+		file = h_strconcat(path, exe, NULL_PTR);
+
+	/*
+	 * Convert the command line string into a big happy UTF-16 string.
+	 */
+
+	cmd = mingw_command_line(argv);
+
+	if (NULL == (cmd_utf16 = wchar_convert(cmd, NULL))) {
+		error = EILSEQ;
+		goto done;
+	}
+
+	HFREE_NULL(cmd);
+
+	/*
+	 * Create environment block or check current process for UTF-16,
+	 * updating flags as necessary.
+	 */
+
+	env = mingw_environment_block(envp, &flags);
+
+	/*
+	 * Setup appropriate child handles for stdin, stdout, stderr.
+	 */
+
+	child_end = mingw_inheritable_handle(&pc[1], TRUE);
+	if ((HANDLE) 0 == child_end)
+		goto pipe_failed;
+
+	si.dwFlags |= STARTF_USESTDHANDLES;
+
+	if (p_read) {
+		si.hStdOutput = child_end;
+	} else {
+		si.hStdInput = child_end;
+	}
+
+	child_end = (HANDLE) 0;		/* copied to `si' now */
+
+	/* Handle child's standard fd not contected to the pipe */
+
+	switch (fd[0]) {
+	case SPOPEN_ASIS:
+		r = p_read ? STDIN_FILENO : STDOUT_FILENO;
+	case SPOPEN_DEV_NULL:
+		r = mingw_open("/dev/null", p_read ? O_RDONLY : O_WRONLY);
+		if (-1 == r)
+			goto pipe_failed;
+		break;
+	default:
+		r = fd[0];
+		break;
+	}
+
+	/* Redirect stdout / stdin for the child process */
+
+	{
+		HANDLE h = mingw_inheritable_handle(&r, FALSE);
+
+		/*
+		 * We only have to close(r) if fd[0] was a special negative SPOPEN_*
+		 * value: otherwise, the trailing cleanup code closes all the valid
+		 * descriptors in fd[].
+		 */
+
+		if (SPOPEN_DEV_NULL == fd[0])
+			close(r);
+
+		if ((HANDLE) 0 == h)
+			goto pipe_failed;
+
+		if (p_read) {
+			si.hStdInput = h;
+		} else {
+			si.hStdOutput = h;
+		}
+	}
+
+	/* Handle stderr redirections */
+
+	switch (fd[1]) {
+	case SPOPEN_ASIS:
+		r = STDERR_FILENO;
+		break;
+	case SPOPEN_PARENT_STDOUT:
+		r = STDOUT_FILENO;
+		break;
+	case SPOPEN_DEV_NULL:
+		r = mingw_open("/dev/null", p_read ? O_RDONLY : O_WRONLY);
+		if (-1 == r)
+			goto pipe_failed;
+		break;
+	case SPOPEN_CHILD_STDOUT:
+		{
+			HANDLE h, i, t;
+			bool ok;
+
+			t = GetCurrentProcess();
+			h = si.hStdOutput;
+			ok = DuplicateHandle(t, h, t, &i, 0, TRUE, DUPLICATE_SAME_ACCESS);
+
+			if (!ok) {
+				error = mingw_last_error();
+				s_carp("%s(): cannot duplicate stdout handle: %m", G_STRFUNC);
+				goto pipe_failed;
+			}
+
+			si.hStdError = i;
+			r = -1;		/* Nothing to do below, we already dup()ed stdout */
+		}
+		break;
+	default:
+		r = fd[1];
+		break;
+	}
+
+	if (is_valid_fd(r)) {
+		si.hStdError = mingw_inheritable_handle(&r, FALSE);
+		if (SPOPEN_DEV_NULL == fd[1])
+			close(r);
+		if ((HANDLE) 0 == si.hStdError)
+			goto pipe_failed;
+	}
+
+	/*
+	 * Transform path to UTF-16.
+	 * We use pncs_convert() to benefit from its path normalization.
+	 */
+
+	if (pncs_convert(&pncs, file)) {
+		error = errno;
+		goto done;
+	}
+
+	/*
+	 * Now create the process, inheriting standard handles we just configured.
+	 */
+
+	res = CreateProcessW(
+		pncs.utf16,			/* lpApplicationName */
+		cmd_utf16,			/* lpCommandLine */
+		NULL,				/* lpProcessAttributes */
+		NULL,				/* lpThreadAttributes */
+		TRUE,				/* bInheritHandles */
+		flags,				/* dwCreationFlags */
+		env,				/* lpEnvironment */
+		NULL,				/* lpCurrentDirectory */
+		&si,				/* lpStartupInfo */
+		&pi					/* lpProcessInformation */
+	);
+
+	if (0 == res) {
+		error = mingw_last_error();
+		goto done;
+	}
+
+	/*
+	 * Good, process was created.
+	 */
+
+	pid = mingw_record_child(&pi);	/* So they can waitpid() on child */
+	pfd = pc[0];
+	spopen_fd_map(pfd, pid);		/* So they can spclose() on pfd */
+
+	goto done;
+
+bad_arg:
+	error = EINVAL;
+	goto done;
+
+pipe_failed:
+	error = errno;
+	/* FALL THROUGH */
+
+done:
+	HFREE_NULL(cmd);
+	HFREE_NULL(cmd_utf16);
+	HFREE_NULL(env);
+	if (file != path)
+		HFREE_NULL(file);
+
+	for (c = 0; c < 2; c++) {
+		if (is_valid_fd(fd[c]))
+			close(fd[c]);
+	}
+	if (is_valid_fd(pc[1]))				close(pc[1]);
+	if ((HANDLE) 0 != si.hStdInput)		CloseHandle(si.hStdInput);
+	if ((HANDLE) 0 != si.hStdOutput)	CloseHandle(si.hStdOutput);
+	if ((HANDLE) 0 != si.hStdError)		CloseHandle(si.hStdError);
+
+	if (error != 0) {
+		if (is_valid_fd(pc[0]))
+			close(pc[0]);
+		errno = error;
+	}
+	return pfd;
+}
+
+static FILETIME mingw_child_kern_time, mingw_child_user_time;
+static spinlock_t mingw_child_time_slk = SPINLOCK_INIT;
+
+#ifdef EMULATE_WAITPID
+pid_t
+mingw_wait(int *status)
+{
+	return mingw_waitpid(-1, status, 0);
+}
+
+/**
+ * Add filetime from `item' into `sum'.
+ */
+static void
+mingw_filetime_add(FILETIME *sum, FILETIME *item)
+{
+	DWORD old = sum->dwLowDateTime;
+
+	sum->dwLowDateTime  += item->dwLowDateTime;
+	sum->dwHighDateTime += item->dwHighDateTime;
+
+	if (sum->dwLowDateTime < old)
+		sum->dwHighDateTime++;		/* Propagate carry bit */
+}
+
+static void
+mingw_child_account(FILETIME *kernel, FILETIME *user)
+{
+	spinlock(&mingw_child_time_slk);
+
+	mingw_filetime_add(&mingw_child_kern_time, kernel);
+	mingw_filetime_add(&mingw_child_user_time, user);
+
+	spinunlock(&mingw_child_time_slk);
+}
+
+struct mingw_child_args {
+	HANDLE *hv;			/* Handle vector */
+	size_t count;		/* Amount of items in vector */
+	size_t pos;			/* Next position to fill in vector */
+};
+
+static void
+mingw_child_add(const void *key, void *value, void *data)
+{
+	struct mingw_child_args *arg = data;
+	HANDLE *h = deconstify_pointer(key);
+
+	g_assert(arg->pos < arg->count);
+	(void) value;
+
+	arg->hv[arg->pos++] = h;
+}
+
+pid_t
+mingw_waitpid(pid_t pid, int *status, int options)
+{
+	dualhash_t *dh = mingw_launched;
+	int ms, res;
+	HANDLE proc = NULL;
+	pid_t exiting_pid;
+
+	if (NULL == dh || 0 == dualhash_count(dh))
+		goto no_child;
+
+	ms = (options & WNOHANG) ? 0 : INFINITE;
+
+	if (pid > 0) {
+		HANDLE h = dualhash_lookup_value(dh, ulong_to_pointer(pid));
+
+		if (NULL == h)
+			goto no_child;
+
+		switch (WaitForSingleObject(h, ms)) {
+		case WAIT_TIMEOUT:
+			return 0;
+		case WAIT_ABANDONED:
+			s_warning("%s(): got WAIT_ABANDONED while waiting for PID %lu?",
+				G_STRFUNC, (ulong) pid);
+			errno = EINTR;	/* Such a weird state: handle is for a process! */
+			return -1;
+		case WAIT_OBJECT_0:
+			proc = h;		/* This process has exited */
+			break;
+		case WAIT_FAILED:
+		default:
+			errno = mingw_last_error();
+			return -1;
+		}
+	} else {
+		HANDLE *hv;
+		size_t count;
+		struct mingw_child_args arg;
+
+		dualhash_lock(dh);
+
+		count = dualhash_count(dh);
+		HALLOC0_ARRAY(hv, count);
+
+		arg.hv = hv;
+		arg.count = count;
+		arg.pos = 0;
+
+		dualhash_foreach(dh, mingw_child_add, &arg);
+		dualhash_unlock(dh);
+
+		res = WaitForMultipleObjects(count, hv, FALSE, ms);
+
+		if (res >= WAIT_OBJECT_0 && res < WAIT_ABANDONED_0)
+			proc = hv[res - WAIT_OBJECT_0];		/* This process has exited */
+
+		HFREE_NULL(hv);
+
+		if (proc != NULL) {
+			goto child_exited;
+		} else if (WAIT_TIMEOUT == res) {
+			return 0;
+		} else {
+			if (WAIT_FAILED == UNSIGNED(res)) {
+				errno = mingw_last_error();
+			} else {
+				s_warning("%s(): got WAIT_ABANDONED while waiting for children",
+					G_STRFUNC);
+				errno = EINTR;
+			}
+			return -1;
+		}
+	}
+
+child_exited:
+
+	g_assert(proc != NULL);		/* This process has exited */
+
+	dualhash_lock(dh);
+
+	exiting_pid = pointer_to_ulong(dualhash_lookup_key(dh, proc));
+	dualhash_remove_key(dh, proc);
+
+	dualhash_unlock(dh);
+
+	g_soft_assert_log(0 != exiting_pid,
+		"%s(): handle %p is no longer associated to any PID?",
+		G_STRFUNC, proc);
+
+	/*
+	 * Grab the exit status, regardless of whether our caller wants it.
+	 */
+
+	{
+		DWORD code;
+		if (!GetExitCodeProcess(proc, &code)) {
+			errno = mingw_last_error();
+			s_warning("%s(): could not get exit status of PID %lu: %m",
+				G_STRFUNC, (ulong) exiting_pid);
+			code = 0;
+		}
+		if (status != NULL)
+			*status = code;
+	}
+
+	/*
+	 * Get child resource usage, for getrusage(RUSAGE_CHILDREN) calls.
+	 */
+
+	{
+		FILETIME creation_time, exit_time, kernel_time, user_time;
+
+		if (
+			!GetProcessTimes(proc,
+				&creation_time, &exit_time, &kernel_time, &user_time)
+		) {
+			errno = mingw_last_error();
+			s_warning("%s(): could not get resource usage for PID %lu: %m",
+				G_STRFUNC, (ulong) exiting_pid);
+		} else {
+			mingw_child_account(&kernel_time, &user_time);
+		}
+	}
+
+	CloseHandle(proc);
+	return exiting_pid;
+
+no_child:
+	errno = ECHILD;
+	return -1;
+}
+#endif	/* EMULATE_WAITPID */
 
 /**
  * Is WSAPoll() supported?
@@ -1286,21 +2596,19 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 {
 	const char *personal;
 
-	/*
-	 * So early in the startup process, we cannot allocate memory via the VMM
-	 * layer, hence we cannot use mingw_get_personal_path() because that
-	 * would cache the address of a global variable.
-	 */
-
-	personal = get_special(CSIDL_PERSONAL, "My Documents");
+	personal = mingw_get_personal_path();
 
 	g_strlcpy(dest, personal, size);
+
+	STARTUP_DEBUG("%s(): #1 dest=%s", G_STRFUNC, dest);
 
 	if (path_does_not_exist(personal))
 		goto fallback;
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
-	clamp_strcat(dest, size, product_get_name());
+	clamp_strcat(dest, size, product_name());
+
+	STARTUP_DEBUG("%s(): #2 dest=%s", G_STRFUNC, dest);
 
 	if (path_does_not_exist(dest))
 		mingw_mkdir(dest, S_IRUSR | S_IWUSR | S_IXUSR);
@@ -1311,38 +2619,60 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	if (0 != strcmp(filepath_basename(dest), file))
 		goto fallback;
 
+	STARTUP_DEBUG("%s(): returning dest=%s", G_STRFUNC, dest);
+
 	return dest;
 
 fallback:
 	g_strlcpy(dest, G_DIR_SEPARATOR_S, size);
 	clamp_strcat(dest, size, file);
+	STARTUP_DEBUG("%s(): returning fallback dest=%s", G_STRFUNC, dest);
 	return dest;
 }
 
 /**
  * Return default stdout logfile when launched from the GUI.
  * Directories leading to the dirname of the result are created as needed.
- * This routine does not allocate any memory.
  */
 static const char *
 mingw_getstdout_path(void)
 {
 	static char pathname[MAX_PATH];
+	char buf[128];
 
-	return mingw_build_personal_path("gtkg.stdout", pathname, sizeof pathname);
+	str_bprintf(buf, sizeof buf, "%s.stdout", product_nickname());
+
+	return mingw_build_personal_path(buf, pathname, sizeof pathname);
 }
 
 /**
  * Return default stderr logfile when launched from the GUI.
  * Directories leading to the dirname of the result are created as needed.
- * This routine does not allocate any memory.
  */
 static const char *
 mingw_getstderr_path(void)
 {
 	static char pathname[MAX_PATH];
+	char buf[128];
 
-	return mingw_build_personal_path("gtkg.stderr", pathname, sizeof pathname);
+	str_bprintf(buf, sizeof buf, "%s.stderr", product_nickname());
+
+	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+}
+
+/**
+ * Return default supervisor logfile when launched from the GUI.
+ * Directories leading to the dirname of the result are created as needed.
+ */
+const char *
+mingw_get_supervisor_log_path(void)
+{
+	static char pathname[MAX_PATH];
+	char buf[128];
+
+	str_bprintf(buf, sizeof buf, "%s.super", product_nickname());
+
+	return mingw_build_personal_path(buf, pathname, sizeof pathname);
 }
 
 /**
@@ -1380,7 +2710,7 @@ mingw_patch_personal_path(const char *pathname)
 			 */
 
 			patched = h_strconcat(mingw_get_personal_path(),
-				G_DIR_SEPARATOR_S, product_get_name(), p, (void *) 0);
+				G_DIR_SEPARATOR_S, product_name(), p, NULL_PTR);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
 		return patched;
@@ -1494,8 +2824,26 @@ mingw_remove(const char *pathname)
 int
 mingw_pipe(int fd[2])
 {
+	int res;
+
+	/*
+	 * We force O_NOINHERIT on the pipe handles because if a pipe is created
+	 * and passed to children processes, the side of the pipe that remains
+	 * in the parent process must not be seen by the child.
+	 *
+	 * Failure to specify this flag causes spopen() to mis-behave on Windows
+	 * when fd[0] is given a pipe end, for instance.  So the policy must be
+	 * that hanldes cannot be inherited and those that we want to pass to
+	 * a child process are explicly duplicated via mingw_inheritable_handle().
+	 *		--RAM, 2015-11-04.
+	 */
+
 	/* Buffer size of 8192 is arbitrary */
-	return _pipe(fd, 8192, _O_BINARY);
+	res = _pipe(fd, 8192, O_BINARY | O_NOINHERIT);
+	if (-1 == res)
+		errno = mingw_last_error();
+
+	return res;
 }
 
 int
@@ -1521,7 +2869,6 @@ mingw_stat(const char *pathname, filestat_t *buf)
 
 		if (ENOENT == errno) {
 			size_t len = strlen(pathname);
-			char *fixed;
 			const char *p = &pathname[len - 1];
 
 			if (len <= 1)
@@ -1534,10 +2881,24 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			else
 				goto nofix;
 
-			fixed = h_strndup(pathname, len);
-			if (0 == pncs_convert(&pncs, fixed))
-				res = _wstati64(pncs.utf16, buf);
-			hfree(fixed);
+			/*
+			 * In a signal handler, don't allocate memory.
+			 */
+
+			if (signal_in_handler()) {
+				static char path[MAX_PATH_LEN];
+
+				clamp_strncpy(path, sizeof path, pathname, len);
+				if (0 == pncs_convert(&pncs, path))
+					res = _wstati64(pncs.utf16, buf);
+			} else {
+				char *fixed;
+
+				fixed = h_strndup(pathname, len);
+				if (0 == pncs_convert(&pncs, fixed))
+					res = _wstati64(pncs.utf16, buf);
+				hfree(fixed);
+			}
 		}
 	}
 
@@ -1762,8 +3123,26 @@ ssize_t
 mingw_write(int fd, const void *buf, size_t count)
 {
 	ssize_t res = write(fd, buf, MIN(count, UINT_MAX));
-	if (-1 == res)
+	if (-1 == res) {
 		errno = mingw_last_error();
+
+		/*
+		 * If we get EPIPE back, see whether there is a signal handler
+		 * installed for SIGPIPE and raise the signal if there is.
+		 * When there is no signal handler (still set to SIG_DFL),
+		 * SIGPIPE is fatal -- this is done to mimic UNIX semantics.
+		 *		--RAM, 2015-11-13
+		 */
+
+		if G_UNLIKELY(EPIPE == errno) {
+			if (SIG_DFL == mingw_sighandler[SIGPIPE]) {
+				s_error("%s(): write to fd #%d caused SIGPIPE",
+					G_STRFUNC, fd);
+			} else if (SIG_IGN != mingw_sighandler[SIGPIPE]) {
+				mingw_sigraise(SIGPIPE);
+			}
+		}
+	}
 	return res;
 }
 
@@ -1853,9 +3232,7 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 {
 	int res;
 
-	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = select(nfds, readfds, writefds, exceptfds, timeout);
 	
@@ -1871,8 +3248,7 @@ mingw_gethostname(char *name, size_t len)
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	result = gethostname(name, len);
 
@@ -1888,8 +3264,7 @@ mingw_getaddrinfo(const char *node, const char *service,
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	result = getaddrinfo(node, service, hints, res);
 
@@ -1910,8 +3285,7 @@ mingw_socket(int domain, int type, int protocol)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	/*
 	 * Use WSASocket() to avoid creating "overlapped" sockets (i.e. sockets
@@ -1936,8 +3310,7 @@ mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = bind(sockfd, addr, addrlen);
 	if (-1 == res)
@@ -1952,8 +3325,7 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = connect(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res) {
@@ -1981,8 +3353,7 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = listen(sockfd, backlog);
 	if (-1 == res)
@@ -1996,8 +3367,7 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = accept(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
@@ -2011,8 +3381,7 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = shutdown(sockfd, how);
 	if (-1 == res)
@@ -2132,8 +3501,7 @@ mingw_socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = socketpair(domain, type, protocol, sv);
 #ifndef EMULATE_SOCKETPAIR
@@ -2150,8 +3518,7 @@ mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = getsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
@@ -2166,8 +3533,7 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	int res;
 	
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
-		mingw_init();
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = setsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
@@ -2358,12 +3724,10 @@ mingw_mem_committed(void)
 	if (GetProcessMemoryInfo(GetCurrentProcess(), &c, sizeof c))
 		return c.PagefileUsage;
 
-	if (mingw_vmm_inited) {
-		errno = mingw_last_error();
+	errno = mingw_last_error();
 
-		s_warning_once_per(LOG_PERIOD_MINUTE,
-			"%s(): cannot compute process memory usage: %m", G_STRFUNC);
-	}
+	s_warning_once_per(LOG_PERIOD_MINUTE,
+		"%s(): cannot compute process memory usage: %m", G_STRFUNC);
 
 	/* At least that is known */
 	return mingw_vmm.allocated + mingw_vmm.baseline;
@@ -2628,9 +3992,16 @@ mingw_valloc(void *hint, size_t size)
 			 *
 			 * During crashes, the VMM layer always requests NULL hints.
 			 *		--RAM, 2015-10-24
+			 *
+			 * During pmap extensions, the VMM layer also requests NULL hints.
+			 *		--RAM, 2015-11-08
 			 */
 
-			if (!mingw_vmm.stop_vfree && !vmm_is_crashing()) {
+			if (
+				!mingw_vmm.stop_vfree &&
+				!vmm_is_extending() &&
+				!vmm_is_crashing()
+			) {
 				s_minicarp("%s(): non-hinted allocation of %'zu bytes at %p",
 					G_STRFUNC, size, p);
 			}
@@ -2772,6 +4143,19 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	DWORD newProtect;
 	BOOL res;
 
+	/*
+	 * The PROT_GUARD is specific to Windows and is convenient to create
+	 * red-pages in stacks to detect overflows: given Windows does not
+	 * support an alternate signal stack, there is no way we could easily
+	 * detect a stack overflow without it and still be able to process it.
+	 *
+	 * A guard page will simply be protected as PROT_NONE but read-write
+	 * access will be restored after the first fault on it, which generates
+	 * an exception of type EXCEPTION_GUARD_PAGE.
+	 *
+	 *		--RAM, 2015-11-09
+	 */
+
 	switch (prot) {
 	case PROT_NONE:
 		newProtect = PAGE_NOACCESS;
@@ -2782,8 +4166,11 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	case PROT_READ | PROT_WRITE:
 		newProtect = PAGE_READWRITE;
 		break;
+	case PROT_GUARD:
+		newProtect = PAGE_READWRITE | PAGE_GUARD;
+		break;
 	default:
-		g_critical("mingw_mprotect(): unsupported protection flags 0x%x", prot);
+		s_critical("%s(): unsupported protection flags 0x%x", G_STRFUNC, prot);
 		res = EINVAL;
 		return -1;
 	}
@@ -2798,6 +4185,62 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	}
 
 	return 0;	/* OK */
+}
+
+/**
+ * Log memory information about the memory region to which an address belongs.
+ *
+ * This is only useful when debugging problems on Windows at the lowest
+ * possible level.
+ *
+ * @param p		the address for which we want information
+ */
+void
+mingw_log_meminfo(const void *p)
+{
+	MEMORY_BASIC_INFORMATION mbi;
+	size_t res;
+
+	ZERO(&mbi);
+
+	res = VirtualQuery(p, &mbi, sizeof mbi);
+	if (0 == res) {
+		errno = mingw_last_error();
+		s_rawwarn("VirtualQuery() failed for %p: %m", p);
+	} else {
+		s_rawdebug("VirtualQuery(%p):", p);
+		s_rawdebug("\tBaseAddress: %p", mbi.BaseAddress);
+		s_rawdebug("\tAllocationBase: %p", mbi.AllocationBase);
+		s_rawdebug("\tRegionSize: %'lu", mbi.RegionSize);
+		s_rawdebug("\tAllocationProtect: 0x%lx", mbi.AllocationProtect);
+	}
+}
+
+/**
+ * Compute the allocation start of a memory region.
+ *
+ * @param p		a pointer in the region for which we want the start
+ *
+ * @return the start of the allocated region, NULL if we cannot figure it out.
+ */
+void *
+mingw_memstart(const void *p)
+{
+	MEMORY_BASIC_INFORMATION mbi;
+	size_t res;
+	void *base = NULL;
+
+	ZERO(&mbi);
+
+	res = VirtualQuery(p, &mbi, sizeof mbi);
+	if (0 == res) {
+		errno = mingw_last_error();
+		s_rawwarn("%s(): VirtualQuery() failed for %p: %m", G_STRFUNC, p);
+	} else {
+		base = mbi.AllocationBase;
+	}
+
+	return base;
 }
 
 /***
@@ -2931,27 +4374,34 @@ mingw_strerror(int errnum)
 int
 mingw_rename(const char *oldpathname, const char *newpathname)
 {
-	pncs_t old, new;
+	pncs_t pncs;
 	int res;
+	wchar_t *old_utf16;
 
-	if (pncs_convert(&old, oldpathname))
+	if (pncs_convert(&pncs, oldpathname))
 		return -1;
 
-	if (pncs_convert(&new, newpathname))
-		return -1;
+	old_utf16 = pncs_dup(&pncs);	/* pncs_convert() returns static data */
+
+	if (pncs_convert(&pncs, newpathname)) {
+		res = -1;
+		goto done;		/* errno already set */
+	}
 
 	/*
 	 * FIXME: Try to rename a file with SetFileInformationByHandle
 	 * and FILE_INFO_BY_HANDLE_CLASS
 	 */
 
-	if (MoveFileExW(old.utf16, new.utf16, MOVEFILE_REPLACE_EXISTING)) {
+	if (MoveFileExW(old_utf16, pncs.utf16, MOVEFILE_REPLACE_EXISTING)) {
 		res = 0;
 	} else {
 		errno = mingw_last_error();
 		res = -1;
 	}
 
+done:
+	hfree(old_utf16);
 	return res;
 }
 
@@ -3191,27 +4641,45 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 int
 mingw_getrusage(int who, struct rusage *usage)
 {
-	FILETIME creation_time, exit_time, kernel_time, user_time;
-
-	if (who != RUSAGE_SELF) {
-		errno = EINVAL;
-		return -1;
-	}
 	if (NULL == usage) {
 		errno = EACCES;
 		return -1;
 	}
 
-	if (
-		0 == GetProcessTimes(GetCurrentProcess(),
-			&creation_time, &exit_time, &kernel_time, &user_time)
-	) {
-		errno = mingw_last_error();
+	ZERO(usage);
+
+	switch (who) {
+	case RUSAGE_SELF:
+		{
+			FILETIME creation_time, exit_time, kernel_time, user_time;
+
+			if (
+				0 == GetProcessTimes(GetCurrentProcess(),
+					&creation_time, &exit_time, &kernel_time, &user_time)
+			) {
+				errno = mingw_last_error();
+				return -1;
+			}
+
+			mingw_filetime_to_timeval(&user_time, &usage->ru_utime, 0);
+			mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime, 0);
+		}
+		break;
+	case RUSAGE_CHILDREN:
+		spinlock(&mingw_child_time_slk);
+
+		mingw_filetime_to_timeval(&mingw_child_user_time, &usage->ru_utime, 0);
+		mingw_filetime_to_timeval(&mingw_child_kern_time, &usage->ru_stime, 0);
+
+		spinunlock(&mingw_child_time_slk);
+		break;
+	case RUSAGE_THREAD:
+		errno = ENOSYS;
+		return -1;
+	default:
+		errno = EINVAL;
 		return -1;
 	}
-
-	mingw_filetime_to_timeval(&user_time, &usage->ru_utime, 0);
-	mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime, 0);
 
 	return 0;
 }
@@ -3233,6 +4701,259 @@ mingw_getlogin(void)
 
 	inited = TRUE;
 	return result;
+}
+
+/**
+ * Extract SID (Security IDentifier) from the specified token.
+ *
+ * The extracted SID is stored in ``sid_ptr'' and must be xfree()'ed
+ * by the caller when it is done with it.
+ *
+ * @param token		the token handle
+ * @param which		the information class we want from the token
+ * @param sid_ptr	where allocated SID will be stored
+ *
+ * @return TRUE if ok and we allocated a new SID, FALSE otherwise.
+ */
+static bool
+mingw_token_sid(HANDLE token, TOKEN_INFORMATION_CLASS which, SID **sid_ptr)
+{
+	DWORD len, needed = 0;
+	void *data = NULL;
+	SID *tsid, *sid = NULL;
+
+	if (NULL == token || INVALID_HANDLE_VALUE == token)
+		return FALSE;
+
+	GetTokenInformation(token, which, NULL, 0, &needed);
+	if (0 == needed)
+		return FALSE;
+
+	len = needed;
+	data = xmalloc0(len);
+
+	if (!GetTokenInformation(token, which, data, len, &needed) || needed > len)
+		goto failed;
+
+	switch (which) {
+	case TokenUser:
+		{
+			TOKEN_USER *u = data;
+			tsid = u->User.Sid;
+		}
+		break;
+	case TokenPrimaryGroup:
+		{
+			TOKEN_PRIMARY_GROUP *g = data;
+			tsid = g->PrimaryGroup;
+		}
+		break;
+	default:
+		s_rawwarn("%s(): unexpected token class %d", G_STRFUNC, which);
+		goto failed;
+	}
+
+	len = GetLengthSid(tsid);
+	sid = xmalloc(len);
+	if (!CopySid(len, sid, tsid) || !IsValidSid(sid))
+		goto failed;
+
+	xfree(data);
+	*sid_ptr = sid;		/* Caller will need to xfree() this once done */
+
+	return TRUE;
+
+failed:
+	XFREE_NULL(sid);
+	XFREE_NULL(data);
+	return FALSE;
+}
+
+/**
+ * Extract the last relative identifier (RID) authority from a SID and free
+ * that SID.
+ */
+static ulong
+mingw_token_sid_last_rid_free(SID *sid)
+{
+	ulong rid, *rp;
+	uint8 n, *np;
+
+	g_assert(IsValidSid(sid));
+
+	/*
+	 * From MSDN:
+	 *
+	 * Standardized string notation for SIDs, making it simpler to visualize
+	 * their components:
+	 *
+	 *     S-R-I-X#
+	 *
+	 * In this notation, the literal character "S" identifies the following
+	 * series of digits as a SID, R is the revision level, I is the
+	 * identifier-authority value, and X# is one or more subauthority values.
+	 *
+	 * For instance, a SID string could be: "S-1-5-32-544", meaning:
+	 *
+	 * - A revision level of 1
+	 * - An identifier-authority value of 5 (SECURITY_NT_AUTHORITY)
+	 * - A first subauthority value of 32 (SECURITY_BUILTIN_DOMAIN_RID)
+	 * - A second subauthority value of 544 (DOMAIN_ALIAS_RID_ADMINS)
+	 *
+	 * A SID must contain a top-level authority and at least one relative
+	 * identifier (RID) value.
+	 */
+
+	np = GetSidSubAuthorityCount(sid);
+	n = *np;
+	rp = GetSidSubAuthority(sid, n - 1);
+	rid = *rp;
+	xfree(sid);
+
+	return rid;
+}
+
+static uid_t
+mingw_token_uid(HANDLE token)
+{
+	SID *sid = NULL;
+	bool ok;
+
+	ok = mingw_token_sid(token, TokenUser, &sid);
+	if (!ok)
+		return UID_NOBODY;
+
+	return (uid_t) mingw_token_sid_last_rid_free(sid);
+}
+
+static gid_t
+mingw_token_gid(HANDLE token)
+{
+	SID *sid = NULL;
+	bool ok;
+
+	ok = mingw_token_sid(token, TokenPrimaryGroup, &sid);
+	if (!ok)
+		return GID_NOBODY;
+
+	return (gid_t) mingw_token_sid_last_rid_free(sid);
+}
+
+/**
+ * Get the effective security token, which must get closed by caller when done.
+ */
+static HANDLE
+mingw_get_effective_token(void)
+{
+	HANDLE t = GetCurrentThread();
+	HANDLE token = NULL;
+	const int flags = TOKEN_READ | TOKEN_QUERY_SOURCE;
+	bool ok;
+
+	ok = OpenThreadToken(t, flags, FALSE, &token);
+	if (!ok) {
+		if (ERROR_NO_TOKEN != GetLastError())
+			goto failed;
+		ok = OpenThreadToken(t, flags, TRUE, &token);
+	}
+	if (!ok) {
+		if (ERROR_NO_TOKEN != GetLastError())
+			goto failed;
+		ok = OpenProcessToken(GetCurrentProcess(), flags, &token);
+	}
+	if (!ok)
+		goto failed;
+
+	return token;
+
+failed:
+	errno = mingw_last_error();
+	s_rawwarn("%s(): can't open thread/process token:  %m", G_STRFUNC);
+	return NULL;
+}
+
+/**
+ * Get the process security token, which must get closed by caller when done.
+ */
+static HANDLE
+mingw_get_token(void)
+{
+	HANDLE p = GetCurrentProcess();
+	HANDLE token = NULL;
+	bool ok;
+
+	ok = OpenProcessToken(p, TOKEN_READ | TOKEN_QUERY_SOURCE, &token);
+	if (!ok) {
+		errno = mingw_last_error();
+		s_rawwarn("%s(): can't open process token: %m", G_STRFUNC);
+		return NULL;
+	}
+
+	return token;
+}
+
+uid_t
+mingw_getuid(void)
+{
+	HANDLE token;
+	uid_t id;
+
+	token = mingw_get_token();
+	if (NULL == token)
+		return UID_NOBODY;
+
+	id = mingw_token_uid(token);
+	CloseHandle(token);
+
+	return id;
+}
+
+uid_t
+mingw_geteuid(void)
+{
+	HANDLE token;
+	uid_t id;
+
+	token = mingw_get_effective_token();
+	if (NULL == token)
+		return UID_NOBODY;
+
+	id = mingw_token_uid(token);
+	CloseHandle(token);
+
+	return id;
+}
+
+gid_t
+mingw_getgid(void)
+{
+	HANDLE token;
+	gid_t id;
+
+	token = mingw_get_token();
+	if (NULL == token)
+		return GID_NOBODY;
+
+	id = mingw_token_gid(token);
+	CloseHandle(token);
+
+	return id;
+}
+
+gid_t
+mingw_getegid(void)
+{
+	HANDLE token;
+	uid_t id;
+
+	token = mingw_get_effective_token();
+	if (NULL == token)
+		return GID_NOBODY;
+
+	id = mingw_token_gid(token);
+	CloseHandle(token);
+
+	return id;
 }
 
 int
@@ -3405,29 +5126,68 @@ found:
 }
 #endif
 
-bool
-mingw_process_is_alive(pid_t pid)
+/*
+ * Check whether a given PID could be sent a signal with kill(pid, 0), would
+ * Windows support such a system call.
+
+ * @return 0 on success, -1 on failure.
+ *
+ * If it returns -1, errno is set to indicate why process PID cannot be
+ * queried: ESRCH when process does not exist, EPERM when it exists but cannot
+ * be accessed by the user.
+ */
+int
+mingw_process_access_check(pid_t pid)
 {
-	char our_process_name[1024];
-	char process_name[1024];
 	HANDLE p;
-	BOOL res = FALSE;
-	pid_t our_pid = GetCurrentProcessId();
+	int res = -1;
 
-	/* PID might be reused */
-	if (our_pid == pid)
-		return FALSE;
+	p = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+	if (NULL == p) {
+		errno = mingw_last_error();
+		/*
+		 * Remap our POSIX error codes to that of what kill(pid, 0)
+		 * would return on UNIX.  We skip EINVAL, since that is only
+		 * used by kill() when an invalid signal is passed, which is
+		 * irrelevant here!
+		 */
+		if (EINVAL == errno)		/* When PID does not exist */
+			errno = ESRCH;			/* we want ESRCH to be returned */
+		else if (EACCES == errno)	/* When process cannot be queried */
+			errno = EPERM;			/* we want EPERM to be returned */
+		else {
+			s_carp_once("%s(): unexpected error: %m", G_STRFUNC);
+			errno = EPERM;			/* Assume process exists */
+		}
+	} else {
+		/*
+		 * Make sure Windows returns a handle to the PID we asked -- it has
+		 * a tendency to sometimes open a process that bear a PID that is
+		 * slightly less to the one requested when the requested PID does
+		 * not exist!
+		 */
 
-	p = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+		if (GetProcessId(p) == UNSIGNED(pid))
+			res = 0;
+		else
+			errno = ESRCH;
 
-	if (NULL != p) {
-		GetModuleBaseName(p, NULL, process_name, sizeof process_name);
-		GetModuleBaseName(GetCurrentProcess(),
-			NULL, our_process_name, sizeof our_process_name);
+		/*
+		 * Also make sure the process is still running and is not in a
+		 * zombie state.
+		 */
 
-		res = g_strcmp0(process_name, our_process_name) == 0;
+		if (0 == res) {
+			DWORD code;
+
+			if (GetExitCodeProcess(p, &code) && STILL_ACTIVE != code) {
+				res = -1;
+				errno = ESRCH;		/* Process is a zombie */
+			}
+		}
+
 		CloseHandle(p);
-    }
+	}
 
 	return res;
 }
@@ -3483,12 +5243,19 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 	return result;
 }
 
+/**
+ * Get special folder path.
+ *
+ * @note
+ * Our caller handles the caching so that it is guaranteed that we will be
+ * called just once per folder type.
+ */
 static const char *
-mingw_get_folder_basepath(enum special_folder which_folder)
+mingw_get_folder_basepath(enum special_folder folder)
 {
 	const char *special_path = NULL;
 
-	switch (which_folder) {
+	switch (folder) {
 	case PRIVLIB_PATH:
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S PACKAGE);
@@ -3497,10 +5264,11 @@ mingw_get_folder_basepath(enum special_folder which_folder)
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S "locale");
 		goto done;
+	case SPECIAL_FOLDER_COUNT:
+		g_assert_not_reached();
 	}
 
-	s_carp("%s() needs implementation for foldertype %d",
-		G_STRFUNC, which_folder);
+	s_carp("%s() needs implementation for foldertype %d", G_STRFUNC, folder);
 
 done:
 	return special_path;
@@ -4235,24 +6003,10 @@ void mingw_vmm_post_init(void)
 		ptr_diff(cur_break, mingw_vmm.heap_break));
 }
 
-static void
-mingw_init_once(void)
-{
-	WSADATA wsaData;
-
-	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-		s_error("WSAStartup() failed");
-		
-	libws2_32 = LoadLibrary(WS2_LIBRARY);
-    if (libws2_32 != NULL) {
-        WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
-    }
-}
-
 void
 mingw_init(void)
 {
-	ONCE_FLAG_RUN(mingw_inited, mingw_init_once);
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 }
 
 #ifdef MINGW_BACKTRACE_DEBUG
@@ -5254,11 +7008,21 @@ mingw_dladdr(void *addr, Dl_info *info)
 	/*
 	 * Do not issue a SymInitialize() too often, yet let us do one from time
 	 * to time in case we loaded a new DLL since last time.
+	 *
+	 * Unfortunately, MinGW does not provide SymRefreshModuleList() to
+	 * refresh the module list, so we have to SymCleanup() and SymInitialize()
+	 * periodically.
+	 *
+	 * When called during a crash, do not attempt to refresh the symbols via
+	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
 	 */
 
 	now = tm_time();
 
-	if (0 == last_init || delta_time(now, last_init) > 5) {
+	if (
+		0 == last_init ||
+		(delta_time(now, last_init) > 60 && !signal_in_exception())
+	) {
 		static bool initialized;
 		static bool first_init;
 		static spinlock_t dladdr_first_slk = SPINLOCK_INIT;
@@ -5283,8 +7047,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 		if (initialized)
 			SymCleanup(process);
 
-		if (!SymInitialize(process, 0, TRUE)) {
-			initialized = FALSE;
+		if (!SymInitialize(process, NULL, TRUE)) {
 			mingw_dl_error = GetLastError();
 			s_warning("SymInitialize() failed: error = %d (%s)",
 				mingw_dl_error, mingw_dlerror());
@@ -5390,6 +7153,7 @@ mingw_exception_to_string(int code)
 	case EXCEPTION_PRIV_INSTRUCTION:		return "Privileged instruction";
 	case EXCEPTION_NONCONTINUABLE_EXCEPTION:return "Continued after exception";
 	case EXCEPTION_INVALID_DISPOSITION:		return "Invalid disposition";
+	case EXCEPTION_GUARD_PAGE:				return "Guard page hit";
 	default:								return "Unknown exception";
 	}
 }
@@ -5420,12 +7184,12 @@ mingw_crash_record(int code, const void *pc,
  * Log reported exception.
  */
 static void G_GNUC_COLD
-mingw_exception_log(int code, const void *pc)
+mingw_exception_log(int stid, int code, const void *pc)
 {
-	DECLARE_STR(11);
+	DECLARE_STR(13);
 	char time_buf[CRASH_TIME_BUFLEN];
-	const char *name;
-	const char *file = NULL;
+	char buf[ULONG_DEC_BUFLEN];
+	const char *s, *name, *file = NULL;
 
 	crash_time(time_buf, sizeof time_buf);
 	name = stacktrace_routine_name(pc, TRUE);
@@ -5435,37 +7199,48 @@ mingw_exception_log(int code, const void *pc)
 	if (!stacktrace_pc_within_our_text(pc))
 		file = dl_util_get_path(pc);
 
-	print_str(time_buf);										/* 0 */
-	print_str(" (CRITICAL): received exception at PC=0x");		/* 1 */
-	print_str(pointer_to_string(pc));							/* 2 */
+	print_str(time_buf);								/* 0 */
+	print_str(" (CRITICAL-");							/* 1 */
+	if (stid < 0)
+		stid += 256;
+	s = PRINT_NUMBER(buf, stid);
+	print_str(s);										/* 2 */
+	print_str("): received exception at PC=0x");		/* 3 */
+	print_str(pointer_to_string(pc));					/* 4 */
 	if (name != NULL) {
-		print_str(" (");										/* 3 */
-		print_str(name);										/* 4 */
-		print_str(")");											/* 5 */
+		print_str(" (");								/* 5 */
+		print_str(name);								/* 6 */
+		print_str(")");									/* 7 */
 	}
 	if (file != NULL) {
-		print_str(" from ");									/* 6 */
-		print_str(file);										/* 7 */
+		print_str(" from ");							/* 8 */
+		print_str(file);								/* 9 */
 	}
-	print_str(": ");											/* 8 */
-	print_str(mingw_exception_to_string(code));					/* 9 */
-	print_str("\n");											/* 10 */
+	print_str(": ");									/* 10 */
+	print_str(mingw_exception_to_string(code));			/* 11 */
+	print_str("\n");									/* 12 */
 
 	FLUSH_ERR_STR();
 
-	if (EXCEPTION_STACK_OVERFLOW != UNSIGNED(code))
+	switch (code) {
+	case EXCEPTION_STACK_OVERFLOW:
+	case EXCEPTION_GUARD_PAGE:
+		break;
+	default:
 		mingw_crash_record(code, pc, name, file);
+	}
 }
 
 /**
  * Log extra information on memory faults.
  */
 static G_GNUC_COLD void
-mingw_memory_fault_log(const EXCEPTION_RECORD *er)
+mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 {
-	DECLARE_STR(6);
+	DECLARE_STR(8);
 	char time_buf[CRASH_TIME_BUFLEN];
-	const char *prot = "unknown";
+	char buf[ULONG_DEC_BUFLEN];
+	const char *s, *prot = "unknown";
 	const void *va = NULL;
 
 	if (er->NumberParameters >= 2) {
@@ -5479,12 +7254,17 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 
 	crash_time(time_buf, sizeof time_buf);
 
-	print_str(time_buf);							/* 0 */
-	print_str(" (CRITICAL): memory fault (");		/* 1 */
-	print_str(prot);								/* 2 */
-	print_str(") at VA=0x");						/* 3 */
-	print_str(pointer_to_string(va));				/* 4 */
-	print_str("\n");								/* 5 */
+	print_str(time_buf);				/* 0 */
+	print_str(" (CRITICAL-");			/* 1 */
+	if (stid < 0)
+		stid += 256;
+	s = PRINT_NUMBER(buf, stid);
+	print_str(s);						/* 2 */
+	print_str("): memory fault (");		/* 3 */
+	print_str(prot);					/* 4 */
+	print_str(") at VA=0x");			/* 5 */
+	print_str(pointer_to_string(va));	/* 6 */
+	print_str("\n");					/* 7 */
 
 	FLUSH_ERR_STR();
 
@@ -5500,14 +7280,8 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	}
 }
 
-static volatile sig_atomic_t in_exception_handler;
 static void *mingw_stack[STACKTRACE_DEPTH_MAX];
-
-bool
-mingw_in_exception(void)
-{
-	return ATOMIC_GET(&in_exception_handler);
-}
+static uint8 mingw_excpt[THREAD_MAX];
 
 /**
  * Our default exception handler.
@@ -5516,121 +7290,42 @@ static G_GNUC_COLD LONG WINAPI
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
 	EXCEPTION_RECORD *er;
-	int signo = 0;
+	int stid, signo = 0;
+	const void *sp;
 
-	ATOMIC_INC(&in_exception_handler);	/* Never reset, we're crashing */
+	signal_crashing();
+
 	er = ei->ExceptionRecord;
+	sp = ulong_to_pointer(ei->ContextRecord->Esp);
 
-	/*
-	 * Don't use too much stack if we're facing a stack overflow.
-	 * We'll emit a short message below in that case.
-	 *
-	 * However, apparently the exceptions are delivered on a distinct stack.
-	 * It may be very samll, for all we know, so still be cautious.
-	 */
+	stid = thread_safe_small_id_sp(sp);		/* Should be safe to execute */
+	if (stid >= 0 && stid < THREAD_MAX)
+		mingw_excpt[stid]++;
 
-	if (EXCEPTION_STACK_OVERFLOW != er->ExceptionCode)
-		mingw_exception_log(er->ExceptionCode, er->ExceptionAddress);
+	s_rawwarn("%s in thread #%d at pc=%p, sp=%p, current sp=%p "
+		"[depth=%u, count=%d]",
+		mingw_exception_to_string(er->ExceptionCode),
+		stid, er->ExceptionAddress, sp, thread_sp(),
+		(stid >= 0 && stid < THREAD_MAX) ? mingw_excpt[stid] : 0,
+		signal_in_exception());
+
+	mingw_exception_log(stid, er->ExceptionCode, er->ExceptionAddress);
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
 	case EXCEPTION_SINGLE_STEP:
 		signo = SIGTRAP;
 		break;
+	case EXCEPTION_GUARD_PAGE:
 	case EXCEPTION_STACK_OVERFLOW:
-		/*
-		 * With a stack overflow, we may not be able to continue very
-		 * far, so log the fact as soon as possible.
-		 */
-		{
-			char buf[ULONG_DEC_BUFLEN];
-			char ptr[POINTER_BUFLEN];
-			const char *s;
-			int stid;
-			size_t locks;
-			bool can_terminate = FALSE;
-			DECLARE_STR(5);
-
-			/*
-			 * Windows detects stack overflows by using a guard page at the
-			 * end of each thread stack.  Before invoking the exception handler,
-			 * it resets the guard page as read-write to give room to the thread
-			 * to process it.  However, if we overflow that page, we have no
-			 * protection and will overwrite memory belonging to... someone!
-			 *
-			 * This gives us enough room for our basic processing below.
-			 */
-
-			print_str("Got stack overflow -- crashing.\n");
-			FLUSH_ERR_STR();
-
-			stid = thread_safe_small_id();
-			if (stid < 0)
-				stid += 256;
-			s = PRINT_NUMBER(buf, stid);
-
-			rewind_str(0);
-			print_str("overflow in thread #");			/* 0 */
-			print_str(s);								/* 1 */
-			print_str(" at PC=0x");						/* 2 */
-			pointer_to_string_buf(er->ExceptionAddress, ptr, sizeof ptr);
-			print_str(ptr);								/* 3 */
-			print_str("\n");							/* 4 */
-			FLUSH_ERR_STR();
-
-			locks = thread_id_lock_count(stid);
-			if (locks != 0) {
-				s = PRINT_NUMBER(buf, locks);
-				rewind_str(0);
-				print_str("thread holds ");					/* 0 */
-				print_str(s);								/* 1 */
-				print_str(1 == locks ? " lock" : " locks");	/* 2 */
-				print_str("\n");							/* 3 */
-				FLUSH_ERR_STR();
-			}
-
-			s = PRINT_NUMBER(buf, thread_stack_used());
-			rewind_str(0);
-			print_str("thread used ");				/* 0 */
-			print_str(s);							/* 1 */
-			print_str(" bytes of stack");			/* 2 */
-			if (0 != stid) {
-				thread_info_t info;
-
-				thread_get_info(stid, &info);
-				can_terminate = !info.discovered;
-				if (can_terminate)
-					print_str(", will be killing it");	/* 3 */
-			}
-			print_str("\n");							/* 4 */
-			FLUSH_ERR_STR();
-
-			rewind_str(0);
-			print_str("attempting exception logging\n");	/* 0 */
-			FLUSH_ERR_STR();
-
-			mingw_exception_log(er->ExceptionCode, er->ExceptionAddress);
-
-			/*
-			 * Forcefully killing the thread is the least we can do.
-			 *
-			 * If it is holding locks, deadlocks are likely to occur
-			 * afterwards, but this is panic...
-			 */
-
-			if (can_terminate) {
-				rewind_str(0);
-				print_str("exiting from current thread\n");	/* 0 */
-				FLUSH_ERR_STR();
-
-				thread_exit(NULL);
-			}
-		}
+		signal_uncrashing();				/* In case we thread_exit() */
+		thread_stack_check_overflow(sp);
+		signal_crashing();
 		signo = SIGSEGV;
 		break;
 	case EXCEPTION_ACCESS_VIOLATION:
 	case EXCEPTION_IN_PAGE_ERROR:
-		mingw_memory_fault_log(er);
+		mingw_memory_fault_log(stid, er);
 		/* FALL THROUGH */
 	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
 		signo = SIGSEGV;
@@ -5655,25 +7350,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		break;
 	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
 	case EXCEPTION_INVALID_DISPOSITION:
-		{
-			DECLARE_STR(1);
-
-			print_str("Got fatal exception -- crashing.\n");
-			FLUSH_ERR_STR();
-		}
+		s_rawwarn("got fatal exception -- crashing.");
 		break;
 	default:
-		{
-			char buf[ULONG_DEC_BUFLEN];
-			const char *s;
-			DECLARE_STR(3);
-
-			s = PRINT_NUMBER(buf, er->ExceptionCode);
-			print_str("Got unknown exception #");		/* 0 */
-			print_str(s);								/* 1 */
-			print_str(" -- crashing.\n");				/* 2 */
-			FLUSH_ERR_STR();
-		}
+		s_rawwarn("got unknown exception #%lu -- crashing.", er->ExceptionCode);
 		break;
 	}
 
@@ -5697,7 +7377,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 
 	if (
 		EXCEPTION_STACK_OVERFLOW != er->ExceptionCode &&
-		1 == ATOMIC_GET(&in_exception_handler)
+		(
+			(stid >= 0 && stid < THREAD_MAX && 1 == mingw_excpt[stid]) ||
+			1 == signal_in_exception()
+		)
 	) {
 		int count;
 		
@@ -5709,7 +7392,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
 
 		crash_save_stackframe(mingw_stack, count);
-	} else if (ATOMIC_GET(&in_exception_handler) > 5) {
+	} else if (signal_in_exception() > 5) {
 		DECLARE_STR(1);
 
 		print_str("Too many exceptions in a row -- raising SIGBART.\n");
@@ -5723,6 +7406,10 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 
 	if (signo != 0)
 		mingw_sigraise(signo);
+
+	signal_uncrashing();
+	if (stid >= 0 && stid < THREAD_MAX)
+		mingw_excpt[stid]--;
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -5830,33 +7517,11 @@ mingw_sbrk(long incr)
 }
 #endif 	/* EMULATE_SBRK */
 
-#ifdef MINGW_STARTUP_DEBUG
-static FILE *
-getlog(bool initial)
-{
-	return fopen("gtkg-log.txt", initial ? "wb" : "ab");
-}
-
-#define STARTUP_DEBUG(...)	G_STMT_START {	\
-	if (lf != NULL) {						\
-		fprintf(lf, __VA_ARGS__);			\
-		fputc('\n', lf);					\
-		fflush(lf);							\
-	}										\
-} G_STMT_END
-
-#else	/* !MINGW_STARTUP_DEBUG */
-#define getlog(x)	NULL
-#define STARTUP_DEBUG(...)	{}
-#endif	/* MINGW_STARTUP_DEBUG */
-
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
 
 static G_GNUC_COLD void
-mingw_stdio_reset(FILE *lf, bool console)
+mingw_stdio_reset(bool console)
 {
-	(void) lf;			/* In case no MINGW_STARTUP_DEBUG */
-
 	/*
 	 * A note on setvbuf():
 	 *
@@ -5919,6 +7584,15 @@ mingw_stdio_reset(FILE *lf, bool console)
 		close(STDOUT_FILENO);
 		close(STDERR_FILENO);
 		STARTUP_DEBUG("stdio fully reset");
+
+		freopen("NUL", "rb", stdin);
+		STARTUP_DEBUG("stdin reopened from NUL");
+
+		freopen("NUL", "wb", stdout);
+		STARTUP_DEBUG("stdout reopened to NUL");
+
+		freopen("NUL", "wb", stderr);
+		STARTUP_DEBUG("stderr reopened to NUL");
 	}
 }
 
@@ -5926,13 +7600,11 @@ mingw_stdio_reset(FILE *lf, bool console)
  * Rotate pathname at startup time, renaming existing paths with a .0, .1, .2
  * extension, etc..., up to the maximum specified.
  */
-static G_GNUC_COLD void
-mingw_file_rotate(FILE *lf, const char *pathname, int keep)
+void G_GNUC_COLD
+mingw_file_rotate(const char *pathname, int keep)
 {
 	static char npath[MAX_PATH_LEN];
 	int i;
-
-	(void) lf;
 
 	if (keep > 0) {
 		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
@@ -5958,10 +7630,11 @@ G_GNUC_COLD void
 mingw_early_init(void)
 {
 	int console_err;
-	FILE *lf = getlog(TRUE);
+
+	getlog(TRUE);
 
 	STARTUP_DEBUG("starting PID %d", getpid());
-	STARTUP_DEBUG("logging on fd=%d", fileno(lf));
+	STARTUP_DEBUG("logging on fd=%d", fileno(mingw_debug_lf));
 
 #if __MSVCRT_VERSION__ >= 0x800
 	STARTUP_DEBUG("configured invalid parameter handler");
@@ -5977,20 +7650,18 @@ mingw_early_init(void)
 	SetUnhandledExceptionFilter(mingw_exception);
 	STARTUP_DEBUG("configured exception handler");
 
+	STARTUP_DEBUG("initializing virtual memory...");
+	mingw_vmm_init();
+	STARTUP_DEBUG("done!");
+
 	_fcloseall();
-	lf = getlog(FALSE);
-	if (NULL == lf) {
-		lf = getlog(TRUE);
-		STARTUP_DEBUG("had to recreate this logfile for PID %d", getpid());
-	} else {
-		STARTUP_DEBUG("reopening of this logfile successful");
-	}
+	getlog(FALSE);
 
 	STARTUP_DEBUG("attempting AttachConsole()...");
 
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
 		STARTUP_DEBUG("AttachConsole() succeeded");
-		mingw_stdio_reset(lf, TRUE);
+		mingw_stdio_reset(TRUE);
 	} else {
 		console_err = GetLastError();
 
@@ -6000,9 +7671,7 @@ mingw_early_init(void)
 		case ERROR_INVALID_HANDLE:
 		case ERROR_GEN_FAILURE:
 			/* We had no console, and we got no console. */
-			mingw_stdio_reset(lf, FALSE);
-			freopen("NUL", "rb", stdin);
-			STARTUP_DEBUG("stdin reopened from NUL");
+			mingw_stdio_reset(FALSE);
 			{
 				const char *pathname;
 
@@ -6018,8 +7687,9 @@ mingw_early_init(void)
 				 */
 
 				pathname = mingw_getstdout_path();
-				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stdout file will be %s", pathname);
+				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
+				STARTUP_DEBUG("stdout files rotated");
 				if (NULL != freopen(pathname, "ab", stdout)) {
 					log_set(LOG_STDOUT, pathname);
 					STARTUP_DEBUG("stdout (unbuffered) reopened");
@@ -6028,8 +7698,9 @@ mingw_early_init(void)
 				}
 
 				pathname = mingw_getstderr_path();
-				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stderr file will be %s", pathname);
+				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
+				STARTUP_DEBUG("stderr files rotated");
 				if (NULL != freopen(pathname, "ab", stderr)) {
 					log_set(LOG_STDERR, pathname);
 					STARTUP_DEBUG("stderr (unbuffered) reopened");
@@ -6048,10 +7719,18 @@ mingw_early_init(void)
 		}
 	}
 
-	if (lf != NULL)
-		fclose(lf);
+	/*
+	 * Compute our parent PID immediately to avoid races later on, should
+	 * its PID slot be reused at the time they call getppid().
+	 */
+
+#ifdef EMULATE_GETPPID
+	(void) mingw_getppid();
+#endif	/* EMULATE_GETPPID */
 
 	set_folder_basepath_func(mingw_get_folder_basepath);
+
+	closelog();
 }
 
 void 
@@ -6062,6 +7741,15 @@ mingw_close(void)
 		
 		libws2_32 = NULL;
 		WSAPoll = NULL;
+	}
+
+	if (mingw_launched != NULL) {
+		size_t cnt = dualhash_count(mingw_launched);
+
+		if (0 != cnt) {
+			s_warning("%s(): still has %zu child process%s unwaited for",
+				G_STRFUNC, cnt, plural_es(cnt));
+		}
 	}
 }
 

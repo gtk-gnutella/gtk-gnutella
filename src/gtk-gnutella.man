@@ -30,6 +30,8 @@ Great care has been devoted into making
 .I gtk\-gnutella
 powerful, efficient and reliable.
 .SH OPTIONS
+All the options can be abbreviated as long as the supplied name is not
+ambiguous.
 .TP
 .B "\-\-compile-info"
 Tell
@@ -108,6 +110,9 @@ files, you can send
 .I gtk\-gnutella
 a SIGHUP signal to create new log files.
 .TP
+.B "\-\-log\-supervise"
+Redirects the logs for the supervisor process.
+.TP
 .B "\-\-no\-dbus"
 Disable notifications of
 .I gtk\-gnutella
@@ -118,6 +123,12 @@ Prevents
 .I gtk\-gnutella
 from auto-restarting itself when crashing on a platform where core dumps
 are not possible or disabled.
+.TP
+.B "\-\-no\-supervise"
+Prevents
+.I gtk\-gnutella
+from starting a supervising process that will monitor the main process and
+automatically restart a new instance when the previous one exits abnormally.
 .TP
 .B "\-\-no\-xshm"
 Disable MIT shared memory extension, when running with the X graphical

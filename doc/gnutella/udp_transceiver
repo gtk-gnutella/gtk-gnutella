@@ -267,7 +267,7 @@ order, it is best to include as much of the reception state as possible so
 that the sending party can optimize retransmissions.
 
 In order to do that, the following extensions to the original specifications
-has been added by gtk-gnutella:
+have been added by gtk-gnutella:
 
     - Cumulative Acknowledgements: when the flag 0x10 is set, it tells the
       other party that all the fragments up to nPart have been received.

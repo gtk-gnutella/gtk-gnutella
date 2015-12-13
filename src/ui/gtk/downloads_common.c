@@ -257,7 +257,7 @@ downloads_gui_pipeline_range_string(const struct download *d)
 	concat_strings(buf, sizeof buf,
 		compact_size(length, metric),
 		range_start[0] ? " @ " : "", range_start,
-		(void *)0);
+		NULL_PTR);
 
 	return buf;
 }
@@ -745,7 +745,7 @@ downloads_gui_range_string(const struct download *d)
 	concat_strings(buf, sizeof buf,
 		compact_size(length, metric), and_more,
 		range_start[0] ? " @ " : "", range_start,
-		(void *)0);
+		NULL_PTR);
 	return buf;
 }
 

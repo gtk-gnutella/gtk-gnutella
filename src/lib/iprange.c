@@ -385,7 +385,7 @@ unsigned
 iprange_get_item_count(const struct iprange_db *idb)
 {
 	iprange_db_check(idb);
-	return sorted_array_size(idb->tab4) + sorted_array_size(idb->tab6);
+	return sorted_array_count(idb->tab4) + sorted_array_count(idb->tab6);
 }
 
 /**
@@ -399,7 +399,7 @@ unsigned
 iprange_get_item_count4(const struct iprange_db *idb)
 {
 	iprange_db_check(idb);
-	return sorted_array_size(idb->tab4);
+	return sorted_array_count(idb->tab4);
 }
 
 /**
@@ -413,7 +413,7 @@ unsigned
 iprange_get_item_count6(const struct iprange_db *idb)
 {
 	iprange_db_check(idb);
-	return sorted_array_size(idb->tab6);
+	return sorted_array_count(idb->tab6);
 }
 
 /**
@@ -429,7 +429,7 @@ iprange_get_host_count4(const struct iprange_db *idb)
 	size_t i, n;
 	unsigned hosts = 0;
 
-	n = sorted_array_size(idb->tab4);
+	n = sorted_array_count(idb->tab4);
 
 	for (i = 0; i < n; i++) {
 		struct iprange_net4 *item = sorted_array_item(idb->tab4, i);

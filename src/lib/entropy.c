@@ -578,11 +578,7 @@ entropy_collect_process_id(SHA1_context *ctx)
 {
 	unsigned long id[2];
 
-#ifdef HAS_GETPPID
 	id[0] = getppid();
-#else
-	id[0] = entropy_minirand();
-#endif	/* HAS_GETPPID */
 	id[1] = getpid();
 
 	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
@@ -659,7 +655,7 @@ entropy_collect_login(SHA1_context *ctx)
 static void
 entropy_collect_pw(SHA1_context *ctx)
 {
-#ifdef HAS_GETUID
+#ifdef HAS_GETPWUID
 	{
 		const struct passwd *pp = getpwuid(getuid());
 
@@ -672,7 +668,7 @@ entropy_collect_pw(SHA1_context *ctx)
 	}
 #else
 	sha1_feed_uint(ctx, entropy_minirand());
-#endif	/* HAS_GETUID */
+#endif	/* HAS_GETPWUID */
 }
 
 /**
@@ -1095,8 +1091,12 @@ entropy_self_feed(SHA1_context *ctx)
 	 */
 
 	memcpy(cbytes, ctx, sizeof cbytes);
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < 7; i++) {
+		tm_nano_t now;
+		tm_precise_time(&now);
+		rand31_addrandom(&now, sizeof now);
 		SHUFFLE_ARRAY_WITH(rand31_u32, cbytes);
+	}
 	SHA1_INPUT(ctx, cbytes);
 }
 
@@ -1241,12 +1241,6 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;										\
 } G_STMT_END
 
-#ifdef HAS_GETPPID
-#define ENTROPY_PPID	getppid()
-#else
-#define ENTROPY_PPID	rand31_u32()
-#endif
-
 	SHA1_reset(&ctx);
 
 	tm_precise_time(&now);		/* Do not use tm_now_exact(), it's too soon */
@@ -1258,7 +1252,8 @@ entropy_seed(struct entropy_minictx *c)
 	}
 
 	{
-		ulong along[4] = { time(NULL), getpid(), ENTROPY_PPID, now.tv_nsec };
+		ulong along[] = { now.tv_sec, now.tv_nsec,
+			getpid(), getppid(), getuid(), getgid() };
 		ENTROPY_SHUFFLE_FEED(along, sha1_feed_ulong);
 	}
 
@@ -1303,7 +1298,7 @@ entropy_seed(struct entropy_minictx *c)
 	ENTROPY_CONTEXT_FEED;
 
 	{
-		void *aptr[2] = { environ, &now };
+		void *aptr[] = { environ, &now, sbrk(0), entropy_seed };
 		ENTROPY_SHUFFLE_FEED(aptr, sha1_feed_pointer);
 	}
 
@@ -1389,6 +1384,18 @@ entropy_seed(struct entropy_minictx *c)
 		p = peek_be32_advance(p, &c->z);
 		p = peek_be32_advance(p, &v);
 		c->c = (v ^ peek_be32(p)) % ENTROPY_KISS_MULT;
+
+		/*
+		 * The `y' context variable must not be seeded with zero, or it
+		 * will only produce zeroes.  Find another random value.
+		 */
+
+		for (v = 0; v < 100 && 0 == c->y; v++) {
+			c->y = rand31_u32();
+		}
+
+		if (0 == c->y)
+			s_error("%s(): no luck with rand31_u32()", G_STRFUNC);
 	}
 }
 

@@ -1567,25 +1567,27 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 {
 	vp->input = pslist_remove(vp->input, vb);
 
-	if (vxml_debugging(19)) {
-		switch (vb->type) {
-		case VXML_BUFFER_MEMORY:
-			if (vb->u.m->entity) {
-				/* Unstacking an entity expansion buffer */
-				g_assert(uint_is_positive(vp->expansions));
-				vp->expansions--;
-			}
+	switch (vb->type) {
+	case VXML_BUFFER_MEMORY:
+		if (vb->u.m->entity) {
+			/* Unstacking an entity expansion buffer */
+			g_assert(uint_is_positive(vp->expansions));
+			vp->expansions--;
+		}
 
+		if (vxml_debugging(19)) {
 			vxml_parser_debug(vp, "removed %sinput buffer (%zu byte%s)",
 				NULL == vp->input ? "last " : "",
 				vb->u.m->length, plural(vb->u.m->length));
-			break;
-		case VXML_BUFFER_FILE:
+		}
+		break;
+	case VXML_BUFFER_FILE:
+		if (vxml_debugging(19)) {
 			vxml_parser_debug(vp, "removed %sinput file (EOF %sreached)",
 				NULL == vp->input ? "last " : "",
 				vb->u.f->eof ? "" : "not ");
-			break;
 		}
+		break;
 	}
 
 	vxml_buffer_free(vb);

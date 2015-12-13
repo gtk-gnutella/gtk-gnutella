@@ -625,34 +625,34 @@ dbg_tree_init(void)
 			gui_signal_connect(renderer, "edited", on_cell_edited, NULL);
 			g_object_set(renderer,
 					"editable", TRUE,
-					(void *) 0);
+					NULL_PTR);
 		}
 
 		column = gtk_tree_view_column_new_with_attributes(
 				_(columns[i].title), renderer,
 				"text", i,
-				(void *) 0);
+				NULL_PTR);
 
 		g_object_set(renderer,
 				"xalign", 0.0,
 				"xpad", GUI_CELL_RENDERER_XPAD,
 				"ypad", GUI_CELL_RENDERER_YPAD,
-				(void *) 0);
+				NULL_PTR);
 		g_object_set(column,
 				"min-width", 1,
 				"resizable", TRUE,
 				"reorderable", FALSE,
-				(void *) 0);
+				NULL_PTR);
 		
 		if (columns[i].width) {
 			g_object_set(column,
 				"fixed-width", columns[i].width,
 				"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-				(void *) 0);
+				NULL_PTR);
 		} else {
 			g_object_set(column,
 				"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
-				(void *) 0);
+				NULL_PTR);
 		}
 		
 

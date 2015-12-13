@@ -85,6 +85,7 @@
 #include "lib/evq.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/filelock.h"
 #include "lib/frand.h"
 #include "lib/getcpucount.h"
 #include "lib/getgateway.h"
@@ -97,6 +98,7 @@
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
+#include "lib/path.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
@@ -117,7 +119,6 @@
 static const char config_file[] = "config_gnet";
 
 static const mode_t IPC_DIR_MODE     = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
-static const mode_t PID_FILE_MODE    = S_IRUSR | S_IWUSR; /* 0600 */
 static const mode_t CONFIG_DIR_MODE  =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
@@ -143,9 +144,10 @@ static prop_set_t *properties = NULL;
  * progressbar_bps_out_avg     0.90u 15/05/2002 progressbar_bws_out_avg
  */
 
-static const char pidfile[] = "gtk-gnutella.pid";
-static const char dirlockfile[] = ".gtk-gnutella.lock";
-static const char randseed[] = "randseed";
+static const char super_pidfile[] = "gtk-gnutella-super.pid";
+static const char pidfile[]       = "gtk-gnutella.pid";
+static const char dirlockfile[]   = ".gtk-gnutella.lock";
+static const char randseed[]      = "randseed";
 
 static bool settings_init_running;
 
@@ -153,8 +155,8 @@ static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
 static void update_uptimes(void);
 
-static int pidfile_fd = -1;
-static int save_file_path_lock = -1;
+static filelock_t *pidfile_lock;
+static filelock_t *save_file_path_lock;
 
 /* ----------------------------------------- */
 
@@ -277,207 +279,21 @@ is_my_address_and_port(const host_addr_t addr, uint16 port)
 
 
 /**
- * Look for any existing PID file. If found, look at the pid recorded
- * there and make sure it has died. Abort operations if it hasn't...
+ * Look for any existing PID file.
  *
- * @returns Returns zero on success and -1 on failure.
- *          If fd_ptr is NULL the lock is only tested but not created.
- *			On failure errno is set to EEXIST, if the PID file was already
- *			locked. Other errno values imply that the PID file could not
- *			be created.
+ * @return a filelock object on success, NULL if we could not lock with
+ * errno set.
  */
-static G_GNUC_COLD int
-ensure_unicity(const char *file, int *fd_ptr)
+static G_GNUC_COLD filelock_t *
+ensure_unicity(const char *file, bool check_only)
 {
-	bool locked = FALSE;
-	int fd;
+	filelock_params_t params;
 
-	g_assert(file);
+	ZERO(&params);
+	params.debug = GNET_PROPERTY(lockfile_debug) != 0;
+	params.check_only = check_only;
 
-	fd = file_create(file, O_RDWR, PID_FILE_MODE);
-	if (fd < 0) {
-		if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-			s_warning("could not create \"%s\": %m", file);
-		}
-		return -1;
-	}
-
-	if (GNET_PROPERTY(lockfile_debug)) {
-		g_debug("file \"%s\" opened", file);
-	}
-/* FIXME: These might be enums, a compile-time check would be better */
-#if defined(F_SETLK) && defined(F_WRLCK)
-	{
-		static const struct flock zero_flock;
-		struct flock fl;
-		bool locking_failed;
-
-		fl = zero_flock;
-		fl.l_type = F_WRLCK;
-		fl.l_whence = SEEK_SET;
-		/* l_start and l_len are zero, which means the whole file is locked */
-
-		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
-
-		if (GNET_PROPERTY(lockfile_debug)) {
-			g_debug("file \"%s\" fcntl-locking %s", file,
-				locking_failed ? "failed" : "succeeded");
-		}
-
-		if (locking_failed) {
-			int saved_errno = errno;
-
-			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-				s_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %m",
-					fd, file);
-				/*
-				 * Use F_GETLK to determine the PID of the process, the
-				 * reinitialization of "fl" might be unnecessary but who
-				 * knows.
-				 */
-				fl = zero_flock;
-				fl.l_type = F_WRLCK;
-				fl.l_whence = SEEK_SET;
-
-				/*
-				 * If we're crashing and restarting automatically, we'll have
-				 * the same PID as the lock and that is OK.
-				 */
-
-				if (-1 != fcntl(fd, F_GETLK, &fl)) {
-					if (getpid() == fl.l_pid) {
-						s_info("current process (PID=%lu) already holds the "
-							"lock on \"%s\"", (ulong) fl.l_pid, file);
-						locked = TRUE;
-					} else {
-						g_warning("another gtk-gnutella process seems to "
-								"be using \"%s\" (PID=%lu)",
-								file, (ulong) fl.l_pid);
-					}
-				} else {
-					s_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %m",
-						fd, file);
-				}
-			}
-
-			if (is_temporary_error(saved_errno) || EACCES == saved_errno) {
-				goto failed;	/* The file seems to be locked */
-			}
-		} else {
-			locked = TRUE;
-		}
-	}
-#endif /* F_SETLK && F_WRLCK */
-
-	/*
-	 * Maybe F_SETLK is not supported by the OS or filesystem?
-	 * Fall back to weaker PID locking
-	 */
-
-	if (!locked) {
-		ssize_t r;
-		char buf[33];
-
-		if (GNET_PROPERTY(lockfile_debug)) {
-			g_debug("file \"%s\" being read for PID", file);
-		}
-		r = read(fd, buf, sizeof buf - 1);
-		if ((ssize_t) -1 == r) {
-			/* This would be odd */
-			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-				s_warning("could not read file \"%s\": %m", file);
-			}
-			goto failed;
-		}
-
-		/* Check the PID in the file */
-		{
-			uint64 u;
-			int error;
-
-			g_assert(r >= 0 && (size_t) r < sizeof buf);
-			buf[r] = '\0';
-
-			u = parse_uint64(buf, NULL, 10, &error);
-
-			/* If the pidfile seems to be corrupt, ignore it */
-			if (!error && u > 1) {
-				pid_t pid = u;
-
-				if (GNET_PROPERTY(lockfile_debug)) {
-					g_debug("file \"%s\" checking whether PID %lu is alive",
-						file, (unsigned long) pid);
-				}
-				if (compat_process_is_alive(pid)) {
-					if (fd_ptr) {
-						g_warning("another gtk-gnutella process seems to "
-							"be using \"%s\" (pid=%lu)", file, (ulong) pid);
-					}
-					goto failed;
-				}
-			}
-		}
-	}
-
-	if (GNET_PROPERTY(lockfile_debug)) {
-		g_debug("file \"%s\" LOCKED (mode %s)",
-			file, fd_ptr ? "check" : "permanent");
-	}
-
-	if (NULL == fd_ptr) {
-		/*
-		 * We keep the empty PID file around. Otherwise,
-		 * there's a race-condition without fcntl() locking.
-		 */
-		fd_forget_and_close(&fd);
-	} else {
-		/* Keep the fd open, otherwise the lock is lost */
-		*fd_ptr = fd;
-	}
-
-	return 0;
-
-failed:
-
-	if (GNET_PROPERTY(lockfile_debug)) {
-		g_debug("file \"%s\" NOT LOCKED", file);
-	}
-	fd_forget_and_close(&fd);
-	errno = EEXIST;
-	if (fd_ptr) {
-		*fd_ptr = -1;
-	}
-	return -1;
-}
-
-/**
- * Write our pid to the lockfile, opened as "fd".
- */
-static void
-save_pid(int fd, const char *path)
-{
-	size_t len;
-	char buf[32];
-
-	g_assert(fd >= 0);
-
-	len = str_bprintf(buf, sizeof buf, "%lu\n", (ulong) getpid());
-
-	if (GNET_PROPERTY(lockfile_debug)) {
-		g_debug("file \"%s\" about to be written with PID %lu on fd #%d",
-			path, (ulong) getpid(), fd);
-	}
-	if (-1 == ftruncate(fd, 0))	{
-		s_warning("ftruncate() failed for \"%s\": %m", path);
-		return;
-	}
-	if (0 != lseek(fd, 0, SEEK_SET))	{
-		s_warning("lseek() failed for \"%s\": %m", path);
-		return;
-	}
-	if (len != (size_t) write(fd, buf, len)) {
-		s_warning("could not flush \"%s\": %m", path);
-	}
+	return filelock_create(file, &params);
 }
 
 /* ----------------------------------------- */
@@ -557,54 +373,71 @@ G_STMT_START { \
  *
  * @param path			the path where the lockfile is to be held
  * @param lockfile		the basename of the locking file
- * @param fd_ptr		if non-NULL, return the opened file descriptor here
+ * @parma check_only	whether we just need to check for lock presence
+ * @param pid			if non-NULL, where PID of locking process is written
  *
- * @return 0 if OK, -1 on error with errno set.
+ * @return filelock_t object if OK, NULL on error with errno set.
  */
-static int
-settings_unique_usage(const char *path, const char *lockfile, int *fd_ptr)
+static filelock_t *
+settings_unique_usage(const char *path, const char *lockfile,
+	bool check_only, pid_t *pid)
 {
 	char *file;
-	int saved_errno, ret;
+	filelock_t *fl;
+	int saved_errno;
 
 	g_assert(path != NULL);
 	g_assert(lockfile != NULL);
 
 	file = make_pathname(path, lockfile);
-	ret = ensure_unicity(file, fd_ptr);
+	fl = ensure_unicity(file, check_only);
+
 	saved_errno = errno;
 
-	if (0 == ret && fd_ptr) {
-		save_pid(*fd_ptr, file);
+	if (pid != NULL) {
+		*pid = NULL == fl ? filelock_pid(file) : getpid();
+		if G_UNLIKELY(0 == *pid) {
+			g_warning("%s(): could not read PID from \"%s\": %m",
+				G_STRFUNC, file);
+			*pid = 1;
+		}
 	}
+
 	HFREE_NULL(file);
 
 	errno = saved_errno;
-	/* The file descriptor must be kept open */
-	return ret;
+
+	return fl;
 }
 
 /**
  * Tries to ensure that the current process is the only running instance
  * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
  *
- * @returns On success zero is returned, otherwise -1 is returned
- *			and errno is set.
+ * @param lockfile		the file to use as the PID file
+ *
+ * @returns On success zero is returned, otherwise the PID of the running
+ * process is returned and errno is set.
  */
-static int
-settings_ensure_unicity(void)
+static pid_t
+settings_ensure_unicity(const char *lockfile)
 {
+	pid_t pid;
+
 	g_assert(config_dir);
 
-	return settings_unique_usage(config_dir, pidfile, &pidfile_fd);
+	pidfile_lock = settings_unique_usage(config_dir, lockfile, FALSE, &pid);
+
+	return NULL == pidfile_lock ? pid : 0;
 }
 
-int
+bool
 settings_is_unique_instance(void)
 {
 	g_assert(config_dir);
 
-	return settings_unique_usage(config_dir, pidfile, NULL) && EEXIST == errno;
+	return NULL == settings_unique_usage(config_dir, pidfile, TRUE, NULL)
+		&& EEXIST == errno;
 }
 
 /**
@@ -639,18 +472,10 @@ settings_init_session_id(void)
 static int
 settings_ensure_unique_save_file_path(void)
 {
-	int fd;
-	int ret;
+	save_file_path_lock = settings_unique_usage(
+		GNET_PROPERTY(save_file_path), dirlockfile, FALSE, NULL);
 
-	ret = settings_unique_usage(GNET_PROPERTY(save_file_path),
-				dirlockfile, &fd);
-
-	if (0 == ret) {
-		fd_forget_and_close(&save_file_path_lock);
-		save_file_path_lock = fd;
-	}
-
-	return ret;
+	return NULL == save_file_path_lock ? -1 : 0;
 }
 
 static void
@@ -742,10 +567,13 @@ settings_random_save(bool verbose)
 	ssize_t saved;
 
 	file = make_pathname(config_dir, randseed);
-	saved = frand_save(file, aje_random_bytes, SETTINGS_RANDOM_SEED);
+	saved = frand_merge(file, aje_random_bytes, SETTINGS_RANDOM_SEED);
 
 	if (-1 == saved) {
 		g_warning("could not save random data into %s: %m", file);
+	} else if (saved != SETTINGS_RANDOM_SEED) {
+		g_warning("saved only %zd random byte%s into %s, expected %d: %m",
+			saved, plural(saved), file, SETTINGS_RANDOM_SEED);
 	} else if (verbose) {
 		g_info("saved %zd random byte%s into %s", saved, plural(saved), file);
 	}
@@ -763,7 +591,27 @@ settings_handle_upgrades(void)
 	dbstore_unlink(settings_gnet_db_dir(), "bitzi_tickets");
 }
 
-G_GNUC_COLD void
+/**
+ * Make sure that we are the sole running process.
+ *
+ * @param is_supervisor		TRUE if dealing with the supervisor process
+ */
+void G_GNUC_COLD
+settings_unique_instance(bool is_supervisor)
+{
+	pid_t lpid;
+	const char *lock = is_supervisor ? super_pidfile : pidfile;
+
+	if (0 != (lpid = settings_ensure_unicity(lock))) {
+		g_warning(is_supervisor ?
+			_("Another gtk-gnutella supervisor is running as PID %lu") :
+			_("Another gtk-gnutella is running as PID %lu"),
+			(ulong) lpid);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void G_GNUC_COLD
 settings_init(void)
 {
 	uint64 memory = getphysmemsize();
@@ -822,10 +670,7 @@ settings_init(void)
 	 * the "lockfile_debug" property.
 	 */
 
-	if (0 != settings_ensure_unicity()) {
-		g_warning(_("You seem to have left another gtk-gnutella running"));
-		exit(EXIT_FAILURE);
-	}
+	settings_unique_instance(FALSE);	/* Child process */
 
 	/*
 	 * Detect whether we're restarting after a clean shutdown or whether
@@ -878,7 +723,7 @@ settings_init(void)
 
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
-			need_get_non_stdio_fd() ? "cannot" : "can");
+			fd_need_non_stdio() ? "cannot" : "can");
 		g_info("detected %ld CPU%s", cpus, plural(cpus));
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
@@ -1229,21 +1074,70 @@ settings_dns_net(void)
 }
 
 /**
- * Remove "path/lockfile".
+ * Fill-in given file_path_t array to be able to load a given file.
+ *
+ * Several paths need to be looked-up, in order:
+ * - if OFFICIAL_BUILD is not set, the "extra_files" directory in the sources
+ * - the configuration directory (e.g. ~/.gtk-gnutella)
+ * - the dynamic private library path, as returned by get_folder_path()
+ * - the hardwired private library install path PRIVLIB_EXP
+ *
+ * Some flags can alter the default behaviour:
+ *
+ * SFP_NO_CONFIG	if set, do not include the configuration directory
+ * SFP_ALL			include all fallbacks, even if file present in config dir
+ *
+ * @param fp[]		a 4-item array (at least) that will be filled
+ * @param file		the file name to load
+ * @param flags		operating flags
+ *
+ * @return the amount of entries filled within fp[].
  */
-static void
-settings_remove_lockfile(const char *path, const char *lockfile)
+uint
+settings_file_path_load(file_path_t fp[4], const char *file, uint flags)
 {
-	char *file;
+	unsigned i = 0;
+	const char *config = settings_config_dir();
+	bool exists;
 
-	g_return_if_fail(!is_null_or_empty(path));
-	g_return_if_fail(lockfile);
+	exists = filepath_exists(config, file);		/* Present in config dir? */
 
-	file = make_pathname(path, lockfile);
-	if (-1 == unlink(file)) {
-		s_warning("could not remove lockfile \"%s\": %m", file);
+#ifndef OFFICIAL_BUILD
+	/*
+	 * Only include the version from "extra_files" if the file is currently
+	 * not present in the configuration directory (to give priority to
+	 * the configuration directory but avoid error messages about the file
+	 * not being present there, if we were blindly putting the configuration
+	 * directory first!).
+	 */
+
+	if (!exists)
+		file_path_set(&fp[i++], PACKAGE_EXTRA_SOURCE_DIR, file);
+#endif	/* !OFFICIAL_BUILD */
+
+	/*
+	 * Same logic as above: we want to include the configuration directory
+	 * only if the file is present.  If it is not, it will have to be
+	 * loaded from installed defaults, but we do not wish to see a warning
+	 * saying that we cannot load the file from there.
+	 *
+	 * If the file is present, we want to load it from there anyway, so it
+	 * is not needed to fill-in the other path components which only hold
+	 * defaults.
+	 */
+
+	if (exists && !(flags & SFP_NO_CONFIG))
+		file_path_set(&fp[i++], config, file);
+
+	if (!exists || (flags & SFP_ALL) || 0 == i) {
+		const char *tmp = get_folder_path(PRIVLIB_PATH);
+		if (tmp != NULL)
+			file_path_set(&fp[i++], tmp, file);
+
+		file_path_set(&fp[i++], PRIVLIB_EXP, file);
 	}
-	HFREE_NULL(file);
+
+	return i;
 }
 
 static void
@@ -1482,11 +1376,9 @@ settings_save_if_dirty(void)
 void
 settings_close(void)
 {
-	fd_forget_and_close(&pidfile_fd);
-	fd_forget_and_close(&save_file_path_lock);
+	filelock_free_null(&pidfile_lock);
+	filelock_free_null(&save_file_path_lock);
 
-	settings_remove_lockfile(config_dir, pidfile);
-	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);
     gnet_prop_shutdown();
 
 	HFREE_NULL(config_dir);
@@ -2425,7 +2317,7 @@ tilda_expand(property_t prop)
 
 		expanded = h_strconcat(home,
 			'/' == pathname[1] ? "/" : G_DIR_SEPARATOR_S,
-			&pathname[2], (void *) 0);
+			&pathname[2], NULL_PTR);
 
 		gnet_prop_set_string(prop, expanded);
 		HFREE_NULL(expanded);

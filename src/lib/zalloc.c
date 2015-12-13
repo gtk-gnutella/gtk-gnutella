@@ -885,7 +885,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 	{
 		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
 		str_bprintf(ago, sizeof ago, " [%s]",
-			short_time(delta_time(tm_time(), *t)));
+			short_time_ascii(delta_time(tm_time(), *t)));
 	}
 #else
 	ago[0] = '\0';
@@ -1593,27 +1593,11 @@ zcreate(size_t size, unsigned hint, bool embedded)
 }
 
 /**
- * Destroy a zone chunk by releasing its memory to the system if possible.
+ * Destroy a (locked) zone chunk.
  */
-void
-zdestroy(zone_t *zone)
+static void
+zdestroy_physical(zone_t *zone)
 {
-	/*
-	 * A zone can be used by many different parts of the code, through
-	 * calls to zget().  Therefore, only destroy the zone when all references
-	 * are gone.
-	 */
-
-	g_assert(zone != NULL);
-	g_assert(uint_is_positive(zone->zn_refcnt));
-
-	zlock(zone);
-
-	if (!atomic_uint_dec_is_zero(&zone->zn_refcnt)) {
-		zunlock(zone);
-		return;
-	}
-
 	if (zone->zn_cnt) {
 		s_warning("destroyed zone (%zu-byte blocks) still holds %u entr%s",
 			zone->zn_size, zone->zn_cnt, plural_y(zone->zn_cnt));
@@ -1660,6 +1644,53 @@ zdestroy(zone_t *zone)
 	} else {
 		xfree(zone);
 	}
+}
+
+/**
+ * Destroy a zone chunk by releasing its memory to the system if possible.
+ */
+void
+zdestroy(zone_t *zone)
+{
+	zone_check(zone);
+	g_assert(uint_is_positive(zone->zn_refcnt));
+
+	/*
+	 * A zone can be used by many different parts of the code, through
+	 * calls to zget().  Therefore, only destroy the zone when all references
+	 * are gone.
+	 */
+
+	zlock(zone);
+
+	if (!atomic_uint_dec_is_zero(&zone->zn_refcnt)) {
+		zunlock(zone);
+		return;
+	}
+
+	zdestroy_physical(zone);
+}
+
+/**
+ * Destroy a zone if it is referenced once and holds no items.
+ *
+ * @return TRUE if zone was physically destroyed.
+ */
+bool
+zdestroy_if_empty(zone_t *zone)
+{
+	zone_check(zone);
+	g_assert(uint_is_positive(zone->zn_refcnt));
+
+	zlock(zone);
+
+	if (1 != atomic_uint_get(&zone->zn_refcnt) || zone->zn_cnt != 0) {
+		zunlock(zone);
+		return FALSE;
+	}
+
+	zdestroy_physical(zone);
+	return TRUE;
 }
 
 /**
@@ -3166,13 +3197,18 @@ zalloc_zgc_install(void)
  * Called when the VMM layer has been initialized.
  */
 G_GNUC_COLD void
-zalloc_vmm_inited(void)
+zalloc_long_term(void)
 {
 	static once_flag_t zalloc_zgc_installed;
 
 	/*
 	 * We wait for the VMM layer to be up before we install the zgc() idle
 	 * callback in an attempt to tweak the self-bootstrapping path.
+	 *
+	 * The GC is now only installed then vmm_set_strategy() is called to
+	 * install a long-term allocation strategy.  Hence we know that the VMM
+	 * layer is up.
+	 *		--RAM, 2015-12-02
 	 */
 
 	once_flag_run(&zalloc_zgc_installed, zalloc_zgc_install);

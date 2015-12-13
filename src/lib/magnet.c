@@ -945,7 +945,7 @@ magnet_source_to_string(const struct magnet_source *s)
 			
 			guid_to_string_buf(s->guid, guid_buf, sizeof guid_buf);
 			concat_strings(prefix_buf, sizeof prefix_buf,
-				"push://", guid_buf, (void *) 0);
+				"push://", guid_buf, NULL_PTR);
 			prefix = prefix_buf;
 		} else {
 			prefix = "http://";
@@ -965,13 +965,13 @@ magnet_source_to_string(const struct magnet_source *s)
 			host = host_addr_port_to_string(s->addr, s->port);
 		}
 		if (s->path) {
-			url = g_strconcat(prefix, host, port_buf, s->path, (void *) 0);
+			url = g_strconcat(prefix, host, port_buf, s->path, NULL_PTR);
 		} else if (s->sha1) {
 			url = g_strconcat(prefix, host, port_buf,
 					"/uri-res/N2R?", bitprint_to_urn_string(s->sha1, s->tth),
-					(void *) 0);
+					NULL_PTR);
 		} else {
-			url = g_strconcat(prefix, host, port_buf, "/", (void *) 0);
+			url = g_strconcat(prefix, host, port_buf, "/", NULL_PTR);
 		}
 
 		HFREE_NULL(proxies);

@@ -366,7 +366,7 @@ filename_beautify(const char *filename)
 	 */
 
 	if (NULL == strchr(q, '.') && j < len && '.' == filename[len - j]) {
-		char *r = h_strconcat(empty, ".", q, (void *) 0);
+		char *r = h_strconcat(empty, ".", q, NULL_PTR);
 		HFREE_NULL(q);
 
 		return r;

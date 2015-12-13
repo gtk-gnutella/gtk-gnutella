@@ -823,9 +823,9 @@ version_build_string(void)
 
 		str_bprintf(buf, sizeof buf,
 			"%s/%s%s (%s; %s; %s%s%s)",
-			product_get_name(), product_get_version(),
-			product_get_build_full(), product_get_date(),
-			product_get_interface(),
+			product_name(), product_version(),
+			product_build_full(), product_date(),
+			product_interface(),
 			sysname,
 			machine && machine[0] ? " " : "",
 			machine ? machine : "");
@@ -864,8 +864,8 @@ version_init(void)
 
 		str_bprintf(buf, sizeof(buf),
 			"%s/%s%s (%s)",
-			product_get_name(), product_get_version(),
-			product_get_build_full(), product_get_date());
+			product_name(), product_version(),
+			product_build_full(), product_date());
 
 		version_short_string = ostrdup_readonly(buf);
 	}

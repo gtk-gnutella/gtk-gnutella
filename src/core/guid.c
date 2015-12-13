@@ -366,7 +366,7 @@ guid_extract_gtkg_info(const guid_t *guid, size_t start,
 	bool release;
 	uint16 mark;
 	uint16 xmark;
-	uint8 product_major;
+	uint8 prod_major;
 
 	g_assert(start < GUID_RAW_SIZE - 1);
 	major = peek_u8(&guid->v[start]) & 0x0f;
@@ -386,10 +386,10 @@ guid_extract_gtkg_info(const guid_t *guid, size_t start,
 	 * release per year, this strengthens the positive check.
 	 */
 
-	product_major = product_get_major();
+	prod_major = product_major();
 
-	if (major != product_major) {
-		int8 delta = product_major - major;
+	if (major != prod_major) {
+		int8 delta = prod_major - major;
 		if (delta < -1 || delta > 1)
 			return FALSE;
 	}
@@ -830,10 +830,9 @@ guid_init(void)
 
 	guid_gen_syndrome_table();
 
-	rev = product_get_revchar();
+	rev = product_revchar();
 	gtkg_version_mark =
-		guid_gtkg_encode_version(product_get_major(),
-			product_get_minor(), '\0' == rev);
+		guid_gtkg_encode_version(product_major(), product_minor(), '\0' == rev);
 
 	if (GNET_PROPERTY(node_debug))
 		g_debug("GTKG version mark is 0x%x", gtkg_version_mark);

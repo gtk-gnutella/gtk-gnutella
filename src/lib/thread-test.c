@@ -51,7 +51,7 @@
 #include "mutex.h"
 #include "once.h"
 #include "parse.h"
-#include "path.h"
+#include "progname.h"
 #include "random.h"
 #include "rwlock.h"
 #include "semaphore.h"
@@ -66,14 +66,13 @@
 #include "thread.h"
 #include "tm.h"
 #include "tsig.h"
+#include "vmea.h"
 #include "waiter.h"
 #include "walloc.h"
 #include "xmalloc.h"
 #include "zalloc.h"
 
 #define STACK_SIZE		16384
-
-const char *progname;
 
 static char allocator = 'r';		/* For -X tests, random mix by default */
 static size_t allocator_bsize;		/* Block size to use (0 = random) */
@@ -129,7 +128,7 @@ usage(void)
 		"  -X : exercise concurrent memory allocation\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		"Allocators: r=random mix, h=halloc, v=vmm_alloc, w=walloc, x=xmalloc\n"
-		, progname);
+		, getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -330,7 +329,7 @@ test_create_one(bool repeat, bool join)
 }
 
 static pthread_t
-posix_thread_create(thread_main_t routine, void *arg, bool joinable)
+posix_thread_create(process_fn_t routine, void *arg, bool joinable)
 {
 	int error;
 	pthread_attr_t attr;
@@ -721,7 +720,7 @@ const char *name[] = { "A", "B" };
 enum game_state other[] = { PLAYER_B, PLAYER_A };
 
 static void
-create_player(thread_main_t start, int n)
+create_player(process_fn_t start, int n)
 {
 	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(name));
 
@@ -1053,6 +1052,7 @@ static void *
 overflow_thread(void *arg)
 {
 	thread_signal(TSIG_OVFLOW, overflow_handler);
+	thread_set_name("overflow");
 
 	return int_to_pointer(overflow_routine(arg));
 }
@@ -1646,10 +1646,11 @@ test_dam(unsigned repeat, bool emulated)
 }
 
 enum memory_alloc {
-	MEMORY_XMALLOC = 0,
-	MEMORY_HALLOC = 1,
-	MEMORY_WALLOC = 2,
-	MEMORY_VMM = 3,
+	MEMORY_XMALLOC	= 0,
+	MEMORY_HALLOC	= 1,
+	MEMORY_WALLOC	= 2,
+	MEMORY_VMM		= 3,
+	MEMORY_VMEA		= 4
 };
 
 struct memory {
@@ -1744,6 +1745,9 @@ exercise_alloc_memory(struct memory *m)
 	case MEMORY_VMM:
 		m->p = vmm_alloc(m->size);
 		break;
+	case MEMORY_VMEA:
+		m->p = vmea_alloc(m->size);
+		break;
 	default:
 		g_assert_not_reached();
 	}
@@ -1764,6 +1768,12 @@ exercise_free_memory(const struct memory *m)
 		break;
 	case MEMORY_VMM:
 		vmm_free(m->p, m->size);
+		break;
+	case MEMORY_VMEA:
+		if (!vmea_free(m->p, m->size)) {
+			s_error("%s(): cannot free %'zu-byte VMEA region at %p",
+				G_STRFUNC, m->size, m->p);
+		}
 		break;
 	default:
 		g_assert_not_reached();
@@ -1793,13 +1803,16 @@ exercise_memory(void *arg)
 		switch (allocator) {
 		case 'r':
 			if (random_value(99) < MEMORY_VMM_PROPORTION) {
-				m->type = MEMORY_VMM;
+				m->type = MEMORY_VMM + random_value(1);
 				m->size = MEMORY_VMM_MIN +
 					random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN);
 			} else {
 				m->type = random_value(2);
 				m->size = MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
 			}
+			break;
+		case 'e':
+			m->type = MEMORY_VMEA;
 			break;
 		case 'h':
 			m->type = MEMORY_HALLOC;
@@ -1818,7 +1831,7 @@ exercise_memory(void *arg)
 		}
 
 		m->size = 0 != allocator_bsize ? allocator_bsize :
-			MEMORY_VMM == m->type ?
+			m->type >= MEMORY_VMM ?
 				MEMORY_VMM_MIN + random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN) :
 				MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
 
@@ -1882,6 +1895,12 @@ test_memory_one(struct exercise_results *total, bool posix, int percentage)
 	WALLOC_ARRAY(t, n);
 	WALLOC_ARRAY(p, n);
 
+	if ('r' == allocator || 'e' == allocator) {
+		size_t fill = allocator_fill != 0 ? allocator_fill : MEMORY_ALLOCATIONS;
+		size_t max = fill * MEMORY_VMM_MAX * n;
+		vmea_reserve(max, FALSE);
+	}
+
 	for (i = 0; i < n; i++) {
 		t[i] = thread_create(exercise_memory, &ep,
 				THREAD_F_PANIC, THREAD_STACK_MIN);
@@ -1943,6 +1962,8 @@ test_memory_one(struct exercise_results *total, bool posix, int percentage)
 		while (exercise_list_remove(&m))
 			exercise_free_memory(&m);
 	}
+
+	vmea_close();
 }
 
 static void
@@ -2204,7 +2225,7 @@ get_number(const char *arg, int opt)
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
-			progname, opt, arg, g_strerror(error));
+			getprogname(), opt, arg, g_strerror(error));
 		exit(EXIT_FAILURE);
 	}
 
@@ -2225,11 +2246,9 @@ main(int argc, char **argv)
 	unsigned repeat = 1, play_time = 0;
 	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFIKMNOPQRST:VWX";
 
-	mingw_early_init();
-	progname = filepath_basename(argv[0]);
+	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
-	crash_init(argv[0], progname, 0, NULL);
-	stacktrace_init(argv[0], FALSE);
+	crash_init(argv[0], getprogname(), 0, NULL);
 
 	misc_init();
 
@@ -2401,6 +2420,9 @@ main(int argc, char **argv)
 	if (memory) {
 		switch (allocator) {
 		case 'r':
+			break;
+		case 'e':
+			emit("Using vmea_alloc() for memory tests");
 			break;
 		case 'h':
 			emit("Using halloc() for memory tests");

@@ -1788,7 +1788,9 @@ values_store(const knode_t *kn, const dht_value_t *v, bool token)
 	knode_check(kn);
 	g_assert(v);
 
-	g_assert(dbmw_count(db_rawdata) == (size_t) values_managed);
+	g_assert_log(dbmw_count(db_rawdata) == (size_t) values_managed,
+		"rawdata count=%zu, values_managed=%d",
+		dbmw_count(db_rawdata), values_managed);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
 		g_debug("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
@@ -1850,7 +1852,9 @@ values_store(const knode_t *kn, const dht_value_t *v, bool token)
 
 	status =  0 == v->length ? values_remove(kn, v) : values_publish(kn, v);
 
-	g_assert(dbmw_count(db_rawdata) == (size_t) values_managed);
+	g_assert_log(dbmw_count(db_rawdata) == (size_t) values_managed,
+		"rawdata count=%zu, values_managed=%d",
+		dbmw_count(db_rawdata), values_managed);
 
 	/* FALL THROUGH */
 

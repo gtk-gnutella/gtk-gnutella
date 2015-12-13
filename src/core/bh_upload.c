@@ -115,6 +115,7 @@ struct browse_host_upload {
 static struct browse_host_upload *
 cast_to_browse_host_upload(struct special_upload *p)
 {
+	special_upload_browse_check(p);
 	return (void *) p;
 }
 
@@ -219,7 +220,7 @@ browse_host_read_html(struct special_upload *ctx,
 		case BH_STATE_LIBRARY_INFO:
 			if (!bh->b_data) {
 				bh->w_buf_size = w_concat_strings(&bh->w_buf,
-					"<h1>", product_get_name(), "</h1>\r\n"
+					"<h1>", product_name(), "</h1>\r\n"
 					"<h3>", version_get_string(),
 				   	" sharing ",
 					uint64_to_string(shared_files_scanned()),
@@ -229,7 +230,7 @@ browse_host_read_html(struct special_upload *ctx,
 					short_kb_size(shared_kbytes_scanned(),
 						GNET_PROPERTY(display_metric_units)),
 					" total</h3>\r\n"
-					"<ul>\r\n", (void *) 0);
+					"<ul>\r\n", NULL_PTR);
 				bh->b_data = bh->w_buf;
 				bh->b_size = bh->w_buf_size - 1; /* minus trailing NUL */
 				bh->b_offset = 0;
@@ -281,7 +282,7 @@ browse_host_read_html(struct special_upload *ctx,
 						
 						dir = shared_file_relative_path(sf);
 						if (dir) {
-							name = h_strconcat(dir, "/", name_nfc, (void *) 0);
+							name = h_strconcat(dir, "/", name_nfc, NULL_PTR);
 						} else {
 							name = deconstify_char(name_nfc);
 						}
@@ -304,7 +305,7 @@ browse_host_read_html(struct special_upload *ctx,
 							short_html_size(file_size,
 								GNET_PROPERTY(display_metric_units)),
 							"]</li>\r\n",
-							(void *) 0);
+							NULL_PTR);
 					} else {
 						char *escaped;
 
@@ -316,7 +317,7 @@ browse_host_read_html(struct special_upload *ctx,
 							"&nbsp;[",
 							short_html_size(file_size,
 								GNET_PROPERTY(display_metric_units)),
-							"]</li>\r\n", (void *) 0);
+							"]</li>\r\n", NULL_PTR);
 
 						if (escaped != name_nfc) {
 							HFREE_NULL(escaped);
@@ -374,6 +375,7 @@ browse_host_record_hit(void *data, size_t len, void *udata)
 {
 	struct browse_host_upload *bh = udata;
 
+	special_upload_browse_check(udata);
 	bh->hits = pslist_prepend(bh->hits, gmsg_to_pmsg(data, len));
 }
 
@@ -386,6 +388,7 @@ browse_host_record_qh2(pmsg_t *mb, void *udata)
 {
 	struct browse_host_upload *bh = udata;
 
+	special_upload_browse_check(udata);
 	bh->hits = pslist_prepend(bh->hits, mb);
 }
 
@@ -504,6 +507,7 @@ browse_tx_flushed(txdrv_t *unused_tx, void *arg)
 {
 	struct browse_host_upload *bh = arg;
 
+	special_upload_browse_check(arg);
 	(void) unused_tx;
 
 	/*
@@ -574,7 +578,8 @@ browse_host_close(struct special_upload *ctx, bool fully_served)
 		}
 	}
 
-	wfree(bh, sizeof *bh);
+	ctx->magic = 0;
+	WFREE(bh);
 }
 
 /**
@@ -608,7 +613,8 @@ browse_host_open(
 	g_assert((flags & (BH_F_HTML|BH_F_QHITS)) != (BH_F_HTML|BH_F_QHITS));
 
 	WALLOC(bh);
-	bh->special.read = (flags & BH_F_HTML)
+	bh->special.magic = SPECIAL_UPLOAD_BROWSE_MAGIC;
+	bh->special.read  = (flags & BH_F_HTML)
 						? browse_host_read_html
 						: browse_host_read_qhits;
 	bh->special.write = browse_host_write;

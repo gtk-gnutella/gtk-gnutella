@@ -447,11 +447,8 @@ utf32_combining_class(uint32 uc)
 	if (UNICODE_IS_ASCII(uc))
 		return 0;
 
-#define GET_ITEM(i) (utf32_comb_class_lut[(i)].uc)
-#define FOUND(i) G_STMT_START { \
-	return utf32_comb_class_lut[(i)].cc; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(utf32_comb_class_lut[(i)].uc)
+#define FOUND(i)	return utf32_comb_class_lut[(i)].cc
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_comb_class_lut), CMP,
@@ -459,6 +456,7 @@ utf32_combining_class(uint32 uc)
 
 #undef FOUND
 #undef GET_ITEM
+
 	return 0;
 }
 
@@ -476,11 +474,8 @@ block_id_cmp(size_t i, uint32 uc)
 static inline uint
 utf32_block_id(uint32 uc)
 {
-#define GET_ITEM(i) (i)
-#define FOUND(i) G_STMT_START { \
-	return 1 + (i); \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(i)
+#define FOUND(i)	return 1 + (i)
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_block_id_lut), block_id_cmp,
@@ -488,17 +483,15 @@ utf32_block_id(uint32 uc)
 
 #undef FOUND
 #undef GET_ITEM
+
 	return 0;
 }
 
 static inline bool
 utf32_composition_exclude(uint32 uc)
 {
-#define GET_ITEM(i) (utf32_composition_exclusions[(i)])
-#define FOUND(i) G_STMT_START { \
-	return TRUE; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(utf32_composition_exclusions[(i)])
+#define FOUND(i)	return TRUE
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_composition_exclusions), CMP,
@@ -506,6 +499,7 @@ utf32_composition_exclude(uint32 uc)
 
 #undef FOUND
 #undef GET_ITEM
+
 	return FALSE;
 }
 
@@ -527,11 +521,8 @@ general_category_cmp(size_t i, uint32 uc)
 static inline uni_gc_t
 utf32_general_category(uint32 uc)
 {
-#define GET_ITEM(i) (i)
-#define FOUND(i) G_STMT_START { \
-	return utf32_general_category_lut[(i)].gc; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(i)
+#define FOUND(i)	return utf32_general_category_lut[(i)].gc
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_general_category_lut),
@@ -539,6 +530,7 @@ utf32_general_category(uint32 uc)
 
 #undef FOUND
 #undef GET_ITEM
+
 	return UNI_GC_OTHER_NOT_ASSIGNED;
 }
 
@@ -560,11 +552,8 @@ normalization_special_cmp(size_t i, uint32 uc)
 static inline bool
 utf32_is_normalization_special(uint32 uc)
 {
-#define GET_ITEM(i) (i)
-#define FOUND(i) G_STMT_START { \
-	return TRUE; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(i)
+#define FOUND(i)	return TRUE
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_normalization_specials),
@@ -572,6 +561,7 @@ utf32_is_normalization_special(uint32 uc)
 
 #undef FOUND
 #undef GET_ITEM
+
 	return FALSE;
 }
 
@@ -1816,11 +1806,8 @@ textdomain_init(const char *codeset)
 {
 #ifdef ENABLE_NLS
 	{
-		char *nlspath;
-
-		nlspath = get_folder_path(NLS_PATH, NULL);
+		const char *nlspath = get_folder_path(NLS_PATH);
 		bindtextdomain(PACKAGE, nlspath);
-		HFREE_NULL(nlspath);
 	}
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
@@ -3696,11 +3683,8 @@ utf32_uppercase(uint32 uc)
 	if (UNICODE_IS_ASCII(uc))
 		return is_ascii_lower(uc) ? (uint32) ascii_toupper(uc) : uc;
 
-#define GET_ITEM(i) (utf32_uppercase_lut[(i)].lower)
-#define FOUND(i) G_STMT_START { \
-	return utf32_uppercase_lut[(i)].upper; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(utf32_uppercase_lut[(i)].lower)
+#define FOUND(i)	return utf32_uppercase_lut[(i)].upper
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_uppercase_lut), CMP,
@@ -3727,11 +3711,8 @@ utf32_lowercase(uint32 uc)
 	if (UNICODE_IS_ASCII(uc))
 		return is_ascii_upper(uc) ? (uint32) ascii_tolower(uc) : uc;
 
-#define GET_ITEM(i) (utf32_lowercase_lut[(i)].upper)
-#define FOUND(i) G_STMT_START { \
-	return utf32_lowercase_lut[(i)].lower; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(utf32_lowercase_lut[(i)].upper)
+#define FOUND(i)	return utf32_lowercase_lut[(i)].lower
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_lowercase_lut), CMP,
@@ -3755,11 +3736,8 @@ utf32_lowercase(uint32 uc)
 static const uint32 *
 utf32_special_folding(uint32 uc)
 {
-#define GET_ITEM(i) (utf32_special_folding_lut[(i)].uc)
-#define FOUND(i) G_STMT_START { \
-	return utf32_special_folding_lut[(i)].folded; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(utf32_special_folding_lut[(i)].uc)
+#define FOUND(i)	return utf32_special_folding_lut[(i)].folded
 
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_special_folding_lut), CMP,
@@ -5864,14 +5842,10 @@ unicode_compose_init(void)
 static const char *
 utf8_latinize_char(const uint32 uc)
 {
-#define GET_ITEM(i) (jap_tab[(i)].uc)
-#define FOUND(i) G_STMT_START { \
-	return jap_tab[(i)].s; \
-	/* NOTREACHED */ \
-} G_STMT_END
+#define GET_ITEM(i)	(jap_tab[(i)].uc)
+#define FOUND(i)	return jap_tab[(i)].s
 
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(jap_tab), CMP,
-		GET_ITEM, FOUND);
+	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(jap_tab), CMP, GET_ITEM, FOUND);
 
 #undef FOUND
 #undef GET_ITEM

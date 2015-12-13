@@ -320,7 +320,7 @@ directory_chooser_show(enum dir_choice dir_choice, const char *title,
 				GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
 				GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 				GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-				(void *) 0);
+				NULL_PTR);
 	g_return_if_fail(NULL != widget);
 	directory_chooser = widget;
 

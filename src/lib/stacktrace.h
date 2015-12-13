@@ -124,6 +124,7 @@ void stacktrace_load_symbols(void);
 void stacktrace_post_init(void);
 void stacktrace_close(void);
 size_t stacktrace_memory_used(void);
+void stacktrace_crash_mode(void);
 enum stacktrace_sym_quality stacktrace_quality(void);
 const char *stacktrace_quality_string(const enum stacktrace_sym_quality sq);
 

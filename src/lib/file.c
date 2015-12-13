@@ -123,7 +123,32 @@ file_locate_from_path(const char *argv0)
 		goto done;
 	}
 
+	/*
+	 * On Windows, we need to implicitly add "." to the path if not already
+	 * present -- this is done by appending a separator and a dot, not by
+	 * checking whether "." is already part of the path.
+	 *
+	 * The reason is that "." is implied, and also because one may omit the
+	 * ".exe" extension when launching a program.  This means checks done
+	 * in crash_init() for instance to see whether the file listed in
+	 * argv[0] exists and which do not account for a missing ".exe" will
+	 * attempt to locate the program in the PATH to get a full name and will
+	 * fail if we do not add ".".
+	 *
+	 * On UNIX this cannot happen because there is no hidden extension and
+	 * the "." is never made part of the PATH implictly.
+	 *
+	 *		--RAM, 2015-12-06
+	 */
+
+	if (is_running_on_mingw())
+		path = h_strdup_printf("%s%c.", path, *G_SEARCHPATH_SEPARATOR_S);
+	else
+		path = h_strdup(path);
+
 	path = h_strdup(path);
+
+	/* FIXME: strtok() is not thread-safe --RAM, 2015-12-06 */
 
 	tok = strtok(path, G_SEARCHPATH_SEPARATOR_S);
 	while (NULL != tok) {
@@ -133,7 +158,7 @@ file_locate_from_path(const char *argv0)
 		if ('\0' == *dir)
 			dir = ".";
 		concat_strings(filepath, sizeof filepath,
-			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL);
+			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL_PTR);
 
 		if (-1 != stat(filepath, &buf)) {
 			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
@@ -149,6 +174,41 @@ file_locate_from_path(const char *argv0)
 done:
 	already_done = TRUE;	/* No warning on subsequent invocation */
 	return result;
+}
+
+/**
+ * Get the full program path.
+ *
+ * @return a newly allocated string (through halloc()) that points to the
+ * path of the program being run, NULL if we can't compute a suitable path.
+ */
+char *
+file_program_path(const char *argv0)
+{
+	filestat_t buf;
+	char *file = deconstify_char(argv0);
+	char filepath[MAX_PATH_LEN + 1];
+
+	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
+		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL_PTR);
+	} else {
+		clamp_strcpy(filepath, sizeof filepath, argv0);
+	}
+
+	if (-1 == stat(filepath, &buf)) {
+		int saved_errno = errno;
+		file = file_locate_from_path(argv0);
+		if (NULL == file) {
+			errno = saved_errno;
+			s_warning("%s(): could not stat() \"%s\": %m", G_STRFUNC, filepath);
+			return NULL;
+		}
+	}
+
+	if (file != NULL && file != argv0)
+		return file;		/* Allocated by file_locate_from_path() */
+
+	return h_strdup(filepath);
 }
 
 /**
@@ -194,32 +254,44 @@ open_read(
 
 	path_orig = h_strdup_printf("%s.%s", path, orig_ext);
 	in = fopen(path, "r");
-	if (in) {
-		if (is_running_on_mingw()) {
-			/* Windows can't rename an open file */
-			fclose(in);
-			in = NULL;
-		}
-		if (renaming && -1 == rename(path, path_orig)) {
-			s_warning("[%s] could not rename \"%s\" as \"%s\": %m",
-				what, path, path_orig);
-		}
-		if (NULL == in) {
-			in = fopen(path_orig, "r");
+
+	if (in != NULL) {
+		if (renaming) {
+			if (is_running_on_mingw()) {
+				/* Windows can't rename an opened file */
+				fclose(in);
+				in = NULL;
+			}
+			if (-1 == rename(path, path_orig)) {
+				s_warning("[%s] could not rename \"%s\" as \"%s\": %m",
+					what, path, path_orig);
+				if (is_running_on_mingw())
+					in = fopen(path, "r");
+			} else {
+				if (is_running_on_mingw())
+					in = fopen(path_orig, "r");
+			}
+			if (is_running_on_mingw() && NULL == in) {
+				s_warning("[%s] cannot reopen \"%s\": %m", what, path);
+				goto open_failed;
+			}
 		}
 		goto out;
-    } else {
-		if (ENOENT == errno) {
-			if (common_dbg > 0) {
-				g_debug("[%s] cannot load non-existent \"%s\"", what, path);
-			}
-		} else {
-			instead = instead_str;			/* Regular file was present */
-			s_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
-		}
-        if (fvcnt > 1 && common_dbg > 0)
-            g_debug("[%s] trying to load from alternate locations...", what);
     }
+
+	/* FALL THROUGH */
+
+open_failed:
+	if (ENOENT == errno) {
+		if (common_dbg > 0) {
+			s_debug("[%s] cannot load non-existent \"%s\"", what, path);
+		}
+	} else {
+		instead = instead_str;			/* Regular file was present */
+		s_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
+	}
+	if (fvcnt > 1 && common_dbg > 0)
+		s_debug("[%s] trying to load from alternate locations...", what);
 
 	/*
 	 * Maybe we crashed after having retrieved the file in a previous run
@@ -259,7 +331,7 @@ open_read(
 			if (NULL != path && NULL != (in = fopen(path, "r")))
 				break;
 			if (path != NULL && common_dbg > 0) {
-				g_debug("[%s] cannot load non-existent \"%s\" either",
+				s_debug("[%s] cannot load non-existent \"%s\" either",
 					what, path);
 			}
 		}
@@ -267,12 +339,12 @@ open_read(
 
 	if (common_dbg > 0) {
 		if (in) {
-			g_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
+			s_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
-			g_debug("[%s] unable to retrieve: tried %d alternate location%s",
+			s_debug("[%s] unable to retrieve: tried %d alternate location%s",
 				what, fvcnt, plural(fvcnt));
 		} else {
-			g_debug("[%s] unable to retrieve: no alternate locations known",
+			s_debug("[%s] unable to retrieve: no alternate locations known",
 				what);
 		}
 	}
@@ -361,8 +433,9 @@ file_config_open(const char *what, const file_path_t *fv)
 	FILE *out = NULL;
 	char *path;
 
-	path = h_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name, ".",
-				new_ext, (void *) 0);
+	path = h_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name,
+				".", new_ext, NULL_PTR);
+
 	g_return_val_if_fail(NULL != path, NULL);
 
 	if (is_absolute_path(path)) {
@@ -535,8 +608,8 @@ do_open(const char *path, int flags, int mode,
 	}
 
 	if (fd >= 0) {
-		fd = get_non_stdio_fd(fd);
-		set_close_on_exec(fd);	/* Just in case */
+		fd = fd_get_non_stdio(fd);
+		fd_set_close_on_exec(fd);	/* Just in case */
 		return fd;
 	}
 

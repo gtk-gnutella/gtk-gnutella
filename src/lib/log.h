@@ -65,9 +65,11 @@ const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
 void log_abort(void) G_GNUC_NORETURN;
 
 void log_init(void);
-void log_crashing(struct str *str);
+void log_crash_mode(void);
+void log_crashing_str(struct str *str);
 void log_atoms_inited(void);
 void log_close(void);
+void log_show_pid(bool enabled);
 void log_set_disabled(enum log_file which, bool disabled);
 void log_set(enum log_file which, const char *path);
 bool log_reopen(enum log_file which);

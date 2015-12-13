@@ -179,12 +179,19 @@ socket_alloc_buffer(struct gnutella_socket *s)
 	}
 }
 
-static void
+/**
+ * Free socket buffer if not already done.
+ */
+void
 socket_free_buffer(struct gnutella_socket *s)
 {
 	socket_buffer_check(s);
 
 	if (NULL != s->buf) {
+		if G_UNLIKELY(s->pos != 0) {
+			s_carp("%s(): buffer still holding %'zu unread byte%s",
+				G_STRFUNC, s->pos, plural(s->pos));
+		}
 		s->buf_size = 0;
 		HFREE_NULL(s->buf);
 		s->pos = 0;
@@ -306,15 +313,19 @@ socket_evt_set(struct gnutella_socket *s,
 	s->tls.cb_data = data;
 
 	if (GNET_PROPERTY(tls_debug) > 4) {
-		g_debug("socket_evt_set: fd=%d, cond=%s",
-			fd, inputevt_cond_to_string(cond));
+		g_debug("%s(): fd=%d, cond=%s, handler=%s()",
+			G_STRFUNC, fd, inputevt_cond_to_string(cond),
+			stacktrace_function_name(handler));
 	}
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
 	g_assert(0 != s->gdk_tag);
 
+	if ((INPUT_EVENT_R & cond) && s->pos != 0)
+		inputevt_set_readable(fd);
+
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("%s: flush error: %m", G_STRFUNC);
+			g_warning("%s(): flush error: %m", G_STRFUNC);
 		}
 	}
 }
@@ -330,8 +341,9 @@ socket_evt_clear(struct gnutella_socket *s)
 	if (s->gdk_tag) {
 		if (GNET_PROPERTY(tls_debug) > 4) {
 			int fd = socket_evt_fd(s);
-			g_debug("socket_evt_clear: fd=%d, cond=%s",
-				fd, inputevt_cond_to_string(s->tls.cb_cond));
+			g_debug("%s(): fd=%d, cond=%s, handler was %s()",
+				G_STRFUNC, fd, inputevt_cond_to_string(s->tls.cb_cond),
+				stacktrace_function_name(s->tls.cb_handler));
 		}
 
 		s->tls.cb_cond = 0;
@@ -932,8 +944,7 @@ connect_http(struct gnutella_socket *s)
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
+					getline_free_null(&s->getline);
 					return 0;
 				}
 				break;
@@ -961,8 +972,7 @@ connect_http(struct gnutella_socket *s)
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
+					getline_free_null(&s->getline);
 					return 0;
 				}
 				break;
@@ -1177,7 +1187,7 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 		if (GNET_PROPERTY(socket_debug)) {
-			g_debug("%s: step 5, bytes recv'd %zu", G_STRFUNC, ret);
+			g_debug("%s(): step 5, bytes recv'd %zu", G_STRFUNC, ret);
 		}
 		if ((size_t) ret != size) {
 			g_warning("short reply from SOCKS server");
@@ -1565,10 +1575,7 @@ socket_free(struct gnutella_socket *s)
 		s->type = SOCK_TYPE_DESTROYING;
 		return;
 	}
-	if (s->getline) {
-		getline_free(s->getline);
-		s->getline = NULL;
-	}
+	getline_free_null(&s->getline);
 
 	if (socket_with_tls(s)) {
 		if (is_valid_fd(s->file_desc) && socket_uses_tls(s)) {
@@ -1610,6 +1617,7 @@ socket_free(struct gnutella_socket *s)
 		}
 		s->file_desc = INVALID_SOCKET;
 	}
+	s->pos = 0;				/* Ensure no complain from socket_free_buffer() */
 	socket_free_buffer(s);
 	socket_dealloc(&s);
 }
@@ -1670,6 +1678,156 @@ socket_tls_setup(struct gnutella_socket *s)
 destroy:
 	errno = EIO;
 	return -1;
+}
+
+struct socket_tls_upgrade_ctx {
+	gnutella_socket_t *s;		/* Socket being upgraded */
+	notify_fn_t cb;				/* Notification routine to call when done */
+	void *arg;					/* Notification routine argument */
+};
+
+/**
+ * Callout queue callback to asynchronously destroy a socket when the TLS
+ * upgrade attempt failed.
+ */
+static void
+socket_tls_upgrade_failed_event(cqueue_t *unused_cq, void *udata)
+{
+	gnutella_socket_t *s = udata;
+
+	(void) unused_cq;
+	socket_destroy(s, "TLS upgrade failed");
+}
+
+/**
+ * Destroy socket upon TLS upgrade failure, possibly asynchronously.
+ *
+ * @param s			the socket to destroy
+ * @param caller	calling routine, for logging purposes
+ * @param async		whether destruction must happen asynchronously
+ */
+static void
+socket_tls_upgrade_failed(gnutella_socket_t *s, const char *caller, bool async)
+{
+	if (GNET_PROPERTY(tls_debug)) {
+		g_debug("%s(): upgrading fd=%d to TLS with %s %s failed: %m",
+			caller, s->file_desc,
+			SOCK_CONN_INCOMING == s->direction ? "client" : "server",
+			host_addr_port_to_string(s->addr, s->port));
+	}
+
+	if (async)
+		cq_main_insert(1, socket_tls_upgrade_failed_event, s);
+	else
+		socket_tls_upgrade_failed_event(NULL, s);
+}
+
+/**
+ * I/O event callback used for TLS upgrades.
+ */
+static void
+socket_tls_upgrade_cond(void *data, int source, inputevt_cond_t cond)
+{
+	struct socket_tls_upgrade_ctx *stu = data;
+	struct gnutella_socket *s = stu->s;
+
+	socket_check(s);
+	(void) source;
+
+	if G_UNLIKELY(socket_shutdowned) {
+		socket_destroy(s, "Servent shutdown");
+		return;
+	}
+
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
+		socket_destroy(s, "Input exception during TLS upgrade");
+		return;
+	}
+
+	if (0 == socket_tls_setup(s)) {
+		socket_evt_clear(s);
+		(*stu->cb)(stu->arg);		/* Socket must be referred to by "arg" */
+		goto cleanup;
+	}
+
+	if (is_temporary_error(errno))
+		return;
+
+	socket_tls_upgrade_failed(s, G_STRFUNC, FALSE);
+	/* FALL THROUGH */
+
+cleanup:
+	WFREE(stu);
+}
+
+/**
+ * Request that a connected socket be upgraded to TLS.
+ *
+ * Upon success, the nofification callback is invoked, asynchronously.
+ * Upon failure, the connection is closed and the callback is NOT invoked.
+ *
+ * The callaback argument must either refer to the socket, or be the socket.
+ *
+ * If the socket is referred-to, then the structure must be properly identified
+ * as the onwer of the socket via a call to socket_attach_ops(), in order to
+ * properly be notified should the socket be destroyed because the TLS upgrade
+ * failed.
+ *
+ * It is guaranteed that the callback routine will be triggered asynchronously,
+ * i.e. will not have happened when we return from this call.  Likewise, the
+ * socket will not be closed synchronously, meaning the resource attached
+ * to the socket will not be reclaimed when we return.
+ *
+ * @param s		the socket to upgrade
+ * @param cb	callback to invoke when TLS has handshaked
+ * @param arg	callback argument
+ */
+void
+socket_tls_upgrade(gnutella_socket_t *s, notify_fn_t cb, void *arg)
+{
+	struct socket_tls_upgrade_ctx *stu;
+
+	socket_check(s);
+	g_assert(!socket_with_tls(s));
+	g_assert(!(s->flags & SOCK_F_UDP));
+
+	if (GNET_PROPERTY(tls_debug) > 1) {
+		g_debug("%s(): upgrading fd=%d to TLS with %s %s, then calling %s(%p)",
+			G_STRFUNC, s->file_desc,
+			SOCK_CONN_INCOMING == s->direction ? "client" : "server",
+			host_addr_port_to_string(s->addr, s->port),
+			stacktrace_function_name(cb), arg);
+	}
+
+	if (!tls_enabled()) {
+		errno = EPROTONOSUPPORT;
+		goto failure;
+	}
+
+	s->tls.enabled = TRUE;
+	socket_evt_clear(s);
+
+	/*
+	 * Due to the nature of the TLS handshake, it is not possible
+	 * to terminate the handshaking synchronously!
+	 */
+
+	if (0 == socket_tls_setup(s))
+		g_error("%s(): synchronous TLS upgrade deemed impossible", G_STRFUNC);
+
+	if (!is_temporary_error(errno))
+		goto failure;
+
+	WALLOC0(stu);
+	stu->s = s;
+	stu->cb = cb;
+	stu->arg = arg;
+
+	socket_evt_set(s, INPUT_EVENT_RX, socket_tls_upgrade_cond, stu);
+	return;
+
+failure:
+	socket_tls_upgrade_failed(s, G_STRFUNC, TRUE);
 }
 
 /**
@@ -1749,8 +1907,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				}
 
 				if (GNET_PROPERTY(tls_debug) > 2) {
-					g_debug("socket_read(): c=0x%02x%s",
-						(unsigned char) c, s->tls.enabled ? " [TLS]" : "");
+					g_debug("%s(): c=0x%02x%s",
+						G_STRFUNC, (uint8) c, s->tls.enabled ? " [TLS]" : "");
 				}
 			}
 		}
@@ -1817,7 +1975,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
 			is_strprefix(s->buf, "GET ") ||
-			is_strprefix(s->buf, "HEAD ")
+			is_strprefix(s->buf, "HEAD ") ||
+			is_strprefix(s->buf, "OPTIONS ")
 		) {
 			http_send_status(HTTP_UPLOAD, s, 414, FALSE, NULL, 0,
 				"Requested URL Too Large");
@@ -1882,9 +2041,10 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			const char *msg = ban_message(s->addr);
 
             if (GNET_PROPERTY(socket_debug)) {
-                g_debug("rejecting connection from banned %s (%s still): %s",
-                    host_addr_to_string(s->addr),
-					short_time(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
+                g_debug("%s(): rejecting connection from "
+					"banned %s (%s still): %s",
+                    G_STRFUNC, host_addr_to_string(s->addr),
+					short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
             }
 
 			if (is_strprefix(first, GNUTELLA_HELLO)) {
@@ -2000,6 +2160,10 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		else
 			upload_add(s);
 	} else if (
+		NULL != (endptr = is_strprefix(first, "OPTIONS "))
+	) {
+		upload_add(s);
+	} else if (
 		NULL != (endptr = is_strprefix(first, "HELO")) &&
 		(is_ascii_space(endptr[0]) || '\0' == endptr[0])
 	) {
@@ -2087,8 +2251,8 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 	if (0 != socket_tls_setup(s)) {
 		if (!is_temporary_error(errno)) {
 			if (GNET_PROPERTY(tls_debug)) {
-				g_debug("TLS handshake failed when connecting to %s, %s",
-					host_addr_port_to_string(s->addr, s->port),
+				g_debug("%s(): TLS handshake failed when connecting to %s, %s",
+					G_STRFUNC, host_addr_port_to_string(s->addr, s->port),
 					GNET_PROPERTY(tls_enforce) ? "aborting" : "retrying");
 			}
 
@@ -2367,7 +2531,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 
 		g_warning("had to close a banned fd to accept new connection");
 	}
-	fd = get_non_stdio_fd(fd);
+	fd = fd_get_non_stdio(fd);
 
 	if (s->flags & SOCK_F_TCP)
 		bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet for that */
@@ -2376,7 +2540,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	 * Create a new struct socket for this incoming connection
 	 */
 
-	set_close_on_exec(fd);
+	fd_set_close_on_exec(fd);
 	fd_set_nonblocking(fd);
 
 	t = socket_alloc();
@@ -2419,8 +2583,8 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 		ctl_limit(t->addr, CTL_S_ANY_TCP | CTL_D_STEALTH)
 	) {
 		if (GNET_PROPERTY(ctl_debug) > 2) {
-			g_debug("CTL closing incoming TCP connection from %s [%s]",
-				host_addr_port_to_string(t->addr, t->port),
+			g_debug("%s(): CTL closing incoming TCP connection from %s [%s]",
+				G_STRFUNC, host_addr_port_to_string(t->addr, t->port),
 				gip_country_cc(t->addr));
 		}
 		socket_free_null(&t);
@@ -2433,8 +2597,8 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	t->tls.snarf = 0;
 
 	if (GNET_PROPERTY(tls_debug) > 2) {
-		g_debug("incoming connection from %s",
-			host_addr_port_to_string(t->addr, t->port));
+		g_debug("%s(): incoming connection from %s",
+			G_STRFUNC, host_addr_port_to_string(t->addr, t->port));
 	}
 
 	socket_wio_link(t);
@@ -2535,8 +2699,8 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		} else {
 			if (GNET_PROPERTY(socket_debug))
-				g_debug("socket_udp_extract_dst_addr(): "
-					"CMSG type=%u, level=%u, len=%u",
+				g_debug("%s(): CMSG type=%u, level=%u, len=%u",
+					G_STRFUNC,
 					(unsigned) p->cmsg_type,
 					(unsigned) p->cmsg_level,
 					(unsigned) p->cmsg_len);
@@ -2863,7 +3027,7 @@ socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime)
 
 	if (GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() processed %'u queued datagrams "
+		g_debug("%s(): processed %'u queued datagrams "
 			"(%'zu remain) in %'u usecs",
 			G_STRFUNC, i, eslist_count(&uctx->queue),
 			(unsigned) tm_elapsed_us(&end, &start));
@@ -3012,7 +3176,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 
 	if ((i > 16 || enqueue) && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() iterated %'u times, read %'zu bytes "
+		g_debug("%s(): iterated %'u times, read %'zu bytes "
 			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
 			"in %'u usecs",
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
@@ -3362,7 +3526,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 		g_warning("had to close a banned fd to prepare new connection");
 	}
-	fd = get_non_stdio_fd(fd);
+	fd = fd_get_non_stdio(fd);
 
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
@@ -3380,7 +3544,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	socket_set_keepalive(s->file_desc, G_STRFUNC);
 	fd_set_nonblocking(s->file_desc);
-	set_close_on_exec(s->file_desc);
+	fd_set_close_on_exec(s->file_desc);
 	socket_no_linger(s->file_desc, G_STRFUNC);
 	socket_tos_normal(s);
 
@@ -3893,8 +4057,8 @@ socket_bound:
 				G_STRFUNC, type_str, net_str, bind_addr_str);
 		}
 	} else {
-		fd = get_non_stdio_fd(fd);
-		set_close_on_exec(fd);
+		fd = fd_get_non_stdio(fd);
+		fd_set_close_on_exec(fd);
 		fd_set_nonblocking(fd);
 	}
 
@@ -3967,7 +4131,7 @@ socket_local_listen(const char *pathname)
 		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %m");
 		return NULL;
 	}
-	fd = get_non_stdio_fd(fd);
+	fd = fd_get_non_stdio(fd);
 
 	(void) unlink(pathname);
 
@@ -3999,7 +4163,7 @@ socket_local_listen(const char *pathname)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	set_close_on_exec(fd);
+	fd_set_close_on_exec(fd);
 	fd_set_nonblocking(fd);
 
 	s->net = NET_TYPE_NONE;
@@ -4314,15 +4478,15 @@ socket_set_intern(int fd, int option, unsigned size,
 
 	if (!shrink && old_len >= size) {
 		if (GNET_PROPERTY(socket_debug) > 5)
-			g_debug(
-				"socket %s buffer on fd #%d NOT shrank to %u bytes (is %u)",
-				type, fd, size, old_len);
+			g_debug("%s(): socket %s buffer on fd #%d NOT shrunk "
+				"to %u bytes (is %u)",
+				G_STRFUNC, type, fd, size, old_len);
 		return old_len;
 	}
 
 	if (-1 == setsockopt(fd, SOL_SOCKET, option, &size, sizeof(size)))
-		g_warning("cannot set new %s buffer length to %u on fd #%d: %m",
-			type, size, fd);
+		g_warning("%s(): cannot set new %s buffer length to %u on fd #%d: %m",
+			G_STRFUNC, type, size, fd);
 
 	len = sizeof(new_len);
 	if (-1 == getsockopt(fd, SOL_SOCKET, option, &new_len, &len))
@@ -4333,8 +4497,8 @@ socket_set_intern(int fd, int option, unsigned size,
 #endif
 
 	if (GNET_PROPERTY(socket_debug) > 5)
-		g_debug("socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
-			type, fd, old_len, size, new_len,
+		g_debug("%s(): socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
+			G_STRFUNC, type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
 
 	return (new_len == size) ? new_len : old_len;

@@ -137,6 +137,7 @@ struct upload {
 	unsigned parq_status:1;
 	unsigned fwalt:1;			/**< Downloader accepts firewalled locations */
 	unsigned g2:1;				/**< Initiated via G2 /PUSH */
+	unsigned tls_upgraded:1;	/**< Was upgraded to TLS */
 };
 
 static inline void

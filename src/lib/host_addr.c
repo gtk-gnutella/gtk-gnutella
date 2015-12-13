@@ -672,10 +672,10 @@ host_addr_port_to_string_buf(const host_addr_t ha, uint16 port,
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV6:
 		n = concat_strings(dst, size, "[", host_buf, "]:",
-				port_buf, (void *) 0);
+				port_buf, NULL_PTR);
 		break;
 	case NET_TYPE_IPV4:
-		n = concat_strings(dst, size, host_buf, ":", port_buf, (void *) 0);
+		n = concat_strings(dst, size, host_buf, ":", port_buf, NULL_PTR);
 		break;
 	default:
 		n = g_strlcpy(dst, host_buf, size);
@@ -742,11 +742,10 @@ host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV6:
-		n = concat_strings(dst, size, port_buf, ":[", host_buf, "]",
-			(void *) 0);
+		n = concat_strings(dst, size, port_buf, ":[", host_buf, "]", NULL_PTR);
 		break;
 	case NET_TYPE_IPV4:
-		n = concat_strings(dst, size, port_buf, ":", host_buf, (void *) 0);
+		n = concat_strings(dst, size, port_buf, ":", host_buf, NULL_PTR);
 		break;
 	default:
 		n = g_strlcpy(dst, host_buf, size);
@@ -786,7 +785,7 @@ host_port_to_string(const char *hostname, host_addr_t addr, uint16 port)
 		char port_buf[UINT32_DEC_BUFLEN];
 
 		uint32_to_string_buf(port, port_buf, sizeof port_buf);
-		concat_strings(p, buf_size(b), hostname, ":", port_buf, (void *) 0);
+		concat_strings(p, buf_size(b), hostname, ":", port_buf, NULL_PTR);
 	} else {
 		host_addr_port_to_string_buf(addr, port, p, buf_size(b));
 	}

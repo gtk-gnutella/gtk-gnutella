@@ -45,88 +45,114 @@
 
 #include "override.h"		/* Must be the last header included */
 
-static const char *product_name;
-static const char *product_date;
-static const char *product_version;
-static const char *product_build;
-static const char *product_revision;
-static const char *product_interface;
-static const char *product_website;
-static uint8 product_major;
-static uint8 product_minor;
-static const char *product_revchar;
-static uint8 product_patchlevel;
+static struct product_info {
+	const char *p_name;
+	const char *p_nickname;
+	const char *p_date;
+	const char *p_version;
+	const char *p_build;
+	const char *p_revision;
+	const char *p_interface;
+	const char *p_website;
+	const char *p_revchar;
+	uint8 p_major;
+	uint8 p_minor;
+	uint8 p_patchlevel;
+} product_info;
 
 /**
  * Get the product's name.
  */
 const char *
-product_get_name(void)
+product_name(void)
 {
-	return product_name;
+	return product_info.p_name;
+}
+
+/**
+ * Get the product's nickname.
+ *
+ * If no nickname was registered, use the product's name.
+ */
+const char *
+product_nickname(void)
+{
+	if (product_info.p_nickname != NULL)
+		return product_info.p_nickname;
+
+	return product_info.p_name;
+}
+
+/**
+ * Set the product's nickname, hopefully a shorter name than the name itself.
+ */
+void
+product_set_nickname(const char *name)
+{
+	product_info.p_nickname = name;
 }
 
 /**
  * Get version date string, as an ISO string.
  */
 const char *
-product_get_date(void)
+product_date(void)
 {
-	return product_date;
+	return product_info.p_date;
 }
 
 /**
  * Get version string, a combination of major/minor/patchlevel and revchar.
  */
 const char *
-product_get_version(void)
+product_version(void)
 {
-	return product_version;
+	return product_info.p_version;
 }
 
 /**
  * Get major version.
  */
 uint8
-product_get_major(void)
+product_major(void)
 {
-	return product_major;
+	return product_info.p_major;
 }
 
 /**
  * Get minor version.
  */
 uint8
-product_get_minor(void)
+product_minor(void)
 {
-	return product_minor;
+	return product_info.p_minor;
 }
 
 /**
  * Get revision character.
  */
 uint8
-product_get_revchar(void)
+product_revchar(void)
 {
-	return (uint8) product_revchar[0];
+	return (uint8) product_info.p_revchar[0];
 }
 
 /**
  * Get revision string.
  */
 const char *
-product_get_revision(void)
+product_revision(void)
 {
-	return NULL == product_revision ? "" : product_revision;
+	return NULL == product_info.p_revision ? "" : product_info.p_revision;
 }
 
 /**
  * Get revision patchlevel.
  */
 uint8
-product_get_patchlevel(void)
+product_patchlevel(void)
 {
-	return product_patchlevel;
+	return product_info.p_patchlevel;
 }
 
 /**
@@ -135,16 +161,16 @@ product_get_patchlevel(void)
 void
 product_set_interface(const char *iface)
 {
-	product_interface = iface;
+	product_info.p_interface = iface;
 }
 
 /**
  * Get the product's interface.
  */
 const char *
-product_get_interface(void)
+product_interface(void)
 {
-	return NULL == product_interface ? "None" : product_interface;
+	return NULL == product_info.p_interface ? "None" : product_info.p_interface;
 }
 
 /**
@@ -153,23 +179,23 @@ product_get_interface(void)
 void
 product_set_website(const char *website)
 {
-	product_website = website;
+	product_info.p_website = website;
 }
 
 /**
  * Get the product's web site.
  */
 const char *
-product_get_website(void)
+product_website(void)
 {
-	return NULL == product_website ? "" : product_website;
+	return NULL == product_info.p_website ? "" : product_info.p_website;
 }
 
 /**
  * Get build number.
  */
 uint32
-product_get_build(void)
+product_build(void)
 {
 	static uint32 build;
 	static bool initialized;
@@ -178,7 +204,7 @@ product_get_build(void)
 		const char *p;
 
 		initialized = TRUE;
-		p = is_strprefix(product_build, "$Revision: ");
+		p = is_strprefix(product_info.p_build, "$Revision: ");
 		if (p) {
 			int error;
 			build = parse_uint32(p, NULL, 10, &error);
@@ -191,13 +217,13 @@ product_get_build(void)
  * Get full build number string.
  */
 const char *
-product_get_build_full(void)
+product_build_full(void)
 {
 	static const char *result;
 
 	if G_UNLIKELY(NULL == result) {
 		const char *p;
-		p = is_strprefix(product_build, "$Revision: ");
+		p = is_strprefix(product_info.p_build, "$Revision: ");
 		if (p != NULL) {
 			char *tmp;
 			char *q;
@@ -229,15 +255,15 @@ product_init(const char *name,
 	const char *date, const char *version, const char *revision,
 	const char *build)
 {
-	product_name = name;
-	product_major = major;
-	product_minor = minor;
-	product_patchlevel = patchlevel;
-	product_revchar = revchar;
-	product_date = date;
-	product_version = version;
-	product_revision = revision;
-	product_build = build;
+	product_info.p_name = name;
+	product_info.p_major = major;
+	product_info.p_minor = minor;
+	product_info.p_patchlevel = patchlevel;
+	product_info.p_revchar = revchar;
+	product_info.p_date = date;
+	product_info.p_version = version;
+	product_info.p_revision = revision;
+	product_info.p_build = build;
 }
  
 /* vi: set ts=4 sw=4 cindent: */

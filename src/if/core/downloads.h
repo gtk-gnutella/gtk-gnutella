@@ -277,6 +277,7 @@ struct download {
 	unsigned always_push:1;		/**< Always send PUSH to connect */
 	unsigned got_giv:1;			/**< Whether initiated from GIV reception */
 	unsigned unavailable:1;		/**< Set on Timout, Push route lost */
+	unsigned tls_upgraded:1;	/**< Was successfully upgraded to TLS */
 
 	struct cproxy *cproxy;		/**< Push proxy being used currently */
 	struct parq_dl_queued *parq_dl;	/**< Queuing status */
@@ -289,6 +290,7 @@ struct download {
  */
 
 enum {
+	DL_F_TLS_UPGRADING	= 1 << 30,	/**< Attempting a TLS upgrade */
 	DL_F_CLONED			= 1 << 29,	/**< Parent of a cloned download */
 	DL_F_PARTIAL		= 1 << 28,	/**< Partial source */
 	DL_F_FROM_ERROR		= 1 << 27,	/**< Switched after error occurred */
@@ -298,7 +300,7 @@ enum {
 	DL_F_FAKE_G2		= 1 << 23,	/**< Trying to fake G2, intuition only */
 	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
 	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
-	DL_F_UNUSED_1		= 1 << 20,	/**< UNUSED */
+	DL_F_TLS_PROPOSED	= 1 << 20,	/**< Proposed a TLS upgrade */
 	DL_F_FETCH_TTH		= 1 << 19,	/**< Tigertree data is being fetched */
 	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
 	DL_F_THEX			= 1 << 17,	/**< THEX download */
@@ -325,6 +327,7 @@ enum {
  * Server attributes.
  */
 enum {
+	DLS_A_NO_TLS_UPGRD	= 1 << 19,	/**< Server cannot handle TLS upgrades */
 	DLS_A_PIPELINING	= 1 << 18,	/**< Server known to support pipelining */
 	DLS_A_NO_PIPELINE	= 1 << 17,	/**< Server chokes when pipelining */
 	DLS_A_IPV6_ONLY		= 1 << 16,	/**< Server only supports IPv6 */

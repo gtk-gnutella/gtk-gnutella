@@ -999,7 +999,7 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const char *pathname)
 
 		concat_strings(buf, sizeof buf,
 			filesize_to_string(dfi->done), "/",
-			filesize_to_string2(dfi->size), (void *) 0);
+			filesize_to_string2(dfi->size), NULL_PTR);
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
 			"different than expected (%s bytes done instead of %s/%s)",
 			pathname, buf,
@@ -2782,7 +2782,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 
 		concat_strings(buf, sizeof buf,
 			filesize_to_string(xfi->done), "/",
-			filesize_to_string2(xfi->size), (void *) 0);
+			filesize_to_string2(xfi->size), NULL_PTR);
 		g_debug("CONFLICT found same SHA1 %s in \"%s\" "
 			"(%s bytes done) and \"%s\" (%s/%s bytes done)\n",
 			sha1_base32(sha1), xfi->pathname, buf, fi->pathname,
@@ -2794,7 +2794,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 
 		concat_strings(buf, sizeof buf,
 			filesize_to_string(xfi->done), "/",
-			filesize_to_string2(xfi->size), (void *) 0);
+			filesize_to_string2(xfi->size), NULL_PTR);
 		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
 			"(%s/%s bytes done) -- aborting last one",
 			sha1_base32(sha1), xfi->pathname, buf, fi->pathname,
@@ -7784,7 +7784,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		concat_strings(buf, sizeof buf, _("Finished"),
 			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
 			'\0' != msg_copy[0] ? "; " : "", msg_copy,
-			(void *) 0);
+			NULL_PTR);
 
 		return buf;
     } else if (0 == status->lifecount) {

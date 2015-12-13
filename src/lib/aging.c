@@ -45,6 +45,7 @@
 #include "hikset.h"
 #include "misc.h"
 #include "mutex.h"
+#include "thread.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -198,6 +199,16 @@ aging_make(int delay, hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
 	delay = MIN(delay, INT_MAX / 1000);
 	ag->delay = delay;
 	elist_init(&ag->list, offsetof(struct aging_value, lk));
+
+	/*
+	 * If the callout queue does not run in the thread that is creating
+	 * this table, then concurrent accesses are bound to happen.
+	 * Therefore, make the table thread-safe.
+	 */
+
+	if (cq_main_thread_id() != thread_small_id())
+		aging_thread_safe(ag);
+
 	ag->gc_ev = cq_periodic_main_add(AGING_CALLOUT, aging_gc, ag);
 
 	aging_check(ag);
@@ -241,10 +252,18 @@ void
 aging_thread_safe(aging_table_t *ag)
 {
 	aging_check(ag);
-	g_assert(NULL == ag->lock);
 
-	WALLOC0(ag->lock);
-	mutex_init(ag->lock);
+	/*
+	 * Silently do nothing if the aging table was already made thread-safe.
+	 * Indeed, this is implicitly done when the callout queue is not running
+	 * in the thread that creates the aging table, since then we know that
+	 * concurrent calls can happen.
+	 */
+
+	if (NULL == ag->lock) {
+		WALLOC0(ag->lock);
+		mutex_init(ag->lock);
+	}
 }
 
 /**

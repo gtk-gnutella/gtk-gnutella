@@ -210,7 +210,6 @@ struct xheader {
 #define XMALLOC_BUCKET_SHIFT	MAX(XMALLOC_ALIGNSHIFT, XHEADER_SHIFT)
 #define XMALLOC_BLOCK_SIZE		256
 #define XMALLOC_BLOCK_SHIFT		8
-#define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
 /**
  * Minimum size for a block split: the size of blocks in bucket #0.
@@ -398,7 +397,7 @@ xchunk_check(const struct xchunk * const xck)
 struct xdefer {
 	spinlock_t lock;		/**< Thread-safe lock */
 	size_t count;			/**< Amount of blocks chained */
-	void *head;				/**< Head of block list to return to bucker */
+	void *head;				/**< Head of block list to return to bucket */
 };
 
 /**
@@ -477,6 +476,7 @@ static struct xstats {
 	AU64(allocations_zeroed);			/**< Total # of zeroing allocations */
 	uint64 allocations_aligned;			/**< Total # of aligned allocations */
 	AU64(allocations_heap);				/**< Total # of xhmalloc() calls */
+	AU64(allocations_physical);			/**< Total # of xpmalloc() calls */
 	uint64 alloc_via_freelist;			/**< Allocations from freelist */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
@@ -527,7 +527,7 @@ static struct xstats {
 	AU64(realloc_from_thread_pool);			/**< Original was in thread pool */
 	AU64(freelist_insertions);				/**< Insertions in freelist */
 	AU64(freelist_insertions_no_coalescing);/**< Coalescing forbidden */
-	AU64(freelist_insertions_deferred);		/**< Deferred insertions */
+	uint64 freelist_insertions_deferred;	/**< Deferred insertions */
 	uint64 freelist_deferred_processed;		/**< Deferred blocks processed */
 	AU64(freelist_bursts);					/**< Burst detection events */
 	AU64(freelist_burst_insertions);		/**< Burst insertions in freelist */
@@ -553,6 +553,7 @@ static struct xstats {
 	AU64(xgc_runs);						/**< Amount of xgc() runs */
 	AU64(xgc_time_throttled);			/**< Throttled due to running time */
 	uint64 xgc_collected;				/**< Amount of xgc() calls collecting */
+	uint64 xgc_avoided;					/**< Avoided xgc() due to no change */
 	AU64(xgc_blocks_collected);			/**< Amount of blocks collected */
 	uint64 xgc_pages_collected;			/**< Amount of pages collected */
 	uint64 xgc_coalesced_blocks;		/**< Amount of blocks coalesced */
@@ -584,6 +585,7 @@ static size_t sbrk_alignment;		/**< Adjustments for sbrk() alignment */
 static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
 static bool xmalloc_crashing;		/**< Crashing mode, minimal servicing */
+static long xmalloc_freelist_stamp;	/**< Updated each time we add to freelist */
 
 static void *lowest_break;			/**< Lowest heap address we know */
 static void *current_break;			/**< Current known heap break */
@@ -735,7 +737,7 @@ xmalloc_vmm_setup(void)
 /**
  * Called when the VMM layer has been initialized.
  */
-G_GNUC_COLD void
+void G_GNUC_COLD
 xmalloc_vmm_inited(void)
 {
 	STATIC_ASSERT(sizeof(struct xheader) == sizeof(size_t));
@@ -757,12 +759,27 @@ xmalloc_vmm_inited(void)
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
 #endif
+}
 
+/**
+ * Tells the xmalloc() layer that it runs in long-term process.
+ *
+ * A short-term process is not going to require aggressive strategies to
+ * compact unused memory, hence it will not require that we install xgc().
+ */
+void G_GNUC_COLD
+xmalloc_long_term(void)
+{
 	/*
 	 * We wait for the VMM layer to be up before we install the xgc() idle
 	 * thread in an attempt to tweak the self-bootstrapping path of this
 	 * library and avoid creating some objects too early: we wish to avoid
 	 * sbrk() allocation if possible.
+	 *
+	 * The GC is now only installed then vmm_set_strategy() is called to
+	 * install a long-term allocation strategy.  Hence we know that the VMM
+	 * layer is up.
+	 *		--RAM, 2015-12-02
 	 */
 
 	once_flag_run(&xmalloc_xgc_installed, xmalloc_xgc_install);
@@ -2355,6 +2372,7 @@ plain_insert:
 	XSTATS_LOCK;
 	xstats.freelist_blocks++;
 	xstats.freelist_memory += fl->blocksize;
+	xmalloc_freelist_stamp++;		/* Let GC know it can run */
 	XSTATS_UNLOCK;
 
 	assert_xfl_sorted(fl, 0, fl->sorted, "after %ssorted %s xfl_insert @ %zu",
@@ -2498,7 +2516,10 @@ xfl_defer(struct xfreelist *fl, void *p)
 	xdf->count++;
 	spinunlock(&xdf->lock);
 
-	XSTATS_INCX(freelist_insertions_deferred);
+	XSTATS_LOCK;
+	xstats.freelist_insertions_deferred++;
+	xmalloc_freelist_stamp++;		/* Let GC know it can run */
+	XSTATS_UNLOCK;
 }
 
 /**
@@ -4502,11 +4523,12 @@ static size_t xalign_allocated(const void *p);
  *
  * @param size			minimal size of block to allocate (user space)
  * @param can_vmm		whether we can allocate core via the VMM layer
+ * @param can_thread	whether we can allocate from a thread-private pool
  *
  * @return allocated pointer (never NULL).
  */
 static void *
-xallocate(size_t size, bool can_vmm)
+xallocate(size_t size, bool can_vmm, bool can_thread)
 {
 	size_t len;
 	void *p;
@@ -4527,14 +4549,14 @@ xallocate(size_t size, bool can_vmm)
 	if G_UNLIKELY(xmalloc_no_freeing ) {
 		/*
 		 * In crashing mode activate a simple direct path: anything smaller
-		 * than a page size is allocated via sbrk(), the rest is allocated
-		 * via the VMM layer.
+		 * than a page size is allocated via omalloc(), the rest is allocated
+		 * via the VMM layer.  Things will never get freed at this stage.
 		 */
 
 		if (xmalloc_crashing) {
 			len = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
 			if (len < xmalloc_pagesize) {
-				p = xmalloc_addcore_from_heap(len, FALSE);
+				p = omalloc(len);
 			} else {
 				p = vmm_core_alloc(round_pagesize(len));
 			}
@@ -4547,7 +4569,7 @@ xallocate(size_t size, bool can_vmm)
 	 * avoid any locking and also limit the block overhead.
 	 */
 
-	if (size <= XM_THREAD_MAXSIZE) {
+	if (size <= XM_THREAD_MAXSIZE && can_thread) {
 		size_t allocated;
 
 		/*
@@ -4692,7 +4714,28 @@ skip_pool:
 void *
 xmalloc(size_t size)
 {
-	return xallocate(size, TRUE);
+	return xallocate(size, TRUE, TRUE);
+}
+
+/**
+ * Allocate a memory chunk capable of holding ``size'' bytes.
+ *
+ * If no memory is available, crash with a fatal error message.
+ *
+ * This is a "physical" allocation that skips thread pools.  Such a block
+ * should be reallocated using xprealloc() to ensure it stays out of thread
+ * pools.
+ *
+ * One reason to use this call is to be able to ensure that there will be
+ * a header before the allocated block to provide the block size.
+ *
+ * @return allocated pointer (never NULL).
+ */
+void *
+xpmalloc(size_t size)
+{
+	XSTATS_INCX(allocations_physical);
+	return xallocate(size, TRUE, FALSE);
 }
 
 /**
@@ -4715,7 +4758,7 @@ xhmalloc(size_t size)
 	 */
 
 	XSTATS_INCX(allocations_heap);
-	return xallocate(size, FALSE);
+	return xallocate(size, FALSE, FALSE);
 }
 
 /**
@@ -4783,6 +4826,8 @@ xstrndup(const char *str, size_t n)
 	size_t len;
 	char *res, *p;
 
+	g_assert(size_is_non_negative(n));
+
 	if G_UNLIKELY(NULL == str)
 		return NULL;
 
@@ -4840,6 +4885,35 @@ xallocated(const void *p)
 	len = xmalloc_thread_allocated(p);
 	if (len != 0)
 		return len;
+
+	if (!xmalloc_is_valid_length(xh, xh->length)) {
+		s_error_from(_WHERE_,
+			"corrupted malloc header for pointer %p: bad lengh %zu",
+			p, xh->length);
+	}
+
+	return xh->length - XHEADER_SIZE;	/* User size, substract overhead */
+}
+
+/**
+ * Computes user size of allocated block via xpmalloc().
+ */
+size_t
+xpallocated(const void *p)
+{
+	const struct xheader *xh;
+
+	if G_UNLIKELY(NULL == p)
+		return 0;
+
+#ifdef XMALLOC_PTR_SAFETY
+	if (!xmalloc_is_valid_pointer(p, FALSE)) {
+		s_error_from(_WHERE_, "%s() given an invalid pointer %p: %s",
+			G_STRFUNC, p, xmalloc_invalid_ptrstr(p));
+	}
+#endif
+
+	xh = const_ptr_add_offset(p, -XHEADER_SIZE);
 
 	if (!xmalloc_is_valid_length(xh, xh->length)) {
 		s_error_from(_WHERE_,
@@ -4934,6 +5008,7 @@ xfree(void *p)
  *
  * @param p				original user pointer
  * @param size			new user-size
+ * @param can_thread	whether thread memory pools can be used
  *
  * @return
  * If a NULL pointer is given, act as if xmalloc() had been called and
@@ -4943,7 +5018,7 @@ xfree(void *p)
  * from the original pointer.
  */
 static void *
-xreallocate(void *p, size_t size)
+xreallocate(void *p, size_t size, bool can_thread)
 {
 	struct xheader *xh = ptr_add_offset(p, -XHEADER_SIZE);
 	size_t newlen;
@@ -4952,7 +5027,7 @@ xreallocate(void *p, size_t size)
 	struct xchunk *xck;
 
 	if (NULL == p)
-		return xallocate(size, TRUE);
+		return xallocate(size, TRUE, can_thread);
 
 	if (0 == size) {
 		xfree(p);
@@ -4969,7 +5044,7 @@ xreallocate(void *p, size_t size)
 	xck = xmalloc_thread_get_chunk(p, stid, TRUE);
 
 	if (xck != NULL) {
-		if G_UNLIKELY(xmalloc_no_freeing)
+		if G_UNLIKELY(xmalloc_no_freeing || !can_thread)
 			goto realloc_from_thread;
 
 		XSTATS_INCX(reallocs);
@@ -5418,7 +5493,7 @@ skip_coalescing:
 	 * Regular case: allocate a new block, move data around, free old block.
 	 */
 
-	np = xallocate(size, TRUE);
+	np = xallocate(size, TRUE, can_thread);
 
 	XSTATS_INCX(realloc_regular_strategy);
 
@@ -5475,7 +5550,7 @@ realloc_from_thread:
 	{
 		size_t old_size = xck->xc_size;
 
-		np = xallocate(size, TRUE);
+		np = xallocate(size, TRUE, can_thread);
 
 		XSTATS_INCX(realloc_from_thread_pool);
 		XSTATS_INCX(realloc_regular_strategy);
@@ -5503,7 +5578,7 @@ realloc_from_thread:
 void *
 xrealloc(void *p, size_t size)
 {
-	return xreallocate(p, size);
+	return xreallocate(p, size, TRUE);
 }
 
 /**
@@ -5522,7 +5597,7 @@ xrealloc(void *p, size_t size)
 void *
 xprealloc(void *p, size_t size)
 {
-	return xreallocate(p, size);
+	return xreallocate(p, size, FALSE);
 }
 
 /**
@@ -6084,6 +6159,7 @@ xgc(void)
 {
 	static time_t next_run;
 	static spinlock_t xgc_slk = SPINLOCK_INIT;
+	static long last_freelist_stamp;
 	time_t now;
 	unsigned i;
 	size_t blocks;
@@ -6098,6 +6174,18 @@ xgc(void)
 
 	if (!xmalloc_vmm_is_up)
 		return;
+
+	/*
+	 * If there has been no changes in the freelist (no insertions nor any
+	 * deferred block pending), we do not need to spend time here.
+	 */
+
+	XSTATS_LOCK;
+
+	if (last_freelist_stamp == xmalloc_freelist_stamp)
+		goto avoided;
+
+	XSTATS_UNLOCK;
 
 	if (!spinlock_try(&xgc_slk))
 		return;
@@ -6439,7 +6527,20 @@ unlock:
 	}
 
 done:
+	XSTATS_LOCK;
+	last_freelist_stamp = xmalloc_freelist_stamp;
+	XSTATS_UNLOCK;
+
 	spinunlock(&xgc_slk);
+	return;
+
+avoided:
+	if (xmalloc_debugging(0)) {
+		s_debug("XM GC call avoided (no freelist change)");
+	}
+
+	xstats.xgc_avoided++;
+	XSTATS_UNLOCK;
 }
 
 /**
@@ -6563,6 +6664,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(allocations_zeroed);
 	DUMP(allocations_aligned);
 	DUMP64(allocations_heap);
+	DUMP64(allocations_physical);
 	DUMP(alloc_via_freelist);
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
@@ -6613,7 +6715,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(realloc_from_thread_pool);
 	DUMP64(freelist_insertions);
 	DUMP64(freelist_insertions_no_coalescing);
-	DUMP64(freelist_insertions_deferred);
+	DUMP(freelist_insertions_deferred);
 	DUMP(freelist_deferred_processed);
 	DUMP64(freelist_bursts);
 	DUMP64(freelist_burst_insertions);
@@ -6654,6 +6756,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(xgc_runs);
 	DUMP64(xgc_time_throttled);
 	DUMP(xgc_collected);
+	DUMP(xgc_avoided);
 	DUMP64(xgc_blocks_collected);
 	DUMP(xgc_pages_collected);
 	DUMP(xgc_coalesced_blocks);

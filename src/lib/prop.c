@@ -32,6 +32,7 @@
 #include "file.h"
 #include "getdate.h"
 #include "halloc.h"
+#include "misc.h"
 #include "mutex.h"
 #include "parse.h"
 #include "path.h"
@@ -759,7 +760,7 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 			concat_strings(buf, sizeof buf,
 				uint64_to_string(d->data.guint64.min), "/",
 				uint64_to_string2(d->data.guint64.max),
-				(void *) 0);
+				NULL_PTR);
 
 			g_carp("%s(): [%s] new value out of bounds "
 				"(%s): %s (adjusting to %s)", G_STRFUNC, d->name, buf,
@@ -997,7 +998,7 @@ prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
 			concat_strings(buf, sizeof buf,
 				timestamp_to_string(d->data.timestamp.min), "/",
 				timestamp_to_string2(d->data.timestamp.max),
-				(void *) 0);
+				NULL_PTR);
 
 			g_carp("%s(): [%s] new value out of bounds "
 				"(%s): %s (adjusting to %s)", G_STRFUNC, d->name, buf,
@@ -1672,10 +1673,22 @@ unique_file_token(const filestat_t *st)
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 	SHA1_context ctx;
 	struct sha1 digest;
+	const char *hostname;
+
+	/*
+	 * We now include the hostname into the unique file ID to make sure
+	 * the internal ID changes even if the file is indirectly copied
+	 * through virtual machine cloning for instance (where the device and
+	 * inode number would stay the same).
+	 *		--RAM, 2015-12-04
+	 */
+
+	hostname = local_hostname();
 
 	SHA1_reset(&ctx);
 	SHA1_INPUT(&ctx, st->st_dev);
 	SHA1_INPUT(&ctx, st->st_ino);
+	SHA1_input(&ctx, hostname, strlen(hostname));
 	SHA1_result(&ctx, &digest);
 
 	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);
@@ -1737,7 +1750,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		 */
 
 		if (ps->mtime && delta_time(sb.st_mtime, ps->mtime) > 0) {
-			char *old = h_strconcat(pathname, ".old", (void *) 0);
+			char *old = h_strconcat(pathname, ".old", NULL_PTR);
 			s_warning("%s(): config file \"%s\" changed whilst I was running",
 				G_STRFUNC, pathname);
 			if (-1 == rename(pathname, old))
@@ -1754,20 +1767,20 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	 * clobber a good configuration file should we fail abruptly.
 	 */
 
-	newfile = h_strconcat(pathname, ".new", (void *) 0);
+	newfile = h_strconcat(pathname, ".new", NULL_PTR);
 	config = file_fopen(newfile, "w");
 
 	if (config == NULL)
 		goto end;
 
 	{
-		const char *revision = product_get_revision();
+		const char *revision = product_revision();
 
 		fprintf(config,
 			"#\n# gtk-gnutella %s%s%s (%s) by Olrick & Co.\n# %s\n#\n",
-			product_get_version(),
+			product_version(),
 			*revision != '\0' ? " " : "", revision,
-			product_get_date(), product_get_website());
+			product_date(), product_website());
 	}
 	{
 		char *comment = config_comment(ps->desc);

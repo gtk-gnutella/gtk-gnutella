@@ -977,7 +977,12 @@ hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 
 	item = hash_table_find(ht, key, &bin);
 	if (item == NULL) {
-		hash_table_resize_on_insert(ht);
+		if G_UNLIKELY(ht->fixed_size) {
+			if (ht->num_held == ht->num_bins)
+				s_error("%s(): hash table is full", G_STRFUNC);
+		} else {
+			hash_table_resize_on_insert(ht);
+		}
 		hash_table_insert_no_resize(ht, key, value, &bin);
 	} else {
 		item->key = key;

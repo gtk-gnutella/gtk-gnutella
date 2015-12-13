@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 1.1.1\n"
+"Project-Id-Version: gtk-gnutella 1.1.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-04-05 19:55+0200\n"
+"POT-Creation-Date: 2015-11-25 23:07+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -262,6 +262,9 @@ msgstr ""
 msgid "No support for Content-Encoding (%s)"
 msgstr ""
 
+msgid "Incomplete headers during TLS upgrade"
+msgstr ""
+
 msgid "Spammer detected"
 msgstr ""
 
@@ -511,27 +514,6 @@ msgid_plural "Got %d connection pongs"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Sent crawling info"
-msgstr ""
-
-msgid "Cannot setup compressing TX stack"
-msgstr ""
-
-#, c-format
-msgid "Got BYE %d %.*s"
-msgstr ""
-
-#, c-format
-msgid "Weird HELLO %s"
-msgstr ""
-
-#, c-format
-msgid "HELLO %s error %d (%s)"
-msgstr ""
-
-msgid "Shielded node"
-msgstr ""
-
 msgid "Gnet connections disabled"
 msgstr ""
 
@@ -583,7 +565,34 @@ msgstr ""
 msgid "Not connecting: %s"
 msgstr ""
 
+msgid "Cannot setup compressing TX stack"
+msgstr ""
+
+msgid "Sent crawling info"
+msgstr ""
+
+#, c-format
+msgid "Got BYE %d %.*s"
+msgstr ""
+
+#, c-format
+msgid "Weird HELLO %s"
+msgstr ""
+
+#, c-format
+msgid "HELLO %s error %d (%s)"
+msgstr ""
+
+msgid "Shielded node"
+msgstr ""
+
 msgid "Protocol not acceptable"
+msgstr ""
+
+msgid "Conflict"
+msgstr ""
+
+msgid "Upgrade Header Missing"
 msgstr ""
 
 msgid "Servent Shutdown"
@@ -730,7 +739,12 @@ msgstr ""
 msgid "creating directory \"%s\" for %s"
 msgstr ""
 
-msgid "You seem to have left another gtk-gnutella running"
+#, c-format
+msgid "Another gtk-gnutella supervisor is running as PID %lu"
+msgstr ""
+
+#, c-format
+msgid "Another gtk-gnutella is running as PID %lu"
 msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
@@ -743,9 +757,6 @@ msgid "Failed to create IPv6 UDP socket"
 msgstr ""
 
 msgid "Failed to create local socket"
-msgstr ""
-
-msgid "Failed to create listening sockets"
 msgstr ""
 
 msgid "Can only run as a leaf when TCP-firewalled"
@@ -917,13 +928,23 @@ msgstr ""
 msgid "THEX failure"
 msgstr ""
 
+msgid "EOF while sinking"
+msgstr ""
+
+#, c-format
+msgid "Read error while sinking: %m"
+msgstr ""
+
+msgid "Content Too Large"
+msgstr ""
+
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
 
-msgid "Not Implemented"
+msgid "Missing Host Header"
 msgstr ""
 
-msgid "No Content Allowed"
+msgid "Not Implemented"
 msgstr ""
 
 msgid "Bad URI"
@@ -932,7 +953,7 @@ msgstr ""
 msgid "Bad Path"
 msgstr ""
 
-msgid "Missing Host Header"
+msgid "No Content Allowed"
 msgstr ""
 
 msgid "Sharing currently disabled"
@@ -1887,6 +1908,15 @@ msgid "DHT successful node push-entry lookups"
 msgstr ""
 
 msgid "DHT re-seeding of orphan downloads"
+msgstr ""
+
+msgid "Digests computed on general statistics"
+msgstr ""
+
+msgid "Digests computed on TCP statistics"
+msgstr ""
+
+msgid "Digests computed on UDP statistics"
 msgstr ""
 
 msgid "Ping"
@@ -2993,7 +3023,7 @@ msgstr ""
 
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
-"reserve 32 bytes of bandwidth per leaf."
+"reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
 
 msgid "What to do with files that will be ignored for downloading."
@@ -4209,6 +4239,15 @@ msgid "Number of G2 browsing requests fully served in this session."
 msgstr ""
 
 msgid "Whether to log G2 messages we're attempting to send"
+msgstr ""
+
+msgid ""
+"Timestamp at which the current session was started.  This stamp remains "
+"unchanged when gtk-gnutella restarts after a crash or an explicit restart "
+"request."
+msgstr ""
+
+msgid "No TCP listening socket bound to allow incoming connections."
 msgstr ""
 
 msgid "disable"
@@ -5628,6 +5667,9 @@ msgid "Unknown property"
 msgstr ""
 
 msgid "Value missing"
+msgstr ""
+
+msgid "Property cannot be changed"
 msgstr ""
 
 #, c-format
@@ -8791,6 +8833,9 @@ msgstr ""
 msgid "*** KERNEL BUFFER SHORTAGE -- LIMITING TCP CONNECTIONS ***"
 msgstr ""
 
+msgid "*** NO LISTENING TCP SOCKET -- NO INBOUND CONNECTIONS ***"
+msgstr ""
+
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr ""
 
@@ -8843,6 +8888,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Queue frozen"
+msgstr ""
+
+msgid "Internal"
 msgstr ""
 
 msgid "Select a property to see its description."

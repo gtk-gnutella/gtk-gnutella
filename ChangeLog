@@ -1,3 +1,213 @@
+# v 1.1.7   2015-12-13  [stable]
+
+This release adds support for new features:
+
+	- TLS upgrade of existing connections.
+	- Inbound HTTPS connections
+	- Use of a supervisor process to relaunch gtk-gnutella on crashes
+
+The TLS upgrade allows connections that have started without TLS to negotiate
+TLS on the fly without having to reconnect. They are flagged as "e" to show
+that encryption was dynamically added, as opposed to "E" which indicates an
+initial TLS connection.
+
+Certificates are now automatically generated and this allows HTTPS connections
+from browsers.  For now this is of limited use, but it will come handy in the
+near future when building a web-enabled GUI.
+
+To be more resilient against crashes, gtk-gnutella now automatically launches
+a supervisor process that will launch the real gtk-gnutella as a child process
+and monitor its fate, restarting a new process when the old one failed.  This
+is far more robust than having the process re-exec() itself at crash time since
+there are some crashing conditions that do not even allow the process to go
+that far in the crash handling...
+
+On Windows, provided you have installed Cygwin's gdb, crash logs will now
+contain a gdb backtrace of the failing process, making analysis of what went
+wrong easier than with a simple stack trace.
+
+Your previous GUID and KUID will be regenerated the next time you restart due
+to a new algorithm used to detect that a configuration file is not accidentally
+reused on another machine: the host name is now included, instead of just the
+physical file information.  So when moving a disk to another machine, or simply
+cloning an existing virtual machine, we are no longer going to reuse these
+IDs which are supposed to be unique by properly detecting that the information
+was copied over.
+
+A bug in open_read() caused the Geo IP database to not be loaded on Windows.
+
+Finally, all the options given to gtk-gnutella can now be abbreviated as long
+as they are not ambiguous (i.e. enough is given to make them non-ambiguous).
+For instance, given the current set of options, --p would be ambiguous but --s
+will always mean --shell.  However, --pi is not ambiguous and refers to --ping.
+
+Improvements:
+- By default, gtk-gnutella now supervises its children to restart them.
+- Now allows incoming HTTPS connections.
+- Added support for Gnutella connection upgrade to TLS.
+- Added support of RFC-2817 for upgrading to TLS within HTTP/1.1.
+- Dump symbolic stack when crashing in supervised mode with our parent.
+- VMM: added new flag to signal OOM condition and be aggressive with the cache.
+- Options can now be abbreviated as long as they are not ambiguous.
+- Added support for Virtual Memory Emergency Allocation (VMEA).
+- Pulled latest translations from Transifex.
+
+Bug Fixes:
+- Make sure node_by_guid() cannot return a G2 node!
+- VMM: fixed memory allocation logic during crashes.
+- open_read(): fixed logic on Windows when no renaming is requested.
+- Make sure we don't restart nor pause a failing process on --shell or --ping.
+
+Under the Hood:
+- Added spopen(), a simple popen() bypassing the shell.
+- Added Windows-specific PROT_GUARD protection type for mprotect().
+- Added log_show_pid() to direct the logging layer to show or hide the PID.
+- Added library support for file locks.
+- Added compat_process_exists() and compat_kill_zero().
+- Added ability to dynamically limit walloc() usage, remapping to xmalloc().
+- Added ability to disable halloc() at runtime, remapping it to xmalloc().
+- Added specific PID file for locking out the supervisor process.
+- Do not install periodic xgc() and zgc() unless running in a long-term process.
+- Refactored main() initializations to limit memory usage in the supervisor.
+- Windows: stop fatal recursion when the VMM layer extends the pmap.
+- Windows: revisited exception logging to give more details and simplify code.
+- Windows: reworked stack overflow detection logic.
+- Windows: added launch() and spopen() support.
+- Windows: added support for wait() and waitpid() on launched processes.
+- Windows: launch gdb in a separate thread to get symbols when crashing.
+- Windows: re-worked early init code to allow memory allocation.
+- Windows: will now be building with gnutls-3.4.5.
+- Windows: added getppid() support.
+- Windows: added getuid(), geteuid(), getgid() and getegid() emulations.
+- Windows: try to have SymInitialize() done as soon as possible.
+- Windows: added support for getrusage(RUSAGE_CHILDREN).
+- Make sure the logic used to construct fallback path is consistent.
+- Refactored Windows socket initialization.
+- Refactored setproctitle(), adding getprogname() and setprogname() as well.
+- Revisited crash_mode() to include the notion of criticity level.
+- Switched rand31() to the Park and Miller algorithm.
+- SDBM: added fadvise() hint for page accesses, with a "random" access mode.
+- Use short_time_ascii() instead of short_time() in log messages.
+- TLS: use our own random number generators.
+- TLS: use new types, with the _t trailing prefix.
+- TLS: added support for a global audit log, available since gnutls 3.0.
+- TLS: added vectorized push routine.
+- TLS: added generation of private server key at startup if missing.
+- TLS: don't need anonymous server credentials if we have a certificate.
+- TLS: added generation of self-signed certificate at startup if missing
+- TLS: removed ARCFOUR-40 from the list of overrides for GnuTLS 3.4.5.
+- TLS: enhanced to support GnuTLS 3.x and allow HTTPS connections.
+- TLS: the "custom I/O" push/pull routines are now the norm.
+- TLS: normalized logging to always use G_STRFUNC for non-informative messages.
+- mingw_fcntl(): return ENOSYS for unimplemented parts, not EINVAL!
+- mingw_fcntl(): added F_RDLCK (read-lock) support for F_SETLK operations.
+- mingw_sigraise(): trace signal, since it could be the prelude to a crash.
+- cq_init(): loudly warn if the callout queue was created automatically before.
+- cq_init(): always warn if callout queue exists, regardless of its thread.
+- pncs_convert(): avoid using the stack, prefer a thread-private buffer.
+- sdbm_set_volatile(): forgot to grab lock on entry.
+- sdbm_thread_datum(): avoid too many re-allocation overhead, sacrificing memory.
+- thread_launch(): warn once if pthread_attr_setstacksize() returns an error.
+- gwc_parse_dispatch_lines(): avoid using "eof", it shadows a global on Windows.
+- thread_launch_register(): force new PROT_GUARD protection on red-zone page.
+- shell_exec_thread_list(): use configured stack size if available.
+- spinlock_crash_mode(): dump PID as well in case process forked.
+- crash_invoke_inspector(): also attempt to launch gdb on Windows.
+- crash_invoke_inspector(): force emission of decorated stacks.
+- crash_generate_crashlog(): dump thread locks before current stack.
+- settings_random_save(): now merge randomness instead of just superseding it.
+- crash_init(): now calls stacktrace_init() with immediate symbol loading.
+- mingw_exception(): maintain exception recursive depth per thread.
+- signal_perform_cleanup(): trace signals we get during cleanup.
+- mingw_signal(): be thread-safe, in case of concurrent updates.
+- tm_init(): now controls whether to start the time thread.
+- vxml_parser_remove_buffer(): application logic was done only when debugging!
+- crash_try_reexec(): do not exec() ourselves when we have a supervising parent.
+- node_can_accept_connection(): even when "offline", accept nearby hosts.
+- tls_handshake(): log IP:port and whether remote is client or server.
+- SHA1_process_message_block(): make sure SHA1 is correct on big-endian systems.
+- node_is_now_connected(): watch out for disconnected nodes after RX injection.
+- download_get_server_name(): when name changes, reset some internal attributes.
+- entropy_seed(): make sure we're correctly seeding our KISS RNG.
+- gtk_gnutella_atexit(): do nothing if we're already crashing.
+- unique_file_token(): include the hostname into the unique file ID.
+- kuid_random_fill(): use random_key_bytes() to generate unique KUID.
+- file_locate_from_path(): tweaked for Windows to add implicit "." in PATH.
+- xallocate(): when crashing, use omalloc() for small blocks, instead of sbrk().
+- hash_table_replace(): fixed logic when inserting into a fix-sized table.
+- stack_print_decorated_to(): switch to lighter tracing if we hit an OOM.
+- mingw_execve(): redesigned to avoid using external resources.
+
+# v 1.1.6   2015-11-08  [stable]
+
+This is a bug-fixing release.
+
+This time it focues on Windows, which apparently exercised some bugs in
+common code with other platforms -- so some fixes are going to benefit to
+everyone even though the bugs did not manifest themselves as often.
+
+Improvements:
+- Increased default and max for "max_leaves" to account for modern systems.
+- Pulled latest translations from transifex.
+- Updated GeoIP databases.
+
+Bug Fixes:
+- Fixed memory leak on the error path of OOB / G2 query hit sending.
+- Fixed memory leak on the file upload path.
+- aging_insert(): was not properly handling freeing of keys, causing leaks.
+- Fixed property description message for "max_leaves".
+- Windows: no HEAP_NO_SERIALIZE flag on HeapAlloc() since we're multi-threaded.
+- mingw_valloc(): fixed monitoring of unreserved VM space.
+- Windows: optimized the inital VM space reservation.
+- rpc_delay(): avoid int overflowing, which would make delay negative!
+- node_udp_sr_data_ind(): do not crash if UDP was disabled or port was 0.
+- Fixed crashes in the omalloc() layer.
+
+Under the Hood:
+- Make sure an initial GMT offset is computed before the time thread starts.
+- Compact the aging structure on 64-bit platforms.
+- Fixed possible race between evq_trampoline() and evq_event_discard().
+- Added safety assertions: a removed item must belong to the list.
+- Fixed typos in safety assertions.
+- EVQ: closed race condition betweeen queues recreated in same thread ID.
+- Use getrlimit(RLIMIT_AS) to get the available space, not RLIMIT_DATA.
+- Windows: try harder to compute a relevant break value with sbrk(0).
+- Windows: added cpp trap for dup().
+- Windows: fixed fcntl(F_DUPFD) implementation which was not thread-safe.
+- Windows: dump symbolic PC on stack overflows, after basic information.
+- elist_remove(): assert that removed item must be part of some list.
+- evq_event_discard(): be quiet when removing event for the event queue thread.
+- evq_event_discard(): correctly handle cancelable events.
+- evq_trampoline(): factorize removal of triggered item from queue list.
+- evq_trampoline(): fixed logging message to use copied value.
+- getgateway(): on Linux, cache previously computed value in case netlink fails.
+- getgateway(): on Linux, the netlink socket can return EAGAIN on recv().
+- main_command_line(): optimized and simplified!
+- malloc_init_vtable(): be sure to set G_SLICE=always-malloc on Windows.
+- mingw_exception(): skip printing of stacktrace if we got a stack overflow.
+- mingw_getrlimit(): implement a better RLIMIT_DATA query.
+- mingw_getrlimit(): return different max / current values to account for usage.
+- mingw_signal(): always record signal handler in our internal list of handlers.
+- mingw_valloc(): don't complain about non-hinted allocations when crashing!
+- mingw_valloc(): use s_minicarp() to limit resource consumption.
+- mingw_valloc(): when nearing out-of-memory, take data segment into account.
+- mingw_vmm_init(): accelerate initialization, reducing amount of system calls.
+- mingw_win2posix(): handle 0 to avoid warnings when called with no error.
+- mingw_win2posix(): mapped ERROR_BAD_EXE_FORMAT to ENOEXEC.
+- mingw_win2posix(): mapped ERROR_NETNAME_DELETED to EHOSTUNREACH.
+- mingw_win2posix(): use s_minicarp() instead of s_warning() to see "culprit".
+- omalloc_allocate(): was releasing spinlock too soon in read-only mode.
+- omalloc_chunk_allocate_from(): fixed bug when header dissolution was required.
+- publisher_handle(): simplified code by factorizing shared_file_unref() call.
+- s_minicarp() and s_minicrit(): carefully avoid stdio when dumping stack.
+- sdbm_close(): ensure we sync pending dirty data when database is not volatile.
+- sdbm_name(): return path to the .pag file if no name was explicitly given.
+- settings_init(): when computing max VM space, use max from RLIMIT_AS, not cur.
+- socket_create_and_bind(): on Linux systems, force SO_REUSEADDR before bind().
+- sort-test: reduce verbosity by default.
+- thread_suspend_others(): silently suspends itself if concurrently asked to.
+- udp_sched_write_error(): don't dump a stack trace on send errors we expect.
+
 # v 1.1.5   2015-10-08  [stable]
 
 This is a bug-fixing release.

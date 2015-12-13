@@ -38,14 +38,16 @@
 
 #include "ascii.h"
 #include "concat.h"
-#include "path.h"
+#include "halloc.h"
 #include "log.h"				/* For s_error() */
 #include "misc.h"
-#include "halloc.h"
 #include "omalloc.h"
+#include "path.h"
+#include "spinlock.h"
+
 #include "override.h"			/* Must be the last header included */
 
-static const char *get_folder_basepath(enum special_folder which_folder);
+static const char *get_folder_basepath(enum special_folder folder);
 
 static get_folder_basepath_func_t get_folder_basepath_func =
 	get_folder_basepath;
@@ -82,7 +84,7 @@ make_pathname(const char *dir, const char *file)
 	else
 		sep = "/";
 
-	return h_strconcat(dir, sep, file, (void *) 0);
+	return h_strconcat(dir, sep, file, NULL_PTR);
 }
 
 /**
@@ -239,63 +241,51 @@ filepath_directory(const char *pathname)
 /**
  * Get special folder path.
  *
+ * @note
+ * Our caller handles the caching so that it is guaranteed that we will be
+ * called just once per folder type.
+ *
  * @return pointer to static string, NULL if folder does not exist.
  */
 static const char *
-get_folder_basepath(enum special_folder which_folder)
+get_folder_basepath(enum special_folder folder)
 {
 	char *special_path = NULL;
+	char *pathname = NULL;
 
-	switch (which_folder) {
+	switch (folder) {
 	case PRIVLIB_PATH:
-		{
-			static char *pathname;
-			static bool fetched_xdg_data_dirs;
-	
-			if (NULL == pathname && !fetched_xdg_data_dirs) {
-				special_path = getenv("XDG_DATA_DIRS");
-				fetched_xdg_data_dirs = TRUE;
+		special_path = getenv("XDG_DATA_DIRS");
 
-				if (special_path != NULL) {
-					if (is_absolute_path(special_path)) {
-						pathname = omalloc(MAX_PATH_LEN);
-						concat_strings(pathname, MAX_PATH_LEN,
-							special_path, G_DIR_SEPARATOR_S, PACKAGE,
-							(void *) 0);
-					} else {
-						s_warning("ignoring environment XDG_DATA_DIRS: "
-							"holds non-absolute path \"%s\"", special_path);
-					}
-				}
+		if (special_path != NULL) {
+			if (is_absolute_path(special_path)) {
+				pathname = omalloc(MAX_PATH_LEN);
+				concat_strings(pathname, MAX_PATH_LEN,
+					special_path, G_DIR_SEPARATOR_S, PACKAGE,
+					NULL_PTR);
+			} else {
+				s_warning("ignoring environment variable XDG_DATA_DIRS: "
+					"holds non-absolute path \"%s\"", special_path);
 			}
-
-			special_path = pathname;
 		}
+		special_path = pathname;
 		break;
 	case NLS_PATH:
-		{
-			static char *pathname;
-			static bool fetched_nlspath;
+		pathname = getenv("NLSPATH");
 
-			if (NULL == pathname && !fetched_nlspath) {
-				pathname = getenv("NLSPATH");
-				fetched_nlspath = TRUE;
-
-				if (pathname != NULL && !is_absolute_path(pathname)) {
-					s_warning("ignoring environment NLSPATH: "
-						"holds non-absolute path \"%s\"", pathname);
-					pathname = NULL;
-				} else {
-					pathname = ostrdup(pathname);
-				}
-			}
-
-			if (NULL == pathname)
-				pathname = LOCALE_EXP;
-
-			special_path = pathname;
+		if (pathname != NULL && !is_absolute_path(pathname)) {
+			s_warning("ignoring environment variable NLSPATH: "
+				"holds non-absolute path \"%s\"", pathname);
+			pathname = NULL;
 		}
+
+		if (NULL == pathname)
+			pathname = LOCALE_EXP;
+
+		special_path = pathname;
 		break;
+	case SPECIAL_FOLDER_COUNT:
+		g_assert_not_reached();
 	}
 	
 	return special_path;
@@ -316,6 +306,7 @@ special_folder_name(enum special_folder folder)
 	switch (folder) {
 	case PRIVLIB_PATH:	return "PRIVLIB_PATH";
 	case NLS_PATH:		return "NLS_PATH";
+	case SPECIAL_FOLDER_COUNT:	break;
 	}
 
 	g_assert_not_reached();
@@ -325,47 +316,60 @@ special_folder_name(enum special_folder folder)
 /**
  * Compute special folder path.
  *
- * @param which_folder		the special folder token
- * @param path				sub-path underneath the special folder
+ * @param folder	the special folder token
  *
- * @return halloc()'ed full path, NULL if special folder is unknown.
+ * @return constant string path, NULL if special folder is unknown.
  */
-char *
-get_folder_path(enum special_folder which_folder, const char *path)
+const char *
+get_folder_path(enum special_folder folder)
 {
-	char *pathname;
-	size_t offset = 0;	
+	const char *pathname;
 	const char *special_path = NULL;
+	static struct {
+		const char *path;
+		bool computed;
+	} cached[SPECIAL_FOLDER_COUNT];
+	static spinlock_t cached_slk = SPINLOCK_INIT;
 
-	special_path = (*get_folder_basepath_func)(which_folder);
-	
-	if (NULL == special_path)
-		return NULL;
-	
-	pathname = halloc(MAX_PATH_LEN);
-
-	offset = clamp_strcpy(pathname, MAX_PATH_LEN, special_path);
+	g_assert(folder >= 0 && folder < SPECIAL_FOLDER_COUNT);
 
 	/*
-	 * A special folder MUST be an absolute path.
+	 * Lookup in the cache first, so that we do not re-attempt to dynamically
+	 * compute something that failed earlier (i.e. a NULL pointer is not
+	 * sufficient to trigger computation).
 	 */
 
-	if (!is_absolute_path(pathname)) {
-		s_error("special folder %s is not an absolute path: %s",
-			special_folder_name(which_folder), pathname);
+	if (cached[folder].computed)
+		return cached[folder].path;		/* Can be NULL */
+
+	spinlock(&cached_slk);
+
+	if G_UNLIKELY(cached[folder].computed) {
+		spinunlock(&cached_slk);
+		return cached[folder].path;		/* Can be NULL */
 	}
 
-	/*
-	 * If we have a sub-path underneath the special folder, append it at the
-	 * tail of the path we already figured.
-	 */
+	special_path = (*get_folder_basepath_func)(folder);
 
-	if (path != NULL) {
-		/* Add directory separator if missing at the tail of the special path */
-		if (offset > 0 && pathname[offset - 1] != G_DIR_SEPARATOR)
-			pathname[offset++] = G_DIR_SEPARATOR;
-		clamp_strcpy(&pathname[offset], MAX_PATH_LEN - offset, path);
+	if (NULL == special_path) {
+		pathname = NULL;
+	} else {
+		pathname = ostrdup_readonly(special_path);
+
+		/*
+		 * A special folder MUST be an absolute path.
+		 */
+
+		if (!is_absolute_path(pathname)) {
+			s_error("special folder %s is not an absolute path: %s",
+				special_folder_name(folder), pathname);
+		}
 	}
+
+	cached[folder].path = pathname;
+	cached[folder].computed = TRUE;
+
+	spinunlock(&cached_slk);
 
 	return pathname;
 }

@@ -173,11 +173,12 @@ dbg_ds_logv(const dbg_config_t *dc, const void *o,
 	const char *fmt, va_list args)
 {
 	buf_t *b = buf_private(G_STRFUNC, 512);
+	const char *str = buf_data(b);
 	size_t len;
 
 	len = buf_vprintf(b, fmt, args);
 	g_debug("%s%s \"%s\" %s%s",
-		dc->prefix, dc->type, dbg_ds_name(dc, o), buf_data(b),
+		dc->prefix, dc->type, dbg_ds_name(dc, o), str,
 		len == buf_size(b) - 1 ? "...more..." : "");
 }
 

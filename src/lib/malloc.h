@@ -193,6 +193,8 @@
 #define h_strconcat(s, ...) \
 	strconcat_track(_WHERE_, __LINE__, s, __VA_ARGS__)
 
+#define h_strconcat_v(s, ap) strconcat_v_track(_WHERE_, __LINE__, s, ap)
+
 /*
  * Use STRTRACK() to track an allocated string by some obscure routine that
  * does not happen to be wrapped here, so that we can remember it is an
@@ -260,6 +262,7 @@ char *strndup_track(const char *s, size_t n, const char *file, int line);
 void *memdup_track(const void *p, size_t size, const char *file, int line);
 char *strjoinv_track(const char *s, char **vec, const char *file, int line);
 char *strconcat_track(const char *file, int line, const char *s, ...);
+char *strconcat_v_track(const char *file, int line, const char *s, va_list ap);
 char *strdup_vprintf_track(const char *file, int line,
 	const char *fmt, va_list ap);
 char *strdup_len_vprintf_track(const char *file, int line,

@@ -726,10 +726,7 @@ parq_download_retry_active_queued(struct download *d)
 		}
 
 		/* s->getline could be NULL if we switched downloads above */
-		if (s->getline != NULL) {
-			getline_free(s->getline);		/* No longer need this */
-			s->getline = NULL;
-		}
+		getline_free_null(&s->getline);
 
 		/* Resend request for download */
 		download_send_request(d);
@@ -2267,7 +2264,7 @@ parq_upload_find(const struct upload *u)
 	} else if (u->name) {
 		concat_strings(buf, sizeof buf,
 			host_addr_to_string(u->addr), " ", u->name,
-			(void *) 0);
+			NULL_PTR);
 		return hikset_lookup(ul_all_parq_by_addr_and_name, buf);
 	} else {
 		return NULL;
@@ -3452,7 +3449,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 				puq->position,
 				puq->relative_position,
 				puq->queue->by_position_length,
-				short_time(parq_upload_lookup_eta(u)),
+				short_time_ascii(parq_upload_lookup_eta(u)),
 				host_addr_to_string(puq->remote_addr),
 				puq->name, guid_hex_str(&puq->id));
 	}
@@ -3608,7 +3605,7 @@ parq_upload_abusing(
 		"host %s (%s) re-requested \"%s\" too soon (%s early, warn #%u)",
 		host_addr_port_to_string(u->socket->addr, u->socket->port),
 		upload_vendor_str(u),
-		u->name, short_time(delta_time(org_retry, now)),
+		u->name, short_time_ascii(delta_time(org_retry, now)),
 		puq->ban_countwait);
 
 	if (
@@ -3627,7 +3624,7 @@ parq_upload_abusing(
 			"punishing %s (%s) for re-requesting \"%s\" %s early [%s]",
 			host_addr_port_to_string(u->socket->addr, u->socket->port),
 			upload_vendor_str(u),
-			u->name, short_time(delta_time(org_retry, now)),
+			u->name, short_time_ascii(delta_time(org_retry, now)),
 			guid_hex_str(&puq->id));
 
 		parq_add_banned_source(u->addr, delta_time(puq->retry, now));
@@ -4376,7 +4373,7 @@ parq_upload_add_retry_after_header(char *buf, size_t size, uint d)
 
 	len = concat_strings(buf, size,
 			"Retry-After: ", uint32_to_string(d), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 	return len < size ? len : 0;
 }
 
@@ -4422,7 +4419,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 	len = concat_strings(&buf[rw], size,
 			"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
 			/* No CRLF yet, we're still appending to this header */
-			(void *) 0);
+			NULL_PTR);
 
 	if (len < size) {
 		rw += len;
@@ -4432,7 +4429,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 
 		len = concat_strings(&buf[rw], size,
 			"; position=", uint32_to_string(puq->relative_position),
-			(void *) 0);
+			NULL_PTR);
 
 		if (len < size) {
 			rw += len;
@@ -4441,20 +4438,20 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 			if (!small_reply) {
 				len = concat_strings(&buf[rw], size,
 					"; lifetime=", uint32_to_string(max_poll),
-					(void *) 0);
+					NULL_PTR);
 				if (len < size) {
 					rw += len;
 					size -= len;
 					len = concat_strings(&buf[rw], size,
 						"; length=",
 						uint32_to_string(puq->queue->by_position_length),
-						(void *) 0);
+						NULL_PTR);
 					if (len < size) {
 						rw += len;
 						size -= len;
 						len = concat_strings(&buf[rw], size,
 							"; ETA=", uint32_to_string(puq->eta),
-							(void *) 0);
+							NULL_PTR);
 						if (len < size) {
 							rw += len;
 							size -= len;
@@ -4466,7 +4463,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 
 		len = concat_strings(&buf[rw], sizeof "\r\n",
 				"\r\n",
-				(void *) 0);
+				NULL_PTR);
 		rw += len;
 	}
 	return rw;
@@ -4583,7 +4580,7 @@ parq_upload_add_header_id(char *buf, size_t size, void *arg,
 		len = concat_strings(&buf[rw], size,
 				"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
 				"\r\n",
-				(void *) 0);
+				NULL_PTR);
 
 		if (len >= size)
 			goto finish;
@@ -5390,7 +5387,7 @@ parq_upload_load_queue(void)
 					puq->position,
 				 	puq->relative_position,
 					puq->queue->by_position_length,
-					short_time(parq_upload_lookup_eta(fake_upload)),
+					short_time_ascii(parq_upload_lookup_eta(fake_upload)),
 					host_addr_to_string(puq->remote_addr),
 					puq->supports_parq ? " (PARQ)" : "",
 					puq->name);

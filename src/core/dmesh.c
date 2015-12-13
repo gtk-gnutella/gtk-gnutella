@@ -251,7 +251,7 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
 	info->idx = idx;
 
 	if (sha1) {
-		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), (void *) 0);
+		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), NULL_PTR);
 		info->name = urn;
 	} else {
 		info->name = name;
@@ -1533,7 +1533,7 @@ dmesh_urlinfo_to_string_buf(const dmesh_urlinfo_t *info, char *buf,
 	host = info->port == HTTP_PORT
 			? host_addr_to_string(info->addr)
 			: host_addr_port_to_string(info->addr, info->port);
-	rw = concat_strings(buf, len, "http://", host, (void *) 0);
+	rw = concat_strings(buf, len, "http://", host, NULL_PTR);
 	if (rw >= maxslen)
 		return (size_t) -1;
 
@@ -1714,7 +1714,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 	 */
 
 	rw += concat_strings(&buf[rw], size - rw,
-			" ", timestamp_utc_to_string(dme->stamp), (void *) 0);
+			" ", timestamp_utc_to_string(dme->stamp), NULL_PTR);
 
 	return rw < size ? rw : (size_t) -1;
 }
@@ -1748,7 +1748,7 @@ dmesh_entry_fw_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 	 */
 
 	rw += concat_strings(&buf[rw], size - rw,
-			";", timestamp_utc_to_string(dme->stamp), (void *) 0);
+			";", timestamp_utc_to_string(dme->stamp), NULL_PTR);
 
 	return rw < size ? rw : (size_t) -1;
 }

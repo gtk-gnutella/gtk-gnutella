@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-199]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  ftw-test.c  random-test.c  sort-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  ftw-test.o  random-test.o  sort-test.o  thread-test.o
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -134,6 +134,7 @@ LSRC = \
 	alloca.c \
 	aq.c \
 	arc4random.c \
+	argv.c \
 	ascii.c \
 	atio.c \
 	atoms.c \
@@ -183,11 +184,13 @@ LSRC = \
 	event.c \
 	evq.c \
 	exit.c \
+	exit2str.c \
 	fast_assert.c \
 	fd.c \
 	file.c \
 	file_object.c \
 	filehead.c \
+	filelock.c \
 	filename.c \
 	float.c \
 	fragcheck.c \
@@ -223,6 +226,7 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	launch.c \
 	leak.c \
 	list.c \
 	listener.c \
@@ -256,6 +260,7 @@ LSRC = \
 	pmsg.c \
 	pow2.c \
 	product.c \
+	progname.c \
 	prop.c \
 	pslist.c \
 	rand31.c \
@@ -267,6 +272,7 @@ LSRC = \
 	sectoken.c \
 	semaphore.c \
 	sequence.c \
+	setproctitle.c \
 	sha1.c \
 	shuffle.c \
 	signal.c \
@@ -274,11 +280,13 @@ LSRC = \
 	smsort.c \
 	sorted_array.c \
 	spinlock.c \
+	spopen.c \
 	stacktrace.c \
 	stats.c \
 	str.c \
 	stringify.c \
 	strtok.c \
+	strvec.c \
 	symbols.c \
 	symtab.c \
 	tea.c \
@@ -297,6 +305,7 @@ LSRC = \
 	utf8.c \
 	vector.c \
 	vendors.c \
+	vmea.c \
 	vmm.c \
 	vsort.c \
 	waiter.c \
@@ -321,6 +330,7 @@ LOBJ = \
 	alloca.o \
 	aq.o \
 	arc4random.o \
+	argv.o \
 	ascii.o \
 	atio.o \
 	atoms.o \
@@ -370,11 +380,13 @@ LOBJ = \
 	event.o \
 	evq.o \
 	exit.o \
+	exit2str.o \
 	fast_assert.o \
 	fd.o \
 	file.o \
 	file_object.o \
 	filehead.o \
+	filelock.o \
 	filename.o \
 	float.o \
 	fragcheck.o \
@@ -410,6 +422,7 @@ LOBJ = \
 	iprange.o \
 	ipset.o \
 	iso3166.o \
+	launch.o \
 	leak.o \
 	list.o \
 	listener.o \
@@ -443,6 +456,7 @@ LOBJ = \
 	pmsg.o \
 	pow2.o \
 	product.o \
+	progname.o \
 	prop.o \
 	pslist.o \
 	rand31.o \
@@ -454,6 +468,7 @@ LOBJ = \
 	sectoken.o \
 	semaphore.o \
 	sequence.o \
+	setproctitle.o \
 	sha1.o \
 	shuffle.o \
 	signal.o \
@@ -461,11 +476,13 @@ LOBJ = \
 	smsort.o \
 	sorted_array.o \
 	spinlock.o \
+	spopen.o \
 	stacktrace.o \
 	stats.o \
 	str.o \
 	stringify.o \
 	strtok.o \
+	strvec.o \
 	symbols.o \
 	symtab.o \
 	tea.o \
@@ -484,6 +501,7 @@ LOBJ = \
 	utf8.o \
 	vector.o \
 	vendors.o \
+	vmea.o \
 	vmm.o \
 	vsort.o \
 	waiter.o \
@@ -586,6 +604,17 @@ local_clean::
 	$(RM) floats float-dragon.out bad-fixed float-times ftw-check
 	./ftw-mktree -r
 
+all:: filelock-test
+
+local_realclean::
+	$(RM) filelock-test$(_EXE)
+
+filelock-test:  filelock-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  filelock-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
 all:: float-test
 
 local_realclean::
@@ -608,6 +637,17 @@ ftw-test:  ftw-test.o  libshared.a
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  ftw-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
+all:: launch-test
+
+local_realclean::
+	$(RM) launch-test$(_EXE)
+
+launch-test:  launch-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  launch-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
 all:: random-test
 
 local_realclean::
@@ -629,6 +669,17 @@ sort-test:  sort-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  sort-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: spopen-test
+
+local_realclean::
+	$(RM) spopen-test$(_EXE)
+
+spopen-test:  spopen-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  spopen-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: thread-test
 

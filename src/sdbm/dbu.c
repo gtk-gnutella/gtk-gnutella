@@ -5,12 +5,11 @@
 #include "common.h"
 
 #include "sdbm.h"
+#include "lib/progname.h"
 #include "lib/vmm.h"
 #include "lib/halloc.h"
 
 extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
-
-char *progname;
 
 static int rflag;
 static char *usage = "%s [-R] cat | look |... dbmname";
@@ -183,8 +182,7 @@ badk(char *word)
 {
 	register int i;
 
-	if (progname)
-		fprintf(stderr, "%s: ", progname);
+	fprintf(stderr, "%s: ", getprogname());
 	fprintf(stderr, "bad keywd %s. use one of\n", word);
 	for (i = 0; i < (int)CTABSIZ; i++)
 		fprintf(stderr, "%-8s%c", cmds[i].sname,
@@ -213,11 +211,11 @@ main(int argc, char **argv)
 	register cmd *act;
 	extern int optind;
 
+	progstart(argc, argv);
+
 	/* Initialize memory allocation routines used by the sdbm library */
 	vmm_init();
 	halloc_init(FALSE);
-
-	progname = argv[0];
 
 	while ((c = getopt(argc, argv, "R")) != EOF)
 		switch (c) {

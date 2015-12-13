@@ -52,6 +52,7 @@ void file_register_fd_reclaimer(reclaim_fd_t callback);
 bool file_exists(const char *pathname);
 
 char *file_locate_from_path(const char *argv0);
+char *file_program_path(const char *argv0);
 
 FILE *file_config_open_read(
 	const char *what, const file_path_t *fv, int fvcnt);

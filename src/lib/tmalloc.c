@@ -1898,7 +1898,7 @@ tmalloc_reset(tmalloc_t *tma)
 }
 
 /**
- * Initializethe thread-local keys used to store the magazine list and the
+ * Initialize the thread-local keys used to store the magazine list and the
  * registered thread gc event.
  */
 static void

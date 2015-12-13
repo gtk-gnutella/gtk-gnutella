@@ -74,10 +74,13 @@ hcopy(const void *p, size_t size)
 
 char *h_strdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *h_strndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-char *h_strjoinv(const char *separator, char **str_array);
+char *h_strjoinv(const char *separator, char * const *str_ary);
+char *h_strnjoinv(const char *separator, size_t seplen, char * const *str_ary);
 void h_strfreev(char **str_array);
 char *h_strconcat(const char *str1, ...) WARN_UNUSED_RESULT G_GNUC_MALLOC 
 	G_GNUC_NULL_TERMINATED;
+char *h_strconcat_v(const char *first, va_list ap)
+	WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
 char *h_strdup_vprintf(const char *format, va_list ap) G_GNUC_PRINTF(1, 0);
 char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
@@ -85,6 +88,9 @@ char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
 #endif	/* !TRACK_MALLOC */
 
 void halloc_init(bool replace_malloc);
+bool halloc_disable(void);
+bool halloc_is_disabled(void);
+bool halloc_is_possible(void);
 void hdestroy(void);
 bool halloc_replaces_malloc(void);
 bool halloc_is_available(void);

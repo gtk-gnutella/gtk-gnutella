@@ -7422,8 +7422,8 @@ search_locally(gnet_search_t sh, const char *query)
 				name = shared_file_name_nfc(sf);
 				path = shared_file_relative_path(sf);
 				if (path) {
-					buf_size = w_concat_strings(&buf,
-									path, "/", name, (void *) 0);
+					buf_size =
+						w_concat_strings(&buf, path, "/", name, NULL_PTR);
 					name = buf;
 				}
 				ret = regexec(re, name, 0, NULL, 0);

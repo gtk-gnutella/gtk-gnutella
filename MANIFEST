@@ -72,6 +72,7 @@ doc/gnutella/compression
 doc/gnutella/crawler
 doc/gnutella/deflated_udp
 doc/gnutella/dynamic_query
+doc/gnutella/gnet-TLS-upgrade
 doc/gnutella/gwcache
 doc/gnutella/handshaking_0.6
 doc/gnutella/hostname
@@ -634,6 +635,8 @@ src/lib/aq.c
 src/lib/aq.h
 src/lib/arc4random.c
 src/lib/arc4random.h
+src/lib/argv.c
+src/lib/argv.h
 src/lib/array.h
 src/lib/array_util.h
 src/lib/ascii.c
@@ -660,6 +663,7 @@ src/lib/bigint.h
 src/lib/bit_array.ht
 src/lib/bit_field.ht
 src/lib/bit_generic.t
+src/lib/bsearch.h
 src/lib/bstr.c
 src/lib/bstr.h
 src/lib/buf.c
@@ -741,6 +745,8 @@ src/lib/evq.c
 src/lib/evq.h
 src/lib/exit.c
 src/lib/exit.h
+src/lib/exit2str.c
+src/lib/exit2str.h
 src/lib/fast_assert.c
 src/lib/fast_assert.h
 src/lib/fd.c
@@ -752,6 +758,9 @@ src/lib/file_object.c
 src/lib/file_object.h
 src/lib/filehead.c
 src/lib/filehead.h
+src/lib/filelock-test.c
+src/lib/filelock.c
+src/lib/filelock.h
 src/lib/filename.c
 src/lib/filename.h
 src/lib/float-dragon_out.bz2
@@ -827,6 +836,9 @@ src/lib/ipset.c
 src/lib/ipset.h
 src/lib/iso3166.c
 src/lib/iso3166.h
+src/lib/launch-test.c
+src/lib/launch.c
+src/lib/launch.h
 src/lib/leak.c
 src/lib/leak.h
 src/lib/list.c
@@ -897,6 +909,8 @@ src/lib/pow2.c
 src/lib/pow2.h
 src/lib/product.c
 src/lib/product.h
+src/lib/progname.c
+src/lib/progname.h
 src/lib/prop.c
 src/lib/prop.h
 src/lib/pslist.c
@@ -922,6 +936,8 @@ src/lib/semaphore.c
 src/lib/semaphore.h
 src/lib/sequence.c
 src/lib/sequence.h
+src/lib/setproctitle.c
+src/lib/setproctitle.h
 src/lib/sha1.c
 src/lib/sha1.h
 src/lib/shuffle.c
@@ -937,6 +953,9 @@ src/lib/sorted_array.c
 src/lib/sorted_array.h
 src/lib/spinlock.c
 src/lib/spinlock.h
+src/lib/spopen-test.c
+src/lib/spopen.c
+src/lib/spopen.h
 src/lib/stacktrace.c
 src/lib/stacktrace.h
 src/lib/stats.c
@@ -947,6 +966,8 @@ src/lib/stringify.c
 src/lib/stringify.h
 src/lib/strtok.c
 src/lib/strtok.h
+src/lib/strvec.c
+src/lib/strvec.h
 src/lib/symbols.c
 src/lib/symbols.h
 src/lib/symtab.c
@@ -987,6 +1008,8 @@ src/lib/vector.c
 src/lib/vector.h
 src/lib/vendors.c
 src/lib/vendors.h
+src/lib/vmea.c
+src/lib/vmea.h
 src/lib/vmm.c
 src/lib/vmm.h
 src/lib/vsort.c

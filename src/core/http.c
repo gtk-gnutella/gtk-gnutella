@@ -378,7 +378,7 @@ http_hostname_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	len = concat_strings(buf, size,
 			"X-Hostname: ", GNET_PROPERTY(server_hostname), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 	return len < size ? len : 0;
 }
 
@@ -396,7 +396,7 @@ http_retry_after_add(char *buf, size_t size,
 	(void) unused_flags;
 	len = concat_strings(buf, size,
 			"Retry-After: ", uint32_to_string(GPOINTER_TO_UINT(arg)), "\r\n",
-			(void *) 0);
+			NULL_PTR);
 	return len < size ? len : 0;
 }
 
@@ -3309,8 +3309,7 @@ nextline:
 	 */
 
 failed:
-	if (h != NULL)
-		header_free(h);
+	header_free_null(&h);
 	getline_free(gl);
 	if (msg != NULL && ack_msg != NULL) {
 		hfree(*msg);

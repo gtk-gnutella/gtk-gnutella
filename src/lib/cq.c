@@ -2051,6 +2051,19 @@ cq_init(cq_invoke_t idle, const uint32 *debug)
 {
 	STATIC_ASSERT(IS_POWER_OF_2(HASH_SIZE));
 
+	/*
+	 * Loudly warn if the callout queue already exists when this routine
+	 * is called: it could have been initialized to run in the main thread
+	 * and that thread may not be the proper one.  It indicates that the
+	 * appplication initialization order is not correct.
+	 *		--RAM. 2015-11-18
+	 */
+
+	if G_UNLIKELY(callout_queue != NULL) {
+		s_minicarp("%s(): callout queue already setup and running in %s",
+			G_STRFUNC, thread_id_name(callout_queue->cq_stid));
+	}
+
 	cq_main_init();
 	cq_debug_ptr = debug;
 

@@ -55,6 +55,7 @@ typedef struct zone zone_t;
 zone_t *zcreate(size_t, unsigned, bool);
 zone_t *zget(size_t, unsigned, bool);
 void zdestroy(zone_t *zone);
+bool zdestroy_if_empty(zone_t *zone);
 
 size_t zone_blocksize(const zone_t *zone) G_GNUC_PURE;
 size_t zone_size(const zone_t *zone) G_GNUC_PURE;
@@ -84,6 +85,7 @@ void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
 void zfree_pslist(zone_t *, struct pslist *);
 void zfree_eslist(zone_t *zone, struct eslist *el);
 void zgc(bool overloaded);
+void zalloc_long_term(void);
 
 void zalloc_stats_digest(struct sha1 *digest);
 

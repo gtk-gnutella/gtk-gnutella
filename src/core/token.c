@@ -565,6 +565,37 @@ static const char *keys_101_6[] = {
 	"e113 e05c f75d b6f8 61f8 62d6 be68 c138",
 };
 
+static const char *keys_101_7[] = {
+	"0d3c 02a2 5e56 5f39 609b 7c85 e272 1946",
+	"f854 c268 4afb 5c4b dacc 15ba 28af f140",
+	"db35 3ea8 0ee9 e3de 54ab 7cd5 3aee 1678",
+	"a5ee c97c a65c 80ed eab0 5016 259d 7d0b",
+	"1924 abc5 eeba 420b 8519 e792 1f0d b066",
+	"104c 2d53 18cb 479b 32ff a21d 8b8e 932c",
+	"bb49 419c efac 3a45 e9b5 ca2a ccd1 11a6",
+	"4d54 3aa7 c2f8 2c05 655a 8dff 82c2 a413",
+	"a845 4771 9c15 b101 b4fb c8a9 cff1 9f5a",
+	"7fb8 1f13 f6dc b1bd a78f f97e 0280 21d8",
+	"7ac2 b366 c007 0f08 c767 f33e e820 a60e",
+	"2aba 8da6 35da 0e57 d63e f082 adb4 bcf6",
+	"50bb 9dd2 b9d3 9643 836f b825 d91c c8b1",
+	"1d74 f303 a08c 2c0e bbdb 787b 82d1 1ec8",
+	"0518 0d55 4bd9 c226 6126 bde8 ddd5 49c6",
+	"17fa 7242 7d8b a5e2 ef7f fc53 471e c6a8",
+	"f661 ddd6 9cad ea22 0ce2 7365 6a8e f0b3",
+	"6947 1c7b eaf4 c15b 1ca4 2d7f 3432 6a00",
+	"da13 d844 2f5f 1da8 36e1 7a30 6e5f 2153",
+	"cc7f bf19 58ca 9a9f d83c b7c5 83de a1d2",
+	"c53d cfcd 5c3c 9aac d956 fd41 f355 a401",
+	"bf8c db79 352c 7d2b 4070 c82f 5fe3 aeed",
+	"a9db 8e75 c3c7 ba9d 8d57 56cc f933 80d0",
+	"f7a2 0627 6d71 5e34 b4c0 3430 73c6 061f",
+	"607a 89c4 9f7d 306c a42a 268a 0cab d32d",
+	"8254 5734 1ba1 da50 07d6 0a99 2219 8a2a",
+	"ebbc 6e73 663c 18ef f93e c9a0 e420 6231",
+	"ed20 5683 365b 1481 f1be ad4c 5e5f 3a76",
+};
+
 #define KEYS(x)		keys_ ## x, G_N_ELEMENTS(keys_ ## x)
 
 /**
@@ -592,6 +623,7 @@ struct tokkey {
 	{ { 1, 1,  4, '\0', 0, 0, 1441749600 }, KEYS(101_4) },	/* 2015-09-09 */
 	{ { 1, 1,  5, '\0', 0, 0, 1444255200 }, KEYS(101_5) },	/* 2015-10-08 */
 	{ { 1, 1,  6, '\0', 0, 0, 1446937200 }, KEYS(101_6) },	/* 2015-11-08 */
+	{ { 1, 1,  7, '\0', 0, 0, 1449961200 }, KEYS(101_7) },	/* 2015-12-13 */
 };
 
 #undef KEYS
@@ -804,7 +836,7 @@ find_latest(const version_t *rver)
  * and the token key structure used in `tkused'.
  */
 static const char *
-random_key(time_t now, uint *idx, const struct tokkey **tkused)
+token_random_key(time_t now, uint *idx, const struct tokkey **tkused)
 {
 	static bool warned = FALSE;
 	uint random_idx;
@@ -871,7 +903,7 @@ tok_generate(time_t now, const char *version)
 	 * Compute token.
 	 */
 
-	key = random_key(now, &idx, &tk);
+	key = token_random_key(now, &idx, &tk);
 	now = clock_loc2gmt(now);				/* As close to GMT as possible */
 
 	poke_be32(&digest[0], now);
@@ -908,7 +940,7 @@ tok_generate(time_t now, const char *version)
 	ZERO(&lvlbase64);
 	base64_encode_into(lvldigest, 2 * lvlsize, lvlbase64, LEVEL_BASE64_SIZE);
 
-	return h_strconcat(token, "; ", lvlbase64, (void *) 0);
+	return h_strconcat(token, "; ", lvlbase64, NULL_PTR);
 }
 
 /**

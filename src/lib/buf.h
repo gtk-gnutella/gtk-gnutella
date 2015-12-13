@@ -82,8 +82,10 @@ buf_check(const struct buf * const b)
  * @param b			the buffer structure to initialize
  * @param arena		the data arena start
  * @param size		the size of the supplied arena, in bytes
+ *
+ * @return its parameter b, as a convenience.
  */
-static inline void
+static inline buf_t *
 buf_init(buf_t *b, void *arena, size_t size)
 {
 	g_assert(arena != NULL);
@@ -91,6 +93,8 @@ buf_init(buf_t *b, void *arena, size_t size)
 	b->b_magic = BUF_MAGIC_STATIC;
 	b->b_size = size;
 	b->b_u.bu_data = arena;
+
+	return b;
 }
 
 /**
@@ -115,7 +119,7 @@ buf_is_embedded(const buf_t *b)
 /**
  * @return the physical data buffer.
  */
-static inline char *
+static inline void *
 buf_data(const buf_t *b)
 {
 	buf_check(b);

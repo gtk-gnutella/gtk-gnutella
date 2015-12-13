@@ -91,7 +91,6 @@
 #include "pow2.h"
 #include "pslist.h"
 #include "sha1.h"
-#include "shuffle.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "teq.h"
@@ -104,7 +103,6 @@
 #include "override.h"			/* Must be the last header included */
 
 #define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
-#define RANDOM_PRNG_SELECT		2			/* # of PRNGs to feed entropy to */
 
 /**
  * Pseudo Random Number Generators managed by this library and for which
@@ -136,6 +134,7 @@ static struct random_stats {
 	AU64(output_random_bytes);			/* Bytes emitted via random_bytes() */
 	AU64(output_random_bytes_with);		/* ... via random_bytes_with() */
 	AU64(output_random_strong_bytes);	/* ... via random_strong_bytes() */
+	AU64(output_random_key_bytes);		/* ... via random_key_bytes() */
 	AU64(random_entropy_distribution);	/* Entropy distribution to PRNGs */
 	AU64(aje_distributed);				/* # of distributions to global AJE */
 	AU64(aje_thread_distributed);		/* # of distributions to thread AJE */
@@ -159,6 +158,7 @@ static struct random_stats {
 	AU64(random_bytes);					/* Calls to routine */
 	AU64(random_bytes_with);			/* Calls to routine */
 	AU64(random_strong_bytes);			/* Calls to routine */
+	AU64(random_key_bytes);				/* Calls to routine */
 	AU64(random_double);				/* Calls to routine */
 	AU64(random_double_generate);		/* Calls to routine */
 	AU64(random_add);					/* Calls to routine */
@@ -563,6 +563,44 @@ random_strong_bytes(void *dst, size_t size)
 }
 
 /**
+ * Hyper-strong random routine to generate key-grade randomness.
+ */
+static uint32
+random_key(void)
+{
+	uint32 r1, r2;
+
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+	r2 = UINT32_ROTR(r1, 13);
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+	r2 += UINT32_ROTL(r1, 7);
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+
+	/*
+	 * It is NOT a mistake: we're using entropy_minirand() in the
+	 * UINT32_ROTR() macro, meaning it will be called twice.
+	 */
+
+	return r1 + r2 + UINT32_ROTR(entropy_minirand(), 17);
+}
+
+/**
+ * Fills buffer 'dst' with 'size' bytes of KEY-material random data.
+ *
+ * This should be the preferred method when generating a cryptographic key
+ * as it is slow and uses global random pools, which means taking and
+ * releasing about 14 locks for each 32-bit number we're generating.
+ */
+void
+random_key_bytes(void *dst, size_t size)
+{
+	RANDOM_STATS_INC(random_key_bytes);
+	RANDOM_STATS_ADD(output_random_key_bytes, size);
+
+	random_bytes_with(random_key, dst, size);
+}
+
+/**
  * Return random noise, CPU intensive on purpose (to add random response delay).
  */
 uint32
@@ -757,7 +795,7 @@ random_collect(void)
 	static tm_t last;
 	static time_delta_t prev;
 	static time_delta_t running;
-	static unsigned sum;
+	static uint32 sum;
 	static spinlock_t collect_slk = SPINLOCK_INIT;
 	tm_t now;
 	time_delta_t d;
@@ -812,6 +850,7 @@ random_collect(void)
 
 	sum += r;
 	rbyte = sum & 0xff;
+	sum = UINT32_ROTL(sum, 7);
 
 	spinunlock(&collect_slk);
 
@@ -939,7 +978,17 @@ static bool
 random_entropy(void *unused)
 {
 	static enum random_prng prngs[] =
-		{ RANDOM_AJE, RANDOM_ARC4, RANDOM_CMWC, RANDOM_WELL };
+		/* Priority to ARC4, then AJE -- see detailed comment below */
+		{
+			RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4,
+			RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4,
+			RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4,
+			RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4, RANDOM_ARC4,
+			RANDOM_AJE,  RANDOM_AJE,  RANDOM_AJE,  RANDOM_AJE,  RANDOM_AJE,
+			RANDOM_AJE,  RANDOM_AJE,  RANDOM_AJE,  RANDOM_AJE,  RANDOM_AJE,
+			RANDOM_CMWC,
+			RANDOM_WELL
+		};
 	bool has_new;
 	struct random_byte_data *rbd = NULL;
 	uint8 entropy[256];
@@ -947,6 +996,15 @@ random_entropy(void *unused)
 
 	(void) unused;
 	RANDOM_STATS_INC(random_entropy);
+
+	/*
+	 * This routine is regularily scheduled.  In case there is no other source
+	 * of entropy in the process, collect one random byte into the pool,
+	 * which eventually will get full, flushed, and will allow us to proceed
+	 * further and dispatch our collected randomness.
+	 */
+
+	random_collect();
 
 	RANDOM_ENTROPY_LOCK;
 
@@ -969,52 +1027,55 @@ random_entropy(void *unused)
 	aje_random_bytes(entropy, ELEN);
 
 	/*
-	 * Now feed the random entropy to RANDOM_PRNG_SELECT randomly selected
-	 * generators.
+	 * Now feed the random entropy to one randomly selected generator.
 	 *
-	 * NOTE: we do not need to lock the global prngs[] array here since we
-	 * know this routine is periodically dispatched from the event queue
-	 * and therefore it cannot be concurrently executed.
+	 * The items in the prngs[] array are not uniformly distributed: we give
+	 * a higher chance to ARC4 because there are immediate effects on the
+	 * output.  Then to AJE because this spreads randomness in the AJE pools
+	 * and safeguards the long-term unpredictability of AJE outputs.
+	 *
+	 * Both WELL and CMWC contexts are less likely to be given new randomness
+	 * because they are not cryptographically strong algorithms and are more
+	 * designed for the long-term statistical properties of their numbers.
+	 *
+	 * This preference is given by having a larger proportion of ARC4, then
+	 * AJE, and only a marginal presence for WELL and CMWC.
 	 */
 
-	SHUFFLE_ARRAY(prngs);
+	i = random_value(G_N_ELEMENTS(prngs) - 1);
 
-	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
-		switch (prngs[i]) {
-		case RANDOM_AJE:
-			RANDOM_STATS_INC(aje_distributed);
-			aje_addrandom(entropy, ELEN);
-			break;
-		case RANDOM_ARC4:
-			RANDOM_STATS_INC(arc4_distributed);
-			arc4random_addrandom(entropy, (int) ELEN);
-			break;
-		case RANDOM_CMWC:
-			RANDOM_STATS_INC(cmwc_distributed);
-			cmwc_addrandom(entropy, ELEN);
-			break;
-		case RANDOM_WELL:
-			RANDOM_STATS_INC(well_distributed);
-			well_addrandom(entropy, ELEN);
-			break;
-		case RANDOM_PRNG_COUNT:
-			g_assert_not_reached();
-		}
+	switch (prngs[i]) {
+	case RANDOM_AJE:
+		RANDOM_STATS_INC(aje_distributed);
+		aje_addrandom(entropy, ELEN);
+		break;
+	case RANDOM_ARC4:
+		RANDOM_STATS_INC(arc4_distributed);
+		arc4random_addrandom(entropy, (int) ELEN);
+		break;
+	case RANDOM_CMWC:
+		RANDOM_STATS_INC(cmwc_distributed);
+		cmwc_addrandom(entropy, ELEN);
+		break;
+	case RANDOM_WELL:
+		RANDOM_STATS_INC(well_distributed);
+		well_addrandom(entropy, ELEN);
+		break;
+	case RANDOM_PRNG_COUNT:
+		g_assert_not_reached();
 	}
 
 	/*
-	 * Propagate other random bytes to RANDOM_PRNG_SELECT randomly selected
-	 * threads using a local PRNG stream, provided the target threads have
-	 * created a Thread Event Queue (TEQ).
+	 * Propagate other random bytes to one randomly selected PNRG type in all
+	 * the local thread streams, provided the targeted threads have created a
+	 * Thread Event Queue (TEQ).
 	 */
 
 	aje_random_bytes(entropy, ELEN);	/* New random bytes */
 
-	SHUFFLE_ARRAY(prngs);
+	i = random_value(G_N_ELEMENTS(prngs) - 1);
 
-	for (i = 0; i < RANDOM_PRNG_SELECT; i++) {
-		random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
-	}
+	random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
 
 	if (rbd != NULL)
 		random_byte_data_free(rbd);
@@ -1061,13 +1122,14 @@ random_add(const void *data, size_t datalen)
 
 	/*
 	 * The collected data is given to AJE (the global instance), and we then
-	 * extract random data out of AJE to feed it to the other generators.
+	 * extract random data out of AJE to feed it to the other generators in
+	 * the periodically scheduled random_entropy() call.
 	 */
 
 	aje_addrandom(data, datalen);
 
 	/*
-	 * Signal that we have fresh entropy to dispatch.
+	 * Signal to random_entropy() that we have fresh entropy to dispatch.
 	 */
 
 	RANDOM_ENTROPY_LOCK;
@@ -1214,6 +1276,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(output_random_bytes);
 	DUMP64(output_random_bytes_with);
 	DUMP64(output_random_strong_bytes);
+	DUMP64(output_random_key_bytes);
 	DUMP64(random_entropy_distribution);
 	DUMP64(aje_distributed);
 	DUMP64(aje_thread_distributed);
@@ -1245,6 +1308,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_bytes);
 	DUMP64(random_bytes_with);
 	DUMP64(random_strong_bytes);
+	DUMP64(random_key_bytes);
 	DUMP64(random_double);
 	DUMP64(random_double_generate);
 	DUMP64(random_add);

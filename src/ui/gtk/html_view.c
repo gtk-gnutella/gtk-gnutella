@@ -203,7 +203,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		special.em_dash = utf8_char(0x2014);
 		concat_strings(special.list_item_prefix.str,
 			sizeof special.list_item_prefix.str,
-			" ", special.bullet.str, " ", (void *) 0);
+			" ", special.bullet.str, " ", NULL_PTR);
 	}
 	
 	style = NULL;
@@ -224,7 +224,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				GtkTextIter start, end;
 				GtkTextTag *anchor;
 
-				anchor = gtk_text_buffer_create_tag(buffer, NULL, (void *) 0);
+				anchor = gtk_text_buffer_create_tag(buffer, NULL, NULL_PTR);
 				g_object_set_data(G_OBJECT(anchor), "href",
 					deconstify_gchar(ctx->href));
 				gtk_text_buffer_get_iter_at_mark(buffer,
@@ -358,7 +358,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 			margin = gtk_text_buffer_create_tag(buffer, NULL,
 						"left-margin",		width * 2,
 						"left-margin-set",	TRUE,
-						(void *) 0);
+						NULL_PTR);
 
 			gtk_text_buffer_get_iter_at_mark(buffer, &start, ctx->start[id]);
 			gtk_text_buffer_get_end_iter(buffer, &end);
@@ -372,7 +372,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 			gtk_text_buffer_get_end_iter(buffer, &iter);
 			gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
 					special.list_item_prefix.str, (-1),
-					STYLE_TAG_BOLD, (void *) 0);
+					STYLE_TAG_BOLD, NULL_PTR);
 			gtk_text_buffer_get_end_iter(buffer, &iter);
 			ctx->start[id] = gtk_text_buffer_create_mark(buffer, NULL,
 					&iter, TRUE);
@@ -423,7 +423,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 			gtk_text_buffer_get_end_iter(buffer, &iter);
 			gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
 					"\n    \n", (-1),
-					STYLE_TAG_CENTER, STYLE_TAG_UNDERLINE, (void *) 0);
+					STYLE_TAG_CENTER, STYLE_TAG_UNDERLINE, NULL_PTR);
 		}
 		text = "\n";
 		break;
@@ -437,7 +437,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 					&iter, TRUE);
 			gtk_text_buffer_get_end_iter(buffer, &iter);
 			gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
-					tag->data, tag->size, STYLE_TAG_ITALIC, (void *) 0);
+					tag->data, tag->size, STYLE_TAG_ITALIC, NULL_PTR);
 		}
 		closing = TRUE;
 		text = "\n";
@@ -452,7 +452,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				lang = gtk_text_buffer_create_tag(buffer, NULL,
 						"language",		ctx->lang,
 						"language-set",	TRUE,
-						(void *) 0);
+						NULL_PTR);
 				gtk_text_buffer_get_iter_at_mark(buffer,
 					&start, ctx->start[id]);
 				gtk_text_buffer_get_end_iter(buffer, &end);
@@ -510,7 +510,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 
 		gtk_text_buffer_get_end_iter(buffer, &iter);
 		gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
-			text, (-1), attr, (void *) 0);
+			text, (-1), attr, NULL_PTR);
 	}
 }
 #else	/* Gtk+ < 2.0 */
@@ -782,50 +782,50 @@ html_view_load(struct html_view *html_view)
 
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_WORD_WRAP,
 				"wrap_mode",		GTK_WRAP_WORD,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_MONOSPACE,
 				"family",			"monospace",
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_STRETCH,
 				"stretch",			PANGO_STRETCH_ULTRA_EXPANDED,
 				"stretch-set",		TRUE,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer,	STYLE_TAG_ANCHOR,
 				"foreground",		"blue", 
 				"underline",		PANGO_UNDERLINE_SINGLE, 
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer,	STYLE_TAG_ANCHOR_EXTERN,
 				"foreground",		"red", 
 				"underline",		PANGO_UNDERLINE_SINGLE, 
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_BOLD,
 				"weight",			PANGO_WEIGHT_BOLD,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_ITALIC,
 				"style",			PANGO_STYLE_ITALIC,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_CENTER,
 				"justification",	GTK_JUSTIFY_CENTER,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_UNDERLINE,
 				"underline",		PANGO_UNDERLINE_SINGLE,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_HEADING_1,
 				"weight",			PANGO_WEIGHT_BOLD,
 				"size",				15 * PANGO_SCALE,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_HEADING_2,
 				"weight",			PANGO_WEIGHT_BOLD,
 				"size",				14 * PANGO_SCALE,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_HEADING_3,
 				"weight",			PANGO_WEIGHT_BOLD,
 				"size",				13 * PANGO_SCALE,
-				(void *) 0);
+				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_HEADING_4,
 				"weight",			PANGO_WEIGHT_BOLD,
 				"size",				12 * PANGO_SCALE,
-				(void *) 0);
+				NULL_PTR);
 	}
 #else	/* Gtk+ < 2.0 */
 

@@ -358,7 +358,10 @@ getwdelay(const DBM *db)
 }
 
 /**
- * Close the LRU page cache.
+ * Close (i.e. free) the LRU page cache.
+ *
+ * @attention
+ * This does not attempt to flush any remaining dirty pages.
  */
 void
 lru_close(DBM *db)
@@ -367,9 +370,6 @@ lru_close(DBM *db)
 
 	if (cache) {
 		sdbm_lru_check(cache);
-
-		if (!db->is_volatile && !(db->flags & DBM_BROKEN))
-			flush_dirtypag(db);
 
 		if (common_stats)
 			log_lrustats(db);

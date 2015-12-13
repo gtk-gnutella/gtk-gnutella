@@ -205,10 +205,10 @@ render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	idx = pointer_to_uint(udata);
 	if (c_fi_progress == idx) {
 		unsigned value = fi_gui_file_get_progress(file);
-		g_object_set(cell, "value", value, (void *) 0);
+		g_object_set(cell, "value", value, NULL_PTR);
 	} else {
 		const char *text = fi_gui_file_column_text(file, idx);
-		g_object_set(cell, "text", text, (void *) 0);
+		g_object_set(cell, "text", text, NULL_PTR);
 	}
 }
 
@@ -230,10 +230,10 @@ render_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	idx = pointer_to_uint(udata);
 	if (c_src_progress == idx) {
 		unsigned value = fi_gui_source_get_progress(d);
-		g_object_set(cell, "value", value, (void *) 0);
+		g_object_set(cell, "value", value, NULL_PTR);
 	} else {
 		const char *text = fi_gui_source_column_text(d, idx);
-		g_object_set(cell, "text", text, (void *) 0);
+		g_object_set(cell, "text", text, NULL_PTR);
 	}
 }
 
@@ -249,7 +249,7 @@ create_text_cell_renderer(gfloat xalign)
 		"mode",		GTK_CELL_RENDERER_MODE_INERT,
 		"xalign",	xalign,
 		"ypad",		(unsigned) GUI_CELL_RENDERER_YPAD,
-		(void *) 0);
+		NULL_PTR);
 
 	return renderer;
 }
@@ -482,8 +482,8 @@ create_column(int column_id, const char *title, gfloat xalign,
 		renderer = create_text_cell_renderer(xalign);
 	}
 
-	column = gtk_tree_view_column_new_with_attributes(title,
-				renderer, (void *) 0);
+	column =
+		gtk_tree_view_column_new_with_attributes(title, renderer, NULL_PTR);
 	gtk_tree_view_column_set_cell_data_func(column, renderer,
 		cell_data_func, uint_to_pointer(column_id), NULL);
 	return column;
@@ -498,7 +498,7 @@ configure_column(GtkTreeViewColumn *column)
 		"reorderable", FALSE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		(void *) 0);
+		NULL_PTR);
 }
 
 static GtkTreeViewColumn *
@@ -594,10 +594,10 @@ fi_gui_details_treeview_init(void)
 		renderer = create_text_cell_renderer(tab[i].xalign);
 		g_object_set(G_OBJECT(renderer),
 			"editable", tab[i].editable,
-			(void *) 0);
+			NULL_PTR);
 		gui_signal_connect(renderer, "edited", on_cell_edited, tv);
 		column = gtk_tree_view_column_new_with_attributes(tab[i].title,
-					renderer, "text", i, (void *) 0);
+					renderer, "text", i, NULL_PTR);
 		g_object_set(column,
 			"visible",	i > 0 ? TRUE : FALSE,
 			"min-width", 1,
@@ -605,7 +605,7 @@ fi_gui_details_treeview_init(void)
 			"sizing", 1 == i
 						? GTK_TREE_VIEW_COLUMN_AUTOSIZE
 						: GTK_TREE_VIEW_COLUMN_FIXED,
-			(void *) 0);
+			NULL_PTR);
     	gtk_tree_view_append_column(tv, column);
 	}
 
@@ -746,7 +746,7 @@ fi_gui_init(void)
 		column = gtk_tree_view_column_new_with_attributes(_("Aliases"),
 					create_text_cell_renderer(0.0),
 					"text", 0,
-					(void *) 0);
+					NULL_PTR);
 		configure_column(column);
 		gtk_tree_view_column_set_sort_column_id(column, 0);
     	gtk_tree_view_append_column(tv, column);

@@ -89,6 +89,7 @@
 static const char *local_path;		/**< Path before a chdir() (ro string) */
 static const char *program_path;	/**< Absolute program path (ro string) */
 static time_t program_mtime;		/**< Last modification time of executable */
+static bool stacktrace_crashing;	/**< Use simple stack traces if set */
 static bool symbols_loaded;
 static symbols_t *symbols;
 static bool stacktrace_inited;
@@ -121,6 +122,16 @@ static hash_table_t *stack_atoms;
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
 #endif
+
+/**
+ * Limit stacktraces to simple stacks, avoiding the BFD library or the
+ * dynamic linker to resolve symbols.
+ */
+void
+stacktrace_crash_mode(void)
+{
+	stacktrace_crashing = TRUE;
+}
 
 /**
  * Is PC a valid routine address?
@@ -443,42 +454,6 @@ stacktrace_quality_string(const enum stacktrace_sym_quality sq)
 }
 
 /**
- * Get the full program path.
- *
- * @return a newly allocated string (through halloc()) that points to the
- * path of the program being run, NULL if we can't compute a suitable path.
- */
-static G_GNUC_COLD char *
-program_path_allocate(const char *argv0)
-{
-	filestat_t buf;
-	char *file = deconstify_char(argv0);
-	char filepath[MAX_PATH_LEN + 1];
-
-	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
-		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL);
-	} else {
-		clamp_strcpy(filepath, sizeof filepath, argv0);
-	}
-
-	if (-1 == stat(filepath, &buf)) {
-		int saved_errno = errno;
-		file = file_locate_from_path(argv0);
-		if (NULL == file) {
-			errno = saved_errno;
-			s_warning("could not stat() \"%s\": %m", filepath);
-			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
-			return NULL;
-		}
-	}
-
-	if (file != NULL && file != argv0)
-		return file;
-
-	return h_strdup(filepath);
-}
-
-/**
  * Tune the level of offsetting we have to do to get the current caller.
  */
 static G_GNUC_COLD NO_INLINE void
@@ -560,12 +535,14 @@ stacktrace_init(const char *argv0, bool deferred)
 		return;
 
 	stacktrace_inited = TRUE;
-	path = program_path_allocate(argv0);
+	path = file_program_path(argv0);
 	if (NULL == symbols)
 		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
-	if (NULL == path)
+	if (NULL == path) {
+		s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 		goto done;
+	}
 
 	if (-1 == stat(path, &buf)) {
 		s_warning("%s(): cannot stat \"%s\": %m", G_STRFUNC, path);
@@ -584,6 +561,17 @@ stacktrace_init(const char *argv0, bool deferred)
 	}
 
 	stacktrace_get_symbols(path, path, FALSE);
+
+	/*
+	 * If running on Windows, call dl_util_get_base() to indirectly call
+	 * dladdr(), which will trigger the mingw_dladdr() code and cause
+	 * initialization of the Windows symbols: when crashing it may be hard
+	 * to have symbols properly loaded.
+	 *		--RAM, 2015-11-26
+	 */
+
+	if (is_running_on_mingw())
+		(void) dl_util_get_base(stacktrace_init);
 
 	/* FALL THROUGH */
 
@@ -956,6 +944,34 @@ struct sxfile {
 };
 
 /**
+ * Print a simple stack trace.
+ *
+ * @param xf		where to print the stack
+ * @param stack		array of Program Counters making up the stack
+ * @param count		number of items in stack[] to print, at most.
+ */
+static void
+stack_safe_print_to(struct sxfile *xf, void * const *stack, size_t count)
+{
+	static int stack_plain;
+
+	if (0 == atomic_int_inc(&stack_plain))
+		s_rawwarn("disabled fancy symbolic stack traces");
+
+	switch (xf->type) {
+	case SXFILE_STDIO:
+		fflush(xf->u.f);
+		stack_safe_print(fileno(xf->u.f), stack, count);
+		return;
+	case SXFILE_FD:
+		stack_safe_print(xf->u.fd, stack, count);
+		return;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
  * Print a decorated stack trace.
  *
  * @param xf		where to print the stack
@@ -1009,6 +1025,18 @@ stack_print_decorated_to(struct sxfile *xf,
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
 	int saved_errno = errno;
+
+	/*
+	 * When crashing severely, either after a recursive crash or because
+	 * we are out of memory, disable fancy symbolic stack traces, use the
+	 * simplest form.
+	 *		--RAM, 2015-12-12
+	 */
+
+	if G_UNLIKELY(stacktrace_crashing) {
+		stack_safe_print_to(xf, stack, count);
+		return;
+	}
 
 	/*
 	 * We're using global variables, and we need to avoid concurrent updates
@@ -1068,6 +1096,17 @@ stack_print_decorated_to(struct sxfile *xf,
 		bool located = FALSE;
 		bool located_via_bfd = FALSE;
 		bool has_parens = FALSE;
+
+		/*
+		 * If we run out of memory during the stack tracing, switch to a
+		 * lighter version.
+		 */
+
+		if G_UNLIKELY(stacktrace_crashing) {
+			STACKTRACE_SYM_UNLOCK;
+			stack_safe_print_to(xf, &stack[i], count - i);
+			return;
+		}
 
 		/*
 		 * Locate where the PC is located: in our own executable (statically
@@ -1597,6 +1636,19 @@ stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 {
 	if (!signal_in_handler()) {
 		stacktrace_load_symbols();
+		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+	} else if (signal_in_exception() && crash_is_supervised()) {
+		/*
+		 * We're crashing in supervised mode, so even if we get a fatal error
+		 * our parent will be able to relaunch us.  We may not be able to
+		 * get a core dumped correctly, so gather as much information as
+		 * possible.
+		 *
+		 * There's no need to load the symbols because, since we're marked as
+		 * supervised, it means we went through crash_init() and therefore
+		 * the symbols were already loaded.
+		 */
+
 		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
 	} else {
 		stack_safe_print(fd, stack, count);

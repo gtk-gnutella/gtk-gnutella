@@ -409,7 +409,7 @@ event_set_mask_with_kqueue(struct poll_ctx *ctx, int fd,
 	}
 
 	if (-1 == (ret = kevent(ctx->master_fd, kev, i, NULL, 0, &zero_ts)))
-		s_error("kevent() failed: %m");
+		s_error("%s(): kevent() failed: %m", G_STRFUNC);
 
 	return ret;
 }
@@ -546,7 +546,7 @@ collect_events_with_devpoll(struct poll_ctx *ctx, int timeout_ms)
 
 	ret = ioctl(ctx->master_fd, DP_POLL, &dvp);
 	if (-1 == ret && !is_temporary_error(errno)) {
-		g_warning("%s(): ioctl(%d, DP_POLL) failed: %m",
+		s_warning("%s(): ioctl(%d, DP_POLL) failed: %m",
 			G_STRFUNC, ctx->master_fd);
 	}
 	return ret;
@@ -661,7 +661,7 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 
 	if (ret < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("%s(): select() failed: %m", G_STRFUNC);
+			s_warning("%s(): select() failed: %m", G_STRFUNC);
 		}
 		return -1;
 	}
@@ -695,7 +695,7 @@ collect_events_with_poll(struct poll_ctx *ctx, int timeout_ms)
 
 	ret = compat_poll(ctx->pfd_arr, ctx->max_poll_idx, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
-		g_warning("%s(): poll() failed: %m", G_STRFUNC);
+		s_warning("%s(): poll() failed: %m", G_STRFUNC);
 	}
 	return ret;
 }
@@ -800,8 +800,8 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 		g_assert(num_unused <= ctx->max_poll_idx);
 
 		str_putc(str, '}');
-		s_debug("%s (used=%u, unused=%u)",
-			str_2c(str), ctx->max_poll_idx - num_unused, num_unused);
+		s_debug("%s(): %s (used=%u, unused=%u)",
+			G_STRFUNC, str_2c(str), ctx->max_poll_idx - num_unused, num_unused);
 		str_destroy_null(&str);
 
 		/* Indices [max_poll_idx...num_poll_idx[ must not be used! */
@@ -898,7 +898,9 @@ inputevt_timer(struct poll_ctx *ctx)
 
 	num_events = (*ctx->event_check_all)(ctx);
 	if (-1 == num_events && !is_temporary_error(errno)) {
-		g_warning("event_check_all(%d) failed: %m", ctx->master_fd);
+		s_warning("%s(): event_check_all(%d) failed with %s(): %m",
+			G_STRFUNC, ctx->master_fd,
+			stacktrace_function_name(ctx->event_check_all));
 	}
 
 	ctx->dispatching = TRUE;
@@ -1084,7 +1086,7 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 
 #ifdef INPUTEVT_DEBUGGING
 	if (-1 == r) {
-		g_warning("INPUTEVT default poll function failed: %m");
+		s_warning("%s(): INPUTEVT default poll function failed: %m", G_STRFUNC);
 	}
 #endif
 
@@ -1158,8 +1160,15 @@ inputevt_remove(unsigned *id_ptr)
 		(rl->writers ? INPUT_EVENT_W : 0);
 
 	if (-1 == (*ctx->event_set_mask)(ctx, fd, old, cur)) {
-		g_warning("event_set_mask(%d, %d) failed using %s(): %m",
-			ctx->master_fd, fd, stacktrace_function_name(ctx->event_set_mask));
+		s_warning("%s(): event_set_mask(%d, %d) failed using %s(): %m",
+			G_STRFUNC, ctx->master_fd, fd,
+			stacktrace_function_name(ctx->event_set_mask));
+	}
+
+	if (inputevt_debug > 3) {
+		s_debug("%s(): fd=%d, cond=%s, handler was %s()",
+			G_STRFUNC, fd, inputevt_cond_to_string(relay->condition),
+			stacktrace_function_name(relay->handler));
 	}
 
 	/* Mark as removed */
@@ -1308,7 +1317,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		(-1 == (*ctx->event_set_mask)(ctx, relay->fd,
 									 old, (old | relay->condition))
 	) {
-		g_error("event_set_mask(%d, %d, ...) failed using %s(): %m",
+		s_error("event_set_mask(%d, %d, ...) failed using %s(): %m",
 			ctx->master_fd, relay->fd,
 			stacktrace_function_name(ctx->event_set_mask));
 	}
@@ -1326,7 +1335,7 @@ inputevt_set_readable(int fd)
 	void *key = int_to_pointer(fd);
 
 	if (inputevt_debug > 3) {
-		s_debug("%s: fd=%d", G_STRFUNC, fd);
+		s_debug("%s(): fd=%d", G_STRFUNC, fd);
 	}
 	g_assert(is_valid_fd(fd));
 
@@ -1349,7 +1358,7 @@ init_with_kqueue(struct poll_ctx *ctx)
 	const int fd = kqueue();
 
 	if (!is_valid_fd(fd)) {
-		g_warning("kqueue() failed: %m");
+		s_warning("%s(): kqueue() failed: %m", G_STRFUNC);
 		return -1;
 	}
 
@@ -1376,10 +1385,10 @@ static int
 init_with_devpoll(struct poll_ctx *ctx)
 #ifdef HAS_DEV_POLL
 {
-	const int fd = get_non_stdio_fd(open("/dev/poll", O_RDWR));
+	const int fd = fd_get_non_stdio(open("/dev/poll", O_RDWR));
 
 	if (!is_valid_fd(fd)) {
-		g_warning("%s(): open(\"/dev/poll\", O_RDWR) failed: %m", G_STRFUNC);
+		s_warning("%s(): open(\"/dev/poll\", O_RDWR) failed: %m", G_STRFUNC);
 		return -1;
 	}
 
@@ -1409,7 +1418,7 @@ init_with_epoll(struct poll_ctx *ctx)
 	const int fd = epoll_create(1024 /* Just an arbitrary value as hint */);
 
 	if (!is_valid_fd(fd)) {
-		g_warning("epoll_create() failed: %m");
+		s_warning("%s(): epoll_create() failed: %m", G_STRFUNC);
 		return -1;
 	}
 
@@ -1508,7 +1517,7 @@ inputevt_init(int use_poll)
 	if (is_valid_fd(ctx->master_fd)) {
 		GIOChannel *ch;
 
-		set_close_on_exec(ctx->master_fd);	/* Just in case */
+		fd_set_close_on_exec(ctx->master_fd);	/* Just in case */
 
 		ch = g_io_channel_unix_new(ctx->master_fd);
 
@@ -1553,9 +1562,9 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	case INPUT_EVENT_RW:
 		goto cond_is_okay;
 	case INPUT_EVENT_EXCEPTION:
-		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
+		s_error("%s(): cannot specify INPUT_EVENT_EXCEPTION only!", G_STRFUNC);
 	case INPUT_EVENT_NONE:
-		g_error("cannot specify INPUT_EVENT_NONE only!");
+		s_error("%s(): cannot specify INPUT_EVENT_NONE only!", G_STRFUNC);
 	}
 	g_assert_not_reached();
 
@@ -1565,6 +1574,12 @@ cond_is_okay:
 	relay->handler = handler;
 	relay->data = data;
 	relay->fd = fd;
+
+	if (inputevt_debug > 3) {
+		s_debug("%s(): fd=%d, cond=%s, handler=%s()",
+			G_STRFUNC, fd, inputevt_cond_to_string(cond),
+			stacktrace_function_name(handler));
+	}
 
 	return inputevt_add_source(relay);
 }

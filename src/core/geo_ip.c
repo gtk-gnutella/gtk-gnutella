@@ -410,27 +410,17 @@ gip_retrieve(unsigned n)
 	int idx;
 	char *filename;
 	file_path_t fp[4];
-	unsigned length = 0;
-	char *tmp;
-	
-	file_path_set(&fp[length++], settings_config_dir(), gip_source[n].file);
-	
-	tmp = get_folder_path(PRIVLIB_PATH, NULL);
-	if (tmp != NULL)
-		file_path_set(&fp[length++], tmp, gip_source[n].file);
-	
-	file_path_set(&fp[length++], PRIVLIB_EXP, gip_source[n].file);
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, gip_source[n].file);
-#endif
+	unsigned length;
+
+	length = settings_file_path_load(fp, gip_source[n].file, SFP_DFLT);
 
 	g_assert(length <= G_N_ELEMENTS(fp));
 
-	f = file_config_open_read_norename_chosen(gip_source[n].what,
-			fp, length, &idx);
+	f = file_config_open_read_norename_chosen(
+			gip_source[n].what, fp, length, &idx);
 
 	if (NULL == f)
-	   goto done;
+	   return;
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, gip_changed, uint_to_pointer(n));
@@ -438,9 +428,6 @@ gip_retrieve(unsigned n)
 
 	gip_load(f, n);
 	fclose(f);
-
-done:
-	HFREE_NULL(tmp);
 }
 
 /**
