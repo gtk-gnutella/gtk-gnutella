@@ -208,6 +208,7 @@ static bool crash_pausing;
 
 static cevent_t *crash_restart_ev;		/* Async restart event */
 static int crash_exit_started;
+static bool crash_restart_initiated;
 static const struct assertion_data *crash_last_assertion_failure;
 
 /**
@@ -2558,9 +2559,13 @@ crash_restart_notify(const char *caller)
 	/*
 	 * This covers situation where an assertion failure occurs on the
 	 * application exit path, after crash_restarting() has been called.
+	 *
+	 * However, if crash_restart() was called, then crash_restart_initiated
+	 * is set and the application wants to restart after it terminates
+	 * its exit sequence.
 	 */
 
-	if (atomic_int_get(&crash_exit_started)) {
+	if (atomic_int_get(&crash_exit_started) && !crash_restart_initiated) {
 		s_miniwarn("%s(): already started exiting, forcing.", caller);
 		_exit(EXIT_SUCCESS);
 	}
@@ -3841,6 +3846,9 @@ crash_restart(const char *format, ...)
 	 * initiated.  Anything else means a deferred restart will be triggered
 	 * by the application, and it will do so in the next CRASH_RESTART_GRACE
 	 * seconds (or we will forcefully trigger it).
+	 *
+	 * The application promises to call crash_restarting() when it will
+	 * initiate its exit sequence.
 	 */
 
 	if (vars != NULL && vars->restart != NULL) {
@@ -3871,6 +3879,7 @@ crash_restart(const char *format, ...)
 	 */
 
 asynchronous:
+	crash_restart_initiated = TRUE;
 	s_miniinfo("%s(): auto-restart should happen soon", G_STRFUNC);
 	crash_restart_ev =
 		evq_raw_insert(CRASH_RESTART_GRACE * 1000, crash_force_restart, NULL);
