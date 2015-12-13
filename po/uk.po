@@ -3,6 +3,7 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
+# Igor Seryogin <igor.v.seryogin@gmail.com>, 2015
 # Vitaliy Buyar <vetal17@gmail.com>, 2005
 # Yuri Chornoivan <yurchor@ukr.net>, 2012
 msgid ""
@@ -10,8 +11,8 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
-"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
+"PO-Revision-Date: 2015-11-27 15:08+0000\n"
+"Last-Translator: Igor Seryogin <igor.v.seryogin@gmail.com>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/uk/)\n"
 "Language: uk\n"
@@ -40,7 +41,7 @@ msgstr "Зупинено (%s)"
 
 #, c-format
 msgid "Too many attempts (%u times)"
-msgstr ""
+msgstr "Забагато спроб (%u раз)"
 
 msgid "Requeued due to no push-proxy"
 msgstr ""
@@ -6211,7 +6212,7 @@ msgid "%v/%u downloads"
 msgstr "%v/%u звантажень"
 
 msgid "%v/%u uploads"
-msgstr ""
+msgstr "%v/%u вивантажень"
 
 msgid "(Disable: 0, Random: 1)"
 msgstr ""
@@ -6536,7 +6537,7 @@ msgid "DHT traffic stats"
 msgstr ""
 
 msgid "DHT traffic"
-msgstr ""
+msgstr "DHT трафік"
 
 msgid "Debugging"
 msgstr "Діагностика"
@@ -6778,7 +6779,7 @@ msgid "Gnutella timeouts (all values in seconds)"
 msgstr ""
 
 msgid "Gnutella traffic"
-msgstr ""
+msgstr "Gnutella трафік"
 
 msgid "Gnutella"
 msgstr ""
@@ -7352,7 +7353,7 @@ msgid "Search Monitor"
 msgstr ""
 
 msgid "Search Stats"
-msgstr ""
+msgstr "Історія пошуку"
 
 msgid "Search Term"
 msgstr "Ключ пошуку"
@@ -7620,7 +7621,7 @@ msgid "Update search results pane every"
 msgstr ""
 
 msgid "Upload History"
-msgstr ""
+msgstr "Історія Вивантажень"
 
 msgid "Uploaded:"
 msgstr "Завантажено"
@@ -8048,7 +8049,7 @@ msgid "Answer to what's-new? queries"
 msgstr ""
 
 msgid "Search Media Type"
-msgstr ""
+msgstr "Тип Пошукових Даних"
 
 msgid "Audio"
 msgstr "Звук"

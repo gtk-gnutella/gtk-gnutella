@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-10-26 20:05+0000\n"
+"PO-Revision-Date: 2015-12-09 22:10+0000\n"
 "Last-Translator: Lucio Marinelli\n"
 "Language-Team: Italian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/it/)\n"
@@ -27,7 +27,7 @@ msgid "Connection refused"
 msgstr "Connessione rifiutata"
 
 msgid "Use an open Gnutella or G2 servent"
-msgstr "Usa un server/client Gnutella o G2 aperto"
+msgstr "Usa un servent Gnutella o G2 aperto"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -226,7 +226,7 @@ msgid "No URN on server, waiting for overlap"
 msgstr "Nessun URN sul server, attesa di sovrascrittura"
 
 msgid "No URN on server to validate"
-msgstr "Nessun URN sul server da convalidare"
+msgstr "Nessun URN da convalidare sul server"
 
 msgid "TTH mismatch detected"
 msgstr "Rilevata discordanza TTH"
@@ -429,7 +429,7 @@ msgid "Downloading (TR: %s)"
 msgstr "Sto scaricando (TR: %s)"
 
 msgid "Seeding"
-msgstr "Sto diffondendo (seeding)"
+msgstr "In distribuzione"
 
 msgid "Computing TTH"
 msgstr "Calcolo TTH"
@@ -558,7 +558,7 @@ msgid "Unstable IP address"
 msgstr "Indirizzo IP instabile"
 
 msgid "Servent version appears unstable"
-msgstr "La versione del server sembra instabile"
+msgstr "La versione del servent sembra instabile"
 
 msgid "No vendor string supplied"
 msgstr "Non viene fornita alcuna stringa del produttore"
@@ -599,7 +599,7 @@ msgid "Upgrade Header Missing"
 msgstr ""
 
 msgid "Servent Shutdown"
-msgstr "Spegnimento server"
+msgstr "Spegnimento servent"
 
 msgid "Not a network member"
 msgstr "Non un membro del network"
@@ -621,7 +621,7 @@ msgid "Reserved slot"
 msgstr "Posizione riservata"
 
 msgid "High Outdegree and Dynamic Querying Required"
-msgstr ""
+msgstr "Richieste elevate diramazioni e interrogazioni dinamiche"
 
 msgid "Cannot connect to a crawler"
 msgstr "Non riesco a connettere un robot"
@@ -722,8 +722,7 @@ msgstr "Errore lettura: %s"
 
 #, c-format
 msgid "Must wait %u more seconds before resending \"What's New\""
-msgstr ""
-"Devi aspettare altri %u secondi prima di rimandare il \"Cosa c'è di nuovo?\""
+msgstr "Devi aspettare altri %u secondi prima di rimandare il \"Novità?\""
 
 #, c-format
 msgid "mkdir(\"%s\") failed: %m"
@@ -1054,10 +1053,10 @@ msgid "Hits on local partial files"
 msgstr "Risultati sui file parziali locali"
 
 msgid "Hits on \"what's new?\" queries"
-msgstr "Risultati delle ricerche \"cosa c'è di nuovo?\""
+msgstr "Risultati delle ricerche \"novità?\""
 
 msgid "Query hits received for local queries"
-msgstr "Tentativi di query ricevuti da query locali"
+msgstr "Risultati di ricerche locali"
 
 msgid "G2 searches to local DB"
 msgstr "Ricerche G2 verso il database locale"
@@ -1069,10 +1068,10 @@ msgid "G2 hits on local partial files"
 msgstr "Risultati G2 su file parziali locali"
 
 msgid "Query hits received for OOB-proxied queries"
-msgstr "Risultati ricevuti per ricerche vicariate OOB"
+msgstr "Risultati ricevuti via OOB"
 
 msgid "Queries requesting OOB hit delivery"
-msgstr "Ricerche che necessitano di consegna OOB"
+msgstr "Ricerche richiedenti consegna OOB"
 
 msgid "Stripped OOB flag on queries"
 msgstr "Flag OOB rimosso dalle ricerche"
@@ -1102,160 +1101,160 @@ msgid "Partially claimed locally-generated OOB hits"
 msgstr "Risultato OOB generato localmente e parzialmente richiesto"
 
 msgid "Spurious OOB hit claiming received"
-msgstr ""
+msgstr "Ricevuta richiesta di risultato OOB spuria"
 
 msgid "Unrequested OOB hits received"
-msgstr ""
+msgstr "Ricevuto risultato OOB non richiesto"
 
 msgid "Received query hits for untracked queries"
-msgstr ""
+msgstr "Ricevuti risultati per query non tracciate"
 
 msgid "Tracked query MUIDs"
-msgstr ""
+msgstr "Interrogazione MUID tracciata"
 
 msgid "Compacted queries"
-msgstr ""
+msgstr "Ricerche compattate"
 
 msgid "Bytes saved by compacting"
-msgstr ""
+msgstr "Byte salvati compattando"
 
 msgid "UTF8 queries"
-msgstr ""
+msgstr "Ricerche UTF8"
 
 msgid "SHA1 queries"
-msgstr ""
+msgstr "Ricerche SHA1"
 
 msgid "\"What's New?\" queries"
-msgstr ""
+msgstr "Ricerche \"Novità?\""
 
 msgid "UTF8 G2 queries"
-msgstr ""
+msgstr "Ricerche UTF8 G2"
 
 msgid "SHA1 G2 queries"
-msgstr ""
+msgstr "Ricerche SHA1 G2"
 
 msgid "GUESS queries"
-msgstr ""
+msgstr "Ricerche GUESS"
 
 msgid "GUESS queries (0.2)"
-msgstr ""
+msgstr "Ricerche GUESS (0.2)"
 
 msgid "GUESS link cache size"
-msgstr ""
+msgstr "Dimensione cache del collegamento GUESS"
 
 msgid "GUESS cached query keys held"
-msgstr ""
+msgstr "Chiavi di query mantenute in cache GUESS"
 
 msgid "GUESS cached 0.2 hosts held"
-msgstr ""
+msgstr "Host 0.2 mantenuti in cache GUESS"
 
 msgid "GUESS cached G2 hosts held"
-msgstr ""
+msgstr "Host G2 mantenuti in cache GUESS"
 
 msgid "GUESS locally generated queries"
-msgstr ""
+msgstr "Ricerche generale localmente GUESS"
 
 msgid "GUESS currently running queries"
-msgstr ""
+msgstr "GUESS sta effettuando interrogazioni"
 
 msgid "GUESS hits received for locally generated queries"
-msgstr ""
+msgstr "Risultati ricevuti per ricerche locali GUESS"
 
 msgid "GUESS ultra nodes queried"
-msgstr ""
+msgstr "Ultranodi GUESS interrogati"
 
 msgid "GUESS ultra nodes sending back an acknowledgment"
-msgstr ""
+msgstr "Ultranodi GUESS che mandano indietro un riscontro"
 
 msgid "GUESS G2 nodes queried"
-msgstr ""
+msgstr "Nodi G2 GUESS interrogati"
 
 msgid "GUESS G2 nodes sending back an acknowledgment"
-msgstr ""
+msgstr "Nodi G2 GUESS che mandano indietro un riscontro"
 
 msgid "Throttled local push messages"
-msgstr ""
+msgstr "Messaggi push locali inibiti"
 
 msgid "Throttled received push messages"
-msgstr ""
+msgstr "Messaggi push ricevuti inibiti"
 
 msgid "Broadcasted push messages"
-msgstr ""
+msgstr "Messaggi push trasmessi"
 
 msgid "Push-proxy UDP relayed messages"
-msgstr ""
+msgstr "Messaggi UDP ritrasmessi da push-proxy"
 
 msgid "Push-proxy TCP relayed messages"
-msgstr ""
+msgstr "Messaggi TCP ritrasmessi da push-proxy"
 
 msgid "Push-proxy TCP for FW<->FW transfers"
-msgstr ""
+msgstr "TCP push-proxy per trasferimenti FW<->FW"
 
 msgid "Push-proxy broadcasted messages"
-msgstr ""
+msgstr "Messaggi trasmessi da push-proxy"
 
 msgid "Push-proxy found un-proxied local route"
-msgstr ""
+msgstr "Il push-proxy ha trovato un percorso locale senza proxy"
 
 msgid "Push-proxy lookup failures"
-msgstr ""
+msgstr "Errori nella ricerca del push-proxy"
 
 msgid "Push relayed via local route"
-msgstr ""
+msgstr "Push inviato tramite percorso locale"
 
 msgid "Push relayed via routing table"
-msgstr ""
+msgstr "Push ritrasmesso mediante tabella di routing"
 
 msgid "Locally generated dynamic queries"
-msgstr ""
+msgstr "Ricerche dinamiche generate localmente"
 
 msgid "Leaf-generated dynamic queries"
-msgstr ""
+msgstr "Ricerche dinamiche generate da foglie"
 
 msgid "OOB-proxied leaf queries"
-msgstr ""
+msgstr "Ricerche di foglie vicariate OOB"
 
 msgid "Fully completed dynamic queries"
-msgstr ""
+msgstr "Ricerche dinamiche completate"
 
 msgid "Partially completed dynamic queries"
-msgstr ""
+msgstr "Ricerche dinamiche incomplete"
 
 msgid "Dynamic queries ended with no results"
-msgstr ""
+msgstr "Ricerche dinamiche senza risultati"
 
 msgid "Fully completed dynamic queries getting late results"
-msgstr ""
+msgstr "Ricerche dinamiche completate che ricevono risultati tardivi"
 
 msgid "Dynamic queries with partial late results"
-msgstr ""
+msgstr "Ricerche dinamiche con risultati parziali tardivi"
 
 msgid "Dynamic queries completed by late results"
-msgstr ""
+msgstr "Ricerche dinamiche completate con risultati tardivi"
 
 msgid "Queries seen from GTKG"
-msgstr ""
+msgstr "Ricerche viste da GTKG"
 
 msgid "Queries seen from GTKG that were re-queries"
-msgstr ""
+msgstr "Ricerche viste da GTKG che sono state nuovamente ricercate"
 
 msgid "Queries advertising support of GGEP \"H\""
-msgstr ""
+msgstr "Ricerche che supportano GGEP \"H\""
 
 msgid "Queries advertising support of semi-reliable UDP"
-msgstr ""
+msgstr "Ricerche che supportano UDP semi-affidabile"
 
 msgid "GIV callbacks received"
-msgstr ""
+msgstr "Richiamata GIV ricevuta"
 
 msgid "GIV discarded due to no suitable download"
-msgstr ""
+msgstr "GIV scartato a causa di download non adatto"
 
 msgid "QUEUE callbacks received"
-msgstr ""
+msgstr "Richiamata QUEUE ricevuta"
 
 msgid "QUEUE discarded due to no suitable download"
-msgstr ""
+msgstr "QUEUE scartato a causa di download non adatto"
 
 msgid "File descriptors banned running count"
 msgstr ""
@@ -1495,7 +1494,7 @@ msgid "Detected collisions with our own GUID"
 msgstr ""
 
 msgid "GUID dynamically banned"
-msgstr ""
+msgstr "GUID esclusa dinamicamente"
 
 msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
@@ -2050,7 +2049,7 @@ msgid "Too large"
 msgstr "Troppo grande"
 
 msgid "Way too large"
-msgstr ""
+msgstr "Eccessivamente grande"
 
 msgid "Too old"
 msgstr ""
@@ -2071,7 +2070,7 @@ msgid "Max TTL exceeded"
 msgstr "Superato massimo TTL"
 
 msgid "Message throttle"
-msgstr "Soffocamento messaggio"
+msgstr "Inibizione messaggio"
 
 msgid "Message matched limits"
 msgstr ""
@@ -2104,7 +2103,7 @@ msgid "Message to banned GUID"
 msgstr "Messaggio ai GUID esclusi"
 
 msgid "Message from banned GUID"
-msgstr ""
+msgstr "Messaggio da GUID esclusi"
 
 msgid "Node shutting down"
 msgstr "Nodo in spegnimento"
@@ -2164,22 +2163,22 @@ msgid "Own search results"
 msgstr ""
 
 msgid "Own queries"
-msgstr ""
+msgstr "Ricerche proprie"
 
 msgid "Ancient query format"
 msgstr ""
 
 msgid "Blank Servent ID"
-msgstr ""
+msgstr "Identificativo servent vuoto"
 
 msgid "GUESS Query missing token"
-msgstr ""
+msgstr "Elemento della richiesta GUESS mancante"
 
 msgid "GUESS Invalid query token"
-msgstr ""
+msgstr "Elemento della richiesta GUESS non valido"
 
 msgid "DHT Invalid security token"
-msgstr ""
+msgstr "Elemento di sicurezza DHT non valido"
 
 msgid "DHT Too many STORE requests"
 msgstr ""
@@ -2197,7 +2196,7 @@ msgid "No proxy"
 msgstr ""
 
 msgid "HTTP"
-msgstr ""
+msgstr "HTTP"
 
 msgid "SOCKS v4"
 msgstr ""
@@ -2321,6 +2320,10 @@ msgid ""
 "up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
 "advisable that you set this to a value smaller than 40."
 msgstr ""
+"Non permettere più di questo numero di connessioni verso altri servent. Come "
+"regola dovresti riservare 256 b/s di banda per ciascuna connessione. Non "
+"usare mai tutta la tua banda, lasciane un po' per l'overhead TCP/IP. Non è "
+"consigliabile impostarlo a un valore inferiore a 40."
 
 msgid "Number of leaf nodes currently connected."
 msgstr "Numero di nodi foglia attualmente connessi."
@@ -2379,10 +2382,10 @@ msgid "Average uptime with the same IPv6 address."
 msgstr ""
 
 msgid "Timestamp at which servent was started."
-msgstr "Ora di avvio del server."
+msgstr "Ora di avvio del servent."
 
 msgid "Average servent uptime."
-msgstr "Media tempo di funzionamento del server."
+msgstr "Media tempo di funzionamento del servent."
 
 msgid ""
 "Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
@@ -2391,6 +2394,12 @@ msgid ""
 "forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
 "is not used to guard against undue censorship."
 msgstr ""
+"Porta locale TCP in cui gtk-gnutella è in ascolto. I provider spesso "
+"bloccano o inibiscono il traffico sulla port 6346 per cui è una buona idea "
+"sceglierne un'altra nel range 1024-65535. Non dimenticare di aggiornare il "
+"port-forwanding o apertura della porta tuo firewall, se necessario. Nota che "
+"di default la porta TCP 6346 non è usata come protezione verso censura "
+"indebita."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
@@ -2612,10 +2621,10 @@ msgid ""
 "If you set it to too large a value, you run the risk of being trimmed down "
 "by fellow gtk-gnutella nodes, or kicked out by some other servent."
 msgstr ""
-"Il TTL che utilizziamo nella generazione dei messaggi. Per Gnutella il "
-"valore predefinito è TTL=4. Se si imposta un valore troppo grande si corre "
-"il rischio di vederselo abbassato dai nodi gtk-gnutella successivi o esclusi "
-"da qualche altro server."
+"Il TTL che utilizziamo nei messaggi che generiamo. Per Gnutella il valore "
+"predefinito è TTL=4. Se lo imposti a un valore troppo grande, corri il "
+"rischio di averlo decurtato dagli altri nodi gtk-gnutella, o essere esclusi "
+"da qualche altro servent."
 
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
@@ -2644,7 +2653,7 @@ msgstr ""
 "CPU."
 
 msgid "Debug level for download mesh management."
-msgstr "Livello di collaudo per la gestione del gruppo scarocato."
+msgstr "Livello di collaudo per la gestione del gruppo scaricato."
 
 msgid "Debug level for Gnutella messages."
 msgstr "Livello di collaudo per i messaggi Gnutella."
@@ -2764,6 +2773,11 @@ msgid ""
 "soon 10 times, which is a good balance between abuse and legacy client "
 "support."
 msgstr ""
+"Escludi il client se viola l'intervallo Riprova-Dopo troppo spesso. Imposta "
+"questo a 0 per disabilitare l'esclusione. L'upload sarò rimosso dalla coda "
+"in ogni caso. Il valore di default è 10, per cui il client è escluso dopo "
+"aver riprovato troppo presto per 10 volte, un buon compromesso tra abuso e "
+"supporto dei vecchi client."
 
 msgid "Indicates a kernel network buffer shortage."
 msgstr ""
@@ -3094,7 +3108,7 @@ msgid "Number of running uploads."
 msgstr "Numero di caricamenti in atto."
 
 msgid "Number of quick uploads currently running."
-msgstr ""
+msgstr "Numero di caricamenti rapidi in corso."
 
 msgid "Number of registered (pending) uploads."
 msgstr "Numero di caricamenti registrati (in attesa)."
@@ -3311,8 +3325,8 @@ msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
 msgstr ""
-"Quanti sono gli scaricamenti che rispondono attualmente accodati (server "
-"remoto che risponde alle richieste)."
+"Quanti download in cosa sono al momento responsivi (servent remoto che "
+"risponde alle richieste)."
 
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
 msgstr "Numero di byte scaricati sinora, nonostante le informazioni HTTP."
@@ -3387,8 +3401,9 @@ msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
 msgstr ""
-"Se gtk-gnutella debba tenere traccia dei server instabili che incontra per "
-"prevenire ulteriori tentativi di connessione da e per."
+"Se gtk-gnutella debba tenere traccia degli indirizzi IP dei servent "
+"instabili che incontra, al fine di prevenire ulteriori tentativi di "
+"connessione da e verso di loro."
 
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
@@ -3396,10 +3411,10 @@ msgid ""
 "from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
-"Se gtk-gnutella debba determinare il tipo dei server instabili "
-"(identificandoli tramite la stringa dell'offerente) per prevenire ulteriori "
-"tentativi di connessione da e per. Questo funziona solamente se gtk-gnutella "
-"tiene già traccia degli indirizzi IP instabili."
+"Se gtk-gnutella debba determinare il tipo di servent (identificati tramite "
+"la stringa del produttore) instabili, prevenendo ulteriori connessione verso "
+"e da loro. Questo funziona solo se gtk-gnutella tiene già traccia degli "
+"indirizzi IP instabili."
 
 msgid ""
 "Whether gtk-gnutella should automatically remove the file whenever it gets a "
@@ -3593,11 +3608,12 @@ msgid ""
 "neighbor.  Dropped queries will be accounted for in the 'Message throttle' "
 "counter."
 msgstr ""
-"Se gtk-gnutella debba monitorare attivamente le stringhe delle query con TTL "
-"e conteggio dei salti e dei duplicati dei rilasci. Si applica solamente "
+"Se gtk-gnutella debba monitorare attivamente le stringhe delle query con "
+"TTL, il conteggio dei salti e abbandonare i duplicati. Si applica solamente "
 "quando non si sta funzionando come nodo foglia e solo per le query con "
-"conteggio > 0, p.es.non dal nostro immediato vicino. Le query cadute saranno "
-"conteggiate nel contatore 'messaggi soffocati'."
+"conteggio dei salti > 0, per esempio non dal nostro immediato vicinato. Le "
+"query abbandonate saranno tenute in considerazione nel contatore 'messaggi "
+"inibiti'."
 
 msgid ""
 "Half the duration during which gtk-gnutella should remember the recently "
@@ -3621,14 +3637,14 @@ msgid ""
 "can lower the constraint significantly. Deviations from the default of 1700 "
 "have exponential effects on the network traffic."
 msgstr ""
-"Il numero minimo di secondi da far trascorrere tra due query identiche "
-"provenienti dai nodi foglia. Se la riproposizione è troppo anticipata questa "
-"viene fatta cadere e messa nel contatore dei 'messaggi soffocati'. Una "
-"riproposizione è troppo frequente è dannosa per la rete tuttavia dobbiamo "
-"permettere una certa quantità di riproposizioni data dalla natura dinamica "
-"delle connessioni Gnutella. Non si può disabilitare questo controllo ma si "
-"può ridurre significativamente il vincolo. Scostamenti dal valore "
-"predefinito di 1700 ha effetti esponenziali sul traffico di rete."
+"Il numero minimo di secondi da far trascorrere tra due interrogazioni "
+"identiche provenienti da nodi foglia. Se la nuova interrogazione è troppo "
+"anticipata, questa viene fatta cadere e inclusa nel contatore dei 'messaggi "
+"inibiti'. Interrogazioni troppo frequenti sono dannose per la rete, tuttavia "
+"dobbiamo permettere una certa quantità di reinterrogazioni data la natura "
+"dinamica delle connessioni Gnutella. Non puoi disabilitare questo controllo, "
+"ma puoi ridurre significativamente il vincolo. Scostamenti dal valore "
+"predefinito di 1700 hanno effetti esponenziali sul traffico di rete."
 
 msgid "Time at which we started the last scan of the library."
 msgstr "Ora di avvio dell'ultimo aggiornamento della libreria."
@@ -4008,6 +4024,10 @@ msgid ""
 "from a given server, when making a follow-up HTTP request.  Turn it off only "
 "if you witness problems with a particular servent you're downloading from."
 msgstr ""
+"Se gtk-gnutella può saltare tra i vari file che attendono di essere "
+"scaricati da un certo server, mentre viene fatta una ulteriore richiesta "
+"HTTP. Settalo su off solo se riscontri problemi con un particolare servent "
+"da cui stai scaricando."
 
 msgid ""
 "If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not "
@@ -4269,7 +4289,7 @@ msgid "Random bits."
 msgstr ""
 
 msgid "Average servent downtime."
-msgstr ""
+msgstr "Tempo di inattività medio del servent."
 
 msgid "Time when last shutdown occurred."
 msgstr ""
@@ -4446,7 +4466,7 @@ msgid ""
 msgstr ""
 
 msgid "Whether what's-new? queries should be answered to."
-msgstr ""
+msgstr "Se rispondere alle ricerche \"novità?\""
 
 msgid ""
 "When set, gtk-gnutella will automatically stop opened searches from which "
@@ -4455,7 +4475,7 @@ msgid ""
 msgstr ""
 
 msgid "Maximum number of results to show in a What's New? request."
-msgstr ""
+msgstr "Numero massimo di risultati a seguito delle richieste \"Novità?\""
 
 msgid "Maximum number of results to show in a passive search request."
 msgstr ""
@@ -4618,7 +4638,7 @@ msgid "Debug level for the event queue thread."
 msgstr ""
 
 msgid "Maximum number of G2 hubs in the hub cache."
-msgstr ""
+msgstr "Numero massimo di hub G2 nella cache."
 
 msgid "Current number of IPv4 hosts in the G2 hub caches."
 msgstr ""
@@ -4630,7 +4650,7 @@ msgid "Number of G2 nodes currently connected."
 msgstr ""
 
 msgid "Maximum amount of G2 hubs we should connect to as a leaf."
-msgstr ""
+msgstr "Numero massimo di hub G2 a cui connettersi come foglia."
 
 msgid "Whether to log bad G2 messages, corrupted or unexpected."
 msgstr ""
@@ -4723,7 +4743,7 @@ msgid "2 weeks"
 msgstr "2 settimane"
 
 msgid "Search monitor enabled."
-msgstr "Monitor di ricerca abilitato."
+msgstr "Monitoraggio ricerche abilitato."
 
 msgid "Maximum number of queries visible in search monitor."
 msgstr "Numero massimo di query visibili nel monitor di ricerca."
@@ -4841,7 +4861,7 @@ msgid "Show tabs or search list."
 msgstr "Mostra le schede o l'elenco ricerca."
 
 msgid "Display Searchbar."
-msgstr ""
+msgstr "Mostra barra ricerca"
 
 msgid "Display Sidebar."
 msgstr "Mostra barra laterale"
@@ -5174,6 +5194,7 @@ msgstr ""
 
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
+"Scarta i risultati di ricerche provenienti da servent con un GUID bandito."
 
 msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr ""
@@ -5190,181 +5211,181 @@ msgid "Satellite providers"
 msgstr "Fornitori satellite"
 
 msgid "Andorra"
-msgstr ""
+msgstr "Andorra"
 
 msgid "United Arab Emirates"
 msgstr "Emirati Arabi"
 
 msgid "Afghanistan"
-msgstr ""
+msgstr "Afghanistan"
 
 msgid "Antigua and Barbuda"
-msgstr ""
+msgstr "Antigua e Barbuda"
 
 msgid "Anguilla"
-msgstr ""
+msgstr "Anguilla"
 
 msgid "Albania"
-msgstr ""
+msgstr "Albania"
 
 msgid "Armenia"
-msgstr ""
+msgstr "Armenia"
 
 msgid "Netherlands Antilles"
 msgstr "Antille Olandesi"
 
 msgid "Angola"
-msgstr ""
+msgstr "Angola"
 
 msgid "Asia/Pacific Region"
 msgstr "Asia/Pacifico"
 
 msgid "Antarctica"
-msgstr ""
+msgstr "Antartide"
 
 msgid "Argentina"
-msgstr ""
+msgstr "Argentina"
 
 msgid "American Samoa"
 msgstr "Samoa americane"
 
 msgid "Austria"
-msgstr ""
+msgstr "Austria"
 
 msgid "Australia"
-msgstr ""
+msgstr "Australia"
 
 msgid "Aruba"
-msgstr ""
+msgstr "Aruba"
 
 msgid "Åland Islands"
-msgstr ""
+msgstr "Isole Åland"
 
 msgid "Azerbaijan"
-msgstr ""
+msgstr "Azerbaijan"
 
 msgid "Bosnia and Herzegovina"
 msgstr "Bosnia Herzegovina"
 
 msgid "Barbados"
-msgstr ""
+msgstr "Barbados"
 
 msgid "Bangladesh"
-msgstr ""
+msgstr "Bangladesh"
 
 msgid "Belgium"
-msgstr ""
+msgstr "Belgio"
 
 msgid "Burkina Faso"
-msgstr ""
+msgstr "Burkina Faso"
 
 msgid "Bulgaria"
-msgstr ""
+msgstr "Bulgaria"
 
 msgid "Bahrain"
-msgstr ""
+msgstr "Bahrain"
 
 msgid "Burundi"
-msgstr ""
+msgstr "Burundi"
 
 msgid "Benin"
-msgstr ""
+msgstr "Benin"
 
 msgid "Saint Barthelemy"
-msgstr ""
+msgstr "Saint Barthelemy"
 
 msgid "Bermuda"
-msgstr ""
+msgstr "Bermuda"
 
 msgid "Brunei Darussalam"
 msgstr "Brunei"
 
 msgid "Bolivia"
-msgstr ""
+msgstr "Bolivia"
 
 msgid "Bonaire, Sint Eustatius and Saba"
-msgstr ""
+msgstr "Bonaire, Sint Eustatius e Saba"
 
 msgid "Brazil"
-msgstr ""
+msgstr "Brasile"
 
 msgid "Bahamas"
-msgstr ""
+msgstr "Bahamas"
 
 msgid "Bhutan"
-msgstr ""
+msgstr "Bhutan"
 
 msgid "Burma"
-msgstr ""
+msgstr "Burma"
 
 msgid "Bouvet Island"
-msgstr ""
+msgstr "Isola Bouvet"
 
 msgid "Botswana"
-msgstr ""
+msgstr "Botswana"
 
 msgid "Belarus"
 msgstr "Bielorussia"
 
 msgid "Belize"
-msgstr ""
+msgstr "Belize"
 
 msgid "Canada"
-msgstr ""
+msgstr "Canada"
 
 msgid "Cocos (Keeling) Islands"
 msgstr "Isole Cocos (Keeling)"
 
 msgid "Congo (Democratic Republic)"
-msgstr ""
+msgstr "Repubblica Democratica del Congo"
 
 msgid "Central African Republic"
-msgstr "Repubblica Centro Africa"
+msgstr "Repubblica Centro Africana"
 
 msgid "Congo"
-msgstr ""
+msgstr "Congo"
 
 msgid "Switzerland"
-msgstr ""
+msgstr "Svizzera"
 
 msgid "Cote d'Ivoire"
-msgstr ""
+msgstr "Costa d'Avorio"
 
 msgid "Cook Islands"
 msgstr "Isole Cook"
 
 msgid "Chile"
-msgstr ""
+msgstr "Cile"
 
 msgid "Cameroon"
-msgstr ""
+msgstr "Cameroon"
 
 msgid "China"
-msgstr ""
+msgstr "Cina"
 
 msgid "Colombia"
-msgstr ""
+msgstr "Colombia"
 
 msgid "Costa Rica"
-msgstr ""
+msgstr "Costa Rica"
 
 msgid "Serbia and Montenegro"
 msgstr "Serbia e Montenegro"
 
 msgid "Cuba"
-msgstr ""
+msgstr "Cuba"
 
 msgid "Cape Verde"
-msgstr ""
+msgstr "Capo Verde"
 
 msgid "Curacao"
-msgstr ""
+msgstr "Curacao"
 
 msgid "Christmas Island"
-msgstr "Isola Christmas"
+msgstr "Isola di Natale"
 
 msgid "Cyprus"
-msgstr ""
+msgstr "Cipro"
 
 msgid "Czech Republic"
 msgstr "Repubblica Ceca"
@@ -5373,37 +5394,37 @@ msgid "Germany"
 msgstr "Germania"
 
 msgid "Djibouti"
-msgstr ""
+msgstr "Gibuti"
 
 msgid "Denmark"
-msgstr ""
+msgstr "Danimarca"
 
 msgid "Dominica"
-msgstr ""
+msgstr "Dominica"
 
 msgid "Dominican Republic"
 msgstr "Repubblica Dominicana"
 
 msgid "Algeria"
-msgstr ""
+msgstr "Algeria"
 
 msgid "Ecuador"
-msgstr ""
+msgstr "Ecuador"
 
 msgid "Estonia"
-msgstr ""
+msgstr "Estonia"
 
 msgid "Egypt"
-msgstr ""
+msgstr "Egitto"
 
 msgid "Western Sahara"
 msgstr "Sahara occidentale"
 
 msgid "Eritrea"
-msgstr ""
+msgstr "Eritrea"
 
 msgid "Spain"
-msgstr ""
+msgstr "Spagna"
 
 msgid "Ethiopia"
 msgstr "Etiopia"
@@ -5412,241 +5433,241 @@ msgid "Europe"
 msgstr "Europa"
 
 msgid "Finland"
-msgstr ""
+msgstr "Finlandia"
 
 msgid "Fiji"
-msgstr ""
+msgstr "Isole Fiji"
 
 msgid "Falkland Islands (Malvinas)"
 msgstr "Isole Falkland (Malvine)"
 
 msgid "Micronesia"
-msgstr ""
+msgstr "Micronesia"
 
 msgid "Faroe Islands"
-msgstr ""
+msgstr "Isole Faroe"
 
 msgid "France"
-msgstr ""
+msgstr "Francia"
 
 msgid "Gabon"
-msgstr ""
+msgstr "Gabon"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Inghilterra"
 
 msgid "Grenada"
-msgstr ""
+msgstr "Grenada"
 
 msgid "Georgia"
-msgstr ""
+msgstr "Georgia"
 
 msgid "French Guiana"
 msgstr "Guiana Francese"
 
 msgid "Guernsey"
-msgstr ""
+msgstr "Guernsey"
 
 msgid "Ghana"
-msgstr ""
+msgstr "Ghana"
 
 msgid "Gibraltar"
 msgstr "Gibilterra"
 
 msgid "Greenland"
-msgstr ""
+msgstr "Groenlandia"
 
 msgid "Gambia"
-msgstr ""
+msgstr "Gambia"
 
 msgid "Guinea"
-msgstr ""
+msgstr "Guinea"
 
 msgid "Guadeloupe"
-msgstr ""
+msgstr "Guadeloupe"
 
 msgid "Equatorial Guinea"
-msgstr ""
+msgstr "Guinea Equatoriale"
 
 msgid "Greece"
-msgstr ""
+msgstr "Gracia"
 
 msgid "South Georgia and The South Sandwich Islands"
-msgstr ""
+msgstr "Georgia del Sud e Isole Sandwich Meridionali"
 
 msgid "Guatemala"
-msgstr ""
+msgstr "Guatemala"
 
 msgid "Guam"
-msgstr ""
+msgstr "Guam"
 
 msgid "Guinea-Bissau"
-msgstr ""
+msgstr "Guinea-Bissau"
 
 msgid "Guyana"
-msgstr ""
+msgstr "Guyana"
 
 msgid "Hong Kong"
-msgstr ""
+msgstr "Hong Kong"
 
 msgid "Heard Island and McDonald Islands"
-msgstr ""
+msgstr "Isole Heard e McDonald"
 
 msgid "Honduras"
-msgstr ""
+msgstr "Honduras"
 
 msgid "Croatia"
-msgstr ""
+msgstr "Croazia"
 
 msgid "Haiti"
-msgstr ""
+msgstr "Haiti"
 
 msgid "Hungary"
-msgstr ""
+msgstr "Ungheria"
 
 msgid "Indonesia"
-msgstr ""
+msgstr "Indonesia"
 
 msgid "Ireland"
 msgstr "Irlanda"
 
 msgid "Israel"
-msgstr ""
+msgstr "Israele"
 
 msgid "Isle of Man"
-msgstr ""
+msgstr "Isola di Man"
 
 msgid "India"
-msgstr ""
+msgstr "India"
 
 msgid "British Indian Ocean Territory"
-msgstr ""
+msgstr "Territorio dell'Oceano Indiano Britannico"
 
 msgid "Iraq"
-msgstr ""
+msgstr "Iraq"
 
 msgid "Iran"
-msgstr ""
+msgstr "Iran"
 
 msgid "Iceland"
-msgstr ""
+msgstr "Islanda"
 
 msgid "Italy"
-msgstr ""
+msgstr "Italia"
 
 msgid "Jersey"
-msgstr ""
+msgstr "Isola di Jersey"
 
 msgid "Jamaica"
-msgstr ""
+msgstr "Giamaica"
 
 msgid "Jordan"
-msgstr ""
+msgstr "Giordania"
 
 msgid "Japan"
 msgstr "Giappone"
 
 msgid "Kenya"
-msgstr ""
+msgstr "Kenya"
 
 msgid "Kyrgyzstan"
-msgstr ""
+msgstr "Kyrgyzstan"
 
 msgid "Cambodia"
-msgstr ""
+msgstr "Cambogia"
 
 msgid "Kiribati"
-msgstr ""
+msgstr "Kiribati"
 
 msgid "Comoros"
-msgstr ""
+msgstr "Isole Comore"
 
 msgid "Saint Kitts and Nevis"
-msgstr ""
+msgstr "Saint Kitts and Nevis"
 
 msgid "North Korea"
-msgstr ""
+msgstr "Corea del Nord"
 
 msgid "South Korea"
-msgstr ""
+msgstr "Corea del Sud"
 
 msgid "Kuwait"
-msgstr ""
+msgstr "Kuwait"
 
 msgid "Cayman Islands"
 msgstr "Isole Cayman"
 
 msgid "Kazakhstan"
-msgstr ""
+msgstr "Kazakhstan"
 
 msgid "Laos"
-msgstr ""
+msgstr "Laos"
 
 msgid "Lebanon"
-msgstr ""
+msgstr "Libano"
 
 msgid "Saint Lucia"
-msgstr ""
+msgstr "Santa Lucia"
 
 msgid "Liechtenstein"
-msgstr ""
+msgstr "Liechtenstein"
 
 msgid "Sri Lanka"
-msgstr ""
+msgstr "Sri Lanka"
 
 msgid "Liberia"
-msgstr ""
+msgstr "Liberia"
 
 msgid "Lesotho"
-msgstr ""
+msgstr "Lesotho"
 
 msgid "Lithuania"
 msgstr "Lituania"
 
 msgid "Luxembourg"
-msgstr ""
+msgstr "Lussemburgo"
 
 msgid "Latvia"
-msgstr ""
+msgstr "Latvia"
 
 msgid "Libyan Arab Jamahiriya"
 msgstr "Libia"
 
 msgid "Morocco"
-msgstr ""
+msgstr "Marocco"
 
 msgid "Monaco"
-msgstr ""
+msgstr "Monaco e Montecarlo"
 
 msgid "Moldova"
-msgstr ""
+msgstr "Moldova"
 
 msgid "Montenegro"
-msgstr ""
+msgstr "Montenegro"
 
 msgid "Saint Martin"
-msgstr ""
+msgstr "Saint Martin"
 
 msgid "Madagascar"
-msgstr ""
+msgstr "Madagascar"
 
 msgid "Marshall Islands"
 msgstr "Isole Marshall"
 
 msgid "Macedonia"
-msgstr ""
+msgstr "Macedonia"
 
 msgid "Mali"
-msgstr ""
+msgstr "Mali"
 
 msgid "Myanmar"
-msgstr ""
+msgstr "Birmania"
 
 msgid "Mongolia"
-msgstr ""
+msgstr "Mongolia"
 
 msgid "Macao"
-msgstr ""
+msgstr "Macao"
 
 msgid "Northern Mariana Islands"
 msgstr "Isole Marianne del nord"
@@ -5655,76 +5676,76 @@ msgid "Martinique"
 msgstr "Martinica"
 
 msgid "Mauritania"
-msgstr ""
+msgstr "Mauritania"
 
 msgid "Montserrat"
-msgstr ""
+msgstr "Montserrat"
 
 msgid "Malta"
-msgstr ""
+msgstr "Malta"
 
 msgid "Mauritius"
-msgstr ""
+msgstr "Mauritius"
 
 msgid "Maldives"
-msgstr ""
+msgstr "Maldive"
 
 msgid "Malawi"
-msgstr ""
+msgstr "Malawi"
 
 msgid "Mexico"
-msgstr ""
+msgstr "Messico"
 
 msgid "Malaysia"
 msgstr "Malesia"
 
 msgid "Mozambique"
-msgstr ""
+msgstr "Mozambico"
 
 msgid "Namibia"
-msgstr ""
+msgstr "Namibia"
 
 msgid "New Caledonia"
 msgstr "Nuova Caledonia"
 
 msgid "Niger"
-msgstr ""
+msgstr "Nigeria"
 
 msgid "Norfolk Island"
 msgstr "Isole Norfolk"
 
 msgid "Nigeria"
-msgstr ""
+msgstr "Nigeria"
 
 msgid "Nicaragua"
-msgstr ""
+msgstr "Nicaragua"
 
 msgid "Netherlands"
-msgstr ""
+msgstr "Olanda"
 
 msgid "Norway"
-msgstr ""
+msgstr "Norvegia"
 
 msgid "Nepal"
-msgstr ""
+msgstr "Nepal"
 
 msgid "Nauru"
-msgstr ""
+msgstr "Repubblica di Nauru"
 
 msgid "Niue"
-msgstr ""
+msgstr "Niue"
 
 msgid "New Zealand"
 msgstr "Nuova Zelanda"
 
 msgid "Oman"
-msgstr ""
+msgstr "Oman"
 
 msgid "Panama"
-msgstr ""
+msgstr "Panama"
 
 msgid "Peru"
-msgstr ""
+msgstr "Peru"
 
 msgid "French Polynesia"
 msgstr "Polinesia Francese"
@@ -5733,226 +5754,227 @@ msgid "Papua New Guinea"
 msgstr "Papua Nuova Guinea"
 
 msgid "Philippines"
-msgstr ""
+msgstr "Filippine"
 
 msgid "Pakistan"
-msgstr ""
+msgstr "Pakistan"
 
 msgid "Poland"
-msgstr ""
+msgstr "Polonia"
 
 msgid "Saint Pierre and Miquelon"
-msgstr ""
+msgstr "Saint Pierre e Miquelon"
 
 msgid "Pitcairn"
-msgstr ""
+msgstr "Isole Pitcairn"
 
 msgid "Puerto Rico"
-msgstr ""
+msgstr "Porto Rico"
 
 msgid "Palestinian Territory"
-msgstr ""
+msgstr "Territorio Palestinese"
 
 msgid "Portugal"
-msgstr ""
+msgstr "Portogallo"
 
 msgid "Palau"
-msgstr ""
+msgstr "Palau"
 
 msgid "Paraguay"
-msgstr ""
+msgstr "Paraguay"
 
 msgid "Qatar"
-msgstr ""
+msgstr "Qatar"
 
 msgid "Reunion"
-msgstr ""
+msgstr "Isola Riunione"
 
 msgid "Romania"
-msgstr ""
+msgstr "Romania"
 
 msgid "Serbia"
-msgstr ""
+msgstr "Serbia"
 
 msgid "Russian Federation"
 msgstr "Russia"
 
 msgid "Rwanda"
-msgstr ""
+msgstr "Ruanda"
 
 msgid "Saudi Arabia"
-msgstr ""
+msgstr "Arabia Saudita"
 
 msgid "Solomon Islands"
 msgstr "Isole Solomon"
 
 msgid "Seychelles"
-msgstr ""
+msgstr "Seychelles"
 
 msgid "Sudan"
-msgstr ""
+msgstr "Sudan"
 
 msgid "Sweden"
-msgstr ""
+msgstr "Svezia"
 
 msgid "Singapore"
-msgstr ""
+msgstr "Singapore"
 
 msgid "Saint Helena"
-msgstr ""
+msgstr "Isola di Sant'Elena"
 
 msgid "Slovenia"
-msgstr ""
+msgstr "Slovenia"
 
 msgid "Svalbard and Jan Mayen"
-msgstr ""
+msgstr "Svalbard e Jan Mayen"
 
 msgid "Slovakia"
-msgstr ""
+msgstr "Slovacchia"
 
 msgid "Sierra Leone"
-msgstr ""
+msgstr "Sierra Leone"
 
 msgid "San Marino"
-msgstr ""
+msgstr "San Marino"
 
 msgid "Senegal"
-msgstr ""
+msgstr "Senegal"
 
 msgid "Somalia"
-msgstr ""
+msgstr "Somalia"
 
 msgid "Suriname"
-msgstr ""
+msgstr "Suriname"
 
 msgid "South Sudan"
-msgstr ""
+msgstr "Sudan del Sud"
 
 msgid "Sao Tome and Principe"
-msgstr ""
+msgstr "Sao Tome e Principe"
 
 msgid "El Salvador"
-msgstr ""
+msgstr "El Salvador"
 
 msgid "Sint Maarten"
-msgstr ""
+msgstr "Sint Maarten"
 
 msgid "Syrian Arab Republic"
 msgstr "Siria"
 
 msgid "Swaziland"
-msgstr ""
+msgstr "Swaziland"
 
 msgid "Turks and Caicos Islands"
 msgstr "Isole Turks e Caicos"
 
 msgid "Chad"
-msgstr ""
+msgstr "Chad"
 
 msgid "French Southern Territories"
-msgstr ""
+msgstr "Territori Francesi del Sud"
 
 msgid "Togo"
-msgstr ""
+msgstr "Togo"
 
 msgid "Thailand"
-msgstr ""
+msgstr "Tailandia"
 
 msgid "Tajikistan"
 msgstr "Tagikistan"
 
 msgid "Tokelau"
-msgstr ""
+msgstr "Tokelau"
 
 msgid "Timor-leste"
-msgstr ""
+msgstr "Timor Est"
 
 msgid "Turkmenistan"
-msgstr ""
+msgstr "Turkmenistan"
 
 msgid "Tunisia"
-msgstr ""
+msgstr "Tunisia"
 
 msgid "Tonga"
-msgstr ""
+msgstr "Tonga"
 
 msgid "Turkey"
-msgstr ""
+msgstr "Turchia"
 
 msgid "Trinidad and Tobago"
-msgstr ""
+msgstr "Trinidad e Tobago"
 
 msgid "Tuvalu"
-msgstr ""
+msgstr "Tuvalu"
 
 msgid "Taiwan"
-msgstr ""
+msgstr "Taiwan"
 
 msgid "Tanzania"
-msgstr ""
+msgstr "Tanzania"
 
 msgid "Ukraine"
 msgstr "Ucraina"
 
 msgid "Uganda"
-msgstr ""
+msgstr "Uganda"
 
 msgid "United States Minor Outlying Islands"
-msgstr ""
+msgstr "Isole minori esterne degli Stati Uniti d'America"
 
 msgid "United States"
-msgstr ""
+msgstr "Stati Uniti d'America"
 
 msgid "Uruguay"
-msgstr ""
+msgstr "Uruguay"
 
 msgid "Uzbekistan"
-msgstr ""
+msgstr "Uzbekistan"
 
 msgid "Holy See (Vatican City State)"
 msgstr "Vaticano"
 
 msgid "Saint Vincent and The Grenadines"
-msgstr ""
+msgstr "Saint Vincent e Grenadines"
 
 msgid "Venezuela"
-msgstr ""
+msgstr "Venezuela"
 
 msgid "British Virgin Islands"
-msgstr "Isole Vergini"
+msgstr "Isole Vergini Britanniche"
 
 msgid "U.S. Virgin Islands"
-msgstr ""
+msgstr "Isole Vergini Americane"
 
 msgid "Viet Nam"
-msgstr ""
+msgstr "Vietnam"
 
 msgid "Vanuatu"
-msgstr ""
+msgstr "Vanuatu"
 
 msgid "Wallis and Futuna"
-msgstr ""
+msgstr "Wallis e Futuna"
 
 msgid "Samoa"
-msgstr ""
+msgstr "Samoa"
 
 msgid "Yemen"
-msgstr ""
+msgstr "Yemen"
 
 msgid "Mayotte"
-msgstr ""
+msgstr "Mayotte"
 
 msgid "South Africa"
-msgstr ""
+msgstr "Sudafrica"
 
 msgid "Zambia"
-msgstr ""
+msgstr "Zambia"
 
 msgid "Zimbabwe"
-msgstr ""
+msgstr "Zimbabwe"
 
 msgid "MAGNET URI contained source URL for an unsupported protocol"
 msgstr ""
+"Il MAGNET URI conteneva un URL sorgente per un protocollo non supportato"
 
 #, c-format
 msgid "%u Byte"
@@ -5972,38 +5994,38 @@ msgstr "%s (%s byte)"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
-msgstr ""
+msgstr "B/s"
 
 #, c-format
 msgid "%ud %uh"
-msgstr ""
+msgstr "%ud %uh"
 
 #, c-format
 msgid "%uh %um"
-msgstr ""
+msgstr "%uh %um"
 
 #, c-format
 msgid "%um %us"
-msgstr ""
+msgstr "%um %us"
 
 #, c-format
 msgid "%us"
-msgstr ""
+msgstr "%us"
 
 msgid "locale_get_language|en"
 msgstr "it"
 
 msgid "unofficial build, accessing files from"
-msgstr ""
+msgstr "versione non ufficiale, accedo ai file da"
 
 msgid "URL missing"
-msgstr ""
+msgstr "URL mancante"
 
 msgid "The download could not be created"
-msgstr ""
+msgstr "Il download non può essere creato"
 
 msgid "Download added"
-msgstr ""
+msgstr "Download aggiunto"
 
 msgid "Unknown operation"
 msgstr "Operazione sconosciuta"
@@ -6012,7 +6034,7 @@ msgid "Unknown command"
 msgstr "Comando sconosciuto"
 
 msgid "No help available"
-msgstr ""
+msgstr "Aiuto non disponibile"
 
 msgid "Hops"
 msgstr "Salti"
@@ -6081,10 +6103,10 @@ msgid "Node added"
 msgstr "Aggiunto nodo"
 
 msgid "Invalid IP"
-msgstr ""
+msgstr "IP non valido"
 
 msgid "Invalid port"
-msgstr ""
+msgstr "Porta non valida"
 
 #, c-format
 msgid "Removed %u node"
@@ -6112,7 +6134,7 @@ msgid "Good bye"
 msgstr "Arrivederci"
 
 msgid "Invalid command syntax"
-msgstr ""
+msgstr "Sintassi del comando non valida"
 
 msgid "Query string missing"
 msgstr "Stringa di richiesta assente"
@@ -6364,7 +6386,7 @@ msgid "Downloaded"
 msgstr ""
 
 msgid "Uploaded"
-msgstr ""
+msgstr "Caricati"
 
 msgid "Sources"
 msgstr "Sorgenti"
@@ -6376,13 +6398,13 @@ msgid "Active"
 msgstr "Attivi"
 
 msgid "Incomplete"
-msgstr ""
+msgstr "Incompleti"
 
 msgid "Orphaned"
-msgstr ""
+msgstr "Orfani"
 
 msgid "All"
-msgstr ""
+msgstr "Tutti"
 
 #, c-format
 msgid "regex error: %s"
@@ -6569,7 +6591,7 @@ msgid "(deactivated)"
 msgstr "(disattivato)"
 
 msgid "(invalid)"
-msgstr "(invalido)"
+msgstr "(non valido)"
 
 msgid "<Archive>"
 msgstr ""
@@ -6735,7 +6757,7 @@ msgid "Add"
 msgstr "Aggiungi"
 
 msgid "Aliases"
-msgstr "Sininimi"
+msgstr "Alias"
 
 msgid "Allow connections from and to _LAN addresses"
 msgstr "Consenti connessioni da e a indirizzi _LAN"
@@ -6782,10 +6804,10 @@ msgid "Avg. time between IP address changes:"
 msgstr "Media tempo tra modifiche di indirizzo IP:"
 
 msgid "Avg. uptime of this servent:"
-msgstr "Media attività di questo server:"
+msgstr "Attività media di questo servent:"
 
 msgid "Avg. downtime of this servent:"
-msgstr ""
+msgstr "Tempo di inattività medio di questo servent:"
 
 msgid "Bad hosts"
 msgstr "Host sbagliati"
@@ -6809,7 +6831,7 @@ msgid "Banning"
 msgstr "Scartamento"
 
 msgid "Beautify filenames by removing needless underscores"
-msgstr ""
+msgstr "Abbellisci i nomi dei file eliminando i trattini bassi non necessari"
 
 msgid "Bind to this address"
 msgstr ""
@@ -6931,7 +6953,7 @@ msgid "Connectin_g timeout"
 msgstr "Timeo_ut in fase di connessione"
 
 msgid "Connection counters"
-msgstr ""
+msgstr "Connessioni"
 
 msgid "Connection settings"
 msgstr "Impostazioni connessione"
@@ -6992,10 +7014,10 @@ msgid "Currently used"
 msgstr "Attualmente usato"
 
 msgid "DHT traffic stats"
-msgstr ""
+msgstr "Statistiche traffico DHT"
 
 msgid "DHT traffic"
-msgstr ""
+msgstr "Traffico DHT"
 
 msgid "Debugging"
 msgstr ""
@@ -7031,7 +7053,7 @@ msgid "Detailed traffic information to display"
 msgstr "Informazioni dettagliate sul traffico da mostrare"
 
 msgid "Details"
-msgstr ""
+msgstr "Dettagli"
 
 msgid "Discard results without SHA-1 hashes"
 msgstr ""
@@ -7142,7 +7164,7 @@ msgid "File scanning time:"
 msgstr "Tempo di lettura del file:"
 
 msgid "File transfers"
-msgstr ""
+msgstr "Trasferimenti file"
 
 msgid "Files scanned"
 msgstr "File trovati (scanned)"
@@ -7218,13 +7240,13 @@ msgid "Generation:"
 msgstr "Generazione:"
 
 msgid "Global DHT outgoing traffic"
-msgstr ""
+msgstr "Traffico DHT globale in uscita"
 
 msgid "Gnutella TTL settings"
-msgstr ""
+msgstr "Impostazioni TTL Gnutella"
 
 msgid "Gnutella _leaf traffic stats"
-msgstr ""
+msgstr "Statistiche traffico _foglia Gnutella"
 
 msgid "Gnutella display"
 msgstr ""
@@ -7242,7 +7264,7 @@ msgid "Gnutella timeouts (all values in seconds)"
 msgstr ""
 
 msgid "Gnutella traffic"
-msgstr ""
+msgstr "Traffico Gnutella"
 
 msgid "Gnutella"
 msgstr ""
@@ -7283,7 +7305,7 @@ msgid "Hostcache capacity"
 msgstr "Capacità cache dell'host"
 
 msgid "Hostcache"
-msgstr "Cache host"
+msgstr "Hostcache"
 
 msgid "Hosts"
 msgstr "Host"
@@ -7301,10 +7323,10 @@ msgid "IP:Port:"
 msgstr "IP:Porta:"
 
 msgid "IPv4 settings"
-msgstr ""
+msgstr "Impostazioni IPv4"
 
 msgid "IPv6 settings"
-msgstr ""
+msgstr "Impostazioni IPv6"
 
 msgid "Ignore symbolically linked _directories"
 msgstr "Ignora le carte_lle con collegamenti simbolici"
@@ -7352,10 +7374,10 @@ msgid "Large enough uptime"
 msgstr "Tempo di attività sufficente"
 
 msgid "Last Request"
-msgstr ""
+msgstr "Ultima richiesta"
 
 msgid "Last Upload"
-msgstr ""
+msgstr "Ultimo caricamento"
 
 msgid "Last check"
 msgstr "Ultimo controllo"
@@ -7439,7 +7461,7 @@ msgid "Max. number of passive results"
 msgstr ""
 
 msgid "Max. number of What's New? results"
-msgstr ""
+msgstr "Numero massimo di risultati \"Novità?\""
 
 msgid "Max. simultaneous downloads per file"
 msgstr ""
@@ -7514,7 +7536,7 @@ msgid "Misses"
 msgstr "Persi"
 
 msgid "Monitor and auto-ban unstable servent types"
-msgstr "Controlla e auto escludi i tipi di server instabili"
+msgstr "Controlla e auto escludi server instabili"
 
 msgid "Monitor bad node IP addresses"
 msgstr "Controlla gli indirizzi IP sbagliati dei nodi"
@@ -7717,7 +7739,7 @@ msgid "Raw length:"
 msgstr "Lunghezza grezza:"
 
 msgid "Re_try search every"
-msgstr "Riprova la ricerca ogni"
+msgstr "Riprova la _ricerca ogni"
 
 msgid "Reason"
 msgstr "Motivo"
@@ -7835,10 +7857,10 @@ msgid "Saved"
 msgstr "Salvato"
 
 msgid "Search Monitor"
-msgstr ""
+msgstr "Monitoraggio ricerche"
 
 msgid "Search Stats"
-msgstr ""
+msgstr "Statistiche ricerche"
 
 msgid "Search Term"
 msgstr "Termina ricerca"
@@ -7847,7 +7869,7 @@ msgid "Search _extensions"
 msgstr "_Estensioni ricerche"
 
 msgid "Search _monitor enabled"
-msgstr "Monitor di ricerca abilitato"
+msgstr "Monitora_ggio ricerche abilitato"
 
 msgid "Search queue"
 msgstr "Coda di ricerca"
@@ -7868,7 +7890,7 @@ msgid "Server"
 msgstr ""
 
 msgid "Settings"
-msgstr ""
+msgstr "Impostazioni"
 
 msgid "Show Search_bar"
 msgstr ""
@@ -7883,13 +7905,13 @@ msgid "Show _Downloads"
 msgstr ""
 
 msgid "Show _Menubar"
-msgstr ""
+msgstr "Mostra barra _menu"
 
 msgid "Show _Sidebar"
-msgstr ""
+msgstr "Mostra barra _laterale"
 
 msgid "Show _Uploads"
-msgstr ""
+msgstr "Mostra _Caricamenti"
 
 msgid "Show _bytes"
 msgstr "Mostra _byte"
@@ -7898,13 +7920,13 @@ msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "Mostra un dialogo di _conferma quando chiudi gtk-gnutella"
 
 msgid "Show _inbound Gnutella traffic"
-msgstr ""
+msgstr "Mostra traffico Gnutella _entrante"
 
 msgid "Show _inbound HTTP traffic"
-msgstr ""
+msgstr "Mostra traffico HTTP in _ingresso"
 
 msgid "Show _inbound leaf traffic"
-msgstr ""
+msgstr "Mostra traffico foglia _entrante"
 
 msgid "Show _last"
 msgstr "Mostra le _ultime"
@@ -7913,13 +7935,13 @@ msgid "Show _metric units"
 msgstr ""
 
 msgid "Show _outbound Gnutella traffic"
-msgstr ""
+msgstr "Mostra traffico Gnutella _uscente"
 
 msgid "Show _outbound HTTP traffic"
-msgstr ""
+msgstr "Mostra traffico HTTP in _uscita"
 
 msgid "Show _outbound leaf traffic"
-msgstr ""
+msgstr "Mostra traffico foglia _uscente"
 
 msgid "Show _percentages"
 msgstr "Mostra _percentuali"
@@ -7933,10 +7955,10 @@ msgstr ""
 "esperti"
 
 msgid "Show inbound DHT traffic"
-msgstr ""
+msgstr "Mostra traffico DHT entrante"
 
 msgid "Show outbound DHT traffic"
-msgstr ""
+msgstr "Mostra traffico DHT uscente"
 
 msgid "Show pr_otocol:"
 msgstr "Mostra pr_otocollo"
@@ -7993,7 +8015,7 @@ msgid "Start now"
 msgstr "Avvia ora"
 
 msgid "Statistics"
-msgstr ""
+msgstr "Statistiche"
 
 msgid "Statistics:"
 msgstr "Statistiche:"
@@ -8081,7 +8103,7 @@ msgid "Toolbar style"
 msgstr "Stile barra degli strumenti"
 
 msgid "Tools"
-msgstr ""
+msgstr "Strumenti"
 
 msgid "Total input bandwidth limit:"
 msgstr "Limite complessivo della banda in ingresso:"
@@ -8114,7 +8136,7 @@ msgid "Ultrapeers in leaf mode"
 msgstr "Ultrapeer in modalità foglia"
 
 msgid "Ultrapeers"
-msgstr ""
+msgstr "Ultrapeer"
 
 msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
@@ -8127,7 +8149,7 @@ msgid "Update search results pane every"
 msgstr "Aggiorna il pannello dei risultati delle ricerche ogni"
 
 msgid "Upload History"
-msgstr ""
+msgstr "Storico caricamenti"
 
 msgid "Uploaded:"
 msgstr "Caricati:"
@@ -8160,7 +8182,7 @@ msgid "User Interface"
 msgstr "Interfaccia utente"
 
 msgid "User-Agent"
-msgstr ""
+msgstr "Programma"
 
 msgid "Value"
 msgstr "Valore"
@@ -8190,7 +8212,7 @@ msgid "Write buffer size"
 msgstr "Dimensione contenitore scrittura"
 
 msgid "XML Metadata"
-msgstr ""
+msgstr "Metadati XML"
 
 msgid "Yann Grossel"
 msgstr ""
@@ -8262,10 +8284,10 @@ msgid "_Browse"
 msgstr "_Consulta"
 
 msgid "_Cancel"
-msgstr ""
+msgstr "_Annulla"
 
 msgid "_Compute upload connection speed"
-msgstr "_Calcola la velocità della connessione di carico"
+msgstr "_Calcola la velocità in caricamento"
 
 msgid "_Create filter"
 msgstr "Crea filtro"
@@ -8280,13 +8302,13 @@ msgid "_Download selected"
 msgstr "_Scarica selezionato"
 
 msgid "_Duplicate"
-msgstr ""
+msgstr "_Duplicato"
 
 msgid "_Edit filters"
 msgstr "_Modifica filtri"
 
 msgid "_FAQ"
-msgstr ""
+msgstr "_FAQ"
 
 msgid "_Feed mesh from hits"
 msgstr "_Alimenta il gruppo con i tentativi"
@@ -8301,10 +8323,10 @@ msgid "_Gnutella RX buffer:"
 msgstr "Contenitore RX _Gnutella:"
 
 msgid "_Gnutella traffic stats"
-msgstr ""
+msgstr "Statistiche traffico _Gnutella"
 
 msgid "_HTTP traffic stats"
-msgstr "statistiche traffico _HTTP"
+msgstr "Statistiche traffico _HTTP"
 
 msgid "_Help"
 msgstr "_Aiuto"
@@ -8313,7 +8335,7 @@ msgid "_Hide downloaded files"
 msgstr "_Nascondi i file scaricati"
 
 msgid "_Horizon"
-msgstr ""
+msgstr "_Orizzonte"
 
 msgid "_Include headers"
 msgstr "_Includi titoli"
@@ -8358,16 +8380,16 @@ msgid "_Reset stats"
 msgstr "Azze_ra statistiche"
 
 msgid "_Restart"
-msgstr ""
+msgstr "_Riavvia"
 
 msgid "_Stop"
-msgstr ""
+msgstr "_Stop"
 
 msgid "_Try to connect to local networks first"
 msgstr "Cerca di conne_ttere prima le reti locali"
 
 msgid "_Update interval (sec)"
-msgstr "Intervallo aggiornamento (sec)"
+msgstr "Intervallo _aggiornamento (sec)"
 
 msgid "_Username"
 msgstr "Nome _utente"
@@ -8376,7 +8398,7 @@ msgid "_View"
 msgstr "_Visualizza"
 
 msgid "_auto-hide leaf traffic stats"
-msgstr "_auto-nascondi statistiche traffico foglia"
+msgstr "_Auto-nascondi statistiche traffico foglia"
 
 msgid "active"
 msgstr "attiva"
@@ -8385,7 +8407,7 @@ msgid "and lasted"
 msgstr "e ultimato"
 
 msgid "auto-hide DHT traffic stats"
-msgstr ""
+msgstr "Auto-nascondi statistiche traffico DHT"
 
 msgid "bytes"
 msgstr "byte"
@@ -8491,10 +8513,10 @@ msgid "uploads"
 msgstr "caricamenti"
 
 msgid "Available HTTP input bandwidth"
-msgstr ""
+msgstr "Banda HTTP in ingresso disponibile"
 
 msgid "Available HTTP output bandwidth"
-msgstr ""
+msgstr "Banda HTTP in uscita disponibile"
 
 msgid "DHT up, passive mode."
 msgstr ""
@@ -8515,10 +8537,10 @@ msgid "DHT inactive."
 msgstr ""
 
 msgid "Disabled stealing of outgoing HTTP bandwidth."
-msgstr ""
+msgstr "Furto di banda HTTP uscente disabilitato"
 
 msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr ""
+msgstr "Divisione equa della banda HTTP uscente"
 
 msgid "Capping HTTP outgoing bandwidth."
 msgstr ""
@@ -8545,16 +8567,16 @@ msgid "Pipelining max chunk size"
 msgstr ""
 
 msgid "Enable upload of partial files deemed rare"
-msgstr ""
+msgstr "Attiva il caricamento dei file parziali ritenuti rari"
 
 msgid "Enable GUESS (additional querying)"
 msgstr ""
 
 msgid "Issue GUESS queries as well"
-msgstr ""
+msgstr "Crea anche ricerche GUESS"
 
 msgid "Bandwidth limits for GUESS queries"
-msgstr ""
+msgstr "Limiti di banda per ricerche GUESS"
 
 msgid "Output bandwidth hint"
 msgstr ""
@@ -8569,13 +8591,13 @@ msgid "Query for partial files as well"
 msgstr ""
 
 msgid "Answer to queries for partial files"
-msgstr ""
+msgstr "Risposte a ricerche per file parziali"
 
 msgid "Answer to what's-new? queries"
-msgstr ""
+msgstr "Risposte alle ricerche \"Novità?\""
 
 msgid "Search Media Type"
-msgstr ""
+msgstr "Tipo di contenuto della ricerca"
 
 msgid "Audio"
 msgstr ""
@@ -8584,37 +8606,37 @@ msgid "Video"
 msgstr ""
 
 msgid "Document"
-msgstr ""
+msgstr "Testo"
 
 msgid "Image"
-msgstr ""
+msgstr "Immagine"
 
 msgid "Archive"
-msgstr ""
+msgstr "Archivio"
 
 msgid "Search Configuration"
-msgstr ""
+msgstr "Configurazione della ricerca"
 
 msgid "Stop search when last download completes"
 msgstr ""
 
 msgid "Look for newest files shared by nodes in the network vicinity"
-msgstr ""
+msgstr "Cerca i file più recentemente condivisi dai nodi vicini"
 
 msgid "What's new?"
-msgstr ""
+msgstr "Novità?"
 
 msgid "Unspecified"
-msgstr ""
+msgstr "Non specificato"
 
 msgid "Search filters to apply locally on newly created searches."
-msgstr ""
+msgstr "Filtri di ricerca da applicare localmente sulle nuove ricerche."
 
 msgid "Discard results bearing an alien IP address"
 msgstr ""
 
 msgid "Discard results bearing a banned GUID"
-msgstr ""
+msgstr "Scarta i risultati con un GUID escluso"
 
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
@@ -8635,13 +8657,13 @@ msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
 msgstr ""
 
 msgid "Display GUESS statistics"
-msgstr ""
+msgstr "Mostra statistiche GUESS"
 
 msgid "Mapping lease time"
 msgstr ""
 
 msgid "G2 hubs"
-msgstr ""
+msgstr "Hub G2"
 
 msgid "Enable the G2 network"
 msgstr ""
@@ -8697,25 +8719,25 @@ msgid "_Remove filter"
 msgstr "_Rimuovi il filtro"
 
 msgid "_Close"
-msgstr "Chiudi"
+msgstr "_Chiudi"
 
 msgid "Show _Statusbar"
-msgstr ""
+msgstr "Mostra barra di _stato"
 
 msgid "Show _Peers"
 msgstr ""
 
 msgid "Gnutella _traffic stats"
-msgstr ""
+msgstr "Statistiche _traffico Gnutella"
 
 msgid "_Auto-hide leaf traffic stats"
-msgstr ""
+msgstr "_Auto-nascondi statistiche traffico foglia"
 
 msgid "_Search"
 msgstr "_Cerca"
 
 msgid "What's New?"
-msgstr ""
+msgstr "Novità?"
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
@@ -8727,7 +8749,7 @@ msgid "Connect to"
 msgstr "Connetti a"
 
 msgid "ultrapeers"
-msgstr ""
+msgstr "ultrapeer"
 
 msgid "Try to keep at least"
 msgstr "Cerca di mantenere almeno"
@@ -8805,7 +8827,7 @@ msgid "Uploaded data:"
 msgstr "Dati caricati:"
 
 msgid "_Columns show hops"
-msgstr "Mostra salti nelle colonne"
+msgstr "Mostra _salti nelle colonne"
 
 msgid " "
 msgstr ""
@@ -8829,7 +8851,7 @@ msgid "_Bind to this address"
 msgstr ""
 
 msgid "IPv_4 settings"
-msgstr ""
+msgstr "Impostazioni IPv_4"
 
 msgid "Force external IPv6 address to"
 msgstr ""
@@ -8878,10 +8900,10 @@ msgid "Minimum chunk _size"
 msgstr "_Dimensione minima pezzo"
 
 msgid "Show a status _icon"
-msgstr ""
+msgstr "Mostra _icona di stato"
 
 msgid "Avg. downtime of this servent"
-msgstr ""
+msgstr "Tempo di inattività medio di questo servent"
 
 msgid "Remove completed downloads from list"
 msgstr "Rimuovi dall'elenco gli scaricamenti completati"
@@ -8930,28 +8952,28 @@ msgid "Done"
 msgstr "Terminato"
 
 msgid "Fresh regular"
-msgstr "Fresco regolare"
+msgstr "Regolare fresco"
 
 msgid "Valid regular"
-msgstr "Valido regolare"
+msgstr "Regolare valido"
 
 msgid "Fresh IPv4 ultra"
-msgstr ""
+msgstr "IPv4 ultra, fresco"
 
 msgid "Valid IPv4 ultra"
-msgstr ""
+msgstr "IPv4 ultra, valido"
 
 msgid "Fresh IPv6 ultra"
-msgstr ""
+msgstr "IPv6 ultra, fresco"
 
 msgid "Valid IPv6 ultra"
-msgstr ""
+msgstr "IPv6 ultra, valido"
 
 msgid "Fresh G2 hub"
-msgstr ""
+msgstr "Hub G2 fresco"
 
 msgid "Valid G2 hub"
-msgstr ""
+msgstr "Hub G2 valido"
 
 msgid "Unstable"
 msgstr "Instabile"
@@ -9007,7 +9029,7 @@ msgid "Welcome sent"
 msgstr "Benvenuto inviato"
 
 msgid "No UDP traffic yet"
-msgstr ""
+msgstr "Ancora nessun traffico UDT"
 
 #, c-format
 msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
@@ -9116,14 +9138,17 @@ msgstr ""
 
 msgid "query"
 msgid_plural "queries"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "ricerca"
+msgstr[1] "ricerche"
 
 #, c-format
 msgid ""
 "GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
 "%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
+"GUESS %s [%s (%zu %s, %zu mantenuti, %s interrogazioni, %s chiavi)] [Gruppo: "
+"%zu %s, (%zu+%zu)/%zu interrogati, %zu %s (%.2f%%), %zu raggiunti, %zu in "
+"attesa, %zu %s%s%s]"
 
 msgid "loose"
 msgstr ""
@@ -9291,10 +9316,10 @@ msgid "Hostname"
 msgstr ""
 
 msgid "banned"
-msgstr ""
+msgstr "escluso"
 
 msgid "Servent ID"
-msgstr ""
+msgstr "Identificativo del servent"
 
 msgid "Vendor"
 msgstr ""
@@ -9345,10 +9370,10 @@ msgid "The normalized search text is too short."
 msgstr "Il testo normalizzato della ricerca è troppo breve."
 
 msgid "One cannot send \"What's New?\" queries too often."
-msgstr ""
+msgstr "Non è possibile lanciare ricerche \"Novità?\" troppo spesso."
 
 msgid "The URN in the search text is invalid."
-msgstr ""
+msgstr "Lo URN nel testo di ricerca non è valido"
 
 msgid "Encoding"
 msgstr "Codifica"
@@ -9395,7 +9420,7 @@ msgid "*** NO LISTENING TCP SOCKET -- NO INBOUND CONNECTIONS ***"
 msgstr ""
 
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
-msgstr ""
+msgstr "*** CARICAMENTI IN STALLO, BANDA SCARSA? ***"
 
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
 msgstr ""
