@@ -2419,13 +2419,23 @@ crash_mode(enum crash_level level)
 		 * We only do this when the allocator is actually involved in the
 		 * crash, and disabling of a particular allocator is only done once,
 		 * based on the disabling routine.
+		 *
+		 * Some allocators rely on others, so we need to take that into account.
+		 * For instance, xmalloc() can use palloc() to allocate thread chunks.
+		 * Therefore, any failure in palloc() must diable xmalloc() as well.
+		 * Likewise, tmalloc() is used by both walloc() and the VMM layer
+		 * for small pages, hence any failure in tmalloc() must disable both
+		 * upper clients.
 		 */
 
 		crash_disable_if_from("lib/xmalloc.c", "xmalloc", xmalloc_crash_mode);
+		crash_disable_if_from("lib/palloc.c",  "xmalloc", xmalloc_crash_mode);
 		crash_disable_if_from("lib/vmm.c",     "VMM",     vmm_crash_mode);
 		crash_disable_if_from("lib/walloc.c",  "walloc",  walloc_crash_mode);
 		crash_disable_if_from("lib/zalloc.c",  "walloc",  walloc_crash_mode);
+		crash_disable_if_from("lib/zalloc.c",  "VMM",     vmm_crash_mode);
 		crash_disable_if_from("lib/tmalloc.c", "walloc",  walloc_crash_mode);
+		crash_disable_if_from("lib/tmalloc.c", "VMM",     vmm_crash_mode);
 
 		/* FALL THROUGH */
 
