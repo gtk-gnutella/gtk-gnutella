@@ -164,6 +164,8 @@
 #undef execve
 #undef statvfs
 
+#undef _exit		/* _exit() is the real one here */
+
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define VMM_GRANULARITY	(1024*1024*4)	/* 4 MiB during initalization */
 #define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
@@ -184,6 +186,8 @@
 static HINSTANCE libws2_32;
 static once_flag_t mingw_socket_inited;
 static bool mingw_vmm_inited;
+
+static void mingw_stdio_reset(bool console);
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -1310,103 +1314,6 @@ mingw_quotestr(const char *str, char *dest, size_t len)
 }
 
 /**
- * Wrapper for execve().
- */
-int
-mingw_execve(const char *filename, char *const argv[], char *const envp[])
-{
-	static char buf[4096];		/* Better avoid the stack during crashes */
-	const char *p;
-	size_t needed = 0;			/* Space needed in buf[] for escaping */
-	char * const *ap;
-
-	/*
-	 * Unfortunately, the C runtime on Windows is not parsing the argv[0]
-	 * argument correctly after calling execve(), when there are embedded
-	 * spaces in the string.
-	 *
-	 * If we have initially:
-	 *
-	 *		argv[0] = 'C:\Program Files (x86)\gtk-gnutella\gtk-gnutella.exe'
-	 *
-	 * then the launched program will see:
-	 *
-	 *		argv[0] = 'C:\Program'
-	 *		argv[1] = 'Files'
-	 *		argv[2] = '(x86)\gtk-gnutella\gtk-gnutella.exe'
-	 *
-	 * which of course is completely wrong.
-	 *
-	 * So, as a workaround, we surround each argv[i] into quotes before
-	 * invoking execve(), well spawnve() actually.
-	 *
-	 * Complications arise because we are called from the crash handler most
-	 * probably and therefore we cannot allocate memory.  Furthermore, the
-	 * argv[] array can be held within read-only memory.
-	 */
-
-	ap = argv;
-	while (NULL != (p = *ap++)) {
-		needed += mingw_quotedlen(p);
-	}
-
-	if (needed != 0) {
-		char *q = &buf[0], *end = &buf[sizeof buf];
-		const void *argvnext, *argvpage = vmm_page_start(argv);
-		size_t span;
-		char **argpv;
-		unsigned i;
-
-		if (needed > sizeof buf) {
-			s_miniwarn("%s(): would need %zu bytes to escape all arguments, "
-				"has only %zu available", G_STRFUNC, needed, sizeof buf);
-		}
-
-		argvnext = vmm_page_next(ap - 1);
-		span = ptr_diff(argvnext, argvpage);
-
-		if (-1 == mprotect((void *) argvpage, span, PROT_READ | PROT_WRITE))
-			s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
-
-		for (argpv = (char **) argv, i = 0; *argpv != NULL; argpv++, i++) {
-			char *str = *argpv;
-			size_t len = mingw_quotedlen(str);
-
-			/*
-			 * Only escape arguments that need protection and that we can
-			 * properly escape.
-			 */
-
-			if (len != 0) {
-				if (len <= ptr_diff(end, q)) {
-					*argpv = q;
-					q = mingw_quotestr(str, q, ptr_diff(end, q));
-				} else {
-					s_miniwarn("%s(): not escaping argv[%u] "
-						"(need %zu bytes, only has %zu left)",
-						G_STRFUNC, i, len, ptr_diff(end, q));
-				}
-			}
-		}
-	}
-
-	/*
-	 * Now perform the execve(), which we emulate through an asynchronous
-	 * spawnve() call since we do not want to wait for the "child" process
-	 * to terminate before returning.
-	 */
-
-	errno = 0;
-	_flushall();
-	spawnve(P_NOWAIT, filename, (const void *) argv, (const void *) envp);
-
-	if (0 == errno)
-		_exit(0);	/* We don't want any atexit() cleanup */
-
-	return -1;		/* Failed to launch process, errno is set */
-}
-
-/**
  * Convert known valid UTF-8 string to UTF-16.
  *
  * @return newly allocated string via halloc().
@@ -1749,18 +1656,23 @@ mingw_record_child(PROCESS_INFORMATION *pi)
 }
 
 /**
- * The Windows version of our launchve() routine.
- * On UNIX, this is a simple matter of vfork() + execve()...
+ * Create a new process.
  *
- * The created child handle is stored along with the PID of the process
- * in a dualhash, so that we can implement wait() later on.
+ * This is a low-level routine on which mingw_launchve() and mingw_execve()
+ * rely to perform their work.
  *
- * @return -1 on failure, the PID of the child process otherwise.
+ * @param path		the path ot the command
+ * @param argv		the argument vector
+ * @param envp		the environment vector (can be NULL)
+ * @param pi		where the new process information will be stored
+ * @param suspended	whether to create the new process in a suspended state
+ *
+ * @return 0 if OK, -1 on error with errno set.
  */
-pid_t
-mingw_launchve(const char *path, char *const argv[], char *const envp[])
+static int
+mingw_create_process(const char *path, char *const argv[], char *const envp[],
+	PROCESS_INFORMATION *pi, bool suspended)
 {
-	PROCESS_INFORMATION pi;
 	STARTUPINFOW si;
 	pncs_t pncs;
 	int res, error = 0;
@@ -1768,14 +1680,17 @@ mingw_launchve(const char *path, char *const argv[], char *const envp[])
 	wchar_t *cmd_utf16 = NULL;
 	const char exe[] = ".exe";
 	int32 flags = 0;
-	pid_t pid = -1;
+	int ret = -1;
 
 	g_assert(path != NULL);
 	g_assert(argv != NULL);
 
-	ZERO(&pi);
+	ZERO(pi);
 	ZERO(&si);
 	si.cb = sizeof si;
+
+	if (suspended)
+		flags |= CREATE_SUSPENDED;
 
 	/*
 	 * Add trailing ".exe" extension to the path if missing.
@@ -1828,19 +1743,13 @@ mingw_launchve(const char *path, char *const argv[], char *const envp[])
 		env,				/* lpEnvironment */
 		NULL,				/* lpCurrentDirectory */
 		&si,				/* lpStartupInfo */
-		&pi					/* lpProcessInformation */
+		pi					/* lpProcessInformation */
 	);
 
-	if (0 == res) {
+	if (0 == res)
 		error = mingw_last_error();
-		goto done;
-	}
-
-	/*
-	 * Good, process was created.
-	 */
-
-	pid = mingw_record_child(&pi);
+	else
+		ret = 0;	/* Success! */
 
 	/* FALL THROUGH */
 
@@ -1854,7 +1763,76 @@ done:
 	if (error != 0)
 		errno = error;
 
-	return pid;
+	return ret;
+}
+
+/**
+ * Wrapper for execve().
+ */
+int
+mingw_execve(const char *filename, char *const argv[], char *const envp[])
+{
+	PROCESS_INFORMATION pi;
+
+	g_assert(filename != NULL);
+	g_assert(argv != NULL);
+
+	_flushall();
+
+	/*
+	 * We create the child in a suspended state so that we may close our
+	 * stdout and stderr properly before the child starts its execution.
+	 */
+
+	if (-1 == mingw_create_process(filename, argv, envp, &pi, TRUE))
+		return (pid_t) -1;		/* errno is already set */
+
+	/*
+	 * Before exiting, cleanup our resources as we would in do__exit().
+	 */
+
+	signal_perform_cleanup();
+	mingw_stdio_reset(FALSE);
+
+	/*
+	 * We have cleaned-up, there are no more resources we hold that could
+	 * prevent the new process from running, so resume it.
+	 */
+
+	ResumeThread(pi.hThread);		/* Pray it works... */
+
+	/*
+	 * We have to use _exit() to skip all the atexit() cleanups.
+	 */
+
+	_exit(0);		/* This is the real one, not the do__exit() call */
+}
+
+/**
+ * The Windows version of our launchve() routine.
+ * On UNIX, this is a simple matter of vfork() + execve()...
+ *
+ * The created child handle is stored along with the PID of the process
+ * in a dualhash, so that we can implement wait() later on.
+ *
+ * @return -1 on failure, the PID of the child process otherwise.
+ */
+pid_t
+mingw_launchve(const char *path, char *const argv[], char *const envp[])
+{
+	PROCESS_INFORMATION pi;
+
+	g_assert(path != NULL);
+	g_assert(argv != NULL);
+
+	if (-1 == mingw_create_process(path, argv, envp, &pi, FALSE))
+		return (pid_t) -1;		/* errno is already set */
+
+	/*
+	 * Good, process was created.
+	 */
+
+	return mingw_record_child(&pi);
 }
 
 /**
