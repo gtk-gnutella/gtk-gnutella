@@ -54,7 +54,6 @@
 #include "lib/hset.h"
 #include "lib/log.h"			/* For log_printable() */
 #include "lib/misc.h"
-#include "lib/path.h"
 #include "lib/random.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -105,7 +104,6 @@ static int gwc_current_reused = 0;			/**< Amount of times we reused it */
 #define CLIENT_INFO "client=" GTA_VENDOR_CODE GTA_VERSION_NUMBER
 
 static const char gwc_file[] = "gwcache";
-static const char gwc_bootfile[] = "gwcache.boot";
 static const char gwc_what[] = "web cache URLs";
 
 static bool gwc_file_dirty;
@@ -297,7 +295,6 @@ gwc_retrieve(void)
 {
 	file_path_t fp[4], *fpv;
 	uint len, added;
-	const char *path;
 	int line, idx;
 	FILE *in;
 	char tmp[1024];
