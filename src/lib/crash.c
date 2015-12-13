@@ -2342,6 +2342,24 @@ crash_disable_if_from(const char *file, const char *name, callback_fn_t cb)
 		crash_disable(name, cb);
 }
 
+static enum crash_level current_crash_level;
+static spinlock_t crash_mode_slk = SPINLOCK_INIT;
+
+/**
+ * Get current crash level.
+ */
+static enum crash_level G_GNUC_COLD
+crash_level(void)
+{
+	enum crash_level level;
+
+	spinlock_hidden(&crash_mode_slk);
+	level = current_crash_level;
+	spinunlock_hidden(&crash_mode_slk);
+
+	return level;
+}
+
 /**
  * Entering crash mode, for a given level.
  *
@@ -2352,8 +2370,6 @@ crash_disable_if_from(const char *file, const char *name, callback_fn_t cb)
 static bool G_GNUC_COLD
 crash_mode(enum crash_level level)
 {
-	static enum crash_level current_crash_level;
-	static spinlock_t crash_mode_slk = SPINLOCK_INIT;
 	enum crash_level old_level, new_level;
 
 	g_assert(level != CRASH_LVL_NONE);
@@ -2997,7 +3013,9 @@ crash_handler(int signo)
 	 * Enter crash mode and configure safe logging parameters.
 	 */
 
-	if (signal_in_exception())
+	if (recursive)
+		crash_mode(CRASH_LVL_RECURSIVE);
+	else if (signal_in_exception())
 		crash_mode(CRASH_LVL_EXCEPTION);
 	else if (SIGABRT == signo && crash_last_assertion_failure != NULL)
 		crash_mode(CRASH_LVL_FAILURE);
@@ -3821,6 +3839,23 @@ crash_restart(const char *format, ...)
 		return;
 
 	/*
+	 * First log the condition, without allocating any memory, bypassing stdio.
+	 */
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_INFO, TRUE, format, args);
+	va_end(args);
+
+	/*
+	 * If we have already started crashing, there is no need to request
+	 * a restart, it will happen if configured as part of the normal crash
+	 * handling logic.
+	 */
+
+	if (crash_level() > CRASH_LVL_OOM)
+		return;
+
+	/*
 	 * If they did not have time to call crash_setmain(), we do not know
 	 * what to restart.
 	 */
@@ -3832,14 +3867,6 @@ crash_restart(const char *format, ...)
 	}
 
 	/*
-	 * First log the condition, without allocating any memory, bypassing stdio.
-	 */
-
-	va_start(args, format);
-	s_minilogv(G_LOG_LEVEL_INFO, TRUE, format, args);
-	va_end(args);
-
-	/*
 	 * If we're on the exit path already for another reason, no need to
 	 * recurse into requesting another exit!
 	 */
@@ -3848,6 +3875,8 @@ crash_restart(const char *format, ...)
 		s_miniinfo("%s(): already started exiting, ignoring.", G_STRFUNC);
 		return;
 	}
+
+	s_miniinfo("%s(): requesting restart", G_STRFUNC);
 
 	/*
 	 * If there is a restart callback, invoke it.

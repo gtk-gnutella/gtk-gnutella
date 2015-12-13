@@ -1729,8 +1729,7 @@ alloc_pages(size_t size, bool update_pmap)
 			/* We're going to crash and restart, don't update statistics */
 
 			crash_restart("%s(): emergency allocation of %'zu bytes from "
-				"the page cache, requesting restart",
-				G_STRFUNC, size);
+				"the page cache", G_STRFUNC, size);
 
 			/* Allocation from page cache: region is already in the pmap */
 			goto done;
@@ -1757,8 +1756,7 @@ alloc_pages(size_t size, bool update_pmap)
 			/* We're going to crash and restart, don't update statistics */
 
 			crash_restart("%s(): emergency allocation of %'zu bytes after "
-				"clearing the page cache, requesting restart",
-				G_STRFUNC, size);
+				"clearing the page cache", G_STRFUNC, size);
 
 			goto allocated;
 		}
@@ -1771,8 +1769,7 @@ alloc_pages(size_t size, bool update_pmap)
 		if (p != NULL) {
 			/* We're going to crash and restart, don't update statistics */
 
-			crash_restart("%s(): allocation of %'zu bytes via emergency region"
-				", requesting restart",
+			crash_restart("%s(): allocation of %'zu bytes via emergency region",
 				G_STRFUNC, size);
 
 			memset(p, 0, size);			/* Kernel memory always zeroed */
