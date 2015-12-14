@@ -105,6 +105,7 @@
 #include "vmm.h"				/* For vmm_page_start() */
 #include "vsort.h"
 #include "walloc.h"
+#include "win32dlp.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -708,7 +709,7 @@ mingw_win2posix(int error)
  * Get last Windows error, remapping Windows-specific errors into POSIX ones
  * and clearing the POSIX range so that strerror() works.
  */
-static int
+int
 mingw_last_error(void)
 {
 	int error = GetLastError();
@@ -7748,6 +7749,7 @@ mingw_early_init(void)
 #endif	/* EMULATE_GETPPID */
 
 	set_folder_basepath_func(mingw_get_folder_basepath);
+	win32dlp_init(mingw_vmm.reserved, mingw_vmm.size);
 
 	closelog();
 }

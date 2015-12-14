@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-199]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-200]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -313,6 +313,7 @@ LSRC = \
 	watcher.c \
 	wd.c \
 	well.c \
+	win32dlp.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
@@ -509,6 +510,7 @@ LOBJ = \
 	watcher.o \
 	wd.o \
 	well.o \
+	win32dlp.o \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \

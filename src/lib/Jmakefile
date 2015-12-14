@@ -244,6 +244,7 @@ LSRC = \
 	watcher.c \
 	wd.c \
 	well.c \
+	win32dlp.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
