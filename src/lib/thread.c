@@ -852,7 +852,9 @@ thread_qid_cache_force(unsigned stid, thread_qid_t low, thread_qid_t high)
 	unsigned i;
 
 	g_assert(stid < THREAD_MAX);
-	g_assert(low <= high);
+	g_assert_log(low <= high,
+		"%s(): stid=%u, low=%'zu, high=%'zu",
+		G_STRFUNC, stid, low, high);
 
 	for (i = 0; i < G_N_ELEMENTS(thread_qid_cache); i++) {
 		uint8 id = thread_qid_cache[i];
