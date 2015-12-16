@@ -1127,6 +1127,11 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 	 */
 
 	THREAD_LOCK(te);
+
+	g_assert_log(te->low_qid <= te->high_qid,
+		"%s(): stid=%u, low_qid=%'zu, high_qid=%'zu",
+		G_STRFUNC, te->stid, te->low_qid, te->high_qid);
+
 	if (qid < te->low_qid)
 		te->low_qid = qid;
 	else if (qid > te->high_qid)
