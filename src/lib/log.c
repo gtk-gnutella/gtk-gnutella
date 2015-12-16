@@ -1281,13 +1281,16 @@ log_check_recursive(const char *format, va_list ap)
 {
 	static int recursive;
 	static char buf[LOG_MSG_MAXLEN];
+	static int stid;
+	int depth;
 
-	atomic_int_inc(&recursive);
+	depth = atomic_int_inc(&recursive);
 
-	if (1 == recursive) {
+	if (0 == depth) {
 		str_vbprintf(buf, sizeof buf, format, ap);
+		stid = thread_safe_small_id();
 		return FALSE;
-	} else if (2 == recursive) {
+	} else if (1 == depth) {
 		/*
 		 * Ensure we're not losing previous error in case we did not go
 		 * far enough, but flag the string as being from a previous error
@@ -1295,13 +1298,13 @@ log_check_recursive(const char *format, va_list ap)
 		 */
 		crash_set_error("previous error: ");
 		crash_append_error(buf);
-		s_minicrit("error occurred whilst processing former error:");
+		s_miniwarn("error whilst processing error from thread #%d:", stid);
 		s_miniinfo("previous error: %s", buf);
 		return TRUE;
-	} else if (3 == recursive) {
-		s_minicrit("recursive or concurrent error, aborting");
+	} else if (2 == depth) {
+		s_rawwarn("recursive or concurrent error, aborting");
 		log_abort();
-	} else if (4 == recursive) {
+	} else if (3 == depth) {
 		abort();
 	} else {
 		_exit(EXIT_FAILURE);
