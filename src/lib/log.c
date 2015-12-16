@@ -802,6 +802,27 @@ log_abort(void)
 	size_t count;
 
 	/*
+	 * If we have already generated a crash log and we are running supervised,
+	 * it is time to exit: we're looping into errors.
+	 */
+
+	if (crash_is_logged() && crash_is_supervised()) {
+		DECLARE_STR(3);
+		char time_buf[LOG_TIME_BUFLEN];
+
+		log_time(time_buf, sizeof time_buf);
+		print_str(time_buf);							/* 0 */
+		print_str(" (CRITICAL): crash log generated");	/* 1 */
+		print_str(", good bye.\n");						/* 2 */
+
+		log_flush_err_atomic();
+		if (log_stdout_is_distinct())
+			log_flush_out_atomic();
+
+		_exit(EXIT_FAILURE);	/* Immediate exit */
+	}
+
+	/*
 	 * It may be difficult to backtrace the stack past the signal handler
 	 * which is going to be invoked by raise(), hence save a copy of the
 	 * current stack before crashing.
