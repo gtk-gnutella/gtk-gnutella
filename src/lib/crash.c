@@ -673,6 +673,8 @@ crash_run_hooks(const char *logfile, int logfd)
 
 	(*hook)();
 
+	routine = stacktrace_function_name(hook);
+
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
