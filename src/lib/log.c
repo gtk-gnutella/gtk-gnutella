@@ -986,6 +986,22 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 		if (copy && log_stdout_is_distinct())
 			log_flush_out_atomic();
 	}
+
+	/*
+	 * When duplication is configured, write a copy of the message
+	 * without any timestamp and debug level tagging.
+	 */
+
+	if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
+		int fd = logfile[LOG_STDERR].crash_fd;
+		iovec_t iov[2];
+		iovec_set(&iov[0], data, clamp_strlen(data, sizeof data));
+		iovec_set(&iov[1], "\n", 1);
+		if (raw)
+			IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
+		else
+			atio_writev(fd, iov, G_N_ELEMENTS(iov));
+	}
 }
 
 /**
