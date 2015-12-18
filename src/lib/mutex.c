@@ -36,7 +36,9 @@
 #define MUTEX_SOURCE
 
 #include "mutex.h"
+
 #include "atomic.h"
+#include "crash.h"
 #include "log.h"
 #include "spinlock.h"
 #include "thread.h"
@@ -130,24 +132,39 @@ mutex_deadlock(const volatile void *obj, unsigned count,
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
+static G_GNUC_COLD NO_INLINE void
 mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile mutex_t *m = obj;
 	static int deadlocked;
+	int depth = atomic_int_inc(&deadlocked);
 	unsigned stid;
 
-	if (deadlocked != 0) {
-		if (1 == deadlocked)
-			thread_lock_deadlock(obj);
-		s_minierror("recursive deadlock on mutex %p (depth %zu) at %s:%u",
-			obj, m->depth, file, line);
+	if (mutex_pass_through)
+		return;			/* False alarm, necessarily */
+
+	if (depth != 0) {
+		crash_deadlocked(file, line);
+
+		/*
+		 * Let the thread continue -- we're in crash mode, recursive now,
+		 * meaning all locks are disabled, so there's no need to panic just
+		 * yet.
+		 */
+
+		return;
 	}
 
-	deadlocked++;
-	atomic_mb();
+	/*
+	 * This is going to be fatal anyway, hence activate the thread crash mode
+	 * to suspend the other threads.
+	 */
 
+	s_rawwarn("%sdeadlock on mutex %p (depth %zu) at %s:%u",
+		depth != 0 ? "recursive " : "", obj, m->depth, file, line);
+
+	atomic_mb();
 	mutex_check(m);
 
 	stid = thread_stid_from_thread(m->owner);
@@ -162,6 +179,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	if (-1U == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
+	crash_deadlocked(file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
 		"owned by %s", obj, m->depth, elapsed, file, line,

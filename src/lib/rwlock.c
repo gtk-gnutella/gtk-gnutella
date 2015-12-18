@@ -60,6 +60,7 @@
 #include "rwlock.h"
 
 #include "compat_usleep.h"
+#include "crash.h"
 #include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
@@ -480,30 +481,42 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
+static G_GNUC_COLD NO_INLINE void
 rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	static int deadlocked;
+	int depth = atomic_int_inc(&deadlocked);
 
-	if (deadlocked != 0) {
-		if (1 == deadlocked) {
-			thread_lock_deadlock(rw);
-			rwlock_wait_queue_dump(rw);
-		}
-		s_minierror("recursive deadlock on rwlock (%c) %p (r:%u w:%u q:%u+%u)"
-			" at %s:%u",
-			reading ? 'R' : 'W', rw, rw->readers, rw->writers,
-			rw->waiters - rw->write_waiters, rw->write_waiters, file, line);
+	if (rwlock_pass_through)
+		return;			/* False alarm, necessarily */
+
+	if (depth != 0) {
+		crash_deadlocked(file, line);
+
+		/*
+		 * Let the thread continue -- we're in crash mode, recursive now,
+		 * meaning all locks are disabled, so there's no need to panic just
+		 * yet.
+		 */
+
+		return;
 	}
 
-	deadlocked++;
-	atomic_mb();
+	/*
+	 * This is going to be fatal anyway, hence activate the thread crash mode
+	 * to suspend the other threads.
+	 */
 
+	s_rawwarn("%sdeadlock on rwlock (%c) %p at %s:%u",
+		depth != 0 ? "recursive " : "", reading ? 'R' : 'W', rw, file, line);
+
+	atomic_mb();
 	rwlock_check(rw);
 
-	thread_lock_deadlock(rw);
 	rwlock_wait_queue_dump(rw);
+	crash_deadlocked(file, line);
+	thread_lock_deadlock(rw);
 
 	s_error("deadlocked on rwlock (%c) %p (after %u secs) at %s:%u",
 		reading ? 'R' : 'W', rw, elapsed, file, line);

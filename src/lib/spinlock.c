@@ -36,8 +36,10 @@
 #define SPINLOCK_SOURCE
 
 #include "spinlock.h"
+
 #include "atomic.h"
 #include "compat_usleep.h"
+#include "crash.h"
 #include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
@@ -190,24 +192,39 @@ spinlock_deadlock(const volatile void *obj, unsigned count,
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
+static G_GNUC_COLD NO_INLINE void
 spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile spinlock_t *s = obj;
 	static int deadlocked;
+	int depth = atomic_int_inc(&deadlocked);
 
-	if (deadlocked != 0) {
-		if (1 == deadlocked)
-			thread_lock_deadlock(obj);
-		atomic_mb();
-		s_minierror("recursive deadlock on %sspinlock %p at %s:%u",
-			s->lock ? "" : "free ", obj, file, line);
+	if (spinlock_pass_through)
+		return;			/* False alarm, necessarily */
+
+	if (depth != 0) {
+		crash_deadlocked(file, line);
+
+		/*
+		 * Let the thread continue -- we're in crash mode, recursive now,
+		 * meaning all locks are disabled, so there's no need to panic just
+		 * yet.
+		 */
+
+		return;
 	}
 
-	deadlocked++;
-	atomic_mb();
+	/*
+	 * This is going to be fatal anyway, hence activate the thread crash mode
+	 * to suspend the other threads.
+	 */
 
+	s_rawwarn("%sdeadlock on %sspinlock %p at %s:%u",
+		depth != 0 ? "recursive " : "",
+		s->lock ? "" : "free ", obj, file, line);
+
+	atomic_mb();
 	spinlock_check(s);
 
 #ifdef SPINLOCK_DEBUG
@@ -222,6 +239,7 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 #endif
 #endif
 
+	crash_deadlocked(file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on %sspinlock %p (after %u secs) at %s:%u",
 		s->lock ? "" : "free ", obj, elapsed, file, line);

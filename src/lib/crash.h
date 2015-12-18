@@ -231,6 +231,7 @@ void crash_setbuild(unsigned build);
 void crash_setmain(void);
 void crash_oom(const char *format, ...) G_GNUC_NORETURN;
 void crash_oom_condition(void);
+void crash_deadlocked(const char *file, unsigned line);
 void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);
 void crash_set_filename(const char * const filename);

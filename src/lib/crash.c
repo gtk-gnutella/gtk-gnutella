@@ -143,6 +143,7 @@ enum crash_level {
 	CRASH_LVL_NONE = 0,				/**< No crash yet */
 	CRASH_LVL_BASIC,				/**< Basic crash level */
 	CRASH_LVL_OOM,					/**< Out of memory */
+	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_FAILURE,				/**< Assertion failure */
 	CRASH_LVL_EXCEPTION,			/**< Asynchronous signal */
 	CRASH_LVL_RECURSIVE,			/**< Crashing again during crash handling */
@@ -175,6 +176,8 @@ struct crash_vars {
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
 	action_fn_t restart;	/**< Optional restart callback to invoke */
+	const char *lock_file;	/**< Deadlocking file */
+	unsigned lock_line;		/**< Deadlocking line */
 	const char * const *argv;	/**< Saved argv[] array */
 	const char * const *envp;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
@@ -185,6 +188,7 @@ struct crash_vars {
 	uint8 crashing;			/**< True when we enter crash mode */
 	uint8 recursive;		/**< True when we are in a recursive crash */
 	uint8 closed;			/**< True when crash_close() was called */
+	uint8 deadlocked;		/**< True when the application deadlocked */
 	uint8 invoke_inspector;
 	uint8 has_numbers;		/**< True if major/minor/patchlevel were inited */
 	/* Not boolean fields because we need to update them individually */
@@ -211,6 +215,7 @@ static cevent_t *crash_restart_ev;		/* Async restart event */
 static int crash_exit_started;
 static bool crash_restart_initiated;
 static const struct assertion_data *crash_last_assertion_failure;
+static const char *crash_last_deadlock_file;
 
 /**
  * An item in the crash_hooks list.
@@ -584,6 +589,8 @@ crash_get_hook(void)
 		file = vars->failure->file;
 	else if (vars->filename != NULL)
 		file = vars->filename;
+	else if (vars->lock_file != NULL)
+		file = vars->lock_file;
 	else
 		file = NULL;
 
@@ -1309,6 +1316,12 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		print_str("Error-Message: ");		/* 3 */
 		print_str(vars->message);			/* 4 */
 		print_str("\n");					/* 5 */
+	} else if (vars->deadlocked) {
+		print_str("Deadlocked-At: ");		/* 3 */
+		print_str(vars->lock_file);			/* 4 */
+		print_str(":");						/* 5 */
+		print_str(PRINT_NUMBER(lbuf, vars->lock_line));	/* 6 */
+		print_str("\n");					/* 7 */
 	}
 	flush_str(clf);
 
@@ -2294,6 +2307,19 @@ crash_is_from(const char *file)
 	)
 		return TRUE;
 
+	if (
+		NULL != crash_last_deadlock_file &&
+		0 == strcmp(file, crash_last_deadlock_file)
+	)
+		return TRUE;
+
+	if (vars != NULL) {
+		if (NULL != vars->failure && 0 == strcmp(file, vars->failure->file))
+			return TRUE;
+		if (vars->deadlocked && 0 == strcmp(file, vars->lock_file))
+			return TRUE;
+	}
+
 	return thread_lock_holds_from(file);
 }
 
@@ -2433,6 +2459,7 @@ crash_mode(enum crash_level level)
 		/* FALL THROUGH */
 
 	case CRASH_LVL_FAILURE:
+	case CRASH_LVL_DEADLOCKED:
 		/*
 		 * Put our main allocators in crash mode, which will limit risks if we
 		 * are crashing due to a data structure corruption or an assertion
@@ -4026,11 +4053,35 @@ crash_oom(const char *format, ...)
 }
 
 /**
+ * Record that we are deadlocked.
+ */
+void G_GNUC_COLD
+crash_deadlocked(const char *file, unsigned line)
+{
+	crash_last_deadlock_file = file;
+
+	/*
+	 * Avoid endless recursions, record the deadlock the first time only.
+	 */
+
+	if (crash_mode(CRASH_LVL_DEADLOCKED)) {
+		if (vars != NULL) {
+			uint8 t = TRUE;
+			crash_set_var(deadlocked, t);
+			crash_set_var(lock_file, file);
+			crash_set_var(lock_line, line);
+		}
+	}
+}
+
+/**
  * Record failed assertion data.
  */
 void G_GNUC_COLD
 crash_assert_failure(const struct assertion_data *a)
 {
+	crash_last_assertion_failure = a;
+
 	/*
 	 * Avoid endless recursions, record the failure the first time only.
 	 */
@@ -4039,8 +4090,6 @@ crash_assert_failure(const struct assertion_data *a)
 		if (vars != NULL)
 			crash_set_var(failure, a);
 	}
-
-	crash_last_assertion_failure = a;
 }
 
 /**
