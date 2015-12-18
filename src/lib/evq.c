@@ -289,9 +289,21 @@ evq_init_once(void)
 	ev_queue = cq_make("evq", 0, EVQ_PERIOD);
 	atomic_bool_set(&evq_run, TRUE);
 
+	/*
+	 * By default, the thread signal mask is inherited by the new thread,
+	 * following the traditional POSIX semantics.  Here, we want to make
+	 * sure the new thread has a cleared signal mask when it starts up,
+	 * to ensure TSIG_EVQ is not blocked.
+	 *
+	 * The THREAD_F_CLEARSIG flag requests that the present signal mask
+	 * be not propagated to the new thread, which will thus start with
+	 * a zeroed mask (all signals allowed).
+	 */
+
 	evq_thread_id = thread_create(evq_thread_main, NULL,
 			THREAD_F_DETACH | THREAD_F_NO_CANCEL |
-				THREAD_F_NO_POOL | THREAD_F_PANIC,
+				THREAD_F_NO_POOL | THREAD_F_PANIC |
+				THREAD_F_CLEARSIG,
 			EVQ_STACK_SIZE);
 
 	evq_fully_inited = TRUE;

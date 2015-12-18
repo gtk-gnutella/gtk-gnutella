@@ -478,7 +478,9 @@ tm_thread_start(void)
 	ONCE_FLAG_RUN(tm_gmt.inited, tm_init_gmt_offset);
 
 	thread_create(tm_thread_main, NULL,
-		THREAD_F_DETACH | THREAD_F_NO_POOL | THREAD_F_PANIC, TM_THREAD_STACK);
+		THREAD_F_DETACH | THREAD_F_CLEARSIG |
+			THREAD_F_NO_POOL | THREAD_F_PANIC,
+		TM_THREAD_STACK);
 }
 
 /**

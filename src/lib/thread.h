@@ -64,6 +64,7 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
 #define THREAD_F_NO_POOL	(1U << 3)	/**< Disable xmalloc thread pool */
 #define THREAD_F_WARN		(1U << 4)	/**< Warn if cannot create thread */
 #define THREAD_F_PANIC		(1U << 5)	/**< Panic if we cannot create thread */
+#define THREAD_F_CLEARSIG	(1U << 6)	/**< Clear signal mask of new thread */
 
 /**
  * Special free routine for thread-local value which indicates that the

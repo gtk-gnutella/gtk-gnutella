@@ -2028,7 +2028,8 @@ cq_global_init(void)
 	if (thread_main_is_blockable()) {
 		callout_thread = TRUE;
 		callout_queue->cq_stid = thread_create(cq_thread_main, NULL,
-			THREAD_F_DETACH | THREAD_F_NO_POOL | THREAD_F_PANIC,
+			THREAD_F_DETACH | THREAD_F_CLEARSIG |
+				THREAD_F_NO_POOL | THREAD_F_PANIC,
 			CALLOUT_THREAD_STACK);
 	} else {
 		callout_timer_id = g_timeout_add(CALLOUT_PERIOD,

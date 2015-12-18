@@ -7982,7 +7982,17 @@ thread_launch(struct thread_element *te,
 	ctx->te = te;
 	ctx->routine = routine;
 	ctx->arg = arg;
-	ctx->sig_mask = tself->sig_mask;		/* Inherit signal mask */
+
+	/*
+	 * By default, the current thread signal mask is inehrited by the new
+	 * thread.  The THREAD_F_CLEARSIG creation flag supersedes that by
+	 * clearing the signal mask, allowing all signals in the new thread.
+	 */
+
+	if (flags & THREAD_F_CLEARSIG)
+		ctx->sig_mask = 0;
+	else
+		ctx->sig_mask = tself->sig_mask;	/* Inherit signal mask */
 
 	xmalloc_thread_starting(te->stid);
 	xmalloc_thread_disable_local_pool(te->stid,
