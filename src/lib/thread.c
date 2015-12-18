@@ -5446,6 +5446,29 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 	unsigned i;
 	DECLARE_STR(22);
 
+	if (te->waiting.lock != NULL) {
+		const char *type, *lnum;
+		char buf[POINTER_BUFLEN];
+		char line[UINT_DEC_BUFLEN];
+
+		type = thread_lock_kind_to_string(te->waiting.kind);
+		pointer_to_string_buf(te->waiting.lock, buf, sizeof buf);
+		lnum = PRINT_NUMBER(line, te->waiting.line);
+
+		print_str(thread_element_name(te));					/* 0 */
+		print_str(" is waiting for ");						/* 1 */
+		print_str(type);									/* 2 */
+		print_str(" ");										/* 3 */
+		print_str(buf);										/* 4 */
+		print_str(" at ");									/* 5 */
+		print_str(te->waiting.file);						/* 6 */
+		print_str(":");										/* 7 */
+		print_str(lnum);									/* 8 */
+		print_str("\n");									/* 9 */
+		flush_str(fd);
+		rewind_str(0);
+	}
+
 	if G_UNLIKELY(0 == tls->count) {
 		print_str(thread_element_name(te));					/* 0 */
 		print_str(" currently holds no recorded locks.\n");	/* 1 */
@@ -5453,10 +5476,30 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		return;
 	}
 
-	print_str("Locks owned by ");				/* 0 */
-	print_str(thread_element_name(te));			/* 1 */
-	print_str(", most recent first:\n");		/* 2 */
-	flush_str(fd);
+	/*
+	 * We display the amount of locks we are going to dump so that we can
+	 * see when the dumping loop aborts before reaching the end.
+	 */
+
+	{
+		char cnt[SIZE_T_DEC_BUFLEN];
+		const char *lcnt;
+
+		lcnt = PRINT_NUMBER(cnt, tls->count);
+
+		print_str("Dumping the ");					/* 0 */
+		print_str(lcnt);							/* 1 */
+
+		if (1 == tls->count)
+			print_str(" lock ");					/* 2 */
+		else
+			print_str(" locks ");					/* 2 */
+
+		print_str("owned by ");						/* 3 */
+		print_str(thread_element_name(te));			/* 4 */
+		print_str(", most recent first:\n");		/* 5 */
+		flush_str(fd);
+	}
 
 	for (i = tls->count; i != 0; i--) {
 		const struct thread_lock *l = &tls->arena[i - 1];
@@ -5514,11 +5557,6 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 						print_str(" UNLOCKED");		/* 7 */
 					else if (1 != s->lock)
 						print_str(" BAD_LOCK");		/* 7 */
-					print_str(" from ");		/* 8 */
-					lnum = PRINT_NUMBER(line, l->line);
-					print_str(l->file);			/* 9 */
-					print_str(":");				/* 10 */
-					print_str(lnum);			/* 11 */
 				}
 			}
 			break;
@@ -5547,26 +5585,20 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 					else
 						print_str(" write");		/* 7 */
 
-					print_str(" from ");		/* 8 */
-					lnum = PRINT_NUMBER(line, l->line);
-					print_str(l->file);			/* 9 */
-					print_str(":");				/* 10 */
-					print_str(lnum);			/* 11 */
-
 					r = PRINT_NUMBER(rdbuf, rw->readers);
 					w = PRINT_NUMBER(wrbuf, rw->writers);
 					qr = PRINT_NUMBER(qrbuf, rw->waiters - rw->write_waiters);
 					qw = PRINT_NUMBER(qwbuf, rw->write_waiters);
 
-					print_str(" (r:");			/* 12 */
-					print_str(r);				/* 13 */
-					print_str(" w:");			/* 14 */
-					print_str(w);				/* 15 */
-					print_str(" q:");			/* 16 */
-					print_str(qr);				/* 17 */
-					print_str("+");				/* 18 */
-					print_str(qw);				/* 19 */
-					print_str(")");				/* 20 */
+					print_str(" (r:");			/* 8 */
+					print_str(r);				/* 9 */
+					print_str(" w:");			/* 10 */
+					print_str(w);				/* 11 */
+					print_str(" q:");			/* 12 */
+					print_str(qr);				/* 13 */
+					print_str("+");				/* 14 */
+					print_str(qw);				/* 15 */
+					print_str(")");				/* 16 */
 				}
 			}
 			break;
@@ -5592,22 +5624,17 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 							print_str(" BAD_LOCK");	/* 7 */
 						if (!thread_eq(m->owner, te->tid))
 							print_str(" BAD_TID");	/* 8 */
-						print_str(" from ");		/* 9 */
-						lnum = PRINT_NUMBER(line, l->line);
-						print_str(l->file);			/* 10 */
-						print_str(":");				/* 11 */
-						print_str(lnum);			/* 12 */
 
 						if (0 == m->depth) {
-							print_str(" BAD_DEPTH");	/* 13 */
+							print_str(" BAD_DEPTH");	/* 9 */
 						} else {
 							char depth[ULONG_DEC_BUFLEN];
 							const char *dnum;
 
 							dnum = PRINT_NUMBER(depth, m->depth);
-							print_str(" (depth=");		/* 13 */
-							print_str(dnum);			/* 14 */
-							print_str(")");				/* 15 */
+							print_str(" (depth=");		/* 10 */
+							print_str(dnum);			/* 11 */
+							print_str(")");				/* 12 */
 						}
 					}
 				}
@@ -5615,7 +5642,13 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			break;
 		}
 
-		print_str("\n");		/* 21 */
+		print_str(" from ");					/* 17 */
+		lnum = PRINT_NUMBER(line, l->line);
+		print_str(l->file);						/* 18 */
+		print_str(":");							/* 19 */
+		print_str(lnum);						/* 20 */
+
+		print_str("\n");						/* 21 */
 		flush_str(fd);
 	}
 }
