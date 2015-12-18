@@ -65,7 +65,7 @@ const char *signal_name(int signo);
 bool signal_in_handler(void);
 struct ckhunk *signal_chunk(void);
 void signal_unblock(int signo);
-void signal_abort(void) G_GNUC_NORETURN;
+void signal_abort(void);
 size_t signal_stack_allocate(void **base_ptr);
 bool signal_stack_free(void **base_ptr);
 
