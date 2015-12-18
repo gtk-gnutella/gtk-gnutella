@@ -1491,7 +1491,6 @@ signal_abort(void)
 		ATOMIC_SET(&in_signal_abort, TRUE);
 
 	raise(SIGABRT);
-	s_error("raise() failed: %m");
 }
 
 /**

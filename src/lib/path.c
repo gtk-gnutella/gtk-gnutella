@@ -331,7 +331,7 @@ get_folder_path(enum special_folder folder)
 	} cached[SPECIAL_FOLDER_COUNT];
 	static spinlock_t cached_slk = SPINLOCK_INIT;
 
-	g_assert(folder >= 0 && folder < SPECIAL_FOLDER_COUNT);
+	g_assert(UNSIGNED(folder) < SPECIAL_FOLDER_COUNT);
 
 	/*
 	 * Lookup in the cache first, so that we do not re-attempt to dynamically

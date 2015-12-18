@@ -193,6 +193,7 @@ struct crash_vars {
 	uint8 may_restart;
 	uint8 supervised;
 	uint8 hooks_run;		/**< True when hooks have been run */
+	uint8 logged;			/**< True when a crash log has been generated */
 };
 
 #define crash_set_var(name, src) \
@@ -671,6 +672,8 @@ crash_run_hooks(const char *logfile, int logfd)
 	}
 
 	(*hook)();
+
+	routine = stacktrace_function_name(hook);
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
@@ -1425,9 +1428,14 @@ crash_generate_crashlog(int signo)
 	crash_run_hooks(NULL, clf);
 	close(clf);
 	s_minimsg("trace left in %s", crashlog);
-	if (vars != NULL && vars->dumps_core) {
-		bool gotcwd = NULL != getcwd(crashlog, sizeof crashlog);
-		s_minimsg("core dumped in %s", gotcwd ? crashlog : "current directory");
+	if (vars != NULL) {
+		uint8 t = TRUE;
+		crash_set_var(logged, t);
+		if (vars->dumps_core) {
+			bool gotcwd = NULL != getcwd(crashlog, sizeof crashlog);
+			s_minimsg("core dumped in %s",
+				gotcwd ? crashlog : "current directory");
+		}
 	}
 }
 
@@ -3750,6 +3758,18 @@ crash_is_supervised(void)
 		return FALSE;
 
 	return vars->supervised && 1 != getppid();
+}
+
+/**
+ * Did we already generate a crash log?
+ */
+bool
+crash_is_logged(void)
+{
+	if (NULL == vars)
+		return FALSE;
+
+	return vars->logged;
 }
 
 /**

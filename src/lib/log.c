@@ -802,6 +802,27 @@ log_abort(void)
 	size_t count;
 
 	/*
+	 * If we have already generated a crash log and we are running supervised,
+	 * it is time to exit: we're looping into errors.
+	 */
+
+	if (crash_is_logged() && crash_is_supervised()) {
+		DECLARE_STR(3);
+		char time_buf[LOG_TIME_BUFLEN];
+
+		log_time(time_buf, sizeof time_buf);
+		print_str(time_buf);							/* 0 */
+		print_str(" (CRITICAL): crash log generated");	/* 1 */
+		print_str(", good bye.\n");						/* 2 */
+
+		log_flush_err_atomic();
+		if (log_stdout_is_distinct())
+			log_flush_out_atomic();
+
+		_exit(EXIT_FAILURE);	/* Immediate exit */
+	}
+
+	/*
 	 * It may be difficult to backtrace the stack past the signal handler
 	 * which is going to be invoked by raise(), hence save a copy of the
 	 * current stack before crashing.
@@ -964,6 +985,22 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 		log_flush_err_atomic();
 		if (copy && log_stdout_is_distinct())
 			log_flush_out_atomic();
+	}
+
+	/*
+	 * When duplication is configured, write a copy of the message
+	 * without any timestamp and debug level tagging.
+	 */
+
+	if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
+		int fd = logfile[LOG_STDERR].crash_fd;
+		iovec_t iov[2];
+		iovec_set(&iov[0], data, clamp_strlen(data, sizeof data));
+		iovec_set(&iov[1], "\n", 1);
+		if (raw)
+			IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
+		else
+			atio_writev(fd, iov, G_N_ELEMENTS(iov));
 	}
 }
 
@@ -1281,13 +1318,16 @@ log_check_recursive(const char *format, va_list ap)
 {
 	static int recursive;
 	static char buf[LOG_MSG_MAXLEN];
+	static int stid;
+	int depth;
 
-	atomic_int_inc(&recursive);
+	depth = atomic_int_inc(&recursive);
 
-	if (1 == recursive) {
+	if (0 == depth) {
 		str_vbprintf(buf, sizeof buf, format, ap);
+		stid = thread_safe_small_id();
 		return FALSE;
-	} else if (2 == recursive) {
+	} else if (1 == depth) {
 		/*
 		 * Ensure we're not losing previous error in case we did not go
 		 * far enough, but flag the string as being from a previous error
@@ -1295,13 +1335,13 @@ log_check_recursive(const char *format, va_list ap)
 		 */
 		crash_set_error("previous error: ");
 		crash_append_error(buf);
-		s_minicrit("error occurred whilst processing former error:");
+		s_miniwarn("error whilst processing error from thread #%d:", stid);
 		s_miniinfo("previous error: %s", buf);
 		return TRUE;
-	} else if (3 == recursive) {
-		s_minicrit("recursive or concurrent error, aborting");
+	} else if (2 == depth) {
+		s_rawwarn("recursive or concurrent error, aborting");
 		log_abort();
-	} else if (4 == recursive) {
+	} else if (3 == depth) {
 		abort();
 	} else {
 		_exit(EXIT_FAILURE);

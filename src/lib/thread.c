@@ -852,7 +852,9 @@ thread_qid_cache_force(unsigned stid, thread_qid_t low, thread_qid_t high)
 	unsigned i;
 
 	g_assert(stid < THREAD_MAX);
-	g_assert(low <= high);
+	g_assert_log(low <= high,
+		"%s(): stid=%u, low=%'zu, high=%'zu",
+		G_STRFUNC, stid, low, high);
 
 	for (i = 0; i < G_N_ELEMENTS(thread_qid_cache); i++) {
 		uint8 id = thread_qid_cache[i];
@@ -1125,6 +1127,11 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 	 */
 
 	THREAD_LOCK(te);
+
+	g_assert_log(te->low_qid <= te->high_qid,
+		"%s(): stid=%u, low_qid=%'zu, high_qid=%'zu",
+		G_STRFUNC, te->stid, te->low_qid, te->high_qid);
+
 	if (qid < te->low_qid)
 		te->low_qid = qid;
 	else if (qid > te->high_qid)
@@ -7975,7 +7982,17 @@ thread_launch(struct thread_element *te,
 	ctx->te = te;
 	ctx->routine = routine;
 	ctx->arg = arg;
-	ctx->sig_mask = tself->sig_mask;		/* Inherit signal mask */
+
+	/*
+	 * By default, the current thread signal mask is inehrited by the new
+	 * thread.  The THREAD_F_CLEARSIG creation flag supersedes that by
+	 * clearing the signal mask, allowing all signals in the new thread.
+	 */
+
+	if (flags & THREAD_F_CLEARSIG)
+		ctx->sig_mask = 0;
+	else
+		ctx->sig_mask = tself->sig_mask;	/* Inherit signal mask */
 
 	xmalloc_thread_starting(te->stid);
 	xmalloc_thread_disable_local_pool(te->stid,
