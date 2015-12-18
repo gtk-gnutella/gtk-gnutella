@@ -757,7 +757,16 @@ random_add_pool(void *buf, size_t len)
 	RANDOM_STATS_INC(random_add_pool);
 	RANDOM_STATS_ADD(input_random_add_pool, len);
 
-	spinlock(&pool_slk);
+	/*
+	 * If we cannot lock, it means we're recursing (and hence would deadlock)
+	 * or another thread is busy adding random data.  In that case, simply
+	 * give the random bytes directly instead of buffering them.
+	 */
+
+	if (!spinlock_try(&pool_slk)) {
+		random_add(buf, len);
+		return FALSE;
+	}
 
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < G_N_ELEMENTS(data));
