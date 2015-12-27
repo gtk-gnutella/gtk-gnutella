@@ -3760,8 +3760,21 @@ const char *
 thread_id_name(unsigned id)
 {
 	static char buf[THREAD_MAX][128];
+	static char emergency[128];
 	const struct thread_element *te;
-	char *b = &buf[thread_small_id()][0];
+	char *b;
+
+	/*
+	 * This routine may be called during crashes or dire conditions, so be
+	 * careful and do not call thread_small_id() lightly.
+	 */
+
+	if (signal_in_exception()) {
+		int stid = thread_safe_small_id();
+		b = stid < 0 ? emergency : &buf[stid][0];
+	} else {
+		b = &buf[thread_small_id()][0];
+	}
 
 	if (id >= THREAD_MAX) {
 		str_bprintf(b, sizeof buf[0], "<invalid thread ID %u>", id);
