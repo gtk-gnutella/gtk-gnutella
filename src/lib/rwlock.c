@@ -545,7 +545,6 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	gentime_t start = GENTIME_ZERO;
 	int loops = RWLOCK_LOOP;
 	const void *element = NULL;
-	time_delta_t d;
 
 	rwlock_check(rw);
 
@@ -635,11 +634,12 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 			element = thread_lock_waiting_element(rw,
 				reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK,
 				file, line);
-		}
+		} else {
+			time_delta_t d = gentime_diff(gentime_now_exact(), start);
 
-		d = gentime_diff(gentime_now_exact(), start);
-		if G_UNLIKELY(d > RWLOCK_TIMEOUT)
-			rwlock_deadlocked(rw, reading, (unsigned) d, file, line);
+			if G_UNLIKELY(d > RWLOCK_TIMEOUT)
+				rwlock_deadlocked(rw, reading, (unsigned) d, file, line);
+		}
 
 		/*
 		 * During the early loops, simply relinquish the CPU without imposing

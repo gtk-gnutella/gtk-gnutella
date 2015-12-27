@@ -275,7 +275,6 @@ spinlock_loop(volatile spinlock_t *s,
 	gentime_t start = GENTIME_ZERO;
 	int loops = SPINLOCK_LOOP;
 	const void *element = NULL;
-	time_delta_t d;
 
 	spinlock_check(s);
 
@@ -369,6 +368,10 @@ spinlock_loop(volatile spinlock_t *s,
 			if G_UNLIKELY(SPINLOCK_SRC_MUTEX == src)
 				kind = THREAD_LOCK_MUTEX;
 			element = thread_lock_waiting_element(src_object, kind, file, line);
+		} else {
+			time_delta_t d = gentime_diff(gentime_now_exact(), start);
+			if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
+				(*deadlocked)(src_object, (unsigned) d, file, line);
 		}
 
 		compat_usleep_nocancel(SPINLOCK_DELAY);
@@ -382,10 +385,6 @@ spinlock_loop(volatile spinlock_t *s,
 			spinlock_direct(s);
 			return;
 		}
-
-		d = gentime_diff(gentime_now_exact(), start);
-		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
-			(*deadlocked)(src_object, (unsigned) d, file, line);
 	}
 }
 
