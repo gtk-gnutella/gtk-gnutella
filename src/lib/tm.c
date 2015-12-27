@@ -723,7 +723,7 @@ tm_localtime_exact(void)
 }
 
 /*
- * Get current local time, at the second granularity (cached).
+ * Get current local time, at the second granularity (raw).
  *
  * @attention
  * This raw version does not check for thread suspension.  It is meant
@@ -735,7 +735,7 @@ tm_localtime_raw(void)
 	static time_delta_t gmt_offset;
 	static bool done;
 	time_delta_t offset = tm_gmt.offset;
-	tm_t now = tm_cached_now;
+	tm_t now;
 
 	/*
 	 * In case this routine is called very early, perform some local
@@ -743,14 +743,15 @@ tm_localtime_raw(void)
 	 *		--RAM, 2015-11-15
 	 */
 
-	if G_UNLIKELY(0 == now.tv_sec) {
-		tm_current_time(&now);
+	if G_UNLIKELY(0 == tm_cached_now.tv_sec) {
 		if (!done) {
 			gmt_offset = timestamp_gmt_offset(time(NULL), NULL);
 			done = TRUE;
 		}
 		offset = gmt_offset;
 	}
+
+	tm_current_time(&now);
 
 	return (time_t) now.tv_sec + offset;
 }
