@@ -5791,10 +5791,21 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 	te = thread_find(&te);
 
 	if G_LIKELY(te != NULL) {
-		te->waiting.lock = lock;
-		te->waiting.kind = kind;
-		te->waiting.file = file;
-		te->waiting.line = line;
+		/*
+		 * Do not perturb the waiting state we had in the crashing thread,
+		 * in case we are deadlocking.
+		 */
+
+		if (
+			0 == thread_crash_mode_enabled ||
+			!crash_is_deadlocked() ||
+			thread_safe_small_id() != UNSIGNED(thread_crash_mode_stid)
+		) {
+			te->waiting.lock = lock;
+			te->waiting.kind = kind;
+			te->waiting.file = file;
+			te->waiting.line = line;
+		}
 
 		/*
 		 * Record contention leading to sleeping: if the locking code calls
@@ -5859,7 +5870,18 @@ thread_lock_waiting_done(const void *element)
 	struct thread_element *te = deconstify_pointer(element);
 
 	thread_element_check(te);
-	te->waiting.lock = NULL;		/* Clear waiting condition */
+
+	/*
+	 * Do not perturb the waiting state we had in the crashing thread
+	 * if we identified a deadlock condition.
+	 */
+
+	if (
+		0 == thread_crash_mode_enabled ||
+		!crash_is_deadlocked() ||
+		thread_safe_small_id() != UNSIGNED(thread_crash_mode_stid)
+	)
+		te->waiting.lock = NULL;		/* Clear waiting condition */
 
 	/*
 	 * We just got a lock of some kind, and we have the thread element so
@@ -6055,12 +6077,6 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	}
 
 found:
-	/*
-	 * Clear the "waiting" condition on the lock.
-	 */
-
-	te->waiting.lock = NULL;		/* Signals that lock was granted */
-
 	/*
 	 * Update statistics.
 	 */

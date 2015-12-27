@@ -3761,6 +3761,15 @@ crash_is_closed(void)
 }
 
 /**
+ * Are we deadlocked?
+ */
+bool
+crash_is_deadlocked(void)
+{
+	return crash_last_deadlock_file != NULL;
+}
+
+/**
  * Are we pausing?
  *
  * @return TRUE if the process is voluntarily pausing.
