@@ -134,6 +134,7 @@
 #include "lib/launch.h"
 #include "lib/log.h"
 #include "lib/map.h"
+#include "lib/mem.h"
 #include "lib/mime_type.h"
 #include "lib/misc.h"
 #include "lib/offtime.h"
@@ -2388,6 +2389,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
+	mem_test();
 	random_init();
 	vsort_init(1);
 	htable_test();

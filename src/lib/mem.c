@@ -40,8 +40,10 @@
 #include "common.h"
 
 #include "mem.h"
+
 #include "fd.h"					/* For is_a_fifo() */
 #include "file.h"
+#include "log.h"
 #include "spinlock.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -363,6 +365,29 @@ bool
 mem_is_writable_range(const void *p, size_t len)
 {
 	return mem_is_accessible(p, len, mem_is_writable);
+}
+
+/**
+ * Ensure memory checking primitives are working properly.
+ */
+void
+mem_test(void)
+{
+	static const char str[] = "x";
+
+	if (!mem_is_valid_ptr(str) || mem_is_valid_ptr(NULL))
+		s_warning("%s(): cannot check whether a pointer is valid", G_STRFUNC);
+
+	if (mem_is_writable(str) || mem_is_writable(mem_test))
+		s_warning("%s(): writable memory checks may not be working", G_STRFUNC);
+
+	if (MEM_PROT_NONE == mem_protection(str))
+		s_warning("%s(): memory protection checks are not working", G_STRFUNC);
+
+	g_assert('x' == str[0]);	/* mem_protection() leaves memory intact */
+
+	if (!mem_is_valid_range(str, sizeof str))
+		s_warning("%s(): memory range checks are not working", G_STRFUNC);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
