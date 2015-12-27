@@ -104,7 +104,7 @@ size_t stacktrace_safe_unwind(void *stack[], size_t count, size_t offset);
 void stacktrace_where_print(FILE *f);
 void stacktrace_where_sym_print(FILE *f);
 void stacktrace_where_sym_print_offset(FILE *f, size_t offset);
-void stacktrace_where_print_offset(FILE *f, size_t offset);
+void stacktrace_where_plain_print_offset(int fd, size_t offset);
 void stacktrace_where_safe_print_offset(int fd, size_t offset);
 void stacktrace_where_cautious_print_offset(int fd, size_t offset);
 void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
