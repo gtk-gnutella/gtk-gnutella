@@ -780,15 +780,15 @@ log_time(char *buf, size_t size)
 }
 
 /**
- * Same as log_time() but uses cached time, and therefore does not take locks.
+ * Same as log_time() but uses raw time, and therefore does not take locks.
  *
  * @param buf		buffer where current time is formatted
  * @param size		length of buffer
  */
 static void
-log_time_cached(char *buf, size_t size)
+log_time_raw(char *buf, size_t size)
 {
-	crash_time_cached(buf, size);
+	crash_time_raw(buf, size);
 	clamp_strcat(buf, size, logpid);
 }
 
@@ -942,7 +942,7 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 		stid = thread_safe_small_id();
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = 0;
-		log_time_cached(time_buf, sizeof time_buf);	/* Raw, no locks! */
+		log_time_raw(time_buf, sizeof time_buf);	/* Raw, no locks! */
 	} else {
 		stid = thread_small_id();
 		log_time(time_buf, sizeof time_buf);

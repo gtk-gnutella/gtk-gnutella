@@ -374,10 +374,10 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
  *
  * @param buf		buffer where current time is formatted
  * @param size		length of buffer
- * @param cached	whether to use cached time
+ * @param raw		whether to use raw time computation
  */
 static void
-crash_time_internal(char *buf, size_t size, bool cached)
+crash_time_internal(char *buf, size_t size, bool raw)
 {
 	const size_t num_reserved = 1;
 	struct tm tm;
@@ -392,10 +392,8 @@ crash_time_internal(char *buf, size_t size, bool cached)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if G_UNLIKELY(cached) {
-		tm_now_raw(&tv);
-		if (0 == tv.tv_sec)				/* Too soon to have cached copy? */
-			tm_current_time(&tv);		/* Get system value, no caching! */
+	if G_UNLIKELY(raw) {
+		tm_current_time(&tv);			/* Get system value, no locks */
 		loc = tm_localtime_raw();
 	} else {
 		tm_now_exact(&tv);
@@ -447,8 +445,8 @@ crash_time(char *buf, size_t size)
  * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
  * truncated.
  *
- * The difference with crash_time() is that the routine uses the cached time
- * and therefore does not take any locks.
+ * The difference with crash_time() is that the routine uses a direct time
+ * computation and therefore does not take any locks.
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
@@ -457,7 +455,7 @@ crash_time(char *buf, size_t size)
  * @param size		length of buffer
  */
 void
-crash_time_cached(char *buf, size_t size)
+crash_time_raw(char *buf, size_t size)
 {
 	crash_time_internal(buf, size, TRUE);
 }

@@ -229,7 +229,7 @@ closelog(void)
 	if (mingw_debug_lf != NULL) {			\
 		FILE *lf = mingw_debug_lf;			\
 		char tb[CRASH_TIME_BUFLEN];			\
-		crash_time_cached(tb, sizeof tb);	\
+		crash_time_raw(tb, sizeof tb);		\
 		fputs(tb, lf);						\
 		fputc(' ', lf);						\
 		fprintf(lf, __VA_ARGS__);			\
