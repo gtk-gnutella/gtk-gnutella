@@ -343,9 +343,7 @@ spinlock_loop(volatile spinlock_t *s,
 						spinlock_source_string(src), src_object, i, file, line);
 				}
 #endif	/* SPINLOCK_DEBUG */
-				if G_UNLIKELY(element != NULL)
-					thread_lock_waiting_done(element);
-				return;
+				goto locked;
 			}
 			if (1 == spinlock_cpus)
 				thread_yield();
@@ -383,9 +381,15 @@ spinlock_loop(volatile spinlock_t *s,
 
 		if G_UNLIKELY(spinlock_in_crash_mode()) {
 			spinlock_direct(s);
-			return;
+			goto locked;
 		}
 	}
+
+	g_assert_not_reached();
+
+locked:
+	if G_UNLIKELY(element != NULL)
+		thread_lock_waiting_done(element);
 }
 
 /**
