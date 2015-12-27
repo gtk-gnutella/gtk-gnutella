@@ -7205,7 +7205,7 @@ mingw_exception_log(int stid, int code, const void *pc)
 		stid += 256;
 	s = PRINT_NUMBER(buf, stid);
 	print_str(s);										/* 2 */
-	print_str("): received exception at PC=0x");		/* 3 */
+	print_str("): received exception at PC=");			/* 3 */
 	print_str(pointer_to_string(pc));					/* 4 */
 	if (name != NULL) {
 		print_str(" (");								/* 5 */
@@ -7262,7 +7262,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 	print_str(s);						/* 2 */
 	print_str("): memory fault (");		/* 3 */
 	print_str(prot);					/* 4 */
-	print_str(") at VA=0x");			/* 5 */
+	print_str(") at VA=");				/* 5 */
 	print_str(pointer_to_string(va));	/* 6 */
 	print_str("\n");					/* 7 */
 

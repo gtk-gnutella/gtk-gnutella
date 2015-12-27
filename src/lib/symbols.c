@@ -594,9 +594,7 @@ symbols_fmt_pointer(char *buf, size_t buflen, const void *p)
 		return;
 	}
 
-	buf[0] = '0';
-	buf[1] = 'x';
-	pointer_to_string_buf(p, &buf[2], buflen - 2);
+	pointer_to_string_buf(p, buf, buflen);
 }
 
 /**
@@ -690,10 +688,10 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 			 */
 
 			if (st->garbage) {
-				char ptr[POINTER_BUFLEN + CONST_STRLEN(" (0x)")];
+				char ptr[POINTER_BUFLEN + CONST_STRLEN(" ()")];
 
-				g_strlcpy(ptr, " (0x", sizeof ptr);
-				pointer_to_string_buf(pc, &ptr[4], sizeof ptr - 4);
+				g_strlcpy(ptr, " (", sizeof ptr);
+				pointer_to_string_buf(pc, &ptr[2], sizeof ptr - 2);
 				clamp_strcat(ptr, sizeof ptr, ")");
 				clamp_strcat(buf, sizeof buf, ptr);
 			}

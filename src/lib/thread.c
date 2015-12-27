@@ -5334,7 +5334,7 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 static void
 thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 {
-	char buf[POINTER_BUFLEN + 2];
+	char buf[POINTER_BUFLEN];
 	DECLARE_STR(10);
 	const char *type;
 	const struct thread_lock *l = &te->waiting;
@@ -5345,9 +5345,7 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 	print_str(thread_element_name(te));	/* 0 */
 	print_str(" waiting for ");			/* 1 */
 
-	buf[0] = '0';
-	buf[1] = 'x';
-	pointer_to_string_buf(l->lock, &buf[2], sizeof buf - 2);
+	pointer_to_string_buf(l->lock, buf, sizeof buf);
 	type = thread_lock_kind_to_string(l->kind);
 
 	print_str(type);					/* 2 */
@@ -5452,16 +5450,14 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 	for (i = tls->count; i != 0; i--) {
 		const struct thread_lock *l = &tls->arena[i - 1];
 		const char *type;
-		char buf[POINTER_BUFLEN + 2];
+		char buf[POINTER_BUFLEN];
 		char line[UINT_DEC_BUFLEN];
 		char pos[UINT_DEC_BUFLEN];
 		const char *lnum, *lpos;
 		bool waited_for;
 
 		type = thread_lock_kind_to_string(l->kind);
-		buf[0] = '0';
-		buf[1] = 'x';
-		pointer_to_string_buf(l->lock, &buf[2], sizeof buf - 2);
+		pointer_to_string_buf(l->lock, buf, sizeof buf);
 
 		rewind_str(0);
 
@@ -6939,12 +6935,10 @@ thread_element_clear_locks(struct thread_element *te)
 
 		if (unlocked) {
 			char time_buf[CRASH_TIME_BUFLEN];
-			char buf[POINTER_BUFLEN + 2];
+			char buf[POINTER_BUFLEN];
 			DECLARE_STR(10);
 
-			buf[0] = '0';
-			buf[1] = 'x';
-			pointer_to_string_buf(l->lock, &buf[2], sizeof buf - 2);
+			pointer_to_string_buf(l->lock, buf, sizeof buf);
 
 			crash_time(time_buf, sizeof time_buf);
 			print_str(time_buf);				/* 0 */

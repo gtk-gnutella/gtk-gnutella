@@ -422,6 +422,11 @@ pointer_to_string_buf(const void *ptr, char *dst, size_t size)
 			break;
 	}
 
+	/* Add the leading "0x" prefix, accounted for in POINTER_BUFLEN */
+
+	*p++ = 'x';		/* String will be reversed */
+	*p++ = '0';
+
 	return reverse_strlcpy(dst, size, buf, p - buf);
 }
 

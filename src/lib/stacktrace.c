@@ -1518,7 +1518,7 @@ stacktrace_routine_name(const void *pc, bool offset)
 		name = dl_util_get_name(pc);
 
 	if (NULL == name) {
-		static char buf[POINTER_BUFLEN + CONST_STRLEN("0x")];
+		static char buf[POINTER_BUFLEN];
 		str_bprintf(buf, sizeof buf, "%p", pc);
 		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
 	}
