@@ -7202,7 +7202,7 @@ mingw_crash_record(int code, const void *pc,
  * Log reported exception.
  */
 static void G_GNUC_COLD
-mingw_exception_log(int stid, int code, const void *pc)
+mingw_exception_log(int stid, uint code, const void *pc)
 {
 	DECLARE_STR(13);
 	char time_buf[CRASH_TIME_BUFLEN];
@@ -7210,11 +7210,11 @@ mingw_exception_log(int stid, int code, const void *pc)
 	const char *s, *name, *file = NULL;
 
 	crash_time(time_buf, sizeof time_buf);
-	name = stacktrace_routine_name(pc, TRUE);
+	name = stacktrace_routine_name(pc, EXCEPTION_STACK_OVERFLOW != code);
 	if (is_strprefix(name, "0x"))
 		name = NULL;
 
-	if (!stacktrace_pc_within_our_text(pc))
+	if (!stacktrace_pc_within_our_text(pc) && EXCEPTION_STACK_OVERFLOW != code)
 		file = dl_util_get_path(pc);
 
 	print_str(time_buf);								/* 0 */
