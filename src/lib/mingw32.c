@@ -6549,21 +6549,38 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 			if (op != OPCODE_MOV_IMM_EAX)
 				return FALSE;
 
-			*offset = peek_le32(sub + 1);
-			return TRUE;
+			*offset = peek_le32(sub - 9);	/* Read immediate offset of MOVL */
+			goto check_offset;
 		case OPCODE_SUB_2:
 			/* subl    $220, %esp */
 			g_assert(OPMODE_SUB_ESP == sub[1]);
 			*offset = peek_le32(sub + 2);
-			return TRUE;
+			goto check_offset;
 		case OPCODE_SUB_3:
 			/* subl    $28, %esp */
 			g_assert(OPMODE_SUB_ESP == sub[1]);
 			*offset = peek_u8(sub + 2);
-			return TRUE;
+			goto check_offset;
 		}
 		g_assert_not_reached();
 	}
+
+	return FALSE;
+
+check_offset:
+	/*
+	 * Offsets must be a multiple of 4.  Otherwise, we're not parsing
+	 * the opcodes correctly, or rather they are not what we think
+	 * they are (random garbage due to wrong location, for instance).
+	 */
+
+	if (0 == (*offset & 3))
+		return TRUE;
+
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"%s: offset was %u, not a multiple of 4 bytes, "
+		"pc=%p, opcode=0x%x, mod=0x%x",
+		G_STRFUNC, *offset, sub, sub[0], sub[1]);
 
 	return FALSE;
 }
