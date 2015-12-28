@@ -537,6 +537,7 @@ static bool thread_stack_noinit;		/* Whether to skip stack allocation */
 static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
 static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
 static int thread_locks_disabled;		/* Whether locks were disabled */
+static uint thread_suspend_depth;		/* Maintains suspension depth */
 
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
@@ -4166,6 +4167,13 @@ thread_suspend_others(bool lockwait)
 		"%s() called with corrupted thread element", G_STRFUNC);
 
 	/*
+	 * This global counter is used to automatically suspend any new thread
+	 * that would be created after this call.
+	 */
+
+	atomic_uint_inc(&thread_suspend_depth);
+
+	/*
 	 * Avoid recursion from the same thread, which means something is going
 	 * wrong during the suspension.
 	 */
@@ -4306,6 +4314,8 @@ thread_unsuspend_others(void)
 	bool locked;
 	size_t i, n = 0;
 	struct thread_element *te;
+
+	atomic_uint_dec(&thread_suspend_depth);
 
 	te = thread_find(&te);		/* Ourselves */
 	if (NULL == te)
@@ -7626,6 +7636,7 @@ struct thread_launch_context {
 	struct thread_element *te;
 	process_fn_t routine;
 	void *arg;
+	uint flags;
 	tsigset_t sig_mask;
 };
 
@@ -7825,6 +7836,22 @@ thread_launch_trampoline(void *arg)
 		PTRLEN(u.ctx->te), VARLEN(u.ctx->routine), VARLEN(u.ctx->arg), NULL);
 
 	/*
+	 * If there was a global suspension, then also suspend this newly
+	 * created thread unless they explicitly gave the THREAD_F_UNSUSPEND
+	 * at creation time to bypass this.
+	 */
+
+	if (0 == (u.ctx->flags & THREAD_F_UNSUSPEND)) {
+		atomic_int_inc(&u.ctx->te->suspend);
+
+		if (0 != atomic_uint_get(&thread_suspend_depth)) {
+			thread_suspend_self(u.ctx->te);
+		} else {
+			atomic_int_dec(&u.ctx->te->suspend);
+		}
+	}
+
+	/*
 	 * Save away the values we need from the context before releasing it.
 	 */
 
@@ -7979,6 +8006,7 @@ thread_launch(struct thread_element *te,
 	ctx->te = te;
 	ctx->routine = routine;
 	ctx->arg = arg;
+	ctx->flags = flags;
 
 	/*
 	 * By default, the current thread signal mask is inehrited by the new

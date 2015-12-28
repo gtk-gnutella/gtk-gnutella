@@ -2173,7 +2173,7 @@ crash_invoke_threaded_inspector(int signo, const char *cwd)
 {
 	struct crash_inspect_args v;
 	int done = 0;
-	uint flags = THREAD_F_DETACH | THREAD_F_NO_CANCEL;
+	uint flags = THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_UNSUSPEND;
 
 	/*
 	 * Generate a first crashlog, as if there was no inspector being run,
