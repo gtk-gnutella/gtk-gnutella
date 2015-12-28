@@ -87,6 +87,7 @@
 #include "compat_sleep_ms.h"
 #include "compat_usleep.h"
 #include "cond.h"
+#include "constants.h"			/* For constant_str() */
 #include "cq.h"
 #include "crash.h"				/* For crash_hook_add(), print_str() et al. */
 #include "dam.h"
@@ -101,6 +102,7 @@
 #include "hashtable.h"
 #include "log.h"
 #include "mem.h"
+#include "misc.h"				/* For is_strprefix() */
 #include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
@@ -309,6 +311,7 @@ struct thread_element {
 	void *sig_stack;				/**< Alternate signal stack */
 	func_ptr_t entry;				/**< Thread entry point (created threads) */
 	const void *argument;			/**< Initial thread argument, for logging */
+	const char *entry_name;			/**< Symbolic name of thread entry point */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
 	socket_fd_t wfd[2];				/**< For the block/unblock interface */
@@ -1046,14 +1049,73 @@ thread_element_name_to_buf(const struct thread_element *te,
 	if G_UNLIKELY(te->name != NULL) {
 		str_bprintf(buf, len, "%sthread \"%s\"", qualify, te->name);
 	} else if (te->created) {
+		const char *symbolic = NULL;
+		char name[POINTER_BUFLEN];
+
+		/*
+		 * The te->entry_name field is computed at thread creation time
+		 * to make sure we do not call stacktrace_function_name() from
+		 * here: it would prevent logging in places where locks are taken
+		 * and could lead to deadly recursion.
+		 *
+		 * However, it may not always be translated into a proper symbolic
+		 * form, especially for threads auto-started at initialization,
+		 * before we grabbed all the symbols.
+		 *
+		 * Therefore, check whether we have a known entry and update it
+		 * otherwise.  We avoid using stacktrace_function_name() if we have
+		 * already started to compute the name, to prevent recursions.
+		 *		--RAM, 2015-12-28
+		 */
+
+		if G_UNLIKELY(NULL == te->entry_name) {
+			static uint8 computing[THREAD_MAX];
+			int stid = thread_safe_small_id();
+
+			if (stid >= 0 && !computing[stid]) {
+				computing[stid] = TRUE;
+				symbolic = stacktrace_function_name(te->entry);
+				computing[stid] = FALSE;
+				if (is_strprefix(symbolic, "0x"))
+					symbolic = NULL;
+				if (
+					symbolic != NULL &&
+					!signal_in_exception() &&
+					!signal_in_handler()
+				) {
+					struct thread_element *wte = deconstify_pointer(te);
+
+					symbolic = constant_str(symbolic);
+
+					/*
+					 * We may not be in the thread identified by "te", hence
+					 * we need to lock the element before updating.  We do not
+					 * need to check whether there is a non-NULL value though
+					 * because the string is allocated once or is static.
+					 */
+
+					THREAD_LOCK(wte);
+					wte->entry_name = symbolic;
+					THREAD_UNLOCK(wte);
+				}
+			}
+		}
+
+		if (NULL == symbolic)
+			symbolic = te->entry_name;
+
+		if (NULL == symbolic) {
+			pointer_to_string_buf(te->entry, name, sizeof name);
+			symbolic = name;
+		}
+
 		if (pointer_to_uint(te->argument) < 1000) {
 			str_bprintf(buf, len, "%sthread #%u:%s(%u)",
-				qualify, te->stid, stacktrace_function_name(te->entry),
+				qualify, te->stid, symbolic,
 				pointer_to_uint(te->argument));
 		} else {
 			str_bprintf(buf, len, "%sthread #%u:%s(%p)",
-				qualify, te->stid,
-				stacktrace_function_name(te->entry), te->argument);
+				qualify, te->stid, symbolic, te->argument);
 		}
 	} else if (te->main_thread) {
 		str_bprintf(buf, len, "thread #%u:main()", te->stid);
@@ -1814,6 +1876,7 @@ thread_element_reset(struct thread_element *te)
 	te->discovered = FALSE;
 	te->stack_size = 0;
 	te->entry = NULL;
+	te->entry_name = NULL;
 	te->argument = NULL;
 	te->cond = NULL;
 	te->main_thread = FALSE;
@@ -8165,6 +8228,19 @@ thread_launch(struct thread_element *te,
 	te->suspend = 0;				/* New thread cannot be suspended already */
 
 	/*
+	 * Pre-compute the entry name for thread_element_name().
+	 *
+	 * If we cannot get a symbolic name, then reset it to NULL and it will
+	 * be recomputed by thread_element_name_to_buf() until we can get a
+	 * symbolic value.
+	 */
+
+	te->entry_name = stacktrace_function_name(te->entry);
+
+	if (is_strprefix(te->entry_name, "0x"))
+		te->entry_name = NULL;
+
+	/*
 	 * On Windows, stack allocation does not work with the current
 	 * pthread implementation, but things may change in the future.
 	 *
@@ -10353,6 +10429,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%p",  sig_stack);
 	DUMPV("%s",  entry, stacktrace_function_name(te->entry));
 	DUMPF("%p",  argument);
+	DUMPF("%s",  entry_name);
 	DUMPF("%d",  suspend);
 	DUMPF("%d",  pending);
 	DUMPL("{ %d, %d }", "wfd[]", te->wfd[0], te->wfd[1]);
