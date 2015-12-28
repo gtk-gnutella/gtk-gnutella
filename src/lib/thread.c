@@ -4125,6 +4125,23 @@ thread_check_suspended(void)
 }
 
 /**
+ * Disable all locks: they will be granted immediately, preventing
+ * further deadlocks at the cost of a possible crash.
+ *
+ * However, this allows us to maybe collect information that we
+ * couldn't otherwise get at, so it's worth the risk.
+ */
+static void G_GNUC_COLD
+thread_lock_disable(void)
+{
+	if (0 == atomic_int_inc(&thread_locks_disabled)) {
+		spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
+		mutex_crash_mode();		/* Allow release of all mutexes */
+		rwlock_crash_mode();
+	}
+}
+
+/**
  * Suspend other threads (advisory, not kernel-enforced).
  *
  * This is voluntary suspension, which will only occur when threads actively
@@ -6874,21 +6891,8 @@ thread_crash_mode(void)
 	 * again during our crash handling.
 	 */
 
-	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1) {
-		/*
-		 * Disable all locks: they will be granted immediately, preventing
-		 * further deadlocks at the cost of a possible crash.
-		 *
-		 * However, this allows us to maybe collect information that we
-		 * couldn't otherwise get at, so it's worth the risk.
-		 */
-
-		if (0 == atomic_int_inc(&thread_locks_disabled)) {
-			spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
-			mutex_crash_mode();		/* Allow release of all mutexes */
-			rwlock_crash_mode();
-		}
-	}
+	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1)
+		thread_lock_disable();
 }
 
 /**
