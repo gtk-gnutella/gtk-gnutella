@@ -583,7 +583,7 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 	spinlock_check(s);
 
 	while (!atomic_acquire(&s->lock)) {
-		if G_UNLIKELY(spinlock_in_crash_mode()) {
+		if G_UNLIKELY(spinlock_in_crash_mode_raw()) {
 			spinlock_direct(s);
 			break;
 		}

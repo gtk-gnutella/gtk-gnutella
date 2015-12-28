@@ -267,6 +267,12 @@ spinlock_in_crash_mode(void)
 	return TRUE;
 }
 
+static inline bool
+spinlock_in_crash_mode_raw(void)
+{
+	return 0 != atomic_int_get(&spinlock_pass_through);
+}
+
 /**
  * Check that spinlock is held, for assertions.
  */
