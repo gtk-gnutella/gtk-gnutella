@@ -109,18 +109,38 @@ rwlock_check(const struct rwlock * const rw)
 	g_assert(RWLOCK_MAGIC == rw->magic);
 }
 
-#ifdef RWLOCK_READER_DEBUG
+#if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
 /**
  * Record that the current thread is becoming a reader.
  */
 static void
-rwlock_readers_record(rwlock_t *rw)
+rwlock_readers_record(rwlock_t *rw, const char *file, unsigned line)
 {
 	rwlock_check(rw);
 
+#ifndef RWLOCK_READSPOT_DEBUG
+	(void) file;
+	(void) line;
+#endif	/* !RWLOCK_READSPOT_DEBUG */
+
+#ifdef RWLOCK_READER_DEBUG
 	RWLOCK_LOCK(rw);
 	bit_array_set(rw->reading, thread_small_id());
 	RWLOCK_UNLOCK(rw);
+#endif	/* RWLOCK_READER_DEBUG */
+
+#ifdef RWLOCK_READSPOT_DEBUG
+	{
+		int stid = thread_small_id();
+
+		RWLOCK_LOCK(rw);
+		if (NULL == rw->readspot[stid].file) {
+			rw->readspot[stid].file = file;
+			rw->readspot[stid].line = line;
+		}
+		RWLOCK_UNLOCK(rw);
+	}
+#endif	/* RWLOCK_READSPOT_DEBUG */
 }
 
 /**
@@ -134,6 +154,7 @@ rwlock_readers_clear(rwlock_t *rw)
 
 	rwlock_check(rw);
 
+#ifdef RWLOCK_READER_DEBUG
 	RWLOCK_LOCK(rw);
 
 	if (!bit_array_get(rw->reading, stid)) {
@@ -145,6 +166,16 @@ rwlock_readers_clear(rwlock_t *rw)
 			bit_array_clear(rw->reading, stid);
 		RWLOCK_UNLOCK(rw);
 	}
+#endif	/* RWLOCK_READER_DEBUG */
+
+#ifdef RWLOCK_READSPOT_DEBUG
+	if (!held) {
+		RWLOCK_LOCK(rw);
+		rw->readspot[stid].file = NULL;
+		rw->readspot[stid].line = 0;
+		RWLOCK_UNLOCK(rw);
+	}
+#endif	/* RWLOCK_READSPOT_DEBUG */
 }
 
 /**
@@ -153,20 +184,27 @@ rwlock_readers_clear(rwlock_t *rw)
 static bool
 rwlock_readers_is_set(rwlock_t *rw, int n)
 {
-	bool is_set;
+	bool is_set = FALSE;
 
 	rwlock_check(rw);
 
 	RWLOCK_LOCK(rw);
-	is_set = bit_array_get(rw->reading, n);
-	RWLOCK_UNLOCK(rw);
 
+#ifdef RWLOCK_READER_DEBUG
+	is_set = bit_array_get(rw->reading, n);
+#endif	/* RWLOCK_READER_DEBUG */
+
+#ifdef RWLOCK_READSPOT_DEBUG
+	is_set |= rw->readspot[n].file != NULL;
+#endif	/* RWLOCK_READSPOT_DEBUG */
+
+	RWLOCK_UNLOCK(rw);
 	return is_set;
 }
-#else	/* !RWLOCK_READER_DEBUG */
-#define rwlock_readers_record(rw)
+#else	/* !RWLOCK_READER_DEBUG && !RWLOCK_READSPOT_DEBUG */
+#define rwlock_readers_record(rw,f,l)
 #define rwlock_readers_clear(rw)
-#endif	/* RWLOCK_READER_DEBUG */
+#endif	/* RWLOCK_READER_DEBUG || RWLOCK_READSPOT_DEBUG */
 
 /**
  * Enter crash mode: let all read-write locks be grabbed immediately.
@@ -398,7 +436,7 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 			rw, thread_id_name(rw->owner));
 	}
 
-#ifdef RWLOCK_READER_DEBUG
+#if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
 	{
 		int i;
 		uint readers;
@@ -406,8 +444,14 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 		for (i = 0, readers = 0; i < THREAD_MAX; i++) {
 			if (rwlock_readers_is_set(deconstify_pointer(rw), i)) {
 				readers++;
+#ifdef RWLOCK_READSPOT_DEBUG
+				s_miniinfo("(rwlock %p read-locked by %s from %s:%u)",
+					rw, thread_id_name(i),
+					rw->readspot[i].file, rw->readspot[i].line);
+#else	/* !RWLOCK_READSPOT_DEBUG */
 				s_miniinfo("(rwlock %p read-locked by %s)",
 					rw, thread_id_name(i));
+#endif	/* RWLOCK_READSPOT_DEBUG */
 			}
 		}
 
@@ -416,7 +460,7 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 				rw, rw->readers, readers);
 		}
 	}
-#endif	/* RWLOCK_READER_DEBUG */
+#endif	/* RWLOCK_READER_DEBUG || RWLOCK_READSPOT_DEBUG */
 
 	while (wc != NULL) {
 		if (RWLOCK_WAITING_MAGIC != wc->magic) {
@@ -885,12 +929,12 @@ rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 	if G_UNLIKELY(!got) {
 		rwlock_wait_grant(rw, &wc, file, line);
-		rwlock_readers_record(rw);
+		rwlock_readers_record(rw, file, line);
 		if (account)
 			rwlock_read_account(rw, file, line);
 		thread_sigmask(TSIG_SETMASK, &wc.oset, NULL);
 	} else if (account) {
-		rwlock_readers_record(rw);
+		rwlock_readers_record(rw, file, line);
 		rwlock_read_account(rw, file, line);
 	}
 
@@ -1093,7 +1137,7 @@ rwlock_rgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 	if G_LIKELY(got) {
 		/* Ensure there are no overflows */
 		g_assert(rw->readers != 0 || rwlock_pass_through);
-		rwlock_readers_record(rw);
+		rwlock_readers_record(rw, file, line);
 		rwlock_read_account(rw, file, line);
 	}
 
@@ -1336,7 +1380,7 @@ rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	}
 	RWLOCK_UNLOCK(rw);
 
-	rwlock_readers_record(rw);
+	rwlock_readers_record(rw, file, line);
 	rwlock_downgrade_account(rw, file, line);
 }
 

@@ -58,8 +58,21 @@
 #ifndef _rwlock_h_
 #define _rwlock_h_
 
+/**
+ * Set RWLOCK_READER_DEBUG to add 8 bytes per rwlock to track which thread
+ * holds at least one reader.
+ */
 #if 0
 #define RWLOCK_READER_DEBUG		/* Tracks threads owning the read lock */
+#endif
+
+/**
+ * Set RWLOCK_READSPOT_DEBUG to add 1K per rwlock (on 64-bit machines) to
+ * track the first reading spot per thread.  It can be used independently
+ * from RWLOCK_READER_DEBUG.
+ */
+#if 0
+#define RWLOCK_READSPOT_DEBUG	/* Tracks first read lock point per thread */
 #endif
 
 #ifdef RWLOCK_READER_DEBUG
@@ -96,6 +109,9 @@ typedef struct rwlock {
 #ifdef RWLOCK_READER_DEBUG
 	bit_array_t reading[BIT_ARRAY_SIZE(THREAD_MAX)];
 #endif
+#ifdef RWLOCK_READSPOT_DEBUG
+	struct { const char *file; unsigned line; } readspot[THREAD_MAX];
+#endif
 } rwlock_t;
 
 #ifdef RWLOCK_READER_DEBUG
@@ -104,12 +120,21 @@ typedef struct rwlock {
 #define RWLOCK_READING_INIT
 #endif
 
+#ifdef RWLOCK_READSPOT_DEBUG
+#define RWLOCK_READSPOT_INIT	,{ { NULL, 0 } }
+#else
+#define RWLOCK_READSPOT_INIT
+#endif
+
+
 /**
  * Static initialization value for a rwlock structure.
  */
 #define RWLOCK_INIT	\
 	{ RWLOCK_MAGIC, RWLOCK_WFREE, 0, 0, 0, 0, SPINLOCK_INIT, NULL, NULL	\
-		RWLOCK_READING_INIT }
+		RWLOCK_READING_INIT		\
+		RWLOCK_READSPOT_INIT	\
+	}
 
 /*
  * Internal.
