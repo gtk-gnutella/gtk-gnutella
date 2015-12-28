@@ -351,6 +351,7 @@ struct thread_element {
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
+	size_t other_locks;				/**< Counts locks not held in the stack */
 	cond_t *cond;					/**< Condition on which thread waits */
 	slist_t *cond_stack;			/**< Stack of condition-waiting variables */
 	dam_t *termination;				/**< Waiters on thread termination */
@@ -596,6 +597,15 @@ thread_yield(void)
 }
 
 /**
+ * @return total amount of locks known for the thread.
+ */
+static inline size_t
+thread_element_lock_count(const struct thread_element *te)
+{
+	return te->other_locks + te->locks.count;
+}
+
+/**
  * Are there signals present for the thread?
  */
 static inline bool
@@ -610,7 +620,7 @@ thread_sig_present(const struct thread_element *te)
 static inline bool
 thread_sig_pending(const struct thread_element *te)
 {
-	return 0 == te->locks.count && thread_sig_present(te);
+	return 0 == thread_element_lock_count(te) && thread_sig_present(te);
 }
 
 /**
@@ -1472,7 +1482,10 @@ thread_stack_free(struct thread_element *te)
 static void
 thread_element_mark_reusable(struct thread_element *te)
 {
-	g_assert(0 == te->locks.count);
+	g_assert_log(0 == thread_element_lock_count(te),
+		"%s(): lock_count=%zu (%zu tracked, %zu accounted-for) for %s",
+		G_STRFUNC, thread_element_lock_count(te),
+		te->locks.count, te->other_locks, thread_element_name(te));
 
 	THREAD_LOCK(te);
 	te->reusable = TRUE;	/* Allow reuse */
@@ -1521,7 +1534,7 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 	}
 
 	problem = te->gone_seen;
-	locks = te->locks.count;
+	locks = thread_element_lock_count(te);
 	if (problem || locks != 0) {
 		te->gone = FALSE;			/* Will not reuse it after all */
 		te->exit_started = FALSE;	/* And definitely not exiting */
@@ -1759,6 +1772,7 @@ thread_element_reset(struct thread_element *te)
 	THREAD_LOCK(te);
 
 	te->locks.count = 0;
+	te->other_locks = 0;
 	ZERO(&te->waiting);
 	thread_element_clear_name(te);
 
@@ -2129,9 +2143,10 @@ static void
 thread_instantiate(struct thread_element *te, thread_t t)
 {
 	assert_mutex_is_owned(&thread_insert_mtx);
-	g_assert_log(0 == te->locks.count,
+	g_assert_log(0 == thread_element_lock_count(te),
 		"discovered thread #%u already holds %zu lock%s",
-		te->stid, te->locks.count, plural(te->locks.count));
+		te->stid, thread_element_lock_count(te),
+		plural(thread_element_lock_count(te)));
 
 	THREAD_STATS_INC(discovered);
 	thread_cleanup(te);
@@ -2690,7 +2705,7 @@ thread_suspend_self(struct thread_element *te)
 	 * whilst it holds an internal mutex.
 	 */
 
-	g_assert(0 == te->locks.count);
+	g_assert(0 == thread_element_lock_count(te));
 
 	/*
 	 * To avoid race conditions, we need to re-check atomically that we
@@ -3854,7 +3869,7 @@ thread_wait_others(const struct thread_element *te)
 			if G_UNLIKELY(xte == te)
 				continue;
 
-			if (xte->suspended || 0 == xte->locks.count)
+			if (xte->suspended || 0 == thread_element_lock_count(xte))
 				continue;
 
 			busy++;
@@ -3892,7 +3907,7 @@ thread_sig_handle(struct thread_element *te)
 	tsigset_t pending;
 	int s;
 
-	g_assert(0 == te->locks.count);
+	g_assert(0 == thread_element_lock_count(te));
 
 	THREAD_STATS_INCX(sig_handled_count);
 
@@ -3965,10 +3980,12 @@ recheck:
 
 		thread_signal_handle(te, s, handler);
 
-		g_assert_log(0 == te->locks.count,
+		g_assert_log(0 == thread_element_lock_count(te),
 			"%s(): handler %s() for signal #%d left %zu lock%s in %s%s%s",
 			G_STRFUNC, stacktrace_function_name(handler), s,
-			te->locks.count, plural(te->locks.count), thread_element_name(te),
+			thread_element_lock_count(te),
+			plural(thread_element_lock_count(te)),
+			thread_element_name(te),
 			thread_get_element() == te ? "" : " -- BUG: running in %s",
 			thread_get_element() == te ? "" : thread_name());
 
@@ -4077,7 +4094,7 @@ thread_cancel_test_element(struct thread_element *te)
 	if (
 		te->cancelable &&
 		THREAD_CANCEL_ENABLE == te->cancl &&
-		0 == te->locks.count &&
+		0 == thread_element_lock_count(te) &&
 		te->cancelled && !te->exit_started
 	)
 		thread_exit(THREAD_CANCELLED);
@@ -4110,10 +4127,16 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 	 */
 
 	if G_UNLIKELY(te->suspend) {
-		if (0 == te->locks.count)
+		size_t cnt = thread_element_lock_count(te);
+
+		if (0 == cnt)
 			delayed |= thread_suspend_self(te);
-		else if (thread_in_crash_mode())
+		else if (thread_in_crash_mode()) {
+			s_rawwarn("suspending %s which holds %zu lock%s",
+				thread_element_name(te), cnt, plural(cnt));
+
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
+		}
 	}
 
 	if (sigs)
@@ -4277,11 +4300,15 @@ thread_suspend_others(bool lockwait)
 			continue;
 		}
 
-		THREAD_LOCK(xte);
 		atomic_int_inc(&xte->suspend);
-		if (0 != xte->locks.count)
-			busy++;
-		THREAD_UNLOCK(xte);
+
+		if (lockwait) {
+			THREAD_LOCK(xte);
+			if (0 != thread_element_lock_count(xte))
+				busy++;
+			THREAD_UNLOCK(xte);
+		}
+
 		n++;
 	}
 
@@ -4306,10 +4333,10 @@ thread_suspend_others(bool lockwait)
 	 */
 
 	if (lockwait && busy != 0) {
-		if (0 != te->locks.count) {
+		size_t cnt = thread_element_lock_count(te);
+		if (0 != cnt) {
 			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s",
-				G_STRFUNC, busy, plural(busy),
-				te->locks.count, plural(te->locks.count));
+				G_STRFUNC, busy, plural(busy), cnt, plural(cnt));
 			thread_lock_dump(te);
 		}
 		thread_wait_others(te);
@@ -5447,6 +5474,9 @@ thread_lock_is_busy(const void *lock)
 		if G_UNLIKELY(!te->valid || te->reusable)
 			continue;
 
+		if (0 != te->other_locks)
+			return TRUE;
+
 		tls = &te->locks;
 
 		if G_LIKELY(0 == tls->count)
@@ -5501,7 +5531,20 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 
 	if G_UNLIKELY(0 == tls->count) {
 		print_str(thread_element_name(te));					/* 0 */
-		print_str(" currently holds no recorded locks.\n");	/* 1 */
+		print_str(" currently holds no recorded locks");	/* 1 */
+		if (0 != te->other_locks) {
+			char cnt[SIZE_T_DEC_BUFLEN];
+			const char *lcnt;
+
+			lcnt = PRINT_NUMBER(cnt, te->other_locks);
+
+			print_str(" but has ");							/* 2 */
+			print_str(lcnt);								/* 3 */
+			print_str(" other lock");						/* 4 */
+			if (1 != te->other_locks)
+				print_str("s");								/* 5 */
+		}
+		print_str(".\n");									/* 6 */
 		flush_str(fd);
 		return;
 	}
@@ -5681,6 +5724,24 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		print_str("\n");						/* 21 */
 		flush_str(fd);
 	}
+
+	if (0 != te->other_locks) {
+		char cnt[SIZE_T_DEC_BUFLEN];
+		const char *lcnt;
+
+		lcnt = PRINT_NUMBER(cnt, te->other_locks);
+
+		rewind_str(0);
+
+		print_str(thread_element_name(te));				/* 0 */
+		print_str(" also holds ");						/* 1 */
+		print_str(lcnt);								/* 2 */
+		print_str(" other lock");						/* 3 */
+		if (1 != te->other_locks)
+			print_str("s");								/* 4 */
+		print_str(".\n");								/* 5 */
+		flush_str(fd);
+	}
 }
 
 /*
@@ -5702,7 +5763,6 @@ thread_lock_dump_all(int fd)
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *te = threads[i];
-		const struct thread_lock_stack *tls = &te->locks;
 		bool locked;
 
 		if (!te->valid)
@@ -5712,7 +5772,7 @@ thread_lock_dump_all(int fd)
 		if (te->reusable)
 			goto next;
 
-		if (0 != tls->count)
+		if (0 != thread_element_lock_count(te))
 			thread_lock_dump_fd(fd, te);
 
 		if (NULL != te->waiting.lock && thread_lock_is_busy(te->waiting.lock))
@@ -5744,7 +5804,7 @@ thread_lock_dump_self_if_any(int fd)
 	te = threads[stid];
 
 	if (te != NULL && te->valid) {
-		if (0 != te->locks.count)
+		if (0 != thread_element_lock_count(te))
 			thread_lock_dump_fd(fd, te);
 
 		if (NULL != te->waiting.lock && thread_lock_is_busy(te->waiting.lock))
@@ -6143,6 +6203,9 @@ found:
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		if (0 == tls->capacity) {
+			te->other_locks++;
+			s_rawwarn("%s(): no lock stack yet (%zu lock%s accounted for)",
+				G_STRFUNC, te->other_locks, plural(te->other_locks));
 			g_assert(NULL == tls->arena);
 			return;				/* Stack not created yet */
 		}
@@ -6183,7 +6246,7 @@ found:
 		 * Suspension will be totally transparent to the user code.
 		 */
 
-		if (0 == tls->count) {
+		if (0 == thread_element_lock_count(te)) {
 			if (thread_lock_release(lock, kind)) {
 				thread_suspend_self(te);
 				thread_lock_reacquire(te, lock, kind, file, line);
@@ -6439,6 +6502,15 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 					lock, te->stid);
 			}
 		}
+
+		if (0 == te->other_locks) {
+			s_minicarp("%s(): %s %p was not accounted for in thread #%u",
+				G_STRFUNC, thread_lock_kind_to_string(kind),
+				lock, te->stid);
+		} else {
+			te->other_locks--;
+		}
+
 		return;
 	}
 
@@ -6470,7 +6542,7 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 		 * now is a good (and safe) time to do it.
 		 */
 
-		if G_UNLIKELY(te->suspend && 0 == tls->count)
+		if G_UNLIKELY(te->suspend && 0 == thread_element_lock_count(te))
 			thread_suspend_self(te);
 
 		return;
@@ -6508,7 +6580,17 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 				s_error("out-of-order %s release",
 					thread_lock_kind_to_string(kind));
 			}
+
+			return;
 		}
+	}
+
+	if (0 == te->other_locks) {
+		s_minicarp("%s(): %s %p was not accounted for in thread #%u",
+			G_STRFUNC, thread_lock_kind_to_string(kind),
+			lock, te->stid);
+	} else {
+		te->other_locks--;
 	}
 }
 
@@ -6601,7 +6683,7 @@ thread_lock_holds_as_default(const volatile void *lock,
 	 */
 
 	if G_UNLIKELY(0 == tls->count) {
-		if (NULL == te->stack_lock)
+		if (NULL == te->stack_lock || 0 != te->other_locks)
 			return dflt;
 		if (thread_stack_ptr_cmp(&te, te->stack_lock) <= 0)
 			return dflt;
@@ -6734,7 +6816,7 @@ thread_lock_count(void)
 	if G_UNLIKELY(NULL == te)
 		return 0;
 
-	return te->locks.count;
+	return thread_element_lock_count(te);
 }
 
 /**
@@ -6767,7 +6849,7 @@ thread_others_lock_count(void)
 		if G_UNLIKELY(xte == te)
 			continue;
 
-		count += xte->locks.count;
+		count += thread_element_lock_count(xte);
 	}
 
 	return count;
@@ -6788,7 +6870,7 @@ thread_id_lock_count(unsigned id)
 	if G_UNLIKELY(NULL == te || te->reusable)
 		return 0;
 
-	return te->locks.count;
+	return thread_element_lock_count(te);
 }
 
 /**
@@ -6806,14 +6888,13 @@ void
 thread_assert_no_locks(const char *routine)
 {
 	struct thread_element *te = thread_get_element();
+	size_t cnt = thread_element_lock_count(te);
 
-	if G_UNLIKELY(0 != te->locks.count) {
+	if G_UNLIKELY(0 != cnt) {
 		s_warning("%s(): %s currently holds %zu lock%s",
-			routine, thread_element_name(te), te->locks.count,
-			plural(te->locks.count));
+			routine, thread_element_name(te), cnt, plural(cnt));
 		thread_lock_dump(te);
-		s_error("%s() expected no locks, found %zu held",
-			routine, te->locks.count);
+		s_error("%s() expected no locks, found %zu held", routine, cnt);
 	}
 }
 
@@ -7890,7 +7971,7 @@ thread_launch_register(struct thread_element *te)
 	thread_element_tie(te, t, stack);
 	thread_qid_cache_set(idx, te, qid);
 
-	g_assert(0 == te->locks.count);
+	g_assert(0 == thread_element_lock_count(te));
 	g_assert(qid >= te->low_qid && qid <= te->high_qid);
 
 	/*
@@ -8446,7 +8527,7 @@ thread_exit_internal(void *value, const void *sp)
 	 * since the callbacks may use such values.
 	 */
 
-	lock_count = te->locks.count;	/* Can be non-zero at this point */
+	lock_count = thread_element_lock_count(te);	/* Can be non-zero here */
 
 	if (NULL == sp) {
 		/* Implicit exit, returning from main entry point */
@@ -8462,10 +8543,10 @@ thread_exit_internal(void *value, const void *sp)
 	 * be any lock remaining.
 	 */
 
-	if (0 != te->locks.count) {
+	if (0 != thread_element_lock_count(te)) {
+		size_t cnt = thread_element_lock_count(te);
 		s_warning("%s() called by %s with %zu lock%s still held (%zu on entry)",
-			G_STRFUNC, thread_element_name(te), te->locks.count,
-			plural(te->locks.count), lock_count);
+			G_STRFUNC, thread_element_name(te), cnt, plural(cnt), lock_count);
 		thread_lock_dump(te);
 		s_error("thread exiting without clearing its locks");
 	}
@@ -9471,7 +9552,7 @@ thread_kill(unsigned id, int signum)
 
 		if G_UNLIKELY(stid == id) {
 			THREAD_UNLOCK(te);
-			if (0 == te->locks.count && process) {
+			if (process && 0 == thread_element_lock_count(te)) {
 				THREAD_STATS_INCX(sig_handled_while_check);
 				thread_sig_handle(te);
 			}
@@ -9605,7 +9686,11 @@ thread_sigblock(tsigset_t mask)
 	char c;
 
 	g_assert(!te->blocked);
-	g_assert(0 == te->locks.count);
+	g_assert_log(0 == thread_element_lock_count(te),
+		"%s(): %s has %zu lock%s (%zu tracked and %zu accounted-for)",
+		G_STRFUNC, thread_element_name(te),
+		thread_element_lock_count(te), plural(thread_element_lock_count(te)),
+		te->locks.count, te->other_locks);
 
 	/*
 	 * Make sure the main thread never attempts to block itself if it
@@ -9939,7 +10024,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->top_sp = te->top_sp;
 	info->stack_base = te->stack_base;
 	info->stack_size = te->stack_size;
-	info->locks = te->locks.count;
+	info->locks = thread_element_lock_count(te);
 	info->private_vars = NULL == te->pht ? 0 : hash_table_size(te->pht);
 	info->local_vars = thread_local_count(te);
 	info->entry = te->entry;
@@ -10274,6 +10359,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%d",  add_monitoring);
 	DUMPF("%d",  cancl);
 	DUMPF("%zu", locks.count);
+	DUMPF("%zu", other_locks);
 	DUMPL("%p (%s)",  "waiting",
 		te->waiting.lock, NULL == te->waiting.lock ?
 			"none" : thread_lock_kind_to_string(te->waiting.kind));
