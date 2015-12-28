@@ -6506,6 +6506,7 @@ found:
 	 */
 
 	tls = &te->locks;
+	thread_element_stack_check(te);
 
 	if G_UNLIKELY(tls->capacity == tls->count) {
 		if (tls->overflow)
@@ -6638,6 +6639,7 @@ found:
 		THREAD_STATS_INCX(locks_tracked_discovered);
 
 	tls = &te->locks;
+	thread_element_stack_check(te);
 
 	if G_UNLIKELY(tls->capacity == tls->count) {
 		if (tls->overflow)
