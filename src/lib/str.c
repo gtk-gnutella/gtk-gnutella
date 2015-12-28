@@ -2930,7 +2930,9 @@ G_STMT_START {									\
 			p += gap;
 		}
 		str->s_len = p - str->s_data;	/* trailing NUL does not count */
-		g_assert(str->s_len <= str->s_size);
+		g_assert_log(str->s_len <= str->s_size,
+			"%s(): s_len=%zu, s_size=%zu",
+			G_STRFUNC, str->s_len, str->s_size);
 		remain -= need;
 		continue;
 
@@ -2997,6 +2999,11 @@ G_STMT_START {									\
 
 done:
 	format_recursion--;
+
+	g_assert_log(str->s_len <= str->s_size,
+		"%s(): s_len=%zu, s_size=%zu",
+		G_STRFUNC, str->s_len, str->s_size);
+
 	return str->s_len - origlen;
 
 clamped:
