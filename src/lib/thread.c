@@ -4449,6 +4449,31 @@ thread_check_suspended(void)
 }
 
 /**
+ * Safety precaution to check that we are not exhausting our stack space.
+ */
+void
+thread_stack_check(void)
+{
+	struct thread_element *te = thread_get_element();
+
+#ifdef MINGW32
+	/*
+	 * This is only necessary on Windows because the pthread layer is not
+	 * able to correctly create the stack and we lack support for a signal
+	 * stack to be able to properly catch stack overflows.
+	 */
+
+	thread_element_stack_check(te);
+#endif	/* MINGW32 */
+
+	/*
+	 * Since we have the thread element, this is a cheap test.
+	 */
+
+	thread_check_suspended_element(te, TRUE);
+}
+
+/**
  * Disable all locks: they will be granted immediately, preventing
  * further deadlocks at the cost of a possible crash.
  *

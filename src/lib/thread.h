@@ -199,6 +199,7 @@ void thread_lock_disable(bool silent);
 size_t thread_stack_used(void);
 size_t thread_id_stack_used(uint stid, const void *sp);
 void thread_stack_check_overflow(const void *va);
+void thread_stack_check(void);
 
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
