@@ -76,7 +76,7 @@ spinunlock_account(const spinlock_t *s)
 }
 
 static inline void ALWAYS_INLINE
-spinlock_set_owner(spinlock_t *s, const char *file, unsigned line)
+spinlock_set_owner(volatile spinlock_t *s, const char *file, unsigned line)
 {
 	(void) s;
 	(void) file;
@@ -296,6 +296,7 @@ spinlock_loop(volatile spinlock_t *s,
 
 	if G_UNLIKELY(spinlock_in_crash_mode()) {
 		spinlock_direct(s);
+		spinlock_set_owner(s, file, line);
 		return;
 	}
 
@@ -381,6 +382,7 @@ spinlock_loop(volatile spinlock_t *s,
 
 		if G_UNLIKELY(spinlock_in_crash_mode()) {
 			spinlock_direct(s);
+			spinlock_set_owner(s, file, line);
 			goto locked;
 		}
 	}
@@ -579,6 +581,7 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 	while (!atomic_acquire(&s->lock)) {
 		if G_UNLIKELY(spinlock_in_crash_mode_raw()) {
 			spinlock_direct(s);
+			spinlock_set_owner(s, file, line);
 			break;
 		}
 		if G_UNLIKELY(0 == spinlock_cpus)

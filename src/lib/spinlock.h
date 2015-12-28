@@ -283,8 +283,9 @@ spinlock_is_held(const spinlock_t *s)
 	if (
 		(uint8) THREAD_UNKNOWN_ID != s->stid &&
 		(uint8) thread_safe_small_id() != s->stid
-	)
-		return FALSE;
+	) {
+		return spinlock_in_crash_mode();	/* Assume OK in crash mode */
+	}
 #endif	/* SPINLOCK_OWNER_DEBUG */
 
 	/* Make this fast, no assertion on the spinlock validity */
