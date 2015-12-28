@@ -4243,13 +4243,18 @@ thread_check_suspended(void)
  *
  * However, this allows us to maybe collect information that we
  * couldn't otherwise get at, so it's worth the risk.
+ *
+ * @param silent	whether to silently move to crash mode for spinlocks
  */
 static void G_GNUC_COLD
-thread_lock_disable(void)
+thread_lock_disable(bool silent)
 {
 	if (0 == atomic_int_inc(&thread_locks_disabled)) {
-		spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
-		mutex_crash_mode();		/* Allow release of all mutexes */
+		if (silent)
+			spinlock_exit_mode();	/* Silent crash mode for spinlocks */
+		else
+			spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
+		mutex_crash_mode();			/* Allow release of all mutexes */
 		rwlock_crash_mode();
 	}
 }
@@ -7063,7 +7068,7 @@ thread_crash_mode(void)
 	 */
 
 	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1)
-		thread_lock_disable();
+		thread_lock_disable(FALSE);
 }
 
 /**
@@ -7084,12 +7089,7 @@ thread_exit_mode(void)
 	 */
 
 	thread_suspend_others(FALSE);	/* Advisory, do not wait for others */
-
-	atomic_int_inc(&thread_locks_disabled);
-
-	spinlock_exit_mode();			/* Silent crash mode for spinlocks */
-	mutex_crash_mode();
-	rwlock_crash_mode();
+	thread_lock_disable(TRUE);		/* Silently disable all locks */
 }
 
 /**
