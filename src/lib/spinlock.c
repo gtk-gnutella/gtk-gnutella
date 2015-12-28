@@ -500,9 +500,6 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_in_crash_mode())
-		return TRUE;		/* Crashing */
-
 	return FALSE;
 }
 
@@ -541,9 +538,6 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 		spinlock_account_swap(s, file, line, plock);
 		return TRUE;
 	}
-
-	if G_UNLIKELY(spinlock_in_crash_mode())
-		return TRUE;		/* Crashing */
 
 	return FALSE;
 }
