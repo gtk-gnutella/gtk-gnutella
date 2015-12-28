@@ -747,6 +747,9 @@ symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 	if (NULL == s)
 		return NULL;
 
+	if (!offset)
+		return s->name;
+
 	addr = const_ptr_add_offset(pc, st->offset);
 	symbols_fmt_name(buf, sizeof buf, s->name,
 			offset ? ptr_diff(addr, s->addr) : 0);
