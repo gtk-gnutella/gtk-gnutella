@@ -3623,46 +3623,6 @@ thread_signal_handle(struct thread_element *te, int sig, tsighandler_t handler)
 }
 
 /**
- * Report stack overflow for thread identified by its thread element.
- *
- * If there is a TSIG_OVFLOW signal handler registered, invoke it before
- * exiting from the thread.
- *
- * Otherwise, this is an application crash.
- */
-static void
-thread_stack_overflow(struct thread_element *te)
-{
-	tsighandler_t handler;
-
-	/*
-	 * If there is a signal handler installed for TSIG_OVFLOW, run it and
-	 * then exit when the handler returns.  If there is none (or if the
-	 * signal is ignored or defaulted), then the whole application will crash
-	 * because there is no way to recover from that overflow.
-	 *		--RAM, 2015-02-13
-	 */
-
-	handler = te->sigh[TSIG_OVFLOW - 1];
-
-	if (TSIG_IGN != handler && TSIG_DFL != handler) {
-		/*
-		 * Signal is delivered synchronously to the thread, but we need
-		 * to protect against another instance of the signal being generated.
-		 */
-
-		thread_signal_handle(te, TSIG_OVFLOW, handler);
-		thread_exit(THREAD_OVERFLOW);
-		/* NOTREACHED */
-	}
-
-	s_rawwarn("no TSIG_OVFLOW handler installed for %s, crashing...",
-		thread_element_name(te));
-
-	crash_abort();
-}
-
-/**
  * Check whether current thread is overflowing its stack by hitting the
  * red-zone guard page at the end of its allocated stack.
  * When it does, we panic immediately.
@@ -4446,6 +4406,53 @@ thread_check_suspended(void)
 
 	te = thread_find(&te);
 	return thread_check_suspended_element(te, TRUE);
+}
+
+/**
+ * Report stack overflow for thread identified by its thread element.
+ *
+ * If there is a TSIG_OVFLOW signal handler registered, invoke it before
+ * exiting from the thread.
+ *
+ * Otherwise, this is an application crash.
+ */
+static void
+thread_stack_overflow(struct thread_element *te)
+{
+	tsighandler_t handler;
+
+	/*
+	 * Suspend yourself if this happens during a crash and the thread is
+	 * flagged for suspension.
+	 */
+
+	(void) thread_check_suspended_element(te, FALSE);
+
+	/*
+	 * If there is a signal handler installed for TSIG_OVFLOW, run it and
+	 * then exit when the handler returns.  If there is none (or if the
+	 * signal is ignored or defaulted), then the whole application will crash
+	 * because there is no way to recover from that overflow.
+	 *		--RAM, 2015-02-13
+	 */
+
+	handler = te->sigh[TSIG_OVFLOW - 1];
+
+	if (TSIG_IGN != handler && TSIG_DFL != handler) {
+		/*
+		 * Signal is delivered synchronously to the thread, but we need
+		 * to protect against another instance of the signal being generated.
+		 */
+
+		thread_signal_handle(te, TSIG_OVFLOW, handler);
+		thread_exit(THREAD_OVERFLOW);
+		/* NOTREACHED */
+	}
+
+	s_rawwarn("no TSIG_OVFLOW handler installed for %s, crashing...",
+		thread_element_name(te));
+
+	crash_abort();
 }
 
 /**
