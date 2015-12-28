@@ -5323,6 +5323,7 @@ static const char *
 thread_lock_kind_to_string(const enum thread_lock_kind kind)
 {
 	switch (kind) {
+	case THREAD_LOCK_ANY:		return "lock";
 	case THREAD_LOCK_SPINLOCK:	return "spinlock";
 	case THREAD_LOCK_RLOCK:		return "rwlock (R)";
 	case THREAD_LOCK_WLOCK:		return "rwlock (W)";
@@ -5496,6 +5497,8 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		print_str(" ");			/* 5 */
 		print_str(type);		/* 6 */
 		switch (l->kind) {
+		case THREAD_LOCK_ANY:
+			g_assert_not_reached();
 		case THREAD_LOCK_SPINLOCK:
 			{
 				const spinlock_t *s = l->lock;
@@ -5702,6 +5705,8 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind)
 	THREAD_STATS_INCX(locks_released);
 
 	switch (kind) {
+	case THREAD_LOCK_ANY:
+		g_assert_not_reached();
 	case THREAD_LOCK_SPINLOCK:
 		{
 			spinlock_t *s = deconstify_pointer(lock);
@@ -5766,6 +5771,8 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		 */
 
 		switch (kind) {
+		case THREAD_LOCK_ANY:
+			g_assert_not_reached();
 		case THREAD_LOCK_SPINLOCK:
 			THREAD_STATS_INCX(locks_spinlock_sleep);
 			break;
@@ -5792,6 +5799,8 @@ void
 thread_lock_contention(enum thread_lock_kind kind)
 {
 	switch (kind) {
+	case THREAD_LOCK_ANY:
+		g_assert_not_reached();
 	case THREAD_LOCK_SPINLOCK:
 		THREAD_STATS_INCX(locks_spinlock_contention);
 		break;
@@ -5931,6 +5940,8 @@ thread_lock_reacquire(
 		te->sig_handling = TRUE;		/* Prevents any signal delivery */
 
 	switch (kind) {
+	case THREAD_LOCK_ANY:
+		g_assert_not_reached();
 	case THREAD_LOCK_SPINLOCK:
 		{
 			spinlock_t *s = deconstify_pointer(lock);
@@ -6027,6 +6038,8 @@ found:
 		THREAD_STATS_INCX(locks_tracked_discovered);
 
 	switch (kind) {
+	case THREAD_LOCK_ANY:
+		g_assert_not_reached();
 	case THREAD_LOCK_SPINLOCK:
 		THREAD_STATS_INCX(locks_spinlock_tracked);
 		break;
@@ -6463,17 +6476,22 @@ thread_lock_holds_from(const char *file)
 }
 
 /**
- * Check whether current thread already holds a lock.
+ * Check whether current thread already holds a lock of a given kind.
+ *
+ * When the kind of lock is THREAD_LOCK_ANY, we do not care about the lock
+ * kind: we simply look whether the lock address is registered.
  *
  * If no locks were recorded yet in the thread, returns "default".
  *
  * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ * @param kind		kind of lock (useful for multiform locks like rwlocks)
  * @param dflt		value to return when no locks were recorded yet
  *
  * @return TRUE if lock was registered in the current thread.
  */
 bool
-thread_lock_holds_default(const volatile void *lock, bool dflt)
+thread_lock_holds_as_default(const volatile void *lock,
+	enum thread_lock_kind kind, bool dflt)
 {
 	struct thread_element *te;
 	struct thread_lock_stack *tls;
@@ -6523,8 +6541,11 @@ thread_lock_holds_default(const volatile void *lock, bool dflt)
 	for (i = tls->count; i != 0; /**/) {
 		const struct thread_lock *l = &tls->arena[--i];
 
-		if G_UNLIKELY(l->lock == lock)
-			return TRUE;
+		if G_UNLIKELY(l->lock == lock) {
+			if (THREAD_LOCK_ANY == kind)
+				return TRUE;
+			return l->kind == kind;
+		}
 	}
 
 	/*
@@ -6541,6 +6562,39 @@ thread_lock_holds_default(const volatile void *lock, bool dflt)
 }
 
 /**
+ * Check whether current thread already holds a lock of a given kind.
+ *
+ * When the kind of lock is THREAD_LOCK_ANY, we do not care about the lock
+ * kind: we simply look whether the lock address is registered.
+ *
+ * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ * @param kind		kind of lock (useful for multiform locks like rwlocks)
+ *
+ * @return TRUE if lock of given kind was registered in the current thread.
+ */
+bool
+thread_lock_holds_as(const volatile void *lock, enum thread_lock_kind kind)
+{
+	return thread_lock_holds_as_default(lock, kind, FALSE);
+}
+
+/**
+ * Check whether current thread already holds a lock.
+ *
+ * If no locks were recorded yet in the thread, returns "default".
+ *
+ * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ * @param dflt		value to return when no locks were recorded yet
+ *
+ * @return TRUE if lock was registered in the current thread.
+ */
+bool
+thread_lock_holds_default(const volatile void *lock, bool dflt)
+{
+	return thread_lock_holds_as_default(lock, THREAD_LOCK_ANY, dflt);
+}
+
+/**
  * Check whether current thread already holds a lock.
  *
  * @param lock		the address of a lock we record (mutex, spinlock, etc...)
@@ -6550,7 +6604,7 @@ thread_lock_holds_default(const volatile void *lock, bool dflt)
 bool
 thread_lock_holds(const volatile void *lock)
 {
-	return thread_lock_holds_default(lock, FALSE);
+	return thread_lock_holds_as_default(lock, THREAD_LOCK_ANY, FALSE);
 }
 
 /**
@@ -6913,6 +6967,8 @@ thread_element_clear_locks(struct thread_element *te)
 		type = thread_lock_kind_to_string(l->kind);
 
 		switch(l->kind) {
+		case THREAD_LOCK_ANY:
+			g_assert_not_reached();
 		case THREAD_LOCK_SPINLOCK:
 			{
 				spinlock_t *s = deconstify_pointer(l->lock);
