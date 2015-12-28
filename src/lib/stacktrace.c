@@ -496,6 +496,19 @@ stacktrace_auto_tune(void)
 static void G_GNUC_COLD
 stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 {
+	static int done;
+
+	/*
+	 * Make sure we're only doing this once.
+	 *
+	 * This cuts down recursion when there are stack traces to emit during
+	 * symbol loading (e.g. an assertion failure, or a critical message
+	 * requiring a trace).
+	 */
+
+	if (0 != atomic_int_inc(&done))
+		return;
+
 	/*
 	 * In case we're crashing so early that stacktrace_init() has not been
 	 * called, initialize properly.
