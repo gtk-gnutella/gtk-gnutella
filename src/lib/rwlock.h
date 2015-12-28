@@ -58,6 +58,14 @@
 #ifndef _rwlock_h_
 #define _rwlock_h_
 
+#if 0
+#define RWLOCK_READER_DEBUG		/* Tracks threads owning the read lock */
+#endif
+
+#ifdef RWLOCK_READER_DEBUG
+#include "bit_array.h"
+#endif
+
 #include "spinlock.h"
 #include "thread.h"				/* For thread_small_id() in inlined routine */
 
@@ -85,13 +93,23 @@ typedef struct rwlock {
 	spinlock_t lock;		/* The thread-safe lock for updating fields */
 	void *wait_head;		/* Head of the waiting list */
 	void *wait_tail;		/* Tail of the waiting list */
+#ifdef RWLOCK_READER_DEBUG
+	bit_array_t reading[BIT_ARRAY_SIZE(THREAD_MAX)];
+#endif
 } rwlock_t;
+
+#ifdef RWLOCK_READER_DEBUG
+#define RWLOCK_READING_INIT	,{ 0 }
+#else
+#define RWLOCK_READING_INIT
+#endif
 
 /**
  * Static initialization value for a rwlock structure.
  */
 #define RWLOCK_INIT	\
-	{ RWLOCK_MAGIC, RWLOCK_WFREE, 0, 0, 0, 0, SPINLOCK_INIT, NULL, NULL }
+	{ RWLOCK_MAGIC, RWLOCK_WFREE, 0, 0, 0, 0, SPINLOCK_INIT, NULL, NULL	\
+		RWLOCK_READING_INIT }
 
 /*
  * Internal.
