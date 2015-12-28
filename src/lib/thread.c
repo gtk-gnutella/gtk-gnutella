@@ -102,7 +102,7 @@
 #include "hashtable.h"
 #include "log.h"
 #include "mem.h"
-#include "misc.h"				/* For is_strprefix() */
+#include "misc.h"				/* For is_strprefix() et al. */
 #include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
@@ -160,6 +160,28 @@
 #define THREAD_SUSPEND_DELAY		2000	/* us */
 #define THREAD_SUSPEND_PAUSING		1000000	/* us, 1 sec */
 #define THREAD_SUSPEND_TIMEOUT		30		/* seconds */
+
+/**
+ * Amount of stack frames we keep when we capture a backtrace on blocking
+ * points, to trace back the strategic spots later on.
+ */
+#define THREAD_DEPTH_MAX	32		/**< Stack frame depth on block points */
+
+enum thread_backtrace_type {
+	THREAD_BT_NONE = 0,				/**< None, structure was invalidated */
+	THREAD_BT_ANY,					/**< Generic stack request */
+	THREAD_BT_LOCK,					/**< Waiting for a lock */
+};
+
+/**
+ * A thread backtrace.
+ */
+struct thread_backtrace {
+	void *frames[THREAD_DEPTH_MAX];		/**< The captured frames */
+	tm_t stamp;							/**< When capture was made */
+	size_t count;						/**< Amount of valid frames */
+	enum thread_backtrace_type type;	/**< Type of capture made */
+};
 
 #ifdef HAS_SOCKETPAIR
 #define INVALID_FD		INVALID_SOCKET
@@ -362,6 +384,7 @@ struct thread_element {
 	spinlock_t lock;				/**< Protects concurrent updates */
 	eslist_t exit_list;				/**< List of exit callbacks to invoke */
 	eslist_t cleanup_list;			/**< List of cleanup callbacks to invoke */
+	struct thread_backtrace btrace;	/**< Captured backtrace */
 	tsighandler_t sigh[TSIG_COUNT - 1];		/**< Signal handlers */
 	void **locals[THREAD_LOCAL_L1_SIZE];	/**< Thread-local variables */
 };
@@ -675,6 +698,164 @@ thread_pvalue_free(struct thread_pvalue *pv)
 	if (pv->p_free != NULL)
 		(*pv->p_free)(pv->value, pv->p_arg);
 	zfree(pvzone, pv);
+}
+
+/**
+ * @return English description for backtrace types.
+ */
+static const char *
+thread_backtrace_type_to_string(const enum thread_backtrace_type type)
+{
+	switch (type) {
+	case THREAD_BT_ANY:			return "generic";
+	case THREAD_BT_NONE:		return "obsolete";
+	case THREAD_BT_LOCK:		return "lock";
+	}
+
+	return "UNKNOWN";
+}
+
+/**
+ * Capture a backtrace of given type for thread element (current thread).
+ *
+ * @param te	the thread element of the current thread
+ * @param type	the type of stacktrace to capture
+ */
+static void
+thread_backtrace_capture(
+	struct thread_element *te, enum thread_backtrace_type type)
+{
+	struct thread_backtrace *bt = &te->btrace;
+
+	g_assert(type != THREAD_BT_ANY);
+
+	tm_now_exact(&bt->stamp);
+	bt->type = type;
+	bt->count = stacktrace_unwind(bt->frames, G_N_ELEMENTS(bt->frames), 2);
+}
+
+/**
+ * Check whether we have a valid backtrace of given type for specified thread.
+ *
+ * @param te	the thread element which we want to inspect
+ * @param type	the type of stacktrace we would want (any if THREAD_BT_ANY)
+ */
+static bool
+thread_backtrace_has(
+	const struct thread_element *te, enum thread_backtrace_type type)
+{
+	const struct thread_backtrace *bt = &te->btrace;
+
+	return bt->count != 0 && (THREAD_BT_ANY == type || bt->type == type);
+}
+
+/**
+ * Invalidate a backtrace of given type for thread element (current thread).
+ *
+ * @param te	the thread element holding the backtrace
+ * @param type	the type of stacktrace to invalidate
+ */
+static void
+thread_backtrace_invalidate(
+	struct thread_element *te, enum thread_backtrace_type type)
+{
+	struct thread_backtrace *bt = &te->btrace;
+
+	if (thread_backtrace_has(te, type))
+		bt->type = THREAD_BT_NONE;
+}
+
+/**
+ * Dump a symbolic backtrace of some specific type to file.
+ *
+ * @param fd	the file descriptor on which we want to dump the stack
+ * @param te	the thread element which we want to inspect
+ * @param type	the type of stacktrace we would want
+ */
+static void
+thread_backtrace_dump_type_fd(int fd,
+	const struct thread_element *te, enum thread_backtrace_type type)
+{
+	const struct thread_backtrace *bt = &te->btrace;
+	char delta[SIZE_FIELD_MAX];
+	char tbuf[UINT_DEC_BUFLEN];
+	time_delta_t elapsed;
+	tm_t now;
+	DECLARE_STR(11);
+	char attributes[40];
+	str_t str, *s = &str;
+	const char *tnum;
+
+	if (!thread_backtrace_has(te, type))
+		return;
+
+	tm_now_exact_raw(&now);
+	elapsed = tm_elapsed_ms(&now, &bt->stamp);
+	compact_time_ms_to_buf(elapsed, delta, sizeof delta);
+
+	str_new_buffer(s, attributes, 0, sizeof attributes);
+	if (te->reusable) {
+		if (te->cancelled) STR_CAT(s, "cancelled");
+		else               STR_CAT(s, "terminated");
+	} else {
+		if (te->discovered) {
+			if (0 != str_len(s)) STR_CAT(s, ", ");
+			STR_CAT(s, "discovered");
+		} else {
+			if (0 != str_len(s)) STR_CAT(s, ", ");
+			if (te->running) STR_CAT(s, "running");
+			else             STR_CAT(s, "creating");
+		}
+		if (te->exit_started) {
+			if (0 != str_len(s)) STR_CAT(s, ", ");
+			if (te->cancelled)         STR_CAT(s, "cancelled");
+			else if (te->join_pending) STR_CAT(s, "exited");
+			else                       STR_CAT(s, "exiting");
+		}
+		if (te->suspend || te->suspended) {
+			if (0 != str_len(s)) STR_CAT(s, ", ");
+			if (te->suspended) STR_CAT(s, "suspended");
+			else               STR_CAT(s, "suspending");
+		}
+	}
+
+	print_str("---- ");										/* 0 */
+	print_str(thread_backtrace_type_to_string(bt->type));	/* 1 */
+	print_str(" stack captured for {");						/* 2 */
+	if (te->name != NULL) {
+		print_str("thread \"");								/* 3 */
+		print_str(te->name);								/* 4 */
+		print_str("\"");									/* 5 */
+	} else {
+		tnum = PRINT_NUMBER(tbuf, te->stid);
+		print_str("thread #");								/* 3 */
+		print_str(tnum);									/* 4 */
+	}
+	print_str(" (");										/* 6 */
+	print_str(str_2c(s));									/* 7 */
+	print_str(" )} ");										/* 8 */
+
+	print_str(delta);										/* 9 */
+	print_str(" ago:\n");									/* 10 */
+	flush_str(fd);
+
+	stacktrace_stack_safe_print(fd, bt->frames, bt->count);
+
+	rewind_str(0);
+	print_str("---- done with ");							/* 0 */
+	print_str(thread_backtrace_type_to_string(bt->type));	/* 1 */
+	print_str(" stack captured for ");						/* 2 */
+	if (te->name != NULL) {
+		print_str("thread \"");								/* 3 */
+		print_str(te->name);								/* 4 */
+		print_str("\"");									/* 5 */
+	} else {
+		tnum = PRINT_NUMBER(tbuf, te->stid);
+		print_str("thread #");								/* 3 */
+		print_str(tnum);									/* 4 */
+	}
+	print_str(".\n");										/* 6 */
+	flush_str(fd);
 }
 
 /**
@@ -1927,6 +2108,7 @@ thread_element_reset(struct thread_element *te)
 	eslist_clear(&te->exit_list);
 	eslist_clear(&te->cleanup_list);
 	slist_free(&te->cond_stack);
+	ZERO(&te->btrace);
 
 	THREAD_UNLOCK(te);
 }
@@ -5501,72 +5683,6 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 	return "UNKNOWN";
 }
 
-/**
- * Show the lock that the thread is actively waiting on, if any, by logging
- * it to the specified file descriptor.
- *
- * Nothing is printed if the thread waits for nothing.
- *
- * This routine is called during critical conditions and therefore it must
- * use as little resources as possible and be as safe as possible.
- */
-static void
-thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
-{
-	char buf[POINTER_BUFLEN];
-	DECLARE_STR(10);
-	const char *type;
-	const struct thread_lock *l = &te->waiting;
-
-	if G_UNLIKELY(NULL == l->lock)
-		return;
-
-	print_str(thread_element_name(te));	/* 0 */
-	print_str(" waiting for ");			/* 1 */
-
-	pointer_to_string_buf(l->lock, buf, sizeof buf);
-	type = thread_lock_kind_to_string(l->kind);
-
-	print_str(type);					/* 2 */
-	print_str(" ");						/* 3 */
-	print_str(buf);						/* 4 */
-	{
-		const char *lnum;
-		char lbuf[UINT_DEC_BUFLEN];
-
-		lnum = PRINT_NUMBER(lbuf, l->line);
-		print_str(" from ");			/* 5 */
-		print_str(l->file);				/* 6 */
-		print_str(":");					/* 7 */
-		print_str(lnum);				/* 8 */
-	}
-	print_str("\n");					/* 9 */
-	flush_str(fd);
-}
-
-/*
- * Slowly check whether a lock is waited for by a thread.
- *
- * @return TRUE if lock is wanted by any of the running threads.
- */
-static bool
-thread_lock_waited_for(const void *lock)
-{
-	unsigned i;
-
-	for (i = 0; i < thread_next_stid; i++) {
-		struct thread_element *te = threads[i];
-	
-		if G_UNLIKELY(!te->valid || te->reusable)
-			continue;
-
-		if G_UNLIKELY(lock == te->waiting.lock)
-			return TRUE;
-	}
-
-	return FALSE;
-}
-
 /*
  * Slowly check whether a lock is owned by a thread.
  *
@@ -5604,6 +5720,77 @@ thread_lock_is_busy(const void *lock)
 	return FALSE;
 }
 
+/**
+ * Show the lock that the thread is actively waiting on, if any, by logging
+ * it to the specified file descriptor.
+ *
+ * Nothing is printed if the thread waits for nothing.
+ *
+ * This routine is called during critical conditions and therefore it must
+ * use as little resources as possible and be as safe as possible.
+ */
+static void
+thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
+{
+	char buf[POINTER_BUFLEN];
+	char lbuf[UINT_DEC_BUFLEN];
+	DECLARE_STR(12);
+	const char *type, *lnum;
+	const struct thread_lock *l = &te->waiting;
+
+	if G_UNLIKELY(NULL == l->lock)
+		return;
+
+	print_str(thread_element_name(te));	/* 0 */
+	print_str(" is waiting for ");		/* 1 */
+
+	pointer_to_string_buf(l->lock, buf, sizeof buf);
+	type = thread_lock_kind_to_string(l->kind);
+
+	print_str(type);					/* 2 */
+	print_str(" ");						/* 3 */
+	print_str(buf);						/* 4 */
+	lnum = PRINT_NUMBER(lbuf, l->line);
+	print_str(" at ");				/* 5 */
+	print_str(l->file);				/* 6 */
+	print_str(":");					/* 7 */
+	print_str(lnum);				/* 8 */
+
+	if (thread_lock_is_busy(l->lock))
+		print_str(" (BUSY)");			/* 9 */
+
+	if (thread_backtrace_has(te, THREAD_BT_LOCK))
+		print_str(" from:");			/* 10 */
+
+	print_str("\n");					/* 11 */
+	flush_str(fd);
+
+	thread_backtrace_dump_type_fd(fd, te, THREAD_BT_ANY);
+}
+
+/*
+ * Slowly check whether a lock is waited for by a thread.
+ *
+ * @return TRUE if lock is wanted by any of the running threads.
+ */
+static bool
+thread_lock_waited_for(const void *lock)
+{
+	unsigned i;
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+	
+		if G_UNLIKELY(!te->valid || te->reusable)
+			continue;
+
+		if G_UNLIKELY(lock == te->waiting.lock)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 /*
  * Dump list of locks held by thread to specified file descriptor.
  *
@@ -5617,28 +5804,8 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 	unsigned i;
 	DECLARE_STR(22);
 
-	if (te->waiting.lock != NULL) {
-		const char *type, *lnum;
-		char buf[POINTER_BUFLEN];
-		char line[UINT_DEC_BUFLEN];
-
-		type = thread_lock_kind_to_string(te->waiting.kind);
-		pointer_to_string_buf(te->waiting.lock, buf, sizeof buf);
-		lnum = PRINT_NUMBER(line, te->waiting.line);
-
-		print_str(thread_element_name(te));					/* 0 */
-		print_str(" is waiting for ");						/* 1 */
-		print_str(type);									/* 2 */
-		print_str(" ");										/* 3 */
-		print_str(buf);										/* 4 */
-		print_str(" at ");									/* 5 */
-		print_str(te->waiting.file);						/* 6 */
-		print_str(":");										/* 7 */
-		print_str(lnum);									/* 8 */
-		print_str("\n");									/* 9 */
-		flush_str(fd);
-		rewind_str(0);
-	}
+	if (NULL != te->waiting.lock)
+		thread_lock_waiting_dump_fd(fd, te);
 
 	if G_UNLIKELY(0 == tls->count) {
 		print_str(thread_element_name(te));					/* 0 */
@@ -5886,9 +6053,6 @@ thread_lock_dump_all(int fd)
 		if (0 != thread_element_lock_count(te))
 			thread_lock_dump_fd(fd, te);
 
-		if (NULL != te->waiting.lock && thread_lock_is_busy(te->waiting.lock))
-			thread_lock_waiting_dump_fd(fd, te);
-
 	next:
 		if (locked)
 			THREAD_UNLOCK(te);
@@ -5917,9 +6081,6 @@ thread_lock_dump_self_if_any(int fd)
 	if (te != NULL && te->valid) {
 		if (0 != thread_element_lock_count(te))
 			thread_lock_dump_fd(fd, te);
-
-		if (NULL != te->waiting.lock && thread_lock_is_busy(te->waiting.lock))
-			thread_lock_waiting_dump_fd(fd, te);
 	}
 }
 
@@ -5998,7 +6159,7 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		 */
 
 		if (
-			0 == thread_crash_mode_enabled ||
+			!thread_in_crash_mode() ||
 			!crash_is_deadlocked() ||
 			thread_safe_small_id() != UNSIGNED(thread_crash_mode_stid)
 		) {
@@ -6006,6 +6167,8 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 			te->waiting.kind = kind;
 			te->waiting.file = file;
 			te->waiting.line = line;
+
+			thread_backtrace_capture(te, THREAD_BT_LOCK);
 		}
 
 		/*
@@ -6078,11 +6241,13 @@ thread_lock_waiting_done(const void *element)
 	 */
 
 	if (
-		0 == thread_crash_mode_enabled ||
+		!thread_in_crash_mode() ||
 		!crash_is_deadlocked() ||
 		thread_safe_small_id() != UNSIGNED(thread_crash_mode_stid)
-	)
+	) {
 		te->waiting.lock = NULL;		/* Clear waiting condition */
+		thread_backtrace_invalidate(te, THREAD_BT_LOCK);
+	}
 
 	/*
 	 * We just got a lock of some kind, and we have the thread element so
@@ -10508,6 +10673,9 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		NULL == te->cond_stack ? 0 : slist_length(te->cond_stack));
 	DUMPL("%zu", "exit_list count", eslist_count(&te->exit_list));
 	DUMPL("%zu", "cleanup_list count", eslist_count(&te->cleanup_list));
+	DUMPL("%s",  "btrace.type",
+		thread_backtrace_type_to_string(te->btrace.type));
+	DUMPF("%zu",  btrace.count);
 
 	for (i = 0; i < G_N_ELEMENTS(te->sigh); i++) {
 		if (NULL != te->sigh[i]) {
