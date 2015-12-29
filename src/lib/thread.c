@@ -284,6 +284,21 @@ struct thread_exit_cb {
 };
 
 /**
+ * A thread diversion.
+ *
+ * A diversion is a notification callback that we can install through
+ * thread_divert() and which will be invoked as soon as a suspended thread
+ * is released, before resuming normal operations.
+ */
+struct thread_divert_cb {
+	process_fn_t divert;			/**< Diversion routine */
+	void *arg;						/**< Argument to pass */
+	int suspend;					/**< Original suspend count in thread */
+};
+
+#define THREAD_DIVERT_DELAY		5000	/* us */
+
+/**
  * Thread cleanup callbacks.
  *
  * They are invoked when thread exits explicitly or is cancelled, in the
@@ -387,6 +402,7 @@ struct thread_element {
 	struct thread_backtrace btrace;	/**< Captured backtrace */
 	tsighandler_t sigh[TSIG_COUNT - 1];		/**< Signal handlers */
 	void **locals[THREAD_LOCAL_L1_SIZE];	/**< Thread-local variables */
+	struct thread_divert_cb *div;	/**< Diversion -- see thread_divert() */
 };
 
 static inline void
@@ -575,6 +591,8 @@ static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
 static void thread_will_exit(void *arg);
 static void thread_crash_hook(void);
 static void thread_stack_overflow(struct thread_element *te) G_GNUC_NORETURN;
+static void thread_divert_run(struct thread_element *te);
+static void thread_divert_handle(int signo);
 
 /**
  * Low-level unique thread ID.
@@ -2104,11 +2122,18 @@ thread_element_reset(struct thread_element *te)
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
 	te->sig_generation = 0;
+	te->div = NULL;
 	ZERO(&te->sigh);
 	eslist_clear(&te->exit_list);
 	eslist_clear(&te->cleanup_list);
 	slist_free(&te->cond_stack);
 	ZERO(&te->btrace);
+
+	/*
+	 * This is a mandatory signal we're installing for each thread.
+	 */
+
+	te->sigh[TSIG_DIVERT - 1] = thread_divert_handle;
 
 	THREAD_UNLOCK(te);
 }
@@ -2669,6 +2694,7 @@ thread_main_element(thread_t t)
 	spinlock_init(&te->lock);
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
 	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
+	te->sigh[TSIG_DIVERT - 1] = thread_divert_handle;
 
 	tls = &te->locks;
 	tls->arena = locks_arena_main;
@@ -2966,10 +2992,12 @@ thread_suspend_loop(struct thread_element *te)
 	 * is that we are indeed going to suspend ourselves for a while.
 	 */
 
+again:
+
 	THREAD_LOCK(te);
-	if G_UNLIKELY(!te->suspend) {
+	if G_UNLIKELY(0 == te->suspend) {
 		THREAD_UNLOCK(te);
-		return FALSE;
+		return suspended;
 	}
 	te->suspended = TRUE;
 	THREAD_UNLOCK(te);
@@ -2979,7 +3007,7 @@ thread_suspend_loop(struct thread_element *te)
 	 */
 
 	for (i = 1; /* empty */; i++) {
-		if G_UNLIKELY(!te->suspend)
+		if G_UNLIKELY(0 == te->suspend)
 			break;
 
 		if (i < THREAD_SUSPEND_LOOP)
@@ -3012,9 +3040,48 @@ thread_suspend_loop(struct thread_element *te)
 
 	THREAD_LOCK(te);
 	te->suspended = FALSE;
+
+	/*
+	 * Check whether a diversion was installed and run it if there is one,
+	 * before suspending again if necessary.
+	 */
+
+	if (te->div != NULL) {
+		uint depth = atomic_uint_get(&thread_suspend_depth);
+
+		THREAD_UNLOCK(te);
+		thread_divert_run(te);
+		THREAD_LOCK(te);
+
+		/*
+		 * We need to account for possible thread_unsuspend_others()
+		 * calls that would have occured whilst we were busy running
+		 * the diversion code: they would have affected us if we had
+		 * not run the diversion.  However, further calls to
+		 * thread_suspend_others() will properly increment our suspend
+		 * field, hence we need to account only for decreasing global
+		 * suspension depth.
+		 */
+
+		{
+			uint ndepth = atomic_uint_get(&thread_suspend_depth);
+
+			if (ndepth < depth) {
+				int delta = depth - ndepth;
+
+				if (te->suspend <= delta)
+					te->suspend = 0;
+				else
+					te->suspend -= delta;
+			}
+		}
+
+		start = time(NULL);		/* Reset suspension start after diversion */
+	}
+
 	THREAD_UNLOCK(te);
 
-	return suspended;
+	goto again;
 }
 
 /**
@@ -3552,6 +3619,19 @@ found:
 	thread_qid_cache_set(idx, te, qid);
 
 	return te;
+}
+
+/**
+ * Signal handler for TSIG_DIVERT.
+ */
+static void
+thread_divert_handle(int signo)
+{
+	struct thread_element *te = thread_get_element();
+	g_assert(TSIG_DIVERT == signo);
+
+	if (te->div != NULL)
+		thread_divert_run(te);
 }
 
 /**
@@ -4393,7 +4473,7 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 	 * possible.
 	 */
 
-	if G_UNLIKELY(te->suspend) {
+	if G_UNLIKELY(te->suspend != 0) {
 		size_t cnt = thread_element_lock_count(te);
 
 		if (0 == cnt)
@@ -4622,7 +4702,7 @@ thread_suspend_others(bool lockwait)
 	 * If we were concurrently asked to suspend ourselves, get on with it!
 	 */
 
-	if G_UNLIKELY(te->suspend) {
+	if G_UNLIKELY(te->suspend != 0) {
 		mutex_unlock(&thread_suspend_mtx);
 		thread_suspend_loop(te);
 		goto done;
@@ -4730,7 +4810,7 @@ thread_unsuspend_others(void)
 		struct thread_element *xte = threads[i];
 
 		THREAD_LOCK(xte);
-		if G_LIKELY(xte->suspend) {
+		if G_LIKELY(xte->suspend != 0) {
 			atomic_int_dec(&xte->suspend);
 			n++;
 		}
@@ -4741,6 +4821,187 @@ thread_unsuspend_others(void)
 		mutex_unlock(&thread_suspend_mtx);
 
 	return n;
+}
+
+/**
+ * Wrapping of thread diversions when a reply is expected.
+ *
+ * This is given as an argument to thread_divert_rpc(), which will wrap-up
+ * the diversion callback, store the reply and signal that the RPC is complete.
+ */
+struct thread_divert_rpc {
+	struct thread_divert_cb *div;	/**< Original diversion parameters */
+	void *reply;					/**< Reply from diversion callback */
+	int done;						/**< Set to 1 when RPC is done */
+};
+
+/**
+ * Wrapper for diversion RPCs.
+ */
+static void *
+thread_divert_rpc(void *arg)
+{
+	struct thread_divert_rpc *rpcinfo = arg;
+	struct thread_divert_cb *d = rpcinfo->div;
+
+	rpcinfo->reply = (*d->divert)(d->arg);
+	atomic_int_inc(&rpcinfo->done);
+
+	return NULL;	/* Don't care about returned value, caller ignores it */
+}
+
+/**
+ * Process a diversion request, then suspend again.
+ *
+ * @param te		the suspended thread that is being diverted
+ */
+static void
+thread_divert_run(struct thread_element *te)
+{
+	struct thread_divert_cb *d;
+
+	THREAD_LOCK(te);
+	d = te->div;
+	te->div = NULL;
+	THREAD_UNLOCK(te);
+
+	/*
+	 * Protect against race conditions whereby caller would remove the
+	 * divesion between the time we decided to run it and the time we
+	 * get here.
+	 */
+
+	if (NULL == d)
+		return;
+
+	(void) (d->divert)(d->arg);
+
+	THREAD_LOCK(te);
+	te->suspend += d->suspend;		/* Resuspend thread */
+	THREAD_UNLOCK(te);
+
+	/* Upon return, thread will be suspended again */
+}
+
+/**
+ * Install a diversion into a suspended thread.
+ *
+ * This is intended to be used during crashes when all the other threads are
+ * suspended and the only thread in control can use diversions to perform
+ * limited queries on the suspended threads, to gather information.
+ *
+ * Once the thread is unsuspended, it will execute the diversion and then
+ * go back to the suspended state.
+ *
+ * From the purpose of the calling thread, this acts as a low-level RPC call,
+ * which however is only possible when the target is already suspended.  The
+ * calling thread is blocked for the duration of the call if a reply is
+ * expected.  If no reply is expected, the calling thread suspends itself
+ * after diverting the other thread.
+ *
+ * @param id		the targeted thread ID
+ * @param cb		the diversion callback to install
+ * @param arg		the argument to pass
+ * @param reply		where reply will be stored (NULL if no reply is expected)
+ *
+ * @return 0 if the diversion was successful, an error code otherwise which
+ * can be EBUSY if the thread is running and not suspended currently, ECANCELED
+ * if the thread did not execute in the allocated time slot, EINVAL if the
+ * targeted thread is invalid, EAGAIN if there is already a diversion installed
+ * and EINPROGRESS if the diversion started but the thread did not finish it
+ * in the allocated waiting time.
+ */
+int
+thread_divert(uint id, process_fn_t cb, void *arg, void **reply)
+{
+	struct thread_element *te;
+	struct thread_divert_cb d, r, *divert;
+	struct thread_divert_rpc rpcinfo;
+	bool sig = FALSE, started;
+
+	if (id >= THREAD_MAX)
+		return EINVAL;
+
+	te = threads[id];
+	if (NULL == te || !te->valid)
+		return EINVAL;
+
+	d.divert = cb;
+	d.arg = arg;
+
+	/*
+	 * If a reply is expected, we need to wrap the request.
+	 */
+
+	if (NULL != reply) {
+		ZERO(&rpcinfo);
+		rpcinfo.div = &d;
+		r.divert = thread_divert_rpc;
+		r.arg = &rpcinfo;
+		divert = &r;
+	} else {
+		divert = &d;
+	}
+
+	THREAD_LOCK(te);
+	if (te->div != NULL) {
+		THREAD_UNLOCK(te);
+		return EAGAIN;
+	}
+	if (!te->suspended && !te->blocked && NULL == te->cond) {
+		THREAD_UNLOCK(te);
+		return EBUSY;
+	}
+	if (!te->suspended)
+		sig = TRUE;						/* Will send thread a TSIG_DIVERT */
+	te->div = divert;
+	divert->suspend = te->suspend;		/* Save old suspension count */
+	te->suspend = 0;					/* Force unsuspend */
+	THREAD_UNLOCK(te);
+
+	/*
+	 * If the targeted thread is blocked, send it the TSIG_DIVERT signal.
+	 */
+
+	if (sig && -1 == thread_kill(id, TSIG_DIVERT))
+		goto timeout;		/* Not really, but will do */
+
+	/*
+	 * If no reply is expected, suspend indefintely.
+	 */
+
+	if (NULL == reply) {
+		te = thread_get_element();
+		te->suspend++;
+		thread_suspend_loop(te);
+	} else {
+		size_t i;
+
+		/* We give roughly 2.5 secs to the thread to reply */
+
+		for (i = 0; i < 500; i++) {
+			if (0 != atomic_int_get(&rpcinfo.done))
+				goto finished;
+			compat_usleep_nocancel(THREAD_DIVERT_DELAY);
+		}
+
+		goto timeout;		/* Really */
+
+	finished:
+		*reply = rpcinfo.reply;
+	}
+
+	return 0;		/* Diversion was successfully completed */
+
+timeout:
+
+	THREAD_LOCK(te);
+	started = NULL == te->div;		/* Went into thread_divert_run()? */
+	te->div = NULL;					/* Prevent execution start anyway */
+	te->suspend += divert->suspend;	/* Resuspend thread */
+	THREAD_UNLOCK(te);
+
+	return started ? EINPROGRESS : ECANCELED;
 }
 
 /**
@@ -9878,6 +10139,15 @@ thread_signal(int signum, tsighandler_t handler)
 	}
 
 	/*
+	 * The TSIG_DIVERT signal disposition cannot be changed.
+	 */
+
+	if G_UNLIKELY(TSIG_DIVERT == signum) {
+		errno = EPERM;
+		return TSIG_ERR;
+	}
+
+	/*
 	 * Signal 0 is not a real signal and is not present in sigh[].
 	 */
 
@@ -10756,6 +11026,13 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPL("%s",  "btrace.type",
 		thread_backtrace_type_to_string(te->btrace.type));
 	DUMPF("%zu",  btrace.count);
+
+	if (NULL == te->div) {
+		DUMPF("%p", div);
+	} else {
+		DUMPL("%s(%p)", "div",
+			stacktrace_function_name(te->div->divert), te->div->arg);
+	}
 
 	for (i = 0; i < G_N_ELEMENTS(te->sigh); i++) {
 		if (NULL != te->sigh[i]) {

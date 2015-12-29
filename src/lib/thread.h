@@ -204,6 +204,7 @@ void thread_stack_check(void);
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
 bool thread_check_suspended(void);
+int thread_divert(uint id, process_fn_t cb, void *arg, void **reply);
 
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);

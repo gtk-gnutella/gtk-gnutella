@@ -63,14 +63,19 @@
  * for TSIG_OVFLOW and the thread incurs a stack overflow, the whole process
  * will crash.
  *		--RAM, 2015-02-13
+ *
+ * The TSIG_DIVERT signal is asynchronously delivered to a thread which we
+ * want to execute some diversion code.  See thread_divert().
+ *		--RAM, 2015-12-30
  */
 
 #define TSIG_TEQ	10			/**< Something is in the Thread Event Queue */
 #define TSIG_TERM	11			/**< Requesting thread termination */
 #define TSIG_EVQ	12			/**< Dispatching a thread event */
 #define TSIG_OVFLOW	13			/**< Thread stack overflow detected */
+#define TSIG_DIVERT	14			/**< Thread diversion requested */
 
-#define TSIG_COUNT	14
+#define TSIG_COUNT	15
 
 #define tsig_mask(sig)	(1U << ((sig) - 1))		/* 0 is not a signal */
 
