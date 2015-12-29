@@ -2938,6 +2938,25 @@ thread_suspend_loop(struct thread_element *te)
 	unsigned i;
 	time_t start = 0;
 
+	/*
+	 * If we are running in the crashing thread, refuse to suspend and
+	 * immediately suspend the other threads.
+	 */
+
+	if (crash_is_crashing_thread()) {
+		s_rawwarn("%s(): %s is the crashing thread",
+			G_STRFUNC, thread_element_name_raw(te));
+
+		THREAD_LOCK(te);
+		te->suspend = 0;
+		te->suspended = FALSE;
+		THREAD_UNLOCK(te);
+
+		thread_suspend_others(FALSE);
+
+		return FALSE;			/* Refuse to suspend */
+	}
+
 	THREAD_STATS_INCX(thread_self_suspends);
 
 	/*

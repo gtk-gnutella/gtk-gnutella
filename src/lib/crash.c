@@ -216,6 +216,7 @@ static int crash_exit_started;
 static bool crash_restart_initiated;
 static const struct assertion_data *crash_last_assertion_failure;
 static const char *crash_last_deadlock_file;
+static int crash_thread_id = THREAD_INVALID_ID;
 
 /**
  * An item in the crash_hooks list.
@@ -2402,9 +2403,23 @@ crash_level(void)
 static bool G_GNUC_COLD
 crash_mode(enum crash_level level)
 {
+	static int done;
 	enum crash_level old_level, new_level;
+	int depth = atomic_int_inc(&done);
 
 	g_assert(level != CRASH_LVL_NONE);
+
+	/*
+	 * Record the ID of the first crashing thread.
+	 *
+	 * This thread can never be suspended or it will not be able to
+	 * continue gathering the crashing information.
+	 */
+
+	if (0 == depth) {
+		crash_thread_id = thread_safe_small_id();
+		atomic_mb();
+	}
 
 	spinlock_hidden(&crash_mode_slk);
 
@@ -3800,6 +3815,18 @@ crash_is_supervised(void)
 		return FALSE;
 
 	return vars->supervised && 1 != getppid();
+}
+
+/**
+ * Are we running in the crashing thread?
+ */
+bool
+crash_is_crashing_thread(void)
+{
+	int stid = thread_safe_small_id();
+
+	atomic_mb();
+	return crash_thread_id == stid && crash_thread_id >= 0;
 }
 
 /**

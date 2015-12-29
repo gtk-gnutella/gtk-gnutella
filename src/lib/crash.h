@@ -215,6 +215,7 @@ void crash_exited(uint32 pid);
 void crash_close(void);
 bool crash_is_closed(void);
 bool crash_is_deadlocked(void);
+bool crash_is_crashing_thread(void);
 bool crash_is_pausing(void);
 bool crash_is_logged(void);
 bool crash_is_supervised(void);
