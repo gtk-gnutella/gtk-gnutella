@@ -1225,6 +1225,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	char sbuf[ULONG_DEC_BUFLEN];
 	char nbuf[ULONG_DEC_BUFLEN];
 	char lbuf[ULONG_DEC_BUFLEN];
+	char pbuf[ULONG_DEC_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
@@ -1278,6 +1279,14 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("Crash-Signal: ");		/* 12 */
 	print_str(signal_name(signo));		/* 13 */
 	print_str("\n");					/* 14 */
+	flush_str(clf);
+	rewind_str(0);
+	print_str("Crash-PID: ");			/* 0 */
+	print_str(PRINT_NUMBER(pbuf, getpid()));	/* 1 */
+	print_str("\n");					/* 2 */
+	print_str("Crash-Level: ");			/* 3 */
+	print_str(crash_level_to_string(crash_current_level));	/* 4 */
+	print_str("\n");					/* 5 */
 	flush_str(clf);
 	rewind_str(0);
 	print_str("Crash-Time: ");			/* 0 */
