@@ -6168,6 +6168,15 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind)
 }
 
 /**
+ * Do we have a problem with thread locks?
+ */
+static bool
+thread_lock_is_problematic(void)
+{
+	return thread_in_crash_mode() || crash_is_deadlocked();
+}
+
+/**
  * Record a waiting condition on the current thread for the specified lock.
  *
  * This is used in case of deadlocks to be able to figure out where the
@@ -6185,16 +6194,25 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 	te = thread_find(&te);
 
 	if G_LIKELY(te != NULL) {
+		bool problematic = thread_lock_is_problematic();
+
 		/*
 		 * Do not perturb the waiting state we had in the crashing thread,
 		 * in case we are deadlocking.
 		 */
 
-		if (
-			!thread_in_crash_mode() ||
-			!crash_is_deadlocked() ||
-			thread_safe_small_id() != UNSIGNED(thread_crash_mode_stid)
-		) {
+		if (te->waiting.lock != NULL) {
+			if (!problematic) {
+				const struct thread_lock *l = &te->waiting;
+
+				s_rawwarn("%s(): ignoring new %s %p at %s:%u, "
+					"still waiting for %s %p at %s:%u",
+					G_STRFUNC, thread_lock_kind_to_string(kind),
+					lock, file, line,
+					thread_lock_kind_to_string(l->kind),
+					l->lock, l->file, l->line);
+			}
+		} else if (!problematic) {
 			te->waiting.lock = lock;
 			te->waiting.kind = kind;
 			te->waiting.file = file;
@@ -6261,9 +6279,10 @@ thread_lock_contention(enum thread_lock_kind kind)
  * as returned previously by thread_lock_waiting_element().
  */
 void
-thread_lock_waiting_done(const void *element)
+thread_lock_waiting_done(const void *element, const void *lock)
 {
 	struct thread_element *te = deconstify_pointer(element);
+	bool problematic = thread_lock_is_problematic();
 
 	thread_element_check(te);
 
@@ -6272,13 +6291,21 @@ thread_lock_waiting_done(const void *element)
 	 * if we identified a deadlock condition.
 	 */
 
-	if (
-		!thread_in_crash_mode() ||
-		!crash_is_deadlocked() ||
-		thread_safe_small_id() != UNSIGNED(thread_crash_mode_stid)
-	) {
-		te->waiting.lock = NULL;		/* Clear waiting condition */
-		thread_backtrace_invalidate(te, THREAD_BT_LOCK);
+	if G_LIKELY(lock == te->waiting.lock) {
+		if (!problematic) {
+			te->waiting.lock = NULL;		/* Clear waiting condition */
+			thread_backtrace_invalidate(te, THREAD_BT_LOCK);
+		}
+	} else if (te->waiting.lock != NULL) {
+		if (!problematic) {
+			const struct thread_lock *l = &te->waiting;
+
+			s_rawcrit("%s(): was waiting for %s %p at %s:%u but given lock %p",
+				G_STRFUNC, thread_lock_kind_to_string(l->kind), l->lock,
+				l->file, l->line, lock);
+		}
+	} else if (!problematic) {
+		s_rawcrit("%s(): was not waiting for lock %p", G_STRFUNC, lock);
 	}
 
 	/*

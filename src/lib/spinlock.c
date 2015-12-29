@@ -391,7 +391,7 @@ spinlock_loop(volatile spinlock_t *s,
 
 locked:
 	if G_UNLIKELY(element != NULL)
-		thread_lock_waiting_done(element);
+		thread_lock_waiting_done(element, src_object);
 }
 
 /**

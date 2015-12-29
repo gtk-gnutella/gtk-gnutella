@@ -250,7 +250,7 @@ void thread_assert_no_locks(const char *routine);
 void thread_lock_contention(enum thread_lock_kind kind);
 const void *thread_lock_waiting_element(const void *lock,
 	enum thread_lock_kind kind, const char *file, unsigned line);
-void thread_lock_waiting_done(const void *element);
+void thread_lock_waiting_done(const void *element, const void *lock);
 
 const void *thread_cond_waiting_element(struct cond **c);
 void thread_cond_waiting_done(const void *element);

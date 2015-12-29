@@ -598,7 +598,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 				}
 #endif	/* SPINLOCK_DEBUG */
 				if G_UNLIKELY(element != NULL)
-					thread_lock_waiting_done(element);
+					thread_lock_waiting_done(element, rw);
 				return;
 			}
 			if (1 == rwlock_cpus)
