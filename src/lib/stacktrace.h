@@ -108,6 +108,8 @@ void stacktrace_where_plain_print_offset(int fd, size_t offset);
 void stacktrace_where_safe_print_offset(int fd, size_t offset);
 void stacktrace_where_cautious_print_offset(int fd, size_t offset);
 void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
+void stacktrace_stack_plain_print(int fd, void * const *stack, size_t count);
+void stacktrace_stack_fancy_print(int fd, void * const *stack, size_t count);
 void stacktrace_stack_print_decorated(int fd,
 	void * const *stack, size_t count, uint flags);
 void stacktrace_where_print_decorated(FILE *f, uint flags);

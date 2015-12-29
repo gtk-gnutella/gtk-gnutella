@@ -1636,6 +1636,34 @@ stacktrace_where_plain_print_offset(int fd, size_t offset)
 }
 
 /**
+ * Print supplied trace to specified file as a plain symbolic stack,
+ * if possible.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
+ */
+void
+stacktrace_stack_plain_print(int fd, void * const *stack, size_t count)
+{
+	stack_safe_print(fd, stack, count);
+}
+
+/**
+ * Print supplied trace to specified file in fully decorated mode
+ * if possible.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
+ */
+void
+stacktrace_stack_fancy_print(int fd, void * const *stack, size_t count)
+{
+	stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+}
+
+/**
  * Safely print supplied trace to specified file as a symbolic stack,
  * if possible.
  *

@@ -4192,6 +4192,138 @@ crash_oom(const char *format, ...)
 	crash_abort();
 }
 
+#define CRASH_STACK_DUMP_DEPTH	64
+
+struct crash_stack {
+	void *stack[CRASH_STACK_DUMP_DEPTH];
+	size_t count;
+	int stid;
+	bool full;
+};
+
+/**
+ * Diversion callback to get a stack trace from current thread.
+ */
+static void *
+crash_fill_stack(void *arg)
+{
+	struct crash_stack *t = arg;
+
+	t->count = stacktrace_unwind(t->stack, G_N_ELEMENTS(t->stack), 2);
+	return NULL;
+}
+
+/**
+ * Attempt to fetch a stack trace from given thread.
+ *
+ * @param id		thread whose stack we want
+ * @param trace		where to put the stack trace
+ *
+ * @return 0 if OK, a POSIX error code otherwise.
+ */
+static int
+crash_get_stack(uint id, struct crash_stack *trace)
+{
+	ZERO(trace);
+
+	if (thread_small_id() == id) {
+		crash_fill_stack(trace);
+	} else {
+		void *res;
+		int error;
+
+		if (0 != (error = thread_divert(id, crash_fill_stack, trace, &res)))
+			return error;
+	}
+
+	trace->stid = id;
+	return 0;
+}
+
+/**
+ * Print a light version of the stack trace.
+ */
+static void * G_GNUC_COLD
+crash_thread_stack_print(void *arg)
+{
+	const struct crash_stack *t = arg;
+	const char *type = t->full ? "decorated" : "light";
+
+	if (0 == t->count) {
+		s_rawwarn("%s(): stack trace for %s is empty",
+			G_STRFUNC, thread_id_name(t->stid));
+		return NULL;
+	}
+
+	s_rawinfo("%s(): dumping %zu-frame long %s stack trace for %s:",
+		G_STRFUNC, t->count, type, thread_id_name(t->stid));
+
+	if (t->full)
+		stacktrace_stack_fancy_print(STDERR_FILENO, t->stack, t->count);
+	else
+		stacktrace_stack_plain_print(STDERR_FILENO, t->stack, t->count);
+
+	s_rawinfo("%s(): end of %s stack trace for %s.",
+		G_STRFUNC, type, thread_id_name(t->stid));
+
+	return NULL;
+}
+
+/**
+ * Attempt to offload processing to the main thread if possible.
+ *
+ * Contrary to crash_divert_main(), this does not attempt to permanently
+ * transfer control to the main thread.
+ *
+ * @param cb		the function to invoke in the main thread if possible
+ * @param arg		argument to pass to function
+ */
+static void G_GNUC_COLD
+crash_offload_main(process_fn_t cb, void *arg)
+{
+	if (!thread_is_main()) {
+		void *res;		/* Supplied result, to make this an RPC to main */
+		if (0 == thread_divert(THREAD_MAIN, cb, arg, &res))
+			return;
+		/* FALL THROUGH */
+	}
+
+	(void) (*cb)(arg);
+}
+
+/*
+ * Attempt to collect stack traces from all the threads that are
+ * now hopefully supended, then dump their stack.
+ */
+static void G_GNUC_COLD
+crash_dump_stacks(void)
+{
+	int i, e;
+	bool f;
+	struct crash_stack trace;
+
+	/*
+	 * We first try to get stack and dump them in plain form, which is
+	 * less stressful from a resource point of view.
+	 *
+	 * Once we were able to get all the stacks, we redo the same operation
+	 * dumping decorated stacks.
+	 */
+
+	for (f = FALSE; f <= TRUE; f++) {
+		for (i = 0; i < THREAD_MAX; i++) {
+			if (0 == (e = crash_get_stack(i, &trace))) {
+				trace.full = f;
+				crash_offload_main(crash_thread_stack_print, &trace);
+			} else if (e != EINVAL) {
+				errno = e;
+				s_rawwarn("%s(): cannot get stack for %s: %m",
+					G_STRFUNC, thread_id_name(i));
+			}
+		}
+	}
+}
+
 /**
  * Record that we are deadlocked.
  */
@@ -4211,6 +4343,8 @@ crash_deadlocked(const char *file, unsigned line)
 			crash_set_var(lock_file, file);
 			crash_set_var(lock_line, line);
 		}
+
+		crash_dump_stacks();
 	}
 }
 
