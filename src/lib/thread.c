@@ -7638,16 +7638,11 @@ thread_lock_deadlock(const volatile void *lock)
 {
 	struct thread_element *te;
 	struct thread_element *towner;
-	static bool deadlocked;
+	static int deadlocked;
 	enum thread_lock_kind kind;
 	bool known_kind = TRUE;
 	unsigned i;
-
-	if (deadlocked)
-		return;				/* Recursion, avoid problems */
-
-	deadlocked = TRUE;
-	atomic_mb();
+	int depth = atomic_int_inc(&deadlocked);
 
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te) {
@@ -7684,7 +7679,7 @@ thread_lock_deadlock(const volatile void *lock)
 			lock, NULL == towner ? "nobody" : "itself");
 	} else {
 		char buf[128];
-		const char *name = thread_element_name(towner);
+		const char *name = thread_element_name_raw(towner);
 
 		g_strlcpy(buf, name, sizeof buf);
 
@@ -7713,13 +7708,8 @@ thread_lock_deadlock(const volatile void *lock)
 		atomic_mb();
 	}
 
-	/*
-	 * We're about to crash anyway since there is a deadlock condition, so
-	 * our aim now is to be able to collect as much information as possible
-	 * to possibly allow forensic analysis.
-	 */
-
-	thread_crash_mode();
+	if (depth != 0)
+		return;				/* Concurrent call or recursion, avoid problems */
 
 	s_miniinfo("attempting to unwind current stack:");
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
