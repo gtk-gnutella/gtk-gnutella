@@ -137,32 +137,10 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile mutex_t *m = obj;
-	static int deadlocked;
-	int depth = atomic_int_inc(&deadlocked);
 	unsigned stid;
 
-	if (mutex_pass_through)
-		return;			/* False alarm, necessarily */
-
-	if (depth != 0) {
-		crash_deadlocked(file, line);
-
-		/*
-		 * Let the thread continue -- we're in crash mode, recursive now,
-		 * meaning all locks are disabled, so there's no need to panic just
-		 * yet.
-		 */
-
-		return;
-	}
-
-	/*
-	 * This is going to be fatal anyway, hence activate the thread crash mode
-	 * to suspend the other threads.
-	 */
-
-	s_rawwarn("%sdeadlock on mutex %p (depth %zu) at %s:%u",
-		depth != 0 ? "recursive " : "", obj, m->depth, file, line);
+	s_rawwarn("deadlock on mutex %p (depth %zu) at %s:%u",
+		obj, m->depth, file, line);
 
 	atomic_mb();
 	mutex_check(m);
@@ -179,7 +157,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	if (-1U == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
-	crash_deadlocked(file, line);
+	crash_deadlocked(file, line);	/* Will not return if concurrent call */
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
 		"owned by %s", obj, m->depth, elapsed, file, line,

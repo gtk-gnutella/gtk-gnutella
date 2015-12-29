@@ -197,31 +197,8 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile spinlock_t *s = obj;
-	static int deadlocked;
-	int depth = atomic_int_inc(&deadlocked);
 
-	if (spinlock_pass_through)
-		return;			/* False alarm, necessarily */
-
-	if (depth != 0) {
-		crash_deadlocked(file, line);
-
-		/*
-		 * Let the thread continue -- we're in crash mode, recursive now,
-		 * meaning all locks are disabled, so there's no need to panic just
-		 * yet.
-		 */
-
-		return;
-	}
-
-	/*
-	 * This is going to be fatal anyway, hence activate the thread crash mode
-	 * to suspend the other threads.
-	 */
-
-	s_rawwarn("%sdeadlock on %sspinlock %p at %s:%u",
-		depth != 0 ? "recursive " : "",
+	s_rawwarn("deadlock on %sspinlock %p at %s:%u",
 		s->lock ? "" : "free ", obj, file, line);
 
 	atomic_mb();
@@ -239,7 +216,7 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 #endif
 #endif
 
-	crash_deadlocked(file, line);
+	crash_deadlocked(file, line);	/* Will not return if concurrent call */
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on %sspinlock %p (after %u secs) at %s:%u",
 		s->lock ? "" : "free ", obj, elapsed, file, line);

@@ -298,6 +298,7 @@ tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
 unsigned thread_sig_generation(void);
 bool thread_pause(void);
+void thread_halt(void) G_GNUC_NORETURN;
 bool thread_sigsuspend(const tsigset_t *mask);
 void thread_sleep_ms(unsigned int ms);
 bool thread_timed_sigsuspend(const tsigset_t *mask, const struct tmval *tout);

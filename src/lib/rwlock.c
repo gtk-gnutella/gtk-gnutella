@@ -485,37 +485,14 @@ static G_GNUC_COLD NO_INLINE void
 rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 	const char *file, unsigned line)
 {
-	static int deadlocked;
-	int depth = atomic_int_inc(&deadlocked);
-
-	if (rwlock_pass_through)
-		return;			/* False alarm, necessarily */
-
-	if (depth != 0) {
-		crash_deadlocked(file, line);
-
-		/*
-		 * Let the thread continue -- we're in crash mode, recursive now,
-		 * meaning all locks are disabled, so there's no need to panic just
-		 * yet.
-		 */
-
-		return;
-	}
-
-	/*
-	 * This is going to be fatal anyway, hence activate the thread crash mode
-	 * to suspend the other threads.
-	 */
-
-	s_rawwarn("%sdeadlock on rwlock (%c) %p at %s:%u",
-		depth != 0 ? "recursive " : "", reading ? 'R' : 'W', rw, file, line);
+	s_rawwarn("deadlock on rwlock (%c) %p at %s:%u",
+		reading ? 'R' : 'W', rw, file, line);
 
 	atomic_mb();
 	rwlock_check(rw);
 
+	crash_deadlocked(file, line);	/* Will not return if concurrent call */
 	rwlock_wait_queue_dump(rw);
-	crash_deadlocked(file, line);
 	thread_lock_deadlock(rw);
 
 	s_error("deadlocked on rwlock (%c) %p (after %u secs) at %s:%u",

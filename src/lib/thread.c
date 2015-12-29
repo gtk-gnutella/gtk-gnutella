@@ -10325,35 +10325,20 @@ done:
  * @note
  * This routine is a cancellation point.
  *
+ * @param te		the current thread element
  * @param mask		the signal mask to set before blocking
+ * @param eve		for main thread, the event installed if it cannot block
  *
  * @return TRUE if we were unblocked by a signal.
  */
 static bool
-thread_sigblock(tsigset_t mask)
+thread_sigblock_element(struct thread_element *te,
+	tsigset_t mask, evq_event_t *eve)
 {
-	struct thread_element *te = thread_get_element();
-	evq_event_t *eve = NULL;
 	bool signalled, has_signals;
 	char c;
 
 	g_assert(!te->blocked);
-	g_assert_log(0 == thread_element_lock_count(te),
-		"%s(): %s has %zu lock%s (%zu tracked and %zu accounted-for)",
-		G_STRFUNC, thread_element_name(te),
-		thread_element_lock_count(te), plural(thread_element_lock_count(te)),
-		te->locks.count, te->other_locks);
-
-	/*
-	 * Make sure the main thread never attempts to block itself if it
-	 * has not explicitly told us it can block.
-	 *
-	 * Actually, we use the same logic as in thread_block_self() and allow
-	 * it to block for a limited amount of time.
-	 */
-
-	if (thread_main_stid == te->stid && !thread_main_can_block)
-		eve = evq_insert(THREAD_MAIN_DELAY_MS, thread_block_timeout, G_STRFUNC);
 
 	/*
 	 * This is mostly the same logic as thread_block_self() although we
@@ -10446,6 +10431,43 @@ process_signals:
  * @note
  * This routine is a cancellation point.
  *
+ * @param mask		the signal mask to set before blocking
+ *
+ * @return TRUE if we were unblocked by a signal.
+ */
+static bool
+thread_sigblock(tsigset_t mask)
+{
+	struct thread_element *te = thread_get_element();
+	evq_event_t *eve = NULL;
+
+	g_assert(!te->blocked);
+	g_assert_log(0 == thread_element_lock_count(te),
+		"%s(): %s has %zu lock%s (%zu tracked and %zu accounted-for)",
+		G_STRFUNC, thread_element_name(te),
+		thread_element_lock_count(te), plural(thread_element_lock_count(te)),
+		te->locks.count, te->other_locks);
+
+	/*
+	 * Make sure the main thread never attempts to block itself if it
+	 * has not explicitly told us it can block.
+	 *
+	 * Actually, we use the same logic as in thread_block_self() and allow
+	 * it to block for a limited amount of time.
+	 */
+
+	if (thread_main_stid == te->stid && !thread_main_can_block)
+		eve = evq_insert(THREAD_MAIN_DELAY_MS, thread_block_timeout, G_STRFUNC);
+
+	return thread_sigblock_element(te, mask, eve);
+}
+
+/**
+ * Block thread until a signal is received or until we are explicitly unblocked.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
  * @return TRUE if we were unblocked by a signal.
  */
 bool
@@ -10457,6 +10479,32 @@ thread_pause(void)
 
 	thread_sigmask(TSIG_GETMASK, NULL, &set);
 	return thread_sigblock(set);
+}
+
+/**
+ * Halt current thread.
+ *
+ * This is meant to be used during crashes, when we do not wish another
+ * thread from concurrently executing before we are able to suspend all
+ * the threads.
+ *
+ * There is no coming back from this routine, but the halted thread will be
+ * able to execute diversions if needed.
+ */
+void
+thread_halt(void)
+{
+	struct thread_element *te = thread_get_element();
+	tsigset_t set = te->sig_mask;
+
+	tsig_delset(&set, TSIG_DIVERT);			/* Must process diversions */
+
+	if (thread_is_main())
+		thread_main_can_block = TRUE;		/* Obviously! */
+
+	for (;;) {
+		thread_sigblock_element(te, set, NULL);
+	}
 }
 
 /**

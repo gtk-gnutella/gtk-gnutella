@@ -217,6 +217,7 @@ static bool crash_restart_initiated;
 static const struct assertion_data *crash_last_assertion_failure;
 static const char *crash_last_deadlock_file;
 static int crash_thread_id = THREAD_INVALID_ID;
+static enum crash_level crash_current_level;
 
 /**
  * An item in the crash_hooks list.
@@ -563,6 +564,25 @@ crash_run_time(char *buf, size_t size)
 
 	cursor.size += num_reserved;	/* We reserved one byte for NUL above */
 	crash_append_fmt_c(&cursor, '\0');
+}
+
+/**
+ * Stringify a crash level.
+ */
+static const char *
+crash_level_to_string(const enum crash_level level)
+{
+	switch (level) {
+	case CRASH_LVL_NONE:		return "none";
+	case CRASH_LVL_BASIC:		return "basic";
+	case CRASH_LVL_OOM:			return "OOM";
+	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
+	case CRASH_LVL_FAILURE:		return "failure";
+	case CRASH_LVL_EXCEPTION:	return "exception";
+	case CRASH_LVL_RECURSIVE:	return "recursive";
+	}
+
+	return "UNKNOWN";
 }
 
 /**
@@ -2375,7 +2395,6 @@ crash_disable_if_from(const char *file, const char *name, callback_fn_t cb)
 		crash_disable(name, cb);
 }
 
-static enum crash_level current_crash_level;
 static spinlock_t crash_mode_slk = SPINLOCK_INIT;
 
 /**
@@ -2387,7 +2406,7 @@ crash_level(void)
 	enum crash_level level;
 
 	spinlock_hidden(&crash_mode_slk);
-	level = current_crash_level;
+	level = crash_current_level;
 	spinunlock_hidden(&crash_mode_slk);
 
 	return level;
@@ -2417,8 +2436,19 @@ crash_mode(enum crash_level level)
 	 */
 
 	if (0 == depth) {
+		s_rawdebug("%s(): initial call, level=%s",
+			G_STRFUNC, crash_level_to_string(level));
+
 		crash_thread_id = thread_safe_small_id();
 		atomic_mb();
+	} else if (!crash_is_crashing_thread()) {
+		s_rawwarn("%s(): concurrent call, level=%s",
+			G_STRFUNC, crash_level_to_string(level));
+
+		thread_halt();		/* No coming back */
+	} else {
+		s_rawdebug("%s(): subsequent call, level=%s",
+			G_STRFUNC, crash_level_to_string(level));
 	}
 
 	spinlock_hidden(&crash_mode_slk);
@@ -2427,7 +2457,7 @@ crash_mode(enum crash_level level)
 	 * Crash level can only increase.
 	 */
 
-	old_level = current_crash_level;
+	old_level = crash_current_level;
 	new_level = MAX(old_level, level);
 
 	/*
@@ -2438,7 +2468,7 @@ crash_mode(enum crash_level level)
 	if (level != CRASH_LVL_BASIC && old_level > CRASH_LVL_OOM)
 		new_level = CRASH_LVL_RECURSIVE;
 
-	current_crash_level = new_level;
+	crash_current_level = new_level;
 
 	spinunlock_hidden(&crash_mode_slk);
 
