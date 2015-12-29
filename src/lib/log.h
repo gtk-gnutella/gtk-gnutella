@@ -115,6 +115,8 @@ void s_minidbg(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a);
 void s_rawcrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_rawmsg(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_rawinfo(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawdebug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 void s_stacktrace(bool no_stdio, unsigned offset);
