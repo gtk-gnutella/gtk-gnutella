@@ -2726,6 +2726,21 @@ thread_suspend_loop(struct thread_element *te)
 	THREAD_STATS_INCX(thread_self_suspends);
 
 	/*
+	 * To avoid race conditions, we need to re-check atomically that we
+	 * indeed need to be suspended.  The caller has checked that before
+	 * but outside of a critical section, hence the most likely scenario
+	 * is that we are indeed going to suspend ourselves for a while.
+	 */
+
+	THREAD_LOCK(te);
+	if G_UNLIKELY(!te->suspend) {
+		THREAD_UNLOCK(te);
+		return FALSE;
+	}
+	te->suspended = TRUE;
+	THREAD_UNLOCK(te);
+
+	/*
 	 * Suspension loop.
 	 */
 
@@ -2761,6 +2776,10 @@ thread_suspend_loop(struct thread_element *te)
 		}
 	}
 
+	THREAD_LOCK(te);
+	te->suspended = FALSE;
+	THREAD_UNLOCK(te);
+
 	return suspended;
 }
 
@@ -2773,8 +2792,6 @@ thread_suspend_loop(struct thread_element *te)
 static bool
 thread_suspend_self(struct thread_element *te)
 {
-	bool suspended;
-
 	/*
 	 * We cannot let a thread holding spinlocks or mutexes to suspend itself
 	 * since that could cause a deadlock with the concurrent thread that will
@@ -2784,28 +2801,7 @@ thread_suspend_self(struct thread_element *te)
 
 	g_assert(0 == thread_element_lock_count(te));
 
-	/*
-	 * To avoid race conditions, we need to re-check atomically that we
-	 * indeed need to be suspended.  The caller has checked that before
-	 * but outside of a critical section, hence the most likely scenario
-	 * is that we are indeed going to suspend ourselves for a while.
-	 */
-
-	THREAD_LOCK(te);
-	if G_UNLIKELY(!te->suspend) {
-		THREAD_UNLOCK(te);
-		return FALSE;
-	}
-	te->suspended = TRUE;
-	THREAD_UNLOCK(te);
-
-	suspended = thread_suspend_loop(te);
-
-	THREAD_LOCK(te);
-	te->suspended = FALSE;
-	THREAD_UNLOCK(te);
-
-	return suspended;
+	return thread_suspend_loop(te);
 }
 
 /**
