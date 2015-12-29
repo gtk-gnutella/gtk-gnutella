@@ -249,6 +249,7 @@ void crash_reexec(void) G_GNUC_NORETURN;
 void crash_restart(const char *format, ...);
 void crash_restarting(void);
 void crash_print_decorated_stack(int fd);
+void crash_divert_main(const char *caller, process_fn_t cb, void *arg);
 
 #endif	/* _crash_h_ */
 

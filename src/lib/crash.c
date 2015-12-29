@@ -2996,18 +2996,101 @@ crash_pause(void)
 }
 
 /**
+ * Context variable for crash_handler().
+ */
+struct crash_handler_ctx {
+	const char *cwd;
+	const char *name;
+	bool trace;
+	bool recursive;
+	bool in_child;
+	int signo;
+};
+
+static volatile sig_atomic_t crash_count;
+
+/**
+ * Heavy processing from crash_handler() that we attempt to divert to the
+ * main thread if possible (hence it being done in a separate routine, with
+ * all the variable gathered by crash_handler() already passed in a structure.
+ */
+static void * G_GNUC_COLD
+crash_handler_process(void *arg)
+{
+	struct crash_handler_ctx *v = arg;
+
+	crash_message(v->name, v->trace, v->recursive);
+	if (v->trace) {
+		crash_stack_print(STDERR_FILENO, 1);
+		if (log_stdout_is_distinct())
+			crash_stack_print(STDOUT_FILENO, 1);
+
+		/*
+		 * If we are in a signal handler and are not going to invoke an
+		 * inspector, dump a decorated stack.
+		 */
+
+		if (signal_in_handler() && !vars->invoke_inspector)
+			crash_emit_decorated_stack(1, v->in_child);
+	}
+	if ((v->recursive && 1 == ATOMIC_GET(&crash_count)) || v->in_child) {
+		crash_emit_decorated_stack(1, v->in_child);
+		crash_end_of_line(TRUE);
+		goto the_end;
+	}
+	if (!vars->invoke_inspector)
+		crash_generate_crashlog(v->signo);
+	crash_end_of_line(FALSE);
+	if (vars->invoke_inspector) {
+		bool hooks;
+
+		/*
+		 * If we have no stackframe, then we're probably not on an assertion
+		 * failure path.  Capture the stack including the crash handler so
+		 * that we know were the capture was made from.
+		 */
+
+		if (0 == vars->stackcnt)
+			crash_save_current_stackframe(0);
+
+		hooks = crash_inspect(v->signo, v->cwd);
+		if (!hooks) {
+			uint8 f = FALSE;
+			crash_run_hooks(NULL, -1);
+			crash_set_var(invoke_inspector, f);
+			crash_end_of_line(FALSE);
+		}
+	}
+	if (vars->pause_process && vars->invoke_inspector) {
+		uint8 f = FALSE;
+		crash_set_var(invoke_inspector, f);
+		crash_end_of_line(FALSE);
+	}
+	if (vars->pause_process) {
+		crash_pause();
+	}
+
+the_end:
+	if (!v->in_child)
+		crash_auto_restart();
+	raise(SIGABRT);			/* This is the end of our road */
+
+	g_assert_not_reached();
+	return NULL;			/* Never used by caller! */
+}
+/**
  * The signal handler used to trap harmful signals.
  */
 void G_GNUC_COLD
 crash_handler(int signo)
 {
-	static volatile sig_atomic_t crashed;
-	const char *name;
-	const char *cwd = "";
+	struct crash_handler_ctx v;
 	unsigned i;
-	bool trace;
-	bool recursive = ATOMIC_GET(&crashed) > 0;
-	bool in_child = FALSE;
+
+	ZERO(&v);
+	v.cwd = "";
+	v.recursive = ATOMIC_GET(&crash_count) > 0;
+	v.signo = signo;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -3019,15 +3102,15 @@ crash_handler(int signo)
 	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
-	if (ATOMIC_INC(&crashed) > 1) {
-		if (2 == ATOMIC_GET(&crashed)) {
+	if (ATOMIC_INC(&crash_count) > 1) {
+		if (2 == ATOMIC_GET(&crash_count)) {
 			DECLARE_STR(1);
 
 			print_str("\nERROR: too many recursive crashes\n");
 			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
-		} else if (3 == ATOMIC_GET(&crashed)) {
+		} else if (3 == ATOMIC_GET(&crash_count)) {
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
@@ -3040,7 +3123,7 @@ crash_handler(int signo)
 	 * which would not otherwise be cleaned up by the kernel upon process exit.
 	 */
 
-	if (1 == ATOMIC_GET(&crashed))
+	if (1 == ATOMIC_GET(&crash_count))
 		signal_perform_cleanup();
 
 	/*
@@ -3049,7 +3132,7 @@ crash_handler(int signo)
 
 	if (vars != NULL && vars->pid != getpid()) {
 		uint8 f = FALSE;
-		in_child = TRUE;
+		v.in_child = TRUE;
 		crash_set_var(invoke_inspector, f);
 		crash_set_var(may_restart, f);
 		crash_set_var(pause_process, f);
@@ -3099,7 +3182,7 @@ crash_handler(int signo)
 	 * Enter crash mode and configure safe logging parameters.
 	 */
 
-	if (recursive)
+	if (v.recursive)
 		crash_mode(CRASH_LVL_RECURSIVE);
 	else if (signal_in_exception())
 		crash_mode(CRASH_LVL_EXCEPTION);
@@ -3110,7 +3193,7 @@ crash_handler(int signo)
 	else
 		crash_mode(CRASH_LVL_BASIC);
 
-	if (recursive) {
+	if (v.recursive) {
 		if (!vars->recursive) {
 			uint8 t = TRUE;
 			crash_set_var(recursive, t);
@@ -3121,12 +3204,12 @@ crash_handler(int signo)
 	 * When crash_close() was called, print minimal error message and exit.
 	 */
 
-	name = signal_name(signo);
+	v.name = signal_name(signo);
 
 	if (vars->closed) {
-		crash_message(name, FALSE, recursive);
-		if (!recursive)
-			crash_emit_decorated_stack(1, in_child);
+		crash_message(v.name, FALSE, v.recursive);
+		if (!v.recursive)
+			crash_emit_decorated_stack(1, v.in_child);
 		crash_end_of_line(FALSE);
 		_exit(EXIT_FAILURE);
 	}
@@ -3137,87 +3220,70 @@ crash_handler(int signo)
 	 * even if we're daemonized.
 	 */
 
-	if (!recursive && NULL != vars->crashdir && vars->invoke_inspector) {
+	if (!v.recursive && NULL != vars->crashdir && vars->invoke_inspector) {
 		if (-1 == chdir(vars->crashdir)) {
 			if (NULL != vars->cwd) {
 				s_miniwarn("cannot chdir() back to \"%s\", "
 					"staying in \"%s\" (errno = %d)",
 					vars->crashdir, vars->cwd, errno);
-				cwd = vars->cwd;
+				v.cwd = vars->cwd;
 			} else {
 				s_miniwarn("cannot chdir() back to \"%s\" (errno = %d)",
 					vars->crashdir, errno);
 			}
 		} else {
-			cwd = vars->crashdir;
+			v.cwd = vars->crashdir;
 		}
 	}
 
-	if (recursive && NULL != vars->crashdir && vars->invoke_inspector) {
+	if (v.recursive && NULL != vars->crashdir && vars->invoke_inspector) {
 		/*
 		 * We've likely chdir-ed back there when recursing.  It's a better
 		 * default value than "" anyway.
 		 */
-		cwd = vars->crashdir;
+		v.cwd = vars->crashdir;
 	}
 
-	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
+	v.trace = v.recursive ? FALSE : !stacktrace_cautious_was_logged();
 
-	crash_message(name, trace, recursive);
-	if (trace) {
-		crash_stack_print(STDERR_FILENO, 1);
-		if (log_stdout_is_distinct())
-			crash_stack_print(STDOUT_FILENO, 1);
+	/*
+	 * If we're not running in the main thread, try to divert processing
+	 * there as there is likely more stack space available than in another
+	 * runtime thread.
+	 */
 
-		/*
-		 * If we are in a signal handler and are not going to invoke an
-		 * inspector, dump a decorated stack.
-		 */
+	crash_divert_main(G_STRFUNC, crash_handler_process, &v);
+}
 
-		if (signal_in_handler() && !vars->invoke_inspector)
-			crash_emit_decorated_stack(1, in_child);
-	}
-	if ((recursive && 1 == ATOMIC_GET(&crashed)) || in_child) {
-		crash_emit_decorated_stack(1, in_child);
-		crash_end_of_line(TRUE);
-		goto the_end;
-	}
-	if (!vars->invoke_inspector)
-		crash_generate_crashlog(signo);
-	crash_end_of_line(FALSE);
-	if (vars->invoke_inspector) {
-		bool hooks;
+/**
+ * Attempt to divert heavy crash processing to the main thread if possible,
+ * since sub-threads may not have enough stack space available to run
+ * everything whereas the kernel can usually extend the stack of the main
+ * thread on demand, within limits of course.
+ *
+ * @param caller	the calling routine, for logging purposes
+ * @param cb		the function to invoke in the main thread if possible
+ * @param arg		argument to pass to function
+ */
+void G_GNUC_COLD
+crash_divert_main(const char *caller, process_fn_t cb, void *arg)
+{
+	if (!thread_is_main()) {
+		int crashing = crash_thread_id;
 
-		/*
-		 * If we have no stackframe, then we're probably not on an assertion
-		 * failure path.  Capture the stack including the crash handler so
-		 * that we know were the capture was made from.
-		 */
+		s_miniwarn("%s(): trying to divert into main thread", caller);
 
-		if (0 == vars->stackcnt)
-			crash_save_current_stackframe(0);
+		crash_thread_id = THREAD_MAIN;		/* Assume success */
+		errno = thread_divert(THREAD_MAIN, cb, arg, NULL);
+		crash_thread_id = crashing;			/* Still in crashing thread */
 
-		hooks = crash_inspect(signo, cwd);
-		if (!hooks) {
-			uint8 f = FALSE;
-			crash_run_hooks(NULL, -1);
-			crash_set_var(invoke_inspector, f);
-			crash_end_of_line(FALSE);
-		}
-	}
-	if (vars->pause_process && vars->invoke_inspector) {
-		uint8 f = FALSE;
-		crash_set_var(invoke_inspector, f);
-		crash_end_of_line(FALSE);
-	}
-	if (vars->pause_process) {
-		crash_pause();
+		g_assert(errno != 0);	/* If we return, there was a problem */
+
+		s_miniwarn("%s(): can't divert to main thread: %m", caller);
+		/* FALL THROUGH */
 	}
 
-the_end:
-	if (!in_child)
-		crash_auto_restart();
-	raise(SIGABRT);			/* This is the end of our road */
+	(void) (*cb)(arg);
 }
 
 static void *

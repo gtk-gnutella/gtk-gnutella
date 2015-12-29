@@ -115,11 +115,13 @@ assertion_message(const assertion_data * const data, int fatal)
 /**
  * Abort execution, possibly dumping a stack frame.
  */
-static G_GNUC_COLD G_GNUC_NORETURN void
-assertion_abort(void)
+static void * G_GNUC_COLD G_GNUC_NORETURN
+assertion_abort_process(void *unused)
 {
 	static volatile sig_atomic_t seen_fatal;
 	sig_atomic_t depth;
+
+	(void) unused;
 
 #define STACK_OFF	2		/* 2 extra calls: assertion_failure(), then here */
 
@@ -191,6 +193,18 @@ assertion_abort(void)
 	crash_abort();
 
 #undef STACK_OFF
+
+	g_assert_not_reached();
+}
+
+/**
+ * Abort execution, possibly dumping a stack frame.
+ */
+static void G_GNUC_COLD G_GNUC_NORETURN
+assertion_abort(void)
+{
+	crash_divert_main(G_STRFUNC, assertion_abort_process, NULL);
+	g_assert_not_reached();
 }
 
 /*
