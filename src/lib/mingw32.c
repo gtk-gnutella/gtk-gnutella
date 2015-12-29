@@ -629,6 +629,7 @@ mingw_win2posix(int error)
 	case WSAENOTSOCK:				/* For fstat() calls */
 		return ENOTSOCK;
 	case ERROR_INVALID_ADDRESS:
+	case ERROR_INVALID_USER_BUFFER:
 		return EFAULT;
 	/*
 	 * The following remapped because their number is in the POSIX range
