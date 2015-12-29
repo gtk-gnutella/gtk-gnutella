@@ -328,6 +328,7 @@ struct thread_element {
 	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
+	uint running:1;					/**< Whether thread is running */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
 	uint valid:1;					/**< Whether thread is valid */
 	uint creating:1;				/**< Whether thread is being created */
@@ -1208,6 +1209,7 @@ thread_element_stack_check(struct thread_element *te)
 
 	if G_UNLIKELY(
 		te->stack_size != 0 &&
+		te->running &&
 		!te->main_thread &&
 		!te->stack_overflow &&
 		ptr_diff(te->stack_base, &te) > te->stack_size &&
@@ -1903,6 +1905,7 @@ thread_element_reset(struct thread_element *te)
 	te->detached = FALSE;
 	te->created = FALSE;
 	te->discovered = FALSE;
+	te->running = FALSE;
 	te->stack_size = 0;
 	te->entry = NULL;
 	te->entry_name = NULL;
@@ -2258,6 +2261,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->running = TRUE;
 	te->last_seen = tm_time_raw();
 	te->cancelable = FALSE;
 	te->cancl = THREAD_CANCEL_DISABLE;
@@ -8099,6 +8103,8 @@ thread_launch_register(struct thread_element *te)
 
 	if G_UNLIKELY(free_old_stack)
 		thread_stack_free(te);
+
+	te->running = TRUE;		/* Thread is now running on its own */
 }
 
 /**
@@ -10472,6 +10478,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%d",  sleep_interruptible);
 	DUMPF("%d",  created);
 	DUMPF("%d",  discovered);
+	DUMPF("%d",  running);
 	DUMPF("%d",  deadlocked);
 	DUMPF("%d",  creating);
 	DUMPF("%d",  exiting);
