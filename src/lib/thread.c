@@ -1033,7 +1033,7 @@ matched:
  */
 static const char *
 thread_element_name_to_buf(const struct thread_element *te,
-	char *buf, size_t len)
+	char *buf, size_t len, bool symbolic_name)
 {
 	const char *qualify = "";
 
@@ -1068,7 +1068,7 @@ thread_element_name_to_buf(const struct thread_element *te,
 		 *		--RAM, 2015-12-28
 		 */
 
-		if G_UNLIKELY(NULL == te->entry_name) {
+		if G_UNLIKELY(NULL == te->entry_name && symbolic_name) {
 			static uint8 computing[THREAD_MAX];
 			int stid = thread_safe_small_id();
 
@@ -1152,8 +1152,37 @@ thread_element_name(const struct thread_element *te)
 		b = &buf[thread_small_id()][0];
 	}
 
+	return thread_element_name_to_buf(te, b, sizeof buf[0], TRUE);
+}
 
-	return thread_element_name_to_buf(te, b, sizeof buf[0]);
+/**
+ * Format the name of the thread element.
+ *
+ * This routine does not attempt to derive a symbolic name for the thread
+ * entry point, making it suitable to use for logging at places where it
+ * could otherwise create a deadlock (for instance within a lock acquiring
+ * path).
+ */
+static const char *
+thread_element_name_raw(const struct thread_element *te)
+{
+	static char buf[THREAD_MAX][128];
+	static char emergency[128];
+	char *b = &buf[te->stid][0];
+
+	/*
+	 * This routine may be called during crashes or dire conditions, so be
+	 * careful and do not call thread_small_id() lightly.
+	 */
+
+	if (signal_in_exception()) {
+		int stid = thread_safe_small_id();
+		b = stid < 0 ? emergency : &buf[stid][0];
+	} else {
+		b = &buf[thread_small_id()][0];
+	}
+
+	return thread_element_name_to_buf(te, b, sizeof buf[0], FALSE);
 }
 
 /**
@@ -1187,7 +1216,7 @@ thread_element_stack_check(struct thread_element *te)
 		te->stack_overflow = TRUE;		/* Prevent deadly recursions */
 
 		s_rawcrit("stack (%'zu bytes) overflowing for %s (used %'zu bytes)",
-			te->stack_size, thread_element_name(te),
+			te->stack_size, thread_element_name_raw(te),
 			ptr_diff(te->stack_base, &te));
 
 		thread_stack_overflow(te);
@@ -1561,7 +1590,7 @@ thread_element_mark_reusable(struct thread_element *te)
 	g_assert_log(0 == thread_element_lock_count(te),
 		"%s(): lock_count=%zu (%zu tracked, %zu accounted-for) for %s",
 		G_STRFUNC, thread_element_lock_count(te),
-		te->locks.count, te->other_locks, thread_element_name(te));
+		te->locks.count, te->other_locks, thread_element_name_raw(te));
 
 	THREAD_LOCK(te);
 	te->reusable = TRUE;	/* Allow reuse */
@@ -2699,11 +2728,11 @@ thread_timeout(const struct thread_element *te)
 
 	spinunlock_raw(&thread_timeout_slk);
 
-	s_rawwarn("%s suspended for too long", thread_element_name(te));
+	s_rawwarn("%s suspended for too long", thread_element_name_raw(te));
 
 	if (ostid != (unsigned) -1 && (multiple || ostid != te->stid)) {
 		s_rawwarn("%ssuspending thread was %s",
-			multiple ? "first " : "", thread_element_name(threads[ostid]));
+			multiple ? "first " : "", thread_element_name_raw(threads[ostid]));
 	}
 
 	s_error("thread suspension timeout detected");
@@ -3549,11 +3578,11 @@ thread_stack_check_overflow(const void *va)
 
 	if (extra_stack) {
 		s_rawcrit("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_element_name(te));
+			te->stack_size, thread_element_name_raw(te));
 	} else {
 		/* Don't attempt to unwind the stack, that costs stack space! */
 		s_rawwarn("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_element_name(te));
+			te->stack_size, thread_element_name_raw(te));
 	}
 
 	thread_stack_overflow(te);
@@ -3838,7 +3867,7 @@ thread_name(void)
 	const struct thread_element *te = thread_get_element();
 	char *b = &buf[te->stid][0];
 
-	return thread_element_name_to_buf(te, b, sizeof buf[0]);
+	return thread_element_name_to_buf(te, b, sizeof buf[0], TRUE);
 }
 
 /**
@@ -3882,7 +3911,7 @@ thread_id_name(unsigned id)
 		return b;
 	}
 
-	return thread_element_name_to_buf(te, b, sizeof buf[0]);
+	return thread_element_name_to_buf(te, b, sizeof buf[0], TRUE);
 }
 
 /**
@@ -4206,7 +4235,7 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 			delayed |= thread_suspend_self(te);
 		else if (thread_in_crash_mode()) {
 			s_rawwarn("suspending %s which holds %zu lock%s",
-				thread_element_name(te), cnt, plural(cnt));
+				thread_element_name_raw(te), cnt, plural(cnt));
 
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 		}
@@ -6289,7 +6318,7 @@ found:
 		}
 		tls->overflow = TRUE;
 		s_rawwarn("%s overflowing its lock stack at %s:%u",
-			thread_element_name(te), file, line);
+			thread_element_name_raw(te), file, line);
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;				/* Crashing or exiting already */
@@ -6413,7 +6442,7 @@ found:
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_rawwarn("%s overflowing its lock stack", thread_element_name(te));
+		s_rawwarn("%s overflowing its lock stack", thread_element_name_raw(te));
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;			/* Crashing or exiting already */
@@ -6640,7 +6669,7 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 		if (ol->lock == lock) {
 			tls->overflow = TRUE;	/* Avoid any overflow problems now */
 			s_rawwarn("%s releases %s %p at inner position %u/%zu",
-				thread_element_name(te), thread_lock_kind_to_string(kind),
+				thread_element_name_raw(te), thread_lock_kind_to_string(kind),
 				lock, i + 1, tls->count);
 			thread_lock_dump(te);
 
@@ -7134,12 +7163,12 @@ thread_lock_deadlock(const volatile void *lock)
 		s_rawwarn("%s(): %s %p was not registered as being waited-for in %s",
 			G_STRFUNC,
 			known_kind ? thread_lock_kind_to_string(kind) : "lock",
-			lock, thread_element_name(te));
+			lock, thread_element_name_raw(te));
 	}
 
 	if (NULL == towner || towner == te) {
 		s_rawwarn("%s deadlocked whilst waiting on %s%s%p, owned by %s",
-			thread_element_name(te),
+			thread_element_name_raw(te),
 			known_kind ? thread_lock_kind_to_string(kind) : "",
 			known_kind ? " " : "",
 			lock, NULL == towner ? "nobody" : "itself");
@@ -7150,7 +7179,7 @@ thread_lock_deadlock(const volatile void *lock)
 		g_strlcpy(buf, name, sizeof buf);
 
 		s_rawwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
-			thread_element_name(te),
+			thread_element_name_raw(te),
 			thread_lock_kind_to_string(kind), lock, buf);
 	}
 
