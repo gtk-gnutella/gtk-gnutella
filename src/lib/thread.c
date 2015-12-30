@@ -4246,7 +4246,7 @@ thread_check_suspended(void)
  *
  * @param silent	whether to silently move to crash mode for spinlocks
  */
-static void G_GNUC_COLD
+void G_GNUC_COLD
 thread_lock_disable(bool silent)
 {
 	if (0 == atomic_int_inc(&thread_locks_disabled)) {

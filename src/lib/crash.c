@@ -2455,6 +2455,7 @@ crash_mode(enum crash_level level)
 
 		signal_crashing();
 		log_crash_mode();
+		thread_lock_disable(FALSE);
 
 		/* FALL THROUGH */
 
@@ -2517,6 +2518,13 @@ done:
 
 	if (CRASH_LVL_OOM == level)
 		crash_oom_condition();
+
+	/*
+	 * Specifically for deadlock conditions, disable all locks.
+	 */
+
+	if (CRASH_LVL_DEADLOCKED == level)
+		thread_lock_disable(FALSE);
 
 	/*
 	 * Activate crash mode.
