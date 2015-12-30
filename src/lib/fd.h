@@ -38,6 +38,7 @@
 #define _fd_h_
 
 void fd_close_from(const int first_fd);
+void fd_close_unpreserved_from(const int first_fd);
 int fd_first_available(void);
 int reserve_standard_file_descriptors(void);
 void fd_set_close_on_exec(int fd);
@@ -46,6 +47,7 @@ int fd_fsync(int fd);
 int fd_fdatasync(int fd);
 int fd_forget_and_close(int *fd_ptr);
 int fd_close(int *fd_ptr);
+void fd_preserve(int fd);
 void fd_notify_socket_closed(socket_fd_t fd);
 int fd_get_non_stdio(int fd);
 bool fd_need_non_stdio();

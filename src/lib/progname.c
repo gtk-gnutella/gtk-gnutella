@@ -43,6 +43,7 @@
 
 #include "iovec.h"
 #include "malloc.h"				/* For real_malloc() */
+#include "mem.h"
 #include "misc.h"				/* For is_strcasesuffix() */
 #include "mutex.h"
 #include "once.h"
@@ -95,7 +96,18 @@ progstart(int argc, char * const *argv)
 
 #ifdef MINGW32
 	mingw_early_init();
-#endif
+
+	/*
+	 * Because fd_preserve() can allocate memory and we are going to call
+	 * this routine the first time we call mingw_backtrace(), via calls to
+	 * mem_is_valid_ptr(), we need to ensure this table is already allocated.
+	 *
+	 * Hence call mem_is_valid_ptr() now, which, as a side effect, will
+	 * allocate the memory.
+	 */
+
+	(void) mem_is_valid_ptr(NULL);
+#endif	/* MINGW32 */
 
 	if (is_running_on_mingw()) {
 		const char *name = progname_info.name;

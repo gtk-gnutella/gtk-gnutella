@@ -77,14 +77,19 @@ mem_close_pipe(mem_pipe_t *mp)
 	fd_close(&mp->fd[1]);
 }
 
+static bool
+mem_initialized_pipe(const mem_pipe_t *mp)
+{
+	return is_valid_fd(mp->fd[0]) && is_valid_fd(mp->fd[1]);
+}
+
 /**
  * Assert that pipe holds invalid fds.
  */
 static inline void
-assert_mem_pipe_is_invalid(mem_pipe_t *mp)
+assert_mem_pipe_is_invalid(const mem_pipe_t *mp)
 {
-	g_assert(!is_valid_fd(mp->fd[0]));
-	g_assert(!is_valid_fd(mp->fd[1]));
+	g_assert(!mem_initialized_pipe(mp));
 }
 
 /**
@@ -115,11 +120,20 @@ mem_open_pipe(mem_pipe_t *mp)
 		return FALSE;
 	}
 
+	/*
+	 * Mark the pipe file descriptors as "preserved" so that they survive
+	 * a call to fd_close_unpreserved_from() during crashes when we attempt
+	 * to close all the unnecessary descriptors.
+	 */
+
+	fd_preserve(mp->fd[0]);
+	fd_preserve(mp->fd[1]);
+
 	return TRUE;		/* We'll never close these file descriptors */
 }
 
 static bool
-mem_valid_pipe(mem_pipe_t *mp)
+mem_valid_pipe(const mem_pipe_t *mp)
 {
 	/*
 	 * The check for is_a_fifo() is necessary because these routines may be
@@ -128,6 +142,10 @@ mem_valid_pipe(mem_pipe_t *mp)
 	 *
 	 * Any former use of these routines would therefore leave us with a stale
 	 * file descriptor.
+	 *
+	 * NOTE: starting from 2015-12-30, the pipe fds are fd_preserve()'ed,
+	 * which means they will not be closed by fd_close_unpreserved_from().
+	 * As such, this routine is no longer called from mem_is_valid_ptr().
 	 */
 
 	return is_a_fifo(mp->fd[0]) && is_a_fifo(mp->fd[1]);
@@ -151,13 +169,20 @@ mem_is_valid_ptr(const void *p)
 	mem_pipe_t *mp = &mem_fr;
 	char c;
 
-	if G_UNLIKELY(!mem_valid_pipe(mp)) {
-		MEM_PIPE_LOCK(mp);
+	/*
+	 * We do not use mem_valid_pipe() but mem_initialized_pipe() here because
+	 * we expect the write() below to return EBADF if the file descriptor is
+	 * invalid and also because we now fd_preserve() the file descriptors,
+	 * meaning they will not be closed by the crash handler until we're ready
+	 * to perform an exec().
+	 *		--RAM, 2015-12-30
+	 */
+
+	if G_UNLIKELY(!mem_initialized_pipe(mp)) {
 		bool ok = TRUE;
-		if (!mem_valid_pipe(mp)) {
-			mem_close_pipe(mp);
+		MEM_PIPE_LOCK(mp);
+		if (!mem_initialized_pipe(mp))
 			ok = mem_open_pipe(mp);
-		}
 		MEM_PIPE_UNLOCK(mp);
 		if (!ok)
 			return TRUE;		/* Assume memory pointer is valid */
@@ -172,9 +197,12 @@ retry:
 	if (-1 == write(mp->fd[1], p, 1)) {
 		if (EFAULT == errno)
 			return FALSE;
-		if (EPIPE == errno) {
+		if (EPIPE == errno || EBADF == errno) {
 			bool ok;
-			/* fd[0], the original reading end, was closed */
+			/*
+			 * We get EPIPE when fd[0], the original reading end, was closed.
+			 * We get EBADF when fd[1] is invalid, probably closed.
+			 */
 			MEM_PIPE_LOCK(mp);
 			mem_close_pipe(mp);
 			ok = mem_open_pipe(mp);

@@ -1549,7 +1549,7 @@ retry_child:
 	child_signal = FALSE;	/* set if fork()ed child dies via a signal */
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
-	fd_close_from(3);
+	fd_close_unpreserved_from(3);
 
 	if (has_fork()) {
 		/* In case fork() fails, make sure we leave stdout open */
