@@ -400,6 +400,7 @@ spinlock_reset(spinlock_t *s)
 	spinlock_check(s);
 
 	s->lock = 0;
+	atomic_mb();
 }
 
 /**
