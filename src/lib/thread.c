@@ -6157,6 +6157,9 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 found:
 	THREAD_STATS_INCX(locks_tracked);
 
+	if G_UNLIKELY(!te->created && !te->main_thread)
+		THREAD_STATS_INCX(locks_tracked_discovered);
+
 	tls = &te->locks;
 
 	if G_UNLIKELY(tls->capacity == tls->count) {
