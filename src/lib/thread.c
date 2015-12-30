@@ -1247,7 +1247,8 @@ thread_element_name_to_buf(const struct thread_element *te,
 	}
 
 	if G_UNLIKELY(te->name != NULL) {
-		str_bprintf(buf, len, "%sthread \"%s\"", qualify, te->name);
+		str_bprintf(buf, len, "%sthread \"%s\" (#%u)",
+			qualify, te->name, te->stid);
 	} else if (te->created) {
 		const char *symbolic = NULL;
 		char name[POINTER_BUFLEN];
