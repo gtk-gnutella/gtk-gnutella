@@ -1965,12 +1965,22 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	 */
 
 	if (0 == file_sync_fclose(config)) {
-		if (-1 == rename(newfile, pathname))
+		if (-1 == rename(newfile, pathname)) {
 			s_warning("%s(): could not rename \"%s\" as \"%s\": %m",
 				G_STRFUNC, newfile, pathname);
-		PROP_SET_LOCK(ps);
-		ps->mtime = tm_time_exact();
-		PROP_SET_UNLOCK(ps);
+		} else {
+			if (-1 == stat(pathname, &sb)) {
+				s_warning("%s(): could not stat \"%s\": %m",
+					G_STRFUNC, pathname);
+				PROP_SET_LOCK(ps);
+				ps->mtime = tm_time_exact();
+				PROP_SET_UNLOCK(ps);
+			} else {
+				PROP_SET_LOCK(ps);
+				ps->mtime = sb.st_mtime;
+				PROP_SET_UNLOCK(ps);
+			}
+		}
 	} else {
 		s_warning("%s(): could not flush \"%s\": %m", G_STRFUNC, newfile);
 	}
