@@ -485,8 +485,11 @@ static G_GNUC_COLD NO_INLINE void
 rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 	const char *file, unsigned line)
 {
-	s_rawwarn("deadlock on rwlock (%c) %p at %s:%u",
-		reading ? 'R' : 'W', rw, file, line);
+	s_rawwarn("deadlock on rwlock (%c) %p (r:%u w:%u q:%u+%u) at %s:%u",
+		reading ? 'R' : 'W', rw,
+		rw->readers, rw->writers,
+		rw->waiters - rw->write_waiters, rw->write_waiters,
+		file, line);
 
 	atomic_mb();
 	rwlock_check(rw);
