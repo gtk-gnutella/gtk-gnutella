@@ -1278,6 +1278,11 @@ rwlock_log_error(const rwlock_t *rw, const char *file, unsigned line)
 void
 rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line)
 {
+	if G_UNLIKELY(rwlock_pass_through) {
+		thread_check_suspended();
+		return;			/* Ignore, since we can grab any lock now */
+	}
+
 	s_critical("write-lock %p not owned at %s:%u in %s",
 		rw, file, line, thread_name());
 

@@ -145,7 +145,7 @@ bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
 
-NON_NULL_PARAM((1, 2)) G_GNUC_NORETURN
+NON_NULL_PARAM((1, 2))
 void rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line);
 
 #define assert_rwlock_is_owned(rw) G_STMT_START {	\
