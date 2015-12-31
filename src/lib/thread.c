@@ -8666,13 +8666,6 @@ thread_launch_trampoline(void *arg)
 	thread_sigstack_allocate(u.ctx->te);
 
 	/*
-	 * Harvest entropy.
-	 */
-
-	entropy_harvest_many(
-		PTRLEN(u.ctx->te), VARLEN(u.ctx->routine), VARLEN(u.ctx->arg), NULL);
-
-	/*
 	 * If there was a global suspension, then also suspend this newly
 	 * created thread unless they explicitly gave the THREAD_F_UNSUSPEND
 	 * at creation time to bypass this.
