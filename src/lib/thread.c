@@ -1973,6 +1973,17 @@ thread_pjoin(struct thread_element *te)
 		s_error("%s(): pthread_join() failed on %s: %m",
 			G_STRFUNC, thread_element_name(te));
 	}
+
+	if (is_running_on_mingw()) {
+		/*
+		 * We don't allocate our stack on Windows, the kernel is and the
+		 * pthread layer there does not support user stack allocation.
+		 * Now that the thread has been joined with, its stack range is
+		 * completely invalid.
+		 */
+		te->last_qid = te->low_qid = -1;
+		te->high_qid = te->top_qid = 0;
+	}
 }
 
 /**
@@ -2051,12 +2062,15 @@ thread_exiting(struct thread_element *te)
 				 * If we do not allocate the stack and we're running on Windows,
 				 * we're safe because the stack is not created using malloc()
 				 * so pthread_exit() will not need to compute the STID.
-				 * Reset the QID range so that no other thread can think it is
-				 * running in that space.
+				 *
+				 * However, now that we have the win32dlp code enabled, it is
+				 * possible that the ExitThread() call will call LoadLibrary()
+				 * for some reason, which we trap...
+				 *
+				 * So don't reset the QID range just yet, but don't warn about
+				 * possible race conditions -- they do exist though.
+				 *		--RAM, 2015-12-31
 				 */
-
-				te->last_qid = te->low_qid = -1;
-				te->high_qid = te->top_qid = 0;
 			} else {
 				static once_flag_t race_warning;
 
@@ -2363,7 +2377,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 			 */
 
 			THREAD_LOCK(xte);
-			if (xte->discovered || xte->exiting) {
+			if (xte->discovered || xte->exiting || xte->exit_started) {
 				bool dead_thread = FALSE;
 
 				if (
@@ -9358,19 +9372,6 @@ thread_exit_internal(void *value, const void *sp)
 
 		if (join_requested)
 			thread_unblock(te->joining_id);
-
-		if (is_running_on_mingw()) {
-			/*
-			 * If we do not allocate the stack and we're running on Windows,
-			 * we're safe because the stack is not created using malloc()
-			 * so pthread_exit() will not need to compute the STID.
-			 * Reset the QID range so that no other thread can think it is
-			 * running in that space.
-			 */
-
-			te->last_qid = te->low_qid = -1;
-			te->high_qid = te->top_qid = 0;
-		}
 	} else {
 		/*
 		 * Since pthread_exit() can malloc, we need to let thread_small_id()
