@@ -399,7 +399,12 @@ crash_time_internal(char *buf, size_t size, bool raw)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if G_UNLIKELY(raw) {
+	/*
+	 * Within crashes, force raw time computation to avoid doing further
+	 * thread_check_suspended() calls during time computation.
+	 */
+
+	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level) {
 		tm_current_time(&tv);			/* Get system value, no locks */
 		loc = tm_localtime_raw();
 	} else {
