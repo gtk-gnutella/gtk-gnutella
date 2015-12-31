@@ -597,7 +597,7 @@ mutex_not_owned(const mutex_t *m, const char *file, unsigned line)
 		return;		/* Ignore when we're crashing */
 	}
 
-	s_minicrit("Mutex %p not owned at %s:%u in %s",
+	s_minicrit("mutex %p not owned at %s:%u in %s",
 		m, file, line, thread_name());
 
 	mutex_log_error(m, file, line);
