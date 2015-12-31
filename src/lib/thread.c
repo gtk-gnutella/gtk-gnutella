@@ -6003,6 +6003,10 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 			if (te != NULL)
 				goto found;
 		}
+
+		s_rawwarn("%s(): no thread to record grabbing of %s %p at %s:%u",
+			G_STRFUNC, thread_lock_kind_to_string(kind), lock, file, line);
+
 		return;
 	}
 
@@ -6255,6 +6259,11 @@ thread_lock_changed(const void *lock, enum thread_lock_kind okind,
 			if (te != NULL)
 				goto found;
 		}
+
+		s_rawwarn("%s(): no thread on change of %s %p into %s at %s:%u",
+			G_STRFUNC, thread_lock_kind_to_string(okind), lock,
+			thread_lock_kind_to_string(nkind), file, line);
+
 		return;
 	}
 
@@ -6308,8 +6317,11 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 		thread_element_check(te);
 	}
 
-	if G_UNLIKELY(NULL == te)
+	if G_UNLIKELY(NULL == te) {
+		s_rawwarn("%s(): no thread to release %s %p",
+			G_STRFUNC, thread_lock_kind_to_string(kind), lock);
 		return;
+	}
 
 	tls = &te->locks;
 
