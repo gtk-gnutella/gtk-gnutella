@@ -1438,6 +1438,9 @@ thread_element_stack_check(struct thread_element *te)
 static void
 thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 {
+	bool bad_qid;
+	thread_qid_t bad_lo, bad_hi;
+
 	/*
 	 * Need to lock the thread element since created threads can adjust the
 	 * QID ranges of any discovered thread that would be overlapping with
@@ -1446,15 +1449,33 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 
 	THREAD_LOCK(te);
 
-	g_assert_log(te->low_qid <= te->high_qid,
-		"%s(): stid=%u, low_qid=%'zu, high_qid=%'zu",
-		G_STRFUNC, te->stid, te->low_qid, te->high_qid);
+	if G_UNLIKELY((bad_qid = te->low_qid > te->high_qid)) {
+		bad_lo = te->low_qid;
+		bad_hi = te->high_qid;
+	}
 
 	if (qid < te->low_qid)
 		te->low_qid = qid;
 	else if (qid > te->high_qid)
 		te->high_qid = qid;
+
 	THREAD_UNLOCK(te);
+
+	/*
+	 * Emit warning outside the critical section.
+	 *
+	 * We used to soft-assert this condition, but it caused deadly recursions
+	 * during crashes: when the assertion was failing, assertion_message()
+	 * would call thread_check_suspended() and we would re-enter here with
+	 * the same failing assertion!
+	 */
+
+	if G_UNLIKELY(bad_qid) {
+		s_rawwarn("%s(): %s had bad QID ranges: bad_low=%'zu, bad_high=%'zu; "
+			"now set to: qid=%'zu, low_qid=%'zu, high_qid=%'zu",
+			G_STRFUNC, thread_element_name(te),
+			bad_lo, bad_hi, qid, te->low_qid, te->high_qid);
+	}
 
 	if G_UNLIKELY(te->gone)
 		thread_element_mark_gone_seen(te);
