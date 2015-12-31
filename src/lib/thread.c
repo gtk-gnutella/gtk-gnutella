@@ -4704,6 +4704,7 @@ thread_suspend_others(bool lockwait)
 	 */
 
 	if G_UNLIKELY(te->suspend != 0) {
+		s_rawwarn("%s(): concurrently suspended!", G_STRFUNC);
 		mutex_unlock(&thread_suspend_mtx);
 		thread_suspend_loop(te);
 		goto done;
