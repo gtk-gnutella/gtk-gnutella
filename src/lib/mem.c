@@ -52,18 +52,51 @@
 
 typedef struct mem_pipe {
 	int fd[2];
-	bool warned;
+	uint8 flags[2];
 	const char *name;
 	spinlock_t lock;
 } mem_pipe_t;
 
-mem_pipe_t mem_fp = { { -1, -1 }, FALSE, "protection", SPINLOCK_INIT };
-mem_pipe_t mem_fr = { { -1, -1 }, FALSE, "reading",    SPINLOCK_INIT };
+/*
+ * Flag position within flags[].
+ */
+
+#define MEM_PIPE_WARNED		0
+#define MEM_PIPE_ENOMEM		1
+
+mem_pipe_t mem_fp = { { -1, -1 }, { FALSE }, "protection", SPINLOCK_INIT };
+mem_pipe_t mem_fr = { { -1, -1 }, { FALSE }, "reading",    SPINLOCK_INIT };
 
 #define MEM_PIPE_LOCK(mp)		spinlock_hidden(&(mp)->lock)
 #define MEM_PIPE_UNLOCK(mp)		spinunlock_hidden(&(mp)->lock)
 
 #define mem_pipe_is_locked(mp)	spinlock_is_held(&(mp)->lock)
+
+/**
+ * Check whether pipe flag was set, and set it.
+ *
+ * @param mp		the mem pipe
+ * @param idx		flag index to test within the flags[] array
+ *
+ * @return whether flag was already set.
+ */
+static inline bool
+mem_pipe_test_and_set(mem_pipe_t *mp, int idx)
+{
+	return atomic_test_and_set(&mp->flags[idx]);
+}
+
+/**
+ * Set pipe flag.
+ *
+ * @param mp		the mem pipe
+ * @param idx		flag index to test within the flags[] array
+ */
+static inline void
+mem_pipe_set(mem_pipe_t *mp, int idx)
+{
+	mp->flags[idx] = TRUE;
+}
 
 /**
  * Close pipe on error.
@@ -77,6 +110,9 @@ mem_close_pipe(mem_pipe_t *mp)
 	fd_close(&mp->fd[1]);
 }
 
+/**
+ * @return whether pipe file descriptors are valid.
+ */
 static bool
 mem_initialized_pipe(const mem_pipe_t *mp)
 {
@@ -103,10 +139,9 @@ mem_open_pipe(mem_pipe_t *mp)
 	g_assert(mem_pipe_is_locked(mp));
 	assert_mem_pipe_is_invalid(mp);
  
-	if (-1 == pipe(mp->fd) && !mp->warned) {
+	if (-1 == pipe(mp->fd) && !mem_pipe_test_and_set(mp, MEM_PIPE_WARNED)) {
 		s_miniwarn("%s: pipe() failed for \"%s\": %m", G_STRFUNC, mp->name);
 		assert_mem_pipe_is_invalid(mp);
-		mp->warned = TRUE;
 		return FALSE;
 	}
 
@@ -115,7 +150,7 @@ mem_open_pipe(mem_pipe_t *mp)
 	if (!is_a_fifo(mp->fd[1])) {
 		s_miniwarn("%s: pipe() \"%s\" opened but writing fd #%d not a FIFO?",
 			G_STRFUNC, mp->name, mp->fd[1]);
-		mp->warned = TRUE;
+		mem_pipe_set(mp, MEM_PIPE_WARNED);
 		mem_close_pipe(mp);
 		return FALSE;
 	}
@@ -132,6 +167,9 @@ mem_open_pipe(mem_pipe_t *mp)
 	return TRUE;		/* We'll never close these file descriptors */
 }
 
+/**
+ * @return whether the two file descriptors in the pipe are indeed FIFO fds.
+ */
 static bool
 mem_valid_pipe(const mem_pipe_t *mp)
 {
@@ -149,6 +187,23 @@ mem_valid_pipe(const mem_pipe_t *mp)
 	 */
 
 	return is_a_fifo(mp->fd[0]) && is_a_fifo(mp->fd[1]);
+}
+
+/**
+ * Report write error on the pipe.
+ *
+ * @param mp		the pipe on which the write() failed
+ * @param p			the address we were trying to test
+ * @param caller	the calling routine
+ */
+static void
+mem_pipe_write_error(mem_pipe_t *mp, const void *p, const char *caller)
+{
+	if (ENOMEM == errno && mem_pipe_test_and_set(mp, MEM_PIPE_ENOMEM))
+		return;
+
+	s_miniwarn("%s(): write(%u, %p, 1) to pipe failed: %m",
+		caller, mp->fd[1], p);
 }
 
 /**
@@ -211,8 +266,7 @@ retry:
 				return TRUE;
 			goto retry;
 		}
-		s_miniwarn("%s(): write(%u, %p, 1) to pipe failed: %m",
-			G_STRFUNC, mp->fd[1], p);
+		mem_pipe_write_error(mp, p, G_STRFUNC);
 		return TRUE;	/* Assume memory pointer is valid */
 	}
 
@@ -279,8 +333,7 @@ retry:
 			goto retry;
 		}
 		MEM_PIPE_UNLOCK(mp);;
-		s_miniwarn("%s: write(%u, %p, 1) to pipe failed: %m",
-			G_STRFUNC, mp->fd[1], p);
+		mem_pipe_write_error(mp, p, G_STRFUNC);
 		return MEM_PROT_READ;	/* Assume memory pointer is not writable */
 	}
 
