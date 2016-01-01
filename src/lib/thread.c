@@ -941,48 +941,6 @@ thread_element_mark_gone_seen(struct thread_element *te)
 }
 
 /**
- * On Windows, since the system allocates much more stack than we request
- * usually, monitor the stack to ensure there is no logical overflow going on.
- *
- * This needs to be checked at strategic spots, but not at places where we
- * can compute the current thread via a QID cache lookup: if the QID cache
- * matches, then we already checked that there was not overflow in that stack
- * page...
- *
- * Since in practice more than 99.5% of the QID cache lookups succeed for
- * locating a thread, the additional checks we're doing here are not going
- * to be impacting performance much!
- */
-static inline void
-thread_element_stack_check(struct thread_element *te)
-{
-#ifdef MINGW32
-	/*
-	 * We know that the stack grows backwards there.
-	 */
-
-	if G_UNLIKELY(
-		te->stack_size != 0 &&
-		!te->main_thread &&
-		!te->stack_overflow &&
-		ptr_diff(te->stack_base, &te) > te->stack_size &&
-		0 == signal_in_exception()
-	) {
-		te->stack_overflow = TRUE;		/* Prevent deadly recursions */
-
-		s_rawcrit("stack (%'zu bytes) overflowing for %s (used %'zu bytes)",
-			te->stack_size, thread_id_name(te->stid),
-			ptr_diff(te->stack_base, &te));
-
-		thread_stack_overflow(te);
-	}
-#else
-	/* Unnecessary on UNIX platforms: pthreads correctly creates the stack */
-	(void) te;
-#endif	/* MINGW32 */
-}
-
-/**
  * @return whether thread element is matching the QID.
  */
 static bool
@@ -1117,9 +1075,65 @@ static const char *
 thread_element_name(const struct thread_element *te)
 {
 	static char buf[THREAD_MAX][128];
-	char *b = &buf[te->stid][0];
+	static char emergency[128];
+	char *b;
+
+	/*
+	 * This routine may be called during crashes or dire conditions, so be
+	 * careful and do not call thread_small_id() lightly.
+	 */
+
+	if (signal_in_exception()) {
+		int stid = thread_safe_small_id();
+		b = stid < 0 ? emergency : &buf[stid][0];
+	} else {
+		b = &buf[thread_small_id()][0];
+	}
+
 
 	return thread_element_name_to_buf(te, b, sizeof buf[0]);
+}
+
+/**
+ * On Windows, since the system allocates much more stack than we request
+ * usually, monitor the stack to ensure there is no logical overflow going on.
+ *
+ * This needs to be checked at strategic spots, but not at places where we
+ * can compute the current thread via a QID cache lookup: if the QID cache
+ * matches, then we already checked that there was not overflow in that stack
+ * page...
+ *
+ * Since in practice more than 99.5% of the QID cache lookups succeed for
+ * locating a thread, the additional checks we're doing here are not going
+ * to be impacting performance much!
+ */
+static inline void
+thread_element_stack_check(struct thread_element *te)
+{
+#ifdef MINGW32
+	/*
+	 * We know that the stack grows backwards there.
+	 */
+
+	if G_UNLIKELY(
+		te->stack_size != 0 &&
+		!te->main_thread &&
+		!te->stack_overflow &&
+		ptr_diff(te->stack_base, &te) > te->stack_size &&
+		0 == signal_in_exception()
+	) {
+		te->stack_overflow = TRUE;		/* Prevent deadly recursions */
+
+		s_rawcrit("stack (%'zu bytes) overflowing for %s (used %'zu bytes)",
+			te->stack_size, thread_element_name(te),
+			ptr_diff(te->stack_base, &te));
+
+		thread_stack_overflow(te);
+	}
+#else
+	/* Unnecessary on UNIX platforms: pthreads correctly creates the stack */
+	(void) te;
+#endif	/* MINGW32 */
 }
 
 /**
@@ -1529,7 +1543,7 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 	if (!te->valid || !te->exit_started || !te->discovered) {
 		THREAD_UNLOCK(te);
 		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_id_name(te->stid));
+			G_STRFUNC, te->stid, thread_element_name(te));
 		return;
 	}
 
@@ -1543,10 +1557,10 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 
 	if (locks != 0) {
 		s_warning("%s(): %s still holding %zu lock%s, not reusing its ID",
-			G_STRFUNC, thread_id_name(te->stid), locks, plural(locks));
+			G_STRFUNC, thread_element_name(te), locks, plural(locks));
 	} else if (problem) {
 		s_warning("%s(): seen some activity for %s, not reusing its ID",
-			G_STRFUNC, thread_id_name(te->stid));
+			G_STRFUNC, thread_element_name(te));
 	} else {
 		thread_gone(te);
 		te->discovered = FALSE;
@@ -1571,7 +1585,7 @@ thread_probably_gone(cqueue_t *unused_cq, void *data)
 	if (!te->valid || !te->exit_started || !te->discovered) {
 		THREAD_UNLOCK(te);
 		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_id_name(te->stid));
+			G_STRFUNC, te->stid, thread_element_name(te));
 		return;
 	}
 
@@ -3369,7 +3383,7 @@ thread_stack_overflow(struct thread_element *te)
 	}
 
 	s_rawwarn("no TSIG_OVFLOW handler installed for %s, crashing...",
-		thread_id_name(te->stid));
+		thread_element_name(te));
 
 	crash_abort();
 }
@@ -3476,11 +3490,11 @@ thread_stack_check_overflow(const void *va)
 
 	if (extra_stack) {
 		s_rawcrit("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_id_name(te->stid));
+			te->stack_size, thread_element_name(te));
 	} else {
 		/* Don't attempt to unwind the stack, that costs stack space! */
 		s_rawwarn("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_id_name(te->stid));
+			te->stack_size, thread_element_name(te));
 	}
 
 	thread_stack_overflow(te);
