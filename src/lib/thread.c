@@ -7042,6 +7042,7 @@ thread_lock_deadlock(const volatile void *lock)
 	struct thread_element *towner;
 	static bool deadlocked;
 	enum thread_lock_kind kind;
+	bool known_kind = TRUE;
 	unsigned i;
 
 	if (deadlocked)
@@ -7062,11 +7063,26 @@ thread_lock_deadlock(const volatile void *lock)
 	te->deadlocked = TRUE;
 	towner = thread_lock_owner(lock, &kind);
 
+	if (NULL == towner) {
+		if (lock == te->waiting.lock) {
+			kind = te->waiting.kind;	/* Normal case: lock is waited-for */
+		} else {
+			known_kind = FALSE;			/* Not yet known as being waited-for */
+		}
+	}
+
+	if (lock != te->waiting.lock) {
+		s_rawwarn("%s(): %s %p was not registered as being waited-for in %s",
+			G_STRFUNC,
+			known_kind ? thread_lock_kind_to_string(kind) : "lock",
+			lock, thread_element_name(te));
+	}
+
 	if (NULL == towner || towner == te) {
 		s_rawwarn("%s deadlocked whilst waiting on %s%s%p, owned by %s",
 			thread_element_name(te),
-			NULL == towner ? "" : thread_lock_kind_to_string(kind),
-			NULL == towner ? "" : " ",
+			known_kind ? thread_lock_kind_to_string(kind) : "",
+			known_kind ? " " : "",
 			lock, NULL == towner ? "nobody" : "itself");
 	} else {
 		char buf[128];
