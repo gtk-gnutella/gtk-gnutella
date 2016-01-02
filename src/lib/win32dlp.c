@@ -147,6 +147,7 @@ static hash_table_t *win32dlp_loaded;	/* Loaded modules by handle (base) */
 static hash_table_t *win32dlp_ignored;	/* Modules to ignore by handle */
 
 static bool win32dlp_stop_freeing;
+static bool win32dlp_in_place_only_used;
 
 /**
  * Internal statistics collected.
@@ -161,9 +162,21 @@ static struct win32dlp_stats {
 	AU64(trapped_msize);
 	AU64(trapped_LoadLibraryA);
 	AU64(trapped_LoadLibraryW);
+	AU64(trapped_HeapAlloc);
+	AU64(trapped_HeapReAlloc);
+	AU64(trapped_HeapFree);
+	AU64(trapped_HeapSize);
+	AU64(passed_HeapAlloc);
+	AU64(passed_HeapReAlloc);
+	AU64(passed_HeapFree);
+	AU64(passed_HeapSize);
+	AU64(failed_HeapReAlloc);
 	AU64(foreign_realloc);
 	AU64(foreign_free);
 	AU64(foreign_msize);
+	AU64(foreign_HeapReAlloc);
+	AU64(foreign_HeapFree);
+	AU64(foreign_HeapSize);
 	AU64(modules_initial);
 	AU64(modules_loaded);
 	AU64(modules_patched);
@@ -437,6 +450,7 @@ win32dlp_iat_change(PROC *fn, PROC addr)
 		if (!ok) {
 			errno = mingw_last_error();
 			s_warning("%s(): cannot set write-copy for %'zu bytes at %p: %m",
+
 				G_STRFUNC, (size_t) mbi.RegionSize, mbi.BaseAddress);
 			return FALSE;
 		}
@@ -864,6 +878,170 @@ win32dlp_LoadLibraryW(const uint16 *file)
 }
 
 /***
+ *** Trapped HeapAlloc() and HeapFree() which target the default process heap.
+ ***
+ *** The same logic as malloc() trapping above is used.  The only difference
+ *** here is that we are only trapping calls that target the default process
+ *** heap and let the others pass-through to the real routines.
+ ***/
+
+static HANDLE win32dlp_process_heap;
+
+static LPVOID WINAPI
+win32dlp_HeapAlloc(HANDLE h, DWORD flags, SIZE_T len)
+{
+	if G_UNLIKELY(NULL == win32dlp_process_heap)
+		win32dlp_process_heap = GetProcessHeap();
+
+	WIN32DLP_STATS_INCX(trapped_HeapAlloc);
+
+	if G_UNLIKELY(h != win32dlp_process_heap) {
+		WIN32DLP_STATS_INCX(passed_HeapAlloc);
+		return HeapAlloc(h, flags, len);
+	}
+
+	if (HEAP_ZERO_MEMORY & flags)
+		return xmalloc0(len);
+
+	return xmalloc(len);
+}
+
+static LPVOID WINAPI
+win32dlp_HeapReAlloc(HANDLE h, DWORD flags, LPVOID p, SIZE_T len)
+{
+	size_t old_size;
+	void *np;
+
+	if G_UNLIKELY(NULL == win32dlp_process_heap)
+		win32dlp_process_heap = GetProcessHeap();
+
+	WIN32DLP_STATS_INCX(trapped_HeapReAlloc);
+
+	if G_UNLIKELY(h != win32dlp_process_heap) {
+		WIN32DLP_STATS_INCX(passed_HeapReAlloc);
+		return HeapReAlloc(h, flags, p, len);
+	}
+
+	/*
+	 * Because xrealloc() does not have any support for
+	 * HEAP_REALLOC_IN_PLACE_ONLY, we flag when it is being used
+	 * in allocations performed on the default process heap.
+	 */
+
+	if G_UNLIKELY(HEAP_REALLOC_IN_PLACE_ONLY & flags)
+		win32dlp_in_place_only_used = TRUE;
+
+	if G_UNLIKELY(NULL == p) {
+		if (HEAP_REALLOC_IN_PLACE_ONLY & flags)
+			return NULL;
+		if (HEAP_ZERO_MEMORY & flags)
+			return xmalloc0(len);
+		return xmalloc(len);
+	}
+
+	/*
+	 * Note that since we do not support the HEAP_REALLOC_IN_PLACE_ONLY flag,
+	 * we need to let the operation fail if the block was xmalloc()ed.
+	 * The caller needs to be prepared for that situation since no heap can
+	 * guarantee that the operation will always be able to succeed in-place.
+	 */
+
+	if (win32dlp_via_xmalloc(p)) {
+		if G_UNLIKELY(HEAP_REALLOC_IN_PLACE_ONLY & flags) {
+			WIN32DLP_STATS_INCX(failed_HeapReAlloc);
+			return NULL;
+		}
+
+		old_size = (HEAP_ZERO_MEMORY & flags) ? xallocated(p) : 0;
+		np = xrealloc(p, len);
+
+		if ((HEAP_ZERO_MEMORY & flags) && len > old_size)
+			memset(ptr_add_offset(np, old_size), 0, len - old_size);
+
+		return np;
+	}
+
+	/*
+	 * Handling a block previously allocated via HeapAlloc() on the heap.
+	 *
+	 * If HEAP_REALLOC_IN_PLACE_ONLY is used or if we cannot compute the
+	 * proper size of the block, pass it to HeapReAlloc() to let it handle
+	 * the situation it created.
+	 */
+
+	if G_UNLIKELY(HEAP_REALLOC_IN_PLACE_ONLY & flags) {
+		WIN32DLP_STATS_INCX(passed_HeapReAlloc);
+		return HeapReAlloc(h, flags, p, len);
+	}
+
+	old_size = HeapSize(h, 0, p);
+
+	if G_UNLIKELY((size_t) -1 == old_size) {
+		WIN32DLP_STATS_INCX(passed_HeapReAlloc);
+		return HeapReAlloc(h, flags, p, len);
+	}
+
+	WIN32DLP_STATS_INCX(foreign_HeapReAlloc);
+
+	np = xmalloc(len);
+	memcpy(np, p, MIN(len, old_size));
+
+	if ((HEAP_ZERO_MEMORY & flags) && len > old_size)
+		memset(ptr_add_offset(np, old_size), 0, len - old_size);
+
+	HeapFree(h, 0, p);		/* Old block, we now manage this memory */
+
+	return np;
+}
+
+static BOOL WINAPI
+win32dlp_HeapFree(HANDLE h, DWORD flags, LPVOID p)
+{
+	if G_UNLIKELY(NULL == win32dlp_process_heap)
+		win32dlp_process_heap = GetProcessHeap();
+
+	WIN32DLP_STATS_INCX(trapped_HeapFree);
+
+	if G_UNLIKELY(h != win32dlp_process_heap) {
+		WIN32DLP_STATS_INCX(passed_HeapFree);
+		return HeapFree(h, flags, p);
+	}
+
+	if (win32dlp_via_xmalloc(p)) {
+		xfree(p);
+		return TRUE;
+	}
+
+	WIN32DLP_STATS_INCX(foreign_HeapFree);
+
+	return HeapFree(h, flags, p);
+}
+
+static SIZE_T WINAPI
+win32dlp_HeapSize(HANDLE h, DWORD flags, LPCVOID p)
+{
+	if G_UNLIKELY(NULL == win32dlp_process_heap)
+		win32dlp_process_heap = GetProcessHeap();
+
+	WIN32DLP_STATS_INCX(trapped_HeapSize);
+
+	if G_UNLIKELY(h != win32dlp_process_heap) {
+		WIN32DLP_STATS_INCX(passed_HeapSize);
+		return HeapSize(h, flags, p);
+	}
+
+	if G_UNLIKELY(NULL == p)
+		return 0;
+
+	if (win32dlp_via_xmalloc(p))
+		return xallocated(p);
+
+	WIN32DLP_STATS_INCX(foreign_HeapSize);
+
+	return HeapSize(h, flags, p);
+}
+
+/***
  *** Patch table definition.
  ***/
 
@@ -918,6 +1096,10 @@ static win32dlp_patch_t win32dlp_patch[] = {
 	{ REPLACE(_msize),       IN(msvcr),  WITH(win32dlp_msize)        },
 	{ REPLACE(LoadLibraryA), IN(kernel), WITH(win32dlp_LoadLibraryA) },
 	{ REPLACE(LoadLibraryW), IN(kernel), WITH(win32dlp_LoadLibraryW) },
+	{ REPLACE(HeapAlloc),    IN(kernel), WITH(win32dlp_HeapAlloc)    },
+	{ REPLACE(HeapReAlloc),  IN(kernel), WITH(win32dlp_HeapReAlloc)  },
+	{ REPLACE(HeapFree),     IN(kernel), WITH(win32dlp_HeapFree)     },
+	{ REPLACE(HeapSize),     IN(kernel), WITH(win32dlp_HeapSize)     },
 	{ REPLACE_NULL,          IN_NULL,    WITH_NULL                   },
 };
 
@@ -1142,9 +1324,21 @@ win32dlp_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(trapped_msize);
 	DUMP(trapped_LoadLibraryA);
 	DUMP(trapped_LoadLibraryW);
+	DUMP(trapped_HeapAlloc);
+	DUMP(trapped_HeapReAlloc);
+	DUMP(trapped_HeapFree);
+	DUMP(trapped_HeapSize);
+	DUMP(passed_HeapAlloc);
+	DUMP(passed_HeapReAlloc);
+	DUMP(passed_HeapFree);
+	DUMP(passed_HeapSize);
 	DUMP(foreign_realloc);
 	DUMP(foreign_free);
 	DUMP(foreign_msize);
+	DUMP(foreign_HeapReAlloc);
+	DUMP(foreign_HeapFree);
+	DUMP(foreign_HeapSize);
+	DUMP(failed_HeapReAlloc);
 	DUMP(modules_initial);
 	DUMP(modules_loaded);
 	DUMP(modules_patched);
@@ -1163,7 +1357,10 @@ win32dlp_show_settings_log(logagent_t *la)
 
 	log_info(la, "win32 dynamic linker patched %zu module%s out of %zu+%zu=%zu",
 		patched, plural(patched), initial, loaded, initial + loaded);
-}
+
+	if (win32dlp_in_place_only_used)
+		log_warning(la, "HeapReAlloc() is using HEAP_REALLOC_IN_PLACE_ONLY");
+ }
 
 #endif	/* MINGW32 */
 
