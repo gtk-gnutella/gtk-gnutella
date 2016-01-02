@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2012-2016 Raphael Manfredi
+ * Copyright (c) 2006 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,13 +30,15 @@
  *
  * @author Christian Biere
  * @date 2006
+ * @author Raphael Manfredi
+ * @date 2012-2016
  */
 
 #include "common.h"
 
 #include "fast_assert.h"
 #include "atomic.h"
-#include "crash.h"				/* For print_str() and crash_time() */
+#include "crash.h"				/* For print_str() and crash_time_raw() */
 #include "log.h"
 #include "misc.h"				/* For CONST_STRLEN() */
 #include "stacktrace.h"
@@ -60,8 +63,19 @@ assertion_message(const assertion_data * const data, int fatal)
 	bool assertion;
 	DECLARE_STR(16);
 
-	crash_time(time_buf, sizeof time_buf);
-	stid = thread_small_id();
+	/*
+	 * Something is wrong, hence use the raw time computation and get the
+	 * current thread ID using thread_safe_small_id(): we need to avoid
+	 * thread_small_id() in case we're having problems in the thread layer.
+	 *
+	 * Because we're displaying the thread ID as an unsigned value, any
+	 * problem into computing the proper ID will be immediately visible
+	 * as a very large integer will be displayed!
+	 *		--RAM, 2016-01-02
+	 */
+
+	crash_time_raw(time_buf, sizeof time_buf);
+	stid = thread_safe_small_id();
 
 	/*
 	 * When an assertion failed in some thread, things are likely to break in
@@ -260,10 +274,10 @@ assertion_warning_log(const assertion_data * const data,
 	{
 		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
-		unsigned stid = thread_small_id();
+		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time_raw(time_buf, sizeof time_buf);
 
 		print_str(time_buf);
 		if (0 == stid) {
@@ -327,10 +341,10 @@ assertion_failure_log(const assertion_data * const data,
 	if (msg != NULL) {
 		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (FATAL-): ")];
-		unsigned stid = thread_small_id();
+		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time_raw(time_buf, sizeof time_buf);
 
 		print_str(time_buf);
 		if (0 == stid) {
