@@ -148,7 +148,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	stid = thread_stid_from_thread(m->owner);
 
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p still held (depth %zu) by %s:%u (%s) "
+	s_rawwarn("mutex %p still held (depth %zu) by %s:%u (%s) "
 		"whilst we wait at %s:%u",
 		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid),
 		file, line);
