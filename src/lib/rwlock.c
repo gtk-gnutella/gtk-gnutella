@@ -425,16 +425,20 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 {
 	const struct rwlock_waiting *wc = rw->wait_head;
 
+	/*
+	 * This routine can be called during crashes, use raw logging.
+	 */
+
 	if (wc != NULL) {
-		s_miniinfo("waiting queue for rwlock %p (%u item%s):",
+		s_rawinfo("waiting queue for rwlock %p (%u item%s):",
 			rw, rw->waiters, plural(rw->waiters));
 	} else {
-		s_miniwarn("waiting queue for rwlock %p is empty?", rw);
+		s_rawwarn("waiting queue for rwlock %p is empty?", rw);
 	}
 
 	if (RWLOCK_WFREE != rw->owner) {
-		s_miniinfo("(rwlock %p write-locked by %s)",
-			rw, thread_id_name(rw->owner));
+		s_rawinfo("(rwlock %p write-locked by %s)",
+			rw, thread_safe_id_name(rw->owner));
 	}
 
 #if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
@@ -446,18 +450,18 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 			if (rwlock_readers_is_set(deconstify_pointer(rw), i)) {
 				readers++;
 #ifdef RWLOCK_READSPOT_DEBUG
-				s_miniinfo("(rwlock %p read-locked by %s from %s:%u)",
-					rw, thread_id_name(i),
+				s_rawinfo("(rwlock %p read-locked by %s from %s:%u)",
+					rw, thread_safe_id_name(i),
 					rw->readspot[i].file, rw->readspot[i].line);
 #else	/* !RWLOCK_READSPOT_DEBUG */
-				s_miniinfo("(rwlock %p read-locked by %s)",
-					rw, thread_id_name(i));
+				s_rawinfo("(rwlock %p read-locked by %s)",
+					rw, thread_safe_id_name(i));
 #endif	/* RWLOCK_READSPOT_DEBUG */
 			}
 		}
 
 		if (readers != rw->readers) {
-			s_miniwarn("bad reader count for rwlock %p (has %u, expected %u)",
+			s_rawwarn("bad reader count for rwlock %p (has %u, expected %u)",
 				rw, rw->readers, readers);
 		}
 	}
@@ -465,11 +469,11 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 
 	while (wc != NULL) {
 		if (RWLOCK_WAITING_MAGIC != wc->magic) {
-			s_miniwarn("corrupted waiting queue for rwlock %p", rw);
+			s_rawwarn("corrupted waiting queue for rwlock %p", rw);
 			return;
 		}
-		s_miniinfo("%s %s %s-lock %p",
-			thread_id_name(wc->stid),
+		s_rawinfo("%s %s %s-lock %p",
+			thread_safe_id_name(wc->stid),
 			wc->ok ? "was granted" : "waiting for",
 			wc->reading ? "read" : "write", rw);
 		wc = wc->next;

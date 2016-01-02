@@ -4126,6 +4126,62 @@ thread_name(void)
 }
 
 /**
+ * Format thread name of specified thread ID into supplied buffer.
+ *
+ * @return pointer to the start of the buffer.
+ */
+static const char *
+thread_id_name_to_buf(unsigned id,
+	char *b, size_t len, bool symbolic_name)
+{
+	const struct thread_element *te;
+
+	if (id >= THREAD_MAX) {
+		str_bprintf(b, len, "<invalid thread ID %u>", id);
+		return b;
+	}
+
+	te = threads[id];
+	if G_UNLIKELY(NULL == te) {
+		str_bprintf(b, len, "<unknown thread ID %u>", id);
+		return b;
+	} else if G_UNLIKELY(te->reusable) {
+		str_bprintf(b, len, "<%s thread ID %u>",
+			te->cancelled ? "cancelled" : "terminated", id);
+		return b;
+	} else if G_UNLIKELY(!te->valid && !te->creating) {
+		str_bprintf(b, len, "<invalid thread ID %u>", id);
+		return b;
+	}
+
+	return thread_element_name_to_buf(te, b, len, symbolic_name);
+}
+
+/**
+ * Safely compute the name of the specified thread ID.
+ *
+ * This routine, by definition, is usually called during crashes or dire
+ * conditions, hence it carefully avoids calling thread_small_id() and
+ * does not request symbolic name computation.
+ *
+ * @return the name of the thread id, as pointer to static data.
+ */
+const char *
+thread_safe_id_name(unsigned id)
+{
+	static char buf[THREAD_MAX][128];
+	static char emergency[128];
+	int stid = thread_safe_small_id();
+	char *b;
+
+	STATIC_ASSERT(sizeof emergency == sizeof buf[0]);
+
+	b = stid < 0 ? emergency : &buf[stid][0];
+
+	return thread_id_name_to_buf(id, b, sizeof emergency, FALSE);
+}
+
+/**
  * @return the name of the thread id, as pointer to static data.
  */
 const char *
@@ -4133,8 +4189,9 @@ thread_id_name(unsigned id)
 {
 	static char buf[THREAD_MAX][128];
 	static char emergency[128];
-	const struct thread_element *te;
 	char *b;
+
+	STATIC_ASSERT(sizeof emergency == sizeof buf[0]);
 
 	/*
 	 * This routine may be called during crashes or dire conditions, so be
@@ -4148,25 +4205,7 @@ thread_id_name(unsigned id)
 		b = &buf[thread_small_id()][0];
 	}
 
-	if (id >= THREAD_MAX) {
-		str_bprintf(b, sizeof buf[0], "<invalid thread ID %u>", id);
-		return b;
-	}
-
-	te = threads[id];
-	if G_UNLIKELY(NULL == te) {
-		str_bprintf(b, sizeof buf[0], "<unknown thread ID %u>", id);
-		return b;
-	} else if G_UNLIKELY(te->reusable) {
-		str_bprintf(b, sizeof buf[0], "<%s thread ID %u>",
-			te->cancelled ? "cancelled" : "terminated", id);
-		return b;
-	} else if G_UNLIKELY(!te->valid && !te->creating) {
-		str_bprintf(b, sizeof buf[0], "<invalid thread ID %u>", id);
-		return b;
-	}
-
-	return thread_element_name_to_buf(te, b, sizeof buf[0], TRUE);
+	return thread_id_name_to_buf(id, b, sizeof emergency, TRUE);
 }
 
 /**

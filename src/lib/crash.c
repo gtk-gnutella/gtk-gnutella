@@ -2292,7 +2292,7 @@ crash_record_thread(void)
 		} else {
 			crash_set_var(fail_stid, stid);
 			if (vars->logck != NULL) {
-				const char *tname = thread_id_name(stid);
+				const char *tname = thread_safe_id_name(stid);
 				name = ck_strdup_readonly(vars->logck, tname);
 				if (NULL == name)
 					name = "could not allocate name";
@@ -4265,12 +4265,12 @@ crash_thread_stack_print(void *arg)
 
 	if (0 == t->count) {
 		s_rawwarn("%s(): stack trace for %s is empty",
-			G_STRFUNC, thread_id_name(t->stid));
+			G_STRFUNC, thread_safe_id_name(t->stid));
 		return NULL;
 	}
 
 	s_rawinfo("%s(): dumping %zu-frame long %s stack trace for %s:",
-		G_STRFUNC, t->count, type, thread_id_name(t->stid));
+		G_STRFUNC, t->count, type, thread_safe_id_name(t->stid));
 
 	if (t->full)
 		stacktrace_stack_fancy_print(STDERR_FILENO, t->stack, t->count);
@@ -4278,7 +4278,7 @@ crash_thread_stack_print(void *arg)
 		stacktrace_stack_plain_print(STDERR_FILENO, t->stack, t->count);
 
 	s_rawinfo("%s(): end of %s stack trace for %s.",
-		G_STRFUNC, type, thread_id_name(t->stid));
+		G_STRFUNC, type, thread_safe_id_name(t->stid));
 
 	return NULL;
 }
@@ -4332,7 +4332,7 @@ crash_dump_stacks(void)
 			} else if (e != EINVAL) {
 				errno = e;
 				s_rawwarn("%s(): cannot get stack for %s: %m",
-					G_STRFUNC, thread_id_name(i));
+					G_STRFUNC, thread_safe_id_name(i));
 			}
 		}
 	}

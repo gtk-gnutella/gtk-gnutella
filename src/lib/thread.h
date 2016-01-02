@@ -184,6 +184,7 @@ const char *thread_to_string(const thread_t t);
 void thread_set_name(const char *name);
 void thread_set_name_atom(const char *name);
 const char *thread_name(void);
+const char *thread_safe_id_name(unsigned id);
 const char *thread_id_name(unsigned id);
 unsigned thread_by_name(const char *name);
 

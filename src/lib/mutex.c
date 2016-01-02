@@ -120,7 +120,7 @@ mutex_deadlock(const volatile void *obj, unsigned count,
 
 #ifdef SPINLOCK_DEBUG
 	s_miniwarn("mutex %p already held (depth %zu) by %s:%u (%s)",
-		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid));
+		obj, m->depth, m->lock.file, m->lock.line, thread_safe_id_name(stid));
 #endif
 
 	s_minicarp("possible mutex deadlock #%u on %p at %s:%u",
@@ -150,7 +150,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 #ifdef SPINLOCK_DEBUG
 	s_rawwarn("mutex %p still held (depth %zu) by %s:%u (%s) "
 		"whilst we wait at %s:%u",
-		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid),
+		obj, m->depth, m->lock.file, m->lock.line, thread_safe_id_name(stid),
 		file, line);
 #endif
 
@@ -161,7 +161,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
 		"owned by %s", obj, m->depth, elapsed, file, line,
-		thread_id_name(stid));
+		thread_safe_id_name(stid));
 }
 
 /**
