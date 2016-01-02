@@ -1976,6 +1976,45 @@ s_debug_once_per_from(long period, const char *origin,
 }
 
 /**
+ * Write formatted string to specified file descriptor.
+ *
+ * @note
+ * This routine is very low-level and is meant to be used as a building block
+ * for higher-level routines or when we are operating under dire circumstances.
+ *
+ * There is no leading timestamp nor thread indication prepended to the log.
+ * A trailing "\n" is appended to the formatted string automatically though.
+ *
+ * The maximum message length is hardwired to LOG_MSG_MAXLEN (512 bytes).
+ *
+ * No memory allocation is performed by this routine and a direct system call
+ * is issued to the specified file descriptor without any locking.
+ *
+ * @param fd		the file descriptor
+ * @param fmt		the printf()-like formatting string
+ * @param ...		the arguments to be formatted
+ */
+void G_GNUC_PRINTF(2, 3)
+s_line_writef(int fd, const char *fmt, ...)
+{
+	char buf[LOG_MSG_MAXLEN];
+	str_t str;
+	va_list args;
+	iovec_t iov[2];
+
+	str_new_buffer(&str, buf, 0, sizeof buf);
+
+	va_start(args, fmt);
+	str_vprintf(&str, fmt, args);
+	va_end(args);
+
+	iovec_set(&iov[0], str_2c(&str), str_len(&str));
+	iovec_set(&iov[1], "\n", 1);
+
+	IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
+}
+
+/**
  * Print message to stdout.
  */
 static void

@@ -119,6 +119,8 @@ void s_rawmsg(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawinfo(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawdebug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
+void s_line_writef(int fd, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+
 void s_stacktrace(bool no_stdio, unsigned offset);
 
 /*

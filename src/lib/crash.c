@@ -249,6 +249,7 @@ static const int signals[] = {
 };
 
 static void crash_directory_cleanup(const char *crashdir);
+static void crash_dump_stacks(int fd);
 
 /**
  * Determines whether coredumps are disabled.
@@ -1487,6 +1488,7 @@ crash_generate_crashlog(int signo)
 	thread_lock_dump_all(clf);
 	crash_stack_print_decorated(clf, 2, FALSE);
 	crash_run_hooks(NULL, clf);
+	crash_dump_stacks(clf);
 	close(clf);
 	s_minimsg("trace left in %s", crashlog);
 	if (vars != NULL) {
@@ -1829,6 +1831,7 @@ retry_child:
 				thread_lock_dump_all(clf);
 				IGNORE_RESULT(write(clf, "\n", 1));
 				crash_stack_print_decorated(clf, 2, FALSE);
+				crash_dump_stacks(clf);
 				crash_fd_close(clf);
 				goto parent_process;
 			}
@@ -1862,6 +1865,13 @@ retry_child:
 				 */
 
 				crash_stack_print_decorated(STDOUT_FILENO, 2, FALSE);
+
+				/*
+				 * Unfortunately, we cannot run crash_dump_stacks() in the
+				 * child because fork() is not going to recreate all the
+				 * threads: only the one running fork() will end up remaining
+				 * in the child process.
+				 */
 
 				log_set_disabled(LOG_STDOUT, FALSE);
 			}
@@ -4224,10 +4234,11 @@ crash_oom(const char *format, ...)
 #define CRASH_STACK_DUMP_DEPTH	64
 
 struct crash_stack {
-	void *stack[CRASH_STACK_DUMP_DEPTH];
-	size_t count;
-	int stid;
-	bool full;
+	void *stack[CRASH_STACK_DUMP_DEPTH];	/* The frames */
+	size_t count;							/* How many frames were captured */
+	int stid;								/* Thread to which stack belongs */
+	int fd;									/* File descriptor for dumping */
+	bool fancy;								/* Whether to dump fancy or plain */
 };
 
 /**
@@ -4276,24 +4287,24 @@ static void * G_GNUC_COLD
 crash_thread_stack_print(void *arg)
 {
 	const struct crash_stack *t = arg;
-	const char *type = t->full ? "decorated" : "light";
+	const char *type = t->fancy ? "decorated" : "light";
 
 	if (0 == t->count) {
-		s_rawwarn("%s(): stack trace for %s is empty",
-			G_STRFUNC, thread_safe_id_name(t->stid));
+		s_line_writef(t->fd, "stack trace for %s is empty",
+			thread_safe_id_name(t->stid));
 		return NULL;
 	}
 
-	s_rawinfo("%s(): dumping %zu-frame long %s stack trace for %s:",
-		G_STRFUNC, t->count, type, thread_safe_id_name(t->stid));
+	s_line_writef(t->fd, "---- dumping %zu-frame long %s stack trace for %s:",
+		t->count, type, thread_safe_id_name(t->stid));
 
-	if (t->full)
-		stacktrace_stack_fancy_print(STDERR_FILENO, t->stack, t->count);
+	if (t->fancy)
+		stacktrace_stack_fancy_print(t->fd, t->stack, t->count);
 	else
-		stacktrace_stack_plain_print(STDERR_FILENO, t->stack, t->count);
+		stacktrace_stack_plain_print(t->fd, t->stack, t->count);
 
-	s_rawinfo("%s(): end of %s stack trace for %s.",
-		G_STRFUNC, type, thread_safe_id_name(t->stid));
+	s_line_writef(t->fd, "---- end of %s stack trace for %s.",
+		type, thread_safe_id_name(t->stid));
 
 	return NULL;
 }
@@ -4323,13 +4334,17 @@ crash_offload_main(process_fn_t cb, void *arg)
 /*
  * Attempt to collect stack traces from all the threads that are
  * now hopefully supended, then dump their stack.
+ *
+ * @param fd	where to print the stack traces
  */
 static void G_GNUC_COLD
-crash_dump_stacks(void)
+crash_dump_stacks(int fd)
 {
 	int i, e;
 	bool f;
 	struct crash_stack trace;
+
+	s_line_writef(fd, "Attempting to dump stacks for all the known threads...");
 
 	/*
 	 * We first try to get stack and dump them in plain form, which is
@@ -4342,12 +4357,13 @@ crash_dump_stacks(void)
 	for (f = FALSE; f <= TRUE; f++) {
 		for (i = 0; i < THREAD_MAX; i++) {
 			if (0 == (e = crash_get_stack(i, &trace))) {
-				trace.full = f;
+				trace.fancy = f;
+				trace.fd = fd;
 				crash_offload_main(crash_thread_stack_print, &trace);
 			} else if (e != EINVAL) {
 				errno = e;
-				s_rawwarn("%s(): cannot get stack for %s: %m",
-					G_STRFUNC, thread_safe_id_name(i));
+				s_line_writef(fd, "WARNING: cannot get stack for %s: %m",
+					thread_safe_id_name(i));
 			}
 		}
 	}
@@ -4373,7 +4389,7 @@ crash_deadlocked(const char *file, unsigned line)
 			crash_set_var(lock_line, line);
 		}
 
-		crash_dump_stacks();
+		crash_dump_stacks(STDERR_FILENO);
 	}
 }
 
