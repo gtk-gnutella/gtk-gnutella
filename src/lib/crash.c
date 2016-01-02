@@ -627,6 +627,21 @@ crash_get_hook(void)
 }
 
 /**
+ * Get the PID of the running process.
+ *
+ * This routine uses the cached pid computed at crash_init() time to get
+ * the proper PID, even if we are in the fork()ed child presently.
+ */
+static pid_t
+crash_getpid(void)
+{
+	if (vars != NULL)
+		return vars->pid;
+
+	return getpid();
+}
+
+/**
  * Run crash hooks if we have an identified assertion failure.
  *
  * @param logfile		if non-NULL, redirect messages there as well.
@@ -661,7 +676,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str(" invoking crash hook \"");	/* 4 */
 	print_str(routine);						/* 5 */
@@ -709,7 +724,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str("done with hook \"");			/* 4 */
 	print_str(routine);						/* 5 */
@@ -808,7 +823,7 @@ crash_decorating_stack(void)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	print_str("attempting to dump a decorated stack trace:\n");	/* 4 */
 	flush_err_str();
@@ -833,7 +848,7 @@ crash_end_of_line(bool forced)
 
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	if (forced) {
 		print_str("recursively crashing -- end of line.");	/* 4 */
@@ -931,7 +946,7 @@ crash_logpath(char *buf, size_t len)
 	char pid_buf[ULONG_DEC_BUFLEN];
 	char filename[80];
 
-	pid_str = PRINT_NUMBER(pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 	if (vars != NULL && vars->crashdir != NULL) {
 		str_bprintf(buf, len,
@@ -1287,7 +1302,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	flush_str(clf);
 	rewind_str(0);
 	print_str("Crash-PID: ");			/* 0 */
-	print_str(PRINT_NUMBER(pbuf, getpid()));	/* 1 */
+	print_str(PRINT_NUMBER(pbuf, crash_getpid()));	/* 1 */
 	print_str("\n");					/* 2 */
 	print_str("Crash-Level: ");			/* 3 */
 	print_str(crash_level_to_string(crash_current_level));	/* 4 */
@@ -1541,7 +1556,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	int parent_stdout = STDOUT_FILENO;
 	int spfd = -1;		/* set if we use spopenlp(), on Windows only */
 
-	pid_str = PRINT_NUMBER(pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
 
 #ifdef HAS_WAITPID
 retry_child:
@@ -3627,7 +3642,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 	char filename[80];
 	size_t size = 1;	/* Minimum is one byte for NUL */
 
-	pid_str = PRINT_NUMBER(pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 
 	if (NULL == dst) {
