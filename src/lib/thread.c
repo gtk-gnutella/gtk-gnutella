@@ -1784,19 +1784,28 @@ thread_stack_free(struct thread_element *te)
 }
 
 /**
- * Flag element as reusable.
+ * Flag a locked thread element as reusable.
  */
-static void
-thread_element_mark_reusable(struct thread_element *te)
+static inline void
+thread_element_mark_reusable_locked(struct thread_element *te)
 {
 	g_assert_log(0 == thread_element_lock_count(te),
 		"%s(): lock_count=%zu (%zu tracked, %zu accounted-for) for %s",
 		G_STRFUNC, thread_element_lock_count(te),
 		te->locks.count, te->other_locks, thread_element_name_raw(te));
 
-	THREAD_LOCK(te);
 	te->reusable = TRUE;	/* Allow reuse */
 	te->valid = FALSE;		/* Holds stale values now */
+}
+
+/**
+ * Flag element as reusable.
+ */
+static void
+thread_element_mark_reusable(struct thread_element *te)
+{
+	THREAD_LOCK(te);
+	thread_element_mark_reusable_locked(te);
 	THREAD_UNLOCK(te);
 }
 
@@ -2398,7 +2407,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 						s_miniwarn("%s(): discovered thread #%u is dead",
 							G_STRFUNC, xte->stid);
 
-						thread_element_mark_reusable(xte);
+						thread_element_mark_reusable_locked(xte);
 						xte->discovered = FALSE;
 						atomic_uint_dec(&thread_discovered);
 					}
