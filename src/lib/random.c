@@ -1265,19 +1265,18 @@ void G_GNUC_COLD
 random_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct random_stats r;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	atomic_mb();
 	r = random_stats;		/* Struct copy */
 
 #define DUMP(x)	log_info(la, "RANDOM %s = %s", #x,	\
-	(options & DUMP_OPT_PRETTY) ?					\
-		uint_to_gstring(r.x) : uint_to_string(r.x))
+	uint_to_string_grp(r.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&r.x);							\
 	log_info(la, "RANDOM %s = %s", #x,						\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 	DUMP64(input_random_add);

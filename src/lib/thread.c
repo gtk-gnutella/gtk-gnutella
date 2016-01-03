@@ -10899,24 +10899,22 @@ G_GNUC_COLD void
 thread_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct thread_stats t;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	atomic_mb();
 	t = thread_stats;			/* Struct copy */
 
 #define DUMP(x)		log_info(la, "THREAD %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?							\
-		uint_to_gstring(t.x) : uint_to_string(t.x))
+	uint_to_string_grp(t.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&t.x);							\
 	log_info(la, "THREAD %s = %s", #x,						\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 #define DUMPV(x)	log_info(la, "THREAD %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?							\
-		size_t_to_gstring(x) : size_t_to_string(x))
+	size_t_to_string_grp(x, groupped))
 
 	DUMP(created);
 	DUMP(discovered);

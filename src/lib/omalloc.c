@@ -1038,14 +1038,13 @@ omalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct ostats stats;
 	size_t pages, objects, memory, chunks, align, wasted;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 #define DUMP(x) log_info(la, "OMALLOC %s = %s", #x,	\
-	(options & DUMP_OPT_PRETTY) ?					\
-		size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
+	size_t_to_string_grp(stats.x, groupped))
 
 #define DUMP_VAR(x) log_info(la, "OMALLOC %s = %s", #x,	\
-	(options & DUMP_OPT_PRETTY) ?					\
-		size_t_to_gstring(x) : size_t_to_string(x))
+	size_t_to_string_grp(x, groupped))
 
 #define CONSOLIDATE(x)		x = stats.x##_rw + stats.x##_ro
 

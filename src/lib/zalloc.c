@@ -3586,6 +3586,7 @@ G_GNUC_COLD void
 zalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct zstats stats;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	/* Will be always less than a thousand, ignore pretty-priting */
 	log_info(la, "ZALLOC zone_count = %s",
@@ -3596,14 +3597,12 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	ZSTATS_UNLOCK;
 
 #define DUMP(x)	log_info(la, "ZALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?						\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&zstats.x);						\
 	log_info(la, "ZALLOC %s = %s", #x,						\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 	DUMP(allocations);

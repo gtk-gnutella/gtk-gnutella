@@ -916,8 +916,7 @@ memusage_summary_dump_log(const memusage_t *mu, logagent_t *la, unsigned opt)
 			MSIGN(fast), fast, MSIGN(medium), medium, MSIGN(slow), slow,
 			mu->alloc_recursions, mu->free_recursions,
 			compact_size(mu->allocation_bytes - mu->freeing_bytes, FALSE),
-			(opt & DUMP_OPT_PRETTY) ?
-				uint64_to_gstring(blocks) : uint64_to_string(blocks));
+			uint64_to_string_grp(blocks, 0 != (opt & DUMP_OPT_PRETTY)));
 	}
 
 	MEMUSAGE_THREAD_UNLOCK(wmu);

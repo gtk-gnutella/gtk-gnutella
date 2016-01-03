@@ -5156,20 +5156,19 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	size_t cached_pages = 0, mapped_pages = 0, native_pages = 0;
 	size_t i;
 	struct vmm_stats stats;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	VMM_STATS_LOCK;
 	stats = vmm_stats;		/* struct copy under lock protection */
 	VMM_STATS_UNLOCK;
 
 #define DUMP(x)	log_info(la, "VMM %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?					\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&vmm_stats.x);					\
 	log_info(la, "VMM %s = %s", #x,							\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 	DUMP(allocations);

@@ -2387,14 +2387,13 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	tmalloc_info_t stats;
 	size_t depot_count;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 #define DUMPV(x)	log_info(la, "TMALLOC %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?								\
-		size_t_to_gstring(x) : size_t_to_string(x))				\
+	size_t_to_string_grp(x, groupped))
 
 #define DUMP(x)		log_info(la, "TMALLOC %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?								\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 	depot_count = tmalloc_all_stats(&stats);
 

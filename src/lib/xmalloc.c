@@ -6644,21 +6644,19 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	XSTATS_LOCK;
 	stats = xstats;		/* struct copy under lock protection */
 	XSTATS_UNLOCK;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 #define DUMP(x)	log_info(la, "XM %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?					\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&xstats.x);						\
 	log_info(la, "XM %s = %s", #x,							\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 #define DUMPV(x)	log_info(la, "XM %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?							\
-		size_t_to_gstring(x) : size_t_to_string(x))
+	size_t_to_string_grp(x, groupped))
 
 	DUMP(allocations);
 	DUMP64(allocations_zeroed);

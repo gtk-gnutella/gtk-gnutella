@@ -152,6 +152,16 @@ const char *size_t_to_gstring(size_t v);
 const char *filesize_to_gstring(filesize_t v);
 
 /*
+ * Optionally groupped by thousands.
+ */
+
+const char *uint32_to_string_grp(uint32, bool);
+const char *uint64_to_string_grp(uint64, bool);
+const char *uint_to_string_grp(unsigned, bool);
+const char *size_t_to_string_grp(size_t, bool);
+const char *filesize_to_string_grp(filesize_t, bool);
+
+/*
  * Time string conversions
  */
 const char *short_time(time_delta_t s);

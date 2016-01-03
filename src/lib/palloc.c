@@ -885,16 +885,15 @@ G_GNUC_COLD void
 palloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	pool_info_t stats;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	palloc_all_stats(&stats);
 
 #define DUMPS(x)	log_info(la, "PALLOC %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?								\
-		size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
+	size_t_to_string_grp(stats.x, groupped))
 
 #define DUMPV(x)		log_info(la, "PALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?								\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 	DUMPS(allocated);
 	DUMPS(available);
