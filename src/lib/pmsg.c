@@ -42,7 +42,6 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define implies(a,b)	(!(a) || (b))
 #define valid_ptr(a)	(((ulong) (a)) > 100L)
 
 #define EMBEDDED_OFFSET	offsetof(pdata_t, d_embedded)

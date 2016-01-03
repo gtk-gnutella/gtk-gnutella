@@ -126,8 +126,6 @@
 #define VALUES_DB_CACHE_SIZE 1024	/**< Amount of values to keep cached */
 #define RAW_DB_CACHE_SIZE	 512	/**< Amount of raw data to keep cached */
 
-#define equiv(p,q)  (!(p) == !(q))
-
 /**
  * Information about a value that is stored to disk and not kept in memory.
  * The structure is serialized first, not written as-is.

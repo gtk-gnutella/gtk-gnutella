@@ -320,6 +320,10 @@ filesize_to_fileoffset_t(filesize_t pos)
 /* Normalize boolean-like values to TRUE(1) or FALSE(0) */
 #define booleanize(x) (0 != (x))
 
+/* Common logic operations missing an operator in C */
+#define implies(p, q) (!(p) || (q))
+#define equiv(p, q)   (!(p) == !(q))
+
 #endif /* _casts_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -122,8 +122,6 @@
 
 #include "override.h"		/* Must be the last header included */
 
-#define equiv(p,q)		(!(p) == !(q))
-
 #define zalloc_debugging(lvl)	G_UNLIKELY(zalloc_debug > (lvl))
 
 #ifdef ZALLOC_SAFETY_ASSERT
