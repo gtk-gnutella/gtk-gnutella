@@ -318,7 +318,7 @@ filesize_to_fileoffset_t(filesize_t pos)
 #endif	/* UINTMAX_C */
 
 /* Normalize boolean-like values to TRUE(1) or FALSE(0) */
-#define booleanize(x) ((x) ? 1 : 0)
+#define booleanize(x) (0 != (x))
 
 #endif /* _casts_h_ */
 
