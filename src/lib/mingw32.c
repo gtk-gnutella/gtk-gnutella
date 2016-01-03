@@ -105,6 +105,7 @@
 #include "vmm.h"				/* For vmm_page_start() */
 #include "vsort.h"
 #include "walloc.h"
+#include "win32dlp.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -168,7 +169,6 @@
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define VMM_GRANULARITY	(1024*1024*4)	/* 4 MiB during initalization */
-#define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
 #define WS2_LIBRARY		"ws2_32.dll"
 
 #define TM_MILLION		1000000L
@@ -708,7 +708,7 @@ mingw_win2posix(int error)
  * Get last Windows error, remapping Windows-specific errors into POSIX ones
  * and clearing the POSIX range so that strerror() works.
  */
-static int
+int
 mingw_last_error(void)
 {
 	int error = GetLastError();
@@ -3699,7 +3699,6 @@ static struct {
 	size_t physical;		/* Physical RAM available */
 	size_t available;		/* Virtual memory initially available */
 	size_t allocated;		/* Memory we allocated */
-	size_t threshold;		/* High-memory usage threshold */
 	size_t baseline;		/* Committed memory at VMM init time */
 	bool stop_vfree;		/* VMM no longer freeing allocated memory */
 	int hinted;
@@ -3773,7 +3772,7 @@ mingw_vmm_init(void)
 
 	/*
 	 * Declare some space for future allocations without hinting.
-	 * We initially reserve about 34% of the virtual address space,
+	 * We initially reserve about 80% of the virtual address space,
 	 * with VMM_MINSIZE at least but we make sure we have also room
 	 * available for non-VMM allocations.
 	 */
@@ -3827,15 +3826,15 @@ reserve_less:
 	 * satisfying:
 	 *
 	 *		available = X + size
-	 *		size = 34% * available
+	 *		size = 80% * available
 	 *
-	 * This trivially solves to: X = 66% * available.  The assumption
+	 * This trivially solves to: X = 20% * available.  The assumption
 	 * made here is that the total memory size we computed above as
 	 * "mem_available" is going to be constant.
 	 *		--RAM, 2015-11-04
 	 */
 
-	mem_latersize = 0.66 * mem_available;
+	mem_latersize = 0.2 * mem_available;
 	mingw_vmm.later = mem_latersize;
 	mingw_vmm.size = mem_available - mem_latersize;
 
@@ -3859,83 +3858,12 @@ reserve_less:
 
 	mingw_vmm.base = mingw_vmm.reserved;
 	mingw_vmm_inited = TRUE;
-
-	/*
-	 * Set our memory allocation threshold as a fraction of the later memory
-	 * we left to the other parts of the application we do not control.
-	 * Since we'll only be able to monitor that space when we allocate memory
-	 * from the parts we control, we cannot let that space fill up.
-	 */
-
-	mingw_vmm.threshold = VMM_THRESH_PCT * mingw_vmm.later;
 }
 
 void *
 mingw_valloc(void *hint, size_t size)
 {
 	void *p = NULL;
-
-	/*
-	 * Be careful on Windows: if we over-allocate memory, the C runtime can
-	 * fail with critical and cryptic errors, such as:
-	 *
-	 *	Fatal error: Not enough space
-	 *
-	 * The problem is:
-	 *	- That usually triggers a popup window, blocking the application until
-	 *    the user decides what to do.  Not really convenient if unattended!
-	 *  - There is no known way to catch this and do something about it.
-	 *
-	 * Therefore, we monitor how much memory is being allocated for the
-	 * process (total commit charge), understanding that there will be memory
-	 * allocated that we do not see here (other Windows DLLs loaded, for which
-	 * we cannot trap memory allocations and account for them).
-	 *
-	 * When the total commit charge in the "unreserved" space is larger than
-	 * the initial threshold we computed, we crash the process -- better do it
-	 * whilst there is still memory to allow for the process to restart than
-	 * have it crash soon without us being able to control anything!
-	 *
-	 * Naturally, for the memory we reserved for our VMM layer, we do not
-	 * have anything to do: we allocate there and we will be able to crash
-	 * properly when that reserve becomes exhausted.
-	 *		--RAM, 2015-03-29
-	 */
-
-	if G_LIKELY(mingw_vmm_inited) {
-		size_t committed = mingw_mem_committed();
-		size_t allocated = size_saturate_sub(committed, mingw_vmm.baseline);
-		size_t unreserved = size_saturate_sub(allocated, mingw_vmm.allocated);
-		size_t data = 0;
-
-		/*
-		 * If we reached the threshold, compute the current break to see
-		 * how much of the data segment we're counting in the unreserved
-		 * space, and deduce it appropriately.
-		 */
-
-		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
-			void *cur_brk = mingw_sbrk(0);
-
-			data = ptr_diff(cur_brk, mingw_vmm.heap_break);
-			unreserved = size_saturate_sub(unreserved, data);
-		}
-
-		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
-			/* We don't want a stacktrace, use s_minilog() directly */
-			s_minilog(G_LOG_LEVEL_CRITICAL,
-				"%s(): allocating %'zu bytes when %'zu are already used "
-					"with %'zu allocated here and %'zu allocated overall "
-					"since startup (%'zu in unreserved region, upper "
-					"threshold was set to %'zu, %'zu in data segment)",
-				G_STRFUNC, size, committed,
-				mingw_vmm.allocated, allocated,
-				unreserved, mingw_vmm.threshold, data);
-
-			crash_restart("%s(): nearing out of memory condition", G_STRFUNC);
-			/* Continue nonetheless, restart may be asynchronous */
-		}
-	}
 
 	if G_UNLIKELY(NULL == hint) {
 		if (mingw_vmm.hinted >= 0) {
@@ -5986,13 +5914,10 @@ void mingw_vmm_post_init(void)
 		ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size));
 	s_info("VMM left %s of virtual space unreserved",
 		compact_size(mingw_vmm.later, FALSE));
-	s_info("VMM upper threshold for unreserved space set to %s",
-		compact_size(mingw_vmm.threshold, FALSE));
 	s_info("VMM had %s already committed at startup",
 		compact_size(mingw_vmm.baseline, FALSE));
 	s_info("VMM will be using %s of VM space at most",
-		compact_size(
-			mingw_vmm.size + mingw_vmm.threshold + mingw_vmm.baseline, FALSE));
+		compact_size(mingw_vmm.size + mingw_vmm.baseline, FALSE));
 
 	/*
 	 * On Windows, VM address space grows up, but starts far enough from
@@ -7748,6 +7673,7 @@ mingw_early_init(void)
 #endif	/* EMULATE_GETPPID */
 
 	set_folder_basepath_func(mingw_get_folder_basepath);
+	win32dlp_init(mingw_vmm.reserved, mingw_vmm.size);
 
 	closelog();
 }

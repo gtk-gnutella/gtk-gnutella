@@ -787,6 +787,8 @@ const char *mingw_native_path(const char *pathname);
 const char *mingw_get_supervisor_log_path(void);
 void mingw_file_rotate(const char *pathname, int keep);
 
+int mingw_last_error(void);
+
 #else	/* !MINGW32 */
 
 #define PROT_GUARD		PROT_NONE		/* Guard pages are Windows-specific */

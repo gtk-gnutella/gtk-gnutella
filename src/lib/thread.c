@@ -1438,6 +1438,9 @@ thread_element_stack_check(struct thread_element *te)
 static void
 thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 {
+	bool bad_qid;
+	thread_qid_t bad_lo, bad_hi;
+
 	/*
 	 * Need to lock the thread element since created threads can adjust the
 	 * QID ranges of any discovered thread that would be overlapping with
@@ -1446,15 +1449,33 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 
 	THREAD_LOCK(te);
 
-	g_assert_log(te->low_qid <= te->high_qid,
-		"%s(): stid=%u, low_qid=%'zu, high_qid=%'zu",
-		G_STRFUNC, te->stid, te->low_qid, te->high_qid);
+	if G_UNLIKELY((bad_qid = te->low_qid > te->high_qid)) {
+		bad_lo = te->low_qid;
+		bad_hi = te->high_qid;
+	}
 
 	if (qid < te->low_qid)
 		te->low_qid = qid;
 	else if (qid > te->high_qid)
 		te->high_qid = qid;
+
 	THREAD_UNLOCK(te);
+
+	/*
+	 * Emit warning outside the critical section.
+	 *
+	 * We used to soft-assert this condition, but it caused deadly recursions
+	 * during crashes: when the assertion was failing, assertion_message()
+	 * would call thread_check_suspended() and we would re-enter here with
+	 * the same failing assertion!
+	 */
+
+	if G_UNLIKELY(bad_qid) {
+		s_rawwarn("%s(): %s had bad QID ranges: bad_low=%'zu, bad_high=%'zu; "
+			"now set to: qid=%'zu, low_qid=%'zu, high_qid=%'zu",
+			G_STRFUNC, thread_element_name(te),
+			bad_lo, bad_hi, qid, te->low_qid, te->high_qid);
+	}
 
 	if G_UNLIKELY(te->gone)
 		thread_element_mark_gone_seen(te);
@@ -1952,6 +1973,17 @@ thread_pjoin(struct thread_element *te)
 		s_error("%s(): pthread_join() failed on %s: %m",
 			G_STRFUNC, thread_element_name(te));
 	}
+
+	if (is_running_on_mingw()) {
+		/*
+		 * We don't allocate our stack on Windows, the kernel is and the
+		 * pthread layer there does not support user stack allocation.
+		 * Now that the thread has been joined with, its stack range is
+		 * completely invalid.
+		 */
+		te->last_qid = te->low_qid = -1;
+		te->high_qid = te->top_qid = 0;
+	}
 }
 
 /**
@@ -2030,12 +2062,15 @@ thread_exiting(struct thread_element *te)
 				 * If we do not allocate the stack and we're running on Windows,
 				 * we're safe because the stack is not created using malloc()
 				 * so pthread_exit() will not need to compute the STID.
-				 * Reset the QID range so that no other thread can think it is
-				 * running in that space.
+				 *
+				 * However, now that we have the win32dlp code enabled, it is
+				 * possible that the ExitThread() call will call LoadLibrary()
+				 * for some reason, which we trap...
+				 *
+				 * So don't reset the QID range just yet, but don't warn about
+				 * possible race conditions -- they do exist though.
+				 *		--RAM, 2015-12-31
 				 */
-
-				te->last_qid = te->low_qid = -1;
-				te->high_qid = te->top_qid = 0;
 			} else {
 				static once_flag_t race_warning;
 
@@ -2342,7 +2377,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 			 */
 
 			THREAD_LOCK(xte);
-			if (xte->discovered || xte->exiting) {
+			if (xte->discovered || xte->exiting || xte->exit_started) {
 				bool dead_thread = FALSE;
 
 				if (
@@ -9337,19 +9372,6 @@ thread_exit_internal(void *value, const void *sp)
 
 		if (join_requested)
 			thread_unblock(te->joining_id);
-
-		if (is_running_on_mingw()) {
-			/*
-			 * If we do not allocate the stack and we're running on Windows,
-			 * we're safe because the stack is not created using malloc()
-			 * so pthread_exit() will not need to compute the STID.
-			 * Reset the QID range so that no other thread can think it is
-			 * running in that space.
-			 */
-
-			te->last_qid = te->low_qid = -1;
-			te->high_qid = te->top_qid = 0;
-		}
 	} else {
 		/*
 		 * Since pthread_exit() can malloc, we need to let thread_small_id()

@@ -85,6 +85,7 @@
 #include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
+#include "win32dlp.h"
 #include "xsort.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -804,6 +805,15 @@ xmalloc_show_settings_log(logagent_t *la)
 {
 	log_info(la, "using %s", xmalloc_is_malloc() ?
 		"our own malloc() replacement" : "native malloc()");
+
+	/*
+	 * On Windows, we're performing dynamic patching of loaded libraries
+	 * to redirect them to our malloc().
+	 */
+
+#ifdef MINGW32
+	win32dlp_show_settings_log(la);
+#endif
 }
 
 /**
@@ -6657,6 +6667,16 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 #define DUMPV(x)	log_info(la, "XM %s = %s", #x,			\
 	size_t_to_string_grp(x, groupped))
+
+	/*
+	 * On Windows, we're performing dynamic patching of loaded libraries
+	 * to redirect them to our malloc(), hence we need to include the
+	 * status of our patching activity as part of the malloc() stats.
+	 */
+
+#ifdef MINGW32
+	win32dlp_dump_stats_log(la, options);
+#endif
 
 	DUMP(allocations);
 	DUMP64(allocations_zeroed);

@@ -47,6 +47,7 @@
 #include "crash.h"
 #include "signal.h"
 #include "thread.h"
+#include "win32dlp.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -70,6 +71,10 @@ exit_cleanup(void)
 
 	if (0 != atomic_int_inc(&exit_cleanup_started))
 		return;
+
+#ifdef MINGW32
+	win32dlp_exiting();
+#endif
 
 	thread_exit_mode();
 	xmalloc_stop_freeing();
