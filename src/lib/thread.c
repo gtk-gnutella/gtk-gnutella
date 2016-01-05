@@ -8694,15 +8694,19 @@ thread_launch_register(struct thread_element *te)
 void * NO_INLINE
 thread_sp(void)
 {
-	int sp;
+	volatile ulong sp;		/* "volatile" prevents compiler optimizations */
 
 	/*
-	 * The useless masking computation below is there to avoid gcc 5.x from
-	 * (wrongly) optimizing this routine to return NULL.
-	 *		--RAM, 2015-07-20
+	 * Writing the address of the variable serves two purposes:
+	 * 1. it forces a possible stack growth by the kernel if we are right
+	 *    at a page boundary, making further addressing there fully legitimate.
+	 * 2. it helps preventing aggressive compilers from optimizing the
+	 *    routine to return NULL, thanks to the use of a volatile value.
 	 */
 
-	return ulong_to_pointer(pointer_to_ulong(&sp) & ~(MEM_ALIGNBYTES - 1));
+	sp = (ulong) &sp;	/* Not pointer_to_ulong() since sp is "volatile" */
+
+	return ulong_to_pointer(sp);
 }
 
 /**
