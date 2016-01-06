@@ -1978,34 +1978,41 @@ subzinfo_cmp(const void *a, const void *b)
 static G_GNUC_HOT struct subzinfo *
 zgc_find_subzone(struct zone_gc *zg, void *blk, unsigned *low_ptr)
 {
-	struct subzinfo *item, *array = zg->zg_subzinfo;
-	unsigned low = 0, high = zg->zg_zones - 1;
+	const struct subzinfo
+		*array = zg->zg_subzinfo,
+		*low = &array[0],
+		*high = &array[zg->zg_zones - 1],
+		*mid;
 	const char * const key = blk;
+
+	if G_UNLIKELY(0 == zg->zg_zones) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return NULL;
+	}
 
 	/* Binary search */
 
 	for (;;) {
-		unsigned mid;
-
-		if G_UNLIKELY(low > high || high > INT_MAX) {
-			item = NULL;	/* Not found */
+		if G_UNLIKELY(low > high) {
+			mid = NULL;		/* Not found */
 			break;
 		}
+
 		mid = low + (high - low) / 2;
 
-		item = &array[mid];
-		if (key >= item->szi_end)
+		if (key >= mid->szi_end)
 			low = mid + 1;
-		else if (key < item->szi_base)
-			high = mid - 1;
+		else if (key < mid->szi_base)
+			high = mid - 1;		/* -1 OK since pointers cannot reach page 0 */
 		else
 			break;	/* Found */
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = low;
+		*low_ptr = low - &array[0];
 
-	return item;
+	return deconstify_pointer(mid);
 }
 
 /**

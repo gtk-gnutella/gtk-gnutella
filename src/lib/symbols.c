@@ -529,6 +529,9 @@ symbols_lookup(const symbols_t *st, const void *addr)
 
 	symbols_check(st);
 
+	if G_UNLIKELY(0 == st->count)
+		return NULL;
+
 	low = st->base,
 	high = &st->base[st->count - 1],
 
@@ -539,7 +542,7 @@ symbols_lookup(const symbols_t *st, const void *addr)
 		if (laddr >= mid->addr && (mid == high || laddr < (mid+1)->addr))
 			return mid;			/* Found it! */
 		else if (laddr < mid->addr)
-			high = mid - 1;
+			high = mid - 1;		/* -1 OK, since pointers cannot reach page 0 */
 		else
 			low = mid + 1;
 	}

@@ -1962,35 +1962,39 @@ free_pages(void *p, size_t size, bool update_pmap)
 static G_GNUC_HOT struct vm_fragment *
 pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 {
-	size_t low = 0, high = pm->count - 1;
-	struct vm_fragment *item;
-	size_t mid = 0;
+	const struct vm_fragment
+		*low = &pm->array[0],
+		*high = &pm->array[pm->count - 1],
+		*mid;
+
+	if G_UNLIKELY(0 == pm->count) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return NULL;
+	}
 
 	/* Binary search */
 
 	for (;;) {
-		if (low > high || high > SIZE_MAX / 2) {
-			item = NULL;		/* Not found */
+		if G_UNLIKELY(low > high) {
+			mid = NULL;		/* Not found */
 			break;
 		}
 
 		mid = low + (high - low) / 2;
 
-		g_assert(mid < pm->count);
-
-		item = &pm->array[mid];
-		if (ptr_cmp(p, item->end) >= 0)
+		if (ptr_cmp(p, mid->end) >= 0)
 			low = mid + 1;
-		else if (ptr_cmp(p, item->start) < 0)
-			high = mid - 1;
+		else if (ptr_cmp(p, mid->start) < 0)
+			high = mid - 1;		/* -1 OK since pointers cannot reach page 0 */
 		else
 			break;	/* Found */
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = (item == NULL) ? low : mid;
+		*low_ptr = (NULL == mid ? low : mid) - &pm->array[0];
 
-	return item;
+	return deconstify_pointer(mid);
 }
 
 /**
@@ -2928,8 +2932,10 @@ free_pages_vector(void *vec[], size_t vcnt, size_t size)
 static size_t
 vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 {
-	size_t low = 0, high = pc->current - 1;
-	size_t mid;
+	const struct page_info
+		*low = &pc->info[0],
+		*high = &pc->info[pc->current - 1],
+		*mid;
 
 	if G_UNLIKELY(0 == pc->current) {
 		if (low_ptr != NULL)
@@ -2939,8 +2945,8 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 
 	/* Optimize if have more than 4 items */
 
-	if G_LIKELY(high >= 4) {
-		const char *q = pc->info[0].base;
+	if G_LIKELY(pc->current > 4) {
+		const char *q = low->base;
 
 		if G_UNLIKELY(q == p)
 			return 0;
@@ -2951,12 +2957,12 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 		}
 		low++;		/* We already checked item 0 */
 
-		q = pc->info[high].base;
+		q = high->base;
 		if G_UNLIKELY(q == p)
-			return high;
+			return pc->current - 1;
 		if (p > q) {
 			if (low_ptr != NULL)
-				*low_ptr = high + 1;
+				*low_ptr = pc->current;
 			return -1;
 		}
 		high--;		/* We already checked last item */
@@ -2965,30 +2971,25 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 	/* Binary search */
 
 	for (;;) {
-		const char *item;
-
-		if (low > high || high > SIZE_MAX / 2) {
-			mid = -1;		/* Not found */
+		if G_UNLIKELY(low > high) {
+			mid = NULL;		/* Not found */
 			break;
 		}
 
 		mid = low + (high - low) / 2;
 
-		g_assert(mid < pc->current);
-
-		item = pc->info[mid].base;
-		if (p > item)
+		if (p > (char *) mid->base)
 			low = mid + 1;
-		else if (p < item)
-			high = mid - 1;
+		else if (p < (char *) mid->base)
+			high = mid - 1;		/* -1 OK since pointers cannot reach page 0 */
 		else
 			break;				/* Found */
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = low;
+		*low_ptr = low - &pc->info[0];
 
-	return mid;
+	return NULL == mid ? (size_t) -1 : (size_t) (mid - &pc->info[0]);
 }
 
 /**

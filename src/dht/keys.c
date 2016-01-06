@@ -732,21 +732,21 @@ keys_update_value(const kuid_t *id, const kuid_t *cid, time_t expire)
 		bool found = FALSE;
 
 		while (low <= high) {
-			int mid = low + (high - low) / 2;
+			int mid = (low + high) / 2;
 			int c;
 
 			g_assert(mid >= 0 && mid < ki->values);
 
 			c = kuid_cmp(&kd->creators[mid], cid);
 
-			if (0 == c) {
+			if G_UNLIKELY(0 == c) {
 				kd->expire[mid] = expire;
 				found = TRUE;
 				break;
 			} else if (c < 0) {
 				low = mid + 1;
 			} else {
-				high = mid - 1;
+				high = mid - 1;		/* -1 OK since low and high are signed */
 			}
 		}
 
@@ -866,20 +866,20 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		 */
 
 		while (low <= high) {
-			int mid = low + (high - low) / 2;
+			int mid = (low + high) / 2;
 			int c;
 
 			g_assert(mid >= 0 && mid < ki->values);
 
 			c = kuid_cmp(&kd->creators[mid], cid);
 
-			if (0 == c)
+			if G_UNLIKELY(0 == c)
 				g_error("new creator KUID %s must not already be present",
 					kuid_to_hex_string(cid));
 			else if (c < 0)
 				low = mid + 1;
 			else
-				high = mid - 1;
+				high = mid - 1;		/* -1 OK since low and high are signed */
 		}
 
 		/* Make room for inserting new item at `low' */

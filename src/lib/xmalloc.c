@@ -2132,16 +2132,17 @@ xfl_binary_lookup(void **array, const void *p,
 
 	XSTATS_INCX(freelist_binary_lookups);
 
-	mid = low + (high - low) / 2;
+	high++;		/* Refers to first off-bound item */
 
 	for (;;) {
 		int c;
 
-		if G_UNLIKELY(low > high || high > SIZE_MAX / 2) {
-			mid = -1;		/* Not found */
+		if G_UNLIKELY(low >= high) {
+			mid = (size_t) -1;	/* Not found */
 			break;
 		}
 
+		mid = (low + high) / 2;
 		c = xm_ptr_cmp(p, array[mid]);
 
 		if G_UNLIKELY(0 == c)
@@ -2149,10 +2150,8 @@ xfl_binary_lookup(void **array, const void *p,
 		else if (c > 0)
 			low = mid + 1;
 		else
-			high = mid - 1;
+			high = mid;			/* Not -1 since high is unsigned */
 
-		mid = low + (high - low) / 2;
-		G_PREFETCH_R(&array[mid]);
 	}
 
 	if (low_ptr != NULL)
@@ -7135,38 +7134,41 @@ xalign_type_str(const struct xaligned *xa)
 static G_GNUC_HOT size_t
 xa_lookup(const void *p, size_t *low_ptr)
 {
-	size_t low = 0, high = aligned_count - 1;
-	size_t mid = low + (high - low) / 2;
+	const struct xaligned
+		*low = &aligned[0],
+		*high = &aligned[aligned_count - 1],
+		*mid;
 
 	XSTATS_INCX(aligned_lookups);
+
+	if G_UNLIKELY(0 == aligned_count) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return (size_t) -1;
+	}
 
 	/* Binary search */
 
 	for (;;) {
-		const struct xaligned *item;
-
-		if G_UNLIKELY(low > high || high > SIZE_MAX / 2) {
-			mid = -1;		/* Not found */
+		if G_UNLIKELY(low > high) {
+			mid = NULL;		/* Not found */
 			break;
 		}
 
-		item = &aligned[mid];
+		mid = low + (high - low) / 2;
 
-		if (p > item->start)
+		if (p > mid->start)
 			low = mid + 1;
-		else if (p < item->start)
-			high = mid - 1;
+		else if (p < mid->start)
+			high = mid - 1;		/* -1 OK since pointers cannot reach page 0 */
 		else
 			break;				/* Found */
-
-		mid = low + (high - low) / 2;
-		G_PREFETCH_R(&aligned[mid].start);
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = low;
+		*low_ptr = low - &aligned[0];
 
-	return mid;
+	return NULL == mid ? (size_t) -1 : (size_t) (mid - &aligned[0]);
 }
 
 /**
