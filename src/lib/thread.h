@@ -275,7 +275,7 @@ bool thread_main_is_blockable(void);
 int thread_create(process_fn_t routine, void *arg, uint flags, size_t stack);
 int thread_create_full(process_fn_t routine, void *arg, uint flags,
 	size_t stack, thread_exit_t exited, void *earg);
-void thread_exit(void *value) G_GNUC_NORETURN;
+void thread_exit(void *value) G_NORETURN;
 void thread_atexit(thread_exit_t exit_cb, void *exit_arg);
 bool thread_is_exiting(void);
 int thread_join(unsigned id, void **result);
@@ -299,7 +299,7 @@ tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
 unsigned thread_sig_generation(void);
 bool thread_pause(void);
-void thread_halt(void) G_GNUC_NORETURN;
+void thread_halt(void) G_NORETURN;
 bool thread_sigsuspend(const tsigset_t *mask);
 void thread_sleep_ms(unsigned int ms);
 bool thread_timed_sigsuspend(const tsigset_t *mask, const struct tmval *tout);

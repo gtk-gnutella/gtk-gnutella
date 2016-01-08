@@ -54,7 +54,7 @@ static bool large_keys, large_values, common_head_tail;
 #define WR_EMPTY	(1 << 2)
 #define WR_DELETING	(1 << 3)
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,

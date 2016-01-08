@@ -44,7 +44,7 @@
 #include "strtok.h"
 #include "walloc.h"
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,

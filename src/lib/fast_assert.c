@@ -129,7 +129,7 @@ assertion_message(const assertion_data * const data, int fatal)
 /**
  * Abort execution, possibly dumping a stack frame.
  */
-static void * G_GNUC_COLD G_GNUC_NORETURN
+static void * G_GNUC_COLD G_NORETURN
 assertion_abort_process(void *unused)
 {
 	static volatile sig_atomic_t seen_fatal;
@@ -214,7 +214,7 @@ assertion_abort_process(void *unused)
 /**
  * Abort execution, possibly dumping a stack frame.
  */
-static void G_GNUC_COLD G_GNUC_NORETURN
+static void G_GNUC_COLD G_NORETURN
 assertion_abort(void)
 {
 	crash_divert_main(G_STRFUNC, assertion_abort_process, NULL);

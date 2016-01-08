@@ -85,7 +85,7 @@ static long cpu_count;
 
 static void *sleeping_thread(void *unused_arg);
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,

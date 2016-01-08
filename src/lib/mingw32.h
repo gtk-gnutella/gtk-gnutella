@@ -770,7 +770,7 @@ const char *dir_entry_filename(const void *dirent);
 size_t dir_entry_namelen(const void *dirent);
 
 int mingw_getgateway(uint32 *ip);
-void mingw_abort(void) G_GNUC_NORETURN;
+void mingw_abort(void) G_NORETURN;
 int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
 pid_t mingw_launchve(const char *path, char *const argv[], char *const envp[]);
 int mingw_spopenve(const char *path, const char *mode, int fd[2],

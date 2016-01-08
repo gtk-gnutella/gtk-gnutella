@@ -66,7 +66,7 @@ static int main_argc;
 static const char **main_argv;
 static const char **main_env;
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -146,7 +146,7 @@ emit_zap(const char *caller, const char *fmt, ...)
 
 #define emitz(fmt, ...) emit_zap(G_STRFUNC, (fmt), __VA_ARGS__)
 
-static int G_GNUC_NULL_TERMINATED
+static int G_NULL_TERMINATED
 verbose_spopen(char * const envp[],
 	const char *path, const char *mode, int fd[2], ...)
 {

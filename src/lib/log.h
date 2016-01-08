@@ -62,7 +62,7 @@ typedef struct logagent logagent_t;
 struct str;
 
 const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
-void log_abort(void) G_GNUC_NORETURN;
+void log_abort(void) G_NORETURN;
 
 void log_init(void);
 void log_crash_mode(void);
@@ -91,7 +91,7 @@ int log_get_fd(enum log_file which);
  */
 
 void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
+void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2) G_NORETURN;
 int s_error_expr(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
@@ -102,11 +102,11 @@ void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_fatal_exit(int status, const char *format, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+	G_GNUC_PRINTF(2, 3) G_NORETURN;
 void s_error_from(const char *file, const char *fmt, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+	G_GNUC_PRINTF(2, 3) G_NORETURN;
 void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args);
-void s_minierror(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
+void s_minierror(const char *format, ...) G_GNUC_PRINTF(1, 2) G_NORETURN;
 void s_minicrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_miniwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minimsg(const char *format, ...) G_GNUC_PRINTF(1, 2);

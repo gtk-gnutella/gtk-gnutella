@@ -74,10 +74,10 @@ typedef struct assertion_data {
  *		--RAM, 2009-10-31
  */
 
-void G_GNUC_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
+void G_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data);
 
-void G_GNUC_NORETURN NON_NULL_PARAM((1)) G_GNUC_PRINTF(2,3)
+void G_NORETURN NON_NULL_PARAM((1)) G_GNUC_PRINTF(2,3)
 assertion_failure_log(const assertion_data * const data, const char *fmt, ...);
 
 void NON_NULL_PARAM((1)) /* REGPARM(1) */

@@ -210,7 +210,7 @@ static const uint32 a3m[] = { 0, a3 };
  *
  * This generator has a period of 2**1024 - 1 and implements WELL 1024a.
  */
-static inline uint32 G_GNUC_UNUSED
+static inline uint32 G_UNUSED
 well_1024a(well_state_t *ws)		/* UNUSED, for reference only */
 {
 	uint32 z0, z1, z2;

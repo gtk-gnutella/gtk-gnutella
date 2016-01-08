@@ -59,7 +59,7 @@
 const char *progpath;
 static bool debugging, pid_only;
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -148,7 +148,7 @@ verbose_unlink(const char *lock)
 		emitz("could not unlink \"%s\": %m", lock);
 }
 
-static pid_t G_GNUC_NULL_TERMINATED
+static pid_t G_NULL_TERMINATED
 verbose_launch(const char *path, ...)
 {
 	pid_t p;

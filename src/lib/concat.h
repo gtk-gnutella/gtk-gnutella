@@ -38,9 +38,9 @@
 #define _concat_h_
 
 size_t concat_strings(char *dst, size_t size,
-	const char *s, ...) G_GNUC_NULL_TERMINATED;
+	const char *s, ...) G_NULL_TERMINATED;
 size_t w_concat_strings(char **dst,
-	const char *first, ...) G_GNUC_NULL_TERMINATED;
+	const char *first, ...) G_NULL_TERMINATED;
 size_t concat_strings_v(char *dst, size_t size, const char *s, va_list ap);
 
 #endif /* _concat_h_ */

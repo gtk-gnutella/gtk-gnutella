@@ -217,7 +217,7 @@ void gl_logv(const char *domain, GLogLevelFlags flags,
 void gl_log(const char *domain, GLogLevelFlags flags,
 	const char *format, ...) G_GNUC_PRINTF(3, 4);
 void gl_error(const char *domain, const char *format, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+	G_GNUC_PRINTF(2, 3) G_NORETURN;
 
 #endif /* _glog_h_ */
 

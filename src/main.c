@@ -1210,7 +1210,7 @@ option_name_prefix(const void *key, const void *item)
 	return option_strcmp(name, oi->name);
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 option_ambiguous(const char *name, struct option *item)
 {
 	struct option *min = item, *max = item, *o;
@@ -1283,7 +1283,7 @@ ambiguous:
 	option_ambiguous(name, item);
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(int exit_code)
 {
 	FILE *f;
@@ -1372,7 +1372,7 @@ done:
 /**
  * Log error, prefixing string with program name, then show usage and exit.
  */
-static void G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN
+static void G_GNUC_PRINTF(1, 2) G_NORETURN
 main_error(const char *fmt, ...)
 {
 	va_list args;
@@ -1975,7 +1975,7 @@ static const char **main_env;
  * until we get more crashes per hour than we can withstand.
  * 
  */
-static void G_GNUC_NORETURN
+static void G_NORETURN
 main_supervise(void)
 {
 	uint32 dbg = 0;			/* Debugging level for callout queue */

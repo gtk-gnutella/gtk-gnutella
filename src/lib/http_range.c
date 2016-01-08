@@ -280,7 +280,7 @@ http_range_item_to_string2(const struct http_range_item * const hri)
  * As a side effect, also validates that the list of ranges is sorted and
  * that there are no adjacent ranges (they should always be coalesced).
  */
-static inline filesize_t G_GNUC_UNUSED
+static inline filesize_t G_UNUSED
 http_rangeset_compute_length(const http_rangeset_t *hrs)
 {
 	slink_t *sl;

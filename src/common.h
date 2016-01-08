@@ -269,7 +269,6 @@ typedef uint64 filesize_t; /**< Use filesize_t to hold filesizes */
 #endif
 
 #include "lib/mingw32.h"
-#include "lib/exit.h"		/* Transparent exit() trapping */
 
 #ifndef MINGW32
 
@@ -554,7 +553,7 @@ typedef int socket_fd_t;
 #endif
 
 /**
- * This is the same G_GNUC_FORMAT() but for function pointers. Older versions
+ * This is the same as G_GNUC_FORMAT() but for function pointers. Older versions
  * of GCC do not allow function attributes for function pointers.
  */
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
@@ -578,19 +577,21 @@ typedef int socket_fd_t;
  * or seems to be unused.
  */
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define G_GNUC_USED __attribute__((__used__))
+#define G_USED __attribute__((__used__))
 #else /* GCC < 3.1 || !GCC */
-#define G_GNUC_USED
+#define G_USED
 #endif
 
 /*
  * Let the compiler know that the function may be unused, hence it should
  * not emit any warning about it.
+ *
+ * Can also tag function parameters as remaining purposedly unused.
  */
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define G_GNUC_UNUSED __attribute__((__unused__))
+#define G_UNUSED __attribute__((__unused__))
 #else	/* GCC < 3.1 */
-#define G_GNUC_UNUSED
+#define G_UNUSED
 #endif
 
 /*
@@ -606,13 +607,13 @@ typedef int socket_fd_t;
  * Functions using this attribute cause a warning if the variable
  * argument list does not contain a NULL pointer.
  */
-#ifndef G_GNUC_NULL_TERMINATED
+#ifndef G_NULL_TERMINATED
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 0)
-#define G_GNUC_NULL_TERMINATED __attribute__((__sentinel__))
+#define G_NULL_TERMINATED __attribute__((__sentinel__))
 #else	/* GCC < 4 */
-#define G_GNUC_NULL_TERMINATED
+#define G_NULL_TERMINATED
 #endif	/* GCC >= 4 */
-#endif	/* G_GNUC_NULL_TERMINATED */
+#endif	/* G_NULL_TERMINATED */
 
 /*
  * Define G_LIKELY() and G_UNLIKELY() so that they are available when
@@ -656,13 +657,13 @@ typedef int socket_fd_t;
  * registers before calling the routine.  However, this can mess up the
  * stack unwinding past these routines.
  */
-#ifndef G_GNUC_NORETURN
+#ifndef G_NORETURN
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
-#define G_GNUC_NORETURN __attribute__((__noreturn__))
+#define G_NORETURN __attribute__((__noreturn__))
 #else
-#define G_GNUC_NORETURN
+#define G_NORETURN
 #endif	/* GCC >= 2.4 */
-#endif	/* G_GNUC_NORETURN */
+#endif	/* G_NORETURN */
 
 #ifndef G_GNUC_MALLOC
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
@@ -975,6 +976,7 @@ ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
 
 #include "casts.h"
 #include "lib/fast_assert.h"
+#include "lib/exit.h"		/* Transparent exit() trapping */
 #include "lib/glog.h"
 
 #endif /* _common_h_ */

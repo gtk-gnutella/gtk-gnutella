@@ -70,7 +70,7 @@ warning(const char *msg, ...)
 	fprintf(stderr, "%s: WARNING: %s\n", getprogname(), buf);
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,

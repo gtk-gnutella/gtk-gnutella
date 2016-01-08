@@ -296,7 +296,7 @@ log_keyerr(datum key, int key_hexa, const char *what)
 	fprintf(stderr, ": %s\n", g_strerror(saved));
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,

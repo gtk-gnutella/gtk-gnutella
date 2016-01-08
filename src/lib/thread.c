@@ -587,10 +587,10 @@ static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 static void thread_lock_dump(const struct thread_element *te);
-static void thread_exit_internal(void *value, const void *sp) G_GNUC_NORETURN;
+static void thread_exit_internal(void *value, const void *sp) G_NORETURN;
 static void thread_will_exit(void *arg);
 static void thread_crash_hook(void);
-static void thread_stack_overflow(struct thread_element *te) G_GNUC_NORETURN;
+static void thread_stack_overflow(struct thread_element *te) G_NORETURN;
 static void thread_divert_run(struct thread_element *te);
 static void thread_divert_handle(int signo);
 

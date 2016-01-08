@@ -1384,7 +1384,7 @@ rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line)
 /**
  * Log write lock ownership error.
  */
-static void G_GNUC_NORETURN
+static void G_NORETURN
 rwlock_log_error(const rwlock_t *rw, const char *file, unsigned line)
 {
 	s_error("thread #%u expected to own write lock %p (%s) at %s:%u"

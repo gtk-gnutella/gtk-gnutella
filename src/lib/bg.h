@@ -200,7 +200,7 @@ void bg_task_cancel(bgtask_t *h);
 void bg_task_cancel_test(bgtask_t *bt);
 void bg_task_sleep(bgtask_t *bt);
 void bg_task_wakeup(bgtask_t *bt);
-void bg_task_exit(bgtask_t *h, int code) G_GNUC_NORETURN;
+void bg_task_exit(bgtask_t *h, int code) G_NORETURN;
 void bg_task_ticks_used(bgtask_t *h, int used);
 bgsig_cb_t bg_task_signal(bgtask_t *h, bgsig_t sig, bgsig_cb_t handler);
 

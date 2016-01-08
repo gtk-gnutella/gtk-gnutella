@@ -513,7 +513,7 @@ mutex_set_lock_source(mutex_t *m, const char *file, unsigned line)
 /**
  * Log mutex ownership error.
  */
-static void G_GNUC_NORETURN
+static void G_NORETURN
 mutex_log_error(const mutex_t *m, const char *file, unsigned line)
 {
 	thread_t t = thread_current();
