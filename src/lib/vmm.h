@@ -70,13 +70,13 @@
 
 #ifdef TRACK_VMM
 void *vmm_alloc_track(size_t size, bool user_mem,
-	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+	const char *file, int line) G_MALLOC;
 void *vmm_alloc_track_not_leaking(size_t size,
-	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+	const char *file, int line) G_MALLOC;
 void *vmm_core_alloc_track_not_leaking(size_t size,
-	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+	const char *file, int line) G_MALLOC;
 void *vmm_alloc0_track(size_t size,
-	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+	const char *file, int line) G_MALLOC;
 void *vmm_resize_track_not_leaking(void *p, size_t osize, size_t nsize,
 	const char *file, int line) WARN_UNUSED_RESULT;
 void vmm_free_track(void *p, size_t size, bool user_mem,
@@ -86,7 +86,7 @@ void vmm_shrink_track(void *p, size_t o, size_t n, bool user_mem,
 void *vmm_resize_track(void *p, size_t o, size_t n,
 	const char *file, int line) WARN_UNUSED_RESULT;
 
-void *vmm_alloc_notrack(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_alloc_notrack(size_t size) G_MALLOC;
 void vmm_free_notrack(void *p, size_t size);
 
 #else	/* !TRACK_VMM */
@@ -96,9 +96,9 @@ void vmm_free_notrack(void *p, size_t size);
 #endif	/* TRACK_VMM */
 
 #if defined(VMM_SOURCE) || !defined(TRACK_VMM)
-void *vmm_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *vmm_core_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_alloc(size_t size) G_MALLOC;
+void *vmm_core_alloc(size_t size) G_MALLOC;
+void *vmm_alloc0(size_t size) G_MALLOC;
 void vmm_free(void *p, size_t size);
 void vmm_core_free(void *p, size_t size);
 void vmm_shrink(void *p, size_t size, size_t new_size);

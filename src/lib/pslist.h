@@ -75,7 +75,7 @@ pslist_data(const pslist_t *pl)
  * Public interface.
  */
 
-pslist_t *pslist_alloc(void) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+pslist_t *pslist_alloc(void) G_MALLOC;
 void pslist_free_1(pslist_t *l);
 void pslist_free_1_null(pslist_t **l_ptr);
 pslist_t *pslist_free(pslist_t *pl);

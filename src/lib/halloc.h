@@ -46,13 +46,13 @@
 #define halloc0(_s)	halloc0_track(_s, _WHERE_, __LINE__)
 
 void *halloc_track(size_t size,
-	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+	const char *file, int line) G_MALLOC;
 void *halloc0_track(size_t size,
-	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+	const char *file, int line) G_MALLOC;
 #else
 #ifndef TRACK_MALLOC
-void *halloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *halloc(size_t size) G_MALLOC;
+void *halloc0(size_t size) G_MALLOC;
 #endif
 #endif	/* TRACK_ZALLOC */
 
@@ -64,7 +64,7 @@ void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void hfree(void *ptr);
 void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT;
 
-static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
+static inline void * G_MALLOC
 hcopy(const void *p, size_t size)
 {
 	void *cp = halloc(size);
@@ -72,15 +72,13 @@ hcopy(const void *p, size_t size)
 	return cp;
 }
 
-char *h_strdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-char *h_strndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+char *h_strdup(const char *str) G_MALLOC;
+char *h_strndup(const char *str, size_t n) G_MALLOC;
 char *h_strjoinv(const char *separator, char * const *str_ary);
 char *h_strnjoinv(const char *separator, size_t seplen, char * const *str_ary);
 void h_strfreev(char **str_array);
-char *h_strconcat(const char *str1, ...) WARN_UNUSED_RESULT G_GNUC_MALLOC 
-	G_NULL_TERMINATED;
-char *h_strconcat_v(const char *first, va_list ap)
-	WARN_UNUSED_RESULT G_GNUC_MALLOC;
+char *h_strconcat(const char *str1, ...) G_MALLOC G_NULL_TERMINATED;
+char *h_strconcat_v(const char *first, va_list ap) G_MALLOC;
 char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
 char *h_strdup_vprintf(const char *format, va_list ap) G_GNUC_PRINTF(1, 0);
 char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)

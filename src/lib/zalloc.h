@@ -79,7 +79,7 @@ struct pslist;
 struct eslist;
 struct sha1;
 
-void *zalloc(zone_t *) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *zalloc(zone_t *) G_MALLOC;
 void zfree(zone_t *, void *);
 void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
 void zfree_pslist(zone_t *, struct pslist *);

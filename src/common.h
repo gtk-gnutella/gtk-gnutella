@@ -665,13 +665,13 @@ typedef int socket_fd_t;
 #endif	/* GCC >= 2.4 */
 #endif	/* G_NORETURN */
 
-#ifndef G_GNUC_MALLOC
+#ifndef G_MALLOC
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
-#define G_GNUC_MALLOC __attribute__((__malloc__))
+#define G_MALLOC __attribute__((__malloc__)) WARN_UNUSED_RESULT
 #else
-#define G_GNUC_MALLOC
+#define G_MALLOC
 #endif	/* GCC >= 3.0 */
-#endif	/* G_GNUC_MALLOC */
+#endif	/* G_MALLOC */
 
 /**
  * A hot function is optimized more aggressively.
