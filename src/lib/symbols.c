@@ -1233,7 +1233,7 @@ symbols_open(symbols_t *st, const char *exe, const char *nm)
  * @param exe			the executable file
  * @param lpath			the executable name for logging purposes only
  */
-void G_GNUC_COLD
+void G_COLD
 symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 {
 	char tmp[MAX_PATH_LEN + 80];

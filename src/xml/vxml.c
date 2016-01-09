@@ -1407,7 +1407,7 @@ vxml_encoding_is_utf32(enum vxml_encoding e)
  * Formats document parsing name and parsing position into a static buffer
  * for error logging.
  */
-static G_GNUC_COLD const char *
+static const char * G_COLD
 vxml_document_where(vxml_parser_t *vp)
 {
 	static char buf[1024];
@@ -6256,7 +6256,7 @@ vxml_parse_tree(vxml_parser_t *vp, xnode_t **root)
 /**
  * Check that tokenizer arrays are sorted.
  */
-static void G_GNUC_COLD
+static void G_COLD
 vxml_tokenizer_check(void)
 {
 	TOKENIZE_CHECK_SORTED(vxml_default_entities);
@@ -6346,7 +6346,7 @@ const char bad_namespace3[] =
 const char faulty[] = "<a>text<b>other text<c>x</c><d><e>text</a>";
 const char illseq[] = "<a>maX</a>";
 
-static G_GNUC_COLD void
+static void G_COLD
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags, vxml_error_t error)
 {
@@ -6370,7 +6370,7 @@ vxml_run_simple_test(int num, const char *name,
 	vxml_parser_free(vp);
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 vxml_run_ns_simple_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags,
 	vxml_error_t error_no_ns, vxml_error_t error_with_ns)
@@ -6394,7 +6394,7 @@ struct vxml_test_info {
 	void *data;
 };
 
-static G_GNUC_COLD void
+static void G_COLD
 vxml_run_callback_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags,
 	const struct vxml_ops *ops, struct vxml_token *tvec, size_t tlen,
@@ -6450,7 +6450,7 @@ vxml_tree_extended_dump(const xnode_t *root, FILE *f, const char *default_ns)
 	ostream_close(os);
 }
 
-static G_GNUC_COLD xnode_t *
+static xnode_t * G_COLD
 vxml_run_tree_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags, vxml_error_t error)
 {
@@ -6482,7 +6482,7 @@ vxml_run_tree_test(int num, const char *name,
 	return VXML_E_OK == e ? root : NULL;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 tricky_text(vxml_parser_t *vp,
 	const char *name, const char *text, size_t len, void *data)
 {
@@ -6508,7 +6508,7 @@ tricky_text(vxml_parser_t *vp,
 #define T_C		3
 #define T_D		4
 
-static G_GNUC_COLD void
+static void G_COLD
 evaluation_text(vxml_parser_t *vp,
 	unsigned id, const char *text, size_t len, void *data)
 {
@@ -6530,7 +6530,7 @@ evaluation_text(vxml_parser_t *vp,
 	g_assert(0 == strcmp(text, expected));
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 blank_text(vxml_parser_t *vp,
 	unsigned id, const char *text, size_t len, void *data)
 {
@@ -6644,7 +6644,7 @@ subparse_token_end(vxml_parser_t *vp, unsigned id, void *data)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 subparse_start(vxml_parser_t *vp,
 	const char *name, const xattr_table_t *attrs, void *data)
 {
@@ -6693,7 +6693,7 @@ vxml_node_is_named(const void *node, void *data)
 	return xnode_is_element(xn) && 0 == strcmp(name, xnode_element_name(xn));
 }
 
-G_GNUC_COLD void
+void G_COLD
 vxml_test(void)
 {
 	struct vxml_ops ops;
@@ -6884,7 +6884,7 @@ vxml_test(void)
 	}
 }
 #else	/* !VXML_TESTING */
-void G_GNUC_COLD
+void G_COLD
 vxml_test(void)
 {
 	vxml_tokenizer_check();

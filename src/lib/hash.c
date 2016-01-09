@@ -165,7 +165,7 @@ static unsigned hash_offset_secondary;
 /**
  * Initialize random hash offset if not already done.
  */
-static G_GNUC_COLD void
+static void G_COLD
 hash_random_offset_init(void)
 {
 	static bool done;
@@ -515,7 +515,7 @@ hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
  * @return TRUE if key was found with kidx now holding the index of the key,
  * FALSE otherwise with kidx now holding the insertion index for the key.
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 	size_t *kidx, size_t *tombidx)
 {

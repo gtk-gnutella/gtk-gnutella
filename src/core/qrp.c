@@ -473,7 +473,7 @@ RT_SLOT_READ(const uint8 *arena, uint i)
  * As a side effect, increment rt->set_count if the position ``i'' ends-up
  * being set after patching.
  */
-static inline G_GNUC_HOT ALWAYS_INLINE void
+static inline ALWAYS_INLINE void G_HOT
 qrt_patch_slot(struct routing_table *rt, uint i, uint8 v)
 {
 	uint b = 0x80U >> (i & 0x7);
@@ -4288,7 +4288,7 @@ qrt_apply_reversed_patch1(struct qrt_receive *qrcv, const uchar *data, int len,
  * This routine is called when there are no URNs in the query, only words.
  */
 #define CAN_ROUTE(bits)													\
-static G_GNUC_HOT bool													\
+static bool G_HOT														\
 qrp_can_route_##bits(const query_hashvec_t *qhv,						\
 					 const struct routing_table *rt)					\
 {																		\
@@ -5006,7 +5006,7 @@ qrp_monitor(void *unused_obj)
 /**
  * Initialize QRP.
  */
-G_GNUC_COLD void
+void G_COLD
 qrp_init(void)
 {
 	/*
@@ -5037,7 +5037,7 @@ qrp_init(void)
 /**
  * Called at servent shutdown to reclaim all the memory.
  */
-G_GNUC_COLD void
+void G_COLD
 qrp_close(void)
 {
 	qrp_cancel_computation();
@@ -5367,7 +5367,7 @@ qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
  * @returns list of nodes, a subset of the currently connected nodes.
  * Once used, the list of nodes can be freed with pslist_free().
  */
-G_GNUC_HOT pslist_t *
+pslist_t * G_HOT
 qrt_build_query_target(
 	query_hashvec_t *qhvec, int hops, int ttl, bool leaves,
 	gnutella_node_t *source)
@@ -5658,7 +5658,7 @@ G_STMT_START {								\
 #define CHECK(x) g_assert((x))
 #endif /* TEST */
 
-G_GNUC_COLD void
+void G_COLD
 test_hash(void)
 {
 	static const struct {

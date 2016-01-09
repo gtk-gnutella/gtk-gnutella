@@ -284,7 +284,7 @@ is_my_address_and_port(const host_addr_t addr, uint16 port)
  * @return a filelock object on success, NULL if we could not lock with
  * errno set.
  */
-static G_GNUC_COLD filelock_t *
+static filelock_t * G_COLD
 ensure_unicity(const char *file, bool check_only)
 {
 	filelock_params_t params;
@@ -321,7 +321,7 @@ settings_mkdir(const char *path, bool fatal)
 /**
  * Initializes "config_dir", "home_dir", "crash_dir", etc...
  */
-G_GNUC_COLD void
+void G_COLD
 settings_early_init(void)
 {
 	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
@@ -584,7 +584,7 @@ settings_random_save(bool verbose)
 /**
  * Handle cleanup operation when upgrading from an older version.
  */
-static void G_GNUC_COLD
+static void G_COLD
 settings_handle_upgrades(void)
 {
 	/* 2014-05-02 -- Bitzi is now gone for version 1.1 */
@@ -596,7 +596,7 @@ settings_handle_upgrades(void)
  *
  * @param is_supervisor		TRUE if dealing with the supervisor process
  */
-void G_GNUC_COLD
+void G_COLD
 settings_unique_instance(bool is_supervisor)
 {
 	pid_t lpid;
@@ -611,7 +611,7 @@ settings_unique_instance(bool is_supervisor)
 	}
 }
 
-void G_GNUC_COLD
+void G_COLD
 settings_init(void)
 {
 	uint64 memory = getphysmemsize();
@@ -1340,7 +1340,7 @@ settings_max_msg_size(void)
 /**
  * Called at exit time to flush the property files.
  */
-G_GNUC_COLD void
+void G_COLD
 settings_shutdown(void)
 {
 	/*
@@ -3438,7 +3438,7 @@ static prop_map_t property_map[] = {
 
 static bool init_list[GNET_PROPERTY_NUM];
 
-static G_GNUC_COLD void
+static void G_COLD
 settings_callbacks_init(void)
 {
     unsigned n;

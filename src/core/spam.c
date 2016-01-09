@@ -205,7 +205,7 @@ struct spam_item {
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static G_GNUC_COLD ulong
+static ulong G_COLD
 spam_load(FILE *f)
 {
 	static const struct spam_item zero_item;

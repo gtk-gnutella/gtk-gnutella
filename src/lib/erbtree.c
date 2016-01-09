@@ -586,7 +586,7 @@ set_child(rbnode_t *node, rbnode_t *child, bool left)
  * @return the existing key if the key already existed, NULL if the node
  * was properly inserted.
  */
-G_GNUC_HOT void *
+void * G_HOT
 erbtree_insert(erbtree_t *tree, rbnode_t *node)
 {
 	rbnode_t *key, *parent;
@@ -687,7 +687,7 @@ erbtree_insert(erbtree_t *tree, rbnode_t *node)
  * @attention
  * It is assumed that the node is already part of the tree.
  */
-G_GNUC_HOT void
+void G_HOT
 erbtree_remove(erbtree_t *tree, rbnode_t *node)
 {
 	rbnode_t *removed = node;

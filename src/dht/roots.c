@@ -1107,7 +1107,7 @@ roots_init_rootinfo(void)
 /**
  * Initialize root node caching.
  */
-G_GNUC_COLD void
+void G_COLD
 roots_init(void)
 {
 	dbstore_kv_t root_kv = { KUID_RAW_SIZE, NULL, sizeof(struct rootdata), 0 };
@@ -1159,7 +1159,7 @@ roots_free_kv(void *u_key, void *val, void *u_x)
 /**
  * Close root node caching.
  */
-G_GNUC_COLD void
+void G_COLD
 roots_close(void)
 {
 	if (roots) {

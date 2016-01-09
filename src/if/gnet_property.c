@@ -1115,7 +1115,7 @@ static const gboolean gnet_property_variable_tcp_no_listening_default = FALSE;
 
 static prop_set_t *gnet_property;
 
-G_GNUC_COLD prop_set_t *
+prop_set_t * G_COLD
 gnet_prop_init(void) {
     guint32 n;
 
@@ -11294,7 +11294,7 @@ gnet_prop_init(void) {
 /**
  * Free memory allocated by the property set.
  */
-G_GNUC_COLD void
+void G_COLD
 gnet_prop_shutdown(void) {
     guint32 n;
 

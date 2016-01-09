@@ -3443,7 +3443,7 @@ http_close(void)
  ***/
 
 #ifdef HTTP_TESTING
-static G_GNUC_COLD void
+static void G_COLD
 http_transaction_failed(char *data, size_t len, int code, header_t *h, void *a)
 {
 	const char *url = a;
@@ -3459,7 +3459,7 @@ http_transaction_failed(char *data, size_t len, int code, header_t *h, void *a)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 {
 	char *url = arg;
@@ -3489,7 +3489,7 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 http_async_test(void)
 {
 	void *ha;
@@ -3506,14 +3506,14 @@ http_async_test(void)
 	}
 }
 #else	/* !HTTP_TESTING */
-static G_GNUC_COLD void
+static void G_COLD
 http_async_test(void)
 {
 	/* Nothing */
 }
 #endif	/* HTTP_TESTING */
 
-G_GNUC_COLD void
+void G_COLD
 http_test(void)
 {
 	http_async_test();

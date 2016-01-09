@@ -104,7 +104,7 @@ walloc_maxsize(void)
 /**
  * Initialize the width-based allocator, once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 walloc_init_once(void)
 {
 	/*
@@ -118,7 +118,7 @@ walloc_init_once(void)
 /**
  * Enter crash mode: redirect all allocations to xmalloc() and avoid freeings.
  */
-G_GNUC_COLD void
+void G_COLD
 walloc_crash_mode(void)
 {
 	/*
@@ -392,7 +392,7 @@ walloc_get_magazine(size_t rounded)
  *
  * @return a pointer to the start of the allocated block.
  */
-G_GNUC_HOT void *
+void * G_HOT
 walloc(size_t size)
 {
 	tmalloc_t *depot;
@@ -780,7 +780,7 @@ wdestroy(void)
 /**
  * Initialize the width-based allocator.
  */
-G_GNUC_COLD void
+void G_COLD
 walloc_init(void)
 {
 	walloc_init_if_needed();

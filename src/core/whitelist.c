@@ -316,7 +316,7 @@ whitelist_dns_resolve(struct whitelist *item, bool revalidate)
 /**
  * Loads the whitelist into memory.
  */
-static G_GNUC_COLD void
+static void G_COLD
 whitelist_retrieve(void)
 {
 	char line[1024];
@@ -638,7 +638,7 @@ whitelist_periodic_dns(void *unused_obj)
  * Ensure we will monitor the file to reloead the whitelist soon after
  * the file is modified (or created if missing initially).
  */
-G_GNUC_COLD void
+void G_COLD
 whitelist_init(void)
 {
 	char *path;
@@ -664,7 +664,7 @@ whitelist_init(void)
 /**
  * Frees all entries in the whitelist.
  */
-G_GNUC_COLD void
+void G_COLD
 whitelist_close(void)
 {
     pslist_t *sl;

@@ -989,7 +989,7 @@ dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length)
  * @return pointer to value, or NULL if it was either not found or the
  * deserialization failed.
  */
-G_GNUC_HOT void *
+void * G_HOT
 dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 {
 	struct cached *entry;

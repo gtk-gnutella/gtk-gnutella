@@ -280,7 +280,7 @@ mime_type_from_filename(const char *filename)
 /**
  * Initialize the MIME table.
  */
-G_GNUC_COLD void
+void G_COLD
 mime_type_init(void)
 {
 	size_t i;

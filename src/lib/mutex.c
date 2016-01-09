@@ -96,7 +96,7 @@ mutex_set_owner(mutex_t *m, const char *file, unsigned line)
 /**
  * Enter crash mode: allow all mutexes to be silently released.
  */
-G_GNUC_COLD void
+void G_COLD
 mutex_crash_mode(void)
 {
 	mutex_pass_through = TRUE;
@@ -107,7 +107,7 @@ mutex_crash_mode(void)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 mutex_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
@@ -132,7 +132,7 @@ mutex_deadlock(const volatile void *obj, unsigned count,
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {

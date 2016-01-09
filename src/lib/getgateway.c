@@ -66,7 +66,7 @@
  *
  * @return 0 on success, -1 on failure with errno set.
  */
-static G_GNUC_COLD int
+static int G_COLD
 parse_netstat(host_addr_t *addrp)
 #ifdef HAS_POPEN
 {
@@ -155,7 +155,7 @@ parse_netstat(host_addr_t *addrp)
  *
  * @return 0 on success, -1 on failure with errno set.
  */
-G_GNUC_COLD int
+int G_COLD
 getgateway(host_addr_t *addrp)
 #if defined(MINGW32)
 {

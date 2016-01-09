@@ -476,7 +476,7 @@ float_qr(bignum_t *r, bignum_t *s,
  *
  * This routine will be called once, as needed the first time the API is used.
  */
-static G_GNUC_COLD void
+static void G_COLD
 float_init_once(void)
 {
 	int n, i, l;
@@ -519,7 +519,7 @@ float_init_once(void)
  * This routine is made public to allow setting a baseline when doing
  * timing measurements.
  */
-G_GNUC_COLD void
+void G_COLD
 float_init(void)
 {
 	ONCE_FLAG_RUN(float_inited, float_init_once);

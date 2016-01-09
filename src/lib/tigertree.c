@@ -452,7 +452,7 @@ tt_leave_count(TTH_CONTEXT *ctx)
 	return ctx->li;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 tt_check_digest(const char * const expected, const void *data, size_t size)
 {
 	char digest[TTH_BASE32_SIZE + 1];
@@ -474,7 +474,7 @@ tt_check_digest(const char * const expected, const void *data, size_t size)
 	}
 }
 
-G_GNUC_COLD void
+void G_COLD
 tt_check(void)
 {
 	/* test case: empty file (zero bytes) */

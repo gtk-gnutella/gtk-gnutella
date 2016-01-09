@@ -64,7 +64,7 @@ static time_t bogons_mtime;			 /**< Modification time of loaded file */
  *
  * @returns the amount of entries loaded.
  */
-static G_GNUC_COLD int
+static int G_COLD
 bogons_load(FILE *f)
 {
 	char line[1024];
@@ -167,7 +167,7 @@ bogons_changed(const char *filename, void *unused_udata)
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
  */
-static G_GNUC_COLD void
+static void G_COLD
 bogons_retrieve(void)
 {
 	FILE *f;

@@ -2674,7 +2674,7 @@ kmsg_infostr(const void *msg)
 /**
  * Initialize Kademlia messages.
  */
-G_GNUC_COLD void
+void G_COLD
 kmsg_init(void)
 {
 	size_t i;

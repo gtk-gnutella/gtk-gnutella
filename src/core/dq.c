@@ -2615,7 +2615,7 @@ dq_get_results_wanted(const struct guid *muid, uint32 *wanted)
 /**
  * Initialize dynamic querying.
  */
-G_GNUC_COLD void
+void G_COLD
 dq_init(void)
 {
 	dqueries = hevset_create_any(
@@ -2703,7 +2703,7 @@ free_leaf_muid(void *value, void *unused_udata)
 /**
  * Cleanup data structures used by dynamic querying.
  */
-G_GNUC_COLD void
+void G_COLD
 dq_close(void)
 {
 	hevset_foreach(dqueries, free_query, NULL);

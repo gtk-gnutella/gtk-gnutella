@@ -174,7 +174,7 @@ enum tqstate {
  *
  * This is only called when sorting at least TQSORT_THRESH items.
  */
-static G_GNUC_HOT void *
+static void * G_HOT
 tquicksort(void *arg)
 {
 	sort_args_t *sargs = (sort_args_t *) arg;

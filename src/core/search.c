@@ -3408,7 +3408,7 @@ bad_packet:
  * @return a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
-static G_GNUC_HOT gnet_results_set_t *
+static gnet_results_set_t * G_HOT
 get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 {
 	gnet_results_set_t *rs;
@@ -5492,7 +5492,7 @@ search_gc(void *unused_cq)
  *** Public functions
  ***/
 
-G_GNUC_COLD void
+void G_COLD
 search_init(void)
 {
 	TOKENIZE_CHECK_SORTED(g2_qh2_children);
@@ -5513,7 +5513,7 @@ search_init(void)
 	cq_periodic_main_add(SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
 
-G_GNUC_COLD void
+void G_COLD
 search_shutdown(void)
 {
 	while (sl_search_ctrl != NULL) {

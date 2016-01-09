@@ -1182,7 +1182,7 @@ cached_pong_eq(const void *v1, const void *v2)
 /**
  * Initialization.
  */
-G_GNUC_COLD void
+void G_COLD
 pcache_init(void)
 {
 	int h;
@@ -1539,7 +1539,7 @@ pcache_expire(void)
 /**
  * Final shutdown.
  */
-G_GNUC_COLD void
+void G_COLD
 pcache_close(void)
 {
 	static host_type_t types[] = { HOST_ANY, HOST_ULTRA };

@@ -856,7 +856,7 @@ inet_buf_shortage(void)
 /**
  * Initialization code.
  */
-G_GNUC_COLD void
+void G_COLD
 inet_init(void)
 {
 	/*
@@ -909,7 +909,7 @@ inet_init(void)
 /**
  * Shutdown cleanup.
  */
-G_GNUC_COLD void
+void G_COLD
 inet_close(void)
 {
 	aging_destroy(&outgoing_udp);

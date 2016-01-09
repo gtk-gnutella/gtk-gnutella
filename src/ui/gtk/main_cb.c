@@ -47,7 +47,7 @@
 
 static struct html_view *faq_html_view;
 
-static G_GNUC_COLD void
+static void G_COLD
 load_faq(void)
 {
 	static const gchar faq_file[] = "FAQ";

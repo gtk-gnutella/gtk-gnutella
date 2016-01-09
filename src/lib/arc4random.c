@@ -166,7 +166,7 @@ arc4_stir(struct arc4_stream *as)
 		arc4_getbyte(as);
 }
 
-static inline G_GNUC_HOT uint8
+static inline uint8 G_HOT
 arc4_getbyte(struct arc4_stream *as)
 {
 	uint8 si, sj;
@@ -181,7 +181,7 @@ arc4_getbyte(struct arc4_stream *as)
 	return as->s[(si + sj) & 0xff];
 }
 
-static inline G_GNUC_HOT uint32
+static inline uint32 G_HOT
 arc4_getword(struct arc4_stream *as)
 {
 	uint32 val;
@@ -249,7 +249,7 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 /**
  * @return a new 32-bit random number.
  */
-G_GNUC_HOT uint32
+uint32 G_HOT
 arc4random(void)
 {
 	uint32 rnd;
@@ -295,7 +295,7 @@ arc4random64(void)
  * @attention
  * This is a non-standard call, specific to this library.
  */
-G_GNUC_COLD void
+void G_COLD
 arc4random_stir_once(void)
 {
 	static once_flag_t done;
@@ -349,7 +349,7 @@ arc4_stream(void)
 /**
  * @return a new 32-bit random number (from thread-local stream).
  */
-G_GNUC_HOT uint32
+uint32 G_HOT
 arc4_thread_rand(void)
 {
 	return arc4_getword(arc4_stream());

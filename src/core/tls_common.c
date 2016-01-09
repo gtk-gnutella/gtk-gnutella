@@ -1067,7 +1067,7 @@ tls_log_function(int level, const char *text)
 	}
 }
 
-G_GNUC_COLD void
+void G_COLD
 tls_global_init(void)
 {
 	static const struct {

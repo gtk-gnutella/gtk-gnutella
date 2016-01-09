@@ -262,7 +262,7 @@ entropy_delay(void)
 /**
  * Add entropy from previous calls.
  */
-static G_GNUC_COLD void
+static void G_COLD
 entropy_merge(sha1_t *digest)
 {
 	bigint_t older, newer;
@@ -1112,7 +1112,7 @@ entropy_self_feed(SHA1_context *ctx)
  * must be called only when a truly random seed is required, ideally only
  * during initialization.
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 {
 	static tm_nano_t last;
@@ -1203,7 +1203,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 /**
  * Randomly feed the SHA1 context to itself 20% of the time.
  */
-static void G_GNUC_COLD
+static void G_COLD
 entropy_self_feed_maybe(SHA1_context *ctx)
 {
 	if (random_upto(rand31_u32, 999) < 200)
@@ -1216,7 +1216,7 @@ entropy_self_feed_maybe(SHA1_context *ctx)
  * We're collecting changing and contextual data, to be able to compute an
  * initial 160-bit value, which is better than the default zero value.
  */
-static void G_GNUC_COLD
+static void G_COLD
 entropy_seed(struct entropy_minictx *c)
 {
 	extern char **environ;
@@ -1453,7 +1453,7 @@ entropy_aje_collect(sha1_t *digest)
  * When AJE (Alea Jacta Est) has been initialized, we can use it as our main
  * entropy source.  Hence redirect all entropy requests to that layer.
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_aje_inited(void)
 {
 	entropy_ops.ent_collect      = entropy_aje_collect;
@@ -1473,7 +1473,7 @@ entropy_aje_inited(void)
  * This is a slow operation, and the routine will even sleep for 2 ms the
  * first time it is invoked.
  */
-static G_GNUC_COLD void
+static void G_COLD
 entropy_do_collect(sha1_t *digest)
 {
 	static bool done;
@@ -1492,7 +1492,7 @@ entropy_do_collect(sha1_t *digest)
  * This is a slow operation, so it must be called only when a truly random
  * seed is required.
  */
-static G_GNUC_COLD void
+static void G_COLD
 entropy_do_minimal_collect(sha1_t *digest)
 {
 	entropy_collect_internal(digest, FALSE, FALSE);
@@ -1600,7 +1600,7 @@ entropy_do_fill(void *buffer, size_t len)
  * Once AJE has been initialized, this is transparently re-routed there and
  * the call becomes more efficient by several orders of magnitude!
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_collect(sha1_t *digest)
 {
 	return entropy_ops.ent_collect(digest);
@@ -1618,7 +1618,7 @@ entropy_collect(sha1_t *digest)
  * Once AJE has been initialized, this is transparently re-routed there and
  * the call becomes more efficient by several orders of magnitude!
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_minimal_collect(sha1_t *digest)
 {
 	return entropy_ops.ent_mini_collect(digest);

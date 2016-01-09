@@ -6089,7 +6089,7 @@ upload_is_enabled(void)
 /**
  * Initialize uploads.
  */
-G_GNUC_COLD void
+void G_COLD
 upload_init(void)
 {
 	mesh_info = htable_create_any(mi_key_hash, mi_key_hash2, mi_key_eq);
@@ -6131,7 +6131,7 @@ upload_init(void)
 /**
  * Final cleanup at shutdown time.
  */
-G_GNUC_COLD void
+void G_COLD
 upload_close(void)
 {
 	while (list_uploads) {

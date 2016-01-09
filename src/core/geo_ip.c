@@ -296,7 +296,7 @@ gip_parse_ipv6(const char *line, int linenum)
  *
  * @return The amount of entries loaded.
  */
-static G_GNUC_COLD uint
+static uint G_COLD
 gip_load(FILE *f, unsigned idx)
 {
 	char line[1024];

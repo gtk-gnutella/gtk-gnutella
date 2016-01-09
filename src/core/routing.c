@@ -1470,7 +1470,7 @@ gnet_reset_guid(void)
 /**
  * Init function.
  */
-G_GNUC_COLD void
+void G_COLD
 routing_init(void)
 {
     struct guid guid_buf;
@@ -3187,7 +3187,7 @@ free_banned_push(const void *key, void *unused_udata)
 /**
  * Destroy routing data structures.
  */
-G_GNUC_COLD void
+void G_COLD
 routing_close(void)
 {
 	uint cnt;

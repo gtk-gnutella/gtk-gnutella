@@ -672,7 +672,7 @@ g2_tree_enter_leave(g2_tree_t *root,
 
 #define LARGE_PAYLOAD	258		/* Force 2-byte payload length */
 
-void G_GNUC_COLD
+void G_COLD
 g2_tree_test(void)
 {
 	g2_tree_t *root, *first, *node, *c2, *retrieved;
@@ -760,7 +760,7 @@ g2_tree_test(void)
 }
 
 #else	/* !TREE_TESTING */
-void G_GNUC_COLD
+void G_COLD
 g2_tree_test(void)
 {
 	/* Nothing */

@@ -134,7 +134,7 @@ integer_hash2(ulong v)
 /**
  * Hash `len' bytes starting from `data'.
  */
-G_GNUC_HOT unsigned
+unsigned G_HOT
 binary_hash(const void *data, size_t len)
 {
 	const unsigned char *key = data;
@@ -170,7 +170,7 @@ binary_hash(const void *data, size_t len)
 /**
  * Alternate hashing of `len' bytes starting from `data'.
  */
-G_GNUC_HOT unsigned
+unsigned G_HOT
 binary_hash2(const void *data, size_t len)
 {
 	const unsigned char *key = data;
@@ -272,7 +272,7 @@ string_eq(const void *a, const void *b)
  * This is the Murmur3 hashing algorithm which exhibits good distribution
  * properties leading to fewer collisions in hash tables.
  */
-unsigned G_GNUC_HOT
+unsigned G_HOT
 universal_hash(const void *data, size_t len)
 {
 	uint32 k, hash = len * GOLDEN_RATIO_32;		/* Initial hash by RAM */
@@ -348,7 +348,7 @@ universal_hash(const void *data, size_t len)
  * This routine is slower than binary_hash() and is included here to be
  * able to measure clustering impacts when an alternative hash is used.
  */
-G_GNUC_HOT unsigned
+unsigned G_HOT
 universal_mix_hash(const void *data, size_t len)
 {
 	uint32 a, b, c;		/* Internal state */
@@ -418,7 +418,7 @@ universal_mix_hash(const void *data, size_t len)
 /**
  * Alternate string hashing routine, using Bob Jenkins's hash algorithm.
  */
-G_GNUC_HOT unsigned
+unsigned G_HOT
 string_mix_hash(const void *s)
 {
 	const uint8 *p = s;
@@ -486,7 +486,7 @@ string_mix_hash(const void *s)
  *
  * @return a folded value of ``bits'' bits.
  */
-unsigned G_GNUC_HOT
+unsigned G_HOT
 hashing_fold(unsigned hash, size_t bits)
 {
 	unsigned v = 0;

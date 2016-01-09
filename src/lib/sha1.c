@@ -310,7 +310,7 @@ slowpath:
  *      single character names, were used because those were the
  *      names used in the publication.
  */
-static void G_GNUC_HOT
+static void G_HOT
 SHA1_process_message_block(SHA1_context *context, const void *mblock)
 {
 	const uint32 K[] = {       /* Constants defined in SHA-1 */

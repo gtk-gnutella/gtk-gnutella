@@ -776,7 +776,7 @@ vp_free_key_value(const void *key, void *value, void *user_data)
  * notified of fileinfo events, and get a permanent handle to the
  * drawing area for later reuse.
  */
-G_GNUC_COLD void
+void G_COLD
 vp_gui_init(void)
 {
     GdkColormap *cmap;
@@ -822,7 +822,7 @@ vp_gui_init(void)
 /**
  * Undo everything set up in vp_gui_init.
  */
-G_GNUC_COLD void
+void G_COLD
 vp_gui_shutdown(void)
 {
     guc_fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);

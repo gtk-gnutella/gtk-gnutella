@@ -420,7 +420,7 @@ search_store_xml(void)
  * This is the new xml version. The searches are normally
  * retrieved from  ~/.gtk-gnutella/searches.xml.
  */
-G_GNUC_COLD gboolean
+gboolean G_COLD
 search_retrieve_xml(void)
 {
     xnode_t *root, *xn;

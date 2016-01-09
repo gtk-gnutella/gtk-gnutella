@@ -783,7 +783,7 @@ mingw_signal(int signo, signal_handler_t handler)
 /**
  * Synthesize a fatal signal as the kernel would on an exception.
  */
-static G_GNUC_COLD void
+static void G_COLD
 mingw_sigraise(int signo)
 {
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
@@ -7073,7 +7073,7 @@ skip_init:
 /**
  * Convert exception code to string.
  */
-static G_GNUC_COLD const char *
+static const char * G_COLD
 mingw_exception_to_string(int code)
 {
 	switch (code) {
@@ -7105,7 +7105,7 @@ mingw_exception_to_string(int code)
 /*
  * Format an error message to propagate into the crash log.
  */
-static void G_GNUC_COLD
+static void G_COLD
 mingw_crash_record(int code, const void *pc,
 	const char *routine, const char *file)
 {
@@ -7127,7 +7127,7 @@ mingw_crash_record(int code, const void *pc,
 /**
  * Log reported exception.
  */
-static void G_GNUC_COLD
+static void G_COLD
 mingw_exception_log(int stid, uint code, const void *pc)
 {
 	DECLARE_STR(13);
@@ -7178,7 +7178,7 @@ mingw_exception_log(int stid, uint code, const void *pc)
 /**
  * Log extra information on memory faults.
  */
-static G_GNUC_COLD void
+static void G_COLD
 mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 {
 	DECLARE_STR(8);
@@ -7230,7 +7230,7 @@ static uint8 mingw_excpt[THREAD_MAX];
 /**
  * Our default exception handler.
  */
-static G_GNUC_COLD LONG WINAPI
+static LONG WINAPI G_COLD
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
 	EXCEPTION_RECORD *er;
@@ -7463,7 +7463,7 @@ mingw_sbrk(long incr)
 
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
 
-static G_GNUC_COLD void
+static void G_COLD
 mingw_stdio_reset(bool console)
 {
 	/*
@@ -7544,7 +7544,7 @@ mingw_stdio_reset(bool console)
  * Rotate pathname at startup time, renaming existing paths with a .0, .1, .2
  * extension, etc..., up to the maximum specified.
  */
-void G_GNUC_COLD
+void G_COLD
 mingw_file_rotate(const char *pathname, int keep)
 {
 	static char npath[MAX_PATH_LEN];
@@ -7570,7 +7570,7 @@ mingw_file_rotate(const char *pathname, int keep)
 		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);
 }
 
-G_GNUC_COLD void
+void G_COLD
 mingw_early_init(void)
 {
 	int console_err;

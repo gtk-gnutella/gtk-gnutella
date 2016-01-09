@@ -253,7 +253,7 @@ static const char DEV_NULL[] = "/dev/null";
  * This is used during emergency crashing conditions to ensure logging is
  * always going to use a safe logging mode.
  */
-void G_GNUC_COLD
+void G_COLD
 log_crash_mode(void)
 {
 	log_crashing = TRUE;
@@ -2582,7 +2582,7 @@ log_stat(enum log_file which, struct logstat *buf)
 /**
  * Initialization of logging layer.
  */
-G_GNUC_COLD void
+void G_COLD
 log_init(void)
 {
 	unsigned i;
@@ -2683,7 +2683,7 @@ log_get_fd(enum log_file which)
 /**
  * Shutdown the logging layer.
  */
-G_GNUC_COLD void
+void G_COLD
 log_close(void)
 {
 	size_t i;

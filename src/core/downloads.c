@@ -1308,7 +1308,7 @@ download_source_progress(const struct download *d)
 /**
  * Initialize downloading data structures.
  */
-G_GNUC_COLD void
+void G_COLD
 download_init(void)
 {
 	dl_by_host = hikset_create_any(
@@ -1348,7 +1348,7 @@ download_init(void)
 /**
  * Initialize downloading data structures.
  */
-G_GNUC_COLD void
+void G_COLD
 download_restore_state(void)
 {
 	/*
@@ -16070,7 +16070,7 @@ download_remove_all(void)
 /**
  * Terminating processing, cleanup data structures.
  */
-G_GNUC_COLD void
+void G_COLD
 download_close(void)
 {
 	gcu_download_gui_updates_freeze();

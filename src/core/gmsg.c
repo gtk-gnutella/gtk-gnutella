@@ -165,7 +165,7 @@ gmsg_split_dump(FILE *out, const void *head, const void *data,
 /**
  * Initialization of the Gnutella message structures.
  */
-G_GNUC_COLD void
+void G_COLD
 gmsg_init(void)
 {
 	int i;
@@ -232,7 +232,7 @@ gmsg_init(void)
 /**
  * Destroy locally-allocated data.
  */
-G_GNUC_COLD void
+void G_COLD
 gmsg_close(void)
 {
 	zlib_deflater_free(gmsg_deflater, TRUE);

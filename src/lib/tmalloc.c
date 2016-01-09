@@ -1048,7 +1048,7 @@ tmalloc_thread_magazine_exchange(struct tmalloc_thread *t)
  *
  * @return new object.
  */
-static G_GNUC_HOT void *
+static void * G_HOT
 tmalloc_thread_alloc(struct tmalloc_thread *t)
 {
 	tmalloc_magazine_t *m;
@@ -1127,7 +1127,7 @@ tmalloc_thread_alloc(struct tmalloc_thread *t)
  * @param t		the thread layer
  * @param p		the object being returned
  */
-static G_GNUC_HOT void
+static void G_HOT
 tmalloc_thread_free(struct tmalloc_thread *t, void *p)
 {
 	tmalloc_magazine_t *m;
@@ -2382,7 +2382,7 @@ tmalloc_stats_digest(sha1_t *digest)
 /**
  * Dump tmalloc statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	tmalloc_info_t stats;
@@ -2503,7 +2503,7 @@ tmalloc_info_size_cmp(const void *a, const void *b)
 /**
  * Dump per-depot magazine statistics to specified logagent.
  */
-G_GNUC_COLD void
+void G_COLD
 tmalloc_dump_magazines_log(logagent_t *la)
 {
 	pslist_t *sl = tmalloc_info_list();
@@ -2516,7 +2516,7 @@ tmalloc_dump_magazines_log(logagent_t *la)
 /**
  * Dump tmalloc statistics.
  */
-G_GNUC_COLD void
+void G_COLD
 tmalloc_dump_stats(void)
 {
 	s_info("TMALLOC running statistics:");

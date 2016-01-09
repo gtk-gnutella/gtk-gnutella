@@ -4672,7 +4672,7 @@ thread_stack_check(void)
  *
  * @param silent	whether to silently move to crash mode for spinlocks
  */
-void G_GNUC_COLD
+void G_COLD
 thread_lock_disable(bool silent)
 {
 	if (0 == atomic_int_inc(&thread_locks_disabled)) {
@@ -6827,7 +6827,7 @@ done:
  * Account for spinlock / mutex acquisition by current thread, whose
  * thread element is already known (as an opaque pointer).
  */
-G_GNUC_HOT void
+void G_HOT
 thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line, const void *element)
 {
@@ -7153,7 +7153,7 @@ found:
  * Account for spinlock / mutex release by current thread whose thread
  * element is known (as an opaque pointer).
  */
-G_GNUC_HOT void
+void G_HOT
 thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const void *element)
 {
@@ -7694,7 +7694,7 @@ thread_crash_mode(void)
 /**
  * Exiting mode -- one thread is doing exit and possibly running final cleanup.
  */
-void G_GNUC_COLD
+void G_COLD
 thread_exit_mode(void)
 {
 	/*
@@ -10911,7 +10911,7 @@ thread_stats_digest(sha1_t *digest)
 /**
  * Dump thread statistics to stderr.
  */
-G_GNUC_COLD void
+void G_COLD
 thread_dump_stats(void)
 {
 	s_info("THREAD running statistics:");
@@ -10921,7 +10921,7 @@ thread_dump_stats(void)
 /**
  * Dump thread statistics to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 thread_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct thread_stats t;
@@ -11016,7 +11016,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 /**
  * Dump thread elements to stderr.
  */
-G_GNUC_COLD void
+void G_COLD
 thread_dump_thread_elements(void)
 {
 	s_info("THREAD known %u elements:", thread_next_stid);
@@ -11164,7 +11164,7 @@ done:
 /**
  * Dump thread elements to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 thread_dump_thread_elements_log(logagent_t *la, unsigned options)
 {
 	uint i;
@@ -11182,7 +11182,7 @@ thread_dump_thread_elements_log(logagent_t *la, unsigned options)
  * In case an assertion failure occurs in this file, dump statistics
  * about the known thread environment.
  */
-static void G_GNUC_COLD
+static void G_COLD
 thread_crash_hook(void)
 {
 	int sp;

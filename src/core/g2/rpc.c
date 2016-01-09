@@ -388,7 +388,7 @@ found:
 /**
  * Initialize the G2 RPC layer.
  */
-void G_GNUC_COLD
+void G_COLD
 g2_rpc_init(void)
 {
 	g2_rpc_pending = hevset_create_any(
@@ -407,7 +407,7 @@ g2_rpc_free_kv(void *val, void *unused_x)
 /**
  * Shutdown the G2 RPC layer.
  */
-void G_GNUC_COLD
+void G_COLD
 g2_rpc_close(void)
 {
 	hevset_foreach(g2_rpc_pending, g2_rpc_free_kv, NULL);

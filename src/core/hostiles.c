@@ -402,7 +402,7 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
  */
-static G_GNUC_COLD void
+static void G_COLD
 hostiles_retrieve(hostiles_t which)
 {
 	g_assert(UNSIGNED(which) < NUM_HOSTILES);
@@ -1148,7 +1148,7 @@ hostiles_ipv6_eq(const void *a, const void *b)
 /**
  * Called on startup. Loads the hostiles.txt into memory.
  */
-G_GNUC_COLD void
+void G_COLD
 hostiles_init(void)
 {
 	dbstore_kv_t kv =

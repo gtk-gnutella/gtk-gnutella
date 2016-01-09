@@ -825,7 +825,7 @@ ulq_find_any_value(const kuid_t *kuid, dht_value_type_t queue_type,
  *
  * @return the created queue
  */
-static G_GNUC_COLD struct ulq *
+static struct ulq * G_COLD
 ulq_init_queue(const char *name, int weight)
 {
 	struct ulq *uq;
@@ -846,7 +846,7 @@ ulq_init_queue(const char *name, int weight)
 /**
  * Initialize the user lookup queues.
  */
-G_GNUC_COLD void
+void G_COLD
 ulq_init(void)
 {
 	STATIC_ASSERT(ULQ_QUEUE_COUNT == G_N_ELEMENTS(ulq));
@@ -914,7 +914,7 @@ free_fifo_item(void *item, void *data)
  *
  * @param exiting	whether the whole process is exiting
  */
-G_GNUC_COLD void
+void G_COLD
 ulq_close(bool exiting)
 {
 	size_t i;

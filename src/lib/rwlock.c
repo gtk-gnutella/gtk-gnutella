@@ -210,7 +210,7 @@ rwlock_readers_is_set(rwlock_t *rw, int n)
 /**
  * Enter crash mode: let all read-write locks be grabbed immediately.
  */
-G_GNUC_COLD void
+void G_COLD
 rwlock_crash_mode(void)
 {
 	rwlock_pass_through = TRUE;
@@ -405,7 +405,7 @@ rwlock_waiters_for_read(const rwlock_t *rw)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
 	const char *file, unsigned line)
 {
@@ -485,7 +485,7 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 	const char *file, unsigned line)
 {

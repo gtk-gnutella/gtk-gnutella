@@ -266,7 +266,7 @@ fill_array(const void *key, void *value, void *user)
 /**
  * Dump the links sorted by decreasing leak size.
  */
-G_GNUC_COLD void
+void G_COLD
 leak_dump(const leak_set_t *ls)
 {
 	int count;

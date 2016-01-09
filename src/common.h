@@ -676,25 +676,25 @@ typedef int socket_fd_t;
 /**
  * A hot function is optimized more aggressively.
  */
-#ifndef G_GNUC_HOT
+#ifndef G_HOT
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
-#define G_GNUC_HOT __attribute__((hot))
+#define G_HOT __attribute__((hot))
 #else
-#define G_GNUC_HOT
+#define G_HOT
 #endif	/* GCC >= 4.3 */
-#endif	/* G_GNUC_HOT */
+#endif	/* G_HOT */
 
 /**
  * A cold function is unlikely executed, and is optimized for size rather
  * than speed.  All branch tests leading to it are marked "unlikely".
  */
-#ifndef G_GNUC_COLD
+#ifndef G_COLD
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
-#define G_GNUC_COLD __attribute__((cold))
+#define G_COLD __attribute__((cold))
 #else
-#define G_GNUC_COLD
+#define G_COLD
 #endif	/* GCC >= 4.3 */
-#endif	/* G_GNUC_COLD */
+#endif	/* G_COLD */
 
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
 #define ALWAYS_INLINE __attribute__((always_inline))

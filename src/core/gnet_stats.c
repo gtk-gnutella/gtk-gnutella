@@ -79,7 +79,7 @@ static spinlock_t gnet_stats_slk = SPINLOCK_INIT;
  *** Public functions
  ***/
 
-G_GNUC_COLD void
+void G_COLD
 gnet_stats_init(void)
 {
 	uint i;

@@ -187,7 +187,7 @@ spam_sha1_sync(void)
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static G_GNUC_COLD ulong
+static ulong G_COLD
 spam_sha1_load(FILE *f)
 {
 	char line[1024];

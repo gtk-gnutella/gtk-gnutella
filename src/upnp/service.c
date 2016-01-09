@@ -290,7 +290,7 @@ static tokenizer_t upnp_services[] = {
 
 static once_flag_t upnp_services_checked;
 
-static void G_GNUC_COLD
+static void G_COLD
 upnp_services_check(void)
 {
 	TOKENIZE_CHECK_SORTED(upnp_services);

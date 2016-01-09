@@ -1088,7 +1088,7 @@ done:
 /**
  * Initialization.
  */
-void G_GNUC_COLD
+void G_COLD
 g2_node_init(void)
 {
 	/*
@@ -1107,7 +1107,7 @@ g2_node_init(void)
 /**
  * Shutdown.
  */
-void G_GNUC_COLD
+void G_COLD
 g2_node_close(void)
 {
 	aging_destroy(&g2_udp_pings);

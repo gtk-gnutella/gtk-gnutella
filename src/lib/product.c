@@ -249,7 +249,7 @@ product_build_full(void)
 /*
  * Initialize product information.
  */
-G_GNUC_COLD void
+void G_COLD
 product_init(const char *name,
 	uint8 major, uint8 minor, uint8 patchlevel, const char *revchar,
 	const char *date, const char *version, const char *revision,

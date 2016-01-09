@@ -159,7 +159,7 @@ static size_t hash_min_bins;
 static bool hash_offset_inited;
 static once_flag_t hash_min_bins_computed;
 
-static G_GNUC_COLD void
+static void G_COLD
 hash_offset_init_once(void)
 {
 	/*
@@ -207,7 +207,7 @@ hash_offset_init(void)
 /**
  * Computes the minimum amount of bins we can have to fill one VMM page.
  */
-static G_GNUC_COLD void
+static void G_COLD
 hash_compute_min_bins_once(void)
 {
 	size_t n;

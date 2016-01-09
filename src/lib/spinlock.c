@@ -128,7 +128,7 @@ spinlock_source_string(enum spinlock_source src)
 /**
  * Enter crash mode: let all spinlocks be grabbed immediately.
  */
-void G_GNUC_COLD
+void G_COLD
 spinlock_crash_mode(void)
 {
 	/*
@@ -153,7 +153,7 @@ spinlock_crash_mode(void)
  *
  * This is the same a crash_mode, only there is no warning emitted.
  */
-void G_GNUC_COLD
+void G_COLD
 spinlock_exit_mode(void)
 {
 	atomic_int_inc(&spinlock_pass_through);
@@ -164,7 +164,7 @@ spinlock_exit_mode(void)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 spinlock_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
@@ -192,7 +192,7 @@ spinlock_deadlock(const volatile void *obj, unsigned count,
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {

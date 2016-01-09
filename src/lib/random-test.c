@@ -187,7 +187,7 @@ count_values(random_fn_t fn, unsigned period, unsigned mask, unsigned value)
 	return cnt;
 }
 
-static G_GNUC_HOT uint64
+static uint64 G_HOT
 compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 {
 	size_t n;

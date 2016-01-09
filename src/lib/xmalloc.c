@@ -644,7 +644,7 @@ set_xmalloc_debug(uint32 level)
  * In crashing mode, allocations are done without any freelist updating,
  * and no freeing will occur.  The simplest algorithms are always chosen.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_crash_mode(void)
 {
 	xmalloc_crashing = TRUE;
@@ -712,7 +712,7 @@ xpages_pool_init(void)
 /**
  * Install periodic idle callback to run the freelist compactor.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_xgc_install(void)
 {
 	evq_raw_idle_add(xmalloc_idle_collect, NULL);
@@ -721,7 +721,7 @@ xmalloc_xgc_install(void)
 /**
  * Minimal setup once the VMM layer is started.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_vmm_setup_once(void)
 {
 	xmalloc_grows_up = vmm_grows_upwards();
@@ -729,7 +729,7 @@ xmalloc_vmm_setup_once(void)
 	xmalloc_freelist_setup();
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_vmm_setup(void)
 {
 	once_flag_run(&xmalloc_vmm_setup_done, xmalloc_vmm_setup_once);
@@ -738,7 +738,7 @@ xmalloc_vmm_setup(void)
 /**
  * Called when the VMM layer has been initialized.
  */
-void G_GNUC_COLD
+void G_COLD
 xmalloc_vmm_inited(void)
 {
 	STATIC_ASSERT(sizeof(struct xheader) == sizeof(size_t));
@@ -768,7 +768,7 @@ xmalloc_vmm_inited(void)
  * A short-term process is not going to require aggressive strategies to
  * compact unused memory, hence it will not require that we install xgc().
  */
-void G_GNUC_COLD
+void G_COLD
 xmalloc_long_term(void)
 {
 	/*
@@ -790,7 +790,7 @@ xmalloc_long_term(void)
  * Initialize the VMM layer minimally if not already done, and setup the
  * thread allocation pools.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_early_init(void)
 {
 	vmm_early_init();
@@ -800,7 +800,7 @@ xmalloc_early_init(void)
 /**
  * Called to log which malloc() is used on the specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_show_settings_log(logagent_t *la)
 {
 	log_info(la, "using %s", xmalloc_is_malloc() ?
@@ -823,7 +823,7 @@ xmalloc_show_settings_log(logagent_t *la)
  * This is called very early, and is used to record crash hooks for the
  * file as a side effect.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_show_settings(void)
 {
 	xmalloc_show_settings_log(log_agent_stderr_get());
@@ -2092,7 +2092,7 @@ xfl_sort(struct xfreelist *fl)
  *
  * @return index within the sorted array where ``p'' is stored, -1 if not found.
  */
-static G_GNUC_HOT inline size_t
+static inline size_t G_HOT
 xfl_binary_lookup(void **array, const void *p,
 	size_t low, size_t high, size_t *low_ptr)
 {
@@ -2169,7 +2169,7 @@ xfl_binary_lookup(void **array, const void *p,
  * @return index within the ``pointers'' sorted array where ``p'' is stored,
  * -1 if not found.
  */
-static G_GNUC_HOT size_t
+static size_t G_HOT
 xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 {
 	size_t unsorted;
@@ -2593,7 +2593,7 @@ xfl_insert_careful(struct xfreelist *fl, void *p, bool burst)
 /**
  * Initialize freelist buckets once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_freelist_init_once(void)
 {
 	size_t i;
@@ -2641,7 +2641,7 @@ xmalloc_freelist_init_once(void)
  * Initial setup of the free list that cannot be conveniently initialized
  * by static declaration.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_freelist_setup(void)
 {
 	once_flag_run(&xmalloc_freelist_inited, xmalloc_freelist_init_once);
@@ -2895,7 +2895,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
  * @return TRUE if coalescing did occur, updating ``base_ptr'' and ``len_ptr''
  * to reflect the coalesced block..
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 	bool burst, uint32 flags)
 {
@@ -6555,7 +6555,7 @@ avoided:
 /**
  * Signal that we're about to close down all activity.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_pre_close(void)
 {
 	/*
@@ -6570,7 +6570,7 @@ xmalloc_pre_close(void)
  * Called later in the initialization chain once the properties have
  * been loaded.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_post_init(void)
 {
 	/*
@@ -6606,7 +6606,7 @@ xmalloc_post_init(void)
  *
  * This is mostly useful during final cleanup when xmalloc() replaces malloc().
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_stop_freeing(void)
 {
 	memusage_free_null(&xstats.user_mem);
@@ -6632,7 +6632,7 @@ xmalloc_stats_digest(sha1_t *digest)
 /**
  * Dump xmalloc usage statistics to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_usage_log(struct logagent *la, unsigned options)
 {
 	if (NULL == xstats.user_mem) {
@@ -6645,7 +6645,7 @@ xmalloc_dump_usage_log(struct logagent *la, unsigned options)
 /**
  * Dump xmalloc statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct xstats stats;
@@ -6796,7 +6796,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 /**
  * Dump freelist status to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_freelist_log(logagent_t *la)
 {
 	size_t i, j;
@@ -6910,7 +6910,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 /**
  * Dump xmalloc statistics.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_stats(void)
 {
 	s_info("XM running statistics:");
@@ -7131,7 +7131,7 @@ xalign_type_str(const struct xaligned *xa)
  *
  * @return index within the array where ``p'' is stored, * -1 if not found.
  */
-static G_GNUC_HOT size_t
+static size_t G_HOT
 xa_lookup(const void *p, size_t *low_ptr)
 {
 	const struct xaligned
@@ -7298,7 +7298,7 @@ xa_insert_set(const void *p, size_t size)
 /**
  * Initialize the array of zones.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xzones_init(void)
 {
 	g_assert(spinlock_is_held(&xmalloc_zone_slk));
@@ -8466,7 +8466,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 /**
  * In case of crash, dump statistics and make some sanity checks.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_crash_hook(void)
 {
 	/*

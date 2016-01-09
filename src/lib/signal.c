@@ -1496,7 +1496,7 @@ signal_abort(void)
 /**
  * Initialize the signal layer.
  */
-static G_GNUC_COLD void
+static void G_COLD
 signal_init_once(void)
 {
 	int regnum;

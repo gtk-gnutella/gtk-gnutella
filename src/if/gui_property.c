@@ -350,7 +350,7 @@ static const gboolean gui_property_variable_guess_stats_show_total_default = TRU
 
 static prop_set_t *gui_property;
 
-G_GNUC_COLD prop_set_t *
+prop_set_t * G_COLD
 gui_prop_init(void) {
     guint32 n;
 
@@ -2822,7 +2822,7 @@ gui_prop_init(void) {
 /**
  * Free memory allocated by the property set.
  */
-G_GNUC_COLD void
+void G_COLD
 gui_prop_shutdown(void) {
     guint32 n;
 

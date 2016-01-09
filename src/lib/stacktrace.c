@@ -345,7 +345,7 @@ static Sigjmp_buf stacktrace_safe_env[THREAD_MAX];
 /**
  * Invoked when a fatal signal is received during stack unwinding.
  */
-static G_GNUC_COLD void
+static void G_COLD
 stacktrace_safe_got_signal(int signo)
 {
 	int stid = thread_small_id();
@@ -456,7 +456,7 @@ stacktrace_quality_string(const enum stacktrace_sym_quality sq)
 /**
  * Tune the level of offsetting we have to do to get the current caller.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 stacktrace_auto_tune(void)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
@@ -493,7 +493,7 @@ stacktrace_auto_tune(void)
 /**
  * Get symbols from the executable.
  */
-static void G_GNUC_COLD
+static void G_COLD
 stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 {
 	static int done;
@@ -536,7 +536,7 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
  * @param argv0		the value of argv[0], from main(): the program's filename
  * @param deferred	if TRUE, do not load symbols until it's needed
  */
-G_GNUC_COLD void
+void G_COLD
 stacktrace_init(const char *argv0, bool deferred)
 {
 	char *path, *apath;
@@ -617,7 +617,7 @@ stacktrace_memory_used(void)
 /**
  * Close stack tracing.
  */
-G_GNUC_COLD void
+void G_COLD
 stacktrace_close(void)
 {
 	symbols_free_null(&symbols);
@@ -630,7 +630,7 @@ stacktrace_close(void)
 /**
  * Load symbols if not done already.
  */
-G_GNUC_COLD void
+void G_COLD
 stacktrace_load_symbols(void)
 {
 	static spinlock_t sym_load_slk = SPINLOCK_INIT;
@@ -1776,7 +1776,7 @@ stacktrace_cautious_was_logged(void)
 /**
  * Invoked when a fatal signal is received during stack unwinding.
  */
-static G_GNUC_COLD void
+static void G_COLD
 stacktrace_got_signal(int signo)
 {
 	char time_buf[CRASH_TIME_BUFLEN];
@@ -1806,7 +1806,7 @@ stacktrace_got_signal(int signo)
  * @param fd		file descriptor where stack should be printed
  * @param offset	amount of immediate callers to remove (ourselves excluded)
  */
-G_GNUC_COLD void
+void G_COLD
 stacktrace_where_cautious_print_offset(int fd, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */

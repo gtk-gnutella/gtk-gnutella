@@ -434,7 +434,7 @@ ipp_cache_remove(enum ipp_cache_id cid, const host_addr_t addr, uint16 port)
 /**
  * Parse persisted cache.
  */
-static G_GNUC_COLD void
+static void G_COLD
 ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 {
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_IPP_CACHE_TAGS)];
@@ -581,7 +581,7 @@ ipp_cache_clear(ipp_cache_t *ic)
 /**
  * Retrieve cache from disk file.
  */
-static G_GNUC_COLD void
+static void G_COLD
 ipp_cache_load(ipp_cache_t *ic)
 {
 	FILE *f;
@@ -638,7 +638,7 @@ ipp_cache_invalidate(enum ipp_cache_id cid)
  * structures, as some callbacks may insert data in the caches.  Later on,
  * the caches can be loaded when we know the properties are all initialized.
  */
-G_GNUC_COLD void
+void G_COLD
 ipp_cache_init(void)
 {
 	TOKENIZE_CHECK_SORTED(ipp_cache_tags);

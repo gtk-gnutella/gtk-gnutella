@@ -759,7 +759,7 @@ oob_got_results(gnutella_node_t *n, pslist_t *files,
 /**
  * Initialize out-of-band query hit delivery.
  */
-G_GNUC_COLD void
+void G_COLD
 oob_init(void)
 {
 	results_by_muid = hikset_create(
@@ -771,7 +771,7 @@ oob_init(void)
 /**
  * Cleanup oob_results -- hash table iterator callback
  */
-G_GNUC_COLD static void
+static void G_COLD
 free_oob_kv(void *value, void *unused_udata)
 {
 	struct oob_results *r = value;
@@ -805,7 +805,7 @@ free_servent_kv(void *value, void *unused_udata)
 /**
  * Cleanup at shutdown time.
  */
-G_GNUC_COLD void
+void G_COLD
 oob_shutdown(void)
 {
 	oob_shutdowning = TRUE;
@@ -822,7 +822,7 @@ oob_shutdown(void)
 /**
  * Final cleanup.
  */
-G_GNUC_COLD void
+void G_COLD
 oob_close(void)
 {
 	oob_shutdown_running = TRUE;

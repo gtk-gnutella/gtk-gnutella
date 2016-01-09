@@ -5434,7 +5434,7 @@ parq_is_enabled(void)
 /**
  * Initialises the upload queue for PARQ.
  */
-G_GNUC_COLD void
+void G_COLD
 parq_init(void)
 {
 	TOKENIZE_CHECK_SORTED(parq_tags);
@@ -5479,7 +5479,7 @@ parq_init(void)
 /**
  * Saves any queueing information and frees all memory used by PARQ.
  */
-G_GNUC_COLD void
+void G_COLD
 parq_close_pre(void)
 {
 	plist_t *dl, *queues;

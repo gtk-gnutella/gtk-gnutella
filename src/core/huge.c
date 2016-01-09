@@ -284,7 +284,7 @@ dump_cache(bool force)
  * the line and calls add_volatile_cache_entry() to append the record
  * to the in-memory cache.
  */
-static G_GNUC_COLD void
+static void G_COLD
 parse_and_append_cache_entry(char *line)
 {
 	const char *p, *end; /* pointers to scan the line */
@@ -364,7 +364,7 @@ failure:
 /**
  * Read the whole persistent cache into memory.
  */
-static G_GNUC_COLD void
+static void G_COLD
 sha1_read_cache(void)
 {
 	FILE *f;

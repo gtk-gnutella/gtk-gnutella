@@ -1393,7 +1393,7 @@ struct keys_create_context {
  *
  * @return TRUE if persisted entry can be deleted.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 reload_ki(void *key, void *value, size_t u_len, void *data)
 {
 	struct keys_create_context *ctx = data;
@@ -1454,7 +1454,7 @@ reload_ki(void *key, void *value, size_t u_len, void *data)
 	return FALSE;		/* Keep keydata */
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 keys_free_dbkey(const void *key, void *u_data)
 {
 	const uint64 *dbkey = key;
@@ -1466,7 +1466,7 @@ keys_free_dbkey(const void *key, void *u_data)
 /**
  * Set iterator to remove keys with no values.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 keys_discard_if_empty(void *key, void *u_data)
 {
 	struct keyinfo *ki = key;
@@ -1490,7 +1490,7 @@ keys_discard_if_empty(void *key, void *u_data)
 /**
  * DBMW iterator to delete keys with no values.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 keys_delete_if_empty(void *u_key, void *value, size_t u_len, void *u_data)
 {
 	struct keydata *kd = value;
@@ -1505,7 +1505,7 @@ keys_delete_if_empty(void *u_key, void *value, size_t u_len, void *u_data)
 /**
  * DBMW iterator to reset key data.
  */
-static G_GNUC_COLD void
+static void G_COLD
 keys_reset_keydata(void *key, void *u_data)
 {
 	struct keyinfo *ki = key;
@@ -1521,7 +1521,7 @@ keys_reset_keydata(void *key, void *u_data)
 /**
  * Recreate keyinfo data from persisted information.
  */
-static G_GNUC_COLD void
+static void G_COLD
 keys_init_keyinfo(void)
 {
 	struct keys_create_context ctx;
@@ -1604,7 +1604,7 @@ keys_sync(void *unused_obj)
 /**
  * Initialize local key management.
  */
-G_GNUC_COLD void
+void G_COLD
 keys_init(void)
 {
 	size_t i;
@@ -1792,7 +1792,7 @@ keys_free_kv(void *val, void *u_x)
 /**
  * Close local key management.
  */
-G_GNUC_COLD void
+void G_COLD
 keys_close(void)
 {
 	values_close();

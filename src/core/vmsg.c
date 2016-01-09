@@ -3574,7 +3574,7 @@ vmsg_close_weight(void)
 /**
  * Initialize vendor messages.
  */
-G_GNUC_COLD void
+void G_COLD
 vmsg_init(void)
 {
 	size_t i;
@@ -3603,7 +3603,7 @@ vmsg_init(void)
 	head_ping_ev = cq_main_insert(HEAD_PING_PERIODIC_MS, head_ping_timer, NULL);
 }
 
-G_GNUC_COLD void
+void G_COLD
 vmsg_close(void)
 {
 	vmsg_close_weight();

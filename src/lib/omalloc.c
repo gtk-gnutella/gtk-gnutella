@@ -1000,7 +1000,7 @@ set_omalloc_debug(uint32 level)
 /**
  * Final shutdown.
  */
-G_GNUC_COLD void
+void G_COLD
 omalloc_close(void)
 {
 	/*
@@ -1033,7 +1033,7 @@ omalloc_close(void)
 /**
  * Dump omalloc() statistics for run-time inspection.
  */
-G_GNUC_COLD void
+void G_COLD
 omalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct ostats stats;

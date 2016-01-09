@@ -1946,7 +1946,7 @@ values_get(uint64 dbkey, dht_value_type_t type)
  *
  * @return TRUE if entry must be deleted.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 values_reload(void *key, void *value, size_t u_len, void *data)
 {
 	const uint64 *dbk = key;
@@ -2040,7 +2040,7 @@ delete_value:
  *
  * @return TRUE if entry must be deleted.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 values_raw_purge(void *key, void *u_value, size_t u_len, void *data)
 {
 	const uint64 *dbk = key;
@@ -2080,7 +2080,7 @@ values_sync(void)
 /**
  * Initialize values management.
  */
-G_GNUC_COLD void
+void G_COLD
 values_init(void)
 {
 	dbstore_kv_t value_kv =
@@ -2125,7 +2125,7 @@ values_init(void)
  *
  * @param dbkeys		set of DB keys to reload
  */
-G_GNUC_COLD void
+void G_COLD
 values_init_data(const hset_t *dbkeys)
 {
 	g_assert(dbkeys != NULL);
@@ -2197,7 +2197,7 @@ expired_free_k(const void *key, void *u_data)
 /**
  * Close values management.
  */
-G_GNUC_COLD void
+void G_COLD
 values_close(void)
 {
 	dbstore_close(db_valuedata, settings_dht_db_dir(), db_valbase);

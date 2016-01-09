@@ -255,7 +255,7 @@ static const uint32 matrix_decider[2] = { 0, MATRIX_A };
  *
  * @param state		state for the PRNG
  */
-static G_GNUC_HOT void
+static void G_HOT
 mts_refresh(register mt_state_t *mts)
 {
 	register int i;				/* Index into the state */
@@ -804,7 +804,7 @@ mt_thread_rand64(void)
 /**
  * Initialize built-in default state, once.
  */
-static void
+static void G_COLD
 mt_init_once(void)
 {
 	MTWIST_LOCK;
@@ -817,7 +817,7 @@ mt_init_once(void)
  * Optional initialization routine that can be called to pre-initialize the
  * built-in default state.
  */
-G_GNUC_COLD void
+void G_COLD
 mt_init(void)
 {
 	static once_flag_t inited;

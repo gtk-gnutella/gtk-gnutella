@@ -130,7 +130,7 @@ sorted_array_item(const struct sorted_array *tab, size_t i)
  *
  * @return pointer to the start of item if found, NULL otherwise.
  */
-G_GNUC_HOT void *
+void *
 sorted_array_lookup(struct sorted_array *tab, const void *key)
 {
 	sorted_array_check(tab);

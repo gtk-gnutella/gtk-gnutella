@@ -1205,7 +1205,7 @@ halloc_stats_digest(sha1_t *digest)
 /**
  * Dump halloc statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 halloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct hstats stats;

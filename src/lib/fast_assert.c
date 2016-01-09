@@ -53,7 +53,7 @@
  *       even use assertions in signal handlers. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-static G_GNUC_COLD void
+static void G_COLD
 assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[ULONG_DEC_BUFLEN];
@@ -129,7 +129,7 @@ assertion_message(const assertion_data * const data, int fatal)
 /**
  * Abort execution, possibly dumping a stack frame.
  */
-static void * G_GNUC_COLD G_NORETURN
+static void * G_COLD G_NORETURN
 assertion_abort_process(void *unused)
 {
 	static volatile sig_atomic_t seen_fatal;
@@ -214,7 +214,7 @@ assertion_abort_process(void *unused)
 /**
  * Abort execution, possibly dumping a stack frame.
  */
-static void G_GNUC_COLD G_NORETURN
+static void G_COLD G_NORETURN
 assertion_abort(void)
 {
 	crash_divert_main(G_STRFUNC, assertion_abort_process, NULL);
@@ -224,7 +224,7 @@ assertion_abort(void)
 /*
  * Trace the code path leading to this assertion.
  */
-static NO_INLINE void G_GNUC_COLD
+static NO_INLINE void G_COLD
 assertion_stacktrace(void)
 {
 #define STACK_OFF	2		/* 2 extra calls: assertion_warning(), then here */
@@ -244,14 +244,14 @@ assertion_stacktrace(void)
  *		--RAM, 2009-10-31
  */
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
 	assertion_stacktrace();
 }
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_warning_log(const assertion_data * const data,
 	const char * const fmt, ...)
 {
@@ -296,7 +296,7 @@ assertion_warning_log(const assertion_data * const data,
 	assertion_stacktrace();
 }
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_failure(const assertion_data * const data)
 {
 	assertion_message(data, TRUE);
@@ -310,7 +310,7 @@ assertion_failure(const assertion_data * const data)
 	assertion_abort();
 }
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_failure_log(const assertion_data * const data,
 	const char * const fmt, ...)
 {

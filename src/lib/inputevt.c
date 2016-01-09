@@ -877,7 +877,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 /**
  * Our main I/O event dispatching loop.
  */
-static G_GNUC_HOT void
+static void G_HOT
 inputevt_timer(struct poll_ctx *ctx)
 {
 	int num_events;

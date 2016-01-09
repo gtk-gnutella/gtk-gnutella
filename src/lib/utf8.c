@@ -813,7 +813,7 @@ malformed:
  * If `s' does not point to the second byte of a well-formed UTF-8 character,
  * `retlen' is set to 0 and the function returns 0.
  */
-static G_GNUC_HOT uint32
+static uint32 G_HOT
 utf8_decode_large_char_fast(const char *s, uint32 uc, uint *retlen)
 {
 	uchar c = *s;
@@ -862,7 +862,7 @@ failure:
  * If `s' does not point to a well-formed UTF-8 character, `retlen' is
  * set to 0 and the function returns 0.
  */
-G_GNUC_HOT uint32
+uint32 G_HOT
 utf8_decode_char_fast(const char *s, uint *retlen)
 {
 	uint32 uc = (uchar) *s;
@@ -1732,7 +1732,7 @@ conv_to_utf8_cd_get(const char *cs)
  * 			used character sets. The first is the one that should be
  *			used when creating files.
  */
-static G_GNUC_COLD pslist_t *
+static pslist_t * G_COLD
 get_filename_charsets(const char *locale)
 {
 	const char *s, *next;
@@ -1845,7 +1845,7 @@ locale_init_show_results(void)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 conversion_init(void)
 {
 	const char *pfcs = primary_filename_charset();
@@ -1922,7 +1922,7 @@ conversion_close(void)
 	hikset_free_null(&charset2conv_to_utf8);
 }
 
-G_GNUC_COLD void
+void G_COLD
 locale_init(void)
 {
 	static const char * const latin_sets[] = {
@@ -2036,7 +2036,7 @@ compose_free_slist(const void *unused_key, void *value, void *unused_udata)
 /**
  * Called at shutdown time.
  */
-G_GNUC_COLD void
+void G_COLD
 locale_close(void)
 {
 #if 0   /* xxxUSE_ICU */
@@ -3705,7 +3705,7 @@ utf32_uppercase(uint32 uc)
  *
  * @return the lowercase variant of ``uc'' or ``uc'' itself.
  */
-G_GNUC_HOT uint32
+uint32 G_HOT
 utf32_lowercase(uint32 uc)
 {
 	if (UNICODE_IS_ASCII(uc))
@@ -5735,7 +5735,7 @@ unicode_compose_add(uint idx)
 		htable_insert(utf32_compose_roots, key, new_sl);
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 unicode_compose_init(void)
 {
 	size_t i;
@@ -5999,7 +5999,7 @@ utf8_latinize(char *dst, const size_t dst_size, const char *src)
  * Checks all cases listed in NormalizationTest.txt. This does not take
  * very long but the table is pretty huge.
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_normalization_test_txt(void)
 {
 	size_t i;
@@ -6155,7 +6155,7 @@ regression_normalization_test_txt(void)
  *
  * X == NFC(X) == NFD(X) == NFKC(X) == NFKD(X)
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_normalization_character_identity(void)
 {
 	size_t i;
@@ -6186,7 +6186,7 @@ regression_normalization_character_identity(void)
 /**
  * See: http://www.unicode.org/review/pr-29.html
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_normalization_issue(void)
 {
 	static const struct {
@@ -6215,7 +6215,7 @@ regression_normalization_issue(void)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_strlower(void)
 {
 	{
@@ -6298,7 +6298,7 @@ regression_iconv_utf8_to_utf8(void)
  * Verify that each UTF-8 encoded codepoint is decoded to the same
  * codepoint.
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_bijection(void)
 {
 	uint32 uc;
@@ -6351,7 +6351,7 @@ regression_utf8_unknown_conversion(void)
  * Check utf8_decode_char_fast() for all 4-byte combinations. This
  * takes about 3 minutes of CPU time on an Athlon Duron 1.4GHz.
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_decoder(void)
 {
 	uint32 uc = 0;
@@ -6391,7 +6391,7 @@ regression_utf8_decoder(void)
  * The following checks are broken as GLib does not implement Unicode 4.1.0
  * at the moment. --cbiere, 2005-08-02
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_vs_glib2(void)
 {
 #if defined(USE_GLIB2)
@@ -6865,7 +6865,7 @@ G_STMT_START { \
 	CAT2(regression_,func)(); \
 } G_STMT_END
 
-G_GNUC_COLD void
+void G_COLD
 utf8_regression_checks(void)
 {
 	/* unicode_compose_init() must be called before this */

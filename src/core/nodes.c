@@ -1661,7 +1661,7 @@ node_id_new(void)
 /**
  * Network init.
  */
-G_GNUC_COLD void
+void G_COLD
 node_init(void)
 {
 	time_t now = clock_loc2gmt(tm_time());
@@ -11575,7 +11575,7 @@ node_qrt_changed(struct routing_table *query_table)
 /**
  * Final cleanup when application terminates.
  */
-G_GNUC_COLD void
+void G_COLD
 node_close(void)
 {
 	pslist_t *sl;

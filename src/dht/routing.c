@@ -1555,7 +1555,7 @@ dht_attempt_bootstrap(void)
  * Runtime (re)-initialization of the DHT.
  * If UDP or the DHT is not enabled, do nothing.
  */
-G_GNUC_COLD void
+void G_COLD
 dht_initialize(bool post_init)
 {
 	size_t i;
@@ -4891,7 +4891,7 @@ dht_free_bucket(struct kbucket *kb, void *unused_u)
  *
  * @param exiting	whether gtk-gnutella is exiting altogether
  */
-G_GNUC_COLD void
+void G_COLD
 dht_close(bool exiting)
 {
 	size_t i;

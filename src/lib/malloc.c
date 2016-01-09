@@ -2733,7 +2733,7 @@ stats_fill_array(const void *unused_key, void *value, void *user)
 /**
  * Dump the stats held in the specified array.
  */
-static G_GNUC_COLD void
+static void G_COLD
 stats_array_dump(FILE *f, struct afiller *filler)
 {
 	int i;
@@ -2926,7 +2926,7 @@ alloc_reset(FILE *f, bool total)
  * This routine checks whether calling a simple memory allocation
  * function from glib will cause real_malloc() to be called.
  */
-static G_GNUC_COLD void
+static void G_COLD
 malloc_glib12_check(void)
 {
 	vtable_works = TRUE;
@@ -2958,7 +2958,7 @@ malloc_glib12_check(void)
 /*
  * Sanity checks of malloc settings.
  */
-static G_GNUC_COLD void
+static void G_COLD
 malloc_sanity_checks(void)
 {
 	static const char test_string[] = "test string";
@@ -2992,7 +2992,7 @@ malloc_sanity_checks(void)
  * enables us to see frees for blocks we track but give to GTK, and never
  * see again otherwise.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_init_vtable(void)
 {
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
@@ -3041,7 +3041,7 @@ malloc_init_vtable(void)
 /**
  * Called from main() to log settings at startup.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_show_settings_log(logagent_t *la)
 {
 	bool has_setting = FALSE;
@@ -3178,7 +3178,7 @@ malloc_show_settings_log(logagent_t *la)
 /**
  * Called from main() to log settings at startup.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_show_settings(void)
 {
 	malloc_show_settings_log(log_agent_stderr_get());
@@ -3187,7 +3187,7 @@ malloc_show_settings(void)
 /**
  * @return amount of VMM memory used by internal tracking structures.
  */
-G_GNUC_COLD size_t
+size_t G_COLD
 malloc_memory_used(void)
 {
 	size_t res = 0;
@@ -3211,7 +3211,7 @@ malloc_memory_used(void)
 /**
  * Dump all the blocks that are still used.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_close(void)
 {
 #ifdef TRACK_MALLOC

@@ -494,7 +494,7 @@ ghc_is_waiting(void)
 /**
  * Initializations.
  */
-G_GNUC_COLD void
+void G_COLD
 ghc_init(void)
 {
 	uint i;
@@ -512,7 +512,7 @@ ghc_init(void)
 /**
  * Final cleanup.
  */
-G_GNUC_COLD void
+void G_COLD
 ghc_close(void)
 {
 	if (ghc_connecting) {

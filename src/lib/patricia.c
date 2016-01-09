@@ -660,7 +660,7 @@ patricia_matched_bits(
  * of matching leading bits within the key can be determined by calling
  * patricia_matched_bits() on the resulting node).
  */
-static G_GNUC_HOT struct patricia_node *
+static struct patricia_node * G_HOT
 patricia_match_best(patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn;
@@ -711,7 +711,7 @@ patricia_match_best(patricia_t *pt, const void *key, size_t keybits)
  *
  * @return the node which is an exact match, or NULL if not found.
  */
-static G_GNUC_HOT const struct patricia_node *
+static const struct patricia_node * G_HOT
 match_exact(const patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn;
@@ -2629,7 +2629,7 @@ remove_odd_key(void *key, size_t keybits, void *uv, void *uu)
 	return (p[3] & 0x1) ? TRUE : FALSE;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 test_keys(uint32 keys[], size_t nkeys)
 {
 	size_t i;
@@ -2864,7 +2864,7 @@ test_keys(uint32 keys[], size_t nkeys)
 /**
  * Perform unit tests of PATRICIA trees.
  */
-G_GNUC_COLD void
+void G_COLD
 patricia_test(void)
 {
 	size_t i;

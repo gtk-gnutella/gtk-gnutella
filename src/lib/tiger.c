@@ -154,7 +154,7 @@
 }
 
 /* The compress function is a function. Requires smaller cache?    */
-static G_GNUC_HOT void
+static void G_HOT
 tiger_compress(const uint64 *data, uint64 state[3])
 {
   tiger_compress_macro(data, state);
@@ -242,7 +242,7 @@ tiger(const void *data, uint64 length, char hash[24])
  * Runs some test cases to check whether the implementation of the tiger
  * hash algorithm is alright.
  */
-G_GNUC_COLD void
+void G_COLD
 tiger_check(void)
 {
 	static const char zeros[1025];

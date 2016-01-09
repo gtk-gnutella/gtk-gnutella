@@ -245,7 +245,7 @@ memusage_swap(memusage_t *mu)
 /**
  * Periodic timer to update the EMAs.
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 memusage_timer(void *data)
 {
 	memusage_t *mu = data;

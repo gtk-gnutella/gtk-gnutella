@@ -267,7 +267,7 @@ nodes_gui_column_title(int column)
 /**
  * Initialize the nodes controller. Register callbacks in the backend.
  */
-G_GNUC_COLD void
+void G_COLD
 nodes_gui_init(void)
 {
 	unsigned i;
@@ -303,7 +303,7 @@ free_node_id(const void *key, void *unused_udata)
 	return TRUE;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 nodes_gui_remove_all_nodes(void)
 {
 	GtkCList *clist;
@@ -324,7 +324,7 @@ nodes_gui_remove_all_nodes(void)
 /**
  * Unregister callbacks in the backend and clean up.
  */
-G_GNUC_COLD void
+void G_COLD
 nodes_gui_shutdown(void)
 {
 	GtkCList *clist;

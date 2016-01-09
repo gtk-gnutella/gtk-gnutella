@@ -814,7 +814,7 @@ guid_periodic_sync(void *unused_obj)
 /**
  * Initialize GUID management.
  */
-G_GNUC_COLD void
+void G_COLD
 guid_init(void)
 {
 	dbstore_kv_t kv = {
@@ -863,7 +863,7 @@ guid_init(void)
 /**
  * Close GUID management.
  */
-G_GNUC_COLD void
+void G_COLD
 guid_close(void)
 {
 	dbstore_close(db_guid, settings_gnet_db_dir(), db_guid_base);

@@ -480,7 +480,7 @@ vmm_is_extending(void)
  * In crashing mode, allocations are done without any pmap updating and
  * no shrinking nor freeing occurs.
  */
-void G_GNUC_COLD
+void G_COLD
 vmm_crash_mode(void)
 {
 	vmm_crashing = TRUE;
@@ -491,7 +491,7 @@ vmm_crash_mode(void)
 /**
  * Signal out-of-memory condition.
  */
-static void G_GNUC_COLD
+static void G_COLD
 vmm_oom_condition(void)
 {
 	if (0 == atomic_int_inc(&vmm_oom_detected))
@@ -501,7 +501,7 @@ vmm_oom_condition(void)
 /**
  * Initialize constants for the computation of kernel page roundings.
  */
-static void G_GNUC_COLD
+static void G_COLD
 init_kernel_pagesize(void)
 {
 	kernel_pagesize = compat_pagesize();
@@ -606,7 +606,7 @@ vmm_warn_once(const char *format, ...)
 /**
  * Initialize the stack shape: direction, bottom (base) address.
  */
-static G_GNUC_COLD void
+static void G_COLD
 init_stack_shape(void)
 {
 	int sp;
@@ -753,7 +753,7 @@ vmf_to_string(const struct vm_fragment *vmf)
 /**
  * Dump current pmap to specified logagent.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_dump_pmap_log(logagent_t *la)
 {
 	struct pmap *pm = vmm_pmap();
@@ -825,7 +825,7 @@ vmm_dump_pmap_log(logagent_t *la)
 /**
  * Dump current pmap.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_dump_pmap(void)
 {
 	vmm_dump_pmap_log(log_agent_stderr_get());
@@ -948,7 +948,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
  * memory pointer that would get allocated to cover the hole), one has to
  * substract the size of the region from the returned pointer.
  */
-static G_GNUC_HOT size_t
+static size_t G_HOT
 vmm_first_hole(const void **hole_ptr, bool discard)
 {
 	struct pmap *pm = vmm_pmap();
@@ -1203,7 +1203,7 @@ vmm_set_stop_freeing(bool val)
 /**
  * Dump current VMM hole to specified logagent.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_dump_hole_log(logagent_t *la)
 {
 	struct vmm_hole h;
@@ -1959,7 +1959,7 @@ free_pages(void *p, size_t size, bool update_pmap)
  * @return found fragment if address lies within the fragment, NULL if
  * no fragment containing the address was found.
  */
-static G_GNUC_HOT struct vm_fragment *
+static struct vm_fragment * G_HOT
 pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 {
 	const struct vm_fragment
@@ -3766,7 +3766,7 @@ short_term_strategy:
  *
  * @return TRUE if coalescing occurred, with updated base and amount of pages.
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 {
 	size_t i, j;
@@ -5116,7 +5116,7 @@ vmm_stats_digest(sha1_t *digest)
 /**
  * Dump page cache statistics to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_dump_pcache_log(logagent_t *la)
 {
 	size_t i;
@@ -5150,7 +5150,7 @@ vmm_dump_pcache_log(logagent_t *la)
 /**
  * Dump VMM statistics to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct pmap *pm = vmm_pmap();
@@ -5341,7 +5341,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 /**
  * Dump VMM statistics at exit time, along with the current pmap.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_dump_stats(void)
 {
 	s_info("VMM running statistics:");
@@ -5352,7 +5352,7 @@ vmm_dump_stats(void)
 /**
  * Dump VMM usage statistics to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_dump_usage_log(logagent_t *la, unsigned options)
 {
 	if (NULL == vmm_stats.user_mem) {
@@ -5371,7 +5371,7 @@ vmm_dump_usage_log(logagent_t *la, unsigned options)
  * In case an assertion failure occurs in this file, dump statistics
  * and the pmap.
  */
-static G_GNUC_COLD void
+static void G_COLD
 vmm_crash_hook(void)
 {
 	int sp;
@@ -5394,7 +5394,7 @@ vmm_crash_hook(void)
  * region and reserve an extra VMM_STACK_MINSIZE bytes for it to grow
  * further.
  */
-static G_GNUC_COLD void
+static void G_COLD
 vmm_reserve_stack(size_t amount)
 {
 	const void *stack_end, *stack_low;
@@ -5458,7 +5458,7 @@ vm_setup:
 /**
  * Turn on memory usage statistics.
  */
-static G_GNUC_COLD void
+static void G_COLD
 vmm_memusage_init_once(void)
 {
 	g_assert(NULL == vmm_stats.user_mem);
@@ -5471,7 +5471,7 @@ vmm_memusage_init_once(void)
 /**
  * Enable memory usage statistics collection.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_memusage_init(void)
 {
 	static once_flag_t memusage_inited;
@@ -5483,7 +5483,7 @@ vmm_memusage_init(void)
  * Called later in the initialization chain once the callout queue has been
  * initialized and the properties loaded.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_post_init(void)
 {
 	struct {
@@ -5604,7 +5604,7 @@ vmm_post_init(void)
 /**
  * Initialize the VMM layer, once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 vmm_early_init_once(void)
 {
 	int i;
@@ -5674,7 +5674,7 @@ vmm_early_init_once(void)
 /**
  * Mark the VMM layer as initialized, once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 vmm_init_once(void)
 {
 	/*
@@ -5693,7 +5693,7 @@ vmm_init_once(void)
  * This is only visible from the xmalloc() layer to be able to perform
  * posix_memalign() calls very early in the process startup.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_early_init(void)
 {
 	once_flag_run(&vmm_early_inited, vmm_early_init_once);
@@ -5706,7 +5706,7 @@ vmm_early_init(void)
  * No external memory allocation (malloc() and friends) can be done in this
  * routine, which is called very early at startup.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_init(void)
 {
 	vmm_early_init();
@@ -5768,7 +5768,7 @@ vmm_stop_freeing(void)
 /**
  * Final shutdown.
  */
-G_GNUC_COLD void
+void G_COLD
 vmm_close(void)
 {
 	struct pmap *pm = vmm_pmap();

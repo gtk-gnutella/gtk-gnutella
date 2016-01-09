@@ -6250,7 +6250,7 @@ settings_gui_restore_panes(void)
 	}
 }
 
-G_GNUC_COLD void
+void G_COLD
 settings_gui_init(void)
 {
     gint n;
@@ -6287,7 +6287,7 @@ settings_gui_init(void)
 #endif /* USE_REMOTE_CTRL */
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 sensitive_free_value(void *value, void *unused_data)
 {
 	struct widget_change *wc = value;
@@ -6298,7 +6298,7 @@ sensitive_free_value(void *value, void *unused_data)
 	WFREE(wc);
 }
 
-G_GNUC_COLD void
+void G_COLD
 settings_gui_shutdown(void)
 {
     guint n;

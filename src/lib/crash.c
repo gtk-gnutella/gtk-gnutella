@@ -283,7 +283,7 @@ typedef struct cursor {
 /**
  * Append positive value to buffer, formatted as "%02lu".
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_02u(cursor_t *cursor, long v)
 {
 	if (cursor->size < 2 || v < 0)
@@ -307,7 +307,7 @@ crash_append_fmt_02u(cursor_t *cursor, long v)
 /**
  * Append positive value to buffer, formatted as "%03lu".
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_03u(cursor_t *cursor, long v)
 {
 	if (cursor->size < 3 || v < 0)
@@ -342,7 +342,7 @@ crash_append_fmt_03u(cursor_t *cursor, long v)
 /**
  * Append positive value to buffer, formatted as "%lu".
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 {
 	char buf[ULONG_DEC_BUFLEN];
@@ -362,7 +362,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 /**
  * Append a character to supplied buffer.
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 {
 	if (cursor->size < 1)
@@ -481,7 +481,7 @@ crash_time_raw(char *buf, size_t size)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-G_GNUC_COLD void
+void
 crash_time_iso(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -522,7 +522,7 @@ crash_time_iso(char *buf, size_t size)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_run_time(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -596,7 +596,7 @@ crash_level_to_string(const enum crash_level level)
  *
  * @return the hook function to run, NULL if nothing.
  */
-static G_GNUC_COLD callback_fn_t
+static callback_fn_t G_COLD
 crash_get_hook(void)
 {
 	const char *file;
@@ -648,7 +648,7 @@ crash_getpid(void)
  * @param logfile		if non-NULL, redirect messages there as well.
  * @param logfd			if not -1, the opened file where we should log to
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_run_hooks(const char *logfile, int logfd)
 {
 	callback_fn_t hook;
@@ -755,7 +755,7 @@ crash_run_hooks(const char *logfile, int logfd)
 /**
  * Emit leading crash information: who crashed and why.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_message(const char *signame, bool trace, bool recursive)
 {
 	DECLARE_STR(11);
@@ -811,7 +811,7 @@ crash_message(const char *signame, bool trace, bool recursive)
 /**
  * Signal that we are attempting to print a decorated stack trace.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_decorating_stack(void)
 {
 	DECLARE_STR(5);
@@ -835,7 +835,7 @@ crash_decorating_stack(void)
 /**
  * Marks end of crash logging and potential pausing or debugger hook calling.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_end_of_line(bool forced)
 {
 	DECLARE_STR(7);
@@ -876,7 +876,7 @@ crash_end_of_line(bool forced)
 /**
  * Construct name of GTKG crash log.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_logname(char *buf, size_t len, const char *pidstr)
 {
 	clamp_strcpy(buf, len, EMPTY_STRING(vars->progname));
@@ -940,7 +940,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 /**
  * Fill specified buffer with the full path of the crashlog file.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_logpath(char *buf, size_t len)
 {
 	const char *pid_str;
@@ -961,7 +961,7 @@ crash_logpath(char *buf, size_t len)
  * Emit the current stack frame to specified file, or the assertion stack
  * if we have one.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 crash_stack_print(int fd, size_t offset)
 {
 	if (vars != NULL && vars->stackcnt != 0) {
@@ -977,7 +977,7 @@ static Sigjmp_buf crash_safe_env[THREAD_MAX];
 /**
  * Invoked on a fatal signal during decorated stack building.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_decorated_got_signal(int signo)
 {
 	int stid = thread_small_id();
@@ -991,7 +991,7 @@ crash_decorated_got_signal(int signo)
  *
  * @return TRUE on success, FALSE if we caught a harmful signal
  */
-static G_GNUC_COLD NO_INLINE bool
+static NO_INLINE bool G_COLD
 crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 {
 	int stid = thread_small_id();
@@ -1066,7 +1066,7 @@ crash_print_decorated_stack(int fd)
 /**
  * Emit a decorated stack.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 crash_emit_decorated_stack(size_t offset, bool in_child)
 {
 	crash_decorating_stack();
@@ -1084,7 +1084,7 @@ crash_emit_decorated_stack(size_t offset, bool in_child)
  *
  * @return TRUE on success.
  */
-static G_GNUC_COLD NO_INLINE bool
+static NO_INLINE bool G_COLD
 crash_append_decorated_stack(size_t offset)
 {
 	int clf;
@@ -1127,7 +1127,7 @@ done:
 /**
  * Reset the handler of all the signals we trap, and unblock them.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_reset_signals(void)
 {
 	unsigned i;
@@ -1150,7 +1150,7 @@ static Sigjmp_buf crash_fork_env;
 /**
  * Handle fork() timeouts.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_fork_timeout(int signo)
 {
 	DECLARE_STR(2);
@@ -1168,7 +1168,7 @@ crash_fork_timeout(int signo)
 /**
  * A fork() wrapper to handle multi-threaded environments "safely".
  */
-static G_GNUC_COLD pid_t
+static pid_t G_COLD
 crash_fork(void)
 {
 #ifdef HAS_FORK
@@ -1468,7 +1468,7 @@ crash_fd_close(int fd)
  *
  * This is used when there is no inspector run, to leave a trace of the crash.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_generate_crashlog(int signo)
 {
 	static char crashlog[MAX_PATH_LEN];
@@ -1544,7 +1544,7 @@ crash_logerr(const char *what, const char *pid_str, int fd, int fd2, int out)
  *
  * @return TRUE if we were able to invoke the crash hooks.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
@@ -2241,7 +2241,7 @@ crash_inspect_thread(void *args)
 /**
  * The threaded version of crash_invoke_inspector(), for Windows.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_invoke_threaded_inspector(int signo, const char *cwd)
 {
 	struct crash_inspect_args v;
@@ -2280,7 +2280,7 @@ crash_invoke_threaded_inspector(int signo, const char *cwd)
  *
  * @return TRUE if we were able to invoke the crash hooks.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_inspect(int signo, const char *cwd)
 {
 	/*
@@ -2304,7 +2304,7 @@ crash_inspect(int signo, const char *cwd)
 /**
  * Record failing thread information.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_record_thread(void)
 {
 	if (vars != NULL && NULL == vars->fail_name) {
@@ -2337,7 +2337,7 @@ crash_record_thread(void)
  * We are running on thin memory, burning our reserves so limit consumption
  * of memory when logging or dumping stacks.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_oom_condition(void)
 {
 	log_crash_mode();
@@ -2358,7 +2358,7 @@ crash_oom_condition(void)
  * @return TRUE if the last assertion failure occurred in the file or if
  * we are currently holding a lock from that file.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_is_from(const char *file)
 {
 	if (
@@ -2408,7 +2408,7 @@ crash_disable_init(void)
  * @param name		name of the memory allocator
  * @param cb		disabling callback to invoke
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_disable(const char *name, callback_fn_t cb)
 {
 	once_flag_run(&disable_inited, crash_disable_init);
@@ -2427,7 +2427,7 @@ crash_disable(const char *name, callback_fn_t cb)
  * @param name		name of the memory allocator
  * @param cb		disabling callback to invoke
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_disable_if_from(const char *file, const char *name, callback_fn_t cb)
 {
 	if (crash_is_from(file))
@@ -2439,7 +2439,7 @@ static spinlock_t crash_mode_slk = SPINLOCK_INIT;
 /**
  * Get current crash level.
  */
-static enum crash_level G_GNUC_COLD
+static enum crash_level G_COLD
 crash_level(void)
 {
 	enum crash_level level;
@@ -2458,7 +2458,7 @@ crash_level(void)
  *
  * @return FALSE if we had already entered crash_mode(), TRUE the first time.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_mode(enum crash_level level)
 {
 	static int done;
@@ -2662,7 +2662,7 @@ done:
 /**
  * Report on emergency memory usage, once, if needed at all.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_vmea_usage(void)
 {
 	static bool done;
@@ -2697,7 +2697,7 @@ crash_vmea_usage(void)
 /**
  * Called when we're about to re-exec() ourselves in some way to auto-restart.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_restart_notify(const char *caller)
 {
 	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
@@ -2737,7 +2737,7 @@ crash_restart_notify(const char *caller)
  *
  * This function only returns when exec()ing fails.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
@@ -2865,7 +2865,7 @@ crash_try_reexec(void)
  * Handle possible auto-restart, if configured.
  * This function does not return when auto-restart succeeds
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_auto_restart(void)
 {
 	crash_restart_notify(G_STRFUNC);
@@ -3053,7 +3053,7 @@ static volatile sig_atomic_t crash_count;
  * main thread if possible (hence it being done in a separate routine, with
  * all the variable gathered by crash_handler() already passed in a structure.
  */
-static void * G_GNUC_COLD
+static void * G_COLD
 crash_handler_process(void *arg)
 {
 	struct crash_handler_ctx *v = arg;
@@ -3120,7 +3120,7 @@ the_end:
 /**
  * The signal handler used to trap harmful signals.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_handler(int signo)
 {
 	struct crash_handler_ctx v;
@@ -3304,7 +3304,7 @@ crash_handler(int signo)
  * @param cb		the function to invoke in the main thread if possible
  * @param arg		argument to pass to function
  */
-void G_GNUC_COLD
+void G_COLD
 crash_divert_main(const char *caller, process_fn_t cb, void *arg)
 {
 	if (!thread_is_main()) {
@@ -3334,7 +3334,7 @@ crash_ck_allocator(void *allocator, size_t len)
 /**
  * Alter crash flags.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_ctl(enum crash_alter_mode mode, int flags)
 {
 	uint8 value;
@@ -3365,7 +3365,7 @@ crash_ctl(enum crash_alter_mode mode, int flags)
  *
  * @param pid		PID of the previous process
  */
-void G_GNUC_COLD
+void G_COLD
 crash_exited(uint32 pid)
 {
 	str_t *cfile;
@@ -3449,7 +3449,7 @@ crash_exited(uint32 pid)
  *
  * This is an eslist iterator callback.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_hook_install(void *data, void *udata)
 {
 	crash_hook_item_t *ci = data;
@@ -3476,7 +3476,7 @@ crash_hook_install(void *data, void *udata)
  * @param flags		combination of CRASH_F_GDB, CRASH_F_PAUSE, CRASH_F_RESTART
  * @parah exec_path	pathname of custom program to execute on crash
  */
-void G_GNUC_COLD
+void G_COLD
 crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path)
 {
@@ -3644,7 +3644,7 @@ crash_init(const char *argv0, const char *progname,
  *
  * @return Required buffer size.
  */
-static size_t G_GNUC_COLD
+static size_t G_COLD
 crashfile_name(char *dst, size_t dst_size, const char *pathname)
 {
 	const char *pid_str, *item;
@@ -3684,7 +3684,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
  *
  * @param pathname		the absolute pathname of the crash directory
  */
-void G_GNUC_COLD
+void G_COLD
 crash_setdir(const char *pathname)
 {
 	const char *curdir = NULL;
@@ -3749,7 +3749,7 @@ crash_setdir(const char *pathname)
 /**
  * Record program's version string.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_setver(const char *version)
 {
 	const char *value;
@@ -3991,7 +3991,7 @@ crash_abort(void)
  *
  * This function does not return: either it succeeds exec()ing or it exits.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_reexec(void)
 {
 	crash_mode(CRASH_LVL_RECURSIVE);	/* Prevent any memory allocation */
@@ -4003,7 +4003,7 @@ crash_reexec(void)
 /**
  * Callout queue event to force application restart.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_force_restart(cqueue_t *cq, void *unused)
 {
 	char buf[CRASH_RUNTIME_BUFLEN];
@@ -4038,7 +4038,7 @@ crash_force_restart(cqueue_t *cq, void *unused)
  *
  * This routine may return, hence the caller must be prepared for it.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_restart(const char *format, ...)
 {
 	static int registered;
@@ -4187,7 +4187,7 @@ crash_restarting(void)
  * Log the error and try to auto-restart the program if configured to do
  * so, otherwise crash immediately.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_oom(const char *format, ...)
 {
 	static int recursive;
@@ -4283,7 +4283,7 @@ crash_get_stack(uint id, struct crash_stack *trace)
 /**
  * Print a light version of the stack trace.
  */
-static void * G_GNUC_COLD
+static void * G_COLD
 crash_thread_stack_print(void *arg)
 {
 	const struct crash_stack *t = arg;
@@ -4318,7 +4318,7 @@ crash_thread_stack_print(void *arg)
  * @param cb		the function to invoke in the main thread if possible
  * @param arg		argument to pass to function
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_offload_main(process_fn_t cb, void *arg)
 {
 	if (!thread_is_main()) {
@@ -4337,7 +4337,7 @@ crash_offload_main(process_fn_t cb, void *arg)
  *
  * @param fd	where to print the stack traces
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_dump_stacks(int fd)
 {
 	int i, e;
@@ -4372,7 +4372,7 @@ crash_dump_stacks(int fd)
 /**
  * Record that we are deadlocked.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_deadlocked(const char *file, unsigned line)
 {
 	crash_last_deadlock_file = file;
@@ -4396,7 +4396,7 @@ crash_deadlocked(const char *file, unsigned line)
 /**
  * Record failed assertion data.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_assert_failure(const struct assertion_data *a)
 {
 	crash_last_assertion_failure = a;
@@ -4416,7 +4416,7 @@ crash_assert_failure(const struct assertion_data *a)
  *
  * @return formatted message string, NULL if it could not be built
  */
-const char * G_GNUC_COLD
+const char * G_COLD
 crash_assert_logv(const char * const fmt, va_list ap)
 {
 	crash_mode(CRASH_LVL_FAILURE);
@@ -4449,7 +4449,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
  *
  * This allows triggering of crash hooks, if any defined for the file.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_set_filename(const char * const filename)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4463,7 +4463,7 @@ crash_set_filename(const char * const filename)
 /**
  * Record crash error message.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_set_error(const char * const msg)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4490,7 +4490,7 @@ crash_set_error(const char * const msg)
 /**
  * Append information to existing error message.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_append_error(const char * const msg)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4516,7 +4516,7 @@ crash_append_error(const char * const msg)
  * Save given stack trace, which will be displayed during crashes instead
  * of the current stack frame.
  */
-G_GNUC_COLD void
+void G_COLD
 crash_save_stackframe(void *stack[], size_t count)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4538,7 +4538,7 @@ crash_save_stackframe(void *stack[], size_t count)
  * is to protect against SIGABRT signal delivery happening on a dedicated
  * signal stack.
  */
-G_GNUC_COLD void
+void G_COLD
 crash_save_current_stackframe(unsigned offset)
 {
 	crash_mode(CRASH_LVL_BASIC);

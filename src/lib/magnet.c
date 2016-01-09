@@ -125,7 +125,7 @@ free_proxies_list(pslist_t *sl)
 
 static once_flag_t magnet_keys_checked;
 
-static void G_GNUC_COLD
+static void G_COLD
 magnet_key_check(void)
 {
 	TOKENIZE_CHECK_SORTED_WITH(magnet_keys, ascii_strcasecmp);

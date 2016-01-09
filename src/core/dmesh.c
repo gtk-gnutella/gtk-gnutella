@@ -200,7 +200,7 @@ urlinfo_eq(const void *a, const void *b)
 /**
  * Initialize the download mesh.
  */
-G_GNUC_COLD void
+void G_COLD
 dmesh_init(void)
 {
 	mesh = hikset_create(offsetof(struct dmesh, sha1),
@@ -3347,7 +3347,7 @@ dmesh_store(void)
  * Retrieve download mesh and add entries that have not expired yet.
  * The mesh is normally retrieved from ~/.gtk-gnutella/dmesh.
  */
-static G_GNUC_COLD void
+static void G_COLD
 dmesh_retrieve(void)
 {
 	FILE *f;
@@ -3463,7 +3463,7 @@ dmesh_ban_store(void)
  * Retrieve banned mesh and add entries that have not expired yet.
  * The mesh is normally retrieved from ~/.gtk-gnutella/dmesh_ban.
  */
-static G_GNUC_COLD void
+static void G_COLD
 dmesh_ban_retrieve(void)
 {
 	FILE *in;
@@ -3548,7 +3548,7 @@ dmesh_ban_prepend_list(void *value, void *user)
 /**
  * Called at servent shutdown time.
  */
-G_GNUC_COLD void
+void G_COLD
 dmesh_close(void)
 {
 	pslist_t *banned = NULL;

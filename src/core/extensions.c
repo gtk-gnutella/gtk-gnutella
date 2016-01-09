@@ -260,7 +260,7 @@ static const struct rwtable ggeptable[] =
  * @return the keyword token value upon success, EXT_T_UNKNOWN if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
-static G_GNUC_HOT ext_token_t
+static ext_token_t G_HOT
 rw_screen(bool case_sensitive,
 	const struct rwtable *table, size_t size,
 	const char *word, const char **retkw)
@@ -292,7 +292,7 @@ rw_screen(bool case_sensitive,
 /**
  * Ensure the reserved-word table is lexically sorted.
  */
-static G_GNUC_COLD void
+static void G_COLD
 rw_is_sorted(const char *name,
 	const struct rwtable *table, size_t size)
 {
@@ -429,7 +429,7 @@ ext_names_kv_free(const void *key, void *value, void *unused_udata)
 /**
  * Parses a GGEP block (can hold several extensions).
  */
-static G_GNUC_HOT int
+static int G_HOT
 ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 {
 	const char *p = *retp;
@@ -1061,7 +1061,7 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
  *
  * @return the number of filled entries.
  */
-static G_GNUC_HOT int
+static int G_HOT
 ext_parse_buffer(const char *buf, size_t len, int flags,
 	extvec_t *exv, int exvcnt, char **endptr)
 {

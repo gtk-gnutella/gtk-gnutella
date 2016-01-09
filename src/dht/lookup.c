@@ -5046,7 +5046,7 @@ done:
 /**
  * Initialize Kademlia node lookups.
  */
-G_GNUC_COLD void
+void G_COLD
 lookup_init(void)
 {
 	double log_2 = log(2.0);

@@ -620,7 +620,7 @@ strtok_case_has(const char *string, const char *delim, const char *what)
 /**
  * Tokenizer unit tests.
  */
-G_GNUC_COLD void
+void G_COLD
 strtok_test(void)
 {
 	const char *string = "a; b, c ; d/e";

@@ -956,7 +956,7 @@ uint32_str(const void *v)
 /**
  * Initialize atom structures.
  */
-static G_GNUC_COLD void
+static void G_COLD
 atoms_init_once(void)
 {
 	bool has_setting = FALSE;

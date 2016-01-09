@@ -1793,7 +1793,7 @@ error:
 /**
  * Initialize the Gnutella DHT layer.
  */
-G_GNUC_COLD void
+void G_COLD
 pdht_init(void)
 {
 	aloc_publishes = hikset_create(
@@ -1822,7 +1822,7 @@ free_publish_kv(void *val, void *unused_x)
 /**
  * Shutdown the Gnutella DHT layer.
  */
-G_GNUC_COLD void
+void G_COLD
 pdht_close(void)
 {
 	if (pdht_proxy.pp != NULL) {

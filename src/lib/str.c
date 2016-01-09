@@ -3365,7 +3365,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
  * This routine normalizes exponents to 2 digits, for the purpose of
  * avoiding spurious discrepancies reports when issues a verbose str_test().
  */
-static void G_GNUC_COLD
+static void G_COLD
 str_test_fix_exponent(char *std)
 {
 	char *p = std;
@@ -3453,7 +3453,7 @@ error:
  *
  * @return amount of discrepancies found with the system's snprintf().
  */
-size_t G_GNUC_COLD
+size_t G_COLD
 str_test(bool verbose)
 {
 #define MLEN		64

@@ -646,7 +646,7 @@ static const uint SPECIAL_FILE = -3;		/**< Special served files */
  * Initialize special file entry, returning shared_file_t structure if
  * the file exists, NULL otherwise.
  */
-static G_GNUC_COLD shared_file_t *
+static shared_file_t * G_COLD
 share_special_load(const struct special_file *sp)
 {
 	FILE *f;
@@ -753,7 +753,7 @@ shared_files_match(const char *query,
 /**
  * Initialize the special files we're sharing.
  */
-static G_GNUC_COLD void
+static void G_COLD
 share_special_init(void)
 {
 	uint i;
@@ -3135,7 +3135,7 @@ share_special_close(void)
 /**
  * Shutdown cleanup.
  */
-G_GNUC_COLD void
+void G_COLD
 share_close(void)
 {
 	if (THREAD_MAIN != share_thread_id)
@@ -3927,7 +3927,7 @@ share_update_matching_information(void)
 /**
  * Initialization of the sharing library.
  */
-G_GNUC_COLD void
+void G_COLD
 share_init(void)
 {
 	size_t i;

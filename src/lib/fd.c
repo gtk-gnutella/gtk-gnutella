@@ -246,7 +246,7 @@ fd_close_unpreserved_from(const int first_fd)
  *
  * @return 0 on success, -1 on failure.
  */
-G_GNUC_COLD int
+int G_COLD
 reserve_standard_file_descriptors(void)
 {
 	int fd;
@@ -277,7 +277,7 @@ reserve_standard_file_descriptors(void)
 	return 0;
 }
 
-G_GNUC_COLD bool
+bool G_COLD
 fd_need_non_stdio(void)
 {
 	static int needed = -1;

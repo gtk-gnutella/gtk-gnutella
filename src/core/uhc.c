@@ -629,7 +629,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 /**
  * Initializations.
  */
-G_GNUC_COLD void
+void G_COLD
 uhc_init(void)
 {
 	uint i;
@@ -661,7 +661,7 @@ uhc_init(void)
 /**
  * Cleanup during process termination.
  */
-G_GNUC_COLD void
+void G_COLD
 uhc_close(void)
 {
 	cq_cancel(&uhc_ctx.timeout_ev);

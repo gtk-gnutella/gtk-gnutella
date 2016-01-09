@@ -1097,7 +1097,7 @@ random_entropy(void *unused)
 /**
  * Install the periodic entropy propagation call to random number generators.
  */
-static void G_GNUC_COLD
+static void G_COLD
 random_entropy_install(void)
 {
 	evq_raw_periodic_add(RANDOM_ENTROPY_PERIOD, random_entropy, NULL);
@@ -1261,7 +1261,7 @@ random_stats_digest(sha1_t *digest)
 /**
  * Dump random statistics to specified logagent.
  */
-void G_GNUC_COLD
+void G_COLD
 random_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct random_stats r;
@@ -1330,7 +1330,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 /**
  * Dump random statistics to stderr.
  */
-void G_GNUC_COLD
+void G_COLD
 random_dump_stats(void)
 {
 	s_info("RANDOM running statistics:");

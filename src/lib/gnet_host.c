@@ -77,7 +77,7 @@
 /**
  * Hash function for use in hash tables and sets.
  */
-G_GNUC_HOT uint
+uint G_HOT
 gnet_host_hash(const void *key)
 {
 	const gnet_host_t *host = key;
@@ -92,7 +92,7 @@ gnet_host_hash(const void *key)
 /**
  * Alternative hash function for use in hash table and sets.
  */
-G_GNUC_HOT uint
+uint G_HOT
 gnet_host_hash2(const void *key)
 {
 	const gnet_host_t *host = key;

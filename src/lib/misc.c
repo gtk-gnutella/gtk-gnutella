@@ -1027,7 +1027,7 @@ alnum2int(uchar c)
 /**
  * Initializes the lookup table for hex2int().
  */
-static G_GNUC_COLD void
+static void G_COLD
 hex2int_init(void)
 {
 	size_t i;
@@ -1075,7 +1075,7 @@ hex2int_init(void)
 /**
  * Initializes the lookup table for dec2int().
  */
-static G_GNUC_COLD void
+static void G_COLD
 dec2int_init(void)
 {
 	size_t i;
@@ -1111,7 +1111,7 @@ dec2int_init(void)
 /**
  * Initializes the lookup table for alnum2int().
  */
-static G_GNUC_COLD void
+static void G_COLD
 alnum2int_init(void)
 {
 	static const char abc[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -1506,7 +1506,7 @@ tth_to_urn_string(const struct tth *tth)
  * @return the number of common leading bits, which is at most
  * min(k1bits, k2bits) if everything matches.
  */
-G_GNUC_HOT size_t
+size_t G_HOT
 common_leading_bits(
 	const void *k1, size_t k1bits, const void *k2, size_t k2bits)
 {
@@ -1859,7 +1859,7 @@ failure:
 /**
  * Find amount of common leading bits between two IP addresses.
  */
-static G_GNUC_HOT uint8
+static uint8 G_HOT
 find_common_leading(uint32 ip1, uint32 ip2)
 {
 	uint8 n;
@@ -2045,7 +2045,7 @@ html_escape(const char *src, char *dst, size_t dst_size)
 
 static htable_t *html_entities_lut;
 
-static G_GNUC_COLD void
+static void G_COLD
 html_entities_init(void)
 {
 	size_t i;
@@ -2162,7 +2162,7 @@ memcmp_diff(const void *a, const void *b, size_t size)
  *
  * @return 0 on equality, -1 if s1 < s2 and +1 if s1 > s2.
  */
-G_GNUC_HOT int
+int G_HOT
 bitcmp(const void *s1, const void *s2, size_t n)
 {
 	int i, bytes, remain;
@@ -2590,7 +2590,7 @@ xml_indent(const char *text)
 /**
  * Initialize miscellaneous data structures, once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 misc_init_once(void)
 {
 	hex2int_init();
@@ -2672,7 +2672,7 @@ misc_init_once(void)
 /**
  * Initialize miscellaneous data structures.
  */
-G_GNUC_COLD void
+void G_COLD
 misc_init(void)
 {
 	static once_flag_t done;
@@ -2683,7 +2683,7 @@ misc_init(void)
 /**
  * Final cleanup at shutdown time.
  */
-void
+void G_COLD
 misc_close(void)
 {
 	html_entities_close();

@@ -1759,7 +1759,7 @@ http_range_test_load(const http_range_t ranges[], size_t cnt)
 /**
  * Perform unit tests for HTTP ranges.
  */
-G_GNUC_COLD void
+void G_COLD
 http_range_test(void)
 {
 	http_rangeset_t *hrs_even, *hrs_odd, *hrs_over;
@@ -1932,7 +1932,7 @@ http_range_test(void)
 	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 }
 #else	/* !HTTP_RANGE_TESTING */
-G_GNUC_COLD void
+void G_COLD
 http_range_test(void)
 {
 	/* Empty */

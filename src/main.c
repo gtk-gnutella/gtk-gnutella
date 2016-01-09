@@ -497,7 +497,7 @@ main_dispatch(void)
 /*
  * If they requested abnormal termination after shutdown, comply now.
  */
-static void G_GNUC_COLD
+static void G_COLD
 handle_user_shutdown_request(enum shutdown_mode mode)
 {
 	const char *msg = "crashing at your request";
@@ -535,7 +535,7 @@ handle_user_shutdown_request(enum shutdown_mode mode)
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
  * seconds so that BYE messages can be sent to other nodes.
  */
-void G_GNUC_COLD
+void G_COLD
 gtk_gnutella_exit(int exit_code)
 {
 	static volatile sig_atomic_t safe_to_exit;
