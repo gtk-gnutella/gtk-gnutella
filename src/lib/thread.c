@@ -4188,6 +4188,29 @@ thread_id_name_to_buf(unsigned id,
 }
 
 /**
+ * Get the current thread name, safely, without taking any locks.
+ *
+ * The returned name starts with the word "thread", hence message formatting
+ * must take that into account.
+ *
+ * @return the name of the current thread, as pointer to static data.
+ */
+const char *
+thread_safe_name(void)
+{
+	static char buf[THREAD_MAX][128];
+	unsigned stid = thread_safe_small_id();
+	char *b;
+
+	if (stid >= THREAD_MAX)
+		return "unknown thread";
+
+	b = &buf[stid][0];
+
+	return thread_id_name_to_buf(stid, b, sizeof buf[0], FALSE);
+}
+
+/**
  * Safely compute the name of the specified thread ID.
  *
  * This routine, by definition, is usually called during crashes or dire
