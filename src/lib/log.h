@@ -105,19 +105,21 @@ void s_fatal_exit(int status, const char *format, ...)
 	G_PRINTF(2, 3) G_NORETURN;
 void s_error_from(const char *file, const char *fmt, ...)
 	G_PRINTF(2, 3) G_NORETURN;
-void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args);
+void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args)
+	G_PRINTF(3, 0);
 void s_minierror(const char *format, ...) G_PRINTF(1, 2) G_NORETURN;
 void s_minicrit(const char *format, ...) G_PRINTF(1, 2);
 void s_miniwarn(const char *format, ...) G_PRINTF(1, 2);
 void s_minimsg(const char *format, ...) G_PRINTF(1, 2);
 void s_miniinfo(const char *format, ...) G_PRINTF(1, 2);
 void s_minidbg(const char *format, ...) G_PRINTF(1, 2);
-void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a);
 void s_rawcrit(const char *format, ...) G_PRINTF(1, 2);
 void s_rawwarn(const char *format, ...) G_PRINTF(1, 2);
 void s_rawmsg(const char *format, ...) G_PRINTF(1, 2);
 void s_rawinfo(const char *format, ...) G_PRINTF(1, 2);
 void s_rawdebug(const char *format, ...) G_PRINTF(1, 2);
+void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a)
+	G_PRINTF(4, 0);
 
 void s_line_writef(int fd, const char *fmt, ...) G_PRINTF(2, 3);
 
