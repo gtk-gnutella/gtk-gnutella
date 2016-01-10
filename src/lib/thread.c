@@ -4585,6 +4585,10 @@ thread_check_suspended(void)
 	struct thread_element *te;
 
 	te = thread_find(&te);
+
+	if G_UNLIKELY(NULL == te)
+		return FALSE;
+
 	return thread_check_suspended_element(te, TRUE);
 }
 
