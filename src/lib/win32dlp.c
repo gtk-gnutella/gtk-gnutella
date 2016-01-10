@@ -247,7 +247,7 @@ win32dlp_via_xmalloc(const void *p)
 	/*
 	 * It's not in our reserved region, but it can be allocated via the VMM
 	 * layer from the "unreserved" VM space.  In any case, this will be
-	 * memory known the the VMM layer (i.e. identified as being mapped).
+	 * memory known to the VMM layer (i.e. identified as being mapped).
 	 */
 
 	return vmm_is_native_pointer(p);
@@ -327,7 +327,7 @@ win32dlp_scan_modules(void)
 	 *
 	 * - the pthread DLL, which uses malloc() and will cause problems since
 	 *   our locks always attempt to compute the thread small ID, which will
-	 *   re-enter the pthread iDLL if we have to call pthread_self() for
+	 *   re-enter the pthread DLL if we have to call pthread_self() for
 	 *   instance during our allocations, causing a deadly recursion.
 	 */
 
@@ -641,8 +641,7 @@ win32dlp_apply(const void *unused_key, void *value, void *data)
 
 		for (mp = p->modules; mp->name != NULL; mp++) {
 			/*
-			 * We're only attempting attempting to see whether a module has
-			 * been loaded once.
+			 * Check whether module has been loaded, only done once per module.
 			 */
 
 			if (0 == (mp->flags & WIN32DLP_MODF_PROBED)) {
