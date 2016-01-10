@@ -247,13 +247,6 @@
 #include <glib.h>
 #include "types.h"
 
-#ifdef USE_LINT
-#undef G_GNUC_INTERNAL
-#define G_GNUC_INTERNAL
-#undef G_INLINE_FUNC
-#define G_INLINE_FUNC
-#endif
-
 #if defined(USE_GLIB1) && !defined(GLIB_MAJOR_VERSION)
 #error "Install GLib 1.2 to compile gtk-gnutella against GLib 1.2."
 #endif
