@@ -589,7 +589,7 @@ thex_rx_given(void *o, ssize_t r)
 	download_data_received(ctx->owner, r);
 }
 
-static G_GNUC_PRINTF(2, 3) void
+static void G_PRINTF(2, 3)
 thex_rx_error(void *o, const char *reason, ...)
 {
 	struct thex_download *ctx = o;

@@ -3,7 +3,7 @@
 #include "lib/base16.h"
 #include "lib/progname.h"
 
-extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
+extern void oops(char *fmt, ...) G_PRINTF(1, 2);
 
 /***************************************************************************\
 **                                                                         **

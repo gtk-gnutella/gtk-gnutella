@@ -1994,7 +1994,7 @@ s_debug_once_per_from(long period, const char *origin,
  * @param fmt		the printf()-like formatting string
  * @param ...		the arguments to be formatted
  */
-void G_GNUC_PRINTF(2, 3)
+void G_PRINTF(2, 3)
 s_line_writef(int fd, const char *fmt, ...)
 {
 	char buf[LOG_MSG_MAXLEN];

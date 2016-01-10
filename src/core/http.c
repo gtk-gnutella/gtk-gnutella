@@ -2266,7 +2266,7 @@ http_redirect(http_async_t *ha, char *url)
 
 static bool http_data_ind(rxdrv_t *rx, pmsg_t *mb);
 
-static G_GNUC_PRINTF(2, 3) void
+static void G_PRINTF(2, 3)
 http_async_rx_error(void *o, const char *reason, ...)
 {
 	http_async_t *ha = o;

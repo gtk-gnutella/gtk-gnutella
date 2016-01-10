@@ -626,17 +626,16 @@ bool node_is_connected(const host_addr_t addr, uint16 port, bool incoming);
 bool node_host_is_connected(const host_addr_t addr, uint16 port);
 void node_add_socket(struct gnutella_socket *s);
 void node_remove(struct gnutella_node *,
-	const char * reason, ...) G_GNUC_PRINTF(2, 3);
+	const char * reason, ...) G_PRINTF(2, 3);
 uint node_remove_by_addr(const host_addr_t addr, uint16 port);
 void node_bye(gnutella_node_t *, int code,
-	const char * reason, ...) G_GNUC_PRINTF(3, 4);
+	const char * reason, ...) G_PRINTF(3, 4);
 void node_real_remove(gnutella_node_t *);
-void node_eof(struct gnutella_node *n,
-	const char * reason, ...) G_GNUC_PRINTF(2, 3);
+void node_eof(struct gnutella_node *n, const char * reason, ...) G_PRINTF(2, 3);
 void node_shutdown(struct gnutella_node *n,
-	const char * reason, ...) G_GNUC_PRINTF(2, 3);
+	const char * reason, ...) G_PRINTF(2, 3);
 void node_bye_if_writable(struct gnutella_node *n, int code,
-	const char * reason, ...) G_GNUC_PRINTF(3, 4);
+	const char * reason, ...) G_PRINTF(3, 4);
 void node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
@@ -659,7 +658,7 @@ void node_qrt_install(struct gnutella_node *n, struct routing_table *);
 void node_qrt_patched(struct gnutella_node *n, struct routing_table *);
 
 void send_node_error(struct gnutella_socket *s, int code,
-	const char *msg, ...) G_GNUC_PRINTF(3, 4);
+	const char *msg, ...) G_PRINTF(3, 4);
 
 void node_add_sent(gnutella_node_t *n, int x);
 void node_add_txdrop(void *o, int x);

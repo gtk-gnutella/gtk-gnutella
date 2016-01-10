@@ -79,10 +79,10 @@ char *h_strnjoinv(const char *separator, size_t seplen, char * const *str_ary);
 void h_strfreev(char **str_array);
 char *h_strconcat(const char *str1, ...) G_MALLOC G_NULL_TERMINATED;
 char *h_strconcat_v(const char *first, va_list ap) G_MALLOC;
-char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
-char *h_strdup_vprintf(const char *format, va_list ap) G_GNUC_PRINTF(1, 0);
+char *h_strdup_printf(const char *format, ...) G_PRINTF(1, 2);
+char *h_strdup_vprintf(const char *format, va_list ap) G_PRINTF(1, 0);
 char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
-	G_GNUC_PRINTF(1, 0);
+	G_PRINTF(1, 0);
 #endif	/* !TRACK_MALLOC */
 
 void halloc_init(bool replace_malloc);

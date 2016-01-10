@@ -190,11 +190,11 @@ static bool download_get_server_name(struct download *d, header_t *header);
 static bool use_push_proxy(struct download *d);
 static void download_unavailable(struct download *d,
 		download_status_t new_status,
-		const char * reason, ...) G_GNUC_PRINTF(3, 4);
+		const char * reason, ...) G_PRINTF(3, 4);
 static void download_queue_delay(struct download *d, uint32 delay,
-	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
+	const char *fmt, ...) G_PRINTF(3, 4);
 static void download_queue_hold(struct download *d, uint32 hold,
-	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
+	const char *fmt, ...) G_PRINTF(3, 4);
 static void download_force_stop(struct download *d, const char * reason, ...);
 static void download_reparent(struct download *d, struct dl_server *new_server);
 static void download_silent_flush(struct download *d);
@@ -858,7 +858,7 @@ download_sha1_is_rare(const struct sha1 *sha1)
  *** RX link callbacks
  ***/
 
-static G_GNUC_PRINTF(2, 3) void
+static void G_PRINTF(2, 3)
 download_rx_error(void *o, const char *reason, ...)
 {
 	struct download *d = o;

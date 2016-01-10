@@ -114,7 +114,7 @@ emitv(bool nl, const char *fmt, va_list args)
 	str_destroy_null(&s);
 }
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 emit(const char *fmt, ...)
 {
 	va_list args;
@@ -124,7 +124,7 @@ emit(const char *fmt, ...)
 	va_end(args);
 }
 
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 emit_zap(const char *caller, const char *fmt, ...)
 {
 	va_list args;
@@ -298,7 +298,7 @@ x_expr_check(bool expr, const char *estr, const char *fn, const char *wh)
 	}
 }
 
-static void G_GNUC_PRINTF(5,6)
+static void G_PRINTF(5,6)
 x_expr_check_log(bool expr, const char *estr, const char *fn, const char *wh,
 	const char *fmt, ...)
 {

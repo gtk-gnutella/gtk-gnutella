@@ -142,9 +142,9 @@ void buf_setc(buf_t *b, size_t i, char c);
 char buf_getc(const buf_t *b, size_t i);
 size_t buf_copyin(buf_t *b, const void *src, size_t len);
 
-size_t buf_printf(buf_t *b, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+size_t buf_printf(buf_t *b, const char *fmt, ...) G_PRINTF(2, 3);
 size_t buf_vprintf(buf_t *b, const char *fmt, va_list args);
-size_t buf_catf(buf_t *b, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+size_t buf_catf(buf_t *b, const char *fmt, ...) G_PRINTF(2, 3);
 size_t buf_vcatf(buf_t *b, const char *fmt, va_list args);
 
 #endif /* _buf_h_ */

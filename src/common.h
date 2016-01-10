@@ -553,13 +553,13 @@ typedef int socket_fd_t;
 #endif
 
 /**
- * This is the same as G_GNUC_FORMAT() but for function pointers. Older versions
+ * This is the same as G_PRINTF() but for function pointers. Older versions
  * of GCC do not allow function attributes for function pointers.
  */
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
-#define PRINTF_FUNC_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
+#define G_PRINTF_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
 #else /* GCC < 3.0 */
-#define PRINTF_FUNC_PTR(x, y)
+#define G_PRINTF_PTR(x, y)
 #endif
 
 /*
@@ -607,13 +607,11 @@ typedef int socket_fd_t;
  * Functions using this attribute cause a warning if the variable
  * argument list does not contain a NULL pointer.
  */
-#ifndef G_NULL_TERMINATED
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 0)
 #define G_NULL_TERMINATED __attribute__((__sentinel__))
 #else	/* GCC < 4 */
 #define G_NULL_TERMINATED
 #endif	/* GCC >= 4 */
-#endif	/* G_NULL_TERMINATED */
 
 /*
  * Define G_LIKELY() and G_UNLIKELY() so that they are available when
@@ -634,21 +632,17 @@ typedef int socket_fd_t;
  * A pure function has no effects except its return value and the return value
  * depends only on the parameters and/or global variables.
  */
-#ifndef G_PURE
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 96)
 #define G_PURE __attribute__((__pure__))
 #else
 #define G_PURE
 #endif	/* GCC >= 2.96 */
-#endif	/* G_PURE */
 
-#ifndef G_CONST
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
 #define G_CONST __attribute__((__const__))
 #else
 #define G_CONST
 #endif	/* GCC >= 2.4 */
-#endif	/* G_CONST */
 
 /**
  * Used to signal a function that does not return.
@@ -657,44 +651,36 @@ typedef int socket_fd_t;
  * registers before calling the routine.  However, this can mess up the
  * stack unwinding past these routines.
  */
-#ifndef G_NORETURN
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
 #define G_NORETURN __attribute__((__noreturn__))
 #else
 #define G_NORETURN
 #endif	/* GCC >= 2.4 */
-#endif	/* G_NORETURN */
 
-#ifndef G_MALLOC
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
 #define G_MALLOC __attribute__((__malloc__)) WARN_UNUSED_RESULT
 #else
 #define G_MALLOC
 #endif	/* GCC >= 3.0 */
-#endif	/* G_MALLOC */
 
 /**
  * A hot function is optimized more aggressively.
  */
-#ifndef G_HOT
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
 #define G_HOT __attribute__((hot))
 #else
 #define G_HOT
 #endif	/* GCC >= 4.3 */
-#endif	/* G_HOT */
 
 /**
  * A cold function is unlikely executed, and is optimized for size rather
  * than speed.  All branch tests leading to it are marked "unlikely".
  */
-#ifndef G_COLD
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
 #define G_COLD __attribute__((cold))
 #else
 #define G_COLD
 #endif	/* GCC >= 4.3 */
-#endif	/* G_COLD */
 
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
 #define ALWAYS_INLINE __attribute__((always_inline))
@@ -731,12 +717,11 @@ typedef int socket_fd_t;
 #endif
 
 /*
- * Redefine G_GNUC_PRINTF to use "GNU printf" argument form (gcc >= 4.4).
+ * Define G_PRINTF to use "GNU printf" argument form (gcc >= 4.4).
  * This ensures that "%m" is recognized as valid since the GNU libc supports it.
  */
 #if defined(HASATTRIBUTE) && HAS_GCC(4, 4)
-#undef G_GNUC_PRINTF
-#define G_GNUC_PRINTF(_fmt_, _arg_) \
+#define G_PRINTF(_fmt_, _arg_) \
 	 __attribute__((__format__ (__gnu_printf__, _fmt_, _arg_)))
 #endif
 

@@ -237,7 +237,7 @@ gm_hash_table_remove(GHashTable *ht, const void *key)
  * @param args The variable argument list.
  * @return The length of the resulting string.
  */
-static inline size_t G_GNUC_PRINTF(3, 0)
+static inline size_t G_PRINTF(3, 0)
 buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #ifdef HAS_VSNPRINTF
 {
@@ -357,7 +357,7 @@ gm_snprintf(char *dst, size_t size, const char *fmt, ...)
  * Do not use unless ``fmt'' is a variable that cannot be used for
  * static argument list checking by gcc.
  */
-size_t G_GNUC_PRINTF(3, 0)
+size_t G_PRINTF(3, 0)
 gm_snprintf_unchecked(char *dst, size_t size, const char *fmt, ...)
 {
 	va_list args;

@@ -85,7 +85,7 @@ typedef void (*mq_msgcount_t)(void *node, const pmsg_t *mb);
  * @param fmt			formatting string, followed by arguments to format
  */
 typedef void (*mq_msglog_t)(const pmsg_t *mb, const char *fmt, ...)
-	G_GNUC_PRINTF(2, 3);
+	G_PRINTF(2, 3);
 
 /**
  * User-supplied parameters, which are callbacks necessary for the message

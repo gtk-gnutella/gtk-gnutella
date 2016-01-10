@@ -2,7 +2,7 @@
 
 #include "lib/progname.h"
 
-G_GNUC_PRINTF(1, 2) void
+void G_PRINTF(1, 2)
 oops(char *fmt, ...)
 {
 	va_list args;

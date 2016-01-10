@@ -84,9 +84,9 @@ size_t g2_msg_infostr_to_buf(const void *data, size_t len,
 	char *buf, size_t buf_size);
 
 void g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *fmr, ...)
-	G_GNUC_PRINTF(2, 3);
+	G_PRINTF(2, 3);
 void g2_msg_log_dropped_data(const void *data, size_t len, const char *fmt, ...)
-	G_GNUC_PRINTF(3, 4);
+	G_PRINTF(3, 4);
 
 /**
  * @return the string name to use as packet name for x.

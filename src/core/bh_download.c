@@ -430,7 +430,7 @@ browse_rx_given(void *o, ssize_t r)
 	download_data_received(bc->owner, r);
 }
 
-static G_GNUC_PRINTF(2, 3) void
+static G_PRINTF(2, 3) void
 browse_rx_error(void *o, const char *reason, ...)
 {
 	struct browse_ctx *bc = o;

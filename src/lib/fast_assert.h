@@ -77,13 +77,13 @@ typedef struct assertion_data {
 void G_NORETURN NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_failure(const assertion_data * const data);
 
-void G_NORETURN NON_NULL_PARAM((1)) G_GNUC_PRINTF(2,3)
+void G_NORETURN NON_NULL_PARAM((1)) G_PRINTF(2,3)
 assertion_failure_log(const assertion_data * const data, const char *fmt, ...);
 
 void NON_NULL_PARAM((1)) /* REGPARM(1) */
 assertion_warning(const assertion_data * const data);
 
-void NON_NULL_PARAM((1)) G_GNUC_PRINTF(2,3)
+void NON_NULL_PARAM((1)) G_PRINTF(2,3)
 assertion_warning_log(const assertion_data * const data, const char *fmt, ...);
 
 #define RUNTIME_ASSERT(expr) fast_assert(expr, #expr)

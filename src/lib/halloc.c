@@ -996,7 +996,7 @@ h_strconcat(const char *first, ...)
  * @return The size of the buffer required to hold the resulting
  *         string including the terminating NUL.
  */
-static size_t G_GNUC_PRINTF(1, 0)
+static size_t G_PRINTF(1, 0)
 vprintf_get_size(const char *format, va_list ap)
 {
 	char *buf;

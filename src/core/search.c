@@ -1170,7 +1170,7 @@ search_results_records_log(const gnutella_node_t *n,
 /**
  * Log spam reason.
  */
-static void G_GNUC_PRINTF(3, 4)
+static void G_PRINTF(3, 4)
 search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 	const char *reason, ...)
 {
@@ -2709,7 +2709,7 @@ search_finalize_results(gnet_results_set_t *rs, const guid_t *muid, bool browse)
 	}
 }
 
-static void G_GNUC_PRINTF(4, 5)
+static void G_PRINTF(4, 5)
 search_record_warn(const gnutella_node_t *n,
 	const gnet_results_set_t *rs, size_t hit, const char *fmt, ...)
 {

@@ -1986,7 +1986,7 @@ xfl_ptr_cmp(const void *a, const void *b)
  * @param fmt		explaination message, printf()-like
  * @param ...		variable printf arguments for message
  */
-static void G_GNUC_PRINTF(4, 5)
+static void G_PRINTF(4, 5)
 assert_xfl_sorted(const struct xfreelist *fl, size_t low, size_t count,
 	const char *fmt, ...)
 {

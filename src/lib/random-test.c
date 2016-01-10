@@ -57,7 +57,7 @@
 #define VALUES_REMEMBERED	128
 #define MIN_PERIOD			4
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 warning(const char *msg, ...)
 {
 	va_list args;

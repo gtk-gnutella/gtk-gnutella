@@ -112,7 +112,7 @@ GtkWidget *gtk_paned_get_child2(GtkPaned *);
 /**
  * GtkLabel
  */
-void gtk_label_printf(GtkLabel *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+void gtk_label_printf(GtkLabel *, const gchar *fmt, ...) G_PRINTF(2, 3);
 #ifdef USE_GTK1 /* USE_GTK1 */
 const char *gtk_label_get_text(GtkLabel *);
 #endif /* USE_GTK1 */
@@ -120,7 +120,7 @@ const char *gtk_label_get_text(GtkLabel *);
 /**
  * GtkEntry
  */
-void gtk_entry_printf(GtkEntry *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+void gtk_entry_printf(GtkEntry *, const gchar *fmt, ...) G_PRINTF(2, 3);
 
 /**
  * GtkEditable

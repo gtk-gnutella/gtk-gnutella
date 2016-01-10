@@ -1372,7 +1372,7 @@ done:
 /**
  * Log error, prefixing string with program name, then show usage and exit.
  */
-static void G_GNUC_PRINTF(1, 2) G_NORETURN
+static void G_PRINTF(1, 2) G_NORETURN
 main_error(const char *fmt, ...)
 {
 	va_list args;

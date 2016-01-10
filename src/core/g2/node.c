@@ -275,7 +275,7 @@ g2_node_send_lni(gnutella_node_t *n)
  * @param t				the message tree
  * @param reason		optional reason
  */
-static void G_GNUC_PRINTF(4, 5)
+static void G_PRINTF(4, 5)
 g2_node_drop(const char *routine, gnutella_node_t *n, const g2_tree_t *t,
 	const char *fmt, ...)
 {

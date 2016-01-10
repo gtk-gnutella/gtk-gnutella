@@ -203,14 +203,14 @@ static const char stall_again[] = "stall again";
 
 static void upload_request(struct upload *u, header_t *header);
 static void upload_error_remove(struct upload *u,
-		int code, const char *msg, ...) G_GNUC_PRINTF(3, 4);
+		int code, const char *msg, ...) G_PRINTF(3, 4);
 static void upload_error_remove_ext(struct upload *u,
 		const char *extended, int code,
-		const char *msg, ...) G_GNUC_PRINTF(4, 5);
+		const char *msg, ...) G_PRINTF(4, 5);
 static void upload_writable(void *up, int source, inputevt_cond_t cond);
 static void upload_special_writable(void *up);
 static void send_upload_error(struct upload *u, int code,
-			const char *msg, ...) G_GNUC_PRINTF(3, 4);
+			const char *msg, ...) G_PRINTF(3, 4);
 static void upload_connect_conf(struct upload *u);
 
 /***

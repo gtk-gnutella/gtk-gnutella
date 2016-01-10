@@ -507,7 +507,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 /**
  * Emit unconditional warning.
  */
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 {
 	va_list args;
@@ -527,7 +527,7 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 /**
  * Emit debugging message.
  */
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 {
 	va_list args;

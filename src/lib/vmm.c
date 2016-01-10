@@ -590,7 +590,7 @@ vmm_page_count(size_t size)
 /**
  * Loudly warn with a possible stack trace.
  */
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 vmm_warn_once(const char *format, ...)
 {
 	va_list args;

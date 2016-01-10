@@ -93,9 +93,9 @@
 static pslist_t *pproxies = NULL;	/**< Currently active push-proxy requests */
 
 static void send_pproxy_error(struct pproxy *pp, int code,
-	const char *msg, ...) G_GNUC_PRINTF(3, 4);
+	const char *msg, ...) G_PRINTF(3, 4);
 static void pproxy_error_remove(struct pproxy *pp, int code,
-	const char *msg, ...) G_GNUC_PRINTF(3, 4);
+	const char *msg, ...) G_PRINTF(3, 4);
 
 static struct socket_ops pproxy_socket_ops;
 
@@ -233,7 +233,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
  * If no status has been sent back on the HTTP stream yet, give
  * them a 400 error with the reason.
  */
-void G_GNUC_PRINTF(2, 3)
+void G_PRINTF(2, 3)
 pproxy_remove(struct pproxy *pp, const char *reason, ...)
 {
 	va_list args;
