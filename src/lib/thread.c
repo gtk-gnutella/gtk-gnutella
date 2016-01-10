@@ -2569,6 +2569,7 @@ thread_preallocate_element(void)
 
 	thread_allocated_count++;
 	OMALLOC0(thread_next_te);		/* Never freed */
+	thread_lock_stack_init(thread_next_te);
 
 	return TRUE;	/* Next element properly allocated */
 }
@@ -2625,8 +2626,6 @@ thread_new_element(unsigned stid)
 	threads[stid] = te;				/* Record, but do not make visible yet */
 
 allocated:
-	thread_lock_stack_init(te);
-
 	return te;
 }
 
