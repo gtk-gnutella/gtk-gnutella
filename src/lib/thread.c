@@ -6665,39 +6665,33 @@ thread_lock_waiting_done(const void *element, const void *lock)
 const void *
 thread_cond_waiting_element(cond_t *c)
 {
-	struct thread_element *te;
+	struct thread_element *te = thread_get_element();
 
 	g_assert(c != NULL);
-
-	te = thread_find(&te);
 
 	/*
 	 * Because the te->cond field can be accessed by other threads (in the
 	 * thread_kill() routine), we need to lock the thread element to modify
 	 * it, even though we can only be called here in the context of the
 	 * current thread: this ensures we always read a consistent value.
+	 *
+	 * Allow nested condition waitings, which may happen during signal
+	 * handling on machines with emulated semaphores (at the exit of
+	 * thread_element_block_until(), where we may process signals).
 	 */
 
-	if G_LIKELY(te != NULL) {
-		/*
-		 * Allow nested condition waitings, which may happen during signal
-		 * handling on machines with emulated semaphores (at the exit of
-		 * thread_element_block_until(), where we may process signals).
-		 */
+	if G_UNLIKELY(NULL == te->cond_stack)
+		te->cond_stack = slist_new();
 
-		if G_UNLIKELY(NULL == te->cond_stack)
-			te->cond_stack = slist_new();
-
-		THREAD_LOCK(te);
-		if G_UNLIKELY(te->cond != NULL) {
-			slist_prepend(te->cond_stack, te->cond);
-			THREAD_STATS_INCX(cond_nested_waitings);
-		}
-		te->cond = c;
-		THREAD_UNLOCK(te);
-
-		THREAD_STATS_INCX(cond_waitings);
+	THREAD_LOCK(te);
+	if G_UNLIKELY(te->cond != NULL) {
+		slist_prepend(te->cond_stack, te->cond);
+		THREAD_STATS_INCX(cond_nested_waitings);
 	}
+	te->cond = c;
+	THREAD_UNLOCK(te);
+
+	THREAD_STATS_INCX(cond_waitings);
 
 	return te;
 }
@@ -6800,38 +6794,12 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	struct thread_lock_stack *tls;
 	struct thread_lock *l;
 
-	/*
-	 * Don't use thread_get_element(), we MUST not be taking any locks here
-	 * since we're in a lock path.  We could end-up re-locking the lock we're
-	 * accounting for.  Also we don't want to create a new thread if the
-	 * thread element is already in the process of being created.
-	 */
-
 	if (NULL == te) {
-		te = thread_find(&te);
+		te = thread_get_element();
 	} else {
 		thread_element_check(te);
 	}
 
-	if G_UNLIKELY(NULL == te) {
-		/*
-		 * Cheaply check whether we are in the main thread, whilst it is
-		 * being created.
-		 */
-
-		if G_UNLIKELY(NULL == threads[0]) {
-			te = thread_get_main_if_first();
-			if (te != NULL)
-				goto found;
-		}
-
-		s_rawwarn("%s(): no thread to record grabbing of %s %p at %s:%u",
-			G_STRFUNC, thread_lock_kind_to_string(kind), lock, file, line);
-
-		return;
-	}
-
-found:
 	/*
 	 * Update statistics.
 	 */
@@ -6956,26 +6924,11 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 	 */
 
 	if (NULL == te) {
-		te = thread_find(&te);
+		te = thread_get_element();
 	} else {
 		thread_element_check(te);
 	}
 
-	if G_UNLIKELY(NULL == te) {
-		/*
-		 * Cheaply check whether we are in the main thread, whilst it is
-		 * being created.
-		 */
-
-		if G_UNLIKELY(NULL == threads[0]) {
-			te = thread_get_main_if_first();
-			if (te != NULL)
-				goto found;
-		}
-		return;
-	}
-
-found:
 	THREAD_STATS_INCX(locks_tracked);
 
 	if G_UNLIKELY(!te->created && !te->main_thread)
@@ -7051,31 +7004,10 @@ thread_lock_changed(const void *lock, enum thread_lock_kind okind,
 	 */
 
 	if (NULL == te) {
-		te = thread_find(&te);
+		te = thread_get_element();
 	} else {
 		thread_element_check(te);
 	}
-
-	if G_UNLIKELY(NULL == te) {
-		/*
-		 * Cheaply check whether we are in the main thread, whilst it is
-		 * being created.
-		 */
-
-		if G_UNLIKELY(NULL == threads[0]) {
-			te = thread_get_main_if_first();
-			if (te != NULL)
-				goto found;
-		}
-
-		s_rawwarn("%s(): no thread on change of %s %p into %s at %s:%u",
-			G_STRFUNC, thread_lock_kind_to_string(okind), lock,
-			thread_lock_kind_to_string(nkind), file, line);
-
-		return;
-	}
-
-found:
 
 	tls = &te->locks;
 
@@ -7113,22 +7045,10 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const struct thread_lock *l;
 	unsigned i;
 
-	/*
-	 * For the same reasons as in thread_lock_got(), lazily grab the thread
-	 * element.  Note that we may be in a situation where we did not get a
-	 * thread element at lock time but are able to get one now.
-	 */
-
 	if (NULL == te) {
-		te = thread_find(&te);
+		te = thread_get_element();
 	} else {
 		thread_element_check(te);
-	}
-
-	if G_UNLIKELY(NULL == te) {
-		s_rawwarn("%s(): no thread to release %s %p",
-			G_STRFUNC, thread_lock_kind_to_string(kind), lock);
-		return;
 	}
 
 	tls = &te->locks;
@@ -7228,19 +7148,9 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 bool
 thread_lock_holds_from(const char *file)
 {
-	struct thread_element *te;
+	struct thread_element *te = thread_get_element();
 	struct thread_lock_stack *tls;
 	unsigned i;
-
-	/*
-	 * For the same reasons as in thread_lock_add(), lazily grab the thread
-	 * element.  Note that we may be in a situation where we did not get a
-	 * thread element at lock time but are able to get one now.
-	 */
-
-	te = thread_find(&te);
-	if G_UNLIKELY(NULL == te)
-		return FALSE;
 
 	tls = &te->locks;
 
@@ -7271,19 +7181,9 @@ thread_lock_holds_from(const char *file)
 bool
 thread_lock_holds_as(const volatile void *lock, enum thread_lock_kind kind)
 {
-	struct thread_element *te;
+	struct thread_element *te = thread_get_element();
 	struct thread_lock_stack *tls;
 	unsigned i;
-
-	/*
-	 * For the same reasons as in thread_lock_add(), lazily grab the thread
-	 * element.  Note that we may be in a situation where we did not get a
-	 * thread element at lock time but are able to get one now.
-	 */
-
-	te = thread_find(&te);
-	if G_UNLIKELY(NULL == te)
-		return dflt;
 
 	tls = &te->locks;
 
@@ -7339,20 +7239,10 @@ thread_lock_holds(const volatile void *lock)
 size_t
 thread_lock_held_count(const void *lock)
 {
-	struct thread_element *te;
+	struct thread_element *te = thread_get_element();
 	struct thread_lock_stack *tls;
 	unsigned i;
 	size_t count = 0;
-
-	/*
-	 * For the same reasons as in thread_lock_add(), lazily grab the thread
-	 * element.  Note that we may be in a situation where we did not get a
-	 * thread element at lock time but are able to get one now.
-	 */
-
-	te = thread_find(&te);
-	if G_UNLIKELY(NULL == te)
-		return FALSE;
 
 	tls = &te->locks;
 
@@ -7375,11 +7265,7 @@ thread_lock_held_count(const void *lock)
 size_t
 thread_lock_count(void)
 {
-	struct thread_element *te;
-
-	te = thread_find(&te);
-	if G_UNLIKELY(NULL == te)
-		return 0;
+	struct thread_element *te = thread_get_element();
 
 	return thread_element_lock_count(te);
 }
@@ -7403,10 +7289,8 @@ thread_lock_count(void)
 static size_t
 thread_others_lock_count(void)
 {
-	struct thread_element *te;
+	struct thread_element *te = thread_get_element();
 	size_t count = 0, i;
-
-	te = thread_find(&te);		/* That's the current thread */
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *xte = threads[i];
