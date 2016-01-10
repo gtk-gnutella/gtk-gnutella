@@ -4333,7 +4333,7 @@ thread_sig_handle(struct thread_element *te)
 	tsigset_t pending;
 	int s;
 
-	g_assert(0 == thread_element_lock_count(te));
+	g_assert(0 == thread_element_lock_count(te) || thread_crash_mode_enabled);
 
 	THREAD_STATS_INCX(sig_handled_count);
 
