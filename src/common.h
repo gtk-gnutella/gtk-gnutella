@@ -693,9 +693,9 @@ typedef int socket_fd_t;
 #endif	/* GCC >= 3.1 */
 
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 7)
-#define G_GNUC_ALIGNED(n)	 __attribute__((aligned(n)))
+#define G_ALIGNED(n)	 __attribute__((aligned(n)))
 #else
-#define G_GNUC_ALIGNED(n)
+#define G_ALIGNED(n)
 #endif	/* GCC >= 3.1 */
 
 #if defined(HASATTRIBUTE) && defined(HAS_REGPARM)
@@ -709,9 +709,9 @@ typedef int socket_fd_t;
  * invoked with options -pedantic and -ansi.
  */
 #if HAS_GCC(2, 8)
-#define G_GNUC_EXTENSION __extension__
+#define G_EXTENSION __extension__
 #else
-#define G_GNUC_EXTENSION
+#define G_EXTENSION
 #endif
 
 /*

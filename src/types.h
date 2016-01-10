@@ -80,8 +80,8 @@ typedef unsigned long uint64;
 #elif defined(CAN_HANDLE_64BITS)
 typedef long long int64;
 typedef unsigned long long uint64;
-#define INT64_CONST(x)		(G_GNUC_EXTENSION(x##LL))
-#define UINT64_CONST(x)		(G_GNUC_EXTENSION(x##ULL))
+#define INT64_CONST(x)		(G_EXTENSION(x##LL))
+#define UINT64_CONST(x)		(G_EXTENSION(x##ULL))
 #else
 #error "no known 64-bit type."
 #endif

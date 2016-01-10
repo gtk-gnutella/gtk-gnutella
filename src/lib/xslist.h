@@ -38,7 +38,7 @@
  * Get the enclosing data item from an expanded link.
  */
 #ifdef __GNUC__
-#define xslist_item(lnk, type, field) G_GNUC_EXTENSION({		\
+#define xslist_item(lnk, type, field) G_EXTENSION({		\
 	const struct slink *__mptr = (lnk);						\
 	(type *)((char *) __mptr - offsetof(type, field));})
 #else
