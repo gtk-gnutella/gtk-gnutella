@@ -51,7 +51,7 @@
  * @return TRUE if size is equal to zero or larger and smaller than
  *         SIZE_MAX / 2.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE bool
+static inline G_CONST ALWAYS_INLINE bool
 size_is_non_negative(size_t size)
 {
 	return size <= SIZE_MAX / 2;
@@ -61,7 +61,7 @@ size_is_non_negative(size_t size)
  * Check whether a signed representation of size would be negative.
  * @return TRUE if size is larger than SIZE_MAX / 2.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE bool
+static inline G_CONST ALWAYS_INLINE bool
 size_is_negative(size_t size)
 {
 	return size > SIZE_MAX / 2;
@@ -71,7 +71,7 @@ size_is_negative(size_t size)
  * Check whether a signed representation of size would be strictly positive.
  * @return TRUE if size is larger than zero and smaller than SIZE_MAX / 2.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE bool
+static inline G_CONST ALWAYS_INLINE bool
 size_is_positive(size_t size)
 {
 	return size_is_non_negative(size - 1);
@@ -81,7 +81,7 @@ size_is_positive(size_t size)
  * Calculate the sum of a and b but saturate towards SIZE_MAX.
  * @return SIZE_MAX if a + b > SIZE_MAX, otherwise a + b.
  */
-static inline G_GNUC_CONST size_t
+static inline G_CONST size_t
 size_saturate_add(size_t a, size_t b)
 {
 	size_t ret = a + b;
@@ -94,7 +94,7 @@ size_saturate_add(size_t a, size_t b)
  * Calculate the product of a and b but saturate towards SIZE_MAX.
  * @return SIZE_MAX if a * b > SIZE_MAX, otherwise a * b.
  */
-static inline G_GNUC_CONST size_t
+static inline G_CONST size_t
 size_saturate_mult(size_t a, size_t b)
 {
 	if (0 == a)
@@ -108,7 +108,7 @@ size_saturate_mult(size_t a, size_t b)
  * Calculate the difference between a and b but saturate towards zero.
  * @return zero if a < b, otherwise a - b.
  */
-static inline G_GNUC_CONST size_t
+static inline G_CONST size_t
 size_saturate_sub(size_t a, size_t b)
 {
 	if (G_UNLIKELY(a < b))
@@ -121,7 +121,7 @@ size_saturate_sub(size_t a, size_t b)
  * @return TRUE if size is greater than or equal to zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE bool
+static inline G_CONST ALWAYS_INLINE bool
 uint_is_non_negative(unsigned v)
 {
 	return v <= MAX_INT_VAL(unsigned) / 2;
@@ -132,7 +132,7 @@ uint_is_non_negative(unsigned v)
  * @return TRUE if size is stricly larger than zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE bool
+static inline G_CONST ALWAYS_INLINE bool
 uint_is_positive(unsigned v)
 {
 	return uint_is_non_negative(v - 1);
@@ -142,7 +142,7 @@ uint_is_positive(unsigned v)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline G_GNUC_CONST unsigned
+static inline G_CONST unsigned
 uint_saturate_add(unsigned a, unsigned b)
 {
 	unsigned ret = a + b;
@@ -155,7 +155,7 @@ uint_saturate_add(unsigned a, unsigned b)
  * Calculate the difference between a and b but saturate towards zero.
  * @return zero if a < b, otherwise a - b.
  */
-static inline G_GNUC_CONST unsigned
+static inline G_CONST unsigned
 uint_saturate_sub(unsigned a, unsigned b)
 {
 	if (G_UNLIKELY(a < b))
@@ -167,7 +167,7 @@ uint_saturate_sub(unsigned a, unsigned b)
  * Calculate the product of a and b but saturate towards UINT_MAX.
  * @return UINT_MAX if a * b > UINT_MAX, otherwise a * b.
  */
-static inline G_GNUC_CONST unsigned
+static inline G_CONST unsigned
 uint_saturate_mult(unsigned a, unsigned b)
 {
 	if (0 == a)
@@ -181,7 +181,7 @@ uint_saturate_mult(unsigned a, unsigned b)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline G_GNUC_CONST uint64
+static inline G_CONST uint64
 uint64_saturate_add(uint64 a, uint64 b)
 {
 	uint64 ret = a + b;
@@ -194,7 +194,7 @@ uint64_saturate_add(uint64 a, uint64 b)
  * Calculate the product of a and b but saturate towards MAX_UINT64.
  * @return MAX_UINT64 if a * b > MAX_UINT64, otherwise a * b.
  */
-static inline G_GNUC_CONST uint64
+static inline G_CONST uint64
 uint64_saturate_mult(uint64 a, uint64 b)
 {
 	if (0 == a)
@@ -208,7 +208,7 @@ uint64_saturate_mult(uint64 a, uint64 b)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline G_GNUC_CONST uint32
+static inline G_CONST uint32
 uint32_saturate_add(uint32 a, uint32 b)
 {
 	uint32 ret = a + b;
@@ -221,7 +221,7 @@ uint32_saturate_add(uint32 a, uint32 b)
  * Calculate the product of a and b but saturate towards MAX_UINT32.
  * @return MAX_UINT32 if a * b > MAX_UINT32, otherwise a * b.
  */
-static inline G_GNUC_CONST uint32
+static inline G_CONST uint32
 uint32_saturate_mult(uint32 a, uint32 b)
 {
 	if (0 == a)
@@ -236,7 +236,7 @@ uint32_saturate_mult(uint32 a, uint32 b)
  * @return TRUE if size is greater than or equal to zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE bool
+static inline G_CONST ALWAYS_INLINE bool
 uint32_is_non_negative(uint32 v)
 {
 	return v <= MAX_INT_VAL(uint32) / 2;
@@ -247,7 +247,7 @@ uint32_is_non_negative(uint32 v)
  * @return TRUE if size is stricly larger than zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE bool
+static inline G_CONST ALWAYS_INLINE bool
 uint32_is_positive(uint32 v)
 {
 	return uint32_is_non_negative(v - 1);
@@ -257,7 +257,7 @@ uint32_is_positive(uint32 v)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline G_GNUC_CONST uint8
+static inline G_CONST uint8
 uint8_saturate_add(uint8 a, uint8 b)
 {
 	uint8 ret = a + b;

@@ -63,7 +63,7 @@ typedef struct short_string {
 	char str[SIZE_FIELD_MAX];
 } short_string_t;
 
-static inline G_GNUC_CONST ALWAYS_INLINE int 
+static inline G_CONST ALWAYS_INLINE int 
 is_dir_separator(int c)
 {
 	return '/' == c || G_DIR_SEPARATOR == c;
@@ -76,7 +76,7 @@ is_dir_separator(int c)
  * @param x An integer between 0 and 15.
  * @return The ASCII character corresponding to the hex digit [0-9a-f].
  */
-static inline G_GNUC_PURE ALWAYS_INLINE uchar
+static inline G_PURE ALWAYS_INLINE uchar
 hex_digit(uchar x)
 {
 	extern const char hex_alphabet_lower[];
@@ -155,7 +155,7 @@ char *sha1_to_base16_buf(const struct sha1 *, char *dst, size_t size);
 const char *sha1_base16(const struct sha1 *);
 const struct sha1 *base32_sha1(const char *base32);
 
-static inline G_GNUC_PURE int
+static inline G_PURE int
 sha1_cmp(const struct sha1 *a, const struct sha1 *b)
 {
 	return memcmp(a, b, SHA1_RAW_SIZE);
@@ -280,7 +280,7 @@ bool is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
 size_t common_leading_bits(
 	const void *k1, size_t k1bits, const void *k2, size_t k2bits)
-	G_GNUC_PURE;
+	G_PURE;
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
@@ -530,7 +530,7 @@ is_null_or_empty(const char *s)
  *
  * @returns the value of i after swapping its byte order.
  */
-static inline G_GNUC_CONST uint32
+static inline G_CONST uint32
 swap_uint32(uint32 i)
 {
 	uint32 a;
@@ -552,7 +552,7 @@ swap_uint32(uint32 i)
  * @param netmask an IPv4 netmask in host byte order.
  * @return The CIDR prefix length (0..32).
  */
-static inline G_GNUC_CONST WARN_UNUSED_RESULT uint8
+static inline G_CONST WARN_UNUSED_RESULT uint8
 netmask_to_cidr(uint32 netmask)
 #ifdef HAS_BUILTIN_POPCOUNT
 {
@@ -577,7 +577,7 @@ netmask_to_cidr(uint32 netmask)
  * @param bits A value between 1..32.
  * @return The equivalent netmask in host byte order.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST WARN_UNUSED_RESULT uint32
+static inline ALWAYS_INLINE G_CONST WARN_UNUSED_RESULT uint32
 cidr_to_netmask(uint bits)
 {
 	return (uint32)-1 << (32 - bits);

@@ -118,7 +118,7 @@ iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
  *
  * @return TRUE if b->iov_base directly follows after &a->iov_base[a->iov_len].
  */
-static inline G_GNUC_PURE bool
+static inline G_PURE bool
 iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
 {
 	g_assert(a);
@@ -183,7 +183,7 @@ iov_clear(iovec_t *iov, size_t byte_offset)
  * @param iov_cnt The array length of iov.
  * @return The sum of all buffer sizes.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 iov_calculate_size(const iovec_t *iov, size_t iov_cnt)
 {
 	size_t size = 0;

@@ -96,25 +96,25 @@ gnet_host_get_addr(const gnet_host_t *h)
 	return addr;
 }
 
-static inline G_GNUC_PURE ALWAYS_INLINE uint16
+static inline G_PURE ALWAYS_INLINE uint16
 gnet_host_get_port(const gnet_host_t *h)
 {
 	return peek_be16(&h->data.port);
 }
 
-static inline G_GNUC_PURE enum net_type
+static inline G_PURE enum net_type
 gnet_host_get_net(const gnet_host_t *h)
 {
 	return h->data.ha.net;
 }
 
-static inline G_GNUC_PURE bool
+static inline G_PURE bool
 gnet_host_is_ipv4(const gnet_host_t *h)
 {
 	return NET_TYPE_IPV4 == h->data.ha.net;
 }
 
-static inline G_GNUC_PURE bool
+static inline G_PURE bool
 gnet_host_is_ipv6(const gnet_host_t *h)
 {
 	return NET_TYPE_IPV6 == h->data.ha.net;
@@ -129,11 +129,11 @@ size_t gnet_host_to_string_buf(
  * Gnutella host hashing and comparison functions.
  */
 
-uint gnet_host_hash(const void *key) G_GNUC_PURE;
-uint gnet_host_hash2(const void *key) G_GNUC_PURE;
-bool gnet_host_equiv(const void *v1, const void *v2) G_GNUC_PURE;
-bool gnet_host_equal(const void *v1, const void *v2) G_GNUC_PURE;
-bool gnet_host_addr_equiv(const void *v1, const void *v2) G_GNUC_PURE;
+uint gnet_host_hash(const void *key) G_PURE;
+uint gnet_host_hash2(const void *key) G_PURE;
+bool gnet_host_equiv(const void *v1, const void *v2) G_PURE;
+bool gnet_host_equal(const void *v1, const void *v2) G_PURE;
+bool gnet_host_addr_equiv(const void *v1, const void *v2) G_PURE;
 
 /*
  * Serialized IPv4 and IPv6 Gnutella hosts.

@@ -89,85 +89,85 @@ alnum2int_inline(uchar c)
  * GLib 2.x has similar macros/functions but defines only a subset.
  */
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_blank(int c)
 {
 	return c == 32 || c == 9;	/* space, tab */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_cntrl(int c)
 {
 	return (c >= 0 && c <= 31) || c == 127;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_digit(int c)
 {
 	return c >= 48 && c <= 57;	/* 0-9 */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_xdigit(int c)
 {
 	return -1 != hex2int_inline(c) && !(c & ~0x7f);
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_upper(int c)
 {
 	return c >= 65 && c <= 90;		/* A-Z */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_lower(int c)
 {
 	return c >= 97 && c <= 122;		/* a-z */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_alpha(int c)
 {
 	return is_ascii_upper(c) || is_ascii_lower(c);	/* A-Z, a-z */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_alnum(int c)
 {
 	return -1 != alnum2int_inline(c) && !(c & ~0x7f); /* A-Z, a-z, 0-9 */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_space(int c)
 {
 	return c == 32 || (c >= 9 && c <= 13);
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_graph(int c)
 {
 	return c >= 33 && c <= 126;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_print(int c)
 {
 	return is_ascii_graph(c) || c == 32;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_punct(int c)
 {
 	return c >= 33 && c <= 126 && !is_ascii_alnum(c);
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT int
+static inline G_CONST WARN_UNUSED_RESULT int
 ascii_toupper(int c)
 {
 	return is_ascii_lower(c) ? c - 32 : c;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT int
+static inline G_CONST WARN_UNUSED_RESULT int
 ascii_tolower(int c)
 {
 	return is_ascii_upper(c) ? c + 32 : c;
@@ -178,7 +178,7 @@ ascii_tolower(int c)
  *
  * @return a pointer to the first non-space character starting from s.
  */
-static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
+static inline G_PURE WARN_UNUSED_RESULT char *
 skip_ascii_spaces(const char *s)
 {
 	while (is_ascii_space(*s))
@@ -192,7 +192,7 @@ skip_ascii_spaces(const char *s)
  *
  * @return a pointer to the first space or NUL character starting from s.
  */
-static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
+static inline G_PURE WARN_UNUSED_RESULT char *
 skip_ascii_non_spaces(const char *s)
 {
 	while ('\0' != *s && !is_ascii_space(*s))
@@ -208,7 +208,7 @@ skip_ascii_non_spaces(const char *s)
  * @return a pointer to the first non-alphanumerical or NUL character
  * starting from s.
  */
-static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
+static inline G_PURE WARN_UNUSED_RESULT char *
 skip_ascii_alnum(const char *s)
 {
 	while (is_ascii_alnum(*s))
@@ -222,7 +222,7 @@ skip_ascii_alnum(const char *s)
  *
  * @return A pointer to the first non-blank character starting from s.
  */
-static inline G_GNUC_PURE WARN_UNUSED_RESULT char *
+static inline G_PURE WARN_UNUSED_RESULT char *
 skip_ascii_blanks(const char *s)
 {
 	while (is_ascii_blank(*s))

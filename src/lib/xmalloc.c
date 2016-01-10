@@ -1269,7 +1269,7 @@ xmalloc_is_valid_length(const void *p, size_t len)
 /**
  * Computes physical size of blocks in a chunk list given the chunk index.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xch_block_size_idx(size_t idx)
 {
 	return (idx + 1) << XMALLOC_ALIGNSHIFT;
@@ -1278,7 +1278,7 @@ xch_block_size_idx(size_t idx)
 /**
  * Find chunk index for a given block size.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xch_find_chunkhead_index(size_t len)
 {
 	g_assert(size_is_positive(len));
@@ -1306,7 +1306,7 @@ xfl_index(const struct xfreelist *fl)
 /**
  * Computes physical size of blocks in a given free list index.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xfl_block_size_idx(size_t idx)
 {
 	return (idx <= XMALLOC_BUCKET_CUTOVER) ?
@@ -1318,7 +1318,7 @@ xfl_block_size_idx(size_t idx)
 /**
  * Find freelist index for a given block size.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xfl_find_freelist_index(size_t len)
 {
 	g_assert_log(size_is_positive(len), "len=%zd", len);

@@ -290,7 +290,7 @@ primary_filename_charset_is_utf8(void)
 	return t->is_utf8;
 }
 
-static inline G_GNUC_PURE uint
+static inline G_PURE uint
 utf8_skip(uchar c)
 {
 	/*
@@ -388,7 +388,7 @@ static const uint8 utf8len_mark[] = {
  * @return	The exact amount of bytes necessary to store this codepoint in
  *			UTF-8 encoding.
  */
-static inline G_GNUC_CONST uint
+static inline G_CONST uint
 uniskip(uint32 uc)
 {
 	return uc < 0x80U ? 1 : uc < 0x800 ? 2 : uc < 0x10000 ? 3 : 4;
@@ -956,7 +956,7 @@ utf8_char_len(const char *s)
  * This is suitable in operations where we're not going to alter the encoding,
  * for instance during copy.
  */
-static inline uint G_GNUC_PURE
+static inline uint G_PURE
 utf8_char_len_probe(const char *s)
 {
 	uint32 uc = (uchar) *s;

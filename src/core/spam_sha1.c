@@ -85,7 +85,7 @@ struct sha1_lut {
 
 static struct sha1_lut sha1_lut;
 
-static inline G_GNUC_PURE int
+static inline G_PURE int
 sha1_cmp_func(const void *a, const void *b)
 {
 	return sha1_cmp(a, b);

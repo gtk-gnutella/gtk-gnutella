@@ -413,7 +413,7 @@ tmalloc_magazine_is_full(const tmalloc_magazine_t * const m)
  * @param amount	memory target for full magazine (object memory)
  * @param size		size of each object
  */
-static int G_GNUC_PURE
+static int G_PURE
 tmalloc_magazine_compute_capacity(size_t amount, size_t size)
 {
 	int capacity;
@@ -431,7 +431,7 @@ tmalloc_magazine_compute_capacity(size_t amount, size_t size)
  *
  * @return suitable magazine capacity
  */
-static int G_GNUC_PURE
+static int G_PURE
 tmalloc_magazine_default_capacity(size_t size)
 {
 	/*
@@ -455,7 +455,7 @@ tmalloc_magazine_default_capacity(size_t size)
  *
  * @return suitable magazine capacity
  */
-static int G_GNUC_PURE
+static int G_PURE
 tmalloc_magazine_max_capacity(size_t size)
 {
 	return tmalloc_magazine_compute_capacity(TMALLOC_MAG_MEMORY_MAX, size);

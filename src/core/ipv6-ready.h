@@ -42,13 +42,13 @@
  */
 #define IPV4_NONE 	0x7f000000U			/* 127.0.0.0/32 */
 
-uint32 ipv6_ready_advertised_ipv4(const host_addr_t addr) G_GNUC_PURE;
-bool ipv6_ready_no_ipv4_addr(const host_addr_t ha) G_GNUC_CONST;
+uint32 ipv6_ready_advertised_ipv4(const host_addr_t addr) G_PURE;
+bool ipv6_ready_no_ipv4_addr(const host_addr_t ha) G_CONST;
 
 /**
  * @return whether advertised IPv4 address indicates no IPv4 support.
  */
-static inline G_GNUC_CONST bool
+static inline G_CONST bool
 ipv6_ready_has_no_ipv4(const uint32 advertised)
 {
 	return advertised == IPV4_NONE;

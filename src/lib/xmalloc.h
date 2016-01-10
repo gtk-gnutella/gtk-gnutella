@@ -75,7 +75,7 @@ void xmalloc_crash_mode(void);
 void xmalloc_vmm_inited(void);
 void xmalloc_pre_close(void);
 void xmalloc_post_init(void);
-bool xmalloc_is_malloc(void) G_GNUC_CONST;
+bool xmalloc_is_malloc(void) G_CONST;
 void xmalloc_show_settings(void);
 void xmalloc_show_settings_log(struct logagent *la);
 void xmalloc_stop_freeing(void);

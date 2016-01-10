@@ -166,7 +166,7 @@ static spinlock_t ostats_slk = SPINLOCK_INIT;
 /**
  * First byte beyond a chunk page (following trailing chunk header).
  */
-static inline const void * G_GNUC_CONST
+static inline const void * G_CONST
 omalloc_chunk_end(const struct ochunk *ck)
 {
 	return const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE);
@@ -175,7 +175,7 @@ omalloc_chunk_end(const struct ochunk *ck)
 /**
  * Remaining free space in the chunk (including header).
  */
-static inline size_t G_GNUC_PURE
+static inline size_t G_PURE
 omalloc_chunk_size(const struct ochunk *ck)
 {
 	g_assert(ck != NULL);
@@ -188,7 +188,7 @@ omalloc_chunk_size(const struct ochunk *ck)
  * Remaining free space in the chunk (including header) after starting
  * pointer has been adjusted for specified alignment.
  */
-static inline size_t G_GNUC_PURE
+static inline size_t G_PURE
 omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 {
 	void *first;
@@ -223,7 +223,7 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 /**
  * Compute index in chunks[] where a chunk of given size needs to be linked.
  */
-static size_t G_GNUC_CONST
+static size_t G_CONST
 omalloc_size_index(size_t size)
 {
 	size_t r = size;
@@ -238,7 +238,7 @@ omalloc_size_index(size_t size)
 /**
  * Computes index in chunks[] where a given chunk needs to be linked.
  */
-static size_t G_GNUC_PURE
+static size_t G_PURE
 omalloc_chunk_index(const struct ochunk *ck)
 {
 	return omalloc_size_index(omalloc_chunk_size(ck));
@@ -336,7 +336,7 @@ omalloc_chunk_list_find(struct ochunk *head, size_t size, size_t align)
 /**
  * Get chunk array of corresponding type.
  */
-static inline struct ochunk ** G_GNUC_CONST
+static inline struct ochunk ** G_CONST
 omalloc_chunk_array(enum omalloc_mode mode)
 {
 	switch (mode) {

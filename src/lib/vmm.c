@@ -513,7 +513,7 @@ init_kernel_pagesize(void)
 /**
  * Fast version of pagesize rounding (without the slow % operator).
  */
-static inline ALWAYS_INLINE size_t G_GNUC_PURE
+static inline ALWAYS_INLINE size_t G_PURE
 round_pagesize_fast(size_t n)
 {
 	return (n + kernel_pagemask) & ~kernel_pagemask;
@@ -522,7 +522,7 @@ round_pagesize_fast(size_t n)
 /**
  * Fast version of page counting: how many pages does it take to store `n'?
  */
-static inline ALWAYS_INLINE size_t G_GNUC_PURE
+static inline ALWAYS_INLINE size_t G_PURE
 pagecount_fast(size_t n)
 {
 	return round_pagesize_fast(n) >> kernel_pageshift;
@@ -531,7 +531,7 @@ pagecount_fast(size_t n)
 /**
  * Fast version for converting amount of pages into a size.
  */
-static inline ALWAYS_INLINE size_t G_GNUC_PURE
+static inline ALWAYS_INLINE size_t G_PURE
 nsize_fast(size_t n)
 {
 	return n << kernel_pageshift;
@@ -549,7 +549,7 @@ round_pagesize(size_t n)
 /**
  * Rounds pointer down so that it is aligned to the start of the page.
  */
-static inline G_GNUC_PURE ALWAYS_INLINE const void *
+static inline G_PURE ALWAYS_INLINE const void *
 page_start(const void *p)
 {
 	unsigned long addr = pointer_to_ulong(p);

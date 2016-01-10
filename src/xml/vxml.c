@@ -2246,7 +2246,7 @@ new_line:
 /**
  * Is Unicode character a valid character for a name start.
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_valid_name_start_char(uint32 uc)
 {
 	/*
@@ -2294,7 +2294,7 @@ vxml_is_valid_name_start_char(uint32 uc)
 /*
  * Is Unicode character a valid character within a name.
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_valid_name_char(uint32 uc)
 {
 	/*
@@ -2321,7 +2321,7 @@ vxml_is_valid_name_char(uint32 uc)
 /**
  * Is Unicode character a white space?
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_white_space_char(uint32 uc)
 {
 	/*
@@ -2334,7 +2334,7 @@ vxml_is_white_space_char(uint32 uc)
 /*
  * Is Unicode character in the upper-ASCII letter range?
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_ascii_upper_letter_char(uint32 uc)
 {
 	return uc >= 0x41U && uc <= 0x5AU;		/* [A-Z] */

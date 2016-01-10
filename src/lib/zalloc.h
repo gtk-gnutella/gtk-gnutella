@@ -57,9 +57,9 @@ zone_t *zget(size_t, unsigned, bool);
 void zdestroy(zone_t *zone);
 bool zdestroy_if_empty(zone_t *zone);
 
-size_t zone_blocksize(const zone_t *zone) G_GNUC_PURE;
-size_t zone_size(const zone_t *zone) G_GNUC_PURE;
-size_t zalloc_overhead(void) G_GNUC_CONST;
+size_t zone_blocksize(const zone_t *zone) G_PURE;
+size_t zone_size(const zone_t *zone) G_PURE;
+size_t zalloc_overhead(void) G_CONST;
 
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.

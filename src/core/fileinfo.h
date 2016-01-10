@@ -151,7 +151,7 @@ struct pslist *file_info_get_sources(const fileinfo_t *);
 /**
  * Return amount of currently active sources.
  */
-static inline G_GNUC_PURE WARN_UNUSED_RESULT uint32
+static inline G_PURE WARN_UNUSED_RESULT uint32
 fi_alive_count(const fileinfo_t *fi)
 {
 	return fi->active_queued + fi->passive_queued + fi->recvcount;

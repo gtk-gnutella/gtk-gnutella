@@ -84,8 +84,8 @@ enum stacktrace_sym_quality {
 /**
  * Hashing /equality functions for "struct stacktrace" atomic traces.
  */
-unsigned stack_hash(const void *key) G_GNUC_PURE;
-int stack_eq(const void *a, const void *b) G_GNUC_PURE;
+unsigned stack_hash(const void *key) G_PURE;
+int stack_eq(const void *a, const void *b) G_PURE;
 
 struct logagent;
 

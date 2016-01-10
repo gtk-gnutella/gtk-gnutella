@@ -101,7 +101,7 @@ bool string_to_timestamp_utc(
  * @param delta the amount of seconds to advance.
  * @return the advanced timestamp or TIME_T_MAX.
  */
-static inline time_t G_GNUC_CONST
+static inline time_t G_CONST
 time_advance(time_t t, ulong delta)
 {
 	/* Using time_t for delta and TIME_T_MAX instead of INT_MAX
@@ -128,7 +128,7 @@ time_advance(time_t t, ulong delta)
 /**
  * Add delta to a time_delta_t, saturating towards TIME_DELTA_T_MAX.
  */
-static inline time_delta_t G_GNUC_CONST
+static inline time_delta_t G_CONST
 time_delta_add(time_delta_t td, ulong delta)
 {
 	do {

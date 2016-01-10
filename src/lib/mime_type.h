@@ -53,7 +53,7 @@ enum mime_type {
 void mime_type_init(void);
 enum mime_type mime_type_from_filename(const char *);
 enum mime_type mime_type_from_extension(const char *);
-const char *mime_type_to_string(enum mime_type) G_GNUC_PURE;
+const char *mime_type_to_string(enum mime_type) G_PURE;
 
 #endif /* _lib_mime_h_ */
 /* vi: set ts=4 sw=4 cindent: */

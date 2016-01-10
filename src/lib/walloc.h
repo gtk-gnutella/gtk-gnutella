@@ -172,7 +172,7 @@ size_t walloc_active_limit(void);
 size_t walloc_size_threshold(void);
 void wdestroy(void);
 
-size_t walloc_maxsize(void) G_GNUC_CONST;
+size_t walloc_maxsize(void) G_CONST;
 
 #define WALLOC(p)			\
 G_STMT_START {				\

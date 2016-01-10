@@ -79,7 +79,7 @@ struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
  * Public interface.
  */
 
-size_t str_len(const str_t *s) G_GNUC_PURE;
+size_t str_len(const str_t *s) G_PURE;
 str_t *str_new(size_t szhint);
 str_t *str_new_from(const char *string);
 str_t *str_new_not_leaking(size_t szhint);

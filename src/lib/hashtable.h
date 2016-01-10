@@ -102,7 +102,7 @@ void hash_table_thread_safe(hash_table_t *ht);
 void hash_table_lock(hash_table_t *ht);
 void hash_table_unlock(hash_table_t *ht);
 
-double hash_table_clustering(const hash_table_t *ht) G_GNUC_PURE;
+double hash_table_clustering(const hash_table_t *ht) G_PURE;
 
 #endif /* _hash_table_h_ */
 

@@ -102,7 +102,7 @@ size_t utf16_to_utf8(const uint16 *src, char *dst, size_t size);
 char *utf16_to_utf8_string(const uint16 *in);
 
 size_t utf32_to_utf8(const uint32 *in, char *out, size_t size);
-uint32 utf32_lowercase(uint32 uc) G_GNUC_PURE;
+uint32 utf32_lowercase(uint32 uc) G_PURE;
 bool utf32_canonical_sorted(const uint32 *src);
 bool utf32_is_decomposed(const uint32 *src, bool nfkd);
 size_t utf32_decompose_nfd(const uint32 *in, uint32 *out, size_t size);
@@ -215,7 +215,7 @@ utf32_is_valid(uint32 cp)
  * @return	If the given codepoint is a surrogate, a BOM, out of range
  *			or an invalid codepoint FALSE is returned; otherwise TRUE.
  */
-static inline G_GNUC_CONST bool
+static inline G_CONST bool
 utf32_bad_codepoint(uint32 uc)
 {
 	return	uc > 0x10FFFF ||
@@ -223,7 +223,7 @@ utf32_bad_codepoint(uint32 uc)
 		utf32_is_surrogate(uc);
 }
 
-static inline G_GNUC_CONST unsigned
+static inline G_CONST unsigned
 utf8_encoded_len(uint32 cp)
 {
   if (cp < 0x80U) {
@@ -239,13 +239,13 @@ utf8_encoded_len(uint32 cp)
   }
 }
 
-static inline G_GNUC_CONST bool
+static inline G_CONST bool
 utf32_is_ascii(uint32 cp)
 {
   return cp < 0x80U;
 }
 
-static inline G_GNUC_CONST unsigned
+static inline G_CONST unsigned
 utf8_first_byte_length_hint(unsigned char ch)
 {
   switch (ch & ~0x0fU) {
@@ -265,13 +265,13 @@ utf8_first_byte_length_hint(unsigned char ch)
   }
 }
 
-static inline G_GNUC_CONST bool
+static inline G_CONST bool
 utf8_first_byte_valid(unsigned char ch)
 {
   return 0 != utf8_first_byte_length_hint(ch);
 }
 
-static inline G_GNUC_CONST bool
+static inline G_CONST bool
 utf8_first_bytes_valid(unsigned char ch1, unsigned char ch2)
 {
   if (ch1 < 0x80) {

@@ -98,14 +98,14 @@
  * or little-endian.
  */
 
-static inline ALWAYS_INLINE G_GNUC_PURE uint8
+static inline ALWAYS_INLINE G_PURE uint8
 peek_u8(const void *p)
 {
 	const uint8 *q = p;
 	return q[0];
 }
 
-static inline ALWAYS_INLINE G_GNUC_PURE uint16
+static inline ALWAYS_INLINE G_PURE uint16
 peek_u16(const void *p)
 {
 	const unsigned char *q = p;
@@ -114,7 +114,7 @@ peek_u16(const void *p)
 	return v;
 }
 
-static inline ALWAYS_INLINE G_GNUC_PURE uint32
+static inline ALWAYS_INLINE G_PURE uint32
 peek_u32(const void *p)
 {
 	const unsigned char *q = p;
@@ -123,7 +123,7 @@ peek_u32(const void *p)
 	return v;
 }
 
-static inline ALWAYS_INLINE G_GNUC_PURE uint64
+static inline ALWAYS_INLINE G_PURE uint64
 peek_u64(const void *p)
 {
 	const unsigned char *q = p;
@@ -132,7 +132,7 @@ peek_u64(const void *p)
 	return v;
 }
 
-static inline G_GNUC_PURE uint16
+static inline G_PURE uint16
 peek_be16(const void *p)
 {
 #if IS_BIG_ENDIAN
@@ -142,7 +142,7 @@ peek_be16(const void *p)
 #endif
 }
 
-static inline G_GNUC_PURE uint32
+static inline G_PURE uint32
 peek_be32(const void *p)
 {
 #if IS_BIG_ENDIAN
@@ -152,7 +152,7 @@ peek_be32(const void *p)
 #endif
 }
 
-static inline G_GNUC_PURE uint64
+static inline G_PURE uint64
 peek_be64(const void *p)
 {
 #if IS_BIG_ENDIAN
@@ -162,7 +162,7 @@ peek_be64(const void *p)
 #endif
 }
 
-static inline G_GNUC_PURE uint16
+static inline G_PURE uint16
 peek_le16(const void *p)
 {
 #if IS_LITTLE_ENDIAN
@@ -172,7 +172,7 @@ peek_le16(const void *p)
 #endif
 }
 
-static inline G_GNUC_PURE uint32
+static inline G_PURE uint32
 peek_le32(const void *p)
 {
 #if IS_LITTLE_ENDIAN
@@ -182,7 +182,7 @@ peek_le32(const void *p)
 #endif
 }
 
-static inline G_GNUC_PURE uint64
+static inline G_PURE uint64
 peek_le64(const void *p)
 {
 #if IS_LITTLE_ENDIAN
@@ -303,7 +303,7 @@ poke_float_be32(void *p, float v)
 #endif
 }
 
-static inline G_GNUC_PURE float
+static inline G_PURE float
 peek_float_be32(const void *p)
 {
 	uint32 tmp;

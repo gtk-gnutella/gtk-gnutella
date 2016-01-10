@@ -85,7 +85,7 @@ struct _GtkCellRendererProgressClass{
 	GtkCellRendererClass parent_class;
 };
 
-GtkType gtk_cell_renderer_progress_get_type (void) G_GNUC_PURE;
+GtkType gtk_cell_renderer_progress_get_type (void) G_PURE;
 GtkCellRenderer* gtk_cell_renderer_progress_new(void);
 
 G_END_DECLS

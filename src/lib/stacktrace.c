@@ -136,7 +136,7 @@ stacktrace_crash_mode(void)
 /**
  * Is PC a valid routine address?
  */
-static inline bool G_GNUC_CONST
+static inline bool G_CONST
 valid_ptr(const void *pc)
 {
 	ulong v = pointer_to_ulong(pc);
@@ -149,7 +149,7 @@ valid_ptr(const void *pc)
 /**
  * Is SP a valid stack address?
  */
-static inline bool G_GNUC_PURE
+static inline bool G_PURE
 valid_stack_ptr(const void *sp)
 {
 	return vmm_is_stack_pointer(sp, NULL);
@@ -158,7 +158,7 @@ valid_stack_ptr(const void *sp)
 /**
  * Is PC a routine address for something within our code?
  */
-static inline bool G_GNUC_CONST
+static inline bool G_CONST
 stack_is_our_text(const void *pc)
 {
 #if defined(HAS_ETEXT_SYMBOL)

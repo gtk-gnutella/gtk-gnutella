@@ -634,21 +634,21 @@ typedef int socket_fd_t;
  * A pure function has no effects except its return value and the return value
  * depends only on the parameters and/or global variables.
  */
-#ifndef G_GNUC_PURE
+#ifndef G_PURE
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 96)
-#define G_GNUC_PURE __attribute__((__pure__))
+#define G_PURE __attribute__((__pure__))
 #else
-#define G_GNUC_PURE
+#define G_PURE
 #endif	/* GCC >= 2.96 */
-#endif	/* G_GNUC_PURE */
+#endif	/* G_PURE */
 
-#ifndef G_GNUC_CONST
+#ifndef G_CONST
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
-#define G_GNUC_CONST __attribute__((__const__))
+#define G_CONST __attribute__((__const__))
 #else
-#define G_GNUC_CONST
+#define G_CONST
 #endif	/* GCC >= 2.4 */
-#endif	/* G_GNUC_CONST */
+#endif	/* G_CONST */
 
 /**
  * Used to signal a function that does not return.

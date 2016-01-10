@@ -61,7 +61,7 @@ typedef struct logagent logagent_t;
 
 struct str;
 
-const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
+const char *log_prefix(GLogLevelFlags loglvl) G_CONST;
 void log_abort(void) G_NORETURN;
 
 void log_init(void);

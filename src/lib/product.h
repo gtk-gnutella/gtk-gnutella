@@ -43,15 +43,15 @@ void product_init(const char *name,
 	const char *date, const char *version, const char *revision,
 	const char *build);
 
-const char *product_name(void) G_GNUC_PURE;
-const char *product_nickname(void) G_GNUC_PURE;
-const char *product_date(void) G_GNUC_PURE;
-const char *product_version(void) G_GNUC_PURE;
-uint8 product_major(void) G_GNUC_PURE;
-uint8 product_minor(void) G_GNUC_PURE;
-uint8 product_revchar(void) G_GNUC_PURE;
-const char *product_revision(void) G_GNUC_PURE;
-uint8 product_patchlevel(void) G_GNUC_PURE;
+const char *product_name(void) G_PURE;
+const char *product_nickname(void) G_PURE;
+const char *product_date(void) G_PURE;
+const char *product_version(void) G_PURE;
+uint8 product_major(void) G_PURE;
+uint8 product_minor(void) G_PURE;
+uint8 product_revchar(void) G_PURE;
+const char *product_revision(void) G_PURE;
+uint8 product_patchlevel(void) G_PURE;
 const char *product_build_full(void);
 const char *product_interface(void);
 const char *product_website(void);

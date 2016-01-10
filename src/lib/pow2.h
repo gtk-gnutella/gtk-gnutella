@@ -36,12 +36,12 @@
 
 #define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
 
-uint32 next_pow2(uint32 n) G_GNUC_CONST;
-uint64 next_pow2_64(uint64 n) G_GNUC_CONST;
-int highest_bit_set(uint32 n) G_GNUC_PURE;
-int highest_bit_set64(uint64 n) G_GNUC_PURE;
-int ctz64(uint64 n) G_GNUC_CONST;
-uint8 reverse_byte(uint8 b) G_GNUC_CONST;
+uint32 next_pow2(uint32 n) G_CONST;
+uint64 next_pow2_64(uint64 n) G_CONST;
+int highest_bit_set(uint32 n) G_PURE;
+int highest_bit_set64(uint64 n) G_PURE;
+int ctz64(uint64 n) G_CONST;
+uint8 reverse_byte(uint8 b) G_CONST;
 
 /**
  * Checks whether the given value is a power of 2.
@@ -49,7 +49,7 @@ uint8 reverse_byte(uint8 b) G_GNUC_CONST;
  * @param value a 32-bit integer
  * @return TRUE if ``value'' is a power of 2. Otherwise FALSE.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST bool
+static inline ALWAYS_INLINE G_CONST bool
 is_pow2(uint32 value)
 #ifdef HAS_BUILTIN_POPCOUNT
 {
@@ -66,7 +66,7 @@ is_pow2(uint32 value)
  *
  * @return number of 1 bits in a 32-bit integer.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST int
+static inline ALWAYS_INLINE G_CONST int
 popcount(uint32 x)
 #ifdef HAS_BUILTIN_POPCOUNT
 {
@@ -88,7 +88,7 @@ popcount(uint32 x)
 /**
  * Count trailing zeroes in a 32-bit integer, -1 for zero.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST int
+static inline ALWAYS_INLINE G_CONST int
 ctz(uint32 x)
 #ifdef HAS_BUILTIN_CTZ
 {
@@ -140,7 +140,7 @@ ctz(uint32 x)
 /**
  * Count leading zeroes in a 32-bit integer, 32 for zero.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST int
+static inline ALWAYS_INLINE G_CONST int
 clz(uint32 x)
 #ifdef HAS_BUILTIN_CLZ
 {
@@ -161,19 +161,19 @@ clz(uint32 x)
 /**
  * @returns amount of bits set in a byte.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST int
+static inline ALWAYS_INLINE G_CONST int
 bits_set(uint8 b)
 {
 	return __builtin_popcount(b);
 }
 #else
-int bits_set(uint8 b) G_GNUC_PURE;
+int bits_set(uint8 b) G_PURE;
 #endif	/* HAS_BUILTIN_POPCOUNT */
 
 /**
  * @returns amount of bits set in a 32-bit value.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST int
+static inline ALWAYS_INLINE G_CONST int
 bits_set32(uint32 v)
 {
 	return popcount(v);

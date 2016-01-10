@@ -349,13 +349,13 @@ get_prop(prop_set_t *ps, property_t prop, const char *loc)
  * Casts, since property_t is an opaque type, for using properties as keys.
  */
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 property_to_pointer(property_t value)
 {
 	return ulong_to_pointer(value);
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE property_t
+static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE property_t
 pointer_to_property(const void *p)
 {
 	return pointer_to_ulong(p);
