@@ -106,6 +106,7 @@ static once_flag_t stacktrace_atom_inited;
 
 #define STACKTRACE_SYM_LOCK		mutex_lock(&stacktrace_sym_mtx)
 #define STACKTRACE_SYM_UNLOCK	mutex_unlock(&stacktrace_sym_mtx)
+#define STACKTRACE_SYM_TRYLOCK	mutex_trylock(&stacktrace_sym_mtx)
 
 /**
  * Auto-tuning stack trace offset.
@@ -762,6 +763,39 @@ stack_reached_main(const char *where)
 }
 
 /**
+ * Attempt to grab the symbol lock to dump a stack trace.
+ *
+ * If we cannot grab the lock and we are already holding locks, fail as this
+ * could create deadlocks.
+ *
+ * @param caller	caller routine, for logging purposes
+ *
+ * @return TRUE if we got the lock, FALSE if we could not get it.
+ */
+static bool
+stack_sym_trylock(const char *caller)
+{
+	if (!STACKTRACE_SYM_TRYLOCK) {
+		size_t cnt = thread_lock_count();
+
+		/*
+		 * Do not sleep if we are holding any locks, this could create
+		 * deadlocks.
+		 */
+
+		if (0 != cnt) {
+			s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
+				caller, thread_safe_name(), cnt, plural(cnt));
+			return FALSE;
+		}
+
+		STACKTRACE_SYM_LOCK;
+	}
+
+	return TRUE;
+}
+
+/**
  * Print array of PCs, using symbolic names if possible.
  *
  * @param f			where to print the stack
@@ -784,7 +818,8 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	 *		--RAM, 2015-10-01
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC))
+		return;
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -823,7 +858,8 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 	 *		--RAM, 2015-10-01
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC))
+		return;
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -860,7 +896,8 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 	 *		--RAM, 2015-10-01
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC))
+		return;
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -1067,7 +1104,8 @@ stack_print_decorated_to(struct sxfile *xf,
 	 *		--RAM, 2015-10-01
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC))
+		return;
 
 	/*
 	 * The BFD environment is only opened once.
