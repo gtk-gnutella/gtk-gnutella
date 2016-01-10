@@ -1152,7 +1152,7 @@ void
 rwlock_rungrab_from(rwlock_t *rw, const char *file, unsigned line)
 {
 	rwlock_check(rw);
-	g_assert_log(thread_lock_holds_as_default(rw, THREAD_LOCK_RLOCK, TRUE),
+	g_assert_log(thread_lock_holds_as(rw, THREAD_LOCK_RLOCK),
 		"attempting to release non-held read-lock %p at %s:%u",
 		rw, file, line);
 	g_assert_log(rw->readers != 0 || rwlock_pass_through,

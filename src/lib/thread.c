@@ -340,7 +340,6 @@ struct thread_element {
 	time_t last_seen;				/**< Last seen time for discovered thread */
 	const void *last_sp;			/**< Last stack pointer seen */
 	const void *top_sp;				/**< Highest stack pointer seen */
-	const void *stack_lock;			/**< First lock seen at this SP */
 	const char *name;				/**< Thread name, explicitly set */
 	size_t stack_size;				/**< For created threads, 0 otherwise */
 	void *stack;					/**< Allocated stack (including guard) */
@@ -2135,7 +2134,6 @@ thread_element_reset(struct thread_element *te)
 	te->valid = FALSE;		/* Flags an incorrectly instantiated element */
 	te->creating = FALSE;
 	te->exiting = FALSE;
-	te->stack_lock = NULL;	/* Stack position when first lock recorded */
 	te->stack = NULL;
 	te->stack_base = NULL;
 	te->name = NULL;
@@ -6922,13 +6920,6 @@ found:
 	l->file = file;
 	l->line = line;
 	l->kind = kind;
-
-	/*
-	 * Record the stack position for the first lock.
-	 */
-
-	if G_UNLIKELY(NULL == te->stack_lock && 1 == tls->count)
-		te->stack_lock = &te;
 }
 
 /**
@@ -7143,28 +7134,12 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	tls = &te->locks;
 
 	if G_UNLIKELY(0 == tls->count) {
-		/*
-		 * Warn only if we have seen a lock once (te->stack_lock != NULL)
-		 * and when the stack is larger than the first lock acquired.
-		 *
-		 * Otherwise, it means that we're poping out from the place where
-		 * we first recorded a lock, and therefore it is obvious we cannot
-		 * have the lock recorded since we're before the call chain that
-		 * could record the first lock.
-		 */
-
-		if (
-			te->stack_lock != NULL &&
-			thread_stack_ptr_cmp(&te, te->stack_lock) >= 0
-		) {
-			/* Locks may be missing in pass-through mode */
-			if (!atomic_int_get(&thread_locks_disabled)) {
-				s_minicarp("%s(): %s %p was not registered in thread #%u",
-					G_STRFUNC, thread_lock_kind_to_string(kind),
-					lock, te->stid);
-			}
+		/* Locks may be missing in pass-through mode */
+		if (!atomic_int_get(&thread_locks_disabled)) {
+			s_minicarp("%s(): %s %p was not registered in thread #%u",
+				G_STRFUNC, thread_lock_kind_to_string(kind),
+				lock, te->stid);
 		}
-
 		return;
 	}
 
@@ -7288,17 +7263,13 @@ thread_lock_holds_from(const char *file)
  * When the kind of lock is THREAD_LOCK_ANY, we do not care about the lock
  * kind: we simply look whether the lock address is registered.
  *
- * If no locks were recorded yet in the thread, returns "default".
- *
  * @param lock		the address of a lock we record (mutex, spinlock, etc...)
  * @param kind		kind of lock (useful for multiform locks like rwlocks)
- * @param dflt		value to return when no locks were recorded yet
  *
  * @return TRUE if lock was registered in the current thread.
  */
 bool
-thread_lock_holds_as_default(const volatile void *lock,
-	enum thread_lock_kind kind, bool dflt)
+thread_lock_holds_as(const volatile void *lock, enum thread_lock_kind kind)
 {
 	struct thread_element *te;
 	struct thread_lock_stack *tls;
@@ -7324,11 +7295,8 @@ thread_lock_holds_as_default(const volatile void *lock,
 	 * at the time hence we also return the default value.
 	 */
 
-	if G_UNLIKELY(0 == tls->count) {
-		if (thread_stack_ptr_cmp(&te, te->stack_lock) <= 0)
-			return dflt;
+	if G_UNLIKELY(0 == tls->count)
 		return FALSE;
-	}
 
 	/*
 	 * Most likely, when checking for locks, we are running assertions.
@@ -7349,50 +7317,7 @@ thread_lock_holds_as_default(const volatile void *lock,
 		}
 	}
 
-	/*
-	 * If we went back to a place on the execution stack before the first
-	 * recorded lock, we cannot decide.  Note that this does not mean we cannot
-	 * have locks recorded for the thread: it's a matter of when exactly we
-	 * were able to figure out the thread element structure in the execution.
-	 */
-
-	if (thread_stack_ptr_cmp(&te, te->stack_lock) <= 0)
-		return dflt;
-
 	return FALSE;
-}
-
-/**
- * Check whether current thread already holds a lock of a given kind.
- *
- * When the kind of lock is THREAD_LOCK_ANY, we do not care about the lock
- * kind: we simply look whether the lock address is registered.
- *
- * @param lock		the address of a lock we record (mutex, spinlock, etc...)
- * @param kind		kind of lock (useful for multiform locks like rwlocks)
- *
- * @return TRUE if lock of given kind was registered in the current thread.
- */
-bool
-thread_lock_holds_as(const volatile void *lock, enum thread_lock_kind kind)
-{
-	return thread_lock_holds_as_default(lock, kind, FALSE);
-}
-
-/**
- * Check whether current thread already holds a lock.
- *
- * If no locks were recorded yet in the thread, returns "default".
- *
- * @param lock		the address of a lock we record (mutex, spinlock, etc...)
- * @param dflt		value to return when no locks were recorded yet
- *
- * @return TRUE if lock was registered in the current thread.
- */
-bool
-thread_lock_holds_default(const volatile void *lock, bool dflt)
-{
-	return thread_lock_holds_as_default(lock, THREAD_LOCK_ANY, dflt);
 }
 
 /**
@@ -7405,7 +7330,7 @@ thread_lock_holds_default(const volatile void *lock, bool dflt)
 bool
 thread_lock_holds(const volatile void *lock)
 {
-	return thread_lock_holds_as_default(lock, THREAD_LOCK_ANY, FALSE);
+	return thread_lock_holds_as(lock, THREAD_LOCK_ANY);
 }
 
 /**
@@ -8670,14 +8595,6 @@ thread_launch_trampoline(void *arg)
 	u.ctx = arg;
 	thread_launch_register(u.ctx->te);
 	u.ctx->te->sig_mask = u.ctx->sig_mask;	/* Inherit parent's signal mask */
-
-	/*
-	 * Because we know the stack shape, we'll be able to record locks on it
-	 * immediately, hence we can set the "first lock point" to the current
-	 * stack position.
-	 */
-
-	u.ctx->te->stack_lock = thread_sp();
 
 	/*
 	 * Make sure we can correctly process SIGSEGV happening because stack
@@ -11009,7 +10926,6 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%zu", high_sig_qid);
 	DUMPF("%p",  last_sp);
 	DUMPF("%p",  top_sp);
-	DUMPF("%p",  stack_lock);
 	DUMPF("\"%s\"",  name);
 	DUMPF("%zu", stack_size);
 	DUMPF("%p",  stack);

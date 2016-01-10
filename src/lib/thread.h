@@ -238,11 +238,7 @@ void thread_lock_released(const void *lock, enum thread_lock_kind kind,
 size_t thread_lock_count(void);
 size_t thread_id_lock_count(unsigned id);
 bool thread_lock_holds(const volatile void *lock);
-bool thread_lock_holds_default(const volatile void *lock, bool dflt);
-bool thread_lock_holds_as(const volatile void *lock,
-	enum thread_lock_kind kind);
-bool thread_lock_holds_as_default(const volatile void *lock,
-	enum thread_lock_kind kind, bool dflt);
+bool thread_lock_holds_as(const volatile void *, enum thread_lock_kind);
 size_t thread_lock_held_count(const void *lock);
 bool thread_lock_holds_from(const char *file);
 void thread_lock_deadlock(const volatile void *lock);
