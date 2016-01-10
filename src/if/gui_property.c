@@ -47,6 +47,16 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
+/*
+ * Some of the generated const variables can be unused, avoid warnings.
+ *
+ * The -Wunused-const-variable warning may not be available with a particular
+ * compiler, so the -Wpragmas that is issued before prevents a warning to be
+ * emitted in that case...
+ */
+G_IGNORE(-Wunknown-pragmas);		/* clang does not know -Wpragmas */
+G_IGNORE(-Wpragmas);				/* For gcc, not clang */
+G_IGNORE(-Wunused-const-variable);	/* Appears in clang version 3.4.1 */
 
 gboolean gui_property_variable_monitor_enabled     = FALSE;
 static const gboolean gui_property_variable_monitor_enabled_default = FALSE;

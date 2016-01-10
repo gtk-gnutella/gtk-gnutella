@@ -63,10 +63,14 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 	static bool logging[THREAD_MAX];
 	unsigned stid = thread_small_id();
 
+	G_IGNORE_PUSH(-Wformat-nonliteral);		/* s_minilogv() call below */
+
 	if (logging[stid]) {
 		s_minilogv(flags | G_LOG_FLAG_RECURSION, FALSE, fmt, args);
 		return;
 	}
+
+	G_IGNORE_POP;
 
 	/*
 	 * This call is thread-unsafe by construction, and supposed to be called

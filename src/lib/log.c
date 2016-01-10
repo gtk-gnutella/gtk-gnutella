@@ -1094,7 +1094,7 @@ s_stacktrace(bool no_stdio, unsigned offset)
  * @param format	formatting string
  * @param args		variable argument list to format
  */
-static void
+static void G_PRINTF(3, 0)
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
 	int saved_errno = errno;
@@ -1361,7 +1361,7 @@ log_check_recursive(const char *format, va_list ap)
  * @param format	formatting string
  * @param args		variable argument list to format
  */
-static void
+static void G_PRINTF(5, 0)
 s_logv_once_per(long period, const char *origin,
 	logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
@@ -2063,7 +2063,7 @@ log_str_logv(struct logstring *s,
  * @param format	formatting string
  * @param args		variable argument list to format
  */
-static void
+static void G_PRINTF(3, 0)
 log_logv(logagent_t *la, GLogLevelFlags level, const char *format, va_list args)
 {
 	logagent_check(la);
