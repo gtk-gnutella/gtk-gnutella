@@ -717,6 +717,16 @@ typedef int socket_fd_t;
 #endif
 
 /**
+ * G_FORMAT() identifies a printf()-like format argument for a function
+ * returning a C string.
+ */
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 5)
+#define G_FORMAT(_arg_) __attribute__((__format_arg__ (_arg_)))
+#else
+#define G_FORMAT(_arg_)
+#endif
+
+/**
  * IS_CONSTANT() returns TRUE if the expression is a compile-time constant.
  */
 #if HAS_GCC(3, 0)
@@ -871,12 +881,8 @@ typedef gboolean (*reclaim_fd_t)(void);
 #  define Q_(String) g_strip_context ((String), (String))
 #endif /* ENABLE_NLS */
 
-static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
-G_GNUC_FORMAT(1) G_GNUC_FORMAT(2);
-
-static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
+static inline const char * G_FORMAT(1) G_FORMAT(2)
+ngettext_(const char *msg1, const char *msg2, ulong n)
 {
 	return ngettext(msg1, msg2, n);
 }
