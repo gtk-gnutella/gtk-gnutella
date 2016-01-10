@@ -532,6 +532,7 @@ src/dht/ulq.c
 src/dht/ulq.h
 src/dht/values.c
 src/dht/values.h
+src/gcc.h
 src/gtk-gnutella.h
 src/gtk-gnutella.man
 src/if/Jmakefile
