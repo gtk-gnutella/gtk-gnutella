@@ -69,7 +69,7 @@ udp_tag_set(udp_tag_t *tag, const char *str)
 #define UDP_RELIABLE_HEADER_SIZE		8		/* Fragments, normal ACKs */
 #define UDP_RELIABLE_EXT_HEADER_SIZE	12		/* Extended ACKs */
 
-/* 
+/*
  * Critical flags.
  */
 

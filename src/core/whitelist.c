@@ -397,7 +397,7 @@ whitelist_retrieve(void)
 			}
 
 			/* Terminate the string for name_to_host_addr() */
-			hname = h_strndup(start, endptr - start); 
+			hname = h_strndup(start, endptr - start);
 		} else {
             g_warning("%s(): line %d: expected hostname or IP address \"%s\"",
 				G_STRFUNC, linenum, line);

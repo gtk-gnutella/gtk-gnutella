@@ -2149,7 +2149,7 @@ forward_message(
 						> GNET_PROPERTY(max_ttl)
 			) {
 				int ttl_max = route_max_forward_ttl(sender);
-			   
+
 				/* Trim down */
 
 				gnutella_header_set_ttl(&sender->header, ttl_max);
@@ -2593,7 +2593,7 @@ route_query(struct route_log *route_log,
 			gnutella_header_get_hops(&sender->header) > GNET_PROPERTY(my_ttl)
 	) {
 		int ttl_max;
-	
+
 		/* Trim down */
 		ttl_max = GNET_PROPERTY(my_ttl);
 		ttl_max -= gnutella_header_get_hops(&sender->header);
@@ -3110,14 +3110,14 @@ route_towards_guid(const struct guid *guid)
 
 	if (is_banned_push(guid))
 		return NULL;
-	
+
 	node = node_by_guid(guid);
 	if (node)
 		return pslist_prepend(NULL, node);
-	
+
 	if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
 		pslist_t *iter, *nodes = NULL;
-		
+
 		revitalize_entry(m, TRUE);
 		PSLIST_FOREACH(m->routes, iter) {
 			struct route_data *rd = iter->data;

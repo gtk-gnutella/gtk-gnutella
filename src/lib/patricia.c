@@ -31,30 +31,30 @@
  *
  * The following example shows the growth of a PATRICIA tree under a
  * sequence of insertions (the alphabet here is {a,b} instead of {0,1}):
- * 
+ *
  *     empty             -- initial state
- * 
+ *
  *        12345          -- number character positions
  * insert ababb          -- the key
  *
  * (differences are shown by upper-casing the alphabet letter)
- * 
+ *
  *     ----> ababb
- * 
+ *
  * insert ababa;
- *     search ends at ababB~=ababA; 
- *     1st difference is at position 5, so... 
- * 
+ *     search ends at ababB~=ababA;
+ *     1st difference is at position 5, so...
+ *
  *     ----> [5]         -- i.e. test position #5
  *          .   .
  *      "a".     ."b"    -- left path taken bit #5 is "a", right if "b"
  *        .       .
  *       ababa     ababb
- * 
+ *
  * insert ba;
- *     has no position #5; 
- *     can skip key positions but must test in order, so... 
- * 
+ *     has no position #5;
+ *     can skip key positions but must test in order, so...
+ *
  *     --------> [1]
  *              .   .
  *             .     .
@@ -64,11 +64,11 @@
  *       .     .
  *      .       .
  *     ababa     ababb
- * 
+ *
  * insert aaabba;
- *     search ends at aBabb~=aAabba; 
- *     can skip key positions but must test in order, so... 
- * 
+ *     search ends at aBabb~=aAabba;
+ *     can skip key positions but must test in order, so...
+ *
  *     --------> [1]
  *              .   .
  *             .     .
@@ -84,11 +84,11 @@
  *           ababa     ababb
  *
  * (WARNING: below text differs from original text on the URL quoted above)
- * 
+ *
  * insert ab;
- *     ab is also a prefix of ababa and ababb; 
- *     must have ability to terminate at an intermediate node, as with Tries. 
- * 
+ *     ab is also a prefix of ababa and ababb;
+ *     must have ability to terminate at an intermediate node, as with Tries.
+ *
  *     -------> [1]
  *             .   .
  *            .     .
@@ -106,7 +106,7 @@
  *         .     .
  *        .       .
  *       ababa     ababb
- * 
+ *
  * It is the position in the tree that defines the key, for lookups. No
  * comparison of keys are done other than testing individual bits.
  *
@@ -1118,7 +1118,7 @@ remove_useless_node(patricia_t *pt, struct patricia_node *pn)
 	} else {
 		pt->root = child;
 	}
-		
+
 	free_node(pt, pn);
 }
 
@@ -2034,7 +2034,7 @@ typedef void (*node_cb_t)(struct patricia_node *pn, void *un);
  * @param un		additional user argument for the ncb callback
  * @param cb		the callback to invoke on each key/value pair if not NULL
  * @param u			additional user argument for the cb callback
- * 
+ *
  */
 static void
 patricia_traverse(patricia_t *pt,

@@ -155,7 +155,7 @@ fragcheck_meta_delete(struct fragcheck_meta *meta)
 	RUNTIME_ASSERT(meta);
 	{
 		size_t x, slot;
-		
+
 		slot = meta - &vars.meta_tab[0];
 		x = slot * 2;
 		bit_array_clear(vars.meta_index, x);		/* free slot */
@@ -174,7 +174,7 @@ my_malloc(gsize n)
 	n = round_size(sizeof (union alloc), n);
 	p = malloc(n);
 
-#ifdef FRAGCHECK_VERBOSE 
+#ifdef FRAGCHECK_VERBOSE
 	printf("%s(%lu)=0x%08lx\n", __func__, (unsigned long) n, (unsigned long) p);
 #endif	/* FRAGCHECK_VERBOSE */
 
@@ -214,7 +214,7 @@ my_malloc(gsize n)
 		}
 	}
 #endif	/* FRAGCHECK_TRACK_CALLERS */
-	
+
 	{
 		size_t from, to;
 
@@ -224,7 +224,7 @@ my_malloc(gsize n)
 		RUNTIME_ASSERT(from < BIT_COUNT);
 		RUNTIME_ASSERT(to <= BIT_COUNT);
 		RUNTIME_ASSERT(to >= from);
-	
+
 		RUNTIME_ASSERT(!bit_array_get(vars.allocated, from));
 		RUNTIME_ASSERT(!bit_array_get(vars.allocated, to));
 		bit_array_set_range(vars.allocated, from, to);
@@ -237,7 +237,7 @@ my_malloc(gsize n)
 static void
 my_free(void *p)
 {
-#ifdef FRAGCHECK_VERBOSE 
+#ifdef FRAGCHECK_VERBOSE
 	printf("%s(%p)\n", __func__, p);
 #endif	/* FRAGCHECK_VERBOSE */
 
@@ -282,7 +282,7 @@ my_realloc(void *p, gsize n)
 	RUNTIME_ASSERT(!lock);
 	lock = TRUE;
 
-#ifdef FRAGCHECK_VERBOSE 
+#ifdef FRAGCHECK_VERBOSE
 	printf("%s(%p, %lu)\n", __func__, p, (unsigned long) n);
 #endif	/* FRAGCHECK_VERBOSE */
 
@@ -365,7 +365,7 @@ alloc_dump2(FILE *f, bool unused_flag)
 #ifdef FRAGCHECK_TRACK_CALLERS
 			{
 				unsigned j;
-				
+
 				fputs(" callers:", f);
 				for (j = FC_RET_0; j < NUM_FC_RET; j++) {
 					fprintf(f, " 0x%08lx", (unsigned long) meta->ret[j]);

@@ -160,7 +160,7 @@ verify_tth_close(void)
 	HFREE_NULL(verify_tth.context);
 }
 
-static bool 
+static bool
 request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	void *user_data)
 {
@@ -201,7 +201,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	case VERIFY_DONE:
 		{
 			const struct tth *tth = verify_tth_digest(ctx);
-			
+
 			huge_update_hashes(sf, shared_file_sha1(sf), tth);
 			tth_cache_insert(tth, verify_tth_leaves(ctx),
 				verify_tth_leave_count(ctx));

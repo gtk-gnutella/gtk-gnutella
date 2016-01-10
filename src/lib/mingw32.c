@@ -1273,7 +1273,7 @@ mingw_quotestr(const char *str, char *dest, size_t len)
 
 	dest[0] = '"';			/* Opening quote */
 	q = &dest[1];
-	
+
 	while (q < end) {
 		char c = *p++;
 
@@ -2696,7 +2696,7 @@ mingw_patch_personal_path(const char *pathname)
 	if (p != NULL && !is_directory(pathname)) {
 		char *patched;
 		if (is_strsuffix(pathname, -1, "gtk-gnutella-downloads/complete")) {
-			/* 
+			/*
 			 * Put the gtk-gnutella-downloads/complete into the downloads folder
 			 * as this is where the user would expect completed downloads to be
 			 * be placed
@@ -2853,7 +2853,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 {
 	pncs_t pncs;
 	int res;
-   
+
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
@@ -2912,7 +2912,7 @@ int
 mingw_fstat(int fd, filestat_t *buf)
 {
 	int res;
-   
+
 	res = _fstati64(fd, buf);
 	if (-1 == res)
 		errno = mingw_last_error();
@@ -2925,7 +2925,7 @@ mingw_unlink(const char *pathname)
 {
 	pncs_t pncs;
 	int res;
-   
+
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
@@ -2949,7 +2949,7 @@ int
 mingw_dup2(int oldfd, int newfd)
 {
 	int res;
-  
+
 	if (oldfd == newfd) {
 		/* Windows does not like dup2(fd, fd) */
 		if (is_open_fd(oldfd))
@@ -3086,7 +3086,7 @@ mingw_read(int fd, void *buf, size_t count)
 
 	res = read(fd, buf, MIN(count, UINT_MAX));
 	g_assert(-1 == res || (res >= 0 && UNSIGNED(res) <= count));
-	
+
 	if (-1 == res)
 		errno = mingw_last_error();
 	return res;
@@ -3102,7 +3102,7 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
      */
 	int i;
     ssize_t total_read = 0, r = -1;
-	
+
 	for (i = 0; i < iov_cnt; i++) {
 		r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
 
@@ -3227,8 +3227,8 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 /***
  *** Socket wrappers
  ***/
- 
-int 
+
+int
 mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	fd_set *exceptfds, struct timeval *timeout)
 {
@@ -3237,7 +3237,7 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = select(nfds, readfds, writefds, exceptfds, timeout);
-	
+
 	if (res < 0)
 		errno = mingw_wsa_last_error();
 
@@ -3533,7 +3533,7 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
 	int res;
-	
+
 	/* Initialize the socket layer */
 	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
@@ -3549,7 +3549,7 @@ s_write(socket_fd_t fd, const void *buf, size_t count)
 {
 	ssize_t res;
 
- 	count = MIN(count, UNSIGNED(INT_MAX));	
+	count = MIN(count, UNSIGNED(INT_MAX));
 	res = send(fd, buf, count, 0);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
@@ -3560,8 +3560,8 @@ ssize_t
 s_read(socket_fd_t fd, void *buf, size_t count)
 {
 	ssize_t res;
-   
- 	count = MIN(count, UNSIGNED(INT_MAX));	
+
+	count = MIN(count, UNSIGNED(INT_MAX));
 	res = recv(fd, buf, count, 0);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
@@ -3645,7 +3645,7 @@ mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 		return -1;
 	}
 	return received;
-}	
+}
 #endif	/* HAS_WSARECVMSG */
 
 ssize_t
@@ -3657,7 +3657,7 @@ mingw_recvfrom(socket_fd_t s, void *data, size_t len, int flags,
 	INT ifromLen = *addrlen;
 	int res;
 
- 	len = MIN(len, UNSIGNED(INT_MAX));	
+	len = MIN(len, UNSIGNED(INT_MAX));
 	buf.buf = data;
 	buf.len = len;
 	res = WSARecvFrom(s, &buf, 1, &received, &dflags,
@@ -3677,8 +3677,8 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	  const struct sockaddr *dest_addr, socklen_t addrlen)
 {
 	ssize_t res;
-	
- 	len = MIN(len, UNSIGNED(INT_MAX));	
+
+	len = MIN(len, UNSIGNED(INT_MAX));
 	res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
@@ -4349,7 +4349,7 @@ mingw_fopen(const char *pathname, const char *mode)
 		bin_mode[l] = '\0';
 		mode = bin_mode;
 	}
-	
+
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
@@ -4386,7 +4386,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 		bin_mode[l] = '\0';
 		mode = bin_mode;
 	}
-	
+
 	if (
 		!is_ascii_string(mode) ||
 		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
@@ -4996,7 +4996,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	 * Each timer is locked using a low-level lock (since we cannot recurse
 	 * into the spinlock code).
 	 */
-	
+
 	for (i = 0; i < 1000; i++) {
 		uint j, k;
 		for (k = 0, j = atomic_uint_inc(&idx); k < THREAD_MAX; k++, j++) {
@@ -6578,7 +6578,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 
 	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
 		uint8 op, pop;
-		
+
 		const uint8 *next;
 
 		if (!valid_ptr(p) || !valid_ptr(p - 1))
@@ -7018,7 +7018,7 @@ skip_init:
 
 	info->dli_fbase = ulong_to_pointer(
 		SymGetModuleBase(process, pointer_to_ulong(addr)));
-	
+
 	if (NULL == info->dli_fbase) {
 		mingw_dl_error = GetLastError();
 		return 0;		/* Unknown, error */
@@ -7327,7 +7327,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		)
 	) {
 		int count;
-		
+
 		count = mingw_stack_unwind(
 			mingw_stack, G_N_ELEMENTS(mingw_stack), ei->ContextRecord, 0);
 
@@ -7361,12 +7361,12 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 static inline void WINAPI
 mingw_invalid_parameter(const wchar_t * expression,
 	const wchar_t * function, const wchar_t * file, unsigned int line,
-   uintptr_t pReserved) 
+   uintptr_t pReserved)
 {
 	(void) expression;
 	(void) function;
 	(void) pReserved;
-	
+
 	wprintf(L"mingw: Invalid parameter in %s %s:%d\r\n", function, file, line);
 }
 
@@ -7479,7 +7479,7 @@ mingw_stdio_reset(bool console)
 
 	if (console) {
 		int tty;
-		
+
 		tty = isatty(STDIN_FILENO);
 		STARTUP_DEBUG("stdin is%s a tty", tty ? "" : "n't");
 		if (tty) {
@@ -7678,12 +7678,12 @@ mingw_early_init(void)
 	closelog();
 }
 
-void 
+void
 mingw_close(void)
 {
 	if (libws2_32 != NULL) {
 		FreeLibrary(libws2_32);
-		
+
 		libws2_32 = NULL;
 		WSAPoll = NULL;
 	}

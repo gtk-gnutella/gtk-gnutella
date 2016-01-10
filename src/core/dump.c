@@ -112,7 +112,7 @@
 /**
  * Barracuda header flags.
  */
-enum dump_header_flags {                                                        
+enum dump_header_flags {
 	DH_F_UDP  = (1 << 0),
 	DH_F_TCP  = (1 << 1),
 	DH_F_IPV4 = (1 << 2),
@@ -187,7 +187,7 @@ dump_header_set(struct dump_header *dh, const gnutella_node_t *node)
 	case NET_TYPE_IPV4:
 		{
 			uint32 ip;
-			
+
 			dh->data[0] |= DH_F_IPV4;
 			ip = host_addr_ipv4(node->addr);
 			poke_be32(&dh->data[1], ip);
@@ -215,7 +215,7 @@ dump_disable(struct dump *dump)
 
 	if (dump->fd >= 0)
 		fd_close(&dump->fd);
-	
+
 	dump->initialized = FALSE;
 	if (*dump->dump_var)
 		gnet_prop_set_boolean_val(dump->dump_property, FALSE);
@@ -318,7 +318,7 @@ dump_flush(struct dump *dump)
 static void
 dump_packet_from(struct dump *dump, const gnutella_node_t *node)
 {
-	struct dump_header dh;	
+	struct dump_header dh;
 
 	g_assert(node != NULL);
 
@@ -344,8 +344,8 @@ dump_packet_from_to(struct dump *dump,
 	const gnutella_node_t *from, const gnutella_node_t *to,
 	const pmsg_t *mb)
 {
-	struct dump_header dh_to;	
-	struct dump_header dh_from;	
+	struct dump_header dh_to;
+	struct dump_header dh_from;
 
 	g_assert(to != NULL);
 	g_assert(mb != NULL);
@@ -382,7 +382,7 @@ dump_packet_from_to(struct dump *dump,
 	dh_to.data[0] |= DH_F_TO;
 	if (pmsg_prio(mb) != PMSG_P_DATA)
 		dh_to.data[0] |= DH_F_CTRL;
-		
+
 	dump_append(dump, dh_to.data, sizeof dh_to.data);
 	dump_append(dump, dh_from.data, sizeof dh_from.data);
 	dump_append(dump, pmsg_read_base(mb), pmsg_size(mb));

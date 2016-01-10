@@ -192,7 +192,7 @@ ck_used(const ckhunk_t *ck)
 
 	if (NULL == ck)
 		return FALSE;
-	
+
 	return ck->avail != ck->arena + ckalloc_round(sizeof(struct ckhunk));
 }
 

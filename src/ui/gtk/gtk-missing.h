@@ -93,7 +93,7 @@ gint gtk_ctree_count_node_children(GtkCTree *, GtkCTreeNode *parent);
 #define GTK_CTREE_NODE_PARENT(n) \
     ((n) ? (GTK_CTREE_ROW(n)->parent) : NULL)
 #endif /* USE_GTK1 */
-										
+
 /**
  * GtkPaned
  */

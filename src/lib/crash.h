@@ -66,10 +66,10 @@
  *		// or flush_err_str() can be used multiple times.
  *
  *		rewind_str(after_header); // rewind to offset 1; keep the first string
- *		print_str(some_other_text); 
+ *		print_str(some_other_text);
  *		flush_str(fd);	// Sent all strings to file descriptor fd with writev()
  *	}
- * 
+ *
  * @attention
  * There is no formatting done here, this is not a printf()-like function.
  * It only records an array of constant strings in a vector.

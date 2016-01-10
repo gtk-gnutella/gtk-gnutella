@@ -134,7 +134,7 @@ ggept_h_tth_extract(const extvec_t *exv, struct tth *tth)
 	payload = ext_payload(exv);
 	if (payload[0] != GGEP_H_BITPRINT)
 		return GGEP_NOT_FOUND;
-	
+
 	if (tlen != (BITPRINT_RAW_SIZE + 1))
 		return GGEP_INVALID;			/* Size is not right */
 
@@ -831,7 +831,7 @@ ggept_ip_vec_extract(const extvec_t *exv,
  */
 ggept_status_t
 ggept_alt_extract(const extvec_t *exv,
-	gnet_host_vec_t **hvec, enum net_type net) 
+	gnet_host_vec_t **hvec, enum net_type net)
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_ALT ||

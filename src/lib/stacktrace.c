@@ -1934,7 +1934,7 @@ stacktrace_chop_length(const struct stacktrace *st)
 	 * running as part of a statically linked program or whether the whole
 	 * program is held in shared libraries, the main() entry point being
 	 * just there to load the initial shared libraray.
-	 * 
+	 *
 	 * This means stack_is_our_text() is unsafe.
 	 *
 	 * NB: This is only really needed when this library is used outside

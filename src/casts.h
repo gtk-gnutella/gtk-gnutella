@@ -24,7 +24,7 @@
 /**
  * @file
  *
- * Functions for safer casting. 
+ * Functions for safer casting.
  *
  * @author Christian Biere
  * @date 2006
@@ -71,13 +71,13 @@ deconstify_uint32(const uint32 *p)
 	return (uint32 *) p;
 }
 
-static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void * 
+static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 deconstify_gpointer(const void *p)
 {
 	return (void *) p;
 }
 
-static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void * 
+static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 deconstify_pointer(const void *p)
 {
 	return (void *) p;
@@ -86,13 +86,13 @@ deconstify_pointer(const void *p)
 static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE const void *
 cast_to_gconstpointer(const void *p)
 {
-	return p; 
+	return p;
 }
 
 static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE const void *
 cast_to_constpointer(const void *p)
 {
-	return p; 
+	return p;
 }
 
 static inline G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *

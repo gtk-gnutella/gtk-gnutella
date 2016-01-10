@@ -298,7 +298,7 @@ parse_target(const char *buf, gint *error)
  * @param do_reset if TRUE, the ID counter is reset to an initial value.
  * @return a 32-bit integer stuffed into a pointer
  */
-static void * 
+static void *
 target_new_id(gboolean do_reset)
 {
 	static uint32 id_counter;
@@ -642,7 +642,7 @@ search_to_xml(xnode_t *parent, const struct search *search)
     g_assert(parent != NULL);
 
 	if (guc_search_is_browse(search_handle))
-		return;	
+		return;
 
 	if (guc_search_is_local(search_handle))
 		return;
@@ -1480,7 +1480,7 @@ xml_to_jump_rule(xnode_t *xn, void *data)
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
 	return;
-	
+
 failure:
 	XML_BAD_NODE(xn);
 }
@@ -1537,7 +1537,7 @@ xml_to_sha1_rule(xnode_t *xn, void *data)
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
 	return;
-	
+
 failure:
 	XML_BAD_NODE(xn);
 }

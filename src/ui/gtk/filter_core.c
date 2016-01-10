@@ -84,7 +84,7 @@ typedef GList *filter_add_rule_func_t(GList *, gpointer);
  */
 struct filter_context {
 	const struct record *rec;		/* From the GUI */
-	
+
 	/*
 	 * Cache for filtering: avoids recomputation at each filtering rule.
 	 * Those variables are initialized as needed.
@@ -952,7 +952,7 @@ filter_lazy_utf8_to_ui_string(const gchar *src)
 	static gchar *prev;
 	gchar *dst;
 
-	g_assert(src);	
+	g_assert(src);
 	g_assert(prev != src);
 
 	dst = utf8_to_ui_string(src);
@@ -976,10 +976,10 @@ filter_rule_condition_to_string(const rule_t *r)
     case RULE_TEXT:
 		{
 			const gchar *match, *cs;
-			
+
 			match = filter_lazy_utf8_to_ui_string(r->u.text.match);
 			cs = r->u.text.case_sensitive ? _("(case-sensitive)") : "";
-			
+
 			switch (r->u.text.type) {
 			case RULE_TEXT_PREFIX:
 				str_bprintf(tmp, sizeof tmp,
@@ -1958,13 +1958,13 @@ filter_adapt_order_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 {
 	GList **list = list_ptr;
 	gpointer p;
-	
+
 	(void) unused_path;
-	
+
    	gtk_tree_model_get(model, iter, 0, &p, (-1));
 	if (p)
         *list = g_list_prepend(*list, p);
-	
+
 	return FALSE; /* continue traversal */
 }
 #endif /* USE_GTK2 */
@@ -2498,7 +2498,7 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 		/* Remove all rules, we want to keep this filters up-to-date */
 		while (NULL != filter->ruleset) {
 			rule_t *rule;
-		
+
 			rule = g_list_nth_data(filter->ruleset, 0);
 			g_assert(rule->target);
 			g_assert(rule->target->refcount > 0);

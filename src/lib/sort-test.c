@@ -611,7 +611,7 @@ generate_array(size_t cnt, size_t isize)
 {
 	size_t len;
 	void *array;
-	
+
 	len = cnt * isize;
 	array = xmalloc(len);
 	rand31_bytes(array, len);
@@ -642,7 +642,7 @@ generate_degenerative_array(size_t cnt, size_t isize, enum degenerative how)
 {
 	size_t len;
 	void *array;
-	
+
 	len = cnt * isize;
 	array = xmalloc(len);
 

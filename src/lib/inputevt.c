@@ -133,7 +133,7 @@ static unsigned inputevt_stid = THREAD_INVALID_ID;
 /**
  * Set debugging level.
  */
-void 
+void
 inputevt_set_debug(unsigned level)
 {
 	inputevt_debug = level;
@@ -418,7 +418,7 @@ static int
 event_check_all_with_kqueue(struct poll_ctx *ctx)
 {
 	static const struct timespec zero_ts;
-	
+
 	g_assert(ctx);
 	g_assert(ctx->initialized);
 	g_assert(CTX_IS_LOCKED(ctx));
@@ -485,7 +485,7 @@ event_check_all_with_epoll(struct poll_ctx *ctx)
 	g_assert(ctx);
 	g_assert(ctx->initialized);
 	g_assert(CTX_IS_LOCKED(ctx));
-	
+
 	return epoll_wait(ctx->master_fd, ctx->ep_arr, ctx->num_ev, 0);
 }
 #endif	/* HAS_EPOLL */
@@ -534,7 +534,7 @@ event_set_mask_with_dev_poll(struct poll_ctx *ctx, int fd,
 static int
 collect_events_with_devpoll(struct poll_ctx *ctx, int timeout_ms)
 {
-	struct dvpoll dvp; 
+	struct dvpoll dvp;
 	int ret;
 
 	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
@@ -670,7 +670,7 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 		/* FD_ISSET() */
 		for (i = UNSIGNED(r.fd_count); i-- > 0; /* NOTHING */) {
 			int fd = cast_to_fd(r.fd_array[i]);
-			ctx->pfd_arr[get_poll_idx(ctx, fd)].revents |= POLLIN; 
+			ctx->pfd_arr[get_poll_idx(ctx, fd)].revents |= POLLIN;
 		}
 		for (i = UNSIGNED(w.fd_count); i-- > 0; /* NOTHING */) {
 			int fd = cast_to_fd(w.fd_array[i]);
@@ -771,7 +771,7 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	 */
 	if (*timeout_ms_ptr >= 0 || ret > 0) {
 		*timeout_ms_ptr = timeout_ms;
-	} 
+	}
 }
 
 void
@@ -833,7 +833,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 	rl = htable_lookup(ctx->ht, int_to_pointer(relay->fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
-	
+
 	rl->sl = pslist_remove(rl->sl, uint_to_pointer(id));
 	if (NULL == rl->sl) {
 		g_assert(0 == rl->readers && 0 == rl->writers);
@@ -866,7 +866,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 		bit_array_clear(ctx->used_event_id, id);
 
 		relay = ctx->relay[id];
-		relay_list_remove(ctx, id);		
+		relay_list_remove(ctx, id);
 		WFREE(relay);
 		ctx->relay[id] = NULL;
 	}
@@ -910,7 +910,7 @@ inputevt_timer(struct poll_ctx *ctx)
 		pslist_t *evlist = NULL, *es;
 
 		g_assert(UNSIGNED(num_events) <= ctx->num_ev);
-	
+
 		for (idx = 0; num_events > 0 && idx < ctx->num_ev; idx++) {
 			struct event event;
 
@@ -1031,7 +1031,7 @@ inputevt_timer(struct poll_ctx *ctx)
 		plist_free_null(&list);
 		CTX_LOCK(ctx);
 	}
-	
+
 	ctx->dispatching = FALSE;
 
 	if (ctx->removed) {
@@ -1181,7 +1181,7 @@ inputevt_remove(unsigned *id_ptr)
 		 */
 		ctx->removed = pslist_prepend(ctx->removed, uint_to_pointer(id));
 	} else {
-		relay_list_remove(ctx, id);		
+		relay_list_remove(ctx, id);
 		WFREE(relay);
 		ctx->relay[id] = NULL;
 		bit_array_clear(ctx->used_event_id, id);
@@ -1198,7 +1198,7 @@ inputevt_get_free_id(const struct poll_ctx *ctx)
 
 	if (0 == ctx->num_ev)
 		return (unsigned) -1;
-	
+
 	return bit_array_first_clear(ctx->used_event_id, 0, ctx->num_ev - 1);
 }
 
@@ -1313,7 +1313,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		rl->sl = pslist_prepend(rl->sl, uint_to_pointer(id));
 	}
 
-	if 
+	if
 		(-1 == (*ctx->event_set_mask)(ctx, relay->fd,
 									 old, (old | relay->condition))
 	) {
@@ -1324,7 +1324,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 	CTX_UNLOCK(ctx);
 
-	g_assert(0 != id);	
+	g_assert(0 != id);
 	return id;
 }
 
@@ -1605,7 +1605,7 @@ void
 inputevt_close(void)
 {
 	struct poll_ctx *ctx;
-	
+
 	ctx = get_global_poll_ctx();
 	inputevt_stid = THREAD_INVALID_ID;
 

@@ -34,7 +34,7 @@
 #ifndef _urn_h_
 #define _urn_h_
 
-#include "common.h" 
+#include "common.h"
 
 /*
  * Public interface.

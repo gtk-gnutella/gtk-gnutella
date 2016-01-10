@@ -170,7 +170,7 @@ vmsg_eq_func(const void *p, const void *q)
  * @param vc The vendor code.
  * @param id The vendor message ID.
  * @param version The vendor message version.
- * @returns whether the message is known and supported. 
+ * @returns whether the message is known and supported.
  */
 static bool
 find_message(struct vmsg *vmsg_ptr,
@@ -1231,7 +1231,7 @@ extract_token(const char *data, size_t size, char token[MAX_OOB_TOKEN_SIZE])
 	}
 	if (exvcnt) {
 		ext_reset(exv, MAX_EXTVEC);
-	}	
+	}
 	return token_size > 0 ? array_init(token, token_size) : zero_array;
 }
 
@@ -1929,7 +1929,7 @@ svn_release_signature_is_valid(void)
 
 	if (!initialized) {
 		initialized = TRUE;
-		
+
 		gnet_prop_add_prop_changed_listener(PROP_LATEST_SVN_RELEASE_REVISION,
 			latest_svn_release_changed, FALSE);
 		gnet_prop_add_prop_changed_listener(PROP_LATEST_SVN_RELEASE_DATE,
@@ -1947,7 +1947,7 @@ vmsg_send_svn_release_notify(gnutella_node_t *n)
 	uint32 paysize;
 	char *payload, *end;
 
-	g_return_if_fail(!NODE_IS_UDP(n));	
+	g_return_if_fail(!NODE_IS_UDP(n));
 
 	if (!(NODE_A_CAN_SVN_NOTIFY & n->attrs))
 		return;
@@ -1959,7 +1959,7 @@ vmsg_send_svn_release_notify(gnutella_node_t *n)
 		return;
 
 	n->svn_release_revision = GNET_PROPERTY(latest_svn_release_revision);
-	
+
 	payload = vmsg_fill_type(v_tmp_data, T_GTKG, 24, 1);
 	end = poke_be32(payload, GNET_PROPERTY(latest_svn_release_revision));
 	end = poke_be32(end, GNET_PROPERTY(latest_svn_release_date));
@@ -1981,7 +1981,7 @@ handle_svn_release_notify(gnutella_node_t *n,
 
 	if (NODE_IS_UDP(n))
 		return;
-	
+
 	if (VMSG_SHORT_SIZE(n, vmsg, size, 16))
 		return;
 
@@ -2006,7 +2006,7 @@ handle_svn_release_notify(gnutella_node_t *n,
 		hex = g_malloc(hex_length + 1);
 		base16_encode(hex, hex_length, signature.data, signature.size);
 		hex[hex_length] = '\0';
-		
+
 		gnet_prop_set_guint32_val(PROP_LATEST_SVN_RELEASE_REVISION, revision);
 		gnet_prop_set_timestamp_val(PROP_LATEST_SVN_RELEASE_DATE, date);
 		gnet_prop_set_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex);
@@ -2043,7 +2043,7 @@ enum {
 
 	VMSG_HEAD_STATUS_FIREWALLED	 = 1 << 2,
 	VMSG_HEAD_STATUS_DOWNLOADING = 1 << 3,
-	
+
 	VMSG_HEAD_CODE_MASK			= 0x03
 };
 
@@ -2063,7 +2063,7 @@ head_pong_queue_status(void)
 		return 0;
 	} else {
 		uint32 slots;
-		slots = maximum - running;	
+		slots = maximum - running;
 		slots = MIN(0x7eU, slots);
 		return -(uint8)slots;
 	}
@@ -2100,14 +2100,14 @@ vmsg_send_head_pong_v1(gnutella_node_t *n, const struct sha1 *sha1,
 
 		/* Optional firewalled alternate locations */
 		if (VMSG_HEAD_F_ALT_PUSH & flags) {
-			flags &= ~VMSG_HEAD_F_ALT_PUSH;	/* Not implemented */	
+			flags &= ~VMSG_HEAD_F_ALT_PUSH;	/* Not implemented */
 		}
 
 		/* Optional alternate locations */
 		if (VMSG_HEAD_F_ALT & flags) {
 			gnet_host_t hvec[15];	/* 15 * 6 = 90 bytes (max) */
 			int hcnt = 0;
-		   	
+
 			if (sha1) {
 				hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
 			}
@@ -2172,8 +2172,8 @@ vmsg_send_head_pong_v2(gnutella_node_t *n, const struct sha1 *sha1,
 
 		if (!ggep_stream_pack(&gs, GGEP_NAME(C), &code, sizeof code, 0))
 			goto failure;
-	
-		queue = head_pong_queue_status();	
+
+		queue = head_pong_queue_status();
 		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), &queue, sizeof queue, 0))
 			goto failure;
 
@@ -2284,7 +2284,7 @@ head_ping_timer(cqueue_t *cq, void *unused_udata)
 	head_ping_expire(FALSE);
 }
 
-static struct head_ping_source * 
+static struct head_ping_source *
 head_ping_register_intern(const struct guid *muid,
 	const struct sha1 *sha1, const struct nid *node_id)
 {
@@ -2318,7 +2318,7 @@ head_ping_register_intern(const struct guid *muid,
 	source->muid = *muid;
 	source->added = tm_time();
 	hash_list_append(head_pings, source);
-	
+
 	/*
 	 * We don't need the SHA-1 for routing, thus only record it
  	 * for debugging purposes or if we are the origin.
@@ -2341,7 +2341,7 @@ head_ping_register_own(const struct guid *muid,
 	g_return_val_if_fail(muid, FALSE);
 	g_return_val_if_fail(sha1, FALSE);
 	g_return_val_if_fail(target, FALSE);
-	
+
 	source = head_ping_register_intern(muid, sha1, NODE_ID_SELF);
 	if (source) {
 		if (NODE_IS_UDP(target)) {
@@ -2362,11 +2362,11 @@ head_ping_register_forwarded(const struct guid *muid,
 	const struct sha1 *sha1, const gnutella_node_t *sender)
 {
 	struct head_ping_source *source;
-	
+
 	g_return_val_if_fail(muid, FALSE);
 	g_return_val_if_fail(sha1, FALSE);
 	g_return_val_if_fail(sender, FALSE);
-	
+
 	source = head_ping_register_intern(muid, sha1, NODE_ID(sender));
 	if (source) {
 		if (NODE_IS_UDP(sender)) {
@@ -2489,7 +2489,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, uint16 port,
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
 	muid = gnutella_header_get_muid(v_tmp_header);
-	
+
 	if (head_ping_register_own(muid, sha1, n)) {
 		if (GNET_PROPERTY(vmsg_debug) > 1 || GNET_PROPERTY(log_vmsg_tx)) {
 			g_debug(
@@ -2510,7 +2510,7 @@ static gnutella_node_t *
 head_ping_target_by_guid(const struct guid *guid)
 {
 	gnutella_node_t *n;
-		
+
 	n = node_by_guid(guid);
 	if (n) {
 	   	if (!(NODE_A_CAN_HEAD & n->attrs)) {
@@ -2710,7 +2710,7 @@ handle_head_ping(gnutella_node_t *n,
 		} else {
 			if (sf) {
 				const fileinfo_t *fi;
-				
+
 				shared_file_check(sf);
 				fi = shared_file_fileinfo(sf);
 				if (fi) {
@@ -2842,14 +2842,14 @@ forward_head_pong(gnutella_node_t *n,
 				gnutella_header_get_ttl(&header) - 1);
 			gnutella_header_set_hops(&header,
 				gnutella_header_get_hops(&header) + 1);
-		
+
 			mb = gmsg_split_to_pmsg(header, n->data, n->size + GTA_HEADER_SIZE);
 			vmsg_send_reply(target, mb);	/* Forward to destination */
 		}
 	}
 }
 
-static void 
+static void
 handle_head_pong_v1(const struct head_ping_source *source,
 	const char *payload, size_t size)
 {
@@ -2867,7 +2867,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 	 * 1		Code			response code with flags (not found,
 	 *							firewalled,	downloading, complete file)
 	 * 2		Vendor ID		4-letter vendor ID of sender
-	 * 6		Queue Status	
+	 * 6		Queue Status
 	 * 7		variable data
 	 *
 	 * The pong may also carry alt-locs and available ranges.
@@ -2928,7 +2928,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 		}
 		break;
 	}
-	
+
 	/* Optional ranges for partial files -- IGNORED FOR NOW */
 	if (VMSG_HEAD_F_RANGES & flags) {
 		int len;
@@ -2951,7 +2951,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 	/* Optional firewalled alternate locations -- IGNORED FOR NOW */
 	if (VMSG_HEAD_F_ALT_PUSH & flags) {
 		int len;
-		
+
 		len = block_length(array_init(p, endptr - p));
 		if (len != 0 && (len < 23 || (len - 23) % 6)) {
 			if (GNET_PROPERTY(vmsg_debug)) {
@@ -2976,7 +2976,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 
 	if (VMSG_HEAD_F_ALT & flags) {
 		int len;
-		
+
 		len = block_length(array_init(p, endptr - p));
 		if (len < 0 || len % 6) {
 			if (GNET_PROPERTY(vmsg_debug)) {
@@ -3071,11 +3071,11 @@ handle_head_pong_v2(const struct head_ping_source *source,
 			break;
 		case EXT_T_GGEP_T:			/* TLS-capability bitmap for "A" */
 		case EXT_T_GGEP_ALT_TLS:	/* TLS-capability bitmap for "ALT" */
-			/* FIXME: Handle this */	
+			/* FIXME: Handle this */
 			break;
 		case EXT_T_GGEP_T6:			/* TLS-capability bitmap for "A6" */
 		case EXT_T_GGEP_ALT6_TLS:	/* TLS-capability bitmap for "ALT6" */
-			/* FIXME: Handle this */	
+			/* FIXME: Handle this */
 			break;
 		default:
 			if (GNET_PROPERTY(vmsg_debug)) {
@@ -3094,7 +3094,7 @@ handle_head_pong_v2(const struct head_ping_source *source,
 	}
 	if (exvcnt) {
 		ext_reset(exv, MAX_EXTVEC);
-	}	
+	}
 
 	if (GNET_PROPERTY(vmsg_debug) > 1) {
 		g_debug(
@@ -3137,7 +3137,7 @@ handle_head_pong_v2(const struct head_ping_source *source,
 		(VMSG_HEAD_F_TLS & flags) &&
 		node_id_self(source->ping.node_id) && source->ping.port
 	) {
-		tls_cache_insert(source->ping.addr, source->ping.port);		
+		tls_cache_insert(source->ping.addr, source->ping.port);
 	}
 }
 
@@ -3170,7 +3170,7 @@ handle_head_pong(gnutella_node_t *n,
 	}
 }
 
-#if 0 
+#if 0
 /**
  * Send an "UDP Crawler Ping" message to specified node. -- For testing only
  */

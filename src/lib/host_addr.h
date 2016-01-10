@@ -242,7 +242,7 @@ net_type_to_string(enum net_type net)
 	return NULL;
 }
 
-static inline G_CONST enum net_type 
+static inline G_CONST enum net_type
 host_addr_net(const host_addr_t ha)
 {
 	return ha.net;
@@ -531,7 +531,7 @@ bool host_addr_is_unspecified(const host_addr_t addr);
 static inline bool
 host_addr_is_ipv4_mapped(const host_addr_t addr)
 {
-	return host_addr_is_ipv6(addr) && 
+	return host_addr_is_ipv6(addr) &&
 		host_addr_matches(addr, ipv6_ipv4_mapped, 96);
 }
 

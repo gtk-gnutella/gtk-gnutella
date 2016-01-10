@@ -84,7 +84,7 @@ gethomedir(void)
 #ifdef HAS_GETPWNAM
 	if (!dir) {
 		const char *name;
-		
+
 		name = getlogin();
 		if (name) {
 			const struct passwd *pp;
@@ -99,7 +99,7 @@ gethomedir(void)
 #ifdef HAS_GETPWUID
 	if (!dir) {
 		const struct passwd *pp;
-		
+
 		pp = getpwuid(getuid());
 		if (pp)
 			dir = pp->pw_dir;

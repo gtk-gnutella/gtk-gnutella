@@ -45,7 +45,7 @@
 #ifndef _idtable_h_
 #define _idtable_h_
 
-#include "common.h" 
+#include "common.h"
 
 #define IDTABLE_MAXBITS	32		/* Maximum width of IDs */
 

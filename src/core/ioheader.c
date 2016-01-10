@@ -256,7 +256,7 @@ nextline:
 
 	error = header_append(header,
 		getline_str(ih->getline), getline_length(ih->getline));
-	
+
 	switch (error) {
 	case HEAD_OK:
 		getline_reset(ih->getline);

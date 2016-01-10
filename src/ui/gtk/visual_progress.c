@@ -31,7 +31,7 @@
  *
  * @todo Make colors into properties so that they can be stored in config,
  *       should keep hardcoded backups.
- * @todo Add progress data also to fileinfo table, so that the info is shown 
+ * @todo Add progress data also to fileinfo table, so that the info is shown
  *       for all current files.
  * @todo Do not redraw the bar too often, only on event for actual file and
  *       perhaps max once a second.
@@ -400,7 +400,7 @@ vp_info_free(vp_info_t **v_ptr)
 
 	if (*v_ptr) {
 		vp_info_t *v = *v_ptr;
-		
+
 		guc_fi_free_chunks(v->chunks_list);
 		guc_fi_free_chunks(v->chunks_initial);
 		guc_fi_free_ranges(v->ranges_list);

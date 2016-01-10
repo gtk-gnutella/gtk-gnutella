@@ -36,7 +36,7 @@
  *    ^         ^     ^ ^        ^                                  ^
  *    magic     port  | |        client cookie                      NUL
  *                    | server cookie
- *                    socket type 
+ *                    socket type
  *
  * The leading "<?socket?>" string is just a magic string.
  * The port is the INET port on which the server is listening

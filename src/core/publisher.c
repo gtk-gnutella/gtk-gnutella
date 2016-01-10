@@ -353,7 +353,7 @@ publisher_is_acceptable(const pdht_info_t *info)
 	return info->presence >= PUBLISH_MIN_PROBABILITY ||
 		info->all_roots >= publisher_minimum || !info->can_bg;
 }
- 
+
 /**
  * Publishing callback invoked when asynchronous publication is completed,
  * or ended with an error.

@@ -119,7 +119,7 @@ enum upnp_method {
 	UPNP_M_ANY = 0,				/**< Not attempted or no success yet */
 	UPNP_M_UPNP,				/**< UPnP */
 	UPNP_M_NATPMP,				/**< NAT-PMP */
-	
+
 	UPNP_M_MAX
 };
 
@@ -666,7 +666,7 @@ upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
 		}
 		if (UPNP_ERR_INVALID_ACTION == code) {
 			upnp_service_t *usd; /* They lied about supporting this action */
-			
+
 			usd = upnp_service_get_common_if(igd.dev->services);
 			upnp_service_cannot(usd, UPNP_GET_TOTAL_RX_PACKETS);
 		}

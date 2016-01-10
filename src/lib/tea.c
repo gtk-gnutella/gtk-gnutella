@@ -115,7 +115,7 @@ t_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 	poke_le32(&res->v[0], v0);
 	poke_le32(&res->v[4], v1);
 }
- 
+
 /**
  * Decrypt a block with the supplied key.
  *

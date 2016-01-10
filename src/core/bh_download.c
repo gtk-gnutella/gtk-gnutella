@@ -605,7 +605,7 @@ browse_host_dl_free(struct browse_ctx **ptr)
 {
 	struct browse_ctx *bc = *ptr;
 
-	if (bc) {	
+	if (bc) {
 		atom_str_free_null(&bc->vendor);
 		if (bc->rx) {
 			rx_free(bc->rx);

@@ -640,7 +640,7 @@ plist_nth_data(plist_t *pl, size_t n)
  * Find the cell in the list containing the specified item.
  *
  * @param pl		the head of the list
- * 
+ *
  * @return the first matching cell in the list, NULL if not found.
  */
 plist_t *
@@ -687,7 +687,7 @@ plist_find_custom(plist_t *pl, const void *object, cmp_fn_t cmp)
  *
  * @param pl		the head of the list
  * @param cell		the cell we're looking for
- * 
+ *
  * @return the position of the cell in the list, -1 if not found.
  */
 long
@@ -734,7 +734,7 @@ plist_index(const plist_t *pl, const void *data)
  * This requires a complete traversal of the list.
  *
  * @param pl		the head of the list
- * 
+ *
  * @return the amount of items in the list.
  */
 size_t
@@ -742,7 +742,7 @@ plist_length(const plist_t *pl)
 {
 	plist_t *l = deconstify_pointer(pl);
 	size_t n = 0;
-	
+
 	while (l != NULL) {
 		n++;
 		l = l->next;

@@ -244,7 +244,7 @@ aje_may_reseed(const aje_state_t *as)
 	tm_t now;
 
 	aje_check(as);
-	
+
 	tm_now_exact(&now);
 
 	if (tm_elapsed_us(&now, &as->last_reseed) < AJE_RESEED_INTERVAL)
@@ -673,7 +673,7 @@ aje_init(aje_state_t *as)
 
 	ZERO(as);
 	as->magic = AJE_MAGIC;
-	
+
 	for (i = 0; i < G_N_ELEMENTS(as->pool); i++) {
 		SHA1_reset(&as->pool[i]);
 	}
@@ -1050,7 +1050,7 @@ pslist_t *
 aje_users(void)
 {
 	ONCE_FLAG_RUN(aje_key_inited, aje_key_init);
-	
+
 	return thread_local_users(aje_key);
 }
 

@@ -260,9 +260,9 @@ upload_stats_gui_cmp_filename(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct upload_data *d1, *d2;
-	
+
 	(void) unused_udata;
-	
+
 	d1 = get_upload_data(model, a);
 	d2 = get_upload_data(model, b);
 	return strcmp(d1->filename, d2->filename);
@@ -273,9 +273,9 @@ upload_stats_gui_cmp_size(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct upload_data *d1, *d2;
-	
+
 	(void) unused_udata;
-	
+
 	d1 = get_upload_data(model, a);
 	d2 = get_upload_data(model, b);
 	return CMP(d1->us->size, d2->us->size);
@@ -301,7 +301,7 @@ upload_stats_gui_cmp_attempts(
 	const struct upload_data *d1, *d2;
 
 	(void) unused_udata;
-	
+
 	d1 = get_upload_data(model, a);
 	d2 = get_upload_data(model, b);
 	return CMP(d1->us->attempts, d2->us->attempts);
@@ -314,7 +314,7 @@ upload_stats_gui_cmp_complete(
 	const struct upload_data *d1, *d2;
 
 	(void) unused_udata;
-	
+
 	d1 = get_upload_data(model, a);
 	d2 = get_upload_data(model, b);
 	return CMP(d1->us->complete, d2->us->complete);
@@ -327,7 +327,7 @@ upload_stats_gui_cmp_rtime(
 	const struct upload_data *d1, *d2;
 
 	(void) unused_udata;
-	
+
 	d1 = get_upload_data(model, a);
 	d2 = get_upload_data(model, b);
 	return CMP(d1->us->rtime, d2->us->rtime);
@@ -340,7 +340,7 @@ upload_stats_gui_cmp_dtime(
 	const struct upload_data *d1, *d2;
 
 	(void) unused_udata;
-	
+
 	d1 = get_upload_data(model, a);
 	d2 = get_upload_data(model, b);
 	return CMP(d1->us->dtime, d2->us->dtime);

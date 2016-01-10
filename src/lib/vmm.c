@@ -422,8 +422,8 @@ static void vmm_track_close(void);
 #define vmm_debugging(lvl)	G_UNLIKELY(vmm_debug > (lvl) && safe_to_log)
 
 bool
-vmm_is_debugging(uint32 level) 
-{ 
+vmm_is_debugging(uint32 level)
+{
 	return vmm_debugging(level);
 }
 
@@ -651,7 +651,7 @@ compat_pagesize(void)
 
 	if G_UNLIKELY(!initialized) {
 		long n;
-		
+
 		initialized = TRUE;
 		n = compat_pagesize_intern();
 		g_assert(n > 0);
@@ -2088,7 +2088,7 @@ retry:
 
 			if (vmm_debugging(0))
 				s_miniwarn("VMM however pmap is still full, extending again!");
-			
+
 			goto retry;
 		} else {
 			if (vmm_debugging(0)) {
@@ -2177,7 +2177,7 @@ pmap_insert_region(struct pmap *pm,
 			 * If we're now bumping into the next chunk, we need to coalesce
 			 * it with the previous one and get rid of that "next" entry.
 			 */
-			
+
 			if G_LIKELY(idx < pm->count) {
 				struct vm_fragment *next = &pm->array[idx];
 
@@ -2581,7 +2581,7 @@ vmm_is_relocatable(const void *base, size_t size)
 	/*
 	 * Look for a hole better placed in the VM space.
 	 */
-	
+
 	hole = NULL;
 	len = vmm_first_hole(&hole, FALSE);
 

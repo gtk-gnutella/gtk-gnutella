@@ -1359,7 +1359,7 @@ ut_frag_send(const struct ut_frag *uf)
 			um->fragcnt, plural(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag));
 	}
-	
+
 	if (
 		0 == eslist_count(&attr->pending[prio]) &&
 		0 != tx_sendto(attr->tx->lower, mb, um->to)

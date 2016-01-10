@@ -71,7 +71,7 @@ copy_to_clipboard(GtkTreeModel *model, GtkTreePath *unused_path,
 		GtkTreeIter *iter, gpointer unused_data)
 {
 	char *text = NULL;
-	
+
 	(void) unused_path;
 	(void) unused_data;
 

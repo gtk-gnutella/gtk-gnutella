@@ -406,7 +406,7 @@ dq_pmi_alloc(dquery_t *dq, uint16 degree, uint8 ttl,
 	const struct nid *node_id, bool probe)
 {
 	struct dq_pmsg_info *pmi;
-	const struct nid *key = nid_ref(node_id);	
+	const struct nid *key = nid_ref(node_id);
 
 	dquery_check(dq);
 	g_assert(ttl != 0);
@@ -441,7 +441,7 @@ dq_pmi_alloc(dquery_t *dq, uint16 degree, uint8 ttl,
 static void
 dq_pmi_free(struct dq_pmsg_info *pmi)
 {
-	nid_unref(pmi->node_id);	
+	nid_unref(pmi->node_id);
 	WFREE(pmi);
 }
 
@@ -476,13 +476,13 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 	/* NOTE: No dquery_check() because the memory might have been freed
 	 *		 already! See dq_alive and the comment below.
 	 */
-	
+
 	g_assert(pmsg_is_extended(mb));
 
 	/*
 	 * It is possible that whilst the message was in the message queue,
 	 * the dynamic query was cancelled.  Therefore, we need to ensure that
-	 * the recorded query is still alive. 
+	 * the recorded query is still alive.
 	 */
 
 	dq = dq_alive(pmi->qid);
@@ -2230,7 +2230,7 @@ dq_node_removed(const struct nid *node_id)
 			g_debug("DQ[%s] terminated by node #%s removal (queried %u UP%s)",
 				nid_to_string(&dq->qid), nid_to_string2(dq->node_id),
 				dq->up_sent, plural(dq->up_sent));
-		
+
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
 		dq_free(dq);

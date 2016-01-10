@@ -196,7 +196,7 @@ utf32_is_non_character(uint32 uc)
 	return 0xfffeU == (uc & 0xfffeU) || (uc >= 0xfdd0U && uc <= 0xfdefU);
 }
 
-static inline bool 
+static inline bool
 utf32_is_surrogate(uint32 cp)
 {
   return cp >= 0xd800 && cp < 0xe000;
@@ -309,7 +309,7 @@ utf8_decode(const char *src, size_t size)
 
     if (0 == n || n > size)
       goto failure;
-    
+
     x = *++src;
     if (!utf8_first_bytes_valid(cp, x))
       goto failure;

@@ -732,7 +732,7 @@ malloc_periodic(void *unused_obj)
 	static unsigned errors;
 	char tracked_size[SIZE_FIELD_MAX];
 	char real_size[SIZE_FIELD_MAX];
-	
+
 	(void) unused_obj;
 
 	if (0 == errors) {

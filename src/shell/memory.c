@@ -278,7 +278,7 @@ memory_run_opt_shower(struct gnutella_shell *sh,
 	v.cb = cb;
 	v.prefix = prefix;
 	v.options = options;
- 
+
 	return memory_run_opt_showerv(sh, &v, 1);
 }
 
@@ -714,7 +714,7 @@ shell_exec_memory(struct gnutella_shell *sh, int argc, const char *argv[])
 	CMD(usage);
 
 #undef CMD
-	
+
 	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }

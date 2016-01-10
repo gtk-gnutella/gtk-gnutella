@@ -43,7 +43,7 @@ void
 clipboard_set_text(GtkWidget *unused_owner, const char *text)
 {
 	(void) unused_owner;
-	
+
 	gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
 	gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
 
@@ -59,7 +59,7 @@ clipboard_set_text(GtkWidget *unused_owner, const char *text)
 		}
 	}
 }
-	
+
 #else	/* Gtk+ 1.2 */
 
 #define CLIPBOARD_FETCH_TEXT ((const void *) -1)

@@ -208,12 +208,12 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		shell_write(sh, buf);
 	}
 
-	/* General status */ 
+	/* General status */
 	{
 		const char *blackout;
 		short_string_t leaf_switch;
 		short_string_t ultra_check;
-	
+
 		leaf_switch = timestamp_get_string(
 						GNET_PROPERTY(node_last_ultra_leaf_switch));
 		ultra_check = timestamp_get_string(
@@ -248,7 +248,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		shell_write(sh, buf);
 	}
 
-	/* IPv4 info */ 
+	/* IPv4 info */
 	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
 	case NET_USE_IPV4:
@@ -259,7 +259,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		shell_write(sh, buf);
 	}
 
-	/* IPv6 info */ 
+	/* IPv6 info */
 	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
 		str_bprintf(buf, sizeof buf, "|%s|\n", dashes);
@@ -299,7 +299,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	shell_write(sh, buf);
 
 	/* Bandwidths */
-	{	
+	{
 		const bool metric = GNET_PROPERTY(display_metric_units);
 		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
 		short_string_t dht_in, dht_out;
@@ -317,15 +317,15 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		gnet_out = short_rate_get_string(
 			cur ? bw_stats.current + bw2_stats.current
 				: bw_stats.average + bw2_stats.average, metric);
-		
+
 		gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
 		http_in = short_rate_get_string(
 			cur ? bw_stats.current : bw_stats.average, metric);
-		
+
 		gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
 		http_out = short_rate_get_string(
 			cur ? bw_stats.current : bw_stats.average, metric);
-		
+
 		gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
 		leaf_in = short_rate_get_string(
 			cur ? bw_stats.current : bw_stats.average, metric);
@@ -354,7 +354,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			bwtype, gnet_out.str, leaf_out.str, http_out.str, dht_out.str);
 		shell_write(sh, buf);
 	}
-	
+
 	{
 		char line[128];
 		bool metric = GNET_PROPERTY(display_metric_units);
@@ -394,7 +394,7 @@ shell_help_status(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
-	
+
 	return "status [-i]\n"
 		"Display status pane summary\n"
 		"-i : display instantaneous bandwidth instead of average\n"

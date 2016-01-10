@@ -223,7 +223,7 @@ char *
 url_from_absolute_path(const char *path)
 {
 	char *escaped, *url;
-	
+
 	g_return_val_if_fail(is_absolute_path(path), NULL);
 	escaped = url_escape_mask(path, SHELL_MASK);
 	url = g_strconcat("file://", escaped, NULL_PTR);
@@ -840,7 +840,7 @@ url_absolute_within(const char *base, const char *relative)
 
 	if (is_strprefix(relative, "/")) {
 		char *p;
-		
+
 		dbase = h_strdup(base);
 		p = is_strprefix(dbase, http_prefix);
 		g_assert(p != NULL);		/* base was absolute */

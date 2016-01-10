@@ -465,7 +465,7 @@ string_table_free(struct hash **h_ptr)
 static void
 node_send_udp_ping(gnutella_node_t *n)
 {
-	udp_send_ping(NULL, n->addr, n->port, TRUE);	
+	udp_send_ping(NULL, n->addr, n->port, TRUE);
 }
 
 /**
@@ -739,7 +739,7 @@ can_become_ultra(time_t now)
 	 *		--RAM, 2006-08-18
 	 */
 
-	good_udp_support = 
+	good_udp_support =
 		GNET_PROPERTY(proxy_oob_queries) &&
 		udp_active() && (
 		 	host_is_valid(listen_addr(), socket_listen_port()) ||
@@ -945,10 +945,10 @@ node_slow_timer(time_t now)
 		if (!last_ping || delta_time(now, last_ping) > 120) {
 			host_addr_t addr;
 			uint16 port;
-			
+
 			last_ping = now;
 			if (hcache_get_caught(HOST_ANY, &addr, &port)) {
-				udp_send_ping(NULL, addr, port, TRUE);	
+				udp_send_ping(NULL, addr, port, TRUE);
 			}
 		}
 	}
@@ -1143,7 +1143,7 @@ node_tls_refresh(gnutella_node_t *n)
 		is_host_addr(n->gnet_addr)
 	) {
 		time_t seen;
-		
+
 		seen = tls_cache_get_timestamp(n->gnet_addr, n->gnet_port);
 		if (!seen || delta_time(tm_time(), seen) > 60) {
 			tls_cache_insert(n->gnet_addr, n->gnet_port);
@@ -1975,7 +1975,7 @@ get_protocol_version(const char *handshake, uint *major, uint *minor)
 {
 	const char *s;
 
-	s = &handshake[GNUTELLA_HELLO_LENGTH];	
+	s = &handshake[GNUTELLA_HELLO_LENGTH];
 	if (0 == parse_major_minor(s, NULL, major, minor))
 		return;
 
@@ -3578,7 +3578,7 @@ send_error(
 
 	net = HOST_NET_IPV4;
 	if (n != NULL) {
-		if (n->attrs & NODE_A_IPV6_ONLY) 
+		if (n->attrs & NODE_A_IPV6_ONLY)
 			net = HOST_NET_IPV6;
 		else if (n->attrs & NODE_A_CAN_IPV6)
 			net = HOST_NET_BOTH;
@@ -4042,7 +4042,7 @@ static struct tx_ut_cb node_tx_g2_cb = {
  *** RX inflate callbacks
  ***/
 
-static void 
+static void
 node_add_rx_inflated(void *o, int amount)
 {
 	gnutella_node_t *n = o;
@@ -5474,7 +5474,7 @@ parse_ip_port(const char *str, const char **endptr,
 		*addr_ptr = addr;
 
 	ret = TRUE;
-	
+
 done:
 	if (endptr)
 		*endptr = s;
@@ -5514,25 +5514,25 @@ static void
 purge_host_cache_from_hub_list(const char *s)
 {
 	g_assert(s);
-    
+
     for (; NULL != s; s = strchr(s, ',')) {
         host_addr_t addr;
         uint16 port = 0;
-        
+
         if (',' == s[0])
             s++;
-        
+
 		if (!parse_ip_port(s, &s, &addr, &port))
-			continue;    
+			continue;
 
 		if (GNET_PROPERTY(node_debug)) {
 			g_debug("Purging %s:%u from hostcache...",
 				host_addr_to_string(addr), port);
 		}
-		
+
 		hcache_purge(HCACHE_CLASS_HOST, addr, port);
     }
-    
+
     return;
 }
 
@@ -6429,7 +6429,7 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 	/*
 	 * Decline handshakes from closed P2P networks politely.
 	 */
-	
+
 	field = header_get(head, "X-Auth-Challenge");
 	if (NULL == field)
 		field = header_get(head, "FP-Auth-Challenge");	/* BearShare */
@@ -7393,7 +7393,7 @@ err_header_read_error(void *obj, int error)
 	uint16 port = n->port;
 	uint32 flags = n->socket->flags & (SOCK_F_FORCE | SOCK_F_TLS);
 	bool retry;
- 
+
 	retry = ECONNRESET == error &&
 			GTA_NODE_HELLO_SENT == n->status &&
 			!socket_with_tls(n->socket) &&
@@ -7813,7 +7813,7 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 
 	n->outq = mq_udp_make(qsize, n, tx, uops);
 	n->flags |= NODE_F_WRITABLE;
-	
+
     node_fire_node_added(n);
     node_fire_node_flags_changed(n);
 }
@@ -8987,7 +8987,7 @@ node_parse(gnutella_node_t *n)
 			gnutella_header_get_hops(&n->header) == 0
 		) {
 			const struct guid *muid = gnutella_header_get_muid(&n->header);
-			
+
 			if (peek_u8(&muid->v[8]) == 0xff && peek_u8(&muid->v[15]) >= 1)
 				n->attrs |= NODE_A_PONG_CACHING;
 			n->flags &= ~NODE_F_HDSK_PING;		/* Clear indication */
@@ -9933,7 +9933,7 @@ node_init_outgoing(gnutella_node_t *n)
 		{
 			host_addr_t addr;
 			uint16 port;
-			
+
 			port = socket_listen_port();
 			addr = listen_addr();
 			if (is_host_addr(addr)) {
@@ -10779,7 +10779,7 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
  *
  * @return FALSE if an error occurred.
  */
-static bool 
+static bool
 node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	gnutella_node_t *n = rx_owner(rx);
@@ -11229,13 +11229,13 @@ node_remove_uncompressed_ultra(bool *is_gtkg)
 	/*
 	 * Only operate when we're an ultra node ourselves.
 	 */
-	
+
 	if (!settings_is_ultra())
 		return FALSE;
 
 	PSLIST_FOREACH(sl_up_nodes, sl) {
 		gnutella_node_t *n = sl->data;
-		
+
         if (n->status != GTA_NODE_CONNECTED)
             continue;
 
@@ -11248,10 +11248,10 @@ node_remove_uncompressed_ultra(bool *is_gtkg)
 			break;
 		}
 	}
-	
-	if (drop == NULL) 
+
+	if (drop == NULL)
 		return FALSE;
-	
+
 	if (is_gtkg != NULL)
 		*is_gtkg = node_is_gtkg(drop);
 
@@ -11857,7 +11857,7 @@ node_set_guid(gnutella_node_t *n, const struct guid *guid, bool gnet)
 		hikset_insert_key(nodes_by_guid, &n->guid);
 
 	return FALSE;
-	
+
 error:
 	return TRUE;
 }
@@ -11887,7 +11887,7 @@ node_set_vendor(gnutella_node_t *n, const char *vendor)
 		 * as all different whereas they are really incarnations of the
 		 * same servent.  Normalize their name.
 		 */
-		
+
 		fix = is_strcaseprefix(vendor, "morph") &&
 				0 != ascii_strcmp_delimit(vendor, full, " /");
 		if (fix)
@@ -13154,7 +13154,7 @@ gnutella_node_t *
 node_by_id(const struct nid *node_id)
 {
 	gnutella_node_t *n;
-	
+
 	g_return_val_if_fail(!node_id_self(node_id), NULL);
 
 	if G_UNLIKELY(NULL == nodes_by_id)
@@ -13164,7 +13164,7 @@ node_by_id(const struct nid *node_id)
 	if (n != NULL) {
 		node_check(n);
 	}
-	return n;	
+	return n;
 }
 
 /**

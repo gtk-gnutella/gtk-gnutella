@@ -64,7 +64,7 @@
  *   reduce the size of the node structure, and make them as small as possible.
  *
  * - Traversals in both direction are efficient.
- * 
+ *
  * - The trees don't store duplicate keys. It's fairly easy to implement
  *   duplicate from the user point of view (by having a list at the node for
  *   instance) and this enables a simple but efficient API (see below).
@@ -157,7 +157,7 @@
  * For that, you can retrieve the next or the previous of any inserted node.
  * You can also get the first (leftmost) and the last (rightmost) node of
  * a tree in O(1) because these values are maintained..
- * 
+ *
  * @author Franck Bui-Huu <fbuihuu@gmail.com>
  * @date 2010
  * @author Raphael Manfredi

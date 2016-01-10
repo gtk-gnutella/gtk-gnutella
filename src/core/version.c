@@ -906,7 +906,7 @@ version_init(void)
  *
  * If the version being ran is not a stable one, warn after 60 days, otherwise
  * warn after a year.  If we're not "expired" yet but are approaching the
- * deadline, start to remind them. 
+ * deadline, start to remind them.
  */
 void
 version_ancient_warn(void)

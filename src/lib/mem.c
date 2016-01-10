@@ -138,7 +138,7 @@ mem_open_pipe(mem_pipe_t *mp)
 {
 	g_assert(mem_pipe_is_locked(mp));
 	assert_mem_pipe_is_invalid(mp);
- 
+
 	if (-1 == pipe(mp->fd) && !mem_pipe_test_and_set(mp, MEM_PIPE_WARNED)) {
 		s_miniwarn("%s: pipe() failed for \"%s\": %m", G_STRFUNC, mp->name);
 		assert_mem_pipe_is_invalid(mp);

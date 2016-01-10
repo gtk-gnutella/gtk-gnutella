@@ -585,7 +585,7 @@ hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 	 * Let x be the initial position index.  Suppose we find a natural number k
 	 * such that x + i*k = x (modulo S).  Here k represents the number of
 	 * steps after which we are back to the initial position.
-	 * 
+	 *
 	 * Because (Z/nZ, +) is a group, each item has on opposite y such that
 	 * x + y = 0 (modulo n). Let us write y = -x.  Adding -x to both sides
 	 * of our equation leads to i*k = 0 (modulo S).  This means that it can

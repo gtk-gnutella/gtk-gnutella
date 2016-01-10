@@ -355,7 +355,7 @@ gnet_host_vec_free(gnet_host_vec_t **vec_ptr)
 
 	if (*vec_ptr) {
 		gnet_host_vec_t *vec = *vec_ptr;
-	
+
 		WFREE_ARRAY_NULL(vec->hvec_v4, vec->n_ipv4);
 		WFREE_ARRAY_NULL(vec->hvec_v6, vec->n_ipv6);
 		WFREE(vec);
@@ -475,7 +475,7 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, uint16 port)
 		if (vec->n_ipv4 < 255) {
 			size_t size, old_size;
 			char *dest;
-			
+
 			old_size = vec->n_ipv4 * sizeof vec->hvec_v4[0];
 			size = old_size + sizeof vec->hvec_v4[0];
 			vec->hvec_v4 = wrealloc(vec->hvec_v4, old_size, size);
@@ -489,7 +489,7 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, uint16 port)
 		if (vec->n_ipv6 < 255) {
 			size_t size, old_size;
 			char *dest;
-			
+
 			old_size = vec->n_ipv6 * sizeof vec->hvec_v6[0];
 			size = old_size + sizeof vec->hvec_v6[0];
 			vec->hvec_v6 = wrealloc(vec->hvec_v6, old_size, size);
@@ -558,7 +558,7 @@ gnet_host_vec_from_sequence(sequence_t *s)
 		const gnet_host_t *host = sequence_iter_next(iter);
 		host_addr_t addr = gnet_host_get_addr(host);
 		uint16 port = gnet_host_get_port(host);
-		
+
 		switch (gnet_host_get_net(host)) {
 		case NET_TYPE_IPV4:
 			if (n_ipv4 < vec->n_ipv4) {

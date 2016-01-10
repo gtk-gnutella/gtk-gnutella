@@ -1,7 +1,7 @@
 /*
  * sdbm - ndbm work-alike hashed database library
  *
- * Big key/value storage management. 
+ * Big key/value storage management.
  * author: Raphael Manfredi <Raphael_Manfredi@pobox.com>
  * status: public domain.
  *
@@ -332,7 +332,7 @@ big_check_start(DBM *db)
 
 	for (i = 0; i < dbg->bitmaps; i++) {
 		bit_field_t *map = ptr_add_offset(dbg->bitcheck, i * BIG_BLKSIZE);
-		
+
 		bit_field_set(map, 0);		/* Bit 0 is for the bitmap itself */
 	}
 
@@ -518,7 +518,7 @@ big_falloc(DBM *db, size_t first)
 
 		if (!fetch_bitbuf(db, i))
 			return 0;
-		
+
 		bno = bit_field_first_clear(dbg->bitbuf, first_bit, BIG_BITCOUNT - 1);
 		if ((size_t) -1 == bno)
 			continue;
@@ -691,7 +691,7 @@ big_falloc_seq(DBM *db, int bmap, int n)
 		 * Bit #0 should always be set but in case the file is corrupted,
 		 * we don't want to start allocating data in the bitmap itself!.
 		 */
-		
+
 		first = bit_field_first_clear(dbg->bitbuf, 1, BIG_BITCOUNT - 1);
 		if ((size_t) -1 == first)
 			continue;
@@ -775,7 +775,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	while (n > 0) {
 		size_t toread = MIN(remain, BIG_BLKSIZE);
 		uint32 bno = peek_be32(p);
-		
+
 		prev_bno = bno;
 		if (!big_block_is_allocated(db, prev_bno))
 			goto corrupted_database;
@@ -1726,7 +1726,7 @@ big_sync(DBM *db)
 /**
  * Open the .dat file only if it already exists, which justifies the "lazy"
  * qualification.  If the file exists but is empty, it will be deleted.
- * 
+ *
  * @param dbg	the big DBM descriptor
  * @param force if TRUE, call big_open() to actually open (create) the file
  *

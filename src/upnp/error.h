@@ -41,7 +41,7 @@
 #define UPNP_ERR_OK						0
 #define UPNP_ERR_UNPARSEABLE			1
 #define UPNP_ERR_SOAP					2
-#define UPNP_ERR_BAD_REPLY				3		
+#define UPNP_ERR_BAD_REPLY				3
 
 #define UPNP_ERR_INVALID_ACTION			401
 #define UPNP_ERR_UNAUTHORIZED			606

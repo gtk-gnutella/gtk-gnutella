@@ -465,7 +465,7 @@ gip_country(const host_addr_t ha)
 
 	if G_UNLIKELY(NULL == geo_db)
 		return ISO3166_INVALID;
-		
+
 	code = iprange_get_addr(geo_db, ha);
 
 	return 0 == code ? ISO3166_INVALID : (code >> 1) - 1;

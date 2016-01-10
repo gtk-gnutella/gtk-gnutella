@@ -589,7 +589,7 @@ hash_list_rotate_right(hash_list_t *hl)
  *
  * @return the original key.
  */
-static void * 
+static void *
 hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 {
 	void *key;
@@ -1395,7 +1395,7 @@ void
 hash_list_foreach(const hash_list_t *hl, data_fn_t func, void *user_data)
 {
 	link_t *lk;
-	
+
 	hash_list_check(hl);
 	g_assert(NULL != func);
 
@@ -1421,7 +1421,7 @@ hash_list_foreach_remove(hash_list_t *hl, data_rm_fn_t func, void *data)
 {
 	link_t *lk, *next;
 	size_t removed = 0;
-	
+
 	hash_list_check(hl);
 	g_assert(func != NULL);
 

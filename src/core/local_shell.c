@@ -28,7 +28,7 @@
  * Local shell
  *
  * This implements an alterego of gtk-gnutella to access the local socket
- * of gtk-gnutella. 
+ * of gtk-gnutella.
  *
  * @author Christian Biere
  * @date 2006
@@ -87,7 +87,7 @@ is_temporary_error(int e)
 	return EAGAIN == e || EINTR == e;
 }
 
-void 
+void
 fd_set_nonblocking(int fd)
 {
 	int ret, flags;
@@ -163,7 +163,7 @@ unix_write(int fd, const void *buf, size_t size)
 #endif
 
 struct shell_buf {
-	char *buf;		/**< Arbitrary buffer maybe static/local/dynamic */	
+	char *buf;		/**< Arbitrary buffer maybe static/local/dynamic */
 	size_t size;	/**< Amount of bytes that buf can hold */
 	size_t fill;	/**< Amount readable bytes in buf from pos */
 	size_t pos;		/**< Read position in buf */
@@ -234,7 +234,7 @@ read_data_with_readline(struct line_buf *line, struct shell_buf *sb)
 		if (!line->buf) {
 			errno = 0;
 			line->buf = readline("");
-			if (!line->buf && !is_temporary_error(errno)) { 
+			if (!line->buf && !is_temporary_error(errno)) {
 				sb->eof = 1;
 			}
 			line->length = line->buf ? strlen(line->buf) : 0;
@@ -618,7 +618,7 @@ path_compose(const char *dir, const char *name)
 	memcpy(path, dir, dir_len);
 	path[dir_len] = '/';
 	memcpy(&path[dir_len + 1], name, name_len + 1);
-	
+
 	return path;
 }
 

@@ -221,7 +221,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 
 	if (0 != (period = small_period(values, count, min_period)))
 		goto done;
-		
+
 	for (; n != 0; n++) {
 		unsigned val = (*fn)() & mask;
 		if G_UNLIKELY(val == values[didx]) {
@@ -457,7 +457,7 @@ timeit(random_fn_t fn, unsigned amount, const char *name)
 	tm_cputime(&uend, NULL);
 	tm_now_exact(&end);
 
-	printf("%s() initialization took %.3gs (CPU=%.3gs)\n",	
+	printf("%s() initialization took %.3gs (CPU=%.3gs)\n",
 		name, tm_elapsed_f(&end, &start), uend - ustart);
 
 	fflush(stdout);
@@ -480,9 +480,9 @@ again:
 		double elapsed = tm_elapsed_f(&end, &start);
 		double cpu = uend - ustart;
 
-		printf("Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",	
+		printf("Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",
 			name, generated, elapsed, cpu, generated / elapsed);
-		
+
 	}
 }
 
@@ -491,7 +491,7 @@ get_number(const char *arg, int opt)
 {
 	int error;
 	uint32 val;
-	
+
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",

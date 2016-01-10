@@ -34,7 +34,7 @@
 #ifndef _cq_h_
 #define _cq_h_
 
-#include "common.h" 
+#include "common.h"
 
 typedef struct cqueue cqueue_t;
 typedef struct cevent cevent_t;

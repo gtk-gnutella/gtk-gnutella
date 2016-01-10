@@ -789,7 +789,7 @@ entropy_collect_uname(SHA1_context *ctx)
 #ifdef HAS_UNAME
 	{
 		struct utsname un;
-		
+
 		if (-1 != uname(&un)) {
 			SHA1_INPUT(ctx, un);
 		} else {
@@ -874,7 +874,7 @@ entropy_collect_cpu(SHA1_context *ctx)
 	SHA1_INPUT(ctx, r);
 }
 
-/** 
+/**
  * Collect entropy from environment.
  */
 static void

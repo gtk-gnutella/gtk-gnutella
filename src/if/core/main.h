@@ -54,7 +54,7 @@ bool debugging(uint t);
 
 char *main_command_line(void);
 const char *gtk_version_string(void);
- 
+
 #endif /* CORE_SOURCES */
 #endif /* _if_core_main_h_ */
 

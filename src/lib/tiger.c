@@ -22,7 +22,7 @@
  */
 
 /* (PD) 2001 The Bitzi Corporation
- * Please see file COPYING or http://bitzi.com/publicdomain 
+ * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
  *
  * Created and released into the public domain by Eli Biham

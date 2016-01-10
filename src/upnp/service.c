@@ -726,7 +726,7 @@ upnp_service_add_action(void *node, void *data)
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_info("UPNP %s supports %s()", upnp_service_to_string(usd), action);
 	}
-	
+
 	nv_table_insert_nocopy(usd->api, action, NULL, 0);
 }
 

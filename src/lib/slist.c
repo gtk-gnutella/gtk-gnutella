@@ -191,7 +191,7 @@ slist_t *
 slist_new(void)
 {
 	slist_t *slist;
-		
+
 	WALLOC0(slist);
 	slist->refcount = 1;
 	slist->stamp = SLIST_MAGIC + 1;
@@ -210,7 +210,7 @@ slist_free(slist_t **slist_ptr)
 	g_assert(slist_ptr);
 	if (*slist_ptr) {
 		slist_t *slist;
-	
+
 		slist = *slist_ptr;
 		slist_check(slist);
 
@@ -432,7 +432,7 @@ slist_shift(slist_t *slist)
 		data = slist->head->data;
 		slist_remove_item(slist, NULL, slist->head);
 	}
-	
+
 	slist_return(slist, data);
 }
 

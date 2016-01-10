@@ -216,7 +216,7 @@ kmsg_handle(knode_t *kn,
 			kmsg_infostr(header), knode_to_string(kn));
 		if (len && (GNET_PROPERTY(dht_trace) & SOCK_TRACE_IN))
 			dump_hex(stderr, "UDP payload", payload, len);
-		
+
 	}
 
 	function = kademlia_header_get_function(header);
@@ -1342,7 +1342,7 @@ k_handle_store(knode_t *kn, gnutella_node_t *n,
 	warn_no_header_extension(kn, header, extlen);
 
 	bs = bstr_open(payload, len, GNET_PROPERTY(dht_debug) ? BSTR_F_ERROR : 0);
-	
+
 	/*
 	 * Decompile first field: security token.
 	 */

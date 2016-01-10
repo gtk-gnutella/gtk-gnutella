@@ -196,7 +196,7 @@ semaphore_unblock(semaphore_t *s)
 	 */
 
 	SEM_LOCK(s);
-	
+
 	count = elist_count(list);
 	u = uid = alloca(count * sizeof uid[0]);
 	*reserved = 0;

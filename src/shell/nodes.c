@@ -60,7 +60,7 @@ print_node_info(struct gnutella_shell *sh, const gnutella_node_t *n)
 
 	g_return_if_fail(sh);
 	g_return_if_fail(n);
-	
+
 	if (!node_fill_flags(NODE_ID(n), &flags))
 		return;
 
@@ -70,7 +70,7 @@ print_node_info(struct gnutella_shell *sh, const gnutella_node_t *n)
 	{
 		const char *vendor;
 		char *escaped;
-		
+
 		vendor = node_vendor(n);
 		escaped = hex_escape(vendor, TRUE);
 		clamp_strcpy(vendor_escaped, sizeof vendor_escaped, escaped);

@@ -467,7 +467,7 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s,
 		int ret;
 
 		message = xmalloc(outlen);
-		
+
 		ret = zlib_inflate_into(
 			const_ptr_add_offset(data, UDP_RELIABLE_HEADER_SIZE),
 			len - UDP_RELIABLE_HEADER_SIZE,
@@ -907,7 +907,7 @@ udp_intuit_traffic_type(const gnutella_socket_t *s,
 						host_addr_port_to_string(s->addr, s->port), len);
 
 					return RUDP;
-					
+
 				case GTA_MSG_STANDARD:	/* Nobody is using this function code */
 				default:
 					break;				/* Not a function we expect over UDP */

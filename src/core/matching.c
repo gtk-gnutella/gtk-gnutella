@@ -210,7 +210,7 @@ setup_map(void)
 				is_ascii_punct(i) || is_ascii_cntrl(i) || is_ascii_space(i)
 			) {
 				c = ' ';
-			} else { 
+			} else {
 				c = i;
 			}
 		} else {

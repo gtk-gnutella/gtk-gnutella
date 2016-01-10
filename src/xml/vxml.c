@@ -2850,7 +2850,7 @@ vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, bool inquote)
 	 *
 	 * As said in http://www.w3.org/TR/xml11, section 4.4.8:
 	 *
-	 * "When a parameter-entity reference is recognized in the DTD and 
+	 * "When a parameter-entity reference is recognized in the DTD and
 	 * included, its replacement text  MUST be enlarged by the attachment of
 	 * one leading and one following space (#x20) character; the intent is to
 	 * constrain the replacement text of parameter entities to contain an
@@ -3750,7 +3750,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 		vp->attrs = xattr_table_make();
 
 	/*
-	 * Attribute	::= Name Eq AttValue  
+	 * Attribute	::= Name Eq AttValue
 	 * Eq			::= S? '=' S?
 	 * AttValue		::=   '"' ([^<&"] | Reference)* '"'
 	 *				    | "'" ([^<&'] | Reference)* "'"
@@ -3844,7 +3844,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 
 		if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 			const char *local_name;
-	
+
 			local_name = strchr(start, ':');
 			if (local_name != NULL) {
 				unsigned retlen;
@@ -3987,8 +3987,8 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 	 * EncodingDecl::= S 'encoding' Eq ('"' EncName '"' | "'" EncName "'")
 	 * EncName      ::= [A-Za-z] ([A-Za-z0-9._] | '-')*
 	 * SDDecl       ::= S 'standalone' Eq
-	 *                  (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"')) 
-	 * Misc         ::= Comment | PI | S  
+	 *                  (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'))
+	 * Misc         ::= Comment | PI | S
 	 *
 	 * In practice, we're going to be much more tolerant and allow any
 	 * well-formed attribute.
@@ -4290,7 +4290,7 @@ vxml_parser_handle_quoted_string(vxml_parser_t *vp, struct vxml_output *vo,
 
 	/*
 	 * Citing, http://www.w3.org/TR/xml11, section 4.4.5:
-	 * 
+	 *
 	 * "When an entity reference appears in an attribute value, or a parameter
 	 * entity reference appears in a literal entity value, its replacement text
 	 * MUST be processed in place of the reference itself as though it were part
@@ -4455,13 +4455,13 @@ vxml_parser_handle_entity_decl(vxml_parser_t *vp, const char *name,
 	g_assert(0 == vxml_output_size(&vp->out));
 
 	/*
-	 * EntityDecl    ::= GEDecl | PEDecl  
+	 * EntityDecl    ::= GEDecl | PEDecl
 	 * GEDecl        ::= '<!ENTITY' S Name S EntityDef S? '>'
 	 * PEDecl        ::= '<!ENTITY' S '%' S Name S PEDef S? '>'
 	 * EntityDef     ::= EntityValue | (ExternalID NDataDecl?)
 	 * NDataDecl     ::= S 'NDATA' S Name
-	 * PEDef         ::= EntityValue | ExternalID  
-	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"' 
+	 * PEDef         ::= EntityValue | ExternalID
+	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"'
 	 *                 | "'" ([^%&'] | PEReference | Reference)* "'"
 	 * ExternalID    ::= 'SYSTEM' S SystemLiteral
 	 *                 | 'PUBLIC' S PubidLiteral S SystemLiteral
@@ -4599,7 +4599,7 @@ vxml_parser_handle_int_subset(vxml_parser_t *vp)
 {
 	/*
 	 * intSubset     ::= (markupdecl | DeclSep)*
-	 * DeclSep       ::= PEReference | S  
+	 * DeclSep       ::= PEReference | S
 	 * PEReference   ::= '%' Name ';'
 	 * markupdecl    ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl
 	 *                   | PI | Comment
@@ -4661,7 +4661,7 @@ vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
 	 * doctypedecl   ::= '<!DOCTYPE' S Name (S  ExternalID)? S?
 	 *                   ('[' intSubset ']' S?)? '>'
 	 * intSubset     ::= (markupdecl | DeclSep)*
-	 * DeclSep       ::= PEReference | S  
+	 * DeclSep       ::= PEReference | S
 	 * PEReference   ::= '%' Name ';'
 	 * markupdecl    ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl
 	 *                   | PI | Comment
@@ -4887,7 +4887,7 @@ vxml_handle_special(vxml_parser_t *vp, bool dtd)
 	 * includeSect ::= '<![' S? 'INCLUDE' S? '[' extSubsetDecl ']]>'
 	 * ignoreSect ::= '<![' S? 'IGNORE' S? '[' ignoreSectContents* ']]>'
 	 * ignoreSectContents ::= Ignore ('<![' ignoreSectContents ']]>' Ignore)*
-	 * Ignore ::= Char* - (Char* ('<![' | ']]>') Char*) 
+	 * Ignore ::= Char* - (Char* ('<![' | ']]>') Char*)
 	 *
 	 * extSubset ::= TextDecl? extSubsetDecl
 	 * extSubsetDecl ::= ( markupdecl | conditionalSect | DeclSep)*
@@ -5023,12 +5023,12 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	 * PI            ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
 	 * PITarget	     ::= Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
 	 * Comment       ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
-	 * DeclSep       ::= PEReference | S  
+	 * DeclSep       ::= PEReference | S
 	 * PEReference   ::= '%' Name ';'
 	 * elementdecl   ::= '<!ELEMENT' S Name S contentspec S? '>'
 	 * contentspec   ::= 'EMPTY' | 'ANY' | Mixed | children
 	 * Mixed         ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*'
-	 *                 | '(' S? '#PCDATA' S? ')' 
+	 *                 | '(' S? '#PCDATA' S? ')'
 	 * children      ::= (choice | seq) ('?' | '*' | '+')?
 	 * cp            ::= (Name | choice | seq) ('?' | '*' | '+')?
 	 * choice        ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
@@ -5043,13 +5043,13 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	 * NotationType  ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
 	 * Enumeration   ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
 	 * Nmtoken       ::= (NameChar)+
-	 * EntityDecl    ::= GEDecl | PEDecl  
+	 * EntityDecl    ::= GEDecl | PEDecl
 	 * GEDecl        ::= '<!ENTITY' S Name S EntityDef S? '>'
 	 * PEDecl        ::= '<!ENTITY' S '%' S Name S PEDef S? '>'
 	 * EntityDef     ::= EntityValue | (ExternalID NDataDecl?)
 	 * NDataDecl     ::= S 'NDATA' S Name
-	 * PEDef         ::= EntityValue | ExternalID  
-	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"' 
+	 * PEDef         ::= EntityValue | ExternalID
+	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"'
 	 *                 | "'" ([^%&'] | PEReference | Reference)* "'"
 	 * ExternalID    ::= 'SYSTEM' S SystemLiteral
 	 *                 | 'PUBLIC' S PubidLiteral S SystemLiteral
@@ -5656,7 +5656,7 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	 * This is a tag start, collect its name in the output buffer.
 	 *
 	 * STag			::= '<' Name (S  Attribute)* S? '>'
-	 * EmptyElemTag	::= '<' Name (S  Attribute)* S? '/>'	
+	 * EmptyElemTag	::= '<' Name (S  Attribute)* S? '/>'
 	 *
 	 * Note that there is no space allowed in the grammar between '<' and the
 	 * start of the element name.

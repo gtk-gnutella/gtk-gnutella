@@ -58,14 +58,14 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row);
 static void nodes_gui_update_node_flags(const struct nid *node_id,
 				gnet_node_flags_t *flags, gint row);
 
-static bool 
+static bool
 remove_item(hset_t *hs, const struct nid *node_id)
 {
 	const void *orig_key;
 
 	g_return_val_if_fail(hs, FALSE);
 	g_return_val_if_fail(node_id, FALSE);
-	
+
 	if (hset_contains_extended(hs, node_id, &orig_key)) {
     	hset_remove(hs, orig_key);
 		nid_unref(orig_key);
@@ -238,7 +238,7 @@ nodes_gui_early_init(void)
 		{ "popup_nodes_browse_host" },
 	};
 	guint i;
-	
+
 	for (i = 0; i < G_N_ELEMENTS(items); i++) {
     	gtk_widget_set_sensitive(gui_popup_nodes_lookup(items[i].name),
 			FALSE);

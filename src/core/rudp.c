@@ -342,14 +342,14 @@ rudp_set_gnet_header(gnutella_header_t *header, uint32 size)
 static void
 rudp_set_header(struct rudp_header *header, enum rudp_op op, uint8 conn_id,
     uint8 data1_len, uint16 seq_no)
-{ 
-	g_assert(op < 16);  
+{
+	g_assert(op < 16);
 	g_assert(data1_len <= 12);
 
 	header->op_and_len = (op << 4) | (data1_len & 0x0f);
 	header->peer_conn_id = conn_id;
 	poke_be16(header->seq_no, seq_no);
-} 
+}
 
 static void
 rudp_send_packet(struct rudp_con *con, const void *data, size_t size)
@@ -408,7 +408,7 @@ rudp_may_send_syn(const struct rudp_con *con)
 
 static void
 rudp_send_syn(struct rudp_con *con)
-{ 
+{
 	g_return_if_fail(con);
 	g_return_if_fail(0 == con->out.start);
 	g_return_if_fail(rudp_may_send_syn(con));
@@ -447,7 +447,7 @@ rudp_send_syn(struct rudp_con *con)
 	case RUDP_ST_SYN_SENT:
 		{
 			 pmsg_t *mb;
-			 
+
 			 g_return_if_fail(0 == con->out.rd);
 			 mb = con->out.buffers[con->out.rd];
 			 g_return_if_fail(mb);
@@ -463,7 +463,7 @@ rudp_send_syn(struct rudp_con *con)
 
 static void
 rudp_send_ack(struct rudp_con *con, uint16 seq_no)
-{ 
+{
 	gnutella_header_t *gnet;
 	struct rudp_ack *ack;
 	char packet[MAX(sizeof *ack, sizeof *gnet)];
@@ -494,7 +494,7 @@ rudp_send_ack(struct rudp_con *con, uint16 seq_no)
 
 static void
 rudp_send_fin(struct rudp_con *con, uint16 seq_no, enum rudp_fin_reason reason)
-{ 
+{
 	gnutella_header_t *gnet;
 	struct rudp_fin *fin;
 	char packet[MAX(sizeof *fin, sizeof *gnet)];
@@ -508,7 +508,7 @@ rudp_send_fin(struct rudp_con *con, uint16 seq_no, enum rudp_fin_reason reason)
 
 	rudp_set_gnet_header(gnet, 0);
 	rudp_set_header(&fin->common, RUDP_OP_FIN, con->conn_id, 0, seq_no);
-	fin->reason = reason; 
+	fin->reason = reason;
 
 	con->status = RUDP_ST_CLOSED;
 	con->in.space = 1;
@@ -544,7 +544,7 @@ rudp_connect(const host_addr_t addr, uint16 port)
 	/*
 	 * The connection ID is an 8-bit field. Thus there can be at most
 	 * 256 connections between (a.address, a.port) and (b.address, b.port).
-	 */	
+	 */
 	for (i = 0; i < 256; i++) {
 		/* TODO: The connection ID should be randomized. Also consider
 		 * to not recycle IDs to frequently because we might receive
@@ -586,7 +586,7 @@ rudp_handle_syn(struct rudp_con *con, const host_addr_t addr, uint16 port,
 
 	RUDP_DEBUG(("RUDP SYN: conn_id=%u proto_ver=%u",
 		(uint) syn->conn_id, (uint) proto_ver));
-    
+
 	if (RUDP_PROTO_VERSION != proto_ver) {
 		RUDP_DEBUG(("RUDP SYN: Unsupported protocol version"));
 		return;
@@ -639,12 +639,12 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 
 	seq_no = peek_be16(ack->common.seq_no);
 	start = peek_be16(ack->window_start);
-	space = peek_be16(ack->window_space);	
+	space = peek_be16(ack->window_space);
 
 	RUDP_DEBUG(("RUDP ACK: seq_no=%u, window_start=%u, window_space=%u",
 		seq_no, start, space));
 
-#if 0	
+#if 0
 	if (!rudp_seq_number_in_send_window(con, seq_no)) {
 		RUDP_DEBUG(("RUDP: Out of window (%u..%u)",
 			con->out.start,
@@ -667,13 +667,13 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 		rudp_set_writable(con, TRUE);
 		break;
 	}
-	
+
 	{
 		bool pending;
 		uint i;
 
 		/*
-		 * Remove all ACKed messages from the outbuf buffers. The 
+		 * Remove all ACKed messages from the outbuf buffers. The
 		 * ACK qualifies for `seq_no' and all up to `start - 1'.
 		 */
 		for (i = 0; i < G_N_ELEMENTS(con->out.buffers); i++) {
@@ -690,7 +690,7 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 					pmsg_free(mb);
 					con->out.buffers[i] = NULL;
 				}
-			} 
+			}
 		}
 
 		pending = FALSE;
@@ -759,7 +759,7 @@ rudp_handle_data(struct rudp_con *con, const void *data)
 {
 	const struct rudp_data *dat = data;
 	uint16 seq_no, i;
-	
+
 	g_return_if_fail(con);
 	g_return_if_fail(data);
 
@@ -771,13 +771,13 @@ rudp_handle_data(struct rudp_con *con, const void *data)
 	g_return_if_fail(i < G_N_ELEMENTS(con->in.buffers));
 
 	i = ((uint32) i + con->in.rd) % G_N_ELEMENTS(con->in.buffers);
-	
+
 	if (con->in.buffers[i]) {
 		RUDP_DEBUG(("RUDP DATA: Received duplicate"));
 	} else {
     	gnutella_header_t *gnet_header = data;
 		size_t data1_len, data_len, size;
-		
+
 		data1_len = dat->common.op_and_len & 0x0f;
 		data_len = peek_le32(gnet_header->size) & 0xffff;
 		size = data1_len + data_len;
@@ -793,7 +793,7 @@ rudp_handle_data(struct rudp_con *con, const void *data)
 			rudp_set_readable(con, TRUE);
 		}
 	}
-	
+
 	rudp_send_ack(con, seq_no);
 }
 
@@ -807,7 +807,7 @@ rudp_send_data(struct rudp_con *con, const void *data, size_t size)
 	if (con->out.buffers[con->out.wr]) {
 		return FALSE;
 	}
-	
+
 	data_len = size < 12 ? 0 : (size - 12);
 	mb = pmsg_new(PMSG_P_DATA, NULL, 23 + data_len);
 	{
@@ -887,7 +887,7 @@ rudp_handle_packet(const host_addr_t addr, uint16 port,
 		g_assert(rudp_header->peer_conn_id == con->conn_id);
 
 		if (RUDP_OP_ACK != op) {
-			
+
 			if (!rudp_seq_number_in_recv_window(con, seq_no)) {
 				char start_buf[UINT64_DEC_BUFLEN];
 				char space_buf[UINT64_DEC_BUFLEN];
@@ -931,7 +931,7 @@ ssize_t
 rudp_write(struct rudp_con *con, const void *data, size_t size)
 {
 	const char *p;
-	
+
 	g_return_val_if_fail(con, -1);
 	g_return_val_if_fail(data, -1);
 	g_return_val_if_fail(size > 0, -1);
@@ -959,7 +959,7 @@ rudp_write(struct rudp_con *con, const void *data, size_t size)
 
 	while (size > 0) {
 		uint n;
-		
+
 		n = MIN(512, size);
 		if (!rudp_send_data(con, p, n)) {
 			rudp_set_writable(con, FALSE);
@@ -985,7 +985,7 @@ rudp_read(struct rudp_con *con, void *data, size_t size)
 	pmsg_t *mb;
 	char *p;
 	uint i;
-	
+
 	g_return_val_if_fail(con, -1);
 	g_return_val_if_fail(data, -1);
 	g_return_val_if_fail(size > 0, -1);
@@ -996,7 +996,7 @@ rudp_read(struct rudp_con *con, void *data, size_t size)
 	i = con->in.rd;
 	while (NULL != (mb = con->in.buffers[i])) {
 		size_t n;
-		
+
 		n = pmsg_read(mb, &p[received], size);
 		size -= n;
 		received += n;
@@ -1091,7 +1091,7 @@ static void
 rudp_foreach_incoming(void *data, void *unused_udata)
 {
 	struct rudp_con *con = data;
-	
+
 	(void) unused_udata;
 
 	rudp_set_incoming(con, FALSE);
@@ -1102,7 +1102,7 @@ static void
 rudp_foreach_writable(void *data, void *unused_udata)
 {
 	struct rudp_con *con = data;
-	
+
 	(void) unused_udata;
 
 	if (con->event_handler && (con->event_cond & INPUT_EVENT_W)) {
@@ -1116,7 +1116,7 @@ rudp_foreach_readable(void *data, void *unused_udata)
 	struct rudp_con *con = data;
 
 	(void) unused_udata;
-	
+
 	if (con->event_handler && (con->event_cond & INPUT_EVENT_R)) {
 		con->event_handler(con->event_data, (-1), INPUT_EVENT_R);
 	}
@@ -1129,11 +1129,11 @@ rudp_foreach_pending(void *data, void *unused_udata)
 	pmsg_t *mb;
 
 	(void) unused_udata;
-	
+
 	mb = con->out.buffers[con->out.rd];
 	if (mb) {
 		tm_t now;
-		
+
 		tm_now(&now);
 
 		if (tm_elapsed_ms(&now, &con->out.last_event) > 1000) {
@@ -1164,7 +1164,7 @@ void
 rudp_timer(time_t unused_now)
 {
 	int i;
-	
+
 	(void) unused_now;
 
 	for (i = 0; i < RUDP_NUM_LISTS; i++) {
@@ -1188,7 +1188,7 @@ rudp_init(void)
 	uint i;
 
 	connections = hset_create_any(rudp_con_hash, NULL, rudp_con_eq);
-	
+
 	for (i = 0; i < RUDP_NUM_LISTS; i++) {
 		rudp_list[i] = hash_list_new(NULL, NULL);
 	}

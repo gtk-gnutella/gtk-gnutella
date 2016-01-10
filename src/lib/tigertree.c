@@ -54,7 +54,7 @@
  */
 
 /* (PD) 2001 The Bitzi Corporation
- * Please see file COPYING or http://bitzi.com/publicdomain 
+ * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
  *
  * tigertree.c - Implementation of the TigerTree algorithm
@@ -145,7 +145,7 @@ tt_full_depth(filesize_t filesize)
 	filesize_t n_blocks;
 	unsigned depth;
 
-	n_blocks = tt_block_count(filesize); 
+	n_blocks = tt_block_count(filesize);
 	depth = 0;
 	while (n_blocks > 1) {
 		n_blocks = (n_blocks + 1) / 2;
@@ -184,19 +184,19 @@ tt_good_slice_size(filesize_t filesize)
 {
 	filesize_t n_blocks;
 	size_t n_nodes;
-	
+
 	n_blocks = tt_block_count(filesize);
    	n_nodes = (1 << tt_good_depth(filesize));
 	return (n_blocks / n_nodes) * TTH_BLOCKSIZE;
 }
 
-filesize_t 
+filesize_t
 tt_node_count_at_depth(filesize_t filesize, unsigned depth)
 {
 	filesize_t n, m;
 
 	m = (filesize_t) 1 << depth;
-	n = tt_block_count(filesize); 
+	n = tt_block_count(filesize);
 	while (n > m) {
 		n = (n + 1) / 2;
 	}
@@ -209,7 +209,7 @@ tt_good_node_count(filesize_t filesize)
 	return tt_node_count_at_depth(filesize, tt_good_depth(filesize));
 }
 
-static filesize_t 
+static filesize_t
 tt_blocks_per_leaf(filesize_t filesize)
 {
 	unsigned full_depth, good_depth;
@@ -222,7 +222,7 @@ tt_blocks_per_leaf(filesize_t filesize)
 	} else {
 		n_bpl = 1;
 	}
-	return n_bpl; 
+	return n_bpl;
 }
 
 static void

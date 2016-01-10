@@ -270,7 +270,7 @@ static void
 hostiles_close_one(hostiles_t which)
 {
 	uint i = which;
-	
+
 	g_assert(i < NUM_HOSTILES);
 	iprange_free(&hostile_db[i]);
 }
@@ -440,7 +440,7 @@ hostiles_retrieve(hostiles_t which)
 
 			f = file_config_open_read_norename_chosen(
 					hostiles_what[HOSTILE_GLOBAL], fp, length, &idx);
-					
+
 			if (f) {
 				hostiles_retrieve_from_file(f,
 				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);

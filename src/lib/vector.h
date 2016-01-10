@@ -80,7 +80,7 @@ vector_iter_has_next(const vector_iter_t *iter)
 	return iter->i < vector_length(iter->vec);
 }
 
-static inline void * 
+static inline void *
 vector_iter_next(vector_iter_t *iter)
 {
 	g_assert(vector_iter_has_next(iter));
@@ -94,7 +94,7 @@ vector_iter_has_previous(const vector_iter_t *iter)
 	return size_is_non_negative(iter->i);
 }
 
-static inline void * 
+static inline void *
 vector_iter_previous(vector_iter_t *iter)
 {
 	g_assert(vector_iter_has_previous(iter));

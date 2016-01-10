@@ -989,7 +989,7 @@ h_strconcat(const char *first, ...)
 /**
  * Calculate the size of the buffer required to hold the string
  * resulting from vnsprintf().
- * 
+ *
  * @param format The printf format string.
  * @param ap The argument list.
  *

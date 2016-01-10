@@ -63,7 +63,7 @@ typedef struct short_string {
 	char str[SIZE_FIELD_MAX];
 } short_string_t;
 
-static inline G_CONST ALWAYS_INLINE int 
+static inline G_CONST ALWAYS_INLINE int
 is_dir_separator(int c)
 {
 	return '/' == c || G_DIR_SEPARATOR == c;
@@ -80,7 +80,7 @@ static inline G_PURE ALWAYS_INLINE uchar
 hex_digit(uchar x)
 {
 	extern const char hex_alphabet_lower[];
-	return hex_alphabet_lower[x & 0xf]; 
+	return hex_alphabet_lower[x & 0xf];
 }
 
 #if !GLIB_CHECK_VERSION(2,4,0)
@@ -335,7 +335,7 @@ strcpy_len(char *dest, const char *src)
 
 	if (NULL == src)
 		return 0;
-	
+
 	while ((c = *p++))
 		*q++ = c;
 
@@ -374,8 +374,8 @@ clamp_strlen(const char *src, size_t src_size)
  * Copies at most MIN(dst_size, src_len) bytes from "src" to "dst".
  *
  * @param dst the destination buffer.
- * @param dst_size the size of dst in number of bytes. 
- * @param src the source buffer. 
+ * @param dst_size the size of dst in number of bytes.
+ * @param src the source buffer.
  * @param src_len the length of src in number of bytes.
  *
  * @return The number of copied bytes.
@@ -395,7 +395,7 @@ clamp_memcpy(void *dst, size_t dst_size, const void *src, size_t src_len)
  *
  * @param dst the destination buffer.
  * @param dst_size the size of dst in number of bytes.
- * @param c the value to set each byte to. 
+ * @param c the value to set each byte to.
  * @param n the number of bytes to set.
  *
  * @return The number of set bytes.
@@ -434,7 +434,7 @@ clamp_memcmp(const void *a, size_t a_len, const void *b, size_t b_len)
  * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
  *
  * @param dst the destination buffer.
- * @param dst_size the size of dst in number of bytes. 
+ * @param dst_size the size of dst in number of bytes.
  * @param src a NUL-terminated string or at an initialized buffer of least
  *        "src_len" bytes.
  * @param src_len the length of src in number of bytes to copy at maximum. May
@@ -467,7 +467,7 @@ clamp_strncpy(char *dst, size_t dst_size, const char *src, size_t src_len)
  * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
  *
  * @param dst the destination buffer.
- * @param dst_size the size of dst in number of bytes. 
+ * @param dst_size the size of dst in number of bytes.
  * @param src a NUL-terminated string.
  *
  * @return The length of the resulting string in number of bytes.
@@ -486,7 +486,7 @@ clamp_strcpy(char *dst, size_t dst_size, const char *src)
  * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
  *
  * @param dst the destination buffer. Must be initialized.
- * @param dst_size the size of dst in number of bytes. 
+ * @param dst_size the size of dst in number of bytes.
  * @param src a NUL-terminated string.
  *
  * @return The length of the resulting string in number of bytes.
@@ -540,7 +540,7 @@ swap_uint32(uint32 i)
 	b = (i & 0xff00ff00) >> 8;    /* b -> 0A0C */
 	i = a | b;                    /* i -> BADC */
 	i = (i << 16) | (i >> 16);    /* i -> DCBA */
-    
+
 	return i;
 }
 
@@ -731,14 +731,14 @@ dec_digit(uchar x)
  * @return The resulting length of string not counting the termating NUL.
  *         Note that NULs that might have been copied from "src" are
  *         included in this count. Thus strlen(dst) would return a lower
- *         value in this case. 
+ *         value in this case.
  */
 static inline size_t
 reverse_strlcpy(char * const dst, size_t size,
 	const char *src, size_t src_len)
 {
 	char *p = dst;
-	
+
 	if (size-- > 0) {
 		const char *q = &src[src_len], *end = &dst[MIN(src_len, size)];
 

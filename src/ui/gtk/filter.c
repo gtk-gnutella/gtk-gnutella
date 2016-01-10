@@ -98,7 +98,7 @@ add_column(GtkTreeView *tv, const gchar *name, gint id)
 {
     GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
-	
+
 	renderer = gtk_cell_renderer_text_new();
 	g_object_set(G_OBJECT(renderer),
 		"mode",		GTK_CELL_RENDERER_MODE_INERT,
@@ -116,7 +116,7 @@ add_column(GtkTreeView *tv, const gchar *name, gint id)
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
 		NULL_PTR);
-	
+
     gtk_tree_view_append_column(tv, column);
 
 	return column;
@@ -246,7 +246,7 @@ filter_gui_filter_clear_list(void)
 
 	for (i = 0; i < G_N_ELEMENTS(nodes); i++) {
     	const gchar *titles[3];
-		
+
     	titles[0] = deconstify_gchar(_(nodes[i].title));
     	titles[1] = "";
     	titles[2] = "";
@@ -439,7 +439,7 @@ filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 
     if (node != NULL) {
 		gchar buf[32];
-		
+
         str_bprintf(buf, sizeof buf, "%d", g_list_length(ruleset));
         gtk_ctree_node_set_text(GTK_CTREE(ctree_filter_filters),
 			node, 1, buf);
@@ -469,7 +469,7 @@ filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 
 	if (tree_find_iter_by_data(model, 0, f, &iter)) {
 		gchar buf[32];
-		
+
         str_bprintf(buf, sizeof buf, "%d", g_list_length(ruleset));
 		gtk_tree_store_set(GTK_TREE_STORE(model), &iter, 2, buf, (-1));
 	}
@@ -625,10 +625,10 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
 
 				path = gtk_tree_model_get_path(model, &iter);
 				gtk_tree_view_get_cursor(tv, &cursor_path, NULL);
-				
+
 				update = !cursor_path ||
 					0 != gtk_tree_path_compare(path, cursor_path);
-				
+
 				if (update) {
 					GtkTreePath *p;
 
@@ -636,7 +636,7 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
 					while (gtk_tree_path_up(p))
 						gtk_tree_view_expand_row(tv, p, FALSE);
 					gtk_tree_path_free(p);
-					
+
 					gtk_tree_view_set_cursor(tv, path, NULL, FALSE);
 				}
 
@@ -696,7 +696,7 @@ filter_gui_filter_set_enabled(filter_t *f, gboolean active)
 #ifdef USE_GTK2
 	widget = gui_filter_dialog_lookup("treeview_filter_filters");
 #endif /* USE_GTK2 */
-	
+
 	fg_color = &(gtk_widget_get_style(widget)
 			->fg[active ? GTK_STATE_NORMAL : GTK_STATE_INSENSITIVE]);
 	bg_color = &(gtk_widget_get_style(widget)
@@ -805,7 +805,7 @@ filter_update_filter_stats_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 
 	(void) unused_path;
 	(void) unused_udata;
-	
+
    	gtk_tree_model_get(model, iter, 0, &p, (-1));
 	filter = p;
 
@@ -901,7 +901,7 @@ filter_update_rule_stats_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 
 	(void) unused_path;
 	(void) unused_udata;
-	
+
    	gtk_tree_model_get(model, iter, 0, &p, (-1));
 	rule = p;
 	if (rule == NULL)
@@ -2217,7 +2217,7 @@ filter_gui_init(void)
 		const gchar *name;
 		const guint id;
 	} radio_buttons[] = {
-#define D(x) "radiobutton_filter_" x 
+#define D(x) "radiobutton_filter_" x
 
 		{ D("flag_stable_set"),		RULE_FLAG_SET },
 		{ D("flag_stable_unset"),	RULE_FLAG_UNSET },
@@ -2288,7 +2288,7 @@ filter_gui_init(void)
 									"treeview_filter_filters"));
 
 		model = create_filters_model();
-		gtk_tree_view_set_model(tv_filters, model);	
+		gtk_tree_view_set_model(tv_filters, model);
 		add_column(tv_filters, _("Filter"), 1);
 		add_column(tv_filters, _("Rule"), 2);
 		add_column(tv_filters, _("Match"), 3);
@@ -2301,7 +2301,7 @@ filter_gui_init(void)
 		add_column(tv_rules, _("Condition"), 2);
 		add_column(tv_rules, _("Target"), 3);
 		add_column(tv_rules, _("Match"), 4);
-		gtk_tree_view_set_model(tv_rules, model);	
+		gtk_tree_view_set_model(tv_rules, model);
 		gtk_tree_view_set_rules_hint(tv_rules, TRUE);
 		gui_signal_connect(tv_rules,
 			"cursor-changed", on_treeview_filter_rules_select_row, NULL);

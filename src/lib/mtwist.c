@@ -88,7 +88,7 @@
  * The name of the Mersenne Twister comes from that, and by fortuity its
  * abbreviation, MT, represents the initials of the first names of the
  * two inventors of the algorithm.  Probably a happy coincidence...
- * 
+ *
  * @author Geoff Kuenning
  * @date 2001
  * @author Raphael Manfredi

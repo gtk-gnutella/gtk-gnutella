@@ -147,7 +147,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	const struct sha1 *sha1, const struct tth *tth, bool known_to_be_shared)
 {
 	struct sha1_cache_entry *item;
-   
+
 	WALLOC(item);
 	item->file_name = atom_str_get(filename);
 	item->size = size;
@@ -254,12 +254,12 @@ dump_cache(bool force)
 
 	if (!force && !cache_dirty)
 		return;
-	
+
 	file_path_set(&fp, settings_config_dir(), "sha1_cache");
 	f = file_config_open_write("SHA-1 cache", &fp);
 	if (f) {
 		struct dump_cache_context ctx;
-		
+
 		fputs(sha1_persistent_cache_file_header, f);
 		ctx.f = f;
 		ctx.forced = force;
@@ -581,7 +581,7 @@ static void
 queue_shared_file_for_sha1_computation(shared_file_t *sf)
 {
 	int inserted;
-	
+
  	shared_file_check(sf);
 
 	inserted = verify_sha1_enqueue(FALSE, shared_file_path(sf),
@@ -672,7 +672,7 @@ huge_improbable_sha1(const char *buf, size_t len)
 
 	for (i = 1; i < len; i++) {
 		uchar previous, c;
-		
+
 		previous = buf[i - 1];
 		c = buf[i];
 

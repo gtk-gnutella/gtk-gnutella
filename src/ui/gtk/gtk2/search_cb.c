@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
  *----------------------------------------------------------------------
@@ -141,7 +141,7 @@ search_set_xml(GtkWidget *widget, const char *xml)
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
 	g_return_if_fail(txt);
-	
+
 	/*
 	 * Character set detection usually fails here because XML
 	 * is mostly ASCII so that the thresholds are not reached.
@@ -225,7 +225,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 {
 	g_assert(tv);
 	g_assert(path);
-	
+
 	search_gui_refresh_details(search_gui_get_record_at_path(tv, path));
 }
 
@@ -293,11 +293,11 @@ search_gui_browse_selected_helper(gpointer data, gpointer unused_udata)
 	guint32 flags = 0;
 
 	(void) unused_udata;
-	
+
 	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 	flags |= ((rs->status & ST_G2) && T_GTKG != rs->vendor) ? SOCK_F_G2 : 0;
-	
+
 	search_gui_new_browse_host(
 		rc->results_set->hostname,
 		rc->results_set->addr,

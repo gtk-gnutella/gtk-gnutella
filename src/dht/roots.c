@@ -413,7 +413,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 		 */
 
 		if (NULL == c)
-			continue;		/* I/O error or stale info in ``rd'' */ 
+			continue;		/* I/O error or stale info in ``rd'' */
 
 		previous[i].id = *c->id;		/* Struct copy */
 		previous[i].dbkey = rd->dbkeys[i];
@@ -476,7 +476,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_HELD);
 
 			dbmw_write(db_contact, &dbkey, &nc, sizeof nc);
-				
+
 			rd->dbkeys[i++] = dbkey;
 			new++;
 		}

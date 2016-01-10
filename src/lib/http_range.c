@@ -1379,9 +1379,9 @@ http_rangeset_to_string(const http_rangeset_t *hrs)
 		slen = uint64_to_string_buf(hri->start, sbuf, sizeof sbuf);
 		elen = uint64_to_string_buf(hri->end, ebuf, sizeof ebuf);
 
-		str_cat_len(s, sbuf, slen); 
+		str_cat_len(s, sbuf, slen);
 		str_putc(s, '-');
-		str_cat_len(s, ebuf, elen); 
+		str_cat_len(s, ebuf, elen);
 	}
 
 	return str_2c(s);

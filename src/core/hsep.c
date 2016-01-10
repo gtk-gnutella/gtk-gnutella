@@ -754,7 +754,7 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 
 	{
 		gnutella_header_t *header;
-		
+
 		header = gnutella_msg_hsep_header(msg);
 		message_set_muid(header, GTA_MSG_HSEP_DATA);
 		gnutella_header_set_function(header, GTA_MSG_HSEP_DATA);

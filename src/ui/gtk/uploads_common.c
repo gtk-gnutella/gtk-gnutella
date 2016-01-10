@@ -291,7 +291,7 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 /**
  * @return A pointer to a static buffer holding the host address as string.
  */
-const gchar * 
+const gchar *
 uploads_gui_host_string(const gnet_upload_info_t *u)
 {
 	static gchar buf[1024];

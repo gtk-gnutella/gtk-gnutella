@@ -159,7 +159,7 @@ void
 iprange_free(struct iprange_db **idb_ptr)
 {
 	struct iprange_db *idb;
-	
+
 	idb = *idb_ptr;
 	if (idb) {
 		iprange_db_check(idb);
@@ -255,7 +255,7 @@ iprange_add_cidr(struct iprange_db *idb,
 {
 	struct iprange_net4 item;
 	uint32 mask;
-	
+
 	iprange_db_check(idb);
 	g_assert(value != 0);
 	g_return_val_if_fail(bits > 0, IPR_ERR_BAD_PREFIX);

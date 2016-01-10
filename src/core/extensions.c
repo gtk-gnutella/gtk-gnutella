@@ -479,7 +479,7 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 			int c = *p++;
 			if (c == '\0' || !isascii(c) || is_ascii_cntrl(c))
 				goto abort;
-			id[i] = c; 
+			id[i] = c;
 		}
 		id[i] = '\0';
 
@@ -897,7 +897,7 @@ ext_unknown_parse(const char **retp, int len, extvec_t *exv,
 		default:
 			found = FALSE;
 		}
-		
+
 		if (found) {
 			if (skip) {
 				skip = FALSE;
@@ -1364,7 +1364,7 @@ ext_ggep_stripkey(char *buf, int len, const char *key,
 			int c = *p++;
 			if (c == '\0' || !isascii(c) || is_ascii_cntrl(c))
 				goto abort;
-			id[i] = c; 
+			id[i] = c;
 		}
 		id[i] = '\0';
 
@@ -1545,7 +1545,7 @@ ext_ggep_strip(char *buf, int len, const char *key)
 				(start == end || HUGE_FS == *start || '\0' == *start)
 			) {
 				char *r = q - 1;		/* Char before GGEP magic */
-				
+
 				g_assert(r >= buf);
 
 				if (HUGE_FS == *r) {
@@ -2208,7 +2208,7 @@ void
 ext_reset(extvec_t *exv, int exvcnt)
 {
 	int i;
-	
+
 	for (i = 0; i < exvcnt; i++) {
 		extvec_t *e = &exv[i];
 		extdesc_t *d;

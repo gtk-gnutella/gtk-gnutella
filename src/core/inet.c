@@ -207,7 +207,7 @@ is_local_addr(const host_addr_t addr)
 			}
 		}
 	}
-	
+
 	if (settings_use_ipv6()) {
 		if (!is_host_addr(our_addr_v6)) {
 			static bool tried;
@@ -593,7 +593,7 @@ inet_got_incoming(const host_addr_t addr)
  * a reply of some sort (i.e. sent back to us through a masquerated port).
  * When we do get these messages, then this routine can be called explicitly.
  */
-void 
+void
 inet_udp_got_unsolicited_incoming(void)
 {
 	if (outgoing_udp_state != UNSOLICITED_OFF) {

@@ -60,7 +60,7 @@ static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
 #define PROP_DEF_UNLOCK(d)	mutex_unlock(&d->lock)
 
 const struct {
-	const char *name; 
+	const char *name;
 } prop_type_str[] = {
 	{ "boolean" 	},
 	{ "guint32" 	},
@@ -123,7 +123,7 @@ prop_parse_timestamp(const char *name,
 		ep = strchr(str, ',');
 		ep = ep ? ep : strchr(str, '\0');
 	}
-	
+
 	if (!error && vec)
 		((time_t *) vec)[i] = t;
 
@@ -165,7 +165,7 @@ prop_parse_ip(const char *name,
 	ep = is_strprefix(str, "<none>");
 	if (ep) {
 		error = 0;
-		addr = zero_host_addr;	
+		addr = zero_host_addr;
 		if (endptr) {
 			*endptr = ep;
 		}
@@ -177,7 +177,7 @@ prop_parse_ip(const char *name,
 	} else if (vec) {
 		((host_addr_t *) vec)[i] = addr;
 	}
-	
+
 	return error;
 }
 
@@ -311,7 +311,7 @@ prop_parse_boolean_vector(const char *name, const char *str,
  *
  * @return TRUE if the data was fully parsed. FALSE on failure.
  */
-static gboolean 
+static gboolean
 prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 {
 	size_t i;
@@ -476,7 +476,7 @@ prop_get_def(prop_set_t *ps, property_t p)
 	case PROP_TYPE_STORAGE:
 		buf->data.storage.value = hcopy(d->data.storage.value, d->vector_size);
 		break;
-		
+
 	case NUM_PROP_TYPES:
 		g_assert_not_reached();
 	}
@@ -1544,7 +1544,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 	const prop_def_t *p = &PROP(ps, prop);
 
 	/* Default value is a constant, no need to lock */
-	
+
 	switch (p->type) {
 	case PROP_TYPE_GUINT32:
 		str_printf(s, "%u", (guint) p->data.guint32.def[0]);

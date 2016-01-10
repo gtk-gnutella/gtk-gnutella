@@ -148,7 +148,7 @@ event_remove_subscriber(struct event *evt, callback_fn_t cb)
 		 */
 
 		mutex_unlock(&evt->lock);
-		return;	
+		return;
 	}
 
 	PSLIST_FOREACH(evt->subscribers, sl) {

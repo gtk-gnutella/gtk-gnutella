@@ -231,7 +231,7 @@ bsched_get(bsched_bws_t bws)
 	uint i = (uint) bws;
 
 	g_assert(i < NUM_BSCHED_BWS);
-	bsched_check(bws_set[i]);	
+	bsched_check(bws_set[i]);
 	return bws_set[i];
 }
 
@@ -248,7 +248,7 @@ bsched_free(bsched_t *bs)
 	plist_t *iter;
 
 	bsched_check(bs);
-	
+
 	PLIST_FOREACH(bs->sources, iter) {
 		bio_source_t *bio = iter->data;
 
@@ -354,7 +354,7 @@ static void
 bsched_add_stealer(bsched_bws_t bws, bsched_bws_t bws_stealer)
 {
 	bsched_t *bs, *stealer;
-   	
+
 	g_assert(bws != bws_stealer);
 
 	bs = bsched_get(bws);
@@ -1202,7 +1202,7 @@ static void
 bsched_bio_remove(bsched_bws_t bws, bio_source_t *bio)
 {
 	bsched_t *bs;
-	
+
 	bs = bsched_get(bws);
 	bio_check(bio);
 
@@ -2095,7 +2095,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 
 		g_assert(start >= ctx->map_start);
 		data = &data[start - ctx->map_start];
-		
+
 		g_assert(ctx->map_end > start);
 		amount = MIN((size_t) (ctx->map_end - start), amount);
 
@@ -2235,7 +2235,7 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 
 			if (curlen > available) {
 				slen = iovec_len(siov);	/* Save for later restore */
-				iovec_set_len(siov, 
+				iovec_set_len(siov,
 					iovec_len(siov) - (curlen - available)
 				);
 				iovcnt = r + 1;

@@ -70,7 +70,7 @@ load_faq(void)
 		char *path;
 
 		tmp = get_folder_path(PRIVLIB_PATH);
-		
+
 		if (tmp != NULL) {
 			path = make_pathname(tmp, lang);
 			file_path_set(&fp[i++], ostrdup(path), faq_file);
@@ -84,7 +84,7 @@ load_faq(void)
 		file_path_set(&fp[i++], ostrdup(path), faq_file);
 		HFREE_NULL(path);
 		file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
-	
+
 #ifndef OFFICIAL_BUILD
 		path = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
 		file_path_set(&fp[i++], ostrdup(path), faq_file);
@@ -184,23 +184,23 @@ on_main_window_delete_event_hide(GtkWidget *unused_widget, GdkEvent *unused_even
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
-	
+
 	gtk_widget_hide(gui_main_window());
-	
+
 	return TRUE;
 }
 
 gboolean
-on_NSApplicationOpenFile(GtkosxApplication *app, gchar *path, 
+on_NSApplicationOpenFile(GtkosxApplication *app, gchar *path,
 						 gpointer user_data)
 {
 	(void) app;
 	(void) path;
 	(void) user_data;
-	
+
 	gtk_widget_show(gui_main_window());
-	
-	return TRUE;	
+
+	return TRUE;
 }
 
 gboolean
@@ -208,10 +208,10 @@ on_NSApplicationDidBecomeActive(GtkosxApplication *app, gpointer user_data)
 {
 	(void) app;
 	(void) user_data;
-	
+
 	if (!quitting)
 		gtk_widget_show(gui_main_window());
-	
+
 	return TRUE;
 }
 
@@ -303,7 +303,7 @@ on_button_about_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_udata;
 
 	g_return_if_fail(gui_dlg_about());
-	
+
     gtk_widget_hide(gui_dlg_about());
 }
 

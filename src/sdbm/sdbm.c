@@ -401,7 +401,7 @@ sdbm_prep(const char *dirname, const char *pagname,
 #endif
 
 	/*
-	 * adjust user flags so that WRONLY becomes RDWR, 
+	 * adjust user flags so that WRONLY becomes RDWR,
 	 * as required by this package. Also set our internal
 	 * flag for RDONLY if needed.
 	 */
@@ -2011,7 +2011,7 @@ setdbit(DBM *db, long int dbit)
 	if (dbit >= db->maxbno)
 		db->maxbno += DBM_DBLKSIZ * BYTESIZ;
 #else
-	if G_UNLIKELY(OFF_DIR((dirb+1)) * BYTESIZ > db->maxbno) 
+	if G_UNLIKELY(OFF_DIR((dirb+1)) * BYTESIZ > db->maxbno)
 		db->maxbno = OFF_DIR((dirb+1)) * BYTESIZ;
 #endif
 

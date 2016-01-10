@@ -1396,7 +1396,7 @@ zalloc_adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
 	if (wasted > 0) {
 		size_t bsize = rounded / hint;
 		size_t adjusted = (bsize / ZALLOC_ALIGNBYTES) * ZALLOC_ALIGNBYTES;
-	
+
 		g_assert(adjusted >= size);
 
 		if (adjusted != size) {

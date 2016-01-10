@@ -104,7 +104,7 @@ is_readable(void *data, int unused_source, inputevt_cond_t cond)
 	i = 0;
 	for (i = 0; i < G_N_ELEMENTS(db); /* NOTHING */) {
 		size_t len;
-		
+
 		db[i] = rxbuf_new();
 		len = pdata_len(db[i]);
 		iovec_set(&iov[i], pdata_start(db[i]), len);

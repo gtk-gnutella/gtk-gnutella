@@ -494,7 +494,7 @@ dht_value_patch_creator(dht_value_t *v, host_addr_t addr, uint16 port)
 
 	g_assert(1 == knode_refcnt(cn));
 
-	
+
 	if (GNET_PROPERTY(dht_storage_debug)) {
 		g_warning(
 			"DHT patching creator's IP %s:%u to match sender's %s",
@@ -1098,7 +1098,7 @@ static void
 values_unexpire(uint64 dbkey)
 {
 	const void *key;
-	
+
 	if (hset_contains_extended(expired, &dbkey, &key)) {
 		const uint64 *dbatom = key;
 
@@ -1723,7 +1723,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			goto mismatch;
 		}
 
-		/* 
+		/*
 		 * Here we checked everything the remote node sent us and it
 		 * exactly matches what we have already.  Everything is thus fine
 		 * and we're done.
@@ -1765,7 +1765,7 @@ expired:
 	if (GNET_PROPERTY(dht_storage_debug))
 		g_debug("DHT STORE detected replication of expired data %s from %s",
 			dht_value_to_string(v), knode_to_string(kn));
-	
+
 	return STORE_SC_OK;		/* No error reported, data is stale and must die */
 }
 

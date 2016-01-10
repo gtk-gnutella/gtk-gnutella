@@ -101,7 +101,7 @@ html_context_free(struct html_context **ctx_ptr)
 		*ctx_ptr = NULL;
 	}
 }
-	
+
 static struct html_view *
 html_view_alloc(void)
 {
@@ -117,7 +117,7 @@ static void
 html_output_print(struct html_output *output, const struct array *text)
 {
 	struct html_context *ctx;
-   
+
 	if (text->size <= 0)
 		return;
 
@@ -205,7 +205,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 			sizeof special.list_item_prefix.str,
 			" ", special.bullet.str, " ", NULL_PTR);
 	}
-	
+
 	style = NULL;
 	text = NULL;
 	attr = NULL;
@@ -262,7 +262,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				name[0] = '#';
 				p = mempcpy(&name[1], value.data, n);
 				*p = '\0';
-				
+
 				table = gtk_text_buffer_get_tag_table(buffer);
 				if (NULL == gtk_text_tag_table_lookup(table, name)) {
 					GtkTextIter iter;
@@ -293,7 +293,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		if (!closing) {
 			struct array value;
 			static gchar alt[1024];
-			
+
 			value = html_get_attribute(tag, HTML_ATTR_ALT);
 			if (value.data) {
 				str_bprintf(alt, sizeof alt, "\n[image alt=\"%.*s\"]\n",
@@ -365,7 +365,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 			gtk_text_buffer_apply_tag(buffer, margin, &start, &end);
 		} else {
 			GtkTextIter iter;
-		
+
 			gtk_text_buffer_get_end_iter(buffer, &iter);
 			gtk_text_buffer_insert(buffer, &iter, "\n", (-1));
 
@@ -428,7 +428,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		text = "\n";
 		break;
 	case HTML_TAG_COMMENT:
-#if 0 
+#if 0
 		{
 			GtkTextIter iter;
 
@@ -491,7 +491,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		if (closing) {
 			if (ctx->start[id]) {
 				GtkTextIter start, end;
-		
+
 				gtk_text_buffer_get_iter_at_mark(buffer,
 						&start, ctx->start[id]);
 				gtk_text_buffer_get_end_iter(buffer, &end);
@@ -602,7 +602,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 	case NUM_HTML_TAG:
 		g_assert_not_reached();
 	}
-		
+
 	if (text) {
 		gtk_text_insert(ctx->html_view->widget, NULL, NULL, NULL, text, (-1));
 	}
@@ -642,7 +642,7 @@ visibility_notify_event(GtkWidget *text_view, GdkEventVisibility *event)
 
 	(void) event;
 	gdk_window_get_pointer(text_view->window, &wx, &wy, NULL);
-	gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(text_view), 
+	gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(text_view),
 		GTK_TEXT_WINDOW_WIDGET, wx, wy, &bx, &by);
 	set_cursor_if_appropriate(GTK_TEXT_VIEW(text_view), bx, by);
 	return FALSE;
@@ -654,14 +654,14 @@ motion_notify_event(GtkWidget *text_view, GdkEventMotion *event)
 {
 	gint x, y;
 
-	gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(text_view), 
+	gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(text_view),
 		GTK_TEXT_WINDOW_WIDGET, event->x, event->y, &x, &y);
 	set_cursor_if_appropriate(GTK_TEXT_VIEW(text_view), x, y);
 	gdk_window_get_pointer(text_view->window, NULL, NULL, NULL);
 	return FALSE;
 }
 
-/* Looks at all tags covering the position of iter in the text view, 
+/* Looks at all tags covering the position of iter in the text view,
  * and if one of them is a link, follow it by showing the page identified
  * by the data attached to it.
  */
@@ -700,7 +700,7 @@ key_press_event(GtkWidget *text_view, GdkEventKey *event)
 	GtkTextBuffer *buffer;
 
 	switch (event->keyval) {
-	case GDK_Return: 
+	case GDK_Return:
 	case GDK_KP_Enter:
 		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
 		gtk_text_buffer_get_iter_at_mark(buffer, &iter,
@@ -733,7 +733,7 @@ event_after(GtkWidget *text_view, GdkEvent *ev)
 	/* we shouldn't follow a link if the user has selected something */
 	gtk_text_buffer_get_selection_bounds(buffer, &start, &end);
 	if (gtk_text_iter_get_offset(&start) == gtk_text_iter_get_offset(&end)) {
-		gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(text_view), 
+		gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(text_view),
 			GTK_TEXT_WINDOW_WIDGET, event->x, event->y, &x, &y);
 		gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(text_view),
 			&iter, x, y);
@@ -773,11 +773,11 @@ html_view_load(struct html_view *html_view)
 		"visibility-notify-event", visibility_notify_event, NULL);
 	gui_signal_connect(widget, "key-press-event", key_press_event, NULL);
 	gui_signal_connect(widget, "event-after", event_after, NULL);
-		  
+
  	gtk_text_view_set_buffer(GTK_TEXT_VIEW(widget), NULL);
 	{
 		GtkTextBuffer *buffer;
-		
+
 		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
 
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_WORD_WRAP,
@@ -791,12 +791,12 @@ html_view_load(struct html_view *html_view)
 				"stretch-set",		TRUE,
 				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer,	STYLE_TAG_ANCHOR,
-				"foreground",		"blue", 
-				"underline",		PANGO_UNDERLINE_SINGLE, 
+				"foreground",		"blue",
+				"underline",		PANGO_UNDERLINE_SINGLE,
 				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer,	STYLE_TAG_ANCHOR_EXTERN,
-				"foreground",		"red", 
-				"underline",		PANGO_UNDERLINE_SINGLE, 
+				"foreground",		"red",
+				"underline",		PANGO_UNDERLINE_SINGLE,
 				NULL_PTR);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_BOLD,
 				"weight",			PANGO_WEIGHT_BOLD,
@@ -840,7 +840,7 @@ html_view_load(struct html_view *html_view)
 	html_output_set_udata(ctx->output, ctx);
 	html_output_set_print(ctx->output, html_output_print);
 	html_output_set_tag(ctx->output, html_output_tag);
-	
+
 #if GTK_CHECK_VERSION(2,0,0)
 #else
 	gtk_text_thaw(html_view->widget);
@@ -874,7 +874,7 @@ html_view_load_memory(GtkWidget *widget, const struct array memory)
 {
 	struct html_view *html_view;
 	struct html_context *ctx;
-	
+
 	g_return_val_if_fail(widget, NULL);
 	g_return_val_if_fail(memory.data, NULL);
 
@@ -899,7 +899,7 @@ html_view_clear(struct html_view *html_view)
 	{
 		GtkTextBuffer *buffer;
 		GtkTextIter start, end;
-		
+
 		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(html_view->widget));
 		gtk_text_buffer_get_start_iter(buffer, &start);
 		gtk_text_buffer_get_end_iter(buffer, &end);

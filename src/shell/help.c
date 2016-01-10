@@ -53,7 +53,7 @@ static const struct shell_cmd_help commands[] = {
 #undef	SHELL_CMD
 };
 
-static const struct shell_cmd_help * 
+static const struct shell_cmd_help *
 shell_cmd_lookup(const char *argv0)
 {
 	size_t i;

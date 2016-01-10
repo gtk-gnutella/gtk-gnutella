@@ -199,7 +199,7 @@ dht_fix_kuid_contact(const kuid_t *kuid, host_addr_t *addr, uint16 *port,
 		*port = xport;
 		return TRUE;
 	}
-	
+
 	return FALSE;
 }
 
@@ -698,7 +698,7 @@ dht_rpc_answer(const guid_t *muid,
 	rn = rcb->kn;
 	knode_check(rn);
 
-	/* 
+	/*
 	 * Verify that the node who replied indeed bears the same KUID as we
 	 * think it has.  When the RPC_CALL_NO_VERIFY flag is set, it means
 	 * the registered callback will perform this kind of verification itself.

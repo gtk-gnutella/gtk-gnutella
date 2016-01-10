@@ -357,7 +357,7 @@ mem_alloc(struct mem_cache *mc)
 
 /**
  * This does not really "free" the chunk at ``p'' but pushes it back to
- * the mem cache and thus makes it available again for mem_alloc(). 
+ * the mem cache and thus makes it available again for mem_alloc().
  */
 static void
 mem_free(struct mem_cache *mc, void *p)
@@ -515,7 +515,7 @@ atom_alloc(size_t size)
 	atom_t *a = walloc(size);
 	ATOM_SET_MAGIC(a);
 	ATOM_ZERO(a);
-	return a;	
+	return a;
 }
 
 static inline void
@@ -617,7 +617,7 @@ static atom_desc_t atoms[] = {
 /**
  * @return length of string + trailing NUL.
  */
-static size_t 
+static size_t
 str_xlen(const void *v)
 {
 	return strlen((const char *) v) + 1;
@@ -653,7 +653,7 @@ guid_eq(const void *a, const void *b)
 /**
  * @return length of GUID.
  */
-static size_t 
+static size_t
 guid_len(const void *unused_guid)
 {
 	(void) unused_guid;
@@ -691,7 +691,7 @@ sha1_eq(const void *a, const void *b)
 /**
  * @return length of SHA1.
  */
-static size_t 
+static size_t
 sha1_len(const void *unused_sha1)
 {
 	(void) unused_sha1;
@@ -731,7 +731,7 @@ tth_eq(const void *a, const void *b)
 /**
  * @return length of TTH.
  */
-static size_t 
+static size_t
 tth_len(const void *unused_tth)
 {
 	(void) unused_tth;
@@ -1099,7 +1099,7 @@ atom_get(enum atom_type type, const void *key)
 
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
 	STATIC_ASSERT(ARENA_OFFSET >= sizeof(atom_t));
-	
+
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 	ATOM_TRACK_IS_LOCKED();

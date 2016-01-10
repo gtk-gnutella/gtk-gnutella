@@ -524,7 +524,7 @@ is_splitable(const struct kbucket *kb)
 	 * since they don't need to maintain a full table.  On the other hand,
 	 * all the buckets are made splitable, even those in the closest subtree.
 	 * This will create 2^K_BUCKET_MAX_DEPTH_PASSIVE leaf buckets, enabling
-	 * the sending of initial lookups to nodes that have at least 
+	 * the sending of initial lookups to nodes that have at least
 	 * K_BUCKET_MAX_DEPTH_PASSIVE common leading bits.
 	 */
 
@@ -1299,7 +1299,7 @@ completion_iterate(struct bootstrap *b)
 	if (!lookup_find_node(&b->id, NULL, bootstrap_completion_status, b)) {
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT unable to complete bootstrapping");
-		
+
 		WFREE(b);
 		gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 		return;
@@ -1668,7 +1668,7 @@ dht_bucket_manages(struct kbucket *kb, const kuid_t *id)
 
 	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
 		uchar mask = 0xff;
-	
+
 		if (bits < 8)
 			mask = ~((1 << (8 - bits)) - 1) & 0xff;
 
@@ -2056,7 +2056,7 @@ dht_split_bucket(struct kbucket *kb)
 
 	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +2);
 	gnet_stats_inc_general(GNR_DHT_ROUTING_LEAVES);
-	
+
 	if (stats.max_depth < kb->depth + 1) {
 		stats.max_depth = kb->depth + 1;
 		gnet_stats_set_general(GNR_DHT_ROUTING_MAX_DEPTH, stats.max_depth);
@@ -4184,7 +4184,7 @@ dht_update_subspace_size_estimate(
 		stats.lookups[subspace].estimate = estimate;
 		stats.lookups[subspace].computed = now;
 		stats.lookups[subspace].amount = kept;
-	
+
 		statx_add(stats.lookdata, (double) estimate);
 	} else {
 		stats.lookups[subspace].computed = 0;
@@ -4753,7 +4753,7 @@ dht_lookup_notify(const kuid_t *id, lookup_type_t type)
 
 	/*
 	 * Special lookup types are ignored:
-	 * 
+	 *
 	 * LOOKUP_REFRESH are our own periodic bucket refresh.  No need to record
 	 * the last time they happen.
 	 *
@@ -5016,7 +5016,7 @@ dht_addr_verify_cb(
 				g_debug("DHT verification kept old node %s",
 					knode_to_string(av->old));
 			}
-			av->old->flags &= ~KNODE_F_VERIFYING;	
+			av->old->flags &= ~KNODE_F_VERIFYING;
 			goto done;
 		}
 

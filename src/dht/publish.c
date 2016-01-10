@@ -103,7 +103,7 @@
  * a newcomer, we check whether that node falls in our k-ball and whether it
  * gets inserted in our routing table.  If it does, we're close enough to make
  * it worth computing which keys to offload.
- * 
+ *
  * 4- creation of new key/value pairs.
  *
  * This is the most important use: without values being published, the DHT
@@ -753,7 +753,7 @@ log_status(publish_t *pb)
 	g_debug("DHT PUBLISH[%s] B/W incoming=%d bytes, outgoing=%d bytes",
 		nid_to_string(&pb->pid), pb->bw_incoming, pb->bw_outgoing);
 	g_debug("DHT PUBLISH[%s] published %s%d/%d %s%s (%d error%s)",
-		nid_to_string(&pb->pid), 
+		nid_to_string(&pb->pid),
 		PUBLISH_VALUE == pb->type ? "to " : "",
 		pb->published, pb->cnt,
 		PUBLISH_VALUE == pb->type ? "root" : "item", plural(pb->cnt),
@@ -2023,7 +2023,7 @@ publish_iterate(publish_t *pb)
 	g_assert_not_reached();
 }
 
-/** 
+/**
  * Create a new publish request.
  *
  * @param key		the primary key for accessing published values
@@ -2074,7 +2074,7 @@ publish_create(const kuid_t *key, publish_type_t type, int cnt)
 	return pb;
 }
 
-/** 
+/**
  * Create a new publish to one-node request.
  *
  * This is used to cache values returned by a FIND_VALUE, to the first node
@@ -2150,7 +2150,7 @@ publish_cache_internal(const kuid_t *key,
 	return pb;
 }
 
-/** 
+/**
  * Create a new publish to one-node request.
  *
  * This is used to cache values returned by a FIND_VALUE, to the first node
@@ -2536,7 +2536,7 @@ publish_init(void)
 	publishes = htable_create_any(nid_hash, nid_hash2, nid_equal);
 }
 
-/** 
+/**
  * Hashtable iteration callback to free the publish_t object held as the key.
  */
 static void

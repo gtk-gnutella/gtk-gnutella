@@ -353,7 +353,7 @@ get_params(struct pproxy *pp, const char *request,
 	g_assert(guid_atom);
 	g_assert(file_idx);
 	g_assert(supports_tls);
-	
+
 	/*
 	 * Move to the start of the requested path.  Note that sizeof("GET")
 	 * accounts for the trailing NUL in the string.
@@ -554,7 +554,7 @@ build_push(uint8 ttl, uint8 hops, const struct guid *guid,
 		gnutella_header_set_ttl(header, ttl);
 		gnutella_header_set_hops(header, hops);
 	}
-	
+
 	gnutella_msg_push_request_set_guid(&packet.m, guid);
 
 	STATIC_ASSERT(49 == sizeof packet.m);
@@ -576,7 +576,7 @@ build_push(uint8 ttl, uint8 hops, const struct guid *guid,
 		supports_tls = is_my_address_and_port(addr_v4, port)
 			|| is_my_address_and_port(addr_v6, port);
 	}
-	
+
 	if (supports_tls) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0)) {
 			g_warning("could not write GGEP \"TLS\" extension into PUSH");
@@ -788,7 +788,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (!host_is_valid(pp->addr_v6, pp->port)) {
 		pp->addr_v6 = zero_host_addr;
 	}
-	
+
 	if (!is_host_addr(pp->addr_v4) && !is_host_addr(pp->addr_v6)) {
 		pproxy_error_remove(pp, 400,
 			"Malformed push-proxy request: supplied no valid address");
@@ -1273,7 +1273,7 @@ cproxy_build_request(const struct http_async *ha,
 			"\r\n",
 			NULL_PTR);
 	}
-	
+
 	return str_bprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
 		"User-Agent: %s\r\n"

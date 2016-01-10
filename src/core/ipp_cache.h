@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2009, Raphael Manfredi
- * Copyright (c) 2006, Christian Biere 
+ * Copyright (c) 2006, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.

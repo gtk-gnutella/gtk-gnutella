@@ -172,7 +172,7 @@ fd_close_from_internal(const int first_fd, bool preserve)
 #ifdef HAVE_GTKOSXAPPLICATION
 		/* OS X doesn't allow fds being closed not opened by us. During
 		 * GUI initialisation a new kqueue fd is created for UI events. This
-		 * is visible to us as a fifo which we are not allowed to close. 
+		 * is visible to us as a fifo which we are not allowed to close.
 		 * Set close on exec on all fifo's so we won't leak any of our other
 		 * fifo's
 		 *	-- JA 2011-11-28 */
@@ -267,7 +267,7 @@ reserve_standard_file_descriptors(void)
 		/* The following shouldn't happen on POSIX */
 		if (fd != ret) {
 			int fd2 = ret;
-			
+
 			ret = dup2(fd2, fd);
 			close(fd2);
 			if (-1 == ret || !is_open_fd(fd))

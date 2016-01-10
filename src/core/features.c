@@ -59,7 +59,7 @@ struct features {
 	pslist_t *list;
 };
 
-static struct features * 
+static struct features *
 features_get(xfeature_t xf)
 {
 	static struct features features[NUM_FEATURES];
@@ -128,7 +128,7 @@ header_features_add_guarded(xfeature_t xf,
 
 	features->list = pslist_append(features->list, item);
 }
- 
+
 /**
  * Add conditional support for feature ``name'': if at run-time the value
  * returned by the ``guardfn'' function is FALSE, the feature is not emitted.
@@ -152,7 +152,7 @@ header_features_add_guarded_function(xfeature_t xf,
 
 	features->list = pslist_append(features->list, item);
 }
- 
+
 /**
  * Add support for feature ``name'' with the specified version to the
  * X-Features header.

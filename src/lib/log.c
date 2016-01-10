@@ -755,9 +755,9 @@ log_prefix(GLogLevelFlags level)
 	switch (level & LOG_LEVEL_MASK) {
 	case G_LOG_LEVEL_CRITICAL: return "CRITICAL";
 	case G_LOG_LEVEL_ERROR:    return "ERROR";
-	case G_LOG_LEVEL_WARNING:  return "WARNING"; 
+	case G_LOG_LEVEL_WARNING:  return "WARNING";
 	case G_LOG_LEVEL_MESSAGE:  return "MESSAGE";
-	case G_LOG_LEVEL_INFO:     return "INFO"; 
+	case G_LOG_LEVEL_INFO:     return "INFO";
 	case G_LOG_LEVEL_DEBUG:    return "DEBUG";
 	default:                   return "UNKNOWN";
 	}

@@ -405,7 +405,7 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 	struct upnp_dscv *ud = uscpd->ud;
 	struct upnp_mcb *mcb = uscpd->mcb;
 	upnp_service_t *usd;
-			
+
 	upnp_dscv_check(ud);
 	upnp_mcb_check(mcb);
 	g_assert(uint_is_positive(mcb->pending_probes));
@@ -692,7 +692,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 
 	/*
 	 * Check the Server: header, which is going to be a string such as:
-	 * 
+	 *
 	 *	"OS/version, UPnP/major.minor, product/version"
 	 *
 	 * We want to make sure that the UPnP architecture supported by the
@@ -1068,7 +1068,7 @@ upnp_dscv_timeout(cqueue_t *cq, void *obj)
  * Initiate a discovery of all UPnP devices on the LAN network.
  * Upon completion, the callback is called with the results and the
  * user-supplied argument.
- * 
+ *
  * @param timeout		timeout in milliseconds
  * @param cb			callback to invoke on completion / timeout
  * @param arg			user-defined callback argument

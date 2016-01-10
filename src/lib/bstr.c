@@ -471,7 +471,7 @@ bstr_skip(bstr_t *bs, size_t count)
  * @param bs	the binary stream
  * @param buf	where to write read data
  * @param count	amount of data to read
- * 
+ *
  * @return TRUE if OK.
  */
 bool

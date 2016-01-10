@@ -4085,7 +4085,7 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, int len, int slots_per_byte,
 			compact_size(rt->client_slots, FALSE));
 		return FALSE;
 	}
-	
+
 	return TRUE;
 }
 
@@ -4120,7 +4120,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, const uchar *data, int len,
 		return FALSE;
 
 	g_assert(qrcv->current_index + len <= rt->slots);
-	
+
 	for (i = 0; i < len; i++) {
 		qrt_patch_slot(rt, qrcv->current_index++, data[i]);
 	}
@@ -4161,7 +4161,7 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const uchar *data, int len,
 		return FALSE;
 
 	g_assert(qrcv->current_index + len * 2 <= rt->slots);
-	
+
 	for (i = 0; i < len; i++) {
 		uint8 v = data[i];	/* Patch byte contains 2 slots */
 
@@ -4442,7 +4442,7 @@ qrt_dynamic_bind(struct routing_table *rt)
 		default:
 			rt->can_route_urn = qrp_can_route_default;
 			rt->can_route     = qrp_can_route_default;
-			
+
 	}
 }
 
@@ -4667,7 +4667,7 @@ qrt_handle_patch(
 		case 2:
 			/* Use default handler. */
 			break;
-		case 1:	
+		case 1:
 			/*
 			 * G2 defined the ordering of bits in the 1-bit QRP as being
 			 * "little-endian" (i.e. the bit #0 in the logical QRP is actually

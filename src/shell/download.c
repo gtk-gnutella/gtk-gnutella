@@ -403,7 +403,7 @@ shell_exec_download(struct gnutella_shell *sh, int argc, const char *argv[])
 	CMD(rename);
 	CMD(show);
 #undef CMD
-	
+
 	shell_set_msg(sh, _("Unknown operation"));
 	goto error;
 

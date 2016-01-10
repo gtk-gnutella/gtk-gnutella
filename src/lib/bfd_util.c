@@ -664,7 +664,7 @@ bfd_util_close_null(bfd_env_t **be_ptr)
 
 /**
  * Load text symbols into the supplied symbol table from the specified file.
- * 
+ *
  * This is equivalent to running "nm -p file" and parsing back the results
  * although we do not have to actually launch a new process and parse the
  * command output: the symbol extraction is handled by the BFD library.

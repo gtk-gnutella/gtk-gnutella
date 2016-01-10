@@ -2292,7 +2292,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 	te->high_qid = thread_quasi_id_fast(
 		const_ptr_add_offset(base, te->stack_size - 1));
 	te->top_qid = thread_sp_direction > 0 ? te->low_qid : te->high_qid;
- 
+
 	g_assert((te->high_qid - te->low_qid + 1) * thread_pagesize
 		== te->stack_size);
 
@@ -5916,7 +5916,7 @@ thread_local_users(thread_key_t key)
 {
 	uint i;
 	pslist_t *sl = NULL;
-	
+
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *te = threads[i];
 		void *v;
@@ -6177,7 +6177,7 @@ thread_lock_waited_for(const void *lock)
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *te = threads[i];
-	
+
 		if G_UNLIKELY(!te->valid || te->reusable)
 			continue;
 

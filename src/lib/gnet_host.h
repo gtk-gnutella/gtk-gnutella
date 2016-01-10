@@ -160,7 +160,7 @@ typedef struct gnet_host_vec {
 static inline int
 gnet_host_vec_count(const gnet_host_vec_t *hvec)
 {
-	return UNSIGNED(hvec->n_ipv4) + hvec->n_ipv6; 
+	return UNSIGNED(hvec->n_ipv4) + hvec->n_ipv6;
 }
 
 /**

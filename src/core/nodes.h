@@ -392,7 +392,7 @@ enum {
 	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup / rewrite extensions */
 	NODE_M_COMPACTED	= 1 << 0	/**< Compaction occurred */
 };
- 
+
 /*
  * UDP crawling "feature" flags.
  */

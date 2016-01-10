@@ -163,7 +163,7 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
+
 	clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
 
 	sl = clist_collect_data(clist, FALSE, NULL);
@@ -240,7 +240,7 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
+
     treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
     gtk_tree_selection_selected_foreach(selection, uploads_func_helper,

@@ -63,7 +63,7 @@
  * - A type name meaningful in the namespace of the packet's parent or context
  * - A length (or implied length)
  * - Payload data of a format specific to the packet type name and namespace
- * - Child packets existing in the namespace of this packet 
+ * - Child packets existing in the namespace of this packet
  *
  * NAMESPACE CONSIDERATIONS
  *

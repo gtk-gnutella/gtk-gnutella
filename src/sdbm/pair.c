@@ -77,8 +77,8 @@ exhash_big(DBM *db, const datum item, bool big, bool *failed)
 }
 #endif	/* BIGDATA */
 
-/* 
- * forward 
+/*
+ * forward
  */
 static int seepair(DBM *db, const char *, unsigned, const char *, size_t);
 
@@ -732,7 +732,7 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 	for (ino++; n > 0; ino += 2) {
 		unsigned short koff = offset(ino[0]);
 		unsigned short voff = offset(ino[1]);
-		key.dptr = (char *) pag + koff; 
+		key.dptr = (char *) pag + koff;
 		key.dsize = off - koff;
 		val.dptr = (char *) pag + voff;
 		val.dsize = koff - voff;
@@ -776,7 +776,7 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 			removed, pagcount(pag) / 2, plural(removed), db->pagbno);
 	}
 
-	debug(("%d split %d/%d\n", ((unsigned short *) pag)[0] / 2, 
+	debug(("%d split %d/%d\n", ((unsigned short *) pag)[0] / 2,
 	       ((unsigned short *) pagone)[0] / 2,
 	       ((unsigned short *) pagzero)[0] / 2));
 }

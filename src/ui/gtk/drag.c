@@ -77,7 +77,7 @@ drag_free(struct drag_context **ptr)
 }
 
 #if GTK_CHECK_VERSION(2,0,0)
-gboolean 
+gboolean
 drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 {
 	gboolean ret = FALSE;
@@ -85,14 +85,14 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 
 	g_return_val_if_fail(model, FALSE);
 	g_return_val_if_fail(iter, FALSE);
-	
+
 	gtk_tree_view_get_cursor(tv, &path, NULL);
 	if (path) {
 		*model = gtk_tree_view_get_model(tv);
 		ret = gtk_tree_model_get_iter(*model, iter, path);
 		gtk_tree_path_free(path);
 	}
-	return ret; 
+	return ret;
 }
 
 #define object_ref(obj)		g_object_ref((obj))
@@ -207,7 +207,7 @@ destroy(GtkObject *widget, void *udata)
  * Attaches a drag context to a widget, so that user can drag data from
  * the widget as text. The context can be attached to multiple widgets.
  */
-static void 
+static void
 drag_attach(GtkWidget *widget, drag_get_data_cb callback, gboolean uri_list)
 {
     static const GtkTargetEntry text_targets[] = {
@@ -252,13 +252,13 @@ drag_attach(GtkWidget *widget, drag_get_data_cb callback, gboolean uri_list)
     gui_signal_connect(widget, "destroy",		destroy, ctx);
 }
 
-void 
+void
 drag_attach_text(GtkWidget *widget, drag_get_data_cb callback)
 {
 	drag_attach(widget, callback, FALSE);
 }
 
-void 
+void
 drag_attach_uri(GtkWidget *widget, drag_get_data_cb callback)
 {
 	drag_attach(widget, callback, TRUE);

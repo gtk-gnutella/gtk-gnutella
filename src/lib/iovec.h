@@ -95,7 +95,7 @@ iov_reset_n(iovec_t *iov, size_t n)
  * @param size The amount of bytes to copy from "src".
  * @return The amount of elements initialized. Thus, MIN(iov_cnt, argc).
  */
-static inline size_t 
+static inline size_t
 iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
 	char *argv[], size_t argc)
 {
@@ -134,7 +134,7 @@ iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
  * @param iov_cnt The array length of iov.
  * @return The amount contiguous bytes.
  */
-static inline size_t 
+static inline size_t
 iov_contiguous_size(const iovec_t *iov, size_t iov_cnt)
 {
 	iovec_t iov0;
@@ -168,7 +168,7 @@ static inline void
 iov_clear(iovec_t *iov, size_t byte_offset)
 {
 	g_assert(iov);
-	
+
 	if (byte_offset < iovec_len(iov)) {
 		char *p = iovec_base(iov);
 		memset(&p[byte_offset], 0, iovec_len(iov) - byte_offset);

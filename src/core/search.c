@@ -934,7 +934,7 @@ is_evil_filename(const char *filename)
 		) {
 			return TRUE;
 		}
-		
+
 		if ('\0' == *p)
 			break;
 		p = endptr;
@@ -1942,7 +1942,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		open_parsing_size = 2;		/* We ignore XML data size */
 	}
 
-	if (T_NAPS == rs->vcode.u32) {	
+	if (T_NAPS == rs->vcode.u32) {
 		/*
 		 * NapShare has a one-byte only flag: no enabler, just setters.
 		 *		--RAM, 17/12/2001
@@ -2136,7 +2136,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					/* FIXME: Add the XML data to the next best record.
 					 *		Maybe better to all? It's just an atom.
 					 */
-					rc = rs->records ? rs->records->data : NULL; 
+					rc = rs->records ? rs->records->data : NULL;
 					if (rc && !rc->xml && paylen > 0) {
 						char buf[4096];
 
@@ -2336,7 +2336,7 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs,
  * in the "PRi" extension they are using to encode the ranges as numbers.
  *
  * Numbers are taken from a binary tree starting at 1 and spanning as deep as
- * necessary to have at least enough leaves to cover all the 1 KiB blocks of 
+ * necessary to have at least enough leaves to cover all the 1 KiB blocks of
  * the file.
  *
  * @param n		the node sending us the results with partial file (for logging)
@@ -3786,7 +3786,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 					break;
 				case EXT_T_GGEP_ALT_TLS:	/* TLS-capability bitmap for ALT */
 				case EXT_T_GGEP_ALT6_TLS:	/* TLS-capability bitmap for ALT6 */
-					/* FIXME: Handle this */	
+					/* FIXME: Handle this */
 					break;
 				case EXT_T_GGEP_LF:			/* Large File */
 					{
@@ -4035,13 +4035,13 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 	) {
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		badmsg = "bad trailer";
-		goto bad_packet;		
+		goto bad_packet;
 	}
 
 	if ((rs->status & ST_FIREWALL) && !route_guid_pushable(rs->guid)) {
         gnet_stats_count_dropped(n, MSG_DROP_FROM_BANNED);
 		badmsg = "firewalled origin & banned GUID";
-		goto bad_packet;		
+		goto bad_packet;
 	}
 
 	/*
@@ -4291,7 +4291,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * @param query		the query string
  * @param mtype		media type filtering (0 if none wanted)
  * @param whats_new	whether search message is of the "What's New?" type.
- * @param size		if not-NULL, written with the size of the generated message 
+ * @param size		if not-NULL, written with the size of the generated message
  * @param query_key	the GUESS query key to use (if non-NULL)
  * @param length	length of query key
  * @param udp		whether message will be sent via UDP
@@ -4416,7 +4416,7 @@ build_search_message(const guid_t *muid, const char *query,
 
 	is_sha1_search = urn_get_sha1(query, &sha1);
 
-	{	
+	{
 		size_t len;
 
 		len = strlen(query);
@@ -4475,7 +4475,7 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (QUERY_F_OOB_REPLY & flags) {
-		/* 
+		/*
 		 * Indicate support for OOB v3.
 		 * See doc/gnutella/out-of-band-v3
 		 */
@@ -4736,7 +4736,7 @@ error:
  * @param muid		the MUID to use for the search message
  * @param query		the query string
  * @param mtype		media type filtering (0 if none wanted)
- * @param size		if not-NULL, written with the size of the generated message 
+ * @param size		if not-NULL, written with the size of the generated message
  * @param query_key	the GUESS query key to use
  * @param length	length of query key
  *
@@ -4761,7 +4761,7 @@ build_guess_search_msg(const guid_t *muid, const char *query,
  * @param query		the query string
  * @param mtype		media type filtering (0 if none wanted)
  * @param whats_new	whether search message is of the "What's New?" type.
- * @param size		if not-NULL, written with the size of the generated message 
+ * @param size		if not-NULL, written with the size of the generated message
  *
  * @return NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
@@ -5159,7 +5159,7 @@ search_expired(const search_ctrl_t *sch)
  *
  * @return a new MUID that can be wfree()'d when done.
  */
-static guid_t * 
+static guid_t *
 search_new_muid(bool initial)
 {
 	guid_t *muid;
@@ -5504,7 +5504,7 @@ search_init(void)
 	sha1_to_search = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
-	query_muid_map_init();	
+	query_muid_map_init();
 	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
 	ora_stg = sectoken_gen_new(ORA_KEYS, OOB_REPLY_ACK_TIMEOUT);
 	ora_secure = aging_make(OOB_REPLY_ACK_TIMEOUT,
@@ -5678,11 +5678,11 @@ search_results_set_auto_download(gnet_results_set_t *rs)
 		fi = file_info_has_identical(rc->sha1, rc->size);
 		if (fi) {
 			uint32 flags = 0;
-			
+
 			flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
 			flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
-			
+
 			download_auto_new(rc->filename,
 				rc->size,
 				rs->addr,
@@ -5746,9 +5746,9 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh, const g2_tree_t *t)
 	 */
 	{
 		search_ctrl_t *sch = search_find_by_handle(sh);
-		
+
 		search_ctrl_check(sch);
-		
+
 		if (!sbool_get(sch->frozen))
 			search = pslist_prepend(search,
 						uint_to_pointer(sch->search_handle));
@@ -7418,7 +7418,7 @@ search_locally(gnet_search_t sh, const char *query)
 				char *buf = NULL;
 				size_t buf_size = 0;
 				int ret;
-				
+
 				name = shared_file_name_nfc(sf);
 				path = shared_file_relative_path(sf);
 				if (path) {
@@ -7447,9 +7447,9 @@ search_locally(gnet_search_t sh, const char *query)
 		}
 	}
 
-	if (rs->records) {	
+	if (rs->records) {
 		pslist_t *search;
-		
+
 		rs->status |= ST_PARSED_TRAILER;	/* Avoid <unparsed> in the GUI */
 		search = pslist_prepend(NULL, uint_to_pointer(sch->search_handle));
 		/* Dispatch browse results using a NULL MUID since it's not GUESS */
@@ -7785,7 +7785,7 @@ query_utf8_decode(const char *text, uint *retoff)
 	if (retoff)
 		*retoff = p - text;
 
-	/* Disallow BOM followed by an empty string */	
+	/* Disallow BOM followed by an empty string */
 	return (p == text || '\0' != p[0]) && utf8_is_valid_string(p);
 }
 
@@ -8323,7 +8323,7 @@ search_request_preprocess(gnutella_node_t *n,
 
 				if (EXT_T_GGEP_H == e->ext_token) {
 					int ret;
-				
+
 					ret = ggept_h_sha1_extract(e, sha1);
 					if (GGEP_OK == ret) {
 						/* Okay, but clean it up if it's a bitprint */
@@ -8497,7 +8497,7 @@ search_request_preprocess(gnutella_node_t *n,
 						gmsg_node_infostr(n), ext_to_string(e));
 				}
 			}
-			
+
 			if (drop_it)
 				break;
 		}
@@ -8838,7 +8838,7 @@ skip_throttling:
 				sri->oob, &major, &minor, &release)
 		) {
 			bool requery;
-		   
+
 			gnet_stats_inc_general(GNR_GTKG_TOTAL_QUERIES);
 			requery = guid_is_requery(gnutella_header_get_muid(&n->header));
 			if (requery)
@@ -8896,7 +8896,7 @@ skip_throttling:
 		if (
 			(NODE_IS_LEAF(n) || NODE_IS_UDP(n)) &&
 			is_host_addr(n->gnet_addr) &&
-			host_addr_net(n->gnet_addr) == host_addr_net(sri->addr) && 
+			host_addr_net(n->gnet_addr) == host_addr_net(sri->addr) &&
 			!host_addr_equiv(sri->addr, n->gnet_addr)
 		) {
 			if (NODE_IS_UDP(n)) {
@@ -8976,12 +8976,12 @@ skip_throttling:
 	 * Naturally, we don't do this check for OOB queries, since the reply
 	 * won't be relayed but delivered directly via UDP.
 	 *
-	 *                              --RAM, 2004-11-27                        
+	 *                              --RAM, 2004-11-27
 	 */
 
 	will_oob = sri->oob &&
-			GNET_PROPERTY(process_oob_queries) && 
-			GNET_PROPERTY(recv_solicited_udp) && 
+			GNET_PROPERTY(process_oob_queries) &&
+			GNET_PROPERTY(recv_solicited_udp) &&
 			udp_active() &&
 			gnutella_header_get_hops(&n->header) > 1;
 
@@ -9322,8 +9322,8 @@ search_request(gnutella_node_t *n,
 			flags |= sri->ipv6_only ? QHIT_F_IPV6_ONLY : 0;
 
 			should_oob = oob && !sri->g2_query &&
-							GNET_PROPERTY(process_oob_queries) && 
-							GNET_PROPERTY(recv_solicited_udp) && 
+							GNET_PROPERTY(process_oob_queries) &&
+							GNET_PROPERTY(recv_solicited_udp) &&
 							udp_active() &&
 							gnutella_header_get_hops(&n->header) > 1 &&
 							settings_running_same_net(sri->addr);

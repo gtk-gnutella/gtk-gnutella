@@ -223,7 +223,7 @@ read_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	char buf[1024];
 	datum key;
 	long cpage = 0 == cache ? 64 : cache;
- 
+
 	printf("Starting read test (%ld item%s), cache=%ld page%s...\n",
 		count, plural(count), cpage, plural(cpage));
 
@@ -258,7 +258,7 @@ exist_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	char buf[1024];
 	datum key;
 	long cpage = 0 == cache ? 64 : cache;
- 
+
 	printf("Starting existence test (%ld item%s), cache=%ld page%s...\n",
 		count, plural(count), cpage, plural(cpage));
 

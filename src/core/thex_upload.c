@@ -68,7 +68,7 @@ enum thex_state {
 	THEX_STATE_XML_SENT,
 	THEX_STATE_TREE,
 	THEX_STATE_TREE_SENT,
-	
+
 	NUM_THEX_STATES
 };
 
@@ -85,7 +85,7 @@ struct thex_upload {
 	char *data;
 	size_t size;
 	size_t offset;
-	
+
 	enum thex_state state;
 };
 
@@ -153,7 +153,7 @@ thex_upload_get_xml(struct thex_upload *ctx)
 	return ctx->size > 0 && NULL != ctx->data;
 }
 
-static size_t 
+static size_t
 thex_upload_prepare_tree(char **data_ptr, const struct tth *tth,
 	const struct tth *nodes, size_t n_nodes)
 {
@@ -176,7 +176,7 @@ thex_upload_get_tree(struct thex_upload *ctx)
 	const struct tth *nodes;
 	size_t n_nodes;
 
-	nodes = NULL;	
+	nodes = NULL;
 	n_nodes = tth_cache_get_tree(ctx->tth, ctx->filesize, &nodes);
 	g_return_val_if_fail(n_nodes > 0, FALSE);
 	g_return_val_if_fail(nodes, FALSE);
@@ -185,7 +185,7 @@ thex_upload_get_tree(struct thex_upload *ctx)
 	return ctx->size > 0 && NULL != ctx->data;
 }
 
-static void 
+static void
 thex_upload_free_data(struct thex_upload *ctx)
 {
 	G_FREE_NULL(ctx->data);
@@ -287,10 +287,10 @@ thex_upload_read(struct special_upload *special,
 				}
 			}
 			break;
-			
+
 		case THEX_STATE_TREE_SENT:
 			size = 0;
-			break;	
+			break;
 		case NUM_THEX_STATES:
 			g_assert_not_reached();
 		}
@@ -375,7 +375,7 @@ thex_upload_close(struct special_upload *special, bool fully_served)
 	if (fully_served) {
 		gnet_prop_incr_guint32(PROP_THEX_FILES_SERVED);
 	}
-	
+
 	tx_free(ctx->tx);
 	thex_upload_free_data(ctx);
 	atom_tth_free_null(&ctx->tth);

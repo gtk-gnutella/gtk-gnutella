@@ -355,7 +355,7 @@ search_gui_option_menu_searches_update(void)
 			item = gtk_menu_item_new_with_label(title);
 		}
 		G_FREE_NULL(name);
-	
+
 		gtk_widget_show(item);
 		gtk_object_set_user_data(GTK_OBJECT(item), search);
 		gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), item);
@@ -391,7 +391,7 @@ search_gui_option_menu_searches_thaw(void)
 	g_return_if_fail(option_menu_searches_frozen > 0);
 	if (--option_menu_searches_frozen > 0)
 		return;
-	
+
 	search_gui_option_menu_searches_update();
 	search_gui_option_menu_searches_select(current_search);
 }
@@ -463,9 +463,9 @@ search_gui_update_status_label(const struct search *search)
 		if (time_left) {
 			time_t created;
 			time_delta_t d;
-					
+
 			created = guc_search_get_create_time(search->search_handle);
-					
+
 			d = delta_time(tm_time(), created);
 			d = MAX(0, d);
 			d = UNSIGNED(d) < time_left ? time_left - UNSIGNED(d) : 0;
@@ -629,7 +629,7 @@ search_gui_update_counters(struct search *search)
 	}
 }
 
-static void 
+static void
 search_gui_update_status(struct search *search)
 {
 	/*
@@ -907,7 +907,7 @@ int
 gui_record_sha1_or_name_eq(const void *p1, const void *p2)
 {
 	const struct record *a = p1, *b = p2;
-	
+
     if (a->sha1 || b->sha1)
         return gui_record_sha1_eq(a, b);
     else
@@ -1039,10 +1039,10 @@ static void
 search_gui_remove_record(record_t *rc)
 {
 	results_set_t *rs;
-	
+
 	record_check(rc);
     g_assert(0 == rc->refcount);
-	
+
 	rs = rc->results_set;
 	results_set_check(rs);
 	rc->results_set = NULL;
@@ -1319,7 +1319,7 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
 		prc->mod_time = r->mod_time;
 		rc->partial = prc;
 	}
-	
+
 	{
 		const gchar *utf8_name, *name;
 		gchar *to_free;
@@ -1398,7 +1398,7 @@ search_gui_create_results_set(pslist_t *schl, const gnet_results_set_t *r_set)
 			ignored++;
 		} else {
 			record_t *rc;
-			
+
 			rc = search_gui_create_record(r_set, grc);
     		rc->results_set = rs;
 			rs->records = g_slist_prepend(rs->records, rc);
@@ -1626,7 +1626,7 @@ on_spinbutton_adjustment_value_changed(GtkAdjustment *unused_adj, gpointer data)
     search = search_gui_get_current_search();
     if (search && guc_search_is_active(search->search_handle)) {
     	guint32 timeout;
-		
+
 		timeout = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
 		guc_search_set_reissue_timeout(search->search_handle, timeout);
 		timeout = guc_search_get_reissue_timeout(search->search_handle);
@@ -1871,7 +1871,7 @@ void
 search_gui_set_sort_defaults(void)
 {
 	const search_t *sch;
-	
+
 	sch = current_search;
 	if (sch) {
 		gui_prop_set_guint32_val(PROP_SEARCH_SORT_DEFAULT_COLUMN,
@@ -1948,9 +1948,9 @@ search_gui_get_route(const struct results_set *rs)
 {
 	static gchar addr_buf[128];
 	size_t n;
-		
+
 	results_set_check(rs);
-	
+
 	if (ST_LOCAL & rs->status)
 		return NULL;
 
@@ -1975,7 +1975,7 @@ static enum gui_color
 search_gui_color_for_record(const record_t * const rc)
 {
 	const results_set_t *rs = rc->results_set;
-	
+
 	if (SR_SPAM & rc->flags) {
 		return GUI_COLOR_SPAM;
 	} else if (ST_HOSTILE & rs->status) {
@@ -2201,7 +2201,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			g_assert(rc->refcount >= 0);
 			{
 				filter_result_t *flt_result;
-				
+
 				flt_result = filter_record(sch, rc);
 				filter_state = flt_result->props[FILTER_PROP_DISPLAY].state;
 				filter_udata = flt_result->props[FILTER_PROP_DISPLAY].user_data;
@@ -2214,7 +2214,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			 * Check for FILTER_PROP_DOWNLOAD:
 			 */
 			if (
-				!(SR_DOWNLOADED & rc->flags) && 
+				!(SR_DOWNLOADED & rc->flags) &&
 				!is_hostile &&
 				0 == spam_score &&
 				FILTER_PROP_STATE_DO == filter_download
@@ -2255,7 +2255,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 				sch->ignored++;
 				continue;
 			}
-			
+
 			if (
 				FILTER_PROP_STATE_DONT == filter_state &&
 				int_to_pointer(1) == filter_udata
@@ -2415,7 +2415,7 @@ search_gui_set_current_search(search_t *search)
 			previous->list_refreshed = FALSE;
 			search_gui_update_counters(previous);
 		}
-		if (search) {	
+		if (search) {
 			search_gui_guess_stats_display(search);
 			search_gui_show_search(search);
 			if (search->frozen)
@@ -2529,7 +2529,7 @@ search_gui_flush(time_t now, gboolean force)
 			return;
 	}
     last = now;
-	
+
 	search_gui_flush_info();
 	tm_now_exact(&t0);
 
@@ -2810,7 +2810,7 @@ search_gui_handle_url(const gchar *url, const gchar **error_str)
 		magnet_url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
 	}
-	
+
 	success = guc_download_handle_magnet(magnet_url) > 0;
 	if (success) {
 		statusbar_gui_message(15, _("Created download from URL."));
@@ -2857,7 +2857,7 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 		magnet_url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
 	}
-	
+
 	success = search_gui_handle_magnet(magnet_url, error_str);
 	HFREE_NULL(magnet_url);
 
@@ -2925,7 +2925,7 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 			&search);
 	if (success && search) {
 		bool stopped;
-		
+
 		stopped = search_gui_start_massive_update(search);
 		success = guc_search_locally(search->search_handle, text);
 		if (stopped)
@@ -2946,7 +2946,7 @@ static void
 browse_request_free(struct browse_request **req_ptr)
 {
 	struct browse_request *req;
-	
+
 	g_assert(req_ptr);
 
 	req = *req_ptr;
@@ -3006,7 +3006,7 @@ search_gui_handle_browse(const gchar *s, const gchar **error_str)
 
 	s = is_strcaseprefix(s, "browse:");
 	g_return_val_if_fail(s, FALSE);
-	
+
 	endptr = is_strprefix(s, "tls:");
 	if (endptr) {
 		s = endptr;
@@ -3058,7 +3058,7 @@ search_gui_query_free(struct query **query_ptr)
 	if (*query_ptr) {
 		struct query *query = *query_ptr;
 
-		G_FREE_NULL(query->text);	
+		G_FREE_NULL(query->text);
 		gm_list_free_null(&query->rules);
 		WFREE(query);
 		*query_ptr = NULL;
@@ -3126,7 +3126,7 @@ search_gui_handle_query(const gchar *query_str, guint32 flags,
 		return NULL;
 	}
 
-	{	
+	{
 		static const struct query zero_query;
 		struct query *query;
 
@@ -3196,7 +3196,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	}
 	g_assert(query);
 	g_assert(query->text);
-	
+
 	result = guc_search_new(&sch_id, query->text, mtype, create_time, lifetime,
 				reissue_timeout, flags);
 	if (SEARCH_NEW_SUCCESS != result) {
@@ -3225,7 +3225,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	default:
 		search->sorting.s_order = SORT_NONE;
 	}
- 
+
 	search->search_handle = sch_id;
 	search->dups = hset_create_any(search_gui_hash_func,
 		search_gui_hash_func2, search_gui_hash_key_compare);
@@ -3240,7 +3240,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	search_gui_start_massive_update(search);
 	gtk_widget_hide(search->tree);
 	gui_color_init(GTK_WIDGET(search->tree));
-	widget_add_popup_menu(search->tree, search_gui_get_popup_menu);	
+	widget_add_popup_menu(search->tree, search_gui_get_popup_menu);
 	if (search_gui_is_local(search)) {
 		drag_attach_uri(search->tree, search_gui_get_local_file_url);
 	}
@@ -3341,7 +3341,7 @@ search_gui_insert_query(const gchar *text)
 #if GTK_CHECK_VERSION(2,0,0)
 	g_return_val_if_fail(utf8_is_valid_string(text), FALSE);
 #endif	/* Gtk+ >= 2.0 */
-	
+
     entry = GTK_ENTRY(gui_main_window_lookup("entry_search"));
 	gtk_entry_set_text(entry, text);
 	return TRUE;
@@ -3355,11 +3355,11 @@ search_gui_new_search_entered(void)
 {
 	GtkWidget *entry;
 	gchar *text;
-	
+
     entry = gui_main_window_lookup("entry_search");
    	text = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(entry), 0, -1));
     g_strstrip(text);
-	
+
 	if ('\0' != text[0]) {
         filter_t *default_filter;
         search_t *search;
@@ -3754,7 +3754,7 @@ static gboolean
 search_results_show_tabs_changed(property_t prop)
 {
 	gboolean enabled;
-	
+
     gui_prop_get_boolean_val(prop, &enabled);
 	gtk_notebook_set_show_tabs(notebook_search_results, enabled);
 	widget_set_visible(gui_main_window_lookup("sw_searches"), !enabled);
@@ -3868,7 +3868,7 @@ on_popup_search_sort_defaults_activate(GtkMenuItem *unused_menuitem,
 {
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
+
 	search_gui_set_sort_defaults();
 }
 
@@ -4053,7 +4053,7 @@ search_gui_set_details(const record_t *rc)
 	if (utf8_can_latinize(rc->utf8_name)) {
 		size_t size;
 		gchar *buf;
-		
+
 		size = 1 + utf8_latinize(NULL, 0, rc->utf8_name);
 		buf = walloc(size);
 		utf8_latinize(buf, size, rc->utf8_name);
@@ -4286,7 +4286,7 @@ drag_data_received(GtkWidget *widget, GdkDragContext *dc,
 		if (GUI_PROPERTY(gui_debug) > 0) {
 			g_debug("drag_data_received: text=\"%s\"", text);
 		}
-		
+
 		if (gui_main_window_lookup("entry_search") != widget) {
 			for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
 				const char *endptr;
@@ -4340,7 +4340,7 @@ search_gui_magnet_add_source(struct magnet_resource *magnet, record_t *record)
 	g_return_if_fail(magnet);
 	g_return_if_fail(record);
 	record_check(record);
-	
+
 	rs = record->results_set;
 
 	if (!(ST_FIREWALL & rs->status)) {
@@ -4505,7 +4505,7 @@ search_gui_signals_init(void)
 #define WIDGET_SIGNAL_CONNECT(widget, event) \
 		gui_signal_connect(gui_main_window_lookup(#widget), #event, \
 			on_ ## widget ## _ ## event, NULL)
-	
+
 	WIDGET_SIGNAL_CONNECT(button_search, clicked);
 	WIDGET_SIGNAL_CONNECT(button_search_clear, clicked);
 	WIDGET_SIGNAL_CONNECT(button_search_close, clicked);
@@ -4658,7 +4658,7 @@ search_gui_common_init(void)
 
 	{
 		GtkNotebook *nb;
-		
+
 		nb = GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 		notebook_search_results = nb;
 
@@ -4673,7 +4673,7 @@ search_gui_common_init(void)
 	{
 		GtkWidget *widget;
 	    GtkAdjustment *adj;
-		
+
 		widget = gui_main_window_lookup("spinbutton_search_reissue_timeout");
  		adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(widget));
 		gui_signal_connect_after(adj, "value-changed",
@@ -4681,7 +4681,7 @@ search_gui_common_init(void)
 	}
 
 	drop_widget_init(gui_main_window(), drag_data_received, NULL);
-	
+
 #if !GTK_CHECK_VERSION(2,0,0)
 	drop_widget_init(gui_main_window_lookup("entry_search"),
 		drag_data_received, NULL);

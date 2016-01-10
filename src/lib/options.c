@@ -86,7 +86,7 @@ options_parse_last_error(void)
  * or be given by the next argument.
  *
  * Unrecognized options or missing arguments stop processing.
- * 
+ *
  * @param argv		the initial argument vector
  * @param ovec		the single-letter option description vector
  * @param osize		the amount of entries in ovec
@@ -158,7 +158,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 			 * We're expecting the next argument to be the value of the switch
 			 * we parsed earlier.
 			 */
-			
+
 			if (current->value)
 				*current->value = arg;
 

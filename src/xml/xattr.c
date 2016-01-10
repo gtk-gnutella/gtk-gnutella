@@ -81,7 +81,7 @@ struct xattr {
 	char *value;				/**< Attribute value */
 };
 
-/** 
+/**
  * Attribute key hashing.
  */
 static unsigned
@@ -365,7 +365,7 @@ xattr_table_foreach_wrap(void *key, void *data)
 {
 	struct xattr *xa = key;
 	struct xattr_table_foreach_ctx *ctx = data;
-	
+
 	(*ctx->func)(xa->uri, xa->local, xa->value, ctx->data);
 }
 

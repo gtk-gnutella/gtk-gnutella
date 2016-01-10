@@ -81,7 +81,7 @@ strtok_t *
 strtok_make(const char *string, bool no_lead, bool no_end)
 {
 	strtok_t *s;
-	
+
 	WALLOC(s);
 	s->magic = STRTOK_MAGIC;
 	s->string = string;

@@ -574,7 +574,7 @@ static gboolean
 display_metric_units_changed(property_t prop)
 {
 	GtkWidget *widget;
-	
+
     widget = gui_dlg_prefs_lookup("checkbutton_config_metric");
     gnet_prop_get_boolean_val(prop, &current_display_metric_units);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -1671,7 +1671,7 @@ ancient_version_left_days_changed(property_t prop)
 
 	if (remain == 0)
 		statusbar_gui_message(15, _("*** Please update gtk-gnutella ***"));
-	else 
+	else
 		statusbar_gui_message(15,
 			NG_("*** VERSION WILL BECOME OLD IN %d DAY! ***",
 				"*** VERSION WILL BECOME OLD IN %d DAYS! ***", remain),
@@ -2158,7 +2158,7 @@ update_address_information(void)
 			addr_buf,
 			'\0' != addr_buf[0] && '\0' != addr_v6_buf[0] ? ", " : "",
 			addr_v6_buf, NULL_PTR);
-		
+
         old_address = addr;
         old_v6_address = addr_v6;
         old_port = port;
@@ -2762,7 +2762,7 @@ uploads_count_changed(property_t unused_prop)
 	guint32 running;
 
 	(void) unused_prop;
-	
+
     pg = GTK_PROGRESS_BAR(gui_main_window_lookup("progressbar_uploads"));
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
@@ -5154,7 +5154,7 @@ static prop_map_t property_map[] = {
         hosts_in_ultra_catcher_changed,
         TRUE,
         "progressbar_hosts_in_ultra_catcher",
-        FREQ_SECS, 5 
+        FREQ_SECS, 5
     ),
     PROP_ENTRY(
         gui_main_window,
@@ -6050,7 +6050,7 @@ static prop_map_t property_map[] = {
         PROP_DOWNLOAD_QUEUE_FROZEN,
         update_queue_frozen,
         TRUE,
-       	NULL, 
+       	NULL,
         FREQ_UPDATES, 0
     ),
 #ifdef USE_GTK2

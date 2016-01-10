@@ -172,7 +172,7 @@ gnet_stats_init(void)
 	g_assert(MSG_UNKNOWN == stats_lut[G_N_ELEMENTS(stats_lut) - 1]);
 
 #undef CASE
-		
+
     ZERO(&gnet_stats);
     ZERO(&gnet_udp_stats);
 }

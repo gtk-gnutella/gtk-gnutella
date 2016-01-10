@@ -66,7 +66,7 @@ const char *search_gui_query(const struct search *);
 unsigned search_gui_media_type(const struct search *);
 
 void search_gui_record_check(const struct record *);
-	
+
 /**
  * Metadata Update.
  */

@@ -69,13 +69,13 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 	if (!string_to_host_or_addr(host, &endptr, NULL))
 		goto error;
-	
+
 	switch (endptr[0]) {
 	case ':':
 		{
 			size_t n;
-		  
-		    endptr++;	
+
+		    endptr++;
 			n = endptr - host;
 			n = MIN(n, sizeof host_buf);
 			g_strlcpy(host_buf, host, n);
@@ -152,7 +152,7 @@ shell_exec_node_drop(struct gnutella_shell *sh, int argc, const char *argv[])
 	} else {
 		port = 0;
 	}
-	
+
 	{
 		unsigned n = node_remove_by_addr(addr, port);
 		shell_write_linef(sh, REPLY_READY,

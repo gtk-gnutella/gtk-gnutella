@@ -235,7 +235,7 @@ spam_sha1_load(FILE *f)
 			g_warning("%s(): bad SHA-1 in line %u.", G_STRFUNC, line_no);
 			continue;
 		}
-		
+
 		sha1 = base32_sha1(line);
 		if (NULL == sha1) {
 			g_warning("%s(): could not parse SHA-1 in line %u.",
@@ -256,7 +256,7 @@ spam_sha1_load(FILE *f)
 }
 
 /**
- * Watcher callback, invoked when the file from which we read the spam 
+ * Watcher callback, invoked when the file from which we read the spam
  * changed.
  */
 static void

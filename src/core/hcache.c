@@ -84,7 +84,7 @@
 
 #define HOSTCACHE_EXPIRY (60 * 30) /* 30 minutes */
 
-#define HCACHE_SAVE_PERIOD	63		/**< in seconds, every minute or so */			
+#define HCACHE_SAVE_PERIOD	63		/**< in seconds, every minute or so */
 #define MIN_RESERVE_SIZE	1024	/**< we'd like that many pongs in reserve */
 
 /**
@@ -530,7 +530,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 
 	start_mass_update(to);
 	start_mass_update(from);
-	
+
 	hash_list_free(&to->hostlist);
     to->hostlist = from->hostlist;
     from->hostlist = hash_list_new(NULL, NULL);
@@ -603,7 +603,7 @@ static void
 hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 {
 	const void *orig_key;
-	
+
 	g_assert(hc->hostlist != NULL);
 	g_assert(hash_list_length(hc->hostlist) > 0);
 
@@ -769,7 +769,7 @@ hcache_request_slot(hcache_type_t type)
  * When the host passes validation checks and should be added to the cache,
  * anyone waiting via wq_sleep() on the "hcache_add" key is notified about
  * the new host, the wakeup information supplying a hcache_new_host structure.
- * 
+ *
  * @return TRUE when IP/port passed sanity checks, regardless of whether it
  *         was added to the cache. (See above)
  */
@@ -950,7 +950,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 		hce->type = type;
 		hce->time_added = added;
-		
+
 		if (hc->mass_update == 0) {
 			gnet_prop_incr_guint32(hc->hosts_in_catcher);
 		}
@@ -1723,7 +1723,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, uint16 *port)
 
 	*addr = zero_host_addr;
 	*port = 0;
-	
+
     switch (type) {
     case HOST_ANY:
         hc = caches[HCACHE_FRESH_ANY];
@@ -1908,7 +1908,7 @@ hcache_write(FILE *f, hostcache_t *hc)
 		hce = hcache_get_metadata(hc->class, h);
     	if (hce == NULL || hce == NO_METADATA)
 			continue;
-		
+
 		fprintf(f, "%s %s\n",
 			gnet_host_to_string(h), timestamp_utc_to_string(hce->time_added));
 	}

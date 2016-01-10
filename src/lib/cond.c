@@ -1034,7 +1034,7 @@ signaled:
 	 * On-the-fly extensions of a condition variable is only possible under
 	 * rare circumstances, and we protect it with a global spinlock.  We need
 	 * to hold that lock until after we can lock the condition variable.
-	 * 
+	 *
 	 * Here we know there won't be any deadlock possible because the locking
 	 * order is always the same: the global lock, then the condition variable.
 	 */

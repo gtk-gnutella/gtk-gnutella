@@ -1407,7 +1407,7 @@ void
 tls_bye(struct gnutella_socket *s)
 {
 	int ret;
-	
+
 	socket_check(s);
 	g_return_if_fail(s->tls.ctx);
 	g_return_if_fail(s->tls.ctx->session);
@@ -1508,7 +1508,7 @@ svn_release_notify_certificate(void)
 			return NULL;
 		}
 	}
-	return cert; 
+	return cert;
 }
 
 bool

@@ -109,7 +109,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	PSLIST_FOREACH(props, sl) {
 		property_t prop;
-	   
+
 		prop = pointer_to_uint(sl->data);
 		shell_write(sh, gnet_prop_name(prop));
 		if (values) {

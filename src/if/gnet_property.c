@@ -281,7 +281,7 @@ guint32  gnet_property_variable_proxy_port     = 0x0000;
 static const guint32  gnet_property_variable_proxy_port_default = 0x0000;
 guint32  gnet_property_variable_proxy_protocol     = PROXY_NONE;
 static const guint32  gnet_property_variable_proxy_protocol_default = PROXY_NONE;
-prop_def_choice_t gnet_property_variable_proxy_protocol_choices[] = { 
+prop_def_choice_t gnet_property_variable_proxy_protocol_choices[] = {
     {N_("No proxy"), PROXY_NONE},
     {N_("HTTP"), PROXY_HTTP},
     {N_("SOCKS v4"), PROXY_SOCKSV4},
@@ -290,7 +290,7 @@ prop_def_choice_t gnet_property_variable_proxy_protocol_choices[] = {
 };
 guint32  gnet_property_variable_network_protocol     = NET_USE_BOTH;
 static const guint32  gnet_property_variable_network_protocol_default = NET_USE_BOTH;
-prop_def_choice_t gnet_property_variable_network_protocol_choices[] = { 
+prop_def_choice_t gnet_property_variable_network_protocol_choices[] = {
     {N_("IPv4 only"), NET_USE_IPV4},
     {N_("IPv6 only"), NET_USE_IPV6},
     {N_("IPv4 and IPv6"), NET_USE_BOTH},
@@ -429,7 +429,7 @@ guint32  gnet_property_variable_max_leaves     = 300;
 static const guint32  gnet_property_variable_max_leaves_default = 300;
 guint32  gnet_property_variable_search_handle_ignored_files     = 0;
 static const guint32  gnet_property_variable_search_handle_ignored_files_default = 0;
-prop_def_choice_t gnet_property_variable_search_handle_ignored_files_choices[] = { 
+prop_def_choice_t gnet_property_variable_search_handle_ignored_files_choices[] = {
     {N_("displayed normally"), 0},
     {N_("displayed marked"), 1},
     {N_("not displayed"), 2},
@@ -437,7 +437,7 @@ prop_def_choice_t gnet_property_variable_search_handle_ignored_files_choices[] =
 };
 guint32  gnet_property_variable_configured_peermode     = NODE_P_AUTO;
 static const guint32  gnet_property_variable_configured_peermode_default = NODE_P_AUTO;
-prop_def_choice_t gnet_property_variable_configured_peermode_choices[] = { 
+prop_def_choice_t gnet_property_variable_configured_peermode_choices[] = {
     {N_("auto (recommended)"), NODE_P_AUTO},
     {N_("ultra node"), NODE_P_ULTRA},
     {N_("leaf node"), NODE_P_LEAF},
@@ -445,7 +445,7 @@ prop_def_choice_t gnet_property_variable_configured_peermode_choices[] = {
 };
 guint32  gnet_property_variable_current_peermode     = 0;
 static const guint32  gnet_property_variable_current_peermode_default = 0;
-prop_def_choice_t gnet_property_variable_current_peermode_choices[] = { 
+prop_def_choice_t gnet_property_variable_current_peermode_choices[] = {
     {N_("ultra node"), NODE_P_ULTRA},
     {N_("leaf node"), NODE_P_LEAF},
     {NULL, 0}
@@ -728,7 +728,7 @@ gboolean gnet_property_variable_dht_storage_in_memory     = FALSE;
 static const gboolean gnet_property_variable_dht_storage_in_memory_default = FALSE;
 guint32  gnet_property_variable_download_trace     = SOCK_TRACE_NONE;
 static const guint32  gnet_property_variable_download_trace_default = SOCK_TRACE_NONE;
-prop_def_choice_t gnet_property_variable_download_trace_choices[] = { 
+prop_def_choice_t gnet_property_variable_download_trace_choices[] = {
     {N_("none"), SOCK_TRACE_NONE},
     {N_("input only"), SOCK_TRACE_IN},
     {N_("output only"), SOCK_TRACE_OUT},
@@ -737,7 +737,7 @@ prop_def_choice_t gnet_property_variable_download_trace_choices[] = {
 };
 guint32  gnet_property_variable_upload_trace     = SOCK_TRACE_NONE;
 static const guint32  gnet_property_variable_upload_trace_default = SOCK_TRACE_NONE;
-prop_def_choice_t gnet_property_variable_upload_trace_choices[] = { 
+prop_def_choice_t gnet_property_variable_upload_trace_choices[] = {
     {N_("none"), SOCK_TRACE_NONE},
     {N_("input only"), SOCK_TRACE_IN},
     {N_("output only"), SOCK_TRACE_OUT},
@@ -746,7 +746,7 @@ prop_def_choice_t gnet_property_variable_upload_trace_choices[] = {
 };
 guint32  gnet_property_variable_gnet_trace     = SOCK_TRACE_NONE;
 static const guint32  gnet_property_variable_gnet_trace_default = SOCK_TRACE_NONE;
-prop_def_choice_t gnet_property_variable_gnet_trace_choices[] = { 
+prop_def_choice_t gnet_property_variable_gnet_trace_choices[] = {
     {N_("none"), SOCK_TRACE_NONE},
     {N_("input only"), SOCK_TRACE_IN},
     {N_("output only"), SOCK_TRACE_OUT},
@@ -755,7 +755,7 @@ prop_def_choice_t gnet_property_variable_gnet_trace_choices[] = {
 };
 guint32  gnet_property_variable_push_proxy_trace     = SOCK_TRACE_NONE;
 static const guint32  gnet_property_variable_push_proxy_trace_default = SOCK_TRACE_NONE;
-prop_def_choice_t gnet_property_variable_push_proxy_trace_choices[] = { 
+prop_def_choice_t gnet_property_variable_push_proxy_trace_choices[] = {
     {N_("none"), SOCK_TRACE_NONE},
     {N_("input only"), SOCK_TRACE_IN},
     {N_("output only"), SOCK_TRACE_OUT},
@@ -764,7 +764,7 @@ prop_def_choice_t gnet_property_variable_push_proxy_trace_choices[] = {
 };
 guint32  gnet_property_variable_http_trace     = SOCK_TRACE_NONE;
 static const guint32  gnet_property_variable_http_trace_default = SOCK_TRACE_NONE;
-prop_def_choice_t gnet_property_variable_http_trace_choices[] = { 
+prop_def_choice_t gnet_property_variable_http_trace_choices[] = {
     {N_("none"), SOCK_TRACE_NONE},
     {N_("input only"), SOCK_TRACE_IN},
     {N_("output only"), SOCK_TRACE_OUT},
@@ -829,7 +829,7 @@ guint32  gnet_property_variable_publisher_debug     = 0;
 static const guint32  gnet_property_variable_publisher_debug_default = 0;
 guint32  gnet_property_variable_dht_trace     = SOCK_TRACE_NONE;
 static const guint32  gnet_property_variable_dht_trace_default = SOCK_TRACE_NONE;
-prop_def_choice_t gnet_property_variable_dht_trace_choices[] = { 
+prop_def_choice_t gnet_property_variable_dht_trace_choices[] = {
     {N_("none"), SOCK_TRACE_NONE},
     {N_("input only"), SOCK_TRACE_IN},
     {N_("output only"), SOCK_TRACE_OUT},
@@ -860,7 +860,7 @@ guint64  gnet_property_variable_cpu_freq_max     = 0;
 static const guint64  gnet_property_variable_cpu_freq_max_default = 0;
 guint32  gnet_property_variable_dht_boot_status     = 0;
 static const guint32  gnet_property_variable_dht_boot_status_default = 0;
-prop_def_choice_t gnet_property_variable_dht_boot_status_choices[] = { 
+prop_def_choice_t gnet_property_variable_dht_boot_status_choices[] = {
     {N_("none"), DHT_BOOT_NONE},
     {N_("seeded"), DHT_BOOT_SEEDED},
     {N_("own KUID lookup"), DHT_BOOT_OWN},
@@ -871,14 +871,14 @@ prop_def_choice_t gnet_property_variable_dht_boot_status_choices[] = {
 };
 guint32  gnet_property_variable_dht_configured_mode     = 1;
 static const guint32  gnet_property_variable_dht_configured_mode_default = 1;
-prop_def_choice_t gnet_property_variable_dht_configured_mode_choices[] = { 
+prop_def_choice_t gnet_property_variable_dht_configured_mode_choices[] = {
     {N_("active (recommended)"), DHT_MODE_ACTIVE},
     {N_("passive"), DHT_MODE_PASSIVE},
     {NULL, 0}
 };
 guint32  gnet_property_variable_dht_current_mode     = 1;
 static const guint32  gnet_property_variable_dht_current_mode_default = 1;
-prop_def_choice_t gnet_property_variable_dht_current_mode_choices[] = { 
+prop_def_choice_t gnet_property_variable_dht_current_mode_choices[] = {
     {N_("active (recommended)"), DHT_MODE_ACTIVE},
     {N_("passive"), DHT_MODE_PASSIVE},
     {NULL, 0}
@@ -904,7 +904,7 @@ guint32  gnet_property_variable_soap_debug     = 0;
 static const guint32  gnet_property_variable_soap_debug_default = 0;
 guint32  gnet_property_variable_soap_trace     = SOCK_TRACE_NONE;
 static const guint32  gnet_property_variable_soap_trace_default = SOCK_TRACE_NONE;
-prop_def_choice_t gnet_property_variable_soap_trace_choices[] = { 
+prop_def_choice_t gnet_property_variable_soap_trace_choices[] = {
     {N_("none"), SOCK_TRACE_NONE},
     {N_("input only"), SOCK_TRACE_IN},
     {N_("output only"), SOCK_TRACE_OUT},
@@ -11533,7 +11533,7 @@ gnet_prop_get_by_regex(const char *pattern, int *error)
 void
 gnet_prop_set_from_string(property_t prop, const char *val)
 {
-	prop_set_from_string(gnet_property, prop, val, FALSE);	
+	prop_set_from_string(gnet_property, prop, val, FALSE);
 }
 
 /**

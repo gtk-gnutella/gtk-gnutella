@@ -209,7 +209,7 @@ timestamp_gmt_offset(time_t date, struct tm **tm_ptr)
 {
 	struct tm *tm;
 	struct tm gmt_tm;
-	
+
 	tm = gmtime(&date);
 	gmt_tm = *tm;					/* struct copy */
 	tm = localtime(&date);
@@ -229,7 +229,7 @@ timestamp_gmt_offset(time_t date, struct tm **tm_ptr)
  * @param size The size of of "buf".
  * @return The length of the created string.
  */
-static size_t 
+static size_t
 timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 {
 	struct tm *tm;
@@ -311,7 +311,7 @@ timestamp_rfc822_to_string2(time_t date)
  * @param size The size of of "buf".
  * @return The length of the created string.
  */
-static size_t 
+static size_t
 timestamp_rfc1123_to_string_buf(time_t date, char *buf, size_t size)
 {
 	const struct tm *tm;

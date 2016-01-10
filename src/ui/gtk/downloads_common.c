@@ -318,7 +318,7 @@ downloads_gui_status_string(const struct download *d)
 	download_check(d);
 	fi = d->file_info;
 	file_info_check(fi);
-		
+
 	switch (d->status) {
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
@@ -328,7 +328,7 @@ downloads_gui_status_string(const struct download *d)
 			elapsed = delta_time(now, d->last_update);
 			elapsed = MAX(0, elapsed);
 			elapsed = MIN(elapsed, INT_MAX);
-			
+
 			rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
 
 			if (guc_get_parq_dl_position(d) > 0) {
@@ -486,7 +486,7 @@ downloads_gui_status_string(const struct download *d)
 		} else {
 			if (d->last_update != d->start_date) {
 				time_delta_t t = delta_time(d->last_update, d->start_date);
-				
+
 				rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 					FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
 					short_rate(
@@ -528,7 +528,7 @@ downloads_gui_status_string(const struct download *d)
 		g_assert(fi->vrfy_hashed <= fi->size);
 		{
 			const char *sha1_status;
-			
+
 			if (fi->cha1) {
 				if (fi->sha1) {
 					sha1_status = sha1_eq(fi->sha1, fi->cha1)
@@ -544,7 +544,7 @@ downloads_gui_status_string(const struct download *d)
 
 			if (fi->cha1 && fi->vrfy_hashed) {
 				unsigned elapsed = fi->vrfy_elapsed;
-			
+
 				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%s) %s",
 					short_rate(fi->vrfy_hashed / (elapsed ? elapsed : 1),
@@ -680,7 +680,7 @@ downloads_gui_status_string(const struct download *d)
 		{
 			time_delta_t elapsed;
 			unsigned when;
-			
+
 			elapsed = delta_time(now, d->last_update);
 			if (elapsed < (time_delta_t) d->timeout_delay) {
 				elapsed = MAX(0, elapsed);
@@ -695,7 +695,7 @@ downloads_gui_status_string(const struct download *d)
 	case GTA_DL_SINKING:
 		{
 			char buf[UINT64_DEC_BUFLEN];
-			
+
 			uint64_to_string_buf(d->sinkleft, buf, sizeof buf);
 			rw = str_bprintf(tmpstr, sizeof tmpstr,
 				_("Sinking (%s bytes left)"), buf);
@@ -964,7 +964,7 @@ on_popup_downloads_start_now_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	selected_files_foreach_source(guc_download_start);	
+	selected_files_foreach_source(guc_download_start);
 }
 
 static void
@@ -1092,7 +1092,7 @@ on_popup_sources_start_now_activate(GtkMenuItem *unused_menuitem,
 {
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_start(d);
 	} SELECTED_SOURCES_FOREACH_END
@@ -1106,7 +1106,7 @@ on_popup_sources_push_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
+
    	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
    	gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &firewalled);
 
@@ -1297,7 +1297,7 @@ fi_gui_file_set_filename(struct fileinfo_data *file)
     gnet_fi_info_t *info;
 
 	g_return_if_fail(file);
-	
+
     info = guc_fi_get_info(file->handle);
     g_return_if_fail(info);
 
@@ -1337,7 +1337,7 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->dht_lookup_pending = status.dht_lookup_pending;
 	file->dht_lookup_successful = 0 != status.dht_values;
 
-	HFREE_NULL(file->status);	
+	HFREE_NULL(file->status);
 	file->status = h_strdup(guc_file_info_status_to_string(&status));
 }
 
@@ -1397,7 +1397,7 @@ static char *
 fi_gui_file_get_file_url_at_cursor(GtkWidget *unused_widget)
 {
 	struct fileinfo_data *file;
-	
+
 	(void) unused_widget;
 	file = fi_gui_get_file_at_cursor();
 	return file ? fi_gui_file_get_file_url(file) : NULL;
@@ -1419,7 +1419,7 @@ fi_gui_fi_added(gnet_fi_t handle)
 {
 	static const struct fileinfo_data zero_data;
 	struct fileinfo_data *file;
-	
+
 	g_return_if_fail(!htable_contains(fi_handles, uint_to_pointer(handle)));
 
 	WALLOC(file);
@@ -1478,11 +1478,11 @@ fi_gui_set_aliases(struct fileinfo_data *file)
     char **aliases;
 
 	g_return_if_fail(file);
-	
+
 	fi_gui_clear_aliases();
     aliases = guc_fi_get_aliases(file->handle);
 	g_return_if_fail(aliases);
-	
+
 	fi_gui_show_aliases((const char **) aliases);
     xstrfreev(aliases);
 }
@@ -1972,10 +1972,10 @@ fi_handles_visualize(const void *key, void *value, void *unused_udata)
 {
 	struct fileinfo_data *file = value;
 	gnet_fi_t handle = pointer_to_uint(key);
-	
+
 	g_assert(value);
 	(void) unused_udata;
-	
+
 	g_assert(handle == file->handle);
 	fi_gui_file_invalidate(file);
 	fi_gui_file_update_visibility(file);
@@ -2276,10 +2276,10 @@ fi_handles_filter(const void *key, void *value, void *unused_udata)
 {
 	struct fileinfo_data *file = value;
 	gnet_fi_t handle = pointer_to_uint(key);
-	
+
 	g_assert(value);
 	(void) unused_udata;
-	
+
 	g_assert(handle == file->handle);
 	fi_gui_file_update_matched(file);
 	fi_gui_file_update_visibility(file);
@@ -2308,7 +2308,7 @@ fi_gui_filter_by_regex(const char *expr)
 	filter_regex_clear();
 	if (expr && 0 != strcmp(expr, "")) {
 		int ret, flags;
-	
+
 		flags = REG_EXTENDED | REG_NOSUB;
 		flags |= filter_regex_case_sensitive ? 0 : REG_ICASE;
 		filter_regex = g_malloc(sizeof *filter_regex);
@@ -2389,7 +2389,7 @@ fi_gui_common_init(void)
 		FREQ_SECS, 0);
     guc_src_add_listener(fi_gui_src_info_changed, EV_SRC_INFO_CHANGED,
 		FREQ_SECS, 0);
-	
+
 	gtk_widget_set_sensitive(
 		gui_main_window_lookup("button_downloads_clear_stopped"),
 		TRUE);
@@ -2404,10 +2404,10 @@ fi_handles_shutdown(const void *key, void *value, void *unused_data)
 {
 	struct fileinfo_data *file = value;
 	gnet_fi_t handle = pointer_to_uint(key);
-	
+
 	(void) unused_data;
 	g_assert(value);
-	
+
 	g_assert(handle == file->handle);
 	fi_gui_file_free(file);
 }

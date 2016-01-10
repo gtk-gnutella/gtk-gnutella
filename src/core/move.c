@@ -403,7 +403,7 @@ error:
 			download_basename(md->d),
 			filesize_to_gstring(md->size / md->elapsed), md->error);
 	}
- 
+
 	/* FALL THROUGH */
 
 finish:

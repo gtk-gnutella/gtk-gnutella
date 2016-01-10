@@ -45,7 +45,7 @@
  * all the bandwidth was not consumed, incoming packets are sent immediately
  * until no more bandwidth is available, at which point we start queuing again.
  *
- * An scheduling queue is maintained by priority to send traffic ahead of any 
+ * An scheduling queue is maintained by priority to send traffic ahead of any
  * other less prioritary packets.  This is typically used for acknowledgments,
  * since delaying an ACK will likely cause retransmission on the other end.
  *
@@ -258,7 +258,7 @@ udp_tx_desc_flag_release(struct udp_tx_desc *txd, udp_sched_t *us)
 
 /**
  * Release message (eslist iterator).
- * 
+ *
  * @return TRUE to force message to be removed from list.
  */
 static bool
@@ -277,7 +277,7 @@ udp_tx_desc_reclaim(void *data, void *udata)
 
 /**
  * Drop message (eslist iterator).
- * 
+ *
  * @return TRUE to force message to be removed from list.
  */
 static bool
@@ -428,7 +428,7 @@ udp_tx_drop(const txdrv_t *tx, const struct tx_dgram_cb *cb)
  * bandwidth to send anything.
  */
 static bool
-udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to, 
+udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	const txdrv_t *tx, const struct tx_dgram_cb *cb)
 {
 	ssize_t r;
@@ -588,7 +588,7 @@ udp_sched_bw_per_second(const udp_sched_t *us)
  * @return 0 if message was unsent, length of message if sent, queued or
  * dropped.
  */
-size_t 
+size_t
 udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	const txdrv_t *tx, const struct tx_dgram_cb *cb)
 {

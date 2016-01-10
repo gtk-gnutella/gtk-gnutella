@@ -140,7 +140,7 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 
 	g_return_val_if_fail(widget != NULL, NULL);
 	g_return_val_if_fail(i >= 0, NULL);
-	
+
 	if (i < GTK_CLIST(widget)->columns) {
 		gchar *title;
 		gboolean visible;
@@ -151,7 +151,7 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem), visible);
 	}
 	*menuitem_ptr = menuitem;
-		
+
 	return GINT_TO_POINTER(i);
 }
 #endif /* Gtk+ >= 2.0 */

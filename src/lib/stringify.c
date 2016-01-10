@@ -101,7 +101,7 @@ ipv4_to_string_buf(uint32 ipv4, char *dst, size_t size)
 
 	for (i = 0; i < 4; i++) {
 		uchar v;
-	   
+
 		v = (ipv4 >> 24) & 0xff;
 		ipv4 <<= 8;
 
@@ -1050,7 +1050,7 @@ control_escape(const char *s)
 
 		return escaped;
 	}
-	
+
 	return deconstify_gchar(s);
 }
 
@@ -1063,7 +1063,7 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
 	if (is_ascii_alnum(c) || (c < 0x80 && strchr(safe_chars, c))) {
 		if (esc)
 			*esc = c;
-		
+
 		return 1;
 	} else {
 		if (esc) {
@@ -1087,7 +1087,7 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
  *
  * @param src The string to escape.
  * @return The escaped string. MUST NOT be freed.
- */ 
+ */
 const char *
 lazy_string_to_printf_escape(const char *src)
 {
@@ -1127,7 +1127,7 @@ lazy_string_to_printf_escape(const char *src)
 	*p = '\0';
 
 	memcpy(bd, &prev, sizeof prev);
-	return NOT_LEAKING(prev);	
+	return NOT_LEAKING(prev);
 }
 
 /**
@@ -1379,7 +1379,7 @@ time_locale_to_string_buf(time_t t, char *dst, size_t size)
 	const struct tm *tm = localtime(&t);
 	size_t len;
 
-	g_assert(size > 0);	
+	g_assert(size > 0);
 
 	len = strftime(dst, size, "%X", tm);
 	dst[len] = '\0';

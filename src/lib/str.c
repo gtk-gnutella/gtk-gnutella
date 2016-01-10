@@ -906,7 +906,7 @@ str_ncat(str_t *str, const char *string, size_t len)
 		return;
 
 	str_makeroom(str, len + 1);			/* Allow for trailing NUL */
-	p = str->s_data + str->s_len; 
+	p = str->s_data + str->s_len;
 	q = string;
 
 	while (len > 0 && '\0' != (c = *q++)) {
@@ -963,7 +963,7 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 		str_makeroom(str, len + 1);			/* Allow for trailing NUL */
 	}
 
-	p = str->s_data + str->s_len; 
+	p = str->s_data + str->s_len;
 	q = string;
 
 	while (len > 0 && '\0' != (c = *q++)) {

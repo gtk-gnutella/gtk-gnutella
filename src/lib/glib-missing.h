@@ -122,14 +122,14 @@ void g_main_context_set_poll_func(GMainContext *context, GPollFunc func);
  *   included in size.  Also note that strlcpy() and strlcat() only operate on
  *   true ``C'' strings.  This means that for strlcpy() src must be NUL-termi-
  *   nated and for strlcat() both src and dst must be NUL-terminated.
- * 
+ *
  *   The strlcpy() function copies up to size - 1 characters from the NUL-ter-
  *   minated string src to dst, NUL-terminating the result.
- * 
+ *
  *   The strlcat() function appends the NUL-terminated string src to the end
  *   of dst.  It will append at most size - strlen(dst) - 1 bytes, NUL-termi-
  *   nating the result.
- * 
+ *
  *   The source and destination strings should not overlap, as the behavior is
  *   undefined.
  *

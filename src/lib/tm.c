@@ -252,7 +252,7 @@ tm_update_gmt_offset(const time_t now)
 	time_delta_t gmtoff;
 	struct tm tp;
 	bool dst_check;
-	
+
 	/*
 	 * The ``tm_gmt'' variable is only updated from the time thread, hence
 	 * there is no need to lock it.  Changes are "published" via atomic_mb().
@@ -786,7 +786,7 @@ tm_equal(const void *a, const void *b)
 /**
  * Return amount of clock ticks per second.
  */
-static long 
+static long
 clock_hz(void)
 {
 	static long freq = 0;	/* Cached amount of clock ticks per second */
@@ -857,7 +857,7 @@ tm_cputime(double *user, double *sys)
 		s = 0;
 	}
 
-	if (getrusage_failed) {	
+	if (getrusage_failed) {
 #if defined(HAS_TIMES)
 		struct tms t;
 

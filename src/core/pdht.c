@@ -602,7 +602,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 
 	value = walloc(DHT_VALUE_MAX_LEN);
 	ggep_stream_init(&gs, value, DHT_VALUE_MAX_LEN);
-	
+
 	ok = ggep_stream_pack(&gs, GGEP_NAME(client_id),
 		GNET_PROPERTY(servent_guid), GUID_RAW_SIZE, 0);
 
@@ -924,7 +924,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	/*
 	 * Step #2: generate the DHT value
 	 */
-	
+
 	switch (pp->type) {
 	case PDHT_T_ALOC:
 		{

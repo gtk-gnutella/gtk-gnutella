@@ -499,7 +499,7 @@ gwc_clear_current_url(bool discard)
 }
 
 /**
- * Frees the atom used as hash table key 
+ * Frees the atom used as hash table key
  */
 static void
 free_failed_url(const void *key, void *unused_udata)

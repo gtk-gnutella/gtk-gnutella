@@ -234,7 +234,7 @@ rbtree_unlock(rbtree_t *rbt)
 
 /**
  * @return amount of items held in tree.
- */ 
+ */
 size_t
 rbtree_count(const rbtree_t *rbt)
 {

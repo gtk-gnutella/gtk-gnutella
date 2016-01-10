@@ -540,7 +540,7 @@ pslist_t *
 cmwc_users(void)
 {
 	ONCE_FLAG_RUN(cmwc_key_inited, cmwc_key_init);
-	
+
 	return thread_local_users(cmwc_key);
 }
 

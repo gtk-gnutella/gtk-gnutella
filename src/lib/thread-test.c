@@ -553,7 +553,7 @@ test_inter_main(void *arg)
 	sleep(1);
 	emit("signaling main thread");
 	waiter_signal(w);
-	
+
 	compat_sleep_ms(5);
 	waiter_refcnt_dec(arg);
 	return NULL;
@@ -1070,7 +1070,7 @@ test_overflow(void)
 		s_error("%s(): thread_join() failed: %m", G_STRFUNC);
 }
 
-struct aqt_arg { 
+struct aqt_arg {
 	aqueue_t *r, *a;
 };
 
@@ -2221,7 +2221,7 @@ get_number(const char *arg, int opt)
 {
 	int error;
 	uint32 val;
-	
+
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",

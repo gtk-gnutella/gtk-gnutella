@@ -494,7 +494,7 @@ static inline uint
 server_list_length(const struct dl_server *server, enum dl_list idx)
 {
 	g_assert(dl_server_valid(server));
-	g_assert((uint) idx < DL_LIST_SZ);		
+	g_assert((uint) idx < DL_LIST_SZ);
 	return server->list[idx] ? list_length(server->list[idx]) : 0;
 }
 
@@ -1039,7 +1039,7 @@ static struct download *
 download_alloc(void)
 {
 	struct download *d;
-	
+
 	WALLOC0(d);
 	d->magic = DOWNLOAD_MAGIC;
 	return d;
@@ -1056,7 +1056,7 @@ static void
 download_free(struct download **d_ptr)
 {
 	struct download *d;
-	
+
 	g_assert(d_ptr);
 	d = *d_ptr;
 	download_check(d);
@@ -1161,7 +1161,7 @@ download_has_blank_guid(const struct download *d)
 {
 	return d->server && has_blank_guid(d);
 }
-	
+
 /**
  * @returns whether download was faked to reparent a complete orphaned file.
  */
@@ -1453,7 +1453,7 @@ buffers_to_iovec(struct download *d, int *iov_cnt)
 	g_assert(b->mode == DL_BUF_READING);
 	g_assert(b->held > 0);
 	g_assert(b->list);
-	
+
 	iov = pmsg_slist_to_iovec(b->list, iov_cnt, &held);
 	g_assert(iov);
 	g_assert(*iov_cnt > 0);
@@ -1610,7 +1610,7 @@ buffers_match(const struct download *d, const char *data, size_t len)
 		const pmsg_t *mb;
 		size_t n;
 
-		g_assert(slist_iter_has_next(iter));	
+		g_assert(slist_iter_has_next(iter));
 		mb = slist_iter_next(iter);
 		g_assert(mb);
 
@@ -2203,7 +2203,7 @@ download_server_info_changed(const struct dl_server *server)
 	for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
 		enum dl_list idx = listnum[i];
 		list_iter_t *iter;
-		
+
 		iter = list_iter_before_head(server->list[idx]);
 		while (list_iter_has_next(iter)) {
 			struct download *d;
@@ -3190,7 +3190,7 @@ download_eq(const void *p, const void *q)
 
 	a_sha1 = download_get_sha1(a);
 	b_sha1 = download_get_sha1(b);
-	
+
 	if (a_sha1 || b_sha1) {
 		return a_sha1 == b_sha1; /* These are atoms! */
 	} else if (
@@ -3217,7 +3217,7 @@ server_list_lookup(const struct dl_server *server, enum dl_list idx,
 	struct download *d = NULL;
 
 	g_assert(dl_server_valid(server));
-	g_assert((uint) idx < DL_LIST_SZ);		
+	g_assert((uint) idx < DL_LIST_SZ);
 
 	if (server->list[idx]) {
 		static const struct download zero_key;
@@ -3242,7 +3242,7 @@ static list_t *
 server_list_by_index(struct dl_server *server, enum dl_list idx)
 {
 	g_assert(dl_server_valid(server));
-	g_assert((uint) idx < DL_LIST_SZ);	
+	g_assert((uint) idx < DL_LIST_SZ);
 
 	if (!server->list[idx]) {
 		server->list[idx] = list_new();
@@ -3288,7 +3288,7 @@ server_list_head(struct dl_server *server, enum dl_list idx)
 {
 	g_assert(dl_server_valid(server));
 
-	return server_list_length(server, idx) > 0 
+	return server_list_length(server, idx) > 0
 		? list_head(server_list_by_index(server, idx))
 		: NULL;
 }
@@ -3298,7 +3298,7 @@ server_list_remove_download(struct dl_server *server, enum dl_list idx,
 	struct download *d)
 {
 	g_assert(dl_server_valid(server));
-	g_assert((uint) idx < DL_LIST_SZ);		
+	g_assert((uint) idx < DL_LIST_SZ);
 	g_assert(server->list[idx]);
 	download_check(d);
 
@@ -3666,7 +3666,7 @@ download_remove_all_from_peer(const struct guid *guid,
 		for (j = 0; j < G_N_ELEMENTS(listnum); j++) {
 			enum dl_list idx = listnum[j];
 			list_iter_t *iter;
-			
+
 			iter = list_iter_before_head(server[i]->list[idx]);
 			while (list_iter_has_next(iter)) {
 				struct download *d;
@@ -5289,7 +5289,7 @@ download_info_reget(struct download *d)
 	bool file_size_known;
 
 	download_check(d);
-	
+
 	fi = d->file_info;
 	g_assert(fi);
 	g_assert(fi->lifecount > 0);
@@ -5438,7 +5438,7 @@ download_remove(struct download *d)
 
 	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_stop(d, GTA_DL_ABORTED, no_reason);
-	}	
+	}
 
 	g_assert(d->io_opaque == NULL);
 	g_assert(d->buffers == NULL);
@@ -5563,10 +5563,10 @@ download_ignore_requested(struct download *d)
 
 	if (reason != IGNORE_FALSE) {
 		const char *s_reason;
-		
+
 		s_reason = ignore_reason_to_string(reason);
 		g_assert(s_reason);
-		
+
 		download_stop(d, GTA_DL_ERROR, _("Ignoring requested (%s)"), s_reason);
 
 		/*
@@ -5595,7 +5595,7 @@ download_ignore_requested(struct download *d)
 		case IGNORE_FALSE:
 			g_assert_not_reached();
 		}
-		
+
 		return TRUE;
 	}
 
@@ -6029,7 +6029,7 @@ download_start(struct download *d, bool check_allowed)
 	g_return_if_fail(!DOWNLOAD_IS_MOVING(d));
 	g_return_if_fail(!DOWNLOAD_IS_RUNNING(d));
 	g_return_if_fail(!DOWNLOAD_IS_VERIFYING(d));
-	
+
 	g_return_if_fail(
 		GTA_DL_INVALID == d->status ||
 		DOWNLOAD_IS_QUEUED(d) ||
@@ -6396,7 +6396,7 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 
 			download_check(dt);
 			g_assert(dt->flags & DL_F_THEX);
-			
+
 			if (DOWNLOAD_IS_SWITCHABLE(dt)) {
 				if (GNET_PROPERTY(download_debug)) {
 					g_debug("TTH requesting switching from "
@@ -6599,7 +6599,7 @@ download_pickup_queued(void)
 
 		if (!bws_can_connect(SOCK_TYPE_DOWNLOAD))
 			break;
-		
+
 	retry:
 		l = dl_by_time.servers[i];
 		last_change = dl_by_time.change[i];
@@ -6651,7 +6651,7 @@ download_pickup_queued(void)
 			 * period of time as this can be frowned upon.
 			 */
 
-			if (delta_time(now, server->last_connect) < DOWNLOAD_CONNECT_DELAY) 
+			if (delta_time(now, server->last_connect) < DOWNLOAD_CONNECT_DELAY)
 				continue;
 
 			/*
@@ -6892,7 +6892,7 @@ download_push(struct download *d, bool on_timeout)
 		ignore_push = TRUE;
 
 	if (
-		ignore_push || 
+		ignore_push ||
 		GNET_PROPERTY(is_firewalled) ||
 		!GNET_PROPERTY(send_pushes)
 	)
@@ -7295,7 +7295,7 @@ create_download(
 	{
 		char *s;
 		char *b;
-		
+
 		b = s = filename_sanitize(file, FALSE, FALSE);
 
 		if (GNET_PROPERTY(beautify_filenames))
@@ -7914,7 +7914,7 @@ static void
 download_request_free(struct download_request **req_ptr)
 {
 	struct download_request *req;
-	
+
 	g_assert(req_ptr);
 
 	req = *req_ptr;
@@ -8043,7 +8043,7 @@ download_orphan_new(const char *filename, filesize_t size,
 {
 	time_t ntime;
 	struct download *d;
-   
+
 	file_info_check(fi);
 
 	ntime = fi->ntime;
@@ -8413,7 +8413,7 @@ download_send_udp_push(
 	const struct array packet, host_addr_t addr, uint16 port)
 {
 	bool success = FALSE;
-	
+
 	if (host_is_valid(addr, port)) {
 		gnutella_node_t *n = node_udp_get_addr_port(addr, port);
 
@@ -8694,7 +8694,7 @@ download_get_server_name(struct download *d, header_t *header)
 		char *wbuf = NULL;
 		size_t size = 0;
 		bool faked;
-	   
+
 		g_assert(dl_server_valid(server));
 
 		if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
@@ -8731,7 +8731,7 @@ download_get_server_name(struct download *d, header_t *header)
 		} else {
 			vendor = NULL;
 		}
-	
+
 		if (vendor) {
 			server->vendor = atom_str_get(lazy_iso8859_1_to_utf8(vendor));
 			server->attrs &= ~DLS_A_FAKED_VENDOR;
@@ -9264,7 +9264,7 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 		 * Prepare I/O vector for writing.
 		 */
 
-		iov = buffers_to_iovec(d, &n); 
+		iov = buffers_to_iovec(d, &n);
 		ret = file_object_pwritev(d->out_file, iov, n, d->pos);
 		HFREE_NULL(iov);
 
@@ -9277,7 +9277,7 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 			break;
 		} else {
 			size_t size = (size_t) ret;
-			
+
 			g_assert(size <= b->held);
 
 			file_info_update(d, d->pos, d->pos + size, DL_CHUNK_DONE);
@@ -9307,7 +9307,7 @@ download_flush(struct download *d, bool *trimmed, bool may_stop)
 			}
 			break;
 		}
-	
+
 	   	error = g_strerror(errno);
 		g_warning("write of %lu bytes to file \"%s\" failed: %m",
 			(ulong) b->held, download_basename(d));
@@ -10028,7 +10028,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	uri_start = header_get(header, "X-Thex-URI");
 	if (NULL == uri_start)
 		return;
-	
+
 	if ('/' != uri_start[0]) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH X-Thex-URI header has no valid URI (%s): \"%s\"",
@@ -10344,7 +10344,7 @@ content_range_check(struct download *d, header_t *header)
 	buf = header_get(header, "Content-Range");		/* Optional */
 	if (NULL == buf)
 		return TRUE;
-	
+
 	if (0 != http_content_range_parse(buf, &start, &end, &total))
 		return TRUE;
 
@@ -10356,7 +10356,7 @@ content_range_check(struct download *d, header_t *header)
 
 	if (fi->size == total)
 		return TRUE;
-	
+
 	download_bad_source(d);
 	download_stop(d, GTA_DL_ERROR, _("Filesize mismatch"));
 	return FALSE;
@@ -10740,7 +10740,7 @@ download_got_fw_node_info(const struct guid *guid,
 	/*
 	 * See whether we know this server by GUID, then by addr+port.
 	 */
-	
+
 	server = htable_lookup(dl_by_guid, guid);
 
 	if (NULL == server && host_is_valid(addr, port)) {
@@ -10748,7 +10748,7 @@ download_got_fw_node_info(const struct guid *guid,
 
 		ipk.addr = addr;
 		ipk.port = port;
-		
+
 		server = htable_lookup(dl_by_addr, &ipk);
 	}
 
@@ -10932,7 +10932,7 @@ update_available_ranges(struct download *d, const header_t *header)
 
 	if (0 == strcmp(buf, "bytes"))
 		goto send_event;
-		
+
 	/*
 	 * Update available range list and total size available remotely.
 	 *
@@ -10959,7 +10959,7 @@ update_available_ranges(struct download *d, const header_t *header)
 		} else {
 			new_length = old_length;
 		}
-		
+
 		d->ranges_size = new_length;
 		has_new_ranges = old_length != new_length;
 
@@ -11117,12 +11117,12 @@ lazy_ack_message_to_ui_string(const char *src)
 {
 	static char *prev;
 	char *s;
-	
+
 	g_assert(src);
 	g_assert(src != prev);
 
 	G_FREE_NULL(prev);
-	
+
 	if (is_ascii_string(src))
 		return src;
 
@@ -11225,7 +11225,7 @@ is_dumb_spammer(const char *user_agent)
 	const char *endptr;
 
 	g_return_val_if_fail(user_agent, FALSE);
-	
+
 	endptr = is_strcaseprefix(user_agent, "LimeWire/");
 	if (endptr) {
 		if (is_strprefix(endptr, "3.6.") || is_strprefix(endptr, "4.8.10.")) {
@@ -11271,7 +11271,7 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 		/*
 		 * There could be a GUID here if the host is not directly connectible
 		 * but we ignore this apparently.
-		 */	
+		 */
 		ok = string_to_host_addr(start, &endptr, &addr);
 		if (ok && ':' == *endptr) {
 			int error;
@@ -11312,7 +11312,7 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 			}
 		}
 	}
-	
+
 	return FALSE;
 }
 
@@ -11541,7 +11541,7 @@ download_reply(struct download *d, header_t *header, bool ok)
 	bool pipelined_response = FALSE;
 
 	download_check(d);
-	
+
 	is_followup = d->keep_alive;
 	s = d->socket;
 	fi = d->file_info;
@@ -11852,7 +11852,7 @@ http_version_nofix:
 		}
 	}
 
-	if (is_dumb_spammer(download_vendor_str(d))) {	
+	if (is_dumb_spammer(download_vendor_str(d))) {
 		hostiles_dynamic_add(download_addr(d), "dumb spammer", HSTL_DUMB);
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "%s", _("Spammer detected"));
@@ -12652,7 +12652,7 @@ http_version_nofix:
 	 */
 
 	if (d->flags & DL_F_PREFIX_HEAD) {
-		/* Ignore the rest */	
+		/* Ignore the rest */
 	} else if (d->flags & DL_F_BROWSE) {
 		gnet_host_t host;
 		uint32 flags = 0;
@@ -12928,7 +12928,7 @@ file_opened:
 
 	if (s->pos > 0) {
 		size_t n = s->pos;
-		
+
 		s->pos = 0;
 		download_write(d, s->buf, n, pipelined_response);
 		fi->recv_amount += n;
@@ -13293,7 +13293,7 @@ download_send_request(struct download *d)
 	 * the pipelined request may have been incompletely sent (in the
 	 * GTA_DL_PIPE_SENDING state).  In that case, we act as if we had just
 	 * selected a new request to send and move the download to the
-	 * GTA_DL_REQ_SENDING state so that it continues to wait for the full 
+	 * GTA_DL_REQ_SENDING state so that it continues to wait for the full
 	 * request flush to the server.
 	 *
 	 * Or the second time the request can be in the GTA_DL_PIPE_SENT state,
@@ -13695,7 +13695,7 @@ picked:
 			altloc_size = maxsize;
 			altloc_size -= MIN(altloc_size, rw);
 			altloc_size -= MIN(altloc_size, sha1_room);
-			
+
 			/*
 			 * If we're short on HTTP output bandwidth, limit the size of
 			 * the alt-locs we send and don't provide our fileinfo, so that
@@ -14190,7 +14190,7 @@ merge_push_servers(pslist_t *servers, const struct guid *guid)
 	 * We can merge...
 	 */
 
-	addr = host_address_is_usable(duplicate->key->addr) ? 
+	addr = host_address_is_usable(duplicate->key->addr) ?
 		duplicate->key->addr : server->key->addr;
 
 	port = port_is_valid(duplicate->key->port) ?
@@ -14608,7 +14608,7 @@ download_build_magnet(const struct download *d)
 	const fileinfo_t *fi;
 	char *url;
 	char *dl_url;
-   
+
 	download_check(d);
 
 	fi = d->file_info;
@@ -14622,7 +14622,7 @@ download_build_magnet(const struct download *d)
 		const struct tth *tth;
 		const char *parq_id;
 		const char *vendor;
-	
+
 		magnet = magnet_resource_new();
 
 		/* The filename used for the magnet must be UTF-8 encoded */
@@ -14719,7 +14719,7 @@ download_store_magnets(void)
 	f = file_config_open_write(file_what, &fp);
 	if (f) {
 		hash_list_iter_t *iter;
-		
+
 		file_config_preamble(f, "Downloads");
 		iter = hash_list_iterator(sl_downloads);
 
@@ -15349,7 +15349,7 @@ download_move_done(struct download *d, const char *pathname, uint elapsed)
 		download_moved_with_bad_sha1(d);
 	}
 	file_info_changed(fi);
-	fi_src_status_changed(d);	
+	fi_src_status_changed(d);
 }
 
 /**
@@ -15780,7 +15780,7 @@ download_verify_tigertree_done(struct download *d,
 			fi->tigertree.num_leaves > 0
 		) {
 			/* NOTE: For testing only */
-			download_tigertree_sweep(d, leaves, num_leaves); 
+			download_tigertree_sweep(d, leaves, num_leaves);
 		}
 
 		if (!has_good_sha1(d)) {
@@ -15998,9 +15998,9 @@ download_resume_bg_tasks(void)
 				download_move(d, GNET_PROPERTY(move_file_path), DL_OK_EXT);
 			else if (fi->tth != NULL)
 				download_verify_tigertree(d);
-			else 
+			else
 				download_move(d, GNET_PROPERTY(bad_file_path), DL_BAD_EXT);
-			
+
 			if (!(fi->flags & FI_F_SEEDING))
 				to_remove = pslist_prepend(to_remove, d->file_info);
 		}
@@ -16012,7 +16012,7 @@ download_resume_bg_tasks(void)
 
 	PSLIST_FOREACH(to_remove, sl) {
 		fileinfo_t *fi = sl->data;
-	
+
 		file_info_check(fi);
 
 		/*
@@ -16182,7 +16182,7 @@ download_build_url(const struct download *d)
 		url = download_url_for_uri(d, uri);
 	} else {
 		char *escaped, *uri;
-	   
+
 		escaped = url_escape(d->file_name);
 		uri = h_strdup_printf("/get/%u/%s", d->record_index, escaped);
 		url = download_url_for_uri(d, uri);
@@ -16237,7 +16237,7 @@ download_get_hostname(const struct download *d)
 		d->server->hostname ? d->server->hostname : "",
 		d->server->hostname ? ")" : "",
 		NULL_PTR);
-	
+
 	return buf;
 }
 
@@ -16385,7 +16385,7 @@ download_thex_done(struct download *d)
 	if (NULL == fi) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH discarding tigertree data from %s: No more download",
-				download_host_info(d));	
+				download_host_info(d));
 		}
 		cancel_all = TRUE;
 		goto finish;
@@ -16414,7 +16414,7 @@ finish:
 		download_remove_all_thex(sha1, d);
 	}
 }
-	
+
 /**
  * Create special non-persisted download that will request THEX data from the
  * remote host.
@@ -16453,7 +16453,7 @@ download_thex_start(const char *uri,
 		char *dname;
 
 		fi = file_info_by_sha1(sha1);
-		
+
 		dname = str_cmsg(_("<THEX data for %s>"),
 					fi ? filepath_basename(fi->pathname)
 					   : bitprint_to_urn_string(sha1, tth));
@@ -16688,7 +16688,7 @@ download_handle_magnet(const char *url)
 
 				if (ms->path) {
 					const char *endptr;
-					
+
 					/*
 					 * If the path contains a '?', this is most-likely a
 					 * `search' with parameters e.g., "/index.php?yadda=1",
@@ -16891,7 +16891,7 @@ download_handle_http(const char *url)
 		magnet_url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
 	}
-	
+
 	success = download_handle_magnet(magnet_url);
 	HFREE_NULL(magnet_url);
 
@@ -17004,7 +17004,7 @@ download_clear_stopped(bool complete,
 			file_info_purge(d->file_info);
 			continue;
 		}
-		
+
 		if (d->flags & DL_F_TRANSIENT) {
 			file_info_purge(d->file_info);
 		} else {

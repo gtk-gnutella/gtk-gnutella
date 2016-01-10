@@ -265,5 +265,5 @@ product_init(const char *name,
 	product_info.p_revision = revision;
 	product_info.p_build = build;
 }
- 
+
 /* vi: set ts=4 sw=4 cindent: */

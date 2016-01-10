@@ -1400,7 +1400,7 @@ socket_shutdown(void)
 		upnp_unmap_tcp(s_tcp_listen->local_port);
 	if (s_udp_listen != NULL)
 		upnp_unmap_udp(s_udp_listen->local_port);
-	
+
 	/* No longer accept connections or UDP packets */
 	socket_disable(s_local_listen);
 	socket_disable(s_tcp_listen);
@@ -1443,7 +1443,7 @@ socket_attach_ops(gnutella_socket_t *s,
 	socket_check(s);
 	g_assert(!(s->flags & SOCK_F_UDP));
 	g_assert(ops != NULL);
-	
+
 	if (NULL == s->resource.tcp)
 		WALLOC(s->resource.tcp);
 
@@ -2949,7 +2949,7 @@ socket_udp_queue(gnutella_socket_t *s, bool truncated)
 	g_assert(s->flags & SOCK_F_UDP);
 
 	uctx = s->resource.udp;
-	
+
 	WALLOC(uq);
 	uq->buf = wcopy(s->buf, s->pos);
 	uq->len = s->pos;
@@ -4294,7 +4294,7 @@ socket_set_single(struct gnutella_socket *s, bool on)
 		s->flags &= ~SOCK_F_SINGLE;
 	}
 }
- 
+
 /**
  * Creates a non-blocking listening UDP socket.
  *
@@ -4331,7 +4331,7 @@ socket_udp_listen(host_addr_t bind_addr, uint16 port,
 	/*
 	 * Allocate the UDP context and register the datagram reception callback.
 	 */
-	
+
 	WALLOC0(s->resource.udp);
 	s->resource.udp->data_ind = data_ind;
 

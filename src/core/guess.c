@@ -919,7 +919,7 @@ guess_rpc_remove(const struct guess_rpc *grp)
 	bool found;
 
 	guess_rpc_check(grp);
-	
+
 	key.muid = grp->muid;
 	key.addr = gnet_host_get_addr(grp->host);
 

@@ -1118,7 +1118,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
  * Installs a signal handler.
  *
  * The signal handler is not reset to the default handler after delivery unless
- * the signal is SIGSEGV or SIGBUS, in which case not only is the default 
+ * the signal is SIGSEGV or SIGBUS, in which case not only is the default
  * handler reset but further occurrence of the signal will retrigger even
  * within signal delivery.
  *
@@ -1186,7 +1186,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	{
 		static const struct sigaction zero_sa;
 		struct sigaction sa, osa;
-		
+
 		sa = zero_sa;
 		sigemptyset(&sa.sa_mask);
 		sa.sa_flags = signo != SIGALRM ? SA_RESTART : 0;
@@ -1213,7 +1213,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #endif
 #ifdef SA_ONSTACK
 			if (
-				SIGSEGV == signo 
+				SIGSEGV == signo
 #ifdef SIGBUS
 				|| SIGBUS == signo
 #endif
@@ -1310,7 +1310,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
  * Installs a signal handler.
  *
  * The signal handler is not reset to the default handler after delivery unless
- * the signal is SIGSEGV or SIGBUS, in which case not only is the default 
+ * the signal is SIGSEGV or SIGBUS, in which case not only is the default
  * handler reset but further occurrence of the signal will retrigger even
  * within signal delivery.
  *
@@ -1506,7 +1506,7 @@ signal_init_once(void)
 		signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 	}
 
-	/* 
+	/*
 	 * Chunk allocated as non-leaking because the signal chunk must
 	 * remain active up to the very end, way past the point where we're
 	 * supposed to have freed everything and leak detection kicks in.

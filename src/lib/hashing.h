@@ -51,7 +51,7 @@
  *
  * With m = 2^b, we can achieve this the following way:
  *
- * Multiply the w bits of k by floor(A * 2^w) to obtain a w-bit product. 
+ * Multiply the w bits of k by floor(A * 2^w) to obtain a w-bit product.
  * Extract the b most significant bits of the lower half of this product.
  *
  * The GOLDEN_RATIO_xx constant are floor(A * 2^xx).

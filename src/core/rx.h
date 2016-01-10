@@ -34,7 +34,7 @@
 #ifndef _core_rx_h_
 #define _core_rx_h_
 
-#include "common.h" 
+#include "common.h"
 
 #include "lib/gnet_host.h"
 #include "lib/pmsg.h"

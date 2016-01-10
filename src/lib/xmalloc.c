@@ -1326,7 +1326,7 @@ xfl_find_freelist_index(size_t len)
 	g_assert(len <= XMALLOC_MAXSIZE);
 	g_assert(len >= XMALLOC_SPLIT_MIN);
 
-	return (len <= XMALLOC_FACTOR_MAXSIZE) ? 
+	return (len <= XMALLOC_FACTOR_MAXSIZE) ?
 		(len >> XMALLOC_BUCKET_SHIFT) - 1 - XMALLOC_BUCKET_OFFSET :
 		XMALLOC_BUCKET_CUTOVER +
 			((len - XMALLOC_FACTOR_MAXSIZE) >> XMALLOC_BLOCK_SHIFT);
@@ -2883,7 +2883,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 }
 
 /**
- * Coalesce block initially given by the values pointed at by ``base'' and 
+ * Coalesce block initially given by the values pointed at by ``base'' and
  * ``len'' with contiguous blocks that are present in the freelists.
  *
  * The resulting block is not part of any freelist, just as the initial block
@@ -3731,7 +3731,7 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	 *       +------------------+ |
 	 *       | Aligned block #n | |
 	 *       +------------------+ v
-	 * 
+	 *
 	 * Compute the offset within the page of the first aligned block,
 	 * on its natural alignment boundary (not necessarily a power of 2).
 	 */
@@ -5072,7 +5072,7 @@ xreallocate(void *p, size_t size, bool can_thread)
 
 		goto realloc_from_thread;	/* Move block around */
 	}
-		
+
 #ifdef XMALLOC_PTR_SAFETY
 	if G_UNLIKELY(!xmalloc_is_valid_pointer(xh, FALSE)) {
 		s_error_from(_WHERE_, "attempt to realloc invalid pointer %p: %s",
@@ -7731,7 +7731,7 @@ xalign_free(const void *p)
  */
 enum truncation {
 	TRUNCATION_NONE 		= 0,
-	TRUNCATION_BEFORE		= (1 << 0),	
+	TRUNCATION_BEFORE		= (1 << 0),
 	TRUNCATION_AFTER		= (1 << 1),
 	TRUNCATION_BOTH			= (TRUNCATION_BEFORE | TRUNCATION_AFTER)
 };
@@ -7987,7 +7987,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		/*
 		 * Align starting user address.
 		 */
-		
+
 		if ((addr & ~mask) != addr) {
 			addr = size_saturate_add(pointer_to_ulong(u), mask) & ~mask;
 			u = ulong_to_pointer(addr);

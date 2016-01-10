@@ -241,7 +241,7 @@ static GtkCellRenderer *
 create_text_cell_renderer(gfloat xalign)
 {
 	GtkCellRenderer *renderer;
-	
+
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_text_set_fixed_height_from_font(
 		GTK_CELL_RENDERER_TEXT(renderer), 1);
@@ -590,7 +590,7 @@ fi_gui_details_treeview_init(void)
 	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
     	GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
-		
+
 		renderer = create_text_cell_renderer(tab[i].xalign);
 		g_object_set(G_OBJECT(renderer),
 			"editable", tab[i].editable,
@@ -732,7 +732,7 @@ void
 fi_gui_init(void)
 {
 	fi_sources = htable_create(HASH_KEY_SELF, 0);
-	
+
 	{
 		GtkTreeViewColumn *column;
 		GtkTreeView *tv;
@@ -771,7 +771,7 @@ fi_gui_init(void)
 		unsigned i;
 
 		STATIC_ASSERT(c_src_num == G_N_ELEMENTS(tab));
-		
+
 		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_sources"));
 		treeview_download_sources = tv;
 
@@ -794,7 +794,7 @@ fi_gui_init(void)
 		tree_view_restore_widths(tv, PROP_SOURCES_COL_WIDTHS);
 		tree_view_set_fixed_height_mode(tv, TRUE);
 
-		widget_add_popup_menu(GTK_WIDGET(tv), fi_gui_sources_get_popup_menu);	
+		widget_add_popup_menu(GTK_WIDGET(tv), fi_gui_sources_get_popup_menu);
 	}
 
 	fi_gui_details_treeview_init();

@@ -1542,7 +1542,7 @@ upload_likely_from_browser(const header_t *header)
  *
  * @return TRUE if we were able to send everything, FALSE otherwise
  */
-static bool 
+static bool
 upload_send_http_status(struct upload *u,
 	bool keep_alive, int code, const char *msg)
 {
@@ -1755,7 +1755,7 @@ upload_thex_uri_add(char *buf, size_t size, void *arg, uint32 flags)
 	tth = shared_file_tth(u->sf);
 	if (!tth)
 		return 0;
-	
+
 	len = concat_strings(buf, size,
 			"X-Thex-URI: /uri-res/N2X?", sha1_to_urn_string(sha1),
 			";", tth_base32(tth),
@@ -1805,7 +1805,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 		last_sent = u->last_dmesh;
 	} else {
 		last_sent = mi_get_stamp(u->socket->addr, sha1, tm_time());
-	} 
+	}
 
 	/*
 	 * If we sent mesh information for THIS upload, it means we're facing
@@ -1914,7 +1914,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 
 	if (mesh_len > 0) {
 		size_t len, avail;
-		
+
 		avail = size - rw;
 
 		if (flags & HTTP_CBF_SMALL_REPLY) {
@@ -2055,7 +2055,7 @@ upload_http_content_range_add(char *buf, size_t size,
 
 	if (u->skip || u->end != (u->file_size - 1)) {
 		len = concat_strings(buf, size,
-				"Content-Range: bytes ", 
+				"Content-Range: bytes ",
 				uint64_to_string(u->skip), "-", uint64_to_string2(u->end),
 				"/", filesize_to_string(u->file_size),
 				"\r\n",
@@ -2389,7 +2389,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				? host_addr_to_string(u->socket->addr) : "<no socket>",
 			upload_vendor_str(u),
 			u->status, reason);
-		
+
 	}
 
 	upload_send_http_status(u, u->keep_alive, code, reason);
@@ -3094,7 +3094,7 @@ upload_file_present(struct upload *u, shared_file_t *sf)
 
 	if (!S_ISREG(sb.st_mode))
 		goto failure;
-		
+
 	if (delta_time(shared_file_modification_time(sf), sb.st_mtime)) {
 		shared_file_set_modification_time(sf, sb.st_mtime);
 		if (NULL == fi) {
@@ -3234,7 +3234,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 	if (sent_sha1) {
 		shared_file_t *sfn;
-		
+
 		if (spam_sha1_check(&sha1)) {
 			shared_file_unref(&sf);
 			goto not_found;
@@ -3619,7 +3619,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 		shared_file_unref(&sf);
 		goto not_found;
 	}
-	
+
 	if (!sha1_hash_is_uptodate(sf)) {
 		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
 		shared_file_unref(&sf);
@@ -3781,7 +3781,7 @@ select_encoding(const header_t *header)
 	if (buf) {
 		if (strtok_has(buf, ",", "deflate")) {
 			const char *ua;
-			
+
 			ua = header_get(header, "User-Agent");
 			if (NULL == ua || NULL == strstr(ua, "AppleWebKit"))
 				return BH_F_DEFLATE;
@@ -3838,7 +3838,7 @@ supports_chunked(const struct upload *u, const header_t *header)
     	const char *buf;
 
 		/*
-		 * It's assumed that LimeWire-based clients cannot handle 
+		 * It's assumed that LimeWire-based clients cannot handle
 		 * "chunked" properly. This is at least true for their Browse Host
 		 * support.
 		 *
@@ -4046,7 +4046,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		t = date2time(buf, tm_time());
 		if (
 			(time_t) -1 != t &&
-			delta_time((time_t) GNET_PROPERTY(library_rescan_finished), t) <= 0 
+			delta_time((time_t) GNET_PROPERTY(library_rescan_finished), t) <= 0
 		) {
 			upload_send_error(u, 304, N_("Not Modified"));
 			return -1;
@@ -4597,7 +4597,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 */
 
 	{
-		
+
 		const char *http_msg;
 		int http_code;
 
@@ -4750,7 +4750,7 @@ upload_parse_uri(header_t *header, const char *uri,
 		uri = ep;
 	} else {
 		const char *value;
-		
+
 		if (header && NULL != (value = header_get(header, "Host"))) {
 			g_strlcpy(host, value, host_size);
 		}
@@ -4777,11 +4777,11 @@ get_content_length(const header_t *header)
 {
 	const char *value;
 	uint64 length = 0;
-	
+
 	value = header_get(header, "Content-Length");
 	if (value) {
 		int error;
-		
+
 		length = parse_uint64(value, NULL, 10, &error);
 		if (error) {
 			length = (filesize_t)-1;
@@ -4794,7 +4794,7 @@ static void
 upload_handle_connection_header(struct upload *u, header_t *header)
 {
 	const char *buf;
-	
+
 	/*
 	 * Do we have to keep the connection after this request?
 	 */
@@ -4823,7 +4823,7 @@ static bool
 upload_request_special(struct upload *u, const header_t *header)
 {
 	int flags = 0;
-	
+
 	u->file_size = 0;
 	if (u->browse_host) {
 		const char *buf;
@@ -4910,7 +4910,7 @@ upload_request_special(struct upload *u, const header_t *header)
 		atom_str_change(&u->name, name);
 	} else if (u->thex) {
 		char *name;
-		
+
 		name = str_cmsg(_("<THEX data for %s>"), u->name);
 		atom_str_change(&u->name, name);
 		HFREE_NULL(name);
@@ -4918,7 +4918,7 @@ upload_request_special(struct upload *u, const header_t *header)
 		upload_http_extra_line_add(u, "Content-Type: application/dime\r\n");
 
 		if (!(flags & THEX_UPLOAD_F_CHUNKED)) {
-			
+
 			u->file_size = thex_upload_get_content_length(u->thex);
 			if (0 == u->file_size) {
 				upload_send_error(u, 500, N_("THEX failure"));
@@ -5342,7 +5342,7 @@ upload_request(struct upload *u, header_t *header)
 	/*
 	 * Some headers are sent back only once on a given connection, the
 	 * remote host being supposed to cache the values we provide.
-	 * 
+	 *
 	 * If the request is a follow-up or a new request after being actively
 	 * queued (the request is not a follow-up in that case, just a retry
 	 * attempt of an initial request), then we consider it is not the first
@@ -5421,7 +5421,7 @@ upload_request(struct upload *u, header_t *header)
 		 * If `head_only' is true, the request was a HEAD and we're only going
 		 * to send back the headers.
 		 */
-		
+
 		if (NULL != (endptr = is_strprefix(u->request, "HEAD"))) {
 			u->head_only = TRUE;
 		} else if (NULL != (endptr = is_strprefix(u->request, "GET"))) {
@@ -5626,7 +5626,7 @@ upload_request(struct upload *u, header_t *header)
 		/* Send X-Push-Proxy each time: might have changed! */
 		upload_http_extra_callback_add(u, node_http_proxies_add, &u->net);
 	}
-	
+
 	/*
 	 * Include X-Hostname the first time we reply and if we have a
 	 * known hostname, for which the user gave permission to advertise.

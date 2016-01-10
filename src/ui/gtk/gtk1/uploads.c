@@ -138,7 +138,7 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
 		g_assert(r);
 		rd = r->data;
 		g_assert(rd);
-		
+
         if (rd->valid && (rd->handle == u)) {
             /* found */
 

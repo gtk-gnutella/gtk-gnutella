@@ -382,7 +382,7 @@ gtk_gnutella_atexit(void)
 #ifndef USE_TOPLESS
 		running_topless = TRUE;		/* X connection may be broken, avoid GUI */
 #endif
-        
+
 #ifdef SIGALRM
 		signal_set(SIGALRM, sig_alarm);
 #endif
@@ -1085,7 +1085,7 @@ option_strcmp(const char *a, const char *b)
 	g_assert(a);
 	g_assert(b);
 
-	for (;;) {	
+	for (;;) {
 		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b))
 			return CMP(*a, *b);
 		if ('\0' == *a) {
@@ -1125,7 +1125,7 @@ option_strprefix(const char *str, const char *prefix)
  * with hyphens.
  *
  * @return a pointer to a static buffer holding the pretty version of the
- *         option name. 
+ *         option name.
  */
 static const char *
 option_pretty_name(const char *name)
@@ -1302,7 +1302,7 @@ usage(int exit_code)
 			option_pretty_print(f, &options[i]);
 		}
 	}
-	
+
 	exit(exit_code);
 }
 
@@ -1973,7 +1973,7 @@ static const char **main_env;
  * We're going to launch a child and monitor its exit status.
  * Each time the child exits abnormally, restart it with the same arguments
  * until we get more crashes per hour than we can withstand.
- * 
+ *
  */
 static void G_NORETURN
 main_supervise(void)
@@ -2053,7 +2053,7 @@ main_supervise(void)
 
 	child_argc = main_argc + 1;
 	XMALLOC_ARRAY(child_argv, child_argc + 1);	/* +1 for trailing NULL */
-	
+
 	child_argv[0] = main_argv[0];
 	child_argv[1] = "--child";
 	for (i = 1; i <= main_argc; i++)
@@ -2305,7 +2305,7 @@ main(int argc, char **argv)
 		crash_setbuild(product_build());
 		crash_setmain();
 		crash_set_restart(gtk_gnutella_request_restart);
-	}	
+	}
 
 	handle_arguments_asap();
 
@@ -2359,7 +2359,7 @@ main(int argc, char **argv)
 	crash_post_init();		/* Done with crash initialization */
 
 	/* Our regular inits */
-	
+
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
 		_("unofficial build, accessing files from"),

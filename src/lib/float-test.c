@@ -78,7 +78,7 @@ static void read_floats(FILE *f) {
   for (n = nfloats, fp = floats; n > 0; n--) {
     char s;
     int e, h, l;
-    
+
     if (bytein(f) != fasl_flonum) {
       fprintf(stderr, "non-flonum in list\n");
       exit(3);
@@ -123,7 +123,7 @@ static int convert(char *s, char *buf, int prec) {
    shift = 0;
    e = 0;
    eneg = 0;
-   
+
  state0:
    c = *s++;
    if (c == 0) goto done;
@@ -166,7 +166,7 @@ static int convert(char *s, char *buf, int prec) {
       goto state2;
    }
    else IERROR(2);
-   
+
  state3: /* Seen 0*.0*[1-9][0-9]* */
    c = *s++;
    if (c == 0) goto done;
@@ -188,7 +188,7 @@ static int convert(char *s, char *buf, int prec) {
    }
    if (c == 0) goto done;
    else IERROR(4);
-   
+
  done:
    for (; count > 0; count--) *buf++ = '0';
    *buf = 0;
@@ -221,7 +221,7 @@ int main (int argc, char **argv) {
     int n;
     double *fp;
     char s[32];
-    
+
     for (n = nfloats, fp = floats; n > 0; n--) {
        sprintf(s,"%.17g", *fp++);
     }

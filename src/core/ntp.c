@@ -255,7 +255,7 @@ ntp_send_probes(void)
 		addr = name_to_single_host_addr(hosts[i].addr, settings_dns_net());
 		if (!is_host_addr(addr))
 			continue;
-		
+
 		if (ntp_send_probe(addr)) {
 			/* Send probes to all addresses because a successful sendto()
 			 * does not guarantee anything. */

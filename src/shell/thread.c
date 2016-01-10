@@ -246,7 +246,7 @@ shell_exec_thread(struct gnutella_shell *sh, int argc, const char *argv[])
 	CMD(elements);
 
 #undef CMD
-	
+
 	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }

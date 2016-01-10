@@ -177,7 +177,7 @@ ascii_strcase_hash(const void *key)
 {
 	const uchar *s = key;
 	ulong c, hash = 0;
-	
+
 	while ((c = ascii_tolower(*s++))) {
 		hash += (hash << 5) + c;
 	}

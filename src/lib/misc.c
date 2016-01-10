@@ -543,7 +543,7 @@ size_scale(uint64 v, uint *q, uint *r, const char *s, bool metric)
 
 		for (s++; v >= thresh; v /= base)
 			s++;
-	
+
 		*q = (uint) v / base;
 		*r = (uint) v % base;
 	}
@@ -826,7 +826,7 @@ short_value(char *buf, size_t size, uint64 v, bool metric)
 		r = (r * 100) / kilo(metric);
 		str_bprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	}
-	
+
 	return buf;
 }
 
@@ -980,7 +980,7 @@ int
 hex2int(uchar c)
 {
 	int ret;
-	
+
 	ret = hex2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -999,7 +999,7 @@ static int
 dec2int(uchar c)
 {
 	int ret;
-	
+
 	ret = dec2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1018,7 +1018,7 @@ static int
 alnum2int(uchar c)
 {
 	int ret;
-	
+
 	ret = alnum2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1033,14 +1033,14 @@ hex2int_init(void)
 	size_t i;
 
 	/* Initialize hex2int_tab */
-	
+
 	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[0]); i++) {
 		static const char hexa[] = "0123456789abcdef";
 		const char *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
-		
+
 		char2int_tabs[0][i] = p ? (p - hexa) : -1;
 	}
-	
+
 	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++)
@@ -1081,14 +1081,14 @@ dec2int_init(void)
 	size_t i;
 
 	/* Initialize dec2int_tab */
-	
+
 	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[1]); i++) {
 		static const char deca[] = "0123456789";
 		const char *p = i ? strchr(deca, i): NULL;
-		
+
 		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
-	
+
 	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++)
@@ -1118,19 +1118,19 @@ alnum2int_init(void)
 	size_t i;
 
 	/* Initialize alnum2int_tab */
-	
+
 	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[2]); i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
-		
+
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
-	
+
 	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
 		int v = p ? (p - abc) : -1;
-	
+
 		g_assert(alnum2int_inline(i) == v);
 		g_assert(!p || alnum2int(i) >= 0);
 	}
@@ -1149,7 +1149,7 @@ bool
 hex_to_guid(const char *hexguid, guid_t *guid)
 {
 	size_t ret;
-		
+
 	ret = base16_decode(guid->v, sizeof guid->v, hexguid, GUID_HEX_SIZE);
 	return GUID_RAW_SIZE == ret;
 }
@@ -1606,7 +1606,7 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 		if (8 == j) {
 			*p++ = ' ';
 		}
-		if (i < length) {	
+		if (i < length) {
 			uchar c;
 
 			c = data[i];
@@ -2130,7 +2130,7 @@ html_decode_entity(const char * const src, const char **endptr)
 		if (endptr) {
 			*endptr = &p[1];
 		}
-		return pointer_to_uint(value); 
+		return pointer_to_uint(value);
 	}
 
 failure:
@@ -2195,7 +2195,7 @@ bitcmp(const void *s1, const void *s2, size_t n)
  * Replaces all G_DIR_SEPARATOR characters with the canonic path component
  * separator '/' (a slash). The string is modified in-place.
  *
- * @param s a pathname. 
+ * @param s a pathname.
  */
 void
 normalize_dir_separators(char *pathname)
@@ -2564,7 +2564,7 @@ xml_indent(const char *text)
 			}
 
 			str_putc(s, *q);
-			
+
 			if ('"' == *q) {
 				quoted ^= TRUE;
 			} else if ('>' == *q) {
@@ -2636,13 +2636,13 @@ misc_init_once(void)
 			uint64 v;
 
 			g_assert((0 == tests[i].v) ^ (0 == tests[i].error));
-			
+
 			error = EAGAIN;
 			endptr = GINT_TO_POINTER(-1);
 			v = parse_uint64(tests[i].s, &endptr, tests[i].base, &error);
 			g_assert(tests[i].v == v);
 			g_assert(tests[i].error == error);
-			
+
 			error = EAGAIN;
 			endptr = GINT_TO_POINTER(-1);
 			v = parse_uint32(tests[i].s, &endptr, tests[i].base, &error);

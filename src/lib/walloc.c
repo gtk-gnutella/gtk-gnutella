@@ -672,7 +672,7 @@ walloc_track(size_t size, const char *file, int line)
 
 	if G_UNLIKELY(rounded > walloc_max) {
 		/* Too big for efficient zalloc() */
-		void *p = 
+		void *p =
 #ifdef TRACK_MALLOC
 			malloc_track(size, file, line);
 #else

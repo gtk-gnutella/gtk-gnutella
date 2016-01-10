@@ -224,7 +224,7 @@ mime_type_to_string(enum mime_type type)
 #undef MIME_TYPE
 	};
 	size_t i;
-	
+
 	STATIC_ASSERT(MIME_TYPE_NUM == G_N_ELEMENTS(names));
 	i = (size_t) type < G_N_ELEMENTS(names)
 			? type : MIME_TYPE_APPLICATION_OCTET_STREAM;
@@ -271,7 +271,7 @@ enum mime_type
 mime_type_from_filename(const char *filename)
 {
 	const char *extension;
-	
+
 	g_return_val_if_fail(filename, MIME_TYPE_APPLICATION_OCTET_STREAM);
 	extension = strrchr(filename, '.');
 	return mime_type_from_extension(extension ? &extension[1] : NULL);

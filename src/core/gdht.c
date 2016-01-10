@@ -626,7 +626,7 @@ gdht_find_sha1(fileinfo_t *fi)
 	hikset_insert_key(sha1_lookups, &slk->id);
 	file_info_dht_query_queued(fi);
 
-	ulq_find_value(slk->id, DHT_VT_ALOC, 
+	ulq_find_value(slk->id, DHT_VT_ALOC,
 		gdht_sha1_found, gdht_sha1_looking, gdht_sha1_not_found, slk);
 }
 

@@ -141,7 +141,7 @@ search_stats_gui_disable_sort(void)
 	sortable = GTK_TREE_SORTABLE(store_search_stats);
 	if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
 		gtk_tree_sortable_set_sort_column_id(sortable,
-			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, 
+			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
 			GTK_SORT_DESCENDING);
 	}
 #endif /* Gtk+ >= 2.6.0 */
@@ -194,7 +194,7 @@ search_stats_notify_whole(query_type_t type, const char *search,
 	(void) unused_addr;
 	(void) unused_port;
 
-	concat_strings(buf, sizeof buf, 
+	concat_strings(buf, sizeof buf,
 		type == QUERY_SHA1 ? "urn:sha1:" : "[",
 		search,
 		type == QUERY_SHA1 ? "" : "]",
@@ -435,11 +435,11 @@ search_stats_gui_update_display(void)
 	stat_count = 0;
 	g_object_freeze_notify(G_OBJECT(treeview_search_stats));
 	gtk_list_store_clear(store_search_stats);
-	
+
 	/*
 	 * Temporarily disable sorting while inserting the updated table.
 	 * Otherwise, CPU is overloaded with sorting every addition
-	 *  to the hash table. 
+	 *  to the hash table.
 	 */
 	sorting_disabled = FALSE;
 	tm_now_exact(&start_time);
@@ -469,7 +469,7 @@ search_stats_gui_update_display(void)
 	    search_stats_gui_disable();
 	    search_stats_gui_overload = TRUE;
 	}
-	
+
 	if (search_stats_gui_overload) {
 		/* update status bar message */
 		gtk_label_set_text(GTK_LABEL(label_search_stats_count),

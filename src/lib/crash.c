@@ -1925,7 +1925,7 @@ retry_child:
 				PARENT_STDERR_FILENO, STDOUT_FILENO, parent_stdout);
 
 			_exit(EXIT_FAILURE);
-		}	
+		}
 		break;
 
 	default:	/* executed by parent */
@@ -3470,7 +3470,7 @@ crash_hook_install(void *data, void *udata)
  *
  * Of course, when CRASH_F_SUPERVISED is given, the process will not honor the
  * CRASH_F_RESTART flag, unless the supervising parent is gone.
- * 
+ *
  * @param argv0		the original argv[0] from main().
  * @param progname	the program name, to generate the proper crash file
  * @param flags		combination of CRASH_F_GDB, CRASH_F_PAUSE, CRASH_F_RESTART
@@ -3502,7 +3502,7 @@ crash_init(const char *argv0, const char *progname,
 
 		if (
 			-1 == stat(exec_path, &buf) ||
-			!S_ISREG(buf.st_mode) || 
+			!S_ISREG(buf.st_mode) ||
 			-1 == access(exec_path, X_OK)
 		) {
 			s_fatal_exit(EXIT_FAILURE, "%s(): unusable program \"%s\"",

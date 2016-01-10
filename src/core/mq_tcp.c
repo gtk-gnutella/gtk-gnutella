@@ -354,7 +354,7 @@ again:
 	}
 
 	q->putq_entered++;
-	
+
 	mbs = pmsg_start(mb);
 	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 

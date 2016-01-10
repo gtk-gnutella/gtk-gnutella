@@ -83,7 +83,7 @@ static bool dirty = FALSE;
 static hash_list_t *upload_stats_list;
 static hikset_t *upload_stats_by_sha1;
 
-static bool 
+static bool
 ul_stats_eq(const void *p, const void *q)
 {
 	const struct ul_stats *a = p, *b = q;
@@ -96,7 +96,7 @@ static uint
 ul_stats_hash(const void *p)
 {
 	const struct ul_stats *s = p;
-  
+
 	return hashing_mix32(
 		string_mix_hash(s->pathname) ^ integer_hash_fast(s->size));
 }
@@ -216,7 +216,7 @@ upload_stats_load_history(void)
 	uint lineno = 0;
 
 	gcu_upload_stats_gui_freeze();
-	
+
 	file_path_set(&fp, settings_config_dir(), ul_stats_file);
 
 	/* open file for reading */
@@ -272,7 +272,7 @@ upload_stats_load_history(void)
 				/* We have a SHA1 or '*' if none known */
 				if ('*' != *p) {
 					size_t len = clamp_strlen(p, SHA1_BASE32_SIZE);
-					
+
 					error = !parse_base32_sha1(p, len, &sha1_buf);
 					item.sha1 = error ? NULL : &sha1_buf;
 				} else {
@@ -308,7 +308,7 @@ upload_stats_load_history(void)
 
 #undef TIME
 
-		/* 
+		/*
 		 * We store the filenames UTF-8 encoded but the file might have been
 		 * edited or corrupted.
 		 */

@@ -101,7 +101,7 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 			fds[i].revents = POLLERR;
 			continue;
 		}
-		
+
 		max_fd = MAX(fd, max_fd);
 		fds[i].revents = 0;
 
@@ -123,7 +123,7 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 	}
 
 	ret = select(max_fd + 1, &rfds, &wfds, &efds, timeout < 0 ? NULL : &tv);
-	
+
 	if (ret > 0) {
 
 		n = MIN(n, FD_SETSIZE);	/* POLLERR is already set above */

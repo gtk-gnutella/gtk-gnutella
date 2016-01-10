@@ -100,7 +100,7 @@
  */
 #define NL_KBALL_PROBA		0.90
 #define NL_KBALL_FACTOR		100000
- 
+
 static unsigned kball_dist_proba[KUID_RAW_BITSIZE];
 
 /**
@@ -415,7 +415,7 @@ static void
 lookup_free(nlookup_t *nl)
 {
 	lookup_check(nl);
-	
+
 	if (lookup_is_fetching(nl))
 		lookup_value_free(nl, TRUE);
 
@@ -1921,7 +1921,7 @@ lookup_c_class_update_count(const nlookup_t *nl, const knode_t *kn, int pmone)
 	lookup_check(nl);
 	knode_check(kn);
 	g_assert(pmone == +1 || pmone == -1);
-	
+
 	if (!host_addr_is_ipv4(kn->addr))
 		return;
 
@@ -1984,7 +1984,7 @@ lookup_path_add(nlookup_t *nl, const knode_t *kn)
 
 	patricia_insert(nl->path, kn->id, knode_refcnt_inc(kn));
 	patricia_insert(nl->ball, kn->id, knode_refcnt_inc(kn));
-	
+
 	lookup_c_class_update_count(nl, kn, +1);
 }
 
@@ -2209,7 +2209,7 @@ lookup_path_is_safe(nlookup_t *nl)
 	 *
 	 * "Efficient DHT attack mitigation through peers's ID distribution" by
 	 * Thibault Cholez et al., published in June 2010.
-	 * 
+	 *
 	 * The idea is that Sybil attacks will necessarily change the statistical
 	 * distribution of the KUIDs surrounding the target.  By comparing the
 	 * actual KUID prefix distribution with the theoretical one, we can detect
@@ -3011,7 +3011,7 @@ lookup_handle_reply(
 			goto bad_token;
 
 		token = sectoken_remote_alloc(tlen);
-		
+
 		if (tlen > 0 && !bstr_read(bs, token->v, tlen))
 			goto bad_token;
 	}

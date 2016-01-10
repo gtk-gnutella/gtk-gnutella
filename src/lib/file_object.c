@@ -612,7 +612,7 @@ file_object_open_from(const char * const pathname, int accmode,
  * @param mode		permission mode, if creating
  * @param file		file location where file is opened
  * @param line		line number whenre file is opened
- * 
+ *
  * @return a file object enabling I/O operations on success, NULL on error.
  */
 file_object_t *
@@ -1320,7 +1320,7 @@ file_object_init_once(void)
 
 /**
  * Initializes this module and must be called before using any other function
- * of this module. 
+ * of this module.
  */
 void
 file_object_init(void)

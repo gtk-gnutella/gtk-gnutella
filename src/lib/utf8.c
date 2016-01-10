@@ -96,7 +96,7 @@
 static inline bool
 ui_uses_utf8_encoding(void)
 {
-#ifdef USE_GTK2 
+#ifdef USE_GTK2
 	return TRUE;
 #else  /* !USE_GTK2 */
 	return FALSE;
@@ -944,7 +944,7 @@ utf8_char_len(const char *s)
 		return 1;
 	else {
 		uint clen = utf8_skip(uc);
-		
+
 		(void) utf8_decode_large_char_fast(s + 1, uc, &clen);
 		return clen;
 	}
@@ -1237,7 +1237,7 @@ utf8_strcpy_max(char *dst, size_t dst_size, const char *src, size_t max_chars)
  * @returns 0 if the unicode character is invalid. Otherwise, the
  *          amount of UTF-16 characters is returned i.e., 1 or 2.
  */
-static unsigned NON_NULL_PARAM((2)) 
+static unsigned NON_NULL_PARAM((2))
 utf16_encode_char(uint32 uc, uint16 *dst)
 {
 	if (uc < 0xFFFF) {
@@ -1615,7 +1615,7 @@ locale_get_charset(void)
 #if defined(USE_GLIB2)
 		g_get_charset(&cs);
 #else /* !USE_GLIB2 */
-#if defined(HAS_LOCALE_CHARSET) 
+#if defined(HAS_LOCALE_CHARSET)
 		cs = locale_charset();
 #else /* !I_LIBCHARSET */
 		cs = get_iconv_charset_alias(nl_langinfo(CODESET));
@@ -1793,11 +1793,11 @@ get_filename_charsets(const char *locale)
 	 * option. */
 	if (!has_utf8)
 		sl = pslist_prepend(sl, conv_to_utf8_new("UTF-8"));
-	
+
 	/* Always add the locale charset as last resort if not already listed. */
 	if (!has_locale && 0 != strcmp("UTF-8", locale))
 		sl = pslist_prepend(sl, conv_to_utf8_new(locale));
-	
+
 	return pslist_reverse(sl);
 }
 
@@ -1877,7 +1877,7 @@ conversion_init(void)
 	}
 
 	/* Initialize UTF-8 -> primary filename charset conversion */
-	
+
 	/*
 	 * We don't need cd_utf8_to_filename if the filename character set
 	 * is ASCII or UTF-8. In the former case we fall back to ascii_enforce()
@@ -1903,7 +1903,7 @@ conversion_init(void)
 	}
 
 	/* Initialize filename charsets -> UTF-8 conversion */
-	
+
 	PSLIST_FOREACH_CALL(sl_filename_charsets, conv_to_utf8_init);
 }
 
@@ -2439,7 +2439,7 @@ hyper_utf8_enforce(char *dst, size_t dst_size, const char *src, size_t src_len)
  * @param src a NUL-terminated string.
  * @return If dst_size was sufficient dst is returned, otherwise
  *		   a newly allocated buffer.
- *         
+ *
  */
 static char *
 hyper_ascii_enforce(char *dst, size_t dst_size, const char *src)
@@ -2809,7 +2809,7 @@ looks_like_iso8859_8(const char *src)
  * - ASCII/JIS Roman        "[\x00-\x7F]"
  * - JIS X 0208:1997        "[\x81-\x9F\xE0-\xFC][\x40-\x7E\x80-\xFC]"
  * - Half width Katakana    "[\xA0-\xDF]"
- */	  
+ */
 static bool
 looks_like_sjis(const char *src)
 {
@@ -2921,7 +2921,7 @@ char *
 unknown_to_ui_string(const char *src)
 {
 	char *utf8_str, *ui_str;
-	
+
 	utf8_str = unknown_to_utf8(src, NULL);
 	ui_str = utf8_to_ui_string(utf8_str);
 	if (utf8_str != ui_str && utf8_str != src) {
@@ -3358,7 +3358,7 @@ utf8_to_utf16_string(const char *in)
  * @note If decoding was successful and the resulting codepoint is
  *		 greater than 0xFFFF, "next" has been used and should be skipped
  * 		 when decoding successively.
- * @return (uint32) -1 on failure, 
+ * @return (uint32) -1 on failure,
  */
 static inline uint32
 utf16_decode_pair(uint16 c, uint16 next)
@@ -4758,7 +4758,7 @@ utf32_case_fold_char(uint32 uc, uint32 *dst, size_t size)
 {
 	const uint32 *folded;
 	size_t length;
-	
+
 	uc = utf32_lowercase(uc);
 	folded = utf32_special_folding(uc);
 	if (folded) {
@@ -4791,7 +4791,7 @@ utf32_case_fold(const uint32 * const src0, uint32 * const dst0,
 	if (size > 0) {
 		*dst = 0x0000;
 	}
-	return dst - dst0; 
+	return dst - dst0;
 }
 
 /**
@@ -6229,7 +6229,7 @@ regression_utf8_strlower(void)
 		g_assert(len == utf8_char_count(blah));
 		g_assert(len == utf8_strlen(blah));
 	}
-	
+
 	{
 		const uchar s[] = {
 			0xc3, 0xb6, 0xc3, 0xa4, 0xc3, 0xb6, 0xc3, 0xa4, 0xc3,
@@ -6238,7 +6238,7 @@ regression_utf8_strlower(void)
 		size_t len, size;
 		char *dst;
 		const char *src = cast_to_constpointer(s);
-		
+
 		len = utf8_strlower(NULL, src, 0);
 		size = len + 1;
 		dst = g_malloc(size);

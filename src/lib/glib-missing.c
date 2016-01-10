@@ -84,11 +84,11 @@ size_t
 strlcat(char *dst, const char *src, size_t dst_size)
 {
 	size_t n;
-	
+
 	g_assert(NULL != dst);
 	g_assert(NULL != src);
 
-	n = strlen(dst);	
+	n = strlen(dst);
 	if (n < dst_size) {
 		dst_size -= n;
 	} else if (dst_size > 0) {
@@ -244,7 +244,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	int retval;	/* printf()-functions really return int, not size_t */
 	int truncated = 0;
 
-	g_assert(size_is_positive(size));	
+	g_assert(size_is_positive(size));
 
 	dst[0] = '\0';
 	retval = vsnprintf(dst, size, fmt, args);
@@ -269,8 +269,8 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #else	/* !HAS_VSNPRINTF */
 {
 	static str_t *s;
-  
-	g_assert(size > 0);	
+
+	g_assert(size > 0);
 
 	if (NULL == s)
 		s = str_new_not_leaking(0);
@@ -416,7 +416,7 @@ static void
 gm_hash_table_all_keys_helper(void *key, void *unused_value, void *udata)
 {
 	GSList **sl_ptr = udata;
-	
+
 	(void) unused_value;
 	*sl_ptr = g_slist_prepend(*sl_ptr, key);
 }
@@ -441,7 +441,7 @@ static void
 gm_hash_table_foreach_keys_helper(void *key, void *unused_value, void *udata)
 {
 	struct gm_hash_table_foreach_keys_helper *hp = udata;
-	
+
 	(void) unused_value;
 	(*hp->func)(key, hp->udata);
 }
@@ -481,7 +481,7 @@ g_list_sort_merge(
 {
 	GList list, *l, *lprev;
 
-	l = &list; 
+	l = &list;
 	lprev = NULL;
 
 	while (l1 && l2) {
@@ -495,7 +495,7 @@ g_list_sort_merge(
 			l2 = l2->next;
 		}
 		l = l->next;
-		l->prev = lprev; 
+		l->prev = lprev;
 		lprev = l;
 	}
 	l->next = l1 ? l1 : l2;
@@ -514,22 +514,22 @@ g_list_sort_with_data(
 	GList *list, GCompareDataFunc compare_func, void *user_data)
 {
 	GList *l1, *l2;
-  
-	if (!list) 
+
+	if (!list)
 		return NULL;
-	if (!list->next) 
+	if (!list->next)
 		return list;
-  
-	l1 = list; 
+
+	l1 = list;
 	l2 = list->next;
 
 	while ((l2 = l2->next)) {
-		if (NULL == (l2 = l2->next)) 
+		if (NULL == (l2 = l2->next))
 			break;
 		l1 = l1->next;
 	}
-	l2 = l1->next; 
-	l1->next = NULL; 
+	l2 = l1->next;
+	l1->next = NULL;
 
 	return g_list_sort_merge(
 		g_list_sort_with_data(list, compare_func, user_data),
@@ -776,7 +776,7 @@ emulate_calloc(gsize n, gsize m)
  *
  * The vtable only needs to provide malloc(), realloc(), and free() functions;
  * GLib can provide default implementations of the others.
- * The malloc() and realloc() implementations should return NULL on failure, 
+ * The malloc() and realloc() implementations should return NULL on failure,
  */
 void
 g_mem_set_vtable(GMemVTable *vtable)

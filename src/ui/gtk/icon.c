@@ -457,7 +457,7 @@ static gboolean
 status_icon_enabled_changed(property_t prop)
 {
 	gboolean enabled;
-	
+
     gui_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		status_icon_enable();

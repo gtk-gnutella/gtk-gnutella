@@ -191,7 +191,7 @@ list_t *
 list_new(void)
 {
 	list_t *list;
-		
+
 	WALLOC0(list);
 	list->refcount = 1;
 	list->stamp = LIST_MAGIC + 1;
@@ -210,7 +210,7 @@ list_free(list_t **list_ptr)
 	g_assert(list_ptr);
 	if (*list_ptr) {
 		list_t *list;
-	
+
 		list = *list_ptr;
 		g_assert(LIST_MAGIC == list->magic);
 

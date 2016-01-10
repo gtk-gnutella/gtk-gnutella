@@ -258,7 +258,7 @@ hfield_dump(const header_field_t *h, FILE *out)
 		}
 		fputc('\n', out);
 	}
-	slist_iter_free(&iter);	
+	slist_iter_free(&iter);
 }
 
 /***

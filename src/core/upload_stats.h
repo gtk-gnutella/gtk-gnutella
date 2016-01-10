@@ -34,7 +34,7 @@
 #ifndef _core_upload_stats_h_
 #define _core_upload_stats_h_
 
-#include "common.h" 
+#include "common.h"
 
 struct shared_file;
 

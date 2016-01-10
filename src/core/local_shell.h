@@ -28,7 +28,7 @@
  * Local shell
  *
  * This implements an alterego of gtk-gnutella to access the local socket
- * of gtk-gnutella. 
+ * of gtk-gnutella.
  *
  * @author Christian Biere
  * @date 2006
